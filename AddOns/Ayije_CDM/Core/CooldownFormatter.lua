@@ -104,3 +104,26 @@ end
 function Formatter.Get()
     return instance
 end
+
+-- MiliUI: 光環格（AuraButton 的 SetDurationText）專用。
+-- 圖示上的 Cooldown 在 Get() 回 nil 時退回暴雪的倒數格式，那一套是純數字；
+-- 但 AuraButton 沒給 formatter 會走暴雪的 SecondsFormatter，中文會印出「秒」。
+-- 所以這裡保證一定有一顆：有自訂門檻就用同一顆，沒有就用同一套斷點（無小數、無變色）
+-- 另建一顆。只在正常插件路徑（容器建立前）呼叫，不能在 initializeFrame 裡建。
+local plainInstance = nil
+
+function Formatter.GetForAuraText()
+    if instance then return instance end
+    if plainInstance then return plainInstance end
+    if not (C_StringUtil and C_StringUtil.CreateNumericRuleFormatter) then return nil end
+    local ok, f = pcall(function()
+        local fmt = C_StringUtil.CreateNumericRuleFormatter()
+        fmt:SetBreakpoints(BuildBreakpoints({
+            cooldownDecimalThreshold = 0,
+            cooldownColorThresholdEnabled = false,
+        }))
+        return fmt
+    end)
+    if ok and f then plainInstance = f end
+    return plainInstance
+end

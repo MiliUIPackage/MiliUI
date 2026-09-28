@@ -31,11 +31,35 @@ local function GetContainerForAnchorTarget(anchorTarget)
     return nil
 end
 
+-- MiliUI: 這個增益群組現在有沒有光環格（持有框錨在群組容器上 ⇒ 容器是隱式保護框）
+local function GroupHasAuraSlot(groupIndex)
+    local CB = CDM.CustomBuffs
+    local slots = CB and CB.auraSlots
+    if not slots or not next(slots) then return false end
+    local grouped = CDM.BuffGroupSets and CDM.BuffGroupSets.grouped
+    if not grouped then return false end
+    for sid in pairs(slots) do
+        if grouped[sid] == groupIndex then return true end
+    end
+    return false
+end
+
+-- 戰鬥中有光環格的群組不動容器，記旗標讓脫戰時重跑（CustomBuffs.lua 的 OnRegenEnabled）
+local function DeferGroupContainerInCombat(groupIndex)
+    if GroupHasAuraSlot(groupIndex) then
+        CDM.pendingBuffGroupContainerPosition = true
+        return true
+    end
+    return false
+end
+
 local bgDescriptor = GCU.CreateDescriptor({
     containers = containers,
     namePrefix = "Ayije_CDM_BuffGroup",
     callbackPrefix = "CDM_BuffGroup_",
     getSets = function() return CDM.BuffGroupSets end,
+    deferInCombat = DeferGroupContainerInCombat,  -- MiliUI
+    cacheSize = true,                              -- MiliUI
 })
 
 local NormalizeToBase = CDM.NormalizeToBase
@@ -44,6 +68,7 @@ local DeriveSelfPoint = layoutCtx.DeriveSelfPoint
 local GetStableFrameSortID = layoutCtx.GetStableFrameSortID
 
 local EnsureAuraNotificationHook
+local IsAuraSlotSpell
 
 local scratchSpellOrder = {}
 local scratchSpellSlot = {}
@@ -52,6 +77,7 @@ local scratchPlaceholderBySpell = {}
 local scratchActiveSet = {}
 local scratchSlotToRawSpell = {}
 local reconcileOpts = {}
+local scratchGroupOthers = {}  -- MiliUI: 群組排版時把持有框移到最前面用的暫存
 
 local notificationThrottles = {}
 local SOUND_THROTTLE = 1
@@ -164,11 +190,32 @@ local function BuildActiveSpellSet()
             end
         end
     end
+    -- MiliUI: 光環格是常駐格（有沒有光環由引擎決定、插件讀不到），一律算 active，
+    -- 靜態群組的格位配置照常運作
+    if CB and CB.auraSlots then
+        for sid in pairs(CB.auraSlots) do
+            MarkSafe(scratchActiveSet, sid)
+        end
+    end
     return scratchActiveSet
 end
 
 if API then
     rawset(API, "BuildActiveSpellSet", BuildActiveSpellSet)
+end
+
+-- MiliUI: 這批框裡有沒有光環格的持有框
+local function HasAuraSlotIn(frames)
+    for _, f in ipairs(frames) do
+        if f.isAuraSlot then return true end
+    end
+    return false
+end
+
+-- MiliUI: 這個法術 ID 目前是不是光環格
+IsAuraSlotSpell = function(spellID)
+    local CB = CDM.CustomBuffs
+    return CB and CB.auraSlots and CB.auraSlots[spellID] ~= nil or false
 end
 
 local function IsSpellMarkedActive(spellID, activeSpellIDs)
@@ -186,6 +233,8 @@ local function BuildStaticSlotLayout(groupData, activeSpellSet)
         local spellOv = ov and CDM:ResolveBuffOverrideEntry(ov, sid) or nil
         local isTracked = activeSpellSet and activeSpellSet[sid] or false
         local wantPlaceholder = spellOv and spellOv.placeholder and isTracked or false
+        -- MiliUI: 光環格自己的持有框就有占位圖示，不另配
+        if wantPlaceholder and IsAuraSlotSpell(sid) then wantPlaceholder = false end
         scratchPlaceholderBySpell[sid] = wantPlaceholder or nil
 
         if isTracked then
@@ -226,6 +275,7 @@ local function SetCooldownTextHidden(frame, hidden)
 end
 
 function CDM:RestoreCooldownTextIfHidden(frame)
+    if frame.isAuraSlot then return end  -- MiliUI: 倒數文字在 forbidden 子樹裡，不碰
     if frame.cdmCooldownTextHidden then
         SetCooldownTextHidden(frame, false)
         frame.cdmCooldownTextHidden = nil
@@ -255,6 +305,7 @@ local function RestoreFrameVisuals(frame)
 end
 
 function CDM:RestoreVisualsIfHidden(frame)
+    if frame.isAuraSlot then return end  -- MiliUI: 光環格不走隱藏圖示覆寫
     if frame.cdmVisualsHidden then
         RestoreFrameVisuals(frame)
     end
@@ -337,7 +388,10 @@ function CDM:UpdateAllBuffGroupContainers()
         bgDescriptor:UpdateContainerPosition(groupIndex, groupData, GetContainerForAnchorTarget)
         local at = groupData.anchorTarget or "screen"
         if not container:IsShown() and at ~= "essential" and at ~= "buff" and at ~= "playerFrame" then
-            container:Show()
+            -- MiliUI: 有光環格的群組戰鬥中不 Show（隱式保護框），延到脫戰
+            if not (InCombatLockdown() and DeferGroupContainerInCombat(groupIndex)) then
+                container:Show()
+            end
         end
         activeIndices[groupIndex] = true
     end
@@ -364,10 +418,18 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
 
     if not container:IsShown() then
         for _, frame in ipairs(frames) do
-            frame:Hide()
+            self:HideBuffLayoutFrame(frame)  -- MiliUI: 光環格的顯示切換有戰鬥閘
         end
         ReleaseGroupPlaceholders(groupIndex)
         return
+    end
+
+    -- MiliUI: 群組容器顯示中 ⇒ 光環格的持有框要顯示（戰鬥中延後）。
+    -- 要在下面數「顯示中幾顆」之前做，不然剛建好的持有框會被排到溢出格
+    for _, frame in ipairs(frames) do
+        if frame.isAuraSlot then
+            CDM.CustomBuffs.AuraSlots.SetShown(frame, true)
+        end
     end
 
     local grow = groupData.grow
@@ -395,7 +457,16 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
         layoutCount = shownCount > 0 and shownCount or count
     end
 
-    container:SetSize(iconWSnapped, iconHSnapped)
+    -- MiliUI: 值沒變不寫。群組容器被持有框錨定後是隱式保護框，戰鬥中連同值的 SetSize 都會被擋
+    -- （快取欄位跟 GroupContainerUtils 的 SetContainerSize 共用）
+    if container.cdmGroupSizeW ~= iconWSnapped or container.cdmGroupSizeH ~= iconHSnapped then
+        if InCombatLockdown() and frames[1] and HasAuraSlotIn(frames) then
+            CDM.auraSlotLayoutDeferred = true
+        else
+            container:SetSize(iconWSnapped, iconHSnapped)
+            container.cdmGroupSizeW, container.cdmGroupSizeH = iconWSnapped, iconHSnapped
+        end
+    end
 
     if count == 0 and not isStatic then
         ReleaseGroupPlaceholders(groupIndex)
@@ -418,6 +489,34 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
                 if aKey ~= bKey then return aKey < bKey end
                 return GetStableFrameSortID(a) < GetStableFrameSortID(b)
             end)
+        end
+    end
+
+    -- MiliUI: 非靜態群組：持有框排最前面（彼此之間維持上面的 spells 順序）。顯示中的框會
+    -- 壓縮排列，持有框放後面的話格位會跟著前面原生增益的增減而變；排在最前面，位置就只
+    -- 跟持有框的數量有關（置中生長仍會隨總數變，那部分靠 Layout.lua 的戰鬥閘延到脫戰）。
+    -- 靜態群組照 spells 順序配格位，不動。沒有光環格時什麼都不做。
+    if not isStatic and count > 1 then
+        local hasAuraSlot = false
+        for _, f in ipairs(frames) do
+            if f.isAuraSlot then hasAuraSlot = true break end
+        end
+        if hasAuraSlot then
+            table_wipe(scratchGroupOthers)
+            local n = 0
+            for _, f in ipairs(frames) do
+                if f.isAuraSlot then
+                    n = n + 1
+                    frames[n] = f
+                else
+                    scratchGroupOthers[#scratchGroupOthers + 1] = f
+                end
+            end
+            for _, f in ipairs(scratchGroupOthers) do
+                n = n + 1
+                frames[n] = f
+            end
+            table_wipe(scratchGroupOthers)
         end
     end
 
@@ -470,7 +569,7 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
                 end
             end
             if not idx then
-                frame:Hide()
+                self:HideBuffLayoutFrame(frame)  -- MiliUI: 光環格的顯示切換有戰鬥閘
                 BGP.SyncGroupedFrameState(frame, nil, nil, nil)
             end
         else
@@ -484,7 +583,17 @@ function CDM:PositionBuffGroupFrames(groupIndex, frames, activeSpellSetParam, re
         if idx then
             PositionFrameAtSlot(frame, container, idx, iconWSnapped, iconHSnapped, spacingSnapped, grow, layoutCount, anchorPoint, selfPoint)
 
-            if not repositionOnly then
+            local isAuraSlot = frame.isAuraSlot
+            if not repositionOnly and isAuraSlot then
+                -- MiliUI: 光環格只做邊框與尺寸（占位圖示在持有框上可以動）；倒數、層數、
+                -- 掃描都在 forbidden 子樹裡，字級／顏色變了由簽章比對換容器。發光不支援。
+                self:ApplyStyle(frame, CDM_C.VIEWERS.BUFF)
+                CDM.CustomBuffs.AuraSlots.SetSize(frame, iconWSnapped, iconHSnapped)
+                if frame.Icon then
+                    CDM_C.ApplyIconTexCoord(frame.Icon, CDM_C.GetEffectiveZoomAmount(), iconWSnapped, iconHSnapped)
+                end
+                if CDM.Glow then CDM.Glow:RequestBuffGlow(frame, "buff", false, nil, nil) end
+            elseif not repositionOnly then
                 self:ApplyStyle(frame, CDM_C.VIEWERS.BUFF)
                 frame:SetSize(iconWSnapped, iconHSnapped)
                 if frame.Icon then
@@ -692,10 +801,16 @@ function CDM:ApplyGroupStyleOverrides()
     end
 end
 
+-- MiliUI: 刷新鏈與光環格的脫戰補做共用這一支（群組容器的建立／定位／顯示）
+function CDM:UpdateBuffGroupContainerPositions()
+    CDM.pendingBuffGroupContainerPosition = nil
+    BGP.ReleaseAll()
+    self:UpdateAllBuffGroupContainers()
+end
+
 CDM:RegisterRefreshCallback("buffGroups", function()
     table_wipe(notificationThrottles)
-    BGP.ReleaseAll()
-    CDM:UpdateAllBuffGroupContainers()
+    CDM:UpdateBuffGroupContainerPositions()
 end, 31, { "BUFF_DATA" })
 
 CDM:RegisterRefreshCallback("buffGroups_postViewer", function()
@@ -788,6 +903,8 @@ end
 
 function CDM:ApplyUngroupedBuffOverrides(frame)
     if not frame then return end
+    -- MiliUI: 光環格的文字覆寫烘在容器裡（簽章），音效走引擎，這裡沒有東西可套
+    if frame.isAuraSlot then return end
     EnsureAuraNotificationHook(frame)
     local ov
     local matchedSpellID

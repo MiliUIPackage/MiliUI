@@ -444,6 +444,9 @@ end
 
 function Glow:RequestBuffGlow(frame, producerToken, enabled, overrideColor, sourceID)
     if not frame or not LCG then return end
+    -- MiliUI: 光環格不支援發光：動畫只能掛在持有框上，而持有框不知道光環在不在，
+    -- 開了就是常亮。一律當成關閉（關閉路徑照走，順便清掉舊的）。
+    if frame.isAuraSlot then enabled = false end
 
     if enabled then
         local current = frame.cdmGlowProducer

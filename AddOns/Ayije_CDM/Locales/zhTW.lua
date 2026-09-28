@@ -800,12 +800,6 @@ L["Trinket Blacklist"] = "飾品黑名單"
 L["Unknown item ID"] = "未知物品ID"
 
 -----------------------------------------------------------------------
--- Ayije_CDM_Options/BuffGroups.lua (新增)
------------------------------------------------------------------------
-
-L["Custom buffs are triggered from your own spellcasts. You CAN'T track random auras"] = "自訂增益由你自己的施法觸發，無法追蹤隨機光環"
-
------------------------------------------------------------------------
 -- Ayije_CDM_Options/Resources.lua (新增)
 -----------------------------------------------------------------------
 
@@ -923,3 +917,20 @@ L["Cast Bar Settings"] = "施法條設定"
 L["Assist Settings"] = "輔助設定"
 L["Positions & Locking"] = "位置與鎖定"
 
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/BuffGroups.lua (MiliUI: 光環格)
+-----------------------------------------------------------------------
+
+L["Mode:"] = "模式："
+L["Cast Timer"] = "施法計時"
+L["Aura (on yourself)"] = "光環（自己身上）"
+L["Type:"] = "類型："
+L["Debuff"] = "減益"
+L["Aura"] = "光環"
+L["Show placeholder when missing"] = "不在身上時顯示占位圖示"
+L["Hide Countdown Text"] = "隱藏倒數文字"
+L["This debuff is secret in combat and can't be tracked by spell ID"] = "這個減益在戰鬥中是秘密值，無法用法術 ID 追蹤"
+L["Debuffs: only spells that are never secret in combat can be tracked."] = "減益：只有戰鬥中不會變成秘密值的法術可以追蹤。"
+L["Aura: shown by the game from the spell ID and works in combat too, but the slot is fixed and won't collapse when the aura is missing."] = "光環：引擎依法術 ID 顯示，戰鬥中也正常，但位置固定、不會依有無自動收合。"
+L["Cast timer: counts a fixed duration from your own cast."] = "施法計時：從你自己的施法起算固定秒數。"
+L["In groups that grow from the center, position changes during combat wait until combat ends."] = "置中生長的群組在戰鬥中位置會延後到脫戰才更新。"

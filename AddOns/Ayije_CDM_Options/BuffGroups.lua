@@ -61,6 +61,11 @@ local function CreateBuffGroupsTab(page)
     local renameActiveEditBox = nil
     local pickerActiveGroupIndex = nil
     local customBuffAddGroupIndex = nil
+    -- MiliUI: 自訂增益新增面板的模式與光環選項（面板重畫時保留）
+    local customBuffAddMode = "timer"
+    local customBuffAddFilter = "HELPFUL"
+    local customBuffAddPlaceholder = true
+    local customBuffAddDraftSID = ""
 
     local _helpers = Shared.CreateGroupEditorHelpers({
         dbKey = "buffGroups",
@@ -426,7 +431,8 @@ local function CreateBuffGroupsTab(page)
 
     local spellIconBorders = {}
 
-    local function BuildOverrideSection(rc, yOff, spellID, groupIndex, existingOv, ensureOv, defaults, placeholderOpts, isCustomBuff)
+    -- MiliUI: hideTTS = 光環格項目（音效由引擎播，沒有 TTS 觸發）
+    local function BuildOverrideSection(rc, yOff, spellID, groupIndex, existingOv, ensureOv, defaults, placeholderOpts, isCustomBuff, hideTTS)
         yOff = yOff - 10
         local overrideHeader = rc:CreateFontString(nil, "ARTWORK", "AyijeCDM_Font18")
         overrideHeader:SetPoint("TOPLEFT", 0, yOff)
@@ -615,7 +621,8 @@ local function CreateBuffGroupsTab(page)
         end
 
         local ttsChecked = existingOv and existingOv.ttsEnabled or false
-        local ttsCheckbox = UI.CreateModernCheckbox(
+        if hideTTS then ttsChecked = false end
+        local ttsCheckbox = (not hideTTS) and UI.CreateModernCheckbox(
             rc,
             L["Text to Speech"],
             ttsChecked,
@@ -642,8 +649,10 @@ local function CreateBuffGroupsTab(page)
                 ShowSpellSettings(spellID, groupIndex)
             end
         )
-        ttsCheckbox:SetPoint("TOPLEFT", 0, yOff)
-        yOff = yOff - 36
+        if ttsCheckbox then
+            ttsCheckbox:SetPoint("TOPLEFT", 0, yOff)
+            yOff = yOff - 36
+        end
 
         if ttsChecked then
             local ov = existingOv or {}
@@ -771,6 +780,158 @@ local function CreateBuffGroupsTab(page)
         return yOff
     end
 
+    -- MiliUI: 光環格項目（customBuffRegistry 裡 kind = "aura"）
+    local function IsAuraCustomBuffSpell(spellID)
+        local entry = GetCustomBuffEntry and GetCustomBuffEntry(spellID)
+        return CDM.IsAuraCustomBuffEntry and CDM.IsAuraCustomBuffEntry(entry) or false
+    end
+
+    local function CreateAuraTypeItems()
+        return {
+            { text = L["Buff"], value = "HELPFUL" },
+            { text = L["Debuff"], value = "HARMFUL" },
+        }
+    end
+
+    -- 說明一律下一列灰色小字
+    local function AddNoteLine(parent, yOff, text, x)
+        local note = parent:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+        note:SetPoint("TOPLEFT", x or 0, yOff)
+        note:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -8, yOff)
+        note:SetJustifyH("LEFT")
+        note:SetWordWrap(true)
+        note:SetText(text)
+        UI.SetTextMuted(note)
+        return yOff - (note:GetStringHeight() + 8)
+    end
+
+    -- 編輯面板：法術 ID（改了等於刪舊加新）、類型、占位圖示、隱藏倒數文字。
+    -- 持續時間、發光不適用；音效與邊框色沿用下面的共用控件。
+    local function BuildAuraItemSection(rc, yOff, spellID, groupIndex, cbEntry)
+        if not cbEntry then return yOff end
+        yOff = yOff - 10
+
+        local sidLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+        sidLabel:SetPoint("TOPLEFT", 0, yOff)
+        sidLabel:SetText(L["Spell ID:"])
+
+        local sidInput = CreateFrame("EditBox", nil, rc, "InputBoxTemplate")
+        sidInput:SetSize(100, 20)
+        sidInput:SetPoint("LEFT", sidLabel, "RIGHT", 6, 0)
+        sidInput:SetAutoFocus(false)
+        sidInput:SetNumeric(true)
+        sidInput:SetMaxLetters(10)
+        sidInput:SetText(tostring(spellID))
+
+        local saveBtn = CreateFrame("Button", nil, rc, "UIPanelButtonTemplate")
+        saveBtn:SetSize(80, 22)
+        saveBtn:SetPoint("LEFT", sidInput, "RIGHT", 8, 0)
+        saveBtn:SetText(L["Save"])
+        yOff = yOff - 28
+
+        local idStatus = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+        idStatus:SetPoint("TOPLEFT", 0, yOff)
+        idStatus:SetPoint("TOPRIGHT", rc, "TOPRIGHT", -8, yOff)
+        idStatus:SetJustifyH("LEFT")
+        idStatus:SetWordWrap(true)
+        idStatus:SetText("")
+        yOff = yOff - 18
+
+        saveBtn:SetScript("OnClick", function()
+            local newSID = tonumber(sidInput:GetText())
+            if not newSID or newSID <= 0 or not C_Spell.GetSpellInfo(newSID) then
+                idStatus:SetText("|cffff4444" .. L["Invalid spell ID"] .. "|r")
+                return
+            end
+            if newSID == spellID then
+                idStatus:SetText("")
+                return
+            end
+            if cbEntry.auraFilter == "HARMFUL" and not API:IsAuraSpellNeverSecret(newSID) then
+                idStatus:SetText("|cffff4444" .. L["This debuff is secret in combat and can't be tracked by spell ID"] .. "|r")
+                return
+            end
+            -- 刪除會把這個 ID 從所有群組拿掉，先記住它在目前群組裡的位置
+            local groupPos
+            local groups = groupIndex and GetSpecGroups()
+            local gd = groups and groups[groupIndex]
+            if gd and gd.spells then
+                for i, sid in ipairs(gd.spells) do
+                    if sid == spellID then groupPos = i break end
+                end
+            end
+            local opts = {
+                kind = "aura",
+                auraFilter = cbEntry.auraFilter,
+                placeholder = cbEntry.placeholder,
+                hideCooldownText = cbEntry.hideCooldownText,
+            }
+            API:RemoveCustomBuffSpell(spellID)
+            if not API:AddCustomBuffSpell(newSID, nil, opts) then
+                idStatus:SetText("|cffff4444" .. L["Failed - invalid spell ID"] .. "|r")
+                SaveAndRefresh()
+                RefreshLeftPanelIfNeeded()
+                return
+            end
+            if gd and groupPos then
+                if not gd.spells then gd.spells = {} end
+                table.insert(gd.spells, math.min(groupPos, #gd.spells + 1), newSID)
+            end
+            SaveAndRefresh()
+            RefreshLeftPanelIfNeeded()
+            ShowSpellSettings(newSID, groupPos and groupIndex or nil)
+        end)
+
+        local typeStatus
+        local typeDropdown
+        typeDropdown = UI.CreateModernDropdown(rc, L["Type:"], CreateAuraTypeItems(),
+            cbEntry.auraFilter or "HELPFUL",
+            function(value)
+                if value == "HARMFUL" and not API:IsAuraSpellNeverSecret(spellID) then
+                    typeStatus:SetText("|cffff4444" .. L["This debuff is secret in combat and can't be tracked by spell ID"] .. "|r")
+                    typeDropdown:UpdateUIValue(cbEntry.auraFilter or "HELPFUL")
+                    return
+                end
+                typeStatus:SetText("")
+                cbEntry.auraFilter = value
+                SaveAndRefresh()
+            end, 90, 160)
+        typeDropdown:SetPoint("TOPLEFT", 0, yOff)
+        RegisterRightPanelDropdown(typeDropdown.dropdown)
+        yOff = yOff - 30
+        -- MiliUI: 持有框戰鬥中不能移（保護框），置中生長的群組會延到脫戰才補位
+        yOff = AddNoteLine(rc, yOff, L["Debuffs: only spells that are never secret in combat can be tracked."]
+            .. "\n" .. L["In groups that grow from the center, position changes during combat wait until combat ends."])
+
+        typeStatus = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+        typeStatus:SetPoint("TOPLEFT", 0, yOff)
+        typeStatus:SetPoint("TOPRIGHT", rc, "TOPRIGHT", -8, yOff)
+        typeStatus:SetJustifyH("LEFT")
+        typeStatus:SetWordWrap(true)
+        typeStatus:SetText("")
+        yOff = yOff - 18
+
+        local phCheckbox = UI.CreateModernCheckbox(rc, L["Show placeholder when missing"],
+            cbEntry.placeholder ~= false,
+            function(checked)
+                cbEntry.placeholder = checked and true or false
+                SaveAndRefresh()
+            end)
+        phCheckbox:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 36
+
+        local hideTextCheckbox = UI.CreateModernCheckbox(rc, L["Hide Countdown Text"],
+            cbEntry.hideCooldownText and true or false,
+            function(checked)
+                cbEntry.hideCooldownText = checked and true or false
+                SaveAndRefresh()
+            end)
+        hideTextCheckbox:SetPoint("TOPLEFT", 0, yOff)
+        yOff = yOff - 36
+
+        return yOff
+    end
+
     ShowSpellSettings = function(spellID, groupIndex)
         pickerActiveGroupIndex = nil
         customBuffAddGroupIndex = nil
@@ -856,32 +1017,38 @@ local function CreateBuffGroupsTab(page)
             end
         end)
 
-        local glowEnabled = API:GetSpellGlowEnabled(currentSpecID, spellID)
-        local glowCheckbox = UI.CreateModernCheckbox(
-            rc,
-            L["Enable Glow"],
-            glowEnabled,
-            function(checked)
-                API:SetSpellGlowEnabled(currentSpecID, spellID, checked or nil)
-            end
-        )
-        glowCheckbox:SetPoint("TOPLEFT", 0, yOff)
-        yOff = yOff - 36
+        -- MiliUI: 光環格項目不提供發光（持有框不知道光環在不在，開了就是常亮）
+        local isAuraItem = IsAuraCustomBuffSpell(spellID)
+        if not isAuraItem then
+            local glowEnabled = API:GetSpellGlowEnabled(currentSpecID, spellID)
+            local glowCheckbox = UI.CreateModernCheckbox(
+                rc,
+                L["Enable Glow"],
+                glowEnabled,
+                function(checked)
+                    API:SetSpellGlowEnabled(currentSpecID, spellID, checked or nil)
+                end
+            )
+            glowCheckbox:SetPoint("TOPLEFT", 0, yOff)
+            yOff = yOff - 36
 
-        local glowColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
-        glowColorLabel:SetText(L["Glow Color:"])
-        glowColorLabel:SetPoint("TOPLEFT", 0, yOff)
+            local glowColorLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font14")
+            glowColorLabel:SetText(L["Glow Color:"])
+            glowColorLabel:SetPoint("TOPLEFT", 0, yOff)
 
-        local existingGlowColor = API:GetSpellGlowColor(currentSpecID, spellID) or { r = 1, g = 1, b = 1 }
-        local glowColorPicker = UI.CreateSimpleColorPicker(rc, existingGlowColor, function(r, g, b)
-            API:SetSpellGlowColor(currentSpecID, spellID, { r = r, g = g, b = b })
-        end)
-        glowColorPicker:SetPoint("LEFT", glowColorLabel, "RIGHT", 6, 0)
-        yOff = yOff - 30
+            local existingGlowColor = API:GetSpellGlowColor(currentSpecID, spellID) or { r = 1, g = 1, b = 1 }
+            local glowColorPicker = UI.CreateSimpleColorPicker(rc, existingGlowColor, function(r, g, b)
+                API:SetSpellGlowColor(currentSpecID, spellID, { r = r, g = g, b = b })
+            end)
+            glowColorPicker:SetPoint("LEFT", glowColorLabel, "RIGHT", 6, 0)
+            yOff = yOff - 30
+        end
 
         local isCustom = IsCustomBuffSpell(spellID)
 
-        if isCustom then
+        if isCustom and isAuraItem then
+            yOff = BuildAuraItemSection(rc, yOff, spellID, groupIndex, GetCustomBuffEntry(spellID))
+        elseif isCustom then
             local cbEntry = GetCustomBuffEntry(spellID)
             if not (cbEntry and cbEntry.triggerType) then
                 yOff = yOff - 10
@@ -980,7 +1147,8 @@ local function CreateBuffGroupsTab(page)
                         countOffsetY = gd.countOffsetY or 0,
                     },
                     isCustom and nil or { isStatic = gd.staticDisplay or false },
-                    isCustom
+                    isCustom,
+                    isAuraItem
                 )
             end
         end
@@ -999,7 +1167,8 @@ local function CreateBuffGroupsTab(page)
                     countOffsetY = CDM.db.countOffsetYMain or 0,
                 },
                 nil,
-                isCustom
+                isCustom,
+                isAuraItem
             )
         end
 
@@ -1122,6 +1291,7 @@ local function CreateBuffGroupsTab(page)
             for _, tmpl in ipairs(templates) do
                 local sid = tmpl.spellID
                 local dur = tmpl.duration
+                local isAuraTmpl = tmpl.kind == "aura"  -- MiliUI: 光環格範本沒有持續時間
                 local spellName = C_Spell.GetSpellName(sid)
                 local spellTex = C_Spell.GetSpellTexture(sid)
                 local alreadyExists = CDM.db.customBuffRegistry and CDM.db.customBuffRegistry[sid]
@@ -1138,7 +1308,8 @@ local function CreateBuffGroupsTab(page)
 
                 local tName = tRow:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
                 tName:SetPoint("LEFT", tIcon, "RIGHT", 6, 0)
-                tName:SetText((spellName or tostring(sid)) .. "  |cff888888" .. dur .. "s|r")
+                local tag = isAuraTmpl and L["Aura"] or (tostring(dur) .. "s")
+                tName:SetText((spellName or tostring(sid)) .. "  |cff888888" .. tag .. "|r")
 
                 local tAddBtn = CreateFrame("Button", nil, tRow, "UIPanelButtonTemplate")
                 tAddBtn:SetSize(50, 20)
@@ -1146,7 +1317,12 @@ local function CreateBuffGroupsTab(page)
                 tAddBtn:SetText(L["Add"])
                 tAddBtn:SetEnabled(not alreadyExists)
                 tAddBtn:SetScript("OnClick", function()
-                    local ov = (tmpl.icon or tmpl.triggerType) and { icon = tmpl.icon, triggerType = tmpl.triggerType } or nil
+                    local ov
+                    if isAuraTmpl then
+                        ov = { kind = "aura", auraFilter = tmpl.auraFilter or "HELPFUL", placeholder = true }
+                    else
+                        ov = (tmpl.icon or tmpl.triggerType) and { icon = tmpl.icon, triggerType = tmpl.triggerType } or nil
+                    end
                     if not API:AddCustomBuffSpell(sid, dur, ov) then return end
                     if targetGroupIndex then
                         local currentGroups = EnsureBuffGroups()
@@ -1173,11 +1349,26 @@ local function CreateBuffGroupsTab(page)
         UI.SetTextWhite(advLabel)
         yOff = yOff - 24
 
+        -- MiliUI: 模式：施法計時（從自己的施法起算固定秒數）／光環（引擎依法術 ID 顯示）
+        local isAuraMode = customBuffAddMode == "aura"
+        local sidInput
+        local modeDropdown = UI.CreateModernDropdown(rc, L["Mode:"], {
+            { text = L["Cast Timer"], value = "timer" },
+            { text = L["Aura (on yourself)"], value = "aura" },
+        }, customBuffAddMode, function(value)
+            customBuffAddMode = value
+            customBuffAddDraftSID = sidInput and sidInput:GetText() or ""
+            ShowCustomBuffAddPanel(targetGroupIndex)
+        end, 90, 180)
+        modeDropdown:SetPoint("TOPLEFT", 0, yOff)
+        RegisterRightPanelDropdown(modeDropdown.dropdown)
+        yOff = yOff - 32
+
         local sidLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
         sidLabel:SetPoint("TOPLEFT", 0, yOff)
         sidLabel:SetText(L["Spell ID:"])
 
-        local sidInput = CreateFrame("EditBox", nil, rc, "InputBoxTemplate")
+        sidInput = CreateFrame("EditBox", nil, rc, "InputBoxTemplate")
         sidInput:SetSize(100, 20)
         sidInput:SetPoint("LEFT", sidLabel, "RIGHT", 6, 0)
         sidInput:SetAutoFocus(false)
@@ -1185,18 +1376,36 @@ local function CreateBuffGroupsTab(page)
         sidInput:SetMaxLetters(10)
         yOff = yOff - 28
 
-        local durLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
-        durLabel:SetPoint("TOPLEFT", 0, yOff)
-        durLabel:SetText(L["Duration (sec):"])
+        local durInput
+        if not isAuraMode then
+            local durLabel = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
+            durLabel:SetPoint("TOPLEFT", 0, yOff)
+            durLabel:SetText(L["Duration (sec):"])
 
-        local durInput = CreateFrame("EditBox", nil, rc, "InputBoxTemplate")
-        durInput:SetSize(60, 20)
-        durInput:SetPoint("LEFT", durLabel, "RIGHT", 6, 0)
-        durInput:SetAutoFocus(false)
-        durInput:SetNumeric(true)
-        durInput:SetMaxLetters(5)
-        durInput:SetText("10")
-        yOff = yOff - 28
+            durInput = CreateFrame("EditBox", nil, rc, "InputBoxTemplate")
+            durInput:SetSize(60, 20)
+            durInput:SetPoint("LEFT", durLabel, "RIGHT", 6, 0)
+            durInput:SetAutoFocus(false)
+            durInput:SetNumeric(true)
+            durInput:SetMaxLetters(5)
+            durInput:SetText("10")
+            yOff = yOff - 28
+        else
+            local typeDropdown = UI.CreateModernDropdown(rc, L["Type:"], CreateAuraTypeItems(),
+                customBuffAddFilter, function(value)
+                    customBuffAddFilter = value
+                end, 90, 160)
+            typeDropdown:SetPoint("TOPLEFT", 0, yOff)
+            RegisterRightPanelDropdown(typeDropdown.dropdown)
+            yOff = yOff - 30
+            yOff = AddNoteLine(rc, yOff, L["Debuffs: only spells that are never secret in combat can be tracked."])
+
+            local phCheckbox = UI.CreateModernCheckbox(rc, L["Show placeholder when missing"],
+                customBuffAddPlaceholder,
+                function(checked) customBuffAddPlaceholder = checked and true or false end)
+            phCheckbox:SetPoint("TOPLEFT", 0, yOff)
+            yOff = yOff - 32
+        end
 
         local previewText = rc:CreateFontString(nil, "OVERLAY", "AyijeCDM_Font12")
         previewText:SetPoint("TOPLEFT", sidInput, "TOPRIGHT", 8, -3)
@@ -1215,6 +1424,11 @@ local function CreateBuffGroupsTab(page)
                 previewText:SetText("")
             end
         end)
+        -- MiliUI: 切換模式會重畫面板，把剛才輸入的法術 ID 帶回來
+        if customBuffAddDraftSID ~= "" then
+            sidInput:SetText(customBuffAddDraftSID)
+            customBuffAddDraftSID = ""
+        end
 
         local advAddBtn = CreateFrame("Button", nil, rc, "UIPanelButtonTemplate")
         advAddBtn:SetSize(100, 22)
@@ -1226,18 +1440,38 @@ local function CreateBuffGroupsTab(page)
         advAddBtn:SetText(L["Add Spell"])
         advAddBtn:SetScript("OnClick", function()
             local sid = tonumber(sidInput:GetText())
-            local dur = tonumber(durInput:GetText())
             if not sid or sid <= 0 then
                 statusText:SetText("|cffff4444" .. (L["Invalid spell ID"]) .. "|r")
                 return
             end
-            if not dur or dur <= 0 then
-                statusText:SetText("|cffff4444" .. (L["Enter a valid duration"]) .. "|r")
-                return
-            end
-            if not API:AddCustomBuffSpell(sid, dur) then
-                statusText:SetText("|cffff4444" .. (L["Failed - invalid spell ID"]) .. "|r")
-                return
+            if isAuraMode then
+                -- MiliUI: 驗證順序：法術 ID 合法 → 減益要是 NeverSecret → 才新增
+                if not C_Spell.GetSpellInfo(sid) then
+                    statusText:SetText("|cffff4444" .. (L["Invalid spell ID"]) .. "|r")
+                    return
+                end
+                if customBuffAddFilter == "HARMFUL" and not API:IsAuraSpellNeverSecret(sid) then
+                    statusText:SetText("|cffff4444" .. L["This debuff is secret in combat and can't be tracked by spell ID"] .. "|r")
+                    return
+                end
+                if not API:AddCustomBuffSpell(sid, nil, {
+                    kind = "aura",
+                    auraFilter = customBuffAddFilter,
+                    placeholder = customBuffAddPlaceholder,
+                }) then
+                    statusText:SetText("|cffff4444" .. (L["Failed - invalid spell ID"]) .. "|r")
+                    return
+                end
+            else
+                local dur = tonumber(durInput:GetText())
+                if not dur or dur <= 0 then
+                    statusText:SetText("|cffff4444" .. (L["Enter a valid duration"]) .. "|r")
+                    return
+                end
+                if not API:AddCustomBuffSpell(sid, dur) then
+                    statusText:SetText("|cffff4444" .. (L["Failed - invalid spell ID"]) .. "|r")
+                    return
+                end
             end
             if targetGroupIndex then
                 local currentGroups = EnsureBuffGroups()
@@ -1250,6 +1484,7 @@ local function CreateBuffGroupsTab(page)
             end
             statusText:SetText("|cff00ff00" .. (L["Added!"]) .. "|r")
             sidInput:SetText("")
+            customBuffAddDraftSID = ""
             SaveAndRefresh()
             RefreshLeftPanelIfNeeded()
             ShowCustomBuffAddPanel(targetGroupIndex)
@@ -1262,7 +1497,10 @@ local function CreateBuffGroupsTab(page)
         disclaimer:SetPoint("TOPRIGHT", rc, "TOPRIGHT", -8, yOff)
         disclaimer:SetJustifyH("LEFT")
         disclaimer:SetWordWrap(true)
-        disclaimer:SetText(L["Custom buffs are triggered from your own spellcasts. You CAN'T track random auras"])
+        -- MiliUI: 依模式說明兩種項目的差別
+        disclaimer:SetText(isAuraMode
+            and L["Aura: shown by the game from the spell ID and works in combat too, but the slot is fixed and won't collapse when the aura is missing."]
+            or L["Cast timer: counts a fixed duration from your own cast."])
         UI.SetTextMuted(disclaimer)
         yOff = yOff - (disclaimer:GetStringHeight() + 6)
 
@@ -1372,7 +1610,9 @@ local function CreateBuffGroupsTab(page)
         local displayName = C_Spell.GetSpellName(displayID) or L["Unknown"]
         local cbEntry = GetCustomBuffEntry(spellID)
         if cbEntry then
-            displayName = displayName .. "  |cff888888" .. cbEntry.duration .. "s|r"
+            -- MiliUI: 光環格沒有持續時間，標「光環」
+            local tag = IsAuraCustomBuffSpell(spellID) and L["Aura"] or (tostring(cbEntry.duration or "?") .. "s")
+            displayName = displayName .. "  |cff888888" .. tag .. "|r"
         end
         nameText:SetText(displayName)
         if isActive == false then
