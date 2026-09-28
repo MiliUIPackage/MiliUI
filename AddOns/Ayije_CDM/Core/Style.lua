@@ -771,8 +771,50 @@ function CDM:SweepRogueBlackShadows()
     return count
 end
 
+-- MiliUI: 光環格的持有框只做邊框與尺寸。它沒有 Cooldown／Applications：掃描、倒數、層數
+-- 都建在暴雪 AuraButton 的 forbidden 子樹裡，樣式在建立時就烘死了（CustomBuffs.lua 的簽章），
+-- 這裡一個都不能碰。Icon 是持有框上的占位圖示，只套尺寸與縮放。
+local function ApplyAuraSlotStyle(frame)
+    if not styleCache.fontPath then
+        RefreshStyleCache()
+    end
+    local CB = CDM.CustomBuffs
+    local w, h = CDM:GetCustomBuffEffectiveSize(frame.spellID)
+    w, h = Snap(w), Snap(h)
+    if CB and CB.AuraSlots then
+        CB.AuraSlots.SetSize(frame, w, h)
+    end
+    if frame.Icon then
+        local zoomAmount = styleCache.zoomIcons and styleCache.zoomAmount or 0
+        ApplyIconTextureLayout(frame.Icon, frame, w, h, zoomAmount)
+    end
+
+    local borderStyleVersion = CDM.borderStyleVersion or 0
+    EnsureIconBorder(frame, frame, "cdmBorder", styleCache.isBorderActive, borderStyleVersion)
+    local border = frame.cdmBorder
+    if border then
+        -- 邊框要壓過按鈕裡的掃描（層級表見 CustomBuffs.lua 的 LEVEL_*）
+        local lift = (CB and CB.AURA_SLOT_BORDER_LEVEL) or 4
+        border:SetFrameLevel(frame:GetFrameLevel() + lift)
+        if border.SetBackdropBorderColor then
+            local configColor = styleCache.borderColor or CDM_C.WHITE
+            local r, g, b = configColor.r, configColor.g, configColor.b
+            local customColor = IsSafeNumber(frame.spellID) and GetColorForSpellID(frame.spellID) or nil
+            if customColor then
+                r, g, b = customColor.r or r, customColor.g or g, customColor.b or b
+            end
+            BORDER:CommitResolvedBorderColor(frame, r, g, b)
+        end
+    end
+end
+
 function CDM:ApplyStyle(frame, vName, forceUpdate)
     if not frame then return end
+    if frame.isAuraSlot then  -- MiliUI: 見 ApplyAuraSlotStyle
+        frame.cdmViewerName = vName
+        ApplyAuraSlotStyle(frame)
+        return
+    end
 
     frame.cdmViewerName = vName
     local fullUpdate = forceUpdate or not frame.cdmHooksInitialized or frame.cdmLastStyledVName ~= vName

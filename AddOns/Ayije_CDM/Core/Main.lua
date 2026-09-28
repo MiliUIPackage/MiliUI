@@ -460,6 +460,12 @@ local function ForceRestyleAll()
             CDM:ApplyUngroupedBuffOverrides(frame)
         end
     end
+    -- MiliUI: 光環格的持有框（ApplyStyle 對它只做邊框與尺寸）
+    if CDM.CustomBuffs.auraSlots then
+        for _, holder in pairs(CDM.CustomBuffs.auraSlots) do
+            CDM:ApplyStyle(holder, VIEWERS.BUFF, true)
+        end
+    end
     CDM:ApplyGroupStyleOverrides()
     local bbViewer = _G[VIEWERS.BUFF_BAR]
     if bbViewer then CDM:ForceReanchor(bbViewer) end

@@ -324,7 +324,6 @@ L["Custom Spell"] = "自定义法术"
 L["Add Spell"] = "添加法术"
 L["Failed - invalid spell ID"] = "失败 - 无效的法术ID"
 L["Added!"] = "已添加！"
-L["Custom buffs are triggered from your own spellcasts. You CAN'T track random auras"] = "自定义增益只能追踪自己触发的法术，不能追踪随机光环"
 L["Back"] = "返回"
 L["Add Group"] = "添加组"
 L["Add Icon"] = "添加图标"
@@ -684,3 +683,21 @@ L["Cast Bar"] = "施法条"
 
 L["Enable Externals"] = "启用外部防御"
 L["Disable Blink"] = "禁用闪烁"
+
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/BuffGroups.lua (MiliUI: 光環格)
+-----------------------------------------------------------------------
+
+L["Mode:"] = "模式："
+L["Cast Timer"] = "施法计时"
+L["Aura (on yourself)"] = "光环（自身）"
+L["Type:"] = "类型："
+L["Debuff"] = "减益效果"
+L["Aura"] = "光环"
+L["Show placeholder when missing"] = "不在身上时显示占位图标"
+L["Hide Countdown Text"] = "隐藏倒计时文字"
+L["This debuff is secret in combat and can't be tracked by spell ID"] = "这个减益在战斗中是秘密值，无法用法术 ID 追踪"
+L["Debuffs: only spells that are never secret in combat can be tracked."] = "减益：只有战斗中不会变成秘密值的法术可以追踪。"
+L["Aura: shown by the game from the spell ID and works in combat too, but the slot is fixed and won't collapse when the aura is missing."] = "光环：引擎依法术 ID 显示，战斗中也正常，但位置固定、不会依有无自动收合。"
+L["Cast timer: counts a fixed duration from your own cast."] = "施法计时：从你自己的施法起算固定秒数。"
+L["In groups that grow from the center, position changes during combat wait until combat ends."] = "居中生长的分组在战斗中位置会延后到脱战才更新。"

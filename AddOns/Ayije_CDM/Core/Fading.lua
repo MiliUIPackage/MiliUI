@@ -46,6 +46,12 @@ Fading:RegisterTarget("fadingBuffs", function(a)
                 buffData.frame:SetAlpha(a)
             end
         end
+        -- MiliUI: 光環格的持有框（alpha 在自己的框上，不碰底下的容器）
+        if CDM.CustomBuffs.auraSlots then
+            for _, holder in pairs(CDM.CustomBuffs.auraSlots) do
+                holder:SetAlpha(a)
+            end
+        end
     end
     if CDM.buffGroupContainers then
         for _, container in pairs(CDM.buffGroupContainers) do

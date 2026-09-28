@@ -279,6 +279,20 @@ local function SetCdmAnchor(frame, point, relativeTo, relativePoint, x, y)
     return true
 end
 
+-- MiliUI: 光環格的持有框底下有暴雪的 intrinsic 容器（保護框），隱式保護沿父層與錨點鏈往上傳
+-- ⇒ 戰鬥中對持有框 SetPoint／ClearAllPoints 會跳封鎖視窗。戰鬥中位置有變就不寫、
+-- 也不更新 cdmAnchor 快取（脫戰重排時才會真的寫），只記一個旗標讓脫戰時重排一次。
+-- 回傳 true ＝ 呼叫端不要動這個框。
+local function DeferAuraSlotPlacement(frame, point, relativeTo, relativePoint, x, y)
+    if not (frame.isAuraSlot and InCombatLockdown()) then return false end
+    local a = frame.cdmAnchor
+    if not (a and a[1] == point and a[2] == relativeTo and a[3] == relativePoint
+            and a[4] == Snap(x or 0) and a[5] == Snap(y or 0)) then
+        CDM.auraSlotLayoutDeferred = true
+    end
+    return true
+end
+
 local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW, grow, layoutCount, anchorPoint, selfPoint)
     local x, y
     local stepW = Snap(iconW + spacingW)
@@ -300,12 +314,14 @@ local function PositionFrameAtSlot(frame, container, idx, iconW, iconH, spacingW
     end
     local sp = selfPoint or "CENTER"
     local ap = anchorPoint or "CENTER"
+    if DeferAuraSlotPlacement(frame, sp, container, ap, x, y) then return end  -- MiliUI
     if not SetCdmAnchor(frame, sp, container, ap, x, y) then return end
     frame:ClearAllPoints()
     Pixel.SetPoint(frame, sp, container, ap, x or 0, y or 0)
 end
 
 local function PlaceFrame(frame, container, selfPoint, anchorPoint, x, y)
+    if DeferAuraSlotPlacement(frame, selfPoint, container, anchorPoint, x, y) then return end  -- MiliUI
     if not SetCdmAnchor(frame, selfPoint, container, anchorPoint, x, y) then return end
     frame:ClearAllPoints()
     Pixel.SetPoint(frame, selfPoint, container, anchorPoint, x, y)
@@ -487,6 +503,15 @@ function CDM:UpdateBuffContainerPosition()
     if CDM.draggingViewer == VIEWERS.BUFF then return end
     local buffContainer = self.anchorContainers[VIEWERS.BUFF]
     if not buffContainer then return end
+    -- MiliUI: 有光環格時，主增益容器被持有框錨定 ⇒ 隱式保護框，戰鬥中不能移。
+    -- 延到脫戰（CustomBuffs.lua 的 AuraSlots.OnRegenEnabled 會補呼叫）。
+    -- 沒有光環格時照舊，行為不變。
+    local CB = CDM.CustomBuffs
+    if InCombatLockdown() and CB and CB.auraSlots and next(CB.auraSlots) then
+        CDM.pendingBuffContainerPosition = true
+        return
+    end
+    CDM.pendingBuffContainerPosition = nil
 
     local db = CDM.db
     if db and db.moveBuffsDown and db.resourcesEnabled ~= false then

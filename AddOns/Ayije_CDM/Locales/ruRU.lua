@@ -309,7 +309,6 @@ L["Add"] = "Добавить"
 L["Add Spell"] = "Добавить заклинание"
 L["Failed - invalid spell ID"] = "Ошибка — некорректный ID заклинания"
 L["Added!"] = "Добавлено!"
---L["Custom buffs are triggered from your own spellcasts. You CAN'T track random auras"] = "Custom buffs are triggered from your own spellcasts. You CAN'T track random auras"
 --L["Back"] = "Back"
 --L["Add Group"] = "Add Group"
 --L["Add Icon"] = "Add Icon"
@@ -670,3 +669,20 @@ L["Cast Bar"] = "Полоса заклинания"
 --L["Enable Externals"] = "Enable Externals"
 --L["Disable Blink"] = "Disable Blink"
 
+-----------------------------------------------------------------------
+-- Ayije_CDM_Options/BuffGroups.lua (MiliUI: 光環格)
+-----------------------------------------------------------------------
+
+--L["Mode:"] = "Mode:"
+--L["Cast Timer"] = "Cast Timer"
+--L["Aura (on yourself)"] = "Aura (on yourself)"
+--L["Type:"] = "Type:"
+--L["Debuff"] = "Debuff"
+--L["Aura"] = "Aura"
+--L["Show placeholder when missing"] = "Show placeholder when missing"
+--L["Hide Countdown Text"] = "Hide Countdown Text"
+--L["This debuff is secret in combat and can't be tracked by spell ID"] = "This debuff is secret in combat and can't be tracked by spell ID"
+--L["Debuffs: only spells that are never secret in combat can be tracked."] = "Debuffs: only spells that are never secret in combat can be tracked."
+--L["Aura: shown by the game from the spell ID and works in combat too, but the slot is fixed and won't collapse when the aura is missing."] = "Aura: shown by the game from the spell ID and works in combat too, but the slot is fixed and won't collapse when the aura is missing."
+--L["Cast timer: counts a fixed duration from your own cast."] = "Cast timer: counts a fixed duration from your own cast."
+--L["In groups that grow from the center, position changes during combat wait until combat ends."] = "In groups that grow from the center, position changes during combat wait until combat ends."

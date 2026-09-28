@@ -38,6 +38,43 @@ local function CompareBuffFramesDeterministic(a, b)
     return GetStableFrameSortID(a) < GetStableFrameSortID(b)
 end
 
+-- MiliUI: 光環格的持有框（固定前綴）與其餘框分開排。暫存表重用，不每次現配。
+local scratchAuraSlotFrames = {}
+local scratchOtherBuffFrames = {}
+
+-- 原本的置中排法。prefixWidth > 0 時只在 [prefixWidth, 容器寬] 這段裡置中；
+-- prefixWidth = 0 時算式跟改前逐字相同（零光環格時的回歸點）。
+local function PositionCenteredBuffRow(frames, container, itemW, gap, step, prefixWidth)
+    local count = #frames
+    if count == 0 then return end
+
+    local shownCount = 0
+    for _, f in ipairs(frames) do
+        if f:IsShown() then shownCount = shownCount + 1 end
+    end
+    if shownCount == 0 then shownCount = count end
+
+    local rowWidth = RowWidth(shownCount, itemW, gap)
+    local startLeft
+    if prefixWidth > 0 then
+        startLeft = prefixWidth + CenteredRowLeft(container:GetWidth() - prefixWidth, rowWidth)
+    else
+        startLeft = CenteredRowLeft(container:GetWidth(), rowWidth)
+    end
+
+    local shownIdx = 0
+    for _, frame in ipairs(frames) do
+        local xOff
+        if frame:IsShown() then
+            xOff = startLeft + (shownIdx * step)
+            shownIdx = shownIdx + 1
+        else
+            xOff = startLeft + ((shownCount + (frame.layoutIndex or 0)) * step)
+        end
+        PlaceFrame(frame, container, "BOTTOMLEFT", "BOTTOMLEFT", xOff, 0)
+    end
+end
+
 local function SortAndPositionBuffFrames(frames, container)
     local count = #frames
     if count == 0 or not container then return end
@@ -52,26 +89,35 @@ local function SortAndPositionBuffFrames(frames, container)
     local itemW, _, gap = GetSnappedMetrics(sizeBuff, spacing)
     local step = itemW + gap
 
-    local shownCount = 0
+    -- MiliUI: 光環格改成固定前綴：持有框照未分組順序表（上面的排序已經照 cdmSortPrimary／
+    -- cdmSortSecondary 排好）從 BOTTOMLEFT 起一格一格放，位置只跟光環格的數量有關，
+    -- 戰鬥中原生增益出現／消失時不會動（持有框戰鬥中不能 SetPoint，見 Layout.lua）。
+    -- 其餘框在剩下的寬度裡照原本的置中邏輯排。沒有光環格時整段走原本的路徑。
+    local auraCount = 0
     for _, f in ipairs(frames) do
-        if f:IsShown() then shownCount = shownCount + 1 end
+        if f.isAuraSlot then auraCount = auraCount + 1 end
     end
-    if shownCount == 0 then shownCount = count end
+    if auraCount == 0 then
+        PositionCenteredBuffRow(frames, container, itemW, gap, step, 0)
+        return
+    end
 
-    local rowWidth = RowWidth(shownCount, itemW, gap)
-    local startLeft = CenteredRowLeft(container:GetWidth(), rowWidth)
-
-    local shownIdx = 0
-    for _, frame in ipairs(frames) do
-        local xOff
-        if frame:IsShown() then
-            xOff = startLeft + (shownIdx * step)
-            shownIdx = shownIdx + 1
+    local auraFrames, others = scratchAuraSlotFrames, scratchOtherBuffFrames
+    table_wipe(auraFrames)
+    table_wipe(others)
+    for _, f in ipairs(frames) do
+        if f.isAuraSlot then
+            auraFrames[#auraFrames + 1] = f
         else
-            xOff = startLeft + ((shownCount + (frame.layoutIndex or 0)) * step)
+            others[#others + 1] = f
         end
-        PlaceFrame(frame, container, "BOTTOMLEFT", "BOTTOMLEFT", xOff, 0)
     end
+    for i, holder in ipairs(auraFrames) do
+        PlaceFrame(holder, container, "BOTTOMLEFT", "BOTTOMLEFT", (i - 1) * step, 0)
+    end
+    PositionCenteredBuffRow(others, container, itemW, gap, step, auraCount * step)
+    table_wipe(auraFrames)
+    table_wipe(others)
 end
 
 local tempBuff = {}
@@ -153,6 +199,24 @@ local function CollectBuffFramesInto(buffTbl, groupTbls, inEditMode, enforceHidd
                 end
             end
         end
+
+        -- MiliUI: 光環格的持有框是常駐格，不看光環有沒有（也讀不到）。
+        -- 不看 IsShown：戰鬥中顯示切換被延後時也要留住格位；未分組的在這裡要求顯示，
+        -- 群組裡的由 PositionBuffGroupFrames 依群組容器決定。
+        local auraSlots = CB.auraSlots
+        if auraSlots and CB.AuraSlots then
+            for spellID, holder in pairs(auraSlots) do
+                holder.cdmBuffCategorySpellID = spellID
+                local groupIdx = grouped and grouped[spellID]
+                if groupIdx then
+                    if not groupTbls[groupIdx] then groupTbls[groupIdx] = {} end
+                    groupTbls[groupIdx][#groupTbls[groupIdx] + 1] = holder
+                else
+                    CB.AuraSlots.SetShown(holder, true)
+                    buffTbl[#buffTbl + 1] = holder
+                end
+            end
+        end
     end
 end
 
@@ -223,7 +287,8 @@ local function RunBuffPipeline(activeSelf, viewer, vName, full)
                     local aN = entry.afterNative or 0
                     local sub = (tempBuffSubCounts[aN] or 0) + 1
                     tempBuffSubCounts[aN] = sub
-                    local frame = iconFrames[entry.spellID]
+                    -- MiliUI: 光環格的持有框跟施法計時的圖示共用同一張未分組順序表
+                    local frame = (CB.auraSlots and CB.auraSlots[entry.spellID]) or iconFrames[entry.spellID]
                     if frame then
                         frame.cdmSortPrimary = aN
                         frame.cdmSortSecondary = sub
