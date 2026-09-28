@@ -310,3 +310,13 @@ callback 裡只查表。2026-08-30 在 MiliUI_UnitFrames `Elements/Auras.lua` �
    藏起來，不再防到任何 fail-open。
 
 **右鍵取消光環：`auraButton:SetCancelAuraButtons("RightButtonUp")`**(在 initializeFrame 裡呼叫,再 `SetMouseClickEnabled(true)`)。取消由按鈕內建的 `OnClick_Intrinsic`(暴雪安全端)呼叫 `C_UnitAuras.CancelAuraByInstanceID(unitToken, id)`,插件碰不到秘密的 auraInstanceID 也不用碰。參數是逗號分隔的點擊 token 字串,nil＝關。**2026-09-24 實測**:玩家框可取消;**目標框在目標是自己時也能取消**(`target` token 被接受);目標是別人時右鍵無反應、不報錯 ⇒ 不必逐次判斷敵友。戰鬥中能否取消未驗。MiliUI_UnitFrames 的玩家／目標增益列用這條(`rightClickCancel` 鍵)。
+
+## 12.1.5 對 AuraButton 的放寬，與「效果隨剩餘時間變色」的邊界（2026-09-28 查證）
+
+**暴雪原始碼鏡像 Gethe/wow-ui-source 的 `live` 分支還停在 12.1.0，12.1.5 的 `Blizzard_AuraContainer/` 在 `ptr2` 分支**（有 `SetCasterName`／pandemic 動畫的那份）。
+
+12.1.5 新增的都是「引擎替你觸發」的東西，**沒有任何一支讓插件讀到剩餘時間，也沒有貼圖／狀態條的顏色曲線**（`SimpleStatusBarAPI`／`SimpleTextureAPI` 文件裡零個 Curve；`SetDurationBar` 的選項只有 `interpolation`／`direction`）。唯一的隨時間變色綁定仍是 `SetDurationText` 的 `textColor = {curve, property}`，`property` 可選 `RemainingPercent`（=1），但一個綁定只能一種屬性——「< 50%」與「< 3 秒」兩條帶不能同時掛在一個字串上。
+
+新 API：`AddPandemicRegion(region)`（區域被蓋 `SecretAspect.Shown`，引擎在窗口內 `SetShown`）、`AddPandemicEnter/Active/LeaveAnimation(animGroup)`、`AddAuraShown/AssignedAnimation(animGroup)`（動畫組交給引擎播，子樹裡不 tick 的限制由此繞過；VertexColor／Alpha 動畫都可用）。**窗口定義**（`AuraContainerUtil.GetPandemicWindow`）：`C_UnitAuras.GetRefreshCarryOverDuration` > 0 才有窗口，`[expirationTime - carryOver, expirationTime]`——也就是**只有 HoT／DoT 這類續壓會帶時間的光環才有（通常最後 30%）**，門檻不可設，一般增益／減傷沒有窗口什麼都不會亮。
+
+Cell 矩形指示器的「剩餘 < 50%／< 3 秒變色」在 2026-08-27（3f727e31f，r295 之後）改效果槽時拿掉，預覽仍走舊 OnUpdate 路所以看得到；能補的只有（1）色帶接到倒數文字曲線、（2）用 pandemic 區域／動畫做「續壓窗口變色」。EUI 那份也只做文字色曲線，沒有填色隨時間變。

@@ -125,3 +125,7 @@ MiliUI_InfoBar 更早在天賦／法術書上踩到同一個，見 [[project-mil
   **PLAYER_REGEN_DISABLED 時先藏掉**（lockdown 前的最後窗口，不藏的話面板在戰鬥中
   關掉後它會留在原地變成看不見的點擊區）；戰鬥中面板照開照用、只是那顆鈕不動
   （字變灰表示暫時按不了）；PLAYER_REGEN_ENABLED 再擺回來。
+
+## hooksecurefunc 禁止掛勾的全域（2026-09-27 實測）
+
+`hooksecurefunc("CreateFromMixins", …)` 直接硬錯「CreateFromMixins is forbidden for hooking」，會打斷同一支函式後面的初始化。要掛勾暴雪全域時每個各自 `pcall(hooksecurefunc, …)`，掛不上就跳過。`CreateFrame` 與框架 metatable 上的 `CreateTexture`／`CreateFontString` 可以掛。實例見 MiliUI/Options/HeapCensus.lua。

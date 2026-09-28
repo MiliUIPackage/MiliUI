@@ -114,6 +114,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-uf-visual-bounds.md](project-miliui-uf-visual-bounds.md) | 視覺框體不等於框架 —— 對齊基準是魔力條露出去那截 |
 | [project-121-addon-migration.md](project-121-addon-migration.md) | 12.1 各插件修了什麼、放棄了什麼 |
 | [project-cell-auracontainer-rewrite.md](project-cell-auracontainer-rewrite.md) | Cell 光環指示器改 AuraContainer：現況架構、通則教訓、待辦；重要減益的短時效／持續時間上限兩選項 |
+| [project-cell-fork-license-decision.md](project-cell-fork-license-decision.md) | Cell 沿用原名不另立：不自己重寫團隊框架、約 83% 仍是原版程式，原版授權禁止改名、修改限自用 |
 | [project-cell-unitbutton-local-ceiling.md](project-cell-unitbutton-local-ceiling.md) | Cell 貼著 Lua 兩個硬上限：UnitButton.lua 主 chunk 200 個 local、函式 60 upvalue；check-all 不掃 Cell，要自己數 |
 | [wow-cell-fork-comm.md](wow-cell-fork-comm.md) | Cell 改版的 comm 處理 |
 | [wow-cell-neergy-fork.md](wow-cell-neergy-fork.md) | NeeRgY/Cell 平行 fork：可參考什麼、不要抄什麼；秘密光環指紋技巧 |
@@ -200,6 +201,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [project-ayije-cdm-editmode-drag.md](project-ayije-cdm-editmode-drag.md) | Ayije_CDM 編輯模式改成可拖曳 —— 四個容器的錨點語意換算表 |
+| [project-ayije-cdm-aura-slots.md](project-ayije-cdm-aura-slots.md) | Ayije_CDM 光環格（任意光環追蹤）：引擎一格式容器掛持有框；**持有框整條鏈是保護框，戰鬥零寫入**、主增益列改左側固定前綴、簽章重建；待實機驗證清單與 `/cdmaura` |
 | [project-tinytooltip-perf.md](project-tinytooltip-perf.md) | （已作廢，插件移除）TinyTooltip 掉 FPS 的根因分析，MiliUI_Tooltip 的設計依據 |
 | [project-cell-vehicle-secret.md](project-cell-vehicle-secret.md) | Cell 載具名稱秘密值 |
 | [project-cell-no-update-notice.md](project-cell-no-update-notice.md) | Cell 的更新提示現況：不對原版廣播；MiliUI 版本走私有前綴互相提醒 |

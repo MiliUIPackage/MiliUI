@@ -32,3 +32,8 @@ metadata:
 MiliUI_ChatBar 的按鈕也在它的 Sink 底下，但 Sink
 `SetParent` 到聊天列、本來就該跟聊天列同層，所以沒事。
 相關：[[wow-frame-vs-texture-layering]]。
+
+**反過來當解法用（2026-09-26）**：米利插件的設定視窗全是 DIALOG／level 100，開啟時只 `panel:Raise()`；
+Raise 只抬面板自己，子孫自己 SetFrameLevel 過的留在原地 ⇒ 兩扇視窗同開時控件照 level 交錯（指紋：
+A 的分頁鈕／預覽疊在 B 的內容上、B 的控件又疊在 A 上）。在 `W.CreateTitleBar` 裡 `SetToplevel(true)`，
+每扇視窗整塊畫、點誰誰在前。視窗內的彈窗／戰鬥遮罩靠 level 400～520 排序，不靠 strata。遊戲內已驗證（2026-09-26：視窗前後、下拉、黑名單彈窗、戰鬥遮罩＋關閉鈕都正常）⇒ 扁平化的子樹內部仍照 level 排序。

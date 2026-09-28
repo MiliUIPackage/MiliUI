@@ -54,6 +54,12 @@ ModelScene 也變成 anchoring secret → 暴雪的 `ModelSceneMixin:OnUpdate` �
 **Why:** 12.1 的秘密值會沿著「錨定鏈」擴散，把插件掛在暴雪框底下的任何東西一起染色；
 被染色之後暴雪自己的每幀程式（相機、版面）就會讀到秘密值，錯誤全部記在插件頭上。
 
+**第四處（2026-09-27）**：前三處上線後同一個錯誤又出現（7 次，Mount 場景 ID 7）——positioner 的檢查
+可能排在 ModelScene 的 OnUpdate **之後**，而且場景自己是秘密時 tooltip 不一定回報秘密。改在
+`makeModelScene` 包住場景的 OnUpdate：先 `issecretframe(self)`，是就清錨點＋隱藏、不呼叫原本的
+OnUpdate（守在讀取點正前方）。這處**沒有** `fix from MiliUI` 標記（使用者要求不寫 MiliUI 字樣），
+重套時要另外找 `makeModelScene` 裡的 `GetScript("OnUpdate")`。
+
 **How to apply:** 上游更新後三處都要重套，`grep -n "fix from MiliUI" AddOns/AppearanceTooltip/addon.lua`
 一眼看得出有沒有被洗掉。同類修補見 [[project-cell-vehicle-secret]]、[[wow-121-secret-values]]、
 [[project-local-addon-forks]]。
