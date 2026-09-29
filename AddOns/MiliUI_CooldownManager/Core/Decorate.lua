@@ -1,0 +1,406 @@
+------------------------------------------------------------
+-- 外觀：邊框、圖示縮放、轉圈色、去飽和、GCD 轉圈、長條樣式
+--
+--   ns.Decorate.Apply(item, rec, barKey, w, h)   認領時套（簽章同就跳過）
+--   ns.Decorate.InvalidateAll()                  設定變了：下一次認領全部重套
+--   ns.Decorate.HookItem(item, rec)              Viewers 第一次看到 item 時叫（每框一次）
+--
+-- 規則
+--   * **只寫有變的**：每個 item 存一個簽章字串（rec.decorated），條設定＋逐法術覆寫＋
+--     長條尺寸組成；同簽章直接跳過。item 從池子重新取出時 Viewers 會清掉它
+--     （暴雪取出時會重設計時顯示與縮放）。
+--   * 自己畫的東西（邊框）一律建在**我們自己的 overlay 框**上（item 的子框），
+--     不在 item 上建貼圖、不寫 item 的欄位；overlay 的參照存在弱鍵表 rec 裡。
+--   * 暴雪每次刷新都會重寫的屬性（轉圈色、邊緣、轉圈開關、去飽和）不靠簽章，
+--     改掛後掛勾：暴雪寫完，我們照 rec 上快取的設定再寫一次。
+--   * 暴雪自己的裝飾（圓角遮罩、外框圖、觸發發光）只熄 alpha 或拔遮罩，不 Hide。
+--
+-- 觸發發光（SpellActivationAlert）：計畫要熄掉暴雪的、改畫自己的。自己的發光在效果那一階段
+-- 才做，**在那之前熄掉等於功能倒退**，所以這裡只留開關：ns.Glow 宣告接管
+-- （ns.Glow.ownsProcAlert = true）才熄。
+------------------------------------------------------------
+local _, ns = ...
+
+ns.Decorate = {}
+local D = ns.Decorate
+
+local WHITE = "Interface\\BUTTONS\\WHITE8X8"
+local ICON_OVERLAY_ATLAS = "UI-HUD-CoolDownManager-IconOverlay"
+local GCD_MAX = 1.5
+
+local generation = 0            -- 設定變了就 +1，進簽章
+local cooldownOwner = setmetatable({}, { __mode = "k" })   -- Cooldown 框 → item
+local iconOwner     = setmetatable({}, { __mode = "k" })   -- Icon 貼圖 → item
+
+local function Plain(v)
+    if v == nil or ns.IsSecret(v) then return nil end
+    local can = _G.canaccessvalue
+    if can and not can(v) then return nil end
+    return v
+end
+
+local function C4(c, dr, dg, db, da)
+    if type(c) ~= "table" then return dr, dg, db, da end
+    return c.r or dr, c.g or dg, c.b or db, c.a or da
+end
+
+local function CSig(c)
+    if type(c) ~= "table" then return tostring(c) end
+    return string.format("%.3f,%.3f,%.3f,%.3f", c.r or 0, c.g or 0, c.b or 0, c.a or 1)
+end
+
+local function TSig(t)
+    if type(t) ~= "table" then return tostring(t) end
+    local keys = {}
+    for k in pairs(t) do keys[#keys + 1] = tostring(k) end
+    table.sort(keys)
+    local parts = {}
+    for _, k in ipairs(keys) do
+        local v = t[k]
+        if v == nil then v = t[tonumber(k)] end
+        if type(v) == "table" then v = (v.r ~= nil) and CSig(v) or TSig(v) end
+        parts[#parts + 1] = k .. "=" .. tostring(v)
+    end
+    return "{" .. table.concat(parts, ";") .. "}"
+end
+
+------------------------------------------------------------
+-- 條層設定一次解好（每條一份，generation 變了才重解）
+------------------------------------------------------------
+local resolved = {}
+
+function D.Resolve(barKey)
+    local r = resolved[barKey]
+    if r and r.gen == generation then return r end
+    local S = ns.Setting
+    r = {
+        gen          = generation,
+        kind         = S(barKey, "kind") or "icons",
+        font         = S(barKey, "font"),
+        outline      = S(barKey, "outline") or "",
+        border       = S(barKey, "border") or {},
+        zoom         = tonumber(S(barKey, "icon.zoom")) or 0,
+        swipeColor   = S(barKey, "icon.swipeColor"),
+        hideGCDSwipe = S(barKey, "icon.hideGCDSwipe") and true or false,
+        drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
+        cooldownText = S(barKey, "cooldownText") or {},
+        chargeText   = S(barKey, "chargeText") or {},
+        stackText    = S(barKey, "stackText") or {},
+        bar          = S(barKey, "bar"),
+    }
+    r.sig = table.concat({
+        generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
+        CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.drawEdge),
+        TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
+        type(r.bar) == "table" and TSig(r.bar) or "-",
+    }, "|")
+    resolved[barKey] = r
+    return r
+end
+
+function D.InvalidateAll()
+    generation = generation + 1
+    for _, rec in pairs(ns.Viewers.frames) do rec.decorated = nil end
+end
+
+local function SpellStyle(barKey, id)
+    local SS = ns.SpellSetting
+    return {
+        borderColor      = SS(barKey, id, "borderColor"),
+        desaturate       = SS(barKey, id, "desaturate"),
+        hideCooldownText = SS(barKey, id, "hideCooldownText"),
+        hideStackText    = SS(barKey, id, "hideStackText"),
+    }
+end
+
+------------------------------------------------------------
+-- overlay 框與邊框（自己的框、自己的貼圖）
+------------------------------------------------------------
+local function EnsureOverlay(item, rec, isBar)
+    local ov = rec.overlay
+    if not ov then
+        ov = CreateFrame("Frame", nil, item)
+        rec.overlay = ov
+    end
+    ov:ClearAllPoints()
+    ov:SetAllPoints(item)
+    -- 長條的子框是寫死的絕對層級（圖示 512、條 511、減益框 520），要蓋在它們上面
+    local base = item:GetFrameLevel() or 1
+    local lvl = base + 10
+    if isBar and lvl < 530 then lvl = 530 end
+    if lvl > 9000 then lvl = 9000 end
+    ov:SetFrameLevel(lvl)
+    return ov
+end
+
+local function MakeBorder(ov)
+    local b = {}
+    for i = 1, 4 do
+        local t = ov:CreateTexture(nil, "OVERLAY", nil, 7)
+        t:SetTexture(WHITE)
+        b[i] = t
+    end
+    return b
+end
+
+local function LayoutBorder(b, region, size, token, r, g, bl, a)
+    if not b then return end
+    if not region or not size or size <= 0 then
+        for i = 1, 4 do b[i]:Hide() end
+        return
+    end
+    local t = ns.Media.BorderInset(size)
+    local tex = ns.Media.Texture(token)
+    local top, bottom, left, right = b[1], b[2], b[3], b[4]
+    for i = 1, 4 do
+        b[i]:SetTexture(tex)
+        b[i]:SetVertexColor(r, g, bl, a)
+        b[i]:ClearAllPoints()
+        b[i]:Show()
+    end
+    top:SetPoint("TOPLEFT", region, "TOPLEFT", 0, 0)
+    top:SetPoint("TOPRIGHT", region, "TOPRIGHT", 0, 0)
+    top:SetHeight(t)
+    bottom:SetPoint("BOTTOMLEFT", region, "BOTTOMLEFT", 0, 0)
+    bottom:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", 0, 0)
+    bottom:SetHeight(t)
+    left:SetPoint("TOPLEFT", region, "TOPLEFT", 0, -t)
+    left:SetPoint("BOTTOMLEFT", region, "BOTTOMLEFT", 0, t)
+    left:SetWidth(t)
+    right:SetPoint("TOPRIGHT", region, "TOPRIGHT", 0, -t)
+    right:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", 0, t)
+    right:SetWidth(t)
+end
+
+------------------------------------------------------------
+-- 暴雪自己的裝飾：圓角遮罩拔掉、外框圖熄 alpha（每框一次）
+------------------------------------------------------------
+local function Unmask(tex)
+    if not (tex and tex.GetNumMaskTextures and tex.RemoveMaskTexture) then return end
+    for i = tex:GetNumMaskTextures(), 1, -1 do
+        local m = tex:GetMaskTexture(i)
+        if m then tex:RemoveMaskTexture(m) end
+    end
+end
+
+local function DimAtlasRegions(frame, atlas)
+    if not (frame and frame.GetRegions) then return end
+    for _, region in ipairs({ frame:GetRegions() }) do
+        if region.GetAtlas and region.GetObjectType and region:GetObjectType() == "Texture" then
+            local a = Plain(region:GetAtlas())
+            if a == atlas then region:SetAlpha(0) end
+        end
+    end
+end
+
+local function StripBlizzard(item, rec, isBar)
+    if rec.stripped then return end
+    rec.stripped = true
+    if isBar then
+        local iconFrame = item.Icon
+        Unmask(iconFrame and iconFrame.Icon)
+        DimAtlasRegions(iconFrame, ICON_OVERLAY_ATLAS)
+    else
+        Unmask(item.Icon)
+        DimAtlasRegions(item, ICON_OVERLAY_ATLAS)
+        local cd = item.Cooldown
+        -- 圓角轉圈 → 方角（顏色參數不可省；實際色由 SetSwipeColor 決定）
+        if cd and cd.SetSwipeTexture then pcall(cd.SetSwipeTexture, cd, WHITE, 1, 1, 1, 1) end
+    end
+end
+
+------------------------------------------------------------
+-- 後掛勾：暴雪每次刷新都會重寫的屬性
+------------------------------------------------------------
+local desatGuard = false
+
+local function OnSetCooldown(cd, _start, duration)
+    local item = cooldownOwner[cd]
+    local rec = item and ns.Viewers.frames[item]
+    if not (rec and rec.style) then return end
+    local st = rec.style
+    if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
+    if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
+    if st.hideGCD then
+        -- 秘密值讀不到就不動（寧可多轉一圈）
+        local d = Plain(duration)
+        if type(d) == "number" and d > 0 and d <= GCD_MAX then
+            cd:SetDrawSwipe(false)
+        end
+    end
+end
+
+local function OnSetDesaturated(icon)
+    if desatGuard then return end
+    local item = iconOwner[icon]
+    local rec = item and ns.Viewers.frames[item]
+    if not (rec and rec.style) or rec.style.desaturate ~= false then return end
+    desatGuard = true
+    icon:SetDesaturated(false)
+    desatGuard = false
+end
+
+-- 暴雪換長條內容（僅圖示／僅名字）時會藏名字、重錨條：把名字 Show 回來（名字要一直
+-- 顯示暴雪才會寫字），版面照我們的重排
+local function OnSetBarContent(item)
+    local rec = ns.Viewers.frames[item]
+    if not rec then return end
+    local name = item.Bar and item.Bar.Name
+    if name and not name:IsShown() then name:Show() end
+    if rec.barGeometry then D.ApplyBarGeometry(item, rec, rec.barGeometry) end
+end
+
+function D.HookItem(item, rec)
+    if rec.decoHooked then return end
+    rec.decoHooked = true
+    local cd = item.Cooldown
+    if cd and cd.SetCooldown then
+        cooldownOwner[cd] = item
+        hooksecurefunc(cd, "SetCooldown", ns.Guard(OnSetCooldown))
+    end
+    local icon = item.Icon
+    if icon and icon.SetDesaturated and icon.GetObjectType and icon:GetObjectType() == "Texture" then
+        iconOwner[icon] = item
+        hooksecurefunc(icon, "SetDesaturated", ns.Guard(OnSetDesaturated))
+    end
+    if item.SetBarContent then
+        hooksecurefunc(item, "SetBarContent", ns.Guard(OnSetBarContent))
+    end
+end
+
+------------------------------------------------------------
+-- 長條的版面：圖示邊、條身、底色、材質
+------------------------------------------------------------
+function D.ApplyBarGeometry(item, rec, g)
+    local icon, b = item.Icon, item.Bar
+    if not (icon and b) then return end
+    local h = g.h
+    local gap = ns.Layout.Snap(g.gap or 0)
+    icon:ClearAllPoints()
+    icon:SetSize(h, h)
+    b:ClearAllPoints()
+    if g.side == "RIGHT" then
+        icon:SetPoint("RIGHT", item, "RIGHT", 0, 0)
+        b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
+        b:SetPoint("BOTTOMRIGHT", icon, "BOTTOMLEFT", -gap, 0)
+    elseif g.side == "NONE" then
+        icon:SetPoint("LEFT", item, "LEFT", 0, 0)
+        b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
+        b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+    else
+        icon:SetPoint("LEFT", item, "LEFT", 0, 0)
+        b:SetPoint("TOPLEFT", icon, "TOPRIGHT", gap, 0)
+        b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+    end
+    if g.side == "NONE" then
+        icon:SetAlpha(0)
+    else
+        icon:SetAlpha(1)
+        if not icon:IsShown() then icon:Show() end     -- 暴雪「僅名字」會藏它；我們的設定優先
+    end
+end
+
+local function ApplyBarLook(item, rec, style, bar)
+    local b = item.Bar
+    if not b then return end
+    if b.SetStatusBarTexture then
+        b:SetStatusBarTexture(ns.Media.Texture(bar.texture))
+        local tex = b:GetStatusBarTexture()
+        if tex then tex:SetVertexColor(C4(bar.color, 0.4, 0.6, 0.9, 1)) end
+    end
+    local bg = b.BarBG
+    if bg then
+        bg:ClearAllPoints()
+        bg:SetAllPoints(b)
+        bg:SetTexture(WHITE)
+        bg:SetVertexColor(C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8))
+    end
+    if b.Pip then b.Pip:SetAlpha(0) end
+end
+
+------------------------------------------------------------
+-- 觸發發光：接管之後才熄（見檔頭）
+------------------------------------------------------------
+local function ApplyProcAlert(item)
+    local alert = item.SpellActivationAlert
+    if not alert then return end
+    local owns = ns.Glow and ns.Glow.ownsProcAlert
+    alert:SetAlpha(owns and 0 or 1)
+end
+D.ApplyProcAlert = ApplyProcAlert
+
+------------------------------------------------------------
+-- 主入口
+------------------------------------------------------------
+function D.Apply(item, rec, barKey, w, h)
+    if not (item and rec and barKey) then return end
+    local style = D.Resolve(barKey)
+    local id = rec.cooldownID
+    local spell = SpellStyle(barKey, id)
+    local isBar = style.kind == "bars" and item.Bar ~= nil
+    local sig = style.sig .. "|" .. tostring(id) .. "|" .. CSig(spell.borderColor) .. "|"
+        .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
+        .. "|" .. tostring(w) .. "x" .. tostring(h)
+    if rec.decorated == sig and rec.decoratedBar == barKey then return end
+
+    D.HookItem(item, rec)
+    StripBlizzard(item, rec, isBar)
+
+    -- 後掛勾讀的快取（暴雪下一次刷新時再套一次）
+    local sr, sg, sb, sa = C4(style.swipeColor, 0, 0, 0, 0.8)
+    rec.style = {
+        swipe      = { sr, sg, sb, sa },
+        drawEdge   = style.drawEdge,
+        hideGCD    = style.hideGCDSwipe and not ns.Viewers.AURA_KIND[rec.barKey],
+        desaturate = spell.desaturate,
+    }
+
+    local ov = EnsureOverlay(item, rec, isBar)
+    local border = style.border or {}
+    local br, bg, bb, ba = C4(spell.borderColor or border.color, 0, 0, 0, 1)
+    local size = tonumber(border.size) or 0
+
+    if isBar then
+        local bar = type(style.bar) == "table" and style.bar or {}
+        rec.barGeometry = { h = h, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0 }
+        D.ApplyBarGeometry(item, rec, rec.barGeometry)
+        ApplyBarLook(item, rec, style, bar)
+        -- 邊框：圖示一圈、條身一圈
+        rec.border = rec.border or MakeBorder(ov)
+        rec.border2 = rec.border2 or MakeBorder(ov)
+        local showIcon = rec.barGeometry.side ~= "NONE"
+        LayoutBorder(rec.border, showIcon and item.Icon or nil, size, border.texture, br, bg, bb, ba)
+        LayoutBorder(rec.border2, item.Bar, size, border.texture, br, bg, bb, ba)
+        local iconTex = item.Icon and item.Icon.Icon
+        if iconTex and iconTex.SetTexCoord then
+            local z = style.zoom
+            iconTex:SetTexCoord(z, 1 - z, z, 1 - z)
+        end
+        ns.Text.ApplyBar(item, style, spell, bar)
+    else
+        rec.barGeometry = nil
+        rec.border = rec.border or MakeBorder(ov)
+        LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
+        if rec.border2 then LayoutBorder(rec.border2, nil) end
+        local icon = item.Icon
+        if icon and icon.SetTexCoord then
+            local z = style.zoom
+            icon:SetTexCoord(z, 1 - z, z, 1 - z)
+        end
+        local cd = item.Cooldown
+        if cd then
+            cd:SetSwipeColor(sr, sg, sb, sa)
+            if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
+        end
+        -- 關掉「冷卻中去飽和」：當場還原一次，之後靠 SetDesaturated 後掛勾擋
+        if spell.desaturate == false and icon and icon.SetDesaturated then
+            desatGuard = true
+            icon:SetDesaturated(false)
+            desatGuard = false
+        end
+        ns.Text.ApplyIcon(item, style, spell)
+    end
+
+    ApplyProcAlert(item)
+    rec.decorated, rec.decoratedBar = sig, barKey
+end

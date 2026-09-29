@@ -267,6 +267,42 @@ function ns.ShowConflictPopup()
 end
 
 ------------------------------------------------------------
+-- 引擎啟動（登入流程在 DB 就緒之後叫一次）
+--
+-- 順序有意義：Catalog（知道每條該有哪些 id）→ Viewers（開始掛暴雪檢視器，退避重試）
+-- → Bars（容器與排程；Viewers 就緒時它會收到 ViewersReady）→ Visibility（alpha）。
+-- 每一步各自隔離，一支拋錯不會讓後面的不啟動。
+--
+-- 設定檔／專精換了：清樣式簽章、重讀目錄、全部重排、重套 alpha——沒有任何選項要 /reload。
+------------------------------------------------------------
+local ENGINE = { "Catalog", "Viewers", "Bars", "Visibility" }
+
+local function RestyleAll(reason)
+    if ns.Decorate then ns.Decorate.InvalidateAll() end
+    if ns.Catalog then ns.Catalog.Refresh(reason) end
+    if ns.Bars then
+        if reason == "profile" and ns.Bars.OnProfileChanged then
+            ns.Bars.OnProfileChanged()
+        else
+            ns.Bars.RelayoutAll(reason)
+        end
+    end
+    if ns.Visibility then ns.Visibility.ApplyAll() end
+end
+ns.RestyleAll = RestyleAll
+
+function ns.StartEngine()
+    for _, name in ipairs(ENGINE) do
+        local mod = ns[name]
+        if mod and mod.Init then
+            xpcall(mod.Init, ns.ReportError)
+        end
+    end
+    ns.RegisterCallback("ProfileChanged", "engine", function() RestyleAll("profile") end)
+    ns.RegisterCallback("SpecChanged", "engine", function() RestyleAll("spec") end)
+end
+
+------------------------------------------------------------
 -- 登入流程
 ------------------------------------------------------------
 local loader = CreateFrame("Frame")
@@ -286,4 +322,5 @@ loader:SetScript("OnEvent", function(self)
     ns.Events.Start()
     ns.ready = true
     ns.Fire("Loaded")
+    ns.StartEngine()
 end)
