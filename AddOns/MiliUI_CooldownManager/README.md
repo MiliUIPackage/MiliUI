@@ -4,10 +4,11 @@
 重新排版、換樣式、加文字與發光，外加自訂群組、追蹤項目、資源條與施法條。
 設定視窗 `/mcdm`（或 `/miliuicdm`、小地圖按鈕、插件選單）。
 
-> **目前進度：C 階段（編輯模式）。** 四條暴雪檢視器已經認領重錨到自己的容器上，版面、兩列尺寸、
-> 固定格位、長條、邊框／縮放／轉圈色／文字樣式、顯示條件都照設定檔跑；編輯模式裡每條都拖得動
-> （見「編輯模式」一節）。設定視窗各頁的內容、自訂群組與追蹤項目、發光、資源條與施法條還沒做
-> （改設定暫時只能改 SV）。`/mcdm debug` 印引擎與編輯模式現況。
+> **目前進度：D 階段（設定介面）。** 四條暴雪檢視器已經認領重錨到自己的容器上，版面、兩列尺寸、
+> 固定格位、長條、邊框／縮放／轉圈色／文字樣式、顯示條件都照設定檔跑；編輯模式裡每條都拖得動；
+> 設定視窗每條一頁（預覽即編輯器＋表單）、主題頁、設定檔頁（含匯出匯入）、自訂群組的新增／改名／刪除
+> 都做好了（見「設定介面」一節）。追蹤項目（光環格、自訂法術／物品）、發光與按鍵文字的引擎、資源條與
+> 施法條還沒做（發光與按鍵文字的設定已經可以存）。`/mcdm debug` 印引擎與編輯模式現況。
 
 ⚠ 跟另一支同樣接管冷卻管理器的插件**不能同時啟用**：偵測到時登入會跳出視窗二選一，
 本插件在那次登入裡什麼都不做。
@@ -24,13 +25,13 @@
 | `Core/DB.lua` | 預設值（套組現值）、遷移鏈、設定檔／專精綁定、`ns.Setting`／`ns.SpellSetting` |
 | `Core/Media.lua` | 字型／材質 token → 路徑（LibSharedMedia 可選） |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
-| `Options/` | 700×520 設定視窗、左欄導覽、暴雪選項入口頁、小地圖按鈕 |
+| `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
 | `Core/Catalog.lua` ～ `Core/Visibility.lua` | 引擎，見下一節 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`）、插件選單、公開 API `MiliUI_CooldownManager`（`IsReady`、`GetBarFrame(key)`；`GetResourceColors` 還是占位） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`，用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
-之後的階段依序補上：各頁設定介面與預覽、自訂群組與追蹤項目、資源條與施法條、套組接線。
+之後的階段依序補上：追蹤項目（光環格、自訂法術／物品）與發光、資源條與施法條、套組接線。
 
 引擎的硬規則（對暴雪框不 SetParent／不 Hide、不寫暴雪框的欄位、只後掛勾、秘密值只當傳遞者…）
 寫在實作計畫的「引擎契約」一節，動 `Core/` 之前先看。
@@ -118,7 +119,7 @@ B 階段實作時發現計畫上寫的做不到、或換了做法的地方：
   後掛勾 `AttachToSystemFrame` 當場只 `SetAlpha(0)`，下一幀才 `Hide`＋還原 alpha。第一次藏時聊天框印一行
   「冷卻管理器的設定在 /mcdm，或點藍框右上角的齒輪」。對話框的內容與 `Settings` 列不碰。
 - **齒輪**：`Options.FocusBar(key)`。設定視窗是 DIALOG strata、開窗時 `Raise()`，蓋得過編輯模式的面板。
-  自訂條還沒有自己的頁面（D／E 階段），目前退回核心技能那頁。
+  自訂群組也開得到自己的頁面（`Options.SyncBarPages` 先登記）。
 - **編輯模式裡每條全亮**：顯示條件（沒目標淡出、騎乘隱藏…）在編輯模式中不生效，離開後恢復。
 - **空條**：沒 buff 的條容器可能只有 1×1，覆蓋層與選取框至少一格（`layout.size`）大，照樣拖得動；
   樣板內容（假圖示）留給 D／E 階段的預覽。
@@ -148,6 +149,71 @@ B 階段實作時發現計畫上寫的做不到、或換了做法的地方：
    離開 `SelectSystem` 的堆疊。
 4. 提示「拖曳會解除跟隨」在進編輯模式時就顯示（不只拖曳前一刻），放手後消失。
 5. 編輯模式中顯示條件暫停、每條全亮（計畫沒寫；不然條件不成立的條進編輯模式看不到、拖不到）。
+
+## 設定介面
+
+`/mcdm` 開 700×520 的設定視窗。左欄：條（四條檢視器＋自訂群組＋「＋ 新增群組」）、資源條、施法條、
+全域（主題／設定檔／關於）。**所有選項即時生效，沒有一個要 /reload。**
+
+| 檔案 | 內容 |
+|---|---|
+| `Options/Panel.lua` | 視窗殼、頁面登記（懶建、頁面快取不丟）、`SyncBarPages`（自訂群組跟著設定檔登記頁面）、`ApplyEngine`（真實條 0.2 秒合併套用）、換設定檔／專精時重讀目前那頁 |
+| `Options/Sidebar.lua` | 左欄（自訂群組多時滾輪捲）、新增群組（選類型→取名）、右鍵改名／刪除、預覽拖曳的放置目標 |
+| `Options/Specs.lua` | 表單規格（版面／圖示／文字／效果／顯示條件／錨定）與接線：ctx、跟隨遮罩、右鍵重設、覆寫數 |
+| `Options/Tab_Bar.lua` | 一條一頁（四條檢視器與自訂群組共用）：標題列、預覽、說明、表單；開暴雪面板 |
+| `Options/Preview.lua` | 預覽即編輯器（見下） |
+| `Options/Picker.lua` | 預覽最右邊「＋」的挑選器 |
+| `Options/SpellPopover.lua` | 逐法術面板 |
+| `Options/Tab_Theme.lua` | 全域主題（跟條頁同一支 builder） |
+| `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
+| `Options/ClickLayer.lua` | 視窗開著時畫面上每條蓋一層透明點擊層，點了切到那條的頁面並閃職業色邊 |
+
+### 條的頁面
+
+- **預覽即編輯器**：自己的假框、真實尺寸（`ns.Layout.Compute`），外觀走 `ns.Decorate.ApplyPreview`
+  （跟真實條同一套邊框／縮放／轉圈色／文字樣式，簽章函式共用）。奇數格冷卻中（轉圈、「15」、去飽和），
+  技能印充能「2」、增益印層數「2」；長條跑十五秒循環。太寬水平捲動、太高垂直捲動（上限 170）。
+  - 左鍵：逐法術面板。中鍵：隱藏（`spells[spec].hidden`），隱藏的排在尾端 alpha 0.35、點一下還原。
+  - 拖曳（3px 門檻）：職業色插入線、其他格變暗 0.5，放手寫 `spells[spec].order[key]`（完整清單）；
+    拖到左欄的自訂群組上＝`groupOf`，拖回原本的檢視器上＝清 `groupOf`（可放的按鈕亮職業色邊）。
+    長條只能拖進長條群組、圖示只能進圖示群組。`cell.locked`（光環格的固定前綴，E 階段）蓋紅色、不能放。
+  - 「＋」：挑選器（已在暴雪冷卻管理器的別條項目，點了拉進來；要先去暴雪面板加的候選池＋開面板鈕；
+    自訂 ID 下一版）。暴雪面板開著時整個鎖住，`CatalogResumed` 自動重讀。
+- **表單**：版面（每列上限、間距、成長方向、圖示尺寸、第二列尺寸、固定格位／長條的寬高圖示材質顏色）、
+  圖示、文字、效果（含淡出）、顯示條件、錨定。圖示／文字／效果／淡出各有「跟隨全域主題」：勾著時整節蓋
+  半透明遮罩、顯示的是主題的值。標題右側「本條 N 個法術有覆寫［清除覆寫］」。每一列的標籤右鍵
+  「重設為預設」（條上的主題欄位＝清掉、回到跟主題；條自己的欄位＝預設值／自訂群組的預設）。
+- **套用兩層**：值寫進去的當下只重畫預覽；真實條（`Decorate.InvalidateAll`＋`Bars.RequestAll("structure")`
+  ＋`Visibility.ApplyAll`）合併 0.2 秒一次。滑桿拖動由共用層再合併成 0.05 秒一次。
+- **表單照形狀快取**（第二列尺寸開關、有沒有錨定、條清單）：有列要出現／消失時換一份表單，
+  變回來就拿舊的（frame 刪不掉，不能每次重建）。
+
+### 寫入路徑
+
+條頁的主題欄位**讀**繼承後的值（`ns.Setting`），**寫**進條自己的子表（`DB.OwnSet`，照 `THEMED` 決定
+子表）。顏色若直接回主題那張表，色票會就地改掉主題 —— 所以條頁的主題顏色回代理表：讀照繼承、
+第一次寫才複製進條自己的子表。自訂群組、覆寫、設定檔改名／匯入、匯出字串都在 `Core/DB.lua`
+（`CreateBar`／`DeleteBar`／`SetOverride`／`CountOverrides`／`RenameProfile`／`ImportProfile`／
+`EncodeProfile`／`DecodeProfileString`），`Tests/Settings_test.lua` 全部覆蓋。
+
+### D 階段與計畫不同
+
+1. **「開暴雪警示設定」開的是同一個面板**：暴雪面板沒有「警示」分頁，警示是逐法術右鍵設定的；
+   要切顯示模式得呼叫它的 `SetDisplayMode`（從我們的執行寫它的 `displayMode` 欄位），不做。
+   按鈕多印一行「對法術按右鍵新增警示」，滑鼠提示也寫。
+2. **淡出放在效果節尾端，但有自己的「跟隨全域主題」**：資料模型的 `follow.fade` 是獨立的一項，
+   跟 `follow.glow` 綁在一起會讓「只想改淡出」的玩家連發光一起脫離主題。
+3. **邊框材質**：LibSharedMedia 的 border 類是 backdrop 的 edgeFile，四條細條畫不出來；選了材質邊框
+   改用一個 backdrop 框貼齊（粗細 1 ＝ edgeSize 4），`solid` 維持四條細條（`Decorate` 的 `LayoutBorder`）。
+4. **主題多了 `keybind = { enabled = false }`**（`THEMED` 跟著 glow 走、存在條的 `glow` 子表）：按鍵文字的
+   開關要有地方存。引擎在 E 階段接；發光、無損刷新也一樣，效果節頂端有一行灰字說明。
+5. **`Catalog.Bar(key, true)`** 多回一張「被藏起來」的清單（預覽排在尾端用），不帶參數時行為不變。
+6. **預覽假倒數是靜態「15」**，沒用真的 Cooldown 倒數數字（那條路要實機驗證 formatter，見待驗證 11）；
+   轉圈是自己的 Cooldown 框跑十五秒循環，轉圈色所見即所得。
+7. **挑選器的「已在暴雪冷卻管理器」包含增益圖示**（圖示類都可以互拉），長條只收長條。
+8. 「新增群組」的類型選擇多一顆「取消」；新群組的 key 取最小的空號（刪掉 g1 之後下一個又是 g1），
+   頁面與預覽照 key 快取重用。
+9. `EditMode` 多廣播 `EditModeChanged`（點擊層要讓位），`Frames.lua` 匯出 `EM.CellSize`。
 
 ## 設定的三層繼承
 
@@ -193,3 +259,8 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 20. 暴雪的「吸附」開關與格距讀得到（`IsSnapEnabled`、`GetAccountSettingValue(GridSpacing)`），
     格線原點是畫面中心、單位是 UIParent 座標。
 21. 覆蓋層 strata HIGH：齒輪要蓋得過選取框（MEDIUM／1000、toplevel），但不能蓋過暴雪的編輯模式面板（DIALOG）。
+22. 設定頁：`securecall("ShowUIPanel", CooldownViewerSettings)` 從插件開暴雪面板不留污染（開完打一場 taintLog 2）。
+23. 預覽的 `CooldownFrameTemplate` 在設定視窗裡：`OnCooldownDone` 循環、方角轉圈材質、`SetHideCountdownNumbers` 後沒有暴雪數字。
+24. 預覽的像素字（`SetIgnoreParentScale`）在設定視窗裡字級跟真實條一致；設定視窗若被其他插件縮放會不一致。
+25. LibSharedMedia 的 border 材質用 backdrop edgeFile 畫在 overlay 上：粗細 1～4 對應 edgeSize 4～16 看起來合理嗎。
+26. 點擊層（HIGH strata、錨在容器上）在容器被光環格保護連坐之後（E 階段），開關窗走 `ns.Write` 不被擋。

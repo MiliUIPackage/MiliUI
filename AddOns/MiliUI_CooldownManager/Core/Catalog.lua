@@ -429,17 +429,27 @@ local function SpellsTable()
 end
 
 -- 條的有序清單（已套 order／groupOf／hidden）。回傳的是新表，呼叫端可以自由改。
-function C.Bar(barKey)
+-- withHidden = true 時多回一張「本來在這條、但被藏起來」的清單（設定頁的預覽排在尾端用），
+-- 同樣照 order 排。
+function C.Bar(barKey, withHidden)
     EnsureBuilt()
-    local out = {}
+    local out, hid = {}, withHidden and {} or nil
     local p = ns.profile
     local bars = p and p.bars
     local bar = type(bars) == "table" and bars[barKey]
-    if type(bar) ~= "table" then return out end
+    if type(bar) ~= "table" then return out, hid end
 
     local sp = SpellsTable()
     local groupOf = sp and type(sp.groupOf) == "table" and sp.groupOf or EMPTY
     local hidden  = sp and type(sp.hidden) == "table" and sp.hidden or EMPTY
+
+    local function Add(id)
+        if not hidden[id] then
+            out[#out + 1] = id
+        elseif hid then
+            hid[#hid + 1] = id
+        end
+    end
 
     -- 拉進自訂群組：目標群組要真的存在，否則留在原本那條（群組被刪掉不會讓法術憑空消失）
     local function RoutedTo(id)
@@ -451,13 +461,13 @@ function C.Bar(barKey)
     local src = bar.source
     if BAR_CATEGORY_NAME[src] then
         for _, id in ipairs(C.lists[src] or EMPTY) do
-            if not hidden[id] and RoutedTo(id) == nil then out[#out + 1] = id end
+            if RoutedTo(id) == nil then Add(id) end
         end
         -- 別的檢視器被指名拉到「這一條」的（例如把核心技能拉回輔助）
         for _, other in ipairs(C.SOURCE_BARS) do
             if other ~= src then
                 for _, id in ipairs(C.lists[other] or EMPTY) do
-                    if groupOf[id] == barKey and not hidden[id] then out[#out + 1] = id end
+                    if groupOf[id] == barKey then Add(id) end
                 end
             end
         end
@@ -465,11 +475,11 @@ function C.Bar(barKey)
         -- 自訂群組：照完整順序收被拉進來的
         for _, id in ipairs(C.ordered) do
             local rec = C.info[id]
-            if rec and rec.bar and groupOf[id] == barKey and not hidden[id] then
+            if rec and rec.bar and groupOf[id] == barKey then
                 local list = C.lists[rec.bar]
                 -- 只收真的在某條檢視器清單上的（isKnown 等條件已在那裡過濾）
                 for i = 1, #list do
-                    if list[i] == id then out[#out + 1] = id; break end
+                    if list[i] == id then Add(id); break end
                 end
             end
         end
@@ -478,21 +488,25 @@ function C.Bar(barKey)
     -- 我們自己的順序覆寫：列到的照列的順序排在前面，沒列到的照原順序接在後面
     local ord = sp and type(sp.order) == "table" and sp.order[barKey]
     if type(ord) == "table" and #ord > 0 then
-        local present = {}
-        for _, id in ipairs(out) do present[id] = true end
-        local sorted, used = {}, {}
-        for _, id in ipairs(ord) do
-            if present[id] and not used[id] then
-                used[id] = true
-                sorted[#sorted + 1] = id
+        local function Sort(list)
+            local present = {}
+            for _, id in ipairs(list) do present[id] = true end
+            local sorted, used = {}, {}
+            for _, id in ipairs(ord) do
+                if present[id] and not used[id] then
+                    used[id] = true
+                    sorted[#sorted + 1] = id
+                end
             end
+            for _, id in ipairs(list) do
+                if not used[id] then sorted[#sorted + 1] = id end
+            end
+            return sorted
         end
-        for _, id in ipairs(out) do
-            if not used[id] then sorted[#sorted + 1] = id end
-        end
-        out = sorted
+        out = Sort(out)
+        if hid then hid = Sort(hid) end
     end
-    return out
+    return out, hid
 end
 
 -- 還在候選池（沒被拖進任何檢視器）的 id，給設定介面的「要先去暴雪面板加」用

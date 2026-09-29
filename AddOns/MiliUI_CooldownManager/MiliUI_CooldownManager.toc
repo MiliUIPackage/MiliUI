@@ -51,6 +51,14 @@ Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 Options\Panel.lua
 Options\Sidebar.lua
+Options\Specs.lua
+Options\Preview.lua
+Options\Picker.lua
+Options\SpellPopover.lua
+Options\Tab_Bar.lua
+Options\Tab_Theme.lua
+Options\Tab_Profile.lua
+Options\ClickLayer.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Options\Minimap.lua

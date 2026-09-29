@@ -72,9 +72,10 @@ local function IconBar(o)
     }
 end
 
-function DB.BuildDefaults()
-    local buffbars = IconBar{
-        source = "buffbars", pos = { point = "BOTTOM", x = 0, y = 300 },
+-- 長條（kind = "bars"）：增益長條與「長條群組」共用
+local function LongBar(o)
+    local b = IconBar{
+        source = o.source, pos = o.pos,
         maxPerRow = 1, grow = "CENTER_DOWN", w = 200, h = 20,
         bar = {
             width     = 0,                  -- 0 ＝ 跟核心技能第一列同寬
@@ -89,7 +90,25 @@ function DB.BuildDefaults()
             showStacks = true, stackSize = 12,
         },
     }
-    buffbars.kind = "bars"
+    b.kind = "bars"
+    return b
+end
+
+-- 自訂群組的預設形狀（新增群組、右鍵「重設為預設」都照這個）。
+-- 只給版面與位置；text／icon／glow／fade 是空表、follow 全 true ⇒ 什麼都不複製。
+function DB.NewBarTable(kind, name)
+    local b
+    if kind == "bars" then
+        b = LongBar{ source = "custom", pos = { point = "CENTER", x = 0, y = 0 } }
+    else
+        b = IconBar{ source = "custom", pos = { point = "CENTER", x = 0, y = 0 }, w = 36, h = 36 }
+    end
+    b.name = name
+    return b
+end
+
+function DB.BuildDefaults()
+    local buffbars = LongBar{ source = "buffbars", pos = { point = "BOTTOM", x = 0, y = 300 } }
 
     return {
         account = {
@@ -116,6 +135,7 @@ function DB.BuildDefaults()
                 -- 淡出後的透明度；false ＝ 這個條件不淡
                 fade  = { outOfCombat = false, noTarget = 0.3, mounted = false },
                 pandemic = { color = rgba(1, 0.5, 0, 1), bars = true },
+                keybind  = { enabled = false },     -- 按鍵文字（引擎在自訂那一階段接）
             },
             bars = {
                 essential = IconBar{ source = "essential", pos = { point = "CENTER", x = 0, y = -202 },
@@ -458,7 +478,7 @@ end
 --   border            icon                  bars[k].icon.<path>
 --   icon              icon                  bars[k].<path>（icon.zoom → bars[k].icon.zoom）
 --   glow              glow                  bars[k].<path>
---   pandemic          glow                  bars[k].glow.<path>
+--   pandemic／keybind glow                  bars[k].glow.<path>
 --   fade              fade                  bars[k].<path>
 --   其他（layout、pos、anchor、visibility、bar、kind…）
 --                     不繼承                 bars[k].<path>
@@ -478,6 +498,7 @@ local THEMED = {
     icon         = { follow = "icon" },
     glow         = { follow = "glow" },
     pandemic     = { follow = "glow", sub = "glow" },
+    keybind      = { follow = "glow", sub = "glow" },
     fade         = { follow = "fade" },
 }
 DB.THEMED = THEMED
@@ -564,4 +585,354 @@ function DB.ResetProfile()
     Wipe(p)
     MergeDefaults(p, DB.BuildDefaults().profile)
     ns.Fire("ProfileChanged", ns.profileName)
+end
+
+------------------------------------------------------------
+-- 設定介面的寫入路徑
+--
+-- 讀值一律走 ns.Setting；**寫**條上的主題欄位要照 THEMED 決定落在哪張子表，
+-- 這裡是唯一知道的地方（設定介面、測試都走這幾支，不各自翻表）。
+--
+--   DB.GetPath(t, path) / DB.SetPath(t, path, v)   點分路徑，SetPath 沿路補表
+--   DB.OwnGet(barKey, path)       條「自己存的」那一格（沒存 → nil，不退回主題）
+--   DB.OwnSet(barKey, path, v)    寫條自己的那一格；v = nil ＝ 清掉、改回跟主題
+--   DB.DefaultFor(root, barKey, path)   預設值（右鍵「重設為預設」用；回傳複本）
+------------------------------------------------------------
+function DB.GetPath(t, path)
+    if type(path) ~= "string" then return nil end
+    return Dig(t, Split(path))
+end
+
+function DB.SetPath(t, path, v)
+    if type(t) ~= "table" or type(path) ~= "string" then return false end
+    local segs = Split(path)
+    for i = 1, #segs - 1 do
+        local k = segs[i]
+        if type(t[k]) ~= "table" then t[k] = {} end
+        t = t[k]
+    end
+    t[segs[#segs]] = v
+    return true
+end
+
+-- 條上存這個 path 的完整路徑（主題欄位多一層子表），不是主題欄位回原 path
+function DB.BarStoragePath(path)
+    local first = type(path) == "string" and path:match("^[^%.]+")
+    local group = first and THEMED[first]
+    if group and group.sub then return group.sub .. "." .. path end
+    return path
+end
+
+local function BarTable(barKey)
+    local p = ns.profile
+    local b = p and type(p.bars) == "table" and p.bars[barKey]
+    return type(b) == "table" and b or nil
+end
+DB.BarTable = BarTable
+
+function DB.OwnGet(barKey, path)
+    return DB.GetPath(BarTable(barKey), DB.BarStoragePath(path))
+end
+
+function DB.OwnSet(barKey, path, v)
+    local bar = BarTable(barKey)
+    if not bar then return false end
+    return DB.SetPath(bar, DB.BarStoragePath(path), v)
+end
+
+local BUILTIN = { essential = true, utility = true, buffs = true, buffbars = true }
+function DB.IsBuiltinBar(key) return BUILTIN[key] == true end
+
+local function CopyValue(v)
+    if type(v) == "table" then return DeepCopy(v) end
+    return v
+end
+
+-- root：
+--   "theme" 在主題頁 ＝ 主題的預設；在條頁（barKey 給了）＝ nil（條沒存 ＝ 跟主題）
+--   "bar"   條自己的欄位：四條檢視器照預設值、自訂群組照 NewBarTable
+function DB.DefaultFor(root, barKey, path)
+    local d = DB.BuildDefaults().profile
+    if root == "theme" then
+        if barKey == nil or barKey == "theme" then return CopyValue(DB.GetPath(d.theme, path)) end
+        return nil
+    end
+    local ref = d.bars[barKey]
+    if not ref then
+        local bar = BarTable(barKey)
+        ref = DB.NewBarTable(bar and bar.kind or "icons", bar and bar.name)
+    end
+    return CopyValue(DB.GetPath(ref, path))
+end
+
+------------------------------------------------------------
+-- 自訂群組
+------------------------------------------------------------
+function DB.NextBarKey()
+    local p = ns.profile
+    local bars = p and p.bars or {}
+    local n = 1
+    while bars["g" .. n] ~= nil do n = n + 1 end
+    return "g" .. n
+end
+
+-- 新增：kind = "icons" | "bars"。回傳 key
+function DB.CreateBar(kind, name)
+    local p = ns.profile
+    if not p then return nil end
+    local key = DB.NextBarKey()
+    p.bars[key] = DB.NewBarTable(kind == "bars" and "bars" or "icons", CleanName(name))
+    p.barOrder = type(p.barOrder) == "table" and p.barOrder or {}
+    p.barOrder[#p.barOrder + 1] = key
+    return key
+end
+
+-- 刪除：四條檢視器不給刪。指向它的 groupOf、它的排序、錨在它身上的條一併處理
+-- （錨在它身上的條改成不錨定；位置由呼叫端先換算好寫進 pos，這裡不碰畫面）
+function DB.DeleteBar(key)
+    local p = ns.profile
+    if not p or BUILTIN[key] or type(p.bars) ~= "table" or not p.bars[key] then return false end
+    for _, spec in pairs(type(p.spells) == "table" and p.spells or {}) do
+        if type(spec) == "table" then
+            if type(spec.groupOf) == "table" then
+                for id, g in pairs(spec.groupOf) do
+                    if g == key then spec.groupOf[id] = nil end
+                end
+            end
+            if type(spec.order) == "table" then spec.order[key] = nil end
+        end
+    end
+    for other, bar in pairs(p.bars) do
+        if other ~= key and type(bar) == "table" and type(bar.anchor) == "table" and bar.anchor.to == key then
+            bar.anchor = false
+        end
+    end
+    p.bars[key] = nil
+    if type(p.barOrder) == "table" then
+        for i = #p.barOrder, 1, -1 do
+            if p.barOrder[i] == key then table.remove(p.barOrder, i) end
+        end
+    end
+    return true
+end
+
+-- 錨定成環：key 錨到 to 之後，沿著 to 的錨定鏈會不會走回 key
+function DB.AnchorWouldCycle(key, to)
+    local p = ns.profile
+    local bars = p and p.bars or {}
+    local seen, cur = { [key] = true }, to
+    while cur do
+        if seen[cur] then return true end
+        seen[cur] = true
+        local b = bars[cur]
+        local a = type(b) == "table" and b.anchor
+        cur = (type(a) == "table" and type(a.to) == "string") and a.to or nil
+    end
+    return false
+end
+
+------------------------------------------------------------
+-- 逐專精的法術表：spells[specID] = { order, groupOf, hidden, overrides, custom }
+------------------------------------------------------------
+function DB.SpecSpells(create, specID)
+    local p = ns.profile
+    specID = specID or ns.specID
+    if not (p and specID) then return nil end
+    if type(p.spells) ~= "table" then
+        if not create then return nil end
+        p.spells = {}
+    end
+    local sp = p.spells[specID]
+    if type(sp) ~= "table" then
+        if not create then return nil end
+        sp = {}
+        p.spells[specID] = sp
+    end
+    if create then
+        for _, k in ipairs({ "order", "groupOf", "hidden", "overrides" }) do
+            if type(sp[k]) ~= "table" then sp[k] = {} end
+        end
+    end
+    return sp
+end
+
+-- 覆寫欄位 → 設定頁的哪一節（「本條 N 個法術有覆寫」「清除覆寫」用）
+DB.OVERRIDE_GROUP = {
+    borderColor = "icon", desaturate = "icon",
+    procGlow = "glow", readyGlow = "glow",
+    hideCooldownText = "text", hideStackText = "text",
+}
+
+-- v = nil 清掉那一格；整張空了就拿掉
+function DB.SetOverride(cooldownID, field, v)
+    if cooldownID == nil then return false end
+    local sp = DB.SpecSpells(v ~= nil)
+    if not sp then return false end
+    local all = sp.overrides
+    if type(all) ~= "table" then return false end
+    local o = all[cooldownID]
+    if type(o) ~= "table" then
+        if v == nil then return true end
+        o = {}
+        all[cooldownID] = o
+    end
+    o[field] = v
+    if next(o) == nil then all[cooldownID] = nil end
+    return true
+end
+
+local function InGroup(field, group)
+    return group == nil or DB.OVERRIDE_GROUP[field] == group
+end
+
+function DB.CountOverrides(ids, group)
+    local sp = DB.SpecSpells(false)
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    if not all then return 0 end
+    local n = 0
+    for _, id in ipairs(ids or {}) do
+        local o = all[id]
+        if type(o) == "table" then
+            for field in pairs(o) do
+                if InGroup(field, group) then n = n + 1; break end
+            end
+        end
+    end
+    return n
+end
+
+function DB.ClearOverrides(ids, group)
+    local sp = DB.SpecSpells(false)
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    if not all then return end
+    for _, id in ipairs(ids or {}) do
+        local o = all[id]
+        if type(o) == "table" then
+            for field in pairs(o) do
+                if InGroup(field, group) then o[field] = nil end
+            end
+            if next(o) == nil then all[id] = nil end
+        end
+    end
+end
+
+------------------------------------------------------------
+-- 設定檔：改名、取不重複的名字、匯入
+------------------------------------------------------------
+function DB.RenameProfile(old, new)
+    new = CleanName(new)
+    local sv = SV()
+    if new == "" then return false, "empty" end
+    if old == DB.DEFAULT_PROFILE or not sv.profiles[old] then return false, "nosource" end
+    if old == new then return true, new end
+    if sv.profiles[new] then return false, "exists" end
+    sv.profiles[new], sv.profiles[old] = sv.profiles[old], nil
+    for k, v in pairs(sv.profileKeys) do
+        if v == old then sv.profileKeys[k] = new end
+    end
+    for _, map in pairs(sv.specProfiles) do
+        for idx, v in pairs(map) do
+            if v == old then map[idx] = new end
+        end
+    end
+    if ns.profileName == old then ns.profileName = new end
+    return true, new
+end
+
+-- 撞名自動加序號：「名字」→「名字 (2)」→「名字 (3)」…
+function DB.UniqueProfileName(base)
+    base = CleanName(base)
+    if base == "" then base = "Imported" end
+    local sv = SV()
+    if not sv.profiles[base] then return base end
+    local n = 2
+    while sv.profiles[("%s (%d)"):format(base, n)] do n = n + 1 end
+    return ("%s (%d)"):format(base, n)
+end
+
+-- 匯入一律建成新的一份（不覆蓋現有的）。profile 是解碼出來的表（呼叫端已驗過形狀），
+-- fromVersion 是字串裡帶的 schemaVersion。回傳實際用的名字。
+function DB.ImportProfile(profile, fromVersion, name)
+    if type(profile) ~= "table" then return nil end
+    name = DB.UniqueProfileName(name)
+    local copy = DeepCopy(profile)
+    DB.MigrateProfile(copy, fromVersion)
+    SV().profiles[name] = copy
+    return name
+end
+
+------------------------------------------------------------
+-- 匯出／匯入字串
+--
+--   "MILICDM!1!" ＋ Base64( Deflate( CBOR{ schemaVersion, name, profile } ) )
+--
+-- 只帶**目前這份設定檔**：帳號層（小地圖、視窗位置、其他設定檔、專精綁定）不跟字串跑。
+-- 解碼失敗回 nil, 原因代碼（empty／prefix／noapi／base64／inflate／cbor／shape／newer），
+-- 給玩家看的字由設定介面照代碼翻。
+------------------------------------------------------------
+DB.WIRE_PREFIX = "MILICDM!1!"
+
+local function EU() return C_EncodingUtil end
+
+local function DeflateMethod()
+    return Enum and Enum.CompressionMethod and Enum.CompressionMethod.Deflate
+end
+
+function DB.EncodeProfile(profile, name)
+    local eu = EU()
+    if not (eu and eu.SerializeCBOR and eu.CompressString and eu.EncodeBase64) then return nil, "noapi" end
+    local payload = { schemaVersion = ns.DB_VERSION, name = name or ns.profileName, profile = profile or ns.profile }
+    local ok, cbor = pcall(eu.SerializeCBOR, payload)
+    if not ok or type(cbor) ~= "string" then return nil, "cbor" end
+    local ok2, packed = pcall(eu.CompressString, cbor, DeflateMethod())
+    if not ok2 or type(packed) ~= "string" then return nil, "inflate" end
+    local ok3, b64 = pcall(eu.EncodeBase64, packed)
+    if not ok3 or type(b64) ~= "string" then return nil, "base64" end
+    return DB.WIRE_PREFIX .. b64
+end
+
+function DB.DecodeProfileString(text)
+    if type(text) ~= "string" then return nil, "empty" end
+    text = text:gsub("%s+", "")
+    if text == "" then return nil, "empty" end
+    if text:sub(1, #DB.WIRE_PREFIX) ~= DB.WIRE_PREFIX then return nil, "prefix" end
+    local eu = EU()
+    if not (eu and eu.DecodeBase64 and eu.DecompressString and eu.DeserializeCBOR) then return nil, "noapi" end
+    local ok, packed = pcall(eu.DecodeBase64, text:sub(#DB.WIRE_PREFIX + 1))
+    if not ok or type(packed) ~= "string" then return nil, "base64" end
+    local ok2, cbor = pcall(eu.DecompressString, packed, DeflateMethod())
+    if not ok2 or type(cbor) ~= "string" then return nil, "inflate" end
+    local ok3, data = pcall(eu.DeserializeCBOR, cbor)
+    if not ok3 or type(data) ~= "table" then return nil, "cbor" end
+    -- 形狀要驗，不能只看版本號：這張表會直接變成一份設定檔，型別不對的話要等到
+    -- 切過去才炸，那時已經建好了
+    local v, profile = data.schemaVersion, data.profile
+    if type(v) ~= "number" or type(profile) ~= "table" then return nil, "shape" end
+    for _, k in ipairs({ "theme", "bars", "spells" }) do
+        if profile[k] ~= nil and type(profile[k]) ~= "table" then return nil, "shape" end
+    end
+    if type(profile.bars) == "table" then
+        for _, bar in pairs(profile.bars) do
+            if type(bar) ~= "table" then return nil, "shape" end
+        end
+    end
+    if v > ns.DB_VERSION then return nil, "newer" end
+    if type(data.name) ~= "string" then data.name = nil end
+    return data
+end
+
+-- 審閱頁用：帶了哪幾條檢視器、幾個自訂群組（與名字）
+function DB.SummarizeProfile(profile)
+    local builtin, custom = {}, {}
+    for key, bar in pairs(type(profile) == "table" and type(profile.bars) == "table" and profile.bars or {}) do
+        if BUILTIN[key] then
+            builtin[#builtin + 1] = key
+        elseif type(bar) == "table" then
+            custom[#custom + 1] = type(bar.name) == "string" and bar.name or key
+        end
+    end
+    local order = { essential = 1, utility = 2, buffs = 3, buffbars = 4 }
+    table.sort(builtin, function(a, b) return order[a] < order[b] end)
+    table.sort(custom)
+    return builtin, custom
 end

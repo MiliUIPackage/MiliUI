@@ -2,7 +2,10 @@
 -- 主設定視窗：700×520，左欄導覽（Options/Sidebar.lua）＋ 右側一頁一頁
 --
 -- 頁面是懶建的：Options.RegisterPage(id, title, build) 只登記，第一次切過去才建。
--- 這一階段每頁都只是「標題 ＋ 一行灰字」的殼，之後的階段把 build 換掉即可。
+-- title 可以是函式（自訂群組改名之後標題跟著變）。
+-- 建好的頁面留在快取裡，**不丟**（frame 刪不掉，丟了再建就是洩漏）：自訂群組刪掉
+-- 只是取消登記、把頁面藏起來，之後同一個 key 再出現就拿回來用。
+-- 頁面每次被切到都會叫 page:OnShowPage()（有的話），各頁在那裡照目前的設定檔重讀。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -20,6 +23,7 @@ Options.PANEL_W, Options.PANEL_H, Options.SIDEBAR_W = PANEL_W, PANEL_H, SIDEBAR_
 -- 頁面內容區的寬（標題與表單用）。右上角留 28 給關閉鈕，標題線才不會從鈕底下穿過去
 local PAGE_PAD = 16
 local PAGE_W = PANEL_W - SIDEBAR_W - PAGE_PAD * 2 - 12
+Options.PAGE_PAD, Options.PAGE_W = PAGE_PAD, PAGE_W
 
 local panel, closeBtn, content
 local pages, pageDefs = {}, {}
@@ -32,8 +36,26 @@ function Options.RegisterPage(id, title, build)
     pageDefs[id] = { title = title, build = build }
 end
 
+function Options.UnregisterPage(id)
+    pageDefs[id] = nil
+    local page = pages[id]
+    if page then page:Hide() end
+end
+
+function Options.HasPage(id)
+    return pageDefs[id] ~= nil
+end
+
 function Options.PageTitle(id)
-    return pageDefs[id] and pageDefs[id].title
+    local def = pageDefs[id]
+    if not def then return nil end
+    if type(def.title) == "function" then return def.title(id) end
+    return def.title
+end
+
+-- 已經建好的頁面（沒建過回 nil）
+function Options.GetPage(id)
+    return pages[id]
 end
 
 -- 頁首：標題（accent 線）。回傳 page 與標題下緣的 y，頁面內容從那裡往下排。
@@ -43,6 +65,7 @@ function Options.NewPage(parent, title)
     page:SetAllPoints(parent)
     local head = W.CreateSectionTitle(page, title, PAGE_W)
     head:SetPoint("TOPLEFT", PAGE_PAD, -14)
+    page.head = head
     return page, -44
 end
 
@@ -96,8 +119,7 @@ function Options.ShowPage(id)
     W.CloseDropdowns()
     local page = pages[id]
     if not page then
-        local def = pageDefs[id]
-        local ok, built = xpcall(def.build, ns.ReportError, content, def.title)
+        local ok, built = xpcall(pageDefs[id].build, ns.ReportError, content, Options.PageTitle(id), id)
         if not ok or not built then return end
         page = built
         pages[id] = page
@@ -107,6 +129,7 @@ function Options.ShowPage(id)
     end
     page:Show()
     currentPage = id
+    if page.OnShowPage then xpcall(page.OnShowPage, ns.ReportError, page) end
     local w = WindowDB()
     if w then w.lastBar = id end
     if ns.Sidebar and ns.Sidebar.Highlight then ns.Sidebar.Highlight(id) end
@@ -177,9 +200,12 @@ local function CreatePanel()
     panel:SetScript("OnShow", function()
         SetCombatLocked(InCombatLockdown())      -- 戰鬥中開窗也要鎖
         ns.Sidebar.Relayout()                    -- 顯示之後才量得到字高（換行的語系）
+        ns.Fire("OptionsShown")
     end)
     panel:SetScript("OnHide", function()
         W.CloseDropdowns()
+        if W.Menu and W.Menu.Hide then W.Menu.Hide() end
+        ns.Fire("OptionsHidden")
     end)
 
     -- 戰鬥遮罩：事件掛在 panel 自己身上（隱藏的框照樣收得到事件）
@@ -241,6 +267,7 @@ function Options.Open(pageId)
         panel:Hide()
         return
     end
+    Options.SyncBarPages()
     ApplyPosition()
     panel:Show()
     panel:Raise()        -- 已開但被別的對話框蓋住時拉到最前
@@ -248,10 +275,78 @@ function Options.Open(pageId)
     Options.ShowPage(pageId or (w and w.lastBar) or "essential")
 end
 
--- 從編輯模式的齒輪、之後的點擊層直接跳到某條的頁面
+-- 從編輯模式的齒輪、畫面上的點擊層直接跳到某條的頁面（自訂群組也要開得到）
 function Options.FocusBar(key)
+    Options.SyncBarPages()
+    if not pageDefs[key] then key = "essential" end
     Options.Open(key)
 end
+
+------------------------------------------------------------
+-- 自訂群組的頁面登記：跟著目前設定檔的 bars 走
+------------------------------------------------------------
+local function BarTitle(key)
+    local bar = ns.DB.BarTable(key)
+    local name = bar and bar.name
+    if type(name) == "string" and name ~= "" then return name end
+    return key
+end
+Options.BarTitle = BarTitle
+
+function Options.SyncBarPages()
+    local p = ns.profile
+    local bars = p and p.bars or {}
+    for id in pairs(pageDefs) do
+        if not ns.DB.IsBuiltinBar(id) and pageDefs[id].customBar and not bars[id] then
+            Options.UnregisterPage(id)
+        end
+    end
+    for key in pairs(bars) do
+        if not ns.DB.IsBuiltinBar(key) and not pageDefs[key] and ns.TabBar then
+            Options.RegisterPage(key, BarTitle, ns.TabBar.Build)
+            pageDefs[key].customBar = true
+        end
+    end
+end
+
+------------------------------------------------------------
+-- 真實條的套用：設定頁改了值之後 0.2 秒合併一次（滑桿拖動中只重畫預覽）
+------------------------------------------------------------
+local engineLevel, engineArmed
+local LEVEL_RANK = { membership = 1, layout = 2, structure = 3 }
+
+local function FlushEngine()
+    engineArmed = false
+    local level = engineLevel or "layout"
+    engineLevel = nil
+    if ns.Decorate then ns.Decorate.InvalidateAll() end
+    if ns.Bars then ns.Bars.RequestAll(level) end
+    if ns.Visibility then ns.Visibility.ApplyAll() end
+    if ns.EditMode and ns.EditMode.active and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
+end
+
+function Options.ApplyEngine(level, now)
+    level = level or "layout"
+    if not engineLevel or (LEVEL_RANK[level] or 0) > (LEVEL_RANK[engineLevel] or 0) then
+        engineLevel = level
+    end
+    if now then FlushEngine() return end
+    if engineArmed then return end
+    engineArmed = true
+    C_Timer.After(0.2, FlushEngine)
+end
+
+-- 設定檔換了：自訂群組重新登記、左欄重建、目前這頁照新的設定檔重讀
+ns.RegisterCallback("ProfileChanged", "options", function()
+    Options.SyncBarPages()
+    if ns.Sidebar and ns.Sidebar.Rebuild then ns.Sidebar.Rebuild() end
+    if panel and panel:IsShown() then
+        Options.ShowPage(pageDefs[currentPage] and currentPage or "essential")
+    end
+end)
+ns.RegisterCallback("SpecChanged", "options", function()
+    if panel and panel:IsShown() and currentPage then Options.ShowPage(currentPage) end
+end)
 
 function Options.Close()
     if panel then panel:Hide() end
