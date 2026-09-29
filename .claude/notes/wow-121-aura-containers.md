@@ -320,3 +320,16 @@ callback 裡只查表。2026-08-30 在 MiliUI_UnitFrames `Elements/Auras.lua` �
 新 API：`AddPandemicRegion(region)`（區域被蓋 `SecretAspect.Shown`，引擎在窗口內 `SetShown`）、`AddPandemicEnter/Active/LeaveAnimation(animGroup)`、`AddAuraShown/AssignedAnimation(animGroup)`（動畫組交給引擎播，子樹裡不 tick 的限制由此繞過；VertexColor／Alpha 動畫都可用）。**窗口定義**（`AuraContainerUtil.GetPandemicWindow`）：`C_UnitAuras.GetRefreshCarryOverDuration` > 0 才有窗口，`[expirationTime - carryOver, expirationTime]`——也就是**只有 HoT／DoT 這類續壓會帶時間的光環才有（通常最後 30%）**，門檻不可設，一般增益／減傷沒有窗口什麼都不會亮。
 
 Cell 矩形指示器的「剩餘 < 50%／< 3 秒變色」在 2026-08-27（3f727e31f，r295 之後）改效果槽時拿掉，預覽仍走舊 OnUpdate 路所以看得到；能補的只有（1）色帶接到倒數文字曲線、（2）用 pandemic 區域／動畫做「續壓窗口變色」。EUI 那份也只做文字色曲線，沒有填色隨時間變。
+
+## 效果型指示器「剩 N 秒／N% 換色」在 12.1 其實做得到：|T 貼圖塞進倒數文字（DandersFrames 的招，2026-09-29 讀 v5.3.3）
+
+前面那節說「貼圖沒有顏色曲線」是對的，但 DandersFrames 繞過去了：**把填色做成 FontString 裡的 `|T` 內嵌貼圖，用 `SetDurationText` 綁定，formatter 用 `C_StringUtil.CreateNumericRuleFormatter()` 的分段（breakpoint）**，每段的 format 字串各放一個不同顏色的 `|T`——`|T路徑:h:w:0:0:64:64:0:64:0:64:R:G:B|t`（最後三個是 0–255 的 vertex 色），門檻以上那段 format 給空字串。引擎在 C 端拿秘密剩餘值挑段，插件零讀取，戰鬥中照跑。要百分比門檻就用 `textFormat = { formatString = "{}", components = {{ property = Enum.DurationTextBindingProperty.RemainingPercent, formatter = fmt }} }`；一個綁定一種屬性，秒數帶與百分比帶要兩個 FontString。
+
+細節（`Features/Expiration.lua`、`Features/Auras.lua` 的 `GetExpiryBorderElementFormatter`／`borderEscapeHex`）：
+- 貼圖是白色遮罩 TGA（`DF_ExpireBorder_Fill` 是 50% alpha 的實心塊；外框三種粗細各一張，位圖縮放不能改線寬）。
+- **`|T` 在 FontString 裡量出來約是容器像素的 0.75 倍**（固定偏移，跟 UI scale 無關），所以要蓋滿圖示得把 h/w 烤成 `邊長 × 0.75`；透明度用 region alpha。
+- formatter 綁定後凍結（bind-once），改門檻／顏色／尺寸都算結構變更要重建槽。
+- 預覽與實機走同一條 BuildDurationSpec，DF 明文記錄兩次「預覽另開渲染入口」都出過事。
+- DF 的 pandemic 走 `AddPandemicRegion`（Tint／Border 兩種、可閃爍），跟到期警示並存；zhTW 譯「延續判定」。
+
+對 Cell 的意義：buff 矩形被拿掉的「剩餘 < 50%／< 3 秒」兩條色帶可以用這招整條補回（見 [[project-cell-auracontainer-rewrite]]），不必只靠 pandemic 窗口。
