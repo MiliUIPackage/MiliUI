@@ -398,11 +398,20 @@ end
 
 -- 便宜的新鮮度檢查（Bars 每次排版前叫）：暴雪換專精／存版面是在它自己的下一幀做的，
 -- 不一定有事件接得到；版面字串或專精跟上次建置時不同就重讀。
+-- GetLayoutData 回的是整份版面字串（每個專精都在裡面），增益上下時每 0.1 秒排一次版，
+-- 每次都讀太浪費 ⇒ 輪詢最多每 FRESH_INTERVAL 秒一次。事件路徑（Later → dirty）不受限。
+local FRESH_INTERVAL = 1
+local lastFresh = nil
 function C.CheckFresh()
     if dirty then
         local changed = EnsureBuilt()
         if changed and ns.Fire then ns.Fire("CatalogChanged", "dirty") end
         return changed
+    end
+    local now = _G.GetTime and _G.GetTime() or nil
+    if now then
+        if lastFresh and now - lastFresh < FRESH_INTERVAL then return false end
+        lastFresh = now
     end
     if ReadLayoutString() ~= C.layoutString or C.SpecTag() ~= C.specTag then
         return C.Refresh("stale")
@@ -638,6 +647,24 @@ function C.Bar(barKey, withHidden)
     out = AuraPrefix(out)
     if hid then hid = AuraPrefix(hid) end
     return out, hid
+end
+
+-- 從暴雪某條檢視器拉法術出去的條（本專精 groupOf 指到、而且真的存在的條），加進 out[key] = true。
+-- Bars.RequestSource 用：那條檢視器有動靜時，只有這些條（跟來源條自己）的清單可能變。
+-- 在掛勾的訊號路徑上叫，**不重建目錄**（只讀上次建好的 C.info）；讀不到來源的 id 一律算進去。
+function C.GroupTargets(sourceKey, out)
+    out = out or {}
+    local sp = SpellsTable()
+    local groupOf = sp and type(sp.groupOf) == "table" and sp.groupOf
+    local bars = ns.profile and ns.profile.bars
+    if not groupOf or type(bars) ~= "table" then return out end
+    for id, g in pairs(groupOf) do
+        if g ~= sourceKey and type(bars[g]) == "table" and not out[g] then
+            local rec = C.info[id]
+            if not rec or rec.bar == nil or rec.bar == sourceKey then out[g] = true end
+        end
+    end
+    return out
 end
 
 -- 還在候選池（沒被拖進任何檢視器）的 id，給設定介面的「要先去暴雪面板加」用

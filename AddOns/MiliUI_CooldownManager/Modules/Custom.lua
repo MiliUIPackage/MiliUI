@@ -268,6 +268,7 @@ end
 
 function CU.Update(rec)
     if not (rec.frame and rec.placedBar) then return end
+    rec.dirty = nil
     if rec.kind == "spell" then UpdateSpell(rec)
     elseif rec.kind == "item" then UpdateItem(rec) end
 end
@@ -286,7 +287,11 @@ local function Flush()
     end
 end
 
+-- 每筆都標髒（沒放在條上的也標：之後被放上去時 Place 看 rec.dirty 補一次 Update）
 function CU.MarkDirty()
+    for _, rec in pairs(records) do
+        if rec.kind ~= "aura" then rec.dirty = true end
+    end
     if dirtyArmed then return end
     dirtyArmed = true
     ns.Defer(Flush)
@@ -630,9 +635,14 @@ function CU.Place(rec, c, r, barKey, gen)
     f:SetSize(r.w, r.h)
     f:SetAlpha(1)             -- 條的淡出由容器的 alpha 帶（框是容器的子框）
     f:Show()
-    rec.placedSig = true
+    -- 冷卻／數量的 Update 只在「放的位置或條換了」「樣式重套了」「事件標髒了」時才做：
+    -- 增益上下每次都會重排整條，冷卻狀態沒變就不必重讀（事件那條路本來就會標 rec.dirty）
+    local sig = table.concat({ tostring(c), barKey, r.x, r.y, r.w, r.h }, "|")
+    local moved = rec.placedSig ~= sig
+    rec.placedSig = sig
+    local styled = rec.decorated
     ns.Decorate.Apply(f, rec, barKey, r.w, r.h)
-    CU.Update(rec)
+    if moved or rec.dirty or rec.decorated ~= styled then CU.Update(rec) end
     if rec.kind == "spell" and rec.procActive == nil then CU.InitialOverlay(rec) end
     if ns.Glow then ns.Glow.Sync(f, rec, barKey) end
     if ns.Keybinds then ns.Keybinds.Apply(f, rec, barKey) end

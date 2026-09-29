@@ -188,6 +188,8 @@ function Tab.Build(parent, title)
 
     local function OnApply(spec)
         ns.Resources.Apply()
+        -- 顏色與條件規則（條件編輯器直接叫 ctx.apply，分不出是哪一格）：跟隨我們的插件重畫，合併節流
+        if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.active and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
         if ns.Fire then ns.Fire("BarsListChanged") end
         -- 形狀可能變了（規則增刪、錨定開關、開關列）：延一幀再比對，不在按鈕的處理器裡換表單

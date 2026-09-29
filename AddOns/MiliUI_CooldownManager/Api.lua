@@ -36,6 +36,10 @@ local function Debug()
         p(("  檢視器：%s（嘗試 %d 次）  排版 %d 次  待排 %d 條  格位快取 %d")
             :format(V.ready and "已掛上" or "|cffff5555尚未就緒|r", V.Attempts(), B.flushes,
                     B.PendingCount(), B.SlotCount()))
+        if B.released then
+            p(("  |cffff5555已還給暴雪|r（%s）%s"):format(tostring(B.releaseReason),
+                ns.engineFailed and ("  啟動失敗：" .. table.concat(ns.engineFailed, ", ")) or ""))
+        end
         for _, key in ipairs(V.ORDER) do
             local viewer = V.Get(key)
             p(("  %-9s 暴雪 item %s  清單 %d  認領 %d  alpha %s")
@@ -154,6 +158,14 @@ SlashCmdList.MILIUICDM = function(msg)
         Debug()
     elseif msg == "aura" then
         AuraDebug()
+    elseif msg == "release" then
+        -- 除錯用：把暴雪的冷卻管理器還給暴雪（item、檢視器、發光、按鍵文字），/reload 才接回來
+        if ns.Bars and ns.Bars.ReleaseAll and not ns.released then
+            ns.Bars.ReleaseAll("manual")
+            print(ns.PREFIX_COLOR .. "[米利冷卻 debug]|r 已把冷卻管理器還給暴雪；/reload 重新接管")
+        else
+            print(ns.PREFIX_COLOR .. "[米利冷卻 debug]|r " .. (ns.released and "已經還過了（/reload 重新接管）" or "引擎沒有載入"))
+        end
     else
         ns.OpenOptions()
     end
@@ -166,9 +178,29 @@ end
 --   （本插件沒載入完、互斥偵測成立、那一項不存在），退回自己的預設。
 --   回傳的表是設定檔裡的**參照**：唯讀，別改、別長期持有（換設定檔之後就是另一張表）。
 ------------------------------------------------------------
+-- 設定檔還沒載入（登入前、互斥偵測成立整支沒初始化）一律 nil：呼叫端退自己的來源
 local function ResourcesCfg()
-    return ns.ready and ns.DB and ns.DB.ConfigTable and ns.DB.ConfigTable("resources") or nil
+    if not (ns.ready and ns.profile and ns.DB and ns.DB.ConfigTable) then return nil end
+    return ns.DB.ConfigTable("resources")
 end
+
+-- 資源顏色／條件規則變了（資源條設定頁、換設定檔、換專精）：0.2 秒合併成一次
+-- "ResourceStyleChanged"，給跟隨我們顏色的插件（單位框架的資源條）重畫
+local styleArmed = false
+function ns.NotifyResourceStyle()
+    if styleArmed then return end
+    styleArmed = true
+    C_Timer.After(0.2, function()
+        styleArmed = false
+        ns.Fire("ResourceStyleChanged")
+    end)
+end
+ns.RegisterCallback("ProfileChanged", "api_style", ns.NotifyResourceStyle)
+ns.RegisterCallback("SpecChanged", "api_style", ns.NotifyResourceStyle)
+
+-- 對外開放的回呼（白名單）；key 加前綴，不會撞到內部訂閱者
+local PUBLIC_EVENTS = { ResourceStyleChanged = true }
+local function ExtKey(key) return "ext:" .. tostring(key) end
 
 _G.MiliUI_CooldownManager = {
     -- 資源 key（"ComboPoints"、"HolyPower"、"Mana"…，見 README）的顏色：
@@ -201,5 +233,18 @@ _G.MiliUI_CooldownManager = {
     -- 還沒建好回 nil。⚠ 錨上來的框會跟著這條移動；別對它 SetParent 或改它的大小。
     GetBarFrame = function(barKey)
         return ns.Bars and ns.Bars.Get(barKey) or nil
+    end,
+    -- 訂閱本插件的事件；目前只開放 "ResourceStyleChanged"（資源顏色或條件規則變了，
+    -- 不帶參數，已合併節流）。同一個 key 再登記＝換掉。成功回 true，事件不開放回 false。
+    -- fn 拋錯會被隔離（記在本插件的錯誤清單），不影響其他訂閱者
+    RegisterCallback = function(event, key, fn)
+        if not PUBLIC_EVENTS[event] or key == nil or type(fn) ~= "function" then return false end
+        ns.RegisterCallback(event, ExtKey(key), fn)
+        return true
+    end,
+    UnregisterCallback = function(event, key)
+        if not PUBLIC_EVENTS[event] or key == nil then return false end
+        ns.UnregisterCallback(event, ExtKey(key))
+        return true
     end,
 }

@@ -295,15 +295,31 @@ local function RestyleAll(reason)
 end
 ns.RestyleAll = RestyleAll
 
+-- 引擎有一步起不來：把暴雪的冷卻管理器還給暴雪（半套的引擎會把 item 停在畫面外、沒有路徑放回來），
+-- 聊天框印一行。只做一次（Viewers 的延後安裝失敗也走這裡）。
+function ns.EngineFailed(names)
+    ns.engineFailed = ns.engineFailed or {}
+    for _, n in ipairs(names or {}) do ns.engineFailed[#ns.engineFailed + 1] = n end
+    if ns.released then return end
+    if ns.Bars and ns.Bars.ReleaseAll then
+        xpcall(ns.Bars.ReleaseAll, ns.ReportError, "engine")
+    end
+    ns.Print(L["Failed to start (%s). Blizzard's Cooldown Manager has been handed back; type /mcdm debug for the error."]
+        :format(table.concat(ns.engineFailed, ", ")))
+end
+
 function ns.StartEngine()
+    local failed = {}
     for _, name in ipairs(ENGINE) do
         local mod = ns[name]
         if mod and mod.Init then
-            xpcall(mod.Init, ns.ReportError)
+            local ok = xpcall(mod.Init, ns.ReportError)
+            if not ok then failed[#failed + 1] = name end
         end
     end
     ns.RegisterCallback("ProfileChanged", "engine", function() RestyleAll("profile") end)
     ns.RegisterCallback("SpecChanged", "engine", function() RestyleAll("spec") end)
+    if #failed > 0 then ns.EngineFailed(failed) end
 end
 
 ------------------------------------------------------------
