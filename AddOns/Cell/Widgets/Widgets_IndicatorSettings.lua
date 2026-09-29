@@ -1428,168 +1428,6 @@ local function CreateSetting_PowerFormat(parent)
     return widget
 end
 
-local function CreateSetting_DurationVisibility(parent)
-    local widget
-
-    if not settingWidgets["durationVisibility"] then
-        widget = Cell.CreateFrame("CellIndicatorSettings_DurationVisibility", parent, 240, 50)
-        settingWidgets["durationVisibility"] = widget
-
-        widget.durationVisibility = Cell.CreateDropdown(widget, 245)
-        widget.durationVisibility:SetPoint("TOPLEFT", 5, -20)
-        widget.durationVisibility:SetItems({
-            {
-                ["text"] = L["Never"],
-                ["value"] = false,
-                ["onClick"] = function()
-                    widget.func(false)
-                end,
-            },
-            {
-                ["text"] = L["Always"],
-                ["value"] = true,
-                ["onClick"] = function()
-                    widget.func(true)
-                end,
-            },
-            -- Percentage thresholds are gone: they need the aura's TOTAL duration to compare
-            -- against, and that is secret. Second thresholds only need the remaining time,
-            -- which the container's own formatter can band.
-            {
-                ["text"] = "< 60 "..L["sec"],
-                ["value"] = 60,
-                ["onClick"] = function()
-                    widget.func(60)
-                end,
-            },
-            {
-                ["text"] = "< 15 "..L["sec"],
-                ["value"] = 15,
-                ["onClick"] = function()
-                    widget.func(15)
-                end,
-            },
-            {
-                ["text"] = "< 10 "..L["sec"],
-                ["value"] = 10,
-                ["onClick"] = function()
-                    widget.func(10)
-                end,
-            },
-            {
-                ["text"] = "< 5 "..L["sec"],
-                ["value"] = 5,
-                ["onClick"] = function()
-                    widget.func(5)
-                end,
-            },
-        })
-
-        widget.durationVisibilityText = widget:CreateFontString(nil, "OVERLAY", font_name)
-        widget.durationVisibilityText:SetText(L["showDuration"])
-        widget.durationVisibilityText:SetPoint("BOTTOMLEFT", widget.durationVisibility, "TOPLEFT", 0, 1)
-
-        -- callback
-        function widget:SetFunc(func)
-            widget.func = func
-        end
-
-        -- show db value
-        function widget:SetDBValue(durationVisibility)
-            widget.durationVisibility:SetSelectedValue(durationVisibility)
-        end
-    else
-        widget = settingWidgets["durationVisibility"]
-    end
-
-    widget:Show()
-    return widget
-end
-
--- Midnight: duration visibility without the PERCENTAGE thresholds. Percentages need the
--- aura's total duration, which is secret; second thresholds do not -- RDC's own
--- NumericRuleFormatter adds a `format = ""` breakpoint above the cutoff, so "< N sec"
--- works fine on the AuraContainer path (it was only Blizzard's own countdown text that
--- couldn't do thresholds).
-local function CreateSetting_DurationVisibilitySimple(parent)
-    local widget
-
-    if not settingWidgets["durationVisibilitySimple"] then
-        widget = Cell.CreateFrame("CellIndicatorSettings_DurationVisibilitySimple", parent, 240, 50)
-        settingWidgets["durationVisibilitySimple"] = widget
-
-        widget.durationVisibility = Cell.CreateDropdown(widget, 245)
-        widget.durationVisibility:SetPoint("TOPLEFT", 5, -20)
-        widget.durationVisibility:SetItems({
-            {
-                ["text"] = L["Never"],
-                ["value"] = false,
-                ["onClick"] = function()
-                    widget.func(false)
-                end,
-            },
-            {
-                ["text"] = L["Always"],
-                ["value"] = true,
-                ["onClick"] = function()
-                    widget.func(true)
-                end,
-            },
-            {
-                ["text"] = "< 60 "..L["sec"],
-                ["value"] = 60,
-                ["onClick"] = function()
-                    widget.func(60)
-                end,
-            },
-            {
-                ["text"] = "< 15 "..L["sec"],
-                ["value"] = 15,
-                ["onClick"] = function()
-                    widget.func(15)
-                end,
-            },
-            {
-                ["text"] = "< 10 "..L["sec"],
-                ["value"] = 10,
-                ["onClick"] = function()
-                    widget.func(10)
-                end,
-            },
-            {
-                ["text"] = "< 5 "..L["sec"],
-                ["value"] = 5,
-                ["onClick"] = function()
-                    widget.func(5)
-                end,
-            },
-        })
-
-        widget.durationVisibilityText = widget:CreateFontString(nil, "OVERLAY", font_name)
-        widget.durationVisibilityText:SetText(L["showDuration"])
-        widget.durationVisibilityText:SetPoint("BOTTOMLEFT", widget.durationVisibility, "TOPLEFT", 0, 1)
-
-        function widget:SetFunc(func)
-            widget.func = func
-        end
-
-        function widget:SetDBValue(durationVisibility)
-            -- Only PERCENTAGE thresholds (0 < v < 1) are impossible now: they need the
-            -- aura's total duration, which is secret. Coerce those to "Always" for display;
-            -- second thresholds map to themselves. The saved value isn't modified.
-            if type(durationVisibility) == "number" and durationVisibility > 0 and durationVisibility < 1 then
-                durationVisibility = true
-            end
-            widget.durationVisibility:SetSelectedValue(durationVisibility)
-        end
-    else
-        widget = settingWidgets["durationVisibilitySimple"]
-    end
-
-    widget:Show()
-    return widget
-end
-
 local function CreateSetting_Orientation(parent)
     local widget
 
@@ -2677,106 +2515,246 @@ local function CreateSetting_RectColors(parent)
 end
 
 -- Unified countdown colour-by-time widget (12.1). Master toggle + base colour + two
+-- Colour-by-remaining-time block, embedded in the duration text sections (icon types and
+-- the text indicator) so "show the countdown" and "colour the countdown" live in one box.
 -- SECONDS thresholds ("剩餘時間 < N 秒 -> colour"). Feeds the AuraContainer duration colour
 -- curve (RemainingDuration). No percent band -- a seconds curve can't carry one.
 -- DB shape: { [1]=enabled(bool), [2]=base{r,g,b,a}, [3]={en,sec,{r,g,b,a}}, [4]={en,sec,{r,g,b,a}} }
-local function CreateSetting_DurationColor(parent)
+-- Reads widget.colorsTable, notifies through widget.colorFunc(colorsTable).
+local DURATION_COLOR_BLOCK_HEIGHT = 88 -- toggle + base + 2 threshold rows, incl. bottom padding
+
+local function BuildDurationColorBlock(widget, anchorTo, xOffset, yOffset)
+    local block = {}
+    local normalColor, th1CB, th1Color, th1EB, th1Text, th2CB, th2Color, th2EB, th2Text
+
+    local function RefreshEnabled()
+        local on = widget.colorsTable[1] and true or false
+        Cell.SetEnabled(on, normalColor, th1CB, th2CB)
+        Cell.SetEnabled(on and widget.colorsTable[3][1], th1Color, th1EB, th1Text)
+        Cell.SetEnabled(on and widget.colorsTable[4][1], th2Color, th2EB, th2Text)
+    end
+
+    local enableCB = Cell.CreateCheckButton(widget, L["Color by Remaining Time"], function(checked)
+        widget.colorsTable[1] = checked
+        RefreshEnabled()
+        widget.colorFunc(widget.colorsTable)
+    end)
+    enableCB:SetPoint("TOPLEFT", anchorTo, "BOTTOMLEFT", xOffset, yOffset)
+
+    normalColor = Cell.CreateColorPicker(widget, L["Normal"], true, function(r, g, b, a)
+        widget.colorsTable[2][1] = r
+        widget.colorsTable[2][2] = g
+        widget.colorsTable[2][3] = b
+        widget.colorsTable[2][4] = a
+        widget.colorFunc(widget.colorsTable)
+    end)
+    normalColor:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -8)
+
+    -- one seconds-threshold row: checkbox + colour + "剩餘時間 < [N] 秒". idx = colorsTable slot.
+    local function BuildThresholdRow(idx, rowAnchor)
+        local cb, cp, eb, txt
+        cb = Cell.CreateCheckButton(widget, "", function(checked)
+            widget.colorsTable[idx][1] = checked
+            Cell.SetEnabled(widget.colorsTable[1] and checked, cp, eb, txt)
+            widget.colorFunc(widget.colorsTable)
+        end)
+        cb:SetPoint("TOPLEFT", rowAnchor, "BOTTOMLEFT", 0, -8)
+
+        cp = Cell.CreateColorPicker(widget, L["Remaining Time"].." <", true, function(r, g, b, a)
+            widget.colorsTable[idx][3][1] = r
+            widget.colorsTable[idx][3][2] = g
+            widget.colorsTable[idx][3][3] = b
+            widget.colorsTable[idx][3][4] = a
+            widget.colorFunc(widget.colorsTable)
+        end)
+        cp:SetPoint("TOPLEFT", cb, "TOPRIGHT", 2, 0)
+
+        eb = Cell.CreateEditBox(widget, 43, 20, false, false, true)
+        eb:SetPoint("LEFT", cp.label, "RIGHT", 5, 0)
+        eb:SetMaxLetters(4)
+        eb.confirmBtn = Cell.CreateButton(widget, "OK", "accent", {27, 20})
+        eb.confirmBtn:SetPoint("LEFT", eb, "RIGHT", -1, 0)
+        eb.confirmBtn:Hide()
+        eb.confirmBtn:SetScript("OnHide", function() eb.confirmBtn:Hide() end)
+        eb.confirmBtn:SetScript("OnClick", function()
+            local n = tonumber(eb:GetText())
+            widget.colorsTable[idx][2] = n
+            eb:SetText(n)
+            eb:ClearFocus()
+            eb.confirmBtn:Hide()
+            widget.colorFunc(widget.colorsTable)
+        end)
+        eb:SetScript("OnTextChanged", function(self, userChanged)
+            if userChanged then
+                local n = tonumber(self:GetText())
+                if n and n ~= widget.colorsTable[idx][2] then eb.confirmBtn:Show() else eb.confirmBtn:Hide() end
+            end
+        end)
+
+        txt = widget:CreateFontString(nil, "OVERLAY", font_name)
+        txt:SetPoint("LEFT", eb, "RIGHT", 5, 0)
+        txt:SetText(L["sec"])
+        return cb, cp, eb, txt
+    end
+
+    th1CB, th1Color, th1EB, th1Text = BuildThresholdRow(3, normalColor)
+    th2CB, th2Color, th2EB, th2Text = BuildThresholdRow(4, th1CB)
+
+    local regions = {enableCB, normalColor, th1CB, th1Color, th1EB, th1Text, th2CB, th2Color, th2EB, th2Text}
+
+    function block:SetShown(shown)
+        for _, r in pairs(regions) do
+            r:SetShown(shown)
+        end
+    end
+
+    function block:SetDBValue(colorsTable)
+        widget.colorsTable = colorsTable
+        enableCB:SetChecked(colorsTable[1])
+        normalColor:SetColor(colorsTable[2])
+        th1CB:SetChecked(colorsTable[3][1]); th1Color:SetColor(colorsTable[3][3]); th1EB:SetText(colorsTable[3][2])
+        th2CB:SetChecked(colorsTable[4][1]); th2Color:SetColor(colorsTable[4][3]); th2EB:SetText(colorsTable[4][2])
+        RefreshEnabled()
+    end
+
+    return block
+end
+
+-- Duration text section (icon-style indicators): class-coloured title, the show-duration
+-- dropdown and -- when the indicator's countdown colour is engine-driven -- the
+-- colour-by-remaining-time block. Always immediately followed by the duration font section,
+-- so everything about the countdown is configured in one place.
+-- Percentage thresholds are gone: they need the aura's TOTAL duration, which is secret.
+-- Second thresholds only need the remaining time, which the container's own formatter
+-- can band (RDC's NumericRuleFormatter adds a `format = ""` breakpoint above the cutoff).
+local DURATION_TEXT_BASE_HEIGHT = 70 -- title + label + dropdown
+
+local function CreateSetting_DurationText(parent)
     local widget
 
-    if not settingWidgets["durationColor"] then
-        -- 4 rows (toggle + base + 2 thresholds); Cell's colours widget is 12 + rows*21
-        widget = Cell.CreateFrame("CellIndicatorSettings_DurationColor", parent, 240, 96)
-        settingWidgets["durationColor"] = widget
+    if not settingWidgets["durationText"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_DurationText", parent, 240, DURATION_TEXT_BASE_HEIGHT)
+        settingWidgets["durationText"] = widget
 
-        local normalColor, th1CB, th1Color, th1EB, th1Text, th2CB, th2Color, th2EB, th2Text
+        widget.title = widget:CreateFontString(nil, "OVERLAY", font_class_name)
+        widget.title:SetPoint("TOPLEFT", 5, -5)
+        widget.title:SetText(L["durationText"])
 
-        local function RefreshEnabled()
-            local on = widget.colorsTable[1] and true or false
-            Cell.SetEnabled(on, normalColor, th1CB, th2CB)
-            Cell.SetEnabled(on and widget.colorsTable[3][1], th1Color, th1EB, th1Text)
-            Cell.SetEnabled(on and widget.colorsTable[4][1], th2Color, th2EB, th2Text)
-        end
+        widget.durationVisibility = Cell.CreateDropdown(widget, 245)
+        widget.durationVisibility:SetPoint("TOPLEFT", 5, -40)
+        widget.durationVisibility:SetItems({
+            {
+                ["text"] = L["Never"],
+                ["value"] = false,
+                ["onClick"] = function()
+                    widget.func(false)
+                end,
+            },
+            {
+                ["text"] = L["Always"],
+                ["value"] = true,
+                ["onClick"] = function()
+                    widget.func(true)
+                end,
+            },
+            {
+                ["text"] = "< 60 "..L["sec"],
+                ["value"] = 60,
+                ["onClick"] = function()
+                    widget.func(60)
+                end,
+            },
+            {
+                ["text"] = "< 15 "..L["sec"],
+                ["value"] = 15,
+                ["onClick"] = function()
+                    widget.func(15)
+                end,
+            },
+            {
+                ["text"] = "< 10 "..L["sec"],
+                ["value"] = 10,
+                ["onClick"] = function()
+                    widget.func(10)
+                end,
+            },
+            {
+                ["text"] = "< 5 "..L["sec"],
+                ["value"] = 5,
+                ["onClick"] = function()
+                    widget.func(5)
+                end,
+            },
+        })
 
-        local enableCB = Cell.CreateCheckButton(widget, L["Color by Remaining Time"], function(checked)
-            widget.colorsTable[1] = checked
-            RefreshEnabled()
-            widget.func(widget.colorsTable)
-        end)
-        enableCB:SetPoint("TOPLEFT", 5, -8)
+        widget.durationVisibilityText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.durationVisibilityText:SetText(L["showDuration"])
+        widget.durationVisibilityText:SetPoint("BOTTOMLEFT", widget.durationVisibility, "TOPLEFT", 0, 1)
 
-        normalColor = Cell.CreateColorPicker(widget, L["Normal"], true, function(r, g, b, a)
-            widget.colorsTable[2][1] = r
-            widget.colorsTable[2][2] = g
-            widget.colorsTable[2][3] = b
-            widget.colorsTable[2][4] = a
-            widget.func(widget.colorsTable)
-        end)
-        normalColor:SetPoint("TOPLEFT", enableCB, "BOTTOMLEFT", 0, -8)
+        widget.colorBlock = BuildDurationColorBlock(widget, widget.durationVisibility, 0, -10)
 
-        -- one seconds-threshold row: checkbox + colour + "剩餘時間 < [N] 秒". idx = colorsTable slot.
-        local function BuildThresholdRow(idx, anchorTo)
-            local cb, cp, eb, txt
-            cb = Cell.CreateCheckButton(widget, "", function(checked)
-                widget.colorsTable[idx][1] = checked
-                Cell.SetEnabled(widget.colorsTable[1] and checked, cp, eb, txt)
-                widget.func(widget.colorsTable)
-            end)
-            cb:SetPoint("TOPLEFT", anchorTo, "BOTTOMLEFT", 0, -8)
-
-            cp = Cell.CreateColorPicker(widget, L["Remaining Time"].." <", true, function(r, g, b, a)
-                widget.colorsTable[idx][3][1] = r
-                widget.colorsTable[idx][3][2] = g
-                widget.colorsTable[idx][3][3] = b
-                widget.colorsTable[idx][3][4] = a
-                widget.func(widget.colorsTable)
-            end)
-            cp:SetPoint("TOPLEFT", cb, "TOPRIGHT", 2, 0)
-
-            eb = Cell.CreateEditBox(widget, 43, 20, false, false, true)
-            eb:SetPoint("LEFT", cp.label, "RIGHT", 5, 0)
-            eb:SetMaxLetters(4)
-            eb.confirmBtn = Cell.CreateButton(widget, "OK", "accent", {27, 20})
-            eb.confirmBtn:SetPoint("LEFT", eb, "RIGHT", -1, 0)
-            eb.confirmBtn:Hide()
-            eb.confirmBtn:SetScript("OnHide", function() eb.confirmBtn:Hide() end)
-            eb.confirmBtn:SetScript("OnClick", function()
-                local n = tonumber(eb:GetText())
-                widget.colorsTable[idx][2] = n
-                eb:SetText(n)
-                eb:ClearFocus()
-                eb.confirmBtn:Hide()
-                widget.func(widget.colorsTable)
-            end)
-            eb:SetScript("OnTextChanged", function(self, userChanged)
-                if userChanged then
-                    local n = tonumber(self:GetText())
-                    if n and n ~= widget.colorsTable[idx][2] then eb.confirmBtn:Show() else eb.confirmBtn:Hide() end
-                end
-            end)
-
-            txt = widget:CreateFontString(nil, "OVERLAY", font_name)
-            txt:SetPoint("LEFT", eb, "RIGHT", 5, 0)
-            txt:SetText(L["sec"])
-            return cb, cp, eb, txt
-        end
-
-        th1CB, th1Color, th1EB, th1Text = BuildThresholdRow(3, normalColor)
-        th2CB, th2Color, th2EB, th2Text = BuildThresholdRow(4, th1CB)
-
-        function widget:SetFunc(func)
+        -- callback
+        function widget:SetFunc(func, colorFunc)
             widget.func = func
+            widget.colorFunc = colorFunc
         end
 
-        function widget:SetDBValue(colorsTable)
-            widget.colorsTable = colorsTable
-            enableCB:SetChecked(colorsTable[1])
-            normalColor:SetColor(colorsTable[2])
-            th1CB:SetChecked(colorsTable[3][1]); th1Color:SetColor(colorsTable[3][3]); th1EB:SetText(colorsTable[3][2])
-            th2CB:SetChecked(colorsTable[4][1]); th2Color:SetColor(colorsTable[4][3]); th2EB:SetText(colorsTable[4][2])
-            RefreshEnabled()
+        -- show db value; colorsTable nil = this indicator has no engine-driven countdown colour
+        function widget:SetDBValue(showDuration, colorsTable)
+            -- PERCENTAGE thresholds (0 < v < 1) are impossible now: coerce to "Always" for
+            -- display; second thresholds map to themselves. The saved value isn't modified.
+            if type(showDuration) == "number" and showDuration > 0 and showDuration < 1 then
+                showDuration = true
+            end
+            widget.durationVisibility:SetSelectedValue(showDuration)
+
+            if colorsTable then
+                widget.colorBlock:SetDBValue(colorsTable)
+                widget.colorBlock:SetShown(true)
+                P.Height(widget, DURATION_TEXT_BASE_HEIGHT + DURATION_COLOR_BLOCK_HEIGHT)
+            else
+                widget.colorsTable = nil
+                widget.colorBlock:SetShown(false)
+                P.Height(widget, DURATION_TEXT_BASE_HEIGHT)
+            end
         end
     else
-        widget = settingWidgets["durationColor"]
+        widget = settingWidgets["durationText"]
+    end
+
+    widget:Show()
+    return widget
+end
+
+-- Stack text section: class-coloured title + the show-stack toggle. Always immediately
+-- followed by the stack font section (same reasoning as the duration text section).
+local function CreateSetting_StackText(parent)
+    local widget
+
+    if not settingWidgets["stackText"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_StackText", parent, 240, 50)
+        settingWidgets["stackText"] = widget
+
+        widget.title = widget:CreateFontString(nil, "OVERLAY", font_class_name)
+        widget.title:SetPoint("TOPLEFT", 5, -5)
+        widget.title:SetText(L["stackText"])
+
+        widget.cb = Cell.CreateCheckButton(widget, L["showStack"])
+        widget.cb:SetPoint("TOPLEFT", 5, -28)
+
+        -- callback
+        function widget:SetFunc(func)
+            widget.cb.onClick = function(checked)
+                func(checked)
+            end
+        end
+
+        -- show db value
+        function widget:SetDBValue(checked)
+            widget.cb:SetChecked(checked)
+        end
+    else
+        widget = settingWidgets["stackText"]
     end
 
     widget:Show()
@@ -4056,15 +4034,21 @@ local function CreateSetting_Duration(parent)
     local widget
 
     if not settingWidgets["duration"] then
-        widget = Cell.CreateFrame("CellIndicatorSettings_Duration", parent, 240, 97)
+        -- 117 = title + 3 rows; the colour block is always shown for the text indicator
+        widget = Cell.CreateFrame("CellIndicatorSettings_Duration", parent, 240, 117 + DURATION_COLOR_BLOCK_HEIGHT)
         settingWidgets["duration"] = widget
+
+        -- title
+        widget.title = widget:CreateFontString(nil, "OVERLAY", font_class_name)
+        widget.title:SetPoint("TOPLEFT", 5, -5)
+        widget.title:SetText(L["durationText"])
 
         -- duration
         widget.durationCB = Cell.CreateCheckButton(widget, L["showDuration"], function(checked, self)
             widget.durationTbl[1] = checked
             widget.func(widget.durationTbl)
         end)
-        widget.durationCB:SetPoint("TOPLEFT", 5, -8)
+        widget.durationCB:SetPoint("TOPLEFT", 5, -28)
 
         -- duration round up
         widget.durationRoundUpCB = Cell.CreateCheckButton(widget, L["Round Up Duration Text"], function(checked, self)
@@ -4100,19 +4084,24 @@ local function CreateSetting_Duration(parent)
         end
         widget.durationDecimalDropdown:SetItems(items)
 
+        -- colour by remaining time (text's base colour lives in colorsTable[2])
+        widget.colorBlock = BuildDurationColorBlock(widget, widget.durationDecimalText2, -1, -14)
+
         -- callback
-        function widget:SetFunc(func)
+        function widget:SetFunc(func, colorFunc)
             -- NOTE: to notify indicator update
             widget.func = func
+            widget.colorFunc = colorFunc
         end
 
         -- show db value
-        function widget:SetDBValue(durationTbl)
+        function widget:SetDBValue(durationTbl, colorsTable)
             widget.durationTbl = durationTbl
             widget.durationCB:SetChecked(durationTbl[1])
             widget.durationRoundUpCB:SetChecked(durationTbl[2])
             Cell.SetEnabled(not durationTbl[2], widget.durationDecimalText1, widget.durationDecimalText2, widget.durationDecimalDropdown)
             widget.durationDecimalDropdown:SetSelectedValue(durationTbl[3])
+            widget.colorBlock:SetDBValue(colorsTable)
         end
     else
         widget = settingWidgets["duration"]
@@ -4126,8 +4115,13 @@ local function CreateSetting_Stack(parent)
     local widget
 
     if not settingWidgets["stack"] then
-        widget = Cell.CreateFrame("CellIndicatorSettings_Stack", parent, 240, 52)
+        widget = Cell.CreateFrame("CellIndicatorSettings_Stack", parent, 240, 72)
         settingWidgets["stack"] = widget
+
+        -- title
+        widget.title = widget:CreateFontString(nil, "OVERLAY", font_class_name)
+        widget.title:SetPoint("TOPLEFT", 5, -5)
+        widget.title:SetText(L["stackText"])
 
         -- show stack
         widget.stackCB = Cell.CreateCheckButton(widget, L["showStack"], function(checked, self)
@@ -4135,7 +4129,7 @@ local function CreateSetting_Stack(parent)
             widget.func(widget.stackTbl)
             -- widget.circledStackCB:SetEnabled(checked)
         end)
-        widget.stackCB:SetPoint("TOPLEFT", 5, -8)
+        widget.stackCB:SetPoint("TOPLEFT", 5, -28)
 
         -- circled stack nums
         widget.circledStackCB = Cell.CreateCheckButton(widget, L["circledStackNums"], function(checked, self)
@@ -7504,8 +7498,9 @@ local builders = {
     ["alpha"] = CreateSetting_Alpha,
     ["healthFormat"] = CreateSetting_HealthFormat,
     ["powerFormat"] = CreateSetting_PowerFormat,
-    ["durationVisibility"] = CreateSetting_DurationVisibility,
-    ["durationVisibilitySimple"] = CreateSetting_DurationVisibilitySimple,
+    ["durationText"] = CreateSetting_DurationText,
+    ["durationText:color"] = CreateSetting_DurationText,
+    ["stackText"] = CreateSetting_StackText,
     ["orientation"] = CreateSetting_Orientation,
     ["borderColor"] = CreateSetting_BorderColor,
     ["animationStyle"] = CreateSetting_AnimationStyle,
@@ -7515,7 +7510,6 @@ local builders = {
     ["color-alpha"] = CreateSetting_ColorAlpha,
     ["colors"] = CreateSetting_Colors,
     ["rectColors"] = CreateSetting_RectColors,
-    ["durationColor"] = CreateSetting_DurationColor,
     ["blockColors"] = CreateSetting_BlockFill,
     ["overlayColors"] = CreateSetting_OverlayColors,
     ["customColors"] = CreateSetting_CustomColors,
