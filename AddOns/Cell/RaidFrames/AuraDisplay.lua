@@ -625,8 +625,9 @@ local SPENT_COLOR = { 0, 0, 0, 1 }
 --     breakpoint formatter that the engine evaluates against the secret remaining value
 --     (fill below the threshold, "" above it). Two things shape it: an AuraButton has only
 --     ONE SetDurationText binding (taken by the countdown), so every band rides its own
---     companion slot; and an inline |T renders at ~0.75x the size asked for, so the escape
---     is baked at inner size x 0.75 (BAND_TEX_RATIO). See RECT COLOUR BANDS below.
+--     companion slot; and an inline |T does not render at the size asked for (the factor
+--     varies by setup), so the escape is oversized and CLIPPED to the box by its holder.
+--     See RECT COLOUR BANDS below.
 -- ============================================================
 local EFFECT_SLOT_STYLES = {
     color   = true,   -- health-bar / unit-button tint
@@ -880,11 +881,13 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
     -- rect only say "the whole image", so any consistent size works for a solid fill.
     local BAND_TEX = "Interface\\AddOns\\Cell\\Media\\white"
     local BAND_TEX_SIZE = 128
-    -- ⚠ Measured by DandersFrames: an inline |T renders at about 0.75x the pixel size asked
-    -- for (a fixed factor, independent of UI scale), so the escape asks for inner size x 0.75
-    -- to cover the rect's inner box. UNVERIFIED here -- if the fill falls short of or spills
-    -- past the rect border in game, this constant is the one to tune.
-    local BAND_TEX_RATIO = 0.75
+    -- How big to ask for the |T. An inline texture does NOT render at the size it is asked
+    -- for, and the factor is not even stable: DandersFrames measured ~0.75x in its setup,
+    -- a live rect here (2026-09-29, Cell's pixel-perfect sizing) came out at ~0.5x of the
+    -- inner box when asked for 0.75x. So no ratio is baked in at all: the escape asks for
+    -- several times the inner box and the holder CLIPS it (SetClipsChildren) to exactly
+    -- the box. Whatever the engine's factor is, the fill is edge to edge.
+    local BAND_OVERSCAN = 3
 
     local floor, max, format = math.floor, math.max, string.format
 
@@ -938,6 +941,8 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
             -- inset by the border like the Pandemic fill: a band never covers the rect's edge
             holder:SetPoint("TOPLEFT", button, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
             holder:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+            -- the oversized |T below is cut to this box; this is what makes the size exact
+            holder:SetClipsChildren(true)
             button.dfBandHolder = holder
             local fs = holder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
             -- no size given: a FontString does not clip, and the |T is centred on the box
@@ -949,13 +954,14 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
         end
         button.dfBandHolder:SetFrameLevel(button:GetFrameLevel() + (RECT_LAYER[band.kind] or 2))
 
-        -- the |T is baked at inner box x ratio; sizes come from config, never from the button
+        -- the |T is asked for at inner box x overscan and clipped by the holder; sizes come
+        -- from config, never from the button
         local innerW = (cfg.size or 11) - 2 * CELL_BORDER_SIZE
         local innerH = (cfg.sizeH or cfg.size or 4) - 2 * CELL_BORDER_SIZE
-        local w = max(1, floor(innerW * BAND_TEX_RATIO + 0.5))
-        local h = max(1, floor(innerH * BAND_TEX_RATIO + 0.5))
+        local w = max(4, floor(innerW * BAND_OVERSCAN + 0.5))
+        local h = max(4, floor(innerH * BAND_OVERSCAN + 0.5))
         local fs = button.dfBand
-        -- a line taller than the |T only adds empty space around it (nothing is clipped)
+        -- the font size only sets the line box the |T sits in; it is clipped with the rest
         local fontPath = fs:GetFont()
         if type(fontPath) ~= "string" or fontPath == "" then
             fontPath = (GameFontNormal and GameFontNormal:GetFont()) or STANDARD_TEXT_FONT
