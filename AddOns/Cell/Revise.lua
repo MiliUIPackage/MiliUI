@@ -3885,6 +3885,27 @@ function F.Revise()
         end
     end
 
+    --! fix from MiliUI (2026-09-29): the icons rows' default gap goes from 2 to 1 -- the pack's
+    --! rows sit 1px apart, and 2 read as a hole between icons at the sizes the pack uses.
+    --! Rows still on the old default move with it; any other value is a choice the player made.
+    --! ⚠ Exactly {2, 2} only, both aura types (the default applied to both).
+    --! ⚠ One-shot marker, not dbRevision -- same reason as the block above. Runs AFTER it on
+    --!   purpose: a row the block above just moved from {0, 0} to {2, 2} is on the old default
+    --!   too, and lands on {1, 1} in the same pass.
+    if not CellDB["miliuiIconsSpacingOne"] then
+        CellDB["miliuiIconsSpacingOne"] = true
+        for _, layout in pairs(CellDB["layouts"] or {}) do
+            for _, t in pairs(layout["indicators"] or {}) do
+                if type(t) == "table" and t["type"] == "icons" then
+                    local sp = t["spacing"]
+                    if type(sp) == "table" and sp[1] == 2 and sp[2] == 2 then
+                        t["spacing"] = {1, 1}
+                    end
+                end
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

@@ -161,7 +161,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["num"] = 5,
             ["numPerLine"] = 5,
             ["orientation"] = "right-to-left",
-            ["spacing"] = {2, 2},
+            ["spacing"] = {1, 1}, -- fix from MiliUI: was {2, 2}; the pack's rows sit 1px apart
             ["font"] = {
                 {"Cell " .. _G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell " .. _G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
