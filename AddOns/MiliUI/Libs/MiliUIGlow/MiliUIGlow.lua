@@ -11,7 +11,7 @@ MiliUIGlow -- MiliUI 套組的發光引擎
 API 與 LibCustomGlow **完全相同**，所以抽換只要改綁定那一行：
     local LCG = LibStub("LibCustomGlow-1.0")   -->   local LCG = <ns>.MiliUIGlow
 
-跟上游的差別只有兩處，其餘逐字不動（動畫長相因此必然一致）：
+跟上游的差別只有三處，其餘逐字不動（動畫長相因此必然一致）：
 
  1. 不註冊到 LibStub，改掛在插件自己的私有表上。
     LibStub 只留版本最高的那一份，而「哪一份贏」取決於全部插件載入完之後的結果 ——
@@ -24,6 +24,10 @@ API 與 LibCustomGlow **完全相同**，所以抽換只要改綁定那一行：
 
     driver 沒有訂閱者就自己隱藏（沒有發光時零成本），
     **把累積的 dt 整份傳給原本的更新函式**，所以動畫速度跟逐幀版完全一致。
+
+ 3. 多一組 Attach API（檔尾），給 12.1 引擎光環按鈕（AuraButton）的子樹用：
+    caller 自備框、這裡只建全新貼圖、尺寸由 caller 給、可見度不問。Start 系列的
+    池化框 reparent 在那個子樹裡一條規矩都過不了。
 ]]
 
 local _, ns = ...
@@ -87,6 +91,15 @@ local function DriverOnUpdate(self, elapsed)
     local i = 1
     while i <= _regCount do
         local f = _reg[i]
+        if f._glowBlind then
+            -- Attach 系列（引擎光環按鈕子樹）：可見度是秘密值，問都不能問，照推。
+            -- 隱藏時多算幾組座標而已；更新本身包 pcall，拋錯就踢掉，不讓整輪派送斷掉。
+            local fn = _regFn[i]
+            if fn and not pcall(fn, f, dt) then
+                DriverRemove(f)
+            end
+            if _reg[i] == f then i = i + 1 end
+        else
         local ok, vis = pcall(VisProbe, f)
         if not ok then
             DriverRemove(f)
@@ -101,6 +114,7 @@ local function DriverOnUpdate(self, elapsed)
                 if fn then fn(f, dt) end
             end
             if _reg[i] == f then i = i + 1 end
+        end
         end
     end
     if _regCount == 0 then self:Hide() end
@@ -315,7 +329,12 @@ local  pUpdate = function(self,elapsed)
         self.timer = self.timer%1
     end
     local progress = self.timer
-    local width,height = self:GetSize()
+    local width,height
+    if self.info.fixedW then
+        width,height = self.info.fixedW,self.info.fixedH   -- Attach：尺寸是 caller 給的
+    else
+        width,height = self:GetSize()
+    end
     if width ~= self.info.width or height ~= self.info.height then
         local perimeter = 2*(width+height)
         if not (perimeter>0) then
@@ -348,7 +367,8 @@ local  pUpdate = function(self,elapsed)
             [3] = (height*2+width-self.info.length/2)/perimeter
         }
     end
-    if self:IsShown() then
+    if self._glowBlind or self:IsShown() then
+        if not self._glowBlind then   -- Attach：遮罩與底在掛上時就 Show 好，IsShown 不能問
         if not (self.masks[1]:IsShown()) then
             self.masks[1]:Show()
             self.masks[1]:SetPoint("TOPLEFT",self,"TOPLEFT",self.info.th,-self.info.th)
@@ -361,6 +381,7 @@ local  pUpdate = function(self,elapsed)
         end
         if self.bg and not(self.bg:IsShown()) then
             self.bg:Show()
+        end
         end
         for k,line  in pairs(self.textures) do
             line:SetPoint("TOPLEFT",self,"TOPLEFT",pCalc1((progress+self.info.step*(k-1))%1,width,self.info.th,self.info.pTLx),-pCalc2((progress+self.info.step*(k-1))%1,height,self.info.th,self.info.pTLy))
@@ -475,7 +496,12 @@ lib.stopList["Pixel Glow"] = lib.PixelGlow_Stop
 
 --Autocast Glow Functions--
 local function acUpdate(self,elapsed)
-    local width,height = self:GetSize()
+    local width,height
+    if self.info.fixedW then
+        width,height = self.info.fixedW,self.info.fixedH   -- Attach：尺寸是 caller 給的
+    else
+        width,height = self:GetSize()
+    end
     if width ~= self.info.width or height ~= self.info.height then
         if width*height == 0 then return end -- Avoid division by zero
         self.info.width = width
@@ -1065,3 +1091,268 @@ end
 table.insert(lib.glowList, "Proc Glow")
 lib.startList["Proc Glow"] = lib.ProcGlow_Start
 lib.stopList["Proc Glow"] = lib.ProcGlow_Stop
+
+
+-------------------------------------------------------------------------------
+--  Attach API：caller 自備框（第三處差別，2026-09-29）
+--
+--  12.1 引擎光環按鈕（AuraButton）的子樹有三條規矩：region 只能在 initializeFrame 視窗內
+--  建；不能把既有的 widget reparent 進去；子樹裡的 OnUpdate／AnimationGroup 不 tick。
+--  Start 系列全靠池化框 reparent，一條都過不了。Attach 系列反過來：
+--
+--    - caller 在視窗內建好一個乾淨的子框 f（錨好、Show 好）交進來，這裡只在 f 底下建
+--      **全新**貼圖／遮罩／動畫組，永遠不 reparent 任何東西，也不用池。
+--    - 尺寸由 caller 給（width／height ＝ f 自己的大小）。子樹裡 GetSize 讀回來可能是
+--      秘密值，秘密值進了座標算式就炸，所以一律不讀。
+--    - 可見度不問：f._glowBlind 讓 driver 跳過 IsVisible，照推座標（隱藏時多算幾組而已）。
+--    - 要「動」的東西分兩類：像素線／閃光點／螞蟻線由 driver 推（外部 OnUpdate，不受子樹
+--      限制）；入場閃光（Normal）與循環閃爍（Proc）是 AnimationGroup，回傳給 caller 交給
+--      引擎播（AuraButton:AddAuraShownAnimation），子樹裡自己 Play 是不會動的。
+--
+--  重複呼叫是安全的：貼圖只在缺的時候建（視窗外建不了，會被 caller 的 pcall 吃掉），
+--  顏色／週期每次都更新（自己的 region 在視窗外照樣能寫）。
+--  Suspend／Resume 給宿主停放／取回用：按鈕還在、只是暫時不畫，driver 不必陪跑。
+-------------------------------------------------------------------------------
+local function AttachTextures(f, N, texture, texCoord, desaturated, color)
+    f.textures = f.textures or {}
+    for i = 1, N do
+        local t = f.textures[i]
+        if not t then
+            t = f:CreateTexture(nil, "ARTWORK", nil, 7)
+            t:SetTexture(texture)
+            t:SetTexCoord(texCoord[1], texCoord[2], texCoord[3], texCoord[4])
+            t:SetDesaturated(desaturated)
+            if not isRetail and texture == textureList.shine then
+                t:SetBlendMode("ADD")
+            end
+            f.textures[i] = t
+        end
+        if type(color) == "table" and color.GetRGBA then
+            t:SetVertexColor(color:GetRGBA())
+        else
+            t:SetVertexColor(color[1], color[2], color[3], color[4])
+        end
+        t:Show()
+    end
+    for i = N + 1, #f.textures do
+        f.textures[i]:Hide()
+    end
+end
+
+local function AttachMask(f, idx, inset)
+    f.masks = f.masks or {}
+    if not f.masks[idx] then
+        f.masks[idx] = f:CreateMaskTexture()
+        f.masks[idx]:SetTexture(textureList.empty, "CLAMPTOWHITE", "CLAMPTOWHITE")
+    end
+    f.masks[idx]:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
+    f.masks[idx]:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
+    f.masks[idx]:Show()
+    return f.masks[idx]
+end
+
+-- 跟 PixelGlow_Start 同一組參數（少了 offset／key／frameLevel，多了尺寸）；border 固定畫
+function lib.PixelGlow_Attach(f, color, N, frequency, length, th, width, height)
+    if not f then return end
+    color = color or {0.95, 0.95, 0.32, 1}
+    if not (N and N > 0) then N = 8 end
+    local period = 4
+    if frequency and (frequency > 0 or frequency < 0) then period = 1 / frequency end
+    length = length or math.floor((width + height) * (2 / N - 0.1))
+    length = min(length, min(width, height))
+    th = th or 1
+
+    f._glowBlind = true
+    AttachTextures(f, N, textureList.white, {0, 1, 0, 1}, nil, color)
+    local lineMask = AttachMask(f, 1, th)
+    local bgMask = AttachMask(f, 2, th + 1)
+    if not f.bg then
+        f.bg = f:CreateTexture(nil, "ARTWORK", nil, 6)
+        f.bg:SetColorTexture(0.1, 0.1, 0.1, 0.8)
+        f.bg:SetAllPoints(f)
+        f.bg:AddMaskTexture(bgMask)
+    end
+    f.bg:Show()
+    for _, tex in pairs(f.textures) do
+        if tex:GetNumMaskTextures() < 1 then
+            tex:AddMaskTexture(lineMask)
+        end
+    end
+
+    f.timer = f.timer or 0
+    f.info = f.info or {}
+    f.info.step = 1 / N
+    f.info.period = period
+    f.info.th = th
+    if f.info.length ~= length then
+        f.info.width = nil
+        f.info.length = length
+    end
+    f.info.fixedW, f.info.fixedH = width, height
+    f._glowUpdate = pUpdate
+    pUpdate(f, 0)
+    DriverAdd(f, pUpdate)
+end
+
+-- 跟 AutoCastGlow_Start 同一組參數（少了 offset／key／frameLevel，多了尺寸）
+function lib.AutoCastGlow_Attach(f, color, N, frequency, scale, width, height)
+    if not f then return end
+    color = color or {0.95, 0.95, 0.32, 1}
+    if not (N and N > 0) then N = 4 end
+    local period = 8
+    if frequency and (frequency > 0 or frequency < 0) then period = 1 / frequency end
+    scale = scale or 1
+
+    f._glowBlind = true
+    AttachTextures(f, N * 4, textureList.shine, shineCoords, true, color)
+    local sizes = {7, 6, 5, 4}
+    for k, size in pairs(sizes) do
+        for i = 1, N do
+            f.textures[i + N * (k - 1)]:SetSize(size * scale, size * scale)
+        end
+    end
+    f.timer = f.timer or {0, 0, 0, 0}
+    f.info = f.info or {}
+    f.info.N = N
+    f.info.period = period
+    f.info.fixedW, f.info.fixedH = width, height
+    f._glowUpdate = acUpdate
+    acUpdate(f, 0)
+    DriverAdd(f, acUpdate)
+end
+
+-- 螞蟻線的盲推版：不看父框的 cooldown（Attach 的父框是光環按鈕，沒有那個欄位）
+local function bgUpdateBlind(self, elapsed)
+    AnimateTexCoords(self.ants, 256, 256, 48, 48, 22, elapsed, self.throttle)
+end
+
+-- ButtonGlow 的穩態（AnimIn_OnFinished 之後的長相）：outerGlow 整框、螞蟻線 0.85 框，
+-- 都是靜態貼圖，只有螞蟻線的貼圖座標在動（driver）。入場閃光另做成一個**沒有 script**
+-- 的動畫組回傳：spark 脹到 1.5 倍淡入、再縮回淡出，alpha 起點終點都是 0，所以不管引擎
+-- 播完有沒有回呼，畫面都收在穩態。width／height ＝ f 自己的大小（caller 照上游把 f 開成
+-- 按鈕的 1.4 倍）。
+function lib.ButtonGlow_Attach(f, color, frequency, width, height)
+    if not f then return end
+    local alpha = color and color[4] or 1
+    local throttle = 0.01
+    if frequency and frequency > 0 then throttle = 0.25 / frequency * 0.01 end
+
+    if not f.ants then
+        f.spark = f:CreateTexture(nil, "BACKGROUND")
+        f.spark:SetPoint("CENTER")
+        f.spark:SetAlpha(0)
+        f.spark:SetTexture([[Interface\SpellActivationOverlay\IconAlert]])
+        f.spark:SetTexCoord(0.00781250, 0.61718750, 0.00390625, 0.26953125)
+
+        f.outerGlow = f:CreateTexture(nil, "ARTWORK")
+        f.outerGlow:SetPoint("CENTER")
+        f.outerGlow:SetTexture([[Interface\SpellActivationOverlay\IconAlert]])
+        f.outerGlow:SetTexCoord(0.00781250, 0.50781250, 0.27734375, 0.52734375)
+
+        f.ants = f:CreateTexture(nil, "OVERLAY")
+        f.ants:SetPoint("CENTER")
+        f.ants:SetTexture([[Interface\SpellActivationOverlay\IconAlertAnts]])
+
+        f.animIn = f:CreateAnimationGroup()
+        f.animIn.appear = {}
+        f.animIn.fade = {}
+        CreateScaleAnim(f.animIn, "spark", 1, 0.2, 1.5, 1.5)
+        CreateAlphaAnim(f.animIn, "spark", 1, 0.2, 0, alpha, nil, true)
+        CreateScaleAnim(f.animIn, "spark", 2, 0.2, 2 / 3, 2 / 3)
+        CreateAlphaAnim(f.animIn, "spark", 2, 0.2, alpha, 0, nil, false)
+    end
+    f.spark:SetSize(width, height)
+    f.outerGlow:SetSize(width, height)
+    f.ants:SetSize(width * 0.85, height * 0.85)
+    for _, tex in pairs({f.spark, f.outerGlow, f.ants}) do
+        if color then
+            tex:SetDesaturated(1)
+            if type(color) == "table" and color.GetRGBA then
+                local r, g, b = color:GetRGBA()
+                tex:SetVertexColor(r, g, b)
+            else
+                tex:SetVertexColor(color[1], color[2], color[3])
+            end
+        else
+            tex:SetDesaturated(nil)
+            tex:SetVertexColor(1, 1, 1)
+        end
+    end
+    f.outerGlow:SetAlpha(alpha)
+    f.ants:SetAlpha(alpha)
+    for _, anim in pairs(f.animIn.appear) do anim:SetToAlpha(alpha) end
+    for _, anim in pairs(f.animIn.fade) do anim:SetFromAlpha(alpha) end
+
+    f.throttle = throttle
+    f._glowBlind = true
+    f._glowUpdate = bgUpdateBlind
+    DriverAdd(f, bgUpdateBlind)
+    return f.animIn
+end
+
+-- ProcGlow 的循環段（Cell 只用循環，startAnim=false）：REPEAT 的翻頁動畫組回傳給 caller
+-- 交給引擎播。ProcLoop 的 alpha 起點 0，動畫組第一步把它拉到 1 且 SetToFinalAlpha ——
+-- 引擎沒播就什麼都看不到（失效方向是「沒有發光」，不是「卡一張定格」）。
+function lib.ProcGlow_Attach(f, color, duration, width, height)
+    if not f then return end
+    if not f.ProcLoop then
+        f.ProcLoop = f:CreateTexture(nil, "ARTWORK")
+        f.ProcLoop:SetAtlas("UI-HUD-ActionBar-Proc-Loop-Flipbook")
+        f.ProcLoop:SetAlpha(0)
+        f.ProcLoop:SetAllPoints(f)
+
+        f.ProcLoopAnim = f:CreateAnimationGroup()
+        f.ProcLoopAnim:SetLooping("REPEAT")
+        f.ProcLoopAnim:SetToFinalAlpha(true)
+
+        local alphaRepeat = f.ProcLoopAnim:CreateAnimation("Alpha")
+        alphaRepeat:SetChildKey("ProcLoop")
+        alphaRepeat:SetFromAlpha(1)
+        alphaRepeat:SetToAlpha(1)
+        alphaRepeat:SetDuration(.001)
+        alphaRepeat:SetOrder(0)
+
+        local flipbookRepeat = f.ProcLoopAnim:CreateAnimation("FlipBook")
+        flipbookRepeat:SetChildKey("ProcLoop")
+        flipbookRepeat:SetOrder(0)
+        flipbookRepeat:SetFlipBookRows(6)
+        flipbookRepeat:SetFlipBookColumns(5)
+        flipbookRepeat:SetFlipBookFrames(30)
+        flipbookRepeat:SetFlipBookFrameWidth(0)
+        flipbookRepeat:SetFlipBookFrameHeight(0)
+        f.ProcLoopAnim.flipbookRepeat = flipbookRepeat
+    end
+    if color then
+        f.ProcLoop:SetDesaturated(1)
+        f.ProcLoop:SetVertexColor(color[1], color[2], color[3], color[4])
+    else
+        f.ProcLoop:SetDesaturated(nil)
+        f.ProcLoop:SetVertexColor(1, 1, 1, 1)
+    end
+    f.ProcLoopAnim.flipbookRepeat:SetDuration(duration or 1)
+    f._glowBlind = true
+    return f.ProcLoopAnim
+end
+
+-- 宿主停放：按鈕還在、暫時不畫，driver 不必陪跑。取回時 Resume 接回同一支更新函式。
+function lib.Glow_Suspend(f)
+    if f then DriverRemove(f) end
+end
+
+function lib.Glow_Resume(f)
+    if f and f._glowUpdate then DriverAdd(f, f._glowUpdate) end
+end
+
+-- 這顆按鈕不再發光（設定改成 None 之後的重套）：貼圖藏起來、driver 退訂；框由 caller 管
+function lib.Glow_Detach(f)
+    if not f then return end
+    DriverRemove(f)
+    f._glowUpdate = nil
+    if f.textures then
+        for _, t in pairs(f.textures) do t:Hide() end
+    end
+    if f.bg then f.bg:Hide() end
+    if f.outerGlow then f.outerGlow:SetAlpha(0) end
+    if f.ants then f.ants:SetAlpha(0) end
+    if f.ProcLoop then f.ProcLoop:SetAlpha(0) end
+end

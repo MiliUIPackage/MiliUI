@@ -1113,6 +1113,78 @@ local EFFECT_BUILDERS = {
     texture = BuildEffectTexture,
 }
 
+-- ============================================================
+-- GLOW  (the indicator's 發光 option, on the container path)
+--
+-- The manual path starts the glow on the indicator frame itself. Here that frame is hidden
+-- (AttachBuffContainer) and the visual lives on the engine's AuraButton, so the glow has to
+-- be built INTO the button's subtree -- that is the only way it appears and disappears with
+-- the aura, because presence is secret and nothing outside the subtree can ask.
+--
+-- The subtree's rules (see EFFECT SLOTS) rule out MiliUIGlow's Start API: pooled frames
+-- reparented in, sized by GetSize, driven by OnUpdate/AnimationGroup. Its Attach API is the
+-- answer: we make one clean child frame per button in the initializeFrame window, hand it
+-- over with the size we already know, and the lib builds fresh textures under it.
+--   pixel / shine / normal's ants  -> the lib's external driver pushes the coordinates
+--                                     (blind: it never asks the frame whether it is visible)
+--   normal's entrance flash, proc  -> AnimationGroups, handed to the ENGINE with
+--                                     AddAuraShownAnimation (it plays them; we never Play)
+-- glowStyle is structural (new textures need the window); glowColor is cosmetic, so a colour
+-- drag only restyles (the lib repaints the textures it already has).
+-- ============================================================
+local GLOW_LEVEL = 8 -- the lib's own default offset: above the countdown (+6) and stack (+7)
+
+local function StyleGlow(handle, button, width, height)
+    local cfg = handle.config
+    local gs = cfg.glowStyle
+    local kind = type(gs) == "table" and type(gs[1]) == "string" and strlower(gs[1]) or "none"
+    local LCG = Cell.MiliUIGlow
+    if kind == "none" or not (LCG and LCG.PixelGlow_Attach) then
+        if button.dfGlow then
+            if LCG and LCG.Glow_Detach then LCG.Glow_Detach(button.dfGlow) end
+            button.dfGlow:Hide()
+        end
+        return
+    end
+    local color = cfg.glowColor
+    if type(color) ~= "table" then color = nil end
+
+    local f = button.dfGlow
+    if not f then
+        f = CreateFrame("Frame", nil, button)
+        button.dfGlow = f
+    end
+    f:SetFrameLevel(button:GetFrameLevel() + GLOW_LEVEL)
+    f:ClearAllPoints()
+    local gw, gh = width, height
+    if kind == "normal" or kind == "proc" then
+        -- the lib draws these two 1.4x the button (ButtonGlow_Start / ProcGlow_Start)
+        local dx, dy = width * 0.2, height * 0.2
+        f:SetPoint("TOPLEFT", button, "TOPLEFT", -dx, dy)
+        f:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", dx, -dy)
+        gw, gh = width * 1.4, height * 1.4
+    else
+        f:SetAllPoints(button)
+    end
+    f:Show()
+
+    local anim
+    if kind == "pixel" then
+        LCG.PixelGlow_Attach(f, color, gs[2], gs[3], gs[4], gs[5], gw, gh)
+    elseif kind == "shine" then
+        LCG.AutoCastGlow_Attach(f, color, gs[2], gs[3], gs[4], gw, gh)
+    elseif kind == "normal" then
+        anim = LCG.ButtonGlow_Attach(f, color, nil, gw, gh)
+    elseif kind == "proc" then
+        anim = LCG.ProcGlow_Attach(f, color, gs[2], gw, gh)
+    end
+    -- bind-once, flagged only after the call returns (same rule as the other binds)
+    if anim and button.AddAuraShownAnimation and not button._boundGlowAnim then
+        button:AddAuraShownAnimation(anim)
+        button._boundGlowAnim = true
+    end
+end
+
 local function StyleButton(handle, button)
     local cfg = handle.config
     local size = cfg.size or 22
@@ -1227,6 +1299,7 @@ local function StyleButton(handle, button)
                 button.dfDur:SetTextColor(r, g, b, a)
             end
         end
+        StyleGlow(handle, button, size, sizeH)
         return
     end
 
@@ -1320,6 +1393,7 @@ local function StyleButton(handle, button)
                 end
             end
         end
+        StyleGlow(handle, button, size, sizeH)
         return
     end
 
@@ -1570,6 +1644,7 @@ local function StyleButton(handle, button)
         ACC.BindDispelText(button, button.dfSymbol)
     end
 
+    StyleGlow(handle, button, size, sizeH)
 end
 
 -- ============================================================
@@ -1757,6 +1832,15 @@ end
 local function ParkOrDiscard(handle)
     local host, c = handle.host, handle.container
     handle.host, handle.container = nil, nil
+
+    -- the glow driver must not keep pushing coordinates for buttons nobody can see; a
+    -- reused host resumes them (see Build), an orphaned one never does
+    local LCG = Cell.MiliUIGlow
+    if LCG and LCG.Glow_Suspend then
+        for _, b in ipairs(handle.buttons or {}) do
+            if b.dfGlow then LCG.Glow_Suspend(b.dfGlow) end
+        end
+    end
 
     -- ⚠ Nothing beyond SetEnabled/Hide is ever called ON the container: it carries Forbidden
     -- Aspects, a refused SetParent would be swallowed by the pcall, and the container would
@@ -1997,6 +2081,12 @@ local function Build(handle, why)
         host:Show()
         -- its buttons come back with it, already initialised and styled for exactly this key
         handle.buttons = host._adButtons
+        local LCG = Cell.MiliUIGlow
+        if LCG and LCG.Glow_Resume then
+            for _, b in ipairs(handle.buttons) do
+                if b.dfGlow then LCG.Glow_Resume(b.dfGlow) end
+            end
+        end
         handle._groupKeys = host._adGroupKeys
         AD.stats.reuses = AD.stats.reuses + 1
     else
@@ -2450,6 +2540,8 @@ local COSMETIC_KEYS = {
     pandemicColor = true,
     -- block's border (colors[5]): a repaint of our own backdrop edge
     blockBorderColor = true,
+    -- glow colour: the lib repaints the textures it already has (see StyleGlow)
+    glowColor = true,
 }
 
 -- geometry keys: 12.1 has SetAuraGroupLayout as a LIVE setter and StyleButton already

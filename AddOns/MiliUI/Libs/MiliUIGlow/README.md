@@ -55,13 +55,35 @@ Cell 的私有表就叫 `Cell`，所以那邊是 `Cell.MiliUIGlow`。
 
 另有 `glowList` / `startList` / `stopList` 三張表，內容與上游一致。
 
+### Attach API（上游沒有；給 12.1 引擎光環按鈕的子樹用）
+
+AuraButton 的子樹有三條規矩：region 只能在 `initializeFrame` 視窗內建、不能把既有 widget
+reparent 進去、子樹裡的 OnUpdate／AnimationGroup 不 tick。Start 系列全靠池化框 reparent，
+一條都過不了。Attach 系列反過來：**caller 在視窗內建好一個乾淨的子框交進來**，這裡只在它
+底下建全新貼圖，尺寸由 caller 給（子樹裡 `GetSize` 讀回來可能是秘密值），可見度不問
+（driver 對 `_glowBlind` 的框盲推）。
+
+| | 動的部分 |
+|---|---|
+| `PixelGlow_Attach(f, color, N, frequency, length, th, width, height)` | driver 推線 |
+| `AutoCastGlow_Attach(f, color, N, frequency, scale, width, height)` | driver 推點 |
+| `ButtonGlow_Attach(f, color, frequency, width, height)` → 入場閃光的 AnimationGroup | 螞蟻線 driver 推；入場閃光交給引擎（`AddAuraShownAnimation`） |
+| `ProcGlow_Attach(f, color, duration, width, height)` → 循環的 AnimationGroup | 全交給引擎 |
+| `Glow_Suspend(f)` / `Glow_Resume(f)` | 宿主停放／取回：driver 退訂／接回 |
+| `Glow_Detach(f)` | 不再發光：貼圖藏起來、driver 退訂 |
+
+`width`／`height` 是 **f 自己的大小**（Normal／Proc 照上游把 f 開成按鈕的 1.4 倍）。
+重複呼叫安全：貼圖只在缺的時候建，顏色／週期每次更新。第一個消費者是 Cell 的
+`RaidFrames/AuraDisplay.lua`（`StyleGlow`）。
+
 ## 跟上游 LibCustomGlow v25 的差別
 
-只有兩處，其餘逐字不動（動畫長相因此必然一致）：
+只有三處，其餘逐字不動（動畫長相因此必然一致）：
 
 1. **不註冊到 LibStub**，改掛在插件私有表上。
 2. **三個各自的 OnUpdate 收成一支共用 driver，閘在 60fps。**
    上游對每一個發光各掛一個沒有節流的 OnUpdate，成本跟玩家的幀數成正比。
+3. **多一組 Attach API**（上面），Start 系列一行沒動。
 
 driver 的三個要點，改的時候不要弄丟：
 

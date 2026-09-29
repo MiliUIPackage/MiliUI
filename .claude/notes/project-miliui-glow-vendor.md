@@ -29,12 +29,17 @@ metadata:
 沒有 `Env.lua` 那種宿主接點 —— 掛在哪個表上是靠 addon 的第二個 vararg 自動決定的，
 所以**整包逐字複製、零修改**。
 
-跟上游只有兩處差別，其餘逐字不動（動畫長相因此必然一致）：
+跟上游只有三處差別，其餘逐字不動（動畫長相因此必然一致）：
 
 1. 不註冊 LibStub，改掛插件私有表。
 2. 三個各自的 OnUpdate（`pUpdate` / `acUpdate` / `bgUpdate`）收成**一支共用 driver，閘在 60fps**。
    上游對每一個發光各掛一個沒有節流的 OnUpdate，成本跟玩家幀數成正比 —— 144fps 的機器
    付 60fps 機器的 2.4 倍，畫面一模一樣。`ProcGlow` 是 AnimationGroup 驅動的，本來就不經過這裡。
+3. **Attach API（2026-09-29）**：給 12.1 引擎光環按鈕子樹用。caller 在 initializeFrame 視窗內自備乾淨子框，
+   引擎只在底下建全新貼圖（不用池、不 reparent）、尺寸由 caller 給（子樹的 GetSize 可能是秘密值）、
+   driver 對 `_glowBlind` 的框不問可見度照推。像素／閃光／Normal 螞蟻線走 driver；Normal 入場閃光與 Proc 循環
+   回傳 AnimationGroup 給 caller 交 `AddAuraShownAnimation`。`Glow_Suspend/Resume` 給宿主停放用。
+   README 有完整簽章；第一個消費者是 Cell `AuraDisplay.lua` 的 `StyleGlow`。**未實機驗證**。
 
 ## driver 的三個要點（改的時候不要弄丟）
 

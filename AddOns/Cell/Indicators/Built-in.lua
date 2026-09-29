@@ -433,6 +433,18 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             onlyMine = (t.castBy == "me") or nil,
             orientation = t.orientation,
         }
+        -- glow (發光): the style goes over as-is minus the colour (structural -- fresh
+        -- textures need the initializeFrame window), the colour on its own (cosmetic -- a
+        -- colour drag repaints, no rebuild). Sent as false when off, never left out: an
+        -- absent key would keep the last glow (same lesson as durationColors below).
+        local g = t.glowOptions
+        if type(g) == "table" and type(g[1]) == "string" and g[1] ~= "None" then
+            opts.glowStyle = { g[1], g[3], g[4], g[5], g[6] }
+            opts.glowColor = g[2]
+        else
+            opts.glowStyle = false
+            opts.glowColor = false
+        end
         -- icon rows only: an effect frame is positioned by AnchorEffectFrame / its own size,
         -- and handing it an anchor corner would move a single block by the size mismatch
         if not customStyle then GridOpts(opts, t) end
