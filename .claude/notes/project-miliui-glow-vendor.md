@@ -69,3 +69,7 @@ LibCustomGlow 出新版**不要直接覆蓋**：拿新版對 v25 做 diff，把�
 
 
 2026-09-05：`sync-widgets.py` 現在也同步這個單檔 vendor（`VENDOR_FILES`），改本體那份再跑腳本即可，不必手抄到 Cell。
+
+## Attach API 的引擎控顯示模式（2026-09-29）
+
+`lib.Glow_Regions(f)` 回傳 f 上所有會畫東西的貼圖（textures[]／bg／spark／outerGlow／ants／ProcLoop，MaskTexture 不算），給 caller 交 `AuraButton:AddPandemicRegion`。caller 在 Attach **之前**設 `f._glowEngineShown = true`：交出去的貼圖 Shown 是 secret aspect，lib 從此不再對它們 Show／Hide（AttachTextures、PixelGlow_Attach 的 bg、Glow_Detach 全改寫 alpha）。本體與 Cell 兩份逐位元相同，改本體再 cmp。

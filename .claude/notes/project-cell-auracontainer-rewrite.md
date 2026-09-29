@@ -412,3 +412,11 @@ buff 矩形走效果槽後，「剩 N%／N 秒換色」一度被拿掉，現在�
 - 待實機驗證：單槽後 buff 色塊位置尺寸不跑掉；三槽同層；邊框、掃描、色帶不互蓋；stack 模式正規化不報錯；debuff 色塊完整設定頁可用。
 - **色塊的計時視覺改成垂直下落遮罩（2026-09-29，未實機驗證）**：容器路原本掛時鐘掃描（`dfCD`），跟預覽的 `CELL_COOLDOWN_STYLE = "VERTICAL"`（黑 0.8 由上往下蓋）不一致；改成圖示路同一配方 `dfMask`（VERTICAL＋ReverseFill＋`SetDurationBar`），內縮邊框、層在 `EFFECT_LAYER.swipe`。
 - **容器路的發光（2026-09-29，未實機驗證）**：以前完全沒接（原指示器框被 Hide、opts 不帶、StyleButton 不畫 ⇒ 設定有、預覽亮、實機不亮）。現在 `StyleGlow` 在每個分支收尾建 `button.dfGlow`（初始化視窗內的乾淨子框），交給 MiliUIGlow 的 **Attach API**（見 [[project-miliui-glow-vendor]]）：像素／閃光／Normal 螞蟻線由外部 driver 盲推、Normal 入場閃光與 Proc 循環用 `AddAuraShownAnimation` 交引擎播。opts 拆成 `glowStyle`（結構，含 kind＋參數）與 `glowColor`（外觀，拖顏色不重建）、關掉送 false。停放時 `Glow_Suspend`、取回時 `Glow_Resume`。適用所有走 AttachBuffContainer 的指示器（內建 CD 列、自訂 icon／icons／rect／block）。**待驗證**：三條規矩下 Attach 建得起來、driver 對子樹貼圖 SetPoint 戰鬥中不拋錯、AddAuraShownAnimation 真的播 FlipBook／Scale。
+
+## 發光時機（2026-09-29，未實機驗證）
+
+buff 矩形／色塊多一個 `glowTiming`（`"aura"`／`"pandemic"`，沒設定＝aura），設定頁「發光時機」下拉在發光類型之後。
+- **無損刷新期間**：`StyleGlow` 在 Attach 之前設 `f._glowEngineShown`，Attach 後把 `LCG.Glow_Regions(f)` 列出的貼圖先 `Hide()` 再交 `AddPandemicRegion`（引擎控顯示、driver 盲推座標）；Normal 的 `animIn` 交 `AddPandemicEnterAnimation`、Proc 的循環交 `AddPandemicActiveAnimation`（ProcLoop 貼圖同時當 pandemic region，引擎 Stop 不保證 alpha 歸零）。**不依賴無損刷新變色選項**。
+- 結構鍵（ParkKey 折整張 config，換時機不會拿回舊容器）；12.1.0 沒 `AddPandemicRegion` 退回 aura 並記 `_errors`。
+- 手動路／預覽：`Shared_SetPandemicNow` 用最後 30% 近似，`Shared_SetupGlow` 在 pandemic 時機不主動 StartGlow；rect／block 的 OnHide 用 `SetScript` 設在 CreateAura_* 建立當下（之後的 HookScript 不受影響）。
+- 待實機驗證：四種類型窗口內亮、離開消失；Pixel 的 MaskTexture 沒交出去（理論上無影響）；拖顏色（外觀鍵）對已交出去的貼圖重上色不報錯；Proc 靠引擎 Play 才亮。
