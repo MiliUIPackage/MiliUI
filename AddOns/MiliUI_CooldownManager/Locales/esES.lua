@@ -41,3 +41,7 @@ L["Apply"] = "Aplicar"
 L["Okay"] = "Aceptar"
 L["Cancel"] = "Cancelar"
 L["Can't change settings during combat"] = "No se pueden cambiar los ajustes en combate"
+-- 編輯模式
+L["Open this bar's settings"] = "Abrir los ajustes de esta barra"
+L["Dragging stops it following %s"] = "Al arrastrarla deja de seguir a %s"
+L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "Los ajustes del gestor de reutilizaciones están en /mcdm o en el engranaje de la esquina superior derecha del marco azul."

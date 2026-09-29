@@ -41,3 +41,7 @@ L["Apply"] = "Anwenden"
 L["Okay"] = "OK"
 L["Cancel"] = "Abbrechen"
 L["Can't change settings during combat"] = "Einstellungen können im Kampf nicht geändert werden"
+-- 編輯模式
+L["Open this bar's settings"] = "Einstellungen dieser Leiste öffnen"
+L["Dragging stops it following %s"] = "Ziehen löst die Bindung an %s"
+L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "Die Einstellungen des Abklingzeiten-Managers findest du unter /mcdm oder über das Zahnrad oben rechts am blauen Rahmen."

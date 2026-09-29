@@ -54,5 +54,7 @@ Options\Sidebar.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Options\Minimap.lua
-EditMode.lua
+EditMode\Geometry.lua
+EditMode\Frames.lua
+EditMode\EditMode.lua
 Api.lua

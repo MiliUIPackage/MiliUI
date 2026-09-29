@@ -41,3 +41,7 @@ L["Apply"] = "Применить"
 L["Okay"] = "ОК"
 L["Cancel"] = "Отмена"
 L["Can't change settings during combat"] = "Нельзя менять настройки в бою"
+-- 編輯模式
+L["Open this bar's settings"] = "Открыть настройки этой полосы"
+L["Dragging stops it following %s"] = "Перетаскивание отвяжет её от «%s»"
+L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "Настройки менеджера восстановлений — в /mcdm или по шестерёнке в правом верхнем углу синей рамки."

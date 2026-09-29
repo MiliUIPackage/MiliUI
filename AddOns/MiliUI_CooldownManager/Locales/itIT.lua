@@ -41,3 +41,7 @@ L["Apply"] = "Applica"
 L["Okay"] = "OK"
 L["Cancel"] = "Annulla"
 L["Can't change settings during combat"] = "Impossibile modificare le impostazioni in combattimento"
+-- 編輯模式
+L["Open this bar's settings"] = "Apri le impostazioni di questa barra"
+L["Dragging stops it following %s"] = "Trascinandola smette di seguire %s"
+L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "Le impostazioni del gestore delle ricariche sono in /mcdm o nell'ingranaggio in alto a destra del riquadro blu."
