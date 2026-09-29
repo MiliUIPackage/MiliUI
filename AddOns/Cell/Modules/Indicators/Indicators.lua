@@ -2266,7 +2266,7 @@ local function ShowIndicatorSettings(id)
             -- layouts saved before the option have no pandemicColor: write the default back
             -- first, so the widget always edits a real table (absent = off, same as this)
             if type(indicatorTable["pandemicColor"]) ~= "table" then
-                indicatorTable["pandemicColor"] = {false, {1, 1, 0, 1}}
+                indicatorTable["pandemicColor"] = Cell.defaults.NewPandemicColor()
             end
             w:SetDBValue(indicatorTable["colors"], indicatorTable["pandemicColor"])
             w:SetFunc(function(key, value)
@@ -2278,7 +2278,7 @@ local function ShowIndicatorSettings(id)
         -- Same widget as rectColors, other indices (block keeps its "Color By" slot in [1]).
         elseif currentSetting == "blockColorsTime" then
             if type(indicatorTable["pandemicColor"]) ~= "table" then
-                indicatorTable["pandemicColor"] = {false, {1, 1, 0, 1}}
+                indicatorTable["pandemicColor"] = Cell.defaults.NewPandemicColor()
             end
             -- Colour-by-stack cannot run on the container path (the stack count is secret and
             -- SetApplicationCount takes no formatter), so a buff block saved in "stack" mode is
