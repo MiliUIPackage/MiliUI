@@ -882,8 +882,9 @@ end
 --           block: dfBlock, a BACKGROUND texture on the button itself (+0)
 --   border  block: dfBlockBorder (+1, edge only)
 --   pct band, Pandemic fill, sec band
---   swipe   block only (dfCD): ABOVE the bands, so the elapsed arc goes black and the arc
---           still to run shows whichever band colour is current -- the manual block's look
+--   swipe   block only (dfMask, a VERTICAL shadow falling from the top via SetDurationBar):
+--           ABOVE the bands, so the elapsed part goes black and the part still to run shows
+--           whichever band colour is current -- the preview's look (CELL_COOLDOWN_STYLE)
 --   countdown text +6, stack +7 (BindDurStack)
 -- The order matches the preview's priority in Base.lua's Rect_OnUpdateColor and
 -- Block_OnUpdate_Duration (sec > Pandemic > pct > normal). Every layer above the border is
@@ -1267,29 +1268,31 @@ local function StyleButton(handle, button)
             -- Pandemic fill: the engine shows it while the aura is in its Pandemic window
             if cfg.pandemicOn and button.AddPandemicRegion then BuildPandemicFill(handle, button, cfg, button) end
 
-            -- draining swipe over the fill and the bands: a BLIND visual timer (Blizzard drives
-            -- it from the aura's duration; we never read the remaining time). It sits above the
-            -- bands (EFFECT_LAYER.swipe), so the arc still to run shows the current band colour.
+            -- the drain over the fill and the bands: a BLIND visual timer (Blizzard drives it
+            -- from the aura's duration; we never read the remaining time). It sits above the
+            -- bands (EFFECT_LAYER.swipe), so the part still to run shows the current band colour.
+            -- Same look as the preview (Shared_CreateCooldown_Vertical_NoIcon: a black 0.8
+            -- shadow falling from the top, so the colour appears to shrink downward), and the
+            -- same recipe as the icon path's "vertical" style: VERTICAL + ReverseFill, handed
+            -- over with SetDurationBar. Was a clock sweep until 2026-09-29, which is why the
+            -- preview and the unit frames disagreed.
             if durationOn then
-                if not button.dfCD then
-                    button.dfCD = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
-                    button.dfCD:SetSwipeTexture(ACC.WHITE)
-                    button.dfCD:SetSwipeColor(SPENT_COLOR[1], SPENT_COLOR[2], SPENT_COLOR[3])
-                    button.dfCD:SetReverse(true)           -- swipe covers the ELAPSED arc
-                    button.dfCD:SetDrawSwipe(true)
-                    button.dfCD:SetHideCountdownNumbers(true)
-                    button.dfCD:SetDrawEdge(false)
-                    button.dfCD:SetDrawBling(false)
-                    button.dfCD.noCooldownCount = true     -- keep OmniCC off our numbers
+                if not button.dfMask then
+                    button.dfMask = CreateFrame("StatusBar", nil, button)
+                    button.dfMask:SetOrientation("VERTICAL")
+                    button.dfMask:SetReverseFill(true)     -- shadow grows from the top down
+                    button.dfMask:SetStatusBarTexture(ACC.WHITE)
+                    button.dfMask:GetStatusBarTexture():SetVertexColor(0, 0, 0, 0.8)
                 end
-                button.dfCD:ClearAllPoints()
-                -- inset like the manual block's cooldown: the swipe never covers the border
-                button.dfCD:SetPoint("TOPLEFT", button, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
-                button.dfCD:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
-                button.dfCD:SetFrameLevel(base + EFFECT_LAYER.swipe)
-                if button.SetDurationCooldown and not button._boundCD then
-                    button:SetDurationCooldown(button.dfCD)
-                    button._boundCD = true
+                button.dfMask:ClearAllPoints()
+                -- inset like the manual block's cooldown: the shadow never covers the border
+                button.dfMask:SetPoint("TOPLEFT", button, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+                button.dfMask:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+                button.dfMask:SetFrameLevel(base + EFFECT_LAYER.swipe)
+                button.dfMask:Show()
+                if button.SetDurationBar and not button._boundMask then
+                    button:SetDurationBar(button.dfMask)
+                    button._boundMask = true
                 end
             end
         end
