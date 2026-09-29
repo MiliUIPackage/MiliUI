@@ -420,3 +420,7 @@ buff 矩形／色塊多一個 `glowTiming`（`"none"`／`"aura"`／`"pandemic"`�
 - 結構鍵（ParkKey 折整張 config，換時機不會拿回舊容器）；12.1.0 沒 `AddPandemicRegion` 退回 aura 並記 `_errors`。
 - 手動路／預覽：`Shared_SetPandemicNow` 用最後 30% 近似，`Shared_SetupGlow` 在 pandemic 時機不主動 StartGlow；rect／block 的 OnHide 用 `SetScript` 設在 CreateAura_* 建立當下（之後的 HookScript 不受影響）。
 - 待實機驗證：四種類型窗口內亮、離開消失；Pixel 的 MaskTexture 沒交出去（理論上無影響）；拖顏色（外觀鍵）對已交出去的貼圖重上色不報錯；Proc 靠引擎 Play 才亮。
+
+## 發光區段推廣到所有有發光的指示器（2026-09-29，未實機驗證）
+
+`glowSection`（容器路：buff icon／icons、buff rect／block、四條內建冷卻列，三個時機）／`glowSection:manual`（手動路：debuff icon／icons、bar／bars／blocks、debuff rect／block，無損刷新項反灰、存了 pandemic 開頁改 aura），同一顆 widget 實例，`SetDBValue(g, timing, allowPandemic)`。不套的：`glow` 型、targetedSpells、raidDebuffs 逐法術發光。預設值全部改「一般」＋時機「無」（`Indicator_Defaults`、治療者在 `Indicator_DefaultSpells`、**內建冷卻列在 `Layout_Defaults.lua`**）。手動路：BarIcon 沒開倒數字時用 `BarIcon_OnUpdate_Glow` 補 tick；Bar 的 OnHide 用 HookScript（`Cell.CreateStatusBar` 已 SetScript）；列型用 `I.Glow_SetTimingForChildren` 轉發；`IsPreview` 讀自己再讀父框。**12.1 內建冷卻列的預覽子框是 BorderIcon（SetupGlow 空函式），預覽看不到發光，實機才有**。
