@@ -938,37 +938,43 @@ local function Accept(event, evUnit)
     return unit == (S.castUnit or "player")
 end
 
--- 延遲：UNIT_SPELLCAST_SENT → 開唱的時間差（毫秒）。量不到或不合理就退回 GetNetStats
+-- 延遲（毫秒）：UNIT_SPELLCAST_SENT → 開唱的時間差，量不到或不合理就退回 GetNetStats 的世界延遲。
+--
+-- 兩個戳記都在**事件派送當下**取（OnEvent 裡，不是 Defer 之後）：SENT 只記一個 upvalue、不進佇列；
+-- 開唱事件把「自己的戳記」和「當下的 sentAt」一起帶進 Defer。
+-- ⚠ GetTime() 整幀凍結（見 wow-gettime-stamp-multipacket）：按鍵與伺服器回應在同一個渲染幀裡
+-- 處理完時兩個戳記相等，相減是 0 —— 那不是「零延遲」，是量不到 ⇒ 退回 GetNetStats（明文）。
+-- lagSource 記這次用的是哪一個（/mcdm debug 印）。
 local sentAt = 0
 
-local function MeasureLag(t)
-    local lag = 0
+local function NetLag()
     local ok, _, _, home, world = pcall(GetNetStats)
-    local net = 0
-    if ok then
-        home, world = Plain(home) or 0, Plain(world) or 0
-        net = (world > 0 and world) or (home > 0 and home) or 0
-    end
-    if sentAt > 0 then
-        local measured = (t - sentAt) * 1000
-        local threshold = math.max(net * 3, 150)
-        if measured > 0 and measured <= threshold then lag = measured end
-    end
-    if lag <= 0 then lag = net end
-    sentAt = 0
-    return lag
+    if not ok then return 0 end
+    home, world = Plain(home) or 0, Plain(world) or 0
+    return (world > 0 and world) or (home > 0 and home) or 0
 end
 
-local function OnCastEvent(t, event, evUnit, arg2, arg3, arg4, arg5)
+local function MeasureLag(t, sent)
+    local net = NetLag()
+    if sent and sent > 0 and t and t > sent then
+        local measured = (t - sent) * 1000
+        local threshold = math.max(net * 3, 150)
+        if measured <= threshold then
+            S.lagSource = "measured"
+            return measured
+        end
+    end
+    S.lagSource = "net"
+    return net
+end
+CB.MeasureLag = MeasureLag          -- 冒煙測試用
+
+local function OnCastEvent(t, sent, event, evUnit, arg2, arg3, arg4, arg5)
     local cfg = Cfg()
     if not (f and cfg and cfg.enabled ~= false) then return end
-    if event == "UNIT_SPELLCAST_SENT" then
-        sentAt = t
-        return
-    end
     if not Accept(event, evUnit) then return end
     if START_EVENTS[event] then
-        S.lag = MeasureLag(t)
+        S.lag = MeasureLag(t, sent)
         StartDisplay()
     elseif event == "UNIT_SPELLCAST_DELAYED" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE"
         or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
@@ -1008,8 +1014,15 @@ local function RegisterEvents()
     for _, event in ipairs(CAST_EVENTS) do ev:RegisterUnitEvent(event, "player", "vehicle") end
     ev:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
     ev:SetScript("OnEvent", function(_, event, ...)
-        -- ⚠ 只轉手：時間戳在派送當下取（延遲要量 SENT → START 的差）
-        ns.Defer(OnCastEvent, GetTime(), event, ...)
+        -- ⚠ 只轉手：戳記在派送當下取（延遲要量 SENT → START 的差）。SENT 只記戳記、不進佇列
+        local now = GetTime()
+        if event == "UNIT_SPELLCAST_SENT" then
+            sentAt = now
+            return
+        end
+        local sent = 0
+        if START_EVENTS[event] then sent, sentAt = sentAt, 0 end
+        ns.Defer(OnCastEvent, now, sent, event, ...)
     end)
 end
 
@@ -1133,10 +1146,11 @@ function CB.DebugLines()
         return out
     end
     local cfg = Cfg() or {}
-    out[#out + 1] = ("  施法條：%s  狀態 %s%s  秘密模式 %s  蓄力 %s  明文時間軸 %s（總長 %.2f）  延遲 %dms  刻度 %d  分階 %d  暴雪施法條已解事件 %s  alpha %s")
+    out[#out + 1] = ("  施法條：%s  狀態 %s%s  秘密模式 %s  蓄力 %s  明文時間軸 %s（總長 %.2f）  延遲 %sms  刻度 %d  分階 %d  暴雪施法條已解事件 %s  alpha %s")
         :format(cfg.enabled ~= false and "開" or "關", STATE_NAME[S.castState] or "閒置",
                 S.preview and "（預覽）" or "", S.castSecret and "是" or "否", S.castEmpowered and "是" or "否",
-                S.tStart and "有" or "無", S.total or 0, math.floor(S.lag or 0),
+                S.tStart and "有" or "無", S.total or 0, math.floor(S.lag or 0)
+                    .. (S.lagSource == "measured" and "" or S.lagSource == "net" and "（GetNetStats）" or ""),
                 S.tickTimes and #S.tickTimes or 0, S.stagePoints and #S.stagePoints or 0,
                 (blizzSaved and ("是（" .. #blizzSaved .. " 個）") or "否")
                     .. (UnitFramesHidesBlizzard() and "（單位框架也在隱藏）" or ""),

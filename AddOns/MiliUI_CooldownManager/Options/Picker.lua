@@ -401,36 +401,72 @@ local TITLES = {
     item  = function() return L["Track an item cooldown"], L["Item ID"] end,
 }
 
+-- 輸入錯誤的說明：標題不動，另起一列灰色小字（說明一律下一列灰字；長譯文自己換行、彈窗跟著長）。
+-- 共用層的輸入彈窗版面是絕對座標，所以這一列放在說明與按鈕之間：彈窗置中，
+-- 加高之後上半部的內容往上、按鈕往下，中間空出來的就是這一列。
+local INPUT_W = 340
+
+local errNotes = {}          -- 彈窗 → { fs, baseH }
+
+local function SetInputError(popup, why)
+    local n = errNotes[popup]
+    if not n then
+        local fs = popup:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetTextColor(0.65, 0.65, 0.65)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(true)
+        fs:SetNonSpaceWrap(true)
+        fs:SetWidth(INPUT_W - 28)
+        fs:SetPoint("BOTTOMLEFT", popup, "BOTTOMLEFT", 14, 12 + 22 + 8)
+        local bh = popup:GetHeight()
+        n = { fs = fs, baseH = type(bh) == "number" and bh or 100 }
+        errNotes[popup] = n
+    end
+    local fs = n.fs
+    if why and why ~= "" then
+        fs:SetText(why)
+        fs:Show()
+        local sh = fs:GetStringHeight()
+        popup:SetHeight(n.baseH + math.max(14, type(sh) == "number" and sh or 0) + 8)
+    else
+        fs:SetText("")
+        fs:Hide()
+        popup:SetHeight(n.baseH)
+    end
+end
+
 function Picker.AskCustom(kind)
     local popup = inputs[kind]
     local title, label = TITLES[kind]()
     if not popup then
-        popup = W.CreateInputPopup(ns.Options.panel, 340, title, {
+        popup = W.CreateInputPopup(ns.Options.panel, INPUT_W, title, {
             { key = "id", label = label, maxLetters = 10,
               hint = kind == "item" and L["Find it in the item's link or on a database site."]
                   or L["Find it in the spell's link or on a database site."] },
         })
         inputs[kind] = popup
     end
+    SetInputError(popup, nil)
     popup:Open({}, function(values)
         local text = values.id
         if kind == "aura" then
             -- 先把 ID 本身驗過（不存在就留在輸入框），增益／減益下一步再問
             local _, why = Picker.ValidateCustom("spell", text, nil, curKey)
             if why and why ~= L["Already tracked in this specialization."] then
-                popup.title:SetText("|cffff5555" .. why .. "|r")
+                SetInputError(popup, why)
                 return false
             end
-            popup.title:SetText(title)
+            SetInputError(popup, nil)
             AskFilter(text)
             return
         end
         local entry, why = Picker.ValidateCustom(kind, text, nil, curKey)
         if not entry then
-            popup.title:SetText("|cffff5555" .. why .. "|r")
+            SetInputError(popup, why)
             return false
         end
-        popup.title:SetText(title)
+        SetInputError(popup, nil)
         Commit(entry)
     end, title)
 end

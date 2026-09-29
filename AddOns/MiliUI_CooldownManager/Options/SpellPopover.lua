@@ -85,6 +85,16 @@ local function NewRow(label, when)
     end
     r:SetSize(ROW_W, h)
     local row = { frame = r, h = h, when = when }
+    -- 視窗第一次顯示前量不到字高（TextExtraHeight 會回 0）：OnShow 時照這支重量一次。
+    -- 控件一律錨在列的 LEFT（＝垂直置中），列高變了自己跟著走
+    if label then
+        row.remeasure = function()
+            local nh = ROW_H + W.TextExtraHeight(r.label, label)
+            r.label:SetHeight(nh)
+            r:SetHeight(nh)
+            row.h = nh
+        end
+    end
     rows[#rows + 1] = row
     return r, h, row
 end
@@ -93,7 +103,8 @@ end
 local function RightClickClears(r, h, field)
     local hit = CreateFrame("Frame", nil, r)
     hit:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
-    hit:SetSize(LABEL_W, h)
+    hit:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)     -- 列高重量之後跟著長
+    hit:SetWidth(LABEL_W)
     hit:EnableMouse(true)
     hit:SetScript("OnMouseUp", function(_, button)
         if button == "RightButton" and cur then
@@ -106,6 +117,8 @@ end
 local function IsAura(kind) return kind == "aura" end
 local function NotAura(kind) return kind ~= "aura" end
 local function IsCustom(kind) return kind ~= nil end
+
+local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
 local function Build()
     if frame then return end
@@ -151,7 +164,7 @@ local function Build()
         ns.Preview.MoveTo(id, value, key)
     end)
     dd:SetMaxWidth(ROW_W - CTRL_X)
-    dd:SetPoint("LEFT", r, "TOPLEFT", CTRL_X, -h / 2)
+    dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
     frame.barDD = dd
 
     -- 邊框顏色：勾「自訂」才寫覆寫
@@ -166,7 +179,7 @@ local function Build()
         end
         Changed()
     end)
-    custom:SetPoint("LEFT", br, "TOPLEFT", CTRL_X, -bh / 2)
+    custom:SetPoint("LEFT", br, "LEFT", CTRL_X, 0)
     local swatch = W.CreateColorPicker(br, nil, true, function(rr, g, b, a)
         if not cur or not Override("borderColor") then return end
         ns.DB.SetOverride(cur.id, "borderColor", { r = rr, g = g, b = b, a = a })
@@ -183,7 +196,7 @@ local function Build()
             ns.DB.SetOverride(cur.id, t.field, on and true or false)
             Changed()
         end)
-        cb:SetPoint("LEFT", tr, "TOPLEFT", CTRL_X, -th / 2)
+        cb:SetPoint("LEFT", tr, "LEFT", CTRL_X, 0)
         local note = Note(tr)
         note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
         note:SetPoint("RIGHT", tr, "RIGHT", 0, 0)
@@ -201,7 +214,7 @@ local function Build()
         e.placeholder = on and true or false
         Changed("membership")
     end)
-    pcb:SetPoint("LEFT", pr, "TOPLEFT", CTRL_X, -ph / 2)
+    pcb:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
     frame.placeholderCB = pcb
 
     -- 說明
@@ -213,7 +226,14 @@ local function Build()
     tip:SetText(L["Settings here apply to this spell in your current specialization. Right-click a row to follow the bar again."])
     local tipH = 4 + math.max(14, tip:GetStringHeight()) + 10
     tipRow:SetSize(ROW_W, tipH)
-    rows[#rows + 1] = { frame = tipRow, h = tipH }
+    local tipEntry = { frame = tipRow, h = tipH }
+    tipEntry.remeasure = function()
+        local sh = tip:GetStringHeight()
+        local nh = 4 + math.max(14, type(sh) == "number" and sh or 0) + 10
+        tipRow:SetHeight(nh)
+        tipEntry.h = nh
+    end
+    rows[#rows + 1] = tipEntry
 
     -- 按鈕：隱藏／還原（光環格沒有隱藏：固定前綴）
     local btnRow = CreateFrame("Frame", nil, frame)
@@ -263,13 +283,22 @@ local function Build()
     end)
     rows[#rows + 1] = { frame = remRow, h = 22, when = IsCustom }
 
+    -- 顯示之後才量得到字高（換行的語系）：每次顯示重量、照目前種類重排
+    frame:HookScript("OnShow", function()
+        for _, row in ipairs(rows) do
+            if row.remeasure then row.remeasure() end
+        end
+        if cur then Layout(frame.kind) end
+    end)
+
     ns.RegisterCallback("OptionsHidden", "popover", function() frame:Hide() end)
     ns.RegisterCallback("SpecChanged", "popover", function() frame:Hide() end)
     ns.RegisterCallback("ProfileChanged", "popover", function() frame:Hide() end)
 end
 
 -- 依種類排列：kind = nil（暴雪的法術）| "aura" | "spell" | "item"
-local function Layout(kind)
+Layout = function(kind)
+    frame.kind = kind
     local y = TOP_Y
     for _, row in ipairs(rows) do
         local show = not row.when or row.when(kind)

@@ -147,8 +147,14 @@ local function WriteThemed(info, path, v)
 end
 Specs.ReadThemed, Specs.WriteThemed = ReadThemed, WriteThemed
 
+-- 代理表本身沒有狀態（每次存取都現讀 ns.Setting／現寫 DB.OwnSet），換設定檔也照樣對 ⇒
+-- 以 key|path 快取，表單每次刷新都 ctx.get 不必每次配一張新表
+local proxyCache = {}
 local function ColorProxy(key, path)
-    return setmetatable({}, {
+    local ck = tostring(key) .. "|" .. tostring(path)
+    local hit = proxyCache[ck]
+    if hit then return hit end
+    local proxy = setmetatable({}, {
         __index = function(_, k)
             local c = ns.Setting(key, path)
             return type(c) == "table" and c[k] or nil
@@ -166,6 +172,8 @@ local function ColorProxy(key, path)
             own[k] = v
         end,
     })
+    proxyCache[ck] = proxy
+    return proxy
 end
 
 function Specs.MakeCtx(info, onApply)

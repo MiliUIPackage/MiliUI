@@ -7,6 +7,7 @@
 --   ns.Bars.RelayoutAll(reason)      全部重排（設定檔、專精、設定值變了）
 --   ns.Bars.Reapply(src)             同步：用上次算好的格子把 item 放回去（Viewers 的 Layout 後掛勾）
 --   ns.Bars.ForEachClaimed(key, fn)  對這條認領中的每個 item 呼叫 fn(item, rec)（Visibility 用）
+--   ns.Bars.ReleaseAll(reason)       把暴雪的 item 與檢視器還給暴雪（/mcdm release、引擎啟動失敗）
 --
 -- 訊號流
 --   暴雪（取出 item／RefreshLayout／Layout／SetCooldownID／光環上下）
@@ -60,6 +61,7 @@ local firstRowW = {}           -- key → 第一列寬（長條寬 0 ＝ 跟核�
 local scheduled, lastRun = false, -1
 local ArmStructurePending          -- 前置宣告（定義在 Relayout 前面）
 local pinGuard, parkGuard = false, false
+local pinned = {}                  -- 釘過的檢視器（ReleaseAll 只解這些，沒碰過的不動）
 B.ready = false
 B.flushes = 0
 
@@ -128,7 +130,12 @@ local function ApplyStructure(key)
     local bar = BarCfg(key)
     -- enabled ＝ false 只有面板會有（條沒有這個欄位）
     if not bar or bar.enabled == false then
-        ns.Write(c, function(f) f:Hide() end, "shown")
+        -- 條被刪（自訂群組、換設定檔少了這條）或面板關掉：容器收起來，編輯模式的覆蓋層／選取框也收
+        --（frame 刪不掉；同一個 key 之後再建回來會重用，ApplyBarNow 看 BarCfg 決定要不要再顯示）
+        ns.Write(c, function(f)
+            f:Hide()
+            if ns.EditMode and ns.EditMode.ApplyBarNow then ns.EditMode.ApplyBarNow(key) end
+        end, "shown")
         return
     end
     local st = state[key]
@@ -159,11 +166,12 @@ B.ApplyStructure = ApplyStructure
 -- 檢視器釘在容器上
 ------------------------------------------------------------
 function B.PinViewer(sourceKey)
-    if pinGuard or not sourceKey then return end
+    if pinGuard or not sourceKey or B.released then return end
     if ns.dragging == sourceKey then return end
     local viewer = ns.Viewers.Get(sourceKey)
     local c = containers[sourceKey]
     if not (viewer and c) then return end
+    pinned[sourceKey] = true
     ns.Write(viewer, function(v)
         pinGuard = true
         local ok, err = pcall(function()
@@ -180,7 +188,7 @@ end
 -- 停放與占位
 ------------------------------------------------------------
 local function Park(item, rec)
-    if parkGuard then return end
+    if parkGuard or B.released then return end
     parkGuard = true
     local ok = pcall(function()
         item:SetAlpha(0)
@@ -414,10 +422,29 @@ function B.Request(key, level)
     Schedule()
 end
 
--- 暴雪任一條檢視器有動靜：所有條都可能受影響（自訂群組、互相拉來拉去的法術），全部標髒。
--- 條最多十來條、每條幾十格，全排一次很便宜。
-function B.RequestSource(_sourceKey, level)
-    B.RequestAll(level)
+-- 暴雪某條檢視器有動靜：只標會受影響的條
+--   * 來源條自己（source 是這條檢視器的條）
+--   * 目前認領著這條檢視器 item 的條：池化的框不會換檢視器，只有這些條手上的認領可能過期
+--     （Flush 只放掉「這一輪要排的條」的認領，漏標就會卡住一顆框）
+--   * 從它拉法術的條（groupOf 指到的群組，Catalog.GroupTargets）：新出現的 id 可能要進那裡
+-- 增益上下每幾十毫秒一次，全部條重排是浪費；設定變了走 RequestAll。
+function B.RequestSource(sourceKey, level)
+    local p = Profile()
+    if not sourceKey or type(p) ~= "table" or type(p.bars) ~= "table" then
+        return B.RequestAll(level)
+    end
+    local targets = { [sourceKey] = true }
+    for key, bar in pairs(p.bars) do
+        if type(bar) == "table" and bar.source == sourceKey then targets[key] = true end
+    end
+    for item, key in pairs(claimedBy) do
+        local rec = ns.Viewers.frames[item]
+        if rec and rec.barKey == sourceKey then targets[key] = true end
+    end
+    if ns.Catalog and ns.Catalog.GroupTargets then ns.Catalog.GroupTargets(sourceKey, targets) end
+    for key in pairs(targets) do
+        if p.bars[key] then B.Request(key, level) end
+    end
 end
 
 function B.RequestAll(level)
@@ -435,6 +462,18 @@ function B.RelayoutAll(_reason)
 end
 
 Flush = function()
+    if B.released then
+        -- 還給暴雪之後：條不再排，面板（資源條、施法條）是自己的框，照常
+        local work = dirty
+        dirty = {}
+        for key, lv in pairs(work) do
+            if panels[key] then
+                local ok, err = xpcall(RelayoutPanel, ns.ReportError, key, lv)
+                if not ok then B.lastError = err end
+            end
+        end
+        return
+    end
     if not ns.Viewers.ready then return end
     if ns.Catalog.IsPaused() then return end          -- 暴雪設定面板開著：等它關掉（CatalogResumed）
     lastRun = Now()
@@ -505,7 +544,7 @@ end
 -- 同步放回：暴雪的格狀排版剛跑完（每次都會把 item 拉回它自己的格線）
 ------------------------------------------------------------
 function B.Reapply(sourceKey)
-    if not ns.Viewers.ready then return end
+    if B.released or not ns.Viewers.ready then return end
     ns.Viewers.EnumerateItems(function(item, rec)
         local id = rec.cooldownID
         local slot = id ~= nil and slotOf[id]
@@ -522,6 +561,66 @@ function B.Reapply(sourceKey)
             Park(item, rec)
         end
     end, sourceKey)
+end
+
+------------------------------------------------------------
+-- 還給暴雪：停放／認領過的 item 全部放掉、檢視器解開
+--
+-- 除錯用（/mcdm release），以及引擎啟動失敗時自動叫（ns.StartEngine）：半套的引擎會把
+-- item 停在畫面外（alpha 0、錨 UIParent (-10000, 10000)）卻沒有任何路徑放回來。
+--   * 每個追蹤過的 item：alpha 1、ClearAllPoints、尺寸還原成第一次看到時的（讀得到才有）
+--     ⇒ 暴雪下一次 Layout／RefreshLayout 會把它們排回它自己的格線
+--   * 檢視器 ClearAllPoints＋SetPoint 回 UIParent CENTER（走 ns.Write）
+--   * 發光停掉、暴雪的觸發發光 alpha 還回 1、按鍵文字與 overlay 藏起來
+--   * 之後 Flush／Reapply／PinViewer／Park、縮放鎖、樣式後掛勾全部停手（B.released）
+-- 回不去：要重新接管就 /reload。圖示遮罩、轉圈材質、字型這些改過的樣式不還原。
+------------------------------------------------------------
+function B.ReleaseAll(reason)
+    B.released = true
+    B.releaseReason = reason or "manual"
+    ns.released = true
+    for key in pairs(dirty) do
+        if not panels[key] then dirty[key] = nil end
+    end
+    if ns.Glow then ns.Glow.ownsProcAlert = false end
+    for item, rec in pairs(ns.Viewers.frames) do
+        claimedBy[item] = nil
+        rec.claimKey = nil
+        rec.parked = true                -- Glow 的 Hidden：之後的掛勾不再畫發光
+        if ns.Glow then pcall(ns.Glow.OnParked, rec) end
+        if rec.keyFS then
+            pcall(rec.keyFS.SetText, rec.keyFS, "")
+            pcall(rec.keyFS.Hide, rec.keyFS)
+            rec.keySig = "off"
+        end
+        if rec.overlay then pcall(rec.overlay.Hide, rec.overlay) end
+        local alert = item.SpellActivationAlert
+        if alert and alert.SetAlpha then pcall(alert.SetAlpha, alert, 1) end
+        pcall(item.SetAlpha, item, 1)
+        pcall(item.ClearAllPoints, item)
+        if rec.origW and rec.origH then pcall(item.SetSize, item, rec.origW, rec.origH) end
+    end
+    for id in pairs(slotOf) do slotOf[id] = nil end
+    for key, st in pairs(state) do
+        if not panels[key] then st.count = 0 end
+    end
+    for _, src in ipairs(ns.Viewers.ORDER) do
+        local viewer = pinned[src] and ns.Viewers.Get(src)
+        if viewer then
+            pinned[src] = nil
+            ns.Write(viewer, function(v)
+                pinGuard = true
+                local ok, err = pcall(function()
+                    v:ClearAllPoints()
+                    v:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+                end)
+                pinGuard = false
+                if not ok then error(err, 0) end
+            end, "pin")
+        end
+    end
+    if ns.EditMode and ns.EditMode.RestoreDialog then pcall(ns.EditMode.RestoreDialog) end
+    if ns.Fire then ns.Fire("Released", B.releaseReason) end
 end
 
 function B.ForEachClaimed(key, fn)

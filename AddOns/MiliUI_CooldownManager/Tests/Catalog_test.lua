@@ -345,6 +345,24 @@ end
 local b1 = C.Bar("essential")
 b1[1] = "x"
 eqList("回傳的是新表", C.Bar("essential"), { 202, 201 })
+do
+    -- GroupTargets：某條檢視器有動靜時，從它拉法術出去的條（Bars.RequestSource 只標這些＋來源條）
+    local function keys(t)
+        local out = {}
+        for k in pairs(t) do out[#out + 1] = k end
+        table.sort(out)
+        return out
+    end
+    eqList("GroupTargets：核心的 102 拉到 g1", keys(C.GroupTargets("essential")), { "g1" })
+    eqList("GroupTargets：輔助的 201 拉到核心", keys(C.GroupTargets("utility")), { "essential" })
+    eqList("GroupTargets：拉到不存在的條不算", keys(C.GroupTargets("buffs")), {})
+    local acc = { buffs = true }
+    C.GroupTargets("essential", acc)
+    eqList("GroupTargets：累加進傳進來的表", keys(acc), { "buffs", "g1" })
+    ns.specID = 66
+    eqList("GroupTargets：別的專精沒有 groupOf", keys(C.GroupTargets("essential")), {})
+    ns.specID = 65
+end
 ns.profile = nil
 eqList("沒有 profile ⇒ 空", C.Bar("essential"), {})
 
@@ -356,6 +374,35 @@ C.Refresh("secret")
 eq("秘密 spellID 不收", C.Info(102).spellID, nil)
 eq("其他欄位照收", C.Info(101).spellID, 1010)
 env.canaccessvalue = function() return true end
+
+------------------------------------------------------------
+-- 9. CheckFresh 的輪詢節流：最多每秒讀一次版面字串；事件路徑（標髒）不受限
+------------------------------------------------------------
+do
+    local clock, reads = 100, 0
+    local realGet = env.C_CooldownViewer.GetLayoutData
+    env.C_CooldownViewer.GetLayoutData = function() reads = reads + 1; return realGet() end
+    env.GetTime = function() return clock end
+    layoutString = "1|B64main"
+    C.Refresh("throttle")
+    eq("節流：第一次照讀", C.CheckFresh(), false)
+    local r1 = reads
+    check("節流：第一次有讀版面字串", r1 > 0)
+    clock = 100.5
+    layoutString = "1|B64main2"
+    eq("節流：一秒內不讀（字串變了也先不管）", C.CheckFresh(), false)
+    eq("節流：一秒內沒有呼叫 GetLayoutData", reads, r1)
+    clock = 101.2
+    eq("節流：過了一秒照讀、抓到變化", C.CheckFresh(), true)
+    eqList("節流：清單是新的", C.lists.essential, { 101, 102 })
+    clock = 101.3
+    layoutString = "1|B64main"
+    C.MarkDirty()
+    eq("節流：標髒（事件路徑）不受限", C.CheckFresh(), true)
+    eqList("節流：標髒後清單是新的", C.lists.essential, { 102, 701, 202 })
+    env.GetTime = nil
+    env.C_CooldownViewer.GetLayoutData = realGet
+end
 
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

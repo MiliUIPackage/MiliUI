@@ -91,7 +91,7 @@ end
 ------------------------------------------------------------
 local scaleGuard = false
 local function LockScale(item)
-    if scaleGuard then return end
+    if scaleGuard or ns.released then return end
     scaleGuard = true
     local ok = pcall(item.SetScale, item, 1)
     scaleGuard = false
@@ -154,6 +154,26 @@ local function HookItem(item, rec)
     end
 end
 
+-- item 目前的身分（明文 number 或 nil）。欄位名對過 12.1.0.69933 的
+-- Blizzard_CooldownViewer/CooldownViewerItemData.lua：SetCooldownID 寫 self.cooldownID、
+-- getter 是 CooldownViewerItemDataMixin:GetCooldownID()。getter 第一順位（pcall，它只 return 欄位），
+-- 暴雪哪天改名或改成別的存法時 rawget 當退路。登入時 item 已經在池子裡、SetCooldownID
+-- 早就叫過了，這裡讀錯＝整條被當成沒人認領停到畫面外。
+local function ReadItemID(item)
+    local get = item.GetCooldownID
+    if type(get) == "function" then
+        local ok, v = pcall(get, item)
+        if ok then
+            v = Plain(v)
+            if type(v) == "number" then return v end
+        end
+    end
+    local v = Plain(rawget(item, "cooldownID"))
+    if type(v) == "number" then return v end
+    return nil
+end
+V.ReadItemID = ReadItemID
+
 local function Track(viewer, item)
     local key = V.viewerKey[viewer]
     if not key or not item then return end
@@ -166,8 +186,17 @@ local function Track(viewer, item)
     rec.decorated = nil               -- 取出時暴雪會重設計時顯示、縮放 ⇒ 樣式要重套
     rec.acquired = (rec.acquired or 0) + 1
     -- 取出時的身分：RefreshData 之後才會 SetCooldownID，這裡讀得到就先記（明文）
-    local id = Plain(rawget(item, "cooldownID"))
-    rec.cooldownID = type(id) == "number" and id or rec.cooldownID
+    rec.cooldownID = ReadItemID(item) or rec.cooldownID
+    -- 第一次看到時的尺寸（我們 SetSize 之前）：Bars.ReleaseAll 還給暴雪時用；讀不到就不還原
+    if rec.origW == nil then
+        local ok, w, h = pcall(item.GetSize, item)
+        if ok then w, h = Plain(w), Plain(h) else w, h = nil, nil end
+        if type(w) == "number" and type(h) == "number" and w > 0 and h > 0 then
+            rec.origW, rec.origH = w, h
+        else
+            rec.origW = false
+        end
+    end
     HookItem(item, rec)
     LockScale(item)
 end
@@ -317,7 +346,10 @@ local function TryInstall()
     if V.ready then return end
     if AllPresent() then
         local ok, err = xpcall(Install, ns.ReportError)
-        if not ok then V.installError = err end
+        if not ok then
+            V.installError = err
+            if ns.EngineFailed then ns.EngineFailed({ "Viewers" }) end
+        end
         return
     end
     attempt = attempt + 1

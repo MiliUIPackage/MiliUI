@@ -27,6 +27,12 @@ local DECODE_ERRORS = {
     newer   = L["The string comes from a newer version. Update the addon first."],
 }
 
+-- 產生匯出字串失敗（編碼那一側；解碼的訊息會說「字串已損壞」，不能借用）
+local ENCODE_ERRORS = {
+    noapi = L["This client can't create export strings."],
+}
+local ENCODE_FAILED = L["Couldn't create the export string. Try again after /reload."]
+
 local BAR_LABEL = {
     essential = L["Essential Cooldowns"], utility = L["Utility Cooldowns"],
     buffs = L["Tracked Buffs"], buffbars = L["Tracked Bars"],
@@ -220,7 +226,7 @@ local function ExportRow()
                 status:SetText(L["Copy it with Ctrl+C. It contains this profile only."])
             else
                 exported = ""
-                status:SetText("|cffff5555" .. (DECODE_ERRORS[err] or tostring(err)) .. "|r")
+                status:SetText("|cffff5555" .. (ENCODE_ERRORS[err] or ENCODE_FAILED) .. "|r")
             end
             box:Refresh()
             if str then
@@ -267,13 +273,27 @@ local function ImportRow(page)
         summary:SetWidth(w)
         summary:SetJustifyH("LEFT")
         local switchCB = W.CreateCheckButton(review, L["Switch to it now"])
-        switchCB:SetPoint("TOPLEFT", review, "TOPLEFT", 0, -86)
         local bindCB = W.CreateCheckButton(review, L["Bind it to my current specialization"])
-        bindCB:SetPoint("TOPLEFT", review, "TOPLEFT", 0, -110)
-        bindCB:SetLabelMaxWidth(w - 30)
         local importBtn = W.CreateButton(review, L["Import"], "primary", 100, 22)
         W.FitButton(importBtn, 100, 22)
-        importBtn:SetPoint("TOPLEFT", review, "TOPLEFT", 0, -136)
+
+        -- 排版照字高走（說明、摘要、勾選框的標籤都可能換行）。字高要等框真的顯示之後才量得到
+        -- ⇒ 審閱區每次 OnShow、每次換內容都重排一次（跟左欄 Sidebar.Relayout 同一個理由）
+        local function RelayoutReview()
+            local extra = bindCB:SetLabelMaxWidth(w - 30)
+            extra = type(extra) == "number" and extra or 0
+            switchCB:ClearAllPoints()
+            switchCB:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -10)
+            bindCB:ClearAllPoints()
+            bindCB:SetPoint("TOPLEFT", switchCB, "TOPLEFT", 0, -24 - extra / 2)
+            importBtn:ClearAllPoints()
+            importBtn:SetPoint("TOPLEFT", bindCB, "TOPLEFT", 0, -26 - extra / 2)
+            local nnH, sumH = nameNote:GetStringHeight(), summary:GetStringHeight()
+            nnH = type(nnH) == "number" and nnH or 12
+            sumH = type(sumH) == "number" and sumH or 24
+            review:SetHeight(4 + 20 + 10 + nnH + 6 + sumH + 10 + 24 + extra + 26 + 22)
+        end
+        review:SetScript("OnShow", RelayoutReview)
 
         local function UpdateNameNote()
             local want = strtrim(nameBox:GetText() or "")
@@ -309,6 +329,7 @@ local function ImportRow(page)
                 bindCB:SetChecked(false)
                 bindCB:SetEnabled(ns.specIndex ~= nil)
                 review:Show()
+                RelayoutReview()
             else
                 review:Hide()
                 if text and text ~= "" then
@@ -344,7 +365,7 @@ local function ImportRow(page)
             page:Refresh()
         end)
         SetPending(nil)
-        return 4 + 70 + 26 + 160
+        return 4 + 70 + 26 + 200
     end }
 end
 

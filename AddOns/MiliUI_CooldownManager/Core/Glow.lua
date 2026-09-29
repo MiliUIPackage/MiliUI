@@ -29,8 +29,14 @@
 --     時污染端轉交會被拒（pcall 失敗）——這時改拿引擎自己給的 duration 物件
 --     （C_Spell.GetSpellCooldownDuration(spellID, true)，回充中改 GetSpellChargeDuration）餵
 --     SetCooldownFromDurationObject，秘密值下照樣成立。
---   * 暴雪顯示的是**光環時間**（item.cooldownUseAuraDisplayTime，暴雪自己寫的明文布林，只讀）時不武裝：
---     那個結束是光環掉了，不是技能轉好。
+--   * 暴雪顯示的是**光環時間**時不武裝：那個結束是光環掉了，不是技能轉好。
+--     讀法（2026-09-30 對過 12.1.0.69933 的 Blizzard_CooldownViewer/CooldownViewer.lua）：
+--     暴雪在 RefreshSpellCooldownInfo 裡先 cooldownFrame:SetUseAuraDisplayTime(item.cooldownUseAuraDisplayTime)
+--     再 CooldownFrame_Set ⇒ 我們的 SetCooldown 後掛勾跑到時，**Cooldown 框自己的 C 端 getter**
+--     `GetUseAuraDisplayTime()` 就是這一次的值（第一順位，pcall）；讀不到才退回 item 上暴雪的快取欄位
+--     `cooldownUseAuraDisplayTime`（CacheCooldownValues* 寫的，欄位名照原始碼，rawget 只讀）。
+--   * 「這次是回充」：item 的 `HasVisualDataSource_Charges()`（暴雪的 getter，回 `wasSetFromCharges`）
+--     第一順位（pcall），退路 rawget(item, "wasSetFromCharges")。兩者都過 Plain。
 --   * GCD：duration 是明文而且 ≤ 1.5 秒就不算（不動探針，已經武裝的真冷卻照跑）。
 --   * 暴雪提早 Clear（冷卻被重置、或到期那一刻它自己先清）而探針還武裝著 ⇒ 當場算就緒。
 --   * 多充能：每一次 SetCooldown 都是回充（有充能時是充能計時、0 充能時是技能冷卻），所以
@@ -144,6 +150,7 @@ end
 
 local function Start(rec, which, barKey)
     if not LCG then return end
+    if ns.released and not rec.custom then return end     -- 已還給暴雪（Bars.ReleaseAll）
     local h = Host(rec, which)
     if not h then return end
     local c = Cfg(barKey, which)
@@ -323,11 +330,39 @@ local function SpellOf(rec)
     return info and (info.overrideSpellID or info.spellID) or nil
 end
 
--- 暴雪 item 的 Cooldown:SetCooldown 後掛勾（Decorate 轉過來）
-function G.OnItemSetCooldown(item, rec, start, duration, modRate)
+-- 暴雪的布林：getter 優先（pcall），讀不到退回欄位（rawget，只讀）；秘密／讀不到＝nil
+local function ReadFlag(obj, getter, field)
+    if not obj then return nil end
+    local fn = getter and obj[getter]
+    if type(fn) == "function" then
+        local ok, v = pcall(fn, obj)
+        if ok then
+            v = Plain(v)                  -- ⚠ 不能寫成 ok and Plain(v) or nil：false 會被吃掉
+            if type(v) == "boolean" then return v end
+        end
+    end
+    if field then
+        local v = Plain(rawget(obj, field))
+        if type(v) == "boolean" then return v end
+    end
+    return nil
+end
+
+local function UsesAuraTime(item, cd)
+    local v = ReadFlag(cd or item.Cooldown, "GetUseAuraDisplayTime", nil)
+    if v ~= nil then return v end
+    return ReadFlag(item, nil, "cooldownUseAuraDisplayTime") == true
+end
+
+local function FromCharges(item)
+    return ReadFlag(item, "HasVisualDataSource_Charges", "wasSetFromCharges") == true
+end
+
+-- 暴雪 item 的 Cooldown:SetCooldown 後掛勾（Decorate 轉過來；cd 是被呼叫的那顆 Cooldown）
+function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     if not ReadyOn(rec) then return end
-    -- 暴雪正在顯示光環時間：那個結束不是技能轉好（暴雪自己寫的明文布林，只讀）
-    if rawget(item, "cooldownUseAuraDisplayTime") == true then return end
+    -- 暴雪正在顯示光環時間：那個結束不是技能轉好
+    if UsesAuraTime(item, cd) then return end
     local d = Plain(duration)
     if d ~= nil and (type(d) ~= "number" or d <= GCD_MAX) then return end
     local p = Probe(rec)
@@ -337,7 +372,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate)
         -- 參數是秘密值：污染端轉交被拒 ⇒ 改拿引擎給的 duration 物件
         local spellID = SpellOf(rec)
         if not spellID then return end
-        local api = (rawget(item, "wasSetFromCharges") == true) and C_Spell.GetSpellChargeDuration
+        local api = FromCharges(item) and C_Spell.GetSpellChargeDuration
             or function(id) return C_Spell.GetSpellCooldownDuration(id, true) end
         local ok2, dur = pcall(api, spellID)
         if not (ok2 and dur) then return end

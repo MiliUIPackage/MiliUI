@@ -141,7 +141,7 @@ end
 --   1. 跟隨「冷卻管理器」（同一台電腦上另一支有資源條的插件）的顏色，來源依序：
 --        a. MiliUI_CooldownManager 的公開 API（README「公開 API」，回傳形狀是契約）
 --        b. 另一支冷卻管理器插件（舊來源）的 GetBarSetting（內部 API，不是契約）
---      兩支互斥（MiliUI_CooldownManager 偵測到舊來源就整支不初始化、IsReady 回假），
+--      兩支互斥（MiliUI_CooldownManager 偵測到舊來源就整支不初始化、GetResourceColors 回 nil），
 --      實際上同時只有一個來源在答
 --   2. 玩家在這裡自己調的 edb.colors[key][field]
 --   3. 寫死的預設（Core/DB.lua 的 RESOURCE_COLORS，跟 DB 預設值同一份）
@@ -191,21 +191,42 @@ end
 local function MCDMLoaded() return AddOnLoaded("MiliUI_CooldownManager", "MiliUI_CooldownManager") end
 local function AyijeLoaded() return AddOnLoaded("Ayije_CDM", "Ayije_CDM") end
 
--- MiliUI_CooldownManager 的公開 API 表：有載入、而且引擎已經就緒才回；否則 nil（呼叫端退下一個來源）。
--- 還沒就緒的那幾拍、互斥偵測成立（整支沒初始化）都是 IsReady 回假
+-- MiliUI_CooldownManager 的公開 API 表：有載入、有 GetResourceColors 就回；否則 nil。
+-- 不看 IsReady（那要等四條檢視器認領完才為真，資源顏色早在設定檔載入時就答得出來）：
+-- 設定檔還沒載入、互斥偵測成立（整支沒初始化）時 GetResourceColors 自己回 nil，呼叫端照樣退下一個來源
 local function MCDMApi()
     local api = _G.MiliUI_CooldownManager
-    if type(api) ~= "table" then return nil end
-    local fn = api.IsReady
-    if type(fn) ~= "function" then return nil end
-    local ok, ready = pcall(fn)
-    if not (ok and ready == true) then return nil end
+    if type(api) ~= "table" or type(api.GetResourceColors) ~= "function" then return nil end
     return api
+end
+
+-- 它現在真的在答嗎（設定檔已載入）：法力的顏色表每份設定檔都有（預設值補得回來）
+local function MCDMLive()
+    local api = MCDMApi()
+    if not api then return false end
+    local ok, t = pcall(api.GetResourceColors, "Mana")
+    return ok and type(t) == "table" or false
+end
+
+-- 設定頁改了資源顏色／條件規則：它廣播 ResourceStyleChanged，這裡照新的重畫
+-- （不然要等下一次能量事件才換色）。登記一次；檔案層先試，Reevaluate 再補（載入順序不保證）
+local mcdmHooked = false
+local Reevaluate            -- 前置宣告（定義在下面）
+local function OnMCDMStyle()
+    if ns.ResourceFollowsCDM() and Reevaluate then Reevaluate() end
+end
+local function HookMCDM()
+    if mcdmHooked then return end
+    local api = _G.MiliUI_CooldownManager
+    local fn = type(api) == "table" and api.RegisterCallback
+    if type(fn) ~= "function" then return end
+    local ok, res = pcall(fn, "ResourceStyleChanged", "MiliUI_UnitFrames.ClassPower", OnMCDMStyle)
+    if ok and res ~= false then mcdmHooked = true end
 end
 
 -- 現在實際在答的來源："MiliUI_CooldownManager" / "Ayije_CDM" / nil（/muf debug 用）
 function ns.ResourceCDMSource()
-    if MCDMApi() then return "MiliUI_CooldownManager" end
+    if MCDMLive() then return "MiliUI_CooldownManager" end
     if AyijeLoaded() then return "Ayije_CDM" end
     return nil
 end
@@ -415,10 +436,10 @@ local function MCDMConditions(key)
     return c
 end
 
--- 冷卻管理器的條件：MiliUI_CooldownManager **就緒**時只看它（它沒設規則＝沒有條件，
+-- 冷卻管理器的條件：MiliUI_CooldownManager **在答**（設定檔已載入）時只看它（它沒設規則＝沒有條件，
 -- 不再往下問）；它沒在答才問舊來源。兩支互斥，實際上不會兩邊都有東西
 local function CDMConditions(key)
-    if MCDMApi() then return MCDMConditions(key) end
+    if MCDMLive() then return MCDMConditions(key) end
     return AyijeConditions(key)
 end
 
@@ -1244,7 +1265,8 @@ end
 local function IsComboRow(key) return key == "ComboPoints" end
 
 -- 型態／專精／符文／光環變動 → 重新評估（清單和格數都可能變）
-local function Reevaluate()
+Reevaluate = function()
+    HookMCDM()
     ns.InvalidateResourceCandidates()
     chargedDirty = true          -- 換專精／型態之後充能狀態一定要重讀
     local uf = ns.frames.player
@@ -1257,6 +1279,7 @@ local function Reevaluate()
     end
 end
 ns.ResourceReevaluate = Reevaluate
+HookMCDM()
 
 -- 給設定面板列「第 N 格」用（條件規則的目標下拉）。連續條回 0
 function ns.ResourceSegments(key)

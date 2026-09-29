@@ -192,6 +192,7 @@ local function RefreshAll()
         -- 拖到一半離開編輯模式（ESC）：照放手處理；ns.dragging 一律清，卡住的話之後所有重錨都失效
         if dragState then EM.EndDrag(not InCombatLockdown()) end
         ns.dragging = nil
+        EM.RestoreDialog()               -- 設定對話框藏著的話還回去
     end
     for key in pairs(ns.Bars.Containers()) do EM.RefreshBar(key) end
     if ns.Visibility and ns.Visibility.ApplyAll then ns.Visibility.ApplyAll() end
@@ -222,33 +223,75 @@ combatWatcher:SetScript("OnEvent", function(self, event)
 end)
 
 ------------------------------------------------------------
--- 暴雪的系統設定對話框：四條檢視器一律藏
+-- 暴雪的系統設定對話框：四條檢視器一律「藏」
 --
--- 後掛勾 AttachToSystemFrame（跑在暴雪 SelectSystem 的堆疊裡）：當場只 SetAlpha(0)
--- （C 端狀態，不是 Lua 欄位，不留 taint），真正的 Hide 延到下一幀、走 ns.Write。
--- 不動對話框的內容、不碰 Settings 列。
+-- ⚠ 不 Hide：Hide 會從我們的執行跑暴雪的 OnHide（寫 attachedToSystem 等欄位 ⇒ 下一次暴雪自己
+--   AttachToSystemFrame 讀到被我們寫過的值，污染帶進編輯模式）。改用純 C 端狀態：
+--   後掛勾 AttachToSystemFrame 當場 SetAlpha(0)＋EnableMouse(false)（對話框本身與每個吃滑鼠的
+--   子孫，記下原本開著的是哪些），滾輪同理。taint 不追蹤 widget 屬性。
+--   還回去：下一次 AttachToSystemFrame 的 systemFrame **不是**我們四條時（同一個後掛勾）、
+--   離開編輯模式時（RefreshAll，下一幀）。對話框的內容、Settings 列、欄位一律不寫。
 ------------------------------------------------------------
 local hintPrinted = false
+local muted = nil          -- nil ＝ 沒藏；藏著時 = { mouse = { 框… }, wheel = { 框… } }
+
+local function Try(obj, method, ...)
+    local fn = obj and obj[method]
+    if type(fn) ~= "function" then return nil end
+    local ok, v = pcall(fn, obj, ...)
+    if not ok or ns.IsSecret(v) then return nil end
+    return v
+end
+
+-- 對話框與它的子孫：吃滑鼠／滾輪的關掉，記下來
+local function MuteTree(frame, rec, depth)
+    if depth > 12 then return end
+    if Try(frame, "IsMouseEnabled") then
+        Try(frame, "EnableMouse", false)
+        rec.mouse[#rec.mouse + 1] = frame
+    end
+    if Try(frame, "IsMouseWheelEnabled") then
+        Try(frame, "EnableMouseWheel", false)
+        rec.wheel[#rec.wheel + 1] = frame
+    end
+    local ok, n = pcall(frame.GetNumChildren, frame)
+    if ok and type(n) == "number" and n > 0 then
+        for _, child in ipairs({ frame:GetChildren() }) do MuteTree(child, rec, depth + 1) end
+    end
+end
+
+local function MuteDialog(dialog)
+    Try(dialog, "SetAlpha", 0)
+    if muted then return end                 -- 已經藏著（在四條之間點來點去）
+    muted = { mouse = {}, wheel = {} }
+    MuteTree(dialog, muted, 0)
+end
+
+-- 還給暴雪：alpha 1、關掉的滑鼠／滾輪照記錄打開
+function EM.RestoreDialog()
+    if not muted then return end
+    local rec = muted
+    muted = nil
+    for _, f in ipairs(rec.mouse) do Try(f, "EnableMouse", true) end
+    for _, f in ipairs(rec.wheel) do Try(f, "EnableMouseWheel", true) end
+    Try(EditModeSystemSettingsDialog, "SetAlpha", 1)
+end
+function EM.DialogMuted() return muted ~= nil end
 
 local function OnDialogAttach(dialog, systemFrame)
     local V = ns.Viewers
     local key = V and V.viewerKey[systemFrame]
-    if not key then return end
-    dialog:SetAlpha(0)
-    ns.Defer(function()
-        if dialog.attachedToSystem == systemFrame and dialog:IsShown() then
-            ns.Write(dialog, function(d)
-                d:Hide()
-                d:SetAlpha(1)
-            end, "cdm_hide")
-        else
-            dialog:SetAlpha(1)      -- 這一幀裡玩家已經點了別的系統：還給它
-        end
-        if not hintPrinted then
-            hintPrinted = true
+    if not key or ns.released then
+        EM.RestoreDialog()               -- 點到別的系統（或已經還給暴雪）：還給它
+        return
+    end
+    MuteDialog(dialog)
+    if not hintPrinted then
+        hintPrinted = true
+        ns.Defer(function()
             ns.Print(L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."])
-        end
-    end)
+        end)
+    end
 end
 
 ------------------------------------------------------------
@@ -329,8 +372,8 @@ end)
 function EM.DebugLines()
     local out = {}
     local function onoff(v) return v and "是" or "否" end
-    out[#out + 1] = ("  編輯模式：%s（暴雪 %s）  掛勾 %s  對話框掛勾 %s  拖曳中 %s  吸附 %s／格距 %s")
-        :format(onoff(EM.active), onoff(EM.IsActive()), onoff(EM.hooked), onoff(EM.dialogHooked),
+    out[#out + 1] = ("  編輯模式：%s（暴雪 %s）  掛勾 %s  對話框掛勾 %s（藏著 %s）  拖曳中 %s  吸附 %s／格距 %s")
+        :format(onoff(EM.active), onoff(EM.IsActive()), onoff(EM.hooked), onoff(EM.dialogHooked), onoff(muted ~= nil),
                 tostring(ns.dragging or "—"), onoff(SnapEnabled()), tostring(GridSpacing()))
     local B = ns.Bars
     if not (B and B.Containers) then return out end
@@ -340,7 +383,8 @@ function EM.DebugLines()
     end
     local rest = {}
     for key in pairs(B.Containers()) do
-        if not seen[key] then rest[#rest + 1] = key end
+        -- 刪掉的自訂群組容器還在（frame 刪不掉），只列設定檔裡有的條與面板
+        if not seen[key] and BarCfg(key) then rest[#rest + 1] = key end
     end
     table.sort(rest)
     for _, key in ipairs(rest) do keys[#keys + 1] = key end

@@ -242,6 +242,14 @@ local function DimAtlasRegions(frame, atlas)
     end
 end
 
+-- 只做一次（rec.stripped）。查證（2026-09-30，12.1.0.69933 的 Blizzard_CooldownViewer）：
+-- 圓角遮罩（MaskTexture atlas UI-HUD-CoolDownManager-Mask）、外框圖、轉圈材質
+-- （SwipeTexture UI-HUD-CoolDownManager-Icon-Swipe）全部只在 CooldownViewer.xml 的模板裡宣告；
+-- CooldownViewer.lua／CooldownViewerItemData.lua 沒有任何 AddMaskTexture／SetSwipeTexture／SetAtlas，
+-- OnAcquireItemFrame 只設 viewer、縮放、計時／提示顯示、hideWhenInactive、編輯中；
+-- RefreshData／SetCooldownID 只換資料與轉圈「顏色」（SetSwipeColor，由 Decorate 的 SetCooldown 後掛勾重寫）；
+-- 池子的 reset 只 Hide＋清錨點＋ResetCooldownData。⇒ 池化的框一次拔乾淨就一直乾淨，取出時不必重做。
+-- 暴雪哪天在 Lua 裡重加遮罩／換轉圈材質，改成在 Viewers.Track 清 rec.stripped。
 local function StripBlizzard(item, rec, isBar)
     if rec.stripped then return end
     rec.stripped = true
@@ -264,11 +272,12 @@ end
 local desatGuard = false
 
 local function OnSetCooldown(cd, start, duration, modRate)
+    if ns.released then return end                  -- 已還給暴雪（Bars.ReleaseAll）
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
     -- 就緒發光的探針：同一組參數轉交（Core/Glow.lua，不讀不算）
-    if ns.Glow and ns.Glow.OnItemSetCooldown then ns.Glow.OnItemSetCooldown(item, rec, start, duration, modRate) end
+    if ns.Glow and ns.Glow.OnItemSetCooldown then ns.Glow.OnItemSetCooldown(item, rec, start, duration, modRate, cd) end
     if not rec.style then return end
     local st = rec.style
     if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
@@ -289,7 +298,7 @@ local function OnClearCooldown(cd)
 end
 
 local function OnSetDesaturated(icon)
-    if desatGuard then return end
+    if desatGuard or ns.released then return end
     local item = iconOwner[icon]
     local rec = item and ns.Viewers.frames[item]
     if not (rec and rec.style) or rec.style.desaturate ~= false then return end
@@ -301,6 +310,7 @@ end
 -- 暴雪換長條內容（僅圖示／僅名字）時會藏名字、重錨條：把名字 Show 回來（名字要一直
 -- 顯示暴雪才會寫字），版面照我們的重排
 local function OnSetBarContent(item)
+    if ns.released then return end
     local rec = ns.Viewers.frames[item]
     if not rec then return end
     local name = item.Bar and item.Bar.Name
