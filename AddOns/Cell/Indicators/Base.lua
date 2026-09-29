@@ -1701,28 +1701,26 @@ local function Rect_SetFont(frame, font1, font2)
 end
 
 local function Rect_OnUpdateColor(frame)
-    -- A buff rect no longer offers the two bands of `colors` (they cannot fire on its
-    -- container path), so its preview must not paint them either -- otherwise a band saved
-    -- before the change keeps flashing yellow in the preview with nothing in the panel
-    -- explaining it. bandsOff is stamped by Rect_SetPandemicColor.
-    local bands = not frame.bandsOff
-    if bands and frame.colors[3][1] and frame._remain <= frame.colors[3][2] then
+    -- Bands, most urgent first: seconds band > Pandemic > percent band > normal.
+    -- A buff rect is drawn in game by an AuraContainer, where all three time-based layers are
+    -- ENGINE-driven (AuraDisplay: the two bands are |T fills bound with SetDurationText on
+    -- companion slots, Pandemic is AddPandemicRegion) and stack in this same order. This
+    -- function only runs for the options preview and for the manual fallback when no
+    -- container could be built -- and for debuff rects, which never left the manual path.
+    if frame.colors[3][1] and frame._remain <= frame.colors[3][2] then
         if frame.state ~= 3 then
             frame.state = 3
             frame.tex:SetColorTexture(frame.colors[3][3][1], frame.colors[3][3][2], frame.colors[3][3][3], frame.colors[3][3][4])
         end
-    -- Pandemic (buff rects only). In game a buff rect is drawn by an AuraContainer and the
-    -- engine shows the Pandemic fill itself (AddPandemicRegion, see AuraDisplay's
-    -- BuildEffectRect); this branch only runs for the options preview and for the manual
-    -- fallback when no container could be built. Neither has the engine's window, so "the
-    -- last 30%" stands in for it -- the usual carry-over cap.
+    -- Pandemic (buff rects only). Neither the preview nor the manual fallback has the
+    -- engine's window, so "the last 30%" stands in for it -- the usual carry-over cap.
     elseif frame.pandemic and frame._remain <= frame._duration * 0.3 then
         if frame.state ~= 4 then
             frame.state = 4
             local c = frame.pandemic
             frame.tex:SetColorTexture(c[1], c[2], c[3], c[4])
         end
-    elseif bands and frame.colors[2][1] and frame._remain <= frame._duration * frame.colors[2][2] then
+    elseif frame.colors[2][1] and frame._remain <= frame._duration * frame.colors[2][2] then
         if frame.state ~= 2 then
             frame.state = 2
             frame.tex:SetColorTexture(frame.colors[2][3][1], frame.colors[2][3][2], frame.colors[2][3][3], frame.colors[2][3][4])
@@ -1809,9 +1807,7 @@ end
 -- pc = the indicator's pandemicColor {enabled, {r,g,b,a}}; absent or off = no Pandemic band
 local function Rect_SetPandemicColor(frame, pc)
     frame.state = nil
-    -- only a buff rect carries the key (Indicator_Defaults / the settings page write it back);
-    -- a debuff rect never does, so this doubles as "is this the container kind of rect"
-    frame.bandsOff = type(pc) == "table"
+    -- only a buff rect carries the key (Indicator_Defaults / the settings page write it back)
     frame.pandemic = (type(pc) == "table" and pc[1] and type(pc[2]) == "table") and pc[2] or nil
 end
 

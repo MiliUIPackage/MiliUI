@@ -437,9 +437,10 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- and handing it an anchor corner would move a single block by the size mismatch
         if not customStyle then GridOpts(opts, t) end
         -- EFFECT SLOTS (colour/border/rect/texture): the visual is built from the
-        -- indicator's own settings, and everything time-based is dropped -- the fade-out and
-        -- the percent/seconds colour bands all needed a countdown that is now secret. (rect's
-        -- Pandemic fill is the exception: the engine decides when it shows, see below.)
+        -- indicator's own settings, and everything Lua-timed is dropped -- the fade-out and
+        -- colour's change-over-time all needed a countdown that is now secret. (rect is the
+        -- exception: its Pandemic fill and its two colour bands are timed by the ENGINE, see
+        -- below.)
         -- (Fonts fall through to the icon/block branch below: rect stores t.font in the same
         -- {stackFont, durationFont} shape.)
         if IsEffectStyle(customStyle) then
@@ -470,6 +471,27 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 local pc = t["pandemicColor"]
                 opts.pandemicOn = type(pc) == "table" and pc[1] == true
                 opts.pandemicColor = type(pc) == "table" and pc[2] or nil
+                -- The two colour bands, colors[2] = {en, fraction, col} ("remaining < N% of
+                -- the duration") and colors[3] = {en, seconds, col} ("remaining < N sec").
+                -- Each becomes a companion slot whose fill is a |T escape the ENGINE picks
+                -- against the secret remaining time (AuraDisplay's BuildBandSlot). A band that
+                -- is off is not sent at all.
+                -- ⚠ Structural, NOT a cosmetic key: the threshold and the colour are baked
+                -- into a formatter that is frozen once bound, so any change needs fresh
+                -- buttons -- the table's signature changing is exactly the rebuild wanted.
+                -- Both off = false, never nil (SetOptions only walks the keys it is given).
+                local c = t["colors"]
+                local bands = {}
+                if type(c) == "table" then
+                    local p, s = c[2], c[3]
+                    if type(p) == "table" and p[1] and type(p[3]) == "table" then
+                        bands.pct = { frac = tonumber(p[2]) or 0.5, color = p[3] }
+                    end
+                    if type(s) == "table" and s[1] and type(s[3]) == "table" then
+                        bands.sec = { secs = tonumber(s[2]) or 3, color = s[3] }
+                    end
+                end
+                opts.rectBands = (bands.pct or bands.sec) and bands or false
             end
         end
         -- a text-style indicator with no explicit duration toggle still shows its countdown

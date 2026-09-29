@@ -260,7 +260,40 @@ local function BuildRecordsRaw(opts)
                 return recs
             end
         end
-        return { { key = "buff", filter = f, candidateFilters = { includeSpellIDs = ids } } }
+        local main = { key = "buff", filter = f, candidateFilters = { includeSpellIDs = ids } }
+        -- RECT COLOUR BANDS ("remaining < N%" / "remaining < N sec"): one companion slot per
+        -- band, same filter and same spell list as the main slot. An AuraButton has exactly
+        -- ONE SetDurationText binding and the main slot's is the countdown number, so each
+        -- band needs a button of its own to carry its |T fill (see BuildBandSlot). Groups are
+        -- never de-duplicated against each other, so the same aura lands in all of them --
+        -- which is the point: the slots stack into one rect.
+        -- ⚠ Threshold and colour are baked into the KEY: the park key is built from the
+        -- records, and a band's formatter is frozen once bound, so a parked container must
+        -- never come back to a config asking for a different threshold or colour.
+        local rb = opts.rectBands
+        if type(rb) == "table" and opts.customStyle == "rect" then
+            local function csig(c)
+                return string.format("%.3f,%.3f,%.3f,%.3f", tonumber(c[1]) or 1, tonumber(c[2]) or 1,
+                    tonumber(c[3]) or 1, tonumber(c[4]) or 1)
+            end
+            local recs = { main }
+            if type(rb.pct) == "table" and type(rb.pct.color) == "table" then
+                recs[#recs + 1] = {
+                    key = "band_pct:" .. tostring(rb.pct.frac) .. ":" .. csig(rb.pct.color), filter = f,
+                    candidateFilters = { includeSpellIDs = ids },
+                    band = { kind = "pct", threshold = rb.pct.frac, color = rb.pct.color },
+                }
+            end
+            if type(rb.sec) == "table" and type(rb.sec.color) == "table" then
+                recs[#recs + 1] = {
+                    key = "band_sec:" .. tostring(rb.sec.secs) .. ":" .. csig(rb.sec.color), filter = f,
+                    candidateFilters = { includeSpellIDs = ids },
+                    band = { kind = "sec", threshold = rb.sec.secs, color = rb.sec.color },
+                }
+            end
+            return recs
+        end
+        return { main }
     end
 
     local function on(k) local v = opts[k]; return v == nil or v end -- default true
@@ -581,11 +614,19 @@ local SPENT_COLOR = { 0, 0, 0, 1 }
 --      AddPandemicRegion) or not at all -- "fade out as it expires" is gone with the
 --      remaining duration.
 --
--- The one engine-driven exception so far: rect's Pandemic fill (12.1.5). We hand the engine
--- a texture with AddPandemicRegion and it SetShown()s it while the aura sits in its Pandemic
--- window (recasting would waste none of the remaining time). The region is stamped
--- SecretAspect.Shown, so we never read whether it is showing and never Show/Hide it again;
--- turning the option off is a rebuild (pandemicOn is structural), never a Hide.
+-- The engine-driven exceptions, all on rect:
+--   * Pandemic fill (12.1.5). We hand the engine a texture with AddPandemicRegion and it
+--     SetShown()s it while the aura sits in its Pandemic window (recasting would waste none
+--     of the remaining time). The region is stamped SecretAspect.Shown, so we never read
+--     whether it is showing and never Show/Hide it again; turning the option off is a
+--     rebuild (pandemicOn is structural), never a Hide.
+--   * The "remaining < N%" / "< N sec" colour bands. A texture has no colour curve, so each
+--     band is a FontString holding an inline |T fill, bound with SetDurationText to a
+--     breakpoint formatter that the engine evaluates against the secret remaining value
+--     (fill below the threshold, "" above it). Two things shape it: an AuraButton has only
+--     ONE SetDurationText binding (taken by the countdown), so every band rides its own
+--     companion slot; and an inline |T renders at ~0.75x the size asked for, so the escape
+--     is baked at inner size x 0.75 (BAND_TEX_RATIO). See RECT COLOUR BANDS below.
 -- ============================================================
 local EFFECT_SLOT_STYLES = {
     color   = true,   -- health-bar / unit-button tint
@@ -812,6 +853,153 @@ local function BuildEffectBorder(handle, button, cfg)
     button.dfEffTex:SetVertexColor(r, g, b, a)
 end
 
+-- ============================================================
+-- RECT COLOUR BANDS  ("remaining < N%" / "remaining < N sec", on the container path)
+--
+-- A texture has no colour curve, but a FontString bound with SetDurationText has a
+-- formatter, and a NumericRuleFormatter picks a format string per breakpoint IN C, against
+-- the secret remaining value. So each band is a FontString whose only possible texts are an
+-- inline |T fill (below the threshold) or "" (at/above it) -- the engine chooses, we never
+-- read anything. (DandersFrames v5.3.3's expiry fill; see the aura-containers note.)
+--
+-- Why a companion SLOT per band instead of two more FontStrings on the main button: an
+-- AuraButton has exactly ONE SetDurationText binding (CustomAuraButtonSharedMixin keeps a
+-- single durationText), and the main slot's is the countdown number. The companion slots use
+-- the main slot's filter and spell list, so the same aura shows in all of them and they
+-- stack into one rect (see BuildRecords).
+--
+-- Stacking inside a rect, bottom -> top, as offsets from the slot button's level. The main
+-- slot's fill sits on dfEffHolder, which CreateFrame puts at +1 on its own. The order matches
+-- the preview's priority in Base.lua's Rect_OnUpdateColor (sec > Pandemic > pct > normal).
+-- ============================================================
+local RECT_LAYER = { pct = 2, pandemic = 3, sec = 4 }   -- countdown text +6, stack +7 (BindDurStack)
+
+local BuildBandSlot
+do  -- local-budget block: the band helpers are only reachable through BuildBandSlot
+    -- plain white (Cell/Media/white.tga is 128x128). The |T texWidth/texHeight and the uv
+    -- rect only say "the whole image", so any consistent size works for a solid fill.
+    local BAND_TEX = "Interface\\AddOns\\Cell\\Media\\white"
+    local BAND_TEX_SIZE = 128
+    -- ⚠ Measured by DandersFrames: an inline |T renders at about 0.75x the pixel size asked
+    -- for (a fixed factor, independent of UI scale), so the escape asks for inner size x 0.75
+    -- to cover the rect's inner box. UNVERIFIED here -- if the fill falls short of or spills
+    -- past the rect border in game, this constant is the one to tune.
+    local BAND_TEX_RATIO = 0.75
+
+    local floor, max, format = math.floor, math.max, string.format
+
+    local function C255(v)
+        v = tonumber(v) or 1
+        if v < 0 then v = 0 elseif v > 1 then v = 1 end
+        return floor(v * 255 + 0.5)
+    end
+
+    -- |Tpath:height:width:offX:offY:texW:texH:left:right:top:bottom:r:g:b|t -- r/g/b 0-255
+    -- vertex colour. No alpha slot: the band's alpha goes on the FontString instead.
+    local function BandEscape(w, h, color)
+        return format("|T%s:%d:%d:0:0:%d:%d:0:%d:0:%d:%d:%d:%d|t", BAND_TEX, h, w,
+            BAND_TEX_SIZE, BAND_TEX_SIZE, BAND_TEX_SIZE, BAND_TEX_SIZE,
+            C255(color[1]), C255(color[2]), C255(color[3]))
+    end
+
+    -- Own cache, NOT ACC's duration-formatter cache: a different key space. Shared across
+    -- buttons the same way ACC shares the countdown formatter.
+    local cache = {}
+    local function BandFormatter(band, thr, w, h)
+        local c = band.color
+        local key = format("%s:%s:%d:%d:%d,%d,%d", band.kind, tostring(thr), w, h,
+            C255(c[1]), C255(c[2]), C255(c[3]))
+        local cached = cache[key]
+        if cached ~= nil then return cached end
+        cache[key] = false
+        local ok, f = pcall(function()
+            local down = Enum.NumericRuleFormatRounding.Down
+            local fmt = C_StringUtil.CreateNumericRuleFormatter()
+            -- [0, thr) -> the fill; [thr, inf) -> nothing
+            fmt:AddBreakpoint({ threshold = 0, step = 1, rounding = down, min = 1, format = BandEscape(w, h, c) })
+            fmt:AddBreakpoint({ threshold = thr, step = 1, rounding = down, format = "" })
+            return fmt
+        end)
+        if ok and f then cache[key] = f end
+        return cache[key]
+    end
+
+    local function Err(handle, msg)
+        local e = handle._errors
+        if e and #e < 6 then e[#e + 1] = msg end -- cap, same as the style errors in AddGroups
+    end
+
+    -- A companion slot carries nothing but its band: no fill, no border, no countdown, no
+    -- stack. Everything is created in the initializeFrame window and bound ONCE; threshold,
+    -- colour and size all live in the record key / config, so a change is a fresh button.
+    function BuildBandSlot(handle, button, cfg, band)
+        if not button.dfBandHolder then
+            local holder = CreateFrame("Frame", nil, button)
+            -- inset by the border like the Pandemic fill: a band never covers the rect's edge
+            holder:SetPoint("TOPLEFT", button, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+            holder:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+            button.dfBandHolder = holder
+            local fs = holder:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
+            -- no size given: a FontString does not clip, and the |T is centred on the box
+            fs:SetPoint("CENTER", holder, "CENTER", 0, 0)
+            fs:SetJustifyH("CENTER")
+            fs:SetWordWrap(false)
+            fs:SetShadowOffset(0, 0) -- CELL_FONT_STATUS carries a 1,-1 text shadow
+            button.dfBand = fs
+        end
+        button.dfBandHolder:SetFrameLevel(button:GetFrameLevel() + (RECT_LAYER[band.kind] or 2))
+
+        -- the |T is baked at inner box x ratio; sizes come from config, never from the button
+        local innerW = (cfg.size or 11) - 2 * CELL_BORDER_SIZE
+        local innerH = (cfg.sizeH or cfg.size or 4) - 2 * CELL_BORDER_SIZE
+        local w = max(1, floor(innerW * BAND_TEX_RATIO + 0.5))
+        local h = max(1, floor(innerH * BAND_TEX_RATIO + 0.5))
+        local fs = button.dfBand
+        -- a line taller than the |T only adds empty space around it (nothing is clipped)
+        local fontPath = fs:GetFont()
+        if type(fontPath) ~= "string" or fontPath == "" then
+            fontPath = (GameFontNormal and GameFontNormal:GetFont()) or STANDARD_TEXT_FONT
+        end
+        if fontPath then fs:SetFont(fontPath, max(8, h), "") end
+        fs:SetAlpha(tonumber(band.color[4]) or 1) -- |T has no alpha field; region alpha instead
+
+        if button._boundBand or not button.SetDurationText then return end
+        local caps = ACC.GetCaps()
+        if not (caps and caps.numericFormatter) then return end
+        -- colors[2] stores a fraction (0.5); RemainingPercent is taken as 0-100 here, the scale
+        -- DandersFrames' 30% default uses. ⚠ UNVERIFIED: if the 50% band only lights at the
+        -- very end, the property is 0-1 and this multiplier must go.
+        local thr = tonumber(band.threshold) or 0
+        if band.kind == "pct" then thr = thr * 100 end
+        if thr <= 0 then return end   -- "< 0" can never fire; do not bind an empty band
+
+        local o
+        if band.kind == "pct" then
+            -- no RemainingPercent property = no percent band. Falling back to a plain
+            -- textFormatter would compare SECONDS against the percent threshold.
+            local P = Enum and Enum.DurationTextBindingProperty
+            if not (P and P.RemainingPercent) then
+                Err(handle, "band pct: no RemainingPercent property")
+                return
+            end
+            local fmt = BandFormatter(band, thr, w, h)
+            if not fmt then Err(handle, "band pct: formatter refused"); return end
+            o = { textFormat = { formatString = "{}", components = {
+                { property = P.RemainingPercent, formatter = fmt } } } }
+        else
+            local fmt = BandFormatter(band, thr, w, h)
+            if not fmt then Err(handle, "band sec: formatter refused"); return end
+            o = { textFormatter = fmt }
+        end
+        local ok, err = pcall(button.SetDurationText, button, fs, o)
+        if ok then
+            button._boundBand = true
+        else
+            Err(handle, "band " .. tostring(band.kind) .. " SetDurationText: " .. tostring(err))
+        end
+    end
+end
+
 local function BuildEffectRect(handle, button, cfg)
     local holder = button.dfEffHolder
     if not holder then
@@ -832,15 +1020,23 @@ local function BuildEffectRect(handle, button, cfg)
     -- the aura is in its Pandemic window. See the EFFECT SLOTS note for the rules.
     if cfg.pandemicOn and button.AddPandemicRegion then
         if not button.dfPandemicTex then
+            -- Its own frame, at the Pandemic step of the rect's stack (RECT_LAYER): the two
+            -- colour bands are sibling SLOT buttons (BuildBandSlot), and a texture drawn
+            -- straight on dfEffHolder would sit under both of them whatever its sublevel.
+            -- The holder is ours and is never handed over -- only the texture is.
+            local ph = CreateFrame("Frame", nil, holder)
+            ph:SetAllPoints(holder)
+            ph:SetFrameLevel(button:GetFrameLevel() + RECT_LAYER.pandemic)
+            button.dfPandemicHolder = ph
             -- ⚠ A TEXTURE, not a frame: AddPandemicRegion validates RequireObjectType("Region")
             -- and a Frame is not a Region in the current widget hierarchy -- the pcall would
             -- swallow the refusal and the option would just never light up.
-            -- Inset by the border so it never covers the backdrop edge; sublevel -6 puts it
-            -- over dfEffTex (-7). Hidden before the hand-over: if the engine refuses it, it
-            -- must not sit there permanently lit (on success the engine sets it right away).
-            local pt = holder:CreateTexture(nil, "BORDER", nil, -6)
-            pt:SetPoint("TOPLEFT", holder, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
-            pt:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+            -- Inset by the border so it never covers the backdrop edge. Hidden before the
+            -- hand-over: if the engine refuses it, it must not sit there permanently lit (on
+            -- success the engine sets it right away).
+            local pt = ph:CreateTexture(nil, "ARTWORK")
+            pt:SetPoint("TOPLEFT", ph, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+            pt:SetPoint("BOTTOMRIGHT", ph, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
             pt:Hide()
             button.dfPandemicTex = pt
         end
@@ -974,10 +1170,15 @@ local function StyleButton(handle, button)
     -- block/text -- the container owns the button's visibility, so aura PRESENCE needs no
     -- read -- but these fill their whole anchor rather than sitting in a row, so the slot
     -- button IS the effect. See the EFFECT SLOTS note at the top of the file.
-    -- ⚠ No Lua-driven time-based behaviour: the old fade-out / colour-by-remaining and the
-    -- percent-and-seconds threshold bands all needed a countdown we can no longer read.
-    -- What time-based remains is engine-driven: rect's countdown text (with its colour
-    -- curve) and rect's Pandemic fill (AddPandemicRegion, see BuildEffectRect).
+    -- ⚠ No Lua-driven time-based behaviour: the old fade-out / colour-by-remaining needed a
+    -- countdown we can no longer read. What time-based remains is engine-driven, all on
+    -- rect: its countdown text (with its colour curve), its Pandemic fill (AddPandemicRegion,
+    -- see BuildEffectRect) and its two colour bands (companion slots, see BuildBandSlot).
+    -- rect colour-band companion slot: its band and nothing else (see RECT COLOUR BANDS)
+    if button._adBand then
+        BuildBandSlot(handle, button, cfg, button._adBand)
+        return
+    end
     local effBuild = cfg.customStyle and EFFECT_BUILDERS[cfg.customStyle]
     if effBuild then
         effBuild(handle, button, cfg)
@@ -1604,6 +1805,10 @@ local function AddGroups(handle, host, c, records, slotMode, strict)
             -- engine -- the park key covers the record set, so a returning button always
             -- carries the colour its record was built with.
             if rec.effColor ~= nil then button._adEffColor = rec.effColor end
+            -- rect colour-band companion slot (see BuildRecords): same rule -- stamped at
+            -- creation, never re-read; threshold/colour live in rec.key, so a returning
+            -- button always carries the band it was bound with
+            if rec.band then button._adBand = rec.band end
             -- Same for the boss badge. It never has to come off again: bossBadge is structural
             -- (a toggle rebuilds) and part of the park key, so this button only ever serves
             -- a config that asked for it.

@@ -1948,9 +1948,9 @@ local function ShowIndicatorSettings(id)
             settingsTable = {"enabled", "auras", "maxValue", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "rect" then
             if indicatorTable["auraType"] == "buff" then
-                -- buff rects run on the AuraContainer path: the remaining-time bands of
-                -- "colors" cannot fire there (secret countdown), so they get the engine's
-                -- Pandemic window + the countdown colour curve instead (see rectColors)
+                -- buff rects run on the AuraContainer path, where every time-based colour is
+                -- engine-driven: the two remaining-time bands (|T fills on companion slots),
+                -- the Pandemic window and the countdown colour curve (see rectColors)
                 settingsTable = {"enabled", "auras", "rectColors", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
             else
                 -- debuff rects stay on the manual path, where the bands still work

@@ -2498,13 +2498,15 @@ local function CreateSetting_Colors(parent)
 end
 
 -- Colours of a BUFF rect (12.1). Buff rects render through an AuraContainer effect slot, where
--- the remaining time is secret, so the two time bands of the shared `colors` widget can never
--- fire there. What replaces them: the engine's Pandemic window (AddPandemicRegion -- the engine
--- shows our fill while recasting would waste none of the aura's remaining time) and the
--- countdown colour curve (the durationColor widget). Debuff rects keep the `colors` widget.
+-- the remaining time is secret -- yet every time-based row here is still honoured, because the
+-- ENGINE does the timing: the two remaining-time bands are |T fills picked by a breakpoint
+-- formatter on companion slots (AuraDisplay's BuildBandSlot), and Pandemic is the engine's own
+-- window (AddPandemicRegion -- it shows our fill while recasting would waste none of the aura's
+-- remaining time). The countdown's colour curve is the separate durationColor widget.
+-- Debuff rects keep the shared `colors` widget.
 -- ⚠ A separate widget on purpose: the shared one treats [5] as a bar's background colour.
--- SetDBValue(colors, pandemicColor): colors = the indicator's colours table ([1] normal, [4]
--- border; [2]/[3] are left untouched for the manual path); pandemicColor = {en, {r,g,b,a}}.
+-- SetDBValue(colors, pandemicColor): colors = the indicator's colours table ([1] normal,
+-- [2] {en, fraction, col}, [3] {en, sec, col}, [4] border); pandemicColor = {en, {r,g,b,a}}.
 -- SetFunc(func): func(key, value), key being "colors" or "pandemicColor".
 local function CreateSetting_RectColors(parent)
     local widget
@@ -2520,13 +2522,100 @@ local function CreateSetting_RectColors(parent)
         end)
         normalColor:SetPoint("TOPLEFT", 5, -8)
 
+        -- remaining < N% (colors[2]) and remaining < N sec (colors[3]): the same two rows as the
+        -- shared `colors` widget. Unlike there, ticking a box fires too -- on the container
+        -- path a band is a structural change (its slot is added or dropped), and nothing else
+        -- would push it.
+        local percentColor, percentDropdown
+        local percentCB = Cell.CreateCheckButton(widget, "", function(checked)
+            widget.colorsTable[2][1] = checked
+            Cell.SetEnabled(checked, percentColor, percentDropdown)
+            widget.func("colors", widget.colorsTable)
+        end)
+        percentCB:SetPoint("TOPLEFT", normalColor, "BOTTOMLEFT", 0, -8)
+
+        percentColor = Cell.CreateColorPicker(widget, L["Remaining Time"].." <", true, function(r, g, b, a)
+            local c = widget.colorsTable[2][3]
+            c[1], c[2], c[3], c[4] = r, g, b, a
+            widget.func("colors", widget.colorsTable)
+        end)
+        percentColor:SetPoint("TOPLEFT", percentCB, "TOPRIGHT", 2, 0)
+
+        percentDropdown = Cell.CreateDropdown(widget, 60)
+        percentDropdown:SetPoint("LEFT", percentColor.label, "RIGHT", 5, 0)
+        local percentItems = {}
+        for _, item in ipairs({{"75%", 0.75}, {"50%", 0.5}, {"30%", 0.3}, {"25%", 0.25}}) do
+            local v = item[2]
+            percentItems[#percentItems + 1] = {
+                ["text"] = item[1],
+                ["value"] = v,
+                ["onClick"] = function()
+                    widget.colorsTable[2][2] = v
+                    widget.func("colors", widget.colorsTable)
+                end,
+            }
+        end
+        percentDropdown:SetItems(percentItems)
+
+        local secColor, secEditBox, secText
+        local secCB = Cell.CreateCheckButton(widget, "", function(checked)
+            widget.colorsTable[3][1] = checked
+            Cell.SetEnabled(checked, secColor, secEditBox, secText)
+            widget.func("colors", widget.colorsTable)
+        end)
+        secCB:SetPoint("TOPLEFT", percentCB, "BOTTOMLEFT", 0, -8)
+
+        secColor = Cell.CreateColorPicker(widget, L["Remaining Time"].." <", true, function(r, g, b, a)
+            local c = widget.colorsTable[3][3]
+            c[1], c[2], c[3], c[4] = r, g, b, a
+            widget.func("colors", widget.colorsTable)
+        end)
+        secColor:SetPoint("TOPLEFT", secCB, "TOPRIGHT", 2, 0)
+
+        secEditBox = Cell.CreateEditBox(widget, 43, 20, false, false, true)
+        secEditBox:SetPoint("LEFT", secColor.label, "RIGHT", 5, 0)
+        secEditBox:SetMaxLetters(4)
+
+        secEditBox.confirmBtn = Cell.CreateButton(widget, "OK", "accent", {27, 20})
+        secEditBox.confirmBtn:SetPoint("LEFT", secEditBox, "RIGHT", -1, 0)
+        secEditBox.confirmBtn:Hide()
+        secEditBox.confirmBtn:SetScript("OnHide", function()
+            secEditBox.confirmBtn:Hide()
+        end)
+        secEditBox.confirmBtn:SetScript("OnClick", function()
+            -- a blank / zero entry would store nil (or a band that can never fire): keep the old
+            local newSec = tonumber(secEditBox:GetText())
+            if newSec and newSec > 0 then
+                widget.colorsTable[3][2] = newSec
+            end
+            secEditBox:SetText(widget.colorsTable[3][2])
+            secEditBox:ClearFocus()
+            secEditBox.confirmBtn:Hide()
+            widget.func("colors", widget.colorsTable)
+        end)
+
+        secEditBox:SetScript("OnTextChanged", function(self, userChanged)
+            if userChanged then
+                local newSec = tonumber(self:GetText())
+                if newSec and newSec > 0 and newSec ~= widget.colorsTable[3][2] then
+                    secEditBox.confirmBtn:Show()
+                else
+                    secEditBox.confirmBtn:Hide()
+                end
+            end
+        end)
+
+        secText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        secText:SetPoint("LEFT", secEditBox, "RIGHT", 5, 0)
+        secText:SetText(L["sec"])
+
         local pandemicColor
         local pandemicCB = Cell.CreateCheckButton(widget, "", function(checked)
             widget.pandemicTable[1] = checked
             Cell.SetEnabled(checked, pandemicColor)
             widget.func("pandemicColor", widget.pandemicTable)
         end)
-        pandemicCB:SetPoint("TOPLEFT", normalColor, "BOTTOMLEFT", 0, -8)
+        pandemicCB:SetPoint("TOPLEFT", secCB, "BOTTOMLEFT", 0, -8)
 
         pandemicColor = Cell.CreateColorPicker(widget, L["Pandemic"], true, function(r, g, b, a)
             local c = widget.pandemicTable[2]
@@ -2559,12 +2648,25 @@ local function CreateSetting_RectColors(parent)
             widget.colorsTable = colorsTable
             widget.pandemicTable = pandemicTable
             normalColor:SetColor(colorsTable[1])
-            borderColor:SetColor(colorsTable[4])
+
+            percentCB:SetChecked(colorsTable[2][1])
+            Cell.SetEnabled(colorsTable[2][1], percentColor, percentDropdown)
+            percentColor:SetColor(colorsTable[2][3])
+            percentDropdown:SetSelectedValue(colorsTable[2][2])
+
+            secCB:SetChecked(colorsTable[3][1])
+            Cell.SetEnabled(colorsTable[3][1], secColor, secEditBox, secText)
+            secColor:SetColor(colorsTable[3][3])
+            secEditBox:SetText(colorsTable[3][2])
+            secEditBox.confirmBtn:Hide()
+
             pandemicCB:SetChecked(pandemicTable[1])
             pandemicColor:SetColor(pandemicTable[2])
             Cell.SetEnabled(pandemicTable[1], pandemicColor)
-            -- three rows (Cell's colours widgets are 12 + rows*21) plus the wrapped description
-            P.Height(widget, 75 + math.ceil(desc:GetStringHeight()) + 2)
+
+            borderColor:SetColor(colorsTable[4])
+            -- five rows (Cell's colours widgets are 12 + rows*21) plus the wrapped description
+            P.Height(widget, 12 + 5 * 21 + math.ceil(desc:GetStringHeight()) + 2)
         end
     else
         widget = settingWidgets["rectColors"]
