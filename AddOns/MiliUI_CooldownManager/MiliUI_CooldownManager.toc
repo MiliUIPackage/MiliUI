@@ -43,6 +43,9 @@ Core\Layout.lua
 Core\Viewers.lua
 Core\Text.lua
 Core\Decorate.lua
+Core\Glow.lua
+Core\Keybinds.lua
+Modules\Custom.lua
 Core\Bars.lua
 Core\Visibility.lua
 Libs\MiliUIWidgets\Env.lua

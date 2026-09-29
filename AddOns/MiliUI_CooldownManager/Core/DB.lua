@@ -129,13 +129,16 @@ function DB.BuildDefaults()
                 glow  = {
                     proc  = { enabled = true,  type = "pixel", color = rgba(1, 0.85, 0, 1),
                               lines = 8, thickness = 2, frequency = 0.2 },
+                    -- duration：冷卻轉好之後亮幾秒
                     ready = { enabled = false, type = "pixel", color = rgba(0.3, 1, 0.3, 1),
-                              lines = 8, thickness = 2, frequency = 0.2 },
+                              lines = 8, thickness = 2, frequency = 0.2, duration = 3 },
                 },
                 -- 淡出後的透明度；false ＝ 這個條件不淡
                 fade  = { outOfCombat = false, noTarget = 0.3, mounted = false },
-                pandemic = { color = rgba(1, 0.5, 0, 1), bars = true },
-                keybind  = { enabled = false },     -- 按鍵文字（引擎在自訂那一階段接）
+                -- 無損刷新（可以續壓的窗口）：邊框換色；bars ＝ 長條的條身也換色
+                pandemic = { enabled = true, color = rgba(1, 0.5, 0, 1), bars = true },
+                -- 按鍵文字：動作條上綁的鍵，縮寫後畫在圖示一角
+                keybind  = { enabled = false, size = 10, point = "TOPLEFT", x = 1, y = -1 },
             },
             bars = {
                 essential = IconBar{ source = "essential", pos = { point = "CENTER", x = 0, y = -202 },
@@ -702,6 +705,16 @@ function DB.DeleteBar(key)
             if type(spec.order) == "table" then spec.order[key] = nil end
         end
     end
+    -- 自訂項目沒有「原本的暴雪那條」可以回去：光環格回增益圖示、法術／物品回核心技能
+    for _, spec in pairs(type(p.spells) == "table" and p.spells or {}) do
+        if type(spec) == "table" and type(spec.custom) == "table" then
+            for _, e in ipairs(spec.custom) do
+                if type(e) == "table" and e.bar == key then
+                    e.bar = (e.kind == "aura") and "buffs" or "essential"
+                end
+            end
+        end
+    end
     for other, bar in pairs(p.bars) do
         if other ~= key and type(bar) == "table" and type(bar.anchor) == "table" and bar.anchor.to == key then
             bar.anchor = false
@@ -814,6 +827,119 @@ function DB.ClearOverrides(ids, group)
             if next(o) == nil then all[id] = nil end
         end
     end
+end
+
+------------------------------------------------------------
+-- 自訂項目：spells[specID].custom = { { kind, spellID|itemID, filter, placeholder, bar }, … }
+--
+--   kind         "aura"（光環格）| "spell"（法術冷卻）| "item"（物品冷卻）
+--   filter       光環格才有："HELPFUL" | "HARMFUL"
+--   placeholder  光環格才有：光環不在時畫去飽和的占位圖示
+--   bar          放在哪一條（只收圖示類的條）
+--
+-- 在順序、隱藏、覆寫裡的 id 是 "c:<index>"。index 是陣列位置，所以**刪掉中間一筆時
+-- 後面的 id 全部要往前挪**（DB.RemoveCustom 負責，不然第 3 筆的覆寫會跑到原本的第 4 筆上）。
+------------------------------------------------------------
+DB.CUSTOM_KINDS = { aura = true, spell = true, item = true }
+
+function DB.CustomID(i) return "c:" .. tostring(i) end
+
+-- "c:3" → 3；不是自訂項目的 id 回 nil
+function DB.CustomIndex(id)
+    if type(id) ~= "string" then return nil end
+    local n = id:match("^c:(%d+)$")
+    return n and tonumber(n) or nil
+end
+
+function DB.CustomList(create, specID)
+    local sp = DB.SpecSpells(create, specID)
+    if not sp then return nil end
+    if type(sp.custom) ~= "table" then
+        if not create then return nil end
+        sp.custom = {}
+    end
+    return sp.custom
+end
+
+-- id（"c:i"）→ 那一筆（不存在回 nil）
+function DB.CustomEntry(id, specID)
+    local i = DB.CustomIndex(id)
+    local list = i and DB.CustomList(false, specID)
+    local e = list and list[i]
+    return type(e) == "table" and e or nil, i
+end
+
+-- 同一個專精裡已經有同樣的項目（同種類、同 ID、光環還要同 filter）
+function DB.FindCustom(kind, id, filter, specID)
+    for i, e in ipairs(DB.CustomList(false, specID) or {}) do
+        if type(e) == "table" and e.kind == kind then
+            local same
+            if kind == "item" then same = e.itemID == id
+            else same = e.spellID == id and (kind ~= "aura" or (e.filter or "HELPFUL") == (filter or "HELPFUL")) end
+            if same then return i end
+        end
+    end
+    return nil
+end
+
+-- 新增，回傳 index（沒有專精 ⇒ nil）
+function DB.AddCustom(entry)
+    if type(entry) ~= "table" or not DB.CUSTOM_KINDS[entry.kind] then return nil end
+    local list = DB.CustomList(true)
+    if not list then return nil end
+    list[#list + 1] = entry
+    return #list
+end
+
+function DB.SetCustomBar(id, bar)
+    local e = DB.CustomEntry(id)
+    if not e or type(bar) ~= "string" then return false end
+    e.bar = bar
+    return true
+end
+
+-- 刪掉第 i 筆，後面的 "c:j" 全部改成 "c:(j-1)"（順序、隱藏、覆寫、群組）
+local function Shift(id, removed)
+    local j = DB.CustomIndex(id)
+    if not j then return id end
+    if j == removed then return false end
+    if j > removed then return DB.CustomID(j - 1) end
+    return id
+end
+
+function DB.RemoveCustom(id, specID)
+    local i = DB.CustomIndex(id)
+    local sp = DB.SpecSpells(false, specID)
+    local list = sp and type(sp.custom) == "table" and sp.custom
+    if not (i and list and list[i] ~= nil) then return false end
+    table.remove(list, i)
+    if type(sp.order) == "table" then
+        for bar, ids in pairs(sp.order) do
+            if type(ids) == "table" then
+                local out = {}
+                for _, v in ipairs(ids) do
+                    local nv = Shift(v, i)
+                    if nv then out[#out + 1] = nv end
+                end
+                sp.order[bar] = out
+            end
+        end
+    end
+    for _, field in ipairs({ "hidden", "overrides", "groupOf" }) do
+        local t = sp[field]
+        if type(t) == "table" then
+            local moved = {}
+            for k, v in pairs(t) do
+                if DB.CustomIndex(k) then moved[k] = v end
+            end
+            for k in pairs(moved) do t[k] = nil end
+            for k, v in pairs(moved) do
+                local nk = Shift(k, i)
+                if nk then t[nk] = v end
+            end
+        end
+    end
+    return true
 end
 
 ------------------------------------------------------------

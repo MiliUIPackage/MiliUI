@@ -27,6 +27,11 @@
 -- 停放：alpha 0 ＋ 錨到 UIParent 的 (-10000, 10000)。不 Hide（Hide 池子裡的框會讓暴雪重建
 -- 整條檢視器）、不 SetParent。
 --
+-- 自訂項目（Modules/Custom.lua，id "c:<index>"）也是一格 entry：光環格的持有框、自訂法術／物品的
+-- 圖示框。它們是**容器的子框**（條的淡出由容器的 alpha 帶），持有框的 SetPoint／SetSize／Show
+-- 走 ns.Write（持有框整條鏈是保護框）。條上有光環格時固定格位強制打開：光環格排在最前面、
+-- 其他 item 收合也不會讓它們的 x 變，戰鬥中不必動持有框。
+--
 -- 檢視器本體釘在容器上（TOPLEFT／BOTTOMRIGHT 對齊），被暴雪（編輯模式、底部管理框）
 -- 拉走就釘回來；_pinGuard 擋自己觸發自己。
 ------------------------------------------------------------
@@ -176,7 +181,10 @@ local function Park(item, rec)
         item:SetPoint("TOPLEFT", UIParent, "TOPLEFT", PARK_X, PARK_Y)
     end)
     parkGuard = false
-    if rec then rec.parked = ok end
+    if rec then
+        rec.parked = ok
+        if ok and ns.Glow then ns.Glow.OnParked(rec) end
+    end
 end
 B.Park = Park
 
@@ -251,11 +259,15 @@ local function Relayout(key, level, index, gen)
 
     local ids = ns.Catalog.Bar(key)
     local layout = type(bar.layout) == "table" and bar.layout or {}
-    local fixed = layout.fixedSlots and true or false
+    -- 條上有光環格 ⇒ 固定格位強制打開（值不動；光環格的持有框戰鬥中不能移）
+    local fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(key)) and true or false
     local entries = {}
     for _, id in ipairs(ids) do
         local item = index[id]
-        if item and not claimedBy[item] then
+        local crec = ns.Custom and ns.Custom.Get(id)
+        if crec then
+            entries[#entries + 1] = { id = id, crec = crec }
+        elseif item and not claimedBy[item] then
             local rec = ns.Viewers.frames[item]
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
             local shown = true
@@ -310,16 +322,23 @@ local function Relayout(key, level, index, gen)
     for i, e in ipairs(entries) do
         local r = rects[i]
         local item, rec = e.item, e.rec
-        item:ClearAllPoints()
-        item:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
-        item:SetSize(r.w, r.h)
-        item:SetAlpha(alpha)
-        if rec then
-            rec.parked = false
-            rec.claimGen = gen
-            ns.Decorate.Apply(item, rec, key, r.w, r.h)
+        if e.crec then
+            ns.Custom.Place(e.crec, c, r, key, gen)
+        else
+            item:ClearAllPoints()
+            item:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
+            item:SetSize(r.w, r.h)
+            item:SetAlpha(alpha)
+            if rec then
+                rec.parked = false
+                rec.claimGen = gen
+                rec.claimKey = key
+                ns.Decorate.Apply(item, rec, key, r.w, r.h)
+                if ns.Glow then ns.Glow.Sync(item, rec, key) end
+                if ns.Keybinds then ns.Keybinds.Apply(item, rec, key) end
+            end
+            slotOf[e.id] = { key = key, x = r.x, y = r.y, w = r.w, h = r.h }
         end
-        slotOf[e.id] = { key = key, x = r.x, y = r.y, w = r.w, h = r.h }
         if e.placeholder then
             phUsed = phUsed + 1
             local t = Placeholder(key, phUsed)
@@ -336,6 +355,7 @@ local function Relayout(key, level, index, gen)
         end
     end
     ReleasePlaceholders(key, phUsed + 1)
+    if ns.Custom then ns.Custom.EndBar(key, gen) end
 end
 
 ------------------------------------------------------------
@@ -406,6 +426,8 @@ Flush = function()
 
     -- 暴雪可能剛在它自己的下一幀換了版面／專精：清單先對一次
     ns.Catalog.CheckFresh()
+    -- 自訂項目：照目前專精的清單對上框（換專精、刪項目的在這裡收起來）
+    if ns.Custom then ns.Custom.Sync() end
     local index = BuildIndex()
     -- 依左欄順序排（被錨的條通常在後面；核心技能先排，長條才知道第一列多寬）
     local order, seen = {}, {}
@@ -426,9 +448,11 @@ Flush = function()
         local key = claimedBy[item]
         if not key or not BarCfg(key) then
             claimedBy[item] = nil
+            rec.claimKey = nil
             Park(item, rec)
         end
     end)
+    if ns.Custom then ns.Custom.EndFlush() end
 
     -- 檢視器確保釘在容器上
     for _, src in ipairs(ns.Viewers.ORDER) do

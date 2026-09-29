@@ -33,6 +33,7 @@ ns.Specs = {}
 local Specs = ns.Specs
 
 local LABEL_W = ns.WidgetsEnv.LABEL_W or 128
+local FixedSlotsRow      -- 版面那一節的固定格位列（定義在下面）
 
 ------------------------------------------------------------
 -- 下拉清單
@@ -341,18 +342,29 @@ function Specs.Themed(mode)
     -- 效果（發光、無損刷新、按鍵文字）＋淡出
     add({ type = "header", label = L["Effects"] })
     if bar then add(OverrideRow("glow"), FollowToggle("glow")) end
-    add(Note(L["Glows, pandemic borders and keybind text are drawn starting with the next version; the values are saved now."], "glow"),
-        Nested(L["Proc glow"], "glow"),
+    add(Nested(L["Proc glow"], "glow"),
         TS("glow", "toggle", "glow.proc.enabled", L["Enable"]),
+        Note(L["Replaces Blizzard's proc glow. When off, Blizzard's own glow shows."], "glow"),
         TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
         TS("glow", "color", "glow.proc.color", L["Color"]),
         Nested(L["Ready glow"], "glow"),
         TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
+        Note(L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."], "glow"),
         TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
         TS("glow", "color", "glow.ready.color", L["Color"]),
-        Nested(L["Other"], "glow"),
+        TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }),
+        Nested(L["Pandemic"], "glow"),
+        TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
+        Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
         TS("glow", "color", "pandemic.color", L["Pandemic border color"]),
-        TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]))
+        TS("glow", "toggle", "pandemic.bars", L["Color bars too"]),
+        Nested(L["Keybind text"], "glow"),
+        TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]),
+        TS("glow", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
+        TS("glow", "dropdown", "keybind.point", L["Anchor"], { items = POINT_ITEMS }),
+        TS("glow", "numbers", nil, L["Offset"], { sub = "keybind", path = false,
+            resetPaths = { "keybind.x", "keybind.y" },
+            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
     add(Nested(L["Fade"]))
     if bar then add(BS("toggle", "follow.fade", L["Follow global theme"], { refreshPage = true })) end
     add(FadeRows("outOfCombat", L["Fade out of combat"]))
@@ -360,6 +372,51 @@ function Specs.Themed(mode)
     add(FadeRows("mounted", L["Fade while mounted"]))
     add(Note(L["Opacity the bar fades to; 0 hides it completely. When several apply, the lowest wins."], "fade"))
     return list
+end
+
+------------------------------------------------------------
+-- 固定格位：條上有光環格時強制打開（勾選框停用、說明換成原因；存的值不動）
+--
+-- 表單引擎的 toggle 沒有「停用」這個狀態，所以自己畫一列（custom）：勾選框＋下一列灰字，
+-- 灰字依狀態換兩種說法，高度取兩種裡比較高的那個（列高在建表單時就定了）。
+------------------------------------------------------------
+function FixedSlotsRow(key)
+    local NORMAL = L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
+    local FORCED = L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."]
+    return { type = "custom", label = L["Keep empty slots for missing buffs"], h = 26, root = "bar",
+             path = "layout.fixedSlots", key = "layout.fixedSlots",
+             build = function(parent, x, y, width, ctx)
+        local cb = W.CreateCheckButton(parent, nil, function(on)
+            local b = ns.DB.BarTable(key)
+            if not b or ns.Catalog.BarHasAuraSlot(key) then return end
+            b.layout.fixedSlots = on and true or false
+            ctx.lastSpec = { level = "layout" }
+            ctx.apply()
+        end)
+        cb:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 30)
+        fs:SetWidth(width)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(true)
+        fs:SetText(FORCED)
+        local h1 = fs:GetStringHeight() or 14
+        fs:SetText(NORMAL)
+        local h2 = fs:GetStringHeight() or 14
+        local h = 30 + math.max(14, h1, h2) + 8
+        local function Refresh()
+            local forced = ns.Catalog.BarHasAuraSlot(key)
+            local b = ns.DB.BarTable(key)
+            local v = b and type(b.layout) == "table" and b.layout.fixedSlots
+            cb:SetChecked((forced or v) and true or false)
+            cb:SetEnabled(not forced)
+            cb:SetAlpha(forced and 0.5 or 1)
+            fs:SetText(forced and FORCED or NORMAL)
+            fs:SetTextColor(forced and 1 or 0.65, forced and 0.82 or 0.65, forced and 0 or 0.65)
+        end
+        return h, Refresh
+    end }
 end
 
 ------------------------------------------------------------
@@ -399,8 +456,7 @@ function Specs.Layout(key)
                 fields = { { key = "w", label = L["W"] }, { key = "h", label = L["H"] } } }))
         end
         if bar.source == "buffs" or bar.source == "custom" then
-            add(BS("toggle", "layout.fixedSlots", L["Keep empty slots for missing buffs"]))
-            add(Note(L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]))
+            add(FixedSlotsRow(key))
         end
     else
         add(BS("slider", "bar.width", L["Width"], { min = 0, max = 600, step = 1 }))

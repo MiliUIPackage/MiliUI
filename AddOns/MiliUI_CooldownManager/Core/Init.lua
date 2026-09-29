@@ -270,12 +270,13 @@ end
 -- 引擎啟動（登入流程在 DB 就緒之後叫一次）
 --
 -- 順序有意義：Catalog（知道每條該有哪些 id）→ Viewers（開始掛暴雪檢視器，退避重試）
+-- → Custom（自訂項目的事件）→ Glow（觸發發光的 manager 掛勾）→ Keybinds（綁定事件）
 -- → Bars（容器與排程；Viewers 就緒時它會收到 ViewersReady）→ Visibility（alpha）。
 -- 每一步各自隔離，一支拋錯不會讓後面的不啟動。
 --
 -- 設定檔／專精換了：清樣式簽章、重讀目錄、全部重排、重套 alpha——沒有任何選項要 /reload。
 ------------------------------------------------------------
-local ENGINE = { "Catalog", "Viewers", "Bars", "Visibility" }
+local ENGINE = { "Catalog", "Viewers", "Custom", "Glow", "Keybinds", "Bars", "Visibility" }
 
 local function RestyleAll(reason)
     if ns.Decorate then ns.Decorate.InvalidateAll() end

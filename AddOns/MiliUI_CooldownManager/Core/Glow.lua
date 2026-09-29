@@ -1,0 +1,463 @@
+------------------------------------------------------------
+-- 發光：觸發發光（接管暴雪的 SpellActivationAlert）、就緒發光、無損刷新邊框
+--
+--   ns.Glow.OwnsProc(barKey, id)                 這格的暴雪觸發發光要不要熄（我們畫）
+--   ns.Glow.Sync(owner, rec, barKey)             排版時叫：想要的發光狀態 ↔ 目前狀態對齊
+--   ns.Glow.AfterApply(owner, rec, barKey, w, h) Decorate 重套樣式後叫：發光框改尺寸、樣式變了重畫
+--   ns.Glow.ArmProbe(rec, durationObject)        自訂法術／物品：探針吃同一個 duration 物件
+--   ns.Glow.SetProcActive(rec, on)               自訂法術：SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE
+--
+-- 規則
+--   * 發光一律畫在**我們自己的框**上：overlay（Decorate 建的，item 的子框）底下一顆「發光宿主」，
+--     尺寸由我們給（Relayout 算出來的 w, h），**不從 item 讀尺寸**。暴雪 item 本身一個欄位都不寫。
+--   * 引擎用 vendor 的 MiliUIGlow 的 Start 系列（普通框、driver 推動）；發光宿主不在光環按鈕子樹裡，
+--     不需要 Attach 系列。
+--   * 每個掛勾本體 ns.Guard。
+--
+-- ── 觸發發光 ────────────────────────────────────────────────────────────
+-- 暴雪的冷卻管理器 item 用 ActionButtonSpellAlertManager:ShowAlert(item, skipBirth)／HideAlert(item)
+-- 開關自己的 SpellActivationAlert（RefreshOverlayGlow）。後掛勾這兩支：frame 是我們認得的 item
+-- （弱鍵表）就記下 rec.procActive，照設定畫自己的、熄暴雪的（alpha 0，不 Hide）。
+-- 動作條的按鈕也走同一支 manager —— 查不到 rec 就立刻 return。
+-- 自訂法術框沒有經過 manager，改聽 SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE（spellID 過 canaccessvalue）。
+--
+-- ── 就緒發光：探針 ─────────────────────────────────────────────────────
+-- 「冷卻轉好了」這件事秘密值下讀不到。做法：每個開了就緒發光的格子一顆**自己的** Cooldown 框
+-- （畫面外、alpha 0、不畫轉圈與數字），餵跟本尊同一組計時，掛它的 OnCooldownDone 當訊號。
+--   * 暴雪 item：它的 Cooldown:SetCooldown(start, duration, modRate) 後掛勾裡把**同一組參數原封
+--     不動轉交**給探針（不讀、不算）。⚠ 12.1 的 SetCooldown 是 AllowedWhenUntainted：參數是秘密值
+--     時污染端轉交會被拒（pcall 失敗）——這時改拿引擎自己給的 duration 物件
+--     （C_Spell.GetSpellCooldownDuration(spellID, true)，回充中改 GetSpellChargeDuration）餵
+--     SetCooldownFromDurationObject，秘密值下照樣成立。
+--   * 暴雪顯示的是**光環時間**（item.cooldownUseAuraDisplayTime，暴雪自己寫的明文布林，只讀）時不武裝：
+--     那個結束是光環掉了，不是技能轉好。
+--   * GCD：duration 是明文而且 ≤ 1.5 秒就不算（不動探針，已經武裝的真冷卻照跑）。
+--   * 暴雪提早 Clear（冷卻被重置、或到期那一刻它自己先清）而探針還武裝著 ⇒ 當場算就緒。
+--   * 多充能：每一次 SetCooldown 都是回充（有充能時是充能計時、0 充能時是技能冷卻），所以
+--     **每回一層亮一次**。待實機驗證（README）。
+--   * 自訂法術／物品：直接 SetCooldownFromDurationObject 同一個 duration 物件（自訂法術用
+--     ignoreGCD 的那一版，GCD 本來就不會進來）。
+-- 亮 glow.ready.duration 秒（預設 3）後熄。
+--
+-- ── 無損刷新 ────────────────────────────────────────────────────────────
+-- 後掛勾 item 的 ShowPandemicStateFrame／HidePandemicStateFrame（暴雪在 OnUpdate 裡每幀叫，
+-- 所以狀態沒變就立刻 return）：overlay 邊框換 pandemic.color，長條（pandemic.bars）條身也換；
+-- Hide 時換回。暴雪自己的 PandemicIcon 不碰。
+------------------------------------------------------------
+local _, ns = ...
+
+ns.Glow = {}
+local G = ns.Glow
+
+-- Decorate 看這個旗標決定要不要熄暴雪的觸發發光（再問 OwnsProc 看這一格）
+G.ownsProcAlert = true
+
+local LCG = ns.MiliUIGlow
+local GCD_MAX = 1.5
+local PARK_X, PARK_Y = -10000, 10000
+
+G.probes = 0               -- 建過幾顆探針（debug）
+G.hooked = false
+G.readyFired = 0
+
+local function Plain(v)
+    if v == nil or ns.IsSecret(v) then return nil end
+    local can = _G.canaccessvalue
+    if can and not can(v) then return nil end
+    return v
+end
+
+------------------------------------------------------------
+-- 設定
+------------------------------------------------------------
+-- 條層開著 ⇒ 接管（沒開的法術就是不亮）；條層關著但這個法術覆寫成開 ⇒ 也接管
+function G.OwnsProc(barKey, id)
+    if not barKey then return false end
+    if ns.Setting(barKey, "glow.proc.enabled") then return true end
+    return ns.SpellSetting(barKey, id, "procGlow") == true
+end
+
+local function Wanted(rec, barKey, which)
+    if not barKey then return false end
+    local field = which == "proc" and "procGlow" or "readyGlow"
+    return ns.SpellSetting(barKey, rec.cooldownID, field) and true or false
+end
+
+local function Cfg(barKey, which)
+    local c = ns.Setting(barKey, "glow." .. which)
+    return type(c) == "table" and c or {}
+end
+
+local function ColorOf(c, dr, dg, db)
+    if type(c) ~= "table" then return { dr, dg, db, 1 } end
+    return { c.r or dr, c.g or dg, c.b or db, c.a or 1 }
+end
+
+------------------------------------------------------------
+-- 發光宿主：overlay 底下自己的框，尺寸我們給
+------------------------------------------------------------
+local function Host(rec, which)
+    local ov = rec.overlay
+    if not ov then return nil end
+    rec.glowHosts = rec.glowHosts or {}
+    local h = rec.glowHosts[which]
+    if not h then
+        h = CreateFrame("Frame", nil, ov)
+        h:SetPoint("CENTER", ov, "CENTER", 0, 0)
+        h:SetSize(rec.glowW or 36, rec.glowH or 36)
+        h:SetFrameLevel((ov:GetFrameLevel() or 1) + (which == "proc" and 2 or 1))
+        rec.glowHosts[which] = h
+    end
+    return h
+end
+
+local STOP = {
+    pixel    = function(h, key) LCG.PixelGlow_Stop(h, key) end,
+    autocast = function(h, key) LCG.AutoCastGlow_Stop(h, key) end,
+    button   = function(h) LCG.ButtonGlow_Stop(h) end,
+    proc     = function(h, key) LCG.ProcGlow_Stop(h, key) end,
+}
+
+local function Stop(rec, which)
+    local on = rec.glowOn
+    local t = on and on[which]
+    if not t then return end
+    on[which] = nil
+    rec.glowSig = rec.glowSig or {}
+    rec.glowSig[which] = nil
+    local h = rec.glowHosts and rec.glowHosts[which]
+    if h and LCG then
+        local fn = STOP[t] or STOP.pixel
+        pcall(fn, h, which)
+    end
+end
+G.Stop = Stop
+
+local function CfgSig(c, w, h)
+    local col = c.color
+    return table.concat({
+        tostring(c.type), tostring(c.lines), tostring(c.thickness), tostring(c.frequency),
+        type(col) == "table" and string.format("%.3f,%.3f,%.3f,%.3f", col.r or 0, col.g or 0, col.b or 0, col.a or 1) or "-",
+        tostring(w), tostring(h),
+    }, "|")
+end
+
+local function Start(rec, which, barKey)
+    if not LCG then return end
+    local h = Host(rec, which)
+    if not h then return end
+    local c = Cfg(barKey, which)
+    local sig = CfgSig(c, rec.glowW, rec.glowH)
+    rec.glowOn = rec.glowOn or {}
+    rec.glowSig = rec.glowSig or {}
+    if rec.glowOn[which] and rec.glowSig[which] == sig then return end
+    Stop(rec, which)
+    local t = c.type
+    if not STOP[t] then t = "pixel" end
+    local color = which == "proc" and ColorOf(c.color, 1, 0.85, 0) or ColorOf(c.color, 0.3, 1, 0.3)
+    local lines = tonumber(c.lines) or 8
+    local freq = tonumber(c.frequency) or 0.2
+    local ok
+    if t == "autocast" then
+        ok = pcall(LCG.AutoCastGlow_Start, h, color, lines, freq, 1, 0, 0, which)
+    elseif t == "button" then
+        ok = pcall(LCG.ButtonGlow_Start, h, color, freq)
+    elseif t == "proc" then
+        ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = which, startAnim = which == "proc", duration = 1 })
+    else
+        ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, which)
+    end
+    if ok then
+        rec.glowOn[which] = t
+        rec.glowSig[which] = sig
+    end
+end
+G.Start = Start
+
+------------------------------------------------------------
+-- 同步：想要的狀態 ↔ 目前狀態（排版、掛勾、設定變了都走這支，冪等）
+------------------------------------------------------------
+local function Hidden(rec)
+    return rec.parked or rec.hidden or false
+end
+
+function G.SyncProc(owner, rec, barKey)
+    barKey = barKey or rec.claimKey
+    if owner and owner.SpellActivationAlert and ns.Decorate then
+        ns.Decorate.ApplyProcAlert(owner, rec, barKey)
+    end
+    if rec.procActive and not Hidden(rec) and Wanted(rec, barKey, "proc") then
+        Start(rec, "proc", barKey)
+    else
+        Stop(rec, "proc")
+    end
+end
+
+function G.Sync(owner, rec, barKey)
+    if not rec then return end
+    barKey = barKey or rec.claimKey
+    G.SyncProc(owner, rec, barKey)
+    -- 就緒發光亮著的時候設定變了：照新樣式重畫；被關掉了就熄
+    if rec.glowOn and rec.glowOn.ready then
+        if Hidden(rec) or not Wanted(rec, barKey, "ready") then
+            Stop(rec, "ready")
+        else
+            Start(rec, "ready", barKey)
+        end
+    end
+    G.ApplyPandemic(owner, rec, barKey)
+end
+
+function G.AfterApply(owner, rec, barKey, w, h)
+    if not rec then return end
+    if w and h and (rec.glowW ~= w or rec.glowH ~= h) then
+        rec.glowW, rec.glowH = w, h
+        for _, host in pairs(rec.glowHosts or {}) do host:SetSize(w, h) end
+    end
+    -- 第一次看到這個 item 時它可能早就在發光（登入前、掛勾前）
+    if not rec.custom and rec.procActive == nil then
+        local mgr = _G.ActionButtonSpellAlertManager
+        if mgr and mgr.HasAlert then
+            local ok, has = pcall(mgr.HasAlert, mgr, owner)
+            if ok then rec.procActive = Plain(has) and true or false end
+        end
+    end
+    G.Sync(owner, rec, barKey)
+end
+
+-- 停放（alpha 0、畫面外）：發光一律熄；procActive 留著，重新認領時 Sync 再接回去
+function G.OnParked(rec)
+    if not rec then return end
+    Stop(rec, "proc")
+    Stop(rec, "ready")
+end
+
+------------------------------------------------------------
+-- 觸發發光：暴雪 item（manager 後掛勾）與自訂法術（事件）
+------------------------------------------------------------
+local function OnShowAlert(_, frame)
+    local rec = frame and ns.Viewers.frames[frame]
+    if not rec then return end
+    rec.procActive = true
+    G.SyncProc(frame, rec)
+end
+
+local function OnHideAlert(_, frame)
+    local rec = frame and ns.Viewers.frames[frame]
+    if not rec then return end
+    rec.procActive = false
+    G.SyncProc(frame, rec)
+end
+
+function G.SetProcActive(rec, on, owner, barKey)
+    if not rec then return end
+    rec.procActive = on and true or false
+    G.SyncProc(owner, rec, barKey)
+end
+
+local function InstallAlertHooks()
+    if G.hooked then return true end
+    local mgr = _G.ActionButtonSpellAlertManager
+    if type(mgr) ~= "table" or type(mgr.ShowAlert) ~= "function" or type(mgr.HideAlert) ~= "function" then
+        return false
+    end
+    hooksecurefunc(mgr, "ShowAlert", ns.Guard(OnShowAlert))
+    hooksecurefunc(mgr, "HideAlert", ns.Guard(OnHideAlert))
+    G.hooked = true
+    return true
+end
+
+------------------------------------------------------------
+-- 就緒發光
+------------------------------------------------------------
+local function ReadyOn(rec)
+    local barKey = rec.claimKey
+    return barKey and not Hidden(rec) and Wanted(rec, barKey, "ready")
+end
+
+local function Fire(rec)
+    if not ReadyOn(rec) then return end
+    local barKey = rec.claimKey
+    G.readyFired = G.readyFired + 1
+    Start(rec, "ready", barKey)
+    local token = (rec.readyToken or 0) + 1
+    rec.readyToken = token
+    local dur = tonumber(ns.Setting(barKey, "glow.ready.duration")) or 3
+    if dur <= 0 then dur = 3 end
+    C_Timer.After(dur, function()
+        if rec.readyToken == token then Stop(rec, "ready") end
+    end)
+end
+G.FireReady = Fire
+
+local function Probe(rec)
+    local p = rec.probe
+    if p then return p end
+    local ok
+    ok, p = pcall(CreateFrame, "Cooldown", nil, UIParent, "CooldownFrameTemplate")
+    if not ok or not p then return nil end
+    p:SetSize(1, 1)
+    p:ClearAllPoints()
+    p:SetPoint("TOPLEFT", UIParent, "TOPLEFT", PARK_X, PARK_Y)
+    p:SetAlpha(0)
+    if p.SetHideCountdownNumbers then p:SetHideCountdownNumbers(true) end
+    if p.SetDrawSwipe then p:SetDrawSwipe(false) end
+    if p.SetDrawEdge then p:SetDrawEdge(false) end
+    if p.SetDrawBling then p:SetDrawBling(false) end
+    p:EnableMouse(false)
+    p:HookScript("OnCooldownDone", ns.Guard(function()
+        if not rec.probeArmed then return end
+        rec.probeArmed = false
+        -- 武裝之後 item 換了身分（暴雪回收框給別的法術）：那個計時不是這個法術的
+        if rec.probeID ~= rec.cooldownID then return end
+        Fire(rec)
+    end))
+    rec.probe = p
+    G.probes = G.probes + 1
+    return p
+end
+
+-- 暴雪 item 用哪個法術問引擎要 duration 物件（覆寫優先）
+local function SpellOf(rec)
+    local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
+    return info and (info.overrideSpellID or info.spellID) or nil
+end
+
+-- 暴雪 item 的 Cooldown:SetCooldown 後掛勾（Decorate 轉過來）
+function G.OnItemSetCooldown(item, rec, start, duration, modRate)
+    if not ReadyOn(rec) then return end
+    -- 暴雪正在顯示光環時間：那個結束不是技能轉好（暴雪自己寫的明文布林，只讀）
+    if rawget(item, "cooldownUseAuraDisplayTime") == true then return end
+    local d = Plain(duration)
+    if d ~= nil and (type(d) ~= "number" or d <= GCD_MAX) then return end
+    local p = Probe(rec)
+    if not p then return end
+    local ok = pcall(p.SetCooldown, p, start, duration, modRate or 1)
+    if not ok then
+        -- 參數是秘密值：污染端轉交被拒 ⇒ 改拿引擎給的 duration 物件
+        local spellID = SpellOf(rec)
+        if not spellID then return end
+        local api = (rawget(item, "wasSetFromCharges") == true) and C_Spell.GetSpellChargeDuration
+            or function(id) return C_Spell.GetSpellCooldownDuration(id, true) end
+        local ok2, dur = pcall(api, spellID)
+        if not (ok2 and dur) then return end
+        ok = pcall(p.SetCooldownFromDurationObject, p, dur, true)
+        if not ok then return end
+    end
+    rec.probeArmed, rec.probeID = true, rec.cooldownID
+end
+
+-- 暴雪清掉冷卻（到期那一刻它自己清、或冷卻被重置）而探針還武裝著 ⇒ 就是轉好了
+function G.OnItemClear(item, rec)
+    if not rec.probeArmed then return end
+    rec.probeArmed = false
+    if rec.probe then pcall(rec.probe.Clear, rec.probe) end
+    if rec.probeID ~= rec.cooldownID then return end
+    Fire(rec)
+end
+
+-- 自訂法術／物品：吃同一個 duration 物件（零長度會被 clearIfZero 清掉，不會誤觸）
+function G.ArmProbe(rec, dur)
+    if not dur then return end
+    if not ReadyOn(rec) then
+        if rec.probe and rec.probeArmed then
+            rec.probeArmed = false
+            pcall(rec.probe.Clear, rec.probe)
+        end
+        return
+    end
+    local p = Probe(rec)
+    if not p then return end
+    if pcall(p.SetCooldownFromDurationObject, p, dur, true) then rec.probeArmed, rec.probeID = true, rec.cooldownID end
+end
+
+------------------------------------------------------------
+-- 無損刷新
+------------------------------------------------------------
+function G.ApplyPandemic(owner, rec, barKey)
+    if not rec then return end
+    barKey = barKey or rec.claimKey
+    local on = rec.pandemic and barKey and not Hidden(rec) and ns.Setting(barKey, "pandemic.enabled") ~= false
+    if on then
+        local c = ns.Setting(barKey, "pandemic.color")
+        if ns.Decorate then ns.Decorate.RecolorBorder(rec, c) end
+        local b = owner and owner.Bar
+        if b and b.GetStatusBarTexture and ns.Setting(barKey, "pandemic.bars") then
+            local tex = b:GetStatusBarTexture()
+            if tex and type(c) == "table" then tex:SetVertexColor(c.r or 1, c.g or 0.5, c.b or 0, c.a or 1) end
+            rec.pandemicBar = true
+        end
+        rec.pandemicShown = true
+    elseif rec.pandemicShown then
+        rec.pandemicShown = false
+        if ns.Decorate then ns.Decorate.RestoreBorder(rec) end
+        if rec.pandemicBar then
+            rec.pandemicBar = false
+            local b = owner and owner.Bar
+            local tex = b and b.GetStatusBarTexture and b:GetStatusBarTexture()
+            local c = barKey and ns.Setting(barKey, "bar.color")
+            if tex then
+                if type(c) == "table" then tex:SetVertexColor(c.r or 0.4, c.g or 0.6, c.b or 0.9, c.a or 1)
+                else tex:SetVertexColor(0.4, 0.6, 0.9, 1) end
+            end
+        end
+    end
+end
+
+local function OnShowPandemic(item)
+    local rec = ns.Viewers.frames[item]
+    if not rec or rec.pandemic then return end      -- 暴雪每幀叫：狀態沒變就走
+    rec.pandemic = true
+    G.ApplyPandemic(item, rec)
+end
+
+local function OnHidePandemic(item)
+    local rec = ns.Viewers.frames[item]
+    if not rec or not rec.pandemic then return end
+    rec.pandemic = false
+    G.ApplyPandemic(item, rec)
+end
+
+-- Decorate.HookItem 叫（每框一次）
+function G.HookItem(item, rec)
+    if rec.glowHooked then return end
+    rec.glowHooked = true
+    if item.ShowPandemicStateFrame then
+        hooksecurefunc(item, "ShowPandemicStateFrame", ns.Guard(OnShowPandemic))
+    end
+    if item.HidePandemicStateFrame then
+        hooksecurefunc(item, "HidePandemicStateFrame", ns.Guard(OnHidePandemic))
+    end
+end
+
+------------------------------------------------------------
+-- 除錯
+------------------------------------------------------------
+function G.Counts()
+    local proc, ready, pandemic = 0, 0, 0
+    local function Count(rec)
+        if rec.glowOn and rec.glowOn.proc then proc = proc + 1 end
+        if rec.glowOn and rec.glowOn.ready then ready = ready + 1 end
+        if rec.pandemicShown then pandemic = pandemic + 1 end
+    end
+    for _, rec in pairs(ns.Viewers.frames) do Count(rec) end
+    if ns.Custom and ns.Custom.Records then
+        for _, rec in pairs(ns.Custom.Records()) do Count(rec) end
+    end
+    return proc, ready, pandemic
+end
+
+------------------------------------------------------------
+-- 初始化
+------------------------------------------------------------
+local initialized = false
+function G.Init()
+    if initialized then return end
+    initialized = true
+    if not InstallAlertHooks() then
+        -- 動作條那一包理論上一定在；萬一比我們晚，等登入完成再試一次
+        ns.Events.Register("PLAYER_ENTERING_WORLD", "glow_hooks", function()
+            if InstallAlertHooks() then ns.Events.Unregister("PLAYER_ENTERING_WORLD", "glow_hooks") end
+        end)
+    end
+end
