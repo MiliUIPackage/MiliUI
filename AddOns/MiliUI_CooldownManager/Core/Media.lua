@@ -73,4 +73,30 @@ function M.BorderInset(size)
     return ns.P.Scale(size)
 end
 
--- 設定面板的字型／材質下拉清單（要做成函式、開頁時才求值）留到設定介面那一階段。
+-- 邊框材質 token → 路徑；"solid"（或查不到）回 nil ＝ 用四條純色細條畫
+-- （LibSharedMedia 的 border 類是 backdrop 的 edgeFile，要走 backdrop 畫，見 Decorate）
+function M.Border(token)
+    if not token or token == "solid" then return nil end
+    local lsm = LSM()
+    if lsm then
+        local ok, path = pcall(lsm.Fetch, lsm, "border", token, true)
+        if ok and path then return path end
+    end
+    return nil
+end
+
+-- LibSharedMedia 某一類的名稱清單（排序好）。沒裝 LSM 回空表。
+-- 設定頁的下拉要做成函式、開頁那一刻才求值：別的插件可能比我們晚註冊材質。
+function M.List(kind)
+    local lsm = LSM()
+    local out = {}
+    if not lsm then return out end
+    local ok, list = pcall(lsm.List, lsm, kind)
+    if ok and type(list) == "table" then
+        for _, name in ipairs(list) do
+            if type(name) == "string" then out[#out + 1] = name end
+        end
+    end
+    table.sort(out)
+    return out
+end

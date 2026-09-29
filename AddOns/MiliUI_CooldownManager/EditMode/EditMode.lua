@@ -254,14 +254,19 @@ end
 ------------------------------------------------------------
 -- 進出訊號（三重，全部冪等）
 ------------------------------------------------------------
+-- 狀態真的變了才廣播 "EditModeChanged"（設定視窗的點擊層要讓位；三重訊號會重複進來）
 local function OnEnter()
+    local was = EM.active
     EM.active = true
     EM.RequestRefresh()
+    if not was and ns.Fire then ns.Fire("EditModeChanged", true) end
 end
 
 local function OnExit()
+    local was = EM.active
     EM.active = false
     EM.RequestRefresh()
+    if was and ns.Fire then ns.Fire("EditModeChanged", false) end
 end
 
 -- 暴雪的「冷卻管理器」勾選框切換時會亮起／收起四條的 Selection：跟著換用哪個選取框

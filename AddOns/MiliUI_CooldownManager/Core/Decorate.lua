@@ -69,8 +69,10 @@ end
 ------------------------------------------------------------
 local resolved = {}
 
-function D.Resolve(barKey)
-    local r = resolved[barKey]
+-- fresh = true：不讀也不寫快取（設定頁預覽用：滑桿拖動中只重畫預覽，不動 generation，
+-- 真實條的簽章要等 debounce 之後的 InvalidateAll 才作廢）
+function D.Resolve(barKey, fresh)
+    local r = not fresh and resolved[barKey]
     if r and r.gen == generation then return r end
     local S = ns.Setting
     r = {
@@ -94,7 +96,7 @@ function D.Resolve(barKey)
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
         type(r.bar) == "table" and TSig(r.bar) or "-",
     }, "|")
-    resolved[barKey] = r
+    if not fresh then resolved[barKey] = r end
     return r
 end
 
@@ -134,7 +136,7 @@ local function EnsureOverlay(item, rec, isBar)
 end
 
 local function MakeBorder(ov)
-    local b = {}
+    local b = { ov = ov }
     for i = 1, 4 do
         local t = ov:CreateTexture(nil, "OVERLAY", nil, 7)
         t:SetTexture(WHITE)
@@ -147,8 +149,27 @@ local function LayoutBorder(b, region, size, token, r, g, bl, a)
     if not b then return end
     if not region or not size or size <= 0 then
         for i = 1, 4 do b[i]:Hide() end
+        if b.edge then b.edge:Hide() end
         return
     end
+    -- 材質邊框（LibSharedMedia 的 border 類）是 backdrop 的 edgeFile：四條細條畫不出來，
+    -- 改用一個 backdrop 框貼齊 region。粗細 1 ＝ edgeSize 4（這類材質本來就是 8～16 的邊）
+    local edgeFile = ns.Media.Border(token)
+    if edgeFile then
+        for i = 1, 4 do b[i]:Hide() end
+        local e = b.edge
+        if not e then
+            e = CreateFrame("Frame", nil, b.ov, "BackdropTemplate")
+            b.edge = e
+        end
+        e:ClearAllPoints()
+        e:SetAllPoints(region)
+        e:SetBackdrop({ edgeFile = edgeFile, edgeSize = ns.P.Scale(size * 4) })
+        e:SetBackdropBorderColor(r, g, bl, a)
+        e:Show()
+        return
+    end
+    if b.edge then b.edge:Hide() end
     local t = ns.Media.BorderInset(size)
     local tex = ns.Media.Texture(token)
     local top, bottom, left, right = b[1], b[2], b[3], b[4]
@@ -330,6 +351,16 @@ end
 D.ApplyProcAlert = ApplyProcAlert
 
 ------------------------------------------------------------
+-- 簽章：條層設定＋逐法術覆寫＋格子尺寸（真實 item 與預覽格共用）
+------------------------------------------------------------
+local function Signature(style, id, spell, w, h)
+    return style.sig .. "|" .. tostring(id) .. "|" .. CSig(spell.borderColor) .. "|"
+        .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
+        .. "|" .. tostring(w) .. "x" .. tostring(h)
+end
+D.Signature = Signature
+
+------------------------------------------------------------
 -- 主入口
 ------------------------------------------------------------
 function D.Apply(item, rec, barKey, w, h)
@@ -338,9 +369,7 @@ function D.Apply(item, rec, barKey, w, h)
     local id = rec.cooldownID
     local spell = SpellStyle(barKey, id)
     local isBar = style.kind == "bars" and item.Bar ~= nil
-    local sig = style.sig .. "|" .. tostring(id) .. "|" .. CSig(spell.borderColor) .. "|"
-        .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
-        .. "|" .. tostring(w) .. "x" .. tostring(h)
+    local sig = Signature(style, id, spell, w, h)
     if rec.decorated == sig and rec.decoratedBar == barKey then return end
 
     D.HookItem(item, rec)
@@ -403,4 +432,62 @@ function D.Apply(item, rec, barKey, w, h)
 
     ApplyProcAlert(item)
     rec.decorated, rec.decoratedBar = sig, barKey
+end
+
+------------------------------------------------------------
+-- 設定頁的預覽格：同一套邊框／縮放／轉圈色／文字樣式，餵的是**我們自己的假框**
+--
+--   ns.Decorate.ApplyPreview(cell, barKey, id, w, h)
+--
+-- cell 的形狀（Options/Preview.lua 建的）：
+--   圖示  cell.Icon（貼圖）、cell.Cooldown（自己的 Cooldown 框）、cell.overlay、
+--         cell.cdText／cell.chargeText／cell.stackText（FontString）、cell.onCD、cell.aura
+--   長條  cell.Icon（框，.Icon 貼圖、.Applications）、cell.Bar（StatusBar，.Name／.Duration／.BarBG）、
+--         cell.overlay
+-- 讀值走 Resolve(barKey, true)：不碰快取，滑桿拖動中只重畫預覽。
+-- 暴雪框的掛勾、剝除裝飾、觸發發光一律不做（假框上沒有那些東西）。
+------------------------------------------------------------
+function D.ApplyPreview(cell, barKey, id, w, h)
+    if not (cell and barKey) then return end
+    local style = D.Resolve(barKey, true)
+    local spell = SpellStyle(barKey, id)
+    local isBar = style.kind == "bars" and cell.Bar ~= nil
+    local sig = Signature(style, id, spell, w, h) .. "|" .. tostring(cell.onCD) .. tostring(cell.aura)
+    if cell.decorated == sig then return end
+
+    local ov = cell.overlay
+    local border = style.border or {}
+    local br, bg, bb, ba = C4(spell.borderColor or border.color, 0, 0, 0, 1)
+    local size = tonumber(border.size) or 0
+    local z = style.zoom
+
+    if isBar then
+        local bar = type(style.bar) == "table" and style.bar or {}
+        local g = { h = h, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0 }
+        D.ApplyBarGeometry(cell, nil, g)
+        ApplyBarLook(cell, nil, style, bar)
+        cell.border = cell.border or MakeBorder(ov)
+        cell.border2 = cell.border2 or MakeBorder(ov)
+        LayoutBorder(cell.border, g.side ~= "NONE" and cell.Icon or nil, size, border.texture, br, bg, bb, ba)
+        LayoutBorder(cell.border2, cell.Bar, size, border.texture, br, bg, bb, ba)
+        local iconTex = cell.Icon and cell.Icon.Icon
+        if iconTex then iconTex:SetTexCoord(z, 1 - z, z, 1 - z) end
+        ns.Text.ApplyBar(cell, style, spell, bar)
+    else
+        cell.border = cell.border or MakeBorder(ov)
+        LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
+        local icon = cell.Icon
+        if icon then
+            icon:SetTexCoord(z, 1 - z, z, 1 - z)
+            -- 冷卻中的格才去飽和（增益沒有冷卻，不去飽和）
+            icon:SetDesaturated((cell.onCD and not cell.aura and spell.desaturate) and true or false)
+        end
+        local cd = cell.Cooldown
+        if cd then
+            cd:SetSwipeColor(C4(style.swipeColor, 0, 0, 0, 0.8))
+            if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
+        end
+        ns.Text.ApplyPreviewIcon(cell, style, spell)
+    end
+    cell.decorated = sig
 end

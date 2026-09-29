@@ -333,6 +333,15 @@ eqList("不存在的條 ⇒ 空", C.Bar("nope"), {})
 ns.specID = 66
 eqList("別的專精沒有覆寫", C.Bar("essential"), { 102, 701, 202 })
 ns.specID = 65
+do
+    -- withHidden：隱藏的另外回一張（照 order 排），顯示的那張不變
+    local vis, hid = C.Bar("essential", true)
+    eqList("withHidden：顯示的不變", vis, { 202, 201 })
+    eqList("withHidden：隱藏的另回一張", hid, { 701 })
+    local _, none = C.Bar("utility", true)
+    eqList("withHidden：沒有隱藏 ⇒ 空表", none, {})
+    eq("不帶 withHidden 只回一張", select("#", C.Bar("essential")) == 2 and select(2, C.Bar("essential")), nil)
+end
 local b1 = C.Bar("essential")
 b1[1] = "x"
 eqList("回傳的是新表", C.Bar("essential"), { 202, 201 })

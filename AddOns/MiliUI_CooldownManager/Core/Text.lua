@@ -215,3 +215,38 @@ function T.ApplyBar(item, style, spell, bar)
         stack:SetAlpha((bar.showStacks and not spell.hideStackText) and 1 or 0)
     end
 end
+
+------------------------------------------------------------
+-- 設定頁的預覽格（圖示類）：同一套字型／顏色／錨點，套在我們自己的 FontString 上
+--   cell.cdText     假倒數（冷卻中的格才顯示；增益格一律顯示）
+--   cell.chargeText 假充能（技能類）
+--   cell.stackText  假層數（增益類）
+-- 字是預覽自己寫的（「15」「2」），這裡只管樣式與顯示與否。
+------------------------------------------------------------
+function T.ApplyPreviewIcon(cell, style, spell)
+    local font, outline = style.font, style.outline
+    local cdText = cell.cdText
+    if cdText then
+        local c = style.cooldownText or {}
+        SetFont(cdText, c.size or 16, outline, font)
+        cdText:SetTextColor(Color(c.color))
+        Anchor(cdText, cell, c.point or "CENTER", c.x, c.y)
+        cdText:SetAlpha(((cell.onCD or cell.aura) and not spell.hideCooldownText) and 1 or 0)
+    end
+    local charge = cell.chargeText
+    if charge then
+        local c = style.chargeText or {}
+        SetFont(charge, c.size or 12, outline, font)
+        charge:SetTextColor(Color(c.color))
+        Anchor(charge, cell, c.point or "BOTTOMRIGHT", c.x, c.y)
+        charge:SetAlpha(cell.aura and 0 or 1)
+    end
+    local stack = cell.stackText
+    if stack then
+        local c = style.stackText or {}
+        SetFont(stack, c.size or 12, outline, font)
+        stack:SetTextColor(Color(c.color))
+        Anchor(stack, cell, c.point or "TOP", c.x, c.y)
+        stack:SetAlpha((cell.aura and not spell.hideStackText) and 1 or 0)
+    end
+end

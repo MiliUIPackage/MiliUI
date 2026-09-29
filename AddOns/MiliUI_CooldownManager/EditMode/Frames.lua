@@ -72,6 +72,7 @@ local function CellSize(bar)
     end
     return w, h
 end
+EM.CellSize = CellSize
 
 ------------------------------------------------------------
 -- 覆蓋層
