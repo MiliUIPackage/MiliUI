@@ -55,6 +55,9 @@ select(2, ...).L = setmetatable({
     ["hideInCombat"] = "Hide in combat",
     ["stackFont"] = "Stack Font",
     ["durationFont"] = "Duration Font",
+    -- fix from MiliUI: section titles for the paired "text / font" settings
+    ["stackText"] = "Stack Text",
+    ["durationText"] = "Duration Text",
     ["fadeOut"] = "Fade out over time",
     ["shieldByMe"] = "Only show PW:S cast by me",
     ["onlyShowOvershields"] = "Only show overshields",

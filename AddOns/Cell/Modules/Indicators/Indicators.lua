@@ -1768,9 +1768,9 @@ local DEBUFFS_TOOLTIP2 = L["This will make these icons not click-through-able"]
 -- Midnight: Blizzard's countdown text doesn't support anchor/offset, use simplified font widget.
 -- Pre-Midnight: Cell's own duration text supports full positioning.
 local midnightDurationFont = Cell.isMidnight and "font-noOffset:durationFont" or "font2:durationFont"
--- Midnight: Blizzard's countdown only supports Always/Never, no thresholds.
--- Pre-Midnight: Cell's duration text supports percentage/time thresholds.
-local midnightDurationVisibility = Cell.isMidnight and "durationVisibilitySimple" or "durationVisibility"
+-- Text sections come last and in pairs: "<what> text" (show toggle [+ colour]) is always
+-- immediately followed by "<what> font", so the font being edited is never ambiguous.
+-- "durationText:color" = the indicator's countdown colour is engine-driven (durationColor).
 if Cell.isRetail or Cell.isMists then
     indicatorSettings = {
         ["nameText"] = {"enabled", "color-class", "textWidth", "checkbutton:showGroupNumber", "vehicleNamePosition", "position", "frameLevel", "font-noOffset"},
@@ -1799,17 +1799,17 @@ if Cell.isRetail or Cell.isMists then
         ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "shieldBarPosition", "frameLevel"},
         ["externalCooldowns"] = Cell.isMidnight
-            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", midnightDurationVisibility, "durationColor", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
-            or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", midnightDurationVisibility, "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
+            or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["defensiveCooldowns"] = Cell.isMidnight
-            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", midnightDurationVisibility, "durationColor", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
-            or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", midnightDurationVisibility, "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
+            or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         -- Unlike externals/defensives this one keeps its custom list on Midnight: the container
         -- reads it through includeSpellIDs, which cannot tell a custom id from a built-in one.
         ["offensiveCooldowns"] = Cell.isMidnight
-            and {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", midnightDurationVisibility, "durationColor", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
-            or {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", midnightDurationVisibility, "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["allCooldowns"] = {"enabled", midnightDurationVisibility, "durationColor", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+            and {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
+            or {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["allCooldowns"] = {"enabled", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
         -- 12.1: AuraContainer-backed. Options the container cannot honour are gone --
@@ -1817,14 +1817,14 @@ if Cell.isRetail or Cell.isMists then
         -- an icon is (secret), and AuraButtons accept no script handlers; the swipe and
         -- tooltip are Blizzard's to drive. The blacklist stays but only bites on spells
         -- flagged NeverSecret (Exhaustion/Sated and the like).
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "checkbutton2:excludeImportant", "debuffBlacklist", midnightDurationVisibility, "borderColor", "animationStyle", "size", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "raidDebuffFilters", "checkbutton3:bossBadge:"..L["bossBadgeTips"], "checkbutton4:dispelBadge:"..L["dispelBadgeTips"], "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "checkbutton2:excludeImportant", "debuffBlacklist", "borderColor", "animationStyle", "size", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "raidDebuffFilters", "checkbutton3:bossBadge:"..L["bossBadgeTips"], "checkbutton4:dispelBadge:"..L["dispelBadgeTips"], "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["privateAuras"] = {"|cffb7b7b7"..L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."], "enabled", "size-square", "position", "frameLevel"},
         ["targetedSpells"] = Cell.isMidnight
             and {"enabled", "targetedSpellsDisplayMode", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"}
             or {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsDisplayMode", "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates."], "enabled", "targetCounterFilters", "color", "position", "frameLevel", "font-noOffset"},
-        ["crowdControls"] = {"enabled", "builtInCrowdControls", "customCrowdControls", midnightDurationVisibility, "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["crowdControls"] = {"enabled", "builtInCrowdControls", "customCrowdControls", "borderColor", "animationStyle", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["actions"] = {"|cffb7b7b7"..L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."], "enabled", "actionsPreview", "actionsList"},
         ["healthThresholds"] = {"enabled", "thresholds", "thickness"},
         ["missingBuffs"] = {"|cffb7b7b7"..(L["%s in Utilities must be enabled to make this indicator work."]:format(Cell.GetAccentColorString()..L["Buff Tracker"].."|r")), "enabled", "size-square", "orientation", "position", "frameLevel"},
@@ -1858,12 +1858,12 @@ elseif Cell.isCata or Cell.isWrath then
         ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "shieldBarPosition", "frameLevel"},
         ["powerWordShield"] = {L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"], "enabled", "checkbutton:shieldByMe", "shape", "size-square", "position", "frameLevel"},
-        ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["allCooldowns"] = {"enabled", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["allCooldowns"] = {"enabled", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", midnightDurationVisibility, "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["targetedSpells"] = {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsDisplayMode", "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates."], "enabled", "targetCounterFilters", "color", "position", "frameLevel", "font-noOffset"},
         ["actions"] = {"|cffb7b7b7"..L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."], "enabled", "actionsPreview", "actionsList"},
@@ -1893,12 +1893,12 @@ elseif Cell.isVanilla or Cell.isTBC then
         ["aggroBlink"] = {"enabled", "size", "position", "frameLevel"},
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
         ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
-        ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["allCooldowns"] = {"enabled", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["allCooldowns"] = {"enabled", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", midnightDurationVisibility, "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, midnightDurationVisibility, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["targetedSpells"] = {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsDisplayMode", "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates."], "enabled", "targetCounterFilters", "color", "position", "frameLevel", "font-noOffset"},
         ["actions"] = {"|cffb7b7b7"..L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."], "enabled", "actionsPreview", "actionsList"},
@@ -1910,6 +1910,17 @@ end
 -- debounces the ring colour picker, one timer per layout+indicator so switching to another
 -- indicator mid-burst cannot cancel the first one's pending update (see the borderColor setting)
 local borderColorTimers = {}
+
+-- durationColor default for indicators created before the option existed: master off (plain
+-- white text) but both thresholds pre-checked, so enabling the toggle immediately gives the
+-- two colour bands. Text's Normal defaults to green (its old base colour); icon/defensive
+-- types stay white. Shape: {en, base, {en,sec,col}, {en,sec,col}}
+local function EnsureDurationColor(indicatorTable)
+    if type(indicatorTable["durationColor"]) ~= "table" then
+        local base = indicatorTable["type"] == "text" and {0, 1, 0, 1} or {1, 1, 1, 1}
+        indicatorTable["durationColor"] = {false, base, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}}
+    end
+end
 
 local function ShowIndicatorSettings(id)
     -- if selected == id then return end
@@ -1937,24 +1948,25 @@ local function ShowIndicatorSettings(id)
         -- end
     else
         if indicatorType == "icon" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "borderColor", "animationStyle", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "borderColor", "animationStyle", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
         elseif indicatorType == "icons" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "durationColor", "borderColor", "animationStyle", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "borderColor", "animationStyle", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
         elseif indicatorType == "text" then
-            settingsTable = {"enabled", "auras", "duration", "stack", "durationColor", "position", "frameLevel", "font-noOffset"}
+            -- one font for both texts, so it closes the pair of text sections
+            settingsTable = {"enabled", "auras", "position", "frameLevel", "stack", "duration", "font-noOffset"}
         elseif indicatorType == "bar" then
-            settingsTable = {"enabled", "auras", "maxValue", "colors", "checkbutton3:showStack", "durationVisibility", "barOrientation", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "maxValue", "colors", "barOrientation", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
         elseif indicatorType == "bars" then
-            settingsTable = {"enabled", "auras", "maxValue", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "maxValue", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
         elseif indicatorType == "rect" then
             if indicatorTable["auraType"] == "buff" then
                 -- buff rects run on the AuraContainer path, where every time-based colour is
                 -- engine-driven: the two remaining-time bands (|T fills on companion slots),
                 -- the Pandemic window and the countdown colour curve (see rectColors)
-                settingsTable = {"enabled", "auras", "rectColors", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "rectColors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             else
                 -- debuff rects stay on the manual path, where the bands still work
-                settingsTable = {"enabled", "auras", "colors", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "colors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
             end
         elseif indicatorType == "color" then
             settingsTable = {"enabled", "auras", "customColors", "anchor", "frameLevel:50"}
@@ -1965,9 +1977,9 @@ local function ShowIndicatorSettings(id)
         elseif indicatorType == "overlay" then
             settingsTable = {"enabled", "auras", "overlayColors", "checkbutton3:smooth", "barOrientation", "frameLevel:50"}
         elseif indicatorType == "block" then
-            settingsTable = {"enabled", "auras", "blockColors", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "blockColors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
         elseif indicatorType == "blocks" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
         elseif indicatorType == "border" then
             settingsTable = {"enabled", "checkbutton3:fadeOut", "auras", "thickness", "frameLevel:50"}
         end
@@ -2007,7 +2019,6 @@ local function ShowIndicatorSettings(id)
         if currentSetting == "size-square" or currentSetting == "size-normal-big" then currentSetting = "size" end
         if currentSetting == "statusPosition" or currentSetting == "position-noHCenter" or currentSetting == "shieldBarPosition" then currentSetting = "position" end
         if currentSetting == "barOrientation" then currentSetting = "orientation" end
-        if currentSetting == "durationVisibility" or currentSetting == "durationVisibilitySimple" then currentSetting = "showDuration" end
         if currentSetting == "powerFormat" then currentSetting = "format" end
 
         -- enabled
@@ -2256,18 +2267,36 @@ local function ShowIndicatorSettings(id)
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, key, value)
             end)
 
-        -- durationColor (unified countdown colour-by-time: {en, base, {en,sec,col}, {en,sec,col}})
-        elseif currentSetting == "durationColor" then
-            -- default for indicators created before this option existed
-            if type(indicatorTable["durationColor"]) ~= "table" then
-                -- master off (plain white text) but both thresholds pre-checked, so enabling the
-                -- toggle immediately gives the two colour bands. Text's Normal defaults to green
-                -- (its old base colour); icon/defensive types stay white.
-                local base = indicatorTable["type"] == "text" and {0, 1, 0, 1} or {1, 1, 1, 1}
-                indicatorTable["durationColor"] = {false, base, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}}
-            end
-            w:SetDBValue(indicatorTable["durationColor"])
+        -- stackText: title + showStack (same event as the old checkbutton3:showStack)
+        elseif currentSetting == "stackText" then
+            w:SetDBValue(indicatorTable["showStack"])
             w:SetFunc(function(value)
+                indicatorTable["showStack"] = value
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "checkbutton", "showStack", value)
+            end)
+
+        -- durationText[:color]: title + showDuration dropdown [+ colour-by-remaining-time]
+        elseif string.find(currentSetting, "^durationText") then
+            local withColor = currentSetting == "durationText:color"
+            if withColor then
+                EnsureDurationColor(indicatorTable)
+            end
+            w:SetDBValue(indicatorTable["showDuration"], withColor and indicatorTable["durationColor"] or nil)
+            w:SetFunc(function(value)
+                indicatorTable["showDuration"] = value
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "showDuration", value)
+            end, function(value)
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "durationColor", value)
+            end)
+
+        -- duration (text indicator): title + show/round-up/decimal + colour-by-remaining-time
+        elseif currentSetting == "duration" then
+            EnsureDurationColor(indicatorTable)
+            w:SetDBValue(indicatorTable["duration"], indicatorTable["durationColor"])
+            w:SetFunc(function(value)
+                -- NOTE: values already changed in widget
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "duration", value)
+            end, function(value)
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "durationColor", value)
             end)
 

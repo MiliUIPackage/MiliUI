@@ -395,6 +395,7 @@ buff 矩形走效果槽後，「剩 N%／N 秒換色」一度被拿掉，現在�
 - **兩條色帶**（`colors[2]`＝剩餘 < 比例、`colors[3]`＝剩餘 < 秒）：**每條一個伴隨槽**（同容器、同 filter、同 includeSpellIDs 的 `AddAuraSlot`；record key `band_pct:<frac>:<rgba>`／`band_sec:<secs>:<rgba>`，門檻與顏色烤進 key 所以 ParkKey 自動分流），按鈕上只有一個 FontString，`SetDurationText` 綁 NumericRuleFormatter 兩段（0→帶 RGB 的 `|T white.tga|t`、門檻→""）。百分比帶用 `textFormat={formatString="{}",components={{property=RemainingPercent,formatter}}}`，門檻 ×100。**一顆 AuraButton 只有一個 SetDurationText**，主槽的給倒數數字，這就是為什麼要伴隨槽。`AuraDisplay.lua` 的 `BuildBandSlot`（`do` 區塊內）、`Built-in.lua` 組 `opts.rectBands`（兩條都關送 `false`）。
 - **無損刷新**（`pandemicColor={en,色}`，沒設定＝關）：`AddPandemicRegion(texture)`（**要交貼圖，Frame 過不了 RequireObjectType("Region")**，pcall 會吞掉錯誤變成永遠不亮），貼圖住在自己的 `dfPandemicHolder`。開關結構鍵、顏色外觀鍵。
 - **倒數文字顏色曲線**：rect 現在也有 `durationColor`（統一 widget），走既有 `BuildDurColorOpt`。
+- **設定頁的文字區段成對（2026-09-29）**：所有指示器的文字設定放最後、兩兩相鄰——「層數文字」（顯示開關）→「層數字體」、「持續時間文字」（顯示下拉 ＋ 按剩餘時間上色）→「持續時間字體」，每段開頭職業色標題。settingsTable 用 `stackText`／`durationText`／`durationText:color`（有 durationColor 才帶 `:color`），舊的 `durationVisibility`／`durationVisibilitySimple`／`durationColor`／`checkbutton3:showStack` 都收掉；text 型的 `duration` widget 自帶上色區塊。上色區塊是 `BuildDurationColorBlock` 共用，別再複製一份。
 - **疊放（下→上）**：填色（dfEffHolder，+1）、百分比帶（+2）、無損刷新（+3）、秒數帶（+4）、倒數（+6）、層數（+7）；跟手動路／預覽 `Rect_OnUpdateColor` 的優先序（秒數 > 無損刷新 > 百分比 > 一般）一致。預覽的無損刷新用「最後 30%」近似。
 - 設定頁 `rectColors` widget（五列＋灰字說明）只給 buff 矩形；debuff 矩形仍用共用 `colors` widget。**兩條帶勾選也要 fire**（容器要加減槽）。
 - **順手修**：`ConfigureContainer` 的 `durationColors` 關掉時送 `false`（原本不送，舊曲線留到 /reload；icon 類同病）。
