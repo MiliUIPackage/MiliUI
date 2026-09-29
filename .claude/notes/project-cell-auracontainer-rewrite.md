@@ -399,4 +399,4 @@ buff 矩形走效果槽後，「剩 N%／N 秒換色」一度被拿掉，現在�
 - 設定頁 `rectColors` widget（五列＋灰字說明）只給 buff 矩形；debuff 矩形仍用共用 `colors` widget。**兩條帶勾選也要 fire**（容器要加減槽）。
 - **順手修**：`ConfigureContainer` 的 `durationColors` 關掉時送 `false`（原本不送，舊曲線留到 /reload；icon 類同病）。
 
-**待實機驗證**：`|T` 在 FontString 裡是否真的 0.75 倍（`BAND_TEX_RATIO`）；`RemainingPercent` 是 0–100；三個槽按鈕同層（否則帶子蓋到倒數）；沒有持續時間的光環秒數帶不誤亮；`AddPandemicRegion` 實機接受貼圖；`rectBands` 換門檻立刻 rebuild。
+**已實機驗證（2026-09-29）**：`|T` 比例不是 0.75（量到約 0.5），改成 `BAND_OVERSCAN=3` ＋ holder `SetClipsChildren` 裁切（e8939e4e6）；無損刷新貼圖實機有亮；秒數帶實機有亮。**待實機驗證**：`RemainingPercent` 是 0–100；三個槽按鈕同層（否則帶子蓋到倒數）；沒有持續時間的光環秒數帶不誤亮；`AddPandemicRegion` 實機接受貼圖；`rectBands` 換門檻立刻 rebuild。
