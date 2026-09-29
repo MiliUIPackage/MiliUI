@@ -103,6 +103,8 @@ end
 function Vis.Alpha(key)
     local bar = Bar(key)
     if not bar then return 0 end
+    -- 編輯模式裡每條都全亮：玩家是來擺位置的，條件不成立（沒目標、騎乘中）的條也要看得到
+    if ns.EditMode and ns.EditMode.active then return 1 end
     local fade = ns.Setting(key, "fade")
     return Vis.Evaluate(bar.visibility, fade, Snapshot())
 end

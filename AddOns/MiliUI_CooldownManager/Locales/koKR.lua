@@ -41,3 +41,7 @@ L["Apply"] = "적용"
 L["Okay"] = "확인"
 L["Cancel"] = "취소"
 L["Can't change settings during combat"] = "전투 중에는 설정을 변경할 수 없습니다"
+-- 編輯模式
+L["Open this bar's settings"] = "이 바의 설정 열기"
+L["Dragging stops it following %s"] = "드래그하면 %s 따라가기가 해제됩니다"
+L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "재사용 대기시간 관리자 설정은 /mcdm 또는 파란 테두리 오른쪽 위의 톱니바퀴에서 열 수 있습니다."

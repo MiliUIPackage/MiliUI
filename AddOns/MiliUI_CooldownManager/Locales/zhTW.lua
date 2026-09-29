@@ -41,3 +41,7 @@ L["Apply"] = "套用"
 L["Okay"] = "確定"
 L["Cancel"] = "取消"
 L["Can't change settings during combat"] = "無法在戰鬥中更改設定"
+-- 編輯模式
+L["Open this bar's settings"] = "開啟這條的設定"
+L["Dragging stops it following %s"] = "拖曳會解除跟隨「%s」"
+L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "冷卻管理器的設定在 /mcdm，或點藍框右上角的齒輪。"

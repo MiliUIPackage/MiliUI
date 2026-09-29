@@ -57,6 +57,9 @@ local function Debug()
         end
     end
     p("  容器層待補寫入（戰鬥記帳）：" .. tostring(ns.PendingWrites()))
+    if ns.EditMode and ns.EditMode.DebugLines then
+        for _, line in ipairs(ns.EditMode.DebugLines()) do p(line) end
+    end
 
     local errs = ns.errors or {}
     if #errs == 0 then

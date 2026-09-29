@@ -82,7 +82,17 @@ local function EnsureContainer(key)
     c:EnableMouse(false)
     containers[key] = c
     state[key] = state[key] or { placeholders = { used = 0, pool = {} } }
+    -- 編輯模式的覆蓋層、自訂條的選取框、磁吸註冊：容器一建好就一起建（不等進了編輯模式才建）
+    if ns.EditMode and ns.EditMode.OnContainer then
+        xpcall(ns.EditMode.OnContainer, ns.ReportError, key, c)
+    end
     return c
+end
+
+-- 容器目前用的錨點（版面算出來的那一邊；編輯模式放手時照它換算回 pos）
+function B.AnchorPoint(key)
+    local st = state[key]
+    return st and (st.anchorPoint or st.appliedAnchor) or "CENTER"
 end
 
 -- 錨定：anchor（錨在別條上）優先，形成環或目標不存在就退回 pos
@@ -125,9 +135,13 @@ local function ApplyStructure(key)
             f:SetPoint(anchorPoint, UIParent, pos.point or "CENTER", snap(tonumber(pos.x) or 0), snap(tonumber(pos.y) or 0))
         end
         f:Show()
+        -- 編輯模式：覆蓋層跟著新的尺寸／錨點重排，磁吸的 Restore 接點
+        if ns.EditMode and ns.EditMode.AfterApply then ns.EditMode.AfterApply(key) end
     end, "point")
     st.appliedAnchor = anchorPoint
 end
+-- 編輯模式在進戰鬥的鬆手窗口（PLAYER_REGEN_DISABLED，鎖定還沒生效）要當場把容器放回去
+B.ApplyStructure = ApplyStructure
 
 ------------------------------------------------------------
 -- 檢視器釘在容器上
