@@ -147,7 +147,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
         -- manual path and keep the bands, so they carry neither key. Absent = off.
         if auraType == "buff" then
             t["durationColor"] = {false, {1, 1, 1, 1}, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}}
-            t["pandemicColor"] = {false, {1, 1, 0, 1}}
+            t["pandemicColor"] = Cell.defaults.NewPandemicColor()
         end
     elseif type == "icons" then
         t = {
@@ -256,7 +256,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
         -- the Pandemic window ({enabled, {r,g,b,a}}, absent = off). Debuff blocks stay on the
         -- manual path.
         if auraType == "buff" then
-            t["pandemicColor"] = {false, {1, 1, 0, 1}}
+            t["pandemicColor"] = Cell.defaults.NewPandemicColor()
         end
     elseif type == "blocks" then
         t = {

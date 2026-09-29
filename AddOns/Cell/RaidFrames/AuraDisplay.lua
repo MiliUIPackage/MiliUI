@@ -1051,7 +1051,7 @@ local function BuildPandemicFill(handle, button, cfg, parentFrame)
     button.dfPandemicHolder:SetFrameLevel(button:GetFrameLevel() + EFFECT_LAYER.pandemic)
     -- the colour is ours to write at any time (cosmetic key -> Restyle lands here);
     -- only its visibility belongs to the engine
-    local pr, pg, pb, pa = ColorOr(cfg.pandemicColor, 1, 1, 0, 1)
+    local pr, pg, pb, pa = ColorOr(cfg.pandemicColor, unpack(Cell.defaults.pandemicColor))
     button.dfPandemicTex:SetColorTexture(pr, pg, pb, pa)
     if not button._boundPandemic then
         button._boundPandemic = true
