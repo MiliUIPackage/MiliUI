@@ -137,41 +137,70 @@ end
 ------------------------------------------------------------
 -- 另一個宿主：冷卻管理器插件的聖能條
 --
--- 那支插件把每種資源的條放在一張公開的表裡，鍵是 Enum.PowerType。我們只拿那個框來
--- 當錨點與 parent（吃到它的縮放、淡出與顯示狀態），**不寫它任何欄位、不掛勾它的腳本、
--- 不讀它的幾何** —— 等寬用「左右各錨一個點」，跟名條那邊同一招。
--- 它不走訪子框（查過），所以 parent 過去不會被當成它自己的格子處理。
+-- 來源依序（兩支互斥，實際上同時只有一支在答）：
+--   1. MiliUI_CooldownManager 的公開 API GetResourceBarFrame(powerType)：資源條上那一列的框，
+--      沒有這一列、玩家關掉、整條藏起來都回 nil（淡出造成的 alpha 0 不算藏）
+--   2. 另一支冷卻管理器插件：每種資源的條放在一張公開的表裡，鍵是 Enum.PowerType
+-- 我們只拿那個框來當錨點與 parent（吃到它的縮放、淡出與顯示狀態），**不寫它任何欄位、
+-- 不掛勾它的腳本、不讀它的幾何** —— 等寬用「左右各錨一個點」，跟名條那邊同一招。
+-- 兩支都不走訪子框（查過），所以 parent 過去不會被當成它自己的格子處理。
 -- ⚠ 反方向不成立：別讓它的任何框錨到我們的條上 —— 我們的條餵過秘密值，
 --   秘密幾何會沿錨定鏈傳給依附它的框。我們依附別人沒事。
 ------------------------------------------------------------
 local HOLY_POWER = Enum and Enum.PowerType and Enum.PowerType.HolyPower or 9
 
-function Anchor.ResolveResource()
+local function Shown(bar)
+    return type(bar) == "table" and bar.IsShown and bar:IsShown() and true or false
+end
+
+local function FromMiliCDM()
+    local api = _G.MiliUI_CooldownManager
+    local fn = type(api) == "table" and api.GetResourceBarFrame
+    if type(fn) ~= "function" then return nil end
+    local ok, bar = pcall(fn, HOLY_POWER)
+    if ok and Shown(bar) then return bar end
+    return nil
+end
+
+local function FromLegacy()
     local host = _G.Ayije_CDM
     local bars = type(host) == "table" and host.resourceBars
     local bar = type(bars) == "table" and bars[HOLY_POWER]
-    if type(bar) ~= "table" or not bar.IsShown then return end
-    if not bar:IsShown() then return end       -- 換專精／停用資源條時它是藏著的
-    return bar
+    if Shown(bar) then return bar end          -- 換專精／停用資源條時它是藏著的
+    return nil
 end
 
+function Anchor.ResolveResource()
+    return FromMiliCDM() or FromLegacy()
+end
+
+-- 手上那個框還是「現在的聖能條」嗎？光看 IsShown 不夠：MiliUI_CooldownManager 的列是
+-- **池化重用**的，換專精後同一個框可能變成別種資源的列、照樣顯示著。
+-- 所以一律重解析一次、比對是不是同一個框（兩個來源都適用；查表＋一次 API 呼叫，
+-- 每 0.5 秒的輪詢付得起）
 function Anchor.ResourceStillValid(bar)
-    return type(bar) == "table" and bar.IsShown and bar:IsShown() and true or false
+    if not Shown(bar) then return false end
+    return Anchor.ResolveResource() == bar
 end
 
 function Anchor.IsResourceMode(mode)
     return mode == "resourceAbove" or mode == "resourceBelow"
 end
 
+-- 冷卻管理器插件（兩支任一）有沒有載入。IsAddOnLoaded 是 C 端查表，現查即可
+local function AnyResourceHostLoaded()
+    local fn = C_AddOns and C_AddOns.IsAddOnLoaded
+    if not fn then return false end
+    return (fn("MiliUI_CooldownManager") or fn("Ayije_CDM")) and true or false
+end
+
 -- 設定值 → 實際要掛的宿主。只有 "auto" 會被換掉，其餘三個是玩家明確選的，原樣回傳。
--- ⚠ 退回名條的條件是「那支插件**沒載入**」，不是「找不到聖能條」：插件有載入但聖能條
---   暫時藏著時（換到沒開資源條的專精），條應該跟著收起來，而不是跳到名條上 ——
+-- ⚠ 退回名條的條件是「冷卻管理器插件**都沒載入**」，不是「找不到聖能條」：插件有載入但
+--   聖能條暫時藏著時（換到沒開資源條的專精），條應該跟著收起來，而不是跳到名條上 ——
 --   用「找不到」當條件的話，條會在兩個宿主之間跳來跳去。
 function Anchor.EffectiveMode(mode)
     if mode ~= "auto" then return mode end
-    if C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("Ayije_CDM") then
-        return "resourceAbove"
-    end
+    if AnyResourceHostLoaded() then return "resourceAbove" end
     return "nameplate"
 end
 

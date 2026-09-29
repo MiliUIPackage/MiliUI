@@ -574,12 +574,12 @@ L["Missing-health darkening, heal prediction, absorb shield, heal absorb and the
 -- Bedingungsregeln der Ressourcenleisten
 ------------------------------------------------------------
 L["Colors and conditions"] = "Farben und Bedingungen"
-L["Same as Ayije_CDM"] = "Wie Ayije_CDM"
-L["Colors and condition rules both come from Ayije_CDM's own resource bar settings. Uncheck this to set your own here."] = "Farben und Bedingungsregeln stammen beide aus den Ressourcenleisten-Einstellungen von Ayije_CDM. Zum eigenen Einstellen hier den Haken entfernen."
-L["Rules Ayije_CDM currently has for this specialization: %s"] = "Regeln, die Ayije_CDM derzeit für diese Spezialisierung hat: %s"
-L["Copy from Ayije_CDM"] = "Von Ayije_CDM kopieren"
-L["Replace the resource colors and condition rules here with Ayije_CDM's current ones?"] = "Die Ressourcenfarben und Bedingungsregeln hier durch die aktuellen von Ayije_CDM ersetzen?"
-L["Takes a one-off snapshot of Ayije_CDM's colors and rules. After that the two are independent — changes there no longer show up here."] = "Übernimmt einmalig die aktuellen Farben und Regeln von Ayije_CDM. Danach sind beide unabhängig – spätere Änderungen dort wirken sich hier nicht mehr aus."
+L["Follow the cooldown manager's colors"] = "Farben des Abklingzeiten-Managers übernehmen"
+L["Colors and condition rules both come from the cooldown manager addon's resource bar settings. Uncheck this to set your own here."] = "Farben und Bedingungsregeln stammen beide aus den Ressourcenleisten-Einstellungen des Abklingzeiten-Manager-Addons. Zum eigenen Einstellen hier den Haken entfernen."
+L["Rules the cooldown manager currently has for this specialization: %s"] = "Regeln, die der Abklingzeiten-Manager derzeit für diese Spezialisierung hat: %s"
+L["Copy from the cooldown manager"] = "Vom Abklingzeiten-Manager kopieren"
+L["Replace the resource colors and condition rules here with the cooldown manager's current ones?"] = "Die Ressourcenfarben und Bedingungsregeln hier durch die aktuellen des Abklingzeiten-Managers ersetzen?"
+L["Takes a one-off snapshot of the cooldown manager's colors and rules. After that the two are independent — changes there no longer show up here."] = "Übernimmt einmalig die aktuellen Farben und Regeln des Abklingzeiten-Managers. Danach sind beide unabhängig – spätere Änderungen dort wirken sich hier nicht mehr aus."
 L["Conditions"] = "Bedingungen"
 L["Rules are checked from the top down and the first one that matches wins. Charged combo points keep their own color."] = "Regeln werden von oben nach unten geprüft; die erste zutreffende gewinnt. Aufgeladene Combopunkte behalten ihre eigene Farbe."
 L["Edit rules for"] = "Regeln für"

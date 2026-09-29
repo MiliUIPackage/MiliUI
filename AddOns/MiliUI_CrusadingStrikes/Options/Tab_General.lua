@@ -47,7 +47,7 @@ local function StatusLines()
     local autoNote = s.attach == "auto" and (" |cff808080" .. L["(automatic)"] .. "|r") or ""
     if ns.Anchor.IsResourceMode(s.effective) then
         lines[#lines + 1] = L["Holy Power bar:"] .. autoNote .. " "
-            .. Mark(s.resource, s.resource and L["Found (Ayije_CDM)"] or L["Not found — Ayije_CDM is not loaded, or its Holy Power bar is off for this spec"])
+            .. Mark(s.resource, s.resource and L["Found (cooldown manager addon)"] or L["Not found — no cooldown manager addon is loaded, or its Holy Power bar is off for this spec"])
     else
         lines[#lines + 1] = L["Nameplates:"] .. autoNote .. " "
             .. Mark(s.platynator, s.platynator and L["Platynator is loaded"] or L["Platynator is not loaded — there is no nameplate to attach to"])
@@ -111,10 +111,10 @@ local CONTROLS = {
     { type = "dropdown", sub = "bar", key = "attach", label = L["Attach to"], items = {
         { text = L["Automatic"],                              value = "auto" },
         { text = L["Target nameplate, below the health bar"], value = "nameplate" },
-        { text = L["Ayije_CDM Holy Power bar, above"],        value = "resourceAbove" },
-        { text = L["Ayije_CDM Holy Power bar, below"],        value = "resourceBelow" },
+        { text = L["Cooldown manager addon's Holy Power bar, above"],        value = "resourceAbove" },
+        { text = L["Cooldown manager addon's Holy Power bar, below"],        value = "resourceBelow" },
     } },
-    { type = "text", label = L["Automatic: above the Ayije_CDM Holy Power bar when that addon is loaded, otherwise below the target nameplate's health bar."] },
+    { type = "text", label = L["Automatic: above the cooldown manager addon's Holy Power bar when one is loaded, otherwise below the target nameplate's health bar."] },
     { type = "text", label = L["Width follows whatever it is attached to (Appearance → Width). On the Holy Power bar it also follows that bar's fading and scale."] },
 
     { type = "header", label = L["Cast bar"] },

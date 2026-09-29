@@ -138,24 +138,30 @@ end
 -- 顏色
 --
 -- 三層，由上而下：
---   1. 跟隨 Ayije_CDM（同一台電腦上另一支資源條插件）的顏色
+--   1. 跟隨「冷卻管理器」（同一台電腦上另一支有資源條的插件）的顏色，來源依序：
+--        a. MiliUI_CooldownManager 的公開 API（README「公開 API」，回傳形狀是契約）
+--        b. 另一支冷卻管理器插件（舊來源）的 GetBarSetting（內部 API，不是契約）
+--      兩支互斥（MiliUI_CooldownManager 偵測到舊來源就整支不初始化、IsReady 回假），
+--      實際上同時只有一個來源在答
 --   2. 玩家在這裡自己調的 edb.colors[key][field]
 --   3. 寫死的預設（Core/DB.lua 的 RESOURCE_COLORS，跟 DB 預設值同一份）
 --
 -- ⚠ 效能：Update 掛在 UNIT_POWER_FREQUENT 上，戰鬥中一秒好幾次。所以
 --   * 顏色**每列每次 Update 解析一次**，解完當參數往下傳，不要每格解析
---   * 回傳的一律是「既有的表」（Ayije 的／DB 的／預設那張），一次都不配新 table
+--   * 回傳的一律是「既有的表」（來源插件的／DB 的／預設那張），一次都不配新 table
 --   * 充能色只有在真的有充能格時才解析（多數時候一列只解析一次 color）
 --
--- ⚠ 對 Ayije_CDM 是**軟依賴**：它的 GetBarSetting 是內部 API，不是公開契約。
--- 任何一步失敗（沒載入、方法改名、CDM.db 還沒建好、回傳不是顏色表）都靜默退到
--- 下一層，絕對不報錯 —— 上游改名的代價只能是「顏色退回自己的」。
+-- ⚠ 對兩個來源都是**軟依賴**：任何一步失敗（沒載入、還沒就緒、方法改名、
+-- 資料庫還沒建好、回傳不是顏色表）都靜默退到下一層，絕對不報錯 ——
+-- 別人改名的代價只能是「顏色退回自己的」。
 ------------------------------------------------------------
 local FALLBACK_COLOR = { r = 1, g = 1, b = 1 }
 
--- 我們的資源 key 跟 Ayije 的 barKey 一模一樣（兩邊都照暴雪的 PowerType 命名），
--- 所以不需要對照表。要分兩套的只有充能那組欄位名：盜賊的「超級充能器」在 Ayije 叫
--- charged，野德的「滿溢之力」叫 overflowing。職業不會變，所以表在載入時就選好。
+-- 我們的資源 key 跟兩個來源的資源 key 一模一樣（三邊都照暴雪的 PowerType 命名），
+-- 所以不需要對照表。要分兩套的只有舊來源那邊充能那組欄位名：盜賊的「超級充能器」
+-- 在舊來源叫 charged，野德的「滿溢之力」叫 overflowing。職業不會變，所以表在載入時
+-- 就選好。⚠ 這張對照**只對舊來源用**：MiliUI_CooldownManager 的表已經是
+-- color／chargedColor／chargedEmptyColor。
 local AYIJE_FIELD = (CLASS == "DRUID")
     and { color = "color", chargedColor = "overflowingColor", chargedEmptyColor = "overflowingEmptyColor" }
     or  { color = "color", chargedColor = "chargedColor",     chargedEmptyColor = "chargedEmptyColor" }
@@ -171,32 +177,69 @@ local function DefaultColor(key, field)
 end
 ns.ResourceDefaultColor = DefaultColor
 
--- ⚠ **畫的時候現查，不要在檔案載入時快取。** 兩個插件的載入順序不保證
--- （OptionalDeps 只排順序、不是硬相依），玩家也可能事後才啟用 Ayije_CDM ——
--- 快取下來的話「有沒有跟隨」會永遠停在登入那一刻的答案。
--- IsAddOnLoaded 是 C 端查表，現查的代價可以忽略。
-local function AyijeLoaded()
+-- ⚠ **畫的時候現查，不要在檔案載入時快取。** 插件之間的載入順序不保證
+-- （OptionalDeps 只排順序、不是硬相依），玩家也可能事後才啟用來源插件、
+-- MiliUI_CooldownManager 的引擎也要登入後幾拍才就緒 —— 快取下來的話「有沒有跟隨」會永遠停在
+-- 登入那一刻的答案。IsAddOnLoaded 是 C 端查表，現查的代價可以忽略。
+local function AddOnLoaded(name, global)
     local fn = C_AddOns and C_AddOns.IsAddOnLoaded
     if not fn then return false end
-    local ok, loaded = pcall(fn, "Ayije_CDM")
-    return (ok and loaded and _G.Ayije_CDM ~= nil) and true or false
+    local ok, loaded = pcall(fn, name)
+    return (ok and loaded and _G[global] ~= nil) and true or false
 end
 
--- 「跟隨 Ayije」現在生效嗎？回傳 (生效中, Ayije 可用)
+local function MCDMLoaded() return AddOnLoaded("MiliUI_CooldownManager", "MiliUI_CooldownManager") end
+local function AyijeLoaded() return AddOnLoaded("Ayije_CDM", "Ayije_CDM") end
+
+-- MiliUI_CooldownManager 的公開 API 表：有載入、而且引擎已經就緒才回；否則 nil（呼叫端退下一個來源）。
+-- 還沒就緒的那幾拍、互斥偵測成立（整支沒初始化）都是 IsReady 回假
+local function MCDMApi()
+    local api = _G.MiliUI_CooldownManager
+    if type(api) ~= "table" then return nil end
+    local fn = api.IsReady
+    if type(fn) ~= "function" then return nil end
+    local ok, ready = pcall(fn)
+    if not (ok and ready == true) then return nil end
+    return api
+end
+
+-- 現在實際在答的來源："MiliUI_CooldownManager" / "Ayije_CDM" / nil（/muf debug 用）
+function ns.ResourceCDMSource()
+    if MCDMApi() then return "MiliUI_CooldownManager" end
+    if AyijeLoaded() then return "Ayije_CDM" end
+    return nil
+end
+
+-- 「跟隨冷卻管理器」現在生效嗎？回傳 (生效中, 有來源可跟)
 --
--- edb.followAyije 是三態：
---   nil    玩家沒碰過 ⇒ Ayije_CDM 有載入就跟隨（兩支都裝的人本來就希望顏色一致）
---   true   跟隨（但 Ayije 沒載入時等同不跟隨）
+-- 「有來源」看的是**載入**，不看就緒：MiliUI_CooldownManager 登入後要幾拍才就緒，這段期間勾選框
+-- 若忽隱忽現，設定頁會被重建好幾次。還沒就緒時顏色退自己的，就緒後下一次更新就換過去。
+--
+-- edb.followAyije（鍵名是存檔相容留下來的，語意已經是「冷卻管理器」）是三態：
+--   nil    玩家沒碰過 ⇒ 有來源就跟隨（兩支都裝的人本來就希望顏色一致）
+--   true   跟隨（但沒有來源時等同不跟隨）
 --   false  不跟隨，用自己的顏色
-function ns.ResourceFollowsAyije(edb)
+function ns.ResourceFollowsCDM(edb)
     if edb == nil then
         local u = ns.db and ns.db.units and ns.db.units.player
         edb = u and u.elements and u.elements.classpower
     end
-    if not AyijeLoaded() then return false, false end
+    if not (MCDMLoaded() or AyijeLoaded()) then return false, false end
     local pref = edb and edb.followAyije
     if pref == nil then return true, true end
     return pref and true or false, true
+end
+
+local function MCDMColor(key, field)
+    local api = MCDMApi()
+    local fn = api and api.GetResourceColors
+    if type(fn) ~= "function" then return nil end
+    local ok, t = pcall(fn, key)
+    if not ok or type(t) ~= "table" then return nil end
+    local c = t[field]
+    if type(c) ~= "table" then return nil end
+    if type(c.r) ~= "number" or type(c.g) ~= "number" or type(c.b) ~= "number" then return nil end
+    return c
 end
 
 local function AyijeColor(key, field)
@@ -209,11 +252,16 @@ local function AyijeColor(key, field)
     return c
 end
 
+-- 冷卻管理器的顏色：MiliUI_CooldownManager 先答，沒有再問舊來源；都沒有回 nil
+local function CDMColor(key, field)
+    return MCDMColor(key, field) or AyijeColor(key, field)
+end
+
 -- field ∈ "color" / "chargedColor" / "chargedEmptyColor"
--- follow 由呼叫端算好一次往下傳（一列一次，不要每個欄位重算一遍 AyijeLoaded）
+-- follow 由呼叫端算好一次往下傳（一列一次，不要每個欄位重算一遍「有沒有載入」）
 local function ResolveColor(key, field, edb, follow)
     if follow then
-        local c = AyijeColor(key, field)
+        local c = CDMColor(key, field)
         if c then return c end
     end
     local own = edb and edb.colors and edb.colors[key]
@@ -225,7 +273,7 @@ end
 ------------------------------------------------------------
 -- 條件規則（依資源數值換顏色／透明度）
 --
--- 資料模型跟 Ayije_CDM 的資源條條件**完全一致**。那不是為了長得像，而是
+-- 資料模型跟冷卻管理器（兩個來源）的資源條條件**完全一致**。那不是為了長得像，而是
 -- 「跟隨」勾著的時候我們直接吃它那張表 —— 兩套 schema 就沒辦法共用同一份求值器。
 --
 --   conditions = { rule, rule, ... }   由上而下，**第一條成立的就用它**
@@ -357,12 +405,29 @@ local function AyijeConditions(key)
     return c
 end
 
--- 回傳**既有的那張表**（Ayije 的或我們自己的），一次都不複製。
+-- MiliUI_CooldownManager 的條件規則（公開 API，形狀與我們的一致）；沒有規則回 nil
+local function MCDMConditions(key)
+    local fn = MCDMApi()
+    fn = fn and fn.GetResourceConditions
+    if type(fn) ~= "function" then return nil end
+    local ok, c = pcall(fn, key)
+    if not ok or type(c) ~= "table" or c[1] == nil then return nil end
+    return c
+end
+
+-- 冷卻管理器的條件：MiliUI_CooldownManager **就緒**時只看它（它沒設規則＝沒有條件，
+-- 不再往下問）；它沒在答才問舊來源。兩支互斥，實際上不會兩邊都有東西
+local function CDMConditions(key)
+    if MCDMApi() then return MCDMConditions(key) end
+    return AyijeConditions(key)
+end
+
+-- 回傳**既有的那張表**（來源插件的或我們自己的），一次都不複製。
 --
--- ⚠ 跟隨生效時就只看 Ayije：它那邊沒設條件，就是「沒有條件」，不退回自己的。
+-- ⚠ 跟隨生效時就只看來源：它那邊沒設條件，就是「沒有條件」，不退回自己的。
 -- 「跟隨」的意思就是照它；混著吃會出現「自己的規則配別人的底色」這種沒人要的組合。
 local function ResolveConditions(key, edb, follow)
-    if follow then return AyijeConditions(key) end
+    if follow then return CDMConditions(key) end
     local root = edb and edb.conditions
     local t = root and root[key]
     if type(t) == "table" and t[1] ~= nil then return t end
@@ -405,14 +470,14 @@ local function ApplyRowOverrides(row, ov)
 end
 
 ------------------------------------------------------------
--- 從 Ayije_CDM 複製一份顏色與條件過來（設定面板的「複製」按鈕）
+-- 從冷卻管理器複製一份顏色與條件過來（設定面板的「複製」按鈕）
 --
 -- ⚠ **深複製，而且只複製我們認得的欄位。** 絕對不能把它的表直接塞進我們的 DB：
 -- 色票是「ctx.get 拿到 table 就原地改」，留著參照的話玩家在這裡調一次顏色
 -- 就默默改壞它的存檔，而且那張表會被序列化進我們的 SavedVariables。
--- 每個值都驗過型別 —— 它的 schema 不是公開契約。
+-- 每個值都驗過型別 —— 公開 API 的形狀是契約，但存檔內容仍是玩家的資料。
 --
--- 語意是「鏡射目前的 Ayije 設定」：它沒有條件的資源，我們這邊也清掉。
+-- 語意是「鏡射來源目前的設定」：它沒有條件的資源，我們這邊也清掉。
 -- 按鈕本來就帶確認彈窗。
 ------------------------------------------------------------
 local COPY_COLOR_FIELDS = { "color", "chargedColor", "chargedEmptyColor" }
@@ -473,8 +538,8 @@ local function CopyRule(rule)
 end
 
 -- 回傳「複製到幾種資源的設定」
-function ns.ResourceCopyFromAyije(edb)
-    if not edb or not AyijeLoaded() then return 0 end
+function ns.ResourceCopyFromCDM(edb)
+    if not edb or not ns.ResourceCDMSource() then return 0 end
     local colors = edb.colors
     if not colors then colors = {}; edb.colors = colors end
     local conds = edb.conditions
@@ -485,7 +550,7 @@ function ns.ResourceCopyFromAyije(edb)
         for _, field in ipairs(COPY_COLOR_FIELDS) do
             -- 充能色只有連擊點數有，其餘資源查了也是空的
             if field == "color" or key == "ComboPoints" then
-                local copy = CopyColor(AyijeColor(key, field))
+                local copy = CopyColor(CDMColor(key, field))
                 if copy then
                     local t = colors[key]
                     if not t then t = {}; colors[key] = t end
@@ -494,7 +559,7 @@ function ns.ResourceCopyFromAyije(edb)
                 end
             end
         end
-        local src = AyijeConditions(key)
+        local src = CDMConditions(key)
         local out
         if src then
             out = {}
@@ -1020,7 +1085,7 @@ local function UpdateRow(row, edb, isPreview, numSeg)
     local def = RESOURCES[key]
     if not def then return end
     -- 顏色一列解析一次（理由見 ResolveColor 上面的 ⚠ 效能那段）
-    local follow = ns.ResourceFollowsAyije(edb)
+    local follow = ns.ResourceFollowsCDM(edb)
     local cc = ResolveColor(key, "color", edb, follow)
     -- 條件同理，一列解析一次；沒有條件時 conds 是 nil，底下整段退化成原本的路
     local conds = ResolveConditions(key, edb, follow)
@@ -1209,11 +1274,11 @@ local function PlayerEDB()
 end
 
 -- 給 /muf debug 與設定面板用：這個資源現在有幾條條件、從哪來、目前命中第幾條。
--- 回傳 條數, 來源（"Ayije_CDM" / "自己"）, 命中的序號或 nil
+-- 回傳 條數, 來源（"MiliUI_CooldownManager" / "Ayije_CDM" / "自己"）, 命中的序號或 nil
 function ns.ResourceConditionDebug(key)
     local edb = PlayerEDB()
-    local follow = ns.ResourceFollowsAyije(edb)
-    local src = follow and "Ayije_CDM" or "自己"
+    local follow = ns.ResourceFollowsCDM(edb)
+    local src = follow and (ns.ResourceCDMSource() or "冷卻管理器（尚未就緒）") or "自己"
     local conds = ResolveConditions(key, edb, follow)
     if not conds then return 0, src, nil end
     local def = RESOURCES[key]

@@ -378,7 +378,7 @@ L["Numbers are only printed while the game lets addons read them; the bar itself
 L["One color for casting and channeling alike. Empowered stages, non-interruptible and interrupt-ready still apply on top."] = "Une seule couleur pour l'incantation et la canalisation. Les paliers de renforcement, non interruptible et interruption prête s'appliquent par-dessus."
 L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."] = "Une rangée par ressource, empilées ; faites-la glisser en mode Édition ou ancrez-la à une barre ci-dessous."
 L["Only in combat"] = "Seulement en combat"
-L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back."] = "Empêche seulement la barre Blizzard d'écouter vos incantations ; décocher la fait revenir immédiatement."
+L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."] = "Empêche seulement la barre Blizzard d'écouter vos incantations ; décocher la fait revenir immédiatement, sauf si les cadres d'unité la masquent aussi."
 L["Preview cast"] = "Incantation d'aperçu"
 L["Restore cast bar defaults"] = "Réinitialiser la barre d'incantation"
 L["Restore the cast bar settings to their defaults?"] = "Rétablir les réglages par défaut de la barre d'incantation ?"

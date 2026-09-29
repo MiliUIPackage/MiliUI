@@ -378,7 +378,7 @@ L["Numbers are only printed while the game lets addons read them; the bar itself
 L["One color for casting and channeling alike. Empowered stages, non-interruptible and interrupt-ready still apply on top."] = "施法與引導共用一個顏色。蓄力分階、不可打斷、斷法就緒照樣疊在上面。"
 L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."] = "一種資源一列、往上疊；在編輯模式拖曳，或在下面錨到某一條上。"
 L["Only in combat"] = "只在戰鬥中"
-L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back."] = "只讓暴雪的施法條不再接收你的施法事件；取消勾選就立刻回來。"
+L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."] = "只讓暴雪的施法條不再接收你的施法事件；取消勾選就立刻回來。單位框架也在隱藏它時，這裡取消不會顯示回來。"
 L["Preview cast"] = "預覽施法"
 L["Restore cast bar defaults"] = "施法條恢復預設"
 L["Restore the cast bar settings to their defaults?"] = "把施法條的設定恢復成預設值？"

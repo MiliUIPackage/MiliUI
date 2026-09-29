@@ -19,6 +19,21 @@ function MiliUI_OpenUnitFrameSettings()
     ns.OpenOptions()
 end
 
+------------------------------------------------------------
+-- 公開 API：給其他插件問（全域表 MiliUI_UnitFrames）
+--
+-- ⚠ **契約**：回傳形狀之後不改。呼叫端要處理「本插件沒載入」（表不存在）。
+------------------------------------------------------------
+MiliUI_UnitFrames = MiliUI_UnitFrames or {}
+
+-- 暴雪的玩家施法條是不是被我們解了事件（玩家框的施法條元件有建出來、隱藏流程跑過）。
+-- 布林。**單向**：Core/HideBlizzard.lua 沒有還原路徑，一旦為真就維持到 /reload
+-- （之後在設定裡關掉施法條也一樣 —— 暴雪那條要 /reload 才回來）。
+-- 別的插件取消「隱藏暴雪施法條」、要把事件原樣裝回去之前先問這支：為真就別裝。
+function MiliUI_UnitFrames.HidesPlayerCastBar()
+    return ns.playerCastBarHidden == true
+end
+
 -- 米利UI選單（ESC 選單「米利UI設定」滑過展開）的項目。
 -- 直接往全域表塞而不是呼叫 MiliUI 的函式：兩邊沒有相依宣告，載入順序不保證，
 -- 而且玩家可能只裝這支、根本沒有 MiliUI 套組。接口說明見 MiliUI/Menu.lua。
@@ -941,11 +956,19 @@ local function Debug()
             p(("   %-16s %s  %s"):format(key, (info and info.name) or "?", why))
         end
         -- 顏色從哪來 ＋ 現在哪幾格是充能格：玩家回報「顏色不對」「看不出充能」時
-        -- 這兩行就能分辨是設定問題、Ayije 的值、還是根本沒讀到充能索引
-        if ns.ResourceFollowsAyije then
-            local follow, avail = ns.ResourceFollowsAyije()
-            p(("   顏色來源：%s（Ayije_CDM %s）"):format(
-                follow and "Ayije_CDM" or "自己", avail and "已載入" or "未載入"))
+        -- 這兩行就能分辨是設定問題、冷卻管理器的值、還是根本沒讀到充能索引
+        if ns.ResourceFollowsCDM then
+            local follow, avail = ns.ResourceFollowsCDM()
+            local src = ns.ResourceCDMSource and ns.ResourceCDMSource()
+            local who
+            if not avail then
+                who = "自己（沒有冷卻管理器插件）"
+            elseif not follow then
+                who = "自己（取消了跟隨）"
+            else
+                who = "冷卻管理器（" .. (src or "已載入、尚未就緒 ⇒ 暫用自己") .. "）"
+            end
+            p("   顏色來源：" .. who)
         end
         if ns.ResourceChargedDebug then
             p("   充能格：" .. (ns.ResourceChargedDebug() or "（無）"))

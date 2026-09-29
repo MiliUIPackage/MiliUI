@@ -378,7 +378,7 @@ L["Numbers are only printed while the game lets addons read them; the bar itself
 L["One color for casting and channeling alike. Empowered stages, non-interruptible and interrupt-ready still apply on top."] = "Один цвет для чтения и поддержания. Ступени усиления, «нельзя прервать» и «прерывание готово» по-прежнему накладываются сверху."
 L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."] = "По ряду на ресурс, стопкой; перетащите в режиме редактирования или прикрепите к панели ниже."
 L["Only in combat"] = "Только в бою"
-L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back."] = "Лишь отключает у полосы Blizzard реакцию на ваши заклинания; снимите флажок — и она сразу вернётся."
+L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."] = "Лишь отключает у полосы Blizzard реакцию на ваши заклинания; снимите флажок — и она сразу вернётся, если только её не скрывают и рамки юнитов."
 L["Preview cast"] = "Пробное заклинание"
 L["Restore cast bar defaults"] = "Сбросить полосу заклинаний"
 L["Restore the cast bar settings to their defaults?"] = "Вернуть настройки полосы заклинаний по умолчанию?"

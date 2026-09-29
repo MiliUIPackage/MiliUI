@@ -50,6 +50,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
     "MiliUI_InfoBarPlugins",          # 資訊列的外部方塊註冊表（MiliUI_InfoBar/Core/Plugins.lua）
     "MiliUI_OpenUnitFrameSettings", "MiliUIUF_OnAddonCompartmentClick",
+    "MiliUI_UnitFrames",              # 單位框架的公開 API（Api.lua：HidesPlayerCastBar），冷卻管理器的施法條會問
     "MiliUICDM_OnAddonCompartmentClick",
     "MiliUIMerchant_OnAddonCompartmentClick",
     "MiliUIMythicPlus", "MiliUIMythicPlus_OnAddonCompartmentClick",

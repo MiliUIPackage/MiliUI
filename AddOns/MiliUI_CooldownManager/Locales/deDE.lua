@@ -378,7 +378,7 @@ L["Numbers are only printed while the game lets addons read them; the bar itself
 L["One color for casting and channeling alike. Empowered stages, non-interruptible and interrupt-ready still apply on top."] = "Eine Farbe für Zaubern und Kanalisieren. Ermächtigungsstufen, nicht unterbrechbar und Unterbrechen bereit gelten weiterhin darüber."
 L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."] = "Eine Reihe pro Ressource, gestapelt; im Bearbeitungsmodus ziehen oder unten an einer Leiste verankern."
 L["Only in combat"] = "Nur im Kampf"
-L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back."] = "Hält nur Blizzards Leiste davon ab, auf deine Zauber zu reagieren; Abwählen bringt sie sofort zurück."
+L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."] = "Hält nur Blizzards Leiste davon ab, auf deine Zauber zu reagieren; Abwählen bringt sie sofort zurück – außer die Einheitenfenster blenden sie ebenfalls aus."
 L["Preview cast"] = "Vorschauzauber"
 L["Restore cast bar defaults"] = "Zauberleiste zurücksetzen"
 L["Restore the cast bar settings to their defaults?"] = "Die Einstellungen der Zauberleiste auf Standard zurücksetzen?"

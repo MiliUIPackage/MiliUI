@@ -378,7 +378,7 @@ L["Numbers are only printed while the game lets addons read them; the bar itself
 L["One color for casting and channeling alike. Empowered stages, non-interruptible and interrupt-ready still apply on top."] = "Uma só cor para lançar e canalizar. Estágios de potencialização, não interrompível e interrupção pronta continuam por cima."
 L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."] = "Uma linha por recurso, empilhadas; arraste no modo de edição ou ancore em uma barra abaixo."
 L["Only in combat"] = "Só em combate"
-L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back."] = "Só impede a barra da Blizzard de ouvir seus lançamentos; desmarcar a traz de volta na hora."
+L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."] = "Só impede a barra da Blizzard de ouvir seus lançamentos; desmarcar a traz de volta na hora, a menos que os quadros de unidade também a estejam ocultando."
 L["Preview cast"] = "Lançamento de prévia"
 L["Restore cast bar defaults"] = "Restaurar a barra de lançamento"
 L["Restore the cast bar settings to their defaults?"] = "Restaurar as configurações padrão da barra de lançamento?"

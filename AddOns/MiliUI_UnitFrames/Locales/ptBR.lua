@@ -574,12 +574,12 @@ L["Missing-health darkening, heal prediction, absorb shield, heal absorb and the
 -- Regras condicionais das barras de recursos
 ------------------------------------------------------------
 L["Colors and conditions"] = "Cores e condições"
-L["Same as Ayije_CDM"] = "Como Ayije_CDM"
-L["Colors and condition rules both come from Ayije_CDM's own resource bar settings. Uncheck this to set your own here."] = "As cores e as regras condicionais vêm das configurações das barras de recursos do Ayije_CDM. Desmarque esta opção para defini-las aqui."
-L["Rules Ayije_CDM currently has for this specialization: %s"] = "Regras que o Ayije_CDM tem agora para esta especialização: %s"
-L["Copy from Ayije_CDM"] = "Copiar do Ayije_CDM"
-L["Replace the resource colors and condition rules here with Ayije_CDM's current ones?"] = "Substituir as cores de recursos e as regras condicionais pelas atuais do Ayije_CDM?"
-L["Takes a one-off snapshot of Ayije_CDM's colors and rules. After that the two are independent — changes there no longer show up here."] = "Copia uma única vez as cores e regras atuais do Ayije_CDM. Depois disso são independentes — mudanças lá não aparecem mais aqui."
+L["Follow the cooldown manager's colors"] = "Seguir as cores do gerenciador de recarga"
+L["Colors and condition rules both come from the cooldown manager addon's resource bar settings. Uncheck this to set your own here."] = "As cores e as regras condicionais vêm das configurações das barras de recursos do addon gerenciador de recarga. Desmarque esta opção para defini-las aqui."
+L["Rules the cooldown manager currently has for this specialization: %s"] = "Regras que o gerenciador de recarga tem agora para esta especialização: %s"
+L["Copy from the cooldown manager"] = "Copiar do gerenciador de recarga"
+L["Replace the resource colors and condition rules here with the cooldown manager's current ones?"] = "Substituir as cores de recursos e as regras condicionais pelas atuais do gerenciador de recarga?"
+L["Takes a one-off snapshot of the cooldown manager's colors and rules. After that the two are independent — changes there no longer show up here."] = "Copia uma única vez as cores e regras atuais do gerenciador de recarga. Depois disso são independentes — mudanças lá não aparecem mais aqui."
 L["Conditions"] = "Condições"
 L["Rules are checked from the top down and the first one that matches wins. Charged combo points keep their own color."] = "As regras são verificadas de cima para baixo e vence a primeira que corresponder. Pontos de combo carregados mantêm a própria cor."
 L["Edit rules for"] = "Regras para"
