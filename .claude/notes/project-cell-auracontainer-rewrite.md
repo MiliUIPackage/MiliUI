@@ -18,7 +18,7 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 
 **已搬容器的指示器**：中央「重要減益」（原 Raid Debuffs，顯示名已改，key `raidDebuffs` 不動）、左下 debuff 排（`excludeSpellIDs = 黑名單`）、右下驅散 icon + 血條 highlight overlay（一個指示器兩個容器）、減傷（自身/來自他人）、allCooldowns、自訂 **icon/icons 型** buff 指示器（如 Healers）。
 
-**仍走手動路**（secret 內容中會凍住）：效果型自訂指示器（color/glow/border/overlay/text/bar/bars/block/blocks/rect —— 渲染的是「有沒有」而 presence 是 secret，不能照抄圖示路）、`crowdControls`。
+**效果型自訂指示器已走「效果槽」**（2026-08-27 起：color/border/rect/texture ＝ 一個 AddAuraSlot 撐滿錨點，效果建在槽按鈕上，presence 由引擎管；block/text 同法）。**仍走手動路**（secret 內容中會凍住）：glow、bar/bars/blocks、debuff 型的所有自訂指示器（友方減益禁止 spellID 過濾）、`crowdControls`。矩形的時間類效果見下方「矩形的三層時間效果」。
 
 **驅動是泛型的**：按鈕上 `_containerIndicators` 註冊表（`I.RegisterContainerIndicator`），`UnitButton_UpdateAuras` 迭代呼叫 `SetContainerUnit`；`UpdateIndicators` 的即時推送對「任何有 `ConfigureContainer` 方法的指示器」生效；`CONTAINER_DEPENDENTS = {raidDebuffs = {"debuffs"}}` + `PushContainerConfig` 做跨指示器重推。生命週期：`I.RemoveIndicator`/`RemoveAllCustomIndicators` 呼叫 `I.UnregisterContainerIndicator`（Destroy + 移出註冊表），`Handle:Destroy` 有 `_destroyed` 旗標。
 
@@ -388,3 +388,15 @@ Rebuild 已是既定合法路徑。若實測（`/console taintLog 2`，野外戰
 `F.FindAuraByName and F.FindAuraByName(...)`，所以永遠是 nil ——
 StatusIcon 的靈魂石移除偵測等於一直沒在跑。**用 `and` 守衛一個不存在的函式，
 會讓「功能沒做」看起來像「功能有做」**，靜默到只能靠全域掃描或讀原始碼發現。
+
+## 矩形（rect）的三層時間效果，全部引擎驅動（2026-09-28／29，c4fa912ea＋2c951f359，未實機驗證）
+
+buff 矩形走效果槽後，「剩 N%／N 秒換色」一度被拿掉，現在三層都補回且都不讀秒：
+- **兩條色帶**（`colors[2]`＝剩餘 < 比例、`colors[3]`＝剩餘 < 秒）：**每條一個伴隨槽**（同容器、同 filter、同 includeSpellIDs 的 `AddAuraSlot`；record key `band_pct:<frac>:<rgba>`／`band_sec:<secs>:<rgba>`，門檻與顏色烤進 key 所以 ParkKey 自動分流），按鈕上只有一個 FontString，`SetDurationText` 綁 NumericRuleFormatter 兩段（0→帶 RGB 的 `|T white.tga|t`、門檻→""）。百分比帶用 `textFormat={formatString="{}",components={{property=RemainingPercent,formatter}}}`，門檻 ×100。**一顆 AuraButton 只有一個 SetDurationText**，主槽的給倒數數字，這就是為什麼要伴隨槽。`AuraDisplay.lua` 的 `BuildBandSlot`（`do` 區塊內）、`Built-in.lua` 組 `opts.rectBands`（兩條都關送 `false`）。
+- **無損刷新**（`pandemicColor={en,色}`，沒設定＝關）：`AddPandemicRegion(texture)`（**要交貼圖，Frame 過不了 RequireObjectType("Region")**，pcall 會吞掉錯誤變成永遠不亮），貼圖住在自己的 `dfPandemicHolder`。開關結構鍵、顏色外觀鍵。
+- **倒數文字顏色曲線**：rect 現在也有 `durationColor`（統一 widget），走既有 `BuildDurColorOpt`。
+- **疊放（下→上）**：填色（dfEffHolder，+1）、百分比帶（+2）、無損刷新（+3）、秒數帶（+4）、倒數（+6）、層數（+7）；跟手動路／預覽 `Rect_OnUpdateColor` 的優先序（秒數 > 無損刷新 > 百分比 > 一般）一致。預覽的無損刷新用「最後 30%」近似。
+- 設定頁 `rectColors` widget（五列＋灰字說明）只給 buff 矩形；debuff 矩形仍用共用 `colors` widget。**兩條帶勾選也要 fire**（容器要加減槽）。
+- **順手修**：`ConfigureContainer` 的 `durationColors` 關掉時送 `false`（原本不送，舊曲線留到 /reload；icon 類同病）。
+
+**待實機驗證**：`|T` 在 FontString 裡是否真的 0.75 倍（`BAND_TEX_RATIO`）；`RemainingPercent` 是 0–100；三個槽按鈕同層（否則帶子蓋到倒數）；沒有持續時間的光環秒數帶不誤亮；`AddPandemicRegion` 實機接受貼圖；`rectBands` 換門檻立刻 rebuild。
