@@ -26,8 +26,9 @@ API 與 LibCustomGlow **完全相同**，所以抽換只要改綁定那一行：
     **把累積的 dt 整份傳給原本的更新函式**，所以動畫速度跟逐幀版完全一致。
 
  3. 多一組 Attach API（檔尾），給 12.1 引擎光環按鈕（AuraButton）的子樹用：
-    caller 自備框、這裡只建全新貼圖、尺寸由 caller 給、可見度不問。Start 系列的
-    池化框 reparent 在那個子樹裡一條規矩都過不了。
+    caller 自備框、這裡只建全新貼圖、尺寸由 caller 給、動畫全是宣告式 AnimationGroup
+    （不經過上面的 driver，副本／戰鬥中秘密狀態下照樣動）。Start 系列的池化框 reparent
+    ＋ driver 推座標在那個子樹裡一條規矩都過不了。
 ]]
 
 local _, ns = ...
@@ -1094,36 +1095,53 @@ lib.stopList["Proc Glow"] = lib.ProcGlow_Stop
 
 
 -------------------------------------------------------------------------------
---  Attach API：caller 自備框（第三處差別，2026-09-29）
+--  Attach API：caller 自備框（第三處差別，2026-09-29；同日改成宣告式動畫組）
 --
---  12.1 引擎光環按鈕（AuraButton）的子樹有三條規矩：region 只能在 initializeFrame 視窗內
---  建；不能把既有的 widget reparent 進去；子樹裡的 OnUpdate／AnimationGroup 不 tick。
---  Start 系列全靠池化框 reparent，一條都過不了。Attach 系列反過來：
+--  12.1 引擎光環按鈕（AuraButton）的子樹規矩：region 只能在 initializeFrame 視窗內建；
+--  不能把既有的 widget reparent 進去；光環是秘密值時（副本／首領戰）子樹拒絕腳本——
+--  子樹裡的 OnUpdate 不跑，外部 driver 對子樹貼圖的 SetPoint／SetTexCoord 第一次就被拒。
+--  Start 系列全靠池化框 reparent ＋ driver 推座標，一條都過不了。Attach 系列反過來：
 --
 --    - caller 在視窗內建好一個乾淨的子框 f（錨好、Show 好）交進來，這裡只在 f 底下建
---      **全新**貼圖／遮罩／動畫組，永遠不 reparent 任何東西，也不用池。
+--      **全新**貼圖／遮罩／子框／動畫組，永遠不 reparent 任何東西，也不用池。
 --    - 尺寸由 caller 給（width／height ＝ f 自己的大小）。子樹裡 GetSize 讀回來可能是
 --      秘密值，秘密值進了座標算式就炸，所以一律不讀。
---    - 可見度不問：f._glowBlind 讓 driver 跳過 IsVisible，照推座標（隱藏時多算幾組而已）。
---    - 要「動」的東西分兩類：像素線／閃光點／螞蟻線由 driver 推（外部 OnUpdate，不受子樹
---      限制）；入場閃光（Normal）與循環閃爍（Proc）是 AnimationGroup，回傳給 caller 交給
---      引擎播（AuraButton:AddAuraShownAnimation），子樹裡自己 Play 是不會動的。
+--    - **會動的東西全是宣告式 AnimationGroup，沒有 driver。** 動畫組不是腳本：在視窗內
+--      建好、Play 一次、之後不再碰，引擎在 C 端一直播，秘密狀態下照樣動（DandersFrames
+--      v5.3.3 AuraContainer.lua 檔頭第 6 條；Border.lua 的 orbit／march／flipbook 同一招）。
+--        像素線、閃耀點：每顆貼圖一個 REPEAT 動畫組，Translation 分段繞周長（BuildLegLoop）
+--        一般的螞蟻線：REPEAT 的 FlipBook（取代 AnimateTexCoords）
+--        一般的入場閃光、Proc 的循環：回傳給 caller 交給引擎播（AddAuraShownAnimation
+--        等），這裡不 Play
 --
---  重複呼叫是安全的：貼圖只在缺的時候建（視窗外建不了，會被 caller 的 pcall 吃掉），
---  顏色／週期每次都更新（自己的 region 在視窗外照樣能寫）。
---  Suspend／Resume 給宿主停放／取回用：按鈕還在、只是暫時不畫，driver 不必陪跑。
+--  重複呼叫（改顏色的 restyle）只改顏色；週期變了才 Stop→改 Duration→Play；幾何（尺寸、
+--  數量、線長、粗細、方向）變了才建新的動畫組（舊的 Stop 掉留在原處——動畫組刪不掉）。
+--  貼圖／子框／動畫組只在缺的時候建（視窗外建不了，會被 caller 的 pcall 吃掉）。
+--  Glow_Suspend／Resume 對 Attach 型是 no-op：停放的宿主底下動畫組照播，成本可忽略。
 --
---  f._glowEngineShown（caller 在 Attach **之前**設）：這顆 f 的貼圖要交給引擎控顯示
---  （例如 AuraButton:AddPandemicRegion，只在無損刷新窗口內亮）。交出去之後 Shown 是
---  secret aspect，這裡**一律不再 Show／Hide 那些貼圖**，要「藏」改寫 alpha。
---  要交哪些貼圖用 Glow_Regions(f) 取。
+--  f._glowEngineShown（caller 在 Attach **之前**設）：f 底下的貼圖**可能**被逐顆交給引擎
+--  控顯示（AddPandemicRegion 的退路；首選是整個 f 交出去，那樣貼圖的 Shown 仍歸這裡）。
+--  交出去的貼圖 Shown 是 secret aspect，所以旗標開著時一律不再 Show／Hide 貼圖，要「藏」
+--  改寫 alpha。要交哪些貼圖用 Glow_Regions(f) 取。
 -------------------------------------------------------------------------------
-local function AttachTextures(f, N, texture, texCoord, desaturated, color)
+local LOOP_EPS = 0.0001
+
+local function AttachColor(t, color)
+    if type(color) == "table" and color.GetRGBA then
+        t:SetVertexColor(color:GetRGBA())
+    else
+        t:SetVertexColor(color[1], color[2], color[3], color[4])
+    end
+end
+
+-- parents：nil ＝ 全部建在 f 上；給陣列就依序輪流（像素線的橫／直兩個裁切框）
+local function AttachTextures(f, N, texture, texCoord, desaturated, color, parents)
     f.textures = f.textures or {}
     for i = 1, N do
         local t = f.textures[i]
         if not t then
-            t = f:CreateTexture(nil, "ARTWORK", nil, 7)
+            local p = parents and parents[(i - 1) % #parents + 1] or f
+            t = p:CreateTexture(nil, "ARTWORK", nil, 7)
             t:SetTexture(texture)
             t:SetTexCoord(texCoord[1], texCoord[2], texCoord[3], texCoord[4])
             t:SetDesaturated(desaturated)
@@ -1132,11 +1150,7 @@ local function AttachTextures(f, N, texture, texCoord, desaturated, color)
             end
             f.textures[i] = t
         end
-        if type(color) == "table" and color.GetRGBA then
-            t:SetVertexColor(color:GetRGBA())
-        else
-            t:SetVertexColor(color[1], color[2], color[3], color[4])
-        end
+        AttachColor(t, color)
         if f._glowEngineShown then
             t:SetAlpha(1)   -- 顯示歸引擎管（見上），這裡只收回 Detach 的 alpha 0
         else
@@ -1164,20 +1178,149 @@ local function AttachMask(f, idx, inset)
     return f.masks[idx]
 end
 
--- 跟 PixelGlow_Start 同一組參數（少了 offset／key／frameLevel，多了尺寸）；border 固定畫
+-- f._glowAnims：這裡自己 Play 的動畫組（交給引擎播的不在裡面）
+-- f._glowTimed：{ anim, share, anim, share, ... }，Duration ＝ 週期 × share
+local function StopAnims(f)
+    if f._glowAnims then
+        for _, ag in ipairs(f._glowAnims) do ag:Stop() end
+    end
+    f._glowAnimOn = nil
+end
+
+local function PlayAnims(f)
+    if f._glowAnimOn then return end   -- 播著就不碰：restyle 不該讓動畫跳回起點
+    if f._glowAnims then
+        for _, ag in ipairs(f._glowAnims) do ag:Play() end
+    end
+    f._glowAnimOn = true
+end
+
+-- 播放中改 Duration 何時生效沒把握，所以一律 Stop→改→（caller）Play。全部一起從起點
+-- 重來，同一條線的橫／直兩顆與各條線之間的相位都不會錯開。
+local function RetimeAnims(f, period)
+    if f._glowPeriod == period then return end
+    StopAnims(f)
+    local t = f._glowTimed
+    if t then
+        for i = 1, #t, 2 do t[i]:SetDuration(period * t[i + 1]) end
+    end
+    f._glowPeriod = period
+end
+
+-- 同一顆 f 換類型（Cell 不會：類型是結構鍵、換了就是新按鈕；這裡只求不殘留）
+local function AttachKind(f, kind)
+    if f._glowKind == kind then return end
+    if f._glowKind then
+        lib.Glow_Detach(f)
+        f.textures = nil   -- 舊類型的貼圖已藏好，留在原處不再管
+    end
+    f._glowKind = kind
+    f._glowAnims, f._glowTimed, f._glowGeo, f._glowPeriod = nil, nil, nil, nil
+end
+
+-- 一圈「腿」的 REPEAT 動畫組，DandersFrames Border.lua buildOrbitLoop 的推廣：
+--   legs[i] ＝ { 弧長, dx, dy, alpha（nil ＝ 不動 alpha） }，弧長合計 ＝ perimeter、
+--   位移合計 ＝ 0，所以 REPEAT 每圈回到錨點、永不漂移，不需要任何 Lua 重新對位。
+--   into ＝ t=0 時這顆貼圖在第一條腿起點之後多遠（弧長）。
+--   period < 0 ＝ 反方向繞（上游 frequency 可以是負的）：腿倒過來、位移取負。
+--   mult：這組的週期倍數（閃耀第 k 層是 k）。
+-- 從 into 所在那條腿的剩餘段開始、繞一整圈、收在同一條腿的前段。每段一個 Translation
+-- （等速，轉角不抽動）＋ 需要時同 order 的 Alpha 保持（from＝to，DF playStrobe 的方波）。
+-- 回傳 into 那一點相對第一條腿起點的位移，caller 拿來錨貼圖。
+local function BuildLegLoop(ag, legs, perimeter, period, into, timed, mult)
+    mult = mult or 1
+    if period < 0 then
+        local rev = {}
+        for i = #legs, 1, -1 do
+            local L = legs[i]
+            rev[#rev + 1] = { L[1], -L[2], -L[3], L[4] }
+        end
+        legs, into, period = rev, perimeter - into, -period
+    end
+    into = into % perimeter
+    local n, leg, ox, oy = #legs, 1, 0, 0
+    while leg < n and into >= legs[leg][1] do
+        into = into - legs[leg][1]
+        ox, oy = ox + legs[leg][2], oy + legs[leg][3]
+        leg = leg + 1
+    end
+    local cur = legs[leg]
+    local frac = into / cur[1]
+    if frac > 1 then frac = 1 end   -- 浮點誤差
+    ox, oy = ox + cur[2] * frac, oy + cur[3] * frac
+
+    ag:SetLooping("REPEAT")
+    local order = 0
+    local function piece(L, f0, f1)
+        local part = (f1 - f0) * L[1]
+        if part <= LOOP_EPS then return end
+        order = order + 1
+        local share = part / perimeter * mult
+        local tr = ag:CreateAnimation("Translation")
+        tr:SetOffset(L[2] * (f1 - f0), L[3] * (f1 - f0))
+        tr:SetDuration(period * share)
+        tr:SetOrder(order)
+        tr:SetSmoothing("NONE")
+        timed[#timed + 1] = tr
+        timed[#timed + 1] = share
+        if L[4] then
+            local a = ag:CreateAnimation("Alpha")
+            a:SetFromAlpha(L[4])
+            a:SetToAlpha(L[4])
+            a:SetDuration(period * share)
+            a:SetOrder(order)
+            timed[#timed + 1] = a
+            timed[#timed + 1] = share
+        end
+    end
+    piece(cur, frac, 1)
+    for i = leg + 1, n do piece(legs[i], 0, 1) end
+    for i = 1, leg - 1 do piece(legs[i], 0, 1) end
+    piece(cur, 0, frac)
+    return ox, oy
+end
+
+-- 上游的 frequency → period：0／nil 用預設，負的保留符號（反方向繞）
+local function PeriodOf(frequency, default)
+    if frequency and (frequency > 0 or frequency < 0) then return 1 / frequency end
+    return default
+end
+
+-- 跟 PixelGlow_Start 同一組參數（少了 offset／key／frameLevel，多了尺寸）；border 固定畫。
+--
+-- 每條線 ＝ 一橫一直兩顆貼圖，各一個動畫組（週期相同、同一次呼叫裡 Play，所以永遠同相）：
+--   直的（th × L）在左邊往上、右邊往下走，整條離開框時 alpha 0、在框外橫移到對邊；
+--   橫的（L × th）在上邊往右、下邊往左走，整條離開框時 alpha 0、在框外直移到對邊。
+-- 超出框的部分由兩個裁切子框切掉：直的切在整框、橫的切在左右各內縮 th —— 轉角那一格
+-- 只歸直的畫，半透明的顏色不會疊兩次。轉過角時兩顆各露一截，合起來就是上游用遮罩切出
+-- 來的 L 形。
 function lib.PixelGlow_Attach(f, color, N, frequency, length, th, width, height)
     if not f then return end
     color = color or {0.95, 0.95, 0.32, 1}
     if not (N and N > 0) then N = 8 end
-    local period = 4
-    if frequency and (frequency > 0 or frequency < 0) then period = 1 / frequency end
+    local period = PeriodOf(frequency, 4)
     length = length or math.floor((width + height) * (2 / N - 0.1))
     length = min(length, min(width, height))
     th = th or 1
+    -- 藏著移到對邊的那條腿長 ＝ 短邊 − 線長，必須 > 0，所以線長嚴格小於短邊
+    local short = min(width, height)
+    if length >= short then length = short - 1 end
+    if not (length > 0 and short > th) then return end
 
-    f._glowBlind = true
-    AttachTextures(f, N, textureList.white, {0, 1, 0, 1}, nil, color)
-    local lineMask = AttachMask(f, 1, th)
+    AttachKind(f, "pixel")
+    if not f._pxClipV then
+        f._pxClipV = CreateFrame("Frame", nil, f)
+        f._pxClipV:SetAllPoints(f)
+        f._pxClipV:SetClipsChildren(true)
+        f._pxClipH = CreateFrame("Frame", nil, f)
+        f._pxClipH:SetClipsChildren(true)
+    end
+    f._pxClipH:ClearAllPoints()
+    f._pxClipH:SetPoint("TOPLEFT", f, "TOPLEFT", th, 0)
+    f._pxClipH:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -th, 0)
+
+    -- 奇數號＝橫（建在 _pxClipH）、偶數號＝直（建在 _pxClipV）
+    AttachTextures(f, 2 * N, textureList.white, {0, 1, 0, 1}, nil, color, {f._pxClipH, f._pxClipV})
     local bgMask = AttachMask(f, 2, th + 1)
     if not f.bg then
         f.bg = f:CreateTexture(nil, "ARTWORK", nil, 6)
@@ -1190,37 +1333,67 @@ function lib.PixelGlow_Attach(f, color, N, frequency, length, th, width, height)
     else
         f.bg:Show()
     end
-    for _, tex in pairs(f.textures) do
-        if tex:GetNumMaskTextures() < 1 then
-            tex:AddMaskTexture(lineMask)
-        end
-    end
 
-    f.timer = f.timer or 0
-    f.info = f.info or {}
-    f.info.step = 1 / N
-    f.info.period = period
-    f.info.th = th
-    if f.info.length ~= length then
-        f.info.width = nil
-        f.info.length = length
+    local w, h, L = width, height, length
+    local geo = w .. ":" .. h .. ":" .. N .. ":" .. L .. ":" .. th .. ":" .. (period < 0 and "-" or "+")
+    if f._glowGeo ~= geo then
+        StopAnims(f)
+        local P = 2 * (w + h)
+        -- 弧長從左下角往上量、順時針（跟上游 pUpdate 的 progress 同原點同方向）
+        -- 直的：第一條腿的起點 ＝ 中心在弧長 −L/2（左邊、整條還在框下）
+        local legsV = {
+            { h + L, 0, h + L, 1 },          -- 左邊往上，整條穿過
+            { w - L, w - th, 0, 0 },         -- 藏著，在框上方橫移到右邊
+            { h + L, 0, -(h + L), 1 },       -- 右邊往下
+            { w - L, -(w - th), 0, 0 },      -- 藏著，在框下方橫移回左邊
+        }
+        -- 橫的：第一條腿的起點 ＝ 中心在弧長 h − L/2（上邊、整條還在框左）
+        local legsH = {
+            { w + L, w + L, 0, 1 },          -- 上邊往右
+            { h - L, 0, -(h - th), 0 },      -- 藏著，在框右方直移到下邊
+            { w + L, -(w + L), 0, 1 },       -- 下邊往左
+            { h - L, 0, h - th, 0 },         -- 藏著，在框左方直移回上邊
+        }
+        local anims, timed = {}, {}
+        for k = 1, N do
+            local s = P * (k - 1) / N   -- 第 k 條線 t=0 時中心的弧長（上游的 step*(k-1)）
+            local H, V = f.textures[2 * k - 1], f.textures[2 * k]
+
+            local ag = H:CreateAnimationGroup()
+            local ox, oy = BuildLegLoop(ag, legsH, P, period, s - (h - L / 2), timed)
+            H:ClearAllPoints()
+            H:SetSize(L, th)
+            H:SetPoint("TOPLEFT", f, "TOPLEFT", -L + ox, oy)
+            anims[#anims + 1] = ag
+
+            ag = V:CreateAnimationGroup()
+            ox, oy = BuildLegLoop(ag, legsV, P, period, s + L / 2, timed)
+            V:ClearAllPoints()
+            V:SetSize(th, L)
+            V:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", ox, -L + oy)
+            anims[#anims + 1] = ag
+        end
+        f._glowAnims, f._glowTimed = anims, timed
+        f._glowGeo, f._glowPeriod = geo, math.abs(period)
+    else
+        RetimeAnims(f, math.abs(period))
     end
-    f.info.fixedW, f.info.fixedH = width, height
-    f._glowUpdate = pUpdate
-    pUpdate(f, 0)
-    DriverAdd(f, pUpdate)
+    PlayAnims(f)
 end
 
--- 跟 AutoCastGlow_Start 同一組參數（少了 offset／key／frameLevel，多了尺寸）
+-- 跟 AutoCastGlow_Start 同一組參數（少了 offset／key／frameLevel，多了尺寸）。
+-- 每顆粒子一個動畫組繞周長（DF 的 orbit）：起點與方向照上游 acUpdate（左下角往上、
+-- 第 i 顆在 space*i，四層同起點），第 k 層一圈 period*k 秒。
 function lib.AutoCastGlow_Attach(f, color, N, frequency, scale, width, height)
     if not f then return end
     color = color or {0.95, 0.95, 0.32, 1}
     if not (N and N > 0) then N = 4 end
-    local period = 8
-    if frequency and (frequency > 0 or frequency < 0) then period = 1 / frequency end
+    local period = PeriodOf(frequency, 8)
     scale = scale or 1
+    local w, h = width, height
+    if not (w > 0 and h > 0) then return end
 
-    f._glowBlind = true
+    AttachKind(f, "shine")
     AttachTextures(f, N * 4, textureList.shine, shineCoords, true, color)
     local sizes = {7, 6, 5, 4}
     for k, size in pairs(sizes) do
@@ -1228,23 +1401,36 @@ function lib.AutoCastGlow_Attach(f, color, N, frequency, scale, width, height)
             f.textures[i + N * (k - 1)]:SetSize(size * scale, size * scale)
         end
     end
-    f.timer = f.timer or {0, 0, 0, 0}
-    f.info = f.info or {}
-    f.info.N = N
-    f.info.period = period
-    f.info.fixedW, f.info.fixedH = width, height
-    f._glowUpdate = acUpdate
-    acUpdate(f, 0)
-    DriverAdd(f, acUpdate)
+
+    local geo = w .. ":" .. h .. ":" .. N .. ":" .. (period < 0 and "-" or "+")
+    if f._glowGeo ~= geo then
+        StopAnims(f)
+        local P = 2 * (w + h)
+        local legs = { { h, 0, h }, { w, w, 0 }, { h, 0, -h }, { w, -w, 0 } }
+        local space = P / N
+        local anims, timed = {}, {}
+        for k = 1, 4 do
+            for i = 1, N do
+                local t = f.textures[i + N * (k - 1)]
+                local ag = t:CreateAnimationGroup()
+                local ox, oy = BuildLegLoop(ag, legs, P, period, space * i, timed, k)
+                t:ClearAllPoints()
+                t:SetPoint("CENTER", f, "BOTTOMLEFT", ox, oy)
+                anims[#anims + 1] = ag
+            end
+        end
+        f._glowAnims, f._glowTimed = anims, timed
+        f._glowGeo, f._glowPeriod = geo, math.abs(period)
+    else
+        RetimeAnims(f, math.abs(period))
+    end
+    PlayAnims(f)
 end
 
--- 螞蟻線的盲推版：不看父框的 cooldown（Attach 的父框是光環按鈕，沒有那個欄位）
-local function bgUpdateBlind(self, elapsed)
-    AnimateTexCoords(self.ants, 256, 256, 48, 48, 22, elapsed, self.throttle)
-end
-
--- ButtonGlow 的穩態（AnimIn_OnFinished 之後的長相）：outerGlow 整框、螞蟻線 0.85 框，
--- 都是靜態貼圖，只有螞蟻線的貼圖座標在動（driver）。入場閃光另做成一個**沒有 script**
+-- ButtonGlow 的穩態（AnimIn_OnFinished 之後的長相）：outerGlow 整框、螞蟻線 0.85 框。
+-- 螞蟻線是 IconAlertAnts（256² 的檔案，48² 一格、5×5 用 22 格）上的 REPEAT FlipBook，
+-- 一圈 22 × throttle 秒，跟上游 AnimateTexCoords 同速；貼圖不先 SetTexCoord（FlipBook
+-- 自己切格，這張是檔案不是 atlas，所以格寬高給 48）。入場閃光另做成一個**沒有 script**
 -- 的動畫組回傳：spark 脹到 1.5 倍淡入、再縮回淡出，alpha 起點終點都是 0，所以不管引擎
 -- 播完有沒有回呼，畫面都收在穩態。width／height ＝ f 自己的大小（caller 照上游把 f 開成
 -- 按鈕的 1.4 倍）。
@@ -1254,6 +1440,7 @@ function lib.ButtonGlow_Attach(f, color, frequency, width, height)
     local throttle = 0.01
     if frequency and frequency > 0 then throttle = 0.25 / frequency * 0.01 end
 
+    AttachKind(f, "normal")
     if not f.ants then
         f.spark = f:CreateTexture(nil, "BACKGROUND")
         f.spark:SetPoint("CENTER")
@@ -1278,6 +1465,18 @@ function lib.ButtonGlow_Attach(f, color, frequency, width, height)
         CreateScaleAnim(f.animIn, "spark", 2, 0.2, 2 / 3, 2 / 3)
         CreateAlphaAnim(f.animIn, "spark", 2, 0.2, alpha, 0, nil, false)
     end
+    if not f._antsAnims then
+        local ag = f.ants:CreateAnimationGroup()
+        ag:SetLooping("REPEAT")
+        local fb = ag:CreateAnimation("FlipBook")
+        fb:SetOrder(1)
+        fb:SetFlipBookRows(5)
+        fb:SetFlipBookColumns(5)
+        fb:SetFlipBookFrames(22)
+        fb:SetFlipBookFrameWidth(48)
+        fb:SetFlipBookFrameHeight(48)
+        f._antsAnims, f._antsTimed = { ag }, { fb, 22 }   -- Duration 由下面的 RetimeAnims 設
+    end
     f.spark:SetSize(width, height)
     f.outerGlow:SetSize(width, height)
     f.ants:SetSize(width * 0.85, height * 0.85)
@@ -1300,10 +1499,9 @@ function lib.ButtonGlow_Attach(f, color, frequency, width, height)
     for _, anim in pairs(f.animIn.appear) do anim:SetToAlpha(alpha) end
     for _, anim in pairs(f.animIn.fade) do anim:SetFromAlpha(alpha) end
 
-    f.throttle = throttle
-    f._glowBlind = true
-    f._glowUpdate = bgUpdateBlind
-    DriverAdd(f, bgUpdateBlind)
+    f._glowAnims, f._glowTimed = f._antsAnims, f._antsTimed
+    RetimeAnims(f, throttle)
+    PlayAnims(f)
     return f.animIn
 end
 
@@ -1312,6 +1510,7 @@ end
 -- 引擎沒播就什麼都看不到（失效方向是「沒有發光」，不是「卡一張定格」）。
 function lib.ProcGlow_Attach(f, color, duration, width, height)
     if not f then return end
+    AttachKind(f, "proc")
     if not f.ProcLoop then
         f.ProcLoop = f:CreateTexture(nil, "ARTWORK")
         f.ProcLoop:SetAtlas("UI-HUD-ActionBar-Proc-Loop-Flipbook")
@@ -1347,21 +1546,18 @@ function lib.ProcGlow_Attach(f, color, duration, width, height)
         f.ProcLoop:SetVertexColor(1, 1, 1, 1)
     end
     f.ProcLoopAnim.flipbookRepeat:SetDuration(duration or 1)
-    f._glowBlind = true
     return f.ProcLoopAnim
 end
 
--- 宿主停放：按鈕還在、暫時不畫，driver 不必陪跑。取回時 Resume 接回同一支更新函式。
-function lib.Glow_Suspend(f)
-    if f then DriverRemove(f) end
-end
+-- 宿主停放／取回：Attach 型沒有 driver 可退訂，停放的宿主底下動畫組照播（引擎在 C 端
+-- 播，成本可忽略）。留成 no-op 是為了既有呼叫端；Start 系列從來不經過這兩支。
+function lib.Glow_Suspend() end
 
-function lib.Glow_Resume(f)
-    if f and f._glowUpdate then DriverAdd(f, f._glowUpdate) end
-end
+function lib.Glow_Resume() end
 
--- 這顆 f 上所有會畫東西的貼圖（MaskTexture 不算），給 caller 交給引擎控顯示用
--- （AuraButton:AddPandemicRegion）。只列已經建好的；在 Attach 之後呼叫。
+-- 這顆 f 上所有會畫東西的貼圖（MaskTexture、裁切子框不算），給 caller 逐顆交給引擎控
+-- 顯示（AuraButton:AddPandemicRegion 的退路；首選是整個 f 交出去）。只列已經建好的；
+-- 在 Attach 之後呼叫。
 function lib.Glow_Regions(f)
     local out = {}
     if not f then return out end
@@ -1376,12 +1572,13 @@ function lib.Glow_Regions(f)
     return out
 end
 
--- 這顆按鈕不再發光（設定改成 None 之後的重套）：貼圖藏起來、driver 退訂；框由 caller 管。
--- _glowEngineShown 的框：顯示歸引擎，藏改寫 alpha（跟 outerGlow／ants／ProcLoop 同法）。
+-- 這顆按鈕不再發光（設定改成 None 之後的重套）：自己播的動畫組停掉（Alpha 保持動畫
+-- 播著時 alpha 寫不進去）、貼圖藏起來；框由 caller 管。交給引擎播的（入場閃光、Proc
+-- 循環）不碰。_glowEngineShown 的框：顯示歸引擎，藏改寫 alpha（跟 outerGlow／ants／
+-- ProcLoop 同法）。
 function lib.Glow_Detach(f)
     if not f then return end
-    DriverRemove(f)
-    f._glowUpdate = nil
+    StopAnims(f)
     local engine = f._glowEngineShown
     if f.textures then
         for _, t in pairs(f.textures) do

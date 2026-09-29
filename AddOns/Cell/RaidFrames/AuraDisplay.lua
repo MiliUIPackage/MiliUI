@@ -614,6 +614,11 @@ local SPENT_COLOR = { 0, 0, 0, 1 }
 --      time-based must come from the engine (SetDurationCooldown / SetDurationBar /
 --      AddPandemicRegion) or not at all -- "fade out as it expires" is gone with the
 --      remaining duration.
+--      ⚠ Disputed for the AnimationGroup half: DandersFrames v5.3.3 (AuraContainer.lua
+--      header, note 6, 2026-08-27) found that a DECLARATIVE group built and Play()ed inside
+--      the window keeps running C-side, secret or not -- only scripts are dead. The
+--      container glow (StyleGlow) now relies on exactly that; /cab probe anim (A1/A2)
+--      is the in-game check.
 --
 -- The engine-driven exceptions, on rect and on block (block is not an effect slot style --
 -- it keeps its own StyleButton branch with a swipe -- but it is single-slot too, see IsSlotMode):
@@ -1122,23 +1127,31 @@ local EFFECT_BUILDERS = {
 -- the aura, because presence is secret and nothing outside the subtree can ask.
 --
 -- The subtree's rules (see EFFECT SLOTS) rule out MiliUIGlow's Start API: pooled frames
--- reparented in, sized by GetSize, driven by OnUpdate/AnimationGroup. Its Attach API is the
--- answer: we make one clean child frame per button in the initializeFrame window, hand it
--- over with the size we already know, and the lib builds fresh textures under it.
---   pixel / shine / normal's ants  -> the lib's external driver pushes the coordinates
---                                     (blind: it never asks the frame whether it is visible)
+-- reparented in, sized by GetSize, moved by a Lua driver. Its Attach API is the answer: we
+-- make one clean child frame per button in the initializeFrame window, hand it over with the
+-- size we already know, and the lib builds fresh textures under it.
+--   pixel / shine / normal's ants  -> declarative AnimationGroups the lib builds AND Plays
+--                                     inside this window (Translation laps / FlipBook). Not
+--                                     scripts, so they keep running C-side while auras are
+--                                     secret (instances, boss fights) -- the old external
+--                                     driver's SetPoint/SetTexCoord was refused there and
+--                                     froze the glow on its last frame
 --   normal's entrance flash, proc  -> AnimationGroups, handed to the ENGINE with
 --                                     AddAuraShownAnimation (it plays them; we never Play)
 -- glowStyle is structural (new textures need the window); glowColor is cosmetic, so a colour
--- drag only restyles (the lib repaints the textures it already has).
+-- drag only restyles (the lib repaints the textures it already has, animations untouched).
 --
 -- glowTiming (every container-backed indicator with a 發光 section: custom buff icon /
 -- icons / rect / block and the built-in cooldown rows): "aura" = the above, lit while the
 -- aura is present.
--- "pandemic" = lit only inside the engine's Pandemic window: every texture the lib drew is
--- handed over with AddPandemicRegion (the engine SetShown's them; the lib is told first via
--- f._glowEngineShown so it never Show/Hides them again), and the AnimationGroups go to
--- AddPandemicEnterAnimation (normal's entrance flash: once on entering) or
+-- "pandemic" = lit only inside the engine's Pandemic window: the glow frame f ITSELF is
+-- handed over with AddPandemicRegion (a Frame passes its "Region" check -- DandersFrames'
+-- dfPandemicHolder is the same move), so the engine SetShown's f and everything the lib
+-- drew under it; the textures and their animations stay ours. ☠ From then on f's Shown is
+-- a secret aspect: never Show/Hide f again (button._glowHolderBound). Fallback if the
+-- frame is refused: every texture the lib drew is handed over one by one instead (the lib
+-- is told first via f._glowEngineShown so it never Show/Hides them). The AnimationGroups
+-- go to AddPandemicEnterAnimation (normal's entrance flash: once on entering) or
 -- AddPandemicActiveAnimation (proc's loop: plays inside, stops on leaving). It does NOT
 -- depend on the Pandemic colour option -- the window is the engine's either way.
 -- Structural: the two timings bind different things, so a change is fresh buttons and the
@@ -1156,7 +1169,8 @@ local function StyleGlow(handle, button, width, height)
     if kind == "none" or not (LCG and LCG.PixelGlow_Attach) then
         if button.dfGlow then
             if LCG and LCG.Glow_Detach then LCG.Glow_Detach(button.dfGlow) end
-            button.dfGlow:Hide()
+            -- a frame handed to AddPandemicRegion is the engine's to show/hide
+            if not button._glowHolderBound then button.dfGlow:Hide() end
         end
         return
     end
@@ -1188,7 +1202,8 @@ local function StyleGlow(handle, button, width, height)
     else
         f:SetAllPoints(button)
     end
-    f:Show()
+    -- anchors/level stay ours after the Pandemic hand-over (only Shown is stamped); Shown not
+    if not button._glowHolderBound then f:Show() end
 
     local anim
     if kind == "pixel" then
@@ -1201,16 +1216,28 @@ local function StyleGlow(handle, button, width, height)
         anim = LCG.ProcGlow_Attach(f, color, gs[2], gw, gh)
     end
     if pandemicTiming then
-        -- textures: the engine owns their visibility from here on (Shown is a secret aspect).
-        -- The driver keeps pushing coordinates blind either way. Hidden before the hand-over,
-        -- like the Pandemic fill: if the engine refuses one, it stays dark instead of
-        -- permanently lit (on success the engine sets it right away).
+        -- visibility: the engine owns it from here on (Shown is a secret aspect). Hidden
+        -- before the hand-over, like the Pandemic fill: if the engine refuses it, it stays
+        -- dark instead of permanently lit (on success the engine sets it right away).
+        -- First choice is f itself: the lib keeps Show/Hide of its own textures and the
+        -- animations under f keep running whether f is shown or not.
         if not button._boundPandemicGlow then
-            button._boundPandemicGlow = true
-            for _, r in ipairs(LCG.Glow_Regions(f)) do
-                r:Hide()
-                pcall(button.AddPandemicRegion, button, r)
+            f:Hide()
+            if pcall(button.AddPandemicRegion, button, f) then
+                button._glowHolderBound = true
+            elseif pcall(f.Show, f) then
+                -- fallback: hand every drawn texture over instead (f._glowEngineShown was
+                -- set before the Attach, so the lib already treats them as engine-owned)
+                for _, r in ipairs(LCG.Glow_Regions(f)) do
+                    r:Hide()
+                    pcall(button.AddPandemicRegion, button, r)
+                end
+            else
+                -- the refusal came after the stamp (Show is already the engine's): treat f
+                -- as handed over rather than write its Shown again
+                button._glowHolderBound = true
             end
+            button._boundPandemicGlow = true
         end
         -- animations: normal's entrance flash plays once on entering the window; proc's loop
         -- plays inside it and stops on leaving (its ProcLoop texture is also a Pandemic
@@ -1878,8 +1905,9 @@ local function ParkOrDiscard(handle)
     local host, c = handle.host, handle.container
     handle.host, handle.container = nil, nil
 
-    -- the glow driver must not keep pushing coordinates for buttons nobody can see; a
-    -- reused host resumes them (see Build), an orphaned one never does
+    -- glow pause hook, paired with Glow_Resume in Build. Currently a no-op in the lib: the
+    -- Attach glows are declarative AnimationGroups with no driver to unsubscribe, and they
+    -- keep playing under a parked host at negligible cost. Kept as the lib's interface.
     local LCG = Cell.MiliUIGlow
     if LCG and LCG.Glow_Suspend then
         for _, b in ipairs(handle.buttons or {}) do

@@ -57,29 +57,40 @@ Cell 的私有表就叫 `Cell`，所以那邊是 `Cell.MiliUIGlow`。
 
 ### Attach API（上游沒有；給 12.1 引擎光環按鈕的子樹用）
 
-AuraButton 的子樹有三條規矩：region 只能在 `initializeFrame` 視窗內建、不能把既有 widget
-reparent 進去、子樹裡的 OnUpdate／AnimationGroup 不 tick。Start 系列全靠池化框 reparent，
-一條都過不了。Attach 系列反過來：**caller 在視窗內建好一個乾淨的子框交進來**，這裡只在它
-底下建全新貼圖，尺寸由 caller 給（子樹裡 `GetSize` 讀回來可能是秘密值），可見度不問
-（driver 對 `_glowBlind` 的框盲推）。
+AuraButton 的子樹規矩：region 只能在 `initializeFrame` 視窗內建、不能把既有 widget
+reparent 進去、光環是秘密值時（副本／首領戰）子樹拒絕**腳本**——OnUpdate 不跑，外部
+driver 對子樹貼圖的 `SetPoint`／`SetTexCoord` 第一次就被拒，畫面凍在最後一格。
+Start 系列全靠池化框 reparent ＋ driver 推座標，一條都過不了。Attach 系列反過來：
+**caller 在視窗內建好一個乾淨的子框交進來**，這裡只在它底下建全新貼圖／子框，尺寸由
+caller 給（子樹裡 `GetSize` 讀回來可能是秘密值），**會動的全是宣告式 AnimationGroup**：
+在視窗內建好、`Play()` 一次、之後不再碰，引擎在 C 端一直播，秘密狀態下照樣動
+（DandersFrames v5.3.3 `AuraContainer.lua` 檔頭第 6 條、`Border.lua` 的 orbit／flipbook）。
+Attach 型**不經過 driver**。
 
 | | 動的部分 |
 |---|---|
-| `PixelGlow_Attach(f, color, N, frequency, length, th, width, height)` | driver 推線 |
-| `AutoCastGlow_Attach(f, color, N, frequency, scale, width, height)` | driver 推點 |
-| `ButtonGlow_Attach(f, color, frequency, width, height)` → 入場閃光的 AnimationGroup | 螞蟻線 driver 推；入場閃光交給引擎（`AddAuraShownAnimation`） |
+| `PixelGlow_Attach(f, color, N, frequency, length, th, width, height)` | 每條線一橫一直兩顆貼圖、各一個 REPEAT 動畫組：Translation 分段繞周長，離框那段 Alpha 保持 0 移到對邊；兩個裁切子框切出轉角的 L 形 |
+| `AutoCastGlow_Attach(f, color, N, frequency, scale, width, height)` | 每顆粒子一個 REPEAT 動畫組，Translation 四段繞周長（第 k 層週期 ×k） |
+| `ButtonGlow_Attach(f, color, frequency, width, height)` → 入場閃光的 AnimationGroup | 螞蟻線是自己 Play 的 REPEAT FlipBook；入場閃光交給引擎（`AddAuraShownAnimation`） |
 | `ProcGlow_Attach(f, color, duration, width, height)` → 循環的 AnimationGroup | 全交給引擎 |
-| `Glow_Suspend(f)` / `Glow_Resume(f)` | 宿主停放／取回：driver 退訂／接回 |
-| `Glow_Detach(f)` | 不再發光：貼圖藏起來、driver 退訂 |
-| `Glow_Regions(f)` → 貼圖清單 | f 上所有會畫東西的貼圖（不含遮罩），給 caller 交給引擎控顯示（`AddPandemicRegion`） |
+| `Glow_Suspend(f)` / `Glow_Resume(f)` | no-op（沒有 driver 可退訂；停放的宿主底下動畫組照播），留著是為了既有呼叫端 |
+| `Glow_Detach(f)` | 不再發光：自己播的動畫組停掉、貼圖藏起來 |
+| `Glow_Regions(f)` → 貼圖清單 | f 上所有會畫東西的貼圖（不含遮罩、裁切子框），給 caller **逐顆**交給引擎控顯示的退路（`AddPandemicRegion`） |
 
-**`f._glowEngineShown`**：caller 在 Attach **之前**設 true，表示這顆 f 的貼圖要交給引擎控
-顯示。交出去之後 Shown 是 secret aspect，lib 對這些貼圖一律不再 `Show`／`Hide`，
-要藏改寫 alpha（`AttachTextures`、`PixelGlow_Attach` 的底、`Glow_Detach`）。
+**無損刷新時機**：首選是把 **f 本身**交給 `AddPandemicRegion`（Frame 過得了 `Region`
+檢查），引擎控 f 的 Shown，f 底下的貼圖與動畫組照舊歸 lib；交出去之後 caller 不能再
+`Show`／`Hide` f。f 被拒才退回逐顆交貼圖。
+
+**`f._glowEngineShown`**：caller 在 Attach **之前**設 true，表示這顆 f 的貼圖可能被逐顆交給
+引擎控顯示（上面的退路）。交出去的貼圖 Shown 是 secret aspect，所以旗標開著時 lib 一律
+不再 `Show`／`Hide` 貼圖，要藏改寫 alpha（`AttachTextures`、`PixelGlow_Attach` 的底、
+`Glow_Detach`）。
 
 `width`／`height` 是 **f 自己的大小**（Normal／Proc 照上游把 f 開成按鈕的 1.4 倍）。
-重複呼叫安全：貼圖只在缺的時候建，顏色／週期每次更新。第一個消費者是 Cell 的
-`RaidFrames/AuraDisplay.lua`（`StyleGlow`）。
+重複呼叫安全：貼圖／動畫組只在缺的時候建；改顏色只重上色、動畫不重來；週期變了
+Stop→改 Duration→Play；幾何（尺寸、數量、線長、粗細、方向）變了才建新的動畫組
+（舊的停在原處，動畫組刪不掉）。第一個消費者是 Cell 的 `RaidFrames/AuraDisplay.lua`
+（`StyleGlow`）。
 
 ## 跟上游 LibCustomGlow v25 的差別
 
@@ -88,7 +99,7 @@ reparent 進去、子樹裡的 OnUpdate／AnimationGroup 不 tick。Start 系列
 1. **不註冊到 LibStub**，改掛在插件私有表上。
 2. **三個各自的 OnUpdate 收成一支共用 driver，閘在 60fps。**
    上游對每一個發光各掛一個沒有節流的 OnUpdate，成本跟玩家的幀數成正比。
-3. **多一組 Attach API**（上面），Start 系列一行沒動。
+3. **多一組 Attach API**（上面，宣告式動畫、不經過 driver），Start 系列一行沒動。
 
 driver 的三個要點，改的時候不要弄丟：
 
