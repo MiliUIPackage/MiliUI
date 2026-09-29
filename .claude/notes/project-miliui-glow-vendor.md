@@ -73,3 +73,7 @@ LibCustomGlow 出新版**不要直接覆蓋**：拿新版對 v25 做 diff，把�
 ## Attach API 的引擎控顯示模式（2026-09-29）
 
 `lib.Glow_Regions(f)` 回傳 f 上所有會畫東西的貼圖（textures[]／bg／spark／outerGlow／ants／ProcLoop，MaskTexture 不算），給 caller 交 `AuraButton:AddPandemicRegion`。caller 在 Attach **之前**設 `f._glowEngineShown = true`：交出去的貼圖 Shown 是 secret aspect，lib 從此不再對它們 Show／Hide（AttachTextures、PixelGlow_Attach 的 bg、Glow_Detach 全改寫 alpha）。本體與 Cell 兩份逐位元相同，改本體再 cmp。
+
+## Attach 發光改宣告式 AnimationGroup（2026-09-29，未實機驗證）
+
+副本裡發光凍住的成因：光環秘密時 AuraButton 子樹 forbidden，外部 driver 對子樹貼圖的 SetPoint／SetTexCoord 被拒，pcall 踢掉就停在最後一格。改法照 DandersFrames：**宣告式 AnimationGroup 不是腳本，在 initializeFrame 視窗內建好、Play 一次、不再碰，引擎在 C 端一直播**。像素＝每條線一橫一直兩顆貼圖各一組（Translation 分段繞周長＋Alpha 保持換向，`BuildLegLoop`；兩個 `SetClipsChildren` 子框切 L 形）、閃耀＝每顆粒子一組繞周長、一般螞蟻線＝FlipBook（5×5、22 格、48px）。重複 Attach 只改色；週期變了 Stop→改 Duration→Play；幾何變了重建（舊組 Stop 留著，動畫組刪不掉）。`Glow_Suspend`／`Resume` 對 Attach 型是 no-op。無損刷新時機改交整個 f 給 `AddPandemicRegion`（Frame 可以；DF 交的就是 Frame），退路才逐顆貼圖。driver 裡的 `_glowBlind` 分支與 `pUpdate`／`acUpdate` 的 `fixedW` 分支變死碼（Start 系列一行不動的代價）。

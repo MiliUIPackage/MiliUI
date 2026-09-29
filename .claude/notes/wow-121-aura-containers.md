@@ -152,7 +152,7 @@ fmt:AddBreakpoint({ threshold = 1, step = 1,   rounding = down, min = 1, format 
 
 **舊版 fallback＝把色碼烤進 formatter 格式字串（`|cffXXXXXX%d|r`）**，但這條在 **68914 的 `SetDurationText` 上不上色**（實測 formatter 版沒生效；DF 也把 curve 與 |c formatter 視為「二擇一」，新版用 curve、舊版用 |c）。所以**不要用 formatter 色碼當新版的解**。若真要支援舊版，得像 DF 用 `supportsDurationTextBinding()` 之類的探針分流。
 
-其他限制不變：`textColor` 只有 live SetDurationText 這條路（想自己 `C_DurationUtil.CreateDurationTextBinding()` 建 binding 物件僅限 test/preview，live aura 拿不到那個物件）；百分比門檻做不到（要總時長＝secret）；按鈕子樹內 `OnUpdate`/`AnimationGroup` 裝得上但不 tick（onUpdateMode=disabled 傳染），效果型只能靜態。
+其他限制不變：`textColor` 只有 live SetDurationText 這條路（想自己 `C_DurationUtil.CreateDurationTextBinding()` 建 binding 物件僅限 test/preview，live aura 拿不到那個物件）；百分比門檻做不到（要總時長＝secret）；按鈕子樹內 `OnUpdate` 不 tick（onUpdateMode=disabled 傳染）；**AnimationGroup 那半是錯的**——DandersFrames 2026-08-27 更正：宣告式動畫組不是腳本，視窗內建好 Play 一次就由引擎 C 端一直播（它的邊框動畫戰鬥中照動）。MiliUIGlow 的 Attach 發光 2026-09-29 照這條改寫，**實機待驗**（`/cab probe anim`）。
 
 **查這類結構的正確位置**：`Interface/AddOns/Blizzard_APIDocumentationGenerated/*Documentation.lua`（`AuraContainerUtilDocumentation`、`DurationTextBindingSharedDocumentation`、`StringUtilDocumentation`…）。`C_*.Process*Options({})` 回空表問不出欄位；wiki 也沒有這層細節。
 
