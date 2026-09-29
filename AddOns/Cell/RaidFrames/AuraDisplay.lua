@@ -1136,8 +1136,12 @@ local EFFECT_BUILDERS = {
 --                                     secret (instances, boss fights) -- the old external
 --                                     driver's SetPoint/SetTexCoord was refused there and
 --                                     froze the glow on its last frame
---   normal's entrance flash, proc  -> AnimationGroups, handed to the ENGINE with
---                                     AddAuraShownAnimation (it plays them; we never Play)
+--   proc's loop                    -> the same: a REPEAT FlipBook the lib plays itself
+--                                     (handing it to the engine's shown-animation let a
+--                                     Stop leave alpha 1 + frame 0 = the whole sheet as
+--                                     a grid of dots)
+--   normal's entrance flash        -> one-shot AnimationGroup, handed to the ENGINE with
+--                                     AddAuraShownAnimation (it plays it; we never Play)
 -- glowStyle is structural (new textures need the window); glowColor is cosmetic, so a colour
 -- drag only restyles (the lib repaints the textures it already has, animations untouched).
 --
@@ -1151,9 +1155,9 @@ local EFFECT_BUILDERS = {
 -- a secret aspect: never Show/Hide f again (button._glowHolderBound). Fallback if the
 -- frame is refused: every texture the lib drew is handed over one by one instead (the lib
 -- is told first via f._glowEngineShown so it never Show/Hides them). The AnimationGroups
--- go to AddPandemicEnterAnimation (normal's entrance flash: once on entering) or
--- AddPandemicActiveAnimation (proc's loop: plays inside, stops on leaving). It does NOT
--- depend on the Pandemic colour option -- the window is the engine's either way.
+-- normal's entrance flash goes to AddPandemicEnterAnimation (once on entering); proc's
+-- loop plays on its own under f like every other declarative glow. It does NOT depend on
+-- the Pandemic colour option -- the window is the engine's either way.
 -- Structural: the two timings bind different things, so a change is fresh buttons and the
 -- bind-once flags start from zero. A client without AddPandemicRegion (12.1.0) falls back
 -- to "aura" and notes it in handle._errors.
@@ -1239,15 +1243,12 @@ local function StyleGlow(handle, button, width, height)
             end
             button._boundPandemicGlow = true
         end
-        -- animations: normal's entrance flash plays once on entering the window; proc's loop
-        -- plays inside it and stops on leaving (its ProcLoop texture is also a Pandemic
-        -- region above, so it is gone on leaving even if Stop leaves the alpha up)
+        -- animations: normal's entrance flash plays once on entering the window (the only
+        -- glow animation still handed to the engine -- the loops play on their own under f)
         if anim and not button._boundGlowAnim then
             button._boundGlowAnim = true
             if kind == "normal" and button.AddPandemicEnterAnimation then
                 pcall(button.AddPandemicEnterAnimation, button, anim)
-            elseif kind == "proc" and button.AddPandemicActiveAnimation then
-                pcall(button.AddPandemicActiveAnimation, button, anim)
             end
         end
     -- bind-once, flagged only after the call returns (same rule as the other binds)

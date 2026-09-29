@@ -1111,8 +1111,9 @@ lib.stopList["Proc Glow"] = lib.ProcGlow_Stop
 --      v5.3.3 AuraContainer.lua 檔頭第 6 條；Border.lua 的 orbit／march／flipbook 同一招）。
 --        像素線、閃耀點：每顆貼圖一個 REPEAT 動畫組，Translation 分段繞周長（BuildLegLoop）
 --        一般的螞蟻線：REPEAT 的 FlipBook（取代 AnimateTexCoords）
---        一般的入場閃光、Proc 的循環：回傳給 caller 交給引擎播（AddAuraShownAnimation
---        等），這裡不 Play
+--        Proc 的循環：REPEAT 的 FlipBook，同樣自己播
+--        一般的入場閃光：一次性，回傳給 caller 交給引擎播（AddAuraShownAnimation 等），
+--        這裡不 Play
 --
 --  重複呼叫（改顏色的 restyle）只改顏色；週期變了才 Stop→改 Duration→Play；幾何（尺寸、
 --  數量、線長、粗細、方向）變了才建新的動畫組（舊的 Stop 掉留在原處——動畫組刪不掉）。
@@ -1505,9 +1506,9 @@ function lib.ButtonGlow_Attach(f, color, frequency, width, height)
     return f.animIn
 end
 
--- ProcGlow 的循環段（Cell 只用循環，startAnim=false）：REPEAT 的翻頁動畫組回傳給 caller
--- 交給引擎播。ProcLoop 的 alpha 起點 0，動畫組第一步把它拉到 1 且 SetToFinalAlpha ——
--- 引擎沒播就什麼都看不到（失效方向是「沒有發光」，不是「卡一張定格」）。
+-- ProcGlow 的循環段（Cell 只用循環，startAnim=false）：REPEAT 的翻頁動畫組，這裡自己播
+-- （見函式尾）。ProcLoop 的 alpha 起點 0，動畫組第一步把它拉到 1 且 SetToFinalAlpha ——
+-- 沒播就什麼都看不到（失效方向是「沒有發光」，不是「卡一張定格」）。
 function lib.ProcGlow_Attach(f, color, duration, width, height)
     if not f then return end
     AttachKind(f, "proc")
@@ -1545,8 +1546,13 @@ function lib.ProcGlow_Attach(f, color, duration, width, height)
         f.ProcLoop:SetDesaturated(nil)
         f.ProcLoop:SetVertexColor(1, 1, 1, 1)
     end
-    f.ProcLoopAnim.flipbookRepeat:SetDuration(duration or 1)
-    return f.ProcLoopAnim
+    -- 自己播，跟像素／閃耀／螞蟻線同一套（2026-09-29 之前交給引擎的 AddAuraShownAnimation
+    -- 播：引擎一 Stop，SetToFinalAlpha 把 alpha 留在 1、FlipBook 退回第一格 ⇒ 整張 5×6 圖集攤開
+    -- 畫成一格格的小點）。REPEAT 動畫組自己播就不會被停；顯不顯示交給按鈕／f 的可見度。
+    f._glowAnims, f._glowTimed = { f.ProcLoopAnim }, { f.ProcLoopAnim.flipbookRepeat, 1 }
+    RetimeAnims(f, duration or 1)
+    PlayAnims(f)
+    return nil   -- 沒有東西要交給引擎
 end
 
 -- 宿主停放／取回：Attach 型沒有 driver 可退訂，停放的宿主底下動畫組照播（引擎在 C 端

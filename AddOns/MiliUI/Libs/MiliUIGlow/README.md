@@ -72,7 +72,7 @@ Attach 型**不經過 driver**。
 | `PixelGlow_Attach(f, color, N, frequency, length, th, width, height)` | 每條線一橫一直兩顆貼圖、各一個 REPEAT 動畫組：Translation 分段繞周長，離框那段 Alpha 保持 0 移到對邊；兩個裁切子框切出轉角的 L 形 |
 | `AutoCastGlow_Attach(f, color, N, frequency, scale, width, height)` | 每顆粒子一個 REPEAT 動畫組，Translation 四段繞周長（第 k 層週期 ×k） |
 | `ButtonGlow_Attach(f, color, frequency, width, height)` → 入場閃光的 AnimationGroup | 螞蟻線是自己 Play 的 REPEAT FlipBook；入場閃光交給引擎（`AddAuraShownAnimation`） |
-| `ProcGlow_Attach(f, color, duration, width, height)` → 循環的 AnimationGroup | 全交給引擎 |
+| `ProcGlow_Attach(f, color, duration, width, height)` → 回傳 nil | 循環的 FlipBook 自己播（同像素／閃耀） |
 | `Glow_Suspend(f)` / `Glow_Resume(f)` | no-op（沒有 driver 可退訂；停放的宿主底下動畫組照播），留著是為了既有呼叫端 |
 | `Glow_Detach(f)` | 不再發光：自己播的動畫組停掉、貼圖藏起來 |
 | `Glow_Regions(f)` → 貼圖清單 | f 上所有會畫東西的貼圖（不含遮罩、裁切子框），給 caller **逐顆**交給引擎控顯示的退路（`AddPandemicRegion`） |
