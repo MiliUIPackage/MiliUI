@@ -528,8 +528,8 @@ end
 -- AddPandemicRegion); here -- options preview and manual fallback -- "the last 30%" stands
 -- in for it, same as the Pandemic colour band, and independent of whether that colour is on.
 -- The options PREVIEW (frame._isPreview, set by the Indicators page): "aura" is lit the
--- whole time, as in game; "pandemic" blinks on a 2s cycle (1s lit, 1s dark) instead of
--- waiting for the window, so the player sees the picked glow right away and keeps seeing it.
+-- whole time, as in game; "pandemic" blinks 2s lit / 2s dark instead of waiting for the
+-- window, so the player sees the picked glow right away and keeps seeing it.
 local function GlowWindowed(frame)
     return frame.glowTiming == "pandemic"
 end
@@ -544,9 +544,9 @@ end
 -- "inside the glow window" from the running countdown; callers only ask when GlowWindowed
 local function GlowWindowNow(frame)
     if frame._isPreview then
-        -- 2s blink from the start of the preview cycle: lit first, so a type change (which
-        -- restarts the cycle) shows the new glow immediately
-        return ((frame._duration - frame._remain) % 2) < 1
+        -- 2s lit / 2s dark from the start of the preview cycle: lit first, so a type change
+        -- (which restarts the cycle) shows the new glow immediately
+        return ((frame._duration - frame._remain) % 4) < 2
     end
     return frame._remain <= frame._duration * 0.3
 end
