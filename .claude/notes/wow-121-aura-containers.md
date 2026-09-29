@@ -327,7 +327,7 @@ Cell 矩形指示器的「剩餘 < 50%／< 3 秒變色」在 2026-08-27（3f727e
 
 細節（`Features/Expiration.lua`、`Features/Auras.lua` 的 `GetExpiryBorderElementFormatter`／`borderEscapeHex`）：
 - 貼圖是白色遮罩 TGA（`DF_ExpireBorder_Fill` 是 50% alpha 的實心塊；外框三種粗細各一張，位圖縮放不能改線寬）。
-- **`|T` 在 FontString 裡量出來約是容器像素的 0.75 倍**（固定偏移，跟 UI scale 無關），所以要蓋滿圖示得把 h/w 烤成 `邊長 × 0.75`；透明度用 region alpha。
+- **`|T` 在 FontString 裡的實際尺寸跟要求值差一個環境相關的係數**：DF 量到 0.75（他們烤 `邊長 × 0.75`），Cell 這邊實機量到約 0.5（2026-09-29，紅帶只有內框一半寬）。**別烤比例**：要求值開大幾倍、holder `SetClipsChildren(true)` 裁到目標框就跟係數無關（Cell `BuildBandSlot` 的 `BAND_OVERSCAN = 3`）。透明度用 region alpha。
 - formatter 綁定後凍結（bind-once），改門檻／顏色／尺寸都算結構變更要重建槽。
 - 預覽與實機走同一條 BuildDurationSpec，DF 明文記錄兩次「預覽另開渲染入口」都出過事。
 - DF 的 pandemic 走 `AddPandemicRegion`（Tint／Border 兩種、可閃爍），跟到期警示並存；zhTW 譯「延續判定」。
