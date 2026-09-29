@@ -54,6 +54,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             local db = DiGuaTimelineAudioHelper
             if db.enabled == nil then db.enabled = true end
             if db.ringEnabled == nil then db.ringEnabled = true end
+            if db.raidRingDisabled == nil then db.raidRingDisabled = false end -- 团本战斗中关闭倒计时圆环（默认不勾选）
             if db.ringX == nil then db.ringX = 0 end -- 倒计时圆环定位框 X（默认居中，拖动后保存）
             if db.ringY == nil then db.ringY = 0 end -- 倒计时圆环定位框 Y
             if db.tenSecCountDown == nil then db.tenSecCountDown = false end
@@ -78,6 +79,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if db.nameplateTotemTextEnabled == nil then db.nameplateTotemTextEnabled = true end -- 姓名板显示"图腾"文字（默认开）
             if db.normalAuraSoundEnabled == nil then db.normalAuraSoundEnabled = true end -- 光环音效总开关（默认开：光环有声）
             if db.jingBaoSoundEnabled == nil then db.jingBaoSoundEnabled = true end -- 踩地板警报音（默认开：JingBao 警报音正常注册）
+            if db.cinematicSkipEnabled == nil then db.cinematicSkipEnabled = true end -- 自动跳过过场动画（默认勾选=跳过；取消勾选=动画正常播放）
 
             self:UnregisterEvent("ADDON_LOADED")
         end
@@ -92,6 +94,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if addonTable.ClearAllTimelineSounds then addonTable.ClearAllTimelineSounds() end
         if addonTable.RegisterAllTimelineSounds then addonTable.RegisterAllTimelineSounds() end
 
+        -- 普通光环音效（NormalAuraSound.lua）必须在登录后注册一次
+        -- 以前只有「控制台改相关开关」或「没勾选首领语音时的首领战结束」才会走到注册，
+        -- 而 bossVoiceEnabled 默认是勾选的 → 上线 / 重载 UI 后普通光环音效整场都不会响
+        -- （内部自带战斗锁定 / 副本 secret 状态的挂起补做，受限时会自动延后）
+        if addonTable.RegisterNormalAuras then addonTable.RegisterNormalAuras() end
+
         -- 自动开启暴雪文字预警：仅在控制台勾选“自动开启暴雪文字预警”时才强制打开
         -- （勾选状态保存在 db.forceEncounterWarnings，默认 true）
         if DiGuaTimelineAudioHelper.forceEncounterWarnings and not C_AddOns.IsAddOnLoaded("BigWigs") then
@@ -102,13 +110,14 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         -- 打印欢迎信息
         C_Timer.After(2, function()
-            --print("感謝使用|cFF00FF00[神秘地瓜副本語音插件]|r如果覺得好用，請在|cFFFFA6D5「愛發電」|r平台搜索|cFFFFFF00「神秘地瓜」|r支持我的插件，您的支持就是我最大的動力。/digua 可開啟控制台")
+            print("感谢使用|cFF00FF00[神秘地瓜副本语音插件]|r/digua 可开启控制台")
         end)
 
         -- 同步 UI 控件勾选状态
         if DiGuaTimelineMainFrame then
             DiGuaTimelineEnableCheck:SetChecked(DiGuaTimelineAudioHelper.enabled)
             DiGuaTimelineRingCheck:SetChecked(DiGuaTimelineAudioHelper.ringEnabled)
+            DiGuaTimelineRaidRingCheck:SetChecked(DiGuaTimelineAudioHelper.raidRingDisabled) -- 同步"团本中关闭倒计时圆环"
             DiGuaTimelineChannelCheck:SetChecked(DiGuaTimelineAudioHelper.audioChannel == "Ambience")
             DiGuaTimelineTenSecCheck:SetChecked(DiGuaTimelineAudioHelper.tenSecCountDown)
             DiGuaTimelineCoTankCheck:SetChecked(DiGuaTimelineAudioHelper.coTankAuraEnabled)
@@ -125,6 +134,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             DiGuaTimelineAuraSoundCheck:SetChecked(not DiGuaTimelineAudioHelper.normalAuraSoundEnabled) -- 同步“关闭光环音效”（勾选=关）
             DiGuaTimelineJingBaoSoundCheck:SetChecked(not DiGuaTimelineAudioHelper.jingBaoSoundEnabled) -- 同步“关闭踩地板警报音”（勾选=关）
             DiGuaTimelineBossHealthPctCheck:SetChecked(DiGuaTimelineAudioHelper.bossHealthCenterEnabled) -- 同步首领转阶段血量百分比
+            DiGuaTimelineCinematicSkipCheck:SetChecked(DiGuaTimelineAudioHelper.cinematicSkipEnabled) -- 同步自动跳过过场动画
         end
 
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -140,7 +150,7 @@ end)
 
 -- 4. 控制台 UI 界面构建
 local f = CreateFrame("Frame", "DiGuaTimelineMainFrame", UIParent, "BasicFrameTemplateWithInset")
-f:SetSize(470, 400) -- 加宽为左右两栏布局：左听觉 / 右视觉
+f:SetSize(470, 440) -- 加宽为左右两栏布局：左听觉 / 右视觉（高度 440：右栏底部多一个「自动跳过过场动画」）
 f:SetPoint("CENTER")
 f:SetMovable(true)
 f:EnableMouse(true)
@@ -204,7 +214,12 @@ end
 -- ===== 左栏：听觉 =====
 local cb = CreateCheckButton("DiGuaTimelineEnableCheck", "啟用語音", 20, -55, function(self)
     DiGuaTimelineAudioHelper.enabled = self:GetChecked()
-    RefreshMediaPath()
+    RefreshMediaPath() -- 先换路径（关闭时切到静音目录），下面的重新登记才会用上新路径
+    -- 注册式音效（首领语音 SetEventSound / 光环音效 AddAuraSound）的音频路径是“登记时烘死”的：
+    -- 只换 MEDIA_PATH 而不重新登记的话，已经登记过的音（含 JingBao / alarmbeep / BuBu 警报）
+    -- 会继续按旧路径响到下次登录/重载为止。这里与切声道、禁用团本语音走同一套刷新。
+    if addonTable.ReloadTimelineSounds then addonTable.ReloadTimelineSounds() end
+    if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
     print("|cffffd100[DiGua]|r 整體音效狀態: " .. (DiGuaTimelineAudioHelper.enabled and "|cff00ff00已開啟|r" or "|cffff0000已禁用|r"))
 end)
 
@@ -265,7 +280,7 @@ end)
 local cbJingBaoSound = CreateCheckButton("DiGuaTimelineJingBaoSoundCheck", "關閉踩地板警報音", 20, -255, function(self)
     local disabled = self:GetChecked()
     DiGuaTimelineAudioHelper.jingBaoSoundEnabled = not disabled
-    -- 先整體注銷、再按開關重新注冊（戰斗鎖定 / 副本 secret 狀態會自動延後補做）
+    -- 先整体注销、再按开关重新注册（战斗锁定 / 副本 secret 状态会自动延后补做）
     if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
     print("|cffffd100[DiGua]|r 踩地板警報音: " .. (disabled and "|cffff0000已關閉（JingBao 警報音靜音）|r" or "|cff00ff00已開啟|r"))
 end)
@@ -289,7 +304,7 @@ local cbRaidVoice = CreateCheckButton("DiGuaTimelineRaidVoiceCheck", "禁用團�
     print("|cffffd100[DiGua]|r 禁用團本語音: " .. (disabled and "|cffff0000已勾選（團本首領語音靜音）|r" or "|cff00ff00未勾選（正常播放）|r"))
 end)
 
--- 跳过过场动画（SkipCinematic.lua）：仅在指定副本的大秘境环境下自动生效，无控制台开关
+-- 跳过过场动画（SkipCinematic.lua）：总开关见右栏「自动跳过过场动画」（默认勾选=自动跳过）
 
 -- ===== 右栏：视觉 =====
 local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "顯示倒計時圓環", 250, -55, function(self)
@@ -303,6 +318,19 @@ local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "顯示倒計時圓�
     print("|cffffd100[DiGua]|r 倒計時圓環圖示狀態: " .. (DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已顯示|r" or "|cffff0000已隱藏|r"))
     -- 同步半透明拖动定位框（勾选且控制台打开时显示，供拖动调整圆环位置）
     if addonTable.RefreshRingAnchor then addonTable.RefreshRingAnchor(f:IsShown()) end
+end)
+
+-- 团本中关闭倒计时圆环（勾选=团本战斗中不再显示任何倒计时圆环；默认不勾选=团本正常显示）
+-- 只拦倒计时圆环，语音播报 / 中央倒计时 / 首领血量等都不受影响
+-- 判定在 Utils.lua 的 StartCircleTimerBySeconds 内部统一生效，所以所有调用点都被覆盖
+local cbRaidRing = CreateCheckButton("DiGuaTimelineRaidRingCheck", "團本中關閉倒計時圓環", 250, -360, function(self)
+    local disabled = self:GetChecked()
+    DiGuaTimelineAudioHelper.raidRingDisabled = disabled
+    -- 勾選時立刻清掉正在顯示的圓環
+    if disabled and addonTable.ForceHideRingFrame then
+        addonTable.ForceHideRingFrame()
+    end
+    print("|cffffd100[DiGua]|r 團本中關閉倒計時圓環: " .. (disabled and "|cffff0000已勾選（團本戰鬥中不顯示圓環）|r" or "|cff00ff00未勾選（團本正常顯示）|r"))
 end)
 
 local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦私有光環監控(暫時無法使用)", 250, -80, function(self)
@@ -393,6 +421,14 @@ local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "�
     DiGuaTimelineAudioHelper.bossHealthCenterEnabled = isEnabled
     if addonTable.SetBossHealthEnabled then addonTable.SetBossHealthEnabled(isEnabled) end
     print("|cffffd100[DiGua]|r 首領轉階段血量百分比: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
+end)
+
+-- 自動跳過過場動畫（SkipCinematic.lua 總開關；默認勾選=自動跳過，取消勾選=動畫正常播放）
+-- 生效范圍不受本開關改變：仍然只在指定副本 / 難度下才會真的跳過（諸王之眠大秘境、烈毒之淵英雄/史詩）
+local cbCinematicSkip = CreateCheckButton("DiGuaTimelineCinematicSkipCheck", "自動跳過過場動畫", 250, -385, function(self)
+    local isEnabled = self:GetChecked()
+    DiGuaTimelineAudioHelper.cinematicSkipEnabled = isEnabled
+    print("|cffffd100[DiGua]|r 自動跳過過場動畫: " .. (isEnabled and "|cff00ff00已開啟（指定副本內自動跳過）|r" or "|cffff0000已關閉（動畫正常播放）|r"))
 end)
 
 -- 主音量滑块（映射魔兽系统主音量 Sound_MasterVolume，范围 0-1，显示 0%-100%）

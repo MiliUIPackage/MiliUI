@@ -180,7 +180,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
             and addonTable.SpellChannelCounter[unitTarget] == nil
             then addonTable.SpellChannelCounter[unitTarget] = true
-            addonTable.CustomEncounterBar(460952, 26.6, "控斷小怪", unitTarget)
+            addonTable.CustomEncounterBar(460952, 26.6, "控斷小怪", unitTarget, "ff8000")
             PlaySoundFile(addonTable.GetMediaPath() .. "KongDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) 
             C_Timer.After(26, function() addonTable.SpellChannelCounter[unitTarget] = nil end) end
 
@@ -544,7 +544,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and UnitAffectingCombat(unitTarget) == true -- 在战斗中
             and not select(2, UnitCreatureFamily(unitTarget)) -- 不是生物家族
             and not UnitSpellTargetName(unitTarget) -- 法术没目标
-            then addonTable.CustomEncounterBar(133580, 25.5, "控斷小怪", unitTarget)
+            then addonTable.CustomEncounterBar(133580, 25.5, "控斷小怪", unitTarget, "ff8000")
             PlaySoundFile(addonTable.GetMediaPath() .. "KongDuanXiaoGuai.ogg", DiGuaTimelineAudioHelper.audioChannel) return end
 
 

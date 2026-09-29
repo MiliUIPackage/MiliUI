@@ -82,6 +82,11 @@ function addonTable.GetPlayerSpecID()
     return select(1, GetSpecializationInfo(specIndex))
 end
 
+-- 获取玩家职业代码（如 "WARRIOR" / "PALADIN" / "DRUID"；拿不到时返回 nil）
+function addonTable.GetPlayerClass()
+    return UnitClassBase("player")
+end
+
 -- 坦克专精播报豁免名单：这些专精虽然是坦克，但仍按“非坦克”处理（照常播报）
 -- 66  = 圣骑士-防护（防骑）
 -- 268 = 武僧-酒仙
@@ -210,6 +215,7 @@ local FIXED_DEFAULT_PATH_SOUNDS = {
 -- 匹配规则：当前联动语音包名中包含下列关键字（大小写不敏感）即视为豁免。
 local FIXED_OVERRIDE_EXEMPT_PACK_KEYWORDS = {
     "TTNX", -- 如 "DiGua-TTNX"
+    "YAGI", -- 如 "DiGua-TTNX"
 }
 
 -- 当前联动的语音包是否属于豁免名单
@@ -223,9 +229,19 @@ local function IsFixedOverrideExempt()
     return false
 end
 
+-- 总开关（控制台“启用语音”）是否处于关闭状态
+-- 关闭时 Core.lua 会把 MEDIA_PATH 换成不存在的 Mute 目录 → 播放即静音。
+-- ⚠️ 固定默认路径音效默认会绕过 MEDIA_PATH，所以必须单独判一次，
+--    否则关掉插件后 alarmbeep / JingBao / BuBu 还会照常响（圆环警报、踩地板警报都属这一类）。
+local function IsAddonSoundMuted()
+    local db = DiGuaTimelineAudioHelper
+    return db ~= nil and db.enabled == false
+end
+
 --- 获取音频完整路径（带固定默认路径覆盖，豁免语音包除外）
 --- 传入 "xxx.ogg" 文件名，返回完整路径。
 --- 若文件名命中固定列表：
+---   · 总开关“启用语音”已关闭            → 不覆盖，走静音目录（关掉插件后这些音也必须一起哑）
 ---   · 语音包属于豁免名单（如 DiGua-TTNX）→ 不做覆盖，跟随当前语音包 Media 目录
 ---   · 其余情况                          → 强制使用内置默认 Media 目录（不被语音包替换）
 --- 未命中固定列表时使用当前语音包/内置路径。
@@ -233,12 +249,17 @@ end
 --- GetMediaPath / GetDefaultMediaPath / GetVoicePackName（加载顺序靠后）也不受影响。
 function addonTable.GetSoundFullPath(fileName)
     local path
-    if FIXED_DEFAULT_PATH_SOUNDS[fileName:lower()] and not IsFixedOverrideExempt() then
+    if (not IsAddonSoundMuted()) and FIXED_DEFAULT_PATH_SOUNDS[fileName:lower()] and not IsFixedOverrideExempt() then
         local defaultPath = addonTable.GetDefaultMediaPath and addonTable.GetDefaultMediaPath()
         path = defaultPath and (defaultPath .. fileName) or nil
     end
     if not path then
-        path = addonTable.GetMediaPath() .. fileName
+        local mediaPath = addonTable.GetMediaPath()
+        -- MEDIA_PATH 由 Core.lua 在 PLAYER_LOGIN 才赋值，之前是 nil：退回内置目录，别拼出 nil 报错
+        if mediaPath == nil and addonTable.GetDefaultMediaPath then
+            mediaPath = addonTable.GetDefaultMediaPath()
+        end
+        path = mediaPath and (mediaPath .. fileName) or nil
     end
     -- 最后再过一遍“语音包缺文件兜底”：语音包没有这只语音就换成本体同名语音
     -- （固定路径音效本来就在本体目录，不受影响）
@@ -528,6 +549,35 @@ cd:SetHideCountdownNumbers(true)
 cd:SetBlingTexture("")
 
 -- ============================================================
+-- 拖动定位通用工具（各模块的「可拖动定位框」共用）
+-- ============================================================
+-- ⚠️ 大坑（部分玩家反馈「改完位置保存不上」的根因）：
+--   StopMovingOrSizing() 会把框架重新锚定到离它最近的 UIParent 点上：
+--   * 拖到屏幕中间附近 → 锚点仍是 CENTER / UIParent CENTER，
+--     GetPoint() 的 x, y 正好是「相对屏幕中心的偏移」（现有存档格式）；
+--   * 拖到靠边/靠角 → 锚点会变成 LEFT / RIGHT / TOPLEFT / TOPRIGHT 之类，
+--     此时 GetPoint() 的 x, y 变成「离 UIParent 某条边的距离」（例如距左边 132），
+--     再按 CENTER/CENTER 偏移还原 → 框架会跑回屏幕中间附近（拖得越远越明显）。
+-- 解法：松手后立刻把锚点规整回 CENTER/CENTER（视觉位置不变），存档语义就恒定不变。
+-- 前提：这些定位框都是 UIParent 的直接子框、与 UIParent 同缩放（插件内全部满足）。
+
+-- 把框架锚点规整为「相对 UIParent 中心的偏移」，返回可直接写存档的 x, y（视觉位置不变）
+function addonTable.NormalizeFrameToUIParentCenter(frame)
+    local _, _, x, y = frame:GetPoint(1) -- 兜底：拿不到屏幕坐标时沿用原始偏移（老行为）
+    if type(x) ~= "number" then x = 0 end
+    if type(y) ~= "number" then y = 0 end
+    local left, bottom = frame:GetLeft(), frame:GetBottom()
+    local uiLeft, uiBottom = UIParent:GetLeft(), UIParent:GetBottom()
+    if left and bottom and uiLeft and uiBottom then
+        x = left + frame:GetWidth() / 2 - uiLeft - UIParent:GetWidth() / 2
+        y = bottom + frame:GetHeight() / 2 - uiBottom - UIParent:GetHeight() / 2
+    end
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", x, y)
+    return x, y
+end
+
+-- ============================================================
 -- 倒计时圆环：可移动半透明定位框（控制台 /digua 打开且勾选"显示倒计时圆环"时显示）
 -- 拖动定位框即可调整圆环出现在屏幕上的位置，松开后自动保存（同其它模块模式）
 -- ============================================================
@@ -572,7 +622,8 @@ RingEditFrame:SetScript("OnMouseUp", function(self)
     if not self.moving then return end
     self:StopMovingOrSizing()
     self.moving = false
-    local _, _, _, x, y = self:GetPoint()
+    -- 规整锚点（拖到靠边时 GetPoint 的 x,y 变成「离边的距离」，直接当中心偏移用会跑偏）
+    local x, y = addonTable.NormalizeFrameToUIParentCenter(self)
     DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
     DiGuaTimelineAudioHelper.ringX, DiGuaTimelineAudioHelper.ringY = x, y
     ApplyRingPosition() -- 让真正显示的圆环也立刻同步到新位置
@@ -620,6 +671,14 @@ addonTable.ForceHideRingFrame = ForceHideRingFrame
 
 -- 启动光圈倒计时 (增加 checkCast 参数)
 function addonTable.StartCircleTimerBySeconds(seconds, checkCast, PlayerIsSpellTarget)
+    -- 团本战斗中关闭倒计时圆环（控制台“团本中关闭倒计时圆环”，默认不勾选）
+    -- 放在最前面统一拦截：所有调用点（EncounterWarning / EncounterTimeline / UNIT_SPELLCAST_* …）都生效
+    local db = DiGuaTimelineAudioHelper
+    if db and db.raidRingDisabled then
+        local _, instanceType = GetInstanceInfo()
+        if instanceType == "raid" and UnitAffectingCombat("player") then return end
+    end
+
     local duration = tonumber(seconds)
     if not duration or duration <= 0 then return end
     if PlayerIsSpellTarget == nil then PlayerIsSpellTarget = true end
@@ -723,7 +782,7 @@ statusBar:SetMinMaxValues(0, 1)
 statusBar:SetValue(1)
 
 -- 更新进度条颜色与音效
-function UpdateBarColor(isAlarm)
+local function UpdateBarColor(isAlarm)
     if isAlarm then
         PlaySoundFile(addonTable.GetSoundFullPath("BuBu.ogg"), DiGuaTimelineAudioHelper.audioChannel)
         statusBar:SetStatusBarColor(unpack(BAR_COLOR_ALARM))

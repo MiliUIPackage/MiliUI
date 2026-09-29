@@ -165,7 +165,8 @@ MoveFrame:SetScript("OnMouseUp", function(self)
     if not self.isMoving then return end
     self:StopMovingOrSizing()
     self.isMoving = false
-    local _, _, _, x, y = self:GetPoint()
+    -- 先规整锚点再存/再对齐实条（否则拖到靠边时 x,y 语义变了，位置会跑回中间）
+    local x, y = addonTable.NormalizeFrameToUIParentCenter(self)
     if DiGuaTimelineAudioHelper then
         DiGuaTimelineAudioHelper.focusCastBarX, DiGuaTimelineAudioHelper.focusCastBarY = x, y
     end

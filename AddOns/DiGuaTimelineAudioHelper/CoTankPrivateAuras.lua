@@ -148,8 +148,8 @@ HostFrame:SetScript("OnMouseUp", function(self, button)
         self:StopMovingOrSizing()
         self.isMoving = false
         
-        -- 【补全功能】：抓取松开鼠标时的偏移量坐标
-        local _, _, _, xOfs, yOfs = self:GetPoint()
+        -- 抓取松开鼠标时的偏移量坐标（先规整锚点，否则拖到靠边时 x,y 会变成「离边的距离」）
+        local xOfs, yOfs = addonTable.NormalizeFrameToUIParentCenter(self)
         
         -- 【补全功能】：将坐标存入大表，以便暴雪自动将其持久化保存至 WTF 文件
         if DiGuaTimelineAudioHelper then

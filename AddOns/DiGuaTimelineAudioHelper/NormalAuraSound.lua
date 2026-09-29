@@ -623,7 +623,7 @@ addonTable.NormalAura = {
         -- [1284590] = "", -- 螺旋毒素
         [1284947] = "KuaiKaiJianShang", -- 培育爆裂
         [1284491] = "alarmbeep", -- 鲜血毒液注射
-        [1288260] = "YiMiaoMuBiaoShiNi", -- 不稳定的瘴气
+        [1288260] = "YiMiaoMuBiaoShiNi:player|[3]54321:raid", -- 不稳定的瘴气（自己中→一秒目标是你，同时也会播 [3]54321；团队里其他人中→[3]54321）
         [1288297] = "TieBianFangShui|[3]321", -- 附着幽暗
         [1284471] = "alarmbeep", -- 凋零之血
         [1284210] = "JingBao", -- 鲜血毒液
@@ -633,7 +633,7 @@ addonTable.NormalAura = {
     -- ==       迷失的探险者      ==
     -- ============================
         
-        [1296025] = "YuanLiRenQun|[4]321", -- 闪现新星
+        [1296025] = "YuanLiRenQun:player|[2]54321:raid", -- 闪现新星
         -- [1291929] = "", -- 稳固打击
         [1291918] = "alarmbeep", -- 旋壳
         [1286922] = "KuaiKaiJianShang", -- 冰封烈焰

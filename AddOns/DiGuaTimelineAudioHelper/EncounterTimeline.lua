@@ -429,7 +429,7 @@ local function OnUpdate(self, elapsed)
                     if type(extraFunc) == "function" then
                         local ok, err = pcall(extraFunc)
                         if not ok then
-                            print("|cffffd100[DiGua]|r 时间轴自定义函数出错: " .. tostring(err))
+                            print("|cffffd100[DiGua]|r 時間軸自定義函數出錯: " .. tostring(err))
                         end
                     end
                 end

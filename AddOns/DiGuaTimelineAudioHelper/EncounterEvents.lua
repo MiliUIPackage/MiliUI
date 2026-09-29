@@ -10,7 +10,6 @@ addonTable.EventSoundData = {
     -- [176] = { {"ZhunBeiLiuXue.ogg", 0} }, -- 荆棘之刃 (1261276)
 
     -- 圣光猎手伊库兹
-    -- [178] = { {"HuDunKuaiDa.ogg", 1}, {"ZhunBeiPoDun.ogg", 2} }, -- 永恒夜幕 (1286918) 枚举1=护盾快打+1秒快开减伤（同响）
     [179] = { {"ZhunBeiAOE.ogg", 1} }, -- 唤棘者咆哮 (1236709)
     [180] = { {"MuBiaoShiNi.ogg", 0} }, -- 嗜血注视 (1237090)
     [178] = { {"XiaoXinJiTui.ogg", 1} }, -- 青翠践踏 (1236746)
@@ -28,7 +27,7 @@ addonTable.EventSoundData = {
     [192] = { {"ZhunBeiChiQiu.ogg", 1} }, -- 光绽精华 (1246858)
     [191] = { {"MiaoZhunXiaoGuai.ogg", 0} }, -- 凝聚光线 (1246607)
     [189] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 唤醒光绽 (1246372)
-    [190] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 棘刺 (1247685)
+    [190] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}}, {"ZhunBeiDunFanSanErYiDunFan.ogg", 2, {SPEC = 73}} }, -- 棘刺 (1247685) 枚举2=仅防战
 
     -- 凯斯媞亚·魔力之心
     -- [610] = { {"YiShangJieDuan.ogg", 0} }, -- 光明灌注 (1230304)
@@ -39,7 +38,7 @@ addonTable.EventSoundData = {
     -- 赞恩·刃悲
     [124] = { {"ZhuYiDuoQuan.ogg", 1} }, -- 当日送达 (474765)
     [127] = { {"AOE.ogg", 1}, {"WuMiaoHouAOE.ogg", 2} }, -- 影舞步 (474478)
-    [193] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 毒伤 (1222795)
+    [193] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}}, {"ZhunBeiDunFanSanErYiDunFan.ogg", 2, {SPEC = 73}} }, -- 毒伤 (1222795) 枚举2=仅防战
     -- [123] = { {"QuanZhuLvTong.ogg", 0} }, -- 火焰炸弹 (1214357)
     -- [125] = { {"KuaiZhaoYanTi.ogg", 1} }, -- 绝命凶径 (1218347)
 
@@ -61,8 +60,8 @@ addonTable.EventSoundData = {
 
     -- 寒冬哨兵
     [67] = { {"QuSanMoFa.ogg", 1, {HEALER = true}}, {"ZhuYiDianMing.ogg", 1, {DAMAGER = true}}, {"WuMiaoHouDianMing.ogg", 2, {DAMAGER = true, HEALER = true}} }, -- 冰川折磨 (1235548) 治疗=驱散 / DPS=注意点名
-    [70] = { {"KaoJinZhongChang.ogg", 1} }, -- 寒冰暴雨 (1235656)
-    [68] = { {"ZhuYiDuoFeng.ogg", 1} }, -- 狂怒的飑风 (1235623)
+    [70] = { {"KaoJinZhongChang.ogg", 1} }, -- 寒冰暴雨 (1235656)    
+    [68] = { {"ZhuYiDuoFeng.ogg", 1}, {"JiHeFangFeng.ogg", 2} }, -- 狂怒的飑风 (1235623)
     [69] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 粉碎冰刺 (1235783)
 
     -- 纳洛拉克
@@ -72,7 +71,7 @@ addonTable.EventSoundData = {
     [91] = { {"ZuDangLingHun.ogg", 0} }, -- 战神之怒 (1243011)
 
     -- 塔兹拉尔
-    [39] = { {"TanKeJiTui.ogg", 1, {TANK = true, HEALER = true}} }, -- 虚空冲击 (1222085)
+    [39] = { {"TanKeJiTui.ogg", 1, {TANK = true, HEALER = true}}, {"ZhunBeiDunFanSanErYiDunFan.ogg", 2, {SPEC = 73}} }, -- 虚空冲击 (1222085) 枚举2=仅防战
     [558] = { {"SheXianDianNi.ogg", 0} }, -- 空灵冲刺 (1222098)
     [41] = { {"ZhunBeiDuoQiu.ogg", 1} }, -- 黑暗裂缝 (1222274)
 
@@ -93,7 +92,15 @@ addonTable.EventSoundData = {
     -- 拉维
     [795] = { {"ZhunBeiPoDun.ogg", 2}, {"HuDunKuaiDa.ogg", 1} }, -- 嘶嘶食腐 (1309522)
     [796] = { {"ZhunBeiAOE.ogg", 1} }, -- 恶臭咆哮 (1296219)
-    [797] = { {"ZhunBeiDianMing.ogg", 1, {DAMAGER = true, HEALER = true}}, {"WuMiaoHouDianMing.ogg", 2, {DAMAGER = true, HEALER = true}} }, -- 三重喷吐 (1296220) -- , {"WuMaFenSan.ogg", 0}
+    -- 三重喷吐 (1296220)：不限职责（坦克 / 治疗 / DPS 都登记，含防战），按职业分流
+    --   非战士：枚举1 = 准备点名 / 枚举2 = 5秒后点名
+    --   战士（含防战）：枚举2 = 准备盾反3-2-1盾反（盾反可顶掉点名，故不再单独报「准备点名」）
+    --   ⚠️ 若想让战士也保留枚举1 的「准备点名」→ 去掉下面第一条的 {NOT_CLASS = "WARRIOR"}
+    [797] = {
+        {"ZhunBeiDianMing.ogg", 1, {NOT_CLASS = "WARRIOR"}},
+        {"ZhunBeiDunFanSanErYiDunFan.ogg", 2, {CLASS = "WARRIOR"}},
+        {"WuMiaoHouDianMing.ogg", 2, {NOT_CLASS = "WARRIOR"}},
+    }, -- , {"WuMaFenSan.ogg", 0}
     [798] = { {"DuoKaiTouQian.ogg", 1} }, -- 反刍 (1296050)
     [899] = { {"ZhunBeiAOE.ogg", 1} }, -- 贪婪践踏 (1307894)
     -- [902] = { {".ogg", 1} }, -- 进食狂热 (1307765)
@@ -146,7 +153,7 @@ addonTable.EventSoundData = {
     [702] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 缠绕蛇群 (1290029)
     [703] = { {"ZhuYiDianMing.ogg", 1} }, -- 雷霆喷吐 (1289109)
     [704] = { {"ZhunBeiDaGuai.ogg", 1} }, -- 孵化 (1289205)
-    [705] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 闪电撕咬 (1290797)
+    [705] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}}, {"ZhunBeiDunFanSanErYiDunFan.ogg", 2, {SPEC = 73}} }, -- 闪电撕咬 (1290797) 枚举2=仅防战
     [706] = { {"XiaoXinJiTuiSanMiaoZhuYiDuoQuan.ogg", 1} }, -- 毒蛇风暴 (1293048)
 
     -- 加瓦兹特
@@ -236,7 +243,7 @@ addonTable.RaidEventSoundData = {
     [641] = { {"ZhunBeiQuSan.ogg", 1, {HEALER = true}} }, -- 凋零之血 (1284483)
     [643] = { {"HeBingXingZuo.ogg", 0}, {"QuanTuanFenSan.ogg", 2} }, -- 强酸静滞 (1284588)
     [668] = { {"ShouLingKuangBao.ogg", 1} }, -- 狂暴 (26662)
-    [673] = { {"FenTanShangHai.ogg", 1} }, -- 不稳定的瘴气 (1288232)
+    [673] = { {"FenTanShangHai.ogg", 1}, {"WuMiaoHouFenTanShangHai.ogg", 2} }, -- 不稳定的瘴气 (1288232)
     [788] = { {"ZhuYiFenSan.ogg", 1} }, -- 变幻的原型毒液 (1296878)
 
     -- 迷失的探险者
@@ -376,13 +383,40 @@ function addonTable.ClearTimelineSounds(dataTable)
     end
 end
 
+-- 职业配置匹配（CLASS / NOT_CLASS 共用）
+--   写法："WARRIOR" / { WARRIOR = true } / { "WARRIOR", "PALADIN" }
+--   返回 true/false；cfg 为 nil（未配置）时返回 nil
+local function MatchClassCfg(cfg, classFile)
+    if cfg == nil then return nil end
+    if type(cfg) == "string" then return cfg == classFile end
+    if type(cfg) == "table" then
+        if cfg[classFile] ~= nil then return cfg[classFile] == true end
+        for _, v in ipairs(cfg) do
+            if v == classFile then return true end
+        end
+        return false
+    end
+    return false
+end
+
 -- 注册声音的函数
---   配置格式：{ 文件名, 触发类型, 职责过滤? }；条目级难度过滤见 addonTable.EventSoundDifficultyFilter
+--   配置格式：{ 文件名, 触发类型, 过滤条件? }；条目级难度过滤见 addonTable.EventSoundDifficultyFilter
+--   过滤条件（第 3 项）有三种维度，可单独用也可叠加（叠加时取“与”）：
+--     职责：{ TANK = true } / { HEALER = true } / { DAMAGER = true }（可多选）
+--     专精：{ SPEC = 73 }（单个专精 ID）或 { SPEC = { 73, 66 } }（多个专精 ID）
+--           常用 ID：73=防战 66=防骑 104=守护德 250=血DK 268=酒仙 581=复仇DH
+--     职业：{ CLASS = "WARRIOR" } / { CLASS = { "WARRIOR", "PALADIN" } }（只对这些职业生效）
+--           { NOT_CLASS = "WARRIOR" }（对除这些职业外的人生效）
+--           职业代码：WARRIOR / PALADIN / HUNTER / ROGUE / PRIEST / DEATHKNIGHT
+--                     SHAMAN / MAGE / WARLOCK / MONK / DRUID / DEMONHUNTER / EVOKER
+--     只写专精 / 职业、不写职责键时 = 不限职责，只看专精 / 职业
 function addonTable.registerTable(dataTable)
     if not dataTable then return end
     
-    -- 获取当前推理出的职责 (TANK / HEALER / DAMAGER)
+    -- 获取当前推理出的职责 (TANK / HEALER / DAMAGER) 、专精 ID 与职业代码
     local currentRole = addonTable.GetPlayerRole()
+    local currentSpecID = addonTable.GetPlayerSpecID()
+    local currentClass = UnitClassBase("player")
     local diffFilter = addonTable.EventSoundDifficultyFilter
     
     for eventID, configs in pairs(dataTable) do
@@ -401,18 +435,52 @@ function addonTable.registerTable(dataTable)
             local roleConfig = config[3]
             
             local isMatch = false
+            local specOK = true  -- 专精过滤（默认不限）
+            local classOK = true -- 职业过滤（默认不限）
             
             -- 过滤逻辑
             if roleConfig == nil then
                 isMatch = true
             elseif type(roleConfig) == "table" then
-                if roleConfig[currentRole] then
+                -- 专精过滤：写了 SPEC 就必须命中（单个 ID 或 ID 表）
+                local specCfg = roleConfig.SPEC
+                if specCfg ~= nil then
+                    if type(specCfg) == "table" then
+                        specOK = specCfg[currentSpecID] == true
+                    else
+                        specOK = (currentSpecID == specCfg)
+                    end
+                end
+
+                -- 职业过滤：CLASS = 只对这些职业生效；NOT_CLASS = 对除这些职业外的人生效
+                local classCfg = roleConfig.CLASS
+                if classCfg ~= nil and MatchClassCfg(classCfg, currentClass) ~= true then
+                    classOK = false
+                end
+                local notClassCfg = roleConfig.NOT_CLASS
+                if notClassCfg ~= nil and MatchClassCfg(notClassCfg, currentClass) == true then
+                    classOK = false
+                end
+
+                local hasRoleKey = (roleConfig.TANK ~= nil) or (roleConfig.HEALER ~= nil) or (roleConfig.DAMAGER ~= nil)
+                local hasOtherKey = (specCfg ~= nil) or (classCfg ~= nil) or (notClassCfg ~= nil)
+                if hasRoleKey then
+                    if roleConfig[currentRole] then
+                        isMatch = true
+                    end
+                elseif hasOtherKey then
+                    -- 只写了专精 / 职业：不限职责，只看专精 / 职业
                     isMatch = true
                 end
             elseif type(roleConfig) == "string" then
                 if roleConfig == currentRole then
                     isMatch = true
                 end
+            end
+
+            -- 专精 / 职业是硬条件：职责通过后还要再与它们求与
+            if isMatch and (not specOK or not classOK) then
+                isMatch = false
             end
 
             -- 执行注册

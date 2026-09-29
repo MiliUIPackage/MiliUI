@@ -234,7 +234,8 @@ HostFrame:SetScript("OnMouseUp", function(self)
     if not self.moving then return end
     self:StopMovingOrSizing()
     self.moving = false
-    local _, _, _, x, y = self:GetPoint()
+    -- 先规整锚点再存（否则拖到靠边时 GetPoint 的 x,y 是「离边的距离」，还原时会跑回中间）
+    local x, y = addonTable.NormalizeFrameToUIParentCenter(self)
     DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
     DiGuaTimelineAudioHelper.bossHealthPctX, DiGuaTimelineAudioHelper.bossHealthPctY = x, y
     print(string.format("|cff00ff00[DiGua]|r 首領轉階段血量百分比新位置已保存 (X: %d, Y: %d)", x, y))

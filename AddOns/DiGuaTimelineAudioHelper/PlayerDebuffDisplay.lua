@@ -157,7 +157,9 @@ HostFrame:SetScript("OnMouseUp", function(self)
     if self.isMoving then
         self:StopMovingOrSizing()
         self.isMoving = false
-        local _, _, _, xOfs, yOfs = self:GetPoint()
+        -- 规整回 CENTER/CENTER 再取坐标：StopMovingOrSizing 会把锚点改成「离 UIParent 最近的
+        -- 那个点」，拖到靠边/靠角时 GetPoint 的 x,y 就不再是相对屏幕中心的偏移了
+        local xOfs, yOfs = addonTable.NormalizeFrameToUIParentCenter(self)
         if DiGuaTimelineAudioHelper then
             DiGuaTimelineAudioHelper.playerDebuffX = xOfs
             DiGuaTimelineAudioHelper.playerDebuffY = yOfs

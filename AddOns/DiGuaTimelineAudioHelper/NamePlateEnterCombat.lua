@@ -382,7 +382,7 @@ frame:SetScript("OnEvent", function(self, event, unitTarget)
                 addonTable.CustomEncounterBar(252175, 3.6, "坦克擊飛", unitTarget)
             end
             addonTable.CustomEncounterBar(236999, 8.6, "召喚小怪", unitTarget)
-            addonTable.CustomEncounterBar(136016, 16.8, "準備AOE", unitTarget)
+            addonTable.CustomEncounterBar(136016, 16.8, "準備中毒", unitTarget)
         end
 
         -- ============================

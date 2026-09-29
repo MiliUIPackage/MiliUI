@@ -7,7 +7,9 @@
 --        载具/脚本场景 → CanCancelScene() 为真时 CancelScene()
 --   2) PLAY_MOVIE      —— 预渲染影片：优先 MovieFrame:StopMovie()，没有该方法时退回 Hide()
 --
--- 生效范围（强制开启，无控制台开关）：
+-- 生效范围：
+--   总开关：控制台「自动跳过过场动画」（DiGuaTimelineAudioHelper.cinematicSkipEnabled，默认勾选=跳过）。
+--           玩家主动取消勾选后，本文件所有跳过逻辑一律不生效，动画正常播放。
 --   诸王之眠（1762，5人本）：仅【大秘境】环境
 --   烈毒之渊（3004，团本）  ：【英雄】/【史诗】难度
 --   其余副本 / 难度不生效
@@ -30,6 +32,11 @@ local function IsMythicPlusActive()
 end
 
 local function ShouldAutoSkip()
+    -- 控制台总开关：勾选（默认）= 自动跳过；取消勾选 = 一律不跳过，动画正常播放。
+    -- nil（旧存档 / 首次登录）视为开启，保证与加开关之前的行为一致。
+    local db = DiGuaTimelineAudioHelper
+    if db and db.cinematicSkipEnabled == false then return false end
+
     local difficultyID = select(3, GetInstanceInfo())
     local instanceID   = select(8, GetInstanceInfo())
 
@@ -96,7 +103,7 @@ local function SkipMovie()
 end
 
 local function NotifySkipped()
-    print("|cffffd100[DiGua]|r 已自动跳过过场动画")
+    print("|cffffd100[DiGua]|r 已自動跳過動場動畫")
 end
 
 -- ==================== 事件监听 ====================
