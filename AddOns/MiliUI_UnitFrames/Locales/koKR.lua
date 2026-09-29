@@ -574,12 +574,12 @@ L["Missing-health darkening, heal prediction, absorb shield, heal absorb and the
 -- 자원 바 조건 규칙
 ------------------------------------------------------------
 L["Colors and conditions"] = "색상과 조건"
-L["Same as Ayije_CDM"] = "Ayije_CDM과 동일"
-L["Colors and condition rules both come from Ayije_CDM's own resource bar settings. Uncheck this to set your own here."] = "색상과 조건 규칙 모두 Ayije_CDM의 자원 바 설정을 따릅니다. 체크를 해제하면 여기에서 직접 지정합니다."
-L["Rules Ayije_CDM currently has for this specialization: %s"] = "현재 이 전문화에 대한 Ayije_CDM의 규칙 수: %s"
-L["Copy from Ayije_CDM"] = "Ayije_CDM에서 복사"
-L["Replace the resource colors and condition rules here with Ayije_CDM's current ones?"] = "여기의 자원 색상과 조건 규칙을 Ayije_CDM의 현재 설정으로 바꿀까요?"
-L["Takes a one-off snapshot of Ayije_CDM's colors and rules. After that the two are independent — changes there no longer show up here."] = "Ayije_CDM의 현재 색상과 규칙을 한 번만 가져옵니다. 그 뒤로는 서로 독립적이라 저쪽을 바꿔도 여기에 반영되지 않습니다."
+L["Follow the cooldown manager's colors"] = "재사용 대기시간 관리자 색상 따르기"
+L["Colors and condition rules both come from the cooldown manager addon's resource bar settings. Uncheck this to set your own here."] = "색상과 조건 규칙 모두 재사용 대기시간 관리자 애드온의 자원 바 설정을 따릅니다. 체크를 해제하면 여기에서 직접 지정합니다."
+L["Rules the cooldown manager currently has for this specialization: %s"] = "현재 이 전문화에 대한 재사용 대기시간 관리자의 규칙 수: %s"
+L["Copy from the cooldown manager"] = "재사용 대기시간 관리자에서 복사"
+L["Replace the resource colors and condition rules here with the cooldown manager's current ones?"] = "여기의 자원 색상과 조건 규칙을 재사용 대기시간 관리자의 현재 설정으로 바꿀까요?"
+L["Takes a one-off snapshot of the cooldown manager's colors and rules. After that the two are independent — changes there no longer show up here."] = "재사용 대기시간 관리자의 현재 색상과 규칙을 한 번만 가져옵니다. 그 뒤로는 서로 독립적이라 저쪽을 바꿔도 여기에 반영되지 않습니다."
 L["Conditions"] = "조건"
 L["Rules are checked from the top down and the first one that matches wins. Charged combo points keep their own color."] = "규칙은 위에서부터 차례로 확인하며 처음으로 맞는 규칙을 사용합니다. 충전된 연계 점수는 고유 색상을 유지합니다."
 L["Edit rules for"] = "규칙 편집 대상"

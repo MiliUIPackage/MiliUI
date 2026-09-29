@@ -572,12 +572,12 @@ L["Missing-health darkening, heal prediction, absorb shield, heal absorb and the
 -- 资源条的条件规则
 ------------------------------------------------------------
 L["Colors and conditions"] = "颜色与条件"
-L["Same as Ayije_CDM"] = "与 Ayije_CDM 相同"
-L["Colors and condition rules both come from Ayije_CDM's own resource bar settings. Uncheck this to set your own here."] = "颜色与条件规则都由 Ayije_CDM 的资源条设置决定。取消勾选才会用这里自己设的。"
-L["Rules Ayije_CDM currently has for this specialization: %s"] = "Ayije_CDM 目前在这个专精上的规则数：%s"
-L["Copy from Ayije_CDM"] = "从 Ayije_CDM 复制"
-L["Replace the resource colors and condition rules here with Ayije_CDM's current ones?"] = "把这里的资源颜色与条件规则换成 Ayije_CDM 当前的设置？"
-L["Takes a one-off snapshot of Ayije_CDM's colors and rules. After that the two are independent — changes there no longer show up here."] = "把 Ayije_CDM 当前的颜色与规则抄一份过来，只抄这一次。之后两边各走各的，那边再改也不会影响这里。"
+L["Follow the cooldown manager's colors"] = "跟随冷却管理器的颜色"
+L["Colors and condition rules both come from the cooldown manager addon's resource bar settings. Uncheck this to set your own here."] = "颜色与条件规则都来自冷却管理器插件的资源条设置。取消勾选才会用这里自己设的。"
+L["Rules the cooldown manager currently has for this specialization: %s"] = "冷却管理器目前在这个专精上的规则数：%s"
+L["Copy from the cooldown manager"] = "从冷却管理器复制"
+L["Replace the resource colors and condition rules here with the cooldown manager's current ones?"] = "把这里的资源颜色与条件规则换成冷却管理器当前的设置？"
+L["Takes a one-off snapshot of the cooldown manager's colors and rules. After that the two are independent — changes there no longer show up here."] = "把冷却管理器当前的颜色与规则抄一份过来，只抄这一次。之后两边各走各的，那边再改也不会影响这里。"
 L["Conditions"] = "条件规则"
 L["Rules are checked from the top down and the first one that matches wins. Charged combo points keep their own color."] = "规则由上往下比，第一条成立的就用它。充能的连击点数保持自己的颜色，不受条件影响。"
 L["Edit rules for"] = "编辑哪个资源"

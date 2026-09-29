@@ -378,7 +378,7 @@ L["Numbers are only printed while the game lets addons read them; the bar itself
 L["One color for casting and channeling alike. Empowered stages, non-interruptible and interrupt-ready still apply on top."] = "시전과 정신 집중에 같은 색을 씁니다. 강화 단계, 차단 불가, 차단 준비 색상은 그대로 위에 적용됩니다."
 L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."] = "자원마다 한 줄씩 쌓입니다. 편집 모드에서 끌거나 아래에서 다른 바에 고정하세요."
 L["Only in combat"] = "전투 중에만"
-L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back."] = "블리자드 바가 내 시전 이벤트를 받지 않게만 합니다. 체크를 해제하면 바로 돌아옵니다."
+L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."] = "블리자드 바가 내 시전 이벤트를 받지 않게만 합니다. 체크를 해제하면 바로 돌아옵니다. 단, 유닛 프레임도 숨기고 있으면 해제해도 돌아오지 않습니다."
 L["Preview cast"] = "미리보기 시전"
 L["Restore cast bar defaults"] = "시전 바 설정 초기화"
 L["Restore the cast bar settings to their defaults?"] = "시전 바 설정을 기본값으로 되돌릴까요?"

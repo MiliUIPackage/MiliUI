@@ -582,12 +582,12 @@ RC.Append = AppendEditor
 ------------------------------------------------------------
 -- 跟隨中的唯讀摘要
 --
--- 勾著「與 Ayije_CDM 相同」時編輯器整段不顯示（顯示了也沒用，畫面不會照它走），
+-- 勾著「跟隨冷卻管理器的顏色」時編輯器整段不顯示（顯示了也沒用，畫面不會照它走），
 -- 但要讓玩家看得出「條件真的有被吃到」—— 不然「我在那邊設了規則，這裡到底有沒有生效」
 -- 是沒辦法從畫面確認的（規則沒成立時本來就跟沒設一樣）。
 ------------------------------------------------------------
 -- ⚠ 走 custom 而不是 text，是為了**每次開分頁都重算一次**：玩家可能在關著這一頁的
--- 時候去 Ayije_CDM 那邊加減規則。text 是建表當下就定死的字串，會停在舊的數字，
+-- 時候去冷卻管理器那邊加減規則。text 是建表當下就定死的字串，會停在舊的數字，
 -- 而為了一行摘要去重建整頁只會留下孤兒 frame。
 local function SummaryText(cand)
     local parts = {}
@@ -596,7 +596,7 @@ local function SummaryText(cand)
         local n = ns.ResourceConditionDebug and ns.ResourceConditionDebug(key) or 0
         parts[#parts + 1] = ("%s (%d)"):format((info and info.name) or key, n)
     end
-    return L["Rules Ayije_CDM currently has for this specialization: %s"]
+    return L["Rules the cooldown manager currently has for this specialization: %s"]
            :format(table.concat(parts, "   "))
 end
 

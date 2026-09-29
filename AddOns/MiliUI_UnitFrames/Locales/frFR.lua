@@ -574,12 +574,12 @@ L["Missing-health darkening, heal prediction, absorb shield, heal absorb and the
 -- Règles conditionnelles des barres de ressources
 ------------------------------------------------------------
 L["Colors and conditions"] = "Couleurs et conditions"
-L["Same as Ayije_CDM"] = "Comme Ayije_CDM"
-L["Colors and condition rules both come from Ayije_CDM's own resource bar settings. Uncheck this to set your own here."] = "Les couleurs et les règles conditionnelles proviennent toutes deux des réglages de barres de ressources d'Ayije_CDM. Décochez cette case pour les définir ici."
-L["Rules Ayije_CDM currently has for this specialization: %s"] = "Règles actuellement définies dans Ayije_CDM pour cette spécialisation : %s"
-L["Copy from Ayije_CDM"] = "Copier depuis Ayije_CDM"
-L["Replace the resource colors and condition rules here with Ayije_CDM's current ones?"] = "Remplacer les couleurs de ressources et les règles conditionnelles par celles actuelles d'Ayije_CDM ?"
-L["Takes a one-off snapshot of Ayije_CDM's colors and rules. After that the two are independent — changes there no longer show up here."] = "Copie une seule fois les couleurs et règles actuelles d'Ayije_CDM. Ensuite les deux sont indépendants : les modifications là-bas n'apparaissent plus ici."
+L["Follow the cooldown manager's colors"] = "Suivre les couleurs du gestionnaire de temps de recharge"
+L["Colors and condition rules both come from the cooldown manager addon's resource bar settings. Uncheck this to set your own here."] = "Les couleurs et les règles conditionnelles proviennent toutes deux des réglages de barres de ressources de l'addon gestionnaire de temps de recharge. Décochez cette case pour les définir ici."
+L["Rules the cooldown manager currently has for this specialization: %s"] = "Règles actuellement définies dans le gestionnaire de temps de recharge pour cette spécialisation : %s"
+L["Copy from the cooldown manager"] = "Copier depuis le gestionnaire de temps de recharge"
+L["Replace the resource colors and condition rules here with the cooldown manager's current ones?"] = "Remplacer les couleurs de ressources et les règles conditionnelles par celles actuelles du gestionnaire de temps de recharge ?"
+L["Takes a one-off snapshot of the cooldown manager's colors and rules. After that the two are independent — changes there no longer show up here."] = "Copie une seule fois les couleurs et règles actuelles du gestionnaire de temps de recharge. Ensuite les deux sont indépendants : les modifications là-bas n'apparaissent plus ici."
 L["Conditions"] = "Conditions"
 L["Rules are checked from the top down and the first one that matches wins. Charged combo points keep their own color."] = "Les règles sont évaluées de haut en bas et la première qui correspond l'emporte. Les points de combo surchargés gardent leur propre couleur."
 L["Edit rules for"] = "Règles pour"

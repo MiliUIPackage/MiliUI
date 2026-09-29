@@ -19,7 +19,8 @@
 --
 -- 暴雪的玩家施法條（hideBlizzard）：只解它的事件（UnregisterAllEvents），跟單位框架已驗證的
 -- 做法同一套 —— 不 Hide、不 SetParent、不寫它的欄位。解之前先用 IsEventRegistered 記下
--- 它註冊了哪些，關掉選項時照原樣裝回去（所以不需要 /reload）。
+-- 它註冊了哪些，關掉選項時照原樣裝回去（所以不需要 /reload）；
+-- 例外：單位框架也在隱藏它時不裝回（見 UnitFramesHidesBlizzard）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -1026,6 +1027,17 @@ local blizzSaved          -- 解之前它註冊著的事件：{ { event, unit1, 
 
 local function BlizzBar() return _G.PlayerCastingBarFrame end
 
+-- 單位框架（MiliUI_UnitFrames）也把暴雪施法條的事件解掉了嗎？它的隱藏是單向的（沒有還原），
+-- 這時我們取消勾選若照原樣裝回，等於把它藏起來的條又叫回來 ⇒ 不裝回，只把帳清掉。
+-- 走它的公開 API（HidesPlayerCastBar），不讀它的存檔
+local function UnitFramesHidesBlizzard()
+    local api = _G.MiliUI_UnitFrames
+    local fn = type(api) == "table" and api.HidesPlayerCastBar
+    if type(fn) ~= "function" then return false end
+    local ok, hides = pcall(fn)
+    return ok and hides == true
+end
+
 function CB.ApplyBlizzard()
     local bf = BlizzBar()
     if not bf then return end
@@ -1047,6 +1059,7 @@ function CB.ApplyBlizzard()
             local saved = blizzSaved
             if not saved then return end
             blizzSaved = nil
+            if UnitFramesHidesBlizzard() then return end
             for _, e in ipairs(saved) do
                 if type(e[2]) == "string" then
                     if type(e[3]) == "string" then
@@ -1125,7 +1138,8 @@ function CB.DebugLines()
                 S.preview and "（預覽）" or "", S.castSecret and "是" or "否", S.castEmpowered and "是" or "否",
                 S.tStart and "有" or "無", S.total or 0, math.floor(S.lag or 0),
                 S.tickTimes and #S.tickTimes or 0, S.stagePoints and #S.stagePoints or 0,
-                blizzSaved and ("是（" .. #blizzSaved .. " 個）") or "否",
+                (blizzSaved and ("是（" .. #blizzSaved .. " 個）") or "否")
+                    .. (UnitFramesHidesBlizzard() and "（單位框架也在隱藏）" or ""),
                 tostring(ns.Visibility and ns.Visibility.Current("castbar")))
     return out
 end

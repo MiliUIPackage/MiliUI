@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「插件強化」分頁：施法條美化、拍賣行篩選、鑰石發光、聊天視窗樣式、世界地圖、Raider.IO 右鍵選單
+-- 「插件強化」分頁：施法條美化（只在舊的冷卻管理器插件載入時出現）、拍賣行篩選、鑰石發光、聊天視窗樣式、世界地圖、Raider.IO 右鍵選單
 --
 -- 這頁只放「指名一個介面對象」的注入式功能；不指名對象、純粹省你一個動作的
 -- （商人自動化、骰裝提示過濾、探究標記鈕、CVar、套組自身設定）在「便利功能」頁。
@@ -54,8 +54,11 @@ local function BuildKeystoneColorRow(parent, x, y, width)
     return 26, Refresh
 end
 
-local CONTROLS = {
-    { type = "header", label = "施法條（冷卻管理器）" },
+-- 施法條那三個開關只對舊的冷卻管理器插件有效（Enhance/AyijeCDM_*.lua 也只在它載入時才掛）。
+-- MiliUI_CooldownManager 的引導刻度與延遲條在它自己的設定（/mcdm → 施法條）裡。
+-- ⚠ 在 Init（第一次開這一頁）才決定要不要併進來，不在檔案載入時：那時別的插件不一定載入完了
+local CASTBAR_CONTROLS = {
+    { type = "header", label = "施法條（Ayije_CDM）" },
     { type = "toggle", label = "引導刻度",
       get = function() local db = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {} return db.channelTicks ~= false end,
       set = function(v) if MiliUI_CastBarEnhance then MiliUI_CastBarEnhance.SetChannelTicks(v) end end },
@@ -71,8 +74,10 @@ local CONTROLS = {
           MiliUI_CastBarEnhance.SetProportionalFont(v)
           AskReload()
       end },
-    { type = "text", label = "將 CDM 的字型從「像素完美」改為「等比例縮放」：不同解析度下字型佔螢幕的比例會一致，但不再保證相同的物理像素數。" },
+    { type = "text", label = "將 Ayije_CDM 的字型從「像素完美」改為「等比例縮放」：不同解析度下字型佔螢幕的比例會一致，但不再保證相同的物理像素數。" },
+}
 
+local CONTROLS = {
     { type = "header", label = "拍賣行" },
     { type = "toggle", label = "「僅限當前資料片」篩選",
       get = function() return not MiliUI_DB or MiliUI_DB.ahFeatureEnabled ~= false end,
@@ -141,6 +146,9 @@ local ctx = {
 
 local function Init()
     if tab then return end
+    if C_AddOns.IsAddOnLoaded("Ayije_CDM") then
+        for i = #CASTBAR_CONTROLS, 1, -1 do tinsert(CONTROLS, 1, CASTBAR_CONTROLS[i]) end
+    end
     tab, scroll = ns.Options.MakeFormTab("插件強化")
     local _
     _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)

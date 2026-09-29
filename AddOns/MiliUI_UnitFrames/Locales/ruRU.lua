@@ -574,12 +574,12 @@ L["Missing-health darkening, heal prediction, absorb shield, heal absorb and the
 -- Правила условий для полос ресурсов
 ------------------------------------------------------------
 L["Colors and conditions"] = "Цвета и условия"
-L["Same as Ayije_CDM"] = "Как в Ayije_CDM"
-L["Colors and condition rules both come from Ayije_CDM's own resource bar settings. Uncheck this to set your own here."] = "Цвета и правила условий берутся из настроек полос ресурсов Ayije_CDM. Снимите флажок, чтобы задать свои здесь."
-L["Rules Ayije_CDM currently has for this specialization: %s"] = "Правила, заданные в Ayije_CDM для этой специализации: %s"
-L["Copy from Ayije_CDM"] = "Скопировать из Ayije_CDM"
-L["Replace the resource colors and condition rules here with Ayije_CDM's current ones?"] = "Заменить здешние цвета ресурсов и правила условий текущими из Ayije_CDM?"
-L["Takes a one-off snapshot of Ayije_CDM's colors and rules. After that the two are independent — changes there no longer show up here."] = "Разово копирует текущие цвета и правила из Ayije_CDM. После этого настройки независимы — изменения там больше не влияют на эти."
+L["Follow the cooldown manager's colors"] = "Цвета из менеджера восстановления"
+L["Colors and condition rules both come from the cooldown manager addon's resource bar settings. Uncheck this to set your own here."] = "Цвета и правила условий берутся из настроек полос ресурсов аддона-менеджера восстановления. Снимите флажок, чтобы задать свои здесь."
+L["Rules the cooldown manager currently has for this specialization: %s"] = "Правила, заданные в менеджере восстановления для этой специализации: %s"
+L["Copy from the cooldown manager"] = "Скопировать из менеджера восстановления"
+L["Replace the resource colors and condition rules here with the cooldown manager's current ones?"] = "Заменить здешние цвета ресурсов и правила условий текущими из менеджера восстановления?"
+L["Takes a one-off snapshot of the cooldown manager's colors and rules. After that the two are independent — changes there no longer show up here."] = "Разово копирует текущие цвета и правила из менеджера восстановления. После этого настройки независимы — изменения там больше не влияют на эти."
 L["Conditions"] = "Условия"
 L["Rules are checked from the top down and the first one that matches wins. Charged combo points keep their own color."] = "Правила проверяются сверху вниз, срабатывает первое подходящее. Заряженные серии ударов сохраняют свой цвет."
 L["Edit rules for"] = "Правила для"

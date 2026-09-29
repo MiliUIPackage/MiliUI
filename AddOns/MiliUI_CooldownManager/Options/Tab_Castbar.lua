@@ -57,7 +57,7 @@ local function Controls()
     local list = {
         BS("toggle", "enabled", L["Show the cast bar"]),
         BS("toggle", "hideBlizzard", L["Hide Blizzard's player cast bar"]),
-        Note(L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back."]),
+        Note(L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."]),
         { type = "header", label = L["Layout"] },
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of Essential Cooldowns (icon included)."]),

@@ -138,6 +138,9 @@ function ns.HideBlizzardFrames()
     local playerUF = ns.frames.player
     if playerUF and playerUF.elements.castbar then
         Unreg(PlayerCastingBarFrame or CastingBarFrame)
+        -- 只記帳，給公開 API HidesPlayerCastBar 回答（Api.lua）：別的插件要把暴雪施法條的
+        -- 事件裝回去之前先問，不然會把我們藏起來的條又叫回來。單向，跟這支模組一樣
+        ns.playerCastBarHidden = true
     end
     local petUF = ns.frames.pet
     if petUF and petUF.elements.castbar then
