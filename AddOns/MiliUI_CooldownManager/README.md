@@ -4,11 +4,12 @@
 重新排版、換樣式、加文字與發光，外加自訂群組、追蹤項目、資源條與施法條。
 設定視窗 `/mcdm`（或 `/miliuicdm`、小地圖按鈕、插件選單）。
 
-> **目前進度：E 階段（自訂項目與效果）。** 四條暴雪檢視器已經認領重錨到自己的容器上，版面、兩列尺寸、
+> **目前進度：F 階段（資源條與施法條）。** 四條暴雪檢視器已經認領重錨到自己的容器上，版面、兩列尺寸、
 > 固定格位、長條、邊框／縮放／轉圈色／文字樣式、顯示條件都照設定檔跑；編輯模式裡每條都拖得動；
 > 設定視窗每條一頁（預覽即編輯器＋表單）、主題頁、設定檔頁（含匯出匯入）、自訂群組的新增／改名／刪除
 > 都做好了（見「設定介面」一節）。自訂項目（光環格、自訂法術／物品冷卻）、觸發發光接管、就緒發光、
-> 無損刷新邊框、按鍵文字也接上了（見「自訂項目與效果」）。資源條與施法條還沒做。
+> 無損刷新邊框、按鍵文字也接上了（見「自訂項目與效果」）。資源條（依專精列資源、法力、條件規則上色）與
+> 玩家施法條（引導刻度、延遲條、蓄力四階、隱藏暴雪施法條、預覽）也做好了（見「資源條與施法條」）。
 > `/mcdm debug` 印引擎與編輯模式現況，`/mcdm aura` 印每個光環格的保護狀態與最近錯誤。
 
 ⚠ 跟另一支同樣接管冷卻管理器的插件**不能同時啟用**：偵測到時登入會跳出視窗二選一，
@@ -28,11 +29,12 @@
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
 | `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
+| `Modules/Resources.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
-| `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`）、插件選單、公開 API `MiliUI_CooldownManager`（`IsReady`、`GetBarFrame(key)`；`GetResourceColors` 還是占位） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件、施法條的時間文字／截字／刻度查表），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
-之後的階段依序補上：資源條與施法條、套組接線。
+之後的階段：套組接線（G）。
 
 引擎的硬規則（對暴雪框不 SetParent／不 Hide、不寫暴雪框的欄位、只後掛勾、秘密值只當傳遞者…）
 寫在實作計畫的「引擎契約」一節，動 `Core/` 之前先看。
@@ -52,7 +54,8 @@
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
 | `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；每一格都是 Bars 的一個 entry |
 
-登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Bars → Visibility（`Core/Init.lua` 的 `ns.StartEngine`）。
+登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Keybinds → Bars
+→ Interrupt → Resources → Castbar → Visibility（`Core/Init.lua` 的 `ns.StartEngine`）。
 換設定檔／專精：清樣式簽章、重讀目錄、全部重排、重套 alpha，不需要 /reload。
 
 ### 訊號流
@@ -170,6 +173,8 @@ B 階段實作時發現計畫上寫的做不到、或換了做法的地方：
 | `Options/SpellPopover.lua` | 逐法術面板 |
 | `Options/Tab_Theme.lua` | 全域主題（跟條頁同一支 builder） |
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
+| `Options/Tab_Resources.lua`、`Options/ResourceConditions.lua` | 資源條頁與它的條件規則編輯器 |
+| `Options/Tab_Castbar.lua` | 施法條頁（頁首「預覽」） |
 | `Options/ClickLayer.lua` | 視窗開著時畫面上每條蓋一層透明點擊層，點了切到那條的頁面並閃職業色邊 |
 
 ### 條的頁面
@@ -290,6 +295,112 @@ B 階段實作時發現計畫上寫的做不到、或換了做法的地方：
 9. 物品的「數量」只在可消耗的物品（`C_Item.IsConsumableItem`）或數量不是 1 時顯示（飾品不印「1」）。
 10. 固定格位那一列改成自畫的 custom 列（表單引擎的 toggle 沒有停用狀態），說明依狀態換兩種說法。
 
+## 資源條與施法條
+
+兩者都是**面板**：不在 `bars` 裡（沒有版面／主題繼承），設定在 `profile.resources`／`profile.castbar`，
+左欄有自己的頁；但**錨定語意跟條一模一樣**（`pos = { point, x, y }`、`anchor = false | { to, point, relPoint, x, y }`），
+容器也是 `MiliUICDM_Bar_<key>`、走 `Core/Bars.lua` 的同一套 `ApplyStructure`、編輯模式覆蓋層／選取框／磁吸、點擊層。
+
+| 位置 | 內容 |
+|---|---|
+| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`castbar`）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、兩張預設表 |
+| `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
+| `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
+| `Options/Specs.lua` | `Specs.Anchor(key)` 對面板照用；錨定候選＝`barOrder` ＋ 兩個面板（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
+
+容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、施法條 `CENTER`。
+寬 0 ＝ 核心技能第一列寬（施法條含圖示）。
+
+### 資源條（`Modules/Resources.lua`）
+
+從單位框架的資源條與能量條改來。專精 → 資源清單（`SPEC_RESOURCES`）；德魯伊看型態（熊怒氣、貓能量＋連擊點、
+其餘照專精）；用法力施法的專精（`MANA_SPECS`）在**最下面**多一列法力。一種資源一列：
+
+| 模式 | 資源 | 畫法 |
+|---|---|---|
+| bar | 怒氣、能量、集中值、符文能量、星能、元能、狂亂值、魔怒、**法力** | 一顆 StatusBar：`SetMinMaxValues(0, UnitPowerMax)`＋`SetValue(UnitPower)` **直接餵**（引擎收秘密值），明文且上限 <= 0 才顯示空條；原生內插（`smooth`） |
+| pip | 聖能、連擊點數、真氣、靈魂碎片、秘法充能、精華、符文；漩渦之武、矛尖、靈魂碎片（光環／施放次數型） | **每格一顆 StatusBar**：`SetMinMaxValues(i-1, i)`＋`SetValue(目前值)` ⇒ 第幾格亮由引擎決定，秘密值照樣畫得對。格子一律錨在列上（`SetValue(秘密值)` 會讓那顆條的幾何變秘密、傳染給錨在它身上的框） |
+| pip（符文） | 符文 | 每格看 `GetRuneCooldown(i)` 的就緒旗標（明文才算） |
+
+- **跟單位框架不同的兩件事**：那邊不做法力（單位框有自己的能量條）、也剔掉「單位框能量條已經在畫的主資源」；
+  這裡是獨立 HUD，兩件都做。吸收型（醉仙緩勁、鐵鬃、無視苦痛）**維持不做**：12.1 是秘密值，插件讀不到數字。
+- **天賦閘**：標準資源看 `UnitPowerMax > 0`（秘密值當有）；光環型看被動已學，被動 ID 寫錯的保險是「目前有層數就顯示」。
+- **條件規則**（`Modules/ResourceConditions.lua`，純邏輯）：形狀跟單位框架的資源條一模一樣（`conditions[key] = { rule… }`，
+  第一條成立的勝出、`target` 指定第幾格、`and` 巢狀、深度上限、壞資料當不成立）。**只在值是明文時求值**：
+  秘密值下整段不求值（照主色）、數值文字不印、充能格照常（充能索引是另一支 API）。
+- **法力數字**：`manaAbbrev` = none／k（K、M）／wan（萬、億；中韓預設）；`manaPercent` 印百分比。
+- **事件**：`UNIT_POWER_FREQUENT`（＋`UNIT_POWER_UPDATE` 當回滿保底）、`UNIT_MAXPOWER`、`UNIT_DISPLAYPOWER`、
+  `UPDATE_SHAPESHIFT_FORM`、`PLAYER_SPECIALIZATION_CHANGED`、天賦、進出載具、`RUNE_POWER_UPDATE`（死騎）、
+  `UNIT_POWER_POINT_CHARGE`（盜賊）、`UNIT_AURA`（有光環型資源的職業），全部綁 `player`、**只標髒、下一幀做**。
+  能量事件走「只重畫值」那條（不重算清單、不配表）；清單／格數／尺寸變了才重排。
+- **顯示條件**：`enabled`、`loadConditions`（騎乘或坐載具時隱藏、只在戰鬥中）任一不符 ⇒ alpha 0；
+  `fadeWithEssential` 開著時取核心技能現在的 alpha（它的顯示條件與淡出一起帶過來）。容器不是 secure 框，Lua 判斷即可。
+- 列是池化的（frame 刪不掉），換專精只換內容；條件規則套上去的透明度／文字色換列時先還原。
+
+### 施法條（`Modules/Castbar.lua`）
+
+從單位框架的施法條改來，單位固定 `player`（載具期間開唱事件 player／vehicle 兩個 token 都認）。12.1 鐵律照舊：
+受限時 `UnitCastingDuration` 等 duration 物件餵 `SetTimerDuration`、10Hz ticker 更新時間文字與顏色；
+`notInterruptible` 只餵 `EvaluateColorValueFromBoolean`；事件處理器只轉手 `ns.Defer`（時間戳在派送當下取）。
+
+- **顏色**：施法／引導（`useClassColor` 共用職業色）→ 蓄力時換成「現在放開會是第幾階」的顏色（四階）→
+  斷法就緒（`interruptReady`，`Modules/Interrupt.lua`，可能是秘密布林，只餵曲線）→ 不可打斷。打斷／失敗是紅色。
+- **引導刻度**（`ticks`）：固定跳數表（spellID，天賦會改跳數的四顆在天賦變動時重算；查不到 ID 再用法術名）。
+  平均分就不需要總長；引導延長（`CHANNEL_UPDATE`）時照明文時間補刻度。
+- **延遲條**（`latency`）：`UNIT_SPELLCAST_SENT` → 開唱的時間差（不合理就退回 `GetNetStats`），在條的終點端
+  （施法在右、引導在左、反向填充對調）塗一段，上限三成。
+- **蓄力分階**：`GetUnitEmpowerStageDuration`／`GetUnitEmpowerHoldAtMaxTime` 算每一階的終點畫線、決定顏色。
+- 刻度、延遲、分階都要**明文的時間軸**（開始／結束讀得到）：讀不到就不畫，條本身照樣由 duration 物件驅動。
+  位置一律用設定算出來的寬度，不讀框的幾何。
+- **隱藏暴雪施法條**（`hideBlizzard`）：只能用單位框架已驗證的做法 —— `UnregisterAllEvents`，不 Hide、不 SetParent、
+  不寫欄位。解之前先用 `IsEventRegistered` 記下它註冊了哪些（含 unit），取消勾選時照原樣 `RegisterUnitEvent` 裝回去，
+  所以不需要 /reload。走 `ns.Write`。
+- **沒在施法**：`hideWhenNotCasting` 開著 ⇒ 容器 alpha 0；關掉 ⇒ 留一條空條。淡出、打斷停留（0.4 秒）期間算「在施法」。
+- **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑，帶假延遲），再按一次停；真的開唱就讓位；離開那一頁自動停。
+
+### 公開 API（契約：回傳形狀之後不改）
+
+全域表 `MiliUI_CooldownManager`（`Api.lua`）。呼叫端一律處理 `nil`（本插件沒載入完、互斥偵測成立、那一項不存在）。
+回傳的表是**設定檔裡的參照**：唯讀、不長期持有（換設定檔之後就是另一張）。
+
+| 函式 | 回傳 |
+|---|---|
+| `GetResourceColors(key)` | `{ color = {r,g,b,a}, chargedColor = {…}\|nil, chargedEmptyColor = {…}\|nil }`；沒有這個資源 → `nil`。key 見下 |
+| `GetResourceConditions(key)` | 規則陣列（形狀見 `Modules/ResourceConditions.lua` 檔頭，與單位框架相同）；沒有規則 → `nil` |
+| `GetResourceBarFrame(powerType)` | `Enum.PowerType` → 資源條上那一列的框；沒有這一列、玩家關掉、整條關掉（容器藏起來）→ `nil`。載入條件／淡出造成的 alpha 0 不算藏（框還在，錨在上面的東西不必換錨點） |
+| `GetBarFrame(key)` | 容器框 `MiliUICDM_Bar_<key>`（四條檢視器、自訂群組、`resources`、`castbar`）；還沒建 → `nil` |
+| `IsReady()` | 引擎是否已經認領好四條檢視器（布林） |
+
+資源 key（存檔內容，不要改名）：`Mana`、`Rage`、`Energy`、`Focus`、`RunicPower`、`LunarPower`、`Maelstrom`、`Insanity`、`Fury`、
+`HolyPower`、`ComboPoints`、`Chi`、`SoulShards`、`ArcaneCharges`、`Essence`、`Runes`、`MaelstromWeapon`、`TipOfTheSpear`、`SoulFragments`。
+
+### 設定頁
+
+- **資源條**：顯示、版面（寬、列高、列距、格距、填充方向）、外觀（材質、填充透明度、平滑、數值文字與字級、法力格式）、
+  顏色與條件（每種資源的顏色、連擊點數的充能色、條件規則編輯器）、這個專精要顯示哪幾列、載入條件、錨定、恢復預設。
+  表單照「形狀」快取（專精、候選清單、條件編輯器的結構、錨定圖）：規則增刪之類的結構變動延一幀換一份表單。
+- **施法條**：顯示、隱藏暴雪施法條、版面、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
+  效果（火花、刻度、延遲）、沒在施法時隱藏、錨定、恢復預設。
+
+### F 階段與計畫不同
+
+1. **沒有 DB 遷移**：第一版還沒發佈，`DB_VERSION` 維持 1，直接補預設值（`MergeDefaults` 替舊存檔補新鍵）。
+2. **錨定候選不寫進 `barOrder`**：`barOrder` 是左欄「條」的順序，面板放進去會被當條列出；改成候選清單＝`barOrder`＋`DB.PANEL_ORDER`。
+3. **條件規則的比較不走曲線**：玩家自己的資源值在目前的客戶端是明文（`UnitPower("player")` 沒有身分受限），
+   單位框架也是明文比較。秘密值下改成「不求值」（照主色、不印字），pip 的亮格仍由 StatusBar 引擎畫對。
+4. **點數型改成每格一顆 StatusBar**：單位框架是讀明文值、在 Lua 裡比「第 i 格亮不亮」再上色；這裡照任務要求改成
+   `SetMinMaxValues(i-1, i)`＋`SetValue(目前值)`，秘密值也畫得對。
+5. **資源條的計畫欄位砍了一部分**：計畫寫「每職業每條」各自的高／寬／材質／tag 文字（光環剩餘時間）、錨到另一條資源條；
+   這一版是整條一組設定（寬、列高、材質共用），每種資源只有自己的顏色與條件規則。載入條件只做騎乘／只在戰鬥中，
+   專精由清單本身決定、型態只在德魯伊生效。
+6. **施法條沒有施法目標、斷法者名字、重要法術染色、完成閃色**（那是給敵方施法條的）；打斷固定停留 0.4 秒、淡出 0.3 秒。
+   不可打斷色照樣套（自己少數引導會是不可打斷），沒有另開開關。
+7. **延遲只畫紅區不印毫秒數**：本體強化的延遲文字會壓在時間文字上；`/mcdm debug` 印得到量到的值。
+8. 施法條的 `hideWhenNotCasting` 關掉時留空條（計畫沒寫空條長什麼樣）；編輯模式中一律全亮。
+9. 面板的顯示條件不走條的 `visibility`／`fade` 模型（各自一條，見上）。
+10. **斷法就緒**從單位框架搬進 `Modules/Interrupt.lua`（事件改走 `ns.Events`／設定檔回呼）。
+11. 核心技能頁的錨定清單會排除「錨在自己身上」的面板（成環）；錨定圖進了條頁的表單簽章。
+
 ## 設定的三層繼承
 
 取值一律走兩支函式，引擎與設定介面都一樣，不各自翻表：
@@ -355,3 +466,18 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 35. 按鍵文字：變形／姿態列（`GetBonusBarOffset`）、動作條 6–8 的綁定名、`FindSpellActionButtons` 對覆寫法術回不回格子。
 36. 發光宿主（overlay 底下的子框）在 item 被停放（alpha 0、畫面外）時 MiliUIGlow 的 driver 仍在推（可見度閘看的是 IsVisible，
     alpha 0 仍算可見）——停放時我們已經 Stop，確認沒有漏掉的。
+37. 資源條：點數型每格一顆 StatusBar（`SetMinMaxValues(i-1, i)`＋`SetValue(目前值)`）在秘密值下亮格正確；
+    首領戰／M+ 中 `UnitPower("player")` 是否仍是明文（`/mcdm debug` 每列印「秘密 是／否」）。
+38. 資源條：`UNIT_POWER_FREQUENT` 綁 player 後能量平滑；回滿時 `UNIT_POWER_UPDATE` 保底有到。
+39. 資源條：光環型（漩渦之武、矛尖）`GetPlayerAuraBySpellID(...).applications` 在戰鬥中是否讀得到；讀不到時層數顯示 0（直接餵 SetValue 也不會壞）。
+40. 資源條：法力列 `smooth`（`Enum.StatusBarInterpolation.ExponentialEaseOut`）的觀感；德魯伊變形時清單切換不閃。
+41. 施法條：受限內容裡 `UnitCastingInfo("player")` 的開始／結束是不是秘密值（是的話刻度只能平均分、延遲與蓄力分階不畫）；
+    `C_Secrets.HasSecretRestrictions()` 的值。
+42. 施法條：`UnitChannelInfo` 第 10 個回傳（蓄力階數）與 `GetUnitEmpowerStageDuration` 在戰鬥中是否明文；蓄力四階的顏色切換時機
+    與暴雪的階段動畫一致。
+43. 施法條：隱藏暴雪施法條 → 取消勾選 → 暴雪條立刻恢復運作（`IsEventRegistered` 回的 unit 參數、`RegisterUnitEvent` 裝回去）；
+    打一場 taintLog 2 確認零 ADDON_ACTION_BLOCKED。單位框架也解同一個框的事件：兩支都開時，這邊關掉選項會把事件裝回去
+    （G 階段接線時要協調誰負責）。
+44. 施法條：延遲量測（SENT→START）在 `ns.Defer` 之前取時間戳，數字是否合理（跟 `GetNetStats` 同一個量級）。
+45. 施法條：載具上施法（player／vehicle 兩個 token）畫得對；`UNIT_SPELLCAST_FAILED` 的 castGUID 比對。
+46. 編輯模式：資源條（錨在核心技能上）拖曳脫離、施法條拖曳；放手後位置不跳；戰鬥中進出編輯模式零封鎖。

@@ -33,6 +33,7 @@ ns.DB_VERSION = 1
 DB.DEFAULT_PROFILE = "Default"
 
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
+local ResourcesDefaults, CastbarDefaults      -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 
 ------------------------------------------------------------
 -- 預設值
@@ -107,6 +108,126 @@ function DB.NewBarTable(kind, name)
     return b
 end
 
+------------------------------------------------------------
+-- 資源條（Modules/Resources.lua）與施法條（Modules/Castbar.lua）
+--
+-- 兩者都不在 bars 裡（不是暴雪檢視器、沒有版面／主題繼承），但**錨定語意跟條一樣**：
+-- pos ＝ { point, x, y }、anchor ＝ false 或 { to, point, relPoint, x, y }，容器走
+-- Core/Bars.lua 的 RegisterPanel（ApplyStructure、編輯模式、磁吸都是同一套）。
+-- DB.ConfigTable(key) 是「條或面板」的統一取表出口。
+--
+-- 資源顏色的預設（單一來源）：每一種資源的主色；連擊點數多兩格充能色。
+-- 盜賊「超級充能器」／野德「滿溢之力」讓某幾格變成充能點，已填滿用 chargedColor、
+-- 還沒填到用暗一階的 chargedEmptyColor（打滿之前就看得出哪幾格是充能格）。
+-- ⚠ 公開 API（Api.lua 的 GetResourceColors）回的是設定檔裡**這幾張表的參照**，
+--   預設值本身每次 BuildDefaults 都是全新深複製，不會被外面改到。
+------------------------------------------------------------
+local RESOURCE_COLORS = {
+    Mana            = { color = { r = 0.2,   g = 0.5,   b = 1     } },
+    Rage            = { color = { r = 0.78,  g = 0.25,  b = 0.25  } },
+    Energy          = { color = { r = 1,     g = 0.96,  b = 0.41  } },
+    Focus           = { color = { r = 1,     g = 0.5,   b = 0.25  } },
+    RunicPower      = { color = { r = 0,     g = 0.82,  b = 1     } },
+    LunarPower      = { color = { r = 0.3,   g = 0.52,  b = 0.9   } },
+    Maelstrom       = { color = { r = 0,     g = 0.5,   b = 1     } },
+    Insanity        = { color = { r = 0.4,   g = 0,     b = 0.8   } },
+    Fury            = { color = { r = 0.788, g = 0.259, b = 0.992 } },
+    HolyPower       = { color = { r = 0.914, g = 0.678, b = 0.275 } },
+    ComboPoints     = { color             = { r = 1,    g = 0.96, b = 0.41 },
+                        chargedColor      = { r = 0.24, g = 0.60, b = 1.00 },
+                        chargedEmptyColor = { r = 0.12, g = 0.30, b = 0.50 } },
+    Chi             = { color = { r = 0.71, g = 1,    b = 0.92 } },
+    SoulShards      = { color = { r = 0.58, g = 0.51, b = 0.79 } },
+    ArcaneCharges   = { color = { r = 0.25, g = 0.35, b = 0.98 } },
+    Essence         = { color = { r = 0.28, g = 0.73, b = 0.92 } },
+    Runes           = { color = { r = 0.77, g = 0.12, b = 0.23 } },
+    MaelstromWeapon = { color = { r = 0.2,  g = 0.65, b = 1    } },
+    TipOfTheSpear   = { color = { r = 1,    g = 0.6,  b = 0.2  } },
+    SoulFragments   = { color = { r = 0.64, g = 0.19, b = 0.79 } },
+}
+DB.RESOURCE_COLORS = RESOURCE_COLORS
+
+-- 萬／億縮寫是中日韓的讀法；其他語系預設 K／M
+local CJK = { zhTW = true, zhCN = true, koKR = true }
+
+ResourcesDefaults = function()
+    local colors = {}
+    for key, fields in pairs(RESOURCE_COLORS) do
+        local t = {}
+        for field, c in pairs(fields) do t[field] = rgba(c.r, c.g, c.b, 1) end
+        colors[key] = t
+    end
+    return {
+        enabled       = true,
+        pos           = { point = "CENTER", x = 0, y = -180 },
+        -- 預設貼在核心技能上緣，往上長
+        anchor        = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
+        width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬
+        rowHeight     = 8,
+        rowSpacing    = 1,
+        segmentSpacing = 1,                -- 點數型（聖能、連擊點…）的格距
+        fillDirection = "ltr",             -- ltr | rtl（點數型從右邊亮起）
+        texture       = "solid",
+        barAlpha      = 1,                 -- 填充色的不透明度
+        smooth        = true,              -- 連續條的原生內插（引擎做，吃秘密值）
+        showText      = false,
+        textSize      = 10,
+        manaAbbrev    = CJK[GetLocale and GetLocale() or ""] and "wan" or "k",   -- none | k | wan
+        manaPercent   = false,             -- 法力列印百分比而不是數值
+        -- [資源key] = { rule, … }：開放式鍵值表，預設空（MergeDefaults 不會替玩家生出規則）
+        conditions    = {},
+        -- [資源key] = false ＝ 關掉那一列；開放式、預設空
+        rows          = {},
+        colors        = colors,
+        -- 載入條件：任一成立就整條藏（alpha 0）
+        loadConditions = { hideMounted = false, onlyCombat = false },
+        -- 跟核心技能條一起淡（取核心技能現在的 alpha，含它的顯示條件與淡出）
+        fadeWithEssential = true,
+        strata        = "MEDIUM",
+    }
+end
+
+CastbarDefaults = function()
+    return {
+        enabled       = true,
+        pos           = { point = "CENTER", x = 0, y = -260 },
+        anchor        = false,
+        width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬（含圖示）
+        height        = 20,
+        texture       = "solid",
+        bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
+        colors        = {
+            cast            = rgba(0.906, 0.424, 0.2),
+            channel         = rgba(0.906, 0.424, 0.2),
+            uninterruptible = rgba(0.529, 0.529, 0.529),
+            interrupted     = rgba(1, 0.204, 0.145),
+            interruptReady  = rgba(1, 0.741, 0),
+            -- 蓄力施法：走到第幾階就換那一階的顏色
+            empowerStage1   = rgba(0.35, 0.75, 0.35),
+            empowerStage2   = rgba(0.95, 0.80, 0.20),
+            empowerStage3   = rgba(1.00, 0.50, 0.15),
+            empowerStage4   = rgba(0.90, 0.20, 0.20),
+        },
+        useClassColor = false,             -- 施法／引導共用職業色（蓄力、不可打斷照疊）
+        showIcon      = true,
+        iconSide      = "LEFT",            -- LEFT | RIGHT
+        iconGap       = 1,
+        showName      = true,
+        nameMaxChars  = 0,                 -- 0 ＝ 不限
+        showTime      = true,
+        timeFormat    = "remainTotal",     -- remainTotal | elapsedTotal | remain | elapsed
+        textSize      = 12,
+        showSpark     = true,
+        ticks         = true,              -- 引導刻度
+        latency       = true,              -- 延遲條
+        hideBlizzard  = true,              -- 隱藏暴雪的玩家施法條（只解事件，見 Castbar.lua）
+        interruptReady = false,            -- 自己的斷法就緒時換色
+        fillDirection = "ltr",
+        hideWhenNotCasting = true,         -- 沒在施法時 alpha 0（編輯模式中照樣全亮）
+        strata        = "MEDIUM",
+    }
+end
+
 function DB.BuildDefaults()
     local buffbars = LongBar{ source = "buffbars", pos = { point = "BOTTOM", x = 0, y = 300 } }
 
@@ -153,11 +274,8 @@ function DB.BuildDefaults()
             },
             barOrder = { "essential", "utility", "buffs", "buffbars" },   -- 左欄順序，自訂群組接在後面
             spells   = {},                  -- [specID] = { order, groupOf, hidden, overrides, custom }
-            -- 資源條與施法條的完整欄位在它們那一階段補；這裡先放位置與錨定
-            resources = { enabled = true, pos = { point = "CENTER", x = 0, y = -180 },
-                          anchor = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 } },
-            castbar   = { enabled = true, pos = { point = "CENTER", x = 0, y = -260 },
-                          anchor = false, latency = true, ticks = true },
+            resources = ResourcesDefaults(),
+            castbar   = CastbarDefaults(),
         },
     }
 end
@@ -646,6 +764,24 @@ end
 local BUILTIN = { essential = true, utility = true, buffs = true, buffbars = true }
 function DB.IsBuiltinBar(key) return BUILTIN[key] == true end
 
+-- 「面板」：資源條與施法條。不在 bars 裡、左欄有自己的頁，但錨定／位置／編輯模式跟條同一套。
+-- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
+local PANEL_KEYS = { resources = true, castbar = true }
+DB.PANEL_KEYS = PANEL_KEYS
+ns.PANEL_KEYS = PANEL_KEYS
+DB.PANEL_ORDER = { "resources", "castbar" }
+function DB.IsPanel(key) return PANEL_KEYS[key] == true end
+
+-- 條或面板的設定表（錨定、位置、編輯模式、設定頁的 root "bar" 一律走這支）
+function DB.ConfigTable(key)
+    if PANEL_KEYS[key] then
+        local p = ns.profile
+        local t = p and p[key]
+        return type(t) == "table" and t or nil
+    end
+    return BarTable(key)
+end
+
 local function CopyValue(v)
     if type(v) == "table" then return DeepCopy(v) end
     return v
@@ -660,7 +796,7 @@ function DB.DefaultFor(root, barKey, path)
         if barKey == nil or barKey == "theme" then return CopyValue(DB.GetPath(d.theme, path)) end
         return nil
     end
-    local ref = d.bars[barKey]
+    local ref = PANEL_KEYS[barKey] and d[barKey] or d.bars[barKey]
     if not ref then
         local bar = BarTable(barKey)
         ref = DB.NewBarTable(bar and bar.kind or "icons", bar and bar.name)
@@ -720,6 +856,10 @@ function DB.DeleteBar(key)
             bar.anchor = false
         end
     end
+    for pk in pairs(PANEL_KEYS) do
+        local t = p[pk]
+        if type(t) == "table" and type(t.anchor) == "table" and t.anchor.to == key then t.anchor = false end
+    end
     p.bars[key] = nil
     if type(p.barOrder) == "table" then
         for i = #p.barOrder, 1, -1 do
@@ -731,13 +871,11 @@ end
 
 -- 錨定成環：key 錨到 to 之後，沿著 to 的錨定鏈會不會走回 key
 function DB.AnchorWouldCycle(key, to)
-    local p = ns.profile
-    local bars = p and p.bars or {}
     local seen, cur = { [key] = true }, to
     while cur do
         if seen[cur] then return true end
         seen[cur] = true
-        local b = bars[cur]
+        local b = DB.ConfigTable(cur)
         local a = type(b) == "table" and b.anchor
         cur = (type(a) == "table" and type(a.to) == "string") and a.to or nil
     end

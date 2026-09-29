@@ -34,6 +34,11 @@
 --
 -- 檢視器本體釘在容器上（TOPLEFT／BOTTOMRIGHT 對齊），被暴雪（編輯模式、底部管理框）
 -- 拉走就釘回來；_pinGuard 擋自己觸發自己。
+--
+-- 面板（資源條、施法條；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
+-- 同一套 ApplyStructure（pos／anchor、strata、enabled＝false 就 Hide）與編輯模式／磁吸，
+-- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
+-- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -53,18 +58,19 @@ local slotOf = {}              -- cooldownID → { key, x, y, w, h }（Reapply �
 local claimedBy = setmetatable({}, { __mode = "k" })   -- item → key
 local firstRowW = {}           -- key → 第一列寬（長條寬 0 ＝ 跟核心技能第一列同寬）
 local scheduled, lastRun = false, -1
+local ArmStructurePending          -- 前置宣告（定義在 Relayout 前面）
 local pinGuard, parkGuard = false, false
 B.ready = false
 B.flushes = 0
 
 local function Now() return GetTime and GetTime() or 0 end
 
+local panels = {}             -- key → { anchorPoint, minSize = fn → w, h, relayout = fn(level) }
+
 local function Profile() return ns.profile end
+-- 條或面板的設定表（面板在 profile[key]，見 Core/DB.lua 的 ConfigTable）
 local function BarCfg(key)
-    local p = Profile()
-    local bars = p and p.bars
-    local bar = type(bars) == "table" and bars[key]
-    return type(bar) == "table" and bar or nil
+    return ns.DB.ConfigTable(key)
 end
 
 function B.Get(key) return containers[key] end
@@ -120,7 +126,8 @@ end
 local function ApplyStructure(key)
     local c = EnsureContainer(key)
     local bar = BarCfg(key)
-    if not bar then
+    -- enabled ＝ false 只有面板會有（條沒有這個欄位）
+    if not bar or bar.enabled == false then
         ns.Write(c, function(f) f:Hide() end, "shown")
         return
     end
@@ -246,7 +253,30 @@ local function BarSize(key, bar)
     return { maxPerRow = 1, spacing = layout.spacing, grow = layout.grow, size = { w = w, h = h } }
 end
 
+-- 戰鬥中延後的結構級：脫戰補做。面板直接套（不經排程：排程要等檢視器就緒）
+ArmStructurePending = function()
+    ns.Events.Register("PLAYER_REGEN_ENABLED", "bars_structure", function()
+        ns.Events.Unregister("PLAYER_REGEN_ENABLED", "bars_structure")
+        local keys = structurePending
+        structurePending = {}
+        for key in pairs(keys) do
+            if panels[key] then ApplyStructure(key) else B.Request(key, "structure") end
+        end
+    end)
+end
+
+-- 面板：只管結構（錨點、strata、顯示），內容與尺寸交給模組
+local function RelayoutPanel(key, level)
+    local st = state[key]
+    if level >= LEVEL.structure or st.anchorPoint ~= st.appliedAnchor then
+        if InCombatLockdown() then structurePending[key] = true; ArmStructurePending() else ApplyStructure(key) end
+    end
+    local pd = panels[key]
+    if pd and pd.relayout then pd.relayout(level) end
+end
+
 local function Relayout(key, level, index, gen)
+    if panels[key] then return RelayoutPanel(key, level) end
     local c = EnsureContainer(key)
     local bar = BarCfg(key)
     local st = state[key]
@@ -295,6 +325,8 @@ local function Relayout(key, level, index, gen)
                     B.Request(k, "layout")
                 end
             end
+            -- 面板（資源條、施法條）的寬 0 也是這個語意
+            if ns.Fire then ns.Fire("FirstRowWidthChanged", "essential", firstRowW.essential) end
         end
     end
 
@@ -392,8 +424,9 @@ function B.RequestAll(level)
     local p = Profile()
     if type(p) ~= "table" or type(p.bars) ~= "table" then return end
     for key in pairs(p.bars) do B.Request(key, level) end
+    for key in pairs(panels) do B.Request(key, level) end
     for key in pairs(containers) do
-        if not p.bars[key] then B.Request(key, "structure") end
+        if not p.bars[key] and not panels[key] then B.Request(key, "structure") end
     end
 end
 
@@ -459,14 +492,7 @@ Flush = function()
         if work[src] and work[src] >= LEVEL.structure then B.PinViewer(src) end
     end
 
-    if next(structurePending) then
-        ns.Events.Register("PLAYER_REGEN_ENABLED", "bars_structure", function()
-            ns.Events.Unregister("PLAYER_REGEN_ENABLED", "bars_structure")
-            local keys = structurePending
-            structurePending = {}
-            for key in pairs(keys) do B.Request(key, "structure") end
-        end)
-    end
+    if next(structurePending) then ArmStructurePending() end
 
     if not B.ready then
         B.ready = true
@@ -510,6 +536,48 @@ end
 function B.Count(key)
     local st = state[key]
     return st and st.count or 0
+end
+
+-- 某條第一列的寬（目前只有核心技能有記）；還沒排過回 0
+function B.FirstRowWidth(key)
+    return firstRowW[key or "essential"] or 0
+end
+
+------------------------------------------------------------
+-- 面板（資源條、施法條）
+--
+--   B.RegisterPanel(key, def)  def = { anchorPoint, minSize = fn → w, h, relayout = fn(level) }
+--                              建容器（EditMode.OnContainer 一併建好覆蓋層／選取框／磁吸）、
+--                              照存檔貼位置。回傳容器。
+--   B.SetPanelSize(key, w, h)  容器大小（變了才寫，走 ns.Write）
+--   B.IsPanel(key) / B.Panels()
+------------------------------------------------------------
+function B.RegisterPanel(key, def)
+    panels[key] = def or {}
+    state[key] = state[key] or { placeholders = { used = 0, pool = {} } }
+    state[key].anchorPoint = panels[key].anchorPoint or "CENTER"
+    local c = EnsureContainer(key)
+    if InCombatLockdown() then structurePending[key] = true; ArmStructurePending() else ApplyStructure(key) end
+    return c
+end
+
+function B.IsPanel(key) return panels[key] ~= nil end
+function B.Panels() return panels end
+
+function B.PanelMinSize(key)
+    local pd = panels[key]
+    if pd and pd.minSize then return pd.minSize() end
+    return nil
+end
+
+function B.SetPanelSize(key, w, h)
+    local c, st = containers[key], state[key]
+    if not (c and st) then return end
+    w = (w and w > 0) and w or 1
+    h = (h and h > 0) and h or 1
+    if st.w == w and st.h == h then return end
+    st.w, st.h = w, h
+    ns.Write(c, function(f) f:SetSize(w, h) end, "size")
 end
 
 ------------------------------------------------------------

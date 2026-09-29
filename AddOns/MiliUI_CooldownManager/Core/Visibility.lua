@@ -16,6 +16,12 @@
 -- （它們的 parent 仍是暴雪檢視器，我們不 SetParent），容器的 alpha 管不到它們 ——
 -- 所以每個認領中的 item 也要各自 SetAlpha。
 --
+-- 面板（資源條、施法條）不走上面的模型，各自一條（Vis.PanelAlpha）：
+--   資源條  enabled ＝ false → 0；載入條件 loadConditions（騎乘或坐載具／只在戰鬥中）任一不符 → 0；
+--           fadeWithEssential 開著時取核心技能條現在的 alpha（它的顯示條件與淡出一起帶過來）
+--   施法條  enabled ＝ false → 0；hideWhenNotCasting 且沒在施法（ns.Castbar.IsActive）→ 0
+--   編輯模式中一律全亮（同條）。面板的框都是容器的子框，容器的 alpha 就管得到。
+--
 -- 事件處理器只標髒、下一幀套（PLAYER_TARGET_CHANGED 會在按 Tab 的 secure 流程裡同步派送，
 -- 見 wow-121-addon-code-in-secure-stack）。脫戰多等 0.1 秒：戰鬥結束那一瞬間常常緊跟著
 -- 目標消失、上坐騎，一起算完再變，不要閃兩次。
@@ -109,7 +115,44 @@ function Vis.Alpha(key)
     return Vis.Evaluate(bar.visibility, fade, Snapshot())
 end
 
+-- 面板的 alpha（純邏輯；s 是 Snapshot 的形狀，essentialAlpha／casting 由呼叫端給）
+function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting)
+    if type(cfg) ~= "table" or cfg.enabled == false then return 0 end
+    if key == "resources" then
+        local lc = type(cfg.loadConditions) == "table" and cfg.loadConditions or {}
+        if lc.hideMounted and s.mounted then return 0 end
+        if lc.onlyCombat and not s.combat then return 0 end
+        if cfg.fadeWithEssential ~= false then
+            local a = tonumber(essentialAlpha) or 1
+            if a < 0 then a = 0 elseif a > 1 then a = 1 end
+            return a
+        end
+        return 1
+    elseif key == "castbar" then
+        if cfg.hideWhenNotCasting ~= false and not casting then return 0 end
+        return 1
+    end
+    return 1
+end
+
+function Vis.PanelAlpha(key)
+    local cfg = ns.DB.ConfigTable(key)
+    if not cfg or cfg.enabled == false then return 0 end
+    if ns.EditMode and ns.EditMode.active then return 1 end
+    local ess = 1
+    if key == "resources" and cfg.fadeWithEssential ~= false then ess = Vis.Alpha("essential") end
+    local casting = ns.Castbar and ns.Castbar.IsActive and ns.Castbar.IsActive() or false
+    return Vis.EvaluatePanel(key, cfg, Snapshot(), ess, casting)
+end
+
 function Vis.Apply(key)
+    if ns.DB.IsPanel(key) then
+        local alpha = Vis.PanelAlpha(key)
+        current[key] = alpha
+        local c = ns.Bars and ns.Bars.Get(key)
+        if c then c:SetAlpha(alpha) end
+        return
+    end
     local alpha = Vis.Alpha(key)
     current[key] = alpha
     local c = ns.Bars and ns.Bars.Get(key)
@@ -123,6 +166,11 @@ function Vis.ApplyAll()
     local p = ns.profile
     if not (p and type(p.bars) == "table") then return end
     for key in pairs(p.bars) do
+        local ok, err = xpcall(Vis.Apply, ns.ReportError, key)
+        if not ok then Vis.lastError = err end
+    end
+    -- 面板排在條後面：資源條要讀核心技能剛算好的 alpha
+    for _, key in ipairs(ns.DB.PANEL_ORDER) do
         local ok, err = xpcall(Vis.Apply, ns.ReportError, key)
         if not ok then Vis.lastError = err end
     end

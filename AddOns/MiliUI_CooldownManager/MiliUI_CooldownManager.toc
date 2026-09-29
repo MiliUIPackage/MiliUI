@@ -48,6 +48,10 @@ Core\Keybinds.lua
 Modules\Custom.lua
 Core\Bars.lua
 Core\Visibility.lua
+Modules\ResourceConditions.lua
+Modules\Resources.lua
+Modules\Interrupt.lua
+Modules\Castbar.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
@@ -61,6 +65,9 @@ Options\SpellPopover.lua
 Options\Tab_Bar.lua
 Options\Tab_Theme.lua
 Options\Tab_Profile.lua
+Options\ResourceConditions.lua
+Options\Tab_Resources.lua
+Options\Tab_Castbar.lua
 Options\ClickLayer.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
