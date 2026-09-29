@@ -948,6 +948,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if t["glowOptions"] then
                     indicator:SetupGlow(t["glowOptions"])
                 end
+                -- glow timing (buff rect / block; the preview approximates the window)
+                if indicator.SetGlowTiming then
+                    indicator:SetGlowTiming(t["glowTiming"])
+                end
                 -- update fadeOut
                 if type(t["fadeOut"]) == "boolean" then
                     indicator:SetFadeOut(t["fadeOut"])
@@ -1079,6 +1083,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             indicator.preview.elapsedTime = 13 -- update now!
         elseif setting == "pandemicColor" and indicator.SetPandemicColor then
             indicator:SetPandemicColor(value)
+            indicator.preview.elapsedTime = 13 -- update now!
+        elseif setting == "glowTiming" and indicator.SetGlowTiming then
+            indicator:SetGlowTiming(value)
             indicator.preview.elapsedTime = 13 -- update now!
         elseif setting == "vehicleNamePosition" then
             indicator:UpdateVehicleNamePosition(value)
@@ -1279,6 +1286,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             -- update glow
             if value["glowOptions"] then
                 indicator:SetupGlow(value["glowOptions"])
+            end
+            if indicator.SetGlowTiming then
+                indicator:SetGlowTiming(value["glowTiming"])
             end
             InitIndicator(indicatorName)
             indicator:Show()
@@ -1963,7 +1973,7 @@ local function ShowIndicatorSettings(id)
                 -- buff rects run on the AuraContainer path, where every time-based colour is
                 -- engine-driven: the two remaining-time bands (|T fills on companion slots),
                 -- the Pandemic window and the countdown colour curve (see rectColors)
-                settingsTable = {"enabled", "auras", "rectColors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "rectColors", "glowOptions", "glowTiming", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             else
                 -- debuff rects stay on the manual path, where the bands still work
                 settingsTable = {"enabled", "auras", "colors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
@@ -1980,7 +1990,7 @@ local function ShowIndicatorSettings(id)
             if indicatorTable["auraType"] == "buff" then
                 -- buff blocks run on the AuraContainer path like buff rects: same three
                 -- engine-driven time layers (see blockColorsTime); no colour-by-stack there
-                settingsTable = {"enabled", "auras", "blockColorsTime", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "blockColorsTime", "glowOptions", "glowTiming", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             else
                 -- debuff blocks stay on the manual path: the full widget (Color By + bands + border)
                 settingsTable = {"enabled", "auras", "blockColors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
@@ -2241,6 +2251,18 @@ local function ShowIndicatorSettings(id)
             w:SetDBValue(indicatorTable["glowOptions"], indicatorType == "glow")
             w:SetFunc(function(value)
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, currentSetting, value)
+            end)
+
+        -- glowTiming (buff rect / block): "aura" / "pandemic". Layouts saved before the
+        -- option have none: write the default back so every reader sees the same key.
+        elseif currentSetting == "glowTiming" then
+            if indicatorTable["glowTiming"] ~= "pandemic" then
+                indicatorTable["glowTiming"] = "aura"
+            end
+            w:SetDBValue(indicatorTable["glowTiming"])
+            w:SetFunc(function(value)
+                indicatorTable["glowTiming"] = value
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "glowTiming", value)
             end)
 
         -- size-border

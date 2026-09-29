@@ -1131,6 +1131,17 @@ local EFFECT_BUILDERS = {
 --                                     AddAuraShownAnimation (it plays them; we never Play)
 -- glowStyle is structural (new textures need the window); glowColor is cosmetic, so a colour
 -- drag only restyles (the lib repaints the textures it already has).
+--
+-- glowTiming (buff rect / block): "aura" = the above, lit while the aura is present.
+-- "pandemic" = lit only inside the engine's Pandemic window: every texture the lib drew is
+-- handed over with AddPandemicRegion (the engine SetShown's them; the lib is told first via
+-- f._glowEngineShown so it never Show/Hides them again), and the AnimationGroups go to
+-- AddPandemicEnterAnimation (normal's entrance flash: once on entering) or
+-- AddPandemicActiveAnimation (proc's loop: plays inside, stops on leaving). It does NOT
+-- depend on the Pandemic colour option -- the window is the engine's either way.
+-- Structural: the two timings bind different things, so a change is fresh buttons and the
+-- bind-once flags start from zero. A client without AddPandemicRegion (12.1.0) falls back
+-- to "aura" and notes it in handle._errors.
 -- ============================================================
 local GLOW_LEVEL = 8 -- the lib's own default offset: above the countdown (+6) and stack (+7)
 
@@ -1148,12 +1159,20 @@ local function StyleGlow(handle, button, width, height)
     end
     local color = cfg.glowColor
     if type(color) ~= "table" then color = nil end
+    local pandemicTiming = cfg.glowTiming == "pandemic" and button.AddPandemicRegion ~= nil
+    if cfg.glowTiming == "pandemic" and not pandemicTiming and not handle._glowTimingErr then
+        handle._glowTimingErr = true -- once per handle: this runs per button per restyle
+        local e = handle._errors
+        if e and #e < 6 then e[#e + 1] = "glow timing: no AddPandemicRegion" end
+    end
 
     local f = button.dfGlow
     if not f then
         f = CreateFrame("Frame", nil, button)
         button.dfGlow = f
     end
+    -- before any Attach: the lib must not Show/Hide textures the engine will own
+    f._glowEngineShown = pandemicTiming or nil
     f:SetFrameLevel(button:GetFrameLevel() + GLOW_LEVEL)
     f:ClearAllPoints()
     local gw, gh = width, height
@@ -1178,8 +1197,31 @@ local function StyleGlow(handle, button, width, height)
     elseif kind == "proc" then
         anim = LCG.ProcGlow_Attach(f, color, gs[2], gw, gh)
     end
+    if pandemicTiming then
+        -- textures: the engine owns their visibility from here on (Shown is a secret aspect).
+        -- The driver keeps pushing coordinates blind either way. Hidden before the hand-over,
+        -- like the Pandemic fill: if the engine refuses one, it stays dark instead of
+        -- permanently lit (on success the engine sets it right away).
+        if not button._boundPandemicGlow then
+            button._boundPandemicGlow = true
+            for _, r in ipairs(LCG.Glow_Regions(f)) do
+                r:Hide()
+                pcall(button.AddPandemicRegion, button, r)
+            end
+        end
+        -- animations: normal's entrance flash plays once on entering the window; proc's loop
+        -- plays inside it and stops on leaving (its ProcLoop texture is also a Pandemic
+        -- region above, so it is gone on leaving even if Stop leaves the alpha up)
+        if anim and not button._boundGlowAnim then
+            button._boundGlowAnim = true
+            if kind == "normal" and button.AddPandemicEnterAnimation then
+                pcall(button.AddPandemicEnterAnimation, button, anim)
+            elseif kind == "proc" and button.AddPandemicActiveAnimation then
+                pcall(button.AddPandemicActiveAnimation, button, anim)
+            end
+        end
     -- bind-once, flagged only after the call returns (same rule as the other binds)
-    if anim and button.AddAuraShownAnimation and not button._boundGlowAnim then
+    elseif anim and button.AddAuraShownAnimation and not button._boundGlowAnim then
         button:AddAuraShownAnimation(anim)
         button._boundGlowAnim = true
     end

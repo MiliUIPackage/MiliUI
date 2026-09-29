@@ -1112,6 +1112,11 @@ lib.stopList["Proc Glow"] = lib.ProcGlow_Stop
 --  重複呼叫是安全的：貼圖只在缺的時候建（視窗外建不了，會被 caller 的 pcall 吃掉），
 --  顏色／週期每次都更新（自己的 region 在視窗外照樣能寫）。
 --  Suspend／Resume 給宿主停放／取回用：按鈕還在、只是暫時不畫，driver 不必陪跑。
+--
+--  f._glowEngineShown（caller 在 Attach **之前**設）：這顆 f 的貼圖要交給引擎控顯示
+--  （例如 AuraButton:AddPandemicRegion，只在無損刷新窗口內亮）。交出去之後 Shown 是
+--  secret aspect，這裡**一律不再 Show／Hide 那些貼圖**，要「藏」改寫 alpha。
+--  要交哪些貼圖用 Glow_Regions(f) 取。
 -------------------------------------------------------------------------------
 local function AttachTextures(f, N, texture, texCoord, desaturated, color)
     f.textures = f.textures or {}
@@ -1132,10 +1137,18 @@ local function AttachTextures(f, N, texture, texCoord, desaturated, color)
         else
             t:SetVertexColor(color[1], color[2], color[3], color[4])
         end
-        t:Show()
+        if f._glowEngineShown then
+            t:SetAlpha(1)   -- 顯示歸引擎管（見上），這裡只收回 Detach 的 alpha 0
+        else
+            t:Show()
+        end
     end
     for i = N + 1, #f.textures do
-        f.textures[i]:Hide()
+        if f._glowEngineShown then
+            f.textures[i]:SetAlpha(0)
+        else
+            f.textures[i]:Hide()
+        end
     end
 end
 
@@ -1172,7 +1185,11 @@ function lib.PixelGlow_Attach(f, color, N, frequency, length, th, width, height)
         f.bg:SetAllPoints(f)
         f.bg:AddMaskTexture(bgMask)
     end
-    f.bg:Show()
+    if f._glowEngineShown then
+        f.bg:SetAlpha(1)   -- 顯示歸引擎管（見 Attach 開頭）
+    else
+        f.bg:Show()
+    end
     for _, tex in pairs(f.textures) do
         if tex:GetNumMaskTextures() < 1 then
             tex:AddMaskTexture(lineMask)
@@ -1343,15 +1360,37 @@ function lib.Glow_Resume(f)
     if f and f._glowUpdate then DriverAdd(f, f._glowUpdate) end
 end
 
--- 這顆按鈕不再發光（設定改成 None 之後的重套）：貼圖藏起來、driver 退訂；框由 caller 管
+-- 這顆 f 上所有會畫東西的貼圖（MaskTexture 不算），給 caller 交給引擎控顯示用
+-- （AuraButton:AddPandemicRegion）。只列已經建好的；在 Attach 之後呼叫。
+function lib.Glow_Regions(f)
+    local out = {}
+    if not f then return out end
+    if f.textures then
+        for i = 1, #f.textures do out[#out + 1] = f.textures[i] end
+    end
+    if f.bg then out[#out + 1] = f.bg end
+    if f.spark then out[#out + 1] = f.spark end
+    if f.outerGlow then out[#out + 1] = f.outerGlow end
+    if f.ants then out[#out + 1] = f.ants end
+    if f.ProcLoop then out[#out + 1] = f.ProcLoop end
+    return out
+end
+
+-- 這顆按鈕不再發光（設定改成 None 之後的重套）：貼圖藏起來、driver 退訂；框由 caller 管。
+-- _glowEngineShown 的框：顯示歸引擎，藏改寫 alpha（跟 outerGlow／ants／ProcLoop 同法）。
 function lib.Glow_Detach(f)
     if not f then return end
     DriverRemove(f)
     f._glowUpdate = nil
+    local engine = f._glowEngineShown
     if f.textures then
-        for _, t in pairs(f.textures) do t:Hide() end
+        for _, t in pairs(f.textures) do
+            if engine then t:SetAlpha(0) else t:Hide() end
+        end
     end
-    if f.bg then f.bg:Hide() end
+    if f.bg then
+        if engine then f.bg:SetAlpha(0) else f.bg:Hide() end
+    end
     if f.outerGlow then f.outerGlow:SetAlpha(0) end
     if f.ants then f.ants:SetAlpha(0) end
     if f.ProcLoop then f.ProcLoop:SetAlpha(0) end

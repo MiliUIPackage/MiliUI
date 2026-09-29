@@ -148,6 +148,8 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
         if auraType == "buff" then
             t["durationColor"] = {false, {1, 1, 1, 1}, {true, 10, {1, 1, 0, 1}}, {true, 3, {1, 0, 0, 1}}}
             t["pandemicColor"] = Cell.defaults.NewPandemicColor()
+            -- when the glow shows: "aura" (while present) / "pandemic" (engine's refresh window)
+            t["glowTiming"] = "aura"
         end
     elseif type == "icons" then
         t = {
@@ -257,6 +259,7 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
         -- manual path.
         if auraType == "buff" then
             t["pandemicColor"] = Cell.defaults.NewPandemicColor()
+            t["glowTiming"] = "aura" -- same as rect: "aura" / "pandemic"
         end
     elseif type == "blocks" then
         t = {

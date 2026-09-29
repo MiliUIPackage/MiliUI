@@ -4548,6 +4548,56 @@ local function CreateSetting_Glow(parent)
     return widget
 end
 
+-- glowTiming (buff rect / block): when the glow shows. "aura" = while the aura is present,
+-- "pandemic" = only inside the engine's Pandemic window (independent of the Pandemic colour).
+-- SetDBValue(value); SetFunc(func): func(value).
+local function CreateSetting_GlowTiming(parent)
+    local widget
+
+    if not settingWidgets["glowTiming"] then
+        widget = Cell.CreateFrame("CellIndicatorSettings_GlowTiming", parent, 240, 50)
+        settingWidgets["glowTiming"] = widget
+
+        widget.timing = Cell.CreateDropdown(widget, 245)
+        widget.timing:SetPoint("TOPLEFT", 5, -20)
+        widget.timing:SetItems({
+            {
+                ["text"] = L["While the aura is present"],
+                ["value"] = "aura",
+                ["onClick"] = function()
+                    widget.func("aura")
+                end,
+            },
+            {
+                ["text"] = L["During the Pandemic window"],
+                ["value"] = "pandemic",
+                ["onClick"] = function()
+                    widget.func("pandemic")
+                end,
+            },
+        })
+
+        widget.timingText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.timingText:SetText(L["Glow Timing"])
+        widget.timingText:SetPoint("BOTTOMLEFT", widget.timing, "TOPLEFT", 0, 1)
+
+        -- callback
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+
+        -- show db value
+        function widget:SetDBValue(value)
+            widget.timing:SetSelectedValue(value == "pandemic" and "pandemic" or "aura")
+        end
+    else
+        widget = settingWidgets["glowTiming"]
+    end
+
+    widget:Show()
+    return widget
+end
+
 local function CreateSetting_Texture(parent)
     local widget
 
@@ -7503,6 +7553,7 @@ local builders = {
     ["roleTexture"] = CreateSetting_RoleTexture,
     ["glow"] = CreateSetting_Glow,
     ["glowOptions"] = CreateSetting_Glow,
+    ["glowTiming"] = CreateSetting_GlowTiming,
     ["targetedSpellsGlow"] = CreateSetting_Glow,
     ["texture"] = CreateSetting_Texture,
     ["builtInDefensives"] = CreateSetting_BuiltIns,

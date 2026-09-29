@@ -518,6 +518,11 @@ local function HandleIndicators(b)
         if t["glowOptions"] then
             indicator:SetupGlow(t["glowOptions"])
         end
+        -- glow timing (buff rect / block): manual fallback only; the container reads it
+        -- through ConfigureContainer (structural)
+        if indicator.SetGlowTiming then
+            indicator:SetGlowTiming(t["glowTiming"])
+        end
         -- update smooth
         if type(t["smooth"]) == "boolean" then
             indicator:EnableSmooth(t["smooth"])
@@ -1132,6 +1137,15 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:SetupGlow(value)
                 UnitButton_UpdateAuras(b)
             end, true)
+        elseif setting == "glowTiming" then
+            -- like pandemicColor: only the manual rect / block needs this; the container
+            -- rebuilds from PushContainerConfig below (structural key)
+            F.IterateAllUnitButtons(function(b)
+                local ind = b.indicators[indicatorName]
+                if ind and ind.SetGlowTiming then
+                    ind:SetGlowTiming(value)
+                end
+            end, true)
         elseif setting == "iconStyle" then
             F.IterateAllUnitButtons(function(b)
                 b.indicators[indicatorName]:SetIconStyle(value)
@@ -1321,6 +1335,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- update glow
                 if value["glowOptions"] then
                     indicator:SetupGlow(value["glowOptions"])
+                end
+                if indicator.SetGlowTiming then
+                    indicator:SetGlowTiming(value["glowTiming"])
                 end
                 -- FirstRun: Healers
                 if value["auras"] and #value["auras"] ~= 0 then

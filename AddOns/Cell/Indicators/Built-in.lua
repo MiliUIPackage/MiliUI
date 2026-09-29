@@ -445,6 +445,10 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             opts.glowStyle = false
             opts.glowColor = false
         end
+        -- when it glows (buff rect / block only; everything else is always "aura"):
+        -- structural -- the two timings hand the engine different things (AddAuraShownAnimation
+        -- vs AddPandemicRegion), so a change is fresh buttons. Not in COSMETIC_KEYS.
+        opts.glowTiming = (t.glowTiming == "pandemic") and "pandemic" or "aura"
         -- icon rows only: an effect frame is positioned by AnchorEffectFrame / its own size,
         -- and handing it an anchor corner would move a single block by the size mismatch
         if not customStyle then GridOpts(opts, t) end

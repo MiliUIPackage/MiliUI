@@ -71,6 +71,11 @@ reparent 進去、子樹裡的 OnUpdate／AnimationGroup 不 tick。Start 系列
 | `ProcGlow_Attach(f, color, duration, width, height)` → 循環的 AnimationGroup | 全交給引擎 |
 | `Glow_Suspend(f)` / `Glow_Resume(f)` | 宿主停放／取回：driver 退訂／接回 |
 | `Glow_Detach(f)` | 不再發光：貼圖藏起來、driver 退訂 |
+| `Glow_Regions(f)` → 貼圖清單 | f 上所有會畫東西的貼圖（不含遮罩），給 caller 交給引擎控顯示（`AddPandemicRegion`） |
+
+**`f._glowEngineShown`**：caller 在 Attach **之前**設 true，表示這顆 f 的貼圖要交給引擎控
+顯示。交出去之後 Shown 是 secret aspect，lib 對這些貼圖一律不再 `Show`／`Hide`，
+要藏改寫 alpha（`AttachTextures`、`PixelGlow_Attach` 的底、`Glow_Detach`）。
 
 `width`／`height` 是 **f 自己的大小**（Normal／Proc 照上游把 f 開成按鈕的 1.4 倍）。
 重複呼叫安全：貼圖只在缺的時候建，顏色／週期每次更新。第一個消費者是 Cell 的
