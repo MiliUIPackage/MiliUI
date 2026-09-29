@@ -437,8 +437,8 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- textures need the initializeFrame window), the colour on its own (cosmetic -- a
         -- colour drag repaints, no rebuild). Sent as false when off, never left out: an
         -- absent key would keep the last glow (same lesson as durationColors below).
-        -- Glow timing (buff rect / block only; everything else has no key = "aura"):
-        -- "none" = no glow at all. A layout without the key reads the old "None" glow type as
+        -- Glow timing (every indicator with a 發光 section; a layout the options page has not
+        -- normalised yet may have no key): "none" = no glow at all. A layout without the key reads the old "None" glow type as
         -- "none" -- the same rule the options page normalises with and Base.lua's manual path.
         local g = t.glowOptions
         local timing = t.glowTiming
@@ -659,6 +659,7 @@ function I.CreateDefensiveCooldowns(parent)
     defensiveCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
     defensiveCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     defensiveCooldowns.SetupGlow = I.Glow_SetupForChildren
+    defensiveCooldowns.SetGlowTiming = I.Glow_SetTimingForChildren
     defensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     if IsPreviewButton(parent) then
@@ -689,6 +690,7 @@ function I.CreateExternalCooldowns(parent)
     externalCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
     externalCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     externalCooldowns.SetupGlow = I.Glow_SetupForChildren
+    externalCooldowns.SetGlowTiming = I.Glow_SetTimingForChildren
     externalCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     if IsPreviewButton(parent) then
@@ -719,6 +721,7 @@ function I.CreateAllCooldowns(parent)
     allCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
     allCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     allCooldowns.SetupGlow = I.Glow_SetupForChildren
+    allCooldowns.SetGlowTiming = I.Glow_SetTimingForChildren
     allCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     if IsPreviewButton(parent) then
@@ -749,6 +752,7 @@ function I.CreateOffensiveCooldowns(parent)
     offensiveCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
     offensiveCooldowns.SetBorderColor = I.Cooldowns_SetBorderColor
     offensiveCooldowns.SetupGlow = I.Glow_SetupForChildren
+    offensiveCooldowns.SetGlowTiming = I.Glow_SetTimingForChildren
     offensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     if IsPreviewButton(parent) then

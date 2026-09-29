@@ -4548,13 +4548,15 @@ local function CreateSetting_Glow(parent)
     return widget
 end
 
--- Glow section (buff rect / block): class-coloured title (like stackText / durationText),
+-- Glow section (every indicator with a glow except the glow indicator itself, targeted
+-- spells and raid debuffs): class-coloured title (like stackText / durationText),
 -- then WHEN it glows -- on top, because "none" switches everything below it off -- then the
 -- glow type, colour and per-type parameters. The controls and the per-type show / hide rules
--- are CreateSetting_Glow's, minus its "None" type: on these two indicators "off" is a timing.
+-- are CreateSetting_Glow's, minus its "None" type: on these indicators "off" is a timing.
 -- Timing "none" greys the rest out (Cell.SetEnabled) instead of hiding it, so the section
 -- does not jump in height when the player toggles it.
--- SetDBValue(glowOptions, glowTiming); SetFunc(func): func(key, value) -- key "glowOptions"
+-- Two keys build it ("glowSection", "glowSection:manual"), one shared instance.
+-- SetDBValue(glowOptions, glowTiming, allowPandemic); SetFunc(func): func(key, value) -- key "glowOptions"
 -- (value = the whole table, already changed in place, as with CreateSetting_Glow) or
 -- "glowTiming" (value = "none" / "aura" / "pandemic").
 local function CreateSetting_GlowSection(parent)
@@ -4731,9 +4733,15 @@ local function CreateSetting_GlowSection(parent)
             widget.func = func
         end
 
-        -- show db value (the options page has already normalised both: see Indicators.lua)
-        function widget:SetDBValue(glowOptions, glowTiming)
+        -- show db value (the options page has already normalised both: see Indicators.lua).
+        -- allowPandemic == false: a manual-path indicator ("glowSection:manual") -- the
+        -- Pandemic timing is greyed out, and a stored one shows as "aura"
+        function widget:SetDBValue(glowOptions, glowTiming, allowPandemic)
             widget.glowType.items[4].disabled = not Cell.isRetail -- Proc
+            widget.timing.items[3].disabled = allowPandemic == false -- Pandemic window
+            if allowPandemic == false and glowTiming == "pandemic" then
+                glowTiming = "aura"
+            end
             widget.glow = glowOptions
             widget.glowTiming = glowTiming
             widget.timing:SetSelectedValue(glowTiming)
@@ -7704,6 +7712,9 @@ local builders = {
     ["glow"] = CreateSetting_Glow,
     ["glowOptions"] = CreateSetting_Glow,
     ["glowSection"] = CreateSetting_GlowSection,
+    -- manual-path indicators: the same widget instance, told apart by SetDBValue's
+    -- allowPandemic (see Indicators.lua)
+    ["glowSection:manual"] = CreateSetting_GlowSection,
     ["targetedSpellsGlow"] = CreateSetting_Glow,
     ["texture"] = CreateSetting_Texture,
     ["builtInDefensives"] = CreateSetting_BuiltIns,

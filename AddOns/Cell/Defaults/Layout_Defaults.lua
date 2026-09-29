@@ -370,7 +370,10 @@ Cell.defaults.layout = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
-            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
+            -- 發光 section: off is timing "none", the type starts on a real one (same on the
+            -- other three cooldown rows)
+            ["glowOptions"] = {"Normal", {0.95, 0.95, 0.32, 1}},
+            ["glowTiming"] = "none",
         }, -- 17
         {
             ["name"] = "Defensive Cooldowns",
@@ -393,7 +396,8 @@ Cell.defaults.layout = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
-            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
+            ["glowOptions"] = {"Normal", {0.95, 0.95, 0.32, 1}},
+            ["glowTiming"] = "none",
         }, -- 18
         {
             ["name"] = "Externals + Defensives",
@@ -412,7 +416,8 @@ Cell.defaults.layout = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
-            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
+            ["glowOptions"] = {"Normal", {0.95, 0.95, 0.32, 1}},
+            ["glowTiming"] = "none",
         }, -- 19
         {
             ["name"] = "Tank Active Mitigation",
@@ -607,7 +612,8 @@ Cell.defaults.layout = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
-            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
+            ["glowOptions"] = {"Normal", {0.95, 0.95, 0.32, 1}},
+            ["glowTiming"] = "none",
         }, -- 30
     },
 }

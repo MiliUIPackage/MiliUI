@@ -518,10 +518,11 @@ local function HandleIndicators(b)
         if t["glowOptions"] then
             indicator:SetupGlow(t["glowOptions"])
         end
-        -- glow timing (buff rect / block): manual fallback only; the container reads it
-        -- through ConfigureContainer (structural). Debuff rects / blocks have no timing:
-        -- never told one, their glow stays "lit while up".
-        if indicator.SetGlowTiming and t["auraType"] == "buff" then
+        -- glow timing (every indicator with a 發光 section, built-in cooldown rows included):
+        -- the manual path and the preview; the container reads it through
+        -- ConfigureContainer (structural). No key (a layout never opened since) reads "aura",
+        -- which with the old "None" type is still no glow.
+        if indicator.SetGlowTiming then
             indicator:SetGlowTiming(t["glowTiming"])
         end
         -- update smooth
@@ -1139,8 +1140,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 UnitButton_UpdateAuras(b)
             end, true)
         elseif setting == "glowTiming" then
-            -- like pandemicColor: only the manual rect / block needs this; the container
-            -- rebuilds from PushContainerConfig below (structural key)
+            -- like pandemicColor: only the manual path needs this (row types forward it to
+            -- their children); the container rebuilds from PushContainerConfig below
+            -- (structural key)
             F.IterateAllUnitButtons(function(b)
                 local ind = b.indicators[indicatorName]
                 if ind and ind.SetGlowTiming then
@@ -1337,7 +1339,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if value["glowOptions"] then
                     indicator:SetupGlow(value["glowOptions"])
                 end
-                if indicator.SetGlowTiming and value["auraType"] == "buff" then
+                if indicator.SetGlowTiming then
                     indicator:SetGlowTiming(value["glowTiming"])
                 end
                 -- FirstRun: Healers

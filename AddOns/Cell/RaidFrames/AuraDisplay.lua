@@ -1132,7 +1132,9 @@ local EFFECT_BUILDERS = {
 -- glowStyle is structural (new textures need the window); glowColor is cosmetic, so a colour
 -- drag only restyles (the lib repaints the textures it already has).
 --
--- glowTiming (buff rect / block): "aura" = the above, lit while the aura is present.
+-- glowTiming (every container-backed indicator with a 發光 section: custom buff icon /
+-- icons / rect / block and the built-in cooldown rows): "aura" = the above, lit while the
+-- aura is present.
 -- "pandemic" = lit only inside the engine's Pandemic window: every texture the lib drew is
 -- handed over with AddPandemicRegion (the engine SetShown's them; the lib is told first via
 -- f._glowEngineShown so it never Show/Hides them again), and the AnimationGroups go to

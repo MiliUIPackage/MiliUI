@@ -143,8 +143,8 @@ local BUFF_RING_COLOR = {0, 0.55, 0.15} -- keep in sync with AuraDisplay's BUFF_
 --! they actually watch, and that list can change while this pane is open.
 local function SetOnUpdate(indicator, debuffType, icon, stack, extra, ringColor)
     indicator.preview = indicator.preview or CreateFrame("Frame", nil, indicator)
-    -- a timed glow (buff rect / block) lights for the second half of the 13s cycle here, so
-    -- the player sees both states; untimed glows ignore it (Base.lua GlowWindowed)
+    -- a "pandemic"-timed glow blinks 2s lit / 2s dark here instead of waiting for the
+    -- window (Base.lua GlowWindowNow); row types get this per child
     indicator._isPreview = true
     local function doPreview()
         local tex = type(icon) == "function" and icon() or icon
@@ -182,6 +182,20 @@ local function SetOnUpdate(indicator, debuffType, icon, stack, extra, ringColor)
         indicator.preview.elapsedTime = 0
         doPreview()
     end)
+end
+
+-- restart the 13s preview cycle on the next frame. Row types (icons / bars / blocks, the
+-- built-in cooldown rows) run one preview per CHILD and have none of their own, so a glow
+-- change reaches them only through this -- the restart is what relights a timed glow at once.
+local function RestartPreview(indicator)
+    if indicator.preview then
+        indicator.preview.elapsedTime = 13
+    end
+    for _, child in ipairs(indicator) do
+        if type(child) == "table" and child.preview then
+            child.preview.elapsedTime = 13
+        end
+    end
 end
 
 --! Preview art for a custom AURA indicator: sample from the spell list the indicator
@@ -951,8 +965,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if t["glowOptions"] then
                     indicator:SetupGlow(t["glowOptions"])
                 end
-                -- glow timing (buff rect / block; the preview approximates the window)
-                if indicator.SetGlowTiming and t["auraType"] == "buff" then
+                -- glow timing (every indicator with a 發光 section; the preview approximates
+                -- the window)
+                if indicator.SetGlowTiming then
                     indicator:SetGlowTiming(t["glowTiming"])
                 end
                 -- update fadeOut
@@ -1089,7 +1104,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             indicator.preview.elapsedTime = 13 -- update now!
         elseif setting == "glowTiming" and indicator.SetGlowTiming then
             indicator:SetGlowTiming(value)
-            indicator.preview.elapsedTime = 13 -- update now!
+            RestartPreview(indicator) -- update now! (row types: every child)
         elseif setting == "vehicleNamePosition" then
             indicator:UpdateVehicleNamePosition(value)
         elseif setting == "statusColors" then
@@ -1156,6 +1171,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             indicator:SetupGlow(value)
             if indicator.SetCooldown then
                 indicator:SetCooldown(GetTime(), 13)
+            else
+                -- row types: restart each child's cycle, so a "pandemic" blink relights now
+                RestartPreview(indicator)
             end
         elseif setting == "iconStyle" then
             indicator:SetIconStyle(value)
@@ -1290,7 +1308,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             if value["glowOptions"] then
                 indicator:SetupGlow(value["glowOptions"])
             end
-            if indicator.SetGlowTiming and value["auraType"] == "buff" then
+            if indicator.SetGlowTiming then
                 indicator:SetGlowTiming(value["glowTiming"])
             end
             InitIndicator(indicatorName)
@@ -1812,17 +1830,19 @@ if Cell.isRetail or Cell.isMists then
         ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "shieldBarPosition", "frameLevel"},
         ["externalCooldowns"] = Cell.isMidnight
-            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
+            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "borderColor", "animationStyle", "glowSection", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
             or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         ["defensiveCooldowns"] = Cell.isMidnight
-            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
+            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "borderColor", "animationStyle", "glowSection", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
             or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
         -- Unlike externals/defensives this one keeps its custom list on Midnight: the container
         -- reads it through includeSpellIDs, which cannot tell a custom id from a built-in one.
         ["offensiveCooldowns"] = Cell.isMidnight
-            and {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
+            and {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", "borderColor", "animationStyle", "glowSection", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont}
             or {"|cffb7b7b7"..L["Show major damage cooldowns, so you can see who is bursting."], "enabled", "builtInOffensives", "customOffensives", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText", midnightDurationFont},
-        ["allCooldowns"] = {"enabled", "borderColor", "animationStyle", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont},
+        -- "glowSection" on the four cooldown rows (12.1 lists only): container-backed, so all
+        -- three glow timings including the Pandemic window
+        ["allCooldowns"] = {"enabled", "borderColor", "animationStyle", "glowSection", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "durationText:color", midnightDurationFont},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
         -- 12.1: AuraContainer-backed. Options the container cannot honour are gone --
@@ -1960,17 +1980,20 @@ local function ShowIndicatorSettings(id)
         --     tinsert(settingsTable, 1, "|cffb7b7b7"..L["Tank Active Mitigation refers to a single, specific ability that a Tank must use as a counter to specific Boss abilities. These Boss abilities are designated as Mitigation Checks."])
         -- end
     else
+        -- 發光 section: "glowSection" = container path (buff icon / icons / rect / block), all
+        -- three timings; "glowSection:manual" = manual path (everything else here), no Pandemic
+        -- timing -- the manual path freezes in instances, so it could not keep that promise
         if indicatorType == "icon" then
-            settingsTable = {"enabled", "auras", "borderColor", "animationStyle", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "borderColor", "animationStyle", indicatorTable["auraType"] == "buff" and "glowSection" or "glowSection:manual", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
         elseif indicatorType == "icons" then
-            settingsTable = {"enabled", "auras", "borderColor", "animationStyle", "glowOptions", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "borderColor", "animationStyle", indicatorTable["auraType"] == "buff" and "glowSection" or "glowSection:manual", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
         elseif indicatorType == "text" then
             -- one font for both texts, so it closes the pair of text sections
             settingsTable = {"enabled", "auras", "position", "frameLevel", "stack", "duration", "font-noOffset"}
         elseif indicatorType == "bar" then
-            settingsTable = {"enabled", "auras", "maxValue", "colors", "barOrientation", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "maxValue", "colors", "barOrientation", "glowSection:manual", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
         elseif indicatorType == "bars" then
-            settingsTable = {"enabled", "auras", "maxValue", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "maxValue", "glowSection:manual", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
         elseif indicatorType == "rect" then
             if indicatorTable["auraType"] == "buff" then
                 -- buff rects run on the AuraContainer path, where every time-based colour is
@@ -1979,7 +2002,7 @@ local function ShowIndicatorSettings(id)
                 settingsTable = {"enabled", "auras", "rectColors", "glowSection", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             else
                 -- debuff rects stay on the manual path, where the bands still work
-                settingsTable = {"enabled", "auras", "colors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "colors", "glowSection:manual", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
             end
         elseif indicatorType == "color" then
             settingsTable = {"enabled", "auras", "customColors", "anchor", "frameLevel:50"}
@@ -1996,10 +2019,10 @@ local function ShowIndicatorSettings(id)
                 settingsTable = {"enabled", "auras", "blockColorsTime", "glowSection", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             else
                 -- debuff blocks stay on the manual path: the full widget (Color By + bands + border)
-                settingsTable = {"enabled", "auras", "blockColors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "blockColors", "glowSection:manual", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             end
         elseif indicatorType == "blocks" then
-            settingsTable = {"enabled", "auras", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "glowSection:manual", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
         elseif indicatorType == "border" then
             settingsTable = {"enabled", "checkbutton3:fadeOut", "auras", "thickness", "frameLevel:50"}
         end
@@ -2256,14 +2279,17 @@ local function ShowIndicatorSettings(id)
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, currentSetting, value)
             end)
 
-        -- glowSection (buff rect / block): glowTiming "none" / "aura" / "pandemic" + the
-        -- glowOptions without a "None" type -- here "off" is the timing. Older layouts are
-        -- normalised and written back, so every reader sees the same two keys: a "None" type
-        -- becomes timing "none" + type "Normal" (the rest of the table untouched); a missing /
-        -- unknown timing reads "aura". Built-in (container opts) and Base.lua (manual path)
-        -- read an un-normalised layout the same way, so nothing changes until the player
-        -- edits it.
-        elseif currentSetting == "glowSection" then
+        -- glowSection (every indicator with a 發光 section): glowTiming "none" / "aura" /
+        -- "pandemic" + the glowOptions without a "None" type -- here "off" is the timing.
+        -- Older layouts are normalised and written back, so every reader sees the same two
+        -- keys: a "None" type becomes timing "none" + type "Normal" (the rest of the table
+        -- untouched); a missing / unknown timing reads "aura". Built-in (container opts) and
+        -- Base.lua (manual path) read an un-normalised layout the same way, so nothing changes
+        -- until the player edits it.
+        -- "glowSection:manual" (manual-path indicators): same widget, no "pandemic" -- a
+        -- stored one is written back as "aura".
+        elseif currentSetting == "glowSection" or currentSetting == "glowSection:manual" then
+            local allowPandemic = currentSetting == "glowSection"
             local changed = false
             local g = indicatorTable["glowOptions"]
             if type(g) ~= "table" then
@@ -2281,6 +2307,9 @@ local function ShowIndicatorSettings(id)
             if timing ~= "aura" and timing ~= "pandemic" and timing ~= "none" then
                 timing = "aura"
             end
+            if timing == "pandemic" and not allowPandemic then
+                timing = "aura"
+            end
             if indicatorTable["glowTiming"] ~= timing then
                 indicatorTable["glowTiming"] = timing
                 changed = true
@@ -2291,7 +2320,7 @@ local function ShowIndicatorSettings(id)
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "glowTiming", timing)
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "glowOptions", g)
             end
-            w:SetDBValue(g, timing)
+            w:SetDBValue(g, timing, allowPandemic)
             w:SetFunc(function(key, value)
                 -- key "glowOptions": already changed in widget; "glowTiming": a string
                 if key == "glowTiming" then

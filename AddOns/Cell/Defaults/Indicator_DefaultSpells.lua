@@ -1062,7 +1062,9 @@ function F.FirstRun()
             ["showStack"] = true,
             ["showDuration"] = 60, -- only under 60s (true = always, false = never)
             ["showAnimation"] = true,
-            ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}},
+            -- 發光 section: off is timing "none", the type starts on a real one
+            ["glowOptions"] = {"Normal", {0.95, 0.95, 0.32, 1}},
+            ["glowTiming"] = "none",
             ["auraType"] = "buff",
             ["castBy"] = "me",
             -- Copy, not the shared table: without this the layout entry aliases the module

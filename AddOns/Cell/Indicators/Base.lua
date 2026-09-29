@@ -519,19 +519,31 @@ local function Shared_SetupGlow(frame, glowOptions)
     end
 end
 
--- Glow timing (buff rect / block only -- frame.glowTiming stays nil everywhere else, which
--- means "lit while the indicator is up", as it always was):
+-- Glow timing (every indicator with a 發光 section: icon / icons / bar / bars / rect / block /
+-- blocks and the built-in cooldown rows -- frame.glowTiming stays nil on everything else,
+-- e.g. the glow indicator, which means "lit while the indicator is up", as it always was):
 --   "none"     = never lit
 --   "aura"     = lit while the indicator is up
 --   "pandemic" = lit only inside the Pandemic window
 -- On the container path the ENGINE decides the window (AuraDisplay StyleGlow,
 -- AddPandemicRegion); here -- options preview and manual fallback -- "the last 30%" stands
 -- in for it, same as the Pandemic colour band, and independent of whether that colour is on.
+-- (The options page only offers "pandemic" to container-path indicators; a manual-path one
+-- that still receives it gets the same 30% stand-in rather than an error.)
 -- The options PREVIEW (frame._isPreview, set by the Indicators page): "aura" is lit the
 -- whole time, as in game; "pandemic" blinks 2s lit / 2s dark instead of waiting for the
 -- window, so the player sees the picked glow right away and keeps seeing it.
 local function GlowWindowed(frame)
     return frame.glowTiming == "pandemic"
+end
+
+-- the preview flag lives on whatever frame the Indicators page ran SetOnUpdate on: the
+-- indicator itself, or -- for the row types (icons / bars / blocks) -- possibly only the row.
+-- Manual path only: GetParent() is our own frame here, never an engine button.
+local function IsPreview(frame)
+    if frame._isPreview then return true end
+    local parent = frame:GetParent()
+    return parent and parent._isPreview == true or false
 end
 
 -- whether the glow should be showing right now (forward-declared above SetupGlow)
@@ -543,7 +555,7 @@ end
 
 -- "inside the glow window" from the running countdown; callers only ask when GlowWindowed
 local function GlowWindowNow(frame)
-    if frame._isPreview then
+    if IsPreview(frame) then
         -- 2s lit / 2s dark from the start of the preview cycle: lit first, so a type change
         -- (which restarts the cycle) shows the new glow immediately
         return ((frame._duration - frame._remain) % 4) < 2
@@ -577,14 +589,31 @@ local function Shared_SetGlowTiming(frame, timing)
     end
 end
 
--- a hidden rect / block is out of its window; the next SetCooldown's tick re-decides
+-- a hidden indicator is out of its window; the next SetCooldown's tick re-decides
 local function Shared_GlowWindowOnHide(frame)
     Shared_SetGlowWindow(frame, false)
+end
+
+-- a new countdown: no window yet (the options preview restarts its blink from lit, see
+-- GlowWindowNow); the caller's OnUpdate re-decides on its first tick
+local function Shared_ResetGlowWindow(frame)
+    if IsPreview(frame) then frame._glowWindow = nil end
 end
 
 function I.Glow_SetupForChildren(parent, glowOptions)
     for _, child in ipairs(parent) do
         child:SetupGlow(glowOptions)
+    end
+end
+
+-- row types (icons / bars / blocks, the built-in cooldown rows): the timing goes to every
+-- child that has one. A container-backed row has no children left (DiscardFallbackIcons),
+-- and the container reads glowTiming through ConfigureContainer instead.
+function I.Glow_SetTimingForChildren(parent, timing)
+    for _, child in ipairs(parent) do
+        if child.SetGlowTiming then
+            child:SetGlowTiming(timing)
+        end
     end
 end
 
@@ -594,6 +623,9 @@ end
 local function Icon_OnUpdate(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
+    -- glow timing (BarIcon): ahead of the threshold early-out, which would skip it for
+    -- as long as the countdown text is hidden
+    Shared_UpdateGlowWindow(frame)
 
     if frame._remain > frame._threshold then
         frame.duration:SetText("")
@@ -1050,6 +1082,7 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
     -- cooldown indicator child frames which call these on all children)
     frame.ShowStack = function() end
     frame.SetupGlow = function() end
+    frame.SetGlowTiming = function() end
     frame.UpdatePixelPerfect = BorderIcon_UpdatePixelPerfect
 
     return frame
@@ -1058,8 +1091,17 @@ end
 -------------------------------------------------
 -- CreateAura_BarIcon
 -------------------------------------------------
+-- a windowed glow with the countdown text off: Icon_OnUpdate is not running, so this keeps
+-- the window ticking on its own (the glow window only -- no text)
+local function BarIcon_OnUpdate_Glow(frame)
+    frame._remain = frame._duration - (GetTime() - frame._start)
+    if frame._remain < 0 then frame._remain = 0 end
+    Shared_UpdateGlowWindow(frame)
+end
+
 local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing)
     if duration == 0 then
+        Shared_SetGlowWindow(frame, false) -- no duration, no window
         frame.cooldown:Hide()
         frame.duration:Hide()
         frame.stack:SetParent(frame)
@@ -1099,8 +1141,15 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
         if frame.showDuration then
             frame._start = start
             frame._duration = duration
+            Shared_ResetGlowWindow(frame)
             frame._elapsed = 0.1 -- update immediately
             frame:SetScript("OnUpdate", Icon_OnUpdate)
+        elseif GlowWindowed(frame) then
+            -- no countdown text, but the glow window still needs a tick
+            frame._start = start
+            frame._duration = duration
+            Shared_ResetGlowWindow(frame)
+            frame:SetScript("OnUpdate", BarIcon_OnUpdate_Glow)
         end
     end
 
@@ -1237,11 +1286,14 @@ function I.CreateAura_BarIcon(name, parent)
     frame.ShowAnimation = BarIcon_ShowAnimation
     frame.SetBorderColor = Icon_SetBorderColor
     frame.SetupGlow = Shared_SetupGlow
+    frame.SetGlowTiming = Shared_SetGlowTiming
     frame.UpdatePixelPerfect = BarIcon_UpdatePixelPerfect
 
     Shared_SetCooldownStyle(frame, CELL_COOLDOWN_STYLE)
 
     frame:SetScript("OnSizeChanged", ReCalcTexCoord)
+    -- set here, at creation, so later HookScript("OnHide") callers are unaffected (as rect)
+    frame:SetScript("OnHide", Shared_GlowWindowOnHide)
 
     -- frame:SetScript("OnEnter", function()
         -- local f = frame
@@ -1509,6 +1561,7 @@ function I.CreateAura_Icons(name, parent, num)
     icons.ShowAnimation = Icons_ShowAnimation
     icons.SetBorderColor = Icons_SetBorderColor
     icons.SetupGlow = I.Glow_SetupForChildren
+    icons.SetGlowTiming = I.Glow_SetTimingForChildren
     icons.UpdatePixelPerfect = Icons_UpdatePixelPerfect
 
     for i = 1, num do
@@ -1933,6 +1986,8 @@ local function Bar_OnUpdate(bar, elapsed)
     bar._remain = bar._duration - (GetTime() - bar._start)
     if bar._remain < 0 then bar._remain = 0 end
     bar:SetValue(bar._remain)
+    -- glow timing: see Rect_OnUpdateColor
+    Shared_UpdateGlowWindow(bar)
 
     bar._elapsed = bar._elapsed + elapsed
     if bar._elapsed >= 0.1 then
@@ -1977,6 +2032,7 @@ end
 
 local function Bar_SetCooldown(bar, start, duration, debuffType, texture, count)
     if duration == 0 then
+        Shared_SetGlowWindow(bar, false) -- no duration, no window
         bar:SetScript("OnUpdate", nil)
         bar.duration:Hide()
         bar:SetMinMaxValues(0, 1)
@@ -2008,6 +2064,7 @@ local function Bar_SetCooldown(bar, start, duration, debuffType, texture, count)
         end
         bar._start = start
         bar._duration = duration
+        Shared_ResetGlowWindow(bar)
         bar._elapsed = 0.1 -- update immediately
         bar:SetScript("OnUpdate", Bar_OnUpdate)
     end
@@ -2047,7 +2104,10 @@ function I.CreateAura_Bar(name, parent)
     bar.ShowDuration = Shared_ShowDuration
     bar.SetMaxValue = Bar_SetMaxValue
     bar.SetupGlow = Shared_SetupGlow
+    bar.SetGlowTiming = Shared_SetGlowTiming
     bar.SetColors = Bar_SetColors
+    -- HookScript, not SetScript: Cell.CreateStatusBar already owns OnHide (resets the value)
+    bar:HookScript("OnHide", Shared_GlowWindowOnHide)
 
     return bar
 end
@@ -2059,6 +2119,8 @@ local function Bars_OnUpdate(bar, elapsed)
     bar._remain = bar._duration - (GetTime() - bar._start)
     if bar._remain < 0 then bar._remain = 0 end
     bar:SetValue(bar._remain)
+    -- glow timing: ahead of the threshold early-out (see Rect_OnUpdateColor)
+    Shared_UpdateGlowWindow(bar)
 
     if bar._remain > bar._threshold then
         bar.duration:SetText("")
@@ -2083,6 +2145,7 @@ end
 
 local function Bars_SetCooldown(bar, start, duration, debuffType, texture, count, refreshing, color)
     if duration == 0 then
+        Shared_SetGlowWindow(bar, false) -- no duration, no window
         bar:SetScript("OnUpdate", nil)
         bar:SetMinMaxValues(0, 1)
         bar:SetValue(1)
@@ -2113,6 +2176,7 @@ local function Bars_SetCooldown(bar, start, duration, debuffType, texture, count
         end
         bar._start = start
         bar._duration = duration
+        Shared_ResetGlowWindow(bar)
         bar:SetScript("OnUpdate", Bars_OnUpdate)
     end
 
@@ -2149,6 +2213,7 @@ function I.CreateAura_Bars(name, parent, num)
     bars.ShowStack = Icons_ShowStack
     bars.SetMaxValue = Bars_SetMaxValue
     bars.SetupGlow = I.Glow_SetupForChildren
+    bars.SetGlowTiming = I.Glow_SetTimingForChildren
     bars.UpdatePixelPerfect = Icons_UpdatePixelPerfect
 
     for i = 1, num do
@@ -2909,6 +2974,8 @@ end
 local function Blocks_OnUpdate(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
+    -- glow timing: ahead of the threshold early-out (see Rect_OnUpdateColor)
+    Shared_UpdateGlowWindow(frame)
 
     if frame._remain > frame._threshold then
         frame.duration:SetText("")
@@ -2933,6 +3000,7 @@ end
 
 local function Blocks_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing, color)
     if duration == 0 then
+        Shared_SetGlowWindow(frame, false) -- no duration, no window
         frame.cooldown:Hide()
         frame.duration:Hide()
         frame:SetScript("OnUpdate", nil)
@@ -2959,6 +3027,7 @@ local function Blocks_SetCooldown(frame, start, duration, debuffType, texture, c
 
         frame._start = start
         frame._duration = duration
+        Shared_ResetGlowWindow(frame)
         frame:SetScript("OnUpdate", Blocks_OnUpdate)
     end
 
@@ -2991,6 +3060,7 @@ function I.CreateAura_Blocks(name, parent, num)
     blocks.ShowDuration = Icons_ShowDuration
     blocks.ShowStack = Icons_ShowStack
     blocks.SetupGlow = I.Glow_SetupForChildren
+    blocks.SetGlowTiming = I.Glow_SetTimingForChildren
     blocks.UpdatePixelPerfect = Icons_UpdatePixelPerfect
 
     for i = 1, num do
