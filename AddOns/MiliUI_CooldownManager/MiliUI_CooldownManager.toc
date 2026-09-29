@@ -38,6 +38,13 @@ Core\Init.lua
 Core\Media.lua
 Core\Style.lua
 Core\DB.lua
+Core\Catalog.lua
+Core\Layout.lua
+Core\Viewers.lua
+Core\Text.lua
+Core\Decorate.lua
+Core\Bars.lua
+Core\Visibility.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
