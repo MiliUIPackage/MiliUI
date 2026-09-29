@@ -401,3 +401,12 @@ buff 矩形走效果槽後，「剩 N%／N 秒換色」一度被拿掉，現在�
 - **順手修**：`ConfigureContainer` 的 `durationColors` 關掉時送 `false`（原本不送，舊曲線留到 /reload；icon 類同病）。
 
 **已實機驗證（2026-09-29）**：`|T` 比例不是 0.75（量到約 0.5），改成 `BAND_OVERSCAN=3` ＋ holder `SetClipsChildren` 裁切（e8939e4e6）；無損刷新貼圖實機有亮；秒數帶實機有亮。**待實機驗證**：`RemainingPercent` 是 0–100；三個槽按鈕同層（否則帶子蓋到倒數）；沒有持續時間的光環秒數帶不誤亮；`AddPandemicRegion` 實機接受貼圖；`rectBands` 換門檻立刻 rebuild。
+
+## 色塊（block）也有同一套三層（2026-09-29，未實機驗證）
+
+矩形那套共用化後搬到 buff 色塊：`EFFECT_LAYER = {border=1, pct=2, pandemic=3, sec=4, swipe=5}`（倒數 +6、層數 +7）、`opts.effectBands`、`BuildPandemicFill(handle, button, cfg, parentFrame)`。
+- **色塊改走單槽模式**（`IsSlotMode` 加 `customStyle == "block"`，但不進 `EFFECT_SLOT_STYLES`，仍走自己的 BLOCK/TEXT 分支）：流動排版裡每個群組接在前一個後面排，伴隨槽會排在色塊**旁邊**；只有單槽才疊得上去。ParkKey 前綴從 flow 變 ov。
+- 容器路的色塊**補畫邊框**（`dfBlockBorder`，colors[5]，以前完全沒畫），掃描 `dfCD` 內縮一圈、level 在色帶之上（掃過的黑、剩下的扇形露帶色，同手動路）。
+- 色塊 `colors` 佈局跟矩形不同：`[1]` 上色模式 duration／stack、`[2]` 一般、`[3]` 比例帶、`[4]` 秒帶、`[5]` 邊框。**「依層數上色」容器路做不到**（層數秘密、`SetApplicationCount` 不能帶 formatter），buff 色塊只送 duration 模式的帶；設定頁開 stack 模式的舊版面時正規化成 duration＋兩條帶關掉。
+- 設定頁：`CreateTimeColorsWidget(parent, key, frameName, IX)` 吃索引表，`rectColors`／`blockColorsTime` 各一顆；**debuff 色塊換回完整的 `CreateSetting_BlockColors`**（之前被簡化成只剩一列，手動路其實還支援上色模式與色帶）。那個完整版有三個上游舊毛病沒動：`colorByText` 全域寫入、色帶勾選不觸發 func、秒數框 OnTextChanged 比錯欄位（[3][2] 應為 [4][2]）。
+- 待實機驗證：單槽後 buff 色塊位置尺寸不跑掉；三槽同層；邊框、掃描、色帶不互蓋；stack 模式正規化不報錯；debuff 色塊完整設定頁可用。

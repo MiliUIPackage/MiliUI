@@ -251,6 +251,13 @@ function I.GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             ["auras"] = {},
             ["glowOptions"] = {"None", {0.95, 0.95, 0.32, 1}}
         }
+        -- buff blocks run on the AuraContainer path like buff rects, with the same three
+        -- engine-driven time layers: the two bands in `colors`, the countdown colour curve and
+        -- the Pandemic window ({enabled, {r,g,b,a}}, absent = off). Debuff blocks stay on the
+        -- manual path.
+        if auraType == "buff" then
+            t["pandemicColor"] = {false, {1, 1, 0, 1}}
+        end
     elseif type == "blocks" then
         t = {
             ["name"] = name,
