@@ -19,6 +19,7 @@ Libs\Callbacks.lua
 
 Config\Luxthos_Platynator.lua
 Config\Ayije_CDM.lua
+Config\MiliUI_CooldownManager.lua
 Config\BugSack.lua
 
 Init.lua

@@ -31,6 +31,7 @@ ns.AddonRoster = {
           desc = "套組本體：這個設定視窗、插件強化與各式修補都住在這裡。\n"
               .. "無法從這裡停用（關了它，這個視窗就不存在了）。" },
         { key = "MiliUI_UnitFrames", folders = { "MiliUI_UnitFrames" }, menuKey = "unitframes" },
+        { key = "MiliUI_CooldownManager", folders = { "MiliUI_CooldownManager" }, slash = "/mcdm" },
         { key = "MiliUI_Tooltip", folders = { "MiliUI_Tooltip" }, menuKey = "tooltip" },
         { key = "MiliUI_Focus", folders = { "MiliUI_Focus" }, menuKey = "focus" },
         { key = "MiliUI_CrusadingStrikes", folders = { "MiliUI_CrusadingStrikes" }, menuKey = "crusadingstrikes" },

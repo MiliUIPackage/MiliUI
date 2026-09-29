@@ -45,7 +45,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_Tooltip_DB", "MiliUI_UnitFrames_DB",
     "AGSCDB",
     # 內建預設值資料（Config/ 底下那幾支就是一整包全域表）
-    "MiliUI_PlatynatorProfile", "MiliUI_AyijeCDM_Profile",
+    "MiliUI_PlatynatorProfile", "MiliUI_AyijeCDM_Profile", "MiliUI_CooldownManager_Profile",
     # 對外 API 與跨插件註冊表
     "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
     "MiliUI_InfoBarPlugins",          # 資訊列的外部方塊註冊表（MiliUI_InfoBar/Core/Plugins.lua）

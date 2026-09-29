@@ -63,6 +63,28 @@ local importRegistry = {
             return true
         end,
     },
+    {
+        name = "MiliUI_CooldownManager",
+        desc = "冷卻管理器（自製，取代 Ayije_CDM）",
+        addonName = "MiliUI_CooldownManager",
+        dataCheck = function()
+            return MiliUI_CooldownManager_Profile ~= nil
+        end,
+        import = function()
+            if not MiliUI_CooldownManager_Profile then return false, "MiliUI 預設值資料不存在" end
+            if not MiliUI_CooldownManager_DB then MiliUI_CooldownManager_DB = {} end
+            local db = MiliUI_CooldownManager_DB
+            db.profiles = db.profiles or {}
+            db.profileKeys = db.profileKeys or {}
+
+            -- 覆寫 Default 設定檔；缺的鍵由插件登入時的 MergeDefaults 補成套組預設值
+            db.profiles["Default"] = CopyTable(MiliUI_CooldownManager_Profile)
+
+            local charKey = UnitName("player") .. " - " .. GetRealmName()
+            db.profileKeys[charKey] = "Default"
+            return true
+        end,
+    },
 }
 
 ------------------------------------------------------------
