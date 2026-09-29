@@ -18,7 +18,9 @@
 --   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單）；拖到左欄的自訂群組上
 --                      ＝拉進那一群（groupOf），拖回原本的檢視器上＝清掉 groupOf
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
--- 不能放的位置（cell.locked，光環格的固定前綴，之後的階段才會有）蓋紅色半透明。
+-- 光環格（自訂項目 kind = "aura"）是固定前綴：cell.locked，蓋紅色半透明、拖不動、中鍵不藏，
+-- 別的格也不能插到它們前面（插入線變紅）。左鍵照樣開逐法術面板。
+-- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（圖示類的條都收，含四條檢視器）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -187,7 +189,13 @@ function Preview.SetHidden(key, id, hidden)
 end
 
 -- 把 id 拉進 target（nil 或它原本的檢視器 ＝ 清掉 groupOf）
+-- 自訂項目沒有「原本的檢視器」：直接改它的 bar
 function Preview.MoveTo(id, target, fromKey)
+    if ns.Catalog.IsCustom(id) then
+        if not target or not ns.DB.SetCustomBar(id, target) then return end
+        Changed("membership", fromKey, target)
+        return
+    end
     local sp = ns.DB.SpecSpells(true)
     if not sp or id == nil then return end
     local origin = ns.Catalog.SourceOf(id)
@@ -199,6 +207,14 @@ end
 -- 拖到哪幾條上是合法的：同類型（長條只收長條）的自訂群組，以及它原本的檢視器
 function Preview.DropCandidates(key, id)
     local out = {}
+    if ns.Catalog.IsCustom(id) then
+        -- 自訂項目：任何一條圖示類的條（長條的 item 是另一種框，放不進去）
+        local p = ns.profile
+        for k, bar in pairs(p and p.bars or {}) do
+            if k ~= key and type(bar) == "table" and bar.kind ~= "bars" then out[k] = true end
+        end
+        return out
+    end
     local origin = ns.Catalog.SourceOf(id)
     local originBar = origin and BarCfg(origin)
     local wantBars = originBar and originBar.kind == "bars"
@@ -367,7 +383,7 @@ function Proto:Refresh()
         c:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", ox + r.x, -(PAD + r.y))
         c:SetSize(r.w, r.h)
         c.id, c.hiddenItem, c.index = e.id, e.hidden and true or false, i
-        c.locked = false        -- 光環格的固定前綴（之後的階段）在這裡設
+        c.locked = false        -- 光環格的固定前綴由 Fill 設
         if not e.plus then
             self:Fill(c, e, i, r, now)
             if c.locked then
@@ -387,8 +403,15 @@ function Proto:Fill(c, e, i, r, now)
     local key, id = self.key, e.id
     local info = ns.Catalog.Info(id)
     local tex = (info and info.icon) or QUESTION
-    local src = ns.Catalog.SourceOf(id)
-    c.aura = AURA_SRC[src] and true or false
+    if info and info.custom then
+        c.aura = info.kind == "aura"
+        c.locked = c.aura
+        c.custom, c.known = info.kind, info.isKnown ~= false
+    else
+        local src = ns.Catalog.SourceOf(id)
+        c.aura = AURA_SRC[src] and true or false
+        c.custom, c.known = nil, true
+    end
     c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden
     c.name = (info and info.name) or ("#" .. tostring(id))
     c.decorated = nil
@@ -457,7 +480,13 @@ local function ShowTip(c)
     if c.isPlus or c.dragging then return end
     GameTooltip:SetOwner(c, "ANCHOR_TOP")
     GameTooltip:SetText(c.name or "")
-    if c.hiddenItem then
+    if c.custom and not c.known then
+        GameTooltip:AddLine(L["Not learned"], 1, 0.3, 0.3)
+    end
+    if c.locked then
+        GameTooltip:AddLine(L["Aura slot: always at the front of the bar, can't be dragged."], 1, 0.82, 0, true)
+        GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
+    elseif c.hiddenItem then
         GameTooltip:AddLine(L["Hidden. Click to show it again."], 0.8, 0.8, 0.8, true)
     else
         GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)

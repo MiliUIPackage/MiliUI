@@ -7,6 +7,11 @@
 --   ns.Catalog.Refresh(reason) 重讀；內容（簽章）變了才廣播 "CatalogChanged"
 --   ns.Catalog.IsPaused()      暴雪冷卻管理器設定面板開著 ⇒ true（Bars 暫停重排）
 --
+-- 自訂項目（spells[spec].custom，id 是 "c:<index>"）也從這裡進清單：Bar(key) 把
+-- custom[i].bar == key 的排進去（順序覆寫照舊），**光環格永遠排在最前面**當固定前綴
+-- （持有框整條鏈是保護框，戰鬥中位置不能變 ⇒ 放在不會被別人擠動的地方）。
+-- Info("c:i") 回同一個形狀的表（多 custom／kind／itemID／filter）。
+--
 -- 資料來源只有兩個明文 API：`C_CooldownViewer.GetCooldownViewerCategorySet(category, true)`
 -- 與 `GetCooldownViewerCooldownInfo(id)`，全部 pcall，欄位過 canaccessvalue 才收。
 --
@@ -406,26 +411,143 @@ function C.CheckFresh()
 end
 
 ------------------------------------------------------------
--- 對外查詢
+-- 自訂項目
 ------------------------------------------------------------
-function C.Info(id)
-    EnsureBuilt()
-    if id == nil then return nil end
-    return C.info[id]
-end
-
--- 這個 id 目前在哪一條暴雪檢視器（有效類別）；不在任何一條回 nil
-function C.SourceOf(id)
-    EnsureBuilt()
-    local rec = id ~= nil and C.info[id]
-    return rec and rec.bar or nil
-end
+local QUESTION = 134400
+local CUSTOM_KINDS = { aura = true, spell = true, item = true }
 
 local function SpellsTable()
     local p = ns.profile
     local spec = ns.specID
     local sp = p and type(p.spells) == "table" and spec and p.spells[spec]
     return type(sp) == "table" and sp or nil
+end
+
+local function CustomList()
+    local sp = SpellsTable()
+    local list = sp and sp.custom
+    return type(list) == "table" and list or EMPTY
+end
+
+function C.CustomIndex(id)
+    if type(id) ~= "string" then return nil end
+    local n = id:match("^c:(%d+)$")
+    return n and tonumber(n) or nil
+end
+
+function C.IsCustom(id) return C.CustomIndex(id) ~= nil end
+
+-- 這一筆的形狀對不對（匯入的字串、舊版存檔都可能帶來壞資料；壞的一律當不存在）
+local function ValidCustom(e)
+    if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] then return false end
+    if e.kind == "item" then return type(e.itemID) == "number" end
+    return type(e.spellID) == "number"
+end
+C.ValidCustom = ValidCustom
+
+function C.CustomEntry(id)
+    local i = C.CustomIndex(id)
+    local e = i and CustomList()[i]
+    if ValidCustom(e) then return e, i end
+    return nil
+end
+
+function C.IsAuraSlot(id)
+    local e = C.CustomEntry(id)
+    return e ~= nil and e.kind == "aura"
+end
+
+-- 這條上有沒有光環格（有的話固定格位被強制打開）
+function C.BarHasAuraSlot(barKey)
+    for _, e in ipairs(CustomList()) do
+        if ValidCustom(e) and e.kind == "aura" and e.bar == barKey then return true end
+    end
+    return false
+end
+
+local function Try(fn, ...)
+    if not fn then return nil end
+    local ok, a, b, c, d, e = pcall(fn, ...)
+    if not ok then return nil end
+    return a, b, c, d, e
+end
+
+-- 法術學了沒（讀不到當學了；光環格不問）
+local function SpellKnown(spellID)
+    local book = C_SpellBook
+    if book and book.IsSpellKnown then
+        local v = Plain(Try(book.IsSpellKnown, spellID))
+        if v ~= nil then return v and true or false end
+    end
+    if _G.IsPlayerSpell then
+        local v = Plain(Try(_G.IsPlayerSpell, spellID))
+        if v ~= nil then return v and true or false end
+    end
+    return true
+end
+C.SpellKnown = SpellKnown
+
+local function CustomInfo(id)
+    local e, i = C.CustomEntry(id)
+    if not e then return nil end
+    local info = {
+        cooldownID = id, custom = true, index = i, kind = e.kind, bar = e.bar,
+        spellID = e.spellID, itemID = e.itemID, filter = e.filter, isKnown = true,
+    }
+    if e.kind == "item" then
+        local I = C_Item
+        info.icon = Plain(Try(I and I.GetItemIconByID, e.itemID))
+        if not info.icon then info.icon = Plain(select(5, Try(I and I.GetItemInfoInstant, e.itemID))) end
+        info.name = Plain(Try(I and I.GetItemNameByID, e.itemID))
+    else
+        local shown = e.spellID
+        if e.kind == "spell" then
+            info.isKnown = SpellKnown(e.spellID)
+            local ov = Plain(Try(C_Spell and C_Spell.GetOverrideSpell, e.spellID))
+            if type(ov) == "number" and ov ~= e.spellID then
+                info.overrideSpellID = ov
+                shown = ov
+            end
+        end
+        info.icon = Plain(Try(C_Spell and C_Spell.GetSpellTexture, shown))
+        info.name = Plain(Try(C_Spell and C_Spell.GetSpellName, shown))
+        if not info.isKnown then info.icon = QUESTION end
+    end
+    info.icon = info.icon or QUESTION
+    info.name = info.name or ("#" .. tostring(e.spellID or e.itemID))
+    return info
+end
+
+------------------------------------------------------------
+-- 對外查詢
+------------------------------------------------------------
+function C.Info(id)
+    if C.IsCustom(id) then return CustomInfo(id) end
+    EnsureBuilt()
+    if id == nil then return nil end
+    return C.info[id]
+end
+
+-- 這個 id 目前在哪一條暴雪檢視器（有效類別）；不在任何一條回 nil
+-- 自訂項目回它放在哪一條
+function C.SourceOf(id)
+    if C.IsCustom(id) then
+        local e = C.CustomEntry(id)
+        return e and e.bar or nil
+    end
+    EnsureBuilt()
+    local rec = id ~= nil and C.info[id]
+    return rec and rec.bar or nil
+end
+
+-- 光環格排到最前面（相對順序不變）
+local function AuraPrefix(list)
+    local out, rest = {}, {}
+    for _, id in ipairs(list) do
+        if C.IsAuraSlot(id) then out[#out + 1] = id else rest[#rest + 1] = id end
+    end
+    for _, id in ipairs(rest) do out[#out + 1] = id end
+    return out
 end
 
 -- 條的有序清單（已套 order／groupOf／hidden）。回傳的是新表，呼叫端可以自由改。
@@ -485,6 +607,13 @@ function C.Bar(barKey, withHidden)
         end
     end
 
+    -- 自訂項目（只進圖示類的條；長條的 item 是另一種框，放不進去）
+    if bar.kind ~= "bars" then
+        for i, e in ipairs(CustomList()) do
+            if ValidCustom(e) and e.bar == barKey then Add("c:" .. i) end
+        end
+    end
+
     -- 我們自己的順序覆寫：列到的照列的順序排在前面，沒列到的照原順序接在後面
     local ord = sp and type(sp.order) == "table" and sp.order[barKey]
     if type(ord) == "table" and #ord > 0 then
@@ -506,6 +635,8 @@ function C.Bar(barKey, withHidden)
         out = Sort(out)
         if hid then hid = Sort(hid) end
     end
+    out = AuraPrefix(out)
+    if hid then hid = AuraPrefix(hid) end
     return out, hid
 end
 

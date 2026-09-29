@@ -15,9 +15,12 @@
 --     改掛後掛勾：暴雪寫完，我們照 rec 上快取的設定再寫一次。
 --   * 暴雪自己的裝飾（圓角遮罩、外框圖、觸發發光）只熄 alpha 或拔遮罩，不 Hide。
 --
--- 觸發發光（SpellActivationAlert）：計畫要熄掉暴雪的、改畫自己的。自己的發光在效果那一階段
--- 才做，**在那之前熄掉等於功能倒退**，所以這裡只留開關：ns.Glow 宣告接管
--- （ns.Glow.ownsProcAlert = true）才熄。
+-- 觸發發光（SpellActivationAlert）：Core/Glow.lua 宣告接管（ns.Glow.ownsProcAlert = true）之後，
+-- 條層「觸發發光」開著（或這個法術自己覆寫成開）的 item 熄掉暴雪的、在 overlay 上畫自己的；
+-- 兩者都關時還給暴雪（alpha 1）。
+--
+-- 自訂法術／物品框（Modules/Custom.lua）也走這支 Apply：它們長得跟暴雪 item 一樣
+-- （.Icon／.Cooldown／.ChargeCount.Current），邊框、縮放、轉圈色、文字同一套。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -103,6 +106,9 @@ end
 function D.InvalidateAll()
     generation = generation + 1
     for _, rec in pairs(ns.Viewers.frames) do rec.decorated = nil end
+    if ns.Custom and ns.Custom.Records then
+        for _, rec in pairs(ns.Custom.Records()) do rec.decorated = nil end
+    end
 end
 
 local function SpellStyle(barKey, id)
@@ -143,6 +149,28 @@ local function MakeBorder(ov)
         b[i] = t
     end
     return b
+end
+
+-- 只換顏色（無損刷新的邊框色、換回原色）：不動形狀
+local function ColorBorder(b, r, g, bl, a)
+    if not b then return end
+    for i = 1, 4 do b[i]:SetVertexColor(r, g, bl, a) end
+    if b.edge then b.edge:SetBackdropBorderColor(r, g, bl, a) end
+end
+
+function D.RecolorBorder(rec, c)
+    if not (rec and type(c) == "table") then return end
+    local r, g, bl, a = c.r or 1, c.g or 1, c.b or 1, c.a or 1
+    ColorBorder(rec.border, r, g, bl, a)
+    ColorBorder(rec.border2, r, g, bl, a)
+end
+
+-- 換回 Apply 當時的顏色
+function D.RestoreBorder(rec)
+    local c = rec and rec.borderRGBA
+    if not c then return end
+    ColorBorder(rec.border, c[1], c[2], c[3], c[4])
+    ColorBorder(rec.border2, c[1], c[2], c[3], c[4])
 end
 
 local function LayoutBorder(b, region, size, token, r, g, bl, a)
@@ -235,10 +263,13 @@ end
 ------------------------------------------------------------
 local desatGuard = false
 
-local function OnSetCooldown(cd, _start, duration)
+local function OnSetCooldown(cd, start, duration, modRate)
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
-    if not (rec and rec.style) then return end
+    if not rec then return end
+    -- 就緒發光的探針：同一組參數轉交（Core/Glow.lua，不讀不算）
+    if ns.Glow and ns.Glow.OnItemSetCooldown then ns.Glow.OnItemSetCooldown(item, rec, start, duration, modRate) end
+    if not rec.style then return end
     local st = rec.style
     if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
@@ -249,6 +280,12 @@ local function OnSetCooldown(cd, _start, duration)
             cd:SetDrawSwipe(false)
         end
     end
+end
+
+local function OnClearCooldown(cd)
+    local item = cooldownOwner[cd]
+    local rec = item and ns.Viewers.frames[item]
+    if rec and ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec) end
 end
 
 local function OnSetDesaturated(icon)
@@ -275,12 +312,15 @@ function D.HookItem(item, rec)
     if rec.decoHooked then return end
     rec.decoHooked = true
     local cd = item.Cooldown
-    if cd and cd.SetCooldown then
+    if cd and cd.SetCooldown and not rec.custom then
         cooldownOwner[cd] = item
         hooksecurefunc(cd, "SetCooldown", ns.Guard(OnSetCooldown))
+        if cd.Clear then hooksecurefunc(cd, "Clear", ns.Guard(OnClearCooldown)) end
     end
+    -- 無損刷新（ShowPandemicStateFrame／Hide…）的後掛勾在 Glow
+    if not rec.custom and ns.Glow and ns.Glow.HookItem then ns.Glow.HookItem(item, rec) end
     local icon = item.Icon
-    if icon and icon.SetDesaturated and icon.GetObjectType and icon:GetObjectType() == "Texture" then
+    if not rec.custom and icon and icon.SetDesaturated and icon.GetObjectType and icon:GetObjectType() == "Texture" then
         iconOwner[icon] = item
         hooksecurefunc(icon, "SetDesaturated", ns.Guard(OnSetDesaturated))
     end
@@ -342,10 +382,12 @@ end
 ------------------------------------------------------------
 -- 觸發發光：接管之後才熄（見檔頭）
 ------------------------------------------------------------
-local function ApplyProcAlert(item)
+-- 暴雪的 SpellActivationAlert 是在第一次 ShowAlert 才建的：Glow 的 ShowAlert 後掛勾會再叫一次
+local function ApplyProcAlert(item, rec, barKey)
     local alert = item.SpellActivationAlert
     if not alert then return end
-    local owns = ns.Glow and ns.Glow.ownsProcAlert
+    local G = ns.Glow
+    local owns = G and G.ownsProcAlert and (not G.OwnsProc or G.OwnsProc(barKey, rec and rec.cooldownID))
     alert:SetAlpha(owns and 0 or 1)
 end
 D.ApplyProcAlert = ApplyProcAlert
@@ -388,6 +430,7 @@ function D.Apply(item, rec, barKey, w, h)
     local border = style.border or {}
     local br, bg, bb, ba = C4(spell.borderColor or border.color, 0, 0, 0, 1)
     local size = tonumber(border.size) or 0
+    rec.borderRGBA = { br, bg, bb, ba }
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
@@ -430,8 +473,10 @@ function D.Apply(item, rec, barKey, w, h)
         ns.Text.ApplyIcon(item, style, spell)
     end
 
-    ApplyProcAlert(item)
+    ApplyProcAlert(item, rec, barKey)
     rec.decorated, rec.decoratedBar = sig, barKey
+    -- 發光的框跟著格子尺寸走（尺寸由我們給，不從 item 讀）；樣式變了的發光重畫
+    if ns.Glow and ns.Glow.AfterApply then ns.Glow.AfterApply(item, rec, barKey, w, h) end
 end
 
 ------------------------------------------------------------

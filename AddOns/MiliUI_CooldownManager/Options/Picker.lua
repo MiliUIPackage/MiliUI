@@ -9,7 +9,11 @@
 --                      長條只收長條、圖示只收圖示（暴雪的長條 item 跟圖示 item 是兩種框）。
 --   要先去暴雪面板加    已經學會、但還沒放進暴雪冷卻管理器任何一條的（Catalog.Pool），
 --                      那要在暴雪自己的面板裡拖進去 —— 附一顆開面板的按鈕。
---   自訂 ID            光環格／自訂法術／物品在下一版加入，這裡先放一行字。
+--   自訂 ID            三顆鈕「光環」「法術」「物品」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
+--                      spells[spec].custom 追加一筆（bar ＝ 這條）。只有圖示類的條收自訂項目。
+--                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；同專精不收重複；
+--                      減益只收 C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret 的（玩家自己算友方，
+--                      友方減益不准用 ID 過濾，加了也是一個永遠不亮的格子）。
 -- 暴雪面板開著時（Catalog.IsPaused）清單不準：整個挑選器鎖住並說明，面板關掉自動重讀。
 ------------------------------------------------------------
 local _, ns = ...
@@ -32,6 +36,60 @@ local sections = {}
 local pools = { move = {}, pool = {} }
 
 local function BarCfg(key) return ns.DB.BarTable(key) end
+
+------------------------------------------------------------
+-- 自訂 ID：驗證（純邏輯＋查詢 API，失敗回原因字串）
+------------------------------------------------------------
+local NEVER_SECRET = (Enum and Enum.SecrecyLevel and Enum.SecrecyLevel.NeverSecret) or 0
+
+local function ParseID(text)
+    local n = tonumber((tostring(text or ""):gsub("%s", "")))
+    if not n or n <= 0 or n ~= math.floor(n) then return nil end
+    return n
+end
+
+local function SpellExists(id)
+    if not (C_Spell and C_Spell.GetSpellInfo) then return true end
+    local ok, info = pcall(C_Spell.GetSpellInfo, id)
+    return ok and type(info) == "table"
+end
+
+local function ItemExists(id)
+    if not (C_Item and C_Item.GetItemInfoInstant) then return true end
+    local ok, itemID = pcall(C_Item.GetItemInfoInstant, id)
+    return ok and itemID ~= nil
+end
+
+-- 減益能不能用 ID 追蹤：只收 NeverSecret；API 不在就放行（擋錯比漏擋更難察覺）
+local function DebuffTrackable(id)
+    if not (C_Secrets and C_Secrets.GetSpellAuraSecrecy) then return true end
+    local ok, level = pcall(C_Secrets.GetSpellAuraSecrecy, id)
+    if not ok or level == nil then return true end
+    return level == NEVER_SECRET
+end
+
+-- 回傳 entry 或 nil, 給玩家看的原因
+function Picker.ValidateCustom(kind, text, filter, barKey)
+    if not ns.specID then return nil, L["Pick a specialization first."] end
+    local id = ParseID(text)
+    if not id then return nil, L["Enter a number."] end
+    if kind == "item" then
+        if not ItemExists(id) then return nil, L["No item with that ID."] end
+        if ns.DB.FindCustom("item", id) then return nil, L["Already tracked in this specialization."] end
+        return { kind = "item", itemID = id, bar = barKey }
+    end
+    if not SpellExists(id) then return nil, L["No spell with that ID."] end
+    if kind == "aura" then
+        filter = filter == "HARMFUL" and "HARMFUL" or "HELPFUL"
+        if filter == "HARMFUL" and not DebuffTrackable(id) then
+            return nil, L["Blizzard only lets addons track a few debuffs on you by ID, and this isn't one of them."]
+        end
+        if ns.DB.FindCustom("aura", id, filter) then return nil, L["Already tracked in this specialization."] end
+        return { kind = "aura", spellID = id, filter = filter, placeholder = true, bar = barKey }
+    end
+    if ns.DB.FindCustom("spell", id) then return nil, L["Already tracked in this specialization."] end
+    return { kind = "spell", spellID = id, bar = barKey }
+end
 
 local function IsBarsKind(key)
     local b = BarCfg(key)
@@ -97,6 +155,9 @@ local function IconButton(parent, pool, i)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         local info = ns.Catalog.Info(self.id)
         GameTooltip:SetText((info and info.name) or ("#" .. tostring(self.id)))
+        if info and info.custom and info.isKnown == false then
+            GameTooltip:AddLine(L["Not learned"], 1, 0.3, 0.3)
+        end
         if self.tip then GameTooltip:AddLine(self.tip, 0.8, 0.8, 0.8, true) end
         GameTooltip:Show()
     end)
@@ -118,7 +179,8 @@ local function LayoutIcons(parent, pool, ids, y, onClick, tipFn, desat)
         local info = ns.Catalog.Info(id)
         b.id = id
         b.tex:SetTexture((info and info.icon) or QUESTION)
-        b.tex:SetDesaturated(desat and true or false)
+        -- 沒學會的自訂法術：灰掉（滑鼠提示寫「尚未學會」）
+        b.tex:SetDesaturated((desat or (info and info.isKnown == false)) and true or false)
         b.tip = tipFn and tipFn(entry) or nil
         b:SetScript("OnClick", onClick and function() onClick(entry) end or nil)
         local col = (i - 1) % perRow
@@ -194,7 +256,16 @@ local function Build()
 
     sections.customHead = W.CreateGroupLabel(frame, L["Custom ID"])
     sections.customNote = Text(frame, true)
-    sections.customNote:SetText(L["Tracking auras, spells or items by ID comes in the next version."])
+    sections.customBtns = {}
+    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] } }) do
+        local kind = def[1]
+        local b = W.CreateButton(frame, def[2], "normal", 80, 22)
+        W.FitButton(b, 80, 22)
+        b:SetScript("OnClick", function() Picker.AskCustom(kind) end)
+        sections.customBtns[#sections.customBtns + 1] = b
+    end
+    sections.customRow = CreateFrame("Frame", nil, frame)
+    sections.customRow:SetSize(WIDTH - PAD * 2, 22)
 
     -- 暴雪面板開著：整片鎖住並講原因
     local mask = CreateFrame("Frame", nil, frame, "BackdropTemplate")
@@ -257,10 +328,111 @@ function Picker.Refresh()
     Place(sections.openBtn, y); y = y - 22 - 14
 
     Place(sections.customHead, y); y = y - 16
-    Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 12)
+    local iconBar = not IsBarsKind(key)
+    sections.customNote:SetText(iconBar
+        and L["Track an aura on you, or a spell or item cooldown, by its ID."]
+        or L["Custom entries go on icon bars only."])
+    Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
+    for _, b in ipairs(sections.customBtns) do b:SetShown(iconBar) end
+    if iconBar then
+        Place(sections.customRow, y)
+        local _, bh = W.FlowLayout(sections.customRow, sections.customBtns, WIDTH - PAD * 2, 6, 4, 22)
+        sections.customRow:SetHeight(bh)
+        y = y - bh - 12
+    else
+        y = y - 6
+    end
 
     P.Height(frame, -y)
     sections.mask:SetShown(ns.Catalog.IsPaused())
+end
+
+------------------------------------------------------------
+-- 自訂 ID 的輸入流程
+------------------------------------------------------------
+local inputs = {}
+local filterPopup, noticePopup
+
+local function Notice(text)
+    if not noticePopup then
+        noticePopup = W.CreateChoicePopup(ns.Options.panel, 340, "", {
+            { text = L["Okay"], color = "normal" },
+        })
+    end
+    noticePopup.text:SetText(text)
+    noticePopup:Show()
+end
+Picker.Notice = Notice
+
+local function Commit(entry)
+    local key = curKey
+    local i = ns.DB.AddCustom(entry)
+    if not i then Notice(L["Pick a specialization first."]) return end
+    ns.Preview.Refresh(key)
+    if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(key) end
+    ns.Options.ApplyEngine("membership")
+    Picker.Refresh()
+end
+
+local function AskFilter(text)
+    local key = curKey
+    if not filterPopup then
+        filterPopup = W.CreateChoicePopup(ns.Options.panel, 360,
+            L["Track it as a buff or a debuff on you?"], {
+                { text = L["Buff"], color = "primary", onClick = function() Picker.FinishAura("HELPFUL") end },
+                { text = L["Debuff"], color = "normal", onClick = function() Picker.FinishAura("HARMFUL") end },
+                { text = L["Cancel"], color = "normal" },
+            })
+    end
+    filterPopup.pendingText, filterPopup.pendingKey = text, key
+    filterPopup:Show()
+end
+
+function Picker.FinishAura(filter)
+    local text, key = filterPopup.pendingText, filterPopup.pendingKey
+    local entry, why = Picker.ValidateCustom("aura", text, filter, key)
+    if not entry then Notice(why) return end
+    Commit(entry)
+end
+
+local TITLES = {
+    aura  = function() return L["Track an aura"], L["Spell ID of the aura"] end,
+    spell = function() return L["Track a spell cooldown"], L["Spell ID"] end,
+    item  = function() return L["Track an item cooldown"], L["Item ID"] end,
+}
+
+function Picker.AskCustom(kind)
+    local popup = inputs[kind]
+    local title, label = TITLES[kind]()
+    if not popup then
+        popup = W.CreateInputPopup(ns.Options.panel, 340, title, {
+            { key = "id", label = label, maxLetters = 10,
+              hint = kind == "item" and L["Find it in the item's link or on a database site."]
+                  or L["Find it in the spell's link or on a database site."] },
+        })
+        inputs[kind] = popup
+    end
+    popup:Open({}, function(values)
+        local text = values.id
+        if kind == "aura" then
+            -- 先把 ID 本身驗過（不存在就留在輸入框），增益／減益下一步再問
+            local _, why = Picker.ValidateCustom("spell", text, nil, curKey)
+            if why and why ~= L["Already tracked in this specialization."] then
+                popup.title:SetText("|cffff5555" .. why .. "|r")
+                return false
+            end
+            popup.title:SetText(title)
+            AskFilter(text)
+            return
+        end
+        local entry, why = Picker.ValidateCustom(kind, text, nil, curKey)
+        if not entry then
+            popup.title:SetText("|cffff5555" .. why .. "|r")
+            return false
+        end
+        popup.title:SetText(title)
+        Commit(entry)
+    end, title)
 end
 
 function Picker.Open(key, anchor)

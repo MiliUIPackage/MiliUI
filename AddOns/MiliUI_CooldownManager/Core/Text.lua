@@ -68,6 +68,8 @@ local function Anchor(fs, relTo, point, x, y)
     fs:SetPoint(point or "CENTER", relTo, point or "CENTER", (x or 0) * s, (y or 0) * s)
 end
 
+T.PixelScale, T.SetFont, T.Anchor = PixelScale, SetFont, Anchor
+
 ------------------------------------------------------------
 -- 倒數 formatter（依設定簽章快取；同一顆可以給很多個 Cooldown 共用）
 ------------------------------------------------------------
@@ -123,6 +125,18 @@ function T.CountdownFormatter(cdStyle)
     local f = formatters[key]
     if f == nil then
         f = BuildFormatter(d, cdStyle.lowBelow, lowHex) or false
+        formatters[key] = f
+    end
+    return f or nil
+end
+
+-- 不帶色碼的版本（光環格的 SetDurationText 用：那條路不吃 format 裡的 |c，變色改走色彩曲線）
+function T.PlainFormatter(decimalsBelow)
+    local d = tonumber(decimalsBelow) or 0
+    local key = d .. "|plain"
+    local f = formatters[key]
+    if f == nil then
+        f = BuildFormatter(d, 0, nil) or false
         formatters[key] = f
     end
     return f or nil

@@ -4,11 +4,12 @@
 重新排版、換樣式、加文字與發光，外加自訂群組、追蹤項目、資源條與施法條。
 設定視窗 `/mcdm`（或 `/miliuicdm`、小地圖按鈕、插件選單）。
 
-> **目前進度：D 階段（設定介面）。** 四條暴雪檢視器已經認領重錨到自己的容器上，版面、兩列尺寸、
+> **目前進度：E 階段（自訂項目與效果）。** 四條暴雪檢視器已經認領重錨到自己的容器上，版面、兩列尺寸、
 > 固定格位、長條、邊框／縮放／轉圈色／文字樣式、顯示條件都照設定檔跑；編輯模式裡每條都拖得動；
 > 設定視窗每條一頁（預覽即編輯器＋表單）、主題頁、設定檔頁（含匯出匯入）、自訂群組的新增／改名／刪除
-> 都做好了（見「設定介面」一節）。追蹤項目（光環格、自訂法術／物品）、發光與按鍵文字的引擎、資源條與
-> 施法條還沒做（發光與按鍵文字的設定已經可以存）。`/mcdm debug` 印引擎與編輯模式現況。
+> 都做好了（見「設定介面」一節）。自訂項目（光環格、自訂法術／物品冷卻）、觸發發光接管、就緒發光、
+> 無損刷新邊框、按鍵文字也接上了（見「自訂項目與效果」）。資源條與施法條還沒做。
+> `/mcdm debug` 印引擎與編輯模式現況，`/mcdm aura` 印每個光環格的保護狀態與最近錯誤。
 
 ⚠ 跟另一支同樣接管冷卻管理器的插件**不能同時啟用**：偵測到時登入會跳出視窗二選一，
 本插件在那次登入裡什麼都不做。
@@ -26,12 +27,12 @@
 | `Core/Media.lua` | 字型／材質 token → 路徑（LibSharedMedia 可選） |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
-| `Core/Catalog.lua` ～ `Core/Visibility.lua` | 引擎，見下一節 |
+| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
-| `Api.lua` | slash（含 `/mcdm debug`）、插件選單、公開 API `MiliUI_CooldownManager`（`IsReady`、`GetBarFrame(key)`；`GetResourceColors` 還是占位） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`）、插件選單、公開 API `MiliUI_CooldownManager`（`IsReady`、`GetBarFrame(key)`；`GetResourceColors` 還是占位） |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
-之後的階段依序補上：追蹤項目（光環格、自訂法術／物品）與發光、資源條與施法條、套組接線。
+之後的階段依序補上：資源條與施法條、套組接線。
 
 引擎的硬規則（對暴雪框不 SetParent／不 Hide、不寫暴雪框的欄位、只後掛勾、秘密值只當傳遞者…）
 寫在實作計畫的「引擎契約」一節，動 `Core/` 之前先看。
@@ -46,7 +47,10 @@
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上 |
 | `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀；每 item 一個簽章，同簽章跳過 |
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭） |
-| `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套 |
+| `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha） |
+| `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
+| `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
+| `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；每一格都是 Bars 的一個 entry |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Bars → Visibility（`Core/Init.lua` 的 `ns.StartEngine`）。
 換設定檔／專精：清樣式簽章、重讀目錄、全部重排、重套 alpha，不需要 /reload。
@@ -176,9 +180,9 @@ B 階段實作時發現計畫上寫的做不到、或換了做法的地方：
   - 左鍵：逐法術面板。中鍵：隱藏（`spells[spec].hidden`），隱藏的排在尾端 alpha 0.35、點一下還原。
   - 拖曳（3px 門檻）：職業色插入線、其他格變暗 0.5，放手寫 `spells[spec].order[key]`（完整清單）；
     拖到左欄的自訂群組上＝`groupOf`，拖回原本的檢視器上＝清 `groupOf`（可放的按鈕亮職業色邊）。
-    長條只能拖進長條群組、圖示只能進圖示群組。`cell.locked`（光環格的固定前綴，E 階段）蓋紅色、不能放。
+    長條只能拖進長條群組、圖示只能進圖示群組。`cell.locked`（光環格的固定前綴）蓋紅色、拖不動、別的格也不能插到它前面。自訂項目拖到左欄任何圖示條上＝改它的 bar。
   - 「＋」：挑選器（已在暴雪冷卻管理器的別條項目，點了拉進來；要先去暴雪面板加的候選池＋開面板鈕；
-    自訂 ID 下一版）。暴雪面板開著時整個鎖住，`CatalogResumed` 自動重讀。
+    自訂 ID：光環格／法術／物品，見「自訂項目與效果」）。暴雪面板開著時整個鎖住，`CatalogResumed` 自動重讀。
 - **表單**：版面（每列上限、間距、成長方向、圖示尺寸、第二列尺寸、固定格位／長條的寬高圖示材質顏色）、
   圖示、文字、效果（含淡出）、顯示條件、錨定。圖示／文字／效果／淡出各有「跟隨全域主題」：勾著時整節蓋
   半透明遮罩、顯示的是主題的值。標題右側「本條 N 個法術有覆寫［清除覆寫］」。每一列的標籤右鍵
@@ -206,7 +210,7 @@ B 階段實作時發現計畫上寫的做不到、或換了做法的地方：
 3. **邊框材質**：LibSharedMedia 的 border 類是 backdrop 的 edgeFile，四條細條畫不出來；選了材質邊框
    改用一個 backdrop 框貼齊（粗細 1 ＝ edgeSize 4），`solid` 維持四條細條（`Decorate` 的 `LayoutBorder`）。
 4. **主題多了 `keybind = { enabled = false }`**（`THEMED` 跟著 glow 走、存在條的 `glow` 子表）：按鍵文字的
-   開關要有地方存。引擎在 E 階段接；發光、無損刷新也一樣，效果節頂端有一行灰字說明。
+   開關要有地方存。E 階段接上引擎，效果節頂端那行「下一版才畫」的灰字已拿掉。
 5. **`Catalog.Bar(key, true)`** 多回一張「被藏起來」的清單（預覽排在尾端用），不帶參數時行為不變。
 6. **預覽假倒數是靜態「15」**，沒用真的 Cooldown 倒數數字（那條路要實機驗證 formatter，見待驗證 11）；
    轉圈是自己的 Cooldown 框跑十五秒循環，轉圈色所見即所得。
@@ -214,6 +218,77 @@ B 階段實作時發現計畫上寫的做不到、或換了做法的地方：
 8. 「新增群組」的類型選擇多一顆「取消」；新群組的 key 取最小的空號（刪掉 g1 之後下一個又是 g1），
    頁面與預覽照 key 快取重用。
 9. `EditMode` 多廣播 `EditModeChanged`（點擊層要讓位），`Frames.lua` 匯出 `EM.CellSize`。
+
+## 自訂項目與效果
+
+### 自訂項目（`Modules/Custom.lua`）
+
+資料在 `spells[specID].custom`（逐專精），一筆 `{ kind, spellID|itemID, filter, placeholder, bar }`，
+在順序／隱藏／覆寫裡的 id 是 `"c:<index>"`。挑選器（預覽最右邊的「＋」）的「自訂 ID」區三顆鈕：
+**光環**（輸入 ID → 選增益／減益）、**法術**、**物品**；驗證 `C_Spell.GetSpellInfo`／`C_Item.GetItemInfoInstant`，
+同專精不收重複。只有圖示類的條收自訂項目。
+
+| 種類 | 框 | 冷卻／顯示 | 秘密值下 |
+|---|---|---|---|
+| 光環格 `aura` | **持有框**（自己的 Frame，parent 條容器，一個 spellID＋filter 一顆、永不改用）＋底下一顆 `AuraContainer`（`AddAuraSlot`＋`includeSpellIDs`、unit player） | 暴雪自己畫圖示、倒數、層數；樣式在 `initializeFrame` 裡烘 | 插件零讀取，照常 |
+| 法術 `spell` | 自己的圖示框（`.Icon`／`.Cooldown`／`.ChargeCount.Current`，跟暴雪 item 同形狀，`Decorate.Apply` 同一套樣式） | `C_Spell.GetSpellCooldownDuration(id, ignoreGCD)` 的 duration 物件；回充另一顆只畫邊緣的 Cooldown；去飽和走 `EvaluateRemainingDuration(階梯曲線)` → `SetDesaturation` | 引擎給的 duration 物件照用；充能數字秘密時走 `C_StringUtil.TruncateWhenZero` |
+| 物品 `item` | 同上 | `C_Item.GetItemCooldown` 明文才建 duration（`SetTimeFromStart`）；數量 `GetItemCount` 寫在充能位置，0 去飽和 | 讀不到就不動（已經 arm 的由引擎繼續跑） |
+
+光環格的硬規則（每條都是 12.1 限制推出來的，細節在檔頭）：
+
+- **固定前綴**：光環格永遠排在該條最前面（`Catalog.Bar` 最後一步），預覽裡鎖住（紅色、拖不動、不能插到它前面）。
+  條上有光環格時**固定格位強制打開**（`layout.fixedSlots` 的值不動；設定頁那一列停用並寫原因）——
+  其他增益收合也不會讓光環格的 x 變，戰鬥中不必動持有框。
+- **持有框整條鏈是保護框**：持有框的 SetParent／SetPoint／SetSize／Show／Hide 一律走 `ns.Write`
+  （戰鬥中記帳、脫戰補做）；條容器本來就走 `ns.Write`。
+- **簽章池**：影響外觀的設定（邊框、縮放、轉圈色、字型／字級／顏色／錨點、倒數小數與低秒變色、
+  隱藏倒數／層數覆寫）進簽章；變了換一顆容器，舊的 Hide 留在池子裡，改回來直接拿回去。
+  尺寸不進簽章（按鈕 `SetAllPoints` 到容器、容器 `SetAllPoints` 到持有框，跟著走）。
+- **戰鬥中不建容器**（會不可攔截地報錯）：記旗標，`PLAYER_REGEN_ENABLED` 再建；占位圖示先頂著。
+- `initializeFrame` 整段 `xpcall`、不 `CreateColor`、不掛 script；formatter 與低秒變色的色彩曲線在建容器前先建好。
+- 持有框 `OnShow`（`ns.Defer`）時戰鬥外補踢容器（Hide→Show→SetEnabled），戰鬥中記旗標。
+- 減益只收 `C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret`（新增時就擋並說明）。
+- 光環格不提供發光（不知道光環在不在）。
+
+逐法術面板對自訂項目：「所在條」改的是它自己的 bar（任何圖示類的條）；光環格藏掉觸發／就緒發光與去飽和、
+多一列「不在時顯示占位」、沒有「隱藏此法術」；自訂項目多一顆紅色「移除此項目」（確認後刪，後面的 id 往前挪：
+`DB.RemoveCustom` 同步改順序、隱藏、覆寫）。刪自訂群組時，上面的光環格回增益圖示、法術／物品回核心技能。
+未學會的自訂法術顯示問號（預覽、挑選器、真實條都是），滑鼠提示寫「尚未學會」。
+
+### 效果（`Core/Glow.lua`、`Core/Keybinds.lua`）
+
+- **觸發發光**：後掛勾 `ActionButtonSpellAlertManager:ShowAlert／HideAlert`，frame 是我們認得的 item 就在 overlay
+  上畫 MiliUIGlow（pixel／autocast／button／proc），暴雪的 `SpellActivationAlert` 熄 alpha（不 Hide）。
+  條層「觸發發光」開著（或法術覆寫成開）才接管；都關時還給暴雪。自訂法術聽 `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE`。
+- **就緒發光**：探針（見「E 階段與計畫不同」第 1 條）；亮 `glow.ready.duration` 秒（預設 3）。
+- **無損刷新**：後掛勾 item 的 `ShowPandemicStateFrame／HidePandemicStateFrame`，邊框換 `pandemic.color`，
+  `pandemic.bars` 時長條條身也換色；Hide 換回。暴雪的 PandemicIcon 不碰。
+- **按鍵文字**：`FindSpellActionButtons`（覆寫法術優先）→ 格號 → 綁定指令（主動作條目前那一頁／左下右下右側／
+  動作條 6–8，照暴雪 `MultiActionBars.xml` 的 actionpage 與按鈕模板的 buttonType）→ `GetBindingKey` → 縮寫
+  （Shift→s、Ctrl→c、Alt→a、滑鼠鍵→M4、數字鍵盤→N5…）。物品掃動作條格子。綁定／動作條事件 0.2 秒合併重算。
+- 發光宿主是 overlay 底下自己的框，尺寸由排版給（不從 item 讀）；停放時發光一律熄。
+
+### E 階段與計畫不同
+
+1. **就緒探針對暴雪 item 不是只靠「轉交 SetCooldown 參數」**：`Cooldown:SetCooldown` 是 AllowedWhenUntainted，
+   參數是秘密值時我們（污染端）轉交會被拒。做法改成兩段：先 `pcall(probe.SetCooldown, start, duration, modRate)`
+   原封轉交（明文時成立、跟暴雪那顆完全同步）；被拒就改拿**引擎給的** duration 物件
+   （`C_Spell.GetSpellCooldownDuration(spellID, true)`，暴雪標了 `wasSetFromCharges` 時用 `GetSpellChargeDuration`）
+   餵 `SetCooldownFromDurationObject`。另外：暴雪正在顯示光環時間（`cooldownUseAuraDisplayTime`，只讀）時不武裝；
+   GCD（明文 ≤ 1.5 秒）不武裝；暴雪提早 `Clear`（到期那一刻它自己清、或冷卻被重置）而探針還武裝著 ⇒ 當場算就緒
+   （掛了 item Cooldown 的 `Clear` 後掛勾）；item 換了身分就不算。
+2. **多充能**：每一次暴雪的 SetCooldown 都是回充（有充能時是充能計時、0 充能時是技能冷卻），所以每回一層亮一次，
+   沒有另外判斷 `wasSetFromCharges`（見待驗證）。
+3. **觸發發光的接管以「條」為單位**：`ns.Glow.ownsProcAlert` 常開，逐格問 `OwnsProc`（條層開著，或這個法術覆寫成開）。
+   條層開、法術覆寫成關 ⇒ 暴雪的熄掉、我們的也不畫（＝這個法術不要發光）。
+4. **自訂項目只進圖示類的條**：長條的 item 是暴雪另一種框，自訂項目沒有長條外觀可畫。挑選器在長條頁寫明原因。
+5. **條的淡出不逐框套到自訂框**：自訂框是容器的子框，容器的 alpha 就管得到；再套一次會變成 alpha²。
+6. **無損刷新多一個開關** `pandemic.enabled`（預設開）：只有顏色沒有開關的話，不想要的人關不掉。
+7. **按鍵文字的設定**：DB 預設 `keybind = { enabled = false, size = 10, point = "TOPLEFT", x = 1, y = -1 }`，
+   效果節多了字級／錨點／偏移三列；字型跟文字節的字型／描邊走。
+8. **刪自訂群組時自訂項目不會消失**：光環格回增益圖示、法術／物品回核心技能（計畫沒寫；它們沒有「原本的暴雪那條」）。
+9. 物品的「數量」只在可消耗的物品（`C_Item.IsConsumableItem`）或數量不是 1 時顯示（飾品不印「1」）。
+10. 固定格位那一列改成自畫的 custom 列（表單引擎的 toggle 沒有停用狀態），說明依狀態換兩種說法。
 
 ## 設定的三層繼承
 
@@ -264,3 +339,19 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 24. 預覽的像素字（`SetIgnoreParentScale`）在設定視窗裡字級跟真實條一致；設定視窗若被其他插件縮放會不一致。
 25. LibSharedMedia 的 border 材質用 backdrop edgeFile 畫在 overlay 上：粗細 1～4 對應 edgeSize 4～16 看起來合理嗎。
 26. 點擊層（HIGH strata、錨在容器上）在容器被光環格保護連坐之後（E 階段），開關窗走 `ns.Write` 不被擋。
+27. 光環格：`/mcdm aura` 看持有框、容器、所在條的 `IsProtected()`；戰鬥中原生增益增減、換樣式（記旗標、脫戰換容器）
+    零 ADDON_ACTION_BLOCKED（taintLog 2）。暴雪 item 錨在被保護連坐的容器上，戰鬥中重排 item 不被擋。
+28. 光環格的 `SetDurationText(fs, { textFormatter, textColor = { curve, RemainingDuration } })` 有沒有被拒、低秒變色有沒有生效；
+    `AddAuraSlot` 的按鈕在 `initializeFrame` 裡 `SetAllPoints(container)` 之後尺寸對不對。
+29. 光環格的 HARMFUL（NeverSecret 的減益）在首領戰／M+ 是否照樣顯示；HELPFUL 在秘密值下是否照樣。
+30. 自訂法術：`GetSpellCooldownDuration(id, true)` 的 ignoreGCD 是否真的不含 GCD；`EvaluateRemainingDuration`＋
+    `Texture:SetDesaturation` 的去飽和在戰鬥中是否正確；`GetSpellChargeDuration` 的回充邊緣。
+31. 自訂物品：`C_Item.GetItemCooldown` 在戰鬥中／首領戰是否明文（讀不到時 arm 過的照跑、沒 arm 的脫戰才出現）；
+    藥水「戰鬥中用了、脫戰才開始冷卻」（enable = 0）的顯示。
+32. 觸發發光：`ShowAlert` 後掛勾在首領戰是否照樣觸發（同待驗證 5）；暴雪的 `SpellActivationAlert` 熄 alpha 之後沒有殘影。
+33. 就緒探針（同待驗證 6、10）：秘密參數被拒 → 改走 duration 物件那條是否照樣觸發；`Clear` 後掛勾在「到期時暴雪先清」
+    的情況是否比探針自己的 OnCooldownDone 早（兩條都會觸發一次就緒，有旗標擋重複）；多充能每回一層亮一次是否符合預期。
+34. 無損刷新：`ShowPandemicStateFrame` 在增益圖示／長條上真的會叫（暴雪在 OnUpdate 裡每幀叫，後掛勾有「狀態沒變就走」）。
+35. 按鍵文字：變形／姿態列（`GetBonusBarOffset`）、動作條 6–8 的綁定名、`FindSpellActionButtons` 對覆寫法術回不回格子。
+36. 發光宿主（overlay 底下的子框）在 item 被停放（alpha 0、畫面外）時 MiliUIGlow 的 driver 仍在推（可見度閘看的是 IsVisible，
+    alpha 0 仍算可見）——停放時我們已經 Stop，確認沒有漏掉的。
