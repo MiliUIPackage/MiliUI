@@ -15,7 +15,7 @@ Cell.defaults.importantDebuffSeconds = { short = 8, limit = 60 }
 -- the pack's pink for the Pandemic (無損刷新) fill on buff rects / blocks. NewPandemicColor()
 -- hands out a FRESH {enabled, {r,g,b,a}} each time: the colour picker writes into the table it
 -- is given, so a shared default would bleed from one indicator into the next.
-Cell.defaults.pandemicColor = { 0.98, 0.29, 0.89, 1 }
+Cell.defaults.pandemicColor = { 1, 0.425, 0.916, 1 }
 function Cell.defaults.NewPandemicColor()
     local c = Cell.defaults.pandemicColor
     return { false, { c[1], c[2], c[3], c[4] } }
