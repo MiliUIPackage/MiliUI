@@ -961,12 +961,11 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
         local w = max(4, floor(innerW * BAND_OVERSCAN + 0.5))
         local h = max(4, floor(innerH * BAND_OVERSCAN + 0.5))
         local fs = button.dfBand
-        -- the font size only sets the line box the |T sits in; it is clipped with the rest
-        local fontPath = fs:GetFont()
-        if type(fontPath) ~= "string" or fontPath == "" then
-            fontPath = (GameFontNormal and GameFontNormal:GetFont()) or STANDARD_TEXT_FONT
-        end
-        if fontPath then fs:SetFont(fontPath, max(8, h), "") end
+        -- A FIXED font, never the user's Cell font: the string only ever holds the |T, and
+        -- whatever part of the inline-texture factor might follow the font must not move
+        -- when the player picks another one. The size just sets the line box the |T sits in
+        -- (>= the asked height so nothing folds); it is clipped with the rest anyway.
+        if STANDARD_TEXT_FONT then fs:SetFont(STANDARD_TEXT_FONT, max(8, h), "") end
         fs:SetAlpha(tonumber(band.color[4]) or 1) -- |T has no alpha field; region alpha instead
 
         if button._boundBand or not button.SetDurationText then return end
