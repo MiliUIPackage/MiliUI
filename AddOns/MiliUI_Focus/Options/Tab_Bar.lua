@@ -77,10 +77,12 @@ local CONTROLS = {
     { type = "header", label = L["Announcement"] },
     { type = "input",  key = "announceText", label = L["Announcement text"] },
     { type = "text",   label = L["{icon} is replaced with your marker icon."] },
+    { type = "text",   label = L["It is sent through a macro named %s in your macro book (one macro slot), so it also works in Mythic+ and boss fights. Deleting the macro just recreates it."]:format("|cffffd200" .. ns.AnnounceMacro.MACRO_NAME .. "|r") },
     { type = "custom", label = L["Preview"], build = BuildPreviewRow },
     { type = "button", label = "", text = L["Restore default text"],
       onClick = function()
           ns.db.bar.announceText = L["My focus interrupt target is {icon}!"]
+          ns.AnnounceMacro.Refresh()
           RefreshAll()
       end },
 }

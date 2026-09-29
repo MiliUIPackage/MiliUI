@@ -1,6 +1,6 @@
 ---
 name: wow-12x-addon-restrictions
-description: 12.x 的插件限制系統：AddOnRestrictionType 六型別、聊天封鎖整趟 M+ 都算、連填聊天輸入框都被擋
+description: 12.x 的插件限制系統：AddOnRestrictionType 六型別、聊天封鎖整趟 M+ 都算、連填聊天輸入框都被擋；巨集書裡的具名巨集是唯一能在 M+ 送聊天的路
 metadata: 
   node_type: memory
   type: reference
@@ -35,9 +35,24 @@ Midnight 起遊戲有一套「情境式插件限制」，跟 taint／秘密值�
 
 問「插件現在能不能送聊天訊息」的正解就是它（MRT／Chattynator／Auctionator／
 Baganator 全部只問這一個）。`SendChatMessage` 在 API 文件上是
-`HasRestrictions = true` ＋ `RestrictedForMacroChatMessages = true` ——
-**巨集也一樣被擋**，換寫法沒有用。
+`HasRestrictions = true` ＋ `RestrictedForMacroChatMessages = true`。
 （12.0.5 把第二個回傳值 `lockdownReason` 拿掉了，只剩 boolean。）
+
+### 巨集書裡的巨集是例外（2026-09-29 更正）
+
+這條筆記以前寫「巨集也一樣被擋」，那是從 `RestrictedForMacroChatMessages` 旗標推的，
+**錯了**。被擋的是插件 Lua 直呼 `SendChatMessage` 與安全按鈕的 `macrotext` 屬性；
+**玩家巨集書裡的巨集**照暴雪 2026-03-01 的巨集規則走：遭遇戰中仍可送**隊伍專屬頻道**
+（`/p`、`/raid`、`/i`），只是短時間連送會被擋、全隊都要在副本內；被禁的是公會、
+自訂頻道等非隊伍頻道，`/say`／`/yell` 公告沒提。M+ 非首領時段是否套遭遇規則待實測，
+但玩家的 `/p` 斷法巨集在 M+ 裡一直都能用。
+
+⇒ 插件要「在 M+ 送聊天訊息」的唯一正路：**`CreateMacro`／`EditMacro` 把那行寫進巨集書
+一顆具名巨集，SecureActionButton `type="macro", macro="<名字>"` 去跑它**（不是 macrotext）。
+YUI_NovaToolbox 的 FocusHelper（保留巨集 `YUIQFocus`）、Midnight Groundmarker 都是這招。
+代價：佔一格巨集、玩家看得到、`EditMacro` 戰鬥中不能呼叫（內容變動要脫戰才寫得進去）、
+255 位元組上限、沒組隊時 `/p` 會噴系統錯誤。MiliUI_Focus 的宣告鈕已改成這條
+（`Modules/AnnounceMacro.lua`），見 [[project-miliui-focus-addon]]。
 
 ⚠⚠ **封鎖期間連「把字填進聊天輸入框」都不准。** `ChatFrameUtil.InsertLink`、
 對 `ChatFrame1EditBox` 的 `SetText` 都被擋 —— Auctionator `Utilities/InsertLink.lua`、

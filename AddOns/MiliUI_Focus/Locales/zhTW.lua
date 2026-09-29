@@ -151,3 +151,13 @@ L["no unit"] = "無單位"
 L["no marker"] = "沒標記"
 L["marked (secret)"] = "有標記（秘密值）"
 L["marked"] = "有標記"
+
+-- 宣告巨集（Modules/AnnounceMacro.lua）
+L["Created the %s macro in your macro book. It carries the focus announcement so it can be sent in Mythic+ and boss fights; deleting it just recreates it."] = "已在你的巨集書建立 %s 巨集。宣告內容住在裡面，M+／首領戰中才送得出去；刪掉的話會自動補回來。"
+L["In combat: the announcement macro still holds the previous content; it updates after combat."] = "戰鬥中：宣告巨集還是之前的內容，脫戰後才會更新。"
+L["Sent through the %s macro in your macro book, so it also goes out in Mythic+ and boss fights."] = "透過巨集書裡的 %s 巨集送出，M+／首領戰中也送得出去。"
+L["Changed in combat: the macro still holds the previous content until combat ends."] = "戰鬥中改過設定：巨集要到脫戰才會更新，現在送的還是之前的內容。"
+L["No free macro slot, so the %s announcement macro could not be created."] = "巨集欄位已滿，建不了 %s 宣告巨集。"
+L["The announcement is longer than 255 bytes and does not fit in a macro; shorten the text."] = "宣告內容超過 255 位元組，塞不進巨集，請縮短。"
+L["It is sent through a macro named %s in your macro book (one macro slot), so it also works in Mythic+ and boss fights. Deleting the macro just recreates it."] = "宣告透過巨集書裡名為 %s 的巨集送出（佔一格巨集），所以 M+／首領戰中也能用。刪掉巨集只會讓它重建。"
+L["Announce macro:"] = "宣告巨集:"

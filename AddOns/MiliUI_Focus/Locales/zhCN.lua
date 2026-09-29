@@ -151,3 +151,13 @@ L["no unit"] = "无单位"
 L["no marker"] = "没标记"
 L["marked (secret)"] = "有标记（秘密值）"
 L["marked"] = "有标记"
+
+-- 宣告巨集（Modules/AnnounceMacro.lua）
+L["Created the %s macro in your macro book. It carries the focus announcement so it can be sent in Mythic+ and boss fights; deleting it just recreates it."] = "已在你的宏面板创建 %s 宏。宣告内容住在里面，M+／首领战中才发得出去；删掉的话会自动补回来。"
+L["In combat: the announcement macro still holds the previous content; it updates after combat."] = "战斗中：宣告宏还是之前的内容，脱战后才会更新。"
+L["Sent through the %s macro in your macro book, so it also goes out in Mythic+ and boss fights."] = "通过宏面板里的 %s 宏发送，M+／首领战中也发得出去。"
+L["Changed in combat: the macro still holds the previous content until combat ends."] = "战斗中改过设置：宏要到脱战才会更新，现在发的还是之前的内容。"
+L["No free macro slot, so the %s announcement macro could not be created."] = "宏栏位已满，无法创建 %s 宣告宏。"
+L["The announcement is longer than 255 bytes and does not fit in a macro; shorten the text."] = "宣告内容超过 255 字节，放不进宏，请缩短。"
+L["It is sent through a macro named %s in your macro book (one macro slot), so it also works in Mythic+ and boss fights. Deleting the macro just recreates it."] = "宣告通过宏面板里名为 %s 的宏发送（占一格宏），所以 M+／首领战中也能用。删掉宏只会让它重建。"
+L["Announce macro:"] = "宣告宏:"

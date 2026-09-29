@@ -137,18 +137,23 @@ end
 
 local function PrunePeers()
     if not IsInGroup() then
+        local had = next(peers) ~= nil
         wipe(peers)
         wipe(warned)
+        if had then ns.Fire("PeersChanged") end
         return
     end
     local set = GroupShortNames()
     if not set then return end   -- 名字讀不到，這次不清
+    local changed = false
     for name in pairs(peers) do
         if not set[name] then
             peers[name] = nil
             warned[name] = nil
+            changed = true
         end
     end
+    if changed then ns.Fire("PeersChanged") end
 end
 
 ----------------------------------------------------------------------
@@ -209,8 +214,11 @@ f:SetScript("OnEvent", function(_, event, ...)
 
         local name = ShortName(sender)
         if not name then return end
+        local prev = peers[name]
         peers[name] = { index = index, time = GetTime() }
         WarnIfClash(name)
+        -- 宣告訊息會帶隊友標記（AnnounceMacro）；名單內容變了才通知，心跳不通知
+        if not prev or prev.index ~= index then ns.Fire("PeersChanged") end
 
         -- 對方是主動廣播（不是回覆）→ 回一則，讓他也知道我的設定。
         -- 回覆不會再引發回覆，所以不可能無限來回。

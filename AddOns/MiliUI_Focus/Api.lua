@@ -73,6 +73,14 @@ local function ReportFrames()
     end
     print("   " .. L["Focus:"] .. " " .. MarkDesc("focus")
         .. "   " .. L["Mouseover:"] .. " " .. MarkDesc("mouseover"))
+    -- 宣告巨集：狀態碼見 Modules/AnnounceMacro.lua；有巨集就把內容印出來對
+    ns.Print(L["Announce macro:"], ns.AnnounceMacro.GetState(),
+        ns.AnnounceMacro.IsPending() and "(pending)" or "")
+    local idx = GetMacroIndexByName and GetMacroIndexByName(ns.AnnounceMacro.MACRO_NAME)
+    if idx and idx > 0 then
+        local _, _, body = GetMacroInfo(idx)
+        print("   " .. tostring(body))
+    end
 end
 
 SLASH_MILIUIFOCUS1 = "/mfocus"

@@ -4,9 +4,11 @@
 --   1. 標記圖示：點擊彈出 8 格選單自行點選，切換專注目標自動標記的圖示，
 --      並立即重標目前的專注目標（走 raidtarget 安全動作，戰鬥中可用）
 --   2. 宣告：把「我的專注目標自動標記圖示是哪個」送到 副本/團隊/隊伍 頻道
---      （{icon} → {rtN}；宣告的是設定的圖示，不讀專注目標單位，避開秘密值）
--- 整條工具列本身是非安全框架，但選單格子是保護按鈕（標記只能走安全動作），
--- 所以開關與建立都要 InCombatLockdown 守衛。
+--      （{icon} → {rtN}；宣告的是設定的圖示，不讀專注目標單位，避開秘密值）。
+--      走巨集書裡的保留巨集（Modules/AnnounceMacro.lua），M+／首領戰中也送得出去；
+--      巨集掛不上（沒組隊、欄位滿）才退回 Lua 路徑。
+-- 整條工具列本身是非安全框架，但選單格子與宣告鈕是保護按鈕（標記只能走安全動作、
+-- 宣告只能走巨集），所以開關與建立都要 InCombatLockdown 守衛。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -218,14 +220,7 @@ end
 -- 宣告
 ----------------------------------------------------------------------
 local function GetAnnounceChannel()
-    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-        return "INSTANCE_CHAT"
-    elseif IsInRaid() then
-        return "RAID"
-    elseif IsInGroup() then
-        return "PARTY"
-    end
-    return nil
+    return ns.AnnounceMacro.GetChannel()
 end
 
 -- 隊友設定（由 Sync 收集）。回傳兩個清單：有標記的、沒設定的。
@@ -241,48 +236,24 @@ local function GetPeerLists()
     return marked, idle
 end
 
--- 組出宣告訊息。宣告的是「設定的自動標記圖示」（告訴隊友：這個標記就是
--- 我的專注打斷目標），不讀專注目標身上的標記，所以不需要專注目標存在。
--- forChat = true 用 {rtN}（送進頻道由客戶端轉圖示）；
--- false 用 |T...|t 材質跳脫（print / tooltip 本地顯示用，{rtN} 在本地不會轉）
+-- 宣告訊息本體在 Modules/AnnounceMacro.lua（巨集與這裡的預覽要同一句）。
+-- forChat = true 用 {rtN}；false 用材質跳脫（tooltip／print 本地顯示用）
 local function BuildAnnounceMessage(forChat)
-    local index = ns.db.focus.markIndex or 0
-    if index < 1 or index > 8 then
-        return nil, ns.L["Pick a marker icon first (click the icon on the left)."]
-    end
-    local iconToken
-    if forChat then
-        iconToken = "{rt" .. index .. "}"
-    else
-        iconToken = MarkIcon(index, 16)
-    end
-    local text = DB().announceText or ns.L["My focus interrupt target is {icon}!"]
-    local msg = (text:gsub("{icon}", iconToken))
-
-    -- 帶上隊友的標記，隊友一眼就看得出誰盯哪一隻。
-    -- 只列有設標記的；上限 6 個，免得團隊裡洗出一整面牆。
-    local marked = GetPeerLists()
-    if #marked > 0 then
-        local parts, shown = {}, math.min(#marked, 6)
-        for i = 1, shown do
-            local p = marked[i]
-            local token = forChat and ("{rt" .. p.index .. "}") or MarkIcon(p.index, 16)
-            parts[#parts + 1] = p.name .. token
-        end
-        if #marked > shown then parts[#parts + 1] = "…" end
-        msg = msg .. "(" .. ns.L["Teammates:"] .. " " .. table.concat(parts, " ") .. ")"
-    end
-    return msg
+    return ns.AnnounceMacro.BuildMessage(forChat)
 end
 
--- 宣告鈕的可用狀態：被封鎖時把圖示壓暗（套組慣例，狀態只換明暗不換色）。
--- 只碰材質顏色，戰鬥中隨時能做。
+-- 宣告鈕的可用狀態：送不出去時把圖示壓暗（套組慣例，狀態只換明暗不換色）。
+-- 巨集掛著就送得出去（M+／首領戰也一樣）；只有退回 Lua 路徑又遇到聊天封鎖
+-- 才是真的送不出去。只碰材質顏色，戰鬥中隨時能做。
 local function UpdateAnnounceState()
     if not announceBtn then return end
-    local g = ns.IsChatRestricted() and 0.42 or 1
+    local blocked = not ns.AnnounceMacro.IsUsable() and ns.IsChatRestricted()
+    local g = blocked and 0.42 or 1
     announceBtn.icon:SetVertexColor(g, g, g)
 end
 
+-- 巨集掛不上時的退路（沒組隊／還沒選標記／巨集欄位滿／內容太長）。
+-- 正常情況點擊由按鈕的安全動作跑巨集，這裡不會被叫到。
 local lastAnnounce = 0
 local function Announce()
     -- 防連點洗頻
@@ -300,9 +271,9 @@ local function Announce()
             .. " " .. BuildAnnounceMessage(false))
         return
     end
-    -- 12.x：M+ 計時中／首領戰／戰場，插件送聊天訊息會被暴雪擋下（見
+    -- 12.x：M+ 計時中／首領戰／戰場，插件 Lua 送聊天訊息會被暴雪擋下（見
     -- Core/Init.lua 的限制閘）。不先問就送＝吃一個封鎖對話框，而且訊息還是沒出去。
-    -- 沒有替代路可走（連填進聊天輸入框都被擋），只能把**可以照打的原文**印出來。
+    -- 走到這裡代表巨集那條路也不通，只能把**可以照打的原文**印出來。
     if ns.IsChatRestricted() then
         ns.Print("|cffff5555" .. ns.L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and battlegrounds. Type it yourself:"] .. "|r")
         print("   " .. msg)
@@ -310,6 +281,21 @@ local function Announce()
         return
     end
     SendChatMessage(msg, channel)
+end
+
+-- 把巨集掛上宣告鈕（或拿掉）。保護屬性，只能脫戰寫；AnnounceMacro.Refresh 算完
+-- 狀態後呼叫。明暗隨時可更新。
+function MarkBar.ApplyAnnounceButton()
+    if not announceBtn then return end
+    UpdateAnnounceState()
+    if InCombatLockdown() then return end
+    if ns.AnnounceMacro.IsUsable() then
+        announceBtn:SetAttribute("type1", "macro")
+        announceBtn:SetAttribute("macro", ns.AnnounceMacro.MACRO_NAME)
+    else
+        announceBtn:SetAttribute("type1", nil)
+        announceBtn:SetAttribute("macro", nil)
+    end
 end
 
 ----------------------------------------------------------------------
@@ -501,13 +487,27 @@ local function CreateBar()
     end)
     markBtn:SetScript("OnLeave", GameTooltip_Hide)
 
-    -- 按鈕 2：宣告專注標記
-    announceBtn = CreateBarButton(bar)
+    -- 按鈕 2：宣告專注標記。
+    -- SecureActionButton 跑巨集書裡的保留巨集（type1="macro"，屬性由
+    -- ApplyAnnounceButton 掛）。真實滑鼠點擊在 SecureActionButton_OnClick 裡
+    -- 只會在「放開」邊緣執行一次（isSecureAction 的滑鼠按下不算 useOnKeyDown），
+    -- 所以上下兩個邊緣都註冊、不設 pressAndHoldAction，恰好送一次。
+    announceBtn = CreateBarButton(bar, "SecureActionButtonTemplate")
     announceBtn:SetPoint("LEFT", markBtn, "RIGHT", ICON_SPACE, 0)
+    announceBtn:RegisterForClicks("AnyDown", "AnyUp")
     -- 線條風自製圖示，保留 4px 留白（不像技能圖示要填滿裁邊）
     announceBtn.icon:SetTexture(ANNOUNCE_ICON)
-    announceBtn:SetScript("OnClick", function(_, mouseButton)
-        if mouseButton == "LeftButton" then Announce() end
+    -- 巨集有掛上：安全動作已經送出，這裡只補「戰鬥中內容還沒更新」的提醒；
+    -- 沒掛上：退回 Lua 路徑（印預覽／提示／封鎖時印原文）。放開邊緣做一次就好。
+    announceBtn:SetScript("PostClick", function(_, mouseButton, down)
+        if down or mouseButton ~= "LeftButton" then return end
+        if ns.AnnounceMacro.IsUsable() then
+            if ns.AnnounceMacro.IsPending() then
+                ns.Print(L["In combat: the announcement macro still holds the previous content; it updates after combat."])
+            end
+            return
+        end
+        Announce()
     end)
     announceBtn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -524,7 +524,23 @@ local function CreateBar()
         local channel = GetAnnounceChannel()
         GameTooltip:AddLine(L["Sends to:"] .. " "
             .. (channelNames[channel] or L["(not in a group, shown to you only)"]), 0.8, 0.8, 0.8)
-        if ns.IsChatRestricted() then
+        local AM = ns.AnnounceMacro
+        local macroName = "|cffffd200" .. AM.MACRO_NAME .. "|r"
+        if AM.IsUsable() then
+            GameTooltip:AddLine(L["Sent through the %s macro in your macro book, so it also goes out in Mythic+ and boss fights."]:format(macroName),
+                0.6, 0.6, 0.6, true)
+            if AM.IsPending() then
+                GameTooltip:AddLine(L["Changed in combat: the macro still holds the previous content until combat ends."],
+                    1, 0.6, 0.2, true)
+            end
+        elseif AM.GetState() == "noslot" then
+            GameTooltip:AddLine(L["No free macro slot, so the %s announcement macro could not be created."]:format(macroName),
+                1, 0.3, 0.3, true)
+        elseif AM.GetState() == "toolong" then
+            GameTooltip:AddLine(L["The announcement is longer than 255 bytes and does not fit in a macro; shorten the text."],
+                1, 0.3, 0.3, true)
+        end
+        if not AM.IsUsable() and ns.IsChatRestricted() then
             GameTooltip:AddLine(L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and battlegrounds — right now this can only be printed to you."],
                 1, 0.3, 0.3, true)
         end
@@ -560,13 +576,14 @@ function MarkBar.Refresh()
     if ShouldShow() then
         CreateBar()
         UpdateMarkIcon()
-        UpdateAnnounceState()
         PositionBar()
         bar:Show()
     elseif bar then
         picker:Hide()
         bar:Hide()
     end
+    -- 宣告巨集跟著列的顯示與設定走（列沒開就不建巨集；開了就把內容寫進去並掛上鈕）
+    ns.AnnounceMacro.Refresh()
 end
 
 ----------------------------------------------------------------------

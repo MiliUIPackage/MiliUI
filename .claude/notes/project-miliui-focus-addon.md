@@ -93,3 +93,29 @@ TOC 標籤 `[焦點]` → `[專注]`。規則見 [[feedback-zhtw-blizzard-terms]
   `EnableKeyboard`／`SetPropagateKeyboardInput` —— 卡住會讓全遊戲快捷鍵含 ESC 全部失效，
   而症狀是「設定視窗按 ESC 關不掉」。踩過一次，見 [[wow-keyboard-capture-blocks-bindings]]。
 - 載入時偵測到舊的 `MiliUI_Focuser` 全域就印一次警告（套組沒更新的人），不自動停用。
+
+## 宣告走巨集書裡的保留巨集（2026-09-29）
+
+使用者看了 YUI_NovaToolbox 的焦點助手後要求：**宣告在 M+ 也要送得出去，但維持「點廣播鈕
+才喊」**，不要像 YUI 那樣每次設專注目標都自動喊。做法在 `Modules/AnnounceMacro.lua`
+（TOC 排在 Sync 之後、MarkBar 之前）：
+
+- 具名巨集 `MiliUI_Focus`（一般 120 格優先，滿了退角色 18 格），內容 `<SLASH_PARTY1|RAID1|INSTANCE_CHAT1> 宣告句`，
+  斜線指令從 GlobalStrings 讀（各語系客戶端一定認得自己的 `SLASH_*1`）。
+- 宣告鈕改 `SecureActionButtonTemplate`，`type1="macro"`＋`macro="MiliUI_Focus"`；
+  `RegisterForClicks("AnyDown","AnyUp")`、**不設 pressAndHoldAction** —— 暴雪
+  `SecureActionButton_OnClick` 對真實滑鼠點擊（isSecureAction）只在放開邊緣執行一次，
+  這跟 `/click` 委派（只送放開邊緣、需要 pressAndHold 配方）是兩回事。
+- `PostClick`（放開邊緣）：巨集掛著就只補「戰鬥中內容還沒更新」提醒；沒掛著才退回原本的
+  Lua 路徑（沒組隊印預覽、沒選標記提示、聊天封鎖印原文）。
+- 狀態機 `ready/off/nomark/nogroup/noslot/toolong/failed`＋`pending`（戰鬥中有變動）。
+  重算時機：Init、PLAYER_ENTERING_WORLD、GROUP_ROSTER_UPDATE、UPDATE_MACROS（玩家刪了就補回）、
+  PLAYER_REGEN_ENABLED（pending 才重算）、`SettingsChanged`、`PeersChanged`（Sync 新增的回呼，
+  只在名單內容變時派，心跳不派）。
+- **標記列沒開就不建巨集**：不替沒用這功能的人在巨集書塞東西。
+- 隊友那串照舊附帶，超過 255 位元組從後面砍到剩主句。
+- 巨集建立時印一次「已在巨集書建立 MiliUI_Focus」，設定頁宣告區也有一行說明；
+  `/mfocus check` 多印巨集狀態與內容。
+
+待實機驗證：M+ 非首領時段 `/p` 是否真的放行、遭遇中的連送節流門檻、
+`UPDATE_MACROS` 在自己 EditMacro 之後有沒有重入（已用 `writing` 旗標擋）。
