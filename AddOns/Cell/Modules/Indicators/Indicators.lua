@@ -861,7 +861,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if t["colors"] then
                     indicator:SetColors(t["colors"])
                 end
-                -- update pandemicColor (rect only; the preview approximates the window)
+                -- update pandemicColor (buff rect / block; the preview approximates the window)
                 if indicator.SetPandemicColor then
                     indicator:SetPandemicColor(t["pandemicColor"])
                 end
@@ -1965,7 +1965,14 @@ local function ShowIndicatorSettings(id)
         elseif indicatorType == "overlay" then
             settingsTable = {"enabled", "auras", "overlayColors", "checkbutton3:smooth", "barOrientation", "frameLevel:50"}
         elseif indicatorType == "block" then
-            settingsTable = {"enabled", "auras", "blockColors", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            if indicatorTable["auraType"] == "buff" then
+                -- buff blocks run on the AuraContainer path like buff rects: same three
+                -- engine-driven time layers (see blockColorsTime); no colour-by-stack there
+                settingsTable = {"enabled", "auras", "blockColorsTime", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            else
+                -- debuff blocks stay on the manual path: the full widget (Color By + bands + border)
+                settingsTable = {"enabled", "auras", "blockColors", "checkbutton3:showStack", "durationVisibility", "durationColor", "glowOptions", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            end
         elseif indicatorType == "blocks" then
             settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "glowOptions", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "border" then
@@ -2251,6 +2258,33 @@ local function ShowIndicatorSettings(id)
                 indicatorTable["pandemicColor"] = {false, {1, 1, 0, 1}}
             end
             w:SetDBValue(indicatorTable["colors"], indicatorTable["pandemicColor"])
+            w:SetFunc(function(key, value)
+                -- NOTE: already changed in widget; key is "colors" or "pandemicColor"
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, key, value)
+            end)
+
+        -- blockColorsTime (buff block): colors[2]..[5] + pandemicColor {en, {r,g,b,a}}.
+        -- Same widget as rectColors, other indices (block keeps its "Color By" slot in [1]).
+        elseif currentSetting == "blockColorsTime" then
+            if type(indicatorTable["pandemicColor"]) ~= "table" then
+                indicatorTable["pandemicColor"] = {false, {1, 1, 0, 1}}
+            end
+            -- Colour-by-stack cannot run on the container path (the stack count is secret and
+            -- SetApplicationCount takes no formatter), so a buff block saved in "stack" mode is
+            -- put back to "duration" here. Its [3]/[4] were STACK thresholds, meaningless as a
+            -- fraction / seconds: both bands go OFF (with the defaults the Color By switch
+            -- itself would write) rather than light at some random point -- the player re-picks.
+            local colors = indicatorTable["colors"]
+            if colors[1] ~= "duration" then
+                colors[1] = "duration"
+                colors[3][1] = false
+                colors[4][1] = false
+                colors[3][2] = 0.5
+                colors[4][2] = 3
+                -- the preview and the manual fallback pick their SetCooldown by this mode
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "colors", colors)
+            end
+            w:SetDBValue(colors, indicatorTable["pandemicColor"])
             w:SetFunc(function(key, value)
                 -- NOTE: already changed in widget; key is "colors" or "pandemicColor"
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, key, value)

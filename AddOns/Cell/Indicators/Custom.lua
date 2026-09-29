@@ -140,8 +140,9 @@ function I.CreateIndicator(parent, indicatorTable)
     -- effect appears and disappears with the aura and nothing here reads presence at all.
     -- What does NOT survive: fade-out, colour-by-remaining, and the percent/seconds
     -- threshold bands -- every one of them needs a countdown we can no longer read.
-    -- (rect gets two engine-driven stand-ins: the countdown colour curve and the Pandemic
-    -- fill -- see AuraDisplay's BuildEffectRect.)
+    -- (rect and block get them back engine-driven: the countdown colour curve, the Pandemic
+    -- fill and the two remaining-time bands -- see AuraDisplay's BuildPandemicFill and
+    -- BuildBandSlot.)
     -- (glow / bar / bars / blocks are still on the manual path: see the notes in
     -- AuraDisplay's EFFECT SLOTS block for what each of them still needs.)
     local ctype = indicatorTable["type"]

@@ -261,17 +261,18 @@ local function BuildRecordsRaw(opts)
             end
         end
         local main = { key = "buff", filter = f, candidateFilters = { includeSpellIDs = ids } }
-        -- RECT COLOUR BANDS ("remaining < N%" / "remaining < N sec"): one companion slot per
-        -- band, same filter and same spell list as the main slot. An AuraButton has exactly
-        -- ONE SetDurationText binding and the main slot's is the countdown number, so each
-        -- band needs a button of its own to carry its |T fill (see BuildBandSlot). Groups are
-        -- never de-duplicated against each other, so the same aura lands in all of them --
-        -- which is the point: the slots stack into one rect.
+        -- COLOUR BANDS ("remaining < N%" / "remaining < N sec", rect and block): one
+        -- companion slot per band, same filter and same spell list as the main slot. An
+        -- AuraButton has exactly ONE SetDurationText binding and the main slot's is the
+        -- countdown number, so each band needs a button of its own to carry its |T fill (see
+        -- BuildBandSlot). Groups are never de-duplicated against each other, so the same aura
+        -- lands in all of them -- which is the point: the slots stack into one box (both
+        -- styles are single-slot containers, see IsSlotMode).
         -- ⚠ Threshold and colour are baked into the KEY: the park key is built from the
         -- records, and a band's formatter is frozen once bound, so a parked container must
         -- never come back to a config asking for a different threshold or colour.
-        local rb = opts.rectBands
-        if type(rb) == "table" and opts.customStyle == "rect" then
+        local rb = opts.effectBands
+        if type(rb) == "table" and (opts.customStyle == "rect" or opts.customStyle == "block") then
             local function csig(c)
                 return string.format("%.3f,%.3f,%.3f,%.3f", tonumber(c[1]) or 1, tonumber(c[2]) or 1,
                     tonumber(c[3]) or 1, tonumber(c[4]) or 1)
@@ -614,7 +615,8 @@ local SPENT_COLOR = { 0, 0, 0, 1 }
 --      AddPandemicRegion) or not at all -- "fade out as it expires" is gone with the
 --      remaining duration.
 --
--- The engine-driven exceptions, all on rect:
+-- The engine-driven exceptions, on rect and on block (block is not an effect slot style --
+-- it keeps its own StyleButton branch with a swipe -- but it is single-slot too, see IsSlotMode):
 --   * Pandemic fill (12.1.5). We hand the engine a texture with AddPandemicRegion and it
 --     SetShown()s it while the aura sits in its Pandemic window (recasting would waste none
 --     of the remaining time). The region is stamped SecretAspect.Shown, so we never read
@@ -627,7 +629,7 @@ local SPENT_COLOR = { 0, 0, 0, 1 }
 --     ONE SetDurationText binding (taken by the countdown), so every band rides its own
 --     companion slot; and an inline |T does not render at the size asked for (the factor
 --     varies by setup), so the escape is oversized and CLIPPED to the box by its holder.
---     See RECT COLOUR BANDS below.
+--     See COLOUR BANDS below.
 -- ============================================================
 local EFFECT_SLOT_STYLES = {
     color   = true,   -- health-bar / unit-button tint
@@ -640,9 +642,15 @@ AD.EFFECT_SLOT_STYLES = EFFECT_SLOT_STYLES
 -- Single-slot containers: one AddAuraSlot filling the handle frame, no flow layout.
 -- The dispel health-bar highlight (mode "overlay") was the first of these; the effect
 -- styles are the same shape with a different visual.
+-- block is one too, though it is not an effect style (it keeps its countdown, stack and
+-- swipe in its own StyleButton branch): it only ever shows ONE box (Custom.lua attaches it
+-- with num 1), and its colour-band companion slots must STACK on that box. In a flow
+-- layout every group is laid out after the previous one, so a band would land beside the
+-- block instead of on it.
 local function IsSlotMode(cfg)
     if not cfg then return false end
-    return cfg.mode == "overlay" or (cfg.customStyle ~= nil and EFFECT_SLOT_STYLES[cfg.customStyle] == true)
+    return cfg.mode == "overlay" or cfg.customStyle == "block"
+        or (cfg.customStyle ~= nil and EFFECT_SLOT_STYLES[cfg.customStyle] == true)
 end
 AD.IsSlotMode = IsSlotMode
 
@@ -855,7 +863,7 @@ local function BuildEffectBorder(handle, button, cfg)
 end
 
 -- ============================================================
--- RECT COLOUR BANDS  ("remaining < N%" / "remaining < N sec", on the container path)
+-- COLOUR BANDS  ("remaining < N%" / "remaining < N sec", rect and block, on the container path)
 --
 -- A texture has no colour curve, but a FontString bound with SetDurationText has a
 -- formatter, and a NumericRuleFormatter picks a format string per breakpoint IN C, against
@@ -867,13 +875,21 @@ end
 -- AuraButton has exactly ONE SetDurationText binding (CustomAuraButtonSharedMixin keeps a
 -- single durationText), and the main slot's is the countdown number. The companion slots use
 -- the main slot's filter and spell list, so the same aura shows in all of them and they
--- stack into one rect (see BuildRecords).
+-- stack into one box (see BuildRecords).
 --
--- Stacking inside a rect, bottom -> top, as offsets from the slot button's level. The main
--- slot's fill sits on dfEffHolder, which CreateFrame puts at +1 on its own. The order matches
--- the preview's priority in Base.lua's Rect_OnUpdateColor (sec > Pandemic > pct > normal).
+-- Stacking inside a rect / block, bottom -> top, as offsets from the slot button's level:
+--   fill    rect: dfEffHolder (CreateFrame puts it at +1 on its own, border on the same frame)
+--           block: dfBlock, a BACKGROUND texture on the button itself (+0)
+--   border  block: dfBlockBorder (+1, edge only)
+--   pct band, Pandemic fill, sec band
+--   swipe   block only (dfCD): ABOVE the bands, so the elapsed arc goes black and the arc
+--           still to run shows whichever band colour is current -- the manual block's look
+--   countdown text +6, stack +7 (BindDurStack)
+-- The order matches the preview's priority in Base.lua's Rect_OnUpdateColor and
+-- Block_OnUpdate_Duration (sec > Pandemic > pct > normal). Every layer above the border is
+-- inset by CELL_BORDER_SIZE, so nothing ever covers the edge.
 -- ============================================================
-local RECT_LAYER = { pct = 2, pandemic = 3, sec = 4 }   -- countdown text +6, stack +7 (BindDurStack)
+local EFFECT_LAYER = { border = 1, pct = 2, pandemic = 3, sec = 4, swipe = 5 }
 
 local BuildBandSlot
 do  -- local-budget block: the band helpers are only reachable through BuildBandSlot
@@ -938,7 +954,7 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
     function BuildBandSlot(handle, button, cfg, band)
         if not button.dfBandHolder then
             local holder = CreateFrame("Frame", nil, button)
-            -- inset by the border like the Pandemic fill: a band never covers the rect's edge
+            -- inset by the border like the Pandemic fill: a band never covers the box's edge
             holder:SetPoint("TOPLEFT", button, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
             holder:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
             -- the oversized |T below is cut to this box; this is what makes the size exact
@@ -952,7 +968,7 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
             fs:SetShadowOffset(0, 0) -- CELL_FONT_STATUS carries a 1,-1 text shadow
             button.dfBand = fs
         end
-        button.dfBandHolder:SetFrameLevel(button:GetFrameLevel() + (RECT_LAYER[band.kind] or 2))
+        button.dfBandHolder:SetFrameLevel(button:GetFrameLevel() + (EFFECT_LAYER[band.kind] or 2))
 
         -- the |T is asked for at inner box x overscan and clipped by the holder; sizes come
         -- from config, never from the button
@@ -1005,6 +1021,45 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
     end
 end
 
+-- Pandemic fill (12.1.5), shared by rect and block: a texture the ENGINE shows while the
+-- aura sits in its Pandemic window (AddPandemicRegion). parentFrame is what the fill covers
+-- -- rect's dfEffHolder, or the block button itself. The caller checks cfg.pandemicOn and
+-- button.AddPandemicRegion. See the EFFECT SLOTS note for the rules.
+local function BuildPandemicFill(handle, button, cfg, parentFrame)
+    if not button.dfPandemicTex then
+        -- Its own frame, at the Pandemic step of the stack (EFFECT_LAYER): the two colour
+        -- bands are sibling SLOT buttons (BuildBandSlot), and a texture drawn straight on the
+        -- fill's frame would sit under both of them whatever its sublevel.
+        -- The holder is ours and is never handed over -- only the texture is.
+        local ph = CreateFrame("Frame", nil, parentFrame)
+        ph:SetAllPoints(parentFrame)
+        button.dfPandemicHolder = ph
+        -- ⚠ A TEXTURE, not a frame: AddPandemicRegion validates RequireObjectType("Region")
+        -- and a Frame is not a Region in the current widget hierarchy -- the pcall would
+        -- swallow the refusal and the option would just never light up.
+        -- Inset by the border so it never covers the edge. Hidden before the hand-over: if
+        -- the engine refuses it, it must not sit there permanently lit (on success the
+        -- engine sets it right away).
+        local pt = ph:CreateTexture(nil, "ARTWORK")
+        pt:SetPoint("TOPLEFT", ph, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+        pt:SetPoint("BOTTOMRIGHT", ph, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+        pt:Hide()
+        button.dfPandemicTex = pt
+    end
+    -- re-applied every pass like every other level (the container re-levels its buttons)
+    button.dfPandemicHolder:SetFrameLevel(button:GetFrameLevel() + EFFECT_LAYER.pandemic)
+    -- the colour is ours to write at any time (cosmetic key -> Restyle lands here);
+    -- only its visibility belongs to the engine
+    local pr, pg, pb, pa = ColorOr(cfg.pandemicColor, 1, 1, 0, 1)
+    button.dfPandemicTex:SetColorTexture(pr, pg, pb, pa)
+    if not button._boundPandemic then
+        button._boundPandemic = true
+        -- only legal inside the initializeFrame window; after the hand-over this texture
+        -- carries SecretAspect.Shown -- never read IsShown / never Show or Hide it
+        pcall(button.AddPandemicRegion, button, button.dfPandemicTex)
+    end
+end
+
 local function BuildEffectRect(handle, button, cfg)
     local holder = button.dfEffHolder
     if not holder then
@@ -1023,39 +1078,7 @@ local function BuildEffectRect(handle, button, cfg)
 
     -- Pandemic fill (12.1.5): a second fill over the normal one that the ENGINE shows while
     -- the aura is in its Pandemic window. See the EFFECT SLOTS note for the rules.
-    if cfg.pandemicOn and button.AddPandemicRegion then
-        if not button.dfPandemicTex then
-            -- Its own frame, at the Pandemic step of the rect's stack (RECT_LAYER): the two
-            -- colour bands are sibling SLOT buttons (BuildBandSlot), and a texture drawn
-            -- straight on dfEffHolder would sit under both of them whatever its sublevel.
-            -- The holder is ours and is never handed over -- only the texture is.
-            local ph = CreateFrame("Frame", nil, holder)
-            ph:SetAllPoints(holder)
-            ph:SetFrameLevel(button:GetFrameLevel() + RECT_LAYER.pandemic)
-            button.dfPandemicHolder = ph
-            -- ⚠ A TEXTURE, not a frame: AddPandemicRegion validates RequireObjectType("Region")
-            -- and a Frame is not a Region in the current widget hierarchy -- the pcall would
-            -- swallow the refusal and the option would just never light up.
-            -- Inset by the border so it never covers the backdrop edge. Hidden before the
-            -- hand-over: if the engine refuses it, it must not sit there permanently lit (on
-            -- success the engine sets it right away).
-            local pt = ph:CreateTexture(nil, "ARTWORK")
-            pt:SetPoint("TOPLEFT", ph, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
-            pt:SetPoint("BOTTOMRIGHT", ph, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
-            pt:Hide()
-            button.dfPandemicTex = pt
-        end
-        -- the colour is ours to write at any time (cosmetic key -> Restyle lands here);
-        -- only its visibility belongs to the engine
-        local pr, pg, pb, pa = ColorOr(cfg.pandemicColor, 1, 1, 0, 1)
-        button.dfPandemicTex:SetColorTexture(pr, pg, pb, pa)
-        if not button._boundPandemic then
-            button._boundPandemic = true
-            -- only legal inside the initializeFrame window; after the hand-over this texture
-            -- carries SecretAspect.Shown -- never read IsShown / never Show or Hide it
-            pcall(button.AddPandemicRegion, button, button.dfPandemicTex)
-        end
-    end
+    if cfg.pandemicOn and button.AddPandemicRegion then BuildPandemicFill(handle, button, cfg, holder) end
 end
 
 local function BuildEffectTexture(handle, button, cfg)
@@ -1176,10 +1199,13 @@ local function StyleButton(handle, button)
     -- read -- but these fill their whole anchor rather than sitting in a row, so the slot
     -- button IS the effect. See the EFFECT SLOTS note at the top of the file.
     -- ⚠ No Lua-driven time-based behaviour: the old fade-out / colour-by-remaining needed a
-    -- countdown we can no longer read. What time-based remains is engine-driven, all on
-    -- rect: its countdown text (with its colour curve), its Pandemic fill (AddPandemicRegion,
-    -- see BuildEffectRect) and its two colour bands (companion slots, see BuildBandSlot).
-    -- rect colour-band companion slot: its band and nothing else (see RECT COLOUR BANDS)
+    -- countdown we can no longer read. What time-based remains is engine-driven, on rect
+    -- (and block, below): its countdown text (with its colour curve), its Pandemic fill
+    -- (AddPandemicRegion, see BuildPandemicFill) and its two colour bands (companion slots,
+    -- see BuildBandSlot).
+    -- rect / block colour-band companion slot: its band and nothing else (see COLOUR BANDS).
+    -- ⚠ Must stay ABOVE both the effect builders and the BLOCK / TEXT branch: a companion
+    -- slot of a block would otherwise get a second fill, border and countdown of its own.
     if button._adBand then
         BuildBandSlot(handle, button, cfg, button._adBand)
         return
@@ -1207,7 +1233,10 @@ local function StyleButton(handle, button)
     -- path because they render aura PRESENCE, and presence is secret. Here the container owns
     -- the button's visibility, so presence needs no read: draw a fixed-colour rect (block) or
     -- nothing (text), and let Blizzard blind-render the countdown number + stack onto our
-    -- fontstrings. ⚠ No time-based recolour (剩X秒變紅/到期閃光): remaining duration is secret.
+    -- fontstrings. ⚠ No Lua-timed recolour (剩X秒變紅/到期閃光): remaining duration is secret.
+    -- block's time-based colours are all engine-driven, the same three layers as rect: the
+    -- two bands (companion slots, see COLOUR BANDS), the Pandemic fill, and the countdown
+    -- text's colour curve. Stacking: see EFFECT_LAYER.
     if cfg.customStyle == "block" or cfg.customStyle == "text" then
         local base = button:GetFrameLevel()
         local col = cfg.borderColor
@@ -1223,10 +1252,24 @@ local function StyleButton(handle, button)
             local c = hasCol and col or BUFF_GREEN
             button.dfBlock:SetColorTexture(c[1], c[2] or 0, c[3] or 0, c[4] or 1)
 
-            -- draining swipe over the fill: a BLIND visual timer (Blizzard drives it from the
-            -- aura's duration; we never read the remaining time). We can't recolour the fill
-            -- by time (that value is secret), but the sweep restores the "how much is left"
-            -- read that the old time-based recolour gave.
+            -- the border (colors[5]): edge only, on a holder of our own -- same as rect's
+            -- dfEffHolder, which carries its fill on the same frame
+            if not button.dfBlockBorder then
+                local bh = CreateFrame("Frame", nil, button, "BackdropTemplate")
+                bh:SetAllPoints(button)
+                bh:SetBackdrop({ edgeFile = Cell.vars.whiteTexture, edgeSize = CELL_BORDER_SIZE })
+                button.dfBlockBorder = bh
+            end
+            button.dfBlockBorder:SetFrameLevel(base + EFFECT_LAYER.border)
+            local br, bg, bb, ba = ColorOr(cfg.blockBorderColor, 0, 0, 0, 1)
+            button.dfBlockBorder:SetBackdropBorderColor(br, bg, bb, ba)
+
+            -- Pandemic fill: the engine shows it while the aura is in its Pandemic window
+            if cfg.pandemicOn and button.AddPandemicRegion then BuildPandemicFill(handle, button, cfg, button) end
+
+            -- draining swipe over the fill and the bands: a BLIND visual timer (Blizzard drives
+            -- it from the aura's duration; we never read the remaining time). It sits above the
+            -- bands (EFFECT_LAYER.swipe), so the arc still to run shows the current band colour.
             if durationOn then
                 if not button.dfCD then
                     button.dfCD = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
@@ -1240,8 +1283,10 @@ local function StyleButton(handle, button)
                     button.dfCD.noCooldownCount = true     -- keep OmniCC off our numbers
                 end
                 button.dfCD:ClearAllPoints()
-                button.dfCD:SetAllPoints(button)
-                button.dfCD:SetFrameLevel(base + 1)
+                -- inset like the manual block's cooldown: the swipe never covers the border
+                button.dfCD:SetPoint("TOPLEFT", button, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+                button.dfCD:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+                button.dfCD:SetFrameLevel(base + EFFECT_LAYER.swipe)
                 if button.SetDurationCooldown and not button._boundCD then
                     button:SetDurationCooldown(button.dfCD)
                     button._boundCD = true
@@ -2395,10 +2440,13 @@ local COSMETIC_KEYS = {
     -- effect-slot visuals: pure styling, so a colour/thickness/texture tweak restyles the
     -- existing slot instead of tearing the container down and rebuilding it
     effectColors = true, effectThickness = true, effectTexture = true,
-    -- rect's Pandemic fill colour: a repaint of our own texture. Its on/off switch
+    -- rect / block Pandemic fill colour: a repaint of our own texture. Its on/off switch
     -- (pandemicOn) is NOT here -- the region is handed to the engine in the initializeFrame
-    -- window, so flipping it needs fresh buttons.
+    -- window, so flipping it needs fresh buttons. Neither are the colour bands
+    -- (effectBands): their colours are baked into a formatter that is frozen once bound.
     pandemicColor = true,
+    -- block's border (colors[5]): a repaint of our own backdrop edge
+    blockBorderColor = true,
 }
 
 -- geometry keys: 12.1 has SetAuraGroupLayout as a LIVE setter and StyleButton already

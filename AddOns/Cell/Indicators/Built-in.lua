@@ -491,7 +491,7 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                         bands.sec = { secs = tonumber(s[2]) or 3, color = s[3] }
                     end
                 end
-                opts.rectBands = (bands.pct or bands.sec) and bands or false
+                opts.effectBands = (bands.pct or bands.sec) and bands or false
             end
         end
         -- a text-style indicator with no explicit duration toggle still shows its countdown
@@ -534,17 +534,40 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 RingOpts(opts, t, configColor)
             end
         end
-        -- block & text carry a NORMALISED {base, sec} colours spec for the countdown colour
-        -- curve. ⚠ Their raw colours tables have DIFFERENT layouts: text's CreateSetting_Colors
-        -- is [1]=base, [3]={en,secThr,col}; block's CreateSetting_BlockColors prepends a
-        -- "Color By" slot so it is [2]=base, [4]={en,secThr,col}. base doubles as the block fill
-        -- / the text number's colour. (The percent slot is a RemainingPercent band -- can't ride
-        -- a seconds curve -- so it is ignored on the container path.)
+        -- ⚠ block's raw colours table is NOT rect's layout: it prepends a "Color By" slot, so
+        -- it is [1]="duration"/"stack", [2]=fill, [3]={en,frac,col}, [4]={en,sec,col},
+        -- [5]=border (rect: [1]=fill, [2]/[3] bands, [4]=border).
         -- BLOCK fill = blockColors Normal (colors[2]); its countdown colour-by-time is the
         -- unified durationColor now (handled below), not the old colours-table thresholds.
         -- TEXT uses durationColor only -- with the option OFF the text stays plain white.
-        if customStyle == "block" and type(t.colors) == "table" and type(t.colors[2]) == "table" then
-            opts.borderColor = t.colors[2]
+        -- BLOCK also gets rect's other two engine-driven time layers (see the rect branch
+        -- above): the Pandemic fill and the two remaining-time colour bands, plus its border
+        -- (colors[5]). Same key rules as rect: pandemicOn / effectBands are structural,
+        -- pandemicColor / blockBorderColor cosmetic; a band that is off is not sent, both off
+        -- = false.
+        if customStyle == "block" and type(t.colors) == "table" then
+            local c = t.colors
+            opts.borderColor = type(c[2]) == "table" and c[2] or nil        -- the fill (old key name)
+            opts.blockBorderColor = type(c[5]) == "table" and c[5] or nil
+            local pc = t["pandemicColor"]
+            opts.pandemicOn = type(pc) == "table" and pc[1] == true
+            opts.pandemicColor = type(pc) == "table" and pc[2] or nil
+            -- Bands only in "colour by duration" mode: in "stack" mode [3]/[4] are STACK
+            -- thresholds, and reading them as a fraction / seconds would light the wrong band.
+            -- (Colour-by-stack cannot exist here at all: the stack count is secret and
+            -- SetApplicationCount takes no formatter -- see BindDurStack. The settings page
+            -- normalises a buff block saved in stack mode back to duration.)
+            local bands = {}
+            if c[1] == "duration" then
+                local p, sb = c[3], c[4]
+                if type(p) == "table" and p[1] and type(p[3]) == "table" then
+                    bands.pct = { frac = tonumber(p[2]) or 0.5, color = p[3] }
+                end
+                if type(sb) == "table" and sb[1] and type(sb[3]) == "table" then
+                    bands.sec = { secs = tonumber(sb[2]) or 3, color = sb[3] }
+                end
+            end
+            opts.effectBands = (bands.pct or bands.sec) and bands or false
         end
         -- unified durationColor { en, base, {en,sec,col}, {en,sec,col} }: takes precedence and is
         -- the countdown-colour source for icon / defensive types (no per-type colours table).

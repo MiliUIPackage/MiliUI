@@ -2574,11 +2574,21 @@ local function Block_OnUpdate_Duration(frame, elapsed)
     frame._elapsed = frame._elapsed + elapsed
     if frame._elapsed >= 0.1 then
         frame._elapsed = 0
-        -- update color
+        -- update color. Most urgent first: seconds band > Pandemic > percent band > normal --
+        -- the same order the buff block's engine-driven layers stack in on the container
+        -- path (AuraDisplay's EFFECT_LAYER); see Rect_OnUpdateColor.
         if frame.colors[4][1] and frame._remain <= frame.colors[4][2] then
             if frame.state ~= 3 then
                 frame.state = 3
                 frame:SetBackdropColor(frame.colors[4][3][1], frame.colors[4][3][2], frame.colors[4][3][3], frame.colors[4][3][4])
+            end
+        -- Pandemic (buff blocks only). Neither the preview nor the manual fallback has the
+        -- engine's window, so "the last 30%" stands in for it -- the usual carry-over cap.
+        elseif frame.pandemic and frame._remain <= frame._duration * 0.3 then
+            if frame.state ~= 4 then
+                frame.state = 4
+                local c = frame.pandemic
+                frame:SetBackdropColor(c[1], c[2], c[3], c[4])
             end
         elseif frame.colors[3][1] and frame._remain <= frame._duration * frame.colors[3][2] then
             if frame.state ~= 2 then
@@ -2746,6 +2756,14 @@ local function Block_SetColors(frame, colors)
     frame.colors = colors
 end
 
+-- pc = the indicator's pandemicColor {enabled, {r,g,b,a}}; absent or off = no Pandemic band.
+-- Only the "duration" mode reads it (Block_OnUpdate_Duration); stack mode ignores it.
+local function Block_SetPandemicColor(frame, pc)
+    frame.state = nil
+    -- only a buff block carries the key (Indicator_Defaults / the settings page write it back)
+    frame.pandemic = (type(pc) == "table" and pc[1] and type(pc[2]) == "table") and pc[2] or nil
+end
+
 local function Block_UpdatePixelPerfect(frame)
     P.Resize(frame)
     P.Repoint(frame)
@@ -2772,6 +2790,7 @@ function I.CreateAura_Block(name, parent)
 
     frame.SetFont = Shared_SetFont
     frame.SetColors = Block_SetColors
+    frame.SetPandemicColor = Block_SetPandemicColor
     frame.ShowStack = Shared_ShowStack
     frame.ShowDuration = Shared_ShowDuration
     frame.SetCooldown = Block_SetCooldown_Duration
