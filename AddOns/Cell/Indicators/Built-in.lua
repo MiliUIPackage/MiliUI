@@ -437,18 +437,25 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- textures need the initializeFrame window), the colour on its own (cosmetic -- a
         -- colour drag repaints, no rebuild). Sent as false when off, never left out: an
         -- absent key would keep the last glow (same lesson as durationColors below).
+        -- Glow timing (buff rect / block only; everything else has no key = "aura"):
+        -- "none" = no glow at all. A layout without the key reads the old "None" glow type as
+        -- "none" -- the same rule the options page normalises with and Base.lua's manual path.
         local g = t.glowOptions
-        if type(g) == "table" and type(g[1]) == "string" and g[1] ~= "None" then
+        local timing = t.glowTiming
+        if timing ~= "aura" and timing ~= "pandemic" and timing ~= "none" then
+            timing = (type(g) == "table" and g[1] == "None") and "none" or "aura"
+        end
+        if timing ~= "none" and type(g) == "table" and type(g[1]) == "string" and g[1] ~= "None" then
             opts.glowStyle = { g[1], g[3], g[4], g[5], g[6] }
             opts.glowColor = g[2]
         else
             opts.glowStyle = false
             opts.glowColor = false
         end
-        -- when it glows (buff rect / block only; everything else is always "aura"):
-        -- structural -- the two timings hand the engine different things (AddAuraShownAnimation
-        -- vs AddPandemicRegion), so a change is fresh buttons. Not in COSMETIC_KEYS.
-        opts.glowTiming = (t.glowTiming == "pandemic") and "pandemic" or "aura"
+        -- when it glows: structural -- the two timings hand the engine different things
+        -- (AddAuraShownAnimation vs AddPandemicRegion), so a change is fresh buttons. Not in
+        -- COSMETIC_KEYS.
+        opts.glowTiming = timing
         -- icon rows only: an effect frame is positioned by AnchorEffectFrame / its own size,
         -- and handing it an anchor corner would move a single block by the size mismatch
         if not customStyle then GridOpts(opts, t) end

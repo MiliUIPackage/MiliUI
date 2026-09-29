@@ -519,8 +519,9 @@ local function HandleIndicators(b)
             indicator:SetupGlow(t["glowOptions"])
         end
         -- glow timing (buff rect / block): manual fallback only; the container reads it
-        -- through ConfigureContainer (structural)
-        if indicator.SetGlowTiming then
+        -- through ConfigureContainer (structural). Debuff rects / blocks have no timing:
+        -- never told one, their glow stays "lit while up".
+        if indicator.SetGlowTiming and t["auraType"] == "buff" then
             indicator:SetGlowTiming(t["glowTiming"])
         end
         -- update smooth
@@ -1336,7 +1337,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if value["glowOptions"] then
                     indicator:SetupGlow(value["glowOptions"])
                 end
-                if indicator.SetGlowTiming then
+                if indicator.SetGlowTiming and value["auraType"] == "buff" then
                     indicator:SetGlowTiming(value["glowTiming"])
                 end
                 -- FirstRun: Healers

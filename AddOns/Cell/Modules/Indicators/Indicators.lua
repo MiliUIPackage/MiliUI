@@ -143,6 +143,9 @@ local BUFF_RING_COLOR = {0, 0.55, 0.15} -- keep in sync with AuraDisplay's BUFF_
 --! they actually watch, and that list can change while this pane is open.
 local function SetOnUpdate(indicator, debuffType, icon, stack, extra, ringColor)
     indicator.preview = indicator.preview or CreateFrame("Frame", nil, indicator)
+    -- a timed glow (buff rect / block) lights for the second half of the 13s cycle here, so
+    -- the player sees both states; untimed glows ignore it (Base.lua GlowWindowed)
+    indicator._isPreview = true
     local function doPreview()
         local tex = type(icon) == "function" and icon() or icon
         indicator:SetCooldown(GetTime(), 13, debuffType, tex, stack or 0, false, extra)
@@ -949,7 +952,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     indicator:SetupGlow(t["glowOptions"])
                 end
                 -- glow timing (buff rect / block; the preview approximates the window)
-                if indicator.SetGlowTiming then
+                if indicator.SetGlowTiming and t["auraType"] == "buff" then
                     indicator:SetGlowTiming(t["glowTiming"])
                 end
                 -- update fadeOut
@@ -1287,7 +1290,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             if value["glowOptions"] then
                 indicator:SetupGlow(value["glowOptions"])
             end
-            if indicator.SetGlowTiming then
+            if indicator.SetGlowTiming and value["auraType"] == "buff" then
                 indicator:SetGlowTiming(value["glowTiming"])
             end
             InitIndicator(indicatorName)
@@ -1973,7 +1976,7 @@ local function ShowIndicatorSettings(id)
                 -- buff rects run on the AuraContainer path, where every time-based colour is
                 -- engine-driven: the two remaining-time bands (|T fills on companion slots),
                 -- the Pandemic window and the countdown colour curve (see rectColors)
-                settingsTable = {"enabled", "auras", "rectColors", "glowOptions", "glowTiming", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "rectColors", "glowSection", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             else
                 -- debuff rects stay on the manual path, where the bands still work
                 settingsTable = {"enabled", "auras", "colors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
@@ -1990,7 +1993,7 @@ local function ShowIndicatorSettings(id)
             if indicatorTable["auraType"] == "buff" then
                 -- buff blocks run on the AuraContainer path like buff rects: same three
                 -- engine-driven time layers (see blockColorsTime); no colour-by-stack there
-                settingsTable = {"enabled", "auras", "blockColorsTime", "glowOptions", "glowTiming", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
+                settingsTable = {"enabled", "auras", "blockColorsTime", "glowSection", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
             else
                 -- debuff blocks stay on the manual path: the full widget (Color By + bands + border)
                 settingsTable = {"enabled", "auras", "blockColors", "glowOptions", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText:color", "font2:durationFont"}
@@ -2253,16 +2256,48 @@ local function ShowIndicatorSettings(id)
                 Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, currentSetting, value)
             end)
 
-        -- glowTiming (buff rect / block): "aura" / "pandemic". Layouts saved before the
-        -- option have none: write the default back so every reader sees the same key.
-        elseif currentSetting == "glowTiming" then
-            if indicatorTable["glowTiming"] ~= "pandemic" then
-                indicatorTable["glowTiming"] = "aura"
+        -- glowSection (buff rect / block): glowTiming "none" / "aura" / "pandemic" + the
+        -- glowOptions without a "None" type -- here "off" is the timing. Older layouts are
+        -- normalised and written back, so every reader sees the same two keys: a "None" type
+        -- becomes timing "none" + type "Normal" (the rest of the table untouched); a missing /
+        -- unknown timing reads "aura". Built-in (container opts) and Base.lua (manual path)
+        -- read an un-normalised layout the same way, so nothing changes until the player
+        -- edits it.
+        elseif currentSetting == "glowSection" then
+            local changed = false
+            local g = indicatorTable["glowOptions"]
+            if type(g) ~= "table" then
+                g = {"Normal", {0.95, 0.95, 0.32, 1}}
+                indicatorTable["glowOptions"] = g
+                changed = true
             end
-            w:SetDBValue(indicatorTable["glowTiming"])
-            w:SetFunc(function(value)
-                indicatorTable["glowTiming"] = value
-                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "glowTiming", value)
+            local timing = indicatorTable["glowTiming"]
+            if g[1] == "None" or type(g[1]) ~= "string" then
+                g[1] = "Normal"
+                if type(g[2]) ~= "table" then g[2] = {0.95, 0.95, 0.32, 1} end
+                timing = "none"
+                changed = true
+            end
+            if timing ~= "aura" and timing ~= "pandemic" and timing ~= "none" then
+                timing = "aura"
+            end
+            if indicatorTable["glowTiming"] ~= timing then
+                indicatorTable["glowTiming"] = timing
+                changed = true
+            end
+            if changed then
+                -- timing first: with the type turned into a real one, a glowOptions update
+                -- ahead of the "none" timing would light it for a moment
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "glowTiming", timing)
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, "glowOptions", g)
+            end
+            w:SetDBValue(g, timing)
+            w:SetFunc(function(key, value)
+                -- key "glowOptions": already changed in widget; "glowTiming": a string
+                if key == "glowTiming" then
+                    indicatorTable["glowTiming"] = value
+                end
+                Cell.Fire("UpdateIndicators", notifiedLayout, indicatorName, key, value)
             end)
 
         -- size-border

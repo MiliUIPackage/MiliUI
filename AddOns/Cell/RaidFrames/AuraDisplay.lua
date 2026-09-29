@@ -1142,6 +1142,7 @@ local EFFECT_BUILDERS = {
 -- Structural: the two timings bind different things, so a change is fresh buttons and the
 -- bind-once flags start from zero. A client without AddPandemicRegion (12.1.0) falls back
 -- to "aura" and notes it in handle._errors.
+-- "none" never reaches here as a glow: Built-in sends glowStyle = false for it.
 -- ============================================================
 local GLOW_LEVEL = 8 -- the lib's own default offset: above the countdown (+6) and stack (+7)
 

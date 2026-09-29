@@ -471,6 +471,8 @@ local StopGlow = {
     ["proc"] = ProcGlow_Stop,
 }
 
+local GlowLitNow -- glow timing, defined below
+
 local function Shared_SetupGlow(frame, glowOptions)
     frame.glowType = glowOptions[1]
     frame.glowOptions = {}
@@ -501,15 +503,15 @@ local function Shared_SetupGlow(frame, glowOptions)
     end
 
     if frame.glowType ~= "None" then
-        -- glowTiming "pandemic" (buff rect / block): lit only inside the window, which
-        -- Shared_SetPandemicNow drives from the OnUpdate -- never started here
-        if frame.glowTiming ~= "pandemic" or frame._pandemicNow then
+        -- timed glows (buff rect / block): see GlowLitNow -- a windowed one is left to the
+        -- OnUpdate (Shared_SetGlowWindow), "none" never starts
+        if GlowLitNow(frame) then
             frame:StartGlow()
         end
         if not frame._sizeChangedHooked then
             frame._sizeChangedHooked = true
             frame:HookScript("OnSizeChanged", function()
-                if frame.glowTiming ~= "pandemic" or frame._pandemicNow then
+                if GlowLitNow(frame) then
                     frame:StartGlow()
                 end
             end)
@@ -517,23 +519,57 @@ local function Shared_SetupGlow(frame, glowOptions)
     end
 end
 
--- Glow timing (buff rect / block): "aura" (nil) = the glow runs while the indicator is up,
--- as before; "pandemic" = only inside the Pandemic window. On the container path the ENGINE
--- decides the window (AuraDisplay StyleGlow, AddPandemicRegion); here -- options preview and
--- manual fallback -- "the last 30%" stands in for it, same as the Pandemic colour band, and
--- independent of whether that colour is on.
-local function Shared_SetPandemicNow(frame, now)
+-- Glow timing (buff rect / block only -- frame.glowTiming stays nil everywhere else, which
+-- means "lit while the indicator is up", as it always was):
+--   "none"     = never lit
+--   "aura"     = lit while the indicator is up
+--   "pandemic" = lit only inside the Pandemic window
+-- On the container path the ENGINE decides the window (AuraDisplay StyleGlow,
+-- AddPandemicRegion); here -- options preview and manual fallback -- "the last 30%" stands
+-- in for it, same as the Pandemic colour band, and independent of whether that colour is on.
+-- The options PREVIEW (frame._isPreview, set by the Indicators page) windows every timing
+-- except "none" to the second half of its 13s cycle, so the player sees both the glow and
+-- its absence whichever timing is picked.
+local function GlowWindowed(frame)
+    local timing = frame.glowTiming
+    return timing == "pandemic" or (timing == "aura" and frame._isPreview == true)
+end
+
+-- whether the glow should be showing right now (forward-declared above SetupGlow)
+GlowLitNow = function(frame)
+    if frame.glowTiming == "none" then return false end
+    if GlowWindowed(frame) then return frame._glowWindow == true end
+    return true
+end
+
+-- "inside the glow window" from the running countdown; callers only ask when GlowWindowed
+local function GlowWindowNow(frame)
+    if frame._isPreview then
+        return frame._remain <= frame._duration * 0.5
+    end
+    return frame._remain <= frame._duration * 0.3
+end
+
+local function Shared_SetGlowWindow(frame, now)
     now = now and true or false
-    if frame._pandemicNow == now then return end
-    frame._pandemicNow = now
-    if frame.glowTiming ~= "pandemic" or not frame.StartGlow then return end
+    if frame._glowWindow == now then return end
+    frame._glowWindow = now
+    if not frame.StartGlow or frame.glowType == "None" or not GlowWindowed(frame) then return end
     if now then frame:StartGlow() else frame:StopGlow() end
 end
 
+-- the OnUpdate hook: re-decide the window, only for windowed glows
+local function Shared_UpdateGlowWindow(frame)
+    if GlowWindowed(frame) then
+        Shared_SetGlowWindow(frame, GlowWindowNow(frame))
+    end
+end
+
 local function Shared_SetGlowTiming(frame, timing)
-    frame.glowTiming = (timing == "pandemic") and "pandemic" or nil
+    if timing ~= "none" and timing ~= "pandemic" then timing = "aura" end
+    frame.glowTiming = timing
     if not frame.StartGlow or frame.glowType == "None" then return end
-    if frame.glowTiming ~= "pandemic" or frame._pandemicNow then
+    if GlowLitNow(frame) then
         frame:StartGlow()
     else
         frame:StopGlow()
@@ -541,8 +577,8 @@ local function Shared_SetGlowTiming(frame, timing)
 end
 
 -- a hidden rect / block is out of its window; the next SetCooldown's tick re-decides
-local function Shared_PandemicGlowOnHide(frame)
-    Shared_SetPandemicNow(frame, false)
+local function Shared_GlowWindowOnHide(frame)
+    Shared_SetGlowWindow(frame, false)
 end
 
 function I.Glow_SetupForChildren(parent, glowOptions)
@@ -1735,10 +1771,8 @@ local function Rect_SetFont(frame, font1, font2)
 end
 
 local function Rect_OnUpdateColor(frame)
-    -- glow timing "pandemic": the same 30% stand-in, independent of the colour option
-    if frame.glowTiming == "pandemic" then
-        Shared_SetPandemicNow(frame, frame._remain <= frame._duration * 0.3)
-    end
+    -- glow timing: the window stand-in (see GlowWindowNow), independent of the colour option
+    Shared_UpdateGlowWindow(frame)
     -- Bands, most urgent first: seconds band > Pandemic > percent band > normal.
     -- A buff rect is drawn in game by an AuraContainer, where all three time-based layers are
     -- ENGINE-driven (AuraDisplay: the two bands are |T fills bound with SetDurationText on
@@ -1803,7 +1837,7 @@ end
 
 local function Rect_SetCooldown(frame, start, duration, debuffType, texture, count)
     if duration == 0 then
-        Shared_SetPandemicNow(frame, false) -- no duration, no window
+        Shared_SetGlowWindow(frame, false) -- no duration, no window
         frame.tex:SetColorTexture(unpack(frame.colors[1]))
         frame:SetScript("OnUpdate", nil)
         frame.duration:Hide()
@@ -1829,6 +1863,8 @@ local function Rect_SetCooldown(frame, start, duration, debuffType, texture, cou
 
         frame._start = start
         frame._duration = duration
+        -- options preview: every 13s cycle re-decides the glow window from scratch
+        if frame._isPreview then frame._glowWindow = nil end
         frame._elapsed = 0.1 -- update immediately
         frame:SetScript("OnUpdate", Rect_OnUpdate)
     end
@@ -1879,7 +1915,7 @@ function I.CreateAura_Rect(name, parent)
     frame.SetupGlow = Shared_SetupGlow
     frame.SetGlowTiming = Shared_SetGlowTiming
     frame.UpdatePixelPerfect = Rect_UpdatePixelPerfect
-    frame:SetScript("OnHide", Shared_PandemicGlowOnHide)
+    frame:SetScript("OnHide", Shared_GlowWindowOnHide)
 
     return frame
 end
@@ -2615,10 +2651,8 @@ local function Block_OnUpdate_Duration(frame, elapsed)
     frame._elapsed = frame._elapsed + elapsed
     if frame._elapsed >= 0.1 then
         frame._elapsed = 0
-        -- glow timing "pandemic": see Rect_OnUpdateColor
-        if frame.glowTiming == "pandemic" then
-            Shared_SetPandemicNow(frame, frame._remain <= frame._duration * 0.3)
-        end
+        -- glow timing: see Rect_OnUpdateColor
+        Shared_UpdateGlowWindow(frame)
         -- update color. Most urgent first: seconds band > Pandemic > percent band > normal --
         -- the same order the buff block's engine-driven layers stack in on the container
         -- path (AuraDisplay's EFFECT_LAYER); see Rect_OnUpdateColor.
@@ -2676,7 +2710,7 @@ local function Block_SetCooldown_Duration(frame, start, duration, debuffType, te
     -- end
 
     if duration == 0 then
-        Shared_SetPandemicNow(frame, false) -- no duration, no window
+        Shared_SetGlowWindow(frame, false) -- no duration, no window
         frame.cooldown:Hide()
         frame.duration:Hide()
         frame:SetScript("OnUpdate", nil)
@@ -2705,6 +2739,8 @@ local function Block_SetCooldown_Duration(frame, start, duration, debuffType, te
 
         frame._start = start
         frame._duration = duration
+        -- options preview: every 13s cycle re-decides the glow window from scratch
+        if frame._isPreview then frame._glowWindow = nil end
         frame._elapsed = 0.1 -- update immediately
         frame:SetScript("OnUpdate", Block_OnUpdate_Duration)
     end
@@ -2720,10 +2756,8 @@ end
 local function Block_OnUpdate_Stack(frame, elapsed)
     frame._remain = frame._duration - (GetTime() - frame._start)
     if frame._remain < 0 then frame._remain = 0 end
-    -- the glow's Pandemic window does not care about the colour mode (the engine's doesn't)
-    if frame.glowTiming == "pandemic" then
-        Shared_SetPandemicNow(frame, frame._remain <= frame._duration * 0.3)
-    end
+    -- the glow's window does not care about the colour mode (the engine's doesn't)
+    Shared_UpdateGlowWindow(frame)
 
     if frame._remain > frame._threshold then
         frame.duration:SetText("")
@@ -2748,7 +2782,7 @@ end
 
 local function Block_SetCooldown_Stack(frame, start, duration, debuffType, texture, count, refreshing)
     if duration == 0 then
-        Shared_SetPandemicNow(frame, false) -- no duration, no window
+        Shared_SetGlowWindow(frame, false) -- no duration, no window
         frame.cooldown:Hide()
         frame.duration:Hide()
         frame:SetScript("OnUpdate", nil)
@@ -2776,6 +2810,8 @@ local function Block_SetCooldown_Stack(frame, start, duration, debuffType, textu
 
         frame._start = start
         frame._duration = duration
+        -- options preview: every 13s cycle re-decides the glow window from scratch
+        if frame._isPreview then frame._glowWindow = nil end
         frame:SetScript("OnUpdate", Block_OnUpdate_Stack)
     end
 
@@ -2848,7 +2884,7 @@ function I.CreateAura_Block(name, parent)
     frame.SetupGlow = Shared_SetupGlow
     frame.SetGlowTiming = Shared_SetGlowTiming
     frame.UpdatePixelPerfect = Block_UpdatePixelPerfect
-    frame:SetScript("OnHide", Shared_PandemicGlowOnHide)
+    frame:SetScript("OnHide", Shared_GlowWindowOnHide)
 
     local ag = frame:CreateAnimationGroup()
     frame.ag = ag

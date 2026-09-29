@@ -4548,31 +4548,68 @@ local function CreateSetting_Glow(parent)
     return widget
 end
 
--- glowTiming (buff rect / block): when the glow shows. "aura" = while the aura is present,
--- "pandemic" = only inside the engine's Pandemic window (independent of the Pandemic colour).
--- SetDBValue(value); SetFunc(func): func(value).
-local function CreateSetting_GlowTiming(parent)
+-- Glow section (buff rect / block): class-coloured title (like stackText / durationText),
+-- then WHEN it glows -- on top, because "none" switches everything below it off -- then the
+-- glow type, colour and per-type parameters. The controls and the per-type show / hide rules
+-- are CreateSetting_Glow's, minus its "None" type: on these two indicators "off" is a timing.
+-- Timing "none" greys the rest out (Cell.SetEnabled) instead of hiding it, so the section
+-- does not jump in height when the player toggles it.
+-- SetDBValue(glowOptions, glowTiming); SetFunc(func): func(key, value) -- key "glowOptions"
+-- (value = the whole table, already changed in place, as with CreateSetting_Glow) or
+-- "glowTiming" (value = "none" / "aura" / "pandemic").
+local function CreateSetting_GlowSection(parent)
     local widget
 
-    if not settingWidgets["glowTiming"] then
-        widget = Cell.CreateFrame("CellIndicatorSettings_GlowTiming", parent, 240, 50)
-        settingWidgets["glowTiming"] = widget
+    if not settingWidgets["glowSection"] then
+        -- title + timing row + type row; the parameter rows add PARAM_HEIGHT (the same
+        -- 45 / 95 CreateSetting_Glow adds to its 50)
+        local BASE_HEIGHT = 115
+        local PARAM_HEIGHT = {["Normal"] = 0, ["Proc"] = 45, ["Pixel"] = 95, ["Shine"] = 95}
+        -- what a type switch starts from ([3]..[6]): CreateSetting_Glow's small-size set,
+        -- which is what it writes for every indicator except the glow indicator
+        local TYPE_DEFAULTS = {
+            ["Normal"] = {},
+            ["Pixel"] = {4, 0.25, 4, 1},
+            ["Shine"] = {4, 0.5, 0.7},
+            ["Proc"] = {1},
+        }
+
+        widget = Cell.CreateFrame("CellIndicatorSettings_GlowSection", parent, 240, BASE_HEIGHT)
+        settingWidgets["glowSection"] = widget
+
+        widget.title = widget:CreateFontString(nil, "OVERLAY", font_class_name)
+        widget.title:SetPoint("TOPLEFT", 5, -5)
+        widget.title:SetText(L["Glow"])
+
+        -- timing ---------------------------------------------------------------------------
+        local function SetTiming(value)
+            widget.glowTiming = value
+            widget:UpdateEnabled()
+            widget.func("glowTiming", value)
+        end
 
         widget.timing = Cell.CreateDropdown(widget, 245)
-        widget.timing:SetPoint("TOPLEFT", 5, -20)
+        widget.timing:SetPoint("TOPLEFT", 5, -40)
         widget.timing:SetItems({
+            {
+                ["text"] = L["None"],
+                ["value"] = "none",
+                ["onClick"] = function()
+                    SetTiming("none")
+                end,
+            },
             {
                 ["text"] = L["While the aura is present"],
                 ["value"] = "aura",
                 ["onClick"] = function()
-                    widget.func("aura")
+                    SetTiming("aura")
                 end,
             },
             {
                 ["text"] = L["During the Pandemic window"],
                 ["value"] = "pandemic",
                 ["onClick"] = function()
-                    widget.func("pandemic")
+                    SetTiming("pandemic")
                 end,
             },
         })
@@ -4581,17 +4618,130 @@ local function CreateSetting_GlowTiming(parent)
         widget.timingText:SetText(L["Glow Timing"])
         widget.timingText:SetPoint("BOTTOMLEFT", widget.timing, "TOPLEFT", 0, 1)
 
+        -- type + colour --------------------------------------------------------------------
+        -- a type switch keeps the colour (the old widget reset it to yellow: that reset was
+        -- the "None" -> something path's job, and "None" is not a type here)
+        local function SetType(glowType)
+            local g = widget.glow
+            local d = TYPE_DEFAULTS[glowType]
+            g[1] = glowType
+            g[3], g[4], g[5], g[6] = d[1], d[2], d[3], d[4]
+            widget:Refresh()
+            Cell.UpdateIndicatorSettingsHeight()
+            widget.func("glowOptions", g)
+        end
+
+        widget.glowType = Cell.CreateDropdown(widget, 110)
+        widget.glowType:SetPoint("TOPLEFT", widget.timing, "BOTTOMLEFT", 0, -25)
+        local typeItems = {}
+        for _, glowType in ipairs({"Normal", "Pixel", "Shine", "Proc"}) do
+            tinsert(typeItems, {
+                ["text"] = L[glowType],
+                ["value"] = glowType,
+                ["onClick"] = function()
+                    SetType(glowType)
+                end,
+            })
+        end
+        widget.glowType:SetItems(typeItems)
+
+        widget.glowTypeText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.glowTypeText:SetText(L["Glow Type"])
+        widget.glowTypeText:SetPoint("BOTTOMLEFT", widget.glowType, "TOPLEFT", 0, 1)
+
+        widget.glowColor = Cell.CreateColorPicker(widget, L["Glow Color"], false, function(r, g, b)
+            widget.glow[2] = {r, g, b, 1}
+            widget.func("glowOptions", widget.glow)
+        end)
+        widget.glowColor:SetPoint("LEFT", widget.glowType, "RIGHT", 25, 0)
+
+        -- parameters (same sliders, ranges and slots as CreateSetting_Glow) ----------------
+        local function Param(label, low, high, step, index, isPercentage)
+            return Cell.CreateSlider(label, widget, low, high, 110, step, function(value)
+                widget.glow[index] = isPercentage and value / 100 or value
+                widget.func("glowOptions", widget.glow)
+            end, nil, isPercentage)
+        end
+
+        widget.glowLines = Param(L["Lines"], 1, 30, 1, 3)
+        widget.glowLines:SetPoint("TOPLEFT", widget.glowType, "BOTTOMLEFT", 0, -25)
+
+        widget.glowParticles = Param(L["Particles"], 1, 30, 1, 3)
+        widget.glowParticles:SetPoint("TOPLEFT", widget.glowType, "BOTTOMLEFT", 0, -25)
+
+        widget.glowDuration = Param(L["Duration"], 0.1, 3, 0.1, 3)
+        widget.glowDuration:SetPoint("TOPLEFT", widget.glowType, "BOTTOMLEFT", 0, -25)
+
+        widget.glowFrequency = Param(L["Frequency"], -2, 2, 0.01, 4)
+        widget.glowFrequency:SetPoint("TOPLEFT", widget.glowLines, "TOPRIGHT", 25, 0)
+
+        widget.glowLength = Param(L["Length"], 1, 50, 1, 5)
+        widget.glowLength:SetPoint("TOPLEFT", widget.glowLines, "BOTTOMLEFT", 0, -40)
+
+        widget.glowThickness = Param(L["Thickness"], 1, 20, 1, 6)
+        widget.glowThickness:SetPoint("TOPLEFT", widget.glowLength, "TOPRIGHT", 25, 0)
+
+        widget.glowScale = Param(L["Scale"], 50, 500, 1, 5, true)
+        widget.glowScale:SetPoint("TOPLEFT", widget.glowLines, "BOTTOMLEFT", 0, -40)
+
+        -- show the type's controls and values; height follows the type
+        function widget:Refresh()
+            local g = widget.glow
+            local glowType = g[1]
+            local d = TYPE_DEFAULTS[glowType] or TYPE_DEFAULTS["Normal"]
+            local pixel, shine, proc = glowType == "Pixel", glowType == "Shine", glowType == "Proc"
+
+            widget.glowType:SetSelectedValue(glowType)
+            widget.glowColor:SetColor(g[2])
+
+            widget.glowLines:SetShown(pixel)
+            widget.glowLength:SetShown(pixel)
+            widget.glowThickness:SetShown(pixel)
+            widget.glowParticles:SetShown(shine)
+            widget.glowScale:SetShown(shine)
+            widget.glowFrequency:SetShown(pixel or shine)
+            widget.glowDuration:SetShown(proc)
+
+            if pixel then
+                widget.glowLines:SetValue(g[3] or d[1])
+                widget.glowFrequency:SetValue(g[4] or d[2])
+                widget.glowLength:SetValue(g[5] or d[3])
+                widget.glowThickness:SetValue(g[6] or d[4])
+            elseif shine then
+                widget.glowParticles:SetValue(g[3] or d[1])
+                widget.glowFrequency:SetValue(g[4] or d[2])
+                widget.glowScale:SetValue((g[5] or d[3]) * 100)
+            elseif proc then
+                widget.glowDuration:SetValue(g[3] or d[1])
+            end
+
+            P.Height(widget, BASE_HEIGHT + (PARAM_HEIGHT[glowType] or 0))
+        end
+
+        -- timing "none": everything below the timing row greyed out, still in place
+        function widget:UpdateEnabled()
+            Cell.SetEnabled(widget.glowTiming ~= "none",
+                widget.glowType, widget.glowTypeText, widget.glowColor,
+                widget.glowLines, widget.glowParticles, widget.glowDuration, widget.glowFrequency,
+                widget.glowLength, widget.glowThickness, widget.glowScale)
+        end
+
         -- callback
         function widget:SetFunc(func)
             widget.func = func
         end
 
-        -- show db value
-        function widget:SetDBValue(value)
-            widget.timing:SetSelectedValue(value == "pandemic" and "pandemic" or "aura")
+        -- show db value (the options page has already normalised both: see Indicators.lua)
+        function widget:SetDBValue(glowOptions, glowTiming)
+            widget.glowType.items[4].disabled = not Cell.isRetail -- Proc
+            widget.glow = glowOptions
+            widget.glowTiming = glowTiming
+            widget.timing:SetSelectedValue(glowTiming)
+            widget:Refresh()
+            widget:UpdateEnabled()
         end
     else
-        widget = settingWidgets["glowTiming"]
+        widget = settingWidgets["glowSection"]
     end
 
     widget:Show()
@@ -7553,7 +7703,7 @@ local builders = {
     ["roleTexture"] = CreateSetting_RoleTexture,
     ["glow"] = CreateSetting_Glow,
     ["glowOptions"] = CreateSetting_Glow,
-    ["glowTiming"] = CreateSetting_GlowTiming,
+    ["glowSection"] = CreateSetting_GlowSection,
     ["targetedSpellsGlow"] = CreateSetting_Glow,
     ["texture"] = CreateSetting_Texture,
     ["builtInDefensives"] = CreateSetting_BuiltIns,
