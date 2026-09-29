@@ -108,9 +108,11 @@ def main():
                 print(f"!! {addon}: TOC/XML 指到不存在的檔案 → {rel}")
                 problems += 1
 
+        # Tests/ 是離線測試（`lua Tests/xxx_test.lua` 直接跑，stub 掉 WoW API），
+        # 刻意不進 TOC —— 遊戲載入它只會拿到一堆假的全域。
         on_disk = set()
         for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d != "Libs"]
+            dirnames[:] = [d for d in dirnames if d not in ("Libs", "Tests")]
             for name in filenames:
                 if name.endswith((".lua", ".xml")):
                     on_disk.add(norm(os.path.relpath(os.path.join(dirpath, name), root)))
