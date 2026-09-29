@@ -527,12 +527,11 @@ end
 -- On the container path the ENGINE decides the window (AuraDisplay StyleGlow,
 -- AddPandemicRegion); here -- options preview and manual fallback -- "the last 30%" stands
 -- in for it, same as the Pandemic colour band, and independent of whether that colour is on.
--- The options PREVIEW (frame._isPreview, set by the Indicators page) windows every timing
--- except "none" to the second half of its 13s cycle, so the player sees both the glow and
--- its absence whichever timing is picked.
+-- The options PREVIEW (frame._isPreview, set by the Indicators page): "aura" is lit the
+-- whole time, as in game; "pandemic" blinks on a 2s cycle (1s lit, 1s dark) instead of
+-- waiting for the window, so the player sees the picked glow right away and keeps seeing it.
 local function GlowWindowed(frame)
-    local timing = frame.glowTiming
-    return timing == "pandemic" or (timing == "aura" and frame._isPreview == true)
+    return frame.glowTiming == "pandemic"
 end
 
 -- whether the glow should be showing right now (forward-declared above SetupGlow)
@@ -545,7 +544,9 @@ end
 -- "inside the glow window" from the running countdown; callers only ask when GlowWindowed
 local function GlowWindowNow(frame)
     if frame._isPreview then
-        return frame._remain <= frame._duration * 0.5
+        -- 2s blink from the start of the preview cycle: lit first, so a type change (which
+        -- restarts the cycle) shows the new glow immediately
+        return ((frame._duration - frame._remain) % 2) < 1
     end
     return frame._remain <= frame._duration * 0.3
 end
