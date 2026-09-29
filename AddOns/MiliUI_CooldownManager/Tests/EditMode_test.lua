@@ -222,5 +222,28 @@ do
     eq("吸附後 y 是 16 的倍數", pos and pos.y % 16, 0)
 end
 
+------------------------------------------------------------
+-- 面板（資源條、施法條）：設定在 profile[key]，不在 bars 裡
+------------------------------------------------------------
+do
+    env.UIParent = Rect(0, 1920, 1080, 0)
+    containers.resources = Place({ 0, 1920, 1080, 0 }, "BOTTOM", "CENTER", 30, -181, 250, 17)
+    anchors.resources = "BOTTOM"
+    ns.profile.resources = { pos = { point = "CENTER", x = 0, y = 0 }, anchor = false }
+    eq("面板：沒有 PANEL_KEYS 時讀不到", EM.ReadPos("resources"), nil)
+    ns.PANEL_KEYS = { resources = true, castbar = true }
+    local pos = EM.ReadPos("resources")
+    eq("面板 BOTTOM/CENTER x", pos and pos.x, 30)
+    eq("面板 BOTTOM/CENTER y", pos and pos.y, -181)
+    containers.castbar = Place({ 0, 1920, 1080, 0 }, "CENTER", "CENTER", -12, -260, 250, 20)
+    anchors.castbar = "CENTER"
+    ns.profile.castbar = { pos = { point = "CENTER" } }
+    pos = EM.ReadPos("castbar")
+    eq("施法條 CENTER x", pos and pos.x, -12)
+    eq("施法條 CENTER y", pos and pos.y, -260)
+    ns.profile.bars.castbar = nil
+    eq("不是面板的 key 不會去讀 profile[key]", EM.ReadPos("theme"), nil)
+end
+
 print(("EditMode_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

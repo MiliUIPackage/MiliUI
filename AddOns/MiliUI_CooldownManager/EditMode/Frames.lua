@@ -42,10 +42,9 @@ EM.SNAP_PREFIX = SNAP_PREFIX
 local HINT_R, HINT_G, HINT_B = 1, 0.82, 0          -- 暴雪提示用的金黃
 local GEAR_TEX = "Interface\\Buttons\\UI-OptionsButton"
 
+-- 條或面板（資源條、施法條）的設定表
 local function BarCfg(key)
-    local p = ns.profile
-    local b = p and type(p.bars) == "table" and p.bars[key]
-    return type(b) == "table" and b or nil
+    return ns.DB.ConfigTable(key)
 end
 EM.BarCfg = BarCfg
 
@@ -73,6 +72,17 @@ local function CellSize(bar)
     return w, h
 end
 EM.CellSize = CellSize
+
+-- 覆蓋層／點擊層的最小尺寸：面板問模組（寬、一列高），條照一格
+function EM.MinSize(key, bar)
+    local B = ns.Bars
+    if B and B.IsPanel and B.IsPanel(key) then
+        local w, h = B.PanelMinSize(key)
+        if w then return w, h end
+        return 36, 12
+    end
+    return CellSize(bar)
+end
 
 ------------------------------------------------------------
 -- 覆蓋層
@@ -133,7 +143,7 @@ function EM.LayoutOverlay(key)
     local c, ov, bar = ns.Bars.Get(key), EM.overlay[key], BarCfg(key)
     if not (c and ov and bar) then return end
     local cw, ch = c:GetWidth() or 1, c:GetHeight() or 1
-    local w, h = CellSize(bar)
+    local w, h = EM.MinSize(key, bar)
     if cw > w then w = cw end
     if ch > h then h = ch end
     local ap = ns.Bars.AnchorPoint(key)

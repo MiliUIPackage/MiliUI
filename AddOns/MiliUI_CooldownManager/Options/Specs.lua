@@ -181,7 +181,7 @@ function Specs.MakeCtx(info, onApply)
             if info.mode ~= "theme" and spec.type == "color" then return ColorProxy(info.key, path) end
             return ReadThemed(info, path)
         end
-        return ns.DB.GetPath(ns.DB.BarTable(info.key), path)
+        return ns.DB.GetPath(ns.DB.ConfigTable(info.key), path)
     end
     ctx.set = function(spec, v)
         ctx.lastSpec = spec
@@ -190,7 +190,7 @@ function Specs.MakeCtx(info, onApply)
         if spec.root == "theme" then
             WriteThemed(info, path, v)
         else
-            ns.DB.SetPath(ns.DB.BarTable(info.key), path, v)
+            ns.DB.SetPath(ns.DB.ConfigTable(info.key), path, v)
         end
     end
     return ctx
@@ -492,11 +492,15 @@ end
 ------------------------------------------------------------
 -- 錨定
 ------------------------------------------------------------
+-- 候選：左欄的條（barOrder）＋ 兩個面板（資源條、施法條；它們不在 barOrder 裡）
 local function AnchorItems(key)
     local items = { { text = L["None (own position)"], value = "none" } }
     local p = ns.profile
-    for _, other in ipairs(p and p.barOrder or {}) do
-        if other ~= key and ns.DB.BarTable(other) and not ns.DB.AnchorWouldCycle(key, other) then
+    local cand = {}
+    for _, other in ipairs(p and p.barOrder or {}) do cand[#cand + 1] = other end
+    for _, other in ipairs(ns.DB.PANEL_ORDER) do cand[#cand + 1] = other end
+    for _, other in ipairs(cand) do
+        if other ~= key and ns.DB.ConfigTable(other) and not ns.DB.AnchorWouldCycle(key, other) then
             items[#items + 1] = { text = ns.Options.PageTitle(other) or ns.Options.BarTitle(other), value = other }
         end
     end
@@ -511,18 +515,18 @@ local function EdgeOf(a)
 end
 
 function Specs.Anchor(key)
-    local bar = ns.DB.BarTable(key) or {}
+    local bar = ns.DB.ConfigTable(key) or {}
     local anchored = type(bar.anchor) == "table"
     local list = {
         { type = "header", label = L["Anchoring"] },
         BS("dropdown", "anchor", L["Follow bar"], {
             items = AnchorItems(key), refreshPage = true, level = "structure",
             get = function()
-                local a = ns.DB.GetPath(ns.DB.BarTable(key), "anchor")
+                local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
                 return type(a) == "table" and a.to or "none"
             end,
             set = function(_, v)
-                local b = ns.DB.BarTable(key)
+                local b = ns.DB.ConfigTable(key)
                 if not b then return end
                 if v == "none" then
                     -- 換成目前畫面上的位置，放開錨定的當下不跳
@@ -542,11 +546,11 @@ function Specs.Anchor(key)
         list[#list + 1] = BS("dropdown", "anchor.point", L["Side"], {
             items = EDGE_ITEMS, level = "structure", resetPaths = { "anchor.point", "anchor.relPoint" },
             get = function()
-                local a = ns.DB.GetPath(ns.DB.BarTable(key), "anchor")
+                local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
                 return type(a) == "table" and EdgeOf(a) or "BELOW"
             end,
             set = function(_, v)
-                local a = ns.DB.GetPath(ns.DB.BarTable(key), "anchor")
+                local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
                 local pts = EDGE_POINTS[v]
                 if type(a) == "table" and pts then a.point, a.relPoint = pts[1], pts[2] end
             end,
@@ -559,6 +563,23 @@ function Specs.Anchor(key)
     return list
 end
 
+-- 整張錨定圖（誰錨在誰身上）：錨定下拉的候選要排除成環的，候選清單是建表單當下算的，
+-- 別條的錨定一變，這條的候選就過期了 ⇒ 圖本身進表單的形狀簽章
+function Specs.AnchorGraphSig()
+    local p = ns.profile
+    local parts = {}
+    local keys = {}
+    for k in pairs(p and p.bars or {}) do keys[#keys + 1] = k end
+    for _, k in ipairs(ns.DB.PANEL_ORDER) do keys[#keys + 1] = k end
+    table.sort(keys)
+    for _, k in ipairs(keys) do
+        local t = ns.DB.ConfigTable(k)
+        local a = t and t.anchor
+        if type(a) == "table" and type(a.to) == "string" then parts[#parts + 1] = k .. ">" .. a.to end
+    end
+    return table.concat(parts, ",")
+end
+
 -- 表單的「形狀」：有列會出現或消失的設定。形狀一樣就重用建好的表單（frame 刪不掉）
 function Specs.BarSignature(key)
     local bar = ns.DB.BarTable(key) or {}
@@ -569,6 +590,7 @@ function Specs.BarSignature(key)
         type(layout.row2Size) == "table" and "r2" or "-",
         type(bar.anchor) == "table" and "a" or "-",
         table.concat(p and p.barOrder or {}, ","),
+        Specs.AnchorGraphSig(),
     }, "|")
 end
 
@@ -592,7 +614,7 @@ local function ResetSpec(ctx, spec)
         else
             local v = ns.DB.DefaultFor("bar", info.key, path)
             if v == nil then v = spec.fallback end
-            ns.DB.SetPath(ns.DB.BarTable(info.key), path, v)
+            ns.DB.SetPath(ns.DB.ConfigTable(info.key), path, v)
         end
     end
     ctx.lastSpec = spec

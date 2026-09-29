@@ -38,10 +38,10 @@ end
 
 local function Layout(key)
     local l, c = layers[key], ns.Bars and ns.Bars.Get(key)
-    local bar = ns.DB.BarTable(key)
+    local bar = ns.DB.ConfigTable(key)
     if not (l and c and bar) then return end
     local w, h = 36, 36
-    if ns.EditMode and ns.EditMode.CellSize then w, h = ns.EditMode.CellSize(bar) end
+    if ns.EditMode and ns.EditMode.MinSize then w, h = ns.EditMode.MinSize(key, bar) end
     local cw, ch = c:GetWidth() or 1, c:GetHeight() or 1
     if cw > w then w = cw end
     if ch > h then h = ch end
@@ -103,7 +103,13 @@ end
 function CL.Refresh()
     local want = Wanted()
     local p = ns.profile
-    local bars = p and p.bars or {}
+    local bars = {}
+    for key in pairs(p and p.bars or {}) do bars[key] = true end
+    -- 面板（資源條、施法條）也蓋一層；關掉的面板容器是藏著的，不蓋
+    for _, key in ipairs(ns.DB.PANEL_ORDER) do
+        local cfg = ns.DB.ConfigTable(key)
+        if cfg and cfg.enabled ~= false then bars[key] = true end
+    end
     for key in pairs(bars) do
         if want and ns.Bars and ns.Bars.Get(key) then
             local l = Ensure(key)

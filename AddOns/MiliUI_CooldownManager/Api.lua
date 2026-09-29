@@ -76,6 +76,12 @@ local function Debug()
         p(("  發光：觸發 %d  就緒 %d（觸發過 %d 次）  無損刷新 %d  探針 %d 顆  manager 掛勾 %s")
             :format(proc, ready, G.readyFired or 0, pandemic, G.probes or 0, tostring(G.hooked)))
     end
+    if ns.Resources and ns.Resources.DebugLines then
+        for _, line in ipairs(ns.Resources.DebugLines()) do p(line) end
+    end
+    if ns.Castbar and ns.Castbar.DebugLines then
+        for _, line in ipairs(ns.Castbar.DebugLines()) do p(line) end
+    end
     if ns.Keybinds and ns.Keybinds.CacheSize then
         p(("  按鍵文字：快取 %d 筆"):format(ns.Keybinds.CacheSize()))
     end
@@ -156,18 +162,43 @@ end
 ------------------------------------------------------------
 -- 公開 API：給其他插件讀（單位框架的資源條顏色、錨定候選…）
 --
--- ⚠ GetResourceColors 目前是占位（計畫的 F 階段：資源條與施法條，才會回真的值）。
---   呼叫端一律要處理 nil／false（退回自己的預設），回傳形狀之後不改。
+-- ⚠ **契約**：以下每一支的回傳形狀之後不改（README「公開 API」一節）。呼叫端一律要處理 nil
+--   （本插件沒載入完、互斥偵測成立、那一項不存在），退回自己的預設。
+--   回傳的表是設定檔裡的**參照**：唯讀，別改、別長期持有（換設定檔之後就是另一張表）。
 ------------------------------------------------------------
+local function ResourcesCfg()
+    return ns.ready and ns.DB and ns.DB.ConfigTable and ns.DB.ConfigTable("resources") or nil
+end
+
 _G.MiliUI_CooldownManager = {
-    -- barKey 那條資源條的顏色表；沒有就 nil。F 階段補上。
-    GetResourceColors = function(barKey) return nil end,
+    -- 資源 key（"ComboPoints"、"HolyPower"、"Mana"…，見 README）的顏色：
+    --   { color = {r,g,b,a}, chargedColor = {…}|nil, chargedEmptyColor = {…}|nil }
+    -- 回的是設定檔裡那張表本身（不配新表）；沒有這個資源回 nil。
+    GetResourceColors = function(key)
+        local cfg = ResourcesCfg()
+        local colors = cfg and type(cfg.colors) == "table" and cfg.colors
+        local t = colors and type(key) == "string" and colors[key]
+        return type(t) == "table" and t or nil
+    end,
+    -- 資源 key 的條件規則陣列（形狀見 Modules/ResourceConditions.lua 檔頭）；沒有規則回 nil
+    GetResourceConditions = function(key)
+        local cfg = ResourcesCfg()
+        if not cfg or type(key) ~= "string" then return nil end
+        return ns.ResCond and ns.ResCond.Resolve(cfg, key) or nil
+    end,
+    -- Enum.PowerType → 資源條上那一列的框（別的插件要錨在它身上用）；
+    -- 沒有這一列、被玩家關掉、整條資源條關掉（容器藏起來）都回 nil。
+    -- 載入條件／淡出造成的 alpha 0 不算藏：框還在，錨在上面的東西不必換錨點
+    GetResourceBarFrame = function(powerType)
+        if not (ns.ready and ns.Resources and ns.Resources.GetRowFrame) then return nil end
+        return ns.Resources.GetRowFrame(powerType)
+    end,
     -- 引擎是否已經認領好四條檢視器（別的插件要錨在我們的容器上前先問）
     IsReady = function()
         return (ns.ready and ns.Viewers and ns.Viewers.ready and ns.Bars and ns.Bars.ready) and true or false
     end,
-    -- 某條的容器框（MiliUICDM_Bar_<key>），給別的插件錨定用；還沒建好回 nil。
-    -- ⚠ 錨上來的框會跟著這條移動；別對它 SetParent 或改它的大小。
+    -- 某條的容器框（MiliUICDM_Bar_<key>；資源條 "resources"、施法條 "castbar" 也是），給別的插件錨定用；
+    -- 還沒建好回 nil。⚠ 錨上來的框會跟著這條移動；別對它 SetParent 或改它的大小。
     GetBarFrame = function(barKey)
         return ns.Bars and ns.Bars.Get(barKey) or nil
     end,

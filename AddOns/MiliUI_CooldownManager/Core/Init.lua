@@ -271,12 +271,15 @@ end
 --
 -- 順序有意義：Catalog（知道每條該有哪些 id）→ Viewers（開始掛暴雪檢視器，退避重試）
 -- → Custom（自訂項目的事件）→ Glow（觸發發光的 manager 掛勾）→ Keybinds（綁定事件）
--- → Bars（容器與排程；Viewers 就緒時它會收到 ViewersReady）→ Visibility（alpha）。
+-- → Bars（容器與排程；Viewers 就緒時它會收到 ViewersReady）
+-- → Interrupt／Resources／Castbar（資源條與施法條：在 Bars 上登記自己的面板容器）
+-- → Visibility（alpha；面板排在條後面，資源條要讀核心技能的 alpha）。
 -- 每一步各自隔離，一支拋錯不會讓後面的不啟動。
 --
 -- 設定檔／專精換了：清樣式簽章、重讀目錄、全部重排、重套 alpha——沒有任何選項要 /reload。
 ------------------------------------------------------------
-local ENGINE = { "Catalog", "Viewers", "Custom", "Glow", "Keybinds", "Bars", "Visibility" }
+local ENGINE = { "Catalog", "Viewers", "Custom", "Glow", "Keybinds", "Bars",
+                 "Interrupt", "Resources", "Castbar", "Visibility" }
 
 local function RestyleAll(reason)
     if ns.Decorate then ns.Decorate.InvalidateAll() end

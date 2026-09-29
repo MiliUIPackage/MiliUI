@@ -5,7 +5,7 @@
 --   EM.PosFromRect(ap, pp, rect, parent)   容器的 ap 那一點相對 parent 的 pp 那一點的偏移
 --   EM.SnapDelta(ap, l, r, t, b, ox, oy, step)
 --                                          把 ap 那一點吸到以 (ox, oy) 為原點的格線上要挪多少
---   EM.ReadPos(key)                        放手時把容器現況換算回 bars[key].pos
+--   EM.ReadPos(key)                        放手時把容器現況換算回 bars[key].pos（面板是 profile[key].pos）
 --
 -- 位置語意（Core/Bars.lua 的 ApplyStructure）：容器用版面算出來的錨點
 -- （state[key].anchorPoint：CENTER_DOWN → TOP、LEFT_UP → BOTTOMLEFT…）貼在
@@ -82,6 +82,8 @@ function EM.ReadPos(key)
     local c = B and B.Get(key)
     local p = ns.profile
     local bar = p and type(p.bars) == "table" and p.bars[key]
+    -- 面板（資源條、施法條）存在 profile[key]（ns.PANEL_KEYS 由 Core/DB.lua 給；離線測試可以不給）
+    if bar == nil and p and ns.PANEL_KEYS and ns.PANEL_KEYS[key] then bar = p[key] end
     if not (c and type(bar) == "table") then return nil end
     local rect, parent = EM.RectOf(c), EM.RectOf(UIParent)
     if not (rect and parent) then return nil end
