@@ -415,7 +415,7 @@ buff 矩形走效果槽後，「剩 N%／N 秒換色」一度被拿掉，現在�
 
 ## 發光時機（2026-09-29，未實機驗證）
 
-buff 矩形／色塊多一個 `glowTiming`（`"aura"`／`"pandemic"`，沒設定＝aura），設定頁「發光時機」下拉在發光類型之後。
+buff 矩形／色塊多一個 `glowTiming`（`"none"`／`"aura"`／`"pandemic"`）。**設定頁是一個「發光」區段**（`CreateSetting_GlowSection`，職業色標題→時機→類型＋顏色→參數，時機＝無時其餘反灰）；**類型下拉沒有「無」，「無」是時機**：舊版面類型 None 開頁時正規化成時機 none＋類型 Normal，新建預設也是 none＋Normal；沒設定時機時類型 None 讀成 none、否則 aura（Built-in／Base.lua／設定頁三處一致）。debuff 矩形／色塊不收時機（`glowTiming` 保持 nil＝一直亮）。**預覽**（`indicator._isPreview`）：時機不是無就在 13 秒週期的後半段亮，兩種時機都用 50%；實機手動退路照舊。
 - **無損刷新期間**：`StyleGlow` 在 Attach 之前設 `f._glowEngineShown`，Attach 後把 `LCG.Glow_Regions(f)` 列出的貼圖先 `Hide()` 再交 `AddPandemicRegion`（引擎控顯示、driver 盲推座標）；Normal 的 `animIn` 交 `AddPandemicEnterAnimation`、Proc 的循環交 `AddPandemicActiveAnimation`（ProcLoop 貼圖同時當 pandemic region，引擎 Stop 不保證 alpha 歸零）。**不依賴無損刷新變色選項**。
 - 結構鍵（ParkKey 折整張 config，換時機不會拿回舊容器）；12.1.0 沒 `AddPandemicRegion` 退回 aura 並記 `_errors`。
 - 手動路／預覽：`Shared_SetPandemicNow` 用最後 30% 近似，`Shared_SetupGlow` 在 pandemic 時機不主動 StartGlow；rect／block 的 OnHide 用 `SetScript` 設在 CreateAura_* 建立當下（之後的 HookScript 不受影響）。
