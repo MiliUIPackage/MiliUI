@@ -147,6 +147,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 |---|---|
 | [project-burst-helper.md](project-burst-helper.md) | MiliUI_BurstPotionHelper 爆發藥水 |
 | [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 傷害統計 MiliUI_DamageMeters —— C_DamageMeter 渲染器；七個刻意的架構決定、細線樣式、踩過的點 |
+| [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager 取代 Ayije_CDM fork —— 六條拍板、**Ayije 授權 All Rights Reserved 一行不能搬**、三方（Ayije／EllesmereUI／YUI）分析結論、plan 在 ~/.claude/plans/miliui-cdm.md |
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | 米利的專注目標助手 MiliUI_Focus —— 從套組拆出的獨立插件、一次性 SV 遷移、zhTW 正名 |
 | [project-miliui-crusadingstrikes.md](project-miliui-crusadingstrikes.md) | 德莫的征戰聖擊助手 MiliUI_CrusadingStrikes —— 12.1 普攻計時只剩「鏡射冷卻管理器長條」這條路（五條死路）；餵過秘密值的條不能再讀、名條定位只讀欄位不抄程式、待驗證清單 |
 | [project-miliui-minimap.md](project-miliui-minimap.md) | 米利的小地圖 MiliUI_Minimap —— 方形小地圖＋公會／好友資訊列；接管暴雪小地圖的四條規則、方形遮罩的滑鼠死角 |

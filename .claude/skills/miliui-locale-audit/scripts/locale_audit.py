@@ -33,12 +33,41 @@ def color_balanced(s):
     return len(re.findall(r'\|c[fF]{0,2}%?[0-9a-fA-F]{6,8}', s)) == len(re.findall(r'\|r', s))
 
 
+def strip_comments(src):
+    """掃 L[...] 之前先拿掉 Lua 註解。
+
+    ⚠ 共用層 Libs/MiliUIWidgets/BlizzOptions.lua 的檔頭用 `L["MiliUI Tooltip"]` 當用法範例，
+      沒剝註解的話每一支帶共用層的插件都會被報「缺 'MiliUI Tooltip'」。
+      規則跟 .claude/scripts/check_locales.py 的同名函式一致。
+    """
+    src = re.sub(r'--\[(=*)\[.*?\]\1\]', '', src, flags=re.S)   # 長註解
+    out = []
+    for line in src.split("\n"):
+        i, n, quote, cut = 0, len(line), None, None
+        while i < n:
+            c = line[i]
+            if quote:
+                if c == "\\":
+                    i += 2
+                    continue
+                if c == quote:
+                    quote = None
+            elif c in "\"'":
+                quote = c
+            elif c == "-" and i + 1 < n and line[i + 1] == "-":
+                cut = i
+                break
+            i += 1
+        out.append(line if cut is None else line[:cut])
+    return "\n".join(out)
+
+
 # ── 原始碼用到的 key ──────────────────────────────────────
 used = {}
 for p in sorted(ROOT.rglob("*.lua")):
-    if p.relative_to(ROOT).parts[0] == "Locales":
+    if p.relative_to(ROOT).parts[0] in ("Locales", "Tests"):
         continue
-    txt = p.read_text(encoding="utf-8")
+    txt = strip_comments(p.read_text(encoding="utf-8"))
     for m in CALL.finditer(txt):
         k = unq(m.group(1))
         used.setdefault(k, str(p.relative_to(ROOT)))

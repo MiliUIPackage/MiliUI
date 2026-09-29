@@ -32,6 +32,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_AuraEnhance_DB", "MiliUI_AuraEnhanceDB",
     "MiliUI_BloodlustMusic_DB", "MiliUI_BurstPotionHelperDB",
     "MiliUI_CharacterNotes_DB", "MiliUI_ChatBar_DB",
+    "MiliUI_CooldownManager_DB",
     "MiliUI_CrusadingStrikes_DB",
     "MiliUI_DamageMeters_DB", "MiliUI_Focus_DB",
     "MiliUI_InfoBar_DB",
@@ -49,6 +50,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
     "MiliUI_InfoBarPlugins",          # 資訊列的外部方塊註冊表（MiliUI_InfoBar/Core/Plugins.lua）
     "MiliUI_OpenUnitFrameSettings", "MiliUIUF_OnAddonCompartmentClick",
+    "MiliUICDM_OnAddonCompartmentClick",
     "MiliUIMerchant_OnAddonCompartmentClick",
     "MiliUIMythicPlus", "MiliUIMythicPlus_OnAddonCompartmentClick",
     "MiliUISkin", "MiliUISkin_OnAddonCompartmentClick",

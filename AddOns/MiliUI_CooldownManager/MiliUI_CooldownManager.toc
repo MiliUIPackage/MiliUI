@@ -1,0 +1,51 @@
+## Interface: 120100, 120105
+## Title: MiliUI Cooldown Manager
+## Title-zhTW: |cff00FFFF[冷卻]|r 米利的冷卻管理器
+## Title-zhCN: |cff00FFFF[冷却]|r 米利的冷却管理器
+## Notes: Restyles and rearranges Blizzard's Cooldown Manager: layout, text, glows, custom groups, resource and cast bars.|n|n|cffffd200Usage: |r/mcdm or the minimap button to open settings.
+## Notes-zhTW: MiliUI Cooldown Manager|n|n米利的冷卻管理器。|n|n接手暴雪冷卻管理器的版面、文字與發光，外加自訂群組、資源條與施法條。|n|n|cffffd200使用方法: |r/mcdm 或小地圖按鈕開啟設定。
+## Notes-zhCN: MiliUI Cooldown Manager|n|n米利的冷却管理器。|n|n接手暴雪冷却管理器的布局、文字与发光，外加自定义组、资源条与施法条。|n|n|cffffd200使用方法: |r/mcdm 或小地图按钮打开设置。
+## Category: Combat
+## Category-zhTW: 戰鬥
+## Category-zhCN: 战斗
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\Spell_Nature_TimeStop
+## SavedVariables: MiliUI_CooldownManager_DB
+## OptionalDeps: Ayije_CDM
+## AddonCompartmentFunc: MiliUICDM_OnAddonCompartmentClick
+
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+Libs\Callbacks.lua
+Libs\MiliUIGlow\MiliUIGlow.lua
+Libs\MiliUISnap.lua
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+Locales\koKR.lua
+Locales\deDE.lua
+Locales\frFR.lua
+Locales\ruRU.lua
+Locales\esES.lua
+Locales\ptBR.lua
+Locales\itIT.lua
+
+Core\Init.lua
+Core\Media.lua
+Core\Style.lua
+Core\DB.lua
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+Options\Panel.lua
+Options\Sidebar.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+Options\Minimap.lua
+EditMode.lua
+Api.lua
