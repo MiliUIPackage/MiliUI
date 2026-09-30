@@ -211,14 +211,20 @@ local function SafeShown(item)
 end
 B.SafeShown = SafeShown
 
+-- 占位格是自己的框（圖示貼圖＋跟真實格一樣的邊框），畫在容器上；item 出現時蓋在它上面
 local function Placeholder(key, idx)
     local ph = state[key].placeholders
-    local t = ph.pool[idx]
-    if not t then
-        t = containers[key]:CreateTexture(nil, "BACKGROUND")
-        ph.pool[idx] = t
+    local f = ph.pool[idx]
+    if not f then
+        local c = containers[key]
+        f = CreateFrame("Frame", nil, c)
+        f:SetFrameLevel(c:GetFrameLevel())          -- 不高於容器：item 是檢視器的子框，層級在上面
+        f.tex = f:CreateTexture(nil, "BACKGROUND")
+        f.tex:SetAllPoints(f)
+        f.ph = { frame = f, tex = f.tex }
+        ph.pool[idx] = f
     end
-    return t
+    return f
 end
 
 local function ReleasePlaceholders(key, from)
@@ -381,17 +387,16 @@ local function Relayout(key, level, index, gen)
         end
         if e.placeholder then
             phUsed = phUsed + 1
-            local t = Placeholder(key, phUsed)
+            local f = Placeholder(key, phUsed)
             local info = ns.Catalog.Info(e.id)
-            t:ClearAllPoints()
-            t:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
-            t:SetSize(r.w, r.h)
-            t:SetTexture((info and info.icon) or QUESTION)
-            local z = tonumber(ns.Setting(key, "icon.zoom")) or 0
-            t:SetTexCoord(z, 1 - z, z, 1 - z)
-            t:SetDesaturated(true)
-            t:SetAlpha(0.35)
-            t:Show()
+            f:ClearAllPoints()
+            f:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
+            f:SetSize(r.w, r.h)
+            f.tex:SetTexture((info and info.icon) or QUESTION)
+            f.tex:SetDesaturated(true)
+            f.tex:SetAlpha(0.35)                      -- 只有圖示暗，邊框照真實格的顏色
+            ns.Decorate.ApplyPlaceholder(f.ph, key, e.id)
+            f:Show()
         end
     end
     ReleasePlaceholders(key, phUsed + 1)
