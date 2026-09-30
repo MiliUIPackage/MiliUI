@@ -473,7 +473,8 @@ local function ApplyChargeAlpha(row, plan, base, dur, isActive)
         local ok, z = pcall(dur.IsZero, dur)
         if ok then zero = z end
     end
-    if zero ~= nil and row.SetAlphaFromBoolean and pcall(row.SetAlphaFromBoolean, row, zero, 0, base) then return end
+    -- 秘密值連跟 nil 比都會拋錯：先問是不是秘密值
+    if (ns.IsSecret(zero) or zero ~= nil) and row.SetAlphaFromBoolean and pcall(row.SetAlphaFromBoolean, row, zero, 0, base) then return end
     row:SetAlpha(base)             -- 什麼都讀不到：寧可顯示
 end
 

@@ -50,7 +50,10 @@ local function ItemLines(out)
                 n = n + 1
                 local point, rel, relPoint, x, y = Read(item, "GetPoint", 1)
                 local relName = "?"
-                if rel == nil then relName = "nil"
+                -- 錨點的回傳值可能整組是秘密值：先判，別拿去比較
+                if ns.IsSecret(point) or ns.IsSecret(rel) or ns.IsSecret(relPoint) then
+                    point, rel, relName = "secret", false, "secret"
+                elseif rel == nil then relName = "nil"
                 elseif rel == UIParent then relName = "UIParent"
                 elseif rel == viewer then relName = "viewer"
                 elseif type(rel) == "table" then
@@ -135,8 +138,11 @@ local function Debug()
                     for i = 1, #ids do
                         local ok2, info = pcall(CV.GetCooldownViewerCooldownInfo, ids[i])
                         if ok2 and type(info) == "table" then
-                            if info.isKnown == true then known = known + 1 end
-                            if #head < 3 then head[#head + 1] = tostring(ids[i]) .. "=" .. tostring(info.spellID) end
+                            local isKnown, spellID = info.isKnown, info.spellID
+                            if not ns.IsSecret(isKnown) and isKnown == true then known = known + 1 end
+                            if #head < 3 and not ns.IsSecret(ids[i]) then
+                                head[#head + 1] = tostring(ids[i]) .. "=" .. (ns.IsSecret(spellID) and "secret" or tostring(spellID))
+                            end
                         end
                     end
                     p(("  暴雪清單（API）%s：%d 個、已學會 %d  前三個 %s")

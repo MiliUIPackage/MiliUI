@@ -210,7 +210,8 @@ local function UpdateSpell(rec)
         local curve = DesatCurve()
         local ok, v = false, nil
         if curve then ok, v = pcall(dur.EvaluateRemainingDuration, dur, curve) end
-        if ok and v ~= nil then pcall(f.Icon.SetDesaturation, f.Icon, v) else f.Icon:SetDesaturation(0) end
+        -- 秘密值連跟 nil 比都會拋錯：先問是不是秘密值
+        if ok and (ns.IsSecret(v) or v ~= nil) then pcall(f.Icon.SetDesaturation, f.Icon, v) else f.Icon:SetDesaturation(0) end
     end
 
     if ns.Glow and dur then ns.Glow.ArmProbe(rec, dur) end
