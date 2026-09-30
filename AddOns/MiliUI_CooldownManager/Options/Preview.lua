@@ -188,6 +188,18 @@ function Preview.SetHidden(key, id, hidden)
     Changed("membership", key)
 end
 
+-- 移除自訂項目（玩家自己用「＋」加的）：整筆刪掉，它的逐法術設定一起走。
+-- 暴雪清單上的法術沒有「移除」——清單是暴雪冷卻管理器給的，我們這邊只能藏（SetHidden）。
+function Preview.RemoveCustom(key, id)
+    if not ns.Catalog.IsCustom(id) then return false end
+    if ns.SpellPopover and ns.SpellPopover.Close then ns.SpellPopover.Close() end
+    if not ns.DB.RemoveCustom(id) then return false end
+    Preview.Refresh(key)
+    if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(key) end
+    ns.Options.ApplyEngine("membership")
+    return true
+end
+
 -- 把 id 拉進 target（nil 或它原本的檢視器 ＝ 清掉 groupOf）
 -- 自訂項目沒有「原本的檢視器」：直接改它的 bar
 function Preview.MoveTo(id, target, fromKey)
@@ -410,7 +422,7 @@ function Proto:Fill(c, e, i, r, now)
     else
         local src = ns.Catalog.SourceOf(id)
         c.aura = AURA_SRC[src] and true or false
-        c.custom, c.known = nil, true
+        c.custom, c.known = false, true    -- false 不是 nil：格子是池化的框，欄位要明確蓋掉
     end
     c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden
     c.name = (info and info.name) or ("#" .. tostring(id))
@@ -486,11 +498,14 @@ local function ShowTip(c)
     if c.locked then
         GameTooltip:AddLine(L["Aura slot: always at the front of the bar, can't be dragged."], 1, 0.82, 0, true)
         GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
     elseif c.hiddenItem then
         GameTooltip:AddLine(L["Hidden. Click to show it again."], 0.8, 0.8, 0.8, true)
+        if c.custom then GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8) end
     else
         GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Middle-click: hide"], 0.8, 0.8, 0.8)
+        -- 自己加的項目中鍵是移除；暴雪清單上的法術只能藏
+        GameTooltip:AddLine(c.custom and L["Middle-click: remove"] or L["Middle-click: hide"], 0.8, 0.8, 0.8)
         GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
     end
     GameTooltip:Show()
@@ -518,6 +533,10 @@ function Proto:Wire(c)
         if not self:IsMouseOver() then return end
         if self.isPlus then
             if button == "LeftButton" and ns.Picker then ns.Picker.Open(pv.key, self) end
+        elseif button == "MiddleButton" and self.custom then
+            -- 自己加的項目（含光環格、已經藏起來的）：中鍵直接移除，要的話再按「＋」加回來
+            GameTooltip:Hide()
+            Preview.RemoveCustom(pv.key, self.id)
         elseif self.hiddenItem then
             if button == "LeftButton" then Preview.SetHidden(pv.key, self.id, false) end
         elseif button == "MiddleButton" then
