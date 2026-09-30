@@ -191,7 +191,8 @@ CastbarDefaults = function()
     return {
         enabled       = true,
         pos           = { point = "CENTER", x = 0, y = -260 },
-        anchor        = false,
+        -- 預設跟舊套組一樣：貼在資源條上緣（資源條又貼在核心技能上緣），寬度跟核心技能同寬
+        anchor        = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬（含圖示）
         height        = 20,
         texture       = "solid",
@@ -208,7 +209,7 @@ CastbarDefaults = function()
             empowerStage3   = rgba(1.00, 0.50, 0.15),
             empowerStage4   = rgba(0.90, 0.20, 0.20),
         },
-        useClassColor = false,             -- 施法／引導共用職業色（蓄力、不可打斷照疊）
+        useClassColor = true,              -- 施法／引導共用職業色（蓄力、不可打斷照疊）；舊套組預設就是職業色
         showIcon      = true,
         iconSide      = "LEFT",            -- LEFT | RIGHT
         iconGap       = 1,
