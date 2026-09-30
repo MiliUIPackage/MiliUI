@@ -271,23 +271,6 @@ local function FollowToggle(group)
     return BS("toggle", "follow." .. group, L["Follow global theme"], { refreshPage = true, level = "layout" })
 end
 
--- 開關型的淡出：值存 false（不淡）或 0～1 的透明度
-local FADE_ON = { outOfCombat = 0.5, noTarget = 0.3, mounted = 0 }
-local function FadeRows(which, label)
-    local path = "fade." .. which
-    return
-        TS("fade", "toggle", path, label, {
-            get = function(info) local v = ReadThemed(info, path); return v ~= false and v ~= nil end,
-            set = function(info, on)
-                WriteThemed(info, path, on and FADE_ON[which] or false)
-            end,
-        }),
-        TS("fade", "slider", path, L["Opacity"], {
-            min = 0, max = 100, step = 5, scale = 100,
-            get = function(info) local v = ReadThemed(info, path); return type(v) == "number" and v or 0 end,
-        })
-end
-
 ------------------------------------------------------------
 -- 圖示／文字／效果（條頁與主題頁同一份）
 ------------------------------------------------------------
@@ -375,10 +358,15 @@ function Specs.Themed(mode)
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
     add(Nested(L["Fade"]))
     if bar then add(BS("toggle", "follow.fade", L["Follow global theme"], { refreshPage = true })) end
-    add(FadeRows("outOfCombat", L["Fade out of combat"]))
-    add(FadeRows("noTarget", L["Fade without a target"]))
-    add(FadeRows("mounted", L["Fade while mounted"]))
-    add(Note(L["Opacity the bar fades to; 0 hides it completely. When several apply, the lowest wins."], "fade"))
+    add(TS("fade", "toggle", "fade.enabled", L["Fade the bar"]),
+        TS("fade", "slider", "fade.alpha", L["Faded opacity"], { min = 0, max = 100, step = 5, scale = 100 }),
+        Note(L["0 hides it completely."], "fade"),
+        Nested(L["Stay fully visible when"], "fade"),
+        TS("fade", "toggle", "fade.keepInCombat", L["In combat"]),
+        TS("fade", "toggle", "fade.keepWithTarget", L["Has a target"]),
+        Note(L["Any checked condition that holds keeps the bar fully visible. With none checked it stays faded whenever fading is on."], "fade"),
+        TS("fade", "toggle", "fade.whenMounted", L["Always fade while mounted"]),
+        Note(L["Mounted or in a vehicle: fades regardless of the conditions above."], "fade"))
     return list
 end
 
