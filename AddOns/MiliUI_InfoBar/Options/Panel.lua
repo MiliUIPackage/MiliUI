@@ -110,7 +110,8 @@ local function SetCombatLocked(locked)
     else
         panel.combatMask:Hide()
         closeBtn:SetFrameStrata("DIALOG")
-        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
+        -- +200：頁面裡有層級比較高的子框，關閉鈕要壓得過它們
+        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
     end
 end
 
@@ -135,7 +136,7 @@ local function CreatePanel()
 
     closeBtn = W.CreateButton(panel, "", "red", 20, 20)
     closeBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
-    closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
+    closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
     local closeX = closeBtn:CreateTexture(nil, "OVERLAY")
     closeX:SetTexture("Interface\\Buttons\\UI-StopButton")
     closeX:SetSize(12, 12)
@@ -249,6 +250,10 @@ function Options.Open(tabId)
     ApplyPosition()
     panel:Show()
     panel:Raise()
+    -- ⚠ Raise 會把面板的層級往上抬（同一層有別的視窗時），但關閉鈕被單獨設過 strata、
+    --   不會跟著抬 ⇒ 掉到面板背景後面：看起來暗掉、點不到。
+    --   OnShow 設的那次在 Raise 之前，所以 Raise 之後要再對一次。
+    SetCombatLocked(InCombatLockdown())
     tabId = tabId or "general"
     for _, b in ipairs(tabButtons) do
         if b.id == tabId then

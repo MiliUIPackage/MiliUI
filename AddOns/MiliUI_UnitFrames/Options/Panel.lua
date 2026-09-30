@@ -140,7 +140,8 @@ local function SetCombatLocked(locked)
     else
         panel.combatMask:Hide()
         closeBtn:SetFrameStrata("DIALOG")
-        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
+        -- +200：頁面裡有層級比較高的子框，關閉鈕要壓得過它們
+        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
     end
 end
 
@@ -175,7 +176,7 @@ local function CreatePanel()
     -- 關閉鈕用貼圖不用「×」字元（中文字型可能沒這個字形）
     closeBtn = W.CreateButton(panel, "", "red", 20, 20)
     closeBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
-    closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
+    closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
     local closeX = closeBtn:CreateTexture(nil, "OVERLAY")
     closeX:SetTexture("Interface\\Buttons\\UI-StopButton")
     closeX:SetSize(12, 12)
@@ -291,6 +292,10 @@ function Options.Open(tabId)
     ApplyPosition()      -- 每次開啟都校正位置（存到畫面外會拉回中央）
     panel:Show()
     panel:Raise()        -- 已開但被其他對話框蓋住時拉到最前，免得看起來像沒反應
+    -- ⚠ Raise 會把面板的層級往上抬（同一層有別的視窗時），但關閉鈕被單獨設過 strata、
+    --   不會跟著抬 ⇒ 掉到面板背景後面：看起來暗掉、點不到。
+    --   OnShow 設的那次在 Raise 之前，所以 Raise 之後要再對一次。
+    SetCombatLocked(InCombatLockdown())
     ns.LogClick("Open → 顯示 IsShown=%s IsVisible=%s alpha=%.2f pos=(%s,%s) strata=%s",
         tostring(panel:IsShown()), tostring(panel:IsVisible()), panel:GetAlpha() or -1,
         tostring(ns.db.optionsWindow.x), tostring(ns.db.optionsWindow.y),
