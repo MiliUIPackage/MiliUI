@@ -7,7 +7,7 @@
 ## 第一次啟用（給玩家）
 
 1. **停用舊的冷卻管理器插件**（插件清單裡的 `Ayije_CDM` 與 `Ayije_CDM_Options`）。兩支都開著的話，登入時本插件會跳出視窗，
-   按「停用 … 並重新載入」就是這一步。
+   按「停用 … 並重新載入」就是這一步；想把它的設定帶過來就按「從 … 匯入」（見「從 Ayije_CDM 匯入」）。
 2. `/reload`。
 3. 要用套組調好的樣子：`/miliui` →「預設值匯入」→ 匯入 `MiliUI_CooldownManager` 再 `/reload`；
    不匯入也可以，本插件自己的內建預設值就能直接用。
@@ -39,6 +39,7 @@
 |---|---|
 | `Core/Init.lua` | 命名空間、`ns.Guard`（掛勾的 xpcall 包裝）、`ns.Defer`（下一幀）、`ns.Write`（容器層寫入的唯一出口：戰鬥中碰保護框就記帳、脫戰補做）、事件註冊表、互斥偵測、登入流程 |
 | `Core/DB.lua` | 預設值（套組現值）、遷移鏈、設定檔／專精綁定、`ns.Setting`／`ns.SpellSetting` |
+| `Core/Import.lua` | 從 `Ayije_CDM` 匯入：純函式 `Convert`（對方的一份設定檔 → 本插件的一份）、互斥彈窗的匯入流程 `FromAyije`、別的專精的 spellID 等目錄建好再對表（`ResolvePending`，`Core/Catalog.lua` 叫），見「從 Ayije_CDM 匯入」 |
 | `Core/Media.lua` | 字型／材質 token → 路徑（名稱問 LibSharedMedia） |
 | `Media/Sounds/` | 內建音效 106 個＋`Sounds.lua`（載入時註冊進 LibSharedMedia，別的插件的音效下拉也選得到）。**這個資料夾是 GPL-2.0**，出處與授權見裡面的 `README.md`、`LICENSE`；跟本體其餘程式分開，本體的程式不要搬進去、裡面的東西也不要搬出來混用 |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
@@ -47,7 +48,7 @@
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -547,6 +548,42 @@ G 階段：套組裡原本只認舊的冷卻管理器插件的地方，改成**�
 兩支 `OptionalDeps` 都加了 `MiliUI_CooldownManager`（只排載入順序；每次都現查，不快取「有沒有載入」）。
 舊插件本身不動：互斥只在本插件這邊偵測（彈窗二選一）。
 
+## 從 Ayije_CDM 匯入
+
+換插件的玩家不用重調：把 `Ayije_CDM` 的設定檔轉成本插件的設定檔（`Core/Import.lua`）。
+
+- **只能在互斥彈窗那一刻做**：存檔只在插件載入時才在記憶體裡。兩支都開著時登入，彈窗多一顆主按鈕「從 … 匯入」
+  （對方存檔裡有這隻角色的設定才出現）：讀 `Ayije_CDMDB`、直接寫 `MiliUI_CooldownManager_DB`（`DB.Init` 還沒跑，
+  缺的欄位登入後照常補）、停用 `Ayije_CDM`／`Ayije_CDM_Options`、重載。已經停用它的玩家：設定檔頁「從 … 匯入」一節的
+  「啟用 … 並重載」，登入時就會看到彈窗。
+- **每一份**對方的設定檔都轉成一份**新的**設定檔「Ayije：原名」（撞名加序號），不覆蓋既有的；這隻角色改用它原本用的那份，
+  對方的「依專精切換」一起帶過來。`importedFromAyije = { at, char, profiles = { 原名 → 新名 }, main, summary }` 記在 SV：
+  再匯入一次（彈窗的字變成「重新從 … 匯入」）覆蓋的是上次建的那幾份。重載後登入時聊天框印摘要（幾份設定檔、幾個自訂群組／
+  光環格／逐法術設定、哪些類別沒匯入）。
+- **轉換是純函式** `Import.Convert(profile, opts) → profile, report`，不碰 frame、離線可測。對方只存「跟它的預設值不同」的鍵，
+  **沒出現的鍵一律保留本插件的預設值**（摘要會講這句）。report 列出用到的鍵、略過的鍵（本插件沒有這個功能／對方舊版的殘留／不認得）、近似的換算。
+- **對照的重點**（完整語意寫在 `Core/Import.lua` 各節檔頭）：
+
+  | 對方 | 本插件 | 備註 |
+  |---|---|---|
+  | `editModePositions` 三條檢視器 | 各條 `pos`，成長方向設成置中 | 對方存的 (x, y) 本來就是上緣／下緣中點（套用時才扣半寬），跟置中對齊的錨點同一點 |
+  | `utilityYOffset`（＋解鎖時 `utilityXOffset`）、`spacing` | 輔助 `anchor.y = −spacing + yOff` | |
+  | `sizeEssRow1/2`、`sizeUtility`、`sizeBuff`、`maxRowEss`、`maxRowUtil`（開換列時） | `layout.size`／`row2Size`／`maxPerRow` | 第二、三排增益（`sizeBuffSecondary`…）是對方舊版殘留 |
+  | 字型、倒數／充能／層數的字級顏色位置、低秒變色、小數 | `theme.*Text`；輔助、增益圖示自己的字（跟主題不同才寫） | |
+  | `fading*` | `theme.fade` | 「沒目標＋脫戰」兩個觸發都開、只開騎乘兩種表達不了，取近似（見檔頭） |
+  | `pandemic*`、`glow*` | `theme.pandemic`、`theme.glow.proc` | 無損刷新要三個鍵同時成立才開 |
+  | `resourceBarSettings[職業][資源]` | `resources.colors`／`conditions`（同形狀）／`rows`（`loadMode = never`）與共用的列高、寬、材質、數值文字 | 共用欄位先看玩家職業、再 General；螢幕座標貼著核心技能上緣 20 像素內 ⇒ 錨在核心技能上方 |
+  | `castBar*` | `castbar.*` | 位置：跟著資源條＝錨核心上方交給排開；錨核心／輔助時換成中心點照字面貼；螢幕座標換算成中心 |
+  | `cooldownGroups`／`buffGroups`／`barGroups[專精]` | 自訂群組 `bars.g<n>` ＋ `spells[專精].groupOf`／`order` | 成長方向與位置換算見檔頭；往左長的清單反過來；撞名加專精名 |
+  | `customBuffRegistry` ＋ `ungroupedCustomBuffOrder` | `spells[專精].custom` 光環格 | 固定秒數的自訂增益沒有對應 |
+  | `ungrouped*Overrides` | `spells[專精].overrides` | 只有「隱藏倒數」與出現／消失音效對得上 |
+  | 飾品、防禦、種族、外部防禦、輸出循環輔助、按壓覆蓋層、施法條逐法術 | 沒有 | 摘要提示飾品等可以用自訂群組＋自訂 ID |
+
+- **跨專精**：對方的群組與增益覆寫用 spellID、本插件用 cooldownID（每個專精不同）。匯入當下只查得到目前專精
+  （`C_CooldownViewer` 全部 pcall、回傳值過 Plain）；其他專精的原樣存在設定檔的 `pendingImport[specID]`，
+  `Core/Catalog.lua` 每次建好目錄就對目前專精那一筆（`Import.ResolvePending`），換到的寫進 `spells[specID]`、清掉；
+  換不到的留著，`/mcdm debug` 印「匯入待對應」。
+
 ## 設定的三層繼承
 
 取值一律走兩支函式，引擎與設定介面都一樣，不各自翻表：
@@ -878,3 +915,19 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 96. 設定視窗開著（沒進暴雪編輯模式）：每條上面有覆蓋層（職業色邊、條名、齒輪），**直接拖就能移動**，格線吸附與套組磁吸都在；
     **按住 Shift 拖曳不吸**（暴雪編輯模式裡也是：Shift 一律不吸，不再是「反轉」）。點一下仍是開那條的設定頁。
     設定視窗開著再進暴雪編輯模式：點擊層收起、換成選取框；出來又換回點擊層。戰鬥中設定視窗鎖著、點擊層不出現。
+
+**從 Ayije_CDM 匯入**
+
+97. 兩支都開著登入：彈窗三顆鈕（「從 … 匯入」是主按鈕、另外兩顆一般樣式），字沒有被截斷；說明多一段匯入的說明。
+    對方存檔裡沒有這隻角色的設定時只有原本兩顆。
+98. 按「從 … 匯入」：重載後 `Ayije_CDM`／`Ayije_CDM_Options` 都已停用；設定檔清單多了「Ayije：Default」等，這隻角色正在用它；
+    聊天框印了摘要（設定檔數、自訂群組數與待對應數、光環格數、沒匯入的類別、「沒改過的用本插件預設值」）。
+99. 位置對照：核心技能、增益圖示、增益長條、輔助技能跟匯入前在對方插件裡的位置一樣（誤差 1 像素內）；資源條貼在核心技能上方、
+    施法條在資源條上方。對方用的材質（例如 `TukTex`）在它停用後本插件還讀得到（讀不到會退回純色）。
+100. 自訂群組：目前專精的群組法術都在（`/mcdm debug` 沒有這個專精的「匯入待對應」）；切到另一個有群組的專精後，群組也自動有法術
+     （第一次切過去時對表）、`/mcdm debug` 那一筆消失。往左長的群組順序跟對方一樣（第一個法術在最右邊）。
+101. 光環格（例如回春術）在每個列在 `ungroupedCustomBuffOrder` 的專精都出現在增益圖示最前面，占位圖示照對方的設定。
+102. 資源條：聖能等顏色與條件規則（聖能 ≥3／≥5 換色）跟對方一樣；列高 16。
+103. 兩支再同時開一次登入：按鈕字變成「重新從 … 匯入」，按下去覆蓋的是上次那幾份（設定檔清單沒有多出「(2)」）。
+104. 設定檔頁最下面「從 … 匯入」一節：對方已安裝時「啟用 … 並重載」可按、按了重載後出現彈窗；沒安裝時按鈕停用、灰字寫「沒有安裝」；
+     匯入過的話灰字多一行「上次匯入：日期（N 份設定檔）」。

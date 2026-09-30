@@ -1,5 +1,6 @@
 ------------------------------------------------------------
--- 「設定檔」頁：切換／新增／複製／改名／刪除／恢復預設、依專精自動切換、匯出／匯入
+-- 「設定檔」頁：切換／新增／複製／改名／刪除／恢復預設、依專精自動切換、匯出／匯入、
+-- 從 Ayije_CDM 匯入（這頁只放「啟用它並重載」，真正的匯入在登入時的互斥彈窗）
 --
 -- 全部即時生效，沒有 /reload（換設定檔走 DB.SwitchProfile → ProfileChanged → 引擎重套）。
 -- 匯入**一律建成新的一份**，不覆蓋現有的：貼上字串 → 解得開才出現審閱區（名字可改、
@@ -370,6 +371,68 @@ local function ImportRow(page)
 end
 
 ------------------------------------------------------------
+-- 從另一支冷卻管理器插件匯入（Core/Import.lua）
+--
+-- 匯入只能在兩支都載入的那一刻做（對方的存檔只在它載入時才讀得到），所以這裡只負責
+-- 「把它啟用、重載」；登入時的互斥彈窗會多一顆「匯入」。沒安裝就停用按鈕並寫原因。
+------------------------------------------------------------
+local function SourceInstalled()
+    local name = ns.Import.SOURCE_ADDON
+    local A = C_AddOns
+    if not A then return false end
+    if A.DoesAddOnExist then
+        local ok, exists = pcall(A.DoesAddOnExist, name)
+        if ok and not ns.IsSecret(exists) then return exists and true or false end
+    end
+    if A.GetAddOnInfo then
+        local ok, _, _, _, _, reason = pcall(A.GetAddOnInfo, name)
+        return ok and reason ~= "MISSING"
+    end
+    return false
+end
+
+local function SourceTitle()
+    return ns.ConflictTitle and ns.ConflictTitle() or ns.Import.SOURCE_ADDON
+end
+
+local function ImportSourceRow()
+    return { type = "custom", h = 0, build = function(parent, x, y, width)
+        local left = 4
+        local w = FORM_W - left - 10
+        local btn = W.CreateButton(parent, L["Enable %s and reload"]:format(SourceTitle()), "normal", 170, 22)
+        W.FitButton(btn, 170, 22)
+        btn:SetPoint("TOPLEFT", parent, "TOPLEFT", left, y - 4)
+        btn:SetScript("OnClick", function()
+            local who = UnitName("player")
+            for _, name in ipairs(ns.Import.SOURCE_FOLDERS) do
+                pcall(C_AddOns.EnableAddOn, name, who)
+            end
+            ReloadUI()
+        end)
+        local note = parent:CreateFontString(nil, "OVERLAY")
+        note:SetFontObject(W.fontSmall)
+        note:SetTextColor(0.65, 0.65, 0.65)
+        note:SetJustifyH("LEFT")
+        note:SetWidth(w)
+        note:SetPoint("TOPLEFT", btn, "BOTTOMLEFT", 0, -6)
+        return 4 + 22 + 6 + 30, function()
+            local installed = SourceInstalled()
+            btn:SetEnabled(installed)
+            local lines = {}
+            if not installed then lines[#lines + 1] = L["%s isn't installed."]:format(SourceTitle()) end
+            local rec = ns.Import.Imported()
+            if rec then
+                local n = 0
+                for _ in pairs(type(rec.profiles) == "table" and rec.profiles or {}) do n = n + 1 end
+                lines[#lines + 1] = L["Last import: %s (%d profiles)."]
+                    :format(date("%Y-%m-%d %H:%M", tonumber(rec.at) or 0), n)
+            end
+            note:SetText(table.concat(lines, "\n"))
+        end
+    end }
+end
+
+------------------------------------------------------------
 -- 頁面
 ------------------------------------------------------------
 Options.RegisterPage("profile", Options.PageTitle("profile"), function(parent, title)
@@ -391,6 +454,10 @@ Options.RegisterPage("profile", Options.PageTitle("profile"), function(parent, t
     controls[#controls + 1] = ExportRow()
     controls[#controls + 1] = { type = "header", label = L["Import"] }
     controls[#controls + 1] = ImportRow(page)
+    controls[#controls + 1] = { type = "header", label = L["Import from %s"]:format(SourceTitle()) }
+    controls[#controls + 1] = { type = "text",
+        label = L["Settings from %s can be turned into profiles here. Enable it and reload: at login a window offers to import them, then turns it off again."]:format(SourceTitle()) }
+    controls[#controls + 1] = ImportSourceRow()
 
     local ctx = ns.Controls.MakeCtx(function() return {} end, function() end)
     ctx.get = function(spec) return spec.get and spec.get() end

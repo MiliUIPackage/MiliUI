@@ -44,6 +44,7 @@ Core\Compat.lua
 Core\Media.lua
 Core\Style.lua
 Core\DB.lua
+Core\Import.lua
 Core\Catalog.lua
 Core\Layout.lua
 Core\Viewers.lua
