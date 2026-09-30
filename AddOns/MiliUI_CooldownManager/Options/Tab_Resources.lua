@@ -514,7 +514,9 @@ local function Controls(cand, sub)
                     local c = Cfg()
                     if not c then return end
                     if type(c.rows) ~= "table" then c.rows = {} end
-                    c.rows[key] = (not on) and false or nil
+                    -- 關掉存 false、開著存 nil（＝預設）。⚠ 不能寫 `(not on) and false or nil`：
+                    -- `x and false or nil` 永遠是 nil，取消勾選等於沒存
+                    if on then c.rows[key] = nil else c.rows[key] = false end
                 end,
             }))
         end

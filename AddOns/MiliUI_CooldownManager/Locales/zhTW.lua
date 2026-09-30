@@ -63,6 +63,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "要先在暴雪冷卻
 L["Add spells to this bar"] = "把法術加到這條"
 L["Left-click: settings for this spell"] = "左鍵：這個法術的設定"
 L["Middle-click: remove"] = "中鍵：移除"
+L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "暴雪的冷卻管理器目前沒有顯示這一格，所以條上畫不出來。"
 L["Drag: reorder, or drop on a group on the left"] = "拖曳：排序，或拖到左欄的群組上"
 L["Name"] = "名稱"
 L["Name the new group"] = "新群組的名稱"

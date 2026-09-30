@@ -68,6 +68,7 @@ local firstRowW = {}           -- key → 第一列寬（長條寬 0 ＝ 跟核�
 local scheduled, lastRun = false, -1
 local ArmStructurePending          -- 前置宣告（定義在 Relayout 前面）
 local viewerShown = {}             -- 來源條 → 檢視器上一次看到是不是顯示中（稽核用）
+local missing, missingSig = {}, {} -- 條 → { [id] = true }：清單上有、暴雪沒有給框的（稽核用，預覽讀）
 local pinGuard, parkGuard = false, false
 local pinned = {}                  -- 釘過的檢視器（ReleaseAll 只解這些，沒碰過的不動）
 B.ready = false
@@ -353,6 +354,16 @@ end
 local function BuildIndex()
     local index, dupes, slots = {}, {}, {}
     ns.Viewers.EnumerateItems(function(item, rec)
+        -- 身分以 item 現在的為準（SetCooldownID 的後掛勾是主路；這裡是稽核：掛勾漏接的那一次救回來並記一筆）
+        local live = ns.Viewers.ReadItemID(item)
+        if live ~= rec.cooldownID then
+            if ns.Diag then
+                ns.Diag.Note("identity", ("%s：item 的身分 %s → %s（後掛勾沒接到）")
+                    :format(tostring(rec.barKey), tostring(rec.cooldownID), tostring(live)))
+            end
+            rec.cooldownID = live
+            rec.decorated = nil
+        end
         local id = rec.cooldownID
         if id ~= nil then
             if index[id] == nil then
@@ -428,6 +439,29 @@ local function Relayout(key, level, index, gen)
     end
 
     local ids = ns.Catalog.Bar(key)
+    -- 稽核：清單上有、暴雪卻沒有給框的（只看核心／輔助這兩類：它們的 item 一直都在；增益類不在時本來就可能沒有框）。
+    -- 我們畫不出來（圖示是暴雪的框），設定頁的預覽會把這幾格標暗並說明；變了才記一筆、才通知預覽
+    do
+        local gone, sig = nil, ""
+        for _, id in ipairs(ids) do
+            if type(id) == "number" and index[id] == nil then
+                local src = ns.Catalog.SourceOf(id)
+                if src and not ns.Viewers.AURA_KIND[src] then
+                    gone = gone or {}
+                    gone[id] = true
+                    sig = sig .. id .. ","
+                end
+            end
+        end
+        if (missingSig[key] or "") ~= sig then
+            missingSig[key] = sig
+            missing[key] = gone
+            if sig ~= "" and ns.Diag then
+                ns.Diag.Note("missing", ("%s：清單上有、暴雪沒有給框：%s"):format(key, sig))
+            end
+            if ns.Fire then ns.Fire("MissingChanged", key) end
+        end
+    end
     local layout = type(bar.layout) == "table" and bar.layout or {}
     -- 條上有光環格 ⇒ 固定格位強制打開（值不動；光環格的持有框戰鬥中不能移）
     local fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(key)) and true or false
@@ -877,6 +911,12 @@ function B.SetPanelSize(key, w, h)
         -- 錨定的 y 偏移跟著收／放：結構級（戰鬥中記帳到脫戰）
         if InCombatLockdown() then structurePending[key] = true; ArmStructurePending() else ApplyStructure(key) end
     end
+end
+
+-- 這個 id 在這條上是不是「清單有、暴雪沒給框」（畫不出來）
+function B.IsMissing(key, id)
+    local m = missing[key]
+    return m ~= nil and m[id] == true
 end
 
 function B.IsCollapsed(key)

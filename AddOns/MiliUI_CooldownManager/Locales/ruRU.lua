@@ -63,6 +63,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "Сначала доб
 L["Add spells to this bar"] = "Добавить заклинания на панель"
 L["Left-click: settings for this spell"] = "ЛКМ: настройки этого заклинания"
 L["Middle-click: remove"] = "Средняя кнопка: удалить"
+L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "Менеджер восстановления Blizzard сейчас не показывает эту запись, поэтому её нельзя отобразить на панели."
 L["Drag: reorder, or drop on a group on the left"] = "Перетаскивание: порядок или перенос в группу слева"
 L["Name"] = "Название"
 L["Name the new group"] = "Название новой группы"

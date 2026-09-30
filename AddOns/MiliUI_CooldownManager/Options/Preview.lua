@@ -328,6 +328,9 @@ function Preview.Refresh(key)
     if pv and pv.frame:IsVisible() then pv:Refresh() end
 end
 
+-- 引擎那邊「畫不出來的格子」變了：預覽跟著重畫
+ns.RegisterCallback("MissingChanged", "preview", function(key) Preview.Refresh(key) end)
+
 function Preview.RefreshAll()
     for _, pv in pairs(instances) do
         if pv.frame:IsVisible() then pv:Refresh() end
@@ -416,7 +419,9 @@ function Proto:Refresh()
             end
             if not e.hidden then self.slots[#self.slots + 1] = c end
         end
-        c:SetAlpha(e.hidden and 0.35 or 1)
+        -- 清單上有、暴雪卻沒給框的：畫面上不會有，這裡標暗（提示有說明），不要假裝它在
+        c.missing = (not e.plus and ns.Bars and ns.Bars.IsMissing and ns.Bars.IsMissing(key, e.id)) and true or false
+        c:SetAlpha((e.hidden or c.missing) and 0.35 or 1)
         c:Show()
     end
     self.lockedCount = lockedCount
@@ -506,6 +511,9 @@ local function ShowTip(c)
     GameTooltip:SetText(c.name or "")
     if c.custom and not c.known then
         GameTooltip:AddLine(L["Not learned"], 1, 0.3, 0.3)
+    end
+    if c.missing then
+        GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."], 1, 0.3, 0.3, true)
     end
     if c.locked then
         GameTooltip:AddLine(L["Aura slot: always at the front of the bar, can't be dragged."], 1, 0.82, 0, true)
