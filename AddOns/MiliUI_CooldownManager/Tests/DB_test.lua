@@ -167,7 +167,7 @@ eq("不跟隨 icon → 條的邊框", S("utility", "border.size"), 2)
 eq("邊框顏色退回主題", S("utility", "border.color"), P.theme.border.color)
 P.bars.utility.icon.zoom = 0.2
 eq("icon.zoom 存在 bars[k].icon", S("utility", "icon.zoom"), 0.2)
-eq("icon 其他格退回主題", S("utility", "icon.hideGCDSwipe"), true)
+eq("icon 其他格退回主題", S("utility", "icon.desaturateOnCooldown"), true)
 
 -- pandemic 跟著 follow.glow，存在 bars[k].glow.pandemic
 P.bars.buffs.follow.glow = false
