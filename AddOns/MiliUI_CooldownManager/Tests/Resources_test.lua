@@ -307,7 +307,7 @@ check("資源條預設：顏色表不共用預設那張", res.colors.Chi.color ~
 check("資源條預設：條件與開關列是空表", next(res.conditions) == nil and next(res.rows) == nil)
 eq("資源條預設：跟核心技能一起淡", res.fadeWithEssential, true)
 check("資源條預設：載入條件", res.loadConditions.hideMounted == false and res.loadConditions.onlyCombat == false)
-eq("施法條預設：不錨定", cb.anchor, false)
+eq("施法條預設：貼在資源條上方", type(cb.anchor) == "table" and cb.anchor.to, "resources")
 check("施法條預設：刻度與延遲開", cb.ticks == true and cb.latency == true)
 check("施法條預設：蓄力四階都有色", type(cb.colors.empowerStage4) == "table")
 eq("施法條預設：隱藏暴雪施法條", cb.hideBlizzard, true)
