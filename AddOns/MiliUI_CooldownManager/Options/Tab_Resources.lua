@@ -509,14 +509,15 @@ local function Controls(cand, sub)
         for _, key in ipairs(cand) do
             local path = "rows." .. key
             add(BS("toggle", path, R.Name(key), {
-                get = function() local c = Cfg(); return not (c and type(c.rows) == "table" and c.rows[key] == false) end,
+                get = function() return R.RowOn(Cfg(), ns.specID, key) end,
                 set = function(_, on)
                     local c = Cfg()
                     if not c then return end
                     if type(c.rows) ~= "table" then c.rows = {} end
-                    -- 關掉存 false、開著存 nil（＝預設）。⚠ 不能寫 `(not on) and false or nil`：
-                    -- `x and false or nil` 永遠是 nil，取消勾選等於沒存
-                    if on then c.rows[key] = nil else c.rows[key] = false end
+                    -- 跟這個專精的預設一樣就存 nil（＝照預設），不一樣才存 true／false。
+                    -- ⚠ 不能寫 `(not on) and false or nil`：`x and false or nil` 永遠是 nil，取消勾選等於沒存
+                    on = on and true or false
+                    if on == R.DefaultOn(ns.specID, key) then c.rows[key] = nil else c.rows[key] = on end
                 end,
             }))
         end

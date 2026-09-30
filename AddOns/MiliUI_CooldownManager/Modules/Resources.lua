@@ -274,6 +274,25 @@ local MANA_SPECS = {
 }
 R.MANA_SPECS = MANA_SPECS
 
+-- 候選有、但**預設不顯示**的（玩家在「這個專精要顯示哪些」勾起來才顯示）：
+-- 增強薩的法力只在戰鬥外回血／補圖騰時有意義，平常不需要一條在那裡佔位（使用者 2026-10-01 指定）
+local DEFAULT_OFF = {
+    [263] = { Mana = true },
+}
+-- 純函式：這個專精的這一列預設是不是顯示
+function R.DefaultOn(specID, key)
+    local t = specID and DEFAULT_OFF[specID]
+    return not (t and t[key])
+end
+-- 玩家的開關（rows[key]：nil ＝ 照預設、false ＝ 關、true ＝ 開）套上預設後的結果
+function R.RowOn(cfg, specID, key)
+    -- ⚠ 值可能是 false，不能用 `a and b or nil` 取（false 會被吃成 nil）
+    local v
+    if type(cfg) == "table" and type(cfg.rows) == "table" then v = cfg.rows[key] end
+    if v == nil then return R.DefaultOn(specID, key) end
+    return v and true or false
+end
+
 -- 德魯伊看「現在的型態」：熊＝怒氣、貓＝能量＋連擊點、其餘照專精（梟＝星能）
 local DRUID_BEAR, DRUID_CAT = 5, 1
 
@@ -438,14 +457,13 @@ function R.Invalidate() cachedList = nil end
 
 function R.Info(key) return RESOURCES[key] end
 
--- 實際要畫的清單（套上玩家的開關 rows[key] = false）。scratch 表，呼叫端不可留著
+-- 實際要畫的清單（套上玩家的開關 rows[key] 與每個專精的預設，見 R.RowOn）。scratch 表，呼叫端不可留著
 local activeRows = {}
 local function ActiveRows(cfg)
-    local cand = R.Candidates()
-    local off = type(cfg.rows) == "table" and cfg.rows or {}
+    local cand, specID = R.Candidates()
     for i = #activeRows, 1, -1 do activeRows[i] = nil end
     for _, key in ipairs(cand) do
-        if off[key] ~= false and RESOURCES[key] then activeRows[#activeRows + 1] = key end
+        if RESOURCES[key] and R.RowOn(cfg, specID, key) then activeRows[#activeRows + 1] = key end
     end
     return activeRows
 end
