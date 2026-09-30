@@ -63,6 +63,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "Adicione primeiro no 
 L["Add spells to this bar"] = "Adicionar feitiços a esta barra"
 L["Left-click: settings for this spell"] = "Clique esquerdo: configurações deste feitiço"
 L["Middle-click: remove"] = "Clique do meio: remover"
+L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."] = "O rastreamento de berloques da Blizzard não é confiável. Para rastrear um berloque, adicione-o com \"Item\" e o ID do item."
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "O gerenciador de recarga da Blizzard não está mostrando esta entrada agora, então ela não pode aparecer na barra."
 L["Drag: reorder, or drop on a group on the left"] = "Arrastar: reordenar ou soltar em um grupo à esquerda"
 L["Name"] = "Nome"
