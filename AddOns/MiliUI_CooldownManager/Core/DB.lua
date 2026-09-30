@@ -66,7 +66,7 @@ local function IconBar(o)
         },
         follow     = { text = true, icon = true, glow = true, fade = true },
         text = {}, icon = {}, glow = {}, fade = {},
-        visibility = { showCombat = false, showTarget = false, hideMounted = true,
+        visibility = { showCombat = false, showTarget = false, hideMounted = false,
                        onlyInstances = false, group = "any" },   -- group: any | solo | party | raid
         bar        = o.bar or false,        -- kind = "bars" 才有
         strata     = "MEDIUM",

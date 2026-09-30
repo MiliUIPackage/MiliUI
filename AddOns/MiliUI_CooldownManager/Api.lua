@@ -46,6 +46,7 @@ local function Debug()
                 :format(key, viewer and tostring(V.Count(key)) or "✕",
                         #C.Bar(key), B.Count(key), tostring(ns.Visibility and ns.Visibility.Current(key))))
         end
+        if ns.Visibility and ns.Visibility.DebugLine then p(ns.Visibility.DebugLine()) end
         local p2 = ns.profile
         for key in pairs(p2 and p2.bars or {}) do
             if not V.VIEWERS[key] then
