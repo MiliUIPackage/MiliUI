@@ -311,6 +311,11 @@ end
 ------------------------------------------------------------
 local GCD_MAX = 1.5
 
+-- 「有拿到值」：秘密值算有。⚠ 不能寫 v ~= nil —— 秘密值連跟 nil 比都會拋錯
+local function Has(v)
+    return ns.IsSecret(v) or v ~= nil
+end
+
 local function EquipSlotSpell(info)
     local id = info.overrideSpellID or info.spellID
     if type(id) == "number" then return id end
@@ -340,7 +345,7 @@ local function EquipRealCooldown(info)
         local ok, dur = pcall(C_Spell.GetSpellCooldownDuration, spellID, true)
         if ok and dur and dur.IsZero then
             local ok2, zero = pcall(dur.IsZero, dur)
-            if ok2 and zero ~= nil then return "secret", zero end
+            if ok2 and Has(zero) then return "secret", zero end
         end
     end
     return nil
@@ -384,7 +389,7 @@ function D.ApplyGCDAlpha(item, rec)
     end
     if not (dur and dur.IsZero) then return end
     local ok, zero = pcall(dur.IsZero, dur)
-    if not ok or zero == nil then return end
+    if not ok or not Has(zero) then return end
     if cd.SetAlphaFromBoolean then
         pcall(cd.SetAlphaFromBoolean, cd, zero, 0, 1)
     elseif not ns.IsSecret(zero) then
@@ -427,10 +432,12 @@ local function OnSetDesaturated(icon, desaturated)
         desatGuard = false
         return
     end
-    -- 暴雪剛把它設成去飽和（或值讀不到）：裝備欄項目重判一次，只是 GCD 的話還原
-    if desaturated == false then return end
+    -- 只管裝備欄項目（先判這個：法術類的格子到這裡就走了，不碰傳進來的值）
     local info = ns.Catalog.Info(rec.cooldownID)
     if not (info and type(info.equipSlot) == "number") then return end
+    -- 暴雪剛把它設成去飽和：重判一次，只是 GCD 的話還原。
+    -- ⚠ 傳進來的值戰鬥中是秘密布林，**不能拿來比較**（比了就拋錯）；讀不到就當作「可能是去飽和」照樣重判
+    if not ns.IsSecret(desaturated) and desaturated == false then return end
     local kind, v = EquipRealCooldown(info)
     if kind == "plain" then
         if not v then
@@ -443,7 +450,7 @@ local function OnSetDesaturated(icon, desaturated)
         local eval = C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean
         if eval and icon.SetDesaturation then
             local ok, amount = pcall(eval, v, 0, 1)
-            if ok and amount ~= nil then
+            if ok and Has(amount) then
                 desatGuard = true
                 pcall(icon.SetDesaturation, icon, amount)
                 desatGuard = false

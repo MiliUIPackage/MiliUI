@@ -275,3 +275,7 @@ while execution tainted by 'MiliUI_AuraEnhance')`。錯誤指向的檔案跟我�
   不要去查錯誤指向的那支檔案。
 - 純 C 端 setter（SetPoint／SetAlpha／SetColorTexture／SetTexCoord…對**自己建的**
   區塊）仍然安全——它們不產生暴雪 Lua 會回讀的髒值。
+- **後掛勾收到的參數也是秘密值。** `hooksecurefunc(icon, "SetDesaturated", fn)` 的 fn 在戰鬥中收到的布林是秘密的
+  （暴雪是拿秘密的冷卻狀態算出來再傳的）；在掛勾裡寫 `if desaturated == false` 當場拋錯、而且每次刷新都拋
+  （2026-09-30，MiliUI_CooldownManager 48 次）。掛勾的參數一律當秘密值處理：要分支先 `issecretvalue(v)`，
+  秘密的就走「不看值」的那條路。「有沒有拿到值」寫成 `issecretvalue(v) or v ~= nil`，不要直接比 nil。
