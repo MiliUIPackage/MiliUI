@@ -12,6 +12,8 @@
 --   4. 面板的 DB：預設值完整、ConfigTable、錨定成環、刪條清面板錨定、DefaultFor
 --   5. 面板的顯示條件（Core/Visibility.lua 的 EvaluatePanel）
 --   6. 施法條：時間文字、截字、刻度查表
+--   7. 自訂格子：清單依專精、增刪、PlanCustomRows（充能上限的退路、層數上限、enabled = false、
+--      未學會的充能法術、壞資料）、預設值
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -376,6 +378,102 @@ eq("刻度：精神鞭笞 6 跳", CB.TickCount(15407, nil), 6)
 eq("刻度：用名字查", CB.TickCount(nil, "S15407"), 6)
 eq("刻度：不認得 0", CB.TickCount(1, "nope"), 0)
 eq("刻度：秘密 ID 用名字", CB.TickCount(SECRET, "S740"), 4)
+
+------------------------------------------------------------
+-- 7. 自訂格子
+------------------------------------------------------------
+check("資源條預設：自訂格子是空表", type(res.customRows) == "table" and next(res.customRows) == nil)
+local ccfg = { customRows = {} }
+eq("沒有清單 → nil", R.CustomRowList(ccfg, 65), nil)
+eq("沒有專精 → nil", R.CustomRowList(ccfg, nil, true), nil)
+eq("設定不是表 → nil", R.CustomRowList(nil, 65, true), nil)
+eq("新增回位置", R.AddCustomRow(ccfg, 65, { kind = "charges", spellID = 1001 }), 1)
+eq("壞種類不收", R.AddCustomRow(ccfg, 65, { kind = "cooldown", spellID = 1 }), nil)
+R.AddCustomRow(ccfg, 65, { kind = "stacks", spellID = 2002, max = 3 })
+R.AddCustomRow(ccfg, 66, { kind = "stacks", spellID = 3003 })
+eq("清單依專精：神聖 2 筆", #R.CustomRowList(ccfg, 65), 2)
+eq("清單依專精：防騎 1 筆", #R.CustomRowList(ccfg, 66), 1)
+eq("清單依專精：懲戒沒有", R.CustomRowList(ccfg, 70), nil)
+eq("找重複：同種類同法術", R.FindCustomRow(ccfg, 65, "stacks", 2002), 2)
+eq("找重複：別的專精不算", R.FindCustomRow(ccfg, 66, "stacks", 2002), nil)
+eq("找重複：種類不同不算", R.FindCustomRow(ccfg, 65, "charges", 2002), nil)
+
+-- 規劃（probe 注入：學了沒、充能上限）
+local knownC, maxC = { [1001] = true, [1002] = true }, { [1001] = 3 }
+local probe = {
+    known = function(id) return knownC[id] == true end,
+    maxCharges = function(id) return maxC[id] end,
+}
+local function plan(spec) return R.PlanCustomRows(ccfg, spec, probe) end
+local pl = plan(65)
+eq("神聖：兩列", #pl, 2)
+eq("第一列：充能", pl[1].kind, "charges")
+eq("充能上限讀得到 → 用 API 的 3", pl[1].numSeg, 3)
+eq("第二列：層數、上限 3", pl[2].numSeg, 3)
+eq("規劃帶著清單位置", pl[2].index, 2)
+eq("規劃帶著 entry 參照", pl[2].entry, R.CustomRowList(ccfg, 65)[2])
+eq("防騎：層數沒給上限 → 5", plan(66)[1].numSeg, 5)
+eq("懲戒：沒有清單 → 空", #plan(70), 0)
+-- 充能上限的退路：API 讀不到 → 存檔的 max → 2
+maxC[1001] = nil
+R.CustomRowList(ccfg, 65)[1].max = 4
+eq("充能上限讀不到 → 退回存檔的 max", plan(65)[1].numSeg, 4)
+R.CustomRowList(ccfg, 65)[1].max = nil
+eq("兩邊都沒有 → 2", plan(65)[1].numSeg, 2)
+maxC[1001] = 25
+eq("充能上限夾到 10", plan(65)[1].numSeg, 10)
+maxC[1001] = 0
+R.CustomRowList(ccfg, 65)[1].max = 2
+eq("API 回 0 當讀不到 → 存檔的 max", plan(65)[1].numSeg, 2)
+maxC[1001] = 3
+-- 層數上限
+local st2 = R.CustomRowList(ccfg, 65)[2]
+st2.max = 0
+eq("層數上限 0 → 預設 5", plan(65)[2].numSeg, 5)
+st2.max = 15
+eq("層數上限夾到 10", plan(65)[2].numSeg, 10)
+st2.max = 2.7
+eq("層數上限取整", plan(65)[2].numSeg, 2)
+st2.max = "x"
+eq("層數上限不是數字 → 5", plan(65)[2].numSeg, 5)
+st2.max = 3
+-- enabled = false 不建列、未學會的充能法術不建列、層數列不看學了沒
+R.CustomRowList(ccfg, 65)[1].enabled = false
+pl = plan(65)
+eq("enabled = false：不建那一列", #pl, 1)
+eq("enabled = false：剩下的是層數列、位置照舊", pl[1].index, 2)
+R.CustomRowList(ccfg, 65)[1].enabled = true
+knownC[1001] = false
+eq("充能法術未學會：不建", #plan(65), 1)
+knownC[2002] = false
+eq("層數列不看學了沒", plan(65)[1].kind, "stacks")
+knownC[1001] = true
+-- 壞資料：跳過、不報錯
+local bad = { customRows = { [65] = { "x", { kind = "charges" }, { kind = "nope", spellID = 1 }, { kind = "stacks", spellID = 9 } } } }
+pl = R.PlanCustomRows(bad, 65, probe)
+eq("壞資料跳過，剩一列", #pl, 1)
+eq("壞資料跳過：位置照清單", pl[1].index, 4)
+eq("customRows 不是表 → 空", #R.PlanCustomRows({ customRows = 5 }, 65, probe), 0)
+eq("不給 probe：充能照建（當學了）、上限退回存檔的 max", R.PlanCustomRows(ccfg, 65, nil)[1].numSeg, 2)
+-- 刪除
+check("刪第 1 筆", R.RemoveCustomRow(ccfg, 65, 1))
+eq("刪掉之後剩層數列", R.CustomRowList(ccfg, 65)[1].spellID, 2002)
+check("刪不存在的位置 → false", not R.RemoveCustomRow(ccfg, 65, 5))
+R.RemoveCustomRow(ccfg, 65, 1)
+eq("清單空了就拿掉整個鍵", ccfg.customRows[65], nil)
+check("防騎那份不受影響", #R.CustomRowList(ccfg, 66) == 1)
+-- 顏色：存檔的 → 職業色
+ns.Style = { Accent = function() return 0.1, 0.2, 0.3, 1 end }
+local cr, cg, cb2 = R.CustomColor({ color = { r = 1, g = 0.5, b = 0 } })
+check("自訂列的顏色：存檔的", cr == 1 and cg == 0.5 and cb2 == 0)
+cr, cg, cb2 = R.CustomColor({})
+check("自訂列的顏色：沒存 → 職業色", cr == 0.1 and cg == 0.2 and cb2 == 0.3)
+-- 取值：層數直接轉手、沒有光環 0；充能讀不到 → nil
+auras[2002] = { applications = SECRET }
+eq("層數：秘密值原樣轉手", (R.CustomValue({ kind = "stacks", spellID = 2002 })), SECRET)
+auras[2002] = nil
+eq("層數：沒有光環 → 0", (R.CustomValue({ kind = "stacks", spellID = 2002 })), 0)
+eq("充能：API 回 nil → nil", (R.CustomValue({ kind = "charges", spellID = 1001 })), nil)
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

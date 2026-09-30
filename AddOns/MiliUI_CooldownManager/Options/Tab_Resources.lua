@@ -5,8 +5,13 @@
 -- 多了法力的數字格式、載入條件（騎乘隱藏、只在戰鬥中、跟核心技能一起淡）與「錨定」一節
 -- （跟條頁同一支 Specs.Anchor；key ＝ "resources"）。
 --
+-- 「自訂格子」一節：目前專精的 customRows 清單（法術充能／光環層數），一筆兩列：
+-- 名字＋圖示＋種類＋［刪除］、顏色＋（充能）顯示秒數／（層數）上限；底下「＋ 新增格子」
+-- → 選種類 → 輸入 ID（層數多一欄上限）→ 驗證。增刪走換表單（簽章含整份清單），
+-- 改色／勾選／上限原地套用。
+--
 -- 資源清單跟著專精走、條件規則的列數跟著規則走，所以表單照「形狀」快取（專精、候選清單、
--- 條件編輯器的結構、有沒有錨定、條清單）：形狀變了才另建一份、變回來就拿舊的
+-- 條件編輯器的結構、自訂格子清單、有沒有錨定、條清單）：形狀變了才另建一份、變回來就拿舊的
 -- （frame 刪不掉，每改一次重建一次就是洩漏）。形狀的比對延一幀做（不在按鈕的處理器裡換表單）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -73,6 +78,266 @@ local function ResetRow(label, text, confirmText, fn)
     end }
 end
 
+------------------------------------------------------------
+-- 自訂格子（profile.resources.customRows[specID]；引擎在 Modules/Resources.lua）
+------------------------------------------------------------
+local CUSTOM_ROW_H = 26
+local QUESTION = 134400
+
+local function CustomList(create)
+    return ns.Resources.CustomRowList(Cfg(), ns.specID, create)
+end
+
+local function CustomEntry(i)
+    local list = CustomList()
+    local e = list and list[i]
+    return type(e) == "table" and e or nil
+end
+
+local function PlainOf(v)
+    if v == nil or ns.IsSecret(v) then return nil end
+    return v
+end
+
+local function SpellLabel(id)
+    local fn = C_Spell and C_Spell.GetSpellName
+    if fn then
+        local ok, n = pcall(fn, id)
+        n = ok and PlainOf(n) or nil
+        if type(n) == "string" and n ~= "" then return n end
+    end
+    return "#" .. tostring(id)
+end
+
+local function SpellIcon(id)
+    local fn = C_Spell and C_Spell.GetSpellTexture
+    if fn then
+        local ok, t = pcall(fn, id)
+        t = ok and PlainOf(t) or nil
+        if t then return t end
+    end
+    return QUESTION
+end
+
+-- 清單增刪：換表單（簽章變了，資源條頁的 apply 會延一幀換一份）
+local function Changed(ctx)
+    ctx.lastSpec = { structural = true }
+    ctx.apply()
+end
+
+-- 原地改值（顏色、勾選、上限）：不換表單
+local function Touched(ctx)
+    ctx.lastSpec = nil
+    ctx.apply()
+end
+
+-- 驗證輸入，回傳 entry 或 nil, 給玩家看的原因（純邏輯＋查詢 API；冒煙測得到）
+function Tab.ValidateCustomRow(kind, idText, maxText, specID)
+    specID = specID or ns.specID
+    if not specID then return nil, L["Pick a specialization first."] end
+    if not ns.Resources.CUSTOM_KINDS[kind] then return nil, L["Enter a number."] end
+    local id = ns.Picker.ParseID(idText)
+    if not id then return nil, L["Enter a number."] end
+    if not ns.Picker.SpellExists(id) then return nil, L["No spell with that ID."] end
+    if ns.Resources.FindCustomRow(Cfg(), specID, kind, id) then
+        return nil, L["Already tracked in this specialization."]
+    end
+    local r, g, b = ns.Style.Accent()
+    local entry = { kind = kind, spellID = id, color = { r = r, g = g, b = b, a = 1 }, showTime = true, enabled = true }
+    local MAX = ns.ResCond.MAX_SEGMENTS
+    if kind == "charges" then
+        local info
+        local fn = C_Spell and C_Spell.GetSpellCharges
+        if fn then
+            local ok, v = pcall(fn, id)
+            if ok then info = v end
+        end
+        if type(info) ~= "table" then return nil, L["This spell has no charges."] end
+        -- 充能上限順手記下來：戰鬥中讀不到時的退路（讀得到的時候引擎一律以 API 為準）
+        local ok, m = pcall(function() return info.maxCharges end)
+        m = ok and PlainOf(m) or nil
+        entry.max = ns.Resources.ClampSegments(m)
+    else
+        local text = tostring(maxText or ""):gsub("%s", "")
+        local n = (text == "") and ns.Resources.CUSTOM_DEFAULT_STACKS or tonumber(text)
+        if not n or n ~= math.floor(n) or n < 1 or n > MAX then
+            return nil, L["Max stacks must be a whole number from 1 to %d."]:format(MAX)
+        end
+        entry.max = n
+    end
+    return entry
+end
+
+local kindPopup, pendingCtx
+local inputPopups = {}
+
+function Tab.AskCustomID(kind)
+    local popup = inputPopups[kind]
+    local title = kind == "charges" and L["Track spell charges"] or L["Track aura stacks"]
+    if not popup then
+        local fields = {
+            { key = "id", label = kind == "charges" and L["Spell ID"] or L["Spell ID of the aura"], maxLetters = 10,
+              hint = L["Find it in the spell's link or on a database site."] },
+        }
+        if kind == "stacks" then
+            fields[2] = { key = "max", label = L["Max stacks"], maxLetters = 2 }
+        end
+        popup = W.CreateInputPopup(Options.panel, ns.Picker.INPUT_W, title, fields)
+        inputPopups[kind] = popup
+    end
+    ns.Picker.SetInputError(popup, nil)
+    popup:Open({ max = kind == "stacks" and tostring(ns.Resources.CUSTOM_DEFAULT_STACKS) or nil }, function(values)
+        local entry, why = Tab.ValidateCustomRow(kind, values.id, values.max)
+        if not entry then
+            ns.Picker.SetInputError(popup, why)
+            return false
+        end
+        ns.Picker.SetInputError(popup, nil)
+        if not ns.Resources.AddCustomRow(Cfg(), ns.specID, entry) then return end
+        if pendingCtx then Changed(pendingCtx) end
+    end, title)
+    return popup
+end
+
+function Tab.AskCustomKind(ctx)
+    pendingCtx = ctx
+    if not kindPopup then
+        kindPopup = W.CreateChoicePopup(Options.panel, 360, L["What should this row track?"], {
+            { text = L["Spell charges"], color = "normal", onClick = function() Tab.AskCustomID("charges") end },
+            { text = L["Aura stacks"], color = "normal", onClick = function() Tab.AskCustomID("stacks") end },
+            { text = L["Cancel"], color = "normal" },
+        })
+    end
+    kindPopup:Show()
+    return kindPopup
+end
+
+-- 一筆的第一列：標籤欄是法術名；控件欄 圖示＋種類（灰字）……［刪除］
+local function CustomHeadRow(i)
+    return function(parent, x, y, width, ctx)
+        local cy = y - CUSTOM_ROW_H / 2
+        local icon = parent:CreateTexture(nil, "ARTWORK")
+        ns.P.Size(icon, 18, 18)
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        icon:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
+        local kind = parent:CreateFontString(nil, "OVERLAY")
+        kind:SetFontObject(W.fontSmall)
+        kind:SetTextColor(0.65, 0.65, 0.65)
+        kind:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+        kind:SetJustifyH("LEFT")
+        local del = W.CreateButton(parent, L["Delete"], "normal", 60, 20)
+        W.FitButton(del, 60, 20)
+        del:SetPoint("RIGHT", parent, "TOPLEFT", x + width, cy)
+        local confirm
+        del:SetScript("OnClick", function()
+            if not confirm then
+                confirm = W.CreateConfirmPopup(Options.panel, 320, L["Remove this custom row?"], function()
+                    if ns.Resources.RemoveCustomRow(Cfg(), ns.specID, i) then Changed(ctx) end
+                end)
+            end
+            confirm:Show()
+        end)
+        local function Refresh()
+            local e = CustomEntry(i)
+            if not e then return end
+            icon:SetTexture(SpellIcon(e.spellID))
+            kind:SetText(((e.kind == "charges") and L["Charges"] or L["Stacks"]) .. "  ·  "
+                .. L["Spell ID"] .. " " .. tostring(e.spellID))
+        end
+        Refresh()
+        return CUSTOM_ROW_H, Refresh
+    end
+end
+
+-- 第二列：顏色；充能多「顯示秒數」、層數多「上限」
+local function CustomOptionsRow(i, kind)
+    return function(parent, x, y, width, ctx)
+        local cy = y - CUSTOM_ROW_H / 2
+        local swatch = W.CreateColorPicker(parent, L["Color"], false, function(r, g, b)
+            local e = CustomEntry(i)
+            if not e then return end
+            e.color = { r = r, g = g, b = b, a = 1 }
+            Touched(ctx)
+        end)
+        swatch:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
+        local lw = swatch.label:GetStringWidth()
+        local nx = x + 14 + 5 + ((type(lw) == "number" and lw > 0) and lw or 30) + 18
+        local cb, box
+        if kind == "charges" then
+            cb = W.CreateCheckButton(parent, L["Show seconds"], function(on)
+                local e = CustomEntry(i)
+                if not e then return end
+                e.showTime = on and true or false
+                Touched(ctx)
+            end)
+            cb:SetPoint("LEFT", parent, "TOPLEFT", nx, cy)
+        else
+            local fs = parent:CreateFontString(nil, "OVERLAY")
+            fs:SetFontObject(W.fontNormal)
+            fs:SetPoint("LEFT", parent, "TOPLEFT", nx, cy)
+            fs:SetText(L["Max stacks"])
+            box = W.CreateNumberBox(parent, 46, 1, function(v)
+                local e = CustomEntry(i)
+                if not e then return end
+                local n = ns.Resources.ClampSegments(v) or 1
+                e.max = n
+                box:SetValue(n)
+                Touched(ctx)
+            end)
+            box:SetPoint("LEFT", fs, "RIGHT", 8, 0)
+        end
+        local function Refresh()
+            local e = CustomEntry(i)
+            if not e then return end
+            local r, g, b = ns.Resources.CustomColor(e)
+            swatch:SetColor({ r = r, g = g, b = b, a = 1 })
+            if cb then cb:SetChecked(e.showTime ~= false) end
+            if box then box:SetValue(ns.Resources.ClampSegments(e.max) or ns.Resources.CUSTOM_DEFAULT_STACKS) end
+        end
+        Refresh()
+        return CUSTOM_ROW_H, Refresh
+    end
+end
+
+local function AppendCustomRows(list)
+    local function add(s) list[#list + 1] = s end
+    add({ type = "header", label = L["Custom segments"] })
+    add(Note(L["Track a spell's charges or an aura's stacks on you as a row of segments above the resource rows. Each specialization keeps its own list."]))
+    if not ns.specID then
+        add(Note(L["Pick a specialization first."]))
+        return
+    end
+    local entries = CustomList() or {}
+    local shown = 0
+    for i, e in ipairs(entries) do
+        if type(e) == "table" and ns.Resources.CUSTOM_KINDS[e.kind] and type(e.spellID) == "number" then
+            if shown > 0 then add({ type = "space", h = 6 }) end
+            shown = shown + 1
+            add({ type = "custom", label = SpellLabel(e.spellID), h = CUSTOM_ROW_H, noReset = true, build = CustomHeadRow(i) })
+            add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
+        end
+    end
+    if shown == 0 then add(Note(L["No custom segments for this specialization yet."])) end
+    add({ type = "space", h = 4 })
+    add({ type = "custom", label = "", h = 30, noReset = true, build = function(parent, x, y, width, ctx)
+        local b = W.CreateButton(parent, L["+ Add segments"], "primary", 150, 22)
+        W.FitButton(b, 150, 22)
+        b:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        b:SetScript("OnClick", function() Tab.AskCustomKind(ctx) end)
+        return 30
+    end })
+end
+
+-- 表單簽章的一段：整份清單（種類＋法術）。標籤是建表單當下的法術名，所以清單內容一變就換一份
+local function CustomSignature()
+    local out = {}
+    for _, e in ipairs(CustomList() or {}) do
+        if type(e) == "table" then out[#out + 1] = tostring(e.kind) .. ":" .. tostring(e.spellID) end
+    end
+    return #out .. "=" .. table.concat(out, ",")
+end
+Tab.CustomSignature = CustomSignature
+
 local function Controls(cand)
     local R = ns.Resources
     local list = {
@@ -113,6 +378,8 @@ local function Controls(cand)
         end
         ns.ResourceConditionsUI.Append(list, cand)
     end
+
+    AppendCustomRows(list)
 
     add({ type = "header", label = L["Show for this specialization"] })
     if #cand == 0 then
@@ -159,6 +426,7 @@ local function Signature()
     return table.concat({
         tostring(specID), table.concat(cand, ","),
         ns.ResourceConditionsUI.FormSignature(cand),
+        CustomSignature(),
         type(cfg.anchor) == "table" and "a" or "-",
         table.concat(p and p.barOrder or {}, ","),
         ns.Specs.AnchorGraphSig(),

@@ -435,6 +435,11 @@ local function SetInputError(popup, why)
         popup:SetHeight(n.baseH)
     end
 end
+-- 資源條頁的「自訂格子」也用同一套（寬度要是 INPUT_W 的彈窗）
+Picker.SetInputError = SetInputError
+Picker.INPUT_W = INPUT_W
+Picker.ParseID = ParseID
+Picker.SpellExists = SpellExists
 
 function Picker.AskCustom(kind)
     local popup = inputs[kind]

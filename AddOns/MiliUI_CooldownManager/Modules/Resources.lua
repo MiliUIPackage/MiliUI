@@ -23,6 +23,16 @@
 --
 -- 事件處理器只標髒、下一幀做（ns.Defer）。能量走 UNIT_POWER_FREQUENT（UNIT_POWER_UPDATE
 -- 在回能／衰減時兩秒才一次，留著當回滿的保底）。
+--
+-- 自訂格子（cfg.customRows[specID]，玩家自己加的列，排在資源列的**上面**）：
+--   charges  法術充能：C_Spell.GetSpellCharges 的 currentCharges 直接餵每格的 SetValue；
+--            每格底下一顆 Cooldown 吃 C_Spell.GetSpellChargeDuration 的 duration 物件
+--            （轉圈與秒數由引擎畫）。層級：底色貼圖 → Cooldown（+1）→ 填色 StatusBar（+2），
+--            滿的格子被填色蓋住，只有空格看得到轉圈 ⇒ 秘密值下照樣對。
+--            所有空格顯示的是同一個「下一格回充」時間（引擎只給這一個 duration 物件）。
+--   stacks   光環層數：C_UnitAuras.GetPlayerAuraBySpellID 的 applications 直接餵；沒有光環 ＝ 0。
+-- 值一律只轉手、不比較不算術。事件（SPELL_UPDATE_CHARGES／COOLDOWN、UNIT_AURA）只在
+-- 真的有那一種列時才註冊，處理器照樣只標髒。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -307,6 +317,136 @@ end
 R.SegmentsFor = SegmentsFor
 
 ------------------------------------------------------------
+-- 自訂格子：清單與「要建哪些列」
+--
+--   cfg.customRows[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, enabled }, … }
+--
+-- 清單的讀寫與規劃都是純函式（吃 cfg、specID 與一個查詢 probe），離線測試得到。
+------------------------------------------------------------
+local CUSTOM_KINDS = { charges = true, stacks = true }
+R.CUSTOM_KINDS = CUSTOM_KINDS
+R.CUSTOM_DEFAULT_STACKS = 5
+
+-- 這個專精的清單；create ＝ 沒有就建（寫入用），否則沒有回 nil
+function R.CustomRowList(cfg, specID, create)
+    if type(cfg) ~= "table" or specID == nil then return nil end
+    local all = cfg.customRows
+    if type(all) ~= "table" then
+        if not create then return nil end
+        all = {}
+        cfg.customRows = all
+    end
+    local list = all[specID]
+    if type(list) ~= "table" then
+        if not create then return nil end
+        list = {}
+        all[specID] = list
+    end
+    return list
+end
+
+-- 同一個專精裡已經有同種類、同法術的列 → 它的位置
+function R.FindCustomRow(cfg, specID, kind, spellID)
+    for i, e in ipairs(R.CustomRowList(cfg, specID) or {}) do
+        if type(e) == "table" and e.kind == kind and e.spellID == spellID then return i end
+    end
+    return nil
+end
+
+function R.AddCustomRow(cfg, specID, entry)
+    if type(entry) ~= "table" or not CUSTOM_KINDS[entry.kind] then return nil end
+    local list = R.CustomRowList(cfg, specID, true)
+    if not list then return nil end
+    list[#list + 1] = entry
+    return #list
+end
+
+-- 刪掉第 i 筆；清單空了就把這個專精的鍵拿掉（存檔不留空表）
+function R.RemoveCustomRow(cfg, specID, i)
+    local list = R.CustomRowList(cfg, specID)
+    if not (list and type(i) == "number" and list[i] ~= nil) then return false end
+    table.remove(list, i)
+    if list[1] == nil then cfg.customRows[specID] = nil end
+    return true
+end
+
+local function ClampSegments(n)
+    n = math.floor(tonumber(n) or 0)
+    if n < 1 then return nil end
+    return math.min(MAX_SEGMENTS, n)
+end
+R.ClampSegments = ClampSegments
+
+-- 純函式：這個專精實際要建哪些自訂列。
+--   probe.known(spellID)      → 充能法術學了沒（stacks 不問：沒有光環 ＝ 全空，列照顯示）
+--   probe.maxCharges(spellID) → 明文的充能上限或 nil（讀不到／秘密值）
+-- 回傳 { { index, entry, kind, spellID, numSeg }, … }，順序照清單；壞資料、enabled = false、
+-- 未學會的充能法術都不建
+function R.PlanCustomRows(cfg, specID, probe)
+    local out = {}
+    local list = R.CustomRowList(cfg, specID)
+    if not list then return out end
+    probe = probe or {}
+    for i, e in ipairs(list) do
+        if type(e) == "table" and CUSTOM_KINDS[e.kind] and type(e.spellID) == "number" and e.enabled ~= false then
+            local n
+            if e.kind == "charges" then
+                if not probe.known or probe.known(e.spellID) then
+                    -- 充能上限：API 讀得到就用它（天賦會改），讀不到才退回存檔的 max
+                    local m = probe.maxCharges and probe.maxCharges(e.spellID)
+                    n = ClampSegments(m) or ClampSegments(e.max) or 2
+                end
+            else
+                n = ClampSegments(e.max) or R.CUSTOM_DEFAULT_STACKS
+            end
+            if n then
+                out[#out + 1] = { index = i, entry = e, kind = e.kind, spellID = e.spellID, numSeg = n }
+            end
+        end
+    end
+    return out
+end
+
+-- 遊戲裡的 probe：學了沒（兩支 API 過 pcall；秘密值當學了，API 都不在也當學了）與
+-- 充能上限（明文才收，順手記下來，秘密值下沿用上次的明文值）
+local lastChargeMax = {}
+
+local function CustomKnown(id)
+    local book = C_SpellBook
+    local any = false
+    for _, fn in ipairs({ book and book.IsSpellKnown, book and book.IsSpellInSpellBook }) do
+        if fn then
+            any = true
+            local ok, v = pcall(fn, id)
+            if ok then
+                if ns.IsSecret(v) then return true end
+                if v then return true end
+            end
+        end
+    end
+    return not any
+end
+
+local function CustomMaxCharges(id)
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    if fn then
+        local ok, info = pcall(fn, id)
+        if ok and type(info) == "table" then
+            local ok2, m = pcall(function() return info.maxCharges end)
+            m = ok2 and Plain(m) or nil
+            if m and m > 0 then
+                lastChargeMax[id] = m
+                return m
+            end
+        end
+    end
+    return lastChargeMax[id]
+end
+
+local gameProbe = { known = CustomKnown, maxCharges = CustomMaxCharges }
+R.gameProbe = gameProbe
+
+------------------------------------------------------------
 -- 充能的連擊點
 --
 --   盜賊  GetUnitChargedPowerPoints("player") → 被充能的**索引**陣列；事件 UNIT_POWER_POINT_CHARGE
@@ -377,6 +517,7 @@ end
 ------------------------------------------------------------
 local container, root
 local rows = {}                 -- 池化的列（frame 刪不掉，換專精只換內容）
+local customRows = {}           -- 自訂格子的列，另一個池（每格多一顆 Cooldown）
 local condState = RC.NewState()
 
 -- 1px 黑邊：疊在填充之上（不是內縮），線寬換成整數實體像素
@@ -433,6 +574,42 @@ local function MakeRow(parent)
     row.text:SetJustifyH("CENTER")
     row.text:SetPoint("CENTER", row.textFrame, "CENTER", 0, 0)
     row.text:SetTextColor(1, 1, 1, 1)
+    row:Hide()
+    return row
+end
+
+-- 自訂格子的一格：cell（底色貼圖）→ Cooldown（level +1）→ 填色 StatusBar（level +2，邊框也在它上面）。
+-- 三層都錨在 cell 上、cell 錨在列上；錨在填色條上的只有它自己的邊框貼圖
+-- （SetValue(秘密值) 會讓填色條的幾何變秘密）
+local function MakeCustomCell(row)
+    local cell = CreateFrame("Frame", nil, row)
+    cell.bg = cell:CreateTexture(nil, "BACKGROUND")
+    cell.bg:SetTexture(SOLID)
+    cell.bg:SetAllPoints(cell)
+    local ok, cd = pcall(CreateFrame, "Cooldown", nil, cell, "CooldownFrameTemplate")
+    if ok and cd then
+        cd:SetAllPoints(cell)
+        if cd.SetDrawBling then cd:SetDrawBling(false) end
+        if cd.SetDrawEdge then cd:SetDrawEdge(false) end
+        if cd.SetSwipeTexture then pcall(cd.SetSwipeTexture, cd, SOLID) end
+        -- 暗色的扇形從空的一側長出來：「正在充回來」讀起來像在填這一格
+        if cd.SetReverse then cd:SetReverse(true) end
+        local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
+        -- ⚠ 先給字型（像素字型、跟數值文字同一套）；樣式在 LayoutCustomRow 依列高重套
+        if fs then ns.Media.SetPixelFont(fs, 8, "OUTLINE") end
+        cell.cd = cd
+    end
+    cell.bar = CreateFrame("StatusBar", nil, cell)
+    cell.bar:SetAllPoints(cell)
+    cell.bar:SetStatusBarTexture(SOLID)
+    Edges(cell.bar)
+    cell:Hide()
+    return cell
+end
+
+local function MakeCustomRow(parent)
+    local row = CreateFrame("Frame", nil, parent)
+    row.cells = {}                    -- 懶建：要幾格建幾格（frame 刪不掉，建了就留著重用）
     row:Hide()
     return row
 end
@@ -535,6 +712,85 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
         seg:Show()
     end
     for i = numSeg + 1, MAX_SEGMENTS do row.segs[i]:Hide() end
+end
+
+-- 自訂列的顏色：存檔的色 → 職業色
+local function CustomColor(entry)
+    local c = RC.ValidColor(entry and entry.color)
+    if c then return c.r, c.g, c.b end
+    local r, g, b = ns.Style.Accent()
+    return r, g, b
+end
+R.CustomColor = CustomColor
+
+local function LayoutCustomRow(row, plan, cfg, W, H)
+    local numSeg = plan.numSeg
+    row:SetSize(W, H)
+    row:SetAlpha(1)
+    local reversed = ns.FillReversed(cfg)
+    local tex = ns.Media.Texture(cfg.texture)
+    local gap = ns.P.Scale(tonumber(cfg.segmentSpacing) or 1)
+    local segW = ns.P.Scale((W - gap * (numSeg - 1)) / numSeg)
+    local r, g, b = CustomColor(plan.entry)
+    local alpha = tonumber(cfg.barAlpha) or 1
+    local charges = plan.kind == "charges"
+    local showTime = plan.entry.showTime ~= false
+    local fontSize = math.max(8, (tonumber(cfg.rowHeight) or 8) - 4)
+    local font = ns.Setting(nil, "font")
+    local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
+    for i = 1, numSeg do
+        local cell = row.cells[i]
+        if not cell then
+            cell = MakeCustomCell(row)
+            row.cells[i] = cell
+        end
+        cell:SetSize(segW, H)
+        cell:ClearAllPoints()
+        local x = (i - 1) * (segW + gap)
+        if reversed then
+            cell:SetPoint("TOPRIGHT", row, "TOPRIGHT", -x, 0)
+        else
+            cell:SetPoint("TOPLEFT", row, "TOPLEFT", x, 0)
+        end
+        -- 層級每次重排都重設：父層的 strata／level 可能被結構套用改過
+        local lv = cell:GetFrameLevel()
+        cell.bg:SetTexture(tex)
+        cell.bg:SetVertexColor(DIM.r, DIM.g, DIM.b, DIM.a)
+        cell.bar:SetFrameLevel(lv + 2)
+        cell.bar:SetStatusBarTexture(tex)
+        cell.bar:SetMinMaxValues(i - 1, i)
+        local t = cell.bar:GetStatusBarTexture()
+        if t then t:SetVertexColor(r, g, b, alpha) end
+        local cd = cell.cd
+        if cd then
+            if charges then
+                cd:SetFrameLevel(lv + 1)
+                -- 扇形用這一列顏色的暗版（跟連續條的空底同一個算法）
+                if cd.SetSwipeColor then cd:SetSwipeColor(r * 0.25, g * 0.25, b * 0.25, 0.8) end
+                if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(not showTime) end
+                local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
+                if fs then
+                    ns.Media.SetPixelFont(fs, fontSize, "OUTLINE", font)
+                    fs:SetTextColor(1, 1, 1, 1)
+                    fs:ClearAllPoints()
+                    fs:SetPoint("CENTER", cell, "CENTER", 0, 0)
+                end
+                if fmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
+                if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
+                cd:Show()
+            else
+                -- 光環層數沒有 duration：不放 Cooldown
+                cd:Clear()
+                cd:Hide()
+            end
+        end
+        cell:Show()
+    end
+    for i = numSeg + 1, #row.cells do
+        local cell = row.cells[i]
+        if cell.cd then cell.cd:Clear() end
+        cell:Hide()
+    end
 end
 
 ------------------------------------------------------------
@@ -694,17 +950,105 @@ local function UpdateRow(row, cfg)
     end
 end
 
+-- 自訂列的目前值（原始值，可能是秘密值）與回充的 duration 物件。讀不到回 nil
+local function CustomValue(plan)
+    if plan.kind == "stacks" then return AuraStacks(plan.spellID), nil end
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    local cur
+    if fn then
+        local ok, info = pcall(fn, plan.spellID)
+        if ok and type(info) == "table" then
+            local ok2, v = pcall(function() return info.currentCharges end)
+            if ok2 then cur = v end
+        end
+    end
+    local dfn = C_Spell and C_Spell.GetSpellChargeDuration
+    local dur
+    if dfn then
+        local ok, d = pcall(dfn, plan.spellID)
+        if ok then dur = d end
+    end
+    return cur, dur
+end
+R.CustomValue = CustomValue
+
+local function UpdateCustomRow(row)
+    local plan = row.plan
+    if not plan then return end
+    local cur, dur = CustomValue(plan)
+    -- 只看型別（type() 回真實型別，不讀值）：秘密數字照樣是 "number"
+    local readable = type(cur) == "number"
+    row.valueState = (not readable) and "unreadable" or (ns.IsSecret(cur) and "secret" or "plain")
+    row:SetAlpha(readable and 1 or 0.5)
+    local charges = plan.kind == "charges"
+    for i = 1, plan.numSeg do
+        local cell = row.cells[i]
+        -- ⚠ 不能寫 `readable and cur or 0`：`or` 要判斷 cur 的真假，秘密值當布林用會拋錯
+        if readable then cell.bar:SetValue(cur) else cell.bar:SetValue(0) end   -- 引擎決定這格亮多少，秘密值照樣對
+        local cd = cell.cd
+        if charges and cd then
+            if dur then
+                pcall(cd.SetCooldownFromDurationObject, cd, dur, true)
+            else
+                cd:Clear()
+            end
+        end
+    end
+end
+
 ------------------------------------------------------------
 -- 重排與重畫
 ------------------------------------------------------------
 local shownCount = 0
 local laidOut = false            -- 排過版了沒（false ＝ 下一次 Update 一定重排）
+local customShown = 0
+local customHas = { charges = false, stacks = false }
+local SyncCustomEvents           -- 定義在事件那一段（前置宣告）
+
+local function HideCustomRows(from)
+    for i = from, #customRows do
+        local row = customRows[i]
+        row:Hide()
+        row.plan, row.valueState = nil, nil
+        for _, cell in ipairs(row.cells) do
+            if cell.cd then cell.cd:Clear() end
+        end
+    end
+end
 
 local function Relayout(cfg, list, W)
     local H = ns.P.Scale(RowHeight(cfg))
     local gap = ns.P.Scale(tonumber(cfg.rowSpacing) or 1)
     W = ns.P.Scale(W)
     local prev
+    local function Place(row)
+        row:ClearAllPoints()
+        if prev then
+            row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
+        else
+            row:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
+        end
+        prev = row
+    end
+    -- 自訂格子排最上面（容器錨 BOTTOM、往上長：資源列的位置不因自訂列增減而動）
+    local plans = R.PlanCustomRows(cfg, CurrentSpecID(), gameProbe)
+    customHas.charges, customHas.stacks = false, false
+    for i, plan in ipairs(plans) do
+        local row = customRows[i]
+        if not row then
+            row = MakeCustomRow(root)
+            customRows[i] = row
+        end
+        row.plan = plan
+        customHas[plan.kind] = true
+        Place(row)
+        LayoutCustomRow(row, plan, cfg, W, H)
+        row:Show()
+    end
+    HideCustomRows(#plans + 1)
+    customShown = #plans
+    if SyncCustomEvents then SyncCustomEvents() end
+
     for i, key in ipairs(list) do
         local row = rows[i]
         if not row then
@@ -713,44 +1057,59 @@ local function Relayout(cfg, list, W)
         end
         row.key = key
         row.numSeg = SegmentsFor(key)
-        row:ClearAllPoints()
-        if prev then
-            row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
-        else
-            row:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
-        end
+        Place(row)
         LayoutRow(row, key, cfg, row.numSeg, W, H)
         row:Show()
-        prev = row
     end
     for i = #list + 1, #rows do
         rows[i]:Hide()
         rows[i].key = nil
     end
     shownCount = #list
-    local n = #list
+    local n = #list + #plans
     ns.Bars.SetPanelSize("resources", W, n > 0 and (n * H + (n - 1) * gap) or 1)
 end
 
+local function UpdateCustomRows()
+    for i = 1, customShown do
+        local ok, err = xpcall(UpdateCustomRow, ns.ReportError, customRows[i])
+        if not ok then R.lastError = err end
+    end
+end
+
 -- force：重排（清單、格數、尺寸設定、寬度都可能變了）。不給 ＝ 只重畫值（能量事件走這條，
--- 熱路徑上不重算清單、不配任何表或字串）
-function R.Update(force)
+-- 熱路徑上不重算清單、不配任何表或字串）。custom ＝ 自訂格子的值也重畫（重排時一定重畫）
+function R.Update(force, custom)
     if not root then return end
     local cfg = Cfg()
     if not cfg or cfg.enabled == false then
         for i = 1, #rows do rows[i]:Hide() end
-        shownCount = 0
+        HideCustomRows(1)
+        shownCount, customShown = 0, 0
+        customHas.charges, customHas.stacks = false, false
+        if SyncCustomEvents then SyncCustomEvents() end
         laidOut = false
         return
     end
     if force or not laidOut then
         Relayout(cfg, ActiveRows(cfg), R.Width(cfg))
         laidOut = true
+        custom = true
     end
     for i = 1, shownCount do
         local ok, err = xpcall(UpdateRow, ns.ReportError, rows[i], cfg)
         if not ok then R.lastError = err end
     end
+    if custom then UpdateCustomRows() end
+end
+
+-- 只重畫自訂格子的值（充能／冷卻事件走這條，不碰資源列）
+function R.UpdateCustom()
+    if not root then return end
+    if not laidOut then return R.Update(true) end
+    local cfg = Cfg()
+    if not cfg or cfg.enabled == false then return end
+    UpdateCustomRows()
 end
 
 -- 專精／型態／天賦／上限變動：清單與格數都可能變
@@ -763,17 +1122,30 @@ end
 ------------------------------------------------------------
 -- 事件：只標髒，下一幀做
 ------------------------------------------------------------
-local dirtyReeval, dirtyValues, armed = false, false, false
+local dirtyReeval, dirtyValues, dirtyCustom, armed = false, false, false, false
 
 local function Flush()
     armed = false
-    local re, va = dirtyReeval, dirtyValues
-    dirtyReeval, dirtyValues = false, false
-    if re then R.Reevaluate() elseif va then R.Update(false) end
+    local re, va, cu = dirtyReeval, dirtyValues, dirtyCustom
+    dirtyReeval, dirtyValues, dirtyCustom = false, false, false
+    if re then
+        R.Reevaluate()
+    elseif va then
+        R.Update(false, cu)
+    elseif cu then
+        R.UpdateCustom()
+    end
 end
 
-local function Mark(reeval)
-    if reeval then dirtyReeval = true else dirtyValues = true end
+-- what：true ＝ 重算清單與重排；"custom" ＝ 只重畫自訂格子的值；其他 ＝ 只重畫資源列的值
+local function Mark(what)
+    if what == "custom" then
+        dirtyCustom = true
+    elseif what then
+        dirtyReeval = true
+    else
+        dirtyValues = true
+    end
     if not armed then
         armed = true
         ns.Defer(Flush)
@@ -790,11 +1162,42 @@ local REEVAL_EVENTS = {
     SPELLS_CHANGED = true,
 }
 
+-- 只影響自訂格子的事件（很密，不去碰資源列）
+local CUSTOM_EVENTS = { SPELL_UPDATE_CHARGES = true, SPELL_UPDATE_COOLDOWN = true }
+
 local evFrame
+local evCharges, evAura = false, false
 
 local function OnEvent(_, event)
     if event == "UNIT_POWER_POINT_CHARGE" then chargedDirty = true end
+    if CUSTOM_EVENTS[event] then
+        Mark("custom")
+        return
+    end
+    if event == "UNIT_AURA" then
+        if customHas.stacks then Mark("custom") end
+        if AURA_DRIVEN_CLASSES[CLASS] then Mark(false) end
+        return
+    end
     Mark(REEVAL_EVENTS[event] == true)
+end
+
+-- 自訂格子要的事件只在真的有那一種列時才註冊（重排時對一次帳）：
+-- 充能列 → SPELL_UPDATE_CHARGES／COOLDOWN；層數列 → UNIT_AURA（有光環型資源的職業本來就有）
+SyncCustomEvents = function()
+    if not evFrame then return end
+    local wantCharges = customHas.charges
+    if wantCharges ~= evCharges then
+        evCharges = wantCharges
+        for e in pairs(CUSTOM_EVENTS) do
+            if wantCharges then evFrame:RegisterEvent(e) else evFrame:UnregisterEvent(e) end
+        end
+    end
+    local wantAura = (AURA_DRIVEN_CLASSES[CLASS] or customHas.stacks) and true or false
+    if wantAura ~= evAura then
+        evAura = wantAura
+        if wantAura then evFrame:RegisterUnitEvent("UNIT_AURA", "player") else evFrame:UnregisterEvent("UNIT_AURA") end
+    end
 end
 
 local function RegisterEvents()
@@ -811,8 +1214,9 @@ local function RegisterEvents()
     end
     if CLASS == "DEATHKNIGHT" then evFrame:RegisterEvent("RUNE_POWER_UPDATE") end
     if CLASS == "ROGUE" then evFrame:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", "player") end
-    -- 光環堆疊型（漩渦之武／矛尖）與野德的滿溢之力只能吃 UNIT_AURA：只有真的有這種資源的職業才註冊
-    if AURA_DRIVEN_CLASSES[CLASS] then evFrame:RegisterUnitEvent("UNIT_AURA", "player") end
+    -- 光環堆疊型（漩渦之武／矛尖）與野德的滿溢之力只能吃 UNIT_AURA：有這種資源的職業一律註冊，
+    -- 其他職業只在有自訂層數列時註冊（SyncCustomEvents）
+    SyncCustomEvents()
     evFrame:SetScript("OnEvent", OnEvent)
 end
 
@@ -869,6 +1273,12 @@ function R.GetRowFrame(powerType)
     return nil
 end
 
+-- 第 i 列自訂格子的框（除錯與冒煙用；不是公開 API）
+function R.CustomRowFrame(i)
+    if type(i) ~= "number" or i < 1 or i > customShown then return nil end
+    return customRows[i]
+end
+
 function R.DebugLines()
     local out = {}
     local cfg = Cfg()
@@ -895,6 +1305,34 @@ function R.DebugLines()
         local listed = false
         for i = 1, shownCount do if rows[i].key == key then listed = true end end
         if not listed then out[#out + 1] = ("    （%s）%s"):format(key, why) end
+    end
+    -- 自訂格子：清單裡每一筆都印（沒建列的寫原因）
+    local list = R.CustomRowList(cfg, specID)
+    if list and #list > 0 then
+        out[#out + 1] = ("  自訂格子：清單 %d 筆  顯示 %d 列  事件 充能 %s／光環 %s")
+            :format(#list, customShown, evCharges and "開" or "關", evAura and "開" or "關")
+        for i, e in ipairs(list) do
+            local row
+            for j = 1, customShown do
+                if customRows[j].plan and customRows[j].plan.index == i then row = customRows[j] end
+            end
+            local kind = type(e) == "table" and tostring(e.kind) or "?"
+            local id = type(e) == "table" and tostring(e.spellID) or "?"
+            if row then
+                -- 值是不是秘密：用上一次更新時記的狀態（只看型別與 issecretvalue，不讀值）
+                local vs = row.valueState
+                local state = vs == "secret" and "秘密" or vs == "plain" and "明文" or vs == "unreadable" and "讀不到" or "—"
+                out[#out + 1] = ("    自訂 %d. %-7s spellID %s  ×%d  值 %s")
+                    :format(i, kind, id, row.plan.numSeg, state)
+            else
+                local why
+                if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] or type(e.spellID) ~= "number" then why = "壞資料"
+                elseif e.enabled == false then why = "關閉"
+                elseif e.kind == "charges" and not CustomKnown(e.spellID) then why = "法術未學會"
+                else why = "沒有建列" end
+                out[#out + 1] = ("    （自訂 %d. %s spellID %s）%s"):format(i, kind, id, why)
+            end
+        end
     end
     return out
 end
