@@ -166,6 +166,7 @@ function Options.ShowTab(id)
 end
 
 function Options.ShowPage(id)
+    local asked = id
     id = Options.HostPage(id)
     if not pageDefs[id] then id = "essential" end
     -- 下拉選單掛在 UIParent 的 TOOLTIP strata，不是頁面的子框 —— 切頁前先收
@@ -185,7 +186,12 @@ function Options.ShowPage(id)
     SetTab(full and id or "general")
     page:Show()
     currentPage = id
-    if page.OnShowPage then xpcall(page.OnShowPage, ns.ReportError, page) end
+    -- 沒有自己一頁的面板（自訂格子）：宿主頁切到它那個分頁
+    if asked ~= id and page.SetSub then
+        xpcall(page.SetSub, ns.ReportError, page, asked)
+    elseif page.OnShowPage then
+        xpcall(page.OnShowPage, ns.ReportError, page)
+    end
     local w = WindowDB()
     if w then w.lastBar = id end
     if not full and ns.Sidebar and ns.Sidebar.Highlight then ns.Sidebar.Highlight(id) end

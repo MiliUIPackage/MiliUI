@@ -405,8 +405,9 @@ L["wan"] = "만"
 L["yi"] = "억"
 
 -- 資源條：自訂格子
+L["Class Resources"] = "직업 자원"
 L["Custom segments"] = "사용자 지정 칸"
-L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings above; each specialization keeps its own list."] = "주문의 충전 횟수나 내 몸에 걸린 효과의 중첩을 칸 줄로 표시합니다. 기본 위치는 핵심 재사용 대기시간 아래이며, 보조 재사용 대기시간은 자동으로 아래로 밀립니다. 크기와 모양은 위의 자원 바 설정을 따르고, 전문화마다 목록이 따로 있습니다."
+L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings on the Class Resources tab; each specialization keeps its own list."] = "주문의 충전 횟수나 내 몸에 걸린 효과의 중첩을 칸 줄로 표시합니다. 기본 위치는 핵심 재사용 대기시간 아래이며, 보조 재사용 대기시간은 자동으로 아래로 밀립니다. 크기와 모양은 위의 자원 바 설정을 따르고, 전문화마다 목록이 따로 있습니다."
 L["No custom segments for this specialization yet."] = "이 전문화에는 아직 사용자 지정 칸이 없습니다."
 L["+ Add segments"] = "+ 칸 추가"
 L["What should this row track?"] = "이 줄로 무엇을 추적할까요?"
