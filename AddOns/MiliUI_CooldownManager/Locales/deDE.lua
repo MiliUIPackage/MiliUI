@@ -63,6 +63,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "Zuerst in Blizzards A
 L["Add spells to this bar"] = "Zauber zu dieser Leiste hinzufügen"
 L["Left-click: settings for this spell"] = "Linksklick: Einstellungen für diesen Zauber"
 L["Middle-click: remove"] = "Mittelklick: entfernen"
+L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "Blizzards Abklingzeitmanager zeigt diesen Eintrag gerade nicht an, daher kann er nicht auf der Leiste erscheinen."
 L["Drag: reorder, or drop on a group on the left"] = "Ziehen: umsortieren oder links auf eine Gruppe ablegen"
 L["Name"] = "Name"
 L["Name the new group"] = "Name der neuen Gruppe"

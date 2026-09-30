@@ -860,3 +860,8 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     開了「隱藏 GCD 轉圈」時飾品那一格的 GCD 轉圈也一起藏。
 89. 沒有自訂格子的專精（例如被系統換成神聖）：輔助技能有顯示、貼在核心技能下方；切回有格子的專精時輔助排到格子下面。
     `/mcdm debug` 的「跟隨」欄：格子收合時輔助是「pips（貼 essential）」。
+90. 資源條頁「這個專精要顯示哪些」：取消勾選當場少一列、`/reload` 後還是關的（原本寫成 `(not on) and false or nil`，
+    永遠存成 nil）。
+91. 清單上有、暴雪卻沒有給框的（例如飾品拖進關鍵冷卻技能之後條上沒出現）：設定頁預覽那一格是暗的、提示寫
+    「暴雪的冷卻管理器目前沒有顯示這一格」；`/mcdm debug` 的診斷記錄有 `[missing]`。此時請打 `/mcdm debug` 再 `/reload`，
+    從存檔的 item 現況看暴雪那邊到底有沒有那顆框、身分是什麼（`[identity]` ＝ 後掛勾漏接、下一輪已救回）。

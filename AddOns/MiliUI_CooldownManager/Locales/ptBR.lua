@@ -63,6 +63,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "Adicione primeiro no 
 L["Add spells to this bar"] = "Adicionar feitiços a esta barra"
 L["Left-click: settings for this spell"] = "Clique esquerdo: configurações deste feitiço"
 L["Middle-click: remove"] = "Clique do meio: remover"
+L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "O gerenciador de recarga da Blizzard não está mostrando esta entrada agora, então ela não pode aparecer na barra."
 L["Drag: reorder, or drop on a group on the left"] = "Arrastar: reordenar ou soltar em um grupo à esquerda"
 L["Name"] = "Nome"
 L["Name the new group"] = "Nome do novo grupo"

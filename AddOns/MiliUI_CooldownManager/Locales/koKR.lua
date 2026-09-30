@@ -63,6 +63,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "먼저 블리자드 �
 L["Add spells to this bar"] = "이 바에 주문 추가"
 L["Left-click: settings for this spell"] = "왼쪽 클릭: 이 주문의 설정"
 L["Middle-click: remove"] = "가운데 클릭: 제거"
+L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "블리자드 재사용 대기시간 관리자가 지금 이 항목을 표시하지 않아 바에 나타낼 수 없습니다."
 L["Drag: reorder, or drop on a group on the left"] = "끌기: 순서 변경 또는 왼쪽의 그룹에 놓기"
 L["Name"] = "이름"
 L["Name the new group"] = "새 그룹 이름"
