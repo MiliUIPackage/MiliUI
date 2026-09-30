@@ -1,0 +1,18 @@
+## Interface: 120100, 120105
+## Title: MiliUI Sound Pack
+## Title-zhTW: |cff00FFFF[音效]|r 米利的音效包
+## Title-zhCN: |cff00FFFF[音效]|r 米利的音效包
+## Notes: A pack of alert sounds registered with LibSharedMedia, for any addon with a sound dropdown.|n|nSounds from WeakAuras 5.21.1 (GPL-2.0), unmodified.
+## Notes-zhTW: MiliUI Sound Pack|n|n一批提示音效，註冊到 LibSharedMedia，所有有音效下拉選單的插件都選得到。|n|n音效取自 WeakAuras 5.21.1（GPL-2.0），未經修改。
+## Notes-zhCN: MiliUI Sound Pack|n|n一批提示音效，注册到 LibSharedMedia，所有有音效下拉菜单的插件都能选到。|n|n音效取自 WeakAuras 5.21.1（GPL-2.0），未经修改。
+## Category: Media
+## Category-zhTW: 媒體
+## Category-zhCN: 媒体
+## Author: Mili (sounds: The WeakAuras Team and contributors)
+## Version: 1.0.0
+## X-License: GPL-2.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Bell_01
+## OptionalDeps: LibSharedMedia-3.0, SharedMedia, WeakAuras
+
+Sounds.lua
