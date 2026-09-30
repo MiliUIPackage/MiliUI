@@ -36,10 +36,14 @@
 -- 檢視器本體釘在容器上（TOPLEFT／BOTTOMRIGHT 對齊），被暴雪（編輯模式、底部管理框）
 -- 拉走就釘回來；_pinGuard 擋自己觸發自己。
 --
--- 面板（資源條、施法條；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
+-- 面板（資源條、自訂格子、施法條；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
 -- 同一套 ApplyStructure（pos／anchor、strata、enabled＝false 就 Hide）與編輯模式／磁吸，
 -- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
 -- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
+--
+-- 可收合的面板（collapsible，自訂格子）：沒有內容時高度 0（WoW 的 SetSize 收 0），而且
+-- 上下向的錨定（TOP↔BOTTOM）**y 偏移一起收掉** —— 它夾在一條鏈中間（核心 → 自訂格子 → 輔助），
+-- 空的時候不能讓兩邊的間距疊成兩倍。收合狀態一變就重套結構（錨點換了）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -125,34 +129,50 @@ local function AnchorTarget(key)
     return a
 end
 
+-- 上下向的錨定（本條的 TOP 貼目標的 BOTTOM、或反過來）：收合時 y 偏移不算
+local function VerticalAnchor(a)
+    local p, r = tostring(a.point or "TOP"), tostring(a.relPoint or "BOTTOM")
+    return (p:find("^TOP") and r:find("^BOTTOM")) or (p:find("^BOTTOM") and r:find("^TOP"))
+end
+
+-- 容器貼到位置（錨在別條上優先、否則 pos）；已經在 ns.Write 裡
+local function PlaceContainer(f, key, bar, st)
+    local a = AnchorTarget(key)
+    local snap = ns.Layout.Snap
+    f:ClearAllPoints()
+    if a then
+        EnsureContainer(a.to)
+        local y = snap(tonumber(a.y) or 0)
+        if st.collapsed and VerticalAnchor(a) then y = 0 end
+        f:SetPoint(a.point or "TOP", containers[a.to], a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), y)
+    else
+        local pos = type(bar.pos) == "table" and bar.pos or {}
+        -- 容器用版面算出來的錨點（圖示增減時那一邊不動），貼在 UIParent 的 pos.point 上
+        f:SetPoint(st.anchorPoint or "CENTER", UIParent, pos.point or "CENTER", snap(tonumber(pos.x) or 0), snap(tonumber(pos.y) or 0))
+    end
+end
+
 local function ApplyStructure(key)
     local c = EnsureContainer(key)
     local bar = BarCfg(key)
+    local st = state[key]
     -- enabled ＝ false 只有面板會有（條沒有這個欄位）
     if not bar or bar.enabled == false then
+        -- 可收合的面板關掉時位置照樣對好：錨在它身上的條（輔助技能）要貼回它的上一層
+        local collapsible = bar and panels[key] and panels[key].collapsible
         -- 條被刪（自訂群組、換設定檔少了這條）或面板關掉：容器收起來，編輯模式的覆蓋層／選取框也收
         --（frame 刪不掉；同一個 key 之後再建回來會重用，ApplyBarNow 看 BarCfg 決定要不要再顯示）
         ns.Write(c, function(f)
+            if collapsible then PlaceContainer(f, key, bar, st) end
             f:Hide()
             if ns.EditMode and ns.EditMode.ApplyBarNow then ns.EditMode.ApplyBarNow(key) end
         end, "shown")
         return
     end
-    local st = state[key]
     local anchorPoint = st.anchorPoint or "CENTER"
-    local a = AnchorTarget(key)
-    local snap = ns.Layout.Snap
     ns.Write(c, function(f)
         f:SetFrameStrata(bar.strata or "MEDIUM")
-        f:ClearAllPoints()
-        if a then
-            EnsureContainer(a.to)
-            f:SetPoint(a.point or "TOP", containers[a.to], a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), snap(tonumber(a.y) or 0))
-        else
-            local pos = type(bar.pos) == "table" and bar.pos or {}
-            -- 容器用版面算出來的錨點（圖示增減時那一邊不動），貼在 UIParent 的 pos.point 上
-            f:SetPoint(anchorPoint, UIParent, pos.point or "CENTER", snap(tonumber(pos.x) or 0), snap(tonumber(pos.y) or 0))
-        end
+        PlaceContainer(f, key, bar, st)
         f:Show()
         -- 編輯模式：覆蓋層跟著新的尺寸／錨點重排，磁吸的 Restore 接點
         if ns.EditMode and ns.EditMode.AfterApply then ns.EditMode.AfterApply(key) end
@@ -650,10 +670,11 @@ end
 ------------------------------------------------------------
 -- 面板（資源條、施法條）
 --
---   B.RegisterPanel(key, def)  def = { anchorPoint, minSize = fn → w, h, relayout = fn(level) }
+--   B.RegisterPanel(key, def)  def = { anchorPoint, minSize = fn → w, h, relayout = fn(level), collapsible }
 --                              建容器（EditMode.OnContainer 一併建好覆蓋層／選取框／磁吸）、
 --                              照存檔貼位置。回傳容器。
---   B.SetPanelSize(key, w, h)  容器大小（變了才寫，走 ns.Write）
+--   B.SetPanelSize(key, w, h)  容器大小（變了才寫，走 ns.Write）。collapsible 的面板 h 可以是 0
+--                              （收合：上下向錨定的 y 偏移一起收掉，收合狀態一變就重套結構）
 --   B.IsPanel(key) / B.Panels()
 ------------------------------------------------------------
 function B.RegisterPanel(key, def)
@@ -677,11 +698,28 @@ end
 function B.SetPanelSize(key, w, h)
     local c, st = containers[key], state[key]
     if not (c and st) then return end
+    local pd = panels[key]
+    local collapsible = pd and pd.collapsible
     w = (w and w > 0) and w or 1
-    h = (h and h > 0) and h or 1
-    if st.w == w and st.h == h then return end
+    if collapsible and h == 0 then
+        h = 0
+    else
+        h = (h and h > 0) and h or 1
+    end
+    local collapsed = (collapsible and h == 0) and true or false
+    if st.w == w and st.h == h and (st.collapsed or false) == collapsed then return end
     st.w, st.h = w, h
     ns.Write(c, function(f) f:SetSize(w, h) end, "size")
+    if (st.collapsed or false) ~= collapsed then
+        st.collapsed = collapsed
+        -- 錨定的 y 偏移跟著收／放：結構級（戰鬥中記帳到脫戰）
+        if InCombatLockdown() then structurePending[key] = true; ArmStructurePending() else ApplyStructure(key) end
+    end
+end
+
+function B.IsCollapsed(key)
+    local st = state[key]
+    return st and st.collapsed or false
 end
 
 ------------------------------------------------------------

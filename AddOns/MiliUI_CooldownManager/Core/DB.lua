@@ -33,14 +33,15 @@ ns.DB_VERSION = 1
 DB.DEFAULT_PROFILE = "Default"
 
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
-local ResourcesDefaults, CastbarDefaults      -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
+local ResourcesDefaults, PipsDefaults, CastbarDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 
 ------------------------------------------------------------
 -- 預設值
 --
 -- 數值取套組目前出貨的那組：核心 46×40、輔助 26×24、增益 40×36、間距 1、每列 8、
 -- 字型「提示訊息」＋描邊、發光 pixel、長條往下長；位置核心 (0,-202)／增益 (0,-149)／
--- 長條 BOTTOM (0,300)，輔助錨在核心下方。
+-- 長條 BOTTOM (0,300)，輔助錨在自訂格子下方、自訂格子錨在核心下方（核心 → 自訂格子 → 輔助；
+-- 沒有自訂格子時那一層高度 0，輔助照舊貼在核心下方）。
 --
 -- 位置 pos：{ point, x, y }。point 同時是容器的錨點與 UIParent 的對應點
 -- （CENTER 偏移就是 point = "CENTER"）。存的是**錨點那一邊**的座標，
@@ -109,9 +110,9 @@ function DB.NewBarTable(kind, name)
 end
 
 ------------------------------------------------------------
--- 資源條（Modules/Resources.lua）與施法條（Modules/Castbar.lua）
+-- 資源條（Modules/Resources.lua）、自訂格子（Modules/Pips.lua）與施法條（Modules/Castbar.lua）
 --
--- 兩者都不在 bars 裡（不是暴雪檢視器、沒有版面／主題繼承），但**錨定語意跟條一樣**：
+-- 三者都不在 bars 裡（不是暴雪檢視器、沒有版面／主題繼承），但**錨定語意跟條一樣**：
 -- pos ＝ { point, x, y }、anchor ＝ false 或 { to, point, relPoint, x, y }，容器走
 -- Core/Bars.lua 的 RegisterPanel（ApplyStructure、編輯模式、磁吸都是同一套）。
 -- DB.ConfigTable(key) 是「條或面板」的統一取表出口。
@@ -179,12 +180,25 @@ ResourcesDefaults = function()
         -- [資源key] = false ＝ 關掉那一列；開放式、預設空
         rows          = {},
         -- 自訂格子：[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, enabled }, … }
-        -- 開放式、預設空；排在資源列上面（Modules/Resources.lua 的 PlanCustomRows）
+        -- 開放式、預設空。畫在自己的面板（profile.pips、Modules/Pips.lua），樣式沿用這張表
         customRows    = {},
         colors        = colors,
         -- 載入條件：任一成立就整條藏（alpha 0）
         loadConditions = { hideMounted = false, onlyCombat = false },
         -- 跟核心技能條一起淡（取核心技能現在的 alpha，含它的顯示條件與淡出）
+        fadeWithEssential = true,
+        strata        = "MEDIUM",
+    }
+end
+
+-- 自訂格子的面板：只有位置／錨定／開關／淡出是自己的（清單與樣式在 profile.resources）
+PipsDefaults = function()
+    return {
+        enabled       = true,
+        pos           = { point = "CENTER", x = 0, y = -250 },
+        -- 預設貼在核心技能下緣、往下長；輔助技能預設錨在它下面（使用者 2026-09-30 指定）
+        anchor        = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 },
+        -- 跟核心技能條一起淡（同資源條）
         fadeWithEssential = true,
         strata        = "MEDIUM",
     }
@@ -272,7 +286,7 @@ function DB.BuildDefaults()
                                      w = 46, h = 40 },
                 utility   = IconBar{ source = "utility",   pos = { point = "CENTER", x = 0, y = -250 },
                                      w = 26, h = 24,
-                                     anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM",
+                                     anchor = { to = "pips", point = "TOP", relPoint = "BOTTOM",
                                                 x = 0, y = -1 } },
                 buffs     = IconBar{ source = "buffs",     pos = { point = "CENTER", x = 0, y = -149 },
                                      w = 40, h = 36, grow = "CENTER_UP", fixedSlots = true },
@@ -281,6 +295,7 @@ function DB.BuildDefaults()
             barOrder = { "essential", "utility", "buffs", "buffbars" },   -- 左欄順序，自訂群組接在後面
             spells   = {},                  -- [specID] = { order, groupOf, hidden, overrides, custom }
             resources = ResourcesDefaults(),
+            pips      = PipsDefaults(),
             castbar   = CastbarDefaults(),
         },
     }
@@ -770,12 +785,14 @@ end
 local BUILTIN = { essential = true, utility = true, buffs = true, buffbars = true }
 function DB.IsBuiltinBar(key) return BUILTIN[key] == true end
 
--- 「面板」：資源條與施法條。不在 bars 裡、左欄有自己的頁，但錨定／位置／編輯模式跟條同一套。
--- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
-local PANEL_KEYS = { resources = true, castbar = true }
+-- 「面板」：資源條、自訂格子與施法條。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁），
+-- 但錨定／位置／編輯模式跟條同一套。
+-- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它；輔助技能預設錨在 pips 上），不要改名。
+local PANEL_KEYS = { resources = true, pips = true, castbar = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS
-DB.PANEL_ORDER = { "resources", "castbar" }
+-- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列
+DB.PANEL_ORDER = { "resources", "pips", "castbar" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 條或面板的設定表（錨定、位置、編輯模式、設定頁的 root "bar" 一律走這支）

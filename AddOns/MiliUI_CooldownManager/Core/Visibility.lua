@@ -16,9 +16,11 @@
 -- （它們的 parent 仍是暴雪檢視器，我們不 SetParent），容器的 alpha 管不到它們 ——
 -- 所以每個認領中的 item 也要各自 SetAlpha。
 --
--- 面板（資源條、施法條）不走上面的模型，各自一條（Vis.PanelAlpha）：
+-- 面板（資源條、自訂格子、施法條）不走上面的模型，各自一條（Vis.PanelAlpha）：
 --   資源條  enabled ＝ false → 0；載入條件 loadConditions（騎乘或坐載具／只在戰鬥中）任一不符 → 0；
 --           fadeWithEssential 開著時取核心技能條現在的 alpha（它的顯示條件與淡出一起帶過來）
+--   自訂格子  enabled ＝ false → 0；fadeWithEssential 同資源條（profile.pips 自己的那一格；
+--             資源條的載入條件不帶過來）
 --   施法條  enabled ＝ false → 0；hideWhenNotCasting 且沒在施法（ns.Castbar.IsActive）→ 0
 --   編輯模式中一律全亮（同條）。面板的框都是容器的子框，容器的 alpha 就管得到。
 --
@@ -134,6 +136,13 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting)
             return a
         end
         return 1
+    elseif key == "pips" then
+        if cfg.fadeWithEssential ~= false then
+            local a = tonumber(essentialAlpha) or 1
+            if a < 0 then a = 0 elseif a > 1 then a = 1 end
+            return a
+        end
+        return 1
     elseif key == "castbar" then
         if cfg.hideWhenNotCasting ~= false and not casting then return 0 end
         return 1
@@ -146,7 +155,7 @@ function Vis.PanelAlpha(key)
     if not cfg or cfg.enabled == false then return 0 end
     if ns.EditMode and ns.EditMode.active then return 1 end
     local ess = 1
-    if key == "resources" and cfg.fadeWithEssential ~= false then ess = Vis.Alpha("essential") end
+    if (key == "resources" or key == "pips") and cfg.fadeWithEssential ~= false then ess = Vis.Alpha("essential") end
     local casting = ns.Castbar and ns.Castbar.IsActive and ns.Castbar.IsActive() or false
     return Vis.EvaluatePanel(key, cfg, Snapshot(), ess, casting)
 end
@@ -175,7 +184,7 @@ function Vis.ApplyAll()
         local ok, err = xpcall(Vis.Apply, ns.ReportError, key)
         if not ok then Vis.lastError = err end
     end
-    -- 面板排在條後面：資源條要讀核心技能剛算好的 alpha
+    -- 面板排在條後面：資源條、自訂格子要讀核心技能剛算好的 alpha
     for _, key in ipairs(ns.DB.PANEL_ORDER) do
         local ok, err = xpcall(Vis.Apply, ns.ReportError, key)
         if not ok then Vis.lastError = err end

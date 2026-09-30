@@ -41,10 +41,10 @@
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
 | `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
-| `Modules/Resources.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
+| `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件、施法條的時間文字／截字／刻度查表），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -242,19 +242,25 @@
 
 ## 資源條與施法條
 
-兩者都是**面板**：不在 `bars` 裡（沒有版面／主題繼承），設定在 `profile.resources`／`profile.castbar`，
-左欄有自己的頁；但**錨定語意跟條一模一樣**（`pos = { point, x, y }`、`anchor = false | { to, point, relPoint, x, y }`），
+三者都是**面板**：資源條、自訂格子（`pips`）、施法條。不在 `bars` 裡（沒有版面／主題繼承），設定在
+`profile.resources`／`profile.pips`／`profile.castbar`，資源條與施法條在左欄有自己的頁（自訂格子的設定在資源條頁）；
+但**錨定語意跟條一模一樣**（`pos = { point, x, y }`、`anchor = false | { to, point, relPoint, x, y }`），
 容器也是 `MiliUICDM_Bar_<key>`、走 `Core/Bars.lua` 的同一套 `ApplyStructure`、編輯模式覆蓋層／選取框／磁吸、點擊層。
 
 | 位置 | 內容 |
 |---|---|
-| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`castbar`）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、兩張預設表 |
-| `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
+| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`；順序＝顯示條件套用與錨定候選的順序）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
+| `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
 | `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
-| `Options/Specs.lua` | `Specs.Anchor(key)` 對面板照用；錨定候選＝`barOrder` ＋ 兩個面板（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
+| `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：spec 的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
+| `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`（`ShowPage`／`FocusBar` 照它轉，編輯模式齒輪與點擊層點了開資源條頁）、`Options.PageTitle("pips")` 回「自訂格子」（覆蓋層條名、錨定候選、點擊層提示） |
 
-容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、施法條 `CENTER`。
-寬 0 ＝ 核心技能第一列寬（施法條含圖示）。
+容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、自訂格子 `TOP`（預設錨在
+核心技能下緣、往下長）、施法條 `CENTER`。寬 0 ＝ 核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`）。
+
+預設的上下疊法（使用者 2026-09-30 指定）：施法條 → 資源條 → **核心技能 → 自訂格子 → 輔助技能**。
+`bars.utility.anchor = { to = "pips", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }`、
+`pips.anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }`。
 
 ### 資源條（`Modules/Resources.lua`）
 
@@ -282,11 +288,21 @@
   `fadeWithEssential` 開著時取核心技能現在的 alpha（它的顯示條件與淡出一起帶過來）。容器不是 secure 框，Lua 判斷即可。
 - 列是池化的（frame 刪不掉），換專精只換內容；條件規則套上去的透明度／文字色換列時先還原。
 
-#### 自訂格子（`cfg.customRows[specID]`）
+### 自訂格子（`Modules/Pips.lua`，面板 `pips`）
 
-玩家自己加的列：追蹤一個法術的**充能**或自己身上某個光環的**層數**，一組一列，跟資源列同寬同排版，
-**排在資源列的上面**（容器錨 `BOTTOM` 往上長，資源列位置不動；施法條錨在資源條上緣，自動往上讓）。
-清單每個專精一份，預設空：
+玩家自己加的列：追蹤一個法術的**充能**或自己身上某個光環的**層數**，一組一列。**自己的面板**
+（容器 `MiliUICDM_Bar_pips`），預設**排在核心技能下方、輔助技能上方**（輔助錨在它下面，有列時自動往下讓）。
+從資源條拆出來時的分工：
+
+| 東西 | 存在哪 | 說明 |
+|---|---|---|
+| 清單 | `profile.resources.customRows[specID]` | 沒動（每個專精一份，形狀見下） |
+| 樣式 | `profile.resources` | 列高、列距、格距、材質、填充方向、填充透明度、寬（0 ＝ 核心技能第一列）**沿用資源條**，不另開一組 |
+| 位置 | `profile.pips` | `{ enabled = true, pos = { point = "CENTER", x = 0, y = -250 }, anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }, fadeWithEssential = true, strata = "MEDIUM" }` |
+
+清單的純函式（`CustomRowList`／`FindCustomRow`／`AddCustomRow`／`RemoveCustomRow`／`ClampSegments`／
+`PlanCustomRows`／`CustomColor`／`CustomValue`）**整組搬進 `ns.Pips`**，設定頁改呼叫 `ns.Pips.*`；
+`Modules/Resources.lua` 不再有任何自訂格子的程式，只出借 `R.Plain`／`R.AuraStacks`／`R.Edges`／`R.Width`／`R.RowHeight`／`R.DIM`。
 
 ```lua
 customRows[specID] = {
@@ -298,22 +314,35 @@ customRows[specID] = {
 }
 ```
 
-- **規劃**是純函式 `R.PlanCustomRows(cfg, specID, probe)`（`Tests/Resources_test.lua` 測）：壞資料、`enabled = false`、
+- **收合（沒有列就高度 0）**：`B.RegisterPanel("pips", { collapsible = true })`。沒有任何一列（清單空、全部 `enabled = false`、
+  充能法術都沒學、`pips.enabled = false`）時 `SetPanelSize("pips", w, 0)`，而且上下向錨定（TOP↔BOTTOM）的 **y 偏移一起收掉**
+  （`Core/Bars.lua` 的 `PlaceContainer`）：核心 → 自訂格子（0 高、0 偏移）→ 輔助（−1）＝ 輔助照舊在核心下方 1px，跟改版前一模一樣；
+  有列時偏移回來，間距是「核心 −1 → 格子 → −1 輔助」。收合狀態一變就重套結構（戰鬥中記帳到脫戰）。
+  關掉的收合面板容器是藏著的，但位置照樣對好（錨在它身上的輔助要貼回上一層）。
+- **規劃**是純函式 `Pips.PlanCustomRows(cfg, specID, probe)`（`Tests/Resources_test.lua` 測；cfg 是資源條那張表）：壞資料、`enabled = false`、
   未學會的充能法術（`C_SpellBook.IsSpellKnown`／`IsSpellInSpellBook` 過 pcall，秘密值當學了）不建列；
   充能格數 ＝ `GetSpellCharges().maxCharges`（明文才收，順手快取）→ 存檔的 `max` → 2；層數格數 ＝ `max` → 5；上限 10。
+  容器高度 `Pips.PanelHeight(n, H, gap)`（0 列 ＝ 0）。
 - **畫法**：每格三層 —— 底色貼圖（BACKGROUND，跟資源條的空格同色）→ `Cooldown`（level +1）→ 填色 StatusBar（level +2）。
   值直接餵每格的 `SetMinMaxValues(i-1, i)`＋`SetValue`：charges 是 `GetSpellCharges().currentCharges`，
   stacks 是 `GetPlayerAuraBySpellID().applications`（沒有光環 ＝ 0）。充能列每格的 Cooldown 吃
   `C_Spell.GetSpellChargeDuration` 的 duration 物件（`SetCooldownFromDurationObject(dur, true)`），扇形與秒數由引擎畫；
-  滿的格子被填色蓋住，只有空格看得到 ⇒ 秘密值下照樣對，插件端不比較、不算術。層數列不放 Cooldown。
+  滿的格子被填色蓋住，只有空格看得到 ⇒ 秘密值下照樣對，插件端不比較、不算術（沒有 `x and 秘密值 or 0` 這種式子）。層數列不放 Cooldown。
 - **限制**：引擎只給一個「下一格回充」的 duration 物件，所以**所有空格顯示的是同一個時間**（第二格空格不會顯示
   「兩格都回滿」要多久）。
 - **秒數**：`showTime`（預設開）；倒數字是 Cooldown 自己的 `GetCountdownFontString()`，換成像素字型、字級 ＝ 列高 − 4（最小 8），
   `PlainFormatter(0)`＋`SetCountdownMillisecondsThreshold(0)`；關掉走 `SetHideCountdownNumbers(true)`。扇形色 ＝ 這一列顏色 × 0.25、
   alpha 0.8（連續條空底的同一個算法），反向（從空的一側長出來）。
 - **讀不到**（充能 API 回 nil）：整列 alpha 0.5，`/mcdm debug` 的自訂格子段寫「讀不到」；秘密值照常畫、寫「秘密」。
-- **事件**：`SPELL_UPDATE_CHARGES`／`SPELL_UPDATE_COOLDOWN`（有充能列才註冊）、`UNIT_AURA`（player；有層數列或光環型資源的職業才註冊），
-  只標髒、下一幀只重畫自訂列的值；`SPELLS_CHANGED`、換專精走重排。能量事件不碰自訂列。
+- **事件**（自己一個事件框）：`SPELL_UPDATE_CHARGES`／`SPELL_UPDATE_COOLDOWN`（有充能列才註冊）、`UNIT_AURA`（player；有層數列才註冊），
+  只標髒、下一幀只重畫值；`SPELLS_CHANGED`、天賦、換專精、進世界、`FirstRowWidthChanged`（寬 0 時）、設定檔／專精回呼走重排。
+  資源條的能量事件不碰自訂格子；資源條的 `UNIT_AURA` 只剩「有光環型資源的職業」註冊。
+- **顯示條件**：`pips.enabled = false` → alpha 0（容器藏、收合）；`pips.fadeWithEssential` 同資源條（取核心技能現在的 alpha）。
+  資源條的載入條件（騎乘隱藏、只在戰鬥中）**不帶過來**；資源條關掉也不影響自訂格子。
+- **編輯模式**：容器一建好就有覆蓋層（條名「自訂格子」）與選取框、磁吸；空的時候覆蓋層照最小尺寸（寬 × 一列高）從上緣往下畫。
+  拖了就脫離錨定（既有機制）；輔助仍錨在它身上，跟著走。點擊層也蓋，點了開資源條頁。
+- `/mcdm debug`：自訂格子自己一段（開關、清單幾筆、顯示幾列、容器高、錨定或位置、alpha、事件），清單每一筆一行（沒建列寫原因）；
+  資源條那段不再印自訂格子。
 - 列另外池化（每格多一顆 Cooldown，格子懶建），`GetResourceBarFrame` 只找資源列。
 
 ### 施法條（`Modules/Castbar.lua`）
@@ -349,7 +378,7 @@ customRows[specID] = {
 | `GetResourceColors(key)` | `{ color = {r,g,b,a}, chargedColor = {…}\|nil, chargedEmptyColor = {…}\|nil }`；沒有這個資源、設定檔還沒載入 → `nil`。key 見下 |
 | `GetResourceConditions(key)` | 規則陣列（形狀見 `Modules/ResourceConditions.lua` 檔頭，與單位框架相同）；沒有規則 → `nil` |
 | `GetResourceBarFrame(powerType)` | `Enum.PowerType` → 資源條上那一列的框；沒有這一列、玩家關掉、整條關掉（容器藏起來）→ `nil`。載入條件／淡出造成的 alpha 0 不算藏（框還在，錨在上面的東西不必換錨點） |
-| `GetBarFrame(key)` | 容器框 `MiliUICDM_Bar_<key>`（四條檢視器、自訂群組、`resources`、`castbar`）；還沒建 → `nil` |
+| `GetBarFrame(key)` | 容器框 `MiliUICDM_Bar_<key>`（四條檢視器、自訂群組、`resources`、`pips`、`castbar`）；還沒建 → `nil` |
 | `IsReady()` | 引擎是否已經認領好四條檢視器（布林）。問資源顏色／條件不必等它：設定檔載入前那兩支自己回 `nil` |
 | `RegisterCallback(event, key, fn)` | 訂閱事件，目前只開放 `"ResourceStyleChanged"`（資源顏色或條件規則變了：資源條頁的套用、換設定檔、換專精，合併 0.2 秒，不帶參數）。同一個 key 再登記＝換掉；成功回 `true`，事件不開放回 `false`。`fn` 拋錯會被隔離 |
 | `UnregisterCallback(event, key)` | 取消訂閱 |
@@ -361,10 +390,13 @@ customRows[specID] = {
 
 - **資源條**：顯示、版面（寬、列高、列距、格距、填充方向）、外觀（材質、填充透明度、平滑、數值文字與字級、法力格式）、
   顏色與條件（每種資源的顏色、連擊點數的充能色、條件規則編輯器）、**自訂格子**（目前專精的清單：每筆一列名字＋圖示＋種類＋
-  「刪除」（確認窗）、一列顏色＋充能的「顯示秒數」／層數的「層數上限」；「＋ 新增格子」→ 選「法術充能／光環層數」→ 輸入 ID
-  （層數多一欄上限）→ 驗證：`C_Spell.GetSpellInfo`、充能要 `GetSpellCharges` 不是 nil、同專精不收重複，錯誤寫在彈窗裡的灰字列）、
-  這個專精要顯示哪幾列、載入條件、錨定、恢復預設（連自訂格子一起清）。
-  表單照「形狀」快取（專精、候選清單、條件編輯器的結構、自訂格子清單、錨定圖）：規則／自訂格子增刪之類的結構變動延一幀換一份表單。
+  「刪除」（確認窗）、一列顏色＋充能的「顯示秒數」／層數的「層數上限」；「＋ 新增格子」→ 選「法術充能／光環層數」（兩顆按鈕滑過有
+  GameTooltip：標題＋白字說明與舉例；`CreateChoicePopup` 不回傳按鈕，照按鈕字從彈窗子框認回來掛 OnEnter／OnLeave，彈窗 OnHide 一起收提示）
+  → 輸入 ID（層數多一欄上限）→ 驗證：`C_Spell.GetSpellInfo`、充能要 `GetSpellCharges` 不是 nil、同專精不收重複，錯誤寫在彈窗裡的灰字列；
+  底下小節「位置與錨定」＝ `Specs.Anchor("pips", { other = true })`（跟著哪條走／邊／偏移，寫進 `profile.pips`）＋「跟核心技能一起淡出」）、
+  這個專精要顯示哪幾列、載入條件、錨定（資源條自己的）、恢復預設（連自訂格子的清單與 `profile.pips` 一起清）。
+  表單照「形狀」快取（專精、候選清單、條件編輯器的結構、自訂格子清單、資源條與自訂格子各自有沒有錨定、錨定圖）：規則／自訂格子增刪之類的結構變動延一幀換一份表單。
+  套用時 `Resources.Apply()` 與 `Pips.Apply()` 都叫（樣式兩邊共用）。
 - **施法條**：顯示、隱藏暴雪施法條、版面、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
   效果（火花、刻度、延遲）、沒在施法時隱藏、錨定、恢復預設。
 
@@ -505,6 +537,13 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 58. **字高在顯示之後重量**：逐法術面板的每列標籤與說明、設定檔頁匯入審閱區（說明、摘要、「綁定到目前專精」換行），都在 OnShow 重量重排；審閱區的勾選框與按鈕改成跟著摘要往下排。
 59. **刪掉的自訂群組**：容器收起來時編輯模式的覆蓋層與選取框一起收；`/mcdm debug` 的編輯模式段只列設定檔裡有的條與面板。匯出失敗有自己的訊息（不再借用「字串已損壞」）。
 
+**自訂格子移到核心技能下方（2026-09-30）**
+
+60. **空的自訂格子連錨定偏移一起收掉**：照原本的寫法（高度 0、錨點照舊），沒有自訂格子時輔助會離核心 2px（自訂格子的 −1 ＋ 輔助的 −1），
+    跟改版前的 1px 不一樣。改成 `collapsible` 面板在高度 0 時上下向錨定的 y 偏移當 0；存檔的 `anchor.y` 不動，有列時照舊生效。
+61. **沒有 DB 遷移**：`bars.utility.anchor` 的預設改成錨在 `pips`，但既有存檔裡已經寫下的「錨在 essential」不會被改（合併只補 nil）。
+    本插件還沒出過版（`DB_VERSION` 仍是 1），所以不加遷移；出版後再改這種預設就要加一步有值閘的遷移。
+
 ## 待實機驗證
 
 依區塊排，編號連續。打一場記得開 `/console taintLog 2`，看完別 /reload（會清掉 taint.log）。
@@ -581,3 +620,11 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 47. 隱藏暴雪施法條 → 取消勾選 → 暴雪條立刻恢復運作（`IsEventRegistered` 回的 unit 參數、`RegisterUnitEvent` 裝回去）；打一場確認零 ADDON_ACTION_BLOCKED。單位框架的玩家框施法條也開著時，取消勾選暴雪條**維持隱藏**（`/mcdm debug` 施法條那行印「單位框架也在隱藏」）。
 48. 延遲量測：兩個戳記都在派送當下取；SENT 與開唱在同一幀（`GetTime()` 相同）時退回 `GetNetStats` 的世界延遲——`/mcdm debug` 的延遲有沒有常常帶「（GetNetStats）」、量到的值是否跟 `GetNetStats` 同一個量級。
 49. 載具上施法（player／vehicle 兩個 token）畫得對；`UNIT_SPELLCAST_FAILED` 的 castGUID 比對。
+
+**自訂格子**
+
+50. `SetSize(w, 0)` 的容器當錨點：輔助技能錨在 0 高的 `MiliUICDM_Bar_pips` 上，位置正確（核心下方 1px）；自訂格子關掉（容器藏著）時輔助照樣貼在核心下方。
+51. 加一列／刪到沒有列：收合狀態切換時輔助技能跟著移動、不閃；戰鬥中清單變了（充能法術學會／忘掉）時收合的偏移延到脫戰才換，期間不報錯。
+52. 輔助技能有光環格（持有框保護鏈）時，自訂格子容器被連坐成保護框：戰鬥中 `SetPanelSize` 走 `ns.Write` 記帳、脫戰補做，零 ADDON_ACTION_BLOCKED。
+53. 編輯模式：空的自訂格子覆蓋層（一列高）壓在輔助技能覆蓋層上緣，兩個選取框都點得到、拖得動；拖自訂格子時輔助跟著走。
+54. 「法術充能／光環層數」兩顆按鈕的滑鼠提示：DIALOG 等級的彈窗上 GameTooltip 蓋得過彈窗、長字換行不超出螢幕。

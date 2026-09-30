@@ -12,6 +12,8 @@
 --   root     "theme"：主題形狀的欄位（ns.Setting 的 path，條頁讀的是三層繼承後的值、
 --            寫進條自己的子表；主題頁直接讀寫 profile.theme）
 --            "bar"：條自己的欄位（版面、長條、顯示條件、錨定），不繼承
+--            "bar@<key>"：同 "bar"，但讀寫**別的**條或面板（資源條頁上的自訂格子位置／錨定寫進
+--            profile.pips）。帶在 root 上是因為 numbers 型的子格只會把 root／sub 往下傳
 --   path     點分路徑（numbers 用 sub ＋ 欄位 key 拼）
 --   section  "icon" | "text" | "glow" | "fade"：條頁勾著「跟隨全域主題」時整節蓋遮罩
 --   get/set  自訂的讀寫（開關型的淡出、第二列尺寸、錨定…），收 info
@@ -176,6 +178,13 @@ local function ColorProxy(key, path)
     return proxy
 end
 
+-- root 是 "bar@<key>" 時的目標；其他回 nil（讀寫表單自己的 info.key）
+local function TargetOf(spec)
+    local r = spec and spec.root
+    return type(r) == "string" and r:match("^bar@(.+)$") or nil
+end
+Specs.TargetOf = TargetOf
+
 function Specs.MakeCtx(info, onApply)
     local ctx
     ctx = ns.Controls.MakeCtx(function() return {} end, function()
@@ -189,7 +198,7 @@ function Specs.MakeCtx(info, onApply)
             if info.mode ~= "theme" and spec.type == "color" then return ColorProxy(info.key, path) end
             return ReadThemed(info, path)
         end
-        return ns.DB.GetPath(ns.DB.ConfigTable(info.key), path)
+        return ns.DB.GetPath(ns.DB.ConfigTable(TargetOf(spec) or info.key), path)
     end
     ctx.set = function(spec, v)
         ctx.lastSpec = spec
@@ -198,7 +207,7 @@ function Specs.MakeCtx(info, onApply)
         if spec.root == "theme" then
             WriteThemed(info, path, v)
         else
-            ns.DB.SetPath(ns.DB.ConfigTable(info.key), path, v)
+            ns.DB.SetPath(ns.DB.ConfigTable(TargetOf(spec) or info.key), path, v)
         end
     end
     return ctx
@@ -490,7 +499,7 @@ end
 ------------------------------------------------------------
 -- 錨定
 ------------------------------------------------------------
--- 候選：左欄的條（barOrder）＋ 兩個面板（資源條、施法條；它們不在 barOrder 裡）
+-- 候選：左欄的條（barOrder）＋ 面板（資源條、自訂格子、施法條；它們不在 barOrder 裡）
 local function AnchorItems(key)
     local items = { { text = L["None (own position)"], value = "none" } }
     local p = ns.profile
@@ -512,12 +521,22 @@ local function EdgeOf(a)
     return "BELOW"
 end
 
-function Specs.Anchor(key)
+-- opts（可省）：
+--   other   true ＝ key 不是這張表單自己的條（資源條頁上的自訂格子）：讀寫走 root "bar@<key>"
+--   header  小節標題（預設「錨定」）；nested ＝ 畫成小標題
+function Specs.Anchor(key, opts)
+    opts = opts or {}
     local bar = ns.DB.ConfigTable(key) or {}
     local anchored = type(bar.anchor) == "table"
+    local root = opts.other and ("bar@" .. key) or "bar"
+    local function AS(kind, path, label, extra)
+        local s = BS(kind, path, label, extra)
+        s.root = root
+        return s
+    end
     local list = {
-        { type = "header", label = L["Anchoring"] },
-        BS("dropdown", "anchor", L["Follow bar"], {
+        { type = "header", label = opts.header or L["Anchoring"], nested = opts.nested or nil },
+        AS("dropdown", "anchor", L["Follow bar"], {
             items = AnchorItems(key), refreshPage = true, level = "structure",
             get = function()
                 local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
@@ -541,7 +560,7 @@ function Specs.Anchor(key)
         }),
     }
     if anchored then
-        list[#list + 1] = BS("dropdown", "anchor.point", L["Side"], {
+        list[#list + 1] = AS("dropdown", "anchor.point", L["Side"], {
             items = EDGE_ITEMS, level = "structure", resetPaths = { "anchor.point", "anchor.relPoint" },
             get = function()
                 local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
@@ -553,7 +572,7 @@ function Specs.Anchor(key)
                 if type(a) == "table" and pts then a.point, a.relPoint = pts[1], pts[2] end
             end,
         })
-        list[#list + 1] = BS("numbers", nil, L["Offset"], { sub = "anchor", path = false, level = "structure",
+        list[#list + 1] = AS("numbers", nil, L["Offset"], { sub = "anchor", path = false, level = "structure",
             resetPaths = { "anchor.x", "anchor.y" }, fallback = 0,
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
     end
@@ -610,9 +629,10 @@ local function ResetSpec(ctx, spec)
                 ns.DB.OwnSet(info.key, path, nil)
             end
         else
-            local v = ns.DB.DefaultFor("bar", info.key, path)
+            local target = TargetOf(spec) or info.key
+            local v = ns.DB.DefaultFor("bar", target, path)
             if v == nil then v = spec.fallback end
-            ns.DB.SetPath(ns.DB.ConfigTable(info.key), path, v)
+            ns.DB.SetPath(ns.DB.ConfigTable(target), path, v)
         end
     end
     ctx.lastSpec = spec

@@ -50,6 +50,7 @@ Core\Bars.lua
 Core\Visibility.lua
 Modules\ResourceConditions.lua
 Modules\Resources.lua
+Modules\Pips.lua
 Modules\Interrupt.lua
 Modules\Castbar.lua
 Libs\MiliUIWidgets\Env.lua
