@@ -106,6 +106,13 @@ local function Snapshot()
     }
 end
 
+-- /mcdm debug：顯示條件用的判斷快照（alpha 全是 0 時第一個要看的東西）
+function Vis.DebugLine()
+    local s = Snapshot()
+    return ("  顯示條件快照：戰鬥 %s  目標 %s  騎乘 %s  副本 %s  隊伍 %s"):format(
+        tostring(s.combat), tostring(s.target), tostring(s.mounted), tostring(s.instance), tostring(s.group))
+end
+
 function Vis.Alpha(key)
     local bar = Bar(key)
     if not bar then return 0 end
