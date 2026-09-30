@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 設定表單的規格與接線（條頁與主題頁共用）
 --
---   Specs.Themed(mode)            圖示／文字／效果三節（mode = "bar" | "theme"）
+--   Specs.Themed(mode)            圖示／文字／效果／音效四節（mode = "bar" | "theme"）
 --   Specs.Layout(key)             版面（條頁）
 --   Specs.Visibility()            顯示條件（條頁）
 --   Specs.Anchor(key)             錨定（條頁）
@@ -87,6 +87,15 @@ local GROUP_ITEMS = {
     { text = L["Solo"],  value = "solo" },
     { text = L["Party"], value = "party" },
     { text = L["Raid"],  value = "raid" },
+}
+
+-- 音效聲道（PlaySoundFile 的第二個參數；值是暴雪的聲道名，不翻）
+local CHANNEL_ITEMS = {
+    { text = L["Master"],        value = "Master" },
+    { text = L["Sound effects"], value = "SFX" },
+    { text = L["Music"],         value = "Music" },
+    { text = L["Ambience"],      value = "Ambience" },
+    { text = L["Dialog"],        value = "Dialog" },
 }
 
 local OUTLINE_ITEMS = {
@@ -378,6 +387,18 @@ function Specs.Themed(mode)
         Note(L["Any checked condition that holds keeps the bar fully visible. With none checked it stays faded whenever fading is on."], "fade"),
         TS("fade", "toggle", "fade.whenMounted", L["Always fade while mounted"]),
         Note(L["Mounted or in a vehicle: fades regardless of the conditions above."], "fade"))
+
+    -- 音效：響什麼是逐法術設定（預覽裡點圖示）；主題頁放總開關與聲道，條頁只有覆寫數＋清除。
+    -- 不掛 section：音效不走「跟隨全域主題」，條頁不蓋遮罩
+    add({ type = "header", label = L["Sounds"] })
+    if bar then
+        add(OverrideRow("sound"),
+            Note(L["Sounds are set per spell: click an icon in the preview above. The on/off switch and channel are on the Theme page."]))
+    else
+        add(TS(nil, "toggle", "sound.enabled", L["Enable"]),
+            TS(nil, "dropdown", "sound.channel", L["Channel"], { items = CHANNEL_ITEMS }),
+            Note(L["Which sound plays is set per spell: click an icon in a bar's preview. Nothing plays for 2 seconds after a loading screen, and the same spell doesn't repeat within 1.5 seconds."]))
+    end
     return list
 end
 

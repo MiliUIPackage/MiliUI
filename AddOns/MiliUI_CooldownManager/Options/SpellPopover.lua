@@ -14,6 +14,11 @@
 --     多一列「不在時顯示占位」；沒有「隱藏此法術」（固定前綴）。
 --   * 多一顆紅色「移除此項目」（確認後刪掉，後面的 id 由 DB.RemoveCustom 往前挪）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
+--
+-- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」；增益類（暴雪
+-- 增益圖示／增益長條、光環格）兩列「出現音效」「消失音效」。每列一個下拉（第一項「無」＝清掉覆寫，
+-- 其餘是 LibSharedMedia 的音效名，開選單那一刻才列、依名稱排序；清單長時下拉自己會裁切＋滾輪捲）
+-- ＋「試聽」。一個音效都沒有時多一列灰字說明。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -33,8 +38,16 @@ local ROW_W   = WIDTH - PAD * 2
 local TOP_Y   = -PAD - 32 - 12
 
 local frame, cur
-local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind) → bool }
+local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind, class) → bool }
 local toggles = {}
+local sounds = {}        -- { field, dd }
+
+-- 音效欄位與顯示在哪一類（class：「cooldown」冷卻類｜「aura」增益類）
+local SOUNDS = {
+    { field = "readySound", label = L["Ready sound"], class = "cooldown" },
+    { field = "gainSound",  label = L["Gain sound"],  class = "aura" },
+    { field = "loseSound",  label = L["Lose sound"],  class = "aura" },
+}
 
 local TOGGLES = {
     { field = "procGlow",         label = L["Proc glow"],              noAura = true },
@@ -117,6 +130,17 @@ end
 local function IsAura(kind) return kind == "aura" end
 local function NotAura(kind) return kind ~= "aura" end
 local function IsCustom(kind) return kind ~= nil end
+
+-- 音效下拉：第一項「無」，其餘 LSM 的音效名（已排序）
+local function SoundItems()
+    local items = { { text = L["None"], value = false } }
+    for _, name in ipairs(ns.Media.List("sound")) do
+        items[#items + 1] = { text = name, value = name }
+    end
+    return items
+end
+
+local function NoSounds() return #ns.Media.List("sound") == 0 end
 
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
@@ -205,6 +229,45 @@ local function Build()
         RightClickClears(tr, th, t.field)
     end
 
+    -- 音效：下拉＋試聽（右鍵整列清掉＝無）
+    for _, t in ipairs(SOUNDS) do
+        local cls = t.class
+        local sr, sh = NewRow(t.label, function(_, class) return class == cls end)
+        local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
+        W.FitButton(listen, 44, 20)
+        listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
+        local ddW = ROW_W - CTRL_X - (listen:GetWidth() or 44) - 6
+        local sdd = W.CreateDropdown(sr, ddW, {}, function(value)
+            if not cur then return end
+            ns.DB.SetOverride(cur.id, t.field, (type(value) == "string" and value ~= "") and value or nil)
+            Changed()
+        end)
+        sdd:SetPoint("LEFT", sr, "LEFT", CTRL_X, 0)
+        listen:SetScript("OnClick", function()
+            local v = sdd:GetSelected()
+            if type(v) == "string" and ns.Sound then ns.Sound.Preview(v) end
+        end)
+        sounds[#sounds + 1] = { field = t.field, dd = sdd, listen = listen }
+        RightClickClears(sr, sh, t.field)
+    end
+    -- 一個音效都沒有（沒裝 LibSharedMedia 或沒有音效媒體插件）
+    local nsRow = CreateFrame("Frame", nil, frame)
+    local nsTip = Note(nsRow)
+    nsTip:SetPoint("TOPLEFT", nsRow, "TOPLEFT", CTRL_X, -2)
+    nsTip:SetWidth(ROW_W - CTRL_X)
+    nsTip:SetWordWrap(true)
+    nsTip:SetText(L["No sounds available. Enable \"MiliUI Sound Pack\" or another sound media addon."])
+    local nsH = 2 + math.max(14, nsTip:GetStringHeight() or 0) + 6
+    nsRow:SetSize(ROW_W, nsH)
+    local nsEntry = { frame = nsRow, h = nsH, when = function() return NoSounds() end }
+    nsEntry.remeasure = function()
+        local sh2 = nsTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        nsRow:SetHeight(nh)
+        nsEntry.h = nh
+    end
+    rows[#rows + 1] = nsEntry
+
     -- 光環格：不在時顯示占位（存在那一筆自訂項目上，不是覆寫）
     local pr, ph = NewRow(L["Placeholder when missing"], IsAura)
     local pcb = W.CreateCheckButton(pr, nil, function(on)
@@ -288,7 +351,7 @@ local function Build()
         for _, row in ipairs(rows) do
             if row.remeasure then row.remeasure() end
         end
-        if cur then Layout(frame.kind) end
+        if cur then Layout(frame.kind, frame.soundClass) end
     end)
 
     ns.RegisterCallback("OptionsHidden", "popover", function() frame:Hide() end)
@@ -296,12 +359,12 @@ local function Build()
     ns.RegisterCallback("ProfileChanged", "popover", function() frame:Hide() end)
 end
 
--- 依種類排列：kind = nil（暴雪的法術）| "aura" | "spell" | "item"
-Layout = function(kind)
-    frame.kind = kind
+-- 依種類排列：kind = nil（暴雪的法術）| "aura" | "spell" | "item"；class = "cooldown" | "aura"（音效列）
+Layout = function(kind, class)
+    frame.kind, frame.soundClass = kind, class
     local y = TOP_Y
     for _, row in ipairs(rows) do
-        local show = not row.when or row.when(kind)
+        local show = not row.when or row.when(kind, class)
         row.frame:SetShown(show)
         if show then
             row.frame:ClearAllPoints()
@@ -349,6 +412,15 @@ local function BarItems(id)
     return items
 end
 
+-- 音效列的類別：光環格與暴雪增益兩條 ⇒ 增益類，其餘冷卻類
+local function SoundClass(id, kind)
+    if kind == "aura" then return "aura" end
+    if kind then return "cooldown" end
+    local src = ns.Catalog.SourceOf(id)
+    if src and ns.Viewers.AURA_KIND[src] then return "aura" end
+    return "cooldown"
+end
+
 local KIND_TEXT = {
     spell = function(info) return ("spellID %s  ·  %s"):format(tostring(info.spellID), L["Custom spell"]) end,
     item  = function(info) return ("itemID %s  ·  %s"):format(tostring(info.itemID), L["Custom item"]) end,
@@ -373,7 +445,8 @@ function Pop.Refresh()
         frame.idText:SetText(("cooldownID %s  ·  spellID %s"):format(tostring(id),
             tostring(info and (info.overrideSpellID or info.spellID) or "?")))
     end
-    Layout(kind)
+    local class = SoundClass(id, kind)
+    Layout(kind, class)
 
     frame.barDD:SetItems(BarItems(id))
     if kind then
@@ -397,6 +470,14 @@ function Pop.Refresh()
         else
             r.note:SetText(L["(follows the bar)"])
         end
+    end
+    local items = SoundItems()
+    for _, r in ipairs(sounds) do
+        r.dd:SetItems(items)
+        local v = Override(r.field)
+        v = (type(v) == "string" and v ~= "") and v or false
+        r.dd:SetSelectedValue(v)
+        r.listen:SetEnabled(v ~= false)
     end
     if kind == "aura" then
         local e = ns.DB.CustomEntry(id)

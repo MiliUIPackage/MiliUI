@@ -19,7 +19,7 @@
 > **第一版完成，待實機驗證。** 四條暴雪檢視器認領重錨到自己的容器上（版面、兩列尺寸、固定格位、長條、
 > 邊框／縮放／轉圈色／文字樣式、顯示條件）；編輯模式裡每條都拖得動；設定視窗每條一頁（預覽即編輯器＋表單）、
 > 主題、設定檔（含匯出匯入）、自訂群組；自訂項目（光環格、自訂法術／物品冷卻）、觸發／就緒發光、無損刷新、
-> 按鍵文字；資源條與玩家施法條；套組裡的單位框架、征戰聖擊助手、本體設定頁都認得本插件。
+> 按鍵文字、音效（就緒／光環出現／消失）；資源條與玩家施法條；套組裡的單位框架、征戰聖擊助手、本體設定頁都認得本插件。
 > 程式裡沒有實機跑過的假設全部列在最後的「待實機驗證」。
 > `/mcdm debug` 印引擎與編輯模式現況，`/mcdm aura` 印每個光環格的保護狀態與最近錯誤，
 > `/mcdm release` 把冷卻管理器還給暴雪（除錯用，/reload 接回來）。
@@ -44,7 +44,7 @@
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -63,10 +63,11 @@
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭） |
 | `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha） |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
+| `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
 | `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；每一格都是 Bars 的一個 entry |
 
-登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Keybinds → Bars
+登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
 → Interrupt → Resources → Castbar → Visibility（`Core/Init.lua` 的 `ns.StartEngine`）。
 換設定檔／專精：清樣式簽章、重讀目錄、全部重排、重套 alpha，不需要 /reload。
 任何一步 `Init` 拋錯 ⇒ `ns.EngineFailed`：`Bars.ReleaseAll` 把冷卻管理器還給暴雪，聊天框印一行。
@@ -239,6 +240,30 @@
   動作條 6–8，照暴雪 `MultiActionBars.xml` 的 actionpage 與按鈕模板的 buttonType）→ `GetBindingKey` → 縮寫
   （Shift→s、Ctrl→c、Alt→a、滑鼠鍵→M4、數字鍵盤→N5…）。物品掃動作條格子。綁定／動作條事件 0.2 秒合併重算。
 - 發光宿主是 overlay 底下自己的框，尺寸由排版給（不從 item 讀）；停放時發光一律熄。
+
+### 音效（`Core/Sound.lua`）
+
+響什麼是**逐法術**設定（逐法術面板：冷卻類一列「就緒音效」，增益類兩列「出現音效」「消失音效」；下拉第一項
+「無」＝清掉覆寫，其餘是 LibSharedMedia 的音效名，開面板時才列、依名稱排序；旁邊「試聽」照目前聲道播一次，
+不看總開關）。沒有條層的值（`DB.SPELL_CONST` 給 false）。全域只有 `theme.sound = { enabled, channel }`
+（主題頁「音效」一節：總開關、聲道 Master／SFX／Music／Ambience／Dialog）。
+一個音效都沒有（沒裝 LibSharedMedia、沒啟用音效媒體插件）時下拉只剩「無」，面板多一列灰字說明。
+
+| 觸發 | 做法 |
+|---|---|
+| 就緒（暴雪核心／輔助 item、自訂法術／物品） | 跟就緒發光同一顆探針的 `OnCooldownDone`（`Core/Glow.lua`）。只設了音效沒開發光也照樣建探針、武裝；GCD 不算、多充能每回一層響一次（探針現況）。暴雪 item 自己的 `TriggerAvailableAlert` 只在玩家替那個法術設了暴雪警示時才被 OnUpdate 叫到，不能當通用訊號 |
+| 暴雪增益圖示／增益長條 item 出現／消失 | 後掛勾 item 的 `TriggerAuraAppliedAlert`／`TriggerAuraRemovedAlert`（12.1.0.69933 的 `Blizzard_CooldownViewer/CooldownViewer.lua`，`CooldownViewerMixin:OnUnitAura` 裡先 `CheckAuraRemovedAlertTriggers`、後 `CheckAuraAddedAlertTriggers`；不管有沒有設暴雪警示都會叫）。掛勾本體只拿 item 查我們的弱鍵表拿明文 cooldownID。事件進批次、下一幀合併：同一格「消失又出現」（換光環實例的刷新）抵消不響（`Logic.Net`：第一個事件推之前狀態、最後一個事件是之後狀態）。這兩支哪天沒了退回 `OnActiveStateChanged` 後掛勾＋`IsActive()`／`IsShown()` 前後比對（讀得到才算） |
+| 光環格出現／消失 | `C_UnitAuras.AddAuraSound(Enum.UnitAuraSoundTrigger.Added／Removed, { unitToken = "player", spellID, soundFileName 或 soundFileID, outputChannel, throttleSeconds = 1.5 })`，回傳 `auraSoundID`，`RemoveAuraSound(id)` 撤銷；引擎自己播。對帳（`Logic.Diff`：多的撤、少的登、同簽章不動）在光環格放好／收起、設定檔／專精換了時排到下一幀。**戰鬥中或 `C_Secrets.ShouldAurasBeSecret()`（副本、鑰石、PvP）不叫**（封鎖動作、pcall 攔不住），排到脫戰／首領戰結束／換區域／鑰石完成再試；`PLAYER_ENTERING_WORLD` 撤掉手上的全部重登（不跨 /reload） |
+
+- 播放：`PlaySoundFile(路徑或檔案編號, 聲道)`；LSM 取出來是字串或數字都能播。
+- 節流：同一個法術同一種音效 1.5 秒內只響一次；讀取畫面中與結束後 2 秒內（`LOADING_SCREEN_ENABLED／DISABLED`、
+  `PLAYER_ENTERING_WORLD`）靜音。這兩條只管我們自己 `PlaySoundFile` 的那兩種；光環格由引擎播，只能給 `throttleSeconds`。
+- 覆寫分組：三個音效欄位是 `DB.OVERRIDE_GROUP` 的 `"sound"`，條頁自成一節「音效」（「本條 N 個法術有覆寫」＋
+  「清除覆寫」），**不跟「效果」節的發光算在一起**：清發光覆寫不該順手把玩家挑好的音效清掉，而且音效沒有條層的值，
+  「跟隨全域主題」對它沒有意義。逐法術面板的「還原此法術」照樣整筆清（含音效）。
+- 圖騰型的增益（不是光環）不經過 `UNIT_AURA`，暴雪那兩支警示不會叫 ⇒ 沒有出現／消失音效。
+- 被隱藏（「隱藏此法術」）的增益照樣響：音效是逐法術明確設的，而收合模式下沒顯示的增益本來就是停放狀態，拿停放當閘會把正常的出現音效也擋掉。
+- `/mcdm debug` 的「音效」一行：總開關、聲道、光環格登記筆數（待登記）、增益掛勾方式（alert／active）、播過幾次（擋掉幾次）、最近一次播放。
 
 ## 資源條與施法條
 
@@ -723,3 +748,18 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 67. 秘法靈魂的天賦閘：`C_SpellBook.IsSpellKnown(449619)`（歐爾的記憶，英雄天賦被動）是否回 true；`C_ClassTalents.GetActiveHeroTalentSpec()` 在Sunfury時是否回 39。
     兩者都不成立時非 Sunfury 的秘法法師不會多一列空條；換英雄樹（`TRAIT_CONFIG_UPDATED`）後列跟著出現／消失。黯黑力量的閘 395152 在增輝是否 IsSpellKnown。
 68. 增輝／秘法的資源條面板因為容器變保護框：戰鬥中改設定、換天賦零 ADDON_ACTION_BLOCKED，脫戰補重排。
+
+**音效（2026-09-30）**
+
+69. 就緒音效：只設音效、沒開就緒發光的法術照樣響（探針有建：`/mcdm debug` 的「探針 N 顆」會增加）；GCD 不響；
+    多充能每回一層響一次；同一個法術 1.5 秒內不重複；`/reload`、過圖、進出副本後 2 秒內不響（冷卻剛好在那時轉好的會被吃掉，是預期）。
+70. 暴雪增益 item：`TriggerAuraAppliedAlert`／`TriggerAuraRemovedAlert` 的後掛勾在戰鬥中、首領戰、M+ 都有到，零 ADDON_ACTION_BLOCKED、零秘密值錯誤
+    （`/mcdm debug` 的「增益掛勾 alert」）；刷新同一個增益（重新施放、換一個光環實例）不會連響「消失＋出現」；
+    切換目標時追蹤目標身上減益的 item（`OnNewTarget`）會不會誤響。
+71. 增益長條與增益圖示同一個法術各自一個 item 時只響一次（節流 key 是 cooldownID）。
+72. 光環格 `AddAuraSound`：戶外登記成功（`/mcdm debug` 的「光環格登記 N 筆」）、出現／消失都響、聲道照設定；
+    `throttleSeconds = 1.5` 被接受（被拒的話會退成不帶節流再登記一次，`登記失敗` 計數會 +1）；
+    副本裡 `ShouldAurasBeSecret()` 為真時改設定 ⇒「待登記」，出副本後補上；登記過的在副本／首領戰／M+ 裡照樣響；
+    過圖（`PLAYER_ENTERING_WORLD` 撤掉重登）後不會重複響兩次。`soundFileID`（LSM 回數字的音效）是否照樣播。
+73. `LOADING_SCREEN_ENABLED` 在 `/reload` 時有沒有到（沒到也有 `PLAYER_ENTERING_WORLD` 的 2 秒保底）。
+74. 下拉清單一百多項：選單裁在 14 列、滾輪捲得到最後一項；「試聽」在沒選時停用。

@@ -300,6 +300,9 @@ function DB.BuildDefaults()
                 pandemic = { enabled = true, color = rgba(1, 0.5, 0, 1), bars = true },
                 -- 按鍵文字：動作條上綁的鍵，縮寫後畫在圖示一角
                 keybind  = { enabled = true, size = 10, point = "TOPRIGHT", x = 1, y = -1 },   -- 預設開、右上（使用者 2026-09-30 指定）
+                -- 音效（Core/Sound.lua）：總開關與聲道；要響什麼是逐法術覆寫（readySound／gainSound／loseSound）。
+                -- 不走條層繼承（不在 THEMED 裡），一律用 ns.Setting("theme", "sound.…") 讀
+                sound    = { enabled = true, channel = "Master" },
             },
             bars = {
                 essential = IconBar{ source = "essential", pos = { point = "CENTER", x = 0, y = -202 },
@@ -717,6 +720,10 @@ local SPELL_FALLBACK = {
 local SPELL_CONST = {
     hideCooldownText = false,
     hideStackText    = false,
+    -- 音效：LibSharedMedia 的音效名；沒設（nil）或 false ＝ 無
+    readySound       = false,
+    gainSound        = false,
+    loseSound        = false,
 }
 DB.SPELL_FALLBACK, DB.SPELL_CONST = SPELL_FALLBACK, SPELL_CONST
 
@@ -955,6 +962,9 @@ DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon",
     procGlow = "glow", readyGlow = "glow",
     hideCooldownText = "text", hideStackText = "text",
+    -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
+    -- 清發光覆寫不該順手把玩家挑好的音效清掉
+    readySound = "sound", gainSound = "sound", loseSound = "sound",
 }
 
 -- v = nil 清掉那一格；整張空了就拿掉

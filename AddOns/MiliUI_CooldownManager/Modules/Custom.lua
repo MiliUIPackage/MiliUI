@@ -30,6 +30,7 @@
 --     ID 過濾）——新增時就擋（Options/Picker.lua）。
 --   * 占位圖示（placeholder）畫在持有框的 BACKGROUND 上、去飽和、alpha 0.35，按鈕出現自然蓋住。
 --   * 發光不提供（不知道光環在不在，只能常亮）。
+--   * 出現／消失音效：C_UnitAuras.AddAuraSound 登記給引擎播（Core/Sound.lua 對帳）。
 --
 -- ── 自訂法術（kind = "spell"）與物品（kind = "item"）─────────────────
 -- 自己的圖示框（parent 條容器，長得跟暴雪 item 一樣：.Icon／.Cooldown／.ChargeCount.Current），
@@ -568,6 +569,7 @@ local function HideRec(rec)
     local f = rec.frame
     if rec.kind == "aura" then
         ns.Write(f, function(fr) fr:Hide() end, "place")
+        if ns.Sound then ns.Sound.RequestAuraSync() end       -- 收起來的光環格撤掉音效登記
     else
         f:Hide()
         if ns.Glow then ns.Glow.OnParked(rec) end
@@ -626,6 +628,8 @@ function CU.Place(rec, c, r, barKey, gen)
         end
         UpdatePlaceholder(rec, barKey, r.w, r.h)
         EnsureContainer(rec, barKey)
+        -- 出現／消失音效走 AddAuraSound 登記（對帳、下一幀、戰鬥中延後，見 Core/Sound.lua）
+        if ns.Sound then ns.Sound.RequestAuraSync() end
         return
     end
     if f:GetParent() ~= c then f:SetParent(c) end
