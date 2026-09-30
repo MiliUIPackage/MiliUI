@@ -306,6 +306,28 @@ eq("百分比", R.FormatMana(50000, 200000, { manaPercent = true }), "25%")
 eq("百分比：上限 0 → 空", R.FormatMana(5, 0, { manaPercent = true }), "")
 eq("不是數字 → 空", R.FormatMana(nil, 1, {}), "")
 
+-- 秘密值：不能先過 Plain（12.1 的法力永遠是秘密值），縮寫與百分比交給 C 端
+do
+    local fs = { t = nil }
+    function fs:SetText(t) self.t = t end
+    function fs:SetFormattedText(f, ...) self.t = { f, ... } end
+    env.CreateAbbreviateConfig = function(o) return o end
+    env.AbbreviateNumbers = function(v, c) return { "abbrev", v, c } end
+    env.CurveConstants = { ScaleTo100 = "S100" }
+    env.UnitPowerPercent = function(u, pt, unmod, curve) return { "pct", u, pt, unmod, curve } end
+    R.SetNumberText(fs, 1500, 2e6, { manaAbbrev = "k" })
+    eq("明文照 FormatMana", fs.t, "1.5K")
+    R.SetNumberText(fs, SECRET, SECRET, { manaAbbrev = "wan" })
+    eq("秘密值 → AbbreviateNumbers", fs.t[1], "abbrev")
+    eq("秘密值原樣傳下去", fs.t[2], SECRET)
+    eq("萬／億的分段", fs.t[3].config[2].abbreviation, "wan")
+    R.SetNumberText(fs, SECRET, SECRET, { manaPercent = true }, 0)
+    eq("秘密值百分比 → UnitPowerPercent", fs.t[1], "%d%%")
+    eq("百分比走 ScaleTo100", fs.t[2][5], "S100")
+    R.SetNumberText(fs, nil, 1, {})
+    eq("不是數字 → 空（秘密路徑）", fs.t, "")
+end
+
 local myRed = { r = 0.5, g = 0, b = 0 }
 local cfgColors = { colors = { HolyPower = { color = myRed }, ComboPoints = {} } }
 eq("玩家調的顏色優先", R.ResolveColor(cfgColors, "HolyPower", "color"), myRed)

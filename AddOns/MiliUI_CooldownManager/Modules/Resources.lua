@@ -554,6 +554,59 @@ function R.FormatMana(v, max, cfg)
     return ("%d"):format(v)
 end
 
+-- 秘密值（12.1 起法力、戰鬥中的其他資源）Lua 讀不到：縮寫與百分比全交給 C 端，Lua 只當傳遞者。
+-- 分段照 R.FormatMana：significand ＝ floor(v ／ significandDivisor)，印 significand ／ fractionDivisor
+local abbrevCfg = {}
+local function AbbrevConfig(mode)
+    if abbrevCfg[mode] ~= nil then return abbrevCfg[mode] end
+    local opts
+    if mode == "wan" then
+        opts = {
+            { breakpoint = 1e8, abbreviation = L["yi"],  significandDivisor = 1e6, fractionDivisor = 100, abbreviationIsGlobal = false },
+            { breakpoint = 1e4, abbreviation = L["wan"], significandDivisor = 1e3, fractionDivisor = 10,  abbreviationIsGlobal = false },
+            { breakpoint = 1,   abbreviation = "",       significandDivisor = 1,   fractionDivisor = 1,   abbreviationIsGlobal = false },
+        }
+    elseif mode == "k" then
+        opts = {
+            { breakpoint = 1e6, abbreviation = "M", significandDivisor = 1e5, fractionDivisor = 10, abbreviationIsGlobal = false },
+            { breakpoint = 1e4, abbreviation = "K", significandDivisor = 1e3, fractionDivisor = 1,  abbreviationIsGlobal = false },
+            { breakpoint = 1e3, abbreviation = "K", significandDivisor = 100, fractionDivisor = 10, abbreviationIsGlobal = false },
+            { breakpoint = 1,   abbreviation = "",  significandDivisor = 1,   fractionDivisor = 1,  abbreviationIsGlobal = false },
+        }
+    end
+    local cfg = false
+    if opts and CreateAbbreviateConfig then
+        local ok, c = pcall(CreateAbbreviateConfig, opts)
+        if ok and c then cfg = { config = c } end
+    end
+    abbrevCfg[mode] = cfg
+    return cfg
+end
+
+-- 數值寫進 FontString：明文走 R.FormatMana，秘密值原樣交給 AbbreviateNumbers／SetFormattedText
+-- percentOf ＝ 要印百分比時的 power type（秘密值的百分比只能問 UnitPowerPercent）
+function R.SetNumberText(fs, v, max, cfg, percentOf)
+    if not ns.IsSecret(v) and (max == nil or not ns.IsSecret(max)) then
+        fs:SetText(R.FormatMana(v, max, cfg))      -- 不是數字時 FormatMana 回空字串
+        return
+    end
+    if cfg and cfg.manaPercent and percentOf then
+        local scale = CurveConstants and CurveConstants.ScaleTo100
+        if UnitPowerPercent and scale then
+            fs:SetFormattedText("%d%%", UnitPowerPercent("player", percentOf, false, scale))
+        else
+            fs:SetText("")
+        end
+        return
+    end
+    local ac = AbbrevConfig(cfg and cfg.manaAbbrev or "k")
+    if ac and AbbreviateNumbers then
+        fs:SetText(AbbreviateNumbers(v, ac))
+    else
+        fs:SetFormattedText("%d", v)
+    end
+end
+
 ------------------------------------------------------------
 -- 框
 ------------------------------------------------------------
@@ -989,9 +1042,9 @@ end
 
 -- 大數字（醉仙緩勁、吸收盾）的文字：照法力的縮寫設定，不印百分比
 local bigFmt = {}
-local function BigNumber(v, cfg)
+local function SetBigNumber(fs, v, cfg)
     bigFmt.manaAbbrev = cfg.manaAbbrev
-    return R.FormatMana(v, nil, bigFmt)
+    R.SetNumberText(fs, v, nil, bigFmt)
 end
 
 local function UpdateBarRow(row, cfg, def, key, cc, conds)
@@ -1033,14 +1086,15 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
     end
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
-        if pc == nil then
+        -- 秘密值也照印（交給 C 端），不能先過 Plain：12.1 的法力永遠是秘密值，過了就永遠空白
+        if type(cur) ~= "number" then
             row.text:SetText("")
         elseif def.mana then
-            row.text:SetText(R.FormatMana(pc, pm, cfg))
+            R.SetNumberText(row.text, cur, max, cfg, def.power)
         elseif def.bigNumber then
-            row.text:SetText(BigNumber(pc, cfg))
+            SetBigNumber(row.text, cur, cfg)
         else
-            row.text:SetFormattedText("%d", pc)
+            row.text:SetFormattedText("%d", cur)
         end
     end
 end
@@ -1075,7 +1129,7 @@ local function UpdateAbsorbRow(row, cfg, def, key, cc, conds)
     end
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
-        if pc == nil or pc <= 0 then row.text:SetText("") else row.text:SetText(BigNumber(pc, cfg)) end
+        if type(cur) ~= "number" or (pc ~= nil and pc <= 0) then row.text:SetText("") else SetBigNumber(row.text, cur, cfg) end
     end
 end
 
