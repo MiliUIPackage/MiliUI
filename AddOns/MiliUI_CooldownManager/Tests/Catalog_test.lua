@@ -404,5 +404,70 @@ do
     env.C_CooldownViewer.GetLayoutData = realGet
 end
 
+------------------------------------------------------------
+-- 收養：暴雪正在顯示、清單卻漏掉的 id（API 在進場／換專精那幾幀回的東西不完整）
+------------------------------------------------------------
+do
+    local timers = {}
+    env.C_Timer = { After = function(delay, fn) timers[#timers + 1] = { delay = delay, fn = fn } end }
+    local realInfo = env.C_CooldownViewer.GetCooldownViewerCooldownInfo
+    local realSet = env.C_CooldownViewer.GetCooldownViewerCategorySet
+    local savedProfile = ns.profile
+    ns.profile = { bars = { essential = { source = "essential", kind = "icons" }, utility = { source = "utility", kind = "icons" },
+                            buffs = { source = "buffs", kind = "icons" }, buffbars = { source = "buffbars", kind = "bars" } },
+                   spells = {} }
+    layoutString = "1|B64main2"
+    C.Refresh("adopt-base")
+    eqList("收養前：核心清單", C.lists.essential, { 101, 102 })
+    local utilBefore = list(C.lists.utility)
+
+    -- 過渡狀態：輔助那一類整個查不到、102 的資訊暫時拿不到
+    env.C_CooldownViewer.GetCooldownViewerCategorySet = function(cat, allow)
+        if cat == 1 then return {} end
+        return realSet(cat, allow)
+    end
+    env.C_CooldownViewer.GetCooldownViewerCooldownInfo = function(id)
+        if id == 102 then error("transient") end
+        return realInfo(id)
+    end
+    C.Refresh("adopt-transient")
+    eqList("過渡：核心少了 102", C.lists.essential, { 101 })
+    eqList("過渡：輔助是空的", C.lists.utility, {})
+
+    -- 暴雪的檢視器上其實都在（有 cooldownID 的作用中 item）
+    local n = C.Adopt({ essential = { 101, 102 }, utility = { 201 } })
+    eq("收養：兩個", n, 2)
+    eqList("收養：核心補回 102（接在尾端）", C.lists.essential, { 101, 102 })
+    eqList("收養：輔助補回 201", C.lists.utility, { 201 })
+    eqList("收養：C.Bar 也看得到", C.Bar("utility"), { 201 })
+    check("收養：有資訊表、標記 adopted", type(C.Info(102)) == "table" and C.Info(102).adopted == true and C.Info(102).bar == "essential")
+    eq("收養：排了一次重讀", #timers, 1)
+    eq("收養：同一輪再對一次不重複收", C.Adopt({ essential = { 101, 102 }, utility = { 201 } }), 0)
+    eqList("收養：清單沒有長出重複的", C.lists.essential, { 101, 102 })
+    -- 玩家藏掉的照舊生效
+    ns.profile.spells[ns.specID or 0] = nil
+    eq("收養：不是數字的 id 不收", C.Adopt({ essential = { "c:1" } }), 0)
+    eq("收養：nil 不炸", C.Adopt(nil), 0)
+
+    -- 重讀時 API 還沒好：清單又漏、下一輪排版再收一次，重讀排第二次
+    timers[1].fn()
+    eqList("重讀後（API 還沒好）：又漏了", C.lists.utility, {})
+    eq("再收一次", C.Adopt({ essential = { 101, 102 }, utility = { 201 } }), 2)
+    eq("重讀排了第二次", #timers, 2)
+    check("重讀的間隔越來越長", timers[2].delay > timers[1].delay)
+
+    -- API 恢復：清單自己就完整，不必收養
+    env.C_CooldownViewer.GetCooldownViewerCategorySet = realSet
+    env.C_CooldownViewer.GetCooldownViewerCooldownInfo = realInfo
+    timers[2].fn()
+    eqList("恢復：核心清單", C.lists.essential, { 101, 102 })
+    eq("恢復：輔助清單跟原本一樣", list(C.lists.utility), utilBefore)
+    eq("恢復：不必收養", C.Adopt({ essential = { 101, 102 }, utility = { 201 } }), 0)
+    check("恢復：102 不再標 adopted", C.Info(102).adopted == nil)
+
+    ns.profile = savedProfile
+    env.C_Timer = nil
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

@@ -340,6 +340,7 @@ loader:SetScript("OnEvent", function(self)
     ns.RefreshSpec()
     local ok = xpcall(ns.DB.Init, ns.ReportError)
     if not ok then return end
+    if ns.Diag then xpcall(ns.Diag.Attach, ns.ReportError, _G.MiliUI_CooldownManager_DB) end
     ns.Events.Start()
     ns.ready = true
     ns.Fire("Loaded")
