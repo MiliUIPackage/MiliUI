@@ -186,7 +186,7 @@ eq("條把 noTarget 設 false → false，不退回主題的 0.3", S("buffbars",
 -- 非主題欄位不繼承
 eq("不存在的條", S("nope", "layout.size.w"), nil)
 eq("不存在的路徑", S("essential", "layout.nothing.here"), nil)
-eq("主題沒有的欄位不會從主題冒出來", S("essential", "visibility.hideMounted"), true)
+eq("主題沒有的欄位不會從主題冒出來", S("essential", "visibility.group"), "any")
 
 ------------------------------------------------------------
 -- 4. 逐法術覆寫
