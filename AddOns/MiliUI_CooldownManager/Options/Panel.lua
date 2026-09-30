@@ -1,5 +1,7 @@
 ------------------------------------------------------------
--- 主設定視窗：700×520，左欄導覽（Options/Sidebar.lua）＋ 右側一頁一頁
+-- 主設定視窗：700×520。上緣外側四個分頁鈕（一般／主題／設定檔／關於，跟套組其他插件同款，
+-- 也是拖曳把手）；「一般」分頁裡是左欄導覽（Options/Sidebar.lua）＋ 右側一頁一頁，
+-- 其餘三頁佔滿整個視窗。
 --
 -- 頁面是懶建的：Options.RegisterPage(id, title, build) 只登記，第一次切過去才建。
 -- title 可以是函式（自訂群組改名之後標題跟著變）。
@@ -23,11 +25,26 @@ Options.PANEL_W, Options.PANEL_H, Options.SIDEBAR_W = PANEL_W, PANEL_H, SIDEBAR_
 -- 頁面內容區的寬（標題與表單用）。右上角留 28 給關閉鈕，標題線才不會從鈕底下穿過去
 local PAGE_PAD = 16
 local PAGE_W = PANEL_W - SIDEBAR_W - PAGE_PAD * 2 - 12
-Options.PAGE_PAD, Options.PAGE_W = PAGE_PAD, PAGE_W
+local PAGE_W_FULL = PANEL_W - PAGE_PAD * 2 - 12          -- 沒有左欄的頁（主題／設定檔／關於）
+Options.PAGE_PAD, Options.PAGE_W, Options.PAGE_W_FULL = PAGE_PAD, PAGE_W, PAGE_W_FULL
 
-local panel, closeBtn, content
+-- 分頁鈕（上緣外側）。74 是下限不是固定寬：標籤只錨 CENTER、不裁字，太長會往兩側溢出
+-- 啃到隔壁，所以照實際文字寬撐開（單位框架同一套）。
+local TAB_MIN_W, TAB_H, TAB_GAP, TAB_PAD = 74, 22, 3, 20
+local TABS = {
+    { id = "general", label = L["General"] },
+    { id = "theme",   label = L["Theme"] },
+    { id = "profile", label = L["Profiles"] },
+    { id = "about",   label = L["About"] },
+}
+-- 佔滿整個視窗的頁（不是「一般」分頁裡的）
+local FULL_PAGES = { theme = true, profile = true, about = true }
+Options.FULL_PAGES = FULL_PAGES
+
+local panel, closeBtn, content, fullContent
+local tabButtons, highlightTab = {}, nil
 local pages, pageDefs = {}, {}
-local currentPage
+local currentPage, currentTab
 
 ------------------------------------------------------------
 -- 頁面登記
@@ -63,7 +80,7 @@ end
 function Options.NewPage(parent, title)
     local page = CreateFrame("Frame", nil, parent)
     page:SetAllPoints(parent)
-    local head = W.CreateSectionTitle(page, title, PAGE_W)
+    local head = W.CreateSectionTitle(page, title, parent == fullContent and PAGE_W_FULL or PAGE_W)
     head:SetPoint("TOPLEFT", PAGE_PAD, -14)
     page.head = head
     return page, -44
@@ -113,13 +130,37 @@ end
 ------------------------------------------------------------
 -- 切頁
 ------------------------------------------------------------
+-- 分頁：一般（左欄＋右側頁）／主題／設定檔／關於（佔滿）。切分頁只是換「哪一區顯示」
+local function SetTab(id)
+    local full = id ~= "general"
+    if ns.Sidebar and ns.Sidebar.SetShown then ns.Sidebar.SetShown(not full) end
+    if content then content:SetShown(not full) end
+    if fullContent then fullContent:SetShown(full) end
+    currentTab = id
+    for _, b in ipairs(tabButtons) do
+        if b.id == id and highlightTab then highlightTab(b) end
+    end
+end
+
+function Options.ShowTab(id)
+    if id == "general" then
+        local w = WindowDB()
+        local last = w and w.lastBar
+        Options.ShowPage((last and not FULL_PAGES[last] and pageDefs[last]) and last or "essential")
+    else
+        Options.ShowPage(id)
+    end
+end
+
 function Options.ShowPage(id)
     if not pageDefs[id] then id = "essential" end
     -- 下拉選單掛在 UIParent 的 TOOLTIP strata，不是頁面的子框 —— 切頁前先收
     W.CloseDropdowns()
+    local full = FULL_PAGES[id] and true or false
     local page = pages[id]
     if not page then
-        local ok, built = xpcall(pageDefs[id].build, ns.ReportError, content, Options.PageTitle(id), id)
+        local ok, built = xpcall(pageDefs[id].build, ns.ReportError, full and fullContent or content,
+            Options.PageTitle(id), id)
         if not ok or not built then return end
         page = built
         pages[id] = page
@@ -127,12 +168,17 @@ function Options.ShowPage(id)
     for pid, p in pairs(pages) do
         if pid ~= id then p:Hide() end
     end
+    SetTab(full and id or "general")
     page:Show()
     currentPage = id
     if page.OnShowPage then xpcall(page.OnShowPage, ns.ReportError, page) end
     local w = WindowDB()
     if w then w.lastBar = id end
-    if ns.Sidebar and ns.Sidebar.Highlight then ns.Sidebar.Highlight(id) end
+    if not full and ns.Sidebar and ns.Sidebar.Highlight then ns.Sidebar.Highlight(id) end
+end
+
+function Options.CurrentTab()
+    return currentTab
 end
 
 function Options.CurrentPage()
@@ -189,13 +235,37 @@ local function CreatePanel()
     closeX:SetVertexColor(1, 0.85, 0.85)
     closeBtn:SetScript("OnClick", function() panel:Hide() end)
 
-    -- 右側頁面區
+    -- 分頁鈕：上緣外側一路排開，本身也是拖曳把手（看得見的那個在標題列上），
+    -- 所以標題列與分頁列哪裡抓都能移動視窗
+    local prev
+    for i, tab in ipairs(TABS) do
+        local b = W.CreateButton(panel, tab.label, "accent-hover", TAB_MIN_W, TAB_H)
+        b.id = tab.id
+        local fs = b:GetFontString()
+        local w = TAB_MIN_W
+        if fs then w = math.max(TAB_MIN_W, math.ceil(fs:GetStringWidth()) + TAB_PAD) end
+        ns.P.Size(b, w, TAB_H)
+        if prev then
+            b:SetPoint("BOTTOMLEFT", prev, "BOTTOMRIGHT", TAB_GAP, 0)
+        else
+            b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
+        end
+        W.MakeDragHandle(b, panel, SavePosition)
+        prev = b
+        tabButtons[i] = b
+    end
+    highlightTab = W.CreateButtonGroup(tabButtons, Options.ShowTab)
+
+    -- 「一般」分頁：左欄 ＋ 右側頁面區
     content = CreateFrame("Frame", nil, panel)
     content:SetPoint("TOPLEFT", SIDEBAR_W + 1, 0)
     content:SetPoint("BOTTOMRIGHT", 0, 0)
-
-    -- 左欄
     ns.Sidebar.Build(panel, SIDEBAR_W)
+
+    -- 主題／設定檔／關於：佔滿整個視窗
+    fullContent = CreateFrame("Frame", nil, panel)
+    fullContent:SetAllPoints(panel)
+    fullContent:Hide()
 
     panel:SetScript("OnShow", function()
         SetCombatLocked(InCombatLockdown())      -- 戰鬥中開窗也要鎖
@@ -241,7 +311,7 @@ Options.RegisterPage("about", L["About"], function(parent, title)
     local text = page:CreateFontString(nil, "OVERLAY")
     text:SetFontObject(W.fontNormal)
     text:SetPoint("TOPLEFT", PAGE_PAD + 4, y - 10)
-    text:SetWidth(PAGE_W - 8)
+    text:SetWidth(PAGE_W_FULL - 8)
     text:SetJustifyH("LEFT")
     text:SetSpacing(6)
     text:SetText(table.concat({

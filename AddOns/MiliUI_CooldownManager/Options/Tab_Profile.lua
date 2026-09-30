@@ -14,7 +14,7 @@ local W, P = ns.W, ns.P
 
 local Options = ns.Options
 
-local FORM_W = Options.PAGE_W - 6
+local FORM_W = Options.PAGE_W_FULL - 6
 
 local DECODE_ERRORS = {
     empty   = L["Paste an export string first."],
