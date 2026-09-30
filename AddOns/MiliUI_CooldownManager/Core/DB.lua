@@ -185,8 +185,9 @@ ResourcesDefaults = function()
         texture       = "solid",
         barAlpha      = 1,                 -- 填充色的不透明度
         smooth        = true,              -- 連續條的原生內插（引擎做，吃秘密值）
-        showText      = false,
-        textSize      = 10,
+        -- 條上的數值：預設開、16 號字、置中（跟舊套組的資源條一樣；使用者 2026-10-01 指定，不遷移）
+        showText      = true,
+        textSize      = 16,
         manaAbbrev    = CJK[GetLocale and GetLocale() or ""] and "wan" or "k",   -- none | k | wan
         manaPercent   = false,             -- 法力列印百分比而不是數值
         -- 醉仙緩勁：中度／重度的門檻（% 最大生命）、滿條對應幾 % 最大生命
