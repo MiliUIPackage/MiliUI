@@ -178,6 +178,9 @@ ResourcesDefaults = function()
         conditions    = {},
         -- [資源key] = false ＝ 關掉那一列；開放式、預設空
         rows          = {},
+        -- 自訂格子：[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, enabled }, … }
+        -- 開放式、預設空；排在資源列上面（Modules/Resources.lua 的 PlanCustomRows）
+        customRows    = {},
         colors        = colors,
         -- 載入條件：任一成立就整條藏（alpha 0）
         loadConditions = { hideMounted = false, onlyCombat = false },

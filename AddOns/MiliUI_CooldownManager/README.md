@@ -282,6 +282,40 @@
   `fadeWithEssential` 開著時取核心技能現在的 alpha（它的顯示條件與淡出一起帶過來）。容器不是 secure 框，Lua 判斷即可。
 - 列是池化的（frame 刪不掉），換專精只換內容；條件規則套上去的透明度／文字色換列時先還原。
 
+#### 自訂格子（`cfg.customRows[specID]`）
+
+玩家自己加的列：追蹤一個法術的**充能**或自己身上某個光環的**層數**，一組一列，跟資源列同寬同排版，
+**排在資源列的上面**（容器錨 `BOTTOM` 往上長，資源列位置不動；施法條錨在資源條上緣，自動往上讓）。
+清單每個專精一份，預設空：
+
+```lua
+customRows[specID] = {
+    { kind = "charges" | "stacks", spellID = n,
+      max = n,             -- stacks：格數（1–10，預設 5）；charges：新增時記下的充能上限，只在 API 讀不到時用
+      color = { r, g, b, a },   -- 新增時預設職業色
+      showTime = true,     -- charges 的空格顯示回充秒數
+      enabled = true },    -- false ＝ 不建列（目前沒有介面開關）
+}
+```
+
+- **規劃**是純函式 `R.PlanCustomRows(cfg, specID, probe)`（`Tests/Resources_test.lua` 測）：壞資料、`enabled = false`、
+  未學會的充能法術（`C_SpellBook.IsSpellKnown`／`IsSpellInSpellBook` 過 pcall，秘密值當學了）不建列；
+  充能格數 ＝ `GetSpellCharges().maxCharges`（明文才收，順手快取）→ 存檔的 `max` → 2；層數格數 ＝ `max` → 5；上限 10。
+- **畫法**：每格三層 —— 底色貼圖（BACKGROUND，跟資源條的空格同色）→ `Cooldown`（level +1）→ 填色 StatusBar（level +2）。
+  值直接餵每格的 `SetMinMaxValues(i-1, i)`＋`SetValue`：charges 是 `GetSpellCharges().currentCharges`，
+  stacks 是 `GetPlayerAuraBySpellID().applications`（沒有光環 ＝ 0）。充能列每格的 Cooldown 吃
+  `C_Spell.GetSpellChargeDuration` 的 duration 物件（`SetCooldownFromDurationObject(dur, true)`），扇形與秒數由引擎畫；
+  滿的格子被填色蓋住，只有空格看得到 ⇒ 秘密值下照樣對，插件端不比較、不算術。層數列不放 Cooldown。
+- **限制**：引擎只給一個「下一格回充」的 duration 物件，所以**所有空格顯示的是同一個時間**（第二格空格不會顯示
+  「兩格都回滿」要多久）。
+- **秒數**：`showTime`（預設開）；倒數字是 Cooldown 自己的 `GetCountdownFontString()`，換成像素字型、字級 ＝ 列高 − 4（最小 8），
+  `PlainFormatter(0)`＋`SetCountdownMillisecondsThreshold(0)`；關掉走 `SetHideCountdownNumbers(true)`。扇形色 ＝ 這一列顏色 × 0.25、
+  alpha 0.8（連續條空底的同一個算法），反向（從空的一側長出來）。
+- **讀不到**（充能 API 回 nil）：整列 alpha 0.5，`/mcdm debug` 的自訂格子段寫「讀不到」；秘密值照常畫、寫「秘密」。
+- **事件**：`SPELL_UPDATE_CHARGES`／`SPELL_UPDATE_COOLDOWN`（有充能列才註冊）、`UNIT_AURA`（player；有層數列或光環型資源的職業才註冊），
+  只標髒、下一幀只重畫自訂列的值；`SPELLS_CHANGED`、換專精走重排。能量事件不碰自訂列。
+- 列另外池化（每格多一顆 Cooldown，格子懶建），`GetResourceBarFrame` 只找資源列。
+
 ### 施法條（`Modules/Castbar.lua`）
 
 從單位框架的施法條改來，單位固定 `player`（載具期間開唱事件 player／vehicle 兩個 token 都認）。12.1 鐵律照舊：
@@ -326,8 +360,11 @@
 ### 設定頁
 
 - **資源條**：顯示、版面（寬、列高、列距、格距、填充方向）、外觀（材質、填充透明度、平滑、數值文字與字級、法力格式）、
-  顏色與條件（每種資源的顏色、連擊點數的充能色、條件規則編輯器）、這個專精要顯示哪幾列、載入條件、錨定、恢復預設。
-  表單照「形狀」快取（專精、候選清單、條件編輯器的結構、錨定圖）：規則增刪之類的結構變動延一幀換一份表單。
+  顏色與條件（每種資源的顏色、連擊點數的充能色、條件規則編輯器）、**自訂格子**（目前專精的清單：每筆一列名字＋圖示＋種類＋
+  「刪除」（確認窗）、一列顏色＋充能的「顯示秒數」／層數的「層數上限」；「＋ 新增格子」→ 選「法術充能／光環層數」→ 輸入 ID
+  （層數多一欄上限）→ 驗證：`C_Spell.GetSpellInfo`、充能要 `GetSpellCharges` 不是 nil、同專精不收重複，錯誤寫在彈窗裡的灰字列）、
+  這個專精要顯示哪幾列、載入條件、錨定、恢復預設（連自訂格子一起清）。
+  表單照「形狀」快取（專精、候選清單、條件編輯器的結構、自訂格子清單、錨定圖）：規則／自訂格子增刪之類的結構變動延一幀換一份表單。
 - **施法條**：顯示、隱藏暴雪施法條、版面、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
   效果（火花、刻度、延遲）、沒在施法時隱藏、錨定、恢復預設。
 
