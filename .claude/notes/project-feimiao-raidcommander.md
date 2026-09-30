@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: d31ae7d6-7031-42bf-ad4d-054279a95abd
-  modified: 2026-09-30T07:52:39.147Z
+  modified: 2026-09-30T08:03:45.836Z
 ---
 
 2026-09-30 做的**私人插件**，功能搬自 Cell 的團隊工具（`Utilities/Marks.lua`／`ReadyAndPull.lua`／
@@ -28,7 +28,8 @@ TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻）�
 ⚠ 按鈕是 **LibDBIcon 式的結構：方形圖示（`btn.icon`）＋蓋在上面的金色圓框，不帶遮罩**。
 第一版用 `icon:SetMask(頭像遮罩)` 做圓形裁切，結果 MiliUI_Minimap 的收納（`Map/Buttons.lua` 的
 `Normalize`）對 `btn.icon` 呼叫 `SetTexCoord` 時丟 `Cannot set tex coords when texture has mask`
-—— 而且錯丟在它的掃描迴圈裡，**整輪掃描中斷、排在後面的按鈕全部收不進去**。
+—— 而且錯丟在它的掃描迴圈裡，**整輪掃描中斷、排在後面的按鈕全部收不進去**
+（收納端同日改成逐顆隔離，現在只會是那一顆少裁 8% ＋報一次錯，見 [[project-miliui-minimap]]）。
 通則：**會被別人重排的圖示貼圖不要用 `Texture:SetMask`**（那種遮罩沒有 getter、`SetMask` 的參數也不收 nil，
 收納端偵測不到也拆不掉）；要圓形就讓圓框去遮四個角。被收走之後（父框不是 Minimap）按鈕只留點擊、不准拖。
 

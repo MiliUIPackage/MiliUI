@@ -141,15 +141,21 @@ local function Normalize(btn)
         icon:ClearAllPoints()
         icon:SetPoint("TOPLEFT", btn, "TOPLEFT", 1, -1)
         icon:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -1, 1)
-        -- 裁掉 8%：多數插件的圖示是整張方圖再蓋一個圓框，直接鋪滿會看到四個角落
-        -- 的雜訊。8% 是「圓框內切正方形」的近似，跟暴雪自己的圖示裁法一致。
-        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         -- ⚠ 往**上**提到 OVERLAY，不要壓到 ARTWORK。
         --   我們只拆得掉認得出來的暴雪圓框（JUNK_ID / JUNK_PATH）；自帶造型的
         --   插件會有一張我們不認識的裝飾貼圖留在 ARTWORK 上，把圖示壓下去等於
         --   讓那張貼圖蓋在圖示上面 —— 症狀就是「圖示像被上了一層遮罩」。
         --   提上來最壞情況只是裝飾被圖示蓋住，那正是我們要的結果。
         icon:SetDrawLayer("OVERLAY")
+        -- 裁掉 8%：多數插件的圖示是整張方圖再蓋一個圓框，直接鋪滿會看到四個角落
+        -- 的雜訊。8% 是「圓框內切正方形」的近似，跟暴雪自己的圖示裁法一致。
+        --
+        -- ⚠ **裁切擺最後一步，後面不要再接東西。** 這一行對「被 `Texture:SetMask`
+        --   上過遮罩的貼圖」會直接拋錯（Cannot set tex coords when texture has mask），
+        --   而那種遮罩沒有 getter、`SetMask` 也不收 nil —— 事前認不出來、也拆不掉。
+        --   拋錯由 Scan 的逐顆隔離接住；擺最後的意思是「拋了也只少裁這一刀」：
+        --   鋪滿與提層都已經做完，而帶遮罩的圖示本來就被遮罩切過角，不裁也看不到雜訊。
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     end
 end
 
@@ -266,33 +272,54 @@ local function HookVisibility(btn)
     end)
 end
 
+------------------------------------------------------------
+-- 收下一顆按鈕
+--
+-- ⚠ **步驟的順序是契約**：登記 → 搬進容器 → 掛勾 → 整形。
+--   Scan 是逐顆隔離的，這支半路拋錯的話，拋錯之前做完的就是那顆按鈕的最終狀態
+--   （已經登記了，下一輪掃描不會再來一次）。所以「收下」這件事要先整件做完，
+--   會因為**別人的貼圖處在我們沒見過的狀態**而拋錯的整形擺最後 ——
+--   整形失敗的按鈕照樣在袋子裡、照樣跟著排版與重排，只是圖示沒整好。
+--   反過來排（整形在掛勾前面）的話，失敗的那顆會是搬進來了卻沒掛勾的半成品：
+--   插件開關它的時候格子不會重排。
+------------------------------------------------------------
+local function Collect(child)
+    if not Qualifies(child) then return end
+    isCollected[child] = true
+    collected[#collected + 1] = child
+    child:ClearAllPoints()
+    -- ⚠ 收下的當場就搬進容器，不要等 Layout。Layout 只排「顯示中」的那些，
+    --   插件自己關掉的按鈕會一直留在 Minimap 底下、而且**已經沒有錨點**
+    --   （上一行剛清掉）—— 那種框一旦被插件 Show 回來就會出現在畫面左下角
+    --   的原點上。先安置好，Layout 再管排哪一格。
+    child:SetParent(IsPinned(child) and pin or bag)
+    -- 有些按鈕自己會拖曳（LibDBIcon 的 minimapPos）。在格子裡沒有意義，
+    -- 而且會被拖到容器外面再也找不回來。
+    if child.SetMovable then child:SetMovable(false) end
+    if child.RegisterForDrag then child:RegisterForDrag() end
+    HookVisibility(child)
+    Normalize(child)
+end
+
 function Buttons.Scan()
     ns.Count("Buttons.Scan")
     if not bag then return end
     if InCombatLockdown() then Buttons.Queue(); return end
 
-    local found = false
+    -- ⚠ 逐顆隔離：按鈕之間不能連坐（跟 Libs/Callbacks.lua 的 ns.Fire 同一條）。
+    --   這裡摸的全是**別人的框**，什麼狀態都可能；沒隔離的時候一顆拋錯＝整輪掃描
+    --   中斷 —— 子框順序排在它後面的全部沒收、這一輪也不排版，而錯誤訊息只會
+    --   指向拋錯的那一顆，看不出其他按鈕是被它拖下水的。
+    --   錯誤照常經 ns.ReportError 報出去，不吞；收下之後才拋的每顆只會報一次
+    --   （它已經登記了，下一輪不會再進 Collect）。
+    local before = #collected
     for _, child in ipairs({ Minimap:GetChildren() }) do
-        if Qualifies(child) then
-            isCollected[child] = true
-            collected[#collected + 1] = child
-            child:ClearAllPoints()
-            -- ⚠ 收下的當場就搬進容器，不要等 Layout。Layout 只排「顯示中」的那些，
-            --   插件自己關掉的按鈕會一直留在 Minimap 底下、而且**已經沒有錨點**
-            --   （上一行剛清掉）—— 那種框一旦被插件 Show 回來就會出現在畫面左下角
-            --   的原點上。先安置好，Layout 再管排哪一格。
-            child:SetParent(IsPinned(child) and pin or bag)
-            -- 有些按鈕自己會拖曳（LibDBIcon 的 minimapPos）。在格子裡沒有意義，
-            -- 而且會被拖到容器外面再也找不回來。
-            if child.SetMovable then child:SetMovable(false) end
-            if child.RegisterForDrag then child:RegisterForDrag() end
-            Normalize(child)
-            HookVisibility(child)
-            found = true
-        end
+        xpcall(Collect, ns.ReportError, child)
     end
 
-    if found then
+    -- 看「清單有沒有變長」而不是 Collect 有沒有跑完：半路拋錯的那顆也已經收下了，
+    -- 一樣要排序、一樣要通知設定頁。
+    if #collected > before then
         table.sort(collected, function(a, b)
             return Label(a):lower() < Label(b):lower()
         end)
