@@ -428,7 +428,7 @@ local function CustomSignature()
 end
 Tab.CustomSignature = CustomSignature
 
--- 條件規則編輯器的候選：引擎寫層數的列（auraBar）不列
+-- 條件規則編輯器的候選：引擎寫值的列（auraBar、auraTimer）不列
 function Tab.ConditionCandidates(cand)
     local out = {}
     for _, key in ipairs(cand or {}) do
@@ -490,7 +490,10 @@ local function Controls(cand, sub)
             elseif key == "Ironfur" then
                 add(Note(L["One segment per active application, each draining with its own remaining time."]))
             end
-            if not R.SupportsConditions(key) then
+            if R.Info(key) and R.Info(key).mode == "auraTimer" then
+                -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
+                add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))
+            elseif not R.SupportsConditions(key) then
                 add(Note(L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."]:format(R.Name(key))))
             end
         end

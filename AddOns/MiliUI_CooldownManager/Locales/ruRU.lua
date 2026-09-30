@@ -430,6 +430,7 @@ L["The color follows how much of your max health is staggered. In instanced comb
 L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "Показывает сумму всех поглощающих щитов на вас, а не только этого; полная полоса — 30 процентов вашего макс. здоровья."
 L["One segment per active application, each draining with its own remaining time."] = "По одному сегменту на каждое активное наложение, каждый убывает по своему оставшемуся времени."
 L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s: игра сама заполняет эту строку, поэтому в бою она остаётся верной; правила условий и текст значения не применяются."
+L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."] = "%s: игра сама ведёт этот таймер, поэтому в бою он остаётся верным. Полоса убывает по оставшемуся времени эффекта и пуста, пока его нет; при показе значения на полосе видны оставшиеся секунды. Правила условий не применяются."
 L["Show custom segments"] = "Показывать свои сегменты"
 L["Always"] = "Всегда"
 L["Only while recharging"] = "Только во время восстановления"
