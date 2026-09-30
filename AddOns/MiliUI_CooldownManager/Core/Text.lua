@@ -75,6 +75,20 @@ T.PixelScale, T.SetFont, T.Anchor = PixelScale, SetFont, Anchor
 ------------------------------------------------------------
 local formatters = {}
 
+-- 「分／時」的寫法照客戶端語系：用暴雪自己給冷卻倒數的全域字串
+-- （COOLDOWN_DURATION_MIN／_HOURS：enUS "%dm"／"%dh"、zhTW "%d分"／"%d小時"、koKR "%d분"／"%d시간"…）。
+-- 規則格式器一段只餵一個數字 ⇒ 只收「恰好一個格式符、而且是 %d」的字串，其餘退回英文縮寫；
+-- 有的語系字串裡夾著換行，空白一律收成一格。
+local function UnitFormat(name, fallback)
+    local s = _G[name]
+    if type(s) ~= "string" then return fallback end
+    s = s:gsub("%s+", " ")
+    local _, n = s:gsub("%%", "")
+    if n ~= 1 or not s:find("%%d") then return fallback end
+    return s
+end
+T.UnitFormat = UnitFormat
+
 local function BuildFormatter(decimalsBelow, lowBelow, lowHex)
     local SU = C_StringUtil
     if not (SU and SU.CreateNumericRuleFormatter) then return nil end
@@ -93,13 +107,15 @@ local function BuildFormatter(decimalsBelow, lowBelow, lowHex)
 
     local ok, fmt = pcall(SU.CreateNumericRuleFormatter)
     if not ok or not fmt then return nil end
+    local minFmt = UnitFormat("COOLDOWN_DURATION_MIN", "%dm")
+    local hourFmt = UnitFormat("COOLDOWN_DURATION_HOURS", "%dh")
     for _, t in ipairs(cuts) do
         local rule
         if t >= 5401 then
-            rule = { threshold = t, step = 1, rounding = down, min = 1, format = "%dh",
+            rule = { threshold = t, step = 1, rounding = down, min = 1, format = hourFmt,
                      components = { { div = 3600, rounding = up } } }
         elseif t >= 91 then
-            rule = { threshold = t, step = 1, rounding = down, min = 1, format = "%dm",
+            rule = { threshold = t, step = 1, rounding = down, min = 1, format = minFmt,
                      components = { { div = 60, rounding = up } } }
         elseif t < d then
             rule = { threshold = t, step = 0.1, rounding = down, format = "%.1f" }
