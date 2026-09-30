@@ -32,12 +32,15 @@
 一支單體發佈的插件，共用層全部 vendor 在 `Libs/`（`MiliUIWidgets` 設定介面、`MiliUIGlow`
 發光、`MiliUISnap` 磁吸），唯一 source 在 MiliUI 本體，改了跑
 `python3 .claude/scripts/sync-widgets.py` 同步；只有 `Libs/MiliUIWidgets/Env.lua` 是本插件自己的。
+另外內嵌三支通用函式庫 `LibStub`、`CallbackHandler-1.0`、`LibSharedMedia-3.0`（原封不動，TOC 最前面載入）：
+字型／材質／音效的名稱都走 LibSharedMedia，單獨安裝本插件時也要有它。
 
 | 位置 | 內容 |
 |---|---|
 | `Core/Init.lua` | 命名空間、`ns.Guard`（掛勾的 xpcall 包裝）、`ns.Defer`（下一幀）、`ns.Write`（容器層寫入的唯一出口：戰鬥中碰保護框就記帳、脫戰補做）、事件註冊表、互斥偵測、登入流程 |
 | `Core/DB.lua` | 預設值（套組現值）、遷移鏈、設定檔／專精綁定、`ns.Setting`／`ns.SpellSetting` |
-| `Core/Media.lua` | 字型／材質 token → 路徑（LibSharedMedia 可選） |
+| `Core/Media.lua` | 字型／材質 token → 路徑（名稱問 LibSharedMedia） |
+| `Media/Sounds/` | 內建音效 106 個＋`Sounds.lua`（載入時註冊進 LibSharedMedia，別的插件的音效下拉也選得到）。**這個資料夾是 GPL-2.0**，出處與授權見裡面的 `README.md`、`LICENSE`；跟本體其餘程式分開，本體的程式不要搬進去、裡面的東西也不要搬出來混用 |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
 | `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
@@ -247,7 +250,9 @@
 「無」＝清掉覆寫，其餘是 LibSharedMedia 的音效名，開面板時才列、依名稱排序；旁邊「試聽」照目前聲道播一次，
 不看總開關）。沒有條層的值（`DB.SPELL_CONST` 給 false）。全域只有 `theme.sound = { enabled, channel }`
 （主題頁「音效」一節：總開關、聲道 Master／SFX／Music／Ambience／Dialog）。
-一個音效都沒有（沒裝 LibSharedMedia、沒啟用音效媒體插件）時下拉只剩「無」，面板多一列灰字說明。
+音效來源：本插件內建一批（`Media/Sounds/`，載入時註冊進 LibSharedMedia，名稱沿用原註冊名），加上其他插件註冊的。
+註冊是全域的，所以套組裡其他讀 LibSharedMedia 的插件（嗜血音樂、BigWigs…）也選得到這批音效。
+萬一清單是空的（理論上不會發生），下拉只剩「無」，面板多一列灰字說明。
 
 | 觸發 | 做法 |
 |---|---|

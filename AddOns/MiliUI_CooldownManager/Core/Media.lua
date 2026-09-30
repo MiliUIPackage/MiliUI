@@ -4,7 +4,7 @@
 -- 設定裡存的是 **token**（LibSharedMedia 的名稱，或我們自己的保留字），不是路徑：
 --   字型  "DEFAULT"  ＝ 跟著客戶端語系的內建字型
 --   材質  "solid"    ＝ 純白貼圖（HUD 皮的純色底／1px 邊都用它）
--- 其餘名稱去問 LibSharedMedia（有裝才問，沒裝不影響任何功能）；查不到一律退回預設，
+-- 其餘名稱去問 LibSharedMedia（本插件內嵌）；查不到一律退回預設，
 -- 不會回 nil —— FontString 沒字型就 SetText 是硬錯誤，而且會中斷整支初始化。
 ------------------------------------------------------------
 local _, ns = ...
@@ -85,7 +85,7 @@ function M.Border(token)
     return nil
 end
 
--- LibSharedMedia 某一類的名稱清單（排序好）。沒裝 LSM 回空表。
+-- LibSharedMedia 某一類的名稱清單（排序好）。拿不到 LSM 回空表。
 -- 設定頁的下拉要做成函式、開頁那一刻才求值：別的插件可能比我們晚註冊材質。
 function M.List(kind)
     local lsm = LSM()

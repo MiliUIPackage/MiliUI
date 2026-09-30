@@ -1,14 +1,16 @@
 ------------------------------------------------------------
--- MiliUI_SoundPack：把一批音效註冊進 LibSharedMedia，給套組裡所有有音效下拉選單的插件用
+-- 內建音效：把 Media\Sounds\ 底下的音效註冊進 LibSharedMedia
+-- （本插件的就緒音效／光環提示用，套組裡其他有音效下拉選單的插件也選得到）
 --
--- 授權：GPL-2.0（見同資料夾的 LICENSE）。Sounds\ 底下的音檔與下面這張名稱對照表取自
--- WeakAuras 5.21.1（https://github.com/WeakAuras/WeakAuras2，GPL-2.0），音檔未經修改；
--- Sounds\PowerAuras\ 那批是它從更早的 Power Auras 繼承來的。出處與說明見 README.md。
+-- ⚠ 授權：**這個檔案與同資料夾的音檔是 GPL-2.0**（見同資料夾的 LICENSE 與 README.md），
+--   跟本插件其餘部分分開。音檔與下面這張名稱對照表取自 WeakAuras 5.21.1
+--   （https://github.com/WeakAuras/WeakAuras2，GPL-2.0），音檔未經修改；PowerAuras\ 那批是它從
+--   更早的 Power Auras 繼承來的。
 --
 -- 名稱沿用原本的註冊名：別的插件存檔裡記的是 LibSharedMedia 的名稱，同名才接得上。
 -- 數字的那幾筆是暴雪自己的音效檔案編號，不帶檔案。
 ------------------------------------------------------------
-local BASE = "Interface\\AddOns\\MiliUI_SoundPack\\Sounds\\"
+local BASE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\Sounds\\"
 
 local SOUNDS = {
     { "Heartbeat Single", BASE .. "WeakAuras\\HeartbeatSingle.ogg" },
@@ -120,22 +122,11 @@ local SOUNDS = {
     { "Yeehaw", BASE .. "PowerAuras\\yeehaw.ogg" },
 }
 
-local function Register()
-    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-    if not LSM then return false end
+-- LibSharedMedia 由本插件內嵌、在 TOC 裡排在這個檔案前面，所以這裡一定拿得到。
+-- 已經有同名的（原插件自己也載入、而且排在我們前面時）Register 會回 false，不覆蓋。
+local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+if LSM then
     for i = 1, #SOUNDS do
-        -- 已經有同名的（原插件自己也載入時）Register 會回 false，不覆蓋
         LSM:Register("sound", SOUNDS[i][1], SOUNDS[i][2])
     end
-    return true
-end
-
--- LibSharedMedia 可能比我們晚載入（它是別的插件內嵌的）：先試一次，登入時再補
-if not Register() then
-    local f = CreateFrame("Frame")
-    f:RegisterEvent("PLAYER_LOGIN")
-    f:SetScript("OnEvent", function(self)
-        self:UnregisterEvent("PLAYER_LOGIN")
-        Register()
-    end)
 end
