@@ -9,7 +9,7 @@
 --   時機  showCombat／showTarget：都沒勾 ＝ 一直顯示；勾了任一個 ＝ 任一成立才顯示
 --   限制  hideMounted（騎乘或坐載具）、onlyInstances（不在副本）、group（solo／party／raid
 --         不符）——任一成立就不顯示，蓋過時機
---   顯示時再套淡出（fade：outOfCombat／noTarget／mounted 各自的透明度，false ＝ 不淡），
+--   顯示時再套淡出（fade：enabled／alpha；keepInCombat／keepWithTarget 任一成立不淡；whenMounted 一律淡），
 --   同時成立取最低
 --
 -- 為什麼不用 secure 狀態驅動：容器不是 secure 框，而且暴雪的 item 不是容器的子框
@@ -83,17 +83,16 @@ function Vis.Evaluate(vis, fade, s)
         local ok = (vis.showCombat and s.combat) or (vis.showTarget and s.target)
         if not ok then return 0 end
     end
-    -- 淡出：同時成立取最低
-    local alpha = 1
+    -- 淡出：一個透明度。「不淡出的時機」（戰鬥中／有目標）任一成立就完整顯示；
+    -- 騎乘勾了就不看時機一律淡；都沒勾＝只要啟用就一直淡
     fade = type(fade) == "table" and fade or {}
-    local function Take(v)
-        v = tonumber(v)
-        if v and v < alpha then alpha = v < 0 and 0 or v end
-    end
-    if fade.outOfCombat ~= false and fade.outOfCombat ~= nil and not s.combat then Take(fade.outOfCombat) end
-    if fade.noTarget ~= false and fade.noTarget ~= nil and not s.target then Take(fade.noTarget) end
-    if fade.mounted ~= false and fade.mounted ~= nil and s.mounted then Take(fade.mounted) end
-    return alpha
+    if not fade.enabled then return 1 end
+    local a = tonumber(fade.alpha)
+    if not a then return 1 end
+    if a < 0 then a = 0 elseif a > 1 then a = 1 end
+    if fade.whenMounted and s.mounted then return a end
+    if (fade.keepInCombat and s.combat) or (fade.keepWithTarget and s.target) then return 1 end
+    return a
 end
 
 local function Snapshot()

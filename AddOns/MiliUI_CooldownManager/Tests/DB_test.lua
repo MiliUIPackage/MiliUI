@@ -178,10 +178,10 @@ eq("glow.proc.color 讀條的", S("buffs", "glow.proc.color").g, 1)
 eq("glow.proc.type 退回主題", S("buffs", "glow.proc.type"), "pixel")
 
 -- fade：false（不淡）不能被當成「沒值」
-eq("fade.mounted 預設 false", S("buffbars", "fade.mounted"), false)
+eq("fade.whenMounted 預設 false", S("buffbars", "fade.whenMounted"), false)
 P.bars.buffbars.follow.fade = false
-P.bars.buffbars.fade.noTarget = false
-eq("條把 noTarget 設 false → false，不退回主題的 0.3", S("buffbars", "fade.noTarget"), false)
+P.bars.buffbars.fade.keepWithTarget = false
+eq("條把 keepWithTarget 設 false → false，不退回主題的 true", S("buffbars", "fade.keepWithTarget"), false)
 
 -- 非主題欄位不繼承
 eq("不存在的條", S("nope", "layout.size.w"), nil)

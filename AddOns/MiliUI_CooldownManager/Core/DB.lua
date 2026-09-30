@@ -17,7 +17,7 @@
 --   * 使用者值只補 nil、永不覆蓋
 --   * **預設值裡不放「用 nil 表示關閉」的欄位**：預設是表或數字的欄位，玩家關掉之後
 --     若存成 nil，下次合併又會被補回預設 ⇒ 關不掉。「沒有／不要」一律存 false
---     （anchor = false、row2Size = false、fade.mounted = false…）。
+--     （anchor = false、row2Size = false、fade.whenMounted = false…）。
 --
 -- ⚠ 顏色一律 { r, g, b, a }（表單引擎的色票直接讀寫這個形狀）。
 ------------------------------------------------------------
@@ -256,7 +256,9 @@ function DB.BuildDefaults()
                               lines = 8, thickness = 2, frequency = 0.2, duration = 3 },
                 },
                 -- 淡出後的透明度；false ＝ 這個條件不淡
-                fade  = { outOfCombat = false, noTarget = 0.3, mounted = false },
+                -- 淡出：一個透明度；「不淡出的時機」任一成立就維持完整顯示（跟顯示條件的「時機 OR」同一套語彙）；
+                -- 騎乘另外一個開關，勾了不看時機一律淡
+                fade  = { enabled = true, alpha = 0.3, keepInCombat = true, keepWithTarget = true, whenMounted = false },
                 -- 無損刷新（可以續壓的窗口）：邊框換色；bars ＝ 長條的條身也換色
                 pandemic = { enabled = true, color = rgba(1, 0.5, 0, 1), bars = true },
                 -- 按鍵文字：動作條上綁的鍵，縮寫後畫在圖示一角
@@ -591,7 +593,7 @@ end
 --   theme ──(條的 follow 那一項 ≠ false)──▶ bars[barKey] ──▶ spells[spec].overrides[id]
 --
 -- path 是點分字串，**用主題的形狀寫**（"cooldownText.size"、"border.color"、
--- "glow.proc.type"、"icon.zoom"、"fade.mounted"），不管條把它存在哪張子表：
+-- "glow.proc.type"、"icon.zoom"、"fade.alpha"），不管條把它存在哪張子表：
 --
 --   第一段           跟著 follow 的哪一項   條自己存在
 --   font／outline     text                  bars[k].text.<path>
