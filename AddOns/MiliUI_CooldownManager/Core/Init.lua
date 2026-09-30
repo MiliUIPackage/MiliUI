@@ -234,11 +234,14 @@ end
 ns.conflict = ConflictLoaded()
 
 local function ConflictTitle()
-    local title = C_AddOns.GetAddOnMetadata(CONFLICT_ADDON, "Title")
-    if type(title) ~= "string" or title == "" then return CONFLICT_ADDON end
+    -- 沒安裝時（設定檔頁也會叫）有的客戶端版本會拋錯，包起來
+    local ok, title = pcall(C_AddOns.GetAddOnMetadata, CONFLICT_ADDON, "Title")
+    if not ok or type(title) ~= "string" or title == "" then return CONFLICT_ADDON end
     title = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
     return title
 end
+
+ns.ConflictTitle = ConflictTitle
 
 local function DisableAndReload(folders)
     local who = UnitName("player")
@@ -247,21 +250,38 @@ local function DisableAndReload(folders)
     end
     ReloadUI()
 end
+ns.DisableAndReload = DisableAndReload
 
+-- 對方的存檔裡有這隻角色的設定時，多一顆主按鈕「匯入」（Core/Import.lua）：讀它的、寫我們的、
+-- 停用它、重載。這時兩個按鈕變一般樣式（一組按鈕只有一個主動作）。匯入過的話字改成「重新匯入」，
+-- 覆蓋的是上次匯入建的那幾份設定檔。
 local conflictPopup
 function ns.ShowConflictPopup()
     local W = ns.W
     if not W then return end
     if not conflictPopup then
         local other = ConflictTitle()
-        conflictPopup = W.CreateChoicePopup(UIParent, 480,
-            L["%s and MiliUI Cooldown Manager both take over Blizzard's Cooldown Manager, so only one of them can be enabled."]:format(other),
-            {
-                { text = L["Disable %s and reload"]:format(other), color = "primary",
-                  onClick = function() DisableAndReload(CONFLICT_FOLDERS) end },
-                { text = L["Disable this addon for now"], color = "normal",
-                  onClick = function() DisableAndReload({ ADDON }) end },
-            })
+        local Import = ns.Import
+        local canImport = Import and Import.Available and Import.Available()
+        local text = L["%s and MiliUI Cooldown Manager both take over Blizzard's Cooldown Manager, so only one of them can be enabled."]:format(other)
+        local choices = {}
+        if canImport then
+            local again = Import.Imported() ~= nil
+            text = text .. "\n\n" .. L["Import converts every %s profile into a new profile here (nothing existing is overwritten), then disables it and reloads."]:format(other)
+            if again then text = text .. "\n" .. L["Importing again replaces the profiles made by the last import."] end
+            choices[#choices + 1] = {
+                text = (again and L["Re-import from %s"] or L["Import from %s"]):format(other), color = "primary",
+                onClick = function()
+                    local ok, err = xpcall(Import.FromAyije, geterrorhandler())
+                    if not ok and err then ns.Print(tostring(err)) end
+                end,
+            }
+        end
+        choices[#choices + 1] = { text = L["Disable %s and reload"]:format(other), color = canImport and "normal" or "primary",
+                                  onClick = function() DisableAndReload(CONFLICT_FOLDERS) end }
+        choices[#choices + 1] = { text = L["Disable this addon for now"], color = "normal",
+                                  onClick = function() DisableAndReload({ ADDON }) end }
+        conflictPopup = W.CreateChoicePopup(UIParent, canImport and 600 or 480, text, choices)
     end
     conflictPopup:Show()
 end

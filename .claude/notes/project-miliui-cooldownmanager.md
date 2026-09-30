@@ -94,6 +94,12 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
 把實作上的差別（能不能真的刪）做成兩個動詞，只會讓人覺得「移不掉」。
 **How to apply:** 設定介面的動詞照使用者看到的結果取，不照底層資料怎麼存取。
 
+**從 Ayije_CDM 匯入設定（2026-10-01，未實機驗證）**：`Core/Import.lua`，純轉換 `Convert(profile, opts)`＋離線測試
+`Tests/Import_test.lua`（夾具是使用者存檔的去名縮小版）。**只能在互斥彈窗那一刻做**（對方的 SV 只在它載入時存在）：
+彈窗多一顆主按鈕「從 %s 匯入」→ 讀 `Ayije_CDMDB`、每份 profile 轉成「Ayije：<名>」新設定檔、寫進我們的 SV（DB.Init 前直接寫）、
+停用它、重載；設定檔頁只放「啟用它並重載」。spellID→cooldownID 只換得了目前專精，其他專精存 `profile.pendingImport[specID]`，
+目錄建好時 `ResolvePending` 補。對方存檔只存跟它預設不同的鍵 ⇒ **沒出現的鍵不動**。計畫在 `~/.claude/plans/miliui-cdm-import-ayije.md`。
+
 **內建音效（2026-09-30）**：`Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，自帶 LICENSE 與出處
 README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插件、載入時註冊進 LibSharedMedia 讓其他插件也選得到
 （使用者拍板：不另立音效包插件）。為此內嵌了 LibStub／CallbackHandler／LibSharedMedia（取套組裡最新那份）。

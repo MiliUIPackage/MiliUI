@@ -125,6 +125,10 @@ local function Debug()
         p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",
                     tostring(C.IsPaused()), tostring(C.specTag), C.adopted or 0, B.resyncs or 0))
+        -- 從另一支插件匯入、還沒對到 cooldownID 的法術（那個專精第一次登入時才對得到）
+        if ns.Import and ns.Import.DebugLines then
+            for _, line in ipairs(ns.Import.DebugLines()) do p(line) end
+        end
         -- 暴雪 API 現在給的是哪一份清單：每一類幾個、學會幾個、前三個的 cooldownID＝法術。
         -- 換專精之後暴雪有時還在給上一個專精的清單（面板上一排灰色的別專精技能、本專精的技能不見），
         -- 這幾行對照暴雪資料表的 cooldownID 就看得出來

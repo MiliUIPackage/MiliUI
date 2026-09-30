@@ -441,6 +441,17 @@ local function EnsureBuilt()
             if ns.ReportError then ns.ReportError(changed) end
             return false
         end
+        -- 從另一支插件匯入的設定：這個專精還掛著 spellID 的群組／覆寫，用剛建好的目錄對表
+        -- （Core/Import.lua）。換到了就當成內容有變，呼叫端會廣播 CatalogChanged → 重排
+        local Import = ns.Import
+        if Import and Import.ResolvePending and ns.specID then
+            local ok2, resolved = pcall(Import.ResolvePending, ns.specID)
+            if not ok2 then
+                if ns.ReportError then ns.ReportError(resolved) end
+            elseif resolved then
+                changed = true
+            end
+        end
         return changed
     end
     return false
