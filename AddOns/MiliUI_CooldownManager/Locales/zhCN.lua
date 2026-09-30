@@ -63,6 +63,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "要先在暴雪冷却
 L["Add spells to this bar"] = "把法术加到这条"
 L["Left-click: settings for this spell"] = "左键：这个法术的设置"
 L["Middle-click: remove"] = "中键：移除"
+L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."] = "官方的饰品监控不稳定，建议直接用「物品」输入物品 ID 来监控饰品。"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "暴雪的冷却管理器目前没有显示这一格，所以条上画不出来。"
 L["Drag: reorder, or drop on a group on the left"] = "拖拽：排序，或拖到左栏的组上"
 L["Name"] = "名称"

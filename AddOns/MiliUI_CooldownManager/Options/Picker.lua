@@ -414,8 +414,10 @@ function Picker.Refresh()
 
     Place(sections.customHead, y); y = y - 16
     local iconBar = not IsBarsKind(key)
+    -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），直接建議走物品 ID
     sections.customNote:SetText(iconBar
-        and L["Track an aura on you, or a spell or item cooldown, by its ID."]
+        and (L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
+            .. L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."])
         or L["Custom entries go on icon bars only."])
     Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
     for _, b in ipairs(sections.customBtns) do b:SetShown(iconBar) end
