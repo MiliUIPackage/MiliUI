@@ -14,7 +14,8 @@
 --
 -- 互動
 --   左鍵點格         → 逐法術面板（Options/SpellPopover.lua）
---   中鍵點格         → 隱藏（spells[spec].hidden）；隱藏的排在尾端 alpha 0.35，點一下還原
+--   中鍵點格         → 移除（從這條拿掉、不再顯示）。移除的不留在預覽上，要加回來按「＋」
+--                      （暴雪清單上的法術記在 spells[spec].hidden、挑選器第一區列得到；自己加的項目整筆刪掉）
 --   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單）；拖到左欄的自訂群組上
 --                      ＝拉進那一群（groupOf），拖回原本的檢視器上＝清掉 groupOf
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
@@ -188,8 +189,19 @@ function Preview.SetHidden(key, id, hidden)
     Changed("membership", key)
 end
 
+-- 移除：從這條拿掉、不再顯示。對使用者只有這一個動作（設定面板上有什麼，畫面上就有什麼）：
+--   * 暴雪清單上的法術 → 記進 spells[spec].hidden（暴雪那邊的清單我們不動；逐法術設定留著，加回來照舊）
+--   * 自己用「＋」加的項目 → 整筆刪掉
+-- 加回來一律走「＋」。
+function Preview.Remove(key, id)
+    if id == nil then return false end
+    if ns.Catalog.IsCustom(id) then return Preview.RemoveCustom(key, id) end
+    if ns.SpellPopover and ns.SpellPopover.Close then ns.SpellPopover.Close() end
+    Preview.SetHidden(key, id, true)
+    return true
+end
+
 -- 移除自訂項目（玩家自己用「＋」加的）：整筆刪掉，它的逐法術設定一起走。
--- 暴雪清單上的法術沒有「移除」——清單是暴雪冷卻管理器給的，我們這邊只能藏（SetHidden）。
 function Preview.RemoveCustom(key, id)
     if not ns.Catalog.IsCustom(id) then return false end
     if ns.SpellPopover and ns.SpellPopover.Close then ns.SpellPopover.Close() end
@@ -348,11 +360,11 @@ function Proto:Refresh()
     local kind = bar.kind == "bars" and "bars" or "icons"
     self.kind = kind
 
+    -- 移除的不畫在預覽上（要加回來按「＋」）：預覽上有什麼，畫面上就有什麼
     local visible, hidden = ns.Catalog.Bar(key, true)
     hidden = hidden or {}
     local entries = {}
     for _, id in ipairs(visible) do entries[#entries + 1] = { id = id } end
-    for _, id in ipairs(hidden) do entries[#entries + 1] = { id = id, hidden = true } end
     entries[#entries + 1] = { plus = true }
     self.count, self.hiddenCount = #visible, #hidden
 
@@ -499,13 +511,9 @@ local function ShowTip(c)
         GameTooltip:AddLine(L["Aura slot: always at the front of the bar, can't be dragged."], 1, 0.82, 0, true)
         GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
         GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
-    elseif c.hiddenItem then
-        GameTooltip:AddLine(L["Hidden. Click to show it again."], 0.8, 0.8, 0.8, true)
-        if c.custom then GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8) end
     else
         GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
-        -- 自己加的項目中鍵是移除；暴雪清單上的法術只能藏
-        GameTooltip:AddLine(c.custom and L["Middle-click: remove"] or L["Middle-click: hide"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
         GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
     end
     GameTooltip:Show()
@@ -533,17 +541,10 @@ function Proto:Wire(c)
         if not self:IsMouseOver() then return end
         if self.isPlus then
             if button == "LeftButton" and ns.Picker then ns.Picker.Open(pv.key, self) end
-        elseif button == "MiddleButton" and self.custom then
-            -- 自己加的項目（含光環格、已經藏起來的）：中鍵直接移除，要的話再按「＋」加回來
-            GameTooltip:Hide()
-            Preview.RemoveCustom(pv.key, self.id)
-        elseif self.hiddenItem then
-            if button == "LeftButton" then Preview.SetHidden(pv.key, self.id, false) end
         elseif button == "MiddleButton" then
-            if not self.locked then
-                GameTooltip:Hide()
-                Preview.SetHidden(pv.key, self.id, true)
-            end
+            -- 中鍵＝移除（不問）。要的話再按「＋」加回來
+            GameTooltip:Hide()
+            Preview.Remove(pv.key, self.id)
         elseif button == "LeftButton" then
             if ns.SpellPopover then ns.SpellPopover.Open(pv.key, self.id, self) end
         end

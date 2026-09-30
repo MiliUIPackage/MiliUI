@@ -224,6 +224,24 @@ local function ReadLayoutString()
 end
 C.ReadLayoutString = ReadLayoutString
 
+-- 沒有 spellID 的兩種項目，圖示與名字另外找（不然清單上是一排問號）：
+--   * 物品冷卻類別（spellCategoryID）：戰鬥藥水、治療藥水、治療石這種「哪一瓶都算」的共用冷卻。
+--     暴雪自己也是寫死一張「類別 → 圖示／標題」的表（CooldownViewerItemData.lua），這裡照同一組值。
+--   * 裝備欄（equipSlot）：那一格有裝備就用裝備的圖示與名字；空的用空格圖與欄位名。
+local SPELL_CATEGORY = {
+    [4]    = { icon = "Interface\\Icons\\INV_Potion_114",        title = "COOLDOWN_VIEWER_TOOLTIP_POTION_COMBAT_TITLE" },
+    [30]   = { icon = "Interface\\Icons\\INV_Potion_54",         title = "COOLDOWN_VIEWER_TOOLTIP_POTION_HEALTH_TITLE" },
+    [1711] = { icon = "Interface\\Icons\\Warlock_ Healthstone",  title = "COOLDOWN_VIEWER_TOOLTIP_POTION_HEALTHSTONE_TITLE" },
+    [2566] = { icon = "Interface\\Icons\\Warlock_ Bloodstone",   title = "COOLDOWN_VIEWER_TOOLTIP_POTION_DEMONIC_HEALTHSTONE_TITLE" },
+}
+local EQUIP_SLOT_NAME = { [13] = "TRINKET0SLOT", [14] = "TRINKET1SLOT", [16] = "MAINHANDSLOT", [17] = "SECONDARYHANDSLOT" }
+
+local function GlobalText(name)
+    local s = name and _G[name]
+    s = Plain(s)
+    return type(s) == "string" and s ~= "" and s or nil
+end
+
 local function ReadInfo(id)
     local api = C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCooldownInfo
     if not api then return nil end
@@ -261,6 +279,22 @@ local function ReadInfo(id)
             end
         end
     end
+    -- 裝備欄是空的：空格圖與欄位名
+    local slotToken = type(equipSlot) == "number" and EQUIP_SLOT_NAME[equipSlot] or nil
+    if slotToken then
+        if icon == nil and _G.GetInventorySlotInfo then
+            local ok7, _, tex = pcall(_G.GetInventorySlotInfo, slotToken)
+            if ok7 then icon = Plain(tex) end
+        end
+        if name == nil then name = GlobalText(slotToken) end
+    end
+    -- 物品冷卻類別：圖示固定用類別的（跟暴雪一樣，優先於法術圖示），名字沒有才用類別標題
+    local spellCategoryID = Plain(raw.spellCategoryID)
+    local catDef = type(spellCategoryID) == "number" and SPELL_CATEGORY[spellCategoryID] or nil
+    if catDef then
+        icon = catDef.icon
+        if name == nil then name = GlobalText(catDef.title) end
+    end
     local isKnown = Plain(raw.isKnown)
     return {
         cooldownID      = id,
@@ -271,6 +305,7 @@ local function ReadInfo(id)
         name            = name,
         category        = Plain(raw.category),
         equipSlot       = equipSlot,
+        spellCategoryID = spellCategoryID,
         hasAura         = Plain(raw.hasAura) and true or false,
         charges         = Plain(raw.charges) and true or false,
         isInvisible     = Plain(raw.isInvisible) and true or false,
@@ -725,10 +760,11 @@ function C.Bar(barKey, withHidden)
         end
     end
 
-    -- 自訂項目（只進圖示類的條；長條的 item 是另一種框，放不進去）
+    -- 自訂項目（只進圖示類的條；長條的 item 是另一種框，放不進去）。
+    -- hidden 對它無效：自己加的項目「移除」就是整筆刪掉，沒有「藏著」這種狀態
     if bar.kind ~= "bars" then
         for i, e in ipairs(CustomList()) do
-            if ValidCustom(e) and e.bar == barKey then Add("c:" .. i) end
+            if ValidCustom(e) and e.bar == barKey then out[#out + 1] = "c:" .. i end
         end
     end
 
@@ -791,6 +827,7 @@ function C.IsPaused() return paused end
 
 function C.OnSettingsShow()
     paused = true
+    if ns.Fire then ns.Fire("CatalogPaused") end
 end
 
 function C.OnSettingsHide()

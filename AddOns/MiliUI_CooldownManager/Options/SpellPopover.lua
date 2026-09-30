@@ -12,7 +12,7 @@
 --   * 「所在條」改的是它自己的 bar（任何一條圖示類的條）。
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
 --     多一列「不在時顯示占位」；沒有「隱藏此法術」（固定前綴）。
---   * 多一顆紅色「移除此項目」（確認後刪掉，後面的 id 由 DB.RemoveCustom 往前挪）。
+--   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
 --
 -- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」；增益類（暴雪
@@ -298,17 +298,14 @@ local function Build()
     end
     rows[#rows + 1] = tipEntry
 
-    -- 按鈕：暴雪清單上的法術是「隱藏／還原」，自己加的項目是「移除／還原」
-    --（暴雪的清單我們刪不掉只能藏；自己加的藏起來沒有意義，直接給移除）
+    -- 按鈕：移除（從這條拿掉；見 Preview.Remove）／還原設定
     local btnRow = CreateFrame("Frame", nil, frame)
     btnRow:SetSize(ROW_W, 22)
-    local hide = W.CreateButton(btnRow, L["Hide this spell"], "normal", 130, 22)
-    W.FitButton(hide, 130, 22)
-    hide:SetScript("OnClick", function()
+    local remove = W.CreateButton(btnRow, L["Remove from this bar"], "normal", 130, 22)
+    W.FitButton(remove, 130, 22)
+    remove:SetScript("OnClick", function()
         if not cur then return end
-        local key, id = cur.key, cur.id
-        frame:Hide()
-        ns.Preview.SetHidden(key, id, true)
+        ns.Preview.Remove(cur.key, cur.id)
     end)
     local restore = W.CreateButton(btnRow, L["Reset this spell"], "normal", 130, 22)
     W.FitButton(restore, 130, 22)
@@ -318,25 +315,8 @@ local function Build()
         if sp and type(sp.overrides) == "table" then sp.overrides[cur.id] = nil end
         Changed()
     end)
-    frame.hideBtn, frame.restoreBtn, frame.btnRow = hide, restore, btnRow
+    frame.removeBtn, frame.restoreBtn, frame.btnRow = remove, restore, btnRow
     rows[#rows + 1] = { frame = btnRow, h = 22 + 6, buttons = true }
-
-    -- 移除此項目（只有自訂項目；跟「隱藏」同一個位置）
-    local remove = W.CreateButton(btnRow, L["Remove this entry"], "red", 130, 22)
-    W.FitButton(remove, 130, 22)
-    frame.removeBtn = remove
-    local confirm
-    remove:SetScript("OnClick", function()
-        if not cur then return end
-        if not confirm then
-            confirm = W.CreateConfirmPopup(ns.Options.panel, 320,
-                L["Remove this entry from the current specialization? Its per-spell settings go with it."], function()
-                    if not cur then return end
-                    ns.Preview.RemoveCustom(cur.key, cur.id)
-                end)
-        end
-        confirm:Show()
-    end)
 
     -- 顯示之後才量得到字高（換行的語系）：每次顯示重量、照目前種類重排
     frame:HookScript("OnShow", function()
@@ -362,10 +342,7 @@ Layout = function(kind, class)
             row.frame:ClearAllPoints()
             row.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, y)
             if row.buttons then
-                local custom = IsCustom(kind)
-                local list = { custom and frame.removeBtn or frame.hideBtn, frame.restoreBtn }
-                frame.hideBtn:SetShown(not custom)
-                frame.removeBtn:SetShown(custom)
+                local list = { frame.removeBtn, frame.restoreBtn }
                 local _, bh = W.FlowLayout(frame.btnRow, list, ROW_W, 6, 4, 22)
                 frame.btnRow:SetHeight(bh)
                 row.h = bh + 6

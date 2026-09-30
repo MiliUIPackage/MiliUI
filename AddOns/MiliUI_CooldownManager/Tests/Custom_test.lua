@@ -134,8 +134,14 @@ sp.order.essential = { "c:3", 12, "c:4", "c:2", 11, "c:1" }
 eqList("順序覆寫照舊，光環格仍在最前（彼此照覆寫的順序）", C.Bar("essential"), { "c:4", "c:1", "c:3", 12, "c:2", 11 })
 sp.hidden["c:3"] = true
 local vis, hid = C.Bar("essential", true)
-eqList("隱藏的自訂項目", hid, { "c:3" })
-eqList("可見的少一格", vis, { "c:4", "c:1", 12, "c:2", 11 })
+-- hidden 對自訂項目無效：自己加的「移除」就是整筆刪掉，沒有「藏著」這種狀態（舊存檔留著的旗標不會讓它憑空消失）
+eqList("自訂項目不吃 hidden：不進移除清單", hid, {})
+eqList("自訂項目不吃 hidden：照樣顯示", vis, { "c:4", "c:1", "c:3", 12, "c:2", 11 })
+sp.hidden[12] = true
+vis, hid = C.Bar("essential", true)
+eqList("暴雪清單上的法術移除：進移除清單", hid, { 12 })
+eqList("暴雪清單上的法術移除：不顯示", vis, { "c:4", "c:1", "c:3", "c:2", 11 })
+sp.hidden[12] = nil
 sp.hidden["c:3"] = nil
 DB.SetCustomBar("c:2", "buffbars")
 eqList("長條不收自訂項目", C.Bar("buffbars"), { 41 })

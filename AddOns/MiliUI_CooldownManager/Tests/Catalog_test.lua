@@ -469,5 +469,42 @@ do
     env.C_Timer = nil
 end
 
+------------------------------------------------------------
+-- 沒有 spellID 的項目：物品冷卻類別（藥水／治療石）與空的裝備欄，圖示與名字另外找
+------------------------------------------------------------
+do
+    def(801, 5); infos[801].spellID = nil; infos[801].spellCategoryID = 30      -- 治療藥水
+    def(802, 5); infos[802].spellCategoryID = 1711                               -- 治療石（有 spellID）
+    def(803, 7, { equipSlot = 14 }); infos[803].spellID = nil                   -- 空的飾品欄
+    def(804, 5); infos[804].spellID = nil; infos[804].spellCategoryID = 99999   -- 不認得的類別
+    sets[5] = { 501, 801, 802, 804 }
+    sets[7] = { 701, 803 }
+    env.COOLDOWN_VIEWER_TOOLTIP_POTION_HEALTH_TITLE = "治療藥水"
+    env.COOLDOWN_VIEWER_TOOLTIP_POTION_HEALTHSTONE_TITLE = "治療石"
+    env.TRINKET1SLOT = "飾品"
+    env.GetInventorySlotInfo = function(token)
+        if token == "TRINKET1SLOT" then return 14, "EmptyTrinketTexture" end
+        error("unknown slot")
+    end
+    local savedSpell = env.C_Spell
+    env.C_Spell = { GetSpellTexture = function(id) return "tex" .. id end, GetSpellName = function(id) return "法術" .. id end }
+    layoutString = "1|B64main2"
+    C.Refresh("category-icons")
+    local a, b, c2, d = C.Info(801), C.Info(802), C.Info(803), C.Info(804)
+    check("類別項目（沒有 spellID）：圖示用類別的", type(a) == "table" and type(a.icon) == "string" and a.icon:find("INV_Potion_54", 1, true) ~= nil)
+    eq("類別項目（沒有 spellID）：名字用類別標題", a and a.name, "治療藥水")
+    eq("類別項目：記下 spellCategoryID", a and a.spellCategoryID, 30)
+    check("類別項目（有 spellID）：圖示仍用類別的", b and type(b.icon) == "string" and b.icon:find("Healthstone", 1, true) ~= nil)
+    eq("類別項目（有 spellID）：名字用法術名", b and b.name, "法術8020")
+    eq("空的裝備欄：圖示用空格圖", c2 and c2.icon, "EmptyTrinketTexture")
+    eq("空的裝備欄：名字用欄位名", c2 and c2.name, "飾品")
+    check("不認得的類別：維持沒有圖示（交給呼叫端的問號）", d and d.icon == nil and d.name == nil)
+    env.C_Spell = savedSpell
+    env.GetInventorySlotInfo = nil
+    sets[5] = { 501 }; sets[7] = { 701 }
+    infos[801], infos[802], infos[803], infos[804] = nil, nil, nil, nil
+    C.Refresh("category-icons-reset")
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
