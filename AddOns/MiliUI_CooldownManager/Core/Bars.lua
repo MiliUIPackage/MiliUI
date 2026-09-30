@@ -64,6 +64,7 @@ local claimedBy = setmetatable({}, { __mode = "k" })   -- item → key
 local firstRowW = {}           -- key → 第一列寬（長條寬 0 ＝ 跟核心技能第一列同寬）
 local scheduled, lastRun = false, -1
 local ArmStructurePending          -- 前置宣告（定義在 Relayout 前面）
+local viewerShown = {}             -- 來源條 → 檢視器上一次看到是不是顯示中（稽核用）
 local pinGuard, parkGuard = false, false
 local pinned = {}                  -- 釘過的檢視器（ReleaseAll 只解這些，沒碰過的不動）
 B.ready = false
@@ -340,15 +341,35 @@ local function VisAlpha(key)
     return 1
 end
 
+-- index[id] = item；live[來源條] = { id, … }（暴雪的順序：item 的 layoutIndex），給 Catalog.Adopt 對帳
 local function BuildIndex()
-    local index, dupes = {}, {}
+    local index, dupes, slots = {}, {}, {}
     ns.Viewers.EnumerateItems(function(item, rec)
         local id = rec.cooldownID
         if id ~= nil then
-            if index[id] == nil then index[id] = item else dupes[#dupes + 1] = item end
+            if index[id] == nil then
+                index[id] = item
+                local idx = rawget(item, "layoutIndex")
+                if ns.IsSecret(idx) or type(idx) ~= "number" then idx = 1000 end
+                local list = slots[rec.barKey]
+                if not list then list = {}; slots[rec.barKey] = list end
+                list[#list + 1] = { id = id, idx = idx }
+            else
+                dupes[#dupes + 1] = item
+            end
         end
     end)
-    return index, dupes
+    local live = {}
+    for key, list in pairs(slots) do
+        table.sort(list, function(a, b)
+            if a.idx ~= b.idx then return a.idx < b.idx end
+            return a.id < b.id
+        end)
+        local ids = {}
+        for i = 1, #list do ids[i] = list[i].id end
+        live[key] = ids
+    end
+    return index, dupes, live
 end
 
 local function BarSize(key, bar)
@@ -468,6 +489,7 @@ local function Relayout(key, level, index, gen)
         if e.crec then
             ns.Custom.Place(e.crec, c, r, key, gen)
         else
+            ns.Viewers.EnsureScale(item, rec, key)
             item:ClearAllPoints()
             item:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
             item:SetSize(r.w, r.h)
@@ -563,6 +585,31 @@ function B.RelayoutAll(_reason)
     B.RequestAll("structure")
 end
 
+-- 整套重來（幾輪）：見 B.Init 的事件註解。同一波事件合併成一組計時器（新的一波把舊的作廢）。
+local RESYNC_DELAYS = { 0, 0.5, 1.5, 3 }
+local resyncToken = 0
+B.resyncs = 0
+local function ResyncPass(reason, pass)
+    if B.released or not ns.Viewers.ready then return end
+    B.resyncs = B.resyncs + 1
+    if ns.Decorate and ns.Decorate.InvalidateAll then ns.Decorate.InvalidateAll() end
+    if ns.Catalog and ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
+    B.RequestAll("structure")
+    if ns.Visibility and ns.Visibility.ApplyAll then ns.Visibility.ApplyAll() end
+    if pass == 1 and ns.Diag then ns.Diag.Note("resync", tostring(reason)) end
+end
+function B.Resync(reason)
+    resyncToken = resyncToken + 1
+    local token = resyncToken
+    for pass, delay in ipairs(RESYNC_DELAYS) do
+        C_Timer.After(delay, function()
+            if token ~= resyncToken then return end
+            local ok, err = xpcall(ResyncPass, ns.ReportError, reason, pass)
+            if not ok then B.lastError = err end
+        end)
+    end
+end
+
 Flush = function()
     if B.released then
         -- 還給暴雪之後：條不再排，面板（資源條、施法條）是自己的框，照常
@@ -590,6 +637,19 @@ Flush = function()
         work[ns.dragging] = nil
     end
 
+    -- 暴雪可能剛在它自己的下一幀換了版面／專精：清單先對一次
+    ns.Catalog.CheckFresh()
+    -- 自訂項目：照目前專精的清單對上框（換專精、刪項目的在這裡收起來）
+    if ns.Custom then ns.Custom.Sync() end
+    local index, _, live = BuildIndex()
+    -- 對帳：暴雪正在顯示、我們的清單卻漏掉的 id 收進來（見 Catalog.Adopt）。有收養 ⇒ 每一條都可能受影響，全部重排
+    if ns.Catalog.Adopt and ns.Catalog.Adopt(live) > 0 then
+        local prof = Profile()
+        for key in pairs(type(prof) == "table" and type(prof.bars) == "table" and prof.bars or {}) do
+            if key ~= ns.dragging and not work[key] then work[key] = LEVEL.membership end
+        end
+    end
+
     -- 這一輪要排的條先放掉舊的認領
     for item, key in pairs(claimedBy) do
         if work[key] then claimedBy[item] = nil end
@@ -597,12 +657,6 @@ Flush = function()
     for id, slot in pairs(slotOf) do
         if work[slot.key] then slotOf[id] = nil end
     end
-
-    -- 暴雪可能剛在它自己的下一幀換了版面／專精：清單先對一次
-    ns.Catalog.CheckFresh()
-    -- 自訂項目：照目前專精的清單對上框（換專精、刪項目的在這裡收起來）
-    if ns.Custom then ns.Custom.Sync() end
-    local index = BuildIndex()
     -- 依左欄順序排（被錨的條通常在後面；核心技能先排，長條才知道第一列多寬）
     local order, seen = {}, {}
     local p = Profile() or {}
@@ -635,6 +689,25 @@ Flush = function()
 
     if next(structurePending) then ArmStructurePending() end
 
+    -- 稽核（只記不修）：暴雪把整條檢視器藏起來時，上面的 item 跟著看不到，我們這邊一切正常也沒用。
+    -- 狀態變了才記一筆（編輯模式的「可見」設定、冷卻管理器在這個情境不可用…）
+    if ns.Diag then
+        for _, src in ipairs(ns.Viewers.ORDER) do
+            local viewer = ns.Viewers.Get(src)
+            if viewer then
+                local ok, shown = pcall(viewer.IsShown, viewer)
+                if ok and not ns.IsSecret(shown) then
+                    shown = shown and true or false
+                    if viewerShown[src] ~= nil and viewerShown[src] ~= shown then
+                        ns.Diag.Note("viewer", ("%s 檢視器被暴雪%s（清單 %d、戰鬥中 %s）")
+                            :format(src, shown and "顯示回來" or "藏起來", #ns.Catalog.Bar(src), tostring(InCombatLockdown())))
+                    end
+                    viewerShown[src] = shown
+                end
+            end
+        end
+    end
+
     if not B.ready then
         B.ready = true
         if ns.Fire then ns.Fire("BarsReady") end
@@ -653,6 +726,7 @@ function B.Reapply(sourceKey)
         local c = slot and containers[slot.key]
         if c then
             -- 這個 id 上次排在哪就放回哪（暴雪整條重取出時可能換了一顆框，完整重排馬上會來）
+            ns.Viewers.EnsureScale(item, rec, slot.key)
             item:ClearAllPoints()
             item:SetPoint("TOPLEFT", c, "TOPLEFT", slot.x, -slot.y)
             item:SetSize(slot.w, slot.h)
@@ -811,6 +885,19 @@ function B.Init()
         for key in pairs(p.bars) do EnsureContainer(key) end
         for key in pairs(p.bars) do ApplyStructure(key) end
     end
+
+    -- 進場（每次讀取畫面結束）與天賦／專精切換之後：整套重來幾輪。
+    -- 暴雪在這些時候會在它自己之後的幾幀重建檢視器的框（換專精會重套編輯模式版面、整條重取出），
+    -- 那幾幀裡有的訊號我們接得到、有的接不到；與其賭事件順序，不如過一會兒再整套對一次
+    -- （樣式簽章清掉、清單重讀、容器重貼、每顆 item 重放重套）。事件處理器只排計時器，不同步做事。
+    local E = ns.Events
+    E.Register("PLAYER_ENTERING_WORLD", "bars_resync", function() B.Resync("world") end)
+    E.Register("LOADING_SCREEN_DISABLED", "bars_resync", function() B.Resync("loading") end)
+    E.Register("ACTIVE_TALENT_GROUP_CHANGED", "bars_resync", function() B.Resync("talentgroup") end)
+    E.Register("PLAYER_TALENT_UPDATE", "bars_resync", function() B.Resync("talents") end)
+    E.Register("TRAIT_CONFIG_UPDATED", "bars_resync", function() B.Resync("talents") end)
+    E.Register("EDIT_MODE_LAYOUTS_UPDATED", "bars_resync", function() B.Resync("editlayout") end)
+    ns.RegisterCallback("SpecChanged", "bars_resync", function() B.Resync("spec") end)
 
     ns.RegisterCallback("CatalogChanged", "bars", function() B.RequestAll("membership") end)
     ns.RegisterCallback("CatalogResumed", "bars", function() B.RequestAll("membership") end)

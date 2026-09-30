@@ -98,6 +98,7 @@ local function LockScale(item)
     if not ok then
         NoteBlocked("SetScale", item, LockScale)
     end
+    return ok
 end
 
 ------------------------------------------------------------
@@ -133,6 +134,19 @@ end
 local function OnItemSetScale(item, scale)
     local s = Plain(scale)
     if s ~= 1 then LockScale(item) end
+end
+
+-- 稽核：排版時順手讀一次縮放，不是 1 就壓回去並記一筆（掛勾理論上擋得住；擋不住的那一次要留下紀錄）
+function V.EnsureScale(item, rec, where)
+    if ns.released then return end
+    local ok, s = pcall(item.GetScale, item)
+    s = ok and Plain(s) or nil
+    if type(s) ~= "number" or (s > 0.999 and s < 1.001) then return end
+    local fixed = LockScale(item)
+    if ns.Diag then
+        ns.Diag.Note("scale", ("%s：item（id %s）縮放 %.3f，%s")
+            :format(tostring(where), tostring(rec and rec.cooldownID), s, fixed and "已壓回 1" or "壓不回去（脫戰重試）"))
+    end
 end
 
 local function HookItem(item, rec)
@@ -189,8 +203,13 @@ local function Track(viewer, item)
     rec.viewer, rec.barKey = viewer, key
     rec.decorated = nil               -- 取出時暴雪會重設計時顯示、縮放 ⇒ 樣式要重套
     rec.acquired = (rec.acquired or 0) + 1
-    -- 取出時的身分：RefreshData 之後才會 SetCooldownID，這裡讀得到就先記（明文）
-    rec.cooldownID = ReadItemID(item) or rec.cooldownID
+    -- 取出時的身分：讀 item 現在的（明文）。池子回收時暴雪已經把資料清掉，剛取出的框通常是 nil，
+    -- 同一輪 RefreshData 的 SetCooldownID 會補上（後掛勾）。**不沿用上一次的**：檢視器藏著的時候
+    -- RefreshLayout 不會叫 RefreshData，沿用的話這顆框會頂著上一輩子的身分被認領。
+    local now = ReadItemID(item)
+    if now ~= rec.cooldownID then
+        rec.cooldownID = now
+    end
     -- 第一次看到時的尺寸（我們 SetSize 之前）：Bars.ReleaseAll 還給暴雪時用；讀不到就不還原
     if rec.origW == nil then
         local ok, w, h = pcall(item.GetSize, item)
@@ -338,6 +357,8 @@ local function AllPresent()
 end
 
 local function Install()
+    -- 圖示套皮插件的「請跳過」掛勾要排在前面（檢視器晚建好的客戶端在這裡補掛，見 Core/Compat.lua）
+    if ns.Compat and ns.Compat.Install then xpcall(ns.Compat.Install, ns.ReportError) end
     for _, key in ipairs(V.ORDER) do
         HookViewer(key, V.Get(key))
     end

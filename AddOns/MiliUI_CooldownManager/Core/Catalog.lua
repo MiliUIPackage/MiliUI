@@ -378,6 +378,13 @@ local function Build()
     end
 
     C.info, C.ordered, C.lists, C.pool = info, ordered, lists, pool
+    -- 哪些 id 已經排在某條檢視器的清單上（C.Adopt 用）
+    local placed = {}
+    for _, bar in ipairs(C.SOURCE_BARS) do
+        for _, id in ipairs(lists[bar]) do placed[id] = true end
+    end
+    C.placed = placed
+    C.adopted = 0
 
     -- 簽章：版面原字串＋專精＋每條清單（天賦改變 isKnown 也會反映在清單上）
     local parts = { str or "", tostring(tag) }
@@ -436,6 +443,89 @@ function C.CheckFresh()
         return C.Refresh("stale")
     end
     return false
+end
+
+------------------------------------------------------------
+-- 收養：暴雪檢視器上正在顯示、我們的清單卻沒有的 id
+--
+-- 清單是我們照 C_CooldownViewer 的 API 自己重建的（暴雪的資料提供者也是讀同一組 API，但各讀各的、
+-- 時間點不同）。進副本、被系統換專精（排隨機隊伍自動換成補師專精）、天賦切換的那幾幀，API 回的
+-- 可能還是上一個專精的東西、或某幾個 id 暫時查不到資訊；那一刻建出來的清單就會漏。之後如果沒有
+-- 任何一個我們聽的事件再來，漏掉的 id 對應的 item 沒人認領 ⇒ 被停到畫面外，整條看起來是空的。
+--
+-- 暴雪只替「已學會、屬於那個類別」的 id 取出 item 並設 cooldownID
+-- （CooldownViewerMixin:RefreshData ← GetOrderedCooldownIDsForCategory），所以**作用中、有 cooldownID 的
+-- item 就是暴雪正在顯示的東西**。清單漏了的，直接收進那條檢視器的清單尾端（照暴雪的順序），
+-- 順序頂多暫時不對，不會整格不見；玩家在我們這邊藏掉／拉去別條的照舊生效（那是 C.Bar 的事）。
+--
+--   C.Adopt(live)  live[來源條] = { id, … }（暴雪的順序）。回傳這次新收的 id 數。
+--
+-- 每次重建（Build）清單都是重來的，所以 Bars 每次排版前都叫；有收養就代表清單過期了，
+-- 排幾次重讀（0.5／1.5／3 秒），乾淨的一輪之後額度還原。
+------------------------------------------------------------
+local RETRY_DELAYS = { 0.5, 1.5, 3 }
+local retryStep, retryArmed = 0, false
+
+local function ArmRetry()
+    if retryArmed or retryStep >= #RETRY_DELAYS then return end
+    local timer = _G.C_Timer
+    if not (timer and timer.After) then return end
+    retryStep = retryStep + 1
+    retryArmed = true
+    timer.After(RETRY_DELAYS[retryStep], function()
+        retryArmed = false
+        C.Refresh("adopt-retry")
+        -- 清單內容沒變也要再排一輪：讓下一次排版重新檢查還有沒有漏的
+        if ns.Bars and ns.Bars.RequestAll then ns.Bars.RequestAll("membership") end
+    end)
+end
+
+function C.Adopt(live)
+    EnsureBuilt()
+    if type(live) ~= "table" then return 0 end
+    local placed = C.placed
+    if type(placed) ~= "table" then return 0 end
+    local n, notes = 0, nil
+    for _, bar in ipairs(C.SOURCE_BARS) do
+        local ids = live[bar]
+        local list = C.lists[bar]
+        if type(ids) == "table" and list then
+            for i = 1, #ids do
+                local id = ids[i]
+                if type(id) == "number" and not placed[id] then
+                    local rec = C.info[id] or ReadInfo(id) or { cooldownID = id, isKnown = true }
+                    if C.info[id] == nil then
+                        C.info[id] = rec
+                        C.ordered[#C.ordered + 1] = id
+                    end
+                    rec.home = rec.home or bar
+                    rec.bar = bar
+                    rec.effectiveCategory = EnumCategory(BAR_CATEGORY_NAME[bar])
+                    rec.adopted = true
+                    list[#list + 1] = id
+                    placed[id] = true
+                    n = n + 1
+                    notes = notes or {}
+                    notes[bar] = (notes[bar] and (notes[bar] .. ",") or "") .. tostring(id)
+                end
+            end
+        end
+    end
+    if n > 0 then
+        C.adopted = (C.adopted or 0) + n
+        if ns.Diag then
+            local parts = {}
+            for _, bar in ipairs(C.SOURCE_BARS) do
+                if notes[bar] then parts[#parts + 1] = bar .. " ← " .. notes[bar] end
+            end
+            ns.Diag.Note("adopt", ("清單漏了暴雪正在顯示的 %d 個（specTag %s，來源 %s）：%s")
+                :format(n, tostring(C.specTag), tostring(C.source), table.concat(parts, "；")))
+        end
+        ArmRetry()
+    elseif (C.adopted or 0) == 0 and not retryArmed then
+        retryStep = 0            -- 乾淨的一輪：額度還原
+    end
+    return n
 end
 
 ------------------------------------------------------------
@@ -743,6 +833,10 @@ function C.Init()
     E.Register("SPELLS_CHANGED", "catalog", function() Later("spells") end)
     E.Register("PLAYER_EQUIPMENT_CHANGED", "catalog", function() Later("equipment") end)
     E.Register("TRAIT_CONFIG_UPDATED", "catalog", function() Later("talents") end)
+    E.Register("PLAYER_TALENT_UPDATE", "catalog", function() Later("talents") end)
+    E.Register("ACTIVE_TALENT_GROUP_CHANGED", "catalog", function() Later("talentgroup") end)
+    -- 進場：讀取畫面期間 API 回的東西不一定是最後的樣子，進來之後再對一次
+    E.Register("PLAYER_ENTERING_WORLD", "catalog", function() Later("world") end)
 
     if EventRegistry and EventRegistry.RegisterCallback then
         local owner = {}

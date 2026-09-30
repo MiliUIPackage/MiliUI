@@ -64,6 +64,16 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
 **不要再做鏈式預設**（輔助錨在自訂格子上那種）：使用者把格子移到上方，輔助跟著黏上去、又跟資源條疊在一起。
 重貼要**兩段式**（先全部 ClearAllPoints 再 SetPoint），逐條貼會在過渡狀態撞上「錨在依賴自己的框上」。
 
+**進副本／被系統換專精會破圖（2026-09-30）**：排追隨者地城當補師，系統把專精換成神聖，核心技能一格變大帶深色外框、
+輔助技能整條不見；**沒有 Lua 錯誤、taint.log 也沒有東西**。兩個成因、各一條通則：
+① 清單是我們照 API 自己重建的，進場／換專精那幾幀 API 回的不完整 ⇒ 清單漏的 id 沒人認領被停到畫面外。
+**作用中、有 cooldownID 的 item 才是真相**，清單漏了就收養（`Catalog.Adopt`），不要停放。
+② 另一支替暴雪框套皮的插件在每次 RefreshLayout 把新框交給皮膚函式庫，戰鬥中又不重套 ⇒ 暴雪新生的框變混合體。
+由 `Core/Compat.lua` 蓋它的「已套皮」印記讓四條檢視器都跳過（本體那支 Fix 只管舊插件）。
+另加進場／天賦事件後 0／0.5／1.5／3 秒整套重來、縮放稽核。**這類「不報錯」的毛病靠 `Core/Diag.lua`**：
+引擎每次出手記一行進 SV（`diag.log`），`/mcdm debug` 連每顆 item 的現況一起存（`diag.dump`），壞掉時請使用者打一次再 /reload，
+直接讀 `WTF/Account/<帳號>/SavedVariables/MiliUI_CooldownManager.lua`。BugGrabber 的 SV 同資料夾也能讀。
+
 **內建音效（2026-09-30）**：`Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，自帶 LICENSE 與出處
 README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插件、載入時註冊進 LibSharedMedia 讓其他插件也選得到
 （使用者拍板：不另立音效包插件）。為此內嵌了 LibStub／CallbackHandler／LibSharedMedia（取套組裡最新那份）。

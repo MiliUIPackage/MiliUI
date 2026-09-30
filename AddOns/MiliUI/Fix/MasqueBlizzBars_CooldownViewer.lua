@@ -1,5 +1,6 @@
 ---------------------------------------------------------------
--- MiliUI Fix: MasqueBlizzBars 對冷卻管理器只套皮、不碰冷卻管理器插件（Ayije_CDM／MiliUI_CooldownManager）管的東西
+-- MiliUI Fix: MasqueBlizzBars 對冷卻管理器只套皮、不碰 Ayije_CDM 管的東西
+--   （自製的 MiliUI_CooldownManager 自己擋：它的 Core/Compat.lua 讓四條檢視器整個不套皮，這支不管它）
 -- Author: Mili
 --
 -- 背景：MasqueBlizzBars 12.1.0.0 把「Cooldown Manager」一個群組拆成四個
@@ -77,10 +78,9 @@ local function Hook(names, handler)
         local viewer = _G[name]
         if viewer and viewer.OnAcquireItemFrame then
             hooksecurefunc(viewer, "OnAcquireItemFrame", function(_, itemFrame)
-                -- 沒有任何冷卻管理器插件（Ayije_CDM 或自製的 MiliUI_CooldownManager）
-                -- 在管圖示的人要的就是 Masque 皮，這裡什麼都不做
+                -- 沒有 Ayije_CDM 在管圖示的人要的就是 Masque 皮，這裡什麼都不做
                 if not itemFrame then return end
-                if not (C_AddOns.IsAddOnLoaded("Ayije_CDM") or C_AddOns.IsAddOnLoaded("MiliUI_CooldownManager")) then return end
+                if not C_AddOns.IsAddOnLoaded("Ayije_CDM") then return end
                 handler(itemFrame)
             end)
         end

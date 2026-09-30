@@ -24,8 +24,59 @@ end
 ------------------------------------------------------------
 -- /mcdm debug：引擎現況（開發用，字串不進語系檔）
 ------------------------------------------------------------
+-- 讀框的狀態一律包起來：讀不到（拋錯／秘密值）印 "?"
+local function Read(obj, method, ...)
+    local fn = obj and obj[method]
+    if type(fn) ~= "function" then return nil end
+    local ok, a, b, c, d, e = pcall(fn, obj, ...)
+    if not ok then return nil end
+    if ns.IsSecret(a) then return "secret" end
+    return a, b, c, d, e
+end
+local function Num(v)
+    if ns.IsSecret(v) then return "secret" end
+    if type(v) == "number" then return ("%.2f"):format(v):gsub("%.?0+$", "") end
+    return tostring(v == nil and "?" or v)
+end
+
+-- 每條檢視器與每顆 item 的現況（只進存檔，不印聊天框：幾十行）
+local function ItemLines(out)
+    local V, B = ns.Viewers, ns.Bars
+    for _, key in ipairs(V.ORDER) do
+        local viewer = V.Get(key)
+        if viewer then
+            local n = 0
+            V.EnumerateItems(function(item, rec)
+                n = n + 1
+                local point, rel, relPoint, x, y = Read(item, "GetPoint", 1)
+                local relName = "?"
+                if rel == nil then relName = "nil"
+                elseif rel == UIParent then relName = "UIParent"
+                elseif rel == viewer then relName = "viewer"
+                elseif type(rel) == "table" then
+                    relName = Read(rel, "GetName") or "?"
+                    relName = tostring(relName):gsub("^MiliUICDM_Bar_", "容器:")
+                end
+                local w, h = Read(item, "GetSize")
+                out[#out + 1] = ("    %s #%s id=%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s")
+                    :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID),
+                            tostring(Read(item, "IsShown")), Num(Read(item, "GetAlpha")), Num(Read(item, "GetScale")),
+                            Num(w), Num(h), tostring(point), relName, Num(x), Num(y),
+                            tostring(rec.claimKey or "—"), rec.parked and " 停放" or "")
+            end, key)
+            if n == 0 then out[#out + 1] = ("    %s（沒有作用中的 item）"):format(key) end
+        end
+    end
+    local _ = B
+end
+
 local function Debug()
-    local p = print
+    local dump = {}
+    local function p(line)
+        print(line)
+        -- 存檔裡不留色碼
+        dump[#dump + 1] = (tostring(line):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+    end
     p(ns.PREFIX_COLOR .. "[米利冷卻 debug]|r v" .. tostring(ns.VERSION)
         .. "  設定檔=" .. tostring(ns.profileName) .. "  specID=" .. tostring(ns.specID))
 
@@ -42,9 +93,23 @@ local function Debug()
         end
         for _, key in ipairs(V.ORDER) do
             local viewer = V.Get(key)
-            p(("  %-9s 暴雪 item %s  清單 %d  認領 %d  alpha %s")
-                :format(key, viewer and tostring(V.Count(key)) or "✕",
+            local withID, shown = 0, 0
+            if viewer then
+                V.EnumerateItems(function(item, rec)
+                    if rec.cooldownID ~= nil then withID = withID + 1 end
+                    if Read(item, "IsShown") == true then shown = shown + 1 end
+                end, key)
+            end
+            p(("  %-9s 暴雪 item %s（有身分 %d、顯示中 %d）  清單 %d  認領 %d  alpha %s")
+                :format(key, viewer and tostring(V.Count(key)) or "✕", withID, shown,
                         #C.Bar(key), B.Count(key), tostring(ns.Visibility and ns.Visibility.Current(key))))
+            if viewer then
+                local vs = Read(viewer, "IsShown")
+                p(("            檢視器 顯示=%s%s alpha=%s 縮放=%s  暴雪設定：大小 %s／可見 %s")
+                    :format(tostring(vs), vs == false and "（|cffff5555暴雪把這條藏起來了|r：編輯模式的「可見」設定或冷卻管理器不可用）" or "",
+                            Num(Read(viewer, "GetAlpha")), Num(Read(viewer, "GetScale")),
+                            Num(rawget(viewer, "iconScale")), tostring(rawget(viewer, "visibleSetting"))))
+            end
         end
         if ns.Visibility and ns.Visibility.DebugLine then p(ns.Visibility.DebugLine()) end
         local p2 = ns.profile
@@ -54,9 +119,12 @@ local function Debug()
             end
         end
         local sig = C.sig or ""
-        p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s")
+        p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",
-                    tostring(C.IsPaused())))
+                    tostring(C.IsPaused()), tostring(C.specTag), C.adopted or 0, B.resyncs or 0))
+        if ns.Compat then
+            p(("  圖示套皮插件：%s"):format(ns.Compat.Active() and ("已請它跳過（蓋印 " .. tostring(ns.Compat.marked) .. " 次）") or "沒有／不處理"))
+        end
         if #V.blocked > 0 then
             p("  被擋的寫入：" .. table.concat(V.blocked, ", "))
         end
@@ -107,6 +175,24 @@ local function Debug()
         for i = #errs, math.max(1, #errs - 4), -1 do
             p("   |cffff5555" .. tostring(errs[i]) .. "|r")
         end
+    end
+
+    -- 診斷記錄（引擎自己修掉的異常）：聊天框印最近幾行，完整的在存檔裡
+    if ns.Diag then
+        local lines = ns.Diag.Lines(6)
+        if #lines == 0 then
+            p("  診斷記錄：無")
+        else
+            p(("  診斷記錄（新→舊，共 %d 行，完整的在存檔）："):format(ns.Diag.Count()))
+            for _, line in ipairs(lines) do p("   " .. line) end
+        end
+        -- 每顆 item 的現況只進存檔
+        if ns.Viewers and ns.Bars and ns.Viewers.ready then
+            dump[#dump + 1] = "  item 現況："
+            xpcall(ItemLines, ns.ReportError, dump)
+        end
+        ns.Diag.SaveDump(dump)
+        print("  |cffaaaaaa（這份輸出已存檔；/reload 或登出後寫進 SavedVariables）|r")
     end
 end
 ns.Debug = Debug
