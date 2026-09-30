@@ -413,6 +413,24 @@ end
 D.Signature = Signature
 
 ------------------------------------------------------------
+-- 固定格位的占位格（Bars 畫在容器上、item 出現就蓋住）：邊框跟真實格一樣
+-- —— 條的邊框設定、逐法術的邊框色覆寫都照套，不然占位看起來像沒有框的暗圖
+--   ph = { frame = 占位框（自己的 Frame）, tex = 圖示貼圖, border = MakeBorder 的表（這裡補） }
+------------------------------------------------------------
+function D.ApplyPlaceholder(ph, barKey, id)
+    if not (ph and ph.frame and barKey) then return end
+    local style = D.Resolve(barKey)
+    local border = style.border or {}
+    local br, bg, bb, ba = C4(ns.SpellSetting(barKey, id, "borderColor") or border.color, 0, 0, 0, 1)
+    ph.border = ph.border or MakeBorder(ph.frame)
+    LayoutBorder(ph.border, ph.frame, tonumber(border.size) or 0, border.texture, br, bg, bb, ba)
+    if ph.tex then
+        local z = style.zoom or 0
+        ph.tex:SetTexCoord(z, 1 - z, z, 1 - z)
+    end
+end
+
+------------------------------------------------------------
 -- 主入口
 ------------------------------------------------------------
 function D.Apply(item, rec, barKey, w, h)
