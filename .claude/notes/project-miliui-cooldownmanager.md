@@ -74,6 +74,12 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
 引擎每次出手記一行進 SV（`diag.log`），`/mcdm debug` 連每顆 item 的現況一起存（`diag.dump`），壞掉時請使用者打一次再 /reload，
 直接讀 `WTF/Account/<帳號>/SavedVariables/MiliUI_CooldownManager.lua`。BugGrabber 的 SV 同資料夾也能讀。
 
+**只有「移除」、沒有「隱藏」（使用者 2026-09-30 定案）**：預覽上按中鍵＝從這條移除、不留暗格，加回來走「＋」
+（挑選器第一區灰階列出被移除的）。底層暴雪法術仍是記 `hidden`、自訂項目是整筆刪，但**這個差別不露給使用者**。
+**Why:** 使用者不在意東西有沒有從暴雪的冷卻管理器拿掉，只在意「設定面板上有什麼，畫面上就有什麼」；
+把實作上的差別（能不能真的刪）做成兩個動詞，只會讓人覺得「移不掉」。
+**How to apply:** 設定介面的動詞照使用者看到的結果取，不照底層資料怎麼存取。
+
 **內建音效（2026-09-30）**：`Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，自帶 LICENSE 與出處
 README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插件、載入時註冊進 LibSharedMedia 讓其他插件也選得到
 （使用者拍板：不另立音效包插件）。為此內嵌了 LibStub／CallbackHandler／LibSharedMedia（取套組裡最新那份）。
