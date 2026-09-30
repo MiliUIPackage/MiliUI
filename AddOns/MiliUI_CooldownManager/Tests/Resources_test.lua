@@ -323,6 +323,7 @@ check("資源條預設：每種資源都有自己的顏色表", type(res.colors.
 check("資源條預設：顏色表不共用預設那張", res.colors.Chi.color ~= ns.DB.RESOURCE_COLORS.Chi.color)
 check("資源條預設：條件與開關列是空表", next(res.conditions) == nil and next(res.rows) == nil)
 eq("資源條預設：跟核心技能一起淡", res.fadeWithEssential, true)
+check("資源條預設：條上顯示數值、16 號字", res.showText == true and res.textSize == 16)
 check("資源條預設：載入條件", res.loadConditions.hideMounted == false and res.loadConditions.onlyCombat == false)
 check("施法條預設：跟著核心技能上方（跟資源條同一邊，排在它外面）", type(cb.anchor) == "table" and cb.anchor.to == "essential"
     and cb.anchor.point == "BOTTOM" and cb.anchor.relPoint == "TOP")
