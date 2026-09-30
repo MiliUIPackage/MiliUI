@@ -92,7 +92,7 @@ eq("StoragePath 發光", DB.BarStoragePath("glow.proc.type"), "glow.proc.type")
 eq("StoragePath 按鍵文字", DB.BarStoragePath("keybind.enabled"), "glow.keybind.enabled")
 eq("StoragePath 淡出", DB.BarStoragePath("fade.mounted"), "fade.mounted")
 eq("StoragePath 條自己的欄位不變", DB.BarStoragePath("layout.spacing"), "layout.spacing")
-eq("主題有 keybind 預設", S("theme", "keybind.enabled"), false)
+eq("主題有 keybind 預設", S("theme", "keybind.enabled"), true)
 
 DB.OwnSet("essential", "cooldownText.size", 22)
 eq("OwnSet 落在 text 子表", p.bars.essential.text.cooldownText.size, 22)
@@ -103,10 +103,10 @@ eq("OwnGet", DB.OwnGet("essential", "cooldownText.size"), 22)
 DB.OwnSet("essential", "cooldownText.size", nil)
 eq("OwnSet nil ＝ 回到主題", S("essential", "cooldownText.size"), 16)
 eq("OwnGet 沒存 ＝ nil（不退回主題）", DB.OwnGet("essential", "cooldownText.color"), nil)
-DB.OwnSet("essential", "keybind.enabled", true)
+DB.OwnSet("essential", "keybind.enabled", false)
 p.bars.essential.follow.glow = false
-eq("按鍵文字走 glow 子表", S("essential", "keybind.enabled"), true)
-eq("主題沒被動到", p.theme.keybind.enabled, false)
+eq("按鍵文字走 glow 子表", S("essential", "keybind.enabled"), false)
+eq("主題沒被動到", p.theme.keybind.enabled, true)
 check("OwnSet 不存在的條 ＝ false", DB.OwnSet("nope", "icon.zoom", 1) == false)
 
 ------------------------------------------------------------
