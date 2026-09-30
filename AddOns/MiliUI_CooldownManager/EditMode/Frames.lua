@@ -48,7 +48,8 @@ local function BarCfg(key)
 end
 EM.BarCfg = BarCfg
 
--- 給玩家看的條名：設定視窗的頁名 → 自訂群組自己的名字 → key
+-- 給玩家看的條名：設定視窗的頁名（沒有自己一頁的面板如自訂格子，Options.PageTitle 也認得）
+-- → 自訂群組自己的名字 → key
 function EM.BarLabel(key)
     local O = ns.Options
     local t = O and O.PageTitle and O.PageTitle(key)

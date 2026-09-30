@@ -84,6 +84,9 @@ local function Debug()
     if ns.Resources and ns.Resources.DebugLines then
         for _, line in ipairs(ns.Resources.DebugLines()) do p(line) end
     end
+    if ns.Pips and ns.Pips.DebugLines then
+        for _, line in ipairs(ns.Pips.DebugLines()) do p(line) end
+    end
     if ns.Castbar and ns.Castbar.DebugLines then
         for _, line in ipairs(ns.Castbar.DebugLines()) do p(line) end
     end
@@ -230,7 +233,7 @@ _G.MiliUI_CooldownManager = {
     IsReady = function()
         return (ns.ready and ns.Viewers and ns.Viewers.ready and ns.Bars and ns.Bars.ready) and true or false
     end,
-    -- 某條的容器框（MiliUICDM_Bar_<key>；資源條 "resources"、施法條 "castbar" 也是），給別的插件錨定用；
+    -- 某條的容器框（MiliUICDM_Bar_<key>；資源條 "resources"、自訂格子 "pips"、施法條 "castbar" 也是），給別的插件錨定用；
     -- 還沒建好回 nil。⚠ 錨上來的框會跟著這條移動；別對它 SetParent 或改它的大小。
     GetBarFrame = function(barKey)
         return ns.Bars and ns.Bars.Get(barKey) or nil

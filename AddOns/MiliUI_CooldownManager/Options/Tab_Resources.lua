@@ -7,8 +7,11 @@
 --
 -- 「自訂格子」一節：目前專精的 customRows 清單（法術充能／光環層數），一筆兩列：
 -- 名字＋圖示＋種類＋［刪除］、顏色＋（充能）顯示秒數／（層數）上限；底下「＋ 新增格子」
--- → 選種類 → 輸入 ID（層數多一欄上限）→ 驗證。增刪走換表單（簽章含整份清單），
--- 改色／勾選／上限原地套用。
+-- → 選種類（兩顆按鈕滑過有說明與舉例）→ 輸入 ID（層數多一欄上限）→ 驗證。增刪走換表單
+-- （簽章含整份清單），改色／勾選／上限原地套用。
+-- 自訂格子畫在自己的面板（Modules/Pips.lua、profile.pips）：清單與樣式在這張表，這一節底下
+-- 多一小節「位置與錨定」（Specs.Anchor("pips", { other = true })，讀寫 profile.pips）與
+-- 「跟核心技能一起淡出」。
 --
 -- 資源清單跟著專精走、條件規則的列數跟著規則走，所以表單照「形狀」快取（專精、候選清單、
 -- 條件編輯器的結構、自訂格子清單、有沒有錨定、條清單）：形狀變了才另建一份、變回來就拿舊的
@@ -26,6 +29,7 @@ ns.TabResources = {}
 local Tab = ns.TabResources
 
 local KEY = "resources"
+local PIPS = "pips"               -- 自訂格子的面板（位置／錨定／淡出存在 profile.pips）
 local FORM_W = Options.PAGE_W - 6
 
 local function Cfg() return ns.DB.ConfigTable(KEY) end
@@ -49,13 +53,19 @@ local MANA_ITEMS = {
     { text = L["10K / 100M (wan / yi)"], value = "wan" },
 }
 
--- 重設整張 profile.resources（原地清空再灌：引擎抓著的是這張表的參照）
+-- 重設整張 profile.resources 與 profile.pips（自訂格子的位置／錨定也在這一頁）。
+-- 原地清空再灌：引擎抓著的是這兩張表的參照
 local function ResetAll()
     local p = ns.profile
-    local cfg = Cfg()
-    if not (p and cfg) then return end
-    for k in pairs(cfg) do cfg[k] = nil end
-    ns.DB.MergeDefaults(cfg, ns.DB.BuildDefaults().profile.resources)
+    if not p then return end
+    local d = ns.DB.BuildDefaults().profile
+    for _, key in ipairs({ KEY, PIPS }) do
+        local cfg = ns.DB.ConfigTable(key)
+        if cfg then
+            for k in pairs(cfg) do cfg[k] = nil end
+            ns.DB.MergeDefaults(cfg, d[key])
+        end
+    end
 end
 
 local function ResetRow(label, text, confirmText, fn)
@@ -79,13 +89,13 @@ local function ResetRow(label, text, confirmText, fn)
 end
 
 ------------------------------------------------------------
--- 自訂格子（profile.resources.customRows[specID]；引擎在 Modules/Resources.lua）
+-- 自訂格子（profile.resources.customRows[specID]；引擎在 Modules/Pips.lua）
 ------------------------------------------------------------
 local CUSTOM_ROW_H = 26
 local QUESTION = 134400
 
 local function CustomList(create)
-    return ns.Resources.CustomRowList(Cfg(), ns.specID, create)
+    return ns.Pips.CustomRowList(Cfg(), ns.specID, create)
 end
 
 local function CustomEntry(i)
@@ -135,11 +145,11 @@ end
 function Tab.ValidateCustomRow(kind, idText, maxText, specID)
     specID = specID or ns.specID
     if not specID then return nil, L["Pick a specialization first."] end
-    if not ns.Resources.CUSTOM_KINDS[kind] then return nil, L["Enter a number."] end
+    if not ns.Pips.CUSTOM_KINDS[kind] then return nil, L["Enter a number."] end
     local id = ns.Picker.ParseID(idText)
     if not id then return nil, L["Enter a number."] end
     if not ns.Picker.SpellExists(id) then return nil, L["No spell with that ID."] end
-    if ns.Resources.FindCustomRow(Cfg(), specID, kind, id) then
+    if ns.Pips.FindCustomRow(Cfg(), specID, kind, id) then
         return nil, L["Already tracked in this specialization."]
     end
     local r, g, b = ns.Style.Accent()
@@ -156,10 +166,10 @@ function Tab.ValidateCustomRow(kind, idText, maxText, specID)
         -- 充能上限順手記下來：戰鬥中讀不到時的退路（讀得到的時候引擎一律以 API 為準）
         local ok, m = pcall(function() return info.maxCharges end)
         m = ok and PlainOf(m) or nil
-        entry.max = ns.Resources.ClampSegments(m)
+        entry.max = ns.Pips.ClampSegments(m)
     else
         local text = tostring(maxText or ""):gsub("%s", "")
-        local n = (text == "") and ns.Resources.CUSTOM_DEFAULT_STACKS or tonumber(text)
+        local n = (text == "") and ns.Pips.CUSTOM_DEFAULT_STACKS or tonumber(text)
         if not n or n ~= math.floor(n) or n < 1 or n > MAX then
             return nil, L["Max stacks must be a whole number from 1 to %d."]:format(MAX)
         end
@@ -169,6 +179,7 @@ function Tab.ValidateCustomRow(kind, idText, maxText, specID)
 end
 
 local kindPopup, pendingCtx
+local AppendPipsPlacement          -- 前置宣告（定義在 AppendCustomRows 前面）
 local inputPopups = {}
 
 function Tab.AskCustomID(kind)
@@ -186,17 +197,46 @@ function Tab.AskCustomID(kind)
         inputPopups[kind] = popup
     end
     ns.Picker.SetInputError(popup, nil)
-    popup:Open({ max = kind == "stacks" and tostring(ns.Resources.CUSTOM_DEFAULT_STACKS) or nil }, function(values)
+    popup:Open({ max = kind == "stacks" and tostring(ns.Pips.CUSTOM_DEFAULT_STACKS) or nil }, function(values)
         local entry, why = Tab.ValidateCustomRow(kind, values.id, values.max)
         if not entry then
             ns.Picker.SetInputError(popup, why)
             return false
         end
         ns.Picker.SetInputError(popup, nil)
-        if not ns.Resources.AddCustomRow(Cfg(), ns.specID, entry) then return end
+        if not ns.Pips.AddCustomRow(Cfg(), ns.specID, entry) then return end
         if pendingCtx then Changed(pendingCtx) end
     end, title)
     return popup
+end
+
+-- 選種類那兩顆按鈕的滑鼠提示：標題＝按鈕字，內文說明長相並舉例
+local KIND_TIPS = {
+    { title = L["Spell charges"], body = L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] },
+    { title = L["Aura stacks"], body = L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] },
+}
+
+-- CreateChoicePopup 不回傳按鈕（共用層不改）：建完照按鈕字從彈窗的子框認回來，掛 OnEnter／OnLeave
+local function AttachKindTips(popup)
+    local byText = {}
+    for _, tip in ipairs(KIND_TIPS) do byText[tip.title] = tip end
+    local n = 0
+    for _, child in ipairs({ popup:GetChildren() }) do
+        local tip = type(child) == "table" and type(child.GetText) == "function" and byText[child:GetText()]
+        if tip and type(child.HookScript) == "function" then
+            child:HookScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                GameTooltip:SetText(tip.title)
+                GameTooltip:AddLine(tip.body, 1, 1, 1, true)
+                GameTooltip:Show()
+            end)
+            child:HookScript("OnLeave", function() GameTooltip:Hide() end)
+            n = n + 1
+        end
+    end
+    -- 按鈕按下去彈窗就收：滑鼠還停在按鈕上時 OnLeave 不一定來，提示一起收
+    popup:HookScript("OnHide", function() GameTooltip:Hide() end)
+    popup.tipCount = n                -- 自己的框；冒煙測試用
 end
 
 function Tab.AskCustomKind(ctx)
@@ -207,6 +247,7 @@ function Tab.AskCustomKind(ctx)
             { text = L["Aura stacks"], color = "normal", onClick = function() Tab.AskCustomID("stacks") end },
             { text = L["Cancel"], color = "normal" },
         })
+        AttachKindTips(kindPopup)
     end
     kindPopup:Show()
     return kindPopup
@@ -232,7 +273,7 @@ local function CustomHeadRow(i)
         del:SetScript("OnClick", function()
             if not confirm then
                 confirm = W.CreateConfirmPopup(Options.panel, 320, L["Remove this custom row?"], function()
-                    if ns.Resources.RemoveCustomRow(Cfg(), ns.specID, i) then Changed(ctx) end
+                    if ns.Pips.RemoveCustomRow(Cfg(), ns.specID, i) then Changed(ctx) end
                 end)
             end
             confirm:Show()
@@ -279,7 +320,7 @@ local function CustomOptionsRow(i, kind)
             box = W.CreateNumberBox(parent, 46, 1, function(v)
                 local e = CustomEntry(i)
                 if not e then return end
-                local n = ns.Resources.ClampSegments(v) or 1
+                local n = ns.Pips.ClampSegments(v) or 1
                 e.max = n
                 box:SetValue(n)
                 Touched(ctx)
@@ -289,28 +330,39 @@ local function CustomOptionsRow(i, kind)
         local function Refresh()
             local e = CustomEntry(i)
             if not e then return end
-            local r, g, b = ns.Resources.CustomColor(e)
+            local r, g, b = ns.Pips.CustomColor(e)
             swatch:SetColor({ r = r, g = g, b = b, a = 1 })
             if cb then cb:SetChecked(e.showTime ~= false) end
-            if box then box:SetValue(ns.Resources.ClampSegments(e.max) or ns.Resources.CUSTOM_DEFAULT_STACKS) end
+            if box then box:SetValue(ns.Pips.ClampSegments(e.max) or ns.Pips.CUSTOM_DEFAULT_STACKS) end
         end
         Refresh()
         return CUSTOM_ROW_H, Refresh
     end
 end
 
+-- 自訂格子的位置與錨定（profile.pips）：跟條頁同一支 Specs.Anchor，讀寫轉到 pips
+AppendPipsPlacement = function(list)
+    local function add(s) list[#list + 1] = s end
+    for _, s in ipairs(ns.Specs.Anchor(PIPS, { other = true, header = L["Position and anchoring"], nested = true })) do
+        add(s)
+    end
+    add(BS("toggle", "fadeWithEssential", L["Fade with Essential Cooldowns"], { root = "bar@" .. PIPS }))
+    add(Note(L["Takes Essential Cooldowns' current opacity, including its visibility conditions and fades."]))
+end
+
 local function AppendCustomRows(list)
     local function add(s) list[#list + 1] = s end
     add({ type = "header", label = L["Custom segments"] })
-    add(Note(L["Track a spell's charges or an aura's stacks on you as a row of segments above the resource rows. Each specialization keeps its own list."]))
+    add(Note(L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings above; each specialization keeps its own list."]))
     if not ns.specID then
         add(Note(L["Pick a specialization first."]))
+        AppendPipsPlacement(list)
         return
     end
     local entries = CustomList() or {}
     local shown = 0
     for i, e in ipairs(entries) do
-        if type(e) == "table" and ns.Resources.CUSTOM_KINDS[e.kind] and type(e.spellID) == "number" then
+        if type(e) == "table" and ns.Pips.CUSTOM_KINDS[e.kind] and type(e.spellID) == "number" then
             if shown > 0 then add({ type = "space", h = 6 }) end
             shown = shown + 1
             add({ type = "custom", label = SpellLabel(e.spellID), h = CUSTOM_ROW_H, noReset = true, build = CustomHeadRow(i) })
@@ -326,6 +378,7 @@ local function AppendCustomRows(list)
         b:SetScript("OnClick", function() Tab.AskCustomKind(ctx) end)
         return 30
     end })
+    AppendPipsPlacement(list)
 end
 
 -- 表單簽章的一段：整份清單（種類＋法術）。標籤是建表單當下的法術名，所以清單內容一變就換一份
@@ -428,6 +481,7 @@ local function Signature()
         ns.ResourceConditionsUI.FormSignature(cand),
         CustomSignature(),
         type(cfg.anchor) == "table" and "a" or "-",
+        type(ns.DB.GetPath(ns.DB.ConfigTable(PIPS), "anchor")) == "table" and "pa" or "-",
         table.concat(p and p.barOrder or {}, ","),
         ns.Specs.AnchorGraphSig(),
     }, "|")
@@ -456,6 +510,8 @@ function Tab.Build(parent, title)
 
     local function OnApply(spec)
         ns.Resources.Apply()
+        -- 自訂格子：清單、樣式（列高、格距…）與它自己的位置／錨定都在這一頁
+        if ns.Pips then ns.Pips.Apply() end
         -- 顏色與條件規則（條件編輯器直接叫 ctx.apply，分不出是哪一格）：跟隨我們的插件重畫，合併節流
         if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.active and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
@@ -508,4 +564,4 @@ local function Reread()
     end
 end
 ns.RegisterCallback("SpecChanged", "tab_resources", Reread)
-ns.RegisterCallback("BarMoved", "tab_resources", function(key) if key == KEY then Reread() end end)
+ns.RegisterCallback("BarMoved", "tab_resources", function(key) if key == KEY or key == PIPS then Reread() end end)

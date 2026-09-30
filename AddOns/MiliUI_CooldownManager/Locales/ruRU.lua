@@ -407,7 +407,7 @@ L["yi"] = "сот. млн"
 
 -- 資源條：自訂格子
 L["Custom segments"] = "Свои сегменты"
-L["Track a spell's charges or an aura's stacks on you as a row of segments above the resource rows. Each specialization keeps its own list."] = "Показывает заряды заклинания или стаки эффекта на вас рядом сегментов над рядами ресурсов. У каждой специализации свой список."
+L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings above; each specialization keeps its own list."] = "Показывает заряды заклинания или стаки эффекта на вас рядами сегментов. По умолчанию — под основными восстановлениями, вспомогательные сдвигаются ниже. Размер и вид берутся из настроек полос ресурсов выше; у каждой специализации свой список."
 L["No custom segments for this specialization yet."] = "У этой специализации пока нет своих сегментов."
 L["+ Add segments"] = "+ Добавить сегменты"
 L["What should this row track?"] = "Что отслеживать в этом ряду?"
@@ -420,3 +420,6 @@ L["This spell has no charges."] = "У этого заклинания нет з�
 L["Max stacks must be a whole number from 1 to %d."] = "Макс. стаков — целое число от 1 до %d."
 L["Show seconds"] = "Показывать секунды"
 L["Remove this custom row?"] = "Удалить этот свой ряд?"
+L["Position and anchoring"] = "Положение и привязка"
+L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Заклинание с зарядами, один сегмент на заряд. Пустые сегменты показывают следующее восстановление заряда — затемнение и секунды. Например, «Божественный скакун» паладина или «Скачок» мага. Введите ID заклинания."
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Положительный эффект на вас, который складывается, — один сегмент на стак; без эффекта все пустые, таймера восстановления нет. Например, «Костяной щит» рыцаря смерти. Введите ID заклинания эффекта и максимум стаков."

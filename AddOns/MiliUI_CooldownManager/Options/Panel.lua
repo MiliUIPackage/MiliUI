@@ -63,9 +63,22 @@ function Options.HasPage(id)
     return pageDefs[id] ~= nil
 end
 
+-- 沒有自己一頁的面板：設定在哪一頁、給玩家看的名字（編輯模式覆蓋層、點擊層、錨定候選用）。
+-- 自訂格子（pips）的設定在資源條頁
+local SUBPANELS = { pips = { host = "resources", title = L["Custom segments"] } }
+
+-- 這個 id 的設定在哪一頁（一般的條／頁就是自己）
+function Options.HostPage(id)
+    local sp = SUBPANELS[id]
+    return sp and sp.host or id
+end
+
 function Options.PageTitle(id)
     local def = pageDefs[id]
-    if not def then return nil end
+    if not def then
+        local sp = SUBPANELS[id]
+        return sp and sp.title or nil
+    end
     if type(def.title) == "function" then return def.title(id) end
     return def.title
 end
@@ -153,6 +166,7 @@ function Options.ShowTab(id)
 end
 
 function Options.ShowPage(id)
+    id = Options.HostPage(id)
     if not pageDefs[id] then id = "essential" end
     -- 下拉選單掛在 UIParent 的 TOOLTIP strata，不是頁面的子框 —— 切頁前先收
     W.CloseDropdowns()
@@ -348,6 +362,7 @@ end
 -- 從編輯模式的齒輪、畫面上的點擊層直接跳到某條的頁面（自訂群組也要開得到）
 function Options.FocusBar(key)
     Options.SyncBarPages()
+    key = Options.HostPage(key)
     if not pageDefs[key] then key = "essential" end
     Options.Open(key)
 end

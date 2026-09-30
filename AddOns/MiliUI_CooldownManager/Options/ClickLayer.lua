@@ -105,7 +105,8 @@ function CL.Refresh()
     local p = ns.profile
     local bars = {}
     for key in pairs(p and p.bars or {}) do bars[key] = true end
-    -- 面板（資源條、施法條）也蓋一層；關掉的面板容器是藏著的，不蓋
+    -- 面板（資源條、自訂格子、施法條）也蓋一層；關掉的面板容器是藏著的，不蓋。
+    -- 自訂格子沒有自己一頁：點了開資源條頁（Options.ShowPage 照 HostPage 轉）
     for _, key in ipairs(ns.DB.PANEL_ORDER) do
         local cfg = ns.DB.ConfigTable(key)
         if cfg and cfg.enabled ~= false then bars[key] = true end

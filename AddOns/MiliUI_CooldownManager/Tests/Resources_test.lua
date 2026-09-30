@@ -9,11 +9,12 @@
 --   2. 資源清單依專精（Modules/Resources.lua 的 RawList／Candidates）：每個專精的清單、法力排最下面、
 --      德魯伊看型態、天賦閘（上限 0 隱藏、秘密上限照列、光環型看被動或層數）、玩家關掉的列
 --   3. 法力縮寫、顏色解析（玩家的 → 預設、充能色退回主色）
---   4. 面板的 DB：預設值完整、ConfigTable、錨定成環、刪條清面板錨定、DefaultFor
---   5. 面板的顯示條件（Core/Visibility.lua 的 EvaluatePanel）
+--   4. 面板的 DB：預設值完整、ConfigTable、錨定成環、刪條清面板錨定、DefaultFor；
+--      自訂格子的面板（pips 錨在核心下方、輔助錨在 pips 下方）
+--   5. 面板的顯示條件（Core/Visibility.lua 的 EvaluatePanel；含自訂格子）
 --   6. 施法條：時間文字、截字、刻度查表
---   7. 自訂格子：清單依專精、增刪、PlanCustomRows（充能上限的退路、層數上限、enabled = false、
---      未學會的充能法術、壞資料）、預設值
+--   7. 自訂格子（Modules/Pips.lua）：清單依專精、增刪、PlanCustomRows（充能上限的退路、層數上限、
+--      enabled = false、未學會的充能法術、壞資料）、容器高度（沒有列 ＝ 0）、預設值
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -197,6 +198,8 @@ eq("簽章：三條規則", RC.Signature({ conditions = { X = { rule, { target =
 ns.Bars = { FirstRowWidth = function() return 0 end }
 Load("Modules/Resources.lua")
 local R = ns.Resources
+Load("Modules/Pips.lua")
+local PI = ns.Pips
 
 eqList("防騎：聖能", R.RawList("PALADIN", 66, nil), { "HolyPower" })
 eqList("神聖聖騎：聖能＋法力（法力排最下面）", R.RawList("PALADIN", 65, nil), { "HolyPower", "Mana" })
@@ -318,6 +321,29 @@ eq("ConfigTable 施法條", ns.DB.ConfigTable("castbar"), cb)
 eq("ConfigTable 條", ns.DB.ConfigTable("essential"), p.bars.essential)
 eq("ConfigTable 沒這條", ns.DB.ConfigTable("nope"), nil)
 check("IsPanel", ns.DB.IsPanel("resources") and ns.DB.IsPanel("castbar") and not ns.DB.IsPanel("essential"))
+-- 自訂格子的面板：核心 → 自訂格子 → 輔助
+local pips = p.pips
+check("自訂格子預設：錨在核心技能下方", type(pips) == "table" and type(pips.anchor) == "table" and pips.anchor.to == "essential"
+    and pips.anchor.point == "TOP" and pips.anchor.relPoint == "BOTTOM" and pips.anchor.x == 0 and pips.anchor.y == -1)
+check("自訂格子預設：開、跟核心技能一起淡、自己的 pos", pips.enabled == true and pips.fadeWithEssential == true
+    and pips.pos.point == "CENTER" and pips.pos.y == -250)
+local ua = p.bars.utility.anchor
+check("輔助預設：錨在自訂格子下方", type(ua) == "table" and ua.to == "pips" and ua.point == "TOP" and ua.relPoint == "BOTTOM" and ua.y == -1)
+eq("ConfigTable 自訂格子", ns.DB.ConfigTable("pips"), pips)
+check("IsPanel 自訂格子", ns.DB.IsPanel("pips"))
+eq("面板順序：資源條、自訂格子、施法條", table.concat(ns.DB.PANEL_ORDER, ","), "resources,pips,castbar")
+check("核心技能 → 自訂格子會成環", ns.DB.AnchorWouldCycle("essential", "pips"))
+check("自訂格子 → 輔助會成環（輔助錨在它上面）", ns.DB.AnchorWouldCycle("pips", "utility"))
+check("施法條 → 自訂格子不會成環", not ns.DB.AnchorWouldCycle("castbar", "pips"))
+local dp = ns.DB.DefaultFor("bar", "pips", "anchor")
+check("DefaultFor 自訂格子：錨定預設是複本", type(dp) == "table" and dp.to == "essential" and dp ~= pips.anchor)
+eq("DefaultFor 輔助：錨在自訂格子", ns.DB.DefaultFor("bar", "utility", "anchor.to"), "pips")
+-- 刪自訂群組：錨在它身上的自訂格子一併放開
+local g2 = ns.DB.CreateBar("icons", "臨時")
+pips.anchor = { to = g2, point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }
+ns.DB.DeleteBar(g2)
+eq("刪條：錨在它身上的自訂格子放開", pips.anchor, false)
+pips.anchor = ns.DB.DefaultFor("bar", "pips", "anchor")
 -- 錨定成環：資源條錨在核心技能上 ⇒ 核心技能不能錨到資源條
 check("核心技能 → 資源條會成環", ns.DB.AnchorWouldCycle("essential", "resources"))
 check("施法條 → 資源條不會成環", not ns.DB.AnchorWouldCycle("castbar", "resources"))
@@ -353,6 +379,10 @@ eq("施法條：沒在施法 → 0", Vis.EvaluatePanel("castbar", { hideWhenNotC
 eq("施法條：施法中 → 1", Vis.EvaluatePanel("castbar", { hideWhenNotCasting = true }, s, 1, true), 1)
 eq("施法條：不隱藏 → 1", Vis.EvaluatePanel("castbar", { hideWhenNotCasting = false }, s, 1, false), 1)
 eq("施法條：關著 → 0", Vis.EvaluatePanel("castbar", { enabled = false, hideWhenNotCasting = false }, s, 1, true), 0)
+eq("自訂格子：關著 → 0", Vis.EvaluatePanel("pips", { enabled = false }, s, 1, false), 0)
+eq("自訂格子：跟核心技能一起淡", Vis.EvaluatePanel("pips", { fadeWithEssential = true }, s, 0.3, false), 0.3)
+eq("自訂格子：不跟 → 1", Vis.EvaluatePanel("pips", { fadeWithEssential = false }, s, 0.3, false), 1)
+eq("自訂格子：資源條的載入條件不帶過來", Vis.EvaluatePanel("pips", { loadConditions = { onlyCombat = true } }, s, 1, false), 1)
 
 ------------------------------------------------------------
 -- 6. 施法條的純函式
@@ -380,23 +410,29 @@ eq("刻度：不認得 0", CB.TickCount(1, "nope"), 0)
 eq("刻度：秘密 ID 用名字", CB.TickCount(SECRET, "S740"), 4)
 
 ------------------------------------------------------------
--- 7. 自訂格子
+-- 7. 自訂格子（Modules/Pips.lua）
 ------------------------------------------------------------
+-- 容器高度：沒有列 ＝ 0（輔助技能貼回核心下方）
+eq("容器高度：0 列 → 0", PI.PanelHeight(0, 8, 1), 0)
+eq("容器高度：nil → 0", PI.PanelHeight(nil, 8, 1), 0)
+eq("容器高度：1 列 → 列高", PI.PanelHeight(1, 8, 1), 8)
+eq("容器高度：3 列 → 3 列高＋2 個列距", PI.PanelHeight(3, 8, 2), 28)
+eq("資源條不再有自訂格子的函式", R.PlanCustomRows, nil)
 check("資源條預設：自訂格子是空表", type(res.customRows) == "table" and next(res.customRows) == nil)
 local ccfg = { customRows = {} }
-eq("沒有清單 → nil", R.CustomRowList(ccfg, 65), nil)
-eq("沒有專精 → nil", R.CustomRowList(ccfg, nil, true), nil)
-eq("設定不是表 → nil", R.CustomRowList(nil, 65, true), nil)
-eq("新增回位置", R.AddCustomRow(ccfg, 65, { kind = "charges", spellID = 1001 }), 1)
-eq("壞種類不收", R.AddCustomRow(ccfg, 65, { kind = "cooldown", spellID = 1 }), nil)
-R.AddCustomRow(ccfg, 65, { kind = "stacks", spellID = 2002, max = 3 })
-R.AddCustomRow(ccfg, 66, { kind = "stacks", spellID = 3003 })
-eq("清單依專精：神聖 2 筆", #R.CustomRowList(ccfg, 65), 2)
-eq("清單依專精：防騎 1 筆", #R.CustomRowList(ccfg, 66), 1)
-eq("清單依專精：懲戒沒有", R.CustomRowList(ccfg, 70), nil)
-eq("找重複：同種類同法術", R.FindCustomRow(ccfg, 65, "stacks", 2002), 2)
-eq("找重複：別的專精不算", R.FindCustomRow(ccfg, 66, "stacks", 2002), nil)
-eq("找重複：種類不同不算", R.FindCustomRow(ccfg, 65, "charges", 2002), nil)
+eq("沒有清單 → nil", PI.CustomRowList(ccfg, 65), nil)
+eq("沒有專精 → nil", PI.CustomRowList(ccfg, nil, true), nil)
+eq("設定不是表 → nil", PI.CustomRowList(nil, 65, true), nil)
+eq("新增回位置", PI.AddCustomRow(ccfg, 65, { kind = "charges", spellID = 1001 }), 1)
+eq("壞種類不收", PI.AddCustomRow(ccfg, 65, { kind = "cooldown", spellID = 1 }), nil)
+PI.AddCustomRow(ccfg, 65, { kind = "stacks", spellID = 2002, max = 3 })
+PI.AddCustomRow(ccfg, 66, { kind = "stacks", spellID = 3003 })
+eq("清單依專精：神聖 2 筆", #PI.CustomRowList(ccfg, 65), 2)
+eq("清單依專精：防騎 1 筆", #PI.CustomRowList(ccfg, 66), 1)
+eq("清單依專精：懲戒沒有", PI.CustomRowList(ccfg, 70), nil)
+eq("找重複：同種類同法術", PI.FindCustomRow(ccfg, 65, "stacks", 2002), 2)
+eq("找重複：別的專精不算", PI.FindCustomRow(ccfg, 66, "stacks", 2002), nil)
+eq("找重複：種類不同不算", PI.FindCustomRow(ccfg, 65, "charges", 2002), nil)
 
 -- 規劃（probe 注入：學了沒、充能上限）
 local knownC, maxC = { [1001] = true, [1002] = true }, { [1001] = 3 }
@@ -404,30 +440,30 @@ local probe = {
     known = function(id) return knownC[id] == true end,
     maxCharges = function(id) return maxC[id] end,
 }
-local function plan(spec) return R.PlanCustomRows(ccfg, spec, probe) end
+local function plan(spec) return PI.PlanCustomRows(ccfg, spec, probe) end
 local pl = plan(65)
 eq("神聖：兩列", #pl, 2)
 eq("第一列：充能", pl[1].kind, "charges")
 eq("充能上限讀得到 → 用 API 的 3", pl[1].numSeg, 3)
 eq("第二列：層數、上限 3", pl[2].numSeg, 3)
 eq("規劃帶著清單位置", pl[2].index, 2)
-eq("規劃帶著 entry 參照", pl[2].entry, R.CustomRowList(ccfg, 65)[2])
+eq("規劃帶著 entry 參照", pl[2].entry, PI.CustomRowList(ccfg, 65)[2])
 eq("防騎：層數沒給上限 → 5", plan(66)[1].numSeg, 5)
 eq("懲戒：沒有清單 → 空", #plan(70), 0)
 -- 充能上限的退路：API 讀不到 → 存檔的 max → 2
 maxC[1001] = nil
-R.CustomRowList(ccfg, 65)[1].max = 4
+PI.CustomRowList(ccfg, 65)[1].max = 4
 eq("充能上限讀不到 → 退回存檔的 max", plan(65)[1].numSeg, 4)
-R.CustomRowList(ccfg, 65)[1].max = nil
+PI.CustomRowList(ccfg, 65)[1].max = nil
 eq("兩邊都沒有 → 2", plan(65)[1].numSeg, 2)
 maxC[1001] = 25
 eq("充能上限夾到 10", plan(65)[1].numSeg, 10)
 maxC[1001] = 0
-R.CustomRowList(ccfg, 65)[1].max = 2
+PI.CustomRowList(ccfg, 65)[1].max = 2
 eq("API 回 0 當讀不到 → 存檔的 max", plan(65)[1].numSeg, 2)
 maxC[1001] = 3
 -- 層數上限
-local st2 = R.CustomRowList(ccfg, 65)[2]
+local st2 = PI.CustomRowList(ccfg, 65)[2]
 st2.max = 0
 eq("層數上限 0 → 預設 5", plan(65)[2].numSeg, 5)
 st2.max = 15
@@ -438,11 +474,11 @@ st2.max = "x"
 eq("層數上限不是數字 → 5", plan(65)[2].numSeg, 5)
 st2.max = 3
 -- enabled = false 不建列、未學會的充能法術不建列、層數列不看學了沒
-R.CustomRowList(ccfg, 65)[1].enabled = false
+PI.CustomRowList(ccfg, 65)[1].enabled = false
 pl = plan(65)
 eq("enabled = false：不建那一列", #pl, 1)
 eq("enabled = false：剩下的是層數列、位置照舊", pl[1].index, 2)
-R.CustomRowList(ccfg, 65)[1].enabled = true
+PI.CustomRowList(ccfg, 65)[1].enabled = true
 knownC[1001] = false
 eq("充能法術未學會：不建", #plan(65), 1)
 knownC[2002] = false
@@ -450,30 +486,30 @@ eq("層數列不看學了沒", plan(65)[1].kind, "stacks")
 knownC[1001] = true
 -- 壞資料：跳過、不報錯
 local bad = { customRows = { [65] = { "x", { kind = "charges" }, { kind = "nope", spellID = 1 }, { kind = "stacks", spellID = 9 } } } }
-pl = R.PlanCustomRows(bad, 65, probe)
+pl = PI.PlanCustomRows(bad, 65, probe)
 eq("壞資料跳過，剩一列", #pl, 1)
 eq("壞資料跳過：位置照清單", pl[1].index, 4)
-eq("customRows 不是表 → 空", #R.PlanCustomRows({ customRows = 5 }, 65, probe), 0)
-eq("不給 probe：充能照建（當學了）、上限退回存檔的 max", R.PlanCustomRows(ccfg, 65, nil)[1].numSeg, 2)
+eq("customRows 不是表 → 空", #PI.PlanCustomRows({ customRows = 5 }, 65, probe), 0)
+eq("不給 probe：充能照建（當學了）、上限退回存檔的 max", PI.PlanCustomRows(ccfg, 65, nil)[1].numSeg, 2)
 -- 刪除
-check("刪第 1 筆", R.RemoveCustomRow(ccfg, 65, 1))
-eq("刪掉之後剩層數列", R.CustomRowList(ccfg, 65)[1].spellID, 2002)
-check("刪不存在的位置 → false", not R.RemoveCustomRow(ccfg, 65, 5))
-R.RemoveCustomRow(ccfg, 65, 1)
+check("刪第 1 筆", PI.RemoveCustomRow(ccfg, 65, 1))
+eq("刪掉之後剩層數列", PI.CustomRowList(ccfg, 65)[1].spellID, 2002)
+check("刪不存在的位置 → false", not PI.RemoveCustomRow(ccfg, 65, 5))
+PI.RemoveCustomRow(ccfg, 65, 1)
 eq("清單空了就拿掉整個鍵", ccfg.customRows[65], nil)
-check("防騎那份不受影響", #R.CustomRowList(ccfg, 66) == 1)
+check("防騎那份不受影響", #PI.CustomRowList(ccfg, 66) == 1)
 -- 顏色：存檔的 → 職業色
 ns.Style = { Accent = function() return 0.1, 0.2, 0.3, 1 end }
-local cr, cg, cb2 = R.CustomColor({ color = { r = 1, g = 0.5, b = 0 } })
+local cr, cg, cb2 = PI.CustomColor({ color = { r = 1, g = 0.5, b = 0 } })
 check("自訂列的顏色：存檔的", cr == 1 and cg == 0.5 and cb2 == 0)
-cr, cg, cb2 = R.CustomColor({})
+cr, cg, cb2 = PI.CustomColor({})
 check("自訂列的顏色：沒存 → 職業色", cr == 0.1 and cg == 0.2 and cb2 == 0.3)
 -- 取值：層數直接轉手、沒有光環 0；充能讀不到 → nil
 auras[2002] = { applications = SECRET }
-eq("層數：秘密值原樣轉手", (R.CustomValue({ kind = "stacks", spellID = 2002 })), SECRET)
+eq("層數：秘密值原樣轉手", (PI.CustomValue({ kind = "stacks", spellID = 2002 })), SECRET)
 auras[2002] = nil
-eq("層數：沒有光環 → 0", (R.CustomValue({ kind = "stacks", spellID = 2002 })), 0)
-eq("充能：API 回 nil → nil", (R.CustomValue({ kind = "charges", spellID = 1001 })), nil)
+eq("層數：沒有光環 → 0", (PI.CustomValue({ kind = "stacks", spellID = 2002 })), 0)
+eq("充能：API 回 nil → nil", (PI.CustomValue({ kind = "charges", spellID = 1001 })), nil)
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
