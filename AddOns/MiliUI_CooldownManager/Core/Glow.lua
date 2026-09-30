@@ -43,6 +43,8 @@
 --     **每回一層亮一次**。待實機驗證（README）。
 --   * 自訂法術／物品：直接 SetCooldownFromDurationObject 同一個 duration 物件（自訂法術用
 --     ignoreGCD 的那一版，GCD 本來就不會進來）。
+--   * 就緒音效（Core/Sound.lua）吃同一個訊號：只設了音效、沒開就緒發光也照樣建探針、武裝；
+--     觸發時音效與發光各看各的設定。
 -- 亮 glow.ready.duration 秒（預設 3）後熄。
 --
 -- ── 無損刷新 ────────────────────────────────────────────────────────────
@@ -277,14 +279,21 @@ end
 ------------------------------------------------------------
 -- 就緒發光
 ------------------------------------------------------------
+-- 探針要不要建、要不要武裝：就緒發光或就緒音效（Core/Sound.lua）任一個要就要
+local function SoundWanted(rec)
+    return ns.Sound and ns.Sound.WantsReady(rec) or false
+end
+
 local function ReadyOn(rec)
     local barKey = rec.claimKey
-    return barKey and not Hidden(rec) and Wanted(rec, barKey, "ready")
+    return barKey and not Hidden(rec) and (Wanted(rec, barKey, "ready") or SoundWanted(rec))
 end
 
 local function Fire(rec)
     if not ReadyOn(rec) then return end
     local barKey = rec.claimKey
+    if SoundWanted(rec) then ns.Sound.OnReady(rec) end
+    if not Wanted(rec, barKey, "ready") then return end
     G.readyFired = G.readyFired + 1
     Start(rec, "ready", barKey)
     local token = (rec.readyToken or 0) + 1

@@ -81,6 +81,7 @@ local function Debug()
         p(("  發光：觸發 %d  就緒 %d（觸發過 %d 次）  無損刷新 %d  探針 %d 顆  manager 掛勾 %s")
             :format(proc, ready, G.readyFired or 0, pandemic, G.probes or 0, tostring(G.hooked)))
     end
+    if ns.Sound and ns.Sound.DebugLine then p(ns.Sound.DebugLine()) end
     if ns.Resources and ns.Resources.DebugLines then
         for _, line in ipairs(ns.Resources.DebugLines()) do p(line) end
     end

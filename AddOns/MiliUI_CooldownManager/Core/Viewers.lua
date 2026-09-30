@@ -152,6 +152,10 @@ local function HookItem(item, rec)
     if ns.Decorate and ns.Decorate.HookItem then
         ns.Decorate.HookItem(item, rec)
     end
+    -- 增益兩條的出現／消失音效（暴雪警示呼叫點的後掛勾，見 Core/Sound.lua）
+    if ns.Sound and ns.Sound.HookItem then
+        ns.Sound.HookItem(item, rec)
+    end
 end
 
 -- item 目前的身分（明文 number 或 nil）。欄位名對過 12.1.0.69933 的

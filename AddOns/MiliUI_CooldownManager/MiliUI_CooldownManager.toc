@@ -44,6 +44,7 @@ Core\Viewers.lua
 Core\Text.lua
 Core\Decorate.lua
 Core\Glow.lua
+Core\Sound.lua
 Core\Keybinds.lua
 Modules\Custom.lua
 Core\Bars.lua
