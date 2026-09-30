@@ -156,6 +156,9 @@ local RESOURCE_COLORS = {
     SweepingStrikes = { color = { r = 0.85, g = 0.65, b = 0.35 } },
     IgnorePain      = { color = { r = 0.95, g = 0.80, b = 0.35 } },
     Ironfur         = { color = { r = 0.72, g = 0.52, b = 0.30 } },
+    -- 光環剩餘時間條：黯黑力量（喚能師的古銅黑金）、秘法靈魂（秘法紫，跟秘法充能的藍分得開）
+    EbonMight       = { color = { r = 0.80, g = 0.60, b = 0.20 } },
+    ArcaneSoul      = { color = { r = 0.66, g = 0.40, b = 1    } },
 }
 DB.RESOURCE_COLORS = RESOURCE_COLORS
 

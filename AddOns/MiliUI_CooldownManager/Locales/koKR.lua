@@ -430,6 +430,7 @@ L["The color follows how much of your max health is staggered. In instanced comb
 L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "이 효과만이 아니라 내 몸의 모든 흡수 보호막 합계를 표시합니다. 가득 찬 막대는 최대 생명력의 30퍼센트입니다."
 L["One segment per active application, each draining with its own remaining time."] = "활성화된 효과 하나당 한 칸이며, 각 칸은 자신의 남은 시간만큼 줄어듭니다."
 L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s: 이 줄은 게임이 직접 채우므로 전투 중에도 정확합니다. 조건 규칙과 수치 텍스트는 적용되지 않습니다."
+L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."] = "%s: 이 타이머는 게임이 직접 돌리므로 전투 중에도 정확합니다. 바는 강화 효과의 남은 시간만큼 줄어들고, 효과가 없을 때는 비어 있습니다. 바 위에 수치를 표시하면 남은 초가 나옵니다. 조건 규칙은 적용되지 않습니다."
 L["Show custom segments"] = "사용자 칸 표시"
 L["Always"] = "항상"
 L["Only while recharging"] = "충전 중일 때만"

@@ -18,6 +18,10 @@
 --              用一顆單格 AuraContainer ＋ SetApplicationBar；每施放一次多一顆獨立光環的（鐵鬃）用
 --              AddAuraGroup ＋ 每顆 SetDurationBar（一格一層、各自倒數）。條件規則與數值文字不適用。
 --              容器是受保護的 intrinsic ⇒ 有這種列時面板在戰鬥中不重排（記旗標、脫戰補）。
+--   auraTimer  **光環剩餘時間條**（黯黑力量、秘法靈魂）：同一支 AuraBar 的 kind = "duration"，單格 AuraContainer
+--              ＋ SetDurationBar（RemainingTime）：光環在身上時引擎往下縮、不在時是空條（列上畫的暗底）。
+--              上限秒數不經 Lua（引擎用光環自己的持續時間，含延長）；showText 時秒數走 SetDurationText。
+--              條件規則不適用；容器沒好（戰鬥中、建失敗）時先畫空條（timerIdle）。
 --
 -- 12.1 秘密值（見 .claude/notes/wow-121-secret-values.md）：
 --   * 連續條：UnitPowerMax／UnitPower **直接**餵 SetMinMaxValues／SetValue（引擎收秘密值），
@@ -67,6 +71,8 @@ R.Plain = Plain
 -- aura   光環 spellID（層數當點數）
 -- cast   GetSpellCastCount 的 spellID
 -- fill   pip 專用的特殊填充：rune（符文冷卻）
+-- auras  光環 spellID 清單（auraBar／auraTimer：交給 AuraContainer 的 includeSpellIDs，Lua 不讀）
+-- passive 天賦閘：這個法術學了才列；heroTree：或是目前的英雄天賦樹是這一棵（C_ClassTalents）
 -- mana   法力列（數值文字走縮寫、預設排最下面）
 --
 -- 資源名稱一律用暴雪的全域字串：那是十二個語系的官方譯名，比插件自己翻準。
@@ -178,6 +184,14 @@ local RESOURCES = {
                         auras = { 260708 }, maxFn = SweepingMax, max = 12, passive = 260708 },
     Ironfur         = { name = SpellName(192081, "Ironfur"), nameSpell = 192081, mode = "auraBar", instances = true,
                         auras = { 192081 }, max = 5, passive = 192081 },
+    -- 光環剩餘時間條（auraTimer）。名字用光環的法術名
+    --   黯黑力量：增輝的招牌技能 395152、身上的增益是 395296（基礎 10 秒，會被延長）
+    --   秘法靈魂：Sunfury 英雄天賦「歐爾的記憶」449619 給的 451038（4 秒）；1223522 是 11.1 起同名同圖示的
+    --   另一個 ID，一起放進過濾（沒出現就永遠比對不到，無害）。英雄樹 39 ＝ Sunfury
+    EbonMight       = { name = SpellName(395296, "Ebon Might"), nameSpell = 395296, mode = "auraTimer",
+                        auras = { 395296 }, passive = 395152 },
+    ArcaneSoul      = { name = SpellName(451038, "Arcane Soul"), nameSpell = 451038, mode = "auraTimer",
+                        auras = { 451038, 1223522 }, passive = 449619, heroTree = 39 },
 }
 R.RESOURCES = RESOURCES
 
@@ -200,10 +214,24 @@ function R.StaggerLabel(band)
     return SpellName(t[1], t[2])
 end
 
--- 條件規則只對 Lua 讀得到值的列有意義；引擎寫的（auraBar）沒有
+-- 引擎寫值的列（auraBar 層數、auraTimer 剩餘時間）：Lua 這邊沒有值
+local ENGINE_MODES = { auraBar = true, auraTimer = true }
+function R.EngineDriven(key)
+    local def = RESOURCES[key]
+    return def ~= nil and ENGINE_MODES[def.mode] == true
+end
+
+-- 條件規則只對 Lua 讀得到值的列有意義；引擎寫的沒有
 function R.SupportsConditions(key)
     local def = RESOURCES[key]
-    return def ~= nil and def.mode ~= "auraBar"
+    return def ~= nil and not ENGINE_MODES[def.mode]
+end
+
+-- 純函式：一列實際的畫法。容器就緒 ⇒ engine；沒好時 auraBar 退回明文點數、auraTimer 退回空條
+function R.DrawMode(mode, engineReady)
+    if mode == "auraBar" then return engineReady and "engine" or "pip" end
+    if mode == "auraTimer" then return engineReady and "engine" or "timerIdle" end
+    return mode
 end
 
 -- 專精 → 資源清單（法力另外看 MANA_SPECS，一律排最下面）
@@ -220,7 +248,7 @@ local SPEC_RESOURCES = {
     [250] = { "RunicPower", "Runes" },           [251] = { "RunicPower", "Runes" },
     [252] = { "RunicPower", "Runes" },
     [262] = { "Maelstrom" },                     [263] = { "MaelstromWeapon" },  [264] = {},
-    [62]  = { "ArcaneCharges" },                 [63]  = {},  [64] = { "Icicles" },
+    [62]  = { "ArcaneCharges", "ArcaneSoul" },                 [63]  = {},  [64] = { "Icicles" },
     [265] = { "SoulShards" },                    [266] = { "SoulShards" },  [267] = { "SoulShards" },
     [268] = { "Energy", "Stagger" },
     [269] = { "Energy", "Chi" },                 [270] = {},
@@ -229,7 +257,7 @@ local SPEC_RESOURCES = {
     [105] = {},
     [577] = { "Fury" },                          [581] = { "Fury", "SoulFragments" },
     [1480] = { "Fury", "DevourerFragments" },
-    [1467] = { "Essence" },                      [1468] = { "Essence" },  [1473] = { "Essence" },
+    [1467] = { "Essence" },                      [1468] = { "Essence" },  [1473] = { "Essence", "EbonMight" },
 }
 R.SPEC_RESOURCES = SPEC_RESOURCES
 
@@ -286,6 +314,7 @@ R.AuraStacks = AuraStacks
 local function GetValue(key)
     local def = RESOURCES[key]
     if not def then return 0, 0 end
+    if def.mode == "auraTimer" then return 0, 0 end     -- 剩餘時間只在引擎那邊，Lua 不讀
     if def.get then return def.get() end
     if def.aura then return AuraStacks(def.aura), def.max end
     if def.auras then return AuraStacks(def.auras[1]), R.SegmentsFor(key) end
@@ -344,6 +373,15 @@ local function SpellKnown(id)
     return known and true or false
 end
 
+-- 目前的英雄天賦樹（明文才算；讀不到回 nil）
+local function ActiveHeroTree()
+    local fn = C_ClassTalents and C_ClassTalents.GetActiveHeroTalentSpec
+    if not fn then return nil end
+    local ok, v = pcall(fn)
+    if not ok then return nil end
+    return Plain(v)
+end
+
 local gateLog = {}
 R.gateLog = gateLog
 
@@ -352,6 +390,9 @@ local function Available(key)
     if not def then return false, "沒有定義" end
     if def.aura or def.cast or def.auras or def.get then
         if SpellKnown(def.passive) then return true, def.passive and "被動已學" or "不需要天賦" end
+        if def.heroTree and ActiveHeroTree() == def.heroTree then return true, "英雄天賦樹 " .. tostring(def.heroTree) end
+        -- 剩餘時間條沒有 Lua 讀得到的值，沒有「目前有層數」這條保險
+        if def.mode == "auraTimer" then return false, "被動未學（天賦沒點）" end
         local cur = Plain((GetValue(key)))
         if (cur or 0) > 0 then return true, "被動查不到但目前有層數" end
         return false, "被動未學（天賦沒點）"
@@ -658,6 +699,51 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     return true
 end
 
+-- 剩餘時間條的秒數：低於這個秒數印一位小數（秘法靈魂 4 秒整段都有小數；黯黑力量剩 5 秒起）
+local TIMER_DECIMALS_BELOW = 5
+
+-- 空條的底色：跟連續條同一套（主色 × 0.25、alpha 0.8）。out 給了就填進去（熱路徑上不配表）
+function R.TimerDim(c, out)
+    out = out or {}
+    out[1], out[2], out[3], out[4] = c.r * 0.25, c.g * 0.25, c.b * 0.25, 0.8
+    return out
+end
+local timerDimScratch = {}
+
+-- 光環剩餘時間條。回傳 true ＝ 容器就緒（這一列交給引擎）；false ＝ 先畫空條
+local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
+    if not ns.AuraBar then return false end
+    row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
+    local cc = ResolveColor(cfg, key, "color")
+    local text
+    if cfg.showText then
+        -- 字級換成實體像素（同 row.text 的 SetPixelFont）：按鈕子樹裡的 FontString 忽略父層縮放
+        local scale = UIParent:GetEffectiveScale()
+        if not scale or scale <= 0 then scale = 1 end
+        text = {
+            font = ns.Media.Font(ns.Setting(nil, "font")),
+            size = (tonumber(cfg.textSize) or 10) * scale,
+            decimals = TIMER_DECIMALS_BELOW,
+        }
+    end
+    local status = ns.AuraBar.Apply(row.ab, {
+        kind = "duration", spellIDs = def.auras, max = 1, texture = tex, color = cc,
+        alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, text = text,
+    })
+    row.engineStatus = status
+    if status ~= "ready" then
+        ns.AuraBar.HideContainer(row.ab)
+        ns.AuraBar.HideRowDecor(row)
+        return false
+    end
+    -- 空條（暗底＋1px 黑邊）畫在列上：光環不在時按鈕藏著，看到的就是這個
+    ns.AuraBar.RowDecor(row, {
+        W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
+        dim = R.TimerDim(cc), px = ns.P.Scale(1),
+    }, (row:GetFrameLevel() or 1) + 8)
+    return true
+end
+
 local function LayoutRow(row, key, cfg, numSeg, W, H)
     local def = RESOURCES[key]
     row:SetSize(W, H)
@@ -672,14 +758,12 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, "OUTLINE", ns.Setting(nil, "font"))
     row.text:SetText("")
 
-    -- 這一列實際的畫法：auraBar 容器沒好時退回 pip（明文層數）
+    -- 這一列實際的畫法：容器沒好時 auraBar 退回 pip（明文層數）、auraTimer 退回空條
     local mode = def.mode
     if mode == "auraBar" then
-        if LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex) then
-            mode = "engine"
-        else
-            mode = "pip"
-        end
+        mode = R.DrawMode(mode, LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex))
+    elseif mode == "auraTimer" then
+        mode = R.DrawMode(mode, LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex))
     else
         if row.ab and ns.AuraBar then ns.AuraBar.HideContainer(row.ab) end
         if ns.AuraBar then ns.AuraBar.HideRowDecor(row) end
@@ -690,11 +774,11 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
         row.numSeg = numSeg
     end
     row.mode = mode
-    -- 引擎寫的列沒有 Lua 讀得到的數字：不印數值文字
-    row.text:SetShown(showText and mode ~= "engine")
+    -- 引擎寫的列沒有 Lua 讀得到的數字：不印數值文字（剩餘時間條的秒數在按鈕子樹裡，引擎印）
+    row.text:SetShown(showText and mode ~= "engine" and mode ~= "timerIdle")
 
     local isPip = mode == "pip" and numSeg and numSeg > 0
-    local isBar = mode == "bar" or mode == "absorbBar"
+    local isBar = mode == "bar" or mode == "absorbBar" or mode == "timerIdle"
     row.barBG:SetShown(isBar)
     row.bar:SetShown(isBar)
     if mode ~= "absorbBar" then HideAbsorb(row) end
@@ -987,6 +1071,16 @@ local function UpdateRow(row, cfg)
         ClearRowOverrides(row)
         return
     end
+    if row.mode == "timerIdle" then
+        -- 剩餘時間條的容器還沒好（戰鬥中、建失敗）：空條，底色同連續條
+        local d = R.TimerDim(ResolveColor(cfg, key, "color"), timerDimScratch)
+        row.bar:SetMinMaxValues(0, 1)
+        row.bar:SetValue(0)
+        row.barBG:SetVertexColor(d[1], d[2], d[3], d[4])
+        row.text:SetText("")
+        ClearRowOverrides(row)
+        return
+    end
     -- 顏色與條件一列解析一次，往下傳（掛在能量事件上）
     local cc = ResolveColor(cfg, key, "color")
     local conds = R.SupportsConditions(key) and RC.Resolve(cfg, key) or nil
@@ -1259,7 +1353,7 @@ function R.DebugLines()
         local secret = ns.IsSecret(cur) or ns.IsSecret(max)
         local n = RC.Resolve(cfg, key)
         local extra = ""
-        if def.mode == "auraBar" and row.ab and ns.AuraBar then
+        if R.EngineDriven(key) and row.ab and ns.AuraBar then
             local bound = ns.AuraBar.Bound(row.ab)
             extra = ("  容器 %s／交條 %s"):format(tostring(row.engineStatus),
                 bound == true and "是" or bound == false and "失敗" or "未知")

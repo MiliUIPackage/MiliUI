@@ -16,6 +16,11 @@
 -- 引擎有幾顆光環就排幾個按鈕，一格一顆；每顆按鈕的 StatusBar 交給 SetDurationBar(bar, { direction =
 -- RemainingTime })，剩餘時間由引擎倒著跑。
 --
+-- 第三種 kind = "duration"：**光環剩餘時間條**（資源條的 auraTimer 列）。單格 AddAuraSlot，按鈕的整列寬 StatusBar
+-- 交給 SetDurationBar(bar, { direction = RemainingTime })：光環在身上時由引擎往下縮，光環不在時按鈕藏起來
+-- （列上的裝飾畫空條）。要秒數時另建一個 FontString 交給 SetDurationText（formatter 在容器建立前先建好）。
+-- 上限秒數不必知道：引擎用光環自己的持續時間（含延長）。
+--
 -- 格子外觀（每格的暗底、1px 黑邊、格與格之間的分隔）是另外畫的「裝飾」：
 --   * 一直顯示的列：裝飾畫在列上（不在按鈕子樹裡），尺寸變了原地重排，不必換容器
 --   * 「有光環才顯示」的列：裝飾也建在按鈕子樹裡（按鈕只在有光環時顯示 ⇒ 整列跟著出現），
@@ -155,21 +160,27 @@ end
 -- spec = { kind = "applications"（預設）| "instances", spellIDs = { id, … }, max, texture,
 --          color = { r, g, b }, alpha, reversed,
 --          inside = geom | nil（「有光環才顯示」：裝飾建在按鈕子樹裡），
---          cell = geom（instances 必填：一格的大小與格距，進簽章） }
+--          cell = geom（instances 必填：一格的大小與格距，進簽章），
+--          text = { font = 路徑, size = 實體像素字級, decimals = 小數門檻 } | nil（duration 專用：秒數文字，進簽章） }
 ------------------------------------------------------------
 function AB.Signature(spec)
     local ids = {}
     for _, id in ipairs(spec.spellIDs or {}) do ids[#ids + 1] = tostring(id) end
     table.sort(ids)
     local c = spec.color or {}
+    local kindTag = (spec.kind == "instances" and "inst") or (spec.kind == "duration" and "dur") or "apps"
     local parts = {
-        spec.kind == "instances" and "inst" or "apps",
+        kindTag,
         table.concat(ids, ","), tostring(spec.max), tostring(spec.texture),
         Fmt(c.r), Fmt(c.g), Fmt(c.b), Fmt(spec.alpha), tostring(spec.reversed and true or false),
     }
     local cg = spec.kind == "instances" and spec.cell
     if cg then
         parts[#parts + 1] = table.concat({ "cell", Fmt(cg.segW), Fmt(cg.H), Fmt(cg.gap) }, ":")
+    end
+    local tx = spec.kind == "duration" and spec.text
+    if type(tx) == "table" then
+        parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.decimals) }, ":")
     end
     local g = spec.inside
     if g then
@@ -214,6 +225,23 @@ function AB.New(row, onRegen)
     return h
 end
 
+-- 剩餘秒數（duration 專用）：字型先給才能交出去（引擎會 SetText）；失敗只丟文字、不丟條
+local function InitTimerText(btn, bar, st)
+    local tx = st.text
+    local tf = CreateFrame("Frame", nil, btn)
+    tf:SetAllPoints(btn)
+    tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
+    local fs = tf:CreateFontString(nil, "OVERLAY")
+    fs:SetFont(tx.font, tx.size, "OUTLINE")
+    pcall(fs.SetIgnoreParentScale, fs, true)
+    fs:SetTextColor(1, 1, 1, 1)
+    fs:SetJustifyH("CENTER")
+    fs:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    if not (st.formatter and pcall(btn.SetDurationText, btn, fs, { textFormatter = st.formatter })) then
+        btn:SetDurationText(fs)
+    end
+end
+
 -- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。不 CreateColor、不掛 script、顏色純數字
 local function InitButton(btn, c, st, h, sig)
     pcall(btn.SetMouseClickEnabled, btn, false)
@@ -246,6 +274,16 @@ local function InitButton(btn, c, st, h, sig)
         local opts = {}
         if st.remaining then opts.direction = st.remaining end
         btn:SetDurationBar(bar, opts)
+    elseif st.kind == "duration" then
+        -- 光環剩餘時間：整列寬一條，引擎用光環自己的持續時間往下縮（值、上限都不經 Lua）
+        local opts = {}
+        if st.remaining then opts.direction = st.remaining end
+        if st.interp then opts.interpolation = st.interp end
+        btn:SetDurationBar(bar, opts)
+        if st.text and btn.SetDurationText then
+            local ok, err = pcall(InitTimerText, btn, bar, st)
+            if not ok then AB.lastError = tostring(err) end
+        end
     else
         -- CustomAuraButtonApplicationBarOptions：maxApplications（必填）、interpolation（可省）。
         -- 12.1.5 多一個 minApplications（預設 0），12.1.0 沒有 ⇒ 不傳
@@ -330,9 +368,14 @@ function AB.Apply(h, spec)
             r = tonumber(c2.r) or 1, g = tonumber(c2.g) or 1, b = tonumber(c2.b) or 1,
             alpha = tonumber(spec.alpha) or 1, reversed = spec.reversed and true or false,
             inside = spec.inside, kind = spec.kind, cell = spec.cell,
+            text = (spec.kind == "duration" and type(spec.text) == "table") and spec.text or nil,
             interp = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil,
             remaining = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime or nil,
         }
+        -- formatter 在這裡（正常插件路徑）先建好：initializeFrame 裡只查表
+        if st.text and ns.Text and ns.Text.PlainFormatter then
+            st.formatter = ns.Text.PlainFormatter(st.text.decimals)
+        end
         if st.kind == "instances" and type(st.cell) ~= "table" then
             h.errSigs[sig] = "instances without cell geometry"
             return "failed"

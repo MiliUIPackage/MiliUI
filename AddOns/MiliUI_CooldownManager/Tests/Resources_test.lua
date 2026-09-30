@@ -18,6 +18,8 @@
 --      閘門／填色的 min／max、充能列的顯示時機（ChargeAlpha）
 --   8. 補齊的職業資源：專精對照、取值函式（醉仙緩勁、吸收盾、噬靈魂碎片）、醉仙緩勁段落、
 --      auraBar 的格數與條件規則、AuraBar 的幾何與簽章（Modules/AuraBar.lua）
+--   9. 光環剩餘時間條（auraTimer：黯黑力量、秘法靈魂）：專精對照、定義與預設色、畫法規劃（DrawMode）、
+--      天賦閘（被動／英雄天賦樹）、Lua 不讀值、空條底色、duration 簽章
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -208,7 +210,7 @@ eqList("防騎：聖能", R.RawList("PALADIN", 66, nil), { "HolyPower" })
 eqList("神聖聖騎：聖能＋法力（法力排最下面）", R.RawList("PALADIN", 65, nil), { "HolyPower", "Mana" })
 eqList("暗牧：狂亂值＋法力", R.RawList("PRIEST", 258, nil), { "Insanity", "Mana" })
 eqList("戒律：只有法力", R.RawList("PRIEST", 256, nil), { "Mana" })
-eqList("秘法：秘法充能＋法力", R.RawList("MAGE", 62, nil), { "ArcaneCharges", "Mana" })
+eqList("秘法：秘法充能＋秘法靈魂＋法力", R.RawList("MAGE", 62, nil), { "ArcaneCharges", "ArcaneSoul", "Mana" })
 eqList("刺殺：能量＋連擊點", R.RawList("ROGUE", 259, nil), { "Energy", "ComboPoints" })
 eqList("血魄：符能＋符文", R.RawList("DEATHKNIGHT", 250, nil), { "RunicPower", "Runes" })
 eqList("增強：漩渦之武＋法力", R.RawList("SHAMAN", 263, nil), { "MaelstromWeapon", "Mana" })
@@ -662,6 +664,91 @@ check("簽章：有光環才顯示（裝飾在子樹裡）進簽章", AB.Signatu
     inside = { W = 100, H = 8, n = 4, gap = 1, segW = 24, segments = true, dim = { 0, 0, 0, 1 }, px = 1 } }) ~= sigA)
 check("簽章：instances 與 applications 不同", AB.Signature({ kind = "instances", spellIDs = { 1, 2 }, max = 4, texture = "t",
     color = { r = 1, g = 0, b = 0 }, alpha = 1, cell = { segW = 24, H = 8, gap = 1 } }) ~= sigA)
+
+------------------------------------------------------------
+-- 9. 光環剩餘時間條（auraTimer）
+------------------------------------------------------------
+-- 專精對照
+eqList("增輝：精華＋黯黑力量＋法力", R.RawList("EVOKER", 1473, nil), { "Essence", "EbonMight", "Mana" })
+eqList("湮滅：沒有黯黑力量", R.RawList("EVOKER", 1467, nil), { "Essence", "Mana" })
+eqList("火法：沒有秘法靈魂", R.RawList("MAGE", 63, nil), { "Mana" })
+-- 定義、預設色、名字（光環的法術名）
+for _, k in ipairs({ "EbonMight", "ArcaneSoul" }) do
+    check("剩餘時間條有定義：" .. k, R.RESOURCES[k] ~= nil and R.RESOURCES[k].mode == "auraTimer")
+    check("剩餘時間條有預設色：" .. k, ns.DB.RESOURCE_COLORS[k] ~= nil and type(res.colors[k]) == "table")
+    check("剩餘時間條是引擎寫的：" .. k, R.EngineDriven(k))
+    check("剩餘時間條不支援條件規則：" .. k, not R.SupportsConditions(k))
+    eq("剩餘時間條不是格子：" .. k, R.SegmentsFor(k), 0)
+end
+eq("黯黑力量的名字＝光環 395296 的法術名", R.Name("EbonMight"), "S395296")
+eq("秘法靈魂的名字＝光環 451038 的法術名", R.Name("ArcaneSoul"), "S451038")
+eqList("黯黑力量追蹤身上的增益 395296", R.RESOURCES.EbonMight.auras, { 395296 })
+eqList("秘法靈魂追蹤 451038（＋11.1 的同名 ID）", R.RESOURCES.ArcaneSoul.auras, { 451038, 1223522 })
+check("條件規則候選不含剩餘時間條", not R.SupportsConditions("EbonMight") and R.SupportsConditions("Essence"))
+-- Lua 不讀值：光環在身上也回 0, 0（剩餘時間只在引擎那邊）
+auras[395296] = { applications = 1, expirationTime = 123 }
+local tc, tm = R.GetValue("EbonMight")
+check("剩餘時間條 GetValue 不讀光環", tc == 0 and tm == 0)
+auras[395296] = nil
+-- 畫法規劃
+eq("auraTimer 容器就緒 → engine", R.DrawMode("auraTimer", true), "engine")
+eq("auraTimer 容器沒好 → 空條", R.DrawMode("auraTimer", false), "timerIdle")
+eq("auraBar 容器就緒 → engine", R.DrawMode("auraBar", true), "engine")
+eq("auraBar 容器沒好 → 明文點數", R.DrawMode("auraBar", false), "pip")
+eq("連續條不變", R.DrawMode("bar", false), "bar")
+eq("點數型不變", R.DrawMode("pip", true), "pip")
+-- 空條底色：主色 × 0.25、alpha 0.8；給 out 就填進去（不配新表）
+local out = {}
+local d = R.TimerDim({ r = 0.8, g = 0.4, b = 1 }, out)
+check("空條底色", d == out and d[1] == 0.2 and d[2] == 0.1 and d[3] == 0.25 and d[4] == 0.8)
+-- 天賦閘：黯黑力量看 395152；秘法靈魂看歐爾的記憶 449619 或英雄樹 39（Sunfury）
+ns.specID = 1473
+powerMax[19], powerMax[0] = 5, 100000
+known[395152] = nil
+R.Invalidate()
+eqList("增輝：沒學黯黑力量 → 不列", (R.Candidates()), { "Essence", "Mana" })
+known[395152] = true
+R.Invalidate()
+eqList("增輝：學了 → 列", (R.Candidates()), { "Essence", "EbonMight", "Mana" })
+known[395152] = nil
+ns.specID = 62
+powerMax[16] = 4
+R.Invalidate()
+eqList("秘法：沒點 Sunfury → 不列", (R.Candidates()), { "ArcaneCharges", "Mana" })
+check("秘法靈魂沒列的原因有記", type(R.gateLog.ArcaneSoul) == "string")
+known[449619] = true
+R.Invalidate()
+eqList("秘法：點了歐爾的記憶 → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana" })
+known[449619] = nil
+local hero = 40
+env.C_ClassTalents = { GetActiveHeroTalentSpec = function() return hero end }
+R.Invalidate()
+eqList("秘法：英雄樹是別棵 → 不列", (R.Candidates()), { "ArcaneCharges", "Mana" })
+hero = 39
+R.Invalidate()
+eqList("秘法：英雄樹是 Sunfury → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana" })
+hero = SECRET
+R.Invalidate()
+eqList("秘法：英雄樹讀不到 → 不列（不比較秘密值）", (R.Candidates()), { "ArcaneCharges", "Mana" })
+env.C_ClassTalents = nil
+R.Invalidate()
+-- duration 簽章（Modules/AuraBar.lua）
+local dur = { kind = "duration", spellIDs = { 395296 }, max = 1, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }
+local sigD = AB.Signature(dur)
+check("簽章：duration 與 applications 不同", sigD ~= AB.Signature({ spellIDs = { 395296 }, max = 1, texture = "t",
+    color = { r = 1, g = 0, b = 0 }, alpha = 1 }))
+local withText = { kind = "duration", spellIDs = { 395296 }, max = 1, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
+    text = { font = "f", size = 10, decimals = 5 } }
+check("簽章：秒數文字開關進簽章", AB.Signature(withText) ~= sigD)
+withText.text.size = 12
+local sig12 = AB.Signature(withText)
+withText.text.size = 10
+check("簽章：字級進簽章", sig12 ~= AB.Signature(withText))
+check("簽章：填充方向進簽章", AB.Signature({ kind = "duration", spellIDs = { 395296 }, max = 1, texture = "t",
+    color = { r = 1, g = 0, b = 0 }, alpha = 1, reversed = true }) ~= sigD)
+check("簽章：文字只算在 duration 上", AB.Signature({ spellIDs = { 1 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
+    text = { font = "f", size = 10, decimals = 5 } }) == AB.Signature({ spellIDs = { 1 }, max = 4, texture = "t",
+    color = { r = 1, g = 0, b = 0 }, alpha = 1 }))
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
