@@ -4,8 +4,9 @@
 --   ns.Picker.Open(key, anchorFrame)
 --
 -- 三區：
---   已在暴雪冷卻管理器  別條（含自訂群組）現在顯示中的法術，點一下拉進這條（groupOf）。
---                      這條是四條檢視器之一時，只列別條的（自己那條本來就在）。
+--   已在暴雪冷卻管理器  別條（含自訂群組）現在顯示中的法術，點一下拉進這條（groupOf）；
+--                      **被移除的**（spells[spec].hidden，不分原本在哪條）也列在這裡、灰階，點一下加回來。
+--                      這條是四條檢視器之一時，顯示中的只列別條的（自己那條本來就在）。
 --                      長條只收長條、圖示只收圖示（暴雪的長條 item 跟圖示 item 是兩種框）。
 --   要先去暴雪面板加    已經學會、但還沒放進暴雪冷卻管理器任何一條的（Catalog.Pool），
 --                      那要在暴雪自己的面板裡拖進去 —— 附一顆開面板的按鈕。
@@ -96,26 +97,51 @@ local function IsBarsKind(key)
     return b and b.kind == "bars" or false
 end
 
--- 已在暴雪冷卻管理器、可以拉進 key 的：{ { id, from } … }
+-- 已在暴雪冷卻管理器、可以放進 key 的：{ { id, from, removed } … }
+-- 顯示中的（別條上的）排前面，被移除的（removed = true；from ＝ 移除前所在的條，可能就是 key）排後面
 function Picker.MovableInto(key)
-    local out, seen = {}, {}
+    local out, removed, seen = {}, {}, {}
     local mine, hid = ns.Catalog.Bar(key, true)
     for _, id in ipairs(mine) do seen[id] = true end
-    for _, id in ipairs(hid or {}) do seen[id] = true end
+    for _, id in ipairs(hid or {}) do
+        if not seen[id] then
+            seen[id] = true
+            removed[#removed + 1] = { id = id, from = key, removed = true }
+        end
+    end
     local wantBars = IsBarsKind(key)
     local p = ns.profile
     for _, other in ipairs(p and p.barOrder or {}) do
         if other ~= key and BarCfg(other) then
-            for _, id in ipairs(ns.Catalog.Bar(other)) do
+            local shown, gone = ns.Catalog.Bar(other, true)
+            for _, id in ipairs(shown) do
                 local origin = ns.Catalog.SourceOf(id)
                 if not seen[id] and origin and IsBarsKind(origin) == wantBars then
                     seen[id] = true
                     out[#out + 1] = { id = id, from = other }
                 end
             end
+            for _, id in ipairs(gone or {}) do
+                local origin = ns.Catalog.SourceOf(id)
+                if not seen[id] and origin and IsBarsKind(origin) == wantBars then
+                    seen[id] = true
+                    removed[#removed + 1] = { id = id, from = other, removed = true }
+                end
+            end
         end
     end
+    for _, e in ipairs(removed) do out[#out + 1] = e end
     return out
+end
+
+-- 把挑選器上的一格放進 key：被移除的先還原、再拉進這條
+function Picker.PutInto(key, entry)
+    if entry.removed then
+        local sp = ns.DB.SpecSpells(true)
+        if sp then sp.hidden[entry.id] = nil end
+        if entry.from ~= key then ns.Preview.Refresh(entry.from) end
+    end
+    ns.Preview.MoveTo(entry.id, key, entry.from)
 end
 
 -- 要先去暴雪面板加的：這條對應的候選池
@@ -179,8 +205,9 @@ local function LayoutIcons(parent, pool, ids, y, onClick, tipFn, desat)
         local info = ns.Catalog.Info(id)
         b.id = id
         b.tex:SetTexture((info and info.icon) or QUESTION)
-        -- 沒學會的自訂法術：灰掉（滑鼠提示寫「尚未學會」）
-        b.tex:SetDesaturated((desat or (info and info.isKnown == false)) and true or false)
+        -- 沒學會的自訂法術、被移除的：灰掉（滑鼠提示有寫）
+        local removed = type(entry) == "table" and entry.removed
+        b.tex:SetDesaturated((desat or removed or (info and info.isKnown == false)) and true or false)
         b.tip = tipFn and tipFn(entry) or nil
         b:SetScript("OnClick", onClick and function() onClick(entry) end or nil)
         local col = (i - 1) % perRow
@@ -238,7 +265,7 @@ local function Build()
 
     sections.moveHead = W.CreateGroupLabel(frame, L["Already in Blizzard's Cooldown Manager"])
     sections.moveNote = Text(frame, true)
-    sections.moveNote:SetText(L["Click one to move it onto this bar."])
+    sections.moveNote:SetText(L["Click one to put it on this bar. Greyed-out ones are spells you removed."])
     sections.moveEmpty = Text(frame, true)
     sections.moveEmpty:SetText(L["Nothing else to move here."])
 
@@ -249,8 +276,9 @@ local function Build()
     sections.poolEmpty:SetText(L["Nothing left to add."])
     sections.openBtn = W.CreateButton(frame, L["Open Blizzard Cooldown Manager"], "normal", 200, 22)
     W.FitButton(sections.openBtn, 200, 22)
+    frame.openBtn = sections.openBtn
     sections.openBtn:SetScript("OnClick", function()
-        frame:Hide()
+        -- 不關這個視窗（使用者指定）：暴雪面板開著時整片會鎖住並說明，面板關掉自動重讀
         if ns.TabBar and ns.TabBar.OpenBlizzard then ns.TabBar.OpenBlizzard() end
     end)
 
@@ -287,6 +315,9 @@ local function Build()
     ns.RegisterCallback("CatalogResumed", "picker", function()
         if frame:IsShown() then Picker.Refresh() end
     end)
+    ns.RegisterCallback("CatalogPaused", "picker", function()
+        if frame:IsShown() then Picker.Refresh() end
+    end)
     ns.RegisterCallback("CatalogChanged", "picker", function()
         if frame:IsShown() then Picker.Refresh() end
     end)
@@ -303,10 +334,11 @@ function Picker.Refresh()
     Place(sections.moveNote, y); y = y - (sections.moveNote:GetStringHeight() + 6)
     local movable = Picker.MovableInto(key)
     local h = LayoutIcons(frame, pools.move, movable, y, function(entry)
-        ns.Preview.MoveTo(entry.id, key, entry.from)
+        Picker.PutInto(key, entry)
         Picker.Refresh()
     end, function(entry)
-        return L["Now on: %s"]:format(ns.Options.PageTitle(entry.from) or ns.Options.BarTitle(entry.from))
+        local where = ns.Options.PageTitle(entry.from) or ns.Options.BarTitle(entry.from)
+        return (entry.removed and L["Removed from: %s"] or L["Now on: %s"]):format(where)
     end)
     sections.moveEmpty:SetShown(h == 0)
     if h == 0 then
@@ -499,3 +531,6 @@ end
 function Picker.Close()
     if frame then frame:Hide() end
 end
+
+-- 視窗本體（還沒開過是 nil；離線測試用）
+function Picker.Frame() return frame end

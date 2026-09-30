@@ -56,8 +56,7 @@ end
 local function HelpText(pv)
     local parts = {}
     if pv.count == 0 then parts[#parts + 1] = L["This bar has no spells right now."] end
-    parts[#parts + 1] = L["Left-click an icon for its own settings, middle-click hides it, drag to reorder or onto a group on the left. \"+\" adds spells."]
-    parts[#parts + 1] = L["Spells from Blizzard's list can only be hidden (they stay at the end, dimmed; click to show again). Entries you added with \"+\" are removed instead: middle-click them."]
+    parts[#parts + 1] = L["Left-click an icon for its own settings, middle-click removes it from this bar, drag to reorder or onto a group on the left. \"+\" adds spells, including ones you removed."]
     if pv.hasLocked then parts[#parts + 1] = L["Red slots are fixed and can't be moved."] end
     if ns.Catalog.IsPaused() then
         parts[#parts + 1] = L["Blizzard's Cooldown Manager settings are open; changes there show up here once you close them."]
