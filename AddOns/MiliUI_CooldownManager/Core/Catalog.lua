@@ -243,6 +243,23 @@ local function ReadInfo(id)
             if ok3 then name = Plain(nm) end
         end
     end
+    -- 裝備欄的項目（暴雪面板「不顯示：物品」那一區的飾品／武器）有的沒有 spellID：
+    -- 圖示與名字改從身上那格裝備拿（都是明文）
+    local equipSlot = Plain(raw.equipSlot)
+    if type(equipSlot) == "number" and (icon == nil or name == nil) then
+        if icon == nil and GetInventoryItemTexture then
+            local ok4, tex = pcall(GetInventoryItemTexture, "player", equipSlot)
+            if ok4 then icon = Plain(tex) end
+        end
+        if name == nil and GetInventoryItemID and C_Item and C_Item.GetItemNameByID then
+            local ok5, itemID = pcall(GetInventoryItemID, "player", equipSlot)
+            itemID = ok5 and Plain(itemID) or nil
+            if itemID then
+                local ok6, nm = pcall(C_Item.GetItemNameByID, itemID)
+                if ok6 then name = Plain(nm) end
+            end
+        end
+    end
     local isKnown = Plain(raw.isKnown)
     return {
         cooldownID      = id,
@@ -251,7 +268,7 @@ local function ReadInfo(id)
         icon            = icon,
         name            = name,
         category        = Plain(raw.category),
-        equipSlot       = Plain(raw.equipSlot),
+        equipSlot       = equipSlot,
         hasAura         = Plain(raw.hasAura) and true or false,
         charges         = Plain(raw.charges) and true or false,
         isInvisible     = Plain(raw.isInvisible) and true or false,
