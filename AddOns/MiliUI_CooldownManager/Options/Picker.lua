@@ -10,6 +10,8 @@
 --                      長條只收長條、圖示只收圖示（暴雪的長條 item 跟圖示 item 是兩種框）。
 --   要先去暴雪面板加    已經學會、但還沒放進暴雪冷卻管理器任何一條的（Catalog.Pool），
 --                      那要在暴雪自己的面板裡拖進去 —— 附一顆開面板的按鈕。
+--                      **照暴雪面板的分頁分成兩排**（「法術」／「增益效果」）：同一件飾品、同一瓶藥水在暴雪那邊
+--                      是兩個項目（一個追蹤冷卻、一個追蹤它給的增益），圖示一模一樣，混在一排看起來像重複。
 --   自訂 ID            三顆鈕「光環」「法術」「物品」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
 --                      spells[spec].custom 追加一筆（bar ＝ 這條）。只有圖示類的條收自訂項目。
 --                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；同專精不收重複；
@@ -34,7 +36,7 @@ local QUESTION = 134400
 
 local frame, curKey
 local sections = {}
-local pools = { move = {}, pool = {} }
+local pools = { move = {}, pool = {}, poolAura = {} }
 
 local function BarCfg(key) return ns.DB.BarTable(key) end
 
@@ -163,6 +165,42 @@ function Picker.PoolFor(key)
     return out
 end
 
+-- 同上，照暴雪面板的分頁分組：{ { tab = "spells" | "auras", ids = { … } }, … }（空的組不回）
+local HOME_TAB = { essential = "spells", utility = "spells", buffs = "auras", buffbars = "auras" }
+function Picker.PoolGroups(key)
+    local bar = BarCfg(key)
+    if not bar then return {} end
+    local homes
+    if ns.Catalog.BAR_CATEGORY_NAME[bar.source] then
+        homes = { bar.source }
+    elseif bar.kind == "bars" then
+        homes = { "buffbars" }
+    else
+        homes = { "essential", "utility", "buffs" }
+    end
+    local byTab, order = {}, {}
+    for _, h in ipairs(homes) do
+        local tab = HOME_TAB[h] or "spells"
+        for _, id in ipairs(ns.Catalog.Pool(h)) do
+            local g = byTab[tab]
+            if not g then
+                g = { tab = tab, ids = {} }
+                byTab[tab] = g
+                order[#order + 1] = g
+            end
+            g.ids[#g.ids + 1] = id
+        end
+    end
+    return order
+end
+
+-- 暴雪面板那個分頁叫什麼（用它自己的字串，跟面板上看到的一致）
+local function TabName(tab)
+    local s = _G[tab == "auras" and "COOLDOWN_VIEWER_SETTINGS_TAB_BUFFS" or "COOLDOWN_VIEWER_SETTINGS_TAB_SPELLS"]
+    if type(s) == "string" and s ~= "" then return s end
+    return tab == "auras" and "Buffs" or "Spells"
+end
+
 ------------------------------------------------------------
 -- 圖示格
 ------------------------------------------------------------
@@ -274,6 +312,7 @@ local function Build()
     sections.poolNote:SetText(L["You know these, but they aren't on any Blizzard Cooldown Manager bar yet. Drag them in there, then they show up above."])
     sections.poolEmpty = Text(frame, true)
     sections.poolEmpty:SetText(L["Nothing left to add."])
+    sections.poolTab = { spells = Text(frame, true), auras = Text(frame, true) }
     sections.openBtn = W.CreateButton(frame, L["Open Blizzard Cooldown Manager"], "normal", 200, 22)
     W.FitButton(sections.openBtn, 200, 22)
     frame.openBtn = sections.openBtn
@@ -348,15 +387,29 @@ function Picker.Refresh()
 
     Place(sections.poolHead, y); y = y - 16
     Place(sections.poolNote, y); y = y - (sections.poolNote:GetStringHeight() + 6)
-    local pool = Picker.PoolFor(key)
-    h = LayoutIcons(frame, pools.pool, pool, y, nil, function()
-        return L["Add it in Blizzard's Cooldown Manager panel first."]
-    end, true)
-    sections.poolEmpty:SetShown(h == 0)
-    if h == 0 then
-        Place(sections.poolEmpty, y); h = sections.poolEmpty:GetStringHeight()
+    -- 照暴雪面板的分頁一組一排，各自標明在哪個分頁找得到
+    for _, b in ipairs(pools.pool) do b:Hide() end
+    for _, b in ipairs(pools.poolAura) do b:Hide() end
+    sections.poolTab.spells:Hide()
+    sections.poolTab.auras:Hide()
+    local groups = Picker.PoolGroups(key)
+    sections.poolEmpty:SetShown(#groups == 0)
+    if #groups == 0 then
+        Place(sections.poolEmpty, y); y = y - sections.poolEmpty:GetStringHeight() - 8
     end
-    y = y - h - 8
+    for _, g in ipairs(groups) do
+        local label = sections.poolTab[g.tab]
+        label:SetText(L["In Blizzard's panel, \"%s\" tab:"]:format(TabName(g.tab)))
+        label:Show()
+        Place(label, y); y = y - (label:GetStringHeight() + 4)
+        local aura = g.tab == "auras"
+        h = LayoutIcons(frame, aura and pools.poolAura or pools.pool, g.ids, y, nil, function()
+            local tip = L["Add it in Blizzard's Cooldown Manager panel first."]
+            if aura then tip = L["This one tracks the buff, not the cooldown."] .. " " .. tip end
+            return tip
+        end, true)
+        y = y - h - 8
+    end
     Place(sections.openBtn, y); y = y - 22 - 14
 
     Place(sections.customHead, y); y = y - 16
