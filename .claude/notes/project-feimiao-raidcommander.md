@@ -1,0 +1,65 @@
+---
+name: project-feimiao-raidcommander
+description: 肥喵的團隊指揮 FeiMiao_RaidCommander —— 私人用、不進版控的單體插件（標記列／光柱列／確認倒數／戰復計時器）；為什麼 gitignore、共用層不會自動同步、四個框一律當保護框、待實機驗證清單
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: d31ae7d6-7031-42bf-ad4d-054279a95abd
+  modified: 2026-09-30T07:52:39.147Z
+---
+
+2026-09-30 做的**私人插件**，功能搬自 Cell 的團隊工具（`Utilities/Marks.lua`／`ReadyAndPull.lua`／
+`BattleRes.lua`），不依賴 Cell。使用者原話：「這給私人用沒有要發佈」。
+
+**不進版控**：`.gitignore` 有 `AddOns/FeiMiao_RaidCommander/`，原始碼**只存在本體 checkout 的
+`AddOns/FeiMiao_RaidCommander/`**（worktree 裡那份是暫時的）。
+**Why:** repo 是公開的、push＝發佈，而 Cell 的授權只准自用修改（見 [[project-cell-fork-license-decision]]）。
+**How to apply:** 改它就直接改本體那份、`/reload` 測；不要 commit、不要把它搬成 `MiliUI_*`。
+使用者哪天說要發佈，先提醒授權這件事。
+
+**出版本**：雙擊 `/Users/mili/Projects/FeiMiao_RaidCommander/package.command`（照其他插件那支改的）。
+輸入版本號 → 改遊戲目錄的 toc → 複製到專案資料夾 → 在**那個資料夾自己的本地 repo**（沒有遠端）
+commit＋tag `FeiMiao_RaidCommander-<版本>` → 壓成 zip 留在原地。**沒有上傳、也不去整合包 commit／打 tag**
+（整合包那邊是 gitignore 的）。版本歷史只存在那個專案資料夾。測試用 `WOW_ADDONS=<沙盒>`、`printf '1.0.0\n\n' |` 餵。
+
+**圖示**：`Media/logo.tga`（128×128、24-bit、使用者給的照片；原圖在專案資料夾的 `logo.png`）。
+TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻、圓形遮罩、欄位叫 `btn.icon` 讓
+MiliUI_Minimap 的收納認得到）共用這一張；開關在設定視窗「一般」分頁（`db.minimap.show`）。
+
+⚠ 資料夾不叫 `MiliUI_*` ⇒ `sync-widgets.py`、`check-all.sh` 全都**不管它**。
+共用層（`Libs/MiliUIWidgets/`、`Libs/MiliUISnap.lua`）是 2026-09-30 的快照，要更新得手動從本體複製
+（`Env.lua` 別蓋掉，NAMESPACE 是 `FeiMiaoRC`）。檢查靠 `luac -p` ＋ [[wow-luac-global-scan]]。
+
+## 架構
+
+- 四個元件各自一個框：`FeiMiaoRC_Marks`／`_WorldMarks`／`_ReadyPull`／`_BattleRes`，
+  磁吸 key `fmrcMarks`／`fmrcWorld`／`fmrcReady`／`fmrcBres`（存檔內容，別改名，見 [[project-miliui-snap-bars]]）。
+  第一次啟動預設吸成一組（光柱吸標記下面、確認倒數吸光柱下面、戰復吸標記上面）；
+  ⚠ 那個預設不能寫進 defaults（MergeDefaults 只補 nil，拖開後下次登入會被吸回去），只在存檔剛建立時種一次。
+- `Core/Context.lua`：出現時機。地點種類 raid／dungeon／delve／world／pvp／scenario（勾選 OR）＋
+  限制條件（沒有隊伍、沒有權限）。寫不成 RegisterStateDriver —— 巨集條件式沒有「副本類型」。
+  探究用 `IsInInstance() and C_PartyInfo.IsPartyWalkIn()`（[[wow-delve-detection]]）。
+- `Core/Mover.lua`：編輯模式拖曳（照 wow-editmode-draggable 技能）＋磁吸＋存 CENTER 偏移。
+  **設定視窗開著也算「擺位置中」**：出現時機多半不符合人當下所在，不亮出來就沒東西可看可拖。
+- **四個框一律當保護框**，連沒有 secure 按鈕的戰復計時器也是：別條帶 secure 按鈕的列吸到它身上，
+  保護就沿錨點傳過來（[[wow-combat-drag-release]]）。所以戰復分兩層 —— holder（磁吸／拖曳對象，
+  只跟「啟用」走、脫戰才 Show/Hide）＋ body（普通子框，開戰當下顯示的是它）。
+- **進戰鬥要同步收掉選取框**（`PLAYER_REGEN_DISABLED`，鎖定生效前最後一個窗口）：選取框蓋在
+  secure 按鈕上，編輯模式／設定視窗開著進戰鬥的話整場都點不到標記。脫戰再亮回來。
+- 就位確認／倒數走 secure 巨集 `/readycheck`、`/cd N`（[[wow-12x-addon-restrictions]]）；
+  倒數鈕左鍵／右鍵各一組秒數（預設 10／5）、中鍵或 Shift＋點擊 `/cd 0`。
+  就位人數不讀事件的 unit 參數（可能是秘密字串），自己照名冊問 `GetReadyCheckStatus`。
+- 光柱：`type1=worldmarker action1=set`（放／搬）、`type2 action2=clear`（收那一根）、第九顆不帶 marker 的 clear ＝全收。
+- 戰復：`C_Spell.GetSpellCharges(20484)`，狀態機照 Cell。MRT／Cell 都當它是明文在算；
+  這裡多留一條秘密值退路（次數直接 SetText、進度條吃 `GetSpellChargeDuration` 的 duration 物件）。
+
+## 待實機驗證（全部沒進遊戲測過，只跑過假 API 的煙霧測試）
+
+- 四個框在編輯模式的藍框、拖曳、放手磁吸；預設那組吸附的擺法好不好看
+- 設定視窗開著時元件亮出來＋可拖；開著進戰鬥選取框有沒有收掉
+- 出現時機每一種（尤其探究、沒權限時隱藏、脫戰後補套用）
+- 倒數鈕的數字與填色、`/cd 0` 有沒有發 `START_TIMER`（totalTime 0）或 `STOP_TIMER_OF_TYPE`
+- 右鍵職責確認 `InitiateRolePoll()` 會不會被情境限制擋
+- 戰復在團本首領戰／M+ 的次數與倒數；`GetSpellCharges(20484)` 到底是不是明文
+- 跟 Cell 自己的團隊工具同時開會有兩套（Cell 設定裡把工具關掉）
+- 小地圖按鈕的圖示圓形裁切、被 MiliUI_Minimap 收進袋子後的樣子；插件列表的圖示
