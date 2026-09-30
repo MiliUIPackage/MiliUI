@@ -23,8 +23,14 @@ commit＋tag `FeiMiao_RaidCommander-<版本>` → 壓成 zip 留在原地。**�
 （整合包那邊是 gitignore 的）。版本歷史只存在那個專案資料夾。測試用 `WOW_ADDONS=<沙盒>`、`printf '1.0.0\n\n' |` 餵。
 
 **圖示**：`Media/logo.tga`（128×128、24-bit、使用者給的照片；原圖在專案資料夾的 `logo.png`）。
-TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻、圓形遮罩、欄位叫 `btn.icon` 讓
-MiliUI_Minimap 的收納認得到）共用這一張；開關在設定視窗「一般」分頁（`db.minimap.show`）。
+TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻）共用這一張；開關在設定視窗
+「一般」分頁（`db.minimap.show`）。
+⚠ 按鈕是 **LibDBIcon 式的結構：方形圖示（`btn.icon`）＋蓋在上面的金色圓框，不帶遮罩**。
+第一版用 `icon:SetMask(頭像遮罩)` 做圓形裁切，結果 MiliUI_Minimap 的收納（`Map/Buttons.lua` 的
+`Normalize`）對 `btn.icon` 呼叫 `SetTexCoord` 時丟 `Cannot set tex coords when texture has mask`
+—— 而且錯丟在它的掃描迴圈裡，**整輪掃描中斷、排在後面的按鈕全部收不進去**。
+通則：**會被別人重排的圖示貼圖不要用 `Texture:SetMask`**（那種遮罩沒有 getter、`SetMask` 的參數也不收 nil，
+收納端偵測不到也拆不掉）；要圓形就讓圓框去遮四個角。被收走之後（父框不是 Minimap）按鈕只留點擊、不准拖。
 
 ⚠ 資料夾不叫 `MiliUI_*` ⇒ `sync-widgets.py`、`check-all.sh` 全都**不管它**。
 共用層（`Libs/MiliUIWidgets/`、`Libs/MiliUISnap.lua`）是 2026-09-30 的快照，要更新得手動從本體複製
@@ -62,4 +68,4 @@ MiliUI_Minimap 的收納認得到）共用這一張；開關在設定視窗「�
 - 右鍵職責確認 `InitiateRolePoll()` 會不會被情境限制擋
 - 戰復在團本首領戰／M+ 的次數與倒數；`GetSpellCharges(20484)` 到底是不是明文
 - 跟 Cell 自己的團隊工具同時開會有兩套（Cell 設定裡把工具關掉）
-- 小地圖按鈕的圖示圓形裁切、被 MiliUI_Minimap 收進袋子後的樣子；插件列表的圖示
+- 小地圖按鈕在 MiliUI_Minimap 袋子裡的樣子（方形）、沒裝收納時圓框遮角的樣子；插件列表的圖示
