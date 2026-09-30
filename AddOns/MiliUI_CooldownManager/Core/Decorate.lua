@@ -29,7 +29,6 @@ local D = ns.Decorate
 
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 local ICON_OVERLAY_ATLAS = "UI-HUD-CoolDownManager-IconOverlay"
-local GCD_MAX = 1.5
 
 local generation = 0            -- 設定變了就 +1，進簽章
 local cooldownOwner = setmetatable({}, { __mode = "k" })   -- Cooldown 框 → item
@@ -282,14 +281,69 @@ local function OnSetCooldown(cd, start, duration, modRate)
     local st = rec.style
     if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
-    if st.hideGCD then
-        -- 秘密值讀不到就不動（寧可多轉一圈）
-        local d = Plain(duration)
-        if type(d) == "number" and d > 0 and d <= GCD_MAX then
-            cd:SetDrawSwipe(false)
+    D.ApplyGCDAlpha(item, rec)
+end
+
+------------------------------------------------------------
+-- 隱藏 GCD 轉圈
+--
+-- 舊做法是在 SetCooldown 後掛勾裡讀 duration、≤1.5 秒就關 swipe：12.1 那個 duration 是秘密值，
+-- 讀不到 ⇒ 勾了跟沒勾一樣。改成交給引擎判斷：`C_Spell.GetSpellCooldownDuration(id, true)`
+--（ignoreGCD ＝ 真正的冷卻）的 `IsZero()` 是秘密布林，餵 `Cooldown:SetAlphaFromBoolean(zero, 0, 1)`
+-- —— 只有 GCD 在轉（真冷卻是零）時整個 Cooldown 框透明（轉圈與倒數字一起），真冷卻一開始就亮回來。
+-- 充能法術用 `GetSpellChargeDuration`（有充能時 ignoreGCD 的冷卻永遠是零，會把回充的轉圈也藏掉）。
+-- 觸發時機：SetCooldown 後掛勾（暴雪每次刷新）＋ SPELL_UPDATE_COOLDOWN 延一幀補一次。
+------------------------------------------------------------
+function D.ApplyGCDAlpha(item, rec)
+    local cd = item and item.Cooldown
+    if not cd then return end
+    local st = rec.style
+    if not (st and st.hideGCD) then
+        if rec.gcdAlpha then
+            rec.gcdAlpha = nil
+            pcall(cd.SetAlpha, cd, 1)
         end
+        return
+    end
+    local info = ns.Catalog.Info(rec.cooldownID)
+    local spellID = info and (info.overrideSpellID or info.spellID)
+    if type(spellID) ~= "number" or not (C_Spell and C_Spell.GetSpellCooldownDuration) then return end
+    local dur
+    if info.charges and C_Spell.GetSpellChargeDuration then
+        local ok, d = pcall(C_Spell.GetSpellChargeDuration, spellID)
+        if ok then dur = d end
+    end
+    if not dur then
+        local ok, d = pcall(C_Spell.GetSpellCooldownDuration, spellID, true)
+        if ok then dur = d end
+    end
+    if not (dur and dur.IsZero) then return end
+    local ok, zero = pcall(dur.IsZero, dur)
+    if not ok or zero == nil then return end
+    if cd.SetAlphaFromBoolean then
+        pcall(cd.SetAlphaFromBoolean, cd, zero, 0, 1)
+    elseif not ns.IsSecret(zero) then
+        cd:SetAlpha(zero and 0 or 1)
+    end
+    rec.gcdAlpha = true
+end
+
+-- SPELL_UPDATE_COOLDOWN 很密：只標髒，下一幀對所有認領中、開了隱藏 GCD 的 item 補一次
+local gcdArmed = false
+local function RefreshGCDAll()
+    gcdArmed = false
+    if not (ns.Bars and ns.Bars.ForEachClaimed and ns.profile) then return end
+    for key in pairs(ns.profile.bars or {}) do
+        ns.Bars.ForEachClaimed(key, function(item, rec)
+            if rec.style and rec.style.hideGCD then D.ApplyGCDAlpha(item, rec) end
+        end)
     end
 end
+ns.Events.Register("SPELL_UPDATE_COOLDOWN", "decorate_gcd", function()
+    if gcdArmed then return end
+    gcdArmed = true
+    ns.Defer(RefreshGCDAll)
+end)
 
 local function OnClearCooldown(cd)
     local item = cooldownOwner[cd]
@@ -502,6 +556,7 @@ function D.Apply(item, rec, barKey, w, h)
     end
 
     ApplyProcAlert(item, rec, barKey)
+    D.ApplyGCDAlpha(item, rec)          -- 開關切換當場生效（關掉要把 alpha 還回 1）
     rec.decorated, rec.decoratedBar = sig, barKey
     -- 發光的框跟著格子尺寸走（尺寸由我們給，不從 item 讀）；樣式變了的發光重畫
     if ns.Glow and ns.Glow.AfterApply then ns.Glow.AfterApply(item, rec, barKey, w, h) end
