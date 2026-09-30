@@ -509,24 +509,54 @@ end
 ------------------------------------------------------------
 -- 脫戰淡出的「血不滿時不淡」例外
 --
--- 只在**脫戰**判：戰鬥中本來就不淡出，而且那時血量是秘密值。
--- 脫戰讀到秘密值（理論上不該發生）就當成不滿 —— 寧可多亮也不要誤藏。
--- 觸發點不另收事件：血條元件本來就吃 UNIT_HEALTH／UNIT_MAXHEALTH，
--- 它在 Update 裡呼叫 V.CheckHurt，狀態有翻才重設透明度（見 Elements/Health.lua）。
--- 代價：這個例外只對有開血條的框有效。
+-- ⚠⚠ 不能在 Lua 裡比 UnitHealth < UnitHealthMax：12.1 脫戰也拿得到秘密值，
+-- 第一版就是這樣寫、讀到秘密值保底當「不滿」⇒ 永遠不淡出（實測）。
+-- 改成跟血量門檻上色同一招：Step 曲線交給 UnitHealthPercent，由 C 端算出 alpha，
+-- 結果（可能是秘密值）直接進 SetAlpha。插件端從頭到尾不讀血量。
+--   (0, 1)  (1 − ε, 脫戰透明度)   ε 吸收「滿血算出 0.9999999」的浮點誤差
+--
+-- 代價：秘密 alpha 不能跟超出距離淡出取最低 ⇒ 超出距離時改走一般路徑
+-- （距離淡出本來就更優先：人都跑遠了，血滿不滿不重要）。
+-- 觸發點不另收事件：血條元件本來就吃 UNIT_HEALTH／UNIT_MAXHEALTH，每次呼叫
+-- V.CheckHurt 重算一次曲線（一支 C 呼叫＋SetAlpha）。所以這個例外只對有開血條的框有效。
 ------------------------------------------------------------
-local function IsHurt(unit)
-    local cur, max = UnitHealth(unit), UnitHealthMax(unit)
-    if ns.IsSecret(cur) or ns.IsSecret(max) then return true end
-    return cur < max
+local CreateCurve = C_CurveUtil and C_CurveUtil.CreateCurve
+local hurtCurve, hurtCurveOoc
+
+local function HurtCurve(ooc)
+    if not CreateCurve then return nil end
+    if not hurtCurve then
+        hurtCurve = CreateCurve()
+        local T = Enum.LuaCurveType
+        if T and T.Step then hurtCurve:SetType(T.Step) end
+    end
+    if hurtCurveOoc ~= ooc then
+        hurtCurve:ClearPoints()
+        hurtCurve:AddPoint(0, 1)
+        hurtCurve:AddPoint(1 - 0.000001, ooc)
+        hurtCurveOoc = ooc
+    end
+    return hurtCurve
+end
+
+-- 成功回 true；失敗（沒有 API、單位不存在）回 false，呼叫端退回一般淡出
+local function ApplyHurtAlpha(uf)
+    local curve = HurtCurve(ns.db.global.oocAlpha or 0.5)
+    if not curve then return false end
+    local ok, a = pcall(UnitHealthPercent, uf.unit, true, curve)
+    if not ok or a == nil then return false end
+    uf:SetAlpha(a)
+    return true
 end
 
 function V.CheckHurt(uf)
-    local fdb = uf.db and uf.db.frame
-    if not (fdb and fdb.fadeOutOfCombat and fdb.oocShowWhenHurt) or InCombatLockdown() then return end
-    if IsHurt(uf.unit) ~= uf.oocHurt then V.ApplyAlpha(uf) end
+    if uf.hurtAlpha and not InCombatLockdown() and not ApplyHurtAlpha(uf) then
+        uf.hurtAlpha = nil
+        V.ApplyAlpha(uf)
+    end
 end
 
+-- 第二個回傳 true ＝ 這次該走血量曲線（第一個回傳是走不通時的退路）
 function V.Alpha(uf)
     local fdb = uf.db and uf.db.frame
     if not fdb then return 1 end
@@ -537,12 +567,11 @@ function V.Alpha(uf)
         local oor = g.oorAlpha or 0.45
         if oor < a then a = oor end
     end
-    local hurt = fdb.fadeOutOfCombat and fdb.oocShowWhenHurt and not InCombatLockdown()
-                 and IsHurt(uf.unit) or false
-    uf.oocHurt = hurt
-    if fdb.fadeOutOfCombat and not InCombatLockdown() and not hurt then
+    if fdb.fadeOutOfCombat and not InCombatLockdown() then
         local ooc = g.oocAlpha or 0.5
+        local useCurve = fdb.oocShowWhenHurt and a == 1
         if ooc < a then a = ooc end
+        return a, useCurve
     end
     return a
 end
@@ -550,7 +579,13 @@ end
 function V.ApplyAlpha(uf)
     if not uf or uf.isPreview then return end   -- 預覽的 alpha 由 Preview.Highlight 管
     ApplyScrim(uf)
-    local a = V.Alpha(uf)
+    local a, useCurve = V.Alpha(uf)
+    if useCurve and ApplyHurtAlpha(uf) then
+        uf.hurtAlpha = true
+        uf.appliedAlpha = nil   -- 秘密值不能記也不能比；下次走一般路徑時強迫重設
+        return
+    end
+    uf.hurtAlpha = nil
     if a == uf.appliedAlpha then return end
     uf.appliedAlpha = a
     uf:SetAlpha(a)
@@ -651,13 +686,13 @@ function V.Debug()
                          .. (uf.visCatcherPending and "!墊底待補" or "")
             -- 墊底：隱藏時仍可點擊的那顆按鈕（沒建過就不列）
             local catcher = uf.visCatcher and (" 墊底" .. (uf.visCatcher:IsShown() and "開" or "關")) or ""
-            rows[#rows + 1] = ("%s=%s/外%s內%s%s%s%s alpha=%.2f"):format(
+            rows[#rows + 1] = ("%s=%s/外%s內%s%s%s%s alpha=%s"):format(
                 unit, #when > 0 and table.concat(when, "|") or "一直顯示",
                 uf.visDriver:IsShown() and "開" or "關",
                 uf.visGate:IsShown() and "開" or "關",
                 #extra > 0 and ("(" .. table.concat(extra, ",") .. ")") or "",
                 pending, catcher,
-                uf.appliedAlpha or 1)
+                uf.hurtAlpha and "血量曲線" or ("%.2f"):format(uf.appliedAlpha or 1))
             if uf.visDriverSpec then
                 specs[#specs + 1] = ("%s：%s"):format(unit, uf.visDriverSpec)
             end
