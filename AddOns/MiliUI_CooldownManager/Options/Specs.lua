@@ -598,6 +598,7 @@ function Specs.Anchor(key, opts)
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
     end
     list[#list + 1] = Note(L["A bar that follows another moves with it. Dragging it in Edit Mode stops the following."])
+    list[#list + 1] = Note(L["Elements that follow the same side of the same bar stack outward instead of overlapping."])
     return list
 end
 

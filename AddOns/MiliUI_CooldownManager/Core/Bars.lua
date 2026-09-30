@@ -42,7 +42,7 @@
 -- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
 --
 -- 可收合的面板（collapsible，自訂格子）：沒有內容時高度 0（WoW 的 SetSize 收 0），而且
--- 上下向的錨定（TOP↔BOTTOM）**y 偏移一起收掉** —— 它夾在一條鏈中間（核心 → 自訂格子 → 輔助），
+-- 上下向的錨定（TOP↔BOTTOM）**y 偏移一起收掉** —— 它夾在一疊中間（核心 → 自訂格子 → 輔助），
 -- 空的時候不能讓兩邊的間距疊成兩倍。收合狀態一變就重套結構（錨點換了）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -114,20 +114,37 @@ end
 
 -- 錨定：anchor（錨在別條上）優先，形成環或目標不存在就退回 pos
 local function AnchorTarget(key)
-    local bar = BarCfg(key)
-    local a = bar and bar.anchor
-    if type(a) ~= "table" or type(a.to) ~= "string" or not BarCfg(a.to) then return nil end
-    -- 環檢查：沿著 to 走，走回自己就是環
-    local seen, cur = { [key] = true }, a.to
-    while cur do
-        if seen[cur] then return nil end
-        seen[cur] = true
-        local nb = BarCfg(cur)
-        local na = nb and nb.anchor
-        cur = (type(na) == "table" and type(na.to) == "string" and BarCfg(na.to)) and na.to or nil
-    end
-    return a
+    return ns.Layout.AnchorOf(key, BarCfg)
 end
+
+-- 排開：跟著同一個目標、同一邊的照這個順序往外排（小的靠近目標），規則在 Core/Layout.lua。
+-- 自訂群組排在內建的後面，彼此照左欄順序。
+local STACK_RANK = { resources = 1, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6, essential = 7 }
+local function StackRank(key)
+    if STACK_RANK[key] then return STACK_RANK[key] end
+    local p = Profile()
+    local order = type(p) == "table" and type(p.barOrder) == "table" and p.barOrder or {}
+    for i = 1, #order do
+        if order[i] == key then return 100 + i end
+    end
+    return 1000
+end
+local function StackKeys()
+    local keys = {}
+    local p = Profile()
+    if type(p) == "table" and type(p.bars) == "table" then
+        for k in pairs(p.bars) do keys[#keys + 1] = k end
+    end
+    for _, k in ipairs(ns.DB.PANEL_ORDER) do
+        if BarCfg(k) then keys[#keys + 1] = k end
+    end
+    return keys
+end
+-- 這條實際該貼在誰身上（沒有錨定回 nil）。keys 可省（一次算很多條時由呼叫端傳同一份）
+local function StackTarget(key, keys)
+    return ns.Layout.StackTarget(key, BarCfg, keys or StackKeys(), StackRank)
+end
+B.StackTarget = StackTarget
 
 -- 上下向的錨定（本條的 TOP 貼目標的 BOTTOM、或反過來）：收合時 y 偏移不算
 local function VerticalAnchor(a)
@@ -141,29 +158,33 @@ local function PlaceContainer(f, key, bar, st)
     local snap = ns.Layout.Snap
     f:ClearAllPoints()
     if a then
-        EnsureContainer(a.to)
+        -- 貼在「排開」算出來的那一條上（同一邊已經有別人就貼在它外面），邊與偏移照自己的設定
+        local to = StackTarget(key) or a.to
+        EnsureContainer(to)
         local y = snap(tonumber(a.y) or 0)
         if st.collapsed and VerticalAnchor(a) then y = 0 end
-        f:SetPoint(a.point or "TOP", containers[a.to], a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), y)
+        f:SetPoint(a.point or "TOP", containers[to], a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), y)
+        st.stackTo = to
     else
+        st.stackTo = nil
         local pos = type(bar.pos) == "table" and bar.pos or {}
         -- 容器用版面算出來的錨點（圖示增減時那一邊不動），貼在 UIParent 的 pos.point 上
         f:SetPoint(st.anchorPoint or "CENTER", UIParent, pos.point or "CENTER", snap(tonumber(pos.x) or 0), snap(tonumber(pos.y) or 0))
     end
 end
 
-local function ApplyStructure(key)
+local function ApplyOne(key)
     local c = EnsureContainer(key)
     local bar = BarCfg(key)
     local st = state[key]
     -- enabled ＝ false 只有面板會有（條沒有這個欄位）
     if not bar or bar.enabled == false then
-        -- 可收合的面板關掉時位置照樣對好：錨在它身上的條（輔助技能）要貼回它的上一層
-        local collapsible = bar and panels[key] and panels[key].collapsible
         -- 條被刪（自訂群組、換設定檔少了這條）或面板關掉：容器收起來，編輯模式的覆蓋層／選取框也收
         --（frame 刪不掉；同一個 key 之後再建回來會重用，ApplyBarNow 看 BarCfg 決定要不要再顯示）
+        -- 關掉的面板位置照樣對好：照字面錨在它身上的東西要有個位置，而且容器身上不能留著舊的錨
+        --（舊錨指向的那條之後可能反過來要貼在它的下游，SetPoint 會撞上「錨在依賴自己的框上」）
         ns.Write(c, function(f)
-            if collapsible then PlaceContainer(f, key, bar, st) end
+            if bar then PlaceContainer(f, key, bar, st) end
             f:Hide()
             if ns.EditMode and ns.EditMode.ApplyBarNow then ns.EditMode.ApplyBarNow(key) end
         end, "shown")
@@ -179,8 +200,64 @@ local function ApplyStructure(key)
     end, "point")
     st.appliedAnchor = anchorPoint
 end
+
+-- 「實際貼在誰身上」跟現況不一樣的條（排開的結果變了：同一疊裡有人加入、離開、開關）
+local function StackChanged(except)
+    local out
+    local keys = StackKeys()
+    for i = 1, #keys do
+        local k = keys[i]
+        local st = state[k]
+        if k ~= except and k ~= ns.dragging and containers[k] and st then
+            local want = StackTarget(k, keys)
+            if want ~= st.stackTo and (want or st.stackTo) then
+                out = out or {}
+                out[#out + 1] = k
+            end
+        end
+    end
+    return out
+end
+
+-- 一條的結構一變，同一疊的其他條可能要改貼別人。**兩段式**：先把要動的全部拆錨、再各自貼回去。
+-- 逐條直接 SetPoint 的話，過渡狀態會出現「甲還貼著乙、乙卻要改貼甲」，SetPoint 當場報錯。
+local restacking = false
+local function ApplyStructure(key)
+    if restacking then return ApplyOne(key) end
+    local others = StackChanged(key)
+    if not others then return ApplyOne(key) end
+    if InCombatLockdown() then
+        -- 戰鬥中不重排（容器可能是保護框，而且只動其中一條會留下過渡狀態）：整疊記帳，脫戰再套
+        structurePending[key] = true
+        for i = 1, #others do structurePending[others[i]] = true end
+        ArmStructurePending()
+        return
+    end
+    restacking = true
+    local function Clear(k)
+        local c = containers[k]
+        if c and BarCfg(k) then ns.Write(c, function(f) f:ClearAllPoints() end, "point") end
+    end
+    Clear(key)
+    for i = 1, #others do Clear(others[i]) end
+    local ok, err = xpcall(ApplyOne, ns.ReportError, key)
+    if not ok then B.lastError = err end
+    for i = 1, #others do
+        ok, err = xpcall(ApplyOne, ns.ReportError, others[i])
+        if not ok then B.lastError = err end
+    end
+    restacking = false
+end
 -- 編輯模式在進戰鬥的鬆手窗口（PLAYER_REGEN_DISABLED，鎖定還沒生效）要當場把容器放回去
 B.ApplyStructure = ApplyStructure
+
+-- 設定變了但沒有哪一條要重套結構的時候用（編輯模式開始拖曳：那條脫離錨定，疊在它外面的要補位）
+function B.Restack()
+    if InCombatLockdown() then return end
+    local changed = StackChanged(nil)
+    if not changed then return end
+    ApplyStructure(changed[1])
+end
 
 ------------------------------------------------------------
 -- 檢視器釘在容器上

@@ -218,5 +218,159 @@ do
     ns.P = { Scale = function(v) return v end }
 end
 
+------------------------------------------------------------
+-- 錨定的排開（AnchorSide／AnchorOf／StackTarget）
+------------------------------------------------------------
+do
+    local ABOVE = function(to, off) return { to = to, point = "BOTTOM", relPoint = "TOP", x = 0, y = off or 1 } end
+    local BELOW = function(to, off) return { to = to, point = "TOP", relPoint = "BOTTOM", x = 0, y = off or -1 } end
+    local LEFTOF = function(to) return { to = to, point = "RIGHT", relPoint = "LEFT", x = 0, y = 0 } end
+    local RIGHTOF = function(to) return { to = to, point = "LEFT", relPoint = "RIGHT", x = 0, y = 0 } end
+    local RANK = { resources = 1, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6, essential = 7 }
+    local function rank(k) return RANK[k] or 100 end
+    local function resolver(cfg)
+        local keys = {}
+        for k in pairs(cfg) do keys[#keys + 1] = k end
+        table.sort(keys)
+        local function cfgOf(k) return cfg[k] end
+        return function(k) return Lay.StackTarget(k, cfgOf, keys, rank) end, cfgOf, keys
+    end
+
+    eq("邊：上方", Lay.AnchorSide(ABOVE("x")), "above")
+    eq("邊：下方", Lay.AnchorSide(BELOW("x")), "below")
+    eq("邊：左", Lay.AnchorSide(LEFTOF("x")), "left")
+    eq("邊：右", Lay.AnchorSide(RIGHTOF("x")), "right")
+    eq("邊：TOPLEFT→BOTTOMLEFT 也算下方", Lay.AnchorSide({ point = "TOPLEFT", relPoint = "BOTTOMLEFT" }), "below")
+    eq("邊：置中對置中不算", Lay.AnchorSide({ point = "CENTER", relPoint = "CENTER" }), nil)
+    eq("邊：不是表", Lay.AnchorSide(false), nil)
+
+    -- 預設：資源條、施法條在核心上方；自訂格子、輔助在核心下方
+    local cfg = {
+        essential = { anchor = false },
+        resources = { enabled = true, anchor = ABOVE("essential") },
+        castbar   = { enabled = true, anchor = ABOVE("essential") },
+        pips      = { enabled = true, anchor = BELOW("essential") },
+        utility   = { anchor = BELOW("essential") },
+        buffs     = { anchor = false },
+    }
+    local T = resolver(cfg)
+    eq("預設：核心沒有錨定", T("essential"), nil)
+    eq("預設：資源條貼核心", T("resources"), "essential")
+    eq("預設：施法條貼在資源條外面", T("castbar"), "resources")
+    eq("預設：自訂格子貼核心", T("pips"), "essential")
+    eq("預設：輔助貼在自訂格子外面", T("utility"), "pips")
+
+    -- 自訂格子改到上方：跟資源條排開，輔助留在核心下方
+    cfg.pips.anchor = ABOVE("essential")
+    eq("格子改上方：資源條仍貼核心", T("resources"), "essential")
+    eq("格子改上方：格子貼在資源條外面", T("pips"), "resources")
+    eq("格子改上方：施法條貼在格子外面", T("castbar"), "pips")
+    eq("格子改上方：輔助直接貼核心", T("utility"), "essential")
+
+    -- 舊存檔的鏈（施法條跟資源條、輔助跟自訂格子），格子改到上方
+    cfg.castbar.anchor = ABOVE("resources")
+    cfg.utility.anchor = BELOW("pips")
+    eq("舊鏈：施法條貼資源條", T("castbar"), "resources")
+    eq("舊鏈：格子排在資源條那一串的最外面", T("pips"), "castbar")
+    eq("舊鏈：輔助在格子「下方」＝改排到核心下方", T("utility"), "essential")
+    -- 格子回到下方：輔助照字面貼在格子下面
+    cfg.pips.anchor = BELOW("essential")
+    eq("舊鏈：格子回下方，輔助貼格子", T("utility"), "pips")
+    eq("舊鏈：格子回下方，格子貼核心", T("pips"), "essential")
+
+    -- 關掉的面板不佔位
+    cfg.resources.enabled = false
+    eq("資源條關掉：跟著它的施法條接到核心", T("castbar"), "essential")
+    eq("資源條關掉：自己照字面貼", T("resources"), "essential")
+    cfg.castbar.anchor = ABOVE("essential")
+    eq("資源條關掉：施法條（跟核心）直接貼核心", T("castbar"), "essential")
+    cfg.resources.enabled = true
+    eq("資源條開回來：施法條又排到外面", T("castbar"), "resources")
+    cfg.pips.enabled = false
+    eq("格子關掉：輔助（跟格子）接到核心", T("utility"), "essential")
+    cfg.pips.enabled = true
+
+    -- 不同邊互不影響；左右也排
+    cfg.g1 = { anchor = RIGHTOF("essential") }
+    cfg.g2 = { anchor = RIGHTOF("essential") }
+    cfg.g3 = { anchor = LEFTOF("essential") }
+    local T2 = resolver(cfg)
+    eq("右邊第一個貼核心", T2("g1"), "essential")
+    eq("右邊第二個貼第一個", T2("g2"), "g1")
+    eq("左邊自己一疊", T2("g3"), "essential")
+    eq("左右不影響上方", T2("resources"), "essential")
+    -- 掛在某一條身上同一邊的，排在那一條與下一個兄弟之間
+    cfg.g4 = { anchor = RIGHTOF("g1") }
+    local T3 = resolver(cfg)
+    eq("g4 貼 g1", T3("g4"), "g1")
+    eq("g2 貼在 g1 那一串的最外面", T3("g2"), "g4")
+    -- 不是四個邊的錨定照字面
+    cfg.g5 = { anchor = { to = "essential", point = "CENTER", relPoint = "CENTER" } }
+    eq("置中錨定照字面", resolver(cfg)("g5"), "essential")
+    -- 目標不存在／成環
+    cfg.g6 = { anchor = ABOVE("nope") }
+    eq("目標不存在＝沒有錨定", resolver(cfg)("g6"), nil)
+    cfg.g7 = { anchor = ABOVE("g8") }
+    cfg.g8 = { anchor = ABOVE("g7") }
+    local T4 = resolver(cfg)
+    eq("成環＝沒有錨定 (1)", T4("g7"), nil)
+    eq("成環＝沒有錨定 (2)", T4("g8"), nil)
+    eq("成環不影響別人", T4("resources"), "essential")
+
+    -- 隨機樹：算出來的「誰貼誰」不成環，而且開著的元件沒有兩個貼在同一條的同一邊
+    local seed = 12345
+    local function rnd(n) seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n + 1 end
+    local SIDES = { ABOVE, BELOW, LEFTOF, RIGHTOF }
+    local acyclic, unique, literal = true, true, true
+    for _ = 1, 400 do
+        local n = 2 + rnd(7)
+        local c = {}
+        local names = {}
+        for i = 1, n do names[i] = "n" .. i end
+        c[names[1]] = { anchor = false }
+        for i = 2, n do
+            local to = names[rnd(i - 1)]
+            local pick = rnd(6)
+            local a
+            if pick <= 4 then a = SIDES[pick](to)
+            elseif pick == 5 then a = { to = to, point = "CENTER", relPoint = "CENTER" }
+            else a = false end
+            c[names[i]] = { anchor = a, enabled = (rnd(5) ~= 1) and true or false }
+        end
+        local ranks = {}
+        for i = 1, n do ranks[names[i]] = rnd(4) end
+        local function cfgOf(k) return c[k] end
+        local function rk(k) return ranks[k] end
+        local target = {}
+        local used = {}
+        for i = 1, n do
+            local k = names[i]
+            local t = Lay.StackTarget(k, cfgOf, names, rk)
+            target[k] = t
+            local a = c[k].anchor
+            if not a then
+                if t ~= nil then literal = false end
+            elseif t == nil then
+                literal = false
+            elseif c[k].enabled ~= false then
+                local side = Lay.AnchorSide(a)
+                if side then
+                    local id = t .. "/" .. side
+                    if used[id] then unique = false end
+                    used[id] = true
+                end
+            end
+        end
+        for i = 1, n do
+            local cur, hops = names[i], 0
+            while cur and hops <= n do cur = target[cur]; hops = hops + 1 end
+            if cur then acyclic = false end
+        end
+    end
+    check("隨機樹：貼附關係不成環", acyclic)
+    check("隨機樹：同一條的同一邊只貼一個", unique)
+    check("隨機樹：有錨定才有目標", literal)
+end
+
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

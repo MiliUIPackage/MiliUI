@@ -158,3 +158,121 @@ function Layout.FirstRowWidth(n, layout)
     local spacing = Snap(max(0, tonumber(layout.spacing) or 0))
     return count * w + (count - 1) * spacing
 end
+
+------------------------------------------------------------
+-- 錨定的排開（純函式）
+--
+-- 設定裡的錨定是「跟著誰、在它哪一邊」（anchor = { to, point, relPoint, x, y }）。
+-- 照字面各自貼上去的話，兩個東西都選「核心技能上方」就會疊在一起，所以實際要貼在誰身上由
+-- 這裡算：**跟著同一個目標、同一邊的算一疊，照固定順序往外排**，後面那個貼在前面那個的外緣
+-- （前面那個自己身上同一邊還掛著東西的話，貼在那一串的最外面）。
+--
+--   Layout.AnchorOf(key, cfgOf)                   → anchor 表或 nil（目標不存在／成環＝沒有錨定）
+--   Layout.AnchorSide(anchor)                     → "above"｜"below"｜"left"｜"right"｜nil（其他組合不排）
+--   Layout.StackTarget(key, cfgOf, keys, rankOf)  → 實際該貼的 key（沒有錨定回 nil）
+--
+--   cfgOf(key)   那條的設定表（讀 .anchor 與 .enabled；enabled == false ＝ 關掉的面板）
+--   keys         所有條與面板的 key
+--   rankOf(key)  數字，小的靠近目標
+--
+-- 「有效的上一層」往上讓位的兩種情況（都是照字面貼一定會壓到東西的組合）：
+--   * 目標關掉了、而且它自己也掛在同一邊 ⇒ 當它不存在，接到它的上一層
+--   * 目標掛在**相反**那一邊（輔助技能「在自訂格子下方」，而自訂格子在核心技能「上方」）：
+--     自訂格子的下方就是核心技能那一疊 ⇒ 改排到核心技能的下方去
+--
+-- 這樣算出來的「誰貼誰」不會成環（對有效上一層的樹做前序走訪，每條邊都指向更早的節點）；
+-- Tests/Layout_test.lua 有一輪隨機樹在驗。
+------------------------------------------------------------
+local OPPOSITE = { above = "below", below = "above", left = "right", right = "left" }
+
+function Layout.AnchorSide(a)
+    if type(a) ~= "table" then return nil end
+    local p, r = tostring(a.point or "TOP"), tostring(a.relPoint or "BOTTOM")
+    if p:find("^TOP") and r:find("^BOTTOM") then return "below" end
+    if p:find("^BOTTOM") and r:find("^TOP") then return "above" end
+    if p:find("RIGHT$") and r:find("LEFT$") then return "left" end
+    if p:find("LEFT$") and r:find("RIGHT$") then return "right" end
+    return nil
+end
+
+function Layout.AnchorOf(key, cfgOf)
+    local bar = cfgOf(key)
+    local a = type(bar) == "table" and bar.anchor
+    if type(a) ~= "table" or type(a.to) ~= "string" or not cfgOf(a.to) then return nil end
+    -- 環檢查：沿著 to 走，走回自己就是環
+    local seen, cur = { [key] = true }, a.to
+    while cur do
+        if seen[cur] then return nil end
+        seen[cur] = true
+        local nb = cfgOf(cur)
+        local na = type(nb) == "table" and nb.anchor
+        cur = (type(na) == "table" and type(na.to) == "string" and cfgOf(na.to)) and na.to or nil
+    end
+    return a
+end
+
+local function Enabled(cfg)
+    return type(cfg) == "table" and cfg.enabled ~= false
+end
+
+-- 有效的上一層與邊。side == nil ＝ 這個錨定不參與排開（照字面貼）
+local function EffParent(key, cfgOf)
+    local a = Layout.AnchorOf(key, cfgOf)
+    if not a then return nil end
+    local side = Layout.AnchorSide(a)
+    local to = a.to
+    if not side then return to, nil end
+    for _ = 1, 32 do
+        local ta = Layout.AnchorOf(to, cfgOf)
+        local ts = ta and Layout.AnchorSide(ta)
+        if not ts then break end
+        if ts == OPPOSITE[side] or (ts == side and not Enabled(cfgOf(to))) then
+            to = ta.to
+        else
+            break
+        end
+    end
+    return to, side
+end
+
+local function Siblings(parent, side, cfgOf, keys, rankOf)
+    local out = {}
+    for i = 1, #keys do
+        local k = keys[i]
+        if k ~= parent and Enabled(cfgOf(k)) then
+            local to, s = EffParent(k, cfgOf)
+            if to == parent and s == side then out[#out + 1] = k end
+        end
+    end
+    table.sort(out, function(x, y)
+        local rx, ry = tonumber(rankOf(x)) or 0, tonumber(rankOf(y)) or 0
+        if rx ~= ry then return rx < ry end
+        return x < y
+    end)
+    return out
+end
+
+-- key 身上同一邊那一串的最外面那個（沒掛東西就是它自己）
+local function Tail(key, side, cfgOf, keys, rankOf, depth)
+    if depth > 32 then return key end
+    local kids = Siblings(key, side, cfgOf, keys, rankOf)
+    if #kids == 0 then return key end
+    return Tail(kids[#kids], side, cfgOf, keys, rankOf, depth + 1)
+end
+
+function Layout.StackTarget(key, cfgOf, keys, rankOf)
+    local a = Layout.AnchorOf(key, cfgOf)
+    if not a then return nil end
+    -- 關掉的面板不佔位：照字面貼在它的目標上（只是給錨在它身上的東西一個位置）
+    if not Enabled(cfgOf(key)) then return a.to end
+    local parent, side = EffParent(key, cfgOf)
+    if not side then return parent end
+    local sibs = Siblings(parent, side, cfgOf, keys, rankOf)
+    local prev
+    for i = 1, #sibs do
+        if sibs[i] == key then break end
+        prev = sibs[i]
+    end
+    if not prev then return parent end
+    return Tail(prev, side, cfgOf, keys, rankOf, 0)
+end

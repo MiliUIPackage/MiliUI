@@ -173,6 +173,8 @@ function EM.BeginDrag(key)
         anchorPoint = ns.Bars.AnchorPoint(key),
     }
     ns.dragging = key
+    -- 脫離錨定之後，原本疊在它外面的（貼在它身上排開的）要補位回去，不然會跟著游標跑
+    if ns.Bars.Restack then ns.Bars.Restack() end
     driver:Show()
 end
 
@@ -369,6 +371,13 @@ end)
 ------------------------------------------------------------
 -- /mcdm debug（開發用，字串不進語系檔）
 ------------------------------------------------------------
+-- 跟隨誰；排開之後實際貼在別條身上的話一併寫出來
+local function FollowText(key, a)
+    local to = ns.Bars.StackTarget and ns.Bars.StackTarget(key) or a.to
+    if to and to ~= a.to then return ("%s（貼 %s）"):format(tostring(a.to), tostring(to)) end
+    return tostring(a.to)
+end
+
 function EM.DebugLines()
     local out = {}
     local function onoff(v) return v and "是" or "否" end
@@ -394,7 +403,7 @@ function EM.DebugLines()
         local a = bar and type(bar.anchor) == "table" and bar.anchor
         out[#out + 1] = ("  %-9s pos %s(%s, %s)  錨點 %s  跟隨 %s  選取框 %s")
             :format(key, tostring(pos.point or "CENTER"), tostring(pos.x), tostring(pos.y),
-                    tostring(B.AnchorPoint(key)), a and tostring(a.to) or "—",
+                    tostring(B.AnchorPoint(key)), a and FollowText(key, a) or "—",
                     tostring(EM.selKind[key] or "—"))
     end
     return out
