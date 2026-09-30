@@ -495,7 +495,73 @@ local INPUT_W = 340
 
 local errNotes = {}          -- 彈窗 → { fs, baseH }
 
-local function SetInputError(popup, why)
+------------------------------------------------------------
+-- Shift＋點法術／物品 → 把 ID 填進開著的輸入彈窗
+--
+-- 遊戲裡按住 Shift 點背包、角色面板、法術書、天賦上的圖示，會把連結送去「插入連結」那支函式
+--（聊天輸入框開著就插進去）。我們後掛勾它：**只有自訂 ID 的輸入彈窗開著時**才收，從連結裡把 ID 拿出來
+-- 填進輸入框，順手把連結上的名字寫在下面當確認。彈窗沒開就什麼都不做（不然玩家平常 Shift 點東西都會被吃掉）。
+--
+--   Picker.ParseLink(link) → "item"｜"spell"｜nil, id, 名字   純函式
+--   Picker.TakeLink(link)  → 有沒有收下
+------------------------------------------------------------
+local activeInput          -- { popup = , kind = }：現在開著的輸入彈窗
+
+function Picker.ParseLink(link)
+    if type(link) ~= "string" then return nil end
+    local name = link:match("|h%[(.-)%]|h")
+    local id = link:match("|Hitem:(%d+)")
+    if id then return "item", tonumber(id), name end
+    id = link:match("|Hspell:(%d+)")
+    if id then return "spell", tonumber(id), name end
+    return nil
+end
+
+local SetInputError       -- 前置宣告（定義在下面）
+
+local lastLink, lastLinkAt = nil, 0
+function Picker.TakeLink(link)
+    local cur = activeInput
+    if not (cur and cur.popup and cur.popup:IsShown()) then return false end
+    if ns.IsSecret(link) then return false end
+    local kind, id, name = Picker.ParseLink(link)
+    if not kind then return false end
+    -- 同一次點擊可能經過兩條路（物品點擊那支與插入連結那支都會到）：去重
+    local now = GetTime and GetTime() or 0
+    if link == lastLink and now - lastLinkAt < 0.2 then return true end
+    lastLink, lastLinkAt = link, now
+    local wantItem = cur.kind == "item"
+    if wantItem ~= (kind == "item") then
+        SetInputError(cur.popup, wantItem
+            and L["That is a spell link. Use the \"Spell\" or \"Aura\" button for spells."]
+            or L["That is an item link. Use the \"Item\" button to track an item."])
+        return true
+    end
+    local box = cur.popup.boxes and cur.popup.boxes.id
+    if not box then return false end
+    box:SetText(tostring(id))
+    if box.SetFocus then box:SetFocus() end
+    -- 名字當確認（灰字那一列）：按確定才真的加
+    SetInputError(cur.popup, name and ("%s  (%d)"):format(name, id) or nil)
+    return true
+end
+
+local linkHooked = false
+local function HookLinks()
+    if linkHooked then return end
+    linkHooked = true
+    local take = ns.Guard(function(link) Picker.TakeLink(link) end)
+    if ChatFrameUtil and ChatFrameUtil.InsertLink then
+        hooksecurefunc(ChatFrameUtil, "InsertLink", take)
+    elseif ChatEdit_InsertLink then
+        hooksecurefunc("ChatEdit_InsertLink", take)
+    end
+    if HandleModifiedItemClick then
+        hooksecurefunc("HandleModifiedItemClick", take)
+    end
+end
+
+SetInputError = function(popup, why)
     local n = errNotes[popup]
     if not n then
         local fs = popup:CreateFontString(nil, "OVERLAY")
@@ -534,12 +600,15 @@ function Picker.AskCustom(kind)
     if not popup then
         popup = W.CreateInputPopup(ns.Options.panel, INPUT_W, title, {
             { key = "id", label = label, maxLetters = 10,
-              hint = kind == "item" and L["Find it in the item's link or on a database site."]
-                  or L["Find it in the spell's link or on a database site."] },
+              hint = (kind == "item" and L["Find it in the item's link or on a database site."]
+                  or L["Find it in the spell's link or on a database site."])
+                  .. " " .. L["Or Shift-click it in your bags, spellbook or talents to fill in the ID."] },
         })
         inputs[kind] = popup
     end
     SetInputError(popup, nil)
+    HookLinks()
+    activeInput = { popup = popup, kind = kind }
     popup:Open({}, function(values)
         local text = values.id
         if kind == "aura" then

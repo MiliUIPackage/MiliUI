@@ -867,3 +867,6 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     從存檔的 item 現況看暴雪那邊到底有沒有那顆框、身分是什麼（`[identity]` ＝ 後掛勾漏接、下一輪已救回）。
 92. 挑選器「自訂 ID」的說明多一行「官方的飾品監控不穩定，建議直接用『物品』輸入物品 ID 來監控飾品」；
     預覽上暴雪沒給框的裝備欄那一格，提示也帶這一句。
+93. 自訂 ID 的輸入彈窗開著時，按住 Shift 點背包／角色面板的物品、法術書或天賦的法術：ID 自動填進輸入框、下面灰字寫出名字，
+    按確定才加（`Picker.TakeLink`，後掛勾 `ChatFrameUtil.InsertLink` 與 `HandleModifiedItemClick`，彈窗沒開不收）。
+    物品彈窗點到法術（或反過來）只給一行說明、不填。聊天輸入框同時開著時連結也會照常插進聊天框。
