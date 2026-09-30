@@ -418,7 +418,7 @@ local function FlushEngine()
     if ns.Decorate then ns.Decorate.InvalidateAll() end
     if ns.Bars then ns.Bars.RequestAll(level) end
     if ns.Visibility then ns.Visibility.ApplyAll() end
-    if ns.EditMode and ns.EditMode.active and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
+    if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
 end
 
 function Options.ApplyEngine(level, now)

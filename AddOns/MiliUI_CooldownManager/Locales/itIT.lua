@@ -49,6 +49,7 @@ L["Dragging stops it following %s"] = "Trascinandola smette di seguire %s"
 L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "Le impostazioni del gestore delle ricariche sono in /mcdm o nell'ingranaggio in alto a destra del riquadro blu."
 -- 設定介面
 L["Click to open this bar's settings."] = "Clicca per aprire le impostazioni di questa barra."
+L["Drag to move. Hold Shift to disable snapping."] = "Trascina per spostare. Tieni premuto Maiusc per disattivare l'aggancio."
 L["Already in Blizzard's Cooldown Manager"] = "Già nel gestore dei tempi di recupero di Blizzard"
 L["Nothing else to move here."] = "Nient'altro da spostare qui."
 L["Add these in Blizzard's panel first"] = "Aggiungili prima nel pannello di Blizzard"

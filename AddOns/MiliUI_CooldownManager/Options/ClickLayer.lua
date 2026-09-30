@@ -1,6 +1,7 @@
 ------------------------------------------------------------
 -- 設定視窗開著時，畫面上每條容器蓋一層透明的點擊層：點了就切到那條的設定頁，
--- 並讓點擊層閃一下職業色邊（0.3 秒）。
+-- 並讓點擊層閃一下職業色邊（0.3 秒）；**拖了就移動那條**（走編輯模式同一套 EM.BeginDrag／EndDrag，
+-- 格線吸附與套組磁吸都在，Shift 按著不吸）。覆蓋層（條名、齒輪、職業色邊）此時也由 EditMode 顯示。
 --
 -- 規則
 --   * 自己的框（parent UIParent，錨在容器上），不是容器的子框，也不寫容器任何東西。
@@ -69,6 +70,13 @@ local function Ensure(key)
     l:SetFrameStrata("HIGH")
     l:EnableMouse(true)
     l:RegisterForClicks("LeftButtonUp")
+    l:RegisterForDrag("LeftButton")
+    l:SetScript("OnDragStart", function()
+        if ns.EditMode and ns.EditMode.BeginDrag then ns.EditMode.BeginDrag(key) end
+    end)
+    l:SetScript("OnDragStop", function()
+        if ns.EditMode and ns.EditMode.EndDrag then ns.EditMode.EndDrag(true) end
+    end)
     l:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Scale(1) })
     SetBorder(l, 0)
     l:Hide()
@@ -77,6 +85,7 @@ local function Ensure(key)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(ns.Options.PageTitle(key) or ns.Options.BarTitle(key))
         GameTooltip:AddLine(L["Click to open this bar's settings."], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Drag to move. Hold Shift to disable snapping."], 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
     l:SetScript("OnLeave", function(self)

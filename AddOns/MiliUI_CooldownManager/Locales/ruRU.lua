@@ -49,6 +49,7 @@ L["Dragging stops it following %s"] = "Перетаскивание отвяже
 L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "Настройки менеджера восстановлений — в /mcdm или по шестерёнке в правом верхнем углу синей рамки."
 -- 設定介面
 L["Click to open this bar's settings."] = "Щелкните, чтобы открыть настройки этой панели."
+L["Drag to move. Hold Shift to disable snapping."] = "Перетащите, чтобы переместить. Удерживайте Shift, чтобы отключить прилипание."
 L["Already in Blizzard's Cooldown Manager"] = "Уже в менеджере восстановления Blizzard"
 L["Nothing else to move here."] = "Больше нечего переносить."
 L["Add these in Blizzard's panel first"] = "Сначала добавьте в панели Blizzard"

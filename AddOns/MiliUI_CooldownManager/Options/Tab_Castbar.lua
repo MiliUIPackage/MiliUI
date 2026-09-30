@@ -167,7 +167,7 @@ function Tab.Build(parent, title)
 
     local function OnApply(spec)
         ns.Castbar.Apply()
-        if ns.EditMode and ns.EditMode.active and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
+        if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
         if ns.Fire then ns.Fire("BarsListChanged") end
         ns.Defer(function()
             if page:IsVisible() and (page.sig ~= Signature() or (spec and spec.refreshPage)) then
