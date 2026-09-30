@@ -41,8 +41,12 @@ TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻）�
 
 - 四個元件各自一個框：`FeiMiaoRC_Marks`／`_WorldMarks`／`_ReadyPull`／`_BattleRes`，
   磁吸 key `fmrcMarks`／`fmrcWorld`／`fmrcReady`／`fmrcBres`（存檔內容，別改名，見 [[project-miliui-snap-bars]]）。
-  第一次啟動預設吸成一組（光柱吸標記下面、確認倒數吸光柱下面、戰復吸標記上面）；
+  **預設擺法是使用者 2026-09-30 自己排好再指定的**：由上到下 戰復 → 光柱 → 標記 → 確認倒數，左緣對齊、
+  貼死。主體是**光柱列**（`DB.DEFAULT_POS.world`，中心偏移 -441.5／314.5，畫面左上），其餘三個用貼附掛上去
+  （`DB.DEFAULT_SNAP`）—— 對齊是錨點給的不是座標湊的，任何 UI 縮放都準。「重設位置」也回這個擺法。
   ⚠ 那個預設不能寫進 defaults（MergeDefaults 只補 nil，拖開後下次登入會被吸回去），只在存檔剛建立時種一次。
+  要抓使用者「現在的位置」：讀 `WTF/Account/<帳號>/SavedVariables/FeiMiao_RaidCommander.lua`，
+  但它只在 /reload 或登出時寫檔 —— 先看修改時間，比截圖舊就請他 /reload。
 - `Core/Context.lua`：出現時機。地點種類 raid／dungeon／delve／world／pvp／scenario（勾選 OR）＋
   限制條件（沒有隊伍、沒有權限）。寫不成 RegisterStateDriver —— 巨集條件式沒有「副本類型」。
   探究用 `IsInInstance() and C_PartyInfo.IsPartyWalkIn()`（[[wow-delve-detection]]）。
