@@ -247,7 +247,7 @@ function DB.BuildDefaults()
                 chargeText   = { size = 12, color = rgba(1, 1, 1), point = "BOTTOMRIGHT", x = 0, y = 0 },
                 stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0 },
                 icon  = { zoom = 0.08, swipeColor = rgba(0, 0, 0, 0.8),
-                          hideGCDSwipe = true, desaturateOnCooldown = true },
+                          hideGCDSwipe = false, desaturateOnCooldown = true },
                 glow  = {
                     proc  = { enabled = true,  type = "pixel", color = rgba(1, 0.85, 0, 1),
                               lines = 8, thickness = 2, frequency = 0.2 },
