@@ -55,6 +55,13 @@ TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻）�
   secure 按鈕上，編輯模式／設定視窗開著進戰鬥的話整場都點不到標記。脫戰再亮回來。
 - 就位確認／倒數走 secure 巨集 `/readycheck`、`/cd N`（[[wow-12x-addon-restrictions]]）；
   倒數鈕左鍵／右鍵各一組秒數（預設 10／5）、中鍵或 Shift＋點擊 `/cd 0`。
+  **有倒數在跑時整顆變取消鈕**（2026-09-30 使用者要求，別人發起的也算）：聽
+  `START_PLAYER_COUNTDOWN`／`CANCEL_PLAYER_COUNTDOWN`（隊友點的也會來，同 MiliUI_MythicPlus 的
+  `UI/Keystone.lua`），`counting` 為真時左右鍵巨集全換成 `/cd 0`、按鈕字變「取消 N」。
+  巨集換回來要脫戰（數到 0 通常已開打，會落在脫戰後）。
+- **確認倒數戰鬥中隱藏**（`db.ready.hideInCombat`，預設開）：保護框戰鬥中藏不掉，所以在
+  `PLAYER_REGEN_DISABLED` **同步**藏（鎖定生效前的窗口）。戰鬥旗標只由 REGEN 事件改 ——
+  那個事件派送當下 `InCombatLockdown()` 還是 false，現問會問錯。
   就位人數不讀事件的 unit 參數（可能是秘密字串），自己照名冊問 `GetReadyCheckStatus`。
 - 光柱：`type1=worldmarker action1=set`（放／搬）、`type2 action2=clear`（收那一根）、第九顆不帶 marker 的 clear ＝全收。
 - 戰復：`C_Spell.GetSpellCharges(20484)`，狀態機照 Cell。MRT／Cell 都當它是明文在算；
@@ -65,7 +72,9 @@ TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻）�
 - 四個框在編輯模式的藍框、拖曳、放手磁吸；預設那組吸附的擺法好不好看
 - 設定視窗開著時元件亮出來＋可拖；開著進戰鬥選取框有沒有收掉
 - 出現時機每一種（尤其探究、沒權限時隱藏、脫戰後補套用）
-- 倒數鈕的數字與填色、`/cd 0` 有沒有發 `START_TIMER`（totalTime 0）或 `STOP_TIMER_OF_TYPE`
+- 倒數鈕的「取消 N」與填色、點下去取消後有沒有收到 `CANCEL_PLAYER_COUNTDOWN` 變回來
+- **別人發起的倒數能不能被我的 `/cd 0` 中斷**（團隊裡要隊長／助理；小隊裡非隊長行不行待測）
+- 確認倒數進戰鬥有沒有收起來、脫戰有沒有回來
 - 右鍵職責確認 `InitiateRolePoll()` 會不會被情境限制擋
 - 戰復在團本首領戰／M+ 的次數與倒數；`GetSpellCharges(20484)` 到底是不是明文
 - 跟 Cell 自己的團隊工具同時開會有兩套（Cell 設定裡把工具關掉）
