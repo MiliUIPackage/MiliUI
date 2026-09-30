@@ -70,6 +70,7 @@ local ICON_LEVEL = 21
 --   clickWhenHidden   被顯示條件藏起來時仍可點擊選取（目前只有玩家框的設定頁有這個選項）
 --   fadeOutOfRange    超出距離淡出（輪詢）
 --   fadeOutOfCombat   脫戰淡出（吃事件）
+--   oocShowWhenHurt   脫戰淡出的例外：血不滿時不淡（借血條的血量事件判）
 --   highlight         滑鼠移過時畫一圈高亮邊框
 --   dispelHighlight   身上有魔法／詛咒／疾病／中毒／流血減益（敵方：激怒）時，
 --                     框體畫一圈該類型顏色的邊框（Elements/DispelHighlight.lua）
@@ -87,6 +88,7 @@ local function frameDef(o)
     if o.clickWhenHidden == nil then o.clickWhenHidden = false end
     if o.fadeOutOfRange == nil then o.fadeOutOfRange = false end
     if o.fadeOutOfCombat == nil then o.fadeOutOfCombat = false end
+    if o.oocShowWhenHurt == nil then o.oocShowWhenHurt = false end
     if o.highlight == nil then o.highlight = true end
     if o.dispelHighlight == nil then o.dispelHighlight = true end
     return o

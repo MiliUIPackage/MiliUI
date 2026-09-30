@@ -708,6 +708,8 @@ local function Update(uf, edb, bucket)
         -- 原生 StatusBar 方法：C 端吃秘密值。絕不用 SmoothStatusBarMixin。
         f.bar:SetMinMaxValues(0, maxHP)
         f.bar:SetValue(curHP, interp)
+        -- 脫戰淡出的「血不滿時不淡」例外：借這波血量事件判，不另收事件
+        ns.Visibility.CheckHurt(uf)
 
         ------------------------------------------------------------
         -- 吸收盾

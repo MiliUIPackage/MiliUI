@@ -506,6 +506,27 @@ local function ApplyScrim(uf)
     end
 end
 
+------------------------------------------------------------
+-- 脫戰淡出的「血不滿時不淡」例外
+--
+-- 只在**脫戰**判：戰鬥中本來就不淡出，而且那時血量是秘密值。
+-- 脫戰讀到秘密值（理論上不該發生）就當成不滿 —— 寧可多亮也不要誤藏。
+-- 觸發點不另收事件：血條元件本來就吃 UNIT_HEALTH／UNIT_MAXHEALTH，
+-- 它在 Update 裡呼叫 V.CheckHurt，狀態有翻才重設透明度（見 Elements/Health.lua）。
+-- 代價：這個例外只對有開血條的框有效。
+------------------------------------------------------------
+local function IsHurt(unit)
+    local cur, max = UnitHealth(unit), UnitHealthMax(unit)
+    if ns.IsSecret(cur) or ns.IsSecret(max) then return true end
+    return cur < max
+end
+
+function V.CheckHurt(uf)
+    local fdb = uf.db and uf.db.frame
+    if not (fdb and fdb.fadeOutOfCombat and fdb.oocShowWhenHurt) or InCombatLockdown() then return end
+    if IsHurt(uf.unit) ~= uf.oocHurt then V.ApplyAlpha(uf) end
+end
+
 function V.Alpha(uf)
     local fdb = uf.db and uf.db.frame
     if not fdb then return 1 end
@@ -516,7 +537,10 @@ function V.Alpha(uf)
         local oor = g.oorAlpha or 0.45
         if oor < a then a = oor end
     end
-    if fdb.fadeOutOfCombat and not InCombatLockdown() then
+    local hurt = fdb.fadeOutOfCombat and fdb.oocShowWhenHurt and not InCombatLockdown()
+                 and IsHurt(uf.unit) or false
+    uf.oocHurt = hurt
+    if fdb.fadeOutOfCombat and not InCombatLockdown() and not hurt then
         local ooc = g.oocAlpha or 0.5
         if ooc < a then a = ooc end
     end
