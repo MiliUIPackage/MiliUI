@@ -320,7 +320,7 @@ function Sidebar.Build(panel, width)
     thumb:SetWidth(P.Scale(2))
     thumb:Hide()
 
-    heads.bars = W.CreateGroupLabel(child, L["Bars"])
+    heads.bars = W.CreateGroupLabel(child, L["Elements"])
     heads.global = W.CreateGroupLabel(child, L["Global"])
     newBtn = W.CreateButton(child, L["+ New Group"], "primary", btnW, BTN_H)
     newBtn:SetScript("OnClick", Sidebar.NewGroup)

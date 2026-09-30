@@ -200,19 +200,21 @@ do
     eq("SnapValue step 0 不動", EM.SnapValue(47, 0), 47)
 
     -- TOP 錨點在 (970, 340)，原點 (960, 540)：相對 (10, -200) → 吸到 (0, -192)
-    local dx, dy = EM.SnapDelta("TOP", 950, 990, 340, 300, 960, 540, 32)
-    near("SnapDelta TOP dx", dx, -10)
-    near("SnapDelta TOP dy", dy, 8)
-    -- BOTTOMRIGHT 錨點在 (1000, 300)：相對 (40, -240) → (32, -224)（剛好半格時往正向進位）
-    dx, dy = EM.SnapDelta("BOTTOMRIGHT", 950, 1000, 340, 300, 960, 540, 32)
-    near("SnapDelta BOTTOMRIGHT dx", dx, -8)
-    near("SnapDelta BOTTOMRIGHT dy", dy, 16)
+    -- 範圍：32 的格距只在 ±5.33 內才吸；離得遠就不動（拖起來不黏）
+    local dx, dy = EM.SnapDelta("TOP", 943, 983, 350, 310, 960, 540, 32)   -- 錨點 (963,350)：rx 3→0、ry -190→-192
+    near("SnapDelta TOP dx", dx, -3)
+    near("SnapDelta TOP dy", dy, -2)
+    dx, dy = EM.SnapDelta("TOP", 950, 990, 340, 300, 960, 540, 32)          -- rx 10、ry -200：都離格線 8～10，超出範圍
+    check("SnapDelta 超出範圍不吸", dx == 0 and dy == 0)
+    dx, dy = EM.SnapDelta("BOTTOMRIGHT", 950, 994, 340, 288, 960, 540, 32)   -- 錨點 (994,288)：rx 34→32、ry -252→-256
+    near("SnapDelta BOTTOMRIGHT dx", dx, -2)
+    near("SnapDelta BOTTOMRIGHT dy", dy, -4)
     dx, dy = EM.SnapDelta("TOP", 950, 990, 340, 300, 960, 540, nil)
     check("SnapDelta 沒有間距不動", dx == 0 and dy == 0)
 
     -- 吸完再 ReadPos：錨點那一邊落在格線上 ⇒ 存下來的偏移是間距的倍數
     local w, h = 187, 41
-    local l, t = 812.3, 355.7
+    local l, t = 813.5, 350      -- 離 16 的格線 2.5／2，在範圍內
     dx, dy = EM.SnapDelta("TOPLEFT", l, l + w, t, t - h, 960, 540, 16)
     ns.profile.bars.t = { pos = { point = "CENTER" } }
     containers.t = Rect(l + dx, l + dx + w, t + dy, t + dy - h)
