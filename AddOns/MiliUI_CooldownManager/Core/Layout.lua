@@ -169,7 +169,7 @@ end
 --
 --   Layout.AnchorOf(key, cfgOf)                   → anchor 表或 nil（目標不存在／成環＝沒有錨定）
 --   Layout.AnchorSide(anchor)                     → "above"｜"below"｜"left"｜"right"｜nil（其他組合不排）
---   Layout.StackTarget(key, cfgOf, keys, rankOf)  → 實際該貼的 key（沒有錨定回 nil）
+--   Layout.StackTarget(key, cfgOf, keys, rankOf [, skip])  → 實際該貼的 key（沒有錨定回 nil）
 --
 --   cfgOf(key)   那條的設定表（讀 .anchor 與 .enabled；enabled == false ＝ 關掉的面板）
 --   keys         所有條與面板的 key
@@ -216,7 +216,8 @@ local function Enabled(cfg)
 end
 
 -- 有效的上一層與邊。side == nil ＝ 這個錨定不參與排開（照字面貼）
-local function EffParent(key, cfgOf)
+-- active(key)：這條現在佔不佔位（開著、而且沒有收合）
+local function EffParent(key, cfgOf, active)
     local a = Layout.AnchorOf(key, cfgOf)
     if not a then return nil end
     local side = Layout.AnchorSide(a)
@@ -226,7 +227,7 @@ local function EffParent(key, cfgOf)
         local ta = Layout.AnchorOf(to, cfgOf)
         local ts = ta and Layout.AnchorSide(ta)
         if not ts then break end
-        if ts == OPPOSITE[side] or (ts == side and not Enabled(cfgOf(to))) then
+        if ts == OPPOSITE[side] or (ts == side and not active(to)) then
             to = ta.to
         else
             break
@@ -235,12 +236,12 @@ local function EffParent(key, cfgOf)
     return to, side
 end
 
-local function Siblings(parent, side, cfgOf, keys, rankOf)
+local function Siblings(parent, side, cfgOf, keys, rankOf, active)
     local out = {}
     for i = 1, #keys do
         local k = keys[i]
-        if k ~= parent and Enabled(cfgOf(k)) then
-            local to, s = EffParent(k, cfgOf)
+        if k ~= parent and active(k) then
+            local to, s = EffParent(k, cfgOf, active)
             if to == parent and s == side then out[#out + 1] = k end
         end
     end
@@ -253,26 +254,32 @@ local function Siblings(parent, side, cfgOf, keys, rankOf)
 end
 
 -- key 身上同一邊那一串的最外面那個（沒掛東西就是它自己）
-local function Tail(key, side, cfgOf, keys, rankOf, depth)
+local function Tail(key, side, cfgOf, keys, rankOf, active, depth)
     if depth > 32 then return key end
-    local kids = Siblings(key, side, cfgOf, keys, rankOf)
+    local kids = Siblings(key, side, cfgOf, keys, rankOf, active)
     if #kids == 0 then return key end
-    return Tail(kids[#kids], side, cfgOf, keys, rankOf, depth + 1)
+    return Tail(kids[#kids], side, cfgOf, keys, rankOf, active, depth + 1)
 end
 
-function Layout.StackTarget(key, cfgOf, keys, rankOf)
+-- skip(key)（可省）：回 true 的當作不佔位——收合中的面板（沒有內容、高度 0）。
+-- ⚠ 不能讓別人貼在收合的面板上：高度 0 的框在遊戲裡沒有有效的矩形，貼在它身上的整條都畫不出來
+--   （沒有自訂格子的專精，輔助技能整條消失就是這樣來的）。所以收合跟關掉一樣處理：後面的接到它的上一層。
+function Layout.StackTarget(key, cfgOf, keys, rankOf, skip)
     local a = Layout.AnchorOf(key, cfgOf)
     if not a then return nil end
-    -- 關掉的面板不佔位：照字面貼在它的目標上（只是給錨在它身上的東西一個位置）
-    if not Enabled(cfgOf(key)) then return a.to end
-    local parent, side = EffParent(key, cfgOf)
+    local function active(k)
+        return Enabled(cfgOf(k)) and not (skip and skip(k))
+    end
+    local parent, side = EffParent(key, cfgOf, active)
+    -- 自己不佔位（關掉／收合）：貼在有效的上一層上，只是給照字面錨在它身上的東西一個位置
+    if not active(key) then return parent end
     if not side then return parent end
-    local sibs = Siblings(parent, side, cfgOf, keys, rankOf)
+    local sibs = Siblings(parent, side, cfgOf, keys, rankOf, active)
     local prev
     for i = 1, #sibs do
         if sibs[i] == key then break end
         prev = sibs[i]
     end
     if not prev then return parent end
-    return Tail(prev, side, cfgOf, keys, rankOf, 0)
+    return Tail(prev, side, cfgOf, keys, rankOf, active, 0)
 end

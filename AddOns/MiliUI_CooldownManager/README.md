@@ -420,6 +420,10 @@ customRows[specID] = {
 }
 ```
 
+- **收合的面板不佔位（2026-09-30 修正）**：原本沒有列時把容器設成高度 0、讓輔助技能照樣貼在它身上。**高度 0 的框在遊戲裡
+  沒有有效的矩形，貼在它身上的整條都畫不出來**——沒有自訂格子的專精（被系統換成神聖、或根本沒設格子的角色）輔助技能
+  整條消失，設定頁的預覽卻是滿的（清單沒問題，是容器沒位置）。現在收合是邏輯狀態（`state.collapsed`）：框留 1 的高度，
+  排開時別人跳過它接到上一層（`Layout.StackTarget` 的 `skip`）；展開／收合一切換，整疊兩段式重貼。下面這一條是原設計：
 - **收合（沒有列就高度 0）**：`B.RegisterPanel("pips", { collapsible = true })`。沒有任何一列（清單空、全部 `enabled = false`、
   充能法術都沒學、`pips.enabled = false`）時 `SetPanelSize("pips", w, 0)`，而且上下向錨定（TOP↔BOTTOM）的 **y 偏移一起收掉**
   （`Core/Bars.lua` 的 `PlaceContainer`）：核心 → 自訂格子（0 高、0 偏移）→ 輔助（−1）＝ 輔助照舊在核心下方 1px，跟改版前一模一樣；
@@ -775,7 +779,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 
 **自訂格子**
 
-50. `SetSize(w, 0)` 的容器當錨點：輔助技能貼在 0 高的 `MiliUICDM_Bar_pips` 上（排開的結果），位置正確（核心下方 1px）；自訂格子關掉時輔助改貼核心。
+50. （已改掉：不再讓任何東西貼在高度 0 的容器上）沒有自訂格子的專精／角色：輔助技能照樣顯示在核心下方 1px；加了格子之後輔助往下讓，刪掉又回來。
 51. 加一列／刪到沒有列：收合狀態切換時輔助技能跟著移動、不閃；戰鬥中清單變了（充能法術學會／忘掉）時收合的偏移延到脫戰才換，期間不報錯。
 52. 輔助技能有光環格（持有框保護鏈）時，自訂格子容器被連坐成保護框：戰鬥中 `SetPanelSize` 走 `ns.Write` 記帳、脫戰補做，零 ADDON_ACTION_BLOCKED。
 53. 編輯模式：空的自訂格子覆蓋層（一列高）壓在輔助技能覆蓋層上緣，兩個選取框都點得到、拖得動；拖自訂格子時輔助跟著走。
@@ -854,3 +858,5 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     `GetInventoryItemCooldown` 回的 GCD 當真冷卻、`isOnGCD` 寫死 false；我們在 `SetDesaturated` 後掛勾重判）。
     真的用掉飾品進冷卻時照樣變灰；戰鬥中（讀到秘密值時走「不含 GCD 的法術冷卻是不是零」交給引擎）也一樣。
     開了「隱藏 GCD 轉圈」時飾品那一格的 GCD 轉圈也一起藏。
+89. 沒有自訂格子的專精（例如被系統換成神聖）：輔助技能有顯示、貼在核心技能下方；切回有格子的專精時輔助排到格子下面。
+    `/mcdm debug` 的「跟隨」欄：格子收合時輔助是「pips（貼 essential）」。
