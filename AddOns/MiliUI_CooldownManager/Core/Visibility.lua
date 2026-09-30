@@ -19,8 +19,8 @@
 -- 面板（資源條、自訂格子、施法條）不走上面的模型，各自一條（Vis.PanelAlpha）：
 --   資源條  enabled ＝ false → 0；載入條件 loadConditions（騎乘或坐載具／只在戰鬥中）任一不符 → 0；
 --           fadeWithEssential 開著時取核心技能條現在的 alpha（它的顯示條件與淡出一起帶過來）
---   自訂格子  enabled ＝ false → 0；fadeWithEssential 同資源條（profile.pips 自己的那一格；
---             資源條的載入條件不帶過來）
+--   自訂格子  enabled ＝ false → 0；載入條件與 fadeWithEssential 同資源條，但讀的是 profile.pips
+--             自己的那一份（資源條的不帶過來）
 --   施法條  enabled ＝ false → 0；hideWhenNotCasting 且沒在施法（ns.Castbar.IsActive）→ 0
 --   編輯模式中一律全亮（同條）。面板的框都是容器的子框，容器的 alpha 就管得到。
 --
@@ -137,6 +137,10 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting)
         end
         return 1
     elseif key == "pips" then
+        -- 載入條件是自訂格子自己的那一份（profile.pips.loadConditions），資源條的不帶過來
+        local lc = type(cfg.loadConditions) == "table" and cfg.loadConditions or {}
+        if lc.hideMounted and s.mounted then return 0 end
+        if lc.onlyCombat and not s.combat then return 0 end
         if cfg.fadeWithEssential ~= false then
             local a = tonumber(essentialAlpha) or 1
             if a < 0 then a = 0 elseif a > 1 then a = 1 end

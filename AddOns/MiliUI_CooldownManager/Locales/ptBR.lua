@@ -293,7 +293,6 @@ L["Track it as a buff or a debuff on you?"] = "Rastrear como bônus ou penalidad
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Enquanto uma aura puder ser renovada sem perder tempo, a borda fica desta cor."
 
 -- F 階段：資源條與施法條
-L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] = "Recursos do tipo absorção (Cambaleio, Pelo de Ferro, Ignorar Dor) são secret values no 12.1 — os addons não conseguem ler os valores, por isso não aparecem."
 L["Add check"] = "Adicionar verificação"
 L["Add rule"] = "Adicionar regra"
 L["And"] = "E"
@@ -421,5 +420,20 @@ L["Max stacks must be a whole number from 1 to %d."] = "Acúmulos máx. deve ser
 L["Show seconds"] = "Mostrar segundos"
 L["Remove this custom row?"] = "Remover esta fileira personalizada?"
 L["Position and anchoring"] = "Posição e ancoragem"
-L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Um feitiço com cargas, um segmento por carga. Os segmentos vazios mostram a próxima recarga com uma animação circular e os segundos. Por exemplo, “Corcel Divino” do paladino ou “Lampejo” do mago. Digite o ID do feitiço."
-L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Um bônus em você que acumula, um segmento por acúmulo; tudo vazio enquanto você não o tiver, sem tempo de recarga. Por exemplo, “Escudo Ósseo” do cavaleiro da morte. Digite o ID do feitiço da aura e os acúmulos máximos."
+
+-- 自訂格子：顯示時機、整組開關；補齊的職業資源
+L["Moderate threshold (percent of max health)"] = "Limite moderado (porcentagem da vida máx.)"
+L["Heavy threshold (percent of max health)"] = "Limite pesado (porcentagem da vida máx.)"
+L["Full bar at (percent of max health)"] = "Barra cheia em (porcentagem da vida máx.)"
+L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."] = "A cor segue a fração da sua vida máx. em cambaleio. Em combate de instância os números às vezes não podem ser lidos; nessas atualizações a cor e a escala anteriores são mantidas."
+L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "Mostra o total de todos os escudos de absorção em você, não só este; a barra cheia é 30 por cento da sua vida máx."
+L["One segment per active application, each draining with its own remaining time."] = "Um segmento por aplicação ativa, cada um esvaziando com seu próprio tempo restante."
+L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s: o jogo preenche esta linha sozinho, então ela continua certa em combate; regras de condição e texto de valor não se aplicam."
+L["Show custom segments"] = "Mostrar segmentos personalizados"
+L["Always"] = "Sempre"
+L["Only while recharging"] = "Só durante a recarga"
+L["While recharging or in combat"] = "Durante a recarga ou em combate"
+L["Only while you have the aura"] = "Só enquanto você tiver a aura"
+L["A row that hides keeps its space, so the rows below it don't jump."] = "Uma linha oculta mantém seu espaço, para as linhas de baixo não pularem."
+L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Um feitiço com cargas, um segmento por carga. O próximo segmento vazio enche suavemente enquanto recarrega, com os segundos restantes. Por exemplo, o Corcel Divino do paladino ou Lampejo do mago. Digite o ID do feitiço."
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Um bônus em você que acumula, um segmento por acúmulo; tudo vazio enquanto você não o tiver, sem tempo de recarga. O próprio jogo preenche, então continua certo em chefes e na Mítica+. Por exemplo, o Escudo de Ossos do cavaleiro da morte. Digite o ID de feitiço da aura e o máximo de acúmulos."

@@ -145,6 +145,17 @@ local RESOURCE_COLORS = {
     MaelstromWeapon = { color = { r = 0.2,  g = 0.65, b = 1    } },
     TipOfTheSpear   = { color = { r = 1,    g = 0.6,  b = 0.2  } },
     SoulFragments   = { color = { r = 0.64, g = 0.19, b = 0.79 } },
+    -- 2026-09-30 補齊的職業資源（冰刺冰藍、噬靈魂碎片同復仇的紫、戰士三種暖色系、鐵鬃棕）
+    Icicles         = { color = { r = 0.44, g = 0.80, b = 1    } },
+    DevourerFragments = { color = { r = 0.64, g = 0.19, b = 0.79 } },
+    -- 醉仙緩勁三段：輕度（主色）／中度／重度，門檻在 staggerModerateAt／staggerHeavyAt
+    Stagger         = { color         = { r = 0.52, g = 0.90, b = 0.52 },
+                        moderateColor = { r = 1,    g = 0.85, b = 0.36 },
+                        heavyColor    = { r = 1,    g = 0.42, b = 0.42 } },
+    WhirlwindStacks = { color = { r = 0.90, g = 0.45, b = 0.20 } },
+    SweepingStrikes = { color = { r = 0.85, g = 0.65, b = 0.35 } },
+    IgnorePain      = { color = { r = 0.95, g = 0.80, b = 0.35 } },
+    Ironfur         = { color = { r = 0.72, g = 0.52, b = 0.30 } },
 }
 DB.RESOURCE_COLORS = RESOURCE_COLORS
 
@@ -175,11 +186,15 @@ ResourcesDefaults = function()
         textSize      = 10,
         manaAbbrev    = CJK[GetLocale and GetLocale() or ""] and "wan" or "k",   -- none | k | wan
         manaPercent   = false,             -- 法力列印百分比而不是數值
+        -- 醉仙緩勁：中度／重度的門檻（% 最大生命）、滿條對應幾 % 最大生命
+        staggerModerateAt = 30,
+        staggerHeavyAt    = 60,
+        staggerCeiling    = 100,
         -- [資源key] = { rule, … }：開放式鍵值表，預設空（MergeDefaults 不會替玩家生出規則）
         conditions    = {},
         -- [資源key] = false ＝ 關掉那一列；開放式、預設空
         rows          = {},
-        -- 自訂格子：[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, enabled }, … }
+        -- 自訂格子：[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, showWhen, enabled }, … }
         -- 開放式、預設空。畫在自己的面板（profile.pips、Modules/Pips.lua），樣式沿用這張表
         customRows    = {},
         colors        = colors,
@@ -200,6 +215,8 @@ PipsDefaults = function()
         anchor        = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 },
         -- 跟核心技能條一起淡（同資源條）
         fadeWithEssential = true,
+        -- 載入條件：任一成立就整個面板藏（alpha 0），同資源條；兩邊各自一份
+        loadConditions = { hideMounted = false, onlyCombat = false },
         strata        = "MEDIUM",
     }
 end

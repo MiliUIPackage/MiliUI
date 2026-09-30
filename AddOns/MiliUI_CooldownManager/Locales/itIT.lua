@@ -293,7 +293,6 @@ L["Track it as a buff or a debuff on you?"] = "Tracciarlo come beneficio o penal
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Finché un'aura può essere rinnovata senza perdere tempo, il bordo assume questo colore."
 
 -- F 階段：資源條與施法條
-L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] = "Le risorse di tipo assorbimento (Barcollamento, Pelo Ferrigno, Ignora il Dolore) sono secret value nella 12.1: gli addon non possono leggerne i valori, perciò non sono elencate."
 L["Add check"] = "Aggiungi controllo"
 L["Add rule"] = "Aggiungi regola"
 L["And"] = "E"
@@ -421,5 +420,20 @@ L["Max stacks must be a whole number from 1 to %d."] = "Gli accumuli max devono 
 L["Show seconds"] = "Mostra secondi"
 L["Remove this custom row?"] = "Rimuovere questa riga personalizzata?"
 L["Position and anchoring"] = "Posizione e ancoraggio"
-L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Un incantesimo con cariche, un segmento per carica. I segmenti vuoti mostrano la prossima ricarica con un'animazione circolare e i secondi. Per esempio «Destriero Divino» del paladino o «Traslazione» del mago. Inserisci l'ID dell'incantesimo."
-L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Un beneficio su di te che si accumula, un segmento per accumulo; tutto vuoto finché non ce l'hai, senza tempo di ricarica. Per esempio «Scudo d'Ossa» del cavaliere della morte. Inserisci l'ID dell'incantesimo dell'aura e gli accumuli massimi."
+
+-- 自訂格子：顯示時機、整組開關；補齊的職業資源
+L["Moderate threshold (percent of max health)"] = "Soglia moderata (percentuale della salute max.)"
+L["Heavy threshold (percent of max health)"] = "Soglia pesante (percentuale della salute max.)"
+L["Full bar at (percent of max health)"] = "Barra piena a (percentuale della salute max.)"
+L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."] = "Il colore segue la quota della tua salute max. in barcollamento. Nel combattimento in istanza i numeri a volte non sono leggibili; in quegli aggiornamenti restano il colore e la scala precedenti."
+L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "Mostra il totale di tutti gli scudi di assorbimento su di te, non solo questo; la barra piena è il 30 per cento della tua salute max."
+L["One segment per active application, each draining with its own remaining time."] = "Un segmento per applicazione attiva, ognuno si svuota con il proprio tempo rimanente."
+L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s: il gioco riempie questa riga da solo, quindi resta corretta in combattimento; regole di condizione e testo del valore non si applicano."
+L["Show custom segments"] = "Mostra segmenti personalizzati"
+L["Always"] = "Sempre"
+L["Only while recharging"] = "Solo durante la ricarica"
+L["While recharging or in combat"] = "Durante la ricarica o in combattimento"
+L["Only while you have the aura"] = "Solo mentre hai l'aura"
+L["A row that hides keeps its space, so the rows below it don't jump."] = "Una riga nascosta mantiene il suo spazio, così le righe sotto non saltano."
+L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Un incantesimo con cariche, un segmento per carica. Il prossimo segmento vuoto si riempie in modo fluido durante la ricarica, con i secondi rimanenti. Per esempio il Destriero Divino del paladino o Traslazione del mago. Inserisci l'ID dell'incantesimo."
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Un beneficio su di te che si accumula, un segmento per accumulo; tutto vuoto finché non ce l'hai, senza tempo di ricarica. Lo riempie il gioco da solo, quindi resta corretto nei boss e in Mitica+. Per esempio lo Scudo d'Ossa del cavaliere della morte. Inserisci l'ID dell'incantesimo dell'aura e il massimo di accumuli."

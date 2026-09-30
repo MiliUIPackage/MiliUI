@@ -14,7 +14,10 @@
 --   5. 面板的顯示條件（Core/Visibility.lua 的 EvaluatePanel；含自訂格子）
 --   6. 施法條：時間文字、截字、刻度查表
 --   7. 自訂格子（Modules/Pips.lua）：清單依專精、增刪、PlanCustomRows（充能上限的退路、層數上限、
---      enabled = false、未學會的充能法術、壞資料）、容器高度（沒有列 ＝ 0）、預設值
+--      enabled = false、未學會的充能法術、壞資料、顯示時機）、容器高度（沒有列 ＝ 0）、預設值、
+--      閘門／填色的 min／max、充能列的顯示時機（ChargeAlpha）
+--   8. 補齊的職業資源：專精對照、取值函式（醉仙緩勁、吸收盾、噬靈魂碎片）、醉仙緩勁段落、
+--      auraBar 的格數與條件規則、AuraBar 的幾何與簽章（Modules/AuraBar.lua）
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -212,8 +215,15 @@ eqList("增強：漩渦之武＋法力", R.RawList("SHAMAN", 263, nil), { "Maels
 eqList("元素：元能＋法力", R.RawList("SHAMAN", 262, nil), { "Maelstrom", "Mana" })
 eqList("生存：集中值＋矛尖", R.RawList("HUNTER", 255, nil), { "Focus", "TipOfTheSpear" })
 eqList("復仇：魔怒＋靈魂碎片", R.RawList("DEMONHUNTER", 581, nil), { "Fury", "SoulFragments" })
-eqList("防戰：怒氣（無視苦痛不做）", R.RawList("WARRIOR", 73, nil), { "Rage" })
-eqList("釀酒：能量（醉仙緩勁不做）", R.RawList("MONK", 268, nil), { "Energy" })
+eqList("防戰：怒氣＋無視苦痛", R.RawList("WARRIOR", 73, nil), { "Rage", "IgnorePain" })
+eqList("武器戰：怒氣＋橫掃攻擊", R.RawList("WARRIOR", 71, nil), { "Rage", "SweepingStrikes" })
+eqList("狂怒戰：怒氣＋旋風斬", R.RawList("WARRIOR", 72, nil), { "Rage", "WhirlwindStacks" })
+eqList("釀酒：能量＋醉仙緩勁", R.RawList("MONK", 268, nil), { "Energy", "Stagger" })
+eqList("冰法：冰刺＋法力", R.RawList("MAGE", 64, nil), { "Icicles", "Mana" })
+eqList("火法：只有法力", R.RawList("MAGE", 63, nil), { "Mana" })
+eqList("噬魂者：魔怒＋靈魂碎片", R.RawList("DEMONHUNTER", 1480, nil), { "Fury", "DevourerFragments" })
+eqList("守護德魯伊熊形：怒氣＋鐵鬃", R.RawList("DRUID", 104, 5), { "Rage", "Ironfur" })
+eqList("守護德魯伊貓形：沒有鐵鬃", R.RawList("DRUID", 104, 1), { "Energy", "ComboPoints" })
 eqList("織霧：法力", R.RawList("MONK", 270, nil), { "Mana" })
 eqList("喚能師：精華＋法力", R.RawList("EVOKER", 1467, nil), { "Essence", "Mana" })
 eqList("恢復德魯伊人形：法力", R.RawList("DRUID", 105, nil), { "Mana" })
@@ -382,7 +392,13 @@ eq("施法條：關著 → 0", Vis.EvaluatePanel("castbar", { enabled = false, h
 eq("自訂格子：關著 → 0", Vis.EvaluatePanel("pips", { enabled = false }, s, 1, false), 0)
 eq("自訂格子：跟核心技能一起淡", Vis.EvaluatePanel("pips", { fadeWithEssential = true }, s, 0.3, false), 0.3)
 eq("自訂格子：不跟 → 1", Vis.EvaluatePanel("pips", { fadeWithEssential = false }, s, 0.3, false), 1)
-eq("自訂格子：資源條的載入條件不帶過來", Vis.EvaluatePanel("pips", { loadConditions = { onlyCombat = true } }, s, 1, false), 1)
+eq("自訂格子：自己的載入條件（只在戰鬥中、脫戰）", Vis.EvaluatePanel("pips", { loadConditions = { onlyCombat = true } }, s, 1, false), 0)
+eq("自訂格子：自己的載入條件（只在戰鬥中、戰鬥中）", Vis.EvaluatePanel("pips", { loadConditions = { onlyCombat = true }, fadeWithEssential = false },
+    { combat = true }, 1, false), 1)
+eq("自訂格子：騎乘隱藏", Vis.EvaluatePanel("pips", { loadConditions = { hideMounted = true } }, { mounted = true, combat = true }, 1, false), 0)
+eq("自訂格子：沒有 loadConditions 照常", Vis.EvaluatePanel("pips", { fadeWithEssential = false }, s, 1, false), 1)
+check("自訂格子預設：載入條件兩個都關", type(ns.DB.BuildDefaults().profile.pips.loadConditions) == "table"
+    and ns.DB.BuildDefaults().profile.pips.loadConditions.onlyCombat == false)
 
 ------------------------------------------------------------
 -- 6. 施法條的純函式
@@ -510,6 +526,142 @@ eq("層數：秘密值原樣轉手", (PI.CustomValue({ kind = "stacks", spellID 
 auras[2002] = nil
 eq("層數：沒有光環 → 0", (PI.CustomValue({ kind = "stacks", spellID = 2002 })), 0)
 eq("充能：API 回 nil → nil", (PI.CustomValue({ kind = "charges", spellID = 1001 })), nil)
+
+-- 顯示時機
+eq("顯示時機：沒存 → always", PI.ShowWhen({ kind = "charges", spellID = 1 }), "always")
+eq("顯示時機：充能 active", PI.ShowWhen({ kind = "charges", showWhen = "active" }), "active")
+eq("顯示時機：充能 activeOrCombat", PI.ShowWhen({ kind = "charges", showWhen = "activeOrCombat" }), "activeOrCombat")
+eq("顯示時機：層數 active", PI.ShowWhen({ kind = "stacks", showWhen = "active" }), "active")
+eq("顯示時機：層數不開放 activeOrCombat → always", PI.ShowWhen({ kind = "stacks", showWhen = "activeOrCombat" }), "always")
+eq("顯示時機：壞值 → always", PI.ShowWhen({ kind = "charges", showWhen = 5 }), "always")
+eq("顯示時機：不是表 → always", PI.ShowWhen(nil), "always")
+local swc = { customRows = { [70] = { { kind = "charges", spellID = 1001, showWhen = "activeOrCombat" },
+                                       { kind = "stacks", spellID = 2002, showWhen = "active" } } } }
+local swp = PI.PlanCustomRows(swc, 70, probe)
+eq("規劃帶著顯示時機（充能）", swp[1].showWhen, "activeOrCombat")
+eq("規劃帶著顯示時機（層數）", swp[2].showWhen, "active")
+eq("不是 always 的列照樣佔位：兩列高", PI.PanelHeight(#swp, 8, 1), 17)
+-- 充能列的透明度
+eq("always：一律 base", PI.ChargeAlpha("always", false, false, 1), 1)
+eq("always：讀不到值的 base 0.5", PI.ChargeAlpha("always", nil, false, 0.5), 0.5)
+eq("active：回充中 → base", PI.ChargeAlpha("active", true, false, 1), 1)
+eq("active：滿了 → 0", PI.ChargeAlpha("active", false, false, 1), 0)
+eq("active：讀不到 isActive → nil（交給引擎）", PI.ChargeAlpha("active", nil, false, 1), nil)
+eq("activeOrCombat：戰鬥中 → base", PI.ChargeAlpha("activeOrCombat", false, true, 1), 1)
+eq("activeOrCombat：脫戰且滿了 → 0", PI.ChargeAlpha("activeOrCombat", false, false, 1), 0)
+eq("activeOrCombat：脫戰、讀不到 → nil", PI.ChargeAlpha("activeOrCombat", nil, false, 1), nil)
+-- 閘門與填色的 min／max：第 i 格「是下一格或已滿」＝ 充能數 ≥ i-1
+local function fillFrac(lo, hi, v) if v <= lo then return 0 elseif v >= hi then return 1 end return (v - lo) / (hi - lo) end
+for i = 1, 4 do
+    local glo, ghi = PI.GateRange(i)
+    local flo, fhi = PI.FillRange(i)
+    eq("閘門 " .. i .. " min", glo, i - 2)
+    eq("閘門 " .. i .. " max", ghi, i - 1)
+    eq("填色 " .. i .. " min", flo, i - 1)
+    eq("填色 " .. i .. " max", fhi, i)
+    for cur = 0, 4 do
+        local gate, fill = fillFrac(glo, ghi, cur), fillFrac(flo, fhi, cur)
+        -- 回充看得到 ⇔ 閘門滿且這格沒被填滿 ⇔ 這格正好是下一格
+        local visible = gate == 1 and fill < 1
+        check(("第 %d 格、充能 %d：回充%s"):format(i, cur, visible and "看得到" or "看不到"), visible == (cur == i - 1))
+    end
+end
+-- 充能的取值多回 isActive（明文布林）
+env.C_Spell.GetSpellCharges = function(id) return { currentCharges = 1, maxCharges = 2, isActive = true } end
+local _, _, act = PI.CustomValue({ kind = "charges", spellID = 1001 })
+eq("充能：isActive 明文照收", act, true)
+env.C_Spell.GetSpellCharges = function(id) return { currentCharges = SECRET, maxCharges = 2, isActive = SECRET } end
+local cv, _, act2 = PI.CustomValue({ kind = "charges", spellID = 1001 })
+eq("充能：秘密的 isActive 不收", act2, nil)
+eq("充能：秘密的充能數照樣轉手", cv, SECRET)
+env.C_Spell.GetSpellCharges = nil
+
+------------------------------------------------------------
+-- 8. 補齊的職業資源
+------------------------------------------------------------
+-- 每個新資源：有定義、有預設色、專精對照
+for _, k in ipairs({ "Icicles", "DevourerFragments", "Stagger", "IgnorePain", "WhirlwindStacks", "SweepingStrikes", "Ironfur" }) do
+    check("新資源有定義：" .. k, R.RESOURCES[k] ~= nil)
+    check("新資源有預設色：" .. k, ns.DB.RESOURCE_COLORS[k] ~= nil and type(res.colors[k]) == "table")
+    check("新資源有名字：" .. k, type(R.Name(k)) == "string" and R.Name(k) ~= "")
+end
+eq("法術名當資源名（C_Spell.GetSpellName）", R.Name("IgnorePain"), "S190456")
+eq("醉仙緩勁用暴雪全域字串（沒有就退法術名）", R.RESOURCES.Stagger.name, "S115069")
+check("醉仙緩勁三段色", type(res.colors.Stagger.moderateColor) == "table" and type(res.colors.Stagger.heavyColor) == "table")
+check("醉仙緩勁門檻預設", res.staggerModerateAt == 30 and res.staggerHeavyAt == 60 and res.staggerCeiling == 100)
+eq("鐵鬃沒有中度色 → 退回預設主色", R.ResolveColor(res, "Ironfur", "moderateColor"), ns.DB.RESOURCE_COLORS.Ironfur.color)
+-- 段落
+eq("段落：29% 輕度", R.StaggerBand(29, 30, 60), "light")
+eq("段落：30% 中度", R.StaggerBand(30, 30, 60), "moderate")
+eq("段落：60% 重度", R.StaggerBand(60, 30, 60), "heavy")
+eq("段落：讀不到 → nil", R.StaggerBand(nil, 30, 60), nil)
+eq("段落：門檻壞資料用預設", R.StaggerBand(45, "x", nil), "moderate")
+-- 取值：醉仙緩勁、吸收盾 → 原始值轉手
+env.UnitStagger = function() return SECRET end
+env.UnitHealthMax = function() return 100000 end
+env.UnitGetTotalAbsorbs = function() return 12345 end
+local sc, sm = R.GetValue("Stagger")
+check("醉仙緩勁：秘密值原樣轉手、上限是最大生命", sc == SECRET and sm == 100000)
+local ac2, am = R.GetValue("IgnorePain")
+check("吸收盾：總吸收量、上限是最大生命（不乘三成）", ac2 == 12345 and am == 100000)
+env.UnitStagger, env.UnitGetTotalAbsorbs = nil, nil
+eq("API 不在 → 0", (R.GetValue("Stagger")), 0)
+-- 噬靈魂碎片：化身中看另一個光環、上限 40；平常 50（有天賦 35）
+auras[1225789] = { applications = 17 }
+local dc, dm = R.GetValue("DevourerFragments")
+check("噬靈魂碎片：平常 50", dc == 17 and dm == 50)
+known[1247534] = true
+check("噬靈魂碎片：點了天賦 35", select(2, R.GetValue("DevourerFragments")) == 35)
+known[1247534] = nil
+auras[1217607] = {}
+auras[1227702] = { applications = 9 }
+dc, dm = R.GetValue("DevourerFragments")
+check("噬靈魂碎片：化身中 40", dc == 9 and dm == 40)
+auras[1217607], auras[1227702], auras[1225789] = nil, nil, nil
+-- auraBar：格數（不受點數型 10 格限制）、條件規則不適用
+eq("旋風斬 4 格", R.SegmentsFor("WhirlwindStacks"), 4)
+eq("橫掃攻擊：沒天賦 12 格", R.SegmentsFor("SweepingStrikes"), 12)
+known[1261049] = true
+eq("橫掃攻擊：點了天賦 18 格", R.SegmentsFor("SweepingStrikes"), 18)
+known[1261049] = nil
+eq("鐵鬃 5 格", R.SegmentsFor("Ironfur"), 5)
+eq("冰刺 5 格", R.SegmentsFor("Icicles"), 5)
+eq("醉仙緩勁是連續條", R.SegmentsFor("Stagger"), 0)
+check("條件規則：引擎寫的列不適用", not R.SupportsConditions("WhirlwindStacks") and not R.SupportsConditions("Ironfur"))
+check("條件規則：醉仙緩勁、吸收盾、冰刺適用", R.SupportsConditions("Stagger") and R.SupportsConditions("IgnorePain") and R.SupportsConditions("Icicles"))
+eq("auraBar 的明文退路：讀第一個光環的層數", (R.GetValue("WhirlwindStacks")), 0)
+auras[85739] = { applications = 3 }
+eq("auraBar 的明文退路：有層數", (R.GetValue("WhirlwindStacks")), 3)
+auras[85739] = nil
+-- 天賦閘：光環／取值型看被動；醉仙緩勁沒學 → 隱藏
+check("鐵鬃看被動 192081", R.RESOURCES.Ironfur.passive == 192081 and R.RESOURCES.Ironfur.instances == true)
+
+-- AuraBar 的純函式（Modules/AuraBar.lua）
+ns.Events = ns.Events or { Register = function() end }
+Load("Modules/AuraBar.lua")
+local AB = ns.AuraBar
+local g = AB.Geometry(100, 4, 2)
+eq("幾何：4 格", #g.cells, 4)
+eq("幾何：格寬", g.cells[1].w, 23.5)
+eq("幾何：第 2 格 x", g.cells[2].x, 25.5)
+eq("幾何：3 個分隔", #g.gaps, 3)
+eq("幾何：分隔在格子右邊", g.gaps[1].x, 23.5)
+eq("幾何：格距 0 沒有分隔", #AB.Geometry(100, 4, 0).gaps, 0)
+-- 整列寬的填色，第 k 層的終點落在第 k 個分隔裡（被分隔蓋住，看起來還是一格一格）
+for k = 1, 3 do
+    local fillEnd = 100 * k / 4
+    local gp = g.gaps[k]
+    check(("第 %d 層的填色終點落在第 %d 個分隔裡"):format(k, k), fillEnd >= gp.x and fillEnd <= gp.x + gp.w)
+end
+local base = { spellIDs = { 2, 1 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }
+local sigA = AB.Signature(base)
+eq("簽章：法術順序不影響", AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }), sigA)
+check("簽章：換色就換", AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 0, g = 1, b = 0 }, alpha = 1 }) ~= sigA)
+check("簽章：上限進簽章", AB.Signature({ spellIDs = { 1, 2 }, max = 5, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }) ~= sigA)
+check("簽章：有光環才顯示（裝飾在子樹裡）進簽章", AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
+    inside = { W = 100, H = 8, n = 4, gap = 1, segW = 24, segments = true, dim = { 0, 0, 0, 1 }, px = 1 } }) ~= sigA)
+check("簽章：instances 與 applications 不同", AB.Signature({ kind = "instances", spellIDs = { 1, 2 }, max = 4, texture = "t",
+    color = { r = 1, g = 0, b = 0 }, alpha = 1, cell = { segW = 24, H = 8, gap = 1 } }) ~= sigA)
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

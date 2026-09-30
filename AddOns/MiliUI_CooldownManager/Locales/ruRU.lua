@@ -293,7 +293,6 @@ L["Track it as a buff or a debuff on you?"] = "Отслеживать как б�
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Пока эффект можно обновить без потери времени, его рамка окрашивается в этот цвет."
 
 -- F 階段：資源條與施法條
-L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] = "Ресурсы поглощающего типа (Пошатывание, Железная шкура, Не чувствовать боли) в 12.1 являются secret values — аддоны не могут прочитать их значения, поэтому они не перечислены."
 L["Add check"] = "Добавить проверку"
 L["Add rule"] = "Добавить правило"
 L["And"] = "И"
@@ -421,5 +420,20 @@ L["Max stacks must be a whole number from 1 to %d."] = "Макс. стаков �
 L["Show seconds"] = "Показывать секунды"
 L["Remove this custom row?"] = "Удалить этот свой ряд?"
 L["Position and anchoring"] = "Положение и привязка"
-L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Заклинание с зарядами, один сегмент на заряд. Пустые сегменты показывают следующее восстановление заряда — затемнение и секунды. Например, «Божественный скакун» паладина или «Скачок» мага. Введите ID заклинания."
-L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Положительный эффект на вас, который складывается, — один сегмент на стак; без эффекта все пустые, таймера восстановления нет. Например, «Костяной щит» рыцаря смерти. Введите ID заклинания эффекта и максимум стаков."
+
+-- 自訂格子：顯示時機、整組開關；補齊的職業資源
+L["Moderate threshold (percent of max health)"] = "Порог среднего (процент от макс. здоровья)"
+L["Heavy threshold (percent of max health)"] = "Порог тяжёлого (процент от макс. здоровья)"
+L["Full bar at (percent of max health)"] = "Полная полоса при (процент от макс. здоровья)"
+L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."] = "Цвет зависит от доли макс. здоровья в пошатывании. В бою в подземельях числа иногда недоступны; в такие обновления сохраняются прежние цвет и масштаб полосы."
+L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "Показывает сумму всех поглощающих щитов на вас, а не только этого; полная полоса — 30 процентов вашего макс. здоровья."
+L["One segment per active application, each draining with its own remaining time."] = "По одному сегменту на каждое активное наложение, каждый убывает по своему оставшемуся времени."
+L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s: игра сама заполняет эту строку, поэтому в бою она остаётся верной; правила условий и текст значения не применяются."
+L["Show custom segments"] = "Показывать свои сегменты"
+L["Always"] = "Всегда"
+L["Only while recharging"] = "Только во время восстановления"
+L["While recharging or in combat"] = "Во время восстановления или в бою"
+L["Only while you have the aura"] = "Только пока на вас эффект"
+L["A row that hides keeps its space, so the rows below it don't jump."] = "Скрытая строка сохраняет своё место, чтобы строки ниже не прыгали."
+L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Заклинание с зарядами, один сегмент на заряд. Следующий пустой сегмент плавно заполняется во время восстановления, с оставшимися секундами. Например, «Божественный скакун» паладина или «Скачок» мага. Введите ID заклинания."
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Складывающийся положительный эффект на вас, один сегмент на стак; всё пусто, пока эффекта нет, без времени восстановления. Игра заполняет его сама, поэтому он верен и в боях с боссами, и в М+. Например, «Костяной щит» рыцаря смерти. Введите ID заклинания эффекта и максимум стаков."
