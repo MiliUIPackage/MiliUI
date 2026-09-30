@@ -210,9 +210,16 @@ function Tab.Build(parent, title)
             forms[sig] = form
         end
         for _, fm in pairs(forms) do fm.content:SetShown(fm == form) end
-        if self.form ~= form then scroll:SetVerticalScroll(0) end
+        -- 表單換了形狀（規則增刪、開關長出新列）：**維持原本的捲動位置**，只在第一次建這頁時歸零。
+        -- 換表單就跳回最上面的話，按一下「新增規則」整頁飛走、玩家還得拉回來找自己在哪
+        local keep = self.form and scroll:GetVerticalScroll() or 0
+        if self.form ~= form and not self.form then scroll:SetVerticalScroll(0) end
         self.form, self.sig = form, sig
         scroll:SetContentHeight(form.height)
+        if keep > 0 then
+            local maxScroll = math.max(0, form.height - (scroll:GetHeight() or 0))
+            scroll:SetVerticalScroll(math.min(keep, maxScroll))
+        end
         form:Refresh()
     end
 
