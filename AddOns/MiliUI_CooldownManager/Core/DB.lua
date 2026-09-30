@@ -262,7 +262,7 @@ function DB.BuildDefaults()
                 -- 無損刷新（可以續壓的窗口）：邊框換色；bars ＝ 長條的條身也換色
                 pandemic = { enabled = true, color = rgba(1, 0.5, 0, 1), bars = true },
                 -- 按鍵文字：動作條上綁的鍵，縮寫後畫在圖示一角
-                keybind  = { enabled = false, size = 10, point = "TOPLEFT", x = 1, y = -1 },
+                keybind  = { enabled = true, size = 10, point = "TOPRIGHT", x = 1, y = -1 },   -- 預設開、右上（使用者 2026-09-30 指定）
             },
             bars = {
                 essential = IconBar{ source = "essential", pos = { point = "CENTER", x = 0, y = -202 },
