@@ -314,7 +314,7 @@ function DB.BuildDefaults()
                                      anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM",
                                                 x = 0, y = -1 } },
                 buffs     = IconBar{ source = "buffs",     pos = { point = "CENTER", x = 0, y = -149 },
-                                     w = 40, h = 36, grow = "CENTER_UP", fixedSlots = true },
+                                     w = 40, h = 36, grow = "CENTER_UP" },
                 buffbars  = buffbars,
             },
             barOrder = { "essential", "utility", "buffs", "buffbars" },   -- 左欄順序，自訂群組接在後面
