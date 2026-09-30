@@ -84,6 +84,7 @@ function D.Resolve(barKey, fresh)
         outline      = S(barKey, "outline") or "",
         border       = S(barKey, "border") or {},
         zoom         = tonumber(S(barKey, "icon.zoom")) or 0,
+        tooltips     = S(barKey, "icon.tooltips") and true or false,
         swipeColor   = S(barKey, "icon.swipeColor"),
         hideGCDSwipe = S(barKey, "icon.hideGCDSwipe") and true or false,
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
@@ -94,7 +95,7 @@ function D.Resolve(barKey, fresh)
     }
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
-        CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.drawEdge),
+        CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.drawEdge), tostring(r.tooltips),
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
         type(r.bar) == "table" and TSig(r.bar) or "-",
     }, "|")
@@ -485,6 +486,55 @@ function D.ApplyPlaceholder(ph, barKey, id)
 end
 
 ------------------------------------------------------------
+-- 滑鼠提示
+--
+-- 用**我們的 overlay** 收滑鼠移動（它蓋在 item 上面，子框收到 OnEnter 之後父層就收不到，
+-- 所以暴雪 item 自己的提示自然不會再出現）。開：顯示這格的法術／裝備／物品提示；關：overlay
+-- 照樣收滑鼠但什麼都不顯示 ⇒ 暴雪的提示也一起關掉，不用去碰它的 SetTooltipsShown（那會寫暴雪欄位）。
+-- 只收滑鼠移動、不收點擊（SetMouseClickEnabled(false)），點擊照舊穿到底下。
+------------------------------------------------------------
+local function ShowTip(ov)
+    local rec = ov.rec
+    if not (rec and GameTooltip) then return end
+    GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
+    local shown = false
+    if rec.custom then
+        if rec.kind == "item" and rec.itemID then
+            shown = pcall(GameTooltip.SetItemByID, GameTooltip, rec.itemID)
+        elseif rec.spellID then
+            shown = pcall(GameTooltip.SetSpellByID, GameTooltip, rec.overrideID or rec.spellID)
+        end
+    else
+        local info = ns.Catalog.Info(rec.cooldownID)
+        local spellID = info and (info.overrideTooltipSpellID or info.overrideSpellID or info.spellID)
+        if type(spellID) == "number" then
+            shown = pcall(GameTooltip.SetSpellByID, GameTooltip, spellID)
+        elseif info and type(info.equipSlot) == "number" then
+            shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", info.equipSlot)
+        end
+    end
+    if shown then GameTooltip:Show() else GameTooltip:Hide() end
+end
+
+local function HideTip(ov)
+    if GameTooltip and GameTooltip:IsOwned(ov) then GameTooltip:Hide() end
+end
+
+local function ApplyTooltip(ov, rec, on)
+    ov.rec = rec
+    if not ov.tipWired then
+        ov.tipWired = true
+        ov:SetScript("OnEnter", function(self) if self.tipOn then ShowTip(self) end end)
+        ov:SetScript("OnLeave", HideTip)
+    end
+    ov.tipOn = on
+    -- 兩種狀態 overlay 都收滑鼠移動：關的時候是為了把暴雪自己的提示也擋掉
+    pcall(ov.SetMouseMotionEnabled, ov, true)
+    pcall(ov.SetMouseClickEnabled, ov, false)
+end
+D.ApplyTooltip = ApplyTooltip
+
+------------------------------------------------------------
 -- 主入口
 ------------------------------------------------------------
 function D.Apply(item, rec, barKey, w, h)
@@ -557,6 +607,7 @@ function D.Apply(item, rec, barKey, w, h)
 
     ApplyProcAlert(item, rec, barKey)
     D.ApplyGCDAlpha(item, rec)          -- 開關切換當場生效（關掉要把 alpha 還回 1）
+    ApplyTooltip(ov, rec, style.tooltips)
     rec.decorated, rec.decoratedBar = sig, barKey
     -- 發光的框跟著格子尺寸走（尺寸由我們給，不從 item 讀）；樣式變了的發光重畫
     if ns.Glow and ns.Glow.AfterApply then ns.Glow.AfterApply(item, rec, barKey, w, h) end

@@ -231,6 +231,7 @@ local function ReadInfo(id)
     if not ok or type(raw) ~= "table" then return nil end
     local spellID    = Plain(raw.spellID)
     local overrideID = Plain(raw.overrideSpellID)
+    local tipID      = Plain(raw.overrideTooltipSpellID)
     local shown      = overrideID or spellID
     local icon, name
     if shown and C_Spell then
@@ -265,6 +266,7 @@ local function ReadInfo(id)
         cooldownID      = id,
         spellID         = spellID,
         overrideSpellID = overrideID,
+        overrideTooltipSpellID = tipID,
         icon            = icon,
         name            = name,
         category        = Plain(raw.category),

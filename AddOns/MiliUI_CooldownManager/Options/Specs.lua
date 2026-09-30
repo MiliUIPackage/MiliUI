@@ -295,7 +295,9 @@ function Specs.Themed(mode)
         Note(L["Crops the icon edges; 0 shows the whole texture."], "icon"),
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
         TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"]),
-        TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"]))
+        TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"]),
+        TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),
+        Note(L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."], "icon"))
 
     -- 文字
     add({ type = "header", label = L["Text"] })
