@@ -214,7 +214,8 @@ local function SetCombatLocked(locked)
     else
         panel.combatMask:Hide()
         closeBtn:SetFrameStrata("DIALOG")
-        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
+        -- +200：頁面裡有比 +10 高的子框（表單遮罩 +40 起跳），關閉鈕要壓得過它們
+        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
     end
 end
 
@@ -241,7 +242,7 @@ local function CreatePanel()
     -- 關閉鈕：用貼圖不用「×」字元（中文字型可能沒這個字形）
     closeBtn = W.CreateButton(panel, "", "red", 20, 20)
     closeBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
-    closeBtn:SetFrameLevel(panel:GetFrameLevel() + 10)
+    closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
     local closeX = closeBtn:CreateTexture(nil, "OVERLAY")
     closeX:SetTexture("Interface\\Buttons\\UI-StopButton")
     closeX:SetSize(12, 12)
@@ -355,6 +356,10 @@ function Options.Open(pageId)
     ApplyPosition()
     panel:Show()
     panel:Raise()        -- 已開但被別的對話框蓋住時拉到最前
+    -- ⚠ Raise 會把面板的層級往上抬（同一層有別的視窗時，例如暴雪冷卻管理器面板），但關閉鈕
+    --   被單獨設過 strata、不會跟著抬 ⇒ 掉到面板背景後面：看起來暗掉、點不到。
+    --   OnShow 設的那次在 Raise 之前，所以 Raise 之後要再對一次。
+    SetCombatLocked(InCombatLockdown())
     local w = WindowDB()
     Options.ShowPage(pageId or (w and w.lastBar) or "essential")
 end
