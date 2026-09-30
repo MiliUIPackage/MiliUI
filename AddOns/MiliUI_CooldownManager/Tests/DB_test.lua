@@ -132,7 +132,7 @@ eq("自訂格子錨在核心", DB.GetPath(ns.profile, "pips.anchor.to"), "essent
 eq("輔助錨點", S("utility", "anchor.relPoint"), "BOTTOM")
 eq("核心沒有錨定", S("essential", "anchor"), false)
 eq("第二列尺寸預設關", S("essential", "layout.row2Size"), false)
-eq("增益固定格位", S("buffs", "layout.fixedSlots"), true)
+eq("增益預設不固定格位", S("buffs", "layout.fixedSlots"), false)
 eq("核心不固定格位", S("essential", "layout.fixedSlots"), false)
 eq("barOrder[4]", ns.profile.barOrder[4], "buffbars")
 
