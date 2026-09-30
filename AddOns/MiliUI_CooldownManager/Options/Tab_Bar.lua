@@ -27,21 +27,17 @@ local Options = ns.Options
 ------------------------------------------------------------
 -- 暴雪冷卻管理器的設定面板
 --
--- 警示（聲音／文字提醒）在暴雪面板裡是**逐法術右鍵**設定的，面板本身沒有「警示」分頁可以
--- 直接切過去（切顯示模式要呼叫它的 SetDisplayMode，那會從我們的執行寫它的欄位）。
--- 所以兩顆按鈕開的是同一個面板，警示那顆多印一行怎麼找。
+-- 警示（聲音／文字提醒）在暴雪面板裡是逐法術右鍵設定的，面板本身沒有「警示」分頁；
+-- 所以這裡只有一顆「開暴雪冷卻管理器」。
 ------------------------------------------------------------
-function TabBar.OpenBlizzard(forAlerts)
+function TabBar.OpenBlizzard()
     if InCombatLockdown() then return end
-    Options.Close()
+    -- 不關自己的設定視窗（使用者指定）：兩邊並排對照著改
     if not _G.CooldownViewerSettings and C_AddOns and C_AddOns.LoadAddOn then
         pcall(C_AddOns.LoadAddOn, "Blizzard_CooldownViewer")
     end
     local f = _G.CooldownViewerSettings
     if f then securecall("ShowUIPanel", f) end
-    if forAlerts then
-        ns.Print(L["Alerts are set per spell: right-click a spell in Blizzard's Cooldown Manager panel and choose \"Add alert\"."])
-    end
 end
 
 ------------------------------------------------------------
@@ -81,19 +77,8 @@ function TabBar.Build(parent, title, key)
     local buttons = {}
     local open = W.CreateButton(btnHolder, L["Open Blizzard Cooldown Manager"], "normal", 150, 22)
     W.FitButton(open, 150, 22)
-    open:SetScript("OnClick", function() TabBar.OpenBlizzard(false) end)
+    open:SetScript("OnClick", function() TabBar.OpenBlizzard() end)
     buttons[#buttons + 1] = open
-    local alerts = W.CreateButton(btnHolder, L["Open Blizzard alert settings"], "normal", 150, 22)
-    W.FitButton(alerts, 150, 22)
-    alerts:SetScript("OnClick", function() TabBar.OpenBlizzard(true) end)
-    alerts:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(L["Open Blizzard alert settings"])
-        GameTooltip:AddLine(L["Alerts are set per spell: right-click a spell in Blizzard's Cooldown Manager panel and choose \"Add alert\"."], 0.8, 0.8, 0.8, true)
-        GameTooltip:Show()
-    end)
-    alerts:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    buttons[#buttons + 1] = alerts
     if not ns.DB.IsBuiltinBar(key) then
         local rename = W.CreateButton(btnHolder, L["Rename"], "normal", 80, 22)
         W.FitButton(rename, 80, 22)

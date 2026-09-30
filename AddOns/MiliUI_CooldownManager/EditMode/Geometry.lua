@@ -52,12 +52,20 @@ function EM.SnapValue(v, step)
     return floor(v / step + 0.5) * step
 end
 
--- 只吸錨點那一邊：錨點（相對原點）吸到最近的格線，回傳整個矩形要挪的量
+-- 吸附範圍：錨點離最近的格線在 step / SNAP_RANGE_DIV 以內才吸（32 的格距約 5px）。
+-- 原本永遠吸最近的一條（等於半格 16px），拖起來太黏；使用者 2026-09-30 要「現在的 1/3」。
+EM.SNAP_RANGE_DIV = 6
+
+-- 只吸錨點那一邊：錨點（相對原點）離格線夠近才吸過去，兩軸各自判斷，回傳整個矩形要挪的量
 function EM.SnapDelta(anchorPoint, l, r, t, b, ox, oy, step)
     if not step or step <= 0 then return 0, 0 end
     local ax, ay = EM.PointXY(anchorPoint, l, r, t, b)
     local rx, ry = ax - ox, ay - oy
-    return EM.SnapValue(rx, step) - rx, EM.SnapValue(ry, step) - ry
+    local range = step / EM.SNAP_RANGE_DIV
+    local dx, dy = EM.SnapValue(rx, step) - rx, EM.SnapValue(ry, step) - ry
+    if dx > range or dx < -range then dx = 0 end
+    if dy > range or dy < -range then dy = 0 end
+    return dx, dy
 end
 
 -- 框的矩形；任一邊讀不到（還沒錨定、秘密值）回 nil
