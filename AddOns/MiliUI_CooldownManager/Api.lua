@@ -122,6 +122,28 @@ local function Debug()
         p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",
                     tostring(C.IsPaused()), tostring(C.specTag), C.adopted or 0, B.resyncs or 0))
+        -- 暴雪 API 現在給的是哪一份清單：每一類幾個、學會幾個、前三個的 cooldownID＝法術。
+        -- 換專精之後暴雪有時還在給上一個專精的清單（面板上一排灰色的別專精技能、本專精的技能不見），
+        -- 這幾行對照暴雪資料表的 cooldownID 就看得出來
+        local CV = C_CooldownViewer
+        local cats = Enum and Enum.CooldownViewerCategory
+        if CV and CV.GetCooldownViewerCategorySet and CV.GetCooldownViewerCooldownInfo and cats then
+            for _, def in ipairs({ { "核心", cats.Essential }, { "輔助", cats.Utility } }) do
+                local ok, ids = pcall(CV.GetCooldownViewerCategorySet, def[2], true)
+                if ok and type(ids) == "table" then
+                    local known, head = 0, {}
+                    for i = 1, #ids do
+                        local ok2, info = pcall(CV.GetCooldownViewerCooldownInfo, ids[i])
+                        if ok2 and type(info) == "table" then
+                            if info.isKnown == true then known = known + 1 end
+                            if #head < 3 then head[#head + 1] = tostring(ids[i]) .. "=" .. tostring(info.spellID) end
+                        end
+                    end
+                    p(("  暴雪清單（API）%s：%d 個、已學會 %d  前三個 %s")
+                        :format(def[1], #ids, known, table.concat(head, "、")))
+                end
+            end
+        end
         if ns.Compat then
             p(("  圖示套皮插件：%s"):format(ns.Compat.Active() and ("已請它跳過（蓋印 " .. tostring(ns.Compat.marked) .. " 次）") or "沒有／不處理"))
         end
