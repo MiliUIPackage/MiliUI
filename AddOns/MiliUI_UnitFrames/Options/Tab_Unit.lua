@@ -191,6 +191,9 @@ local function FrameSpecs(unitKey)
     tinsert(list, { type = "toggle", root = "frame", key = "oocShowWhenHurt",
                     label = L["Stay visible while health is not full"] })
     tinsert(list, { type = "text", label = L["Works with fade out of combat: the frame stays fully visible until health is back to full. Needs the health bar."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "oocShowWithTarget",
+                    label = L["Stay visible while you have a target"] })
+    tinsert(list, { type = "text", label = L["Works with fade out of combat. With both exceptions on and out-of-combat transparency at 0, the frame only shows in combat, with a target, or while health is not full."] })
     tinsert(list, { type = "text", label = L["With both on, whichever is more transparent wins."] })
 
     tinsert(list, { type = "header", label = L["Mouseover"] })

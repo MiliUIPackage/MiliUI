@@ -577,7 +577,9 @@ function V.Alpha(uf)
         local oor = g.oorAlpha or 0.45
         if oor < a then a = oor end
     end
-    if fdb.fadeOutOfCombat and not InCombatLockdown() then
+    -- 有目標時不淡出：UnitExists 是明文，直接判；成立就連血量曲線都不必走
+    if fdb.fadeOutOfCombat and not InCombatLockdown()
+       and not (fdb.oocShowWithTarget and UnitExists("target")) then
         local ooc = g.oocAlpha or 0.5
         local useCurve = fdb.oocShowWhenHurt and a == 1
         if ooc < a then a = ooc end
@@ -666,6 +668,7 @@ end
 
 ns.Events.Register("PLAYER_REGEN_DISABLED", "visibility_combat_in", OnCombat)
 ns.Events.Register("PLAYER_REGEN_ENABLED", "visibility_combat_out", OnCombat)
+ns.Events.Register("PLAYER_TARGET_CHANGED", "visibility_ooc_target", ApplyAllAlpha)   -- 有目標時不淡出
 ns.Events.Register("ZONE_CHANGED_NEW_AREA", "visibility_zone", ApplyAllIfNeeded)
 ns.Events.Register("UPDATE_SHAPESHIFT_FORMS", "visibility_forms", ApplyAllDriversIfMounted)
 -- 進世界：副本判定可能變、登入當下姿態列可能還沒就緒，而且旗標本身要重算（設定檔可能剛換）
