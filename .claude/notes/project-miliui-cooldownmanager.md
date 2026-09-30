@@ -59,6 +59,11 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
 `/mcdm debug`、`/mcdm aura`、`/mcdm release` 三個除錯指令）。Ayije 還開著時新插件只彈互斥視窗、什麼都不做。
 第一戰開 `/console taintLog 2`。Ayije_CDM 資料夾這一輪沒刪。
 
+**錨定是「排開」不是照字面貼（2026-09-30）**：`anchor` 只說「跟著誰、在哪一邊」，實際貼在誰身上由
+`Layout.StackTarget` 算——同目標同邊的照固定順序往外排（資源條→自訂格子→輔助→施法條→…）。預設四個都直接跟核心技能，
+**不要再做鏈式預設**（輔助錨在自訂格子上那種）：使用者把格子移到上方，輔助跟著黏上去、又跟資源條疊在一起。
+重貼要**兩段式**（先全部 ClearAllPoints 再 SetPoint），逐條貼會在過渡狀態撞上「錨在依賴自己的框上」。
+
 **內建音效（2026-09-30）**：`Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，自帶 LICENSE 與出處
 README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插件、載入時註冊進 LibSharedMedia 讓其他插件也選得到
 （使用者拍板：不另立音效包插件）。為此內嵌了 LibStub／CallbackHandler／LibSharedMedia（取套組裡最新那份）。

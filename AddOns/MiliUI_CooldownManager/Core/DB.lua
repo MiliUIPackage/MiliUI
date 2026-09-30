@@ -214,7 +214,8 @@ PipsDefaults = function()
     return {
         enabled       = true,
         pos           = { point = "CENTER", x = 0, y = -250 },
-        -- 預設貼在核心技能下緣、往下長；輔助技能預設錨在它下面（使用者 2026-09-30 指定）
+        -- 預設貼在核心技能下緣、往下長（使用者 2026-09-30 指定）。輔助技能也跟著核心技能的下方，
+        -- 兩個同一邊 ⇒ 自動排開，格子在內、輔助在外（Core/Layout.lua 的 StackTarget）
         anchor        = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 },
         -- 跟核心技能條一起淡（同資源條）
         fadeWithEssential = true,
@@ -228,8 +229,9 @@ CastbarDefaults = function()
     return {
         enabled       = true,
         pos           = { point = "CENTER", x = 0, y = -260 },
-        -- 預設跟舊套組一樣：貼在資源條上緣（資源條又貼在核心技能上緣），寬度跟核心技能同寬
-        anchor        = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
+        -- 預設跟舊套組一樣的位置：核心技能上方、資源條的外面（兩個都跟著核心技能的上方，自動排開），
+        -- 寬度跟核心技能同寬
+        anchor        = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬（含圖示）
         height        = 20,
         texture       = "solid",
@@ -309,7 +311,7 @@ function DB.BuildDefaults()
                                      w = 46, h = 40 },
                 utility   = IconBar{ source = "utility",   pos = { point = "CENTER", x = 0, y = -250 },
                                      w = 26, h = 24,
-                                     anchor = { to = "pips", point = "TOP", relPoint = "BOTTOM",
+                                     anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM",
                                                 x = 0, y = -1 } },
                 buffs     = IconBar{ source = "buffs",     pos = { point = "CENTER", x = 0, y = -149 },
                                      w = 40, h = 36, grow = "CENTER_UP", fixedSlots = true },
@@ -814,7 +816,7 @@ function DB.IsBuiltinBar(key) return BUILTIN[key] == true end
 
 -- 「面板」：資源條、自訂格子與施法條。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁），
 -- 但錨定／位置／編輯模式跟條同一套。
--- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它；輔助技能預設錨在 pips 上），不要改名。
+-- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
 local PANEL_KEYS = { resources = true, pips = true, castbar = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS

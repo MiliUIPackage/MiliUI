@@ -324,7 +324,8 @@ check("資源條預設：顏色表不共用預設那張", res.colors.Chi.color ~
 check("資源條預設：條件與開關列是空表", next(res.conditions) == nil and next(res.rows) == nil)
 eq("資源條預設：跟核心技能一起淡", res.fadeWithEssential, true)
 check("資源條預設：載入條件", res.loadConditions.hideMounted == false and res.loadConditions.onlyCombat == false)
-eq("施法條預設：貼在資源條上方", type(cb.anchor) == "table" and cb.anchor.to, "resources")
+check("施法條預設：跟著核心技能上方（跟資源條同一邊，排在它外面）", type(cb.anchor) == "table" and cb.anchor.to == "essential"
+    and cb.anchor.point == "BOTTOM" and cb.anchor.relPoint == "TOP")
 check("施法條預設：刻度與延遲開", cb.ticks == true and cb.latency == true)
 check("施法條預設：蓄力四階都有色", type(cb.colors.empowerStage4) == "table")
 eq("施法條預設：隱藏暴雪施法條", cb.hideBlizzard, true)
@@ -333,23 +334,23 @@ eq("ConfigTable 施法條", ns.DB.ConfigTable("castbar"), cb)
 eq("ConfigTable 條", ns.DB.ConfigTable("essential"), p.bars.essential)
 eq("ConfigTable 沒這條", ns.DB.ConfigTable("nope"), nil)
 check("IsPanel", ns.DB.IsPanel("resources") and ns.DB.IsPanel("castbar") and not ns.DB.IsPanel("essential"))
--- 自訂格子的面板：核心 → 自訂格子 → 輔助
+-- 自訂格子的面板：跟輔助技能一樣跟著核心技能下方，排開之後是 核心 → 自訂格子 → 輔助
 local pips = p.pips
 check("自訂格子預設：錨在核心技能下方", type(pips) == "table" and type(pips.anchor) == "table" and pips.anchor.to == "essential"
     and pips.anchor.point == "TOP" and pips.anchor.relPoint == "BOTTOM" and pips.anchor.x == 0 and pips.anchor.y == -1)
 check("自訂格子預設：開、跟核心技能一起淡、自己的 pos", pips.enabled == true and pips.fadeWithEssential == true
     and pips.pos.point == "CENTER" and pips.pos.y == -250)
 local ua = p.bars.utility.anchor
-check("輔助預設：錨在自訂格子下方", type(ua) == "table" and ua.to == "pips" and ua.point == "TOP" and ua.relPoint == "BOTTOM" and ua.y == -1)
+check("輔助預設：跟著核心技能下方", type(ua) == "table" and ua.to == "essential" and ua.point == "TOP" and ua.relPoint == "BOTTOM" and ua.y == -1)
 eq("ConfigTable 自訂格子", ns.DB.ConfigTable("pips"), pips)
 check("IsPanel 自訂格子", ns.DB.IsPanel("pips"))
 eq("面板順序：資源條、自訂格子、施法條", table.concat(ns.DB.PANEL_ORDER, ","), "resources,pips,castbar")
 check("核心技能 → 自訂格子會成環", ns.DB.AnchorWouldCycle("essential", "pips"))
-check("自訂格子 → 輔助會成環（輔助錨在它上面）", ns.DB.AnchorWouldCycle("pips", "utility"))
+check("自訂格子 → 輔助不會成環（輔助跟的是核心）", not ns.DB.AnchorWouldCycle("pips", "utility"))
 check("施法條 → 自訂格子不會成環", not ns.DB.AnchorWouldCycle("castbar", "pips"))
 local dp = ns.DB.DefaultFor("bar", "pips", "anchor")
 check("DefaultFor 自訂格子：錨定預設是複本", type(dp) == "table" and dp.to == "essential" and dp ~= pips.anchor)
-eq("DefaultFor 輔助：錨在自訂格子", ns.DB.DefaultFor("bar", "utility", "anchor.to"), "pips")
+eq("DefaultFor 輔助：跟著核心", ns.DB.DefaultFor("bar", "utility", "anchor.to"), "essential")
 -- 刪自訂群組：錨在它身上的自訂格子一併放開
 local g2 = ns.DB.CreateBar("icons", "臨時")
 pips.anchor = { to = g2, point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }

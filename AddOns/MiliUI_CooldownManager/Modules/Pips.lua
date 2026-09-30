@@ -6,9 +6,10 @@
 --   * 樣式：列高、列距、格距、材質、填充方向、填充透明度、寬度（0 ＝ 核心技能第一列）一律讀
 --     profile.resources，不另開一組
 --   * 自己的只有 profile.pips：enabled、pos、anchor、fadeWithEssential、loadConditions、strata
--- 預設錨在核心技能下方（anchor TOP → essential BOTTOM），輔助技能預設錨在這裡的下方：
--- 核心 → 自訂格子 → 輔助。沒有任何一列時容器高度 0（Bars 的 collapsible 面板：錨定的
--- y 偏移一起收掉），輔助就跟原本一樣貼在核心下方 1px；有列時輔助自動往下讓。
+-- 預設跟著核心技能下方（anchor TOP → essential BOTTOM），輔助技能也是：同一邊的自動排開
+-- （Core/Layout.lua 的 StackTarget），格子在內、輔助在外 ⇒ 核心 → 自訂格子 → 輔助。
+-- 沒有任何一列時容器高度 0（Bars 的 collapsible 面板：錨定的 y 偏移一起收掉），輔助就跟原本
+-- 一樣貼在核心下方 1px；有列時輔助自動往下讓。
 --
 --   charges  法術充能。每格由下往上：
 --              底色貼圖（BACKGROUND）

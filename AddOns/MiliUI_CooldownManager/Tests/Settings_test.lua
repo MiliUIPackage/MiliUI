@@ -118,7 +118,7 @@ eq("條自己的欄位", DB.DefaultFor("bar", "essential", "layout.size.w"), 46)
 local d1 = DB.DefaultFor("theme", nil, "border.color")
 d1.r = 0.9
 eq("預設值是複本", p.theme.border.color.r, 0)
-eq("輔助的錨定預設", DB.DefaultFor("bar", "utility", "anchor.to"), "pips")
+eq("輔助的錨定預設", DB.DefaultFor("bar", "utility", "anchor.to"), "essential")
 
 ------------------------------------------------------------
 -- 3. 自訂群組
