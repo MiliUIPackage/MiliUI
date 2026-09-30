@@ -127,7 +127,7 @@ function Sidebar.RenameGroup(key)
         local page = ns.Options.GetPage(key)
         if page and page:IsShown() and page.OnShowPage then page:OnShowPage() end
         local EM = ns.EditMode
-        if EM and EM.active and EM.RefreshBar then EM.RefreshBar(key) end
+        if EM and EM.Editing() and EM.RefreshBar then EM.RefreshBar(key) end
         ns.Fire("BarsListChanged")
     end)
 end

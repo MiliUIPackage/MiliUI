@@ -41,7 +41,13 @@ ns.EditMode = ns.EditMode or {}
 local EM = ns.EditMode
 
 EM.active = false          -- 我們認定的編輯模式狀態（三重訊號維護）
+EM.optionsOpen = false     -- 設定視窗開著：覆蓋層照樣出來、條可以拖（不用進暴雪的編輯模式）
 EM.hooked = false
+
+-- 「現在可以拖」：暴雪編輯模式，或本插件的設定視窗開著（使用者 2026-10-01 指定：開設定就能拖、磁吸也在）
+function EM.Editing()
+    return EM.active or EM.optionsOpen
+end
 
 local Guard = ns.Guard
 local BarCfg = EM.BarCfg
@@ -76,15 +82,17 @@ local function GridSpacing()
 end
 EM.GridSpacing = GridSpacing
 
+-- Shift 按著一律不吸（格線與套組磁吸都不吸）；設定視窗開著（不在暴雪編輯模式）時一律吸，
+-- 暴雪編輯模式裡照暴雪的「吸附」開關
 local function SnapEnabled()
-    local on = false
+    if IsShiftKeyDown() then return false end
+    if EM.optionsOpen and not EM.active then return true end
     local mgr = EditModeManagerFrame
     if mgr and mgr.IsSnapEnabled then
         local ok, v = pcall(mgr.IsSnapEnabled, mgr)
-        on = ok and v == true
+        return ok and v == true
     end
-    if IsShiftKeyDown() then on = not on end     -- 暫時反轉：微調一兩格時好用
-    return on
+    return false
 end
 EM.SnapEnabled = SnapEnabled
 
@@ -113,8 +121,8 @@ function EM.EndDrag(commit)
     local c, bar = ns.Bars.Get(key), BarCfg(key)
     local canWrite = not InCombatLockdown()
     if commit and canWrite and c and bar then
-        -- 放手離套組其他框 2px 內就貼齊，再照現況換算存檔
-        if ns.Snap and ns.Snap.OnDragStop then ns.Snap.OnDragStop(SNAP_PREFIX .. key) end
+        -- 放手離套組其他框 2px 內就貼齊，再照現況換算存檔（Shift 按著就不吸）
+        if ns.Snap and ns.Snap.OnDragStop and not IsShiftKeyDown() then ns.Snap.OnDragStop(SNAP_PREFIX .. key) end
         local pos = EM.ReadPos(key)
         if pos then bar.pos = pos end
         -- 容器有名字：不清的話 WoW 的版面快取會跟我們的 SetPoint 打架
@@ -190,7 +198,7 @@ local refreshArmed = false
 local function RefreshAll()
     refreshArmed = false
     if not (ns.ready and ns.Bars and ns.Bars.Containers) then return end
-    if not EM.active then
+    if not EM.Editing() then
         -- 拖到一半離開編輯模式（ESC）：照放手處理；ns.dragging 一律清，卡住的話之後所有重錨都失效
         if dragState then EM.EndDrag(not InCombatLockdown()) end
         ns.dragging = nil
@@ -217,10 +225,10 @@ combatWatcher:RegisterEvent("PLAYER_REGEN_DISABLED")
 combatWatcher:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_REGEN_DISABLED" then
         if dragState then xpcall(EM.EndDrag, ns.ReportError, false) end
-        if EM.active then self:RegisterEvent("PLAYER_REGEN_ENABLED") end
+        if EM.Editing() then self:RegisterEvent("PLAYER_REGEN_ENABLED") end
     else
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-        if EM.active then EM.RequestRefresh() end
+        if EM.Editing() then EM.RequestRefresh() end
     end
 end)
 
@@ -300,6 +308,16 @@ end
 -- 進出訊號（三重，全部冪等）
 ------------------------------------------------------------
 -- 狀態真的變了才廣播 "EditModeChanged"（設定視窗的點擊層要讓位；三重訊號會重複進來）
+-- 設定視窗的開關（Panel 的 OnShow／OnHide 廣播）：只改旗標，工作延一幀
+ns.RegisterCallback("OptionsShown", "editmode", function()
+    EM.optionsOpen = true
+    EM.RequestRefresh()
+end)
+ns.RegisterCallback("OptionsHidden", "editmode", function()
+    EM.optionsOpen = false
+    EM.RequestRefresh()
+end)
+
 local function OnEnter()
     local was = EM.active
     EM.active = true

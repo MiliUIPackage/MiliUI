@@ -49,6 +49,7 @@ L["Dragging stops it following %s"] = "Al arrastrarla deja de seguir a %s"
 L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "Los ajustes del gestor de reutilizaciones están en /mcdm o en el engranaje de la esquina superior derecha del marco azul."
 -- 設定介面
 L["Click to open this bar's settings."] = "Haz clic para abrir los ajustes de esta barra."
+L["Drag to move. Hold Shift to disable snapping."] = "Arrastra para mover. Mantén Mayús para desactivar el ajuste."
 L["Already in Blizzard's Cooldown Manager"] = "Ya en el gestor de reutilización de Blizzard"
 L["Nothing else to move here."] = "No hay nada más que mover aquí."
 L["Add these in Blizzard's panel first"] = "Añádelos primero en el panel de Blizzard"

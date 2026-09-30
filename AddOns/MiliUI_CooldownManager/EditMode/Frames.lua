@@ -236,7 +236,7 @@ function EM.OnContainer(key, c)
     EM.customSel[key] = BuildSelection(key, c, ov)
     -- 容器是自己的框，掛它的 OnSizeChanged 沒有污染問題：格子增減時覆蓋層跟著長
     c:HookScript("OnSizeChanged", function()
-        if EM.active then EM.LayoutOverlay(key) end
+        if EM.Editing() then EM.LayoutOverlay(key) end
     end)
     local S = ns.Snap
     if S and S.Register then
@@ -258,7 +258,7 @@ function EM.ApplyBarNow(key)
     local bar = BarCfg(key)
     local csel = EM.customSel[key]
     local bsel = EM.WireViewer(key)
-    if EM.active and bar then
+    if EM.Editing() and bar then
         EM.LayoutOverlay(key)
         UpdateTexts(key, bar)
         ov:Show()
@@ -269,10 +269,11 @@ function EM.ApplyBarNow(key)
             bsel:SetAllPoints(ov)
             useBlizz = bsel:IsShown() and true or false
         end
+        -- 選取框只在暴雪編輯模式裡出現；只有設定視窗開著時，滑鼠交給點擊層（點了開設定、拖了移動）
         if csel then
-            if useBlizz then csel:Hide() else csel:ShowHighlighted() end
+            if useBlizz or not EM.active then csel:Hide() else csel:ShowHighlighted() end
         end
-        EM.selKind[key] = useBlizz and "blizzard"
+        EM.selKind[key] = (not EM.active) and "clicklayer" or useBlizz and "blizzard"
             or (csel and (csel.isFallback and "fallback" or "template")) or nil
     else
         ov:Hide()
@@ -291,6 +292,6 @@ end
 
 -- Bars.ApplyStructure 套完位置（已經在 ns.Write 裡）
 function EM.AfterApply(key)
-    if EM.active and ns.dragging ~= key then EM.ApplyBarNow(key) end
+    if EM.Editing() and ns.dragging ~= key then EM.ApplyBarNow(key) end
     if ns.Snap and ns.Snap.Restore then ns.Snap.Restore(SNAP_PREFIX .. key) end
 end

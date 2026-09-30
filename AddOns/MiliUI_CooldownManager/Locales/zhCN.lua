@@ -49,6 +49,7 @@ L["Dragging stops it following %s"] = "拖动会解除对“%s”的跟随"
 L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "冷却管理器的设置在 /mcdm，或点击蓝框右上角的齿轮。"
 -- 設定介面
 L["Click to open this bar's settings."] = "点击打开这条的设置。"
+L["Drag to move. Hold Shift to disable snapping."] = "拖动可移动；按住 Shift 拖动不吸附。"
 L["Already in Blizzard's Cooldown Manager"] = "已在暴雪冷却管理器"
 L["Nothing else to move here."] = "没有其他可以移入的。"
 L["Add these in Blizzard's panel first"] = "要先去暴雪面板添加"

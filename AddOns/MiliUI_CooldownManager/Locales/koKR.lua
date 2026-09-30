@@ -49,6 +49,7 @@ L["Dragging stops it following %s"] = "드래그하면 %s 따라가기가 해제
 L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "재사용 대기시간 관리자 설정은 /mcdm 또는 파란 테두리 오른쪽 위의 톱니바퀴에서 열 수 있습니다."
 -- 設定介面
 L["Click to open this bar's settings."] = "클릭하면 이 바의 설정을 엽니다."
+L["Drag to move. Hold Shift to disable snapping."] = "드래그하면 이동합니다. Shift를 누른 채 드래그하면 붙지 않습니다."
 L["Already in Blizzard's Cooldown Manager"] = "이미 블리자드 재사용 대기시간 관리자에 있음"
 L["Nothing else to move here."] = "옮길 수 있는 항목이 없습니다."
 L["Add these in Blizzard's panel first"] = "먼저 블리자드 패널에서 추가"
