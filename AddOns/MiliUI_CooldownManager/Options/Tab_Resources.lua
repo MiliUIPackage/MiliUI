@@ -383,9 +383,9 @@ end
 
 local function AppendCustomRows(list)
     local function add(s) list[#list + 1] = s end
-    add({ type = "header", label = L["Custom segments"] })
+    -- 自訂格子是這一頁的第二個分頁，分頁鈕本身就是標題，不再放一條同名的小節標題
     add(BS("toggle", "enabled", L["Show custom segments"], { root = "bar@" .. PIPS, level = "structure" }))
-    add(Note(L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings above; each specialization keeps its own list."]))
+    add(Note(L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings on the Class Resources tab; each specialization keeps its own list."]))
     if not ns.specID then
         add(Note(L["Pick a specialization first."]))
         AppendPipsPlacement(list)
@@ -437,8 +437,13 @@ function Tab.ConditionCandidates(cand)
     return out
 end
 
-local function Controls(cand)
+local function Controls(cand, sub)
     local R = ns.Resources
+    if sub == "pips" then
+        local only = {}
+        AppendCustomRows(only)
+        return only
+    end
     local list = {
         BS("toggle", "enabled", L["Show resource bars"], { level = "structure" }),
         Note(L["Which resources appear follows your specialization and switches automatically. Specs that cast with mana get a mana row at the bottom."]),
@@ -494,8 +499,6 @@ local function Controls(cand)
         if #condCand > 0 then ns.ResourceConditionsUI.Append(list, condCand) end
     end
 
-    AppendCustomRows(list)
-
     add({ type = "header", label = L["Show for this specialization"] })
     if #cand == 0 then
         add(Note(L["This specialization has no resource to show here."]))
@@ -532,11 +535,14 @@ end
 ------------------------------------------------------------
 -- 頁面
 ------------------------------------------------------------
+local currentSub = "class"        -- "class"（職業資源）| "pips"（自訂格子）
+
 local function Signature()
     local cand, specID = ns.Resources.Candidates()
     local cfg = Cfg() or {}
     local p = ns.profile
     return table.concat({
+        currentSub,
         tostring(specID), table.concat(cand, ","),
         ns.ResourceConditionsUI.FormSignature(Tab.ConditionCandidates(cand)),
         CustomSignature(),
@@ -561,9 +567,37 @@ function Tab.Build(parent, title)
     note:SetWordWrap(true)
     note:SetText(L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."])
 
+    -- 兩個分頁：職業資源／自訂格子。分頁鈕放在頁標題右邊、同一列
+    local subButtons = {}
+    local prevBtn
+    for i, def in ipairs({ { id = "class", label = L["Class Resources"] }, { id = "pips", label = L["Custom segments"] } }) do
+        local b = W.CreateButton(page, def.label, "accent-hover", 80, 20)
+        W.FitButton(b, 80, 20)
+        b.id = def.id
+        if prevBtn then
+            b:SetPoint("LEFT", prevBtn, "RIGHT", 3, 0)
+        else
+            b:SetPoint("BOTTOMLEFT", page.head.text, "BOTTOMRIGHT", 14, -2)
+        end
+        prevBtn = b
+        subButtons[i] = b
+    end
+
     local holder = CreateFrame("Frame", nil, page)
-    holder:SetPoint("TOPLEFT", note, "BOTTOMLEFT", -2, -6)
     holder:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -8, 10)
+    -- 職業資源分頁上面有一行說明；自訂格子分頁的說明在表單裡，表單直接貼標題線
+    local function PlaceHolder()
+        holder:ClearAllPoints()
+        holder:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -8, 10)
+        if currentSub == "pips" then
+            note:Hide()
+            holder:SetPoint("TOPLEFT", page, "TOPLEFT", pad, y)
+        else
+            note:Show()
+            holder:SetPoint("TOPLEFT", note, "BOTTOMLEFT", -2, -6)
+        end
+    end
+    PlaceHolder()
     local scroll = W.CreateScrollFrame(holder)
     page.scroll = scroll
     local forms = {}
@@ -590,7 +624,7 @@ function Tab.Build(parent, title)
         local form = forms[sig]
         if not form then
             local ctx = ns.Specs.MakeCtx({ mode = "panel", key = KEY }, OnApply)
-            form = ns.Specs.BuildForm(scroll.child, Controls((ns.Resources.Candidates())), ctx, FORM_W)
+            form = ns.Specs.BuildForm(scroll.child, Controls((ns.Resources.Candidates()), currentSub), ctx, FORM_W)
             forms[sig] = form
         end
         for _, fm in pairs(forms) do fm.content:SetShown(fm == form) end
@@ -607,8 +641,25 @@ function Tab.Build(parent, title)
         form:Refresh()
     end
 
-    function page:OnShowPage()
+    local highlightSub
+    function page:SetSub(sub)
+        if sub ~= "pips" then sub = "class" end
+        local changed = currentSub ~= sub
+        currentSub = sub
+        PlaceHolder()
+        for _, b in ipairs(subButtons) do
+            if b.id == sub and highlightSub then highlightSub(b) end
+        end
+        if changed then
+            -- 換分頁：捲回最上面（同一個分頁裡換表單形狀才維持捲動位置）
+            self.form = nil
+        end
         self:RefreshForm()
+    end
+    highlightSub = W.CreateButtonGroup(subButtons, function(id) page:SetSub(id) end)
+
+    function page:OnShowPage()
+        self:SetSub(currentSub)
     end
 
     return page

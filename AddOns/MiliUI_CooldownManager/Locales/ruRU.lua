@@ -405,8 +405,9 @@ L["wan"] = "дес. тыс."
 L["yi"] = "сот. млн"
 
 -- 資源條：自訂格子
+L["Class Resources"] = "Ресурсы класса"
 L["Custom segments"] = "Свои сегменты"
-L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings above; each specialization keeps its own list."] = "Показывает заряды заклинания или стаки эффекта на вас рядами сегментов. По умолчанию — под основными восстановлениями, вспомогательные сдвигаются ниже. Размер и вид берутся из настроек полос ресурсов выше; у каждой специализации свой список."
+L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings on the Class Resources tab; each specialization keeps its own list."] = "Показывает заряды заклинания или стаки эффекта на вас рядами сегментов. По умолчанию — под основными восстановлениями, вспомогательные сдвигаются ниже. Размер и вид берутся из настроек полос ресурсов выше; у каждой специализации свой список."
 L["No custom segments for this specialization yet."] = "У этой специализации пока нет своих сегментов."
 L["+ Add segments"] = "+ Добавить сегменты"
 L["What should this row track?"] = "Что отслеживать в этом ряду?"
