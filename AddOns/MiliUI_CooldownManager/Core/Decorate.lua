@@ -295,6 +295,58 @@ end
 -- 充能法術用 `GetSpellChargeDuration`（有充能時 ignoreGCD 的冷卻永遠是零，會把回充的轉圈也藏掉）。
 -- 觸發時機：SetCooldown 後掛勾（暴雪每次刷新）＋ SPELL_UPDATE_COOLDOWN 延一幀補一次。
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 裝備欄項目（飾品、武器）：「真的在冷卻」還是只是 GCD
+--
+-- 暴雪對裝備欄項目的冷卻是這樣取的（CooldownViewer.lua）：法術冷卻那條路遇到 GCD 會跳過
+--（ShouldDisplaySpellCooldown：isOnGCD 且有 equipSlot ⇒ 不用），接著退到
+-- GetInventoryItemCooldown——而它在 GCD 期間回的就是 GCD 本身，那條路又把 isOnGCD 寫死成 false。
+-- 結果：每次 GCD，飾品那一格都被當成「真的在冷卻」⇒ 圖示去飽和、還會閃一下。法術類的格子沒這個問題。
+-- 我們在 SetDesaturated 的後掛勾裡重判一次，只有真的在冷卻才留著去飽和。
+--
+-- 回傳：
+--   "plain",  active   讀得到明文：冷卻中而且比 GCD 長（GCD 最長 1.5 秒）
+--   "secret", zero     讀到的是秘密值：改問那一格法術的「不含 GCD 的冷卻」是不是零（秘密布林，交給引擎）
+--   nil                判不出來（不動）
+------------------------------------------------------------
+local GCD_MAX = 1.5
+
+local function EquipSlotSpell(info)
+    local id = info.overrideSpellID or info.spellID
+    if type(id) == "number" then return id end
+    -- 冷卻管理器的資料沒帶法術：從那一格裝備的使用效果拿
+    if not (GetInventoryItemID and C_Item and C_Item.GetItemSpell) then return nil end
+    local ok, itemID = pcall(GetInventoryItemID, "player", info.equipSlot)
+    itemID = ok and Plain(itemID) or nil
+    if type(itemID) ~= "number" then return nil end
+    local ok2, _, spellID = pcall(C_Item.GetItemSpell, itemID)
+    spellID = ok2 and Plain(spellID) or nil
+    return type(spellID) == "number" and spellID or nil
+end
+
+local function EquipRealCooldown(info)
+    if not (info and type(info.equipSlot) == "number") then return nil end
+    if GetInventoryItemCooldown then
+        local ok, start, duration, enable = pcall(GetInventoryItemCooldown, "player", info.equipSlot)
+        if ok and not (ns.IsSecret(start) or ns.IsSecret(duration) or ns.IsSecret(enable))
+            and type(start) == "number" and type(duration) == "number" then
+            local enabled = enable ~= 0 and enable ~= false
+            local now = GetTime and GetTime() or 0
+            return "plain", (enabled and duration > GCD_MAX and start + duration > now) and true or false
+        end
+    end
+    local spellID = EquipSlotSpell(info)
+    if spellID and C_Spell and C_Spell.GetSpellCooldownDuration then
+        local ok, dur = pcall(C_Spell.GetSpellCooldownDuration, spellID, true)
+        if ok and dur and dur.IsZero then
+            local ok2, zero = pcall(dur.IsZero, dur)
+            if ok2 and zero ~= nil then return "secret", zero end
+        end
+    end
+    return nil
+end
+D.EquipRealCooldown = EquipRealCooldown
+
 function D.ApplyGCDAlpha(item, rec)
     local cd = item and item.Cooldown
     if not cd then return end
@@ -307,6 +359,18 @@ function D.ApplyGCDAlpha(item, rec)
         return
     end
     local info = ns.Catalog.Info(rec.cooldownID)
+    -- 裝備欄項目：GCD 期間暴雪拿 GCD 當它的冷卻在轉，同一套判法
+    if info and type(info.equipSlot) == "number" then
+        local kind, v = EquipRealCooldown(info)
+        if kind == "plain" then
+            pcall(cd.SetAlpha, cd, v and 1 or 0)
+            rec.gcdAlpha = true
+        elseif kind == "secret" and cd.SetAlphaFromBoolean then
+            pcall(cd.SetAlphaFromBoolean, cd, v, 0, 1)
+            rec.gcdAlpha = true
+        end
+        return
+    end
     local spellID = info and (info.overrideSpellID or info.spellID)
     if type(spellID) ~= "number" or not (C_Spell and C_Spell.GetSpellCooldownDuration) then return end
     local dur
@@ -352,14 +416,40 @@ local function OnClearCooldown(cd)
     if rec and ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec) end
 end
 
-local function OnSetDesaturated(icon)
+local function OnSetDesaturated(icon, desaturated)
     if desatGuard or ns.released then return end
     local item = iconOwner[icon]
     local rec = item and ns.Viewers.frames[item]
-    if not (rec and rec.style) or rec.style.desaturate ~= false then return end
-    desatGuard = true
-    icon:SetDesaturated(false)
-    desatGuard = false
+    if not (rec and rec.style) then return end
+    if rec.style.desaturate == false then
+        desatGuard = true
+        icon:SetDesaturated(false)
+        desatGuard = false
+        return
+    end
+    -- 暴雪剛把它設成去飽和（或值讀不到）：裝備欄項目重判一次，只是 GCD 的話還原
+    if desaturated == false then return end
+    local info = ns.Catalog.Info(rec.cooldownID)
+    if not (info and type(info.equipSlot) == "number") then return end
+    local kind, v = EquipRealCooldown(info)
+    if kind == "plain" then
+        if not v then
+            desatGuard = true
+            icon:SetDesaturated(false)
+            desatGuard = false
+        end
+    elseif kind == "secret" then
+        -- v ＝「不含 GCD 的冷卻是零」的秘密布林：零 ⇒ 不去飽和（0）、不是零 ⇒ 去飽和（1）
+        local eval = C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean
+        if eval and icon.SetDesaturation then
+            local ok, amount = pcall(eval, v, 0, 1)
+            if ok and amount ~= nil then
+                desatGuard = true
+                pcall(icon.SetDesaturation, icon, amount)
+                desatGuard = false
+            end
+        end
+    end
 end
 
 -- 暴雪換長條內容（僅圖示／僅名字）時會藏名字、重錨條：把名字 Show 回來（名字要一直
