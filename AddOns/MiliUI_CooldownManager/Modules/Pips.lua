@@ -8,7 +8,7 @@
 --   * 自己的只有 profile.pips：enabled、pos、anchor、fadeWithEssential、loadConditions、strata
 -- 預設跟著核心技能下方（anchor TOP → essential BOTTOM），輔助技能也是：同一邊的自動排開
 -- （Core/Layout.lua 的 StackTarget），格子在內、輔助在外 ⇒ 核心 → 自訂格子 → 輔助。
--- 沒有任何一列時容器高度 0（Bars 的 collapsible 面板：錨定的 y 偏移一起收掉），輔助就跟原本
+-- 沒有任何一列時面板收合（Bars 的 collapsible 面板：不佔位，輔助改貼核心），輔助就跟原本
 -- 一樣貼在核心下方 1px；有列時輔助自動往下讓。
 --
 --   charges  法術充能。每格由下往上：
@@ -618,7 +618,7 @@ function Pips.Update(force)
         customHas.charges, customHas.stacks, customHas.combat = false, false, false
         SyncEvents()
         laidOut = false
-        -- 關著也收成高度 0：錨在這裡的輔助技能貼回核心下方
+        -- 關著也收合：跟著這裡的輔助技能改貼核心下方
         ns.Bars.SetPanelSize(KEY, ns.P.Scale(R.Width(style)), 0)
         return
     end
@@ -722,7 +722,7 @@ function Pips.Init()
     if container then return end
     container = ns.Bars.RegisterPanel(KEY, {
         anchorPoint = "TOP",                  -- 貼在核心技能下方、往下長，列數增減時上緣不動
-        collapsible = true,                   -- 沒有列 ＝ 高度 0、錨定的 y 偏移一起收掉
+        collapsible = true,                   -- 沒有列 ＝ 收合（不佔位，後面的接到上一層）
         minSize     = MinSize,
         relayout    = function() Pips.Update(true) end,
     })

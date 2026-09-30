@@ -290,6 +290,39 @@ do
     eq("格子關掉：輔助（跟格子）接到核心", T("utility"), "essential")
     cfg.pips.enabled = true
 
+    -- 收合的面板（沒有內容、高度 0）不佔位：別人不能貼在它身上
+    do
+        local collapsed = {}
+        local keys = {}
+        for k in pairs(cfg) do keys[#keys + 1] = k end
+        table.sort(keys)
+        local function cfgOf(k) return cfg[k] end
+        local function skip(k) return collapsed[k] == true end
+        local function TS(k) return Lay.StackTarget(k, cfgOf, keys, rank, skip) end
+        -- 新預設（輔助跟核心）
+        cfg.utility.anchor = BELOW("essential")
+        collapsed.pips = true
+        eq("格子收合：輔助貼核心（不貼在高度 0 的框上）", TS("utility"), "essential")
+        eq("格子收合：格子自己貼核心", TS("pips"), "essential")
+        collapsed.pips = nil
+        eq("格子展開：輔助貼格子", TS("utility"), "pips")
+        -- 舊存檔（輔助指名跟著格子）
+        cfg.utility.anchor = BELOW("pips")
+        collapsed.pips = true
+        eq("舊鏈＋格子收合：輔助接到核心", TS("utility"), "essential")
+        collapsed.pips = nil
+        eq("舊鏈＋格子展開：輔助貼格子", TS("utility"), "pips")
+        -- 收合的夾在上方那一疊中間
+        cfg.pips.anchor = ABOVE("essential")
+        cfg.castbar.anchor = ABOVE("essential")
+        collapsed.pips = true
+        eq("格子在上方收合：施法條直接貼資源條", TS("castbar"), "resources")
+        collapsed.pips = nil
+        eq("格子在上方展開：施法條貼格子", TS("castbar"), "pips")
+        cfg.pips.anchor = BELOW("essential")
+        cfg.utility.anchor = BELOW("pips")
+    end
+
     -- 不同邊互不影響；左右也排
     cfg.g1 = { anchor = RIGHTOF("essential") }
     cfg.g2 = { anchor = RIGHTOF("essential") }
@@ -322,6 +355,7 @@ do
     local function rnd(n) seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n + 1 end
     local SIDES = { ABOVE, BELOW, LEFTOF, RIGHTOF }
     local acyclic, unique, literal = true, true, true
+    local onFolded = false
     for _ = 1, 400 do
         local n = 2 + rnd(7)
         local c = {}
@@ -339,20 +373,32 @@ do
         end
         local ranks = {}
         for i = 1, n do ranks[names[i]] = rnd(4) end
+        local folded = {}
+        for i = 2, n do folded[names[i]] = (rnd(6) == 1) end
         local function cfgOf(k) return c[k] end
         local function rk(k) return ranks[k] end
+        local function skip(k) return folded[k] == true end
         local target = {}
         local used = {}
         for i = 1, n do
             local k = names[i]
-            local t = Lay.StackTarget(k, cfgOf, names, rk)
+            local t = Lay.StackTarget(k, cfgOf, names, rk, skip)
+            -- 開著的東西不會貼在「同一條軸上」收合的框上（那種一定接得到上一層）。
+            -- 收合的框自己沒有錨定、或掛在另一條軸上時沒有上一層可接，照字面貼（框本身留 1 的高度，矩形有效）
+            if t and c[k].enabled ~= false and not folded[k] and folded[t] and c[k].anchor then
+                local mine = Lay.AnchorSide(c[k].anchor)
+                local ta = Lay.AnchorOf(t, cfgOf)
+                local theirs = ta and Lay.AnchorSide(ta)
+                local sameAxis = mine and theirs and ((mine == "above" or mine == "below") == (theirs == "above" or theirs == "below"))
+                if sameAxis then onFolded = true end
+            end
             target[k] = t
             local a = c[k].anchor
             if not a then
                 if t ~= nil then literal = false end
             elseif t == nil then
                 literal = false
-            elseif c[k].enabled ~= false then
+            elseif c[k].enabled ~= false and not folded[k] then
                 local side = Lay.AnchorSide(a)
                 if side then
                     local id = t .. "/" .. side
@@ -370,6 +416,7 @@ do
     check("隨機樹：貼附關係不成環", acyclic)
     check("隨機樹：同一條的同一邊只貼一個", unique)
     check("隨機樹：有錨定才有目標", literal)
+    check("隨機樹：同一條軸上沒有東西貼在收合的框上", not onFolded)
 end
 
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))

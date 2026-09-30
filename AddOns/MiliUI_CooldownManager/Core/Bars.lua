@@ -41,8 +41,11 @@
 -- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
 -- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
 --
--- 可收合的面板（collapsible，自訂格子）：沒有內容時高度 0（WoW 的 SetSize 收 0），而且
--- 上下向的錨定（TOP↔BOTTOM）**y 偏移一起收掉** —— 它夾在一疊中間（核心 → 自訂格子 → 輔助），
+-- 可收合的面板（collapsible，自訂格子）：沒有內容時是「收合」（state.collapsed；框本身留 1 的高度）。
+-- **收合的面板不佔位**：排開時別人跳過它、接到它的上一層（Layout.StackTarget 的 skip）。
+-- ⚠ 一開始的做法是把框設成高度 0、讓後面的照樣貼在它身上：高度 0 的框在遊戲裡沒有有效的矩形，
+--   貼在它身上的整條都畫不出來（沒有自訂格子的專精，輔助技能整條消失）。不要再讓任何東西貼在收合的框上。
+-- 它自己上下向的錨定（TOP↔BOTTOM）**y 偏移一起收掉** —— 它夾在一疊中間（核心 → 自訂格子 → 輔助），
 -- 空的時候不能讓兩邊的間距疊成兩倍。收合狀態一變就重套結構（錨點換了）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -142,8 +145,13 @@ local function StackKeys()
     return keys
 end
 -- 這條實際該貼在誰身上（沒有錨定回 nil）。keys 可省（一次算很多條時由呼叫端傳同一份）
+-- 收合中的面板（沒有內容）不佔位：別人不能貼在它身上（高度 0 的框沒有有效的矩形）
+local function StackSkip(key)
+    local st = state[key]
+    return st and st.collapsed and true or false
+end
 local function StackTarget(key, keys)
-    return ns.Layout.StackTarget(key, BarCfg, keys or StackKeys(), StackRank)
+    return ns.Layout.StackTarget(key, BarCfg, keys or StackKeys(), StackRank, StackSkip)
 end
 B.StackTarget = StackTarget
 
@@ -825,7 +833,7 @@ end
 --                              建容器（EditMode.OnContainer 一併建好覆蓋層／選取框／磁吸）、
 --                              照存檔貼位置。回傳容器。
 --   B.SetPanelSize(key, w, h)  容器大小（變了才寫，走 ns.Write）。collapsible 的面板 h 可以是 0
---                              （收合：上下向錨定的 y 偏移一起收掉，收合狀態一變就重套結構）
+--                              （＝收合：框留 1 的高度、排開時不佔位；收合狀態一變就重套結構，整疊重貼）
 --   B.IsPanel(key) / B.Panels()
 ------------------------------------------------------------
 function B.RegisterPanel(key, def)
@@ -860,7 +868,10 @@ function B.SetPanelSize(key, w, h)
     local collapsed = (collapsible and h == 0) and true or false
     if st.w == w and st.h == h and (st.collapsed or false) == collapsed then return end
     st.w, st.h = w, h
-    ns.Write(c, function(f) f:SetSize(w, h) end, "size")
+    -- 框本身永遠留 1 的高度：高度 0 的框沒有有效的矩形，照字面錨在它身上的東西會整個畫不出來。
+    -- 收合是邏輯狀態（st.h == 0、st.collapsed），排開時別人會跳過它。
+    local fh = h > 0 and h or 1
+    ns.Write(c, function(f) f:SetSize(w, fh) end, "size")
     if (st.collapsed or false) ~= collapsed then
         st.collapsed = collapsed
         -- 錨定的 y 偏移跟著收／放：結構級（戰鬥中記帳到脫戰）
