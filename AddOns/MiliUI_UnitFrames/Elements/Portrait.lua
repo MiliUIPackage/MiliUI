@@ -228,12 +228,26 @@ end
 -- ⚠ 這裡是 model alpha 的**唯一寫入點**，使用者設的模型透明度也一定要從這裡出去。
 -- 在 Build 裡另外 SetAlpha 一次是行不通的：任何一次遮擋重算都會把它蓋回 1
 -- （開一次背包、關一次設定面板就還原），而症狀是「滑桿有時候有效有時候沒效」。
+--
+-- 「血量不滿時不淡出」開著時（uf.hurtAlpha）框體 alpha 是秘密值，模型不會跟著淡，
+-- 所以改成模型忽略父框、自己走同一條曲線（兩端都乘上模型透明度）。
+-- 其餘時候一律還回跟隨父框，別讓 IgnoreParentAlpha 殘留（預覽高亮、距離淡出都靠繼承）。
 local function ApplyOcclusion(uf)
     local f = uf.elements and uf.elements.portrait
-    if f and f.model then
-        f.model:SetAlpha(IsCovered(f) and 0 or (f.modelAlpha or 1))
+    if not (f and f.model) then return end
+    local m, ma = f.model, f.modelAlpha or 1
+    if IsCovered(f) then
+        m:SetAlpha(0)
+        return
     end
+    if uf.hurtAlpha and not uf.isPreview then
+        m:SetIgnoreParentAlpha(true)
+        if ns.Visibility.SetHurtAlpha(m, uf.unit, (ns.db.global.oocAlpha or 0.5) * ma, ma) then return end
+    end
+    m:SetIgnoreParentAlpha(false)
+    m:SetAlpha(ma)
 end
+ns.ApplyPortraitAlpha = ApplyOcclusion
 
 local function RefreshOcclusion()
     occlusionPending = false

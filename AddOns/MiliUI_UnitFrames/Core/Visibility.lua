@@ -521,37 +521,47 @@ end
 -- V.CheckHurt 重算一次曲線（一支 C 呼叫＋SetAlpha）。所以這個例外只對有開血條的框有效。
 ------------------------------------------------------------
 local CreateCurve = C_CurveUtil and C_CurveUtil.CreateCurve
-local hurtCurve, hurtCurveOoc
+local hurtCurves = {}   -- ["滿血值|不滿值"] = curve；框體一條、3D 模型一條（乘了模型透明度）
 
-local function HurtCurve(ooc)
+local function HurtCurve(full, hurt)
     if not CreateCurve then return nil end
-    if not hurtCurve then
-        hurtCurve = CreateCurve()
+    local key = full .. "|" .. hurt
+    local c = hurtCurves[key]
+    if not c then
+        c = CreateCurve()
         local T = Enum.LuaCurveType
-        if T and T.Step then hurtCurve:SetType(T.Step) end
+        if T and T.Step then c:SetType(T.Step) end
+        c:AddPoint(0, hurt)
+        c:AddPoint(1 - 0.000001, full)
+        hurtCurves[key] = c
     end
-    if hurtCurveOoc ~= ooc then
-        hurtCurve:ClearPoints()
-        hurtCurve:AddPoint(0, 1)
-        hurtCurve:AddPoint(1 - 0.000001, ooc)
-        hurtCurveOoc = ooc
-    end
-    return hurtCurve
+    return c
 end
 
--- 成功回 true；失敗（沒有 API、單位不存在）回 false，呼叫端退回一般淡出
-local function ApplyHurtAlpha(uf)
-    local curve = HurtCurve(ns.db.global.oocAlpha or 0.5)
+-- 把「血滿＝full、不滿＝hurt」的 alpha 寫到 region 上。成功回 true；
+-- 失敗（沒有 API、單位不存在）回 false，呼叫端自己退回一般路徑
+function V.SetHurtAlpha(region, unit, full, hurt)
+    local curve = HurtCurve(full, hurt)
     if not curve then return false end
-    local ok, a = pcall(UnitHealthPercent, uf.unit, true, curve)
+    local ok, a = pcall(UnitHealthPercent, unit, true, curve)
     if not ok or a == nil then return false end
-    uf:SetAlpha(a)
+    region:SetAlpha(a)
+    return true
+end
+
+-- 3D 模型要另外寫：框體 alpha 是秘密值時模型不跟著淡（實測：脫戰透明度 0.1，
+-- 條與文字淡了、模型照樣全亮）。模型的 alpha 只有 Portrait 的 ApplyOcclusion 一個
+-- 寫入點，它看 uf.hurtAlpha 決定要不要走曲線；這裡只負責叫它重算。
+local function ApplyHurtAlpha(uf)
+    if not V.SetHurtAlpha(uf, uf.unit, ns.db.global.oocAlpha or 0.5, 1) then return false end
+    if ns.ApplyPortraitAlpha then ns.ApplyPortraitAlpha(uf) end
     return true
 end
 
 function V.CheckHurt(uf)
     if uf.hurtAlpha and not InCombatLockdown() and not ApplyHurtAlpha(uf) then
         uf.hurtAlpha = nil
+        if ns.ApplyPortraitAlpha then ns.ApplyPortraitAlpha(uf) end
         V.ApplyAlpha(uf)
     end
 end
@@ -580,12 +590,17 @@ function V.ApplyAlpha(uf)
     if not uf or uf.isPreview then return end   -- 預覽的 alpha 由 Preview.Highlight 管
     ApplyScrim(uf)
     local a, useCurve = V.Alpha(uf)
-    if useCurve and ApplyHurtAlpha(uf) then
-        uf.hurtAlpha = true
-        uf.appliedAlpha = nil   -- 秘密值不能記也不能比；下次走一般路徑時強迫重設
-        return
+    if useCurve then
+        uf.hurtAlpha = true     -- 先立旗標：ApplyHurtAlpha 裡模型要看它
+        if ApplyHurtAlpha(uf) then
+            uf.appliedAlpha = nil   -- 秘密值不能記也不能比；下次走一般路徑時強迫重設
+            return
+        end
     end
-    uf.hurtAlpha = nil
+    if uf.hurtAlpha then
+        uf.hurtAlpha = nil
+        if ns.ApplyPortraitAlpha then ns.ApplyPortraitAlpha(uf) end   -- 模型還回跟隨父框
+    end
     if a == uf.appliedAlpha then return end
     uf.appliedAlpha = a
     uf:SetAlpha(a)
