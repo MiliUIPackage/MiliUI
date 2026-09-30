@@ -298,7 +298,8 @@ local function Build()
     end
     rows[#rows + 1] = tipEntry
 
-    -- 按鈕：隱藏／還原（光環格沒有隱藏：固定前綴）
+    -- 按鈕：暴雪清單上的法術是「隱藏／還原」，自己加的項目是「移除／還原」
+    --（暴雪的清單我們刪不掉只能藏；自己加的藏起來沒有意義，直接給移除）
     local btnRow = CreateFrame("Frame", nil, frame)
     btnRow:SetSize(ROW_W, 22)
     local hide = W.CreateButton(btnRow, L["Hide this spell"], "normal", 130, 22)
@@ -320,12 +321,10 @@ local function Build()
     frame.hideBtn, frame.restoreBtn, frame.btnRow = hide, restore, btnRow
     rows[#rows + 1] = { frame = btnRow, h = 22 + 6, buttons = true }
 
-    -- 移除此項目（只有自訂項目）
-    local remRow = CreateFrame("Frame", nil, frame)
-    remRow:SetSize(ROW_W, 22)
-    local remove = W.CreateButton(remRow, L["Remove this entry"], "red", 130, 22)
+    -- 移除此項目（只有自訂項目；跟「隱藏」同一個位置）
+    local remove = W.CreateButton(btnRow, L["Remove this entry"], "red", 130, 22)
     W.FitButton(remove, 130, 22)
-    remove:SetPoint("TOPLEFT", remRow, "TOPLEFT", 0, 0)
+    frame.removeBtn = remove
     local confirm
     remove:SetScript("OnClick", function()
         if not cur then return end
@@ -333,18 +332,11 @@ local function Build()
             confirm = W.CreateConfirmPopup(ns.Options.panel, 320,
                 L["Remove this entry from the current specialization? Its per-spell settings go with it."], function()
                     if not cur then return end
-                    local key, id = cur.key, cur.id
-                    frame:Hide()
-                    if ns.DB.RemoveCustom(id) then
-                        ns.Preview.Refresh(key)
-                        if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(key) end
-                        ns.Options.ApplyEngine("membership")
-                    end
+                    ns.Preview.RemoveCustom(cur.key, cur.id)
                 end)
         end
         confirm:Show()
     end)
-    rows[#rows + 1] = { frame = remRow, h = 22, when = IsCustom }
 
     -- 顯示之後才量得到字高（換行的語系）：每次顯示重量、照目前種類重排
     frame:HookScript("OnShow", function()
@@ -370,10 +362,10 @@ Layout = function(kind, class)
             row.frame:ClearAllPoints()
             row.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, y)
             if row.buttons then
-                local list = {}
-                if kind ~= "aura" then list[#list + 1] = frame.hideBtn end
-                list[#list + 1] = frame.restoreBtn
-                frame.hideBtn:SetShown(kind ~= "aura")
+                local custom = IsCustom(kind)
+                local list = { custom and frame.removeBtn or frame.hideBtn, frame.restoreBtn }
+                frame.hideBtn:SetShown(not custom)
+                frame.removeBtn:SetShown(custom)
                 local _, bh = W.FlowLayout(frame.btnRow, list, ROW_W, 6, 4, 22)
                 frame.btnRow:SetHeight(bh)
                 row.h = bh + 6
@@ -506,6 +498,9 @@ end
 function Pop.Close()
     if frame then frame:Hide() end
 end
+
+-- 面板本體（還沒開過是 nil；離線測試讀按鈕的顯示狀態用）
+function Pop.Frame() return frame end
 
 function Pop.IsShown()
     return frame and frame:IsShown() or false
