@@ -250,13 +250,13 @@ local function Build()
         sounds[#sounds + 1] = { field = t.field, dd = sdd, listen = listen }
         RightClickClears(sr, sh, t.field)
     end
-    -- 一個音效都沒有（沒裝 LibSharedMedia 或沒有音效媒體插件）
+    -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
     local nsRow = CreateFrame("Frame", nil, frame)
     local nsTip = Note(nsRow)
     nsTip:SetPoint("TOPLEFT", nsRow, "TOPLEFT", CTRL_X, -2)
     nsTip:SetWidth(ROW_W - CTRL_X)
     nsTip:SetWordWrap(true)
-    nsTip:SetText(L["No sounds available. Enable \"MiliUI Sound Pack\" or another sound media addon."])
+    nsTip:SetText(L["No sounds available."])
     local nsH = 2 + math.max(14, nsTip:GetStringHeight() or 0) + 6
     nsRow:SetSize(ROW_W, nsH)
     local nsEntry = { frame = nsRow, h = nsH, when = function() return NoSounds() end }

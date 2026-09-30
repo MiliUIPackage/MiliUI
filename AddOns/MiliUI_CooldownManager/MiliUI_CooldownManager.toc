@@ -16,6 +16,10 @@
 ## OptionalDeps: Ayije_CDM
 ## AddonCompartmentFunc: MiliUICDM_OnAddonCompartmentClick
 
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibSharedMedia-3.0\lib.xml
+Media\Sounds\Sounds.lua
 Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua

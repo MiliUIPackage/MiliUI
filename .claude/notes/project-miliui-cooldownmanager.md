@@ -59,6 +59,12 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
 `/mcdm debug`、`/mcdm aura`、`/mcdm release` 三個除錯指令）。Ayije 還開著時新插件只彈互斥視窗、什麼都不做。
 第一戰開 `/console taintLog 2`。Ayije_CDM 資料夾這一輪沒刪。
 
+**內建音效（2026-09-30）**：`Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，自帶 LICENSE 與出處
+README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插件、載入時註冊進 LibSharedMedia 讓其他插件也選得到
+（使用者拍板：不另立音效包插件）。為此內嵌了 LibStub／CallbackHandler／LibSharedMedia（取套組裡最新那份）。
+⚠ 新版 LibSharedMedia 註冊時會問 `C_UIFileAsset.IsKnownFile`，**檔案不存在就靜默不註冊**；新增音檔要整個重開遊戲，
+`/reload` 不夠。
+
 **Why:** 修 UX 的根在資料模型（三百個扁平 key、共用／獨立無規則、複製不繼承），只重寫 Options 會整包繼承；
 fork 的本地修改每次上游更新都要重套。
 **How to apply:** 動 CDM 相關工作先讀 plan；Ayije_CDM 資料夾在新插件實機驗過前不刪。
