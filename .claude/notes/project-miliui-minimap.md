@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 580e7fa6-2fb6-4fbd-8d8b-3858879778a6
-  modified: 2026-09-30T08:03:43.655Z
+  modified: 2026-09-30T09:15:01.282Z
 ---
 
 **2026-08-29 新建的獨立插件**（第十一支自製插件、MiliUIWidgets 的第十一個消費者，
@@ -120,13 +120,20 @@ Show 都只是「在我們的容器裡顯示」。而「留在地圖上」也不
   自己的圖示時格子要收合，但 Show/Hide 在戰鬥中也會被呼叫、一次設定變更可能連打十幾發。
 - **掃描逐顆隔離**（2026-09-30）：`Scan` 對每個子框 `xpcall(Collect, ns.ReportError, child)`。
   起因是一顆圖示被 `Texture:SetMask` 過的按鈕（[[project-feimiao-raidcommander]]）——
-  `Normalize` 的 `SetTexCoord` 對它直接拋錯，而那種遮罩沒有 getter、`SetMask` 不收 nil，
-  收納端**事前認不出來也拆不掉**；沒隔離時一顆拋錯＝整輪中斷（後面的沒收、這輪不排版、
-  拋錯那顆搬進來了卻沒掛 Show/Hide 勾）。兩個順序是契約，別調回去：
+  `Normalize` 的 `SetTexCoord` 對它直接拋錯（Cannot set tex coords when texture has mask）；
+  沒隔離時一顆拋錯＝整輪中斷（後面的沒收、這輪不排版、拋錯那顆搬進來了卻沒掛 Show/Hide 勾）。
+  兩個順序是契約，別調回去：
   ① `Collect` 裡 **登記 → 搬進容器 → 掛勾 → 整形**，會拋的整形擺最後，失敗的按鈕才是
-  「收得完整、只是圖示沒整好」；② `Normalize` 裡 **`SetTexCoord` 是最後一行**，拋了只少裁 8%
-  （鋪滿、提 OVERLAY 都已做完）。「這輪有沒有收到新的」看 `#collected` 有沒有變長，
+  「收得完整、只是圖示沒整好」；② `Normalize` 裡 **`StripMask` → `SetTexCoord` 是最後兩行**，
+  拋了只少裁 8%（鋪滿、提 OVERLAY 都已做完）。「這輪有沒有收到新的」看 `#collected` 有沒有變長，
   不看 `Collect` 有沒有跑完。錯誤不吞，每顆報一次。
+- **裁切前先拆遮罩**（同日第二輪，治本）：隔離只是不連坐，那顆按鈕每次登入還是報一次錯。
+  `StripMask(icon)` 兩種都拆 —— MaskTexture 物件走 `GetNumMaskTextures`／`RemoveMaskTexture`；
+  舊式 `Texture:SetMask(檔案)` **沒有 getter、數量那支也看不到**，但 **`SetMask("")` 清得掉**
+  （nil 不行：參數是非 nilable 字串。⚠ 第一輪的結論「拆不掉」是錯的，只試想了 nil；
+  12.1 的換皮插件在裁 TexCoord 前都是先餵空字串）。認不出來所以無條件清。
+  選「拆」不選「有遮罩就跳過裁切」：圓形遮罩跟金色圓框是同一套造型，跳過會在方格裡留一顆圓的。
+  ⚠ **未實機驗證**：`SetMask("")` 對「本來沒遮罩」的貼圖應是空動作，收納袋開起來看圖示有沒有異狀。
   ⚠ `LayoutInto` 的逐顆迴圈**還沒隔離**（只碰 SetParent／SetPoint／strata，目前沒有已知會拋的狀態）。
 
 ⚠ **收納袋的提示與收納袋面板從同一個錨點往下長 ⇒ 完全重疊。** 提示在 `TOOLTIP`

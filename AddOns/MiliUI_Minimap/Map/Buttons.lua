@@ -107,6 +107,29 @@ local function IsJunk(region)
 end
 
 ------------------------------------------------------------
+-- 拆掉圖示上的遮罩
+--
+-- 帶遮罩的貼圖一改 TexCoord 就拋錯（Cannot set tex coords when texture has mask）。
+-- 圓形遮罩跟上面那圈金色圓框是同一套造型 —— 我們要的是方形圖示，所以是**拆掉**
+-- 而不是「有遮罩就跳過裁切」：跳過的話格子裡會留一顆圓的。
+--
+-- 遮罩有兩種，拆法不同：
+--   * MaskTexture 物件（`AddMaskTexture`）：數得出來，逐張 `RemoveMaskTexture`。
+--   * 舊式 `Texture:SetMask(檔案)`：**沒有 getter**，`GetNumMaskTextures` 也看不到它，
+--     事前認不出來。但清得掉：餵**空字串**（不是 nil —— 參數是非 nilable 的字串，
+--     nil 會直接拋參數錯）。認不出來所以無條件清，貼圖本體與錨點都不受影響。
+------------------------------------------------------------
+local function StripMask(tex)
+    if tex.GetNumMaskTextures and tex.RemoveMaskTexture then
+        for i = tex:GetNumMaskTextures(), 1, -1 do
+            local mask = tex:GetMaskTexture(i)
+            if mask then tex:RemoveMaskTexture(mask) end
+        end
+    end
+    if tex.SetMask then tex:SetMask("") end
+end
+
+------------------------------------------------------------
 -- 把一顆按鈕整成方形圖示
 --
 -- ⚠ **不做快照、不寫還原路徑。** 搬進來就不還了（見檔頭），留一份還原資料只是
@@ -150,11 +173,11 @@ local function Normalize(btn)
         -- 裁掉 8%：多數插件的圖示是整張方圖再蓋一個圓框，直接鋪滿會看到四個角落
         -- 的雜訊。8% 是「圓框內切正方形」的近似，跟暴雪自己的圖示裁法一致。
         --
-        -- ⚠ **裁切擺最後一步，後面不要再接東西。** 這一行對「被 `Texture:SetMask`
-        --   上過遮罩的貼圖」會直接拋錯（Cannot set tex coords when texture has mask），
-        --   而那種遮罩沒有 getter、`SetMask` 也不收 nil —— 事前認不出來、也拆不掉。
-        --   拋錯由 Scan 的逐顆隔離接住；擺最後的意思是「拋了也只少裁這一刀」：
-        --   鋪滿與提層都已經做完，而帶遮罩的圖示本來就被遮罩切過角，不裁也看不到雜訊。
+        -- ⚠ **先拆遮罩再裁，而且這兩步擺最後、後面不要再接東西。** 帶遮罩的貼圖
+        --   不收 SetTexCoord（見 StripMask）。這兩行摸的是別人貼圖上我們看不到的狀態，
+        --   是整支 Normalize 裡唯一可能拋錯的地方；拋錯由 Scan 的逐顆隔離接住，
+        --   擺最後的意思是「拋了也只少裁這一刀」—— 鋪滿與提層都已經做完。
+        StripMask(icon)
         icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     end
 end
