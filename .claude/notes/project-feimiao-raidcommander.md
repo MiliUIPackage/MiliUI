@@ -74,6 +74,13 @@ TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻）�
 - 戰復：`C_Spell.GetSpellCharges(20484)`，狀態機照 Cell。MRT／Cell 都當它是明文在算；
   這裡多留一條秘密值退路（次數直接 SetText、進度條吃 `GetSpellChargeDuration` 的 duration 物件）。
 
+- **戰復中間的「死亡 N/團隊人數」**（`db.bres.showDeaths`）：12.x 讀不到戰鬥記錄，但
+  `UnitIsDeadOrGhost` 對隊友是明文（Cell 的團隊框架／死亡通報都靠它，假死用 `UnitIsFeignDeath` 扣掉）。
+  做法是跟戰復同一個 0.25 秒輪詢照名冊問一輪，**不掛 UNIT_HEALTH**（團隊裡那個事件量太大，
+  見 [[wow-unitframe-event-dispatch-cost]]）。任何一人讀不到就整個不顯示。
+  團隊副本只算難度上得了場的小隊（`GetInstanceInfo` 的 maxPlayers ÷ 5；小隊號用 `GetRaidRosterInfo`，
+  首領戰中實測是明文），替補不算。只在戰復本體顯示時才有 ⇒ 非鑰石的地城首領戰沒有。
+
 ## 待實機驗證（全部沒進遊戲測過，只跑過假 API 的煙霧測試）
 
 - 四個框在編輯模式的藍框、拖曳、放手磁吸；預設那組吸附的擺法好不好看
@@ -84,5 +91,6 @@ TOC `IconTexture` 與小地圖按鈕（`Modules/MinimapButton.lua`，手刻）�
 - 確認倒數進戰鬥有沒有收起來、脫戰有沒有回來
 - 右鍵職責確認 `InitiateRolePoll()` 會不會被情境限制擋
 - 戰復在團本首領戰／M+ 的次數與倒數；`GetSpellCharges(20484)` 到底是不是明文
+- 死亡人數在首領戰／M+ 中會不會變秘密值而消失、團隊替補有沒有被排除、窄版（標記列調小）的簡寫
 - 跟 Cell 自己的團隊工具同時開會有兩套（Cell 設定裡把工具關掉）
 - 小地圖按鈕在 MiliUI_Minimap 袋子裡的樣子（方形）、沒裝收納時圓框遮角的樣子；插件列表的圖示
