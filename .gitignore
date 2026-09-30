@@ -69,3 +69,6 @@ AddOns/MiliUI_UnitFrames/Media/*.py
 # Python 快取（技能腳本跑過會產生）
 __pycache__/
 *.pyc
+
+# 肥喵的團隊指揮：私人用的插件（內含改自 Cell 團隊工具的程式），不隨套組發佈
+AddOns/FeiMiao_RaidCommander/
