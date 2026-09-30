@@ -222,7 +222,8 @@ _G.MiliUI_CooldownManager = {
         if not cfg or type(key) ~= "string" then return nil end
         return ns.ResCond and ns.ResCond.Resolve(cfg, key) or nil
     end,
-    -- Enum.PowerType → 資源條上那一列的框（別的插件要錨在它身上用）；
+    -- Enum.PowerType（或資源 key 字串：沒有 PowerType 的資源，例如 "Stagger"、"IgnorePain"）→ 資源條上那一列的框
+    --（別的插件要錨在它身上用）；
     -- 沒有這一列、被玩家關掉、整條資源條關掉（容器藏起來）都回 nil。
     -- 載入條件／淡出造成的 alpha 0 不算藏：框還在，錨在上面的東西不必換錨點
     GetResourceBarFrame = function(powerType)

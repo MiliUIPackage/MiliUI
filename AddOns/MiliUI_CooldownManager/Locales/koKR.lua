@@ -293,7 +293,6 @@ L["Track it as a buff or a debuff on you?"] = "자신에게 걸린 강화 효과
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "효과를 시간 손실 없이 갱신할 수 있는 동안 테두리가 이 색으로 바뀝니다."
 
 -- F 階段：資源條與施法條
-L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] = "흡수 형태의 자원(시간차 피해, 무쇠가죽, 고통 감내)은 12.1에서 secret value입니다. 애드온이 수치를 읽을 수 없어 목록에 없습니다."
 L["Add check"] = "조건 추가"
 L["Add rule"] = "규칙 추가"
 L["And"] = "그리고"
@@ -421,5 +420,20 @@ L["Max stacks must be a whole number from 1 to %d."] = "최대 중첩은 1에서
 L["Show seconds"] = "초 표시"
 L["Remove this custom row?"] = "이 사용자 지정 줄을 삭제할까요?"
 L["Position and anchoring"] = "위치 및 고정"
-L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "충전식 주문으로, 충전 하나당 한 칸입니다. 빈 칸에는 다음 충전까지의 회전 효과와 남은 초가 표시됩니다. 예: 성기사의 '천상의 군마', 마법사의 '점멸'. 주문 ID를 입력하세요."
-L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "내 몸에 중첩되는 강화 효과로, 중첩 하나당 한 칸입니다. 효과가 없으면 모두 비어 있고 충전 시간은 없습니다. 예: 죽음의 기사의 '뼈의 보호막'. 효과의 주문 ID와 최대 중첩을 입력하세요."
+
+-- 自訂格子：顯示時機、整組開關；補齊的職業資源
+L["Moderate threshold (percent of max health)"] = "중간 기준 (최대 생명력 대비 비율)"
+L["Heavy threshold (percent of max health)"] = "심각 기준 (최대 생명력 대비 비율)"
+L["Full bar at (percent of max health)"] = "가득 찬 막대 = 최대 생명력의 몇 퍼센트"
+L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."] = "색상은 시간차 피해가 최대 생명력에서 차지하는 비율을 따릅니다. 인스턴스 전투 중에는 수치를 가끔 읽을 수 없으며, 그때는 이전 색상과 막대 기준을 유지합니다."
+L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "이 효과만이 아니라 내 몸의 모든 흡수 보호막 합계를 표시합니다. 가득 찬 막대는 최대 생명력의 30퍼센트입니다."
+L["One segment per active application, each draining with its own remaining time."] = "활성화된 효과 하나당 한 칸이며, 각 칸은 자신의 남은 시간만큼 줄어듭니다."
+L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s: 이 줄은 게임이 직접 채우므로 전투 중에도 정확합니다. 조건 규칙과 수치 텍스트는 적용되지 않습니다."
+L["Show custom segments"] = "사용자 칸 표시"
+L["Always"] = "항상"
+L["Only while recharging"] = "충전 중일 때만"
+L["While recharging or in combat"] = "충전 중이거나 전투 중"
+L["Only while you have the aura"] = "해당 효과가 있을 때만"
+L["A row that hides keeps its space, so the rows below it don't jump."] = "숨겨진 줄도 자리를 차지하므로 아래 줄이 움직이지 않습니다."
+L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "충전이 있는 주문으로, 충전 하나당 한 칸입니다. 다음 빈 칸이 충전되는 동안 부드럽게 채워지며 남은 초가 표시됩니다. 예: 성기사의 '신성한 군마', 마법사의 '점멸'. 주문 ID를 입력하세요."
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "내 몸에 중첩되는 강화 효과로, 중첩 하나당 한 칸입니다. 효과가 없으면 모두 비어 있고 충전 시간은 없습니다. 게임이 직접 채우므로 우두머리 전투와 신화+에서도 정확합니다. 예: 죽음의 기사의 '뼈의 보호막'. 효과의 주문 ID와 최대 중첩을 입력하세요."

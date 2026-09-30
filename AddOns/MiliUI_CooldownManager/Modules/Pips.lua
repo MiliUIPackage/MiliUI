@@ -5,22 +5,45 @@
 --   * 清單：profile.resources.customRows[specID]（每個專精一份，設定頁在資源條頁）
 --   * 樣式：列高、列距、格距、材質、填充方向、填充透明度、寬度（0 ＝ 核心技能第一列）一律讀
 --     profile.resources，不另開一組
---   * 自己的只有 profile.pips：enabled、pos、anchor、fadeWithEssential、strata
+--   * 自己的只有 profile.pips：enabled、pos、anchor、fadeWithEssential、loadConditions、strata
 -- 預設錨在核心技能下方（anchor TOP → essential BOTTOM），輔助技能預設錨在這裡的下方：
 -- 核心 → 自訂格子 → 輔助。沒有任何一列時容器高度 0（Bars 的 collapsible 面板：錨定的
 -- y 偏移一起收掉），輔助就跟原本一樣貼在核心下方 1px；有列時輔助自動往下讓。
 --
---   charges  法術充能：C_Spell.GetSpellCharges 的 currentCharges 直接餵每格的 SetValue；
---            每格底下一顆 Cooldown 吃 C_Spell.GetSpellChargeDuration 的 duration 物件
---            （轉圈與秒數由引擎畫）。層級：底色貼圖 → Cooldown（+1）→ 填色 StatusBar（+2），
---            滿的格子被填色蓋住，只有空格看得到轉圈 ⇒ 秘密值下照樣對。
---            所有空格顯示的是同一個「下一格回充」時間（引擎只給這一個 duration 物件）。
---   stacks   光環層數：C_UnitAuras.GetPlayerAuraBySpellID 的 applications 直接餵；沒有光環 ＝ 0。
+--   charges  法術充能。每格由下往上：
+--              底色貼圖（BACKGROUND）
+--              閘門 StatusBar（透明）：SetMinMaxValues(i-2, i-1)＋SetValue(目前充能數) ——
+--                充能數 ≥ i-1 時是滿的，否則是空的
+--              裁切框（SetClipsChildren）錨在閘門的**填充貼圖**上：閘門滿 ＝ 跟格子一樣大、空 ＝ 寬 0
+--                ├ 回充條 StatusBar（錨在**格子**上、被裁切不是被壓扁）：SetTimerDuration(回充的 duration
+--                │  物件)，引擎平滑填滿；顏色 ＝ 這一列的暗版
+--                └ 秒數：一顆不畫扇形的 Cooldown（SetCooldownFromDurationObject 同一個物件），只留倒數字
+--              填色 StatusBar：SetMinMaxValues(i-1, i)＋SetValue(目前充能數)，滿的格子蓋住下面全部
+--            ⇒ 第 i 格已滿：填色蓋住；第 i 格是「下一格」（充能數 = i-1）：閘門滿、回充條看得到、平滑長；
+--              更後面的空格：閘門空、什麼都沒有。全程不讀充能數（秘密值照樣對）。
+--            ⚠ 閘門的填充貼圖幾何是秘密的（SetValue(秘密值)），錨在它上面的框會被傳染 ⇒ 只有裁切框錨在它上面，
+--              裁切框底下的東西一律錨回格子；裁切框與它的子孫不讀任何幾何（GetWidth／GetSize／IsShown）。
+--   stacks   光環層數。**引擎寫**：一顆單格 AuraContainer（Modules/AuraBar.lua），initializeFrame 裡把一條
+--            整列寬的 StatusBar 交給按鈕的 SetApplicationBar ⇒ 引擎在安全端寫層數，首領戰／M+ 裡
+--            GetPlayerAuraBySpellID 回 nil 也照樣對。格子外觀（暗底、黑邊、分隔）是另外畫的裝飾。
+--            容器還沒建好（戰鬥中登入、建失敗）時退回明文路徑：GetPlayerAuraBySpellID().applications 直接餵
+--            每格的 SetValue（讀不到整列半透明）。
+--
+-- 每列的顯示時機（entry.showWhen）：
+--   always           一直顯示（預設）
+--   active           charges：回充中（充能不滿）才顯示 —— GetSpellCharges().isActive 是明文布林（NeverSecret），
+--                             讀不到時退回 GetSpellChargeDuration():IsZero()（秘密布林）餵 SetAlphaFromBoolean
+--                    stacks：有這個光環才顯示 —— 裝飾與填色都建在按鈕子樹裡，按鈕只在有光環時顯示
+--   activeOrCombat   charges 限定：回充中或戰鬥中
+--   不是 always 的列照樣**佔位**（秘密值下不知道它現在顯不顯示）：面板高度只看有幾列。
 --
 -- 12.1 秘密值：值一律只轉手、不比較不算術（`x and v or 0` 這種會把秘密值當布林的式子一律改寫成 if）。
 -- 格子一律錨在列上（不串在前一格）：SetValue(秘密值) 會讓填色條的幾何變秘密，錨在它身上的框會被傳染。
 --
--- 事件（SPELL_UPDATE_CHARGES／COOLDOWN、UNIT_AURA）只在真的有那一種列時才註冊，處理器只標髒、
+-- 保護：層數列的 AuraContainer 是受保護的 intrinsic，保護沿父層往上傳到列、面板 ⇒ 戰鬥中面板是保護框時
+-- 不重排（記旗標、脫戰補做），只重畫值；面板容器的寫入本來就走 ns.Write。
+--
+-- 事件（SPELL_UPDATE_CHARGES／COOLDOWN、UNIT_AURA、進出戰鬥）只在真的有那一種列時才註冊，處理器只標髒、
 -- 下一幀做（ns.Defer）。清單／格數／尺寸變了（專精、天賦、法術書、設定）才重排。
 ------------------------------------------------------------
 local _, ns = ...
@@ -36,6 +59,8 @@ local DIM = R.DIM
 local Plain = R.Plain
 
 local KEY = "pips"
+-- 回充條由空長到滿（經過的時間）
+local ELAPSED = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.ElapsedTime or 0
 
 -- 自己的設定（位置、錨定、開關、淡出）與借來的樣式／清單（資源條那張表）
 local function Cfg() return ns.DB and ns.DB.ConfigTable(KEY) end
@@ -127,12 +152,49 @@ function Pips.PlanCustomRows(cfg, specID, probe)
                 n = ClampSegments(e.max) or Pips.CUSTOM_DEFAULT_STACKS
             end
             if n then
-                out[#out + 1] = { index = i, entry = e, kind = e.kind, spellID = e.spellID, numSeg = n }
+                out[#out + 1] = { index = i, entry = e, kind = e.kind, spellID = e.spellID, numSeg = n,
+                                  showWhen = Pips.ShowWhen(e) }
             end
         end
     end
     return out
 end
+
+-- 顯示時機：每種列開放哪幾種（設定頁的下拉照這張表；順序＝選單順序）
+local SHOW_WHEN = {
+    charges = { "always", "active", "activeOrCombat" },
+    stacks  = { "always", "active" },
+}
+Pips.SHOW_WHEN = SHOW_WHEN
+
+-- 純函式：這一筆實際生效的顯示時機（沒存、壞資料、這種列不開放的值 → always）
+function Pips.ShowWhen(entry)
+    local v = type(entry) == "table" and entry.showWhen
+    local kinds = type(entry) == "table" and SHOW_WHEN[entry.kind]
+    if type(v) ~= "string" or not kinds then return "always" end
+    for _, k in ipairs(kinds) do if k == v then return v end end
+    return "always"
+end
+
+-- 純函式：充能列這一次的透明度。
+--   mode      always | active | activeOrCombat
+--   isActive  GetSpellCharges().isActive（明文布林；讀不到 nil）
+--   inCombat  明文
+--   base      平常的透明度（讀不到值時 0.5）
+-- 回傳數字 ＝ 直接 SetAlpha；回傳 nil ＝ Lua 決定不了，呼叫端改用引擎（duration:IsZero() 餵 SetAlphaFromBoolean）
+function Pips.ChargeAlpha(mode, isActive, inCombat, base)
+    if mode ~= "active" and mode ~= "activeOrCombat" then return base end
+    if mode == "activeOrCombat" and inCombat then return base end
+    if isActive == true then return base end
+    if isActive == false then return 0 end
+    return nil
+end
+
+-- 純函式：第 i 格的填色條與閘門的 min／max（SetValue 目前充能數）。
+--   填色 (i-1, i)：充能數 ≥ i 滿、≤ i-1 空
+--   閘門 (i-2, i-1)：充能數 ≥ i-1 滿（這一格是「下一格」或已經滿了）、≤ i-2 空（還輪不到）
+function Pips.FillRange(i) return i - 1, i end
+function Pips.GateRange(i) return i - 2, i - 1 end
 
 -- 純函式：容器高度（沒有列 ＝ 0：輔助技能貼回核心下方）
 function Pips.PanelHeight(n, H, gap)
@@ -188,16 +250,20 @@ local function CustomColor(entry)
 end
 Pips.CustomColor = CustomColor
 
--- 自訂列的目前值（原始值，可能是秘密值）與回充的 duration 物件。讀不到回 nil
+-- 自訂列的目前值（原始值，可能是秘密值）、回充的 duration 物件、回充中（明文布林或 nil）。讀不到回 nil
 local function CustomValue(plan)
-    if plan.kind == "stacks" then return R.AuraStacks(plan.spellID), nil end
+    if plan.kind == "stacks" then return R.AuraStacks(plan.spellID), nil, nil end
     local fn = C_Spell and C_Spell.GetSpellCharges
-    local cur
+    local cur, active
     if fn then
         local ok, info = pcall(fn, plan.spellID)
         if ok and type(info) == "table" then
-            local ok2, v = pcall(function() return info.currentCharges end)
-            if ok2 then cur = v end
+            local ok2, v, a = pcall(function() return info.currentCharges, info.isActive end)
+            if ok2 then
+                cur = v
+                -- isActive 是 NeverSecret；保險起見照樣驗過明文才收
+                if type(a) == "boolean" and not ns.IsSecret(a) then active = a end
+            end
         end
     end
     local dfn = C_Spell and C_Spell.GetSpellChargeDuration
@@ -206,7 +272,7 @@ local function CustomValue(plan)
         local ok, d = pcall(dfn, plan.spellID)
         if ok then dur = d end
     end
-    return cur, dur
+    return cur, dur, active
 end
 Pips.CustomValue = CustomValue
 
@@ -214,24 +280,38 @@ Pips.CustomValue = CustomValue
 -- 框
 ------------------------------------------------------------
 local container, root
-local customRows = {}           -- 池化的列（frame 刪不掉；每格多一顆 Cooldown，格子懶建）
+local customRows = {}           -- 池化的列（frame 刪不掉；格子懶建）
+local pendingRelayout = false   -- 戰鬥中面板是保護框、該重排的時候記在這裡
 
--- 一格：cell（底色貼圖）→ Cooldown（level +1）→ 填色 StatusBar（level +2，邊框也在它上面）。
--- 三層都錨在 cell 上、cell 錨在列上；錨在填色條上的只有它自己的邊框貼圖
--- （SetValue(秘密值) 會讓填色條的幾何變秘密）
+-- 充能格（見檔頭的層次）。層數格只用底色與填色（明文退路）
 local function MakeCustomCell(row)
     local cell = CreateFrame("Frame", nil, row)
     cell.bg = cell:CreateTexture(nil, "BACKGROUND")
     cell.bg:SetTexture(SOLID)
     cell.bg:SetAllPoints(cell)
-    local ok, cd = pcall(CreateFrame, "Cooldown", nil, cell, "CooldownFrameTemplate")
+    -- 閘門：透明，只拿它的填充貼圖當裁切框的錨點
+    cell.gate = CreateFrame("StatusBar", nil, cell)
+    cell.gate:SetAllPoints(cell)
+    cell.gate:SetStatusBarTexture(SOLID)
+    local gt = cell.gate:GetStatusBarTexture()
+    if gt then gt:SetVertexColor(0, 0, 0, 0) end
+    cell.clip = CreateFrame("Frame", nil, cell)
+    cell.clip:SetClipsChildren(true)
+    if gt then
+        cell.clip:SetPoint("TOPLEFT", gt, "TOPLEFT", 0, 0)
+        cell.clip:SetPoint("BOTTOMRIGHT", gt, "BOTTOMRIGHT", 0, 0)
+    end
+    -- 回充條：錨在格子上（被裁切，不是被壓扁）
+    cell.rc = CreateFrame("StatusBar", nil, cell.clip)
+    cell.rc:SetAllPoints(cell)
+    cell.rc:SetStatusBarTexture(SOLID)
+    -- 秒數：不畫扇形的 Cooldown，只留倒數字
+    local ok, cd = pcall(CreateFrame, "Cooldown", nil, cell.clip, "CooldownFrameTemplate")
     if ok and cd then
         cd:SetAllPoints(cell)
-        if cd.SetDrawBling then cd:SetDrawBling(false) end
+        if cd.SetDrawSwipe then cd:SetDrawSwipe(false) end
         if cd.SetDrawEdge then cd:SetDrawEdge(false) end
-        if cd.SetSwipeTexture then pcall(cd.SetSwipeTexture, cd, SOLID) end
-        -- 暗色的扇形從空的一側長出來：「正在充回來」讀起來像在填這一格
-        if cd.SetReverse then cd:SetReverse(true) end
+        if cd.SetDrawBling then cd:SetDrawBling(false) end
         local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
         -- ⚠ 先給字型（像素字型、跟數值文字同一套）；樣式在 LayoutCustomRow 依列高重套
         if fs then ns.Media.SetPixelFont(fs, 8, "OUTLINE") end
@@ -245,11 +325,50 @@ local function MakeCustomCell(row)
     return cell
 end
 
+local function OnAuraRegen() Pips.Mark(true) end
+
 local function MakeCustomRow(parent)
     local row = CreateFrame("Frame", nil, parent)
     row.cells = {}                    -- 懶建：要幾格建幾格（frame 刪不掉，建了就留著重用）
+    row.ab, row.abDecor, row.engine = false, false, false   -- 引擎寫層數的持有框／裝飾（懶建）
     row:Hide()
     return row
+end
+
+local function HideCells(row, from)
+    for i = from, #row.cells do
+        local cell = row.cells[i]
+        if cell.cd then cell.cd:Clear() end
+        cell:Hide()
+    end
+end
+
+-- 層數列：引擎寫的那條（AuraBar）。回傳 true ＝ 用引擎；false ＝ 退回明文格子
+local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex)
+    if not ns.AuraBar then return false end
+    row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
+    local n = plan.numSeg
+    local geom = {
+        W = W, H = H, n = n, gap = gap, segW = (W - gap * (n - 1)) / n, reversed = reversed, segments = true,
+        dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1),
+    }
+    local inside = plan.showWhen == "active"
+    local status = ns.AuraBar.Apply(row.ab, {
+        spellIDs = { plan.spellID }, max = n, texture = tex, color = { r = r, g = g, b = b }, alpha = alpha,
+        reversed = reversed, inside = inside and geom or nil,
+    })
+    row.engineStatus = status
+    if status ~= "ready" then
+        ns.AuraBar.HideContainer(row.ab)
+        ns.AuraBar.HideRowDecor(row)
+        return false
+    end
+    if inside then
+        ns.AuraBar.HideRowDecor(row)
+    else
+        ns.AuraBar.RowDecor(row, geom, (row:GetFrameLevel() or 1) + 8)
+    end
+    return true
 end
 
 -- style：資源條的設定表（樣式照它）
@@ -264,6 +383,19 @@ local function LayoutCustomRow(row, plan, style, W, H)
     local r, g, b = CustomColor(plan.entry)
     local alpha = tonumber(style.barAlpha) or 1
     local charges = plan.kind == "charges"
+
+    row.engine = false
+    if not charges then
+        row.engine = LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex)
+        if row.engine then
+            HideCells(row, 1)
+            return
+        end
+    else
+        if row.ab then ns.AuraBar.HideContainer(row.ab) end
+        if ns.AuraBar then ns.AuraBar.HideRowDecor(row) end
+    end
+
     local showTime = plan.entry.showTime ~= false
     local fontSize = math.max(8, R.RowHeight(style) - 4)
     local font = ns.Setting(nil, "font")
@@ -286,17 +418,25 @@ local function LayoutCustomRow(row, plan, style, W, H)
         local lv = cell:GetFrameLevel()
         cell.bg:SetTexture(tex)
         cell.bg:SetVertexColor(DIM.r, DIM.g, DIM.b, DIM.a)
-        cell.bar:SetFrameLevel(lv + 2)
+        cell.gate:SetFrameLevel(lv + 1)
+        cell.clip:SetFrameLevel(lv + 1)
+        cell.rc:SetFrameLevel(lv + 2)
+        cell.bar:SetFrameLevel(lv + 4)
         cell.bar:SetStatusBarTexture(tex)
-        cell.bar:SetMinMaxValues(i - 1, i)
+        cell.bar:SetMinMaxValues(Pips.FillRange(i))
         local t = cell.bar:GetStatusBarTexture()
         if t then t:SetVertexColor(r, g, b, alpha) end
-        local cd = cell.cd
-        if cd then
-            if charges then
-                cd:SetFrameLevel(lv + 1)
-                -- 扇形用這一列顏色的暗版（跟連續條的空底同一個算法）
-                if cd.SetSwipeColor then cd:SetSwipeColor(r * 0.25, g * 0.25, b * 0.25, 0.8) end
+        if charges then
+            cell.gate:SetMinMaxValues(Pips.GateRange(i))
+            cell.clip:Show()
+            -- 回充條：這一列顏色的暗版，往下一格的方向長
+            cell.rc:SetStatusBarTexture(tex)
+            cell.rc:SetReverseFill(reversed)
+            local rt = cell.rc:GetStatusBarTexture()
+            if rt then rt:SetVertexColor(r * 0.5, g * 0.5, b * 0.5, alpha) end
+            local cd = cell.cd
+            if cd then
+                cd:SetFrameLevel(lv + 3)
                 if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(not showTime) end
                 local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
                 if fs then
@@ -308,25 +448,45 @@ local function LayoutCustomRow(row, plan, style, W, H)
                 if fmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
                 if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
                 cd:Show()
-            else
-                -- 光環層數沒有 duration：不放 Cooldown
-                cd:Clear()
-                cd:Hide()
             end
+        else
+            -- 層數的明文退路：沒有回充
+            cell.clip:Hide()
+            if cell.cd then cell.cd:Clear() end
         end
         cell:Show()
     end
-    for i = numSeg + 1, #row.cells do
-        local cell = row.cells[i]
-        if cell.cd then cell.cd:Clear() end
-        cell:Hide()
+    HideCells(row, numSeg + 1)
+end
+
+-- 充能列的顯示時機：Lua 決定得了就 SetAlpha，決定不了（isActive 讀不到）交給引擎
+local function ApplyChargeAlpha(row, plan, base, dur, isActive)
+    local a = Pips.ChargeAlpha(plan.showWhen, isActive, InCombatLockdown() and true or false, base)
+    if a then
+        row:SetAlpha(a)
+        return
     end
+    -- duration:IsZero() 是秘密布林：取得可以、測試不行 ⇒ 直接餵 SetAlphaFromBoolean
+    local zero
+    if dur and dur.IsZero then
+        local ok, z = pcall(dur.IsZero, dur)
+        if ok then zero = z end
+    end
+    if zero ~= nil and row.SetAlphaFromBoolean and pcall(row.SetAlphaFromBoolean, row, zero, 0, base) then return end
+    row:SetAlpha(base)             -- 什麼都讀不到：寧可顯示
 end
 
 local function UpdateCustomRow(row)
     local plan = row.plan
     if not plan then return end
-    local cur, dur = CustomValue(plan)
+    local charges = plan.kind == "charges"
+    if row.engine then
+        -- 層數由引擎寫；顯不顯示也是按鈕自己的事（active 時裝飾在按鈕子樹裡）
+        row.valueState = "engine"
+        row:SetAlpha(1)
+        return
+    end
+    local cur, dur, isActive = CustomValue(plan)
     -- 只看型別（type() 回真實型別，不讀值）：秘密數字照樣是 "number"
     local readable = type(cur) == "number"
     local vs = "unreadable"
@@ -334,18 +494,35 @@ local function UpdateCustomRow(row)
         if ns.IsSecret(cur) then vs = "secret" else vs = "plain" end
     end
     row.valueState = vs
-    row:SetAlpha(readable and 1 or 0.5)
-    local charges = plan.kind == "charges"
+    local base = readable and 1 or 0.5
+    if charges then
+        ApplyChargeAlpha(row, plan, base, dur, isActive)
+    elseif plan.showWhen == "active" then
+        -- 層數的明文退路：有沒有這個光環（表的真假，不讀內容）
+        local get = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+        local has = false
+        if get then
+            local ok, aura = pcall(get, plan.spellID)
+            has = ok and aura ~= nil
+        end
+        row:SetAlpha(has and base or 0)
+    else
+        row:SetAlpha(base)
+    end
     for i = 1, plan.numSeg do
         local cell = row.cells[i]
         -- ⚠ 不能寫 `readable and cur or 0`：`or` 要判斷 cur 的真假，秘密值當布林用會拋錯
         if readable then cell.bar:SetValue(cur) else cell.bar:SetValue(0) end   -- 引擎決定這格亮多少，秘密值照樣對
-        local cd = cell.cd
-        if charges and cd then
+        if charges then
+            if readable then cell.gate:SetValue(cur) else cell.gate:SetValue(-1) end
+            local cd = cell.cd
             if dur then
-                pcall(cd.SetCooldownFromDurationObject, cd, dur, true)
+                cell.rc:Show()
+                pcall(cell.rc.SetTimerDuration, cell.rc, dur, nil, ELAPSED)
+                if cd then pcall(cd.SetCooldownFromDurationObject, cd, dur, true) end
             else
-                cd:Clear()
+                cell.rc:Hide()
+                if cd then cd:Clear() end
             end
         end
     end
@@ -356,18 +533,36 @@ end
 ------------------------------------------------------------
 local customShown = 0
 local laidOut = false            -- 排過版了沒（false ＝ 下一次 Update 一定重排）
-local customHas = { charges = false, stacks = false }
+local customHas = { charges = false, stacks = false, combat = false }
 local SyncEvents                 -- 定義在事件那一段（前置宣告）
 
 local function HideRows(from)
     for i = from, #customRows do
         local row = customRows[i]
         row:Hide()
-        row.plan, row.valueState = nil, nil
-        for _, cell in ipairs(row.cells) do
-            if cell.cd then cell.cd:Clear() end
-        end
+        row.plan, row.valueState, row.engine = nil, nil, false
+        HideCells(row, 1)
+        if row.ab and ns.AuraBar then ns.AuraBar.HideContainer(row.ab) end
+        if ns.AuraBar then ns.AuraBar.HideRowDecor(row) end
     end
+end
+
+-- 層數列的 AuraContainer 讓面板變成保護框：戰鬥中不能 SetSize／SetPoint／Show／Hide 列 ⇒ 記旗標、脫戰補
+local function MustDefer()
+    return InCombatLockdown() and root ~= nil and ns.IsProtectedFrame and ns.IsProtectedFrame(root)
+end
+
+local function OnRegenRelayout()
+    ns.Events.Unregister("PLAYER_REGEN_ENABLED", "pips_relayout")
+    if pendingRelayout then
+        pendingRelayout = false
+        Pips.Mark(true)
+    end
+end
+
+local function DeferRelayout()
+    pendingRelayout = true
+    ns.Events.Register("PLAYER_REGEN_ENABLED", "pips_relayout", OnRegenRelayout)
 end
 
 local function Relayout(style, W)
@@ -375,7 +570,7 @@ local function Relayout(style, W)
     local gap = ns.P.Scale(tonumber(style.rowSpacing) or 1)
     W = ns.P.Scale(W)
     local plans = Pips.PlanCustomRows(style, ns.specID, gameProbe)
-    customHas.charges, customHas.stacks = false, false
+    customHas.charges, customHas.stacks, customHas.combat = false, false, false
     local prev
     for i, plan in ipairs(plans) do
         local row = customRows[i]
@@ -385,6 +580,7 @@ local function Relayout(style, W)
         end
         row.plan = plan
         customHas[plan.kind] = true
+        if plan.showWhen == "activeOrCombat" then customHas.combat = true end
         row:ClearAllPoints()
         if prev then
             row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
@@ -392,12 +588,14 @@ local function Relayout(style, W)
             row:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
         end
         prev = row
-        LayoutCustomRow(row, plan, style, W, H)
         row:Show()
+        LayoutCustomRow(row, plan, style, W, H)
+        if row.ab and ns.AuraBar then ns.AuraBar.KickPending(row.ab) end
     end
     HideRows(#plans + 1)
     customShown = #plans
     SyncEvents()
+    -- 顯示時機不是 always 的列照樣佔位（秘密值下不知道它現在顯不顯示）
     ns.Bars.SetPanelSize(KEY, W, Pips.PanelHeight(#plans, H, gap))
 end
 
@@ -413,9 +611,10 @@ function Pips.Update(force)
     if not root then return end
     local cfg, style = Cfg(), StyleCfg()
     if not cfg or cfg.enabled == false or not style then
+        if MustDefer() then DeferRelayout() return end
         HideRows(1)
         customShown = 0
-        customHas.charges, customHas.stacks = false, false
+        customHas.charges, customHas.stacks, customHas.combat = false, false, false
         SyncEvents()
         laidOut = false
         -- 關著也收成高度 0：錨在這裡的輔助技能貼回核心下方
@@ -423,8 +622,12 @@ function Pips.Update(force)
         return
     end
     if force or not laidOut then
-        Relayout(style, R.Width(style))
-        laidOut = true
+        if MustDefer() then
+            DeferRelayout()
+        else
+            Relayout(style, R.Width(style))
+            laidOut = true
+        end
     end
     UpdateRows()
 end
@@ -462,15 +665,17 @@ local RELAYOUT_EVENTS = {
 }
 -- 值的事件（很密）：只在有那一種列時才註冊
 local CHARGE_EVENTS = { SPELL_UPDATE_CHARGES = true, SPELL_UPDATE_COOLDOWN = true }
+local COMBAT_EVENTS = { PLAYER_REGEN_DISABLED = true, PLAYER_REGEN_ENABLED = true }
 
 local evFrame
-local evCharges, evAura = false, false
+local evCharges, evAura, evCombat = false, false, false
 
 local function OnEvent(_, event)
     Mark(RELAYOUT_EVENTS[event] == true)
 end
 
--- 重排時對一次帳：充能列 → SPELL_UPDATE_CHARGES／COOLDOWN；層數列 → UNIT_AURA（player）
+-- 重排時對一次帳：充能列 → SPELL_UPDATE_CHARGES／COOLDOWN；層數列 → UNIT_AURA（player，明文退路用；
+-- 引擎寫的列不需要，但容器可能還沒建好）；「不滿或戰鬥中」→ 進出戰鬥
 SyncEvents = function()
     if not evFrame then return end
     local wantCharges = customHas.charges and true or false
@@ -484,6 +689,13 @@ SyncEvents = function()
     if wantAura ~= evAura then
         evAura = wantAura
         if wantAura then evFrame:RegisterUnitEvent("UNIT_AURA", "player") else evFrame:UnregisterEvent("UNIT_AURA") end
+    end
+    local wantCombat = customHas.combat and true or false
+    if wantCombat ~= evCombat then
+        evCombat = wantCombat
+        for e in pairs(COMBAT_EVENTS) do
+            if wantCombat then evFrame:RegisterEvent(e) else evFrame:UnregisterEvent(e) end
+        end
     end
 end
 
@@ -551,6 +763,8 @@ local function AnchorText(cfg)
     return ("位置 %s (%s, %s)"):format(tostring(pos.point), tostring(pos.x), tostring(pos.y))
 end
 
+local SHOW_TEXT = { always = "一直", active = "作用中", activeOrCombat = "作用中或戰鬥" }
+
 function Pips.DebugLines()
     local out = {}
     if not container then
@@ -561,10 +775,13 @@ function Pips.DebugLines()
     local specID = ns.specID
     local list = Pips.CustomRowList(style, specID)
     local h = container.GetHeight and container:GetHeight()
-    out[#out + 1] = ("  自訂格子：%s  專精 %s  清單 %d 筆  顯示 %d 列  高 %s  %s  alpha %s  事件 充能 %s／光環 %s")
+    local lc = type(cfg) == "table" and type(cfg.loadConditions) == "table" and cfg.loadConditions or {}
+    out[#out + 1] = ("  自訂格子：%s  專精 %s  清單 %d 筆  顯示 %d 列  高 %s  %s  alpha %s  載入條件 騎乘藏 %s／只在戰鬥 %s  事件 充能 %s／光環 %s／戰鬥 %s%s")
         :format((cfg and cfg.enabled ~= false) and "開" or "關", tostring(specID), list and #list or 0, customShown,
                 tostring(Plain(h)), AnchorText(cfg), tostring(ns.Visibility and ns.Visibility.Current(KEY)),
-                evCharges and "開" or "關", evAura and "開" or "關")
+                lc.hideMounted and "是" or "否", lc.onlyCombat and "是" or "否",
+                evCharges and "開" or "關", evAura and "開" or "關", evCombat and "開" or "關",
+                pendingRelayout and "  （戰鬥中，重排延到脫戰）" or "")
     -- 清單裡每一筆都印（沒建列的寫原因）
     for i, e in ipairs(list or {}) do
         local row
@@ -576,9 +793,16 @@ function Pips.DebugLines()
         if row then
             -- 值是不是秘密：用上一次更新時記的狀態（只看型別與 issecretvalue，不讀值）
             local vs = row.valueState
-            local state = vs == "secret" and "秘密" or vs == "plain" and "明文" or vs == "unreadable" and "讀不到" or "—"
-            out[#out + 1] = ("    自訂 %d. %-7s spellID %s  ×%d  值 %s")
-                :format(i, kind, id, row.plan.numSeg, state)
+            local state = vs == "secret" and "秘密" or vs == "plain" and "明文" or vs == "unreadable" and "讀不到"
+                or vs == "engine" and "引擎寫" or "—"
+            local extra = ""
+            if row.plan.kind == "stacks" and row.ab and ns.AuraBar then
+                local bound = ns.AuraBar.Bound(row.ab)
+                extra = ("  容器 %s／交條 %s"):format(tostring(row.engineStatus),
+                    bound == true and "是" or bound == false and "失敗" or "未知")
+            end
+            out[#out + 1] = ("    自訂 %d. %-7s spellID %s  ×%d  值 %s  顯示 %s%s")
+                :format(i, kind, id, row.plan.numSeg, state, SHOW_TEXT[row.plan.showWhen] or "?", extra)
         else
             local why
             if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] or type(e.spellID) ~= "number" then why = "壞資料"

@@ -5,13 +5,13 @@
 -- 多了法力的數字格式、載入條件（騎乘隱藏、只在戰鬥中、跟核心技能一起淡）與「錨定」一節
 -- （跟條頁同一支 Specs.Anchor；key ＝ "resources"）。
 --
--- 「自訂格子」一節：目前專精的 customRows 清單（法術充能／光環層數），一筆兩列：
--- 名字＋圖示＋種類＋［刪除］、顏色＋（充能）顯示秒數／（層數）上限；底下「＋ 新增格子」
+-- 「自訂格子」一節：整組開關（profile.pips.enabled）＋目前專精的 customRows 清單（法術充能／光環層數），
+-- 一筆三列：名字＋圖示＋種類＋［刪除］、顏色＋（充能）顯示秒數／（層數）上限、顯示時機（下拉）；底下「＋ 新增格子」
 -- → 選種類（兩顆按鈕滑過有說明與舉例）→ 輸入 ID（層數多一欄上限）→ 驗證。增刪走換表單
 -- （簽章含整份清單），改色／勾選／上限原地套用。
 -- 自訂格子畫在自己的面板（Modules/Pips.lua、profile.pips）：清單與樣式在這張表，這一節底下
--- 多一小節「位置與錨定」（Specs.Anchor("pips", { other = true })，讀寫 profile.pips）與
--- 「跟核心技能一起淡出」。
+-- 多一小節「位置與錨定」（Specs.Anchor("pips", { other = true })，讀寫 profile.pips）、
+-- 「跟核心技能一起淡出」與自訂格子自己的載入條件（profile.pips.loadConditions）。
 --
 -- 資源清單跟著專精走、條件規則的列數跟著規則走，所以表單照「形狀」快取（專精、候選清單、
 -- 條件編輯器的結構、自訂格子清單、有沒有錨定、條清單）：形狀變了才另建一份、變回來就拿舊的
@@ -180,6 +180,7 @@ end
 
 local kindPopup, pendingCtx
 local AppendPipsPlacement          -- 前置宣告（定義在 AppendCustomRows 前面）
+local ShowWhenSpec                 -- 同上
 local inputPopups = {}
 
 function Tab.AskCustomID(kind)
@@ -212,8 +213,8 @@ end
 
 -- 選種類那兩顆按鈕的滑鼠提示：標題＝按鈕字，內文說明長相並舉例
 local KIND_TIPS = {
-    { title = L["Spell charges"], body = L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] },
-    { title = L["Aura stacks"], body = L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] },
+    { title = L["Spell charges"], body = L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] },
+    { title = L["Aura stacks"], body = L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] },
 }
 
 -- CreateChoicePopup 不回傳按鈕（共用層不改）：建完照按鈕字從彈窗的子框認回來，掛 OnEnter／OnLeave
@@ -340,6 +341,32 @@ local function CustomOptionsRow(i, kind)
     end
 end
 
+-- 顯示時機（entry.showWhen）：選項依種類（Modules/Pips.lua 的 SHOW_WHEN），原地套用不換表單
+local SHOW_WHEN_TEXT = {
+    charges = { always = L["Always"], active = L["Only while recharging"], activeOrCombat = L["While recharging or in combat"] },
+    stacks  = { always = L["Always"], active = L["Only while you have the aura"] },
+}
+
+local function ShowWhenItems(kind)
+    local items = {}
+    for _, v in ipairs(ns.Pips.SHOW_WHEN[kind] or { "always" }) do
+        items[#items + 1] = { text = SHOW_WHEN_TEXT[kind] and SHOW_WHEN_TEXT[kind][v] or v, value = v }
+    end
+    return items
+end
+Tab.ShowWhenItems = ShowWhenItems
+
+ShowWhenSpec = function(i, kind)
+    return BS("dropdown", "customRows.showWhen." .. i, L["Show when"], {
+        items = ShowWhenItems(kind), noReset = true,
+        get = function() return ns.Pips.ShowWhen(CustomEntry(i)) end,
+        set = function(_, v)
+            local e = CustomEntry(i)
+            if e then e.showWhen = (v ~= "always") and v or nil end
+        end,
+    })
+end
+
 -- 自訂格子的位置與錨定（profile.pips）：跟條頁同一支 Specs.Anchor，讀寫轉到 pips
 AppendPipsPlacement = function(list)
     local function add(s) list[#list + 1] = s end
@@ -348,11 +375,16 @@ AppendPipsPlacement = function(list)
     end
     add(BS("toggle", "fadeWithEssential", L["Fade with Essential Cooldowns"], { root = "bar@" .. PIPS }))
     add(Note(L["Takes Essential Cooldowns' current opacity, including its visibility conditions and fades."]))
+    add({ type = "header", label = L["Load conditions"], nested = true })
+    add(BS("toggle", "loadConditions.hideMounted", L["Hide while mounted"], { root = "bar@" .. PIPS }))
+    add(Note(L["Mounted includes riding a vehicle."]))
+    add(BS("toggle", "loadConditions.onlyCombat", L["Only in combat"], { root = "bar@" .. PIPS }))
 end
 
 local function AppendCustomRows(list)
     local function add(s) list[#list + 1] = s end
     add({ type = "header", label = L["Custom segments"] })
+    add(BS("toggle", "enabled", L["Show custom segments"], { root = "bar@" .. PIPS, level = "structure" }))
     add(Note(L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings above; each specialization keeps its own list."]))
     if not ns.specID then
         add(Note(L["Pick a specialization first."]))
@@ -367,9 +399,14 @@ local function AppendCustomRows(list)
             shown = shown + 1
             add({ type = "custom", label = SpellLabel(e.spellID), h = CUSTOM_ROW_H, noReset = true, build = CustomHeadRow(i) })
             add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
+            add(ShowWhenSpec(i, e.kind))
         end
     end
-    if shown == 0 then add(Note(L["No custom segments for this specialization yet."])) end
+    if shown == 0 then
+        add(Note(L["No custom segments for this specialization yet."]))
+    else
+        add(Note(L["A row that hides keeps its space, so the rows below it don't jump."]))
+    end
     add({ type = "space", h = 4 })
     add({ type = "custom", label = "", h = 30, noReset = true, build = function(parent, x, y, width, ctx)
         local b = W.CreateButton(parent, L["+ Add segments"], "primary", 150, 22)
@@ -390,6 +427,15 @@ local function CustomSignature()
     return #out .. "=" .. table.concat(out, ",")
 end
 Tab.CustomSignature = CustomSignature
+
+-- 條件規則編輯器的候選：引擎寫層數的列（auraBar）不列
+function Tab.ConditionCandidates(cand)
+    local out = {}
+    for _, key in ipairs(cand or {}) do
+        if ns.Resources.SupportsConditions(key) then out[#out + 1] = key end
+    end
+    return out
+end
 
 local function Controls(cand)
     local R = ns.Resources
@@ -420,16 +466,32 @@ local function Controls(cand)
     if #cand > 0 then
         add({ type = "header", label = L["Colors and conditions"] })
         for _, key in ipairs(cand) do
-            local info = R.Info(key)
-            -- 標籤直接用資源名（暴雪的官方譯名）
-            add(BS("color", "colors." .. key .. ".color", info and info.name or key, { hasAlpha = false }))
+            -- 標籤直接用資源名（暴雪的官方譯名／法術名）
+            add(BS("color", "colors." .. key .. ".color", R.Name(key), { hasAlpha = false }))
             if key == "ComboPoints" then
                 add(BS("color", "colors.ComboPoints.chargedColor", L["Charged color"], { hasAlpha = false }))
                 add(BS("color", "colors.ComboPoints.chargedEmptyColor", L["Charged (empty)"], { hasAlpha = false }))
                 add(Note(L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."]))
+            elseif key == "Stagger" then
+                -- 中度／重度的標籤是暴雪自己的減益名（中度醉仙緩勁、重度醉仙緩勁）
+                add(BS("color", "colors.Stagger.moderateColor", R.StaggerLabel("moderate"), { hasAlpha = false }))
+                add(BS("color", "colors.Stagger.heavyColor", R.StaggerLabel("heavy"), { hasAlpha = false }))
+                add(BS("slider", "staggerModerateAt", L["Moderate threshold (percent of max health)"], { min = 1, max = 100, step = 1 }))
+                add(BS("slider", "staggerHeavyAt", L["Heavy threshold (percent of max health)"], { min = 1, max = 200, step = 1 }))
+                add(BS("slider", "staggerCeiling", L["Full bar at (percent of max health)"], { min = 10, max = 200, step = 5 }))
+                add(Note(L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."]))
+            elseif key == "IgnorePain" then
+                add(Note(L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."]))
+            elseif key == "Ironfur" then
+                add(Note(L["One segment per active application, each draining with its own remaining time."]))
+            end
+            if not R.SupportsConditions(key) then
+                add(Note(L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."]:format(R.Name(key))))
             end
         end
-        ns.ResourceConditionsUI.Append(list, cand)
+        -- 條件規則只給 Lua 讀得到值的列（引擎寫的沒有值可比）
+        local condCand = Tab.ConditionCandidates(cand)
+        if #condCand > 0 then ns.ResourceConditionsUI.Append(list, condCand) end
     end
 
     AppendCustomRows(list)
@@ -439,9 +501,8 @@ local function Controls(cand)
         add(Note(L["This specialization has no resource to show here."]))
     else
         for _, key in ipairs(cand) do
-            local info = R.Info(key)
             local path = "rows." .. key
-            add(BS("toggle", path, info and info.name or key, {
+            add(BS("toggle", path, R.Name(key), {
                 get = function() local c = Cfg(); return not (c and type(c.rows) == "table" and c.rows[key] == false) end,
                 set = function(_, on)
                     local c = Cfg()
@@ -452,7 +513,6 @@ local function Controls(cand)
             }))
         end
     end
-    add(Note(L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."]))
 
     add({ type = "header", label = L["Load conditions"] })
     add(BS("toggle", "loadConditions.hideMounted", L["Hide while mounted"]))
@@ -478,7 +538,7 @@ local function Signature()
     local p = ns.profile
     return table.concat({
         tostring(specID), table.concat(cand, ","),
-        ns.ResourceConditionsUI.FormSignature(cand),
+        ns.ResourceConditionsUI.FormSignature(Tab.ConditionCandidates(cand)),
         CustomSignature(),
         type(cfg.anchor) == "table" and "a" or "-",
         type(ns.DB.GetPath(ns.DB.ConfigTable(PIPS), "anchor")) == "table" and "pa" or "-",

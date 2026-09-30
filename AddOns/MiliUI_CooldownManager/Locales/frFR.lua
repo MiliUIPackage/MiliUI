@@ -293,7 +293,6 @@ L["Track it as a buff or a debuff on you?"] = "Le suivre comme amélioration ou 
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Tant qu'une aura peut être rafraîchie sans perte de temps, sa bordure prend cette couleur."
 
 -- F 階段：資源條與施法條
-L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] = "Les ressources de type absorption (Report, Fourrure de fer, Ignorer la douleur) sont des secret values en 12.1 : les addons ne peuvent pas en lire les valeurs, elles ne sont donc pas listées."
 L["Add check"] = "Ajouter un test"
 L["Add rule"] = "Ajouter une règle"
 L["And"] = "Et"
@@ -421,5 +420,20 @@ L["Max stacks must be a whole number from 1 to %d."] = "Les cumuls max. doivent 
 L["Show seconds"] = "Afficher les secondes"
 L["Remove this custom row?"] = "Supprimer cette rangée personnalisée ?"
 L["Position and anchoring"] = "Position et ancrage"
-L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Un sort à charges, un segment par charge. Les segments vides montrent la prochaine recharge avec un balayage et les secondes. Par exemple « Palefroi divin » du paladin ou « Transfert » du mage. Saisissez l'ID du sort."
-L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Un effet bénéfique sur vous qui se cumule, un segment par cumul ; tout est vide sans l'aura, sans temps de recharge. Par exemple « Bouclier d'os » du chevalier de la mort. Saisissez l'ID de sort de l'aura et le nombre maximal de cumuls."
+
+-- 自訂格子：顯示時機、整組開關；補齊的職業資源
+L["Moderate threshold (percent of max health)"] = "Seuil modéré (pourcentage de la vie max.)"
+L["Heavy threshold (percent of max health)"] = "Seuil lourd (pourcentage de la vie max.)"
+L["Full bar at (percent of max health)"] = "Barre pleine à (pourcentage de la vie max.)"
+L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."] = "La couleur suit la part de votre vie max. placée en report. En combat instancié, les valeurs sont parfois illisibles ; ces mises à jour gardent la couleur et l'échelle précédentes."
+L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "Affiche le total de tous les boucliers d'absorption sur vous, pas seulement celui-ci ; une barre pleine vaut 30 pour cent de votre vie max."
+L["One segment per active application, each draining with its own remaining time."] = "Un segment par application active, chacun se vidant selon son propre temps restant."
+L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s : le jeu remplit cette ligne lui-même, elle reste donc juste en combat ; les règles de condition et le texte de valeur ne s'appliquent pas."
+L["Show custom segments"] = "Afficher les segments personnalisés"
+L["Always"] = "Toujours"
+L["Only while recharging"] = "Seulement pendant la recharge"
+L["While recharging or in combat"] = "Pendant la recharge ou en combat"
+L["Only while you have the aura"] = "Seulement quand vous avez l'aura"
+L["A row that hides keeps its space, so the rows below it don't jump."] = "Une ligne masquée garde sa place, pour que les lignes du dessous ne sautent pas."
+L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Un sort à charges, un segment par charge. Le prochain segment vide se remplit en douceur pendant la recharge, avec les secondes restantes. Par exemple le Destrier divin du paladin ou le Transfert du mage. Saisissez l'ID du sort."
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Une amélioration sur vous qui se cumule, un segment par cumul ; tout est vide quand vous ne l'avez pas, sans temps de recharge. Le jeu la remplit lui-même, elle reste donc juste en rencontre de boss et en Mythique+. Par exemple le Bouclier d'os du chevalier de la mort. Saisissez l'ID de sort de l'aura et le nombre max. de cumuls."

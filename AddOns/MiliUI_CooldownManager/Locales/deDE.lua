@@ -293,7 +293,6 @@ L["Track it as a buff or a debuff on you?"] = "Als Stärkung oder als Schwächun
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Solange eine Stärkung oder Schwächung ohne Zeitverlust erneuert werden kann, nimmt der Rahmen diese Farbe an."
 
 -- F 階段：資源條與施法條
-L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] = "Absorptionsartige Ressourcen (Staffelung, Eisenfell, Schmerz ignorieren) sind in 12.1 Secret Values – Addons können die Zahlen nicht lesen, daher fehlen sie hier."
 L["Add check"] = "Prüfung hinzufügen"
 L["Add rule"] = "Regel hinzufügen"
 L["And"] = "Und"
@@ -421,5 +420,20 @@ L["Max stacks must be a whole number from 1 to %d."] = "Max. Stapel muss eine ga
 L["Show seconds"] = "Sekunden anzeigen"
 L["Remove this custom row?"] = "Diese eigene Reihe entfernen?"
 L["Position and anchoring"] = "Position und Verankerung"
-L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Ein Zauber mit Aufladungen, ein Segment pro Aufladung. Leere Segmente zeigen die nächste Aufladung als Kreisanimation mit Sekunden. Zum Beispiel „Göttliches Ross“ des Paladins oder „Blinzeln“ des Magiers. Gib die Zauber-ID ein."
-L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Ein stapelbarer Stärkungseffekt auf dir, ein Segment pro Stapel; ohne die Aura bleiben alle leer, es gibt keinen Aufladetimer. Zum Beispiel „Knochenschild“ des Todesritters. Gib die Zauber-ID der Aura und die maximalen Stapel ein."
+
+-- 自訂格子：顯示時機、整組開關；補齊的職業資源
+L["Moderate threshold (percent of max health)"] = "Schwelle mittel (Prozent der max. Gesundheit)"
+L["Heavy threshold (percent of max health)"] = "Schwelle schwer (Prozent der max. Gesundheit)"
+L["Full bar at (percent of max health)"] = "Voller Balken bei (Prozent der max. Gesundheit)"
+L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."] = "Die Farbe folgt dem Anteil der Staffelung an deiner max. Gesundheit. In Instanzkämpfen sind die Zahlen manchmal nicht lesbar; dann bleiben die vorige Farbe und Balkenskala erhalten."
+L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "Zeigt die Summe aller Absorptionsschilde auf dir, nicht nur diesen; ein voller Balken sind 30 Prozent deiner max. Gesundheit."
+L["One segment per active application, each draining with its own remaining time."] = "Ein Segment pro aktiver Anwendung, jedes läuft mit seiner eigenen Restzeit ab."
+L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s: Das Spiel füllt diese Zeile selbst, sie stimmt also auch im Kampf; Bedingungsregeln und Werttext gelten hier nicht."
+L["Show custom segments"] = "Eigene Segmente anzeigen"
+L["Always"] = "Immer"
+L["Only while recharging"] = "Nur während der Aufladung"
+L["While recharging or in combat"] = "Während der Aufladung oder im Kampf"
+L["Only while you have the aura"] = "Nur solange du den Effekt hast"
+L["A row that hides keeps its space, so the rows below it don't jump."] = "Eine ausgeblendete Zeile behält ihren Platz, damit die Zeilen darunter nicht springen."
+L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Ein Zauber mit Aufladungen, ein Segment pro Aufladung. Das nächste leere Segment füllt sich während der Aufladung gleichmäßig, mit den restlichen Sekunden. Zum Beispiel „Göttliches Ross“ des Paladins oder „Blinzeln“ des Magiers. Gib die Zauber-ID ein."
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Ein stapelbarer Stärkungseffekt auf dir, ein Segment pro Stapel; alles leer, solange du ihn nicht hast, ohne Aufladezeit. Das Spiel füllt ihn selbst, er stimmt also auch in Bosskämpfen und Mythisch+. Zum Beispiel „Knochenschild“ des Todesritters. Gib die Zauber-ID des Effekts und die max. Stapel ein."

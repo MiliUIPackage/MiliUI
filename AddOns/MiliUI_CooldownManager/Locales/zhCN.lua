@@ -293,7 +293,6 @@ L["Track it as a buff or a debuff on you?"] = "要追踪你身上的增益还是
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "光环可以无损刷新（续压不浪费时间）的期间，边框换成这个颜色。"
 
 -- F 階段：資源條與施法條
-L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] = "吸收量型的资源（醉拳、铁鬃、无视苦痛）12.1 是秘密值，插件拿不到数字，所以没有列进来。"
 L["Add check"] = "新增检查"
 L["Add rule"] = "新增规则"
 L["And"] = "并且"
@@ -421,5 +420,20 @@ L["Max stacks must be a whole number from 1 to %d."] = "层数上限要是 1 到
 L["Show seconds"] = "显示秒数"
 L["Remove this custom row?"] = "要删除这一列自定义格子吗？"
 L["Position and anchoring"] = "位置与锚定"
-L["A spell with charges, one segment per charge. Empty segments show the next recharge as a sweep and seconds. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "有充能次数的技能，一格一次充能。空格会显示下一次回充的转圈与秒数。例如圣骑士的“神圣马驹”、法师的“闪现术”。输入法术 ID。"
-L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "自己身上会叠层的增益，一格一层，没有光环时全部空着；没有回充时间。例如死亡骑士的“白骨之盾”。输入光环的法术 ID，并填层数上限。"
+
+-- 自訂格子：顯示時機、整組開關；補齊的職業資源
+L["Moderate threshold (percent of max health)"] = "中度门槛（占最大生命值的百分比）"
+L["Heavy threshold (percent of max health)"] = "重度门槛（占最大生命值的百分比）"
+L["Full bar at (percent of max health)"] = "满条等于最大生命值的百分之几"
+L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."] = "颜色看醉拳占最大生命值的比例。副本战斗中数值偶尔读不到，那几下沿用上一段的颜色与满条上限。"
+L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."] = "显示的是你身上所有吸收盾的总量，不只这一个；满条是最大生命值的三成。"
+L["One segment per active application, each draining with its own remaining time."] = "一层一格，每一格各自倒数自己的剩余时间。"
+L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."] = "%s：这一行由游戏自己填，战斗中照样正确；条件规则与数值文字不适用。"
+L["Show custom segments"] = "显示自定义格子"
+L["Always"] = "一直显示"
+L["Only while recharging"] = "只在充能中"
+L["While recharging or in combat"] = "充能中或战斗中"
+L["Only while you have the aura"] = "只在有这个光环时"
+L["A row that hides keeps its space, so the rows below it don't jump."] = "隐藏的行照样占位，下面的行不会跳动。"
+L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "有充能次数的技能，一格一次充能。下一格会随着充能平滑填满，并显示剩余秒数。例如圣骑士的“神圣马驹”、法师的“闪现术”。输入法术 ID。"
+L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "自己身上会叠层的增益，一格一层，没有光环时全部空着；没有充能时间。由游戏自己填，首领战与史诗钥石地下城中照样正确。例如死亡骑士的“白骨之盾”。输入光环的法术 ID，并填层数上限。"

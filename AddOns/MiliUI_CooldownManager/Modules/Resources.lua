@@ -5,11 +5,19 @@
 --   * **有法力**：單位框自己有能量條，所以那邊刻意不做法力；這裡是獨立 HUD，
 --     有法力的專精在最下面多一列法力條（做法照能量條：上限／目前值直接餵 StatusBar）。
 --   * **主資源也列**：那邊把「單位框能量條已經在畫的主資源」剔掉，這裡不剔。
---   * 吸收型（醉仙緩勁、鐵鬃、無視苦痛）維持**不做**：12.1 是秘密值，插件讀不到數字。
 --
 -- 每一列自己決定長相：
---   pip  分段（點數型：聖能／連擊點數／真氣／碎片／充能／精華／符文，以及光環堆疊型）
---   bar  連續長條（怒氣／能量／集中值／符文能量／星能／元能／狂亂值／魔怒／法力）
+--   pip        分段（點數型：聖能／連擊點數／真氣／碎片／充能／精華／符文，以及光環堆疊型：冰刺…）
+--   bar        連續長條（怒氣／能量／集中值／符文能量／星能／元能／狂亂值／魔怒／法力；
+--              def.get 型：醉仙緩勁 UnitStagger／UnitHealthMax、噬靈魂碎片）
+--   absorbBar  吸收盾（無視苦痛）：值 UnitGetTotalAbsorbs("player")、上限「最大生命的三成」。
+--              ⚠ 不對秘密的最大生命乘 0.3：用幾何做 —— 裁切框寬 W（SetClipsChildren），裡面的 StatusBar
+--              寬 W / 0.3、貼在填充起點那一側，SetMinMaxValues(0, UnitHealthMax)，於是只看得到前三成。
+--              這條 StatusBar 的填充貼圖上不錨任何東西、不讀它的尺寸。
+--   auraBar    **引擎寫層數**（Modules/AuraBar.lua）：GetPlayerAuraBySpellID 讀不到的增益（旋風斬、橫掃攻擊）
+--              用一顆單格 AuraContainer ＋ SetApplicationBar；每施放一次多一顆獨立光環的（鐵鬃）用
+--              AddAuraGroup ＋ 每顆 SetDurationBar（一格一層、各自倒數）。條件規則與數值文字不適用。
+--              容器是受保護的 intrinsic ⇒ 有這種列時面板在戰鬥中不重排（記旗標、脫戰補）。
 --
 -- 12.1 秘密值（見 .claude/notes/wow-121-secret-values.md）：
 --   * 連續條：UnitPowerMax／UnitPower **直接**餵 SetMinMaxValues／SetValue（引擎收秘密值），
@@ -73,6 +81,68 @@ local function PowerName(global, fallback)
 end
 R.PowerName = PowerName
 
+-- 法術名當資源名（C_Spell.GetSpellName 是官方譯名；載入當下讀不到時 R.Name 會再問一次）
+local function SpellName(id, fallback)
+    local fn = C_Spell and C_Spell.GetSpellName
+    if fn then
+        local ok, n = pcall(fn, id)
+        if ok and type(n) == "string" and not (ns.IsSecret and ns.IsSecret(n)) and n ~= "" then return n end
+    end
+    return fallback
+end
+
+-- 取值函式（def.get）：回傳 cur, max 的**原始值**（可能是秘密值），只轉手不比較
+local function PlayerAura(id)
+    local get = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+    if not get then return nil end
+    local ok, a = pcall(get, id)
+    if ok then return a end
+    return nil
+end
+
+local function AuraApps(id)
+    local a = PlayerAura(id)
+    if not a then return 0 end
+    local ok, n = pcall(function() return a.applications end)
+    if not ok or n == nil then return 0 end
+    return n
+end
+
+local function Known(id)
+    local fn = C_SpellBook and C_SpellBook.IsSpellKnown
+    if not fn then return false end
+    local ok, v = pcall(fn, id)
+    if not ok or (ns.IsSecret and ns.IsSecret(v)) then return false end
+    return v and true or false
+end
+
+-- 醉仙緩勁：UnitStagger／UnitHealthMax 直接轉手（兩個都可能是秘密值）
+local function StaggerValue()
+    local s = UnitStagger and UnitStagger("player")
+    local m = UnitHealthMax and UnitHealthMax("player")
+    return s or 0, m or 0
+end
+
+-- 無視苦痛：身上所有吸收盾的總量／最大生命（上限的三成由幾何處理，這裡不乘）
+local function AbsorbValue()
+    local a = UnitGetTotalAbsorbs and UnitGetTotalAbsorbs("player")
+    local m = UnitHealthMax and UnitHealthMax("player")
+    return a or 0, m or 0
+end
+
+-- 噬靈魂碎片（專精 1480）：虛空化身中看 1227702、平常看 1225789 的層數。
+-- 上限：化身中 40；平常 50（點了 1247534 是 35），PvP 天賦 1261423 再加 50。全部是明文查詢
+local DEVOURER_META, DEVOURER_META_STACKS, DEVOURER_STACKS = 1217607, 1227702, 1225789
+local function DevourerValue()
+    if PlayerAura(DEVOURER_META) then return AuraApps(DEVOURER_META_STACKS), 40 end
+    local m = Known(1247534) and 35 or 50
+    if Known(1261423) then m = m + 50 end
+    return AuraApps(DEVOURER_STACKS), m
+end
+
+-- 橫掃攻擊：點了 1261049 上限 18，否則 12
+local function SweepingMax() return Known(1261049) and 18 or 12 end
+
 -- ⚠ 顏色不寫在這裡：預設色的單一來源是 Core/DB.lua 的 RESOURCE_COLORS
 local RESOURCES = {
     Mana            = { name = PowerName("MANA", "Mana"),             mode = "bar", power = PT.Mana, mana = true },
@@ -95,13 +165,51 @@ local RESOURCES = {
     MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10, passive = 187880 },
     TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,  passive = 260285 },
     SoulFragments   = { name = L["Soul Fragments"],   mode = "pip", cast = 228477, max = 6,  passive = 203981 },
+    -- 2026-09-30 補齊
+    Icicles         = { name = SpellName(205473, "Icicles"), nameSpell = 205473, mode = "pip", aura = 205473, max = 5 },
+    DevourerFragments = { name = L["Soul Fragments"], mode = "bar", get = DevourerValue, bigNumber = false },
+    Stagger         = { name = PowerName("STAGGER", SpellName(115069, "Stagger")), mode = "bar", get = StaggerValue,
+                        passive = 115069, stagger = true, bigNumber = true },
+    IgnorePain      = { name = SpellName(190456, "Ignore Pain"), nameSpell = 190456, mode = "absorbBar", get = AbsorbValue,
+                        passive = 190456, cap = 0.3, bigNumber = true },
+    WhirlwindStacks = { name = SpellName(85739, "Whirlwind"), nameSpell = 85739, mode = "auraBar",
+                        auras = { 85739, 190411 }, max = 4, passive = 12950 },
+    SweepingStrikes = { name = SpellName(260708, "Sweeping Strikes"), nameSpell = 260708, mode = "auraBar",
+                        auras = { 260708 }, maxFn = SweepingMax, max = 12, passive = 260708 },
+    Ironfur         = { name = SpellName(192081, "Ironfur"), nameSpell = 192081, mode = "auraBar", instances = true,
+                        auras = { 192081 }, max = 5, passive = 192081 },
 }
 R.RESOURCES = RESOURCES
 
+-- 顯示用的名字：法術名在載入當下可能還沒有資料，之後再問一次（拿到就記下）
+function R.Name(key)
+    local def = RESOURCES[key]
+    if not def then return key end
+    if def.nameSpell and not def.nameResolved then
+        local n = SpellName(def.nameSpell, nil)
+        if n then def.name, def.nameResolved = n, true end
+    end
+    return def.name or key
+end
+
+-- 醉仙緩勁中度／重度的標籤：暴雪自己的減益名（124274 中度、124273 重度）
+local STAGGER_LABEL = { moderate = { 124274, "Moderate Stagger" }, heavy = { 124273, "Heavy Stagger" } }
+function R.StaggerLabel(band)
+    local t = STAGGER_LABEL[band]
+    if not t then return tostring(band) end
+    return SpellName(t[1], t[2])
+end
+
+-- 條件規則只對 Lua 讀得到值的列有意義；引擎寫的（auraBar）沒有
+function R.SupportsConditions(key)
+    local def = RESOURCES[key]
+    return def ~= nil and def.mode ~= "auraBar"
+end
+
 -- 專精 → 資源清單（法力另外看 MANA_SPECS，一律排最下面）
 local SPEC_RESOURCES = {
-    [71]  = { "Rage" },                          [72]  = { "Rage" },
-    [73]  = { "Rage" },                          -- 防戰的「無視苦痛」是吸收量，12.1 秘密值，不做
+    [71]  = { "Rage", "SweepingStrikes" },       [72]  = { "Rage", "WhirlwindStacks" },
+    [73]  = { "Rage", "IgnorePain" },
     [65]  = { "HolyPower" },                     [66]  = { "HolyPower" },  [70] = { "HolyPower" },
     [253] = { "Focus" },                         [254] = { "Focus" },
     [255] = { "Focus", "TipOfTheSpear" },
@@ -112,15 +220,15 @@ local SPEC_RESOURCES = {
     [250] = { "RunicPower", "Runes" },           [251] = { "RunicPower", "Runes" },
     [252] = { "RunicPower", "Runes" },
     [262] = { "Maelstrom" },                     [263] = { "MaelstromWeapon" },  [264] = {},
-    [62]  = { "ArcaneCharges" },                 [63]  = {},  [64] = {},
+    [62]  = { "ArcaneCharges" },                 [63]  = {},  [64] = { "Icicles" },
     [265] = { "SoulShards" },                    [266] = { "SoulShards" },  [267] = { "SoulShards" },
-    [268] = { "Energy" },                        -- 釀酒的「醉仙緩勁」是吸收量，同上不做
+    [268] = { "Energy", "Stagger" },
     [269] = { "Energy", "Chi" },                 [270] = {},
     [102] = { "LunarPower" },                    [103] = { "Energy", "ComboPoints" },
-    [104] = { "Rage" },                          -- 「鐵鬃」同為吸收量
+    [104] = { "Rage" },                          -- 守護：熊形態另外多「鐵鬃」（RawList）
     [105] = {},
     [577] = { "Fury" },                          [581] = { "Fury", "SoulFragments" },
-    [1480] = { "Fury" },
+    [1480] = { "Fury", "DevourerFragments" },
     [1467] = { "Essence" },                      [1468] = { "Essence" },  [1473] = { "Essence" },
 }
 R.SPEC_RESOURCES = SPEC_RESOURCES
@@ -147,6 +255,7 @@ function R.RawList(class, specID, form)
     if class == "DRUID" then
         if form == DRUID_BEAR then
             out[1] = "Rage"
+            if specID == 104 then out[2] = "Ironfur" end
         elseif form == DRUID_CAT then
             out[1], out[2] = "Energy", "ComboPoints"
         elseif specID == 102 then
@@ -177,7 +286,9 @@ R.AuraStacks = AuraStacks
 local function GetValue(key)
     local def = RESOURCES[key]
     if not def then return 0, 0 end
+    if def.get then return def.get() end
     if def.aura then return AuraStacks(def.aura), def.max end
+    if def.auras then return AuraStacks(def.auras[1]), R.SegmentsFor(key) end
     if def.cast then
         local fn = C_Spell and C_Spell.GetSpellCastCount
         if not fn then return 0, def.max end
@@ -239,8 +350,8 @@ R.gateLog = gateLog
 local function Available(key)
     local def = RESOURCES[key]
     if not def then return false, "沒有定義" end
-    if def.aura or def.cast then
-        if SpellKnown(def.passive) then return true, "被動已學" end
+    if def.aura or def.cast or def.auras or def.get then
+        if SpellKnown(def.passive) then return true, def.passive and "被動已學" or "不需要天賦" end
         local cur = Plain((GetValue(key)))
         if (cur or 0) > 0 then return true, "被動查不到但目前有層數" end
         return false, "被動未學（天賦沒點）"
@@ -302,7 +413,13 @@ end
 local lastMax = {}
 local function SegmentsFor(key)
     local def = RESOURCES[key]
-    if not def or def.mode ~= "pip" then return 0 end
+    if not def then return 0 end
+    if def.mode == "auraBar" then
+        -- 引擎畫的連續填色：格數不受點數型的 10 格上限限制（橫掃攻擊 18 層）
+        local m = def.maxFn and def.maxFn() or def.max
+        return math.max(1, math.min(30, math.floor(tonumber(m) or 1)))
+    end
+    if def.mode ~= "pip" then return 0 end
     if def.max then return def.max end
     local _, max = GetValue(key)
     local pm = Plain(max)
@@ -431,6 +548,8 @@ local function MakeRow(parent)
     -- 邊框建在 bar 上：bar 是層級更高的子框，建在 row 上會被填充蓋掉
     Edges(row.bar)
     -- 數值掛在獨立的高層框上，父層是 row（點數型會把 bar 整個藏起來）
+    -- 懶建的零件先放 false（有就是框、沒有就是 false；沒寫過的欄位別指望是 nil 以外的東西）
+    row.ab, row.abDecor, row.absorbClip, row.absorbBar = false, false, false, false
     row.textFrame = CreateFrame("Frame", nil, row)
     row.textFrame:SetAllPoints(row)
     row.text = row.textFrame:CreateFontString(nil, "OVERLAY")
@@ -497,6 +616,48 @@ end
 local function RowHeight(cfg) return tonumber(type(cfg) == "table" and cfg.rowHeight) or 8 end
 R.RowHeight = RowHeight
 
+-- 吸收盾列的零件（懶建）：裁切框（跟列一樣大）＋裡面一條寬 W / cap 的 StatusBar
+local function EnsureAbsorb(row)
+    if row.absorbClip then return end
+    local clip = CreateFrame("Frame", nil, row)
+    clip:SetAllPoints(row)
+    clip:SetClipsChildren(true)
+    local bar = CreateFrame("StatusBar", nil, clip)
+    bar:SetStatusBarTexture(SOLID)
+    row.absorbClip, row.absorbBar = clip, bar
+end
+
+local function HideAbsorb(row)
+    if row.absorbClip then row.absorbClip:Hide() end
+end
+
+local function OnAuraRegen() R.Mark(true) end
+
+-- 引擎寫層數的列。回傳 true ＝ 容器就緒（這一列交給引擎）；false ＝ 退回明文畫法
+local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
+    if not ns.AuraBar then return false end
+    row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
+    local gap = ns.P.Scale(tonumber(cfg.segmentSpacing) or 1)
+    local geom = {
+        W = W, H = H, n = numSeg, gap = gap, segW = (W - gap * (numSeg - 1)) / numSeg, reversed = reversed,
+        segments = true, dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1),
+    }
+    local cc = ResolveColor(cfg, key, "color")
+    local status = ns.AuraBar.Apply(row.ab, {
+        kind = def.instances and "instances" or "applications",
+        spellIDs = def.auras, max = numSeg, texture = tex, color = cc, alpha = tonumber(cfg.barAlpha) or 1,
+        reversed = reversed, cell = def.instances and geom or nil,
+    })
+    row.engineStatus = status
+    if status ~= "ready" then
+        ns.AuraBar.HideContainer(row.ab)
+        ns.AuraBar.HideRowDecor(row)
+        return false
+    end
+    ns.AuraBar.RowDecor(row, geom, (row:GetFrameLevel() or 1) + 8)
+    return true
+end
+
 local function LayoutRow(row, key, cfg, numSeg, W, H)
     local def = RESOURCES[key]
     row:SetSize(W, H)
@@ -505,21 +666,68 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     row.condAlpha, row.condApplied = nil, nil
     row.text:SetTextColor(1, 1, 1, 1)
 
-    local isPip = def.mode == "pip" and numSeg and numSeg > 0
     local reversed = ns.FillReversed(cfg)
     local tex = ns.Media.Texture(cfg.texture)
-    row.barBG:SetShown(not isPip)
-    row.bar:SetShown(not isPip)
     local showText = cfg.showText and true or false
-    row.text:SetShown(showText)
     ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, "OUTLINE", ns.Setting(nil, "font"))
     row.text:SetText("")
 
+    -- 這一列實際的畫法：auraBar 容器沒好時退回 pip（明文層數）
+    local mode = def.mode
+    if mode == "auraBar" then
+        if LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex) then
+            mode = "engine"
+        else
+            mode = "pip"
+        end
+    else
+        if row.ab and ns.AuraBar then ns.AuraBar.HideContainer(row.ab) end
+        if ns.AuraBar then ns.AuraBar.HideRowDecor(row) end
+    end
+    -- 退回點數型時照點數型的格數上限
+    if mode == "pip" and numSeg and numSeg > MAX_SEGMENTS then
+        numSeg = MAX_SEGMENTS
+        row.numSeg = numSeg
+    end
+    row.mode = mode
+    -- 引擎寫的列沒有 Lua 讀得到的數字：不印數值文字
+    row.text:SetShown(showText and mode ~= "engine")
+
+    local isPip = mode == "pip" and numSeg and numSeg > 0
+    local isBar = mode == "bar" or mode == "absorbBar"
+    row.barBG:SetShown(isBar)
+    row.bar:SetShown(isBar)
+    if mode ~= "absorbBar" then HideAbsorb(row) end
+
     if not isPip then
         for i = 1, MAX_SEGMENTS do row.segs[i]:Hide() end
+        if not isBar then return end
         row.bar:SetStatusBarTexture(tex)
         row.bar:SetReverseFill(reversed)
         row.barBG:SetTexture(tex)
+        if mode == "absorbBar" then
+            -- 列本身的 bar 只剩邊框（值 0），真正的填色在裁切框裡那條寬的
+            EnsureAbsorb(row)
+            local lv = row:GetFrameLevel() or 1
+            row.absorbClip:SetFrameLevel(lv + 1)
+            row.bar:SetFrameLevel(lv + 2)
+            row.textFrame:SetFrameLevel(lv + 3)
+            row.bar:SetMinMaxValues(0, 1)
+            row.bar:SetValue(0)
+            local ab = row.absorbBar
+            ab:SetStatusBarTexture(tex)
+            ab:SetReverseFill(reversed)
+            ab:ClearAllPoints()
+            -- 寬度是自己的設定算出來的明文：W / cap（上限＝最大生命的 cap 倍 ⇒ 只看得到前 cap）
+            local cap = tonumber(def.cap) or 1
+            ab:SetSize(W / cap, H)
+            if reversed then
+                ab:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
+            else
+                ab:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+            end
+            row.absorbClip:Show()
+        end
         return
     end
 
@@ -634,7 +842,7 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
         -- 光環／技能次數型沒累積時不畫（空著比一顆「0」乾淨）；讀不到明文也不印
-        if pc == nil or ((def.aura or def.cast) and pc <= 0) then
+        if pc == nil or ((def.aura or def.cast or def.auras) and pc <= 0) then
             row.text:SetText("")
         else
             row.text:SetFormattedText("%d", pc)
@@ -642,8 +850,55 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
     end
 end
 
+-- 醉仙緩勁的段落（純函式）：pct ＝ 醉仙緩勁 ／ 最大生命 × 100（明文才算）
+function R.StaggerBand(pct, moderateAt, heavyAt)
+    if type(pct) ~= "number" then return nil end
+    heavyAt, moderateAt = tonumber(heavyAt) or 60, tonumber(moderateAt) or 30
+    if pct >= heavyAt then return "heavy" end
+    if pct >= moderateAt then return "moderate" end
+    return "light"
+end
+local STAGGER_FIELD = { light = "color", moderate = "moderateColor", heavy = "heavyColor" }
+R.STAGGER_FIELD = STAGGER_FIELD
+
+-- 醉仙緩勁：上一次明文算出來的段落與滿條上限（副本戰鬥中兩個值會間歇變成秘密值，那幾下沿用）
+local staggerLast = { band = nil, max = nil }
+R.staggerLast = staggerLast
+
+-- 回傳：條的上限（明文或原始的秘密最大生命）、這次的顏色欄位
+local function StaggerResolve(cfg, cur, maxHealth)
+    local pc, pmh = Plain(cur), Plain(maxHealth)
+    local barMax
+    if pmh and pmh > 0 then
+        local ceil = tonumber(cfg.staggerCeiling) or 100
+        if ceil < 1 then ceil = 1 end
+        barMax = pmh * ceil / 100
+        staggerLast.max = barMax
+    elseif staggerLast.max then
+        barMax = staggerLast.max
+    else
+        barMax = maxHealth              -- 從來沒讀到過明文：原始值直接餵（上限 100%）
+    end
+    if pc and pmh and pmh > 0 then
+        staggerLast.band = R.StaggerBand(pc / pmh * 100, cfg.staggerModerateAt, cfg.staggerHeavyAt)
+    end
+    return barMax, STAGGER_FIELD[staggerLast.band or "light"]
+end
+
+-- 大數字（醉仙緩勁、吸收盾）的文字：照法力的縮寫設定，不印百分比
+local bigFmt = {}
+local function BigNumber(v, cfg)
+    bigFmt.manaAbbrev = cfg.manaAbbrev
+    return R.FormatMana(v, nil, bigFmt)
+end
+
 local function UpdateBarRow(row, cfg, def, key, cc, conds)
     local cur, max = GetValue(key)
+    if def.stagger then
+        local field
+        max, field = StaggerResolve(cfg, cur, max)
+        cc = ResolveColor(cfg, key, field)
+    end
     local pm = Plain(max)
     if pm ~= nil and pm <= 0 then
         row.bar:SetMinMaxValues(0, 1)
@@ -661,7 +916,11 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
     local fc = (barOv and RC.ValidColor(barOv.color)) or cc
     -- 上限與目前值直接交給引擎（可能是秘密值）
     row.bar:SetMinMaxValues(0, max)
-    row.bar:SetValue(cur or 0, ns.Secret.BarInterp(cfg.smooth))
+    if type(cur) == "number" then
+        row.bar:SetValue(cur, ns.Secret.BarInterp(cfg.smooth))
+    else
+        row.bar:SetValue(0)
+    end
     local t = row.bar:GetStatusBarTexture()
     if t then t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1) end
     local bgc = barOv and RC.ValidColor(barOv.bgColor)
@@ -676,9 +935,45 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
             row.text:SetText("")
         elseif def.mana then
             row.text:SetText(R.FormatMana(pc, pm, cfg))
+        elseif def.bigNumber then
+            row.text:SetText(BigNumber(pc, cfg))
         else
             row.text:SetFormattedText("%d", pc)
         end
+    end
+end
+
+-- 吸收盾：值與最大生命直接餵那條寬的 StatusBar（上限的 cap 倍由幾何處理）
+local function UpdateAbsorbRow(row, cfg, def, key, cc, conds)
+    local cur, maxHealth = GetValue(key)
+    local ab = row.absorbBar
+    if not ab then return end
+    local pc, pmh = Plain(cur), Plain(maxHealth)
+    local cap = tonumber(def.cap) or 1
+    local pm = pmh and pmh * cap or nil        -- 明文才乘（條件規則的百分比用）
+    local barOv
+    if conds and pc and pm and pm > 0 then
+        RC.FillState(condState, math.min(pc, pm), pm, CurrentSpecID())
+        barOv = RC.FirstMatch(conds, condState, nil)
+    end
+    local fc = (barOv and RC.ValidColor(barOv.color)) or cc
+    ab:SetMinMaxValues(0, maxHealth)
+    if type(cur) == "number" then
+        ab:SetValue(cur, ns.Secret.BarInterp(cfg.smooth))
+    else
+        ab:SetValue(0)
+    end
+    local t = ab:GetStatusBarTexture()
+    if t then t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1) end
+    local bgc = barOv and RC.ValidColor(barOv.bgColor)
+    if bgc then
+        row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, bgc.a or 0.8)
+    else
+        row.barBG:SetVertexColor(fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, 0.8)
+    end
+    ApplyRowOverrides(row, barOv)
+    if cfg.showText then
+        if pc == nil or pc <= 0 then row.text:SetText("") else row.text:SetText(BigNumber(pc, cfg)) end
     end
 end
 
@@ -686,10 +981,18 @@ local function UpdateRow(row, cfg)
     local key = row.key
     local def = key and RESOURCES[key]
     if not def then return end
+    if row.mode == "engine" then
+        -- 引擎寫層數：Lua 這邊沒有東西要畫
+        row.text:SetText("")
+        ClearRowOverrides(row)
+        return
+    end
     -- 顏色與條件一列解析一次，往下傳（掛在能量事件上）
     local cc = ResolveColor(cfg, key, "color")
-    local conds = RC.Resolve(cfg, key)
-    if def.mode == "pip" then
+    local conds = R.SupportsConditions(key) and RC.Resolve(cfg, key) or nil
+    if row.mode == "absorbBar" then
+        UpdateAbsorbRow(row, cfg, def, key, cc, conds)
+    elseif row.mode == "pip" then
         local n = row.numSeg or 0
         if n <= 0 then
             row.text:SetText("")
@@ -707,6 +1010,25 @@ end
 ------------------------------------------------------------
 local shownCount = 0
 local laidOut = false            -- 排過版了沒（false ＝ 下一次 Update 一定重排）
+local pendingRelayout = false    -- 戰鬥中面板是保護框（有 auraBar 的容器）、該重排的時候記在這裡
+
+-- auraBar 的 AuraContainer 讓列與面板變成保護框：戰鬥中不能 SetSize／SetPoint／Show／Hide ⇒ 記旗標、脫戰補
+local function MustDefer()
+    return InCombatLockdown() and root ~= nil and ns.IsProtectedFrame and ns.IsProtectedFrame(root)
+end
+
+local function OnRegenRelayout()
+    ns.Events.Unregister("PLAYER_REGEN_ENABLED", "resources_relayout")
+    if pendingRelayout then
+        pendingRelayout = false
+        R.Mark(true)
+    end
+end
+
+local function DeferRelayout()
+    pendingRelayout = true
+    ns.Events.Register("PLAYER_REGEN_ENABLED", "resources_relayout", OnRegenRelayout)
+end
 
 local function Relayout(cfg, list, W)
     local H = ns.P.Scale(RowHeight(cfg))
@@ -728,12 +1050,15 @@ local function Relayout(cfg, list, W)
             row:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
         end
         prev = row
-        LayoutRow(row, key, cfg, row.numSeg, W, H)
         row:Show()
+        LayoutRow(row, key, cfg, row.numSeg, W, H)
+        if row.ab and ns.AuraBar then ns.AuraBar.KickPending(row.ab) end
     end
     for i = #list + 1, #rows do
-        rows[i]:Hide()
-        rows[i].key = nil
+        local row = rows[i]
+        row:Hide()
+        row.key, row.mode = nil, nil
+        if row.ab and ns.AuraBar then ns.AuraBar.HideContainer(row.ab) end
     end
     shownCount = #list
     local n = #list
@@ -746,14 +1071,22 @@ function R.Update(force)
     if not root then return end
     local cfg = Cfg()
     if not cfg or cfg.enabled == false then
-        for i = 1, #rows do rows[i]:Hide() end
+        if MustDefer() then DeferRelayout() return end
+        for i = 1, #rows do
+            rows[i]:Hide()
+            if rows[i].ab and ns.AuraBar then ns.AuraBar.HideContainer(rows[i].ab) end
+        end
         shownCount = 0
         laidOut = false
         return
     end
     if force or not laidOut then
-        Relayout(cfg, ActiveRows(cfg), R.Width(cfg))
-        laidOut = true
+        if MustDefer() then
+            DeferRelayout()
+        else
+            Relayout(cfg, ActiveRows(cfg), R.Width(cfg))
+            laidOut = true
+        end
     end
     for i = 1, shownCount do
         local ok, err = xpcall(UpdateRow, ns.ReportError, rows[i], cfg)
@@ -798,7 +1131,13 @@ local function Mark(what)
 end
 R.Mark = Mark
 
-local AURA_DRIVEN_CLASSES = { SHAMAN = true, HUNTER = true, DEMONHUNTER = true, DRUID = true }
+-- MAGE：冰刺；MONK：醉仙緩勁（減益每跳都會發 UNIT_AURA）
+local AURA_DRIVEN_CLASSES = { SHAMAN = true, HUNTER = true, DEMONHUNTER = true, DRUID = true, MAGE = true, MONK = true }
+-- 只重畫值的生命／吸收事件（醉仙緩勁的上限是最大生命、每跳扣血；無視苦痛看吸收量與最大生命）
+local HEALTH_EVENTS = {
+    MONK    = { "UNIT_HEALTH", "UNIT_MAXHEALTH" },
+    WARRIOR = { "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_MAXHEALTH" },
+}
 
 local REEVAL_EVENTS = {
     UNIT_MAXPOWER = true, UNIT_DISPLAYPOWER = true, UPDATE_SHAPESHIFT_FORM = true,
@@ -811,7 +1150,7 @@ local evFrame
 
 local function OnEvent(_, event)
     if event == "UNIT_POWER_POINT_CHARGE" then chargedDirty = true end
-    if event == "UNIT_AURA" then
+    if event == "UNIT_AURA" or event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
         Mark(false)
         return
     end
@@ -835,6 +1174,7 @@ local function RegisterEvents()
     -- 光環堆疊型（漩渦之武／矛尖）與野德的滿溢之力只能吃 UNIT_AURA：有這種資源的職業才註冊
     -- （自訂格子的層數列另外由 Modules/Pips.lua 自己註冊）
     if AURA_DRIVEN_CLASSES[CLASS] then evFrame:RegisterUnitEvent("UNIT_AURA", "player") end
+    for _, e in ipairs(HEALTH_EVENTS[CLASS] or {}) do evFrame:RegisterUnitEvent(e, "player") end
     evFrame:SetScript("OnEvent", OnEvent)
 end
 
@@ -878,15 +1218,23 @@ end
 ------------------------------------------------------------
 -- 公開 API 與除錯
 ------------------------------------------------------------
--- powerType（Enum.PowerType）→ 那一列的框；沒有這一列、藏著、整條關著都回 nil
+-- powerType（Enum.PowerType）或資源 key（字串，沒有 PowerType 的資源：Stagger、IgnorePain…）→ 那一列的框；
+-- 沒有這一列、藏著、整條關著都回 nil
 function R.GetRowFrame(powerType)
     if powerType == nil or not container then return nil end
     local cfg = Cfg()
     if not cfg or cfg.enabled == false or not container:IsShown() then return nil end
+    local byKey = type(powerType) == "string"
     for i = 1, shownCount do
         local row = rows[i]
         local def = row and row.key and RESOURCES[row.key]
-        if def and def.power == powerType and row:IsShown() then return row end
+        if def and row:IsShown() then
+            if byKey then
+                if row.key == powerType then return row end
+            elseif def.power == powerType then
+                return row
+            end
+        end
     end
     return nil
 end
@@ -899,9 +1247,10 @@ function R.DebugLines()
         return out
     end
     local cand, specID = R.Candidates()
-    out[#out + 1] = ("  資源條：%s  專精 %s  候選 %d  顯示 %d 列  寬 %s  alpha %s")
+    out[#out + 1] = ("  資源條：%s  專精 %s  候選 %d  顯示 %d 列  寬 %s  alpha %s%s")
         :format((cfg and cfg.enabled ~= false) and "開" or "關", tostring(specID), #cand, shownCount,
-                tostring(R.Width(cfg)), tostring(ns.Visibility and ns.Visibility.Current("resources")))
+                tostring(R.Width(cfg)), tostring(ns.Visibility and ns.Visibility.Current("resources")),
+                pendingRelayout and "  （戰鬥中，重排延到脫戰）" or "")
     for i = 1, shownCount do
         local row = rows[i]
         local key = row.key
@@ -909,9 +1258,15 @@ function R.DebugLines()
         local cur, max = GetValue(key)
         local secret = ns.IsSecret(cur) or ns.IsSecret(max)
         local n = RC.Resolve(cfg, key)
-        out[#out + 1] = ("    %d. %-15s %s%s  秘密 %s  條件 %d  %s")
-            :format(i, key, def.mode, def.mode == "pip" and ("×" .. tostring(row.numSeg)) or "",
-                    secret and "是" or "否", n and #n or 0, tostring(gateLog[key] or ""))
+        local extra = ""
+        if def.mode == "auraBar" and row.ab and ns.AuraBar then
+            local bound = ns.AuraBar.Bound(row.ab)
+            extra = ("  容器 %s／交條 %s"):format(tostring(row.engineStatus),
+                bound == true and "是" or bound == false and "失敗" or "未知")
+        end
+        out[#out + 1] = ("    %d. %-15s %s%s  畫法 %s  秘密 %s  條件 %d  %s%s")
+            :format(i, key, def.mode, (def.mode == "pip" or def.mode == "auraBar") and ("×" .. tostring(row.numSeg)) or "",
+                    tostring(row.mode), secret and "是" or "否", n and #n or 0, tostring(gateLog[key] or ""), extra)
     end
     for key, why in pairs(gateLog) do
         local listed = false
