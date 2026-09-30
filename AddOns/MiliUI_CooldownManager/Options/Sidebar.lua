@@ -183,10 +183,6 @@ local function Items()
     out[#out + 1] = { gap = HEAD_GAP }
     out[#out + 1] = { id = "resources" }
     out[#out + 1] = { id = "castbar" }
-    out[#out + 1] = { header = "global" }
-    out[#out + 1] = { id = "theme" }
-    out[#out + 1] = { id = "profile" }
-    out[#out + 1] = { id = "about" }
     return out
 end
 
@@ -321,7 +317,6 @@ function Sidebar.Build(panel, width)
     thumb:Hide()
 
     heads.bars = W.CreateGroupLabel(child, L["Elements"])
-    heads.global = W.CreateGroupLabel(child, L["Global"])
     newBtn = W.CreateButton(child, L["+ New Group"], "primary", btnW, BTN_H)
     newBtn:SetScript("OnClick", Sidebar.NewGroup)
 
@@ -339,6 +334,11 @@ end
 
 -- ⚠ 按鈕群組的高亮掛在按鈕自己的 OnClick 上。從外面切頁（開窗回到上次那頁、
 -- 編輯模式的齒輪）不經過點擊，要從這裡補，不然左欄會亮著上一頁。
+-- 「一般」以外的分頁不顯示左欄
+function Sidebar.SetShown(shown)
+    if col then col:SetShown(shown and true or false) end
+end
+
 function Sidebar.Highlight(id)
     current = id
     local b = byId[id]

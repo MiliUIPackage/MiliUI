@@ -19,7 +19,7 @@ Options.RegisterPage("theme", Options.PageTitle("theme"), function(parent, title
     note:SetFontObject(W.fontSmall)
     note:SetTextColor(0.65, 0.65, 0.65)
     note:SetPoint("TOPLEFT", page, "TOPLEFT", Options.PAGE_PAD + 2, y)
-    note:SetWidth(Options.PAGE_W - 4)
+    note:SetWidth(Options.PAGE_W_FULL - 4)
     note:SetJustifyH("LEFT")
     note:SetWordWrap(true)
     note:SetText(L["Parts of a bar that don't have \"Follow global theme\" checked aren't affected by this page."])
@@ -33,7 +33,7 @@ Options.RegisterPage("theme", Options.PageTitle("theme"), function(parent, title
         ns.Preview.RefreshAll()
         Options.ApplyEngine("layout")
     end)
-    local form = ns.Specs.BuildForm(scroll.child, ns.Specs.Themed("theme"), ctx, Options.PAGE_W - 6)
+    local form = ns.Specs.BuildForm(scroll.child, ns.Specs.Themed("theme"), ctx, Options.PAGE_W_FULL - 6)
     scroll:SetContentHeight(form.height)
     page.form = form
 
