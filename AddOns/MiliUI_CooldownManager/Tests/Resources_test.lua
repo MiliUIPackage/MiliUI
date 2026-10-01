@@ -813,5 +813,25 @@ check("簽章：文字只算在 duration 上", AB.Signature({ spellIDs = { 1 }, 
     text = { font = "f", size = 10, decimals = 5 } }) == AB.Signature({ spellIDs = { 1 }, max = 4, texture = "t",
     color = { r = 1, g = 0, b = 0 }, alpha = 1 }))
 
+-- ⚠ 放最後：ResetProfile 會原地清空整份設定檔，前面的測試抓著它的子表
+do
+    -- 恢復預設（設定檔頁）：自己加的規則清掉、刪掉的預設規則回來
+    local r0 = ns.profile.resources
+    r0.conditions.ComboPoints = { { check = { var = "powerValue", cmp = ">=", value = 4 }, overrides = { color = { r = 1, g = 0, b = 0, a = 1 } } } }
+    r0.conditions.HolyPower = nil
+    ns.DB.ResetProfile()
+    local c = ns.profile.resources.conditions
+    check("設定檔恢復預設：自己加的連擊點規則清掉", c.ComboPoints == nil)
+    check("設定檔恢復預設：聖能預設規則回來", type(c.HolyPower) == "table" and #c.HolyPower == 2)
+    check("設定檔恢復預設：氣旋武器預設規則回來", type(c.MaelstromWeapon) == "table" and #c.MaelstromWeapon == 2)
+    -- 資源條頁的恢復預設（Options/Tab_Resources.lua 的 ResetAll：原地清空再 MergeDefaults）
+    local cfg = ns.DB.ConfigTable("resources")
+    cfg.conditions = { ComboPoints = { { check = { var = "always" }, overrides = { alpha = 0.5 } } } }
+    for k in pairs(cfg) do cfg[k] = nil end
+    ns.DB.MergeDefaults(cfg, ns.DB.BuildDefaults().profile.resources)
+    check("資源條頁恢復預設：自己加的規則清掉", cfg.conditions.ComboPoints == nil)
+    check("資源條頁恢復預設：預設規則回來", #cfg.conditions.HolyPower == 2 and #cfg.conditions.MaelstromWeapon == 2)
+end
+
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
