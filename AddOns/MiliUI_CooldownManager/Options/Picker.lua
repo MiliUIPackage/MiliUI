@@ -604,25 +604,95 @@ Picker.SpellExists = SpellExists
 -- 換裝自動跟上；不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係
 ------------------------------------------------------------
 local slotPopup
+local function BuildSlotPopup()
+    local f = W.CreateFrame(nil, ns.Options.panel, 380, 150)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetFrameLevel(410)
+    f:SetBackdropBorderColor(W.Accent(1))
+    f:SetPoint("CENTER")
+    W.CloseOnEscape(f)
+    f.title = Text(f, false)
+    f.title:SetPoint("TOPLEFT", PAD, -12)
+    f.title:SetWidth(380 - PAD * 2)
+    f.title:SetJustifyH("LEFT")
+    f.title:SetText(L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."])
+    -- 一格一列：圖示＋「飾品 N：名字」，滑過是那件物品的提示，點了就加
+    f.rows = {}
+    for i, slot in ipairs({ 13, 14 }) do
+        local row = CreateFrame("Button", nil, f, "BackdropTemplate")
+        row:SetSize(380 - PAD * 2, 30)
+        W.Stylize(row, { 0, 0, 0, 1 }, { 0, 0, 0, 1 })
+        row.slot = slot
+        row.icon = row:CreateTexture(nil, "ARTWORK")
+        row.icon:SetSize(24, 24)
+        row.icon:SetPoint("LEFT", 3, 0)
+        row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        row.label = Text(row, false)
+        row.label:SetPoint("LEFT", row.icon, "RIGHT", 8, 0)
+        row.label:SetWidth(380 - PAD * 2 - 3 - 24 - 8 - 6)
+        row.label:SetJustifyH("LEFT")
+        row.label:SetWordWrap(false)         -- 太長就截「…」，完整名字在滑鼠提示裡
+        row:SetScript("OnEnter", function(self)
+            self:SetBackdropBorderColor(W.Accent(1))
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            local shown = self.itemID and pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", self.slot)
+            if not shown then
+                GameTooltip:SetText(L["Trinket %d"]:format(self.slot - 12))
+                GameTooltip:AddLine(L["(empty)"], 0.8, 0.8, 0.8)
+            end
+            GameTooltip:Show()
+        end)
+        row:SetScript("OnLeave", function(self)
+            self:SetBackdropBorderColor(0, 0, 0, 1)
+            GameTooltip:Hide()
+        end)
+        row:SetScript("OnClick", function(self)
+            f:Hide()
+            if ns.DB.FindCustom("slot", self.slot) then Notice(L["Already tracked in this specialization."]) return end
+            Commit({ kind = "slot", slot = self.slot, bar = curKey })
+        end)
+        f.rows[i] = row
+    end
+    f.cancel = W.CreateButton(f, L["Cancel"], "normal", 90, 22)
+    W.FitButton(f.cancel, 90, 22)
+    f.cancel:SetPoint("BOTTOMRIGHT", -PAD, 12)
+    f.cancel:SetScript("OnClick", function() f:Hide() end)
+    f:Hide()
+    ns.RegisterCallback("OptionsHidden", "picker_slot", function() f:Hide() end)
+    return f
+end
+
+-- 裝備欄位（飾品 1／2）：不用輸入 ID，點那一列就好。追蹤的是「現在裝在那一格的物品」，
+-- 換裝自動跟上；不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係
 function Picker.AskSlot()
     if not ns.specID then Notice(L["Pick a specialization first."]) return end
-    -- 按鈕只寫「飾品 1」「飾品 2」（飾品名可能很長，放按鈕上會撞在一起）；現在裝的名字列在上面的說明裡，一格一行
-    local choices, lines = {}, { L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."], "" }
-    for _, slot in ipairs({ 13, 14 }) do
-        local label = L["Trinket %d"]:format(slot - 12)
+    slotPopup = slotPopup or BuildSlotPopup()
+    local f = slotPopup
+    local y = -(12 + (f.title:GetStringHeight() or 14) + 10)
+    for _, row in ipairs(f.rows) do
+        local slot = row.slot
         local itemID = ns.Catalog.SlotItemID(slot)
-        local name = itemID and C_Item and C_Item.GetItemNameByID and select(2, pcall(C_Item.GetItemNameByID, itemID))
-        if not (type(name) == "string" and not ns.IsSecret(name)) then name = L["(empty)"] end
-        lines[#lines + 1] = ("%s：%s"):format(label, name)
-        choices[#choices + 1] = { text = label, color = "normal", onClick = function()
-            if ns.DB.FindCustom("slot", slot) then Notice(L["Already tracked in this specialization."]) return end
-            Commit({ kind = "slot", slot = slot, bar = curKey })
-        end }
+        row.itemID = itemID
+        local name, icon
+        if itemID and C_Item then
+            local ok, n = pcall(C_Item.GetItemNameByID, itemID)
+            if ok and type(n) == "string" and not ns.IsSecret(n) then name = n end
+            local ok2, tex = pcall(C_Item.GetItemIconByID, itemID)
+            if ok2 and not ns.IsSecret(tex) then icon = tex end
+        end
+        if not icon and GetInventorySlotInfo then
+            local ok3, _, tex = pcall(GetInventorySlotInfo, slot == 13 and "TRINKET0SLOT" or "TRINKET1SLOT")
+            if ok3 then icon = tex end
+        end
+        row.icon:SetTexture(icon or QUESTION)
+        row.icon:SetDesaturated(itemID == nil)
+        row.label:SetText(("%s：%s"):format(L["Trinket %d"]:format(slot - 12), name or L["(empty)"]))
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+        y = y - 30 - 4
     end
-    choices[#choices + 1] = { text = L["Cancel"], color = "normal" }
-    if slotPopup then slotPopup:Hide() end
-    slotPopup = W.CreateChoicePopup(ns.Options.panel, 420, table.concat(lines, "\n"), choices)
-    slotPopup:Show()
+    P.Height(f, -y + 22 + 12 + 8)
+    f:Show()
 end
 
 function Picker.AskCustom(kind)
