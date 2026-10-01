@@ -48,7 +48,7 @@
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -69,6 +69,7 @@
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
+| `Core/Clickable.lua` | 可點擊的自訂圖示群組：每格蓋一顆透明的 secure 鈕（屬性戰鬥外寫好、寫入走 `ns.Write`＋簽章去重），見「可點擊的自訂群組」 |
 | `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；每一格都是 Bars 的一個 entry |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
@@ -263,6 +264,41 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 多一列「不在時顯示占位」；「從這條移除」對自訂項目是整筆刪掉（後面的 id 往前挪：
 `DB.RemoveCustom` 同步改順序、隱藏、覆寫）。刪自訂群組時，上面的光環格回增益圖示、法術／物品回核心技能。
 未學會的自訂法術顯示問號（預覽、挑選器、真實條都是），滑鼠提示寫「尚未學會」。
+
+### 可點擊的自訂群組（`Core/Clickable.lua`）
+
+自訂的**圖示**群組（`bars.g<n>`，`kind == "icons"`、`source == "custom"`）的版面節多一個勾選「可點擊」
+（`bar.clickable`，nil 當 false，不做遷移；判準只有 `DB.BarClickable`）。勾了之後每一格點下去就施放那個法術／
+使用那件物品，跟快捷列按鈕一樣；提示、發光、按鍵文字、淡出都照舊。
+
+- **做法：每一格上面蓋一顆透明的 `SecureActionButtonTemplate` 鈕**（parent 與錨點都是條的容器、座標＝那一格的
+  rect、層級容器 +40、沒有任何貼圖）。屬性（`type`／`spell`／`item`／`slot`）在戰鬥外寫好，戰鬥中由引擎處理
+  點擊，我們的 Lua 不碰施法 API。暴雪的 item 不能變成按鈕（不能 SetParent、不能寫欄位）；自製圖示框每次重排都
+  SetPoint／SetSize／Show，也不能換成 secure 模板。
+- 動作：自訂法術 `spell`＝**基底 id**（引擎自己放覆寫後的；覆寫戰鬥中會變、屬性卻鎖著）、自訂物品
+  `item = "item:<id>"`（照身分不照包包格）、飾品欄 `item`＋`slot`、從核心／輔助拖進來的暴雪技能（有裝備欄就
+  `slot`，否則基底 `spellID`）。光環格、增益類來源、物品冷卻類別（藥水那種一格代表一整類）、占位格、秘密值 ⇒
+  那一格的鈕收起來（留著沒屬性的鈕會搶 hover，光環格的暴雪提示就出不來）。判斷是純函式 `Clickable.Resolve`。
+- **強制固定格位**：鈕錨在容器上 ⇒ 容器變成隱式保護框，格子在戰鬥中不能動，鈕才跟得上。跟「條上有光環格」
+  同一套（`Bars` 的 `fixed`、設定頁那一列停用＋黃字原因）。
+- 寫入：鈕的 SetPoint／SetSize／Show／Hide／SetAttribute／ClearAllPoints 一律走 `ns.Write`，三種各自簽章去重
+  （`place`／`action`／`shown`），沒變不寫 ⇒ 戰鬥中重排沒有保護呼叫；變了就記帳到脫戰。鈕只在戰鬥外建：戰鬥中
+  需要新鈕 ⇒ 記 pending，`PLAYER_REGEN_ENABLED` 一次性要求那條重排補建。不可點擊／被刪的條 `Release`（Hide＋
+  ClearAllPoints、簽章清空），已經收過的不再排寫入。
+- 鈕只掛 `OnEnter`／`OnLeave`（轉給 `Decorate.HoverEnter／HoverLeave`，提示照樣錨在 overlay 上）；**不准**
+  PreClick／PostClick／OnClick／OnMouseDown（同一次點擊派送裡排在 secure 動作前面的插件 Lua 會把施放染髒）。
+  鈕身上不寫 Lua 欄位，狀態放 `Clickable.lua` 的弱鍵表。
+- overlay 的滑鼠旗標不動，兩種疊層順序都成立：鈕在上 ⇒ hover 由鈕轉提示、點擊到鈕；item 在上（群組 strata 比
+  檢視器低）⇒ hover 照舊由 overlay 收、點擊穿到底下的鈕（待實機驗證暴雪 item 自己收不收點擊）。
+- **編輯模式中鈕全部收起來**（`EditModeChanged` → 有鈕的條重排、`Place` 照 `EditMode.active` 當作沒有動作）：暴雪的
+  選取框模板是 MEDIUM／層級 1000，群組 strata 設得比 MEDIUM 高（或模板建不出來、用自製選取框）時鈕會蓋在
+  選取框上面，拖曳變施放。戰鬥中進出編輯模式 ⇒ 收／放照 `ns.Write` 記帳到脫戰。
+- ⚠ 已知限制：顯示條件／淡出是容器 `SetAlpha`，**淡到 0 的群組鈕還在、照樣收點擊**（看不見但點得到、擋住點世界）。
+  鈕是保護框，戰鬥中不能跟著條件 Show／Hide；要做得用 secure 狀態驅動把能寫成巨集條件的那幾種搬過去，先看實機回報再說。
+- **內建條（核心／輔助／增益／增益長條）與長條型群組不做**：內建條的格子是暴雪的框、本來就由暴雪排，等玩家
+  真的有需求再說。拖曳法術進群組、右鍵／修飾鍵另外指定動作也不做。
+- 離線測試：`Tests/Clickable_test.lua`（Resolve 每一列、簽章去重、EndBar／Release、戰鬥中不建鈕）、
+  `Tests/DB_test.lua` 第 10 節（預設值與判準）。
 
 ### 效果（`Core/Glow.lua`、`Core/Keybinds.lua`）
 
@@ -940,3 +976,18 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 107. ESC 選單「米利UI設定」滑過展開的清單裡有「米利的冷卻管理器」（`MiliUI_MenuEntries`，order 25），點了開設定；本體「插件」頁
     的那一列也改走這個入口。小地圖按鈕本來就有（`/mcdm minimap` 開關），裝了米利的小地圖時會被收進它的按鈕收納、圖示正確（`btn.icon`）。
 108. 增益長條（與長條型自訂群組）不畫按鍵文字，條頁的「效果」節也沒有「按鍵文字」那一小節（主題頁與圖示條照舊）。
+109. 自訂圖示群組勾「可點擊」後：自訂法術、自訂物品、飾品欄、從核心拖進來的暴雪技能（含暴雪的飾品格），左鍵與右鍵都會施放／使用；
+     光環格照舊只有提示、點了沒反應（鈕收起來）。`/framestack` 看得到 `MiliUICDM_Click_<條>_<格>` 蓋在格子上。
+110. 戰鬥中：鈕照樣可點；戰鬥中改勾選、加減群組內容不跳 ADDON_ACTION_BLOCKED，脫戰自動補上（新加的那格脫戰後才可點）。
+111. 勾了之後版面節的「固定格位」變成停用＋黃字原因（「這條設成可點擊時固定開啟…」）；取消勾選回復成可勾、灰字。
+     條上同時有光環格時講的是光環格那句。
+112. 群組 strata 設成 BACKGROUND／LOW（暴雪 item 蓋在鈕上面的那種順序）時點擊是否仍可用（暴雪 item 自己若收點擊，
+     這種順序會點不到；那就要把鈕的層級／strata 往上提）。
+113. 有天賦覆寫的法術（例如換了圖示的那種），點了放的是覆寫後的那個。
+114. 開著設定視窗時拖曳（ClickLayer 在 HIGH）照舊、不會誤施放；進編輯模式鈕收起來、拖曳照常（群組 strata 設 HIGH 也一樣），
+     離開編輯模式鈕回來、照樣可點。
+115. 滑過提示的位置、按鍵文字、發光、淡出都跟沒勾一樣；提示開關關掉時滑過什麼都不出現（暴雪自己的也不出現）。
+116. `/console taintLog 2` 後打一場（含戰鬥中點鈕施放），taint.log 沒有 MiliUI_CooldownManager；取消勾選後那條容器
+     戰鬥中移動（編輯模式、錨定的條變高）照樣延到脫戰、不報封鎖。
+117. 顯示條件不成立（例如「只在戰鬥中顯示」的群組在戰鬥外）淡到 0 時，鈕還在原地收點擊：確認玩家能不能接受，
+     不能的話再做 secure 狀態驅動（見「可點擊的自訂群組」的已知限制）。

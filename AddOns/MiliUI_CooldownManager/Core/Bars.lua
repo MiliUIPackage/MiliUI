@@ -33,6 +33,9 @@
 -- 走 ns.Write（持有框整條鏈是保護框）。條上有光環格時固定格位強制打開：光環格排在最前面、
 -- 其他 item 收合也不會讓它們的 x 變，戰鬥中不必動持有框。
 --
+-- 可點擊的自訂圖示群組（Core/Clickable.lua）：每格上面蓋一顆 secure 鈕（parent／錨點都是容器），
+-- 一樣強制固定格位；鈕的寫入走 ns.Write＋簽章去重。不可點擊的條每輪 Release（沒鈕就是 no-op）。
+--
 -- 檢視器本體釘在容器上（TOPLEFT／BOTTOMRIGHT 對齊），被暴雪（編輯模式、底部管理框）
 -- 拉走就釘回來；_pinGuard 擋自己觸發自己。
 --
@@ -433,6 +436,7 @@ local function Relayout(key, level, index, gen)
     local st = state[key]
     if not bar then
         ReleasePlaceholders(key, 1)
+        if ns.Clickable then ns.Clickable.Release(key) end      -- 群組被刪：secure 鈕收起來、脫離錨點
         st.count = 0
         if InCombatLockdown() then structurePending[key] = true else ApplyStructure(key) end
         return
@@ -463,8 +467,9 @@ local function Relayout(key, level, index, gen)
         end
     end
     local layout = type(bar.layout) == "table" and bar.layout or {}
-    -- 條上有光環格 ⇒ 固定格位強制打開（值不動；光環格的持有框戰鬥中不能移）
-    local fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(key)) and true or false
+    -- 條上有光環格、或這條可點擊 ⇒ 固定格位強制打開（值不動；光環格的持有框與可點擊的 secure 鈕戰鬥中都不能移）
+    local clickable = ns.Clickable and ns.Clickable.Enabled(key) or false
+    local fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(key) or clickable) and true or false
     local entries = {}
     for _, id in ipairs(ids) do
         local item = index[id]
@@ -559,8 +564,13 @@ local function Relayout(key, level, index, gen)
             ns.Decorate.ApplyPlaceholder(f.ph, key, e.id)
             f:Show()
         end
+        -- 可點擊：這一格上面蓋 secure 鈕（簽章去重、走 ns.Write；沒有動作的格收起來）
+        if clickable then ns.Clickable.Place(key, c, i, r, e) end
     end
     ReleasePlaceholders(key, phUsed + 1)
+    if ns.Clickable then
+        if clickable then ns.Clickable.EndBar(key, #entries) else ns.Clickable.Release(key) end
+    end
     if ns.Custom then ns.Custom.EndBar(key, gen) end
 end
 
@@ -819,6 +829,8 @@ function B.ReleaseAll(reason)
         if rec.origW and rec.origH then pcall(item.SetSize, item, rec.origW, rec.origH) end
     end
     for id in pairs(slotOf) do slotOf[id] = nil end
+    -- 可點擊群組的 secure 鈕：item 已經不在格子上了，鈕跟著收
+    if ns.Clickable then xpcall(ns.Clickable.ReleaseAll, ns.ReportError) end
     for key, st in pairs(state) do
         if not panels[key] then st.count = 0 end
     end

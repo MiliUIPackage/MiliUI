@@ -9,7 +9,8 @@
 -- MiliUI_CooldownManager_DB 也只落在環境表裡。
 --
 -- 覆蓋：預設值（套組現值）、三層繼承的每一種路徑、逐法術覆寫、設定檔建立／複製／
--- 切換／刪除、戰鬥中切換延後、專精自動切換、遷移鏈與版本號、合併不覆蓋使用者值。
+-- 切換／刪除、戰鬥中切換延後、專精自動切換、遷移鏈與版本號、合併不覆蓋使用者值、
+-- 可點擊的預設值與判準（DB.BarClickable）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local DB_PATH = here .. "/../Core/DB.lua"
@@ -320,6 +321,35 @@ eq("FillReversed nil", ns.FillReversed(nil), false)
 DB.ResetProfile()
 eq("ResetProfile 回預設", S("essential", "layout.size.w"), 46)
 eq("ResetProfile 不換表", ns.profile, sv.profiles.Default)
+
+------------------------------------------------------------
+-- 10. 可點擊（clickable）：預設 false、只有自訂圖示群組算數
+------------------------------------------------------------
+eq("內建條 clickable 預設 false", ns.profile.bars.essential.clickable, false)
+eq("增益長條 clickable 預設 false", ns.profile.bars.buffbars.clickable, false)
+eq("NewBarTable 圖示群組 clickable false", DB.NewBarTable("icons", "x").clickable, false)
+eq("NewBarTable 長條群組 clickable false", DB.NewBarTable("bars", "x").clickable, false)
+eq("DefaultFor 自訂群組的 clickable", DB.DefaultFor("bar", "nope", "clickable"), false)
+do
+    local gi = DB.CreateBar("icons", "點我")
+    local gb = DB.CreateBar("bars", "長條")
+    eq("新圖示群組：預設不可點擊", DB.BarClickable(gi), false)
+    ns.profile.bars[gi].clickable = true
+    eq("自訂圖示群組勾了：可點擊", DB.BarClickable(gi), true)
+    ns.profile.bars[gi].clickable = nil
+    eq("nil 當 false（不做遷移）", DB.BarClickable(gi), false)
+    ns.profile.bars[gi].clickable = "yes"
+    eq("不是 true 就不算", DB.BarClickable(gi), false)
+    ns.profile.bars[gb].clickable = true
+    eq("長條群組勾了也不算", DB.BarClickable(gb), false)
+    ns.profile.bars.essential.clickable = true
+    eq("內建條勾了也不算", DB.BarClickable("essential"), false)
+    ns.profile.bars.essential.clickable = false
+    eq("不存在的條", DB.BarClickable("g999"), false)
+    eq("nil key", DB.BarClickable(nil), false)
+    DB.DeleteBar(gi)
+    DB.DeleteBar(gb)
+end
 
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

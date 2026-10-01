@@ -4,6 +4,7 @@
 --   ns.Decorate.Apply(item, rec, barKey, w, h)   認領時套（簽章同就跳過）
 --   ns.Decorate.InvalidateAll()                  設定變了：下一次認領全部重套
 --   ns.Decorate.HookItem(item, rec)              Viewers 第一次看到 item 時叫（每框一次）
+--   ns.Decorate.HoverEnter(rec) / HoverLeave(rec) 可點擊群組的鈕轉來的 hover（提示照 overlay 的設定）
 --
 -- 規則
 --   * **只寫有變的**：每個 item 存一個簽章字串（rec.decorated），條設定＋逐法術覆寫＋
@@ -632,6 +633,20 @@ local function ApplyTooltip(ov, rec, on)
     pcall(ov.SetMouseClickEnabled, ov, false)
 end
 D.ApplyTooltip = ApplyTooltip
+
+-- 可點擊群組的 secure 鈕（Core/Clickable.lua）蓋在格子最上層時，hover 由它收、轉到這裡：
+-- 提示照樣錨在 overlay 上（位置跟沒勾一樣），開關照 overlay 的 tipOn。
+-- overlay 的滑鼠旗標不動：群組 strata 比檢視器低、item 反過來蓋在鈕上面時，hover 照舊由 overlay 收，
+-- 點擊（overlay 不收）穿到底下的鈕。
+function D.HoverEnter(rec)
+    local ov = rec and rec.overlay
+    if ov and ov.tipOn then ShowTip(ov) end
+end
+
+function D.HoverLeave(rec)
+    local ov = rec and rec.overlay
+    if ov then HideTip(ov) end
+end
 
 ------------------------------------------------------------
 -- 主入口

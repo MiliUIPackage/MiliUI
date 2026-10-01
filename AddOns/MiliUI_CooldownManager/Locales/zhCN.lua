@@ -272,6 +272,9 @@ L["Parts of a bar that don't have \"Follow global theme\" checked aren't affecte
 -- E 階段：自訂項目與效果
 L["Already tracked in this specialization."] = "这个专精已经在追踪了。"
 L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."] = "这条有光环格时一律开着：光环格战斗中不能移动，位置必须固定。"
+L["Clickable"] = "可点击"
+L["Icons cast their spell or use their item when clicked, like action bar buttons. Aura slots are not affected."] = "图标点击后施放那个法术／使用那件物品，跟动作条按钮一样；光环格不受影响。"
+L["Always on while this bar is clickable: the click targets can't move during combat."] = "这条设为可点击时固定开启：点击的目标在战斗中不能移动。"
 L["Aura"] = "光环"
 L["Aura slot (buff)"] = "光环格（增益）"
 L["Aura slot (debuff)"] = "光环格（减益）"

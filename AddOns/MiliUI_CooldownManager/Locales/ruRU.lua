@@ -271,6 +271,9 @@ L["Parts of a bar that don't have \"Follow global theme\" checked aren't affecte
 -- E 階段：自訂項目與效果
 L["Already tracked in this specialization."] = "Уже отслеживается в этой специализации."
 L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."] = "Всегда включено, пока на панели есть ячейки эффектов: в бою они не могут двигаться, поэтому их позиции фиксированы."
+L["Clickable"] = "Нажимаемые"
+L["Icons cast their spell or use their item when clicked, like action bar buttons. Aura slots are not affected."] = "Щелчок по значку применяет заклинание или использует предмет, как кнопка на панели команд. Ячейки эффектов не затрагиваются."
+L["Always on while this bar is clickable: the click targets can't move during combat."] = "Всегда включено, пока панель нажимаемая: в бою области нажатия не могут двигаться."
 L["Aura"] = "Эффект"
 L["Aura slot (buff)"] = "Ячейка эффекта (бафф)"
 L["Aura slot (debuff)"] = "Ячейка эффекта (дебафф)"
