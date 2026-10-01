@@ -125,3 +125,9 @@ README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插�
 fork 的本地修改每次上游更新都要重套。
 **How to apply:** 動 CDM 相關工作先讀 plan；Ayije_CDM 資料夾在新插件實機驗過前不刪。
 相關：[[project-ayije-cdm-aura-slots]]、[[project-ayije-cdm-editmode-drag]]、[[project-local-addon-forks]]。
+
+**圖示外觀可改用 Masque（2026-10-01，未實機驗證）**：`Core/Masque.lua`，主題頁「圖示」節的 `icon.skin`（miliui 預設｜masque），
+走 follow.icon 繼承。Masque 管邊框／縮放／轉圈材質，文字／轉圈色／發光等留我們；**模式登入時快照、切換只提示重載**（不做執行期雙向切換）。
+Masque 群組 `Group("MiliUI Cooldown Manager", L["Icons"], "Icons")`——**插件名與 StaticID 不能在地化**（那是群組 ID）。
+AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框照畫）；無損刷新在 Masque 模式只在窗口內亮我們的邊框。
+這是「暴雪框零欄位」的第二個例外（Masque 自己寫 _MSQ_*）。待驗證 README 121–128。Plan：`~/.claude/plans/miliui-cdm-masque.md`。
