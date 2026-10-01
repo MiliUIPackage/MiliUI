@@ -293,7 +293,7 @@ end
 
 function DB.BuildDefaults()
     -- 位置與往上長：使用者 2026-10-01 指定（照使用者調好的那份），不遷移
-    local buffbars = LongBar{ source = "buffbars", grow = "CENTER_UP", pos = { point = "BOTTOM", x = 0, y = 544 } }
+    local buffbars = LongBar{ source = "buffbars", grow = "CENTER_UP", pos = { point = "BOTTOM", x = 0, y = 524 } }
 
     return {
         account = {
