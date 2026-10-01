@@ -182,13 +182,19 @@ local function FrameSpecs(unitKey)
     -- 淡出與高亮
     ------------------------------------------------------------
     tinsert(list, { type = "header", label = L["Fade"] })
-    tinsert(list, { type = "toggle", root = "frame", key = "fadeOutOfRange",
-                    label = L["Fade when out of range"] })
-    tinsert(list, { type = "text", label = L["Fades the whole frame when the unit is beyond your reach. Transparency is set globally under General."] })
+    -- 玩家框不給超出距離：自己永遠在距離內，勾了也不會有任何效果
+    local hasRange = unitKey ~= "player"
+    if hasRange then
+        tinsert(list, { type = "toggle", root = "frame", key = "fadeOutOfRange",
+                        label = L["Fade when out of range"] })
+        tinsert(list, { type = "text", label = L["Fades the whole frame when the unit is beyond your reach. Transparency is set globally under General."] })
+    end
     tinsert(list, { type = "toggle", root = "frame", key = "fadeOutOfCombat",
                     label = L["Fade out of combat"] })
     tinsert(list, { type = "text", label = L["Fades the whole frame while you are not in combat. Transparency is set globally under General."] })
-    tinsert(list, { type = "text", label = L["With both on, whichever is more transparent wins."] })
+    if hasRange then
+        tinsert(list, { type = "text", label = L["With both on, whichever is more transparent wins."] })
+    end
     -- 脫戰淡出的例外：子標題靠右對齊標籤欄，讀起來是「脫戰淡出」底下的一組；
     -- 沒勾脫戰淡出時兩個例外沒有作用 ⇒ requires 讓它們變暗點不動
     local OOC_FADE = { root = "frame", key = "fadeOutOfCombat" }
