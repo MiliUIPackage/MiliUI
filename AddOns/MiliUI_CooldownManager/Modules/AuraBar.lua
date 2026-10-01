@@ -106,20 +106,25 @@ local function LayoutDecor(d, anchor, geom)
         t:Show()
     end
     local nb, ne, ns2 = 0, 0, 0
-    for _, c in ipairs(g.cells) do
+    -- 間距 0：第 2 格起不畫左邊，跟前一格的右邊共用，否則交界是並排的 2px
+    local shared = geom.segments and (tonumber(geom.gap) or 0) <= 0
+    for ci, c in ipairs(g.cells) do
         nb = nb + 1
         local bg = Tex(d.bgs, nb, d.parent, "BACKGROUND")
         bg:SetVertexColor(dim[1], dim[2], dim[3], dim[4])
         Place(bg, c.x, c.w, 0, H)
         -- 1px 黑邊：上下左右各一條（疊在填色之上）
+        local skipLeft = shared and ci > 1
         for side = 1, 4 do
-            ne = ne + 1
-            local e = Tex(d.edges, ne, d.overlay, "OVERLAY")
-            e:SetVertexColor(0, 0, 0, 1)
-            if side == 1 then Place(e, c.x, c.w, 0, px)
-            elseif side == 2 then Place(e, c.x, c.w, H - px, px)
-            elseif side == 3 then Place(e, c.x, px, 0, H)
-            else Place(e, c.x + c.w - px, px, 0, H) end
+            if side ~= 3 or not skipLeft then
+                ne = ne + 1
+                local e = Tex(d.edges, ne, d.overlay, "OVERLAY")
+                e:SetVertexColor(0, 0, 0, 1)
+                if side == 1 then Place(e, c.x, c.w, 0, px)
+                elseif side == 2 then Place(e, c.x, c.w, H - px, px)
+                elseif side == 3 then Place(e, c.x, px, 0, H)
+                else Place(e, c.x + c.w - px, px, 0, H) end
+            end
         end
     end
     for _, s in pairs(g.gaps) do

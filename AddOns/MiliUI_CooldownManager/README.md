@@ -419,6 +419,11 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **條件規則**（`Modules/ResourceConditions.lua`，純邏輯）：形狀跟單位框架的資源條一模一樣（`conditions[key] = { rule… }`，
   第一條成立的勝出、`target` 指定第幾格、`and` 巢狀、深度上限、壞資料當不成立）。**只在值是明文時求值**：
   秘密值下整段不求值（照主色）、數值文字不印、充能格照常（充能索引是另一支 API）。
+  預設規則（聖能 ≥5／≥3、氣旋武器 ≥10／≥9 換色）是 `Core/DB.lua` 的 `Atomic` 表：設定檔**沒有** `conditions` 才整張給
+  （新設定檔、恢復預設），已經有的（含空表）一個字都不合併——否則預設規則的欄位會併進玩家自己的規則，刪光也會被補回來。
+  Ayije 匯入照樣蓋過預設（匯入記自己寫過哪些資源，不看 `conditions[key]` 是不是 nil）。
+- **格距 0**：每格自帶 1px 黑邊，間距 0 時兩條邊並排成 2px ⇒ 一格一框的（點數型、自訂格子）重疊 1 實體像素共用一條邊
+  （`R.SegLayout`），引擎畫的格子裝飾第 2 格起不畫左邊（`AuraBar.lua` 的 `LayoutDecor`）。
 - **法力數字**：`manaAbbrev` = none／k（K、M）／wan（萬、億；中韓預設）；`manaPercent` 印百分比。
 - **事件**：`UNIT_POWER_FREQUENT`（＋`UNIT_POWER_UPDATE` 當回滿保底）、`UNIT_MAXPOWER`、`UNIT_DISPLAYPOWER`、
   `UPDATE_SHAPESHIFT_FORM`、`PLAYER_SPECIALIZATION_CHANGED`、天賦、進出載具、`RUNE_POWER_UPDATE`（死騎）、
@@ -991,3 +996,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      戰鬥中移動（編輯模式、錨定的條變高）照樣延到脫戰、不報封鎖。
 117. 顯示條件不成立（例如「只在戰鬥中顯示」的群組在戰鬥外）淡到 0 時，鈕還在原地收點擊：確認玩家能不能接受，
      不能的話再做 secure 狀態驅動（見「可點擊的自訂群組」的已知限制）。
+118. 資源條格距 0：聖能、氣旋武器、連擊點等點數型，相鄰兩格之間是 1px 黑線（不是 2px），最左／最右的外框也還是 1px；
+    自訂格子（充能／層數）同樣。從右到左填充時一樣。格距 1 以上照舊。
+119. 新設定檔（或資源條頁「恢復預設」）：列高 14、字級 14、格距 0；聖能 ≥3 換粉紫、≥5 換紅，氣旋武器 ≥9 換粉、≥10 換紅。
+    既有設定檔不變（不遷移）；已有規則或規則刪光的設定檔不會被補回預設規則。

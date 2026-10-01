@@ -841,8 +841,12 @@ local function StepResources(ctx)
                         elseif RES_SHARED[field] then
                             SetShared(field, val, where)
                         elseif field == "conditions" then
+                            -- 同一個資源在對方好幾個職業底下都有時第一筆贏。不能看 res.conditions[key]
+                            -- 是不是 nil：輸出從預設設定檔開始，預設本身就帶了幾個資源的規則，匯入的要蓋過它
                             local rules = CopyRules(val)
-                            if rules and (type(res.conditions) ~= "table" or res.conditions[key] == nil) then
+                            ctx.condSet = ctx.condSet or {}
+                            if rules and not ctx.condSet[key] then
+                                ctx.condSet[key] = true
                                 if type(res.conditions) ~= "table" then res.conditions = {} end
                                 res.conditions[key] = rules
                                 ctx.R.counts.conditions = ctx.R.counts.conditions + #rules

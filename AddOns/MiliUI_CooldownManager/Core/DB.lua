@@ -35,6 +35,17 @@ DB.DEFAULT_PROFILE = "Default"
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 local ResourcesDefaults, PipsDefaults, CastbarDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 
+-- 「整張表當一個值」的預設：設定檔裡**沒有這個鍵**才整張給，已經有（含空表）就一個字都不合併。
+-- 給內容是使用者自己的清單、但預設不是空的那種表用（資源條的上色規則）：逐元素合併會把預設規則的
+-- 欄位灌進玩家自己的規則裡，而規則刪光之後也會被補回來。
+local ATOMIC = setmetatable({}, { __mode = "k" })
+local function Atomic(t) ATOMIC[t] = true; return t end
+
+-- 規則一條的寫法（同 Modules/ResourceConditions.lua）：點數 >= value 時換色
+local function AtLeast(value, r, g, b)
+    return { check = { var = "powerValue", cmp = ">=", value = value }, overrides = { color = rgba(r, g, b, 1) } }
+end
+
 ------------------------------------------------------------
 -- 預設值
 --
@@ -179,24 +190,34 @@ ResourcesDefaults = function()
         -- 預設貼在核心技能上緣，往上長
         anchor        = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬
-        rowHeight     = 8,
+        rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移
         rowSpacing    = 1,
-        segmentSpacing = 1,                -- 點數型（聖能、連擊點…）的格距
+        segmentSpacing = 0,                -- 點數型（聖能、連擊點…）的格距；0 ＝ 相鄰兩格共用 1px 邊（使用者 2026-10-01 指定，不遷移）
         fillDirection = "ltr",             -- ltr | rtl（點數型從右邊亮起）
         texture       = "solid",
         barAlpha      = 1,                 -- 填充色的不透明度
         smooth        = true,              -- 連續條的原生內插（引擎做，吃秘密值）
-        -- 條上的數值：預設開、12 號字、置中（使用者 2026-10-01 指定，不遷移）
+        -- 條上的數值：預設開、14 號字、置中（使用者 2026-10-01 指定，不遷移）
         showText      = true,
-        textSize      = 12,
+        textSize      = 14,
         manaAbbrev    = CJK[GetLocale and GetLocale() or ""] and "wan" or "k",   -- none | k | wan
         manaPercent   = false,             -- 法力列印百分比而不是數值
         -- 醉仙緩勁：中度／重度的門檻（% 最大生命）、滿條對應幾 % 最大生命
         staggerModerateAt = 30,
         staggerHeavyAt    = 60,
         staggerCeiling    = 100,
-        -- [資源key] = { rule, … }：開放式鍵值表，預設空（MergeDefaults 不會替玩家生出規則）
-        conditions    = {},
+        -- [資源key] = { rule, … }：開放式鍵值表。預設只給新設定檔（Atomic：已有 conditions 的設定檔不合併，
+        -- 規則刪光也不會被補回來）。聖能／氣旋武器的兩段換色是使用者 2026-10-01 調好的
+        conditions    = Atomic({
+            HolyPower = {
+                AtLeast(5, 0.914, 0.286, 0.361),
+                AtLeast(3, 0.914, 0.424, 0.851),
+            },
+            MaelstromWeapon = {
+                AtLeast(10, 1, 0.231, 0.318),
+                AtLeast(9, 1, 0.596, 0.984),
+            },
+        }),
         -- [資源key] = false ＝ 關掉那一列；開放式、預設空
         rows          = {},
         -- 自訂格子：[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, showWhen, enabled }, … }
@@ -335,12 +356,16 @@ local function MergeDefaults(dst, src)
     for k, v in pairs(src) do
         local cur = dst[k]
         if type(v) == "table" then
-            if cur == nil then
+            local fresh = cur == nil
+            if fresh then
                 cur = {}
                 dst[k] = cur
             end
             -- 使用者存了 false（例如 anchor = false）就尊重它，不把預設的表灌進去
-            if type(cur) == "table" then MergeDefaults(cur, v) end
+            -- Atomic 的表：剛建的才灌，設定檔裡原本就有的（含空表）不碰
+            if type(cur) == "table" and (fresh or not ATOMIC[v]) then
+                MergeDefaults(cur, v)
+            end
         elseif cur == nil then
             dst[k] = v
         end

@@ -626,6 +626,15 @@ local function MakeEdge(parent, p1, p2, w, h)
     return e
 end
 
+-- 一格一個框的分段（點數型、自訂格子）：格寬與步距。
+-- 每格自帶 1px 黑邊，間距 0 時相鄰兩條邊並排成 2px ⇒ 改成重疊 1 實體像素，兩格共用同一條邊。
+-- 回傳 segW, gap（gap 可能是負的；第 i 格的 x ＝ (i-1)·(segW+gap)）
+function R.SegLayout(W, n, spacing)
+    local gap = ns.P.Scale(tonumber(spacing) or 1)
+    if gap <= 0 then gap = -ns.P.Scale(1) end
+    return ns.P.Scale((W - gap * (n - 1)) / n), gap
+end
+
 local function Edges(frame)
     MakeEdge(frame, "TOPLEFT", "TOPRIGHT", nil, 1)
     MakeEdge(frame, "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
@@ -887,8 +896,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     end
 
     -- 格寬是除出來的小數 → 對齊實體像素；每格直接錨在列上（不串在前一格）
-    local gap = ns.P.Scale(tonumber(cfg.segmentSpacing) or 1)
-    local segW = ns.P.Scale((W - gap * (numSeg - 1)) / numSeg)
+    local segW, gap = R.SegLayout(W, numSeg, cfg.segmentSpacing)
     for i = 1, numSeg do
         local seg = row.segs[i]
         seg:SetSize(segW, H)
