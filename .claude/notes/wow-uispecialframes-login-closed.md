@@ -13,3 +13,7 @@ metadata:
 症狀：`PLAYER_LOGIN` 開的彈窗玩家從沒看過，用指令手動再開卻正常。2026-10-01 MiliUI_CooldownManager 的「Ayije_CDM 衝突二選一」就是這樣，兩支同時開著卻沒有任何提示。
 
 **How to apply:** 登入時就要給玩家看、而且一定要做決定的彈窗，不要登記進 UISpecialFrames（自己建，不用共用層的 popup），也就不給 ESC 關。一般的設定視窗彈窗照用共用層沒問題。
+
+## 開暴雪面板也會收掉（2026-10-01）
+
+`ShowUIPanel` 開 area＝center／full 的面板（天賦／法術書 PlayerSpellsFrame、全螢幕地圖）時會走 `CloseWindows` → `CloseSpecialWindows`，跟 ESC 同一支 —— 所以登記在表裡的設定視窗「一開天賦就被關」。共用層 `W.CloseOnEscape(frame)` 現在預設**換面板不關**：子框 OnHide 記時間、後掛勾 `CloseSpecialWindows` 標記同一幀被收掉的、後掛勾 `ShowUIPanel` 同一幀叫回；ESC 不經過 ShowUIPanel 照常關。選單類傳 `closeWithPanels=true` 維持舊行為。別改成自己 EnableKeyboard 抓 ESC（見 [[wow-keyboard-capture-blocks-bindings]]），也別用 `RegisterGameMenuEscHandler`：Blizzard_GameMenuEsc 讀 handlers 表沒包 securecall，插件登記會污染 ToggleGameMenu。目前只有 MiliUI_CooldownManager 的主視窗改走 W.CloseOnEscape，其他十幾支設定視窗還是直接 `tinsert(UISpecialFrames, …)`。
