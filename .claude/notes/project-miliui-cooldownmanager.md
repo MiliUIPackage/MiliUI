@@ -2,7 +2,10 @@
 name: project-miliui-cooldownmanager
 description: 自製冷卻管理器 MiliUI_CooldownManager（2026-09-30 一夜做完 A～H 八階段、全部未實機驗證）——六條拍板、Ayije 授權一行不能搬、架構要點、實機驗證從哪開始、plan 位置
 metadata:
+  node_type: memory
   type: project
+  originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
+  modified: 2026-10-01T04:45:51.425Z
 ---
 
 2026-09-30 使用者決定**自製 MiliUI_CooldownManager 取代 Ayije_CDM fork**（起因：Ayije 設定介面 UX 差，
@@ -99,6 +102,14 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
 彈窗多一顆主按鈕「從 %s 匯入」→ 讀 `Ayije_CDMDB`、每份 profile 轉成「Ayije：<名>」新設定檔、寫進我們的 SV（DB.Init 前直接寫）、
 停用它、重載；設定檔頁只放「啟用它並重載」。spellID→cooldownID 只換得了目前專精，其他專精存 `profile.pendingImport[specID]`，
 目錄建好時 `ResolvePending` 補。對方存檔只存跟它預設不同的鍵 ⇒ **沒出現的鍵不動**。計畫在 `~/.claude/plans/miliui-cdm-import-ayije.md`。
+
+**自訂圖示群組「可點擊」（2026-10-01，未實機驗證）**：`Core/Clickable.lua`，每格上面蓋一顆透明的
+`SecureActionButtonTemplate` 鈕（parent／錨點都是容器、層級容器 +40、只掛 OnEnter／OnLeave 轉給 Decorate 的提示）。
+動作：自訂法術 `spell`＝基底 id、物品 `item="item:<id>"`、飾品欄 `slot`、暴雪技能有裝備欄走 `slot` 否則 spellID；
+光環格／增益類來源／物品冷卻類別／占位格／秘密值 ⇒ 那格不蓋鈕。**鈕錨在容器上 ⇒ 容器隱式保護 ⇒ 可點擊的群組
+強制固定格位**（跟光環格同一套），寫入走 `ns.Write`＋三種簽章去重，鈕只在戰鬥外建（戰鬥中記 pending、脫戰重排）。
+編輯模式中鈕全收（strata 高的群組會蓋在選取框上）。**內建條不做**（item 是暴雪的框）。已知限制：淡到 0 的群組鈕
+還在收點擊（條件式顯示要走 secure 狀態驅動才解得了，等實機回饋）。Plan 在 `~/.claude/plans/miliui-cdm-clickable-groups.md`。
 
 **內建音效（2026-09-30）**：`Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，自帶 LICENSE 與出處
 README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插件、載入時註冊進 LibSharedMedia 讓其他插件也選得到
