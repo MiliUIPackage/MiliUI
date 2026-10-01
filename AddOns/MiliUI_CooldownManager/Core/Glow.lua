@@ -142,6 +142,46 @@ local function StopOn(h, t, key)
 end
 G.StopOn = StopOn
 
+-- ── 觸發樣式的方形版（裝了 Masque 才用）──────────────────────────────
+-- 暴雪的觸發循環圖集（UI-HUD-ActionBar-Proc-Loop-Flipbook）是圓角的，套在我們的直角圖示上四角會缺。
+-- Masque 自帶一張「方形、Modern」的循環圖（Textures/Square/SpellAlert-Loop-Modern：6×5 共 30 格，
+-- 每格 84px，跟它 Core/Regions/SpellAlert.lua 的 FlipBooks 表同一組數字）。Masque 有載入就換成它，
+-- 沒有就維持暴雪圖集。只換貼圖與格子尺寸，不碰 Masque 本身、不讀它的設定。
+-- 方形版沒有入場動畫（Masque 也是只播循環），所以 startAnim 一律關。
+-- 發光框來自池子、會在觸發／就緒／設定頁樣本之間輪用 ⇒ 每次都把兩種狀態寫齊，不留上一次的。
+local MSQ_LOOP = [[Interface\AddOns\Masque\Textures\Square\SpellAlert-Loop-Modern]]
+local MSQ_CELL = 84
+local BLIZ_LOOP = "UI-HUD-ActionBar-Proc-Loop-Flipbook"
+
+local function MasqueSquare()
+    local api = C_AddOns and C_AddOns.IsAddOnLoaded
+    if not api then return false end
+    local ok, loaded = pcall(api, "Masque")
+    return ok and loaded and true or false
+end
+G.MasqueSquare = MasqueSquare
+
+local function SkinProc(h, key, square)
+    local f = h["_ProcGlow" .. key]
+    local loop = f and f.ProcLoop
+    local fb = f and f.ProcLoopAnim and f.ProcLoopAnim.flipbookRepeat
+    if not (loop and fb) then return end
+    if square then
+        loop:SetTexture(MSQ_LOOP)
+        fb:SetFlipBookFrameWidth(MSQ_CELL)
+        fb:SetFlipBookFrameHeight(MSQ_CELL)
+    else
+        loop:SetAtlas(BLIZ_LOOP)
+        fb:SetFlipBookFrameWidth(0)
+        fb:SetFlipBookFrameHeight(0)
+    end
+    -- Start 裡的 Show 已經開播：換了貼圖與格子尺寸要重播才吃得到
+    if f.ProcLoopAnim:IsPlaying() then
+        f.ProcLoopAnim:Stop()
+        f.ProcLoopAnim:Play()
+    end
+end
+
 -- 回傳實際畫上去的樣式（失敗回 nil）
 local function PaintOn(h, c, which, key, startAnim)
     if not (h and LCG) then return nil end
@@ -156,7 +196,9 @@ local function PaintOn(h, c, which, key, startAnim)
     elseif t == "button" then
         ok = pcall(LCG.ButtonGlow_Start, h, color, freq)
     elseif t == "proc" then
-        ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = startAnim, duration = 1 })
+        local square = MasqueSquare()
+        ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = startAnim and not square, duration = 1 })
+        if ok then pcall(SkinProc, h, key, square) end
     else
         ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, key)
     end
