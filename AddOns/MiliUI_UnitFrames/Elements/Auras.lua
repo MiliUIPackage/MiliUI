@@ -637,10 +637,13 @@ ns.Events.Register("UNIT_TARGET", "auras_repoke_ut", function(unit)
         RepokeFrame(ns.frames[unit .. "target"])
     end
 end)
--- 換寵物＝ "pettarget" 換人，但 UNIT_TARGET 不會發（那隻寵物沒換目標）
+-- 換寵物＝ "pettarget" 換人，但 UNIT_TARGET 不會發（那隻寵物沒換目標）。
+-- 只看自己的寵物 ⇒ 綁 "player" token（Core/Interrupt.lua 也是這樣綁）。不綁 token 的話結果看載入順序：
+-- 排在 Interrupt 後面＝全域註冊被擋掉、只剩 player（剛好是要的，但 /muf debug 會記一條警告）；
+-- 排在前面＝上全域，player 的 UNIT_PET 從全域與 unit 範圍各送一次
 ns.Events.Register("UNIT_PET", "auras_repoke_up", function(unit)
     if unit == "player" then RepokeFrame(ns.frames.pettarget) end
-end)
+end, "player")
 ns.Events.Register("INSTANCE_ENCOUNTER_ENGAGE_UNIT", "auras_repoke_b", function()
     for i = 1, 5 do
         RepokeFrame(ns.frames["boss" .. i])
