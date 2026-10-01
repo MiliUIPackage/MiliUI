@@ -152,7 +152,7 @@ L["WARBAND_RUNS_HEADER"] = "本週 M+ 紀錄 (%d/%d)"
 L["WARBAND_SNAPSHOT"] = "快照時間：%s"
 L["WARBAND_RAID_TITLE"] = "團隊副本進度 - %s"
 L["WARBAND_RAID_NONE"] = "尚無團隊副本記錄"
-L["WARBAND_RAID_NONE_SUB"] = "（這隻角色登入後才會記錄）"
+L["WARBAND_RAID_NONE_SUB"] = "（下次登入這隻角色時記錄）"
 L["WARBAND_RAID_EMPTY"] = "本週沒有團隊副本進度"
 L["MSG_WARBAND_MIGRATED"] = "已從 MiliUI 套組匯入角色鑰石記錄（%d 筆）。"
 

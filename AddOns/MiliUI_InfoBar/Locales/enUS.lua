@@ -151,7 +151,7 @@ L["WARBAND_RUNS_HEADER"] = "M+ runs this week (%d/%d)"
 L["WARBAND_SNAPSHOT"] = "Snapshot: %s"
 L["WARBAND_RAID_TITLE"] = "Raid Lockouts - %s"
 L["WARBAND_RAID_NONE"] = "No raid data yet"
-L["WARBAND_RAID_NONE_SUB"] = "(recorded when this character logs in)"
+L["WARBAND_RAID_NONE_SUB"] = "(recorded next time this character logs in)"
 L["WARBAND_RAID_EMPTY"] = "No raid lockouts this week"
 L["MSG_WARBAND_MIGRATED"] = "Imported character keystone records from the MiliUI package (%d)."
 

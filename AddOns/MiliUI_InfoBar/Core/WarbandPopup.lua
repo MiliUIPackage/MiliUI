@@ -491,7 +491,7 @@ local function ShowRaidTip(row)
     local y = P + RT.TITLE_H
 
     if not list or #list == 0 then
-        -- nil＝這隻從沒記過；空表＝記過、本週沒有鎖定。兩句話要分得開
+        -- nil＝還沒記過（插件更新後這隻還沒上線）；空表＝記過、本週沒有鎖定。兩句話要分得開
         local main = AcquireText(f, FONT_SZ, { 0.7, 0.7, 0.7 })
         main:SetText(list and L["WARBAND_RAID_EMPTY"] or L["WARBAND_RAID_NONE"])
         main:SetPoint("TOPLEFT", P, -y)

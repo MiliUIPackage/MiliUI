@@ -241,6 +241,26 @@ function Warband.OwnKeystoneText()
     return "—"
 end
 
+-- 自己那筆記錄；還沒有鑰石記錄但有寶庫／團本進度（例如本週還沒拿過鑰石）就建一筆空殼
+local function EnsureOwnRecord()
+    local history = Store().characters
+    local key = GetCharacterKey()
+    local rec = history[key]
+    if not rec then
+        local _, class = UnitClass("player")
+        rec = {
+            name  = UnitName("player"),
+            realm = GetRealmName(),
+            class = class,
+            mapID = 0,
+            level = 0,
+            timestamp = GetServerTime(),
+        }
+        history[key] = rec
+    end
+    return rec
+end
+
 local function SaveKeystoneRecord(mapID, level)
     local history = Store().characters
     local key = GetCharacterKey()
@@ -249,17 +269,16 @@ local function SaveKeystoneRecord(mapID, level)
         return false
     end
 
+    -- 就地改鑰石那幾欄，不整筆重建：記錄裡還掛著 vault／raids 等別支函式存的東西，
+    -- 重建時漏帶一欄就等於清掉它（團本進度曾因此在換鑰石後變回「尚無記錄」）
+    local rec = EnsureOwnRecord()
     local _, class = UnitClass("player")
-    history[key] = {
-        name  = UnitName("player"),
-        realm = GetRealmName(),
-        class = class,
-        mapID = mapID,
-        level = level,
-        timestamp = GetServerTime(),
-        -- 鑰石換了寶庫沒換：舊快照留著
-        vault = existing and existing.vault or nil,
-    }
+    rec.name  = UnitName("player")
+    rec.realm = GetRealmName()
+    rec.class = class
+    rec.mapID = mapID
+    rec.level = level
+    rec.timestamp = GetServerTime()
     Debug("Save: %s map=%d lv=%d", key, mapID, level)
     return true
 end
@@ -324,26 +343,6 @@ local function ReadOwnVaultSnapshot()
     snap.stash = ReadOwnGildedStash("snapshot")
     if not anyData then return nil end
     return snap
-end
-
--- 自己那筆記錄；還沒有鑰石記錄但有寶庫／團本進度（例如本週還沒拿過鑰石）就建一筆空殼
-local function EnsureOwnRecord()
-    local history = Store().characters
-    local key = GetCharacterKey()
-    local rec = history[key]
-    if not rec then
-        local _, class = UnitClass("player")
-        rec = {
-            name  = UnitName("player"),
-            realm = GetRealmName(),
-            class = class,
-            mapID = 0,
-            level = 0,
-            timestamp = GetServerTime(),
-        }
-        history[key] = rec
-    end
-    return rec
 end
 
 local function SaveVaultSnapshot()
