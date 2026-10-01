@@ -17,6 +17,7 @@ L["Switch to MiliUI Cooldown Manager"] = "MiliUI 재사용 대기시간 관리�
 L["Turns off %s. MiliUI Cooldown Manager keeps its current settings."] = "%s 애드온을 끕니다. MiliUI 재사용 대기시간 관리자는 현재 설정을 그대로 사용합니다."
 L["Keep %s"] = "%s 계속 사용"
 L["Turns off MiliUI Cooldown Manager. To switch later, re-enable it in the AddOns list."] = "MiliUI 재사용 대기시간 관리자를 끕니다. 나중에 바꾸려면 애드온 목록에서 다시 켜세요."
+L["%s (%s)"] = "%s (%s)"
 L["MiliUI Cooldown Manager"] = "MiliUI 재사용 대기시간 관리자"
 L["Not implemented yet."] = "아직 구현되지 않았습니다."
 L["Essential Cooldowns"] = "핵심 재사용 대기시간"

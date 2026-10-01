@@ -17,6 +17,7 @@ L["Switch to MiliUI Cooldown Manager"] = "Перейти на MiliUI Cooldown Ma
 L["Turns off %s. MiliUI Cooldown Manager keeps its current settings."] = "Отключает %s. MiliUI Cooldown Manager сохраняет текущие настройки."
 L["Keep %s"] = "Оставить %s"
 L["Turns off MiliUI Cooldown Manager. To switch later, re-enable it in the AddOns list."] = "Отключает MiliUI Cooldown Manager. Чтобы сменить позже, снова включите его в списке модификаций."
+L["%s (%s)"] = "%s (%s)"
 L["MiliUI Cooldown Manager"] = "MiliUI Cooldown Manager"
 L["Not implemented yet."] = "Пока не реализовано."
 L["Essential Cooldowns"] = "Основные восстановления"
