@@ -310,11 +310,12 @@ function DB.BuildDefaults()
                 stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0 },
                 icon  = { zoom = 0.08, swipeColor = rgba(0, 0, 0, 0.8), tooltips = true,
                           hideGCDSwipe = false, desaturateOnCooldown = true },
+                -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
-                    proc  = { enabled = true,  type = "pixel", color = rgba(1, 0.85, 0, 1),
+                    proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
                               lines = 8, thickness = 2, frequency = 0.2 },
                     -- duration：冷卻轉好之後亮幾秒
-                    ready = { enabled = false, type = "pixel", color = rgba(0.3, 1, 0.3, 1),
+                    ready = { enabled = false, type = "button", color = rgba(0.3, 1, 0.3, 1),
                               lines = 8, thickness = 2, frequency = 0.2, duration = 3 },
                 },
                 -- 淡出後的透明度；false ＝ 這個條件不淡
