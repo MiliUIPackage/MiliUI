@@ -296,6 +296,7 @@ L["That is a spell link. Use the \"Spell\" or \"Aura\" button for spells."] = "�
 L["Find it in the spell's link or on a database site."] = "法术链接或数据库网站上查得到。"
 L["Or Shift-click it in your spellbook or talents to fill in the ID."] = "也可以按住 Shift 点法术书或天赋上的图标，自动填入 ID。"
 L["Open talents & spellbook"] = "打开天赋与法术书"
+L["Open bags"] = "打开背包"
 L["That is an item link. Enter a spell ID here."] = "这是物品链接。这里要填法术 ID。"
 L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."] = "冷却转好时亮一下。公共冷却不算。"
 L["Item"] = "物品"

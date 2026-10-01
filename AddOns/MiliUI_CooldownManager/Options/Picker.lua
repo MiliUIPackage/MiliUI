@@ -601,10 +601,12 @@ SetInputError = function(popup, why)
     end
 end
 ------------------------------------------------------------
--- 「開啟天賦與法術書」按鈕：放在法術 ID 輸入彈窗裡，開了就能 Shift 點法術填 ID
+-- 「開啟天賦與法術書」／「開啟背包」按鈕：放在 ID 輸入彈窗裡，開了就能 Shift 點法術／物品填 ID
 --
 -- 12.1 起插件 Lua 不能自己開天賦視窗（直接呼叫會把它染髒，之後秘密值就炸），
--- 只能走 secure 點擊轉發：SecureActionButton 的 macrotext「/click PlayerSpellsMicroButton」，
+-- 只能走 secure 點擊轉發：SecureActionButton 的 macrotext「/click <暴雪按鈕名>」。
+-- 背包也走同一條（/click MainMenuBarBackpackButton）：插件 Lua 開的背包，格子的欄位是髒的寫入，
+-- 之後點格子用物品有機會被擋；點背包鈕＝暴雪自己開（Baganator 等背包插件也是掛在這條上）。
 -- 做法與踩過的點見 MiliUI_InfoBar/Core/MicroMenu.lua（**不能用 clickbutton 框參照**）。
 --
 -- secure 鈕不能是彈窗的子框、也不能錨在彈窗上（被 secure 框錨定的框戰鬥中會變保護框），
@@ -615,11 +617,14 @@ end
 -- 戰鬥紀律：建立／Show／SetPoint 戰鬥中都違禁 → 進戰鬥（REGEN_DISABLED，lockdown 前最後窗口）
 -- 先藏，脫戰再擺回來。戰鬥中設定視窗本來就被戰鬥遮罩蓋住，按不到也沒關係。
 --
---   Picker.AddSpellsOpener(popup)   在輸入彈窗最下面（確定／取消上面）加一列這顆按鈕；
+--   Picker.AddOpener(popup, label, target)   在輸入彈窗最下面（確定／取消上面）加一列這顆按鈕；
+--                                   target 是要 /click 的暴雪按鈕名字。
 --                                   要在第一次 SetInputError 之前叫（那裡會記下彈窗的基準高度）
+--   Picker.AddSpellsOpener(popup) / Picker.AddBagsOpener(popup)   兩種現成的
 ------------------------------------------------------------
-local OPENER_TARGET = "PlayerSpellsMicroButton"
-local openerSecure          -- 共用的 secure 鈕
+local SPELLS_TARGET = "PlayerSpellsMicroButton"
+local BAGS_TARGET   = "MainMenuBarBackpackButton"
+local openerSecure          -- 共用的 secure 鈕（目標在綁上去時換）
 local openerBound           -- 現在疊在哪顆看得見的按鈕上
 
 local function PlaceOpener()
@@ -642,13 +647,12 @@ end
 
 local function EnsureOpenerSecure()
     if openerSecure then return openerSecure end
-    if InCombatLockdown() or not _G[OPENER_TARGET] then return nil end
+    if InCombatLockdown() then return nil end
     local sb = CreateFrame("Button", "MiliUICDM_SpellsOpener", UIParent, "SecureActionButtonTemplate")
     sb:SetFrameStrata("FULLSCREEN_DIALOG")
     sb:SetFrameLevel(430)       -- 彈窗 410 之上、戰鬥遮罩 500 之下
     sb:RegisterForClicks("AnyUp")
     sb:SetAttribute("*type1", "macro")
-    sb:SetAttribute("*macrotext1", "/click " .. OPENER_TARGET)
     sb:SetAttribute("useOnKeyDown", false)
     sb:Hide()
     -- 只掛滑過，**OnClick 一行 Lua 都不能有**（會把轉發出去的點擊染髒）
@@ -671,10 +675,10 @@ local function EnsureOpenerSecure()
     return sb
 end
 
-function Picker.AddSpellsOpener(popup)
+function Picker.AddOpener(popup, label, target)
     local h0 = popup:GetHeight()
     if type(h0) ~= "number" or h0 <= 0 then return end
-    local vis = W.CreateButton(popup, L["Open talents & spellbook"], "normal", 80, 22)
+    local vis = W.CreateButton(popup, label, "normal", 80, 22)
     local fs = vis:GetFontString()
     local tw = fs and fs:GetStringWidth() or 0
     P.Size(vis, math.min(INPUT_W - 28, math.max(80, math.ceil(tw) + 24)), 22)
@@ -683,7 +687,9 @@ function Picker.AddSpellsOpener(popup)
     vis:EnableMouse(false)      -- 點擊交給疊在上面的 secure 鈕
     P.Height(popup, h0 + 22 + 10)
     popup:HookScript("OnShow", function()
-        if not EnsureOpenerSecure() then vis:Disable() return end
+        local sb = _G[target] and EnsureOpenerSecure()
+        if not sb or InCombatLockdown() then vis:Disable() return end
+        sb:SetAttribute("*macrotext1", "/click " .. target)
         vis:Enable()
         openerBound = vis
         PlaceOpenerSoon()
@@ -697,6 +703,14 @@ function Picker.AddSpellsOpener(popup)
     popup:HookScript("OnSizeChanged", function()
         if openerBound == vis and popup:IsShown() then PlaceOpenerSoon() end
     end)
+end
+
+function Picker.AddSpellsOpener(popup)
+    Picker.AddOpener(popup, L["Open talents & spellbook"], SPELLS_TARGET)
+end
+
+function Picker.AddBagsOpener(popup)
+    Picker.AddOpener(popup, L["Open bags"], BAGS_TARGET)
 end
 
 -- 資源條頁的「自訂格子」也用同一套（寬度要是 INPUT_W 的彈窗）
@@ -811,7 +825,7 @@ function Picker.AskCustom(kind)
                   or L["Find it in the spell's link or on a database site."])
                   .. " " .. L["Or Shift-click it in your bags, spellbook or talents to fill in the ID."] },
         })
-        if kind ~= "item" then Picker.AddSpellsOpener(popup) end
+        if kind == "item" then Picker.AddBagsOpener(popup) else Picker.AddSpellsOpener(popup) end
         inputs[kind] = popup
     end
     SetInputError(popup, nil)
