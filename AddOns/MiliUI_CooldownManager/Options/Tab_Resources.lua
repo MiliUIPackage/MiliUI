@@ -13,8 +13,8 @@
 -- 多一小節「位置與錨定」（Specs.Anchor("pips", { other = true })，讀寫 profile.pips）、
 -- 「跟核心技能一起淡出」與自訂格子自己的載入條件（profile.pips.loadConditions）。
 --
--- 「這個專精要顯示哪些」一列一個資源：勾選框＋上移／下移（resources.order，不分專精；
--- 移一下就把目前候選的完整順序寫回去，見 Modules/Resources.lua 的 R.MergeOrder）。
+-- 「這個專精要顯示哪些」一列一個資源：勾選框（resources.rows[specID][key]，分專精）＋上移／下移
+-- （resources.order，不分專精；移一下就把目前候選的完整順序寫回去，見 Modules/Resources.lua 的 R.MergeOrder）。
 -- 血量列（Health）的設定在「顏色與條件」那一段：職業色、百分比、門檻換色（彈窗在 Options/HealthThresholds.lua）。
 --
 -- 資源清單跟著專精走、條件規則的列數跟著規則走，所以表單照「形狀」快取（專精、候選清單（含順序）、
@@ -54,6 +54,11 @@ local FILL_ITEMS = {
 local RUNE_TEXT_ITEMS = {
     { text = L["Seconds left on each rune"], value = "countdown" },
     { text = L["Ready runes count"],         value = "count" },
+}
+
+local ARCANE_SOUL_ITEMS = {
+    { text = L["Seconds left"],       value = "seconds" },
+    { text = L["Global cooldowns left"], value = "gcd" },
 }
 
 local MANA_ITEMS = {
@@ -762,11 +767,8 @@ local function ShowRow(cand, i)
         local cb = W.CreateCheckButton(parent, nil, function(on)
             local c = Cfg()
             if not c then return end
-            if type(c.rows) ~= "table" then c.rows = {} end
-            -- 跟這個專精的預設一樣就存 nil（＝照預設），不一樣才存 true／false。
-            -- ⚠ 不能寫 `(not on) and false or nil`：`x and false or nil` 永遠是 nil，取消勾選等於沒存
-            on = on and true or false
-            if on == R.DefaultOn(ns.specID, key) then c.rows[key] = nil else c.rows[key] = on end
+            -- 存在這個專精底下（rows[specID][key]）：跟預設一樣就清掉（＝照預設），空的子表也清掉
+            R.SetRow(c, ns.specID, key, on)
             Touched(ctx)
         end)
         cb:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
@@ -781,6 +783,38 @@ local function ShowRow(cand, i)
         local function Refresh() cb:SetChecked(R.RowOn(Cfg(), ns.specID, key)) end
         Refresh()
         return ROW_TOGGLE_H, Refresh
+    end }
+end
+
+-- 醉仙緩勁第 3／4 段的顏色：標籤是門檻本身（≥ N%），跟著滑桿改 ⇒ 標籤自己畫、Refresh 時重寫
+-- （共用層的色票列標籤建好就固定，門檻放進表單簽章的話拖一次滑桿就多一份表單）
+local TIER_ROW_H = 26
+local function StaggerTierColorRow(tier)
+    local R = ns.Resources
+    return { type = "custom", h = TIER_ROW_H, noReset = true, build = function(parent, x, y, width, ctx)
+        local cy = y - TIER_ROW_H / 2
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontNormal)
+        fs:SetJustifyH("RIGHT")
+        fs:SetWidth(LABEL_W)
+        fs:SetPoint("RIGHT", parent, "TOPLEFT", x - CTRL_GAP, cy)
+        local cp = W.CreateColorPicker(parent, nil, false, function(r, g, b)
+            local c = Cfg()
+            if not c then return end
+            local colors = type(c.colors) == "table" and c.colors or {}
+            c.colors = colors
+            if type(colors.Stagger) ~= "table" then colors.Stagger = {} end
+            colors.Stagger[tier .. "Color"] = { r = r, g = g, b = b, a = 1 }
+            Touched(ctx)
+        end)
+        cp:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
+        local function Refresh()
+            local c = Cfg()
+            fs:SetText(R.StaggerLabel(tier, c))
+            cp:SetColor(R.ResolveColor(c, "Stagger", tier .. "Color"))
+        end
+        Refresh()
+        return TIER_ROW_H, Refresh
     end }
 end
 
@@ -857,7 +891,15 @@ local function Controls(cand, sub)
                 add(BS("color", "colors.Stagger.heavyColor", R.StaggerLabel("heavy"), { hasAlpha = false }))
                 add(BS("slider", "staggerModerateAt", L["Moderate threshold (percent of max health)"], { min = 1, max = 100, step = 1 }))
                 add(BS("slider", "staggerHeavyAt", L["Heavy threshold (percent of max health)"], { min = 1, max = 200, step = 1 }))
-                add(BS("slider", "staggerCeiling", L["Full bar at (percent of max health)"], { min = 10, max = 200, step = 5 }))
+                -- 第 3／4 段：開關＋門檻＋顏色（標籤是門檻本身，見 StaggerTierColorRow）
+                add(BS("toggle", "staggerTier3Enabled", L["Third tier"]))
+                add(BS("slider", "staggerTier3At", L["Third tier threshold (percent of max health)"], { min = 1, max = R.STAGGER_CEILING_MAX, step = 1 }))
+                add(StaggerTierColorRow("tier3"))
+                add(BS("toggle", "staggerTier4Enabled", L["Fourth tier"]))
+                add(BS("slider", "staggerTier4At", L["Fourth tier threshold (percent of max health)"], { min = 1, max = R.STAGGER_CEILING_MAX, step = 1 }))
+                add(StaggerTierColorRow("tier4"))
+                add(Note(L["The third and fourth tiers add colors above heavy stagger. Raise \"Full bar at\" above 100 to see them fill on the bar."]))
+                add(BS("slider", "staggerCeiling", L["Full bar at (percent of max health)"], { min = 10, max = R.STAGGER_CEILING_MAX, step = 5 }))
                 add(Note(L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."]))
             elseif key == "Runes" then
                 add(BS("dropdown", "runeText", L["Numbers on runes"], { items = RUNE_TEXT_ITEMS }))
@@ -865,7 +907,18 @@ local function Controls(cand, sub)
                 add(BS("toggle", "runeQueued", L["Count waiting runes"]))
                 add(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
             elseif key == "IgnorePain" then
-                add(Note(L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."]))
+                add(Note(L["Shows only your own Ignore Pain shield, as a percent of how big it can get; the game fills it in itself, so it stays right in combat. Showing the value on the bar prints the percent. Until the bar is ready (for example right after logging in during combat) it falls back to the total of every absorb shield on you, where a full bar is 30 percent of your max health."]))
+            elseif key == "MaelstromWeapon" then
+                add(BS("toggle", "maelstromFold", L["Fold into 5 segments"]))
+                add(Note(L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."]))
+                add(BS("color", "colors.MaelstromWeapon.overflowColor", L["Overflow color"], { hasAlpha = false }))
+            elseif key == "SoulShards" then
+                add(Note(L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."]))
+            elseif key == "Essence" then
+                add(Note(L["The next segment fills up as Essence recharges, a shade darker."]))
+            elseif key == "ArcaneSoul" then
+                add(BS("dropdown", "arcaneSoulText", L["Number on the bar"], { items = ARCANE_SOUL_ITEMS }))
+                add(Note(L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."]))
             elseif key == "Ironfur" then
                 add(Note(L["One segment per active application, each draining with its own remaining time."]))
             elseif key == "Health" then
@@ -880,7 +933,7 @@ local function Controls(cand, sub)
             if info and info.mode == "auraTimer" then
                 -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
                 add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))
-            elseif not R.SupportsConditions(key) and not (info and info.health) then
+            elseif not R.SupportsConditions(key) and not (info and (info.health or info.mode == "auraPct")) then
                 -- 血量不印這句（條件規則不適用由門檻換色那段帶過）
                 add(Note(L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."]:format(R.Name(key))))
             end
@@ -920,6 +973,8 @@ local function Signature()
         ns.ResourceConditionsUI.FormSignature(Tab.ConditionCandidates(cand)),
         CustomSignature(),
         type(cfg.anchor) == "table" and "a" or "-",
+        -- 氣漩武器摺疊改了格數：條件規則的「第幾格」選單跟著換
+        cfg.maelstromFold and "f" or "-",
         type(ns.DB.GetPath(ns.DB.ConfigTable(PIPS), "anchor")) == "table" and "pa" or "-",
         table.concat(p and p.barOrder or {}, ","),
         ns.Specs.AnchorGraphSig(),

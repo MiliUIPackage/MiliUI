@@ -9,6 +9,8 @@
 --         opts.resolve    function(spellID, kind) → cooldownID | nil（kind："cooldown" | "buff"）
 --         opts.class      玩家職業（資源條的設定是分職業存的，撞 key 時優先用這個職業的）
 --         opts.specName   function(specID) → 專精名（選用；自訂群組撞名時加在後面）
+--       資源條「哪幾個專精顯示這一列」要知道每個專精的候選資源：借 Modules/Resources.lua 的純函式
+--       （R.SpecCandidates／R.SetRow；匯入在登入後才跑，那時已經載好）。
 --   ns.Import.PlanNames(names, existing, previous, fmt) → { [原名] = 新名 }   純函式：取名
 --   ns.Import.ApplyPending(profile, specID, resolve)     → 換好幾筆, 還剩幾筆   純函式
 --   ns.Import.BuildResolver(records)                     → resolve              純函式
@@ -688,7 +690,54 @@ Import.CopyRules = CopyRules
 local RES_COLOR_FIELDS = {
     color = "color", chargedColor = "chargedColor", chargedEmptyColor = "chargedEmptyColor",
     moderateColor = "moderateColor", heavyColor = "heavyColor",
+    tier3Color = "tier3Color", tier4Color = "tier4Color",        -- 醉仙緩勁第 3／4 段
 }
+-- 醉仙緩勁第 3／4 段：對方的欄位 → 本插件的設定
+local STAGGER_TIER_FIELDS = {
+    tier3Threshold = "staggerTier3At", tier4Threshold = "staggerTier4At",
+    tier3Enabled = "staggerTier3Enabled", tier4Enabled = "staggerTier4Enabled",
+}
+
+-- 對方的「載入條件」→ 本插件分專精的開關 rows[specID][key]。
+-- 職業分組（cls）底下的列只看那個職業的專精，General（法力）看全部；每個「這個 key 是候選」的專精，
+-- wanted(specID) 跟那個專精的預設不同才寫（R.SetRow）。回傳 false ＝ 資源模組不在、沒辦法換算
+local function ImportRows(res, cls, key, wanted)
+    local R = ns.Resources
+    if not (R and R.SetRow and R.SpecCandidates and R.CLASS_SPECS) then return false end
+    local specs = (cls == "General") and R.AllSpecIDs() or R.CLASS_SPECS[cls] or {}
+    for _, specID in ipairs(specs) do
+        if R.SpecCandidates(specID)[key] then R.SetRow(res, specID, key, wanted(specID)) end
+    end
+    return true
+end
+Import.ImportRows = ImportRows
+
+local function WantNever() return false end
+local function WantAlways() return true end
+
+-- loadMode：never ＝ 每個專精都關、always ＝ 每個專精都開、conditional ＝ 看 load.spec（專精集合）。
+-- 沒存 loadMode 的照對方的預設（法力是 conditional，其他是 always）。專精以外的條件
+-- （戰鬥中、騎乘、獵豹形態…）沒有逐列的對應，記略過
+local function ImportLoad(ctx, res, cls, key, e, where)
+    local mode = e.loadMode
+    if mode == nil then mode = (key == "Mana") and "conditional" or "always" end
+    local ok = true
+    if mode == "never" then
+        ok = ImportRows(res, cls, key, WantNever)
+    elseif mode == "always" then
+        ok = ImportRows(res, cls, key, WantAlways)
+    elseif mode == "conditional" then
+        local ld = type(e.load) == "table" and e.load or nil
+        local set = ld and type(ld.spec) == "table" and ld.spec or nil
+        if set then
+            ok = ImportRows(res, cls, key, function(specID) return set[specID] == true end)
+        end
+        for k in pairs(ld or {}) do
+            if k ~= "spec" then Skip(ctx, "resourceBarSettings.*.load." .. tostring(k), "noEquivalent", "resources") end
+        end
+    end
+    if not ok then Skip(ctx, "resourceBarSettings." .. where .. ".loadMode", "noEquivalent", "resources") end
+end
 -- 共用欄位 → resources 的哪一格（值怎麼驗）
 local RES_SHARED = {
     height     = { to = "rowHeight",  ok = function(v) return Num(v) and v > 0 and v end },
@@ -854,22 +903,25 @@ local function StepResources(ctx)
                         elseif field == "displayAsPercent" and key == "Mana" then
                             if type(val) == "boolean" then res.manaPercent = val end
                         elseif field == "loadMode" then
-                            if val == "never" then
-                                if type(res.rows) ~= "table" then res.rows = {} end
-                                res.rows[key] = false
-                            elseif val == "conditional" then
-                                Skip(ctx, "resourceBarSettings.*.load", "noEquivalent", "resources")
-                            end
+                            ImportLoad(ctx, res, cls, key, e, where)
                         elseif field == "load" then
-                            -- 跟 loadMode 一起看（上面）
+                            -- 有 loadMode 時跟它一起看（上面）；沒存 loadMode 的照對方的預設模式
+                            if e.loadMode == nil then ImportLoad(ctx, res, cls, key, e, where) end
                         elseif field == "tier1Threshold" and key == "Stagger" then
                             if e.tier1Enabled ~= false and Num(val) then res.staggerModerateAt = val end
                         elseif field == "tier2Threshold" and key == "Stagger" then
                             if e.tier2Enabled ~= false and Num(val) then res.staggerHeavyAt = val end
                         elseif (field == "tier1Enabled" or field == "tier2Enabled") and key == "Stagger" then
                             if val == false then Approx(ctx, "resourceBarSettings." .. where .. "." .. field, "stagger tier can't be turned off") end
+                        elseif STAGGER_TIER_FIELDS[field] and key == "Stagger" then
+                            local to = STAGGER_TIER_FIELDS[field]
+                            if field:find("Enabled") then
+                                if type(val) == "boolean" then res[to] = val end
+                            elseif Num(val) and val > 0 then
+                                res[to] = val
+                            end
                         elseif field == "ceilingPercent" and key == "Stagger" then
-                            if Num(val) and val > 0 then res.staggerCeiling = val end
+                            if Num(val) and val > 0 then res.staggerCeiling = math.min(val, 300) end
                         elseif RES_POS_FIELDS[field] then
                             -- 位置：下面挑一列算
                         elseif field == "tagAnchor" or field == "tagOffsetX" or field == "tagOffsetY" then

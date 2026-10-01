@@ -9,12 +9,18 @@
 --
 -- 列的順序：預設照專精的清單（法力、血量排最下面），玩家可以在設定頁上下移（resources.order，
 -- 整份設定檔共用、不分專精；見 R.ApplyOrder）。
+-- 哪幾列要顯示是**分專精**存的（resources.rows[specID][key]，見 R.RowOn／R.SetRow）。
 --
 -- 每一列自己決定長相：
 --   pip        分段（點數型：聖能／連擊點數／真氣／碎片／充能／精華／符文，以及光環堆疊型：冰刺…）
 --   bar        連續長條（怒氣／能量／集中值／符文能量／星能／元能／狂亂值／魔怒／法力；
 --              def.get 型：醉仙緩勁 UnitStagger／UnitHealthMax、噬靈魂碎片、血量 UnitHealth／UnitHealthMax）
---   absorbBar  吸收盾（無視苦痛）：值 UnitGetTotalAbsorbs("player")、上限「最大生命的三成」。
+--   auraPct    **引擎寫百分比**（無視苦痛）：增益 190456 的「層數」欄位是盾量佔上限的百分比（0～100）。
+--              單格 AuraContainer ＋ SetApplicationBar(bar, { maxApplications = 100 })，畫成連續條（列上的
+--              裝飾不畫分格）；showText 時層數走 SetApplicationCount、後面接一個自己的「%」。
+--              只算這個增益自己的盾（別人套的盾、其他吸收不算）。條件規則不適用。
+--              容器沒好（戰鬥中、建失敗）時退回下面的 absorbBar（所有吸收盾的總量）。
+--   absorbBar  吸收盾（auraPct 的退路）：值 UnitGetTotalAbsorbs("player")、上限「最大生命的三成」。
 --              ⚠ 不對秘密的最大生命乘 0.3：用幾何做 —— 裁切框寬 W（SetClipsChildren），裡面的 StatusBar
 --              寬 W / 0.3、貼在填充起點那一側，SetMinMaxValues(0, UnitHealthMax)，於是只看得到前三成。
 --              這條 StatusBar 的填充貼圖上不錨任何東西、不讀它的尺寸。
@@ -25,6 +31,8 @@
 --   auraTimer  **光環剩餘時間條**（黯黑力量、秘法靈魂）：同一支 AuraBar 的 kind = "duration"，單格 AuraContainer
 --              ＋ SetDurationBar（RemainingTime）：光環在身上時引擎往下縮、不在時是空條（列上畫的暗底）。
 --              上限秒數不經 Lua（引擎用光環自己的持續時間，含延長）；showText 時秒數走 SetDurationText。
+--              秘法靈魂可以改印「剩幾個 GCD」（arcaneSoulText = "gcd"）：數字格式器一個 GCD 一段，
+--              GCD 長度在建容器前用明文算好、進簽章（R.GcdLength）。
 --              條件規則不適用；容器沒好（戰鬥中、建失敗）時先畫空條（timerIdle）。
 --
 -- 12.1 秘密值（見 .claude/notes/wow-121-secret-values.md）：
@@ -32,6 +40,13 @@
 --     明文且上限 <= 0 才顯示空條。
 --   * 點數型：「第 i 格亮不亮」**不在 Lua 比**。每一格是一顆 StatusBar，
 --     SetMinMaxValues(i-1, i)＋SetValue(目前值) —— 秘密值照樣畫得對。
+--     毀滅術（267）的靈魂裂片改讀原始單位（UnitPower(…, true)，一顆 ＝ per 單位）：
+--     第 i 格 SetMinMaxValues((i-1)·per, i·per)＋SetValue(原始值)，碎片的零頭也由引擎畫。
+--     明文時正在累積的那一格用暗一階的顏色、文字印一位小數（R.ShardSplit）。
+--   * 喚能師精華：下一格畫回充進度（UnitPartialPower，讀不到改用回充速度推算；明文才算，R.EssenceFrac），
+--     跟符文共用「有格子在回充才跑」的 0.1 秒 ticker。
+--   * 氣漩武器摺疊（maelstromFold）：10 層摺成 5 格，每格疊兩顆 StatusBar，
+--     底層 (i-1, i)、上層 (i+4, i+5) 都 SetValue(層數)；上層用溢出色（R.FoldRange）。
 --   * 條件規則、數值文字、充能格判斷只吃**明文**（canaccessvalue）；讀不到就不求值
 --     （照原本的顏色）、不印字。玩家自己的資源在目前的客戶端是明文，這是保底。
 --   * 格子一律錨在列本身（不串在前一格上）：SetValue(秘密值) 會讓那顆 StatusBar 的幾何
@@ -85,7 +100,10 @@ end
 -- power  Enum.PowerType（標準資源）
 -- aura   光環 spellID（層數當點數）
 -- cast   GetSpellCastCount 的 spellID
--- fill   pip 專用的特殊填充：rune（符文冷卻）
+-- fill   pip 專用的特殊填充：rune（符文冷卻）、essence（下一格畫精華回充進度）
+-- fractionalSpec 這個專精改讀原始單位、畫碎片零頭（毀滅術的靈魂裂片）
+-- foldable 可以摺疊成一半的格數（maelstromFold：氣漩武器 10 層 → 5 格兩層）
+-- appMax auraPct 專用：層數欄位的上限（無視苦痛的百分比 100）
 -- auras  光環 spellID 清單（auraBar／auraTimer：交給 AuraContainer 的 includeSpellIDs，Lua 不讀）
 -- passive 天賦閘：這個法術學了才列；heroTree：或是目前的英雄天賦樹是這一棵（C_ClassTalents）
 -- mana   法力列（數值文字走縮寫、預設排在職業資源下面）
@@ -186,12 +204,14 @@ local RESOURCES = {
     HolyPower       = { name = PowerName("HOLY_POWER", "Holy Power"), mode = "pip", power = PT.HolyPower },
     ComboPoints     = { name = PowerName("COMBO_POINTS", "Combo Points"), mode = "pip", power = PT.ComboPoints },
     Chi             = { name = PowerName("CHI", "Chi"),               mode = "pip", power = PT.Chi },
-    SoulShards      = { name = PowerName("SOUL_SHARDS", "Soul Shards"), mode = "pip", power = PT.SoulShards },
+    -- 靈魂裂片：只有毀滅術（267）有碎片零頭，另外兩系照整數
+    SoulShards      = { name = PowerName("SOUL_SHARDS", "Soul Shards"), mode = "pip", power = PT.SoulShards,
+                        fractionalSpec = 267 },
     ArcaneCharges   = { name = PowerName("ARCANE_CHARGES", "Arcane Charges"), mode = "pip", power = PT.ArcaneCharges },
-    Essence         = { name = PowerName("ESSENCE", "Essence"),       mode = "pip", power = PT.Essence },
+    Essence         = { name = PowerName("ESSENCE", "Essence"),       mode = "pip", power = PT.Essence, fill = "essence" },
     Runes           = { name = PowerName("RUNES", "Runes"),           mode = "pip", power = PT.Runes, fill = "rune" },
     -- 光環／技能次數型（資料來源都是暴雪開放的查詢）
-    MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10, passive = 187880 },
+    MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10, passive = 187880, foldable = true },
     TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,  passive = 260285 },
     SoulFragments   = { name = L["Soul Fragments"],   mode = "pip", cast = 228477, max = 6,  passive = 203981 },
     -- 2026-09-30 補齊
@@ -199,8 +219,9 @@ local RESOURCES = {
     DevourerFragments = { name = L["Soul Fragments"], mode = "bar", get = DevourerValue, bigNumber = false },
     Stagger         = { name = PowerName("STAGGER", SpellName(115069, "Stagger")), mode = "bar", get = StaggerValue,
                         passive = 115069, stagger = true, bigNumber = true },
-    IgnorePain      = { name = SpellName(190456, "Ignore Pain"), nameSpell = 190456, mode = "absorbBar", get = AbsorbValue,
-                        passive = 190456, cap = 0.3, bigNumber = true },
+    -- 無視苦痛：引擎寫增益 190456 的層數（＝盾量佔上限的百分比）；get／cap 是容器沒好時的 absorbBar 退路
+    IgnorePain      = { name = SpellName(190456, "Ignore Pain"), nameSpell = 190456, mode = "auraPct", auras = { 190456 },
+                        appMax = 100, get = AbsorbValue, passive = 190456, cap = 0.3, bigNumber = true },
     WhirlwindStacks = { name = SpellName(85739, "Whirlwind"), nameSpell = 85739, mode = "auraBar",
                         auras = { 85739, 190411 }, max = 4, passive = 12950 },
     SweepingStrikes = { name = SpellName(260708, "Sweeping Strikes"), nameSpell = 260708, mode = "auraBar",
@@ -214,7 +235,7 @@ local RESOURCES = {
     EbonMight       = { name = SpellName(395296, "Ebon Might"), nameSpell = 395296, mode = "auraTimer",
                         auras = { 395296 }, passive = 395152 },
     ArcaneSoul      = { name = SpellName(451038, "Arcane Soul"), nameSpell = 451038, mode = "auraTimer",
-                        auras = { 451038, 1223522 }, passive = 449619, heroTree = 39 },
+                        auras = { 451038, 1223522 }, passive = 449619, heroTree = 39, gcdText = true },
     -- 血量：每個專精都是候選、預設關（R.DefaultOn）；不在 RawList 裡，R.Candidates 附加在最後
     Health          = { name = PowerName("HEALTH", "Health"), mode = "bar", get = HealthValue, health = true },
 }
@@ -231,16 +252,25 @@ function R.Name(key)
     return def.name or key
 end
 
--- 醉仙緩勁中度／重度的標籤：暴雪自己的減益名（124274 中度、124273 重度）
+-- 醉仙緩勁中度／重度的標籤：暴雪自己的減益名（124274 中度、124273 重度）。
+-- 第 3／4 段暴雪沒有對應的減益，標籤寫門檻本身（≥ N%，N 讀 cfg 的門檻）。
+-- 「≥」走語系字串：西文介面的字型不一定有這個字，那幾個語系寫成文字
 local STAGGER_LABEL = { moderate = { 124274, "Moderate Stagger" }, heavy = { 124273, "Heavy Stagger" } }
-function R.StaggerLabel(band)
+local STAGGER_TIER_AT = { tier3 = { "staggerTier3At", 90 }, tier4 = { "staggerTier4At", 150 } }
+R.STAGGER_TIER_AT = STAGGER_TIER_AT
+function R.StaggerLabel(band, cfg)
+    local tier = STAGGER_TIER_AT[band]
+    if tier then
+        local v = tonumber(type(cfg) == "table" and cfg[tier[1]]) or tier[2]
+        return L["At least %d%%"]:format(math.floor(v + 0.5))
+    end
     local t = STAGGER_LABEL[band]
     if not t then return tostring(band) end
     return SpellName(t[1], t[2])
 end
 
--- 引擎寫值的列（auraBar 層數、auraTimer 剩餘時間）：Lua 這邊沒有值
-local ENGINE_MODES = { auraBar = true, auraTimer = true }
+-- 引擎寫值的列（auraBar 層數、auraTimer 剩餘時間、auraPct 百分比）：Lua 這邊沒有值
+local ENGINE_MODES = { auraBar = true, auraTimer = true, auraPct = true }
 function R.EngineDriven(key)
     local def = RESOURCES[key]
     return def ~= nil and ENGINE_MODES[def.mode] == true
@@ -252,10 +282,12 @@ function R.SupportsConditions(key)
     return def ~= nil and not ENGINE_MODES[def.mode] and not def.health
 end
 
--- 純函式：一列實際的畫法。容器就緒 ⇒ engine；沒好時 auraBar 退回明文點數、auraTimer 退回空條
+-- 純函式：一列實際的畫法。容器就緒 ⇒ engine；沒好時 auraBar 退回明文點數、auraTimer 退回空條、
+-- auraPct 退回吸收盾總量（absorbBar）
 function R.DrawMode(mode, engineReady)
     if mode == "auraBar" then return engineReady and "engine" or "pip" end
     if mode == "auraTimer" then return engineReady and "engine" or "timerIdle" end
+    if mode == "auraPct" then return engineReady and "engine" or "absorbBar" end
     return mode
 end
 
@@ -318,14 +350,53 @@ function R.DefaultOn(specID, key)
     local t = specID and DEFAULT_OFF[specID]
     return not (t and t[key])
 end
--- 玩家的開關（rows[key]：nil ＝ 照預設、false ＝ 關、true ＝ 開）套上預設後的結果
+-- 玩家的開關（rows[specID][key]：nil ＝ 照預設、false ＝ 關、true ＝ 開）套上預設後的結果。
+-- 分專精存：同一個 key（法力、血量、怒氣…）在每個專精各自開關
 function R.RowOn(cfg, specID, key)
     -- ⚠ 值可能是 false，不能用 `a and b or nil` 取（false 會被吃成 nil）
     local v
-    if type(cfg) == "table" and type(cfg.rows) == "table" then v = cfg.rows[key] end
+    if specID and type(cfg) == "table" and type(cfg.rows) == "table" then
+        local t = cfg.rows[specID]
+        if type(t) == "table" then v = t[key] end
+    end
     if v == nil then return R.DefaultOn(specID, key) end
     return v and true or false
 end
+
+-- 寫一個專精的開關：跟這個專精的預設一樣就清掉（＝照預設），子表清空了也拿掉
+function R.SetRow(cfg, specID, key, on)
+    if type(cfg) ~= "table" or not specID or type(key) ~= "string" then return end
+    if type(cfg.rows) ~= "table" then cfg.rows = {} end
+    on = on and true or false
+    local t = cfg.rows[specID]
+    if on == R.DefaultOn(specID, key) then
+        if type(t) == "table" then
+            t[key] = nil
+            if next(t) == nil then cfg.rows[specID] = nil end
+        end
+        return
+    end
+    if type(t) ~= "table" then
+        t = {}
+        cfg.rows[specID] = t
+    end
+    t[key] = on
+end
+
+-- 職業 → 專精（設定遷移與匯入要「這個 key 在哪幾個專精是候選」，玩家當下的職業不夠）
+local CLASS_SPECS = {
+    WARRIOR = { 71, 72, 73 },        PALADIN = { 65, 66, 70 },       HUNTER = { 253, 254, 255 },
+    ROGUE = { 259, 260, 261 },       PRIEST = { 256, 257, 258 },     DEATHKNIGHT = { 250, 251, 252 },
+    SHAMAN = { 262, 263, 264 },      MAGE = { 62, 63, 64 },          WARLOCK = { 265, 266, 267 },
+    MONK = { 268, 269, 270 },        DRUID = { 102, 103, 104, 105 }, DEMONHUNTER = { 577, 581, 1480 },
+    EVOKER = { 1467, 1468, 1473 },
+}
+R.CLASS_SPECS = CLASS_SPECS
+local SPEC_CLASS = {}
+for class, specs in pairs(CLASS_SPECS) do
+    for _, id in ipairs(specs) do SPEC_CLASS[id] = class end
+end
+R.SPEC_CLASS = SPEC_CLASS
 
 -- 德魯伊看「現在的型態」：熊＝怒氣、貓＝能量＋連擊點、其餘照專精（梟＝星能）
 local DRUID_BEAR, DRUID_CAT = 5, 1
@@ -347,6 +418,59 @@ function R.RawList(class, specID, form)
     end
     if specID and MANA_SPECS[specID] then out[#out + 1] = "Mana" end
     return out
+end
+
+-- 純函式：這個專精**任何情況下**可能出現的 key（集合；德魯伊把人形／熊／貓三種型態併起來，
+-- 每個專精都有血量）。不套天賦閘——遷移與匯入要的是「這個開關在這個專精有沒有意義」
+function R.SpecCandidates(specID)
+    local set = {}
+    local class = specID and SPEC_CLASS[specID]
+    if not class then return set end
+    local forms = (class == "DRUID") and { 0, DRUID_BEAR, DRUID_CAT } or { 0 }
+    for _, f in ipairs(forms) do
+        for _, key in ipairs(R.RawList(class, specID, f ~= 0 and f or nil)) do set[key] = true end
+    end
+    set.Health = true
+    return set
+end
+
+-- 純函式：所有專精（由小到大，結果穩定）
+function R.AllSpecIDs()
+    local out = {}
+    for id in pairs(SPEC_CLASS) do out[#out + 1] = id end
+    table.sort(out)
+    return out
+end
+
+-- 純函式（設定遷移 v3，Core/DB.lua 呼叫）：舊的平面開關 rows[key] = true／false（整份設定檔共用）
+-- 改成 rows[specID][key]。每個「這個 key 是候選」的專精：值跟那個專精的預設不同才寫；平面的鍵拿掉。
+-- 已經是新形狀的（數字鍵的子表）不碰，所以跑兩次結果一樣。回傳寫了幾筆
+function R.MigrateFlatRows(rows)
+    if type(rows) ~= "table" then return 0 end
+    local flat = {}
+    for k, v in pairs(rows) do
+        if type(k) == "string" and type(v) == "boolean" then flat[k] = v end
+    end
+    for k in pairs(flat) do rows[k] = nil end
+    local n = 0
+    for _, specID in ipairs(R.AllSpecIDs()) do
+        local cand = R.SpecCandidates(specID)
+        for key, v in pairs(flat) do
+            if cand[key] and v ~= R.DefaultOn(specID, key) then
+                local t = rows[specID]
+                if type(t) ~= "table" then
+                    t = {}
+                    rows[specID] = t
+                end
+                -- 新形狀已經有值（玩家在新版調過）就不蓋
+                if t[key] == nil then
+                    t[key] = v
+                    n = n + 1
+                end
+            end
+        end
+    end
+    return n
 end
 
 ------------------------------------------------------------
@@ -556,6 +680,114 @@ local function ActiveRows(cfg)
     return activeRows
 end
 
+------------------------------------------------------------
+-- 氣漩武器摺疊（maelstromFold，預設關）：10 層摺成 5 格，每格兩顆疊起來的 StatusBar
+--   底層 (i-1, i)、上層 (i-1+5, i+5)，同樣 SetValue(層數) ⇒ 6 層時第 1 格的上層亮、2～5 格只有底層
+-- 上層用溢出色（colors.MaelstromWeapon.overflowColor）。條件規則：整條的覆寫照舊，
+-- 逐格的顏色只套在底層（格子序號是 1～5）
+------------------------------------------------------------
+local FOLD_SEGMENTS = 5
+R.FOLD_SEGMENTS = FOLD_SEGMENTS
+
+function R.Folded(cfg, key)
+    local def = RESOURCES[key]
+    return def ~= nil and def.foldable == true and type(cfg) == "table" and cfg.maelstromFold == true
+end
+
+-- 純函式：摺疊時第 i 格第 layer 層（1 底、2 上）的 min／max
+function R.FoldRange(i, layer, n)
+    n = n or FOLD_SEGMENTS
+    if layer == 2 then return i - 1 + n, i + n end
+    return i - 1, i
+end
+
+------------------------------------------------------------
+-- 毀滅術的碎片零頭（專精 267）
+--   UnitPower(…, true)／UnitPowerMax(…, true) 是原始單位（一顆 ＝ 10）；per ＝ 原始上限 ／ 整顆上限，
+--   讀不到（秘密值、0）就 10。第 i 格 (i-1)·per ～ i·per，SetValue 原始值（秘密值也畫得對）
+------------------------------------------------------------
+local SHARD_UNITS = 10
+function R.ShardPer(rawMax, max)
+    local rm, m = Plain(rawMax), Plain(max)
+    if rm and m and m > 0 and rm > 0 then return rm / m end
+    return SHARD_UNITS
+end
+
+-- 純函式（明文才叫）：原始值 → 整顆數、正在累積的那一格（沒有 ＝ nil）、顆數（帶小數）
+function R.ShardSplit(raw, per, n)
+    if type(raw) ~= "number" or type(per) ~= "number" or per <= 0 then return nil end
+    local value = raw / per
+    local whole = math.floor(value + 1e-6)
+    local partial
+    if raw - whole * per > 1e-6 and whole < (n or math.huge) then partial = whole + 1 end
+    return whole, partial, value
+end
+
+------------------------------------------------------------
+-- 精華回充（喚能師）
+--   來源優先 UnitPartialPower（0～1000，明文且 > 0 才用）；拿不到 → 回充速度（每秒幾顆，
+--   GetPowerRegenForPowerType，明文才收、記住上次的）× 距離上次精華變動的秒數。兩者都沒有 ＝ 不畫
+------------------------------------------------------------
+function R.EssenceFrac(partial, rate, elapsed)
+    local f
+    if type(partial) == "number" and partial > 0 then
+        f = partial / 1000
+    elseif type(rate) == "number" and rate > 0 and type(elapsed) == "number" and elapsed >= 0 then
+        f = elapsed * rate
+    else
+        return nil
+    end
+    if f < 0 then f = 0 elseif f > 0.999 then f = 0.999 end
+    return f
+end
+
+------------------------------------------------------------
+-- 秘法靈魂的「剩幾個 GCD」：GCD 長度（明文才算）
+--   C_Spell.GetSpellCooldown(61304) 正在 GCD 時的 duration；不在 GCD（0）或讀不到 ⇒ 1.5 ／（1 ＋ 加速 ／ 100）；
+--   加速也讀不到 ⇒ 上次的、再沒有就 1.5。夾在 0.75～1.5，四捨五入到 0.05 秒（進容器簽章，別讓小數抖動換容器）
+------------------------------------------------------------
+local GCD_BASE, GCD_MIN = 1.5, 0.75
+function R.GcdLength(cdDuration, haste, last)
+    local g
+    if type(cdDuration) == "number" and cdDuration > 0 then
+        g = cdDuration
+    elseif type(haste) == "number" and haste > -100 then
+        g = GCD_BASE / (1 + haste / 100)
+    else
+        g = tonumber(last) or GCD_BASE
+    end
+    if g < GCD_MIN then g = GCD_MIN elseif g > GCD_BASE then g = GCD_BASE end
+    return math.floor(g / 0.05 + 0.5) * 0.05
+end
+
+local GCD_SPELL = 61304
+local gcdLast
+function R.ReadGcd()
+    local dur
+    local fn = C_Spell and C_Spell.GetSpellCooldown
+    if fn then
+        local ok, info = pcall(fn, GCD_SPELL)
+        if ok and type(info) == "table" then
+            local ok2, d = pcall(function() return info.duration end)
+            if ok2 then dur = Plain(d) end
+        end
+    end
+    local haste
+    if UnitSpellHaste then
+        local ok, h = pcall(UnitSpellHaste, "player")
+        if ok then haste = Plain(h) end
+    end
+    gcdLast = R.GcdLength(dur, haste, gcdLast)
+    return gcdLast
+end
+
+-- 秘法靈魂的文字：seconds（剩餘秒數，預設）／gcd（剩幾個 GCD）
+function R.ArcaneSoulText(cfg)
+    local v = type(cfg) == "table" and cfg.arcaneSoulText
+    if v == "gcd" then return v end
+    return "seconds"
+end
+
 -- 一列現在要幾格（bar 回 0）。上限讀不到（秘密值）時沿用上次的明文值，沒有就 5
 local lastMax = {}
 local function SegmentsFor(key)
@@ -567,6 +799,7 @@ local function SegmentsFor(key)
         return math.max(1, math.min(30, math.floor(tonumber(m) or 1)))
     end
     if def.mode ~= "pip" then return 0 end
+    if def.foldable and R.Folded(Cfg(), key) then return FOLD_SEGMENTS end
     if def.max then return def.max end
     local _, max = GetValue(key)
     local pm = Plain(max)
@@ -792,6 +1025,7 @@ local function MakeRow(parent)
     -- 數值掛在獨立的高層框上，父層是 row（點數型會把 bar 整個藏起來）
     -- 懶建的零件先放 false（有就是框、沒有就是 false；沒寫過的欄位別指望是 nil 以外的東西）
     row.ab, row.abDecor, row.absorbClip, row.absorbBar = false, false, false, false
+    row.overs, row.folded = false, false      -- 氣漩武器摺疊的上層（懶建）
     row.textFrame = CreateFrame("Frame", nil, row)
     row.textFrame:SetAllPoints(row)
     row.text = row.textFrame:CreateFontString(nil, "OVERLAY")
@@ -927,10 +1161,16 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
             decimals = TIMER_DECIMALS_BELOW,
         }
     end
+    if text and def.gcdText and R.ArcaneSoulText(cfg) == "gcd" then
+        -- 剩幾個 GCD：格式器只能在 initializeFrame 給 ⇒ GCD 長度（明文、0.05 秒一格）進簽章，變了換容器
+        text.gcd = R.ReadGcd()
+        text.last = L["Last"]
+    end
     local status = ns.AuraBar.Apply(row.ab, {
         kind = "duration", spellIDs = def.auras, max = 1, texture = tex, color = cc,
         alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, text = text,
     })
+    row.gcdUsed = text and text.gcd or nil
     row.engineStatus = status
     if status ~= "ready" then
         ns.AuraBar.HideContainer(row.ab)
@@ -945,6 +1185,78 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     return true
 end
 
+-- 百分比條（無視苦痛）：單格容器、層數欄位當 0～appMax 的條值，連續條（裝飾不分格）。
+-- 回傳 true ＝ 容器就緒；false ＝ 退回吸收盾總量（absorbBar）
+local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
+    if not ns.AuraBar then return false end
+    row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
+    local cc = ResolveColor(cfg, key, "color")
+    local count
+    if cfg.showText then
+        -- 層數走 SetApplicationCount（不給格式器：引擎拿格式器處理秘密層數會整顆容器壞掉），後面接自己的「%」
+        local scale = UIParent:GetEffectiveScale()
+        if not scale or scale <= 0 then scale = 1 end
+        count = {
+            font = ns.Media.Font(ns.Setting(nil, "font")),
+            size = (tonumber(cfg.textSize) or 10) * scale,
+            suffix = "%",
+        }
+    end
+    local status = ns.AuraBar.Apply(row.ab, {
+        kind = "applications", spellIDs = def.auras, max = tonumber(def.appMax) or 100, texture = tex, color = cc,
+        alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, count = count,
+    })
+    row.engineStatus = status
+    if status ~= "ready" then
+        ns.AuraBar.HideContainer(row.ab)
+        ns.AuraBar.HideRowDecor(row)
+        return false
+    end
+    -- 空條（暗底＋1px 黑邊、不分格）畫在列上：增益不在時按鈕藏著，看到的就是這個
+    ns.AuraBar.RowDecor(row, {
+        W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
+        dim = R.TimerDim(cc), px = ns.P.Scale(1),
+    }, (row:GetFrameLevel() or 1) + 8)
+    return true
+end
+
+-- 摺疊的上層（一格一顆，錨在列上、位置跟底層同一格；層級比底層高、自帶黑邊）
+local function LayoutFold(row, on, numSeg, W, H, cfg, tex, reversed)
+    if not on then
+        if row.overs then for _, o in ipairs(row.overs) do o:Hide() end end
+        row.folded = false
+        return
+    end
+    row.overs = row.overs or {}
+    local lv = row:GetFrameLevel() or 1
+    for i = 1, numSeg do
+        local o = row.overs[i]
+        if not o then
+            o = CreateFrame("StatusBar", nil, row)
+            o:SetStatusBarTexture(SOLID)
+            Edges(o)
+            row.overs[i] = o
+        end
+        local x, segW = R.SegCell(W, numSeg, cfg.segmentSpacing, i)
+        o:SetSize(segW, H)
+        o:ClearAllPoints()
+        if reversed then
+            o:SetPoint("TOPRIGHT", row, "TOPRIGHT", -x, 0)
+        else
+            o:SetPoint("TOPLEFT", row, "TOPLEFT", x, 0)
+        end
+        o:SetFrameLevel(lv + 2)
+        o:SetStatusBarTexture(tex)
+        o:SetMinMaxValues(R.FoldRange(i, 2, numSeg))
+        o:SetValue(0)
+        o:Show()
+    end
+    for i = numSeg + 1, #row.overs do row.overs[i]:Hide() end
+    -- 數值文字蓋在上層之上
+    row.textFrame:SetFrameLevel(lv + 3)
+    row.folded = true
+end
+
 local function LayoutRow(row, key, cfg, numSeg, W, H)
     local def = RESOURCES[key]
     row:SetSize(W, H)
@@ -952,6 +1264,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     row:SetAlpha(1)
     row.condAlpha, row.condApplied = nil, nil
     row.text:SetTextColor(1, 1, 1, 1)
+    row.gcdUsed = nil
 
     local reversed = ns.FillReversed(cfg)
     local tex = ns.Media.Texture(cfg.texture)
@@ -966,6 +1279,8 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
         mode = R.DrawMode(mode, LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex))
     elseif mode == "auraTimer" then
         mode = R.DrawMode(mode, LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex))
+    elseif mode == "auraPct" then
+        mode = R.DrawMode(mode, LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex))
     else
         if row.ab and ns.AuraBar then ns.AuraBar.HideContainer(row.ab) end
         if ns.AuraBar then ns.AuraBar.HideRowDecor(row) end
@@ -984,6 +1299,8 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     row.barBG:SetShown(isBar)
     row.bar:SetShown(isBar)
     if mode ~= "absorbBar" then HideAbsorb(row) end
+
+    LayoutFold(row, isPip and R.Folded(cfg, key) or false, numSeg, W, H, cfg, tex, reversed)
 
     if not isPip then
         for i = 1, MAX_SEGMENTS do row.segs[i]:Hide() end
@@ -1062,6 +1379,34 @@ local RUNE_RECHARGE_SHADE = 0.55     -- 在轉的格子：同色系暗一階（�
 local runeReady, runeRemain, runeProgress, runeQueued, runeOrder = {}, {}, {}, {}, {}
 local runeSpentAt = {}               -- [符文編號] = 看到它沒轉好的第一個時間點；轉好時清掉
 local runeRechargeColor = { r = 0, g = 0, b = 0 }
+local shadeColor = { r = 0, g = 0, b = 0 }  -- 碎片累積中／精華回充中的那一格（同一個係數）
+
+-- 精華回充的狀態：上一次的明文顆數、這一輪回充從什麼時候開始、上次讀到的明文回充速度
+local essence = { last = nil, since = nil, rate = nil }
+
+-- 回傳下一格的進度（0～1）或 nil（滿了、讀不到）。pc 是明文顆數
+local function EssenceProgress(pc, n)
+    local now = GetTime()
+    if pc >= n then
+        essence.last, essence.since = pc, nil
+        return nil
+    end
+    -- 多一顆 ＝ 上一輪回充完成、下一輪從現在起算；從滿的掉下來 ＝ 回充從現在開始。
+    -- 花掉（變少）但沒滿過：回充照原本的節奏繼續，不重算
+    if essence.since == nil or essence.last == nil or pc > essence.last then essence.since = now end
+    essence.last = pc
+    local partial
+    if UnitPartialPower then
+        local ok, v = pcall(UnitPartialPower, "player", PT.Essence)
+        if ok then partial = Plain(v) end
+    end
+    if GetPowerRegenForPowerType then
+        local ok, r = pcall(GetPowerRegenForPowerType, PT.Essence)
+        r = ok and Plain(r) or nil
+        if r and r > 0 then essence.rate = r end
+    end
+    return R.EssenceFrac(partial, essence.rate, now - essence.since)
+end
 
 -- 純函式：沒轉好的符文的填充進度（0～1）。countQueued 關：只算自己那段冷卻（排隊中＝0）；
 -- 開：從 spentAt（花掉那一刻）到 start＋duration 的整段等待時間，spentAt 晚於 start 時以 start 為準
@@ -1188,12 +1533,37 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
         ApplyRowOverrides(row, barOv)
         -- 中間的顆數只在選了「顆數」時印（見 R.RuneText；列的文字顯示與否在 LayoutRow 照同一個設定）
         if runeText == "count" then row.text:SetFormattedText("%d", readyCount) end
-        if anyRecharging then R.ArmRuneTicker() end
+        if anyRecharging then R.ArmTicker() end
         return
     end
 
     local cur = GetValue(key)
+    -- 每格的單位數：一般 1；毀滅術的碎片改讀原始單位（一顆 ＝ per），零頭也畫
+    local per, fractional = 1, false
+    if def.fractionalSpec and def.fractionalSpec == CurrentSpecID() then
+        fractional = true
+        cur = UnitPower("player", def.power, true) or 0
+        per = R.ShardPer(UnitPowerMax("player", def.power, true), UnitPowerMax("player", def.power))
+    end
     local pc = Plain(cur)
+    -- 整顆數（條件規則與「哪幾格吃條件色」看這個）、正在累積的那一格（暗一階）
+    local whole, partialIdx, shown = pc, nil, nil
+    if fractional and pc then whole, partialIdx, shown = R.ShardSplit(pc, per, numSeg) end
+    -- 精華：下一格畫回充進度（明文才算）；值 ＝ 目前顆數 ＋ 進度
+    local value = cur or 0
+    if def.fill == "essence" then
+        local frac = pc and EssenceProgress(pc, numSeg)
+        if frac then
+            value = pc + frac
+            partialIdx = pc + 1
+            R.ArmTicker()
+        end
+    end
+    local shade
+    if partialIdx then
+        shade = shadeColor
+        shade.r, shade.g, shade.b = cc.r * RUNE_RECHARGE_SHADE, cc.g * RUNE_RECHARGE_SHADE, cc.b * RUNE_RECHARGE_SHADE
+    end
     local charged = ChargedPoints(key)
     local chargedCC, chargedEmptyCC
     if charged then
@@ -1201,19 +1571,24 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
         chargedEmptyCC = ResolveColor(cfg, key, "chargedEmptyColor")
     end
     local barOv
-    if conds and pc then
-        RC.FillState(condState, pc, numSeg, CurrentSpecID())
+    if conds and whole then
+        -- 摺疊時格數只有一半，百分比／已滿要照真正的上限（10 層）算
+        RC.FillState(condState, whole, row.folded and numSeg * 2 or numSeg, CurrentSpecID())
         barOv = RC.FirstMatch(conds, condState, nil)
     end
     local dimC, dimA = DimColor(barOv)
+    local overs = row.folded and row.overs or nil
+    local overCC = overs and ResolveColor(cfg, key, "overflowColor") or nil
     for i = 1, numSeg do
         local seg = row.segs[i]
-        seg:SetMinMaxValues(i - 1, i)
-        seg:SetValue(cur or 0)                    -- 秘密值照樣：引擎決定這格亮多少
+        seg:SetMinMaxValues((i - 1) * per, i * per)
+        seg:SetValue(value)                       -- 秘密值照樣：引擎決定這格亮多少
         local isCharged = charged and charged[i]
         local c = isCharged and chargedCC or cc
-        -- 充能且已填滿的格子跳過條件：充能色是「這一格值兩點」的訊號，不能被蓋掉
-        if conds and pc and not isCharged and i <= pc then
+        if i == partialIdx then c = shade end
+        -- 充能且已填滿的格子跳過條件：充能色是「這一格值兩點」的訊號，不能被蓋掉。
+        -- 摺疊時格子序號 1～5、條件只套底層
+        if conds and whole and not isCharged and i <= whole then
             condState.pipRecharging = false
             local ov = RC.FirstMatch(conds, condState, i)
             local oc = ov and RC.ValidColor(ov.color)
@@ -1226,28 +1601,57 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
         else
             seg.bg:SetVertexColor(dimC.r, dimC.g, dimC.b, dimA)
         end
+        local o = overs and overs[i]
+        if o then
+            o:SetValue(value)
+            SetSegColor(o, overCC, alpha)
+        end
     end
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
         -- 光環／技能次數型沒累積時不畫（空著比一顆「0」乾淨）；讀不到明文也不印
         if pc == nil or ((def.aura or def.cast or def.auras) and pc <= 0) then
             row.text:SetText("")
+        elseif fractional then
+            row.text:SetFormattedText("%.1f", shown or 0)
         else
             row.text:SetFormattedText("%d", pc)
         end
     end
 end
 
--- 醉仙緩勁的段落（純函式）：pct ＝ 醉仙緩勁 ／ 最大生命 × 100（明文才算）
-function R.StaggerBand(pct, moderateAt, heavyAt)
+-- 醉仙緩勁的段落（純函式）：pct ＝ 醉仙緩勁 ／ 最大生命 × 100（明文才算）。
+-- tier3At／tier4At 是第 3／4 段的門檻，nil ＝ 那一段關著（預設關）；高的段先比
+function R.StaggerBand(pct, moderateAt, heavyAt, tier3At, tier4At)
     if type(pct) ~= "number" then return nil end
     heavyAt, moderateAt = tonumber(heavyAt) or 60, tonumber(moderateAt) or 30
+    tier3At, tier4At = tonumber(tier3At), tonumber(tier4At)
+    if tier4At and pct >= tier4At then return "tier4" end
+    if tier3At and pct >= tier3At then return "tier3" end
     if pct >= heavyAt then return "heavy" end
     if pct >= moderateAt then return "moderate" end
     return "light"
 end
-local STAGGER_FIELD = { light = "color", moderate = "moderateColor", heavy = "heavyColor" }
+local STAGGER_FIELD = { light = "color", moderate = "moderateColor", heavy = "heavyColor",
+                        tier3 = "tier3Color", tier4 = "tier4Color" }
 R.STAGGER_FIELD = STAGGER_FIELD
+
+-- 純函式：設定裡開著的第 3／4 段門檻（關著的回 nil）
+function R.StaggerTiers(cfg)
+    if type(cfg) ~= "table" then return nil, nil end
+    local t3 = cfg.staggerTier3Enabled == true and (tonumber(cfg.staggerTier3At) or STAGGER_TIER_AT.tier3[2]) or nil
+    local t4 = cfg.staggerTier4Enabled == true and (tonumber(cfg.staggerTier4At) or STAGGER_TIER_AT.tier4[2]) or nil
+    return t3, t4
+end
+
+-- 滿條上限（% 最大生命）：1～300（第 4 段預設 150%，上限只到 100 的話看不到那一段）
+local STAGGER_CEILING_MAX = 300
+R.STAGGER_CEILING_MAX = STAGGER_CEILING_MAX
+function R.StaggerCeiling(cfg)
+    local v = tonumber(type(cfg) == "table" and cfg.staggerCeiling) or 100
+    if v < 1 then v = 1 elseif v > STAGGER_CEILING_MAX then v = STAGGER_CEILING_MAX end
+    return v
+end
 
 -- 醉仙緩勁：上一次明文算出來的段落與滿條上限（副本戰鬥中兩個值會間歇變成秘密值，那幾下沿用）
 local staggerLast = { band = nil, max = nil }
@@ -1258,9 +1662,7 @@ local function StaggerResolve(cfg, cur, maxHealth)
     local pc, pmh = Plain(cur), Plain(maxHealth)
     local barMax
     if pmh and pmh > 0 then
-        local ceil = tonumber(cfg.staggerCeiling) or 100
-        if ceil < 1 then ceil = 1 end
-        barMax = pmh * ceil / 100
+        barMax = pmh * R.StaggerCeiling(cfg) / 100
         staggerLast.max = barMax
     elseif staggerLast.max then
         barMax = staggerLast.max
@@ -1268,7 +1670,8 @@ local function StaggerResolve(cfg, cur, maxHealth)
         barMax = maxHealth              -- 從來沒讀到過明文：原始值直接餵（上限 100%）
     end
     if pc and pmh and pmh > 0 then
-        staggerLast.band = R.StaggerBand(pc / pmh * 100, cfg.staggerModerateAt, cfg.staggerHeavyAt)
+        local t3, t4 = R.StaggerTiers(cfg)
+        staggerLast.band = R.StaggerBand(pc / pmh * 100, cfg.staggerModerateAt, cfg.staggerHeavyAt, t3, t4)
     end
     return barMax, STAGGER_FIELD[staggerLast.band or "light"]
 end
@@ -1666,37 +2069,39 @@ function R.Update(force)
     end
 end
 
--- 符文回充的進度與秒數沒有事件可等（RUNE_POWER_UPDATE 只在轉好／用掉時來）：
--- 有符文在轉時開一個 0.1 秒的 ticker 只重畫符文列，全部轉好（或列不見了）就停
-local runeTicker
-local runeRearmed = false        -- 這一趟有沒有人說「還有符文在轉」
+-- 符文回充的進度與秒數、精華的回充進度都沒有事件可等（RUNE_POWER_UPDATE 只在轉好／用掉時來，
+-- 精華的回充中間沒有能量事件）：有格子在回充時開一個 0.1 秒的 ticker 只重畫這兩種列，
+-- 全部回充好（或列不見了）就停
+local TICKED_FILL = { rune = true, essence = true }
+local rechargeTicker
+local rechargeRearmed = false    -- 這一趟有沒有人說「還有格子在回充」
 
-local function RuneTick()
-    runeRearmed = false
+local function RechargeTick()
+    rechargeRearmed = false
     local cfg = Cfg()
     local busy = false
     if cfg and cfg.enabled ~= false then
         for i = 1, shownCount do
             local row = rows[i]
             local def = row.key and RESOURCES[row.key]
-            if def and def.fill == "rune" and row.mode == "pip" and row:IsShown() then
+            if def and TICKED_FILL[def.fill] and row.mode == "pip" and row:IsShown() then
                 busy = true
                 local ok, err = xpcall(UpdateRow, ns.ReportError, row, cfg)
                 if not ok then R.lastError = err end
             end
         end
     end
-    -- UpdatePipRow 在還有符文在轉時會再呼叫 ArmRuneTicker；這一趟沒人呼叫 ⇒ 全部轉好了
-    if not busy or not runeRearmed then
-        if runeTicker then runeTicker:Cancel() end
-        runeTicker = nil
+    -- UpdatePipRow 在還有格子回充時會再呼叫 ArmTicker；這一趟沒人呼叫 ⇒ 全部好了
+    if not busy or not rechargeRearmed then
+        if rechargeTicker then rechargeTicker:Cancel() end
+        rechargeTicker = nil
     end
 end
 
-function R.ArmRuneTicker()
-    runeRearmed = true
-    if runeTicker or not (C_Timer and C_Timer.NewTicker) then return end
-    runeTicker = C_Timer.NewTicker(0.1, RuneTick)
+function R.ArmTicker()
+    rechargeRearmed = true
+    if rechargeTicker or not (C_Timer and C_Timer.NewTicker) then return end
+    rechargeTicker = C_Timer.NewTicker(0.1, RechargeTick)
 end
 
 -- 專精／型態／天賦／上限變動：清單與格數都可能變
@@ -1762,6 +2167,17 @@ local function OnEvent(_, event)
         if healthShown or CLASS_HEALTH[event] then Mark(false) end
         return
     end
+    if event == "UNIT_SPELL_HASTE" then
+        -- 秘法靈魂印「剩幾個 GCD」時：GCD 長度（0.05 秒一格）變了才重排（戰鬥中照樣記旗標、脫戰補）
+        for i = 1, shownCount do
+            local used = rows[i].gcdUsed
+            if used then
+                if R.ReadGcd() ~= used then Mark(true) end
+                return
+            end
+        end
+        return
+    end
     if event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
         Mark(false)
         return
@@ -1783,6 +2199,8 @@ local function RegisterEvents()
     end
     if CLASS == "DEATHKNIGHT" then evFrame:RegisterEvent("RUNE_POWER_UPDATE") end
     if CLASS == "ROGUE" then evFrame:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", "player") end
+    -- 秘法靈魂的「剩幾個 GCD」：格式器的分段跟著 GCD 長度
+    if CLASS == "MAGE" then evFrame:RegisterUnitEvent("UNIT_SPELL_HASTE", "player") end
     -- 光環堆疊型（漩渦之武／矛尖）與野德的滿溢之力只能吃 UNIT_AURA：有這種資源的職業才註冊
     -- （自訂格子的層數列另外由 Modules/Pips.lua 自己註冊）
     if AURA_DRIVEN_CLASSES[CLASS] then evFrame:RegisterUnitEvent("UNIT_AURA", "player") end

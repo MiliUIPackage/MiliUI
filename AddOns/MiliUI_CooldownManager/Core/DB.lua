@@ -27,7 +27,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 2
+ns.DB_VERSION = 3
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -154,16 +154,21 @@ local RESOURCE_COLORS = {
     ArcaneCharges   = { color = { r = 0.25, g = 0.35, b = 0.98 } },
     Essence         = { color = { r = 0.28, g = 0.73, b = 0.92 } },
     Runes           = { color = { r = 0.77, g = 0.12, b = 0.23 } },
-    MaelstromWeapon = { color = { r = 0.2,  g = 0.65, b = 1    } },
+    -- 氣漩武器：overflowColor 是摺成 5 格（maelstromFold）時上層（第 6～10 層）的顏色，跟主色的藍分得開
+    MaelstromWeapon = { color         = { r = 0.2,  g = 0.65, b = 1    },
+                        overflowColor = { r = 1,    g = 0.82, b = 0.2  } },
     TipOfTheSpear   = { color = { r = 1,    g = 0.6,  b = 0.2  } },
     SoulFragments   = { color = { r = 0.64, g = 0.19, b = 0.79 } },
     -- 2026-09-30 補齊的職業資源（冰刺冰藍、噬靈魂碎片同復仇的紫、戰士三種暖色系、鐵鬃棕）
     Icicles         = { color = { r = 0.44, g = 0.80, b = 1    } },
     DevourerFragments = { color = { r = 0.64, g = 0.19, b = 0.79 } },
-    -- 醉仙緩勁三段：輕度（主色）／中度／重度，門檻在 staggerModerateAt／staggerHeavyAt
+    -- 醉仙緩勁：輕度（主色）／中度／重度，門檻在 staggerModerateAt／staggerHeavyAt；
+    -- 另有第 3／4 段（預設關，staggerTier3At／staggerTier4At）
     Stagger         = { color         = { r = 0.52, g = 0.90, b = 0.52 },
                         moderateColor = { r = 1,    g = 0.85, b = 0.36 },
-                        heavyColor    = { r = 1,    g = 0.42, b = 0.42 } },
+                        heavyColor    = { r = 1,    g = 0.42, b = 0.42 },
+                        tier3Color    = { r = 1,    g = 0.2,  b = 0.8  },
+                        tier4Color    = { r = 0.75, g = 0.2,  b = 1    } },
     WhirlwindStacks = { color = { r = 0.90, g = 0.45, b = 0.20 } },
     SweepingStrikes = { color = { r = 0.85, g = 0.65, b = 0.35 } },
     IgnorePain      = { color = { r = 0.95, g = 0.80, b = 0.35 } },
@@ -214,10 +219,20 @@ ResourcesDefaults = function()
         -- 列的順序：資源 key 的陣列，整份設定檔共用（不分專精）；不在裡面的照專精清單排在後面
         -- （Modules/Resources.lua 的 R.ApplyOrder）。空 ＝ 全部照預設
         order         = {},
-        -- 醉仙緩勁：中度／重度的門檻（% 最大生命）、滿條對應幾 % 最大生命
+        -- 醉仙緩勁：中度／重度的門檻（% 最大生命）、滿條對應幾 % 最大生命（1～300）
         staggerModerateAt = 30,
         staggerHeavyAt    = 60,
         staggerCeiling    = 100,
+        -- 醉仙緩勁第 3／4 段（重度之上再分兩段換色）：預設關
+        staggerTier3Enabled = false,
+        staggerTier3At      = 90,
+        staggerTier4Enabled = false,
+        staggerTier4At      = 150,
+        -- 氣漩武器 10 層摺成 5 格兩層（上層用 colors.MaelstromWeapon.overflowColor）。預設關：
+        -- 使用者 2026-10-01 調好的 ≥9／≥10 兩段換色是照 10 格寫的
+        maelstromFold = false,
+        -- 秘法靈魂的數字（showText 開著才有）：seconds 剩餘秒數／gcd 剩幾個 GCD
+        arcaneSoulText = "seconds",
         -- [資源key] = { rule, … }：開放式鍵值表。預設只給新設定檔（Atomic：已有 conditions 的設定檔不合併，
         -- 規則刪光也不會被補回來）。聖能／氣旋武器的兩段換色是使用者 2026-10-01 調好的
         conditions    = Atomic({
@@ -230,7 +245,8 @@ ResourcesDefaults = function()
                 AtLeast(9, 1, 0.596, 0.984),
             },
         }),
-        -- [資源key] = false ＝ 關掉那一列；開放式、預設空
+        -- 這個專精要顯示哪些：[specID] = { [資源key] = true／false }（nil ＝ 照那個專精的預設，
+        -- 見 Modules/Resources.lua 的 R.RowOn／R.SetRow）；開放式、預設空。v3 以前是平面的 [資源key]
         rows          = {},
         -- 自訂格子：[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, showWhen, enabled }, … }
         -- 開放式、預設空。畫在自己的面板（profile.pips、Modules/Pips.lua），樣式沿用這張表
@@ -427,6 +443,18 @@ local MIGRATIONS = {
         local cb = profile.castbar
         if type(cb) ~= "table" then return end
         if cb.texture == nil or cb.texture == "solid" then cb.texture = "blizzard" end
+    end,
+    -- v3（2026-10-02）：資源條「這個專精要顯示哪些」改成分專精存。舊的平面 rows[key] = true／false
+    -- 攤到每個「這個 key 是候選」的專精（值跟那個專精的預設不同才寫），平面的鍵拿掉。
+    -- 專精 → 候選的資料在 Modules/Resources.lua（R.MigrateFlatRows）：遷移在登入時（DB.Init）／匯入時跑，
+    -- 那時 TOC 裡的檔案都載完了。萬一沒有 ns.Resources 就什麼都不動（平面的鍵留著；新版讀 rows[specID]
+    -- 時會略過字串鍵，只是那幾個開關回到預設）
+    [3] = function(profile)
+        local res = profile.resources
+        if type(res) ~= "table" or type(res.rows) ~= "table" then return end
+        local R = ns.Resources
+        if not (R and R.MigrateFlatRows) then return end
+        R.MigrateFlatRows(res.rows)
     end,
 }
 DB.MIGRATIONS = MIGRATIONS
