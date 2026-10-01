@@ -296,6 +296,7 @@ L["That is a spell link. Use the \"Spell\" or \"Aura\" button for spells."] = "Ã
 L["Find it in the spell's link or on a database site."] = "Lo trovi nel link dell'incantesimo o su un sito di database."
 L["Or Shift-click it in your spellbook or talents to fill in the ID."] = "Oppure Maiusc-clic sulla sua icona nel grimorio o nei talenti per inserire l'ID."
 L["Open talents & spellbook"] = "Apri talenti e grimorio"
+L["Open bags"] = "Apri borse"
 L["That is an item link. Enter a spell ID here."] = "Ãˆ un link di oggetto. Qui serve un ID incantesimo."
 L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."] = "Si illumina per un attimo quando finisce un tempo di recupero. Il recupero globale non conta."
 L["Item"] = "Oggetto"
