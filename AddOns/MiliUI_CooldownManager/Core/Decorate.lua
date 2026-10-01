@@ -22,6 +22,11 @@
 --
 -- 自訂法術／物品框（Modules/Custom.lua）也走這支 Apply：它們長得跟暴雪 item 一樣
 -- （.Icon／.Cooldown／.ChargeCount.Current），邊框、縮放、轉圈色、文字同一套。
+--
+-- 圖示外觀＝Masque（Core/Masque.lua，依登入時的 Mode 分支）：格子交給 Masque 群組之後，
+-- 邊框、縮放、轉圈材質由它畫；我們的邊框照樣排好但藏著，只有無損刷新期間亮出來
+-- （RecolorBorder／RestoreBorder）。交不出去（戰鬥中保護鏈上、幾何讀不到、群組在 Masque 裡被停用）
+-- 的時候照米利樣式畫，交出去了再重套一次。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -93,12 +98,14 @@ function D.Resolve(barKey, fresh)
         chargeText   = S(barKey, "chargeText") or {},
         stackText    = S(barKey, "stackText") or {},
         bar          = S(barKey, "bar"),
+        masque       = ns.Masque and ns.Masque.Mode(barKey) == "masque" or false,
     }
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.drawEdge), tostring(r.tooltips),
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
         type(r.bar) == "table" and TSig(r.bar) or "-",
+        tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
     }, "|")
     if not fresh then resolved[barKey] = r end
     return r
@@ -159,22 +166,38 @@ local function ColorBorder(b, r, g, bl, a)
     if b.edge then b.edge:SetBackdropBorderColor(r, g, bl, a) end
 end
 
+local LayoutBorder
+
+-- Masque 在畫外框時，我們的邊框平常藏著（Apply 只記下排法：rec.msqEdge），
+-- 無損刷新期間才照那個排法亮出來；粗細 0 的話至少 1，不然換色等於看不到。
+-- 長條的條身那圈（border2）不歸 Masque，照常換色
+local function ShowHiddenBorder(rec, r, g, bl, a)
+    local e = rec.msqEdge
+    if not e then return end
+    LayoutBorder(rec.border, e.region, math.max(1, e.size or 0), e.token, r, g, bl, a)
+end
+
 function D.RecolorBorder(rec, c)
     if not (rec and type(c) == "table") then return end
     local r, g, bl, a = c.r or 1, c.g or 1, c.b or 1, c.a or 1
-    ColorBorder(rec.border, r, g, bl, a)
+    if rec.msqSkinned then
+        ShowHiddenBorder(rec, r, g, bl, a)
+    else
+        ColorBorder(rec.border, r, g, bl, a)
+    end
     ColorBorder(rec.border2, r, g, bl, a)
 end
 
--- 換回 Apply 當時的顏色
+-- 換回 Apply 當時的顏色（Masque 在畫時：藏回去）
 function D.RestoreBorder(rec)
+    if rec and rec.msqSkinned then LayoutBorder(rec.border, nil) end
     local c = rec and rec.borderRGBA
     if not c then return end
-    ColorBorder(rec.border, c[1], c[2], c[3], c[4])
+    if not rec.msqSkinned then ColorBorder(rec.border, c[1], c[2], c[3], c[4]) end
     ColorBorder(rec.border2, c[1], c[2], c[3], c[4])
 end
 
-local function LayoutBorder(b, region, size, token, r, g, bl, a)
+function LayoutBorder(b, region, size, token, r, g, bl, a)
     if not b then return end
     if not region or not size or size <= 0 then
         for i = 1, 4 do b[i]:Hide() end
@@ -243,7 +266,7 @@ local function DimAtlasRegions(frame, atlas)
     end
 end
 
--- 只做一次（rec.stripped）。查證（2026-09-30，12.1.0.69933 的 Blizzard_CooldownViewer）：
+-- 只做一次（rec.stripped；轉圈材質另外記，見 SquareSwipe）。查證（2026-09-30，12.1.0.69933 的 Blizzard_CooldownViewer）：
 -- 圓角遮罩（MaskTexture atlas UI-HUD-CoolDownManager-Mask）、外框圖、轉圈材質
 -- （SwipeTexture UI-HUD-CoolDownManager-Icon-Swipe）全部只在 CooldownViewer.xml 的模板裡宣告；
 -- CooldownViewer.lua／CooldownViewerItemData.lua 沒有任何 AddMaskTexture／SetSwipeTexture／SetAtlas，
@@ -261,10 +284,16 @@ local function StripBlizzard(item, rec, isBar)
     else
         Unmask(item.Icon)
         DimAtlasRegions(item, ICON_OVERLAY_ATLAS)
-        local cd = item.Cooldown
-        -- 圓角轉圈 → 方角（顏色參數不可省；實際色由 SetSwipeColor 決定）
-        if cd and cd.SetSwipeTexture then pcall(cd.SetSwipeTexture, cd, WHITE, 1, 1, 1, 1) end
     end
+end
+
+-- 圓角轉圈 → 方角（顏色參數不可省；實際色由 SetSwipeColor 決定）。
+-- 不併進 StripBlizzard 的「只做一次」：Masque 套皮會換成它的轉圈材質、群組停用時又換成空材質，
+-- 輪到我們畫的時候要再換回來 ⇒ holder.swipeSquare 記著現在是不是我們的
+local function SquareSwipe(cd, holder)
+    if holder.swipeSquare or not (cd and cd.SetSwipeTexture) then return end
+    holder.swipeSquare = true
+    pcall(cd.SetSwipeTexture, cd, WHITE, 1, 1, 1, 1)
 end
 
 ------------------------------------------------------------
@@ -570,12 +599,24 @@ D.Signature = Signature
 -- —— 條的邊框設定、逐法術的邊框色覆寫都照套，不然占位看起來像沒有框的暗圖
 --   ph = { frame = 占位框（自己的 Frame）, tex = 圖示貼圖, border = MakeBorder 的表（這裡補） }
 ------------------------------------------------------------
-function D.ApplyPlaceholder(ph, barKey, id)
+-- w, h：格子尺寸（Masque 模式要它判斷要不要重套皮）。Masque 模式下佔位也交給同一個群組
+-- （是我們自己的框），外框跟真實格同一張皮
+function D.ApplyPlaceholder(ph, barKey, id, w, h)
     if not (ph and ph.frame and barKey) then return end
     local style = D.Resolve(barKey)
     local border = style.border or {}
     local br, bg, bb, ba = C4(ns.SpellSetting(barKey, id, "borderColor") or border.color, 0, 0, 0, 1)
     ph.border = ph.border or MakeBorder(ph.frame)
+    local skinned = false
+    if style.masque and ph.tex then
+        skinned = ns.Masque.Sync(ph, ph.frame, { Icon = ph.tex }, ns.Masque.TypeFor(barKey), w, h)
+    elseif ph.msqButton then
+        ns.Masque.Release(ph)
+    end
+    if skinned then
+        LayoutBorder(ph.border, nil)
+        return
+    end
     LayoutBorder(ph.border, ph.frame, tonumber(border.size) or 0, border.texture, br, bg, bb, ba)
     if ph.tex then
         local z = style.zoom or 0
@@ -678,34 +719,75 @@ function D.Apply(item, rec, barKey, w, h)
     local size = tonumber(border.size) or 0
     rec.borderRGBA = { br, bg, bb, ba }
 
+    -- Masque 補做完（脫戰）：這一格重套一次，把暫代的邊框收掉（自訂項目的條記在 placedBar）
+    local function OnLate()
+        rec.decorated = nil
+        local key = rec.claimKey or rec.placedBar
+        if key and ns.Bars and ns.Bars.Request then ns.Bars.Request(key, "layout") end
+    end
+
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
         rec.barGeometry = { h = h, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0 }
         D.ApplyBarGeometry(item, rec, rec.barGeometry)
         ApplyBarLook(item, rec, style, bar)
-        -- 邊框：圖示一圈、條身一圈
+        -- 長條交給 Masque 的是 item.Icon 那一層（整個 item 交出去的話皮會被拉成條的寬度）；
+        -- 尺寸＝ApplyBarGeometry 剛設的 h×h
+        local skinned = false
+        if style.masque and item.Icon and item.Icon.Icon then
+            skinned = ns.Masque.Sync(rec, item.Icon, { Icon = item.Icon.Icon },
+                ns.Masque.TypeFor(barKey, rec.barKey), h, h, OnLate)
+        elseif rec.msqButton then
+            ns.Masque.Release(rec)
+        end
+        rec.msqSkinned = skinned
+        -- 邊框：圖示一圈、條身一圈（Masque 在畫時圖示那圈藏著、排法記給無損刷新；條身那圈照常）
         rec.border = rec.border or MakeBorder(ov)
         rec.border2 = rec.border2 or MakeBorder(ov)
         local showIcon = rec.barGeometry.side ~= "NONE"
-        LayoutBorder(rec.border, showIcon and item.Icon or nil, size, border.texture, br, bg, bb, ba)
-        LayoutBorder(rec.border2, item.Bar, size, border.texture, br, bg, bb, ba)
-        local iconTex = item.Icon and item.Icon.Icon
-        if iconTex and iconTex.SetTexCoord then
-            local z = style.zoom
-            iconTex:SetTexCoord(z, 1 - z, z, 1 - z)
+        if skinned then
+            rec.msqEdge = { region = showIcon and item.Icon or nil, size = size, token = border.texture }
+            LayoutBorder(rec.border, nil)
+            LayoutBorder(rec.border2, item.Bar, size, border.texture, br, bg, bb, ba)
+        else
+            rec.msqEdge = nil
+            LayoutBorder(rec.border, showIcon and item.Icon or nil, size, border.texture, br, bg, bb, ba)
+            LayoutBorder(rec.border2, item.Bar, size, border.texture, br, bg, bb, ba)
+            local iconTex = item.Icon and item.Icon.Icon
+            if iconTex and iconTex.SetTexCoord then
+                local z = style.zoom
+                iconTex:SetTexCoord(z, 1 - z, z, 1 - z)
+            end
         end
         ns.Text.ApplyBar(item, style, spell, bar)
     else
         rec.barGeometry = nil
-        rec.border = rec.border or MakeBorder(ov)
-        LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
-        if rec.border2 then LayoutBorder(rec.border2, nil) end
-        local icon = item.Icon
-        if icon and icon.SetTexCoord then
-            local z = style.zoom
-            icon:SetTexCoord(z, 1 - z, z, 1 - z)
+        local icon, cd = item.Icon, item.Cooldown
+        local skinned = false
+        if style.masque and icon then
+            -- 自訂法術的回充轉圈（只畫邊緣）也交出去，尺寸才跟主轉圈一致；暴雪 item 沒有這一層
+            skinned = ns.Masque.Sync(rec, item, { Icon = icon, Cooldown = cd, ChargeCooldown = rec.custom and item.ChargeCooldown or nil },
+                ns.Masque.TypeFor(barKey, rec.custom and "custom" or rec.barKey), w, h, OnLate)
+        elseif rec.msqButton then
+            ns.Masque.Release(rec)
         end
-        local cd = item.Cooldown
+        rec.msqSkinned = skinned
+        rec.border = rec.border or MakeBorder(ov)
+        if rec.border2 then LayoutBorder(rec.border2, nil) end
+        if skinned then
+            rec.msqEdge = { region = item, size = size, token = border.texture }
+            rec.swipeSquare = nil            -- 轉圈材質現在是 Masque 的
+            LayoutBorder(rec.border, nil)
+        else
+            rec.msqEdge = nil
+            LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
+            if icon and icon.SetTexCoord then
+                local z = style.zoom
+                icon:SetTexCoord(z, 1 - z, z, 1 - z)
+            end
+            SquareSwipe(cd, rec)
+        end
+        -- 轉圈色一律是我們的（Masque 套皮時會寫它的色，所以在 Sync 之後寫）
         if cd then
             cd:SetSwipeColor(sr, sg, sb, sa)
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
@@ -753,25 +835,47 @@ function D.ApplyPreview(cell, barKey, id, w, h)
     local br, bg, bb, ba = C4(spell.borderColor or border.color, 0, 0, 0, 1)
     local size = tonumber(border.size) or 0
     local z = style.zoom
+    -- 預覽照**登入時的模式**（畫面上真實條現在的樣子）：設定改成 Masque、還沒重載之前預覽不變。
+    -- 預覽格是我們自己的框，交給同一個 Masque 群組沒有契約問題
+    local masque = style.masque and ns.Masque
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
         local g = { h = h, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0 }
         D.ApplyBarGeometry(cell, nil, g)
         ApplyBarLook(cell, nil, style, bar)
+        local skinned = false
+        if masque and cell.Icon and cell.Icon.Icon then
+            skinned = masque.Sync(cell, cell.Icon, { Icon = cell.Icon.Icon }, masque.TypeFor(barKey), h, h)
+        end
         cell.border = cell.border or MakeBorder(ov)
         cell.border2 = cell.border2 or MakeBorder(ov)
-        LayoutBorder(cell.border, g.side ~= "NONE" and cell.Icon or nil, size, border.texture, br, bg, bb, ba)
-        LayoutBorder(cell.border2, cell.Bar, size, border.texture, br, bg, bb, ba)
-        local iconTex = cell.Icon and cell.Icon.Icon
-        if iconTex then iconTex:SetTexCoord(z, 1 - z, z, 1 - z) end
+        if skinned then
+            LayoutBorder(cell.border, nil)
+            LayoutBorder(cell.border2, cell.Bar, size, border.texture, br, bg, bb, ba)
+        else
+            LayoutBorder(cell.border, g.side ~= "NONE" and cell.Icon or nil, size, border.texture, br, bg, bb, ba)
+            LayoutBorder(cell.border2, cell.Bar, size, border.texture, br, bg, bb, ba)
+            local iconTex = cell.Icon and cell.Icon.Icon
+            if iconTex then iconTex:SetTexCoord(z, 1 - z, z, 1 - z) end
+        end
         ns.Text.ApplyBar(cell, style, spell, bar)
     else
-        cell.border = cell.border or MakeBorder(ov)
-        LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
         local icon = cell.Icon
+        local skinned = false
+        if masque and icon then
+            skinned = masque.Sync(cell, cell, { Icon = icon, Cooldown = cell.Cooldown }, masque.TypeFor(barKey), w, h)
+        end
+        cell.border = cell.border or MakeBorder(ov)
+        if skinned then
+            cell.swipeSquare = nil
+            LayoutBorder(cell.border, nil)
+        else
+            LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
+            if icon then icon:SetTexCoord(z, 1 - z, z, 1 - z) end
+            SquareSwipe(cell.Cooldown, cell)
+        end
         if icon then
-            icon:SetTexCoord(z, 1 - z, z, 1 - z)
             -- 冷卻中的格才去飽和（增益沒有冷卻，不去飽和）
             icon:SetDesaturated((cell.onCD and not cell.aura and spell.desaturate) and true or false)
         end

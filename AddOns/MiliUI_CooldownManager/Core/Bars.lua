@@ -561,7 +561,7 @@ local function Relayout(key, level, index, gen)
             f.tex:SetTexture((info and info.icon) or QUESTION)
             f.tex:SetDesaturated(true)
             f.tex:SetAlpha(0.35)                      -- 只有圖示暗，邊框照真實格的顏色
-            ns.Decorate.ApplyPlaceholder(f.ph, key, e.id)
+            ns.Decorate.ApplyPlaceholder(f.ph, key, e.id, r.w, r.h)
             f:Show()
         end
         -- 可點擊：這一格上面蓋 secure 鈕（簽章去重、走 ns.Write；沒有動作的格收起來）

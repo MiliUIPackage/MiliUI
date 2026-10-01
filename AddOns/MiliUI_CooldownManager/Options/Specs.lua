@@ -20,6 +20,9 @@
 --   refreshPage  寫完要重建表單（有列會出現／消失）
 --   level    真實條的重排等級（預設 layout；錨定是 structure）
 --   resetPaths  右鍵「重設為預設」要清哪些 path（預設就是 path）
+--   disabled function(info) → 真 ＝ 這一列停用：蓋一層暗色遮罩（擋點擊與右鍵重設，值不動）。
+--            表單引擎（共用層）沒有停用狀態，遮罩是 BuildForm 自己畫的；每次套用後重判
+--   reloadCheck  寫完（含右鍵重設）檢查圖示外觀要不要重載（Specs.CheckSkinReload）
 --
 -- ⚠ 條頁的主題欄位**讀的是繼承後的值**：沒跟隨、但這一格自己沒存的，看到的是主題的值。
 --   顏色若直接回主題那張表，Controls 的色票會就地改掉主題（它拿到表就直接寫 r/g/b）。
@@ -293,7 +296,76 @@ local function OverrideRow(group)
 end
 
 local function FollowToggle(group)
-    return BS("toggle", "follow." .. group, L["Follow global theme"], { refreshPage = true, level = "layout" })
+    -- 圖示那一節的跟隨：開關一切換，這條實際要的圖示外觀（米利／Masque）可能就變了
+    return BS("toggle", "follow." .. group, L["Follow global theme"],
+        { refreshPage = true, level = "layout", reloadCheck = group == "icon" or nil })
+end
+
+------------------------------------------------------------
+-- 圖示外觀（米利／Masque）
+--
+-- 值是 icon.skin，跟其他圖示設定一樣走主題 → 條的繼承。切換**要重載才生效**（Core/Masque.lua：
+-- 每條的模式登入時就定了）⇒ 值寫進去之後，只要有哪一條「設定要的」跟「現在畫的」不同就問要不要重載；
+-- 取消就留著設定、下次重載生效，同一個組合不再追問。
+-- 選 Masque 時，交給 Masque 的那幾項（邊框材質／粗細／顏色、圖示縮放）停用。
+-- 判斷看**設定值**（Desired）而不是現在畫面上的樣子：玩家選了 Masque，那幾格就已經不歸這裡管。
+------------------------------------------------------------
+local SKIN_ITEMS = {
+    { text = L["MiliUI style"], value = "miliui" },
+    { text = "Masque",          value = "masque" },
+}
+
+local function SkinKey(info) return info.mode == "theme" and "theme" or info.key end
+
+local function MasqueOwns(info)
+    return ns.Masque and ns.Masque.Desired(SkinKey(info)) == "masque" or false
+end
+
+local reloadPopup, askedSig
+function Specs.CheckSkinReload()
+    local Mq = ns.Masque
+    if not (Mq and Mq.NeedsReload()) then return end
+    local sig = Mq.ModesSig()
+    if sig == askedSig then return end
+    askedSig = sig
+    if not reloadPopup then
+        reloadPopup = W.CreateConfirmPopup(ns.Options.panel, 320,
+            L["The icon style change takes effect after reloading the UI. Reload now?"], function() ReloadUI() end)
+    end
+    reloadPopup:Show()
+end
+
+-- 「開啟 Masque 設定」：只在這條現在真的交給 Masque 的時候能按（群組登入時才建，
+-- 還沒重載的話 Masque 裡找不到我們）
+local function MasqueOptionsRow()
+    return { type = "custom", h = 30, section = "icon", noReset = true, build = function(parent, x, y, width, ctx)
+        local btn = W.CreateButton(parent, L["Open Masque settings"], "normal", 140, 22)
+        W.FitButton(btn, 140, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        btn:SetScript("OnClick", function() ns.Masque.OpenOptions() end)
+        local function Refresh()
+            btn:SetEnabled(ns.Masque.Mode(SkinKey(ctx.info)) == "masque")
+        end
+        return 30, Refresh
+    end }
+end
+
+local function SkinRows()
+    local available = ns.Masque and ns.Masque.Available()
+    local rows = {
+        TS("icon", "dropdown", "icon.skin", L["Icon style"], {
+            items = SKIN_ITEMS, reloadCheck = true,
+            get = function(info) return ReadThemed(info, "icon.skin") or "miliui" end,
+            disabled = function() return not (ns.Masque and ns.Masque.Available()) end,
+        }),
+    }
+    if available then
+        rows[#rows + 1] = Note(L["Masque draws the border, icon crop and swipe texture with the skin picked in its own settings; text, colors and glows stay here. Switching needs a UI reload."], "icon")
+        rows[#rows + 1] = MasqueOptionsRow()
+    else
+        rows[#rows + 1] = Note(L["Install Masque to pick its skins here."], "icon")
+    end
+    return unpack(rows)
 end
 
 ------------------------------------------------------------
@@ -314,10 +386,11 @@ function Specs.Themed(mode, key)
     add({ type = "header", label = L["Icons"] })
     if bar then add(OverrideRow("icon"), FollowToggle("icon"),
         Note(L["While checked, this section uses the Theme page. Uncheck it to give this bar its own values."])) end
-    add(TS("icon", "dropdown", "border.texture", L["Border texture"], { items = BorderItems }),
-        TS("icon", "slider", "border.size", L["Border size"], { min = 0, max = 4, step = 1 }),
-        TS("icon", "color", "border.color", L["Border color"]),
-        TS("icon", "slider", "icon.zoom", L["Icon zoom"], { min = 0, max = 0.2, step = 0.01 }),
+    add(SkinRows())
+    add(TS("icon", "dropdown", "border.texture", L["Border texture"], { items = BorderItems, disabled = MasqueOwns }),
+        TS("icon", "slider", "border.size", L["Border size"], { min = 0, max = 4, step = 1, disabled = MasqueOwns }),
+        TS("icon", "color", "border.color", L["Border color"], { disabled = MasqueOwns }),
+        TS("icon", "slider", "icon.zoom", L["Icon zoom"], { min = 0, max = 0.2, step = 0.01, disabled = MasqueOwns }),
         Note(L["Crops the icon edges; 0 shows the whole texture."], "icon"),
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
         TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"]),
@@ -799,8 +872,47 @@ function Specs.BuildForm(parent, controls, ctx, width)
         if RESETTABLE[row.spec.type] and not row.spec.noReset then ResetCatcher(content, row, ctx, x0) end
     end
 
+    -- 停用的列：暗色遮罩蓋整列（層級在右鍵重設的接收框之上、跟隨遮罩之下）
+    local gates, watchReload = {}, false
+    for _, row in ipairs(rows) do
+        local spec = row.spec
+        if spec.reloadCheck then watchReload = true end
+        if spec.disabled then
+            local m = CreateFrame("Frame", nil, content, "BackdropTemplate")
+            m:SetPoint("TOPLEFT", content, "TOPLEFT", 0, row.top)
+            m:SetSize(width, math.max(1, row.top - row.bottom))
+            m:SetFrameLevel(content:GetFrameLevel() + 30)
+            m:EnableMouse(true)
+            m:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
+            m:SetBackdropColor(0.1, 0.1, 0.1, 0.6)
+            m:Hide()
+            -- 整節已經被跟隨遮罩蓋住（條頁）就不再疊一層
+            gates[#gates + 1] = function()
+                local covered = false
+                if ctx.info.mode == "bar" and spec.section then
+                    local bar = ns.DB.BarTable(ctx.info.key)
+                    local follow = bar and type(bar.follow) == "table" and bar.follow or {}
+                    covered = follow[spec.section] ~= false
+                end
+                m:SetShown((not covered and spec.disabled(ctx.info)) and true or false)
+            end
+        end
+    end
+    form.gates = gates
+    -- 表單引擎在值變了之後只叫 ctx.apply（不叫 refreshers）⇒ 包一層：停用狀態重判、圖示外觀問重載
+    if #gates > 0 or watchReload then
+        local apply = ctx.apply
+        ctx.apply = function(...)
+            apply(...)
+            for _, g in ipairs(gates) do g() end
+            local last = ctx.lastSpec
+            if last and last.reloadCheck then Specs.CheckSkinReload() end
+        end
+    end
+
     function form:Refresh()
         for _, fn in ipairs(self.refreshers) do fn() end
+        for _, g in ipairs(self.gates) do g() end
         if ctx.info.mode == "bar" then
             local bar = ns.DB.BarTable(ctx.info.key)
             local follow = bar and type(bar.follow) == "table" and bar.follow or {}

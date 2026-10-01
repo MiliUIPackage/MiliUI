@@ -45,10 +45,11 @@
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
 | `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
+| `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -311,10 +312,32 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   設定頁的觸發／就緒發光各有一顆「預覽」樣本圖示，常亮目前的樣式與顏色（`ns.Glow.PaintOn`／`StopOn` 與格子共用）。
 - **無損刷新**：後掛勾 item 的 `ShowPandemicStateFrame／HidePandemicStateFrame`，邊框換 `pandemic.color`，
   `pandemic.bars` 時長條條身也換色；Hide 換回。暴雪的 PandemicIcon 不碰。
+  圖示外觀＝Masque 時平常不畫我們的邊框，無損刷新期間才把那圈彩色邊框亮出來（粗細照設定、至少 1），Hide 藏回去。
 - **按鍵文字**：`FindSpellActionButtons`（覆寫法術優先）→ 格號 → 綁定指令（主動作條目前那一頁／左下右下右側／
   動作條 6–8，照暴雪 `MultiActionBars.xml` 的 actionpage 與按鈕模板的 buttonType）→ `GetBindingKey` → 縮寫
   （Shift→s、Ctrl→c、Alt→a、滑鼠鍵→M4、數字鍵盤→N5…）。物品掃動作條格子。綁定／動作條事件 0.2 秒合併重算。
 - 發光宿主是 overlay 底下自己的框，尺寸由排版給（不從 item 讀）；停放時發光一律熄。
+
+### 圖示外觀：Masque（`Core/Masque.lua`）
+
+- 設定：圖示那一節最前面的「圖示外觀」（`icon.skin`：`"miliui"` 預設｜`"masque"`），走主題 → 條的繼承（跟「圖示」那一節的跟隨）。
+  沒裝 Masque 一律當米利樣式（下拉停用＋灰字說明）。選 Masque 時邊框材質／粗細／顏色、圖示縮放四列停用（暗色遮罩，值不動）。
+- **切換要重載**：每條的模式在引擎第一次排版時快照（`ns.Masque.Mode`），整個工作階段固定；設定值（`Desired`）
+  跟快照不同時設定頁跳確認框（確認＝`ReloadUI`，取消＝留著設定、下次重載生效，同一組合不再追問）。
+  預覽也照快照畫（畫面上真實條的樣子）。
+- Masque 裡只有一個群組（插件「MiliUI Cooldown Manager」底下的「圖示」，ID 固定、換客戶端語系不換群組），皮膚、顏色、縮放在 Masque 自己的設定選；
+  「開啟 Masque 設定」按鈕走 `/msq`（`SlashCmdList.MASQUE`，Masque 沒有公開的開設定函式），先關自己的設定視窗。
+- 分工：Masque 畫邊框（皮的外框圖）、圖示縮放、轉圈材質、圖示遮罩；倒數／充能／層數文字、轉圈色、去飽和、隱藏 GCD、
+  發光、按鍵文字、淡出、提示 overlay 照舊是我們的。`AddButton` 一律給完整 regions＋Strict：圖示型
+  `{ Icon, Cooldown }`（自訂法術多一個回充的 `ChargeCooldown`），型別 `"Action"`，增益圖示 `"Debuff"`；長條型交 `item.Icon`
+  那一層、`{ Icon = item.Icon.Icon }`、`"Debuff"`。不給 Count：文字不交出去，Masque 也不去 item 上找欄位。
+  固定格位的佔位與設定頁的預覽格（我們自己的框）也交給同一個群組。光環格（AuraContainer）維持米利樣式：按鈕建好就 forbidden。
+- 尺寸變了才 `ReSkin`（Masque 套皮時照按鈕當下的尺寸算比例）。寫入走 `ns.Write`：戰鬥中按鈕在保護鏈上就記帳、脫戰補做，
+  補做之前那一格照米利樣式畫，補完重套一次。按鈕幾何讀不到（秘密錨點）就不交。
+- 契約例外：Masque 會在交出去的暴雪 item 上寫 `_MSQ_CFG`、在 Icon／Cooldown 上寫 `_MSQ_*`、建外框圖與遮罩；我們自己不寫任何欄位
+  （見 `Core/Masque.lua` 檔頭，與 `Core/Compat.lua` 的印記並列）。MasqueBlizzBars 照舊被印記請走，不會重複套。
+- 玩家在 Masque 裡停用我們的群組：Masque 自己把按鈕還成預設皮；我們的回呼把邊框、縮放、方角轉圈畫回來並提示 /reload
+  （Masque 預設皮的外框圖與圖示尺寸收不乾淨；重載後群組停用＝不套皮，畫面是乾淨的米利樣式）。重新啟用時 Masque 重套、我們收邊框。
 
 ### 音效（`Core/Sound.lua`）
 
@@ -1011,3 +1034,18 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     排隊中（第四顆以後）不填不印；全部轉好後 ticker 停掉（單位框架看 `/muf debug` 的 Metro 清單沒有 `classpower_rune`）。
     從右到左填充時，進度從右邊長起。倒數關掉時中間照舊印轉好的顆數。
     （2026-10-01 實機通過：排序、回充進度、秒數、排隊中不填、ticker 停掉；剩從右到左與倒數關掉兩項未看）
+
+**圖示外觀：Masque**
+
+121. 主題頁「圖示外觀」選 Masque → 跳重載確認框 → 重載後核心／輔助／自訂圖示群組、增益圖示、增益長條（只有圖示那一格）都是 Masque 選的皮；
+     倒數／充能／層數文字、轉圈色、去飽和、按鍵文字、發光、淡出照舊。按取消的話設定留著、畫面不變，再改別的設定不會一直追問。
+122. 戰鬥中才生出來的格子（戰鬥中換天賦被整條重取出、新上的增益）有套到皮；可點擊群組（item 在保護鏈上）戰鬥中新增的格子
+     先是米利樣式、脫戰換成 Masque 的皮，零 ADDON_ACTION_BLOCKED。
+123. 無損刷新期間 Masque 皮外面出現我們那圈彩色邊框（粗細 0 時是 1px），刷新窗口過了就消失；長條的條身換色照舊。
+124. 改條的尺寸（每列上限、兩列尺寸、長條高度）之後皮跟著重套、不歪；佔位圖示（固定格位）跟真實格同一張皮。
+125. Masque 設定裡停用「MiliUI Cooldown Manager」群組：聊天框一行提示、圖示回到米利樣式（可能留著 Masque 預設皮的外框圖），
+     /reload 後乾淨；再啟用回到 Masque 的皮、我們的邊框不殘留。換皮（SkinID）之後轉圈色仍是我們設的。
+126. 同時裝 MasqueBlizzBars：它的冷卻管理器群組裡沒有我們的 item（印記照舊），不會兩張皮疊在一起。
+127. 「開啟 Masque 設定」：先關我們的設定視窗、Masque 的設定出現在最上層並能找到我們的群組；戰鬥中按了沒反應（Masque 自己擋）。
+128. `/console taintLog 2` 打一場：Masque 寫在暴雪 item 上的欄位（`_MSQ_CFG`、Cooldown 的 `_MSQ_Color` 等）沒有讓暴雪的冷卻管理器
+     或快捷列出現污染／秘密值錯誤。

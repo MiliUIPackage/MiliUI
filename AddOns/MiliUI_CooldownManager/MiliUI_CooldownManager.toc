@@ -13,7 +13,7 @@
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\Spell_Nature_TimeStop
 ## SavedVariables: MiliUI_CooldownManager_DB
-## OptionalDeps: Ayije_CDM, MasqueBlizzBars
+## OptionalDeps: Ayije_CDM, Masque, MasqueBlizzBars
 ## AddonCompartmentFunc: MiliUICDM_OnAddonCompartmentClick
 
 Libs\LibStub\LibStub.lua
@@ -49,6 +49,7 @@ Core\Catalog.lua
 Core\Layout.lua
 Core\Viewers.lua
 Core\Text.lua
+Core\Masque.lua
 Core\Decorate.lua
 Core\Clickable.lua
 Core\Glow.lua

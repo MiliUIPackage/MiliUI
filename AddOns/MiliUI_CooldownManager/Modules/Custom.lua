@@ -30,11 +30,14 @@
 --     ID 過濾）——新增時就擋（Options/Picker.lua）。
 --   * 占位圖示（placeholder）畫在持有框的 BACKGROUND 上、去飽和、alpha 0.35，按鈕出現自然蓋住。
 --   * 發光不提供（不知道光環在不在，只能常亮）。
+--   * 圖示外觀選 Masque 也一樣是米利樣式：按鈕的外觀只能在 initializeFrame 裡烘、之後 forbidden，
+--     Masque 碰不到（佔位圖示跟著按鈕，也不交出去）。
 --   * 出現／消失音效：C_UnitAuras.AddAuraSound 登記給引擎播（Core/Sound.lua 對帳）。
 --
 -- ── 自訂法術（kind = "spell"）與物品（kind = "item"）─────────────────
 -- 自己的圖示框（parent 條容器，長得跟暴雪 item 一樣：.Icon／.Cooldown／.ChargeCount.Current），
 -- 邊框／縮放／轉圈色／文字交給 Decorate.Apply（同一套），發光、按鍵文字交給 Glow／Keybinds。
+-- 圖示外觀＝Masque 時也是 Decorate.Apply 交出去（regions：.Icon／.Cooldown＋回充那顆 .ChargeCooldown）。
 --   法術  C_Spell.GetSpellCooldownDuration(id, ignoreGCD=true) 的 duration 物件
 --         → Cooldown:SetCooldownFromDurationObject；回充另一顆只畫邊緣的 Cooldown 吃
 --         GetSpellChargeDuration。充能數字：讀得到就寫，秘密值走 C_StringUtil.TruncateWhenZero
