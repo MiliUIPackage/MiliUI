@@ -433,7 +433,7 @@ L["yi"] = "亿"
 -- 資源條：自訂格子
 L["Class Resources"] = "职业资源"
 L["Custom segments"] = "自定义格子"
-L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings on the Class Resources tab; each specialization keeps its own list."] = "把法术的充能或你身上光环的层数画成一列列格子。默认排在核心技能下方，辅助技能会自动往下让。尺寸与外观沿用「职业资源」分页的设置；每个专精各有一份清单。"
+L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Width and look follow the resource bar settings on the Class Resources tab, while each row sets its own color and height; each specialization keeps its own list."] = "把法术的充能或你身上光环的层数画成一列列格子。默认排在核心技能下方，辅助技能会自动往下让。宽度与外观沿用「职业资源」分页的设置，颜色与高度每一列各自设置；每个专精各有一份清单。"
 L["No custom segments for this specialization yet."] = "这个专精还没有自定义格子。"
 L["+ Add segments"] = "＋ 新增格子"
 L["What should this row track?"] = "这一列要追踪什么？"

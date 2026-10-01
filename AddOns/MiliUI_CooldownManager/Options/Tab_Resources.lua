@@ -373,6 +373,18 @@ ShowWhenSpec = function(i, kind)
     })
 end
 
+-- 這一列的高（entry.height；沒存 ＝ 預設 10）：原地套用不換表單
+local function HeightSpec(i)
+    return BS("slider", "customRows.height." .. i, L["Height"], {
+        min = ns.Pips.HEIGHT_MIN, max = ns.Pips.HEIGHT_MAX, step = 1, noReset = true,
+        get = function() return ns.Pips.CustomHeight(CustomEntry(i)) end,
+        set = function(_, v)
+            local e = CustomEntry(i)
+            if e then e.height = math.floor(tonumber(v) or ns.Pips.CUSTOM_DEFAULT_HEIGHT) end
+        end,
+    })
+end
+
 -- 自訂格子的位置與錨定（profile.pips）：跟條頁同一支 Specs.Anchor，讀寫轉到 pips
 AppendPipsPlacement = function(list)
     local function add(s) list[#list + 1] = s end
@@ -391,7 +403,7 @@ local function AppendCustomRows(list)
     local function add(s) list[#list + 1] = s end
     -- 自訂格子是這一頁的第二個分頁，分頁鈕本身就是標題，不再放一條同名的小節標題
     add(BS("toggle", "enabled", L["Show custom segments"], { root = "bar@" .. PIPS, level = "structure" }))
-    add(Note(L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings on the Class Resources tab; each specialization keeps its own list."]))
+    add(Note(L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Width and look follow the resource bar settings on the Class Resources tab, while each row sets its own color and height; each specialization keeps its own list."]))
     if not ns.specID then
         add(Note(L["Pick a specialization first."]))
         AppendPipsPlacement(list)
@@ -405,6 +417,7 @@ local function AppendCustomRows(list)
             shown = shown + 1
             add({ type = "custom", label = SpellLabel(e.spellID), h = CUSTOM_ROW_H, noReset = true, build = CustomHeadRow(i) })
             add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
+            add(HeightSpec(i))
             add(ShowWhenSpec(i, e.kind))
         end
     end

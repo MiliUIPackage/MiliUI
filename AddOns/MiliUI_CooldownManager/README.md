@@ -447,12 +447,12 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | 東西 | 存在哪 | 說明 |
 |---|---|---|
 | 清單 | `profile.resources.customRows[specID]` | 沒動（每個專精一份，形狀見下） |
-| 樣式 | `profile.resources` | 列高、列距、格距、材質、填充方向、填充透明度、寬（0 ＝ 核心技能第一列）**沿用資源條**，不另開一組 |
+| 樣式 | `profile.resources` | 列距、格距、材質、填充方向、填充透明度、寬（0 ＝ 核心技能第一列）**沿用資源條**，不另開一組；**列高與顏色是每一列自己的**（`entry.height`，沒存 ＝ 10，範圍 2～30；`Pips.CustomHeight`） |
 | 位置 | `profile.pips` | `{ enabled = true, pos = { point = "CENTER", x = 0, y = -250 }, anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }, fadeWithEssential = true, loadConditions = { hideMounted = false, onlyCombat = false }, strata = "MEDIUM" }` |
 
 清單的純函式（`CustomRowList`／`FindCustomRow`／`AddCustomRow`／`RemoveCustomRow`／`ClampSegments`／
 `PlanCustomRows`／`CustomColor`／`CustomValue`）**整組搬進 `ns.Pips`**，設定頁改呼叫 `ns.Pips.*`；
-`Modules/Resources.lua` 不再有任何自訂格子的程式，只出借 `R.Plain`／`R.AuraStacks`／`R.Edges`／`R.Width`／`R.RowHeight`／`R.DIM`。
+`Modules/Resources.lua` 不再有任何自訂格子的程式，只出借 `R.Plain`／`R.AuraStacks`／`R.Edges`／`R.Width`／`R.DIM`。
 
 ```lua
 customRows[specID] = {
@@ -477,7 +477,7 @@ customRows[specID] = {
 - **規劃**是純函式 `Pips.PlanCustomRows(cfg, specID, probe)`（`Tests/Resources_test.lua` 測；cfg 是資源條那張表）：壞資料、`enabled = false`、
   未學會的充能法術（`C_SpellBook.IsSpellKnown`／`IsSpellInSpellBook` 過 pcall，秘密值當學了）不建列；
   充能格數 ＝ `GetSpellCharges().maxCharges`（明文才收，順手快取）→ 存檔的 `max` → 2；層數格數 ＝ `max` → 5；上限 10。
-  容器高度 `Pips.PanelHeight(n, H, gap)`（0 列 ＝ 0）。
+  容器高度 `Pips.PanelHeight(heights, gap)`：各列高加總＋列距（0 列 ＝ 0）。
 - **畫法：充能列**（只在「下一格」顯示回充，平滑填滿）。每格由下往上：底色貼圖 → **閘門**（透明 StatusBar，
   `SetMinMaxValues(i-2, i-1)`＋`SetValue(充能數)`：充能數 ≥ i-1 時是滿的）→ **裁切框**（`SetClipsChildren(true)`，兩點錨在閘門的
   **填充貼圖**上：閘門滿 ＝ 跟格子一樣大、空 ＝ 寬 0）→ 裁切框裡的**回充條**（StatusBar，錨在**格子**上所以是被裁切不是被壓扁，
@@ -501,7 +501,7 @@ customRows[specID] = {
   引擎給得出的布林。**不是「一直顯示」的列照樣佔位**：秘密值下不知道它現在顯不顯示，面板高度只看有幾列（收合判斷不變）。
 - **保護**：層數列的 AuraContainer 讓列與面板變保護框 ⇒ 戰鬥中不重排（記旗標、脫戰補），只重畫值；收合（高度 0）切換本來就走
   `SetPanelSize` → `ns.Write`＋結構排程，戰鬥中記帳。
-- **秒數**：`showTime`（預設開）；倒數字是秒數 Cooldown 自己的 `GetCountdownFontString()`，換成像素字型、字級 ＝ 列高 − 4（最小 8），
+- **秒數**：`showTime`（預設開）；倒數字是秒數 Cooldown 自己的 `GetCountdownFontString()`，換成像素字型、字級 ＝ 這一列的高 − 4（最小 8），
   `PlainFormatter(0)`＋`SetCountdownMillisecondsThreshold(0)`；關掉走 `SetHideCountdownNumbers(true)`。
 - **讀不到**（充能 API 回 nil）：整列 alpha 0.5，`/mcdm debug` 的自訂格子段寫「讀不到」；秘密值照常畫、寫「秘密」；引擎寫的寫「引擎寫」
   與容器狀態（ready／pending／failed）、「交條」（`initializeFrame` 有沒有跑完 `SetApplicationBar`）。
@@ -512,7 +512,7 @@ customRows[specID] = {
 - **顯示條件**：`pips.enabled = false` → alpha 0（容器藏、收合；設定頁「自訂格子」一節最上面的開關）；
   `pips.loadConditions`（騎乘或坐載具時隱藏、只在戰鬥中）→ alpha 0（自訂格子自己的一份，跟資源條的各管各的）；
   `pips.fadeWithEssential` 同資源條（取核心技能現在的 alpha）。資源條關掉不影響自訂格子。
-- **編輯模式**：容器一建好就有覆蓋層（條名「自訂格子」）與選取框、磁吸；空的時候覆蓋層照最小尺寸（寬 × 一列高）從上緣往下畫。
+- **編輯模式**：容器一建好就有覆蓋層（條名「自訂格子」）與選取框、磁吸；空的時候覆蓋層照最小尺寸（寬 × 預設列高 10）從上緣往下畫。
   拖了就脫離錨定（既有機制）；輔助跟的是核心技能，留在原地補位（指名跟著自訂格子的才會跟著走）。點擊層也蓋，點了開資源條頁。
 - `/mcdm debug`：自訂格子自己一段（開關、清單幾筆、顯示幾列、容器高、錨定或位置、alpha、事件），清單每一筆一行（沒建列寫原因）；
   資源條那段不再印自訂格子。

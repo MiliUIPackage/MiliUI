@@ -3,8 +3,8 @@
 --
 -- 資料與樣式都借資源條的：
 --   * 清單：profile.resources.customRows[specID]（每個專精一份，設定頁在資源條頁）
---   * 樣式：列高、列距、格距、材質、填充方向、填充透明度、寬度（0 ＝ 核心技能第一列）一律讀
---     profile.resources，不另開一組
+--   * 樣式：列距、格距、材質、填充方向、填充透明度、寬度（0 ＝ 核心技能第一列）一律讀
+--     profile.resources，不另開一組；**列高與顏色是每一列自己的**（entry.height／entry.color）
 --   * 自己的只有 profile.pips：enabled、pos、anchor、fadeWithEssential、loadConditions、strata
 -- 預設跟著核心技能下方（anchor TOP → essential BOTTOM），輔助技能也是：同一邊的自動排開
 -- （Core/Layout.lua 的 StackTarget），格子在內、輔助在外 ⇒ 核心 → 自訂格子 → 輔助。
@@ -71,7 +71,8 @@ Pips.Cfg, Pips.StyleCfg = Cfg, StyleCfg
 ------------------------------------------------------------
 -- 清單與「要建哪些列」
 --
---   resources.customRows[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, enabled }, … }
+--   resources.customRows[specID] = { { kind = "charges"|"stacks", spellID, max, color, height, showTime, enabled }, … }
+--   height 沒存 ＝ CUSTOM_DEFAULT_HEIGHT（不跟資源條的列高走）
 --
 -- 清單的讀寫與規劃都是純函式（吃 cfg、specID 與一個查詢 probe），離線測試得到。
 -- cfg 是**資源條的設定表**（清單存在那裡）。
@@ -79,6 +80,14 @@ Pips.Cfg, Pips.StyleCfg = Cfg, StyleCfg
 local CUSTOM_KINDS = { charges = true, stacks = true }
 Pips.CUSTOM_KINDS = CUSTOM_KINDS
 Pips.CUSTOM_DEFAULT_STACKS = 5
+Pips.CUSTOM_DEFAULT_HEIGHT = 10
+Pips.HEIGHT_MIN, Pips.HEIGHT_MAX = 2, 30
+
+-- 純函式：這一列的高（沒存、壞資料 → 預設；超出範圍夾回來）
+function Pips.CustomHeight(entry)
+    local h = math.floor(tonumber(type(entry) == "table" and entry.height) or Pips.CUSTOM_DEFAULT_HEIGHT)
+    return math.max(Pips.HEIGHT_MIN, math.min(Pips.HEIGHT_MAX, h))
+end
 
 -- 這個專精的清單；create ＝ 沒有就建（寫入用），否則沒有回 nil
 function Pips.CustomRowList(cfg, specID, create)
@@ -154,7 +163,7 @@ function Pips.PlanCustomRows(cfg, specID, probe)
             end
             if n then
                 out[#out + 1] = { index = i, entry = e, kind = e.kind, spellID = e.spellID, numSeg = n,
-                                  showWhen = Pips.ShowWhen(e) }
+                                  showWhen = Pips.ShowWhen(e), height = Pips.CustomHeight(e) }
             end
         end
     end
@@ -197,10 +206,12 @@ end
 function Pips.FillRange(i) return i - 1, i end
 function Pips.GateRange(i) return i - 2, i - 1 end
 
--- 純函式：容器高度（沒有列 ＝ 0：輔助技能貼回核心下方）
-function Pips.PanelHeight(n, H, gap)
-    if not n or n <= 0 then return 0 end
-    return n * H + (n - 1) * gap
+-- 純函式：容器高度 ＝ 各列高加總＋列距（heights 是每列的高；沒有列 ＝ 0：輔助技能貼回核心下方）
+function Pips.PanelHeight(heights, gap)
+    if type(heights) ~= "table" or heights[1] == nil then return 0 end
+    local sum = 0
+    for _, h in ipairs(heights) do sum = sum + h end
+    return sum + (#heights - 1) * gap
 end
 
 -- 遊戲裡的 probe：學了沒（兩支 API 過 pcall；秘密值當學了，API 都不在也當學了）與
@@ -398,7 +409,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
     end
 
     local showTime = plan.entry.showTime ~= false
-    local fontSize = math.max(8, R.RowHeight(style) - 4)
+    local fontSize = math.max(8, plan.height - 4)
     local font = ns.Setting(nil, "font")
     local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
     for i = 1, numSeg do
@@ -568,7 +579,7 @@ local function DeferRelayout()
 end
 
 local function Relayout(style, W)
-    local H = ns.P.Scale(R.RowHeight(style))
+    local heights = {}
     local gap = ns.P.Scale(tonumber(style.rowSpacing) or 1)
     W = ns.P.Scale(W)
     local plans = Pips.PlanCustomRows(style, ns.specID, gameProbe)
@@ -581,6 +592,8 @@ local function Relayout(style, W)
             customRows[i] = row
         end
         row.plan = plan
+        local H = ns.P.Scale(plan.height)
+        heights[i] = H
         customHas[plan.kind] = true
         if plan.showWhen == "activeOrCombat" then customHas.combat = true end
         row:ClearAllPoints()
@@ -598,7 +611,7 @@ local function Relayout(style, W)
     customShown = #plans
     SyncEvents()
     -- 顯示時機不是 always 的列照樣佔位（秘密值下不知道它現在顯不顯示）
-    ns.Bars.SetPanelSize(KEY, W, Pips.PanelHeight(#plans, H, gap))
+    ns.Bars.SetPanelSize(KEY, W, Pips.PanelHeight(heights, gap))
 end
 
 local function UpdateRows()
@@ -716,7 +729,7 @@ end
 ------------------------------------------------------------
 local function MinSize()
     local style = StyleCfg() or {}
-    return R.Width(style), R.RowHeight(style)
+    return R.Width(style), Pips.CUSTOM_DEFAULT_HEIGHT
 end
 
 function Pips.Init()
@@ -803,8 +816,8 @@ function Pips.DebugLines()
                 extra = ("  容器 %s／交條 %s"):format(tostring(row.engineStatus),
                     bound == true and "是" or bound == false and "失敗" or "未知")
             end
-            out[#out + 1] = ("    自訂 %d. %-7s spellID %s  ×%d  值 %s  顯示 %s%s")
-                :format(i, kind, id, row.plan.numSeg, state, SHOW_TEXT[row.plan.showWhen] or "?", extra)
+            out[#out + 1] = ("    自訂 %d. %-7s spellID %s  ×%d  高 %d  值 %s  顯示 %s%s")
+                :format(i, kind, id, row.plan.numSeg, row.plan.height, state, SHOW_TEXT[row.plan.showWhen] or "?", extra)
         else
             local why
             if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] or type(e.spellID) ~= "number" then why = "壞資料"

@@ -433,7 +433,7 @@ L["yi"] = "cien millones"
 -- 資源條：自訂格子
 L["Class Resources"] = "Recursos de clase"
 L["Custom segments"] = "Segmentos personalizados"
-L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings on the Class Resources tab; each specialization keeps its own list."] = "Muestra las cargas de un hechizo o las acumulaciones de un aura sobre ti como filas de segmentos. Por defecto van debajo de las reutilizaciones esenciales y empujan hacia abajo las de utilidad. El tamaño y el aspecto siguen los ajustes de las barras de recursos de arriba; cada especialización tiene su propia lista."
+L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Width and look follow the resource bar settings on the Class Resources tab, while each row sets its own color and height; each specialization keeps its own list."] = "Muestra las cargas de un hechizo o las acumulaciones de un aura sobre ti como filas de segmentos. Por defecto van debajo de las reutilizaciones esenciales y empujan hacia abajo las de utilidad. El ancho y el aspecto siguen los ajustes de las barras de recursos de arriba, y cada fila tiene su propio color y altura; cada especialización tiene su propia lista."
 L["No custom segments for this specialization yet."] = "Esta especialización aún no tiene segmentos personalizados."
 L["+ Add segments"] = "+ Añadir segmentos"
 L["What should this row track?"] = "¿Qué debe seguir esta fila?"
