@@ -50,6 +50,7 @@ Core\Layout.lua
 Core\Viewers.lua
 Core\Text.lua
 Core\Decorate.lua
+Core\Clickable.lua
 Core\Glow.lua
 Core\Sound.lua
 Core\Keybinds.lua

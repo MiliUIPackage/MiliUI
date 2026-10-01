@@ -265,6 +265,9 @@ L["Parts of a bar that don't have \"Follow global theme\" checked aren't affecte
 -- E 階段：自訂項目與效果
 L["Already tracked in this specialization."] = "Déjà suivi dans cette spécialisation."
 L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."] = "Toujours actif tant que la barre a des emplacements d'aura : ils ne peuvent pas bouger en combat et ont besoin de positions fixes."
+L["Clickable"] = "Cliquable"
+L["Icons cast their spell or use their item when clicked, like action bar buttons. Aura slots are not affected."] = "Cliquer sur une icône lance le sort ou utilise l'objet, comme un bouton de barre d'action. Les emplacements d'aura ne sont pas concernés."
+L["Always on while this bar is clickable: the click targets can't move during combat."] = "Toujours actif tant que la barre est cliquable : les zones de clic ne peuvent pas bouger en combat."
 L["Aura"] = "Aura"
 L["Aura slot (buff)"] = "Emplacement d'aura (amélioration)"
 L["Aura slot (debuff)"] = "Emplacement d'aura (affaiblissement)"

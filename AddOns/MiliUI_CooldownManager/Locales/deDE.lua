@@ -265,6 +265,9 @@ L["Parts of a bar that don't have \"Follow global theme\" checked aren't affecte
 -- E 階段：自訂項目與效果
 L["Already tracked in this specialization."] = "In dieser Spezialisierung bereits verfolgt."
 L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."] = "Immer an, solange die Leiste Aurenplätze hat: Diese brauchen feste Positionen, weil sie sich im Kampf nicht bewegen können."
+L["Clickable"] = "Anklickbar"
+L["Icons cast their spell or use their item when clicked, like action bar buttons. Aura slots are not affected."] = "Ein Klick auf ein Symbol wirkt den Zauber bzw. benutzt den Gegenstand, wie bei Aktionsleistentasten. Aurenplätze sind nicht betroffen."
+L["Always on while this bar is clickable: the click targets can't move during combat."] = "Immer an, solange die Leiste anklickbar ist: Die Klickziele können sich im Kampf nicht bewegen."
 L["Aura"] = "Aura"
 L["Aura slot (buff)"] = "Aurenplatz (Stärkung)"
 L["Aura slot (debuff)"] = "Aurenplatz (Schwächung)"

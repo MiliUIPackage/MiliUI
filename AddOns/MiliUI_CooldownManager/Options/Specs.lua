@@ -407,20 +407,27 @@ function Specs.Themed(mode, key)
 end
 
 ------------------------------------------------------------
--- 固定格位：條上有光環格時強制打開（勾選框停用、說明換成原因；存的值不動）
+-- 固定格位：條上有光環格、或這條可點擊時強制打開（勾選框停用、說明換成原因；存的值不動）
 --
 -- 表單引擎的 toggle 沒有「停用」這個狀態，所以自己畫一列（custom）：勾選框＋下一列灰字，
--- 灰字依狀態換兩種說法，高度取兩種裡比較高的那個（列高在建表單時就定了）。
+-- 灰字依狀態換三種說法（一般／有光環格／可點擊），高度取三種裡最高的那個（列高在建表單時就定了）。
 ------------------------------------------------------------
 function FixedSlotsRow(key)
     local NORMAL = L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
     local FORCED = L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."]
+    local FORCED_CLICK = L["Always on while this bar is clickable: the click targets can't move during combat."]
+    -- 強制的原因：有光環格優先（兩者都成立時講光環格那句）；nil ＝ 沒有強制
+    local function ForcedText()
+        if ns.Catalog.BarHasAuraSlot(key) then return FORCED end
+        if ns.DB.BarClickable(key) then return FORCED_CLICK end
+        return nil
+    end
     return { type = "custom", label = L["Keep empty slots for missing buffs"], h = 26, root = "bar",
              path = "layout.fixedSlots", key = "layout.fixedSlots",
              build = function(parent, x, y, width, ctx)
         local cb = W.CreateCheckButton(parent, nil, function(on)
             local b = ns.DB.BarTable(key)
-            if not b or ns.Catalog.BarHasAuraSlot(key) then return end
+            if not b or ForcedText() then return end
             b.layout.fixedSlots = on and true or false
             ctx.lastSpec = { level = "layout" }
             ctx.apply()
@@ -434,17 +441,20 @@ function FixedSlotsRow(key)
         fs:SetWordWrap(true)
         fs:SetText(FORCED)
         local h1 = fs:GetStringHeight() or 14
+        fs:SetText(FORCED_CLICK)
+        local h3 = fs:GetStringHeight() or 14
         fs:SetText(NORMAL)
         local h2 = fs:GetStringHeight() or 14
-        local h = 30 + math.max(14, h1, h2) + 8
+        local h = 30 + math.max(14, h1, h2, h3) + 8
         local function Refresh()
-            local forced = ns.Catalog.BarHasAuraSlot(key)
+            local reason = ForcedText()
+            local forced = reason ~= nil
             local b = ns.DB.BarTable(key)
             local v = b and type(b.layout) == "table" and b.layout.fixedSlots
             cb:SetChecked((forced or v) and true or false)
             cb:SetEnabled(not forced)
             cb:SetAlpha(forced and 0.5 or 1)
-            fs:SetText(forced and FORCED or NORMAL)
+            fs:SetText(reason or NORMAL)
             fs:SetTextColor(forced and 1 or 0.65, forced and 0.82 or 0.65, forced and 0 or 0.65)
         end
         return h, Refresh
@@ -486,6 +496,11 @@ function Specs.Layout(key)
             add(BS("numbers", nil, L["Row 2+ size"], { sub = "layout.row2Size", path = false,
                 resetPaths = { "layout.row2Size" }, refreshPage = true,
                 fields = { { key = "w", label = L["W"] }, { key = "h", label = L["H"] } } }))
+        end
+        if bar.source == "custom" then
+            -- 可點擊：勾了之後固定格位被強制打開（下一列的原因字），所以排在它前面
+            add(BS("toggle", "clickable", L["Clickable"], { level = "layout", refreshPage = true }))
+            add(Note(L["Icons cast their spell or use their item when clicked, like action bar buttons. Aura slots are not affected."]))
         end
         if bar.source == "buffs" or bar.source == "custom" then
             add(FixedSlotsRow(key))

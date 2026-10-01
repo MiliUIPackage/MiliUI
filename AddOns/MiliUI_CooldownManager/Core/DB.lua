@@ -71,6 +71,7 @@ local function IconBar(o)
                        onlyInstances = false, group = "any" },   -- group: any | solo | party | raid
         bar        = o.bar or false,        -- kind = "bars" 才有
         strata     = "MEDIUM",
+        clickable  = false,                 -- 點了施放／使用（只有自訂圖示群組讀，判準在 DB.BarClickable）
     }
 end
 
@@ -814,6 +815,13 @@ end
 
 local BUILTIN = { essential = true, utility = true, buffs = true, buffbars = true }
 function DB.IsBuiltinBar(key) return BUILTIN[key] == true end
+
+-- 「可點擊」的唯一判準（Bars／設定頁／Core/Clickable.lua 都問這支）：只有自訂的圖示群組。
+-- 內建條與長條型群組有這欄也不讀（nil 當 false，不做遷移）
+function DB.BarClickable(key)
+    local b = BarTable(key)
+    return (b ~= nil and b.kind == "icons" and b.source == "custom" and b.clickable == true) and true or false
+end
 
 -- 「面板」：資源條、自訂格子與施法條。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁），
 -- 但錨定／位置／編輯模式跟條同一套。

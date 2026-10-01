@@ -265,6 +265,9 @@ L["Parts of a bar that don't have \"Follow global theme\" checked aren't affecte
 -- E 階段：自訂項目與效果
 L["Already tracked in this specialization."] = "이 전문화에서 이미 추적 중입니다."
 L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."] = "이 바에 효과 칸이 있으면 항상 켜집니다. 효과 칸은 전투 중 움직일 수 없어 위치가 고정되어야 합니다."
+L["Clickable"] = "클릭 가능"
+L["Icons cast their spell or use their item when clicked, like action bar buttons. Aura slots are not affected."] = "아이콘을 클릭하면 행동 단축바 버튼처럼 해당 주문을 시전하거나 아이템을 사용합니다. 효과 칸에는 적용되지 않습니다."
+L["Always on while this bar is clickable: the click targets can't move during combat."] = "이 바가 클릭 가능일 때는 항상 켜집니다. 클릭 대상은 전투 중 움직일 수 없습니다."
 L["Aura"] = "효과"
 L["Aura slot (buff)"] = "효과 칸 (강화)"
 L["Aura slot (debuff)"] = "효과 칸 (약화)"
