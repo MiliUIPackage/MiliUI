@@ -198,6 +198,7 @@ function Tab.AskCustomID(kind)
             fields[2] = { key = "max", label = L["Max stacks"], maxLetters = 2 }
         end
         popup = W.CreateInputPopup(Options.panel, ns.Picker.INPUT_W, title, fields)
+        ns.Picker.AddSpellsOpener(popup)
         inputPopups[kind] = popup
     end
     ns.Picker.SetInputError(popup, nil)

@@ -295,6 +295,7 @@ L["That is an item link. Use the \"Item\" button to track an item."] = "Es un en
 L["That is a spell link. Use the \"Spell\" or \"Aura\" button for spells."] = "Es un enlace de hechizo. Usa el botón \"Hechizo\" o \"Aura\" para hechizos."
 L["Find it in the spell's link or on a database site."] = "Lo encuentras en el enlace del hechizo o en una web de base de datos."
 L["Or Shift-click it in your spellbook or talents to fill in the ID."] = "O Mayús-clic en su icono en el libro de hechizos o los talentos para rellenar el ID."
+L["Open talents & spellbook"] = "Abrir talentos y libro de hechizos"
 L["That is an item link. Enter a spell ID here."] = "Es un enlace de objeto. Aquí va un ID de hechizo."
 L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."] = "Brilla un momento al terminar un tiempo de reutilización. El tiempo global no cuenta."
 L["Item"] = "Objeto"
