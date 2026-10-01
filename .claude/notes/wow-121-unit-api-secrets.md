@@ -127,3 +127,8 @@ MiliUI_UnitFrames 用它畫血條的損失段（`Elements/Health.lua`、`Core/Ev
 `Blizzard_UnitFrame/Shared/UnitFrame.lua` 的 `TempMaxHealthLossMixin`（CVar `showTempMaxHealthLoss`）。
 
 **UnitHealth／UnitHealthMax 脫戰也拿到秘密值（2026-09-30 推定）**：MiliUI_UnitFrames「血量不滿時不淡出」第一版在脫戰用 `UnitHealth < UnitHealthMax` 判斷、秘密值保底當不滿，結果滿血也永遠不淡出。改成 Step 曲線（(0,1)、(1−ε, 淡出值)）餵 `UnitHealthPercent`、結果直接 `SetAlpha`（秘密 alpha，SetAlpha 吃得下）。要「血量滿沒滿」一律走曲線，不要在 Lua 比大小，也不要以為脫戰就是明文。
+
+**`C_Spell.GetSpellCooldown` 的 `isOnGCD`／`isActive` 戰鬥中是明文布林（2026-10-01 實機確認）**，
+`startTime`／`duration` 才是秘密值。要分辨「只是 GCD」「沒在冷卻」「進了真的冷卻」就問這兩個旗標
+（仍過一次 `issecretvalue` 保底）；別靠 `duration <= 1.5` —— 戰鬥中讀不到，閘形同虛設。
+實例：MiliUI_CooldownManager 就緒發光「GCD 結束整排亮」的修法（[[project-miliui-cooldownmanager]]）。

@@ -838,7 +838,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 34. 觸發發光：`ShowAlert` 後掛勾在首領戰是否照樣觸發；暴雪的 `SpellActivationAlert` 熄 alpha 之後沒有殘影。
 35. 就緒探針：`Cooldown` 的 `OnCooldownDone` 在餵秘密 duration object 時是否照觸發；秘密參數被拒 → 改走 duration 物件那條是否照樣觸發；`Clear` 後掛勾在「到期時暴雪先清」的情況是否比探針自己的 OnCooldownDone 早（兩條都會觸發一次就緒，有旗標擋重複）；多充能每回一層亮一次是否符合預期（沒有另外判斷「這次是回充」）。
 36. 就緒探針讀暴雪狀態：Cooldown 的 `GetUseAuraDisplayTime()` 在 SetCooldown 後掛勾裡回的是這一次的值（暴雪先 `SetUseAuraDisplayTime` 再 `CooldownFrame_Set`）、明文布林；`HasVisualDataSource_Charges()` 在秘密參數那條路上回的是對的。光環型技能（顯示光環時間的那段）不會亮就緒。
-   `C_Spell.GetSpellCooldown` 的 `isOnGCD`／`isActive` 戰鬥中是明文（GCD 閘靠它；讀不到時會退回舊行為＝GCD 結束整排亮）：戰鬥中連按幾招，只有真的轉好冷卻的那格亮。亮著的時候按下那一招，發光當場熄；按別招（只有 GCD）不熄。~~裝了 Masque 時「觸發」樣式是方形、四角貼齊圖示，顏色照設定上色（去飽和＋染色），循環速度跟暴雪版一致。~~ ✅ 2026-10-01 實機通過。
+   ~~`C_Spell.GetSpellCooldown` 的 `isOnGCD`／`isActive` 戰鬥中是明文（GCD 閘靠它；讀不到時會退回舊行為＝GCD 結束整排亮）：戰鬥中連按幾招，只有真的轉好冷卻的那格亮。亮著的時候按下那一招，發光當場熄；按別招（只有 GCD）不熄。裝了 Masque 時「觸發」樣式是方形、四角貼齊圖示，顏色照設定上色（去飽和＋染色），循環速度跟暴雪版一致。~~ ✅ 2026-10-01 實機通過。
 37. 無損刷新：`ShowPandemicStateFrame` 在增益圖示／長條上真的會叫（暴雪在 OnUpdate 裡每幀叫，後掛勾有「狀態沒變就走」）。
 38. 按鍵文字：變形／姿態列（`GetBonusBarOffset`）、動作條 6–8 的綁定名、`FindSpellActionButtons` 對覆寫法術回不回格子。
 39. 發光宿主（overlay 底下的子框）在 item 被停放（alpha 0、畫面外）時 MiliUIGlow 的 driver 仍在推（可見度閘看的是 IsVisible，alpha 0 仍算可見）——停放時我們已經 Stop，確認沒有漏掉的。

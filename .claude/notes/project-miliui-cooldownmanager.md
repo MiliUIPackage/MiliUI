@@ -54,6 +54,10 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
   碰保護鏈記帳）、髒標記三級。
 - 就緒發光靠**畫面外探針 Cooldown**：明文原封轉交 SetCooldown、被拒就餵 `GetSpellCooldownDuration` 的
   duration 物件；掛探針的 OnCooldownDone。光環格（AuraContainer 固定前綴）不提供發光。
+  **GCD 閘走 `GetSpellCooldown` 的明文 `isOnGCD`／`isActive`**（零長度 duration 物件被 clearIfZero 清掉卻仍標武裝 ⇒
+  GCD 結束暴雪 Clear 時整排亮，2026-10-01 修）；用掉（isOnGCD=false 且 isActive=true）就提早熄，回充不提早熄。
+  觸發樣式裝了 Masque 改用它的方形循環圖（只借貼圖）。三項 2026-10-01 實機通過；設定頁有發光預覽樣本。
+  預設樣式：觸發＝proc、就緒＝button（不遷移）。
 - 資源條點數型每格一顆 StatusBar `SetMinMaxValues(i-1,i)`＋`SetValue(秘密值)`；法力補回；吸收型不做。
 - 公開 API：`MiliUI_CooldownManager.IsReady／GetBarFrame／GetResourceColors／GetResourceConditions／
   GetResourceBarFrame／RegisterCallback("ResourceStyleChanged")`；UnitFrames 資源色與 CrusadingStrikes 都改問它。
