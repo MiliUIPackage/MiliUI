@@ -20,6 +20,9 @@
 --      auraBar 的格數與條件規則、AuraBar 的幾何與簽章（Modules/AuraBar.lua）
 --   9. 光環剩餘時間條（auraTimer：黯黑力量、秘法靈魂）：專精對照、定義與預設色、畫法規劃（DrawMode）、
 --      天賦閘（被動／英雄天賦樹）、Lua 不讀值、空條底色、duration 簽章
+--  10. 符文排序與秒數
+--  11. 列的順序（ApplyOrder／MergeOrder、候選套 order）、血量列（候選、預設關、不支援條件、秘密值轉手、
+--      門檻曲線的點與簽章）、施法條的暴雪材質
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -259,13 +262,13 @@ eq("全域不存在退回英文", R.RESOURCES.Chi.name, "Chi")
 ns.specID = 65
 powerMax[9], powerMax[0] = 5, 100000
 R.Invalidate()
-eqList("神聖聖騎：兩列都有上限", (R.Candidates()), { "HolyPower", "Mana" })
+eqList("神聖聖騎：兩列都有上限", (R.Candidates()), { "HolyPower", "Mana", "Health" })
 powerMax[9] = 0
 R.Invalidate()
-eqList("上限 0 → 那一列隱藏", (R.Candidates()), { "Mana" })
+eqList("上限 0 → 那一列隱藏", (R.Candidates()), { "Mana", "Health" })
 powerMax[9] = SECRET
 R.Invalidate()
-eqList("上限是秘密值 → 照列", (R.Candidates()), { "HolyPower", "Mana" })
+eqList("上限是秘密值 → 照列", (R.Candidates()), { "HolyPower", "Mana", "Health" })
 check("gateLog 有記原因", type(R.gateLog.HolyPower) == "string")
 powerMax[9] = 5
 local _, spec = R.Candidates()
@@ -799,30 +802,30 @@ ns.specID = 1473
 powerMax[19], powerMax[0] = 5, 100000
 known[395152] = nil
 R.Invalidate()
-eqList("增輝：沒學黯黑力量 → 不列", (R.Candidates()), { "Essence", "Mana" })
+eqList("增輝：沒學黯黑力量 → 不列", (R.Candidates()), { "Essence", "Mana", "Health" })
 known[395152] = true
 R.Invalidate()
-eqList("增輝：學了 → 列", (R.Candidates()), { "Essence", "EbonMight", "Mana" })
+eqList("增輝：學了 → 列", (R.Candidates()), { "Essence", "EbonMight", "Mana", "Health" })
 known[395152] = nil
 ns.specID = 62
 powerMax[16] = 4
 R.Invalidate()
-eqList("秘法：沒點 Sunfury → 不列", (R.Candidates()), { "ArcaneCharges", "Mana" })
+eqList("秘法：沒點 Sunfury → 不列", (R.Candidates()), { "ArcaneCharges", "Mana", "Health" })
 check("秘法靈魂沒列的原因有記", type(R.gateLog.ArcaneSoul) == "string")
 known[449619] = true
 R.Invalidate()
-eqList("秘法：點了歐爾的記憶 → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana" })
+eqList("秘法：點了歐爾的記憶 → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana", "Health" })
 known[449619] = nil
 local hero = 40
 env.C_ClassTalents = { GetActiveHeroTalentSpec = function() return hero end }
 R.Invalidate()
-eqList("秘法：英雄樹是別棵 → 不列", (R.Candidates()), { "ArcaneCharges", "Mana" })
+eqList("秘法：英雄樹是別棵 → 不列", (R.Candidates()), { "ArcaneCharges", "Mana", "Health" })
 hero = 39
 R.Invalidate()
-eqList("秘法：英雄樹是 Sunfury → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana" })
+eqList("秘法：英雄樹是 Sunfury → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana", "Health" })
 hero = SECRET
 R.Invalidate()
-eqList("秘法：英雄樹讀不到 → 不列（不比較秘密值）", (R.Candidates()), { "ArcaneCharges", "Mana" })
+eqList("秘法：英雄樹讀不到 → 不列（不比較秘密值）", (R.Candidates()), { "ArcaneCharges", "Mana", "Health" })
 env.C_ClassTalents = nil
 R.Invalidate()
 -- duration 簽章（Modules/AuraBar.lua）
@@ -891,6 +894,94 @@ do
     eq("符文數字：壞值＝秒數", R.RuneText({ runeText = "bogus" }), "countdown")
     eq("符文數字：顆數", R.RuneText({ runeText = "count" }), "count")
     eq("符文數字：舊的 none 退回秒數", R.RuneText({ runeText = "none" }), "countdown")
+end
+
+------------------------------------------------------------
+-- 11. 列的順序（R.ApplyOrder／R.MergeOrder）、血量列（Health）、施法條的暴雪材質
+------------------------------------------------------------
+do
+    -- 排序：在 order 裡的照位置；不在的維持原順序、排在後面
+    eqList("排序：沒有 order 照原樣", R.ApplyOrder({ "A", "B", "C" }, nil), { "A", "B", "C" })
+    eqList("排序：空 order 照原樣", R.ApplyOrder({ "A", "B", "C" }, {}), { "A", "B", "C" })
+    eqList("排序：全部排過", R.ApplyOrder({ "A", "B", "C" }, { "C", "A", "B" }), { "C", "A", "B" })
+    eqList("排序：沒排過的接在後面、維持原順序", R.ApplyOrder({ "A", "B", "C", "D" }, { "C" }), { "C", "A", "B", "D" })
+    eqList("排序：order 裡別的專精的 key 不影響", R.ApplyOrder({ "A", "B" }, { "X", "B", "Y" }), { "B", "A" })
+    eqList("排序：order 裡重複的只認第一次", R.ApplyOrder({ "A", "B" }, { "B", "A", "B" }), { "B", "A" })
+    local src = { "A", "B" }
+    local out = R.ApplyOrder(src, { "B" })
+    check("排序：回新表、原表不動", out ~= src and list(src) == "A,B")
+    eqList("排序：清單是空的", R.ApplyOrder({}, { "A" }), {})
+    -- 寫回：這個專精的完整順序在前、舊的別專精 key 照原相對位置接在後面
+    eqList("寫回：沒有舊的", R.MergeOrder(nil, { "B", "A" }), { "B", "A" })
+    eqList("寫回：保留別的專精的 key", R.MergeOrder({ "X", "A", "Y", "B" }, { "B", "A" }), { "B", "A", "X", "Y" })
+    eqList("寫回：壞資料跳過", R.MergeOrder({ 3, "X", false }, { "A" }), { "A", "X" })
+    -- 往返：寫回之後再排一次，跟玩家看到的一樣
+    local merged = R.MergeOrder({ "Energy", "Rage" }, { "Mana", "HolyPower", "Health" })
+    eqList("往返：排出來跟寫回的一樣", R.ApplyOrder({ "HolyPower", "Mana", "Health" }, merged), { "Mana", "HolyPower", "Health" })
+
+    -- 血量：每個專精都是候選、預設關、不支援條件規則
+    check("血量：有定義", R.RESOURCES.Health ~= nil and R.RESOURCES.Health.mode == "bar" and R.RESOURCES.Health.health == true)
+    check("血量：有預設色（綠）", ns.DB.RESOURCE_COLORS.Health and ns.DB.RESOURCE_COLORS.Health.color.g == 0.8)
+    check("血量：每個專精都預設關", R.DefaultOn(65, "Health") == false and R.DefaultOn(263, "Health") == false
+        and R.DefaultOn(nil, "Health") == false)
+    check("血量：玩家勾了就開", R.RowOn({ rows = { Health = true } }, 65, "Health") == true)
+    check("血量：條件規則不適用", R.SupportsConditions("Health") == false and R.SupportsConditions("Mana") == true)
+    check("血量：不在 RawList", not list(R.RawList("PALADIN", 65, nil)):find("Health"))
+    -- 取值：原始值原樣轉手（秘密值）
+    env.UnitHealth = function() return SECRET end
+    env.UnitHealthMax = function() return SECRET end
+    local c, m = R.GetValue("Health")
+    check("血量：取值轉手秘密值", c == SECRET and m == SECRET)
+    env.UnitHealth, env.UnitHealthMax = nil, nil
+
+    -- Candidates 套 order（設定檔在第 4 節已建好）
+    local res = ns.profile.resources
+    check("預設：order 是空表", type(ns.DB.BuildDefaults().profile.resources.order) == "table"
+        and next(ns.DB.BuildDefaults().profile.resources.order) == nil)
+    local d = ns.DB.BuildDefaults().profile.resources
+    check("預設：血量用職業色、不印百分比、門檻關、門檻空", d.healthClassColor == true and d.healthPercent == false
+        and d.healthThresholdEnabled == false and type(d.healthThresholds) == "table" and #d.healthThresholds == 0)
+    ns.specID = 65
+    powerMax[9], powerMax[0] = 5, 100000
+    res.order = { "Health", "Mana" }
+    R.Invalidate()
+    eqList("候選：照 order 排", (R.Candidates()), { "Health", "Mana", "HolyPower" })
+    res.order = {}
+    R.Invalidate()
+    eqList("候選：order 空 ＝ 法力、血量在最下面", (R.Candidates()), { "HolyPower", "Mana", "Health" })
+    ns.specID = nil
+    R.Invalidate()
+    eqList("候選：沒有專精不列血量", (R.Candidates()), {})
+    ns.specID = 65
+    R.Invalidate()
+
+    -- 門檻曲線的點：由低到高、0 吃最低門檻的色、最高門檻吃底色；x 是 0～1
+    local base = { r = 0.1, g = 0.2, b = 0.3 }
+    local red, orange = { r = 1, g = 0, b = 0 }, { r = 1, g = 0.5, b = 0 }
+    local pts = R.HealthCurvePoints({ { pct = 50, color = orange }, { pct = 20, color = red } }, base)
+    eq("曲線：點數 ＝ 門檻數 + 1", pts and #pts, 3)
+    check("曲線：0 吃最低門檻（紅）", pts[1][1] == 0 and pts[1][2] == 1 and pts[1][3] == 0)
+    check("曲線：20% 的點吃下一個門檻（橘）", pts[2][1] == 0.2 and pts[2][3] == 0.5)
+    check("曲線：50% 的點吃底色", pts[3][1] == 0.5 and pts[3][2] == 0.1 and pts[3][4] == 0.3)
+    local cfgList = { { pct = 50, color = orange }, { pct = 20, color = red } }
+    R.HealthCurvePoints(cfgList, base)
+    check("曲線：設定表的順序不動", cfgList[1].pct == 50)
+    eq("曲線：沒有門檻 ＝ nil", R.HealthCurvePoints({}, base), nil)
+    eq("曲線：門檻不是表 ＝ nil", R.HealthCurvePoints(nil, base), nil)
+    eq("曲線：底色壞了 ＝ nil", R.HealthCurvePoints(cfgList, nil), nil)
+    pts = R.HealthCurvePoints({ { pct = 0, color = red }, { pct = 150, color = orange }, { pct = 30 }, "bad" }, base)
+    check("曲線：百分比夾在 1～99、壞資料跳過", pts and #pts == 3 and pts[2][1] == 0.01 and pts[3][1] == 0.99)
+    local many = {}
+    for i = 1, 9 do many[i] = { pct = i * 10, color = red } end
+    eq("曲線：最多 6 個門檻", #R.HealthCurvePoints(many, base), R.HEALTH_MAX_THRESHOLDS + 1)
+    check("曲線簽章：同內容同簽章、不同內容不同",
+        R.HealthCurveSig(R.HealthCurvePoints(cfgList, base)) == R.HealthCurveSig(R.HealthCurvePoints(cfgList, base))
+        and R.HealthCurveSig(R.HealthCurvePoints(cfgList, base)) ~= R.HealthCurveSig(R.HealthCurvePoints(cfgList, red)))
+
+    -- 施法條：暴雪材質走圖集、其他走路徑
+    local path, atlas = CB.FillTexture("blizzard")
+    check("施法條：暴雪材質是圖集", path == nil and atlas == "UI-CastingBar-Filling-Standard")
+    eq("施法條：暴雪材質的 token", CB.BLIZZARD_TEXTURE, "blizzard")
 end
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))

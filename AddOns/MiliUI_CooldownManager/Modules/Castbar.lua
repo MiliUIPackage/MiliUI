@@ -14,6 +14,10 @@
 --   * 事件處理器只轉手 ns.Defer：UNIT_SPELLCAST_FAILED／SENT 在按鍵的 secure 流程裡同步派送，
 --     在那裡跑我們的 Lua 等於把 taint 灌進快捷列
 --
+-- 材質選單多一項「暴雪施法條」（texture ＝ "blizzard"，只有施法條有）：填充用遊戲內建施法條的圖集
+-- UI-CastingBar-Filling-Standard、去飽和，顏色照下面的上色流程（施法／引導／不可打斷／斷法就緒／蓄力
+-- 最後都是對填充貼圖 SetVertexColor）。一般施法與引導用同一張，**不依不可打斷換圖**（那是秘密布林）。
+--
 -- 刻度、延遲、蓄力分階都要「明文的時間軸」（開始／結束讀得到）：讀不到就不畫，
 -- 條本身照樣由 duration 物件驅動。位置一律用設定算出來的寬度（不讀框的幾何）。
 --
@@ -172,6 +176,47 @@ function CB.TickCount(spellID, name)
 end
 
 ------------------------------------------------------------
+-- 填充材質
+------------------------------------------------------------
+local BLIZZARD_FILL_ATLAS = "UI-CastingBar-Filling-Standard"
+CB.BLIZZARD_TEXTURE = "blizzard"
+
+-- 純函式：材質 token → 填充用的 圖檔路徑, 圖集名（兩者擇一）
+function CB.FillTexture(token)
+    if token == CB.BLIZZARD_TEXTURE then return nil, BLIZZARD_FILL_ATLAS end
+    return ns.Media.Texture(token), nil
+end
+
+-- 圖集查得到才用（名字打錯時 SetStatusBarTexture 不報錯、只會畫出缺圖的綠塊）
+local function AtlasExists(atlas)
+    local fn = C_Texture and C_Texture.GetAtlasInfo
+    if not fn then return true end
+    local ok, info = pcall(fn, atlas)
+    return ok and info ~= nil
+end
+
+-- 換填充材質。⚠ 火花錨在填充貼圖上：呼叫端在這之後才下錨點
+local function SetFillTexture(bar, token)
+    local path, atlas = CB.FillTexture(token)
+    if atlas and AtlasExists(atlas) then
+        -- SetStatusBarTexture 收圖集名（暴雪自己的施法條就是這樣設）；不收的版本退回貼圖 SetAtlas
+        local ok = pcall(bar.SetStatusBarTexture, bar, atlas)
+        local tex = bar:GetStatusBarTexture()
+        if not ok or not tex then
+            bar:SetStatusBarTexture(SOLID)
+            tex = bar:GetStatusBarTexture()
+            if tex then pcall(tex.SetAtlas, tex, atlas, false) end
+        end
+        -- 去飽和成灰階漸層，顏色交給 ApplyColor 的 SetVertexColor
+        if tex then tex:SetDesaturated(true) end
+        return
+    end
+    bar:SetStatusBarTexture(path or SOLID)
+    local tex = bar:GetStatusBarTexture()
+    if tex then tex:SetDesaturated(false) end
+end
+
+------------------------------------------------------------
 -- 框
 ------------------------------------------------------------
 local container, f, ev
@@ -309,7 +354,7 @@ function CB.Layout()
     f.bar:ClearAllPoints()
     f.bar:SetPoint("TOPLEFT", f.barHolder, "TOPLEFT", inset, -inset)
     f.bar:SetPoint("BOTTOMRIGHT", f.barHolder, "BOTTOMRIGHT", -inset, inset)
-    f.bar:SetStatusBarTexture(ns.Media.Texture(cfg.texture))
+    SetFillTexture(f.bar, cfg.texture)
     S.reversed = ns.FillReversed(cfg)
     f.bar:SetReverseFill(S.reversed)
     S.barW, S.barH = barW - inset * 2, H - inset * 2

@@ -49,7 +49,7 @@
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -408,12 +408,13 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 ### 資源條（`Modules/Resources.lua`）
 
 從單位框架的資源條與能量條改來。專精 → 資源清單（`SPEC_RESOURCES`）；德魯伊看型態（熊怒氣、貓能量＋連擊點、
-其餘照專精）；用法力施法的專精（`MANA_SPECS`）在**最下面**多一列法力。一種資源一列：
+其餘照專精）；用法力施法的專精（`MANA_SPECS`）在職業資源下面多一列法力；每個專精最後都多一列**血量**（預設關）。一種資源一列：
 
 | 模式 | 資源 | 畫法 |
 |---|---|---|
 | bar | 怒氣、能量、集中值、符文能量、星能、元能、狂亂值、魔怒、**法力** | 一顆 StatusBar：`SetMinMaxValues(0, UnitPowerMax)`＋`SetValue(UnitPower)` **直接餵**（引擎收秘密值），明文且上限 <= 0 才顯示空條；原生內插（`smooth`） |
 | bar（`def.get`） | **醉仙緩勁**（釀酒）、**噬靈魂碎片**（噬魂者 1480） | 醉仙緩勁：`SetMinMaxValues(0, UnitHealthMax × 滿條%)`＋`SetValue(UnitStagger)` 直接餵；三段色（輕／中／重，門檻預設 30%／60%）**只在兩個值都是明文時**算比例，秘密值那幾下（副本戰鬥中間歇出現）沿用上一段顏色與上一次的明文上限，從沒讀到過明文就把秘密的最大生命原樣餵（＝ 滿條 100%）。噬靈魂碎片：光環層數（化身中 1227702、平常 1225789），上限 40／50（天賦 35、PvP 天賦 +50） |
+| bar（`def.get`、`health`） | **血量**（每個專精都是候選，`R.DefaultOn` 一律回 false：在「這個專精要顯示哪些」勾起來才顯示；不在 `RawList` 裡，`R.Candidates` 接在最後） | `UnitHealth`／`UnitHealthMax` **直接餵** `SetMinMaxValues`／`SetValue`（12.1 連脫戰都是秘密值，Lua 不比較不算術）、`smooth` 照連續條。顏色：`healthClassColor`（預設）職業色、關掉用 `colors.Health.color`（預設綠）；**門檻換色**（`healthThresholdEnabled`＋`healthThresholds`，`{ pct = 1..99, color }` 最多 6 筆）照單位框架的血量門檻：由低到高 → Step 色彩曲線（x 是 0～1 比例；`R.HealthCurvePoints` 純函式）→ `UnitHealthPercent("player", nil, 曲線)` 由 C 端挑色 → 填充 `SetVertexColor`。曲線物件建一次、點在**排版時**比簽章（`R.HealthCurveSig`）變了才重建，`UNIT_HEALTH` 上不碰；挑出來的顏色可能是秘密值，暗底一律用明文底色算。數字：縮寫沿用 `manaAbbrev`；`healthPercent` 印百分比（秘密值時 `UnitHealthPercent("player", nil, CurveConstants.ScaleTo100)`）。條件規則不適用（`R.SupportsConditions` 回 false，條件編輯器的候選也不列） |
 | absorbBar | **無視苦痛**（防戰） | 值 `UnitGetTotalAbsorbs("player")`、上限「最大生命的三成」**用幾何做**：裁切框（`SetClipsChildren`）＝ 列，裡面一條寬 W／0.3 的 StatusBar 貼在填充起點那一側，`SetMinMaxValues(0, UnitHealthMax)` ⇒ 只看得到前三成。**不對秘密的最大生命乘 0.3**；這條的填充貼圖上不錨任何東西。顯示的是**身上所有吸收盾的總量**（說明列寫明） |
 | pip | 聖能、連擊點數、真氣、靈魂碎片、秘法充能、精華、符文；漩渦之武、矛尖、靈魂碎片、**冰刺**（光環／施放次數型） | **每格一顆 StatusBar**：`SetMinMaxValues(i-1, i)`＋`SetValue(目前值)` ⇒ 第幾格亮由引擎決定，秘密值照樣畫得對。格子一律錨在列上（`SetValue(秘密值)` 會讓那顆條的幾何變秘密、傳染給錨在它身上的框） |
 | pip（符文） | 符文 | **先排序再畫**：轉好的靠左（照編號）、在轉的依剩餘時間往右排（`R.RuneOrder`）；在轉的格子 `SetValue((now−start)/duration)` 填進度、同色暗一階，排隊中（start 在未來）進度 0。數字由 `showText` 總開關＋`runeText` 二選一：`countdown`（預設，在轉的格子印剩餘秒數、無條件進位）／`count`（中間印轉好的顆數），兩者不並列。有符文在轉時開 0.1 秒 ticker 只重畫符文列，全部轉好就停。start／duration／ready 讀不到明文 ⇒ 不填不印、排最後 |
@@ -431,6 +432,12 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **天賦閘**：標準資源看 `UnitPowerMax > 0`（秘密值當有）；光環型／取值型看被動已學（冰刺、噬靈魂碎片不需要天賦），
   被動 ID 寫錯的保險是「目前有層數就顯示」。剩餘時間條沒有 Lua 讀得到的值、沒有這條保險，改成「被動已學 **或** 目前的英雄天賦樹是
   `def.heroTree`」（`C_ClassTalents.GetActiveHeroTalentSpec`，明文才比）。
+- **列的順序**（`resources.order`，資源 key 的陣列，**整份設定檔共用、不分專精**，跟 `rows[key]` 開關同一種）：
+  `R.ApplyOrder(list, order)`（純函式）——在 `order` 裡的照它的位置；不在的維持專精清單的相對順序、排在所有排過的**後面**；穩定。
+  套在 `R.Candidates()` 的結果上再快取，所以畫面、設定頁、`/mcdm debug` 都是同一個順序。「法力、血量在最下面」只是預設位置。
+  設定頁每列勾選框右邊有上移／下移（第一列的上移、最後一列的下移停用）：按下把目前候選的**完整順序**交換後寫回
+  （`R.MergeOrder`：這個專精的順序在前，舊 `order` 裡別的專精排過的 key 照原相對位置接在後面），`R.Apply()`，表單照簽章換一份
+  （候選順序本來就在簽章裡）。兩個專精共有的 key（法力、血量、能量…）在一邊調了另一邊也跟著。「恢復預設」清掉 `order`。
 - **資源名**：暴雪全域字串（`STAGGER`…）或 `C_Spell.GetSpellName`（冰刺、無視苦痛、旋風斬、橫掃攻擊、鐵鬃、黯黑力量、秘法靈魂——後兩個取**光環**的法術名；醉仙緩勁的中度／重度色
   標籤是暴雪自己的減益名 124274／124273），載入當下讀不到時 `R.Name` 之後再問一次。
 
@@ -454,7 +461,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **事件**：`UNIT_POWER_FREQUENT`（＋`UNIT_POWER_UPDATE` 當回滿保底）、`UNIT_MAXPOWER`、`UNIT_DISPLAYPOWER`、
   `UPDATE_SHAPESHIFT_FORM`、`PLAYER_SPECIALIZATION_CHANGED`、天賦、進出載具、`RUNE_POWER_UPDATE`（死騎）、
   `UNIT_POWER_POINT_CHARGE`（盜賊）、`UNIT_AURA`（有光環型資源的職業：薩滿、獵人、惡魔獵人、德魯伊、法師、武僧）、
-  `UNIT_HEALTH`／`UNIT_MAXHEALTH`（武僧：醉仙緩勁每跳扣血）、`UNIT_ABSORB_AMOUNT_CHANGED`／`UNIT_MAXHEALTH`（戰士：吸收盾），
+  `UNIT_HEALTH`／`UNIT_MAXHEALTH`（每個職業都註冊：血量列；沒有血量列時只有武僧（醉仙緩勁每跳扣血）與戰士的 `UNIT_MAXHEALTH` 會重畫）、
+  `UNIT_ABSORB_AMOUNT_CHANGED`（戰士：吸收盾），
   全部綁 `player`、**只標髒、下一幀做**。auraBar／auraTimer 的列不需要事件（引擎自己寫）。
   能量事件走「只重畫值」那條（不重算清單、不配表）；清單／格數／尺寸變了才重排。
 - **顯示條件**：`enabled`、`loadConditions`（騎乘或坐載具時隱藏、只在戰鬥中）任一不符 ⇒ alpha 0；
@@ -561,6 +569,10 @@ customRows[specID] = {
   所以不需要 /reload。走 `ns.Write`。**例外**：單位框架（MiliUI_UnitFrames）的玩家框施法條也在隱藏它時
   （問它的公開 API `MiliUI_UnitFrames.HidesPlayerCastBar()`），取消勾選**不裝回**、只清帳 —— 那邊的隱藏是單向的，
   裝回去等於把它藏的條叫回來。設定頁那個開關的說明列有寫。
+- **材質**：下拉多一項「暴雪施法條」（`texture = "blizzard"`，排在「純色」後面；只有施法條有，資源條與自訂格子的選單不加）：
+  填充用遊戲內建施法條的圖集 `UI-CastingBar-Filling-Standard`（`SetStatusBarTexture` 收圖集名；`C_Texture.GetAtlasInfo` 查不到就退回純色、
+  `SetStatusBarTexture` 失敗退回貼圖 `SetAtlas`）、**去飽和**，顏色照原本的上色流程（施法／引導／不可打斷／斷法就緒／蓄力都是對填充貼圖
+  `SetVertexColor`）。一般施法與引導同一張，不依不可打斷換圖（秘密布林）。換材質後火花照舊在 `SetStatusBarTexture` 之後重下錨點；底色照 `bgColor`。
 - **沒在施法**：`hideWhenNotCasting` 開著 ⇒ 容器 alpha 0；關掉 ⇒ 留一條空條。淡出、打斷停留（0.4 秒）期間算「在施法」。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑，帶假延遲），再按一次停；真的開唱就讓位；離開那一頁自動停。
 
@@ -588,16 +600,17 @@ customRows[specID] = {
 
 - **資源條**：顯示、版面（寬、列高、列距、格距、填充方向）、外觀（材質、填充透明度、平滑、數值文字與字級、法力格式）、
   顏色與條件（每種資源的顏色、連擊點數的充能色、醉仙緩勁的中度／重度色與兩個門檻、滿條上限、吸收盾／鐵鬃／引擎寫層數／光環剩餘時間條的說明列、
-  條件規則編輯器——引擎寫的列不列進候選）、**自訂格子**（最上面整組開關；目前專精的清單：每筆一列名字＋圖示＋種類＋
+  血量的職業色／百分比／門檻換色（門檻在彈窗裡編：`Options/HealthThresholds.lua`，一列一個「低於 N% ＋ 色票 ＋ 刪除」，最多 6 筆；
+  設定頁那顆按鈕寫目前筆數）、條件規則編輯器——引擎寫的列與血量不列進候選）、**自訂格子**（最上面整組開關；目前專精的清單：每筆一列名字＋圖示＋種類＋
   「刪除」（確認窗）、一列顏色＋充能的「顯示秒數」／層數的「層數上限」、一列「顯示時機」下拉（選項依種類）；「＋ 新增格子」→ 選「法術充能／光環層數」（兩顆按鈕滑過有
   GameTooltip：標題＋白字說明與舉例；`CreateChoicePopup` 不回傳按鈕，照按鈕字從彈窗子框認回來掛 OnEnter／OnLeave，彈窗 OnHide 一起收提示）
   → 輸入 ID（層數多一欄上限）→ 驗證：`C_Spell.GetSpellInfo`、充能要 `GetSpellCharges` 不是 nil、同專精不收重複，錯誤寫在彈窗裡的灰字列；
   底下小節「位置與錨定」＝ `Specs.Anchor("pips", { other = true })`（跟著哪條走／邊／偏移，寫進 `profile.pips`）＋「跟核心技能一起淡出」＋
   自訂格子自己的載入條件）、
-  這個專精要顯示哪幾列（新資源自動列出）、載入條件、錨定（資源條自己的）、恢復預設（連自訂格子的清單與 `profile.pips` 一起清）。
-  表單照「形狀」快取（專精、候選清單、條件編輯器的結構、自訂格子清單、資源條與自訂格子各自有沒有錨定、錨定圖）：規則／自訂格子增刪之類的結構變動延一幀換一份表單。
+  這個專精要顯示哪幾列（新資源自動列出；每列勾選框＋上移／下移）、載入條件、錨定（資源條自己的）、恢復預設（連自訂格子的清單與 `profile.pips` 一起清）。
+  表單照「形狀」快取（專精、候選清單（含順序）、條件編輯器的結構、自訂格子清單、資源條與自訂格子各自有沒有錨定、錨定圖）：規則／自訂格子增刪之類的結構變動延一幀換一份表單。
   套用時 `Resources.Apply()` 與 `Pips.Apply()` 都叫（樣式兩邊共用）。
-- **施法條**：顯示、隱藏暴雪施法條、版面、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
+- **施法條**：顯示、隱藏暴雪施法條、版面（材質多一項「暴雪施法條」）、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
   效果（火花、刻度、延遲）、沒在施法時隱藏、錨定、恢復預設。
 
 ## 套組接線
@@ -1049,3 +1062,18 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 127. 「開啟 Masque 設定」：先關我們的設定視窗、Masque 的設定出現在最上層並能找到我們的群組；戰鬥中按了沒反應（Masque 自己擋）。
 128. `/console taintLog 2` 打一場：Masque 寫在暴雪 item 上的欄位（`_MSQ_CFG`、Cooldown 的 `_MSQ_Color` 等）沒有讓暴雪的冷卻管理器
      或快捷列出現污染／秘密值錯誤。
+
+**資源條排序、血量條、施法條暴雪材質（2026-10-02）**
+
+129. 血量列（2026-10-02 加）：每個專精的「這個專精要顯示哪些」最後都多一列血量、預設不勾；勾起來出現在最下面。
+     脫戰與副本／M+ 戰鬥中（`UnitHealth` 是秘密值）條都跟著血量動、`smooth` 有內插、數值文字照縮寫印（`AbbreviateNumbers`）、
+     勾「生命力顯示百分比」印百分比；`/mcdm debug` 那一列「秘密 是」也照樣畫。最大生命變了（增益、裝備）上限跟著換。
+     預設職業色；取消「填充用職業色」改用色票的顏色。沒有勾血量列的職業，受傷時資源條不會跟著重畫（`healthShown` 閘）。
+130. 血量門檻換色：開了之後設 50% 橘、20% 紅，脫戰、副本、**M+** 都照段換色（C 端求值，不受秘密值影響）；
+     門檻增刪／改百分比／改色當場生效；改了職業色開關，最高那段（底色）跟著換。門檻彈窗「新增門檻」滿 6 筆時停用。
+131. 施法條材質選「暴雪施法條」：填充是內建施法條的漸層灰階 × 我們的顏色（施法、引導、蓄力四階、斷法就緒）；
+     **不可打斷**的施法變灰（同一張圖、顏色由曲線決定）；打斷／失敗是紅色；火花貼在填充前緣；換回其他材質時不再是灰階。
+     底色仍是 `bgColor`。圖集名若在某個版本查不到會退回純色（看 `/framestack` 填充貼圖）。
+132. 資源條列的順序：在設定頁按上移／下移，畫面上的列與設定頁的「顏色與條件」「這個專精要顯示哪些」三處順序一致；
+     第一列的上移、最後一列的下移是停用的；換專精後，別的專精沒排過的資源維持預設順序、排在排過的後面；
+     `/reload` 後順序照存的；「恢復預設」回到預設順序。
