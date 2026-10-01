@@ -755,6 +755,8 @@ local function Controls(cand, sub)
             elseif key == "Runes" then
                 add(BS("dropdown", "runeText", L["Numbers on runes"], { items = RUNE_TEXT_ITEMS }))
                 add(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show value on the bar\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
+                add(BS("toggle", "runeQueued", L["Count waiting runes"]))
+                add(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
             elseif key == "IgnorePain" then
                 add(Note(L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."]))
             elseif key == "Ironfur" then

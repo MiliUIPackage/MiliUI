@@ -201,6 +201,7 @@ ResourcesDefaults = function()
         showText      = true,
         textSize      = 14,
         runeText      = "countdown",       -- 死騎符文列的數字：countdown 每格秒數／count 中間顆數，showText 開著才有（見 Resources.lua 的 R.RuneText）
+        runeQueued    = true,              -- 排隊中（還沒開始轉）的符文也算：印總等待秒數、填充照整段等待時間走（見 Resources.lua 的 R.RuneProgress）
         manaAbbrev    = CJK[GetLocale and GetLocale() or ""] and "wan" or "k",   -- none | k | wan
         manaPercent   = false,             -- 法力列印百分比而不是數值
         -- 醉仙緩勁：中度／重度的門檻（% 最大生命）、滿條對應幾 % 最大生命
