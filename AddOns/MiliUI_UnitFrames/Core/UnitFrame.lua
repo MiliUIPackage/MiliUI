@@ -447,7 +447,8 @@ function ns.ApplyFrameFade(uf)
     -- 會註冊 range_vehicle，而舊的 range_player 沒人 Unbind（Unbind 只認新 key）
     -- ⇒ 留一個孤兒項目在 metroEntries 裡繼續每 0.2 秒跑
     local key = "range_" .. (uf.baseUnit or uf.unit)
-    if uf.isPreview or not uf.db.frame.fadeOutOfRange then
+    -- 玩家框永遠在距離內（設定頁也不給這個選項），舊存檔勾過的 true 在這裡失效，免得白輪詢
+    if uf.isPreview or not uf.db.frame.fadeOutOfRange or (uf.baseUnit or uf.unit) == "player" then
         ns.Metro.Unbind(uf, key)
     else
         uf.rangeFn = uf.rangeFn or function() ns.Visibility.ApplyAlpha(uf) end
