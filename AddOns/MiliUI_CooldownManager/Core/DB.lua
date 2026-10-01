@@ -71,7 +71,7 @@ local function IconBar(o)
         layout     = {
             maxPerRow  = o.maxPerRow or 8,
             spacing    = 1,
-            grow       = o.grow or "CENTER_DOWN",   -- <CENTER|LEFT|RIGHT>_<DOWN|UP>
+            grow       = o.grow or "CENTER_DOWN",   -- <CENTER|LEFT|RIGHT>_<DOWN|UP>（橫向）或 <DOWN|UP>_<RIGHT|LEFT>（直向）
             size       = { w = o.w, h = o.h },
             row2Size   = false,                     -- false ＝ 第二列起跟第一列同尺寸；或 { w, h }
             fixedSlots = o.fixedSlots or false,     -- 增益不在時保留空位

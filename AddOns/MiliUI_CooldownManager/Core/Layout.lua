@@ -18,6 +18,10 @@
 --   * grow ＝ "<橫向>_<縱向>"。橫向 CENTER／LEFT／RIGHT 是**對齊**：每列各自置中／靠左／
 --     靠右，列內順序一律由左到右（第一格在最左）。縱向 DOWN／UP 是換列方向：DOWN 第一列在
 --     最上面、往下長；UP 第一列在最下面、往上長。
+--   * 直向（只有圖示）：grow ＝ "<伸展>_<換列>"，伸展 DOWN／UP、換列 RIGHT／LEFT（"DOWN_RIGHT"…）。
+--     一列（直的那一排）由第一格往伸展方向排，滿了 maxPerRow 往換列那一邊開下一列；每列各自貼齊
+--     起點那一端（DOWN 貼頂、UP 貼底）。第二列起用 row2Size。anchorPoint：伸展 DOWN → TOP…、
+--     UP → BOTTOM…；換列 RIGHT → …LEFT、LEFT → …RIGHT（起點那個角不動）。
 --   * 長條（kind = "bars"）一列一條，橫向那半不看：錨點只有 TOP／BOTTOM。
 --   * 第一列用 size，第二列起用 row2Size（false ＝ 跟第一列一樣）。
 --   * 容器寬取最寬那列，每列在容器裡各自對齊。
@@ -59,6 +63,16 @@ function Layout.ParseGrow(grow)
     return h, v
 end
 
+-- "DOWN_RIGHT" → "DOWN", "RIGHT"；不是直向的值回 nil（橫向那一套照舊走 ParseGrow）
+local COL_GROW = { DOWN = true, UP = true }
+local COL_WRAP = { LEFT = true, RIGHT = true }
+function Layout.ParseColumn(grow)
+    if type(grow) ~= "string" then return nil end
+    local g, w = grow:match("^(%u+)_(%u+)$")
+    if COL_GROW[g] and COL_WRAP[w] then return g, w end
+    return nil
+end
+
 function Layout.AnchorPoint(h, v, kind)
     local vert = (v == "UP") and "BOTTOM" or "TOP"
     if kind == "bars" or h == "CENTER" then return vert end
@@ -71,8 +85,58 @@ local function Dim(size, fallbackW, fallbackH)
     return max(0, w or fallbackW), max(0, h or fallbackH)
 end
 
+-- 直向：一列是直的一排，列往左或右開
+local function ComputeColumns(n, layout, growDir, wrapDir)
+    local anchorPoint = ((growDir == "UP") and "BOTTOM" or "TOP") .. ((wrapDir == "LEFT") and "RIGHT" or "LEFT")
+    local rects = {}
+    if n == 0 then return rects, 0, 0, anchorPoint end
+    local perCol = floor(tonumber(layout.maxPerRow) or n)
+    if perCol < 1 then perCol = 1 end
+    local w1, h1 = Dim(layout.size, 36, 36)
+    local w2, h2 = w1, h1
+    if type(layout.row2Size) == "table" then
+        w2, h2 = Dim(layout.row2Size, w1, h1)
+    end
+    w1, h1, w2, h2 = Snap(w1), Snap(h1), Snap(w2), Snap(h2)
+    local spacing = Snap(max(0, tonumber(layout.spacing) or 0))
+
+    local cols = {}
+    local totalW, totalH = 0, 0
+    local i = 1
+    while i <= n do
+        local c = #cols + 1
+        local count = n - i + 1
+        if count > perCol then count = perCol end
+        local w, h = w1, h1
+        if c > 1 then w, h = w2, h2 end
+        local colH = count * h + (count - 1) * spacing
+        cols[c] = { first = i, count = count, w = w, h = h }
+        if colH > totalH then totalH = colH end
+        totalW = totalW + w + (c > 1 and spacing or 0)
+        i = i + count
+    end
+
+    local cursor = 0
+    for c = 1, #cols do
+        local col = cols[c]
+        local x
+        if wrapDir == "LEFT" then x = totalW - cursor - col.w else x = cursor end
+        cursor = cursor + col.w + spacing
+        for k = 0, col.count - 1 do
+            local y = k * (col.h + spacing)
+            if growDir == "UP" then y = totalH - y - col.h end
+            rects[col.first + k] = { x = x, y = y, w = col.w, h = col.h }
+        end
+    end
+    return rects, totalW, totalH, anchorPoint
+end
+
 function Layout.Compute(items, layout, kind)
     layout = type(layout) == "table" and layout or {}
+    if kind ~= "bars" then
+        local g, w = Layout.ParseColumn(layout.grow)
+        if g then return ComputeColumns(type(items) == "table" and #items or 0, layout, g, w) end
+    end
     local hAlign, vDir = Layout.ParseGrow(layout.grow)
     local anchorPoint = Layout.AnchorPoint(hAlign, vDir, kind)
 
@@ -151,6 +215,13 @@ end
 function Layout.FirstRowWidth(n, layout)
     layout = type(layout) == "table" and layout or {}
     if not n or n <= 0 then return 0 end
+    -- 直向：看得到的寬是全部列加起來（第一列只有一格寬，拿它當基準沒意義）
+    if Layout.ParseColumn(layout.grow) then
+        local items = {}
+        for k = 1, n do items[k] = k end
+        local _, w = Layout.Compute(items, layout, "icons")
+        return w
+    end
     local perRow = floor(tonumber(layout.maxPerRow) or n)
     if perRow < 1 then perRow = 1 end
     local count = n < perRow and n or perRow
