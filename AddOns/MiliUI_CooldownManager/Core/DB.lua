@@ -292,7 +292,8 @@ CastbarDefaults = function()
 end
 
 function DB.BuildDefaults()
-    local buffbars = LongBar{ source = "buffbars", pos = { point = "BOTTOM", x = 0, y = 300 } }
+    -- 位置：使用者 2026-10-01 指定（照使用者調好的那份），不遷移
+    local buffbars = LongBar{ source = "buffbars", pos = { point = "BOTTOM", x = 0, y = 544 } }
 
     return {
         account = {
