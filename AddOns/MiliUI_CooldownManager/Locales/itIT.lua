@@ -64,6 +64,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "Aggiungilo prima nel 
 L["Add spells to this bar"] = "Aggiungi incantesimi a questa barra"
 L["Left-click: settings for this spell"] = "Clic sinistro: impostazioni di questo incantesimo"
 L["Middle-click: remove"] = "Clic centrale: rimuovi"
+L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons onto it."] = "Non c'è ancora nulla qui per questa specializzazione. Aggiungi incantesimi con \"+\" o trascinaci sopra le icone."
 L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."] = "Il tracciamento dei monili di Blizzard è inaffidabile. Per tracciare un monile, aggiungilo con \"Oggetto\" e il suo ID oggetto."
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "Il gestore dei tempi di recupero di Blizzard non sta mostrando questa voce, quindi non può apparire sulla barra."
 L["Drag: reorder, or drop on a group on the left"] = "Trascina: riordina o rilascia su un gruppo a sinistra"

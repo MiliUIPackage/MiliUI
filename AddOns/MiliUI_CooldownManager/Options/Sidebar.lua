@@ -196,11 +196,42 @@ local function EnsureButton(id)
         b = W.CreateButton(child, "", "accent-hover", btnW, BTN_H)
         b.id = id
         b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        -- 這個專精沒有內容的自訂群組：整顆變暗，滑過說明（群組是設定檔裡所有角色共用的版面位置，
+        -- 內容才是按專精存；使用者 2026-10-01 定案：不列範圍、只標暗）
+        b:HookScript("OnEnter", function(self)
+            if not self.emptyForSpec then return end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(Label(self.id) or self.id)
+            GameTooltip:AddLine(L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons onto it."], 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        b:HookScript("OnLeave", function(self)
+            if self.emptyForSpec then GameTooltip:Hide() end
+        end)
         byId[id] = b
     end
     b:SetText(Label(id) or id)
     return b
 end
+
+-- 自訂群組在目前專精有沒有內容：沒有就整顆變暗。目錄變、專精變、預覽拖了東西都要重算
+function Sidebar.RefreshEmpty()
+    local C = ns.Catalog
+    if not (C and C.Bar) then return end
+    for id, b in pairs(byId) do
+        local empty = false
+        if b.custom and ns.DB.BarTable(id) then
+            local ok, list = pcall(C.Bar, id)
+            empty = ok and type(list) == "table" and #list == 0
+        end
+        b.emptyForSpec = empty
+        b:SetAlpha(empty and 0.45 or 1)
+    end
+end
+
+ns.RegisterCallback("CatalogChanged", "sidebar_empty", function() Sidebar.RefreshEmpty() end)
+ns.RegisterCallback("SpecChanged", "sidebar_empty", function() Sidebar.RefreshEmpty() end)
+ns.RegisterCallback("OptionsShown", "sidebar_empty", function() Sidebar.RefreshEmpty() end)
 
 ------------------------------------------------------------
 -- 縱向排版
@@ -284,6 +315,7 @@ function Sidebar.Rebuild()
         end)
     end
     Sidebar.Relayout()
+    Sidebar.RefreshEmpty()
     if current then Sidebar.Highlight(current) end
 end
 
