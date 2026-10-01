@@ -600,6 +600,105 @@ SetInputError = function(popup, why)
         popup:SetHeight(n.baseH)
     end
 end
+------------------------------------------------------------
+-- 「開啟天賦與法術書」按鈕：放在法術 ID 輸入彈窗裡，開了就能 Shift 點法術填 ID
+--
+-- 12.1 起插件 Lua 不能自己開天賦視窗（直接呼叫會把它染髒，之後秘密值就炸），
+-- 只能走 secure 點擊轉發：SecureActionButton 的 macrotext「/click PlayerSpellsMicroButton」，
+-- 做法與踩過的點見 MiliUI_InfoBar/Core/MicroMenu.lua（**不能用 clickbutton 框參照**）。
+--
+-- secure 鈕不能是彈窗的子框、也不能錨在彈窗上（被 secure 框錨定的框戰鬥中會變保護框），
+-- 所以分兩層：
+--   * 看得見的按鈕：彈窗裡一顆普通的 W 按鈕，不吃滑鼠，只負責長相與版面
+--   * 吃點擊的 secure 鈕：掛 UIParent、全插件共用一顆，照那顆按鈕的**絕對座標**疊上去
+--     （延一幀量；彈窗長高（說明列）時重量）。滑過時替看得見的那顆上滑過色
+-- 戰鬥紀律：建立／Show／SetPoint 戰鬥中都違禁 → 進戰鬥（REGEN_DISABLED，lockdown 前最後窗口）
+-- 先藏，脫戰再擺回來。戰鬥中設定視窗本來就被戰鬥遮罩蓋住，按不到也沒關係。
+--
+--   Picker.AddSpellsOpener(popup)   在輸入彈窗最下面（確定／取消上面）加一列這顆按鈕；
+--                                   要在第一次 SetInputError 之前叫（那裡會記下彈窗的基準高度）
+------------------------------------------------------------
+local OPENER_TARGET = "PlayerSpellsMicroButton"
+local openerSecure          -- 共用的 secure 鈕
+local openerBound           -- 現在疊在哪顆看得見的按鈕上
+
+local function PlaceOpener()
+    local sb, vis = openerSecure, openerBound
+    if not (sb and vis) or InCombatLockdown() then return end
+    local popup = vis:GetParent()
+    if not (popup and popup:IsVisible()) then sb:Hide() return end
+    local l, b, w, h = vis:GetRect()
+    if not (l and w and w > 0) then return end
+    local s = vis:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    sb:ClearAllPoints()
+    sb:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", l * s, b * s)
+    sb:SetSize(w * s, h * s)
+    sb:Show()
+end
+
+local function PlaceOpenerSoon()
+    C_Timer.After(0, function() xpcall(PlaceOpener, ns.ReportError or geterrorhandler()) end)
+end
+
+local function EnsureOpenerSecure()
+    if openerSecure then return openerSecure end
+    if InCombatLockdown() or not _G[OPENER_TARGET] then return nil end
+    local sb = CreateFrame("Button", "MiliUICDM_SpellsOpener", UIParent, "SecureActionButtonTemplate")
+    sb:SetFrameStrata("FULLSCREEN_DIALOG")
+    sb:SetFrameLevel(430)       -- 彈窗 410 之上、戰鬥遮罩 500 之下
+    sb:RegisterForClicks("AnyUp")
+    sb:SetAttribute("*type1", "macro")
+    sb:SetAttribute("*macrotext1", "/click " .. OPENER_TARGET)
+    sb:SetAttribute("useOnKeyDown", false)
+    sb:Hide()
+    -- 只掛滑過，**OnClick 一行 Lua 都不能有**（會把轉發出去的點擊染髒）
+    sb:HookScript("OnEnter", function()
+        if openerBound then W.PaintButton(openerBound, true) end
+    end)
+    sb:HookScript("OnLeave", function()
+        if openerBound then W.PaintButton(openerBound, false) end
+    end)
+    sb:RegisterEvent("PLAYER_REGEN_DISABLED")
+    sb:RegisterEvent("PLAYER_REGEN_ENABLED")
+    sb:SetScript("OnEvent", function(self, event)
+        if event == "PLAYER_REGEN_DISABLED" then
+            self:Hide()
+        else
+            PlaceOpenerSoon()
+        end
+    end)
+    openerSecure = sb
+    return sb
+end
+
+function Picker.AddSpellsOpener(popup)
+    local h0 = popup:GetHeight()
+    if type(h0) ~= "number" or h0 <= 0 then return end
+    local vis = W.CreateButton(popup, L["Open talents & spellbook"], "normal", 80, 22)
+    local fs = vis:GetFontString()
+    local tw = fs and fs:GetStringWidth() or 0
+    P.Size(vis, math.min(INPUT_W - 28, math.max(80, math.ceil(tw) + 24)), 22)
+    -- 確定／取消那一列（下緣 12＋高 22＋上緣 12）正上方，接在最後一個欄位／說明後面
+    vis:SetPoint("TOPLEFT", popup, "TOPLEFT", 14, -(h0 - 46))
+    vis:EnableMouse(false)      -- 點擊交給疊在上面的 secure 鈕
+    P.Height(popup, h0 + 22 + 10)
+    popup:HookScript("OnShow", function()
+        if not EnsureOpenerSecure() then vis:Disable() return end
+        vis:Enable()
+        openerBound = vis
+        PlaceOpenerSoon()
+    end)
+    popup:HookScript("OnHide", function()
+        if openerBound ~= vis then return end
+        W.PaintButton(vis, false)
+        if openerSecure and not InCombatLockdown() then openerSecure:Hide() end
+    end)
+    -- 說明列出現／收起會改高度（彈窗置中 → 按鈕跟著移），重量一次
+    popup:HookScript("OnSizeChanged", function()
+        if openerBound == vis and popup:IsShown() then PlaceOpenerSoon() end
+    end)
+end
+
 -- 資源條頁的「自訂格子」也用同一套（寬度要是 INPUT_W 的彈窗）
 Picker.SetInputError = SetInputError
 Picker.INPUT_W = INPUT_W
@@ -712,6 +811,7 @@ function Picker.AskCustom(kind)
                   or L["Find it in the spell's link or on a database site."])
                   .. " " .. L["Or Shift-click it in your bags, spellbook or talents to fill in the ID."] },
         })
+        if kind ~= "item" then Picker.AddSpellsOpener(popup) end
         inputs[kind] = popup
     end
     SetInputError(popup, nil)
