@@ -929,25 +929,24 @@ local function LayoutRow(row, key, edb, numSeg)
         return
     end
 
-    local spacing = ns.P.Scale(edb.spacing or 1)
-    -- 格寬是除出來的小數 → 一定要對齊實體像素，不然每格寬度／間距會忽大忽小
-    local rawW, rawGap = edb.totalw or 200, edb.spacing or 1
-    local segW = ns.P.Scale((rawW - rawGap * (numSeg - 1)) / numSeg)
+    -- 每格的左右邊界在整數實體像素上各自四捨五入，零頭平均分到各格，最後一格的右緣一定落在總寬上。
+    -- ⚠ 不能「格寬先對齊像素、再一格接一格串」：每格的捨入誤差會累積，整列比同寬的長條多出幾 px
+    local px = ns.P.Scale(1)
+    if not px or px <= 0 then px = 1 end
+    local gp = math.max(0, math.floor((edb.spacing or 1) + 0.5))
+    local span = math.floor(totalW / px + 0.5) + gp
     local isRune = def.fill == "rune" and edb.showText and RuneText(edb) == "countdown"
     for i = 1, numSeg do
         local seg = row.segs[i]
+        local x0 = math.floor((i - 1) * span / numSeg + 0.5)
+        local x1 = math.floor(i * span / numSeg + 0.5) - gp
+        local segW = (x1 - x0) * px
         seg:SetSize(segW, h)
         seg:ClearAllPoints()
-        if i == 1 then
-            if reversed then
-                seg:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, 0)
-            else
-                seg:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
-            end
-        elseif reversed then
-            seg:SetPoint("RIGHT", row.segs[i - 1], "LEFT", -spacing, 0)
+        if reversed then
+            seg:SetPoint("TOPRIGHT", row, "TOPRIGHT", -x0 * px, 0)
         else
-            seg:SetPoint("LEFT", row.segs[i - 1], "RIGHT", spacing, 0)
+            seg:SetPoint("TOPLEFT", row, "TOPLEFT", x0 * px, 0)
         end
         -- 填色貼在填充起點那一側、寬度由這裡給：符文回充時只改寬度（見 SetSegFill），其他資源永遠滿寬
         seg.fullW = segW
