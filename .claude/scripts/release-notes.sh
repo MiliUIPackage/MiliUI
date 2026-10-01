@@ -5,9 +5,11 @@
 #
 # 用法：release-notes.sh <插件資料夾名> <tag 的 grep -E 樣式> <這次的 tag> <這次的版本號>
 #   例：release-notes.sh MiliUI_UnitFrames '^Miliui_UnitFrames-[0-9.]+$' Miliui_UnitFrames-1.4.3 1.4.3
+# 一次發佈多個資料夾時用空白隔開，第一個當名稱：
+#   例：release-notes.sh "Ayije_CDM Ayije_CDM_Options" '^Ayije_CDM-[0-9.]+_MiliUI$' Ayije_CDM-3.93_MiliUI 3.93_MiliUI
 #
 # 區間＝同類 tag 裡最新的一個（排除這次的 tag，重發同一版時才不會變空區間）..這次的 tag，
-# 只看 AddOns/<插件>。這次的 tag 還不存在就算到 HEAD。
+# 只看 AddOns/<插件>（多個資料夾就全部一起看）。這次的 tag 還不存在就算到 HEAD。
 # 成功：stdout 印出一行 HTML、exit 0。失敗：stdout 空、exit 1，原因印在 stderr。
 # 呼叫端失敗時照舊上傳、不帶說明。
 # ============================================================
@@ -20,6 +22,11 @@ if [ -z "${ADDON}" ] || [ -z "${TAG_PATTERN}" ] || [ -z "${CUR_TAG}" ] || [ -z "
     echo "用法：release-notes.sh <插件> <tag 樣式> <這次的 tag> <版本號>" >&2
     exit 1
 fi
+read -r -a ADDON_DIRS <<< "${ADDON}"
+ADDON="${ADDON_DIRS[0]}"
+PATHS=()
+for D in "${ADDON_DIRS[@]}"; do PATHS+=("AddOns/${D}"); done
+PATHS_TEXT="${PATHS[*]}"
 
 # 技能在 Interface repo 的 .claude/skills/，claude 要在這裡跑才讀得到
 cd "/Applications/World of Warcraft/_retail_/Interface" || exit 1
@@ -42,8 +49,8 @@ else
     TO_REF="HEAD"
 fi
 
-if [ -z "$(git rev-list -n1 "${PREV_TAG}..${TO_REF}" -- "AddOns/${ADDON}")" ]; then
-    echo "⚠️ ${PREV_TAG}..${TO_REF} 之間 AddOns/${ADDON} 沒有任何 commit，略過更新說明" >&2
+if [ -z "$(git rev-list -n1 "${PREV_TAG}..${TO_REF}" -- "${PATHS[@]}")" ]; then
+    echo "⚠️ ${PREV_TAG}..${TO_REF} 之間 ${PATHS_TEXT} 沒有任何 commit，略過更新說明" >&2
     exit 1
 fi
 
@@ -51,7 +58,7 @@ echo "📝 Claude 撰寫更新說明中（${PREV_TAG}..${TO_REF}，最多等 5 �
 NOTES_OUT="$(mktemp -t miliui_notes)"
 NOTES_ERR="/tmp/miliui_notes_${ADDON}_err.log"
 NOTES_START=$(date +%s)
-"${CLAUDE_BIN}" -p "用 miliui-release-notes 技能的「網站模式」，寫 ${ADDON} ${PREV_TAG}..${TO_REF} 的更新說明（只看 AddOns/${ADDON}；這次版本號 ${VER}）。回覆只能有那段 HTML。" \
+"${CLAUDE_BIN}" -p "用 miliui-release-notes 技能的「網站模式」，寫 ${ADDON} ${PREV_TAG}..${TO_REF} 的更新說明（只看 ${PATHS_TEXT}；這次版本號 ${VER}）。回覆只能有那段 HTML。" \
     --allowedTools Skill Read Grep Glob \
         "Bash(git log:*)" "Bash(git show:*)" "Bash(git diff:*)" \
         "Bash(git for-each-ref:*)" "Bash(git rev-list:*)" "Bash(git tag:*)" \
