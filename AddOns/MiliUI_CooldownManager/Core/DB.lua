@@ -338,8 +338,12 @@ function DB.BuildDefaults()
                                      w = 26, h = 24,
                                      anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM",
                                                 x = 0, y = -1 } },
+                -- 預設在施法條上方（使用者 2026-10-01 指定，不遷移）：錨在核心技能上方，
+                -- 排開順序施法條在前 ⇒ 實際貼在施法條外緣；施法條關掉就接到資源條外面
                 buffs     = IconBar{ source = "buffs",     pos = { point = "CENTER", x = 0, y = -149 },
-                                     w = 40, h = 36, grow = "CENTER_UP" },
+                                     w = 40, h = 36, grow = "CENTER_UP",
+                                     anchor = { to = "essential", point = "BOTTOM", relPoint = "TOP",
+                                                x = 0, y = 1 } },
                 buffbars  = buffbars,
             },
             barOrder = { "essential", "utility", "buffs", "buffbars" },   -- 左欄順序，自訂群組接在後面
