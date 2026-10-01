@@ -98,8 +98,8 @@ ns.RefreshSpec()
 DB.Init()
 local sv = env.MiliUI_CooldownManager_DB
 check("SV 建立", type(sv) == "table")
-eq("schemaVersion", sv.schemaVersion, 1)
-eq("DB_VERSION", ns.DB_VERSION, 1)
+eq("schemaVersion", sv.schemaVersion, ns.DB_VERSION)
+eq("DB_VERSION", ns.DB_VERSION, 2)
 check("MIGRATIONS 有版本 1", type(DB.MIGRATIONS[1]) == "function")
 eq("預設設定檔名", ns.profileName, "Default")
 eq("profileKeys 記下角色", sv.profileKeys["米利 - 世界之樹"], "Default")
@@ -294,26 +294,45 @@ eq("anchor = false 不被預設表蓋回來", S("utility", "anchor"), false)
 ------------------------------------------------------------
 local calls = 0
 local real = DB.MIGRATIONS[1]
+local real2 = DB.MIGRATIONS[2]
 DB.MIGRATIONS[1] = function() calls = calls + 1 end
+DB.MIGRATIONS[2] = function() end
 DB.MigrateProfile({}, 0)
-eq("從 0 補到 1 跑一次", calls, 1)
+eq("從 0 補到最新：v1 跑一次", calls, 1)
 DB.MigrateProfile({}, 1)
-eq("已是 1 不再跑", calls, 1)
+eq("已是 1 不再跑 v1", calls, 1)
 
 calls = 0
 sv.schemaVersion = 0
 sv.schemaVersionSeen = nil
 DB.Init()
 eq("舊 SV：每份設定檔各跑一次", calls, 1)
-eq("舊 SV：版本推到目前", sv.schemaVersion, 1)
+eq("舊 SV：版本推到目前", sv.schemaVersion, ns.DB_VERSION)
 
 calls = 0
 sv.schemaVersion = 5
 DB.Init()
-eq("較新的 SV：版本壓回目前", sv.schemaVersion, 1)
+eq("較新的 SV：版本壓回目前", sv.schemaVersion, ns.DB_VERSION)
 eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, 5)
 eq("較新的 SV：不跑遷移", calls, 0)
 DB.MIGRATIONS[1] = real
+DB.MIGRATIONS[2] = real2
+
+-- v2：施法條材質的預設改成暴雪施法條（值閘：舊預設或沒存才換）
+do
+    local function mig(tex)
+        local p = { castbar = { texture = tex } }
+        DB.MigrateProfile(p, 1)
+        return p.castbar.texture
+    end
+    eq("v2：舊預設 solid → blizzard", mig("solid"), "blizzard")
+    eq("v2：沒存 → blizzard", mig(nil), "blizzard")
+    eq("v2：玩家選過的不碰", mig("TukTex"), "TukTex")
+    local p = {}
+    DB.MigrateProfile(p, 1)
+    eq("v2：沒有施法條表不報錯", p.castbar, nil)
+    eq("新設定檔：施法條預設暴雪材質", DB.BuildDefaults().profile.castbar.texture, "blizzard")
+end
 
 ------------------------------------------------------------
 -- 9. 其他

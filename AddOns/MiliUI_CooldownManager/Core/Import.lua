@@ -941,6 +941,8 @@ local function StepCastbar(ctx)
     if v and v >= 0 then cb.iconGap = v end
     v = Texture(Take(ctx, "castBarTexture"))
     if v then cb.texture = v end
+    -- 對方「用暴雪的施法條圖」勾著 ⇒ 對到我們的「暴雪施法條」（顏色仍照下面的施法色，不是暴雪原色）
+    if Take(ctx, "castBarUseAtlasTextures") == true then cb.texture = "blizzard" end
     v = Color(Take(ctx, "castBarBackgroundColor"))
     if v then cb.bgColor = v end
     if type(cb.colors) ~= "table" then cb.colors = {} end
@@ -1445,7 +1447,7 @@ local NO_EQUIVALENT = {
     glowAutocastScale = true, glowAutocastXOffset = true, glowAutocastYOffset = true,
     glowProcDuration = true, glowProcXOffset = true, glowProcYOffset = true,
     castBarNameOffsetX = true, castBarNameOffsetY = true, castBarTimerOffsetX = true, castBarTimerOffsetY = true,
-    castBarBackgroundTexture = true, castBarEmpowerWindUpColor = true, castBarUseAtlasTextures = true,
+    castBarBackgroundTexture = true, castBarEmpowerWindUpColor = true,
     castBarPreviewEnabled = true, castBarFillDirection = true,
     spellRegistry = true,
 }

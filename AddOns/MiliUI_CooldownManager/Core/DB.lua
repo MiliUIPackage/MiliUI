@@ -27,7 +27,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 1
+ns.DB_VERSION = 2
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -269,7 +269,7 @@ CastbarDefaults = function()
         anchor        = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬（含圖示）
         height        = 20,
-        texture       = "solid",
+        texture       = "blizzard",        -- 暴雪施法條的漸層圖（去色後照下面的顏色染）；v2 起的預設（使用者 2026-10-02 指定）
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
         colors        = {
             cast            = rgba(0.906, 0.424, 0.2),
@@ -421,6 +421,13 @@ end
 local MIGRATIONS = {
     -- v1：初版。沒有舊資料要搬，留著當第一個條目與寫法範本。
     [1] = function(profile) end,
+    -- v2（2026-10-02）：施法條材質的預設從純色改成「暴雪施法條」（使用者指定要遷移）。
+    -- 值閘：還是舊預設（"solid"）或沒存的才換；玩家選過別的材質（含從另一支插件匯入的）不碰
+    [2] = function(profile)
+        local cb = profile.castbar
+        if type(cb) ~= "table" then return end
+        if cb.texture == nil or cb.texture == "solid" then cb.texture = "blizzard" end
+    end,
 }
 DB.MIGRATIONS = MIGRATIONS
 

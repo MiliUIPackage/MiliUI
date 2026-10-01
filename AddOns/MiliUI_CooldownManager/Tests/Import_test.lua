@@ -627,6 +627,13 @@ local lines = Import.SummaryLines({ profiles = 2, groups = 3, groupsPending = 2,
                                     cats = { "trinkets", "assist" }, other = 5 }, "Ayije：Default")
 eq("摘要行數（含飾品提示）", #lines, 5)
 check("摘要第一行有設定檔名", lines[1]:find("Ayije：Default", 1, true) ~= nil)
+do
+    -- 對方勾了「用暴雪的施法條圖」⇒ 我們的「暴雪施法條」；沒勾照它的材質名
+    local a = Import.Convert({ castBarUseAtlasTextures = true, castBarTexture = "Solid" }, {})
+    eq("施法條 暴雪圖集 ⇒ blizzard", a.castbar and a.castbar.texture, "blizzard")
+    local b = Import.Convert({ castBarUseAtlasTextures = false, castBarTexture = "TukTex" }, {})
+    eq("施法條 沒勾圖集 ⇒ 照材質名", b.castbar and b.castbar.texture, "TukTex")
+end
 eq("Convert 收 nil 不報錯", type(select(2, Import.Convert(nil, {}))), "table")
 
 print(("Import_test: %d passed, %d failed"):format(passed, failed))
