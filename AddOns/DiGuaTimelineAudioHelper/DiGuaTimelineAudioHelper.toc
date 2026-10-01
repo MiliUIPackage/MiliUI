@@ -7,7 +7,7 @@
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 2.0.2
+## Version: 2.0.3
 ## SavedVariables: DiGuaTimelineAudioHelper
 
 Utils.lua

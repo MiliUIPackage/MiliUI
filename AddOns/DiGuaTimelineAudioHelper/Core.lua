@@ -59,8 +59,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if db.ringY == nil then db.ringY = 0 end -- 倒计时圆环定位框 Y
             if db.tenSecCountDown == nil then db.tenSecCountDown = false end
             if db.coTankAuraEnabled == nil then db.coTankAuraEnabled = false end
+            if db.coTankSize == nil then db.coTankSize = 0 end -- 副坦减益图标大小档位（-2~9，0=默认 48px）
             if db.playerDebuffEnabled == nil then db.playerDebuffEnabled = false end -- 玩家减益图标（默认关）
-            if db.playerDebuffSize == nil then db.playerDebuffSize = 0 end -- 玩家减益图标大小档位（0~9，0=默认小）
+            if db.playerDebuffSize == nil then db.playerDebuffSize = 0 end -- 玩家减益图标大小档位（-2~9，0=默认 48px）
             if db.bossVoiceEnabled == nil then db.bossVoiceEnabled = true end
             if db.raidVoiceDisabled == nil then db.raidVoiceDisabled = false end -- 禁用团本语音（默认不勾选）
             if db.forceEncounterWarnings == nil then db.forceEncounterWarnings = true end
@@ -150,7 +151,9 @@ end)
 
 -- 4. 控制台 UI 界面构建
 local f = CreateFrame("Frame", "DiGuaTimelineMainFrame", UIParent, "BasicFrameTemplateWithInset")
-f:SetSize(470, 440) -- 加宽为左右两栏布局：左听觉 / 右视觉（高度 440：右栏底部多一个「自动跳过过场动画」）
+f:SetSize(470, 560) -- 加宽为左右两栏布局：左听觉 / 右视觉
+-- 高度 560：右栏含 3 组「勾选项 + 大小滑块」，滑块竖直占位恒为 SLIDER_H(46px)，
+-- 末尾控件到 -465，留出 60px 底部空间（含标题栏）
 f:SetPoint("CENTER")
 f:SetMovable(true)
 f:EnableMouse(true)
@@ -209,6 +212,41 @@ local function CreateCheckButton(name, labelText, xOffset, yOffsetY, onClickFunc
     cbText:SetTextColor(1, 0.82, 0)
     cb:SetScript("OnClick", onClickFunc)
     return cb
+end
+
+-- 大小滑块统一构建器（默认 0~9 档；两个减益滑块用 -2~9，负档 = 比默认更小）
+-- ⚠️ 关键：显式接管标题/数值/两端标签的锚点，不依赖 OptionsSliderTemplate 的隐式锚定。
+--    模板自带锚点会让标题贴着上一行、标签飘到很远，导致「看起来间距忽大忽小」。
+--    ★ 这里把标题放到**滑块下方**（不再占滑块上方空间），滑块上方零占用，
+--      所以「勾选项 → 滑块」只需小间距，整体自然往下排，不会往上挤。
+--    ★ 数值与「小/大」标签一并隐藏：标题已说明用途，少三层文字最干净，也让高度可预测。
+local SLIDER_H = 34 -- 本体16 + 间距2 + 标题一行(约14) + 余量2
+local function CreateSizeSlider(name, labelText, xOffset, yOffsetY, minStep, maxStep)
+    local s = CreateFrame("Slider", name, f, "OptionsSliderTemplate")
+    s:SetPoint("TOPLEFT", xOffset, yOffsetY)
+    s:SetMinMaxValues(tonumber(minStep) or 0, tonumber(maxStep) or 9)
+    s:SetValueStep(1)
+    s:SetObeyStepOnDrag(true)
+    s:SetWidth(190 * 0.92)
+    s:SetHeight(16)
+
+    -- 标题：放在本体下方、居中
+    local text = _G[name .. "Text"]
+    if text then
+        text:ClearAllPoints()
+        text:SetPoint("TOP", s, "BOTTOM", 0, -3)
+        text:SetJustifyH("CENTER")
+        text:SetText(labelText)
+        text:SetTextColor(1, 0.82, 0)
+        text:Show()
+    end
+    -- 数值与两端标签：隐藏（标题已够说明，避免下方挤三层文字）
+    local value = _G[name .. "Value"]
+    if value then value:Hide() end
+    local low, high = _G[name .. "Low"], _G[name .. "High"]
+    if low then low:Hide() end
+    if high then high:Hide() end
+    return s, text, value, low, high
 end
 
 -- ===== 左栏：听觉 =====
@@ -323,25 +361,50 @@ end)
 -- 团本中关闭倒计时圆环（勾选=团本战斗中不再显示任何倒计时圆环；默认不勾选=团本正常显示）
 -- 只拦倒计时圆环，语音播报 / 中央倒计时 / 首领血量等都不受影响
 -- 判定在 Utils.lua 的 StartCircleTimerBySeconds 内部统一生效，所以所有调用点都被覆盖
-local cbRaidRing = CreateCheckButton("DiGuaTimelineRaidRingCheck", "團本中關閉倒計時圓環", 250, -360, function(self)
+local cbRaidRing = CreateCheckButton("DiGuaTimelineRaidRingCheck", "團本中關閉倒計時圓環", 250, -475, function(self)
     local disabled = self:GetChecked()
     DiGuaTimelineAudioHelper.raidRingDisabled = disabled
-    -- 勾選時立刻清掉正在顯示的圓環
+    -- 勾选时立刻清掉正在显示的圆环
     if disabled and addonTable.ForceHideRingFrame then
         addonTable.ForceHideRingFrame()
     end
     print("|cffffd100[DiGua]|r 團本中關閉倒計時圓環: " .. (disabled and "|cffff0000已勾選（團本戰鬥中不顯示圓環）|r" or "|cff00ff00未勾選（團本正常顯示）|r"))
 end)
 
-local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦私有光環監控(暫時無法使用)", 250, -80, function(self)
+local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦減益監控", 250, -80, function(self)
     DiGuaTimelineAudioHelper.coTankAuraEnabled = self:GetChecked()
-    print("|cffffd100[DiGua]|r 副坦私有光環監控(暫時無法使用): " .. (DiGuaTimelineAudioHelper.coTankAuraEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
+    print("|cffffd100[DiGua]|r 副坦減益監控: " .. (DiGuaTimelineAudioHelper.coTankAuraEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     
     if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(f:IsShown()) end
     if addonTable.UpdateRaidTankAuras then addonTable.UpdateRaidTankAuras() end
 end)
 
-local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "自動開啟暴雪文字預警", 250, -105, function(self)
+-- 副坦减益图标大小滑块（-2~9 档，0 档 = 100%=48px，负档更小、正档更大；图标/间距一起缩放）
+-- 放在“副坦减益监控”勾选项正下方，竖直占位恒为 SLIDER_H(34px)
+local coTankSizeSlider, coTankSizeText, coTankSizeValue, coTankSizeLow, coTankSizeHigh =
+    CreateSizeSlider("DiGuaTimelineCoTankSizeSlider", "副坦減益圖示大小", 250, -120, -2, 9)
+local coTankSizeUpdating = false
+local function UpdateCoTankSizeLabel(value)
+    if coTankSizeValue then
+        -- 档位 -2~9 → 显示为百分比（-2=80% / 0=100% / 9=190%），更直观
+        coTankSizeValue:SetText(format("%d%%", math.floor((1 + (value or 0) * 0.1) * 100 + 0.5)))
+    end
+end
+coTankSizeSlider:SetScript("OnValueChanged", function(self, value)
+    if coTankSizeUpdating then return end
+    value = math.floor(value + 0.5)
+    DiGuaTimelineAudioHelper.coTankSize = value
+    if addonTable.SetCoTankAuraSize then addonTable.SetCoTankAuraSize(value) end
+    UpdateCoTankSizeLabel(value)
+end)
+-- 初始同步当前已保存档位
+coTankSizeUpdating = true
+coTankSizeSlider:SetValue(tonumber((DiGuaTimelineAudioHelper or {}).coTankSize) or 0)
+coTankSizeUpdating = false
+UpdateCoTankSizeLabel(coTankSizeSlider:GetValue())
+
+-- 以下各项顺排在副坦滑块之后
+local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "自動開啟暴雪文字預警", 250, -170, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.forceEncounterWarnings = isEnabled
     if isEnabled then
@@ -350,7 +413,7 @@ local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "�
     print("|cffffd100[DiGua]|r 自動開啟暴雪文字預警: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
-local cbCenterCountdown = CreateCheckButton("DiGuaTimelineCenterCountdownCheck", "技能剩餘5秒中央倒計時", 250, -130, function(self)
+local cbCenterCountdown = CreateCheckButton("DiGuaTimelineCenterCountdownCheck", "技能剩餘5秒中央倒計時", 250, -195, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.centerCountdownEnabled = isEnabled
     if addonTable.SetCenterCountdownEnabled then addonTable.SetCenterCountdownEnabled(isEnabled) end
@@ -359,35 +422,22 @@ local cbCenterCountdown = CreateCheckButton("DiGuaTimelineCenterCountdownCheck",
     print("|cffffd100[DiGua]|r 技能剩餘5秒中央倒計時: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
-local cbPlayerDebuff = CreateCheckButton("DiGuaTimelinePlayerDebuffCheck", "顯示玩家減益圖示", 250, -215, function(self)
+local cbPlayerDebuff = CreateCheckButton("DiGuaTimelinePlayerDebuffCheck", "顯示玩家減益圖示", 250, -285, function(self)
     DiGuaTimelineAudioHelper.playerDebuffEnabled = self:GetChecked()
     print("|cffffd100[DiGua]|r 玩家減益圖示: " .. (DiGuaTimelineAudioHelper.playerDebuffEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     if addonTable.SetPlayerDebuffEnabled then addonTable.SetPlayerDebuffEnabled(self:GetChecked()) end
 end)
 
--- 玩家减益图标大小滑块（0~9 档，0 = 100%，每档整体放大 10%；图标/间距/名字一起缩放）
+-- 玩家减益图标大小滑块（-2~9 档，0 档 = 100%=48px，负档更小、正档更大；图标/间距/名字一起缩放）
 -- 放在“显示玩家减益图标”勾选项正下方
-local playerDebuffSizeSlider = CreateFrame("Slider", "DiGuaTimelinePlayerDebuffSizeSlider", f, "OptionsSliderTemplate")
-playerDebuffSizeSlider:SetPoint("TOPLEFT", 250, -260)
-playerDebuffSizeSlider:SetMinMaxValues(0, 9)
-playerDebuffSizeSlider:SetValueStep(1)
-playerDebuffSizeSlider:SetObeyStepOnDrag(true)
-playerDebuffSizeSlider:SetWidth(170)
-local playerDebuffSizeText = _G["DiGuaTimelinePlayerDebuffSizeSliderText"]
-if playerDebuffSizeText then
-    playerDebuffSizeText:SetText("玩家減益圖示大小")
-    playerDebuffSizeText:SetTextColor(1, 0.82, 0)
-end
-local playerDebuffSizeValue = _G["DiGuaTimelinePlayerDebuffSizeSliderValue"]
-local playerDebuffSizeLow = _G["DiGuaTimelinePlayerDebuffSizeSliderLow"]
-local playerDebuffSizeHigh = _G["DiGuaTimelinePlayerDebuffSizeSliderHigh"]
-if playerDebuffSizeLow then playerDebuffSizeLow:SetText("小") end
-if playerDebuffSizeHigh then playerDebuffSizeHigh:SetText("大") end
+local playerDebuffSizeSlider, playerDebuffSizeText, playerDebuffSizeValue,
+    playerDebuffSizeLow, playerDebuffSizeHigh =
+    CreateSizeSlider("DiGuaTimelinePlayerDebuffSizeSlider", "玩家減益圖示大小", 250, -325, -2, 9)
 local playerDebuffSizeUpdating = false
 local function UpdatePlayerDebuffSizeLabel(value)
     if playerDebuffSizeValue then
-        -- 档位 0~9 对应显示为 1~10 档
-        playerDebuffSizeValue:SetText(format("%d档", math.floor((value or 0) + 0.5) + 1))
+        -- 档位 -2~9 → 显示为百分比（-2=80% / 0=100% / 9=190%），更直观
+        playerDebuffSizeValue:SetText(format("%d%%", math.floor((1 + (value or 0) * 0.1) * 100 + 0.5)))
     end
 end
 playerDebuffSizeSlider:SetScript("OnValueChanged", function(self, value)
@@ -403,52 +453,50 @@ playerDebuffSizeSlider:SetValue(tonumber((DiGuaTimelineAudioHelper or {}).player
 playerDebuffSizeUpdating = false
 UpdatePlayerDebuffSizeLabel(playerDebuffSizeSlider:GetValue())
 
-local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦點特定技能施法條(測試版)", 250, -285, function(self)
+local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦點特定技能施法條(測試版)", 250, -375, function(self)
     DiGuaTimelineAudioHelper.focusCastBarEnabled = self:GetChecked()
     print("|cffffd100[DiGua]|r 焦點特定技能施法條(測試版): " .. (DiGuaTimelineAudioHelper.focusCastBarEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     if addonTable.RefreshFocusCastBarState then addonTable.RefreshFocusCastBarState(f:IsShown()) end
 end)
 
-local cbTotemText = CreateCheckButton("DiGuaTimelineTotemTextCheck", "姓名板顯示\"圖騰\"文字", 250, -310, function(self)
+-- 姓名板显示“图腾”文字（视觉组，紧跟在「焦点特定技能施法条」之后）
+local cbTotemText = CreateCheckButton("DiGuaTimelineTotemTextCheck", "姓名板顯示\"圖騰\"文字", 250, -400, function(self)
     DiGuaTimelineAudioHelper.nameplateTotemTextEnabled = self:GetChecked()
     if addonTable.SetNameplateTotemTextEnabled then addonTable.SetNameplateTotemTextEnabled(self:GetChecked()) end
     print("|cffffd100[DiGua]|r 姓名板顯示\"圖騰\"文字: " .. (DiGuaTimelineAudioHelper.nameplateTotemTextEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
 -- 首领转阶段血量百分比（默认关闭）
-local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "首領轉階段血量百分比", 250, -335, function(self)
+local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "首領轉階段血量百分比", 250, -425, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.bossHealthCenterEnabled = isEnabled
     if addonTable.SetBossHealthEnabled then addonTable.SetBossHealthEnabled(isEnabled) end
     print("|cffffd100[DiGua]|r 首領轉階段血量百分比: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
--- 自動跳過過場動畫（SkipCinematic.lua 總開關；默認勾選=自動跳過，取消勾選=動畫正常播放）
--- 生效范圍不受本開關改變：仍然只在指定副本 / 難度下才會真的跳過（諸王之眠大秘境、烈毒之淵英雄/史詩）
-local cbCinematicSkip = CreateCheckButton("DiGuaTimelineCinematicSkipCheck", "自動跳過過場動畫", 250, -385, function(self)
+-- 自动跳过过场动画（SkipCinematic.lua 总开关；默认勾选=自动跳过，取消勾选=动画正常播放）
+-- 生效范围不受本开关改变：仍然只在指定副本 / 难度下才会真的跳过（诸王之眠大秘境、烈毒之渊英雄/史诗）
+local cbCinematicSkip = CreateCheckButton("DiGuaTimelineCinematicSkipCheck", "自動跳過過場動畫", 250, -450, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.cinematicSkipEnabled = isEnabled
     print("|cffffd100[DiGua]|r 自動跳過過場動畫: " .. (isEnabled and "|cff00ff00已開啟（指定副本內自動跳過）|r" or "|cffff0000已關閉（動畫正常播放）|r"))
 end)
 
 -- 主音量滑块（映射魔兽系统主音量 Sound_MasterVolume，范围 0-1，显示 0%-100%）
--- 归入左栏“听觉”分组底部
-local masterVolumeSlider = CreateFrame("Slider", "DiGuaTimelineMasterVolumeSlider", f, "OptionsSliderTemplate")
-masterVolumeSlider:SetPoint("TOPLEFT", 20, -300) -- 往下移，给上方“关闭光环音效”“关闭踩地板警报音”两行腾位置
+-- 归入左栏“听觉”分组底部；复用统一构建器以接管标题/标签锚点（占位同样 SLIDER_H）
+local masterVolumeSlider, masterVolumeText, masterVolumeValue, masterVolumeLow, masterVolumeHigh =
+    CreateSizeSlider("DiGuaTimelineMasterVolumeSlider", "主音量", 20, -295)
 masterVolumeSlider:SetMinMaxValues(0, 1)
 masterVolumeSlider:SetValueStep(0.05)
-masterVolumeSlider:SetObeyStepOnDrag(true)
 masterVolumeSlider:SetWidth(150)
-local masterVolumeText = _G["DiGuaTimelineMasterVolumeSliderText"]
-if masterVolumeText then
-    masterVolumeText:SetText("主音量")
-    masterVolumeText:SetTextColor(1, 0.82, 0)
-end
-local masterVolumeValue = _G["DiGuaTimelineMasterVolumeSliderValue"]
-local masterVolumeLow = _G["DiGuaTimelineMasterVolumeSliderLow"]
-local masterVolumeHigh = _G["DiGuaTimelineMasterVolumeSliderHigh"]
 if masterVolumeLow then masterVolumeLow:SetText("0%") end
 if masterVolumeHigh then masterVolumeHigh:SetText("100%") end
+-- 主音量需要百分比读数：恢复数值显示，放在标题正下方
+if masterVolumeValue then
+    masterVolumeValue:ClearAllPoints()
+    masterVolumeValue:SetPoint("TOP", masterVolumeSlider, "BOTTOM", 0, -16)
+    masterVolumeValue:Show()
+end
 local masterVolumeUpdating = false
 local function UpdateMasterVolumeLabel(value)
     if masterVolumeValue then
@@ -468,27 +516,13 @@ UpdateMasterVolumeLabel(masterVolumeSlider:GetValue())
 
 -- 中央倒计时大小滑块（0~9 档，0 = 代码默认最小；每档图标与文字各放大 2px）
 -- 放在右栏“技能剩余5秒中央倒计时”勾选项正下方，便于一起调节
-local centerSizeSlider = CreateFrame("Slider", "DiGuaTimelineCenterSizeSlider", f, "OptionsSliderTemplate")
-centerSizeSlider:SetPoint("TOPLEFT", 250, -178)
-centerSizeSlider:SetMinMaxValues(0, 9)
-centerSizeSlider:SetValueStep(1)
-centerSizeSlider:SetObeyStepOnDrag(true)
-centerSizeSlider:SetWidth(170)
-local centerSizeText = _G["DiGuaTimelineCenterSizeSliderText"]
-if centerSizeText then
-    centerSizeText:SetText("中央倒計時整體大小")
-    centerSizeText:SetTextColor(1, 0.82, 0)
-end
-local centerSizeValue = _G["DiGuaTimelineCenterSizeSliderValue"]
-local centerSizeLow = _G["DiGuaTimelineCenterSizeSliderLow"]
-local centerSizeHigh = _G["DiGuaTimelineCenterSizeSliderHigh"]
-if centerSizeLow then centerSizeLow:SetText("小") end
-if centerSizeHigh then centerSizeHigh:SetText("大") end
+local centerSizeSlider, centerSizeText, centerSizeValue, centerSizeLow, centerSizeHigh =
+    CreateSizeSlider("DiGuaTimelineCenterSizeSlider", "中央倒計時整體大小", 250, -235)
 local centerSizeUpdating = false
 local function UpdateCenterSizeLabel(value)
     if centerSizeValue then
         -- 档位 0~9 对应显示为 1~10 档，直观对应“共10个档位”
-        centerSizeValue:SetText(format("%d档", math.floor((value or 0) + 0.5) + 1))
+        centerSizeValue:SetText(format("%d檔", math.floor((value or 0) + 0.5) + 1))
     end
 end
 centerSizeSlider:SetScript("OnValueChanged", function(self, value)
@@ -506,6 +540,13 @@ UpdateCenterSizeLabel(centerSizeSlider:GetValue())
 
 f:SetScript("OnShow", function()
     if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(true) end
+    -- 同步副坦减益图标大小档位滑块
+    if coTankSizeSlider then
+        coTankSizeUpdating = true
+        coTankSizeSlider:SetValue(tonumber((DiGuaTimelineAudioHelper or {}).coTankSize) or 0)
+        coTankSizeUpdating = false
+        UpdateCoTankSizeLabel(coTankSizeSlider:GetValue())
+    end
     if addonTable.RefreshFocusCastBarState then addonTable.RefreshFocusCastBarState(true) end
     if addonTable.RefreshPlayerDebuffAnchor then addonTable.RefreshPlayerDebuffAnchor(true) end
     if addonTable.RefreshBossHealthPctAnchor then addonTable.RefreshBossHealthPctAnchor(true) end
@@ -542,7 +583,41 @@ end)
 
 SLASH_DIGUA1 = "/digua"
 SLASH_DIGUA2 = "/dg" -- 新增别名 /dg
-SlashCmdList["DIGUA"] = function()
+SlashCmdList["DIGUA"] = function(msg)
+    msg = tostring(msg or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+    if msg == "sliderinfo" then
+        -- 诊断：打印各滑块与其标题/标签相对面板顶边的真实偏移（用于校准行距）
+        local function rel(frame)
+            if not frame or not frame.GetTop then return nil end
+            local top = select(1, frame:GetTop())
+            local bottom = select(2, frame:GetBottom())
+            local pTop = select(1, f:GetTop())
+            if not top or not pTop then return nil end
+            return top - pTop, bottom - pTop -- 相对面板顶边（向下为负）
+        end
+        local list = {
+            { "副坦減益圖示大小", coTankSizeSlider },
+            { "中央倒計時整體大小", centerSizeSlider },
+            { "玩家減益圖示大小", playerDebuffSizeSlider },
+            { "主音量", masterVolumeSlider },
+        }
+        print("|cffffd100[DiGua]|r 滑塊幾何診斷（相對面板頂邊，單位像素）：")
+        for _, item in ipairs(list) do
+            local label, s = item[1], item[2]
+            local sTop, sBottom = rel(s)
+            local tTop, tBottom = rel(s and s.Text)
+            local lTop, lBottom = rel(s and s.Low)
+            print(format("  %s: 滑塊[%s ~ %s] 標題[%s ~ %s] 標簽[%s ~ %s]",
+                label,
+                tostring(sTop and math.floor(sTop + 0.5)),
+                tostring(sBottom and math.floor(sBottom + 0.5)),
+                tostring(tTop and math.floor(tTop + 0.5)),
+                tostring(tBottom and math.floor(tBottom + 0.5)),
+                tostring(lTop and math.floor(lTop + 0.5)),
+                tostring(lBottom and math.floor(lBottom + 0.5))))
+        end
+        return
+    end
     if f:IsShown() then f:Hide() else f:Show() end
 end
 -- 5. 跨文件接口提供

@@ -114,7 +114,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if currentCount % 2 == 1 then
                 -- 非坦克播報；坦克中僅防騎(66)/酒仙(268) 豁免、照常播報
                 if addonTable.IsNonTankOrExemptTank() then
-                    addonTable.CustomEncounterBar(132274, 24, "準備誘捕", unitTarget)
+                    addonTable.CustomEncounterBar(132274, 24, "準備減速", unitTarget)
                     PlaySoundFile(MEDIA_PATH .. "ZhunBeiYouBu.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 end
                 -- 1.5秒後，如果是治療則播放驅散魔法
@@ -1891,7 +1891,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and addonTable.ShouldWarnInterruptWithFocus(unitTarget)
             and select(8, GetInstanceInfo()) == 2825 -- 副本ID (納洛拉克的洞穴)
             and (C_Map.GetBestMapForUnit("player") or 0) == 2514 -- 地圖ID
-            and GetSubZoneText() == "迫近風暴" -- 子區域 (迫近風暴)
+            and GetSubZoneText() == "風暴逼近" -- 子區域 (迫近風暴)
             and IsIndoors() == false -- 在室外
             and UnitLevel(unitTarget) == UnitLevel("player")
             and UnitPowerType(unitTarget) == 0

@@ -8,10 +8,13 @@ local addonName, addonTable = ...
 local container
 local HostFrame -- 前向声明(见下方创建)
 local HOST_BASE_SIZE = 55 -- 移动定位框基础边长，随大小档位等比放大
--- 玩家减益图标大小档位（0~9，控制台滑块调节）：整体等比缩放(图标+间距+名字等)
+-- 玩家减益图标大小档位（-2~9，控制台滑块调节）：整体等比缩放(图标+间距+名字等)
+--   负档位用于「比默认更小」：-1 = 90%、-2 = 80%；0 档 = 100%（默认 48px）；9 档 = 190%
+local MIN_SIZE_STEP = -2
+local MAX_SIZE_STEP = 9
 local sizeStep = 0
 local function SizeFactor()
-    return 1 + sizeStep * 0.1 -- 档0=100% … 档9=190%
+    return 1 + sizeStep * 0.1 -- 档-2=80% / 档0=100% / 档9=190%
 end
 local function ApplyDebuffSize()
     local factor = SizeFactor()
@@ -200,10 +203,11 @@ function addonTable.SetPlayerDebuffEnabled(enabled)
     addonTable.RefreshPlayerDebuffAnchor(shown)
 end
 
--- 设置玩家减益图标大小档位（0~9，0=默认小；越大整体放大，图标/间距/名字等比缩放）
+-- 设置玩家减益图标大小档位（-2~9，-1/-2 = 更小，0 = 默认 48px；越大整体放大，等比缩放）
 function addonTable.SetPlayerDebuffSize(step)
     step = tonumber(step) or 0
-    if step < 0 then step = 0 elseif step > 9 then step = 9 end
+    if step < MIN_SIZE_STEP then step = MIN_SIZE_STEP
+    elseif step > MAX_SIZE_STEP then step = MAX_SIZE_STEP end
     if DiGuaTimelineAudioHelper then DiGuaTimelineAudioHelper.playerDebuffSize = step end
     sizeStep = step
     ApplyDebuffSize()
@@ -222,10 +226,11 @@ f:SetScript("OnEvent", function(self, event, unit)
             HostFrame:SetPoint("CENTER", UIParent, "CENTER",
                 DiGuaTimelineAudioHelper.playerDebuffX, DiGuaTimelineAudioHelper.playerDebuffY)
         end
-        -- 读取玩家设定的大小档位(0~9)
+        -- 读取玩家设定的大小档位(-2~9)
         if DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.playerDebuffSize then
             sizeStep = tonumber(DiGuaTimelineAudioHelper.playerDebuffSize) or 0
-            if sizeStep < 0 then sizeStep = 0 elseif sizeStep > 9 then sizeStep = 9 end
+            if sizeStep < MIN_SIZE_STEP then sizeStep = MIN_SIZE_STEP
+            elseif sizeStep > MAX_SIZE_STEP then sizeStep = MAX_SIZE_STEP end
         end
         -- 默认关闭，按开关显示/隐藏并同步拖动框状态
         addonTable.SetPlayerDebuffEnabled(DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.playerDebuffEnabled)

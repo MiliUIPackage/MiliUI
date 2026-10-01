@@ -126,7 +126,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             then
             
             -- 在姓名板下方显示竖排“图腾”
-            DisplayNameplateText(unitTarget, "图\n腾")
+            DisplayNameplateText(unitTarget, "圖\n騰")
 
             -- 检查并触发防抖锁
             if not addonTable.isAudioDebounced then

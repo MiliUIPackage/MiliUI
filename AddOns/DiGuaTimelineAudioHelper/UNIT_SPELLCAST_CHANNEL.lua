@@ -456,7 +456,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             if (addonTable.SpellCastDuration[unitTarget] or 0) > 1.75 then 
                 addonTable.SpellCastStartTime[unitTarget] = nil
                 addonTable.CustomEncounterBar(5764902, 26.7, "五碼分散", unitTarget)
-                if UnitGroupRolesAssigned("player") ~= "TANK" and addonTable.PlayerSpellStatus.spells[58984] == true then
+                if UnitGroupRolesAssigned("player") == "DAMAGER" and addonTable.PlayerSpellStatus.spells[58984] == true then
                     PlaySoundFile(addonTable.GetMediaPath() .. "YingDun.ogg", DiGuaTimelineAudioHelper.audioChannel)
                 else
                     PlaySoundFile(addonTable.GetMediaPath() .. "WuMaFenSan.ogg", DiGuaTimelineAudioHelper.audioChannel)

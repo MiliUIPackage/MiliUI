@@ -146,7 +146,7 @@ frame:SetScript("OnEvent", function(self, event, unitTarget)
             and select(2, UnitCreatureFamily(unitTarget)) -- 是生物家族
         then
             addonTable.UnitTargetTriggered[unitTarget] = true -- 標記已觸發，防止重復
-            addonTable.CustomEncounterBar(132274, 6.5, "準備誘捕", unitTarget)
+            addonTable.CustomEncounterBar(132274, 6.5, "準備減速", unitTarget)
             addonTable.CustomEncounterBar(135798, 14.9, "躲開正面", unitTarget)
         end
         -- 仪式首领（坦克尖刺 / 准备吸奶盾）—— 非生物家族，法力系，室外特定地图
@@ -202,7 +202,7 @@ frame:SetScript("OnEvent", function(self, event, unitTarget)
             addonTable.UnitTargetTriggered[unitTarget] = true -- 標記已觸發，防止重復
             addonTable.CustomEncounterBar(132211, 3.8, "準備小怪", unitTarget)
             addonTable.CustomEncounterBar(5764921, 21, "注意躲圈", unitTarget)
-            addonTable.CustomEncounterBar(5764918, 29.5, "坦克頭前", unitTarget)
+            addonTable.CustomEncounterBar(5764918, 29.5, "坦克正面", unitTarget)
         end
         -- 乌拉特克神选者（注意射线）—— 非生物家族，非法力系，地图 2590，Boss1/Boss2 已过 / Boss3 未过
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 乌拉特克神选者
