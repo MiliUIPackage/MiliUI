@@ -188,13 +188,17 @@ local function FrameSpecs(unitKey)
     tinsert(list, { type = "toggle", root = "frame", key = "fadeOutOfCombat",
                     label = L["Fade out of combat"] })
     tinsert(list, { type = "text", label = L["Fades the whole frame while you are not in combat. Transparency is set globally under General."] })
-    tinsert(list, { type = "toggle", root = "frame", key = "oocShowWhenHurt",
-                    label = L["Stay visible while health is not full"] })
-    tinsert(list, { type = "text", label = L["Works with fade out of combat: the frame stays fully visible until health is back to full. Needs the health bar."] })
-    tinsert(list, { type = "toggle", root = "frame", key = "oocShowWithTarget",
-                    label = L["Stay visible while you have a target"] })
-    tinsert(list, { type = "text", label = L["Works with fade out of combat. With both exceptions on and out-of-combat transparency at 0, the frame only shows in combat, with a target, or while health is not full."] })
     tinsert(list, { type = "text", label = L["With both on, whichever is more transparent wins."] })
+    -- 脫戰淡出的例外：子標題靠右對齊標籤欄，讀起來是「脫戰淡出」底下的一組；
+    -- 沒勾脫戰淡出時兩個例外沒有作用 ⇒ requires 讓它們變暗點不動
+    local OOC_FADE = { root = "frame", key = "fadeOutOfCombat" }
+    tinsert(list, { type = "header", label = L["Out of combat exceptions"], nested = true })
+    tinsert(list, { type = "toggle", root = "frame", key = "oocShowWhenHurt", requires = OOC_FADE,
+                    label = L["Stay visible while health is not full"] })
+    tinsert(list, { type = "text", label = L["The frame stays fully visible until health is back to full. Needs the health bar."] })
+    tinsert(list, { type = "toggle", root = "frame", key = "oocShowWithTarget", requires = OOC_FADE,
+                    label = L["Stay visible while you have a target"] })
+    tinsert(list, { type = "text", label = L["With both on and out-of-combat transparency at 0, the frame only shows in combat, with a target, or while health is not full."] })
 
     tinsert(list, { type = "header", label = L["Mouseover"] })
     tinsert(list, { type = "toggle", root = "frame", key = "highlight",

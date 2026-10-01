@@ -24,6 +24,11 @@
 --   space    { h }                                         空行
 --   custom   { label, build, h }                           宿主自畫的一列（見下方分支）
 -- 共通：sub / sub2 / index 決定 ctx 取值路徑；ctx = { get, set, apply }
+--   requires = { key, ... }   （目前只有 toggle 支援）依賴另一個勾選：那一個沒勾時
+--                             這一列變暗、點不動。表本身就是一條 spec，照 ctx.get 解析，
+--                             所以 root／sub 這些路徑欄位跟一般 spec 寫法相同。
+--                             依賴只看值、不改值：母選項取消時子選項保留原本的勾，
+--                             重新勾回來就恢復（判斷要不要生效是宿主的事，不是表單的事）。
 --
 -- ⚠ 共用層：這支可以逐字複製到其他 MiliUI 插件，宿主專屬的東西一律走
 --   ns.WidgetsEnv（見 Libs/MiliUIWidgets/Env.lua）。改這裡時不要引進新的 ns.* 依賴——
@@ -125,7 +130,7 @@ local function MakeLabel(parent, text, x, y, minH)
     -- 兩份各量各的遲早會漂移）。順便把文字填進去。
     local rowH = minH + W.TextExtraHeight(fs, text)
     fs:SetHeight(rowH)
-    return rowH
+    return rowH, fs
 end
 
 -- 建一整組；回傳 (總高度, refreshers, rows)
@@ -141,6 +146,12 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
     local cx = x0 + LABEL_W + GAP          -- 控件起點
     local refreshers = {}
     local rows = {}
+    -- requires 的閘：開面板時跟著 refreshers 跑一次，任何勾選被點之後再全跑一次
+    -- （母選項可能在別列，被點的那列不知道誰依賴它；閘很便宜，全跑最簡單）
+    local gates = {}
+    local function RunGates()
+        for _, g in ipairs(gates) do g() end
+    end
 
     for _, spec in ipairs(controls) do
         local rowTop = y
@@ -174,16 +185,28 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
             local cb = W.CreateCheckButton(parent, spec.hint, function(checked)
                 ctx.set(spec, checked)
                 ctx.apply()
+                RunGates()
             end)
             -- hint 原本不換行也不截，長譯文一路衝出視窗右緣，連點擊熱區一起延伸出去。
             -- 夾在這一列剩下的寬度裡（扣掉勾選框本身與它到文字的間距）換行。
             local hintExtra = cb:SetLabelMaxWidth(
                 width - cx - ROW_PAD_R - (cb.width or 18) - (cb.labelGap or 6))
-            local rowH = MakeLabel(parent, spec.label, x0, y, ROW_H + hintExtra)
+            local rowH, labelFS = MakeLabel(parent, spec.label, x0, y, ROW_H + hintExtra)
             cb:SetPoint("LEFT", parent, "TOPLEFT", cx, y - rowH / 2)
             tinsert(refreshers, function()
                 cb:SetChecked(ctx.get(spec) and true or false)
             end)
+            if spec.requires then
+                -- 停用只換明暗（不換色），標籤跟勾選框一起暗，看得出是同一列
+                local function gate()
+                    local on = ctx.get(spec.requires) and true or false
+                    cb:SetEnabled(on)
+                    cb:SetAlpha(on and 1 or 0.4)
+                    labelFS:SetAlpha(on and 1 or 0.4)
+                end
+                tinsert(gates, gate)
+                tinsert(refreshers, gate)
+            end
             y = y - rowH
 
         elseif spec.type == "slider" then
