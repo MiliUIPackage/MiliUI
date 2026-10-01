@@ -512,4 +512,4 @@ L["External defensives"] = "Внешние защитные способност
 L["Per-spell cast bar overrides"] = "Настройки полосы заклинаний по заклинаниям"
 L["Timed custom buffs"] = "Свои баффы с фиксированной длительностью"
 L["Rune countdown"] = "Отсчёт рун"
-L["Ready runes line up on the left, recharging ones on the right with their fill growing. The countdown prints the seconds left on each recharging rune."] = "Готовые руны выстраиваются слева, восполняющиеся — справа и постепенно заполняются. Отсчёт показывает оставшиеся секунды на каждой восполняющейся руне."
+L["Ready runes line up on the left, recharging ones on the right with their fill growing. The countdown prints the seconds left on each recharging rune and replaces the ready-rune count in the middle."] = "Готовые руны выстраиваются слева, восполняющиеся — справа и постепенно заполняются. Отсчёт показывает оставшиеся секунды на каждой восполняющейся руне и заменяет число готовых рун в центре."
