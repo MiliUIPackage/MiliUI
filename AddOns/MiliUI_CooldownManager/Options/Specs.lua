@@ -36,6 +36,7 @@ local Specs = ns.Specs
 
 local LABEL_W = ns.WidgetsEnv.LABEL_W or 128
 local FixedSlotsRow      -- 版面那一節的固定格位列（定義在下面）
+local GlowSampleRow      -- 發光的預覽圖示（定義在下面）
 
 ------------------------------------------------------------
 -- 下拉清單
@@ -359,11 +360,13 @@ function Specs.Themed(mode, key)
         Note(L["Replaces Blizzard's proc glow. When off, Blizzard's own glow shows."], "glow"),
         TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
         TS("glow", "color", "glow.proc.color", L["Color"]),
+        GlowSampleRow("proc"),
         Nested(L["Ready glow"], "glow"),
         TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
         Note(L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."], "glow"),
         TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
         TS("glow", "color", "glow.ready.color", L["Color"]),
+        GlowSampleRow("ready"),
         TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }),
         Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
@@ -458,6 +461,56 @@ function FixedSlotsRow(key)
             fs:SetTextColor(forced and 1 or 0.65, forced and 0.82 or 0.65, forced and 0 or 0.65)
         end
         return h, Refresh
+    end }
+end
+
+------------------------------------------------------------
+-- 發光預覽：一顆樣本圖示一直亮著目前的樣式與顏色，切樣式當場看得到效果。
+-- 引擎跟格子共用（ns.Glow.PaintOn／StopOn）；就緒發光在格子上只亮幾秒，樣本則常亮。
+-- 表單引擎在值變了之後只叫 ctx.apply、不叫 refreshers ⇒ 包一層 ctx.apply 讓樣本跟著換。
+------------------------------------------------------------
+local SAMPLE_ICON = "Interface\\Icons\\Spell_Holy_HolyBolt"
+local SAMPLE_SIZE = 36
+
+function GlowSampleRow(which)
+    return { type = "custom", label = L["Preview"], h = SAMPLE_SIZE + 8, section = "glow", noReset = true,
+             build = function(parent, x, y, width, ctx)
+        local f = CreateFrame("Frame", nil, parent)
+        f:SetSize(SAMPLE_SIZE, SAMPLE_SIZE)
+        f:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+        local bg = f:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(0, 0, 0, 1)
+        local icon = f:CreateTexture(nil, "ARTWORK")
+        icon:SetPoint("TOPLEFT", 1, -1)
+        icon:SetPoint("BOTTOMRIGHT", -1, 1)
+        icon:SetTexture(SAMPLE_ICON)
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        local host = CreateFrame("Frame", nil, f)
+        host:SetAllPoints()
+        host:SetFrameLevel(f:GetFrameLevel() + 2)
+
+        local shown, sig
+        local function Refresh()
+            local G = ns.Glow
+            if not (G and G.PaintOn) then return end
+            local c = ReadThemed(ctx.info, "glow." .. which)
+            c = type(c) == "table" and c or {}
+            local col = type(c.color) == "table" and c.color or {}
+            local now = table.concat({ tostring(c.type), tostring(col.r), tostring(col.g),
+                tostring(col.b), tostring(col.a), tostring(c.lines), tostring(c.thickness),
+                tostring(c.frequency) }, "|")
+            if shown and now == sig then return end
+            if shown then G.StopOn(host, shown, which) end
+            shown = G.PaintOn(host, c, which, which, false)
+            sig = now
+        end
+        local apply = ctx.apply
+        ctx.apply = function(...)
+            apply(...)
+            Refresh()
+        end
+        return SAMPLE_SIZE + 8, Refresh
     end }
 end
 
