@@ -38,6 +38,11 @@
 --   * 「這次是回充」：item 的 `HasVisualDataSource_Charges()`（暴雪的 getter，回 `wasSetFromCharges`）
 --     第一順位（pcall），退路 rawget(item, "wasSetFromCharges")。兩者都過 Plain。
 --   * GCD：duration 是明文而且 ≤ 1.5 秒就不算（不動探針，已經武裝的真冷卻照跑）。
+--     ⚠ 戰鬥中 duration 是秘密值，這道閘讀不到 ⇒ 再問 C_Spell.GetSpellCooldown 的 isOnGCD／isActive
+--     （明文布林）：GCD 或沒在冷卻就不武裝。少了這一道，ignoreGCD 的 duration 物件是零長度、
+--     探針被 clearIfZero 清掉卻仍標記「武裝中」，GCD 一結束暴雪 Clear ⇒ OnItemClear 把**每一格**
+--     都當成轉好（2026-10-01 回報「幾乎全部發光」）。回充（charges）不問：那次 SetCooldown
+--     本來就是充能計時，isOnGCD 會是 true 卻不是 GCD。
 --   * 暴雪提早 Clear（冷卻被重置、或到期那一刻它自己先清）而探針還武裝著 ⇒ 當場算就緒。
 --   * 多充能：每一次 SetCooldown 都是回充（有充能時是充能計時、0 充能時是技能冷卻），所以
 --     **每回一層亮一次**。待實機驗證（README）。
@@ -126,6 +131,36 @@ local STOP = {
     proc     = function(h, key) LCG.ProcGlow_Stop(h, key) end,
 }
 
+-- 在任意框上停／畫一種發光（t ＝ 樣式，key ＝ 同一框上分辨 proc／ready 的鍵）。
+-- 格子與設定頁的樣本（Options/Specs.lua 的 GlowSampleRow）共用這兩支
+local function StopOn(h, t, key)
+    if not (h and LCG) then return end
+    pcall(STOP[t] or STOP.pixel, h, key)
+end
+G.StopOn = StopOn
+
+-- 回傳實際畫上去的樣式（失敗回 nil）
+local function PaintOn(h, c, which, key, startAnim)
+    if not (h and LCG) then return nil end
+    local t = c.type
+    if not STOP[t] then t = "pixel" end
+    local color = which == "proc" and ColorOf(c.color, 1, 0.85, 0) or ColorOf(c.color, 0.3, 1, 0.3)
+    local lines = tonumber(c.lines) or 8
+    local freq = tonumber(c.frequency) or 0.2
+    local ok
+    if t == "autocast" then
+        ok = pcall(LCG.AutoCastGlow_Start, h, color, lines, freq, 1, 0, 0, key)
+    elseif t == "button" then
+        ok = pcall(LCG.ButtonGlow_Start, h, color, freq)
+    elseif t == "proc" then
+        ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = startAnim, duration = 1 })
+    else
+        ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, key)
+    end
+    return ok and t or nil
+end
+G.PaintOn = PaintOn
+
 local function Stop(rec, which)
     local on = rec.glowOn
     local t = on and on[which]
@@ -133,11 +168,7 @@ local function Stop(rec, which)
     on[which] = nil
     rec.glowSig = rec.glowSig or {}
     rec.glowSig[which] = nil
-    local h = rec.glowHosts and rec.glowHosts[which]
-    if h and LCG then
-        local fn = STOP[t] or STOP.pixel
-        pcall(fn, h, which)
-    end
+    StopOn(rec.glowHosts and rec.glowHosts[which], t, which)
 end
 G.Stop = Stop
 
@@ -161,22 +192,8 @@ local function Start(rec, which, barKey)
     rec.glowSig = rec.glowSig or {}
     if rec.glowOn[which] and rec.glowSig[which] == sig then return end
     Stop(rec, which)
-    local t = c.type
-    if not STOP[t] then t = "pixel" end
-    local color = which == "proc" and ColorOf(c.color, 1, 0.85, 0) or ColorOf(c.color, 0.3, 1, 0.3)
-    local lines = tonumber(c.lines) or 8
-    local freq = tonumber(c.frequency) or 0.2
-    local ok
-    if t == "autocast" then
-        ok = pcall(LCG.AutoCastGlow_Start, h, color, lines, freq, 1, 0, 0, which)
-    elseif t == "button" then
-        ok = pcall(LCG.ButtonGlow_Start, h, color, freq)
-    elseif t == "proc" then
-        ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = which, startAnim = which == "proc", duration = 1 })
-    else
-        ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, which)
-    end
-    if ok then
+    local t = PaintOn(h, c, which, which, which == "proc")
+    if t then
         rec.glowOn[which] = t
         rec.glowSig[which] = sig
     end
@@ -374,14 +391,24 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     if UsesAuraTime(item, cd) then return end
     local d = Plain(duration)
     if d ~= nil and (type(d) ~= "number" or d <= GCD_MAX) then return end
+    local spellID = SpellOf(rec)
+    local charges = FromCharges(item)
+    -- 戰鬥中 duration 是秘密值、上面那道 GCD 閘形同虛設：暴雪每次 GCD 都對**每一格**
+    -- SetCooldown（RefreshCooldownOnly），沒在冷卻的法術也一樣。改問引擎的明文旗標
+    -- （isActive／isOnGCD 不是秘密值）：只是 GCD、或根本沒在冷卻 ⇒ 這次不是「要等它轉好」
+    if not charges and spellID then
+        local okInfo, info = pcall(C_Spell.GetSpellCooldown, spellID)
+        if okInfo and type(info) == "table" then
+            if Plain(info.isOnGCD) == true or Plain(info.isActive) == false then return end
+        end
+    end
     local p = Probe(rec)
     if not p then return end
     local ok = pcall(p.SetCooldown, p, start, duration, modRate or 1)
     if not ok then
         -- 參數是秘密值：污染端轉交被拒 ⇒ 改拿引擎給的 duration 物件
-        local spellID = SpellOf(rec)
         if not spellID then return end
-        local api = FromCharges(item) and C_Spell.GetSpellChargeDuration
+        local api = charges and C_Spell.GetSpellChargeDuration
             or function(id) return C_Spell.GetSpellCooldownDuration(id, true) end
         local ok2, dur = pcall(api, spellID)
         if not (ok2 and dur) then return end
