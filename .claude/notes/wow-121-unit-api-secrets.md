@@ -125,3 +125,5 @@ MiliUI_UnitFrames 用它畫血條的損失段（`Elements/Health.lua`、`Core/Ev
 首領戰／M+ 情境），使用者 `/reload` 後直接讀 `WTF/Account/LAXGENIUS/SavedVariables/MiliUI_UnitFrames.lua`，
 不用截圖；`/muf maxhp` 在遊戲裡印。暴雪自己的畫法在
 `Blizzard_UnitFrame/Shared/UnitFrame.lua` 的 `TempMaxHealthLossMixin`（CVar `showTempMaxHealthLoss`）。
+
+**UnitHealth／UnitHealthMax 脫戰也拿到秘密值（2026-09-30 推定）**：MiliUI_UnitFrames「血量不滿時不淡出」第一版在脫戰用 `UnitHealth < UnitHealthMax` 判斷、秘密值保底當不滿，結果滿血也永遠不淡出。改成 Step 曲線（(0,1)、(1−ε, 淡出值)）餵 `UnitHealthPercent`、結果直接 `SetAlpha`（秘密 alpha，SetAlpha 吃得下）。要「血量滿沒滿」一律走曲線，不要在 Lua 比大小，也不要以為脫戰就是明文。
