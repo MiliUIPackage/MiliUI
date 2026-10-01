@@ -315,21 +315,27 @@ local function NormalizeSlowList()
     Cfg().acceptWait = learned
 end
 
--- 沒接到就往上加一階。加的是**共用的**秒數，不是這條任務專屬的
-local function Escalate(questID)
+-- 沒接到時的學習。加的是**共用的**秒數，不是這條任務專屬的
+--
+-- ⚠ 只有「這一次**真的等過**、還是沒接到」才往上加。判斷看的是**按下去那一刻**
+--   有沒有等（waited），不是查勤時這條在不在清單裡 —— 秒接失敗的那一刻起它就
+--   在清單裡了，拿清單判斷的話，「第一次秒接失敗」跟「等過還失敗」會分不清。
+--   秒接失敗只代表「這條需要等」，跟目前的秒數夠不夠完全無關，不能拿來加時間。
+local function Escalate(questID, waited)
     local db = SlowList()
     if not db then return end
 
-    if not db[questID] then
+    if not waited then
+        if db[questID] then return end
         db[questID] = true
         -- 實測蓋過玩家的忽略：「我不要你預設塞給我」跟「量出來就是會失敗」是兩件事
         local dismissed = Cfg() and Cfg().dismissedSlow
         if dismissed then dismissed[questID] = nil end
-        Trace("   %s 沒接到 ⇒ 記進清單，下次先等 %.2fs", Safe(questID), Wait())
+        Trace("   %s 秒接沒接到 ⇒ 記進清單，下次先等 %.2fs（秒數不變）", Safe(questID), Wait())
         return
     end
 
-    -- 已經在清單裡、等過了還是沒接到 ⇒ 是等待時間不夠
+    -- 等過了還是沒接到 ⇒ 是等待時間不夠
     local cur = Wait()
     if cur >= MAX_WAIT then
         -- 加到上限還是不行，代表成因不是等待時間。再加下去只是讓玩家更慢
@@ -341,7 +347,7 @@ local function Escalate(questID)
         Safe(questID), cur, Cfg().acceptWait)
 end
 
-local function ClickAccept(questID, why)
+local function ClickAccept(questID, why, waited)
     pending = nil
     local now = GetQuestID and GetQuestID() or 0
     if now ~= questID then
@@ -387,7 +393,7 @@ local function ClickAccept(questID, why)
     -- 查勤。這是整個機制的核心：我們沒辦法事先知道哪條要等，但按完看一眼就知道了
     C_Timer.After(VERIFY_AFTER, function()
         if InLog(questID) then return end      -- 接到了，沒事
-        Escalate(questID)
+        Escalate(questID, waited)
         -- ⚠ 一定要講。任務視窗已經關掉、任務也沒進日誌，玩家如果不知道就這樣走了。
         --   帶上任務名稱才有意義 —— 只給一個編號等於要他自己去查
         ns.Print("|cffff9900" .. L["Couldn't accept \"%s\" — talk to the quest giver again. It will wait %.2fs before accepting next time."]
@@ -397,7 +403,7 @@ end
 
 local function AcceptWhenReady(questID)
     if not NeedsWait(questID) then
-        ClickAccept(questID, "立刻")
+        ClickAccept(questID, "立刻", false)
         return
     end
     local delay = Wait()
@@ -405,7 +411,7 @@ local function AcceptWhenReady(questID)
     pending = questID
     C_Timer.After(delay, function()
         if pending ~= questID then return end
-        ClickAccept(questID, ("等了 %.2fs"):format(delay))
+        ClickAccept(questID, ("等了 %.2fs"):format(delay), true)
     end)
 end
 
