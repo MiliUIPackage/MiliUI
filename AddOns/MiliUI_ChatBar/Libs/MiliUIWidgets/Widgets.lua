@@ -989,7 +989,7 @@ local function EnsureMenu()
     W.Stylize(menuFrame, { 0.1, 0.1, 0.1, 0.97 })
     menuFrame:SetBackdropBorderColor(W.Accent(0.8))   -- 跟下拉本體同一套職業色框
     menuFrame:Hide()
-    W.CloseOnEscape(menuFrame)
+    W.CloseOnEscape(menuFrame, true)
     menuFrame.items = {}
     menuFrame.offset = 0
     -- 內容比視窗高時靠裁切＋位移捲動（不用 ScrollFrame：項目是共用池，
@@ -1080,12 +1080,45 @@ end
 -- ⚠ 兩個限制，決定了它只適合哪些東西：
 --   1. 它吃的是**全域名稱**，所以框必須具名（沒名字就掛一個到 _G）。
 --   2. 註冊之後**不會移除**，那張表只會長不會縮。
---   → 只給「一個插件建不了幾個」的東西用：下拉選單、彈窗。
+--   → 只給「一個插件建不了幾個」的東西用：設定視窗、下拉選單、彈窗。
 --      **不要在迴圈或每次開啟時呼叫**，建立時叫一次就好。
+--
+-- 開暴雪面板不關（預設）：ShowUIPanel 開「中間那格」的面板（天賦／法術書、全螢幕地圖…）時，
+-- 也會呼叫同一支 CloseSpecialWindows 把整張表收掉 —— 暴雪那邊 ESC 跟「換面板」是同一條路。
+-- 設定視窗與彈窗不該跟著關（要從法術書 Shift 點法術填 ID），所以分辨兩條路：
+--   同一幀裡「被 CloseSpecialWindows 收掉」而且「接著 ShowUIPanel 跑完」→ 換面板，叫回來；
+--   ESC（ToggleGameMenu → CloseAllWindows）不經過 ShowUIPanel → 照常關。
+-- 「被收掉」的時間由一個空的子框的 OnHide 記（不用框本身的腳本：呼叫端之後 SetScript 會蓋掉 HookScript）。
+-- 兩支都是 hooksecurefunc 後掛勾，只對自己的框 Show，不寫暴雪任何東西。
+-- ⚠ 自己的程式先關視窗、同一幀再 ShowUIPanel 開中間面板，視窗會被叫回來；要那樣做就延一幀再開。
+-- closeWithPanels ＝ true：維持舊行為（下拉選單、右鍵選單這種開面板時收掉才對的）。
 ------------------------------------------------------------
 local escSeq = 0
+local keepers = {}          -- 框 → 最後一次被收掉的 GetTime()
+local reopen = {}           -- 框 → 被 CloseSpecialWindows 收掉的那一幀
+local panelHooked = false
 
-function W.CloseOnEscape(frame)
+local function HookPanels()
+    if panelHooked then return end
+    panelHooked = true
+    if type(CloseSpecialWindows) ~= "function" or type(ShowUIPanel) ~= "function" then return end
+    hooksecurefunc("CloseSpecialWindows", function()
+        local now = GetTime()
+        for f, t in pairs(keepers) do
+            if t == now and not f:IsShown() then reopen[f] = now end
+        end
+    end)
+    hooksecurefunc("ShowUIPanel", function()
+        if not next(reopen) then return end
+        local now = GetTime()
+        for f, t in pairs(reopen) do
+            reopen[f] = nil
+            if t == now and not f:IsShown() then f:Show() end
+        end
+    end)
+end
+
+function W.CloseOnEscape(frame, closeWithPanels)
     local name = frame:GetName()
     if not name then
         escSeq = escSeq + 1
@@ -1093,6 +1126,11 @@ function W.CloseOnEscape(frame)
         _G[name] = frame        -- UISpecialFrames 是靠 _G[name] 反查框的
     end
     tinsert(UISpecialFrames, name)
+    if closeWithPanels then return end
+    HookPanels()
+    keepers[frame] = false
+    local probe = CreateFrame("Frame", nil, frame)
+    probe:SetScript("OnHide", function() keepers[frame] = GetTime() end)
 end
 
 function W.CloseDropdowns()

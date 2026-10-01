@@ -253,7 +253,7 @@ local function CreatePanel()
     Options.panel = panel
     ApplyPosition()
 
-    tinsert(UISpecialFrames, "MiliUICDM_Options")      -- ESC 關閉
+    W.CloseOnEscape(panel)      -- ESC 關閉；開天賦／法術書不關（要從那裡 Shift 點法術填 ID）
 
     -- 看得見的拖曳把手 ＋ 標題；右鍵叫回畫面中央（共用層）
     W.CreateTitleBar(panel, ns.PREFIX_COLOR .. L["MiliUI Cooldown Manager"] .. "|r  v" .. ns.VERSION,

@@ -125,7 +125,7 @@ end
 --   下一次點擊會被它吃掉（症狀是「按了 ESC 之後第一下點不到東西」）。
 ------------------------------------------------------------
 local function SetupEscape(f)
-    W.CloseOnEscape(f)
+    W.CloseOnEscape(f, true)      -- 開暴雪面板時跟著收（選單不該留著）
     f:SetScript("OnHide", function()
         if _sub then _sub:Hide() end
         if _catcher then _catcher:Hide() end
