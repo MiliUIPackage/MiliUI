@@ -68,6 +68,7 @@ L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons
 L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."] = "O rastreamento de berloques da Blizzard não é confiável. Use o botão \"Slot de berloque\": ele acompanha o que estiver equipado naquele slot."
 L["Trinket slot"] = "Slot de berloque"
 L["Trinket %d"] = "Berloque %d"
+L["(empty)"] = "(vazio)"
 L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."] = "Acompanha o que estiver equipado naquele slot de berloque. Trocar de berloque é refletido automaticamente."
 L["Equipment slot"] = "Slot de equipamento"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "O gerenciador de recarga da Blizzard não está mostrando esta entrada agora, então ela não pode aparecer na barra."

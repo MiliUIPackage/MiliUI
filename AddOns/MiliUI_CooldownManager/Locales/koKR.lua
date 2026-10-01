@@ -68,6 +68,7 @@ L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons
 L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."] = "블리자드의 장신구 추적은 불안정합니다. 대신 \"장신구 칸\" 버튼을 사용하세요. 그 칸에 착용한 장신구를 자동으로 따라갑니다."
 L["Trinket slot"] = "장신구 칸"
 L["Trinket %d"] = "장신구 %d"
+L["(empty)"] = "(비어 있음)"
 L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."] = "해당 장신구 칸에 착용한 아이템을 추적합니다. 장신구를 바꾸면 자동으로 따라갑니다."
 L["Equipment slot"] = "장비 칸"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "블리자드 재사용 대기시간 관리자가 지금 이 항목을 표시하지 않아 바에 나타낼 수 없습니다."

@@ -68,6 +68,7 @@ L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons
 L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."] = "El seguimiento de abalorios de Blizzard es poco fiable. Usa el botón \"Ranura de abalorio\": sigue lo que lleves equipado en esa ranura."
 L["Trinket slot"] = "Ranura de abalorio"
 L["Trinket %d"] = "Abalorio %d"
+L["(empty)"] = "(vacío)"
 L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."] = "Sigue lo que lleves equipado en esa ranura de abalorio. Cambiar de abalorio se refleja automáticamente."
 L["Equipment slot"] = "Ranura de equipo"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "El gestor de reutilización de Blizzard no muestra esta entrada ahora mismo, así que no puede aparecer en la barra."

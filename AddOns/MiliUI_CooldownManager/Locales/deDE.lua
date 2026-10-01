@@ -68,6 +68,7 @@ L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons
 L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."] = "Blizzards Schmuckstück-Verfolgung ist unzuverlässig. Nutze stattdessen die Schaltfläche \"Schmuckplatz\": sie folgt dem, was in dem Platz angelegt ist."
 L["Trinket slot"] = "Schmuckplatz"
 L["Trinket %d"] = "Schmuckstück %d"
+L["(empty)"] = "(leer)"
 L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."] = "Verfolgt, was in diesem Schmuckplatz angelegt ist. Ein Wechsel des Schmuckstücks wird automatisch übernommen."
 L["Equipment slot"] = "Ausrüstungsplatz"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "Blizzards Abklingzeitmanager zeigt diesen Eintrag gerade nicht an, daher kann er nicht auf der Leiste erscheinen."
