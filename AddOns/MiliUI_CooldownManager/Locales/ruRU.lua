@@ -64,6 +64,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "Сначала доб
 L["Add spells to this bar"] = "Добавить заклинания на панель"
 L["Left-click: settings for this spell"] = "ЛКМ: настройки этого заклинания"
 L["Middle-click: remove"] = "Средняя кнопка: удалить"
+L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons onto it."] = "Для этой специализации здесь пока пусто. Добавьте заклинания через \"+\" или перетащите сюда значки."
 L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."] = "Отслеживание аксессуаров у Blizzard ненадёжно. Чтобы отслеживать аксессуар, добавьте его через \"Предмет\" по ID предмета."
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "Менеджер восстановления Blizzard сейчас не показывает эту запись, поэтому её нельзя отобразить на панели."
 L["Drag: reorder, or drop on a group on the left"] = "Перетаскивание: порядок или перенос в группу слева"

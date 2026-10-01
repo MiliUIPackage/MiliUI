@@ -458,6 +458,7 @@ local function Commit(entry)
     ns.Preview.Refresh(key)
     if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(key) end
     ns.Options.ApplyEngine("membership")
+    if ns.Sidebar and ns.Sidebar.RefreshEmpty then ns.Sidebar.RefreshEmpty() end
     Picker.Refresh()
 end
 

@@ -180,6 +180,8 @@ local function Changed(level, ...)
         if k then Preview.Refresh(k) end
     end
     ns.Options.ApplyEngine(level or "membership")
+    -- 群組的內容變了：左欄「這個專精沒有內容」的標記跟著對一次
+    if ns.Sidebar and ns.Sidebar.RefreshEmpty then ns.Sidebar.RefreshEmpty() end
 end
 
 function Preview.SetHidden(key, id, hidden)
@@ -209,6 +211,7 @@ function Preview.RemoveCustom(key, id)
     Preview.Refresh(key)
     if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(key) end
     ns.Options.ApplyEngine("membership")
+    if ns.Sidebar and ns.Sidebar.RefreshEmpty then ns.Sidebar.RefreshEmpty() end
     return true
 end
 

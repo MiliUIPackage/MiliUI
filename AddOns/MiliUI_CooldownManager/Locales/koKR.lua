@@ -64,6 +64,7 @@ L["Add it in Blizzard's Cooldown Manager panel first."] = "먼저 블리자드 �
 L["Add spells to this bar"] = "이 바에 주문 추가"
 L["Left-click: settings for this spell"] = "왼쪽 클릭: 이 주문의 설정"
 L["Middle-click: remove"] = "가운데 클릭: 제거"
+L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons onto it."] = "이 특성에는 아직 아무것도 없습니다. \"+\"로 주문을 추가하거나 아이콘을 여기로 끌어다 놓으세요."
 L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."] = "블리자드의 장신구 추적은 불안정합니다. 장신구는 \"아이템\"에 아이템 ID를 입력해 추가하는 것을 권장합니다."
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "블리자드 재사용 대기시간 관리자가 지금 이 항목을 표시하지 않아 바에 나타낼 수 없습니다."
 L["Drag: reorder, or drop on a group on the left"] = "끌기: 순서 변경 또는 왼쪽의 그룹에 놓기"
