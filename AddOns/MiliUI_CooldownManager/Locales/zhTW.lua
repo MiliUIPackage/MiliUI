@@ -463,6 +463,7 @@ L["Only while recharging"] = "只在回充中"
 L["While recharging or in combat"] = "回充中或戰鬥中"
 L["Only while you have the aura"] = "只在有這個光環時"
 L["A row that hides keeps its space, so the rows below it don't jump."] = "隱藏的列照樣佔位，下面的列不會跳動。"
+L["Drag a title bar to reorder the rows; click it to show or hide its options."] = "拖曳標題列可調整順序；點一下標題列摺疊或展開選項。"
 L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "有充能次數的技能，一格一次充能。下一格會隨著回充平滑填滿，並顯示剩餘秒數。例如聖騎士的「神性戰馬」、法師的「閃現術」。輸入法術 ID。"
 L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "自己身上會疊層的增益，一格一層，沒有光環時全部空著；沒有回充時間。由遊戲自己填，首領戰與傳奇地城中照樣正確。例如死亡騎士的「骸骨之盾」。輸入光環的法術 ID，並填層數上限。"
 

@@ -463,6 +463,7 @@ L["Only while recharging"] = "Только во время восстановл�
 L["While recharging or in combat"] = "Во время восстановления или в бою"
 L["Only while you have the aura"] = "Только пока на вас эффект"
 L["A row that hides keeps its space, so the rows below it don't jump."] = "Скрытая строка сохраняет своё место, чтобы строки ниже не прыгали."
+L["Drag a title bar to reorder the rows; click it to show or hide its options."] = "Перетащите заголовок, чтобы изменить порядок рядов; щёлкните по нему, чтобы свернуть или развернуть настройки."
 L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Заклинание с зарядами, один сегмент на заряд. Следующий пустой сегмент плавно заполняется во время восстановления, с оставшимися секундами. Например, «Божественный скакун» паладина или «Скачок» мага. Введите ID заклинания."
 L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Складывающийся положительный эффект на вас, один сегмент на стак; всё пусто, пока эффекта нет, без времени восстановления. Игра заполняет его сама, поэтому он верен и в боях с боссами, и в М+. Например, «Костяной щит» рыцаря смерти. Введите ID заклинания эффекта и максимум стаков."
 

@@ -463,6 +463,7 @@ L["Only while recharging"] = "Só durante a recarga"
 L["While recharging or in combat"] = "Durante a recarga ou em combate"
 L["Only while you have the aura"] = "Só enquanto você tiver a aura"
 L["A row that hides keeps its space, so the rows below it don't jump."] = "Uma linha oculta mantém seu espaço, para as linhas de baixo não pularem."
+L["Drag a title bar to reorder the rows; click it to show or hide its options."] = "Arraste uma barra de título para reordenar as fileiras; clique nela para mostrar ou ocultar as opções."
 L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "Um feitiço com cargas, um segmento por carga. O próximo segmento vazio enche suavemente enquanto recarrega, com os segundos restantes. Por exemplo, o Corcel Divino do paladino ou Lampejo do mago. Digite o ID do feitiço."
 L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "Um bônus em você que acumula, um segmento por acúmulo; tudo vazio enquanto você não o tiver, sem tempo de recarga. O próprio jogo preenche, então continua certo em chefes e na Mítica+. Por exemplo, o Escudo de Ossos do cavaleiro da morte. Digite o ID de feitiço da aura e o máximo de acúmulos."
 

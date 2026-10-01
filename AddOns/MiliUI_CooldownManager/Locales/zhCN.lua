@@ -463,6 +463,7 @@ L["Only while recharging"] = "只在充能中"
 L["While recharging or in combat"] = "充能中或战斗中"
 L["Only while you have the aura"] = "只在有这个光环时"
 L["A row that hides keeps its space, so the rows below it don't jump."] = "隐藏的行照样占位，下面的行不会跳动。"
+L["Drag a title bar to reorder the rows; click it to show or hide its options."] = "拖动标题栏可调整顺序；点一下标题栏折叠或展开选项。"
 L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "有充能次数的技能，一格一次充能。下一格会随着充能平滑填满，并显示剩余秒数。例如圣骑士的“神圣马驹”、法师的“闪现术”。输入法术 ID。"
 L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "自己身上会叠层的增益，一格一层，没有光环时全部空着；没有充能时间。由游戏自己填，首领战与史诗钥石地下城中照样正确。例如死亡骑士的“白骨之盾”。输入光环的法术 ID，并填层数上限。"
 
