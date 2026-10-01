@@ -80,7 +80,7 @@ Pips.Cfg, Pips.StyleCfg = Cfg, StyleCfg
 local CUSTOM_KINDS = { charges = true, stacks = true }
 Pips.CUSTOM_KINDS = CUSTOM_KINDS
 Pips.CUSTOM_DEFAULT_STACKS = 5
-Pips.CUSTOM_DEFAULT_HEIGHT = 10
+Pips.CUSTOM_DEFAULT_HEIGHT = 8
 Pips.HEIGHT_MIN, Pips.HEIGHT_MAX = 2, 30
 
 -- 純函式：這一列的高（沒存、壞資料 → 預設；超出範圍夾回來）
