@@ -656,6 +656,29 @@ local function MakeSegment(row)
     return seg
 end
 
+-- 符文格的秒數（懶建；只有符文列、倒數開著才顯示）。
+-- 顯示／隱藏只在排版時做，更新只換字（SetText("")），熱路徑上不碰 Show／Hide
+local function LayoutRuneTimer(seg, on, cfg)
+    if not on then
+        if seg.timer then seg.timer:Hide() end
+        return
+    end
+    if not seg.timer then
+        local fs = seg:CreateFontString(nil, "OVERLAY")
+        -- ⚠ 先給字型才能 SetText
+        ns.Media.SetPixelFont(fs, 10, "OUTLINE")
+        fs:SetDrawLayer("OVERLAY", 7)
+        fs:SetJustifyH("CENTER")
+        fs:SetPoint("CENTER", seg, "CENTER", 0, 0)
+        fs:SetTextColor(1, 1, 1, 1)
+        seg.timer = fs
+    end
+    ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, "OUTLINE", ns.Setting(nil, "font"))
+    seg.timer:SetText("")
+    seg.timerSec = nil
+    seg.timer:Show()
+end
+
 local function MakeRow(parent)
     local row = CreateFrame("Frame", nil, parent)
     row.segs = {}
@@ -897,6 +920,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
 
     -- 格寬是除出來的小數 → 對齊實體像素；每格直接錨在列上（不串在前一格）
     local segW, gap = R.SegLayout(W, numSeg, cfg.segmentSpacing)
+    local isRune = def.fill == "rune" and cfg.runeCountdown ~= false
     for i = 1, numSeg do
         local seg = row.segs[i]
         seg:SetSize(segW, H)
@@ -911,6 +935,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
         seg:SetStatusBarTexture(tex)
         seg.bg:SetTexture(tex)
         seg:SetMinMaxValues(i - 1, i)
+        LayoutRuneTimer(seg, isRune, cfg)
         seg:Show()
     end
     for i = numSeg + 1, MAX_SEGMENTS do row.segs[i]:Hide() end
@@ -924,46 +949,125 @@ local function SetSegColor(seg, c, a)
     if t then t:SetVertexColor(c.r, c.g, c.b, a) end
 end
 
+------------------------------------------------------------
+-- 符文（死亡騎士）
+--
+-- GetRuneCooldown(i) 的 start／duration／ready 在 12.1 是明文；仍一律過 Plain／IsSecret，
+-- 讀不到的那顆當「在轉、進度不明」（不填、不印秒數），排序照樣排在最後，不會跳格。
+-- 同時最多三顆在轉，其餘的 start 在未來（排隊中）：進度 0、不印秒數。
+------------------------------------------------------------
+local RUNE_RECHARGE_SHADE = 0.55     -- 在轉的格子：同色系暗一階（狀態只換明暗不換色）
+local runeReady, runeRemain, runeProgress, runeOrder = {}, {}, {}, {}
+local runeRechargeColor = { r = 0, g = 0, b = 0 }
+
+-- 回傳轉好的顆數、有沒有在轉的
+local function ReadRunes(n, now)
+    local readyCount, anyRecharging = 0, false
+    for i = 1, n do
+        local ok, start, duration, isReady = pcall(GetRuneCooldown, i)
+        local r, rem, prog = false, nil, nil
+        if ok and isReady ~= nil and not ns.IsSecret(isReady) then r = isReady and true or false end
+        if r then
+            readyCount = readyCount + 1
+        else
+            anyRecharging = true
+            local s, d = ok and Plain(start), ok and Plain(duration)
+            if s and d and d > 0 then
+                rem = s + d - now
+                if rem < 0 then rem = 0 end
+                prog = (now - s) / d
+                if prog < 0 then prog = 0 elseif prog > 1 then prog = 1 end
+            end
+        end
+        runeReady[i], runeRemain[i], runeProgress[i] = r, rem, prog
+    end
+    return readyCount, anyRecharging
+end
+
+-- 純函式：order[格位] = 符文編號。轉好的靠左（照編號）、在轉的依剩餘時間由短到長，
+-- 剩餘讀不到的排最後；同分照編號（插入排序，最多六顆，不配表、不建 closure）
+function R.RuneOrder(ready, remain, n, order)
+    order = order or {}
+    local k = 0
+    for i = 1, n do
+        if ready[i] then k = k + 1; order[k] = i end
+    end
+    local first = k + 1
+    for i = 1, n do
+        if not ready[i] then
+            local key = remain[i] or math.huge
+            local j = k
+            while j >= first and (remain[order[j]] or math.huge) > key do
+                order[j + 1] = order[j]
+                j = j - 1
+            end
+            order[j + 1] = i
+            k = k + 1
+        end
+    end
+    for i = n + 1, #order do order[i] = nil end
+    return order
+end
+
+-- 純函式：在轉的格子要印的秒數（無條件進位，跟冷卻數字同一種讀法）；排隊中／讀不到回 nil
+function R.RuneSeconds(remain, progress)
+    if type(remain) ~= "number" or type(progress) ~= "number" or progress <= 0 or remain <= 0 then return nil end
+    return math.ceil(remain)
+end
+
 local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
     local alpha = tonumber(cfg.barAlpha) or 1
     if def.fill == "rune" then
-        -- 符文：每格看自己的冷卻（明文布林），不是「有幾點」
-        local readyCount = 0
-        local ready = row.runeReady or {}
-        row.runeReady = ready
-        for i = 1, numSeg do
-            local ok, _, _, isReady = pcall(GetRuneCooldown, i)
-            local r = false
-            if ok and isReady ~= nil and not ns.IsSecret(isReady) then r = isReady and true or false end
-            ready[i] = r
-            if r then readyCount = readyCount + 1 end
-        end
+        -- 符文：先排序再畫（轉好的靠左、在轉的依剩餘時間往右排），在轉的格子填進度
+        local readyCount, anyRecharging = ReadRunes(numSeg, GetTime())
+        local order = R.RuneOrder(runeReady, runeRemain, numSeg, runeOrder)
         local barOv
         if conds then
             RC.FillState(condState, readyCount, numSeg, CurrentSpecID())
             barOv = RC.FirstMatch(conds, condState, nil)
         end
         local dimC, dimA = DimColor(barOv)
-        for i = 1, numSeg do
-            local seg = row.segs[i]
+        local countdown = cfg.runeCountdown ~= false
+        local rc = runeRechargeColor
+        rc.r, rc.g, rc.b = cc.r * RUNE_RECHARGE_SHADE, cc.g * RUNE_RECHARGE_SHADE, cc.b * RUNE_RECHARGE_SHADE
+        for slot = 1, numSeg do
+            local idx = order[slot]
+            local seg = row.segs[slot]
+            local ready = runeReady[idx]
             seg:SetMinMaxValues(0, 1)
-            seg:SetValue(ready[i] and 1 or 0)
-            local c = cc
+            seg:SetValue(ready and 1 or (runeProgress[idx] or 0))
+            local c = ready and cc or rc
             if conds then
-                -- 符文是唯一「沒轉好的格子也吃條件色」的列（pipRecharging）
-                condState.pipRecharging = not ready[i]
-                local ov = RC.FirstMatch(conds, condState, i)
+                -- 符文是唯一「沒轉好的格子也吃條件色」的列（pipRecharging）；格子序號是排序後的位置
+                condState.pipRecharging = not ready
+                local ov = RC.FirstMatch(conds, condState, slot)
                 local oc = ov and RC.ValidColor(ov.color)
                 if oc then
                     c = oc
-                    if not ready[i] then seg:SetValue(1) end    -- 命中時整格上色，暗底上看不出來
+                    if not ready then seg:SetValue(1) end    -- 命中時整格上色，暗底上看不出來
                 end
             end
             SetSegColor(seg, c, alpha)
             seg.bg:SetVertexColor(dimC.r, dimC.g, dimC.b, dimA)
+            if seg.timer then
+                local sec = countdown and not ready and R.RuneSeconds(runeRemain[idx], runeProgress[idx])
+                if sec then
+                    if seg.timerSec ~= sec then
+                        seg.timerSec = sec
+                        seg.timer:SetFormattedText("%d", sec)
+                    end
+                elseif seg.timerSec then
+                    seg.timerSec = nil
+                    seg.timer:SetText("")
+                end
+            end
         end
         ApplyRowOverrides(row, barOv)
-        if cfg.showText then row.text:SetFormattedText("%d", readyCount) end
+        -- 每格都有秒數時，中間的總數會跟秒數疊在一起：倒數開著就不印總數（亮幾格已經一眼看得出來）
+        if cfg.showText then
+            if countdown then row.text:SetText("") else row.text:SetFormattedText("%d", readyCount) end
+        end
+        if anyRecharging then R.ArmRuneTicker() end
         return
     end
 
@@ -1266,6 +1370,39 @@ function R.Update(force)
         local ok, err = xpcall(UpdateRow, ns.ReportError, rows[i], cfg)
         if not ok then R.lastError = err end
     end
+end
+
+-- 符文回充的進度與秒數沒有事件可等（RUNE_POWER_UPDATE 只在轉好／用掉時來）：
+-- 有符文在轉時開一個 0.1 秒的 ticker 只重畫符文列，全部轉好（或列不見了）就停
+local runeTicker
+local runeRearmed = false        -- 這一趟有沒有人說「還有符文在轉」
+
+local function RuneTick()
+    runeRearmed = false
+    local cfg = Cfg()
+    local busy = false
+    if cfg and cfg.enabled ~= false then
+        for i = 1, shownCount do
+            local row = rows[i]
+            local def = row.key and RESOURCES[row.key]
+            if def and def.fill == "rune" and row.mode == "pip" and row:IsShown() then
+                busy = true
+                local ok, err = xpcall(UpdateRow, ns.ReportError, row, cfg)
+                if not ok then R.lastError = err end
+            end
+        end
+    end
+    -- UpdatePipRow 在還有符文在轉時會再呼叫 ArmRuneTicker；這一趟沒人呼叫 ⇒ 全部轉好了
+    if not busy or not runeRearmed then
+        if runeTicker then runeTicker:Cancel() end
+        runeTicker = nil
+    end
+end
+
+function R.ArmRuneTicker()
+    runeRearmed = true
+    if runeTicker or not (C_Timer and C_Timer.NewTicker) then return end
+    runeTicker = C_Timer.NewTicker(0.1, RuneTick)
 end
 
 -- 專精／型態／天賦／上限變動：清單與格數都可能變

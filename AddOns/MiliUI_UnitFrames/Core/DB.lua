@@ -370,6 +370,7 @@ function DB.BuildDefaults()
                     classpower = { enabled = true, x = 8, y = -14, totalw = 200, h = 6,
                                    spacing = 1, rowSpacing = 2, level = 5,
                                    barAlpha = 1, showText = false,
+                                   runeCountdown = true,   -- 死騎符文：在轉的格子印剩餘秒數（新鍵由 MergeDefaults 補）
                                    resources = {},   -- [資源key] = false 表示關掉
                                    -- 條件規則（見 Elements/ClassPower.lua 的「條件規則」）：
                                    -- [資源key] = { rule, rule, ... }，由上而下第一條成立的就用它。

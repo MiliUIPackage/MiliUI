@@ -840,5 +840,31 @@ do
     check("資源條頁恢復預設：預設規則回來", #cfg.conditions.HolyPower == 2 and #cfg.conditions.MaelstromWeapon == 2)
 end
 
+------------------------------------------------------------
+-- 10. 符文排序與秒數（R.RuneOrder／R.RuneSeconds）
+------------------------------------------------------------
+do
+    -- 截圖那一幕：3、6 在轉，其餘轉好 ⇒ 轉好的照編號靠左，在轉的依剩餘時間
+    local ready = { true, true, false, true, true, false }
+    local remain = { nil, nil, 7.2, nil, nil, 2.1 }
+    eqList("符文：轉好靠左、在轉依剩餘時間", R.RuneOrder(ready, remain, 6), { 1, 2, 4, 5, 6, 3 })
+    -- 全部在轉：短的先；讀不到剩餘的排最後；同分照編號
+    ready = { false, false, false, false, false, false }
+    remain = { 9, nil, 3, 9, 1, 3 }
+    eqList("符文：全部在轉、讀不到的墊底、同分照編號", R.RuneOrder(ready, remain, 6), { 5, 3, 6, 1, 4, 2 })
+    -- 全部轉好：照編號
+    ready = { true, true, true, true, true, true }
+    eqList("符文：全部轉好", R.RuneOrder(ready, {}, 6), { 1, 2, 3, 4, 5, 6 })
+    -- 重用 order 表：格數變少時尾巴清掉
+    local order = { 9, 9, 9, 9, 9, 9, 9 }
+    eqList("符文：重用表、尾巴清掉", R.RuneOrder({ false, true }, { 4 }, 2, order), { 2, 1 })
+    eq("秒數：無條件進位", R.RuneSeconds(2.1, 0.5), 3)
+    eq("秒數：剛好整數", R.RuneSeconds(4, 0.4), 4)
+    eq("秒數：排隊中（進度 0）不印", R.RuneSeconds(18, 0), nil)
+    eq("秒數：讀不到不印", R.RuneSeconds(nil, nil), nil)
+    eq("秒數：轉完不印", R.RuneSeconds(0, 1), nil)
+    check("預設：符文倒數開", ns.DB.BuildDefaults().profile.resources.runeCountdown == true)
+end
+
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

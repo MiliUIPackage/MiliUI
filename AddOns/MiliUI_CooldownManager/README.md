@@ -393,7 +393,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | bar（`def.get`） | **醉仙緩勁**（釀酒）、**噬靈魂碎片**（噬魂者 1480） | 醉仙緩勁：`SetMinMaxValues(0, UnitHealthMax × 滿條%)`＋`SetValue(UnitStagger)` 直接餵；三段色（輕／中／重，門檻預設 30%／60%）**只在兩個值都是明文時**算比例，秘密值那幾下（副本戰鬥中間歇出現）沿用上一段顏色與上一次的明文上限，從沒讀到過明文就把秘密的最大生命原樣餵（＝ 滿條 100%）。噬靈魂碎片：光環層數（化身中 1227702、平常 1225789），上限 40／50（天賦 35、PvP 天賦 +50） |
 | absorbBar | **無視苦痛**（防戰） | 值 `UnitGetTotalAbsorbs("player")`、上限「最大生命的三成」**用幾何做**：裁切框（`SetClipsChildren`）＝ 列，裡面一條寬 W／0.3 的 StatusBar 貼在填充起點那一側，`SetMinMaxValues(0, UnitHealthMax)` ⇒ 只看得到前三成。**不對秘密的最大生命乘 0.3**；這條的填充貼圖上不錨任何東西。顯示的是**身上所有吸收盾的總量**（說明列寫明） |
 | pip | 聖能、連擊點數、真氣、靈魂碎片、秘法充能、精華、符文；漩渦之武、矛尖、靈魂碎片、**冰刺**（光環／施放次數型） | **每格一顆 StatusBar**：`SetMinMaxValues(i-1, i)`＋`SetValue(目前值)` ⇒ 第幾格亮由引擎決定，秘密值照樣畫得對。格子一律錨在列上（`SetValue(秘密值)` 會讓那顆條的幾何變秘密、傳染給錨在它身上的框） |
-| pip（符文） | 符文 | 每格看 `GetRuneCooldown(i)` 的就緒旗標（明文才算） |
+| pip（符文） | 符文 | **先排序再畫**：轉好的靠左（照編號）、在轉的依剩餘時間往右排（`R.RuneOrder`）；在轉的格子 `SetValue((now−start)/duration)` 填進度、同色暗一階，排隊中（start 在未來）進度 0。`runeCountdown`（預設開）在轉的格子印剩餘秒數（無條件進位）並且不印中間的總數。有符文在轉時開 0.1 秒 ticker 只重畫符文列，全部轉好就停。start／duration／ready 讀不到明文 ⇒ 不填不印、排最後 |
 | auraBar | **旋風斬**（狂怒，4 層）、**橫掃攻擊**（武器，12 層，點了 1261049 是 18）、**鐵鬃**（守護熊形態，一層一格、5 格） | **引擎寫**（`Modules/AuraBar.lua`）：這幾個增益連戰鬥外 `GetPlayerAuraBySpellID` 都可能回 nil。旋風斬／橫掃攻擊：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給按鈕的 `SetApplicationBar(bar, { maxApplications })`，引擎每次套用寫 `SetMinMaxValues(0, max)`＋`SetValue(層數)`（光環消失寫 0）。鐵鬃每施放一次是**一顆獨立的光環**（層數欄是 0），改用 `AddAuraGroup`（`maxFrameCount` ＝ 格數、`layout` 的 elementWidth／Height／Spacing ＝ 一格），每顆按鈕的 StatusBar 交給 `SetDurationBar(bar, { direction = RemainingTime })`：一格一層、各自倒數。格子外觀（暗底、黑邊、分隔）是列上另外畫的裝飾；整列寬的填色第 k 層終點落在第 k 個格距裡，被分隔蓋住。條件規則與數值文字不適用（Lua 沒有值），設定頁寫明 |
 | auraTimer | **黯黑力量**（增輝喚能師，增益 395296、天賦閘 395152）、**秘法靈魂**（秘法法師，增益 451038＋1223522、天賦閘「歐爾的記憶」449619 或英雄樹 39 Sunfury） | **光環剩餘時間條，引擎寫**（`Modules/AuraBar.lua` 的 `kind = "duration"`）：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給 `SetDurationBar(bar, { direction = RemainingTime, interpolation = Immediate })`：光環在身上時由引擎往下縮（上限＝光環自己的持續時間，含黯黑力量的延長，Lua 不必知道秒數）、光環不在時按鈕藏起來，看到的是列上畫的空條（暗底＝主色 × 0.25、1px 黑邊）。`showText` 開著時另建一個 FontString 交給 `SetDurationText`（formatter `Text.PlainFormatter(5)` 在容器建立前先建好：剩 5 秒起一位小數），字型／字級進簽章。容器沒好（戰鬥中、建失敗）時先畫空條（`timerIdle`）。條件規則不適用；`GetValue` 對這種列固定回 0, 0（不讀光環） |
 
@@ -1007,3 +1007,6 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     自訂格子（充能／層數）同樣。從右到左填充時一樣。格距 1 以上照舊。
 119. 新設定檔（或資源條頁「恢復預設」）：列高 14、字級 14、格距 0；聖能 ≥3 換粉紫、≥5 換紅，氣旋武器 ≥9 換粉、≥10 換紅。
     既有設定檔不變（不遷移）；已有規則或規則刪光的設定檔不會被補回預設規則。
+120. 死騎符文（資源條與單位框架兩邊）：轉好的靠左、在轉的往右依剩餘時間排，用掉一顆時不跳格；在轉的格子填進度、印剩餘秒數，
+    排隊中（第四顆以後）不填不印；全部轉好後 ticker 停掉（單位框架看 `/muf debug` 的 Metro 清單沒有 `classpower_rune`）。
+    從右到左填充時，進度從右邊長起。倒數關掉時中間照舊印轉好的顆數。

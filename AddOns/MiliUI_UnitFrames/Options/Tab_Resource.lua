@@ -46,6 +46,10 @@ local function BuildControls()
         { type = "slider", key = "barAlpha", label = L["Fill opacity"], min = 0.1, max = 1, step = 0.05 },
         { type = "toggle", key = "showText", label = L["Show value on the bar"] },
     }
+    if ns.playerClass == "DEATHKNIGHT" then
+        list[#list + 1] = { type = "toggle", key = "runeCountdown", label = L["Rune countdown"] }
+        list[#list + 1] = { type = "text", label = L["Ready runes line up on the left, recharging ones on the right with their fill growing. The countdown prints the seconds left on each recharging rune and replaces the ready-rune count in the middle."] }
+    end
 
     ---------------------------------------------------------
     -- 顏色與條件

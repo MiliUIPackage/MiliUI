@@ -747,6 +747,9 @@ local function Controls(cand, sub)
                 add(BS("slider", "staggerHeavyAt", L["Heavy threshold (percent of max health)"], { min = 1, max = 200, step = 1 }))
                 add(BS("slider", "staggerCeiling", L["Full bar at (percent of max health)"], { min = 10, max = 200, step = 5 }))
                 add(Note(L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."]))
+            elseif key == "Runes" then
+                add(BS("toggle", "runeCountdown", L["Rune countdown"]))
+                add(Note(L["Ready runes line up on the left, recharging ones on the right with their fill growing. The countdown prints the seconds left on each recharging rune and replaces the ready-rune count in the middle."]))
             elseif key == "IgnorePain" then
                 add(Note(L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."]))
             elseif key == "Ironfur" then
