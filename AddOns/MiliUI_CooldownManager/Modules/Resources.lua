@@ -300,9 +300,15 @@ local MANA_SPECS = {
 R.MANA_SPECS = MANA_SPECS
 
 -- 候選有、但**預設不顯示**的（玩家在「這個專精要顯示哪些」勾起來才顯示）：
--- 增強薩的法力只在戰鬥外回血／補圖騰時有意義，平常不需要一條在那裡佔位（使用者 2026-10-01 指定）
+-- 法力只在治療專精預設顯示；輸出專精（暗牧、元素、增強、術士、平衡、湮滅、強化）有自己的主資源，
+-- 法力平常不需要一條在那裡佔位（使用者 2026-10-02 指定，跟 Ayije_CDM 的預設一致）
+local MANA_OFF = { Mana = true }
 local DEFAULT_OFF = {
-    [263] = { Mana = true },
+    [258] = MANA_OFF,                                  -- 暗牧
+    [262] = MANA_OFF, [263] = MANA_OFF,                -- 元素、增強
+    [265] = MANA_OFF, [266] = MANA_OFF, [267] = MANA_OFF, -- 術士
+    [102] = MANA_OFF,                                  -- 平衡
+    [1467] = MANA_OFF, [1473] = MANA_OFF,              -- 湮滅、強化
 }
 -- 每個專精都預設不顯示的：血量（單位框架本來就有血條，這裡是給想看的人勾起來的）
 local ALWAYS_OFF = { Health = true }
