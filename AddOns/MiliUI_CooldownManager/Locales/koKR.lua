@@ -463,6 +463,7 @@ L["Only while recharging"] = "충전 중일 때만"
 L["While recharging or in combat"] = "충전 중이거나 전투 중"
 L["Only while you have the aura"] = "해당 효과가 있을 때만"
 L["A row that hides keeps its space, so the rows below it don't jump."] = "숨겨진 줄도 자리를 차지하므로 아래 줄이 움직이지 않습니다."
+L["Drag a title bar to reorder the rows; click it to show or hide its options."] = "제목 줄을 끌어 순서를 바꾸고, 클릭하면 옵션을 접거나 펼칩니다."
 L["A spell with charges, one segment per charge. The next empty segment fills up smoothly as it recharges, with the seconds left. For example, the Paladin's Divine Steed or the Mage's Blink. Enter the spell ID."] = "충전이 있는 주문으로, 충전 하나당 한 칸입니다. 다음 빈 칸이 충전되는 동안 부드럽게 채워지며 남은 초가 표시됩니다. 예: 성기사의 '신성한 군마', 마법사의 '점멸'. 주문 ID를 입력하세요."
 L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] = "내 몸에 중첩되는 강화 효과로, 중첩 하나당 한 칸입니다. 효과가 없으면 모두 비어 있고 충전 시간은 없습니다. 게임이 직접 채우므로 우두머리 전투와 신화+에서도 정확합니다. 예: 죽음의 기사의 '뼈의 보호막'. 효과의 주문 ID와 최대 중첩을 입력하세요."
 

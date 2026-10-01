@@ -260,22 +260,211 @@ function Tab.AskCustomKind(ctx)
     return kindPopup
 end
 
--- 一筆的第一列：標籤欄是法術名；控件欄 圖示＋種類（灰字）……［刪除］
-local function CustomHeadRow(i)
+------------------------------------------------------------
+-- 一筆一張卡：標題列（滿版）＋ 選項列（可摺疊）
+--
+-- 標題列：［本列顏色的直條］［拖曳點］［摺疊箭頭］［圖示］［法術名（大字）］［種類 · 法術 ID（灰字）］……［刪除］
+--   * 點標題列 ＝ 摺疊／展開底下的選項（entry.collapsed，存檔；換表單 ⇒ 簽章帶它）
+--   * 拖標題列 ＝ 排序：游標所在的位置畫一條插入線，放開就把這一筆搬過去（清單順序 ＝ 畫面上的列序）
+-- 卡片的位置記在表單內容框上（content._cards），一份表單一份；插入線也掛在那裡。
+-- 拖曳時捲軸會跟著游標捲（游標貼到捲動區上下緣）。
+------------------------------------------------------------
+local CARD_H   = 32
+local CARD_GAP = 10
+local LABEL_W  = ns.WidgetsEnv.LABEL_W or 128
+local CTRL_GAP = 12               -- 共用層表單：標籤欄與控件欄的間距（Controls.lua 的 GAP）
+local ARROW    = "Interface\\ChatFrame\\ChatFrameExpandArrow"
+
+local drag                        -- { from, content, ctx, header, target }
+local ghost
+
+local function Cards(content)
+    content._cards = content._cards or { list = {} }
+    return content._cards
+end
+
+-- 游標在 content 座標系的 y（負值，跟 SetPoint 的 y 同一套）
+local function CursorY(content)
+    local top = content:GetTop()
+    if not top then return nil end
+    local _, cy = GetCursorPosition()
+    return cy / content:GetEffectiveScale() - top
+end
+
+-- 插入位置 1..n+1：游標在第 i 張標題列中線以上 ⇒ 插在 i 前面
+local function DropSlot(cards, cy)
+    local n = #cards.list
+    for i = 1, n do
+        local c = cards.list[i]
+        if c and cy > c.top - CARD_H / 2 then return i end
+    end
+    return n + 1
+end
+
+local function EnsureGhost()
+    if ghost then return ghost end
+    ghost = W.CreateFrame(nil, UIParent, 200, 26)
+    ghost:SetFrameStrata("TOOLTIP")
+    ghost:SetBackdropColor(0.2, 0.2, 0.2, 0.95)
+    ghost:SetBackdropBorderColor(W.Accent(1))
+    ghost:EnableMouse(false)
+    ghost.icon = ghost:CreateTexture(nil, "ARTWORK")
+    ns.P.Size(ghost.icon, 18, 18)
+    ghost.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    ghost.icon:SetPoint("LEFT", 5, 0)
+    ghost.text = ghost:CreateFontString(nil, "OVERLAY")
+    ghost.text:SetFontObject(W.fontNormal)
+    ghost.text:SetPoint("LEFT", ghost.icon, "RIGHT", 6, 0)
+    ghost:Hide()
+    return ghost
+end
+
+-- 拖曳中每幀：鬼影跟著游標、插入線、貼邊自動捲動
+local function DragUpdate()
+    if not drag then return end
+    local x, y = GetCursorPosition()
+    local s = UIParent:GetEffectiveScale()
+    ghost:ClearAllPoints()
+    ghost:SetPoint("LEFT", UIParent, "BOTTOMLEFT", x / s + 14, y / s)
+
+    local sc = Tab.scroll
+    if sc and sc.GetTop and sc:GetTop() then
+        local ss = sc:GetEffectiveScale()
+        local sy = y / ss
+        local step
+        if sy > sc:GetTop() - 24 then step = -8 elseif sy < sc:GetBottom() + 24 then step = 8 end
+        if step then
+            local range = sc.GetVerticalScrollRange and sc:GetVerticalScrollRange() or 0
+            local v = math.max(0, math.min(range, (sc:GetVerticalScroll() or 0) + step))
+            sc:SetVerticalScroll(v)
+        end
+    end
+
+    local cards = Cards(drag.content)
+    local cy = CursorY(drag.content)
+    if not cy then return end
+    local slot = DropSlot(cards, cy)
+    drag.target = slot
+    local lineY
+    if slot <= #cards.list then
+        lineY = cards.list[slot].top + CARD_GAP / 2
+    else
+        lineY = (cards.endY or cy) - 2
+    end
+    local line = cards.line
+    line:ClearAllPoints()
+    line:SetPoint("TOPLEFT", drag.content, "TOPLEFT", cards.left or 4, lineY + 1)
+    line:SetSize(cards.width or 300, 2)
+    -- 放回原位（自己前後）不算移動：線就不畫
+    line:SetShown(slot ~= drag.from and slot ~= drag.from + 1)
+end
+
+local function StopDrag(commit)
+    local d = drag
+    drag = nil
+    if ghost then
+        ghost:SetScript("OnUpdate", nil)
+        ghost:Hide()
+    end
+    if not d then return end
+    local cards = Cards(d.content)
+    if cards.line then cards.line:Hide() end
+    d.header:SetAlpha(1)
+    local to = d.target
+    if not (commit and to) or to == d.from or to == d.from + 1 then return end
+    local list = CustomList()
+    if not (list and list[d.from]) then return end
+    local e = table.remove(list, d.from)
+    if to > d.from then to = to - 1 end
+    table.insert(list, to, e)
+    Changed(d.ctx)
+end
+
+local function StartDrag(header, i, content, ctx)
+    local e = CustomEntry(i)
+    if not e then return end
+    local cards = Cards(content)
+    if not cards.line then
+        local line = content:CreateTexture(nil, "OVERLAY", nil, 7)
+        line:SetColorTexture(W.Accent(1))
+        line:Hide()
+        cards.line = line
+    end
+    drag = { from = i, content = content, ctx = ctx, header = header }
+    header:SetAlpha(0.45)
+    local g = EnsureGhost()
+    g.icon:SetTexture(SpellIcon(e.spellID))
+    g.text:SetText(SpellLabel(e.spellID))
+    local tw = g.text:GetStringWidth()
+    ns.P.Size(g, math.max(80, (type(tw) == "number" and tw or 60) + 40), 26)
+    g:SetScript("OnUpdate", DragUpdate)
+    g:Show()
+    DragUpdate()
+end
+
+-- 標題列：滿版（從表單左緣畫到右緣，蓋過標籤欄）
+local function CustomCardHeader(i)
     return function(parent, x, y, width, ctx)
-        local cy = y - CUSTOM_ROW_H / 2
-        local icon = parent:CreateTexture(nil, "ARTWORK")
-        ns.P.Size(icon, 18, 18)
+        local left = x - LABEL_W - CTRL_GAP
+        local fullW = width + LABEL_W + CTRL_GAP
+        local cards = Cards(parent)
+        cards.left, cards.width = left, fullW
+        cards.list[i] = { top = y }
+
+        local h = CreateFrame("Button", nil, parent, "BackdropTemplate")
+        W.Stylize(h, { 0.17, 0.17, 0.17, 0.95 }, { 0, 0, 0, 1 })
+        ns.P.Size(h, fullW, CARD_H)
+        h:SetPoint("TOPLEFT", parent, "TOPLEFT", left, y)
+        h:RegisterForClicks("LeftButtonUp")
+        h:RegisterForDrag("LeftButton")
+        cards.list[i].header = h
+
+        -- 本列顏色的直條：一眼對得上畫面上哪一列
+        local strip = h:CreateTexture(nil, "ARTWORK")
+        strip:SetPoint("TOPLEFT", 1, -1)
+        strip:SetPoint("BOTTOMLEFT", 1, 1)
+        strip:SetWidth(3)
+
+        -- 拖曳點：兩行三列的小方點
+        for col = 0, 1 do
+            for row = -1, 1 do
+                local d = h:CreateTexture(nil, "ARTWORK")
+                d:SetColorTexture(0.55, 0.55, 0.55, 1)
+                ns.P.Size(d, 2, 2)
+                d:SetPoint("CENTER", h, "LEFT", 11 + col * 4, row * 4)
+            end
+        end
+
+        local arrow = h:CreateTexture(nil, "ARTWORK")
+        arrow:SetTexture(ARROW)
+        arrow:SetDesaturated(true)
+        arrow:SetVertexColor(0.8, 0.8, 0.8)
+        ns.P.Size(arrow, 12, 12)
+        arrow:SetPoint("LEFT", h, "LEFT", 22, 0)
+
+        local icon = h:CreateTexture(nil, "ARTWORK")
+        ns.P.Size(icon, 22, 22)
         icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        icon:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
-        local kind = parent:CreateFontString(nil, "OVERLAY")
-        kind:SetFontObject(W.fontSmall)
-        kind:SetTextColor(0.65, 0.65, 0.65)
-        kind:SetPoint("LEFT", icon, "RIGHT", 8, 0)
-        kind:SetJustifyH("LEFT")
-        local del = W.CreateButton(parent, L["Delete"], "normal", 60, 20)
+        icon:SetPoint("LEFT", arrow, "RIGHT", 6, 0)
+
+        local name = h:CreateFontString(nil, "OVERLAY")
+        name:SetFontObject(W.fontTitle)
+        name:SetTextColor(1, 1, 1)
+        name:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+        name:SetJustifyH("LEFT")
+        name:SetWordWrap(false)
+
+        local meta = h:CreateFontString(nil, "OVERLAY")
+        meta:SetFontObject(W.fontSmall)
+        meta:SetTextColor(0.6, 0.6, 0.6)
+        meta:SetPoint("LEFT", name, "RIGHT", 10, -1)
+        meta:SetJustifyH("LEFT")
+        meta:SetWordWrap(false)
+
+        local del = W.CreateButton(h, L["Delete"], "normal", 60, 20)
         W.FitButton(del, 60, 20)
-        del:SetPoint("RIGHT", parent, "TOPLEFT", x + width, cy)
+        del:SetPoint("RIGHT", h, "RIGHT", -6, 0)
+        meta:SetPoint("RIGHT", del, "LEFT", -8, -1)
         local confirm
         del:SetScript("OnClick", function()
             if not confirm then
@@ -285,16 +474,62 @@ local function CustomHeadRow(i)
             end
             confirm:Show()
         end)
+
+        -- 狀態只換明暗：滑過底色亮一階
+        h:SetScript("OnEnter", function(self)
+            if drag then return end
+            self:SetBackdropColor(0.23, 0.23, 0.23, 0.95)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(name:GetText() or "", 1, 1, 1)
+            GameTooltip:AddLine(L["Drag a title bar to reorder the rows; click it to show or hide its options."], 0.75, 0.75, 0.75, true)
+            GameTooltip:Show()
+        end)
+        h:SetScript("OnLeave", function(self)
+            self:SetBackdropColor(0.17, 0.17, 0.17, 0.95)
+            GameTooltip:Hide()
+        end)
+        h:SetScript("OnClick", function(self)
+            if self.dragging or self.justDragged then return end
+            local e = CustomEntry(i)
+            if not e then return end
+            e.collapsed = (not e.collapsed) or nil
+            Changed(ctx)
+        end)
+        h:SetScript("OnDragStart", function(self)
+            self.dragging = true
+            GameTooltip:Hide()
+            StartDrag(self, i, parent, ctx)
+        end)
+        h:SetScript("OnDragStop", function(self)
+            self.dragging = false
+            self.justDragged = true
+            C_Timer.After(0, function() self.justDragged = nil end)
+            StopDrag(true)
+        end)
+        h:SetScript("OnHide", function(self)
+            if drag and drag.header == self then StopDrag(false) end
+        end)
+
         local function Refresh()
             local e = CustomEntry(i)
             if not e then return end
             icon:SetTexture(SpellIcon(e.spellID))
-            kind:SetText(((e.kind == "charges") and L["Charges"] or L["Stacks"]) .. "  ·  "
+            name:SetText(SpellLabel(e.spellID))
+            meta:SetText(((e.kind == "charges") and L["Charges"] or L["Stacks"]) .. "  ·  "
                 .. L["Spell ID"] .. " " .. tostring(e.spellID))
+            local r, g, b = ns.Pips.CustomColor(e)
+            strip:SetColorTexture(r, g, b, 1)
+            arrow:SetRotation(e.collapsed and 0 or math.rad(-90))
         end
         Refresh()
-        return CUSTOM_ROW_H, Refresh
+        return CARD_H, Refresh
     end
+end
+
+-- 最後一張卡的下緣（插入線放到最後面時畫在這裡）
+local function CardsEnd(parent, x, y)
+    Cards(parent).endY = y
+    return 0
 end
 
 -- 第二列：顏色；充能多「顯示秒數」、層數多「上限」
@@ -413,17 +648,23 @@ local function AppendCustomRows(list)
     local shown = 0
     for i, e in ipairs(entries) do
         if type(e) == "table" and ns.Pips.CUSTOM_KINDS[e.kind] and type(e.spellID) == "number" then
-            if shown > 0 then add({ type = "space", h = 6 }) end
+            add({ type = "space", h = shown > 0 and CARD_GAP or 4 })
             shown = shown + 1
-            add({ type = "custom", label = SpellLabel(e.spellID), h = CUSTOM_ROW_H, noReset = true, build = CustomHeadRow(i) })
-            add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
-            add(HeightSpec(i))
-            add(ShowWhenSpec(i, e.kind))
+            add({ type = "custom", h = CARD_H, noReset = true, build = CustomCardHeader(i) })
+            if not e.collapsed then
+                add({ type = "space", h = 4 })
+                add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
+                add(HeightSpec(i))
+                add(ShowWhenSpec(i, e.kind))
+            end
         end
     end
     if shown == 0 then
         add(Note(L["No custom segments for this specialization yet."]))
     else
+        add({ type = "custom", h = 0, noReset = true, build = CardsEnd })
+        add({ type = "space", h = 6 })
+        add(Note(L["Drag a title bar to reorder the rows; click it to show or hide its options."]))
         add(Note(L["A row that hides keeps its space, so the rows below it don't jump."]))
     end
     add({ type = "space", h = 4 })
@@ -437,11 +678,13 @@ local function AppendCustomRows(list)
     AppendPipsPlacement(list)
 end
 
--- 表單簽章的一段：整份清單（種類＋法術）。標籤是建表單當下的法術名，所以清單內容一變就換一份
+-- 表單簽章的一段：整份清單（種類＋法術＋摺疊）。標籤是建表單當下的法術名，所以清單內容一變就換一份
 local function CustomSignature()
     local out = {}
     for _, e in ipairs(CustomList() or {}) do
-        if type(e) == "table" then out[#out + 1] = tostring(e.kind) .. ":" .. tostring(e.spellID) end
+        if type(e) == "table" then
+            out[#out + 1] = tostring(e.kind) .. ":" .. tostring(e.spellID) .. (e.collapsed and "-" or "")
+        end
     end
     return #out .. "=" .. table.concat(out, ",")
 end
@@ -625,6 +868,7 @@ function Tab.Build(parent, title)
     PlaceHolder()
     local scroll = W.CreateScrollFrame(holder)
     page.scroll = scroll
+    Tab.scroll = scroll           -- 自訂格子拖曳排序時貼邊自動捲動
     local forms = {}
 
     local function OnApply(spec)
