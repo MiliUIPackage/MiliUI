@@ -171,6 +171,8 @@ local RESOURCE_COLORS = {
     -- 光環剩餘時間條：黯黑力量（喚能師的古銅黑金）、秘法靈魂（秘法紫，跟秘法充能的藍分得開）
     EbonMight       = { color = { r = 0.80, g = 0.60, b = 0.20 } },
     ArcaneSoul      = { color = { r = 0.66, g = 0.40, b = 1    } },
+    -- 血量：預設走職業色（healthClassColor），這是關掉職業色時的顏色
+    Health          = { color = { r = 0.2,  g = 0.8,  b = 0.2  } },
 }
 DB.RESOURCE_COLORS = RESOURCE_COLORS
 
@@ -203,6 +205,14 @@ ResourcesDefaults = function()
         runeText      = "countdown",       -- 死騎符文列的數字：countdown 每格秒數／count 中間顆數，showText 開著才有（見 Resources.lua 的 R.RuneText）
         manaAbbrev    = CJK[GetLocale and GetLocale() or ""] and "wan" or "k",   -- none | k | wan
         manaPercent   = false,             -- 法力列印百分比而不是數值
+        -- 血量列（每個專精都是候選、預設關）：數字縮寫沿用 manaAbbrev
+        healthPercent = false,             -- 血量列印百分比而不是數值
+        healthClassColor = true,           -- 用職業色；關掉用 colors.Health.color
+        healthThresholdEnabled = false,    -- 門檻換色（低於門檻換那一筆的顏色，C 端求值）
+        healthThresholds = {},             -- { { pct = 1..99, color = { r, g, b, a } }, … }，最多 6 筆
+        -- 列的順序：資源 key 的陣列，整份設定檔共用（不分專精）；不在裡面的照專精清單排在後面
+        -- （Modules/Resources.lua 的 R.ApplyOrder）。空 ＝ 全部照預設
+        order         = {},
         -- 醉仙緩勁：中度／重度的門檻（% 最大生命）、滿條對應幾 % 最大生命
         staggerModerateAt = 30,
         staggerHeavyAt    = 60,

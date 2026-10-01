@@ -46,6 +46,13 @@ local TIME_ITEMS = {
     { text = L["Elapsed (1.2)"],               value = "elapsed" },
 }
 
+-- 材質：多一項「暴雪施法條」，排在「純色」後面（只有施法條有，資源條與自訂格子的選單不加）
+local function TextureItems()
+    local items = ns.Specs.TextureItems()
+    table.insert(items, 2, { text = L["Blizzard cast bar"], value = ns.Castbar.BLIZZARD_TEXTURE })
+    return items
+end
+
 local function ResetAll()
     local cfg = Cfg()
     if not cfg then return end
@@ -62,7 +69,8 @@ local function Controls()
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of Essential Cooldowns (icon included)."]),
         BS("slider", "height", L["Height"], { min = 6, max = 60, step = 1 }),
-        BS("dropdown", "texture", L["Texture"], { items = ns.Specs.TextureItems }),
+        BS("dropdown", "texture", L["Texture"], { items = TextureItems }),
+        Note(L["Blizzard cast bar: the gradient look of the game's own cast bar, tinted with the colors below."]),
         BS("color", "bgColor", L["Background color"]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
         { type = "header", label = L["Colors"] },

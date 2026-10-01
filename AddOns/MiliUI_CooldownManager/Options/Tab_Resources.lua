@@ -13,7 +13,11 @@
 -- 多一小節「位置與錨定」（Specs.Anchor("pips", { other = true })，讀寫 profile.pips）、
 -- 「跟核心技能一起淡出」與自訂格子自己的載入條件（profile.pips.loadConditions）。
 --
--- 資源清單跟著專精走、條件規則的列數跟著規則走，所以表單照「形狀」快取（專精、候選清單、
+-- 「這個專精要顯示哪些」一列一個資源：勾選框＋上移／下移（resources.order，不分專精；
+-- 移一下就把目前候選的完整順序寫回去，見 Modules/Resources.lua 的 R.MergeOrder）。
+-- 血量列（Health）的設定在「顏色與條件」那一段：職業色、百分比、門檻換色（彈窗在 Options/HealthThresholds.lua）。
+--
+-- 資源清單跟著專精走、條件規則的列數跟著規則走，所以表單照「形狀」快取（專精、候選清單（含順序）、
 -- 條件編輯器的結構、自訂格子清單、有沒有錨定、條清單）：形狀變了才另建一份、變回來就拿舊的
 -- （frame 刪不掉，每改一次重建一次就是洩漏）。形狀的比對延一幀做（不在按鈕的處理器裡換表單）。
 ------------------------------------------------------------
@@ -695,13 +699,104 @@ local function CustomSignature()
 end
 Tab.CustomSignature = CustomSignature
 
--- 條件規則編輯器的候選：引擎寫值的列（auraBar、auraTimer）不列
+-- 條件規則編輯器的候選：引擎寫值的列（auraBar、auraTimer）與血量（秘密值）不列
 function Tab.ConditionCandidates(cand)
     local out = {}
     for _, key in ipairs(cand or {}) do
         if ns.Resources.SupportsConditions(key) then out[#out + 1] = key end
     end
     return out
+end
+
+------------------------------------------------------------
+-- 「這個專精要顯示哪些」：勾選框（同原本的開關）＋ 上移／下移
+------------------------------------------------------------
+local ROW_TOGGLE_H = 26
+local ARROW_BTN_W, ARROW_BTN_H = 20, 18
+
+-- 箭頭一律畫貼圖（不用「↑↓」字元：不是每個語系的字型都有那兩個字）
+local function ArrowButton(parent, rotation)
+    local b = W.CreateButton(parent, nil, "normal", ARROW_BTN_W, ARROW_BTN_H)
+    local t = b:CreateTexture(nil, "ARTWORK")
+    t:SetTexture(ARROW)
+    t:SetDesaturated(true)
+    ns.P.Size(t, 10, 10)
+    t:SetPoint("CENTER", 0, 0)
+    t:SetRotation(rotation)
+    b.arrow = t
+    return b
+end
+
+local function SetArrowEnabled(b, on)
+    b:SetEnabled(on)
+    -- 停用只換明暗
+    b.arrow:SetVertexColor(on and 0.85 or 0.35, on and 0.85 or 0.35, on and 0.85 or 0.35)
+end
+
+-- 把 key 往上（dir ＝ -1）或往下（+1）移一格：目前候選的完整順序寫進 order（別的專精排過的 key 留著）
+local function MoveRow(ctx, key, dir)
+    local c = Cfg()
+    if not c then return end
+    local R = ns.Resources
+    local cand = R.Candidates()
+    local list, at = {}, nil
+    for i, k in ipairs(cand) do
+        list[i] = k
+        if k == key then at = i end
+    end
+    local to = at and at + dir
+    if not (to and list[to]) then return end
+    list[at], list[to] = list[to], list[at]
+    c.order = R.MergeOrder(c.order, list)
+    -- 候選順序進了表單簽章：換一份表單（延一幀，OnApply 裡比）
+    Changed(ctx)
+end
+
+local function ShowRow(cand, i)
+    local R = ns.Resources
+    local key = cand[i]
+    local first, last = i == 1, i == #cand
+    return { type = "custom", label = R.Name(key), h = ROW_TOGGLE_H, noReset = true,
+             build = function(parent, x, y, width, ctx)
+        local cy = y - ROW_TOGGLE_H / 2
+        local cb = W.CreateCheckButton(parent, nil, function(on)
+            local c = Cfg()
+            if not c then return end
+            if type(c.rows) ~= "table" then c.rows = {} end
+            -- 跟這個專精的預設一樣就存 nil（＝照預設），不一樣才存 true／false。
+            -- ⚠ 不能寫 `(not on) and false or nil`：`x and false or nil` 永遠是 nil，取消勾選等於沒存
+            on = on and true or false
+            if on == R.DefaultOn(ns.specID, key) then c.rows[key] = nil else c.rows[key] = on end
+            Touched(ctx)
+        end)
+        cb:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
+        local up = ArrowButton(parent, math.rad(90))
+        up:SetPoint("LEFT", parent, "TOPLEFT", x + 32, cy)
+        local down = ArrowButton(parent, math.rad(-90))
+        down:SetPoint("LEFT", up, "RIGHT", 3, 0)
+        SetArrowEnabled(up, not first)
+        SetArrowEnabled(down, not last)
+        up:SetScript("OnClick", function() MoveRow(ctx, key, -1) end)
+        down:SetScript("OnClick", function() MoveRow(ctx, key, 1) end)
+        local function Refresh() cb:SetChecked(R.RowOn(Cfg(), ns.specID, key)) end
+        Refresh()
+        return ROW_TOGGLE_H, Refresh
+    end }
+end
+
+-- 血量門檻那一列：按鈕寫著目前筆數，點開是編輯器（Options/HealthThresholds.lua）
+local function HealthThresholdRow()
+    return { type = "custom", label = "", h = 30, noReset = true, build = function(parent, x, y)
+        local btn = W.CreateButton(parent, L["Health thresholds"], "normal", 160, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        local function UpdateText()
+            btn:SetText(("%s  (%d)"):format(L["Health thresholds"], ns.HealthThresholds.Count()))
+            W.FitButton(btn, 160, 22)
+        end
+        btn:SetScript("OnClick", function() ns.HealthThresholds.Open(UpdateText) end)
+        UpdateText()
+        return 30, UpdateText
+    end }
 end
 
 local function Controls(cand, sub)
@@ -759,11 +854,21 @@ local function Controls(cand, sub)
                 add(Note(L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."]))
             elseif key == "Ironfur" then
                 add(Note(L["One segment per active application, each draining with its own remaining time."]))
+            elseif key == "Health" then
+                add(BS("toggle", "healthClassColor", L["Use the class color for the fill"]))
+                add(Note(L["While this is on, the color above isn't used."]))
+                add(BS("toggle", "healthPercent", L["Health as percent"]))
+                add(BS("toggle", "healthThresholdEnabled", L["Recolor below a threshold"]))
+                add(Note(L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."]))
+                add(HealthThresholdRow())
+                add(Note(L["Health is a secret value addons can't read, so condition rules don't apply here; use threshold coloring instead."]))
             end
-            if R.Info(key) and R.Info(key).mode == "auraTimer" then
+            local info = R.Info(key)
+            if info and info.mode == "auraTimer" then
                 -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
                 add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))
-            elseif not R.SupportsConditions(key) then
+            elseif not R.SupportsConditions(key) and not (info and info.health) then
+                -- 血量的說明在上面那一段（條件規則不適用、改用門檻換色），這句「遊戲自己畫」不適用
                 add(Note(L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."]:format(R.Name(key))))
             end
         end
@@ -776,21 +881,8 @@ local function Controls(cand, sub)
     if #cand == 0 then
         add(Note(L["This specialization has no resource to show here."]))
     else
-        for _, key in ipairs(cand) do
-            local path = "rows." .. key
-            add(BS("toggle", path, R.Name(key), {
-                get = function() return R.RowOn(Cfg(), ns.specID, key) end,
-                set = function(_, on)
-                    local c = Cfg()
-                    if not c then return end
-                    if type(c.rows) ~= "table" then c.rows = {} end
-                    -- 跟這個專精的預設一樣就存 nil（＝照預設），不一樣才存 true／false。
-                    -- ⚠ 不能寫 `(not on) and false or nil`：`x and false or nil` 永遠是 nil，取消勾選等於沒存
-                    on = on and true or false
-                    if on == R.DefaultOn(ns.specID, key) then c.rows[key] = nil else c.rows[key] = on end
-                end,
-            }))
-        end
+        for i in ipairs(cand) do add(ShowRow(cand, i)) end
+        add(Note(L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."]))
     end
 
     add({ type = "header", label = L["Load conditions"] })

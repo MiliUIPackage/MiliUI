@@ -5,11 +5,15 @@
 --   * **有法力**：單位框自己有能量條，所以那邊刻意不做法力；這裡是獨立 HUD，
 --     有法力的專精在最下面多一列法力條（做法照能量條：上限／目前值直接餵 StatusBar）。
 --   * **主資源也列**：那邊把「單位框能量條已經在畫的主資源」剔掉，這裡不剔。
+--   * **血量**：每個專精的候選都多一列血量條（Health，預設關），見下面「血量」一節。
+--
+-- 列的順序：預設照專精的清單（法力、血量排最下面），玩家可以在設定頁上下移（resources.order，
+-- 整份設定檔共用、不分專精；見 R.ApplyOrder）。
 --
 -- 每一列自己決定長相：
 --   pip        分段（點數型：聖能／連擊點數／真氣／碎片／充能／精華／符文，以及光環堆疊型：冰刺…）
 --   bar        連續長條（怒氣／能量／集中值／符文能量／星能／元能／狂亂值／魔怒／法力；
---              def.get 型：醉仙緩勁 UnitStagger／UnitHealthMax、噬靈魂碎片）
+--              def.get 型：醉仙緩勁 UnitStagger／UnitHealthMax、噬靈魂碎片、血量 UnitHealth／UnitHealthMax）
 --   absorbBar  吸收盾（無視苦痛）：值 UnitGetTotalAbsorbs("player")、上限「最大生命的三成」。
 --              ⚠ 不對秘密的最大生命乘 0.3：用幾何做 —— 裁切框寬 W（SetClipsChildren），裡面的 StatusBar
 --              寬 W / 0.3、貼在填充起點那一側，SetMinMaxValues(0, UnitHealthMax)，於是只看得到前三成。
@@ -84,7 +88,8 @@ end
 -- fill   pip 專用的特殊填充：rune（符文冷卻）
 -- auras  光環 spellID 清單（auraBar／auraTimer：交給 AuraContainer 的 includeSpellIDs，Lua 不讀）
 -- passive 天賦閘：這個法術學了才列；heroTree：或是目前的英雄天賦樹是這一棵（C_ClassTalents）
--- mana   法力列（數值文字走縮寫、預設排最下面）
+-- mana   法力列（數值文字走縮寫、預設排在職業資源下面）
+-- health 血量列（秘密值：條件規則不適用，顏色走職業色／門檻換色，見「血量」一節）
 --
 -- 資源名稱一律用暴雪的全域字串：那是十二個語系的官方譯名，比插件自己翻準。
 -- 全域不存在時退回英文。
@@ -138,6 +143,13 @@ local function StaggerValue()
     local s = UnitStagger and UnitStagger("player")
     local m = UnitHealthMax and UnitHealthMax("player")
     return s or 0, m or 0
+end
+
+-- 血量：UnitHealth／UnitHealthMax 直接轉手（12.1 連脫戰都是秘密值）
+local function HealthValue()
+    local c = UnitHealth and UnitHealth("player")
+    local m = UnitHealthMax and UnitHealthMax("player")
+    return c or 0, m or 0
 end
 
 -- 無視苦痛：身上所有吸收盾的總量／最大生命（上限的三成由幾何處理，這裡不乘）
@@ -203,6 +215,8 @@ local RESOURCES = {
                         auras = { 395296 }, passive = 395152 },
     ArcaneSoul      = { name = SpellName(451038, "Arcane Soul"), nameSpell = 451038, mode = "auraTimer",
                         auras = { 451038, 1223522 }, passive = 449619, heroTree = 39 },
+    -- 血量：每個專精都是候選、預設關（R.DefaultOn）；不在 RawList 裡，R.Candidates 附加在最後
+    Health          = { name = PowerName("HEALTH", "Health"), mode = "bar", get = HealthValue, health = true },
 }
 R.RESOURCES = RESOURCES
 
@@ -232,10 +246,10 @@ function R.EngineDriven(key)
     return def ~= nil and ENGINE_MODES[def.mode] == true
 end
 
--- 條件規則只對 Lua 讀得到值的列有意義；引擎寫的沒有
+-- 條件規則只對 Lua 讀得到值的列有意義；引擎寫的沒有，血量（永遠是秘密值）也沒有
 function R.SupportsConditions(key)
     local def = RESOURCES[key]
-    return def ~= nil and not ENGINE_MODES[def.mode]
+    return def ~= nil and not ENGINE_MODES[def.mode] and not def.health
 end
 
 -- 純函式：一列實際的畫法。容器就緒 ⇒ engine；沒好時 auraBar 退回明文點數、auraTimer 退回空條
@@ -245,7 +259,7 @@ function R.DrawMode(mode, engineReady)
     return mode
 end
 
--- 專精 → 資源清單（法力另外看 MANA_SPECS，一律排最下面）
+-- 專精 → 資源清單（法力另外看 MANA_SPECS，預設排最下面；玩家可以重排，見 R.ApplyOrder）
 local SPEC_RESOURCES = {
     [71]  = { "Rage", "SweepingStrikes" },       [72]  = { "Rage", "WhirlwindStacks" },
     [73]  = { "Rage", "IgnorePain" },
@@ -290,8 +304,11 @@ R.MANA_SPECS = MANA_SPECS
 local DEFAULT_OFF = {
     [263] = { Mana = true },
 }
+-- 每個專精都預設不顯示的：血量（單位框架本來就有血條，這裡是給想看的人勾起來的）
+local ALWAYS_OFF = { Health = true }
 -- 純函式：這個專精的這一列預設是不是顯示
 function R.DefaultOn(specID, key)
+    if ALWAYS_OFF[key] then return false end
     local t = specID and DEFAULT_OFF[specID]
     return not (t and t[key])
 end
@@ -445,14 +462,66 @@ local function DruidForm()
     return Plain(form)
 end
 
--- 這個專精「可以顯示」哪些資源（已套天賦／型態，不看玩家的開關）。有快取，
--- 專精／型態／天賦／上限變動時 Reevaluate 清掉
+------------------------------------------------------------
+-- 列的順序（resources.order：資源 key 的陣列，整份設定檔共用、不分專精）
+--
+-- 在 order 裡的照它的位置；不在的維持原本（專精清單）的相對順序、排在所有排過的後面。
+-- 不分專精 ⇒ 兩個專精共有的 key（法力、血量…）在一邊調了另一邊也跟著；只差在各自有哪幾列。
+------------------------------------------------------------
+-- 純函式：回傳排好的新表（list 不動）。穩定：同樣沒排過的照原順序；order 裡重複的 key 只認第一次
+function R.ApplyOrder(list, order)
+    local out = {}
+    if type(list) ~= "table" then return out end
+    if type(order) ~= "table" or #order == 0 then
+        for i, key in ipairs(list) do out[i] = key end
+        return out
+    end
+    local present, placed = {}, {}
+    for _, key in ipairs(list) do present[key] = true end
+    for _, key in ipairs(order) do
+        if present[key] and not placed[key] then
+            out[#out + 1] = key
+            placed[key] = true
+        end
+    end
+    for _, key in ipairs(list) do
+        if not placed[key] then
+            out[#out + 1] = key
+            placed[key] = true
+        end
+    end
+    return out
+end
+
+-- 純函式：設定頁上下移之後要存的 order。cand ＝ 這個專精排好的完整清單（照它排），
+-- 舊 order 裡不在 cand 的 key（別的專精排過的）依原相對位置接在後面
+function R.MergeOrder(old, cand)
+    local out, seen = {}, {}
+    for _, key in ipairs(type(cand) == "table" and cand or {}) do
+        if not seen[key] then
+            out[#out + 1] = key
+            seen[key] = true
+        end
+    end
+    for _, key in ipairs(type(old) == "table" and old or {}) do
+        if type(key) == "string" and not seen[key] then
+            out[#out + 1] = key
+            seen[key] = true
+        end
+    end
+    return out
+end
+
+-- 這個專精「可以顯示」哪些資源（已套天賦／型態與玩家排的順序，不看玩家的開關）。有快取，
+-- 專精／型態／天賦／上限變動時 Reevaluate 清掉（設定頁改順序走 R.Apply，同樣清）
 local cachedList, cachedSpec
 
 function R.Candidates()
     if cachedList then return cachedList, cachedSpec end
     local specID = CurrentSpecID()
     local raw = R.RawList(CLASS, specID, DruidForm())
+    -- 血量每個專精都有（預設關，見 R.DefaultOn）：RawList 不動，在這裡接到最後
+    if specID then raw[#raw + 1] = "Health" end
     for k in pairs(gateLog) do gateLog[k] = nil end
     local list = {}
     for _, key in ipairs(raw) do
@@ -460,6 +529,8 @@ function R.Candidates()
         gateLog[key] = (ok and "顯示：" or "隱藏：") .. why
         if ok then list[#list + 1] = key end
     end
+    local cfg = Cfg()
+    list = R.ApplyOrder(list, cfg and cfg.order)
     cachedList, cachedSpec = list, specID
     return list, specID
 end
@@ -1265,6 +1336,170 @@ local function UpdateAbsorbRow(row, cfg, def, key, cc, conds)
     end
 end
 
+------------------------------------------------------------
+-- 血量（Health）
+--
+-- UnitHealth／UnitHealthMax 在 12.1 連脫戰都是秘密值（.claude/notes/wow-121-unit-api-secrets.md）：
+-- Lua 這邊只轉手（SetMinMaxValues／SetValue／AbbreviateNumbers），不比較、不算。
+-- 條件規則不適用（沒有明文可比），顏色改走兩層：
+--   底色     healthClassColor（預設）＝ 玩家職業色，關掉用 colors.Health.color。兩者都是明文
+--   門檻換色 healthThresholdEnabled ＋ healthThresholds（{ pct = 1..99, color }，最多 6 個）：
+--            由低到高排 → Step 色彩曲線（x 是 0～1 的血量比例，**不是 0～100**）→
+--            UnitHealthPercent("player", nil, 曲線) 由 C 端挑色 → 填充貼圖 SetVertexColor。
+--            曲線組法照套組單位框架的血量門檻（同一套語意：低的門檻優先）。
+-- 曲線物件只建一次；點在**排版時**比簽章、變了才重建（UNIT_HEALTH 上不 ClearPoints／AddPoint、不組字串）。
+-- 曲線挑出來的顏色可能是秘密值 ⇒ 只交給 SetVertexColor；暗底一律用明文的底色算。
+------------------------------------------------------------
+local HEALTH_MAX_THRESHOLDS = 6
+R.HEALTH_MAX_THRESHOLDS = HEALTH_MAX_THRESHOLDS
+
+-- 純函式：門檻 → 曲線的點 { { x, r, g, b }, … }（x 由小到大）。設定表不動（排序在副本上）；
+-- 壞資料跳過、百分比夾在 1～99、超過上限的不要。沒有有效門檻回 nil
+--   (0,      最低門檻的顏色)
+--   (t1,     第二低門檻的顏色)
+--   …
+--   (t最高,  底色)
+-- Step 取「最後一個 x ≤ 目前比例」的點，所以「低於 t1」吃最低門檻的色、t 最高以上維持底色
+function R.HealthCurvePoints(list, base)
+    if type(list) ~= "table" or not RC.ValidColor(base) then return nil end
+    local valid = {}
+    for _, t in ipairs(list) do
+        local pct = type(t) == "table" and tonumber(t.pct)
+        local c = type(t) == "table" and RC.ValidColor(t.color)
+        if pct and c and #valid < HEALTH_MAX_THRESHOLDS then
+            pct = math.floor(pct + 0.5)
+            if pct < 1 then pct = 1 elseif pct > 99 then pct = 99 end
+            valid[#valid + 1] = { pct = pct, color = c, i = #valid + 1 }
+        end
+    end
+    if #valid == 0 then return nil end
+    -- 同百分比照原本的順序（table.sort 不穩定，自己補次序鍵）
+    table.sort(valid, function(a, b)
+        if a.pct ~= b.pct then return a.pct < b.pct end
+        return a.i < b.i
+    end)
+    local first = valid[1].color
+    local pts = { { 0, first.r, first.g, first.b } }
+    for i = 1, #valid do
+        local nc = valid[i + 1] and valid[i + 1].color or base
+        pts[#pts + 1] = { valid[i].pct / 100, nc.r, nc.g, nc.b }
+    end
+    return pts
+end
+
+-- 純函式：曲線點的簽章（排版時比，變了才重建曲線）
+function R.HealthCurveSig(pts)
+    if not pts then return "" end
+    local parts = {}
+    for i, p in ipairs(pts) do
+        parts[i] = ("%.3f:%.3f,%.3f,%.3f"):format(p[1], p[2], p[3], p[4])
+    end
+    return table.concat(parts, "|")
+end
+
+-- 底色：職業色（預設）或玩家調的顏色。職業色填進檔案層級的表（熱路徑上不配表）
+local healthClassColor = { r = 1, g = 1, b = 1 }
+local function HealthBase(cfg)
+    if type(cfg) == "table" and cfg.healthClassColor ~= false then
+        local r, g, b = ns.Style.Accent()
+        healthClassColor.r, healthClassColor.g, healthClassColor.b = r, g, b
+        return healthClassColor
+    end
+    return ResolveColor(cfg, "Health", "color")
+end
+R.HealthBase = HealthBase
+
+local healthCurve, healthCurveSig
+local healthCurveOn = false       -- 這一輪排版的結果：門檻換色有沒有在用
+
+-- 排版時叫（不在 UNIT_HEALTH 上）：門檻有變才重建曲線的點
+local function PrepareHealthCurve(cfg)
+    healthCurveOn = false
+    if not cfg.healthThresholdEnabled then return end
+    local pts = R.HealthCurvePoints(cfg.healthThresholds, HealthBase(cfg))
+    local make = C_CurveUtil and C_CurveUtil.CreateColorCurve
+    if not (pts and make and CreateColor and UnitHealthPercent) then return end
+    if not healthCurve then
+        local ok, c = pcall(make)
+        if not ok or not c then return end
+        local T = Enum and Enum.LuaCurveType
+        if T and T.Step then c:SetType(T.Step) end
+        healthCurve = c
+    end
+    local sig = R.HealthCurveSig(pts)
+    if sig ~= healthCurveSig then
+        healthCurveSig = nil
+        local ok = pcall(function()
+            healthCurve:ClearPoints()
+            for _, p in ipairs(pts) do healthCurve:AddPoint(p[1], CreateColor(p[2], p[3], p[4], 1)) end
+        end)
+        if not ok then return end
+        healthCurveSig = sig
+    end
+    healthCurveOn = true
+end
+
+-- 血量的數字：縮寫沿用法力的設定；healthPercent 印百分比（秘密值時問 UnitHealthPercent，curve 是第 3 個參數）
+local function SetHealthText(fs, cur, max, cfg)
+    if not cfg.healthPercent then
+        SetBigNumber(fs, cur, cfg)
+        return
+    end
+    if not ns.IsSecret(cur) and not ns.IsSecret(max) then
+        if type(max) == "number" and max > 0 then
+            fs:SetFormattedText("%d%%", math.floor(cur / max * 100 + 0.5))
+        else
+            fs:SetText("")
+        end
+        return
+    end
+    local scale = CurveConstants and CurveConstants.ScaleTo100
+    if UnitHealthPercent and scale then
+        fs:SetFormattedText("%d%%", UnitHealthPercent("player", nil, scale))
+    else
+        fs:SetText("")
+    end
+end
+
+local function UpdateHealthRow(row, cfg, key)
+    local cur, max = GetValue(key)
+    local pm = Plain(max)
+    if pm ~= nil and pm <= 0 then
+        row.bar:SetMinMaxValues(0, 1)
+        row.bar:SetValue(0)
+        row.text:SetText("")
+        ClearRowOverrides(row)
+        return
+    end
+    -- 上限與目前值直接交給引擎（秘密值）
+    row.bar:SetMinMaxValues(0, max)
+    if type(cur) == "number" then
+        row.bar:SetValue(cur, ns.Secret.BarInterp(cfg.smooth))
+    else
+        row.bar:SetValue(0)
+    end
+    local base = HealthBase(cfg)
+    local a = tonumber(cfg.barAlpha) or 1
+    local t = row.bar:GetStatusBarTexture()
+    if t then
+        local col
+        if healthCurveOn and healthCurve then
+            local ok, c = pcall(UnitHealthPercent, "player", nil, healthCurve)
+            if ok then col = c end
+        end
+        if col then
+            t:SetVertexColor(col.r, col.g, col.b, a)        -- 可能是秘密值：只交給引擎
+        else
+            t:SetVertexColor(base.r, base.g, base.b, a)
+        end
+    end
+    row.barBG:SetVertexColor(base.r * 0.25, base.g * 0.25, base.b * 0.25, 0.8)
+    ClearRowOverrides(row)
+    if cfg.showText then
+        if type(cur) ~= "number" then row.text:SetText("") else SetHealthText(row.text, cur, max, cfg) end
+    end
+end
+
 local function UpdateRow(row, cfg)
     local key = row.key
     local def = key and RESOURCES[key]
@@ -1288,7 +1523,9 @@ local function UpdateRow(row, cfg)
     -- 顏色與條件一列解析一次，往下傳（掛在能量事件上）
     local cc = ResolveColor(cfg, key, "color")
     local conds = R.SupportsConditions(key) and RC.Resolve(cfg, key) or nil
-    if row.mode == "absorbBar" then
+    if def.health then
+        UpdateHealthRow(row, cfg, key)
+    elseif row.mode == "absorbBar" then
         UpdateAbsorbRow(row, cfg, def, key, cc, conds)
     elseif row.mode == "pip" then
         local n = row.numSeg or 0
@@ -1307,6 +1544,7 @@ end
 -- 重排與重畫
 ------------------------------------------------------------
 local shownCount = 0
+local healthShown = false        -- 畫面上有沒有血量列（沒有的職業不必為 UNIT_HEALTH 重畫）
 local laidOut = false            -- 排過版了沒（false ＝ 下一次 Update 一定重排）
 local pendingRelayout = false    -- 戰鬥中面板是保護框（有 auraBar 的容器）、該重排的時候記在這裡
 
@@ -1333,6 +1571,7 @@ local function Relayout(cfg, list, W)
     local gap = ns.P.Scale(tonumber(cfg.rowSpacing) or 1)
     W = ns.P.Scale(W)
     local prev
+    healthShown = false
     for i, key in ipairs(list) do
         local row = rows[i]
         if not row then
@@ -1341,6 +1580,10 @@ local function Relayout(cfg, list, W)
         end
         row.key = key
         row.numSeg = SegmentsFor(key)
+        if RESOURCES[key] and RESOURCES[key].health then
+            healthShown = true
+            PrepareHealthCurve(cfg)
+        end
         row:ClearAllPoints()
         if prev then
             row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
@@ -1375,6 +1618,7 @@ function R.Update(force)
             if rows[i].ab and ns.AuraBar then ns.AuraBar.HideContainer(rows[i].ab) end
         end
         shownCount = 0
+        healthShown = false
         laidOut = false
         return
     end
@@ -1464,11 +1708,13 @@ R.Mark = Mark
 
 -- MAGE：冰刺；MONK：醉仙緩勁（減益每跳都會發 UNIT_AURA）
 local AURA_DRIVEN_CLASSES = { SHAMAN = true, HUNTER = true, DEMONHUNTER = true, DRUID = true, MAGE = true, MONK = true }
--- 只重畫值的生命／吸收事件（醉仙緩勁的上限是最大生命、每跳扣血；無視苦痛看吸收量與最大生命）
+-- 只重畫值的生命／吸收事件（醉仙緩勁的上限是最大生命、每跳扣血；無視苦痛看吸收量與最大生命）。
+-- UNIT_HEALTH／UNIT_MAXHEALTH 每個職業都註冊（血量列）；這張表列的是「沒有血量列也要重畫」的
 local HEALTH_EVENTS = {
-    MONK    = { "UNIT_HEALTH", "UNIT_MAXHEALTH" },
-    WARRIOR = { "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_MAXHEALTH" },
+    MONK    = { UNIT_HEALTH = true, UNIT_MAXHEALTH = true },
+    WARRIOR = { UNIT_ABSORB_AMOUNT_CHANGED = true, UNIT_MAXHEALTH = true },
 }
+local CLASS_HEALTH = HEALTH_EVENTS[CLASS] or {}
 
 local REEVAL_EVENTS = {
     UNIT_MAXPOWER = true, UNIT_DISPLAYPOWER = true, UPDATE_SHAPESHIFT_FORM = true,
@@ -1481,7 +1727,12 @@ local evFrame
 
 local function OnEvent(_, event)
     if event == "UNIT_POWER_POINT_CHARGE" then chargedDirty = true end
-    if event == "UNIT_AURA" or event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
+    if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
+        -- 沒有血量列、這個職業的資源也不看生命 ⇒ 不重畫（每次受傷都來，別白做）
+        if healthShown or CLASS_HEALTH[event] then Mark(false) end
+        return
+    end
+    if event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
         Mark(false)
         return
     end
@@ -1505,7 +1756,10 @@ local function RegisterEvents()
     -- 光環堆疊型（漩渦之武／矛尖）與野德的滿溢之力只能吃 UNIT_AURA：有這種資源的職業才註冊
     -- （自訂格子的層數列另外由 Modules/Pips.lua 自己註冊）
     if AURA_DRIVEN_CLASSES[CLASS] then evFrame:RegisterUnitEvent("UNIT_AURA", "player") end
-    for _, e in ipairs(HEALTH_EVENTS[CLASS] or {}) do evFrame:RegisterUnitEvent(e, "player") end
+    -- 生命：血量列每個職業都可能開（UNIT_HEALTH／UNIT_MAXHEALTH），戰士另外看吸收量
+    evFrame:RegisterUnitEvent("UNIT_HEALTH", "player")
+    evFrame:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
+    if CLASS_HEALTH.UNIT_ABSORB_AMOUNT_CHANGED then evFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", "player") end
     evFrame:SetScript("OnEvent", OnEvent)
 end
 
@@ -1533,6 +1787,8 @@ function R.Init()
     end)
     ns.RegisterCallback("ProfileChanged", "resources", function() Mark(true) end)
     ns.RegisterCallback("SpecChanged", "resources", function() Mark(true) end)
+    -- 職業色晚到（自訂職業色表）：血量列的底色與門檻曲線的最後一個點要重組
+    ns.RegisterCallback("AccentChanged", "resources", function() Mark(true) end)
     R.Reevaluate()
 end
 
