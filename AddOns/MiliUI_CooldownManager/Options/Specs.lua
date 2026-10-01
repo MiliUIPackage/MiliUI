@@ -49,12 +49,18 @@ local function GrowItems(kind)
         }
     end
     return {
-        { text = L["Centered, new rows below"],   value = "CENTER_DOWN" },
-        { text = L["Centered, new rows above"],   value = "CENTER_UP" },
-        { text = L["Left-aligned, rows below"],   value = "LEFT_DOWN" },
-        { text = L["Left-aligned, rows above"],   value = "LEFT_UP" },
-        { text = L["Right-aligned, rows below"],  value = "RIGHT_DOWN" },
-        { text = L["Right-aligned, rows above"],  value = "RIGHT_UP" },
+        -- 橫向（值是「對齊_換列」；靠左 ＝ 往右長、靠右 ＝ 往左長，文字講伸展方向）
+        { text = L["Grow outward from center, new rows below"], value = "CENTER_DOWN" },
+        { text = L["Grow outward from center, new rows above"], value = "CENTER_UP" },
+        { text = L["Grow right, new rows below"],               value = "LEFT_DOWN" },
+        { text = L["Grow right, new rows above"],               value = "LEFT_UP" },
+        { text = L["Grow left, new rows below"],                value = "RIGHT_DOWN" },
+        { text = L["Grow left, new rows above"],                value = "RIGHT_UP" },
+        -- 直向（值是「伸展_換列」，Core/Layout.lua 的 ParseColumn）
+        { text = L["Grow down, new rows to the right"],         value = "DOWN_RIGHT" },
+        { text = L["Grow down, new rows to the left"],          value = "DOWN_LEFT" },
+        { text = L["Grow up, new rows to the right"],           value = "UP_RIGHT" },
+        { text = L["Grow up, new rows to the left"],            value = "UP_LEFT" },
     }
 end
 

@@ -419,5 +419,45 @@ do
     check("隨機樹：同一條軸上沒有東西貼在收合的框上", not onFolded)
 end
 
+------------------------------------------------------------
+-- 直向：往下／往上長，滿了往右／往左換列
+------------------------------------------------------------
+do
+    local lay = { maxPerRow = 3, spacing = 1, grow = "DOWN_RIGHT", size = { w = 30, h = 20 }, row2Size = false }
+    local r, w, h, a = Lay.Compute(N(5), lay, "icons")
+    eq("DOWN_RIGHT：錨點 TOPLEFT", a, "TOPLEFT")
+    eq("DOWN_RIGHT：寬 ＝ 兩列", w, 61)
+    eq("DOWN_RIGHT：高 ＝ 最長那列", h, 62)
+    rect("DOWN_RIGHT #1", r[1], 0, 0, 30, 20)
+    rect("DOWN_RIGHT #3", r[3], 0, 42, 30, 20)
+    rect("DOWN_RIGHT #4（第二列貼頂）", r[4], 31, 0, 30, 20)
+
+    lay.grow = "UP_LEFT"
+    r, w, h, a = Lay.Compute(N(5), lay, "icons")
+    eq("UP_LEFT：錨點 BOTTOMRIGHT", a, "BOTTOMRIGHT")
+    rect("UP_LEFT #1（右下角）", r[1], 31, 42, 30, 20)
+    rect("UP_LEFT #2 往上", r[2], 31, 21, 30, 20)
+    rect("UP_LEFT #4（第二列在左、貼底）", r[4], 0, 42, 30, 20)
+
+    lay.grow = "DOWN_LEFT"
+    local _, _, _, a2 = Lay.Compute(N(2), lay, "icons")
+    eq("DOWN_LEFT：錨點 TOPRIGHT", a2, "TOPRIGHT")
+    lay.grow = "UP_RIGHT"
+    local _, _, _, a3 = Lay.Compute(N(2), lay, "icons")
+    eq("UP_RIGHT：錨點 BOTTOMLEFT", a3, "BOTTOMLEFT")
+
+    lay.grow, lay.row2Size = "DOWN_RIGHT", { w = 20, h = 10 }
+    r, w, h = Lay.Compute(N(4), lay, "icons")
+    rect("第二列起用 row2Size", r[4], 31, 0, 20, 10)
+    eq("row2Size：寬", w, 51)
+
+    eq("直向的 FirstRowWidth ＝ 全部列的寬", Lay.FirstRowWidth(5, { maxPerRow = 3, spacing = 1, grow = "DOWN_RIGHT", size = { w = 30, h = 20 } }), 61)
+    eq("ParseColumn：橫向值 → nil", Lay.ParseColumn("RIGHT_UP"), nil)
+    eq("ParseColumn：直向值", select(2, Lay.ParseColumn("UP_LEFT")), "LEFT")
+    local _, _, _, ab = Lay.Compute(N(2), { grow = "DOWN_RIGHT" }, "bars")
+    eq("長條不吃直向：退回 TOP", ab, "TOP")
+    eq("ParseGrow 對直向值退回預設", (Lay.ParseGrow("DOWN_RIGHT")), "CENTER")
+end
+
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
