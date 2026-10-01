@@ -444,7 +444,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | 東西 | 存在哪 | 說明 |
 |---|---|---|
 | 清單 | `profile.resources.customRows[specID]` | 沒動（每個專精一份，形狀見下） |
-| 樣式 | `profile.resources` | 列距、格距、材質、填充方向、填充透明度、寬（0 ＝ 核心技能第一列）**沿用資源條**，不另開一組；**列高與顏色是每一列自己的**（`entry.height`，沒存 ＝ 10，範圍 2～30；`Pips.CustomHeight`） |
+| 樣式 | `profile.resources` | 列距、格距、材質、填充方向、填充透明度、寬（0 ＝ 核心技能第一列）**沿用資源條**，不另開一組；**列高與顏色是每一列自己的**（`entry.height`，沒存 ＝ 8，範圍 2～30；`Pips.CustomHeight`） |
 | 位置 | `profile.pips` | `{ enabled = true, pos = { point = "CENTER", x = 0, y = -250 }, anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }, fadeWithEssential = true, loadConditions = { hideMounted = false, onlyCombat = false }, strata = "MEDIUM" }` |
 
 清單的純函式（`CustomRowList`／`FindCustomRow`／`AddCustomRow`／`RemoveCustomRow`／`ClampSegments`／
@@ -509,7 +509,7 @@ customRows[specID] = {
 - **顯示條件**：`pips.enabled = false` → alpha 0（容器藏、收合；設定頁「自訂格子」一節最上面的開關）；
   `pips.loadConditions`（騎乘或坐載具時隱藏、只在戰鬥中）→ alpha 0（自訂格子自己的一份，跟資源條的各管各的）；
   `pips.fadeWithEssential` 同資源條（取核心技能現在的 alpha）。資源條關掉不影響自訂格子。
-- **編輯模式**：容器一建好就有覆蓋層（條名「自訂格子」）與選取框、磁吸；空的時候覆蓋層照最小尺寸（寬 × 預設列高 10）從上緣往下畫。
+- **編輯模式**：容器一建好就有覆蓋層（條名「自訂格子」）與選取框、磁吸；空的時候覆蓋層照最小尺寸（寬 × 預設列高 8）從上緣往下畫。
   拖了就脫離錨定（既有機制）；輔助跟的是核心技能，留在原地補位（指名跟著自訂格子的才會跟著走）。點擊層也蓋，點了開資源條頁。
 - `/mcdm debug`：自訂格子自己一段（開關、清單幾筆、顯示幾列、容器高、錨定或位置、alpha、事件），清單每一筆一行（沒建列寫原因）；
   資源條那段不再印自訂格子。

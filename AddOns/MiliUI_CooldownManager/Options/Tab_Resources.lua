@@ -608,7 +608,7 @@ ShowWhenSpec = function(i, kind)
     })
 end
 
--- 這一列的高（entry.height；沒存 ＝ 預設 10）：原地套用不換表單
+-- 這一列的高（entry.height；沒存 ＝ 預設 8）：原地套用不換表單
 local function HeightSpec(i)
     return BS("slider", "customRows.height." .. i, L["Height"], {
         min = ns.Pips.HEIGHT_MIN, max = ns.Pips.HEIGHT_MAX, step = 1, noReset = true,
