@@ -216,6 +216,12 @@ eqList("戒律：只有法力", R.RawList("PRIEST", 256, nil), { "Mana" })
 eqList("增強薩：氣旋武器＋法力（候選還在）", R.RawList("SHAMAN", 263, nil), { "MaelstromWeapon", "Mana" })
 check("增強薩：法力預設不顯示", R.DefaultOn(263, "Mana") == false and R.DefaultOn(263, "MaelstromWeapon") == true)
 check("神聖聖騎：法力預設顯示", R.DefaultOn(65, "Mana") == true)
+check("輸出專精：法力預設不顯示", R.DefaultOn(258, "Mana") == false and R.DefaultOn(262, "Mana") == false
+    and R.DefaultOn(265, "Mana") == false and R.DefaultOn(266, "Mana") == false and R.DefaultOn(267, "Mana") == false
+    and R.DefaultOn(102, "Mana") == false and R.DefaultOn(1467, "Mana") == false and R.DefaultOn(1473, "Mana") == false)
+check("治療與法師：法力預設顯示", R.DefaultOn(256, "Mana") and R.DefaultOn(257, "Mana") and R.DefaultOn(264, "Mana")
+    and R.DefaultOn(62, "Mana") and R.DefaultOn(63, "Mana") and R.DefaultOn(64, "Mana") and R.DefaultOn(105, "Mana")
+    and R.DefaultOn(270, "Mana") and R.DefaultOn(1468, "Mana"))
 check("開關：nil 照預設", R.RowOn({ rows = {} }, 263, "Mana") == false and R.RowOn({ rows = {} }, 65, "Mana") == true)
 check("開關：true 強制開、false 強制關", R.RowOn({ rows = { Mana = true } }, 263, "Mana") == true and R.RowOn({ rows = { Mana = false } }, 65, "Mana") == false)
 check("開關：沒有 rows 表也不炸", R.RowOn(nil, 263, "Mana") == false and R.RowOn({}, 65, "Mana") == true)
