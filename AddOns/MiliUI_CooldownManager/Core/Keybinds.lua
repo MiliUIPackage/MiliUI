@@ -193,15 +193,18 @@ local function TextFor(rec)
     return K.TextForSpell(info.spellID, info.overrideSpellID)
 end
 
--- 長條（增益長條與長條型自訂群組）不畫按鍵文字：那是圖示上的東西，條上沒有位置給它（使用者 2026-10-01 指定，不設選項）
-local function IsBarsKind(barKey)
+-- 不畫按鍵文字的條（使用者指定，不設選項）：
+--   長條（增益長條與長條型自訂群組）：那是圖示上的東西，條上沒有位置給它（2026-10-01）
+--   增益圖示列：監控的是光環不是要按的技能，查到的鍵是觸發它的那個技能的，只會誤導（2026-10-02）
+local function NoKeybind(barKey)
     local b = barKey and ns.DB.BarTable(barKey)
-    return b ~= nil and b.kind == "bars"
+    return b ~= nil and (b.kind == "bars" or b.source == "buffs")
 end
+K.NoKeybind = NoKeybind
 
 function K.Apply(owner, rec, barKey)
     if not (rec and rec.overlay) then return end
-    local on = barKey and ns.Setting(barKey, "keybind.enabled") and not IsBarsKind(barKey)
+    local on = barKey and ns.Setting(barKey, "keybind.enabled") and not NoKeybind(barKey)
     local fs = rec.keyFS
     if not on then
         if fs and rec.keySig ~= "off" then

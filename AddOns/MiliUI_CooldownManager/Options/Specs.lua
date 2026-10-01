@@ -373,7 +373,6 @@ end
 ------------------------------------------------------------
 function Specs.Themed(mode, key)
     local bar = mode == "bar"
-    local barsKind = bar and key and ns.DB.BarTable(key) and ns.DB.BarTable(key).kind == "bars"
     local list = {}
     local function add(...)
         for i = 1, select("#", ...) do
@@ -452,8 +451,8 @@ function Specs.Themed(mode, key)
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
         TS("glow", "color", "pandemic.color", L["Pandemic border color"]),
         TS("glow", "toggle", "pandemic.bars", L["Color bars too"]))
-    -- 按鍵文字是圖示上的東西：長條（增益長條、長條型群組）沒有這一節，引擎也不畫（Core/Keybinds.lua）
-    if not barsKind then
+    -- 按鍵文字：長條與增益圖示列沒有這一節，引擎也不畫（Core/Keybinds.lua 的 NoKeybind）
+    if not (bar and key and ns.Keybinds.NoKeybind(key)) then
         add(Nested(L["Keybind text"], "glow"),
             TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]),
             TS("glow", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
