@@ -1046,7 +1046,8 @@ end
 --
 -- GetRuneCooldown(i) 的 start／duration／ready 在 12.1 是明文；仍一律過 Plain／IsSecret，
 -- 讀不到的那顆當「在轉、進度不明」（不填、不印秒數），排序照樣排在最後，不會跳格。
--- 同時最多三顆在轉，其餘的 start 在未來（排隊中）：進度 0、不印秒數。
+-- 同時最多三顆在轉，其餘的 start 在未來（排隊中）：進度 0，但 start＋duration－now 正好是
+-- 「從現在到這顆轉好」的總等待時間，秒數照印（玩家要每顆都看得到還要等多久）。
 ------------------------------------------------------------
 local RUNE_RECHARGE_SHADE = 0.55     -- 在轉的格子：同色系暗一階（狀態只換明暗不換色）
 local runeReady, runeRemain, runeProgress, runeOrder = {}, {}, {}, {}
@@ -1101,9 +1102,9 @@ function R.RuneOrder(ready, remain, n, order)
     return order
 end
 
--- 純函式：在轉的格子要印的秒數（無條件進位，跟冷卻數字同一種讀法）；排隊中／讀不到回 nil
-function R.RuneSeconds(remain, progress)
-    if type(remain) ~= "number" or type(progress) ~= "number" or progress <= 0 or remain <= 0 then return nil end
+-- 純函式：沒轉好的格子要印的秒數（無條件進位，跟冷卻數字同一種讀法）；排隊中的印總等待時間；讀不到／轉完回 nil
+function R.RuneSeconds(remain)
+    if type(remain) ~= "number" or remain <= 0 then return nil end
     return math.ceil(remain)
 end
 
@@ -1143,7 +1144,7 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
             SetSegColor(seg, c, alpha)
             seg.bg:SetVertexColor(dimC.r, dimC.g, dimC.b, dimA)
             if seg.timer then
-                local sec = countdown and not ready and R.RuneSeconds(runeRemain[idx], runeProgress[idx])
+                local sec = countdown and not ready and R.RuneSeconds(runeRemain[idx])
                 if sec then
                     if seg.timerSec ~= sec then
                         seg.timerSec = sec

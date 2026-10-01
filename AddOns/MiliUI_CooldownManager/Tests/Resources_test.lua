@@ -884,11 +884,11 @@ do
     -- 重用 order 表：格數變少時尾巴清掉
     local order = { 9, 9, 9, 9, 9, 9, 9 }
     eqList("符文：重用表、尾巴清掉", R.RuneOrder({ false, true }, { 4 }, 2, order), { 2, 1 })
-    eq("秒數：無條件進位", R.RuneSeconds(2.1, 0.5), 3)
-    eq("秒數：剛好整數", R.RuneSeconds(4, 0.4), 4)
-    eq("秒數：排隊中（進度 0）不印", R.RuneSeconds(18, 0), nil)
-    eq("秒數：讀不到不印", R.RuneSeconds(nil, nil), nil)
-    eq("秒數：轉完不印", R.RuneSeconds(0, 1), nil)
+    eq("秒數：無條件進位", R.RuneSeconds(2.1), 3)
+    eq("秒數：剛好整數", R.RuneSeconds(4), 4)
+    eq("秒數：排隊中印總等待時間", R.RuneSeconds(17.3), 18)
+    eq("秒數：讀不到不印", R.RuneSeconds(nil), nil)
+    eq("秒數：轉完不印", R.RuneSeconds(0), nil)
     eq("預設：符文列印秒數", ns.DB.BuildDefaults().profile.resources.runeText, "countdown")
     eq("符文數字：沒設＝秒數", R.RuneText({}), "countdown")
     eq("符文數字：壞值＝秒數", R.RuneText({ runeText = "bogus" }), "countdown")
