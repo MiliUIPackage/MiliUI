@@ -534,5 +534,4 @@ L["While this is on, the color above isn't used."] = "Пока включено,
 L["Health as percent"] = "Здоровье в процентах"
 L["Recolor below a threshold"] = "Менять цвет ниже порога"
 L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."] = "Когда здоровье опускается ниже порога, полоса принимает цвет этого порога. С какой стороны черты вы находитесь, решает игра, поэтому это работает и в бою в подземельях."
-L["Health is a secret value addons can't read, so condition rules don't apply here; use threshold coloring instead."] = "Здоровье — секретное значение, которое аддоны не могут прочитать, поэтому правила условий здесь не действуют; используйте цвет по порогу."
 L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."] = "Стрелки задают порядок; он общий для всех специализаций. Ресурсы, которые вы не двигали, остаются на месте по умолчанию — после перемещённых."

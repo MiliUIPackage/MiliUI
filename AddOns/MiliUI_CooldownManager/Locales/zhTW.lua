@@ -534,5 +534,4 @@ L["While this is on, the color above isn't used."] = "勾選時不使用上面�
 L["Health as percent"] = "生命力顯示百分比"
 L["Recolor below a threshold"] = "低於門檻時換色"
 L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."] = "生命力低於門檻時，長條換成那一筆的顏色。落在哪一段由遊戲判斷，所以副本戰鬥中也照常運作。"
-L["Health is a secret value addons can't read, so condition rules don't apply here; use threshold coloring instead."] = "生命力是插件讀不到的秘密值，這一列不適用條件規則，請改用門檻換色。"
 L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."] = "箭頭調整上下順序，所有專精共用。沒移動過的資源維持預設位置，排在移動過的後面。"

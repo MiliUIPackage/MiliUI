@@ -534,5 +534,4 @@ L["While this is on, the color above isn't used."] = "켜져 있으면 위의 �
 L["Health as percent"] = "생명력을 백분율로"
 L["Recolor below a threshold"] = "임계값 아래에서 색 변경"
 L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."] = "생명력이 임계값 아래로 떨어지면 막대가 그 임계값의 색으로 바뀝니다. 어느 구간인지는 게임이 판단하므로 인스턴스 전투 중에도 동작합니다."
-L["Health is a secret value addons can't read, so condition rules don't apply here; use threshold coloring instead."] = "생명력은 애드온이 읽을 수 없는 비밀 값이라 여기에는 조건 규칙이 적용되지 않습니다. 대신 임계값 색상을 쓰세요."
 L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."] = "화살표로 쌓는 순서를 정하며, 모든 전문화가 공유합니다. 옮긴 적 없는 자원은 기본 위치를 유지하고 옮긴 것들 뒤에 놓입니다."

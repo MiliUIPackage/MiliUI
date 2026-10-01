@@ -534,5 +534,4 @@ L["While this is on, the color above isn't used."] = "Finché è attivo, il colo
 L["Health as percent"] = "Salute in percentuale"
 L["Recolor below a threshold"] = "Ricolora sotto una soglia"
 L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."] = "Quando la salute scende sotto una soglia, la barra prende il colore di quella soglia. È il gioco a decidere da che parte della linea sei, quindi funziona anche in combattimento nelle istanze."
-L["Health is a secret value addons can't read, so condition rules don't apply here; use threshold coloring instead."] = "La salute è un valore segreto che gli addon non possono leggere, quindi qui le regole di condizione non valgono; usa la colorazione a soglia."
 L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."] = "Le frecce stabiliscono l'ordine; è condiviso da tutte le specializzazioni. Le risorse mai spostate restano al loro posto predefinito, dopo quelle spostate."

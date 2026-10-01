@@ -534,5 +534,4 @@ L["While this is on, the color above isn't used."] = "Enquanto estiver ligado, a
 L["Health as percent"] = "Vida em porcentagem"
 L["Recolor below a threshold"] = "Recolorir abaixo de um limiar"
 L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."] = "Quando a vida cai abaixo de um limiar, a barra assume a cor desse limiar. É o jogo que decide de que lado da linha você está, então funciona também em combate em instâncias."
-L["Health is a secret value addons can't read, so condition rules don't apply here; use threshold coloring instead."] = "A vida é um valor secreto que os addons não conseguem ler, então as regras de condição não valem aqui; use a cor por limiar."
 L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."] = "As setas definem a ordem de empilhamento, compartilhada por todas as especializações. Recursos que você nunca moveu mantêm a posição padrão, depois dos que moveu."

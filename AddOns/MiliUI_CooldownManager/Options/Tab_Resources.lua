@@ -875,14 +875,13 @@ local function Controls(cand, sub)
                 add(BS("toggle", "healthThresholdEnabled", L["Recolor below a threshold"]))
                 add(Note(L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."]))
                 add(HealthThresholdRow())
-                add(Note(L["Health is a secret value addons can't read, so condition rules don't apply here; use threshold coloring instead."]))
             end
             local info = R.Info(key)
             if info and info.mode == "auraTimer" then
                 -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
                 add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))
             elseif not R.SupportsConditions(key) and not (info and info.health) then
-                -- 血量的說明在上面那一段（條件規則不適用、改用門檻換色），這句「遊戲自己畫」不適用
+                -- 血量不印這句（條件規則不適用由門檻換色那段帶過）
                 add(Note(L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."]:format(R.Name(key))))
             end
         end
