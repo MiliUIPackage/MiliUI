@@ -57,11 +57,14 @@ NOTES_START=$(date +%s)
         "Bash(git for-each-ref:*)" "Bash(git rev-list:*)" "Bash(git tag:*)" \
     > "${NOTES_OUT}" 2> "${NOTES_ERR}" &
 CLAUDE_PID=$!
-( sleep 300; kill "${CLAUDE_PID}" 2>/dev/null ) &
-WATCHDOG_PID=$!
-wait "${CLAUDE_PID}"
-kill "${WATCHDOG_PID}" 2>/dev/null
-wait "${WATCHDOG_PID}" 2>/dev/null  # 回收掉，不然 bash 會印一行 Terminated
+# 逾時看門狗在主 shell 裡輪詢，不另開背景程序：背景子 shell 裡的 sleep 被 kill 時不會跟著死，
+# 還握著 stdout，包在 $(...) 裡呼叫時整個呼叫端要等滿 300 秒才往下走。
+for ((i = 0; i < 300; i++)); do
+    kill -0 "${CLAUDE_PID}" 2>/dev/null || break
+    sleep 1
+done
+kill "${CLAUDE_PID}" 2>/dev/null
+wait "${CLAUDE_PID}" 2>/dev/null
 
 NOTES_HTML="$(python3 -c 'import re,sys; m=re.search(r"<p>.*</p>", sys.stdin.read(), re.S); print(m.group(0).strip() if m else "")' < "${NOTES_OUT}")"
 NOTES_RAW="$(head -c 600 "${NOTES_OUT}")"
