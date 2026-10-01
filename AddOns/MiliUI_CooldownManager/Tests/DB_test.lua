@@ -121,7 +121,8 @@ eq("間距", S("essential", "layout.spacing"), 1)
 eq("每列上限", S("essential", "layout.maxPerRow"), 8)
 eq("字型", S("essential", "font"), "提示訊息")
 eq("描邊", S("essential", "outline"), "OUTLINE")
-eq("觸發發光樣式", S("essential", "glow.proc.type"), "pixel")
+eq("觸發發光樣式", S("essential", "glow.proc.type"), "proc")
+eq("就緒發光樣式", S("essential", "glow.ready.type"), "button")
 eq("長條往下長", S("buffbars", "layout.grow"), "CENTER_DOWN")
 eq("長條 kind", S("buffbars", "kind"), "bars")
 eq("核心位置 y", S("essential", "pos.y"), -202)
@@ -177,7 +178,7 @@ P.bars.buffs.glow.pandemic = { bars = false }
 eq("pandemic 走 glow 群、false 照樣傳回", S("buffs", "pandemic.bars"), false)
 P.bars.buffs.glow.proc = { color = { r = 0, g = 1, b = 0, a = 1 } }
 eq("glow.proc.color 讀條的", S("buffs", "glow.proc.color").g, 1)
-eq("glow.proc.type 退回主題", S("buffs", "glow.proc.type"), "pixel")
+eq("glow.proc.type 退回主題", S("buffs", "glow.proc.type"), "proc")
 
 -- fade：false（不淡）不能被當成「沒值」
 eq("fade.whenMounted 預設 false", S("buffbars", "fade.whenMounted"), false)
