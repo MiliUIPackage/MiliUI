@@ -413,13 +413,17 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | 模式 | 資源 | 畫法 |
 |---|---|---|
 | bar | 怒氣、能量、集中值、符文能量、星能、元能、狂亂值、魔怒、**法力** | 一顆 StatusBar：`SetMinMaxValues(0, UnitPowerMax)`＋`SetValue(UnitPower)` **直接餵**（引擎收秘密值），明文且上限 <= 0 才顯示空條；原生內插（`smooth`） |
-| bar（`def.get`） | **醉仙緩勁**（釀酒）、**噬靈魂碎片**（噬魂者 1480） | 醉仙緩勁：`SetMinMaxValues(0, UnitHealthMax × 滿條%)`＋`SetValue(UnitStagger)` 直接餵；三段色（輕／中／重，門檻預設 30%／60%）**只在兩個值都是明文時**算比例，秘密值那幾下（副本戰鬥中間歇出現）沿用上一段顏色與上一次的明文上限，從沒讀到過明文就把秘密的最大生命原樣餵（＝ 滿條 100%）。噬靈魂碎片：光環層數（化身中 1227702、平常 1225789），上限 40／50（天賦 35、PvP 天賦 +50） |
+| bar（`def.get`） | **醉仙緩勁**（釀酒）、**噬靈魂碎片**（噬魂者 1480） | 醉仙緩勁：`SetMinMaxValues(0, UnitHealthMax × 滿條%)`＋`SetValue(UnitStagger)` 直接餵；三段色（輕／中／重，門檻預設 30%／60%；另有第 3／4 段 `staggerTier3At`／`staggerTier4At`，預設 90%／150%、預設關，各自一個開關與顏色，`R.StaggerBand`／`R.StaggerTiers` 純函式、高的段先比；滿條上限 `staggerCeiling` 1～300，超過 100 才看得到第 4 段）**只在兩個值都是明文時**算比例，秘密值那幾下（副本戰鬥中間歇出現）沿用上一段顏色與上一次的明文上限，從沒讀到過明文就把秘密的最大生命原樣餵（＝ 滿條 100%）。噬靈魂碎片：光環層數（化身中 1227702、平常 1225789），上限 40／50（天賦 35、PvP 天賦 +50） |
 | bar（`def.get`、`health`） | **血量**（每個專精都是候選，`R.DefaultOn` 一律回 false：在「這個專精要顯示哪些」勾起來才顯示；不在 `RawList` 裡，`R.Candidates` 接在最後） | `UnitHealth`／`UnitHealthMax` **直接餵** `SetMinMaxValues`／`SetValue`（12.1 連脫戰都是秘密值，Lua 不比較不算術）、`smooth` 照連續條。顏色：`healthClassColor`（預設）職業色、關掉用 `colors.Health.color`（預設綠）；**門檻換色**（`healthThresholdEnabled`＋`healthThresholds`，`{ pct = 1..99, color }` 最多 6 筆）照單位框架的血量門檻：由低到高 → Step 色彩曲線（x 是 0～1 比例；`R.HealthCurvePoints` 純函式）→ `UnitHealthPercent("player", nil, 曲線)` 由 C 端挑色 → 填充 `SetVertexColor`。曲線物件建一次、點在**排版時**比簽章（`R.HealthCurveSig`）變了才重建，`UNIT_HEALTH` 上不碰；挑出來的顏色可能是秘密值，暗底一律用明文底色算。數字：縮寫沿用 `manaAbbrev`；`healthPercent` 印百分比（秘密值時 `UnitHealthPercent("player", nil, CurveConstants.ScaleTo100)`）。條件規則不適用（`R.SupportsConditions` 回 false，條件編輯器的候選也不列） |
-| absorbBar | **無視苦痛**（防戰） | 值 `UnitGetTotalAbsorbs("player")`、上限「最大生命的三成」**用幾何做**：裁切框（`SetClipsChildren`）＝ 列，裡面一條寬 W／0.3 的 StatusBar 貼在填充起點那一側，`SetMinMaxValues(0, UnitHealthMax)` ⇒ 只看得到前三成。**不對秘密的最大生命乘 0.3**；這條的填充貼圖上不錨任何東西。顯示的是**身上所有吸收盾的總量**（說明列寫明） |
+| auraPct | **無視苦痛**（防戰） | **引擎寫百分比**（2026-10-02）：增益 190456 的「層數」欄位是盾量佔上限的百分比（0～100）。一顆單格 AuraContainer（`includeSpellIDs { 190456 }`）＋`SetApplicationBar(bar, { maxApplications = 100 })`，列上的裝飾畫成**連續條**（暗底＝主色 × 0.25、不分格）。只算這個增益自己的盾（別人套的盾、其他吸收不算）。`showText` 開著時層數走 `SetApplicationCount(fs, {})`——**不給格式器**（引擎拿格式器處理秘密層數會整顆容器壞掉），後面另一顆固定字的 FontString 印「%」，兩顆都錨在按鈕中線上、不互相錨定；字型／字級進簽章（`spec.count`）。條件規則不適用（`R.SupportsConditions` 回 false）。容器沒好（戰鬥中、建失敗）時 `R.DrawMode("auraPct", false)` 退回下一列的 absorbBar |
+| absorbBar | 無視苦痛的**退路** | 值 `UnitGetTotalAbsorbs("player")`、上限「最大生命的三成」**用幾何做**：裁切框（`SetClipsChildren`）＝ 列，裡面一條寬 W／0.3 的 StatusBar 貼在填充起點那一側，`SetMinMaxValues(0, UnitHealthMax)` ⇒ 只看得到前三成。**不對秘密的最大生命乘 0.3**；這條的填充貼圖上不錨任何東西。顯示的是**身上所有吸收盾的總量**（說明列寫明） |
 | pip | 聖能、連擊點數、真氣、靈魂碎片、秘法充能、精華、符文；漩渦之武、矛尖、靈魂碎片、**冰刺**（光環／施放次數型） | **每格一顆 StatusBar**：`SetMinMaxValues(i-1, i)`＋`SetValue(目前值)` ⇒ 第幾格亮由引擎決定，秘密值照樣畫得對。格子一律錨在列上（`SetValue(秘密值)` 會讓那顆條的幾何變秘密、傳染給錨在它身上的框） |
+| pip（碎片零頭） | **毀滅術**（267）的靈魂裂片（`def.fractionalSpec`；痛苦、惡魔照整數） | 讀原始單位 `UnitPower("player", SoulShards, true)`（一顆 ＝ `per` 單位；`R.ShardPer` ＝ 原始上限 ／ 整顆上限，讀不到 10）：第 i 格 `SetMinMaxValues((i-1)·per, i·per)`＋`SetValue(原始值)`，零頭由引擎畫、秘密值照樣對。明文時 `R.ShardSplit` 算整顆數與正在累積的那一格：那一格用主色 × 0.55（跟符文回充同一個係數），文字 `%.1f`（3.7），條件規則吃整顆數；秘密時只畫填充、不印字、不套條件 |
+| pip（精華回充） | 喚能師的精華（`fill = "essence"`） | 明文且未滿時下一格（第 cur+1 格）畫回充進度：`SetValue(cur + 進度)`、那一格主色 × 0.55。進度來源 `UnitPartialPower("player", Essence)`（0～1000，明文且 > 0 才用）；拿不到 ⇒ `GetPowerRegenForPowerType(Essence)`（每秒幾顆，明文才收、記住上次的）×「這一輪回充開始到現在的秒數」（精華變多或從滿的掉下來時重算起點，`R.EssenceFrac` 純函式）；兩者都沒有就不畫。跟符文共用 0.1 秒 ticker（有格子在回充才跑，滿了就停）。數值文字照印整數 |
+| pip（摺疊） | 氣漩武器（`def.foldable`、`maelstromFold`，**預設關**） | 10 層摺成 5 格：每格疊兩顆 StatusBar，底層 `(i-1, i)`、上層 `(i+4, i+5)`（`R.FoldRange`）同樣 `SetValue(層數)`；上層也錨在列上、層級高一階、自帶 1px 黑邊、沒有暗底，顏色是 `colors.MaelstromWeapon.overflowColor`（預設金黃）。條件規則：整條的覆寫（暗底、透明度、文字色）照舊，逐格顏色只套底層（格子序號 1～5）。預設關是因為使用者調好的 ≥9／≥10 兩段換色是照 10 格寫的 |
 | pip（符文） | 符文 | **先排序再畫**：轉好的靠左（照編號）、在轉的依剩餘時間往右排（`R.RuneOrder`）；在轉的格子 `SetValue((now−start)/duration)` 填進度、同色暗一階，排隊中（start 在未來）進度 0。數字由 `showText` 總開關＋`runeText` 二選一：`countdown`（預設，在轉的格子印剩餘秒數、無條件進位）／`count`（中間印轉好的顆數），兩者不並列。有符文在轉時開 0.1 秒 ticker 只重畫符文列，全部轉好就停。start／duration／ready 讀不到明文 ⇒ 不填不印、排最後 |
 | auraBar | **旋風斬**（狂怒，4 層）、**橫掃攻擊**（武器，12 層，點了 1261049 是 18）、**鐵鬃**（守護熊形態，一層一格、5 格） | **引擎寫**（`Modules/AuraBar.lua`）：這幾個增益連戰鬥外 `GetPlayerAuraBySpellID` 都可能回 nil。旋風斬／橫掃攻擊：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給按鈕的 `SetApplicationBar(bar, { maxApplications })`，引擎每次套用寫 `SetMinMaxValues(0, max)`＋`SetValue(層數)`（光環消失寫 0）。鐵鬃每施放一次是**一顆獨立的光環**（層數欄是 0），改用 `AddAuraGroup`（`maxFrameCount` ＝ 格數、`layout` 的 elementWidth／Height／Spacing ＝ 一格），每顆按鈕的 StatusBar 交給 `SetDurationBar(bar, { direction = RemainingTime })`：一格一層、各自倒數。格子外觀（暗底、黑邊、分隔）是列上另外畫的裝飾；整列寬的填色第 k 層終點落在第 k 個格距裡，被分隔蓋住。條件規則與數值文字不適用（Lua 沒有值），設定頁寫明 |
-| auraTimer | **黯黑力量**（增輝喚能師，增益 395296、天賦閘 395152）、**秘法靈魂**（秘法法師，增益 451038＋1223522、天賦閘「歐爾的記憶」449619 或英雄樹 39 Sunfury） | **光環剩餘時間條，引擎寫**（`Modules/AuraBar.lua` 的 `kind = "duration"`）：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給 `SetDurationBar(bar, { direction = RemainingTime, interpolation = Immediate })`：光環在身上時由引擎往下縮（上限＝光環自己的持續時間，含黯黑力量的延長，Lua 不必知道秒數）、光環不在時按鈕藏起來，看到的是列上畫的空條（暗底＝主色 × 0.25、1px 黑邊）。`showText` 開著時另建一個 FontString 交給 `SetDurationText`（formatter `Text.PlainFormatter(5)` 在容器建立前先建好：剩 5 秒起一位小數），字型／字級進簽章。容器沒好（戰鬥中、建失敗）時先畫空條（`timerIdle`）。條件規則不適用；`GetValue` 對這種列固定回 0, 0（不讀光環） |
+| auraTimer | **黯黑力量**（增輝喚能師，增益 395296、天賦閘 395152）、**秘法靈魂**（秘法法師，增益 451038＋1223522、天賦閘「歐爾的記憶」449619 或英雄樹 39 Sunfury） | **光環剩餘時間條，引擎寫**（`Modules/AuraBar.lua` 的 `kind = "duration"`）：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給 `SetDurationBar(bar, { direction = RemainingTime, interpolation = Immediate })`：光環在身上時由引擎往下縮（上限＝光環自己的持續時間，含黯黑力量的延長，Lua 不必知道秒數）、光環不在時按鈕藏起來，看到的是列上畫的空條（暗底＝主色 × 0.25、1px 黑邊）。`showText` 開著時另建一個 FontString 交給 `SetDurationText`（formatter `Text.PlainFormatter(5)` 在容器建立前先建好：剩 5 秒起一位小數），字型／字級進簽章。秘法靈魂多一個 `arcaneSoulText = "gcd"`（剩幾個 GCD）：建容器前用明文算 GCD 長度（`R.ReadGcd`：`C_Spell.GetSpellCooldown(61304)` 正在 GCD 的 duration；不在 GCD 或讀不到 ⇒ 1.5 ／（1 ＋ 加速 ／ 100）；再讀不到用上次的、沒有就 1.5；夾 0.75～1.5、四捨五入到 0.05 秒），`Text.GcdFormatter(g, "最後")` 建一顆 NumericRuleFormatter：門檻 0 印「最後」（這一段沒有數字格式符）、門檻 g 印 `%d`（元件 `div = g`、`step 1` 往上取 ⇒ ceil(剩餘 ／ g)）。GCD 長度進簽章，`UNIT_SPELL_HASTE`（法師）上重算、變了才重排（戰鬥中照舊記旗標、脫戰補）。容器沒好（戰鬥中、建失敗）時先畫空條（`timerIdle`）。條件規則不適用；`GetValue` 對這種列固定回 0, 0（不讀光環） |
 
 - **跟單位框架不同的兩件事**：那邊不做法力（單位框有自己的能量條）、也剔掉「單位框能量條已經在畫的主資源」；
   這裡是獨立 HUD，兩件都做。
@@ -432,7 +436,13 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **天賦閘**：標準資源看 `UnitPowerMax > 0`（秘密值當有）；光環型／取值型看被動已學（冰刺、噬靈魂碎片不需要天賦），
   被動 ID 寫錯的保險是「目前有層數就顯示」。剩餘時間條沒有 Lua 讀得到的值、沒有這條保險，改成「被動已學 **或** 目前的英雄天賦樹是
   `def.heroTree`」（`C_ClassTalents.GetActiveHeroTalentSpec`，明文才比）。
-- **列的順序**（`resources.order`，資源 key 的陣列，**整份設定檔共用、不分專精**，跟 `rows[key]` 開關同一種）：
+- **這個專精要顯示哪些**（`resources.rows[specID][key]`，**分專精**；nil ＝ 照那個專精的預設 `R.DefaultOn`、true／false ＝ 強制）：
+  `R.RowOn(cfg, specID, key)` 讀、`R.SetRow` 寫（跟預設一樣就清掉、空子表也拿掉）。DB v3 遷移（`Core/DB.lua` 的 `MIGRATIONS[3]`）把舊的平面
+  `rows[key]`（整份設定檔共用）攤到每個「這個 key 是候選」的專精（`R.SpecCandidates`：德魯伊三種型態併起來、每個專精都有血量；
+  `R.MigrateFlatRows`：值跟那個專精的預設不同才寫、平面的鍵拿掉、新形狀已有的值不蓋、跑兩次結果一樣）。
+  專精 → 候選的資料在 `Resources.lua`，遷移呼叫 `ns.Resources` 的純函式：遷移只在 `DB.Init`（登入）與匯入設定字串時跑，那時 TOC 的檔案都載完了；
+  萬一沒有 `ns.Resources` 就什麼都不動（平面鍵留著，`R.RowOn` 不認字串鍵，等於回到預設）。
+- **列的順序**（`resources.order`，資源 key 的陣列，**整份設定檔共用、不分專精**；開關則是分專精的，見上一條）：
   `R.ApplyOrder(list, order)`（純函式）——在 `order` 裡的照它的位置；不在的維持專精清單的相對順序、排在所有排過的**後面**；穩定。
   套在 `R.Candidates()` 的結果上再快取，所以畫面、設定頁、`/mcdm debug` 都是同一個順序。「法力、血量在最下面」只是預設位置。
   設定頁每列勾選框右邊有上移／下移（第一列的上移、最後一列的下移停用）：按下把目前候選的**完整順序**交換後寫回
@@ -445,7 +455,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 | 資源 | 原因 |
 |---|---|
-| 無視苦痛「只算自己這顆盾」 | 12.1 下無視苦痛（190456）的光環資料全是秘密、查詢回 nil；「總吸收量」是唯一的數值來源，會混進別的盾。另一條路（光環層數＝佔上限的百分比）只在追蹤了暴雪增益圖示時才讀得到，不做 |
+| 無視苦痛「只算自己這顆盾」 | **補了**（2026-10-02）：Lua 讀不到，但引擎讀得到——光環層數（＝佔上限的百分比）交給 AuraContainer 的 `SetApplicationBar` 寫，見上表的 auraPct。原本「只在追蹤了暴雪增益圖示時才讀得到」是 Lua 讀取的限制，引擎寫值不受影響 |
 | 鐵鬃「依施放推算」 | 引擎的 AuraGroup 已經給得出每一層的真實剩餘時間，不必用施放事件猜（推算不含延長效果、戰鬥中身分讀不到） |
 | 增輝喚能師的黯黑力量、秘法法師的秘法靈魂 | **補了**（2026-09-30）：新增 auraTimer 模式，見上表。光環 ID 以 wowhead 核對；參考實作的秘法靈魂是「秘法奔騰結束時」給、固定 4 秒，wowhead 的「歐爾的記憶」寫「秘法鳳凰消失時」給、4 秒——ID 一致（451038），觸發時機的差異不影響做法（只看增益在不在） |
 | 醉仙緩勁的數值文字、條件規則（秘密值那幾下） | 秘密值不能比較、不能算術；明文時照常 |
@@ -462,8 +472,9 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   `UPDATE_SHAPESHIFT_FORM`、`PLAYER_SPECIALIZATION_CHANGED`、天賦、進出載具、`RUNE_POWER_UPDATE`（死騎）、
   `UNIT_POWER_POINT_CHARGE`（盜賊）、`UNIT_AURA`（有光環型資源的職業：薩滿、獵人、惡魔獵人、德魯伊、法師、武僧）、
   `UNIT_HEALTH`／`UNIT_MAXHEALTH`（每個職業都註冊：血量列；沒有血量列時只有武僧（醉仙緩勁每跳扣血）與戰士的 `UNIT_MAXHEALTH` 會重畫）、
-  `UNIT_ABSORB_AMOUNT_CHANGED`（戰士：吸收盾），
-  全部綁 `player`、**只標髒、下一幀做**。auraBar／auraTimer 的列不需要事件（引擎自己寫）。
+  `UNIT_ABSORB_AMOUNT_CHANGED`（戰士：無視苦痛的退路）、`UNIT_SPELL_HASTE`（法師：秘法靈魂印 GCD 時，GCD 長度變了才重排），
+  全部綁 `player`、**只標髒、下一幀做**。auraBar／auraTimer／auraPct 的列不需要事件（引擎自己寫）。
+  符文與精華的回充進度沒有事件：共用一個 0.1 秒 ticker（`R.ArmTicker`），有格子在回充才跑、全部好了就停。
   能量事件走「只重畫值」那條（不重算清單、不配表）；清單／格數／尺寸變了才重排。
 - **顯示條件**：`enabled`、`loadConditions`（騎乘或坐載具時隱藏、只在戰鬥中）任一不符 ⇒ alpha 0；
   `fadeWithEssential` 開著時取核心技能現在的 alpha（它的顯示條件與淡出一起帶過來）。容器不是 secure 框，Lua 判斷即可。
@@ -593,13 +604,15 @@ customRows[specID] = {
 
 資源 key（存檔內容，不要改名）：`Mana`、`Rage`、`Energy`、`Focus`、`RunicPower`、`LunarPower`、`Maelstrom`、`Insanity`、`Fury`、
 `HolyPower`、`ComboPoints`、`Chi`、`SoulShards`、`ArcaneCharges`、`Essence`、`Runes`、`MaelstromWeapon`、`TipOfTheSpear`、`SoulFragments`、
-`Icicles`、`DevourerFragments`、`Stagger`（顏色多 `moderateColor`／`heavyColor`）、`IgnorePain`、`WhirlwindStacks`、`SweepingStrikes`、`Ironfur`、
+`Icicles`、`DevourerFragments`、`Stagger`（顏色多 `moderateColor`／`heavyColor`／`tier3Color`／`tier4Color`）、`IgnorePain`、`WhirlwindStacks`、`SweepingStrikes`、`Ironfur`、
 `EbonMight`、`ArcaneSoul`。
 
 ### 設定頁
 
 - **資源條**：顯示、版面（寬、列高、列距、格距、填充方向）、外觀（材質、填充透明度、平滑、數值文字與字級、法力格式）、
-  顏色與條件（每種資源的顏色、連擊點數的充能色、醉仙緩勁的中度／重度色與兩個門檻、滿條上限、吸收盾／鐵鬃／引擎寫層數／光環剩餘時間條的說明列、
+  顏色與條件（每種資源的顏色、連擊點數的充能色、醉仙緩勁的中度／重度色與兩個門檻、第 3／4 段（開關＋門檻＋顏色，顏色列的標籤是門檻本身「≥ N%」，
+  自己畫的標籤在 Refresh 時重寫——共用層的色票標籤建好就固定，門檻放進表單簽章的話拖一次滑桿就多一份表單）、滿條上限（到 300）、
+  氣漩武器「摺成 5 格」＋溢出色、秘法靈魂「長條上的數字」（剩餘秒數／剩幾個公共冷卻）、無視苦痛／碎片零頭／精華回充／鐵鬃／引擎寫層數／光環剩餘時間條的說明列、
   血量的職業色／百分比／門檻換色（門檻在彈窗裡編：`Options/HealthThresholds.lua`，一列一個「低於 N% ＋ 色票 ＋ 刪除」，最多 6 筆；
   設定頁那顆按鈕寫目前筆數）、條件規則編輯器——引擎寫的列與血量不列進候選）、**自訂格子**（最上面整組開關；目前專精的清單：每筆一列名字＋圖示＋種類＋
   「刪除」（確認窗）、一列顏色＋充能的「顯示秒數」／層數的「層數上限」、一列「顯示時機」下拉（選項依種類）；「＋ 新增格子」→ 選「法術充能／光環層數」（兩顆按鈕滑過有
@@ -607,8 +620,8 @@ customRows[specID] = {
   → 輸入 ID（層數多一欄上限）→ 驗證：`C_Spell.GetSpellInfo`、充能要 `GetSpellCharges` 不是 nil、同專精不收重複，錯誤寫在彈窗裡的灰字列；
   底下小節「位置與錨定」＝ `Specs.Anchor("pips", { other = true })`（跟著哪條走／邊／偏移，寫進 `profile.pips`）＋「跟核心技能一起淡出」＋
   自訂格子自己的載入條件）、
-  這個專精要顯示哪幾列（新資源自動列出；每列勾選框＋上移／下移）、載入條件、錨定（資源條自己的）、恢復預設（連自訂格子的清單與 `profile.pips` 一起清）。
-  表單照「形狀」快取（專精、候選清單（含順序）、條件編輯器的結構、自訂格子清單、資源條與自訂格子各自有沒有錨定、錨定圖）：規則／自訂格子增刪之類的結構變動延一幀換一份表單。
+  這個專精要顯示哪幾列（新資源自動列出；每列勾選框＋上移／下移；勾選存在目前專精底下 `rows[specID][key]`）、載入條件、錨定（資源條自己的）、恢復預設（連自訂格子的清單與 `profile.pips` 一起清）。
+  表單照「形狀」快取（專精、候選清單（含順序）、條件編輯器的結構、自訂格子清單、資源條與自訂格子各自有沒有錨定、錨定圖、氣漩武器摺不摺（條件規則的「第幾格」選單跟著換））：規則／自訂格子增刪之類的結構變動延一幀換一份表單。
   套用時 `Resources.Apply()` 與 `Pips.Apply()` 都叫（樣式兩邊共用）。
 - **施法條**：顯示、隱藏暴雪施法條、版面（材質多一項「暴雪施法條」）、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
   效果（火花、刻度、延遲）、沒在施法時隱藏、錨定、恢復預設。
@@ -652,7 +665,7 @@ G 階段：套組裡原本只認舊的冷卻管理器插件的地方，改成**�
   | 字型、倒數／充能／層數的字級顏色位置、低秒變色、小數 | `theme.*Text`；輔助、增益圖示自己的字（跟主題不同才寫） | |
   | `fading*` | `theme.fade` | 「沒目標＋脫戰」兩個觸發都開、只開騎乘兩種表達不了，取近似（見檔頭） |
   | `pandemic*`、`glow*` | `theme.pandemic`、`theme.glow.proc` | 無損刷新要三個鍵同時成立才開 |
-  | `resourceBarSettings[職業][資源]` | `resources.colors`／`conditions`（同形狀）／`rows`（`loadMode = never`）與共用的列高、寬、材質、數值文字 | 共用欄位先看玩家職業、再 General；螢幕座標貼著核心技能上緣 20 像素內 ⇒ 錨在核心技能上方 |
+  | `resourceBarSettings[職業][資源]` | `resources.colors`／`conditions`（同形狀）／`rows[specID][key]`（載入條件）與共用的列高、寬、材質、數值文字；醉仙緩勁第 3／4 段（`tier3/4Threshold`／`Enabled`／`Color`） | 共用欄位先看玩家職業、再 General；螢幕座標貼著核心技能上緣 20 像素內 ⇒ 錨在核心技能上方。載入條件換成分專精的開關（`Import.ImportRows`，借 `R.SpecCandidates`／`R.SetRow`）：`loadMode = never` ⇒ 那個職業（General＝全部）每個候選專精關、`always` ⇒ 都開、`conditional` ⇒ 照 `load.spec` 集合逐專精對照；沒存 `loadMode` 的照對方的預設（法力 conditional、其他 always）；跟本插件預設相同的不寫。`load` 裡專精以外的條件（戰鬥中、騎乘、獵豹形態）記略過 |
   | `castBar*` | `castbar.*` | 位置：跟著資源條＝錨核心上方交給排開；錨核心／輔助時換成中心點照字面貼；螢幕座標換算成中心 |
   | `cooldownGroups`／`buffGroups`／`barGroups[專精]` | 自訂群組 `bars.g<n>` ＋ `spells[專精].groupOf`／`order` | 成長方向與位置換算見檔頭；往左長的清單反過來；撞名加專精名 |
   | `customBuffRegistry` ＋ `ungroupedCustomBuffOrder` | `spells[專精].custom` 光環格 | 固定秒數的自訂增益沒有對應 |
@@ -817,6 +830,21 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     不確定現行是哪一個，兩個都放（沒出現的永遠比對不到）。天賦閘是「歐爾的記憶 449619 已學」**或**「英雄樹是 39（Sunfury）」，
     其中英雄樹 ID 沒在 wowhead 核對到，只是保險。
 
+**資源條補齊（2026-10-02）**
+
+68. **碎片零頭沒有改 `GetValue`**：計畫寫「`GetValue("SoulShards")` 在 267 改讀原始單位」，但 `GetValue` 的上限也被格數（`SegmentsFor`）
+    與天賦閘拿去用，改了會變成 50 格。改成在畫點數列時另讀原始值（`def.fractionalSpec`），`GetValue` 照舊回整顆數。
+69. **無視苦痛的「N%」不是格式器**：`SetApplicationCount` 給格式器時引擎會對秘密層數跑 Lua 格式化、整顆容器壞掉（套組的團隊框架踩過），
+    所以層數 FontString 不給格式器，「%」是旁邊另一顆固定字。改走引擎之後**條件規則不適用**（Lua 沒有值），容器沒好時的退路
+    （吸收盾總量）也不套條件。
+70. **醉仙緩勁第 3／4 段的標籤**：計畫寫「≥ N%」，「≥」改走語系字串（`At least %d%%`：中文「≥ %d%%」、其他語系寫成文字），
+    西文介面的字型不一定有這個字。
+71. **秘法靈魂的 GCD 格式器可行**：`NumericRuleFormatBreakpoint` 的 `format` 文件寫「沒有 components 時最多一個數字格式符」⇒ 零個可以
+    （「最後」那段）；`NumericRuleFormatComponent` 有 `div`／`step`／`rounding` ⇒ `div = GCD、step 1、往上取` 就是 ceil(剩餘 ／ GCD)。
+    門檻剛好等於 GCD 那一瞬間印「1」而不是「最後」（文件：門檻是「這條規則適用的最小值」），看不出來，不另外處理。
+72. **分專精開關的遷移資料不放 DB.lua**：專精 → 候選資源只在 `Resources.lua` 一份（`R.SpecCandidates`），遷移 v3 與匯入在執行時借用；
+    遷移跑的時機（`DB.Init` 在 `ADDON_LOADED` 之後、匯入在登入後）一定在 TOC 全部載完之後。
+
 ## 待實機驗證
 
 依區塊排，編號連續。打一場記得開 `/console taintLog 2`，看完別 /reload（會清掉 taint.log）。
@@ -917,7 +945,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 60. 容器讓資源條／自訂格子面板變保護框：`IsProtected()` 是否真的往上傳到列與 root（`/mcdm debug` 的「延到脫戰」）；戰鬥中改設定、上限事件、換型態時零 ADDON_ACTION_BLOCKED；
     保護框上 `SetAlpha`／`SetAlphaFromBoolean`（條件規則、顯示時機、淡出）戰鬥中不被擋。12.1.5 的 Cooldown setter 標了 `IsProtectedFunction`：我們的秒數 Cooldown 不在保護鏈上，確認沒被擋。
 61. 醉仙緩勁：`UnitStagger("player")` 戰鬥外明文、副本戰鬥中間歇秘密；每跳 `UNIT_HEALTH` 有到（沒有的話條不會隨時間變短）；三段色切換與沿用上一段的觀感。
-62. 無視苦痛：`UnitGetTotalAbsorbs`／`UnitHealthMax` 秘密值直接餵；寬 W／0.3 的條被裁在列裡、滿條＝三成最大生命；`UNIT_ABSORB_AMOUNT_CHANGED` 在盾被打掉時有到。
+62. 無視苦痛（2026-10-02 起只剩容器沒好時的退路，主路徑見 135）：`UnitGetTotalAbsorbs`／`UnitHealthMax` 秘密值直接餵；寬 W／0.3 的條被裁在列裡、滿條＝三成最大生命；`UNIT_ABSORB_AMOUNT_CHANGED` 在盾被打掉時有到。
 63. 冰刺（205473）戰鬥中 `GetPlayerAuraBySpellID` 讀得到層數；噬靈魂碎片的兩個光環（1225789、1227702）與化身（1217607）ID、上限 50／35／40 是否仍對。
 
 **光環剩餘時間條（2026-09-30）**
@@ -995,7 +1023,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     預設列高 8 的條上印 16 號字，數字會上下各突出幾像素、相鄰兩列的數字可能互相碰到——要跟舊套組一樣就把列高調成 16。
 95. 輸出專精（暗牧、元素、增強、三系術士、平衡、湮滅、強化）：資源條預設沒有法力；「這個專精要顯示哪些」裡法力那一列預設不勾，
     勾起來就出現、再取消又消失，`/reload` 後照存的。治療專精與法師預設照舊顯示（跟 Ayije_CDM 的預設一致）。（每個專精的預設在 `Resources.lua` 的 `DEFAULT_OFF`；
-    `rows[key]`：nil＝照預設、true／false＝強制。）
+    `rows[specID][key]`：nil＝照預設、true／false＝強制；2026-10-02 起分專精存，見 136。）
 96. 設定視窗開著（沒進暴雪編輯模式）：每條上面有覆蓋層（職業色邊、條名、齒輪），**直接拖就能移動**，格線吸附與套組磁吸都在；
     **按住 Shift 拖曳不吸**（暴雪編輯模式裡也是：Shift 一律不吸，不再是「反轉」）。點一下仍是開那條的設定頁。
     設定視窗開著再進暴雪編輯模式：點擊層收起、換成選取框；出來又換回點擊層。戰鬥中設定視窗鎖著、點擊層不出現。
@@ -1079,3 +1107,24 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 132. 資源條列的順序：在設定頁按上移／下移，畫面上的列與設定頁的「顏色與條件」「這個專精要顯示哪些」三處順序一致；
      第一列的上移、最後一列的下移是停用的；換專精後，別的專精沒排過的資源維持預設順序、排在排過的後面；
      `/reload` 後順序照存的；「恢復預設」回到預設順序。
+
+**資源條補齊（2026-10-02）**
+
+133. 毀滅術：靈魂裂片的格子照碎片零頭填（例如 3.7 顆 ⇒ 前三格滿、第四格七成而且暗一階），條上印 `3.7`；痛苦、惡魔照整數。
+     副本戰鬥中 `UnitPower(…, true)` 是秘密值時格子照樣填、文字空白；`UNIT_POWER_FREQUENT` 在零頭變化時有到（碎片一點一點長）。
+     `UnitPowerMax("player", SoulShards, true)` 是 50（一顆 ＝ 10）。條件規則（例如 ≥3 換色）照整顆數。
+134. 喚能師：精華沒滿時下一格慢慢填滿（暗一階），轉好那一刻變成正常色、再下一格開始；滿了 ticker 停掉。
+     `UnitPartialPower("player", Essence)` 有沒有回 0～1000 的明文（沒有的話走回充速度推算，進度跟實際轉好的時間差多少）；
+     戰鬥中兩者都讀不到時下一格空著、不報錯。
+135. 防戰無視苦痛：條的長度＝盾量佔上限的百分比——**增益 190456 的層數真的是 0～100**（`/mcdm debug` 看「容器 ready／交條 是」）；
+     首領戰／M+ 身分閘讓這個增益過（條會動）；被別人套盾（真言術：盾等）時條**不動**；條上印「N%」（層數＝1 或 0 時引擎是否照樣印，
+     不印的話 1% 那一下空白可以接受）；「%」跟數字貼在一起、大致置中。戰鬥中登入時先畫吸收盾總量，脫戰換成百分比條。
+136. 「這個專精要顯示哪些」分專精：在暗牧勾法力、切到戒律看法力仍是預設（勾著）、切回暗牧仍勾著；`/reload` 後照存的。
+     **升級第一次登入**（DB v3 遷移）：原本關掉的法力／魔怒等開關攤到對應專精、`schemaVersion` 變 3；原本在一個專精關掉法力、
+     另一個專精的法力也跟著關的情況（舊版共用）在遷移後還是一樣（兩邊都寫了），之後分開調互不影響。
+137. 氣漩武器「摺成 5 格」：0～5 層只有底層、6～10 層在同一格上疊溢出色（金黃）；上層的黑邊跟底層對齊、不粗一圈；
+     數值文字蓋在上層之上；≥9／≥10 的條件色（照 10 格寫的）摺疊時只染底層。取消勾選回到 10 格。
+138. 醉仙緩勁第 3／4 段：勾開後重醉仙緩勁超過 90%（150%）換第 3（4）段的顏色；顏色列的標籤跟著門檻滑桿變（「≥ 95%」）；
+     滿條上限設 200 時 150% 那段看得到。從 Ayije 匯入時 tier3／tier4 的開關、門檻、顏色都帶過來。
+139. 秘法靈魂「長條上的數字」選「剩幾個公共冷卻」：4 秒的增益在 1.5 秒 GCD 下印 3 → 2 → 「最後」；開嗜血（加速變了）後脫戰才換新的分段；
+     `C_StringUtil.CreateNumericRuleFormatter` 與 `SetDurationText(fs, { textFormatter })` 吃這顆格式器（吃不下時退回秒數）。

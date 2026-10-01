@@ -3,7 +3,8 @@
 --
 --   lua  AddOns/MiliUI_CooldownManager/Tests/Import_test.lua
 --
--- 做法同 DB_test.lua：DB.lua、Import.lua、Modules/ResourceConditions.lua 載進自己的環境表，
+-- 做法同 DB_test.lua：DB.lua、Import.lua、Modules/ResourceConditions.lua、Modules/Resources.lua（專精 → 候選資源，
+-- 「哪幾個專精顯示這一列」要用）載進自己的環境表，
 -- WoW API 全部 stub。這支本身一個全域都不寫。
 --
 -- 夾具：使用者 Ayije_CDM 存檔（2026-10-01）的縮小版，角色名換成占位字；再加一份合成的設定檔，
@@ -52,6 +53,7 @@ end
 local ns = {
     L = setmetatable({}, { __index = function(_, k) return k end }),
     playerClass = "PALADIN",
+    IsSecret = function() return false end,
     Fire = function() end,
     ReportError = function(err) print("ReportError: " .. tostring(err)) end,
 }
@@ -70,6 +72,7 @@ local function Load(rel)
 end
 Load("Core/DB.lua")
 Load("Modules/ResourceConditions.lua")
+Load("Modules/Resources.lua")
 Load("Core/Import.lua")
 local DB, Import, RC = ns.DB, ns.Import, ns.ResCond
 
@@ -166,11 +169,15 @@ local SYN = {
     resourcesEnabled = true, manaNumberFormat = "km",
     resourceBarSettings = {
         General = { Mana = { displayAsPercent = true, offsetX = 10, offsetY = -100, tagFontSize = 14,
-                             tagEnabled = true, barTexture = "Solid", barSpacing = 2, width = 300 } },
+                             tagEnabled = true, barTexture = "Solid", barSpacing = 2, width = 300,
+                             -- 法力只在神聖聖騎與暗牧顯示（暗牧預設不顯示 ⇒ 要寫 true；戒律預設顯示 ⇒ 要寫 false）
+                             loadMode = "conditional", load = { spec = { [65] = true, [258] = true }, combat = true } } },
         DEMONHUNTER = { DevourerSoulFragments = { color = c(0.1, 0.2, 0.3) },
                         Fury = { loadMode = "never" } },
         MONK = { Stagger = { lightColor = c(0, 1, 0), moderateColor = c(1, 1, 0), heavyColor = c(1, 0, 0),
-                             tier1Threshold = 25, tier2Threshold = 70, ceilingPercent = 150 } },
+                             tier1Threshold = 25, tier2Threshold = 70, ceilingPercent = 150,
+                             tier3Enabled = true, tier3Threshold = 95, tier3Color = c(0.5, 0, 0.5),
+                             tier4Enabled = false, tier4Threshold = 220, tier4Color = c(0, 0.5, 0.5) } },
         ROGUE = { ComboPoints = { chargedColor = c(0, 0, 1), overflowingColor = c(1, 1, 1),
                                   conditions = { { target = 5, check = { op = "and", children = {
                                       { var = "powerValue", cmp = ">=", value = 5 },
@@ -288,7 +295,11 @@ end
 eq("資源條 位置沒存 ⇒ 預設錨定不動", P.resources.anchor.to, "essential")
 eq("資源條 數值文字沒存 ⇒ 不動", P.resources.showText, D.resources.showText)
 eq("資源條 舊版平鋪鍵不讀（rbs 在）", P.resources.manaPercent, false)
-check("醉仙緩勁 tier3 略過", HasSkip(R, "resourceBarSettings.*.tier3Enabled", "noEquivalent", "resources"))
+-- 醉仙緩勁第 3／4 段：開關真的匯入（實際存檔只存了「開」，門檻與顏色沒存 ⇒ 留本插件的預設）
+eq("醉仙緩勁 第 3 段開關匯入", P.resources.staggerTier3Enabled, true)
+eq("醉仙緩勁 第 4 段開關匯入", P.resources.staggerTier4Enabled, true)
+eq("醉仙緩勁 第 3 段門檻沒存 ⇒ 預設 90", P.resources.staggerTier3At, 90)
+check("醉仙緩勁 tier3 不再記略過", not HasSkip(R, "resourceBarSettings.*.tier3Enabled", "noEquivalent", "resources"))
 
 -- 施法條
 eqColor("施法條 引導色", P.castbar.colors.channel, 1, 0.31, 0.26)
@@ -457,7 +468,41 @@ eq("材質 Solid ⇒ solid", S.resources.texture, "solid")
 eq("列距", S.resources.rowSpacing, 2)
 eq("寬", S.resources.width, 300)
 eqColor("噬靈魂碎片改名", S.resources.colors.DevourerFragments.color, 0.1, 0.2, 0.3)
-eq("魔怒 loadMode never ⇒ 關掉那一列", S.resources.rows.Fury, false)
+-- 載入條件 → 分專精的開關 rows[specID][key]
+local rows = S.resources.rows
+eq("魔怒 loadMode never ⇒ 浩劫關掉", rows[577] and rows[577].Fury, false)
+eq("魔怒 loadMode never ⇒ 復仇關掉", rows[581] and rows[581].Fury, false)
+eq("魔怒 loadMode never ⇒ 噬魂者關掉", rows[1480] and rows[1480].Fury, false)
+eq("沒有平面的開關鍵", rows.Fury, nil)
+eq("法力 load.spec：神聖聖騎在集合裡、預設就開 ⇒ 不寫", rows[65], nil)
+eq("法力 load.spec：暗牧在集合裡、預設關 ⇒ 寫 true", rows[258] and rows[258].Mana, true)
+eq("法力 load.spec：戒律不在集合裡、預設開 ⇒ 寫 false", rows[256] and rows[256].Mana, false)
+eq("法力 load.spec：增強不在集合裡、預設關 ⇒ 不寫", rows[263], nil)
+eq("法力 load.spec：沒有法力的專精不寫", rows[71], nil)
+check("載入條件的戰鬥中略過", HasSkip(R2, "resourceBarSettings.*.load.combat", "noEquivalent", "resources"))
+check("專精集合不記略過", not HasSkip(R2, "resourceBarSettings.*.load.spec", "noEquivalent", "resources"))
+eq("醉仙緩勁 第 3 段", S.resources.staggerTier3Enabled, true)
+eq("醉仙緩勁 第 3 段門檻", S.resources.staggerTier3At, 95)
+eqColor("醉仙緩勁 第 3 段顏色", S.resources.colors.Stagger.tier3Color, 0.5, 0, 0.5)
+eq("醉仙緩勁 第 4 段關", S.resources.staggerTier4Enabled, false)
+eq("醉仙緩勁 第 4 段門檻照樣匯入", S.resources.staggerTier4At, 220)
+eqColor("醉仙緩勁 第 4 段顏色", S.resources.colors.Stagger.tier4Color, 0, 0.5, 0.5)
+do
+    -- always：每個專精都開（法力在輸出專精寫 true）；沒存 loadMode 的法力照對方預設 conditional 看 load.spec
+    local res = { rows = {} }
+    Import.ImportRows(res, "General", "Mana", function() return true end)
+    eq("always：暗牧法力寫 true", res.rows[258] and res.rows[258].Mana, true)
+    eq("always：神聖聖騎跟預設一樣不寫", res.rows[65], nil)
+    local A = Convert({ resourceBarSettings = { General = { Mana = { load = { spec = { [258] = true } } } } } }, { specID = 70 })
+    eq("沒存 loadMode 的法力照 conditional：暗牧開", A.resources.rows[258] and A.resources.rows[258].Mana, true)
+    eq("沒存 loadMode 的法力照 conditional：神聖聖騎關", A.resources.rows[65] and A.resources.rows[65].Mana, false)
+    local B = Convert({ resourceBarSettings = { WARRIOR = { Rage = { load = { spec = { [71] = true } } } } } }, { specID = 70 })
+    eq("沒存 loadMode 的其他列照 always：不寫", next(B.resources.rows), nil)
+    local C = Convert({ resourceBarSettings = { DRUID = { Rage = { loadMode = "never" } } } }, { specID = 70 })
+    check("德魯伊的怒氣（熊形）每個德魯伊專精都關", C.resources.rows[102].Rage == false and C.resources.rows[105].Rage == false
+        and C.resources.rows[104].Rage == false and C.resources.rows[103].Rage == false)
+    eq("德魯伊的怒氣不影響戰士", C.resources.rows[71], nil)
+end
 eqColor("醉仙緩勁 輕度＝主色", S.resources.colors.Stagger.color, 0, 1, 0)
 eqColor("醉仙緩勁 重度", S.resources.colors.Stagger.heavyColor, 1, 0, 0)
 eq("醉仙緩勁 門檻", S.resources.staggerModerateAt .. "/" .. S.resources.staggerHeavyAt, "25/70")

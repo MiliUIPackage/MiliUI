@@ -99,7 +99,8 @@ DB.Init()
 local sv = env.MiliUI_CooldownManager_DB
 check("SV 建立", type(sv) == "table")
 eq("schemaVersion", sv.schemaVersion, ns.DB_VERSION)
-eq("DB_VERSION", ns.DB_VERSION, 2)
+eq("DB_VERSION", ns.DB_VERSION, 3)
+check("MIGRATIONS 有版本 3", type(DB.MIGRATIONS[3]) == "function")
 check("MIGRATIONS 有版本 1", type(DB.MIGRATIONS[1]) == "function")
 eq("預設設定檔名", ns.profileName, "Default")
 eq("profileKeys 記下角色", sv.profileKeys["米利 - 世界之樹"], "Default")
@@ -295,8 +296,10 @@ eq("anchor = false 不被預設表蓋回來", S("utility", "anchor"), false)
 local calls = 0
 local real = DB.MIGRATIONS[1]
 local real2 = DB.MIGRATIONS[2]
+local real3 = DB.MIGRATIONS[3]
 DB.MIGRATIONS[1] = function() calls = calls + 1 end
 DB.MIGRATIONS[2] = function() end
+DB.MIGRATIONS[3] = function() end
 DB.MigrateProfile({}, 0)
 eq("從 0 補到最新：v1 跑一次", calls, 1)
 DB.MigrateProfile({}, 1)
@@ -317,6 +320,7 @@ eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, 5)
 eq("較新的 SV：不跑遷移", calls, 0)
 DB.MIGRATIONS[1] = real
 DB.MIGRATIONS[2] = real2
+DB.MIGRATIONS[3] = real3
 
 -- v2：施法條材質的預設改成暴雪施法條（值閘：舊預設或沒存才換）
 do
@@ -332,6 +336,21 @@ do
     DB.MigrateProfile(p, 1)
     eq("v2：沒有施法條表不報錯", p.castbar, nil)
     eq("新設定檔：施法條預設暴雪材質", DB.BuildDefaults().profile.castbar.texture, "blizzard")
+end
+
+-- v3：開關分專精。專精資料在 Modules/Resources.lua（這支測試沒載）⇒ 沒有 ns.Resources 時什麼都不動、不報錯
+-- （有載的情況在 Resources_test.lua 的「分專精開關」）
+do
+    local p = { resources = { rows = { Mana = true, Fury = false } } }
+    DB.MigrateProfile(p, 2)
+    eq("v3：沒有資源模組 ⇒ 平面的鍵留著", p.resources.rows.Mana, true)
+    local q = {}
+    DB.MigrateProfile(q, 2)
+    eq("v3：沒有資源條表不報錯", q.resources, nil)
+    local d = DB.BuildDefaults().profile.resources
+    check("新設定檔：開關是空表、醉仙緩勁 3／4 段預設關、氣漩武器不摺、秘法靈魂印秒數",
+        type(d.rows) == "table" and next(d.rows) == nil and d.staggerTier3Enabled == false and d.staggerTier4Enabled == false
+        and d.staggerTier3At == 90 and d.staggerTier4At == 150 and d.maelstromFold == false and d.arcaneSoulText == "seconds")
 end
 
 ------------------------------------------------------------

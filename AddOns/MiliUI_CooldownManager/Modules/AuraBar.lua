@@ -20,6 +20,12 @@
 -- 交給 SetDurationBar(bar, { direction = RemainingTime })：光環在身上時由引擎往下縮，光環不在時按鈕藏起來
 -- （列上的裝飾畫空條）。要秒數時另建一個 FontString 交給 SetDurationText（formatter 在容器建立前先建好）。
 -- 上限秒數不必知道：引擎用光環自己的持續時間（含延長）。
+-- 秒數可以換成「剩幾個 GCD」（text.gcd）：數字格式器每 GCD 一段（Core/Text.lua 的 GcdFormatter），
+-- GCD 長度進簽章。
+--
+-- applications 也可以帶層數文字（spec.count）：FontString 交給 SetApplicationCount(fs, {})，
+-- **不給格式器**（引擎拿格式器處理秘密層數會整顆容器壞掉），要接單位（例如「%」）另建一顆固定字的
+-- FontString 貼在旁邊（無視苦痛的百分比條）。兩顆都錨在按鈕中線上，不互相錨定（層數那顆的字是秘密值）。
 --
 -- 格子外觀（每格的暗底、1px 黑邊、格與格之間的分隔）是另外畫的「裝飾」：
 --   * 一直顯示的列：裝飾畫在列上（不在按鈕子樹裡），尺寸變了原地重排，不必換容器
@@ -166,7 +172,9 @@ end
 --          color = { r, g, b }, alpha, reversed,
 --          inside = geom | nil（「有光環才顯示」：裝飾建在按鈕子樹裡），
 --          cell = geom（instances 必填：一格的大小與格距，進簽章），
---          text = { font = 路徑, size = 實體像素字級, decimals = 小數門檻 } | nil（duration 專用：秒數文字，進簽章） }
+--          text = { font = 路徑, size = 實體像素字級, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字 }
+--                 | nil（duration 專用：秒數文字，進簽章），
+--          count = { font, size, suffix } | nil（applications 專用：層數文字，進簽章） }
 ------------------------------------------------------------
 function AB.Signature(spec)
     local ids = {}
@@ -186,6 +194,11 @@ function AB.Signature(spec)
     local tx = spec.kind == "duration" and spec.text
     if type(tx) == "table" then
         parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.decimals) }, ":")
+        if tx.gcd then parts[#parts + 1] = table.concat({ "gcd", Fmt(tx.gcd), tostring(tx.last) }, ":") end
+    end
+    local cn = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.count
+    if type(cn) == "table" then
+        parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.suffix) }, ":")
     end
     local g = spec.inside
     if g then
@@ -247,6 +260,36 @@ local function InitTimerText(btn, bar, st)
     end
 end
 
+-- 層數文字（applications 專用）：層數交給 SetApplicationCount（空的選項表、不給格式器），
+-- 單位是另一顆固定字。兩顆貼在按鈕中線偏右一點的同一個點上（層數靠右、單位靠左），合起來大約置中
+local function InitCountText(btn, bar, cn)
+    local tf = CreateFrame("Frame", nil, btn)
+    tf:SetAllPoints(btn)
+    tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
+    local off = (cn.suffix and cn.suffix ~= "") and (tonumber(cn.size) or 10) * 0.3 or 0
+    local fs = tf:CreateFontString(nil, "OVERLAY")
+    fs:SetFont(cn.font, cn.size, "OUTLINE")
+    pcall(fs.SetIgnoreParentScale, fs, true)
+    fs:SetTextColor(1, 1, 1, 1)
+    if off > 0 then
+        fs:SetJustifyH("RIGHT")
+        fs:SetPoint("RIGHT", btn, "CENTER", off, 0)
+    else
+        fs:SetJustifyH("CENTER")
+        fs:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    end
+    btn:SetApplicationCount(fs, {})
+    if off > 0 then
+        local sx = tf:CreateFontString(nil, "OVERLAY")
+        sx:SetFont(cn.font, cn.size, "OUTLINE")
+        pcall(sx.SetIgnoreParentScale, sx, true)
+        sx:SetTextColor(1, 1, 1, 1)
+        sx:SetJustifyH("LEFT")
+        sx:SetPoint("LEFT", btn, "CENTER", off, 0)
+        sx:SetText(cn.suffix)
+    end
+end
+
 -- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。不 CreateColor、不掛 script、顏色純數字
 local function InitButton(btn, c, st, h, sig)
     pcall(btn.SetMouseClickEnabled, btn, false)
@@ -295,6 +338,11 @@ local function InitButton(btn, c, st, h, sig)
         local opts = { maxApplications = st.max }
         if st.interp then opts.interpolation = st.interp end
         btn:SetApplicationBar(bar, opts)
+        -- 層數文字失敗只丟文字、不丟條
+        if st.count and btn.SetApplicationCount then
+            local ok, err = pcall(InitCountText, btn, bar, st.count)
+            if not ok then AB.lastError = tostring(err) end
+        end
     end
     h.okSigs[sig] = true
 end
@@ -374,12 +422,19 @@ function AB.Apply(h, spec)
             alpha = tonumber(spec.alpha) or 1, reversed = spec.reversed and true or false,
             inside = spec.inside, kind = spec.kind, cell = spec.cell,
             text = (spec.kind == "duration" and type(spec.text) == "table") and spec.text or nil,
+            count = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.count) == "table") and spec.count or nil,
             interp = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil,
             remaining = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime or nil,
         }
         -- formatter 在這裡（正常插件路徑）先建好：initializeFrame 裡只查表
-        if st.text and ns.Text and ns.Text.PlainFormatter then
-            st.formatter = ns.Text.PlainFormatter(st.text.decimals)
+        if st.text and ns.Text then
+            if st.text.gcd and ns.Text.GcdFormatter then
+                -- 剩幾個 GCD；格式器建不起來就退回秒數
+                st.formatter = ns.Text.GcdFormatter(st.text.gcd, st.text.last)
+            end
+            if not st.formatter and ns.Text.PlainFormatter then
+                st.formatter = ns.Text.PlainFormatter(st.text.decimals)
+            end
         end
         if st.kind == "instances" and type(st.cell) ~= "table" then
             h.errSigs[sig] = "instances without cell geometry"

@@ -158,6 +158,40 @@ function T.PlainFormatter(decimalsBelow)
     return f or nil
 end
 
+-- 「剩幾個 GCD」（資源條的秘法靈魂）：剩餘秒數 x、GCD 長度 g
+--   x ≥ g    印 ceil(x ／ g)（元件 div = g、step 1 往上取）
+--   x < g    印 last（最後一個 GCD；這一段沒有數字格式符）
+-- g 是建容器前算好的明文（四捨五入到 0.05 秒），同一個 g 共用一顆
+function T.GcdFormatter(gcd, last)
+    local g = tonumber(gcd)
+    if not g or g <= 0 then return nil end
+    local label = (type(last) == "string" and last ~= "") and last or "1"
+    local key = ("gcd|%.2f|%s"):format(g, label)
+    local f = formatters[key]
+    if f ~= nil then return f or nil end
+    f = false
+    local SU = C_StringUtil
+    local RD = Enum and Enum.NumericRuleFormatRounding
+    if SU and SU.CreateNumericRuleFormatter and RD then
+        local ok, fmt = pcall(SU.CreateNumericRuleFormatter)
+        if ok and fmt then
+            -- 標籤裡的 % 要跳脫（format 字串）
+            local rules = {
+                { threshold = 0, rounding = RD.Down, format = (label:gsub("%%", "%%%%")) },
+                { threshold = g, rounding = RD.Up, format = "%d",
+                  components = { { div = g, step = 1, rounding = RD.Up } } },
+            }
+            local all = true
+            for _, rule in ipairs(rules) do
+                if not pcall(fmt.AddBreakpoint, fmt, rule) then all = false break end
+            end
+            if all then f = fmt end
+        end
+    end
+    formatters[key] = f
+    return f or nil
+end
+
 ------------------------------------------------------------
 -- 圖示類（核心／輔助／增益圖示）
 --   style：Decorate 解好的那一包（見 Decorate.Resolve）

@@ -23,6 +23,10 @@
 --  10. 符文排序與秒數
 --  11. 列的順序（ApplyOrder／MergeOrder、候選套 order）、血量列（候選、預設關、不支援條件、秘密值轉手、
 --      門檻曲線的點與簽章）、施法條的暴雪材質
+--  12. 2026-10-02 補齊：毀滅術碎片零頭（ShardPer／ShardSplit）、精華回充（EssenceFrac）、
+--      無視苦痛百分比條（auraPct：畫法、退路、層數文字簽章）、氣漩武器摺疊（Folded／FoldRange／格數）、
+--      醉仙緩勁 4 段（StaggerBand／StaggerTiers／StaggerCeiling／標籤）、秘法靈魂剩幾個 GCD（GcdLength／ReadGcd／
+--      GcdFormatter 的分段）、分專精開關（SetRow／SpecCandidates／MigrateFlatRows／設定遷移 v3）
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -223,7 +227,12 @@ check("治療與法師：法力預設顯示", R.DefaultOn(256, "Mana") and R.Def
     and R.DefaultOn(62, "Mana") and R.DefaultOn(63, "Mana") and R.DefaultOn(64, "Mana") and R.DefaultOn(105, "Mana")
     and R.DefaultOn(270, "Mana") and R.DefaultOn(1468, "Mana"))
 check("開關：nil 照預設", R.RowOn({ rows = {} }, 263, "Mana") == false and R.RowOn({ rows = {} }, 65, "Mana") == true)
-check("開關：true 強制開、false 強制關", R.RowOn({ rows = { Mana = true } }, 263, "Mana") == true and R.RowOn({ rows = { Mana = false } }, 65, "Mana") == false)
+check("開關：true 強制開、false 強制關", R.RowOn({ rows = { [263] = { Mana = true } } }, 263, "Mana") == true
+    and R.RowOn({ rows = { [65] = { Mana = false } } }, 65, "Mana") == false)
+check("開關：分專精（別的專精的值不影響）", R.RowOn({ rows = { [263] = { Mana = true } } }, 262, "Mana") == false
+    and R.RowOn({ rows = { [65] = { Mana = false } } }, 256, "Mana") == true)
+check("開關：舊的平面鍵不認（遷移前的殘留不會被當成這個專精的值）", R.RowOn({ rows = { Mana = true } }, 263, "Mana") == false)
+check("開關：沒有專精照預設", R.RowOn({ rows = { [65] = { Mana = false } } }, nil, "Mana") == true)
 check("開關：沒有 rows 表也不炸", R.RowOn(nil, 263, "Mana") == false and R.RowOn({}, 65, "Mana") == true)
 eqList("秘法：秘法充能＋秘法靈魂＋法力", R.RawList("MAGE", 62, nil), { "ArcaneCharges", "ArcaneSoul", "Mana" })
 eqList("刺殺：能量＋連擊點", R.RawList("ROGUE", 259, nil), { "Energy", "ComboPoints" })
@@ -697,7 +706,8 @@ eq("鐵鬃 5 格", R.SegmentsFor("Ironfur"), 5)
 eq("冰刺 5 格", R.SegmentsFor("Icicles"), 5)
 eq("醉仙緩勁是連續條", R.SegmentsFor("Stagger"), 0)
 check("條件規則：引擎寫的列不適用", not R.SupportsConditions("WhirlwindStacks") and not R.SupportsConditions("Ironfur"))
-check("條件規則：醉仙緩勁、吸收盾、冰刺適用", R.SupportsConditions("Stagger") and R.SupportsConditions("IgnorePain") and R.SupportsConditions("Icicles"))
+check("條件規則：醉仙緩勁、冰刺適用", R.SupportsConditions("Stagger") and R.SupportsConditions("Icicles"))
+check("條件規則：無視苦痛改引擎寫 ⇒ 不適用", not R.SupportsConditions("IgnorePain") and R.EngineDriven("IgnorePain"))
 eq("auraBar 的明文退路：讀第一個光環的層數", (R.GetValue("WhirlwindStacks")), 0)
 auras[85739] = { applications = 3 }
 eq("auraBar 的明文退路：有層數", (R.GetValue("WhirlwindStacks")), 3)
@@ -940,7 +950,7 @@ do
     check("血量：有預設色（綠）", ns.DB.RESOURCE_COLORS.Health and ns.DB.RESOURCE_COLORS.Health.color.g == 0.8)
     check("血量：每個專精都預設關", R.DefaultOn(65, "Health") == false and R.DefaultOn(263, "Health") == false
         and R.DefaultOn(nil, "Health") == false)
-    check("血量：玩家勾了就開", R.RowOn({ rows = { Health = true } }, 65, "Health") == true)
+    check("血量：玩家勾了就開", R.RowOn({ rows = { [65] = { Health = true } } }, 65, "Health") == true)
     check("血量：條件規則不適用", R.SupportsConditions("Health") == false and R.SupportsConditions("Mana") == true)
     check("血量：不在 RawList", not list(R.RawList("PALADIN", 65, nil)):find("Health"))
     -- 取值：原始值原樣轉手（秘密值）
@@ -998,6 +1008,223 @@ do
     local path, atlas = CB.FillTexture("blizzard")
     check("施法條：暴雪材質是圖集", path == nil and atlas == "UI-CastingBar-Filling-Standard")
     eq("施法條：暴雪材質的 token", CB.BLIZZARD_TEXTURE, "blizzard")
+end
+
+------------------------------------------------------------
+-- 12. 2026-10-02 補齊
+------------------------------------------------------------
+do
+    -- 1. 毀滅術碎片零頭
+    eq("碎片：只有毀滅術讀零頭", R.RESOURCES.SoulShards.fractionalSpec, 267)
+    eq("碎片：每顆單位 ＝ 原始上限 ／ 整顆上限", R.ShardPer(50, 5), 10)
+    eq("碎片：其他比例照算", R.ShardPer(30, 5), 6)
+    eq("碎片：秘密值 ⇒ 10", R.ShardPer(SECRET, 5), 10)
+    eq("碎片：上限 0 ⇒ 10", R.ShardPer(0, 0), 10)
+    local w, part, v = R.ShardSplit(37, 10, 5)
+    check("碎片 3.7：整顆 3、第 4 格在累積", w == 3 and part == 4 and math.abs(v - 3.7) < 1e-9)
+    eq("碎片 3.7：文字一位小數", ("%.1f"):format(v), "3.7")
+    w, part = R.ShardSplit(30, 10, 5)
+    check("碎片剛好整顆：沒有累積中的格", w == 3 and part == nil)
+    w, part = R.ShardSplit(50, 10, 5)
+    check("碎片滿了：沒有累積中的格", w == 5 and part == nil)
+    w, part = R.ShardSplit(3, 10, 5)
+    check("碎片不到一顆：第 1 格在累積", w == 0 and part == 1)
+    eq("碎片：讀不到 ⇒ nil", R.ShardSplit(nil, 10, 5), nil)
+    -- 第 i 格的 min／max ＝ (i-1)·per ～ i·per：原始值 37 ⇒ 1～3 格滿、第 4 格七成、第 5 格空
+    local function frac(lo, hi, x) if x <= lo then return 0 elseif x >= hi then return 1 end return (x - lo) / (hi - lo) end
+    check("碎片：分格的填充", frac(0, 10, 37) == 1 and frac(20, 30, 37) == 1 and math.abs(frac(30, 40, 37) - 0.7) < 1e-9
+        and frac(40, 50, 37) == 0)
+
+    -- 2. 精華回充
+    eq("精華：特殊填充", R.RESOURCES.Essence.fill, "essence")
+    eq("精華：UnitPartialPower 500 ⇒ 0.5", R.EssenceFrac(500, nil, nil), 0.5)
+    eq("精華：partial 優先於速度", R.EssenceFrac(250, 0.2, 4), 0.25)
+    eq("精華：partial 0 ⇒ 改用速度 × 秒數", R.EssenceFrac(0, 0.2, 2.5), 0.5)
+    eq("精華：超過 1 夾在 0.999", R.EssenceFrac(nil, 0.2, 10), 0.999)
+    eq("精華：兩者都沒有 ⇒ 不畫", R.EssenceFrac(nil, nil, 1), nil)
+    eq("精華：速度 0 ⇒ 不畫", R.EssenceFrac(0, 0, 1), nil)
+    eq("精華：秒數是負的 ⇒ 不畫", R.EssenceFrac(nil, 0.2, -1), nil)
+    -- 2 顆 ＋ 0.5 ⇒ 第 3 格（min 2、max 3）填一半、第 1～2 格滿
+    check("精華：值 ＝ 顆數 ＋ 進度", frac(2, 3, 2.5) == 0.5 and frac(1, 2, 2.5) == 1 and frac(3, 4, 2.5) == 0)
+
+    -- 3. 無視苦痛：引擎寫百分比、退路是吸收盾總量
+    local ip = R.RESOURCES.IgnorePain
+    check("無視苦痛：auraPct、追蹤 190456、上限 100", ip.mode == "auraPct" and ip.auras[1] == 190456 and #ip.auras == 1 and ip.appMax == 100)
+    eq("無視苦痛：容器就緒 ⇒ engine", R.DrawMode("auraPct", true), "engine")
+    eq("無視苦痛：容器沒好 ⇒ 吸收盾總量", R.DrawMode("auraPct", false), "absorbBar")
+    eq("無視苦痛：不是格子", R.SegmentsFor("IgnorePain"), 0)
+    env.UnitGetTotalAbsorbs = function() return 777 end
+    env.UnitHealthMax = function() return 1000 end
+    local a1, a2 = R.GetValue("IgnorePain")
+    check("無視苦痛：退路的取值照舊（總吸收量、最大生命）", a1 == 777 and a2 == 1000)
+    env.UnitGetTotalAbsorbs, env.UnitHealthMax = nil, nil
+    local apps = { spellIDs = { 190456 }, max = 100, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }
+    local sigNo = AB.Signature(apps)
+    apps.count = { font = "f", size = 10, suffix = "%" }
+    local sigCnt = AB.Signature(apps)
+    check("簽章：層數文字進簽章", sigCnt ~= sigNo)
+    apps.count.size = 12
+    check("簽章：層數文字的字級進簽章", AB.Signature(apps) ~= sigCnt)
+    check("簽章：層數文字只算在 applications 上", AB.Signature({ kind = "duration", spellIDs = { 1 }, max = 1, texture = "t",
+        color = { r = 1, g = 0, b = 0 }, alpha = 1, count = { font = "f", size = 10, suffix = "%" } })
+        == AB.Signature({ kind = "duration", spellIDs = { 1 }, max = 1, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }))
+
+    -- 4a. 氣漩武器摺疊
+    local cfgR = ns.DB.ConfigTable("resources")
+    eq("摺疊預設關", cfgR.maelstromFold, false)
+    check("摺疊：只有可摺的列", R.Folded({ maelstromFold = true }, "MaelstromWeapon") and not R.Folded({ maelstromFold = true }, "HolyPower")
+        and not R.Folded({ maelstromFold = false }, "MaelstromWeapon") and not R.Folded(nil, "MaelstromWeapon"))
+    eq("摺疊關：10 格", R.SegmentsFor("MaelstromWeapon"), 10)
+    cfgR.maelstromFold = true
+    eq("摺疊開：5 格", R.SegmentsFor("MaelstromWeapon"), 5)
+    cfgR.maelstromFold = false
+    local lo, hi = R.FoldRange(1, 1)
+    check("摺疊：第 1 格底層 0～1", lo == 0 and hi == 1)
+    lo, hi = R.FoldRange(1, 2)
+    check("摺疊：第 1 格上層 5～6", lo == 5 and hi == 6)
+    lo, hi = R.FoldRange(5, 2)
+    check("摺疊：第 5 格上層 9～10", lo == 9 and hi == 10)
+    -- 7 層：底層 5 格全滿、上層第 1、2 格滿、第 3 格空
+    local ok7 = true
+    for i = 1, 5 do
+        local bl, bh = R.FoldRange(i, 1)
+        local tl, th = R.FoldRange(i, 2)
+        if frac(bl, bh, 7) ~= 1 then ok7 = false end
+        if frac(tl, th, 7) ~= ((i <= 2) and 1 or 0) then ok7 = false end
+    end
+    check("摺疊：7 層 ＝ 底層全滿＋上層兩格", ok7)
+    local oc = ns.DB.RESOURCE_COLORS.MaelstromWeapon
+    check("摺疊：溢出色有預設、跟主色不同", type(oc.overflowColor) == "table" and (oc.overflowColor.r ~= oc.color.r or oc.overflowColor.b ~= oc.color.b))
+    check("摺疊：設定檔帶著溢出色", type(cfgR.colors.MaelstromWeapon.overflowColor) == "table")
+
+    -- 4b. 醉仙緩勁 4 段
+    eq("4 段：95% 第 3 段", R.StaggerBand(95, 30, 60, 90, 150), "tier3")
+    eq("4 段：160% 第 4 段", R.StaggerBand(160, 30, 60, 90, 150), "tier4")
+    eq("4 段：關著 ⇒ 重度", R.StaggerBand(160, 30, 60, nil, nil), "heavy")
+    eq("4 段：只開第 4 段、100% ⇒ 重度", R.StaggerBand(100, 30, 60, nil, 150), "heavy")
+    eq("4 段：只開第 4 段、155% ⇒ 第 4 段", R.StaggerBand(155, 30, 60, nil, 150), "tier4")
+    eq("4 段：中度照舊", R.StaggerBand(45, 30, 60, 90, 150), "moderate")
+    local t3, t4 = R.StaggerTiers({})
+    check("4 段：預設關", t3 == nil and t4 == nil)
+    t3, t4 = R.StaggerTiers({ staggerTier3Enabled = true })
+    check("4 段：開第 3 段、門檻沒存 ⇒ 90", t3 == 90 and t4 == nil)
+    t3, t4 = R.StaggerTiers({ staggerTier4Enabled = true, staggerTier4At = 200 })
+    check("4 段：開第 4 段", t3 == nil and t4 == 200)
+    eq("4 段：顏色欄位", R.STAGGER_FIELD.tier3 .. "/" .. R.STAGGER_FIELD.tier4, "tier3Color/tier4Color")
+    local sc = ns.DB.RESOURCE_COLORS.Stagger
+    check("4 段：預設色", sc.tier3Color.r == 1 and sc.tier3Color.g == 0.2 and sc.tier3Color.b == 0.8
+        and sc.tier4Color.r == 0.75 and sc.tier4Color.b == 1)
+    check("4 段：預設門檻與開關", cfgR.staggerTier3At == 90 and cfgR.staggerTier4At == 150
+        and cfgR.staggerTier3Enabled == false and cfgR.staggerTier4Enabled == false)
+    eq("滿條上限：可以超過 100", R.StaggerCeiling({ staggerCeiling = 250 }), 250)
+    eq("滿條上限：最多 300", R.StaggerCeiling({ staggerCeiling = 999 }), 300)
+    eq("滿條上限：最少 1", R.StaggerCeiling({ staggerCeiling = 0 }), 1)
+    eq("滿條上限：沒存 100", R.StaggerCeiling({}), 100)
+    eq("4 段：標籤寫門檻", R.StaggerLabel("tier3", { staggerTier3At = 95 }), "At least 95%")
+    eq("4 段：標籤門檻沒存用預設", R.StaggerLabel("tier4", {}), "At least 150%")
+    eq("中度標籤照舊用減益名", R.StaggerLabel("moderate"), "S124274")
+
+    -- 4c. 秘法靈魂剩幾個 GCD
+    check("秘法靈魂：可以印 GCD", R.RESOURCES.ArcaneSoul.gcdText == true)
+    eq("秘法靈魂文字：預設秒數", R.ArcaneSoulText({}), "seconds")
+    eq("秘法靈魂文字：gcd", R.ArcaneSoulText({ arcaneSoulText = "gcd" }), "gcd")
+    eq("秘法靈魂文字：壞值 ⇒ 秒數", R.ArcaneSoulText({ arcaneSoulText = "x" }), "seconds")
+    eq("預設：秘法靈魂印秒數", cfgR.arcaneSoulText, "seconds")
+    local function near(a, b) return math.abs(a - b) < 1e-9 end
+    check("GCD：正在 GCD 用 duration", near(R.GcdLength(1.2, nil, nil), 1.2))
+    check("GCD：不在 GCD ⇒ 加速 20% ⇒ 1.25", near(R.GcdLength(0, 20, nil), 1.25))
+    check("GCD：都讀不到 ⇒ 1.5", near(R.GcdLength(nil, nil, nil), 1.5))
+    check("GCD：都讀不到 ⇒ 上次的", near(R.GcdLength(nil, nil, 1.1), 1.1))
+    check("GCD：下限 0.75", near(R.GcdLength(nil, 200, nil), 0.75))
+    check("GCD：四捨五入到 0.05", near(R.GcdLength(0.93, nil, nil), 0.95))
+    env.C_Spell.GetSpellCooldown = function(id) return id == 61304 and { duration = SECRET } or nil end
+    env.UnitSpellHaste = function() return 50 end
+    check("ReadGcd：duration 秘密 ⇒ 用加速", near(R.ReadGcd(), 1.0))
+    env.UnitSpellHaste = function() return SECRET end
+    check("ReadGcd：加速也秘密 ⇒ 上次的", near(R.ReadGcd(), 1.0))
+    env.C_Spell.GetSpellCooldown = function() return { duration = 1.3 } end
+    check("ReadGcd：正在 GCD", near(R.ReadGcd(), 1.3))
+    env.C_Spell.GetSpellCooldown, env.UnitSpellHaste = nil, nil
+    -- 格式器：一個 GCD 一段（Core/Text.lua）。暴雪的格式器 stub 成「把規則記下來」，再照文件的語意求值
+    env.C_StringUtil = { CreateNumericRuleFormatter = function()
+        local f = { rules = {} }
+        function f:AddBreakpoint(rule) self.rules[#self.rules + 1] = rule end
+        return f
+    end }
+    env.Enum.NumericRuleFormatRounding = { Nearest = 0, Up = 1, Down = 2 }
+    Load("Core/Text.lua")
+    local fmt = ns.Text.GcdFormatter(1.5, "Last")
+    check("格式器：建得起來", type(fmt) == "table" and #fmt.rules == 2)
+    local function show(f, x)
+        local rule
+        for _, r in ipairs(f.rules) do if x >= r.threshold then rule = r end end
+        if not rule.components then return rule.format end
+        local c = rule.components[1]
+        return rule.format:format(math.ceil(x / c.div / c.step) * c.step)
+    end
+    eq("格式器：剩 4 秒、GCD 1.5 ⇒ 3", show(fmt, 4), "3")
+    eq("格式器：剩 3.1 秒 ⇒ 3", show(fmt, 3.1), "3")
+    eq("格式器：剩 3.0 秒 ⇒ 2", show(fmt, 3.0), "2")
+    eq("格式器：剩 1.6 秒 ⇒ 2", show(fmt, 1.6), "2")
+    eq("格式器：最後一個 GCD ⇒ 最後", show(fmt, 1.2), "Last")
+    eq("格式器：同一個 GCD 共用一顆", ns.Text.GcdFormatter(1.5, "Last"), fmt)
+    check("格式器：GCD 不同另建", ns.Text.GcdFormatter(1.25, "Last") ~= fmt)
+    eq("格式器：GCD 壞值 ⇒ nil", ns.Text.GcdFormatter(0, "Last"), nil)
+    eq("格式器：標籤裡的 % 要跳脫", ns.Text.GcdFormatter(1.0, "5%").rules[1].format, "5%%")
+    local durT = { kind = "duration", spellIDs = { 451038 }, max = 1, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
+        text = { font = "f", size = 10, decimals = 5 } }
+    local sSec = AB.Signature(durT)
+    durT.text.gcd, durT.text.last = 1.5, "Last"
+    local sG15 = AB.Signature(durT)
+    durT.text.gcd = 1.25
+    check("簽章：GCD 模式與 GCD 長度進簽章", sSec ~= sG15 and AB.Signature(durT) ~= sG15)
+    env.C_StringUtil = nil
+
+    -- 5. 分專精開關
+    local c = { rows = {} }
+    R.SetRow(c, 263, "Mana", true)
+    eq("SetRow：增強開法力（預設關）⇒ 存 true", c.rows[263] and c.rows[263].Mana, true)
+    R.SetRow(c, 263, "Mana", false)
+    eq("SetRow：改回預設 ⇒ 清掉、空子表也拿掉", c.rows[263], nil)
+    R.SetRow(c, 65, "Mana", false)
+    eq("SetRow：神聖聖騎關法力 ⇒ 存 false", c.rows[65].Mana, false)
+    check("SetRow：只影響那個專精", R.RowOn(c, 65, "Mana") == false and R.RowOn(c, 256, "Mana") == true)
+    R.SetRow(c, nil, "Mana", false)
+    R.SetRow({}, 65, "Mana", false)
+    local noRows = {}
+    R.SetRow(noRows, 65, "Mana", false)
+    eq("SetRow：沒有 rows 表會建", noRows.rows[65].Mana, false)
+    local function keys(set) local o = {} for k in pairs(set) do o[#o + 1] = k end table.sort(o) return table.concat(o, ",") end
+    eq("候選：守護德魯伊（三種型態併起來）", keys(R.SpecCandidates(104)), "ComboPoints,Energy,Health,Ironfur,Rage")
+    eq("候選：恢復德魯伊", keys(R.SpecCandidates(105)), "ComboPoints,Energy,Health,Mana,Rage")
+    eq("候選：神聖聖騎", keys(R.SpecCandidates(65)), "Health,HolyPower,Mana")
+    eq("候選：未知專精", keys(R.SpecCandidates(99999)), "")
+    local covered = true
+    for spec in pairs(R.SPEC_RESOURCES) do if not R.SPEC_CLASS[spec] then covered = false end end
+    for spec in pairs(R.MANA_SPECS) do if not R.SPEC_CLASS[spec] then covered = false end end
+    check("職業 → 專精涵蓋每個專精", covered)
+    eq("所有專精", #R.AllSpecIDs(), 40)
+    -- 遷移：平面的開關攤到每個候選專精（跟預設不同才寫）
+    local rows = { Mana = true, Fury = false, Health = false, HolyPower = true, Junk = 5 }
+    local n = R.MigrateFlatRows(rows)
+    eq("遷移：法力在預設關的專精寫 true（暗牧）", rows[258] and rows[258].Mana, true)
+    eq("遷移：法力在預設開的專精不寫（神聖聖騎）", rows[65], nil)
+    eq("遷移：魔怒關 ⇒ 三個惡魔獵人專精", (rows[577] and rows[577].Fury == false and rows[581].Fury == false and rows[1480].Fury == false) and "ok", "ok")
+    eq("遷移：血量關＝預設 ⇒ 不寫", rows[71], nil)
+    check("遷移：平面的布林鍵拿掉、其他壞資料不碰", rows.Mana == nil and rows.Fury == nil and rows.Health == nil and rows.HolyPower == nil and rows.Junk == 5)
+    eq("遷移：寫了幾筆（法力 9 個輸出專精＋魔怒 3）", n, 12)
+    eq("遷移：再跑一次不變", R.MigrateFlatRows(rows), 0)
+    local mixed = { [258] = { Mana = false }, Mana = true }
+    R.MigrateFlatRows(mixed)
+    eq("遷移：新形狀已有的值不蓋", mixed[258].Mana, false)
+    eq("遷移：其他專精照寫", mixed[262].Mana, true)
+    -- 設定遷移 v3（Core/DB.lua；這支測試有載資源模組）
+    eq("DB_VERSION 3", ns.DB_VERSION, 3)
+    local prof = { resources = { rows = { Mana = true } } }
+    ns.DB.MigrateProfile(prof, 2)
+    check("v3：平面 → 分專精", prof.resources.rows.Mana == nil and prof.resources.rows[267].Mana == true)
+    ns.DB.MigrateProfile(prof, 2)
+    check("v3：冪等", prof.resources.rows[267].Mana == true)
 end
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
