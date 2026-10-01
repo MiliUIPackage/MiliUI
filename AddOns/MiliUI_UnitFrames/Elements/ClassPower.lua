@@ -1296,12 +1296,8 @@ local function UpdateRow(row, edb, isPreview, numSeg)
                 end
             end
             ApplyRowOverrides(row, barOv)
-            -- 每格都有秒數時，中間的總數會跟秒數疊在一起：倒數開著就不印總數
-            if countdown then
-                if edb.showText then row.text:SetText("") end
-            else
-                SetPipText(row, def, edb, readyCount)
-            end
+            -- 中間的總數照「長條上顯示數值」走，跟倒數秒數是兩個獨立的開關
+            SetPipText(row, def, edb, readyCount)
             SetRuneTicking(anyRecharging)
             return
         end

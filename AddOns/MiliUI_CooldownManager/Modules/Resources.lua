@@ -1063,10 +1063,8 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
             end
         end
         ApplyRowOverrides(row, barOv)
-        -- 每格都有秒數時，中間的總數會跟秒數疊在一起：倒數開著就不印總數（亮幾格已經一眼看得出來）
-        if cfg.showText then
-            if countdown then row.text:SetText("") else row.text:SetFormattedText("%d", readyCount) end
-        end
+        -- 中間的總數照「長條上顯示數值」走，跟倒數秒數是兩個獨立的開關
+        if cfg.showText then row.text:SetFormattedText("%d", readyCount) end
         if anyRecharging then R.ArmRuneTicker() end
         return
     end
