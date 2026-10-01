@@ -78,7 +78,9 @@ local function ResetRow(label, text, confirmText, fn)
             if not popup then
                 popup = W.CreateConfirmPopup(Options.panel, 320, confirmText, function()
                     fn()
-                    ctx.lastSpec = { structural = true }
+                    -- refreshPage：值全換了但表單形狀常常沒變（簽章相同就不重建），不強制重讀的話
+                    -- 畫面停在重設前的值（條件規則、滑桿），要切頁才看得到（同施法條頁）
+                    ctx.lastSpec = { structural = true, refreshPage = true }
                     ctx.apply()
                 end)
             end
