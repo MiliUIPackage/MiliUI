@@ -216,6 +216,13 @@ local function UpdateSpell(rec)
     end
 
     if ns.Glow and dur then ns.Glow.ArmProbe(rec, dur) end
+    -- 用掉了（進了真的冷卻，GCD 不算）：還亮著的就緒發光當場熄。兩個旗標都要明文
+    if ns.Glow and known then
+        local info = Try(C_Spell and C_Spell.GetSpellCooldown, id)
+        if type(info) == "table" and Plain(info.isActive) == true and Plain(info.isOnGCD) == false then
+            ns.Glow.CooldownStarted(rec)
+        end
+    end
 end
 
 local function ItemCooldown(itemID)
@@ -266,7 +273,10 @@ local function UpdateItem(rec)
                 rec.duo = rec.duo or (C_DurationUtil and C_DurationUtil.CreateDuration and Try(C_DurationUtil.CreateDuration))
                 if rec.duo and pcall(rec.duo.SetTimeFromStart, rec.duo, s, d) and f.Cooldown then
                     pcall(f.Cooldown.SetCooldownFromDurationObject, f.Cooldown, rec.duo, true)
-                    if ns.Glow then ns.Glow.ArmProbe(rec, rec.duo) end
+                    if ns.Glow then
+                        ns.Glow.CooldownStarted(rec)
+                        ns.Glow.ArmProbe(rec, rec.duo)
+                    end
                 end
             end
         else

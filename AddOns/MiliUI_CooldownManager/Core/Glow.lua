@@ -50,7 +50,10 @@
 --     ignoreGCD 的那一版，GCD 本來就不會進來）。
 --   * 就緒音效（Core/Sound.lua）吃同一個訊號：只設了音效、沒開就緒發光也照樣建探針、武裝；
 --     觸發時音效與發光各看各的設定。
--- 亮 glow.ready.duration 秒（預設 3）後熄。
+-- 亮 glow.ready.duration 秒（預設 3）後熄；期間技能被用掉（進了新的冷卻）就提早熄（G.CooldownStarted）：
+--   * 暴雪 item：SetCooldown 後掛勾裡 isOnGCD == false 且 isActive == true（都要明文）。
+--     回充不算：暴雪每次 GCD 都會對回充中的格子重設一次充能計時，拿它當訊號會按任何招就熄。
+--   * 自訂法術：Custom 的更新裡同一組明文旗標；自訂物品：武裝新的明文冷卻那一刻。
 --
 -- ── 無損刷新 ────────────────────────────────────────────────────────────
 -- 後掛勾 item 的 ShowPandemicStateFrame／HidePandemicStateFrame（暴雪在 OnUpdate 裡每幀叫，
@@ -323,6 +326,13 @@ local function Fire(rec)
 end
 G.FireReady = Fire
 
+-- 進了新的冷卻（用掉了）：就緒發光不用等滿秒數，當場熄。token 換掉讓計時到期那支什麼都不做
+function G.CooldownStarted(rec)
+    if not (rec and rec.glowOn and rec.glowOn.ready) then return end
+    rec.readyToken = (rec.readyToken or 0) + 1
+    Stop(rec, "ready")
+end
+
 local function Probe(rec)
     local p = rec.probe
     if p then return p end
@@ -399,7 +409,10 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     if not charges and spellID then
         local okInfo, info = pcall(C_Spell.GetSpellCooldown, spellID)
         if okInfo and type(info) == "table" then
-            if Plain(info.isOnGCD) == true or Plain(info.isActive) == false then return end
+            local gcd, active = Plain(info.isOnGCD), Plain(info.isActive)
+            if gcd == true or active == false then return end
+            -- 明文確認進了新的冷卻（技能用掉了）⇒ 還亮著的就緒發光收掉
+            if gcd == false and active == true then G.CooldownStarted(rec) end
         end
     end
     local p = Probe(rec)

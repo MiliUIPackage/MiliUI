@@ -305,7 +305,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **觸發發光**：後掛勾 `ActionButtonSpellAlertManager:ShowAlert／HideAlert`，frame 是我們認得的 item 就在 overlay
   上畫 MiliUIGlow（pixel／autocast／button／proc），暴雪的 `SpellActivationAlert` 熄 alpha（不 Hide）。
   條層「觸發發光」開著（或法術覆寫成開）才接管；都關時還給暴雪。自訂法術聽 `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE`。
-- **就緒發光**：探針（見「與計畫不同」第 28 條）；亮 `glow.ready.duration` 秒（預設 3）。
+- **就緒發光**：探針（見「與計畫不同」第 28 條）；亮 `glow.ready.duration` 秒（預設 3），期間技能用掉（進了新的冷卻，GCD 不算）就提早熄；回充中的多充能技能不提早熄（暴雪每次 GCD 都重設充能計時，分不出來）。
   設定頁的觸發／就緒發光各有一顆「預覽」樣本圖示，常亮目前的樣式與顏色（`ns.Glow.PaintOn`／`StopOn` 與格子共用）。
 - **無損刷新**：後掛勾 item 的 `ShowPandemicStateFrame／HidePandemicStateFrame`，邊框換 `pandemic.color`，
   `pandemic.bars` 時長條條身也換色；Hide 換回。暴雪的 PandemicIcon 不碰。
@@ -836,7 +836,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 34. 觸發發光：`ShowAlert` 後掛勾在首領戰是否照樣觸發；暴雪的 `SpellActivationAlert` 熄 alpha 之後沒有殘影。
 35. 就緒探針：`Cooldown` 的 `OnCooldownDone` 在餵秘密 duration object 時是否照觸發；秘密參數被拒 → 改走 duration 物件那條是否照樣觸發；`Clear` 後掛勾在「到期時暴雪先清」的情況是否比探針自己的 OnCooldownDone 早（兩條都會觸發一次就緒，有旗標擋重複）；多充能每回一層亮一次是否符合預期（沒有另外判斷「這次是回充」）。
 36. 就緒探針讀暴雪狀態：Cooldown 的 `GetUseAuraDisplayTime()` 在 SetCooldown 後掛勾裡回的是這一次的值（暴雪先 `SetUseAuraDisplayTime` 再 `CooldownFrame_Set`）、明文布林；`HasVisualDataSource_Charges()` 在秘密參數那條路上回的是對的。光環型技能（顯示光環時間的那段）不會亮就緒。
-   `C_Spell.GetSpellCooldown` 的 `isOnGCD`／`isActive` 戰鬥中是明文（GCD 閘靠它；讀不到時會退回舊行為＝GCD 結束整排亮）：戰鬥中連按幾招，只有真的轉好冷卻的那格亮。
+   `C_Spell.GetSpellCooldown` 的 `isOnGCD`／`isActive` 戰鬥中是明文（GCD 閘靠它；讀不到時會退回舊行為＝GCD 結束整排亮）：戰鬥中連按幾招，只有真的轉好冷卻的那格亮。亮著的時候按下那一招，發光當場熄；按別招（只有 GCD）不熄。
 37. 無損刷新：`ShowPandemicStateFrame` 在增益圖示／長條上真的會叫（暴雪在 OnUpdate 裡每幀叫，後掛勾有「狀態沒變就走」）。
 38. 按鍵文字：變形／姿態列（`GetBonusBarOffset`）、動作條 6–8 的綁定名、`FindSpellActionButtons` 對覆寫法術回不回格子。
 39. 發光宿主（overlay 底下的子框）在 item 被停放（alpha 0、畫面外）時 MiliUIGlow 的 driver 仍在推（可見度閘看的是 IsVisible，alpha 0 仍算可見）——停放時我們已經 Stop，確認沒有漏掉的。
