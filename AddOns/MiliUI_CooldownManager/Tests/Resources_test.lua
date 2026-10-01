@@ -349,9 +349,30 @@ eq("資源條預設：寬 0", res.width, 0)
 eq("資源條預設：zhTW 用萬／億", res.manaAbbrev, "wan")
 check("資源條預設：每種資源都有自己的顏色表", type(res.colors.ComboPoints.chargedEmptyColor) == "table" and type(res.colors.Mana.color) == "table")
 check("資源條預設：顏色表不共用預設那張", res.colors.Chi.color ~= ns.DB.RESOURCE_COLORS.Chi.color)
-check("資源條預設：條件與開關列是空表", next(res.conditions) == nil and next(res.rows) == nil)
+check("資源條預設：開關列是空表", next(res.rows) == nil)
+check("資源條預設：聖能兩段換色（5、3）", #res.conditions.HolyPower == 2 and res.conditions.HolyPower[1].check.value == 5
+    and res.conditions.HolyPower[2].check.value == 3 and res.conditions.HolyPower[1].overrides.color.r == 0.914)
+check("資源條預設：氣旋武器兩段換色（10、9）", #res.conditions.MaelstromWeapon == 2
+    and res.conditions.MaelstromWeapon[1].check.value == 10 and res.conditions.MaelstromWeapon[2].check.value == 9)
+check("資源條預設：列高 14、格距 0", res.rowHeight == 14 and res.segmentSpacing == 0)
+do
+    -- 上色規則是「整張表」的預設：設定檔裡已經有 conditions（含空表）就不合併
+    local d = ns.DB.BuildDefaults().profile.resources
+    local empty = { conditions = {} }
+    ns.DB.MergeDefaults(empty, d)
+    check("上色規則：已有的空表不被灌預設", next(empty.conditions) == nil)
+    local mine = { conditions = { HolyPower = { { check = { var = "always" }, overrides = { alpha = 0.5 } } } } }
+    ns.DB.MergeDefaults(mine, ns.DB.BuildDefaults().profile.resources)
+    local hp = mine.conditions.HolyPower
+    check("上色規則：自己的規則不被併進預設的欄位", #hp == 1 and hp[1].overrides.color == nil and hp[1].check.value == nil)
+    check("上色規則：已有的表不多出氣旋武器", mine.conditions.MaelstromWeapon == nil)
+    local fresh = {}
+    ns.DB.MergeDefaults(fresh, ns.DB.BuildDefaults().profile.resources)
+    check("上色規則：沒有 conditions 的設定檔拿到預設", #fresh.conditions.HolyPower == 2)
+    check("上色規則：給出去的是複本", fresh.conditions.HolyPower ~= res.conditions.HolyPower)
+end
 eq("資源條預設：跟核心技能一起淡", res.fadeWithEssential, true)
-check("資源條預設：條上顯示數值、12 號字", res.showText == true and res.textSize == 12)
+check("資源條預設：條上顯示數值、14 號字", res.showText == true and res.textSize == 14)
 check("資源條預設：載入條件", res.loadConditions.hideMounted == false and res.loadConditions.onlyCombat == false)
 check("施法條預設：跟著核心技能上方（跟資源條同一邊，排在它外面）", type(cb.anchor) == "table" and cb.anchor.to == "essential"
     and cb.anchor.point == "BOTTOM" and cb.anchor.relPoint == "TOP")
@@ -679,6 +700,18 @@ eq("幾何：第 2 格 x", g.cells[2].x, 25.5)
 eq("幾何：3 個分隔", #g.gaps, 3)
 eq("幾何：分隔在格子右邊", g.gaps[1].x, 23.5)
 eq("幾何：格距 0 沒有分隔", #AB.Geometry(100, 4, 0).gaps, 0)
+do
+    -- 一格一框的分段：格距 0 ⇒ 相鄰兩格重疊 1px 共用一條邊，總寬不變
+    local savedP = ns.P
+    ns.P = { Scale = function(v) return v end }      -- 1 單位 ＝ 1 實體像素
+    local segW, gap = R.SegLayout(100, 4, 0)
+    check("分段：格距 0 變成重疊 1px", gap < 0)
+    eq("分段：格距 0 總寬不變", 4 * segW + 3 * gap, 100)
+    local segW2, gap2 = R.SegLayout(100, 4, 2)
+    eq("分段：格距 2 照舊", gap2, 2)
+    eq("分段：格距 2 格寬", segW2, 23.5)
+    ns.P = savedP
+end
 -- 整列寬的填色，第 k 層的終點落在第 k 個分隔裡（被分隔蓋住，看起來還是一格一格）
 for k = 1, 3 do
     local fillEnd = 100 * k / 4
