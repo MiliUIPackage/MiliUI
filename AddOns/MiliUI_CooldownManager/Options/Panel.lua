@@ -214,15 +214,29 @@ local function SetCombatLocked(locked)
     if locked then
         W.CloseDropdowns()
         panel.combatMask:Show()
-        -- 關閉鈕留在遮罩之上，否則視窗只剩 ESC 能關
-        closeBtn:SetFrameStrata("FULLSCREEN_DIALOG")
-        closeBtn:SetFrameLevel(510)
     else
         panel.combatMask:Hide()
-        closeBtn:SetFrameStrata("DIALOG")
-        -- +200：頁面裡有比 +10 高的子框（表單遮罩 +40 起跳），關閉鈕要壓得過它們
-        closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
     end
+end
+
+-- 關閉鈕：用貼圖不用「×」字元（中文字型可能沒這個字形）
+--
+-- ⚠ 關閉鈕**不能單獨設 strata**。子框一旦 SetFrameStrata 過，面板之後被抬層級時它就不跟著走：
+--   面板 Raise（Open 裡）、拖曳的 StartMoving（會自動 Raise）都會把面板抬上去，關閉鈕留在原地
+--   ⇒ 掉到面板背景後面，看起來暗掉、點不到。原本為了戰鬥中壓過遮罩而在 DIALOG／
+--   FULLSCREEN_DIALOG 之間切換，每次開窗都把它設成「自訂 strata」，這個 bug 修了又回來。
+--   現在一般狀態的關閉鈕只設相對層級；戰鬥中用的是**建在遮罩裡的另一顆**，跟著遮罩的 strata。
+local function CreateCloseButton(parent, level)
+    local b = W.CreateButton(parent, "", "red", 20, 20)
+    b:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
+    b:SetFrameLevel(level)
+    local x = b:CreateTexture(nil, "OVERLAY")
+    x:SetTexture("Interface\\Buttons\\UI-StopButton")
+    x:SetSize(12, 12)
+    x:SetPoint("CENTER")
+    x:SetVertexColor(1, 0.85, 0.85)
+    b:SetScript("OnClick", function() panel:Hide() end)
+    return b
 end
 
 local function CreatePanel()
@@ -245,16 +259,9 @@ local function CreatePanel()
     W.CreateTitleBar(panel, ns.PREFIX_COLOR .. L["MiliUI Cooldown Manager"] .. "|r  v" .. ns.VERSION,
         SavePosition)
 
-    -- 關閉鈕：用貼圖不用「×」字元（中文字型可能沒這個字形）
-    closeBtn = W.CreateButton(panel, "", "red", 20, 20)
-    closeBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
-    closeBtn:SetFrameLevel(panel:GetFrameLevel() + 200)
-    local closeX = closeBtn:CreateTexture(nil, "OVERLAY")
-    closeX:SetTexture("Interface\\Buttons\\UI-StopButton")
-    closeX:SetSize(12, 12)
-    closeX:SetPoint("CENTER")
-    closeX:SetVertexColor(1, 0.85, 0.85)
-    closeBtn:SetScript("OnClick", function() panel:Hide() end)
+    -- +200：頁面裡有比 +10 高的子框（表單遮罩 +40 起跳），關閉鈕要壓得過它們。
+    -- 相對層級在面板被抬高時會跟著平移，所以只要設這一次。
+    closeBtn = CreateCloseButton(panel, panel:GetFrameLevel() + 200)
 
     -- 分頁鈕：上緣外側一路排開，本身也是拖曳把手（看得見的那個在標題列上），
     -- 所以標題列與分頁列哪裡抓都能移動視窗
@@ -300,7 +307,9 @@ local function CreatePanel()
     end)
 
     -- 戰鬥遮罩：事件掛在 panel 自己身上（隱藏的框照樣收得到事件）
-    W.CreateCombatMask(panel)
+    -- 遮罩自己是 FULLSCREEN_DIALOG，裡面再放一顆關閉鈕，否則戰鬥中視窗只剩 ESC 能關
+    local mask = W.CreateCombatMask(panel)
+    CreateCloseButton(mask, mask:GetFrameLevel() + 10)
     panel:RegisterEvent("PLAYER_REGEN_DISABLED")
     panel:RegisterEvent("PLAYER_REGEN_ENABLED")
     panel:SetScript("OnEvent", function(_, event)
@@ -361,11 +370,7 @@ function Options.Open(pageId)
     Options.SyncBarPages()
     ApplyPosition()
     panel:Show()
-    panel:Raise()        -- 已開但被別的對話框蓋住時拉到最前
-    -- ⚠ Raise 會把面板的層級往上抬（同一層有別的視窗時，例如暴雪冷卻管理器面板），但關閉鈕
-    --   被單獨設過 strata、不會跟著抬 ⇒ 掉到面板背景後面：看起來暗掉、點不到。
-    --   OnShow 設的那次在 Raise 之前，所以 Raise 之後要再對一次。
-    SetCombatLocked(InCombatLockdown())
+    panel:Raise()        -- 已開但被別的對話框蓋住時拉到最前（關閉鈕跟著抬，見 CreateCloseButton）
     local w = WindowDB()
     Options.ShowPage(pageId or (w and w.lastBar) or "essential")
 end
