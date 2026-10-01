@@ -509,8 +509,10 @@ local errNotes = {}          -- 彈窗 → { fs, baseH }
 --
 --   Picker.ParseLink(link) → "item"｜"spell"｜nil, id, 名字   純函式
 --   Picker.TakeLink(link)  → 有沒有收下
+--   Picker.WatchInput(popup, kind [, wrongKind])  開輸入彈窗時登記；kind 是 "item" 以外都收法術連結，
+--                          wrongKind 是連結種類不對時的說明（省略就用追蹤清單那兩句）
 ------------------------------------------------------------
-local activeInput          -- { popup = , kind = }：現在開著的輸入彈窗
+local activeInput          -- { popup = , kind = , wrongKind = }：現在開著的輸入彈窗
 
 function Picker.ParseLink(link)
     if type(link) ~= "string" then return nil end
@@ -537,9 +539,9 @@ function Picker.TakeLink(link)
     lastLink, lastLinkAt = link, now
     local wantItem = cur.kind == "item"
     if wantItem ~= (kind == "item") then
-        SetInputError(cur.popup, wantItem
+        SetInputError(cur.popup, cur.wrongKind or (wantItem
             and L["That is a spell link. Use the \"Spell\" or \"Aura\" button for spells."]
-            or L["That is an item link. Use the \"Item\" button to track an item."])
+            or L["That is an item link. Use the \"Item\" button to track an item."]))
         return true
     end
     local box = cur.popup.boxes and cur.popup.boxes.id
@@ -564,6 +566,11 @@ local function HookLinks()
     if HandleModifiedItemClick then
         hooksecurefunc("HandleModifiedItemClick", take)
     end
+end
+
+function Picker.WatchInput(popup, kind, wrongKind)
+    HookLinks()
+    activeInput = { popup = popup, kind = kind, wrongKind = wrongKind }
 end
 
 SetInputError = function(popup, why)
@@ -708,8 +715,7 @@ function Picker.AskCustom(kind)
         inputs[kind] = popup
     end
     SetInputError(popup, nil)
-    HookLinks()
-    activeInput = { popup = popup, kind = kind }
+    Picker.WatchInput(popup, kind)
     popup:Open({}, function(values)
         local text = values.id
         if kind == "aura" then

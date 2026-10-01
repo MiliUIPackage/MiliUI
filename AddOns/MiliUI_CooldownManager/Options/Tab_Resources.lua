@@ -191,7 +191,8 @@ function Tab.AskCustomID(kind)
     if not popup then
         local fields = {
             { key = "id", label = kind == "charges" and L["Spell ID"] or L["Spell ID of the aura"], maxLetters = 10,
-              hint = L["Find it in the spell's link or on a database site."] },
+              hint = L["Find it in the spell's link or on a database site."]
+                  .. " " .. L["Or Shift-click it in your spellbook or talents to fill in the ID."] },
         }
         if kind == "stacks" then
             fields[2] = { key = "max", label = L["Max stacks"], maxLetters = 2 }
@@ -200,6 +201,8 @@ function Tab.AskCustomID(kind)
         inputPopups[kind] = popup
     end
     ns.Picker.SetInputError(popup, nil)
+    -- Shift＋點法術書／天賦 → 填 ID（跟追蹤清單的輸入彈窗同一個掛勾）
+    ns.Picker.WatchInput(popup, "spell", L["That is an item link. Enter a spell ID here."])
     popup:Open({ max = kind == "stacks" and tostring(ns.Pips.CUSTOM_DEFAULT_STACKS) or nil }, function(values)
         local entry, why = Tab.ValidateCustomRow(kind, values.id, values.max)
         if not entry then
