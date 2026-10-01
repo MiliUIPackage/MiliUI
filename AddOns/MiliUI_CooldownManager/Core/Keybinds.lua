@@ -193,9 +193,15 @@ local function TextFor(rec)
     return K.TextForSpell(info.spellID, info.overrideSpellID)
 end
 
+-- 長條（增益長條與長條型自訂群組）不畫按鍵文字：那是圖示上的東西，條上沒有位置給它（使用者 2026-10-01 指定，不設選項）
+local function IsBarsKind(barKey)
+    local b = barKey and ns.DB.BarTable(barKey)
+    return b ~= nil and b.kind == "bars"
+end
+
 function K.Apply(owner, rec, barKey)
     if not (rec and rec.overlay) then return end
-    local on = barKey and ns.Setting(barKey, "keybind.enabled")
+    local on = barKey and ns.Setting(barKey, "keybind.enabled") and not IsBarsKind(barKey)
     local fs = rec.keyFS
     if not on then
         if fs and rec.keySig ~= "off" then

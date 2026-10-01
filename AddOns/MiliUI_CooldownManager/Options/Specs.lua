@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 設定表單的規格與接線（條頁與主題頁共用）
 --
---   Specs.Themed(mode)            圖示／文字／效果／音效四節（mode = "bar" | "theme"）
+--   Specs.Themed(mode, key)       圖示／文字／效果／音效四節（mode = "bar" | "theme"；key ＝ 哪一條，長條沒有按鍵文字那一節）
 --   Specs.Layout(key)             版面（條頁）
 --   Specs.Visibility()            顯示條件（條頁）
 --   Specs.Anchor(key)             錨定（條頁）
@@ -292,8 +292,9 @@ end
 ------------------------------------------------------------
 -- 圖示／文字／效果（條頁與主題頁同一份）
 ------------------------------------------------------------
-function Specs.Themed(mode)
+function Specs.Themed(mode, key)
     local bar = mode == "bar"
+    local barsKind = bar and key and ns.DB.BarTable(key) and ns.DB.BarTable(key).kind == "bars"
     local list = {}
     local function add(...)
         for i = 1, select("#", ...) do
@@ -368,14 +369,17 @@ function Specs.Themed(mode)
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
         TS("glow", "color", "pandemic.color", L["Pandemic border color"]),
-        TS("glow", "toggle", "pandemic.bars", L["Color bars too"]),
-        Nested(L["Keybind text"], "glow"),
-        TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]),
-        TS("glow", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
-        TS("glow", "dropdown", "keybind.point", L["Anchor"], { items = POINT_ITEMS }),
-        TS("glow", "numbers", nil, L["Offset"], { sub = "keybind", path = false,
-            resetPaths = { "keybind.x", "keybind.y" },
-            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
+        TS("glow", "toggle", "pandemic.bars", L["Color bars too"]))
+    -- 按鍵文字是圖示上的東西：長條（增益長條、長條型群組）沒有這一節，引擎也不畫（Core/Keybinds.lua）
+    if not barsKind then
+        add(Nested(L["Keybind text"], "glow"),
+            TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]),
+            TS("glow", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
+            TS("glow", "dropdown", "keybind.point", L["Anchor"], { items = POINT_ITEMS }),
+            TS("glow", "numbers", nil, L["Offset"], { sub = "keybind", path = false,
+                resetPaths = { "keybind.x", "keybind.y" },
+                fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
+    end
     add(Nested(L["Fade"]))
     if bar then add(BS("toggle", "follow.fade", L["Follow global theme"], { refreshPage = true })) end
     add(TS("fade", "toggle", "fade.enabled", L["Fade the bar"]),
