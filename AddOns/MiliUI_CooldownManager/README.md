@@ -937,3 +937,5 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     不用輸入 ID。格子追蹤「現在裝在那一格的物品」：冷卻、數量、提示（`SetInventoryItem`）、按鍵文字都照那件物品；換飾品
     （`PLAYER_EQUIPMENT_CHANGED` 標髒）自動換，空格顯示空格圖並去飽和。同一專精同一格只能加一次。這條路完全不經過暴雪的
     冷卻管理器，所以它的飾品項目不穩定也不影響；「官方的飾品監控不穩定」那句提示改成指向這顆按鈕。
+107. ESC 選單「米利UI設定」滑過展開的清單裡有「米利的冷卻管理器」（`MiliUI_MenuEntries`，order 25），點了開設定；本體「插件」頁
+    的那一列也改走這個入口。小地圖按鈕本來就有（`/mcdm minimap` 開關），裝了米利的小地圖時會被收進它的按鈕收納、圖示正確（`btn.icon`）。

@@ -36,6 +36,7 @@ local function Init()
     btn:RegisterForClicks()
 
     local icon = btn:CreateTexture(nil, "BACKGROUND")
+    btn.icon = icon                      -- 套組的小地圖按鈕收納照 .icon 找圖
     icon:SetTexture(ICON)
     icon:SetSize(20, 20)
     icon:SetPoint("CENTER", 0, 1)
