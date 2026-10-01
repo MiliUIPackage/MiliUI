@@ -324,11 +324,15 @@ local function Build()
     sections.customHead = W.CreateGroupLabel(frame, L["Custom ID"])
     sections.customNote = Text(frame, true)
     sections.customBtns = {}
-    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] } }) do
+    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] }, { "slot", L["Trinket slot"] } }) do
         local kind = def[1]
         local b = W.CreateButton(frame, def[2], "normal", 80, 22)
         W.FitButton(b, 80, 22)
-        b:SetScript("OnClick", function() Picker.AskCustom(kind) end)
+        if kind == "slot" then
+            b:SetScript("OnClick", function() Picker.AskSlot() end)
+        else
+            b:SetScript("OnClick", function() Picker.AskCustom(kind) end)
+        end
         sections.customBtns[#sections.customBtns + 1] = b
     end
     sections.customRow = CreateFrame("Frame", nil, frame)
@@ -417,7 +421,7 @@ function Picker.Refresh()
     -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），直接建議走物品 ID
     sections.customNote:SetText(iconBar
         and (L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
-            .. L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."])
+            .. L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."])
         or L["Custom entries go on icon bars only."])
     Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
     for _, b in ipairs(sections.customBtns) do b:SetShown(iconBar) end
@@ -594,6 +598,31 @@ Picker.SetInputError = SetInputError
 Picker.INPUT_W = INPUT_W
 Picker.ParseID = ParseID
 Picker.SpellExists = SpellExists
+
+------------------------------------------------------------
+-- 裝備欄位（飾品 1／2）：不用輸入 ID，選哪一格就好。追蹤的是「現在裝在那一格的物品」，
+-- 換裝自動跟上；不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係
+------------------------------------------------------------
+local slotPopup
+function Picker.AskSlot()
+    if not ns.specID then Notice(L["Pick a specialization first."]) return end
+    local choices = {}
+    for _, slot in ipairs({ 13, 14 }) do
+        local label = L["Trinket %d"]:format(slot - 12)
+        local itemID = ns.Catalog.SlotItemID(slot)
+        local name = itemID and C_Item and C_Item.GetItemNameByID and select(2, pcall(C_Item.GetItemNameByID, itemID))
+        if type(name) == "string" and not ns.IsSecret(name) then label = label .. "：" .. name end
+        choices[#choices + 1] = { text = label, color = "normal", onClick = function()
+            if ns.DB.FindCustom("slot", slot) then Notice(L["Already tracked in this specialization."]) return end
+            Commit({ kind = "slot", slot = slot, bar = curKey })
+        end }
+    end
+    choices[#choices + 1] = { text = L["Cancel"], color = "normal" }
+    if slotPopup then slotPopup:Hide() end
+    slotPopup = W.CreateChoicePopup(ns.Options.panel, 340,
+        L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."], choices)
+    slotPopup:Show()
+end
 
 function Picker.AskCustom(kind)
     local popup = inputs[kind]

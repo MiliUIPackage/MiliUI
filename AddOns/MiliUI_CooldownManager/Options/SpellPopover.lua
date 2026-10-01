@@ -393,6 +393,7 @@ end
 local KIND_TEXT = {
     spell = function(info) return ("spellID %s  ·  %s"):format(tostring(info.spellID), L["Custom spell"]) end,
     item  = function(info) return ("itemID %s  ·  %s"):format(tostring(info.itemID), L["Custom item"]) end,
+    slot  = function(info) return ("%s  ·  %s"):format(tostring(info.slotName or info.slot), L["Equipment slot"]) end,
     aura  = function(info)
         return ("spellID %s  ·  %s"):format(tostring(info.spellID),
             info.filter == "HARMFUL" and L["Aura slot (debuff)"] or L["Aura slot (buff)"])

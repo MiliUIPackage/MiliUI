@@ -117,6 +117,7 @@ eq("AddCustom 法術 → 2", DB.AddCustom({ kind = "spell", spellID = 500, bar =
 eq("AddCustom 物品 → 3", DB.AddCustom({ kind = "item", itemID = 7, bar = "essential" }), 3)
 eq("AddCustom 光環（減益）→ 4", DB.AddCustom({ kind = "aura", spellID = 800, filter = "HARMFUL", placeholder = false, bar = "essential" }), 4)
 eq("AddCustom 不認得的種類", DB.AddCustom({ kind = "totem", spellID = 1 }), nil)
+eq("FindCustom 裝備欄位：還沒有", DB.FindCustom("slot", 13), nil)
 eq("FindCustom 光環同 filter", DB.FindCustom("aura", 700, "HELPFUL"), 1)
 eq("FindCustom 光環不同 filter", DB.FindCustom("aura", 700, "HARMFUL"), nil)
 eq("FindCustom 法術", DB.FindCustom("spell", 500), 2)
@@ -164,6 +165,23 @@ eq("物品名字還沒快取 ⇒ #id", ii.name, "#7")
 DB.AddCustom({ kind = "spell", spellID = 600, bar = "utility" })
 local iu = C.Info("c:5")
 eq("沒學會 ⇒ 問號", iu.icon, 134400)
+
+-- 裝備欄位（飾品 1／2）：追蹤現在裝的物品；空格用空格圖與欄位名
+local equipped = { [13] = 7 }
+env.GetInventoryItemID = function(unit, slot) return equipped[slot] end
+env.GetInventorySlotInfo = function(token) if token == "TRINKET1SLOT" then return 14, "EmptyTrinket" end end
+env.TRINKET1SLOT = "飾品"
+eq("AddCustom 裝備欄位 → 6", DB.AddCustom({ kind = "slot", slot = 13, bar = "essential" }), 6)
+eq("AddCustom 裝備欄位 2 → 7", DB.AddCustom({ kind = "slot", slot = 14, bar = "essential" }), 7)
+eq("AddCustom 不是飾品欄位的 slot", DB.AddCustom({ kind = "slot", slot = 1, bar = "essential" }), nil)
+check("ValidCustom：只收 13／14", C.ValidCustom({ kind = "slot", slot = 13 }) and not C.ValidCustom({ kind = "slot", slot = 16 }))
+eq("FindCustom 裝備欄位", DB.FindCustom("slot", 13), 6)
+local s1 = C.Info("c:6")
+check("裝備欄位 Info：照現在裝的物品（itemID、圖示）", s1 and s1.kind == "slot" and s1.slot == 13 and s1.itemID == 7 and s1.icon == 800007)
+local s2 = C.Info("c:7")
+check("空的飾品欄：空格圖、欄位名、沒有 itemID", s2 and s2.itemID == nil and s2.icon == "EmptyTrinket" and s2.name == "飾品")
+check("裝備欄位在清單上", (function() for _, id in ipairs(C.Bar("essential")) do if id == "c:6" then return true end end end)())
+DB.RemoveCustom("c:7"); DB.RemoveCustom("c:6")
 eq("沒學會 ⇒ isKnown false", iu.isKnown, false)
 eq("SourceOf 自訂 ＝ 它的 bar", C.SourceOf("c:5"), "utility")
 eq("Info 不存在的自訂", C.Info("c:99"), nil)

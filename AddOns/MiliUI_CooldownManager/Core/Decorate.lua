@@ -596,7 +596,9 @@ local function ShowTip(ov)
     GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
     local shown = false
     if rec.custom then
-        if rec.kind == "item" and rec.itemID then
+        if rec.kind == "slot" and rec.slot then
+            shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", rec.slot)
+        elseif rec.kind == "item" and rec.itemID then
             shown = pcall(GameTooltip.SetItemByID, GameTooltip, rec.itemID)
         elseif rec.spellID then
             shown = pcall(GameTooltip.SetSpellByID, GameTooltip, rec.overrideID or rec.spellID)
