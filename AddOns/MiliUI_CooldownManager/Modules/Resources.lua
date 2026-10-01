@@ -640,10 +640,20 @@ end
 -- 一格一個框的分段（點數型、自訂格子）：格寬與步距。
 -- 每格自帶 1px 黑邊，間距 0 時相鄰兩條邊並排成 2px ⇒ 改成重疊 1 實體像素，兩格共用同一條邊。
 -- 回傳 segW, gap（gap 可能是負的；第 i 格的 x ＝ (i-1)·(segW+gap)）
-function R.SegLayout(W, n, spacing)
-    local gap = ns.P.Scale(tonumber(spacing) or 1)
-    if gap <= 0 then gap = -ns.P.Scale(1) end
-    return ns.P.Scale((W - gap * (n - 1)) / n), gap
+-- 第 i 格的 x 與寬（從填充起點量）。整列先換成整數實體像素再切：每格的左右邊界各自四捨五入，
+-- 零頭平均分到各格，最後一格的右緣一定落在 W 上。
+-- ⚠ 不能「格寬先對齊像素、再乘 n」：每格的捨入誤差會累積，6 格的符文列比同寬的符能條多出 2px
+-- （玩家回報「自動同寬下兩列對不齊」）。格距 0 ＝ 相鄰兩格重疊 1px 共用一條邊
+function R.SegCell(W, n, spacing, i)
+    local px = ns.P.Scale(1)
+    if not px or px <= 0 then px = 1 end
+    local gp = math.floor((tonumber(spacing) or 1) + 0.5)
+    if gp <= 0 then gp = -1 end
+    local Wp = math.floor(W / px + 0.5)
+    local span = Wp + gp
+    local x0 = math.floor((i - 1) * span / n + 0.5)
+    local x1 = math.floor(i * span / n + 0.5) - gp
+    return x0 * px, (x1 - x0) * px
 end
 
 local function Edges(frame)
@@ -931,13 +941,12 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     end
 
     -- 格寬是除出來的小數 → 對齊實體像素；每格直接錨在列上（不串在前一格）
-    local segW, gap = R.SegLayout(W, numSeg, cfg.segmentSpacing)
     local isRune = def.fill == "rune" and cfg.showText and R.RuneText(cfg) == "countdown"
     for i = 1, numSeg do
         local seg = row.segs[i]
+        local x, segW = R.SegCell(W, numSeg, cfg.segmentSpacing, i)
         seg:SetSize(segW, H)
         seg:ClearAllPoints()
-        local x = (i - 1) * (segW + gap)
         -- 從右到左：第 1 格在最右邊
         if reversed then
             seg:SetPoint("TOPRIGHT", row, "TOPRIGHT", -x, 0)

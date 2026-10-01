@@ -711,12 +711,35 @@ do
     -- 一格一框的分段：格距 0 ⇒ 相鄰兩格重疊 1px 共用一條邊，總寬不變
     local savedP = ns.P
     ns.P = { Scale = function(v) return v end }      -- 1 單位 ＝ 1 實體像素
-    local segW, gap = R.SegLayout(100, 4, 0)
-    check("分段：格距 0 變成重疊 1px", gap < 0)
-    eq("分段：格距 0 總寬不變", 4 * segW + 3 * gap, 100)
-    local segW2, gap2 = R.SegLayout(100, 4, 2)
-    eq("分段：格距 2 照舊", gap2, 2)
-    eq("分段：格距 2 格寬", segW2, 23.5)
+    -- 每一格：左緣、寬都是整數像素；第一格從 0 起、最後一格右緣剛好落在 W；相鄰兩格的距離＝格距
+    local function cells(W, n, sp)
+        local ok, prevRight = true, nil
+        local x1, w1 = R.SegCell(W, n, sp, 1)
+        local xn, wn = R.SegCell(W, n, sp, n)
+        for i = 1, n do
+            local x, w = R.SegCell(W, n, sp, i)
+            if x % 1 ~= 0 or w % 1 ~= 0 or w <= 0 then ok = false end
+            local want = (sp or 1) <= 0 and -1 or sp
+            if prevRight and x - prevRight ~= want then ok = false end
+            prevRight = x + w
+        end
+        return ok, x1, xn + wn
+    end
+    -- 玩家回報那一幕：335px、6 格、格距 0（原本每格 57 ⇒ 總寬 337）
+    local ok, left, right = cells(335, 6, 0)
+    check("分段：335/6 格距 0 每格整數像素、相鄰共用 1px", ok)
+    eq("分段：335/6 從 0 起", left, 0)
+    eq("分段：335/6 右緣剛好 335", right, 335)
+    for _, c in ipairs({ { 100, 4, 0 }, { 100, 4, 2 }, { 200, 5, 1 }, { 214, 6, 0 }, { 199, 7, 3 }, { 120, 3, 0 } }) do
+        local ok2, l2, r2 = cells(c[1], c[2], c[3])
+        check(("分段：%d/%d 格距 %d 間距一致"):format(c[1], c[2], c[3]), ok2)
+        eq(("分段：%d/%d 格距 %d 右緣"):format(c[1], c[2], c[3]), r2, c[1])
+        eq(("分段：%d/%d 格距 %d 左緣"):format(c[1], c[2], c[3]), l2, 0)
+    end
+    -- 格寬最多差 1px（零頭平均分）
+    local minW, maxW = math.huge, 0
+    for i = 1, 6 do local _, w = R.SegCell(335, 6, 0, i); minW = math.min(minW, w); maxW = math.max(maxW, w) end
+    check("分段：格寬最多差 1px", maxW - minW <= 1, minW .. "～" .. maxW)
     ns.P = savedP
 end
 -- 整列寬的填色，第 k 層的終點落在第 k 個分隔裡（被分隔蓋住，看起來還是一格一格）
