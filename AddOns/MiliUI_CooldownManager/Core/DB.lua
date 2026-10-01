@@ -90,7 +90,7 @@ end
 local function LongBar(o)
     local b = IconBar{
         source = o.source, pos = o.pos,
-        maxPerRow = 1, grow = "CENTER_DOWN", w = 200, h = 20,
+        maxPerRow = 1, grow = o.grow or "CENTER_DOWN", w = 200, h = 20,
         bar = {
             width     = 0,                  -- 0 ＝ 跟核心技能第一列同寬
             height    = 20,
@@ -292,8 +292,8 @@ CastbarDefaults = function()
 end
 
 function DB.BuildDefaults()
-    -- 位置：使用者 2026-10-01 指定（照使用者調好的那份），不遷移
-    local buffbars = LongBar{ source = "buffbars", pos = { point = "BOTTOM", x = 0, y = 544 } }
+    -- 位置與往上長：使用者 2026-10-01 指定（照使用者調好的那份），不遷移
+    local buffbars = LongBar{ source = "buffbars", grow = "CENTER_UP", pos = { point = "BOTTOM", x = 0, y = 544 } }
 
     return {
         account = {
