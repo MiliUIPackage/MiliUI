@@ -68,6 +68,7 @@ L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons
 L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."] = "Il tracciamento dei monili di Blizzard è inaffidabile. Usa il pulsante \"Slot monile\": segue ciò che è equipaggiato in quello slot."
 L["Trinket slot"] = "Slot monile"
 L["Trinket %d"] = "Monile %d"
+L["(empty)"] = "(vuoto)"
 L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."] = "Tiene traccia di ciò che è equipaggiato in quello slot monile. Cambiare monile viene seguito automaticamente."
 L["Equipment slot"] = "Slot equipaggiamento"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "Il gestore dei tempi di recupero di Blizzard non sta mostrando questa voce, quindi non può apparire sulla barra."

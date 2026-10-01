@@ -68,6 +68,7 @@ L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons
 L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."] = "Отслеживание аксессуаров у Blizzard ненадёжно. Используйте кнопку \"Ячейка аксессуара\": она следует за тем, что надето в этой ячейке."
 L["Trinket slot"] = "Ячейка аксессуара"
 L["Trinket %d"] = "Аксессуар %d"
+L["(empty)"] = "(пусто)"
 L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."] = "Отслеживает то, что надето в этой ячейке аксессуара. Смена аксессуара учитывается автоматически."
 L["Equipment slot"] = "Ячейка экипировки"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "Менеджер восстановления Blizzard сейчас не показывает эту запись, поэтому её нельзя отобразить на панели."

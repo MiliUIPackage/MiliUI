@@ -606,12 +606,14 @@ Picker.SpellExists = SpellExists
 local slotPopup
 function Picker.AskSlot()
     if not ns.specID then Notice(L["Pick a specialization first."]) return end
-    local choices = {}
+    -- 按鈕只寫「飾品 1」「飾品 2」（飾品名可能很長，放按鈕上會撞在一起）；現在裝的名字列在上面的說明裡，一格一行
+    local choices, lines = {}, { L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."], "" }
     for _, slot in ipairs({ 13, 14 }) do
         local label = L["Trinket %d"]:format(slot - 12)
         local itemID = ns.Catalog.SlotItemID(slot)
         local name = itemID and C_Item and C_Item.GetItemNameByID and select(2, pcall(C_Item.GetItemNameByID, itemID))
-        if type(name) == "string" and not ns.IsSecret(name) then label = label .. "：" .. name end
+        if not (type(name) == "string" and not ns.IsSecret(name)) then name = L["(empty)"] end
+        lines[#lines + 1] = ("%s：%s"):format(label, name)
         choices[#choices + 1] = { text = label, color = "normal", onClick = function()
             if ns.DB.FindCustom("slot", slot) then Notice(L["Already tracked in this specialization."]) return end
             Commit({ kind = "slot", slot = slot, bar = curKey })
@@ -619,8 +621,7 @@ function Picker.AskSlot()
     end
     choices[#choices + 1] = { text = L["Cancel"], color = "normal" }
     if slotPopup then slotPopup:Hide() end
-    slotPopup = W.CreateChoicePopup(ns.Options.panel, 340,
-        L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."], choices)
+    slotPopup = W.CreateChoicePopup(ns.Options.panel, 420, table.concat(lines, "\n"), choices)
     slotPopup:Show()
 end
 

@@ -68,6 +68,7 @@ L["Nothing here for this specialization yet. Add spells with \"+\" or drag icons
 L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."] = "官方的饰品监控不稳定，建议改用「饰品栏」按钮：它会跟着那一格现在装的物品。"
 L["Trinket slot"] = "饰品栏"
 L["Trinket %d"] = "饰品 %d"
+L["(empty)"] = "（空的）"
 L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."] = "追踪那一格饰品栏现在装的物品。换饰品会自动跟上。"
 L["Equipment slot"] = "装备栏位"
 L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."] = "暴雪的冷却管理器目前没有显示这一格，所以条上画不出来。"
