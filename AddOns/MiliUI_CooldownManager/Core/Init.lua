@@ -233,12 +233,17 @@ end
 -- OptionalDeps 保證它（若有啟用）比我們先載入，檔案層就判得出來
 ns.conflict = ConflictLoaded()
 
+-- 顯示名：對方 TOC 的 Title 拿掉色碼與「[冷卻]」這種分類標籤，再補上資料夾名。
+-- 標籤拿掉之後中文標題只剩「冷卻管理器」，跟暴雪的冷卻管理器、跟我們自己都分不出來，
+-- 所以括號裡一定帶資料夾名（玩家在插件列表的說明欄看得到它）。
 local function ConflictTitle()
     -- 沒安裝時（設定檔頁也會叫）有的客戶端版本會拋錯，包起來
     local ok, title = pcall(C_AddOns.GetAddOnMetadata, CONFLICT_ADDON, "Title")
     if not ok or type(title) ~= "string" or title == "" then return CONFLICT_ADDON end
     title = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-    return title
+    title = title:gsub("^%s*%[[^%]]*%]%s*", "")
+    if title == "" or title == CONFLICT_ADDON then return CONFLICT_ADDON end
+    return L["%s (%s)"]:format(title, CONFLICT_ADDON)
 end
 
 ns.ConflictTitle = ConflictTitle
@@ -252,37 +257,112 @@ local function DisableAndReload(folders)
 end
 ns.DisableAndReload = DisableAndReload
 
--- 對方的存檔裡有這隻角色的設定時，多一顆主按鈕「匯入」（Core/Import.lua）：讀它的、寫我們的、
--- 停用它、重載。這時兩個按鈕變一般樣式（一組按鈕只有一個主動作）。匯入過的話字改成「重新匯入」，
--- 覆蓋的是上次匯入建的那幾份設定檔。
+-- 二選一彈窗。不用共用層的 W.CreateChoicePopup，原因有二：
+--
+-- 1. 那支會把彈窗登記進 UISpecialFrames（按 ESC 關）。暴雪的 CloseAllWindows 會把清單裡的
+--    框全部 Hide，而它在登入過程裡不只一個觸發點（UIParent 的 OnShow、PLAYER_CONTROL_LOST、
+--    全螢幕面板）——PLAYER_LOGIN 開的彈窗會在玩家看到之前就被收掉，之後也不會再開，
+--    結果就是「兩支同時開著卻沒有任何提示」。這是非選不可的決定，不給 ESC 關。
+-- 2. 三個選項都會重載介面，玩家要先看懂每顆按鈕會發生什麼才按得下去。橫排按鈕塞不下說明，
+--    所以改成直排：一顆按鈕、底下一行灰字講後果。直排的按鈕也不怕歐語的長字串溢出。
+--
+-- 對方的存檔裡有這隻角色的設定時，最上面多一顆主按鈕「匯入」（Core/Import.lua）：讀它的、
+-- 寫我們的、停用它、重載；這時其餘按鈕都是一般樣式（一組按鈕只有一個主動作）。
 local conflictPopup
-function ns.ShowConflictPopup()
-    local W = ns.W
-    if not W then return end
-    if not conflictPopup then
-        local other = ConflictTitle()
-        local Import = ns.Import
-        local canImport = Import and Import.Available and Import.Available()
-        local text = L["%s and MiliUI Cooldown Manager both take over Blizzard's Cooldown Manager, so only one of them can be enabled."]:format(other)
-        local choices = {}
-        if canImport then
-            local again = Import.Imported() ~= nil
-            text = text .. "\n\n" .. L["Import converts every %s profile into a new profile here (nothing existing is overwritten), then disables it and reloads."]:format(other)
-            if again then text = text .. "\n" .. L["Importing again replaces the profiles made by the last import."] end
-            choices[#choices + 1] = {
-                text = (again and L["Re-import from %s"] or L["Import from %s"]):format(other), color = "primary",
-                onClick = function()
-                    local ok, err = xpcall(Import.FromAyije, geterrorhandler())
-                    if not ok and err then ns.Print(tostring(err)) end
-                end,
-            }
-        end
-        choices[#choices + 1] = { text = L["Disable %s and reload"]:format(other), color = canImport and "normal" or "primary",
-                                  onClick = function() DisableAndReload(CONFLICT_FOLDERS) end }
-        choices[#choices + 1] = { text = L["Disable this addon for now"], color = "normal",
-                                  onClick = function() DisableAndReload({ ADDON }) end }
-        conflictPopup = W.CreateChoicePopup(UIParent, canImport and 600 or 480, text, choices)
+
+local function BuildConflictPopup()
+    local W, P = ns.W, ns.P
+    local WIDTH, PAD, GAP, BTN_H = 460, 16, 12, 24
+    local short = CONFLICT_ADDON
+    local Import = ns.Import
+    local canImport = Import and Import.Available and Import.Available()
+
+    local choices = {}
+    if canImport then
+        local again = Import.Imported() ~= nil
+        local desc = L["Copies every %s profile into a new profile here (your existing profiles are left alone), then turns it off."]:format(short)
+        if again then desc = desc .. " " .. L["Importing again replaces the profiles made by the last import."] end
+        choices[#choices + 1] = {
+            text = again and L["Re-import and switch to MiliUI"] or L["Import and switch to MiliUI"],
+            desc = desc, color = "primary",
+            onClick = function()
+                local ok, err = xpcall(Import.FromAyije, geterrorhandler())
+                if not ok and err then ns.Print(tostring(err)) end
+            end,
+        }
     end
+    choices[#choices + 1] = {
+        text = canImport and L["Switch to MiliUI without importing"] or L["Switch to MiliUI Cooldown Manager"],
+        desc = L["Turns off %s. MiliUI Cooldown Manager keeps its current settings."]:format(short),
+        color = canImport and "normal" or "primary",
+        onClick = function() DisableAndReload(CONFLICT_FOLDERS) end,
+    }
+    choices[#choices + 1] = {
+        text = L["Keep %s"]:format(short),
+        desc = L["Turns off MiliUI Cooldown Manager. To switch later, re-enable it in the AddOns list."],
+        color = "normal",
+        onClick = function() DisableAndReload({ ADDON }) end,
+    }
+
+    local mask = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    mask:SetAllPoints(UIParent)
+    mask:SetFrameStrata("FULLSCREEN_DIALOG")
+    mask:SetFrameLevel(400)
+    mask:EnableMouse(true)
+    mask:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
+    mask:SetBackdropColor(0.15, 0.15, 0.15, 0.7)
+    mask:Hide()
+
+    local popup = W.CreateFrame(nil, UIParent, WIDTH, 100)
+    popup:SetFrameStrata("FULLSCREEN_DIALOG")
+    popup:SetFrameLevel(410)
+    popup:SetBackdropBorderColor(W.Accent(1))
+    popup:SetPoint("CENTER")
+
+    local inner = WIDTH - PAD * 2
+    local msg = popup:CreateFontString(nil, "OVERLAY")
+    msg:SetFontObject(W.fontNormal)
+    msg:SetPoint("TOPLEFT", PAD, -PAD)
+    msg:SetWidth(inner)
+    msg:SetJustifyH("LEFT")
+    msg:SetText(L["%s and MiliUI Cooldown Manager both take over Blizzard's Cooldown Manager, so only one can stay enabled. Pick the one to keep; the UI reloads right after."]:format(ConflictTitle()))
+
+    local descs, prev = {}, msg
+    for _, c in ipairs(choices) do
+        local b = W.CreateButton(popup, c.text, c.color, inner, BTN_H)
+        b:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -GAP)
+        b:SetScript("OnClick", function()
+            popup:Hide()
+            c.onClick()
+        end)
+        local d = popup:CreateFontString(nil, "OVERLAY")
+        d:SetFontObject(W.fontSmall)
+        d:SetTextColor(0.6, 0.6, 0.6)
+        d:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -4)
+        d:SetWidth(inner)
+        d:SetJustifyH("LEFT")
+        d:SetText(c.desc)
+        descs[#descs + 1] = d
+        prev = d
+    end
+
+    -- 高度在 OnShow 量（字串換行後的高度要等字型就緒才準）
+    popup:SetScript("OnShow", function(self)
+        mask:Show()
+        local h = PAD * 2 + (msg:GetStringHeight() or 0)
+        for _, d in ipairs(descs) do
+            h = h + GAP + BTN_H + 4 + (d:GetStringHeight() or 0)
+        end
+        P.Height(self, math.ceil(h))
+    end)
+    popup:SetScript("OnHide", function() mask:Hide() end)
+    popup:Hide()
+    return popup
+end
+
+function ns.ShowConflictPopup()
+    if not ns.W then return end
+    conflictPopup = conflictPopup or BuildConflictPopup()
     conflictPopup:Show()
 end
 
