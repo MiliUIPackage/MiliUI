@@ -809,6 +809,19 @@ local function Controls(cand, sub)
     local list = {
         BS("toggle", "enabled", L["Show resource bars"], { level = "structure" }),
         Note(L["Which resources appear follows your specialization and switches automatically. Specs that cast with mana get a mana row at the bottom."]),
+    }
+    local function add(s) list[#list + 1] = s end
+
+    -- 「這個專精要顯示哪些」緊接在總開關下面：要看哪幾列、怎麼排是最先決定的事（使用者 2026-10-02 指定）
+    add({ type = "header", label = L["Show for this specialization"] })
+    if #cand == 0 then
+        add(Note(L["This specialization has no resource to show here."]))
+    else
+        for i in ipairs(cand) do add(ShowRow(cand, i)) end
+        add(Note(L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."]))
+    end
+
+    for _, s in ipairs({
         { type = "header", label = L["Layout"] },
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of Essential Cooldowns."]),
@@ -827,8 +840,7 @@ local function Controls(cand, sub)
         BS("dropdown", "manaAbbrev", L["Mana number format"], { items = MANA_ITEMS }),
         BS("toggle", "manaPercent", L["Mana as percent"]),
         Note(L["Numbers are only printed while the game lets addons read them; the bar itself always moves."]),
-    }
-    local function add(s) list[#list + 1] = s end
+    }) do add(s) end
 
     if #cand > 0 then
         add({ type = "header", label = L["Colors and conditions"] })
@@ -877,14 +889,6 @@ local function Controls(cand, sub)
         -- 條件規則只給 Lua 讀得到值的列（引擎寫的沒有值可比）
         local condCand = Tab.ConditionCandidates(cand)
         if #condCand > 0 then ns.ResourceConditionsUI.Append(list, condCand) end
-    end
-
-    add({ type = "header", label = L["Show for this specialization"] })
-    if #cand == 0 then
-        add(Note(L["This specialization has no resource to show here."]))
-    else
-        for i in ipairs(cand) do add(ShowRow(cand, i)) end
-        add(Note(L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."]))
     end
 
     add({ type = "header", label = L["Load conditions"] })
