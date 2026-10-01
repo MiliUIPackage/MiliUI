@@ -123,7 +123,7 @@ function TabBar.Build(parent, title, key)
         local form = forms[sig]
         if not form then
             local Sp = ns.Specs
-            local controls = Concat(Sp.Layout(key), Sp.Themed("bar"), Sp.Visibility(), Sp.Anchor(key))
+            local controls = Concat(Sp.Layout(key), Sp.Themed("bar", key), Sp.Visibility(), Sp.Anchor(key))
             local ctx = Sp.MakeCtx({ mode = "bar", key = key }, OnApply)
             form = Sp.BuildForm(scroll.child, controls, ctx, FORM_W)
             forms[sig] = form
