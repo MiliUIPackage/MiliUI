@@ -47,6 +47,11 @@ local FILL_ITEMS = {
     { text = L["Right to left"], value = "rtl" },
 }
 
+local RUNE_TEXT_ITEMS = {
+    { text = L["Seconds left on each rune"], value = "countdown" },
+    { text = L["Ready runes count"],         value = "count" },
+}
+
 local MANA_ITEMS = {
     { text = L["Full number"],           value = "none" },
     { text = L["K / M"],                 value = "k" },
@@ -748,8 +753,8 @@ local function Controls(cand, sub)
                 add(BS("slider", "staggerCeiling", L["Full bar at (percent of max health)"], { min = 10, max = 200, step = 5 }))
                 add(Note(L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."]))
             elseif key == "Runes" then
-                add(BS("toggle", "runeCountdown", L["Rune countdown"]))
-                add(Note(L["Ready runes line up on the left, recharging ones on the right with their fill growing. The countdown prints the seconds left on each recharging rune and replaces the ready-rune count in the middle."]))
+                add(BS("dropdown", "runeText", L["Numbers on runes"], { items = RUNE_TEXT_ITEMS }))
+                add(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show value on the bar\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
             elseif key == "IgnorePain" then
                 add(Note(L["Shows the total of every absorb shield on you, not just this one; a full bar is 30 percent of your max health."]))
             elseif key == "Ironfur" then

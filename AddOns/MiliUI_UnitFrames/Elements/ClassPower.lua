@@ -881,6 +881,17 @@ local function LayoutRuneTimer(seg, on, edb)
     seg.timer:Show()
 end
 
+-- 死騎符文列的數字：「長條上顯示數值」（showText）是總開關，開著時這裡二選一
+-- （使用者 2026-10-01 試過兩者並列後定案：一排數字裡再夾一個顆數會分不出哪個是顆數、
+-- 哪個是秒數，不要再拆成兩個獨立開關）。
+--   countdown 在轉的格子印剩餘秒數（預設）／count 中間印轉好的顆數
+-- 排序與回充進度不受影響，兩種都有
+local function RuneText(edb)
+    local v = edb and edb.runeText
+    if v == "count" then return v end
+    return "countdown"
+end
+
 -- 一列的版面：pip 依段數切；bar 就整條
 local function LayoutRow(row, key, edb, numSeg)
     local def = RESOURCES[key]
@@ -905,6 +916,7 @@ local function LayoutRow(row, key, edb, numSeg)
     row.bar:SetShown(not isPip)
     -- 數值兩種模式都給：點數型（聖能、氣漩武器那種）一樣要看得到數字
     local showText = edb.showText and true or false
+    if def.fill == "rune" then showText = showText and RuneText(edb) == "count" end
     row.text:SetShown(showText)
     if showText then
         Media.SetPixelFont(row.text, edb.textSize or 10, "OUTLINE", ns.db.global.font)
@@ -921,7 +933,7 @@ local function LayoutRow(row, key, edb, numSeg)
     -- 格寬是除出來的小數 → 一定要對齊實體像素，不然每格寬度／間距會忽大忽小
     local rawW, rawGap = edb.totalw or 200, edb.spacing or 1
     local segW = ns.P.Scale((rawW - rawGap * (numSeg - 1)) / numSeg)
-    local isRune = def.fill == "rune" and edb.runeCountdown ~= false
+    local isRune = def.fill == "rune" and edb.showText and RuneText(edb) == "countdown"
     for i = 1, numSeg do
         local seg = row.segs[i]
         seg:SetSize(segW, h)
@@ -1255,7 +1267,8 @@ local function UpdateRow(row, edb, isPreview, numSeg)
             end
             local dimC, dimA = DimColor(edb, barOv)
             local alpha = edb.barAlpha or 1
-            local countdown = edb.runeCountdown ~= false
+            local runeText = edb.showText and RuneText(edb) or nil
+            local countdown = runeText == "countdown"
             for slot = 1, numSeg do
                 local idx = order[slot]
                 local seg = row.segs[slot]
@@ -1296,13 +1309,8 @@ local function UpdateRow(row, edb, isPreview, numSeg)
                 end
             end
             ApplyRowOverrides(row, barOv)
-            -- 倒數開著就不印中間的總數：排序後亮幾格就是顆數，一排數字裡再夾一個顆數會分不出哪個是顆數、
-            -- 哪個是秒數（使用者 2026-10-01 試過兩者並列後定案：互斥，不要再拆成獨立開關）
-            if countdown then
-                if edb.showText then row.text:SetText("") end
-            else
-                SetPipText(row, def, edb, readyCount)
-            end
+            -- 中間的顆數只在選了「顆數」時印（見 RuneText；不走 SetPipText，那支看 showText）
+            if runeText == "count" then row.text:SetFormattedText("%d", readyCount) end
             SetRuneTicking(anyRecharging)
             return
         end

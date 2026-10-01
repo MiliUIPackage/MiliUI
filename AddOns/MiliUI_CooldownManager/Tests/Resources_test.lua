@@ -863,7 +863,11 @@ do
     eq("秒數：排隊中（進度 0）不印", R.RuneSeconds(18, 0), nil)
     eq("秒數：讀不到不印", R.RuneSeconds(nil, nil), nil)
     eq("秒數：轉完不印", R.RuneSeconds(0, 1), nil)
-    check("預設：符文倒數開", ns.DB.BuildDefaults().profile.resources.runeCountdown == true)
+    eq("預設：符文列印秒數", ns.DB.BuildDefaults().profile.resources.runeText, "countdown")
+    eq("符文數字：沒設＝秒數", R.RuneText({}), "countdown")
+    eq("符文數字：壞值＝秒數", R.RuneText({ runeText = "bogus" }), "countdown")
+    eq("符文數字：顆數", R.RuneText({ runeText = "count" }), "count")
+    eq("符文數字：舊的 none 退回秒數", R.RuneText({ runeText = "none" }), "countdown")
 end
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))

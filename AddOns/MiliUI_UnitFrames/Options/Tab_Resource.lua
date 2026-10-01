@@ -47,8 +47,11 @@ local function BuildControls()
         { type = "toggle", key = "showText", label = L["Show value on the bar"] },
     }
     if ns.playerClass == "DEATHKNIGHT" then
-        list[#list + 1] = { type = "toggle", key = "runeCountdown", label = L["Rune countdown"] }
-        list[#list + 1] = { type = "text", label = L["Ready runes line up on the left, recharging ones on the right with their fill growing. The countdown prints the seconds left on each recharging rune and replaces the ready-rune count in the middle."] }
+        list[#list + 1] = { type = "dropdown", key = "runeText", label = L["Numbers on runes"], items = {
+            { text = L["Seconds left on each rune"], value = "countdown" },
+            { text = L["Ready runes count"],         value = "count" },
+        } }
+        list[#list + 1] = { type = "text", label = L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show value on the bar\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."] }
     end
 
     ---------------------------------------------------------

@@ -63,6 +63,17 @@ local function Plain(v)
 end
 R.Plain = Plain
 
+-- 死騎符文列的數字：「長條上顯示數值」（showText）是總開關，開著時這裡二選一
+-- （使用者 2026-10-01 試過兩者並列後定案：一排數字裡再夾一個顆數會分不出哪個是顆數、
+-- 哪個是秒數，不要再拆成兩個獨立開關）。
+--   countdown 在轉的格子印剩餘秒數（預設）／count 中間印轉好的顆數
+-- 排序與回充進度不受影響，兩種都有
+function R.RuneText(cfg)
+    local v = type(cfg) == "table" and cfg.runeText
+    if v == "count" then return v end
+    return "countdown"
+end
+
 ------------------------------------------------------------
 -- 資源定義
 --
@@ -858,6 +869,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     local reversed = ns.FillReversed(cfg)
     local tex = ns.Media.Texture(cfg.texture)
     local showText = cfg.showText and true or false
+    if def.fill == "rune" then showText = showText and R.RuneText(cfg) == "count" end
     ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, "OUTLINE", ns.Setting(nil, "font"))
     row.text:SetText("")
 
@@ -920,7 +932,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
 
     -- 格寬是除出來的小數 → 對齊實體像素；每格直接錨在列上（不串在前一格）
     local segW, gap = R.SegLayout(W, numSeg, cfg.segmentSpacing)
-    local isRune = def.fill == "rune" and cfg.runeCountdown ~= false
+    local isRune = def.fill == "rune" and cfg.showText and R.RuneText(cfg) == "countdown"
     for i = 1, numSeg do
         local seg = row.segs[i]
         seg:SetSize(segW, H)
@@ -1027,7 +1039,8 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
             barOv = RC.FirstMatch(conds, condState, nil)
         end
         local dimC, dimA = DimColor(barOv)
-        local countdown = cfg.runeCountdown ~= false
+        local runeText = cfg.showText and R.RuneText(cfg) or nil
+        local countdown = runeText == "countdown"
         local rc = runeRechargeColor
         rc.r, rc.g, rc.b = cc.r * RUNE_RECHARGE_SHADE, cc.g * RUNE_RECHARGE_SHADE, cc.b * RUNE_RECHARGE_SHADE
         for slot = 1, numSeg do
@@ -1063,11 +1076,8 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
             end
         end
         ApplyRowOverrides(row, barOv)
-        -- 倒數開著就不印中間的總數：排序後亮幾格就是顆數，一排數字裡再夾一個顆數會分不出哪個是顆數、
-        -- 哪個是秒數（使用者 2026-10-01 試過兩者並列後定案：互斥，不要再拆成獨立開關）
-        if cfg.showText then
-            if countdown then row.text:SetText("") else row.text:SetFormattedText("%d", readyCount) end
-        end
+        -- 中間的顆數只在選了「顆數」時印（見 R.RuneText；列的文字顯示與否在 LayoutRow 照同一個設定）
+        if runeText == "count" then row.text:SetFormattedText("%d", readyCount) end
         if anyRecharging then R.ArmRuneTicker() end
         return
     end
