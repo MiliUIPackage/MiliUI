@@ -78,6 +78,7 @@ Enhance\Quest_Automation.lua
 Enhance\EditMode_BagsAlpha.lua
 Enhance\TaintLog.lua
 Enhance\RaiderIO_UnitMenu.lua
+Enhance\DiGua_LoginMessage.lua
 
 Fix\DeprecatedGlobals.lua
 Fix\TooltipTaintFix.lua
