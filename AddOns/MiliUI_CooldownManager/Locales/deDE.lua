@@ -433,7 +433,7 @@ L["yi"] = "Hundertmio."
 -- 資源條：自訂格子
 L["Class Resources"] = "Klassenressourcen"
 L["Custom segments"] = "Eigene Segmente"
-L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Size and look follow the resource bar settings on the Class Resources tab; each specialization keeps its own list."] = "Zeigt die Aufladungen eines Zaubers oder die Stapel einer Aura auf dir als Segmentreihen. Standardmäßig unter den wichtigen Abklingzeiten; die Hilfs-Abklingzeiten rücken nach unten. Größe und Aussehen folgen den Ressourcenleisten-Einstellungen oben; jede Spezialisierung hat ihre eigene Liste."
+L["Track a spell's charges or an aura's stacks on you as rows of segments. By default they sit below Essential Cooldowns and push Utility Cooldowns down. Width and look follow the resource bar settings on the Class Resources tab, while each row sets its own color and height; each specialization keeps its own list."] = "Zeigt die Aufladungen eines Zaubers oder die Stapel einer Aura auf dir als Segmentreihen. Standardmäßig unter den wichtigen Abklingzeiten; die Hilfs-Abklingzeiten rücken nach unten. Breite und Aussehen folgen den Ressourcenleisten-Einstellungen oben, Farbe und Höhe stellt jede Reihe selbst ein; jede Spezialisierung hat ihre eigene Liste."
 L["No custom segments for this specialization yet."] = "Diese Spezialisierung hat noch keine eigenen Segmente."
 L["+ Add segments"] = "+ Segmente hinzufügen"
 L["What should this row track?"] = "Was soll diese Reihe verfolgen?"
