@@ -519,7 +519,7 @@ local function ShowTip(c)
         GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."], 1, 0.3, 0.3, true)
         local info = ns.Catalog.Info(c.id)
         if info and info.equipSlot then
-            GameTooltip:AddLine(L["Blizzard's trinket tracking is unreliable. To track a trinket, add it with \"Item\" and its item ID instead."], 1, 0.82, 0, true)
+            GameTooltip:AddLine(L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."], 1, 0.82, 0, true)
         end
     end
     if c.locked then

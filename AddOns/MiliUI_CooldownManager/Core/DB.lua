@@ -1026,7 +1026,7 @@ end
 ------------------------------------------------------------
 -- 自訂項目：spells[specID].custom = { { kind, spellID|itemID, filter, placeholder, bar }, … }
 --
---   kind         "aura"（光環格）| "spell"（法術冷卻）| "item"（物品冷卻）
+--   kind         "aura"（光環格）| "spell"（法術冷卻）| "item"（物品冷卻）| "slot"（裝備欄位：slot = 13／14，追蹤裝在那一格的物品）
 --   filter       光環格才有："HELPFUL" | "HARMFUL"
 --   placeholder  光環格才有：光環不在時畫去飽和的占位圖示
 --   bar          放在哪一條（只收圖示類的條）
@@ -1034,7 +1034,7 @@ end
 -- 在順序、隱藏、覆寫裡的 id 是 "c:<index>"。index 是陣列位置，所以**刪掉中間一筆時
 -- 後面的 id 全部要往前挪**（DB.RemoveCustom 負責，不然第 3 筆的覆寫會跑到原本的第 4 筆上）。
 ------------------------------------------------------------
-DB.CUSTOM_KINDS = { aura = true, spell = true, item = true }
+DB.CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true }
 
 function DB.CustomID(i) return "c:" .. tostring(i) end
 
@@ -1069,6 +1069,7 @@ function DB.FindCustom(kind, id, filter, specID)
         if type(e) == "table" and e.kind == kind then
             local same
             if kind == "item" then same = e.itemID == id
+            elseif kind == "slot" then same = e.slot == id
             else same = e.spellID == id and (kind ~= "aura" or (e.filter or "HELPFUL") == (filter or "HELPFUL")) end
             if same then return i end
         end
@@ -1079,6 +1080,7 @@ end
 -- 新增，回傳 index（沒有專精 ⇒ nil）
 function DB.AddCustom(entry)
     if type(entry) ~= "table" or not DB.CUSTOM_KINDS[entry.kind] then return nil end
+    if entry.kind == "slot" and entry.slot ~= 13 and entry.slot ~= 14 then return nil end   -- 只有兩格飾品欄
     local list = DB.CustomList(true)
     if not list then return nil end
     list[#list + 1] = entry

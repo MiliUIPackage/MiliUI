@@ -84,6 +84,7 @@ function CU.Get(id) return id ~= nil and byId[id] or nil end
 ------------------------------------------------------------
 local function IdentityKey(e)
     if e.kind == "item" then return "item:" .. e.itemID end
+    if e.kind == "slot" then return "slot:" .. e.slot end
     if e.kind == "spell" then return "spell:" .. e.spellID end
     return "aura:" .. e.spellID .. ":" .. (e.filter == "HARMFUL" and "HARMFUL" or "HELPFUL")
 end
@@ -222,8 +223,32 @@ local function ItemCooldown(itemID)
     return Try(api, itemID)
 end
 
+-- 裝備欄位：空格的圖與去飽和，沒有冷卻可讀
+local function UpdateEmptySlot(rec)
+    local f = rec.frame
+    local info = ns.Catalog.Info(rec.cooldownID)
+    local tex = (info and info.icon) or QUESTION
+    if rec.tex ~= tex then f.Icon:SetTexture(tex); rec.tex = tex end
+    if rec.armedStart and f.Cooldown then f.Cooldown:Clear() end
+    rec.armedStart, rec.armedDur = nil, nil
+    local fs = f.ChargeCount and f.ChargeCount.Current
+    if fs then fs:SetText("") end
+    f.Icon:SetDesaturation(1)
+end
+
 local function UpdateItem(rec)
     local f = rec.frame
+    if rec.kind == "slot" then
+        -- 追蹤的是「現在裝在那一格的物品」：換裝（PLAYER_EQUIPMENT_CHANGED 標髒）就換物品；空格另畫
+        local itemID = ns.Catalog.SlotItemID(rec.slot)
+        if itemID ~= rec.itemID then
+            rec.itemID = itemID
+            rec.armedStart, rec.armedDur = nil, nil
+            if f.Cooldown then f.Cooldown:Clear() end
+            if ns.Keybinds and ns.Keybinds.Invalidate then ns.Keybinds.Invalidate() end
+        end
+        if not itemID then return UpdateEmptySlot(rec) end
+    end
     local itemID = rec.itemID
     local tex = Plain(Try(C_Item and C_Item.GetItemIconByID, itemID))
         or Plain(select(5, Try(C_Item and C_Item.GetItemInfoInstant, itemID))) or QUESTION
@@ -272,7 +297,7 @@ function CU.Update(rec)
     if not (rec.frame and rec.placedBar) then return end
     rec.dirty = nil
     if rec.kind == "spell" then UpdateSpell(rec)
-    elseif rec.kind == "item" then UpdateItem(rec) end
+    elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec) end
 end
 
 ------------------------------------------------------------
@@ -555,7 +580,7 @@ end
 ------------------------------------------------------------
 local function New(e)
     local rec = {
-        custom = true, kind = e.kind, spellID = e.spellID, itemID = e.itemID,
+        custom = true, kind = e.kind, spellID = e.spellID, itemID = e.itemID, slot = e.slot,
         filter = e.kind == "aura" and (e.filter == "HARMFUL" and "HARMFUL" or "HELPFUL") or nil,
         barKey = "custom",           -- Decorate 用它判斷「是不是增益檢視器」：不是
     }

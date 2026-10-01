@@ -184,7 +184,7 @@ end
 local function TextFor(rec)
     local id = rec.cooldownID
     if rec.custom then
-        if rec.kind == "item" then return K.TextForItem(rec.itemID) end
+        if rec.kind == "item" or rec.kind == "slot" then return K.TextForItem(rec.itemID) end
         if rec.kind == "spell" then return K.TextForSpell(rec.spellID, rec.overrideID) end
         return nil
     end
@@ -226,6 +226,11 @@ function K.Apply(owner, rec, barKey)
     fs:SetText(text)
     fs:Show()
     rec.keySig = sig
+end
+
+-- 裝備欄位的自訂項目換了物品：快取要重算（下一次 Apply 重查動作條）
+function K.Invalidate()
+    cache = {}
 end
 
 function K.RefreshAll()

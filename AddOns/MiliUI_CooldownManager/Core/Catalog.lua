@@ -578,7 +578,18 @@ end
 -- 自訂項目
 ------------------------------------------------------------
 local QUESTION = 134400
-local CUSTOM_KINDS = { aura = true, spell = true, item = true }
+-- slot：裝備欄位（飾品 1／2），追蹤「現在裝在那一格的物品」，換裝自動跟上；不經過暴雪的冷卻管理器
+local CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true }
+local CUSTOM_SLOTS = { [13] = true, [14] = true }
+C.CUSTOM_SLOTS = CUSTOM_SLOTS
+
+-- 那一格現在裝的物品（明文 itemID 或 nil）
+function C.SlotItemID(slot)
+    if not (GetInventoryItemID and type(slot) == "number") then return nil end
+    local ok, id = pcall(GetInventoryItemID, "player", slot)
+    id = ok and Plain(id) or nil
+    return type(id) == "number" and id or nil
+end
 
 local function SpellsTable()
     local p = ns.profile
@@ -605,6 +616,7 @@ function C.IsCustom(id) return C.CustomIndex(id) ~= nil end
 local function ValidCustom(e)
     if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] then return false end
     if e.kind == "item" then return type(e.itemID) == "number" end
+    if e.kind == "slot" then return CUSTOM_SLOTS[e.slot] == true end
     return type(e.spellID) == "number"
 end
 C.ValidCustom = ValidCustom
@@ -656,9 +668,25 @@ local function CustomInfo(id)
     if not e then return nil end
     local info = {
         cooldownID = id, custom = true, index = i, kind = e.kind, bar = e.bar,
-        spellID = e.spellID, itemID = e.itemID, filter = e.filter, isKnown = true,
+        spellID = e.spellID, itemID = e.itemID, filter = e.filter, slot = e.slot, isKnown = true,
     }
-    if e.kind == "item" then
+    if e.kind == "slot" then
+        -- 裝備欄位：圖示與名字照現在裝的物品；空格用空格圖與欄位名
+        local itemID = C.SlotItemID(e.slot)
+        info.itemID = itemID
+        local I = C_Item
+        if itemID then
+            info.icon = Plain(Try(I and I.GetItemIconByID, itemID))
+            info.name = Plain(Try(I and I.GetItemNameByID, itemID))
+        end
+        local token = EQUIP_SLOT_NAME[e.slot]
+        if info.icon == nil and token and _G.GetInventorySlotInfo then
+            local ok, _, tex = pcall(_G.GetInventorySlotInfo, token)
+            if ok then info.icon = Plain(tex) end
+        end
+        info.slotName = GlobalText(token)
+        if info.name == nil then info.name = info.slotName end
+    elseif e.kind == "item" then
         local I = C_Item
         info.icon = Plain(Try(I and I.GetItemIconByID, e.itemID))
         if not info.icon then info.icon = Plain(select(5, Try(I and I.GetItemInfoInstant, e.itemID))) end
@@ -678,7 +706,7 @@ local function CustomInfo(id)
         if not info.isKnown then info.icon = QUESTION end
     end
     info.icon = info.icon or QUESTION
-    info.name = info.name or ("#" .. tostring(e.spellID or e.itemID))
+    info.name = info.name or ("#" .. tostring(e.spellID or e.itemID or e.slot))
     return info
 end
 
