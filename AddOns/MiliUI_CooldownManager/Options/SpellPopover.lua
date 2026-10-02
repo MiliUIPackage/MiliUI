@@ -128,7 +128,9 @@ local function RightClickClears(r, h, field)
 end
 
 local function IsAura(kind) return kind == "aura" end
-local function NotAura(kind) return kind ~= "aura" end
+-- 只給有冷卻的（核心／輔助技能、自訂法術／物品／裝備欄）：增益類（暴雪的增益兩條、光環格）沒有觸發亮框、
+-- 沒有冷卻可轉好或去飽和。看 class 不看 kind —— kind 只有自訂項目才有，暴雪的增益是 nil
+local function NotAura(_, class) return class ~= "aura" end
 local function IsCustom(kind) return kind ~= nil end
 
 -- 音效下拉：第一項「無」，其餘 LSM 的音效名（已排序）
