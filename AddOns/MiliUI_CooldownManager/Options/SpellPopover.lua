@@ -19,6 +19,9 @@
 -- 增益圖示／增益長條、光環格）兩列「出現音效」「消失音效」。每列一個下拉（第一項「無」＝清掉覆寫，
 -- 其餘是 LibSharedMedia 的音效名，開選單那一刻才列、依名稱排序；清單長時下拉自己會裁切＋滾輪捲）
 -- ＋「試聽」。一個音效都沒有時多一列灰字說明。
+--
+-- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
+-- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -235,6 +238,20 @@ local function Build()
         toggles[#toggles + 1] = { field = t.field, cb = cb, note = note }
         RightClickClears(tr, th, t.field)
     end
+
+    -- 冷卻狀態（冷卻類才有）：第一項「跟隨這一條」＝清掉覆寫；變暗的透明度逐法術不另給（吃條的值）
+    local csr, csh = NewRow(L["Cooldown state"], NotAura)
+    local csItems = { { text = L["Follow this bar"], value = false } }
+    for _, it in ipairs(ns.Specs.CDSTATE_ITEMS) do csItems[#csItems + 1] = it end
+    local csdd = W.CreateDropdown(csr, ROW_W - CTRL_X, csItems, function(value)
+        if not cur then return end
+        ns.DB.SetOverride(cur.id, "cdState", (type(value) == "string" and value ~= "") and value or nil)
+        Changed()
+    end)
+    csdd:SetMaxWidth(ROW_W - CTRL_X)
+    csdd:SetPoint("LEFT", csr, "LEFT", CTRL_X, 0)
+    frame.cdStateDD = csdd
+    RightClickClears(csr, csh, "cdState")
 
     -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色，下一列樣式（沒挑過＝ glow.active 的預設）；
     -- 右鍵整列全清。標題的圖示即時預覽
@@ -509,6 +526,8 @@ function Pop.Refresh()
                 or src == "bar" and L["(follows this bar)"] or L["(default)"])
         end
     end
+    local cs = Override("cdState")
+    frame.cdStateDD:SetSelectedValue((type(cs) == "string" and cs ~= "") and cs or false)
     local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false
     frame.activeCB:SetChecked(activeOn)
     local ac = ns.SpellSetting(key, id, "activeGlowColor")

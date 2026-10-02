@@ -36,17 +36,17 @@ MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
 ------------------------------------------------------------
 -- /mcdm debug：引擎現況（開發用，字串不進語系檔）
 ------------------------------------------------------------
--- 讀框的狀態一律包起來：讀不到（拋錯／秘密值）印 "?"
+-- 讀框的狀態一律包起來：讀不到（拋錯）印 "?"、秘密值印「秘密」（不比較、不算）
 local function Read(obj, method, ...)
     local fn = obj and obj[method]
     if type(fn) ~= "function" then return nil end
     local ok, a, b, c, d, e = pcall(fn, obj, ...)
     if not ok then return nil end
-    if ns.IsSecret(a) then return "secret" end
+    if ns.IsSecret(a) then return "秘密" end
     return a, b, c, d, e
 end
 local function Num(v)
-    if ns.IsSecret(v) then return "secret" end
+    if ns.IsSecret(v) then return "秘密" end
     if type(v) == "number" then return ("%.2f"):format(v):gsub("%.?0+$", "") end
     return tostring(v == nil and "?" or v)
 end
@@ -73,11 +73,15 @@ local function ItemLines(out)
                     relName = tostring(relName):gsub("^MiliUICDM_Bar_", "容器:")
                 end
                 local w, h = Read(item, "GetSize")
-                out[#out + 1] = ("    %s #%s id=%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s")
+                -- 冷卻狀態效果餵過秘密布林（SetAlphaFromBoolean）的框不讀回 alpha
+                local alpha = rec.alphaSecret and "秘密" or Num(Read(item, "GetAlpha"))
+                local st = rec.style and rec.style.cdState
+                out[#out + 1] = ("    %s #%s id=%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s")
                     :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID),
-                            tostring(Read(item, "IsShown")), Num(Read(item, "GetAlpha")), Num(Read(item, "GetScale")),
+                            tostring(Read(item, "IsShown")), alpha, Num(Read(item, "GetScale")),
                             Num(w), Num(h), tostring(point), relName, Num(x), Num(y),
-                            tostring(rec.claimKey or "—"), rec.parked and " 停放" or "")
+                            tostring(rec.claimKey or "—"), rec.parked and " 停放" or "",
+                            st and (" 冷卻狀態=" .. st .. (rec.stateHidden and "（藏）" or "")) or "")
             end, key)
             if n == 0 then out[#out + 1] = ("    %s（沒有作用中的 item）"):format(key) end
         end
@@ -192,6 +196,11 @@ local function Debug()
         local proc, ready, pandemic = G.Counts()
         p(("  發光：觸發 %d  就緒 %d（觸發過 %d 次）  無損刷新 %d  探針 %d 顆  manager 掛勾 %s")
             :format(proc, ready, G.readyFired or 0, pandemic, G.probes or 0, tostring(G.hooked)))
+    end
+    local SI = ns.SpellIndex
+    if SI and SI.Count then
+        p(("  法術索引：%d 個法術、重建 %d 次  冷卻事件（合併後）精準 %d 次／全掃 %d 次")
+            :format(SI.Count(), SI.rebuilds or 0, SI.precise or 0, SI.full or 0))
     end
     if ns.Sound and ns.Sound.DebugLine then p(ns.Sound.DebugLine()) end
     if ns.Resources and ns.Resources.DebugLines then

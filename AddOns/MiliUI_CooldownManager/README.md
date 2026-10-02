@@ -49,7 +49,7 @@
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -64,7 +64,8 @@
 | `Core/Layout.lua` | 純函式 `Compute(items, layout, kind)` → 每格 (x, y, w, h)、容器寬高、容器錨點；`AnchorOf`／`AnchorSide`／`StackTarget` ＝ 錨定的排開（跟著同一條同一邊的往外排，見「錨定的排開」）。不碰任何 WoW API，離線可測 |
 | `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1 |
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上；實際貼在誰身上由排開決定，一條變了整疊兩段式重貼）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上；`ReleaseAll` 全部還給暴雪 |
-| `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀；每 item 一個簽章，同簽章跳過 |
+| `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；`Bars` 每輪排版結尾與目錄變了之後重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`；讀不懂一律全掃），見「冷卻狀態效果」 |
+| `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過 |
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭）。字型分兩層：通用字型（`font`，主題／條）＋每段文字自己的 `font`（倒數、充能、層數、按鍵文字、長條的 `bar.nameFont／timeFont`、施法條 `castbar.font`、資源條與自訂格子 `resources.textFont`），值 `"INHERIT"`／沒存＝跟隨通用字型（`ns.Media.ElementFont`） |
 | `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha） |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
@@ -322,6 +323,43 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   動作條 6–8，照暴雪 `MultiActionBars.xml` 的 actionpage 與按鈕模板的 buttonType）→ `GetBindingKey` → 縮寫
   （Shift→s、Ctrl→c、Alt→a、滑鼠鍵→M4、數字鍵盤→N5…）。物品掃動作條格子。綁定／動作條事件 0.2 秒合併重算。
 - 發光宿主是 overlay 底下自己的框，尺寸由排版給（不從 item 讀）；停放時發光一律熄。
+
+### 冷卻狀態效果（`Core/Decorate.lua`、`Core/SpellIndex.lua`、`Modules/Custom.lua`）
+
+核心／輔助技能與自訂法術／物品／飾品欄的圖示照「是不是在冷卻」改變顯示。設定 `icon.cdState`（主題 → 條的繼承，跟「圖示」那一節的跟隨）：
+`"none"`（預設，不變）｜`"dim"` 冷卻中變暗（`icon.cdStateAlpha`，預設 0.4）｜`"hideOnCD"` 冷卻中看不到｜`"hideReady"` 轉好時看不到。
+逐法術覆寫 `overrides[id].cdState`（`SPELL_FALLBACK` 指到條的值、`OVERRIDE_GROUP` 歸 `"icon"`：條頁圖示節的「清除覆寫」會清掉它）；
+透明度逐法術不另給控件（覆寫欄位有登記，吃條的值）。舊存檔沒有這兩欄 ＝ 合併預設值補成 `"none"`／0.4，不遷移、`DB_VERSION` 不動。
+
+- **設定頁**：主題頁與條頁的「圖示」節一列下拉「冷卻狀態」＋滑桿「變暗後的透明度」（10%～90%，只在「冷卻中變暗」時能動）＋一列灰字。
+  增益兩條（內建）與長條類的條不顯示這幾列。**逐法術面板**（冷卻類才有）一列下拉，第一項「跟隨這一條」＝清掉覆寫，右鍵清掉。
+- **判斷「真的在冷卻」**（`Decorate.CooldownState`）：裝備欄項目沿用 `EquipRealCooldown`；有法術的先讀 `C_Spell.GetSpellCooldown`
+  的 `isActive`／`isOnGCD`（兩個都是明文才算，`isActive and not isOnGCD`）；讀不到改問 `GetSpellCooldownDuration(id, true):IsZero()`
+  （可能是秘密布林）；沒有法術的類別項目讀暴雪 item 的 `isOnActualCooldown`（`rawget`，只讀）；都判不出來 ⇒ 不動（只跟條的 alpha）。
+  GCD 不算冷卻；充能法術還有充能＝不算冷卻中（兩支 API 在有充能時都是「沒在冷卻」）。
+- **alpha 的唯一出口** `Decorate.ApplyItemAlpha(item, rec, barAlpha)`：`Bars` 放格與 `Reapply`（同步放回）、`Visibility.Apply`、
+  `SetCooldown` 後掛勾、就緒探針全走這支。模式 × 狀態 → 兩個 alpha 是純函式 `StateAlphas`（dim：條 × x／條；hideOnCD：0／條；hideReady：條／0），
+  所以淡出（顯示條件）＋變暗是兩者相乘。明文 ⇒ `SetAlpha`；秘密 ⇒ `SetAlphaFromBoolean(zero, 轉好的, 冷卻中的)`（交給引擎挑，之後不讀回那顆框的 alpha，
+  `rec.alphaSecret` 記著、`/mcdm debug` 印「秘密」）。編輯模式中不套（全亮）。模式快取在 `rec.style.cdState`（`Decorate.Apply` 寫，兩個欄位都進簽章）；
+  長條與增益類一律 nil。
+- **什麼時候重算**：排版、顯示條件、`SetCooldown` 後掛勾（暴雪每次刷新冷卻都會經過）、`SPELL_UPDATE_COOLDOWN` 延一幀（跟隱藏 GCD 轉圈同一輪，
+  `RefreshCooldownAll`）、**轉好的那一刻**（就緒探針：`Glow.ReadyOn` 把「這格設了冷卻狀態」也算進來，探針照建照武裝；`Fire` 與暴雪 `Clear` 的後掛勾
+  在發光／音效判斷之前先 `Decorate.RefreshState`，`Fire` 那次 0.1 秒後再補算一次，蓋過探針與本尊到期差的那幾毫秒）、進出編輯模式。
+- **自訂法術／物品／飾品欄**（`Custom.ApplyState`）：框是容器的子框，條的淡出由容器帶 ⇒ 這裡的條 alpha 當 1。物品／飾品欄用 `UpdateItem` 算好的明文
+  `onCD`（`rec.cdOnCD`）；法術用同一組明文旗標，讀不到改 `rec.dur:IsZero()` → `SetAlphaFromBoolean`。未學會（問號）、空的飾品欄、編輯模式中 ⇒ 1。
+  `Custom.Update` 結尾與 `Place` 都叫；進出編輯模式另外延一幀重套一次（`Visibility.ApplyAll` 不碰自訂框）。
+- **提示**：明文判得出「這格現在看不到」（`rec.stateHidden`）時滑過不冒提示；秘密值路徑不知道藏了沒，照舊顯示。
+- **預覽**：假冷卻的格（奇數格）照設定畫：變暗用設定的透明度、兩種隱藏畫成 0.25（完全看不到就點不到了），`Decorate.PreviewStateAlpha`。
+- **精準重算**（`Core/SpellIndex.lua`）：`SPELL_UPDATE_COOLDOWN` 的參數（11.1.5 起 `spellID, baseSpellID, category, startRecoveryCategory`，12.1 加 `itemID`）
+  裡 `spellID` 是明文數字、`category`／`startRecoveryCategory`／`itemID` 都是 nil、而且 `spellID` 或 `baseSpellID` 查得到索引 ⇒ 只跑那幾格
+  （`Decorate` 只重算命中的暴雪 item、`Custom` 只標命中的那幾筆 `rec.dirty`，`Custom` 的 Flush 也改成只更新標髒的）。其餘一律全掃——
+  暴雪自己的檢視器對共用冷卻（category）、GCD 開始（startRecoveryCategory）、物品（itemID）都會刷新別的格，我們沒有那些對照，全掃才不會漏。
+  同一幀的多次事件合併（任何一次是全掃就全掃）。`/mcdm debug` 的「法術索引」一行印索引大小與精準／全掃次數。
+- ⚠ 已知限制：
+  - 可點擊群組：隱藏的格鈕還在、照樣點得到（跟淡出同一個限制）。
+  - 秘密值下判不出來的類別項目（藥水那種，暴雪的欄位讀不到時）維持顯示。
+  - 隱藏的格上面的發光（觸發／就緒）、按鍵文字跟著看不到（都是 item 的子框）；「轉好時看不到」配就緒發光沒有意義。
+  - 精準重算的條件很保守：施放技能那一下的事件幾乎都帶 GCD 類別 ⇒ 全掃；精準的多半是冷卻結束／重置那種只帶 spellID 的事件。
 
 ### 圖示外觀：Masque（`Core/Masque.lua`）
 
@@ -853,6 +891,23 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 72. **分專精開關的遷移資料不放 DB.lua**：專精 → 候選資源只在 `Resources.lua` 一份（`R.SpecCandidates`），遷移 v3 與匯入在執行時借用；
     遷移跑的時機（`DB.Init` 在 `ADDON_LOADED` 之後、匯入在登入後）一定在 TOC 全部載完之後。
 
+**冷卻狀態效果＋引擎小整理（2026-10-03，P1）**
+
+73. **alpha 出口多一個**：計畫列了兩處直接 `item:SetAlpha`（`Bars` 放格、`Visibility.Apply`），實際還有第三處 `Bars.Reapply`（暴雪排版後同步放回）；
+    不改的話每次暴雪 `Layout` 都會把變暗／隱藏蓋回條的 alpha，三處一起改走 `ApplyItemAlpha`。
+74. **精準重算的判準比計畫嚴**：計畫寫「spellID 是明文數字而且查得到 ⇒ 只標那幾格」。查了暴雪檢視器的 `NeedsCooldownUpdate`：它對 `category`
+    （共用冷卻）、`startRecoveryCategory`（GCD 開始時刷新每一格的計時）、`itemID` 另外比對，索引裡沒有這些關係 ⇒ 三個任一有值也全掃。
+    沒有這條的話，施放技能觸發的 GCD 事件只會重算被放的那一格，其他格的「隱藏 GCD 轉圈」少補一次。
+75. **自訂項目的合併不另開批次**：命中的那幾筆直接標 `rec.dirty`，`Custom` 的 Flush 改成只更新標髒的（`MarkDirty` 照舊全標 ⇒ 全掃的行為不變），
+    同一幀的多次事件自然合併。
+76. **暴雪 `Clear` 的後掛勾不排補算**：暴雪對沒在冷卻的格子每次 GCD 都會 `Clear`，每次都排 0.1 秒計時器太浪費；那裡只當場重算一次，
+    探針觸發的 `Fire` 才排補算。
+77. **滑桿標籤用「變暗後的透明度」**（計畫寫「不透明度」）：跟既有的「淡出後的透明度」同一個說法，值的意思一樣（數字越小越淡）。
+78. **`/mcdm debug`**：讀框狀態的 `Read`／`Num` 遇到秘密值印「秘密」（原本印 `secret`）；餵過秘密布林的 item 不讀 alpha、直接印「秘密」；
+    每顆 item 多印「冷卻狀態＝…（藏）」；多一行「法術索引」。
+79. **自訂框的編輯模式**：`Visibility.ApplyAll` 只碰暴雪 item，自訂框在 `EditModeChanged` 時另外延一幀重套（計畫只寫「既有訊號會走到」）。
+80. **空的飾品欄不套**（計畫沒寫）：沒有冷卻可判，跟未學會的問號格一樣維持 1。
+
 ## 待實機驗證
 
 依區塊排，編號連續。打一場記得開 `/console taintLog 2`，看完別 /reload（會清掉 taint.log）。
@@ -1157,3 +1212,16 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 149. 主題「文字」描邊選「單色描邊／單色粗描邊」：圖示上的倒數／充能／層數、長條文字、資源條數值與符文秒數、光環列秒數與層數、自訂格子倒數、施法條名字與時間全部變成不反鋸齒；選「無」時資源條與施法條也沒有描邊（以前寫死描邊）。
 150. 編輯模式選中暴雪的檢視器按方向鍵（暴雪自己的微調）之後，檢視器下一幀釘回容器；/reload 與重登不再出現「BuffIconCooldownViewer:SetPoint(): Couldn't find region named MiliUICDM_Bar_buffs」。舊版面已經存了這個名字的玩家：開檔就建的容器讓名字解得到、不報警告。
 151. 增益條追蹤打在目標上的魔法／詛咒等減益：預設不再出現暴雪的驅散色外框（只剩我們的 1px 邊）；主題「圖示」關掉「隱藏減益類型邊框」藍框回來；核心／輔助頁沒有這個開關。
+
+**冷卻狀態效果＋法術索引（2026-10-03，P1）**
+
+152. 三種模式在核心／輔助、自訂法術、自訂物品、飾品欄上的表現；副本戰鬥中（秘密值）也對——`/mcdm debug` 的 item 列印「alpha=秘密」的就是走
+     `SetAlphaFromBoolean` 那條。**暴雪 item 框收得下 `SetAlphaFromBoolean`**（沒有的話退回條的 alpha，等於這一格不套）。
+153. 轉好的那一刻立刻變回來（不等下一個 GCD）。充能法術還有充能時算「可用」（`GetSpellCooldown.isActive` 是 false、ignoreGCD 的 duration 是零）。
+154. 淡出（顯示條件）＋變暗同時成立時是兩者相乘；編輯模式中全亮、離開後恢復（含自訂框）。
+155. 隱藏的格滑鼠滑過不冒提示（明文時）；秘密值時照舊冒。
+156. `SPELL_UPDATE_COOLDOWN` 帶 ID 的精準重算沒有漏格（對照：把 `Core/SpellIndex.lua` 的 `Classify` 改成一律回 nil ＝ 全掃，結果要一樣）；
+     `/mcdm debug` 的「法術索引」那行看精準／全掃的比例——**事件參數的實際形狀沒驗過**（照 wiki：`spellID, baseSpellID, category, startRecoveryCategory, itemID`）。
+157. 類別項目（暴雪面板裡的藥水那類）讀得到 `isOnActualCooldown`（欄位名對過 live 版 `CooldownViewer.lua`：`not isOnGCD and cooldownIsActive`，暴雪拿冷卻時間跟 `GetTime()` 比出來的，戰鬥中可能是秘密值）；讀不到時維持顯示。
+158. 自訂法術的框餵過秘密布林之後（`SetAlphaFromBoolean`），Masque 套皮、發光、按鍵文字照常；暴雪 item 餵過之後暴雪自己的檢視器排版不報錯。
+159. `/console taintLog 2` 打一場（含戰鬥中冷卻狀態切換、進出編輯模式）沒有本插件。

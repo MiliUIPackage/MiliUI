@@ -48,6 +48,7 @@ Core\Import.lua
 Core\Catalog.lua
 Core\Layout.lua
 Core\Viewers.lua
+Core\SpellIndex.lua
 Core\Text.lua
 Core\Masque.lua
 Core\Decorate.lua

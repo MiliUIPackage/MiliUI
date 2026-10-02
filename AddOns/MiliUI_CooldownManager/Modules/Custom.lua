@@ -170,6 +170,7 @@ local function UpdateSpell(rec)
     local f = rec.frame
     local base = rec.spellID
     local known = ns.Catalog.SpellKnown(base)
+    rec.known = known and true or false           -- 冷卻狀態效果：未學會（問號）的格不套
     local ov = Plain(Try(C_Spell and C_Spell.GetOverrideSpell, base))
     rec.overrideID = (type(ov) == "number" and ov ~= base) and ov or nil
     local id = rec.overrideID or base
@@ -246,6 +247,7 @@ local function UpdateEmptySlot(rec)
     if rec.tex ~= tex then f.Icon:SetTexture(tex); rec.tex = tex end
     if rec.armedStart and f.Cooldown then f.Cooldown:Clear() end
     rec.armedStart, rec.armedDur = nil, nil
+    rec.cdOnCD = nil                               -- 空格沒有冷卻可判：冷卻狀態效果不套
     local fs = f.ChargeCount and f.ChargeCount.Current
     if fs then fs:SetText("") end
     f.Icon:SetDesaturation(1)
@@ -295,6 +297,7 @@ local function UpdateItem(rec)
         -- 秘密值：已經 arm 的由引擎繼續跑，不重 arm、不清（脫戰讀得到時再對一次）
         onCD = rec.armedStart ~= nil
     end
+    rec.cdOnCD = onCD                              -- 冷卻狀態效果讀這個（明文布林）
 
     local count = Plain(Try(C_Item and C_Item.GetItemCount, itemID, false, true))
     local fs = f.ChargeCount and f.ChargeCount.Current
@@ -316,20 +319,85 @@ function CU.Update(rec)
     rec.dirty = nil
     if rec.kind == "spell" then UpdateSpell(rec)
     elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec) end
+    CU.ApplyState(rec)
 end
 
 ------------------------------------------------------------
--- 事件：標髒、下一幀一次更新全部
+-- 冷卻狀態效果（Core/Decorate.lua 那一節的自訂框版）
+--
+-- 框是容器的子框：條的淡出由容器的 alpha 帶 ⇒ 這裡的 barAlpha 一律 1（兩者自然相乘）。
+--   物品／飾品欄  UpdateItem 算好的明文 onCD（rec.cdOnCD）
+--   法術          GetSpellCooldown 的兩個明文旗標；讀不到用 rec.dur:IsZero()（可能是秘密布林）→ SetAlphaFromBoolean
+--   未學會（問號）、空的飾品欄、編輯模式中、沒設 ⇒ 1
+------------------------------------------------------------
+function CU.ApplyState(rec)
+    local f = rec and rec.frame
+    if not f or rec.kind == "aura" then return end
+    local st = rec.style
+    local mode = st and st.cdState
+    local editing = ns.EditMode and ns.EditMode.active
+    if not mode or not rec.placedBar or editing or (rec.kind == "spell" and rec.known == false) then
+        f:SetAlpha(1)
+        rec.stateHidden = nil
+        return
+    end
+    local aCD, aReady = ns.Decorate.StateAlphas(mode, st.cdAlpha, 1)
+    local onCD
+    if rec.kind == "spell" then
+        local info = Try(C_Spell and C_Spell.GetSpellCooldown, rec.overrideID or rec.spellID)
+        if type(info) == "table" then
+            local active, gcd = Plain(info.isActive), Plain(info.isOnGCD)
+            if type(active) == "boolean" and type(gcd) == "boolean" then onCD = active and not gcd end
+        end
+        local dur = rec.dur
+        if onCD == nil and dur and dur.IsZero then
+            local ok, zero = pcall(dur.IsZero, dur)
+            if ok and ns.IsSecret(zero) then
+                -- zero ＝「不含 GCD 的冷卻是零」：真 ⇒ 轉好的 alpha。之後不讀回這顆框的 alpha
+                if f.SetAlphaFromBoolean and pcall(f.SetAlphaFromBoolean, f, zero, aReady, aCD) then
+                    rec.stateHidden, rec.alphaSecret = nil, true
+                    return
+                end
+            elseif ok and type(zero) == "boolean" then
+                onCD = not zero
+            end
+        end
+    else
+        onCD = rec.cdOnCD
+    end
+    if type(onCD) ~= "boolean" then
+        f:SetAlpha(1)
+        rec.stateHidden = nil
+        return
+    end
+    local a = onCD and aCD or aReady
+    f:SetAlpha(a)
+    rec.stateHidden = (a == 0)
+end
+
+-- 就緒探針觸發（Decorate.RefreshState 轉過來）：重讀一次冷卻再套
+function CU.RefreshState(rec)
+    if rec and rec.placedBar and rec.kind ~= "aura" and rec.frame then CU.Update(rec) end
+end
+
+------------------------------------------------------------
+-- 事件：標髒、下一幀更新標髒的那幾筆
 ------------------------------------------------------------
 local dirtyArmed = false
 local function Flush()
     dirtyArmed = false
     for _, rec in pairs(records) do
-        if rec.placedBar and rec.kind ~= "aura" then
+        if rec.placedBar and rec.kind ~= "aura" and rec.dirty then
             local ok, err = xpcall(CU.Update, ns.ReportError, rec)
             if not ok then CU.lastError = err end
         end
     end
+end
+
+local function ArmFlush()
+    if dirtyArmed then return end
+    dirtyArmed = true
+    ns.Defer(Flush)
 end
 
 -- 每筆都標髒（沒放在條上的也標：之後被放上去時 Place 看 rec.dirty 補一次 Update）
@@ -337,10 +405,26 @@ function CU.MarkDirty()
     for _, rec in pairs(records) do
         if rec.kind ~= "aura" then rec.dirty = true end
     end
-    if dirtyArmed then return end
-    dirtyArmed = true
-    ns.Defer(Flush)
+    ArmFlush()
 end
+
+-- SPELL_UPDATE_COOLDOWN：帶明文 spellID 而且索引查得到 ⇒ 只標那幾筆；讀不懂 ⇒ 全標（Core/SpellIndex.lua）。
+-- 同一幀的多次事件自然合併：全標過的那一輪 Flush 本來就全部更新
+local function OnSpellCooldown(...)
+    local SI = ns.SpellIndex
+    local hits = SI and SI.Classify(SI.Lookup, ns.IsSecret, ...)
+    if not hits then return CU.MarkDirty() end
+    local any = false
+    for _, e in ipairs(hits) do
+        local rec = e.rec
+        if rec and rec.custom and rec.kind ~= "aura" then
+            rec.dirty = true
+            any = true
+        end
+    end
+    if any then ArmFlush() end
+end
+CU.OnSpellCooldown = OnSpellCooldown
 
 ------------------------------------------------------------
 -- 光環格：持有框、容器、按鈕樣式
@@ -736,7 +820,7 @@ function CU.Place(rec, c, r, barKey, gen)
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
     f:SetSize(r.w, r.h)
-    f:SetAlpha(1)             -- 條的淡出由容器的 alpha 帶（框是容器的子框）
+    -- alpha：條的淡出由容器的 alpha 帶（框是容器的子框）；框自己只管冷卻狀態效果（CU.ApplyState，下面）
     f:Show()
     -- 冷卻／數量的 Update 只在「放的位置或條換了」「樣式重套了」「事件標髒了」時才做：
     -- 增益上下每次都會重排整條，冷卻狀態沒變就不必重讀（事件那條路本來就會標 rec.dirty）
@@ -745,7 +829,11 @@ function CU.Place(rec, c, r, barKey, gen)
     rec.placedSig = sig
     local styled = rec.decorated
     ns.Decorate.Apply(f, rec, barKey, r.w, r.h)
-    if moved or rec.dirty or rec.decorated ~= styled then CU.Update(rec) end
+    if moved or rec.dirty or rec.decorated ~= styled then
+        CU.Update(rec)                -- 結尾會 ApplyState
+    else
+        CU.ApplyState(rec)
+    end
     if rec.kind == "spell" and rec.procActive == nil then CU.InitialOverlay(rec) end
     if ns.Glow then ns.Glow.Sync(f, rec, barKey) end
     if ns.Keybinds then ns.Keybinds.Apply(f, rec, barKey) end
@@ -850,8 +938,19 @@ function CU.Init()
     for _, ev in ipairs({ "SPELL_UPDATE_COOLDOWN", "SPELL_UPDATE_CHARGES", "SPELL_UPDATE_USABLE",
                           "BAG_UPDATE_COOLDOWN", "BAG_UPDATE_DELAYED", "SPELLS_CHANGED",
                           "PLAYER_EQUIPMENT_CHANGED" }) do
-        E.Register(ev, "custom_cd", CU.MarkDirty)
+        -- ⚠ 包一層：MarkDirty 不收事件參數
+        E.Register(ev, "custom_cd", function() CU.MarkDirty() end)
     end
+    -- 冷卻事件帶法術 ID：只標那幾筆（讀不懂就全標）
+    E.Register("SPELL_UPDATE_COOLDOWN", "custom_cd", OnSpellCooldown)
+    -- 進出編輯模式：冷卻狀態效果在編輯模式中不套（全亮）。訊號可能在暴雪的流程裡同步派送 ⇒ 延一幀
+    ns.RegisterCallback("EditModeChanged", "custom_state", function()
+        ns.Defer(function()
+            for _, rec in pairs(records) do
+                if rec.placedBar and rec.kind ~= "aura" then CU.ApplyState(rec) end
+            end
+        end)
+    end)
     E.Register("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", "custom_glow", function(id) ns.Defer(OnOverlay, true, id) end)
     E.Register("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", "custom_glow", function(id) ns.Defer(OnOverlay, false, id) end)
     ns.RegisterCallback("BarsReady", "custom", function()

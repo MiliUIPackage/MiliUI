@@ -408,5 +408,45 @@ do
     DB.DeleteBar(gb)
 end
 
+------------------------------------------------------------
+-- 11. 冷卻狀態效果（icon.cdState／cdStateAlpha）：預設、三層繼承、覆寫分組、舊存檔補預設
+------------------------------------------------------------
+do
+    local d = DB.BuildDefaults().profile.theme.icon
+    eq("預設冷卻狀態 none", d.cdState, "none")
+    eq("預設變暗透明度 0.4", d.cdStateAlpha, 0.4)
+    eq("SPELL_FALLBACK cdState", DB.SPELL_FALLBACK.cdState, "icon.cdState")
+    eq("SPELL_FALLBACK cdStateAlpha", DB.SPELL_FALLBACK.cdStateAlpha, "icon.cdStateAlpha")
+    eq("覆寫分組 cdState ＝ icon", DB.OVERRIDE_GROUP.cdState, "icon")
+    eq("覆寫分組 cdStateAlpha ＝ icon", DB.OVERRIDE_GROUP.cdStateAlpha, "icon")
+    local P2 = ns.profile
+    P2.bars.essential.follow.icon = true
+    eq("沒覆寫、條跟隨 ⇒ 主題的 none", SS("essential", 4321, "cdState"), "none")
+    P2.theme.icon.cdState = "dim"
+    eq("改主題 ⇒ 跟著變", SS("essential", 4321, "cdState"), "dim")
+    P2.bars.essential.follow.icon = false
+    P2.bars.essential.icon.cdState = "hideOnCD"
+    eq("條不跟隨且有值 ⇒ 條的", SS("essential", 4321, "cdState"), "hideOnCD")
+    eq("條沒存透明度 ⇒ 退回主題", SS("essential", 4321, "cdStateAlpha"), 0.4)
+    eq("值從哪來：條的 icon 節", DB.SpellFallbackSource("essential", "cdState"), "bar")
+    P2.spells[ns.specID] = P2.spells[ns.specID] or {}
+    P2.spells[ns.specID].overrides = P2.spells[ns.specID].overrides or {}
+    P2.spells[ns.specID].overrides[4321] = { cdState = "hideReady" }
+    eq("逐法術覆寫優先", SS("essential", 4321, "cdState"), "hideReady")
+    eq("別的法術照條", SS("essential", 4322, "cdState"), "hideOnCD")
+    eq("覆寫數算在 icon 那一組", DB.CountOverrides({ 4321 }, "icon"), 1)
+    eq("覆寫數不算在 glow 那一組", DB.CountOverrides({ 4321 }, "glow"), 0)
+    P2.spells[ns.specID].overrides[4321] = nil
+    P2.bars.essential.icon.cdState = nil
+    P2.bars.essential.follow.icon = true
+    -- 舊存檔（1.0.7）沒有這兩欄：重新登入合併預設值之後是 none／0.4（行為不變），不動 DB_VERSION
+    P2.theme.icon.cdState = nil
+    P2.theme.icon.cdStateAlpha = nil
+    DB.Init()
+    eq("舊存檔補上 none", ns.profile.theme.icon.cdState, "none")
+    eq("舊存檔補上 0.4", ns.profile.theme.icon.cdStateAlpha, 0.4)
+    eq("DB_VERSION 沒動", ns.DB_VERSION, 3)
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

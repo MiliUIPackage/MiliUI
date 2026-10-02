@@ -571,14 +571,17 @@ local function Relayout(key, level, index, gen)
             item:ClearAllPoints()
             item:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
             item:SetSize(r.w, r.h)
-            item:SetAlpha(alpha)
             if rec then
                 rec.parked = false
                 rec.claimGen = gen
                 rec.claimKey = key
                 ns.Decorate.Apply(item, rec, key, r.w, r.h)
+                -- alpha：條的淡出 × 冷卻狀態（唯一出口；樣式快取在 Apply 裡寫，所以排在它後面）
+                ns.Decorate.ApplyItemAlpha(item, rec, alpha)
                 if ns.Glow then ns.Glow.Sync(item, rec, key) end
                 if ns.Keybinds then ns.Keybinds.Apply(item, rec, key) end
+            else
+                item:SetAlpha(alpha)
             end
             slotOf[e.id] = { key = key, x = r.x, y = r.y, w = r.w, h = r.h }
         end
@@ -791,6 +794,9 @@ Flush = function()
         end
     end
 
+    -- 法術 → 格子的索引（SPELL_UPDATE_COOLDOWN 帶 ID 時只重算那幾格，Core/SpellIndex.lua）
+    if ns.SpellIndex then ns.SpellIndex.Rebuild() end
+
     if not B.ready then
         B.ready = true
         if ns.Fire then ns.Fire("BarsReady") end
@@ -813,7 +819,7 @@ function B.Reapply(sourceKey)
             item:ClearAllPoints()
             item:SetPoint("TOPLEFT", c, "TOPLEFT", slot.x, -slot.y)
             item:SetSize(slot.w, slot.h)
-            item:SetAlpha(VisAlpha(slot.key))
+            ns.Decorate.ApplyItemAlpha(item, rec, VisAlpha(slot.key))
         elseif not ns.Catalog.IsPaused() then
             -- 沒有格子（新出現的、隱藏的、收合中的）：先藏起來，不要在暴雪的格線上閃一下。
             -- 暴雪設定面板開著時不藏：玩家正在那邊拖，新拉進來的要看得到（面板關掉會完整重排）
@@ -993,7 +999,11 @@ function B.Init()
     E.Register("EDIT_MODE_LAYOUTS_UPDATED", "bars_resync", function() B.Resync("editlayout") end)
     ns.RegisterCallback("SpecChanged", "bars_resync", function() B.Resync("spec") end)
 
-    ns.RegisterCallback("CatalogChanged", "bars", function() B.RequestAll("membership") end)
+    ns.RegisterCallback("CatalogChanged", "bars", function()
+        -- 覆寫法術可能換了：索引先照現況重建一次（排版那輪結尾會再建）
+        if ns.SpellIndex then ns.SpellIndex.Rebuild() end
+        B.RequestAll("membership")
+    end)
     ns.RegisterCallback("CatalogResumed", "bars", function() B.RequestAll("membership") end)
     ns.RegisterCallback("ViewersReady", "bars", function()
         for _, src in ipairs(ns.Viewers.ORDER) do B.PinViewer(src) end

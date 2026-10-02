@@ -424,7 +424,8 @@ function Proto:Refresh()
         end
         -- 清單上有、暴雪卻沒給框的：畫面上不會有，這裡標暗（提示有說明），不要假裝它在
         c.missing = (not e.plus and ns.Bars and ns.Bars.IsMissing and ns.Bars.IsMissing(key, e.id)) and true or false
-        c:SetAlpha((e.hidden or c.missing) and 0.35 or 1)
+        -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
+        c:SetAlpha((e.hidden or c.missing) and 0.35 or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
     self.lockedCount = lockedCount

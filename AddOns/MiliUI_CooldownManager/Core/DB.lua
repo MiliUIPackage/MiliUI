@@ -354,7 +354,11 @@ function DB.BuildDefaults()
                 icon  = { skin = "miliui", zoom = 0.08, swipeColor = rgba(0, 0, 0, 0.8), tooltips = true,
                           hideGCDSwipe = false, desaturateOnCooldown = true,
                           -- 暴雪的減益類型邊框（打在目標上的魔法／詛咒…減益會框一圈驅散色）：預設藏
-                          hideDebuffBorder = true },
+                          hideDebuffBorder = true,
+                          -- 冷卻狀態（核心／輔助、自訂法術／物品／飾品欄；增益類不適用）：
+                          -- "none" 不變｜"dim" 冷卻中變暗（cdStateAlpha）｜"hideOnCD" 冷卻中看不到｜"hideReady" 轉好時看不到。
+                          -- 舊存檔沒有這欄 ＝ "none"（合併預設值補上），行為不變、不遷移
+                          cdState = "none", cdStateAlpha = 0.4 },
                 -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
@@ -816,6 +820,9 @@ local SPELL_FALLBACK = {
     procGlow    = "glow.proc.enabled",
     readyGlow   = "glow.ready.enabled",
     desaturate  = "icon.desaturateOnCooldown",
+    -- 冷卻狀態：逐法術可以蓋模式；變暗的透明度逐法術沒有控件（吃條的值），欄位照樣登記
+    cdState      = "icon.cdState",
+    cdStateAlpha = "icon.cdStateAlpha",
 }
 -- 沒有條層對應的覆寫欄位 → 固定預設
 local SPELL_CONST = {
@@ -1084,7 +1091,7 @@ end
 
 -- 覆寫欄位 → 設定頁的哪一節（「本條 N 個法術有覆寫」「清除覆寫」用）
 DB.OVERRIDE_GROUP = {
-    borderColor = "icon", desaturate = "icon",
+    borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon",
     procGlow = "glow", readyGlow = "glow",
     -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
     activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",

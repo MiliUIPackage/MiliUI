@@ -86,6 +86,15 @@ local GLOW_ITEMS = {
     { text = L["Proc"],           value = "proc" },
 }
 
+-- 冷卻狀態（icon.cdState，Core/Decorate.lua 的冷卻狀態效果）
+local CDSTATE_ITEMS = {
+    { text = L["No change"],              value = "none" },
+    { text = L["Dim while on cooldown"],  value = "dim" },
+    { text = L["Hide while on cooldown"], value = "hideOnCD" },
+    { text = L["Hide when ready"],        value = "hideReady" },
+}
+Specs.CDSTATE_ITEMS = CDSTATE_ITEMS
+
 local SIDE_ITEMS = {
     { text = L["Left"],  value = "LEFT" },
     { text = L["Right"], value = "RIGHT" },
@@ -415,6 +424,11 @@ function Specs.Themed(mode, key)
     -- 反過來：核心／輔助（內建的冷卻兩條）沒有光環，減益邊框用不到
     local cdBar = bar and key and ns.DB.IsBuiltinBar(key) and not ns.Viewers.AURA_KIND[key] and true or false
     local function AU(s) if cdBar then return nil end return s end
+    -- 冷卻狀態效果：增益兩條（內建）與長條類的條用不到（長條型群組只收增益長條）
+    local bt = bar and key and ns.DB.BarTable(key)
+    local barsKind = type(bt) == "table" and bt.kind == "bars" or false
+    local function CS(s) if auraBar or barsKind then return nil end return s end
+    local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
 
     -- 圖示
     add({ type = "header", label = L["Icons"] })
@@ -429,6 +443,11 @@ function Specs.Themed(mode, key)
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
         CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"])),
         CD(TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"])),
+        CS(TS("icon", "dropdown", "icon.cdState", L["Cooldown state"], { items = CDSTATE_ITEMS,
+            get = function(info) return ReadThemed(info, "icon.cdState") or "none" end })),
+        CS(TS("icon", "slider", "icon.cdStateAlpha", L["Dimmed opacity"],
+            { min = 10, max = 90, step = 5, scale = 100, disabled = NotDim })),
+        CS(Note(L["Hidden icons keep their place. The global cooldown doesn't count, and a spell with a charge left counts as ready. Buffs aren't affected."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
         TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),

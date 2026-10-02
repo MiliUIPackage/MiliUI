@@ -14,7 +14,7 @@
 --
 -- 為什麼不用 secure 狀態驅動：容器不是 secure 框，而且暴雪的 item 不是容器的子框
 -- （它們的 parent 仍是暴雪檢視器，我們不 SetParent），容器的 alpha 管不到它們 ——
--- 所以每個認領中的 item 也要各自 SetAlpha。
+-- 所以每個認領中的 item 也要各自 SetAlpha（走 Decorate.ApplyItemAlpha：冷卻狀態效果疊在條的 alpha 上，相乘）。
 --
 -- 面板（資源條、自訂格子、施法條）不走上面的模型，各自一條（Vis.PanelAlpha）：
 --   資源條  enabled ＝ false → 0；載入條件 loadConditions（騎乘或坐載具／只在戰鬥中）任一不符 → 0；
@@ -177,7 +177,11 @@ function Vis.Apply(key)
     local c = ns.Bars and ns.Bars.Get(key)
     if c then c:SetAlpha(alpha) end
     if ns.Bars and ns.Bars.ForEachClaimed then
-        ns.Bars.ForEachClaimed(key, function(item) item:SetAlpha(alpha) end)
+        -- 每個 item：條的 alpha × 冷卻狀態（Decorate.ApplyItemAlpha 是唯一出口）
+        local D = ns.Decorate
+        ns.Bars.ForEachClaimed(key, function(item, rec)
+            if D and D.ApplyItemAlpha then D.ApplyItemAlpha(item, rec, alpha) else item:SetAlpha(alpha) end
+        end)
     end
 end
 

@@ -50,6 +50,8 @@
 --     ignoreGCD 的那一版，GCD 本來就不會進來）。
 --   * 就緒音效（Core/Sound.lua）吃同一個訊號：只設了音效、沒開就緒發光也照樣建探針、武裝；
 --     觸發時音效與發光各看各的設定。
+--   * 冷卻狀態效果（Core/Decorate.lua，rec.style.cdState）也吃同一個訊號：有設就建探針、武裝；
+--     觸發（與暴雪 Clear）時先 Decorate.RefreshState 重算 alpha，再看發光／音效。
 -- 亮 glow.ready.duration 秒（預設 3）後熄；期間技能被用掉（進了新的冷卻）就提早熄（G.CooldownStarted）：
 --   * 暴雪 item：SetCooldown 後掛勾裡 isOnGCD == false 且 isActive == true（都要明文）。
 --     回充不算：暴雪每次 GCD 都會對回充中的格子重設一次充能計時，拿它當訊號會按任何招就熄。
@@ -434,12 +436,19 @@ local function SoundWanted(rec)
     return ns.Sound and ns.Sound.WantsReady(rec) or false
 end
 
+-- 冷卻狀態效果（Core/Decorate.lua）也吃探針：轉好的那一刻要立刻把 alpha 換回來，不等下一次刷新
+local function CdStateOn(rec)
+    return rec.style ~= nil and rec.style.cdState ~= nil
+end
+
 local function ReadyOn(rec)
     local barKey = rec.claimKey
-    return barKey and not Hidden(rec) and (Wanted(rec, barKey, "ready") or SoundWanted(rec))
+    return barKey and not Hidden(rec) and (Wanted(rec, barKey, "ready") or SoundWanted(rec) or CdStateOn(rec))
 end
 
 local function Fire(rec)
+    -- 冷卻狀態先重算（不受下面發光／音效的提早 return 影響）
+    if ns.Decorate and ns.Decorate.RefreshState then ns.Decorate.RefreshState(rec) end
     if not ReadyOn(rec) then return end
     local barKey = rec.claimKey
     if SoundWanted(rec) then ns.Sound.OnReady(rec) end
@@ -563,6 +572,9 @@ end
 
 -- 暴雪清掉冷卻（到期那一刻它自己清、或冷卻被重置）而探針還武裝著 ⇒ 就是轉好了
 function G.OnItemClear(item, rec)
+    -- 冷卻狀態：暴雪清掉冷卻（到期或被重置）＝現在可能轉好了，先照現況重算 alpha。
+    -- 暴雪對沒在冷卻的格子每次 GCD 也會 Clear ⇒ 這裡不排 0.1 秒的補算（探針觸發的 Fire 才排）
+    if ns.Decorate and ns.Decorate.RefreshState then ns.Decorate.RefreshState(rec, true) end
     if not rec.probeArmed then return end
     rec.probeArmed = false
     if rec.probe then pcall(rec.probe.Clear, rec.probe) end

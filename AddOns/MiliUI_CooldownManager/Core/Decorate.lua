@@ -5,6 +5,7 @@
 --   ns.Decorate.InvalidateAll()                  設定變了：下一次認領全部重套
 --   ns.Decorate.HookItem(item, rec)              Viewers 第一次看到 item 時叫（每框一次）
 --   ns.Decorate.HoverEnter(rec) / HoverLeave(rec) 可點擊群組的鈕轉來的 hover（提示照 overlay 的設定）
+--   ns.Decorate.ApplyItemAlpha(item, rec, barAlpha) 暴雪 item 的 alpha 唯一出口（條的淡出 × 冷卻狀態，見下面那一節）
 --
 -- 規則
 --   * **只寫有變的**：每個 item 存一個簽章字串（rec.decorated），條設定＋逐法術覆寫＋
@@ -127,6 +128,8 @@ local function SpellStyle(barKey, id)
         desaturate       = SS(barKey, id, "desaturate"),
         hideCooldownText = SS(barKey, id, "hideCooldownText"),
         hideStackText    = SS(barKey, id, "hideStackText"),
+        cdState          = SS(barKey, id, "cdState"),
+        cdStateAlpha     = SS(barKey, id, "cdStateAlpha"),
     }
 end
 
@@ -325,6 +328,8 @@ local function OnSetCooldown(cd, start, duration, modRate)
     if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
     D.ApplyGCDAlpha(item, rec)
+    -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
+    if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
 end
 
 ------------------------------------------------------------
@@ -440,21 +445,200 @@ function D.ApplyGCDAlpha(item, rec)
     rec.gcdAlpha = true
 end
 
--- SPELL_UPDATE_COOLDOWN 很密：只標髒，下一幀對所有認領中、開了隱藏 GCD 的 item 補一次
-local gcdArmed = false
-local function RefreshGCDAll()
-    gcdArmed = false
-    if not (ns.Bars and ns.Bars.ForEachClaimed and ns.profile) then return end
-    for key in pairs(ns.profile.bars or {}) do
-        ns.Bars.ForEachClaimed(key, function(item, rec)
-            if rec.style and rec.style.hideGCD then D.ApplyGCDAlpha(item, rec) end
-        end)
+------------------------------------------------------------
+-- 冷卻狀態效果（cdState）：冷卻中變暗／冷卻中隱藏／轉好時隱藏
+--
+--   ns.Decorate.StateAlphas(mode, x, barAlpha)     純函式 → A_cd, A_ready（模式不適用回 nil）
+--   ns.Decorate.PreviewStateAlpha(mode, x, onCD)   純函式：設定頁預覽格的 alpha（兩種隱藏畫成 0.25）
+--   ns.Decorate.CooldownState(item, rec)           → "plain", onCD | "secret", zero | nil
+--   ns.Decorate.ApplyItemAlpha(item, rec, barAlpha) 暴雪 item 的 alpha **唯一出口**（Bars 放格／Reapply、
+--                                                   Visibility.Apply、SetCooldown 後掛勾、就緒探針都走這支）
+--   ns.Decorate.RefreshState(rec)                  就緒探針觸發（轉好的那一刻）：照現況重算一次，0.1 秒後再一次
+--
+-- 隱藏的格照樣佔位（只動 alpha，不 Hide、不重排）。GCD 不算冷卻；充能法術還有充能＝不算冷卻中
+-- （GetSpellCooldown 的 isActive、ignoreGCD 的 duration 在有充能時都是「沒在冷卻」）。
+-- 增益類（暴雪增益兩條、長條、光環格）不適用：rec.style.cdState 一律 nil。編輯模式中全亮。
+-- 秘密值：讀不到明文旗標就拿引擎的「不含 GCD 的冷卻是零」秘密布林餵 SetAlphaFromBoolean，
+-- 之後**不讀回**那顆框的 alpha（rec.alphaSecret 記著，/mcdm debug 直接印「秘密」）。
+------------------------------------------------------------
+local CD_MODES = { dim = true, hideOnCD = true, hideReady = true }
+D.CD_MODES = CD_MODES
+local PREVIEW_HIDDEN = 0.25          -- 預覽裡「看不到」畫成這麼淡（完全看不到就點不到了）
+
+local function ClampAlpha(x, default)
+    x = tonumber(x) or default
+    if x < 0 then x = 0 elseif x > 1 then x = 1 end
+    return x
+end
+
+-- 適用的模式（none／未知值 ＝ nil）
+local function StateMode(v)
+    return CD_MODES[v] and v or nil
+end
+D.StateMode = StateMode
+
+function D.StateAlphas(mode, x, barAlpha)
+    barAlpha = tonumber(barAlpha) or 1
+    if mode == "dim" then
+        return barAlpha * ClampAlpha(x, 0.4), barAlpha
+    elseif mode == "hideOnCD" then
+        return 0, barAlpha
+    elseif mode == "hideReady" then
+        return barAlpha, 0
+    end
+    return nil
+end
+
+function D.PreviewStateAlpha(mode, x, onCD)
+    if mode == "dim" then return onCD and ClampAlpha(x, 0.4) or 1 end
+    if mode == "hideOnCD" then return onCD and PREVIEW_HIDDEN or 1 end
+    if mode == "hideReady" then return onCD and 1 or PREVIEW_HIDDEN end
+    return 1
+end
+
+function D.CooldownState(item, rec)
+    local info = rec and ns.Catalog.Info(rec.cooldownID)
+    if not info then return nil end
+    -- 1. 裝備欄項目：GCD 期間暴雪拿 GCD 當它的冷卻，用同一套判法
+    if type(info.equipSlot) == "number" then return EquipRealCooldown(info) end
+    local id = info.overrideSpellID or info.spellID
+    if type(id) == "number" and C_Spell then
+        -- 2. 明文旗標（兩個都讀得到才算）
+        if C_Spell.GetSpellCooldown then
+            local ok, cd = pcall(C_Spell.GetSpellCooldown, id)
+            if ok and type(cd) == "table" then
+                local active, gcd = Plain(cd.isActive), Plain(cd.isOnGCD)
+                if type(active) == "boolean" and type(gcd) == "boolean" then
+                    return "plain", (active and not gcd) and true or false
+                end
+            end
+        end
+        -- 3. 讀不到：引擎的「不含 GCD 的冷卻是零」（可能是秘密布林）
+        if C_Spell.GetSpellCooldownDuration then
+            local ok, dur = pcall(C_Spell.GetSpellCooldownDuration, id, true)
+            if ok and dur and dur.IsZero then
+                local ok2, zero = pcall(dur.IsZero, dur)
+                if ok2 and Has(zero) then
+                    if not ns.IsSecret(zero) and type(zero) == "boolean" then return "plain", not zero end
+                    return "secret", zero
+                end
+            end
+        end
+        return nil
+    end
+    -- 4. 沒有法術的類別項目（藥水那種）：暴雪自己的明文欄位（只讀）
+    local v = item and Plain(rawget(item, "isOnActualCooldown"))
+    if type(v) == "boolean" then return "plain", v end
+    return nil
+end
+
+local function EditModeActive()
+    return ns.EditMode and ns.EditMode.active or false
+end
+
+local function CurrentBarAlpha(key)
+    local V = ns.Visibility
+    if not (V and key) then return 1 end
+    local a = V.Current and V.Current(key)
+    if a == nil and V.Alpha then a = V.Alpha(key) end
+    return tonumber(a) or 1
+end
+
+function D.ApplyItemAlpha(item, rec, barAlpha)
+    if not item or ns.released then return end
+    if barAlpha == nil then barAlpha = CurrentBarAlpha(rec and rec.claimKey) end
+    local st = rec and rec.style
+    local mode = st and st.cdState
+    if not mode or EditModeActive() then
+        item:SetAlpha(barAlpha)
+        if rec then rec.stateHidden = nil end
+        return
+    end
+    local aCD, aReady = D.StateAlphas(mode, st.cdAlpha, barAlpha)
+    local kind, v = D.CooldownState(item, rec)
+    if kind == "plain" then
+        local a = v and aCD or aReady
+        item:SetAlpha(a)
+        rec.stateHidden = (a == 0)
+    elseif kind == "secret" and item.SetAlphaFromBoolean
+        and pcall(item.SetAlphaFromBoolean, item, v, aReady, aCD) then
+        -- v ＝「不含 GCD 的冷卻是零」：真 ⇒ 轉好的 alpha
+        rec.stateHidden = nil            -- 不知道藏了沒（提示照舊）
+        rec.alphaSecret = true
+    else
+        item:SetAlpha(barAlpha)
+        rec.stateHidden = nil
     end
 end
-ns.Events.Register("SPELL_UPDATE_COOLDOWN", "decorate_gcd", function()
-    if gcdArmed then return end
-    gcdArmed = true
-    ns.Defer(RefreshGCDAll)
+
+-- rec → 暴雪 item（就緒探針只拿得到 rec）。弱鍵弱值：item 是池化的框，rec 是 Viewers 的弱鍵表裡的值
+local itemOf = setmetatable({}, { __mode = "kv" })
+
+function D.RefreshState(rec, noRetry)
+    if not rec or ns.released then return end
+    if not (rec.style and rec.style.cdState) then return end
+    if rec.custom then
+        if ns.Custom and ns.Custom.RefreshState then ns.Custom.RefreshState(rec) end
+    else
+        local item = itemOf[rec]
+        if item and ns.Viewers.frames[item] == rec and rec.claimKey and not rec.parked then
+            D.ApplyItemAlpha(item, rec)
+        end
+    end
+    -- 探針與本尊的到期可能差幾毫秒（那一刻引擎可能還說在冷卻）：過一下再對一次
+    if not noRetry and C_Timer then
+        C_Timer.After(0.1, function() D.RefreshState(rec, true) end)
+    end
+end
+
+------------------------------------------------------------
+-- SPELL_UPDATE_COOLDOWN 很密：只收集、下一幀對認領中、開了隱藏 GCD 或冷卻狀態的 item 補一次。
+-- 事件帶明文 spellID 而且索引查得到 ⇒ 只跑那幾格；讀不懂（nil／秘密／帶 category 等）⇒ 全掃（Core/SpellIndex.lua）。
+-- 同一幀的多次事件合併：任何一次是全掃就全掃。
+------------------------------------------------------------
+local SI = ns.SpellIndex
+local cdBatch = SI.NewBatch()
+local cdArmed = false
+
+local function NeedsWork(rec)
+    local st = rec.style
+    return st and (st.hideGCD or st.cdState) and true or false
+end
+
+local function RefreshOne(item, rec)
+    if rec.style.hideGCD then D.ApplyGCDAlpha(item, rec) end
+    if rec.style.cdState then D.ApplyItemAlpha(item, rec) end
+end
+
+local function RefreshCooldownAll()
+    cdArmed = false
+    local all, entries = SI.Take(cdBatch)
+    if not (ns.Bars and ns.Bars.ForEachClaimed and ns.profile) or ns.released then return end
+    if all then
+        SI.full = SI.full + 1
+        for key in pairs(ns.profile.bars or {}) do
+            ns.Bars.ForEachClaimed(key, function(item, rec)
+                if NeedsWork(rec) then RefreshOne(item, rec) end
+            end)
+        end
+        return
+    end
+    SI.precise = SI.precise + 1
+    for e in pairs(entries) do
+        local item, rec = e.owner, e.rec
+        if rec and not rec.custom and ns.Viewers.frames[item] == rec and rec.claimKey and not rec.parked
+            and NeedsWork(rec) then
+            RefreshOne(item, rec)
+        end
+    end
+end
+D.RefreshCooldownAll = RefreshCooldownAll
+
+ns.Events.Register("SPELL_UPDATE_COOLDOWN", "decorate_gcd", function(...)
+    SI.Add(cdBatch, SI.Lookup, ns.IsSecret, ...)
+    if cdArmed then return end
+    cdArmed = true
+    ns.Defer(RefreshCooldownAll)
 end)
 
 local function OnClearCooldown(cd)
@@ -602,6 +786,7 @@ D.ApplyProcAlert = ApplyProcAlert
 local function Signature(style, id, spell, w, h)
     return style.sig .. "|" .. tostring(id) .. "|" .. CSig(spell.borderColor) .. "|"
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
+        .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -647,6 +832,8 @@ end
 local function ShowTip(ov)
     local rec = ov.rec
     if not (rec and GameTooltip) then return end
+    -- 冷卻狀態把這格藏起來了（明文判得出來的才算；秘密值路徑不知道，照舊顯示）：看不到的格不冒提示
+    if rec.stateHidden then return end
     GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
     local shown = false
     if rec.custom then
@@ -724,7 +911,11 @@ function D.Apply(item, rec, barKey, w, h)
         drawEdge   = style.drawEdge,
         hideGCD    = style.hideGCDSwipe and not ns.Viewers.AURA_KIND[rec.barKey],
         desaturate = spell.desaturate,
+        -- 冷卻狀態：長條與增益類不適用（nil ＝ alpha 只跟條走）。alpha 本身由呼叫端走 ApplyItemAlpha／Custom.ApplyState
+        cdState    = (not isBar and not ns.Viewers.AURA_KIND[rec.barKey]) and StateMode(spell.cdState) or nil,
+        cdAlpha    = ClampAlpha(spell.cdStateAlpha, 0.4),
     }
+    if not rec.custom then itemOf[rec] = item end
 
     local ov = EnsureOverlay(item, rec, isBar)
     local border = style.border or {}
@@ -840,6 +1031,9 @@ function D.ApplyPreview(cell, barKey, id, w, h)
     local style = D.Resolve(barKey, true)
     local spell = SpellStyle(barKey, id)
     local isBar = style.kind == "bars" and cell.Bar ~= nil
+    -- 冷卻狀態：假冷卻的格照設定畫（Options/Preview.lua 讀 cell.stateAlpha 疊在格子的 alpha 上）
+    local mode = (not isBar and not cell.aura) and StateMode(spell.cdState) or nil
+    cell.stateAlpha = D.PreviewStateAlpha(mode, spell.cdStateAlpha, cell.onCD)
     local sig = Signature(style, id, spell, w, h) .. "|" .. tostring(cell.onCD) .. tostring(cell.aura)
     if cell.decorated == sig then return end
 
