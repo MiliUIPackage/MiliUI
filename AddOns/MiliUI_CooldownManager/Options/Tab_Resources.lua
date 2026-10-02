@@ -872,6 +872,11 @@ local function Controls(cand, sub)
         Note(L["Right to left also lights point-style resources from the right: the first point is the rightmost segment."]),
         { type = "header", label = L["Appearance"] },
         BS("dropdown", "texture", L["Texture"], { items = ns.Specs.TextureItems }),
+        BS("dropdown", "bgTexture", L["Background texture"], { items = function()
+            local items = ns.Specs.TextureItems()
+            table.insert(items, 1, { text = L["Same as fill"], value = ns.Media.INHERIT })
+            return items
+        end, get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.bgTexture) end }),
         BS("slider", "barAlpha", L["Fill opacity"], { min = 0.1, max = 1, step = 0.05 }),
         BS("toggle", "smooth", L["Smooth bar changes"]),
         BS("toggle", "showText", L["Show value on the bar"]),

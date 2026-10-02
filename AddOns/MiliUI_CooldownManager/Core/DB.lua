@@ -206,6 +206,7 @@ ResourcesDefaults = function()
         segmentSpacing = 0,                -- 點數型（聖能、連擊點…）的格距；0 ＝ 相鄰兩格共用 1px 邊（使用者 2026-10-01 指定，不遷移）
         fillDirection = "ltr",             -- ltr | rtl（點數型從右邊亮起）
         texture       = "solid",
+        bgTexture     = "INHERIT",         -- 空的那截（背景）的材質；"INHERIT" ＝ 跟填充同一張（自訂格子也照這個）
         barAlpha      = 1,                 -- 填充色的不透明度
         smooth        = true,              -- 連續條的原生內插（引擎做，吃秘密值）
         -- 條上的數值：預設開、14 號字、置中（使用者 2026-10-01 指定，不遷移）

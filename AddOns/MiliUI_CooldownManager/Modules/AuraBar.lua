@@ -94,7 +94,7 @@ local function Tex(pool, i, parent, layer)
     return t
 end
 
--- geom = { W, H, n, gap, segW, reversed, segments, dim = { r, g, b, a }, px (1 實體像素) }
+-- geom = { W, H, n, gap, segW, reversed, segments, dim = { r, g, b, a }, px (1 實體像素), bgTex（暗底的材質，nil ＝ 純色） }
 local function LayoutDecor(d, anchor, geom)
     local g = AB.Geometry(geom.W, geom.segments and geom.n or 1, geom.segments and geom.gap or 0,
         geom.segments and geom.segW or geom.W)
@@ -117,6 +117,7 @@ local function LayoutDecor(d, anchor, geom)
     for ci, c in ipairs(g.cells) do
         nb = nb + 1
         local bg = Tex(d.bgs, nb, d.parent, "BACKGROUND")
+        bg:SetTexture(geom.bgTex or SOLID)
         bg:SetVertexColor(dim[1], dim[2], dim[3], dim[4])
         Place(bg, c.x, c.w, 0, H)
         -- 1px 黑邊：上下左右各一條（疊在填色之上）
@@ -204,7 +205,8 @@ function AB.Signature(spec)
     if g then
         local dim = g.dim or {}
         parts[#parts + 1] = table.concat({ "in", Fmt(g.W), Fmt(g.H), tostring(g.n), Fmt(g.gap), Fmt(g.segW),
-            tostring(g.segments and true or false), Fmt(g.px), Fmt(dim[1]), Fmt(dim[2]), Fmt(dim[3]), Fmt(dim[4]) }, ":")
+            tostring(g.segments and true or false), Fmt(g.px), Fmt(dim[1]), Fmt(dim[2]), Fmt(dim[3]), Fmt(dim[4]),
+            tostring(g.bgTex) }, ":")
     end
     return table.concat(parts, "|")
 end
