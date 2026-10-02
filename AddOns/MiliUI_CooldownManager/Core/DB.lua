@@ -201,7 +201,8 @@ ResourcesDefaults = function()
         anchor        = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬
         textFont      = "INHERIT",         -- 條上數字的字型（自訂格子也照這個）；"INHERIT" ＝ 跟隨主題的通用字型
-        rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移
+        rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移。沒有控件了：只當 heights 沒設的列的起始值
+        heights       = {},                -- [資源key] = 列高（所有專精共用；設定頁「這個專精要顯示哪些」每列的數字）
         rowSpacing    = 1,
         segmentSpacing = 0,                -- 點數型（聖能、連擊點…）的格距；0 ＝ 相鄰兩格共用 1px 邊（使用者 2026-10-01 指定，不遷移）
         fillDirection = "ltr",             -- ltr | rtl（點數型從右邊亮起）
@@ -239,7 +240,7 @@ ResourcesDefaults = function()
         -- 秘法靈魂的數字（showText 開著才有）：seconds 剩餘秒數／gcd 剩幾個 GCD
         arcaneSoulText = "seconds",
         -- 征戰聖擊列（懲戒）：自己的高度與填充方向，預設照德莫的征戰聖擊助手（高 4、已揮的時間長出來）
-        crusadingHeight = 4,
+        crusadingHeight = 4,                   -- 沒有控件了：只當 heights.CrusadingStrikes 沒設時的起始值
         crusadingFill   = "elapsed",           -- elapsed | remaining
         crusadingHideBar = true,               -- 這一列顯示時，增益長條上的征戰聖擊自動藏起來
         -- [資源key] = { rule, … }：開放式鍵值表。預設只給新設定檔（Atomic：已有 conditions 的設定檔不合併，

@@ -411,6 +411,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 ### 資源條（`Modules/Resources.lua`）
 
+列高是每個資源自己的（`resources.heights[key]`，所有專精共用，設定頁「這個專精要顯示哪些」每列的數字框；2026-10-02 起取代版面那節的共用「每列高」）。沒設過的列退回 `rowHeight`（征戰聖擊退回 `crusadingHeight`），這兩個欄位已經沒有控件、只當起始值，舊存檔不必遷移。
+
 從單位框架的資源條與能量條改來。專精 → 資源清單（`SPEC_RESOURCES`）；德魯伊看型態（熊怒氣、貓能量＋連擊點、
 其餘照專精）；用法力施法的專精（`MANA_SPECS`）在職業資源下面多一列法力；每個專精最後都多一列**血量**（預設關）。一種資源一列：
 
@@ -462,7 +464,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | 無視苦痛「只算自己這顆盾」 | **補了**（2026-10-02）：Lua 讀不到，但引擎讀得到——光環層數（＝佔上限的百分比）交給 AuraContainer 的 `SetApplicationBar` 寫，見上表的 auraPct。原本「只在追蹤了暴雪增益圖示時才讀得到」是 Lua 讀取的限制，引擎寫值不受影響 |
 | 鐵鬃「依施放推算」 | 引擎的 AuraGroup 已經給得出每一層的真實剩餘時間，不必用施放事件猜（推算不含延長效果、戰鬥中身分讀不到） |
 | 增輝喚能師的黯黑力量、秘法法師的秘法靈魂 | **補了**（2026-09-30）：新增 auraTimer 模式，見上表。光環 ID 以 wowhead 核對；參考實作的秘法靈魂是「秘法奔騰結束時」給、固定 4 秒，wowhead 的「歐爾的記憶」寫「秘法鳳凰消失時」給、4 秒——ID 一致（451038），觸發時機的差異不影響做法（只看增益在不在） |
-| 懲戒聖騎的征戰聖擊（普攻計時） | **補了**（2026-10-02）：資源列 `CrusadingStrikes`（`mode = "mirror"`，天賦閘 404542），預設顯示、排在聖能上方。**鏡射**暴雪追蹤量條的 item（我們認領的 buffbars 框，只讀）：每幀 `row.bar:SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手秘密值，活性看 `item:IsVisible()`。先試的 auraTimer 實機整列空白——冷卻清單登記的是天賦本身 404542 這個被動光環，AuraContainer 看不到 ⇒ **征戰聖擊一定要在暴雪的追蹤量條裡**（這一列顯示時增益長條上那條自動拿掉：`crusadingHideBar` 預設開，`R.HidesTrackedBar` 給 `Catalog.Bar` 濾掉，不進「藏著」清單）。自己的高度 `crusadingHeight`（預設 4；`R.KeyRowHeight`、面板高度逐列加總）、填充 `crusadingFill`（elapsed＝反向填充＋兩層角色互換）、底色 `colors.CrusadingStrikes.backColor`（含 alpha）、不印數字。征戰聖擊不在追蹤量條裡時（`R.CrusadingTracked` 查目錄的 buffbars 清單）：設定頁征戰聖擊那段一行紅字、聊天框提示一次（進場／換專精／目錄變了後等 5 秒、脫戰才看，同一段「沒有」只講一次）。預設值照德莫的征戰聖擊助手。助手偵測到本插件就不再掛到資源條上，只剩「同時掛在目標名條」 |
+| 懲戒聖騎的征戰聖擊（普攻計時） | **補了**（2026-10-02）：資源列 `CrusadingStrikes`（`mode = "mirror"`，天賦閘 404542），預設顯示、排在聖能上方。**鏡射**暴雪追蹤量條的 item（我們認領的 buffbars 框，只讀）：每幀 `row.bar:SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手秘密值，活性看 `item:IsVisible()`。先試的 auraTimer 實機整列空白——冷卻清單登記的是天賦本身 404542 這個被動光環，AuraContainer 看不到 ⇒ **征戰聖擊一定要在暴雪的追蹤量條裡**（這一列顯示時增益長條上那條自動拿掉：`crusadingHideBar` 預設開，`R.HidesTrackedBar` 給 `Catalog.Bar` 濾掉，不進「藏著」清單）。高度預設 4（`R.KeyRowHeight`、面板高度逐列加總）、填充 `crusadingFill`（elapsed＝反向填充＋兩層角色互換）、底色 `colors.CrusadingStrikes.backColor`（含 alpha）、不印數字。征戰聖擊不在追蹤量條裡時（`R.CrusadingTracked` 查目錄的 buffbars 清單）：設定頁征戰聖擊那段一行紅字、聊天框提示一次（進場／換專精／目錄變了後等 5 秒、脫戰才看，同一段「沒有」只講一次）。預設值照德莫的征戰聖擊助手。助手偵測到本插件就不再掛到資源條上，只剩「同時掛在目標名條」 |
 | 醉仙緩勁的數值文字、條件規則（秘密值那幾下） | 秘密值不能比較、不能算術；明文時照常 |
 - **條件規則**（`Modules/ResourceConditions.lua`，純邏輯）：形狀跟單位框架的資源條一模一樣（`conditions[key] = { rule… }`，
   第一條成立的勝出、`target` 指定第幾格、`and` 巢狀、深度上限、壞資料當不成立）。**只在值是明文時求值**：
@@ -1147,3 +1149,5 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      小窗各列的「（跟隨主題／跟隨這一條／預設）」跟條頁「跟隨全域主題」的勾選一致。
 144. 生效發光「脫戰也亮」取消後：脫戰時增益生效不亮、一進戰鬥就亮、脫戰又熄；勾回去脫戰也亮；自訂光環格的小窗沒有這個勾選框；自訂光環格挑的發光樣式有生效。
 145. 資源條「背景材質」：挑一張跟填充不同的材質，一般列、點數格、引擎畫的光環列（層數／剩餘時間／百分比）、征戰聖擊列與自訂格子的空的那截都換掉；選回「跟填充相同」恢復；顏色還是原本的暗底。
+146. 資源列各自的高度：「這個專精要顯示哪些」每列的高度數字框改了當場生效、換專精同一個資源還是那個高度；版面那節沒有「每列高」了；
+     舊存檔沒調過的列照原本的列高（征戰聖擊 4）；自訂格子照舊用卡片裡自己的高度。

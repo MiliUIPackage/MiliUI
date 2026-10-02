@@ -785,7 +785,24 @@ local function ShowRow(cand, i)
         SetArrowEnabled(down, not last)
         up:SetScript("OnClick", function() MoveRow(ctx, key, -1) end)
         down:SetScript("OnClick", function() MoveRow(ctx, key, 1) end)
-        local function Refresh() cb:SetChecked(R.RowOn(Cfg(), ns.specID, key)) end
+        -- 這一列的高（所有專精共用，跟順序一樣）
+        local hl = parent:CreateFontString(nil, "OVERLAY")
+        hl:SetFontObject(W.fontSmall)
+        hl:SetTextColor(0.65, 0.65, 0.65)
+        hl:SetText(L["Height"])
+        hl:SetPoint("LEFT", down, "RIGHT", 12, 0)
+        local hb = W.CreateNumberBox(parent, 40, 1, function(v)
+            local c = Cfg()
+            if not c then return end
+            R.SetKeyHeight(c, key, v)
+            Touched(ctx)
+        end)
+        hb:SetPoint("LEFT", hl, "RIGHT", 6, 0)
+        local function Refresh()
+            local c = Cfg()
+            cb:SetChecked(R.RowOn(c, ns.specID, key))
+            hb:SetValue(R.KeyRowHeight(c, key))
+        end
         Refresh()
         return ROW_TOGGLE_H, Refresh
     end }
@@ -858,13 +875,13 @@ local function Controls(cand, sub)
     else
         for i in ipairs(cand) do add(ShowRow(cand, i)) end
         add(Note(L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."]))
+        add(Note(L["Height is per resource and shared by every specialization too."]))
     end
 
     for _, s in ipairs({
         { type = "header", label = L["Layout"] },
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of Essential Cooldowns."]),
-        BS("slider", "rowHeight", L["Row height"], { min = 2, max = 30, step = 1 }),
         BS("slider", "rowSpacing", L["Row spacing"], { min = 0, max = 12, step = 1 }),
         BS("slider", "segmentSpacing", L["Segment spacing"], { min = 0, max = 8, step = 1 }),
         Note(L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."]),
@@ -933,7 +950,6 @@ local function Controls(cand, sub)
                 add(Note(L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."]))
             elseif key == "CrusadingStrikes" then
                 add(BS("color", "colors.CrusadingStrikes.backColor", L["Background color"], { hasAlpha = true }))
-                add(BS("slider", "crusadingHeight", L["Row height"], { min = 1, max = 30, step = 1 }))
                 add(BS("dropdown", "crusadingFill", L["Bar fills with"], { items = CRUSADING_FILL_ITEMS }))
                 add(BS("toggle", "crusadingHideBar", L["Hide Crusading Strikes on the buff bars"]))
                 -- 沒在暴雪的追蹤量條裡 ⇒ 這一列沒有來源、一直空著：紅字講清楚（戰鬥中查不到就不講，不猜）
