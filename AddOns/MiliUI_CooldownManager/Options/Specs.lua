@@ -474,14 +474,8 @@ function Specs.Themed(mode, key)
         TS("glow", "color", "glow.ready.color", L["Color"]),
         GlowSampleRow("ready"),
         TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
-    -- 生效發光：只有增益會用到（主題頁、增益兩條、自訂群組——增益可以搬進去）。沒有「啟用」：逐法術開
-    if not bar or not key or not ns.DB.IsBuiltinBar(key) or ns.Viewers.AURA_KIND[key] then
-        add(Nested(L["Active glow"], "glow"),
-            Note(L["Glows for as long as the buff is active. Turn it on per buff: click its icon in the bar preview."], "glow"),
-            TS("glow", "dropdown", "glow.active.type", L["Style"], { items = GLOW_ITEMS }),
-            TS("glow", "color", "glow.active.color", L["Default color"]),
-            GlowSampleRow("active"))
-    end
+    -- 生效發光（增益）沒有統一設定：逐法術在預覽點圖示開、顏色也在那裡挑（使用者 2026-10-02 拿掉這一節）；
+    -- 樣式固定用 glow.active 的預設（Core/DB.lua）
     add(Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
