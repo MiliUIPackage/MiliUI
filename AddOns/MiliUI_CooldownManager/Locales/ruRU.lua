@@ -52,7 +52,7 @@ L["Cancel"] = "Отмена"
 L["Can't change settings during combat"] = "Нельзя менять настройки в бою"
 -- 編輯模式
 L["Dragging stops it following %s"] = "Перетаскивание отвяжет её от «%s»"
-L["Cooldown Manager settings are in /mcdm."] = "Настройки менеджера восстановлений — в /mcdm."
+L["Cooldown Manager settings are in /mcdm, or click a bar to open its settings."] = "Настройки менеджера восстановлений — в /mcdm, или щёлкните по панели, чтобы открыть её настройки."
 -- 設定介面
 L["Click to open this bar's settings."] = "Щелкните, чтобы открыть настройки этой панели."
 L["Drag to move. Hold Shift to disable snapping."] = "Перетащите, чтобы переместить. Удерживайте Shift, чтобы отключить прилипание."

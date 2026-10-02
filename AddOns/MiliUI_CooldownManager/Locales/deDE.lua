@@ -52,7 +52,7 @@ L["Cancel"] = "Abbrechen"
 L["Can't change settings during combat"] = "Einstellungen können im Kampf nicht geändert werden"
 -- 編輯模式
 L["Dragging stops it following %s"] = "Ziehen löst die Bindung an %s"
-L["Cooldown Manager settings are in /mcdm."] = "Die Einstellungen des Abklingzeiten-Managers findest du unter /mcdm."
+L["Cooldown Manager settings are in /mcdm, or click a bar to open its settings."] = "Die Einstellungen des Abklingzeiten-Managers findest du unter /mcdm, oder klicke auf eine Leiste, um ihre Einstellungen zu öffnen."
 -- 設定介面
 L["Click to open this bar's settings."] = "Klicken, um die Einstellungen dieser Leiste zu öffnen."
 L["Drag to move. Hold Shift to disable snapping."] = "Ziehen zum Verschieben. Umschalt gedrückt halten, um das Einrasten auszuschalten."

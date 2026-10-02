@@ -156,7 +156,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   **不 Hide**（Hide 會從我們的執行跑暴雪的 OnHide、寫 `attachedToSystem`）：後掛勾 `AttachToSystemFrame`
   當場 `SetAlpha(0)`＋`EnableMouse(false)`，對話框與每個吃滑鼠／滾輪的子孫都關、記下來；下一次
   `AttachToSystemFrame` 的系統不是四條之一、或離開編輯模式時照記錄還回去。第一次藏時聊天框印一行
-  「冷卻管理器的設定在 /mcdm」。對話框的內容、欄位與 `Settings` 列不碰。
+  「冷卻管理器的設定在 /mcdm，或點一下藍框開那條的設定」。對話框的內容、欄位與 `Settings` 列不碰。
 - **編輯模式裡每條全亮**：顯示條件（沒目標淡出、騎乘隱藏…）在編輯模式中不生效，離開後恢復。
 - **空條**：沒 buff 的條容器可能只有 1×1，覆蓋層與選取框至少一格（`layout.size`）大，照樣拖得動；
   樣板內容（假圖示）留給 D／E 階段的預覽。
@@ -880,7 +880,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 17. 戰鬥中進出、拖曳中進戰鬥零 ADDON_ACTION_BLOCKED；資源條（錨在核心技能上）拖曳脫離、施法條拖曳，放手後位置不跳。
 18. 暴雪的系統設定對話框：點四條檢視器 ⇒ 看不到也點不到（對話框本身與子孫的滑鼠、滾輪都關了）；點別的系統 ⇒ 正常顯示、每個控件都點得到、滾輪有反應；離開編輯模式再進來也正常。點過四條、離開編輯模式打一場，快捷列零封鎖、`/dump issecurevariable(EditModeSystemSettingsDialog, "attachedToSystem")` 為真（我們不再 Hide 它，不會寫到這一欄）。對話框藏著時暴雪若又為四條之一重建設定列（新的列沒被我們關滑鼠），確認不會出現看不見但點得到的控件。
 19. 暴雪 Selection `SetAllPoints` 到覆蓋層後，暴雪自己的磁吸（別的系統吸到冷卻管理器）與 `UpdateClampOffsets` 沒有怪行為；離開編輯模式後 Selection 留著這個錨點（下次進來會重貼）。
-20. （已移除：覆蓋層右上角的齒輪，2026-10-02 拿掉）
+20. 編輯模式點一下藍框（沒拖）開那條的設定頁，四條檢視器（暴雪 Selection，後掛勾 OnMouseDown／OnMouseUp）與自訂條都要試；拖完放開不能開。
 21. 暴雪的「吸附」開關與格距讀得到（`IsSnapEnabled`、`GetAccountSettingValue(GridSpacing)`），格線原點是畫面中心、單位是 UIParent 座標。
 22. 覆蓋層 strata HIGH：條名與提示要蓋得過選取框（MEDIUM／1000、toplevel），但不能蓋過暴雪的編輯模式面板（DIALOG）。
 23. 刪掉自訂群組後進編輯模式：那一條的覆蓋層與選取框不再出現。
