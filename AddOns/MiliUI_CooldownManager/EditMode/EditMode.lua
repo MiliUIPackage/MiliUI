@@ -334,16 +334,17 @@ end
 -- ⚠ 自己這顆 frame 的 OnEvent、同步跑完。PLAYER_REGEN_DISABLED 派送當下鎖定還沒生效，
 --   延一幀就錯過了。拖曳中：收掉、容器放回存檔位置，不寫 db。
 ------------------------------------------------------------
+-- 脫戰一律註冊、不看進戰鬥那一刻的狀態：戰鬥中才開設定視窗（/mcdm）時，方向鍵捕捉框被
+-- UpdateKeyCatcher 的戰鬥閘收著，脫戰要有人把它開回來
 local combatWatcher = CreateFrame("Frame")
 combatWatcher:RegisterEvent("PLAYER_REGEN_DISABLED")
-combatWatcher:SetScript("OnEvent", function(self, event)
+combatWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+combatWatcher:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_REGEN_DISABLED" then
         if dragState then xpcall(EM.EndDrag, ns.ReportError, false) end
         keys:Hide()
-        if EM.Editing() then self:RegisterEvent("PLAYER_REGEN_ENABLED") end
-    else
-        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-        if EM.Editing() then EM.RequestRefresh() end
+    elseif EM.Editing() then
+        EM.RequestRefresh()
     end
 end)
 
