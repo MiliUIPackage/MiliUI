@@ -1019,7 +1019,7 @@ local function LayoutRuneTimer(seg, on, cfg)
         fs:SetTextColor(1, 1, 1, 1)
         seg.timer = fs
     end
-    ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, "OUTLINE", ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, ns.Media.ThemeOutline(), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
     seg.timer:SetText("")
     seg.timerSec = nil
     seg.timer:Show()
@@ -1224,6 +1224,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
         text = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
+            outline = ns.Media.ThemeOutline(),
             decimals = TIMER_DECIMALS_BELOW,
         }
     end
@@ -1265,6 +1266,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
         count = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
+            outline = ns.Media.ThemeOutline(),
             suffix = "%",
         }
     end
@@ -1336,7 +1338,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     local tex = ns.Media.Texture(cfg.texture)
     local showText = cfg.showText and true or false
     if def.fill == "rune" then showText = showText and R.RuneText(cfg) == "count" end
-    ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, "OUTLINE", ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, ns.Media.ThemeOutline(), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
     row.text:SetText("")
 
     -- 這一列實際的畫法：容器沒好時 auraBar 退回 pip（明文層數）、auraTimer 退回空條

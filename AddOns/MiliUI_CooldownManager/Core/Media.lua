@@ -56,6 +56,20 @@ function M.Texture(token)
     return M.WHITE8X8
 end
 
+-- 描邊旗標：主題「文字」的描邊下拉五個值。單色（MONOCHROME）＝關掉反鋸齒，像素字體要它才銳利
+M.OUTLINES = {
+    [""] = true, OUTLINE = true, THICKOUTLINE = true,
+    ["MONOCHROME,OUTLINE"] = true, ["MONOCHROME,THICKOUTLINE"] = true,
+}
+-- 不認得的（nil、舊存檔亂值）一律 OUTLINE（預設值）
+function M.Outline(v)
+    return M.OUTLINES[v] and v or "OUTLINE"
+end
+-- 沒有條層設定的面板（資源條、自訂格子、施法條）跟主題的描邊
+function M.ThemeOutline()
+    return M.Outline(ns.Setting(nil, "outline"))
+end
+
 -- 套字型：fs, size, flags（"OUTLINE" 等）, token
 function M.SetFont(fs, size, flags, token)
     fs:SetFont(M.Font(token), size or 12, flags or "")

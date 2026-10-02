@@ -369,8 +369,9 @@ function CB.Layout()
 
     local font = ns.Media.ElementFont(cfg.font, ns.Setting(nil, "font"))
     local size = tonumber(cfg.textSize) or 12
-    ns.Media.SetFont(f.nameText, size, "OUTLINE", font)
-    ns.Media.SetFont(f.timeText, size, "OUTLINE", font)
+    local outline = ns.Media.ThemeOutline()
+    ns.Media.SetFont(f.nameText, size, outline, font)
+    ns.Media.SetFont(f.timeText, size, outline, font)
     f.timeText:ClearAllPoints()
     f.timeText:SetPoint("RIGHT", f.textFrame, "RIGHT", -4, 0)
     f.nameText:ClearAllPoints()

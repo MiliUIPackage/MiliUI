@@ -173,9 +173,9 @@ end
 --          color = { r, g, b }, alpha, reversed,
 --          inside = geom | nil（「有光環才顯示」：裝飾建在按鈕子樹裡），
 --          cell = geom（instances 必填：一格的大小與格距，進簽章），
---          text = { font = 路徑, size = 實體像素字級, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字 }
+--          text = { font = 路徑, size = 實體像素字級, outline = 描邊旗標, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字 }
 --                 | nil（duration 專用：秒數文字，進簽章），
---          count = { font, size, suffix } | nil（applications 專用：層數文字，進簽章） }
+--          count = { font, size, outline, suffix } | nil（applications 專用：層數文字，進簽章） }
 ------------------------------------------------------------
 function AB.Signature(spec)
     local ids = {}
@@ -194,12 +194,12 @@ function AB.Signature(spec)
     end
     local tx = spec.kind == "duration" and spec.text
     if type(tx) == "table" then
-        parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.decimals) }, ":")
+        parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.outline), tostring(tx.decimals) }, ":")
         if tx.gcd then parts[#parts + 1] = table.concat({ "gcd", Fmt(tx.gcd), tostring(tx.last) }, ":") end
     end
     local cn = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.count
     if type(cn) == "table" then
-        parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.suffix) }, ":")
+        parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.outline), tostring(cn.suffix) }, ":")
     end
     local g = spec.inside
     if g then
@@ -252,7 +252,7 @@ local function InitTimerText(btn, bar, st)
     tf:SetAllPoints(btn)
     tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
     local fs = tf:CreateFontString(nil, "OVERLAY")
-    fs:SetFont(tx.font, tx.size, "OUTLINE")
+    fs:SetFont(tx.font, tx.size, tx.outline or "OUTLINE")
     pcall(fs.SetIgnoreParentScale, fs, true)
     fs:SetTextColor(1, 1, 1, 1)
     fs:SetJustifyH("CENTER")
@@ -270,7 +270,7 @@ local function InitCountText(btn, bar, cn)
     tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
     local off = (cn.suffix and cn.suffix ~= "") and (tonumber(cn.size) or 10) * 0.3 or 0
     local fs = tf:CreateFontString(nil, "OVERLAY")
-    fs:SetFont(cn.font, cn.size, "OUTLINE")
+    fs:SetFont(cn.font, cn.size, cn.outline or "OUTLINE")
     pcall(fs.SetIgnoreParentScale, fs, true)
     fs:SetTextColor(1, 1, 1, 1)
     if off > 0 then
@@ -283,7 +283,7 @@ local function InitCountText(btn, bar, cn)
     btn:SetApplicationCount(fs, {})
     if off > 0 then
         local sx = tf:CreateFontString(nil, "OVERLAY")
-        sx:SetFont(cn.font, cn.size, "OUTLINE")
+        sx:SetFont(cn.font, cn.size, cn.outline or "OUTLINE")
         pcall(sx.SetIgnoreParentScale, sx, true)
         sx:SetTextColor(1, 1, 1, 1)
         sx:SetJustifyH("LEFT")

@@ -451,7 +451,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
                 if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(not showTime) end
                 local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
                 if fs then
-                    ns.Media.SetPixelFont(fs, fontSize, "OUTLINE", font)
+                    ns.Media.SetPixelFont(fs, fontSize, ns.Media.ThemeOutline(), font)
                     fs:SetTextColor(1, 1, 1, 1)
                     fs:ClearAllPoints()
                     fs:SetPoint("CENTER", cell, "CENTER", 0, 0)

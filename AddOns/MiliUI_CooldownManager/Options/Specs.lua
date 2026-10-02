@@ -112,6 +112,9 @@ local OUTLINE_ITEMS = {
     { text = L["None"],          value = "" },
     { text = L["Outline"],       value = "OUTLINE" },
     { text = L["Thick outline"], value = "THICKOUTLINE" },
+    -- 單色＝關掉反鋸齒：像素字體用（一般字型選了邊緣會有鋸齒）
+    { text = L["Monochrome outline"],       value = "MONOCHROME,OUTLINE" },
+    { text = L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
 }
 
 -- 錨定的「邊」：本條貼在目標的哪一邊

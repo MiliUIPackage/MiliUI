@@ -411,7 +411,11 @@ end
 ------------------------------------------------------------
 -- 3. 文字（字型、倒數、充能、層數）
 ------------------------------------------------------------
-local OUTLINES = { [""] = "", NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+local OUTLINES = {
+    [""] = "", NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE",
+    ["MONOCHROME,OUTLINE"] = "MONOCHROME,OUTLINE", ["OUTLINE,MONOCHROME"] = "MONOCHROME,OUTLINE",
+    ["MONOCHROME,THICKOUTLINE"] = "MONOCHROME,THICKOUTLINE", ["THICKOUTLINE,MONOCHROME"] = "MONOCHROME,THICKOUTLINE",
+}
 
 local function StepText(ctx)
     local theme = ctx.out.theme
@@ -421,7 +425,9 @@ local function StepText(ctx)
     if type(outline) == "string" then
         local o = OUTLINES[outline]
         if o == nil then
+            -- 不認得的組合：粗細照留；有單色就保留單色（純單色沒有對應選項，配一般描邊）
             o = outline:find("THICK") and "THICKOUTLINE" or (outline:find("OUTLINE") and "OUTLINE" or "")
+            if outline:find("MONOCHROME") then o = "MONOCHROME," .. (o == "" and "OUTLINE" or o) end
             Approx(ctx, "textFontOutline", "outline flags reduced to " .. (o == "" and "none" or o))
         end
         theme.outline = o
