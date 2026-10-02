@@ -45,6 +45,14 @@ local function StatusLines()
     -- 還把它標成紅字只會讓玩家去修一個沒壞的東西
     -- 自動模式要把「實際掛在哪」講出來，否則玩家看到的是「自動」兩個字，猜不到結果
     local autoNote = s.attach == "auto" and (" |cff808080" .. L["(automatic)"] .. "|r") or ""
+    if s.miliCDM then
+        lines[#lines + 1] = L["Cooldown manager addon:"] .. " "
+            .. Mark(true, L["MiliUI Cooldown Manager draws its own Crusading Strikes bar"])
+        -- 沒有要畫名條的話，下面那幾項（名條插件、追蹤量條）都跟這支無關
+        if s.effective == "off" then
+            return table.concat(lines, "\n"), false
+        end
+    end
     if ns.Anchor.IsResourceMode(s.effective) then
         lines[#lines + 1] = L["Holy Power bar:"] .. autoNote .. " "
             .. Mark(s.resource, s.resource and L["Found (cooldown manager addon)"] or L["Not found — no cooldown manager addon is loaded, or its Holy Power bar is off for this spec"])
@@ -99,6 +107,16 @@ local function BuildStatus(parent, x, y, width)
     end
 end
 
+local CAST_CONTROLS = {
+    { type = "header", label = L["Cast bar"] },
+    { type = "dropdown", sub = "bar", key = "castMode", label = L["When a cast bar shows"], items = {
+        { text = L["Move below the cast bar"], value = "below" },
+        { text = L["Hide the bar"],            value = "hide" },
+        { text = L["Leave it where it is"],    value = "stay" },
+    } },
+    { type = "text", label = L["Nameplate only. Applies when the nameplate design puts its cast bar below the health bar; designs that put it above are left alone."] },
+}
+
 local CONTROLS = {
     { type = "header", label = L["Crusading Strikes helper"] },
     { type = "toggle", key = "enabled", label = L["Enable"] },
@@ -116,22 +134,34 @@ local CONTROLS = {
     } },
     { type = "text", label = L["Automatic: above the cooldown manager addon's Holy Power bar when one is loaded, otherwise below the target nameplate's health bar."] },
     { type = "text", label = L["Width follows whatever it is attached to (Appearance → Width). On the Holy Power bar it also follows that bar's fading and scale."] },
-
-    { type = "header", label = L["Cast bar"] },
-    { type = "dropdown", sub = "bar", key = "castMode", label = L["When a cast bar shows"], items = {
-        { text = L["Move below the cast bar"], value = "below" },
-        { text = L["Hide the bar"],            value = "hide" },
-        { text = L["Leave it where it is"],    value = "stay" },
-    } },
-    { type = "text", label = L["Nameplate only. Applies when the nameplate design puts its cast bar below the health bar; designs that put it above are left alone."] },
 }
+
+-- MiliUI_CooldownManager 載入時：征戰聖擊條歸它（資源條的一列），這支只剩「名條上也畫一條」。
+-- 「隱藏冷卻管理器裡的那條」也拿掉 —— 那些框是它認領的，要藏在它的設定頁移除（見 Source.ApplyDim）
+local CDM_CONTROLS = {
+    { type = "header", label = L["Crusading Strikes helper"] },
+    { type = "toggle", key = "enabled", label = L["Enable"] },
+    { type = "custom", label = L["Status"], build = BuildStatus },
+
+    { type = "header", label = L["Where to attach"] },
+    { type = "toggle", sub = "bar", key = "withCDM", label = L["Also show on the target nameplate"] },
+    { type = "text", label = L["MiliUI Cooldown Manager has its own Crusading Strikes bar (a row of its resource bar); set its order, size and colors there. Turn this on to also draw one below your target nameplate's health bar."] },
+    { type = "text", label = L["The nameplate bar needs Crusading Strikes in Blizzard's Tracked Bars row. If you don't want to see that bar, remove it in MiliUI Cooldown Manager's settings; it keeps updating."] },
+}
+
+local function Controls()
+    local list = {}
+    for _, c in ipairs(ns.Anchor.MiliCDMLoaded() and CDM_CONTROLS or CONTROLS) do list[#list + 1] = c end
+    for _, c in ipairs(CAST_CONTROLS) do list[#list + 1] = c end
+    return list
+end
 
 local function Init()
     if tab then return end
     tab, scroll = ns.Options.MakeFormTab(L["General"])
     local ctx = ns.Controls.MakeCtx(function() return ns.db end, Apply)
     local _
-    _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)
+    _, refreshers = ns.Options.BuildScrollBody(scroll, Controls(), ctx)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "generalTab", function(id)

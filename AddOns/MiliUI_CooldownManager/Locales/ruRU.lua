@@ -562,3 +562,9 @@ L["Overflow color"] = "Цвет переполнения"
 L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "У Разрушения видны доли осколков: заполняющееся деление на тон темнее, а число на полосе — с одним знаком после запятой."
 L["The next segment fills up as Essence recharges, a shade darker."] = "Следующее деление заполняется на тон темнее, пока восстанавливается сущность."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Осталось глобальных перезарядок: сколько ещё глобальных перезарядок поместится до конца эффекта; во время последней показывается \"Последний\". Зависит от скорости; если скорость меняется в бою, счёт обновится после боя."
+
+-- 征戰聖擊列
+L["Time since the last swing (grows)"] = "Время с последнего удара (растёт)"
+L["Time until the next swing (shrinks)"] = "Время до следующего удара (убывает)"
+L["Bar fills with"] = "Полоса заполняется по"
+L["The game runs this timer itself, so Crusading Strikes doesn't need to be in Blizzard's Tracked Bars row. This row has its own height; it shows no number and condition rules don't apply."] = "Игра сама ведёт этот таймер, поэтому Удары крестоносца не нужно добавлять в ряд отслеживаемых полос Blizzard. У этой строки своя высота; число не выводится, правила условий не действуют."

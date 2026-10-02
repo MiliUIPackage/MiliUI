@@ -40,7 +40,9 @@ local function BuildDefaults()
             --   "resourceBelow" 冷卻管理器插件的聖能條下方
             -- 後三個是玩家明確選的，照他的，不做退路。
             -- 聖能條模式下 castMode 不適用（那邊沒有施法條要讓）。
+            -- MiliUI_CooldownManager 載入時 attach 不適用（它自己有征戰聖擊列），改看 withCDM。
             attach    = "auto",
+            withCDM   = false,      -- MiliUI_CooldownManager 載入時：另外在目標名條上也畫一條
             height    = 4,
             widthMode = "match",    -- "match" = 兩端錨在血條上（跟血條同寬）；"custom" = 用 width
             width     = 120,
