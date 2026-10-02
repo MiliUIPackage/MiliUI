@@ -505,6 +505,8 @@ local function StepIcons(ctx)
     if v then icon.swipeColor = v end
     v = Take(ctx, "hideGCDSwipe")
     if type(v) == "boolean" then icon.hideGCDSwipe = v end
+    v = Take(ctx, "hideDebuffBorder")
+    if type(v) == "boolean" then icon.hideDebuffBorder = v end
     v = Take(ctx, "disableCooldownDesat")
     if type(v) == "boolean" then icon.desaturateOnCooldown = not v end
 
@@ -1535,7 +1537,7 @@ local NO_EQUIVALENT = {
     buffBarApplicationsOffsetX = true, buffBarApplicationsOffsetY = true,
     unifiedBorder = true, moveBuffsDown = true, moveBuffsDownOffset = true, moveBuffsDownFallback = true,
     resourceGroupSettings = true, borderOffsetX = true, borderOffsetY = true,
-    hideIconOverlay = true, hideIconOverlayTexture = true, hideBuffSwipe = true, hideDebuffBorder = true,
+    hideIconOverlay = true, hideIconOverlayTexture = true, hideBuffSwipe = true,
     hideCooldownBling = true, chargeShowEdge = true, chargeHideSwipe = true, chargeHideRechargeTimer = true,
     glowPixelLength = true, glowPixelXOffset = true, glowPixelYOffset = true, glowPixelBorder = true,
     glowAutocastScale = true, glowAutocastXOffset = true, glowAutocastYOffset = true,

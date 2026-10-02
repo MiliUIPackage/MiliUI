@@ -352,7 +352,9 @@ function DB.BuildDefaults()
                 -- skin：圖示外觀 "miliui"（自己畫邊框／縮放）| "masque"（交給 Masque，Core/Masque.lua）；
                 -- 舊存檔沒有這欄 ＝ 預設，不遷移
                 icon  = { skin = "miliui", zoom = 0.08, swipeColor = rgba(0, 0, 0, 0.8), tooltips = true,
-                          hideGCDSwipe = false, desaturateOnCooldown = true },
+                          hideGCDSwipe = false, desaturateOnCooldown = true,
+                          -- 暴雪的減益類型邊框（打在目標上的魔法／詛咒…減益會框一圈驅散色）：預設藏
+                          hideDebuffBorder = true },
                 -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),

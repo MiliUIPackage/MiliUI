@@ -412,6 +412,9 @@ function Specs.Themed(mode, key)
     -- 增益兩條（內建）沒有冷卻：觸發發光（技能的觸發亮框）、就緒發光、冷卻中去飽和、隱藏 GCD 轉圈都用不到
     local auraBar = bar and key and ns.DB.IsBuiltinBar(key) and ns.Viewers.AURA_KIND[key] and true or false
     local function CD(s) if auraBar then return nil end return s end
+    -- 反過來：核心／輔助（內建的冷卻兩條）沒有光環，減益邊框用不到
+    local cdBar = bar and key and ns.DB.IsBuiltinBar(key) and not ns.Viewers.AURA_KIND[key] and true or false
+    local function AU(s) if cdBar then return nil end return s end
 
     -- 圖示
     add({ type = "header", label = L["Icons"] })
@@ -426,6 +429,8 @@ function Specs.Themed(mode, key)
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
         CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"])),
         CD(TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"])),
+        AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
+        AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
         TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),
         Note(L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."], "icon"))
 

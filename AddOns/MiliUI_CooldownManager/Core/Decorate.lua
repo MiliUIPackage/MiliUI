@@ -93,6 +93,7 @@ function D.Resolve(barKey, fresh)
         tooltips     = S(barKey, "icon.tooltips") and true or false,
         swipeColor   = S(barKey, "icon.swipeColor"),
         hideGCDSwipe = S(barKey, "icon.hideGCDSwipe") and true or false,
+        hideDebuffBorder = S(barKey, "icon.hideDebuffBorder") ~= false,   -- 舊存檔沒有這欄 ＝ 預設藏
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
         cooldownText = S(barKey, "cooldownText") or {},
         chargeText   = S(barKey, "chargeText") or {},
@@ -102,7 +103,7 @@ function D.Resolve(barKey, fresh)
     }
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
-        CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.drawEdge), tostring(r.tooltips),
+        CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
         type(r.bar) == "table" and TSig(r.bar) or "-",
         tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
@@ -284,6 +285,17 @@ local function StripBlizzard(item, rec, isBar)
     else
         Unmask(item.Icon)
         DimAtlasRegions(item, ICON_OVERLAY_ATLAS)
+    end
+end
+
+-- 暴雪的減益類型邊框（item.DebuffBorder；長條型可能在 item.Icon 底下）：有害光環才出現、框一圈驅散色，
+-- 跟我們的 1px 邊框疊在一起像兩層外框。暴雪只對它 Show／Hide、不碰 alpha ⇒ alpha 0 一直有效；
+-- 不 Hide（暴雪下一次 RefreshIconBorder 會再 Show）、不寫它的欄位。設定關掉時還 alpha 1
+local function DimDebuffBorder(item, hide)
+    local a = hide and 0 or 1
+    for _, owner in ipairs({ item, item.Icon }) do
+        local b = type(owner) == "table" and owner.DebuffBorder
+        if type(b) == "table" and b.SetAlpha then pcall(b.SetAlpha, b, a) end
     end
 end
 
@@ -703,6 +715,7 @@ function D.Apply(item, rec, barKey, w, h)
 
     D.HookItem(item, rec)
     StripBlizzard(item, rec, isBar)
+    DimDebuffBorder(item, style.hideDebuffBorder)
 
     -- 後掛勾讀的快取（暴雪下一次刷新時再套一次）
     local sr, sg, sb, sa = C4(style.swipeColor, 0, 0, 0, 0.8)
