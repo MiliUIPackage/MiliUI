@@ -930,7 +930,8 @@ local function Controls(cand, sub)
                 add(BS("color", "colors.CrusadingStrikes.backColor", L["Background color"], { hasAlpha = true }))
                 add(BS("slider", "crusadingHeight", L["Row height"], { min = 1, max = 30, step = 1 }))
                 add(BS("dropdown", "crusadingFill", L["Bar fills with"], { items = CRUSADING_FILL_ITEMS }))
-                add(Note(L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must be in the Tracked Bars row of Blizzard's Cooldown Manager. To hide that bar, remove it from Tracked Bars here; this row keeps moving. It has its own height, shows no number, and condition rules don't apply."]))
+                add(BS("toggle", "crusadingHideBar", L["Hide Crusading Strikes on the buff bars"]))
+                add(Note(L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."]))
             elseif key == "Ironfur" then
                 add(Note(L["One segment per active application, each draining with its own remaining time."]))
             elseif key == "Health" then

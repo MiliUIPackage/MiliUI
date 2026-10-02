@@ -1824,8 +1824,9 @@ end
 -- SetMinMaxValues／SetValue（戰鬥中是秘密值），**原生 StatusBar 之間原封轉手是允許的**：
 --     row.bar:SetMinMaxValues(src:GetMinMaxValues()); row.bar:SetValue(src:GetValue())
 -- 中間沒有任何比較或算術。那個 item 本來就是我們認領的框（buffbars），**只讀不寫**。
--- ⇒ 前置條件：征戰聖擊要在暴雪冷卻管理器的「追蹤的量條」裡。在我們的增益長條上把它移除沒關係
---   （移除＝停到畫面外＋alpha 0，不 Hide，暴雪照樣每幀更新）。
+-- ⇒ 前置條件：征戰聖擊要在暴雪冷卻管理器的「追蹤的量條」裡。
+-- 這一列顯示時，增益長條上那條征戰聖擊自動藏起來（crusadingHideBar，預設開；R.HidesTrackedBar 給
+-- Catalog.Bar 濾掉）：沒有格子的 item 會被停到畫面外＋alpha 0，不 Hide，暴雪照樣每幀更新，鏡射不受影響。
 --
 -- 規矩（同血量列）：餵過秘密值的 row.bar 不回讀幾何／值，也沒有東西錨在它身上。
 -- 活性訊號用 item:IsVisible()（暴雪對沒亮的 item SetShown(false)，永遠明文）——
@@ -1931,13 +1932,20 @@ end
 -- 暴雪每幀在寫來源 ⇒ 有 mirror 列時每幀轉手一次（獨立的 driver 框：列被淡出時照樣跑）
 local mirrorDriver
 local mirrorRows, mirrorCount = nil, 0
+local mirrorHides = false      -- 增益長條上的征戰聖擊要不要藏（有 mirror 列 ∧ crusadingHideBar）
+
+-- Catalog.Bar 問：這個 cooldownID 要不要從條上拿掉（不是「藏著」：預覽、挑選器也不列，
+-- 設定面板上看到什麼畫面上就是什麼）
+function R.HidesTrackedBar(id)
+    return mirrorHides and MirrorMatches(id) or false
+end
 local function MirrorTick()
     for i = 1, mirrorCount do
         local row = mirrorRows[i]
         if row and row.mode == "mirror" then R.MirrorRow(row) end
     end
 end
-function R.SetMirrorDriver(list, count)
+function R.SetMirrorDriver(list, count, cfg)
     local any = false
     for i = 1, count do
         if list[i] and list[i].mode == "mirror" then any = true break end
@@ -1945,6 +1953,12 @@ function R.SetMirrorDriver(list, count)
     mirrorRows, mirrorCount = list, count
     if any and not mirrorDriver then mirrorDriver = CreateFrame("Frame") end
     if mirrorDriver then mirrorDriver:SetScript("OnUpdate", any and MirrorTick or nil) end
+    local hides = any and not (type(cfg) == "table" and cfg.crusadingHideBar == false)
+    if hides ~= mirrorHides then
+        mirrorHides = hides
+        -- 那條可能被拉進自訂群組，整套重取清單
+        if ns.Bars and ns.Bars.RequestAll then ns.Bars.RequestAll("membership") end
+    end
 end
 
 function R.MirrorStatus()
@@ -2226,7 +2240,7 @@ local function Relayout(cfg, list, W)
         if row.ab and ns.AuraBar then ns.AuraBar.HideContainer(row.ab) end
     end
     shownCount = #list
-    R.SetMirrorDriver(rows, shownCount)
+    R.SetMirrorDriver(rows, shownCount, cfg)
     local n = #list
     ns.Bars.SetPanelSize("resources", W, n > 0 and (total + (n - 1) * gap) or 1)
 end
@@ -2245,7 +2259,7 @@ function R.Update(force)
         shownCount = 0
         healthShown = false
         laidOut = false
-        R.SetMirrorDriver(rows, 0)
+        R.SetMirrorDriver(rows, 0, cfg)
         return
     end
     if force or not laidOut then

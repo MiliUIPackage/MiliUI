@@ -240,6 +240,7 @@ ResourcesDefaults = function()
         -- 征戰聖擊列（懲戒）：自己的高度與填充方向，預設照德莫的征戰聖擊助手（高 4、已揮的時間長出來）
         crusadingHeight = 4,
         crusadingFill   = "elapsed",           -- elapsed | remaining
+        crusadingHideBar = true,               -- 這一列顯示時，增益長條上的征戰聖擊自動藏起來
         -- [資源key] = { rule, … }：開放式鍵值表。預設只給新設定檔（Atomic：已有 conditions 的設定檔不合併，
         -- 規則刪光也不會被補回來）。聖能／氣旋武器的兩段換色是使用者 2026-10-01 調好的
         conditions    = Atomic({
