@@ -367,7 +367,7 @@ function CB.Layout()
     f.textFrame:SetFrameLevel(lvl + 3)
     f.iconFrame:SetFrameLevel(lvl + 1)
 
-    local font = ns.Setting(nil, "font")
+    local font = ns.Media.ElementFont(cfg.font, ns.Setting(nil, "font"))
     local size = tonumber(cfg.textSize) or 12
     ns.Media.SetFont(f.nameText, size, "OUTLINE", font)
     ns.Media.SetFont(f.timeText, size, "OUTLINE", font)

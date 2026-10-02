@@ -142,6 +142,20 @@ local TextureItems = MediaItems({ text = L["Solid"], value = "solid" }, "statusb
 local FontItems    = MediaItems({ text = L["Default font"], value = "DEFAULT" }, "font")
 Specs.TextureItems, Specs.FontItems = TextureItems, FontItems
 
+-- 各段文字自己的字型：第一項「跟隨通用字型」（存 "INHERIT"），接著同通用字型的清單
+local function ElementFontItems()
+    local items = FontItems()
+    table.insert(items, 1, { text = L["Follow general font"], value = ns.Media.INHERIT })
+    return items
+end
+Specs.ElementFontItems = ElementFontItems
+
+-- 下拉的值：沒存過（舊存檔、自訂群組）一律顯示成「跟隨通用字型」
+local function InheritOr(v)
+    return (type(v) == "string" and v ~= "") and v or ns.Media.INHERIT
+end
+Specs.InheritOr = InheritOr
+
 ------------------------------------------------------------
 -- 讀寫（主題欄位在條頁與主題頁走不同的表）
 ------------------------------------------------------------
@@ -246,6 +260,18 @@ end
 
 local function BS(kind, path, label, extra)
     return Merge({ type = kind, root = "bar", path = path, key = path, label = label }, extra)
+end
+
+-- 某段文字的字型下拉（主題繼承那一類）
+local function FontTS(section, path)
+    return TS(section, "dropdown", path, L["Font"], { items = ElementFontItems,
+        get = function(info) return InheritOr(ReadThemed(info, path)) end })
+end
+
+-- 某段文字的字型下拉（條自己的欄位）
+local function FontBS(path, label)
+    return BS("dropdown", path, label, { items = ElementFontItems,
+        get = function(info) return InheritOr(ns.DB.GetPath(ns.DB.ConfigTable(info.key), path)) end })
 end
 
 local function Note(label, section)
@@ -400,11 +426,11 @@ function Specs.Themed(mode, key)
     -- 文字
     add({ type = "header", label = L["Text"] })
     if bar then add(OverrideRow("text"), FollowToggle("text")) end
-    if not bar then
-        add(TS("text", "dropdown", "font", L["Font"], { items = FontItems }),
-            TS("text", "dropdown", "outline", L["Outline"], { items = OUTLINE_ITEMS }))
-    end
+    -- 通用字型：每段文字的字型沒另外挑時用這個（條頁沒跟隨主題時也能改）
+    add(TS("text", "dropdown", "font", L["General font"], { items = FontItems }),
+        TS("text", "dropdown", "outline", L["Outline"], { items = OUTLINE_ITEMS }))
     add(Nested(L["Countdown"], "text"),
+        FontTS("text", "cooldownText.font"),
         TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 }),
         TS("text", "color", "cooldownText.color", L["Color"]),
         TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }),
@@ -416,6 +442,7 @@ function Specs.Themed(mode, key)
         TS("text", "color", "cooldownText.lowColor", L["Low color"]),
         TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 }),
         Nested(L["Charges"], "text"),
+        FontTS("text", "chargeText.font"),
         TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
         TS("text", "color", "chargeText.color", L["Color"]),
         TS("text", "dropdown", "chargeText.point", L["Anchor"], { items = POINT_ITEMS }),
@@ -423,6 +450,7 @@ function Specs.Themed(mode, key)
             resetPaths = { "chargeText.x", "chargeText.y" },
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
         Nested(L["Stacks"], "text"),
+        FontTS("text", "stackText.font"),
         TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
         TS("text", "color", "stackText.color", L["Color"]),
         TS("text", "dropdown", "stackText.point", L["Anchor"], { items = POINT_ITEMS }),
@@ -463,6 +491,7 @@ function Specs.Themed(mode, key)
     if not (bar and key and ns.Keybinds.NoKeybind(key)) then
         add(Nested(L["Keybind text"], "glow"),
             TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]),
+            FontTS("glow", "keybind.font"),
             TS("glow", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
             TS("glow", "dropdown", "keybind.point", L["Anchor"], { items = POINT_ITEMS }),
             TS("glow", "numbers", nil, L["Offset"], { sub = "keybind", path = false,
@@ -653,6 +682,12 @@ function Specs.Layout(key)
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
         add(BS("color", "bar.color", L["Bar color"]))
         add(BS("color", "bar.bgColor", L["Background color"]))
+        -- 長條上的名字／時間：字型與字級（層數跟著「文字」那一節的層數）
+        add(Nested(L["Bar text"]))
+        add(FontBS("bar.nameFont", L["Name font"]))
+        add(BS("slider", "bar.nameSize", L["Name size"], { min = 6, max = 30, step = 1 }))
+        add(FontBS("bar.timeFont", L["Time font"]))
+        add(BS("slider", "bar.timeSize", L["Time size"], { min = 6, max = 30, step = 1 }))
     end
     return list
 end

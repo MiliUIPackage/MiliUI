@@ -99,8 +99,8 @@ local function LongBar(o)
             bgColor   = rgba(0.1, 0.1, 0.1, 0.8),
             iconSide  = "LEFT",             -- LEFT | RIGHT | NONE
             iconGap   = 1,
-            showName  = true, nameSize = 16,
-            showTime  = true, timeSize = 16,
+            showName  = true, nameSize = 16, nameFont = "INHERIT",   -- 字型 "INHERIT" ＝ 跟隨通用字型
+            showTime  = true, timeSize = 16, timeFont = "INHERIT",
             showStacks = true, stackSize = 12,
         },
     }
@@ -197,6 +197,7 @@ ResourcesDefaults = function()
         -- 預設貼在核心技能上緣，往上長
         anchor        = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬
+        textFont      = "INHERIT",         -- 條上數字的字型（自訂格子也照這個）；"INHERIT" ＝ 跟隨主題的通用字型
         rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移
         rowSpacing    = 1,
         segmentSpacing = 0,                -- 點數型（聖能、連擊點…）的格距；0 ＝ 相鄰兩格共用 1px 邊（使用者 2026-10-01 指定，不遷移）
@@ -285,6 +286,7 @@ CastbarDefaults = function()
         anchor        = { to = "essential", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬（含圖示）
         height        = 20,
+        font          = "INHERIT",         -- 文字字型；"INHERIT" ＝ 跟隨主題的通用字型
         texture       = "blizzard",        -- 暴雪施法條的漸層圖（去色後照下面的顏色染）；v2 起的預設（使用者 2026-10-02 指定）
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
         colors        = {
@@ -333,10 +335,11 @@ function DB.BuildDefaults()
                 font    = "提示訊息",        -- LibSharedMedia 名稱；沒有這個名稱的客戶端退回在地化字型
                 outline = "OUTLINE",
                 border  = { texture = "solid", size = 1, color = rgba(0, 0, 0, 1) },
+                -- 每段文字的 font："INHERIT" ＝ 跟隨上面的通用字型（ns.Media.ElementFont）
                 cooldownText = { size = 16, color = rgba(1, 1, 1), decimalsBelow = 3,
-                                 lowColor = rgba(1, 0.3, 0.3), lowBelow = 5 },
-                chargeText   = { size = 12, color = rgba(1, 1, 1), point = "BOTTOMRIGHT", x = 0, y = 0 },
-                stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0 },
+                                 lowColor = rgba(1, 0.3, 0.3), lowBelow = 5, font = "INHERIT" },
+                chargeText   = { size = 12, color = rgba(1, 1, 1), point = "BOTTOMRIGHT", x = 0, y = 0, font = "INHERIT" },
+                stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0, font = "INHERIT" },
                 -- skin：圖示外觀 "miliui"（自己畫邊框／縮放）| "masque"（交給 Masque，Core/Masque.lua）；
                 -- 舊存檔沒有這欄 ＝ 預設，不遷移
                 icon  = { skin = "miliui", zoom = 0.08, swipeColor = rgba(0, 0, 0, 0.8), tooltips = true,
@@ -359,7 +362,7 @@ function DB.BuildDefaults()
                 -- 無損刷新（可以續壓的窗口）：邊框換色；bars ＝ 長條的條身也換色
                 pandemic = { enabled = true, color = rgba(1, 0.5, 0, 1), bars = true },
                 -- 按鍵文字：動作條上綁的鍵，縮寫後畫在圖示一角
-                keybind  = { enabled = true, size = 10, point = "TOPRIGHT", x = 1, y = -1 },   -- 預設開、右上（使用者 2026-09-30 指定）
+                keybind  = { enabled = true, size = 10, point = "TOPRIGHT", x = 1, y = -1, font = "INHERIT" },   -- 預設開、右上（使用者 2026-09-30 指定）
                 -- 音效（Core/Sound.lua）：總開關與聲道；要響什麼是逐法術覆寫（readySound／gainSound／loseSound）。
                 -- 不走條層繼承（不在 THEMED 裡），一律用 ns.Setting("theme", "sound.…") 讀
                 sound    = { enabled = true, channel = "Master" },

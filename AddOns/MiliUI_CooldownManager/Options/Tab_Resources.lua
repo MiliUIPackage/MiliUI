@@ -870,6 +870,8 @@ local function Controls(cand, sub)
         BS("slider", "barAlpha", L["Fill opacity"], { min = 0.1, max = 1, step = 0.05 }),
         BS("toggle", "smooth", L["Smooth bar changes"]),
         BS("toggle", "showText", L["Show value on the bar"]),
+        BS("dropdown", "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
+            get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textFont) end }),
         BS("slider", "textSize", L["Font size"], { min = 6, max = 24, step = 1 }),
         BS("dropdown", "manaAbbrev", L["Mana number format"], { items = MANA_ITEMS }),
         BS("toggle", "manaPercent", L["Mana as percent"]),

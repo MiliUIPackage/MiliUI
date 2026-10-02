@@ -421,7 +421,8 @@ local function AuraStyle(rec, barKey, w, h)
         bsize    = tonumber(border.size) or 0,
         bcolor   = RGBA(SS(barKey, id, "borderColor") or border.color, 0, 0, 0, 1),
         swipe    = RGBA(S(barKey, "icon.swipeColor"), 0, 0, 0, 0.8),
-        font     = ns.Media.Font(S(barKey, "font")),
+        cdFont   = ns.Media.Font(ns.Media.ElementFont(cdT.font, S(barKey, "font"))),
+        stFont   = ns.Media.Font(ns.Media.ElementFont(stT.font, S(barKey, "font"))),
         outline  = S(barKey, "outline") or "",
         scale    = scale,
         hideCD   = SS(barKey, id, "hideCooldownText") and true or false,
@@ -456,7 +457,7 @@ local function AuraStyle(rec, barKey, w, h)
             string.format("%.2f,%.2f", w, h) }, ",")
     end
     st.sig = table.concat({
-        rec.filter, rec.spellID, st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.font, st.outline,
+        rec.filter, rec.spellID, st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
         st.stPoint, st.stX, st.stY, glowSig,
@@ -519,7 +520,7 @@ local function InitAuraButton(btn, c, st, rec)
     local s = st.scale
     if not st.hideCD and btn.SetDurationText then
         local fs = ov:CreateFontString(nil, "OVERLAY")
-        fs:SetFont(st.font, st.cdSize * s, st.outline)
+        fs:SetFont(st.cdFont, st.cdSize * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
         fs:SetTextColor(st.cdColor[1], st.cdColor[2], st.cdColor[3], st.cdColor[4])
         fs:SetPoint(st.cdPoint, btn, st.cdPoint, st.cdX * s, st.cdY * s)
@@ -536,7 +537,7 @@ local function InitAuraButton(btn, c, st, rec)
     -- 層數：**絕不傳 formatter**（暴雪會在 Lua 對秘密層數跑 FormatNumber，整個容器當掉）
     if not st.hideStack and btn.SetApplicationCount then
         local fs = ov:CreateFontString(nil, "OVERLAY")
-        fs:SetFont(st.font, st.stSize * s, st.outline)
+        fs:SetFont(st.stFont, st.stSize * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
         fs:SetTextColor(st.stColor[1], st.stColor[2], st.stColor[3], st.stColor[4])
         fs:SetPoint(st.stPoint, btn, st.stPoint, st.stX * s, st.stY * s)

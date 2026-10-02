@@ -98,6 +98,8 @@ local function Controls()
         Note(L["0 shows the whole name."]),
         BS("toggle", "showTime", L["Show time"]),
         BS("dropdown", "timeFormat", L["Time format"], { items = TIME_ITEMS }),
+        BS("dropdown", "font", L["Font"], { items = ns.Specs.ElementFontItems,
+            get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.font) end }),
         BS("slider", "textSize", L["Font size"], { min = 6, max = 30, step = 1 }),
         { type = "header", label = L["Effects"] },
         BS("toggle", "showSpark", L["Spark at the leading edge"]),
