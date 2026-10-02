@@ -406,6 +406,9 @@ function Specs.Themed(mode, key)
             if s then list[#list + 1] = s end
         end
     end
+    -- 增益兩條（內建）沒有冷卻：觸發發光（技能的觸發亮框）、就緒發光、冷卻中去飽和、隱藏 GCD 轉圈都用不到
+    local auraBar = bar and key and ns.DB.IsBuiltinBar(key) and ns.Viewers.AURA_KIND[key] and true or false
+    local function CD(s) if auraBar then return nil end return s end
 
     -- 圖示
     add({ type = "header", label = L["Icons"] })
@@ -418,8 +421,8 @@ function Specs.Themed(mode, key)
         TS("icon", "slider", "icon.zoom", L["Icon zoom"], { min = 0, max = 0.2, step = 0.01, disabled = MasqueOwns }),
         Note(L["Crops the icon edges; 0 shows the whole texture."], "icon"),
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
-        TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"]),
-        TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"]),
+        CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"])),
+        CD(TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"])),
         TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),
         Note(L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."], "icon"))
 
@@ -461,21 +464,23 @@ function Specs.Themed(mode, key)
     -- 效果（發光、無損刷新、按鍵文字）＋淡出
     add({ type = "header", label = L["Effects"] })
     if bar then add(OverrideRow("glow"), FollowToggle("glow")) end
-    add(Nested(L["Proc glow"], "glow"),
-        TS("glow", "toggle", "glow.proc.enabled", L["Enable"]),
-        Note(L["Replaces Blizzard's proc glow. When off, Blizzard's own glow shows."], "glow"),
-        TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
-        TS("glow", "color", "glow.proc.color", L["Color"]),
-        GlowSampleRow("proc"),
-        Nested(L["Ready glow"], "glow"),
-        TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
-        Note(L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."], "glow"),
-        TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
-        TS("glow", "color", "glow.ready.color", L["Color"]),
-        GlowSampleRow("ready"),
-        TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
-    -- 生效發光（增益）沒有統一設定：逐法術在預覽點圖示開、顏色也在那裡挑（使用者 2026-10-02 拿掉這一節）；
-    -- 樣式固定用 glow.active 的預設（Core/DB.lua）
+    if not auraBar then
+        add(Nested(L["Proc glow"], "glow"),
+            TS("glow", "toggle", "glow.proc.enabled", L["Enable"]),
+            Note(L["Replaces Blizzard's proc glow. When off, Blizzard's own glow shows."], "glow"),
+            TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
+            TS("glow", "color", "glow.proc.color", L["Color"]),
+            GlowSampleRow("proc"),
+            Nested(L["Ready glow"], "glow"),
+            TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
+            Note(L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."], "glow"),
+            TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
+            TS("glow", "color", "glow.ready.color", L["Color"]),
+            GlowSampleRow("ready"),
+            TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
+    end
+    -- 生效發光（增益）沒有統一設定：逐法術在預覽點圖示開、樣式與顏色也在那裡挑（使用者 2026-10-02 拿掉這一節）；
+    -- 沒挑的用 glow.active 的預設（Core/DB.lua）
     add(Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
