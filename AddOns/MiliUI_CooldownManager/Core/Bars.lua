@@ -93,10 +93,25 @@ function B.Containers() return containers end
 ------------------------------------------------------------
 -- 容器
 ------------------------------------------------------------
+-- 四條檢視器的容器**開檔就建**（只建框、不套樣式）：舊版本在暴雪的編輯模式版面裡留下了
+-- relativeTo = "MiliUICDM_Bar_<key>"（成因見 PinViewer 的 B.PinViewerSoon），登入時暴雪套版面
+-- （EDIT_MODE_LAYOUTS_UPDATED）可能早於我們的 PLAYER_LOGIN，容器還沒建就報
+-- 「Couldn't find region named …」、檢視器沒有錨點。名字先佔著，EnsureContainer 再接手。
+-- 暴雪的版面表我們不能寫（污染），只能讓舊名字一直解得到。
+local early = {}
+for _, key in ipairs({ "essential", "utility", "buffs", "buffbars" }) do
+    local f = CreateFrame("Frame", "MiliUICDM_Bar_" .. key, UIParent, "BackdropTemplate")
+    f:SetSize(1, 1)
+    f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    f:EnableMouse(false)
+    early[key] = f
+end
+
 local function EnsureContainer(key)
     local c = containers[key]
     if c then return c end
-    c = CreateFrame("Frame", "MiliUICDM_Bar_" .. key, UIParent, "BackdropTemplate")
+    c = early[key] or CreateFrame("Frame", "MiliUICDM_Bar_" .. key, UIParent, "BackdropTemplate")
+    early[key] = nil
     ns.Style.ApplyPanel(c)
     -- 底與邊都先透明：容器只是錨點，之後設定頁可以開底色
     c:SetBackdropColor(0, 0, 0, 0)
@@ -292,6 +307,22 @@ function B.PinViewer(sourceKey)
         pinGuard = false
         if not ok then error(err, 0) end
     end, "pin")
+end
+
+-- 暴雪自己 SetPoint 了檢視器（SetPoint 後掛勾）：**延一幀**才釘回來，不在暴雪那一次執行裡釘。
+-- ⚠ 暴雪的 BreakFrameSnap（編輯模式選中後按方向鍵、別的框脫離吸附、套版面前的整理）是
+--   「SetPoint 到 UIParent → OnSystemPositionChange → GetPoint(1) 存進版面」。同步釘回的話它讀到的
+--   是我們的容器，"MiliUICDM_Bar_<key>" 就被存進玩家的編輯模式版面：之後每次登入暴雪套版面
+--   找不到這個名字（我們還沒建、或插件停用了）就報 LUA_WARNING、檢視器沒有錨點。
+--   同步釘回也是讓我們的 Lua 跑在暴雪的 secureexecuterange 裡（UpdateSystems 套錨點）。
+local pinSoon = {}
+function B.PinViewerSoon(sourceKey)
+    if not sourceKey or pinGuard or B.released or pinSoon[sourceKey] then return end
+    pinSoon[sourceKey] = true
+    ns.Defer(function()
+        pinSoon[sourceKey] = nil
+        B.PinViewer(sourceKey)
+    end)
 end
 
 ------------------------------------------------------------

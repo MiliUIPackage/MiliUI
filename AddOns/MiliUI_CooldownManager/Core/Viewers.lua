@@ -255,9 +255,10 @@ local function OnViewerStyleChanged(viewer)
     Signal(key, "layout")
 end
 
+-- 延一幀（Bars.PinViewerSoon 的註解）：同步釘回會讓暴雪把我們的容器名字存進編輯模式版面
 local function OnViewerSetPoint(viewer)
-    if ns.Bars and ns.Bars.PinViewer then
-        ns.Bars.PinViewer(V.viewerKey[viewer])
+    if ns.Bars and ns.Bars.PinViewerSoon then
+        ns.Bars.PinViewerSoon(V.viewerKey[viewer])
     end
 end
 
