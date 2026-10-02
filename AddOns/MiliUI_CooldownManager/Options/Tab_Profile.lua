@@ -403,7 +403,7 @@ local function ImportSourceRow()
         W.FitButton(btn, 170, 22)
         btn:SetPoint("TOPLEFT", parent, "TOPLEFT", left, y - 4)
         btn:SetScript("OnClick", function()
-            local who = UnitName("player")
+            local who = ns.AddOnCharacter()
             for _, name in ipairs(ns.Import.SOURCE_FOLDERS) do
                 pcall(C_AddOns.EnableAddOn, name, who)
             end

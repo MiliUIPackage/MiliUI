@@ -248,10 +248,24 @@ end
 
 ns.ConflictTitle = ConflictTitle
 
+-- EnableAddOn／DisableAddOn 的 character 參數要傳 GUID（暴雪插件列表就是傳 UnitGUID）。
+-- 傳角色名字有的角色會靜默無效 —— 停用沒生效、重載後又偵測到衝突，彈窗無限循環。
+local function AddOnCharacter()
+    local ok, guid = pcall(UnitGUID, "player")
+    if ok and type(guid) == "string" and not (ns.IsSecret and ns.IsSecret(guid)) and guid ~= "" then return guid end
+    return UnitName("player")
+end
+ns.AddOnCharacter = AddOnCharacter
+
 local function DisableAndReload(folders)
-    local who = UnitName("player")
+    local who = AddOnCharacter()
     for _, name in ipairs(folders) do
         pcall(C_AddOns.DisableAddOn, name, who)
+        -- 角色層級沒關掉就退回全部角色停用：這裡沒生效的代價是重載後彈窗再跳一次，沒完沒了
+        local ok, state = pcall(C_AddOns.GetAddOnEnableState, name, who)
+        if ok and type(state) == "number" and state > 0 then
+            pcall(C_AddOns.DisableAddOn, name)
+        end
     end
     ReloadUI()
 end
