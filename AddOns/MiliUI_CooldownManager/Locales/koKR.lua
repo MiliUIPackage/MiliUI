@@ -562,3 +562,9 @@ L["Overflow color"] = "넘침 색상"
 L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "파괴 전문화는 영혼의 조각 일부를 표시합니다. 채워지는 칸은 한 단계 어둡고, 바 위의 숫자는 소수점 한 자리까지 나옵니다."
 L["The next segment fills up as Essence recharges, a shade darker."] = "정수가 재충전되는 동안 다음 칸이 한 단계 어두운 색으로 차오릅니다."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "남은 전역 재사용 대기시간: 강화 효과가 끝나기 전에 전역 재사용 대기시간이 몇 번 더 들어가는지 세고, 마지막 한 번에는 \"마지막\"을 표시합니다. 가속에 따라 바뀌며, 전투 중 가속이 바뀌면 전투가 끝난 뒤에 반영됩니다."
+
+-- 征戰聖擊列
+L["Time since the last swing (grows)"] = "마지막 공격 후 경과 시간 (늘어남)"
+L["Time until the next swing (shrinks)"] = "다음 공격까지 남은 시간 (줄어듦)"
+L["Bar fills with"] = "바 채우기 기준"
+L["The game runs this timer itself, so Crusading Strikes doesn't need to be in Blizzard's Tracked Bars row. This row has its own height; it shows no number and condition rules don't apply."] = "게임이 이 타이머를 직접 돌리므로 성전사의 일격을 블리자드 추적 바 줄에 넣을 필요가 없습니다. 이 줄은 높이를 따로 가지며, 숫자를 표시하지 않고 조건 규칙도 적용되지 않습니다."

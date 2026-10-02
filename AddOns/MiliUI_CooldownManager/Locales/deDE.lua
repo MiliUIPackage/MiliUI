@@ -562,3 +562,9 @@ L["Overflow color"] = "Überlauffarbe"
 L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "Zerstörung zeigt Splitterbruchstücke: Das Segment, das sich gerade füllt, ist eine Stufe dunkler, und die Zahl auf der Leiste hat eine Nachkommastelle."
 L["The next segment fills up as Essence recharges, a shade darker."] = "Das nächste Segment füllt sich eine Stufe dunkler, während sich Essenz auflädt."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Verbleibende globale Abklingzeiten zählt, wie viele globale Abklingzeiten noch vor dem Ende des Buffs passen, und zeigt während der letzten \"Letzte\". Es folgt deinem Tempo; ändert sich das Tempo im Kampf, wird es nach dem Kampf nachgezogen."
+
+-- 征戰聖擊列
+L["Time since the last swing (grows)"] = "Zeit seit dem letzten Schlag (wächst)"
+L["Time until the next swing (shrinks)"] = "Zeit bis zum nächsten Schlag (schrumpft)"
+L["Bar fills with"] = "Leiste füllt sich mit"
+L["The game runs this timer itself, so Crusading Strikes doesn't need to be in Blizzard's Tracked Bars row. This row has its own height; it shows no number and condition rules don't apply."] = "Das Spiel führt diesen Timer selbst, Kreuzzüglerschläge muss also nicht in Blizzards Leiste für verfolgte Balken stehen. Diese Zeile hat ihre eigene Höhe; sie zeigt keine Zahl und Bedingungsregeln gelten nicht."

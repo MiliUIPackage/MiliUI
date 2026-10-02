@@ -111,3 +111,10 @@ L["Not found — no cooldown manager addon is loaded, or its Holy Power bar is o
 L["Automatic"] = "自動"
 L["(automatic)"] = "（自動）"
 L["Automatic: above the cooldown manager addon's Holy Power bar when one is loaded, otherwise below the target nameplate's health bar."] = "自動：有載入冷卻管理器插件就掛在它的聖能條上方，沒有就掛在目標名條的血條下方。"
+
+-- 米利的冷卻管理器（它有自己的征戰聖擊列）
+L["Cooldown manager addon:"] = "冷卻管理器插件:"
+L["MiliUI Cooldown Manager draws its own Crusading Strikes bar"] = "米利的冷卻管理器自己畫征戰聖擊條"
+L["Also show on the target nameplate"] = "同時掛在目標名條"
+L["MiliUI Cooldown Manager has its own Crusading Strikes bar (a row of its resource bar); set its order, size and colors there. Turn this on to also draw one below your target nameplate's health bar."] = "米利的冷卻管理器有自己的征戰聖擊條（資源條的一列），排序、尺寸、顏色到它的設定頁調。勾起來會另外在目標名條的血條下方再畫一條。"
+L["The nameplate bar needs Crusading Strikes in Blizzard's Tracked Bars row. If you don't want to see that bar, remove it in MiliUI Cooldown Manager's settings; it keeps updating."] = "名條上這條需要征戰聖擊在暴雪冷卻管理器的「追蹤的量條」裡。不想看到那一條，到米利的冷卻管理器設定頁把它移除即可，值照樣會更新。"

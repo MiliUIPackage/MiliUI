@@ -562,3 +562,9 @@ L["Overflow color"] = "溢出色"
 L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "毀滅專精會顯示裂片的零頭：正在累積的那一格暗一階，長條上的數字帶一位小數。"
 L["The next segment fills up as Essence recharges, a shade darker."] = "下一格會隨著精華回充慢慢填滿，顏色暗一階。"
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "剩幾個共用冷卻：在增益結束前還能放幾個共用冷卻，最後一個時顯示「最後」。會跟著加速變；戰鬥中加速改變的話，脫離戰鬥後才更新。"
+
+-- 征戰聖擊列
+L["Time since the last swing (grows)"] = "已揮的時間（往上長）"
+L["Time until the next swing (shrinks)"] = "離下一刀的時間（往下縮）"
+L["Bar fills with"] = "填充方式"
+L["The game runs this timer itself, so Crusading Strikes doesn't need to be in Blizzard's Tracked Bars row. This row has its own height; it shows no number and condition rules don't apply."] = "征戰聖擊的計時由遊戲自己跑，不需要把它放進暴雪冷卻管理器的「追蹤的量條」。這一列有自己的高度；不印數字，條件規則不適用。"

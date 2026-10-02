@@ -176,6 +176,9 @@ local RESOURCE_COLORS = {
     -- 光環剩餘時間條：黯黑力量（喚能師的古銅黑金）、秘法靈魂（秘法紫，跟秘法充能的藍分得開）
     EbonMight       = { color = { r = 0.80, g = 0.60, b = 0.20 } },
     ArcaneSoul      = { color = { r = 0.66, g = 0.40, b = 1    } },
+    -- 征戰聖擊：照德莫的征戰聖擊助手的預設（聖騎職業色填充、黑底 60%）；底色帶 alpha
+    CrusadingStrikes = { color     = { r = 0.9568, g = 0.5490, b = 0.7294 },
+                         backColor = { r = 0, g = 0, b = 0, a = 0.6 } },
     -- 血量：預設走職業色（healthClassColor），這是關掉職業色時的顏色
     Health          = { color = { r = 0.2,  g = 0.8,  b = 0.2  } },
 }
@@ -188,7 +191,7 @@ ResourcesDefaults = function()
     local colors = {}
     for key, fields in pairs(RESOURCE_COLORS) do
         local t = {}
-        for field, c in pairs(fields) do t[field] = rgba(c.r, c.g, c.b, 1) end
+        for field, c in pairs(fields) do t[field] = rgba(c.r, c.g, c.b, c.a or 1) end
         colors[key] = t
     end
     return {
@@ -234,6 +237,9 @@ ResourcesDefaults = function()
         maelstromFold = false,
         -- 秘法靈魂的數字（showText 開著才有）：seconds 剩餘秒數／gcd 剩幾個 GCD
         arcaneSoulText = "seconds",
+        -- 征戰聖擊列（懲戒）：自己的高度與填充方向，預設照德莫的征戰聖擊助手（高 4、已揮的時間長出來）
+        crusadingHeight = 4,
+        crusadingFill   = "elapsed",           -- elapsed | remaining
         -- [資源key] = { rule, … }：開放式鍵值表。預設只給新設定檔（Atomic：已有 conditions 的設定檔不合併，
         -- 規則刪光也不會被補回來）。聖能／氣旋武器的兩段換色是使用者 2026-10-01 調好的
         conditions    = Atomic({

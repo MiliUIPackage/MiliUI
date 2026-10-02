@@ -1227,5 +1227,24 @@ do
     check("v3：冪等", prof.resources.rows[267].Mana == true)
 end
 
+-- 征戰聖擊列（懲戒）：在聖能上方、預設顯示、自己的高度／填充／底色（預設照德莫的征戰聖擊助手）
+do
+    eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower" })
+    check("懲戒：征戰聖擊預設顯示", R.DefaultOn(70, "CrusadingStrikes") == true)
+    check("征戰聖擊是引擎寫的剩餘時間條（條件規則不適用）", R.EngineDriven("CrusadingStrikes")
+        and not R.SupportsConditions("CrusadingStrikes"))
+    local d = ns.DB.BuildDefaults().profile.resources
+    eq("征戰聖擊預設高 4", R.KeyRowHeight(d, "CrusadingStrikes"), 4)
+    eq("其他列照 rowHeight", R.KeyRowHeight(d, "HolyPower"), 14)
+    eq("征戰聖擊預設：已揮的時間", R.CrusadingFill(d), "elapsed")
+    eq("征戰聖擊：remaining", R.CrusadingFill({ crusadingFill = "remaining" }), "remaining")
+    local c = d.colors.CrusadingStrikes
+    check("征戰聖擊預設色：聖騎職業色", math.abs(c.color.r - 0.9568) < 1e-6 and c.color.a == 1)
+    local back = R.TimerBack(d, "CrusadingStrikes", c.color)
+    check("征戰聖擊底色：黑 60%（帶 alpha）", back[1] == 0 and back[2] == 0 and back[3] == 0 and back[4] == 0.6)
+    local dim = R.TimerBack(d, "EbonMight", { r = 1, g = 1, b = 1 })
+    check("沒有 backColor 的列照主色推", dim[1] == 0.25 and dim[4] == 0.8)
+end
+
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

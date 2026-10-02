@@ -236,6 +236,14 @@ local RESOURCES = {
                         auras = { 395296 }, passive = 395152 },
     ArcaneSoul      = { name = SpellName(451038, "Arcane Soul"), nameSpell = 451038, mode = "auraTimer",
                         auras = { 451038, 1223522 }, passive = 449619, heroTree = 39, gcdText = true },
+    --   征戰聖擊（懲戒天賦 404542：普攻換成聖擊）：身上那顆光環每揮一刀刷新一次，剩餘時間＝離下一刀多久。
+    --   ID 集合跟德莫的征戰聖擊助手同一張（不同天賦／覆寫下用過的編號，沒出現的永遠比對不到，無害）。
+    --   引擎直接跑光環的時間 ⇒ **不需要**把它放進暴雪冷卻管理器的「追蹤的量條」。
+    --   這一列有自己的高度、填充方向與底色（crusadingHeight／crusadingFill／colors.CrusadingStrikes.backColor，
+    --   預設值照助手：高 4、已揮的時間左→右長出、黑底 60%），不印秒數（1.5 秒一刀，數字讀不完）
+    CrusadingStrikes = { name = SpellName(404542, "Crusading Strikes"), nameSpell = 404542, mode = "auraTimer",
+                        auras = { 404542, 406833, 408385, 1226662, 1307499 }, passive = 404542,
+                        crusading = true, noText = true },
     -- 血量：每個專精都是候選、預設關（R.DefaultOn）；不在 RawList 裡，R.Candidates 附加在最後
     Health          = { name = PowerName("HEALTH", "Health"), mode = "bar", get = HealthValue, health = true },
 }
@@ -295,7 +303,8 @@ end
 local SPEC_RESOURCES = {
     [71]  = { "Rage", "SweepingStrikes" },       [72]  = { "Rage", "WhirlwindStacks" },
     [73]  = { "Rage", "IgnorePain" },
-    [65]  = { "HolyPower" },                     [66]  = { "HolyPower" },  [70] = { "HolyPower" },
+    [65]  = { "HolyPower" },                     [66]  = { "HolyPower" },
+    [70]  = { "CrusadingStrikes", "HolyPower" },   -- 征戰聖擊預設在聖能上方（同助手的預設位置）
     [253] = { "Focus" },                         [254] = { "Focus" },
     [255] = { "Focus", "TipOfTheSpear" },
     [259] = { "Energy", "ComboPoints" },         [260] = { "Energy", "ComboPoints" },
@@ -1092,6 +1101,22 @@ end
 local function RowHeight(cfg) return tonumber(type(cfg) == "table" and cfg.rowHeight) or 8 end
 R.RowHeight = RowHeight
 
+-- 一列自己的高度：征戰聖擊有自己的（細條），其他列照 rowHeight
+function R.KeyRowHeight(cfg, key)
+    local def = RESOURCES[key]
+    if def and def.crusading then
+        return tonumber(type(cfg) == "table" and cfg.crusadingHeight) or 4
+    end
+    return RowHeight(cfg)
+end
+
+-- 征戰聖擊的填充：elapsed 已揮的時間長出來（預設）／remaining 剩餘時間縮短
+function R.CrusadingFill(cfg)
+    local v = type(cfg) == "table" and cfg.crusadingFill
+    if v == "remaining" then return v end
+    return "elapsed"
+end
+
 -- 吸收盾列的零件（懶建）：裁切框（跟列一樣大）＋裡面一條寬 W / cap 的 StatusBar
 local function EnsureAbsorb(row)
     if row.absorbClip then return end
@@ -1145,13 +1170,25 @@ function R.TimerDim(c, out)
 end
 local timerDimScratch = {}
 
+-- 剩餘時間條的底色：有自己底色的列（征戰聖擊的 backColor，含 alpha）照它，其他照主色推
+function R.TimerBack(cfg, key, cc, out)
+    local colors = type(cfg) == "table" and type(cfg.colors) == "table" and cfg.colors
+    local t = colors and type(colors[key]) == "table" and colors[key].backColor
+    if type(t) == "table" and t.r then
+        out = out or {}
+        out[1], out[2], out[3], out[4] = t.r, t.g, t.b, tonumber(t.a) or 1
+        return out
+    end
+    return R.TimerDim(cc, out)
+end
+
 -- 光環剩餘時間條。回傳 true ＝ 容器就緒（這一列交給引擎）；false ＝ 先畫空條
 local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     if not ns.AuraBar then return false end
     row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
     local cc = ResolveColor(cfg, key, "color")
     local text
-    if cfg.showText then
+    if cfg.showText and not def.noText then
         -- 字級換成實體像素（同 row.text 的 SetPixelFont）：按鈕子樹裡的 FontString 忽略父層縮放
         local scale = UIParent:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -1169,6 +1206,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     local status = ns.AuraBar.Apply(row.ab, {
         kind = "duration", spellIDs = def.auras, max = 1, texture = tex, color = cc,
         alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, text = text,
+        elapsed = def.crusading and R.CrusadingFill(cfg) == "elapsed" or nil,
     })
     row.gcdUsed = text and text.gcd or nil
     row.engineStatus = status
@@ -1180,7 +1218,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     -- 空條（暗底＋1px 黑邊）畫在列上：光環不在時按鈕藏著，看到的就是這個
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
-        dim = R.TimerDim(cc), px = ns.P.Scale(1),
+        dim = R.TimerBack(cfg, key, cc), px = ns.P.Scale(1),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
@@ -1292,7 +1330,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     end
     row.mode = mode
     -- 引擎寫的列沒有 Lua 讀得到的數字：不印數值文字（剩餘時間條的秒數在按鈕子樹裡，引擎印）
-    row.text:SetShown(showText and mode ~= "engine" and mode ~= "timerIdle")
+    row.text:SetShown(showText and mode ~= "engine" and mode ~= "timerIdle" and not def.noText)
 
     local isPip = mode == "pip" and numSeg and numSeg > 0
     local isBar = mode == "bar" or mode == "absorbBar" or mode == "timerIdle"
@@ -1945,7 +1983,7 @@ local function UpdateRow(row, cfg)
     end
     if row.mode == "timerIdle" then
         -- 剩餘時間條的容器還沒好（戰鬥中、建失敗）：空條，底色同連續條
-        local d = R.TimerDim(ResolveColor(cfg, key, "color"), timerDimScratch)
+        local d = R.TimerBack(cfg, key, ResolveColor(cfg, key, "color"), timerDimScratch)
         row.bar:SetMinMaxValues(0, 1)
         row.bar:SetValue(0)
         row.barBG:SetVertexColor(d[1], d[2], d[3], d[4])
@@ -2000,7 +2038,7 @@ local function DeferRelayout()
 end
 
 local function Relayout(cfg, list, W)
-    local H = ns.P.Scale(RowHeight(cfg))
+    local total = 0
     local gap = ns.P.Scale(tonumber(cfg.rowSpacing) or 1)
     W = ns.P.Scale(W)
     local prev
@@ -2025,6 +2063,8 @@ local function Relayout(cfg, list, W)
         end
         prev = row
         row:Show()
+        local H = ns.P.Scale(R.KeyRowHeight(cfg, key))
+        total = total + H
         LayoutRow(row, key, cfg, row.numSeg, W, H)
         if row.ab and ns.AuraBar then ns.AuraBar.KickPending(row.ab) end
     end
@@ -2036,7 +2076,7 @@ local function Relayout(cfg, list, W)
     end
     shownCount = #list
     local n = #list
-    ns.Bars.SetPanelSize("resources", W, n > 0 and (n * H + (n - 1) * gap) or 1)
+    ns.Bars.SetPanelSize("resources", W, n > 0 and (total + (n - 1) * gap) or 1)
 end
 
 -- force：重排（清單、格數、尺寸設定、寬度都可能變了）。不給 ＝ 只重畫值（能量事件走這條，

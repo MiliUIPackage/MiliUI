@@ -161,6 +161,10 @@ end
 --   （所以 cooldownID 變了要把 alpha 還回去），別的插件的淡出功能也可能整批改 alpha。
 --   0.5 秒的輪詢跟著重設一次就夠，這只是一個 setter。
 -- 編輯模式時還原：玩家在排版時要看得到那條在哪。
+-- ⚠ MiliUI_CooldownManager 載入時**完全不碰**：那些 item 是它認領的，它每次重排（暴雪的格狀排版
+--   一跑，例如 buff 一出現）都把 alpha 設回它算的值，我們 0.5 秒後才壓回 0 ⇒ 征戰聖擊那條
+--   「跳出來一下又消失」（2026-10-02 回報）。兩支插件搶同一個框的 alpha 沒有對的寫法；
+--   要藏就在它的設定頁把那條移除（它是停到畫面外＋alpha 0、不 Hide，鏡射照樣有值）。
 ------------------------------------------------------------
 local dimmedItem
 
@@ -172,7 +176,7 @@ end
 function Source.ApplyDim()
     local want
     if ns.db and ns.db.enabled and ns.db.hideBlizzardBar and ns.isPaladin
-        and not EditModeActive() and StillCurrent() then
+        and not ns.Anchor.MiliCDMLoaded() and not EditModeActive() and StillCurrent() then
         want = trackedItem
     end
     if dimmedItem and dimmedItem ~= want then
@@ -276,6 +280,7 @@ function Source.Status()
         attach     = ns.db and ns.db.bar and ns.db.bar.attach or "auto",
         effective  = ns.Anchor.EffectiveMode(ns.db and ns.db.bar and ns.db.bar.attach or "auto"),
         resource   = ns.Anchor.ResolveResource() ~= nil,
+        miliCDM    = ns.Anchor.MiliCDMLoaded(),
         secretID   = trackedItem ~= nil and S.IsSecret(trackedItem.cooldownID),
     }
 end

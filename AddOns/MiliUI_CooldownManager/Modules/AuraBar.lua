@@ -174,7 +174,8 @@ end
 --          cell = geom（instances 必填：一格的大小與格距，進簽章），
 --          text = { font = 路徑, size = 實體像素字級, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字 }
 --                 | nil（duration 專用：秒數文字，進簽章），
---          count = { font, size, suffix } | nil（applications 專用：層數文字，進簽章） }
+--          count = { font, size, suffix } | nil（applications 專用：層數文字，進簽章），
+--          elapsed = true | nil（duration 專用：改成「已經過的時間」往上長，進簽章；征戰聖擊列） }
 ------------------------------------------------------------
 function AB.Signature(spec)
     local ids = {}
@@ -187,6 +188,7 @@ function AB.Signature(spec)
         table.concat(ids, ","), tostring(spec.max), tostring(spec.texture),
         Fmt(c.r), Fmt(c.g), Fmt(c.b), Fmt(spec.alpha), tostring(spec.reversed and true or false),
     }
+    if spec.kind == "duration" and spec.elapsed then parts[#parts + 1] = "elapsed" end
     local cg = spec.kind == "instances" and spec.cell
     if cg then
         parts[#parts + 1] = table.concat({ "cell", Fmt(cg.segW), Fmt(cg.H), Fmt(cg.gap) }, ":")
@@ -426,6 +428,11 @@ function AB.Apply(h, spec)
             interp = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil,
             remaining = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime or nil,
         }
+        -- 已經過的時間：同一個方向欄位換成 ElapsedTime（列舉不存在就照剩餘時間）
+        if spec.kind == "duration" and spec.elapsed and Enum and Enum.StatusBarTimerDirection
+            and Enum.StatusBarTimerDirection.ElapsedTime ~= nil then
+            st.remaining = Enum.StatusBarTimerDirection.ElapsedTime
+        end
         -- formatter 在這裡（正常插件路徑）先建好：initializeFrame 裡只查表
         if st.text and ns.Text then
             if st.text.gcd and ns.Text.GcdFormatter then
