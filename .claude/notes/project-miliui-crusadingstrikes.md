@@ -151,3 +151,14 @@ OnUpdate 裡更新值，藏起來就收不到 OnUpdate，鏡射會凍住；alpha
 相關：[[wow-121-secret-values]]、[[wow-121-duration-objects]]、
 [[wow-cooldownviewer-buffbar-text-gate]]、[[project-miliui-widgets-vendor]]、
 [[project-miliui-uf-comment-attribution]]
+
+## 2026-10-02：MiliUI_CooldownManager 有自己的征戰聖擊列，助手讓位（未實機驗證）
+
+- MCDM 資源條多一列 `CrusadingStrikes`，懲戒預設顯示、在聖能上方，高度／填充／底色各自一組設定，預設照助手。
+  **第一版用 auraTimer（AuraContainer 讀光環）實機整列空白**：暴雪冷卻清單登記的是天賦本身 404542
+  （CooldownSetSpell 148597，set 901、Category 3＝TrackedBar），被動光環 AuraContainer 看不到 ⇒ 第六條死路。
+  改成 `mode = "mirror"`：鏡射 MCDM 自己認領的 buffbars item（同助手的做法），**征戰聖擊一定要在暴雪追蹤量條裡**。
+- 助手：MCDM 載入時 `EffectiveMode` 只回 `nameplate`（`bar.withCDM`「同時掛在目標名條」）或 `off`，不再掛 MCDM 的列
+  （外掛在別人的排版堆疊裡，對方加一列就疊上去——加血量列後位置怪的成因）。Ayije 的聖能條路線保留。
+- 「buff 條跳出來一下又消失」：MCDM 每次 `Bars.Reapply`／重排都把認領的 item alpha 設回自己的值，助手 0.5 秒輪詢才壓回 0。
+  **兩支插件搶同一個框的 alpha 沒有對的寫法** ⇒ MCDM 載入時助手的 ApplyDim 完全不碰；要藏就在 MCDM 移除那條（停放＋alpha 0，不 Hide，鏡射照樣有值）。
