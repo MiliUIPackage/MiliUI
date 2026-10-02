@@ -567,4 +567,4 @@ L["Global cooldowns left counts how many more global cooldowns fit before the bu
 L["Time since the last swing (grows)"] = "已揮的時間（往上長）"
 L["Time until the next swing (shrinks)"] = "離下一刀的時間（往下縮）"
 L["Bar fills with"] = "填充方式"
-L["The game runs this timer itself, so Crusading Strikes doesn't need to be in Blizzard's Tracked Bars row. This row has its own height; it shows no number and condition rules don't apply."] = "征戰聖擊的計時由遊戲自己跑，不需要把它放進暴雪冷卻管理器的「追蹤的量條」。這一列有自己的高度；不印數字，條件規則不適用。"
+L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must be in the Tracked Bars row of Blizzard's Cooldown Manager. To hide that bar, remove it from Tracked Bars here; this row keeps moving. It has its own height, shows no number, and condition rules don't apply."] = "這一列鏡射暴雪的征戰聖擊量條，所以征戰聖擊一定要在暴雪冷卻管理器的「追蹤的量條」裡。不想看到那一條，在這裡的增益長條把它移除即可，這一列照樣會動。這一列有自己的高度；不印數字，條件規則不適用。"

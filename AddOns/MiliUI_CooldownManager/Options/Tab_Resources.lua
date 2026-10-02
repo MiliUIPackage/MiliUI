@@ -930,7 +930,7 @@ local function Controls(cand, sub)
                 add(BS("color", "colors.CrusadingStrikes.backColor", L["Background color"], { hasAlpha = true }))
                 add(BS("slider", "crusadingHeight", L["Row height"], { min = 1, max = 30, step = 1 }))
                 add(BS("dropdown", "crusadingFill", L["Bar fills with"], { items = CRUSADING_FILL_ITEMS }))
-                add(Note(L["The game runs this timer itself, so Crusading Strikes doesn't need to be in Blizzard's Tracked Bars row. This row has its own height; it shows no number and condition rules don't apply."]))
+                add(Note(L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must be in the Tracked Bars row of Blizzard's Cooldown Manager. To hide that bar, remove it from Tracked Bars here; this row keeps moving. It has its own height, shows no number, and condition rules don't apply."]))
             elseif key == "Ironfur" then
                 add(Note(L["One segment per active application, each draining with its own remaining time."]))
             elseif key == "Health" then
@@ -943,7 +943,7 @@ local function Controls(cand, sub)
             end
             local info = R.Info(key)
             if info and info.crusading then
-                -- 征戰聖擊的說明在上面那段
+                -- 征戰聖擊的說明在上面那段（鏡射暴雪的追蹤量條）
             elseif info and info.mode == "auraTimer" then
                 -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
                 add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))

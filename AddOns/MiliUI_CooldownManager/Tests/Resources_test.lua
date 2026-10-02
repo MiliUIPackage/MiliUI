@@ -1231,7 +1231,7 @@ end
 do
     eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower" })
     check("懲戒：征戰聖擊預設顯示", R.DefaultOn(70, "CrusadingStrikes") == true)
-    check("征戰聖擊是引擎寫的剩餘時間條（條件規則不適用）", R.EngineDriven("CrusadingStrikes")
+    check("征戰聖擊是鏡射列（條件規則不適用）", R.EngineDriven("CrusadingStrikes")
         and not R.SupportsConditions("CrusadingStrikes"))
     local d = ns.DB.BuildDefaults().profile.resources
     eq("征戰聖擊預設高 4", R.KeyRowHeight(d, "CrusadingStrikes"), 4)
@@ -1244,6 +1244,39 @@ do
     check("征戰聖擊底色：黑 60%（帶 alpha）", back[1] == 0 and back[2] == 0 and back[3] == 0 and back[4] == 0.6)
     local dim = R.TimerBack(d, "EbonMight", { r = 1, g = 1, b = 1 })
     check("沒有 backColor 的列照主色推", dim[1] == 0.25 and dim[4] == 0.8)
+end
+
+-- 征戰聖擊：鏡射暴雪追蹤量條（找 item、原封轉手、沒亮時畫底色）
+do
+    local fakeBar = { GetMinMaxValues = function() return 0, 2.6 end, GetValue = function() return 1.3 end }
+    local visible = true
+    local item = { Bar = fakeBar, IsVisible = function() return visible end }
+    local other = { Bar = fakeBar, IsVisible = function() return true end }
+    local recs = { [item] = { cooldownID = 148597 }, [other] = { cooldownID = 555 } }
+    local saveV, saveCV, saveGT = ns.Viewers, env.C_CooldownViewer, env.GetTime
+    ns.Viewers = { frames = recs, EnumerateItems = function(fn, key)
+        assert(key == "buffbars"); fn(other, recs[other]); fn(item, recs[item]) end }
+    env.C_CooldownViewer = { GetCooldownViewerCooldownInfo = function(id)
+        if id == 148597 then return { spellID = 404542 } end
+        return { spellID = 1 } end }
+    local t = 100
+    env.GetTime = function() t = t + 1; return t end
+    eq("找到征戰聖擊那個 item", R.MirrorSource(), item)
+    local got = {}
+    local row = { bar = { SetMinMaxValues = function(_, a, b) got.min, got.max = a, b end,
+                          SetValue = function(_, v, extra) got.v, got.extra = v, extra end } }
+    R.MirrorRow(row)
+    check("原封轉手（不帶第二個參數）", got.min == 0 and got.max == 2.6 and got.v == 1.3 and got.extra == nil)
+    visible = false
+    row.mirrorElapsed = true
+    R.MirrorRow(row)
+    check("沒亮＋已揮的時間：整條底色（1/1）", got.max == 1 and got.v == 1)
+    row.mirrorElapsed = false
+    R.MirrorRow(row)
+    check("沒亮＋剩餘時間：0", got.v == 0)
+    recs[item].cooldownID = 777       -- 池子把框發給別人
+    eq("換人了就放掉", R.MirrorSource(), nil)
+    ns.Viewers, env.C_CooldownViewer, env.GetTime = saveV, saveCV, saveGT
 end
 
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))

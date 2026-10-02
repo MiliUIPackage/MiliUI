@@ -567,4 +567,4 @@ L["Global cooldowns left counts how many more global cooldowns fit before the bu
 L["Time since the last swing (grows)"] = "마지막 공격 후 경과 시간 (늘어남)"
 L["Time until the next swing (shrinks)"] = "다음 공격까지 남은 시간 (줄어듦)"
 L["Bar fills with"] = "바 채우기 기준"
-L["The game runs this timer itself, so Crusading Strikes doesn't need to be in Blizzard's Tracked Bars row. This row has its own height; it shows no number and condition rules don't apply."] = "게임이 이 타이머를 직접 돌리므로 성전사의 일격을 블리자드 추적 바 줄에 넣을 필요가 없습니다. 이 줄은 높이를 따로 가지며, 숫자를 표시하지 않고 조건 규칙도 적용되지 않습니다."
+L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must be in the Tracked Bars row of Blizzard's Cooldown Manager. To hide that bar, remove it from Tracked Bars here; this row keeps moving. It has its own height, shows no number, and condition rules don't apply."] = "이 줄은 블리자드의 성전사의 일격 바를 그대로 따라 그리므로, 성전사의 일격이 블리자드 재사용 대기시간 관리자의 추적 바 줄에 있어야 합니다. 그 바를 숨기려면 여기 추적 바에서 제거하세요. 이 줄은 계속 움직입니다. 높이를 따로 가지며, 숫자를 표시하지 않고 조건 규칙도 적용되지 않습니다."
