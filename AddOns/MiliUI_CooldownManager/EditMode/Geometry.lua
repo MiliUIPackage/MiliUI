@@ -5,6 +5,7 @@
 --   EM.PosFromRect(ap, pp, rect, parent)   容器的 ap 那一點相對 parent 的 pp 那一點的偏移
 --   EM.SnapDelta(ap, l, r, t, b, ox, oy, step)
 --                                          把 ap 那一點吸到以 (ox, oy) 為原點的格線上要挪多少
+--   EM.AlignDelta(rect, others, range)     跟其他條的邊／中心對齊要挪多少（沒得吸的軸回 nil）
 --   EM.ReadPos(key)                        放手時把容器現況換算回 bars[key].pos（面板是 profile[key].pos）
 --
 -- 位置語意（Core/Bars.lua 的 ApplyStructure）：容器用版面算出來的錨點
@@ -52,20 +53,38 @@ function EM.SnapValue(v, step)
     return floor(v / step + 0.5) * step
 end
 
--- 吸附範圍：錨點離最近的格線在 step / SNAP_RANGE_DIV 以內才吸（32 的格距約 5px）。
--- 原本永遠吸最近的一條（等於半格 16px），拖起來太黏；使用者 2026-09-30 要「現在的 1/3」。
-EM.SNAP_RANGE_DIV = 6
+-- 吸附範圍：離吸附點 SNAP_RANGE（UIParent 座標）以內才吸，格線與條對齊共用。
+-- 歷史：原本永遠吸最近的格線（半格 16px）太黏 → 09-30 改成格距的 1/6；但格距調大時範圍跟著
+-- 放大（100 的格距＝17px，「很遠就飄過去」），10-02 改成固定值、不隨格距。
+EM.SNAP_RANGE = 4
 
 -- 只吸錨點那一邊：錨點（相對原點）離格線夠近才吸過去，兩軸各自判斷，回傳整個矩形要挪的量
 function EM.SnapDelta(anchorPoint, l, r, t, b, ox, oy, step)
     if not step or step <= 0 then return 0, 0 end
     local ax, ay = EM.PointXY(anchorPoint, l, r, t, b)
     local rx, ry = ax - ox, ay - oy
-    local range = step / EM.SNAP_RANGE_DIV
+    local range = EM.SNAP_RANGE
     local dx, dy = EM.SnapValue(rx, step) - rx, EM.SnapValue(ry, step) - ry
     if dx > range or dx < -range then dx = 0 end
     if dy > range or dy < -range then dy = 0 end
     return dx, dy
+end
+
+-- 對齊其他條：rect／others[i] = { l, r, t, b }。X 軸試左貼左、右貼右、左貼右、右貼左、中心對中心，
+-- Y 軸同理；兩軸各自挑最近的一個，超出 range 的那一軸回 nil（呼叫端再退去吸格線）
+function EM.AlignDelta(rect, others, range)
+    local l, r, t, b = rect[1], rect[2], rect[3], rect[4]
+    local cx, cy = (l + r) / 2, (t + b) / 2
+    local bx, by
+    local function tx(d) if d >= -range and d <= range and (not bx or math.abs(d) < math.abs(bx)) then bx = d end end
+    local function ty(d) if d >= -range and d <= range and (not by or math.abs(d) < math.abs(by)) then by = d end end
+    for i = 1, #(others or {}) do
+        local o = others[i]
+        local ol, orr, ot, ob = o[1], o[2], o[3], o[4]
+        tx(ol - l); tx(orr - r); tx(orr - l); tx(ol - r); tx((ol + orr) / 2 - cx)
+        ty(ot - t); ty(ob - b); ty(ob - t); ty(ot - b); ty((ot + ob) / 2 - cy)
+    end
+    return bx, by
 end
 
 -- 框的矩形；任一邊讀不到（還沒錨定、秘密值）回 nil
