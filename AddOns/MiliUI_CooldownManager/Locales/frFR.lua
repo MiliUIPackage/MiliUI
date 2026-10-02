@@ -572,3 +572,8 @@ L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must s
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Frappes de croisé n'est pas dans la rangée des barres suivies du gestionnaire de recharges de Blizzard : la rangée Frappes de croisé de la barre de ressources reste vide. Ajoutez-la là-bas (Mode Édition → Gestionnaire de recharges → Barres suivies)."
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Frappes de croisé n'est pas dans la rangée des barres suivies du gestionnaire de recharges de Blizzard : cette rangée reste vide. Ajoutez-la là-bas (Mode Édition → Gestionnaire de recharges → Barres suivies)."
+
+L["Glow style"] = "Style de lueur"
+L["(follows the theme)"] = "(suit le thème)"
+L["(follows this bar)"] = "(suit cette barre)"
+L["(default)"] = "(par défaut)"
