@@ -227,6 +227,8 @@ eq("值從哪來：邊框看 icon 那一節（utility 關了 icon 跟隨）", DB
 eq("值從哪來：essential 的邊框跟隨主題", DB.SpellFallbackSource("essential", "borderColor"), "theme")
 eq("值從哪來：沒有條層值 → nil", DB.SpellFallbackSource("essential", "hideCooldownText"), nil)
 eq("生效發光樣式沒設 ⇒ nil", SS("buffs", 1234, "activeGlowType"), nil)
+eq("生效發光預設脫戰也亮", SS("buffs", 1234, "activeGlowOutOfCombat"), true)
+eq("脫戰也亮算在 activeGlow 那一組", DB.OVERRIDE_GROUP.activeGlowOutOfCombat, "activeGlow")
 eq("生效發光樣式算在 activeGlow 那一組", DB.OVERRIDE_GROUP.activeGlowType, "activeGlow")
 
 ------------------------------------------------------------

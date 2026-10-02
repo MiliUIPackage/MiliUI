@@ -305,7 +305,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   上畫 MiliUIGlow（pixel／autocast／button／proc），暴雪的 `SpellActivationAlert` 熄 alpha（不 Hide）。
   條層「觸發發光」開著（或法術覆寫成開）才接管；都關時還給暴雪。自訂法術聽 `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE`。
 - **生效發光**（增益）：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）在光環生效期間一直亮。**只有逐法術開關**
-  （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），**沒有統一設定**（2026-10-02 使用者拿掉主題頁／條頁那一節）：樣式與顏色都在單一法術小窗挑（`activeGlowType`／`activeGlowColor`，沒挑＝ `glow.active` 的預設：像素、黃）。小窗標題圖示與條預覽的格子都即時亮（`Glow.PreviewActive`）。
+  （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），**沒有統一設定**（2026-10-02 使用者拿掉主題頁／條頁那一節）：樣式與顏色都在單一法術小窗挑（`activeGlowType`／`activeGlowColor`，沒挑＝ `glow.active` 的預設：像素、黃）。小窗標題圖示與條預覽的格子都即時亮（`Glow.PreviewActive`）。「脫戰也亮」（`activeGlowOutOfCombat`，預設真、只存 false）：取消＝只在戰鬥中亮，`PLAYER_REGEN_*` 時把增益兩條的 item 全部重對一次；自訂光環格不提供（發光烘在受保護的按鈕裡，戰鬥中切不了）。
   生效看暴雪 item 的 `IsActive()`（後掛勾 `OnActiveStateChanged`）；讀不到一律不亮，「沒生效也顯示」的灰圖示不會亮。
   覆寫分組自成 `activeGlow`：條頁「清除發光覆寫」不會清掉。從 Ayije 匯入 `spellRegistry[spec].glowEnabled／glowColors`。
   自訂光環格吃同一個開關：發光在 `initializeFrame` 裡用 MiliUIGlow 的 Attach 系列建在引擎按鈕底下（按鈕只在光環存在時顯示），
@@ -1145,3 +1145,4 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      把征戰聖擊從暴雪追蹤量條拿掉後 5 秒聊天框提示一次、設定頁出現紅字，加回去後紅字消失；開了血量列之後兩列不疊；調高度／底色（含透明度）／填充方式即時生效。
 143. 生效發光逐增益樣式：小窗挑四種樣式／顏色，標題圖示當場換；關掉小窗後條預覽上勾了的增益常亮、沒勾的不亮；遊戲裡增益生效時亮的是挑的那個樣式；
      小窗各列的「（跟隨主題／跟隨這一條／預設）」跟條頁「跟隨全域主題」的勾選一致。
+144. 生效發光「脫戰也亮」取消後：脫戰時增益生效不亮、一進戰鬥就亮、脫戰又熄；勾回去脫戰也亮；自訂光環格的小窗沒有這個勾選框；自訂光環格挑的發光樣式有生效。

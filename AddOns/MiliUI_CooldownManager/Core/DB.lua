@@ -819,6 +819,8 @@ local SPELL_CONST = {
     hideStackText    = false,
     -- 生效發光（增益）：只有逐法術；顏色／樣式（activeGlowColor／activeGlowType）沒設（nil）＝ glow.active 的預設
     activeGlow       = false,
+    -- 生效發光脫戰也亮（預設）；false ＝ 只在戰鬥中亮。自訂光環格不適用（發光烘在受保護的按鈕裡）
+    activeGlowOutOfCombat = true,
     -- 音效：LibSharedMedia 的音效名；沒設（nil）或 false ＝ 無
     readySound       = false,
     gainSound        = false,
@@ -1082,6 +1084,7 @@ DB.OVERRIDE_GROUP = {
     procGlow = "glow", readyGlow = "glow",
     -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
     activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",
+    activeGlowOutOfCombat = "activeGlow",
     hideCooldownText = "text", hideStackText = "text",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉
