@@ -330,10 +330,20 @@ local function ReadActive(item)
     return Plain(rawget(item, "isActive")) == true
 end
 
+-- 戰鬥狀態自己記（PLAYER_REGEN_DISABLED 派送當下 InCombatLockdown 還不一定是真）
+local inCombat = false
+
+-- 「脫戰也亮」關掉的增益只在戰鬥中亮
+local function CombatOK(rec, barKey)
+    if inCombat then return true end
+    return ns.SpellSetting(barKey, rec.cooldownID, "activeGlowOutOfCombat") ~= false
+end
+
 function G.SyncActive(owner, rec, barKey)
     barKey = barKey or rec.claimKey
     local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
-    if aura and owner and not Hidden(rec) and Wanted(rec, barKey, "active") and ReadActive(owner) then
+    if aura and owner and not Hidden(rec) and Wanted(rec, barKey, "active") and CombatOK(rec, barKey)
+        and ReadActive(owner) then
         Start(rec, "active", barKey, ActiveCfg(rec, barKey))
     else
         Stop(rec, "active")
@@ -665,9 +675,21 @@ end
 -- 初始化
 ------------------------------------------------------------
 local initialized = false
+-- 進出戰鬥：增益兩條的 item 全部重對一次生效發光（只碰我們自己的發光宿主）
+local function OnCombatChanged(on)
+    inCombat = on
+    if not (ns.Viewers and ns.Viewers.EnumerateItems) then return end
+    for key in pairs(ns.Viewers.AURA_KIND or {}) do
+        ns.Viewers.EnumerateItems(function(item, rec) G.SyncActive(item, rec) end, key)
+    end
+end
+
 function G.Init()
     if initialized then return end
     initialized = true
+    inCombat = InCombatLockdown() and true or false
+    ns.Events.Register("PLAYER_REGEN_DISABLED", "glow_combat", function() OnCombatChanged(true) end)
+    ns.Events.Register("PLAYER_REGEN_ENABLED", "glow_combat", function() OnCombatChanged(false) end)
     if not InstallAlertHooks() then
         -- 動作條那一包理論上一定在；萬一比我們晚，等登入完成再試一次
         ns.Events.Register("PLAYER_ENTERING_WORLD", "glow_hooks", function()

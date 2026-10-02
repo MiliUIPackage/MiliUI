@@ -444,8 +444,10 @@ local function AuraStyle(rec, barKey, w, h)
         local g = S(barKey, "glow.active")
         g = type(g) == "table" and g or {}
         local col = SS(barKey, id, "activeGlowColor")
+        local typ = SS(barKey, id, "activeGlowType")
+        if not GLOW_TYPES[typ] then typ = g.type end
         st.glow = {
-            type      = GLOW_TYPES[g.type] and g.type or "pixel",
+            type      = GLOW_TYPES[typ] and typ or "pixel",
             color     = RGBA(type(col) == "table" and col or g.color, 0.95, 0.95, 0.32, 1),
             lines     = tonumber(g.lines) or 8,
             thickness = tonumber(g.thickness) or 2,

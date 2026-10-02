@@ -252,6 +252,15 @@ local function Build()
     end)
     aswatch:SetPoint("LEFT", acb, "RIGHT", 10, 0)
     frame.activeCB, frame.activeSwatch = acb, aswatch
+    -- 脫戰也亮（預設勾）：取消 ＝ 只在戰鬥中亮。只存 false（勾回去就清掉覆寫）。
+    -- 自訂光環格不給：發光烘在受保護的按鈕裡，戰鬥中切不了
+    local occb = W.CreateCheckButton(ar, L["Out of combat too"], function(on)
+        if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
+        ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", (not on) and false or nil)
+        Changed()
+    end)
+    occb:SetPoint("LEFT", aswatch, "RIGHT", 14, 0)
+    frame.activeOOC = occb
     local ahit = CreateFrame("Frame", nil, ar)
     ahit:SetPoint("TOPLEFT", ar, "TOPLEFT", 0, 0)
     ahit:SetPoint("BOTTOMLEFT", ar, "BOTTOMLEFT", 0, 0)
@@ -262,6 +271,7 @@ local function Build()
             ns.DB.SetOverride(cur.id, "activeGlow", nil)
             ns.DB.SetOverride(cur.id, "activeGlowColor", nil)
             ns.DB.SetOverride(cur.id, "activeGlowType", nil)
+            ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", nil)
             Changed()
         end
     end)
@@ -507,6 +517,10 @@ function Pop.Refresh()
     if type(at) ~= "string" then at = ns.Setting(key, "glow.active.type") end
     frame.activeTypeDD:SetSelectedValue(type(at) == "string" and at or "pixel")
     frame.activeTypeDD:SetEnabled(activeOn)
+    frame.activeOOC:SetShown(kind ~= "aura")
+    frame.activeOOC:SetChecked(ns.SpellSetting(key, id, "activeGlowOutOfCombat") ~= false)
+    frame.activeOOC:SetEnabled(activeOn)
+    frame.activeOOC:SetAlpha(activeOn and 1 or 0.4)
     frame.activeTypeDD:SetAlpha(activeOn and 1 or 0.4)
     if ns.Glow and ns.Glow.PreviewActive then
         ns.Glow.PreviewActive(frame.glowHost, key, class == "aura" and id or nil)
