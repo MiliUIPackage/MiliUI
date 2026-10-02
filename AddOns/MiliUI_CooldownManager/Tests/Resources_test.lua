@@ -1274,6 +1274,19 @@ do
     row.mirrorElapsed = false
     R.MirrorRow(row)
     check("沒亮＋剩餘時間：0", got.v == 0)
+    -- 有 mirror 列 → 增益長條上那條拿掉；選項關掉就不拿
+    local called = 0
+    ns.Bars = ns.Bars or {}
+    local saveRA = ns.Bars.RequestAll
+    ns.Bars.RequestAll = function() called = called + 1 end
+    local mrow = { mode = "mirror" }
+    R.SetMirrorDriver({ mrow }, 1, {})
+    check("mirror 列顯示：拿掉征戰聖擊那條、其他不動", R.HidesTrackedBar(148597) and not R.HidesTrackedBar(555) and called == 1)
+    R.SetMirrorDriver({ mrow }, 1, { crusadingHideBar = false })
+    check("選項關掉：不拿", not R.HidesTrackedBar(148597) and called == 2)
+    R.SetMirrorDriver({}, 0, {})
+    check("沒有 mirror 列：不拿、沒變就不重排", not R.HidesTrackedBar(148597) and called == 2)
+    ns.Bars.RequestAll = saveRA
     recs[item].cooldownID = 777       -- 池子把框發給別人
     eq("換人了就放掉", R.MirrorSource(), nil)
     ns.Viewers, env.C_CooldownViewer, env.GetTime = saveV, saveCV, saveGT

@@ -757,7 +757,11 @@ function C.Bar(barKey, withHidden)
     local groupOf = sp and type(sp.groupOf) == "table" and sp.groupOf or EMPTY
     local hidden  = sp and type(sp.hidden) == "table" and sp.hidden or EMPTY
 
+    -- 資源條的征戰聖擊列顯示時，增益長條上那條同一件事的整個拿掉（不進 hid：不是玩家藏的）
+    local autoHide = ns.Resources and ns.Resources.HidesTrackedBar
+
     local function Add(id)
+        if autoHide and autoHide(id) then return end
         if not hidden[id] then
             out[#out + 1] = id
         elseif hid then

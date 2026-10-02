@@ -567,4 +567,5 @@ L["Global cooldowns left counts how many more global cooldowns fit before the bu
 L["Time since the last swing (grows)"] = "已挥的时间（往上长）"
 L["Time until the next swing (shrinks)"] = "距下一刀的时间（往下缩）"
 L["Bar fills with"] = "填充方式"
-L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must be in the Tracked Bars row of Blizzard's Cooldown Manager. To hide that bar, remove it from Tracked Bars here; this row keeps moving. It has its own height, shows no number, and condition rules don't apply."] = "这一列镜像暴雪的征战圣击量条，所以征战圣击一定要在暴雪冷却管理器的「追踪的量条」里。不想看到那一条，在这里的增益长条把它移除即可，这一列照样会动。这一列有自己的高度；不显示数字，条件规则不适用。"
+L["Hide Crusading Strikes on the buff bars"] = "隐藏增益长条上的征战圣击"
+L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "这一列镜像暴雪的征战圣击量条，所以征战圣击要留在暴雪冷却管理器的「追踪的量条」里。上面的选项开着时，这一列显示期间增益长条上那一条会自动拿掉，它在看不到的地方照样更新。这一列有自己的高度；不显示数字，条件规则不适用。"
