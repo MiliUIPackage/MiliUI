@@ -299,7 +299,7 @@ local function OnDialogAttach(dialog, systemFrame)
     if not hintPrinted then
         hintPrinted = true
         ns.Defer(function()
-            ns.Print(L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."])
+            ns.Print(L["Cooldown Manager settings are in /mcdm."])
         end)
     end
 end

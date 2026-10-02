@@ -51,9 +51,8 @@ L["Okay"] = "OK"
 L["Cancel"] = "Cancelar"
 L["Can't change settings during combat"] = "Não é possível alterar as configurações em combate"
 -- 編輯模式
-L["Open this bar's settings"] = "Abrir as configurações desta barra"
 L["Dragging stops it following %s"] = "Arrastar faz com que ela deixe de seguir %s"
-L["Cooldown Manager settings are in /mcdm, or click the gear at the top right of the blue box."] = "As configurações do gerenciador de recargas ficam em /mcdm ou na engrenagem no canto superior direito da moldura azul."
+L["Cooldown Manager settings are in /mcdm."] = "As configurações do gerenciador de recargas ficam em /mcdm."
 -- 設定介面
 L["Click to open this bar's settings."] = "Clique para abrir as configurações desta barra."
 L["Drag to move. Hold Shift to disable snapping."] = "Arraste para mover. Segure Shift para desativar o encaixe."

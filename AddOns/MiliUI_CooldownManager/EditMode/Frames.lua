@@ -6,9 +6,8 @@
 --   EM.RefreshBar(key)       依目前是否在編輯模式顯示／收起這條的覆蓋層與選取框（走 ns.Write）
 --   EM.AfterApply(key)       Bars.ApplyStructure 套完位置之後（覆蓋層重排、磁吸 Restore）
 --
--- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、右上角齒輪（開設定視窗到這條）、
--- 黃字提示列（拖曳會被限制時才出現）。本體 EnableMouse(false)，只有齒輪吃滑鼠 ——
--- 不能擋到底下選取框的拖曳。strata 開到 HIGH 讓齒輪蓋在選取框（MEDIUM／1000）上面。
+-- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、
+-- 黃字提示列（拖曳會被限制時才出現）。整個 EnableMouse(false) —— 不能擋到底下選取框的拖曳。
 --
 -- 選取框：
 --   * 四條檢視器用**暴雪自己的** viewer.Selection（它勾了「冷卻管理器」才會顯示）。
@@ -40,7 +39,6 @@ local SNAP_PREFIX = "cdm:"
 EM.SNAP_PREFIX = SNAP_PREFIX
 
 local HINT_R, HINT_G, HINT_B = 1, 0.82, 0          -- 暴雪提示用的金黃
-local GEAR_TEX = "Interface\\Buttons\\UI-OptionsButton"
 
 -- 條或面板（資源條、施法條）的設定表
 local function BarCfg(key)
@@ -114,24 +112,6 @@ local function BuildOverlay(key, c)
     hint:SetTextColor(HINT_R, HINT_G, HINT_B)
     hint:Hide()
     ov.hint = hint
-
-    local W = ns.W
-    local gear = W.CreateButton(ov, "", "normal", 16, 16)
-    gear:SetPoint("TOPRIGHT", ov, "TOPRIGHT", 0, 0)
-    local tex = gear:CreateTexture(nil, "OVERLAY")
-    tex:SetTexture(GEAR_TEX)
-    tex:SetSize(12, 12)
-    tex:SetPoint("CENTER")
-    gear:SetScript("OnClick", function()
-        if ns.Options and ns.Options.FocusBar then ns.Options.FocusBar(key) end
-    end)
-    gear:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(L["Open this bar's settings"])
-        GameTooltip:Show()
-    end)
-    gear:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    ov.gear = gear
 
     ns.RegisterCallback("AccentChanged", "editmode_" .. tostring(key), function()
         ov:SetBackdropBorderColor(Style.Accent(1))

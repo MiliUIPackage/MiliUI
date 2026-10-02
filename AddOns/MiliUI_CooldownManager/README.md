@@ -134,7 +134,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 ## 編輯模式
 
-進暴雪的編輯模式，每條容器上蓋一層**自己的覆蓋層**（1px 職業色邊、左上角條名、右上角齒輪、
+進暴雪的編輯模式，每條容器上蓋一層**自己的覆蓋層**（1px 職業色邊、左上角條名、
 需要時一行黃字提示），底下是藍色選取框，拖選取框就是拖整條。
 
 | 條 | 選取框 | 拖的是什麼 |
@@ -156,9 +156,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   **不 Hide**（Hide 會從我們的執行跑暴雪的 OnHide、寫 `attachedToSystem`）：後掛勾 `AttachToSystemFrame`
   當場 `SetAlpha(0)`＋`EnableMouse(false)`，對話框與每個吃滑鼠／滾輪的子孫都關、記下來；下一次
   `AttachToSystemFrame` 的系統不是四條之一、或離開編輯模式時照記錄還回去。第一次藏時聊天框印一行
-  「冷卻管理器的設定在 /mcdm，或點藍框右上角的齒輪」。對話框的內容、欄位與 `Settings` 列不碰。
-- **齒輪**：`Options.FocusBar(key)`。設定視窗是 DIALOG strata、開窗時 `Raise()`，蓋得過編輯模式的面板。
-  自訂群組也開得到自己的頁面（`Options.SyncBarPages` 先登記）。
+  「冷卻管理器的設定在 /mcdm」。對話框的內容、欄位與 `Settings` 列不碰。
 - **編輯模式裡每條全亮**：顯示條件（沒目標淡出、騎乘隱藏…）在編輯模式中不生效，離開後恢復。
 - **空條**：沒 buff 的條容器可能只有 1×1，覆蓋層與選取框至少一格（`layout.size`）大，照樣拖得動；
   樣板內容（假圖示）留給 D／E 階段的預覽。
@@ -384,7 +382,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
 | `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
 | `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：spec 的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
-| `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`（`ShowPage`／`FocusBar` 照它轉，編輯模式齒輪與點擊層點了開資源條頁）、`Options.PageTitle("pips")` 回「自訂格子」（覆蓋層條名、錨定候選、點擊層提示） |
+| `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`（`ShowPage`／`FocusBar` 照它轉，點擊層點了開資源條頁）、`Options.PageTitle("pips")` 回「自訂格子」（覆蓋層條名、錨定候選、點擊層提示） |
 
 容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、自訂格子 `TOP`（預設錨在
 核心技能下緣、往下長）、施法條 `CENTER`。寬 0 ＝ 核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`）。
@@ -882,9 +880,9 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 17. 戰鬥中進出、拖曳中進戰鬥零 ADDON_ACTION_BLOCKED；資源條（錨在核心技能上）拖曳脫離、施法條拖曳，放手後位置不跳。
 18. 暴雪的系統設定對話框：點四條檢視器 ⇒ 看不到也點不到（對話框本身與子孫的滑鼠、滾輪都關了）；點別的系統 ⇒ 正常顯示、每個控件都點得到、滾輪有反應；離開編輯模式再進來也正常。點過四條、離開編輯模式打一場，快捷列零封鎖、`/dump issecurevariable(EditModeSystemSettingsDialog, "attachedToSystem")` 為真（我們不再 Hide 它，不會寫到這一欄）。對話框藏著時暴雪若又為四條之一重建設定列（新的列沒被我們關滑鼠），確認不會出現看不見但點得到的控件。
 19. 暴雪 Selection `SetAllPoints` 到覆蓋層後，暴雪自己的磁吸（別的系統吸到冷卻管理器）與 `UpdateClampOffsets` 沒有怪行為；離開編輯模式後 Selection 留著這個錨點（下次進來會重貼）。
-20. 齒輪圖示 `Interface\Buttons\UI-OptionsButton` 在 12.1 仍存在、16×16 看得清楚。
+20. （已移除：覆蓋層右上角的齒輪，2026-10-02 拿掉）
 21. 暴雪的「吸附」開關與格距讀得到（`IsSnapEnabled`、`GetAccountSettingValue(GridSpacing)`），格線原點是畫面中心、單位是 UIParent 座標。
-22. 覆蓋層 strata HIGH：齒輪要蓋得過選取框（MEDIUM／1000、toplevel），但不能蓋過暴雪的編輯模式面板（DIALOG）。
+22. 覆蓋層 strata HIGH：條名與提示要蓋得過選取框（MEDIUM／1000、toplevel），但不能蓋過暴雪的編輯模式面板（DIALOG）。
 23. 刪掉自訂群組後進編輯模式：那一條的覆蓋層與選取框不再出現。
 
 **設定視窗**
@@ -1030,7 +1028,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 95. 輸出專精（暗牧、元素、增強、三系術士、平衡、湮滅、強化）：資源條預設沒有法力；「這個專精要顯示哪些」裡法力那一列預設不勾，
     勾起來就出現、再取消又消失，`/reload` 後照存的。治療專精與法師預設照舊顯示（跟 Ayije_CDM 的預設一致）。（每個專精的預設在 `Resources.lua` 的 `DEFAULT_OFF`；
     `rows[specID][key]`：nil＝照預設、true／false＝強制；2026-10-02 起分專精存，見 136。）
-96. 設定視窗開著（沒進暴雪編輯模式）：每條上面有覆蓋層（職業色邊、條名、齒輪），**直接拖就能移動**，格線吸附與套組磁吸都在；
+96. 設定視窗開著（沒進暴雪編輯模式）：每條上面有覆蓋層（職業色邊、條名），**直接拖就能移動**，格線吸附與套組磁吸都在；
     **按住 Shift 拖曳不吸**（暴雪編輯模式裡也是：Shift 一律不吸，不再是「反轉」）。點一下仍是開那條的設定頁。
     設定視窗開著再進暴雪編輯模式：點擊層收起、換成選取框；出來又換回點擊層。戰鬥中設定視窗鎖著、點擊層不出現。
 

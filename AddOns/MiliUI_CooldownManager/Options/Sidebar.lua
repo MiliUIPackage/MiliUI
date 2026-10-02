@@ -365,7 +365,7 @@ function Sidebar.Build(panel, width)
 end
 
 -- ⚠ 按鈕群組的高亮掛在按鈕自己的 OnClick 上。從外面切頁（開窗回到上次那頁、
--- 編輯模式的齒輪）不經過點擊，要從這裡補，不然左欄會亮著上一頁。
+-- 畫面上的點擊層）不經過點擊，要從這裡補，不然左欄會亮著上一頁。
 -- 「一般」以外的分頁不顯示左欄
 function Sidebar.SetShown(shown)
     if col then col:SetShown(shown and true or false) end
