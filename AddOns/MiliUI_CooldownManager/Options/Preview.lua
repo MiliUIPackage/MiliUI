@@ -133,6 +133,13 @@ local function NewBarCell(canvas)
     SetupFont(bar.Name, 12)
     bar.Duration = bar:CreateFontString(nil, "OVERLAY")
     SetupFont(bar.Duration, 12)
+    -- 火花（bar.spark）：填充末端一條 2px 亮線；錨點與顯示由 Decorate 的 ApplyBarLook 管（ownPip）
+    bar.Pip = bar:CreateTexture(nil, "OVERLAY")
+    bar.Pip:SetTexture(WHITE)
+    bar.Pip:SetVertexColor(1, 1, 1, 0.9)
+    bar.Pip:SetWidth(2)
+    bar.Pip:SetAlpha(0)
+    bar.ownPip = true
     c.Bar = bar
     local ov = CreateFrame("Frame", nil, c)
     ov:SetAllPoints()
@@ -435,7 +442,8 @@ end
 function Proto:Fill(c, e, i, r, now)
     local key, id = self.key, e.id
     local info = ns.Catalog.Info(id)
-    local tex = (info and info.icon) or QUESTION
+    -- 自訂圖示（逐法術覆寫）也照畫；光環格不支援（ns.IconFor 自己會略過）
+    local tex = ns.IconFor(key, id, info) or QUESTION
     if info and info.custom then
         c.aura = info.kind == "aura"
         c.locked = c.aura
@@ -595,7 +603,7 @@ function Proto:BeginDrag()
     GameTooltip:Hide()
     local g = Ghost()
     local info = ns.Catalog.Info(c.id)
-    g.tex:SetTexture((info and info.icon) or QUESTION)
+    g.tex:SetTexture(ns.IconFor(self.key, c.id, info) or QUESTION)
     g:Show()
     for _, s in ipairs(self.slots) do
         if s ~= c then s:SetAlpha(0.5) end

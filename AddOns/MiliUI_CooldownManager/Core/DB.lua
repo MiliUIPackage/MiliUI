@@ -83,6 +83,8 @@ local function IconBar(o)
         bar        = o.bar or false,        -- kind = "bars" 才有
         strata     = "MEDIUM",
         clickable  = false,                 -- 點了施放／使用（只有自訂圖示群組讀，判準在 DB.BarClickable）
+        -- 跟著游標（只有自訂圖示群組、沒有光環格、沒勾可點擊時讀；判準在 Core/Cursor.lua 的 Eligible）
+        cursor     = { enabled = false, x = 20, y = -20 },
     }
 end
 
@@ -102,6 +104,7 @@ local function LongBar(o)
             showName  = true, nameSize = 16, nameFont = "INHERIT",   -- 字型 "INHERIT" ＝ 跟隨通用字型
             showTime  = true, timeSize = 16, timeFont = "INHERIT",
             showStacks = true, stackSize = 12,
+            spark     = false,              -- 填充末端的火花（暴雪條的 Pip）；false ＝ 藏（舊行為）
         },
     }
     b.kind = "bars"
@@ -862,6 +865,12 @@ local SPELL_CONST = {
     readySound       = false,
     gainSound        = false,
     loseSound        = false,
+    -- 語音播報（文字轉語音，Core/Sound.lua）：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字（空字串也念法術名）
+    readySpeak       = false,
+    gainSpeak        = false,
+    loseSpeak        = false,
+    -- 自訂圖示：貼圖檔案編號（正整數）；false ＝ 用原本的圖示（Core/Decorate.lua 的 IconOverrideOf）
+    customIcon       = false,
 }
 DB.SPELL_FALLBACK, DB.SPELL_CONST = SPELL_FALLBACK, SPELL_CONST
 
@@ -1117,7 +1126,7 @@ end
 
 -- 覆寫欄位 → 設定頁的哪一節（「本條 N 個法術有覆寫」「清除覆寫」用）
 DB.OVERRIDE_GROUP = {
-    borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon",
+    borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
     procGlow = "glow", readyGlow = "glow",
     -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
     activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",
@@ -1128,6 +1137,8 @@ DB.OVERRIDE_GROUP = {
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉
     readySound = "sound", gainSound = "sound", loseSound = "sound",
+    -- 語音播報跟音效同一節（同一個觸發點、同一個總開關）
+    readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound",
 }
 
 -- v = nil 清掉那一格；整張空了就拿掉

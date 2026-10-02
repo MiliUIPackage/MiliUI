@@ -89,6 +89,12 @@ local function Try(fn, ...)
     return a, b, c, d, e
 end
 
+-- 自訂圖示（逐法術覆寫 customIcon，Core/Decorate.lua 判讀）：沒設 ＝ nil
+local function IconOverride(rec)
+    local D = ns.Decorate
+    return D and D.IconOverrideOf and rec.cooldownID and D.IconOverrideOf(rec.cooldownID) or nil
+end
+
 function CU.Records() return records end
 function CU.Get(id) return id ~= nil and byId[id] or nil end
 
@@ -236,6 +242,151 @@ local function NewIconFrame(rec)
     return f
 end
 
+------------------------------------------------------------
+-- 自訂法術的超出距離／不可用上色（跟暴雪核心／輔助 item 的 RefreshIconColor 同一套判法與顏色）
+--
+--   CU.ColorState(outOfRange, usable, noMana) → "range"｜"usable"｜"noMana"｜"unusable"   純函式
+--     優先序：超出距離 > 可用 > 資源不夠 > 不可用。usable 讀不到（nil）一律當可用。
+--   CU.StateColor(state) → r, g, b, a   暴雪的 CooldownViewerConstants 讀得到就用它的，讀不到用同值常數
+--
+-- 距離：放上條時 C_Spell.SpellHasRange(基底 id) 為真 ⇒ EnableSpellRangeCheck(id, true)，收起來時關
+-- （暴雪自己的 item 也在查同一個法術時不關：rawget 它的 rangeCheckSpellID，只讀）。
+-- SPELL_RANGE_CHECK_UPDATE(spellID, inRange, checksRange) 延一幀、參數過 Plain：checksRange 是 true
+-- 而且 inRange 是 false 才算超出距離（暴雪同一行）。換目標時重問一次 IsSpellInRange。
+-- 可用與否：UpdateSpell 結尾問 C_Spell.IsSpellUsable（SPELL_UPDATE_USABLE 本來就會標髒）。
+-- 沒有設定（跟暴雪的格一致）。未學會（問號）照舊白色＋灰階。物品／飾品欄不上色（暴雪對物品也不上）。
+------------------------------------------------------------
+local COLOR_FALLBACK = {
+    usable   = { 1.0, 1.0, 1.0, 1.0 },
+    noMana   = { 0.5, 0.5, 1.0, 1.0 },
+    unusable = { 0.4, 0.4, 0.4, 1.0 },
+    range    = { 0.64, 0.15, 0.15, 1.0 },
+}
+local COLOR_CONST = {
+    usable = "ITEM_USABLE_COLOR", noMana = "ITEM_NOT_ENOUGH_MANA_COLOR",
+    unusable = "ITEM_NOT_USABLE_COLOR", range = "ITEM_NOT_IN_RANGE_COLOR",
+}
+CU.COLOR_FALLBACK = COLOR_FALLBACK
+
+function CU.ColorState(outOfRange, usable, noMana)
+    if outOfRange == true then return "range" end
+    if usable == false then return noMana == true and "noMana" or "unusable" end
+    return "usable"
+end
+
+local colorCache = {}
+function CU.StateColor(state)
+    if not COLOR_FALLBACK[state] then state = "usable" end
+    local hit = colorCache[state]
+    if hit then return hit[1], hit[2], hit[3], hit[4] end
+    local consts = rawget(_G, "CooldownViewerConstants")
+    local c = type(consts) == "table" and consts[COLOR_CONST[state]] or nil
+    if type(c) == "table" and type(c.GetRGBA) == "function" then
+        local ok, r, g, b, a = pcall(c.GetRGBA, c)
+        if ok and type(r) == "number" and type(g) == "number" and type(b) == "number" then
+            colorCache[state] = { r, g, b, type(a) == "number" and a or 1 }
+            return r, g, b, colorCache[state][4]
+        end
+    end
+    -- 讀不到（檢視器還沒載入）：用同值常數，不快取（下次再試暴雪的）
+    local f = COLOR_FALLBACK[state]
+    return f[1], f[2], f[3], f[4]
+end
+
+local function ApplyIconColor(rec)
+    local f = rec.frame
+    if not (f and f.Icon) then return end
+    local state = rec.colorState or "usable"
+    if rec.colorApplied == state then return end
+    rec.colorApplied = state
+    f.Icon:SetVertexColor(CU.StateColor(state))
+end
+
+-- 距離檢查：哪些法術是我們開的（id → 筆數；同一個法術匯入重複時會有兩筆）
+local rangeOn = {}
+CU.rangeOn = rangeOn
+
+local function InRangeNow(id)
+    local v = Plain(Try(C_Spell and C_Spell.IsSpellInRange, id))
+    return v == false                                  -- nil（沒目標、查不了）＝ 不算超出
+end
+
+local function BlizzardChecksRange(id)
+    local frames = ns.Viewers and ns.Viewers.frames
+    if type(frames) ~= "table" then return false end
+    for item in pairs(frames) do
+        if Plain(rawget(item, "rangeCheckSpellID")) == id then return true end
+    end
+    return false
+end
+
+function CU.EnsureRange(rec)
+    if rec.kind ~= "spell" or rec.rangeID or rec.noRange then return end
+    local id = rec.spellID
+    local S = C_Spell
+    if not (S and S.SpellHasRange and S.EnableSpellRangeCheck) then return end
+    -- 沒有距離的法術記下來（每輪排版都會 Place，不必每次問）；收起來時清掉，下次放上來再問
+    if Plain(Try(S.SpellHasRange, id)) ~= true then rec.noRange = true return end
+    if not pcall(S.EnableSpellRangeCheck, id, true) then return end
+    rangeOn[id] = (rangeOn[id] or 0) + 1
+    rec.rangeID = id
+    rec.outOfRange = InRangeNow(id)
+end
+
+function CU.DropRange(rec)
+    rec.noRange = nil
+    local id = rec.rangeID
+    if not id then return end
+    rec.rangeID, rec.outOfRange = nil, nil
+    local n = (rangeOn[id] or 1) - 1
+    if n > 0 then rangeOn[id] = n return end
+    rangeOn[id] = nil
+    -- 暴雪自己的 item 也在查這個法術：留著（關了它的距離上色就停了）
+    if BlizzardChecksRange(id) then return end
+    if C_Spell and C_Spell.EnableSpellRangeCheck then pcall(C_Spell.EnableSpellRangeCheck, id, false) end
+end
+
+local function RefreshColor(rec)
+    if rec.kind ~= "spell" or not rec.frame then return end
+    if rec.known == false then
+        rec.colorState = "usable"
+    else
+        local id = rec.overrideID or rec.spellID
+        local usable, noMana = Try(C_Spell and C_Spell.IsSpellUsable, id)
+        rec.colorState = CU.ColorState(rec.outOfRange, Plain(usable), Plain(noMana))
+    end
+    ApplyIconColor(rec)
+end
+CU.RefreshColor = RefreshColor
+
+-- SPELL_RANGE_CHECK_UPDATE（延一幀過來，參數是事件當下存的）
+local function OnRangeUpdate(spellID, inRange, checksRange)
+    local id = Plain(spellID)
+    if type(id) ~= "number" or not rangeOn[id] then return end
+    local out = Plain(checksRange) == true and Plain(inRange) == false
+    for _, rec in pairs(records) do
+        if rec.rangeID == id and rec.placedBar and rec.outOfRange ~= out then
+            rec.outOfRange = out
+            RefreshColor(rec)
+        end
+    end
+end
+CU.OnRangeUpdate = OnRangeUpdate
+
+-- 換目標：重問一次（事件不一定會為每個法術補發）
+local function OnTargetChanged()
+    if next(rangeOn) == nil then return end
+    for _, rec in pairs(records) do
+        if rec.rangeID and rec.placedBar then
+            local out = InRangeNow(rec.rangeID)
+            if rec.outOfRange ~= out then
+                rec.outOfRange = out
+                RefreshColor(rec)
+            end
+        end
+    end
+end
+
 local function SpellCharges(rec, spellID)
     local info = Try(C_Spell and C_Spell.GetSpellCharges, spellID)
     if type(info) ~= "table" then return nil end
@@ -252,7 +403,8 @@ local function UpdateSpell(rec)
     local ov = Plain(Try(C_Spell and C_Spell.GetOverrideSpell, base))
     rec.overrideID = (type(ov) == "number" and ov ~= base) and ov or nil
     local id = rec.overrideID or base
-    local tex = known and Plain(Try(C_Spell and C_Spell.GetSpellTexture, id)) or QUESTION
+    -- 自訂圖示（逐法術覆寫 customIcon）優先；未學會照舊問號
+    local tex = known and (IconOverride(rec) or Plain(Try(C_Spell and C_Spell.GetSpellTexture, id))) or QUESTION
     if rec.tex ~= tex then f.Icon:SetTexture(tex); rec.tex = tex end
 
     -- 冷卻：引擎給的 duration 物件（ignoreGCD ⇒ GCD 不會進來）
@@ -310,6 +462,9 @@ local function UpdateSpell(rec)
             ns.Glow.CooldownStarted(rec)
         end
     end
+
+    -- 超出距離／不可用上色（暴雪的格本來就會做，自訂法術補上）
+    RefreshColor(rec)
 end
 
 local function ItemCooldown(itemID)
@@ -359,7 +514,7 @@ local function UpdateItem(rec, placing)
         end
     end
     local itemID = rec.itemID
-    local tex = Plain(Try(C_Item and C_Item.GetItemIconByID, itemID))
+    local tex = IconOverride(rec) or Plain(Try(C_Item and C_Item.GetItemIconByID, itemID))
         or Plain(select(5, Try(C_Item and C_Item.GetItemInfoInstant, itemID))) or QUESTION
     if rec.tex ~= tex then f.Icon:SetTexture(tex); rec.tex = tex end
 
@@ -851,6 +1006,7 @@ local function HideRec(rec)
         if ns.Sound then ns.Sound.RequestAuraSync() end       -- 收起來的光環格撤掉音效登記
     else
         f:Hide()
+        CU.DropRange(rec)
         if ns.Glow then ns.Glow.OnParked(rec) end
     end
 end
@@ -924,6 +1080,11 @@ function CU.Place(rec, c, r, barKey, gen)
     local moved = rec.placedSig ~= sig
     rec.placedSig = sig
     local styled = rec.decorated
+    -- 距離檢查：放上條時開（已開的不重開），收起來時 HideRec 關
+    if rec.kind == "spell" and not rec.rangeID and not rec.noRange then
+        CU.EnsureRange(rec)
+        if rec.rangeID then rec.dirty = true end       -- 起始狀態要畫上去
+    end
     ns.Decorate.Apply(f, rec, barKey, r.w, r.h)
     if moved or rec.dirty or rec.decorated ~= styled then
         -- 結尾會 ApplyState。第二個參數：替代品在這裡換了不必再要求重排（同一輪的 Clickable.Place 會讀到）
@@ -1048,6 +1209,9 @@ function CU.Init()
             end
         end)
     end)
+    -- 距離上色：事件是同步派送的（換目標的 secure 流程裡也會來）⇒ 一律延一幀，參數整包帶過去
+    E.Register("SPELL_RANGE_CHECK_UPDATE", "custom_range", function(...) ns.Defer(OnRangeUpdate, ...) end)
+    E.Register("PLAYER_TARGET_CHANGED", "custom_range", function() ns.Defer(OnTargetChanged) end)
     E.Register("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", "custom_glow", function(id) ns.Defer(OnOverlay, true, id) end)
     E.Register("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", "custom_glow", function(id) ns.Defer(OnOverlay, false, id) end)
     ns.RegisterCallback("BarsReady", "custom", function()

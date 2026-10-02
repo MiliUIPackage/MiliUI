@@ -39,6 +39,7 @@ local Specs = ns.Specs
 
 local LABEL_W = ns.WidgetsEnv.LABEL_W or 128
 local FixedSlotsRow      -- 版面那一節的固定格位列（定義在下面）
+local CursorRow          -- 錨定那一節的「跟著游標」列（定義在下面）
 local GlowSampleRow      -- 發光的預覽圖示（定義在下面）
 
 ------------------------------------------------------------
@@ -607,6 +608,62 @@ function FixedSlotsRow(key)
 end
 
 ------------------------------------------------------------
+-- 跟著游標（自訂圖示群組，Core/Cursor.lua）：勾選框＋下一列灰字。條上有光環格、或勾了可點擊時不能跟
+-- （容器變保護框，戰鬥中不能移）：勾選框停用、灰字換成原因（黃字）；存的值不動，條件解除就回來。
+-- 寫法同 FixedSlotsRow（表單引擎的 toggle 沒有停用狀態），高度取三種說法裡最高的。
+------------------------------------------------------------
+function CursorRow(key)
+    local NORMAL = L["The group stays next to your mouse pointer. It goes back to its own position in Edit Mode and while this window is open."]
+    local NO_AURA = L["Not available while this group has aura slots: they can't move during combat."]
+    local NO_CLICK = L["Not available while this group is clickable: the click targets can't move during combat."]
+    local function Blocked()
+        local b = ns.DB.BarTable(key)
+        local ok, why = ns.Cursor.Eligible(b, ns.Catalog.BarHasAuraSlot(key))
+        if ok then return nil end
+        if why == "aura" then return NO_AURA end
+        if why == "click" then return NO_CLICK end
+        return nil
+    end
+    return { type = "custom", label = L["Follow the mouse pointer"], h = 26, root = "bar",
+             path = "cursor.enabled", key = "cursor.enabled",
+             build = function(parent, x, y, width, ctx)
+        local cb = W.CreateCheckButton(parent, nil, function(on)
+            local b = ns.DB.BarTable(key)
+            if not b or Blocked() then return end
+            if type(b.cursor) ~= "table" then b.cursor = { x = ns.Cursor.DEFAULT_X, y = ns.Cursor.DEFAULT_Y } end
+            b.cursor.enabled = on and true or false
+            ctx.lastSpec = { level = "structure" }
+            ctx.apply()
+        end)
+        cb:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 30)
+        fs:SetWidth(width)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(true)
+        local hs = {}
+        for i, t in ipairs({ NO_AURA, NO_CLICK, NORMAL }) do
+            fs:SetText(t)
+            hs[i] = fs:GetStringHeight() or 14
+        end
+        local h = 30 + math.max(14, hs[1], hs[2], hs[3]) + 8
+        local function Refresh()
+            local reason = Blocked()
+            local blocked = reason ~= nil
+            local b = ns.DB.BarTable(key)
+            local v = b and type(b.cursor) == "table" and b.cursor.enabled == true
+            cb:SetChecked((v and not blocked) and true or false)
+            cb:SetEnabled(not blocked)
+            cb:SetAlpha(blocked and 0.5 or 1)
+            fs:SetText(reason or NORMAL)
+            fs:SetTextColor(blocked and 1 or 0.65, blocked and 0.82 or 0.65, blocked and 0 or 0.65)
+        end
+        return h, Refresh
+    end }
+end
+
+------------------------------------------------------------
 -- 發光預覽：一顆樣本圖示一直亮著目前的樣式與顏色，切樣式當場看得到效果。
 -- 引擎跟格子共用（ns.Glow.PaintOn／StopOn）；就緒發光在格子上只亮幾秒，樣本則常亮。
 -- 表單引擎在值變了之後只叫 ctx.apply、不叫 refreshers ⇒ 包一層 ctx.apply 讓樣本跟著換。
@@ -712,6 +769,8 @@ function Specs.Layout(key)
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
         add(BS("color", "bar.color", L["Bar color"]))
         add(BS("color", "bar.bgColor", L["Background color"]))
+        add(BS("toggle", "bar.spark", L["Show spark"]))
+        add(Note(L["A bright marker at the moving end of the bar."]))
         -- 長條上的名字／時間：字型與字級（層數跟著「文字」那一節的層數）
         add(Nested(L["Bar text"]))
         add(FontBS("bar.nameFont", L["Name font"]))
@@ -751,7 +810,9 @@ local function AnchorItems(key)
     for _, other in ipairs(p and p.barOrder or {}) do cand[#cand + 1] = other end
     for _, other in ipairs(ns.DB.PANEL_ORDER) do cand[#cand + 1] = other end
     for _, other in ipairs(cand) do
-        if other ~= key and ns.DB.ConfigTable(other) and not ns.DB.AnchorWouldCycle(key, other) then
+        -- 跟著游標的條不能被錨定（Core/Bars.lua 把它當不存在）
+        if other ~= key and ns.DB.ConfigTable(other) and not ns.DB.AnchorWouldCycle(key, other)
+            and not (ns.Cursor and ns.Cursor.Configured(other)) then
             items[#items + 1] = { text = ns.Options.PageTitle(other) or ns.Options.BarTitle(other), value = other }
         end
     end
@@ -773,36 +834,48 @@ function Specs.Anchor(key, opts)
     local bar = ns.DB.ConfigTable(key) or {}
     local anchored = type(bar.anchor) == "table"
     local root = opts.other and ("bar@" .. key) or "bar"
+    -- 跟著游標開著（而且條件成立）時錨定／位置那幾列停用（值不動，關掉就回來）
+    local cursorCapable = not opts.other and bar.kind == "icons" and bar.source == "custom"
+    local function CursorOn() return ns.Cursor and ns.Cursor.Configured(key) or false end
     local function AS(kind, path, label, extra)
         local s = BS(kind, path, label, extra)
         s.root = root
+        if cursorCapable then s.disabled = CursorOn end
         return s
     end
     local list = {
         { type = "header", label = opts.header or L["Anchoring"], nested = opts.nested or nil },
-        AS("dropdown", "anchor", L["Follow bar"], {
-            items = AnchorItems(key), refreshPage = true, level = "structure",
-            get = function()
-                local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
-                return type(a) == "table" and a.to or "none"
-            end,
-            set = function(_, v)
-                local b = ns.DB.ConfigTable(key)
-                if not b then return end
-                if v == "none" then
-                    -- 換成目前畫面上的位置，放開錨定的當下不跳
-                    local pos = ns.EditMode and ns.EditMode.ReadPos and ns.EditMode.ReadPos(key)
-                    if pos then b.pos = pos end
-                    b.anchor = false
-                else
-                    local a = type(b.anchor) == "table" and b.anchor
-                        or { point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }
-                    a.to = v
-                    b.anchor = a
-                end
-            end,
-        }),
     }
+    -- 自訂的圖示群組：跟著游標（勾選＋原因字）、離游標的位移
+    if cursorCapable then
+        list[#list + 1] = CursorRow(key)
+        list[#list + 1] = BS("numbers", nil, L["Offset from the pointer"], { sub = "cursor", path = false,
+            resetPaths = { "cursor.x", "cursor.y" }, fallback = 0,
+            disabled = function() return not CursorOn() end,
+            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
+    end
+    list[#list + 1] = AS("dropdown", "anchor", L["Follow bar"], {
+        items = AnchorItems(key), refreshPage = true, level = "structure",
+        get = function()
+            local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
+            return type(a) == "table" and a.to or "none"
+        end,
+        set = function(_, v)
+            local b = ns.DB.ConfigTable(key)
+            if not b then return end
+            if v == "none" then
+                -- 換成目前畫面上的位置，放開錨定的當下不跳
+                local pos = ns.EditMode and ns.EditMode.ReadPos and ns.EditMode.ReadPos(key)
+                if pos then b.pos = pos end
+                b.anchor = false
+            else
+                local a = type(b.anchor) == "table" and b.anchor
+                    or { point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }
+                a.to = v
+                b.anchor = a
+            end
+        end,
+    })
     if anchored then
         list[#list + 1] = AS("dropdown", "anchor.point", L["Side"], {
             items = EDGE_ITEMS, level = "structure", resetPaths = { "anchor.point", "anchor.relPoint" },
@@ -844,6 +917,8 @@ function Specs.AnchorGraphSig()
         local t = ns.DB.ConfigTable(k)
         local a = t and t.anchor
         if type(a) == "table" and type(a.to) == "string" then parts[#parts + 1] = k .. ">" .. a.to end
+        -- 跟著游標的條不是錨定候選：開關一變，別條的候選清單就過期
+        if ns.Cursor and ns.Cursor.Configured(k) then parts[#parts + 1] = k .. "~" end
     end
     return table.concat(parts, ",")
 end

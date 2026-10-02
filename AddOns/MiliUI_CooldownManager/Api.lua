@@ -205,6 +205,10 @@ local function Debug()
             :format(SI.Count(), SI.rebuilds or 0, SI.precise or 0, SI.full or 0))
     end
     if ns.Sound and ns.Sound.DebugLine then p(ns.Sound.DebugLine()) end
+    if ns.Cursor and ns.Cursor.DebugLine then
+        local line = ns.Cursor.DebugLine()
+        if line then p(line) end
+    end
     if ns.Resources and ns.Resources.DebugLines then
         for _, line in ipairs(ns.Resources.DebugLines()) do p(line) end
     end

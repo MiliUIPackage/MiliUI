@@ -7,6 +7,9 @@
 --   ns.Sound.RequestAuraSync()        光環格放好／收起、設定變了：下一幀對一次 AddAuraSound 登記
 --   ns.Sound.Preview(name)            設定介面「試聽」（不看總開關、不節流）
 --   ns.Sound.Path(name)               LSM 音效名 → 路徑字串或檔案編號（查不到 nil）
+--   ns.Sound.Speak(text, key, why)    語音播報（文字轉語音；跟音效同一個總開關、靜音與節流）
+--   ns.Sound.CanSpeak()               遊戲有沒有文字轉語音的 API（沒有 ⇒ 設定頁那幾列不顯示）
+--   ns.Sound.PreviewSpeak(text)       設定介面「試聽」
 --   ns.Sound.Logic                    純函式（節流、讀取畫面靜音、合併抵消、登記對帳），
 --                                      Tests/Sound_test.lua 測的是這一包
 --
@@ -14,7 +17,10 @@
 --   theme.sound = { enabled, channel }      總開關、聲道（Master／SFX／Music／Ambience／Dialog）
 --   spells[spec].overrides[id].readySound   冷卻類：LSM 音效名；nil／false ＝ 無
 --   ….gainSound／loseSound                  增益類：出現／消失
+--   ….readySpeak／gainSpeak／loseSpeak       語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
 --   音效沒有條層的值，只有逐法術（DB.SPELL_CONST 給 false）。
+--   語音播報跟音效走同一個觸發點（就緒探針、增益 item 的出現／消失批次）；光環格的出現／消失是引擎播的
+--   （AddAuraSound），Lua 端沒有訊號 ⇒ 光環格不提供語音播報。
 --
 -- ── 就緒音效 ───────────────────────────────────────────────────────────
 -- 觸發＝就緒探針的 OnCooldownDone（Core/Glow.lua）：GCD 不算、多充能每回一層一次、
@@ -162,6 +168,19 @@ function Logic.Sig(trigger, spellID, path, channel)
     return table.concat({ tostring(trigger), tostring(spellID), type(path), tostring(path), tostring(channel) }, "|")
 end
 
+-- 語音播報要念什麼：true ＝ 法術名；字串 ＝ 那段字（頭尾空白不算，空字串也念法術名）；false／nil／其他 ＝ 不念
+-- 法術名讀不到（nil／空字串）時 true 也不念
+function Logic.SpeakText(v, spellName)
+    local name = (type(spellName) == "string" and spellName ~= "") and spellName or nil
+    if v == true then return name end
+    if type(v) == "string" then
+        local t = (v:gsub("^%s+", ""):gsub("%s+$", ""))
+        if t ~= "" then return t end
+        return name
+    end
+    return nil
+end
+
 ------------------------------------------------------------
 -- 設定與播放
 ------------------------------------------------------------
@@ -236,16 +255,95 @@ function S.Preview(name)
 end
 
 ------------------------------------------------------------
+-- 語音播報（文字轉語音）
+--
+-- C_VoiceChat.SpeakText(voiceID, text, rate, volume, overlap)（12.x 生成文件：voiceID／rate／volume／overlap
+-- NeverSecret、text ConditionalSecret、AllowedWhenTainted、沒標 HasRestrictions）。voiceID 從
+-- C_TTSSettings.GetVoiceOptionID(Enum.TtsVoiceType.Standard)，速率／音量用玩家在遊戲「文字轉語音」設定的值，
+-- 讀不到用 0／100。全部 pcall。API 不在 ⇒ S.CanSpeak() 假，設定頁整列不顯示、觸發點什麼都不做。
+-- 跟音效同一個總開關、同一套讀取畫面靜音與節流（key 加 "speak:" 前綴，音效與語音互不擋）。
+------------------------------------------------------------
+S.spoken = 0
+
+function S.CanSpeak()
+    local V = C_VoiceChat
+    return type(V) == "table" and type(V.SpeakText) == "function"
+end
+
+local function PlainNumber(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local ok, v = pcall(fn, ...)
+    if not ok or v == nil or ns.IsSecret(v) or type(v) ~= "number" then return nil end
+    return v
+end
+
+local function VoiceSettings()
+    local T = C_TTSSettings
+    if type(T) ~= "table" then return nil end
+    local E = Enum and Enum.TtsVoiceType
+    local voiceID = PlainNumber(T.GetVoiceOptionID, (E and E.Standard) or 0)
+    if not voiceID then return nil end
+    return voiceID, PlainNumber(T.GetSpeechRate) or 0, PlainNumber(T.GetSpeechVolume) or 100
+end
+
+local function SpeakRaw(text)
+    if type(text) ~= "string" or text == "" or not S.CanSpeak() then return false end
+    local voiceID, rate, volume = VoiceSettings()
+    if not voiceID then return false end
+    return (pcall(C_VoiceChat.SpeakText, voiceID, text, rate, volume, false))
+end
+
+-- 這一格的名字（明文才念）
+function S.SpellName(id)
+    local info = id ~= nil and ns.Catalog and ns.Catalog.Info and ns.Catalog.Info(id) or nil
+    local n = info and info.name
+    if type(n) ~= "string" or ns.IsSecret(n) then return nil end
+    return n
+end
+
+-- 某一格某個觸發要念的字（沒設／念不出來 ＝ nil）
+function S.SpeakTextOf(barKey, id, field)
+    if id == nil or not S.CanSpeak() then return nil end
+    local v = ns.SpellSetting(barKey, id, field)
+    if v == nil or v == false then return nil end
+    return Logic.SpeakText(v, S.SpellName(id))
+end
+
+-- key：節流用（跟音效同一個窗口）
+function S.Speak(text, key, why)
+    if type(text) ~= "string" or text == "" or not S.Enabled() then return false end
+    local now = Now()
+    if Logic.Muted(mute, now) or (key and not Logic.Allow(throttle, "speak:" .. key, now)) then
+        S.skipped = S.skipped + 1
+        return false
+    end
+    if SpeakRaw(text) then
+        S.spoken = S.spoken + 1
+        S.last = { name = text, why = why, t = now }
+        return true
+    end
+    return false
+end
+
+-- 設定介面「試聽」（不看總開關、不節流）
+function S.PreviewSpeak(text)
+    return SpeakRaw(text)
+end
+
+------------------------------------------------------------
 -- 就緒音效（Glow 叫）
 ------------------------------------------------------------
 function S.WantsReady(rec)
     if not rec or rec.cooldownID == nil or not S.Enabled() then return false end
     return S.NameOf(rec.claimKey, rec.cooldownID, "readySound") ~= nil
+        or S.SpeakTextOf(rec.claimKey, rec.cooldownID, "readySpeak") ~= nil
 end
 
 function S.OnReady(rec)
     if not rec or rec.cooldownID == nil then return end
-    S.Play(S.NameOf(rec.claimKey, rec.cooldownID, "readySound"), "ready:" .. tostring(rec.cooldownID), "ready")
+    local key = "ready:" .. tostring(rec.cooldownID)
+    S.Play(S.NameOf(rec.claimKey, rec.cooldownID, "readySound"), key, "ready")
+    S.Speak(S.SpeakTextOf(rec.claimKey, rec.cooldownID, "readySpeak"), key, "ready")
 end
 
 ------------------------------------------------------------
@@ -259,12 +357,16 @@ local function FlushBatch()
     for _, e in ipairs(Logic.Drain(batch)) do
         local id = e.payload
         local field = e.what == "gain" and "gainSound" or "loseSound"
-        S.Play(S.NameOf(nil, id, field), e.what .. ":" .. tostring(id), e.what)
+        local key = e.what .. ":" .. tostring(id)
+        S.Play(S.NameOf(nil, id, field), key, e.what)
+        S.Speak(S.SpeakTextOf(nil, id, e.what == "gain" and "gainSpeak" or "loseSpeak"), key, e.what)
     end
 end
 
+-- 這一格出現／消失時有沒有東西要響（音效或語音）
 local function HasAuraSound(id)
     return S.NameOf(nil, id, "gainSound") ~= nil or S.NameOf(nil, id, "loseSound") ~= nil
+        or S.SpeakTextOf(nil, id, "gainSpeak") ~= nil or S.SpeakTextOf(nil, id, "loseSpeak") ~= nil
 end
 
 local function Push(rec, what)
@@ -463,9 +565,10 @@ end
 function S.DebugLine()
     local last = S.last
     local lastText = last and ("%s（%s，%.1f 秒前）"):format(tostring(last.name), tostring(last.why), Now() - last.t) or "無"
-    return ("  音效：%s  聲道 %s  光環格登記 %d 筆%s  增益掛勾 %s  播過 %d 次（擋掉 %d）  最近：%s%s")
+    return ("  音效：%s  聲道 %s  光環格登記 %d 筆%s  增益掛勾 %s  播過 %d 次、念過 %d 次（語音 API %s）（擋掉 %d）  最近：%s%s")
         :format(S.Enabled() and "開" or "關", S.Channel(), S.AuraCount(),
-                S.auraPending and "（待登記）" or "", tostring(S.hookMode), S.played, S.skipped, lastText,
+                S.auraPending and "（待登記）" or "", tostring(S.hookMode), S.played, S.spoken,
+                S.CanSpeak() and "有" or "沒有", S.skipped, lastText,
                 S.lastAuraError and ("  登記失敗 %d 次：%s"):format(S.auraErrors, S.lastAuraError) or "")
 end
 

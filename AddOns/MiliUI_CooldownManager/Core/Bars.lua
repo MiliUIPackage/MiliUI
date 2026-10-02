@@ -135,9 +135,17 @@ function B.AnchorPoint(key)
     return st and (st.anchorPoint or st.appliedAnchor) or "CENTER"
 end
 
+-- 排開與錨定看的設定表：設了「跟著游標」的條（Core/Cursor.lua）當作不存在 ——
+-- 它自己不錨定、不參與排開，已經錨著它的條當作目標不存在（改用自己的位置）。
+-- 判準是 Configured（跟編輯模式／設定視窗無關），所以進出編輯模式時別條的排開不會跟著變
+local function AnchorCfg(key)
+    if ns.Cursor and ns.Cursor.Configured(key) then return nil end
+    return BarCfg(key)
+end
+
 -- 錨定：anchor（錨在別條上）優先，形成環或目標不存在就退回 pos
 local function AnchorTarget(key)
-    return ns.Layout.AnchorOf(key, BarCfg)
+    return ns.Layout.AnchorOf(key, AnchorCfg)
 end
 
 -- 排開：跟著同一個目標、同一邊的照這個順序往外排（小的靠近目標），規則在 Core/Layout.lua。
@@ -171,7 +179,7 @@ local function StackSkip(key)
     return st and st.collapsed and true or false
 end
 local function StackTarget(key, keys)
-    return ns.Layout.StackTarget(key, BarCfg, keys or StackKeys(), StackRank, StackSkip)
+    return ns.Layout.StackTarget(key, AnchorCfg, keys or StackKeys(), StackRank, StackSkip)
 end
 B.StackTarget = StackTarget
 
@@ -183,6 +191,12 @@ end
 
 -- 容器貼到位置（錨在別條上優先、否則 pos）；已經在 ns.Write 裡
 local function PlaceContainer(f, key, bar, st)
+    -- 跟著游標（編輯模式中、設定視窗開著時不跟：照下面貼回存檔位置）
+    if ns.Cursor and ns.Cursor.Following(key) then
+        st.stackTo = nil
+        ns.Cursor.Place(f, key)
+        return
+    end
     local a = AnchorTarget(key)
     local snap = ns.Layout.Snap
     f:ClearAllPoints()
@@ -217,6 +231,7 @@ local function ApplyOne(key)
             f:Hide()
             if ns.EditMode and ns.EditMode.ApplyBarNow then ns.EditMode.ApplyBarNow(key) end
         end, "shown")
+        if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
         return
     end
     local anchorPoint = st.anchorPoint or "CENTER"
@@ -228,6 +243,8 @@ local function ApplyOne(key)
         if ns.EditMode and ns.EditMode.AfterApply then ns.EditMode.AfterApply(key) end
     end, "point")
     st.appliedAnchor = anchorPoint
+    -- 跟著游標：結構一變（開關、可點擊、光環格、刪條）重判要不要掛 OnUpdate
+    if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
 end
 
 -- 「實際貼在誰身上」跟現況不一樣的條（排開的結果變了：同一疊裡有人加入、離開、開關）

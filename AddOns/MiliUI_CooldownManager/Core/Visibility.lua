@@ -184,6 +184,8 @@ function Vis.Apply(key)
     current[key] = alpha
     local c = ns.Bars and ns.Bars.Get(key)
     if c then c:SetAlpha(alpha) end
+    -- 跟著游標的條：看不到（alpha 0）時卸掉 OnUpdate、看得到再掛（Core/Cursor.lua；其他條立刻走）
+    if ns.Cursor and ns.Cursor.OnAlpha then ns.Cursor.OnAlpha(key) end
     if ns.Bars and ns.Bars.ForEachClaimed then
         -- 每個 item：條的 alpha × 冷卻狀態（Decorate.ApplyItemAlpha 是唯一出口）
         local D = ns.Decorate

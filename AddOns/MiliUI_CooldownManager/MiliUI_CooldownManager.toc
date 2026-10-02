@@ -62,6 +62,7 @@ Core\Assist.lua
 Modules\Custom.lua
 Core\Bars.lua
 Core\Visibility.lua
+Core\Cursor.lua
 Modules\ResourceConditions.lua
 Modules\AuraBar.lua
 Modules\Resources.lua

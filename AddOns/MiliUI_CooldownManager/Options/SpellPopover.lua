@@ -25,6 +25,13 @@
 -- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
 -- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
 --
+-- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
+--   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
+--
+-- 語音播報（Core/Sound.lua；遊戲有文字轉語音 API 才顯示、光環格沒有）：每個音效列下面一列——勾選框＋輸入框
+--   （空白＝念法術名）＋「試聽」。勾著才寫進覆寫（readySpeak／gainSpeak／loseSpeak：字串或 true），
+--   沒勾時輸入框只是記著字。最後一列灰字說明。
+--
 -- 層數門檻（暴雪的增益才有，自訂光環格不做；引擎在 Core/StackGate.lua）：
 --   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
 --     再下一列灰字說明。勾了它時「生效發光」那兩列變暗（兩者互斥，層數的為準）。右鍵整列清。
@@ -51,6 +58,10 @@ local frame, cur
 local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind, class) → bool }
 local toggles = {}
 local sounds = {}        -- { field, dd }
+local speaks = {}        -- { field, cb, box, listen }
+
+-- 音效欄位 → 同一個觸發的語音播報欄位
+local SPEAK_OF = { readySound = "readySpeak", gainSound = "gainSpeak", loseSound = "loseSpeak" }
 
 -- 音效欄位與顯示在哪一類（class：「cooldown」冷卻類｜「aura」增益類）
 local SOUNDS = {
@@ -252,6 +263,25 @@ local function Build()
     frame.customCB, frame.swatch = custom, swatch
     RightClickClears(br, bh, "borderColor")
 
+    -- 自訂圖示（光環格不支援：圖示是引擎畫的）
+    local ir, ih = NewRow(L["Custom icon"], function(kind) return kind ~= "aura" end)
+    local change = W.CreateButton(ir, L["Change…"], "normal", 70, 22)
+    W.FitButton(change, 70, 22)
+    change:SetPoint("LEFT", ir, "LEFT", CTRL_X, 0)
+    change:SetScript("OnClick", function()
+        if cur then Pop.AskIcon(cur.id) end
+    end)
+    local clearIcon = W.CreateButton(ir, L["Clear"], "normal", 60, 22)
+    W.FitButton(clearIcon, 60, 22)
+    clearIcon:SetPoint("LEFT", change, "RIGHT", 6, 0)
+    clearIcon:SetScript("OnClick", function()
+        if not cur then return end
+        ns.DB.SetOverride(cur.id, "customIcon", nil)
+        Changed()
+    end)
+    frame.iconClear = clearIcon
+    RightClickClears(ir, ih, "customIcon")
+
     for _, t in ipairs(TOGGLES) do
         local tr, th = NewRow(t.label, t.noAura and NotAura or nil)
         local cb = W.CreateCheckButton(tr, nil, function(on)
@@ -440,7 +470,68 @@ local function Build()
         end)
         sounds[#sounds + 1] = { field = t.field, dd = sdd, listen = listen }
         RightClickClears(sr, sh, t.field)
+
+        -- 同一個觸發的語音播報：勾選框＋輸入框（空白＝念法術名）＋試聽
+        local field = SPEAK_OF[t.field]
+        local kr, kh = NewRow(L["Speak"], function(kind, class)
+            return class == cls and kind ~= "aura" and ns.Sound.CanSpeak()
+        end)
+        local entry = { field = field }
+        local kcb = W.CreateCheckButton(kr, nil, function(on)
+            if not cur then return end
+            if on then
+                local txt = strtrim(entry.box:GetText() or "")
+                ns.DB.SetOverride(cur.id, field, txt ~= "" and txt or true)
+            else
+                ns.DB.SetOverride(cur.id, field, nil)
+            end
+            Changed()
+        end)
+        kcb:SetPoint("LEFT", kr, "LEFT", CTRL_X, 0)
+        local klisten = W.CreateButton(kr, L["Listen"], "normal", 44, 20)
+        W.FitButton(klisten, 44, 20)
+        klisten:SetPoint("RIGHT", kr, "RIGHT", 0, 0)
+        local kbox = W.CreateEditBox(kr, 80, 20)
+        kbox:SetPoint("LEFT", kcb, "RIGHT", 6, 0)
+        kbox:SetPoint("RIGHT", klisten, "LEFT", -6, 0)
+        kbox:SetMaxLetters(100)
+        kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+        -- 勾著才寫（沒勾時只是記著字，勾下去那一刻一起存）
+        kbox:HookScript("OnEditFocusLost", function(self)
+            if not cur or not kcb:GetChecked() then return end
+            local txt = strtrim(self:GetText() or "")
+            local want = txt ~= "" and txt or true
+            if Override(field) == want then return end
+            ns.DB.SetOverride(cur.id, field, want)
+            Changed()
+        end)
+        klisten:SetScript("OnClick", function()
+            if not cur then return end
+            local txt = strtrim(kbox:GetText() or "")
+            local S = ns.Sound
+            S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, S.SpellName(cur.id)))
+        end)
+        entry.cb, entry.box, entry.listen = kcb, kbox, klisten
+        speaks[#speaks + 1] = entry
+        RightClickClears(kr, kh, field)
     end
+    -- 語音播報的說明（下一列灰字）
+    local spRow = CreateFrame("Frame", nil, frame)
+    local spTip = Note(spRow)
+    spTip:SetPoint("TOPLEFT", spRow, "TOPLEFT", CTRL_X, -2)
+    spTip:SetWidth(ROW_W - CTRL_X)
+    spTip:SetWordWrap(true)
+    spTip:SetText(L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
+    local spH = 2 + math.max(14, spTip:GetStringHeight() or 0) + 6
+    spRow:SetSize(ROW_W, spH)
+    local spEntry = { frame = spRow, h = spH, when = function(kind) return kind ~= "aura" and ns.Sound.CanSpeak() end }
+    spEntry.remeasure = function()
+        local sh2 = spTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        spRow:SetHeight(nh)
+        spEntry.h = nh
+    end
+    rows[#rows + 1] = spEntry
     -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
     local nsRow = CreateFrame("Frame", nil, frame)
     local nsTip = Note(nsRow)
@@ -607,7 +698,7 @@ function Pop.Refresh()
     local key, id = cur.key, cur.id
     local info = ns.Catalog.Info(id)
     local kind = info and info.custom and info.kind or nil
-    frame.icon:SetTexture((info and info.icon) or 134400)
+    frame.icon:SetTexture(ns.IconFor(key, id, info) or 134400)
     local name = (info and info.name) or ("#" .. tostring(id))
     if info and info.isKnown == false and kind then name = name .. "  |cffff5555" .. L["Not learned"] .. "|r" end
     frame.name:SetText(name)
@@ -694,6 +785,20 @@ function Pop.Refresh()
     end
     if ns.Glow and ns.Glow.PreviewActive then
         ns.Glow.PreviewActive(frame.glowHost, key, class == "aura" and id or nil)
+    end
+    frame.iconClear:SetEnabled(Override("customIcon") ~= nil)
+    -- 語音播報：勾著＝有覆寫（true 或字串）；換了一格才清輸入框（同一格沒勾時保留剛打的字）
+    for _, r in ipairs(speaks) do
+        local v = Override(r.field)
+        local on = v == true or (type(v) == "string")
+        r.cb:SetChecked(on)
+        if type(v) == "string" then
+            r.box:SetText(v)
+        elseif r.forID ~= id or on then
+            r.box:SetText("")
+        end
+        r.forID = id
+        r.box:SetCursorPosition(0)
     end
     local items = SoundItems()
     for _, r in ipairs(sounds) do
@@ -833,6 +938,36 @@ function Pop.AskCopy(id)
     SyncCopyOK(f)
     P.Height(f, -y + 22 + 12 + 6)
     f:Show()
+end
+
+------------------------------------------------------------
+-- 自訂圖示的輸入彈窗：圖示編號（貼圖檔案編號）；Shift 點法術書／天賦／背包裡的法術或物品 ⇒ 填它的圖示
+-- （Picker.WatchInput 的 "icon" 模式，同一個連結掛勾）
+------------------------------------------------------------
+local iconPopup
+
+function Pop.AskIcon(id)
+    local Picker = ns.Picker
+    if not iconPopup then
+        iconPopup = W.CreateInputPopup(ns.Options.panel, Picker.INPUT_W, L["Custom icon"], {
+            { key = "id", label = L["Icon ID"], maxLetters = 10,
+              hint = L["The icon's file ID, from a database site. Or Shift-click a spell or an item in your spellbook, talents or bags to use its icon."] },
+        })
+        Picker.AddSpellsOpener(iconPopup)
+    end
+    Picker.SetInputError(iconPopup, nil)
+    Picker.WatchInput(iconPopup, "icon")
+    local now = ns.SpellSetting(nil, id, "customIcon")
+    iconPopup:Open({ id = ns.Decorate.ValidIcon(now) and tostring(now) or nil }, function(values)
+        local n = Picker.ParseID(values.id)
+        if not n then
+            Picker.SetInputError(iconPopup, L["Enter a number."])
+            return false
+        end
+        Picker.SetInputError(iconPopup, nil)
+        ns.DB.SetOverride(id, "customIcon", n)
+        if cur then Changed() end
+    end, L["Custom icon"])
 end
 
 -- 面板本體（還沒開過是 nil；離線測試讀按鈕的顯示狀態用）

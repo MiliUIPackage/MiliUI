@@ -130,7 +130,38 @@ local function SpellStyle(barKey, id)
         hideStackText    = SS(barKey, id, "hideStackText"),
         cdState          = SS(barKey, id, "cdState"),
         cdStateAlpha     = SS(barKey, id, "cdStateAlpha"),
+        customIcon       = D.IconOverrideOf(id),
     }
+end
+
+------------------------------------------------------------
+-- 自訂圖示（逐法術覆寫 customIcon：貼圖檔案編號）
+--
+--   ns.Decorate.IconOverrideOf(id)       → 檔案編號或 nil（沒設、false、壞值、光環格）
+--   ns.IconFor(barKey, id, info)         → 顯示用的圖示：有覆寫用覆寫，否則 info.icon（設定頁的預覽、挑選器、
+--                                          逐法術面板標題都走這支；Catalog.Info 本身不改）
+--
+-- 套用：自訂框在 Custom.Update 設圖示時先看覆寫；暴雪 item 由 Apply 當場換、再後掛勾 Icon 貼圖的 SetTexture
+-- （暴雪每次 RefreshSpellTexture 換回去時再蓋回來，遞迴防護同 desatGuard）。光環格（引擎畫圖示）、固定格位的
+-- 占位不支援。
+------------------------------------------------------------
+local function ValidIcon(v)
+    return type(v) == "number" and v > 0 and v == math.floor(v)
+end
+D.ValidIcon = ValidIcon
+
+function D.IconOverrideOf(id)
+    if id == nil then return nil end
+    local C = ns.Catalog
+    if C and C.IsAuraSlot and C.IsAuraSlot(id) then return nil end
+    local v = ns.SpellSetting and ns.SpellSetting(nil, id, "customIcon")
+    return ValidIcon(v) and v or nil
+end
+
+function ns.IconFor(barKey, id, info)
+    local own = D.IconOverrideOf(id)
+    if own then return own end
+    return info and info.icon or nil
 end
 
 ------------------------------------------------------------
@@ -687,6 +718,72 @@ local function OnSetDesaturated(icon, desaturated)
     end
 end
 
+------------------------------------------------------------
+-- 自訂圖示：暴雪 item 的 Icon 貼圖（長條是 item.Icon.Icon）
+--
+-- 暴雪每次 RefreshData 都會 RefreshSpellTexture → Icon:SetTexture(它的圖)：後掛勾蓋回我們的。
+--   * 掛勾只在**第一次需要覆寫**時才掛（沒人用這個功能的格完全不掛）；沒有覆寫的格進掛勾第一件事就走。
+--   * 傳進來的貼圖參數不看（光環的圖可能是秘密值）。
+--   * SetCooldownID 會同步 RefreshData、**比我們的 SetCooldownID 後掛勾先跑** ⇒ 掛勾裡用 item 現在的身分
+--     （Viewers.ReadItemID，pcall getter）對 rec.iconFor：不一樣＝覆寫是上一個法術的，清掉、交回 Apply 重判。
+--   * 拿掉覆寫：用目錄的圖示（明文）換回去；暴雪下一次刷新本來也會寫回它自己的。
+------------------------------------------------------------
+local iconGuard = false
+local iconTexOwner = setmetatable({}, { __mode = "k" })   -- 圖示貼圖 → item
+
+local function OnIconSetTexture(tex)
+    if iconGuard or ns.released then return end
+    local item = iconTexOwner[tex]
+    local rec = item and ns.Viewers.frames[item]
+    local want = rec and rec.iconOverride
+    if not want then return end
+    local V = ns.Viewers
+    local now = V.ReadItemID and V.ReadItemID(item)
+    if now ~= rec.iconFor then
+        rec.iconOverride, rec.iconFor = nil, nil
+        return
+    end
+    iconGuard = true
+    pcall(tex.SetTexture, tex, want)
+    iconGuard = false
+end
+
+local function IconTexture(item, isBar)
+    local t = item.Icon
+    if isBar then t = type(t) == "table" and t.Icon or nil end
+    if type(t) ~= "table" or type(t.SetTexture) ~= "function" then return nil end
+    local ok, kind = pcall(t.GetObjectType, t)
+    if not ok or kind ~= "Texture" then return nil end
+    return t
+end
+
+local function ApplyIconOverride(item, rec, id, isBar, want)
+    if not want and not rec.iconOverride then return end      -- 沒設、也沒換過：什麼都不碰
+    local tex = IconTexture(item, isBar)
+    if not tex then return end
+    if want then
+        if not iconTexOwner[tex] then
+            iconTexOwner[tex] = item
+            hooksecurefunc(tex, "SetTexture", ns.Guard(OnIconSetTexture))
+        end
+        rec.iconOverride, rec.iconFor = want, id
+        iconGuard = true
+        pcall(tex.SetTexture, tex, want)
+        iconGuard = false
+        return
+    end
+    rec.iconOverride, rec.iconFor = nil, nil
+    local info = ns.Catalog.Info(id)
+    local orig = info and Plain(info.icon)
+    if orig then
+        iconGuard = true
+        pcall(tex.SetTexture, tex, orig)
+        iconGuard = false
+    end
+end
+D.ApplyIconOverride = ApplyIconOverride                             -- 測試用
+D.IconTextureOwner = function(tex) return iconTexOwner[tex] end     -- 測試用
+
 -- 暴雪換長條內容（僅圖示／僅名字）時會藏名字、重錨條：把名字 Show 回來（名字要一直
 -- 顯示暴雪才會寫字），版面照我們的重排
 local function OnSetBarContent(item)
@@ -768,7 +865,20 @@ local function ApplyBarLook(item, rec, style, bar)
         bg:SetTexture(WHITE)
         bg:SetVertexColor(C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8))
     end
-    if b.Pip then b.Pip:SetAlpha(0) end
+    -- 火花（bar.spark）：暴雪條的 Pip 只調 alpha（顯示／隱藏照舊是暴雪自己管：倒數中才 Show），
+    -- 設定頁預覽的假條是我們自己畫的那條線（ownPip，跟著填充末端走）
+    local pip = b.Pip
+    if pip then
+        if b.ownPip then
+            local fill = b.GetStatusBarTexture and b:GetStatusBarTexture()
+            pip:ClearAllPoints()
+            if fill then
+                pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
+                pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
+            end
+        end
+        pip:SetAlpha(bar.spark and 1 or 0)
+    end
 end
 
 ------------------------------------------------------------
@@ -791,6 +901,7 @@ local function Signature(style, id, spell, w, h)
     return style.sig .. "|" .. tostring(id) .. "|" .. CSig(spell.borderColor) .. "|"
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
         .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha)
+        .. "|" .. tostring(spell.customIcon)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -1009,6 +1120,8 @@ function D.Apply(item, rec, barKey, w, h)
         ns.Text.ApplyIcon(item, style, spell)
     end
 
+    -- 自訂圖示（暴雪 item；自訂框在 Custom.Update 自己設）
+    if not rec.custom then ApplyIconOverride(item, rec, id, isBar, spell.customIcon) end
     ApplyProcAlert(item, rec, barKey)
     D.ApplyGCDAlpha(item, rec)          -- 開關切換當場生效（關掉要把 alpha 還回 1）
     ApplyTooltip(ov, rec, style.tooltips)

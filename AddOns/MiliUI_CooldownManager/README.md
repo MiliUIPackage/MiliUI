@@ -44,14 +44,14 @@
 | `Media/Sounds/` | 內建音效 106 個＋`Sounds.lua`（載入時註冊進 LibSharedMedia，別的插件的音效下拉也選得到）。**這個資料夾是 GPL-2.0**，出處與授權見裡面的 `README.md`、`LICENSE`；跟本體其餘程式分開，本體的程式不要搬進去、裡面的東西也不要搬出來混用 |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
-| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/StackGate.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
+| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Cursor.lua`、`Core/Glow.lua`、`Core/StackGate.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
 | `Core/Presets.lua` | 挑選器「常用預設」的資料（種族技能、防禦技能、藥水與治療石、團隊增益）＋純函式，**每季要對一次**，見「常用預設＋複製到其他專精」 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -75,11 +75,12 @@
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
 | `Core/Assist.lua` | 戰鬥輔助：自己輪詢下一招建議（`C_AssistedCombat.GetNextCastSpell`），醒目標示畫在索引查到的格子上；建議變了廣播 `AssistSpellChanged`（見「戰鬥輔助」） |
+| `Core/Cursor.lua` | 跟著游標的自訂圖示群組：資格判斷、共用 driver 框的 OnUpdate（只在有這種條而且看得到時掛），見「小項」 |
 | `Core/Clickable.lua` | 可點擊的自訂圖示群組：每格蓋一顆透明的 secure 鈕（屬性戰鬥外寫好、寫入走 `ns.Write`＋簽章去重），見「可點擊的自訂群組」 |
 | `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；每一格都是 Bars 的一個 entry |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
-→ Interrupt → Resources → Pips → Castbar → Assist → AssistIcon → Visibility（`Core/Init.lua` 的 `ns.StartEngine`）。
+→ Interrupt → Resources → Pips → Castbar → Assist → AssistIcon → Visibility → Cursor（`Core/Init.lua` 的 `ns.StartEngine`）。
 換設定檔／專精：清樣式簽章、重讀目錄、全部重排、重套 alpha，不需要 /reload。
 任何一步 `Init` 拋錯 ⇒ `ns.EngineFailed`：`Bars.ReleaseAll` 把冷卻管理器還給暴雪，聊天框印一行。
 
@@ -561,7 +562,82 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   「跟隨全域主題」對它沒有意義。逐法術面板的「還原此法術」照樣整筆清（含音效）。
 - 圖騰型的增益（不是光環）不經過 `UNIT_AURA`，暴雪那兩支警示不會叫 ⇒ 沒有出現／消失音效。
 - 被移除（記在 `hidden`）的增益照樣響：音效是逐法術明確設的，而收合模式下沒顯示的增益本來就是停放狀態，拿停放當閘會把正常的出現音效也擋掉。
-- `/mcdm debug` 的「音效」一行：總開關、聲道、光環格登記筆數（待登記）、增益掛勾方式（alert／active）、播過幾次（擋掉幾次）、最近一次播放。
+- `/mcdm debug` 的「音效」一行：總開關、聲道、光環格登記筆數（待登記）、增益掛勾方式（alert／active）、播過幾次、念過幾次（語音 API 有沒有）（擋掉幾次）、最近一次播放。
+- 每個音效列下面還有一列「語音播報」（文字轉語音），見下一節。
+
+### 小項：距離上色、自訂圖示、跟著游標、語音播報、長條火花（2026-10-03，P5）
+
+五個互不相依的小功能。新欄位舊存檔都沒有＝行為不變（不遷移、`DB_VERSION` 不動）；唯一的例外是第一項：
+自訂法術多了跟暴雪的格一樣的上色（要的就是這個）。
+
+**自訂法術的超出距離／不可用上色**（`Modules/Custom.lua`）
+
+- 暴雪的核心／輔助 item 本來就會做（`CooldownViewerCooldownItemMixin:RefreshIconColor`），自訂法術框補上同一套：
+  超出距離 > 可用（白）> 資源不夠（藍）> 不可用（灰），純函式 `CU.ColorState`；`C_Spell.IsSpellUsable` 的兩個回傳過 `Plain`，讀不到當可用。
+- 顏色讀暴雪的全域 `CooldownViewerConstants.ITEM_NOT_IN_RANGE_COLOR`／`ITEM_USABLE_COLOR`／`ITEM_NOT_ENOUGH_MANA_COLOR`／
+  `ITEM_NOT_USABLE_COLOR`（`Blizzard_CooldownViewer/CooldownViewer.lua` 開頭，`CreateColor` 物件，`GetRGBA` pcall）；讀不到用同值常數
+  （0.64/0.15/0.15、1/1/1、0.5/0.5/1、0.4/0.4/0.4），讀到一次就快取。上色是 `Icon:SetVertexColor`，狀態沒變不重寫。
+- 距離：放上條時 `C_Spell.SpellHasRange(基底 id)` 為真 ⇒ `C_Spell.EnableSpellRangeCheck(id, true)`，收起來（`HideRec`）時關；
+  **暴雪自己的 item 也在查同一個法術**（`rawget(item, "rangeCheckSpellID")`，只讀）時不關。`SPELL_RANGE_CHECK_UPDATE(spellID, inRange, checksRange)`
+  （生成文件標 SynchronousEvent）一律延一幀，參數過 `Plain`：`checksRange == true and inRange == false` 才算超出距離（跟暴雪同一行）。
+  起始狀態與換目標（`PLAYER_TARGET_CHANGED`，延一幀）問 `C_Spell.IsSpellInRange(id) == false`。
+- 不給設定；未學會（問號）照舊白色＋灰階；物品／飾品欄不上色（暴雪對物品也不上）。
+
+**自訂圖示**（`Core/Decorate.lua`、`Modules/Custom.lua`、`Options/SpellPopover.lua`）
+
+- 逐法術覆寫 `customIcon`（貼圖檔案編號，正整數；`false`／壞值＝沒有），`SPELL_CONST = false`、`OVERRIDE_GROUP = "icon"`
+  （條頁圖示節的「清除覆寫」會清掉它）。判讀 `Decorate.IconOverrideOf(id)`；顯示端一律 `ns.IconFor(barKey, id, info)`
+  （條預覽、拖曳中的圖示、挑選器、逐法術面板標題）。`Catalog.Info` 不改。
+- 自訂框：`Custom.Update` 設圖示時先看覆寫（未學會照舊問號、空的飾品欄照舊空格圖）。
+- 暴雪 item：`Decorate.Apply` 當場 `Icon:SetTexture(覆寫)`（長條是 `item.Icon.Icon`），**第一次需要覆寫時**才在那張貼圖上
+  後掛勾 `SetTexture`：暴雪每次 `RefreshSpellTexture` 換回去就蓋回來（遞迴防護旗標，跟 `desatGuard` 同一招）。
+  沒有覆寫的格進掛勾第一件事就走；傳進來的貼圖參數不看（光環的圖可能是秘密值）。
+  ⚠ `SetCooldownID` 會同步 `RefreshData`、**比我們的 `SetCooldownID` 後掛勾先跑**（`CooldownViewerItemData.lua` 的 `OnCooldownIDSet`）⇒
+  掛勾裡用 item 現在的身分（`Viewers.ReadItemID`）對 `rec.iconFor`，不一樣＝覆寫是上一個法術的，清掉、交回 `Apply` 重判。
+  拿掉覆寫時用目錄的圖示（明文）換回去，暴雪下一次刷新也會寫回它自己的。覆寫值進簽章（`Decorate.Signature`）。
+- 逐法術面板一列「自訂圖示」：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術書／天賦／背包裡的法術或物品，取它的圖示——
+  `Picker.WatchInput(popup, "icon")`，連結 → `C_Spell.GetSpellTexture`／`C_Item.GetItemIconByID`，明文正整數才收）＋「清除」；右鍵整列清。
+- 不支援：光環格（引擎畫圖示，面板不顯示這一列）、固定格位的占位圖。
+
+**群組跟著游標**（`Core/Cursor.lua`、`Core/Bars.lua`、`Options/Specs.lua`）
+
+- 只有**自訂的圖示群組**，而且上面**沒有光環格、沒勾可點擊**（那兩種讓容器變保護框，戰鬥中不能移）。
+  `bar.cursor = { enabled = false, x = 20, y = -20 }`（`IconBar` 預設；舊的自訂群組沒有這欄＝關）。資格是純函式 `Cursor.Eligible(bar, hasAuraSlot)`。
+- 做法：`PlaceContainer` 對這種條不貼存檔位置，改貼 `TOPLEFT` 到游標（UIParent 座標＝`GetCursorPosition() / UIParent:GetEffectiveScale()`）＋位移；
+  一顆共用的 driver 框的 `OnUpdate` 每幀照游標重貼（走 `ns.Write`，位置沒變不重貼）。**只在有這種條、而且那條的 alpha > 0**
+  （`Visibility.Current`，不讀框）時掛 OnUpdate，否則卸掉；`Visibility.Apply` 與 `Bars` 每次套完結構都叫 `Cursor.Refresh` 重判。
+  掛之前、以及戰鬥中每一幀先問 `ns.IsProtectedFrame(容器)`：是的話那條這一輪不動、記一筆 Diag（`[cursor]`）。
+- 編輯模式中、設定視窗開著時回到存檔位置（不然拖不了、點擊層點不到）：`EditModeChanged`／`OptionsShown`／`OptionsHidden` 延一幀後
+  對這種條 `Bars.ApplyStructure`。
+- **排開與錨定**：`Bars` 給 `Layout.AnchorOf`／`StackTarget` 的設定表（`AnchorCfg`）把它當不存在 ⇒ 它自己不錨定、不參與排開，
+  已經錨著它的條改用自己的位置；錨定下拉的候選也剔掉它（`Specs.AnchorGraphSig` 帶著它，開關一變別條的候選跟著重算）。
+  判準是 `Cursor.Configured`（跟編輯模式無關），進出編輯模式時別條的排開不會變。
+- 設定頁錨定節（自訂圖示群組才有）：勾選「跟著滑鼠游標」＋下一列灰字（條件不成立時勾選框停用、灰字換成原因，寫法同固定格位那一列）、
+  「離游標的位移 X／Y」（沒開時停用）；開著時「跟著哪條走」「邊」「偏移／位置」那幾列停用（值不動）。
+- `/mcdm debug` 有設定時多一行：`跟著游標：<條>（跟著／看不到，停／存檔位置）  OnUpdate 掛著／卸了  跑了 N 幀  保護框擋下 N 次`。
+- ⚠ 已知限制：位移設成讓圖示蓋在游標正下方（例如 0／0）時，圖示的提示層會擋住游標底下的東西（滑過單位的提示出不來）；預設的 20／-20 不會。
+  錨著它的條改用自己的位置——那個位置可能是很久以前存的。
+
+**語音播報（文字轉語音）**（`Core/Sound.lua`、`Options/SpellPopover.lua`）
+
+- 逐法術覆寫 `readySpeak`／`gainSpeak`／`loseSpeak`：`false`＝關、`true`＝念法術名、字串＝念那段字（頭尾空白不算，空字串也念法術名）；
+  純函式 `Sound.Logic.SpeakText(v, 名字)`。`SPELL_CONST = false`、`OVERRIDE_GROUP = "sound"`（條頁「音效」節一起數、一起清）。
+- 跟音效同一個觸發點（就緒探針的 `OnReady`、增益 item 出現／消失批次的 `FlushBatch`），同一個總開關、同一套讀取畫面靜音與 1.5 秒節流
+  （節流 key 加 `speak:` 前綴，音效與語音互不擋）。只設語音也會建就緒探針（`WantsReady`）、也會排出現／消失批次。
+- `C_VoiceChat.SpeakText(voiceID, text, rate, volume, overlap)`（12.x 生成文件：voiceID／rate／volume／overlap 是 NeverSecret、text ConditionalSecret、
+  `AllowedWhenTainted`、沒標 HasRestrictions）；voiceID＝`C_TTSSettings.GetVoiceOptionID(Enum.TtsVoiceType.Standard)`，速率／音量用
+  `C_TTSSettings.GetSpeechRate／GetSpeechVolume`（玩家在遊戲「文字轉語音」設定的值），讀不到用 0／100；overlap 給 false。全部 pcall。
+  `C_VoiceChat.SpeakText` 不在 ⇒ 設定頁那幾列不顯示、觸發點什麼都不做。
+- 光環格（引擎播音效）沒有 Lua 端的出現／消失訊號 ⇒ 不提供（面板不顯示）。
+- 逐法術面板：每個音效列下面一列「語音播報」——勾選框＋輸入框（空白＝念法術名）＋「試聽」（不看總開關）；勾著才寫進覆寫，
+  沒勾時輸入框只是記著字；最後一列灰字說明。右鍵整列清。
+
+**長條火花**（`Core/Decorate.lua`、`Options/Preview.lua`）
+
+- `bar.spark = false`（`LongBar` 的 `bar` 子表）。設定頁長條的版面節一個勾選「顯示火花」＋灰字。
+- 以前 `ApplyBarLook` 一律把暴雪的 `b.Pip`（`UI-HUD-CoolDownManager-Bar-Pip`，暴雪自己錨在填充貼圖右緣、倒數中才 Show）設 alpha 0；
+  改成照設定 0／1，顯示／隱藏照舊是暴雪管。預覽的假條自己畫一條（填充末端 2px 白線，`ownPip`，同一支 `ApplyBarLook` 管錨點與 alpha）。
+- `bar` 整張表進條層簽章（`Decorate.Resolve` 的 `TSig(r.bar)`），改了當場重套。
 
 ## 資源條與施法條
 
@@ -1448,3 +1524,24 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 179. 設定頁：增益格的逐法術面板有「層數發光」三列、增益長條多「層數換色（N）…」；彈窗新增／改門檻／改色／刪除當場生效、按鈕筆數跟著變；
      德文／法文的標籤換行不重疊。條預覽上開了層數發光的格照層數發光的樣式常亮。
 180. `/console taintLog 2` 打一場（含層數上下、無損刷新、換目標）taint.log 沒有本插件；暴雪的增益檢視器排版（長條 OnUpdate、`RefreshData`）不報錯。
+
+**小項（2026-10-03，P5）**
+
+181. 自訂法術的上色：超出距離染紅、資源不夠染藍、不可用染灰、可用白色，跟旁邊暴雪的格同一個顏色、同一個時機變
+     （換目標、走出距離、魔力不夠）；沒目標時白色；未學會的問號不上色。`CooldownViewerConstants` 在我們登入時讀得到（顏色跟暴雪一樣）。
+182. 同一個法術同時在核心技能（暴雪的格）與自訂群組：兩邊的距離上色都正常，把自訂那一筆移除後暴雪那一格的距離上色還在
+     （`EnableSpellRangeCheck` 是開關還是計數沒查到，我們只在暴雪沒在查時才關）。
+183. 自訂圖示：暴雪核心／輔助／增益圖示／增益長條的格換圖後，戰鬥中暴雪刷新（冷卻、光環上下、換天賦）一直維持我們的圖；
+     法術換身分（同一顆框換成別的法術、拖到別條）不會把舊的覆寫帶過去；清除後換回原圖。自訂法術／物品照樣換。
+184. 自訂圖示的輸入彈窗：Shift 點法術書／天賦／背包裡的法術或物品會填進它的圖示編號、下面灰字寫名字；`/console taintLog 2`
+     換圖打一場 taint.log 沒有本插件（Icon 貼圖的 SetTexture 後掛勾）。
+185. 跟著游標：自訂圖示群組勾了之後跟在游標右下、移動順暢不延遲；進編輯模式／開設定視窗回到存檔位置、拖得動、關掉又跟回去；
+     顯示條件淡到 0 時 `/mcdm debug` 說「看不到，停」（OnUpdate 卸了）、顯示回來又跟；勾了可點擊或加了光環格時那一列停用並寫原因、群組回到存檔位置。
+186. 跟著游標的群組戰鬥中照樣跟（容器不是保護框）、零 ADDON_ACTION_BLOCKED；原本錨在它身上的條改用自己的位置、
+     錨定下拉看不到它；`/miliui` 效能監控看不出明顯成本。
+187. 語音播報：就緒、增益出現／消失照設定念（勾著空白念法術名、填了念那段字），語速／音量／聲音跟遊戲「文字轉語音」設定一致；
+     試聽有聲音；總開關關掉不念；讀取畫面後 2 秒內不念。
+188. 語音播報在首領戰、M+ 裡會不會被擋（`SpeakText` 沒標 HasRestrictions，但插件限制系統沒驗過）；被擋的話 pcall 接住、不報錯。
+189. 長條火花：勾了之後增益長條倒數中填充末端有暴雪的亮點，跟條高（6～60）搭起來不突兀（暴雪的圖是 atlas 原尺寸，我們沒改大小）；
+     取消勾選消失；預覽的假條跟著畫一條白線。
+

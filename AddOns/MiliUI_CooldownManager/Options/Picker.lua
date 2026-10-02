@@ -246,7 +246,7 @@ local function LayoutIcons(parent, pool, ids, y, onClick, tipFn, desat)
         local b = IconButton(parent, pool, i)
         local info = ns.Catalog.Info(id)
         b.id = id
-        b.tex:SetTexture((info and info.icon) or QUESTION)
+        b.tex:SetTexture(ns.IconFor(nil, id, info) or QUESTION)
         -- 沒學會的自訂法術、被移除的：灰掉（滑鼠提示有寫）
         local removed = type(entry) == "table" and entry.removed
         b.tex:SetDesaturated((desat or removed or (info and info.isKnown == false)) and true or false)
@@ -549,7 +549,9 @@ local errNotes = {}          -- 彈窗 → { fs, baseH }
 --   Picker.ParseLink(link) → "item"｜"spell"｜nil, id, 名字   純函式
 --   Picker.TakeLink(link)  → 有沒有收下
 --   Picker.WatchInput(popup, kind [, wrongKind])  開輸入彈窗時登記；kind 是 "item" 以外都收法術連結，
---                          wrongKind 是連結種類不對時的說明（省略就用追蹤清單那兩句）
+--                          wrongKind 是連結種類不對時的說明（省略就用追蹤清單那兩句）；
+--                          kind ＝ "icon"（逐法術面板的自訂圖示）：法術、物品連結都收，填的是它的圖示編號
+--   Picker.LinkIcon(kind, id)  連結的種類與 ID → 圖示編號（明文正整數；讀不到 nil）
 ------------------------------------------------------------
 local activeInput          -- { popup = , kind = , wrongKind = }：現在開著的輸入彈窗
 
@@ -565,6 +567,18 @@ end
 
 local SetInputError       -- 前置宣告（定義在下面）
 
+-- 連結 → 它的圖示（貼圖檔案編號，明文正整數才收；讀不到 nil）
+function Picker.LinkIcon(kind, id)
+    local fn
+    if kind == "item" then fn = C_Item and C_Item.GetItemIconByID
+    elseif kind == "spell" then fn = C_Spell and C_Spell.GetSpellTexture end
+    if type(fn) ~= "function" or type(id) ~= "number" then return nil end
+    local ok, tex = pcall(fn, id)
+    if not ok or tex == nil or ns.IsSecret(tex) then return nil end
+    if type(tex) ~= "number" or tex <= 0 or tex ~= math.floor(tex) then return nil end
+    return tex
+end
+
 local lastLink, lastLinkAt = nil, 0
 function Picker.TakeLink(link)
     local cur = activeInput
@@ -576,6 +590,20 @@ function Picker.TakeLink(link)
     local now = GetTime and GetTime() or 0
     if link == lastLink and now - lastLinkAt < 0.2 then return true end
     lastLink, lastLinkAt = link, now
+    -- 自訂圖示的輸入彈窗（逐法術面板）：法術、物品的連結都收，填的是它的**圖示編號**
+    if cur.kind == "icon" then
+        local box = cur.popup.boxes and cur.popup.boxes.id
+        if not box then return false end
+        local tex = Picker.LinkIcon(kind, id)
+        if not tex then
+            SetInputError(cur.popup, L["Couldn't read that icon."])
+            return true
+        end
+        box:SetText(tostring(tex))
+        if box.SetFocus then box:SetFocus() end
+        SetInputError(cur.popup, name and ("%s  (%d)"):format(name, tex) or nil)
+        return true
+    end
     local wantItem = cur.kind == "item"
     if wantItem ~= (kind == "item") then
         SetInputError(cur.popup, cur.wrongKind or (wantItem
