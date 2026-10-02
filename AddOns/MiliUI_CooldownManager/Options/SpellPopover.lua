@@ -256,7 +256,10 @@ local function Build()
     -- 自訂光環格不給：發光烘在受保護的按鈕裡，戰鬥中切不了
     local occb = W.CreateCheckButton(ar, L["Out of combat too"], function(on)
         if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
-        ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", (not on) and false or nil)
+        -- ⚠ 不能寫 `(not on) and false or nil`：`false or nil` 是 nil，取消勾選永遠存不進去
+        local v = nil
+        if not on then v = false end
+        ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", v)
         Changed()
     end)
     occb:SetPoint("LEFT", aswatch, "RIGHT", 14, 0)
