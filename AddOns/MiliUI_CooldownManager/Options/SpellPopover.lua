@@ -229,9 +229,9 @@ local function Build()
         RightClickClears(tr, th, t.field)
     end
 
-    -- 生效發光：只有暴雪的增益（kind == nil 且增益類）。勾選框＋顏色（沒挑過＝條層預設色）；
+    -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色（沒挑過＝條層預設色）；
     -- 右鍵整列兩個都清掉
-    local ar, ah = NewRow(L["Glow while active"], function(kind, class) return kind == nil and class == "aura" end)
+    local ar, ah = NewRow(L["Glow while active"], function(_, class) return class == "aura" end)
     local acb = W.CreateCheckButton(ar, nil, function(on)
         if not cur then return end
         ns.DB.SetOverride(cur.id, "activeGlow", on and true or nil)

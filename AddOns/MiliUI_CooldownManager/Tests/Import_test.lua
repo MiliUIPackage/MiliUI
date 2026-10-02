@@ -587,8 +587,8 @@ do
     eqColor("生效發光 顏色（沒 alpha 補 1）", o and o.activeGlowColor, 1, 0, 0, 1)
     eq("glowEnabled false 不收", S4.spells[70].overrides[5002], nil)
     eq("別專精 ⇒ pending", S4.pendingImport and S4.pendingImport[66] and S4.pendingImport[66].overrides[1].fields.activeGlow, true)
-    eq("光環格不收", S4.spells[70].overrides["c:1"], nil)
-    check("光環格的發光記略過", HasSkip(R4, "spellRegistry.*.glowEnabled (aura slots)", "noEquivalent", "overrides"))
+    eq("光環格直接寫在 c:1", S4.spells[70].overrides["c:1"] and S4.spells[70].overrides["c:1"].activeGlow, true)
+    eq("光環格沒有顏色就不寫顏色", S4.spells[70].overrides["c:1"] and S4.spells[70].overrides["c:1"].activeGlowColor, nil)
     check("邊框色沒有對應", HasSkip(R4, "spellRegistry.*.colors", "noEquivalent", "overrides"))
     check("spellRegistry 不再整張略過", not HasSkip(R4, "spellRegistry"))
 end

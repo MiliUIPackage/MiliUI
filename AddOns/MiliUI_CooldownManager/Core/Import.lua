@@ -1392,7 +1392,8 @@ end
 --   soundEnabled＋soundOnHide  → loseSound（soundOnHideEnabled ~= false）
 -- ungroupedCooldownOverrides 本來就用 cooldownID 當鍵，直接寫；增益／長條那兩張用 spellID，進 pending。
 -- spellRegistry[specID].glowEnabled／glowColors（增益群組裡逐法術的「啟用發光」）→ activeGlow／activeGlowColor，
--- 一樣用 spellID 進 pending（kind "buff"）。對到自訂光環格的不收：生效發光只畫在暴雪的增益格上。
+-- 一樣用 spellID 進 pending（kind "buff"）；對到自訂光環格的直接寫在 "c:<i>" 上（Ayije 本地版的光環格
+-- 不發光，這種資料只會是改成光環格之前留下的；我們的光環格支援生效發光，照樣帶過來）。
 -- 同一張的 colors（逐法術邊框色）沒有對應。
 ------------------------------------------------------------
 local OVERRIDE_HANDLED = { hideCooldown = true, soundEnabled = true, soundOnShow = true, soundOnHide = true,
@@ -1466,14 +1467,17 @@ local function StepOverrides(ctx)
             for _, sk in ipairs(SortedKeys(node.glowEnabled)) do
                 local sid = tonumber(sk)
                 if sid and node.glowEnabled[sk] == true then
-                    if ctx.auraIndex and ctx.auraIndex[specID] and ctx.auraIndex[specID][sid] then
-                        Skip(ctx, "spellRegistry.*.glowEnabled (aura slots)", "noEquivalent", "overrides")
+                    local fields = { activeGlow = true }
+                    local c = colors[sk]
+                    if type(c) == "table" and Num(c.r) and Num(c.g) and Num(c.b) then
+                        fields.activeGlowColor = { r = c.r, g = c.g, b = c.b, a = Num(c.a) or 1 }
+                    end
+                    local aura = ctx.auraIndex and ctx.auraIndex[specID] and ctx.auraIndex[specID][sid]
+                    if aura then
+                        local sp = EnsureSpec(ctx.out, specID)
+                        sp.overrides[aura] = sp.overrides[aura] or {}
+                        for k, v in pairs(fields) do sp.overrides[aura][k] = v end
                     else
-                        local fields = { activeGlow = true }
-                        local c = colors[sk]
-                        if type(c) == "table" and Num(c.r) and Num(c.g) and Num(c.b) then
-                            fields.activeGlowColor = { r = c.r, g = c.g, b = c.b, a = Num(c.a) or 1 }
-                        end
                         local p = PendingFor(ctx, specID)
                         p.overrides = p.overrides or {}
                         p.overrides[#p.overrides + 1] = { spellID = sid, kind = "buff", fields = fields }

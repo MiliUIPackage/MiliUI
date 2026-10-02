@@ -56,13 +56,14 @@
 --   * 自訂法術：Custom 的更新裡同一組明文旗標；自訂物品：武裝新的明文冷卻那一刻。
 --
 -- ── 生效發光（增益）────────────────────────────────────────────────────
--- 暴雪增益格（圖示列、長條、被搬進自訂群組的增益）在光環生效期間一直亮。**只有逐法術開關**
+-- 暴雪增益格（圖示列、長條、被搬進自訂群組的增益）與自訂光環格在光環生效期間一直亮。**只有逐法術開關**
 -- （overrides[id].activeGlow，加上可選的 activeGlowColor），條層只給樣式與預設色，沒有統一開。
 -- 「生效」讀暴雪 item 自己的 IsActive()（欄位 isActive）：12.1.0.69933 的 CooldownViewer.lua 裡
 -- 它是暴雪拿光環 expirationTime 跟 GetTime() 用 Lua 比出來的布林，SetIsActive 寫完就叫
 -- OnActiveStateChanged ⇒ 後掛勾那支當訊號。讀不到（秘密／nil）一律當沒生效：暴雪的增益列設成
 -- 「沒生效也顯示」時灰圖示不能亮（fail-closed）。
--- 自訂光環格（AuraContainer）不在範圍：按鈕是引擎的，發光要在 initializeFrame 裡建，另案。
+-- 這支只管暴雪 item。自訂光環格（AuraContainer）吃同一個逐法術開關，但發光在 Modules/Custom.lua 的
+-- initializeFrame 裡建在引擎按鈕底下（按鈕只在光環存在時顯示），不經過這裡。
 --
 -- ── 無損刷新 ────────────────────────────────────────────────────────────
 -- 後掛勾 item 的 ShowPandemicStateFrame／HidePandemicStateFrame（暴雪在 OnUpdate 裡每幀叫，

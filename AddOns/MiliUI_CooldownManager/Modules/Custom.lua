@@ -29,7 +29,12 @@
 --   * 減益只收 C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret 的（玩家自己算友方，友方減益禁止用
 --     ID 過濾）——新增時就擋（Options/Picker.lua）。
 --   * 占位圖示（placeholder）畫在持有框的 BACKGROUND 上、去飽和、alpha 0.35，按鈕出現自然蓋住。
---   * 發光不提供（不知道光環在不在，只能常亮）。
+--   * 生效發光（overrides[id].activeGlow，跟暴雪增益格同一個逐法術開關，Core/Glow.lua）：發光畫在**按鈕**
+--     底下（initializeFrame 裡建子框＋MiliUIGlow 的 Attach 系列，動畫全是宣告式動畫組，秘密狀態下照樣播）。
+--     按鈕只在光環存在時顯示 ⇒ 發光跟著光環出現／消失，插件端不必知道光環在不在。
+--     樣式、顏色、格子尺寸（Attach 要 caller 給尺寸，子樹裡不能讀）都進簽章：改了換一顆容器，
+--     戰鬥中改要等脫戰。按鈕／觸發樣式的入場動畫交給引擎（AddAuraShownAnimation）播。
+--     觸發／就緒發光仍不提供（光環格沒有冷卻）。
 --   * 圖示外觀選 Masque 也一樣是米利樣式：按鈕的外觀只能在 initializeFrame 裡烘、之後 forbidden，
 --     Masque 碰不到（佔位圖示跟著按鈕，也不交出去）。
 --   * 出現／消失音效：C_UnitAuras.AddAuraSound 登記給引擎播（Core/Sound.lua 對帳）。
@@ -402,7 +407,9 @@ local function RGBA(c, dr, dg, db, da)
     return { c.r or dr, c.g or dg, c.b or db, c.a or da }
 end
 
-local function AuraStyle(rec, barKey)
+local GLOW_TYPES = { pixel = true, autocast = true, button = true, proc = true }
+
+local function AuraStyle(rec, barKey, w, h)
     local S, SS, id = ns.Setting, ns.SpellSetting, rec.cooldownID
     local border = S(barKey, "border") or {}
     local cdT = S(barKey, "cooldownText") or {}
@@ -430,11 +437,29 @@ local function AuraStyle(rec, barKey)
         stPoint  = stT.point or "TOP", stX = tonumber(stT.x) or 0, stY = tonumber(stT.y) or 0,
     }
     local function C(c) return string.format("%.3f,%.3f,%.3f,%.3f", c[1], c[2], c[3], c[4]) end
+    -- 生效發光：開著而且知道格子尺寸才畫；關著時不進簽章（尺寸變了不必換容器）
+    local glowSig = "-"
+    if SS(barKey, id, "activeGlow") and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
+        local g = S(barKey, "glow.active")
+        g = type(g) == "table" and g or {}
+        local col = SS(barKey, id, "activeGlowColor")
+        st.glow = {
+            type      = GLOW_TYPES[g.type] and g.type or "pixel",
+            color     = RGBA(type(col) == "table" and col or g.color, 0.95, 0.95, 0.32, 1),
+            lines     = tonumber(g.lines) or 8,
+            thickness = tonumber(g.thickness) or 2,
+            frequency = tonumber(g.frequency) or 0.2,
+            w = w, h = h,
+        }
+        local gl = st.glow
+        glowSig = table.concat({ gl.type, C(gl.color), gl.lines, gl.thickness, gl.frequency,
+            string.format("%.2f,%.2f", w, h) }, ",")
+    end
     st.sig = table.concat({
         rec.filter, rec.spellID, st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.font, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
-        st.stPoint, st.stX, st.stY,
+        st.stPoint, st.stX, st.stY, glowSig,
     }, "|")
     return st
 end
@@ -517,6 +542,38 @@ local function InitAuraButton(btn, c, st, rec)
         fs:SetPoint(st.stPoint, btn, st.stPoint, st.stX * s, st.stY * s)
         pcall(btn.SetApplicationCount, btn, fs)
     end
+
+    -- 生效發光：按鈕底下自己的子框（只在這個視窗內建得了），尺寸用 st 給的、不讀
+    local gl = st.glow
+    local LCG = ns.MiliUIGlow
+    if gl and LCG and LCG.PixelGlow_Attach then
+        local f = CreateFrame("Frame", nil, btn)
+        f:SetFrameLevel((ov:GetFrameLevel() or 1) + 1)
+        local gw, gh = gl.w, gl.h
+        if gl.type == "button" or gl.type == "proc" then
+            -- 這兩種畫成按鈕的 1.4 倍（跟 Start 系列一樣）
+            local dx, dy = gw * 0.2, gh * 0.2
+            f:SetPoint("TOPLEFT", btn, "TOPLEFT", -dx, dy)
+            f:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", dx, -dy)
+            gw, gh = gw * 1.4, gh * 1.4
+        else
+            f:SetAllPoints(btn)
+        end
+        f:Show()
+        local anim
+        if gl.type == "autocast" then
+            LCG.AutoCastGlow_Attach(f, gl.color, gl.lines, gl.frequency, 1, gw, gh)
+        elseif gl.type == "button" then
+            anim = LCG.ButtonGlow_Attach(f, gl.color, gl.frequency, gw, gh)
+        elseif gl.type == "proc" then
+            anim = LCG.ProcGlow_Attach(f, gl.color, 1, gw, gh)
+        else
+            LCG.PixelGlow_Attach(f, gl.color, gl.lines, gl.frequency, nil, gl.thickness, gw, gh)
+        end
+        -- 入場動畫：交給引擎在光環出現時播（我們不 Play）
+        if anim and btn.AddAuraShownAnimation then pcall(btn.AddAuraShownAnimation, btn, anim) end
+        rec.glowAttached = (rec.glowAttached or 0) + 1
+    end
     rec.inits = (rec.inits or 0) + 1
 end
 
@@ -543,8 +600,8 @@ local function BuildContainer(rec, st)
 end
 
 -- 簽章對上容器：同簽章不動；換了就從池子拿（沒有才建）。戰鬥中只記旗標。
-local function EnsureContainer(rec, barKey)
-    local st = AuraStyle(rec, barKey)
+local function EnsureContainer(rec, barKey, w, h)
+    local st = AuraStyle(rec, barKey, w, h)
     rec.wantSig = st.sig
     if rec.sig == st.sig and rec.container then return end
     if InCombatLockdown() then
@@ -666,7 +723,7 @@ function CU.Place(rec, c, r, barKey, gen)
             end, "place")
         end
         UpdatePlaceholder(rec, barKey, r.w, r.h)
-        EnsureContainer(rec, barKey)
+        EnsureContainer(rec, barKey, r.w, r.h)
         -- 出現／消失音效走 AddAuraSound 登記（對帳、下一幀、戰鬥中延後，見 Core/Sound.lua）
         if ns.Sound then ns.Sound.RequestAuraSync() end
         return

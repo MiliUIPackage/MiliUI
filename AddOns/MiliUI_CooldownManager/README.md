@@ -310,7 +310,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），條層 `glow.active` 只有樣式與預設色。
   生效看暴雪 item 的 `IsActive()`（後掛勾 `OnActiveStateChanged`）；讀不到一律不亮，「沒生效也顯示」的灰圖示不會亮。
   覆寫分組自成 `activeGlow`：條頁「清除發光覆寫」不會清掉。從 Ayije 匯入 `spellRegistry[spec].glowEnabled／glowColors`。
-  自訂光環格（AuraContainer）不支援。
+  自訂光環格吃同一個開關：發光在 `initializeFrame` 裡用 MiliUIGlow 的 Attach 系列建在引擎按鈕底下（按鈕只在光環存在時顯示），
+  樣式／顏色／格子尺寸進容器簽章，改了換容器、戰鬥中改等脫戰。
 - **就緒發光**：探針（見「與計畫不同」第 28 條）；亮 `glow.ready.duration` 秒（預設 3），期間技能用掉（進了新的冷卻，GCD 不算）就提早熄；回充中的多充能技能不提早熄（暴雪每次 GCD 都重設充能計時，分不出來）。
   「觸發」樣式在裝了 Masque 時改用 Masque 的方形循環圖（`Masque/Textures/Square/SpellAlert-Loop-Modern`，6×5、每格 84px，沒有入場動畫），
   沒裝就是暴雪的圓角圖集；只換貼圖，不碰 Masque、不讀它的設定。
@@ -1136,3 +1137,5 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 140. 生效發光：增益圖示列開著「沒生效時隱藏」與關著兩種情況都試——勾了的增益生效時亮、消失就熄，灰圖示不亮；
      戰鬥中、首領戰、M+ 裡照樣跟著生效狀態開關（`IsActive` 讀得到）；換專精／增益搬進自訂群組後設定跟著走；
      每個增益自訂的顏色生效；從 Ayije 匯入後原本勾了發光的增益自動打勾。
+     自訂光環格：四種樣式都在光環出現時亮、消失時熄（首領戰／M+ 秘密狀態下動畫照樣跑）；按鈕／觸發樣式的入場閃光有播；
+     改格子大小後發光框跟著換尺寸。
