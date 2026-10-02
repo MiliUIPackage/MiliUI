@@ -47,7 +47,7 @@
 | `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
-| `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
+| `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
 | `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
@@ -148,7 +148,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   `SetUserPlaced(false)`，排結構級重排讓 `ApplyStructure` 照存檔重貼。拖曳中 `ns.dragging = key`，
   重排與 `PinViewer` 跳過那條；放手、離開編輯模式、進戰鬥一律清掉。
   放手後廣播 `BarMoved(key)`（之後的設定頁用）。
-- **吸附**：暴雪編輯模式的「吸附」開關與格線間距，Shift 反轉；只吸容器的錨點那一邊。只開設定視窗（不在暴雪編輯模式）時不吸格線——畫面上看不到格線，只留放手時的套組磁吸。
+- **吸附**：拖曳中離吸附點 4（UIParent 座標，固定、不隨格距放大）以內才吸。先對齊本插件其他條的邊／中心（左貼左、右貼右、並排、中心對中心，上下同理；跟著拖的這條走的不算）；那一軸沒得對，而且暴雪編輯模式的格線**看得到**時，才把容器的錨點那一邊吸到格線上。開關照暴雪編輯模式的「吸附」，設定視窗開著時一律開；Shift 按著不吸。
 - **方向鍵微調**：滑鼠停在條的選取框／點擊層上按方向鍵移 1、Shift＋方向鍵移 10；跟著別條的改錨定偏移。設定頁「錨定」一節沒跟隨時有「位置 X／Y」數字框。
   放手時再走 MiliUISnap 跟套組其他框對齊（`cdm:<key>`，只做 align、同組互不對齊）。
 - **拖了就脫離錨定**：錨在別條上的條（`anchor` 是表）一開始拖就把現況換算成 pos、`anchor = false`。
@@ -1032,7 +1032,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 95. 輸出專精（暗牧、元素、增強、三系術士、平衡、湮滅、強化）：資源條預設沒有法力；「這個專精要顯示哪些」裡法力那一列預設不勾，
     勾起來就出現、再取消又消失，`/reload` 後照存的。治療專精與法師預設照舊顯示（跟 Ayije_CDM 的預設一致）。（每個專精的預設在 `Resources.lua` 的 `DEFAULT_OFF`；
     `rows[specID][key]`：nil＝照預設、true／false＝強制；2026-10-02 起分專精存，見 136。）
-96. 設定視窗開著（沒進暴雪編輯模式）：每條上面有覆蓋層（職業色邊、條名），**直接拖就能移動**，格線吸附與套組磁吸都在；
+96. 設定視窗開著（沒進暴雪編輯模式）：每條上面有覆蓋層（職業色邊、條名），**直接拖就能移動**，條與條對齊與套組磁吸都在（不吸格線：看不到）；
     **按住 Shift 拖曳不吸**（暴雪編輯模式裡也是：Shift 一律不吸，不再是「反轉」）。點一下仍是開那條的設定頁。
     設定視窗開著再進暴雪編輯模式：點擊層收起、換成選取框；出來又換回點擊層。戰鬥中設定視窗鎖著、點擊層不出現。
 
@@ -1152,4 +1152,4 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 145. 資源條「背景材質」：挑一張跟填充不同的材質，一般列、點數格、引擎畫的光環列（層數／剩餘時間／百分比）、征戰聖擊列與自訂格子的空的那截都換掉；選回「跟填充相同」恢復；顏色還是原本的暗底。
 146. 資源列各自的高度：「這個專精要顯示哪些」每列的高度數字框改了當場生效、換專精同一個資源還是那個高度；版面那節沒有「每列高」了；
      舊存檔沒調過的列照原本的列高（征戰聖擊 4）；自訂格子照舊用卡片裡自己的高度。
-147. 方向鍵微調：編輯模式與只開設定視窗兩種狀態下，滑鼠停在條上按方向鍵移 1、Shift 移 10；游標不在條上時方向鍵照常轉身／移動；設定頁「位置 X／Y」跟著更新；進戰鬥後所有快捷鍵正常（捕捉框已收起）。只開設定視窗拖曳時不再吸格線。
+147. 方向鍵微調：編輯模式與只開設定視窗兩種狀態下，滑鼠停在條上按方向鍵移 1、Shift 移 10；游標不在條上時方向鍵照常轉身／移動；設定頁「位置 X／Y」跟著更新；進戰鬥後所有快捷鍵正常（捕捉框已收起）。
