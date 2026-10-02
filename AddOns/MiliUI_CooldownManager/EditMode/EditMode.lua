@@ -82,8 +82,8 @@ local function GridSpacing()
 end
 EM.GridSpacing = GridSpacing
 
--- Shift 按著一律不吸（格線與套組磁吸都不吸）；設定視窗開著（不在暴雪編輯模式）時一律吸，
--- 暴雪編輯模式裡照暴雪的「吸附」開關
+-- Shift 按著一律不吸（條對齊、格線、套組磁吸都不吸）；設定視窗開著（不在暴雪編輯模式）時一律吸，
+-- 暴雪編輯模式裡照暴雪的「吸附」開關。格線另外要看得到才吸（GridShown）
 local function SnapEnabled()
     if IsShiftKeyDown() then return false end
     if EM.optionsOpen and not EM.active then return true end
@@ -95,6 +95,39 @@ local function SnapEnabled()
     return false
 end
 EM.SnapEnabled = SnapEnabled
+
+-- 格線看得到才吸格線：設定視窗開著（沒進編輯模式）、或編輯模式沒開格線時，吸一條看不到的線
+-- 只會讓條停在莫名其妙的位置
+local function GridShown()
+    local grid = EditModeManagerFrame and EditModeManagerFrame.Grid
+    if not (EM.active and grid and grid.IsShown) then return false end
+    local ok, v = pcall(grid.IsShown, grid)
+    return ok and v == true
+end
+
+-- 拖曳時可以對齊的其他條：看得到、有大小、而且不是（直接或間接）跟著拖的這條走的
+-- （跟隨者會一起動，距離永遠是 0）。拖曳中量一次就好，其他條不會動
+local function FollowsKey(k, key)
+    local B, seen, cur = ns.Bars, {}, k
+    while cur and not seen[cur] do
+        if cur == key then return true end
+        seen[cur] = true
+        local a = ns.Layout.AnchorOf(cur, BarCfg)
+        cur = (B.StackTarget and B.StackTarget(cur)) or (a and a.to) or nil
+    end
+    return false
+end
+
+local function AlignTargets(key)
+    local list = {}
+    for k, c in pairs(ns.Bars.Containers()) do
+        if k ~= key and c:IsShown() and BarCfg(k) and not FollowsKey(k, key) then
+            local rect = EM.RectOf(c)
+            if rect and rect[2] - rect[1] > 1 and rect[3] - rect[4] > 1 then list[#list + 1] = rect end
+        end
+    end
+    return list
+end
 
 ------------------------------------------------------------
 -- 拖曳
@@ -148,10 +181,17 @@ local function DragTick()
     local cx, cy = Cursor()
     local l, t = d.left + (cx - d.cx), d.top + (cy - d.cy)
     if SnapEnabled() then
-        -- 拖曳中就吸，放手才吸的話手感會「跳一下」。格線從畫面中心往外畫
-        local ox, oy = UIParent:GetCenter()
-        local dx, dy = EM.SnapDelta(d.anchorPoint, l, l + d.w, t, t - d.h, ox, oy, GridSpacing())
-        l, t = l + dx, t + dy
+        -- 拖曳中就吸，放手才吸的話手感會「跳一下」。先對齊其他條（邊／中心），
+        -- 那一軸沒得對才吸格線（格線看得到時；從畫面中心往外畫）
+        -- 第一幀才量：BeginDrag 的 Restack 會讓疊在它外面的條補位，要量補位之後的
+        d.targets = d.targets or AlignTargets(d.key)
+        local ax, ay = EM.AlignDelta({ l, l + d.w, t, t - d.h }, d.targets, EM.SNAP_RANGE)
+        if not (ax and ay) and GridShown() then
+            local ox, oy = UIParent:GetCenter()
+            local gx, gy = EM.SnapDelta(d.anchorPoint, l, l + d.w, t, t - d.h, ox, oy, GridSpacing())
+            ax, ay = ax or gx, ay or gy
+        end
+        l, t = l + (ax or 0), t + (ay or 0)
     end
     -- 上面剛確認過不在戰鬥中：容器直接動（每幀一次，不經 ns.Write 的保護判斷）
     c:ClearAllPoints()

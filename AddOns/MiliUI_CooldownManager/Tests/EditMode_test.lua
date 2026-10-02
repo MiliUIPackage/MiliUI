@@ -211,6 +211,18 @@ do
     near("SnapDelta BOTTOMRIGHT dy", dy, -4)
     dx, dy = EM.SnapDelta("TOP", 950, 990, 340, 300, 960, 540, nil)
     check("SnapDelta 沒有間距不動", dx == 0 and dy == 0)
+    dx, dy = EM.SnapDelta("TOP", 950, 990, 360, 320, 960, 540, 128)          -- 格距放大不放大範圍：rx 10、ry -180→-192 差 12
+    check("SnapDelta 大格距範圍不跟著放大", dx == 0 and dy == 0)
+
+    -- 對齊其他條：左貼左 3、上貼下 -2；中心對中心；超出範圍那軸回 nil
+    local ax, ay = EM.AlignDelta({ 103, 203, 50, 30 }, { { 100, 300, 28, 0 } }, 4)
+    near("AlignDelta 左貼左", ax, -3)
+    near("AlignDelta 上貼下", ay, -2)
+    ax, ay = EM.AlignDelta({ 151, 251, 500, 480 }, { { 100, 300, 28, 0 } }, 4)   -- 中心 201 對 200
+    near("AlignDelta 中心對中心", ax, -1)
+    check("AlignDelta 遠的那軸 nil", ay == nil)
+    ax, ay = EM.AlignDelta({ 0, 10, 10, 0 }, {}, 4)
+    check("AlignDelta 沒目標", ax == nil and ay == nil)
 
     -- 吸完再 ReadPos：錨點那一邊落在格線上 ⇒ 存下來的偏移是間距的倍數
     local w, h = 187, 41
