@@ -1236,6 +1236,17 @@ do
     local d = ns.DB.BuildDefaults().profile.resources
     eq("征戰聖擊預設高 4", R.KeyRowHeight(d, "CrusadingStrikes"), 4)
     eq("其他列照 rowHeight", R.KeyRowHeight(d, "HolyPower"), 14)
+    -- 每列自己的高（heights[key]，所有專精共用）：沒設退回舊的共用值；設了照它、夾 1～30
+    local hc = { rowHeight = 12, crusadingHeight = 5, heights = {} }
+    eq("沒設 → rowHeight", R.KeyRowHeight(hc, "HolyPower"), 12)
+    eq("沒設 → 征戰聖擊用 crusadingHeight", R.KeyRowHeight(hc, "CrusadingStrikes"), 5)
+    R.SetKeyHeight(hc, "HolyPower", 20.4)
+    eq("設了照它（取整）", R.KeyRowHeight(hc, "HolyPower"), 20)
+    R.SetKeyHeight(hc, "Health", 99)
+    eq("夾上限 30", hc.heights.Health, 30)
+    R.SetKeyHeight(hc, "Health", 0)
+    eq("夾下限 1", hc.heights.Health, 1)
+    eq("別的列不受影響", R.KeyRowHeight(hc, "Mana"), 12)
     eq("征戰聖擊預設：已揮的時間", R.CrusadingFill(d), "elapsed")
     eq("征戰聖擊：remaining", R.CrusadingFill({ crusadingFill = "remaining" }), "remaining")
     local c = d.colors.CrusadingStrikes

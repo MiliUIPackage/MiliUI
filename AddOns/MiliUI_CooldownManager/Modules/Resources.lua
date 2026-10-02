@@ -1112,13 +1112,27 @@ function R.BgTexture(cfg)
 end
 R.RowHeight = RowHeight
 
--- 一列自己的高度：征戰聖擊有自己的（細條），其他列照 rowHeight
+-- 一列的高度：resources.heights[key]（設定頁「這個專精要顯示哪些」每列的數字，所有專精共用，跟 order 一樣）。
+-- 沒設過的退回舊的共用值：征戰聖擊 crusadingHeight（預設 4）、其他 rowHeight（預設 14）——
+-- 這兩個欄位不再有控件，留著當起始值，舊存檔不用遷移
+R.HEIGHT_MIN, R.HEIGHT_MAX = 1, 30
 function R.KeyRowHeight(cfg, key)
+    local t = type(cfg) == "table" and cfg.heights
+    local h = type(t) == "table" and tonumber(t[key])
+    if h then return h end
     local def = RESOURCES[key]
     if def and def.crusading then
         return tonumber(type(cfg) == "table" and cfg.crusadingHeight) or 4
     end
     return RowHeight(cfg)
+end
+
+function R.SetKeyHeight(cfg, key, v)
+    if type(cfg) ~= "table" or type(key) ~= "string" then return end
+    v = math.floor((tonumber(v) or R.KeyRowHeight(cfg, key)) + 0.5)
+    v = math.max(R.HEIGHT_MIN, math.min(R.HEIGHT_MAX, v))
+    if type(cfg.heights) ~= "table" then cfg.heights = {} end
+    cfg.heights[key] = v
 end
 
 -- 征戰聖擊的填充：elapsed 已揮的時間長出來（預設）／remaining 剩餘時間縮短
