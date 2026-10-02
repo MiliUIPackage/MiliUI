@@ -239,6 +239,21 @@ function EM.WireViewer(key)
     return sel
 end
 
+-- 滑鼠底下的框是哪一條的選取框（暴雪的、自製的、設定視窗的點擊層）；都不是回 nil。
+-- 方向鍵微調用：問「游標停在誰上」而不是幾何重疊，設定視窗蓋在條上時才不會動到後面那條
+function EM.KeyOfSelection(f)
+    if not f then return nil end
+    if wired[f] then return wired[f] end
+    for key, sel in pairs(EM.customSel) do
+        if sel == f then return key end
+    end
+    local CL = ns.ClickLayer
+    for key, l in pairs(CL and CL.layers or {}) do
+        if l == f then return key end
+    end
+    return nil
+end
+
 ------------------------------------------------------------
 -- 容器建好：覆蓋層、自製選取框、磁吸
 ------------------------------------------------------------

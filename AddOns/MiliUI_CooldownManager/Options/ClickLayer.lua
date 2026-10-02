@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 設定視窗開著時，畫面上每條容器蓋一層透明的點擊層：點了就切到那條的設定頁，
 -- 並讓點擊層閃一下職業色邊（0.3 秒）；**拖了就移動那條**（走編輯模式同一套 EM.BeginDrag／EndDrag，
--- 格線吸附與套組磁吸都在，Shift 按著不吸）。覆蓋層（條名、職業色邊）此時也由 EditMode 顯示。
+-- 放手時的套組磁吸在、格線吸附不在——這裡看不到格線，Shift 按著不吸；滑鼠停在上面按方向鍵微調）。覆蓋層（條名、職業色邊）此時也由 EditMode 顯示。
 --
 -- 規則
 --   * 自己的框（parent UIParent，錨在容器上），不是容器的子框，也不寫容器任何東西。
@@ -86,6 +86,7 @@ local function Ensure(key)
         GameTooltip:SetText(ns.Options.PageTitle(key) or ns.Options.BarTitle(key))
         GameTooltip:AddLine(L["Click to open this bar's settings."], 0.8, 0.8, 0.8)
         GameTooltip:AddLine(L["Drag to move. Hold Shift to disable snapping."], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(L["Hover a bar and press the arrow keys to nudge it by 1 (Shift: 10)."], 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
     l:SetScript("OnLeave", function(self)

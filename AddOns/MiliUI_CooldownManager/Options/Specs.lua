@@ -788,7 +788,13 @@ function Specs.Anchor(key, opts)
         list[#list + 1] = AS("numbers", nil, L["Offset"], { sub = "anchor", path = false, level = "structure",
             resetPaths = { "anchor.x", "anchor.y" }, fallback = 0,
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
+    else
+        -- 自己的位置：pos 的偏移（相對畫面上 pos.point 那一點；拖曳／方向鍵改的就是它）
+        list[#list + 1] = AS("numbers", nil, L["Position"], { sub = "pos", path = false, level = "structure",
+            resetPaths = { "pos" },
+            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
     end
+    list[#list + 1] = Note(L["Hover a bar and press the arrow keys to nudge it by 1 (Shift: 10)."])
     list[#list + 1] = Note(L["A bar that follows another moves with it. Dragging it in Edit Mode stops the following."])
     list[#list + 1] = Note(L["Elements that follow the same side of the same bar stack outward instead of overlapping."])
     return list

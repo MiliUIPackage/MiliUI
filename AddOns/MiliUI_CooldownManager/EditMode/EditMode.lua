@@ -24,8 +24,11 @@
 -- （Bars 的重排與 PinViewer 會跳過那條）。錨在別條上的條：拖曳一開始就脫離（anchor = false、
 -- 把現況換算成 pos 寫進去）。
 --
--- 吸附：讀暴雪的「吸附」開關與格線間距（Shift 反轉），只吸容器的錨點那一邊；
--- 放手時再走 MiliUISnap 跟套組其他框對齊（align，不貼附）。
+-- 吸附：讀暴雪的「吸附」開關與格線間距（Shift 反轉），只吸容器的錨點那一邊；只在暴雪編輯模式
+-- （格線看得到）。放手時再走 MiliUISnap 跟套組其他框對齊（align，不貼附）。
+--
+-- 方向鍵微調：滑鼠停在某條上（選取框或設定視窗的點擊層）按方向鍵移 1，Shift＋方向鍵移 10。
+-- 錨在別條上的條改的是錨定偏移（不脫離）。見下面「方向鍵微調」一節。
 --
 -- 進出訊號：三重（管理視窗 OnShow/OnHide、EnterEditMode/ExitEditMode 後掛勾、EventRegistry），
 -- 處理器只改旗標，工作一律 ns.Defer 到下一幀（離開暴雪的執行堆疊）；碰容器的動作走 ns.Write。
@@ -82,11 +85,12 @@ local function GridSpacing()
 end
 EM.GridSpacing = GridSpacing
 
--- Shift 按著一律不吸（格線與套組磁吸都不吸）；設定視窗開著（不在暴雪編輯模式）時一律吸，
--- 暴雪編輯模式裡照暴雪的「吸附」開關
+-- 格線吸附：只在暴雪編輯模式裡、照暴雪的「吸附」開關（Shift 按著反轉成不吸）。
+-- 只開設定視窗時畫面上**沒有格線**，照樣吸的話條會跳到看不見的線上——玩家回報「常常跑到
+-- 預想外的位置、很難跟別的 UI 對齊」（2026-10-02）。那裡只留放手時的套組磁吸（2px）。
 local function SnapEnabled()
     if IsShiftKeyDown() then return false end
-    if EM.optionsOpen and not EM.active then return true end
+    if not EM.active then return false end
     local mgr = EditModeManagerFrame
     if mgr and mgr.IsSnapEnabled then
         local ok, v = pcall(mgr.IsSnapEnabled, mgr)
@@ -191,6 +195,76 @@ function EM.DraggingKey()
 end
 
 ------------------------------------------------------------
+-- 方向鍵微調
+--
+-- 一顆自己的框吃鍵盤，**預設往下傳**（SetPropagateKeyboardInput(true)），只有「方向鍵、而且
+-- 游標停在某條的選取框／點擊層上」那一下改成不傳、自己吃掉。只在可以拖的時候顯示。
+-- ⚠ SetPropagateKeyboardInput 戰鬥中被封鎖：進戰鬥那一刻（鎖定還沒生效）同步 Hide 這顆框——
+--   上一下若是方向鍵，傳遞旗標停在 false，框還開著的話戰鬥中所有快捷鍵都會被吃掉。
+-- 1 單位＝UIParent 座標的 1（存檔本來就是整數；套用時再像素對齊）。Shift＋方向鍵＝10。
+------------------------------------------------------------
+local ARROWS = { UP = { 0, 1 }, DOWN = { 0, -1 }, LEFT = { -1, 0 }, RIGHT = { 1, 0 } }
+
+local function HoveredKey()
+    local foci = GetMouseFoci and GetMouseFoci()
+    local f = foci and foci[1]
+    local key = f and EM.KeyOfSelection(f)
+    if key and BarCfg(key) and ns.Bars.Get(key) then return key end
+    return nil
+end
+EM.HoveredKey = HoveredKey
+
+function EM.Nudge(key, dx, dy)
+    if dragState or InCombatLockdown() then return false end
+    local bar = BarCfg(key)
+    if not (bar and ns.Bars.Get(key)) then return false end
+    local t
+    if type(bar.anchor) == "table" then
+        t = bar.anchor                      -- 跟著別條：改錨定偏移，不脫離
+    else
+        if type(bar.pos) ~= "table" then
+            bar.pos = EM.ReadPos(key) or { point = "CENTER", x = 0, y = 0 }
+        end
+        t = bar.pos
+    end
+    t.x = (tonumber(t.x) or 0) + dx
+    t.y = (tonumber(t.y) or 0) + dy
+    if ns.Bars.ApplyStructure then ns.Bars.ApplyStructure(key) end
+    ns.Bars.Request(key, "structure")
+    EM.RefreshBar(key)
+    if ns.Fire then ns.Fire("BarMoved", key) end
+    return true
+end
+
+local keys = CreateFrame("Frame", nil, UIParent)
+keys:Hide()
+keys:EnableKeyboard(true)
+keys:SetPropagateKeyboardInput(true)
+EM.keyCatcher = keys
+keys:SetScript("OnKeyDown", function(self, k)
+    if InCombatLockdown() then return end
+    local dir = ARROWS[k]
+    local key = dir and HoveredKey()
+    if not key then
+        self:SetPropagateKeyboardInput(true)
+        return
+    end
+    self:SetPropagateKeyboardInput(false)
+    local step = IsShiftKeyDown() and 10 or 1
+    xpcall(EM.Nudge, ns.ReportError, key, dir[1] * step, dir[2] * step)
+end)
+
+-- 可以拖（編輯模式或設定視窗開著）而且不在戰鬥中才開
+function EM.UpdateKeyCatcher()
+    if EM.Editing() and not InCombatLockdown() then
+        keys:SetPropagateKeyboardInput(true)
+        keys:Show()
+    else
+        keys:Hide()
+    end
+end
+
+------------------------------------------------------------
 -- 全部刷新（下一幀）
 ------------------------------------------------------------
 local refreshArmed = false
@@ -205,6 +279,7 @@ local function RefreshAll()
         EM.RestoreDialog()               -- 設定對話框藏著的話還回去
     end
     for key in pairs(ns.Bars.Containers()) do EM.RefreshBar(key) end
+    EM.UpdateKeyCatcher()
     if ns.Visibility and ns.Visibility.ApplyAll then ns.Visibility.ApplyAll() end
 end
 
@@ -225,6 +300,7 @@ combatWatcher:RegisterEvent("PLAYER_REGEN_DISABLED")
 combatWatcher:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_REGEN_DISABLED" then
         if dragState then xpcall(EM.EndDrag, ns.ReportError, false) end
+        keys:Hide()
         if EM.Editing() then self:RegisterEvent("PLAYER_REGEN_ENABLED") end
     else
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")

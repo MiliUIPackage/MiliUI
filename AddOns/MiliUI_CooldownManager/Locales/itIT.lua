@@ -56,6 +56,8 @@ L["Cooldown Manager settings are in /mcdm, or click a bar to open its settings."
 -- 設定介面
 L["Click to open this bar's settings."] = "Clicca per aprire le impostazioni di questa barra."
 L["Drag to move. Hold Shift to disable snapping."] = "Trascina per spostare. Tieni premuto Maiusc per disattivare l'aggancio."
+L["Hover a bar and press the arrow keys to nudge it by 1 (Shift: 10)."] = "Passa il mouse su una barra e usa le frecce per spostarla di 1 (Maiusc: 10)."
+L["Position"] = "Posizione"
 L["Already in Blizzard's Cooldown Manager"] = "Già nel gestore dei tempi di recupero di Blizzard"
 L["Nothing else to move here."] = "Nient'altro da spostare qui."
 L["Add these in Blizzard's panel first"] = "Aggiungili prima nel pannello di Blizzard"
