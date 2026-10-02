@@ -570,6 +570,28 @@ check("auraGlowEnabled 沒有對應", HasSkip(R2, "buffGroups.spellOverrides.*.a
 local S2, R3 = Convert({ ungroupedBuffOverrides = SYN.ungroupedBuffOverrides }, { specID = 70, resolve = resolve70 })
 eq("別專精的增益覆寫 ⇒ pending", S2.pendingImport and S2.pendingImport[66] and S2.pendingImport[66].overrides[1].fields.gainSound, "Ping")
 eq("overridesPending", R3.counts.overridesPending, 1)
+-- 增益群組的逐法術發光（spellRegistry）⇒ 生效發光；光環格不收、邊框色沒有對應
+do
+    local S4, R4 = Convert({
+        customBuffRegistry = { [10060] = { kind = "aura", auraFilter = "HELPFUL" } },
+        ungroupedCustomBuffOrder = { [70] = { { spellID = 10060 } } },
+        spellRegistry = {
+            [70] = { glowEnabled = { [31884] = true, [10060] = true, [223819] = false },
+                     glowColors = { [31884] = { r = 1, g = 0, b = 0 } },
+                     colors = { [31884] = c(0, 1, 0) } },
+            [66] = { glowEnabled = { [642] = true } },
+        },
+    }, { specID = 70, resolve = resolve70 })
+    local o = S4.spells[70] and S4.spells[70].overrides[5001]
+    eq("生效發光 目前專精對到", o and o.activeGlow, true)
+    eqColor("生效發光 顏色（沒 alpha 補 1）", o and o.activeGlowColor, 1, 0, 0, 1)
+    eq("glowEnabled false 不收", S4.spells[70].overrides[5002], nil)
+    eq("別專精 ⇒ pending", S4.pendingImport and S4.pendingImport[66] and S4.pendingImport[66].overrides[1].fields.activeGlow, true)
+    eq("光環格不收", S4.spells[70].overrides["c:1"], nil)
+    check("光環格的發光記略過", HasSkip(R4, "spellRegistry.*.glowEnabled (aura slots)", "noEquivalent", "overrides"))
+    check("邊框色沒有對應", HasSkip(R4, "spellRegistry.*.colors", "noEquivalent", "overrides"))
+    check("spellRegistry 不再整張略過", not HasSkip(R4, "spellRegistry"))
+end
 
 -- 報告
 check("略過：外部防禦", HasSkip(R2, "externalsEnabled", "noEquivalent", "externals"))

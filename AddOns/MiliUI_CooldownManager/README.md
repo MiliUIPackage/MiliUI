@@ -306,6 +306,11 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **觸發發光**：後掛勾 `ActionButtonSpellAlertManager:ShowAlert／HideAlert`，frame 是我們認得的 item 就在 overlay
   上畫 MiliUIGlow（pixel／autocast／button／proc），暴雪的 `SpellActivationAlert` 熄 alpha（不 Hide）。
   條層「觸發發光」開著（或法術覆寫成開）才接管；都關時還給暴雪。自訂法術聽 `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE`。
+- **生效發光**（增益）：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）在光環生效期間一直亮。**只有逐法術開關**
+  （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），條層 `glow.active` 只有樣式與預設色。
+  生效看暴雪 item 的 `IsActive()`（後掛勾 `OnActiveStateChanged`）；讀不到一律不亮，「沒生效也顯示」的灰圖示不會亮。
+  覆寫分組自成 `activeGlow`：條頁「清除發光覆寫」不會清掉。從 Ayije 匯入 `spellRegistry[spec].glowEnabled／glowColors`。
+  自訂光環格（AuraContainer）不支援。
 - **就緒發光**：探針（見「與計畫不同」第 28 條）；亮 `glow.ready.duration` 秒（預設 3），期間技能用掉（進了新的冷卻，GCD 不算）就提早熄；回充中的多充能技能不提早熄（暴雪每次 GCD 都重設充能計時，分不出來）。
   「觸發」樣式在裝了 Masque 時改用 Masque 的方形循環圖（`Masque/Textures/Square/SpellAlert-Loop-Modern`，6×5、每格 84px，沒有入場動畫），
   沒裝就是暴雪的圓角圖集；只換貼圖，不碰 Masque、不讀它的設定。
@@ -1128,3 +1133,6 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      滿條上限設 200 時 150% 那段看得到。從 Ayije 匯入時 tier3／tier4 的開關、門檻、顏色都帶過來。
 139. 秘法靈魂「長條上的數字」選「剩幾個公共冷卻」：4 秒的增益在 1.5 秒 GCD 下印 3 → 2 → 「最後」；開嗜血（加速變了）後脫戰才換新的分段；
      `C_StringUtil.CreateNumericRuleFormatter` 與 `SetDurationText(fs, { textFormatter })` 吃這顆格式器（吃不下時退回秒數）。
+140. 生效發光：增益圖示列開著「沒生效時隱藏」與關著兩種情況都試——勾了的增益生效時亮、消失就熄，灰圖示不亮；
+     戰鬥中、首領戰、M+ 裡照樣跟著生效狀態開關（`IsActive` 讀得到）；換專精／增益搬進自訂群組後設定跟著走；
+     每個增益自訂的顏色生效；從 Ayije 匯入後原本勾了發光的增益自動打勾。

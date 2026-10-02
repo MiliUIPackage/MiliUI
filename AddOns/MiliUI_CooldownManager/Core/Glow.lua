@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 發光：觸發發光（接管暴雪的 SpellActivationAlert）、就緒發光、無損刷新邊框
+-- 發光：觸發發光（接管暴雪的 SpellActivationAlert）、就緒發光、生效發光、無損刷新邊框
 --
 --   ns.Glow.OwnsProc(barKey, id)                 這格的暴雪觸發發光要不要熄（我們畫）
 --   ns.Glow.Sync(owner, rec, barKey)             排版時叫：想要的發光狀態 ↔ 目前狀態對齊
@@ -55,6 +55,15 @@
 --     回充不算：暴雪每次 GCD 都會對回充中的格子重設一次充能計時，拿它當訊號會按任何招就熄。
 --   * 自訂法術：Custom 的更新裡同一組明文旗標；自訂物品：武裝新的明文冷卻那一刻。
 --
+-- ── 生效發光（增益）────────────────────────────────────────────────────
+-- 暴雪增益格（圖示列、長條、被搬進自訂群組的增益）在光環生效期間一直亮。**只有逐法術開關**
+-- （overrides[id].activeGlow，加上可選的 activeGlowColor），條層只給樣式與預設色，沒有統一開。
+-- 「生效」讀暴雪 item 自己的 IsActive()（欄位 isActive）：12.1.0.69933 的 CooldownViewer.lua 裡
+-- 它是暴雪拿光環 expirationTime 跟 GetTime() 用 Lua 比出來的布林，SetIsActive 寫完就叫
+-- OnActiveStateChanged ⇒ 後掛勾那支當訊號。讀不到（秘密／nil）一律當沒生效：暴雪的增益列設成
+-- 「沒生效也顯示」時灰圖示不能亮（fail-closed）。
+-- 自訂光環格（AuraContainer）不在範圍：按鈕是引擎的，發光要在 initializeFrame 裡建，另案。
+--
 -- ── 無損刷新 ────────────────────────────────────────────────────────────
 -- 後掛勾 item 的 ShowPandemicStateFrame／HidePandemicStateFrame（暴雪在 OnUpdate 裡每幀叫，
 -- 所以狀態沒變就立刻 return）：overlay 邊框換 pandemic.color，長條（pandemic.bars）條身也換；
@@ -93,15 +102,27 @@ function G.OwnsProc(barKey, id)
     return ns.SpellSetting(barKey, id, "procGlow") == true
 end
 
+local WANT_FIELD = { proc = "procGlow", ready = "readyGlow", active = "activeGlow" }
+
 local function Wanted(rec, barKey, which)
     if not barKey then return false end
-    local field = which == "proc" and "procGlow" or "readyGlow"
-    return ns.SpellSetting(barKey, rec.cooldownID, field) and true or false
+    return ns.SpellSetting(barKey, rec.cooldownID, WANT_FIELD[which]) and true or false
 end
 
 local function Cfg(barKey, which)
     local c = ns.Setting(barKey, "glow." .. which)
     return type(c) == "table" and c or {}
+end
+
+-- 生效發光：條層樣式＋逐法術顏色（有設才蓋）
+local function ActiveCfg(rec, barKey)
+    local c = Cfg(barKey, "active")
+    local col = ns.SpellSetting(barKey, rec.cooldownID, "activeGlowColor")
+    if type(col) ~= "table" then return c end
+    local t = {}
+    for k, v in pairs(c) do t[k] = v end
+    t.color = col
+    return t
 end
 
 local function ColorOf(c, dr, dg, db)
@@ -187,7 +208,10 @@ local function PaintOn(h, c, which, key, startAnim)
     if not (h and LCG) then return nil end
     local t = c.type
     if not STOP[t] then t = "pixel" end
-    local color = which == "proc" and ColorOf(c.color, 1, 0.85, 0) or ColorOf(c.color, 0.3, 1, 0.3)
+    local color
+    if which == "proc" then color = ColorOf(c.color, 1, 0.85, 0)
+    elseif which == "active" then color = ColorOf(c.color, 0.95, 0.95, 0.32)
+    else color = ColorOf(c.color, 0.3, 1, 0.3) end
     local lines = tonumber(c.lines) or 8
     local freq = tonumber(c.frequency) or 0.2
     local ok
@@ -226,12 +250,12 @@ local function CfgSig(c, w, h)
     }, "|")
 end
 
-local function Start(rec, which, barKey)
+local function Start(rec, which, barKey, c)
     if not LCG then return end
     if ns.released and not rec.custom then return end     -- 已還給暴雪（Bars.ReleaseAll）
     local h = Host(rec, which)
     if not h then return end
-    local c = Cfg(barKey, which)
+    c = c or Cfg(barKey, which)
     local sig = CfgSig(c, rec.glowW, rec.glowH)
     rec.glowOn = rec.glowOn or {}
     rec.glowSig = rec.glowSig or {}
@@ -264,10 +288,35 @@ function G.SyncProc(owner, rec, barKey)
     end
 end
 
+-- 生效發光：暴雪增益 item 才有；讀不到生效狀態＝沒生效
+local function ReadActive(item)
+    if not item then return false end
+    local fn = item.IsActive
+    if type(fn) == "function" then
+        local ok, v = pcall(fn, item)
+        if ok then
+            v = Plain(v)
+            if v ~= nil then return v == true end
+        end
+    end
+    return Plain(rawget(item, "isActive")) == true
+end
+
+function G.SyncActive(owner, rec, barKey)
+    barKey = barKey or rec.claimKey
+    local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
+    if aura and owner and not Hidden(rec) and Wanted(rec, barKey, "active") and ReadActive(owner) then
+        Start(rec, "active", barKey, ActiveCfg(rec, barKey))
+    else
+        Stop(rec, "active")
+    end
+end
+
 function G.Sync(owner, rec, barKey)
     if not rec then return end
     barKey = barKey or rec.claimKey
     G.SyncProc(owner, rec, barKey)
+    G.SyncActive(owner, rec, barKey)
     -- 就緒發光亮著的時候設定變了：照新樣式重畫；被關掉了就熄
     if rec.glowOn and rec.glowOn.ready then
         if Hidden(rec) or not Wanted(rec, barKey, "ready") then
@@ -301,6 +350,7 @@ function G.OnParked(rec)
     if not rec then return end
     Stop(rec, "proc")
     Stop(rec, "ready")
+    Stop(rec, "active")
 end
 
 ------------------------------------------------------------
@@ -544,10 +594,19 @@ local function OnHidePandemic(item)
     G.ApplyPandemic(item, rec)
 end
 
+local function OnActiveStateChanged(item)
+    local rec = ns.Viewers.frames[item]
+    if not rec then return end
+    G.SyncActive(item, rec)
+end
+
 -- Decorate.HookItem 叫（每框一次）
 function G.HookItem(item, rec)
     if rec.glowHooked then return end
     rec.glowHooked = true
+    if item.OnActiveStateChanged then
+        hooksecurefunc(item, "OnActiveStateChanged", ns.Guard(OnActiveStateChanged))
+    end
     if item.ShowPandemicStateFrame then
         hooksecurefunc(item, "ShowPandemicStateFrame", ns.Guard(OnShowPandemic))
     end
@@ -560,8 +619,9 @@ end
 -- 除錯
 ------------------------------------------------------------
 function G.Counts()
-    local proc, ready, pandemic = 0, 0, 0
+    local proc, ready, pandemic, active = 0, 0, 0, 0
     local function Count(rec)
+        if rec.glowOn and rec.glowOn.active then active = active + 1 end
         if rec.glowOn and rec.glowOn.proc then proc = proc + 1 end
         if rec.glowOn and rec.glowOn.ready then ready = ready + 1 end
         if rec.pandemicShown then pandemic = pandemic + 1 end
@@ -570,7 +630,7 @@ function G.Counts()
     if ns.Custom and ns.Custom.Records then
         for _, rec in pairs(ns.Custom.Records()) do Count(rec) end
     end
-    return proc, ready, pandemic
+    return proc, ready, pandemic, active
 end
 
 ------------------------------------------------------------

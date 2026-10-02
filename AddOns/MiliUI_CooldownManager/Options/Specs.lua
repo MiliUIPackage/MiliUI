@@ -445,8 +445,16 @@ function Specs.Themed(mode, key)
         TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
         TS("glow", "color", "glow.ready.color", L["Color"]),
         GlowSampleRow("ready"),
-        TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }),
-        Nested(L["Pandemic"], "glow"),
+        TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
+    -- 生效發光：只有增益會用到（主題頁、增益兩條、自訂群組——增益可以搬進去）。沒有「啟用」：逐法術開
+    if not bar or not key or not ns.DB.IsBuiltinBar(key) or ns.Viewers.AURA_KIND[key] then
+        add(Nested(L["Active glow"], "glow"),
+            Note(L["Glows for as long as the buff is active. Turn it on per buff: click its icon in the bar preview."], "glow"),
+            TS("glow", "dropdown", "glow.active.type", L["Style"], { items = GLOW_ITEMS }),
+            TS("glow", "color", "glow.active.color", L["Default color"]),
+            GlowSampleRow("active"))
+    end
+    add(Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
         TS("glow", "color", "pandemic.color", L["Pandemic border color"]),

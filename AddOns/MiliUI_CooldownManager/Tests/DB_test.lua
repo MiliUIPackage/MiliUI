@@ -203,6 +203,9 @@ eq("沒覆寫 → 觸發發光開", SS("essential", 1234, "procGlow"), true)
 eq("沒覆寫 → 就緒發光關", SS("essential", 1234, "readyGlow"), false)
 eq("沒覆寫 → 固定預設", SS("essential", 1234, "hideCooldownText"), false)
 eq("未知欄位", SS("essential", 1234, "nope"), nil)
+eq("生效發光沒有條層值 ⇒ 關", SS("buffs", 1234, "activeGlow"), false)
+eq("生效發光顏色沒設 ⇒ nil（用條層預設色）", SS("buffs", 1234, "activeGlowColor"), nil)
+check("生效發光的預設樣式在主題裡", type(P.theme.glow.active) == "table" and P.theme.glow.active.enabled == nil)
 
 P.spells[ns.specID] = { overrides = { [1234] = { procGlow = false, borderColor = { r = 1, g = 0, b = 0, a = 1 } },
                                         ["c:1"] = { hideStackText = true } } }

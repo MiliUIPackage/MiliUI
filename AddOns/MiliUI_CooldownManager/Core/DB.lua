@@ -348,6 +348,9 @@ function DB.BuildDefaults()
                     -- duration：冷卻轉好之後亮幾秒
                     ready = { enabled = false, type = "button", color = rgba(0.3, 1, 0.3, 1),
                               lines = 8, thickness = 2, frequency = 0.2, duration = 3 },
+                    -- 生效發光（增益）：沒有條層開關，逐法術 overrides[id].activeGlow 才亮；這裡只給樣式與預設色
+                    active = { type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
+                               lines = 8, thickness = 2, frequency = 0.2 },
                 },
                 -- 淡出後的透明度；false ＝ 這個條件不淡
                 -- 淡出：一個透明度；「不淡出的時機」任一成立就維持完整顯示（跟顯示條件的「時機 OR」同一套語彙）；
@@ -804,6 +807,8 @@ local SPELL_FALLBACK = {
 local SPELL_CONST = {
     hideCooldownText = false,
     hideStackText    = false,
+    -- 生效發光（增益）：只有逐法術；顏色沒設（nil）＝條層的 glow.active.color
+    activeGlow       = false,
     -- 音效：LibSharedMedia 的音效名；沒設（nil）或 false ＝ 無
     readySound       = false,
     gainSound        = false,
@@ -1052,6 +1057,8 @@ end
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon",
     procGlow = "glow", readyGlow = "glow",
+    -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
+    activeGlow = "activeGlow", activeGlowColor = "activeGlow",
     hideCooldownText = "text", hideStackText = "text",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉

@@ -229,6 +229,35 @@ local function Build()
         RightClickClears(tr, th, t.field)
     end
 
+    -- 生效發光：只有暴雪的增益（kind == nil 且增益類）。勾選框＋顏色（沒挑過＝條層預設色）；
+    -- 右鍵整列兩個都清掉
+    local ar, ah = NewRow(L["Glow while active"], function(kind, class) return kind == nil and class == "aura" end)
+    local acb = W.CreateCheckButton(ar, nil, function(on)
+        if not cur then return end
+        ns.DB.SetOverride(cur.id, "activeGlow", on and true or nil)
+        Changed()
+    end)
+    acb:SetPoint("LEFT", ar, "LEFT", CTRL_X, 0)
+    local aswatch = W.CreateColorPicker(ar, nil, true, function(rr, g, b, a)
+        if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
+        ns.DB.SetOverride(cur.id, "activeGlowColor", { r = rr, g = g, b = b, a = a })
+        Changed()
+    end)
+    aswatch:SetPoint("LEFT", acb, "RIGHT", 10, 0)
+    frame.activeCB, frame.activeSwatch = acb, aswatch
+    local ahit = CreateFrame("Frame", nil, ar)
+    ahit:SetPoint("TOPLEFT", ar, "TOPLEFT", 0, 0)
+    ahit:SetPoint("BOTTOMLEFT", ar, "BOTTOMLEFT", 0, 0)
+    ahit:SetWidth(LABEL_W)
+    ahit:EnableMouse(true)
+    ahit:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" and cur then
+            ns.DB.SetOverride(cur.id, "activeGlow", nil)
+            ns.DB.SetOverride(cur.id, "activeGlowColor", nil)
+            Changed()
+        end
+    end)
+
     -- 音效：下拉＋試聽（右鍵整列清掉＝無）
     for _, t in ipairs(SOUNDS) do
         local cls = t.class
@@ -441,6 +470,13 @@ function Pop.Refresh()
             r.note:SetText(L["(follows the bar)"])
         end
     end
+    local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false
+    frame.activeCB:SetChecked(activeOn)
+    local ac = ns.SpellSetting(key, id, "activeGlowColor")
+    if type(ac) ~= "table" then ac = ns.Setting(key, "glow.active.color") end
+    frame.activeSwatch:SetColor(type(ac) == "table" and ac or { r = 0.95, g = 0.95, b = 0.32, a = 1 })
+    frame.activeSwatch:SetEnabled(activeOn)
+    frame.activeSwatch:SetAlpha(activeOn and 1 or 0.4)
     local items = SoundItems()
     for _, r in ipairs(sounds) do
         r.dd:SetItems(items)
