@@ -1101,6 +1101,15 @@ function R.Width(cfg)
 end
 
 local function RowHeight(cfg) return tonumber(type(cfg) == "table" and cfg.rowHeight) or 8 end
+
+-- 背景（空的那截）的材質路徑：沒挑或「跟填充相同」就用填充那張（自訂格子也走這支）
+function R.BgTexture(cfg)
+    local v = type(cfg) == "table" and cfg.bgTexture
+    if type(v) ~= "string" or v == "" or v == ns.Media.INHERIT then
+        return ns.Media.Texture(type(cfg) == "table" and cfg.texture or nil)
+    end
+    return ns.Media.Texture(v)
+end
 R.RowHeight = RowHeight
 
 -- 一列自己的高度：征戰聖擊有自己的（細條），其他列照 rowHeight
@@ -1143,7 +1152,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     local gap = ns.P.Scale(tonumber(cfg.segmentSpacing) or 1)
     local geom = {
         W = W, H = H, n = numSeg, gap = gap, segW = (W - gap * (numSeg - 1)) / numSeg, reversed = reversed,
-        segments = true, dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1),
+        segments = true, dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
     }
     local cc = ResolveColor(cfg, key, "color")
     local status = ns.AuraBar.Apply(row.ab, {
@@ -1219,7 +1228,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     -- 空條（暗底＋1px 黑邊）畫在列上：光環不在時按鈕藏著，看到的就是這個
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
-        dim = R.TimerBack(cfg, key, cc), px = ns.P.Scale(1),
+        dim = R.TimerBack(cfg, key, cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
@@ -1254,7 +1263,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
     -- 空條（暗底＋1px 黑邊、不分格）畫在列上：增益不在時按鈕藏著，看到的就是這個
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
-        dim = R.TimerDim(cc), px = ns.P.Scale(1),
+        dim = R.TimerDim(cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
@@ -1346,7 +1355,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
         if not isBar then return end
         row.bar:SetStatusBarTexture(tex)
         row.bar:SetReverseFill(reversed)
-        row.barBG:SetTexture(tex)
+        row.barBG:SetTexture(R.BgTexture(cfg))
         if mode == "mirror" then
             R.PaintMirror(row, key, cfg, reversed)
             return
@@ -1379,6 +1388,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
 
     -- 格寬是除出來的小數 → 對齊實體像素；每格直接錨在列上（不串在前一格）
     local isRune = def.fill == "rune" and cfg.showText and R.RuneText(cfg) == "countdown"
+    local bgTex = R.BgTexture(cfg)
     for i = 1, numSeg do
         local seg = row.segs[i]
         local x, segW = R.SegCell(W, numSeg, cfg.segmentSpacing, i)
@@ -1391,7 +1401,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
             seg:SetPoint("TOPLEFT", row, "TOPLEFT", x, 0)
         end
         seg:SetStatusBarTexture(tex)
-        seg.bg:SetTexture(tex)
+        seg.bg:SetTexture(bgTex)
         seg:SetMinMaxValues(i - 1, i)
         LayoutRuneTimer(seg, isRune, cfg)
         seg:Show()

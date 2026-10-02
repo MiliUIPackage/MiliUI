@@ -362,7 +362,7 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
     local n = plan.numSeg
     local geom = {
         W = W, H = H, n = n, gap = gap, segW = (W - gap * (n - 1)) / n, reversed = reversed, segments = true,
-        dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1),
+        dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1), bgTex = ns.Resources.BgTexture(style),
     }
     local inside = plan.showWhen == "active"
     local status = ns.AuraBar.Apply(row.ab, {
@@ -427,7 +427,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
         end
         -- 層級每次重排都重設：父層的 strata／level 可能被結構套用改過
         local lv = cell:GetFrameLevel()
-        cell.bg:SetTexture(tex)
+        cell.bg:SetTexture(ns.Resources.BgTexture(style))
         cell.bg:SetVertexColor(DIM.r, DIM.g, DIM.b, DIM.a)
         cell.gate:SetFrameLevel(lv + 1)
         cell.clip:SetFrameLevel(lv + 1)

@@ -1306,5 +1306,15 @@ do
     ns.Viewers, env.C_CooldownViewer, env.GetTime = saveV, saveCV, saveGT
 end
 
+-- 背景材質：沒挑／跟填充相同 → 填充那張；挑了 → 那張
+do
+    local saveMedia = ns.Media
+    ns.Media = { INHERIT = "INHERIT", Texture = function(t) return "TEX:" .. tostring(t) end }
+    eq("背景沒挑 → 跟填充", R.BgTexture({ texture = "a" }), "TEX:a")
+    eq("背景跟填充相同 → 跟填充", R.BgTexture({ texture = "a", bgTexture = "INHERIT" }), "TEX:a")
+    eq("背景挑了 → 那張", R.BgTexture({ texture = "a", bgTexture = "b" }), "TEX:b")
+    eq("資源條預設：背景跟填充", ns.DB.BuildDefaults().profile.resources.bgTexture, "INHERIT")
+    ns.Media = saveMedia
+end
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
