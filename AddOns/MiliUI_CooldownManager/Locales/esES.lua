@@ -52,7 +52,7 @@ L["Cancel"] = "Cancelar"
 L["Can't change settings during combat"] = "No se pueden cambiar los ajustes en combate"
 -- 編輯模式
 L["Dragging stops it following %s"] = "Al arrastrarla deja de seguir a %s"
-L["Cooldown Manager settings are in /mcdm."] = "Los ajustes del gestor de reutilizaciones están en /mcdm."
+L["Cooldown Manager settings are in /mcdm, or click a bar to open its settings."] = "Los ajustes del gestor de reutilizaciones están en /mcdm, o haz clic en una barra para abrir sus ajustes."
 -- 設定介面
 L["Click to open this bar's settings."] = "Haz clic para abrir los ajustes de esta barra."
 L["Drag to move. Hold Shift to disable snapping."] = "Arrastra para mover. Mantén Mayús para desactivar el ajuste."

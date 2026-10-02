@@ -375,7 +375,7 @@ function Options.Open(pageId)
     Options.ShowPage(pageId or (w and w.lastBar) or "essential")
 end
 
--- 從畫面上的點擊層直接跳到某條的頁面（自訂群組也要開得到）
+-- 從編輯模式點一下藍框、畫面上的點擊層直接跳到某條的頁面（自訂群組也要開得到）
 function Options.FocusBar(key)
     Options.SyncBarPages()
     key = Options.HostPage(key)

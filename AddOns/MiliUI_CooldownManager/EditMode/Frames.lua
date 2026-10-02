@@ -15,8 +15,8 @@
 --     ⚠ 不呼叫它的 ShowHighlighted／Hide —— 那些方法會寫它的欄位（textureShown、isSelected），
 --       暴雪框上的欄位一個都不寫。顯示與否交給暴雪。
 --   * 自訂條（以及暴雪那個沒顯示時的四條檢視器）用我們自己借模板建的選取框：
---     開檔就建、pcall ＋ 自畫藍框備援、OnMouseDown no-op、sel.system stub。
---     兩種選取框共用同一套拖曳（EM.BeginDrag／EM.EndDrag）。
+--     開檔就建、pcall ＋ 自畫藍框備援、OnMouseDown 換掉（不跑 SelectSystem）、sel.system stub。
+--     兩種選取框共用同一套拖曳（EM.BeginDrag／EM.EndDrag），點一下（沒拖）開那條的設定頁。
 --
 -- 平常空的條（沒 buff）容器可能只有 1×1：覆蓋層至少一格大（layout.size），選取框貼覆蓋層，
 -- 空條也點得到、拖得動。樣板內容（假圖示）留給之後的預覽階段。
@@ -155,6 +155,32 @@ local function UpdateTexts(key, bar)
 end
 
 ------------------------------------------------------------
+-- 點一下（沒拖）＝開這條的設定頁
+--
+-- 按下記一筆、開始拖就劃掉，放開時還在就是點擊。開視窗延一幀：暴雪 Selection 那邊是
+-- 後掛勾，跑在它的滑鼠腳本裡，不在那一次執行裡做事。
+------------------------------------------------------------
+local pressed = {}
+
+local function OnPress(key, button)
+    pressed[key] = (button == "LeftButton") or nil
+end
+
+local function OnRelease(self, key, button)
+    local was = pressed[key]
+    pressed[key] = nil
+    if not (was and button == "LeftButton" and self:IsMouseOver()) then return end
+    ns.Defer(function()
+        if ns.Options and ns.Options.FocusBar then ns.Options.FocusBar(key) end
+    end)
+end
+
+local function OnDragBegin(key)
+    pressed[key] = nil
+    EM.BeginDrag(key)
+end
+
+------------------------------------------------------------
 -- 自製選取框（自訂條；暴雪那個沒顯示時四條檢視器也用它）
 ------------------------------------------------------------
 local function BuildSelection(key, c, ov)
@@ -163,7 +189,7 @@ local function BuildSelection(key, c, ov)
         -- ⚠⚠ 模板的 XML 綁了 OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)。
         --   我們不是真的編輯模式系統，讓它跑下去＝暴雪讀我們寫的 self.parent，整條選取流程
         --   帶著本插件的 taint 掃過每一個已註冊系統（快捷列也在內），當下不報錯、戰鬥中才爆。
-        sel:SetScript("OnMouseDown", function() end)
+        sel:SetScript("OnMouseDown", function(_, button) OnPress(key, button) end)
         -- 標籤與滑鼠提示走 self.system:GetSystemName()
         sel.system = { GetSystemName = function() return EM.BarLabel(key) end }
     else
@@ -177,11 +203,15 @@ local function BuildSelection(key, c, ov)
         sel.ShowHighlighted = sel.Show
         sel.isFallback = true
     end
+    if sel.isFallback then
+        sel:SetScript("OnMouseDown", function(_, button) OnPress(key, button) end)
+    end
     sel:SetAllPoints(ov)
     sel:Hide()
     sel:RegisterForDrag("LeftButton")
-    sel:SetScript("OnDragStart", function() EM.BeginDrag(key) end)
+    sel:SetScript("OnDragStart", function() OnDragBegin(key) end)
     sel:SetScript("OnDragStop", function() EM.EndDrag(true) end)
+    sel:SetScript("OnMouseUp", function(self, button) OnRelease(self, key, button) end)
     return sel
 end
 
@@ -200,8 +230,11 @@ function EM.WireViewer(key)
     if type(sel) ~= "table" or type(sel.SetScript) ~= "function" then return nil end
     if wired[sel] ~= key then
         wired[sel] = key
-        sel:SetScript("OnDragStart", function() EM.BeginDrag(key) end)
+        sel:SetScript("OnDragStart", function() OnDragBegin(key) end)
         sel:SetScript("OnDragStop", function() EM.EndDrag(true) end)
+        -- 點一下開設定頁：後掛勾，暴雪自己的 OnMouseDown（SelectSystem）照跑
+        sel:HookScript("OnMouseDown", function(_, button) OnPress(key, button) end)
+        sel:HookScript("OnMouseUp", function(self, button) OnRelease(self, key, button) end)
     end
     return sel
 end
