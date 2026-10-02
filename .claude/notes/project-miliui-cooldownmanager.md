@@ -131,3 +131,19 @@ fork 的本地修改每次上游更新都要重套。
 Masque 群組 `Group("MiliUI Cooldown Manager", L["Icons"], "Icons")`——**插件名與 StaticID 不能在地化**（那是群組 ID）。
 AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框照畫）；無損刷新在 Masque 模式只在窗口內亮我們的邊框。
 這是「暴雪框零欄位」的第二個例外（Masque 自己寫 _MSQ_*）。待驗證 README 121–128。Plan：`~/.claude/plans/miliui-cdm-masque.md`。
+
+**2026-10-03 對照 EllesmereUI／Ayije 後補的五組功能（全部未實機驗證，README 待實機驗證 152～189 條）**：plan 在
+`~/.claude/plans/miliui-cdm-eui-features.md`，五個 Opus 子代理各一階段、同一個 worktree 依序做，逐階段驗收後 commit＋merge。
+- P1 冷卻狀態效果（`icon.cdState`：dim／hideOnCD／hideReady，逐法術可覆寫）：**item 的 alpha 唯一出口 `Decorate.ApplyItemAlpha`**
+  （條的淡出 × 冷卻狀態；明文走 GetSpellCooldown 的 isActive／isOnGCD，秘密走 duration:IsZero → SetAlphaFromBoolean）。
+  附帶 `Core/SpellIndex.lua`（spellID → 格子）＋ SPELL_UPDATE_COOLDOWN 帶明文 ID 時精準重算（讀不懂就全掃）。
+- P2 戰鬥助手（暴雪字串「戰鬥助手」「輔助醒目標示」）：`Core/Assist.lua` **自己 0.1 秒輪詢 `C_AssistedCombat.GetNextCastSpell(false)`**
+  （只在戰鬥中或目標可攻擊時），不依賴 CVar；第四種發光 "assist"；面板 `assistIcon`（PANEL_ORDER 最後）。兩者預設關。
+  ⚠ 沒開 CVar 時 API 有沒有值是最關鍵的待驗證項。
+- P3 常用預設 `Core/Presets.lua`（種族／防禦技能／藥水與治療石／團隊增益；ID 兩來源對過，Ayije 的 1287685 是錯的）；
+  自訂物品可帶 `alts`（挑包包裡有的）、光環格可帶 `spellIDs`（嗜血用多 ID 讓引擎畫真實增益）；`DB.CopyCustomEntry` 複製到其他專精。
+- P4 層數門檻 `Core/StackGate.lua`：秘密層數走「閘 StatusBar(N-1,N)＋裁切框錨在閘填充貼圖」；長條換色那層畫在**條身底下**
+  （暴雪填充調透明），無損刷新色會蓋過它。層數來源 item:GetAuraDataCached().applications（原樣餵）。
+- P5：自訂法術距離／可用上色（照暴雪常數）、逐法術 `customIcon`（Icon:SetTexture 後掛勾蓋回）、群組跟著游標 `Core/Cursor.lua`
+  （只有無光環格、不可點擊的自訂圖示群組）、語音播報 `readySpeak／gainSpeak／loseSpeak`（C_VoiceChat.SpeakText）、長條火花 `bar.spark`。
+- 語系稽核基準「共 9 個問題」＝原本就有的 5 條多餘條目，不要刪。
