@@ -1953,12 +1953,58 @@ function R.SetMirrorDriver(list, count, cfg)
     mirrorRows, mirrorCount = list, count
     if any and not mirrorDriver then mirrorDriver = CreateFrame("Frame") end
     if mirrorDriver then mirrorDriver:SetScript("OnUpdate", any and MirrorTick or nil) end
+    if any and R.ScheduleTrackedCheck then R.ScheduleTrackedCheck() end
     local hides = any and not (type(cfg) == "table" and cfg.crusadingHideBar == false)
     if hides ~= mirrorHides then
         mirrorHides = hides
         -- 那條可能被拉進自訂群組，整套重取清單
         if ns.Bars and ns.Bars.RequestAll then ns.Bars.RequestAll("membership") end
     end
+end
+
+-- 征戰聖擊在不在暴雪「追蹤的量條」裡（＝我們目錄的 buffbars 清單：那就是玩家在暴雪面板的選擇）
+-- → "yes" | "no" | "unknown"（目錄還沒建好；戰鬥中身分讀不到又沒記過）
+function R.CrusadingTracked()
+    local C = ns.Catalog
+    if not (C and C.sig ~= nil and type(C.lists) == "table") then return "unknown" end
+    for _, id in ipairs(C.lists.buffbars or {}) do
+        if MirrorMatches(id) then return "yes" end
+    end
+    if InCombatLockdown() then return "unknown" end
+    return "no"
+end
+
+-- 有征戰聖擊列、卻沒有來源 ⇒ 聊天框提示一次（玩家不一定會打開設定頁，條就默默空著）。
+-- 進場／換專精那幾秒暴雪的清單不完整（README「進場、換專精」），所以等 5 秒、脫戰再看；
+-- 同一段「沒有」只講一次，放進去之後又拿掉才會再講
+local warnPending, warnedMissing = false, false
+local function CheckTracked()
+    warnPending = false
+    if not (mirrorCount > 0 and mirrorRows) then return end
+    local any = false
+    for i = 1, mirrorCount do
+        if mirrorRows[i] and mirrorRows[i].mode == "mirror" then any = true break end
+    end
+    if not any then return end
+    if InCombatLockdown() then
+        ns.Events.Register("PLAYER_REGEN_ENABLED", "resources_cstrack", function()
+            ns.Events.Unregister("PLAYER_REGEN_ENABLED", "resources_cstrack")
+            CheckTracked()
+        end)
+        return
+    end
+    local st = R.CrusadingTracked()
+    if st == "yes" then
+        warnedMissing = false
+    elseif st == "no" and not warnedMissing then
+        warnedMissing = true
+        ns.Print(L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."])
+    end
+end
+function R.ScheduleTrackedCheck()
+    if warnPending then return end
+    warnPending = true
+    C_Timer.After(5, CheckTracked)
 end
 
 function R.MirrorStatus()
@@ -2442,6 +2488,8 @@ function R.Init()
     end)
     ns.RegisterCallback("ProfileChanged", "resources", function() Mark(true) end)
     ns.RegisterCallback("SpecChanged", "resources", function() Mark(true) end)
+    -- 玩家在暴雪面板把征戰聖擊放進／拿出追蹤的量條
+    ns.RegisterCallback("CatalogChanged", "resources_cstrack", function() R.ScheduleTrackedCheck() end)
     -- 職業色晚到（自訂職業色表）：血量列的底色與門檻曲線的最後一個點要重組
     ns.RegisterCallback("AccentChanged", "resources", function() Mark(true) end)
     R.Reevaluate()

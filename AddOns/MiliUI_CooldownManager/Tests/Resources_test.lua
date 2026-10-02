@@ -1275,6 +1275,9 @@ do
     R.MirrorRow(row)
     check("沒亮＋剩餘時間：0", got.v == 0)
     -- 有 mirror 列 → 增益長條上那條拿掉；選項關掉就不拿
+    local saveTimer = env.C_Timer
+    local timers = 0
+    env.C_Timer = { After = function() timers = timers + 1 end }
     local called = 0
     ns.Bars = ns.Bars or {}
     local saveRA = ns.Bars.RequestAll
@@ -1287,8 +1290,19 @@ do
     R.SetMirrorDriver({}, 0, {})
     check("沒有 mirror 列：不拿、沒變就不重排", not R.HidesTrackedBar(148597) and called == 2)
     ns.Bars.RequestAll = saveRA
+    check("有 mirror 列 → 排一次「在不在追蹤量條」的檢查（合併）", timers == 1)
+    env.C_Timer = saveTimer
     recs[item].cooldownID = 777       -- 池子把框發給別人
     eq("換人了就放掉", R.MirrorSource(), nil)
+    -- 在不在暴雪的追蹤量條（目錄的 buffbars 清單）
+    local saveC = ns.Catalog
+    ns.Catalog = { sig = nil, lists = {} }
+    eq("目錄還沒建好 → unknown", R.CrusadingTracked(), "unknown")
+    ns.Catalog = { sig = "x", lists = { buffbars = { 555 } } }
+    eq("清單裡沒有 → no", R.CrusadingTracked(), "no")
+    ns.Catalog = { sig = "x", lists = { buffbars = { 555, 148597 } } }
+    eq("清單裡有 → yes", R.CrusadingTracked(), "yes")
+    ns.Catalog = saveC
     ns.Viewers, env.C_CooldownViewer, env.GetTime = saveV, saveCV, saveGT
 end
 

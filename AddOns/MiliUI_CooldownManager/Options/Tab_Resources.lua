@@ -931,6 +931,10 @@ local function Controls(cand, sub)
                 add(BS("slider", "crusadingHeight", L["Row height"], { min = 1, max = 30, step = 1 }))
                 add(BS("dropdown", "crusadingFill", L["Bar fills with"], { items = CRUSADING_FILL_ITEMS }))
                 add(BS("toggle", "crusadingHideBar", L["Hide Crusading Strikes on the buff bars"]))
+                -- 沒在暴雪的追蹤量條裡 ⇒ 這一列沒有來源、一直空著：紅字講清楚（戰鬥中查不到就不講，不猜）
+                if R.CrusadingTracked() == "no" then
+                    add(Note("|cffff5555" .. L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] .. "|r"))
+                end
                 add(Note(L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."]))
             elseif key == "Ironfur" then
                 add(Note(L["One segment per active application, each draining with its own remaining time."]))

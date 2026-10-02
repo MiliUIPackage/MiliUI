@@ -569,3 +569,6 @@ L["Time until the next swing (shrinks)"] = "다음 공격까지 남은 시간 (�
 L["Bar fills with"] = "바 채우기 기준"
 L["Hide Crusading Strikes on the buff bars"] = "강화 효과 바에서 성전사의 일격 숨기기"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "이 줄은 블리자드의 성전사의 일격 바를 그대로 따라 그리므로, 성전사의 일격은 블리자드 재사용 대기시간 관리자의 추적 바 줄에 남아 있어야 합니다. 위 옵션을 켜면 이 줄이 표시되는 동안 강화 효과 바에서 그 바를 빼며, 보이지 않는 곳에서 계속 갱신됩니다. 이 줄은 높이를 따로 가지며, 숫자를 표시하지 않고 조건 규칙도 적용되지 않습니다."
+
+L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "성전사의 일격이 블리자드 재사용 대기시간 관리자의 추적 바 줄에 없어서, 자원 바의 성전사의 일격 줄이 계속 비어 있습니다. 그곳에 추가하세요 (편집 모드 → 재사용 대기시간 관리자 → 추적 바)."
+L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "성전사의 일격이 블리자드 재사용 대기시간 관리자의 추적 바 줄에 없어서, 이 줄이 계속 비어 있습니다. 그곳에 추가하세요 (편집 모드 → 재사용 대기시간 관리자 → 추적 바)."
