@@ -305,7 +305,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   上畫 MiliUIGlow（pixel／autocast／button／proc），暴雪的 `SpellActivationAlert` 熄 alpha（不 Hide）。
   條層「觸發發光」開著（或法術覆寫成開）才接管；都關時還給暴雪。自訂法術聽 `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE`。
 - **生效發光**（增益）：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）在光環生效期間一直亮。**只有逐法術開關**
-  （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），條層 `glow.active` 只有樣式與預設色。
+  （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），**沒有統一設定**（2026-10-02 使用者拿掉主題頁／條頁那一節）：樣式固定用 `glow.active` 的預設（像素），沒挑顏色時用它的預設色。
   生效看暴雪 item 的 `IsActive()`（後掛勾 `OnActiveStateChanged`）；讀不到一律不亮，「沒生效也顯示」的灰圖示不會亮。
   覆寫分組自成 `activeGlow`：條頁「清除發光覆寫」不會清掉。從 Ayije 匯入 `spellRegistry[spec].glowEnabled／glowColors`。
   自訂光環格吃同一個開關：發光在 `initializeFrame` 裡用 MiliUIGlow 的 Attach 系列建在引擎按鈕底下（按鈕只在光環存在時顯示），
