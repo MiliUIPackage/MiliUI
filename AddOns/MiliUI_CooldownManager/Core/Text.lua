@@ -208,7 +208,7 @@ function T.ApplyIcon(item, style, spell)
         local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
         local c = style.cooldownText or {}
         if fs then
-            SetFont(fs, c.size or 16, outline, font)
+            SetFont(fs, c.size or 16, outline, ns.Media.ElementFont(c.font, font))
             fs:SetTextColor(Color(c.color))
             Anchor(fs, item, c.point or "CENTER", c.x, c.y)
         end
@@ -226,7 +226,7 @@ function T.ApplyIcon(item, style, spell)
     local charge = item.ChargeCount and item.ChargeCount.Current
     if charge then
         local c = style.chargeText or {}
-        SetFont(charge, c.size or 12, outline, font)
+        SetFont(charge, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         charge:SetTextColor(Color(c.color))
         Anchor(charge, item, c.point or "BOTTOMRIGHT", c.x, c.y)
     end
@@ -235,7 +235,7 @@ function T.ApplyIcon(item, style, spell)
     local stack = item.Applications and item.Applications.Applications
     if stack then
         local c = style.stackText or {}
-        SetFont(stack, c.size or 12, outline, font)
+        SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         Anchor(stack, item, c.point or "TOP", c.x, c.y)
         stack:SetAlpha(spell.hideStackText and 0 or 1)
@@ -252,7 +252,7 @@ function T.ApplyBar(item, style, spell, bar)
     if b then
         local name = b.Name
         if name then
-            SetFont(name, bar.nameSize or 12, outline, font)
+            SetFont(name, bar.nameSize or 12, outline, ns.Media.ElementFont(bar.nameFont, font))
             name:SetTextColor(1, 1, 1, 1)
             local s = PixelScale()
             name:ClearAllPoints()
@@ -263,7 +263,7 @@ function T.ApplyBar(item, style, spell, bar)
         end
         local dur = b.Duration
         if dur then
-            SetFont(dur, bar.timeSize or 12, outline, font)
+            SetFont(dur, bar.timeSize or 12, outline, ns.Media.ElementFont(bar.timeFont, font))
             dur:SetTextColor(1, 1, 1, 1)
             Anchor(dur, b, "RIGHT", -4, 0)
             dur:SetAlpha((bar.showTime and not spell.hideCooldownText) and 1 or 0)
@@ -273,7 +273,7 @@ function T.ApplyBar(item, style, spell, bar)
     local stack = icon and icon.Applications
     if stack then
         local c = style.stackText or {}
-        SetFont(stack, bar.stackSize or c.size or 12, outline, font)
+        SetFont(stack, bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         Anchor(stack, icon, "BOTTOMRIGHT", -1, 1)
         stack:SetAlpha((bar.showStacks and not spell.hideStackText) and 1 or 0)
@@ -292,7 +292,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
     local cdText = cell.cdText
     if cdText then
         local c = style.cooldownText or {}
-        SetFont(cdText, c.size or 16, outline, font)
+        SetFont(cdText, c.size or 16, outline, ns.Media.ElementFont(c.font, font))
         cdText:SetTextColor(Color(c.color))
         Anchor(cdText, cell, c.point or "CENTER", c.x, c.y)
         cdText:SetAlpha(((cell.onCD or cell.aura) and not spell.hideCooldownText) and 1 or 0)
@@ -300,7 +300,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
     local charge = cell.chargeText
     if charge then
         local c = style.chargeText or {}
-        SetFont(charge, c.size or 12, outline, font)
+        SetFont(charge, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         charge:SetTextColor(Color(c.color))
         Anchor(charge, cell, c.point or "BOTTOMRIGHT", c.x, c.y)
         charge:SetAlpha(cell.aura and 0 or 1)
@@ -308,7 +308,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
     local stack = cell.stackText
     if stack then
         local c = style.stackText or {}
-        SetFont(stack, c.size or 12, outline, font)
+        SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         Anchor(stack, cell, c.point or "TOP", c.x, c.y)
         stack:SetAlpha((cell.aura and not spell.hideStackText) and 1 or 0)

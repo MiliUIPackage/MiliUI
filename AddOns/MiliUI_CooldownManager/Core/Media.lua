@@ -38,6 +38,13 @@ function M.Font(token)
     return DEFAULT_FONT
 end
 
+-- 各段文字自己的字型：own 是 "INHERIT"／nil／"" ＝ 跟隨通用字型（general，主題／條的 font）
+M.INHERIT = "INHERIT"
+function M.ElementFont(own, general)
+    if type(own) == "string" and own ~= "" and own ~= M.INHERIT then return own end
+    return general
+end
+
 -- 材質 token → 路徑（statusbar 類）
 function M.Texture(token)
     if not token or token == "solid" then return M.WHITE8X8 end

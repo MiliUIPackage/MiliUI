@@ -217,7 +217,8 @@ function K.Apply(owner, rec, barKey)
     local text = TextFor(rec) or ""
     local c = ns.Setting(barKey, "keybind")
     c = type(c) == "table" and c or {}
-    local font, outline = ns.Setting(barKey, "font"), ns.Setting(barKey, "outline") or ""
+    local font = ns.Media.ElementFont(c.font, ns.Setting(barKey, "font"))
+    local outline = ns.Setting(barKey, "outline") or ""
     local sig = table.concat({ text, tostring(c.size), tostring(c.point), tostring(c.x), tostring(c.y),
         tostring(font), tostring(outline) }, "|")
     if fs and rec.keySig == sig then return end

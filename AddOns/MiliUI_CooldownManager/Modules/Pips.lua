@@ -409,7 +409,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
 
     local showTime = plan.entry.showTime ~= false
     local fontSize = math.max(8, plan.height - 4)
-    local font = ns.Setting(nil, "font")
+    local font = ns.Media.ElementFont(style.textFont, ns.Setting(nil, "font"))
     local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
     for i = 1, numSeg do
         local cell = row.cells[i]
