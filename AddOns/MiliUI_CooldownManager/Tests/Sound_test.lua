@@ -378,6 +378,24 @@ S.RequestAuraSync(); Flush()
 eq("總開關關掉不登記", S.AuraCount(), 0)
 p.theme.sound.enabled = true
 
+-- 多法術的光環格（嗜血那種）：每個法術各登一筆
+S.RequestAuraSync(); Flush()
+eq("單一法術：一筆（只剩出現音效）", S.AuraCount(), 1)
+ns.Custom.AuraIDsOf = function(rec) return rec.ids or { rec.spellID } end
+customRecs.a.ids = { 12345, 23456, 34567 }
+S.RequestAuraSync(); Flush()
+eq("多法術：每個法術各一筆", S.AuraCount(), 3)
+do
+    local ids = {}
+    for _, r in pairs(registered) do ids[#ids + 1] = r.info.spellID end
+    table.sort(ids)
+    eq("多法術：登記的法術", table.concat(ids, ","), "12345,23456,34567")
+end
+customRecs.a.ids = nil
+S.RequestAuraSync(); Flush()
+eq("拿掉多法術：撤回剩一筆", S.AuraCount(), 1)
+ns.Custom.AuraIDsOf = nil
+
 check("DebugLine 是字串", type(S.DebugLine()) == "string")
 
 print(("Sound_test: %d passed, %d failed"):format(passed, failed))

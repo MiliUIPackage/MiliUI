@@ -13,6 +13,8 @@
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
 --     多一列「不在時顯示占位」；沒有「隱藏此法術」（固定前綴）。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
+--   * 多一顆「複製到其他專精…」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
+--     DB.CopyCustomEntry（連同這一筆的覆寫）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
 --
 -- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」；增益類（暴雪
@@ -396,7 +398,14 @@ local function Build()
         if sp and type(sp.overrides) == "table" then sp.overrides[cur.id] = nil end
         Changed()
     end)
-    frame.removeBtn, frame.restoreBtn, frame.btnRow = remove, restore, btnRow
+    -- 自訂項目才有：複製到這個職業的其他專精（連同覆寫）
+    local copy = W.CreateButton(btnRow, L["Copy to other specializations…"], "normal", 130, 22)
+    W.FitButton(copy, 130, 22)
+    copy:SetScript("OnClick", function()
+        if not cur then return end
+        Pop.AskCopy(cur.id)
+    end)
+    frame.removeBtn, frame.restoreBtn, frame.copyBtn, frame.btnRow = remove, restore, copy, btnRow
     rows[#rows + 1] = { frame = btnRow, h = 22 + 6, buttons = true }
 
     -- 顯示之後才量得到字高（換行的語系）：每次顯示重量、照目前種類重排
@@ -423,7 +432,8 @@ Layout = function(kind, class)
             row.frame:ClearAllPoints()
             row.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, y)
             if row.buttons then
-                local list = { frame.removeBtn, frame.restoreBtn }
+                frame.copyBtn:SetShown(kind ~= nil)          -- 自訂項目才有（暴雪的法術本來就逐專精由暴雪管）
+                local list = { frame.removeBtn, frame.restoreBtn, frame.copyBtn }
                 local _, bh = W.FlowLayout(frame.btnRow, list, ROW_W, 6, 4, 22)
                 frame.btnRow:SetHeight(bh)
                 row.h = bh + 6
@@ -581,6 +591,110 @@ end
 
 function Pop.Close()
     if frame then frame:Hide() end
+end
+
+------------------------------------------------------------
+-- 複製到其他專精（自訂項目）：每個其他專精一個勾選框，已有的勾著並停用、標「已有」；
+-- 確定後逐個 DB.CopyCustomEntry（連同覆寫），彈窗關掉即可，不印聊天框
+------------------------------------------------------------
+local COPY_W = 320
+local copyPopup
+
+local function BuildCopyPopup()
+    local f = W.CreateFrame(nil, ns.Options.panel, COPY_W, 160)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetFrameLevel(410)
+    f:SetBackdropBorderColor(W.Accent(1))
+    f:SetPoint("CENTER")
+    W.CloseOnEscape(f)
+    f.title = f:CreateFontString(nil, "OVERLAY")
+    f.title:SetFontObject(W.fontNormal)
+    f.title:SetJustifyH("LEFT")
+    f.title:SetWordWrap(true)
+    f.title:SetWidth(COPY_W - PAD * 2)
+    f.title:SetPoint("TOPLEFT", PAD, -12)
+    f.note = Note(f)
+    f.note:SetWidth(COPY_W - PAD * 2)
+    f.note:SetWordWrap(true)
+    f.boxes = {}
+    f.ok = W.CreateButton(f, L["Copy"], "primary", 90, 22)
+    W.FitButton(f.ok, 90, 22)
+    f.cancel = W.CreateButton(f, L["Cancel"], "normal", 90, 22)
+    W.FitButton(f.cancel, 90, 22)
+    f.cancel:SetPoint("BOTTOMRIGHT", -PAD, 12)
+    f.ok:SetPoint("RIGHT", f.cancel, "LEFT", -6, 0)
+    f.cancel:SetScript("OnClick", function() f:Hide() end)
+    f.ok:SetScript("OnClick", function()
+        local id = f.id
+        for _, cb in ipairs(f.boxes) do
+            if cb:IsShown() and cb.specID and not cb.exists and cb:GetChecked() then
+                ns.DB.CopyCustomEntry(id, cb.specID)
+            end
+        end
+        f:Hide()
+    end)
+    f:Hide()
+    ns.RegisterCallback("OptionsHidden", "popover_copy", function() f:Hide() end)
+    ns.RegisterCallback("SpecChanged", "popover_copy", function() f:Hide() end)
+    ns.RegisterCallback("ProfileChanged", "popover_copy", function() f:Hide() end)
+    return f
+end
+
+-- 「複製」只有在至少勾了一個還沒有的專精時能按
+local function SyncCopyOK(f)
+    local any = false
+    for _, cb in ipairs(f.boxes) do
+        if cb:IsShown() and not cb.exists and cb:GetChecked() then any = true break end
+    end
+    f.ok:SetEnabled(any)
+end
+
+local function CopyBox(f, i)
+    local cb = f.boxes[i]
+    if cb then return cb end
+    cb = W.CreateCheckButton(f, "", function() SyncCopyOK(f) end)
+    f.boxes[i] = cb
+    return cb
+end
+
+function Pop.AskCopy(id)
+    local e = ns.DB.CustomEntry(id)
+    if not e then return end
+    copyPopup = copyPopup or BuildCopyPopup()
+    local f = copyPopup
+    f.id = id
+    local info = ns.Catalog.Info(id)
+    f.title:SetText(L["Copy \"%s\" to these specializations:"]:format((info and info.name) or ("#" .. tostring(id))))
+    local y = -(12 + (f.title:GetStringHeight() or 14) + 10)
+    local n = 0
+    for _, spec in ipairs(ns.DB.ClassSpecs()) do
+        if spec.id ~= ns.specID then
+            n = n + 1
+            local cb = CopyBox(f, n)
+            local exists = ns.DB.FindCustomLike(e, spec.id) ~= nil
+            cb.specID, cb.exists = spec.id, exists
+            cb.label:SetText(exists and (spec.name .. "  " .. L["(already there)"]) or spec.name)
+            cb:SetHitRectInsets(0, -((cb.label:GetStringWidth() or 0) + 8), 0, 0)   -- 點標籤也能勾
+            cb:SetChecked(true)                      -- 已有的勾著（停用）；其餘預設勾，不要的自己取消
+            cb:SetEnabled(not exists)
+            cb:SetAlpha(exists and 0.5 or 1)
+            cb:ClearAllPoints()
+            cb:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+            cb:Show()
+            y = y - 18 - 8
+        end
+    end
+    for i = n + 1, #f.boxes do f.boxes[i]:Hide() end
+    f.note:SetShown(n == 0)
+    if n == 0 then
+        f.note:SetText(L["Couldn't read your specializations."])
+        f.note:ClearAllPoints()
+        f.note:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+        y = y - (f.note:GetStringHeight() or 14) - 8
+    end
+    SyncCopyOK(f)
+    P.Height(f, -y + 22 + 12 + 6)
+    f:Show()
 end
 
 -- 面板本體（還沒開過是 nil；離線測試讀按鈕的顯示狀態用）

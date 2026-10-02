@@ -448,5 +448,72 @@ do
     eq("DB_VERSION 沒動", ns.DB_VERSION, 3)
 end
 
+------------------------------------------------------------
+-- 12. 複製自訂項目到其他專精（CopyCustomEntry）、職業專精清單（ClassSpecs）
+------------------------------------------------------------
+do
+    local DB = ns.DB
+    local P3 = ns.profile
+    local cur = ns.specID
+    local other, third = cur + 1, cur + 2
+    P3.spells = P3.spells or {}
+    P3.spells[cur] = nil
+    P3.spells[other] = nil
+    P3.spells[third] = nil
+    local iPot = DB.AddCustom({ kind = "item", itemID = 241308, alts = { 241309 }, bar = "essential" })
+    local iLust = DB.AddCustom({ kind = "aura", spellID = 2825, spellIDs = { 32182 }, filter = "HELPFUL", placeholder = true, bar = "buffs" })
+    local iSpell = DB.AddCustom({ kind = "spell", spellID = 20594, bar = "essential" })
+    local sp = DB.SpecSpells(true)
+    sp.overrides["c:" .. iLust] = { gainSound = "Ding", activeGlowColor = { r = 1, g = 0, b = 0, a = 1 } }
+    sp.overrides[11] = { procGlow = false }
+
+    eq("目標專精還沒有 spells 表", P3.spells[other], nil)
+    local n = DB.CopyCustomEntry("c:" .. iLust, other)
+    eq("複製到沒有 spells 表的專精 → 第 1 筆", n, 1)
+    local copied = P3.spells[other] and P3.spells[other].custom and P3.spells[other].custom[1]
+    eq("複製過去的種類", copied and copied.kind, "aura")
+    eq("複製過去的主 ID", copied and copied.spellID, 2825)
+    eq("多法術跟著過去", copied and copied.spellIDs and copied.spellIDs[1], 32182)
+    eq("bar 照抄", copied and copied.bar, "buffs")
+    check("是深複製（不是同一張表）", copied ~= DB.CustomEntry("c:" .. iLust))
+    check("spellIDs 也是深複製", copied and copied.spellIDs ~= DB.CustomEntry("c:" .. iLust).spellIDs)
+    local oc = P3.spells[other].overrides and P3.spells[other].overrides["c:1"]
+    eq("覆寫跟著到新 id", oc and oc.gainSound, "Ding")
+    check("覆寫也是深複製", oc and oc.activeGlowColor ~= sp.overrides["c:" .. iLust].activeGlowColor)
+    eq("暴雪法術的覆寫不跟著過去", P3.spells[other].overrides[11], nil)
+
+    eq("目標已有同種類同主 ID ⇒ false", DB.CopyCustomEntry("c:" .. iLust, other), false)
+    eq("已有時目標清單不動", #P3.spells[other].custom, 1)
+
+    eq("沒有覆寫的那筆 → 第 2 筆", DB.CopyCustomEntry("c:" .. iPot, other), 2)
+    eq("沒有覆寫就不建", P3.spells[other].overrides["c:2"], nil)
+    eq("替代品跟著過去", P3.spells[other].custom[2].alts[1], 241309)
+    eq("目標有 spells 表、沒 custom 時照樣建", DB.CopyCustomEntry("c:" .. iSpell, third), 1)
+    eq("複製到自己這個專精 ⇒ false", DB.CopyCustomEntry("c:" .. iSpell, cur), false)
+    eq("不存在的 id ⇒ false", DB.CopyCustomEntry("c:99", other), false)
+    eq("沒給目標 ⇒ false", DB.CopyCustomEntry("c:" .. iSpell, nil), false)
+    eq("目前專精的清單沒被動到", #DB.CustomList(false), 3)
+    eq("FindCustomLike 看得到複製過去的", DB.FindCustomLike(DB.CustomEntry("c:" .. iPot), other), 2)
+    eq("FindCustomLike 別的專精沒有", DB.FindCustomLike(DB.CustomEntry("c:" .. iPot), third), nil)
+
+    -- ClassSpecs：API 不在 ⇒ 空表；在 ⇒ { id, name, icon }
+    env.GetNumSpecializations = nil
+    eq("ClassSpecs：API 不在 ⇒ 空表", #DB.ClassSpecs(), 0)
+    env.GetNumSpecializations = function() return 3 end
+    local savedInfo = env.GetSpecializationInfo
+    env.GetSpecializationInfo = function(i)
+        if i == 2 then error("boom") end
+        return 60 + i, "專精" .. i, "", 1000 + i
+    end
+    local specs = DB.ClassSpecs()
+    eq("ClassSpecs：拋錯的那個跳過", #specs, 2)
+    eq("ClassSpecs：id", specs[1] and specs[1].id, 61)
+    eq("ClassSpecs：name", specs[1] and specs[1].name, "專精1")
+    eq("ClassSpecs：icon", specs[2] and specs[2].icon, 1003)
+    env.GetSpecializationInfo = savedInfo
+    env.GetNumSpecializations = nil
+    P3.spells[cur], P3.spells[other], P3.spells[third] = nil, nil, nil
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

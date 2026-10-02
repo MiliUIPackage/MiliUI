@@ -506,5 +506,18 @@ do
     C.Refresh("category-icons-reset")
 end
 
+------------------------------------------------------------
+-- 自訂項目的兩個選用欄位（物品的 alts、光環格的 spellIDs）：形狀檢查只看主 ID，選用欄位壞了不算整筆壞
+------------------------------------------------------------
+do
+    local V = C.ValidCustom
+    check("物品帶 alts", V({ kind = "item", itemID = 241308, alts = { 241309 } }))
+    check("物品 alts 不是表", V({ kind = "item", itemID = 241308, alts = 5 }))
+    check("物品沒有主 ID ⇒ 壞", not V({ kind = "item", alts = { 241309 } }))
+    check("光環帶 spellIDs", V({ kind = "aura", spellID = 2825, spellIDs = { 32182 }, filter = "HELPFUL" }))
+    check("光環 spellIDs 不是表", V({ kind = "aura", spellID = 2825, spellIDs = "x" }))
+    check("光環沒有主 ID ⇒ 壞", not V({ kind = "aura", spellIDs = { 32182 } }))
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

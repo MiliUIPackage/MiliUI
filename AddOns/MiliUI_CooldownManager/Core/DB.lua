@@ -1183,6 +1183,9 @@ end
 --   filter       光環格才有："HELPFUL" | "HARMFUL"
 --   placeholder  光環格才有：光環不在時畫去飽和的占位圖示
 --   bar          放在哪一條（只收圖示類的條）
+--   alts         物品才有（選用）：替代品 { itemID, … }，顯示「主＋alts」裡第一個包包裡有的（Modules/Custom.lua）
+--   spellIDs     光環格才有（選用，只認增益）：主 ID 以外也算這一格的法術 { spellID, … }
+--   ⚠ 兩個選用欄位舊存檔都沒有 ＝ 行為跟以前一樣；判重（FindCustom）、身分都只看主的那個 ID。
 --
 -- 在順序、隱藏、覆寫裡的 id 是 "c:<index>"。index 是陣列位置，所以**刪掉中間一筆時
 -- 後面的 id 全部要往前挪**（DB.RemoveCustom 負責，不然第 3 筆的覆寫會跑到原本的第 4 筆上）。
@@ -1228,6 +1231,17 @@ function DB.FindCustom(kind, id, filter, specID)
         end
     end
     return nil
+end
+
+-- 某一筆在 specID 那個專精裡有沒有同樣的（同種類同主 ID；光環還要同 filter）→ index 或 nil
+function DB.FindCustomLike(e, specID)
+    if type(e) ~= "table" then return nil end
+    local id
+    if e.kind == "item" then id = e.itemID
+    elseif e.kind == "slot" then id = e.slot
+    else id = e.spellID end
+    if id == nil then return nil end
+    return DB.FindCustom(e.kind, id, e.filter, specID)
 end
 
 -- 新增，回傳 index（沒有專精 ⇒ nil）
@@ -1289,6 +1303,48 @@ function DB.RemoveCustom(id, specID)
         end
     end
     return true
+end
+
+------------------------------------------------------------
+-- 複製到其他專精
+--
+-- 目前專精的第 id 筆深複製、追加到 spells[target].custom 尾端；它在目前專精的覆寫（overrides[id]）
+-- 一併複製到目標的新 id 底下。bar 照抄（條是設定檔層、各專精共用）。
+-- 目標已有同種類同主 ID（光環同 filter）⇒ 回 false 不動。成功回新的 index。
+------------------------------------------------------------
+function DB.CopyCustomEntry(id, targetSpecID)
+    if targetSpecID == nil or targetSpecID == ns.specID then return false end
+    local e = DB.CustomEntry(id)
+    if not e or not DB.CUSTOM_KINDS[e.kind] then return false end
+    if DB.FindCustomLike(e, targetSpecID) then return false end
+    local list = DB.CustomList(true, targetSpecID)
+    if not list then return false end
+    list[#list + 1] = DeepCopy(e)
+    local n = #list
+    local sp = DB.SpecSpells(false)
+    local o = sp and type(sp.overrides) == "table" and sp.overrides[id]
+    if type(o) == "table" and next(o) ~= nil then
+        local tsp = DB.SpecSpells(true, targetSpecID)
+        tsp.overrides[DB.CustomID(n)] = DeepCopy(o)
+    end
+    return n
+end
+
+-- 這個職業的專精：{ { id, name, icon }, … }（讀不到回空表）
+function DB.ClassSpecs()
+    local out = {}
+    local num = GetNumSpecializations
+    local info = GetSpecializationInfo
+    if type(num) ~= "function" or type(info) ~= "function" then return out end
+    local ok, n = pcall(num)
+    if not ok or type(n) ~= "number" then return out end
+    for i = 1, n do
+        local ok2, id, name, _, icon = pcall(info, i)
+        if ok2 and type(id) == "number" and id > 0 then
+            out[#out + 1] = { id = id, name = type(name) == "string" and name or tostring(id), icon = icon }
+        end
+    end
+    return out
 end
 
 ------------------------------------------------------------

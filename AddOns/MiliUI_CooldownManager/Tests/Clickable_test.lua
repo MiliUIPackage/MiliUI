@@ -407,5 +407,27 @@ local g1Shown, g2Shown = (CK.Button("g1", 1)).shown, (CK.Button("g2", 1)).shown
 eq("ReleaseAll：g1 收", g1Shown, false)
 eq("ReleaseAll：g2 收", g2Shown, false)
 
+------------------------------------------------------------
+-- 12. 帶替代品的自訂物品：鈕跟著解析後的 rec.itemID（不是主的）；換了只寫 action
+------------------------------------------------------------
+do
+    -- 主 241308 包包裡沒有、替代品 241309 有：Custom 已經把 rec.itemID 換成 241309
+    local crec = { kind = "item", itemID = 241309, name = "藥水",
+                   entry = { kind = "item", itemID = 241308, alts = { 241309 } } }
+    local d = CK.Describe({ id = "c:5", crec = crec })
+    eq("Describe 物品取解析後的 itemID", d and d.itemID, 241309)
+    eq("Resolve 物品 → item:<解析後>", (CK.Resolve(d) or {}).item, "item:241309")
+    clickableBars.g3 = true
+    writes = {}
+    CK.Place("g3", c, 1, R1, { id = "c:5", crec = crec })
+    local b3 = CK.Button("g3", 1)
+    eq("替代品：屬性是解析後的那件", b3 and b3.attrs.item, "item:241309")
+    writes = {}
+    crec.itemID = 241308                 -- 包包裡又有主的了
+    CK.Place("g3", c, 1, R1, { id = "c:5", crec = crec })
+    eq("換回主的：只寫 action", Keys(), "action")
+    eq("換回主的：屬性跟著換", b3 and b3.attrs.item, "item:241308")
+end
+
 print(("Clickable_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

@@ -46,6 +46,7 @@ Core\Style.lua
 Core\DB.lua
 Core\Import.lua
 Core\Catalog.lua
+Core\Presets.lua
 Core\Layout.lua
 Core\Viewers.lua
 Core\SpellIndex.lua

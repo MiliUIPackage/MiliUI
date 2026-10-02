@@ -93,6 +93,7 @@ local function load(rel)
 end
 load("Core/DB.lua")
 load("Core/Catalog.lua")
+load("Modules/Custom.lua")          -- 替代品／多法術的純函式（第 8 節起）；載入時不建任何框
 local DB, C = ns.DB, ns.Catalog
 ns.RefreshSpec()
 DB.Init()
@@ -232,6 +233,133 @@ ns.specID = 62
 eqList("別的專精沒有自訂項目", C.Bar("essential"), { 11, 12 })
 eq("別的專精 CustomEntry ＝ nil", DB.CustomEntry("c:1"), nil)
 ns.specID = 61
+
+------------------------------------------------------------
+-- 8. 替代品與多法術：純函式（Modules/Custom.lua）
+------------------------------------------------------------
+local CU = ns.Custom
+eqList("ItemIDs：主在前、alts 照順序", CU.ItemIDs({ kind = "item", itemID = 5, alts = { 6, 7 } }), { 5, 6, 7 })
+eqList("ItemIDs：沒有 alts", CU.ItemIDs({ kind = "item", itemID = 5 }), { 5 })
+eqList("ItemIDs：alts 不是表就當沒有", CU.ItemIDs({ kind = "item", itemID = 5, alts = "6,7" }), { 5 })
+eqList("ItemIDs：壞值、重複、跟主重複的跳過", CU.ItemIDs({ kind = "item", itemID = 5, alts = { 5, 0, -1, 2.5, "8", 6, 6 } }), { 5, 6 })
+eqList("ItemIDs：不是表", CU.ItemIDs(nil), {})
+
+local counts = { [6] = 3 }
+local function countOf(id) return counts[id] end
+eq("PickItem：第一個有的", CU.PickItem({ 5, 6, 7 }, countOf), 6)
+counts[5] = 1
+eq("PickItem：主的有就用主的", CU.PickItem({ 5, 6, 7 }, countOf), 5)
+counts[5], counts[6] = 0, nil
+eq("PickItem：都沒有 ⇒ 主的", CU.PickItem({ 5, 6, 7 }, countOf), 5)
+eq("PickItem：讀不到（nil）⇒ 主的", CU.PickItem({ 5, 6 }, function() return nil end), 5)
+eq("PickItem：數量不是數字當沒有", CU.PickItem({ 5, 6 }, function(id) if id == 6 then return "1" end end), 5)
+eq("PickItem：沒給 countOf ⇒ 主的", CU.PickItem({ 5, 6 }), 5)
+eq("PickItem：不是表 ⇒ nil", CU.PickItem(nil, countOf), nil)
+
+eqList("AuraIDs：主＋spellIDs", CU.AuraIDs({ kind = "aura", spellID = 2825, spellIDs = { 32182, 80353 }, filter = "HELPFUL" }), { 2825, 32182, 80353 })
+eqList("AuraIDs：沒 filter 當增益", CU.AuraIDs({ kind = "aura", spellID = 2825, spellIDs = { 32182 } }), { 2825, 32182 })
+eqList("AuraIDs：減益只認主的", CU.AuraIDs({ kind = "aura", spellID = 800, spellIDs = { 801 }, filter = "HARMFUL" }), { 800 })
+eqList("AuraIDs：spellIDs 不是表就當沒有", CU.AuraIDs({ kind = "aura", spellID = 700, spellIDs = 701 }), { 700 })
+eq("AuraIDSig：單一法術＝那個 ID（跟以前的簽章一樣）", CU.AuraIDSig({ 700 }), "700")
+eq("AuraIDSig：排序後串起來", CU.AuraIDSig({ 32182, 2825, 80353 }), "2825,32182,80353")
+eq("AuraIDSig：順序不影響", CU.AuraIDSig({ 80353, 2825, 32182 }), CU.AuraIDSig({ 2825, 32182, 80353 }))
+check("AuraIDSig：多一個 ID 簽章就不同", CU.AuraIDSig({ 2825, 32182 }) ~= CU.AuraIDSig({ 2825, 32182, 80353 }))
+local srcIDs = { 32182, 2825 }
+CU.AuraIDSig(srcIDs)
+eqList("AuraIDSig：不動到傳進來的表", srcIDs, { 32182, 2825 })
+eqList("AuraIDsOf：照 entry", CU.AuraIDsOf({ spellID = 2825, entry = { kind = "aura", spellID = 2825, spellIDs = { 32182 } } }), { 2825, 32182 })
+eqList("AuraIDsOf：entry 拿掉了 ⇒ 主的", CU.AuraIDsOf({ spellID = 2825 }), { 2825 })
+
+-- ResolveItem：包包數量走 C_Item.GetItemCount（明文才算）
+local bag = {}
+env.C_Item.GetItemCount = function(id) return bag[id] or 0 end
+eq("ResolveItem：沒有替代品 ⇒ 主的（不問包包）", CU.ResolveItem({ kind = "item", itemID = 5 }), 5)
+bag[7] = 2
+eq("ResolveItem：挑包包裡有的", CU.ResolveItem({ kind = "item", itemID = 5, alts = { 6, 7 } }), 7)
+bag[7] = nil
+eq("ResolveItem：都沒有 ⇒ 主的", CU.ResolveItem({ kind = "item", itemID = 5, alts = { 6, 7 } }), 5)
+
+------------------------------------------------------------
+-- 9. 帶替代品／多法術的自訂項目：形狀、判重、Info
+------------------------------------------------------------
+check("ValidCustom：物品帶 alts", C.ValidCustom({ kind = "item", itemID = 5, alts = { 6 } }))
+check("ValidCustom：alts 壞掉不算整筆壞", C.ValidCustom({ kind = "item", itemID = 5, alts = "x" }))
+check("ValidCustom：光環帶 spellIDs", C.ValidCustom({ kind = "aura", spellID = 2825, spellIDs = { 32182 }, filter = "HELPFUL" }))
+check("ValidCustom：spellIDs 壞掉不算整筆壞", C.ValidCustom({ kind = "aura", spellID = 2825, spellIDs = true }))
+check("ValidCustom：主 ID 壞掉照樣整筆壞", not C.ValidCustom({ kind = "item", alts = { 6 } }))
+
+local nPot = DB.AddCustom({ kind = "item", itemID = 241308, alts = { 241309, 245897 }, bar = "essential" })
+local nLust = DB.AddCustom({ kind = "aura", spellID = 2825, spellIDs = { 32182 }, filter = "HELPFUL", placeholder = true, bar = "essential" })
+check("加得進去", nPot ~= nil and nLust ~= nil)
+eq("FindCustom 照主 ID", DB.FindCustom("item", 241308), nPot)
+eq("FindCustom 替代品的 ID 不算", DB.FindCustom("item", 241309), nil)
+eq("FindCustom 光環照主 ID", DB.FindCustom("aura", 2825, "HELPFUL"), nLust)
+eq("FindCustom 光環的其他 ID 不算", DB.FindCustom("aura", 32182, "HELPFUL"), nil)
+bag[245897] = 1
+local ip = C.Info("c:" .. nPot)
+eq("物品 Info：圖示照包包裡有的那件", ip and ip.icon, 800000 + 245897)
+eq("物品 Info：名字照包包裡有的那件", ip and ip.name, "物品245897")
+eq("物品 Info：itemID 是解析後的", ip and ip.itemID, 245897)
+eq("物品 Info：mainItemID 留主的", ip and ip.mainItemID, 241308)
+bag[245897] = nil
+ip = C.Info("c:" .. nPot)
+eq("物品 Info：都沒有 ⇒ 主的圖示", ip and ip.icon, 800000 + 241308)
+local il = C.Info("c:" .. nLust)
+eq("多法術光環 Info：圖示用主的", il and il.icon, 900000 + 2825)
+check("多法術光環是光環格（固定前綴）", C.IsAuraSlot("c:" .. nLust))
+
+------------------------------------------------------------
+-- 10. UpdateItem 的替代品路徑（CU.Update；框與引擎都 stub）
+------------------------------------------------------------
+do
+    local function Tex()
+        local t = { tex = nil, desat = nil }
+        function t:SetTexture(v) self.tex = v end
+        function t:SetDesaturation(v) self.desat = v end
+        return t
+    end
+    local cleared = 0
+    local frame = {
+        Icon = Tex(),
+        Cooldown = { Clear = function() cleared = cleared + 1 end },
+        ChargeCount = { Current = { SetText = function(self, v) self.text = v end } },
+        SetAlpha = function(self, a) self.alpha = a end,
+    }
+    local inval, requests = 0, {}
+    ns.Keybinds = { Invalidate = function() inval = inval + 1 end }
+    ns.Clickable = { Enabled = function(bar) return bar == "g9" end }
+    ns.Bars = { Request = function(key, level) requests[#requests + 1] = key .. ":" .. level end }
+    local savedSS = ns.SpellSetting
+    ns.SpellSetting = function() return nil end
+    local entry = { kind = "item", itemID = 241308, alts = { 241309 }, bar = "g9" }
+    local rec = { kind = "item", itemID = 241308, entry = entry, frame = frame, placedBar = "g9",
+                  armedStart = 10, armedDur = 300 }
+    bag[241309] = 4
+    CU.Update(rec)
+    eq("換成包包裡有的", rec.itemID, 241309)
+    eq("換了就清武裝", rec.armedStart, nil)
+    eq("換了就清轉圈", cleared, 1)
+    eq("換了就叫 Keybinds.Invalidate", inval, 1)
+    eq("可點擊的條：要求重排", table.concat(requests, ","), "g9:layout")
+    eq("圖示是新的那件", frame.Icon.tex, 800000 + 241309)
+    eq("數量是新的那件", frame.ChargeCount.Current.text, "4")
+    CU.Update(rec)
+    eq("沒換：不再清、不再重排", inval .. "/" .. #requests, "1/1")
+    bag[241309], bag[241308] = nil, 2
+    CU.Update(rec, true)             -- Place 途中：同一輪的 Clickable.Place 會讀到，不必再要求
+    eq("換回主的", rec.itemID, 241308)
+    eq("Place 途中換：不要求重排", #requests, 1)
+    eq("Place 途中換：照樣 Invalidate", inval, 2)
+    -- 舊存檔的物品（沒有 alts）：永遠是主的，什麼都不清
+    local plain = { kind = "item", itemID = 7, entry = { kind = "item", itemID = 7, bar = "g9" },
+                    frame = frame, placedBar = "g9", armedStart = 5, armedDur = 60 }
+    bag[7] = 0
+    CU.Update(plain)
+    eq("沒有替代品：itemID 不變", plain.itemID, 7)
+    eq("沒有替代品：不清武裝（讀不到冷卻時沿用）", plain.armedStart, 5)
+    eq("沒有替代品：不 Invalidate", inval, 2)
+    ns.Keybinds, ns.Clickable, ns.Bars, ns.SpellSetting = nil, nil, nil, savedSS
+end
 
 print(("Custom_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

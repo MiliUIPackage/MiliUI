@@ -52,6 +52,11 @@
 --   物品  C_Item.GetItemCooldown 的 start／duration 過 canaccessvalue 之後
 --         C_DurationUtil.CreateDuration():SetTimeFromStart → SetCooldownFromDurationObject
 --         （讀不到就不動：已經 arm 的照跑）。數量 C_Item.GetItemCount 寫在充能位置，0 時去飽和。
+--         **替代品**（e.alts，常用預設的藥水那種）：每次更新從「主＋alts」照順序挑第一個包包裡有的
+--         當 rec.itemID（都沒有就用主的；CU.PickItem）。換了物品就清武裝、叫 Keybinds.Invalidate，
+--         可點擊的條要求重排（鈕的 item 屬性跟著 rec.itemID，戰鬥中由 ns.Write 記帳到脫戰）。身分 key 仍是主的。
+-- 光環格的**多法術**（e.spellIDs，嗜血那種「一格代表好幾個法術」）：includeSpellIDs 放全部，
+-- 簽章把整組排序後串進去；占位圖示、身分用主的。只收增益（減益照舊只看主的那一個）。
 -- 事件只標髒、下一幀一次更新全部（SPELL_UPDATE_COOLDOWN 很密）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -95,6 +100,79 @@ local function IdentityKey(e)
     if e.kind == "slot" then return "slot:" .. e.slot end
     if e.kind == "spell" then return "spell:" .. e.spellID end
     return "aura:" .. e.spellID .. ":" .. (e.filter == "HARMFUL" and "HARMFUL" or "HELPFUL")
+end
+
+------------------------------------------------------------
+-- 替代品與多法術（純函式，離線可測）
+------------------------------------------------------------
+local function PositiveInt(v)
+    return type(v) == "number" and v > 0 and v == math.floor(v)
+end
+
+-- 主 ID 在前、extra 照順序接在後面（不是表就當沒有；壞值、重複的跳過）
+local function Merge(main, extra)
+    local out, seen = {}, {}
+    if PositiveInt(main) then out[1] = main; seen[main] = true end
+    if type(extra) == "table" then
+        for _, id in ipairs(extra) do
+            if PositiveInt(id) and not seen[id] then
+                seen[id] = true
+                out[#out + 1] = id
+            end
+        end
+    end
+    return out
+end
+
+-- 自訂物品要看的全部物品：{ 主, alts… }
+function CU.ItemIDs(e)
+    if type(e) ~= "table" then return {} end
+    return Merge(e.itemID, e.alts)
+end
+
+-- 照順序挑第一個 countOf(id) > 0 的；都沒有（或讀不到）回第一個（主）
+function CU.PickItem(ids, countOf)
+    if type(ids) ~= "table" then return nil end
+    for _, id in ipairs(ids) do
+        local n = countOf and countOf(id)
+        if type(n) == "number" and n > 0 then return id end
+    end
+    return ids[1]
+end
+
+-- 光環格要認的全部法術：{ 主, spellIDs… }；減益只認主的
+function CU.AuraIDs(e)
+    if type(e) ~= "table" then return {} end
+    if e.filter == "HARMFUL" then return Merge(e.spellID, nil) end
+    return Merge(e.spellID, e.spellIDs)
+end
+
+-- 簽章用：排序後串起來（單一法術時就是那個 ID 本身，跟以前的簽章一樣）
+function CU.AuraIDSig(ids)
+    local t = {}
+    for i, id in ipairs(ids or {}) do t[i] = id end
+    table.sort(t)
+    for i, id in ipairs(t) do t[i] = tostring(id) end
+    return table.concat(t, ",")
+end
+
+-- rec 現在認的法術（entry 已經拿掉時退回主的）
+function CU.AuraIDsOf(rec)
+    if type(rec) ~= "table" then return {} end
+    if type(rec.entry) == "table" then return CU.AuraIDs(rec.entry) end
+    return Merge(rec.spellID, nil)
+end
+
+-- 包包裡的數量（明文才算）
+local function ItemCount(itemID)
+    return Plain(Try(C_Item and C_Item.GetItemCount, itemID, false, true))
+end
+
+-- 自訂物品這一筆現在要顯示哪一件（Catalog.Info 的圖示／名字也問這裡）
+function CU.ResolveItem(e)
+    local ids = CU.ItemIDs(e)
+    if #ids <= 1 then return ids[1] end
+    return CU.PickItem(ids, ItemCount)
 end
 
 ------------------------------------------------------------
@@ -253,7 +331,7 @@ local function UpdateEmptySlot(rec)
     f.Icon:SetDesaturation(1)
 end
 
-local function UpdateItem(rec)
+local function UpdateItem(rec, placing)
     local f = rec.frame
     if rec.kind == "slot" then
         -- 追蹤的是「現在裝在那一格的物品」：換裝（PLAYER_EQUIPMENT_CHANGED 標髒）就換物品；空格另畫
@@ -265,6 +343,20 @@ local function UpdateItem(rec)
             if ns.Keybinds and ns.Keybinds.Invalidate then ns.Keybinds.Invalidate() end
         end
         if not itemID then return UpdateEmptySlot(rec) end
+    elseif rec.entry then
+        -- 帶替代品的物品：照順序挑包包裡有的那件；只有主的就是主的（舊存檔行為不變）
+        local itemID = CU.ResolveItem(rec.entry) or rec.itemID
+        if itemID ~= rec.itemID then
+            rec.itemID = itemID
+            rec.armedStart, rec.armedDur = nil, nil
+            if f.Cooldown then f.Cooldown:Clear() end
+            if ns.Keybinds and ns.Keybinds.Invalidate then ns.Keybinds.Invalidate() end
+            -- 可點擊的條：鈕的 item 屬性跟著換（Place 途中換的那次，同一輪的 Clickable.Place 就會讀到新值）
+            local bar = rec.placedBar
+            if not placing and bar and ns.Clickable and ns.Clickable.Enabled(bar) and ns.Bars and ns.Bars.Request then
+                ns.Bars.Request(bar, "layout")
+            end
+        end
     end
     local itemID = rec.itemID
     local tex = Plain(Try(C_Item and C_Item.GetItemIconByID, itemID))
@@ -314,11 +406,11 @@ local function UpdateItem(rec)
     f.Icon:SetDesaturation(desat and 1 or 0)
 end
 
-function CU.Update(rec)
+function CU.Update(rec, placing)
     if not (rec.frame and rec.placedBar) then return end
     rec.dirty = nil
     if rec.kind == "spell" then UpdateSpell(rec)
-    elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec) end
+    elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec, placing) end
     CU.ApplyState(rec)
 end
 
@@ -542,8 +634,10 @@ local function AuraStyle(rec, barKey, w, h)
         glowSig = table.concat({ gl.type, C(gl.color), gl.lines, gl.thickness, gl.frequency,
             string.format("%.2f,%.2f", w, h) }, ",")
     end
+    -- 認哪些法術也進簽章（多法術的光環格：整組排序後串進去；單一法術時就是那個 ID）
+    st.ids = CU.AuraIDsOf(rec)
     st.sig = table.concat({
-        rec.filter, rec.spellID, st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
+        rec.filter, CU.AuraIDSig(st.ids), st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
         st.stPoint, st.stX, st.stY, glowSig,
@@ -675,8 +769,10 @@ local function BuildContainer(rec, st)
         rec.lastError = tostring(err)
         if ns.ReportError then ns.ReportError(err) end
     end
+    local include = {}
+    for _, id in ipairs(st.ids or { rec.spellID }) do include[id] = true end
     c:AddAuraSlot("slot", rec.filter, {
-        candidateFilters = { includeSpellIDs = { [rec.spellID] = true } },
+        candidateFilters = { includeSpellIDs = include },
         initializeFrame = function(btn)
             xpcall(InitAuraButton, handler, btn, c, st, rec)
         end,
@@ -830,7 +926,8 @@ function CU.Place(rec, c, r, barKey, gen)
     local styled = rec.decorated
     ns.Decorate.Apply(f, rec, barKey, r.w, r.h)
     if moved or rec.dirty or rec.decorated ~= styled then
-        CU.Update(rec)                -- 結尾會 ApplyState
+        -- 結尾會 ApplyState。第二個參數：替代品在這裡換了不必再要求重排（同一輪的 Clickable.Place 會讀到）
+        CU.Update(rec, true)
     else
         CU.ApplyState(rec)
     end

@@ -613,6 +613,7 @@ end
 function C.IsCustom(id) return C.CustomIndex(id) ~= nil end
 
 -- 這一筆的形狀對不對（匯入的字串、舊版存檔都可能帶來壞資料；壞的一律當不存在）
+-- 選用欄位壞掉不算整筆壞：物品的 alts、光環格的 spellIDs 不是表就當沒有（Modules/Custom.lua 讀的時候濾）
 local function ValidCustom(e)
     if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] then return false end
     if e.kind == "item" then return type(e.itemID) == "number" end
@@ -687,10 +688,15 @@ local function CustomInfo(id)
         info.slotName = GlobalText(token)
         if info.name == nil then info.name = info.slotName end
     elseif e.kind == "item" then
+        -- 帶替代品的（e.alts）：圖示與名字照現在包包裡有的那件（Modules/Custom.lua 的 ResolveItem）；
+        -- 沒有替代品就是主的
+        local CU = ns.Custom
+        local itemID = (CU and CU.ResolveItem and CU.ResolveItem(e)) or e.itemID
+        info.itemID, info.mainItemID = itemID, e.itemID
         local I = C_Item
-        info.icon = Plain(Try(I and I.GetItemIconByID, e.itemID))
-        if not info.icon then info.icon = Plain(select(5, Try(I and I.GetItemInfoInstant, e.itemID))) end
-        info.name = Plain(Try(I and I.GetItemNameByID, e.itemID))
+        info.icon = Plain(Try(I and I.GetItemIconByID, itemID))
+        if not info.icon then info.icon = Plain(select(5, Try(I and I.GetItemInfoInstant, itemID))) end
+        info.name = Plain(Try(I and I.GetItemNameByID, itemID))
     else
         local shown = e.spellID
         if e.kind == "spell" then

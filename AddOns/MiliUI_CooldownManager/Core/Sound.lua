@@ -368,11 +368,15 @@ function S.WantAuraSounds()
     local channel = S.Channel()
     for _, rec in pairs(CU.Records()) do
         if rec.kind == "aura" and rec.placedBar and rec.cooldownID and type(rec.spellID) == "number" then
+            -- 多法術的光環格（嗜血那種）：每個法術各登一筆（引擎只認單一 spellID）
+            local ids = (CU.AuraIDsOf and CU.AuraIDsOf(rec)) or { rec.spellID }
             for field, trig in pairs({ gainSound = added, loseSound = removed }) do
                 local path = S.Path(S.NameOf(rec.placedBar, rec.cooldownID, field))
                 if path ~= nil then
-                    local sig = Logic.Sig(trig, rec.spellID, path, channel)
-                    want[sig] = { trigger = trig, spellID = rec.spellID, path = path, channel = channel }
+                    for _, sid in ipairs(ids) do
+                        local sig = Logic.Sig(trig, sid, path, channel)
+                        want[sig] = { trigger = trig, spellID = sid, path = path, channel = channel }
+                    end
                 end
             end
         end

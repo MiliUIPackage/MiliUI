@@ -45,12 +45,13 @@
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
 | `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
+| `Core/Presets.lua` | 挑選器「常用預設」的資料（種族技能、防禦技能、藥水與治療石、團隊增益）＋純函式，**每季要對一次**，見「常用預設＋複製到其他專精」 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -237,7 +238,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 ### 自訂項目（`Modules/Custom.lua`）
 
-資料在 `spells[specID].custom`（逐專精），一筆 `{ kind, spellID|itemID, filter, placeholder, bar }`，
+資料在 `spells[specID].custom`（逐專精），一筆 `{ kind, spellID|itemID, filter, placeholder, bar }`
+（＋兩個選用欄位：物品的 `alts`、光環格的 `spellIDs`，見「常用預設＋複製到其他專精」；舊存檔沒有＝行為不變），
 在順序／隱藏／覆寫裡的 id 是 `"c:<index>"`。挑選器（預覽最右邊的「＋」）的「自訂 ID」區三顆鈕：
 **光環**（輸入 ID → 選增益／減益）、**法術**、**物品**；驗證 `C_Spell.GetSpellInfo`／`C_Item.GetItemInfoInstant`，
 同專精不收重複。只有圖示類的條收自訂項目。
@@ -407,6 +409,55 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   - 「沒開暴雪的輔助醒目標示 CVar 時自己呼叫 `GetNextCastSpell` 有沒有值」沒有實機驗過（見待實機驗證）；沒有的話要玩家自己去開那個選項。
   - 圖示的按鍵文字只認動作條上的法術（跟格子同一套查法）；建議的招放在巨集裡查不到。
   - 下一招圖示不套 Masque 皮。
+
+### 常用預設＋複製到其他專精（`Core/Presets.lua`、`Options/Picker.lua`、`Options/SpellPopover.lua`）
+
+挑選器（預覽最右邊的「＋」）在「自訂 ID」上面多一區**常用預設**（只有圖示類的條），四顆鈕各開一個清單彈窗；
+逐法術面板對自訂項目多一顆**「複製到其他專精…」**。加進去的都是普通的自訂項目（同一套 `spells[spec].custom`），
+之後的設定、移除、搬條跟手動加的一樣。
+
+| 鈕 | 清單 | 加成什麼 |
+|---|---|---|
+| 種族技能 | 這個角色的種族（`UnitRace` 的英文 token）、而且學了的（`Catalog.SpellKnown`） | 自訂法術 |
+| 防禦技能 | 這個職業（整個職業一張表）、目前學了的 | 自訂法術 |
+| 藥水與治療石 | `Presets.ITEMS` 每一組一列，圖示與名字用包包裡有的那件 | 自訂物品，帶 `alts` |
+| 團隊增益 | 嗜血類（含戰鼓）、時間螺旋（13 個逐職業的增益）、藥水增益 | 光環格（增益），帶 `spellIDs` |
+
+- **彈窗**（`Picker.AskPreset`）：一列一項（`W.CreateRowList`，超過 8 列捲動），圖示＋名字（執行時問 `C_Spell`／`C_Item`，
+  物品名字沒快取時 `GET_ITEM_INFO_RECEIVED` 到了重畫）、滑過是法術／物品提示；點一下就加、彈窗不關，那一列當場灰掉寫「已加入」
+  （判重照主 ID：法術／物品 `DB.FindCustom`；團隊增益那一組任何一個 ID 已經是光環格的主 ID 就算）。最下面「同時加到這個職業的其他專精」
+  每次開都預設勾，**防禦技能不顯示**（別的專精學不學得到不知道）；勾了就對其他專精各叫一次 `DB.CopyCustomEntry`（已有的跳過）。沒有東西可列時一行灰字。
+- **嗜血的主 ID 照陣營**：聯盟 32182、其餘 2825（`Presets.AuraEntry` 的 `lead`），名字與占位圖示用主的；其他 ID 照樣進 `spellIDs`。
+- **物品的替代品**（`{ kind = "item", itemID = 主, alts = { … } }`）：`Custom.UpdateItem` 每次從「主＋alts」照順序挑第一個
+  `GetItemCount > 0` 的當 `rec.itemID`（都沒有就用主的；純函式 `Custom.PickItem`）。換了物品就清武裝、`Keybinds.Invalidate`，
+  可點擊的條要求重排（鈕的 `item` 屬性讀 `rec.itemID`，戰鬥中由 `ns.Write` 記帳到脫戰；`Place` 途中換的那次同一輪就讀到，不另外要求）。
+  `Catalog.Info` 的圖示、名字、`itemID` 照解析後的那件（多一個 `mainItemID`）。身分 key 仍是 `item:<主>`。
+  每組裡短效的排前面（會過期，先用掉）。
+- **光環格的多法術**（`{ kind = "aura", spellID = 主, spellIDs = { 主以外的 }, filter = "HELPFUL" }`）：`includeSpellIDs` 放全部，
+  容器簽章把整組排序後串進去（單一法術時就是那個 ID，跟以前一樣）；占位圖示、身分用主的。音效（`AddAuraSound`）每個 ID 各登一筆。
+  **只認增益**：`filter == "HARMFUL"` 時 `spellIDs` 一律忽略（友方減益本來就只收 NeverSecret 的單一 ID）。
+  引擎畫的是**真實的增益與真實的剩餘時間**，別人開的嗜血也會亮，不靠施放事件猜秒數。
+- **兩個選用欄位的容錯**：不是表就當沒有、壞值與重複的跳過（`Custom.ItemIDs`／`AuraIDs`）；`Catalog.ValidCustom` 只看主 ID。
+  判重（`DB.FindCustom`）只看主 ID，替代品或其他法術的 ID 不算。
+- **複製到其他專精**：`DB.CopyCustomEntry(id, targetSpecID)`（純資料）把目前專精的第 `id` 筆深複製、追加到目標專精尾端，
+  它的覆寫（`overrides[id]`）一併複製到新 id；`bar` 照抄（條是設定檔層）；目標已有同種類同主 ID（光環同 filter）⇒ 回 false 不動。
+  `DB.ClassSpecs()` 讀這個職業的專精（pcall，讀不到回空表）。逐法術面板的彈窗：每個其他專精一個勾選框，已有的勾著並停用、標「已有」，
+  其餘預設勾；「複製」至少勾了一個還沒有的才能按，確定後逐個複製、彈窗關掉（不印聊天框）。
+- **資料表每季／每次改版要對一次**（`Core/Presets.lua`，名稱與圖示不寫死）：
+  - **藥水**：新資料片／新賽季的物品 ID（每種藥水的短效與一般各兩階）、藥水增益的法術 ID。舊的要拿掉，不然清單會列一堆包包裡不會有的東西。
+  - **種族技能**：新種族、改版調整的種族技能 ID（同一個技能依職業有好幾個 ID 的全部列上，顯示時濾學了的）。
+  - **防禦技能**：天賦樹改版新增／拿掉的防禦技能。
+  - **團隊增益**：新的嗜血類職業技能、新資料片的戰鼓。
+  - 收錄規矩：**每個 ID 至少兩個來源一致**（本套組自己的爆發藥水／嗜血音樂插件的表、其他插件的法術資料庫、wowhead），
+    只有一個來源的上 wowhead 查證；兩邊對不上以 wowhead 為準；查不到的不放。
+  - 改完跑 `lua AddOns/MiliUI_CooldownManager/Tests/Presets_test.lua`（ID 都是正整數、沒有重複、每組至少一個）。
+- 離線測試：`Tests/Presets_test.lua`、`Tests/Custom_test.lua` 第 8～10 節（`PickItem`／`ItemIDs`／`AuraIDs`／簽章、`Info` 照解析後的物品、
+  `UpdateItem` 換物品的清武裝／重排）、`Tests/DB_test.lua` 第 12 節（`CopyCustomEntry`、`ClassSpecs`）、`Tests/Clickable_test.lua` 第 12 節
+  （鈕跟著解析後的物品）、`Tests/Sound_test.lua`（多法術每個各登一筆）、`Tests/Catalog_test.lua`（選用欄位的形狀）。
+- ⚠ 已知限制：
+  - 種族技能「學了沒」讀不到時當學了（跟自訂法術同一支判斷）⇒ 那種情況下德萊尼會列出十個同名的「那魯的祝福」。
+  - 防禦技能是整個職業攤平的一張表：有天賦樹的分支沒點的不會列（學了才列），但「哪一個專精常用」不分。
+  - 物品的替代品只看「包包裡有沒有」，不看品質高低；同時有好幾種時照表的順序。
 
 ### 圖示外觀：Masque（`Core/Masque.lua`）
 
@@ -956,6 +1007,18 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 79. **自訂框的編輯模式**：`Visibility.ApplyAll` 只碰暴雪 item，自訂框在 `EditModeChanged` 時另外延一幀重套（計畫只寫「既有訊號會走到」）。
 80. **空的飾品欄不套**（計畫沒寫）：沒有冷卻可判，跟未學會的問號格一樣維持 1。
 
+**常用預設＋複製到其他專精（2026-10-03，P3）**
+
+81. **`spellIDs` 只存主 ID 以外的**（跟物品的 `alts` 對稱）。讀的一律走 `Custom.AuraIDs`（主在前、去重），所以就算哪天存成「含主的全部」也一樣。
+82. **嗜血的主 ID 照陣營換**（計畫沒寫）：聯盟用 32182、部落用 2825 的名字與占位圖示；判「已加入」看整組任何一個 ID，換陣營的角色共用設定檔也不會重複加。
+83. **時間螺旋用的是 13 個逐職業的增益 ID**，不是喚能師施放的那個法術：光環格認的是身上的增益，暴雪給每個職業的位移技能各一個增益。
+84. **藥水一種一列**（計畫寫 `combatPotion…` 一組）：幾種爆發藥水的增益不同、玩家各用各的，合成一格會把「用哪一瓶」藏起來；另外多一組法力藥水。
+    其中一種爆發藥水的增益 ID 沒有第二個來源，只做物品那一列、團隊增益不列它。
+85. **`CU.Update(rec, placing)` 多一個參數**：替代品在 `Place` 途中換了就不另外要求重排（同一輪的 `Clickable.Place` 會讀到），事件路徑換了才要求。
+86. **`Catalog.Info` 對帶替代品的物品回解析後的 `itemID`**，另外多 `mainItemID` 給要看主 ID 的地方（逐法術面板的 ID 那行顯示的是解析後的）。
+87. **複製彈窗裡還沒有的專精預設勾**（計畫只說已有的勾著停用）：開這個彈窗就是要複製，預設全勾比較少點；「複製」至少勾一個還沒有的才能按。
+88. **「種族技能」「防禦技能」兩個語系 key 沿用既有的**（匯入報告早就有同一個字），沒有另外新增。
+
 ## 待實機驗證
 
 依區塊排，編號連續。打一場記得開 `/console taintLog 2`，看完別 /reload（會清掉 taint.log）。
@@ -1287,3 +1350,19 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      兩個功能都關時任何時候都是「停」。
 164. 主題的觸發／就緒發光跟醒目標示同時在一格上時兩圈都看得到（醒目標示在最上層），停放／移除那一格時醒目標示一起熄。
 165. `/console taintLog 2` 打一場（含換目標、按 Tab）taint.log 沒有本插件；輪詢 0.1 秒一次在 `/miliui` 的效能監控分頁裡看不出明顯成本。
+
+**常用預設＋複製到其他專精（2026-10-03，P3）**
+
+166. 四種預設加進去之後各自正常：種族技能／防禦技能（冷卻、按鍵文字、可點擊）、藥水與治療石（冷卻、數量、0 個時去飽和）、
+     團隊增益（光環出現／消失、剩餘時間、不在時的占位圖示）。清單裡只列這個角色學了的種族技能（同一個技能依職業有好幾個 ID 的種族——德萊尼、血精靈、獸人——
+     只列一個）與目前學了的防禦技能；換天賦後重開清單跟著變。
+167. 藥水用完一種自動換成包包裡有的另一種（圖示、數量、冷卻、滑鼠提示都跟著換）；都用完回到主的、數量 0、去飽和。
+     可點擊群組：戰鬥外換了點下去喝的是新的那瓶；戰鬥中用完換不了屬性，脫戰後才換（`/mcdm debug` 看 ns.Write 待補）。
+168. 嗜血：**別人開的也會亮**（多法術光環格、`includeSpellIDs` 帶 12 個 ID 在副本／首領戰的增益過濾裡成立），剩餘時間是真的；
+     法師、獵人寵物、喚能師的版本與戰鼓各試一次。時間螺旋同（喚能師開了之後自己的位移技能增益出現）。藥水增益喝下去就亮。
+     聯盟角色清單上那一列是 32182 的名字與圖示、部落是 2825 的。
+169. 多法術光環格的出現／消失音效：任何一個 ID 上身都會響（每個 ID 各登一筆 `AddAuraSound`）。
+170. 「同時加到這個職業的其他專精」勾著加：切到其他專精那一條就有；防禦技能的彈窗沒有這個勾選。
+     逐法術面板「複製到其他專精…」：已有的專精勾著停用、寫「已有」；複製之後切過去就在、**覆寫也在**（例如挑過的音效、邊框色）。
+171. 物品名字第一次開清單沒快取時先顯示「#ID」，資料到了自己換成名字（彈窗開著時）。
+172. 舊存檔的自訂物品／光環格（沒有 `alts`／`spellIDs`）行為跟以前一樣（同一顆物品、同一個法術、容器不重建）。

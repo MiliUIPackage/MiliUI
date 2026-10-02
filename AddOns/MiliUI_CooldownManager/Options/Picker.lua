@@ -12,6 +12,10 @@
 --                      那要在暴雪自己的面板裡拖進去 —— 附一顆開面板的按鈕。
 --                      **照暴雪面板的分頁分成兩排**（「法術」／「增益效果」）：同一件飾品、同一瓶藥水在暴雪那邊
 --                      是兩個項目（一個追蹤冷卻、一個追蹤它給的增益），圖示一模一樣，混在一排看起來像重複。
+--   常用預設          （只有圖示類的條）四顆鈕「種族技能」「防禦技能」「藥水與治療石」「團隊增益」，各開一個
+--                      清單彈窗（一列一項：圖示＋名字，滑過是法術／物品提示，點一下就加；這個專精已經有的那一列
+--                      灰掉並寫「已加入」）。資料在 Core/Presets.lua。最下面一個勾選「同時加到這個職業的其他專精」
+--                      （防禦技能不給：別的專精學不學得到不知道），勾了就對其他專精各叫一次 DB.CopyCustomEntry。
 --   自訂 ID            三顆鈕「光環」「法術」「物品」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
 --                      spells[spec].custom 追加一筆（bar ＝ 這條）。只有圖示類的條收自訂項目。
 --                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；同專精不收重複；
@@ -321,6 +325,22 @@ local function Build()
         if ns.TabBar and ns.TabBar.OpenBlizzard then ns.TabBar.OpenBlizzard() end
     end)
 
+    -- 常用預設：四顆鈕各開一個清單彈窗
+    sections.presetHead = W.CreateGroupLabel(frame, L["Presets"])
+    sections.presetNote = Text(frame, true)
+    sections.presetNote:SetText(L["Pick from ready-made lists instead of typing IDs."])
+    sections.presetBtns = {}
+    for _, def in ipairs({ { "racials", L["Racials"] }, { "defensives", L["Defensives"] },
+                           { "items", L["Potions & healthstones"] }, { "auras", L["Group buffs"] } }) do
+        local kind = def[1]
+        local b = W.CreateButton(frame, def[2], "normal", 80, 22)
+        W.FitButton(b, 80, 22)
+        b:SetScript("OnClick", function() Picker.AskPreset(kind) end)
+        sections.presetBtns[#sections.presetBtns + 1] = b
+    end
+    sections.presetRow = CreateFrame("Frame", nil, frame)
+    sections.presetRow:SetSize(WIDTH - PAD * 2, 22)
+
     sections.customHead = W.CreateGroupLabel(frame, L["Custom ID"])
     sections.customNote = Text(frame, true)
     sections.customBtns = {}
@@ -416,8 +436,22 @@ function Picker.Refresh()
     end
     Place(sections.openBtn, y); y = y - 22 - 14
 
-    Place(sections.customHead, y); y = y - 16
     local iconBar = not IsBarsKind(key)
+    -- 常用預設（只有圖示類的條）
+    sections.presetHead:SetShown(iconBar)
+    sections.presetNote:SetShown(iconBar)
+    sections.presetRow:SetShown(iconBar)
+    for _, b in ipairs(sections.presetBtns) do b:SetShown(iconBar) end
+    if iconBar then
+        Place(sections.presetHead, y); y = y - 16
+        Place(sections.presetNote, y); y = y - (sections.presetNote:GetStringHeight() + 6)
+        Place(sections.presetRow, y)
+        local _, ph = W.FlowLayout(sections.presetRow, sections.presetBtns, WIDTH - PAD * 2, 6, 4, 22)
+        sections.presetRow:SetHeight(ph)
+        y = y - ph - 14
+    end
+
+    Place(sections.customHead, y); y = y - 16
     -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），直接建議走物品 ID
     sections.customNote:SetText(iconBar
         and (L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
@@ -455,15 +489,20 @@ local function Notice(text)
 end
 Picker.Notice = Notice
 
-local function Commit(entry)
-    local key = curKey
-    local i = ns.DB.AddCustom(entry)
-    if not i then Notice(L["Pick a specialization first."]) return end
+-- 加了自訂項目之後：預覽、表單、真實條、左欄、挑選器本身都重讀
+local function AfterAdd(key)
     ns.Preview.Refresh(key)
     if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(key) end
     ns.Options.ApplyEngine("membership")
     if ns.Sidebar and ns.Sidebar.RefreshEmpty then ns.Sidebar.RefreshEmpty() end
     Picker.Refresh()
+end
+
+local function Commit(entry)
+    local i = ns.DB.AddCustom(entry)
+    if not i then Notice(L["Pick a specialization first."]) return end
+    AfterAdd(curKey)
+    return i
 end
 
 local function AskFilter(text)
@@ -812,6 +851,237 @@ function Picker.AskSlot()
         y = y - 30 - 4
     end
     P.Height(f, -y + 22 + 12 + 8)
+    f:Show()
+end
+
+------------------------------------------------------------
+-- 常用預設的清單彈窗（資料：Core/Presets.lua）
+--
+--   Picker.PresetRows(kind, key) → { { kind = "spell"|"item"|"aura", id, icon, name, added, make() }, … }
+--   Picker.AskPreset(kind)        開彈窗
+--
+-- 一列一項（W.CreateRowList，清單長就捲）；點一下就加、彈窗不關，那一列當場變「已加入」。
+-- 「同時加到這個職業的其他專精」：每次開都預設勾（防禦技能不顯示這個勾選）。
+------------------------------------------------------------
+local PRESET_W, PRESET_ROW, PRESET_MAX_ROWS = 380, 30, 8
+local presetPopup
+
+local PRESET_TITLES = {
+    racials    = function() return L["Your race's active abilities that you know. Click one to track its cooldown."] end,
+    defensives = function() return L["Your class's defensive abilities that you currently know. Click one to track its cooldown."] end,
+    items      = function() return L["Potions and healthstones. Each one shows whichever version you have in your bags. Click one to track it."] end,
+    auras      = function() return L["Bloodlust and the like, Time Spiral and potion buffs on you, whoever cast them. Click one to add an aura slot."] end,
+}
+
+local function PlainValue(fn, ...)
+    if not fn then return nil end
+    local ok, v = pcall(fn, ...)
+    if not ok or ns.IsSecret(v) then return nil end
+    return v
+end
+
+local function SpellRow(id)
+    return {
+        kind = "spell", id = id,
+        icon = PlainValue(C_Spell and C_Spell.GetSpellTexture, id),
+        name = PlainValue(C_Spell and C_Spell.GetSpellName, id),
+        added = ns.DB.FindCustom("spell", id) ~= nil,
+        make = function(key) return ns.Presets.SpellEntry(id, key) end,
+    }
+end
+
+local function BagCount(id)
+    return PlainValue(C_Item and C_Item.GetItemCount, id, false, true)
+end
+
+function Picker.PresetRows(kind, key)
+    local PR = ns.Presets
+    local out = {}
+    if kind == "racials" then
+        local race = PlainValue(function() return select(2, UnitRace("player")) end)
+        for _, id in ipairs(PR.Racials(race, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id) end
+    elseif kind == "defensives" then
+        for _, id in ipairs(PR.Defensives(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id) end
+    elseif kind == "items" then
+        for _, def in ipairs(PR.ITEMS) do
+            -- 圖示與名字用包包裡有的那件（都沒有就用主的）
+            local shown = ns.Custom.PickItem(def.items, BagCount)
+            local name = PlainValue(C_Item and C_Item.GetItemNameByID, shown)
+            if not name and C_Item and C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, shown) end
+            out[#out + 1] = {
+                kind = "item", id = shown,
+                icon = PlainValue(C_Item and C_Item.GetItemIconByID, shown),
+                name = name,
+                added = ns.DB.FindCustom("item", def.items[1]) ~= nil,
+                make = function(k) return PR.ItemEntry(def, k) end,
+            }
+        end
+    elseif kind == "auras" then
+        local faction = PlainValue(UnitFactionGroup, "player")
+        for _, def in ipairs(PR.AURAS) do
+            local e = PR.AuraEntry(def, key, faction)
+            -- 判「已加入」看整組任何一個 ID（換陣營的角色共用設定檔時主 ID 不同）
+            local added = false
+            for _, id in ipairs(PR.AuraIDs(def)) do
+                if ns.DB.FindCustom("aura", id, "HELPFUL") then added = true break end
+            end
+            if e then out[#out + 1] = {
+                kind = "aura", id = e.spellID,
+                icon = PlainValue(C_Spell and C_Spell.GetSpellTexture, e.spellID),
+                name = PlainValue(C_Spell and C_Spell.GetSpellName, e.spellID),
+                added = added,
+                make = function(k) return PR.AuraEntry(def, k, faction) end,
+            } end
+        end
+    end
+    return out
+end
+
+local RenderPreset          -- 前置宣告
+
+-- 加一列：這個專精加一筆；勾了就複製到其他專精（目標已有就跳過）
+local function AddPreset(row)
+    local f = presetPopup
+    if not (f and row) or row.added then return end
+    local key = curKey
+    local entry = row.make(key)
+    if not entry then return end
+    local i = ns.DB.AddCustom(entry)
+    if not i then Notice(L["Pick a specialization first."]) return end
+    if f.alsoCB:IsShown() and f.alsoCB:GetChecked() then
+        for _, spec in ipairs(ns.DB.ClassSpecs()) do
+            if spec.id ~= ns.specID then ns.DB.CopyCustomEntry(ns.DB.CustomID(i), spec.id) end
+        end
+    end
+    AfterAdd(key)
+    RenderPreset()
+end
+
+local function BuildPresetRow(row)
+    local b = CreateFrame("Button", nil, row)
+    b:SetAllPoints()
+    local hl = b:CreateTexture(nil, "BACKGROUND")
+    hl:SetAllPoints()
+    hl:SetColorTexture(1, 1, 1, 0.06)
+    hl:Hide()
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetSize(24, 24)
+    b.icon:SetPoint("LEFT", 3, 0)
+    b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    b.status = b:CreateFontString(nil, "OVERLAY")
+    b.status:SetFontObject(W.fontSmall)
+    b.status:SetTextColor(0.65, 0.65, 0.65)
+    b.status:SetJustifyH("RIGHT")
+    b.status:SetPoint("RIGHT", -6, 0)
+    b.label = b:CreateFontString(nil, "OVERLAY")
+    b.label:SetFontObject(W.fontNormal)
+    b.label:SetJustifyH("LEFT")
+    b.label:SetWordWrap(false)               -- 太長就截「…」，完整名字在滑鼠提示裡
+    b.label:SetPoint("LEFT", b.icon, "RIGHT", 8, 0)
+    b.label:SetPoint("RIGHT", b.status, "LEFT", -6, 0)
+    b:SetScript("OnEnter", function(self)
+        hl:Show()
+        local d = self.data
+        if not d then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        local ok
+        if d.kind == "item" then ok = pcall(GameTooltip.SetItemByID, GameTooltip, d.id)
+        else ok = pcall(GameTooltip.SetSpellByID, GameTooltip, d.id) end
+        if not ok then GameTooltip:SetText(d.name or ("#" .. tostring(d.id))) end
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function()
+        hl:Hide()
+        GameTooltip:Hide()
+    end)
+    row.btn = b
+end
+
+local function UpdatePresetRow(row, d)
+    local b = row.btn
+    b.data = d
+    b.icon:SetTexture(d.icon or QUESTION)
+    b.icon:SetDesaturated(d.added and true or false)
+    b.label:SetText(d.name or ("#" .. tostring(d.id)))
+    b.label:SetTextColor(d.added and 0.5 or 1, d.added and 0.5 or 1, d.added and 0.5 or 1)
+    b.status:SetText(d.added and L["Already added"] or "")
+    -- 列會回收再用：點擊的 closure 每次重設
+    b:SetScript("OnClick", (not d.added) and function() AddPreset(d) end or nil)
+end
+
+local function BuildPresetPopup()
+    local f = W.CreateFrame(nil, ns.Options.panel, PRESET_W, 200)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetFrameLevel(410)
+    f:SetBackdropBorderColor(W.Accent(1))
+    f:SetPoint("CENTER")
+    W.CloseOnEscape(f)
+    f.title = Text(f, false)
+    f.title:SetPoint("TOPLEFT", PAD, -12)
+    f.title:SetWidth(PRESET_W - PAD * 2)
+    f.list = W.CreateRowList(f, PRESET_W - PAD * 2, PRESET_ROW * PRESET_MAX_ROWS, PRESET_ROW, BuildPresetRow)
+    f.empty = Text(f, true)
+    f.empty:SetText(L["Nothing to list here."])
+    f.alsoCB = W.CreateCheckButton(f, L["Also add to this class's other specializations"])
+    f.alsoExtra = f.alsoCB:SetLabelMaxWidth(PRESET_W - PAD * 2 - 18 - f.alsoCB.labelGap) or 0
+    f.close = W.CreateButton(f, L["Close"], "normal", 90, 22)
+    W.FitButton(f.close, 90, 22)
+    f.close:SetPoint("BOTTOMRIGHT", -PAD, 12)
+    f.close:SetScript("OnClick", function() f:Hide() end)
+    f:Hide()
+    ns.RegisterCallback("OptionsHidden", "picker_preset", function() f:Hide() end)
+    -- 物品名字第一次問常常還沒快取：資料到了重畫（只在彈窗開著時聽，下一幀合併）
+    local armed = false
+    local function OnItemInfo()
+        if armed or not (f:IsShown() and f.kind == "items") then return end
+        armed = true
+        ns.Defer(function() armed = false; if f:IsShown() then RenderPreset() end end)
+    end
+    f:HookScript("OnShow", function() ns.Events.Register("GET_ITEM_INFO_RECEIVED", "picker_preset", OnItemInfo) end)
+    f:HookScript("OnHide", function() ns.Events.Unregister("GET_ITEM_INFO_RECEIVED", "picker_preset") end)
+    return f
+end
+
+RenderPreset = function()
+    local f = presetPopup
+    if not (f and f.kind and curKey) then return end
+    local rows = Picker.PresetRows(f.kind, curKey)
+    f.title:SetText(PRESET_TITLES[f.kind]())
+    local y = -(12 + (f.title:GetStringHeight() or 14) + 10)
+    local n = #rows
+    f.list:SetShown(n > 0)
+    f.empty:SetShown(n == 0)
+    if n > 0 then
+        local h = PRESET_ROW * math.min(n, PRESET_MAX_ROWS)
+        P.Height(f.list, h)
+        f.list:ClearAllPoints()
+        f.list:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+        f.list:Update(rows, UpdatePresetRow)
+        y = y - h - 10
+    else
+        f.empty:ClearAllPoints()
+        f.empty:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+        y = y - (f.empty:GetStringHeight() or 14) - 10
+    end
+    -- 防禦技能不給「其他專精」：別的專精學不學得到不知道
+    local also = f.kind ~= "defensives"
+    f.alsoCB:SetShown(also)
+    if also then
+        f.alsoCB:ClearAllPoints()
+        f.alsoCB:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+        y = y - 18 - (f.alsoExtra or 0) - 10
+    end
+    P.Height(f, -y + 22 + 12 + 4)
+end
+
+function Picker.AskPreset(kind)
+    if not ns.specID then Notice(L["Pick a specialization first."]) return end
+    if not PRESET_TITLES[kind] then return end
+    presetPopup = presetPopup or BuildPresetPopup()
+    local f = presetPopup
+    f.kind = kind
+    f.alsoCB:SetChecked(true)                -- 每次開都預設勾
+    RenderPreset()
     f:Show()
 end
 
