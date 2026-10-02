@@ -236,14 +236,11 @@ local RESOURCES = {
                         auras = { 395296 }, passive = 395152 },
     ArcaneSoul      = { name = SpellName(451038, "Arcane Soul"), nameSpell = 451038, mode = "auraTimer",
                         auras = { 451038, 1223522 }, passive = 449619, heroTree = 39, gcdText = true },
-    --   征戰聖擊（懲戒天賦 404542：普攻換成聖擊）：身上那顆光環每揮一刀刷新一次，剩餘時間＝離下一刀多久。
-    --   ID 集合跟德莫的征戰聖擊助手同一張（不同天賦／覆寫下用過的編號，沒出現的永遠比對不到，無害）。
-    --   引擎直接跑光環的時間 ⇒ **不需要**把它放進暴雪冷卻管理器的「追蹤的量條」。
+    -- 征戰聖擊（懲戒天賦 404542：普攻換成聖擊）：**鏡射**暴雪「追蹤的量條」裡那條（mode = "mirror"，見下面「征戰聖擊」一節）。
     --   這一列有自己的高度、填充方向與底色（crusadingHeight／crusadingFill／colors.CrusadingStrikes.backColor，
-    --   預設值照助手：高 4、已揮的時間左→右長出、黑底 60%），不印秒數（1.5 秒一刀，數字讀不完）
-    CrusadingStrikes = { name = SpellName(404542, "Crusading Strikes"), nameSpell = 404542, mode = "auraTimer",
-                        auras = { 404542, 406833, 408385, 1226662, 1307499 }, passive = 404542,
-                        crusading = true, noText = true },
+    --   預設值照德莫的征戰聖擊助手：高 4、已揮的時間左→右長出、黑底 60%），不印秒數（1.5 秒一刀，數字讀不完）
+    CrusadingStrikes = { name = SpellName(404542, "Crusading Strikes"), nameSpell = 404542, mode = "mirror",
+                        passive = 404542, crusading = true, noText = true },
     -- 血量：每個專精都是候選、預設關（R.DefaultOn）；不在 RawList 裡，R.Candidates 附加在最後
     Health          = { name = PowerName("HEALTH", "Health"), mode = "bar", get = HealthValue, health = true },
 }
@@ -278,7 +275,8 @@ function R.StaggerLabel(band, cfg)
 end
 
 -- 引擎寫值的列（auraBar 層數、auraTimer 剩餘時間、auraPct 百分比）：Lua 這邊沒有值
-local ENGINE_MODES = { auraBar = true, auraTimer = true, auraPct = true }
+-- mirror（征戰聖擊）也算：值是從暴雪的條原封轉手的秘密值，Lua 一樣沒得比
+local ENGINE_MODES = { auraBar = true, auraTimer = true, auraPct = true, mirror = true }
 function R.EngineDriven(key)
     local def = RESOURCES[key]
     return def ~= nil and ENGINE_MODES[def.mode] == true
@@ -500,7 +498,7 @@ R.AuraStacks = AuraStacks
 local function GetValue(key)
     local def = RESOURCES[key]
     if not def then return 0, 0 end
-    if def.mode == "auraTimer" then return 0, 0 end     -- 剩餘時間只在引擎那邊，Lua 不讀
+    if def.mode == "auraTimer" or def.mode == "mirror" then return 0, 0 end     -- 剩餘時間只在引擎／暴雪的條那邊，Lua 不讀
     if def.get then return def.get() end
     if def.aura then return AuraStacks(def.aura), def.max end
     if def.auras then return AuraStacks(def.auras[1]), R.SegmentsFor(key) end
@@ -574,6 +572,10 @@ R.gateLog = gateLog
 local function Available(key)
     local def = RESOURCES[key]
     if not def then return false, "沒有定義" end
+    if def.mode == "mirror" then
+        if SpellKnown(def.passive) then return true, "被動已學" end
+        return false, "被動未學（天賦沒點）"
+    end
     if def.aura or def.cast or def.auras or def.get then
         if SpellKnown(def.passive) then return true, def.passive and "被動已學" or "不需要天賦" end
         if def.heroTree and ActiveHeroTree() == def.heroTree then return true, "英雄天賦樹 " .. tostring(def.heroTree) end
@@ -1188,7 +1190,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
     local cc = ResolveColor(cfg, key, "color")
     local text
-    if cfg.showText and not def.noText then
+    if cfg.showText then
         -- 字級換成實體像素（同 row.text 的 SetPixelFont）：按鈕子樹裡的 FontString 忽略父層縮放
         local scale = UIParent:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -1206,7 +1208,6 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     local status = ns.AuraBar.Apply(row.ab, {
         kind = "duration", spellIDs = def.auras, max = 1, texture = tex, color = cc,
         alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, text = text,
-        elapsed = def.crusading and R.CrusadingFill(cfg) == "elapsed" or nil,
     })
     row.gcdUsed = text and text.gcd or nil
     row.engineStatus = status
@@ -1333,7 +1334,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     row.text:SetShown(showText and mode ~= "engine" and mode ~= "timerIdle" and not def.noText)
 
     local isPip = mode == "pip" and numSeg and numSeg > 0
-    local isBar = mode == "bar" or mode == "absorbBar" or mode == "timerIdle"
+    local isBar = mode == "bar" or mode == "absorbBar" or mode == "timerIdle" or mode == "mirror"
     row.barBG:SetShown(isBar)
     row.bar:SetShown(isBar)
     if mode ~= "absorbBar" then HideAbsorb(row) end
@@ -1346,6 +1347,10 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
         row.bar:SetStatusBarTexture(tex)
         row.bar:SetReverseFill(reversed)
         row.barBG:SetTexture(tex)
+        if mode == "mirror" then
+            R.PaintMirror(row, key, cfg, reversed)
+            return
+        end
         if mode == "absorbBar" then
             -- 列本身的 bar 只剩邊框（值 0），真正的填色在裁切框裡那條寬的
             EnsureAbsorb(row)
@@ -1808,6 +1813,146 @@ local function UpdateAbsorbRow(row, cfg, def, key, cc, conds)
 end
 
 ------------------------------------------------------------
+-- 征戰聖擊（mode = "mirror"）：鏡射暴雪「追蹤的量條」裡那條
+--
+-- 為什麼不是 auraTimer（引擎寫光環剩餘時間）：試過（2026-10-02 實機），整列一直是空底。
+-- 暴雪冷卻清單登記的是天賦本身 404542（CooldownSetSpell 148597，懲戒 set 901、TrackedBar），
+-- 那是被動光環，AuraContainer 的 HELPFUL 候選裡看不到。其他路（戰鬥記錄、施法事件、
+-- GetAuraDuration、自建 duration、自己算時間）德莫的征戰聖擊助手都查證過走不通。
+--
+-- 走得通的只有這條：暴雪的 BuffBarCooldownViewer item 是 untainted 程式每幀往 item.Bar 寫
+-- SetMinMaxValues／SetValue（戰鬥中是秘密值），**原生 StatusBar 之間原封轉手是允許的**：
+--     row.bar:SetMinMaxValues(src:GetMinMaxValues()); row.bar:SetValue(src:GetValue())
+-- 中間沒有任何比較或算術。那個 item 本來就是我們認領的框（buffbars），**只讀不寫**。
+-- ⇒ 前置條件：征戰聖擊要在暴雪冷卻管理器的「追蹤的量條」裡。在我們的增益長條上把它移除沒關係
+--   （移除＝停到畫面外＋alpha 0，不 Hide，暴雪照樣每幀更新）。
+--
+-- 規矩（同血量列）：餵過秘密值的 row.bar 不回讀幾何／值，也沒有東西錨在它身上。
+-- 活性訊號用 item:IsVisible()（暴雪對沒亮的 item SetShown(false)，永遠明文）——
+-- **不要問 item:IsActive()**，那是從光環時間算的，戰鬥中是秘密布林。
+--
+-- 已揮的時間（elapsed，預設）：暴雪的條是剩餘時間。反向填充讓「剩餘」那截貼在另一邊，
+-- 兩層的角色互換：條的材質＝還沒到的時間（底色），列的背景＝看到的進度（主色）。
+-- 沒在揮（item 沒亮）時整條畫成底色：elapsed 填滿遮罩（值 1/1）、remaining 填 0。
+------------------------------------------------------------
+local CS_IDS = {
+    [404542] = true, [406833] = true, [408385] = true, [1226662] = true, [1307499] = true,
+}
+
+local mirrorMemo = {}          -- cooldownID → 是不是征戰聖擊（只記讀得到時的結果）
+local function Hit(v) return v ~= nil and not ns.IsSecret(v) and CS_IDS[v] == true end
+local function MirrorMatches(id)
+    if id == nil or ns.IsSecret(id) then return false end
+    local m = mirrorMemo[id]
+    if m ~= nil then return m end
+    local get = C_CooldownViewer and C_CooldownViewer.GetCooldownViewerCooldownInfo
+    if not get then return false end
+    local ok, r = pcall(function()
+        local info = get(id)
+        if type(info) ~= "table" or ns.IsSecret(info) then return nil end
+        if Hit(info.spellID) or Hit(info.overrideSpellID) or Hit(info.overrideTooltipSpellID) then return true end
+        local linked = info.linkedSpellIDs
+        if type(linked) == "table" and not ns.IsSecret(linked) then
+            for _, v in ipairs(linked) do if Hit(v) then return true end end
+        end
+        return false
+    end)
+    if not ok or r == nil then return false end     -- 讀不到不記，下次再問
+    mirrorMemo[id] = r
+    return r
+end
+
+local mirrorItem, mirrorID
+local mirrorScanAt = 0
+-- 手上那個 item 還是征戰聖擊嗎：cooldownID 換了就是池子發給別人了。
+-- ⚠ 戰鬥中身分讀不到（Viewers 記成 nil）時當作沒換 —— 框重發只在換天賦／專精，不在戰鬥中
+local function MirrorStillCurrent()
+    local rec = mirrorItem and ns.Viewers.frames[mirrorItem]
+    if not rec then return false end
+    if rec.cooldownID == mirrorID then return true end
+    return rec.cooldownID == nil and InCombatLockdown()
+end
+
+-- 找來源 item：手上的還算數就用；否則最多每 0.5 秒掃一次增益長條的池子（亮著的優先）
+function R.MirrorSource()
+    if mirrorItem and MirrorStillCurrent() then return mirrorItem end
+    mirrorItem, mirrorID = nil, nil
+    local now = GetTime()
+    if now - mirrorScanAt < 0.5 then return nil end
+    mirrorScanAt = now
+    if not (ns.Viewers and ns.Viewers.EnumerateItems) then return nil end
+    local found, fid, lit
+    ns.Viewers.EnumerateItems(function(item, rec)
+        if lit then return end
+        if MirrorMatches(rec.cooldownID) then
+            if item:IsVisible() then
+                found, fid, lit = item, rec.cooldownID, true
+            elseif not found then
+                found, fid = item, rec.cooldownID
+            end
+        end
+    end, "buffbars")
+    mirrorItem, mirrorID = found, fid
+    return found
+end
+
+function R.PaintMirror(row, key, cfg, reversed)
+    local cc = ResolveColor(cfg, key, "color")
+    local bk = R.TimerBack(cfg, key, cc)
+    local elapsed = R.CrusadingFill(cfg) == "elapsed"
+    row.mirrorElapsed = elapsed
+    local t = row.bar:GetStatusBarTexture()
+    if elapsed then
+        row.bar:SetReverseFill(not reversed)
+        if t then t:SetVertexColor(bk[1], bk[2], bk[3], bk[4]) end
+        row.barBG:SetVertexColor(cc.r, cc.g, cc.b, 1)
+    else
+        if t then t:SetVertexColor(cc.r, cc.g, cc.b, 1) end
+        row.barBG:SetVertexColor(bk[1], bk[2], bk[3], bk[4])
+    end
+    R.MirrorRow(row)
+end
+
+function R.MirrorRow(row)
+    local item = R.MirrorSource()
+    local src = item and item:IsVisible() and item.Bar
+    if src and src.GetValue then
+        -- ⚠ 先落地再餵：SetValue 的第二個參數是插值模式，直接串接多回傳值會把多出來的值當旗標
+        local mn, mx = src:GetMinMaxValues()
+        row.bar:SetMinMaxValues(mn, mx)
+        local v = src:GetValue()
+        row.bar:SetValue(v)
+    else
+        row.bar:SetMinMaxValues(0, 1)
+        row.bar:SetValue(row.mirrorElapsed and 1 or 0)
+    end
+end
+
+-- 暴雪每幀在寫來源 ⇒ 有 mirror 列時每幀轉手一次（獨立的 driver 框：列被淡出時照樣跑）
+local mirrorDriver
+local mirrorRows, mirrorCount = nil, 0
+local function MirrorTick()
+    for i = 1, mirrorCount do
+        local row = mirrorRows[i]
+        if row and row.mode == "mirror" then R.MirrorRow(row) end
+    end
+end
+function R.SetMirrorDriver(list, count)
+    local any = false
+    for i = 1, count do
+        if list[i] and list[i].mode == "mirror" then any = true break end
+    end
+    mirrorRows, mirrorCount = list, count
+    if any and not mirrorDriver then mirrorDriver = CreateFrame("Frame") end
+    if mirrorDriver then mirrorDriver:SetScript("OnUpdate", any and MirrorTick or nil) end
+end
+
+function R.MirrorStatus()
+    local item = mirrorItem
+    return item ~= nil, item ~= nil and item:IsVisible() or false
+end
+
+------------------------------------------------------------
 -- 血量（Health）
 --
 -- UnitHealth／UnitHealthMax 在 12.1 連脫戰都是秘密值（.claude/notes/wow-121-unit-api-secrets.md）：
@@ -1981,6 +2126,12 @@ local function UpdateRow(row, cfg)
         ClearRowOverrides(row)
         return
     end
+    if row.mode == "mirror" then
+        R.MirrorRow(row)
+        row.text:SetText("")
+        ClearRowOverrides(row)
+        return
+    end
     if row.mode == "timerIdle" then
         -- 剩餘時間條的容器還沒好（戰鬥中、建失敗）：空條，底色同連續條
         local d = R.TimerBack(cfg, key, ResolveColor(cfg, key, "color"), timerDimScratch)
@@ -2075,6 +2226,7 @@ local function Relayout(cfg, list, W)
         if row.ab and ns.AuraBar then ns.AuraBar.HideContainer(row.ab) end
     end
     shownCount = #list
+    R.SetMirrorDriver(rows, shownCount)
     local n = #list
     ns.Bars.SetPanelSize("resources", W, n > 0 and (total + (n - 1) * gap) or 1)
 end
@@ -2093,6 +2245,7 @@ function R.Update(force)
         shownCount = 0
         healthShown = false
         laidOut = false
+        R.SetMirrorDriver(rows, 0)
         return
     end
     if force or not laidOut then
