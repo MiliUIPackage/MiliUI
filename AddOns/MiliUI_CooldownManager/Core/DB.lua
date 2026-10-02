@@ -33,7 +33,7 @@ ns.DB_VERSION = 3
 DB.DEFAULT_PROFILE = "Default"
 
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
-local ResourcesDefaults, PipsDefaults, CastbarDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
+local ResourcesDefaults, PipsDefaults, CastbarDefaults, AssistIconDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 
 -- 「整張表當一個值」的預設：設定檔裡**沒有這個鍵**才整張給，已經有（含空表）就一個字都不合併。
 -- 給內容是使用者自己的清單、但預設不是空的那種表用（資源條的上色規則）：逐元素合併會把預設規則的
@@ -122,9 +122,10 @@ function DB.NewBarTable(kind, name)
 end
 
 ------------------------------------------------------------
--- 資源條（Modules/Resources.lua）、自訂格子（Modules/Pips.lua）與施法條（Modules/Castbar.lua）
+-- 資源條（Modules/Resources.lua）、自訂格子（Modules/Pips.lua）、施法條（Modules/Castbar.lua）
+-- 與下一招圖示（Modules/AssistIcon.lua）
 --
--- 三者都不在 bars 裡（不是暴雪檢視器、沒有版面／主題繼承），但**錨定語意跟條一樣**：
+-- 四者都不在 bars 裡（不是暴雪檢視器、沒有版面／主題繼承），但**錨定語意跟條一樣**：
 -- pos ＝ { point, x, y }、anchor ＝ false 或 { to, point, relPoint, x, y }，容器走
 -- Core/Bars.lua 的 RegisterPanel（ApplyStructure、編輯模式、磁吸都是同一套）。
 -- DB.ConfigTable(key) 是「條或面板」的統一取表出口。
@@ -330,6 +331,21 @@ CastbarDefaults = function()
     }
 end
 
+-- 下一招圖示（Modules/AssistIcon.lua，面板 assistIcon）：戰鬥輔助建議的下一招，純顯示、不能點。
+-- 預設關；舊存檔沒有這張表 ＝ 合併預設值補上（關著），不遷移
+AssistIconDefaults = function()
+    return {
+        enabled     = false,
+        pos         = { point = "CENTER", x = 0, y = -120 },
+        anchor      = false,
+        size        = 44,
+        onlyCombat  = true,                -- 只在戰鬥中顯示（編輯模式中照樣全亮）
+        showKeybind = true,                -- 按鍵文字（樣式照主題的 keybind）
+        showGCD     = true,                -- 公共冷卻轉圈
+        strata      = "MEDIUM",
+    }
+end
+
 function DB.BuildDefaults()
     -- 位置與往上長：使用者 2026-10-01 指定（照使用者調好的那份），不遷移
     local buffbars = LongBar{ source = "buffbars", grow = "CENTER_UP", pos = { point = "BOTTOM", x = 0, y = 524 } }
@@ -381,6 +397,10 @@ function DB.BuildDefaults()
                 -- 音效（Core/Sound.lua）：總開關與聲道；要響什麼是逐法術覆寫（readySound／gainSound／loseSound）。
                 -- 不走條層繼承（不在 THEMED 裡），一律用 ns.Setting("theme", "sound.…") 讀
                 sound    = { enabled = true, channel = "Master" },
+                -- 戰鬥輔助的下一招醒目標示（Core/Assist.lua）：建議的那一招在任何一條上就亮一圈。
+                -- 不走條層繼承（不在 THEMED 裡），一律用 ns.Setting("theme", "assist.…") 讀。預設關、不遷移
+                assist   = { highlight = false, type = "pixel", color = rgba(0.25, 0.75, 1, 1),
+                             lines = 8, thickness = 2, frequency = 0.2 },
             },
             bars = {
                 essential = IconBar{ source = "essential", pos = { point = "CENTER", x = 0, y = -202 },
@@ -402,6 +422,7 @@ function DB.BuildDefaults()
             resources = ResourcesDefaults(),
             pips      = PipsDefaults(),
             castbar   = CastbarDefaults(),
+            assistIcon = AssistIconDefaults(),
         },
     }
 end
@@ -944,14 +965,14 @@ function DB.BarClickable(key)
     return (b ~= nil and b.kind == "icons" and b.source == "custom" and b.clickable == true) and true or false
 end
 
--- 「面板」：資源條、自訂格子與施法條。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁），
--- 但錨定／位置／編輯模式跟條同一套。
+-- 「面板」：資源條、自訂格子、施法條與下一招圖示。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
+-- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套。
 -- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
-local PANEL_KEYS = { resources = true, pips = true, castbar = true }
+local PANEL_KEYS = { resources = true, pips = true, castbar = true, assistIcon = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS
--- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列
-DB.PANEL_ORDER = { "resources", "pips", "castbar" }
+-- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（下一招圖示排最後）
+DB.PANEL_ORDER = { "resources", "pips", "castbar", "assistIcon" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 條或面板的設定表（錨定、位置、編輯模式、設定頁的 root "bar" 一律走這支）

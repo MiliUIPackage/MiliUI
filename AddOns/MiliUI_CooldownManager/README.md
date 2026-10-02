@@ -44,12 +44,13 @@
 | `Media/Sounds/` | 內建音效 106 個＋`Sounds.lua`（載入時註冊進 LibSharedMedia，別的插件的音效下拉也選得到）。**這個資料夾是 GPL-2.0**，出處與授權見裡面的 `README.md`、`LICENSE`；跟本體其餘程式分開，本體的程式不要搬進去、裡面的東西也不要搬出來混用 |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
-| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
+| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
+| `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -71,11 +72,12 @@
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
+| `Core/Assist.lua` | 戰鬥輔助：自己輪詢下一招建議（`C_AssistedCombat.GetNextCastSpell`），醒目標示畫在索引查到的格子上；建議變了廣播 `AssistSpellChanged`（見「戰鬥輔助」） |
 | `Core/Clickable.lua` | 可點擊的自訂圖示群組：每格蓋一顆透明的 secure 鈕（屬性戰鬥外寫好、寫入走 `ns.Write`＋簽章去重），見「可點擊的自訂群組」 |
 | `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；每一格都是 Bars 的一個 entry |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
-→ Interrupt → Resources → Castbar → Visibility（`Core/Init.lua` 的 `ns.StartEngine`）。
+→ Interrupt → Resources → Pips → Castbar → Assist → AssistIcon → Visibility（`Core/Init.lua` 的 `ns.StartEngine`）。
 換設定檔／專精：清樣式簽章、重讀目錄、全部重排、重套 alpha，不需要 /reload。
 任何一步 `Init` 拋錯 ⇒ `ns.EngineFailed`：`Bars.ReleaseAll` 把冷卻管理器還給暴雪，聊天框印一行。
 
@@ -179,7 +181,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 ## 設定介面
 
-`/mcdm` 開 700×520 的設定視窗。左欄：條（四條檢視器＋自訂群組＋「＋ 新增群組」）、資源條、施法條、
+`/mcdm` 開 700×520 的設定視窗。左欄：條（四條檢視器＋自訂群組＋「＋ 新增群組」）、資源條、施法條、戰鬥助手、
 全域（主題／設定檔／關於）。**所有選項即時生效，沒有一個要 /reload。**
 
 | 檔案 | 內容 |
@@ -195,6 +197,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
 | `Options/Tab_Resources.lua`、`Options/ResourceConditions.lua` | 資源條頁與它的條件規則編輯器 |
 | `Options/Tab_Castbar.lua` | 施法條頁（頁首「預覽」） |
+| `Options/Tab_Assist.lua` | 戰鬥助手頁：下一招醒目標示（主題層）＋下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Options/ClickLayer.lua` | 視窗開著時畫面上每條蓋一層透明點擊層，點了切到那條的頁面並閃職業色邊 |
 
 ### 條的頁面
@@ -361,6 +364,50 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   - 隱藏的格上面的發光（觸發／就緒）、按鍵文字跟著看不到（都是 item 的子框）；「轉好時看不到」配就緒發光沒有意義。
   - 精準重算的條件很保守：施放技能那一下的事件幾乎都帶 GCD 類別 ⇒ 全掃；精準的多半是冷卻結束／重置那種只帶 spellID 的事件。
 
+### 戰鬥輔助：下一招醒目標示＋下一招圖示（`Core/Assist.lua`、`Modules/AssistIcon.lua`、`Options/Tab_Assist.lua`）
+
+暴雪的戰鬥助手會算出「下一招建議」（`C_AssistedCombat.GetNextCastSpell`）。兩個功能，**都預設關**，左欄「戰鬥助手」一頁設定。
+用語照暴雪 GlobalStrings：頁名＝`ASSISTED_COMBAT_LABEL`（zhTW「戰鬥助手」、zhCN「战斗辅助」），醒目標示＝`ASSISTED_COMBAT_HIGHLIGHT_LABEL`
+（zhTW「輔助醒目標示」、zhCN「辅助标亮」）；九個語系的這兩個字都照暴雪的值。舊存檔沒有 `theme.assist`／`profile.assistIcon` ＝ 合併預設值補成關著，
+不遷移、`DB_VERSION` 不動。
+
+- **訊號來源**（`Core/Assist.lua`）：暴雪自己的管理器（`AssistedCombatManager`）只在玩家開了「輔助醒目標示」CVar 時才用 OnUpdate 輪詢並廣播。
+  我們**不掛它、不改 CVar，自己輪詢**：0.1 秒的 `C_Timer.NewTicker`，`GetNextCastSpell(false)`（pcall；秘密值／不是正數當沒有）。
+  - ticker 只在「功能有開（醒目標示，或下一招圖示而且不受『只在戰鬥中』限制）**而且**（戰鬥中或目標可攻擊）」時存在（純函式 `ShouldPoll`），
+    其餘時間取消、建議清成 nil。每一拍也重判（目標死了、脫戰那一拍自己停）。進出戰鬥、換目標（`PLAYER_TARGET_CHANGED`，一律 `ns.Defer`）、
+    設定變了 ⇒ `Assist.Refresh`。拍子裡拋錯 ⇒ 停掉、記下來（不每 0.1 秒刷錯誤），下次 Refresh 再試。
+  - 建議變了才通知：`Assist.Reapply`（醒目標示）＋廣播 `AssistSpellChanged`（下一招圖示）。
+  - API 不存在（`C_AssistedCombat` 是 nil）⇒ 整個功能停用，設定頁最上面一行灰字說明。
+- **醒目標示**：建議的那一招在任何一條上（暴雪技能或自訂法術）那一格亮一圈。設定在主題層（不逐條、不進 `THEMED`）：
+  `theme.assist = { highlight, type, color, lines, thickness, frequency }`，一律 `ns.Setting("theme", "assist.…")`。
+  - 找格子：`SpellIndex.Lookup(spellID)`（索引收了 spellID 與 overrideSpellID）→ `Assist.Targets` 濾掉增益類（暴雪增益兩條的 item、
+    自訂光環格／物品）、停放中、收起來的。換建議時舊的熄、新的亮。
+  - 畫法：`Core/Glow.lua` 的第四種發光 `"assist"`（宿主在 overlay 底下、層級在觸發發光之上；預設色 (0.25, 0.75, 1)）。
+    `G.Sync` **不碰它**（不屬於觸發／就緒／生效的對帳）；`Bars` 每輪排版結尾（法術索引重建之後）與目錄變了之後叫 `Assist.Reapply` 重接；
+    停放（`OnParked`）一律熄。設定頁有一顆常亮的樣本（`Specs.GlowSampleRow("assist", "assist")`）。
+- **下一招圖示**（`Modules/AssistIcon.lua`，面板 `assistIcon`）：獨立的一顆圖示＋按鍵文字＋公共冷卻轉圈，純顯示、不收滑鼠。
+  `profile.assistIcon = { enabled = false, pos = { CENTER, 0, -120 }, anchor = false, size = 44, onlyCombat = true, showKeybind = true, showGCD = true, strata = "MEDIUM" }`。
+  - 走既有的面板機制（`Bars.RegisterPanel("assistIcon", { anchorPoint = "CENTER", … })`）⇒ 編輯模式覆蓋層、拖曳、磁吸、方向鍵微調、
+    錨定候選、設定視窗的點擊層都自動有。`PANEL_ORDER` 排最後；排開順序也排最後（`STACK_RANK` 900，在自訂群組之後）。
+  - 圖示：`C_Spell.GetSpellTexture`（明文才用，讀不到畫問號）；縮放、邊框、轉圈色照主題（`icon.zoom`、`border`、`icon.swipeColor`；
+    邊框跟格子同一支 `Decorate.LayoutBorder`）。**不交給 Masque**。
+  - 按鍵：`Keybinds.TextForSpell`（`C_Spell.GetBaseSpell` 拿基礎法術，覆寫法術優先），樣式照主題的 `keybind`；`Keybinds.RefreshAll` 會叫它重畫。
+  - 公共冷卻：`C_Spell.GetSpellCooldownDuration(61304)` → `SetCooldownFromDurationObject`。只在圖示看得到時才聽 `SPELL_UPDATE_COOLDOWN`（延一幀合併）。
+  - 顯示（`Vis.EvaluatePanel` 的 `assistIcon` 分支，多一個參數 `suggestion`）：關著 → 0；只在戰鬥中且不在戰鬥 → 0；沒有建議 → 0；
+    編輯模式中全亮，沒有建議時畫問號。
+- **設定頁**（`Options/Tab_Assist.lua`）：一張表單讀寫兩處——ctx 用 `mode = "theme"`＋`key = "assistIcon"`：root `"theme"` 直接讀寫主題
+  （右鍵重設回主題預設），root `"bar"` 走 `DB.ConfigTable("assistIcon")`（右鍵重設回面板預設）。最上面一行「沒有反應的話到遊戲設定開啟『輔助醒目標示』」
+  （選項名執行時讀暴雪的 `ASSISTED_COMBAT_HIGHLIGHT_LABEL`）；「下一招醒目標示」節：開關、樣式、顏色、說明、樣本；「下一招圖示」節：開關、尺寸、
+  只在戰鬥中、顯示按鍵、顯示公共冷卻、說明、錨定（`Specs.Anchor("assistIcon")`）；最後「恢復預設」（兩邊一起）。
+- **`/mcdm debug`** 多兩行：
+  `戰鬥輔助：API 有／沒有  醒目標示 開／關  下一招圖示 開／關  輪詢 進行中／停（開過 N 次、輪詢 N 次）  目前建議 <spellID（名字）>／無  亮著 N 格  換建議 N 次`
+  （ticker 有沒有在跑、目前建議、亮了幾格；拍子裡拋錯停掉時尾巴多「最近錯誤（已停）」），以及
+  `下一招圖示：開／關  尺寸  只在戰鬥中  公共冷卻訂閱 是／否  alpha`。
+- ⚠ 已知限制：
+  - 「沒開暴雪的輔助醒目標示 CVar 時自己呼叫 `GetNextCastSpell` 有沒有值」沒有實機驗過（見待實機驗證）；沒有的話要玩家自己去開那個選項。
+  - 圖示的按鍵文字只認動作條上的法術（跟格子同一套查法）；建議的招放在巨集裡查不到。
+  - 下一招圖示不套 Masque 皮。
+
 ### 圖示外觀：Masque（`Core/Masque.lua`）
 
 - 設定：圖示那一節最前面的「圖示外觀」（`icon.skin`：`"miliui"` 預設｜`"masque"`），走主題 → 條的繼承（跟「圖示」那一節的跟隨）。
@@ -410,21 +457,22 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 ## 資源條與施法條
 
-三者都是**面板**：資源條、自訂格子（`pips`）、施法條。不在 `bars` 裡（沒有版面／主題繼承），設定在
-`profile.resources`／`profile.pips`／`profile.castbar`，資源條與施法條在左欄有自己的頁（自訂格子的設定在資源條頁）；
+四者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
+`profile.resources`／`profile.pips`／`profile.castbar`／`profile.assistIcon`，資源條與施法條在左欄有自己的頁（自訂格子的設定在資源條頁、
+下一招圖示在戰鬥助手頁）；
 但**錨定語意跟條一模一樣**（`pos = { point, x, y }`、`anchor = false | { to, point, relPoint, x, y }`），
 容器也是 `MiliUICDM_Bar_<key>`、走 `Core/Bars.lua` 的同一套 `ApplyStructure`、編輯模式覆蓋層／選取框／磁吸、點擊層。
 
 | 位置 | 內容 |
 |---|---|
-| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`；順序＝顯示條件套用與錨定候選的順序）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
+| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`、`assistIcon`；順序＝顯示條件套用與錨定候選的順序，下一招圖示排最後）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
 | `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
 | `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
 | `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：spec 的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
-| `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`（`ShowPage`／`FocusBar` 照它轉，點擊層點了開資源條頁）、`Options.PageTitle("pips")` 回「自訂格子」（覆蓋層條名、錨定候選、點擊層提示） |
+| `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`、`Options.HostPage("assistIcon") == "assist"`（`ShowPage`／`FocusBar` 照它轉，點擊層點了開那一頁）、`Options.PageTitle("pips")` 回「自訂格子」、`PageTitle("assistIcon")` 回「下一招圖示」（覆蓋層條名、錨定候選、點擊層提示） |
 
 容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、自訂格子 `TOP`（預設錨在
-核心技能下緣、往下長）、施法條 `CENTER`。寬 0 ＝ 核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`）。
+核心技能下緣、往下長）、施法條與下一招圖示 `CENTER`。寬 0 ＝ 核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`）。
 
 預設的上下疊法（使用者 2026-09-30 指定；增益圖示 2026-10-01 加入）：增益圖示 → 施法條 → 資源條 → **核心技能 → 自訂格子 → 輔助技能**。
 五個的 `anchor.to` 全部是 `essential`（資源條、施法條、增益圖示在上方；自訂格子、輔助技能在下方），先後由排開決定。
@@ -435,7 +483,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 所以**實際貼在誰身上是算出來的**：
 
 - 跟著同一個目標、同一邊的算一疊，照固定順序往外排：資源條 → 自訂格子 → 輔助技能 → 施法條 → 增益圖示 →
-  增益長條 → 自訂群組（照左欄順序）。後面那個貼在前面那個的外緣，邊與偏移照自己的設定。
+  增益長條 → 自訂群組（照左欄順序）→ 下一招圖示（預設不錨定；錨了就排最外圈）。後面那個貼在前面那個的外緣，邊與偏移照自己的設定。
 - 前面那個自己身上同一邊還掛著東西（有人指名跟著它）⇒ 貼在那一串的最外面。
 - 目標關掉了、而且它自己也掛在同一邊 ⇒ 當它不存在，接到它的上一層（資源條關掉，施法條貼回核心）。
 - 目標掛在**相反**那一邊（輔助「在自訂格子下方」，而自訂格子在核心「上方」）⇒ 那個位置一定壓到東西，
@@ -643,7 +691,7 @@ customRows[specID] = {
 | `GetResourceColors(key)` | `{ color = {r,g,b,a}, chargedColor = {…}\|nil, chargedEmptyColor = {…}\|nil }`；沒有這個資源、設定檔還沒載入 → `nil`。key 見下 |
 | `GetResourceConditions(key)` | 規則陣列（形狀見 `Modules/ResourceConditions.lua` 檔頭，與單位框架相同）；沒有規則 → `nil` |
 | `GetResourceBarFrame(powerType)` | `Enum.PowerType`（或資源 key 字串，給沒有 PowerType 的資源：`"Stagger"`、`"IgnorePain"`、`"Ironfur"`、`"EbonMight"`…）→ 資源條上那一列的框；沒有這一列、玩家關掉、整條關掉（容器藏起來）→ `nil`。載入條件／淡出造成的 alpha 0 不算藏（框還在，錨在上面的東西不必換錨點） |
-| `GetBarFrame(key)` | 容器框 `MiliUICDM_Bar_<key>`（四條檢視器、自訂群組、`resources`、`pips`、`castbar`）；還沒建 → `nil` |
+| `GetBarFrame(key)` | 容器框 `MiliUICDM_Bar_<key>`（四條檢視器、自訂群組、`resources`、`pips`、`castbar`、`assistIcon`）；還沒建 → `nil` |
 | `IsReady()` | 引擎是否已經認領好四條檢視器（布林）。問資源顏色／條件不必等它：設定檔載入前那兩支自己回 `nil` |
 | `RegisterCallback(event, key, fn)` | 訂閱事件，目前只開放 `"ResourceStyleChanged"`（資源顏色或條件規則變了：資源條頁的套用、換設定檔、換專精，合併 0.2 秒，不帶參數）。同一個 key 再登記＝換掉；成功回 `true`，事件不開放回 `false`。`fn` 拋錯會被隔離 |
 | `UnregisterCallback(event, key)` | 取消訂閱 |
@@ -1225,3 +1273,17 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 157. 類別項目（暴雪面板裡的藥水那類）讀得到 `isOnActualCooldown`（欄位名對過 live 版 `CooldownViewer.lua`：`not isOnGCD and cooldownIsActive`，暴雪拿冷卻時間跟 `GetTime()` 比出來的，戰鬥中可能是秘密值）；讀不到時維持顯示。
 158. 自訂法術的框餵過秘密布林之後（`SetAlphaFromBoolean`），Masque 套皮、發光、按鍵文字照常；暴雪 item 餵過之後暴雪自己的檢視器排版不報錯。
 159. `/console taintLog 2` 打一場（含戰鬥中冷卻狀態切換、進出編輯模式）沒有本插件。
+
+**戰鬥輔助：下一招醒目標示＋下一招圖示（2026-10-03，P2）**
+
+160. **沒開暴雪的「輔助醒目標示」（CVar `assistedCombatHighlight`）時**，我們自己呼叫 `C_AssistedCombat.GetNextCastSpell(false)` 有沒有回值；
+     戰鬥中（含首領戰／M+）回的是不是明文數字（`/mcdm debug` 的「目前建議」有 spellID 就是）。沒有值的話設定頁那行灰字要改成「必須開」。
+161. 醒目標示跟著建議換格：建議的招在核心／輔助／自訂圖示群組（暴雪技能或自訂法術）上那一格亮；建議的招不在任何一條上時什麼都不亮；
+     增益圖示列、增益長條上的同名增益不亮。換專精、換天賦、拖動排序、搬進別的群組之後不留殘影（舊格熄、新格亮）。
+     有天賦覆寫的法術（建議回的是覆寫後的 ID）照樣找得到格子。
+162. 下一招圖示：圖示對、按鍵文字對（含覆寫法術、主動作條翻頁）、公共冷卻轉圈跟得上；只在戰鬥中（脫戰消失）；編輯模式拖得動、方向鍵微調、
+     位置 /reload 後存得住；沒有建議時編輯模式裡畫問號；設定頁改尺寸／開關按鍵與轉圈當場生效；錨到施法條或核心技能上時排在最外圈。
+163. 脫戰沒目標時 ticker 停了（`/mcdm debug` 的「輪詢 停」、建議「無」）；選了可攻擊的目標（脫戰）時開始輪詢、選友方或目標死了停；
+     兩個功能都關時任何時候都是「停」。
+164. 主題的觸發／就緒發光跟醒目標示同時在一格上時兩圈都看得到（醒目標示在最上層），停放／移除那一格時醒目標示一起熄。
+165. `/console taintLog 2` 打一場（含換目標、按 Tab）taint.log 沒有本插件；輪詢 0.1 秒一次在 `/miliui` 的效能監控分頁裡看不出明顯成本。

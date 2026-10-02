@@ -39,7 +39,7 @@
 -- 檢視器本體釘在容器上（TOPLEFT／BOTTOMRIGHT 對齊），被暴雪（編輯模式、底部管理框）
 -- 拉走就釘回來；_pinGuard 擋自己觸發自己。
 --
--- 面板（資源條、自訂格子、施法條；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
+-- 面板（資源條、自訂格子、施法條、下一招圖示；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
 -- 同一套 ApplyStructure（pos／anchor、strata、enabled＝false 就 Hide）與編輯模式／磁吸，
 -- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
 -- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
@@ -141,8 +141,9 @@ local function AnchorTarget(key)
 end
 
 -- 排開：跟著同一個目標、同一邊的照這個順序往外排（小的靠近目標），規則在 Core/Layout.lua。
--- 自訂群組排在內建的後面，彼此照左欄順序。
-local STACK_RANK = { resources = 1, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6, essential = 7 }
+-- 自訂群組排在內建的後面，彼此照左欄順序；下一招圖示排在所有東西的最後面（最外圈）。
+local STACK_RANK = { resources = 1, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6, essential = 7,
+                     assistIcon = 900 }
 local function StackRank(key)
     if STACK_RANK[key] then return STACK_RANK[key] end
     local p = Profile()
@@ -796,6 +797,8 @@ Flush = function()
 
     -- 法術 → 格子的索引（SPELL_UPDATE_COOLDOWN 帶 ID 時只重算那幾格，Core/SpellIndex.lua）
     if ns.SpellIndex then ns.SpellIndex.Rebuild() end
+    -- 戰鬥輔助的下一招醒目標示照新的索引重接（格子換了、搬了條、換專精：舊的熄、新的亮）
+    if ns.Assist and ns.Assist.Reapply then ns.Assist.Reapply() end
 
     if not B.ready then
         B.ready = true
@@ -1002,6 +1005,7 @@ function B.Init()
     ns.RegisterCallback("CatalogChanged", "bars", function()
         -- 覆寫法術可能換了：索引先照現況重建一次（排版那輪結尾會再建）
         if ns.SpellIndex then ns.SpellIndex.Rebuild() end
+        if ns.Assist and ns.Assist.Reapply then ns.Assist.Reapply() end
         B.RequestAll("membership")
     end)
     ns.RegisterCallback("CatalogResumed", "bars", function() B.RequestAll("membership") end)

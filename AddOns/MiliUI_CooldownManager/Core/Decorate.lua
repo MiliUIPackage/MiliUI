@@ -162,6 +162,7 @@ local function MakeBorder(ov)
     end
     return b
 end
+D.MakeBorder = MakeBorder          -- 下一招圖示（Modules/AssistIcon.lua）的邊框跟格子同一套
 
 -- 只換顏色（無損刷新的邊框色、換回原色）：不動形狀
 local function ColorBorder(b, r, g, bl, a)
@@ -248,6 +249,7 @@ function LayoutBorder(b, region, size, token, r, g, bl, a)
     right:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", 0, t)
     right:SetWidth(t)
 end
+D.LayoutBorder = LayoutBorder
 
 ------------------------------------------------------------
 -- 暴雪自己的裝飾：圓角遮罩拔掉、外框圖熄 alpha（每框一次）

@@ -212,6 +212,9 @@ local function Debug()
     if ns.Castbar and ns.Castbar.DebugLines then
         for _, line in ipairs(ns.Castbar.DebugLines()) do p(line) end
     end
+    -- 戰鬥輔助：輪詢的 ticker 在不在、目前建議、亮著幾格；下一招圖示的現況
+    if ns.Assist and ns.Assist.DebugLine then p(ns.Assist.DebugLine()) end
+    if ns.AssistIcon and ns.AssistIcon.DebugLine then p(ns.AssistIcon.DebugLine()) end
     if ns.Keybinds and ns.Keybinds.CacheSize then
         p(("  按鍵文字：快取 %d 筆"):format(ns.Keybinds.CacheSize()))
     end
@@ -374,7 +377,8 @@ _G.MiliUI_CooldownManager = {
     IsReady = function()
         return (ns.ready and ns.Viewers and ns.Viewers.ready and ns.Bars and ns.Bars.ready) and true or false
     end,
-    -- 某條的容器框（MiliUICDM_Bar_<key>；資源條 "resources"、自訂格子 "pips"、施法條 "castbar" 也是），給別的插件錨定用；
+    -- 某條的容器框（MiliUICDM_Bar_<key>；資源條 "resources"、自訂格子 "pips"、施法條 "castbar"、
+    -- 下一招圖示 "assistIcon" 也是），給別的插件錨定用；
     -- 還沒建好回 nil。⚠ 錨上來的框會跟著這條移動；別對它 SetParent 或改它的大小。
     GetBarFrame = function(barKey)
         return ns.Bars and ns.Bars.Get(barKey) or nil

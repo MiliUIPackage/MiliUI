@@ -261,6 +261,8 @@ function K.RefreshAll()
             K.Apply(frame, rec, key)
         end)
     end
+    -- 下一招圖示（Modules/AssistIcon.lua）的按鍵文字
+    if ns.AssistIcon and ns.AssistIcon.RefreshKeybind then ns.AssistIcon.RefreshKeybind() end
 end
 
 function K.CacheSize()

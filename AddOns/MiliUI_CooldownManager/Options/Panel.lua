@@ -64,8 +64,11 @@ function Options.HasPage(id)
 end
 
 -- 沒有自己一頁的面板：設定在哪一頁、給玩家看的名字（編輯模式覆蓋層、點擊層、錨定候選用）。
--- 自訂格子（pips）的設定在資源條頁
-local SUBPANELS = { pips = { host = "resources", title = L["Custom segments"] } }
+-- 自訂格子（pips）的設定在資源條頁；下一招圖示（assistIcon）在戰鬥輔助頁（Options/Tab_Assist.lua）
+local SUBPANELS = {
+    pips       = { host = "resources", title = L["Custom segments"] },
+    assistIcon = { host = "assist",    title = L["Next cast icon"] },
+}
 
 -- 這個 id 的設定在哪一頁（一般的條／頁就是自己）
 function Options.HostPage(id)

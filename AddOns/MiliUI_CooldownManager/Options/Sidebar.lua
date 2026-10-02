@@ -183,6 +183,7 @@ local function Items()
     out[#out + 1] = { gap = HEAD_GAP }
     out[#out + 1] = { id = "resources" }
     out[#out + 1] = { id = "castbar" }
+    out[#out + 1] = { id = "assist" }          -- 戰鬥輔助（下一招醒目標示＋下一招圖示）
     return out
 end
 

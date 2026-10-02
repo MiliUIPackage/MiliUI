@@ -16,12 +16,13 @@
 -- （它們的 parent 仍是暴雪檢視器，我們不 SetParent），容器的 alpha 管不到它們 ——
 -- 所以每個認領中的 item 也要各自 SetAlpha（走 Decorate.ApplyItemAlpha：冷卻狀態效果疊在條的 alpha 上，相乘）。
 --
--- 面板（資源條、自訂格子、施法條）不走上面的模型，各自一條（Vis.PanelAlpha）：
+-- 面板（資源條、自訂格子、施法條、下一招圖示）不走上面的模型，各自一條（Vis.PanelAlpha）：
 --   資源條  enabled ＝ false → 0；載入條件 loadConditions（騎乘或坐載具／只在戰鬥中）任一不符 → 0；
 --           fadeWithEssential 開著時取核心技能條現在的 alpha（它的顯示條件與淡出一起帶過來）
 --   自訂格子  enabled ＝ false → 0；載入條件與 fadeWithEssential 同資源條，但讀的是 profile.pips
 --             自己的那一份（資源條的不帶過來）
 --   施法條  enabled ＝ false → 0；hideWhenNotCasting 且沒在施法（ns.Castbar.IsActive）→ 0
+--   下一招圖示  enabled ＝ false → 0；onlyCombat 且不在戰鬥 → 0；戰鬥輔助沒有建議（ns.Assist.Current）→ 0
 --   編輯模式中一律全亮（同條）。面板的框都是容器的子框，容器的 alpha 就管得到。
 --
 -- 事件處理器只標髒、下一幀套（PLAYER_TARGET_CHANGED 會在按 Tab 的 secure 流程裡同步派送，
@@ -123,8 +124,9 @@ function Vis.Alpha(key)
     return Vis.Evaluate(bar.visibility, fade, Snapshot())
 end
 
--- 面板的 alpha（純邏輯；s 是 Snapshot 的形狀，essentialAlpha／casting 由呼叫端給）
-function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting)
+-- 面板的 alpha（純邏輯；s 是 Snapshot 的形狀，essentialAlpha／casting／suggestion 由呼叫端給）
+-- suggestion：戰鬥輔助目前建議的法術（明文 spellID 或 nil），只有下一招圖示看
+function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting, suggestion)
     if type(cfg) ~= "table" or cfg.enabled == false then return 0 end
     if key == "resources" then
         local lc = type(cfg.loadConditions) == "table" and cfg.loadConditions or {}
@@ -150,6 +152,11 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting)
     elseif key == "castbar" then
         if cfg.hideWhenNotCasting ~= false and not casting then return 0 end
         return 1
+    elseif key == "assistIcon" then
+        -- onlyCombat 沒存（nil）照預設當開
+        if cfg.onlyCombat ~= false and not s.combat then return 0 end
+        if suggestion == nil then return 0 end
+        return 1
     end
     return 1
 end
@@ -161,7 +168,8 @@ function Vis.PanelAlpha(key)
     local ess = 1
     if (key == "resources" or key == "pips") and cfg.fadeWithEssential ~= false then ess = Vis.Alpha("essential") end
     local casting = ns.Castbar and ns.Castbar.IsActive and ns.Castbar.IsActive() or false
-    return Vis.EvaluatePanel(key, cfg, Snapshot(), ess, casting)
+    local suggestion = key == "assistIcon" and ns.Assist and ns.Assist.Current and ns.Assist.Current() or nil
+    return Vis.EvaluatePanel(key, cfg, Snapshot(), ess, casting, suggestion)
 end
 
 function Vis.Apply(key)

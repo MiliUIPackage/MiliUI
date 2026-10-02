@@ -85,6 +85,7 @@ local GLOW_ITEMS = {
     { text = L["Action button"],  value = "button" },
     { text = L["Proc"],           value = "proc" },
 }
+Specs.GLOW_ITEMS = GLOW_ITEMS
 
 -- 冷卻狀態（icon.cdState，Core/Decorate.lua 的冷卻狀態效果）
 local CDSTATE_ITEMS = {
@@ -609,11 +610,13 @@ end
 -- 發光預覽：一顆樣本圖示一直亮著目前的樣式與顏色，切樣式當場看得到效果。
 -- 引擎跟格子共用（ns.Glow.PaintOn／StopOn）；就緒發光在格子上只亮幾秒，樣本則常亮。
 -- 表單引擎在值變了之後只叫 ctx.apply、不叫 refreshers ⇒ 包一層 ctx.apply 讓樣本跟著換。
+-- path（可省）：樣式表在主題的哪裡，預設 "glow.<which>"（戰鬥輔助頁的醒目標示是 "assist"）
 ------------------------------------------------------------
 local SAMPLE_ICON = "Interface\\Icons\\Spell_Holy_HolyBolt"
 local SAMPLE_SIZE = 36
 
-function GlowSampleRow(which)
+function GlowSampleRow(which, path)
+    path = path or ("glow." .. which)
     return { type = "custom", label = L["Preview"], h = SAMPLE_SIZE + 8, section = "glow", noReset = true,
              build = function(parent, x, y, width, ctx)
         local f = CreateFrame("Frame", nil, parent)
@@ -635,7 +638,7 @@ function GlowSampleRow(which)
         local function Refresh()
             local G = ns.Glow
             if not (G and G.PaintOn) then return end
-            local c = ReadThemed(ctx.info, "glow." .. which)
+            local c = ReadThemed(ctx.info, path)
             c = type(c) == "table" and c or {}
             local col = type(c.color) == "table" and c.color or {}
             local now = table.concat({ tostring(c.type), tostring(col.r), tostring(col.g),
@@ -654,6 +657,7 @@ function GlowSampleRow(which)
         return SAMPLE_SIZE + 8, Refresh
     end }
 end
+Specs.GlowSampleRow = function(which, path) return GlowSampleRow(which, path) end
 
 ------------------------------------------------------------
 -- 版面（條自己的欄位）

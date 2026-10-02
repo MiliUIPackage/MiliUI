@@ -1,5 +1,6 @@
 ------------------------------------------------------------
--- 發光：觸發發光（接管暴雪的 SpellActivationAlert）、就緒發光、生效發光、無損刷新邊框
+-- 發光：觸發發光（接管暴雪的 SpellActivationAlert）、就緒發光、生效發光、無損刷新邊框、
+--       戰鬥輔助的下一招醒目標示（開關在 Core/Assist.lua）
 --
 --   ns.Glow.OwnsProc(barKey, id)                 這格的暴雪觸發發光要不要熄（我們畫）
 --   ns.Glow.Sync(owner, rec, barKey)             排版時叫：想要的發光狀態 ↔ 目前狀態對齊
@@ -66,6 +67,11 @@
 -- 「沒生效也顯示」時灰圖示不能亮（fail-closed）。
 -- 這支只管暴雪 item。自訂光環格（AuraContainer）吃同一個逐法術開關，但發光在 Modules/Custom.lua 的
 -- initializeFrame 裡建在引擎按鈕底下（按鈕只在光環存在時顯示），不經過這裡。
+--
+-- ── 戰鬥輔助的下一招醒目標示 ────────────────────────────────────────────
+-- 第四種發光（which ＝ "assist"），開關與目標由 Core/Assist.lua 決定（G.Start／G.Stop 直接叫）：
+-- 它不屬於觸發／就緒／生效的對帳，G.Sync **不碰它**（排版時不熄）；Bars 每輪排版結尾叫
+-- Assist.Reapply 重接。停放（OnParked）一律熄。宿主一樣是 overlay 底下自己的框，層級在最上面。
 --
 -- ── 無損刷新 ────────────────────────────────────────────────────────────
 -- 後掛勾 item 的 ShowPandemicStateFrame／HidePandemicStateFrame（暴雪在 OnUpdate 裡每幀叫，
@@ -148,7 +154,8 @@ local function Host(rec, which)
         h = CreateFrame("Frame", nil, ov)
         h:SetPoint("CENTER", ov, "CENTER", 0, 0)
         h:SetSize(rec.glowW or 36, rec.glowH or 36)
-        h:SetFrameLevel((ov:GetFrameLevel() or 1) + (which == "proc" and 2 or 1))
+        local up = (which == "assist" and 3) or (which == "proc" and 2) or 1
+        h:SetFrameLevel((ov:GetFrameLevel() or 1) + up)
         rec.glowHosts[which] = h
     end
     return h
@@ -217,6 +224,7 @@ local function PaintOn(h, c, which, key, startAnim)
     local color
     if which == "proc" then color = ColorOf(c.color, 1, 0.85, 0)
     elseif which == "active" then color = ColorOf(c.color, 0.95, 0.95, 0.32)
+    elseif which == "assist" then color = ColorOf(c.color, 0.25, 0.75, 1)
     else color = ColorOf(c.color, 0.3, 1, 0.3) end
     local lines = tonumber(c.lines) or 8
     local freq = tonumber(c.frequency) or 0.2
@@ -352,6 +360,7 @@ function G.SyncActive(owner, rec, barKey)
     end
 end
 
+-- ⚠ 下一招醒目標示（"assist"）不在這裡對帳：它由 Core/Assist.lua 管，這裡不准熄它
 function G.Sync(owner, rec, barKey)
     if not rec then return end
     barKey = barKey or rec.claimKey
@@ -391,6 +400,7 @@ function G.OnParked(rec)
     Stop(rec, "proc")
     Stop(rec, "ready")
     Stop(rec, "active")
+    Stop(rec, "assist")
 end
 
 ------------------------------------------------------------
@@ -669,9 +679,10 @@ end
 -- 除錯
 ------------------------------------------------------------
 function G.Counts()
-    local proc, ready, pandemic, active = 0, 0, 0, 0
+    local proc, ready, pandemic, active, assist = 0, 0, 0, 0, 0
     local function Count(rec)
         if rec.glowOn and rec.glowOn.active then active = active + 1 end
+        if rec.glowOn and rec.glowOn.assist then assist = assist + 1 end
         if rec.glowOn and rec.glowOn.proc then proc = proc + 1 end
         if rec.glowOn and rec.glowOn.ready then ready = ready + 1 end
         if rec.pandemicShown then pandemic = pandemic + 1 end
@@ -680,7 +691,7 @@ function G.Counts()
     if ns.Custom and ns.Custom.Records then
         for _, rec in pairs(ns.Custom.Records()) do Count(rec) end
     end
-    return proc, ready, pandemic, active
+    return proc, ready, pandemic, active, assist
 end
 
 ------------------------------------------------------------
