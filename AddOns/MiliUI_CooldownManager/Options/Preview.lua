@@ -461,6 +461,15 @@ function Proto:Fill(c, e, i, r, now)
         end
     end
     ns.Decorate.ApplyPreview(c, key, id, r.w, r.h)
+    -- 生效發光：勾了的增益在預覽上常亮（樣式、顏色照單一法術小窗的設定）。長條亮在圖示那一格
+    if ns.Glow and ns.Glow.PreviewActive then
+        if not c.glowHost then
+            c.glowHost = CreateFrame("Frame", nil, c)
+            c.glowHost:SetAllPoints(c.kind == "bars" and c.Icon or c)
+            c.glowHost:SetFrameLevel(c:GetFrameLevel() + 3)
+        end
+        ns.Glow.PreviewActive(c.glowHost, key, (c.aura and not e.hidden) and id or nil)
+    end
     if c.kind == "bars" then
         c.Bar.Name:SetText(c.name)
         c.Icon.Applications:SetText("2")

@@ -572,3 +572,8 @@ L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must s
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "성전사의 일격이 블리자드 재사용 대기시간 관리자의 추적 바 줄에 없어서, 자원 바의 성전사의 일격 줄이 계속 비어 있습니다. 그곳에 추가하세요 (편집 모드 → 재사용 대기시간 관리자 → 추적 바)."
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "성전사의 일격이 블리자드 재사용 대기시간 관리자의 추적 바 줄에 없어서, 이 줄이 계속 비어 있습니다. 그곳에 추가하세요 (편집 모드 → 재사용 대기시간 관리자 → 추적 바)."
+
+L["Glow style"] = "빛 효과 모양"
+L["(follows the theme)"] = "(테마 따름)"
+L["(follows this bar)"] = "(이 바 따름)"
+L["(default)"] = "(기본값)"

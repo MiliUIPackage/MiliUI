@@ -572,3 +572,8 @@ L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must s
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Kreuzzüglerschläge steht nicht in der Reihe der verfolgten Balken in Blizzards Abklingzeitenmanager, daher bleibt die Kreuzzüglerschläge-Zeile der Ressourcenleiste leer. Füge es dort hinzu (Bearbeitungsmodus → Abklingzeitenmanager → Verfolgte Balken)."
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Kreuzzüglerschläge steht nicht in der Reihe der verfolgten Balken in Blizzards Abklingzeitenmanager, daher bleibt diese Zeile leer. Füge es dort hinzu (Bearbeitungsmodus → Abklingzeitenmanager → Verfolgte Balken)."
+
+L["Glow style"] = "Leuchtstil"
+L["(follows the theme)"] = "(folgt dem Thema)"
+L["(follows this bar)"] = "(folgt dieser Leiste)"
+L["(default)"] = "(Standard)"

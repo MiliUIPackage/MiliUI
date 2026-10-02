@@ -166,6 +166,11 @@ local function Build()
     icon:SetPoint("TOPLEFT", PAD, -PAD)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     frame.icon = icon
+    -- 生效發光的即時預覽：畫在圖示上的獨立框（Core/Glow.lua 的 PreviewActive）
+    local glowHost = CreateFrame("Frame", nil, frame)
+    glowHost:SetAllPoints(icon)
+    glowHost:SetFrameLevel(frame:GetFrameLevel() + 5)
+    frame.glowHost = glowHost
     local name = frame:CreateFontString(nil, "OVERLAY")
     name:SetFontObject(W.fontTitle)
     name:SetPoint("TOPLEFT", icon, "TOPRIGHT", 8, -1)
@@ -229,8 +234,8 @@ local function Build()
         RightClickClears(tr, th, t.field)
     end
 
-    -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色（沒挑過＝條層預設色）；
-    -- 右鍵整列兩個都清掉
+    -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色，下一列樣式（沒挑過＝ glow.active 的預設）；
+    -- 右鍵整列全清。標題的圖示即時預覽
     local ar, ah = NewRow(L["Glow while active"], function(_, class) return class == "aura" end)
     local acb = W.CreateCheckButton(ar, nil, function(on)
         if not cur then return end
@@ -254,9 +259,24 @@ local function Build()
         if button == "RightButton" and cur then
             ns.DB.SetOverride(cur.id, "activeGlow", nil)
             ns.DB.SetOverride(cur.id, "activeGlowColor", nil)
+            ns.DB.SetOverride(cur.id, "activeGlowType", nil)
             Changed()
         end
     end)
+    local tr2 = NewRow(L["Glow style"], function(_, class) return class == "aura" end)
+    local tdd = W.CreateDropdown(tr2, ROW_W - CTRL_X, {
+        { text = L["Pixel"],         value = "pixel" },
+        { text = L["Autocast"],      value = "autocast" },
+        { text = L["Action button"], value = "button" },
+        { text = L["Proc"],          value = "proc" },
+    }, function(value)
+        if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
+        ns.DB.SetOverride(cur.id, "activeGlowType", value)
+        Changed()
+    end)
+    tdd:SetMaxWidth(ROW_W - CTRL_X)
+    tdd:SetPoint("LEFT", tr2, "LEFT", CTRL_X, 0)
+    frame.activeTypeDD = tdd
 
     -- 音效：下拉＋試聽（右鍵整列清掉＝無）
     for _, t in ipairs(SOUNDS) do
@@ -464,10 +484,14 @@ function Pop.Refresh()
 
     for _, r in ipairs(toggles) do
         r.cb:SetChecked(ns.SpellSetting(key, id, r.field) and true or false)
+        -- 沒覆寫時講清楚值從哪來：條在這一節跟隨主題就是「跟隨主題」，條用自己的值就是「跟隨這一條」，
+        -- 兩個都沒有（隱藏倒數／層數）就是預設
         if Override(r.field) ~= nil then
             r.note:SetText(L["(overridden, right-click to reset)"])
         else
-            r.note:SetText(L["(follows the bar)"])
+            local src = ns.DB.SpellFallbackSource(key, r.field)
+            r.note:SetText(src == "theme" and L["(follows the theme)"]
+                or src == "bar" and L["(follows this bar)"] or L["(default)"])
         end
     end
     local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false
@@ -477,6 +501,14 @@ function Pop.Refresh()
     frame.activeSwatch:SetColor(type(ac) == "table" and ac or { r = 0.95, g = 0.95, b = 0.32, a = 1 })
     frame.activeSwatch:SetEnabled(activeOn)
     frame.activeSwatch:SetAlpha(activeOn and 1 or 0.4)
+    local at = ns.SpellSetting(key, id, "activeGlowType")
+    if type(at) ~= "string" then at = ns.Setting(key, "glow.active.type") end
+    frame.activeTypeDD:SetSelectedValue(type(at) == "string" and at or "pixel")
+    frame.activeTypeDD:SetEnabled(activeOn)
+    frame.activeTypeDD:SetAlpha(activeOn and 1 or 0.4)
+    if ns.Glow and ns.Glow.PreviewActive then
+        ns.Glow.PreviewActive(frame.glowHost, key, class == "aura" and id or nil)
+    end
     local items = SoundItems()
     for _, r in ipairs(sounds) do
         r.dd:SetItems(items)

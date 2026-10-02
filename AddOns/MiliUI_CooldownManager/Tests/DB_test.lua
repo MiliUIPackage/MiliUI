@@ -220,6 +220,14 @@ eq("別的專精看不到", SS("essential", 1234, "procGlow", ns.specID + 1), tr
 P.bars.utility.follow.glow = false
 P.bars.utility.glow.ready = { enabled = true }
 eq("條層就緒發光開 → 逐法術沒覆寫時跟著開", SS("utility", 999, "readyGlow"), true)
+-- 單一法術小窗的「（跟隨…）」：條在那一節跟隨主題／用自己的值／沒有可跟隨的
+eq("值從哪來：跟隨主題", DB.SpellFallbackSource("essential", "procGlow"), "theme")
+eq("值從哪來：條關掉跟隨 → 這一條", DB.SpellFallbackSource("utility", "readyGlow"), "bar")
+eq("值從哪來：邊框看 icon 那一節（utility 關了 icon 跟隨）", DB.SpellFallbackSource("utility", "borderColor"), "bar")
+eq("值從哪來：essential 的邊框跟隨主題", DB.SpellFallbackSource("essential", "borderColor"), "theme")
+eq("值從哪來：沒有條層值 → nil", DB.SpellFallbackSource("essential", "hideCooldownText"), nil)
+eq("生效發光樣式沒設 ⇒ nil", SS("buffs", 1234, "activeGlowType"), nil)
+eq("生效發光樣式算在 activeGlow 那一組", DB.OVERRIDE_GROUP.activeGlowType, "activeGlow")
 
 ------------------------------------------------------------
 -- 5. 設定檔：建立／複製／切換／刪除

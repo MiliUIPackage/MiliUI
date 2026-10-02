@@ -572,3 +572,8 @@ L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must s
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Удары крестоносца не добавлены в ряд отслеживаемых полос менеджера восстановления Blizzard, поэтому строка Ударов крестоносца на полосе ресурсов остаётся пустой. Добавьте их туда (Режим редактирования → Менеджер восстановления → Отслеживаемые полосы)."
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Удары крестоносца не добавлены в ряд отслеживаемых полос менеджера восстановления Blizzard, поэтому эта строка остаётся пустой. Добавьте их туда (Режим редактирования → Менеджер восстановления → Отслеживаемые полосы)."
+
+L["Glow style"] = "Стиль свечения"
+L["(follows the theme)"] = "(как в теме)"
+L["(follows this bar)"] = "(как у этой полосы)"
+L["(default)"] = "(по умолчанию)"

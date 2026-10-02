@@ -115,16 +115,19 @@ local function Cfg(barKey, which)
     return type(c) == "table" and c or {}
 end
 
--- 生效發光：條層樣式＋逐法術顏色（有設才蓋）
+-- 生效發光：預設樣式（glow.active，沒有統一設定頁）＋逐法術的樣式與顏色（有設才蓋）
 local function ActiveCfg(rec, barKey)
     local c = Cfg(barKey, "active")
     local col = ns.SpellSetting(barKey, rec.cooldownID, "activeGlowColor")
-    if type(col) ~= "table" then return c end
+    local typ = ns.SpellSetting(barKey, rec.cooldownID, "activeGlowType")
+    if type(col) ~= "table" and type(typ) ~= "string" then return c end
     local t = {}
     for k, v in pairs(c) do t[k] = v end
-    t.color = col
+    if type(col) == "table" then t.color = col end
+    if type(typ) == "string" then t.type = typ end
     return t
 end
+G.ActiveCfg = ActiveCfg
 
 local function ColorOf(c, dr, dg, db)
     if type(c) ~= "table" then return { dr, dg, db, 1 } end
@@ -230,6 +233,30 @@ local function PaintOn(h, c, which, key, startAnim)
     return ok and t or nil
 end
 G.PaintOn = PaintOn
+
+-- 設定頁的預覽（條預覽的格子、單一法術小窗的圖示）：照這個法術現在的生效發光設定常亮，沒開就熄。
+-- 同一個 host 記上次畫的樣式與簽章，沒變不重畫（條預覽每次 Refresh 都會叫）
+local previewOn = setmetatable({}, { __mode = "k" })
+function G.PreviewActive(host, barKey, id)
+    if not host then return end
+    local want = id ~= nil and ns.SpellSetting(barKey, id, "activeGlow") and true or false
+    local c, sig
+    if want then
+        c = ActiveCfg({ cooldownID = id }, barKey)
+        local col = type(c.color) == "table" and c.color or {}
+        sig = table.concat({ tostring(c.type), tostring(col.r), tostring(col.g), tostring(col.b), tostring(col.a) }, "|")
+    end
+    local cur = previewOn[host]
+    if cur and cur.sig == sig then return end
+    if cur then
+        StopOn(host, cur.t, "active")
+        previewOn[host] = nil
+    end
+    if want then
+        local t = PaintOn(host, c, "active", "active", false)
+        if t then previewOn[host] = { t = t, sig = sig } end
+    end
+end
 
 local function Stop(rec, which)
     local on = rec.glowOn

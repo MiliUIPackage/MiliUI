@@ -572,3 +572,8 @@ L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must s
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "征战圣击不在暴雪冷却管理器的「追踪的量条」里，资源条上的征战圣击列会一直是空的。请把它加进去（编辑模式 → 冷却管理器 → 追踪的量条）。"
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "征战圣击不在暴雪冷却管理器的「追踪的量条」里，这一列会一直是空的。请把它加进去（编辑模式 → 冷却管理器 → 追踪的量条）。"
+
+L["Glow style"] = "发光样式"
+L["(follows the theme)"] = "（跟随主题）"
+L["(follows this bar)"] = "（跟随这一条）"
+L["(default)"] = "（默认）"

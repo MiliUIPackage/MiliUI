@@ -572,3 +572,8 @@ L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must s
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Assalti del Crociato non è nella riga delle barre tracciate del gestore dei tempi di recupero di Blizzard, quindi la riga di Assalti del Crociato della barra delle risorse resta vuota. Aggiungilo lì (Modalità modifica → Gestore tempi di recupero → Barre tracciate)."
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Assalti del Crociato non è nella riga delle barre tracciate del gestore dei tempi di recupero di Blizzard, quindi questa riga resta vuota. Aggiungilo lì (Modalità modifica → Gestore tempi di recupero → Barre tracciate)."
+
+L["Glow style"] = "Stile bagliore"
+L["(follows the theme)"] = "(segue il tema)"
+L["(follows this bar)"] = "(segue questa barra)"
+L["(default)"] = "(predefinito)"
