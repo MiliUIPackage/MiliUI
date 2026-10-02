@@ -569,3 +569,6 @@ L["Time until the next swing (shrinks)"] = "離下一刀的時間（往下縮）
 L["Bar fills with"] = "填充方式"
 L["Hide Crusading Strikes on the buff bars"] = "隱藏增益長條上的征戰聖擊"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "這一列鏡射暴雪的征戰聖擊量條，所以征戰聖擊要留在暴雪冷卻管理器的「追蹤的量條」裡。上面的選項開著時，這一列顯示期間增益長條上那一條會自動拿掉，它在看不到的地方照樣更新。這一列有自己的高度；不印數字，條件規則不適用。"
+
+L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "征戰聖擊不在暴雪冷卻管理器的「追蹤的量條」裡，資源條上的征戰聖擊列會一直是空的。請把它加進去（編輯模式 → 冷卻管理器 → 追蹤的量條）。"
+L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "征戰聖擊不在暴雪冷卻管理器的「追蹤的量條」裡，這一列會一直是空的。請把它加進去（編輯模式 → 冷卻管理器 → 追蹤的量條）。"

@@ -462,7 +462,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | 無視苦痛「只算自己這顆盾」 | **補了**（2026-10-02）：Lua 讀不到，但引擎讀得到——光環層數（＝佔上限的百分比）交給 AuraContainer 的 `SetApplicationBar` 寫，見上表的 auraPct。原本「只在追蹤了暴雪增益圖示時才讀得到」是 Lua 讀取的限制，引擎寫值不受影響 |
 | 鐵鬃「依施放推算」 | 引擎的 AuraGroup 已經給得出每一層的真實剩餘時間，不必用施放事件猜（推算不含延長效果、戰鬥中身分讀不到） |
 | 增輝喚能師的黯黑力量、秘法法師的秘法靈魂 | **補了**（2026-09-30）：新增 auraTimer 模式，見上表。光環 ID 以 wowhead 核對；參考實作的秘法靈魂是「秘法奔騰結束時」給、固定 4 秒，wowhead 的「歐爾的記憶」寫「秘法鳳凰消失時」給、4 秒——ID 一致（451038），觸發時機的差異不影響做法（只看增益在不在） |
-| 懲戒聖騎的征戰聖擊（普攻計時） | **補了**（2026-10-02）：資源列 `CrusadingStrikes`（`mode = "mirror"`，天賦閘 404542），預設顯示、排在聖能上方。**鏡射**暴雪追蹤量條的 item（我們認領的 buffbars 框，只讀）：每幀 `row.bar:SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手秘密值，活性看 `item:IsVisible()`。先試的 auraTimer 實機整列空白——冷卻清單登記的是天賦本身 404542 這個被動光環，AuraContainer 看不到 ⇒ **征戰聖擊一定要在暴雪的追蹤量條裡**（這一列顯示時增益長條上那條自動拿掉：`crusadingHideBar` 預設開，`R.HidesTrackedBar` 給 `Catalog.Bar` 濾掉，不進「藏著」清單）。自己的高度 `crusadingHeight`（預設 4；`R.KeyRowHeight`、面板高度逐列加總）、填充 `crusadingFill`（elapsed＝反向填充＋兩層角色互換）、底色 `colors.CrusadingStrikes.backColor`（含 alpha）、不印數字。預設值照德莫的征戰聖擊助手。助手偵測到本插件就不再掛到資源條上，只剩「同時掛在目標名條」 |
+| 懲戒聖騎的征戰聖擊（普攻計時） | **補了**（2026-10-02）：資源列 `CrusadingStrikes`（`mode = "mirror"`，天賦閘 404542），預設顯示、排在聖能上方。**鏡射**暴雪追蹤量條的 item（我們認領的 buffbars 框，只讀）：每幀 `row.bar:SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手秘密值，活性看 `item:IsVisible()`。先試的 auraTimer 實機整列空白——冷卻清單登記的是天賦本身 404542 這個被動光環，AuraContainer 看不到 ⇒ **征戰聖擊一定要在暴雪的追蹤量條裡**（這一列顯示時增益長條上那條自動拿掉：`crusadingHideBar` 預設開，`R.HidesTrackedBar` 給 `Catalog.Bar` 濾掉，不進「藏著」清單）。自己的高度 `crusadingHeight`（預設 4；`R.KeyRowHeight`、面板高度逐列加總）、填充 `crusadingFill`（elapsed＝反向填充＋兩層角色互換）、底色 `colors.CrusadingStrikes.backColor`（含 alpha）、不印數字。征戰聖擊不在追蹤量條裡時（`R.CrusadingTracked` 查目錄的 buffbars 清單）：設定頁征戰聖擊那段一行紅字、聊天框提示一次（進場／換專精／目錄變了後等 5 秒、脫戰才看，同一段「沒有」只講一次）。預設值照德莫的征戰聖擊助手。助手偵測到本插件就不再掛到資源條上，只剩「同時掛在目標名條」 |
 | 醉仙緩勁的數值文字、條件規則（秘密值那幾下） | 秘密值不能比較、不能算術；明文時照常 |
 - **條件規則**（`Modules/ResourceConditions.lua`，純邏輯）：形狀跟單位框架的資源條一模一樣（`conditions[key] = { rule… }`，
   第一條成立的勝出、`target` 指定第幾格、`and` 巢狀、深度上限、壞資料當不成立）。**只在值是明文時求值**：
@@ -1142,4 +1142,4 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      遊戲裡都換到對的那段；選回「跟隨通用字型」後改通用字型會跟著變；條頁關掉「跟隨全域主題」後改通用字型只影響這條；自訂光環格的倒數與層數也跟著換。
 142. 征戰聖擊列（懲戒）：天賦點了才出現、在聖能上方、高 4；征戰聖擊在暴雪追蹤量條裡時跟著每一刀走，「已揮的時間」從左往右長、
      「離下一刀的時間」往下縮；增益長條上那條自動消失、關掉選項會回來，消失期間這一列照樣會動；首領戰／M+ 裡一樣會動；換天賦／專精後重新找得到來源；
-     開了血量列之後兩列不疊；調高度／底色（含透明度）／填充方式即時生效。
+     把征戰聖擊從暴雪追蹤量條拿掉後 5 秒聊天框提示一次、設定頁出現紅字，加回去後紅字消失；開了血量列之後兩列不疊；調高度／底色（含透明度）／填充方式即時生效。
