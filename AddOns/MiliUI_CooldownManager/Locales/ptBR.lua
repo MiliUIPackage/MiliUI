@@ -628,3 +628,11 @@ L["Copy to other specializations…"] = "Copiar para outras especializações…
 L["Copy \"%s\" to these specializations:"] = "Copiar \"%s\" para estas especializações:"
 L["(already there)"] = "(já existe)"
 L["Couldn't read your specializations."] = "Não foi possível ler suas especializações."
+
+-- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
+L["Stack glow"] = "Brilho por acúmulos"
+L["Glows once the buff has at least this many stacks. While it's on, glow while active isn't used."] = "Brilha quando o bônus tem pelo menos esse número de acúmulos. Enquanto ligado, \"Brilhar enquanto ativo\" não é usado."
+L["Stack colors (%d)…"] = "Cores por acúmulos (%d)…"
+L["Stack colors"] = "Cores por acúmulos"
+L["Stacks ≥"] = "Acúmulos ≥"
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "A barra assume a cor do maior limiar de acúmulos alcançado e mantém a cor normal abaixo de todos. Até 3."

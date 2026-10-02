@@ -55,6 +55,7 @@ Core\Masque.lua
 Core\Decorate.lua
 Core\Clickable.lua
 Core\Glow.lua
+Core\StackGate.lua
 Core\Sound.lua
 Core\Keybinds.lua
 Core\Assist.lua
@@ -83,6 +84,7 @@ Options\Tab_Theme.lua
 Options\Tab_Profile.lua
 Options\ResourceConditions.lua
 Options\HealthThresholds.lua
+Options\StackColors.lua
 Options\Tab_Resources.lua
 Options\Tab_Castbar.lua
 Options\Tab_Assist.lua

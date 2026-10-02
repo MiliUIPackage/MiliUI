@@ -628,3 +628,11 @@ L["Copy to other specializations…"] = "Копировать в другие с
 L["Copy \"%s\" to these specializations:"] = "Копировать «%s» в эти специализации:"
 L["(already there)"] = "(уже есть)"
 L["Couldn't read your specializations."] = "Не удалось прочитать ваши специализации."
+
+-- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
+L["Stack glow"] = "Свечение по стакам"
+L["Glows once the buff has at least this many stacks. While it's on, glow while active isn't used."] = "Светится, когда у баффа не меньше этого числа стаков. Пока включено, «Светиться, пока активно» не используется."
+L["Stack colors (%d)…"] = "Цвета по стакам (%d)…"
+L["Stack colors"] = "Цвета по стакам"
+L["Stacks ≥"] = "Стаки ≥"
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "Полоса принимает цвет самого высокого достигнутого порога стаков, ниже всех порогов — свой обычный цвет. До 3."

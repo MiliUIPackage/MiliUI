@@ -197,6 +197,8 @@ local function Debug()
         p(("  發光：觸發 %d  就緒 %d（觸發過 %d 次）  無損刷新 %d  探針 %d 顆  manager 掛勾 %s")
             :format(proc, ready, G.readyFired or 0, pandemic, G.probes or 0, tostring(G.hooked)))
     end
+    -- 層數門檻：設了幾格、RefreshApplications 掛了幾格、最近一次餵的是明文還是秘密
+    if ns.StackGate and ns.StackGate.DebugLine then p(ns.StackGate.DebugLine()) end
     local SI = ns.SpellIndex
     if SI and SI.Count then
         p(("  法術索引：%d 個法術、重建 %d 次  冷卻事件（合併後）精準 %d 次／全掃 %d 次")

@@ -579,6 +579,9 @@ local function Relayout(key, level, index, gen)
                 ns.Decorate.Apply(item, rec, key, r.w, r.h)
                 -- alpha：條的淡出 × 冷卻狀態（唯一出口；樣式快取在 Apply 裡寫，所以排在它後面）
                 ns.Decorate.ApplyItemAlpha(item, rec, alpha)
+                -- 層數門檻：停放後重新放格的接回＋餵一次目前層數。排在 Glow.Sync 前面：
+                -- 接回時把暴雪條調回透明，無損刷新（Sync 裡的 ApplyPandemic）才蓋得上去
+                if ns.StackGate then ns.StackGate.Feed(item, rec) end
                 if ns.Glow then ns.Glow.Sync(item, rec, key) end
                 if ns.Keybinds then ns.Keybinds.Apply(item, rec, key) end
             else

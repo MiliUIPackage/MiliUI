@@ -24,6 +24,11 @@
 --
 -- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
 -- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
+--
+-- 層數門檻（暴雪的增益才有，自訂光環格不做；引擎在 Core/StackGate.lua）：
+--   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
+--     再下一列灰字說明。勾了它時「生效發光」那兩列變暗（兩者互斥，層數的為準）。右鍵整列清。
+--   * 增益長條才有的「層數換色（N）…」：開 Options/StackColors.lua 的小彈窗。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -148,6 +153,28 @@ local function SoundItems()
 end
 
 local function NoSounds() return #ns.Media.List("sound") == 0 end
+
+-- 層數門檻只給暴雪的增益（kind 只有自訂項目才有，暴雪的是 nil）
+local function BlizzAura(kind, class) return class == "aura" and kind == nil end
+-- 換色只有長條（條的種類＝ bars，跟 Decorate 的 isBar 同一個判準）
+local function BlizzAuraBar(kind, class)
+    return BlizzAura(kind, class) and cur ~= nil and ns.Setting(cur.key, "kind") == "bars"
+end
+
+-- 發光樣式的選項（生效發光與層數發光共用；每個下拉各拿一份）
+local function GlowTypeItems()
+    return {
+        { text = L["Pixel"],         value = "pixel" },
+        { text = L["Autocast"],      value = "autocast" },
+        { text = L["Action button"], value = "button" },
+        { text = L["Proc"],          value = "proc" },
+    }
+end
+
+local function StackOn()
+    return cur ~= nil and type(cur.id) == "number"
+        and ns.StackGate.Threshold(ns.SpellSetting(cur.key, cur.id, "stackGlow")) ~= nil
+end
 
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
@@ -298,12 +325,7 @@ local function Build()
         end
     end)
     local tr2 = NewRow(L["Glow style"], function(_, class) return class == "aura" end)
-    local tdd = W.CreateDropdown(tr2, ROW_W - CTRL_X, {
-        { text = L["Pixel"],         value = "pixel" },
-        { text = L["Autocast"],      value = "autocast" },
-        { text = L["Action button"], value = "button" },
-        { text = L["Proc"],          value = "proc" },
-    }, function(value)
+    local tdd = W.CreateDropdown(tr2, ROW_W - CTRL_X, GlowTypeItems(), function(value)
         if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
         ns.DB.SetOverride(cur.id, "activeGlowType", value)
         Changed()
@@ -311,6 +333,92 @@ local function Build()
     tdd:SetMaxWidth(ROW_W - CTRL_X)
     tdd:SetPoint("LEFT", tr2, "LEFT", CTRL_X, 0)
     frame.activeTypeDD = tdd
+    frame.activeRow, frame.activeTypeRow = ar, tr2
+
+    -- 層數發光（暴雪的增益）：勾選框＋「≥」數字框＋色票；沒勾時數字框記著要用的門檻
+    local sgr = NewRow(L["Stack glow"], BlizzAura)
+    local scb = W.CreateCheckButton(sgr, nil, function(on)
+        if not cur then return end
+        if on then
+            local n = ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
+            ns.DB.SetOverride(cur.id, "stackGlow", n)
+        else
+            ns.DB.SetOverride(cur.id, "stackGlow", nil)
+        end
+        Changed()
+    end)
+    scb:SetPoint("LEFT", sgr, "LEFT", CTRL_X, 0)
+    local ge = sgr:CreateFontString(nil, "OVERLAY")
+    ge:SetFontObject(W.fontNormal)
+    ge:SetPoint("LEFT", scb, "RIGHT", 8, 0)
+    ge:SetText("≥")
+    local num = W.CreateNumberBox(sgr, 40, 1, function(v)
+        if not cur then return end
+        local n = ns.StackGate.Threshold(v) or 1
+        if frame.stackNum:GetValue() ~= n then frame.stackNum:SetValue(n) end
+        if StackOn() then
+            ns.DB.SetOverride(cur.id, "stackGlow", n)
+            Changed()
+        end
+    end)
+    num:SetPoint("LEFT", ge, "RIGHT", 4, 0)
+    local sswatch = W.CreateColorPicker(sgr, nil, true, function(rr, g, b, a)
+        if not StackOn() then return end
+        ns.DB.SetOverride(cur.id, "stackGlowColor", { r = rr, g = g, b = b, a = a })
+        Changed()
+    end)
+    sswatch:SetPoint("LEFT", num, "RIGHT", 10, 0)
+    frame.stackCB, frame.stackNum, frame.stackSwatch = scb, num, sswatch
+    local shit = CreateFrame("Frame", nil, sgr)
+    shit:SetPoint("TOPLEFT", sgr, "TOPLEFT", 0, 0)
+    shit:SetPoint("BOTTOMLEFT", sgr, "BOTTOMLEFT", 0, 0)
+    shit:SetWidth(LABEL_W)
+    shit:EnableMouse(true)
+    shit:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" and cur then
+            ns.DB.SetOverride(cur.id, "stackGlow", nil)
+            ns.DB.SetOverride(cur.id, "stackGlowColor", nil)
+            ns.DB.SetOverride(cur.id, "stackGlowType", nil)
+            Changed()
+        end
+    end)
+    local str = NewRow(L["Glow style"], BlizzAura)
+    local sdd = W.CreateDropdown(str, ROW_W - CTRL_X, GlowTypeItems(), function(value)
+        if not StackOn() then return end
+        ns.DB.SetOverride(cur.id, "stackGlowType", value)
+        Changed()
+    end)
+    sdd:SetMaxWidth(ROW_W - CTRL_X)
+    sdd:SetPoint("LEFT", str, "LEFT", CTRL_X, 0)
+    frame.stackTypeDD = sdd
+    -- 說明（下一列灰字）
+    local snRow = CreateFrame("Frame", nil, frame)
+    local snTip = Note(snRow)
+    snTip:SetPoint("TOPLEFT", snRow, "TOPLEFT", CTRL_X, -2)
+    snTip:SetWidth(ROW_W - CTRL_X)
+    snTip:SetWordWrap(true)
+    snTip:SetText(L["Glows once the buff has at least this many stacks. While it's on, glow while active isn't used."])
+    local snH = 2 + math.max(14, snTip:GetStringHeight() or 0) + 6
+    snRow:SetSize(ROW_W, snH)
+    local snEntry = { frame = snRow, h = snH, when = BlizzAura }
+    snEntry.remeasure = function()
+        local sh2 = snTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        snRow:SetHeight(nh)
+        snEntry.h = nh
+    end
+    rows[#rows + 1] = snEntry
+
+    -- 層數換色（增益長條）：按鈕寫著目前筆數，點開是編輯器（Options/StackColors.lua）
+    -- 這一列沒有標籤：按鈕靠右、寬度至少到控件欄，長譯文往左邊（空著的標籤欄）撐（Refresh 換字後 FitButton）
+    local scr = NewRow(nil, BlizzAuraBar)
+    local scbtn = W.CreateButton(scr, L["Stack colors (%d)…"]:format(0), "normal", ROW_W - CTRL_X, 22)
+    scbtn:SetPoint("RIGHT", scr, "RIGHT", 0, 0)
+    scbtn:SetScript("OnClick", function()
+        if not cur then return end
+        ns.StackColors.Open(cur.key, cur.id, function() Changed() end)
+    end)
+    frame.stackColorsBtn = scbtn
 
     -- 音效：下拉＋試聽（右鍵整列清掉＝無）
     for _, t in ipairs(SOUNDS) do
@@ -415,6 +523,9 @@ local function Build()
         end
         if cur then Layout(frame.kind, frame.soundClass) end
     end)
+
+    -- 層數換色的彈窗跟著這個面板走（它改的是這一格）
+    frame:HookScript("OnHide", function() if ns.StackColors then ns.StackColors.Close() end end)
 
     ns.RegisterCallback("OptionsHidden", "popover", function() frame:Hide() end)
     ns.RegisterCallback("SpecChanged", "popover", function() frame:Hide() end)
@@ -554,6 +665,33 @@ function Pop.Refresh()
     frame.activeOOC:SetEnabled(activeOn)
     frame.activeOOC:SetAlpha(activeOn and 1 or 0.4)
     frame.activeTypeDD:SetAlpha(activeOn and 1 or 0.4)
+    -- 層數門檻（暴雪的增益才顯示這幾列）：勾了層數發光時生效發光那兩列變暗（互斥，層數的為準）
+    local stackOn = BlizzAura(kind, class) and StackOn()
+    frame.activeRow:SetAlpha(stackOn and 0.4 or 1)
+    frame.activeTypeRow:SetAlpha(stackOn and 0.4 or 1)
+    if BlizzAura(kind, class) then
+        local n = ns.StackGate.Threshold(ns.SpellSetting(key, id, "stackGlow"))
+        frame.stackCB:SetChecked(n ~= nil)
+        -- 換了一格就回到預設門檻；同一格沒勾時保留玩家剛打的數字
+        if n then
+            frame.stackNum:SetValue(n)
+        elseif frame.stackNumFor ~= id or not ns.StackGate.Threshold(frame.stackNum:GetValue()) then
+            frame.stackNum:SetValue(ns.StackGate.DEFAULT_THRESHOLD)
+        end
+        frame.stackNumFor = id
+        local sc = ns.SpellSetting(key, id, "stackGlowColor")
+        if type(sc) ~= "table" then sc = ns.Setting(key, "glow.active.color") end
+        frame.stackSwatch:SetColor(type(sc) == "table" and sc or { r = 0.95, g = 0.95, b = 0.32, a = 1 })
+        frame.stackSwatch:SetEnabled(stackOn)
+        frame.stackSwatch:SetAlpha(stackOn and 1 or 0.4)
+        local st = ns.SpellSetting(key, id, "stackGlowType")
+        if type(st) ~= "string" then st = ns.Setting(key, "glow.active.type") end
+        frame.stackTypeDD:SetSelectedValue(type(st) == "string" and st or "pixel")
+        frame.stackTypeDD:SetEnabled(stackOn)
+        frame.stackTypeDD:SetAlpha(stackOn and 1 or 0.4)
+        frame.stackColorsBtn:SetText(L["Stack colors (%d)…"]:format(ns.StackColors.Count(key, id)))
+        W.FitButton(frame.stackColorsBtn, ROW_W - CTRL_X, 22)
+    end
     if ns.Glow and ns.Glow.PreviewActive then
         ns.Glow.PreviewActive(frame.glowHost, key, class == "aura" and id or nil)
     end

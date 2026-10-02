@@ -709,6 +709,8 @@ function D.HookItem(item, rec)
     end
     -- 無損刷新（ShowPandemicStateFrame／Hide…）的後掛勾在 Glow
     if not rec.custom and ns.Glow and ns.Glow.HookItem then ns.Glow.HookItem(item, rec) end
+    -- 層數門檻（增益 item 的 RefreshApplications／OnActiveStateChanged 後掛勾）在 Core/StackGate.lua
+    if not rec.custom and ns.StackGate and ns.StackGate.HookItem then ns.StackGate.HookItem(item, rec) end
     local icon = item.Icon
     if not rec.custom and icon and icon.SetDesaturated and icon.GetObjectType and icon:GetObjectType() == "Texture" then
         iconOwner[icon] = item
@@ -1011,6 +1013,9 @@ function D.Apply(item, rec, barKey, w, h)
     D.ApplyGCDAlpha(item, rec)          -- 開關切換當場生效（關掉要把 alpha 還回 1）
     ApplyTooltip(ov, rec, style.tooltips)
     rec.decorated, rec.decoratedBar = sig, barKey
+    -- 層數門檻（增益）：設定快取在 rec.stackCfg、閘照簽章重建。排在 ApplyBarLook 之後（暴雪條的填充貼圖要有材質）、
+    -- Glow.AfterApply 之前（生效發光要看 rec.stackCfg 決定讓不讓位）
+    if ns.StackGate and ns.StackGate.Apply then ns.StackGate.Apply(item, rec, barKey, w, h, isBar) end
     -- 發光的框跟著格子尺寸走（尺寸由我們給，不從 item 讀）；樣式變了的發光重畫
     if ns.Glow and ns.Glow.AfterApply then ns.Glow.AfterApply(item, rec, barKey, w, h) end
 end

@@ -67,6 +67,8 @@
 -- 「沒生效也顯示」時灰圖示不能亮（fail-closed）。
 -- 這支只管暴雪 item。自訂光環格（AuraContainer）吃同一個逐法術開關，但發光在 Modules/Custom.lua 的
 -- initializeFrame 裡建在引擎按鈕底下（按鈕只在光環存在時顯示），不經過這裡。
+-- 層數發光（Core/StackGate.lua，「層數到 N 才亮」）跟它互斥：那一格開了層數發光（rec.stackCfg.glow），
+-- SyncActive 一律熄生效發光；層數發光自己的宿主在 StackGate 的裁切框底下，不經過 Start／Stop。
 --
 -- ── 戰鬥輔助的下一招醒目標示 ────────────────────────────────────────────
 -- 第四種發光（which ＝ "assist"），開關與目標由 Core/Assist.lua 決定（G.Start／G.Stop 直接叫）：
@@ -245,16 +247,21 @@ end
 G.PaintOn = PaintOn
 
 -- 設定頁的預覽（條預覽的格子、單一法術小窗的圖示）：照這個法術現在的生效發光設定常亮，沒開就熄。
+-- 開了層數發光（暴雪增益才有，Core/StackGate.lua）的格照層數發光的樣式常亮（兩者互斥，層數的為準）。
 -- 同一個 host 記上次畫的樣式與簽章，沒變不重畫（條預覽每次 Refresh 都會叫）
 local previewOn = setmetatable({}, { __mode = "k" })
 function G.PreviewActive(host, barKey, id)
     if not host then return end
-    local want = id ~= nil and ns.SpellSetting(barKey, id, "activeGlow") and true or false
+    local SG = ns.StackGate
+    local stack = id ~= nil and SG and type(id) == "number"
+        and SG.Threshold(ns.SpellSetting(barKey, id, "stackGlow")) ~= nil or false
+    local want = stack or (id ~= nil and ns.SpellSetting(barKey, id, "activeGlow") and true or false)
     local c, sig
     if want then
-        c = ActiveCfg({ cooldownID = id }, barKey)
+        if stack then c = SG.GlowStyle(barKey, id) else c = ActiveCfg({ cooldownID = id }, barKey) end
         local col = type(c.color) == "table" and c.color or {}
-        sig = table.concat({ tostring(c.type), tostring(col.r), tostring(col.g), tostring(col.b), tostring(col.a) }, "|")
+        sig = table.concat({ stack and "stack" or "active", tostring(c.type),
+            tostring(col.r), tostring(col.g), tostring(col.b), tostring(col.a) }, "|")
     end
     local cur = previewOn[host]
     if cur and cur.sig == sig then return end
@@ -352,7 +359,9 @@ end
 function G.SyncActive(owner, rec, barKey)
     barKey = barKey or rec.claimKey
     local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
-    if aura and owner and not Hidden(rec) and Wanted(rec, barKey, "active") and CombatOK(rec, barKey)
+    -- 層數發光開著（Core/StackGate.lua，rec.stackCfg.glow）：生效發光讓位
+    local stackGlow = rec.stackCfg ~= nil and rec.stackCfg.glow ~= nil
+    if aura and owner and not stackGlow and not Hidden(rec) and Wanted(rec, barKey, "active") and CombatOK(rec, barKey)
         and ReadActive(owner) then
         Start(rec, "active", barKey, ActiveCfg(rec, barKey))
     else
@@ -401,6 +410,7 @@ function G.OnParked(rec)
     Stop(rec, "ready")
     Stop(rec, "active")
     Stop(rec, "assist")
+    if ns.StackGate then ns.StackGate.OnParked(rec) end
 end
 
 ------------------------------------------------------------
@@ -636,6 +646,8 @@ function G.ApplyPandemic(owner, rec, barKey)
                 if type(c) == "table" then tex:SetVertexColor(c.r or 0.4, c.g or 0.6, c.b or 0.9, c.a or 1)
                 else tex:SetVertexColor(0.4, 0.6, 0.9, 1) end
             end
+            -- 層數換色那一層在條身底下、暴雪的填充要維持透明（Core/StackGate.lua）
+            if ns.StackGate then ns.StackGate.Reconceal(owner, rec) end
         end
     end
 end

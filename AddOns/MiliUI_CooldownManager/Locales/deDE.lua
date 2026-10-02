@@ -628,3 +628,11 @@ L["Copy to other specializations…"] = "In andere Spezialisierungen kopieren…
 L["Copy \"%s\" to these specializations:"] = "\"%s\" in diese Spezialisierungen kopieren:"
 L["(already there)"] = "(schon vorhanden)"
 L["Couldn't read your specializations."] = "Deine Spezialisierungen konnten nicht gelesen werden."
+
+-- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
+L["Stack glow"] = "Stapel-Leuchten"
+L["Glows once the buff has at least this many stacks. While it's on, glow while active isn't used."] = "Leuchtet, sobald der Buff mindestens so viele Stapel hat. Solange es an ist, wird „Leuchten solange aktiv“ nicht verwendet."
+L["Stack colors (%d)…"] = "Stapelfarben (%d)…"
+L["Stack colors"] = "Stapelfarben"
+L["Stacks ≥"] = "Stapel ≥"
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "Die Leiste nimmt die Farbe der höchsten erreichten Stapelzahl an und behält darunter ihre normale Farbe. Bis zu 3."

@@ -44,14 +44,14 @@
 | `Media/Sounds/` | 內建音效 106 個＋`Sounds.lua`（載入時註冊進 LibSharedMedia，別的插件的音效下拉也選得到）。**這個資料夾是 GPL-2.0**，出處與授權見裡面的 `README.md`、`LICENSE`；跟本體其餘程式分開，本體的程式不要搬進去、裡面的東西也不要搬出來混用 |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
-| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
+| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Glow.lua`、`Core/StackGate.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
 | `Core/Presets.lua` | 挑選器「常用預設」的資料（種族技能、防禦技能、藥水與治療石、團隊增益）＋純函式，**每季要對一次**，見「常用預設＋複製到其他專精」 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -71,6 +71,7 @@
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭）。字型分兩層：通用字型（`font`，主題／條）＋每段文字自己的 `font`（倒數、充能、層數、按鍵文字、長條的 `bar.nameFont／timeFont`、施法條 `castbar.font`、資源條與自訂格子 `resources.textFont`），值 `"INHERIT"`／沒存＝跟隨通用字型（`ns.Media.ElementFont`） |
 | `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha） |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
+| `Core/StackGate.lua` | 層數門檻：增益「層數到 N 才發光」與增益長條「層數到 N 換色」（閘＋裁切框，秘密層數也成立），見「層數門檻發光＋長條層數門檻換色」 |
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
 | `Core/Assist.lua` | 戰鬥輔助：自己輪詢下一招建議（`C_AssistedCombat.GetNextCastSpell`），醒目標示畫在索引查到的格子上；建議變了廣播 `AssistSpellChanged`（見「戰鬥輔助」） |
@@ -314,6 +315,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **生效發光**（增益）：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）在光環生效期間一直亮。**只有逐法術開關**
   （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），**沒有統一設定**（2026-10-02 使用者拿掉主題頁／條頁那一節）：樣式與顏色都在單一法術小窗挑（`activeGlowType`／`activeGlowColor`，沒挑＝ `glow.active` 的預設：像素、黃）。小窗標題圖示與條預覽的格子都即時亮（`Glow.PreviewActive`）。「脫戰也亮」（`activeGlowOutOfCombat`，預設真、只存 false）：取消＝只在戰鬥中亮，`PLAYER_REGEN_*` 時把增益兩條的 item 全部重對一次；自訂光環格不提供（發光烘在受保護的按鈕裡，戰鬥中切不了）。
   生效看暴雪 item 的 `IsActive()`（後掛勾 `OnActiveStateChanged`）；讀不到一律不亮，「沒生效也顯示」的灰圖示不會亮。
+  同一格開了**層數發光**（見「層數門檻發光＋長條層數門檻換色」）時生效發光不畫（互斥，層數的為準）。
   覆寫分組自成 `activeGlow`：條頁「清除發光覆寫」不會清掉。從 Ayije 匯入 `spellRegistry[spec].glowEnabled／glowColors`。
   自訂光環格吃同一個開關：發光在 `initializeFrame` 裡用 MiliUIGlow 的 Attach 系列建在引擎按鈕底下（按鈕只在光環存在時顯示），
   樣式／顏色／格子尺寸進容器簽章，改了換容器、戰鬥中改等脫戰。
@@ -458,6 +460,61 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   - 種族技能「學了沒」讀不到時當學了（跟自訂法術同一支判斷）⇒ 那種情況下德萊尼會列出十個同名的「那魯的祝福」。
   - 防禦技能是整個職業攤平的一張表：有天賦樹的分支沒點的不會列（學了才列），但「哪一個專精常用」不分。
   - 物品的替代品只看「包包裡有沒有」，不看品質高低；同時有好幾種時照表的順序。
+
+### 層數門檻發光＋長條層數門檻換色（`Core/StackGate.lua`、`Options/SpellPopover.lua`、`Options/StackColors.lua`）
+
+暴雪的**增益類** item（增益圖示、增益長條，搬進自訂群組也算）逐法術兩個功能，都在逐法術面板設：
+
+| 功能 | 欄位（`overrides[id]`） | 適用 |
+|---|---|---|
+| 層數到 N 才發光 | `stackGlow = N`（1～99；沒設／`false`＝關）、`stackGlowType`、`stackGlowColor`（沒設＝`glow.active` 的樣式與色） | 增益圖示、增益長條 |
+| 層數到 N 換色 | `stackColors = { { at = N, color = rgba }, … }` 最多 3 筆；層數 ≥ N 時條身換那個顏色，高的門檻贏 | 增益長條 |
+
+欄位登記在 `SPELL_CONST`（`stackGlow = false`、`stackColors = false`）、`OVERRIDE_GROUP` 新組 `"stack"`（條頁「清除發光覆寫」不清它）。
+舊存檔沒有這幾欄＝關，不遷移、`DB_VERSION` 不動。
+
+- **原理（秘密層數也成立）**：跟自訂格子充能列（`Modules/Pips.lua`）同一招。**閘**＝自己的透明 StatusBar，`SetMinMaxValues(N-1, N)`＋
+  `SetValue(層數)`（秘密值原樣餵）⇒ 層數 ≥ N 時填充貼圖是滿的、否則寬 0，夾值是引擎做的；**裁切框**（`SetClipsChildren`）兩點錨在
+  閘的**填充貼圖**上 ⇒ 滿＝跟閘一樣大、空＝寬 0；要「到門檻才出現」的東西當裁切框的子孫、但錨在格子／條身上（被裁切，不是被壓扁）。
+  閘餵過秘密值之後幾何是秘密的：**除了裁切框沒有東西錨在它的填充貼圖上**，閘、裁切框與子孫一律不讀任何值／幾何／alpha。
+  算式抽成純函式 `StackGate.GateRange(n)`、外擴量 `Margin(w, h)`、`Threshold`、`CleanColors`（排序、同門檻留第一筆、上限 3、壞資料丟掉）、`Signature`。
+- **發光**：閘四邊各外擴 `max(12, 那一邊長×0.4)`（按鈕／觸發樣式畫成 1.4 倍），尺寸用排版給的 w／h、不從框讀；宿主在裁切框底下、
+  錨在 overlay 中央。發光用 MiliUIGlow 的 Start 系列（`Glow.PaintOn`，key `"stack"`）**一直畫著**，看不看得到由裁切框決定
+  （MiliUIGlow 只讀宿主與自己的尺寸，宿主錨在 overlay 上是明文幾何；裁切框寬 0 只影響畫面）。代價是設了層數發光的格 driver 一直在推（item 藏起來時可見度閘會停）。
+- **換色（增益長條）**：各段各自一組閘＋裁切框＋色塊，門檻由低到高建、層級由低到高疊 ⇒「高的贏」由繪製順序決定，Lua 不比較。
+  色塊一張貼圖、材質同條身、`SetAllPoints` 到**暴雪條的填充貼圖**（只錨不讀）⇒ 只蓋已填的那一截、條縮短跟著縮。
+  ⚠ **疊層（跟計畫不同）**：暴雪條的名字／時間是條身（frameLevel 511）自己的 OVERLAY 字，任何疊在條上面的框都會蓋住字。
+  所以換色那一層整組放在條身**底下**：一顆 item 的子框（層級＝條身 − 4），裡面我們自己畫底色、原色填充（也錨在暴雪的填充貼圖上）與各段色塊；
+  暴雪條的填充與底色用 `SetVertexColor` 的 alpha 0 調成全透明（純 C 端 setter，色照設定）。字照舊在最上面。
+- **層數從哪來**（2026-10-03 對過 Gethe/wow-ui-source live 分支 12.1.0 (69933) 的 `Blizzard_CooldownViewer`）：
+  - 每個增益 item 後掛勾 `RefreshApplications`（`CooldownViewerBuffIconItemMixin`／`…BuffBarItemMixin` 都有）：兩者的 `RefreshData` 是
+    `RefreshAuraInstance → … → RefreshApplications → RefreshIconBorder → RefreshActive`，`RefreshData` 由檢視器的 `UNIT_AURA`（更新／新增／移除）、
+    換目標等叫 ⇒ 掛勾跑到時光環快取是這一次的。⚠ 那一刻 `RefreshActive` 還沒跑，`IsActive()` 是上一次的 ⇒ 這條路**只看光環資料**；
+    生效狀態的變化另掛 `OnActiveStateChanged`（明文 false ⇒ 餵 0，秘密／讀不到＝不知道，照讀層數）。
+  - 讀法（全 pcall，不比較）：`item:GetAuraDataCached()`（暴雪的 getter，只 `return self.auraDataCached`，沒有運算）→ `.applications`；
+    getter 不在或拋錯 ⇒ `rawget(item, "auraInstanceID")` 是明文數字時 `C_UnitAuras.GetAuraDataByAuraInstanceID(unit, iid)`，`unit` 取
+    `item:GetAuraDataUnit()`（明文才收，讀不到用 `"player"`）。光環不在／`applications` 是明文 nil ⇒ 0；秘密值 ⇒ 原樣餵。「是不是 nil」先 `ns.IsSecret`。
+  - 暴雪自己的 `GetApplicationsText` 做 `applications > 1`——那是安全端，污染端照抄會炸；我們只轉手。
+  - 排版放格時（`Bars` 的 `Glow.Sync` 前面）也餵一次；設定變了照簽章重建（門檻、樣式、顏色、格子尺寸、條身材質與底色進簽章，沒變不動）。
+  - item 換了身分還沒重套（`rec.stackID ~= rec.cooldownID`）時掛勾不餵。
+- **效能**：兩個掛勾的第一行就是 `rec.stackCfg` 檢查（`Decorate.Apply` 時快取；沒有任何層數設定的格立刻 return）。
+  frame 刪不掉：閘／裁切框／色塊建在 rec 上池化、照簽章重用，段數變少時多的藏起來。
+- **停放（`Glow.OnParked`）**：發光停、框藏、暴雪條的填充與底色還原（還給暴雪時也是這條）；重新放格時 `StackGate.Feed` 接回（亮回來、再調透明、重畫發光）。
+- **跟生效發光互斥**：`Glow.SyncActive` 看 `rec.stackCfg.glow`，有就熄生效發光。設定頁預覽（條預覽的格子、逐法術面板的標題圖示）走
+  `Glow.PreviewActive`：開了層數發光的增益格照**層數發光的樣式**常亮。
+- **設定頁**（逐法術面板，暴雪的增益才有這幾列；自訂光環格沒有）：「層數發光」一列＝勾選框＋「≥」數字框（門檻；沒勾時數字框記著要用的值，預設 3）＋色票；
+  下一列「發光樣式」下拉（跟生效發光同一張選項表）；再下一列灰字說明。勾了它時「生效期間發光」那兩列變暗。右鍵標籤整列清（三個欄位）。
+  增益長條多一顆「層數換色（N）…」，開小彈窗（`Options/StackColors.lua`，照 `Options/HealthThresholds.lua` 的做法）：一列一段「層數 ≥ N＋色票＋刪除」，
+  最多 3 段（滿了「新增門檻」停用），新的一段＝目前最高的 +1（沒有就 3）、橘色；跟別段同門檻的改值不收；寫入前一律過 `CleanColors`，刪光了清掉覆寫。
+- **`/mcdm debug`** 多一行：
+  `層數門檻：發光 N 格（宿主在畫 N）  換色 N 格  掛了 RefreshApplications N 格  餵了 N 次  最近一次 明文／秘密／沒有光環資料（0）／沒生效（0）`。
+- ⚠ 已知限制：
+  - **自訂光環格（AuraContainer）不支援**：引擎的層數條只能 0～上限，做不出「到 N 才開」的閘；逐法術面板對它不顯示這幾列。
+  - **無損刷新換色**：`pandemic.bars` 開著時，無損刷新期間暴雪的填充被換成不透明的提醒色 ⇒ 整條是提醒色、**蓋過**層數換色；換回原色時
+    （`Glow.ApplyPandemic` 的還原分支叫 `StackGate.Reconceal`）再調回透明。（計畫原本寫的是反過來「被色塊蓋住」；因為換色層改到條身底下，結果相反。）
+  - 層數換色只在真實條上，設定頁的條預覽不畫。
+  - 層數發光不吃生效發光的「脫戰也亮」：設了就一直照層數亮。
+  - 暴雪把 1 層顯示成空字串（> 1 才寫字）；資料裡「沒有疊層的增益」是 0 還是 1 沒查證 ⇒ 門檻 1 的行為待實機驗證。
 
 ### 圖示外觀：Masque（`Core/Masque.lua`）
 
@@ -1018,6 +1075,14 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 86. **`Catalog.Info` 對帶替代品的物品回解析後的 `itemID`**，另外多 `mainItemID` 給要看主 ID 的地方（逐法術面板的 ID 那行顯示的是解析後的）。
 87. **複製彈窗裡還沒有的專精預設勾**（計畫只說已有的勾著停用）：開這個彈窗就是要複製，預設全勾比較少點；「複製」至少勾一個還沒有的才能按。
 88. **「種族技能」「防禦技能」兩個語系 key 沿用既有的**（匯入報告早就有同一個字），沒有另外新增。
+89. **層數換色那一層放在條身底下**（計畫寫色塊疊在條上）：暴雪長條的名字／時間是條身自己的 OVERLAY 字，疊在條上面的框一定蓋住字。
+    改成 item 的子框（層級＝條身 − 4）自己畫底色、原色填充與各段色塊，暴雪條的填充與底色調成全透明（alpha 0）；停放／還給暴雪時還原。
+    結果是無損刷新的提醒色**蓋過**層數換色（計畫原本是被蓋住），還原時 `Glow.ApplyPandemic` 叫 `StackGate.Reconceal` 再調回透明。
+90. **換色的閘錨在 item（換色根框）上**，不是計畫寫的 `item.Bar`：暴雪的條身餵過秘密值（`SetValue` 剩餘時間），錨上去整個閘都是秘密錨點；
+    裁切框只要蓋得住條身那一截就好，item 整格一樣用。
+91. **層數掛勾分兩支**：`RefreshApplications` 那一刻暴雪的 `RefreshActive` 還沒跑（`IsActive()` 是上一次的），所以那條只看光環資料；
+    「沒生效 ⇒ 0」改由另一支 `OnActiveStateChanged` 後掛勾與放格時判斷。
+92. **層數發光的預覽沿用 `Glow.PreviewActive`**（多看一個欄位），換色不做預覽。
 
 ## 待實機驗證
 
@@ -1366,3 +1431,20 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      逐法術面板「複製到其他專精…」：已有的專精勾著停用、寫「已有」；複製之後切過去就在、**覆寫也在**（例如挑過的音效、邊框色）。
 171. 物品名字第一次開清單沒快取時先顯示「#ID」，資料到了自己換成名字（彈窗開著時）。
 172. 舊存檔的自訂物品／光環格（沒有 `alts`／`spellIDs`）行為跟以前一樣（同一顆物品、同一個法術、容器不重建）。
+
+**層數門檻發光＋長條層數門檻換色（2026-10-03，P4）**
+
+173. 層數到門檻亮、掉下去熄（增益圖示與增益長條各試一次）；副本戰鬥中（秘密層數）一樣——`/mcdm debug` 的「最近一次 秘密」就是走秘密值那條。
+     閘的填充貼圖在值 ≤ min 時是不是真的寬 0（裁切框跟著收成 0、發光完全看不到），值 ≥ max 時裁切框跟閘一樣大（同第 55 條的前提）。
+174. 門檻 1 的行為：會疊層的增益 1 層時亮不亮；**沒有層數的增益**（資料裡 `applications` 是 0 還是 1）開門檻 1 時亮不亮——是 0 的話門檻 1 對它永遠不亮。
+175. 長條換色：兩段門檻時高的蓋低的、只到低門檻時看得到低的；條縮短時色塊跟著縮（色塊錨在暴雪條的填充貼圖上）；
+     名字／時間字在色塊**上面**（換色層在條身底下、暴雪的填充與底色調成透明）；底色、原色、材質跟沒設換色的條看起來一樣。
+     關掉換色（刪光）或拿掉設定後暴雪條恢復不透明；`/mcdm release` 之後條身顏色正常。
+176. 無損刷新（`pandemic.bars` 開著）期間整條是提醒色、結束後回到層數換色；Masque 模式下長條圖示那格照舊。
+177. `RefreshApplications` 後掛勾在層數變化時確實被叫到（`/mcdm debug`：「掛了 RefreshApplications N 格」＞0、「餵了 N 次」隨層數變化增加）；
+     增益消失、換目標（目標身上的減益 item）時歸 0；`GetAuraDataCached()` 在戰鬥中回的表取 `applications` 不拋錯（拋錯的話走 auraInstanceID 退路，
+     `auraInstanceID` 秘密時餵 0 ＝ 不亮）。
+178. 發光宿主在「父層裁切框寬 0」時 MiliUIGlow 四種樣式都不報錯、層數一到就看得到（觸發樣式的循環有在播）；層數發光開著時生效發光不亮，關掉後回來。
+179. 設定頁：增益格的逐法術面板有「層數發光」三列、增益長條多「層數換色（N）…」；彈窗新增／改門檻／改色／刪除當場生效、按鈕筆數跟著變；
+     德文／法文的標籤換行不重疊。條預覽上開了層數發光的格照層數發光的樣式常亮。
+180. `/console taintLog 2` 打一場（含層數上下、無損刷新、換目標）taint.log 沒有本插件；暴雪的增益檢視器排版（長條 OnUpdate、`RefreshData`）不報錯。

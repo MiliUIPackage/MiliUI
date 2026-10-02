@@ -515,5 +515,34 @@ do
     P3.spells[cur], P3.spells[other], P3.spells[third] = nil, nil, nil
 end
 
+------------------------------------------------------------
+-- 13. 層數門檻（stackGlow／stackColors）：固定預設 false、覆寫自成 "stack" 一組（清發光覆寫不清它）
+------------------------------------------------------------
+do
+    local DB = ns.DB
+    local SS2 = ns.SpellSetting
+    eq("SPELL_CONST stackGlow ＝ false", DB.SPELL_CONST.stackGlow, false)
+    eq("SPELL_CONST stackColors ＝ false", DB.SPELL_CONST.stackColors, false)
+    eq("沒覆寫 ⇒ 層數發光關", SS2("buffs", 5555, "stackGlow"), false)
+    eq("沒覆寫 ⇒ 層數換色關", SS2("buffbars", 5555, "stackColors"), false)
+    eq("層數發光樣式沒設 ⇒ nil", SS2("buffs", 5555, "stackGlowType"), nil)
+    eq("層數發光顏色沒設 ⇒ nil", SS2("buffs", 5555, "stackGlowColor"), nil)
+    for _, f in ipairs({ "stackGlow", "stackGlowType", "stackGlowColor", "stackColors" }) do
+        eq("覆寫分組 " .. f .. " ＝ stack", DB.OVERRIDE_GROUP[f], "stack")
+    end
+    DB.SetOverride(5555, "stackGlow", 4)
+    DB.SetOverride(5555, "activeGlow", true)
+    eq("覆寫門檻", SS2("buffs", 5555, "stackGlow"), 4)
+    eq("層數門檻不算在 glow 那一組", DB.CountOverrides({ 5555 }, "glow"), 0)
+    eq("層數門檻算在 stack 那一組", DB.CountOverrides({ 5555 }, "stack"), 1)
+    DB.ClearOverrides({ 5555 }, "glow")
+    eq("清發光覆寫不清層數", SS2("buffs", 5555, "stackGlow"), 4)
+    DB.ClearOverrides({ 5555 }, "stack")
+    eq("清 stack 那一組", SS2("buffs", 5555, "stackGlow"), false)
+    eq("清 stack 那一組不動生效發光", SS2("buffs", 5555, "activeGlow"), true)
+    DB.SetOverride(5555, "activeGlow", nil)
+    eq("DB_VERSION 沒動", ns.DB_VERSION, 3)
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

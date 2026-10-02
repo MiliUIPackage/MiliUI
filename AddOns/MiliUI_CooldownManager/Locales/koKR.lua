@@ -628,3 +628,11 @@ L["Copy to other specializations…"] = "다른 전문화로 복사…"
 L["Copy \"%s\" to these specializations:"] = "\"%s\"을(를) 다음 전문화로 복사:"
 L["(already there)"] = "(이미 있음)"
 L["Couldn't read your specializations."] = "전문화 정보를 읽을 수 없습니다."
+
+-- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
+L["Stack glow"] = "중첩 발광"
+L["Glows once the buff has at least this many stacks. While it's on, glow while active isn't used."] = "강화 효과의 중첩이 이 숫자 이상이면 빛납니다. 켜져 있으면 '활성 중 발광'은 쓰지 않습니다."
+L["Stack colors (%d)…"] = "중첩별 색상 (%d)…"
+L["Stack colors"] = "중첩별 색상"
+L["Stacks ≥"] = "중첩 ≥"
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "바는 강화 효과가 도달한 가장 높은 중첩 구간의 색으로 바뀌고, 어느 구간에도 못 미치면 원래 색을 유지합니다. 최대 3개."

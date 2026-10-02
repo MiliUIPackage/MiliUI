@@ -628,3 +628,11 @@ L["Copy to other specializations…"] = "复制到其他专精…"
 L["Copy \"%s\" to these specializations:"] = "把「%s」复制到这些专精："
 L["(already there)"] = "（已有）"
 L["Couldn't read your specializations."] = "读不到你的专精。"
+
+-- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
+L["Stack glow"] = "层数发光"
+L["Glows once the buff has at least this many stacks. While it's on, glow while active isn't used."] = "增益层数达到这个数字时发光。开启时不使用“生效期间发光”。"
+L["Stack colors (%d)…"] = "层数换色（%d）…"
+L["Stack colors"] = "层数换色"
+L["Stacks ≥"] = "层数 ≥"
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "条身换成增益已达到的最高那一段的颜色；一段都没到时维持原本的颜色。最多 3 段。"
