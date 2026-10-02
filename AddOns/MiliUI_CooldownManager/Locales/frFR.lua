@@ -564,8 +564,8 @@ L["The next segment fills up as Essence recharges, a shade darker."] = "Le segme
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Temps de recharge globaux restants compte combien de temps de recharge globaux tiennent encore avant la fin de l'amélioration, et affiche \"Dernier\" pendant le dernier. Il suit votre hâte ; si la hâte change en combat, le compte se met à jour après le combat."
 
 -- 征戰聖擊列
-L["Time since the last swing (grows)"] = "Temps depuis le dernier coup (croît)"
-L["Time until the next swing (shrinks)"] = "Temps avant le prochain coup (décroît)"
+L["Time since the last swing (fills up)"] = "Temps depuis le dernier coup (se remplit)"
+L["Time until the next swing (empties)"] = "Temps avant le prochain coup (se vide)"
 L["Bar fills with"] = "La barre se remplit avec"
 L["Hide Crusading Strikes on the buff bars"] = "Masquer Frappes de croisé dans les barres d'améliorations"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "Cette rangée copie la barre Frappes de croisé de Blizzard : Frappes de croisé doit donc rester dans la rangée des barres suivies du gestionnaire de recharges de Blizzard. Avec l'option ci-dessus activée, cette barre est retirée des barres d'améliorations tant que cette rangée s'affiche ; elle continue de se mettre à jour hors de vue. Cette rangée a sa propre hauteur, n'affiche pas de nombre et les règles de condition ne s'appliquent pas."

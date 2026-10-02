@@ -564,8 +564,8 @@ L["The next segment fills up as Essence recharges, a shade darker."] = "Das näc
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Verbleibende globale Abklingzeiten zählt, wie viele globale Abklingzeiten noch vor dem Ende des Buffs passen, und zeigt während der letzten \"Letzte\". Es folgt deinem Tempo; ändert sich das Tempo im Kampf, wird es nach dem Kampf nachgezogen."
 
 -- 征戰聖擊列
-L["Time since the last swing (grows)"] = "Zeit seit dem letzten Schlag (wächst)"
-L["Time until the next swing (shrinks)"] = "Zeit bis zum nächsten Schlag (schrumpft)"
+L["Time since the last swing (fills up)"] = "Zeit seit dem letzten Schlag (füllt sich)"
+L["Time until the next swing (empties)"] = "Zeit bis zum nächsten Schlag (leert sich)"
 L["Bar fills with"] = "Leiste füllt sich mit"
 L["Hide Crusading Strikes on the buff bars"] = "Kreuzzüglerschläge in den Buffleisten ausblenden"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "Diese Zeile spiegelt Blizzards Leiste für Kreuzzüglerschläge, daher muss Kreuzzüglerschläge in der Reihe der verfolgten Balken in Blizzards Abklingzeitenmanager bleiben. Ist die Option oben aktiv, wird diese Leiste aus den Buffleisten genommen, solange diese Zeile angezeigt wird; sie aktualisiert sich unsichtbar weiter. Diese Zeile hat ihre eigene Höhe, zeigt keine Zahl, und Bedingungsregeln gelten nicht."

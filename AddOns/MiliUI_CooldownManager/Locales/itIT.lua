@@ -564,8 +564,8 @@ L["The next segment fills up as Essence recharges, a shade darker."] = "Il segme
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Recuperi globali rimanenti conta quanti recuperi globali entrano ancora prima della fine dell'effetto e mostra \"Ultimo\" durante l'ultimo. Segue la tua celerità; se cambia in combattimento, il conteggio si aggiorna dopo il combattimento."
 
 -- 征戰聖擊列
-L["Time since the last swing (grows)"] = "Tempo dall'ultimo colpo (cresce)"
-L["Time until the next swing (shrinks)"] = "Tempo al prossimo colpo (cala)"
+L["Time since the last swing (fills up)"] = "Tempo dall'ultimo colpo (si riempie)"
+L["Time until the next swing (empties)"] = "Tempo al prossimo colpo (si svuota)"
 L["Bar fills with"] = "La barra si riempie con"
 L["Hide Crusading Strikes on the buff bars"] = "Nascondi Assalti del Crociato nelle barre dei benefici"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "Questa riga copia la barra di Assalti del Crociato di Blizzard, quindi Assalti del Crociato deve restare nella riga delle barre tracciate del gestore dei tempi di recupero di Blizzard. Con l'opzione sopra attiva, quella barra viene tolta dalle barre dei benefici mentre questa riga è visibile; continua ad aggiornarsi fuori vista. Questa riga ha una sua altezza, non mostra numeri e le regole di condizione non si applicano."

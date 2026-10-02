@@ -564,8 +564,8 @@ L["The next segment fills up as Essence recharges, a shade darker."] = "El sigui
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Tiempos de reutilización globales restantes cuenta cuántos tiempos de reutilización globales caben antes de que termine el beneficio y muestra \"Último\" durante el final. Sigue tu celeridad; si la celeridad cambia en combate, la cuenta se actualiza al salir de combate."
 
 -- 征戰聖擊列
-L["Time since the last swing (grows)"] = "Tiempo desde el último golpe (crece)"
-L["Time until the next swing (shrinks)"] = "Tiempo hasta el próximo golpe (se reduce)"
+L["Time since the last swing (fills up)"] = "Tiempo desde el último golpe (se llena)"
+L["Time until the next swing (empties)"] = "Tiempo hasta el próximo golpe (se vacía)"
 L["Bar fills with"] = "La barra se llena con"
 L["Hide Crusading Strikes on the buff bars"] = "Ocultar Golpes de cruzado en las barras de beneficios"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "Esta fila copia la barra de Golpes de cruzado de Blizzard, así que Golpes de cruzado debe seguir en la fila de barras rastreadas del gestor de reutilización de Blizzard. Con la opción de arriba activada, esa barra se quita de las barras de beneficios mientras esta fila se muestra; sigue actualizándose fuera de la vista. Esta fila tiene su propia altura, no muestra número y las reglas de condición no se aplican."

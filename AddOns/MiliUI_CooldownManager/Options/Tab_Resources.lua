@@ -62,8 +62,8 @@ local ARCANE_SOUL_ITEMS = {
 }
 
 local CRUSADING_FILL_ITEMS = {
-    { text = L["Time since the last swing (grows)"], value = "elapsed" },
-    { text = L["Time until the next swing (shrinks)"], value = "remaining" },
+    { text = L["Time since the last swing (fills up)"], value = "elapsed" },
+    { text = L["Time until the next swing (empties)"], value = "remaining" },
 }
 
 local MANA_ITEMS = {

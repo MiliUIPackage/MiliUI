@@ -564,8 +564,8 @@ L["The next segment fills up as Essence recharges, a shade darker."] = "След
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Осталось глобальных перезарядок: сколько ещё глобальных перезарядок поместится до конца эффекта; во время последней показывается \"Последний\". Зависит от скорости; если скорость меняется в бою, счёт обновится после боя."
 
 -- 征戰聖擊列
-L["Time since the last swing (grows)"] = "Время с последнего удара (растёт)"
-L["Time until the next swing (shrinks)"] = "Время до следующего удара (убывает)"
+L["Time since the last swing (fills up)"] = "Время с последнего удара (заполняется)"
+L["Time until the next swing (empties)"] = "Время до следующего удара (опустевает)"
 L["Bar fills with"] = "Полоса заполняется по"
 L["Hide Crusading Strikes on the buff bars"] = "Скрыть Удары крестоносца на полосах эффектов"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "Эта строка повторяет полосу Ударов крестоносца от Blizzard, поэтому Удары крестоносца должны оставаться в ряду отслеживаемых полос менеджера восстановления Blizzard. Если опция выше включена, та полоса убирается с полос эффектов, пока видна эта строка; она продолжает обновляться вне поля зрения. У этой строки своя высота, число не выводится, правила условий не действуют."

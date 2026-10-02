@@ -564,8 +564,8 @@ L["The next segment fills up as Essence recharges, a shade darker."] = "下一�
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "剩幾個共用冷卻：在增益結束前還能放幾個共用冷卻，最後一個時顯示「最後」。會跟著加速變；戰鬥中加速改變的話，脫離戰鬥後才更新。"
 
 -- 征戰聖擊列
-L["Time since the last swing (grows)"] = "已揮的時間（往上長）"
-L["Time until the next swing (shrinks)"] = "離下一刀的時間（往下縮）"
+L["Time since the last swing (fills up)"] = "已揮的時間（由空到滿）"
+L["Time until the next swing (empties)"] = "離下一刀的時間（由滿到空）"
 L["Bar fills with"] = "填充方式"
 L["Hide Crusading Strikes on the buff bars"] = "隱藏增益長條上的征戰聖擊"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "這一列鏡射暴雪的征戰聖擊量條，所以征戰聖擊要留在暴雪冷卻管理器的「追蹤的量條」裡。上面的選項開著時，這一列顯示期間增益長條上那一條會自動拿掉，它在看不到的地方照樣更新。這一列有自己的高度；不印數字，條件規則不適用。"
