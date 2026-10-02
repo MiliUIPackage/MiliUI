@@ -405,7 +405,7 @@ for class, specs in pairs(CLASS_SPECS) do
 end
 R.SPEC_CLASS = SPEC_CLASS
 
--- 德魯伊看「現在的型態」：熊＝怒氣、貓＝能量＋連擊點、其餘照專精（梟＝星能）
+-- 德魯伊看「現在的型態」：熊＝怒氣、貓＝能量＋連擊點、其餘照專精（梟＝星能；野性／守護＝法力）
 local DRUID_BEAR, DRUID_CAT = 5, 1
 
 -- 純函式（離線測試用）：職業、專精、德魯伊型態 → 這個專精該有的資源 key（還沒套天賦閘）
@@ -419,6 +419,10 @@ function R.RawList(class, specID, form)
             out[1], out[2] = "Energy", "ComboPoints"
         elseif specID == 102 then
             out[1] = "LunarPower"
+        elseif specID == 103 or specID == 104 then
+            -- 野性／守護在人形（以及旅行等其他型態）沒有怒氣能量可看，整條空著很尷尬：給法力
+            --（玩家回報 2026-10-03）。平衡、恢復本來就在 MANA_SPECS，這裡不重複加
+            out[1] = "Mana"
         end
     else
         for _, key in ipairs(SPEC_RESOURCES[specID or 0] or {}) do out[#out + 1] = key end
