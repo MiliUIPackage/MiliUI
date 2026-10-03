@@ -172,12 +172,17 @@ eventFrame:SetScript("OnEvent", function(_, event, ...)
     end
 end)
 
+-- 客戶端不認得的事件名 RegisterEvent 會拋錯：pcall 接住、記下來（/mcdm debug 不印，除錯時看 Events.unknown），
+-- 不讓一個事件名拖垮 Events.Start 裡其餘事件的註冊
+Events.unknown = {}
 local function Arm(event)
+    local ok
     if units[event] then
-        eventFrame:RegisterUnitEvent(event, units[event])
+        ok = pcall(eventFrame.RegisterUnitEvent, eventFrame, event, units[event])
     else
-        eventFrame:RegisterEvent(event)
+        ok = pcall(eventFrame.RegisterEvent, eventFrame, event)
     end
+    if not ok then Events.unknown[event] = true end
 end
 
 function Events.Register(event, key, fn, unit)

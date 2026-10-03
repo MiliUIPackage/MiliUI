@@ -129,5 +129,22 @@ eq("物品掃格子", K.TextForItem(5512), "c1")
 eq("物品不在動作條", K.TextForItem(1), nil)
 check("CacheSize", K.CacheSize() > 0)
 
+------------------------------------------------------------
+-- 以增益取代（P7）：頂著核心技能那一格的增益（rec.replacing）不畫按鍵；條本身照舊
+------------------------------------------------------------
+do
+    local savedSetting, savedDB = ns.Setting, ns.DB
+    ns.Setting = function(_, path) if path == "keybind.enabled" then return true end end
+    ns.DB = { BarTable = function() return { kind = "icons", source = "essential" } end }
+    local hidden, text = false, nil
+    local fs = { SetText = function(_, t) text = t end, Hide = function() hidden = true end }
+    local rec = { overlay = {}, keyFS = fs, keySig = "old", replacing = 102, cooldownID = 301 }
+    K.Apply({}, rec, "essential")
+    eq("取代中：按鍵文字收起來", rec.keySig, "off")
+    check("取代中：藏起來、字清掉", hidden and text == "")
+    check("NoKeybind：核心技能條照舊要畫", not K.NoKeybind("essential"))
+    ns.Setting, ns.DB = savedSetting, savedDB
+end
+
 print(("Keybinds_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

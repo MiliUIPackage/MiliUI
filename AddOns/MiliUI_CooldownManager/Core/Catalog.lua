@@ -6,6 +6,7 @@
 --                                hasAura, charges, isInvisible, isKnown, effectiveCategory, home }
 --   ns.Catalog.Refresh(reason) 重讀；內容（簽章）變了才廣播 "CatalogChanged"
 --   ns.Catalog.IsPaused()      暴雪冷卻管理器設定面板開著 ⇒ true（Bars 暫停重排）
+--   ns.Catalog.Replacements()  以增益取代：byA（A → B）、byB（B → A）；B 不進任何一條的清單（見那一節）
 --
 -- 自訂項目（spells[spec].custom，id 是 "c:<index>"）也從這裡進清單：Bar(key) 把
 -- custom[i].bar == key 的排進去（順序覆寫照舊），**光環格永遠排在最前面**當固定前綴
@@ -738,6 +739,83 @@ function C.SourceOf(id)
     return rec and rec.bar or nil
 end
 
+------------------------------------------------------------
+-- 以增益取代（spells[spec].overrides[A].replaceWith = B）
+--
+-- A ＝ 核心／輔助技能的 cooldownID（暴雪 item；自訂項目不開放），B ＝ 增益圖示列的 cooldownID。
+-- B 生效期間 A 那一格改放 B 的 item（Core/Bars.lua 的 Relayout），所以 B 從**每一條**的清單拿掉
+-- （它的位置就是 A 那一格；被移除清單也不列）。
+--
+-- 只有「兩邊現在都真的在」才成立，其餘一律當沒設（設定留著，條件回來自動生效）：
+--   * A 在某條檢視器的清單上（學會了、暴雪會給框）、沒被玩家移除（hidden）、來源是核心或輔助
+--   * B 在增益圖示列的清單上（天賦沒點 ⇒ 不在 ⇒ 退回 A 本身，B 也不會被拿掉）
+--   * 同一個 B 只給一個 A（設定頁會擋；擋不住的舊資料取 cooldownID 小的那個，結果固定）
+-- 不快取：覆寫的寫入路徑很多（單一法術小窗、清除覆寫、還原此法術、匯入、換設定檔／專精），
+-- 作廢點漏一個就是「改了沒反應」；現算只是走一遍這個專精的覆寫表。
+-- 在掛勾的訊號路徑上（GroupTargets）也會叫，所以**不重建目錄**，只讀上次建好的 C.info／C.placed。
+------------------------------------------------------------
+local REPLACE_FROM = { essential = true, utility = true }
+local REPLACE_TO   = "buffs"
+C.REPLACE_FROM, C.REPLACE_TO = REPLACE_FROM, REPLACE_TO
+
+-- 回傳 byA（A → B）、byB（B → A）。都是新表
+function C.Replacements()
+    local byA, byB = {}, {}
+    local sp = SpellsTable()
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    if not all then return byA, byB end
+    local hidden = type(sp.hidden) == "table" and sp.hidden or EMPTY
+    local placed = type(C.placed) == "table" and C.placed or EMPTY
+    local as = {}
+    for a, o in pairs(all) do
+        if type(a) == "number" and type(o) == "table" and type(o.replaceWith) == "number" then
+            as[#as + 1] = a
+        end
+    end
+    table.sort(as)
+    for _, a in ipairs(as) do
+        local b = all[a].replaceWith
+        local ra, rb = C.info[a], C.info[b]
+        if b ~= a and byB[b] == nil and placed[a] and placed[b] and not hidden[a]
+            and ra and REPLACE_FROM[ra.bar] and rb and rb.bar == REPLACE_TO then
+            byA[a], byB[b] = b, a
+        end
+    end
+    return byA, byB
+end
+
+-- 某條暴雪檢視器自己的清單（還沒套我們的 order／groupOf／hidden，也還沒拿掉取代目標）；新表。
+-- 設定頁「以增益取代」的候選用（被移除的、拉去別條的、已經被拿去取代的都要列得到）
+function C.SourceIDs(src)
+    EnsureBuilt()
+    local out = {}
+    for _, id in ipairs(C.lists[src] or EMPTY) do out[#out + 1] = id end
+    return out
+end
+
+-- 被當成取代目標的 B 的集合（B → A）
+function C.ReplacedSet()
+    local _, byB = C.Replacements()
+    return byB
+end
+
+-- A 現在設了、而且成立的取代目標（不成立回 nil）
+function C.ReplaceTarget(a)
+    if type(a) ~= "number" then return nil end
+    local byA = C.Replacements()
+    return byA[a]
+end
+
+-- 這一格要不要改放 B（純函式；Bars 的 Relayout 叫）：
+--   b ＝ { item = B 有沒有框, free = 還沒被別條認領, shown = 顯示中（讀不到當顯示）, active = IsActive 的值 }
+-- active 只認明文 true：秘密值、nil、讀不到一律當沒生效 ⇒ 顯示 A（副本戰鬥中可能整場都是 A）
+function C.ReplaceNow(b)
+    if type(b) ~= "table" or not b.item or not b.free or not b.shown then return false end
+    local v = b.active
+    if v == nil or (ns.IsSecret and ns.IsSecret(v)) then return false end
+    return v == true
+end
+
 -- 光環格排到最前面（相對順序不變）
 local function AuraPrefix(list)
     local out, rest = {}, {}
@@ -765,9 +843,12 @@ function C.Bar(barKey, withHidden)
 
     -- 資源條的征戰聖擊列顯示時，增益長條上那條同一件事的整個拿掉（不進 hid：不是玩家藏的）
     local autoHide = ns.Resources and ns.Resources.HidesTrackedBar
+    -- 以增益取代的 B：它的位置是 A 那一格（Core/Bars.lua），任何一條都不列、被移除清單也不列
+    local replaced = C.ReplacedSet()
 
     local function Add(id)
         if autoHide and autoHide(id) then return end
+        if replaced[id] ~= nil then return end
         if not hidden[id] then
             out[#out + 1] = id
         elseif hid then
@@ -846,16 +927,34 @@ end
 -- 從暴雪某條檢視器拉法術出去的條（本專精 groupOf 指到、而且真的存在的條），加進 out[key] = true。
 -- Bars.RequestSource 用：那條檢視器有動靜時，只有這些條（跟來源條自己）的清單可能變。
 -- 在掛勾的訊號路徑上叫，**不重建目錄**（只讀上次建好的 C.info）；讀不到來源的 id 一律算進去。
+-- 以增益取代：B 在這條檢視器上 ⇒ A 所在的條也算（B 生效／結束時 A 那一格要換人）。
+-- A 所在的條 ＝ groupOf[A] 指到、而且存在的群組；否則來源是 A 那條檢視器的條。
 function C.GroupTargets(sourceKey, out)
     out = out or {}
     local sp = SpellsTable()
-    local groupOf = sp and type(sp.groupOf) == "table" and sp.groupOf
+    local groupOf = sp and type(sp.groupOf) == "table" and sp.groupOf or EMPTY
     local bars = ns.profile and ns.profile.bars
-    if not groupOf or type(bars) ~= "table" then return out end
+    if type(bars) ~= "table" then return out end
     for id, g in pairs(groupOf) do
         if g ~= sourceKey and type(bars[g]) == "table" and not out[g] then
             local rec = C.info[id]
             if not rec or rec.bar == nil or rec.bar == sourceKey then out[g] = true end
+        end
+    end
+    local byA = C.Replacements()
+    for a, b in pairs(byA) do
+        local rb = C.info[b]
+        if not rb or rb.bar == nil or rb.bar == sourceKey then
+            local g = groupOf[a]
+            if g ~= nil and type(bars[g]) == "table" then
+                out[g] = true
+            else
+                local ra = C.info[a]
+                local src = ra and ra.bar
+                for key, bar in pairs(bars) do
+                    if type(bar) == "table" and src ~= nil and bar.source == src then out[key] = true end
+                end
+            end
         end
     end
     return out

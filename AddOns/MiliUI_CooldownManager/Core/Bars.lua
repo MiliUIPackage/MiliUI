@@ -39,6 +39,12 @@
 -- 檢視器本體釘在容器上（TOPLEFT／BOTTOMRIGHT 對齊），被暴雪（編輯模式、底部管理框）
 -- 拉走就釘回來；_pinGuard 擋自己觸發自己。
 --
+-- 以增益取代（spells[spec].overrides[A].replaceWith = B，判準在 Catalog.Replacements）：A 那一格在 B
+-- 生效期間（B 的 item 顯示中、IsActive() 明文 true）改放 B 的 item，A 的 item 不認領（Flush 結尾停放）；
+-- 讀不到生效狀態一律放 A。兩種情況格子數一樣，版面不變。格位快取（slotOf）記的是**實際放進去的那個 id**，
+-- 暴雪排版後的同步放回（Reapply）才不會把 B 停走、把 A 放回來。B 生效／結束的訊號照舊走
+-- RequestSource("buffs")，Catalog.GroupTargets 把 A 所在的條算進去。
+--
 -- 面板（資源條、自訂格子、施法條、下一招圖示；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
 -- 同一套 ApplyStructure（pos／anchor、strata、enabled＝false 就 Hide）與編輯模式／磁吸，
 -- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
@@ -67,6 +73,7 @@ local dirty = {}               -- key → 最高等級
 local structurePending = {}    -- 戰鬥中延後的結構級
 local slotOf = {}              -- cooldownID → { key, x, y, w, h }（Reapply 的快取）
 local claimedBy = setmetatable({}, { __mode = "k" })   -- item → key
+local replacedNow = {}         -- A 的 cooldownID → { b = B 的 cooldownID, key = 條 }（以增益取代：現在放的是 B）
 local firstRowW = {}           -- key → 第一列寬（長條寬 0 ＝ 跟核心技能第一列同寬）
 local scheduled, lastRun = false, -1
 local ArmStructurePending          -- 前置宣告（定義在 Relayout 前面）
@@ -357,6 +364,7 @@ local function Park(item, rec)
     parkGuard = false
     if rec then
         rec.parked = ok
+        rec.replacing = nil
         if ok and ns.Glow then ns.Glow.OnParked(rec) end
     end
 end
@@ -369,6 +377,14 @@ local function SafeShown(item)
     return shown and true or false
 end
 B.SafeShown = SafeShown
+
+-- 以增益取代用：B 的 item 真的看得到（自己顯示＋整條增益檢視器沒被暴雪藏起來，例如編輯模式的
+-- 「可見：只在戰鬥中」）。看不到還換過去會變成一格空的。讀不到當看得到（同 SafeShown）
+local function SafeVisible(item)
+    local ok, v = pcall(item.IsVisible, item)
+    if not ok or ns.IsSecret(v) then return true end
+    return v and true or false
+end
 
 -- 占位格是自己的框（圖示貼圖＋跟真實格一樣的邊框），畫在容器上；item 出現時蓋在它上面
 local function Placeholder(key, idx)
@@ -520,10 +536,24 @@ local function Relayout(key, level, index, gen)
     local clickable = ns.Clickable and ns.Clickable.Enabled(key) or false
     local fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(key) or clickable) and true or false
     local entries = {}
+    -- 以增益取代：A → B（只有成立的才在表裡）
+    local replaceOf = ns.Catalog.Replacements and ns.Catalog.Replacements() or {}
+    local readActive = ns.Glow and ns.Glow.ReadActive
     for _, id in ipairs(ids) do
         local item = index[id]
         local crec = ns.Custom and ns.Custom.Get(id)
-        if crec then
+        local bID = (not crec) and item and replaceOf[id] or nil
+        local bItem = bID and index[bID] or nil
+        local bRec = bItem and ns.Viewers.frames[bItem] or nil
+        if bRec and readActive and ns.Catalog.ReplaceNow({
+                item = true, free = not claimedBy[bItem], shown = SafeShown(bItem) and SafeVisible(bItem),
+                active = readActive(bItem) }) then
+            -- B 生效中：這一格放 B 的 item（樣式照這一條、發光／層數／音效照 B 自己的逐法術覆寫）。
+            -- A 的 item 不認領 ⇒ Flush 結尾停放
+            entries[#entries + 1] = { id = bID, item = bItem, rec = bRec, replaces = id }
+            claimedBy[bItem] = key
+            replacedNow[id] = { b = bID, key = key }
+        elseif crec then
             entries[#entries + 1] = { id = id, crec = crec }
         elseif item and not claimedBy[item] then
             local rec = ns.Viewers.frames[item]
@@ -593,6 +623,7 @@ local function Relayout(key, level, index, gen)
                 rec.parked = false
                 rec.claimGen = gen
                 rec.claimKey = key
+                rec.replacing = e.replaces       -- 以增益取代：這顆 B 現在頂著 A 的格（按鍵文字不畫、/mcdm debug 標記）
                 ns.Decorate.Apply(item, rec, key, r.w, r.h)
                 -- alpha：條的淡出 × 冷卻狀態（唯一出口；樣式快取在 Apply 裡寫，所以排在它後面）
                 ns.Decorate.ApplyItemAlpha(item, rec, alpha)
@@ -764,6 +795,9 @@ Flush = function()
     for id, slot in pairs(slotOf) do
         if work[slot.key] then slotOf[id] = nil end
     end
+    for a, r in pairs(replacedNow) do
+        if work[r.key] then replacedNow[a] = nil end
+    end
     -- 依左欄順序排（被錨的條通常在後面；核心技能先排，長條才知道第一列多寬）
     local order, seen = {}, {}
     local p = Profile() or {}
@@ -889,6 +923,7 @@ function B.ReleaseAll(reason)
         if rec.origW and rec.origH then pcall(item.SetSize, item, rec.origW, rec.origH) end
     end
     for id in pairs(slotOf) do slotOf[id] = nil end
+    for a in pairs(replacedNow) do replacedNow[a] = nil end
     -- 可點擊群組的 secure 鈕：item 已經不在格子上了，鈕跟著收
     if ns.Clickable then xpcall(ns.Clickable.ReleaseAll, ns.ReportError) end
     for key, st in pairs(state) do
@@ -920,6 +955,12 @@ function B.ForEachClaimed(key, fn)
             if rec and not rec.parked then fn(item, rec) end
         end
     end
+end
+
+-- 以增益取代：A 那一格現在放的是不是 B（是的話回 B 的 cooldownID；/mcdm debug 用）
+function B.ReplacedBy(a)
+    local r = a ~= nil and replacedNow[a]
+    return r and r.b or nil
 end
 
 function B.Count(key)
@@ -1046,6 +1087,7 @@ function B.OnProfileChanged()
         for key in pairs(p.bars) do EnsureContainer(key) end
     end
     for id in pairs(slotOf) do slotOf[id] = nil end
+    for a in pairs(replacedNow) do replacedNow[a] = nil end
     B.RequestAll("structure")
 end
 

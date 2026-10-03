@@ -79,7 +79,9 @@ local function IconBar(o)
         follow     = { text = true, icon = true, glow = true, fade = true },
         text = {}, icon = {}, glow = {}, fade = {},
         visibility = { showCombat = false, showTarget = false, hideMounted = false,
-                       onlyInstances = false, group = "any" },   -- group: any | solo | party | raid
+                       onlyInstances = false, group = "any",     -- group: any | solo | party | raid
+                       -- 2026-10-03 加的三個（舊存檔沒有 ＝ false，不遷移；見 Core/Visibility.lua）
+                       showEnemy = false, hideSkyriding = false, hideHousing = false },
         bar        = o.bar or false,        -- kind = "bars" 才有
         strata     = "MEDIUM",
         clickable  = false,                 -- 點了施放／使用（只有自訂圖示群組讀，判準在 DB.BarClickable）
@@ -875,6 +877,9 @@ local SPELL_CONST = {
     loseSpeak        = false,
     -- 自訂圖示：貼圖檔案編號（正整數）；false ＝ 用原本的圖示（Core/Decorate.lua 的 IconOverrideOf）
     customIcon       = false,
+    -- 以增益取代（核心／輔助的暴雪技能才有，Core/Catalog.lua 的 Replacements）：增益圖示列的 cooldownID；
+    -- false ＝ 不取代
+    replaceWith      = false,
 }
 DB.SPELL_FALLBACK, DB.SPELL_CONST = SPELL_FALLBACK, SPELL_CONST
 
@@ -1131,6 +1136,7 @@ end
 -- 覆寫欄位 → 設定頁的哪一節（「本條 N 個法術有覆寫」「清除覆寫」用）
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
+    replaceWith = "icon",
     procGlow = "glow", readyGlow = "glow",
     -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
     activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",

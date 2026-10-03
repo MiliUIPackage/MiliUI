@@ -22,6 +22,8 @@
 -- 光環格（自訂項目 kind = "aura"）是固定前綴：cell.locked，蓋紅色半透明、拖不動、中鍵不藏，
 -- 別的格也不能插到它們前面（插入線變紅）。左鍵照樣開逐法術面板。
 -- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（圖示類的條都收，含四條檢視器）。
+-- 以增益取代（overrides[id].replaceWith）：那一格右下角畫一個 12×12、1px 黑邊的增益圖示當記號；
+-- 被拿去取代的增益不在任何一條的清單上（Catalog.Bar 拿掉了），預覽自然不列（跟真實條一致）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -111,6 +113,20 @@ local function NewIconCell(canvas)
     c.lock:SetTexture(WHITE)
     c.lock:SetVertexColor(0.8, 0.1, 0.1, 0.45)
     c.lock:Hide()
+    -- 以增益取代的記號：右下角一個小圖示（外框 1px 黑），層級在倒數／充能字的上面
+    local mark = CreateFrame("Frame", nil, ov)
+    mark:SetSize(14, 14)
+    mark:SetPoint("BOTTOMRIGHT", ov, "BOTTOMRIGHT", 0, 0)
+    mark:SetFrameLevel(ov:GetFrameLevel() + 2)
+    local mbg = mark:CreateTexture(nil, "BACKGROUND")
+    mbg:SetAllPoints()
+    mbg:SetColorTexture(0, 0, 0, 1)
+    mark.icon = mark:CreateTexture(nil, "ARTWORK")
+    mark.icon:SetPoint("TOPLEFT", 1, -1)
+    mark.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+    mark.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    mark:Hide()
+    c.replaceMark = mark
     c.kind = "icons"
     c.isPlus, c.hiddenItem, c.locked, c.dragging = false, false, false, false
     return c
@@ -488,6 +504,17 @@ function Proto:Fill(c, e, i, r, now)
         c.stackText:SetText("2")
     end
     c.lock:SetShown(c.locked and true or false)
+    -- 以增益取代：成立的才畫記號（設了但增益現在不在 ⇒ 不畫，真實條上也是技能本身）
+    if c.replaceMark then
+        local b = (not e.hidden) and ns.Catalog.ReplaceTarget(id) or nil
+        local binfo = b and ns.Catalog.Info(b)
+        if b then
+            c.replaceMark.icon:SetTexture((binfo and binfo.icon) or QUESTION)
+            c.replaceMark:Show()
+        else
+            c.replaceMark:Hide()
+        end
+    end
 end
 
 -- 長條的時間跑 15→0（名字＝法術名；小數門檻照設定）

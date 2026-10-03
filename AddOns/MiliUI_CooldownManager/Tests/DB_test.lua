@@ -544,5 +544,36 @@ do
     eq("DB_VERSION 沒動", ns.DB_VERSION, 3)
 end
 
+------------------------------------------------------------
+-- 14. 2026-10-03（P7）：顯示條件的三個新欄位、以增益取代（replaceWith）的欄位登記
+------------------------------------------------------------
+do
+    local DB = ns.DB
+    local SS2 = ns.SpellSetting
+    local d = DB.BuildDefaults().profile.bars
+    for _, key in ipairs({ "essential", "utility", "buffs", "buffbars" }) do
+        local v = d[key] and d[key].visibility or {}
+        eq(key .. "：showEnemy 預設 false", v.showEnemy, false)
+        eq(key .. "：hideSkyriding 預設 false", v.hideSkyriding, false)
+        eq(key .. "：hideHousing 預設 false", v.hideHousing, false)
+    end
+    local nb = DB.NewBarTable("icons", "x")
+    eq("新群組：showEnemy 預設 false", nb.visibility.showEnemy, false)
+    eq("新群組：hideSkyriding 預設 false", nb.visibility.hideSkyriding, false)
+    eq("新群組：hideHousing 預設 false", nb.visibility.hideHousing, false)
+
+    eq("SPELL_CONST replaceWith ＝ false", DB.SPELL_CONST.replaceWith, false)
+    eq("replaceWith 沒有條層對應", DB.SPELL_FALLBACK.replaceWith, nil)
+    eq("覆寫分組 replaceWith ＝ icon", DB.OVERRIDE_GROUP.replaceWith, "icon")
+    eq("沒覆寫 ⇒ 不取代", SS2("essential", 7777, "replaceWith"), false)
+    DB.SetOverride(7777, "replaceWith", 8888)
+    eq("覆寫 ⇒ 增益的 cooldownID", SS2("essential", 7777, "replaceWith"), 8888)
+    eq("算在 icon 那一組（條頁圖示節的覆寫數）", DB.CountOverrides({ 7777 }, "icon"), 1)
+    eq("不算在 glow 那一組", DB.CountOverrides({ 7777 }, "glow"), 0)
+    DB.ClearOverrides({ 7777 }, "icon")
+    eq("清 icon 那一組 ⇒ 不取代", SS2("essential", 7777, "replaceWith"), false)
+    eq("DB_VERSION 沒動（P7）", ns.DB_VERSION, 3)
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

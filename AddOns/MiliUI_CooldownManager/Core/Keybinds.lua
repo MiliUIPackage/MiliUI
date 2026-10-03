@@ -204,7 +204,8 @@ K.NoKeybind = NoKeybind
 
 function K.Apply(owner, rec, barKey)
     if not (rec and rec.overlay) then return end
-    local on = barKey and ns.Setting(barKey, "keybind.enabled") and not NoKeybind(barKey)
+    -- 以增益取代（Core/Bars.lua）：頂著技能那一格的增益不畫按鍵（增益沒有按鍵；條是核心技能也一樣）
+    local on = barKey and ns.Setting(barKey, "keybind.enabled") and not NoKeybind(barKey) and rec.replacing == nil
     local fs = rec.keyFS
     if not on then
         if fs and rec.keySig ~= "off" then

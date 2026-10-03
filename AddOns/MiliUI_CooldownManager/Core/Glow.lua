@@ -346,6 +346,8 @@ local function ReadActive(item)
     end
     return Plain(rawget(item, "isActive")) == true
 end
+-- 以增益取代（Core/Bars.lua）用同一個判準：讀不到＝沒生效
+G.ReadActive = ReadActive
 
 -- 戰鬥狀態自己記（PLAYER_REGEN_DISABLED 派送當下 InCombatLockdown 還不一定是真）
 local inCombat = false

@@ -76,8 +76,12 @@ local function ItemLines(out)
                 -- 冷卻狀態效果餵過秘密布林（SetAlphaFromBoolean）的框不讀回 alpha
                 local alpha = rec.alphaSecret and "秘密" or Num(Read(item, "GetAlpha"))
                 local st = rec.style and rec.style.cdState
-                out[#out + 1] = ("    %s #%s id=%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s")
-                    :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID),
+                -- 以增益取代：A 被 B 頂掉（停放中）／B 頂著 A 的格
+                local by = B and B.ReplacedBy and B.ReplacedBy(rec.cooldownID)
+                local rep = (by and ("（被 " .. tostring(by) .. " 取代）") or "")
+                    .. (rec.replacing and ("（取代 " .. tostring(rec.replacing) .. "）") or "")
+                out[#out + 1] = ("    %s #%s id=%s%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s")
+                    :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID), rep,
                             tostring(Read(item, "IsShown")), alpha, Num(Read(item, "GetScale")),
                             Num(w), Num(h), tostring(point), relName, Num(x), Num(y),
                             tostring(rec.claimKey or "—"), rec.parked and " 停放" or "",

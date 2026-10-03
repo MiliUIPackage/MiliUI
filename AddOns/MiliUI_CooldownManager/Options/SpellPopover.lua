@@ -28,6 +28,11 @@
 -- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
 --   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
 --
+-- 以增益取代（暴雪的核心／輔助技能才有；引擎在 Core/Catalog.lua 的 Replacements 與 Core/Bars.lua）：
+--   一列下拉，第一項「無」＝清掉覆寫，其餘是這個專精增益圖示列的全部項目（含被移除的、拉去別條的）；
+--   已經被別的技能拿去取代的灰字標名字、選了不算（共用層的下拉沒有停用項目，這裡自己擋）。
+--   選了寫 overrides[id].replaceWith（右鍵整列清掉）；下一列灰字說明。
+--
 -- 語音播報（Core/Sound.lua；遊戲有文字轉語音 API 才顯示、光環格沒有）：每個音效列下面一列——勾選框＋輸入框
 --   （空白＝念法術名）＋「試聽」。勾著才寫進覆寫（readySpeak／gainSpeak／loseSpeak：字串或 true），
 --   沒勾時輸入框只是記著字。最後一列灰字說明。
@@ -149,6 +154,12 @@ local function RightClickClears(r, h, field)
 end
 
 local function IsAura(kind) return kind == "aura" end
+-- 以增益取代：暴雪的核心／輔助技能（cooldownID 是數字、來源條在 Catalog.REPLACE_FROM）
+local function ReplaceCapable(kind, class)
+    if kind ~= nil or class ~= "cooldown" or not cur or type(cur.id) ~= "number" then return false end
+    local src = ns.Catalog.SourceOf(cur.id)
+    return src ~= nil and ns.Catalog.REPLACE_FROM[src] == true
+end
 -- 只給有冷卻的（核心／輔助技能、自訂法術／物品／裝備欄）：增益類（暴雪的增益兩條、光環格）沒有觸發亮框、
 -- 沒有冷卻可轉好或去飽和。看 class 不看 kind —— kind 只有自訂項目才有，暴雪的增益是 nil
 local function NotAura(_, class) return class ~= "aura" end
@@ -311,6 +322,61 @@ local function Build()
     csdd:SetPoint("LEFT", csr, "LEFT", CTRL_X, 0)
     frame.cdStateDD = csdd
     RightClickClears(csr, csh, "cdState")
+
+    -- 以增益取代：第一項「無」＝清掉覆寫；被別的技能用掉的那幾項 value 是 "taken"（選了不寫）
+    local rwr, rwh = NewRow(L["Replace with buff"], ReplaceCapable)
+    local rwdd = W.CreateDropdown(rwr, ROW_W - CTRL_X, {}, function(value)
+        if not cur then return end
+        if value == "taken" then Pop.Refresh() return end
+        if type(value) == "number" then
+            -- 同一個增益只給一個技能：別的技能上還掛著它的（那個技能現在不在，所以下拉沒擋）一併清掉
+            local sp = ns.DB.SpecSpells(false)
+            local all = sp and type(sp.overrides) == "table" and sp.overrides or {}
+            local stale = {}
+            for a, o in pairs(all) do
+                if a ~= cur.id and type(o) == "table" and o.replaceWith == value then stale[#stale + 1] = a end
+            end
+            for _, a in ipairs(stale) do ns.DB.SetOverride(a, "replaceWith", nil) end
+            ns.DB.SetOverride(cur.id, "replaceWith", value)
+        else
+            ns.DB.SetOverride(cur.id, "replaceWith", nil)
+        end
+        -- 增益圖示列（與它被拉去的群組）的清單跟著變：每一條的預覽都重畫
+        if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
+        Changed("membership")
+    end)
+    rwdd:SetMaxWidth(ROW_W - CTRL_X)
+    rwdd:SetPoint("LEFT", rwr, "LEFT", CTRL_X, 0)
+    frame.replaceDD = rwdd
+    local rhit = CreateFrame("Frame", nil, rwr)
+    rhit:SetPoint("TOPLEFT", rwr, "TOPLEFT", 0, 0)
+    rhit:SetPoint("BOTTOMLEFT", rwr, "BOTTOMLEFT", 0, 0)
+    rhit:SetWidth(LABEL_W)
+    rhit:EnableMouse(true)
+    rhit:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" and cur then
+            ns.DB.SetOverride(cur.id, "replaceWith", nil)
+            if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
+            Changed("membership")
+        end
+    end)
+    -- 說明（下一列灰字）
+    local rnRow = CreateFrame("Frame", nil, frame)
+    local rnTip = Note(rnRow)
+    rnTip:SetPoint("TOPLEFT", rnRow, "TOPLEFT", CTRL_X, -2)
+    rnTip:SetWidth(ROW_W - CTRL_X)
+    rnTip:SetWordWrap(true)
+    rnTip:SetText(L["While this buff is active, this slot shows it instead. The buff no longer appears on Tracked Buffs."])
+    local rnH = 2 + math.max(14, rnTip:GetStringHeight() or 0) + 6
+    rnRow:SetSize(ROW_W, rnH)
+    local rnEntry = { frame = rnRow, h = rnH, when = ReplaceCapable }
+    rnEntry.remeasure = function()
+        local sh2 = rnTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        rnRow:SetHeight(nh)
+        rnEntry.h = nh
+    end
+    rows[#rows + 1] = rnEntry
 
     -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色，下一列樣式（沒挑過＝ glow.active 的預設）；
     -- 右鍵整列全清。標題的圖示即時預覽
@@ -740,6 +806,11 @@ function Pop.Refresh()
     end
     local cs = Override("cdState")
     frame.cdStateDD:SetSelectedValue((type(cs) == "string" and cs ~= "") and cs or false)
+    if ReplaceCapable(kind, class) then
+        frame.replaceDD:SetItems(Pop.ReplaceItems(id))
+        local rw = Override("replaceWith")
+        frame.replaceDD:SetSelectedValue(type(rw) == "number" and rw or false)
+    end
     local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false
     frame.activeCB:SetChecked(activeOn)
     local ac = ns.SpellSetting(key, id, "activeGlowColor")
@@ -815,6 +886,45 @@ function Pop.Refresh()
     local sp2 = ns.DB.SpecSpells(false)
     local hasAny = sp2 and type(sp2.overrides) == "table" and sp2.overrides[id] ~= nil
     frame.restoreBtn:SetEnabled(hasAny and true or false)
+end
+
+-- 「以增益取代」的選項：無 ＋ 這個專精增益圖示列的全部項目（圖示＋名字）。
+-- 被別的技能（現在成立的取代）用掉的：灰字標那個技能的名字、value ＝ "taken"
+local function ItemText(id)
+    local info = ns.Catalog.Info(id)
+    local name = (info and info.name) or ("#" .. tostring(id))
+    local icon = info and info.icon
+    if icon then return ("|T%s:14:14:0:0:64:64:5:59:5:59|t %s"):format(tostring(icon), name) end
+    return name
+end
+
+function Pop.ReplaceItems(a)
+    local items = { { text = L["None"], value = false } }
+    local byA = ns.Catalog.Replacements()
+    local owner = {}
+    for oa, b in pairs(byA) do
+        if oa ~= a then owner[b] = oa end
+    end
+    local seen = {}
+    for _, b in ipairs(ns.Catalog.SourceIDs(ns.Catalog.REPLACE_TO)) do
+        if not seen[b] then
+            seen[b] = true
+            if owner[b] then
+                local info = ns.Catalog.Info(owner[b])
+                local who = (info and info.name) or ("#" .. tostring(owner[b]))
+                items[#items + 1] = { text = "|cff808080" .. L["%s (used by %s)"]:format(ItemText(b), who) .. "|r",
+                    value = "taken" }
+            else
+                items[#items + 1] = { text = ItemText(b), value = b }
+            end
+        end
+    end
+    -- 目前設的那個現在不在清單上（天賦沒點）：照樣列出來，選中的文字才不會只是一個數字
+    local now = a ~= nil and ns.SpellSetting(nil, a, "replaceWith")
+    if type(now) == "number" and not seen[now] then
+        items[#items + 1] = { text = "|cff808080" .. ItemText(now) .. "|r", value = now }
+    end
+    return items
 end
 
 function Pop.Open(key, id, cell)

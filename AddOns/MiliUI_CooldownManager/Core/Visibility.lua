@@ -6,9 +6,15 @@
 --   ns.Visibility.ApplyAll()
 --
 -- 模型（照單位框架的「時機 OR、限制優先」，bars[key].visibility）
---   時機  showCombat／showTarget：都沒勾 ＝ 一直顯示；勾了任一個 ＝ 任一成立才顯示
---   限制  hideMounted（騎乘或坐載具）、onlyInstances（不在副本）、group（solo／party／raid
+--   時機  showCombat／showTarget／showEnemy（有目標而且能攻擊它）：都沒勾 ＝ 一直顯示；
+--         勾了任一個 ＝ 任一成立才顯示
+--   限制  hideMounted（騎乘或坐載具）、hideSkyriding（騎著能飛行騎乘的坐騎，地面上也算）、
+--         hideHousing（在房屋或房屋地塊裡）、onlyInstances（不在副本）、group（solo／party／raid
 --         不符）——任一成立就不顯示，蓋過時機
+--   三個 2026-10-03 加的欄位（showEnemy／hideSkyriding／hideHousing）舊存檔沒有 ＝ false，不遷移。
+--   判斷：敵對 ＝ UnitCanAttack("player", "target")，秘密值當成立（寧可多顯示）；
+--         飛行騎乘 ＝ C_PlayerInfo.GetGlidingInfo() 第二個回傳 canGlide，明文 true 才算；
+--         房屋 ＝ C_Housing.IsInsideHouseOrPlot()，明文 true 才算。API 不在／pcall 失敗 ＝ false
 --   顯示時再套淡出（fade：enabled／alpha；keepInCombat／keepWithTarget 任一成立不淡；whenMounted 一律淡），
 --   同時成立取最低
 --
@@ -55,6 +61,36 @@ local function HasTarget()
     return UnitExists and UnitExists("target") and true or false
 end
 
+-- 有目標而且能攻擊它（秘密值當成立：讀不到時寧可顯示）
+local function HasEnemyTarget()
+    if not HasTarget() then return false end
+    if not UnitCanAttack then return false end
+    local ok, v = pcall(UnitCanAttack, "player", "target")
+    if not ok then return false end
+    if ns.IsSecret(v) then return true end
+    return v and true or false
+end
+
+-- 騎著能飛行騎乘的坐騎（GetGlidingInfo → isGliding, canGlide, forwardSpeed；canGlide 在地面上也是真）
+local function Skyriding()
+    local P = C_PlayerInfo
+    local fn = P and P.GetGlidingInfo
+    if not fn then return false end
+    local ok, _, canGlide = pcall(fn)
+    if not ok or ns.IsSecret(canGlide) then return false end
+    return canGlide == true
+end
+
+-- 在房屋或房屋地塊裡
+local function InHousing()
+    local H = C_Housing
+    local fn = H and H.IsInsideHouseOrPlot
+    if not fn then return false end
+    local ok, v = pcall(fn)
+    if not ok or ns.IsSecret(v) then return false end
+    return v == true
+end
+
 local function InInstance()
     if not IsInInstance then return false end
     local inside, kind = IsInInstance()
@@ -79,11 +115,13 @@ function Vis.Evaluate(vis, fade, s)
     vis = type(vis) == "table" and vis or {}
     -- 限制優先
     if vis.hideMounted and s.mounted then return 0 end
+    if vis.hideSkyriding and s.skyriding then return 0 end
+    if vis.hideHousing and s.housing then return 0 end
     if vis.onlyInstances and not s.instance then return 0 end
     if not GroupOK(vis.group, s.group) then return 0 end
     -- 時機 OR
-    if vis.showCombat or vis.showTarget then
-        local ok = (vis.showCombat and s.combat) or (vis.showTarget and s.target)
+    if vis.showCombat or vis.showTarget or vis.showEnemy then
+        local ok = (vis.showCombat and s.combat) or (vis.showTarget and s.target) or (vis.showEnemy and s.enemy)
         if not ok then return 0 end
     end
     -- 淡出：一個透明度。「不淡出的時機」（戰鬥中／有目標）任一成立就完整顯示；
@@ -105,14 +143,19 @@ local function Snapshot()
         mounted  = Mounted(),
         instance = InInstance(),
         group    = GroupState(),
+        enemy    = HasEnemyTarget(),
+        skyriding = Skyriding(),
+        housing  = InHousing(),
     }
 end
+Vis.Snapshot = Snapshot
 
 -- /mcdm debug：顯示條件用的判斷快照（alpha 全是 0 時第一個要看的東西）
 function Vis.DebugLine()
     local s = Snapshot()
-    return ("  顯示條件快照：戰鬥 %s  目標 %s  騎乘 %s  副本 %s  隊伍 %s"):format(
-        tostring(s.combat), tostring(s.target), tostring(s.mounted), tostring(s.instance), tostring(s.group))
+    return ("  顯示條件快照：戰鬥 %s  目標 %s  敵對目標 %s  騎乘 %s  飛行騎乘 %s  房屋 %s  副本 %s  隊伍 %s"):format(
+        tostring(s.combat), tostring(s.target), tostring(s.enemy), tostring(s.mounted), tostring(s.skyriding),
+        tostring(s.housing), tostring(s.instance), tostring(s.group))
 end
 
 function Vis.Alpha(key)
@@ -221,6 +264,17 @@ local function Later()
 end
 Vis.Later = Later
 
+-- 這個客戶端認不認得這個事件名（RegisterEvent 對不認得的名字會拋錯）。查不到 API 就當認得，
+-- 交給 ns.Events 的 pcall 接住
+function Vis.EventExists(ev)
+    local U = C_EventUtils
+    if U and U.IsEventValid then
+        local ok, v = pcall(U.IsEventValid, ev)
+        if ok and not ns.IsSecret(v) then return v and true or false end
+    end
+    return true
+end
+
 local initialized = false
 function Vis.Init()
     if initialized then return end
@@ -246,5 +300,12 @@ function Vis.Init()
     E.Register("GROUP_ROSTER_UPDATE", "visibility", Later)
     E.Register("UNIT_ENTERED_VEHICLE", "visibility", Later, "player")
     E.Register("UNIT_EXITED_VEHICLE", "visibility", Later, "player")
+    -- 目標的敵我關係變了（中立怪被打成敵對、決鬥開始）
+    E.Register("UNIT_FACTION", "visibility", Later, "target")
+    -- 飛行騎乘與房屋：客戶端有這個事件才註冊（舊版本沒有）；房屋查不到事件時靠上面的
+    -- PLAYER_ENTERING_WORLD／ZONE_CHANGED_NEW_AREA 重判
+    for _, ev in ipairs({ "PLAYER_CAN_GLIDE_CHANGED", "HOUSE_PLOT_ENTERED", "HOUSE_PLOT_EXITED" }) do
+        if Vis.EventExists(ev) then E.Register(ev, "visibility", Later) end
+    end
     Vis.ApplyAll()
 end

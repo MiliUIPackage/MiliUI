@@ -51,7 +51,7 @@
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -69,7 +69,7 @@
 | `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；`Bars` 每輪排版結尾與目錄變了之後重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`；讀不懂一律全掃），見「冷卻狀態效果」 |
 | `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過 |
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭）。字型分兩層：通用字型（`font`，主題／條）＋每段文字自己的 `font`（倒數、充能、層數、按鍵文字、長條的 `bar.nameFont／timeFont`、施法條 `castbar.font`、資源條與自訂格子 `resources.textFont`），值 `"INHERIT"`／沒存＝跟隨通用字型（`ns.Media.ElementFont`） |
-| `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha） |
+| `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha）。條件模型見「顯示條件」 |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
 | `Core/StackGate.lua` | 層數門檻：增益「層數到 N 才發光」與增益長條「層數到 N 換色」（閘＋裁切框，秘密層數也成立），見「層數門檻發光＋長條層數門檻換色」 |
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
@@ -235,6 +235,34 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 第一次寫才複製進條自己的子表。自訂群組、覆寫、設定檔改名／匯入、匯出字串都在 `Core/DB.lua`
 （`CreateBar`／`DeleteBar`／`SetOverride`／`CountOverrides`／`RenameProfile`／`ImportProfile`／
 `EncodeProfile`／`DecodeProfileString`），`Tests/Settings_test.lua` 全部覆蓋。
+
+### 顯示條件（`Core/Visibility.lua`、`Options/Specs.lua` 的 `Specs.Visibility`）
+
+條自己的欄位 `bars[key].visibility`（不繼承主題）。模型照單位框架：**時機 OR、限制優先**，條件不成立 ⇒ alpha 0（不 Hide）；
+成立時再套淡出（`fade`）。純函式 `Vis.Evaluate(vis, fade, s)`，狀態快照 `Vis.Snapshot()`，`Tests/Visibility_test.lua` 覆蓋。
+
+| 欄位 | 歸類 | 判斷 |
+|---|---|---|
+| `showCombat` | 時機 | 戰鬥中（`PLAYER_REGEN_*` 自己記，脫戰緩衝 0.1 秒） |
+| `showTarget` | 時機 | 有目標 |
+| `showEnemy`（2026-10-03） | 時機 | 有目標而且 `UnitCanAttack("player", "target")`；**秘密值當成立**（寧可多顯示）、API 不在／拋錯不算 |
+| `hideMounted` | 限制 | 騎乘或坐載具 |
+| `hideSkyriding`（2026-10-03） | 限制 | 騎著能飛行騎乘的坐騎：`C_PlayerInfo.GetGlidingInfo()` 的**第二個**回傳 `canGlide`（回傳順序 isGliding, canGlide, forwardSpeed，warcraft.wiki.gg 查過）；明文 true 才算，秘密／API 不在＝不成立。在地面上也是 true（只要是飛行騎乘的坐騎、在能飛行騎乘的區域），跟暴雪自己換快捷列的規則同一個訊號 |
+| `hideHousing`（2026-10-03） | 限制 | 在房屋或房屋地塊上：`C_Housing.IsInsideHouseOrPlot()`（11.2.7 起有）；明文 true 才算，API 不在＝不成立 |
+| `onlyInstances` | 限制 | 不在副本 ⇒ 不顯示 |
+| `group` | 限制 | any／solo／party／raid 不符 ⇒ 不顯示 |
+
+- 時機都沒勾＝一直顯示；勾了任一個＝任一成立才顯示。限制任一成立就不顯示，蓋過時機。
+- 三個新欄位 `IconBar` 預設 false；舊存檔沒有＝false，不遷移、`DB_VERSION` 不動。
+- 重算時機：事件處理器只標髒、下一幀套。多聽三個事件：`UNIT_FACTION`（只看 target：中立怪被打成敵對、決鬥開始）、
+  `PLAYER_CAN_GLIDE_CHANGED`、`HOUSE_PLOT_ENTERED`／`HOUSE_PLOT_EXITED`（後兩個 wiki 標 12.1.5／11.2.7 起有）。後三個**客戶端認得才註冊**
+  （`C_EventUtils.IsEventValid`）；`ns.Events` 的註冊本身也改成 pcall（不認得的事件名 `RegisterEvent` 會拋錯，以前會拖垮那個模組的 Init）。
+  房屋事件沒有的客戶端靠既有的 `PLAYER_ENTERING_WORLD`／`ZONE_CHANGED_NEW_AREA` 重判；上下坐騎本來就聽 `PLAYER_MOUNT_DISPLAY_CHANGED`。
+- 設定頁：「顯示時機」三個勾選（戰鬥中／有目標時／有敵對目標時）＋一列灰字；「限制」騎乘時隱藏、**飛行騎乘時隱藏**（＋灰字：
+  騎著能飛行騎乘的坐騎時，在地面上也算）、**在房屋裡隱藏**（＋灰字）、只在副本中顯示、隊伍＋灰字「限制條件優先」。
+- `/mcdm debug` 的「顯示條件快照」多印敵對目標、飛行騎乘、房屋。
+- 匯入：另一支插件沒有飛行騎乘／房屋的對應設定，`Core/Import.lua` 不動。
+- 面板（資源條、自訂格子、施法條、下一招圖示）走自己的載入條件（`Vis.EvaluatePanel`），這三個不適用。
 
 ## 自訂項目與效果
 
@@ -638,6 +666,44 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - 以前 `ApplyBarLook` 一律把暴雪的 `b.Pip`（`UI-HUD-CoolDownManager-Bar-Pip`，暴雪自己錨在填充貼圖右緣、倒數中才 Show）設 alpha 0；
   改成照設定 0／1，顯示／隱藏照舊是暴雪管。預覽的假條自己畫一條（填充末端 2px 白線，`ownPip`，同一支 `ApplyBarLook` 管錨點與 alpha）。
 - `bar` 整張表進條層簽章（`Decorate.Resolve` 的 `TSig(r.bar)`），改了當場重套。
+
+### 以增益取代（`Core/Catalog.lua`、`Core/Bars.lua`、`Options/SpellPopover.lua`，2026-10-03，P7）
+
+核心／輔助技能的一格，在某個增益生效期間改顯示那個增益（暴雪增益圖示列的 item：倒數、層數、發光都是它自己的），增益掉了換回技能。
+例：「奧術強化」那一格在增益生效時顯示增益，結束後顯示技能冷卻；那個增益不再出現在增益圖示列。
+
+- **資料**：逐法術覆寫 `spells[spec].overrides[A].replaceWith = B`。A＝核心／輔助的暴雪 cooldownID（自訂項目不開放），
+  B＝增益圖示列的 cooldownID（增益長條的 item 是另一種框，不收）。`SPELL_CONST.replaceWith = false`、`OVERRIDE_GROUP.replaceWith = "icon"`
+  （條頁圖示節的「清除覆寫」會清掉它）。舊存檔沒有＝不取代。
+- **成立條件**（`Catalog.Replacements()` → byA／byB，`ReplacedSet()`、`ReplaceTarget(A)`）：A 在某條檢視器的清單上（學會了）、沒被玩家移除、
+  來源是核心或輔助；B 在增益圖示列的清單上（天賦沒點 ⇒ 不在 ⇒ 退回 A 本身，B 也不會被拿掉）；同一個 B 只給一個 A
+  （設定頁擋；擋不住的舊資料取 cooldownID 小的，結果固定）。不成立時設定留著，條件回來自動生效。**不快取**：覆寫的寫入路徑很多，
+  作廢點漏一個就是「改了沒反應」；現算只是走一遍這個專精的覆寫表。
+- **清單**：成立的 B 從**每一條**的清單拿掉（`Catalog.Bar` 的 `Add`，被移除清單也不列）——它的位置就是 A 那一格。
+  預覽、挑選器「已在暴雪冷卻管理器」那區都讀 `Catalog.Bar`，自然不列 B（跟真實條一致）。
+- **放格**（`Bars` 的 `Relayout`）：A 的 entry 有成立的 B，而且 B 有框、沒被別條認領、顯示中（`IsShown` 而且 `IsVisible`：整條增益檢視器
+  被暴雪藏起來時不換，免得變成一格空的）、`IsActive()` **明文 true**（`Glow.ReadActive`，跟生效發光同一個判準；秘密／讀不到＝沒生效）
+  ⇒ 這一格放 B 的 item、`claimedBy[B] = 條`，A 的 item 不認領（Flush 結尾停放）；否則照舊放 A。判斷是純函式 `Catalog.ReplaceNow`。
+  兩種情況格子數一樣，版面不變。**格位快取（`slotOf`）記的是實際放進去的 id**：暴雪排版後的同步放回（`Reapply`）才會把 B 放回 A 的格、
+  把 A 停走，而不是反過來。
+- **訊號**：B 生效／結束時暴雪叫 `OnActiveStateChanged`，`Viewers` 本來就掛著（`RequestSource("buffs")`）；`Catalog.GroupTargets`
+  多算「有成立的取代指到這條檢視器的 A 所在的條」（`groupOf[A]` 指到的群組，否則來源是 A 那條檢視器的條）。
+  B 已經頂在 A 的格上時，`RequestSource` 本來就會算到認領它的條。計畫寫的「Glow 的 `OnActiveStateChanged` 後掛勾再發一次」不需要：同一個掛勾點
+  `Viewers` 已經發了（多發一次只是多標一次髒）。
+- **外觀**：B 的 item 在 A 的條上照 A 那條的樣式畫（`Decorate.Apply(item, rec, 條)`）；增益的語意（生效發光、層數門檻、音效、
+  不算冷卻狀態效果）照 B 自己（`rec.barKey` 仍是 buffs、逐法術覆寫查的是 B）。**按鍵文字不畫**：`rec.replacing`（`Relayout` 寫、停放時清）
+  有值時 `Keybinds.Apply` 當成關。可點擊群組：B 是增益 ⇒ `Clickable.Resolve` 回 nil（那一格的鈕收起來），換回 A 再放回。
+- **設定介面**：暴雪核心／輔助技能的逐法術面板多一列「以增益取代」下拉：第一項「無」，其餘是這個專精增益圖示列的全部項目
+  （`Catalog.SourceIDs("buffs")`：含被移除的、拉去別條的；圖示＋名字）。已經被別的技能（成立的取代）用掉的灰字標
+  「（已用於 X）」、選了不寫（共用層的下拉沒有停用項目，`Options/SpellPopover.lua` 自己擋）；選了一個 B 時，別的技能上還掛著它、但那個技能
+  現在不成立的舊值一併清掉。目前設的 B 不在清單上（天賦沒點）時照樣列出（灰字）。右鍵整列清掉。下一列灰字說明。改了重畫每一條的預覽。
+- **預覽**：A 的格右下角畫一個 12×12、1px 黑邊的 B 圖示當記號（取代成立才畫）。
+- `/mcdm debug` 每顆 item 那一行：被頂掉的 A 標「（被 B 取代）」、頂著的 B 標「（取代 A）」。
+- ⚠ 已知限制：
+  - 副本／首領戰中 `IsActive()` 讀不到（秘密值）的那幾段一律顯示 A——寧可看不到增益，也不要把技能藏掉。
+  - B 結束到 A 換回來之間隔一輪排版（≤ 0.1 秒節流＋一幀）：那段時間那一格可能是暴雪剛藏起來的 B（空著）。
+  - B 的 item 仍是增益檢視器的子框：它的 strata／框層級跟著增益圖示列，不是 A 那條。兩條 strata 設得不一樣時，那一格的疊層會跟旁邊不同。
+  - 只有增益**圖示列**；增益長條的 item、自訂光環格不能當 B，自訂項目不能當 A。
 
 ## 資源條與施法條
 
@@ -1595,4 +1661,23 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 195. 高度從視窗改，列高即時變；舊存檔的高度照舊（`heights` 沒設的退回 `rowHeight`／`crusadingHeight`）。
 196. 歐語客戶端：視窗裡的標籤（「跟隨資源條的外觀」「數字格式」等）不超過兩行；「設定…」按鈕撐寬後不蓋到別的東西；
      條件規則那幾列的「移除」在 540 寬的視窗裡沒有跑出去。
+
+**顯示條件補三種＋以增益取代（2026-10-03，P7）**
+
+197. 有敵對目標時：選中立怪不顯示、打它（變敵對）後顯示（`UNIT_FACTION` 有到）；選敵對玩家／決鬥對象顯示；選友方不顯示；
+     跟「戰鬥中」一起勾時任一成立就顯示。副本裡 `UnitCanAttack` 是不是秘密值（是的話一律顯示，`/mcdm debug` 的快照印 true）。
+198. 飛行騎乘時隱藏：騎上飛行騎乘的坐騎（地面上、空中）條消失，下坐騎回來；騎一般坐騎、在不能飛行騎乘的區域騎同一隻不藏
+     （`canGlide` 是假）；換區域／上下坐騎的那一刻 `PLAYER_CAN_GLIDE_CHANGED` 有到、不會卡在藏著。德魯伊飛行形態、龍希爾的翱翔照暴雪的 `canGlide`。
+199. 在房屋裡隱藏：進自己／別人的房屋與地塊時條消失、離開回來；`HOUSE_PLOT_ENTERED`／`EXITED` 在 12.1 正式服（120100）認不認得
+     （wiki 寫 12.1.5 起；不認得的話 `ns.Events.unknown` 會記著，改靠換區域事件，`/mcdm debug` 的快照看 `房屋`）。房屋室內跟院子都算（`IsInsideHouseOrPlot`）。
+200. 設定頁「顯示條件」：三個新勾選與灰字在德文／法文不超過兩行；舊存檔打開時三個都是沒勾、行為跟改版前一樣。
+201. 以增益取代：核心技能設成某個增益後，增益一生效那一格就換成增益（倒數、層數、生效發光、層數門檻照增益自己的設定），
+     增益結束換回技能（冷卻、按鍵文字、去飽和都回來）；增益圖示列上不再出現那個增益；格子數與位置不變、旁邊的格不跳。
+202. 副本／首領戰中 `IsActive()` 讀不到時一律顯示技能、不報錯；`/mcdm debug` 的 item 行在換過去時印「（被 B 取代）」「（取代 A）」。
+203. 暴雪排版（增益上下、換目標）之後的同步放回：B 停在 A 的格、A 停在畫面外，不會兩個疊在一起或閃回增益圖示列。
+     增益檢視器在編輯模式設成「只在戰鬥中可見」時，脫戰增益生效也照樣顯示技能（不會一格空的）。
+204. 設定：下拉列出這個專精增益圖示列的全部項目（含被移除的）；被別的技能用掉的灰字、選了不生效；換專精、刪掉覆寫（右鍵、條頁清除覆寫、
+     還原此法術）、增益天賦沒點 ⇒ 自動退回技能本身，增益回到增益圖示列。預覽上 A 的格右下角有小圖示。
+205. 可點擊群組裡的 A 被取代時那一格點不到（鈕收起來）、換回來又能點；`/console taintLog 2` 打一場（含取代來回切換、戰鬥中）
+     taint.log 沒有本插件。
 

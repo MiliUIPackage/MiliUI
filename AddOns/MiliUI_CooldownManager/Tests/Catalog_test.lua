@@ -519,5 +519,132 @@ do
     check("光環沒有主 ID ⇒ 壞", not V({ kind = "aura", spellIDs = { 32182 } }))
 end
 
+------------------------------------------------------------
+-- 以增益取代（overrides[A].replaceWith = B）：成立條件、B 從每一條拿掉、GroupTargets、放格判斷
+------------------------------------------------------------
+do
+    local function keys(t)
+        local out = {}
+        for k in pairs(t) do out[#out + 1] = k end
+        table.sort(out, function(a, b) return tostring(a) < tostring(b) end)
+        return out
+    end
+    layoutString = "1|B64main"
+    C.Refresh("replace")
+    -- 核心 {102, 701, 202}、輔助 {201, 101}、增益圖示 {301, 302}、增益長條 {401}
+    local sp = { order = {}, groupOf = {}, hidden = {}, overrides = {} }
+    ns.profile = {
+        bars = {
+            essential = { source = "essential", kind = "icons" },
+            utility   = { source = "utility", kind = "icons" },
+            buffs     = { source = "buffs", kind = "icons" },
+            buffbars  = { source = "buffbars", kind = "bars" },
+            g1        = { source = "custom", kind = "icons" },
+        },
+        spells = { [65] = sp },
+    }
+    ns.specID = 65
+
+    local byA, byB = C.Replacements()
+    eq("沒設 ⇒ 空", #keys(byA) + #keys(byB), 0)
+    eqList("沒設 ⇒ 增益圖示照舊", C.Bar("buffs"), { 301, 302 })
+
+    sp.overrides[102] = { replaceWith = 301 }
+    byA, byB = C.Replacements()
+    eq("成立：A → B", byA[102], 301)
+    eq("成立：B → A", byB[301], 102)
+    eq("ReplacedSet", C.ReplacedSet()[301], 102)
+    eq("ReplaceTarget", C.ReplaceTarget(102), 301)
+    eq("ReplaceTarget：沒設的 A", C.ReplaceTarget(701), nil)
+    eq("ReplaceTarget：不是數字", C.ReplaceTarget("c:1"), nil)
+    eqList("C.Bar：B 從增益圖示拿掉", C.Bar("buffs"), { 302 })
+    eqList("C.Bar：A 那條照舊（B 的位置就是 A 那一格）", C.Bar("essential"), { 102, 701, 202 })
+    do
+        local vis, hid = C.Bar("buffs", true)
+        eqList("withHidden：顯示的沒有 B", vis, { 302 })
+        eqList("withHidden：被移除清單也不列 B", hid, {})
+        sp.hidden[301] = true
+        vis, hid = C.Bar("buffs", true)
+        eqList("B 被玩家移除過：被移除清單照樣不列", hid, {})
+        sp.hidden[301] = nil
+    end
+    -- B 被拉去自訂群組：那一條也不列
+    sp.groupOf[301] = "g1"
+    eqList("B 拉去群組：群組也不列", C.Bar("g1"), {})
+    sp.groupOf[301] = nil
+    eqList("SourceIDs：增益圖示檢視器自己的清單（含被取代的 B）", C.SourceIDs("buffs"), { 301, 302 })
+
+    -- 不成立的情況（設定留著，條件回來自動生效）
+    sp.hidden[102] = true
+    eq("A 被移除 ⇒ 不成立", C.ReplaceTarget(102), nil)
+    eqList("A 被移除 ⇒ B 回到增益圖示", C.Bar("buffs"), { 301, 302 })
+    sp.hidden[102] = nil
+    sp.overrides[102] = { replaceWith = 999 }
+    eq("B 不在目錄（天賦沒點）⇒ 不成立", C.ReplaceTarget(102), nil)
+    sp.overrides[102] = { replaceWith = 401 }
+    eq("B 是增益長條 ⇒ 不收", C.ReplaceTarget(102), nil)
+    eqList("B 是增益長條 ⇒ 長條照舊", C.Bar("buffbars"), { 401 })
+    sp.overrides[102] = { replaceWith = 201 }
+    eq("B 是輔助技能 ⇒ 不收", C.ReplaceTarget(102), nil)
+    sp.overrides[102] = nil
+    sp.overrides[301] = { replaceWith = 302 }
+    eq("A 是增益 ⇒ 不收", C.ReplaceTarget(301), nil)
+    sp.overrides[301] = nil
+    sp.overrides[103] = { replaceWith = 301 }
+    eq("A 沒學會（不在清單上）⇒ 不成立", C.ReplaceTarget(103), nil)
+    eqList("A 沒學會 ⇒ B 照舊在增益圖示", C.Bar("buffs"), { 301, 302 })
+    sp.overrides[103] = nil
+    sp.overrides[102] = { replaceWith = 102 }
+    eq("取代自己 ⇒ 不收", C.ReplaceTarget(102), nil)
+    sp.overrides[102] = { replaceWith = "301" }
+    eq("不是數字 ⇒ 不收", C.ReplaceTarget(102), nil)
+    sp.overrides[102] = { replaceWith = false }
+    eq("false ＝ 不取代", C.ReplaceTarget(102), nil)
+
+    -- 同一個 B 兩個 A：取 cooldownID 小的（結果固定）
+    sp.overrides[201] = { replaceWith = 301 }
+    sp.overrides[101] = { replaceWith = 301 }
+    byA, byB = C.Replacements()
+    eq("重複：小的 A 拿到", byB[301], 101)
+    eq("重複：大的 A 不成立", byA[201], nil)
+    sp.overrides[101] = nil
+    eq("重複解除：輔助的 201 拿到", C.ReplaceTarget(201), 301)
+
+    -- 別的專精：各管各的
+    ns.specID = 66
+    eq("別的專精沒有取代", C.ReplaceTarget(201), nil)
+    eqList("別的專精：增益圖示照舊", C.Bar("buffs"), { 301, 302 })
+    ns.specID = 65
+
+    -- GroupTargets：增益圖示有動靜 ⇒ A 所在的條也算
+    sp.overrides = { [102] = { replaceWith = 301 } }
+    eqList("GroupTargets：B 在增益圖示 ⇒ A 的來源條（核心）", keys(C.GroupTargets("buffs")), { "essential" })
+    eqList("GroupTargets：別條檢視器的動靜不算", keys(C.GroupTargets("buffbars")), {})
+    sp.groupOf[102] = "g1"
+    eqList("GroupTargets：A 拉去群組 ⇒ 那個群組（核心的動靜也照舊算 g1）", keys(C.GroupTargets("buffs")), { "g1" })
+    sp.groupOf[102] = nil
+    sp.overrides = {}
+    eqList("GroupTargets：沒設 ⇒ 跟以前一樣", keys(C.GroupTargets("buffs")), {})
+
+    -- 放格判斷（純函式）：B 有框、沒被別條認領、顯示中、IsActive 明文 true 才換
+    local R = C.ReplaceNow
+    eq("放格：全部成立 ⇒ B", R({ item = true, free = true, shown = true, active = true }), true)
+    eq("放格：沒生效 ⇒ A", R({ item = true, free = true, shown = true, active = false }), false)
+    eq("放格：讀不到（nil）⇒ A", R({ item = true, free = true, shown = true }), false)
+    eq("放格：不是 true 的真值 ⇒ A", R({ item = true, free = true, shown = true, active = 1 }), false)
+    eq("放格：沒顯示 ⇒ A", R({ item = true, free = true, shown = false, active = true }), false)
+    eq("放格：被別條認領 ⇒ A", R({ item = true, free = false, shown = true, active = true }), false)
+    eq("放格：沒有框 ⇒ A", R({ item = false, free = true, shown = true, active = true }), false)
+    eq("放格：nil ⇒ A", R(nil), false)
+    do
+        local SEC = {}
+        local saved = ns.IsSecret
+        ns.IsSecret = function(v) return v == SEC end
+        eq("放格：秘密值 ⇒ A（副本戰鬥中）", R({ item = true, free = true, shown = true, active = SEC }), false)
+        ns.IsSecret = saved
+    end
+    ns.profile = nil
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
