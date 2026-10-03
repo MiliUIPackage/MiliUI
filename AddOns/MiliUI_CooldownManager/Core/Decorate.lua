@@ -634,8 +634,20 @@ local function OnAuraLogRefresh(item)
 end
 -- 第三版：設旗標／數字／時間物件這三支很少被叫（一場戰鬥個位數），每次都印、不去重不過濾，
 -- 連「對不到格子」也印出來（上一版有計數卻沒印，原因不明）
+-- ⚠ 第三版實測：這三支掛勾裡直接 print，聊天框什麼都沒有（有計數、也沒報錯）。改成在掛勾裡只把明文字串
+--   收進暫存，下一幀（ns.Defer，乾淨的執行）再印，同時記進 diag（SavedVariables 也看得到）
+local auraLogQueue, auraLogArmed = {}, false
+local function AuraLogFlush()
+    auraLogArmed = false
+    local list = auraLogQueue
+    auraLogQueue = {}
+    for i = 1, #list do
+        print(ns.PREFIX_COLOR .. "[生效探針]|r " .. list[i])
+        if ns.Diag then ns.Diag.Note("activelog", list[i]) end
+    end
+end
 local function AuraLogRaw(src, cd, flag)
-    local ok, err = pcall(function()
+    local ok, line = pcall(function()
         local item = cooldownOwner[cd]
         local rec = item and ns.Viewers.frames[item]
         local name = "?"
@@ -644,12 +656,16 @@ local function AuraLogRaw(src, cd, flag)
             local sid = info and (info.overrideSpellID or info.spellID)
             name = sid and C_Spell.GetSpellName(sid) or "?"
         end
-        print(("%s[生效探針]|r [%s] %s(%s) 條=%s 旗標=%s 轉圈C端旗標=%s %s"):format(ns.PREFIX_COLOR, src,
+        return ("[%s] %s(%s) 條=%s 旗標=%s 轉圈C端旗標=%s %s"):format(src,
             tostring(name), rec and tostring(rec.cooldownID) or (item and "沒有rec" or "沒有item"),
             rec and tostring(rec.barKey) or "-", AuraLogValue(flag), AuraLogCall(cd, "GetUseAuraDisplayTime"),
-            InCombatLockdown() and "戰鬥中" or "脫戰"))
+            InCombatLockdown() and "戰鬥中" or "脫戰")
     end)
-    if not ok then print(ns.PREFIX_COLOR .. "[生效探針]|r 記錄出錯：" .. tostring(err)) end
+    auraLogQueue[#auraLogQueue + 1] = ok and line or ("[" .. src .. "] 記錄出錯：" .. tostring(line))
+    if not auraLogArmed then
+        auraLogArmed = true
+        C_Timer.After(0, AuraLogFlush)
+    end
 end
 D.AuraLogRaw = AuraLogRaw
 
