@@ -584,17 +584,17 @@ D.auraLog = false
 --   開探針時另外在每一格冷卻 item 掛 RefreshSpellCooldownInfo（暴雪設旗標的那支）讀它自己的欄位，
 --   並統計每場戰鬥三支的呼叫次數（脫戰時印），分得出「沒被叫」還是「叫了但值沒變」；
 --   記錄本身出錯也印出來（不只丟給錯誤收集器）。
-local auraLogCount = { set = 0, refresh = 0, clear = 0 }
+local auraLogCount = { set = 0, refresh = 0, clear = 0, obj = 0, cd = 0 }
 local auraLogHooked = setmetatable({}, { __mode = "k" })
 local function AuraLogValue(v)
     if v == nil then return "nil" end
     if ns.IsSecret(v) then return "秘密" end
     return tostring(v)
 end
-local function AuraLogCall(item, getter)
-    local fn = item[getter]
+local function AuraLogCall(obj, getter)
+    local fn = obj and obj[getter]
     if type(fn) ~= "function" then return "無" end
-    local ok, v = pcall(fn, item)
+    local ok, v = pcall(fn, obj)
     if not ok then return "錯" end
     return AuraLogValue(v)
 end
@@ -603,15 +603,17 @@ local function AuraLogLine(item, rec, src, flag)
     local act = AuraLogCall(item, "IsActive")
     local vis = AuraLogCall(item, "HasVisualDataSource_Aura")
     local exp = AuraLogCall(item, "IsExpired")
-    local sig = table.concat({ src, AuraLogValue(flag), act, vis, exp, fight }, "|")
+    -- 轉圈框自己的 C 端旗標（暴雪可能不經 Lua 的 SetUseAuraDisplayTime 就把增益時間交給轉圈）
+    local cflag = AuraLogCall(item.Cooldown, "GetUseAuraDisplayTime")
+    local sig = table.concat({ src, AuraLogValue(flag), act, vis, exp, cflag, fight }, "|")
     rec.auraLogSig = rec.auraLogSig or {}
     if rec.auraLogSig[src] == sig then return end
     rec.auraLogSig[src] = sig
     local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
     local sid = info and (info.overrideSpellID or info.spellID)
     local name = sid and C_Spell.GetSpellName(sid) or "?"
-    local line = ("%s(%s) [%s] 增益時間旗標=%s IsActive=%s 光環來源=%s 過期=%s %s"):format(tostring(name),
-        tostring(rec.cooldownID), src, AuraLogValue(flag), act, vis, exp, fight)
+    local line = ("%s(%s) [%s] 增益時間旗標=%s 轉圈C端旗標=%s IsActive=%s 光環來源=%s 過期=%s %s"):format(tostring(name),
+        tostring(rec.cooldownID), src, AuraLogValue(flag), cflag, act, vis, exp, fight)
     print(ns.PREFIX_COLOR .. "[生效探針]|r " .. line)
     if ns.Diag then ns.Diag.Note("activelog", line) end
 end
@@ -630,12 +632,30 @@ local function OnAuraLogRefresh(item)
     local rec = AuraLogTarget(item)
     if rec then AuraLog(item, rec, "刷新", rawget(item, "cooldownUseAuraDisplayTime")) end
 end
+-- 轉圈框被餵了什麼：時間物件（SetCooldownFromDurationObject）還是數字（SetCooldown）。我們自己蓋的那幾次（overriding）不算
+local function OnAuraLogDurObj(cd)
+    if not D.auraLog or overriding then return end
+    auraLogCount.obj = auraLogCount.obj + 1
+    local item = cooldownOwner[cd]
+    local rec = AuraLogTarget(item)
+    if rec then AuraLog(item, rec, "時間物件", rawget(item, "cooldownUseAuraDisplayTime")) end
+end
+local function OnAuraLogSetCD(cd)
+    if not D.auraLog or overriding then return end
+    auraLogCount.cd = auraLogCount.cd + 1
+    local item = cooldownOwner[cd]
+    local rec = AuraLogTarget(item)
+    if rec then AuraLog(item, rec, "數字", rawget(item, "cooldownUseAuraDisplayTime")) end
+end
 function D.AuraLogArm()
     local n = 0
     ns.Viewers.EnumerateItems(function(item, rec)
         if rec.custom or ns.Viewers.AURA_KIND[rec.barKey] or auraLogHooked[item] then return end
         if type(item.RefreshSpellCooldownInfo) == "function" then
             hooksecurefunc(item, "RefreshSpellCooldownInfo", OnAuraLogRefresh)
+            local cd = item.Cooldown
+            if cd and cd.SetCooldownFromDurationObject then hooksecurefunc(cd, "SetCooldownFromDurationObject", OnAuraLogDurObj) end
+            if cd and cd.SetCooldown then hooksecurefunc(cd, "SetCooldown", OnAuraLogSetCD) end
             auraLogHooked[item] = true
             n = n + 1
         end
@@ -643,9 +663,9 @@ function D.AuraLogArm()
     return n
 end
 local function AuraLogSummary(label)
-    print(("%s[生效探針]|r %s：SetUseAuraDisplayTime %d 次、RefreshSpellCooldownInfo %d 次、Clear %d 次"):format(
-        ns.PREFIX_COLOR, label, auraLogCount.set, auraLogCount.refresh, auraLogCount.clear))
-    auraLogCount.set, auraLogCount.refresh, auraLogCount.clear = 0, 0, 0
+    print(("%s[生效探針]|r %s：SetUseAuraDisplayTime %d 次、RefreshSpellCooldownInfo %d 次、Clear %d 次、時間物件 %d 次、數字 %d 次"):format(
+        ns.PREFIX_COLOR, label, auraLogCount.set, auraLogCount.refresh, auraLogCount.clear, auraLogCount.obj, auraLogCount.cd))
+    for k in pairs(auraLogCount) do auraLogCount[k] = 0 end
 end
 ns.Events.Register("PLAYER_REGEN_DISABLED", "decorate_auralog", function()
     if D.auraLog then AuraLogSummary("進戰鬥前") end
