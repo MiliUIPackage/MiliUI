@@ -17,7 +17,7 @@
 -- 12.1 的硬限制與對應：
 --   * AuraContainer 是受保護的 intrinsic ⇒ 持有框、它所在的條容器（保護沿父層／錨點鏈往上傳）
 --     戰鬥中都不能 SetPoint／SetSize／Show／Hide ⇒ 一律走 ns.Write（戰鬥中記帳、脫戰補做）。
---     條的固定格位因此被強制打開，光環格排在最前面（Catalog 的固定前綴），戰鬥中位置不會變。
+--     條的固定格位因此被強制打開，戰鬥中位置不會變。
 --   * 按鈕的樣式只能在 initializeFrame 裡烘（之後 AuraButton 就 forbidden）⇒ 影響外觀的設定
 --     全進**簽章**，簽章變了換一顆容器；容器依簽章池化在持有框上（frame 刪不掉，舊的 Hide 留著）。
 --   * initializeFrame 跑在暴雪 CreateFrame 的 securecallfunction 裡：整段 xpcall 隔離、

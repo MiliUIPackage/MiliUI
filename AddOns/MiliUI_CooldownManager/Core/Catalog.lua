@@ -8,8 +8,8 @@
 --   ns.Catalog.IsPaused()      暴雪冷卻管理器設定面板開著 ⇒ true（Bars 暫停重排）
 --
 -- 自訂項目（spells[spec].custom，id 是 "c:<index>"）也從這裡進清單：Bar(key) 把
--- custom[i].bar == key 的排進去（順序覆寫照舊），**光環格永遠排在最前面**當固定前綴
--- （持有框整條鏈是保護框，戰鬥中位置不能變 ⇒ 放在不會被別人擠動的地方）。
+-- custom[i].bar == key 的排進去，順序跟其他格一樣走 order 表（光環格也是，可以放在任意位置；
+-- 條上有光環格時 Bars 會強制固定格位，位置本來就不動）。
 -- Info("c:i") 回同一個形狀的表（多 custom／kind／itemID／filter）。
 --
 -- 資料來源只有兩個明文 API：`C_CooldownViewer.GetCooldownViewerCategorySet(category, true)`
@@ -753,16 +753,6 @@ function C.SourceOf(id)
     return rec and rec.bar or nil
 end
 
--- 光環格排到最前面（相對順序不變）
-local function AuraPrefix(list)
-    local out, rest = {}, {}
-    for _, id in ipairs(list) do
-        if C.IsAuraSlot(id) then out[#out + 1] = id else rest[#rest + 1] = id end
-    end
-    for _, id in ipairs(rest) do out[#out + 1] = id end
-    return out
-end
-
 -- 條的有序清單（已套 order／groupOf／hidden）。回傳的是新表，呼叫端可以自由改。
 -- withHidden = true 時多回一張「本來在這條、但被藏起來」的清單（設定頁的預覽排在尾端用），
 -- 同樣照 order 排。
@@ -851,8 +841,6 @@ function C.Bar(barKey, withHidden)
         out = Sort(out)
         if hid then hid = Sort(hid) end
     end
-    out = AuraPrefix(out)
-    if hid then hid = AuraPrefix(hid) end
     return out, hid
 end
 
