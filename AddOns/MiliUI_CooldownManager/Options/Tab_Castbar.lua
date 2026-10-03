@@ -103,6 +103,7 @@ local function Controls()
         BS("slider", "textSize", L["Font size"], { min = 6, max = 30, step = 1 }),
         { type = "header", label = L["Effects"] },
         BS("toggle", "showSpark", L["Spark at the leading edge"]),
+        BS("toggle", "interruptShake", L["Shake when interrupted"]),
         BS("toggle", "ticks", L["Channel ticks"]),
         Note(L["Marks each tick of a channeled spell (fixed tick counts for known spells)."]),
         BS("toggle", "latency", L["Latency"]),

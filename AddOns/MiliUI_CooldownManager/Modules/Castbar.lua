@@ -282,6 +282,18 @@ local function Build()
     ns.Media.SetFont(f.timeText, 12, "OUTLINE")
     f.timeText:SetJustifyH("RIGHT")
     f.timeText:SetWordWrap(false)
+
+    -- 打斷震動：數值照暴雪自己施法條的 InterruptShakeAnim（停 0.1 秒後每 0.05 秒跳一次，
+    -- 四段位移加總歸零）。Translation 只動畫面上的位置，不改錨點
+    f.shake = f:CreateAnimationGroup()
+    local steps = { { 0, 0, 0.1, 0 }, { -1, 1, 0, 0.05 }, { 1, -2, 0, 0.05 }, { 1, 2, 0, 0.05 }, { -1, -1, 0, 0.05 } }
+    for i, s in ipairs(steps) do
+        local t = f.shake:CreateAnimation("Translation")
+        t:SetOffset(s[1], s[2])
+        t:SetDuration(s[3])
+        t:SetStartDelay(s[4])
+        t:SetOrder(i)
+    end
     f:Hide()
 end
 
@@ -611,6 +623,7 @@ local function HideBar()
     f:SetScript("OnUpdate", nil)
     ClearMarks()
     f.spark:Hide()
+    f.shake:Stop()
     f:SetAlpha(1)
     S.lastTime = nil
     S.tStart, S.tEnd, S.total, S.lag = nil, nil, 0, 0
@@ -672,6 +685,7 @@ local function ShowInterrupted()
     if tex then tex:SetVertexColor(C(c, 1, 0.204, 0.145)) end
     f.nameText:SetText(L["Interrupted"])
     f.timeText:SetText("")
+    if (Cfg() or {}).interruptShake ~= false then f.shake:Restart() end
     S.displayToken = S.displayToken + 1
     local tok = S.displayToken
     C_Timer.After(INTERRUPT_HOLD, function()
