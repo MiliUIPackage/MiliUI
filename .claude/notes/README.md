@@ -142,6 +142,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面的控件說明一律下一列灰色小字，不用接在勾選框右邊的 hint；實作細節／推銷別支插件的句子不放 |
 | [project-miliui-hud-skin.md](project-miliui-hud-skin.md) | **HUD 皮的正式定義**：黑透明底＋1px 職業色邊＋白字＋直角；跟設定視窗皮的二選一判準與數值表 |
 | [project-miliui-button-variants.md](project-miliui-button-variants.md) | **按鈕上色規則（全套組遵守）**：primary（主動作）／normal 兩種長相、職業色公式、九條判準（主按鈕不疊發光／彩色字、做過的動作＝字改現況＋停用）、`W.CreateButton(…, "primary")`＋`W.PaintButton`；`accent`／`green` 是舊配色（遷移待辦） |
+| [feedback-button-no-ellipsis.md](feedback-button-no-ellipsis.md) | **按鈕文字不加刪節號（全套組）**：結尾不寫「…」／「...」；讀取中狀態、輸入框提示不在此限，右鍵選單要動先問 |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | agent 資料的擺放慣例（就是這個結構） |
 
 ### 自製功能

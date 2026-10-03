@@ -13,7 +13,7 @@
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
 --     多一列「不在時顯示占位」；沒有「隱藏此法術」（固定前綴）。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
---   * 多一顆「複製到其他專精…」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
+--   * 多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
 --     DB.CopyCustomEntry（連同這一筆的覆寫）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
 --
@@ -43,7 +43,7 @@
 -- 層數門檻（暴雪的增益才有，自訂光環格不做；引擎在 Core/StackGate.lua）：
 --   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
 --     再下一列灰字說明。勾了它時「生效發光」那兩列變暗（兩者互斥，層數的為準）。右鍵整列清。
---   * 增益長條才有的「層數換色（N）…」：開 Options/StackColors.lua 的小彈窗。
+--   * 增益長條才有的「層數換色（N）」：開 Options/StackColors.lua 的小彈窗。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -277,7 +277,7 @@ local function Build()
 
     -- 自訂圖示（光環格不支援：圖示是引擎畫的）
     local ir, ih = NewRow(L["Custom icon"], function(kind) return kind ~= "aura" end)
-    local change = W.CreateButton(ir, L["Change…"], "normal", 70, 22)
+    local change = W.CreateButton(ir, L["Change"], "normal", 70, 22)
     W.FitButton(change, 70, 22)
     change:SetPoint("LEFT", ir, "LEFT", CTRL_X, 0)
     change:SetScript("OnClick", function()
@@ -507,7 +507,7 @@ local function Build()
     -- 層數換色（增益長條）：按鈕寫著目前筆數，點開是編輯器（Options/StackColors.lua）
     -- 這一列沒有標籤：按鈕靠右、寬度至少到控件欄，長譯文往左邊（空著的標籤欄）撐（Refresh 換字後 FitButton）
     local scr = NewRow(nil, BlizzAuraBar)
-    local scbtn = W.CreateButton(scr, L["Stack colors (%d)…"]:format(0), "normal", ROW_W - CTRL_X, 22)
+    local scbtn = W.CreateButton(scr, L["Stack colors (%d)"]:format(0), "normal", ROW_W - CTRL_X, 22)
     scbtn:SetPoint("RIGHT", scr, "RIGHT", 0, 0)
     scbtn:SetScript("OnClick", function()
         if not cur then return end
@@ -663,7 +663,7 @@ local function Build()
         Changed()
     end)
     -- 自訂項目才有：複製到這個職業的其他專精（連同覆寫）
-    local copy = W.CreateButton(btnRow, L["Copy to other specializations…"], "normal", 130, 22)
+    local copy = W.CreateButton(btnRow, L["Copy to other specializations"], "normal", 130, 22)
     W.FitButton(copy, 130, 22)
     copy:SetScript("OnClick", function()
         if not cur then return end
@@ -860,7 +860,7 @@ function Pop.Refresh()
         frame.stackTypeDD:SetSelectedValue(type(st) == "string" and st or "pixel")
         frame.stackTypeDD:SetEnabled(stackOn)
         frame.stackTypeDD:SetAlpha(stackOn and 1 or 0.4)
-        frame.stackColorsBtn:SetText(L["Stack colors (%d)…"]:format(ns.StackColors.Count(key, id)))
+        frame.stackColorsBtn:SetText(L["Stack colors (%d)"]:format(ns.StackColors.Count(key, id)))
         W.FitButton(frame.stackColorsBtn, ROW_W - CTRL_X, 22)
     end
     if ns.Glow and ns.Glow.PreviewActive then

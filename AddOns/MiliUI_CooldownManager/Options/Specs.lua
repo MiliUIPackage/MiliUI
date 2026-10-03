@@ -342,7 +342,7 @@ local function CustomSoundsRow()
         local btn = W.CreateButton(parent, "", "normal", 160, 22)
         btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
         local function UpdateText()
-            btn:SetText(L["Edit list (%d)…"]:format(ns.CustomSounds.Count()))
+            btn:SetText(L["Edit list (%d)"]:format(ns.CustomSounds.Count()))
             W.FitButton(btn, 160, 22)
         end
         btn:SetScript("OnClick", function() ns.CustomSounds.Open(UpdateText) end)
