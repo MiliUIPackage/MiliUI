@@ -99,8 +99,9 @@ DB.Init()
 local sv = env.MiliUI_CooldownManager_DB
 check("SV 建立", type(sv) == "table")
 eq("schemaVersion", sv.schemaVersion, ns.DB_VERSION)
-eq("DB_VERSION", ns.DB_VERSION, 3)
+eq("DB_VERSION", ns.DB_VERSION, 4)
 check("MIGRATIONS 有版本 3", type(DB.MIGRATIONS[3]) == "function")
+check("MIGRATIONS 有版本 4", type(DB.MIGRATIONS[4]) == "function")
 check("MIGRATIONS 有版本 1", type(DB.MIGRATIONS[1]) == "function")
 eq("預設設定檔名", ns.profileName, "Default")
 eq("profileKeys 記下角色", sv.profileKeys["米利 - 世界之樹"], "Default")
@@ -313,9 +314,11 @@ local calls = 0
 local real = DB.MIGRATIONS[1]
 local real2 = DB.MIGRATIONS[2]
 local real3 = DB.MIGRATIONS[3]
+local real4 = DB.MIGRATIONS[4]
 DB.MIGRATIONS[1] = function() calls = calls + 1 end
 DB.MIGRATIONS[2] = function() end
 DB.MIGRATIONS[3] = function() end
+DB.MIGRATIONS[4] = function() end
 DB.MigrateProfile({}, 0)
 eq("從 0 補到最新：v1 跑一次", calls, 1)
 DB.MigrateProfile({}, 1)
@@ -337,6 +340,7 @@ eq("較新的 SV：不跑遷移", calls, 0)
 DB.MIGRATIONS[1] = real
 DB.MIGRATIONS[2] = real2
 DB.MIGRATIONS[3] = real3
+DB.MIGRATIONS[4] = real4
 
 -- v2：施法條材質的預設改成暴雪施法條（值閘：舊預設或沒存才換）
 do
@@ -445,7 +449,7 @@ do
     DB.Init()
     eq("舊存檔補上 none", ns.profile.theme.icon.cdState, "none")
     eq("舊存檔補上 0.4", ns.profile.theme.icon.cdStateAlpha, 0.4)
-    eq("DB_VERSION 沒動", ns.DB_VERSION, 3)
+    eq("DB_VERSION 沒動（這一項不遷移）", ns.DB_VERSION, 4)
 end
 
 ------------------------------------------------------------
@@ -541,7 +545,7 @@ do
     eq("清 stack 那一組", SS2("buffs", 5555, "stackGlow"), false)
     eq("清 stack 那一組不動生效發光", SS2("buffs", 5555, "activeGlow"), true)
     DB.SetOverride(5555, "activeGlow", nil)
-    eq("DB_VERSION 沒動", ns.DB_VERSION, 3)
+    eq("DB_VERSION 沒動（這一項不遷移）", ns.DB_VERSION, 4)
 end
 
 print(("DB_test: %d passed, %d failed"):format(passed, failed))

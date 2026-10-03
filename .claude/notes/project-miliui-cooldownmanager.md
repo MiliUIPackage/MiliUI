@@ -164,3 +164,11 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 （`Glow.OnItemSetCooldown` 看到增益旗標會直接 return、探針永遠不武裝），去飽和走 `Decorate.DesatCurve`＋`EvaluateRemainingDuration`
 （曲線從 Custom.lua 搬來共用）；自己叫的 SetUseAuraDisplayTime／Clear 用 `overriding` 守衛擋掉自己的後掛勾。
 只做法術類，飾品（裝備欄項目）照暴雪顯示增益。最可能實機翻車：去飽和在冷卻轉好那一刻要等暴雪下一次刷新才還原（207）。
+
+**逐法術的持續時間換色跟主題頁同一套五欄位（2026-10-03，DB v4，未實機驗證）**：使用者要求「個別設定也都要可以獨立設置，
+邏輯和關聯性和主題頁一樣」。逐法術覆寫 `colorDuration`（三態）＋`durationColor`／`durationLowColor`／`durationSwipeColor`（各自 nil 或色表），
+全部走 `SpellSetting` 退回條層；`Decorate.SpellStyle` 解成生效值、`PhaseColors(style, spell)`／`DurationColorOf(on, color)` 改簽章。
+面板：換色下拉（跟隨／換色／不換色）＋三列「自訂」勾選框＋色票（抄邊框顏色那列），停用連動＝顯示增益持續時間 → 換色 → 顏色。
+**舊三態 `durationColor`（false／色表＝條層關著也換）靠 `MIGRATIONS[4]` 拆開**，行為不變。
+**Why:** 逐法術用「一個下拉兼開關與顏色」跟主題頁的「開關＋顏色」是兩套心智模型，使用者要的是同一套。
+**How to apply:** 逐法術覆寫新增欄位時照主題頁的欄位一對一開（SPELL_FALLBACK 指同名路徑），不要把開關折進值裡。

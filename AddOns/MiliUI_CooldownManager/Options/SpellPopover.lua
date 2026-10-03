@@ -25,13 +25,12 @@
 -- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
 -- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
 --
--- 增益持續中顯示持續時間（暴雪的核心／輔助才有，同下面的持續時間顏色）：下拉三項「跟隨這一條」（清掉覆寫）／
--- 「顯示」（寫 true）／「不顯示」（寫 false）；右鍵整列清掉。生效的值是「不顯示」時持續時間顏色那一列停用
--- （沒有那一段可換色）。
---
--- 持續時間顏色（暴雪的核心／輔助才有：先倒增益、再倒冷卻的那種格；自訂項目與增益類沒有那一段）：
--- 下拉三項「跟隨這一條」（清掉覆寫）／「不換色」（寫 false）／「自訂顏色」（寫色表，初值＝目前生效的顏色）
--- ＋右邊一顆色票（只在自訂顏色時能動）。右鍵整列清掉。
+-- 增益持續時間那一段（暴雪的核心／輔助才有：先倒增益、再倒冷卻的那種格；自訂項目與增益類沒有那一段）：
+-- 五列跟主題頁同一套欄位、同一套連動——
+--   「顯示增益持續時間」下拉三項「跟隨這一條」（清掉覆寫）／「顯示」（true）／「不顯示」（false）；
+--   「持續時間換色」下拉三項「跟隨這一條」／「換色」（true）／「不換色」（false）——上面生效是不顯示時停用；
+--   「持續時間顏色」「持續時間低秒顏色」「持續時間背景色」各一列勾選框「自訂」＋色票（跟邊框顏色同一套：
+--   勾了才寫覆寫、初值＝目前生效的顏色）——換色生效是關時三列停用。每列右鍵清掉那一格。
 --
 -- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
 --   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
@@ -65,6 +64,7 @@ local TOP_Y   = -PAD - 32 - 12
 local frame, cur
 local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind, class) → bool }
 local toggles = {}
+local colorRows = {}     -- 持續時間的三個顏色列：{ field, cb, swatch, fallback }
 local sounds = {}        -- { field, dd }
 local speaks = {}        -- { field, cb, box, listen }
 
@@ -340,38 +340,53 @@ local function Build()
     frame.auraTimeDD = atdd
     RightClickClears(atr, ath, "showAuraTime")
 
-    -- 持續時間顏色（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）
-    local dcr, dch = NewRow(L["Duration color"], BlizzCooldown)
-    local dcItems = {
+    -- 持續時間換色＋三個顏色（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）：五個欄位跟主題頁同一套、
+    -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 三個顏色列停用（Refresh）
+    local cdr, cdh = NewRow(L["Color while buff lasts"], BlizzCooldown)
+    local cdItems = {
         { text = L["Follow this bar"], value = "follow" },
+        { text = L["Recolor"],         value = "on" },
         { text = L["Don't recolor"],   value = "off" },
-        { text = L["Custom color"],    value = "custom" },
     }
-    local dcdd = W.CreateDropdown(dcr, ROW_W - CTRL_X - 32, dcItems, function(value)
+    local cddd = W.CreateDropdown(cdr, ROW_W - CTRL_X, cdItems, function(value)
         if not cur then return end
-        if value == "off" then
-            ns.DB.SetOverride(cur.id, "durationColor", false)
-        elseif value == "custom" then
-            -- 初值＝目前生效的顏色（跟隨中而條層關著時用條的顏色，還沒有就用主題預設的黃）
-            local c = ns.Decorate.DurationColorOf(Override("durationColor"),
-                ns.Setting(cur.key, "icon.colorDuration"), ns.Setting(cur.key, "icon.durationColor"))
-                or ns.Setting(cur.key, "icon.durationColor") or { r = 1, g = 0.85, b = 0.1, a = 1 }
-            ns.DB.SetOverride(cur.id, "durationColor", { r = c.r or 1, g = c.g or 1, b = c.b or 1, a = c.a or 1 })
-        else
-            ns.DB.SetOverride(cur.id, "durationColor", nil)
-        end
+        local v = nil
+        if value == "on" then v = true elseif value == "off" then v = false end
+        ns.DB.SetOverride(cur.id, "colorDuration", v)
         Changed()
     end)
-    dcdd:SetMaxWidth(ROW_W - CTRL_X - 32)
-    dcdd:SetPoint("LEFT", dcr, "LEFT", CTRL_X, 0)
-    local dcswatch = W.CreateColorPicker(dcr, nil, false, function(rr, g, b, a)
-        if not cur or type(Override("durationColor")) ~= "table" then return end
-        ns.DB.SetOverride(cur.id, "durationColor", { r = rr, g = g, b = b, a = a or 1 })
-        Changed()
-    end)
-    dcswatch:SetPoint("LEFT", dcdd, "RIGHT", 10, 0)
-    frame.durDD, frame.durSwatch = dcdd, dcswatch
-    RightClickClears(dcr, dch, "durationColor")
+    cddd:SetMaxWidth(ROW_W - CTRL_X)
+    cddd:SetPoint("LEFT", cdr, "LEFT", CTRL_X, 0)
+    frame.colorDurDD = cddd
+    RightClickClears(cdr, cdh, "colorDuration")
+
+    -- 顏色列：勾「自訂」才寫覆寫（初值＝目前生效的顏色），色票只在自訂時能動；跟上面的邊框顏色同一套
+    local function ColorOverrideRow(label, field, hasAlpha, fallback)
+        local r2, h2 = NewRow(label, BlizzCooldown)
+        local cb2 = W.CreateCheckButton(r2, L["Custom"], function(on)
+            if not cur then return end
+            if on then
+                local c = ns.SpellSetting(cur.key, cur.id, field)
+                if type(c) ~= "table" then c = fallback end
+                ns.DB.SetOverride(cur.id, field, { r = c.r or 1, g = c.g or 1, b = c.b or 1, a = c.a or 1 })
+            else
+                ns.DB.SetOverride(cur.id, field, nil)
+            end
+            Changed()
+        end)
+        cb2:SetPoint("LEFT", r2, "LEFT", CTRL_X, 0)
+        local sw = W.CreateColorPicker(r2, nil, hasAlpha, function(rr, g, b, a)
+            if not cur or type(Override(field)) ~= "table" then return end
+            ns.DB.SetOverride(cur.id, field, { r = rr, g = g, b = b, a = (hasAlpha and a) or 1 })
+            Changed()
+        end)
+        sw:SetPoint("LEFT", cb2.label, "RIGHT", 10, 0)
+        RightClickClears(r2, h2, field)
+        colorRows[#colorRows + 1] = { field = field, cb = cb2, swatch = sw, fallback = fallback }
+    end
+    ColorOverrideRow(L["Duration color"],       "durationColor",      false, { r = 1,    g = 0.85, b = 0.1,  a = 1 })
+    ColorOverrideRow(L["Duration low color"],   "durationLowColor",   false, { r = 0.95, g = 0.45, b = 0.70, a = 1 })
+    ColorOverrideRow(L["Duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
 
     -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色，下一列樣式（沒挑過＝ glow.active 的預設）；
     -- 右鍵整列全清。標題的圖示即時預覽
@@ -801,21 +816,27 @@ function Pop.Refresh()
     end
     local cs = Override("cdState")
     frame.cdStateDD:SetSelectedValue((type(cs) == "string" and cs ~= "") and cs or false)
-    -- 持續時間顏色：三態回填；色票顯示目前生效的顏色（不換色／條層關著時顯示條的顏色、變暗停用）
-    local dv = Override("durationColor")
-    local dcOwn = type(dv) == "table"
-    frame.durDD:SetSelectedValue(dv == false and "off" or dcOwn and "custom" or "follow")
-    local dcShow = ns.Decorate.DurationColorOf(dv, ns.Setting(key, "icon.colorDuration"),
-        ns.Setting(key, "icon.durationColor")) or ns.Setting(key, "icon.durationColor")
-    frame.durSwatch:SetColor(type(dcShow) == "table" and dcShow or { r = 1, g = 0.85, b = 0.1, a = 1 })
-    -- 增益持續中顯示持續時間：三態回填；生效的值是「不顯示」（覆寫成不顯示，或跟隨而條層關著）⇒ 持續時間顏色那列停用
+    -- 增益持續中顯示持續時間：三態回填；生效的值是「不顯示」（覆寫成不顯示，或跟隨而條層關著）⇒ 換色那列停用
     local av = Override("showAuraTime")
     frame.auraTimeDD:SetSelectedValue(av == true and "show" or av == false and "hide" or "follow")
     local auraShown = ns.SpellSetting(key, id, "showAuraTime") ~= false
-    frame.durDD:SetEnabled(auraShown)
-    frame.durDD:SetAlpha(auraShown and 1 or 0.4)
-    frame.durSwatch:SetEnabled(dcOwn and auraShown)
-    frame.durSwatch:SetAlpha((dcOwn and auraShown) and 1 or 0.4)
+    -- 持續時間換色：三態回填；生效是關（或上面不顯示）⇒ 三個顏色列停用（跟主題頁同一套連動）
+    local cdv = Override("colorDuration")
+    frame.colorDurDD:SetSelectedValue(cdv == true and "on" or cdv == false and "off" or "follow")
+    frame.colorDurDD:SetEnabled(auraShown)
+    frame.colorDurDD:SetAlpha(auraShown and 1 or 0.4)
+    local recolor = auraShown and ns.SpellSetting(key, id, "colorDuration") and true or false
+    -- 三個顏色：勾「自訂」＝有覆寫；色票顯示目前生效的顏色（沒覆寫＝條的）
+    for _, r in ipairs(colorRows) do
+        local own = type(Override(r.field)) == "table"
+        r.cb:SetChecked(own)
+        r.cb:SetEnabled(recolor)
+        r.cb:SetAlpha(recolor and 1 or 0.4)
+        local c = ns.SpellSetting(key, id, r.field)
+        r.swatch:SetColor(type(c) == "table" and c or r.fallback)
+        r.swatch:SetEnabled(own and recolor)
+        r.swatch:SetAlpha((own and recolor) and 1 or 0.4)
+    end
     local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false
     frame.activeCB:SetChecked(activeOn)
     local ac = ns.SpellSetting(key, id, "activeGlowColor")
