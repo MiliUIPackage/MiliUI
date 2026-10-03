@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s에는 블리자드 재사용 대기시간 관리자가 배정한 것만 표시됩니다."
 L["Spells from a bar list can only go into bar groups."] = "바 목록의 주문은 바 그룹에만 넣을 수 있습니다."
 L["Spells from an icon list can only go into icon groups."] = "아이콘 목록의 주문은 아이콘 그룹에만 넣을 수 있습니다."
+L["Spells"] = "주문"
+L["Buffs"] = "강화 효과"
+L["Custom Groups"] = "사용자 그룹"

@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s só mostra o que o gerenciador de recargas da Blizzard coloca nele."
 L["Spells from a bar list can only go into bar groups."] = "Feitiços de uma lista de barras só podem ir para grupos de barras."
 L["Spells from an icon list can only go into icon groups."] = "Feitiços de uma lista de ícones só podem ir para grupos de ícones."
+L["Spells"] = "Feitiços"
+L["Buffs"] = "Bônus"
+L["Custom Groups"] = "Grupos personalizados"

@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s solo muestra lo que el gestor de reutilización de Blizzard le asigna."
 L["Spells from a bar list can only go into bar groups."] = "Los hechizos de una lista de barras solo pueden ir a grupos de barras."
 L["Spells from an icon list can only go into icon groups."] = "Los hechizos de una lista de iconos solo pueden ir a grupos de iconos."
+L["Spells"] = "Hechizos"
+L["Buffs"] = "Beneficios"
+L["Custom Groups"] = "Grupos propios"

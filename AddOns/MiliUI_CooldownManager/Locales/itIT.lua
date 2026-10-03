@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s mostra solo ciò che il gestore dei tempi di recupero di Blizzard vi assegna."
 L["Spells from a bar list can only go into bar groups."] = "Gli incantesimi di un elenco a barre possono andare solo in gruppi a barre."
 L["Spells from an icon list can only go into icon groups."] = "Gli incantesimi di un elenco a icone possono andare solo in gruppi a icone."
+L["Spells"] = "Incantesimi"
+L["Buffs"] = "Benefici"
+L["Custom Groups"] = "Gruppi personalizzati"

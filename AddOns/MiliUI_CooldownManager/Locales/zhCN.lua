@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "“%s”只显示暴雪冷却管理器分给它的法术。"
 L["Spells from a bar list can only go into bar groups."] = "长条列表的法术只能拖进长条群组。"
 L["Spells from an icon list can only go into icon groups."] = "图标列表的法术只能拖进图标群组。"
+L["Spells"] = "法术"
+L["Buffs"] = "增益"
+L["Custom Groups"] = "自定义群组"

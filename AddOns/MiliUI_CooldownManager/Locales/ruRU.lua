@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "«%s» показывает только то, что туда отправил менеджер восстановления Blizzard."
 L["Spells from a bar list can only go into bar groups."] = "Заклинания из списка полос можно перенести только в группы полос."
 L["Spells from an icon list can only go into icon groups."] = "Заклинания из списка значков можно перенести только в группы значков."
+L["Spells"] = "Заклинания"
+L["Buffs"] = "Положительные эффекты"
+L["Custom Groups"] = "Свои группы"

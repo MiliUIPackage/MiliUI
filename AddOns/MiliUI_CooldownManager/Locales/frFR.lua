@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s n'affiche que ce que le gestionnaire de temps de recharge de Blizzard y place."
 L["Spells from a bar list can only go into bar groups."] = "Les sorts d'une liste de barres ne peuvent aller que dans des groupes de barres."
 L["Spells from an icon list can only go into icon groups."] = "Les sorts d'une liste d'icônes ne peuvent aller que dans des groupes d'icônes."
+L["Spells"] = "Sorts"
+L["Buffs"] = "Améliorations"
+L["Custom Groups"] = "Groupes personnalisés"

@@ -743,3 +743,6 @@ L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s zeigt nur, was der Abklingzeitmanager von Blizzard dort einordnet."
 L["Spells from a bar list can only go into bar groups."] = "Zauber aus einer Leistenliste können nur in Leistengruppen."
 L["Spells from an icon list can only go into icon groups."] = "Zauber aus einer Symbolliste können nur in Symbolgruppen."
+L["Spells"] = "Zauber"
+L["Buffs"] = "Stärkungseffekte"
+L["Custom Groups"] = "Eigene Gruppen"
