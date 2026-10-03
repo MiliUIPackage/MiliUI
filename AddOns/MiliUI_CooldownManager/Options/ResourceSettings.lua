@@ -115,6 +115,12 @@ local function SS(kind, key, field, label, extra)
     return s
 end
 
+local function OutlineItems()
+    local items = { { text = L["Follow the theme"], value = ns.Media.INHERIT } }
+    for _, it in ipairs(ns.Specs.OUTLINE_ITEMS) do items[#items + 1] = it end
+    return items
+end
+
 local function AppendStyle(add, key, info)
     add({ type = "header", label = L["Appearance"] })
     add(BS("toggle", "style." .. key .. ".follow", L["Follow the resource bar's look"], {
@@ -126,11 +132,18 @@ local function AppendStyle(add, key, info)
     add(SS("dropdown", key, "bgTexture", L["Background texture"], { items = RS.BgTextureItems,
         get = function() return ns.Specs.InheritOr(StyleGet(key, "bgTexture")) end }))
     add(SS("slider", key, "barAlpha", L["Fill opacity"], { min = 0.1, max = 1, step = 0.05 }))
+    add(SS("slider", key, "bgAlpha", L["Background opacity"], { min = 0, max = 1, step = 0.05 }))
+    add(SS("toggle", key, "bgCustom", L["Custom background color"], { refreshPage = true }))
+    local bc = SS("color", key, "bgColor", L["Background color"], { hasAlpha = false })
+    bc.disabled = function() return Following(key) or not StyleGet(key, "bgCustom") end
+    add(bc)
     if info.mode == "bar" then add(SS("toggle", key, "smooth", L["Smooth bar changes"])) end
     if not info.noText then
         add(SS("dropdown", key, "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() return ns.Specs.InheritOr(StyleGet(key, "textFont")) end }))
         add(SS("slider", key, "textSize", L["Font size"], { min = 6, max = 24, step = 1 }))
+        add(SS("dropdown", key, "textOutline", L["Number outline"], { items = OutlineItems,
+            get = function() return ns.Specs.InheritOr(StyleGet(key, "textOutline")) end }))
     end
 end
 

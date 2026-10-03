@@ -184,6 +184,48 @@ local AppendPipsPlacement          -- 前置宣告（定義在 AppendCustomRows 
 local ShowWhenSpec                 -- 同上
 local inputPopups = {}
 
+-- 推薦下拉：接在「開啟天賦與法術書」右邊（紅框那格），選了就帶入法術 ID／層數上限。
+-- 下拉而不是 W.Menu：W.Menu 的層級在彈窗（410）底下，下拉的清單開在 TOOLTIP 層。
+-- 開著的那一份推薦清單掛在 dd.recs（每次開彈窗重算：專精、天賦、已加過的都會變）
+local function RecLabel(r)
+    local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(r.spellID) or ("#" .. r.spellID)
+    local icon = C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(r.spellID)
+    local text = icon and ("|T%s:14:14:0:0:64:64:5:59:5:59|t %s"):format(icon, name) or name
+    if r.kind == "stacks" and r.max then text = text .. " " .. L["(max %d)"]:format(r.max) end
+    return text
+end
+
+local function AddRecommendDropdown(popup, kind)
+    local opener
+    for _, child in ipairs({ popup:GetChildren() }) do
+        if type(child.GetText) == "function" and child:GetText() == L["Open talents & spellbook"] then opener = child end
+    end
+    if not opener then return end
+    local dd
+    dd = W.CreateDropdown(popup, 120, {}, function(i)
+        local r = dd.recs and dd.recs[i]
+        dd.text:SetText(L["Recommended"])
+        if not r then return end
+        popup.boxes.id:SetText(tostring(r.spellID))
+        if popup.boxes.max and r.max then popup.boxes.max:SetText(tostring(r.max)) end
+        ns.Picker.SetInputError(popup, nil)
+    end)
+    dd:SetPoint("TOPLEFT", opener, "TOPRIGHT", 8, -1)
+    dd:SetPoint("RIGHT", popup, "RIGHT", -14, 0)
+    popup:HookScript("OnHide", function() W.CloseDropdowns() end)
+    function dd:Refresh()
+        local recs = ns.Pips.CustomRecommendations(Cfg(), ns.playerClass, ns.specID, kind, ns.Pips.recommendProbe)
+        dd.recs = recs
+        if #recs == 0 then dd:Hide() return end
+        local items = {}
+        for i, r in ipairs(recs) do items[i] = { text = RecLabel(r), value = i } end
+        dd:SetItems(items)
+        dd.text:SetText(L["Recommended"])
+        dd:Show()
+    end
+    popup.recommend = dd
+end
+
 function Tab.AskCustomID(kind)
     local popup = inputPopups[kind]
     local title = kind == "charges" and L["Track spell charges"] or L["Track aura stacks"]
@@ -198,9 +240,11 @@ function Tab.AskCustomID(kind)
         end
         popup = W.CreateInputPopup(Options.panel, ns.Picker.INPUT_W, title, fields)
         ns.Picker.AddSpellsOpener(popup)
+        AddRecommendDropdown(popup, kind)
         inputPopups[kind] = popup
     end
     ns.Picker.SetInputError(popup, nil)
+    if popup.recommend then popup.recommend:Refresh() end
     -- Shift＋點法術書／天賦 → 填 ID（跟追蹤清單的輸入彈窗同一個掛勾）
     ns.Picker.WatchInput(popup, "spell", L["That is an item link. Enter a spell ID here."])
     popup:Open({ max = kind == "stacks" and tostring(ns.Pips.CUSTOM_DEFAULT_STACKS) or nil }, function(values)
@@ -882,10 +926,17 @@ local function Controls(cand, sub)
         BS("dropdown", "bgTexture", L["Background texture"], { items = ns.ResourceSettings.BgTextureItems,
             get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.bgTexture) end }),
         BS("slider", "barAlpha", L["Fill opacity"], { min = 0.1, max = 1, step = 0.05 }),
+        BS("slider", "bgAlpha", L["Background opacity"], { min = 0, max = 1, step = 0.05 }),
+        BS("toggle", "bgCustom", L["Custom background color"], { refreshPage = true }),
+        BS("color", "bgColor", L["Background color"], { hasAlpha = false,
+            disabled = function() local c = Cfg(); return not (c and c.bgCustom) end }),
+        Note(L["Background opacity scales the default shade: 1 keeps it as is, 0 makes the empty part fully transparent. Without a custom color, the background follows each resource's color."]),
         BS("toggle", "smooth", L["Smooth bar changes"]),
         BS("dropdown", "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textFont) end }),
         BS("slider", "textSize", L["Font size"], { min = 6, max = 24, step = 1 }),
+        BS("dropdown", "textOutline", L["Number outline"], { items = OutlineItems,
+            get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textOutline) end }),
         Note(L["Numbers are only printed while the game lets addons read them; the bar itself always moves."]),
     }) do add(s) end
 

@@ -810,7 +810,7 @@ local function SegmentsFor(key)
     local def = RESOURCES[key]
     if not def then return 0 end
     if def.mode == "auraBar" then
-        -- 引擎畫的連續填色：格數不受點數型的 10 格上限限制（橫掃攻擊 18 層）
+        -- 引擎畫的連續填色：格數不受點數型的 30 格上限限制（橫掃攻擊 18 層）
         local m = def.maxFn and def.maxFn() or def.max
         return math.max(1, math.min(30, math.floor(tonumber(m) or 1)))
     end
@@ -1005,6 +1005,14 @@ end
 
 -- 符文格的秒數（懶建；只有符文列、倒數開著才顯示）。
 -- 顯示／隱藏只在排版時做，更新只換字（SetText("")），熱路徑上不碰 Show／Hide
+-- 數字的描邊：資源條自己的 textOutline（全域；每種資源可在自己的外觀裡蓋，R.StyleFor 的代理表）；
+-- 沒存／"INHERIT" ＝ 跟主題的描邊（玩家回報「法力條不支援改描邊」，2026-10-03）
+local function TextOutline(cfg)
+    local v = type(cfg) == "table" and cfg.textOutline
+    if type(v) == "string" and v ~= "" and v ~= ns.Media.INHERIT then return ns.Media.Outline(v) end
+    return ns.Media.ThemeOutline()
+end
+
 local function LayoutRuneTimer(seg, on, cfg)
     if not on then
         if seg.timer then seg.timer:Hide() end
@@ -1020,7 +1028,7 @@ local function LayoutRuneTimer(seg, on, cfg)
         fs:SetTextColor(1, 1, 1, 1)
         seg.timer = fs
     end
-    ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, ns.Media.ThemeOutline(), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, TextOutline(cfg), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
     seg.timer:SetText("")
     seg.timerSec = nil
     seg.timer:Show()
@@ -1082,14 +1090,56 @@ local function ApplyRowOverrides(row, ov)
     row.condApplied = true
 end
 
--- 「未填滿」的顏色：整條層級規則的 bgColor 命中時取代暗色
-local function DimColor(barOv)
-    local a = DIM.a
+-- 背景（空的那截）的玩家設定（玩家回報 2026-10-03：以前只能換成空材質才透明）：
+--   bgAlpha   乘在最後的不透明度上（1 ＝ 預設的深淺；0 ＝ 全透明）。條件規則的 bgColor 也照乘
+--   bgCustom＋bgColor  換掉「自動推的」底色（點數型的暗灰、連續條的主色 × 0.25）；條件規則命中時規則優先
+--   征戰聖擊那種自己有 backColor 的列：顏色照它，只乘 bgAlpha
+local function BgAlpha(cfg)
+    local a = tonumber(type(cfg) == "table" and cfg.bgAlpha) or 1
+    if a < 0 then a = 0 elseif a > 1 then a = 1 end
+    return a
+end
+R.BgAlpha = BgAlpha
+
+local function BgCustom(cfg)
+    if type(cfg) ~= "table" or not cfg.bgCustom then return nil end
+    return RC.ValidColor(cfg.bgColor)
+end
+R.BgCustom = BgCustom
+
+-- 「未填滿」的顏色（點數型）：整條層級規則的 bgColor 命中時取代暗色 → 色表, alpha
+local function DimColor(barOv, cfg)
+    local m = BgAlpha(cfg)
     if barOv then
         local bc = RC.ValidColor(barOv.bgColor)
-        if bc then return bc, bc.a or a end
+        if bc then return bc, (bc.a or DIM.a) * m end
     end
-    return DIM, a
+    local cc = BgCustom(cfg)
+    if cc then return cc, DIM.a * m end
+    return DIM, DIM.a * m
+end
+R.DimColor = DimColor
+
+-- 同上，給 AuraBar 的 geom.dim（{ r, g, b, a } 陣列）
+function R.DimArray(cfg)
+    local c, a = DimColor(nil, cfg)
+    return { c.r, c.g, c.b, a }
+end
+
+-- 連續條的背景：規則 bgColor ＞ 自訂背景色 ＞ 主色 × 0.25；alpha 乘 bgAlpha
+local function PaintBarBG(row, cfg, barOv, fc)
+    local m = BgAlpha(cfg)
+    local bgc = barOv and RC.ValidColor(barOv.bgColor)
+    if bgc then
+        row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, (bgc.a or 0.8) * m)
+        return
+    end
+    local cc = BgCustom(cfg)
+    if cc then
+        row.barBG:SetVertexColor(cc.r, cc.g, cc.b, 0.8 * m)
+    else
+        row.barBG:SetVertexColor(fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, 0.8 * m)
+    end
 end
 
 ------------------------------------------------------------
@@ -1120,17 +1170,19 @@ R.RowHeight = RowHeight
 ------------------------------------------------------------
 -- 每種資源自己的外觀（resources.style[key]；設定頁每一列「設定…」視窗裡那一節，Options/ResourceSettings.lua）
 --
---   style[key] = { follow = true|false, texture, bgTexture, barAlpha, smooth, showText, textFont, textSize }
+--   style[key] = { follow = true|false, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText,
+--                  textFont, textSize, textOutline }
 --   follow 沒存 ＝ 跟（舊存檔沒有這張表 ⇒ 畫面一模一樣，不遷移）；跟著時其餘欄位不讀。
 --
 -- 不跟時，那一列的排版與更新（LayoutRow／UpdateRow 那一整串）讀 R.StyleFor 回的**代理表**：
--- 外觀七欄先查 style[key]、沒存的退回資源條的全域值；其他欄位（manaAbbrev、colors、conditions、
+-- 外觀欄位（STYLE_FIELDS）先查 style[key]、沒存的退回資源條的全域值；其他欄位（manaAbbrev、colors、conditions、
 -- fillDirection、segmentSpacing…）一律照讀 cfg。
 -- ⚠ 代理表只給引擎讀值：不存進 SV、不 pairs（Lua 5.1 沒有 __pairs，遍歷是空的）、不寫（寫就報錯）。
 --   設定頁與匯出一律讀原表。每個 key 快取一張（cfg／style[key] 換了表就重建），R.Apply 時作廢
 ------------------------------------------------------------
 local STYLE_FIELDS = { texture = true, bgTexture = true, barAlpha = true, smooth = true,
-                       showText = true, textFont = true, textSize = true }
+                       showText = true, textFont = true, textSize = true, textOutline = true,
+                       bgAlpha = true, bgCustom = true, bgColor = true }
 R.STYLE_FIELDS = STYLE_FIELDS
 
 local function OwnStyle(cfg, key)
@@ -1232,7 +1284,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     local gap = ns.P.Scale(tonumber(cfg.segmentSpacing) or 1)
     local geom = {
         W = W, H = H, n = numSeg, gap = gap, segW = (W - gap * (numSeg - 1)) / numSeg, reversed = reversed,
-        segments = true, dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
+        segments = true, dim = R.DimArray(cfg), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
     }
     local cc = ResolveColor(cfg, key, "color")
     local status = ns.AuraBar.Apply(row.ab, {
@@ -1273,6 +1325,18 @@ function R.TimerBack(cfg, key, cc, out)
     return R.TimerDim(cc, out)
 end
 
+-- 剩餘時間條「當背景畫」的底色：TimerBack 再套玩家的背景設定（自己有 backColor 的列只乘 bgAlpha）。
+-- ⚠ 征戰聖擊「經過時間」模式拿 TimerBack 當**填充**色（PaintMirror），那裡照用 TimerBack
+function R.TimerBg(cfg, key, cc, out)
+    out = R.TimerBack(cfg, key, cc, out)
+    local colors = type(cfg) == "table" and type(cfg.colors) == "table" and cfg.colors
+    local own = colors and type(colors[key]) == "table" and type(colors[key].backColor) == "table"
+    local custom = not own and BgCustom(cfg)
+    if custom then out[1], out[2], out[3] = custom.r, custom.g, custom.b end
+    out[4] = out[4] * BgAlpha(cfg)
+    return out
+end
+
 -- 光環剩餘時間條。回傳 true ＝ 容器就緒（這一列交給引擎）；false ＝ 先畫空條
 local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     if not ns.AuraBar then return false end
@@ -1286,7 +1350,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
         text = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
-            outline = ns.Media.ThemeOutline(),
+            outline = TextOutline(cfg),
             decimals = TIMER_DECIMALS_BELOW,
         }
     end
@@ -1309,7 +1373,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     -- 空條（暗底＋1px 黑邊）畫在列上：光環不在時按鈕藏著，看到的就是這個
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
-        dim = R.TimerBack(cfg, key, cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
+        dim = R.TimerBg(cfg, key, cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
@@ -1328,7 +1392,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
         count = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
-            outline = ns.Media.ThemeOutline(),
+            outline = TextOutline(cfg),
             suffix = "%",
         }
     end
@@ -1345,7 +1409,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
     -- 空條（暗底＋1px 黑邊、不分格）畫在列上：增益不在時按鈕藏著，看到的就是這個
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
-        dim = R.TimerDim(cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
+        dim = R.TimerBg(cfg, key, cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
@@ -1400,7 +1464,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     local tex = ns.Media.Texture(cfg.texture)
     local showText = cfg.showText and true or false
     if def.fill == "rune" then showText = showText and R.RuneText(cfg) == "count" end
-    ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, ns.Media.ThemeOutline(), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, TextOutline(cfg), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
     row.text:SetText("")
 
     -- 這一列實際的畫法：容器沒好時 auraBar 退回 pip（明文層數）、auraTimer 退回空條
@@ -1628,7 +1692,7 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
             RC.FillState(condState, readyCount, numSeg, CurrentSpecID())
             barOv = RC.FirstMatch(conds, condState, nil)
         end
-        local dimC, dimA = DimColor(barOv)
+        local dimC, dimA = DimColor(barOv, cfg)
         local runeText = cfg.showText and R.RuneText(cfg) or nil
         local countdown = runeText == "countdown"
         local rc = runeRechargeColor
@@ -1711,7 +1775,7 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
         RC.FillState(condState, whole, row.folded and numSeg * 2 or numSeg, CurrentSpecID())
         barOv = RC.FirstMatch(conds, condState, nil)
     end
-    local dimC, dimA = DimColor(barOv)
+    local dimC, dimA = DimColor(barOv, cfg)
     local overs = row.folded and row.overs or nil
     local overCC = overs and ResolveColor(cfg, key, "overflowColor") or nil
     for i = 1, numSeg do
@@ -1732,7 +1796,7 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
         SetSegColor(seg, c, alpha)
         if isCharged then
             -- 充能但還沒填到：底色畫成暗的充能色（打滿之前就看得出哪幾格是充能格）
-            seg.bg:SetVertexColor(chargedEmptyCC.r, chargedEmptyCC.g, chargedEmptyCC.b, DIM.a)
+            seg.bg:SetVertexColor(chargedEmptyCC.r, chargedEmptyCC.g, chargedEmptyCC.b, DIM.a * BgAlpha(cfg))
         else
             seg.bg:SetVertexColor(dimC.r, dimC.g, dimC.b, dimA)
         end
@@ -1849,12 +1913,7 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
     end
     local t = row.bar:GetStatusBarTexture()
     if t then t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1) end
-    local bgc = barOv and RC.ValidColor(barOv.bgColor)
-    if bgc then
-        row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, bgc.a or 0.8)
-    else
-        row.barBG:SetVertexColor(fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, 0.8)
-    end
+    PaintBarBG(row, cfg, barOv, fc)
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
         -- 秘密值也照印（交給 C 端），不能先過 Plain：12.1 的法力永遠是秘密值，過了就永遠空白
@@ -1892,12 +1951,7 @@ local function UpdateAbsorbRow(row, cfg, def, key, cc, conds)
     end
     local t = ab:GetStatusBarTexture()
     if t then t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1) end
-    local bgc = barOv and RC.ValidColor(barOv.bgColor)
-    if bgc then
-        row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, bgc.a or 0.8)
-    else
-        row.barBG:SetVertexColor(fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, 0.8)
-    end
+    PaintBarBG(row, cfg, barOv, fc)
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
         if type(cur) ~= "number" or (pc ~= nil and pc <= 0) then row.text:SetText("") else SetBigNumber(row.text, cur, cfg) end
@@ -2001,7 +2055,8 @@ function R.PaintMirror(row, key, cfg, reversed)
         row.barBG:SetVertexColor(cc.r, cc.g, cc.b, 1)
     else
         if t then t:SetVertexColor(cc.r, cc.g, cc.b, 1) end
-        row.barBG:SetVertexColor(bk[1], bk[2], bk[3], bk[4])
+        local bg = R.TimerBg(cfg, key, cc)
+        row.barBG:SetVertexColor(bg[1], bg[2], bg[3], bg[4])
     end
     R.MirrorRow(row)
 end
@@ -2261,7 +2316,7 @@ local function UpdateHealthRow(row, cfg, key)
             t:SetVertexColor(base.r, base.g, base.b, a)
         end
     end
-    row.barBG:SetVertexColor(base.r * 0.25, base.g * 0.25, base.b * 0.25, 0.8)
+    PaintBarBG(row, cfg, nil, base)
     ClearRowOverrides(row)
     if cfg.showText then
         if type(cur) ~= "number" then row.text:SetText("") else SetHealthText(row.text, cur, max, cfg) end
@@ -2288,7 +2343,7 @@ local function UpdateRow(row, cfg)
     end
     if row.mode == "timerIdle" then
         -- 剩餘時間條的容器還沒好（戰鬥中、建失敗）：空條，底色同連續條
-        local d = R.TimerBack(cfg, key, ResolveColor(cfg, key, "color"), timerDimScratch)
+        local d = R.TimerBg(cfg, key, ResolveColor(cfg, key, "color"), timerDimScratch)
         row.bar:SetMinMaxValues(0, 1)
         row.bar:SetValue(0)
         row.barBG:SetVertexColor(d[1], d[2], d[3], d[4])

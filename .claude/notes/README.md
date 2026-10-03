@@ -81,6 +81,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-keyboard-capture-blocks-bindings.md](wow-keyboard-capture-blocks-bindings.md) | 鍵盤啟用又不轉發的框會擋掉**全部**快捷鍵含 ESC —— 擷取按鍵要用顯示／隱藏覆蓋層 |
 | [wow-uispecialframes-login-closed.md](wow-uispecialframes-login-closed.md) | 登記 UISpecialFrames（ESC 關）的彈窗在 PLAYER_LOGIN 開會被 CloseAllWindows 收掉；登入時的必選彈窗不能登記 |
 | [wow-actionbar-text-overlay-level-500.md](wow-actionbar-text-overlay-level-500.md) | 快捷鍵文字層在 MEDIUM level 500 —— 自訂 HUD 被按鍵文字蓋住的成因；墊 level 不要改 strata |
+| [wow-121-hook-print-dropped.md](wow-121-hook-print-dropped.md) | 戰鬥中在 Cooldown setter 的後掛勾裡直接 print 沒輸出也不報錯；探針要收字串、下一幀再印 |
 | [wow-actionbar-taint-blame.md](wow-actionbar-taint-blame.md) | MultiBar SetAttribute 被封鎖卻牽拖到不碰快捷列的插件 —— 共用表汙染的指紋與 taintLog 診斷法 |
 | [wow-frame-vs-texture-layering.md](wow-frame-vs-texture-layering.md) | 子 frame 永遠畫在父層貼圖之上，**跟 DrawLayer 無關** —— 貼圖被蓋住時調 layer 是白費工 |
 | [wow-toplevel-flattens-child-strata.md](wow-toplevel-flattens-child-strata.md) | toplevel 框隱含 render layer flattening，子孫的 SetFrameStrata 在繪製上無效、照祖先那層畫 —— strata 要設在祖先上 |
@@ -140,8 +141,10 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-merge-worktree-branch.md](feedback-merge-worktree-branch.md) | worktree 分支 commit 完就 merge 進 master（遊戲只載入本體）；commit 與 merge 同一串指令、回報前查 `branch --no-merged master` 為空；不要 cherry-pick |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 的範圍／掛點／不碰清單照成熟同類實作，樣式套我們的；契約照舊，只有就位確認開白名單 |
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面的控件說明一律下一列灰色小字，不用接在勾選框右邊的 hint；實作細節／推銷別支插件的句子不放 |
+| [feedback-emphasis-note-yellow.md](feedback-emphasis-note-yellow.md) | 「黃字說明」＝共用層 `W.fontEmphasis`（1, 0.82, 0）；整列寬、放在底部灰字說明正上方 |
 | [project-miliui-hud-skin.md](project-miliui-hud-skin.md) | **HUD 皮的正式定義**：黑透明底＋1px 職業色邊＋白字＋直角；跟設定視窗皮的二選一判準與數值表 |
 | [project-miliui-button-variants.md](project-miliui-button-variants.md) | **按鈕上色規則（全套組遵守）**：primary（主動作）／normal 兩種長相、職業色公式、九條判準（主按鈕不疊發光／彩色字、做過的動作＝字改現況＋停用）、`W.CreateButton(…, "primary")`＋`W.PaintButton`；`accent`／`green` 是舊配色（遷移待辦） |
+| [feedback-button-no-ellipsis.md](feedback-button-no-ellipsis.md) | **按鈕文字不加刪節號（全套組）**：結尾不寫「…」／「...」；讀取中狀態、輸入框提示不在此限，右鍵選單要動先問 |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | agent 資料的擺放慣例（就是這個結構） |
 
 ### 自製功能

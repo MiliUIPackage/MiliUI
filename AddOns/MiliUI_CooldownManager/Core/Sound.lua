@@ -6,7 +6,9 @@
 --   ns.Sound.HookItem(item, rec)      Viewers 第一次看到 item 時叫（只掛增益兩條）
 --   ns.Sound.RequestAuraSync()        光環格放好／收起、設定變了：下一幀對一次 AddAuraSound 登記
 --   ns.Sound.Preview(name)            設定介面「試聽」（不看總開關、不節流）
---   ns.Sound.Path(name)               LSM 音效名 → 路徑字串或檔案編號（查不到 nil）
+--   ns.Sound.Path(name)               LSM 音效名或自訂語音代號 → 路徑字串或檔案編號（查不到 nil）
+--   ns.Sound.DisplayName(name)        下拉選單上的字（自訂語音是玩家取的名字）
+--   ns.Sound.CustomList()／CustomAdd／CustomEdit／CustomMove／CustomRemove   自訂語音清單（見下）
 --   ns.Sound.Speak(text, key, why)    語音播報（文字轉語音；跟音效同一個總開關、靜音與節流）
 --   ns.Sound.CanSpeak()               遊戲有沒有文字轉語音的 API（沒有 ⇒ 設定頁那幾列不顯示）
 --   ns.Sound.PreviewSpeak(text)       設定介面「試聽」
@@ -16,9 +18,22 @@
 -- 設定
 --   theme.sound = { enabled, channel }      總開關、聲道（Master／SFX／Music／Ambience／Dialog）
 --   spells[spec].overrides[id].readySound   冷卻類：LSM 音效名；nil／false ＝ 無
---   ….gainSound／loseSound                  增益類：出現／消失
+--   ….gainSound／loseSound                  增益類：出現／消失；暴雪的冷卻格：增益時間開始／結束（S.OnAuraFlag）
 --   ….readySpeak／gainSpeak／loseSpeak       語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
 --   音效沒有條層的值，只有逐法術（DB.SPELL_CONST 給 false）。
+--   帳號層 customSounds = { { id, name, path }, … }   自訂語音（順序＝玩家排的順序）
+--   帳號層 customSoundNext                             下一個 id（不重用，刪掉的代號不會被別筆接走）
+--
+-- ── 自訂語音 ───────────────────────────────────────────────────────────
+-- 玩家自己放在 Interface 底下的音檔：填「Interface 之後的相對路徑」（2026-10-03 起；之前是 AddOns 之後，
+-- 玩家問「為什麼要放 AddOns 裡」⇒ 放寬到整個 Interface。舊存檔一次性補上 AddOns\ 前綴，見 S.CustomList）
+-- （遊戲沒有列資料夾內容的 API，
+-- 只能讓玩家自己打）。逐法術的值存代號 "custom:<id>"，不存名字也不存路徑 ⇒ 改名、改路徑
+-- 不必回頭改每一格；刪掉時把所有設定檔裡指到它的格子清掉（不然下拉會露出代號）。
+-- 不註冊進 LibSharedMedia：LSM 沒有撤銷，改名／刪除要 /reload 才乾淨，名字也會跟別的插件撞。
+-- 帳號層：換設定檔、換角色都看得到同一份清單（逐法術的選擇才跟設定檔走）。
+-- 遊戲只認得「啟動時就在」的檔案（C_UIFileAsset.IsKnownFile）：新放的音檔要整個重開遊戲，
+-- /reload 不夠 ⇒ 清單上標「找不到檔案」提醒。
 --   語音播報跟音效走同一個觸發點（就緒探針、增益 item 的出現／消失批次）；光環格的出現／消失是引擎播的
 --   （AddAuraSound），Lua 端沒有訊號 ⇒ 光環格不提供語音播報。
 --
@@ -163,6 +178,52 @@ function Logic.Diff(have, want)
     return removes, adds
 end
 
+-- 自訂語音的代號："custom:<id>"
+Logic.CUSTOM_PREFIX = "custom:"
+function Logic.CustomValue(id) return Logic.CUSTOM_PREFIX .. tostring(id) end
+function Logic.CustomID(v)
+    if type(v) ~= "string" then return nil end
+    local n = v:match("^custom:(%d+)$")
+    return n and tonumber(n) or nil
+end
+
+-- 玩家填的路徑 → Interface 底下的相對路徑（反斜線、去掉頭尾空白與開頭的 Interface\）。
+-- 整段絕對路徑（…\_retail_\Interface\…）一樣只留 Interface 之後那截。
+-- 只收 .ogg／.mp3（PlaySoundFile 只播這兩種）。不合法回 nil, 原因（"empty"｜"ext"）
+function Logic.NormalizePath(input)
+    if type(input) ~= "string" then return nil, "empty" end
+    local p = input:gsub("^%s+", ""):gsub("%s+$", "")
+    p = p:gsub("^[\"']+", ""):gsub("[\"']+$", "")       -- 從檔案總管複製時常帶引號
+    p = p:gsub("/", "\\"):gsub("\\+", "\\")
+    local low = "\\" .. p:lower()
+    local _, cut = low:find("\\interface\\", 1, true)
+    if cut then p = p:sub(cut) end                       -- low 前面多墊了一個反斜線：cut 剛好是 p 裡的下一個字
+    p = p:gsub("^\\+", "")
+    if p == "" then return nil, "empty" end
+    local ext = (p:match("%.([^.\\]+)$") or ""):lower()
+    if ext ~= "ogg" and ext ~= "mp3" then return nil, "ext" end
+    return p
+end
+
+function Logic.FullPath(rel) return "Interface\\" .. rel end
+
+-- 舊存檔（路徑是 AddOns 之後）→ Interface 之後：補 AddOns\ 前綴。帳號層記 customSoundsRoot 只做一次
+Logic.SOUND_ROOT = "Interface"
+function Logic.MigrateRoot(sv)
+    if type(sv) ~= "table" or sv.customSoundsRoot == Logic.SOUND_ROOT then return false end
+    for _, e in ipairs(type(sv.customSounds) == "table" and sv.customSounds or {}) do
+        if type(e) == "table" and type(e.path) == "string" and e.path ~= "" then e.path = "AddOns\\" .. e.path end
+    end
+    sv.customSoundsRoot = Logic.SOUND_ROOT
+    return true
+end
+
+-- 沒取名字時用檔名（去掉副檔名）
+function Logic.DefaultName(rel)
+    local file = (rel or ""):match("([^\\]+)$") or rel or ""
+    return (file:gsub("%.[^.]+$", ""))
+end
+
 -- 一筆登記的簽章（路徑可能是字串或檔案編號）
 function Logic.Sig(trigger, spellID, path, channel)
     return table.concat({ tostring(trigger), tostring(spellID), type(path), tostring(path), tostring(channel) }, "|")
@@ -203,6 +264,11 @@ end
 function S.Path(name)
     name = Logic.Name(name)
     if not name then return nil end
+    local cid = Logic.CustomID(name)
+    if cid then
+        local e = S.CustomByID(cid)
+        return e and type(e.path) == "string" and e.path ~= "" and Logic.FullPath(e.path) or nil
+    end
     local lsm = LSM()
     if not lsm then return nil end
     local ok, path = pcall(lsm.Fetch, lsm, "sound", name, true)
@@ -252,6 +318,112 @@ end
 
 function S.Preview(name)
     return PlayRaw(name)
+end
+
+------------------------------------------------------------
+-- 自訂語音清單（帳號層）
+------------------------------------------------------------
+local SOUND_FIELDS = { "readySound", "gainSound", "loseSound" }
+
+local function Account() return MiliUI_CooldownManager_DB end
+
+function S.CustomList()
+    local sv = Account()
+    if type(sv) ~= "table" then return {} end
+    if type(sv.customSounds) ~= "table" then sv.customSounds = {} end
+    Logic.MigrateRoot(sv)
+    return sv.customSounds
+end
+
+function S.CustomByID(id)
+    for _, e in ipairs(S.CustomList()) do
+        if e.id == id then return e end
+    end
+    return nil
+end
+
+-- 下拉與提示上的字：自訂語音是玩家取的名字，其餘就是 LSM 名稱
+function S.DisplayName(v)
+    local cid = Logic.CustomID(v)
+    if not cid then return v end
+    local e = S.CustomByID(cid)
+    return e and e.name or nil
+end
+
+-- 檔案在不在：true／false；API 不在 ⇒ nil（不知道）
+function S.CustomFileKnown(e)
+    local api = C_UIFileAsset and C_UIFileAsset.IsKnownFile
+    if type(api) ~= "function" or not (e and e.path) then return nil end
+    local ok, known = pcall(api, Logic.FullPath(e.path))
+    if not ok then return nil end
+    return known and true or false
+end
+
+local function CustomChanged()
+    S.RequestAuraSync()            -- 光環格的登記是路徑烘死的：改了路徑要換一筆
+    if ns.Fire then ns.Fire("CustomSoundsChanged") end
+end
+
+-- name 空白 ⇒ 用檔名。回傳 entry；路徑不合法回 nil, 原因
+function S.CustomAdd(name, path)
+    local rel, why = Logic.NormalizePath(path)
+    if not rel then return nil, why end
+    local sv = Account()
+    if type(sv) ~= "table" then return nil, "empty" end
+    local list = S.CustomList()
+    local id = math.max(tonumber(sv.customSoundNext) or 1, 1)
+    for _, e in ipairs(list) do
+        if type(e.id) == "number" and e.id >= id then id = e.id + 1 end
+    end
+    sv.customSoundNext = id + 1
+    local e = { id = id, name = (name and name ~= "") and name or Logic.DefaultName(rel), path = rel }
+    list[#list + 1] = e
+    CustomChanged()
+    return e
+end
+
+function S.CustomEdit(index, name, path)
+    local e = S.CustomList()[index]
+    if not e then return nil, "empty" end
+    local rel, why = Logic.NormalizePath(path)
+    if not rel then return nil, why end
+    e.name = (name and name ~= "") and name or Logic.DefaultName(rel)
+    e.path = rel
+    CustomChanged()
+    return e
+end
+
+function S.CustomMove(index, delta)
+    local list = S.CustomList()
+    local to = index + delta
+    if not (list[index] and list[to]) then return false end
+    list[index], list[to] = list[to], list[index]
+    CustomChanged()
+    return true
+end
+
+-- 刪掉一筆：所有設定檔、所有專精裡指到它的格子一起清掉。回傳清掉幾格
+function S.CustomRemove(index)
+    local list = S.CustomList()
+    local e = list[index]
+    if not e then return 0 end
+    table.remove(list, index)
+    local value, cleared = Logic.CustomValue(e.id), 0
+    for _, profile in pairs((Account() or {}).profiles or {}) do
+        for _, sp in pairs(type(profile.spells) == "table" and profile.spells or {}) do
+            local all = type(sp) == "table" and sp.overrides
+            for id, o in pairs(type(all) == "table" and all or {}) do
+                if type(o) == "table" then
+                    for _, f in ipairs(SOUND_FIELDS) do
+                        if o[f] == value then o[f] = nil; cleared = cleared + 1 end
+                    end
+                    if next(o) == nil then all[id] = nil end
+                end
+            end
+        end
+    end
+    CustomChanged()
+    return cleared
 end
 
 ------------------------------------------------------------
@@ -408,6 +580,21 @@ local function OnActiveChanged(item)
     local before = nil                            -- ⚠ 不能寫成 a and b or nil：false 會被吃掉
     if rec.soundActiveID == rec.cooldownID then before = rec.soundActive end
     rec.soundActive, rec.soundActiveID = now, rec.cooldownID
+    if before == nil or before == now then return end
+    Push(rec, now and "gain" or "lose")
+end
+
+-- 暴雪的冷卻格（核心／輔助）：「增益出現／消失」＝暴雪開始／停止倒增益時間（玩家回報 2026-10-03：狂暴觸發時要語音）。
+-- Decorate 的 SetUseAuraDisplayTime 後掛勾每次都叫（值是 Plain 過的明文；秘密值／讀不到 ＝ nil ⇒ 不動）。
+-- 暴雪一次刷新常連叫兩次同樣的值 ⇒ 只在值真的變了才排；第一次看到（掛勾時讀的初值、/reload 時增益還在）
+-- 只記不響；框被暴雪回收給別的法術（cooldownID 換了）也重新起算。走同一個批次（下一幀合併、節流、讀取靜音）。
+-- 設定欄位跟增益格同一組（gainSound／loseSound／gainSpeak／loseSpeak）。
+function S.OnAuraFlag(rec, now)
+    if not rec or rec.custom or rec.cooldownID == nil or type(now) ~= "boolean" then return end
+    if ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey] then return end
+    local before = nil                            -- ⚠ 不能寫成 a and b or nil：false 會被吃掉
+    if rec.soundFlagID == rec.cooldownID then before = rec.soundFlag end
+    rec.soundFlag, rec.soundFlagID = now, rec.cooldownID
     if before == nil or before == now then return end
     Push(rec, now and "gain" or "lose")
 end

@@ -6,11 +6,12 @@
 --                                hasAura, charges, isInvisible, isKnown, effectiveCategory, home }
 --   ns.Catalog.Refresh(reason) 重讀；內容（簽章）變了才廣播 "CatalogChanged"
 --   ns.Catalog.IsPaused()      暴雪冷卻管理器設定面板開著 ⇒ true（Bars 暫停重排）
+--   ns.Catalog.TalentBlocked(id) 逐法術的天賦條件不成立 ⇒ true（正式清單不收；見下面「天賦條件」）
 --   ns.Catalog.Replacements()  以增益取代：byA（A → B）、byB（B → A）；B 不進任何一條的清單（見那一節）
 --
 -- 自訂項目（spells[spec].custom，id 是 "c:<index>"）也從這裡進清單：Bar(key) 把
--- custom[i].bar == key 的排進去（順序覆寫照舊），**光環格永遠排在最前面**當固定前綴
--- （持有框整條鏈是保護框，戰鬥中位置不能變 ⇒ 放在不會被別人擠動的地方）。
+-- custom[i].bar == key 的排進去，順序跟其他格一樣走 order 表（光環格也是，可以放在任意位置；
+-- 條上有光環格時 Bars 會強制固定格位，位置本來就不動）。
 -- Info("c:i") 回同一個形狀的表（多 custom／kind／itemID／filter）。
 --
 -- 資料來源只有兩個明文 API：`C_CooldownViewer.GetCooldownViewerCategorySet(category, true)`
@@ -235,7 +236,13 @@ local SPELL_CATEGORY = {
     [1711] = { icon = "Interface\\Icons\\Warlock_ Healthstone",  title = "COOLDOWN_VIEWER_TOOLTIP_POTION_HEALTHSTONE_TITLE" },
     [2566] = { icon = "Interface\\Icons\\Warlock_ Bloodstone",   title = "COOLDOWN_VIEWER_TOOLTIP_POTION_DEMONIC_HEALTHSTONE_TITLE" },
 }
-local EQUIP_SLOT_NAME = { [13] = "TRINKET0SLOT", [14] = "TRINKET1SLOT", [16] = "MAINHANDSLOT", [17] = "SECONDARYHANDSLOT" }
+local EQUIP_SLOT_NAME = {
+    [1] = "HEADSLOT", [2] = "NECKSLOT", [3] = "SHOULDERSLOT", [5] = "CHESTSLOT", [6] = "WAISTSLOT",
+    [7] = "LEGSSLOT", [8] = "FEETSLOT", [9] = "WRISTSLOT", [10] = "HANDSSLOT",
+    [11] = "FINGER0SLOT", [12] = "FINGER1SLOT", [13] = "TRINKET0SLOT", [14] = "TRINKET1SLOT",
+    [15] = "BACKSLOT", [16] = "MAINHANDSLOT", [17] = "SECONDARYHANDSLOT",
+}
+C.EQUIP_SLOT_NAME = EQUIP_SLOT_NAME
 
 local function GlobalText(name)
     local s = name and _G[name]
@@ -313,6 +320,91 @@ local function ReadInfo(id)
         isKnown         = isKnown ~= false,       -- 讀不到當作學了（寧可多一格空位也不要少）
         flags           = Plain(raw.flags),
     }
+end
+
+------------------------------------------------------------
+-- 天賦條件（逐法術覆寫 overrides[id].talentCond = { spellID, mode = "known"｜"unknown" }）
+--
+-- 同一個專精換天賦時不用手動藏格子／加回來：「學了天賦 X 才顯示」「沒學 Y 才顯示」。
+--   C.TalentCondPass(cond, isKnown)  純函式；isKnown(spellID) → true／false／nil（讀不到）
+--   C.TalentKnown(spellID)           遊戲裡的 isKnown
+--   C.TalentBlocked(id)              這一格目前被天賦條件擋掉（設定頁預覽畫暗用）
+-- 規則：
+--   * 沒存、壞資料（spellID 不是正整數、mode 不認得）＝沒有條件。
+--   * 讀不到（秘密值、API 不在、pcall 失敗）＝條件成立（fail-open：不要因為讀不到就把格子藏掉）。
+--   * 條件不成立的 id 不進 C.Bar 的正式清單（排版看不到）；withHidden（設定頁）照樣放進第一張，
+--     玩家才點得到、改得回來。
+--   * 換天賦會派 SPELLS_CHANGED／TRAIT_CONFIG_UPDATED ⇒ Later 重建；簽章帶著每個條件的結果，
+--     結果變了才廣播 CatalogChanged（Bars 收到就整套 membership 重排）。
+------------------------------------------------------------
+local TALENT_MODES = { known = true, unknown = true }
+
+-- 合法的條件 ⇒ spellID, mode；其餘 nil
+local function ValidTalentCond(cond)
+    if type(cond) ~= "table" then return nil end
+    local id, mode = cond.spellID, cond.mode
+    if type(id) ~= "number" or id <= 0 or id ~= math.floor(id) then return nil end
+    if not TALENT_MODES[mode] then return nil end
+    return id, mode
+end
+C.ValidTalentCond = ValidTalentCond
+
+function C.TalentCondPass(cond, isKnown)
+    local id, mode = ValidTalentCond(cond)
+    if not id then return true end
+    local known = isKnown and isKnown(id)
+    if type(known) ~= "boolean" then return true end      -- 讀不到：當成立
+    if mode == "known" then return known end
+    return not known
+end
+
+-- 天賦學了沒：C_SpellBook.IsSpellKnown 與 IsPlayerSpell 都問（天賦被動只有 IsPlayerSpell 準），
+-- 任一個明文 true 就算學了；兩個都明文 false 才算沒學；有一個讀不到又沒有 true ⇒ nil（fail-open）
+local function TalentKnown(spellID)
+    local unsure, asked = false, false
+    local book = C_SpellBook
+    for _, fn in ipairs({ book and book.IsSpellKnown or false, _G.IsPlayerSpell or false }) do
+        if fn then
+            asked = true
+            local ok, v = pcall(fn, spellID)
+            if ok then v = Plain(v) else v = nil end     -- ⚠ 不能寫成 ok and Plain(v) or nil：false 會被吃掉
+            if v == true then return true end
+            if v ~= false then unsure = true end
+        end
+    end
+    if unsure or not asked then return nil end
+    return false
+end
+C.TalentKnown = TalentKnown
+
+-- 這一格的條件（目前專精的覆寫；SpellsTable 定義在下面，用前置宣告）
+local SpellsTable
+local function TalentCondOf(sp, id)
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    local o = all and id ~= nil and all[id]
+    return type(o) == "table" and o.talentCond or nil
+end
+
+local function Blocked(sp, id)
+    local cond = TalentCondOf(sp, id)
+    return cond ~= nil and not C.TalentCondPass(cond, C.TalentKnown)
+end
+
+function C.TalentBlocked(id)
+    return Blocked(SpellsTable(), id)
+end
+
+-- 簽章用：目前被擋掉的 id（排序後串起來）
+local function TalentSig()
+    local sp = SpellsTable()
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    if not all then return "" end
+    local out = {}
+    for id in pairs(all) do
+        if Blocked(sp, id) then out[#out + 1] = tostring(id) end
+    end
+    table.sort(out)
+    return table.concat(out, ",")
 end
 
 ------------------------------------------------------------
@@ -422,8 +514,8 @@ local function Build()
     C.placed = placed
     C.adopted = 0
 
-    -- 簽章：版面原字串＋專精＋每條清單（天賦改變 isKnown 也會反映在清單上）
-    local parts = { str or "", tostring(tag) }
+    -- 簽章：版面原字串＋專精＋每條清單（天賦改變 isKnown 也會反映在清單上）＋天賦條件的結果
+    local parts = { str or "", tostring(tag), TalentSig() }
     for _, bar in ipairs(C.SOURCE_BARS) do
         parts[#parts + 1] = table.concat(lists[bar], ",")
     end
@@ -579,10 +671,19 @@ end
 -- 自訂項目
 ------------------------------------------------------------
 local QUESTION = 134400
--- slot：裝備欄位（飾品 1／2），追蹤「現在裝在那一格的物品」，換裝自動跟上；不經過暴雪的冷卻管理器
+-- slot：裝備欄位，追蹤「現在裝在那一格的物品」，換裝自動跟上；不經過暴雪的冷卻管理器
+-- 挑選清單的順序：會用的多半是飾品，兩格排最前面，其餘照角色面板（襯衣、外袍不收）
 local CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true }
-local CUSTOM_SLOTS = { [13] = true, [14] = true }
+C.CUSTOM_SLOT_ORDER = { 13, 14, 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 16, 17 }
+local CUSTOM_SLOTS = {}
+for _, slot in ipairs(C.CUSTOM_SLOT_ORDER) do CUSTOM_SLOTS[slot] = true end
 C.CUSTOM_SLOTS = CUSTOM_SLOTS
+
+-- 欄位名：有編號版（「手指 1」「飾品 2」）用編號版，兩格同名才分得出來
+function C.SlotName(slot)
+    local token = EQUIP_SLOT_NAME[slot]
+    return token and (GlobalText(token .. "_UNIQUE") or GlobalText(token)) or nil
+end
 
 -- 那一格現在裝的物品（明文 itemID 或 nil）
 function C.SlotItemID(slot)
@@ -592,7 +693,7 @@ function C.SlotItemID(slot)
     return type(id) == "number" and id or nil
 end
 
-local function SpellsTable()
+SpellsTable = function()
     local p = ns.profile
     local spec = ns.specID
     local sp = p and type(p.spells) == "table" and spec and p.spells[spec]
@@ -686,7 +787,7 @@ local function CustomInfo(id)
             local ok, _, tex = pcall(_G.GetInventorySlotInfo, token)
             if ok then info.icon = Plain(tex) end
         end
-        info.slotName = GlobalText(token)
+        info.slotName = C.SlotName(e.slot)
         if info.name == nil then info.name = info.slotName end
     elseif e.kind == "item" then
         -- 帶替代品的（e.alts）：圖示與名字照現在包包裡有的那件（Modules/Custom.lua 的 ResolveItem）；
@@ -749,6 +850,8 @@ end
 -- 只有「兩邊現在都真的在」才成立，其餘一律當沒設（設定留著，條件回來自動生效）：
 --   * A 在某條檢視器的清單上（學會了、暴雪會給框）、沒被玩家移除（hidden）、來源是核心或輔助
 --   * B 在增益圖示列的清單上（天賦沒點 ⇒ 不在 ⇒ 退回 A 本身，B 也不會被拿掉）
+--   * A、B 都沒被逐法術的天賦條件擋掉（Blocked；A 被擋 ⇒ 沒有那一格，B 不能跟著消失；
+--     B 被擋 ⇒ 玩家本來就不要它出現）
 --   * 同一個 B 只給一個 A（設定頁會擋；擋不住的舊資料取 cooldownID 小的那個，結果固定）
 -- 不快取：覆寫的寫入路徑很多（單一法術小窗、清除覆寫、還原此法術、匯入、換設定檔／專精），
 -- 作廢點漏一個就是「改了沒反應」；現算只是走一遍這個專精的覆寫表。
@@ -777,6 +880,7 @@ function C.Replacements()
         local b = all[a].replaceWith
         local ra, rb = C.info[a], C.info[b]
         if b ~= a and byB[b] == nil and placed[a] and placed[b] and not hidden[a]
+            and not Blocked(sp, a) and not Blocked(sp, b)
             and ra and REPLACE_FROM[ra.bar] and rb and rb.bar == REPLACE_TO then
             byA[a], byB[b] = b, a
         end
@@ -816,16 +920,6 @@ function C.ReplaceNow(b)
     return v == true
 end
 
--- 光環格排到最前面（相對順序不變）
-local function AuraPrefix(list)
-    local out, rest = {}, {}
-    for _, id in ipairs(list) do
-        if C.IsAuraSlot(id) then out[#out + 1] = id else rest[#rest + 1] = id end
-    end
-    for _, id in ipairs(rest) do out[#out + 1] = id end
-    return out
-end
-
 -- 條的有序清單（已套 order／groupOf／hidden）。回傳的是新表，呼叫端可以自由改。
 -- withHidden = true 時多回一張「本來在這條、但被藏起來」的清單（設定頁的預覽排在尾端用），
 -- 同樣照 order 排。
@@ -846,11 +940,16 @@ function C.Bar(barKey, withHidden)
     -- 以增益取代的 B：它的位置是 A 那一格（Core/Bars.lua），任何一條都不列、被移除清單也不列
     local replaced = C.ReplacedSet()
 
+    -- 天賦條件不成立：正式清單不收；設定頁（withHidden）照樣收進第一張，預覽畫暗（C.TalentBlocked）
+    local function Allowed(id)
+        return withHidden or not Blocked(sp, id)
+    end
+
     local function Add(id)
         if autoHide and autoHide(id) then return end
         if replaced[id] ~= nil then return end
         if not hidden[id] then
-            out[#out + 1] = id
+            if Allowed(id) then out[#out + 1] = id end
         elseif hid then
             hid[#hid + 1] = id
         end
@@ -890,11 +989,12 @@ function C.Bar(barKey, withHidden)
         end
     end
 
-    -- 自訂項目（只進圖示類的條；長條的 item 是另一種框，放不進去）。
+    -- 自訂項目（圖示類、長條類的條都收：放在長條上時 Modules/Custom.lua 換成長條框）。
     -- hidden 對它無效：自己加的項目「移除」就是整筆刪掉，沒有「藏著」這種狀態
-    if bar.kind ~= "bars" then
-        for i, e in ipairs(CustomList()) do
-            if ValidCustom(e) and e.bar == barKey then out[#out + 1] = "c:" .. i end
+    for i, e in ipairs(CustomList()) do
+        if ValidCustom(e) and e.bar == barKey then
+            local id = "c:" .. i
+            if Allowed(id) then out[#out + 1] = id end
         end
     end
 
@@ -919,8 +1019,6 @@ function C.Bar(barKey, withHidden)
         out = Sort(out)
         if hid then hid = Sort(hid) end
     end
-    out = AuraPrefix(out)
-    if hid then hid = AuraPrefix(hid) end
     return out, hid
 end
 

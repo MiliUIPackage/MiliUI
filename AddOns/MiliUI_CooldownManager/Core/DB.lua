@@ -4,6 +4,7 @@
 --   MiliUI_CooldownManager_DB = {
 --       schemaVersion, schemaVersionSeen,             -- 遷移鏈
 --       minimap, optionsWindow,                       -- 帳號層，不跟設定檔走
+--       customSounds, customSoundNext,                -- 自訂語音清單（帳號層，見 Core/Sound.lua）
 --       profiles     = { ["Default"] = <profile>, … },
 --       profileKeys  = { ["角色 - 伺服器"] = "Default" },            -- 每角色目前用哪份
 --       specProfiles = { ["角色 - 伺服器"] = { enabled = bool, [專精序號] = "設定檔名" } },
@@ -27,7 +28,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 3
+ns.DB_VERSION = 4
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -209,7 +210,7 @@ ResourcesDefaults = function()
         textFont      = "INHERIT",         -- 條上數字的字型（自訂格子也照這個）；"INHERIT" ＝ 跟隨主題的通用字型
         rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移。沒有控件了：只當 heights 沒設的列的起始值
         heights       = {},                -- [資源key] = 列高（所有專精共用；每種資源設定視窗的「高」）
-        -- [資源key] = { follow, texture, bgTexture, barAlpha, smooth, showText, textFont, textSize }：
+        -- [資源key] = { follow, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText, textFont, textSize }：
         -- 每種資源自己的外觀（設定視窗的「外觀」那一節）。開放式、預設空；follow 沒存 ＝ 跟下面這幾欄（全域）。
         -- 引擎讀 Modules/Resources.lua 的 R.StyleFor 回的代理表
         style         = {},
@@ -219,6 +220,10 @@ ResourcesDefaults = function()
         texture       = "solid",
         bgTexture     = "INHERIT",         -- 空的那截（背景）的材質；"INHERIT" ＝ 跟填充同一張（自訂格子也照這個）
         barAlpha      = 1,                 -- 填充色的不透明度
+        -- 背景（空的那截）：bgAlpha 乘在預設深淺上（1 ＝ 原樣、0 ＝ 透明）；bgCustom 勾了才用 bgColor 換掉自動推的底色
+        bgAlpha       = 1,
+        bgCustom      = false,
+        bgColor       = { r = 0.15, g = 0.15, b = 0.15, a = 1 },
         smooth        = true,              -- 連續條的原生內插（引擎做，吃秘密值）
         -- 條上的數值：預設開、14 號字、置中（使用者 2026-10-01 指定，不遷移）
         showText      = true,
@@ -363,6 +368,8 @@ function DB.BuildDefaults()
         account = {
             minimap       = { hide = false, angle = 215 },
             optionsWindow = { x = 0, y = 0, lastBar = "essential" },
+            customSounds    = {},           -- { { id, name, path }, … }：path 是 AddOns 底下的相對路徑
+            customSoundNext = 1,
         },
         profile = {
             theme = {
@@ -383,16 +390,26 @@ function DB.BuildDefaults()
                           -- 冷卻狀態（核心／輔助、自訂法術／物品／飾品欄；增益類不適用）：
                           -- "none" 不變｜"dim" 冷卻中變暗（cdStateAlpha）｜"hideOnCD" 冷卻中看不到｜"hideReady" 轉好時看不到。
                           -- 舊存檔沒有這欄 ＝ "none"（合併預設值補上），行為不變、不遷移
-                          cdState = "none", cdStateAlpha = 0.4 },
+                          cdState = "none", cdStateAlpha = 0.4,
+                          -- 增益持續中顯示持續時間（核心／輔助）：技能用掉後暴雪先倒增益、增益掉了才倒冷卻。
+                          -- false ＝ 蓋掉增益那一段、直接倒技能真正的冷卻（Core/Decorate.lua）。
+                          -- 預設 true ＝ 暴雪原本的行為；舊存檔沒有這欄 ＝ 合併預設值補成 true，行為不變、不遷移
+                          showAuraTime = true,
+                          -- colorDuration／durationColor：增益那一段的倒數數字換這個顏色（Core/Text.lua 的 ApplyPhaseColor）。
+                          -- 預設開（使用者拍板：舊存檔沒有這兩欄 ＝ 合併預設值補成開，不套「舊存檔行為不變」）
+                          colorDuration = true, durationColor = rgba(1, 0.85, 0.1),
+                          -- 增益那一段自己的低秒顏色（門檻共用 cooldownText.lowBelow；粉，比聖騎粉重一點）與轉圈背景色（淡黃）
+                          durationLowColor = rgba(0.95, 0.45, 0.70), durationSwipeColor = rgba(1, 0.9, 0.5, 0.5) },
                 -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
                               lines = 8, thickness = 2, frequency = 0.2 },
-                    -- duration：冷卻轉好之後亮幾秒
+                    -- mode：timed 亮 duration 秒／untilUsed 亮到用掉（回充照秒數）／whileReady 就緒時一直亮（Core/Glow.lua）
+                    -- requireUsable：資源不夠時先不亮、等到夠了才亮（Core/Glow.lua）
                     ready = { enabled = false, type = "button", color = rgba(0.3, 1, 0.3, 1),
-                              lines = 8, thickness = 2, frequency = 0.2, duration = 3 },
-                    -- 生效發光（增益）：沒有條層開關，逐法術 overrides[id].activeGlow 才亮；這裡只給樣式與預設色
-                    active = { type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
+                              lines = 8, thickness = 2, frequency = 0.2, duration = 3, mode = "timed", requireUsable = false },
+                    -- 生效發光：跟觸發／就緒同一套（條層開關＋樣式），**預設關**，玩家在個別法術上打開（overrides[id].activeGlow）
+                    active = { enabled = false, type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
                                lines = 8, thickness = 2, frequency = 0.2 },
                 },
                 -- 淡出後的透明度；false ＝ 這個條件不淡
@@ -506,6 +523,29 @@ local MIGRATIONS = {
         local R = ns.Resources
         if not (R and R.MigrateFlatRows) then return end
         R.MigrateFlatRows(res.rows)
+    end,
+    -- v4（2026-10-03）：逐法術「持續時間顏色」從三態（false 不換色／色表 條層關著也換）拆成跟主題頁同一套：
+    -- colorDuration 開關＋ durationColor 純顏色。行為不變地搬：false → colorDuration=false、顏色清掉；
+    -- 色表 → colorDuration=true（原本「條層關著也換」）、顏色留著。已經有 colorDuration 的不碰。
+    [4] = function(profile)
+        local spells = profile.spells
+        if type(spells) ~= "table" then return end
+        for _, spec in pairs(spells) do
+            local all = type(spec) == "table" and spec.overrides
+            if type(all) == "table" then
+                for _, o in pairs(all) do
+                    if type(o) == "table" then
+                        local dc = o.durationColor
+                        if dc == false then
+                            if o.colorDuration == nil then o.colorDuration = false end
+                            o.durationColor = nil
+                        elseif type(dc) == "table" and o.colorDuration == nil then
+                            o.colorDuration = true
+                        end
+                    end
+                end
+            end
+        end
     end,
 }
 DB.MIGRATIONS = MIGRATIONS
@@ -849,17 +889,34 @@ local SPELL_FALLBACK = {
     borderColor = "border.color",
     procGlow    = "glow.proc.enabled",
     readyGlow   = "glow.ready.enabled",
+    -- 生效期間發光：跟觸發／就緒同一套（條層開關預設關，逐法術蓋）
+    activeGlow  = "glow.active.enabled",
+    -- 就緒發光亮多久（timed／untilUsed／whileReady）與資源檢查：逐法術可以蓋（Core/Glow.lua 的 ReadyMode／RequireUsable）
+    readyGlowMode   = "glow.ready.mode",
+    readyGlowUsable = "glow.ready.requireUsable",
     desaturate  = "icon.desaturateOnCooldown",
     -- 冷卻狀態：逐法術可以蓋模式；變暗的透明度逐法術沒有控件（吃條的值），欄位照樣登記
     cdState      = "icon.cdState",
     cdStateAlpha = "icon.cdStateAlpha",
+    -- 增益持續時間那一段的換色（逐法術跟條層同一套五個欄位、同一套連動，Core/Decorate.lua 的 SpellStyle）：
+    --   colorDuration      三態 nil 跟隨條／true 換色／false 不換色（引擎讀 SpellSetting 的布林）
+    --   durationColor      色表＝這一招的字色；nil 跟隨條
+    --   durationLowColor   色表＝這一招的低秒字色；nil 跟隨條
+    --   durationSwipeColor 色表＝這一招的轉圈背景色；nil 跟隨條
+    -- 三個顏色只在「顯示增益持續時間」與「換色」都生效時才用得上（跟主題頁的停用規則一樣）。
+    -- （v4 之前 durationColor 兼作開關：false ＝ 不換色、色表 ＝ 條層關著也換；MIGRATIONS[4] 拆成 colorDuration）
+    colorDuration      = "icon.colorDuration",
+    durationColor      = "icon.durationColor",
+    durationLowColor   = "icon.durationLowColor",
+    durationSwipeColor = "icon.durationSwipeColor",
+    -- 增益持續中顯示持續時間：nil 跟隨條／true 顯示／false 不顯示（引擎讀 SpellSetting 的布林，
+    -- 設定頁要三態走 ns.SpellOverride）
+    showAuraTime  = "icon.showAuraTime",
 }
 -- 沒有條層對應的覆寫欄位 → 固定預設
 local SPELL_CONST = {
     hideCooldownText = false,
     hideStackText    = false,
-    -- 生效發光（增益）：只有逐法術；顏色／樣式（activeGlowColor／activeGlowType）沒設（nil）＝ glow.active 的預設
-    activeGlow       = false,
     -- 生效發光脫戰也亮（預設）；false ＝ 只在戰鬥中亮。自訂光環格不適用（發光烘在受保護的按鈕裡）
     activeGlowOutOfCombat = true,
     -- 層數門檻（暴雪的增益 item 才有，Core/StackGate.lua）：stackGlow ＝ 門檻 N（1～99）、stackColors ＝
@@ -886,16 +943,21 @@ DB.SPELL_FALLBACK, DB.SPELL_CONST = SPELL_FALLBACK, SPELL_CONST
 -- cooldownID：暴雪類別裡的項目用數字 cooldownID，自訂項目用 "c:<index>"。
 -- ⚠ 它會拿來當 table key ⇒ 只能是從 C_CooldownViewer 讀到的明文，**不准是秘密值**。
 -- specID 省略 ＝ 目前的專精。
-function ns.SpellSetting(barKey, cooldownID, key, specID)
+-- 只讀覆寫本身（沒覆寫 ＝ nil，不退回條層）：要分得出「跟隨」與「覆寫成跟條一樣的值」的地方用
+function ns.SpellOverride(cooldownID, key, specID)
     local p = ns.profile
     if not p then return nil end
     specID = specID or ns.specID
     local spec = specID and p.spells and p.spells[specID]
     local o = spec and spec.overrides and cooldownID ~= nil and spec.overrides[cooldownID]
-    if type(o) == "table" then
-        local v = o[key]
-        if v ~= nil then return v end
-    end
+    if type(o) == "table" then return o[key] end
+    return nil
+end
+
+function ns.SpellSetting(barKey, cooldownID, key, specID)
+    if not ns.profile then return nil end
+    local v = ns.SpellOverride(cooldownID, key, specID)
+    if v ~= nil then return v end
     local path = SPELL_FALLBACK[key]
     if path then return ns.Setting(barKey, path) end
     return SPELL_CONST[key]
@@ -1136,19 +1198,24 @@ end
 -- 覆寫欄位 → 設定頁的哪一節（「本條 N 個法術有覆寫」「清除覆寫」用）
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
-    replaceWith = "icon",
-    procGlow = "glow", readyGlow = "glow",
-    -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
-    activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",
-    activeGlowOutOfCombat = "activeGlow",
+    showAuraTime = "icon",
+    -- 以增益取代：決定格子放誰，不是外觀 ⇒ 自成一組（條頁「清除外觀覆寫」不會把它清掉；跟天賦條件同一個理由）
+    replaceWith = "replace",
+    procGlow = "glow", readyGlow = "glow", readyGlowMode = "glow", readyGlowUsable = "glow",
+    -- 生效發光跟觸發／就緒同一組（2026-10-03 改成同一套繼承）；activeGlowColor／activeGlowType 是舊存檔的殘留，
+    -- 留在這一組讓「清除發光覆寫」順手清掉
+    activeGlow = "glow", activeGlowColor = "glow", activeGlowType = "glow", activeGlowOutOfCombat = "glow",
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
     hideCooldownText = "text", hideStackText = "text",
+    colorDuration = "icon", durationColor = "icon", durationLowColor = "icon", durationSwipeColor = "icon",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉
     readySound = "sound", gainSound = "sound", loseSound = "sound",
     -- 語音播報跟音效同一節（同一個觸發點、同一個總開關）
     readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound",
+    -- 天賦條件（Core/Catalog.lua，{ spellID, mode }）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
+    talentCond = "talent",
 }
 
 -- v = nil 清掉那一格；整張空了就拿掉
@@ -1275,7 +1342,7 @@ end
 -- 新增，回傳 index（沒有專精 ⇒ nil）
 function DB.AddCustom(entry)
     if type(entry) ~= "table" or not DB.CUSTOM_KINDS[entry.kind] then return nil end
-    if entry.kind == "slot" and entry.slot ~= 13 and entry.slot ~= 14 then return nil end   -- 只有兩格飾品欄
+    if entry.kind == "slot" and not (ns.Catalog and ns.Catalog.CUSTOM_SLOTS[entry.slot]) then return nil end
     local list = DB.CustomList(true)
     if not list then return nil end
     list[#list + 1] = entry

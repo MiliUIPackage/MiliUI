@@ -29,6 +29,12 @@
 --   ⚠ 待實機驗證：Cooldown 倒數是否照 FontString 規則解析 |c 色碼（光環按鈕的
 --   SetDurationText 在某個 build 上不吃 formatter 裡的色碼，Cooldown 是另一條路徑）。
 --   建 formatter 失敗（API 不在、AddBreakpoint 拒收）時退回只設小數門檻、不變色。
+--
+-- ── 增益持續時間那一段換色（ApplyPhaseColor）──────────────────────────────
+-- 技能用掉後暴雪先倒增益的持續時間、增益掉了才倒冷卻；前半段的數字換 durationColor。
+-- 一樣只是多叫一次 SetTextColor：要換哪個色看 rec.auraTime（Decorate 的 SetUseAuraDisplayTime
+-- 後掛勾記的明文旗標）與 rec.style.cdColor／durColor（Decorate.Apply 算好的）。零讀取。
+-- 低秒變色兩段各一顆 formatter（門檻與小數共用、色碼不同：增益那一段用 icon.durationLowColor），ApplyPhaseColor 一起換。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -196,8 +202,24 @@ end
 -- 圖示類（核心／輔助／增益圖示）
 --   style：Decorate 解好的那一包（見 Decorate.Resolve）
 --   spell：{ hideCooldownText, hideStackText }
+--   rec：  暴雪 item 的記錄（增益持續時間換色用；自訂框沒有那一段，rec.style.cdColor 是 nil 就不動）
 ------------------------------------------------------------
-function T.ApplyIcon(item, style, spell)
+
+-- 倒數數字照「現在倒的是增益還是冷卻」上色（rec.style.cdColor 沒有 ＝ 這格不做）
+function T.ApplyPhaseColor(item, rec)
+    local st = rec and rec.style
+    local cd = item and item.Cooldown
+    if not (st and st.cdColor and cd and cd.GetCountdownFontString) then return end
+    local fs = cd:GetCountdownFontString()
+    if not fs then return end
+    local c = (rec.auraTime and st.durColor) or st.cdColor
+    fs:SetTextColor(c[1], c[2], c[3], c[4])
+    -- 低秒變色：增益那一段用它自己的 formatter（色碼不同、門檻同）；兩顆都有才換，少一顆就留 ApplyIcon 設的那顆
+    local fmt = (rec.auraTime and st.durFmt) or st.cdFmt
+    if fmt and st.durFmt and st.cdFmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
+end
+
+function T.ApplyIcon(item, style, spell, rec)
     local font, outline = style.font, style.outline
 
     -- 倒數
@@ -220,6 +242,8 @@ function T.ApplyIcon(item, style, spell)
         if not fmt and cd.SetCountdownMillisecondsThreshold then
             pcall(cd.SetCountdownMillisecondsThreshold, cd, tonumber(c.decimalsBelow) or 0)
         end
+        -- 現在倒的是增益那一段就換色（上面先寫了倒數原色）
+        if rec then T.ApplyPhaseColor(item, rec) end
     end
 
     -- 充能（核心／輔助）
@@ -275,16 +299,21 @@ function T.ApplyBar(item, style, spell, bar)
         local c = style.stackText or {}
         SetFont(stack, bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
-        Anchor(stack, icon, "BOTTOMRIGHT", -1, 1)
+        -- 錨點固定在圖示右下（長條的圖示太小、換角沒意義），X／Y 位移照「層數」的設定加在上面
+        -- （玩家回報「層數的 XY 改了不會動」，2026-10-03）
+        Anchor(stack, icon, "BOTTOMRIGHT", -1 + (tonumber(c.x) or 0), 1 + (tonumber(c.y) or 0))
         stack:SetAlpha((bar.showStacks and not spell.hideStackText) and 1 or 0)
     end
 end
 
 ------------------------------------------------------------
 -- 設定頁的預覽格（圖示類）：同一套字型／顏色／錨點，套在我們自己的 FontString 上
---   cell.cdText     假倒數（冷卻中的格才顯示；增益格一律顯示）
---   cell.chargeText 假充能（技能類）
---   cell.stackText  假層數（增益類）
+--   cell.cdText     假倒數（冷卻中的格才顯示）
+--   cell.chargeText 充能上限（技能類；真的有充能才印，cell.charges）
+--   cell.stackText  假層數
+-- 增益格（增益圖示條、光環格）的預覽不印字：整排 2／15 礙眼（使用者 2026-10-03），
+-- 增益格的字型樣式只影響數字外觀、看冷卻格的就夠
+--   cell.durColor   假冷卻格裡標成「增益那一段」的，倒數用這個色（Decorate.ApplyPreview 算好；nil ＝ 原色）
 -- 字是預覽自己寫的（「15」「2」），這裡只管樣式與顯示與否。
 ------------------------------------------------------------
 function T.ApplyPreviewIcon(cell, style, spell)
@@ -293,9 +322,9 @@ function T.ApplyPreviewIcon(cell, style, spell)
     if cdText then
         local c = style.cooldownText or {}
         SetFont(cdText, c.size or 16, outline, ns.Media.ElementFont(c.font, font))
-        cdText:SetTextColor(Color(c.color))
+        cdText:SetTextColor(Color(cell.durColor or c.color))
         Anchor(cdText, cell, c.point or "CENTER", c.x, c.y)
-        cdText:SetAlpha(((cell.onCD or cell.aura) and not spell.hideCooldownText) and 1 or 0)
+        cdText:SetAlpha((cell.onCD and not cell.aura and not spell.hideCooldownText) and 1 or 0)
     end
     local charge = cell.chargeText
     if charge then
@@ -303,7 +332,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
         SetFont(charge, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         charge:SetTextColor(Color(c.color))
         Anchor(charge, cell, c.point or "BOTTOMRIGHT", c.x, c.y)
-        charge:SetAlpha(cell.aura and 0 or 1)
+        charge:SetAlpha((cell.charges and not cell.aura) and 1 or 0)   -- 真的有充能的格才印（Preview.Fill 查的）
     end
     local stack = cell.stackText
     if stack then
@@ -311,6 +340,6 @@ function T.ApplyPreviewIcon(cell, style, spell)
         SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         Anchor(stack, cell, c.point or "TOP", c.x, c.y)
-        stack:SetAlpha((cell.aura and not spell.hideStackText) and 1 or 0)
+        stack:SetAlpha(0)
     end
 end

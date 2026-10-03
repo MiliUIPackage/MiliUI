@@ -203,14 +203,16 @@ eq("清效果節不動音效", S.NameOf(nil, 21, "gainSound"), "Bell")
 DB.SetOverride(31, "readySound", "Ding")
 DB.ClearOverrides({ 31 }, "sound")
 eq("清音效節", p.spells[61].overrides[31], nil)
--- 生效發光自成一組：清效果節不會把逐增益挑的發光清掉
+-- 生效發光跟觸發／就緒同一組（2026-10-03）：清效果節一起清；音效不動
 DB.SetOverride(41, "activeGlow", true)
 DB.SetOverride(41, "activeGlowColor", { r = 1, g = 0, b = 0, a = 1 })
 DB.SetOverride(41, "procGlow", false)
+DB.SetOverride(41, "gainSound", "Bell")
 DB.ClearOverrides({ 41 }, "glow")
-eq("清效果節不動生效發光", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlow, true)
-eq("清效果節不動生效發光顏色", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlowColor.r, 1)
+eq("清效果節清掉生效發光", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlow, nil)
+eq("清效果節順手清掉舊的生效發光顏色", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlowColor, nil)
 eq("效果節的觸發發光清掉了", p.spells[61].overrides[41] and p.spells[61].overrides[41].procGlow, nil)
+eq("清效果節不動音效（生效發光那格）", p.spells[61].overrides[41] and p.spells[61].overrides[41].gainSound, "Bell")
 
 ------------------------------------------------------------
 -- 6. 播放：總開關、聲道、節流、靜音
@@ -322,6 +324,36 @@ active = false; onActive(old); active = true; onActive(old); Flush()
 eq("退路：同一幀消失又出現抵消", #plays, n0 + 1)
 
 ------------------------------------------------------------
+-- 7b. 暴雪的冷卻格：增益時間開始／結束（S.OnAuraFlag）
+------------------------------------------------------------
+do
+    local crec = { barKey = "essential", cooldownID = 21 }
+    state.now = 500
+    local n = #plays
+    S.OnAuraFlag(crec, true); Flush()
+    eq("冷卻格：第一次看到（初值）只記不響", #plays, n)
+    S.OnAuraFlag(crec, false); Flush()
+    eq("冷卻格：增益結束 ⇒ 消失音效", #plays, n + 1)
+    eq("消失音效是 Num", plays[#plays].path, media.Num)
+    state.now = 510
+    S.OnAuraFlag(crec, true); S.OnAuraFlag(crec, true); Flush()
+    eq("冷卻格：增益開始 ⇒ 響一次（連叫兩次同值不重響）", #plays, n + 2)
+    eq("出現音效是 Bell", plays[#plays].path, media.Bell)
+    state.now = 520
+    S.OnAuraFlag(crec, nil); Flush()
+    eq("秘密值／讀不到 ⇒ 不動", #plays, n + 2)
+    crec.cooldownID = 22                 -- 框被回收給別的法術：重新起算
+    S.OnAuraFlag(crec, false); Flush()
+    eq("換了法術 ⇒ 只記不響", #plays, n + 2)
+    local brec = { barKey = "buffs", cooldownID = 21 }
+    S.OnAuraFlag(brec, true); S.OnAuraFlag(brec, false); Flush()
+    eq("增益格不走這條（有自己的警示掛勾）", #plays, n + 2)
+    local cust = { barKey = "essential", cooldownID = "c:9", custom = true }
+    S.OnAuraFlag(cust, true); S.OnAuraFlag(cust, false); Flush()
+    eq("自訂項目不走這條", #plays, n + 2)
+end
+
+------------------------------------------------------------
 -- 8. 光環格：AddAuraSound 對帳
 ------------------------------------------------------------
 DB.SetOverride("c:1", "gainSound", "Ding")
@@ -395,6 +427,82 @@ customRecs.a.ids = nil
 S.RequestAuraSync(); Flush()
 eq("拿掉多法術：撤回剩一筆", S.AuraCount(), 1)
 ns.Custom.AuraIDsOf = nil
+
+------------------------------------------------------------
+-- 自訂語音
+------------------------------------------------------------
+do
+    local N = Logic.NormalizePath
+    -- 2026-10-03 起：Interface 之後的相對路徑（不再限定 AddOns）
+    eq("路徑：相對路徑照收", N("MyVoice\\kick.ogg"), "MyVoice\\kick.ogg")
+    eq("路徑：斜線轉反斜線、去頭尾空白", N("  MyVoice/sub/kick.mp3 "), "MyVoice\\sub\\kick.mp3")
+    eq("路徑：去掉 Interface\\、留 AddOns\\", N("Interface\\AddOns\\MyVoice\\kick.ogg"), "AddOns\\MyVoice\\kick.ogg")
+    eq("路徑：大小寫不拘", N("interface/addons/MyVoice/kick.OGG"), "addons\\MyVoice\\kick.OGG")
+    eq("路徑：AddOns\\ 開頭照收", N("AddOns\\MyVoice\\kick.ogg"), "AddOns\\MyVoice\\kick.ogg")
+    eq("路徑：Interface 底下別的資料夾", N("Interface\\Sounds\\kick.ogg"), "Sounds\\kick.ogg")
+    eq("路徑：整段絕對路徑", N("\"C:\\Program Files\\World of Warcraft\\_retail_\\Interface\\AddOns\\MyVoice\\kick.ogg\""), "AddOns\\MyVoice\\kick.ogg")
+    eq("路徑：名字裡含 interface 的資料夾不當成根", N("MyInterface\\kick.ogg"), "MyInterface\\kick.ogg")
+    eq("路徑：重複反斜線收成一個", N("MyVoice\\\\kick.ogg"), "MyVoice\\kick.ogg")
+    -- 舊存檔（AddOns 之後）一次性補前綴
+    local old = { customSounds = { { id = 1, name = "a", path = "MyVoice\\kick.ogg" } } }
+    check("遷移：補 AddOns 前綴", Logic.MigrateRoot(old) and old.customSounds[1].path == "AddOns\\MyVoice\\kick.ogg")
+    check("遷移：只做一次", not Logic.MigrateRoot(old) and old.customSounds[1].path == "AddOns\\MyVoice\\kick.ogg")
+    local r, why = N("MyVoice\\kick.wav")
+    check("路徑：wav 不收", r == nil and why == "ext", why)
+    r, why = N("   ")
+    check("路徑：空白不收", r == nil and why == "empty", why)
+    r, why = N("Interface\\")
+    check("路徑：只有前綴不收", r == nil and why == "empty", why)
+    eq("預設名字＝檔名去副檔名", Logic.DefaultName("MyVoice\\sub\\kick.ogg"), "kick")
+    eq("代號往返", Logic.CustomID(Logic.CustomValue(12)), 12)
+    check("LSM 名稱不是代號", Logic.CustomID("Ding") == nil)
+
+    local sv = MiliUI_CooldownManager_DB or env.MiliUI_CooldownManager_DB
+    check("帳號層有預設的空清單", type(sv.customSounds) == "table" and #sv.customSounds == 0)
+    local a = S.CustomAdd("", "MyVoice/kick.ogg")
+    local b = S.CustomAdd("Boom", "Interface\\AddOns\\MyVoice\\boom.mp3")
+    check("新增成功", a and b)
+    eq("沒取名用檔名", a.name, "kick")
+    check("id 不同", a.id ~= b.id)
+    local bad, why2 = S.CustomAdd("x", "nope.txt")
+    check("不合法的路徑不新增", bad == nil and why2 == "ext" and #S.CustomList() == 2)
+    eq("Path：自訂語音解成完整路徑", S.Path(Logic.CustomValue(a.id)), "Interface\\MyVoice\\kick.ogg")
+    eq("DisplayName：自訂語音顯示名字", S.DisplayName(Logic.CustomValue(b.id)), "Boom")
+    eq("DisplayName：LSM 名稱照舊", S.DisplayName("Ding"), "Ding")
+    check("Path：不存在的代號 ＝ nil", S.Path("custom:999") == nil)
+
+    -- 播放：試聽與實際播放都走同一條路
+    local before = #plays
+    check("試聽自訂語音", S.Preview(Logic.CustomValue(b.id)))
+    eq("試聽的路徑", plays[#plays].path, "Interface\\AddOns\\MyVoice\\boom.mp3")
+    eq("試聽播一次", #plays, before + 1)
+
+    -- 改名、改路徑：代號不變，指到它的格子跟著變
+    DB.SetOverride(5001, "readySound", Logic.CustomValue(a.id))
+    check("編輯", S.CustomEdit(1, "Kick!", "AddOns\\MyVoice\\kick2.ogg"))
+    eq("編輯後名字", S.CustomList()[1].name, "Kick!")
+    eq("編輯後格子解到新路徑", S.Path(S.NameOf("essential", 5001, "readySound")), "Interface\\AddOns\\MyVoice\\kick2.ogg")
+    check("編輯不合法的路徑：不動", S.CustomEdit(1, "x", "") == nil and S.CustomList()[1].path == "AddOns\\MyVoice\\kick2.ogg")
+
+    -- 排序
+    check("下移", S.CustomMove(1, 1))
+    eq("下移後順序", S.CustomList()[1].name, "Boom")
+    check("頂到底不能再下移", not S.CustomMove(2, 1))
+    check("上移", S.CustomMove(2, -1))
+    eq("上移後順序", S.CustomList()[1].name, "Kick!")
+
+    -- 刪除：所有設定檔裡指到它的格子一起清掉，別的值不動
+    DB.SetOverride(5001, "gainSound", "Ding")
+    sv.profiles.Other = { spells = { [99] = { overrides = { [7] = { loseSound = Logic.CustomValue(a.id) } } } } }
+    eq("刪除清掉兩格", S.CustomRemove(1), 2)
+    eq("刪除後剩一筆", #S.CustomList(), 1)
+    check("本設定檔的格子清掉", ns.SpellSetting("essential", 5001, "readySound") ~= Logic.CustomValue(a.id))
+    eq("別的音效不動", ns.SpellSetting("essential", 5001, "gainSound"), "Ding")
+    check("別份設定檔的空覆寫整筆拿掉", sv.profiles.Other.spells[99].overrides[7] == nil)
+    local c = S.CustomAdd("", "MyVoice\\c.ogg")
+    check("刪掉的 id 不重用", c.id ~= a.id and c.id > b.id)
+    sv.profiles.Other = nil
+end
 
 check("DebugLine 是字串", type(S.DebugLine()) == "string")
 

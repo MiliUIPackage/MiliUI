@@ -45,7 +45,7 @@ RC.CHECK_VARS = {
 }
 
 RC.MAX_CHECK_DEPTH = 4
-RC.MAX_SEGMENTS = 10
+RC.MAX_SEGMENTS = 30
 
 function RC.ValidColor(c)
     if type(c) ~= "table" then return nil end

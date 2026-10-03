@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 增益長條的「層數換色」編輯器（逐法術面板那顆「層數換色（N）…」開的彈窗）
+-- 增益長條的「層數換色」編輯器（逐法術面板那顆「層數換色（N）」開的彈窗）
 --
 --   ns.StackColors.Open(barKey, cooldownID, changedCallback)
 --   ns.StackColors.Count(barKey, cooldownID)

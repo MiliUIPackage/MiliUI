@@ -300,8 +300,8 @@ powerMax[9] = 5
 eq("聖能 5 格", R.SegmentsFor("HolyPower"), 5)
 powerMax[9] = SECRET
 eq("上限秘密 → 沿用上次的 5", R.SegmentsFor("HolyPower"), 5)
-powerMax[9] = 12
-eq("格數上限 10", R.SegmentsFor("HolyPower"), 10)
+powerMax[9] = 40
+eq("格數上限 30", R.SegmentsFor("HolyPower"), 30)
 eq("連續條 0 格", R.SegmentsFor("Mana"), 0)
 eq("光環型用定義的格數", R.SegmentsFor("MaelstromWeapon"), 10)
 
@@ -588,8 +588,8 @@ PI.CustomRowList(ccfg, 65)[1].max = 4
 eq("充能上限讀不到 → 退回存檔的 max", plan(65)[1].numSeg, 4)
 PI.CustomRowList(ccfg, 65)[1].max = nil
 eq("兩邊都沒有 → 2", plan(65)[1].numSeg, 2)
-maxC[1001] = 25
-eq("充能上限夾到 10", plan(65)[1].numSeg, 10)
+maxC[1001] = 40
+eq("充能上限夾到 30", plan(65)[1].numSeg, 30)
 maxC[1001] = 0
 PI.CustomRowList(ccfg, 65)[1].max = 2
 eq("API 回 0 當讀不到 → 存檔的 max", plan(65)[1].numSeg, 2)
@@ -598,8 +598,8 @@ maxC[1001] = 3
 local st2 = PI.CustomRowList(ccfg, 65)[2]
 st2.max = 0
 eq("層數上限 0 → 預設 5", plan(65)[2].numSeg, 5)
-st2.max = 15
-eq("層數上限夾到 10", plan(65)[2].numSeg, 10)
+st2.max = 45
+eq("層數上限夾到 30", plan(65)[2].numSeg, 30)
 st2.max = 2.7
 eq("層數上限取整", plan(65)[2].numSeg, 2)
 st2.max = "x"
@@ -623,6 +623,39 @@ eq("壞資料跳過，剩一列", #pl, 1)
 eq("壞資料跳過：位置照清單", pl[1].index, 4)
 eq("customRows 不是表 → 空", #PI.PlanCustomRows({ customRows = 5 }, 65, probe), 0)
 eq("不給 probe：充能照建（當學了）、上限退回存檔的 max", PI.PlanCustomRows(ccfg, 65, nil)[1].numSeg, 2)
+-- 推薦清單：職業／專精過濾、已加過的跳過、用不了的靜默跳過
+do
+    local rcfg = {}
+    local has = { [190784] = true }
+    local rp = {
+        exists = function(id) return id ~= 296553 end,
+        known = function(id) return id ~= 358267 end,
+        hasCharges = function(id) return has[id] == true end,
+    }
+    local function recs(cls, spec, kind) return PI.CustomRecommendations(rcfg, cls, spec, kind, rp) end
+    eq("推薦：聖騎任何專精都有神性戰馬", recs("PALADIN", 65, "charges")[1].spellID, 190784)
+    eq("推薦：種類不同不給", #recs("PALADIN", 65, "stacks"), 0)
+    eq("推薦：沒列的職業 → 空", #recs("MAGE", 62, "charges"), 0)
+    eq("推薦：術士專屬專精，痛苦 → 空", #recs("WARLOCK", 265, "stacks"), 0)
+    local demo = recs("WARLOCK", 266, "stacks")
+    eq("推薦：惡魔學只剩存在的那一筆", #demo, 1)
+    eq("推薦：帶上限", demo[1].max, 4)
+    eq("推薦：沒學會的充能法術靜默跳過", #recs("EVOKER", 1467, "charges"), 0)
+    has[190784] = nil
+    eq("推薦：換天賦後沒有充能 → 跳過", #recs("PALADIN", 70, "charges"), 0)
+    has[190784] = true
+    PI.AddCustomRow(rcfg, 70, { kind = "charges", spellID = 190784 })
+    eq("推薦：這個專精已經加過 → 跳過", #recs("PALADIN", 70, "charges"), 0)
+    eq("推薦：別的專精照給", #recs("PALADIN", 66, "charges"), 1)
+    eq("推薦：沒有專精 → 空", #recs("PALADIN", nil, "charges"), 0)
+    has[444347] = true
+    eq("推薦：死亡戰騎沒給 talent 查詢 → 照給", #recs("DEATHKNIGHT", 251, "charges"), 1)
+    rp.talent = function(id) return id == 444010 end
+    eq("推薦：學了死亡戰騎天賦 → 給", recs("DEATHKNIGHT", 251, "charges")[1].spellID, 444347)
+    rp.talent = function() return false end
+    eq("推薦：沒學死亡戰騎天賦 → 不給", #recs("DEATHKNIGHT", 251, "charges"), 0)
+    rp.talent = nil
+end
 -- 刪除
 check("刪第 1 筆", PI.RemoveCustomRow(ccfg, 65, 1))
 eq("刪掉之後剩層數列", PI.CustomRowList(ccfg, 65)[1].spellID, 2002)
@@ -1257,7 +1290,7 @@ do
     eq("遷移：新形狀已有的值不蓋", mixed[258].Mana, false)
     eq("遷移：其他專精照寫", mixed[262].Mana, true)
     -- 設定遷移 v3（Core/DB.lua；這支測試有載資源模組）
-    eq("DB_VERSION 3", ns.DB_VERSION, 3)
+    eq("DB_VERSION 4（資源列的遷移是 v3）", ns.DB_VERSION, 4)
     local prof = { resources = { rows = { Mana = true } } }
     ns.DB.MigrateProfile(prof, 2)
     check("v3：平面 → 分專精", prof.resources.rows.Mana == nil and prof.resources.rows[267].Mana == true)
@@ -1293,6 +1326,30 @@ do
     check("征戰聖擊底色：黑 60%（帶 alpha）", back[1] == 0 and back[2] == 0 and back[3] == 0 and back[4] == 0.6)
     local dim = R.TimerBack(d, "EbonMight", { r = 1, g = 1, b = 1 })
     check("沒有 backColor 的列照主色推", dim[1] == 0.25 and dim[4] == 0.8)
+
+    -- 背景設定（bgAlpha 乘在最後、bgCustom＋bgColor 換掉自動推的色、規則 bgColor 優先）
+    local function near(a, b) return math.abs(a - b) < 1e-9 end
+    local dc, da = R.DimColor(nil, d)
+    check("預設：暗灰 0.6", dc == R.DIM and near(da, 0.6))
+    local half = { bgAlpha = 0.5 }
+    dc, da = R.DimColor(nil, half)
+    check("bgAlpha 0.5：0.3", near(da, 0.3))
+    eq("bgAlpha 夾到 0", R.BgAlpha({ bgAlpha = -1 }), 0)
+    local cust = { bgAlpha = 0.5, bgCustom = true, bgColor = { r = 1, g = 0, b = 0 } }
+    dc, da = R.DimColor(nil, cust)
+    check("自訂背景色", dc.r == 1 and dc.g == 0 and near(da, 0.3))
+    eq("沒勾自訂：不換色", R.BgCustom({ bgColor = { r = 1, g = 0, b = 0 } }), nil)
+    dc, da = R.DimColor({ bgColor = { r = 0, g = 1, b = 0, a = 0.4 } }, cust)
+    check("規則 bgColor 優先、照乘", dc.g == 1 and near(da, 0.2))
+    local arr = R.DimArray(cust)
+    check("DimArray", arr[1] == 1 and near(arr[4], 0.3))
+    local tb = R.TimerBg(cust, "EbonMight", { r = 1, g = 1, b = 1 })
+    check("剩餘時間條：自訂色＋乘", tb[1] == 1 and tb[2] == 0 and near(tb[4], 0.4))
+    local dc2 = { colors = d.colors, bgAlpha = 0.5, bgCustom = true, bgColor = { r = 1, g = 0, b = 0 } }
+    local tb2 = R.TimerBg(dc2, "CrusadingStrikes", c.color)
+    check("自己有 backColor：顏色照它、只乘", tb2[1] == 0 and near(tb2[4], 0.3))
+    local raw = R.TimerBack(dc2, "CrusadingStrikes", c.color)
+    check("TimerBack 不受背景設定影響（經過時間模式拿它當填充）", near(raw[4], 0.6))
 end
 
 -- 征戰聖擊：鏡射暴雪追蹤量條（找 item、原封轉手、沒亮時畫底色）

@@ -88,6 +88,13 @@ local GLOW_ITEMS = {
 }
 Specs.GLOW_ITEMS = GLOW_ITEMS
 
+-- 就緒發光亮多久（glow.ready.mode，Core/Glow.lua）
+local READY_MODE_ITEMS = {
+    { text = L["A few seconds"],         value = "timed" },
+    { text = L["Until used"],            value = "untilUsed" },
+    { text = L["Whenever it's ready"],   value = "whileReady" },
+}
+
 -- 冷卻狀態（icon.cdState，Core/Decorate.lua 的冷卻狀態效果）
 local CDSTATE_ITEMS = {
     { text = L["No change"],              value = "none" },
@@ -101,6 +108,11 @@ local SIDE_ITEMS = {
     { text = L["Left"],  value = "LEFT" },
     { text = L["Right"], value = "RIGHT" },
     { text = L["None"],  value = "NONE" },
+}
+
+local EMPTY_STYLE_ITEMS = {
+    { text = L["Hidden"],    value = "hide" },
+    { text = L["Empty bar"], value = "bar" },
 }
 
 local GROUP_ITEMS = {
@@ -336,6 +348,21 @@ local function OverrideRow(group)
     end }
 end
 
+-- 自訂語音那一列：按鈕寫著目前筆數，點開是編輯器（Options/CustomSounds.lua）
+local function CustomSoundsRow()
+    return { type = "custom", label = L["Custom sounds"], h = 30, noReset = true, build = function(parent, x, y)
+        local btn = W.CreateButton(parent, "", "normal", 160, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        local function UpdateText()
+            btn:SetText(L["Edit list (%d)"]:format(ns.CustomSounds.Count()))
+            W.FitButton(btn, 160, 22)
+        end
+        btn:SetScript("OnClick", function() ns.CustomSounds.Open(UpdateText) end)
+        UpdateText()
+        return 30, UpdateText
+    end }
+end
+
 local function FollowToggle(group)
     -- 圖示那一節的跟隨：開關一切換，這條實際要的圖示外觀（米利／Masque）可能就變了
     return BS("toggle", "follow." .. group, L["Follow global theme"],
@@ -427,11 +454,24 @@ function Specs.Themed(mode, key)
     -- 反過來：核心／輔助（內建的冷卻兩條）沒有光環，減益邊框用不到
     local cdBar = bar and key and ns.DB.IsBuiltinBar(key) and not ns.Viewers.AURA_KIND[key] and true or false
     local function AU(s) if cdBar then return nil end return s end
-    -- 冷卻狀態效果：增益兩條（內建）與長條類的條用不到（長條型群組只收增益長條）
+    -- 冷卻狀態效果：增益兩條（內建）與長條類的條用不到（長條上的自訂冷卻也不套：Decorate 對長條不給 cdState）
     local bt = bar and key and ns.DB.BarTable(key)
     local barsKind = type(bt) == "table" and bt.kind == "bars" or false
     local function CS(s) if auraBar or barsKind then return nil end return s end
+    -- 長條類的條：倒數與充能的文字樣式用不到（長條的秒數字型／字級在「長條」節；秒數是暴雪每幀寫的，
+    -- 小數門檻與低秒變色都換不了），只留層數
+    local function NB(s) if barsKind then return nil end return s end
     local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
+    -- 像素發光的線條數／粗細：粗細只有像素樣式吃；線條數像素與自動施法都吃（玩家回報邊框太粗、以前習慣設 1）
+    local function NotPixel(path) return function(info) return (ReadThemed(info, path) or "pixel") ~= "pixel" end end
+    local function NoLines(path)
+        return function(info)
+            local t = ReadThemed(info, path) or "pixel"
+            return t ~= "pixel" and t ~= "autocast"
+        end
+    end
+    local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
+    local function DurationOff(info) return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration") end
 
     -- 圖示
     add({ type = "header", label = L["Icons"] })
@@ -451,6 +491,15 @@ function Specs.Themed(mode, key)
         CS(TS("icon", "slider", "icon.cdStateAlpha", L["Dimmed opacity"],
             { min = 10, max = 90, step = 5, scale = 100, disabled = NotDim })),
         CS(Note(L["Hidden icons keep their place. The global cooldown doesn't count, and a spell with a charge left counts as ready. Buffs aren't affected."], "icon")),
+        -- 增益持續中顯示持續時間（核心／輔助才有「先倒增益」那一段：增益兩條與長條類的條不顯示）
+        CS(TS("icon", "toggle", "icon.showAuraTime", L["Show buff duration"])),
+        CS(Note(L["After you use a spell that gives you a buff, the icon counts down the buff first and the cooldown after it ends. Off shows the cooldown right away."], "icon")),
+        -- 增益那一段的倒數換色：開關關著時沒有那一段可換色 ⇒ 兩列停用
+        CS(TS("icon", "toggle", "icon.colorDuration", L["Recolor buff duration"], { disabled = AuraTimeOff })),
+        CS(TS("icon", "color", "icon.durationColor", L["Buff duration color"], { disabled = DurationOff })),
+        CS(TS("icon", "color", "icon.durationLowColor", L["Buff duration low color"], { disabled = DurationOff })),
+        CS(TS("icon", "color", "icon.durationSwipeColor", L["Buff duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
+        CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
         TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),
@@ -462,31 +511,31 @@ function Specs.Themed(mode, key)
     -- 通用字型：每段文字的字型沒另外挑時用這個（條頁沒跟隨主題時也能改）
     add(TS("text", "dropdown", "font", L["General font"], { items = FontItems }),
         TS("text", "dropdown", "outline", L["Outline"], { items = OUTLINE_ITEMS }))
-    add(Nested(L["Countdown"], "text"),
-        FontTS("text", "cooldownText.font"),
-        TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 }),
-        TS("text", "color", "cooldownText.color", L["Color"]),
-        TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }),
-        Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text"),
-        TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
+    add(NB(Nested(L["Countdown"], "text")),
+        NB(FontTS("text", "cooldownText.font")),
+        NB(TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 })),
+        NB(TS("text", "color", "cooldownText.color", L["Color"])),
+        NB(TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 })),
+        NB(Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text")),
+        NB(TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
             get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
             set = function(info, on) WriteThemed(info, "cooldownText.lowBelow", on and 5 or 0) end,
-        }),
-        TS("text", "color", "cooldownText.lowColor", L["Low color"]),
-        TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 }),
-        Nested(L["Charges"], "text"),
-        FontTS("text", "chargeText.font"),
-        TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
-        TS("text", "color", "chargeText.color", L["Color"]),
-        TS("text", "dropdown", "chargeText.point", L["Anchor"], { items = POINT_ITEMS }),
-        TS("text", "numbers", nil, L["Offset"], { sub = "chargeText", path = false,
+        })),
+        NB(TS("text", "color", "cooldownText.lowColor", L["Low color"])),
+        NB(TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 })),
+        NB(Nested(L["Charges"], "text")),
+        NB(FontTS("text", "chargeText.font")),
+        NB(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
+        NB(TS("text", "color", "chargeText.color", L["Color"])),
+        NB(TS("text", "dropdown", "chargeText.point", L["Anchor"], { items = POINT_ITEMS })),
+        NB(TS("text", "numbers", nil, L["Offset"], { sub = "chargeText", path = false,
             resetPaths = { "chargeText.x", "chargeText.y" },
-            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
+            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })),
         Nested(L["Stacks"], "text"),
         FontTS("text", "stackText.font"),
         TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
         TS("text", "color", "stackText.color", L["Color"]),
-        TS("text", "dropdown", "stackText.point", L["Anchor"], { items = POINT_ITEMS }),
+        NB(TS("text", "dropdown", "stackText.point", L["Anchor"], { items = POINT_ITEMS })),   -- 長條的層數固定在圖示右下，只吃位移
         TS("text", "numbers", nil, L["Offset"], { sub = "stackText", path = false,
             resetPaths = { "stackText.x", "stackText.y" },
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
@@ -500,17 +549,35 @@ function Specs.Themed(mode, key)
             Note(L["Replaces Blizzard's proc glow. When off, Blizzard's own glow shows."], "glow"),
             TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.proc.color", L["Color"]),
+            TS("glow", "slider", "glow.proc.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.proc.type") }),
+            TS("glow", "slider", "glow.proc.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.proc.type") }),
             GlowSampleRow("proc"),
             Nested(L["Ready glow"], "glow"),
             TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
-            Note(L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."], "glow"),
+            Note(L["Glows when a cooldown is ready. The global cooldown doesn't count."], "glow"),
             TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.ready.color", L["Color"]),
+            TS("glow", "slider", "glow.ready.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.ready.type") }),
+            TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.ready.type") }),
             GlowSampleRow("ready"),
-            TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
+            TS("glow", "dropdown", "glow.ready.mode", L["Glow for"], { items = READY_MODE_ITEMS }),
+            Note(L["\"Until used\" starts when a cooldown finishes, so after a reload it waits for the first use. Spells with charges still go out after the duration."], "glow"),
+            TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1,
+                disabled = function(info) return (ReadThemed(info, "glow.ready.mode") or "timed") == "whileReady" end }),
+            TS("glow", "toggle", "glow.ready.requireUsable", L["Wait for resources"],
+                { disabled = function(info) return (ReadThemed(info, "glow.ready.mode") or "timed") == "whileReady" end }),
+            Note(L["If the cooldown is ready but you lack the resources, the glow waits until you have enough."], "glow"))
     end
-    -- 生效發光（增益）沒有統一設定：逐法術在預覽點圖示開、樣式與顏色也在那裡挑（使用者 2026-10-02 拿掉這一節）；
-    -- 沒挑的用 glow.active 的預設（Core/DB.lua）
+    -- 生效期間發光：跟觸發／就緒同一套（開關、樣式、顏色、線條、粗細、預覽，跟隨主題的繼承也一樣；使用者 2026-10-03）。
+    -- 預設關：多半只在幾個法術上個別打開（預覽點圖示）
+    add(Nested(L["Glow during buff"], "glow"),
+        TS("glow", "toggle", "glow.active.enabled", L["Enable"]),
+        Note(L["Glows while the buff is up; on Essential and Utility, while the icon shows the buff's time. Off by default: turn it on for single spells by clicking their icon in the preview."], "glow"),
+        TS("glow", "dropdown", "glow.active.type", L["Style"], { items = GLOW_ITEMS }),
+        TS("glow", "color", "glow.active.color", L["Color"]),
+        TS("glow", "slider", "glow.active.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.active.type") }),
+        TS("glow", "slider", "glow.active.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.active.type") }),
+        GlowSampleRow("active"))
     add(Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
@@ -548,6 +615,7 @@ function Specs.Themed(mode, key)
     else
         add(TS(nil, "toggle", "sound.enabled", L["Enable"]),
             TS(nil, "dropdown", "sound.channel", L["Channel"], { items = CHANNEL_ITEMS }),
+            CustomSoundsRow(),
             Note(L["Which sound plays is set per spell: click an icon in a bar's preview. Nothing plays for 2 seconds after a loading screen, and the same spell doesn't repeat within 1.5 seconds."]))
     end
     return list
@@ -559,8 +627,9 @@ end
 -- 表單引擎的 toggle 沒有「停用」這個狀態，所以自己畫一列（custom）：勾選框＋下一列灰字，
 -- 灰字依狀態換三種說法（一般／有光環格／可點擊），高度取三種裡最高的那個（列高在建表單時就定了）。
 ------------------------------------------------------------
-function FixedSlotsRow(key)
-    local NORMAL = L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
+function FixedSlotsRow(key, isBars)
+    local NORMAL = isBars and L["Buffs that aren't up keep their place, so the others don't shift."]
+        or L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
     local FORCED = L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."]
     local FORCED_CLICK = L["Always on while this bar is clickable: the click targets can't move during combat."]
     -- 強制的原因：有光環格優先（兩者都成立時講光環格那句）；nil ＝ 沒有強制
@@ -767,6 +836,19 @@ function Specs.Layout(key)
         add(BS("slider", "bar.height", L["Height"], { min = 6, max = 60, step = 1 }))
         add(BS("dropdown", "bar.iconSide", L["Icon position"], { items = SIDE_ITEMS }))
         add(BS("slider", "bar.iconGap", L["Icon gap"], { min = 0, max = 10, step = 1 }))
+        if bar.source == "buffbars" or bar.source == "custom" then
+            add(FixedSlotsRow(key, true))
+            -- 空位的樣子：預設隱藏（位置照佔、什麼都不畫，同 EllesmereUI 圖示的 Keep Buffs in Same Place）；
+            -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條。固定格位沒開（也沒被強制）時停用
+            add(BS("dropdown", "layout.emptyStyle", L["Empty slots"], { items = EMPTY_STYLE_ITEMS, level = "layout",
+                get = function() local b = ns.DB.BarTable(key); local l = b and b.layout
+                    return type(l) == "table" and l.emptyStyle == "bar" and "bar" or "hide" end,
+                disabled = function()
+                    local b = ns.DB.BarTable(key)
+                    local on = b and type(b.layout) == "table" and b.layout.fixedSlots
+                    return not (on or ns.Catalog.BarHasAuraSlot(key) or ns.DB.BarClickable(key))
+                end }))
+        end
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
         add(BS("color", "bar.color", L["Bar color"]))
         add(BS("color", "bar.bgColor", L["Background color"]))

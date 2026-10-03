@@ -12,12 +12,13 @@
 --                      那要在暴雪自己的面板裡拖進去 —— 附一顆開面板的按鈕。
 --                      **照暴雪面板的分頁分成兩排**（「法術」／「增益效果」）：同一件飾品、同一瓶藥水在暴雪那邊
 --                      是兩個項目（一個追蹤冷卻、一個追蹤它給的增益），圖示一模一樣，混在一排看起來像重複。
---   常用預設          （只有圖示類的條）四顆鈕「種族技能」「防禦技能」「藥水與治療石」「團隊增益」，各開一個
+--   常用預設          （圖示類、長條類的條都有）四顆鈕「種族技能」「防禦技能」「藥水與治療石」「團隊增益」，各開一個
 --                      清單彈窗（一列一項：圖示＋名字，滑過是法術／物品提示，點一下就加；這個專精已經有的那一列
 --                      灰掉並寫「已加入」）。資料在 Core/Presets.lua。最下面一個勾選「同時加到這個職業的其他專精」
 --                      （防禦技能不給：別的專精學不學得到不知道），勾了就對其他專精各叫一次 DB.CopyCustomEntry。
 --   自訂 ID            三顆鈕「光環」「法術」「物品」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
---                      spells[spec].custom 追加一筆（bar ＝ 這條）。只有圖示類的條收自訂項目。
+--                      spells[spec].custom 追加一筆（bar ＝ 這條）。圖示類、長條類的條都收（長條上畫成長條，
+--                      kind 照舊，見 Modules/Custom.lua）；「已在暴雪冷卻管理器」與候選池照舊長條只收長條。
 --                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；同專精不收重複；
 --                      減益只收 C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret 的（玩家自己算友方，
 --                      友方減益不准用 ID 過濾，加了也是一個永遠不亮的格子）。
@@ -344,7 +345,7 @@ local function Build()
     sections.customHead = W.CreateGroupLabel(frame, L["Custom ID"])
     sections.customNote = Text(frame, true)
     sections.customBtns = {}
-    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] }, { "slot", L["Trinket slot"] } }) do
+    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] }, { "slot", L["Equipment slot"] } }) do
         local kind = def[1]
         local b = W.CreateButton(frame, def[2], "normal", 80, 22)
         W.FitButton(b, 80, 22)
@@ -436,37 +437,23 @@ function Picker.Refresh()
     end
     Place(sections.openBtn, y); y = y - 22 - 14
 
-    local iconBar = not IsBarsKind(key)
-    -- 常用預設（只有圖示類的條）
-    sections.presetHead:SetShown(iconBar)
-    sections.presetNote:SetShown(iconBar)
-    sections.presetRow:SetShown(iconBar)
-    for _, b in ipairs(sections.presetBtns) do b:SetShown(iconBar) end
-    if iconBar then
-        Place(sections.presetHead, y); y = y - 16
-        Place(sections.presetNote, y); y = y - (sections.presetNote:GetStringHeight() + 6)
-        Place(sections.presetRow, y)
-        local _, ph = W.FlowLayout(sections.presetRow, sections.presetBtns, WIDTH - PAD * 2, 6, 4, 22)
-        sections.presetRow:SetHeight(ph)
-        y = y - ph - 14
-    end
+    -- 常用預設、自訂 ID：圖示類、長條類的條都有（放在長條上的自訂項目畫成長條，見 Modules/Custom.lua）
+    Place(sections.presetHead, y); y = y - 16
+    Place(sections.presetNote, y); y = y - (sections.presetNote:GetStringHeight() + 6)
+    Place(sections.presetRow, y)
+    local _, ph = W.FlowLayout(sections.presetRow, sections.presetBtns, WIDTH - PAD * 2, 6, 4, 22)
+    sections.presetRow:SetHeight(ph)
+    y = y - ph - 14
 
     Place(sections.customHead, y); y = y - 16
     -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），直接建議走物品 ID
-    sections.customNote:SetText(iconBar
-        and (L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
-            .. L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."])
-        or L["Custom entries go on icon bars only."])
+    sections.customNote:SetText(L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
+        .. L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."])
     Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
-    for _, b in ipairs(sections.customBtns) do b:SetShown(iconBar) end
-    if iconBar then
-        Place(sections.customRow, y)
-        local _, bh = W.FlowLayout(sections.customRow, sections.customBtns, WIDTH - PAD * 2, 6, 4, 22)
-        sections.customRow:SetHeight(bh)
-        y = y - bh - 12
-    else
-        y = y - 6
-    end
+    Place(sections.customRow, y)
+    local _, bh = W.FlowLayout(sections.customRow, sections.customBtns, WIDTH - PAD * 2, 6, 4, 22)
+    sections.customRow:SetHeight(bh)
+    y = y - bh - 12
 
     P.Height(frame, -y)
     sections.mask:SetShown(ns.Catalog.IsPaused())
@@ -787,12 +774,18 @@ Picker.ParseID = ParseID
 Picker.SpellExists = SpellExists
 
 ------------------------------------------------------------
--- 裝備欄位（飾品 1／2）：不用輸入 ID，選哪一格就好。追蹤的是「現在裝在那一格的物品」，
--- 換裝自動跟上；不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係
+-- 裝備欄位：不用輸入 ID，選哪一格就好。追蹤的是「現在裝在那一格的物品」，換裝自動跟上；
+-- 不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係。飾品兩格排最前面（Catalog.CUSTOM_SLOT_ORDER）
 ------------------------------------------------------------
+local SLOT_W, SLOT_ROW, SLOT_GAP = 380, 26, 2
 local slotPopup
+
+local function SlotLabel(slot)
+    return ns.Catalog.SlotName(slot) or (slot == 13 or slot == 14) and L["Trinket %d"]:format(slot - 12) or ("#" .. slot)
+end
+
 local function BuildSlotPopup()
-    local f = W.CreateFrame(nil, ns.Options.panel, 380, 150)
+    local f = W.CreateFrame(nil, ns.Options.panel, SLOT_W, 150)
     f:SetFrameStrata("FULLSCREEN_DIALOG")
     f:SetFrameLevel(410)
     f:SetBackdropBorderColor(W.Accent(1))
@@ -800,23 +793,23 @@ local function BuildSlotPopup()
     W.CloseOnEscape(f)
     f.title = Text(f, false)
     f.title:SetPoint("TOPLEFT", PAD, -12)
-    f.title:SetWidth(380 - PAD * 2)
+    f.title:SetWidth(SLOT_W - PAD * 2)
     f.title:SetJustifyH("LEFT")
-    f.title:SetText(L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."])
-    -- 一格一列：圖示＋「飾品 N：名字」，滑過是那件物品的提示，點了就加
+    f.title:SetText(L["Track whatever is equipped in that slot. Swapping gear follows automatically."])
+    -- 一格一列：圖示＋「欄位：名字」，滑過是那件物品的提示，點了就加
     f.rows = {}
-    for i, slot in ipairs({ 13, 14 }) do
+    for i, slot in ipairs(ns.Catalog.CUSTOM_SLOT_ORDER) do
         local row = CreateFrame("Button", nil, f, "BackdropTemplate")
-        row:SetSize(380 - PAD * 2, 30)
+        row:SetSize(SLOT_W - PAD * 2, SLOT_ROW)
         W.Stylize(row, { 0, 0, 0, 1 }, { 0, 0, 0, 1 })
         row.slot = slot
         row.icon = row:CreateTexture(nil, "ARTWORK")
-        row.icon:SetSize(24, 24)
+        row.icon:SetSize(SLOT_ROW - 6, SLOT_ROW - 6)
         row.icon:SetPoint("LEFT", 3, 0)
         row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         row.label = Text(row, false)
         row.label:SetPoint("LEFT", row.icon, "RIGHT", 8, 0)
-        row.label:SetWidth(380 - PAD * 2 - 3 - 24 - 8 - 6)
+        row.label:SetWidth(SLOT_W - PAD * 2 - 3 - (SLOT_ROW - 6) - 8 - 6)
         row.label:SetJustifyH("LEFT")
         row.label:SetWordWrap(false)         -- 太長就截「…」，完整名字在滑鼠提示裡
         row:SetScript("OnEnter", function(self)
@@ -824,7 +817,7 @@ local function BuildSlotPopup()
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             local shown = self.itemID and pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", self.slot)
             if not shown then
-                GameTooltip:SetText(L["Trinket %d"]:format(self.slot - 12))
+                GameTooltip:SetText(SlotLabel(self.slot))
                 GameTooltip:AddLine(L["(empty)"], 0.8, 0.8, 0.8)
             end
             GameTooltip:Show()
@@ -849,8 +842,6 @@ local function BuildSlotPopup()
     return f
 end
 
--- 裝備欄位（飾品 1／2）：不用輸入 ID，點那一列就好。追蹤的是「現在裝在那一格的物品」，
--- 換裝自動跟上；不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係
 function Picker.AskSlot()
     if not ns.specID then Notice(L["Pick a specialization first."]) return end
     slotPopup = slotPopup or BuildSlotPopup()
@@ -867,16 +858,17 @@ function Picker.AskSlot()
             local ok2, tex = pcall(C_Item.GetItemIconByID, itemID)
             if ok2 and not ns.IsSecret(tex) then icon = tex end
         end
-        if not icon and GetInventorySlotInfo then
-            local ok3, _, tex = pcall(GetInventorySlotInfo, slot == 13 and "TRINKET0SLOT" or "TRINKET1SLOT")
+        local token = ns.Catalog.EQUIP_SLOT_NAME[slot]
+        if not icon and token and GetInventorySlotInfo then
+            local ok3, _, tex = pcall(GetInventorySlotInfo, token)
             if ok3 then icon = tex end
         end
         row.icon:SetTexture(icon or QUESTION)
         row.icon:SetDesaturated(itemID == nil)
-        row.label:SetText(("%s：%s"):format(L["Trinket %d"]:format(slot - 12), name or L["(empty)"]))
+        row.label:SetText(("%s：%s"):format(SlotLabel(slot), name or L["(empty)"]))
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
-        y = y - 30 - 4
+        y = y - SLOT_ROW - SLOT_GAP
     end
     P.Height(f, -y + 22 + 12 + 8)
     f:Show()

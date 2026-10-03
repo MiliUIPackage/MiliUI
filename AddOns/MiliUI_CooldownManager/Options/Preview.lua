@@ -9,7 +9,8 @@
 --   * 真實尺寸：版面照 ns.Layout.Compute 算（每列上限、間距、兩列尺寸、成長方向），
 --     比可用寬大就水平捲動，太高就垂直捲動（滾輪；有橫向溢出時 Shift＋滾輪橫捲）。
 --   * 外觀走 ns.Decorate.ApplyPreview：跟真實條同一套邊框／縮放／轉圈色／文字樣式。
---   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒；技能印充能「2」、
+--   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒。核心／輔助技能與自訂圖示群組不畫假冷卻，
+--     改由底下的效果預覽列按了才在第一個技能格演示五秒（冷卻中／增益持續時間／觸發發光／就緒發光）。技能印充能「2」、
 --     增益印層數「2」；長條跑一個十五秒的循環（名字＝法術名、時間 15→0）。
 --
 -- 互動
@@ -19,9 +20,10 @@
 --   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單）；拖到左欄的自訂群組上
 --                      ＝拉進那一群（groupOf），拖回原本的檢視器上＝清掉 groupOf
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
--- 光環格（自訂項目 kind = "aura"）是固定前綴：cell.locked，蓋紅色半透明、拖不動、中鍵不藏，
--- 別的格也不能插到它們前面（插入線變紅）。左鍵照樣開逐法術面板。
--- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（圖示類的條都收，含四條檢視器）。
+-- 光環格（自訂項目 kind = "aura"）跟其他格一樣：可以拖到條上任意位置（同一張 order 表）、拖到左欄群組，
+-- 中鍵＝整筆移除，左鍵照樣開逐法術面板。
+-- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（任何一條都收，含四條檢視器與長條類的條）。
+-- 長條格的自訂項目：名字＝法術／物品名、跑同一個十五秒假條；沒學會的自訂法術圖示灰掉。
 -- 以增益取代（overrides[id].replaceWith）：那一格右下角畫一個 12×12、1px 黑邊的增益圖示當記號；
 -- 被拿去取代的增益不在任何一條的清單上（Catalog.Bar 拿掉了），預覽自然不列（跟真實條一致）。
 ------------------------------------------------------------
@@ -42,6 +44,27 @@ local MIN_H     = 56
 local DRAG_MIN  = 3
 local CYCLE     = 15
 local AURA_SRC  = { buffs = true, buffbars = true }
+-- 不畫假冷卻、改用效果預覽列的條：核心／輔助技能與自訂圖示群組（使用者 2026-10-03）。
+-- 增益類（增益圖示、增益長條）本來就沒有假冷卻；長條類另有十五秒假條
+local function NoFakeCD(key)
+    if key == "essential" or key == "utility" then return true end
+    local b = ns.DB.BarTable(key)          -- BarCfg 定義在下面，這裡直接問
+    return type(b) == "table" and b.source == "custom" and b.kind ~= "bars" or false
+end
+
+-- 效果預覽列（NoFakeCD 的條才有，平常不畫假冷卻）：按一下，**第一個技能格**演示那個效果 FX_SECS 秒
+--   （倒數類會拉長到門檻＋3 秒，見 StartFx）
+--   （光環格、被移除的格不算；整排一起演示太吵，看一格就知道長相）
+--   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
+--   aura      增益持續時間：同上，倒數用增益那一段的換色
+--   proc／ready  觸發／就緒發光：照這條的發光設定畫在每一格上
+local FX_H, FX_SECS = 30, 5
+local FX_BUTTONS = {
+    { kind = "cooldown", label = L["On cooldown"] },
+    { kind = "aura",     label = L["Buff duration"] },
+    { kind = "proc",     label = L["Proc glow"] },
+    { kind = "ready",    label = L["Ready glow"] },
+}
 
 local instances = {}
 
@@ -108,11 +131,6 @@ local function NewIconCell(canvas)
     SetupFont(c.chargeText, 12)
     c.stackText = ov:CreateFontString(nil, "OVERLAY")
     SetupFont(c.stackText, 12)
-    c.lock = ov:CreateTexture(nil, "OVERLAY", nil, 6)
-    c.lock:SetAllPoints()
-    c.lock:SetTexture(WHITE)
-    c.lock:SetVertexColor(0.8, 0.1, 0.1, 0.45)
-    c.lock:Hide()
     -- 以增益取代的記號：右下角一個小圖示（外框 1px 黑），層級在倒數／充能字的上面
     local mark = CreateFrame("Frame", nil, ov)
     mark:SetSize(14, 14)
@@ -128,7 +146,7 @@ local function NewIconCell(canvas)
     mark:Hide()
     c.replaceMark = mark
     c.kind = "icons"
-    c.isPlus, c.hiddenItem, c.locked, c.dragging = false, false, false, false
+    c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
 end
 
@@ -161,13 +179,8 @@ local function NewBarCell(canvas)
     ov:SetAllPoints()
     ov:SetFrameLevel(c:GetFrameLevel() + 5)
     c.overlay = ov
-    c.lock = ov:CreateTexture(nil, "OVERLAY", nil, 6)
-    c.lock:SetAllPoints()
-    c.lock:SetTexture(WHITE)
-    c.lock:SetVertexColor(0.8, 0.1, 0.1, 0.45)
-    c.lock:Hide()
     c.kind = "bars"
-    c.isPlus, c.hiddenItem, c.locked, c.dragging = false, false, false, false
+    c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
 end
 
@@ -180,7 +193,7 @@ local function NewPlusCell(canvas)
     fs:SetPoint("CENTER")
     fs:SetText("+")
     c.label = fs
-    c.isPlus, c.hiddenItem, c.locked, c.dragging = true, false, false, false
+    c.isPlus, c.hiddenItem, c.dragging = true, false, false
     c:SetScript("OnEnter", function(self)
         self:SetBackdropColor(0.23, 0.23, 0.23, 1)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -258,10 +271,10 @@ end
 function Preview.DropCandidates(key, id)
     local out = {}
     if ns.Catalog.IsCustom(id) then
-        -- 自訂項目：任何一條圖示類的條（長條的 item 是另一種框，放不進去）
+        -- 自訂項目：任何一條（圖示類、長條類都收；放在長條上時畫成長條，見 Modules/Custom.lua）
         local p = ns.profile
         for k, bar in pairs(p and p.bars or {}) do
-            if k ~= key and type(bar) == "table" and bar.kind ~= "bars" then out[k] = true end
+            if k ~= key and type(bar) == "table" then out[k] = true end
         end
         return out
     end
@@ -336,14 +349,40 @@ function Preview.Create(parent, key, width)
     line:Hide()
     pv.line = line
 
-    -- 長條的十五秒循環（只在顯示中跑）
+    -- 長條的十五秒循環、效果預覽的倒數（只在顯示中跑）
     local acc = 0
     f:SetScript("OnUpdate", function(_, elapsed)
         acc = acc + elapsed
         if acc < 0.05 then return end
         acc = 0
         pv:Tick()
+        pv:FxTick()
     end)
+
+    -- 效果預覽列：預覽框底下那一條（捲動區與橫向捲軸往上讓出 FX_H）
+    if NoFakeCD(key) then
+        scroll:SetPoint("BOTTOMRIGHT", -1, 1 + FX_H)
+        hbar:ClearAllPoints()
+        hbar:SetPoint("BOTTOMLEFT", 2, 2 + FX_H)
+        hbar:SetPoint("BOTTOMRIGHT", -2, 2 + FX_H)
+        local row = CreateFrame("Frame", nil, f)
+        row:SetPoint("BOTTOMLEFT", 1, 1)
+        row:SetPoint("BOTTOMRIGHT", -1, 1)
+        row:SetHeight(FX_H)
+        local label = row:CreateFontString(nil, "OVERLAY")
+        label:SetFontObject(W.fontNormal)
+        label:SetPoint("LEFT", row, "LEFT", PAD, 0)
+        label:SetText(L["Preview:"])
+        local x = PAD + math.ceil(label:GetStringWidth() or 0) + 6
+        for _, def in ipairs(FX_BUTTONS) do
+            local b = W.CreateButton(row, def.label, "normal", 70, 20)
+            W.FitButton(b, 70, 20)
+            b:SetPoint("LEFT", row, "LEFT", x, 0)
+            b:SetScript("OnClick", function() pv:StartFx(def.kind) end)
+            x = x + (b:GetWidth() or 70) + 6
+        end
+        pv.fxRow = row
+    end
 
     instances[key] = pv
     return pv
@@ -385,6 +424,7 @@ function Proto:Refresh()
     local bar = BarCfg(key)
     for _, pool in pairs(self.cells) do for _, c in ipairs(pool) do c:Hide() end end
     self.used = {}
+    self.fxTaken = false
     if not bar then return end
     local kind = bar.kind == "bars" and "bars" or "icons"
     self.kind = kind
@@ -408,7 +448,7 @@ function Proto:Refresh()
     self.maxX = math.max(0, contentW - viewW + 2)
     self.maxY = math.max(0, contentH - viewH + 2)
     if self.maxX > 0 then viewH = math.min(MAX_H + 8, viewH + 8) end   -- 讓出捲軸那一條
-    P.Size(self.frame, viewW, viewH)
+    P.Size(self.frame, viewW, viewH + (self.fxRow and FX_H or 0))
     self.canvas:SetSize(math.max(viewW, contentW), math.max(viewH, contentH))
     self.hbar:SetShown(self.maxX > 0)
     self.hbar:SetMinMaxValues(0, self.maxX)
@@ -417,8 +457,6 @@ function Proto:Refresh()
 
     local now = GetTime()
     self.slots = {}
-    self.hasLocked = false
-    local lockedCount = 0
     for i, e in ipairs(entries) do
         local r = rects[i]
         local c
@@ -436,49 +474,74 @@ function Proto:Refresh()
         c:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", ox + r.x, -(PAD + r.y))
         c:SetSize(r.w, r.h)
         c.id, c.hiddenItem, c.index = e.id, e.hidden and true or false, i
-        c.locked = false        -- 光環格的固定前綴由 Fill 設
         if not e.plus then
             self:Fill(c, e, i, r, now)
-            if c.locked then
-                self.hasLocked = true
-                if not e.hidden then lockedCount = lockedCount + 1 end
-            end
             if not e.hidden then self.slots[#self.slots + 1] = c end
         end
         -- 清單上有、暴雪卻沒給框的：畫面上不會有，這裡標暗（提示有說明），不要假裝它在
         c.missing = (not e.plus and ns.Bars and ns.Bars.IsMissing and ns.Bars.IsMissing(key, e.id)) and true or false
+        -- 天賦條件不成立（Core/Catalog.lua）：畫面上不顯示，預覽照樣列出來（點得到才改得回來），一樣標暗
+        c.talentBlocked = (not e.plus and ns.Catalog.TalentBlocked(e.id)) and true or false
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
-        c:SetAlpha((e.hidden or c.missing) and 0.35 or (not e.plus and c.stateAlpha) or 1)
+        c:SetAlpha((e.hidden or c.missing or c.talentBlocked) and 0.35 or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
-    self.lockedCount = lockedCount
     if self.onRefresh then self.onRefresh(self) end
+end
+
+-- 預覽格右下的充能數：真的有充能（GetSpellCharges 明文 maxCharges > 1）才印它的上限，
+-- 問不到／秘密值／沒充能一律不印——整排假「2」會誤導（使用者 2026-10-03）
+local function PreviewCharges(info)
+    if not info or info.kind == "aura" or info.kind == "item" or info.kind == "slot" then return nil end
+    local spellID = info.overrideSpellID or info.spellID
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    if type(spellID) ~= "number" or not fn then return nil end
+    local ok, ci = pcall(fn, spellID)
+    if not ok or type(ci) ~= "table" then return nil end
+    local ok2, m = pcall(function() return ci.maxCharges end)
+    m = ok2 and ns.Catalog.Plain(m) or nil
+    if type(m) == "number" and m > 1 then return m end
+    return nil
 end
 
 function Proto:Fill(c, e, i, r, now)
     local key, id = self.key, e.id
     local info = ns.Catalog.Info(id)
+    c.charges = PreviewCharges(info)
     -- 自訂圖示（逐法術覆寫）也照畫；光環格不支援（ns.IconFor 自己會略過）
     local tex = ns.IconFor(key, id, info) or QUESTION
     if info and info.custom then
         c.aura = info.kind == "aura"
-        c.locked = c.aura
         c.custom, c.known = info.kind, info.isKnown ~= false
     else
         local src = ns.Catalog.SourceOf(id)
         c.aura = AURA_SRC[src] and true or false
         c.custom, c.known = false, true    -- false 不是 nil：格子是池化的框，欄位要明確蓋掉
     end
-    c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden
+    -- 核心／輔助技能（暴雪那兩條）不畫假冷卻：轉圈、倒數、去飽和一律不上，看起來就是就緒的樣子（使用者 2026-10-03）
+    c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NoFakeCD(key)
+    -- 效果預覽：只有第一個技能格演示（Refresh 開頭把 fxTaken 歸零）
+    local fx = self:ActiveFx()
+    if fx and (c.aura or e.hidden or self.fxTaken) then fx = nil end
+    if fx then self.fxTaken = true end
+    local fxTimer = fx and (fx.kind == "cooldown" or fx.kind == "aura")
+    if fxTimer then c.onCD = (not c.aura) and not e.hidden end
+    -- 假冷卻的格每隔一格當成「還在倒增益的持續時間」（倒數換 durationColor）；自訂項目沒有那一段
+    c.auraPhase = (c.onCD and not c.custom and (i % 4 == 1)) and true or false
+    if fxTimer then c.auraPhase = (c.onCD and fx.kind == "aura") and true or false end
     c.name = (info and info.name) or ("#" .. tostring(id))
     c.decorated = nil
     if c.kind == "bars" then
         c.Icon.Icon:SetTexture(tex)
+        -- 沒學會的自訂法術：問號＋灰（圖示格那邊由轉圈的假冷卻表達，長條沒有）
+        c.Icon.Icon:SetDesaturated((c.custom and not c.known) and true or false)
         c.cycleOffset = (i * 3) % CYCLE
     else
         c.Icon:SetTexture(tex)
         if c.Cooldown then
-            if c.onCD then
+            if c.onCD and fxTimer then
+                c.Cooldown:SetCooldown(fx.start, fx.secs)
+            elseif c.onCD then
                 c.Cooldown:SetCooldown(now - ((i * 2) % CYCLE), CYCLE)
             else
                 c.Cooldown:Clear()
@@ -486,6 +549,11 @@ function Proto:Fill(c, e, i, r, now)
         end
     end
     ns.Decorate.ApplyPreview(c, key, id, r.w, r.h)
+    -- 沒學會的自訂法術：圖示格以前靠假冷卻的去飽和表達，假冷卻拿掉之後自己灰（同長條）
+    if c.kind ~= "bars" and c.custom and not c.known and c.Icon and c.Icon.SetDesaturated then
+        c.Icon:SetDesaturated(true)
+    end
+    self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready") and not c.aura and not e.hidden) and fx.kind or nil)
     -- 生效發光：勾了的增益在預覽上常亮（樣式、顏色照單一法術小窗的設定）。長條亮在圖示那一格
     if ns.Glow and ns.Glow.PreviewActive then
         if not c.glowHost then
@@ -497,13 +565,12 @@ function Proto:Fill(c, e, i, r, now)
     end
     if c.kind == "bars" then
         c.Bar.Name:SetText(c.name)
-        c.Icon.Applications:SetText("2")
+        c.Icon.Applications:SetText("")      -- 假層數不印（礙眼；增益圖示的預覽同樣不印）
     else
-        c.cdText:SetText("15")
-        c.chargeText:SetText("2")
+        c.cdText:SetText(fxTimer and self:FxText(c) or "15")
+        c.chargeText:SetText(c.charges and tostring(c.charges) or "")
         c.stackText:SetText("2")
     end
-    c.lock:SetShown(c.locked and true or false)
     -- 以增益取代：成立的才畫記號（設了但增益現在不在 ⇒ 不畫，真實條上也是技能本身）
     if c.replaceMark then
         local b = (not e.hidden) and ns.Catalog.ReplaceTarget(id) or nil
@@ -517,22 +584,19 @@ function Proto:Fill(c, e, i, r, now)
     end
 end
 
--- 長條的時間跑 15→0（名字＝法術名；小數門檻照設定）
+-- 長條的時間跑 15→0（名字＝法術名）。**只印整數**：真的長條秒數是暴雪每幀用秘密的剩餘時間寫的
+-- （RefreshCooldownInfo 的 COOLDOWN_DURATION_SEC），插件換不了格式，小數門檻對長條無效；
+-- 預覽印小數會讓玩家以為設定沒生效（2026-10-03 使用者回報）
 function Proto:Tick()
     if self.kind ~= "bars" then return end
     local pool = self.cells.bars
     local now = GetTime()
-    local dec = tonumber(ns.Setting(self.key, "cooldownText.decimalsBelow")) or 0
     for n = 1, self.used.bars or 0 do
         local c = pool[n]
         if c and c:IsShown() then
             local left = CYCLE - ((now + (c.cycleOffset or 0)) % CYCLE)
             c.Bar:SetValue(left / CYCLE)
-            if left < dec then
-                c.Bar.Duration:SetFormattedText("%.1f", left)
-            else
-                c.Bar.Duration:SetFormattedText("%d", math.ceil(left))
-            end
+            c.Bar.Duration:SetFormattedText("%d", math.ceil(left))
         end
     end
 end
@@ -560,22 +624,23 @@ local function ShowTip(c)
     if c.custom and not c.known then
         GameTooltip:AddLine(L["Not learned"], 1, 0.3, 0.3)
     end
+    if c.talentBlocked then
+        GameTooltip:AddLine(L["Talent condition not met, so it isn't shown on screen."], 1, 0.3, 0.3, true)
+    end
     if c.missing then
         GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."], 1, 0.3, 0.3, true)
         local info = ns.Catalog.Info(c.id)
         if info and info.equipSlot then
-            GameTooltip:AddLine(L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."], 1, 0.82, 0, true)
+            GameTooltip:AddLine(L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."], 1, 0.82, 0, true)
         end
     end
-    if c.locked then
-        GameTooltip:AddLine(L["Aura slot: always at the front of the bar, can't be dragged."], 1, 0.82, 0, true)
-        GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
-    else
-        GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
+    if c.custom == "aura" then
+        -- 光環格：只講它什麼時候出現；位置跟其他格一樣可以拖
+        GameTooltip:AddLine(L["Aura slot: only appears while the aura is up."], 1, 0.82, 0, true)
     end
+    GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
     GameTooltip:Show()
 end
 
@@ -586,7 +651,7 @@ function Proto:Wire(c)
         c:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
     c:SetScript("OnMouseDown", function(self, button)
-        if button ~= "LeftButton" or self.isPlus or self.hiddenItem or self.locked then return end
+        if button ~= "LeftButton" or self.isPlus or self.hiddenItem then return end
         local x, y = Cursor(pv.canvas)
         pv.press = { cell = self, x = x, y = y }
         pv.frame:SetScript("OnUpdate", function(_, elapsed) pv:DragTick(elapsed) end)
@@ -619,7 +684,103 @@ function Proto:RestoreTicker()
         if acc < 0.05 then return end
         acc = 0
         pv:Tick()
+        pv:FxTick()
     end)
+end
+
+------------------------------------------------------------
+-- 效果預覽（核心／輔助技能）
+------------------------------------------------------------
+-- 進行中的效果（過期的當沒有：計時器收尾前那幾幀也不會畫錯）
+function Proto:ActiveFx()
+    local fx = self.fx
+    if fx and GetTime() < fx.start + fx.secs then return fx end
+    return nil
+end
+
+function Proto:StartFx(kind)
+    -- 倒數類（冷卻中／增益持續時間）要看得到「正常 → 低秒變色／小數」的轉換：從門檻（低秒、小數取大的）
+    -- 再往上 3 秒開始倒，至少 FX_SECS；預設門檻 5 ⇒ 倒 8 秒。發光類固定 FX_SECS
+    local secs = FX_SECS
+    if kind == "cooldown" or kind == "aura" then
+        local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
+        local th = math.max(tonumber(ct.lowBelow) or 0, tonumber(ct.decimalsBelow) or 0)
+        secs = math.max(FX_SECS, math.ceil(th) + 3)
+    end
+    local fx = { kind = kind, start = GetTime(), secs = secs }
+    self.fx = fx
+    self:Refresh()
+    C_Timer.After(secs, function()
+        if self.fx ~= fx then return end         -- 期間又按了別的：讓新的那個收尾
+        self.fx = nil
+        if self.frame:IsVisible() then self:Refresh() else self:ClearFxGlows() end
+    end)
+end
+
+-- 一格的效果發光：which ＝ "proc"／"ready"／nil（收掉）。發光框是格子上自己的子框（池化的格子一起重用）
+function Proto:FxGlow(c, which)
+    local G = ns.Glow
+    if not (G and G.PaintOn) then return end
+    local cur = c.fxGlow
+    if cur and cur.which == which then return end
+    if cur then
+        G.StopOn(c.fxHost, cur.t, "pvfx")
+        c.fxGlow = nil
+    end
+    if not which then return end
+    if not c.fxHost then
+        c.fxHost = CreateFrame("Frame", nil, c)
+        c.fxHost:SetFrameLevel(c:GetFrameLevel() + 4)
+    end
+    c.fxHost:ClearAllPoints()
+    c.fxHost:SetAllPoints(c.kind == "bars" and c.Icon or c)
+    local cfg = ns.Setting(self.key, "glow." .. which)
+    local t = G.PaintOn(c.fxHost, type(cfg) == "table" and cfg or {}, which, "pvfx", true)
+    if t then c.fxGlow = { which = which, t = t } end
+end
+
+-- 頁面關著時效果到期：發光直接收掉（下次 Refresh 也會收，這裡只是不讓它在背景一直轉）
+function Proto:ClearFxGlows()
+    for _, pool in pairs(self.cells) do
+        for _, c in ipairs(pool) do self:FxGlow(c, nil) end
+    end
+end
+
+-- 倒數字：照這條「倒數文字」的小數門檻；回傳字串
+function Proto:FxText(c)
+    local fx = self:ActiveFx()
+    if not fx then return "" end
+    local left = math.max(0, fx.start + fx.secs - GetTime())
+    local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
+    local dec = tonumber(ct.decimalsBelow) or 0
+    if left < dec then return ("%.1f"):format(left) end
+    return tostring(math.ceil(left))
+end
+
+local function RGBA(t, r, g, b, a)
+    if type(t) ~= "table" then return r, g, b, a end
+    return t.r or r, t.g or g, t.b or b, t.a or a
+end
+
+-- 冷卻中／增益持續時間：倒數每 0.05 秒重寫一次，低秒變色照設定（增益那一段用它自己的低秒色）
+function Proto:FxTick()
+    local fx = self:ActiveFx()
+    if not fx or (fx.kind ~= "cooldown" and fx.kind ~= "aura") or self.kind == "bars" then return end
+    local style = ns.Decorate.Resolve(self.key)
+    local ct = style.cooldownText or {}
+    local left = fx.start + fx.secs - GetTime()
+    local low = left < (tonumber(ct.lowBelow) or 0)
+    for _, c in ipairs(self.slots or {}) do
+        if c.onCD and c.cdText then
+            c.cdText:SetText(self:FxText(c))
+            if low then
+                local lc = (c.durColor and style.durationLowColor) or ct.lowColor
+                c.cdText:SetTextColor(RGBA(lc, 1, 0.3, 0.3, 1))
+            else
+                c.cdText:SetTextColor(RGBA(c.durColor or ct.color, 1, 1, 1, 1))
+            end
+        end
+    end
 end
 
 function Proto:BeginDrag()
@@ -640,7 +801,11 @@ function Proto:BeginDrag()
     ns.Sidebar.BeginDrop(press.candidates)
 end
 
--- 游標底下的插入位置：離游標最近的格，決定插在它前面或後面
+-- 游標底下的插入位置：離游標最近的格，決定插在它前面或後面。
+-- 「後面」是清單順序的方向，不一定是右邊／下面：條往上長（長條、直向圖示）時第 1 格在最下面、
+-- 往左長時第 1 格在最右邊。方向照相鄰格的實際位置量（同一列的鄰格最近，換列那格比較遠），
+-- 只有一格時才退回預設（長條往下、圖示往右）。
+-- 回傳 pos, 格子, 插入線畫在格子的哪一邊（"TOP"／"BOTTOM"／"LEFT"／"RIGHT"）
 function Proto:InsertionAt()
     if not self.frame:IsMouseOver() then return nil end
     local cx, cy = Cursor(self.canvas)
@@ -655,9 +820,33 @@ function Proto:InsertionAt()
     if not best then return nil end
     local s = self.slots[best]
     local x, y = s:GetCenter()
-    local after
-    if self.kind == "bars" then after = cy < y else after = cx > x end
-    return best + (after and 1 or 0), s, after
+    -- 清單順序往後的方向向量（dx, dy）
+    local dx, dy
+    local nearD
+    for _, j in ipairs({ best - 1, best + 1 }) do
+        local n = self.slots[j]
+        -- ⚠ 不能寫 `n and n:GetCenter()`：and 只留第一個回傳值，ny 會是 nil
+        local nx, ny
+        if n then nx, ny = n:GetCenter() end
+        if nx and ny then
+            local d = (nx - x) ^ 2 + (ny - y) ^ 2
+            if d > 0 and (not nearD or d < nearD) then
+                nearD = d
+                if j > best then dx, dy = nx - x, ny - y else dx, dy = x - nx, y - ny end
+            end
+        end
+    end
+    if not dx then
+        if self.kind == "bars" then dx, dy = 0, -1 else dx, dy = 1, 0 end
+    end
+    local after = (cx - x) * dx + (cy - y) * dy > 0
+    local side
+    if math.abs(dx) >= math.abs(dy) then
+        side = ((dx > 0) == after) and "RIGHT" or "LEFT"
+    else
+        side = ((dy > 0) == after) and "TOP" or "BOTTOM"
+    end
+    return best + (after and 1 or 0), s, side
 end
 
 function Proto:DragTick()
@@ -683,19 +872,23 @@ function Proto:DragTick()
         press.pos = nil
         return
     end
-    local pos, s, after = self:InsertionAt()
+    local pos, s, side = self:InsertionAt()
     press.pos = pos
     if not pos then line:Hide() return end
-    local invalid = pos <= (self.lockedCount or 0)
-    press.invalid = invalid
-    if invalid then line:SetVertexColor(1, 0.2, 0.2, 1) else line:SetVertexColor(W.Accent(1)) end
+    line:SetVertexColor(W.Accent(1))
     line:ClearAllPoints()
     local t = P.Scale(2)
-    if self.kind == "bars" then
-        line:SetPoint(after and "TOPLEFT" or "BOTTOMLEFT", s, after and "BOTTOMLEFT" or "TOPLEFT", 0, after and -1 or 1)
+    if side == "BOTTOM" then
+        line:SetPoint("TOPLEFT", s, "BOTTOMLEFT", 0, -1)
         line:SetSize(s:GetWidth(), t)
+    elseif side == "TOP" then
+        line:SetPoint("BOTTOMLEFT", s, "TOPLEFT", 0, 1)
+        line:SetSize(s:GetWidth(), t)
+    elseif side == "RIGHT" then
+        line:SetPoint("TOPLEFT", s, "TOPRIGHT", 1, 0)
+        line:SetSize(t, s:GetHeight())
     else
-        line:SetPoint(after and "TOPLEFT" or "TOPRIGHT", s, after and "TOPRIGHT" or "TOPLEFT", after and 1 or -1, 0)
+        line:SetPoint("TOPRIGHT", s, "TOPLEFT", -1, 0)
         line:SetSize(t, s:GetHeight())
     end
     line:Show()
@@ -719,7 +912,7 @@ function Proto:EndDrag(commit)
         return
     end
     local pos = press.pos
-    if not pos or press.invalid then self:Refresh() return end
+    if not pos then self:Refresh() return end
     -- 新順序：可見的照畫面順序、拖的那顆移到插入位置；隱藏的接在後面
     local ids, from = {}, nil
     for i, s in ipairs(self.slots) do

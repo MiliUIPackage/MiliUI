@@ -2,7 +2,8 @@
 -- 按鍵文字：法術／物品放在哪格動作條 → 那一格綁的鍵 → 縮寫畫在圖示一角
 --
 --   ns.Keybinds.Abbrev(key)                 "CTRL-SHIFT-BUTTON4" → "csM4"（純函式，離線可測）
---   ns.Keybinds.CommandForSlot(slot, page)  動作條格 → 綁定指令名（純函式；page＝主動作條目前那一頁）
+--   ns.Keybinds.CommandForSlot(slot, page, bonus)  動作條格 → 綁定指令名（純函式；page＝主動作條目前那一頁、
+--                                           bonus＝這個職業的變形頁集合 BONUS_PAGES[class]，nil ＝ 沒有）
 --   ns.Keybinds.TextForSpell(spellID [, override])／TextForItem(itemID)   查快取
 --   ns.Keybinds.Apply(owner, rec, barKey)   畫在 rec.overlay 上（排版時、綁定變了時叫）
 --   ns.Keybinds.RefreshAll()                綁定／動作條變了：清快取、全部重畫
@@ -14,7 +15,7 @@
 --   第 4 頁（37–48）      MULTIACTIONBAR4BUTTON（右側第二條）
 --   第 5 頁（49–60）      MULTIACTIONBAR2BUTTON（右下）
 --   第 6 頁（61–72）      MULTIACTIONBAR1BUTTON（左下）
---   第 7–10 頁（73–120）  變形／姿態的主動作條（GetBonusBarOffset 那一頁才算 ACTIONBUTTON）
+--   第 7–10 頁（73–120）  變形／姿態的主動作條（GetBonusBarOffset 那一頁算 ACTIONBUTTON；德魯伊／盜賊的其餘變形頁是備援）
 --   第 13／14／15 頁      MULTIACTIONBAR5／6／7BUTTON（動作條 6、7、8）
 -- 其他（載具、控制、額外動作條）不收。同一個法術放在好幾格時，主動作條目前那一頁優先，
 -- 其餘照格號順序，第一個有綁鍵的算數。
@@ -73,9 +74,18 @@ local MULTI = {
 }
 K.MULTI = MULTI
 
+-- 有變形／姿態頁的職業（GetBonusBarOffset 會切到第 7–10 頁的）：德魯伊（豹 7、熊 9、梟獸 10）、
+-- 盜賊（潛行 7）。其他職業的第 7–10 頁只有快捷列插件會拿來放別的條（綁的是插件自己的鍵），
+-- 不能當主動作條的備援，否則會顯示錯的鍵
+local BONUS_PAGES = {
+    DRUID = { [7] = true, [8] = true, [9] = true, [10] = true },
+    ROGUE = { [7] = true },
+}
+K.BONUS_PAGES = BONUS_PAGES
+
 -- slot → 指令名（"ACTIONBUTTON3"…）與優先序（小的優先）；不屬於任何一條回 nil
 -- mainPage：主動作條目前顯示哪一頁（1、2，或變形時的 7–10）
-function K.CommandForSlot(slot, mainPage)
+function K.CommandForSlot(slot, mainPage, bonus)
     slot = tonumber(slot)
     if not slot or slot < 1 then return nil end
     local page = math.floor((slot - 1) / 12) + 1
@@ -84,8 +94,10 @@ function K.CommandForSlot(slot, mainPage)
     if page == mainPage then return "ACTIONBUTTON" .. idx, 0 end
     local multi = MULTI[page]
     if multi then return multi .. idx, 1 end
-    -- 主動作條的其他頁：只在沒有別的選擇時用（玩家翻頁時才看得到）
-    if page == 1 or page == 2 then return "ACTIONBUTTON" .. idx, 2 end
+    -- 主動作條的其他頁：只在沒有別的選擇時用（玩家翻頁時才看得到）。
+    -- 變形／姿態頁（7–10）也一樣：只放在豹形頁的技能，人形時照樣顯示那一格的鍵——
+    -- 變身後按的就是這個鍵，換形態時文字不該消失（反過來也一樣）。
+    if page == 1 or page == 2 or (type(bonus) == "table" and bonus[page]) then return "ACTIONBUTTON" .. idx, 2 end
     return nil
 end
 
@@ -114,7 +126,7 @@ local function FromSlots(slots)
     local secret = ns.IsSecret or function() return false end
     for _, slot in ipairs(slots) do
         local cmd, rank
-        if not secret(slot) then cmd, rank = K.CommandForSlot(slot, page) end
+        if not secret(slot) then cmd, rank = K.CommandForSlot(slot, page, BONUS_PAGES[ns.playerClass]) end
         if cmd then
             local ok, key = pcall(GetBindingKey, cmd)
             if ok and type(key) == "string" and key ~= "" then

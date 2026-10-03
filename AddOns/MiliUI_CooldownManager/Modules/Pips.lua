@@ -56,7 +56,6 @@ local R = ns.Resources
 local RC = ns.ResCond
 local MAX_SEGMENTS = RC.MAX_SEGMENTS
 local SOLID = "Interface\\BUTTONS\\WHITE8X8"
-local DIM = R.DIM
 local Plain = R.Plain
 
 local KEY = "pips"
@@ -163,6 +162,73 @@ function Pips.RemoveCustomRow(cfg, specID, i)
     table.remove(list, i)
     if list[1] == nil then cfg.customRows[specID] = nil end
     return true
+end
+
+------------------------------------------------------------
+-- 推薦清單：新增格子的輸入彈窗裡那顆下拉，選了就帶入法術 ID（層數列連上限一起）
+--   class 必填；spec 有寫 ＝ 只給那個專精（術士這種天賦專屬的），沒寫 ＝ 整個職業；
+--   requires 有寫 ＝ 那個天賦（法術 ID）學了才推薦（英雄天賦這種跨專精的）
+------------------------------------------------------------
+local CUSTOM_RECOMMENDED = {
+    PALADIN = {
+        { kind = "charges", spellID = 190784 },                     -- 神性戰馬
+    },
+    DEATHKNIGHT = {
+        { kind = "charges", spellID = 444347, requires = 444010 },   -- 死亡戰騎（技能；英雄天賦「死亡戰騎」444010 才有）
+        { kind = "stacks", spellID = 195181, max = 10, spec = 250 }, -- 骸骨之盾（血魄）
+    },
+    EVOKER = {
+        { kind = "charges", spellID = 358267 },                     -- 盤旋
+        { kind = "stacks", spellID = 359618, max = 2, spec = 1467 }, -- 龍能爆發（湮滅）
+        { kind = "stacks", spellID = 369299, max = 2, spec = 1468 }, -- 龍能爆發（恩護）
+    },
+    HUNTER = {
+        { kind = "stacks", spellID = 260242, max = 2, spec = 254 },  -- 精準射擊（射擊）
+    },
+    MAGE = {
+        { kind = "stacks", spellID = 44544, max = 2, spec = 64 },    -- 冰霜之指（冰霜）
+    },
+    MONK = {
+        { kind = "charges", spellID = 109132 },                     -- 迅空翻
+        { kind = "charges", spellID = 115008 },                     -- 真氣飛龍穿（天賦，取代迅空翻；沒點就靜默跳過）
+        { kind = "stacks", spellID = 202090, max = 4, spec = 270 },  -- 僧院教義（織霧）
+    },
+    PRIEST = {
+        { kind = "stacks", spellID = 114255, max = 2, spec = 257 },  -- 光之澎湃（神聖）
+    },
+    SHAMAN = {
+        { kind = "stacks", spellID = 191634, max = 2, spec = 262 },  -- 風暴守護者（元素）
+        { kind = "stacks", spellID = 53390, max = 2, spec = 264 },   -- 治療之潮（恢復）
+    },
+    WARLOCK = {
+        { kind = "stacks", spellID = 264173, max = 4, spec = 266 },  -- 魔能之核（惡魔學）
+        { kind = "stacks", spellID = 296553, max = 10, spec = 266 }, -- 狂野小鬼（惡魔學）
+        { kind = "stacks", spellID = 117828, max = 2, spec = 267 },  -- 爆燃（毀滅；點閃燃是 4）
+    },
+}
+Pips.CUSTOM_RECOMMENDED = CUSTOM_RECOMMENDED
+
+-- 純函式：這個職業／專精、這種列能推薦哪些。用不了的一律靜默跳過（不顯示、不佔位）：
+--   別的專精的、這個專精已經加過的、法術不存在的（probe.exists）、要求的天賦沒學的（probe.talent）、
+--   充能列：沒學會（probe.known）或現在沒有充能（probe.hasCharges，換天賦會變）
+function Pips.CustomRecommendations(cfg, classFile, specID, kind, probe)
+    local out = {}
+    local list = CUSTOM_RECOMMENDED[classFile]
+    if type(list) ~= "table" or specID == nil then return out end
+    probe = probe or {}
+    for _, r in ipairs(list) do
+        local ok = r.kind == kind
+            and (r.spec == nil or r.spec == specID)
+            and not Pips.FindCustomRow(cfg, specID, r.kind, r.spellID)
+            and (not probe.exists or probe.exists(r.spellID))
+            and (not r.requires or not probe.talent or probe.talent(r.requires))
+        if ok and kind == "charges" then
+            ok = (not probe.known or probe.known(r.spellID))
+                and (not probe.hasCharges or probe.hasCharges(r.spellID))
+        end
+        if ok then out[#out + 1] = r end
+    end
+    return out
 end
 
 local function ClampSegments(n)
@@ -286,6 +352,33 @@ end
 local gameProbe = { known = CustomKnown, maxCharges = CustomMaxCharges }
 Pips.gameProbe = gameProbe
 
+-- 推薦清單用的 probe：充能看「現在」有沒有（不吃 lastChargeMax 的舊值 —— 換掉天賦後那是過期的）
+Pips.recommendProbe = {
+    known = CustomKnown,
+    -- 天賦學了沒：被動天賦只有 IsPlayerSpell 準，IsSpellKnown 一起問；任一個明文 true 就算（讀不到當沒學：推薦寧缺勿濫）
+    talent = function(id)
+        for _, fn in ipairs({ _G.IsPlayerSpell or false, C_SpellBook and C_SpellBook.IsSpellKnown or false }) do
+            if fn then
+                local ok, v = pcall(fn, id)
+                if ok and not ns.IsSecret(v) and v == true then return true end
+            end
+        end
+        return false
+    end,
+    exists = function(id)
+        local fn = C_Spell and C_Spell.GetSpellInfo
+        if not fn then return true end
+        local ok, info = pcall(fn, id)
+        return ok and type(info) == "table"
+    end,
+    hasCharges = function(id)
+        local fn = C_Spell and C_Spell.GetSpellCharges
+        if not fn then return true end
+        local ok, info = pcall(fn, id)
+        return ok and type(info) == "table"
+    end,
+}
+
 -- 自訂列的顏色：存檔的色 → 職業色
 local function CustomColor(entry)
     local c = RC.ValidColor(entry and entry.color)
@@ -403,7 +496,7 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
     local n = plan.numSeg
     local geom = {
         W = W, H = H, n = n, gap = gap, segW = (W - gap * (n - 1)) / n, reversed = reversed, segments = true,
-        dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1), bgTex = ns.Resources.BgTexture(style),
+        dim = ns.Resources.DimArray(style), px = ns.P.Scale(1), bgTex = ns.Resources.BgTexture(style),
     }
     local inside = plan.showWhen == "active"
     local status = ns.AuraBar.Apply(row.ab, {
@@ -475,7 +568,8 @@ local function LayoutCustomRow(row, plan, style, W, H)
         -- 層級每次重排都重設：父層的 strata／level 可能被結構套用改過
         local lv = cell:GetFrameLevel()
         cell.bg:SetTexture(ns.Resources.BgTexture(style))
-        cell.bg:SetVertexColor(DIM.r, DIM.g, DIM.b, DIM.a)
+        local dc, da = ns.Resources.DimColor(nil, style)
+        cell.bg:SetVertexColor(dc.r, dc.g, dc.b, da)
         cell.gate:SetFrameLevel(lv + 1)
         cell.clip:SetFrameLevel(lv + 1)
         cell.rc:SetFrameLevel(lv + 2)
