@@ -707,12 +707,12 @@ do
     eq("壞值當跟隨", D.DurationColorOf(true, true, YELLOW), YELLOW)
 
     -- 預設值與覆寫登記
-    local ct = p.theme.cooldownText
+    local ct = p.theme.icon
     eq("主題預設開", ct.colorDuration, true)
     near("主題預設黃 r", ct.durationColor.r, 1); near("g", ct.durationColor.g, 0.85); near("b", ct.durationColor.b, 0.1)
-    eq("條讀得到（繼承主題）", ns.Setting("essential", "cooldownText.colorDuration"), true)
-    eq("SPELL_FALLBACK durationColor", DB.SPELL_FALLBACK.durationColor, "cooldownText.durationColor")
-    eq("覆寫分組：文字節", DB.OVERRIDE_GROUP.durationColor, "text")
+    eq("條讀得到（繼承主題）", ns.Setting("essential", "icon.colorDuration"), true)
+    eq("SPELL_FALLBACK durationColor", DB.SPELL_FALLBACK.durationColor, "icon.durationColor")
+    eq("覆寫分組：圖示節", DB.OVERRIDE_GROUP.durationColor, "icon")
 
     -- SpellOverride 分得出跟隨；SpellSetting 沒覆寫時回條的顏色
     eq("沒覆寫 ⇒ nil", ns.SpellOverride(11, "durationColor"), nil)
@@ -728,7 +728,7 @@ do
     eq("清掉回到跟隨", ns.SpellOverride(11, "durationColor"), nil)
 
     -- 兩段顏色（Decorate.Apply 寫進 rec.style 的那兩張）
-    local cdc, durc = D.PhaseColors({ color = { r = 1, g = 1, b = 1 }, colorDuration = true, durationColor = YELLOW }, nil)
+    local cdc, durc = D.PhaseColors({ cooldownText = { color = { r = 1, g = 1, b = 1 } }, colorDuration = true, durationColor = YELLOW }, nil)
     near("冷卻段＝倒數原色", cdc[1], 1); near("a 補 1", cdc[4], 1)
     near("增益段＝黃 g", durc and durc[2], 0.85)
     cdc, durc = D.PhaseColors({ colorDuration = false, durationColor = YELLOW }, nil)
@@ -739,7 +739,7 @@ do
     cdc, durc = D.PhaseColors({ colorDuration = true, durationColor = YELLOW }, false)
     eq("條開＋不換色 ⇒ nil", durc, nil)
     cdc, durc = D.PhaseColors(nil, nil)
-    eq("沒有 cooldownText 不炸、不換色", durc, nil)
+    eq("沒有 style 不炸、不換色", durc, nil)
 
     -- 覆寫進簽章
     local st = D.Resolve("essential", true)

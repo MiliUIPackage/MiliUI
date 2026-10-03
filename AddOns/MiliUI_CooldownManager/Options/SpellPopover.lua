@@ -354,8 +354,8 @@ local function Build()
         elseif value == "custom" then
             -- 初值＝目前生效的顏色（跟隨中而條層關著時用條的顏色，還沒有就用主題預設的黃）
             local c = ns.Decorate.DurationColorOf(Override("durationColor"),
-                ns.Setting(cur.key, "cooldownText.colorDuration"), ns.Setting(cur.key, "cooldownText.durationColor"))
-                or ns.Setting(cur.key, "cooldownText.durationColor") or { r = 1, g = 0.85, b = 0.1, a = 1 }
+                ns.Setting(cur.key, "icon.colorDuration"), ns.Setting(cur.key, "icon.durationColor"))
+                or ns.Setting(cur.key, "icon.durationColor") or { r = 1, g = 0.85, b = 0.1, a = 1 }
             ns.DB.SetOverride(cur.id, "durationColor", { r = c.r or 1, g = c.g or 1, b = c.b or 1, a = c.a or 1 })
         else
             ns.DB.SetOverride(cur.id, "durationColor", nil)
@@ -805,8 +805,8 @@ function Pop.Refresh()
     local dv = Override("durationColor")
     local dcOwn = type(dv) == "table"
     frame.durDD:SetSelectedValue(dv == false and "off" or dcOwn and "custom" or "follow")
-    local dcShow = ns.Decorate.DurationColorOf(dv, ns.Setting(key, "cooldownText.colorDuration"),
-        ns.Setting(key, "cooldownText.durationColor")) or ns.Setting(key, "cooldownText.durationColor")
+    local dcShow = ns.Decorate.DurationColorOf(dv, ns.Setting(key, "icon.colorDuration"),
+        ns.Setting(key, "icon.durationColor")) or ns.Setting(key, "icon.durationColor")
     frame.durSwatch:SetColor(type(dcShow) == "table" and dcShow or { r = 1, g = 0.85, b = 0.1, a = 1 })
     -- 增益持續中顯示持續時間：三態回填；生效的值是「不顯示」（覆寫成不顯示，或跟隨而條層關著）⇒ 持續時間顏色那列停用
     local av = Override("showAuraTime")

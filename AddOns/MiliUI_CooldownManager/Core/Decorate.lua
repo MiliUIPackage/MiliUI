@@ -100,6 +100,8 @@ function D.Resolve(barKey, fresh)
         hideGCDSwipe = S(barKey, "icon.hideGCDSwipe") and true or false,
         hideDebuffBorder = S(barKey, "icon.hideDebuffBorder") ~= false,   -- 舊存檔沒有這欄 ＝ 預設藏
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
+        colorDuration = S(barKey, "icon.colorDuration") and true or false,   -- 增益那一段的倒數換色（PhaseColors）
+        durationColor = S(barKey, "icon.durationColor"),
         cooldownText = S(barKey, "cooldownText") or {},
         chargeText   = S(barKey, "chargeText") or {},
         stackText    = S(barKey, "stackText") or {},
@@ -109,6 +111,7 @@ function D.Resolve(barKey, fresh)
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
+        tostring(r.colorDuration), CSig(r.durationColor),
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
         type(r.bar) == "table" and TSig(r.bar) or "-",
         tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
@@ -158,8 +161,8 @@ D.SpellStyle = SpellStyle                                           -- 測試用
 -- 低秒變色（formatter 裡的 |c 色碼）兩段都照舊生效、壓過這個顏色。
 --
 --   override  逐法術覆寫：nil 跟隨條、false 這一招不換色、色表 這一招用這個色（條層關著也換）
---   barOn     條層 cooldownText.colorDuration
---   barColor  條層 cooldownText.durationColor
+--   barOn     條層 icon.colorDuration
+--   barColor  條層 icon.durationColor
 -- 回傳色表（{ r, g, b, a }，設定本身的參照）或 nil（不換色）
 ------------------------------------------------------------
 function D.DurationColorOf(override, barOn, barColor)
@@ -169,11 +172,13 @@ function D.DurationColorOf(override, barOn, barColor)
     return nil
 end
 
--- 倒數數字兩段的顏色（陣列 { r, g, b, a }）：cooldownText ＝ 條層解好的那張、override ＝ 逐法術覆寫（三態）
+-- 倒數數字兩段的顏色（陣列 { r, g, b, a }）：style ＝ Resolve 解好的那包（cooldownText.color、colorDuration、
+-- durationColor）、override ＝ 逐法術覆寫（三態）
 -- 回傳 cdColor（冷卻那一段＝倒數原色）, durColor（增益那一段；nil ＝ 這格不換色）
-function D.PhaseColors(cooldownText, override)
-    local ct = type(cooldownText) == "table" and cooldownText or {}
-    local dc = D.DurationColorOf(override, ct.colorDuration, ct.durationColor)
+function D.PhaseColors(style, override)
+    local st = type(style) == "table" and style or {}
+    local ct = type(st.cooldownText) == "table" and st.cooldownText or {}
+    local dc = D.DurationColorOf(override, st.colorDuration, st.durationColor)
     return { C4(ct.color, 1, 1, 1, 1) }, dc and { C4(dc, 1, 1, 1, 1) } or nil
 end
 
@@ -1315,7 +1320,7 @@ function D.Apply(item, rec, barKey, w, h)
     }
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
-        rec.style.cdColor, rec.style.durColor = D.PhaseColors(style.cooldownText, spell.durationColor)
+        rec.style.cdColor, rec.style.durColor = D.PhaseColors(style, spell.durationColor)
         -- 增益持續中不顯示持續時間（同一個條件；裝備欄項目在 HideTarget 再擋）
         rec.style.hideAuraTime = spell.showAuraTime == false
     end
@@ -1506,9 +1511,8 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         end
         -- 增益持續時間那一段：Preview 標了 cell.auraPhase 的假冷卻格照設定換色（逐法術覆寫也照套）
         -- 設成「增益持續中不顯示持續時間」的格：那一段被蓋成冷卻，當普通冷卻格畫（原色）
-        local ct = style.cooldownText or {}
         cell.durColor = (cell.auraPhase and not cell.aura and spell.showAuraTime ~= false)
-            and D.DurationColorOf(spell.durationColor, ct.colorDuration, ct.durationColor) or nil
+            and D.DurationColorOf(spell.durationColor, style.colorDuration, style.durationColor) or nil
         ns.Text.ApplyPreviewIcon(cell, style, spell)
     end
     cell.decorated = sig

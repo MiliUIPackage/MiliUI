@@ -368,12 +368,8 @@ function DB.BuildDefaults()
                 outline = "OUTLINE",
                 border  = { texture = "solid", size = 1, color = rgba(0, 0, 0, 1) },
                 -- 每段文字的 font："INHERIT" ＝ 跟隨上面的通用字型（ns.Media.ElementFont）
-                -- colorDuration／durationColor：技能用掉後暴雪先倒增益的持續時間、增益掉了才倒冷卻，
-                -- 前半段的數字換這個顏色（Core/Text.lua 的 ApplyPhaseColor）。預設開（使用者拍板：
-                -- 舊存檔沒有這兩欄 ＝ 合併預設值補成開，不套「舊存檔行為不變」）
                 cooldownText = { size = 16, color = rgba(1, 1, 1), decimalsBelow = 3,
-                                 lowColor = rgba(1, 0.3, 0.3), lowBelow = 5, font = "INHERIT",
-                                 colorDuration = true, durationColor = rgba(1, 0.85, 0.1) },
+                                 lowColor = rgba(1, 0.3, 0.3), lowBelow = 5, font = "INHERIT" },
                 chargeText   = { size = 12, color = rgba(1, 1, 1), point = "BOTTOMRIGHT", x = 0, y = 0, font = "INHERIT" },
                 stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0, font = "INHERIT" },
                 -- skin：圖示外觀 "miliui"（自己畫邊框／縮放）| "masque"（交給 Masque，Core/Masque.lua）；
@@ -389,7 +385,10 @@ function DB.BuildDefaults()
                           -- 增益持續中顯示持續時間（核心／輔助）：技能用掉後暴雪先倒增益、增益掉了才倒冷卻。
                           -- false ＝ 蓋掉增益那一段、直接倒技能真正的冷卻（Core/Decorate.lua）。
                           -- 預設 true ＝ 暴雪原本的行為；舊存檔沒有這欄 ＝ 合併預設值補成 true，行為不變、不遷移
-                          showAuraTime = true },
+                          showAuraTime = true,
+                          -- colorDuration／durationColor：增益那一段的倒數數字換這個顏色（Core/Text.lua 的 ApplyPhaseColor）。
+                          -- 預設開（使用者拍板：舊存檔沒有這兩欄 ＝ 合併預設值補成開，不套「舊存檔行為不變」）
+                          colorDuration = true, durationColor = rgba(1, 0.85, 0.1) },
                 -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
@@ -862,7 +861,7 @@ local SPELL_FALLBACK = {
     -- 增益持續時間的倒數顏色：三態 nil ＝ 跟隨條（條的 colorDuration 開才換）、false ＝ 這一招不換色、
     -- 色表 ＝ 這一招用這個顏色（條層關著也換）。⚠ SpellSetting 沒覆寫時回的是條的顏色、分不出「跟隨」，
     -- 引擎要三態走 ns.SpellOverride（Core/Decorate.lua 的 DurationColorOf）
-    durationColor = "cooldownText.durationColor",
+    durationColor = "icon.durationColor",
     -- 增益持續中顯示持續時間：nil 跟隨條／true 顯示／false 不顯示（引擎讀 SpellSetting 的布林，
     -- 設定頁要三態走 ns.SpellOverride）
     showAuraTime  = "icon.showAuraTime",
@@ -1158,7 +1157,7 @@ DB.OVERRIDE_GROUP = {
     activeGlowOutOfCombat = "activeGlow",
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
-    hideCooldownText = "text", hideStackText = "text", durationColor = "text",
+    hideCooldownText = "text", hideStackText = "text", durationColor = "icon",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉
     readySound = "sound", gainSound = "sound", loseSound = "sound",
