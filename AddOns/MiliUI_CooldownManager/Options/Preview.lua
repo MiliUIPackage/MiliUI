@@ -439,9 +439,25 @@ function Proto:Refresh()
     if self.onRefresh then self.onRefresh(self) end
 end
 
+-- 預覽格右下的充能數：真的有充能（GetSpellCharges 明文 maxCharges > 1）才印它的上限，
+-- 問不到／秘密值／沒充能一律不印——整排假「2」會誤導（使用者 2026-10-03）
+local function PreviewCharges(info)
+    if not info or info.kind == "aura" or info.kind == "item" or info.kind == "slot" then return nil end
+    local spellID = info.overrideSpellID or info.spellID
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    if type(spellID) ~= "number" or not fn then return nil end
+    local ok, ci = pcall(fn, spellID)
+    if not ok or type(ci) ~= "table" then return nil end
+    local ok2, m = pcall(function() return ci.maxCharges end)
+    m = ok2 and ns.Catalog.Plain(m) or nil
+    if type(m) == "number" and m > 1 then return m end
+    return nil
+end
+
 function Proto:Fill(c, e, i, r, now)
     local key, id = self.key, e.id
     local info = ns.Catalog.Info(id)
+    c.charges = PreviewCharges(info)
     -- 自訂圖示（逐法術覆寫）也照畫；光環格不支援（ns.IconFor 自己會略過）
     local tex = ns.IconFor(key, id, info) or QUESTION
     if info and info.custom then
@@ -486,7 +502,7 @@ function Proto:Fill(c, e, i, r, now)
         c.Icon.Applications:SetText("")      -- 假層數不印（礙眼；增益圖示的預覽同樣不印）
     else
         c.cdText:SetText("15")
-        c.chargeText:SetText("2")
+        c.chargeText:SetText(c.charges and tostring(c.charges) or "")
         c.stackText:SetText("2")
     end
     c.lock:SetShown(c.locked and true or false)

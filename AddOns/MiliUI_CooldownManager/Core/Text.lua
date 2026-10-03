@@ -307,7 +307,7 @@ end
 ------------------------------------------------------------
 -- 設定頁的預覽格（圖示類）：同一套字型／顏色／錨點，套在我們自己的 FontString 上
 --   cell.cdText     假倒數（冷卻中的格才顯示）
---   cell.chargeText 假充能（技能類）
+--   cell.chargeText 充能上限（技能類；真的有充能才印，cell.charges）
 --   cell.stackText  假層數
 -- 增益格（增益圖示條、光環格）的預覽不印字：整排 2／15 礙眼（使用者 2026-10-03），
 -- 增益格的字型樣式只影響數字外觀、看冷卻格的就夠
@@ -330,7 +330,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
         SetFont(charge, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         charge:SetTextColor(Color(c.color))
         Anchor(charge, cell, c.point or "BOTTOMRIGHT", c.x, c.y)
-        charge:SetAlpha(cell.aura and 0 or 1)
+        charge:SetAlpha((cell.charges and not cell.aura) and 1 or 0)   -- 真的有充能的格才印（Preview.Fill 查的）
     end
     local stack = cell.stackText
     if stack then
