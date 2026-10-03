@@ -832,7 +832,7 @@ local function ShowRow(cand, i)
         up:SetScript("OnClick", function() MoveRow(ctx, key, -1) end)
         down:SetScript("OnClick", function() MoveRow(ctx, key, 1) end)
         -- 這一列自己的設定（高、外觀、數字、顏色、條件規則）：開一個小視窗（Options/ResourceSettings.lua）
-        local sb = W.CreateButton(parent, L["Settings…"], "normal", 70, 20)
+        local sb = W.CreateButton(parent, L["Settings"], "normal", 70, 20)
         W.FitButton(sb, 70, 20)
         sb:SetPoint("LEFT", down, "RIGHT", 12, 0)
         sb:SetScript("OnClick", function() ns.ResourceSettings.Open(key) end)
@@ -863,7 +863,7 @@ local function Controls(cand, sub)
     else
         for i in ipairs(cand) do add(ShowRow(cand, i)) end
         add(Note(L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."]))
-        add(Note(L["Height, look, colors and condition rules are set per resource: click Settings… on its row."]))
+        add(Note(L["Height, look, colors and condition rules are set per resource: click Settings on its row."]))
     end
 
     for _, s in ipairs({
