@@ -468,6 +468,11 @@ function Specs.Themed(mode, key)
         TS("text", "color", "cooldownText.color", L["Color"]),
         TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }),
         Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text"),
+        -- 增益持續時間那一段換色（核心／輔助的技能才有那一段：增益兩條與長條類的條不顯示）
+        CS(TS("text", "toggle", "cooldownText.colorDuration", L["Color while buff lasts"])),
+        CS(TS("text", "color", "cooldownText.durationColor", L["Duration color"], {
+            disabled = function(info) return not ReadThemed(info, "cooldownText.colorDuration") end })),
+        CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "text")),
         TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
             get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
             set = function(info, on) WriteThemed(info, "cooldownText.lowBelow", on and 5 or 0) end,

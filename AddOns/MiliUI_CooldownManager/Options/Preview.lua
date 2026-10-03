@@ -454,6 +454,8 @@ function Proto:Fill(c, e, i, r, now)
         c.custom, c.known = false, true    -- false 不是 nil：格子是池化的框，欄位要明確蓋掉
     end
     c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden
+    -- 假冷卻的格每隔一格當成「還在倒增益的持續時間」（倒數換 durationColor）；自訂項目沒有那一段
+    c.auraPhase = (c.onCD and not c.custom and (i % 4 == 1)) and true or false
     c.name = (info and info.name) or ("#" .. tostring(id))
     c.decorated = nil
     if c.kind == "bars" then
