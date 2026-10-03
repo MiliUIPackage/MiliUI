@@ -597,7 +597,7 @@ L["(default)"] = "（默认）"
 L["Out of combat too"] = "脱战也亮"
 L["Background texture"] = "背景材质"
 L["Same as fill"] = "跟填充相同"
-L["Height is per resource and shared by every specialization too."] = "高度跟着资源走，同样所有专精共用。"
+L["Height is per resource and shared by every specialization too."] = "这个高度只影响这一行，而且所有专精共用（换专精不会变）。"
 
 -- 戰鬥輔助（下一招醒目標示＋下一招圖示）：名稱照暴雪 GlobalStrings 的 ASSISTED_COMBAT_LABEL／ASSISTED_COMBAT_HIGHLIGHT_LABEL
 L["Combat Assistant"] = "战斗辅助"
