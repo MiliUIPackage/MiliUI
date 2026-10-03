@@ -1149,14 +1149,20 @@ local styleProxies = {}          -- [key] = { cfg, own, proxy }
 
 local function ProxyWrite() error("MiliUI_CooldownManager: resource style proxy is read-only", 2) end
 
+-- 不看 follow 的欄位：「長條上顯示數值」在設定視窗的「版面」節，每一列各自存、沒存＝照全域（使用者 2026-10-03 指定）
+local INDEPENDENT = { showText = true }
+R.INDEPENDENT_FIELDS = INDEPENDENT
+
 function R.StyleFor(cfg, key)
     local own = OwnStyle(cfg, key)
-    if not own or own.follow ~= false then return cfg end
+    if not own then return cfg end
+    local follow = own.follow ~= false
+    if follow and own.showText == nil then return cfg end
     local hit = styleProxies[key]
     if hit and hit.cfg == cfg and hit.own == own then return hit.proxy end
     local proxy = setmetatable({}, {
         __index = function(_, k)
-            if STYLE_FIELDS[k] then
+            if INDEPENDENT[k] or (STYLE_FIELDS[k] and own.follow == false) then
                 local v = own[k]
                 if v ~= nil then return v end
             end

@@ -1383,6 +1383,17 @@ do
     eq("這一種沒存：回原表", R.StyleFor(cfg, "Mana"), cfg)
     cfg.style.Mana = { texture = "own" }
     eq("follow 沒存＝跟：回原表（存了別的欄位也不讀）", R.StyleFor(cfg, "Mana"), cfg)
+    -- 「長條上顯示數值」不看 follow：存了就用自己的（其餘外觀照跟全域）
+    cfg.showText = true
+    cfg.style.Mana = { texture = "own", showText = false }
+    do
+        local p = R.StyleFor(cfg, "Mana")
+        check("跟著但存了 showText：代理表", p ~= cfg and type(p) == "table")
+        eq("跟著：showText 用自己的", p.showText, false)
+        eq("跟著：材質照跟全域", p.texture, cfg.texture)
+        check("跟著：StyleFollows 仍是跟", R.StyleFollows(cfg, "Mana"))
+    end
+    cfg.style.Mana = { texture = "own" }
     cfg.style.Mana.follow = true
     eq("follow true：回原表", R.StyleFor(cfg, "Mana"), cfg)
     check("follow true：跟", R.StyleFollows(cfg, "Mana"))
