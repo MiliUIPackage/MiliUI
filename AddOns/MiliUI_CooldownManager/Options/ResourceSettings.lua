@@ -152,7 +152,7 @@ local function AppendNumbers(add, key, info)
     end
     if info.fill == "rune" then
         put(BS("dropdown", "runeText", L["Numbers on runes"], { items = RUNE_TEXT_ITEMS }))
-        put(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show value on the bar\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
+        put(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show number\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
         put(BS("toggle", "runeQueued", L["Count waiting runes"]))
         put(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
     elseif info.gcdText then
@@ -290,10 +290,11 @@ local function Controls(key)
         set = function(_, v) R.SetKeyHeight(Cfg(), key, v) end,
     }))
     add(Note(L["Height is per resource and shared by every specialization too."]))
-    -- 「長條上顯示數值」放在版面、不看「跟隨」（使用者 2026-10-03 指定）：這一列自己存，沒存＝照資源條的全域值
-    -- （右鍵重設＝清掉＝回到全域）；字型、字級仍在外觀那一節跟著「跟隨」走
+    -- 「顯示數字」是這一列獨立的設定（使用者 2026-10-03 指定，資源條頁沒有統一的開關）：存在 style.<key>.showText；
+    -- 沒存過時沿用舊的全域欄位 resources.showText（舊存檔的值，預設開），所以不給右鍵重設；字型、字級仍在外觀那一節跟著「跟隨」走
     if not info.noText then
         add(BS("toggle", "style." .. key .. ".showText", L["Show number"], {
+            noReset = true,
             get = function()
                 local own = OwnStyle(key)
                 if own and own.showText ~= nil then return own.showText and true or false end
@@ -301,7 +302,6 @@ local function Controls(key)
                 return c and c.showText and true or false
             end,
         }))
-        add(Note(L["Starts out following the Class Resources tab; right-click to follow it again."]))
     end
     AppendStyle(add, key, info)
     AppendNumbers(add, key, info)
