@@ -172,3 +172,11 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 **舊三態 `durationColor`（false／色表＝條層關著也換）靠 `MIGRATIONS[4]` 拆開**，行為不變。
 **Why:** 逐法術用「一個下拉兼開關與顏色」跟主題頁的「開關＋顏色」是兩套心智模型，使用者要的是同一套。
 **How to apply:** 逐法術覆寫新增欄位時照主題頁的欄位一對一開（SPELL_FALLBACK 指同名路徑），不要把開關折進值裡。
+
+**長條類的條也收自訂項目（2026-10-03，Opus 實作、未實機驗證）**：plan `~/.claude/plans/miliui-cdm-custom-bars.md`。
+框依條的 kind 池化（`rec.frames = { icons, bars }`，`CU.UseFrame`）、搬條換框；法術／物品的條身走
+`StatusBar:SetTimerDuration(duo, nil, RemainingTime)`、秒數用一顆只印數字的 Cooldown（`.Bar.Timer`）讓引擎寫；
+光環長條在 initializeFrame 同時交 `SetDurationBar`＋`SetDurationText`＋`SetApplicationCount`、名字自己寫；
+長條不畫發光（`rec.noGlow`）。Decorate／Text 零改動。最要驗：零長度物件能不能清空條身（`CU.clearPath`）、三個 API 同時交會不會打架、搬條舊框收乾淨。
+**光環格可放任意位置（同日定案）**：拿掉 Catalog 的 AuraPrefix，光環格走同一張 order 表；理由是條上有光環格時固定格位已強制打開、
+位置本來就不動。代價：戰鬥中暴雪清單變動那一場位置可能不對。匯入的光環格現在接在後面（不寫 order）。
