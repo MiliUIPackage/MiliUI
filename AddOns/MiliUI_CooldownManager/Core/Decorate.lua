@@ -566,12 +566,39 @@ local function ResolveAuraFlag(rec)
     if not hide then rec.auraDur = nil end
 end
 
+-- 臨時探針（/mcdm activelog，玩家回報 2026-10-03「冷卻格使用中想發光」）：驗證這個旗標能不能當「使用中」訊號
+--   要看三件事：用技能那一刻轉 true、增益掉了轉 false、戰鬥中是不是明文。
+--   暴雪每次 GCD 都刷新每一格 ⇒ 只在（旗標, 秘密?, IsActive, 戰鬥）組合變了才記一行；聊天印＋存進 diag。
+--   確認完就拿掉。字串不進語系檔（開發用）。
+D.auraLog = false
+local function AuraLogValue(v)
+    if v == nil then return "nil" end
+    if ns.IsSecret(v) then return "秘密" end
+    return tostring(v)
+end
+local function AuraLog(item, rec, flag)
+    local okA, act = false, nil
+    if type(item.IsActive) == "function" then okA, act = pcall(item.IsActive, item) end
+    local fight = InCombatLockdown() and "戰鬥中" or "脫戰"
+    local sig = table.concat({ AuraLogValue(flag), okA and AuraLogValue(act) or "無", fight }, "|")
+    if rec.auraLogSig == sig then return end
+    rec.auraLogSig = sig
+    local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
+    local sid = info and (info.overrideSpellID or info.spellID)
+    local name = sid and C_Spell.GetSpellName(sid) or "?"
+    local line = ("%s(%s) 增益時間旗標=%s IsActive=%s %s"):format(tostring(name), tostring(rec.cooldownID),
+        AuraLogValue(flag), okA and AuraLogValue(act) or "無", fight)
+    print(ns.PREFIX_COLOR .. "[生效探針]|r " .. line)
+    if ns.Diag then ns.Diag.Note("activelog", line) end
+end
+
 -- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色／蓋掉在 SetCooldown 後掛勾做
 local function OnSetUseAuraDisplayTime(cd, flag)
     if overriding or ns.released then return end      -- 我們自己蓋的那一次（false）不算
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
+    if D.auraLog and not ns.Viewers.AURA_KIND[rec.barKey] then AuraLog(item, rec, flag) end
     rec.auraFlag = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
     ResolveAuraFlag(rec)
 end

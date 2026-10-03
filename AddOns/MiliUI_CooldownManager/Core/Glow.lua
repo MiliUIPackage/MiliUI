@@ -57,7 +57,10 @@
 --     觸發時音效與發光各看各的設定。
 --   * 冷卻狀態效果（Core/Decorate.lua，rec.style.cdState）也吃同一個訊號：有設就建探針、武裝；
 --     觸發（與暴雪 Clear）時先 Decorate.RefreshState 重算 alpha，再看發光／音效。
--- 亮 glow.ready.duration 秒（預設 3）後熄；期間技能被用掉（進了新的冷卻）就提早熄（G.CooldownStarted）：
+-- 亮 glow.ready.duration 秒（預設 3）後熄；期間技能被用掉（進了新的冷卻）就提早熄（G.CooldownStarted）。
+-- glow.ready.untilUsed 開著：不排計時，一直亮到 CooldownStarted（玩家回報 2026-10-03：打斷要一直亮）。
+--   ⚠ 只在「轉好那一刻」點燈：/reload、上線時本來就轉好的技能不亮，用過一次才開始。
+--   ⚠ 暴雪 item 的回充（rec.probeCharges）收不到 CooldownStarted（下面那條規則），照秒數熄。
 --   * 暴雪 item：SetCooldown 後掛勾裡 isOnGCD == false 且 isActive == true（都要明文）。
 --     回充不算：暴雪每次 GCD 都會對回充中的格子重設一次充能計時，拿它當訊號會按任何招就熄。
 --   * 自訂法術：Custom 的更新裡同一組明文旗標；自訂物品：武裝新的明文冷卻那一刻。
@@ -482,6 +485,8 @@ local function Fire(rec)
     Start(rec, "ready", barKey)
     local token = (rec.readyToken or 0) + 1
     rec.readyToken = token
+    -- 亮到用掉為止：不排計時，熄燈只靠 CooldownStarted。回充那條收不到「用掉了」（見檔頭），照秒數熄
+    if ns.Setting(barKey, "glow.ready.untilUsed") and not rec.probeCharges then return end
     local dur = tonumber(ns.Setting(barKey, "glow.ready.duration")) or 3
     if dur <= 0 then dur = 3 end
     C_Timer.After(dur, function()
@@ -592,7 +597,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
         ok = pcall(p.SetCooldownFromDurationObject, p, dur, true)
         if not ok then return end
     end
-    rec.probeArmed, rec.probeID = true, rec.cooldownID
+    rec.probeArmed, rec.probeID, rec.probeCharges = true, rec.cooldownID, charges
 end
 
 -- 暴雪清掉冷卻（到期那一刻它自己清、或冷卻被重置）而探針還武裝著 ⇒ 就是轉好了

@@ -553,6 +553,8 @@ function Specs.Themed(mode, key)
             TS("glow", "slider", "glow.ready.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.ready.type") }),
             TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.ready.type") }),
             GlowSampleRow("ready"),
+            TS("glow", "toggle", "glow.ready.untilUsed", L["Stay lit until used"]),
+            Note(L["Spells with charges still go out after the duration below."], "glow"),
             TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
     end
     -- 生效發光（增益）的樣式與顏色逐法術挑（預覽點圖示；使用者 2026-10-02 拿掉統一設定）；這裡只放像素發光的
