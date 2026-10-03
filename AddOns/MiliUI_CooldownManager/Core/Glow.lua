@@ -14,6 +14,8 @@
 --   * 引擎用 vendor 的 MiliUIGlow 的 Start 系列（普通框、driver 推動）；發光宿主不在光環按鈕子樹裡，
 --     不需要 Attach 系列。
 --   * 每個掛勾本體 ns.Guard。
+--   * 自訂法術／物品放在長條類的條上（rec.noGlow，Modules/Custom.lua 換框時設）：Start 一律不畫，
+--     探針照樣武裝（就緒音效、冷卻狀態照常）。
 --
 -- ── 觸發發光 ────────────────────────────────────────────────────────────
 -- 暴雪的冷卻管理器 item 用 ActionButtonSpellAlertManager:ShowAlert(item, skipBirth)／HideAlert(item)
@@ -300,6 +302,7 @@ end
 local function Start(rec, which, barKey, c)
     if not LCG then return end
     if ns.released and not rec.custom then return end     -- 已還給暴雪（Bars.ReleaseAll）
+    if rec.noGlow then return end                         -- 自訂項目放在長條上：長條不畫發光（Modules/Custom.lua）
     local h = Host(rec, which)
     if not h then return end
     c = c or Cfg(barKey, which)

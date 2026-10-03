@@ -613,6 +613,17 @@ local function Relayout(key, level, index, gen)
             f:ClearAllPoints()
             f:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
             f:SetSize(r.w, r.h)
+            -- 長條：圖示只畫在圖示那一格（h×h），不拉滿整條（條上有光環格時固定格位強制打開，增益長條也會走到這裡）
+            f.tex:ClearAllPoints()
+            if bar.kind == "bars" then
+                local side = type(bar.bar) == "table" and bar.bar.iconSide or "LEFT"
+                f.tex:SetSize(r.h, r.h)
+                f.tex:SetPoint(side == "RIGHT" and "RIGHT" or "LEFT", f, side == "RIGHT" and "RIGHT" or "LEFT", 0, 0)
+                f.tex:SetShown(side ~= "NONE")
+            else
+                f.tex:SetAllPoints(f)
+                f.tex:Show()
+            end
             f.tex:SetTexture((info and info.icon) or QUESTION)
             f.tex:SetDesaturated(true)
             f.tex:SetAlpha(0.35)                      -- 只有圖示暗，邊框照真實格的顏色

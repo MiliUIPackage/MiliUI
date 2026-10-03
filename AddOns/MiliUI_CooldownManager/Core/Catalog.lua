@@ -824,12 +824,10 @@ function C.Bar(barKey, withHidden)
         end
     end
 
-    -- 自訂項目（只進圖示類的條；長條的 item 是另一種框，放不進去）。
+    -- 自訂項目（圖示類、長條類的條都收：放在長條上時 Modules/Custom.lua 換成長條框）。
     -- hidden 對它無效：自己加的項目「移除」就是整筆刪掉，沒有「藏著」這種狀態
-    if bar.kind ~= "bars" then
-        for i, e in ipairs(CustomList()) do
-            if ValidCustom(e) and e.bar == barKey then out[#out + 1] = "c:" .. i end
-        end
+    for i, e in ipairs(CustomList()) do
+        if ValidCustom(e) and e.bar == barKey then out[#out + 1] = "c:" .. i end
     end
 
     -- 我們自己的順序覆寫：列到的照列的順序排在前面，沒列到的照原順序接在後面

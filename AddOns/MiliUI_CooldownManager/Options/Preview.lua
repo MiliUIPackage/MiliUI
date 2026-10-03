@@ -21,7 +21,8 @@
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
 -- 光環格（自訂項目 kind = "aura"）是固定前綴：cell.locked 只記「在前綴裡」——可以拖（只能在前綴內排序、或拖到左欄群組）、中鍵不藏，
 -- 別的格也不能插到它們前面（插入線變紅）。左鍵照樣開逐法術面板。
--- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（圖示類的條都收，含四條檢視器）。
+-- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（任何一條都收，含四條檢視器與長條類的條）。
+-- 長條格的自訂項目：名字＝法術／物品名、跑同一個十五秒假條；沒學會的自訂法術圖示灰掉。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -242,10 +243,10 @@ end
 function Preview.DropCandidates(key, id)
     local out = {}
     if ns.Catalog.IsCustom(id) then
-        -- 自訂項目：任何一條圖示類的條（長條的 item 是另一種框，放不進去）
+        -- 自訂項目：任何一條（圖示類、長條類都收；放在長條上時畫成長條，見 Modules/Custom.lua）
         local p = ns.profile
         for k, bar in pairs(p and p.bars or {}) do
-            if k ~= key and type(bar) == "table" and bar.kind ~= "bars" then out[k] = true end
+            if k ~= key and type(bar) == "table" then out[k] = true end
         end
         return out
     end
@@ -476,6 +477,8 @@ function Proto:Fill(c, e, i, r, now)
     c.decorated = nil
     if c.kind == "bars" then
         c.Icon.Icon:SetTexture(tex)
+        -- 沒學會的自訂法術：問號＋灰（圖示格那邊由轉圈的假冷卻表達，長條沒有）
+        c.Icon.Icon:SetDesaturated((c.custom and not c.known) and true or false)
         c.cycleOffset = (i * 3) % CYCLE
     else
         c.Icon:SetTexture(tex)
