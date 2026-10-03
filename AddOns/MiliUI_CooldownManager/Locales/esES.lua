@@ -598,7 +598,7 @@ L["(default)"] = "(predeterminado)"
 L["Out of combat too"] = "También fuera de combate"
 L["Background texture"] = "Textura de fondo"
 L["Same as fill"] = "Igual que el relleno"
-L["Height is per resource and shared by every specialization too."] = "La altura es por recurso y también la comparten todas las especializaciones."
+L["Height is per resource and shared by every specialization too."] = "Esta altura solo afecta a esta fila y la comparten todas las especializaciones."
 
 -- 戰鬥輔助（下一招醒目標示＋下一招圖示）：名稱照暴雪 GlobalStrings 的 ASSISTED_COMBAT_LABEL／ASSISTED_COMBAT_HIGHLIGHT_LABEL
 L["Combat Assistant"] = "Ayudante de combate"
