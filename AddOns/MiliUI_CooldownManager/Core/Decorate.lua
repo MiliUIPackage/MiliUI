@@ -582,7 +582,10 @@ local function OnSetUseAuraDisplayTime(cd, flag)
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
     local was = rec.auraFlag
-    rec.auraFlag = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
+    local plain = Plain(flag)
+    rec.auraFlag = plain == true              -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
+    -- 冷卻格的「增益出現／消失」音效與語音（Core/Sound.lua）：明文才算，它自己去重
+    if ns.Sound and ns.Sound.OnAuraFlag then ns.Sound.OnAuraFlag(rec, plain) end
     ResolveAuraFlag(rec)
     -- 冷卻格的「生效期間發光」吃這個旗標（Core/Glow.lua 的 SyncActive）：變了才對帳
     if was ~= rec.auraFlag and ns.Glow and ns.Glow.SyncActive then ns.Glow.SyncActive(item, rec) end
@@ -1130,6 +1133,8 @@ function D.HookItem(item, rec)
             if cd.GetUseAuraDisplayTime then
                 local ok, v = pcall(cd.GetUseAuraDisplayTime, cd)
                 rec.auraFlag = ok and Plain(v) == true or false
+                -- 音效的初值（只記不響：/reload 時增益還在不該響）
+                if ok and ns.Sound and ns.Sound.OnAuraFlag then ns.Sound.OnAuraFlag(rec, Plain(v)) end
                 -- 要不要蓋在 Apply 末尾（SyncAuraHide）判：第一次掛上時 rec.style 還沒寫
                 ResolveAuraFlag(rec)
             end

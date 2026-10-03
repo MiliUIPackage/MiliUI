@@ -548,6 +548,8 @@ L["Which sound plays is set per spell: click an icon in a bar's preview. Nothing
 L["Ready sound"] = "Son de disponibilité"
 L["Gain sound"] = "Son d'apparition"
 L["Lose sound"] = "Son de disparition"
+L["Buff gained sound"] = "Son au gain de l'amélioration"
+L["Buff lost sound"] = "Son à la fin de l'amélioration"
 L["Listen"] = "Écouter"
 L["No sounds available."] = "Aucun son disponible."
 -- 從 Ayije_CDM 匯入（Core/Import.lua）

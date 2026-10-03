@@ -99,10 +99,14 @@ local speaks = {}        -- { field, cb, box, listen }
 local SPEAK_OF = { readySound = "readySpeak", gainSound = "gainSpeak", loseSound = "loseSpeak" }
 
 -- 音效欄位與顯示在哪一類（class：「cooldown」冷卻類｜「aura」增益類）
+-- 暴雪的冷卻格（kind ＝ nil）另有增益出現／消失：暴雪開始／停止倒增益時間（Core/Sound.lua 的 OnAuraFlag），同一組欄位
+local function BlizzCooldownSound(kind, class) return kind == nil and class == "cooldown" end
 local SOUNDS = {
     { field = "readySound", label = L["Ready sound"], class = "cooldown" },
     { field = "gainSound",  label = L["Gain sound"],  class = "aura" },
     { field = "loseSound",  label = L["Lose sound"],  class = "aura" },
+    { field = "gainSound",  label = L["Buff gained sound"], when = BlizzCooldownSound },
+    { field = "loseSound",  label = L["Buff lost sound"],   when = BlizzCooldownSound },
 }
 
 -- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益時間）
@@ -722,7 +726,11 @@ local function Build()
     buildTab = "sound"
     for _, t in ipairs(SOUNDS) do
         local cls = t.class
-        local sr, sh = NewRow(t.label, function(_, class) return class == cls end)
+        local function SoundRowWhen(kind, class)
+            if t.when then return t.when(kind, class) end
+            return class == cls
+        end
+        local sr, sh = NewRow(t.label, SoundRowWhen)
         local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
         W.FitButton(listen, 44, 20)
         listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
@@ -743,7 +751,7 @@ local function Build()
         -- 同一個觸發的語音播報：勾選框＋輸入框（空白＝念法術名）＋試聽
         local field = SPEAK_OF[t.field]
         local kr, kh = NewRow(L["Speak"], function(kind, class)
-            return class == cls and kind ~= "aura" and ns.Sound.CanSpeak()
+            return SoundRowWhen(kind, class) and kind ~= "aura" and ns.Sound.CanSpeak()
         end)
         local entry = { field = field }
         local kcb = W.CreateCheckButton(kr, nil, function(on)

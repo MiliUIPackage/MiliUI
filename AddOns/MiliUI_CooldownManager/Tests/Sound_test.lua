@@ -324,6 +324,36 @@ active = false; onActive(old); active = true; onActive(old); Flush()
 eq("退路：同一幀消失又出現抵消", #plays, n0 + 1)
 
 ------------------------------------------------------------
+-- 7b. 暴雪的冷卻格：增益時間開始／結束（S.OnAuraFlag）
+------------------------------------------------------------
+do
+    local crec = { barKey = "essential", cooldownID = 21 }
+    state.now = 500
+    local n = #plays
+    S.OnAuraFlag(crec, true); Flush()
+    eq("冷卻格：第一次看到（初值）只記不響", #plays, n)
+    S.OnAuraFlag(crec, false); Flush()
+    eq("冷卻格：增益結束 ⇒ 消失音效", #plays, n + 1)
+    eq("消失音效是 Num", plays[#plays].path, media.Num)
+    state.now = 510
+    S.OnAuraFlag(crec, true); S.OnAuraFlag(crec, true); Flush()
+    eq("冷卻格：增益開始 ⇒ 響一次（連叫兩次同值不重響）", #plays, n + 2)
+    eq("出現音效是 Bell", plays[#plays].path, media.Bell)
+    state.now = 520
+    S.OnAuraFlag(crec, nil); Flush()
+    eq("秘密值／讀不到 ⇒ 不動", #plays, n + 2)
+    crec.cooldownID = 22                 -- 框被回收給別的法術：重新起算
+    S.OnAuraFlag(crec, false); Flush()
+    eq("換了法術 ⇒ 只記不響", #plays, n + 2)
+    local brec = { barKey = "buffs", cooldownID = 21 }
+    S.OnAuraFlag(brec, true); S.OnAuraFlag(brec, false); Flush()
+    eq("增益格不走這條（有自己的警示掛勾）", #plays, n + 2)
+    local cust = { barKey = "essential", cooldownID = "c:9", custom = true }
+    S.OnAuraFlag(cust, true); S.OnAuraFlag(cust, false); Flush()
+    eq("自訂項目不走這條", #plays, n + 2)
+end
+
+------------------------------------------------------------
 -- 8. 光環格：AddAuraSound 對帳
 ------------------------------------------------------------
 DB.SetOverride("c:1", "gainSound", "Ding")

@@ -675,6 +675,7 @@ AddOns 底下的 .ogg／.mp3，填 AddOns 之後的相對路徑（遊戲沒有�
 |---|---|
 | 就緒（暴雪核心／輔助 item、自訂法術／物品） | 跟就緒發光同一顆探針的 `OnCooldownDone`（`Core/Glow.lua`）。只設了音效沒開發光也照樣建探針、武裝；GCD 不算、多充能每回一層響一次（探針現況）。暴雪 item 自己的 `TriggerAvailableAlert` 只在玩家替那個法術設了暴雪警示時才被 OnUpdate 叫到，不能當通用訊號 |
 | 暴雪增益圖示／增益長條 item 出現／消失 | 後掛勾 item 的 `TriggerAuraAppliedAlert`／`TriggerAuraRemovedAlert`（12.1.0.69933 的 `Blizzard_CooldownViewer/CooldownViewer.lua`，`CooldownViewerMixin:OnUnitAura` 裡先 `CheckAuraRemovedAlertTriggers`、後 `CheckAuraAddedAlertTriggers`；不管有沒有設暴雪警示都會叫）。掛勾本體只拿 item 查我們的弱鍵表拿明文 cooldownID。事件進批次、下一幀合併：同一格「消失又出現」（換光環實例的刷新）抵消不響（`Logic.Net`：第一個事件推之前狀態、最後一個事件是之後狀態）。這兩支哪天沒了退回 `OnActiveStateChanged` 後掛勾＋`IsActive()`／`IsShown()` 前後比對（讀得到才算） |
+| 暴雪核心／輔助冷卻格的增益出現／消失（2026-10-03，狂暴觸發要語音） | `Cooldown:SetUseAuraDisplayTime(旗標)` 後掛勾（Decorate 轉給 `Sound.OnAuraFlag`，明文才算）：旗標 false→true＝增益出現、true→false＝消失。暴雪一次刷新常連叫兩次同值 ⇒ 值變了才排；掛勾時讀的初值與框換了法術只記不響。設定欄位跟增益格同一組（`gainSound`／`loseSound`／`gainSpeak`／`loseSpeak`），小窗「音效」分頁的「增益出現音效」「增益消失音效」兩列；走同一個批次、節流、讀取靜音。只有暴雪會「先倒增益時間」的技能有效；自訂法術沒有那一段 |
 | 光環格出現／消失 | `C_UnitAuras.AddAuraSound(Enum.UnitAuraSoundTrigger.Added／Removed, { unitToken = "player", spellID, soundFileName 或 soundFileID, outputChannel, throttleSeconds = 1.5 })`，回傳 `auraSoundID`，`RemoveAuraSound(id)` 撤銷；引擎自己播。對帳（`Logic.Diff`：多的撤、少的登、同簽章不動）在光環格放好／收起、設定檔／專精換了時排到下一幀。**戰鬥中或 `C_Secrets.ShouldAurasBeSecret()`（副本、鑰石、PvP）不叫**（封鎖動作、pcall 攔不住），排到脫戰／首領戰結束／換區域／鑰石完成再試；`PLAYER_ENTERING_WORLD` 撤掉手上的全部重登（不跨 /reload） |
 
 - 播放：`PlaySoundFile(路徑或檔案編號, 聲道)`；LSM 取出來是字串或數字都能播。

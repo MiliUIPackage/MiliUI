@@ -18,7 +18,7 @@
 -- 設定
 --   theme.sound = { enabled, channel }      總開關、聲道（Master／SFX／Music／Ambience／Dialog）
 --   spells[spec].overrides[id].readySound   冷卻類：LSM 音效名；nil／false ＝ 無
---   ….gainSound／loseSound                  增益類：出現／消失
+--   ….gainSound／loseSound                  增益類：出現／消失；暴雪的冷卻格：增益時間開始／結束（S.OnAuraFlag）
 --   ….readySpeak／gainSpeak／loseSpeak       語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
 --   音效沒有條層的值，只有逐法術（DB.SPELL_CONST 給 false）。
 --   帳號層 customSounds = { { id, name, path }, … }   自訂語音（順序＝玩家排的順序）
@@ -570,6 +570,21 @@ local function OnActiveChanged(item)
     local before = nil                            -- ⚠ 不能寫成 a and b or nil：false 會被吃掉
     if rec.soundActiveID == rec.cooldownID then before = rec.soundActive end
     rec.soundActive, rec.soundActiveID = now, rec.cooldownID
+    if before == nil or before == now then return end
+    Push(rec, now and "gain" or "lose")
+end
+
+-- 暴雪的冷卻格（核心／輔助）：「增益出現／消失」＝暴雪開始／停止倒增益時間（玩家回報 2026-10-03：狂暴觸發時要語音）。
+-- Decorate 的 SetUseAuraDisplayTime 後掛勾每次都叫（值是 Plain 過的明文；秘密值／讀不到 ＝ nil ⇒ 不動）。
+-- 暴雪一次刷新常連叫兩次同樣的值 ⇒ 只在值真的變了才排；第一次看到（掛勾時讀的初值、/reload 時增益還在）
+-- 只記不響；框被暴雪回收給別的法術（cooldownID 換了）也重新起算。走同一個批次（下一幀合併、節流、讀取靜音）。
+-- 設定欄位跟增益格同一組（gainSound／loseSound／gainSpeak／loseSpeak）。
+function S.OnAuraFlag(rec, now)
+    if not rec or rec.custom or rec.cooldownID == nil or type(now) ~= "boolean" then return end
+    if ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey] then return end
+    local before = nil                            -- ⚠ 不能寫成 a and b or nil：false 會被吃掉
+    if rec.soundFlagID == rec.cooldownID then before = rec.soundFlag end
+    rec.soundFlag, rec.soundFlagID = now, rec.cooldownID
     if before == nil or before == now then return end
     Push(rec, now and "gain" or "lose")
 end

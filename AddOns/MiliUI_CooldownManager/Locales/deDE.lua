@@ -548,6 +548,8 @@ L["Which sound plays is set per spell: click an icon in a bar's preview. Nothing
 L["Ready sound"] = "Bereit-Sound"
 L["Gain sound"] = "Erhalten-Sound"
 L["Lose sound"] = "Verloren-Sound"
+L["Buff gained sound"] = "Sound bei Buff-Beginn"
+L["Buff lost sound"] = "Sound bei Buff-Ende"
 L["Listen"] = "Anhören"
 L["No sounds available."] = "Keine Sounds verfügbar."
 -- 從 Ayije_CDM 匯入（Core/Import.lua）

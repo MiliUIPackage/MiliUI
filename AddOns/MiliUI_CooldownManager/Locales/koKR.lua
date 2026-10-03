@@ -548,6 +548,8 @@ L["Which sound plays is set per spell: click an icon in a bar's preview. Nothing
 L["Ready sound"] = "준비 효과음"
 L["Gain sound"] = "생성 효과음"
 L["Lose sound"] = "사라짐 효과음"
+L["Buff gained sound"] = "강화 효과 시작 소리"
+L["Buff lost sound"] = "강화 효과 종료 소리"
 L["Listen"] = "미리 듣기"
 L["No sounds available."] = "사용할 수 있는 소리가 없습니다."
 -- 從 Ayije_CDM 匯入（Core/Import.lua）
