@@ -25,6 +25,7 @@ local function BuildDefaults()
             -- 筆記內文與清單的字型；"" = 在地化預設字型
             font     = "",
             fontSize = 12,
+            outline  = "",   -- SetFont flags，選項見 Media.OUTLINE_ITEMS；預設不描邊（深底視窗）
 
             minimap = {
                 show  = true,
@@ -233,6 +234,7 @@ local function Normalize(db)
 
     s.fontSize = Clamp(s.fontSize, DB.LIMITS.fontSize, def.settings.fontSize)
     if type(s.font) ~= "string" then s.font = "" end
+    if not ns.Media.OUTLINE_VALID[s.outline] then s.outline = "" end
 
     if type(s.minimap.angle) ~= "number" then
         s.minimap.angle = def.settings.minimap.angle

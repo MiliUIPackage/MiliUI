@@ -18,6 +18,24 @@ local LOCALE_FONTS = {
 local DEFAULT_FONT = LOCALE_FONTS[GetLocale()] or "Fonts\\FRIZQT__.TTF"
 M.DEFAULT_FONT = DEFAULT_FONT
 
+-- 描邊選項：跟 MiliUI_CooldownManager 同一套五選一（值就是 SetFont 的 flags）
+M.OUTLINE_ITEMS = {
+    { text = ns.L["None"],          value = "" },
+    { text = ns.L["Outline"],       value = "OUTLINE" },
+    { text = ns.L["Thick outline"], value = "THICKOUTLINE" },
+    -- 單色＝關掉反鋸齒：像素字體用（一般字型選了邊緣會有鋸齒）
+    { text = ns.L["Monochrome outline"],       value = "MONOCHROME,OUTLINE" },
+    { text = ns.L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
+}
+local OUTLINE_VALID = {}
+for _, it in ipairs(M.OUTLINE_ITEMS) do OUTLINE_VALID[it.value] = true end
+M.OUTLINE_VALID = OUTLINE_VALID
+
+-- 設定值 → SetFont 的 flags（不認得的一律當沒描邊）
+function M.Outline(o)
+    return (type(o) == "string" and OUTLINE_VALID[o]) and o or ""
+end
+
 local function LSM()
     return LibStub and LibStub("LibSharedMedia-3.0", true)
 end
@@ -125,7 +143,8 @@ function M.UpdateFonts()
     local s = ns.db and ns.db.settings
     local path = M.Font(s and s.font)
     local size = (s and s.fontSize) or 12
-    fontRow:SetFont(path, size, "")
-    fontDim:SetFont(path, math.max(9, size - 1), "")
-    fontNum:SetFont(path, size, "")
+    local flags = M.Outline(s and s.outline)
+    fontRow:SetFont(path, size, flags)
+    fontDim:SetFont(path, math.max(9, size - 1), flags)
+    fontNum:SetFont(path, size, flags)
 end

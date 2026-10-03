@@ -12,6 +12,7 @@
 ## Author: Mili
 ## Version: 1.0.0
 ## SavedVariables: MiliUI_InfoBar_DB
+## OptionalDeps: LibSharedMedia-3.0
 
 Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua

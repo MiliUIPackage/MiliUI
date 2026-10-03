@@ -125,6 +125,9 @@ Specs.JUSTIFY_V_ITEMS = {
 }
 Specs.FLAGS_ITEMS = {
     { text = L["None"], value = "" }, { text = L["Outline"], value = "OUTLINE" }, { text = L["Thick outline"], value = "THICKOUTLINE" },
+    -- 單色＝關掉反鋸齒：像素字體用（一般字型選了邊緣會有鋸齒）
+    { text = L["Monochrome outline"],       value = "MONOCHROME,OUTLINE" },
+    { text = L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
 }
 
 -- 位置尺寸四件組（最常用，抽成工廠）

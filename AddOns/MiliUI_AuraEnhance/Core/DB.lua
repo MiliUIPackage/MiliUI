@@ -33,7 +33,7 @@ local function BuildDefaults()
             -- （1.x 版存的是完整路徑，Media.OptionalFont 兩種都吃）
             font     = "",
             fontSize = 12,
-            outline  = true,
+            outline  = "OUTLINE",   -- SetFont flags，選項見 Media.OUTLINE_ITEMS
             yOffset  = 6,
         },
         count = {
@@ -41,7 +41,7 @@ local function BuildDefaults()
             font     = "",
             -- 預設＝暴雪自己那支的大小（依語系不同），更新完層數不會突然縮放
             fontSize = ns.Media.BLIZZ_COUNT_SIZE,
-            outline  = true,
+            outline  = "OUTLINE",   -- SetFont flags，選項見 Media.OUTLINE_ITEMS
             anchor   = "TOP",
             x        = 0,
             y        = 4,
@@ -184,6 +184,18 @@ local function Normalize(db)
     c.y = Clamp(c.y, DB.LIMITS.countY, def.count.y)
     -- 錨點寫錯的話 SetPoint 會直接拋錯，退回預設比讓它炸掉好
     if not DB.ANCHORS[c.anchor] then c.anchor = def.count.anchor end
+    -- 描邊從開關改成五選一（2026-10-03）：舊存檔與前身搬來的值是布林，就地換成
+    -- 對應的 flags。型別轉換不是改預設值，所以不走版本閘；不認得的值退回預設
+    for _, key in ipairs({ "duration", "count" }) do
+        local t = db[key]
+        if t.outline == true then
+            t.outline = "OUTLINE"
+        elseif t.outline == false then
+            t.outline = ""
+        elseif not ns.Media.OUTLINE_VALID[t.outline] then
+            t.outline = def[key].outline
+        end
+    end
 end
 
 ------------------------------------------------------------

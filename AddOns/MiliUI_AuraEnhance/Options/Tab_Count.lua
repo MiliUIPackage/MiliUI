@@ -34,8 +34,8 @@ local CONTROLS = {
     { type = "text",   label = L["Install LibSharedMedia (or an addon that bundles it) to get more fonts here."] },
     { type = "slider", key = "fontSize", label = L["Font size"],
       min = LIMITS.fontSize[1], max = LIMITS.fontSize[2], step = 1 },
-    { type = "toggle", key = "outline", label = L["Outline"] },
-    { type = "text",   label = L["Adds a 1px black outline so the numbers stay readable over bright icons."] },
+    { type = "dropdown", key = "outline", label = L["Outline"], items = ns.Media.OUTLINE_ITEMS },
+    { type = "text",   label = L["An outline keeps the numbers readable over bright icons. The monochrome options turn off anti-aliasing and are meant for pixel fonts."] },
 }
 
 local function Init()

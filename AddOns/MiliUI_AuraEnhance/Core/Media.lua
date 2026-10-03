@@ -18,6 +18,24 @@ local LOCALE_FONTS = {
 local DEFAULT_FONT = LOCALE_FONTS[GetLocale()] or "Fonts\\FRIZQT__.TTF"
 M.DEFAULT_FONT = DEFAULT_FONT
 
+-- 描邊選項：跟 MiliUI_CooldownManager 同一套五選一（值就是 SetFont 的 flags）
+M.OUTLINE_ITEMS = {
+    { text = ns.L["None"],          value = "" },
+    { text = ns.L["Outline"],       value = "OUTLINE" },
+    { text = ns.L["Thick outline"], value = "THICKOUTLINE" },
+    -- 單色＝關掉反鋸齒：像素字體用（一般字型選了邊緣會有鋸齒）
+    { text = ns.L["Monochrome outline"],       value = "MONOCHROME,OUTLINE" },
+    { text = ns.L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
+}
+local OUTLINE_VALID = {}
+for _, it in ipairs(M.OUTLINE_ITEMS) do OUTLINE_VALID[it.value] = true end
+M.OUTLINE_VALID = OUTLINE_VALID
+
+-- 設定值 → SetFont 的 flags（不認得的一律當沒描邊）
+function M.Outline(o)
+    return (type(o) == "string" and OUTLINE_VALID[o]) and o or ""
+end
+
 -- 暴雪層數文字的原始大小。層數繼承 NumberFontNormal → NumberFont_Outline_Med，
 -- 而那是一個 FontFamily：每種字母系統各給一個高度，**不是固定 14**。
 -- 拿來當「文字大小」的預設值，玩家更新完看到的層數才跟更新前一樣大。

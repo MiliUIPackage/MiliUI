@@ -95,13 +95,13 @@ end
 function HP.MakeText(parent, delta)
     local fs = parent:CreateFontString(nil, "OVERLAY")
     fs.sizeDelta = delta or 0
-    fs:SetFont(ns.LOCALE_FONT, HP.FontSize() + fs.sizeDelta, "")
+    fs:SetFont(ns.FontPath(), HP.FontSize() + fs.sizeDelta, "")
     fs:SetWordWrap(false)
     return fs
 end
 
 function HP.ApplyFont(fs)
-    fs:SetFont(ns.LOCALE_FONT, HP.FontSize() + (fs.sizeDelta or 0), "")
+    fs:SetFont(ns.FontPath(), HP.FontSize() + (fs.sizeDelta or 0), "")
 end
 
 -- 灰字的行內版本（接在主文字後面的補充語）。色碼直接由 TEXT_DIM 換算，
@@ -345,7 +345,7 @@ function Rows:Fill(row, item, gutter)
     elseif kind == "title" then
         -- 標題比內容**弱**：灰、小一級、底下一條髮絲線
         row.h = TITLE_H
-        row.text:SetFont(ns.LOCALE_FONT, HP.FontSize() + SZ_TITLE, "")
+        row.text:SetFont(ns.FontPath(), HP.FontSize() + SZ_TITLE, "")
         row.text:SetText(item.text)
         SetColor(row.text, TEXT_DIM)
         row.rule:Show()
@@ -359,7 +359,7 @@ function Rows:Fill(row, item, gutter)
         end
 
     elseif kind == "note" then
-        row.text:SetFont(ns.LOCALE_FONT, HP.FontSize() + SZ_NOTE, "")
+        row.text:SetFont(ns.FontPath(), HP.FontSize() + SZ_NOTE, "")
         row.text:SetText(item.text)
         SetColor(row.text, TEXT_DIM)
         need = textX + row.text:GetStringWidth() + PAD_X

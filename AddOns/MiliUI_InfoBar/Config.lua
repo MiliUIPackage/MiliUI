@@ -29,6 +29,76 @@ else
 end
 
 ----------------------------------------------------------------------
+-- 條上文字的字型與描邊（玩家可選；滑過面板跟著用同一支字型）
+--
+-- db.font：""＝在地化字型；含路徑分隔符的是內建字型路徑；其餘是 LibSharedMedia 名稱。
+-- 微型按鈕的字母備援、彈窗這些不是「條上的字」，照舊用 LOCALE_FONT。
+----------------------------------------------------------------------
+local function LSM()
+    return LibStub and LibStub("LibSharedMedia-3.0", true)
+end
+
+-- 只快取查到的：註冊字型的插件可能比我們晚載入，記了 nil 就永遠退成預設
+local fontCache = {}
+
+function ns.FontPath()
+    local token = ns.GetDB and ns.GetDB().font
+    if type(token) ~= "string" or token == "" then return ns.LOCALE_FONT end
+    if token:find("[\\/]") then return token end
+    local cached = fontCache[token]
+    if cached then return cached end
+    local lsm = LSM()
+    local path = lsm and lsm:Fetch("font", token, true)
+    if path then
+        fontCache[token] = path
+        return path
+    end
+    return ns.LOCALE_FONT
+end
+
+-- 描邊選項：跟 MiliUI_CooldownManager 同一套五選一（值就是 SetFont 的 flags）
+ns.OUTLINE_ITEMS = {
+    { text = ns.L["OUTLINE_NONE"],       value = "" },
+    { text = ns.L["OUTLINE_NORMAL"],     value = "OUTLINE" },
+    { text = ns.L["OUTLINE_THICK"],      value = "THICKOUTLINE" },
+    -- 單色＝關掉反鋸齒：像素字體用（一般字型選了邊緣會有鋸齒）
+    { text = ns.L["OUTLINE_MONO"],       value = "MONOCHROME,OUTLINE" },
+    { text = ns.L["OUTLINE_MONO_THICK"], value = "MONOCHROME,THICKOUTLINE" },
+}
+local OUTLINE_VALID = {}
+for _, it in ipairs(ns.OUTLINE_ITEMS) do OUTLINE_VALID[it.value] = true end
+
+function ns.FontFlags()
+    local o = ns.GetDB and ns.GetDB().outline
+    return (type(o) == "string" and OUTLINE_VALID[o]) and o or ""
+end
+
+-- 設定頁的字型清單。⚠ 一定要是函式：LibSharedMedia 可能比我們晚載入，
+-- 開分頁那一刻才求值才列得全。
+local BUILTIN_FONTS = {
+    { text = "Friz Quadrata", value = "Fonts\\FRIZQT__.TTF" },
+    { text = "Arial Narrow",  value = "Fonts\\ARIALN.TTF" },
+    { text = "Skurri",        value = "Fonts\\skurri.TTF" },
+    { text = "Morpheus",      value = "Fonts\\MORPHEUS.TTF" },
+}
+
+function ns.FontItems()
+    local items = { { text = ns.L["FONT_DEFAULT"], value = "" } }
+    local lsm = LSM()
+    if lsm then
+        local ok, list = pcall(lsm.List, lsm, "font")
+        if ok and type(list) == "table" then
+            for _, name in ipairs(list) do
+                items[#items + 1] = { text = name, value = name }
+            end
+            return items
+        end
+    end
+    for _, f in ipairs(BUILTIN_FONTS) do items[#items + 1] = f end
+    return items
+end
+
+----------------------------------------------------------------------
 -- 區塊註冊表
 --
 -- 這張表同時決定：預設排序（order）、設定分頁的小節順序、以及語系 key
@@ -99,6 +169,8 @@ ns.DB_DEFAULTS = {
     -- 放了預設值反而把「沒拖過」這個狀態蓋掉。
     height       = 26,
     fontSize     = 12,
+    font         = "",          -- ""＝在地化字型（見上面的 ns.FontPath）
+    outline      = "",          -- SetFont flags，選項見 ns.OUTLINE_ITEMS；預設不描邊（條有底色）
     -- 停靠：貼在畫面上緣／下緣並填滿整寬（Core/Bar.lua 的 ApplyInset）。
     -- "none" = 自由擺放（預設）。dockPush = 停靠時把 UIParent 往內縮一條，
     -- 錨在那個邊的所有東西自動讓開；關掉就只是蓋在上面。

@@ -71,10 +71,10 @@ end
 
 -- 套用層數的字型、大小與描邊
 local function ApplyCountFont(cnt)
-    SetFontSafe(cnt, CountFontPath(cnt), CNT.fontSize, CNT.outline and "OUTLINE" or "")
+    SetFontSafe(cnt, CountFontPath(cnt), CNT.fontSize, Media.Outline(CNT.outline))
     cnt.MiliUIAura_fontApplied = true
     cnt.MiliUIAura_countGen = countGen
-    if CNT.outline then
+    if Media.Outline(CNT.outline) ~= "" then
         cnt:SetShadowOffset(1, -1)
         cnt:SetShadowColor(0, 0, 0, 0.6)
     else
@@ -137,9 +137,9 @@ local function HookDuration(btn)
         if overriding or not DUR or not DUR.enabled then return end
 
         overriding = true
-        SetFontSafe(self, DurationFontPath(self), DUR.fontSize, DUR.outline and "OUTLINE" or "")
+        SetFontSafe(self, DurationFontPath(self), DUR.fontSize, Media.Outline(DUR.outline))
         self.MiliUIAura_fontApplied = true
-        if DUR.outline then
+        if Media.Outline(DUR.outline) ~= "" then
             self:SetShadowOffset(1, -1)
             self:SetShadowColor(0, 0, 0, 0.6)
         else
@@ -197,10 +197,10 @@ local function ApplyDurationStyle(btn)
 
     RememberOrigFont(dur)
     dur:SetParent(EnsureOverlay(btn))
-    SetFontSafe(dur, DurationFontPath(dur), DUR.fontSize, DUR.outline and "OUTLINE" or "")
+    SetFontSafe(dur, DurationFontPath(dur), DUR.fontSize, Media.Outline(DUR.outline))
     dur.MiliUIAura_fontApplied = true
 
-    if DUR.outline then
+    if Media.Outline(DUR.outline) ~= "" then
         dur:SetShadowOffset(1, -1)
         dur:SetShadowColor(0, 0, 0, 0.6)
     else
