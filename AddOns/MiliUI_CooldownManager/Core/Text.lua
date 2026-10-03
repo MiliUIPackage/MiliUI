@@ -212,10 +212,12 @@ function T.ApplyPhaseColor(item, rec)
     if not (st and st.cdColor and cd and cd.GetCountdownFontString) then return end
     local fs = cd:GetCountdownFontString()
     if not fs then return end
-    local c = (rec.auraTime and st.durColor) or st.cdColor
+    -- allAura：以增益取代時頂著技能格的增益，整段都算增益那一段（Decorate.Apply）
+    local aura = rec.auraTime or st.allAura
+    local c = (aura and st.durColor) or st.cdColor
     fs:SetTextColor(c[1], c[2], c[3], c[4])
     -- 低秒變色：增益那一段用它自己的 formatter（色碼不同、門檻同）；兩顆都有才換，少一顆就留 ApplyIcon 設的那顆
-    local fmt = (rec.auraTime and st.durFmt) or st.cdFmt
+    local fmt = (aura and st.durFmt) or st.cdFmt
     if fmt and st.durFmt and st.cdFmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
 end
 
