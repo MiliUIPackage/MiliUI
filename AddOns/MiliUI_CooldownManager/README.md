@@ -22,7 +22,7 @@
 > 按鍵文字、音效（就緒／光環出現／消失）；資源條與玩家施法條；套組裡的單位框架、征戰聖擊助手、本體設定頁都認得本插件。
 > 程式裡沒有實機跑過的假設全部列在最後的「待實機驗證」。
 > `/mcdm debug` 印引擎與編輯模式現況，`/mcdm aura` 印每個光環格的保護狀態與最近錯誤，
-> `/mcdm release` 把冷卻管理器還給暴雪（除錯用，/reload 接回來）。
+> `/mcdm release` 把冷卻管理器還給暴雪（除錯用，/reload 接回來），`/mcdm perf` 印引擎的效能計數（見「效能計數」）。
 
 ⚠ 跟另一支同樣接管冷卻管理器的插件**不能同時啟用**：偵測到時登入會跳出視窗二選一，
 本插件在那次登入裡什麼都不做。
@@ -50,7 +50,7 @@
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
-| `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
+| `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
 | `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
@@ -137,6 +137,29 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 藏起來或顯示回來），存在 `MiliUI_CooldownManager_DB.diag.log`（最近 120 行，跨登入保留）。`/mcdm debug` 印最近 6 行，
 並把整份輸出＋**每顆 item 的現況**（身分、顯示、alpha、縮放、尺寸、錨在誰身上、誰認領）存進 `diag.dump`——
 畫面壞掉時打一次 `/mcdm debug` 再 `/reload`，事後可以直接從 SavedVariables 讀。
+
+### 效能計數（`/mcdm perf`，`Api.lua`）
+
+計數器是各模組表上的整數（熱路徑只有 `+ 1`，不配置、不新增 OnUpdate／輪詢），`Api.lua` 只負責讀、相減、印：
+
+| 計數 | 加在哪 |
+|---|---|
+| `Bars.flushes`／`relayoutBars`／`requestSource`／`requestSourceHit`／`reapplyItems` | `Flush`／`Relayout`（條，面板不算）／`RequestSource` 入口／（快取命中，快取做之前恆 0）／`Reapply` 放回一顆 |
+| `Visibility.snapshots` | `Snapshot()` |
+| `Decorate.applyCalls`／`applySkipped`／`applyPre` | `D.Apply` 入口／簽章命中／（前置鍵命中，做之前恆 0） |
+| `Decorate.setCooldownHooks`／`afterCooldownWrites` | `OnSetCooldown` 入口／`AfterCooldown` 有轉圈色・邊緣・倒數換色要寫 |
+| `Glow.pandemicCalls`／`pandemicChanges` | `OnShowPandemic`／`OnHidePandemic` 入口／狀態真的變了 |
+| `Custom.updates`／`colorOnly` | `UpdateSpell`／（只重算顏色，做之前恆 0） |
+| `Resources.mirrorTicks`／`valueFlushes` | `MirrorTick`／事件 Flush 只重畫值的那一支 |
+| 既有：`SpellIndex.rebuilds／precise／full`、`StackGate.feeds`、`Cursor.ticks`；現況值：`Glow.Counts()` | — |
+
+- `/mcdm perf`：每個計數「自上次重設以來」的總數、每秒、子計數佔母計數幾 %；最上面一行是 `C_AddOnProfiler.GetAddOnMetric`
+  （近期平均／本次登入平均／首領戰平均／單幀尖峰，欄位沒有就跳過，全部 `pcall`）與記憶體（**只有這支手動指令**叫
+  `UpdateAddOnMemoryUsage`：全堆掃描）。輸出存進 `diag.perf`（`/reload` 後可讀；另一個欄位，`/mcdm debug` 不會洗掉它）。
+- `/mcdm perf reset`：**記基準、印的時候相減**，不把計數器歸零——`Bars.flushes` 同時是排版世代（`rec.claimGen`），歸零會撞號。
+- `/mcdm perf log`：切換 `MiliUI_CooldownManager_DB.perfLog`（預設關）。進戰鬥記一份基準（重用同一張表），
+  開著時脫戰印一行「這一場 N 秒：Flush N、Apply N（跳過 N）、SetCooldown N（寫 N）…」。
+- 格式化是純函式 `ns.PerfLines(counters, elapsed)`／`ns.PerfSummary`（`Tests/Extras_test.lua` 第 8 節）。
 
 ## 編輯模式
 
@@ -2044,3 +2067,15 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 260. 戰隊層的團隊增益光環格在每個角色都建容器、出現／消失音效有登記（`/mcdm aura`）；`/console taintLog 2` 打一場（含範圍切換後、戰鬥中）
      taint.log 沒有本插件。
 261. 施法條被打斷、施法失敗時震動一下、震完回原位不偏移（含載具、被打斷後立刻再唱）；取消勾選「被打斷或施法失敗時震動」就不抖。
+
+**效能量測（`/mcdm perf`）**
+
+262. `/mcdm perf` 在戰鬥外、戰鬥中都印得出來；`/mcdm perf reset` 後數字歸零（`/mcdm debug` 的「排版 N 次」不受影響）；
+     `插件分析器` 那一行有值（近期平均／本次登入平均／首領戰平均／單幀尖峰、記憶體）。`/mcdm perf log` 打開後脫戰印一行這一場的計數；
+     `/reload` 後 `MiliUI_CooldownManager_DB.diag.perf` 讀得到上一次的輸出。
+263. **基準數字**：同一個角色，一場首領戰（或 M+ 一隻王），`/mcdm perf reset` → 打 → `/mcdm perf`，把輸出貼進下面「效能基準」
+     （E1～E3 之後同一個場景各量一次，並列）。
+
+**效能基準**
+
+（尚未量測）

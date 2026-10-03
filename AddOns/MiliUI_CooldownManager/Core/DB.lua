@@ -9,6 +9,7 @@
 --       profileKeys  = { ["角色 - 伺服器"] = "Default" },            -- 每角色目前用哪份
 --       specProfiles = { ["角色 - 伺服器"] = { enabled = bool, [專精序號] = "設定檔名" } },
 --       charClasses  = { ["角色 - 伺服器"] = "PALADIN" },            -- 清單上色用
+--       diag, perfLog,                                -- 開發用：診斷記錄（Core/Diag.lua）／脫戰印這一場的計數（/mcdm perf log）
 --   }
 --
 -- 設定視窗的位置與上次停在哪一頁放帳號層（跟單位框架同一個理由）：換設定檔不該讓

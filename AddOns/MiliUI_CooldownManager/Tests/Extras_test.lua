@@ -19,6 +19,8 @@
 --      餵 duration 物件、SetUseAuraDisplayTime(false) 不清掉記號、探針走 ArmProbe、倒數原色；不藏 ⇒ 不蓋；
 --      沒有物件 ⇒ Clear 且不當成轉好；充能三種狀態；裝備欄項目與秘密旗標不蓋；探針只在真的冷卻時武裝）、
 --      去飽和（曲線求值、暴雪寫 false 之後重算、設定關掉不動）、設定切換（SyncAuraHide）
+--   8. /mcdm perf：計數表 → 文字行（PerfLines：每秒、佔幾 %、沒有的計數、現況值）、脫戰那一行（PerfSummary）、
+--      指令（reset 只記基準不動模組上的計數、log 開關、進出戰鬥的那一場）
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -1179,6 +1181,92 @@ do
     ns.Viewers.frames[item] = nil
     ns.Glow = nil
     for k, v in pairs(savedSpell) do env.C_Spell[k] = v end
+end
+
+------------------------------------------------------------
+-- 8. /mcdm perf
+------------------------------------------------------------
+do
+    env.SlashCmdList = env.SlashCmdList or {}
+    ns.L = ns.L or setmetatable({}, { __index = function(_, k) return k end })
+    ns.PREFIX_COLOR = ns.PREFIX_COLOR or ""
+    Load("Api.lua")
+
+    -- 純函式：計數表 → 文字行
+    local lines = ns.PerfLines({
+        { key = "a", label = "A", n = 100 },
+        { key = "b", label = "B", n = 25, of = "a" },
+        { key = "c", label = "C", n = nil },
+        { label = "G", n = 3, gauge = true },
+        { key = "d", label = "D", n = 5, of = "zero" },
+        { key = "zero", label = "Z", n = 0 },
+    }, 10)
+    eq("perf 行數", #lines, 7)
+    eq("perf 第一行是經過秒數", lines[1], "  自上次重設 10.0 秒")
+    eq("perf 總數與每秒", lines[2], "  A：100  每秒 10.0")
+    eq("perf 佔幾 %", lines[3], "  B：25  每秒 2.5（25%）")
+    eq("perf 沒有的計數", lines[4], "  C：—（沒有這個計數）")
+    eq("perf 現況值不算每秒", lines[5], "  G：3（現況）")
+    eq("perf 分母 0 不印 %", lines[6], "  D：5  每秒 0.5")
+    local l0 = ns.PerfLines({ { key = "a", label = "A", n = 4 } }, 0)
+    eq("perf 經過 0 秒 ⇒ 不算每秒（標題）", l0[1], "  自上次重設不到一秒（不算每秒）")
+    eq("perf 經過 0 秒 ⇒ 不算每秒", l0[2], "  A：4")
+    eq("perf 經過秒數不是數字", ns.PerfLines({}, nil)[1], "  自上次重設不到一秒（不算每秒）")
+
+    -- 純函式：脫戰那一行
+    eq("perf 脫戰那一行", ns.PerfSummary({
+        { key = "Bars.flushes", n = 12 },
+        { key = "Decorate.applyCalls", n = 40 },
+        { key = "Decorate.applySkipped", n = 30 },
+        { key = "Visibility.snapshots" },
+    }, 61.4), "這一場 61 秒：Flush 12、Apply 40（跳過 30）")
+    eq("perf 脫戰那一行（沒有計數）", ns.PerfSummary({}, nil), "這一場 0 秒：（沒有計數）")
+
+    -- 指令
+    local printed = {}
+    local savedPrint = env.print
+    env.print = function(s) printed[#printed + 1] = tostring(s) end
+    local function Has(text)
+        for _, s in ipairs(printed) do if s:find(text, 1, true) then return true end end
+        return false
+    end
+    ns.Bars.flushes = 5
+    ns.Perf("reset")
+    eq("reset 不動模組上的計數（B.flushes 是排版世代）", ns.Bars.flushes, 5)
+    ns.Bars.flushes = 8
+    state.now = state.now + 3
+    printed = {}
+    ns.Perf()
+    check("reset 之後印的是差值", Has("  排版 Flush：3  每秒 1.0"), table.concat(printed, "\n"))
+    check("沒載入的模組印「沒有這個計數」", Has("  征戰聖擊鏡射 OnUpdate：—（沒有這個計數）"))
+    check("Decorate 的計數接上了", Has("  SetCooldown 掛勾：") and not Has("  SetCooldown 掛勾：—"))
+    printed = {}
+    ns.Perf("reset")
+    ns.Perf()
+    check("再 reset ⇒ 歸零", Has("  排版 Flush：0"))
+
+    -- log 開關＋這一場
+    local sv = env.MiliUI_CooldownManager_DB
+    sv.perfLog = nil
+    ns.Perf("log")
+    eq("log 打開", sv.perfLog, true)
+    local dis, en = events.PLAYER_REGEN_DISABLED.perf, events.PLAYER_REGEN_ENABLED.perf
+    dis()
+    ns.Bars.flushes = ns.Bars.flushes + 2
+    state.now = state.now + 5
+    printed = {}
+    en()
+    check("脫戰印這一場", Has("這一場 5 秒：Flush 2"), table.concat(printed, "\n"))
+    ns.Perf("log")
+    eq("log 關掉", sv.perfLog, false)
+    dis()
+    printed = {}
+    en()
+    eq("log 關著 ⇒ 脫戰不印", #printed, 0)
+    printed = {}
+    en()
+    eq("沒進戰鬥就脫戰 ⇒ 不印", #printed, 0)
+    env.print = savedPrint
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))

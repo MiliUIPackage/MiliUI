@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 對外出口：slash、AddonCompartment、公開 API
 ------------------------------------------------------------
-local _, ns = ...
+local ADDON, ns = ...
 
 local L = ns.L
 
@@ -326,6 +326,219 @@ local function AuraDebug()
 end
 ns.AuraDebug = AuraDebug
 
+------------------------------------------------------------
+-- /mcdm perf：效能計數（開發用，字串不進語系檔）
+--
+-- 計數器散在各模組表上（模組層級整數，熱路徑上只有 +1、不配置、不新增 OnUpdate）。這裡只負責讀、相減、印：
+--   /mcdm perf         自上次重設以來每個計數的總數與每秒；最上面一行是暴雪的插件分析器（C_AddOnProfiler）與記憶體
+--   /mcdm perf reset   重設
+--   /mcdm perf log     切換「脫戰時印一行這一場的計數」（MiliUI_CooldownManager_DB.perfLog，預設關）
+-- 輸出跟 /mcdm debug 一樣存進 SavedVariables（diag.perf，/reload 後可讀）。
+--
+-- ⚠ 重設**不把計數器歸零**，而是記一份基準、印的時候相減：B.flushes 同時是 Bars 的排版世代
+--   （Relayout 的 gen → rec.claimGen），歸零會讓新的世代撞上舊的。印出來的數字跟「歸零」一樣。
+------------------------------------------------------------
+-- { 模組（ns 上的表名）, 欄位, 標籤, of = 印成「佔誰的幾 %」（同表的 key） }
+local PERF = {
+    { "Bars",       "flushes",             "排版 Flush" },
+    { "Bars",       "relayoutBars",        "  重排條（Relayout）" },
+    { "Bars",       "requestSource",       "RequestSource" },
+    { "Bars",       "requestSourceHit",    "  快取命中",            of = "Bars.requestSource" },
+    { "Bars",       "reapplyItems",        "Reapply 放回 item" },
+    { "Visibility", "snapshots",           "顯示條件 Snapshot" },
+    { "Decorate",   "applyCalls",          "Decorate.Apply" },
+    { "Decorate",   "applySkipped",        "  簽章命中跳過",        of = "Decorate.applyCalls" },
+    { "Decorate",   "applyPre",            "  前置鍵命中",          of = "Decorate.applyCalls" },
+    { "Decorate",   "setCooldownHooks",    "SetCooldown 掛勾" },
+    { "Decorate",   "afterCooldownWrites", "  寫轉圈色／倒數色",    of = "Decorate.setCooldownHooks" },
+    { "SpellIndex", "rebuilds",            "法術索引重建" },
+    { "SpellIndex", "precise",             "冷卻事件 精準" },
+    { "SpellIndex", "full",                "冷卻事件 全掃" },
+    { "Glow",       "pandemicCalls",       "無損刷新掛勾" },
+    { "Glow",       "pandemicChanges",     "  狀態真的變了",        of = "Glow.pandemicCalls" },
+    { "StackGate",  "feeds",               "層數門檻餵值" },
+    { "Custom",     "updates",             "自訂法術 UpdateSpell" },
+    { "Custom",     "colorOnly",           "  只重算顏色",          of = "Custom.updates" },
+    { "Cursor",     "ticks",               "跟著游標 OnUpdate" },
+    { "Resources",  "mirrorTicks",         "征戰聖擊鏡射 OnUpdate" },
+    { "Resources",  "valueFlushes",        "資源條只重畫值" },
+}
+for _, def in ipairs(PERF) do def.key = def[1] .. "." .. def[2] end
+
+-- 脫戰那一行挑哪幾個（sub ＝ 括號裡附帶的子計數）
+local PERF_SUMMARY = {
+    { "Bars.flushes",            "Flush" },
+    { "Decorate.applyCalls",     "Apply",          sub = "Decorate.applySkipped",       subLabel = "跳過" },
+    { "Decorate.setCooldownHooks", "SetCooldown",  sub = "Decorate.afterCooldownWrites", subLabel = "寫" },
+    { "Bars.requestSource",      "RequestSource" },
+    { "Visibility.snapshots",    "Snapshot" },
+    { "SpellIndex.full",         "冷卻全掃" },
+    { "Glow.pandemicCalls",      "無損刷新" },
+}
+
+-- 計數表 → 文字行（純函式，Tests/Extras_test.lua）
+--   counters：陣列，每筆 { key, label, n = 數字｜nil（沒有這個計數）, of = 另一筆的 key, gauge = 現況值（不算每秒） }
+--   elapsed：秒（≤ 0 或不是數字 ⇒ 不印每秒）
+function ns.PerfLines(counters, elapsed)
+    local byKey = {}
+    for _, c in ipairs(counters) do
+        if c.key ~= nil then byKey[c.key] = c.n end
+    end
+    local secs = type(elapsed) == "number" and elapsed > 0 and elapsed or nil
+    local out = { secs and ("  自上次重設 %.1f 秒"):format(secs) or "  自上次重設不到一秒（不算每秒）" }
+    for _, c in ipairs(counters) do
+        local n, line = c.n, nil
+        if type(n) ~= "number" then
+            line = ("  %s：—（沒有這個計數）"):format(c.label)
+        elseif c.gauge then
+            line = ("  %s：%d（現況）"):format(c.label, n)
+        else
+            line = ("  %s：%d"):format(c.label, n)
+            if secs then line = line .. ("  每秒 %.1f"):format(n / secs) end
+            local base = c.of and byKey[c.of]
+            if type(base) == "number" and base > 0 then
+                line = line .. ("（%d%%）"):format(math.floor(n / base * 100 + 0.5))
+            end
+        end
+        out[#out + 1] = line
+    end
+    return out
+end
+
+-- 脫戰那一行（純函式，同上的 counters 形狀）
+function ns.PerfSummary(counters, elapsed)
+    local byKey = {}
+    for _, c in ipairs(counters) do
+        if c.key ~= nil then byKey[c.key] = c.n end
+    end
+    local parts = {}
+    for _, s in ipairs(PERF_SUMMARY) do
+        local n = byKey[s[1]]
+        if type(n) == "number" then
+            local part = ("%s %d"):format(s[2], n)
+            local sub = s.sub and byKey[s.sub]
+            if type(sub) == "number" then part = part .. ("（%s %d）"):format(s.subLabel, sub) end
+            parts[#parts + 1] = part
+        end
+    end
+    local secs = type(elapsed) == "number" and elapsed > 0 and elapsed or 0
+    return ("這一場 %.0f 秒：%s"):format(secs, #parts > 0 and table.concat(parts, "、") or "（沒有計數）")
+end
+
+-- 讀現在的計數進 out（重用同一張表；只有手動指令與進出戰鬥會叫）
+local function PerfRead(out)
+    for _, def in ipairs(PERF) do
+        local m = ns[def[1]]
+        local v = type(m) == "table" and m[def[2]] or nil
+        if type(v) == "number" then out[def.key] = v else out[def.key] = nil end
+    end
+    return out
+end
+
+-- 現在減掉基準 → PerfLines 的 counters 形狀；後面接發光的現況（G.Counts，不是累計）
+local function PerfCounters(base)
+    local now = PerfRead({})
+    local list = {}
+    for _, def in ipairs(PERF) do
+        local v = now[def.key]
+        list[#list + 1] = { key = def.key, label = def[3], of = def.of,
+                            n = v and (v - (base[def.key] or 0)) or nil }
+    end
+    local G = ns.Glow
+    if G and G.Counts then
+        local ok, proc, ready, pandemic = pcall(G.Counts)
+        if ok then
+            list[#list + 1] = { label = "發光現況 觸發", n = proc, gauge = true }
+            list[#list + 1] = { label = "發光現況 就緒", n = ready, gauge = true }
+            list[#list + 1] = { label = "發光現況 無損刷新", n = pandemic, gauge = true }
+        end
+    end
+    return list
+end
+
+local perfBase, perfSince = {}, GetTime()       -- 基準（空表 ＝ 全 0，載入當下所有計數都是 0）
+local combatBase, combatSince = {}, nil         -- 這一場的基準（PLAYER_REGEN_DISABLED 記；表重用）
+
+-- 暴雪的插件分析器：讀值免費；欄位名照 Enum.AddOnProfilerMetric（warcraft.wiki.gg 查過），沒有的跳過
+local PROFILER_METRICS = {
+    { "RecentAverageTime",    "近期平均" },
+    { "SessionAverageTime",   "本次登入平均" },
+    { "EncounterAverageTime", "首領戰平均" },
+    { "PeakTime",             "單幀尖峰" },
+}
+local function ProfilerLine()
+    local P = _G.C_AddOnProfiler
+    local E = _G.Enum and _G.Enum.AddOnProfilerMetric
+    local parts = {}
+    if type(P) == "table" and type(P.GetAddOnMetric) == "function" and type(E) == "table" then
+        for _, m in ipairs(PROFILER_METRICS) do
+            local metric = E[m[1]]
+            if metric ~= nil then
+                local ok, v = pcall(P.GetAddOnMetric, ADDON, metric)
+                -- v ~= v 是 nan
+                if ok and type(v) == "number" and not ns.IsSecret(v) and v == v then
+                    parts[#parts + 1] = ("%s %.3fms"):format(m[2], v)
+                end
+            end
+        end
+    end
+    -- 記憶體：UpdateAddOnMemoryUsage 是全堆掃描，只在這支手動指令叫一次（不放任何迴圈）
+    local upd, get = _G.UpdateAddOnMemoryUsage, _G.GetAddOnMemoryUsage
+    if type(upd) == "function" and type(get) == "function" then
+        pcall(upd)
+        local ok, kb = pcall(get, ADDON)
+        if ok and type(kb) == "number" and not ns.IsSecret(kb) then
+            parts[#parts + 1] = ("記憶體 %.0f KB"):format(kb)
+        end
+    end
+    if #parts == 0 then return nil end
+    return "  插件分析器：" .. table.concat(parts, "  ")
+end
+
+local function Perf(arg)
+    local tag = ns.PREFIX_COLOR .. "[米利冷卻 perf]|r "
+    local sv = _G.MiliUI_CooldownManager_DB
+    if arg == "reset" then
+        PerfRead(perfBase)
+        perfSince = GetTime()
+        print(tag .. "已重設")
+        return
+    elseif arg == "log" then
+        if type(sv) ~= "table" then print(tag .. "存檔還沒載入") return end
+        sv.perfLog = sv.perfLog ~= true
+        print(tag .. (sv.perfLog and "脫戰時印這一場的計數：開" or "脫戰時印這一場的計數：關"))
+        return
+    end
+    local dump = {}
+    local function p(line)
+        print(line)
+        dump[#dump + 1] = (tostring(line):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+    end
+    p(tag .. "v" .. tostring(ns.VERSION) .. "  戰鬥中 " .. tostring(InCombatLockdown() and true or false)
+        .. "  脫戰記錄 " .. ((type(sv) == "table" and sv.perfLog == true) and "開" or "關"))
+    local prof = ProfilerLine()
+    if prof then p(prof) end
+    for _, line in ipairs(ns.PerfLines(PerfCounters(perfBase), GetTime() - perfSince)) do p(line) end
+    if ns.Diag and ns.Diag.SavePerf then
+        ns.Diag.SavePerf(dump)
+        print("  |cffaaaaaa（這份輸出已存檔；/reload 或登出後寫進 SavedVariables）|r")
+    end
+end
+ns.Perf = Perf
+
+-- 這一場：進戰鬥記基準，脫戰（perfLog 開著才）印一行
+ns.Events.Register("PLAYER_REGEN_DISABLED", "perf", function()
+    PerfRead(combatBase)
+    combatSince = GetTime()
+end)
+ns.Events.Register("PLAYER_REGEN_ENABLED", "perf", function()
+    local since = combatSince
+    combatSince = nil
+    local sv = _G.MiliUI_CooldownManager_DB
+    if not since or type(sv) ~= "table" or sv.perfLog ~= true then return end
+    print(ns.PREFIX_COLOR .. "[米利冷卻 perf]|r " .. ns.PerfSummary(PerfCounters(combatBase), GetTime() - since))
+end)
+
 SLASH_MILIUICDM1 = "/mcdm"
 SLASH_MILIUICDM2 = "/miliuicdm"
 SlashCmdList.MILIUICDM = function(msg)
@@ -338,6 +551,8 @@ SlashCmdList.MILIUICDM = function(msg)
         Debug()
     elseif msg == "aura" then
         AuraDebug()
+    elseif msg == "perf" or msg:match("^perf%s") then
+        Perf(msg:match("^perf%s+(%S+)"))
     elseif msg == "release" then
         -- 除錯用：把暴雪的冷卻管理器還給暴雪（item、檢視器、發光、按鍵文字），/reload 才接回來
         if ns.Bars and ns.Bars.ReleaseAll and not ns.released then

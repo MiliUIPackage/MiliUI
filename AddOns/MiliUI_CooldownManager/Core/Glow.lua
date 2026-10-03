@@ -121,6 +121,7 @@ local PARK_X, PARK_Y = -10000, 10000
 G.probes = 0               -- 建過幾顆探針（debug）
 G.hooked = false
 G.readyFired = 0
+G.pandemicCalls, G.pandemicChanges = 0, 0   -- /mcdm perf：無損刷新掛勾被叫幾次／狀態真的變了幾次
 
 local function Plain(v)
     if v == nil or ns.IsSecret(v) then return nil end
@@ -865,15 +866,19 @@ function G.ApplyPandemic(owner, rec, barKey)
 end
 
 local function OnShowPandemic(item)
+    G.pandemicCalls = G.pandemicCalls + 1
     local rec = ns.Viewers.frames[item]
     if not rec or rec.pandemic then return end      -- 暴雪每幀叫：狀態沒變就走
+    G.pandemicChanges = G.pandemicChanges + 1
     rec.pandemic = true
     G.ApplyPandemic(item, rec)
 end
 
 local function OnHidePandemic(item)
+    G.pandemicCalls = G.pandemicCalls + 1
     local rec = ns.Viewers.frames[item]
     if not rec or not rec.pandemic then return end
+    G.pandemicChanges = G.pandemicChanges + 1
     rec.pandemic = false
     G.ApplyPandemic(item, rec)
 end

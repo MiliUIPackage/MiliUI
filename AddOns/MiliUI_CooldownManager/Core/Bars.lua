@@ -83,6 +83,9 @@ local pinGuard, parkGuard = false, false
 local pinned = {}                  -- 釘過的檢視器（ReleaseAll 只解這些，沒碰過的不動）
 B.ready = false
 B.flushes = 0
+-- /mcdm perf 的計數（Api.lua；只 +1，不配置）。requestSourceHit 是 RequestSource 快取命中，快取還沒做之前一直是 0
+B.requestSource, B.requestSourceHit = 0, 0
+B.reapplyItems, B.relayoutBars = 0, 0
 
 local function Now() return GetTime and GetTime() or 0 end
 
@@ -561,6 +564,7 @@ end
 
 local function Relayout(key, level, index, gen)
     if panels[key] then return RelayoutPanel(key, level) end
+    B.relayoutBars = B.relayoutBars + 1
     local c = EnsureContainer(key)
     local bar = BarCfg(key)
     local st = state[key]
@@ -787,6 +791,7 @@ end
 --   * 從它拉法術的條（groupOf 指到的群組，Catalog.GroupTargets）：新出現的 id 可能要進那裡
 -- 增益上下每幾十毫秒一次，全部條重排是浪費；設定變了走 RequestAll。
 function B.RequestSource(sourceKey, level)
+    B.requestSource = B.requestSource + 1
     local p = Profile()
     if not sourceKey or type(p) ~= "table" or type(p.bars) ~= "table" then
         return B.RequestAll(level)
@@ -968,6 +973,7 @@ function B.Reapply(sourceKey)
         local c = slot and containers[slot.key]
         if c then
             -- 這個 id 上次排在哪就放回哪（暴雪整條重取出時可能換了一顆框，完整重排馬上會來）
+            B.reapplyItems = B.reapplyItems + 1
             ns.Viewers.EnsureScale(item, rec, slot.key)
             item:ClearAllPoints()
             item:SetPoint("TOPLEFT", c, "TOPLEFT", slot.x, -slot.y)

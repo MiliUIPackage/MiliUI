@@ -9,11 +9,13 @@
 --   MiliUI_CooldownManager_DB.diag = {
 --       log  = { "09-30 16:21:05 [adopt] utility ← 19397, 19393", … },   最近 LOG_MAX 行（跨登入保留）
 --       dump = { … },  dumpAt = "09-30 16:30:12",                          上一次 /mcdm debug 的輸出
+--       perf = { … },  perfAt = "…",                                       上一次 /mcdm perf 的輸出
 --   }
 --
 --   ns.Diag.Note(kind, text)   記一行。跟上一行一模一樣就只累計次數，不洗版
 --   ns.Diag.Lines(n)           最近 n 行（新 → 舊），給 /mcdm debug 印
 --   ns.Diag.SaveDump(lines)    存 /mcdm debug 的輸出
+--   ns.Diag.SavePerf(lines)    存 /mcdm perf 的輸出（另一個欄位：/mcdm debug 換掉 dump 時不會把它洗掉）
 --   ns.Diag.Attach(sv)         DB 就緒後接上存檔（之前記的先放在記憶體裡）
 --
 -- 這支只記不修，修的動作在各模組；字串不進語系檔（開發用）。
@@ -62,6 +64,13 @@ function D.SaveDump(lines)
     if type(sv) ~= "table" or type(sv.diag) ~= "table" then return end
     sv.diag.dump = lines
     sv.diag.dumpAt = Stamp()
+end
+
+function D.SavePerf(lines)
+    local sv = _G.MiliUI_CooldownManager_DB
+    if type(sv) ~= "table" or type(sv.diag) ~= "table" then return end
+    sv.diag.perf = lines
+    sv.diag.perfAt = Stamp()
 end
 
 function D.Attach(sv)
