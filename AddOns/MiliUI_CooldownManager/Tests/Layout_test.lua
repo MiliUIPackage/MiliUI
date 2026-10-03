@@ -7,7 +7,7 @@
 -- 另外跑一輪「對齊到 0.5 的倍數」的 P，確認對齊有套在每個座標上。
 --
 -- 覆蓋：單列、兩列不同尺寸、置中奇偶數、向上換列、LEFT／RIGHT、長條、空清單、maxPerRow=1、
--- 錨點對照、認不得的 grow、第一列寬。
+-- 錨點對照、認不得的 grow、第一列寬；就地比較的序列（SeqPut／SeqTrim／SameIDs，Bars 的認領序列用）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Layout.lua"
@@ -465,6 +465,49 @@ do
     local _, _, _, ab = Lay.Compute(N(2), { grow = "DOWN_RIGHT" }, "bars")
     eq("長條不吃直向：退回 TOP", ab, "TOP")
     eq("ParseGrow 對直向值退回預設", (Lay.ParseGrow("DOWN_RIGHT")), "CENTER")
+end
+
+------------------------------------------------------------
+-- 就地比較的序列（Bars 的認領序列 → 要不要重建法術索引，效能 #6）
+------------------------------------------------------------
+do
+    local itemA, itemB = {}, {}
+    local seq = {}
+    -- 第一輪：從空的開始 ⇒ 變了
+    local ch = false
+    ch = Lay.SeqPut(seq, 1, 101, ch); ch = Lay.SeqPut(seq, 2, itemA, ch); ch = Lay.SeqPut(seq, 3, false, ch)
+    ch = Lay.SeqTrim(seq, 3, ch)
+    eq("序列：第一輪是變了", ch, true)
+    check("序列：寫進去了", Lay.SameIDs(seq, { 101, itemA, false }))
+    local before = seq
+    -- 第二輪一模一樣 ⇒ 沒變，而且是同一張表（不配置）
+    ch = false
+    ch = Lay.SeqPut(seq, 1, 101, ch); ch = Lay.SeqPut(seq, 2, itemA, ch); ch = Lay.SeqPut(seq, 3, false, ch)
+    ch = Lay.SeqTrim(seq, 3, ch)
+    eq("序列：一樣 ⇒ 沒變", ch, false)
+    check("序列：就地改寫（同一張表）", seq == before)
+    -- 同一個 id 換了一顆框（暴雪池子重取） ⇒ 變了
+    ch = false
+    ch = Lay.SeqPut(seq, 1, 101, ch); ch = Lay.SeqPut(seq, 2, itemB, ch); ch = Lay.SeqPut(seq, 3, false, ch)
+    eq("序列：同 id 換框 ⇒ 變了", Lay.SeqTrim(seq, 3, ch), true)
+    -- 停放旗標變了 ⇒ 變了
+    ch = Lay.SeqPut(seq, 3, true, false)
+    eq("序列：停放旗標 ⇒ 變了", ch, true)
+    -- nil 存成 false（不留洞）
+    eq("序列：nil 跟 false 視為相同", Lay.SeqPut(seq, 4, nil, false), true)
+    eq("序列：nil 存成 false", seq[4], false)
+    eq("序列：再放一次 nil ⇒ 沒變", Lay.SeqPut(seq, 4, nil, false), false)
+    -- 變短 ⇒ 尾巴清掉、算變了
+    eq("序列：變短 ⇒ 變了", Lay.SeqTrim(seq, 3, false), true)
+    eq("序列：尾巴清掉", #seq, 3)
+    eq("序列：長度沒變的 Trim ⇒ 沒變", Lay.SeqTrim(seq, 3, false), false)
+    eq("序列：全部清空", Lay.SeqTrim(seq, 0, false), true)
+    eq("序列：清空後長度 0", #seq, 0)
+    -- SameIDs
+    check("SameIDs：相同", Lay.SameIDs({ 1, 2 }, { 1, 2 }))
+    check("SameIDs：長度不同", not Lay.SameIDs({ 1, 2 }, { 1 }))
+    check("SameIDs：順序不同", not Lay.SameIDs({ 1, 2 }, { 2, 1 }))
+    check("SameIDs：nil 當空", Lay.SameIDs(nil, {}))
 end
 
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))

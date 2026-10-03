@@ -86,6 +86,13 @@ B.flushes = 0
 -- /mcdm perf 的計數（Api.lua；只 +1，不配置）。requestSourceHit 是 RequestSource 快取命中，快取還沒做之前一直是 0
 B.requestSource, B.requestSourceHit = 0, 0
 B.reapplyItems, B.relayoutBars = 0, 0
+-- 這一輪排版之後「認領中的 item／放好的自訂法術」可能變了 ⇒ Flush 結尾重建法術索引（Core/SpellIndex.lua）。
+-- 設的地方：Relayout 的認領序列跟上一輪不同、Custom.Place 回報換了框／條、自訂項目收起來（Custom 的 HideRec）、
+-- 停放掃描收走了認領中的 item、拖曳中的條這一輪不排、某條 Relayout 拋錯。Flush 重建後清掉
+B.claimsChanged = true
+-- RequestSource 的目標快取：sourceKey → { gen = B.flushes, keys = { [條] = true } }。見 RequestSource
+local sourceTargets = {}
+local flushing = false           -- Flush 執行中不寫快取（認領正在改，算出來的是過渡狀態）
 
 local function Now() return GetTime and GetTime() or 0 end
 
@@ -481,8 +488,10 @@ local QUESTION = 134400   -- INV_Misc_QuestionMark
 ------------------------------------------------------------
 -- 一條的重排
 ------------------------------------------------------------
-local function VisAlpha(key)
-    if ns.Visibility and ns.Visibility.Alpha then return ns.Visibility.Alpha(key) end
+-- 這條的 alpha：Relayout 用 Refresh（同時套容器、寫 current，不跑 item 迴圈：放格時每個 item 各自套）
+local function VisRefresh(key, s)
+    local V = ns.Visibility
+    if V and V.Refresh then return V.Refresh(key, s) end
     return 1
 end
 
@@ -562,7 +571,9 @@ local function RelayoutPanel(key, level)
     if pd and pd.relayout then pd.relayout(level) end
 end
 
-local function Relayout(key, level, index, gen)
+local SeqPut, SeqTrim                -- ns.Layout 的（Relayout 第一次用到才取：Layout.lua 載入順序在後面也沒關係）
+
+local function Relayout(key, level, index, gen, s)
     if panels[key] then return RelayoutPanel(key, level) end
     B.relayoutBars = B.relayoutBars + 1
     local c = EnsureContainer(key)
@@ -572,6 +583,11 @@ local function Relayout(key, level, index, gen)
         ReleasePlaceholders(key, 1)
         if ns.Clickable then ns.Clickable.Release(key) end      -- 群組被刪：secure 鈕收起來、脫離錨點
         st.count = 0
+        -- 認領序列清空（之前有認領 ⇒ 法術索引要重建）
+        if st.claimSeq and #st.claimSeq > 0 then
+            for i = #st.claimSeq, 1, -1 do st.claimSeq[i] = nil end
+            B.claimsChanged = true
+        end
         if InCombatLockdown() then structurePending[key] = true else ApplyStructure(key) end
         return
     end
@@ -677,14 +693,15 @@ local function Relayout(key, level, index, gen)
     end
     st.count = #entries
 
-    -- item 放進格子
-    local alpha = VisAlpha(key)
+    -- item 放進格子。容器的 alpha 在這裡套（Vis.Refresh），item 的在放格時各自套
+    local alpha = VisRefresh(key, s)
     local phUsed, barUsed = 0, 0
     for i, e in ipairs(entries) do
         local r = rects[i]
         local item, rec = e.item, e.rec
         if e.crec then
-            ns.Custom.Place(e.crec, c, r, key, gen)
+            -- 回 true ＝ 換了框／換了條／從收起來放回來（法術索引記的是框與條）
+            if ns.Custom.Place(e.crec, c, r, key, gen) then B.claimsChanged = true end
         elseif e.placeholder and SafeShown(item) then
             -- 增益不在、暴雪卻還顯示著（「未作用時隱藏」沒勾的暗格）：收走，不能蓋在占位上。
             -- 增益回來時 OnActiveStateChanged 會再排一次，那時才放進格子。
@@ -758,6 +775,24 @@ local function Relayout(key, level, index, gen)
         if clickable then ns.Clickable.EndBar(key, #entries) else ns.Clickable.Release(key) end
     end
     if ns.Custom then ns.Custom.EndBar(key, gen) end
+
+    -- 認領序列：每格三欄（id、哪一顆框／哪一筆自訂、停放了沒），跟上一輪就地比較。
+    -- 法術索引（SpellIndex.Rebuild）讀的就是「這條認領中、沒停放的 item 與它的 cooldownID」＋放好的自訂法術，
+    -- 序列沒變 ⇒ 這條對索引的貢獻沒變。只比較，不配置（st.claimSeq 就地改寫）
+    if not SeqPut then SeqPut, SeqTrim = ns.Layout.SeqPut, ns.Layout.SeqTrim end
+    local seq = st.claimSeq
+    if not seq then seq = {}; st.claimSeq = seq end
+    local changed, n = false, 0
+    for i = 1, #entries do
+        local e = entries[i]
+        local rec = e.rec
+        changed = SeqPut(seq, n + 1, e.id, changed)
+        changed = SeqPut(seq, n + 2, e.item or e.crec, changed)
+        changed = SeqPut(seq, n + 3, rec and rec.parked and true or false, changed)
+        n = n + 3
+    end
+    changed = SeqTrim(seq, n, changed)
+    if changed then B.claimsChanged = true end
 end
 
 ------------------------------------------------------------
@@ -772,7 +807,9 @@ local function Schedule()
     if wait < 0 then wait = 0 end
     C_Timer.After(wait, function()
         scheduled = false
+        flushing = true
         local ok, err = xpcall(Flush, ns.ReportError)
+        flushing = false
         if not ok then B.lastError = err end
     end)
 end
@@ -790,11 +827,34 @@ end
 --     （Flush 只放掉「這一輪要排的條」的認領，漏標就會卡住一顆框）
 --   * 從它拉法術的條（groupOf 指到的群組，Catalog.GroupTargets）：新出現的 id 可能要進那裡
 -- 增益上下每幾十毫秒一次，全部條重排是浪費；設定變了走 RequestAll。
+--
+-- 快取（增益檢視器一次 RefreshLayout 有 N 顆 item 就打 2N+2 次，每次都走全部認領＋GroupTargets）：
+--   sourceTargets[sourceKey] = { gen = B.flushes, keys }；命中條件 gen == B.flushes。
+--   * 認領（claimedBy）只在 Flush 裡改 ⇒ 兩輪 Flush 之間不變；Flush 執行中不寫快取（flushing），
+--     下一輪 Flush 開始 gen 就換了。
+--   * bars[*].source、groupOf、overrides.replaceWith、目錄（C.info／C.placed）的寫入之後一定跟著 RequestAll
+--     （設定頁 Options.ApplyEngine、RestyleAll、換設定檔、CatalogChanged）：RequestAll 把每一條都標髒、
+--     並且清掉這張快取（B.InvalidateSources）——就算有一筆漏算的目標，它也已經是髒的，到下一輪 Flush 為止
+--     不會被漏排；設定頁另外在寫入當下（0.2 秒合併之前）就清。
+--   * 命中時照樣檢查 p.bars[key]（條被刪、換設定檔）。等級不進快取鍵：目標集合跟等級無關，
+--     B.Request 本身有「已髒且等級不低於就不寫」。
+function B.InvalidateSources()
+    for k in pairs(sourceTargets) do sourceTargets[k] = nil end
+end
+
 function B.RequestSource(sourceKey, level)
     B.requestSource = B.requestSource + 1
     local p = Profile()
     if not sourceKey or type(p) ~= "table" or type(p.bars) ~= "table" then
         return B.RequestAll(level)
+    end
+    local hit = sourceTargets[sourceKey]
+    if hit and hit.gen == B.flushes then
+        B.requestSourceHit = B.requestSourceHit + 1
+        for key in pairs(hit.keys) do
+            if p.bars[key] then B.Request(key, level) end
+        end
+        return
     end
     local targets = { [sourceKey] = true }
     for key, bar in pairs(p.bars) do
@@ -805,12 +865,14 @@ function B.RequestSource(sourceKey, level)
         if rec and rec.barKey == sourceKey then targets[key] = true end
     end
     if ns.Catalog and ns.Catalog.GroupTargets then ns.Catalog.GroupTargets(sourceKey, targets) end
+    if not flushing then sourceTargets[sourceKey] = { gen = B.flushes, keys = targets } end
     for key in pairs(targets) do
         if p.bars[key] then B.Request(key, level) end
     end
 end
 
 function B.RequestAll(level)
+    B.InvalidateSources()
     local p = Profile()
     if type(p) ~= "table" or type(p.bars) ~= "table" then return end
     for key in pairs(p.bars) do B.Request(key, level) end
@@ -870,10 +932,11 @@ Flush = function()
 
     local work = dirty
     dirty = {}
-    -- 拖曳中的條這一輪不動，留到下一輪
+    -- 拖曳中的條這一輪不動，留到下一輪（它的認領沒重算 ⇒ 法術索引照舊每輪重建，跟改之前一樣）
     if ns.dragging and work[ns.dragging] then
         dirty[ns.dragging] = work[ns.dragging]
         work[ns.dragging] = nil
+        B.claimsChanged = true
     end
 
     -- 暴雪可能剛在它自己的下一幀換了版面／專精：清單先對一次
@@ -908,15 +971,25 @@ Flush = function()
     for key in pairs(work) do
         if not seen[key] then seen[key] = true; order[#order + 1] = key end
     end
+    -- 顯示條件的判斷快照：這一輪共用一份（每條的 Vis.Refresh、結尾的面板）
+    local snap = ns.Visibility and ns.Visibility.Snapshot and ns.Visibility.Snapshot() or nil
     for _, key in ipairs(order) do
-        local ok, err = xpcall(Relayout, ns.ReportError, key, work[key], index, gen)
-        if not ok then B.lastError = err end
+        local ok, err = xpcall(Relayout, ns.ReportError, key, work[key], index, gen, snap)
+        if not ok then
+            B.lastError = err
+            B.claimsChanged = true          -- 排到一半：認領序列沒對完，索引照舊重建
+            -- 也可能沒走到 Vis.Refresh：照改之前（結尾 ApplyAll）補套這一條
+            if not panels[key] and ns.Visibility and ns.Visibility.Apply then
+                xpcall(ns.Visibility.Apply, ns.ReportError, key, snap)
+            end
+        end
     end
 
     -- 沒被任何條認領的 item 停到畫面外
     ns.Viewers.EnumerateItems(function(item, rec)
         local key = claimedBy[item]
         if not key or not BarCfg(key) then
+            if key then B.claimsChanged = true end     -- 收走了認領中的（條不在了）
             claimedBy[item] = nil
             rec.claimKey = nil
             Park(item, rec)
@@ -950,8 +1023,11 @@ Flush = function()
         end
     end
 
-    -- 法術 → 格子的索引（SPELL_UPDATE_COOLDOWN 帶 ID 時只重算那幾格，Core/SpellIndex.lua）
-    if ns.SpellIndex then ns.SpellIndex.Rebuild() end
+    -- 法術 → 格子的索引（SPELL_UPDATE_COOLDOWN 帶 ID 時只重算那幾格，Core/SpellIndex.lua）。
+    -- 認領沒變（B.claimsChanged）而且目錄沒重建／自訂法術的覆寫沒換（SI.dirty）⇒ 索引跟上一輪一模一樣，不重建
+    local SI = ns.SpellIndex
+    if SI and (B.claimsChanged or SI.dirty) then SI.Rebuild() end
+    B.claimsChanged = false
     -- 戰鬥輔助的下一招醒目標示照新的索引重接（格子換了、搬了條、換專精：舊的熄、新的亮）
     if ns.Assist and ns.Assist.Reapply then ns.Assist.Reapply() end
 
@@ -959,7 +1035,12 @@ Flush = function()
         B.ready = true
         if ns.Fire then ns.Fire("BarsReady") end
     end
-    if ns.Visibility and ns.Visibility.ApplyAll then ns.Visibility.ApplyAll() end
+    -- 顯示條件：這一輪排過的條在 Relayout 裡已經 Refresh 過容器、放格時每個 item 各自套過，
+    -- 這裡只剩面板（資源條／自訂格子讀核心技能剛寫好的 current.essential）。
+    -- ⚠ 前提：沒在這一輪 work 裡的條，顯示條件沒變 —— Snapshot 的任何一個輸入（戰鬥、目標、騎乘、副本、
+    --   隊伍、飛行騎乘、房屋）變了都走 Visibility 自己的 Later → 完整 ApplyAll；條的顯示／淡出設定變了走設定頁的
+    --   ApplyEngine（RequestAll ＋ ApplyAll）；進出編輯模式也是 ApplyAll。所以不必每輪再掃一次所有條的所有 item
+    if ns.Visibility and ns.Visibility.ApplyPanels then ns.Visibility.ApplyPanels(snap) end
 end
 
 ------------------------------------------------------------
@@ -967,6 +1048,10 @@ end
 ------------------------------------------------------------
 function B.Reapply(sourceKey)
     if B.released or not ns.Viewers.ready then return end
+    -- alpha 用這條上次套的（Vis.Current）：條件一變 Visibility 自己會重套，這裡在暴雪 Layout 的同步堆疊上，
+    -- 不再每顆 item 建一次 Snapshot。還沒套過（nil）才現算，Snapshot 整輪只建一次
+    local V = ns.Visibility
+    local snap
     ns.Viewers.EnumerateItems(function(item, rec)
         local id = rec.cooldownID
         local slot = id ~= nil and slotOf[id]
@@ -978,7 +1063,16 @@ function B.Reapply(sourceKey)
             item:ClearAllPoints()
             item:SetPoint("TOPLEFT", c, "TOPLEFT", slot.x, -slot.y)
             item:SetSize(slot.w, slot.h)
-            ns.Decorate.ApplyItemAlpha(item, rec, VisAlpha(slot.key))
+            local alpha = V and V.Current and V.Current(slot.key)
+            if alpha == nil then
+                if V and V.Alpha then
+                    snap = snap or (V.Snapshot and V.Snapshot()) or nil
+                    alpha = V.Alpha(slot.key, snap)
+                else
+                    alpha = 1
+                end
+            end
+            ns.Decorate.ApplyItemAlpha(item, rec, alpha)
         elseif not ns.Catalog.IsPaused() then
             -- 沒有格子（新出現的、隱藏的、收合中的）：先藏起來，不要在暴雪的格線上閃一下。
             -- 暴雪設定面板開著時不藏：玩家正在那邊拖，新拉進來的要看得到（面板關掉會完整重排）
@@ -1001,6 +1095,7 @@ end
 ------------------------------------------------------------
 function B.ReleaseAll(reason)
     B.released = true
+    B.InvalidateSources()
     B.releaseReason = reason or "manual"
     ns.released = true
     for key in pairs(dirty) do

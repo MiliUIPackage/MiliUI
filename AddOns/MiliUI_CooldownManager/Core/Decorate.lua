@@ -12,8 +12,8 @@
 --
 -- 規則
 --   * **只寫有變的**：每個 item 存一個簽章字串（rec.decorated），條設定＋逐法術覆寫＋
---     長條尺寸組成；同簽章直接跳過。item 從池子重新取出時 Viewers 會清掉它
---     （暴雪取出時會重設計時顯示與縮放）。
+--     長條尺寸組成；同簽章直接跳過。item 從池子重新取出時 Viewers 只標 rec.reacquired（不清簽章），
+--     簽章命中時走 D.Reattach 補做暴雪取出時會重設的那幾樣（Viewers.CHEAP_REACQUIRE ＝ false 回到「清簽章、整套重套」）。
 --   * 自己畫的東西（邊框）一律建在**我們自己的 overlay 框**上（item 的子框），
 --     不在 item 上建貼圖、不寫 item 的欄位；overlay 的參照存在弱鍵表 rec 裡。
 --   * 暴雪每次刷新都會重寫的屬性（轉圈色、邊緣、轉圈開關、去飽和）不靠簽章，
@@ -41,6 +41,7 @@ local D = ns.Decorate
 --   setCooldownHooks（SetCooldown 後掛勾被叫幾次）／afterCooldownWrites（其中真的有樣式要寫的次數）
 D.applyCalls, D.applySkipped, D.applyPre = 0, 0, 0
 D.setCooldownHooks, D.afterCooldownWrites = 0, 0
+D.applyReattach = 0             -- 簽章命中而且剛重新取出 ⇒ 只補做（D.Reattach）
 
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 local ICON_OVERLAY_ATLAS = "UI-HUD-CoolDownManager-IconOverlay"
@@ -1151,12 +1152,6 @@ local function OnBarNameSetText(fs, text)
     nameGuard = false
 end
 
-local function OnActiveRelayout(item)
-    if ns.released then return end
-    local rec = ns.Viewers.frames[item]
-    if rec and ns.Bars and ns.Bars.RequestSource then ns.Bars.RequestSource(rec.barKey, "membership") end
-end
-
 function D.HookItem(item, rec)
     if rec.decoHooked then return end
     rec.decoHooked = true
@@ -1191,11 +1186,8 @@ function D.HookItem(item, rec)
     if item.SetBarContent then
         hooksecurefunc(item, "SetBarContent", ns.Guard(OnSetBarContent))
     end
-    -- 增益生效／失效：排版判「在不在」看 IsActive（Bars 的 AuraPresent），暴雪「未作用時隱藏」沒勾時
-    -- item 不會 Show／Hide，只有這個訊號 ⇒ 重排來源條（池化的框不換檢視器，rec.barKey 固定）
-    if not rec.custom and item.OnActiveStateChanged and ns.Viewers.AURA_KIND[rec.barKey] then
-        hooksecurefunc(item, "OnActiveStateChanged", ns.Guard(OnActiveRelayout))
-    end
+    -- 增益生效／失效的重排訊號在 Core/Viewers.lua 的 HookItem（每顆 item 都掛 OnActiveStateChanged）；
+    -- 這裡以前另掛一份做同一件事，重複了（2026-10-04 拿掉）
     local nameFS = not rec.custom and item.Bar and item.Bar.Name
     if nameFS and type(nameFS.SetText) == "function" then
         nameOwner[nameFS] = item
@@ -1391,6 +1383,38 @@ function D.HoverLeave(rec)
 end
 
 ------------------------------------------------------------
+-- 重新取出、簽章沒變：只補做暴雪取出時真的會重設、而且我們沒有後掛勾接得到的東西
+--
+-- 查證（Gethe/wow-ui-source live 分支 12.1.0 (69933)，Blizzard_CooldownViewer）：
+--   * 池子的 reset（CooldownViewer.lua CooldownViewerMixin:OnLoad 的 itemResetCallback）：
+--     Pool_HideAndClearAnchors、ResetCooldownData（只清資料欄位）、layoutIndex = nil
+--     ⇒ 錨點／尺寸由 Bars 放格（Relayout、Reapply）重寫，資料由接著的 RefreshData 補，都不靠 Apply
+--   * CooldownViewerMixin:OnAcquireItemFrame（同檔）：
+--       SetViewerFrame（欄位）、SetScale(iconScale)（Viewers 的 SetScale 後掛勾＋Track 的 LockScale 壓回 1）、
+--       SetTimerShown(timerShown) → 圖示類 CooldownViewerItemMixin:SetTimerShown：
+--         **cooldownFrame:SetHideCountdownNumbers(not shown)** ← 蓋掉 Text.ApplyIcon 依「隱藏倒數文字」設的值，
+--         沒有後掛勾接得到 ⇒ **這裡補**；
+--         長條 CooldownViewerBuffBarItemMixin:SetTimerShown：Duration:SetShown(…)（我們只調它的 alpha、從不 Show／Hide，
+--         改之前的完整 Apply 也不碰）⇒ 不補
+--       SetTooltipsShown → item 自己的 SetMouseClickEnabled／SetMouseMotionEnabled（我們的提示在 overlay 上，不碰 item 的滑鼠）⇒ 不補
+--       SetHideWhenInactive／SetIsEditing → UpdateShownState → SetShown（顯示與否是暴雪的）⇒ 不補
+--     增益長條另外（BuffBarCooldownViewerMixin:OnAcquireItemFrame）：SetBarContent（item 的後掛勾 OnSetBarContent
+--     已經照 rec.barGeometry 重排、把名字 Show 回來）、SetBarWidth → SetWidth（Bars 放格的 SetSize 蓋過）⇒ 不補
+--   * 圓角遮罩、外框圖、轉圈材質只在 XML 模板裡（StripBlizzard 的註解），取出時不會重加 ⇒ 不補
+--   * RefreshData 系列（轉圈色、邊緣、去飽和、圖示貼圖、觸發發光、層數字）每次刷新都會寫，本來就靠後掛勾，
+--     跟取出無關
+------------------------------------------------------------
+function D.Reattach(item, rec, spell, isBar)
+    rec.reacquired = nil
+    D.applyReattach = D.applyReattach + 1
+    if isBar then return end
+    local cd = item.Cooldown
+    if cd and cd.SetHideCountdownNumbers then
+        cd:SetHideCountdownNumbers(spell.hideCooldownText and true or false)     -- 同 Text.ApplyIcon
+    end
+end
+
+------------------------------------------------------------
 -- 主入口
 ------------------------------------------------------------
 function D.Apply(item, rec, barKey, w, h)
@@ -1417,8 +1441,10 @@ function D.Apply(item, rec, barKey, w, h)
     end
     if rec.decorated == sig and rec.decoratedBar == barKey then
         D.applySkipped = D.applySkipped + 1
+        if rec.reacquired then D.Reattach(item, rec, spell, isBar) end
         return
     end
+    rec.reacquired = nil              -- 下面整套重套，取出時被重設的一併蓋回去
 
     D.HookItem(item, rec)
     StripBlizzard(item, rec, isBar)

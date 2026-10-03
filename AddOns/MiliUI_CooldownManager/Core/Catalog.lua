@@ -534,6 +534,8 @@ local function Build()
     end
 
     C.info, C.ordered, C.lists, C.pool = info, ordered, lists, pool
+    -- 法術索引讀 C.info 的 spellID／overrideSpellID；覆寫不在下面的簽章裡，簽章沒變也可能換了 ⇒ 一律標髒
+    if ns.SpellIndex then ns.SpellIndex.dirty = true end
     -- 哪些 id 已經排在某條檢視器的清單上（C.Adopt 用）
     local placed = {}
     for _, bar in ipairs(C.SOURCE_BARS) do
@@ -602,6 +604,10 @@ function C.CheckFresh()
         if changed and ns.Fire then ns.Fire("CatalogChanged", "dirty") end
         return changed
     end
+    -- 戰鬥中不輪詢：版面字串只會在暴雪設定面板裡改（面板戰鬥中鎖著；關掉時 OnSettingsHide 會重讀）、
+    -- 專精只會在戰鬥外換（事件會來 ⇒ 走上面的 dirty）。戰鬥中每秒讀一次整份版面字串是白做
+    local icl = _G.InCombatLockdown
+    if icl and icl() then return false end
     local now = _G.GetTime and _G.GetTime() or nil
     if now then
         if lastFresh and now - lastFresh < FRESH_INTERVAL then return false end
@@ -673,6 +679,7 @@ function C.Adopt(live)
                     list[#list + 1] = id
                     placed[id] = true
                     n = n + 1
+                    if ns.SpellIndex then ns.SpellIndex.dirty = true end      -- C.info 多了一筆
                     notes = notes or {}
                     notes[bar] = (notes[bar] and (notes[bar] .. ",") or "") .. tostring(id)
                 end

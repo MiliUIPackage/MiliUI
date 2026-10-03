@@ -497,6 +497,9 @@ end
 
 function Options.ApplyEngine(level, now)
     level = level or "layout"
+    -- 設定剛寫進去（群組、以增益取代、條的來源…）：RequestSource 的目標快取當場作廢，
+    -- 不等下面 0.2 秒合併後的 RequestAll（Core/Bars.lua 的 RequestSource 註解）
+    if ns.Bars and ns.Bars.InvalidateSources then ns.Bars.InvalidateSources() end
     if not engineLevel or (LEVEL_RANK[level] or 0) > (LEVEL_RANK[engineLevel] or 0) then
         engineLevel = level
     end

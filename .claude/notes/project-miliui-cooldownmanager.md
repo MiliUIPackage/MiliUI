@@ -193,3 +193,4 @@ IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄�
   **P7** 顯示條件補敵對目標／飛行騎乘／房屋，逐法術 `replaceWith`（以增益取代；覆寫自成 "replace" 組；只能選增益圖示列，長條鏡射不可行＝**P9 擱置**）；
   **P8** 自訂項目三層範圍 戰隊 `w:<uid>`／職業 `k:<uid>`／專精 `c:<index>`，窄的蓋寬的（`DB.ResolveScopes`），覆寫跟著寬層那一筆走（`DB.OverrideTable` 分流），
   種族技能是動態 `kind="racial"`，預覽記號 PNG 由 `miliui-cdm-scope-icons` 技能產生。使用者定案不做角色專屬層（之後用排除開關）、不做 EUI 式同步。
+- 2026-10-04：**冷卻管理器資料的 `charges` 只是「可以有充能」**（天賦給第二次的技能沒點也是 true）；凡是照它選 `GetSpellChargeDuration` 的地方要過 `Decorate.IsChargeSpell`（`maxCharges > 1`），否則單次技能的回充永遠是零 ⇒ 隱藏 GCD 轉圈把冷卻框一直藏著。`/mcdm debug` 之後設定視窗有「除錯」分頁可全選複製，玩家回報先叫他「按技能 → 冷卻中打 /mcdm debug → 全選貼回來」。

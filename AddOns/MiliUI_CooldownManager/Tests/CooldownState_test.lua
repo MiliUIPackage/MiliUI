@@ -300,6 +300,13 @@ do
     local cf = Item()
     local crec = { custom = true, kind = "spell", spellID = 300, overrideID = 301, placedBar = "essential" }
     ns.Custom = { ForEachPlaced = function(fn) fn(cf, crec, "essential") end }
+    -- SI.dirty（效能 #6）：剛載入是髒的（第一輪一定建）；Rebuild 清掉；外部標髒後再建又清
+    eq("SI.dirty：剛載入是髒的", SI.dirty, true)
+    local rb0 = SI.rebuilds
+    SI.Rebuild()
+    eq("SI.dirty：Rebuild 清掉", SI.dirty, false)
+    eq("Rebuild 計數 +1", SI.rebuilds, rb0 + 1)
+    SI.dirty = true               -- 目錄重建／自訂法術換覆寫會這樣標
     SI.Rebuild()
     eq("Rebuild：暴雪 spellID", SI.Lookup(100)[1].rec, rA)
     eq("Rebuild：暴雪 override", SI.Lookup(201)[1].rec, rB)
@@ -307,6 +314,7 @@ do
     eq("Rebuild：自訂 spellID", SI.Lookup(300)[1].rec, crec)
     eq("Rebuild：自訂 override", SI.Lookup(301)[1].owner, cf)
     eq("Rebuild：別的沒有", #SI.Lookup(555), 0)
+    eq("SI.dirty：再建一次又清掉", SI.dirty, false)
 
     -- SPELL_UPDATE_COOLDOWN：精準只跑命中的那一格
     local h = handlers["SPELL_UPDATE_COOLDOWN|decorate_gcd"]

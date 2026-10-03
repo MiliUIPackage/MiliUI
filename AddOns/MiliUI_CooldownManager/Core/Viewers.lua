@@ -39,6 +39,11 @@ V.viewerKey = setmetatable({}, { __mode = "k" })   -- 檢視器框 → sourceKey
 V.ready     = false
 V.blocked   = {}                                    -- 掛勾裡寫入被擋的記帳（debug 用）
 
+-- 重新取出（暴雪 RefreshLayout 把整條池子放掉重取）時不整套重裝飾：Track 只標 rec.reacquired，
+-- Decorate.Apply 簽章命中時改走 Decorate.Reattach（只補做暴雪取出時真的會重設的東西，清單與出處見那裡）。
+-- 設 false ＝ 回到舊行為（Track 清 rec.decorated、每次取出都完整 Apply）。/mcdm debug 印它
+V.CHEAP_REACQUIRE = true
+
 local Guard = ns.Guard
 
 local function Plain(v)
@@ -111,7 +116,10 @@ local function OnSetCooldownID(item, cooldownID)
     if type(id) ~= "number" then id = nil end
     if rec.cooldownID ~= id then
         rec.cooldownID = id
-        rec.decorated = nil          -- 逐法術覆寫跟著身分走
+        -- 逐法術覆寫跟著身分走。⚠ 剛重新取出的框（rec.reacquired）不清：池子回收時暴雪已把 cooldownID 清成 nil，
+        -- 同一輪 RefreshData 再設回來，這裡永遠看到「nil → id」。真的換了法術時 Decorate.Apply 的簽章裡有 id，
+        -- 簽章不同照樣完整重套；同一個法術回到同一顆框才走 Reattach
+        if not (V.CHEAP_REACQUIRE and rec.reacquired) then rec.decorated = nil end
     end
     Signal(rec.barKey, "membership")
 end
@@ -121,7 +129,7 @@ local function OnClearCooldownID(item)
     if not rec then return end
     if rec.cooldownID ~= nil then
         rec.cooldownID = nil
-        rec.decorated = nil
+        if not (V.CHEAP_REACQUIRE and rec.reacquired) then rec.decorated = nil end   -- 同上
     end
     Signal(rec.barKey, "membership")
 end
@@ -159,6 +167,9 @@ local function HookItem(item, rec)
     if item.ClearCooldownID then
         hooksecurefunc(item, "ClearCooldownID", Guard(OnClearCooldownID))
     end
+    -- 增益生效／失效：排版判「在不在」看 IsActive（Bars 的 AuraPresent），暴雪「未作用時隱藏」沒勾時
+    -- item 不會 Show／Hide，只有這個訊號 ⇒ 重排來源條（池化的框不換檢視器，rec.barKey 固定）。
+    -- Decorate 以前對增益兩條另掛一份做同一件事，已拿掉
     if item.OnActiveStateChanged then
         hooksecurefunc(item, "OnActiveStateChanged", Guard(OnActiveStateChanged))
     end
@@ -201,7 +212,13 @@ local function Track(viewer, item)
         V.frames[item] = rec
     end
     rec.viewer, rec.barKey = viewer, key
-    rec.decorated = nil               -- 取出時暴雪會重設計時顯示、縮放 ⇒ 樣式要重套
+    -- 取出時暴雪會重設計時顯示、縮放（CooldownViewerMixin:OnAcquireItemFrame）。
+    -- 預設只標記、等 Decorate.Apply 簽章命中時補做那幾樣（Decorate.Reattach）；縮放由 SetScale 後掛勾＋下面的 LockScale 管
+    if V.CHEAP_REACQUIRE then
+        rec.reacquired = true
+    else
+        rec.decorated = nil
+    end
     rec.acquired = (rec.acquired or 0) + 1
     -- 取出時的身分：讀 item 現在的（明文）。池子回收時暴雪已經把資料清掉，剛取出的框通常是 nil，
     -- 同一輪 RefreshData 的 SetCooldownID 會補上（後掛勾）。**不沿用上一次的**：檢視器藏著的時候

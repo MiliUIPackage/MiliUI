@@ -1,9 +1,14 @@
 ------------------------------------------------------------
 -- 顯示條件與淡出：一律 SetAlpha，不 Hide
 --
---   ns.Visibility.Alpha(key)    這條現在該是多少透明度（0 ＝ 條件不成立）
---   ns.Visibility.Apply(key)    統一出口：容器與這條認領中的每個 item 一起套
---   ns.Visibility.ApplyAll()
+--   ns.Visibility.Alpha(key, s)       這條現在該是多少透明度（0 ＝ 條件不成立）；s ＝ Snapshot()，可省
+--   ns.Visibility.Refresh(key, s)     只套容器（寫 current、容器 SetAlpha、跟著游標的開關），不跑 item；回傳 alpha
+--   ns.Visibility.Apply(key, s)       統一出口：Refresh ＋ 這條認領中的每個 item
+--   ns.Visibility.ApplyAll(s)         全部條＋面板（Snapshot 只建一次）
+--   ns.Visibility.ApplyPanels(s)      只套面板（Bars.Flush 結尾：條在 Relayout 裡已經 Refresh 過）
+--   ns.Visibility.Current(key)        上次套的 alpha（還沒套過回 nil）
+--
+-- Snapshot（約 12 支 C API＋一張新表）一輪只建一次往下傳：s 沒給才自己建。
 --
 -- 模型（照單位框架的「時機 OR、限制優先」，bars[key].visibility）
 --   時機  showCombat／showTarget／showEnemy（有目標而且能攻擊它）：都沒勾 ＝ 一直顯示；
@@ -160,13 +165,14 @@ function Vis.DebugLine()
         tostring(s.housing), tostring(s.instance), tostring(s.group))
 end
 
-function Vis.Alpha(key)
+-- s：Snapshot() 的形狀（同一輪排版／套用共用一份）；沒給才自己建
+function Vis.Alpha(key, s)
     local bar = Bar(key)
     if not bar then return 0 end
     -- 編輯模式裡每條都全亮：玩家是來擺位置的，條件不成立（沒目標、騎乘中）的條也要看得到
     if ns.EditMode and ns.EditMode.active then return 1 end
     local fade = ns.Setting(key, "fade")
-    return Vis.Evaluate(bar.visibility, fade, Snapshot())
+    return Vis.Evaluate(bar.visibility, fade, s or Snapshot())
 end
 
 -- 面板的 alpha（純邏輯；s 是 Snapshot 的形狀，essentialAlpha／casting／suggestion 由呼叫端給）
@@ -206,31 +212,46 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting, suggestion)
     return 1
 end
 
-function Vis.PanelAlpha(key)
+-- s：同 Vis.Alpha。essAlpha：核心技能條的 alpha（資源條／自訂格子的 fadeWithEssential 用）；
+-- 沒給就用核心技能上次套的（current.essential：條件一變就會走 Later → ApplyAll 重套，所以它就是現況），
+-- 還沒套過才現算
+function Vis.PanelAlpha(key, s, essAlpha)
     local cfg = ns.DB.ConfigTable(key)
     if not cfg or cfg.enabled == false then return 0 end
     if ns.EditMode and ns.EditMode.active then return 1 end
+    s = s or Snapshot()
     local ess = 1
-    if (key == "resources" or key == "pips") and cfg.fadeWithEssential ~= false then ess = Vis.Alpha("essential") end
+    if (key == "resources" or key == "pips") and cfg.fadeWithEssential ~= false then
+        ess = essAlpha or current.essential
+        if ess == nil then ess = Vis.Alpha("essential", s) end
+    end
     local casting = ns.Castbar and ns.Castbar.IsActive and ns.Castbar.IsActive() or false
     local suggestion = key == "assistIcon" and ns.Assist and ns.Assist.Current and ns.Assist.Current() or nil
-    return Vis.EvaluatePanel(key, cfg, Snapshot(), ess, casting, suggestion)
+    return Vis.EvaluatePanel(key, cfg, s, ess, casting, suggestion)
 end
 
-function Vis.Apply(key)
+-- 只套容器：算 alpha、寫 current、容器 SetAlpha、（條）跟著游標的開關。**不跑 item 迴圈**
+--（Bars.Relayout 用：那一輪放格時每個 item 已經各自 ApplyItemAlpha 過）。回傳 alpha
+function Vis.Refresh(key, s)
     if ns.DB.IsPanel(key) then
-        local alpha = Vis.PanelAlpha(key)
+        local alpha = Vis.PanelAlpha(key, s)
         current[key] = alpha
         local c = ns.Bars and ns.Bars.Get(key)
         if c then c:SetAlpha(alpha) end
-        return
+        return alpha
     end
-    local alpha = Vis.Alpha(key)
+    local alpha = Vis.Alpha(key, s)
     current[key] = alpha
     local c = ns.Bars and ns.Bars.Get(key)
     if c then c:SetAlpha(alpha) end
     -- 跟著游標的條：看不到（alpha 0）時卸掉 OnUpdate、看得到再掛（Core/Cursor.lua；其他條立刻走）
     if ns.Cursor and ns.Cursor.OnAlpha then ns.Cursor.OnAlpha(key) end
+    return alpha
+end
+
+function Vis.Apply(key, s)
+    local alpha = Vis.Refresh(key, s)
+    if ns.DB.IsPanel(key) then return end
     if ns.Bars and ns.Bars.ForEachClaimed then
         -- 每個 item：條的 alpha × 冷卻狀態（Decorate.ApplyItemAlpha 是唯一出口）
         local D = ns.Decorate
@@ -240,18 +261,24 @@ function Vis.Apply(key)
     end
 end
 
-function Vis.ApplyAll()
+-- 面板排在條後面：資源條、自訂格子讀核心技能剛算好的 alpha（current.essential）
+function Vis.ApplyPanels(s)
+    s = s or Snapshot()
+    for _, key in ipairs(ns.DB.PANEL_ORDER) do
+        local ok, err = xpcall(Vis.Apply, ns.ReportError, key, s)
+        if not ok then Vis.lastError = err end
+    end
+end
+
+function Vis.ApplyAll(s)
     local p = ns.profile
     if not (p and type(p.bars) == "table") then return end
+    s = s or Snapshot()
     for key in pairs(p.bars) do
-        local ok, err = xpcall(Vis.Apply, ns.ReportError, key)
+        local ok, err = xpcall(Vis.Apply, ns.ReportError, key, s)
         if not ok then Vis.lastError = err end
     end
-    -- 面板排在條後面：資源條、自訂格子要讀核心技能剛算好的 alpha
-    for _, key in ipairs(ns.DB.PANEL_ORDER) do
-        local ok, err = xpcall(Vis.Apply, ns.ReportError, key)
-        if not ok then Vis.lastError = err end
-    end
+    Vis.ApplyPanels(s)
 end
 
 function Vis.Current(key) return current[key] end

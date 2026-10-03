@@ -354,3 +354,38 @@ function Layout.StackTarget(key, cfgOf, keys, rankOf, skip)
     if not prev then return parent end
     return Tail(prev, side, cfgOf, keys, rankOf, active, 0)
 end
+
+------------------------------------------------------------
+-- 就地比較的序列（Bars 的「這一輪認領有沒有變」，決定要不要重建法術索引）
+--
+--   changed = Layout.SeqPut(seq, i, v, changed)   seq[i] 跟 v 不同就覆寫並回 true，否則回原本的 changed
+--   changed = Layout.SeqTrim(seq, n, changed)     n 之後的尾巴清掉（上一輪比較長 ⇒ 變了）
+--   Layout.SameIDs(a, b)                          兩個序列逐格相同（只讀，測試／除錯用）
+--
+-- 不配置新表：上一輪的序列就地改寫成這一輪的。nil 存成 false（序列不能有洞，# 才準）。
+------------------------------------------------------------
+function Layout.SeqPut(seq, i, v, changed)
+    if v == nil then v = false end
+    if seq[i] ~= v then
+        seq[i] = v
+        return true
+    end
+    return changed
+end
+
+function Layout.SeqTrim(seq, n, changed)
+    for i = #seq, n + 1, -1 do
+        seq[i] = nil
+        changed = true
+    end
+    return changed
+end
+
+function Layout.SameIDs(a, b)
+    a, b = a or {}, b or {}
+    if #a ~= #b then return false end
+    for i = 1, #a do
+        if a[i] ~= b[i] then return false end
+    end
+    return true
+end
