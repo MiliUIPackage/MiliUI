@@ -103,6 +103,11 @@ local SIDE_ITEMS = {
     { text = L["None"],  value = "NONE" },
 }
 
+local EMPTY_STYLE_ITEMS = {
+    { text = L["Hidden"],    value = "hide" },
+    { text = L["Empty bar"], value = "bar" },
+}
+
 local GROUP_ITEMS = {
     { text = L["Any"],   value = "any" },
     { text = L["Solo"],  value = "solo" },
@@ -606,7 +611,7 @@ end
 -- 灰字依狀態換三種說法（一般／有光環格／可點擊），高度取三種裡最高的那個（列高在建表單時就定了）。
 ------------------------------------------------------------
 function FixedSlotsRow(key, isBars)
-    local NORMAL = isBars and L["Buffs that aren't up keep their place as an empty bar, so the others don't shift."]
+    local NORMAL = isBars and L["Buffs that aren't up keep their place, so the others don't shift."]
         or L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
     local FORCED = L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."]
     local FORCED_CLICK = L["Always on while this bar is clickable: the click targets can't move during combat."]
@@ -816,6 +821,16 @@ function Specs.Layout(key)
         add(BS("slider", "bar.iconGap", L["Icon gap"], { min = 0, max = 10, step = 1 }))
         if bar.source == "buffbars" or bar.source == "custom" then
             add(FixedSlotsRow(key, true))
+            -- 空位的樣子：預設隱藏（位置照佔、什麼都不畫，同 EllesmereUI 圖示的 Keep Buffs in Same Place）；
+            -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條。固定格位沒開（也沒被強制）時停用
+            add(BS("dropdown", "layout.emptyStyle", L["Empty slots"], { items = EMPTY_STYLE_ITEMS, level = "layout",
+                get = function() local b = ns.DB.BarTable(key); local l = b and b.layout
+                    return type(l) == "table" and l.emptyStyle == "bar" and "bar" or "hide" end,
+                disabled = function()
+                    local b = ns.DB.BarTable(key)
+                    local on = b and type(b.layout) == "table" and b.layout.fixedSlots
+                    return not (on or ns.Catalog.BarHasAuraSlot(key) or ns.DB.BarClickable(key))
+                end }))
         end
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
         add(BS("color", "bar.color", L["Bar color"]))

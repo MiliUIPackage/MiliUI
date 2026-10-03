@@ -677,7 +677,9 @@ local function Relayout(key, level, index, gen)
             end
             slotOf[e.id] = { key = key, x = r.x, y = r.y, w = r.w, h = r.h }
         end
-        if e.placeholder and bar.kind == "bars" then
+        if e.placeholder and bar.kind == "bars" and layout.emptyStyle ~= "bar" then
+            -- 長條的空位預設隱藏：位置照佔（排版已經算進去）、什麼都不畫
+        elseif e.placeholder and bar.kind == "bars" then
             barUsed = barUsed + 1
             local f = BarPlaceholder(key, barUsed)
             local info = ns.Catalog.Info(e.id)
