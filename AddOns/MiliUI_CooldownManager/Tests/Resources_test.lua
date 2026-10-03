@@ -648,6 +648,13 @@ do
     eq("推薦：這個專精已經加過 → 跳過", #recs("PALADIN", 70, "charges"), 0)
     eq("推薦：別的專精照給", #recs("PALADIN", 66, "charges"), 1)
     eq("推薦：沒有專精 → 空", #recs("PALADIN", nil, "charges"), 0)
+    has[444347] = true
+    eq("推薦：死亡戰騎沒給 talent 查詢 → 照給", #recs("DEATHKNIGHT", 251, "charges"), 1)
+    rp.talent = function(id) return id == 444010 end
+    eq("推薦：學了死亡戰騎天賦 → 給", recs("DEATHKNIGHT", 251, "charges")[1].spellID, 444347)
+    rp.talent = function() return false end
+    eq("推薦：沒學死亡戰騎天賦 → 不給", #recs("DEATHKNIGHT", 251, "charges"), 0)
+    rp.talent = nil
 end
 -- 刪除
 check("刪第 1 筆", PI.RemoveCustomRow(ccfg, 65, 1))
