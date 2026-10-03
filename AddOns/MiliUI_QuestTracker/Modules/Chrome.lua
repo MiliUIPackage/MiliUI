@@ -45,7 +45,7 @@ end
 
 local function Outline()
     local a = Cfg()
-    return (a and a.outline) and "OUTLINE" or ""
+    return ns.Media.Outline(a)
 end
 
 -- 開關 chip 的字級是固定的：它是框上的裝飾，不是內容。字型與描邊則跟著設定走 ——

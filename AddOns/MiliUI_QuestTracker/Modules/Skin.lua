@@ -46,7 +46,7 @@ local function StyleFS(fs, role)
     local path = ns.Media.OptionalFont(a.font) or curPath
     if not path then return end
     local size = ROLE_SIZE[role] and a[ROLE_SIZE[role]] or curSize or 12
-    local flags = a.outline and "OUTLINE" or ""
+    local flags = ns.Media.Outline(a)
     pcall(fs.SetFont, fs, path, size, flags)
     fontRoles[fs] = role or "keep"
 end

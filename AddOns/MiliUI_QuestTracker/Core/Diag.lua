@@ -539,6 +539,16 @@ local function FontDesc(fs, role)
         role or "-", color)
 end
 
+-- flags 的順序／空白不見得照我們給的（"MONOCHROME,OUTLINE" 讀回來可能換了順序），
+-- 只比有沒有描邊、粗細、單色
+local function OutlineKey(flags)
+    flags = type(flags) == "string" and flags or ""
+    local thick = flags:find("THICKOUTLINE", 1, true) ~= nil
+    local outline = thick or flags:find("OUTLINE", 1, true) ~= nil
+    local mono = flags:find("MONOCHROME", 1, true) ~= nil
+    return (mono and "M" or "") .. (thick and "T" or (outline and "O" or "-"))
+end
+
 -- 對不上的項目（"size+outline"），一致回 nil
 local function FontMismatch(fs, want)
     local size, flags, file = FontInfo(fs)
@@ -546,7 +556,7 @@ local function FontMismatch(fs, want)
     if type(size) ~= "number" or IsSecret(size) or math.abs(size - want.size) > 0.5 then
         why[#why + 1] = "size"
     end
-    if (flags:find("OUTLINE", 1, true) ~= nil) ~= want.outline then
+    if OutlineKey(flags) ~= OutlineKey(want.outline) then
         why[#why + 1] = "outline"
     end
     if want.file and file ~= want.file then why[#why + 1] = "font" end
@@ -598,13 +608,13 @@ local function SecLines(add, ctx)
     end
     local want = {
         size    = a.objectiveSize,
-        outline = a.outline and true or false,
+        outline = ns.Media.Outline(a),
         file    = Basename(ns.Media.OptionalFont(a.font)),
     }
     local wantTitle = { size = a.titleSize, outline = want.outline, file = want.file }
     local base = _G.ObjectiveTrackerLineFont
     add("want objective=%s title=%s outline=%s font=%s | Blizzard ObjectiveTrackerLineFont=%s",
-        Str(a.objectiveSize), Str(a.titleSize), tostring(want.outline), want.file or "keep",
+        Str(a.objectiveSize), Str(a.titleSize), (want.outline ~= "" and want.outline or "none"), want.file or "keep",
         (base and base.GetFont) and FontDesc(base) or "nil")
 
     local Role = ns.Skin and ns.Skin.FontRole or function() return nil end

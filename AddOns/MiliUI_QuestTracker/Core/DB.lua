@@ -38,7 +38,7 @@ local function BuildDefaults()
         appearance = {
             -- 字型。"" = 沿用暴雪原本的字型（每個 FontString 原字型不見得相同）
             font          = "",
-            outline       = true,
+            outline       = "OUTLINE",   -- SetFont flags，選項見 Media.OUTLINE_ITEMS
             headerSize    = 15,
             titleSize     = 14,
             objectiveSize = 13,
@@ -233,6 +233,15 @@ local function Normalize(db)
     end
 
     local a = db.appearance
+    -- 描邊從開關改成五選一（2026-10-03）：舊存檔是布林，就地換成對應的 flags。
+    -- 型別轉換不是改預設值，所以不走版本閘；不認得的值退回預設
+    if a.outline == true then
+        a.outline = "OUTLINE"
+    elseif a.outline == false then
+        a.outline = ""
+    elseif not ns.Media.OUTLINE_VALID[a.outline] then
+        a.outline = BuildDefaults().appearance.outline
+    end
     Clamp(a, "headerSize",    DB.LIMITS.headerSize)
     Clamp(a, "titleSize",     DB.LIMITS.titleSize)
     Clamp(a, "objectiveSize", DB.LIMITS.objectiveSize)

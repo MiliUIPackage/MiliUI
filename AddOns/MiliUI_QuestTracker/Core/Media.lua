@@ -18,6 +18,25 @@ local LOCALE_FONTS = {
 local DEFAULT_FONT = LOCALE_FONTS[GetLocale()] or "Fonts\\FRIZQT__.TTF"
 M.DEFAULT_FONT = DEFAULT_FONT
 
+-- 描邊選項：跟 MiliUI_CooldownManager 同一套五選一（值就是 SetFont 的 flags）
+M.OUTLINE_ITEMS = {
+    { text = ns.L["None"],          value = "" },
+    { text = ns.L["Outline"],       value = "OUTLINE" },
+    { text = ns.L["Thick outline"], value = "THICKOUTLINE" },
+    -- 單色＝關掉反鋸齒：像素字體用（一般字型選了邊緣會有鋸齒）
+    { text = ns.L["Monochrome outline"],       value = "MONOCHROME,OUTLINE" },
+    { text = ns.L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
+}
+local OUTLINE_VALID = {}
+for _, it in ipairs(M.OUTLINE_ITEMS) do OUTLINE_VALID[it.value] = true end
+M.OUTLINE_VALID = OUTLINE_VALID
+
+-- appearance → SetFont 的 flags
+function M.Outline(a)
+    local o = a and a.outline
+    return (type(o) == "string" and OUTLINE_VALID[o]) and o or ""
+end
+
 local function LSM()
     return LibStub and LibStub("LibSharedMedia-3.0", true)
 end

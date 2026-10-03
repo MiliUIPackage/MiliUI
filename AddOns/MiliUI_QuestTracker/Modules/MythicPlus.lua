@@ -65,7 +65,7 @@ end
 
 local function Outline()
     local a = ns.db and ns.db.appearance
-    return (a and a.outline) and "OUTLINE" or ""
+    return ns.Media.Outline(a)
 end
 
 local function Hex(c)

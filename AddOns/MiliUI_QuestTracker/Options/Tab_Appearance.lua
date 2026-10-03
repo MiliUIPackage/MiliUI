@@ -38,7 +38,7 @@ local function BuildControls()
         { type = "header", label = L["Text"] },
         { type = "dropdown", key = "font", label = L["Font"], items = ns.Media.FontItems },
         { type = "text",   label = L["Leave this on Blizzard's font to keep each line's original typeface and only change the sizes below."] },
-        { type = "toggle", key = "outline", label = L["Outline"] },
+        { type = "dropdown", key = "outline", label = L["Outline"], items = ns.Media.OUTLINE_ITEMS },
         { type = "slider", key = "headerSize",    label = L["Section header size"], min = 8, max = 24, step = 1 },
         { type = "slider", key = "titleSize",     label = L["Quest title size"],    min = 8, max = 24, step = 1 },
         { type = "slider", key = "objectiveSize", label = L["Objective size"],      min = 8, max = 24, step = 1 },
