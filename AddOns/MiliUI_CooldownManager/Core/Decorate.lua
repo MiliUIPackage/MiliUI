@@ -851,20 +851,44 @@ end
 --   第一次 PLAYER_TOTEM_UPDATE 時 GetTotemInfo 還沒有單位名字 ⇒ 寫進去的是 nil，而暴雪之後
 --   不一定再叫一次 RefreshName（只有下一次 RefreshData 會）⇒ 整條空到消失。
 --   秘密字串不碰（拿著不讀）；真名之後寫進來就自然蓋掉。只讀 Catalog 的明文資料，不碰 totemData。
+--   法術 id 先問 item 自己的 GetSpellID（暴雪會把 linkedSpell／光環的 id 算進去，跟它寫名字用的是同一個），
+--   讀不到明文再退 Catalog。每次處理都記一行 diag（去重），實機不對時 /mcdm debug 看得到。
 local nameGuard = false
+local function BarItemSpellID(item, rec)
+    local get = item.GetSpellID
+    if type(get) == "function" then
+        local ok, v = pcall(get, item)
+        v = ok and Plain(v) or nil
+        if type(v) == "number" then return v end
+    end
+    local info = ns.Catalog.Info(rec.cooldownID)
+    local id = info and (info.overrideSpellID or info.spellID)
+    return type(id) == "number" and id or nil
+end
+
 local function OnBarNameSetText(fs, text)
     if nameGuard or ns.released then return end
-    if ns.IsSecret(text) then return end                -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
-    if text ~= nil and text ~= "" then return end
     local item = nameOwner[fs]
     local rec = item and ns.Viewers.frames[item]
     if not rec or rec.custom then return end
-    local info = ns.Catalog.Info(rec.cooldownID)
-    local spellID = info and (info.overrideSpellID or info.spellID)
-    if type(spellID) ~= "number" then return end
-    local ok, name = pcall(C_Spell.GetSpellName, spellID)
-    name = ok and Plain(name) or nil
-    if type(name) ~= "string" or name == "" then return end
+    local Note = ns.Diag and ns.Diag.Note
+    if ns.IsSecret(text) then                           -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
+        if Note then Note("barname", tostring(rec.cooldownID) .. " 秘密字串（留著）") end
+        return
+    end
+    if text ~= nil and text ~= "" then return end
+    local spellID = BarItemSpellID(item, rec)
+    local name
+    if spellID then
+        local ok, v = pcall(C_Spell.GetSpellName, spellID)
+        v = ok and Plain(v) or nil
+        if type(v) == "string" and v ~= "" then name = v end
+    end
+    if Note then
+        Note("barname", string.format("%s %s → %s", tostring(rec.cooldownID), text == nil and "nil" or "空字串",
+            name and ("法術名 " .. name) or ("沒退路（spellID " .. tostring(spellID) .. "）")))
+    end
+    if not name then return end
     nameGuard = true
     pcall(fs.SetText, fs, name)
     nameGuard = false
