@@ -314,7 +314,9 @@ SlashCmdList.MILIUICDM = function(msg)
     elseif msg == "activelog" and ns.Decorate then
         -- 臨時探針（Core/Decorate.lua 的 AuraLog）：冷卻格「顯示增益時間」旗標的變化，確認完拿掉
         ns.Decorate.auraLog = not ns.Decorate.auraLog
-        print(ns.PREFIX_COLOR .. "[生效探針]|r " .. (ns.Decorate.auraLog and "開（用技能、等增益結束、戰鬥中各試一次）" or "關"))
+        local n = ns.Decorate.auraLog and ns.Decorate.AuraLogArm and ns.Decorate.AuraLogArm() or 0
+        print(ns.PREFIX_COLOR .. "[生效探針]|r " .. (ns.Decorate.auraLog
+            and ("開，新掛了 %d 格（用技能、等增益結束、戰鬥中各試一次；脫戰時印這場的呼叫次數）"):format(n) or "關"))
     elseif msg == "release" then
         -- 除錯用：把暴雪的冷卻管理器還給暴雪（item、檢視器、發光、按鍵文字），/reload 才接回來
         if ns.Bars and ns.Bars.ReleaseAll and not ns.released then
