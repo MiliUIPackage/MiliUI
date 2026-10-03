@@ -306,9 +306,11 @@ end
 
 ------------------------------------------------------------
 -- 設定頁的預覽格（圖示類）：同一套字型／顏色／錨點，套在我們自己的 FontString 上
---   cell.cdText     假倒數（冷卻中的格才顯示；增益格一律顯示）
+--   cell.cdText     假倒數（冷卻中的格才顯示）
 --   cell.chargeText 假充能（技能類）
---   cell.stackText  假層數（增益類）
+--   cell.stackText  假層數
+-- 增益格（增益圖示條、光環格）的預覽不印字：整排 2／15 礙眼（使用者 2026-10-03），
+-- 增益格的字型樣式只影響數字外觀、看冷卻格的就夠
 --   cell.durColor   假冷卻格裡標成「增益那一段」的，倒數用這個色（Decorate.ApplyPreview 算好；nil ＝ 原色）
 -- 字是預覽自己寫的（「15」「2」），這裡只管樣式與顯示與否。
 ------------------------------------------------------------
@@ -320,7 +322,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
         SetFont(cdText, c.size or 16, outline, ns.Media.ElementFont(c.font, font))
         cdText:SetTextColor(Color(cell.durColor or c.color))
         Anchor(cdText, cell, c.point or "CENTER", c.x, c.y)
-        cdText:SetAlpha(((cell.onCD or cell.aura) and not spell.hideCooldownText) and 1 or 0)
+        cdText:SetAlpha((cell.onCD and not cell.aura and not spell.hideCooldownText) and 1 or 0)
     end
     local charge = cell.chargeText
     if charge then
@@ -336,6 +338,6 @@ function T.ApplyPreviewIcon(cell, style, spell)
         SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         Anchor(stack, cell, c.point or "TOP", c.x, c.y)
-        stack:SetAlpha((cell.aura and not spell.hideStackText) and 1 or 0)
+        stack:SetAlpha(0)
     end
 end
