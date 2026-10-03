@@ -147,3 +147,15 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 - P5：自訂法術距離／可用上色（照暴雪常數）、逐法術 `customIcon`（Icon:SetTexture 後掛勾蓋回）、群組跟著游標 `Core/Cursor.lua`
   （只有無光環格、不可點擊的自訂圖示群組）、語音播報 `readySpeak／gainSpeak／loseSpeak`（C_VoiceChat.SpeakText）、長條火花 `bar.spark`。
 - 語系稽核基準「共 9 個問題」＝原本就有的 5 條多餘條目，不要刪。
+
+**增益持續時間的倒數換色（2026-10-03，未實機驗證，README 待實機驗證 197～202）**：plan 在 `~/.claude/plans/miliui-cdm-duration-color.md`。
+核心／輔助技能用掉後暴雪先倒**增益持續時間**、增益掉了才倒冷卻（`CheckCacheCooldownValuesFromAura` 優先於法術冷卻）。
+**訊號＝`Cooldown:SetUseAuraDisplayTime(旗標)` 後掛勾**：暴雪每次 `RefreshSpellCooldownInfo` 都先設它再 `SetCooldown`，
+旗標是暴雪 Lua 的字面布林（預期明文），記 `rec.auraTime`，`SetCooldown` 後掛勾只多一次 `SetTextColor`。
+主題 `cooldownText.colorDuration`（預設開）＋`durationColor`（黃 1/0.85/0.1）；逐法術 `durationColor` 三態（nil 跟隨／false 不換／色表），
+**三態要讀覆寫本身 `ns.SpellOverride`**（SpellSetting 沒覆寫時退回條層、分不出跟隨）。增益兩條／長條／自訂法術沒有這一段、不適用。
+低秒變色（formatter 色碼）兩段都壓過它（決定）。
+**Ayije_CDM 從來不顯示持續時間的原因**：逐法術「Show Aura Overlay」預設關（只有內建 DoT 清單預設開），關著時它在 `SetCooldown`
+後掛勾裡 `SetUseAuraDisplayTime(false)` 再用 `GetSpellCooldownDuration` 的 duration 物件重餵、蓋掉暴雪的增益倒數。
+暴雪那邊沒有玩家設定（只有 `CooldownSetSpellFlags.HideAura` 資料旗標）。**待開第二條 plan**：「增益持續中顯示持續時間」開關
+（主題預設顯示＋逐法術覆寫，關＝照 Ayije 那招重餵冷卻 duration 物件），使用者 2026-10-03 已同意等換色驗收後接著做。
