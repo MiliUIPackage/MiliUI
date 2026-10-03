@@ -51,6 +51,7 @@ local function NoFakeCD(key)
 end
 
 -- 效果預覽列（NoFakeCD 的條才有，平常不畫假冷卻）：按一下，**第一個技能格**演示那個效果 FX_SECS 秒
+--   （倒數類會拉長到門檻＋3 秒，見 StartFx）
 --   （光環格、被移除的格不算；整排一起演示太吵，看一格就知道長相）
 --   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
 --   aura      增益持續時間：同上，倒數用增益那一段的換色
@@ -523,7 +524,7 @@ function Proto:Fill(c, e, i, r, now)
         c.Icon:SetTexture(tex)
         if c.Cooldown then
             if c.onCD and fxTimer then
-                c.Cooldown:SetCooldown(fx.start, FX_SECS)
+                c.Cooldown:SetCooldown(fx.start, fx.secs)
             elseif c.onCD then
                 c.Cooldown:SetCooldown(now - ((i * 2) % CYCLE), CYCLE)
             else
@@ -666,15 +667,23 @@ end
 -- 進行中的效果（過期的當沒有：計時器收尾前那幾幀也不會畫錯）
 function Proto:ActiveFx()
     local fx = self.fx
-    if fx and GetTime() < fx.start + FX_SECS then return fx end
+    if fx and GetTime() < fx.start + fx.secs then return fx end
     return nil
 end
 
 function Proto:StartFx(kind)
-    local fx = { kind = kind, start = GetTime() }
+    -- 倒數類（冷卻中／增益持續時間）要看得到「正常 → 低秒變色／小數」的轉換：從門檻（低秒、小數取大的）
+    -- 再往上 3 秒開始倒，至少 FX_SECS；預設門檻 5 ⇒ 倒 8 秒。發光類固定 FX_SECS
+    local secs = FX_SECS
+    if kind == "cooldown" or kind == "aura" then
+        local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
+        local th = math.max(tonumber(ct.lowBelow) or 0, tonumber(ct.decimalsBelow) or 0)
+        secs = math.max(FX_SECS, math.ceil(th) + 3)
+    end
+    local fx = { kind = kind, start = GetTime(), secs = secs }
     self.fx = fx
     self:Refresh()
-    C_Timer.After(FX_SECS, function()
+    C_Timer.After(secs, function()
         if self.fx ~= fx then return end         -- 期間又按了別的：讓新的那個收尾
         self.fx = nil
         if self.frame:IsVisible() then self:Refresh() else self:ClearFxGlows() end
@@ -714,7 +723,7 @@ end
 function Proto:FxText(c)
     local fx = self:ActiveFx()
     if not fx then return "" end
-    local left = math.max(0, fx.start + FX_SECS - GetTime())
+    local left = math.max(0, fx.start + fx.secs - GetTime())
     local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
     local dec = tonumber(ct.decimalsBelow) or 0
     if left < dec then return ("%.1f"):format(left) end
@@ -732,7 +741,7 @@ function Proto:FxTick()
     if not fx or (fx.kind ~= "cooldown" and fx.kind ~= "aura") or self.kind == "bars" then return end
     local style = ns.Decorate.Resolve(self.key)
     local ct = style.cooldownText or {}
-    local left = fx.start + FX_SECS - GetTime()
+    local left = fx.start + fx.secs - GetTime()
     local low = left < (tonumber(ct.lowBelow) or 0)
     for _, c in ipairs(self.slots or {}) do
         if c.onCD and c.cdText then
