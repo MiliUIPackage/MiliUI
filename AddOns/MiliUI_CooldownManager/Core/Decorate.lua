@@ -632,20 +632,37 @@ local function OnAuraLogRefresh(item)
     local rec = AuraLogTarget(item)
     if rec then AuraLog(item, rec, "刷新", rawget(item, "cooldownUseAuraDisplayTime")) end
 end
+-- 第三版：設旗標／數字／時間物件這三支很少被叫（一場戰鬥個位數），每次都印、不去重不過濾，
+-- 連「對不到格子」也印出來（上一版有計數卻沒印，原因不明）
+local function AuraLogRaw(src, cd, flag)
+    local ok, err = pcall(function()
+        local item = cooldownOwner[cd]
+        local rec = item and ns.Viewers.frames[item]
+        local name = "?"
+        if rec then
+            local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
+            local sid = info and (info.overrideSpellID or info.spellID)
+            name = sid and C_Spell.GetSpellName(sid) or "?"
+        end
+        print(("%s[生效探針]|r [%s] %s(%s) 條=%s 旗標=%s 轉圈C端旗標=%s %s"):format(ns.PREFIX_COLOR, src,
+            tostring(name), rec and tostring(rec.cooldownID) or (item and "沒有rec" or "沒有item"),
+            rec and tostring(rec.barKey) or "-", AuraLogValue(flag), AuraLogCall(cd, "GetUseAuraDisplayTime"),
+            InCombatLockdown() and "戰鬥中" or "脫戰"))
+    end)
+    if not ok then print(ns.PREFIX_COLOR .. "[生效探針]|r 記錄出錯：" .. tostring(err)) end
+end
+D.AuraLogRaw = AuraLogRaw
+
 -- 轉圈框被餵了什麼：時間物件（SetCooldownFromDurationObject）還是數字（SetCooldown）。我們自己蓋的那幾次（overriding）不算
 local function OnAuraLogDurObj(cd)
     if not D.auraLog or overriding then return end
     auraLogCount.obj = auraLogCount.obj + 1
-    local item = cooldownOwner[cd]
-    local rec = AuraLogTarget(item)
-    if rec then AuraLog(item, rec, "時間物件", rawget(item, "cooldownUseAuraDisplayTime")) end
+    AuraLogRaw("時間物件", cd, nil)
 end
 local function OnAuraLogSetCD(cd)
     if not D.auraLog or overriding then return end
     auraLogCount.cd = auraLogCount.cd + 1
-    local item = cooldownOwner[cd]
-    local rec = AuraLogTarget(item)
-    if rec then AuraLog(item, rec, "數字", rawget(item, "cooldownUseAuraDisplayTime")) end
+    AuraLogRaw("數字", cd, nil)
 end
 function D.AuraLogArm()
     local n = 0
@@ -682,7 +699,7 @@ local function OnSetUseAuraDisplayTime(cd, flag)
     if not rec then return end
     if D.auraLog then
         auraLogCount.set = auraLogCount.set + 1
-        if AuraLogTarget(item) then AuraLog(item, rec, "設旗標", flag) end
+        AuraLogRaw("設旗標", cd, flag)
     end
     rec.auraFlag = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
     ResolveAuraFlag(rec)
