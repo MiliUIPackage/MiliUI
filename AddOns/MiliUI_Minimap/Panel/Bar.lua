@@ -78,6 +78,7 @@ end
 ------------------------------------------------------------
 local Hover = {}
 local GRACE = 0.35
+local OPEN_DELAY = 0.5   -- 滑入格子後停多久才開面板（見 BuildSlot 的 OnEnter）
 
 local watcher = CreateFrame("Frame")
 watcher:Hide()
@@ -117,6 +118,10 @@ function Hover.Start(slot, frame, close, alive)
     Hover.Close()
     hoverOwner, hoverFrame, hoverClose, hoverAlive, away = slot, frame, close, alive, nil
     watcher:Show()
+end
+
+function Hover.IsOpen()
+    return hoverFrame ~= nil and hoverFrame:IsShown()
 end
 
 function Hover.IsOpenFor(slot)
@@ -421,13 +426,8 @@ local function BuildSlot(index)
     btn.text:SetWordWrap(false)
     S.SetFont(btn.text, ns.DB.Get().infoBarFontSize)
 
-    btn:SetScript("OnEnter", function(self)
-        self.hl:Show()
-        -- 收納袋那格的圖示跟著亮起來。狀態只換明暗、色相不動
-        -- （miliui-color-states 的核心規則）。
-        if self.dots and self.sourceKey == "bag" then
-            ns.Buttons.TintIcon(self, 1)
-        end
+    -- 開面板（名單／收納袋）。名單刷新時 Bar 會直接叫這支重畫，不經過延遲
+    function btn:OpenPopup()
         local src = SOURCES[self.sourceKey]
         if not src then return end
         if src.popup then src.popup(self); return end
@@ -441,11 +441,32 @@ local function BuildSlot(index)
         ns.Safe(src.tooltip, tip)
         tip:Show()
         Hover.Start(self, tip, ns.Tip.Close)
+    end
+
+    btn:SetScript("OnEnter", function(self)
+        self.hl:Show()
+        -- 收納袋那格的圖示跟著亮起來。狀態只換明暗、色相不動
+        -- （miliui-color-states 的核心規則）。
+        if self.dots and self.sourceKey == "bag" then
+            ns.Buttons.TintIcon(self, 1)
+        end
+        -- 停留 OPEN_DELAY 秒才開：游標只是路過（往下移去點別的插件）時，
+        -- 面板會擋住底下的東西。已經有面板開著（在格子間換來換去）就直接切換
+        if self.openTimer then self.openTimer:Cancel(); self.openTimer = nil end
+        if Hover.IsOpen() then
+            self:OpenPopup()
+            return
+        end
+        self.openTimer = C_Timer.NewTimer(OPEN_DELAY, function()
+            self.openTimer = nil
+            if self:IsVisible() and self:IsMouseOver() then ns.Safe(self.OpenPopup, self) end
+        end)
     end)
 
     -- ⚠ 這裡**不關**名單／袋子，也不把格子變暗：游標可能正要移到面板上。
     --   關閉由 Hover 的計時器決定，格子的亮塊留到面板真的關掉那一刻（SlotIdle）。
     btn:SetScript("OnLeave", function(self)
+        if self.openTimer then self.openTimer:Cancel(); self.openTimer = nil end
         if Hover.IsOpenFor(self) then return end
         SlotIdle(self)
     end)
@@ -527,8 +548,7 @@ function Bar.Update()
     for _, btn in ipairs(slots) do
         if ns.Tip.IsOwnedBy(btn) then
             lastTipRefresh = now
-            local enter = btn:GetScript("OnEnter")
-            if enter then ns.Safe(enter, btn) end
+            ns.Safe(btn.OpenPopup, btn)
         end
     end
 end
