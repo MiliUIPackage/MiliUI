@@ -161,24 +161,40 @@ end
 ------------------------------------------------------------
 -- 清單內容（照目前設定檔的 barOrder）
 ------------------------------------------------------------
+-- 分三節：法術（核心／輔助）、增益（增益圖示／增益長條）、自訂群組（＋新增群組）；
+-- 底下資源條／施法條／戰鬥助手照舊。節內順序照 barOrder（漏列的舊資料排在最後，不然那條就找不到設定頁）
+local SECTION_OF = { essential = "spells", utility = "spells", buffs = "buffs", buffbars = "buffs" }
+
 local function Items()
-    local out = { { header = "bars" } }
     local p = ns.profile
     local bars = p and p.bars or {}
-    local seen = {}
+    local seen, keys = {}, {}
     for _, key in ipairs(p and type(p.barOrder) == "table" and p.barOrder or {}) do
         if type(bars[key]) == "table" and not seen[key] then
             seen[key] = true
-            out[#out + 1] = { id = key, custom = not ns.DB.IsBuiltinBar(key) }
+            keys[#keys + 1] = key
         end
     end
-    -- barOrder 漏列的（舊資料）照樣列出來，不然那條就找不到設定頁
     local extra = {}
     for key, bar in pairs(bars) do
         if type(bar) == "table" and not seen[key] then extra[#extra + 1] = key end
     end
     table.sort(extra)
-    for _, key in ipairs(extra) do out[#out + 1] = { id = key, custom = not ns.DB.IsBuiltinBar(key) } end
+    for _, key in ipairs(extra) do keys[#keys + 1] = key end
+
+    local out = {}
+    local function Section(name)
+        out[#out + 1] = { header = name }
+        for _, key in ipairs(keys) do
+            local builtin = ns.DB.IsBuiltinBar(key)
+            if (builtin and SECTION_OF[key] == name) or (not builtin and name == "custom") then
+                out[#out + 1] = { id = key, custom = not builtin }
+            end
+        end
+    end
+    Section("spells")
+    Section("buffs")
+    Section("custom")
     out[#out + 1] = { action = "newGroup" }
     out[#out + 1] = { gap = HEAD_GAP }
     out[#out + 1] = { id = "resources" }
@@ -349,7 +365,9 @@ function Sidebar.Build(panel, width)
     thumb:SetWidth(P.Scale(2))
     thumb:Hide()
 
-    heads.bars = W.CreateGroupLabel(child, L["Elements"])
+    heads.spells = W.CreateGroupLabel(child, L["Spells"])
+    heads.buffs  = W.CreateGroupLabel(child, L["Buffs"])
+    heads.custom = W.CreateGroupLabel(child, L["Custom Groups"])
     newBtn = W.CreateButton(child, L["+ New Group"], "primary", btnW, BTN_H)
     newBtn:SetScript("OnClick", Sidebar.NewGroup)
 
@@ -382,6 +400,7 @@ end
 -- 拖曳放置目標（預覽的圖示拖到左欄上）
 --   Sidebar.BeginDrop({ [id] = true, … })  可放的按鈕亮職業色邊
 --   Sidebar.DropTargetAtCursor()           游標底下那顆可放的 id（沒有回 nil）
+--   Sidebar.ButtonAtCursor()               游標底下那顆按鈕的 id（不管能不能放）
 --   Sidebar.EndDrop()                      還原
 ------------------------------------------------------------
 function Sidebar.BeginDrop(candidates)
@@ -407,6 +426,14 @@ function Sidebar.DropTargetAtCursor()
         dropHover = hit
     end
     return hit
+end
+
+-- 游標底下的左欄按鈕（不管能不能放）：放不進去的要說為什麼，不能放開就沒反應
+function Sidebar.ButtonAtCursor()
+    if not (scroll and scroll:IsMouseOver()) then return nil end
+    for id, b in pairs(byId) do
+        if b:IsShown() and b:IsMouseOver() then return id, b end
+    end
 end
 
 function Sidebar.EndDrop()

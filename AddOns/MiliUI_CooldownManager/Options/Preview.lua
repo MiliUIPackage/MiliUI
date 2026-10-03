@@ -362,6 +362,30 @@ function Preview.DropCandidates(key, id)
     return out
 end
 
+-- 拖到左欄某一條上卻放不進去的原因（給使用者看；nil ＝ 不用說，例如拖回自己這條、不是條的頁面）
+--   * 內建條之間：清單是暴雪冷卻管理器分的。同一家族（核心↔輔助、增益圖示↔增益長條）暴雪面板裡拖得過去，
+--     指過去；不同家族暴雪也不收
+--   * 自訂群組：圖示類的法術只進圖示群組、長條類只進長條群組（DropCandidates 同一條規則）
+local FAMILY = { essential = "cd", utility = "cd", buffs = "aura", buffbars = "aura" }
+function Preview.DropRefusal(key, id, target)
+    if not target or target == key or id == nil or ns.Catalog.IsCustom(id) then return nil end
+    local bar = BarCfg(target)
+    if type(bar) ~= "table" then return nil end
+    local name = ns.Options.BarTitle(target) or target
+    local origin = ns.Catalog.SourceOf(id)
+    if ns.DB.IsBuiltinBar(target) then
+        if origin and FAMILY[origin] and FAMILY[origin] == FAMILY[target] then
+            return L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at the top of this page)."]:format(name)
+        end
+        return L["%s only shows what Blizzard's Cooldown Manager puts on it."]:format(name)
+    end
+    local originBar = origin and BarCfg(origin)
+    if originBar and originBar.kind == "bars" then
+        return L["Spells from a bar list can only go into bar groups."]
+    end
+    return L["Spells from an icon list can only go into icon groups."]
+end
+
 ------------------------------------------------------------
 -- 預覽物件
 ------------------------------------------------------------
@@ -945,10 +969,20 @@ function Proto:DragTick()
 
     local line = self.line
     if ns.Sidebar.DropTargetAtCursor() then
+        self:RefusalTip(nil)
         line:Hide()
         press.pos = nil
         return
     end
+    -- 指在放不進去的左欄按鈕上：說明為什麼（不然放開只會默默彈回原位）
+    local over, btn = ns.Sidebar.ButtonAtCursor()
+    if over then
+        self:RefusalTip(btn, Preview.DropRefusal(self.key, press.cell.id, over))
+        line:Hide()
+        press.pos = nil
+        return
+    end
+    self:RefusalTip(nil)
     local pos, s, side = self:InsertionAt()
     press.pos = pos
     if not pos then line:Hide() return end
@@ -971,8 +1005,27 @@ function Proto:DragTick()
     line:Show()
 end
 
+-- 拖曳中指著放不進去的按鈕：在按鈕旁邊用紅字說原因（btn nil 或沒有原因 ＝ 收起）
+function Proto:RefusalTip(btn, reason)
+    local press = self.press
+    if btn and reason then
+        if press and press.tipFor == btn then return end
+        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+        GameTooltip:SetText(reason, 1, 0.3, 0.3, 1, true)
+        GameTooltip:Show()
+        if press then press.tipFor = btn end
+    elseif press and press.tipFor then
+        if GameTooltip:IsOwned(press.tipFor) then GameTooltip:Hide() end
+        press.tipFor = nil
+    end
+end
+
 function Proto:EndDrag(commit)
     local press = self.press
+    if press and press.tipFor then
+        if GameTooltip:IsOwned(press.tipFor) then GameTooltip:Hide() end
+        press.tipFor = nil
+    end
     self.press = nil
     self:RestoreTicker()
     self.line:Hide()
@@ -982,10 +1035,18 @@ function Proto:EndDrag(commit)
     local c = press.cell
     c.dragging = false
     local target = ns.Sidebar.DropTargetAtCursor()
+    local over = ns.Sidebar.ButtonAtCursor()
     ns.Sidebar.EndDrop()
     if not commit then self:Refresh() return end
     if target and press.candidates and press.candidates[target] then
         Preview.MoveTo(c.id, target, self.key)
+        return
+    end
+    -- 放在放不進去的左欄按鈕上：聊天框留一行原因（滑過時的提示放開就收掉了）
+    if over then
+        local reason = Preview.DropRefusal(self.key, c.id, over)
+        if reason then ns.Print(reason) end
+        self:Refresh()
         return
     end
     local pos = press.pos
