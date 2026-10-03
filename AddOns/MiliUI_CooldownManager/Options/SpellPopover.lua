@@ -3,20 +3,25 @@
 --
 --   ns.SpellPopover.Open(key, cooldownID, cell)
 --
--- 法術本來就屬於專精，改了就是「這個專精的這個法術」（spells[specID].overrides[id]），
--- 沒有範圍可選。三態：覆寫沒設的欄位顯示條層的值、旁邊灰字「（跟隨條）」；
+-- 暴雪的法術本來就屬於專精，改了就是「這個專精的這個法術」（spells[specID].overrides[id]），沒有範圍可選；
+-- 職業層／戰隊層的自訂項目改的是那一筆自己身上的覆寫（看得到它的每個專精同一份，見下面「自訂項目」）。三態：覆寫沒設的欄位顯示條層的值、旁邊灰字「（跟隨條）」；
 -- 點了就寫成覆寫（「（已覆寫，右鍵還原）」），右鍵那一列清掉那一格。
 -- 「所在條」改的是 groupOf：原本的檢視器（＝清掉）或同類型的任一自訂群組。
 --
--- 自訂項目（id "c:<index>"）：
+-- 自訂項目（id "c:<index>"／"k:<uid>"／"w:<uid>"）：
+--   * 「適用範圍」（一般分頁最上面）：戰隊／這個職業／這個專精，下一列灰字說明；切換走 DB.MoveCustomScope
+--     （連覆寫一起搬、配新 id），往窄搬先問（其他專精／角色會看不到）。職業層／戰隊層的法術多一列
+--     「未學會時不顯示」（hideUnknown，存在那一筆上）。職業層／戰隊層的覆寫存在那一筆身上（DB.OverrideTable），
+--     底部說明照範圍換字。
 --   * 「所在條」改的是它自己的 bar（任何一條，圖示類、長條類都收）。
 --   * 放在長條類的條上的冷卻類（法術／物品／裝備欄）：觸發／就緒發光與冷卻狀態那幾列藏起來（長條不畫發光、
 --     冷卻狀態不套長條；判準跟 Decorate 的 isBar 同一個：這一條的 kind ＝ bars）。
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
 --     多一列「不在時顯示占位」；沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
---   * 多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
---     DB.CopyCustomEntry（連同這一筆的覆寫）。
+--   * 專精層的多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
+--     DB.CopyCustomEntry（連同這一筆的覆寫）。職業層／戰隊層的不給（本來就每個專精都看得到）。
+--   * 職業層／戰隊層的「從這條移除」＝整筆刪掉、每個專精都沒了 ⇒ 先問（Preview.RemoveCustom）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
 -- 分頁（玩家回報 2026-10-03 列太長）：一般（所在條、以增益取代、天賦條件、占位）／外觀（邊框、圖示、去飽和、倒數與層數、
 -- 冷卻狀態、層數換色）／增益時間／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／音效。每一列建立時記下
@@ -141,11 +146,15 @@ end
 local function FollowText() return L["Follow “%s”"]:format(BarName()) end
 local followItems = {}   -- 第一項是「跟隨『條名』」的下拉的 items 表：Refresh 時改字
 
+-- 覆寫本身（沒覆寫 nil）；職業層／戰隊層的自訂項目讀那一筆身上的（ns.SpellOverride 分流）
 local function Override(field)
-    local sp = ns.DB.SpecSpells(false)
-    local o = sp and type(sp.overrides) == "table" and cur and sp.overrides[cur.id]
-    if type(o) ~= "table" then return nil end
-    return o[field]
+    if not cur then return nil end
+    return ns.SpellOverride(cur.id, field)
+end
+
+-- 目前這一格的範圍（暴雪的項目 nil）
+local function CurScope()
+    return cur and ns.DB.ParseCustomID(cur.id) or nil
 end
 
 local function Changed(level)
@@ -377,8 +386,66 @@ local function Build()
         if cur then Layout(frame.kind, frame.soundClass) end
     end)
 
-    -- 所在條
+    -- 適用範圍（自訂項目才有；一般分頁最上面）：戰隊／這個職業／這個專精。切換走 Pop.SetScope（往窄搬先問）
     buildTab = "general"
+    local scr = NewRow(L["Scope"], IsCustom)
+    local scdd = W.CreateDropdown(scr, ROW_W - CTRL_X, ns.Picker.ScopeItems(), function(value) Pop.SetScope(value) end)
+    scdd:SetMaxWidth(ROW_W - CTRL_X)
+    scdd:SetPoint("LEFT", scr, "LEFT", CTRL_X, 0)
+    frame.scopeDD = scdd
+    -- 說明（下一列灰字，照目前的範圍換字）
+    local sdRow = CreateFrame("Frame", nil, frame)
+    local sdTip = Note(sdRow)
+    sdTip:SetPoint("TOPLEFT", sdRow, "TOPLEFT", CTRL_X, -2)
+    sdTip:SetWidth(ROW_W - CTRL_X)
+    sdTip:SetWordWrap(true)
+    sdTip:SetText(ns.Picker.ScopeDesc("spec"))
+    local sdH = 2 + math.max(14, sdTip:GetStringHeight() or 0) + 6
+    sdRow:SetSize(ROW_W, sdH)
+    local sdEntry = { frame = sdRow, h = sdH, when = IsCustom }
+    sdEntry.remeasure = function()
+        local sh2 = sdTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        sdRow:SetHeight(nh)
+        sdEntry.h = nh
+    end
+    AddRow(sdEntry)
+    frame.scopeTip, frame.scopeTipEntry = sdTip, sdEntry
+
+    -- 未學會時不顯示（職業層／戰隊層的法術；存在那一筆上）＋下一列灰字
+    local function WideSpell(kind)
+        local sc = CurScope()
+        return kind == "spell" and (sc == "class" or sc == "shared")
+    end
+    local hur = NewRow(L["Hide when not learned"], WideSpell)
+    local hucb = W.CreateCheckButton(hur, nil, function(on)
+        if not cur then return end
+        local e = ns.DB.CustomEntry(cur.id)
+        if not e then return end
+        e.hideUnknown = on and true or false
+        if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
+        Changed("membership")
+    end)
+    hucb:SetPoint("LEFT", hur, "LEFT", CTRL_X, 0)
+    frame.hideUnknownCB = hucb
+    local huRow = CreateFrame("Frame", nil, frame)
+    local huTip = Note(huRow)
+    huTip:SetPoint("TOPLEFT", huRow, "TOPLEFT", CTRL_X, -2)
+    huTip:SetWidth(ROW_W - CTRL_X)
+    huTip:SetWordWrap(true)
+    huTip:SetText(L["Specializations and characters that don't know it skip this slot. Unchecked, they show a question mark instead."])
+    local huH = 2 + math.max(14, huTip:GetStringHeight() or 0) + 6
+    huRow:SetSize(ROW_W, huH)
+    local huEntry = { frame = huRow, h = huH, when = WideSpell }
+    huEntry.remeasure = function()
+        local sh2 = huTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        huRow:SetHeight(nh)
+        huEntry.h = nh
+    end
+    AddRow(huEntry)
+
+    -- 所在條
     local r, h = NewRow(L["On bar"])
     local dd = W.CreateDropdown(r, ROW_W - CTRL_X, {}, function(value)
         if not cur then return end
@@ -967,6 +1034,7 @@ local function Build()
     end
     tipEntry.tab = "all"
     AddRow(tipEntry)
+    frame.tipFS, frame.tipEntry = tip, tipEntry
 
     -- 按鈕：移除（從這條拿掉；見 Preview.Remove）／還原設定
     local btnRow = CreateFrame("Frame", nil, frame)
@@ -981,9 +1049,8 @@ local function Build()
     W.FitButton(restore, 130, 22)
     restore:SetScript("OnClick", function()
         if not cur then return end
-        local sp = ns.DB.SpecSpells(false)
         local had = Override("talentCond") ~= nil
-        if sp and type(sp.overrides) == "table" then sp.overrides[cur.id] = nil end
+        ns.DB.ResetOverrides(cur.id)
         -- 拿掉了天賦條件 ⇒ 格子可能要回到畫面上
         if had and ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
         Changed(had and "membership" or nil)
@@ -1046,7 +1113,8 @@ Layout = function(kind, class)
             row.frame:ClearAllPoints()
             row.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, y)
             if row.buttons then
-                frame.copyBtn:SetShown(kind ~= nil)          -- 自訂項目才有（暴雪的法術本來就逐專精由暴雪管）
+                -- 專精層的自訂項目才有（暴雪的法術本來就逐專精由暴雪管；寬層本來就每個專精都看得到）
+                frame.copyBtn:SetShown(kind ~= nil and CurScope() == "spec")
                 local list = { frame.removeBtn, frame.restoreBtn, frame.copyBtn }
                 local _, bh = W.FlowLayout(frame.btnRow, list, ROW_W, 6, 4, 22)
                 frame.btnRow:SetHeight(bh)
@@ -1109,18 +1177,36 @@ function Pop.Refresh()
     if not (frame and cur) then return end
     local key, id = cur.key, cur.id
     local info = ns.Catalog.Info(id)
+    -- 自訂項目在這個專精不見了（刪掉、勾了「未學會時不顯示」而這裡沒學、被窄層蓋掉）：面板跟著關
+    if not info and ns.Catalog.IsCustom(id) then frame:Hide() return end
     local kind = info and info.custom and info.kind or nil
     frame.icon:SetTexture(ns.IconFor(key, id, info) or 134400)
     local name = (info and info.name) or ("#" .. tostring(id))
     if info and info.isKnown == false and kind then name = name .. "  |cffff5555" .. L["Not learned"] .. "|r" end
     frame.name:SetText(name)
     if kind then
-        frame.idText:SetText(KIND_TEXT[kind](info))
+        -- 種族技能那一筆：解析成這個角色的那一個，標明是種族技能（每個角色各自解析）
+        frame.idText:SetText(KIND_TEXT[kind](info) .. (info.racial and ("  ·  " .. L["Racials"]) or ""))
     else
         frame.idText:SetText(("cooldownID %s  ·  spellID %s"):format(tostring(id),
             tostring(info and (info.overrideSpellID or info.spellID) or "?")))
     end
     local class = SoundClass(id, kind)
+    -- 適用範圍：下拉、灰字說明、底部說明照範圍換字（換字之後重量高度，Layout 才排得對）
+    local scope = kind and ns.DB.ParseCustomID(id) or nil
+    if scope then
+        frame.scopeDD:SetSelectedValue(scope)
+        frame.scopeTip:SetText(ns.Picker.ScopeDesc(scope))
+        frame.scopeTipEntry.remeasure()
+        local raw = ns.DB.CustomEntry(id)
+        frame.hideUnknownCB:SetChecked(not (type(raw) == "table" and raw.hideUnknown == false))
+    end
+    frame.tipFS:SetText(scope == "shared"
+        and L["Settings here apply to this one for every character and specialization using this profile. Right-click a row to follow the bar again."]
+        or scope == "class"
+        and L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."]
+        or L["Settings here apply to this spell in your current specialization. Right-click a row to follow the bar again."])
+    frame.tipEntry.remeasure()
     Layout(kind, class)
     -- 「跟隨『條名』」：面板開在哪一條就寫哪一條的名字（下面各下拉 SetSelectedValue 時會重寫顯示文字）
     for _, f in ipairs(followItems) do
@@ -1278,9 +1364,7 @@ function Pop.Refresh()
         local e = ns.DB.CustomEntry(id)
         frame.placeholderCB:SetChecked(e and e.placeholder and true or false)
     end
-    local sp2 = ns.DB.SpecSpells(false)
-    local hasAny = sp2 and type(sp2.overrides) == "table" and sp2.overrides[id] ~= nil
-    frame.restoreBtn:SetEnabled(hasAny and true or false)
+    frame.restoreBtn:SetEnabled(ns.DB.HasOverrides(id))
 end
 
 -- 「以增益取代」的選項：無 ＋ 這個專精增益圖示列的全部項目（圖示＋名字）。
@@ -1320,6 +1404,38 @@ function Pop.ReplaceItems(a)
         items[#items + 1] = { text = "|cff808080" .. ItemText(now) .. "|r", value = now }
     end
     return items
+end
+
+-- 換適用範圍（自訂項目）：連覆寫一起搬到那一層、配新 id（DB.MoveCustomScope）。往窄搬（戰隊 → 職業／專精、
+-- 職業 → 專精）先問：其他專精（與其他角色）會看不到。目標那一層已經有同一個 ⇒ 說明、不動
+function Pop.SetScope(newScope)
+    if not cur then return end
+    local id = cur.id
+    local old = ns.DB.ParseCustomID(id)
+    if not old or old == newScope then return end
+    local RANK = ns.DB.SCOPE_RANK
+    local function Do()
+        if not cur or cur.id ~= id then return end
+        local nid, why = ns.DB.MoveCustomScope(id, newScope)
+        if not nid then
+            if why == "exists" then ns.Picker.Notice(L["That scope already has it."]) end
+            Pop.Refresh()
+            return
+        end
+        cur.id = nid
+        -- 生效清單變了（窄蓋寬、沒學就不列的對象換了）：目錄簽章重算、每一條的預覽都重畫
+        if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
+        if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
+        Changed("membership")
+    end
+    if (RANK[newScope] or 0) > (RANK[old] or 0) then
+        frame.scopeDD:SetSelectedValue(old)          -- 確定之前不改顯示（取消就維持原狀）
+        ns.Preview.Confirm(newScope == "spec"
+            and L["Only this specialization will keep it. Your other specializations and other characters stop showing it."]
+            or L["Only this class will keep it. Characters of other classes stop showing it."], Do)
+    else
+        Do()
+    end
 end
 
 function Pop.Open(key, id, cell)

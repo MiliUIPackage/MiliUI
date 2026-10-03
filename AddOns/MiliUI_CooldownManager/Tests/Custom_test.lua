@@ -589,5 +589,74 @@ do
         saved[1], saved[2], saved[3], saved[4], saved[5], saved[6], saved[7], saved[8], saved[9], saved[10]
 end
 
+------------------------------------------------------------
+-- 11. 三層範圍（P8）：Sync／Catalog 吃合併後的生效清單（戰隊 → 職業 → 專精、窄蓋寬、沒學就不列、種族技能）
+------------------------------------------------------------
+do
+    load("Core/Presets.lua")                    -- 種族技能的解析表（純資料）
+    env.UnitRace = function() return "矮人", "Dwarf", 3 end
+    local list = DB.CustomList(true)
+    for i = #list, 1, -1 do list[i] = nil end
+    p.customShared, p.customClass, p.customNextUID = nil, nil, nil
+    local sp = DB.SpecSpells(true)
+    sp.order.essential = nil
+
+    local wPot  = DB.AddCustomTo("shared", { kind = "item", itemID = 7, bar = "essential" })
+    local wRace = DB.AddCustomTo("shared", { kind = "racial", bar = "essential" })
+    local kDef  = DB.AddCustomTo("class", { kind = "spell", spellID = 500, bar = "essential" })
+    local kGone = DB.AddCustomTo("class", { kind = "spell", spellID = 600, bar = "essential" })   -- 600 沒學
+    local cAura = DB.AddCustomTo("spec", { kind = "aura", spellID = 700, filter = "HELPFUL", placeholder = true, bar = "essential" })
+    eq("三層的 id", table.concat({ wPot, wRace, kDef, kGone, cAura }, ","), "w:1,w:2,k:3,k:4,c:1")
+    eqList("C.Bar：戰隊 → 職業 → 專精接在暴雪的後面；沒學的職業層法術不列", C.Bar("essential"), { 11, 12, "w:1", "w:2", "k:3", "c:1" })
+    local _, hid = C.Bar("essential", true)
+    eqList("沒學就不列：設定頁的隱藏清單也沒有（不是玩家藏的）", hid, {})
+    local ir = C.Info(wRace)
+    check("種族技能：解析成這個角色的那一個", ir and ir.kind == "spell" and ir.spellID == 20594 and ir.racial == true)
+    eq("Info 帶範圍：戰隊", ir and ir.scope, "shared")
+    eq("Info 帶範圍：職業", C.Info(kDef) and C.Info(kDef).scope, "class")
+    eq("Info 帶範圍：專精", C.Info(cAura) and C.Info(cAura).scope, "spec")
+    eq("Info 寬層的編號是 uid", C.Info(kDef) and C.Info(kDef).index, 3)
+    eq("Info 沒學、不列的寬層 ⇒ nil", C.Info(kGone), nil)
+    check("IsCustom：寬層 id 也算", C.IsCustom("w:1") and C.IsCustom("k:3"))
+    eq("C.CustomIndex 只認專精層", C.CustomIndex("w:1"), nil)
+    eq("SourceOf 寬層 ＝ 它的 bar", C.SourceOf(kDef), "essential")
+
+    CU.Sync()
+    local rPot, rRace, rDef, rAura = CU.Get(wPot), CU.Get(wRace), CU.Get(kDef), CU.Get(cAura)
+    check("Sync：每一層都有 rec", rPot and rRace and rDef and rAura)
+    eq("Sync：沒學的不建", CU.Get(kGone), nil)
+    eq("Sync：rec 記著自己的 id", rDef and rDef.cooldownID, kDef)
+    eq("Sync：種族技能的 rec 是那個法術", rRace and rRace.spellID, 20594)
+    eq("Sync：種族技能的 rec 種類是法術", rRace and rRace.kind, "spell")
+
+    -- 窄蓋寬：專精層加同一個物品 ⇒ 戰隊那筆在這個專精不見，框照身分池化（同一個 rec 換 id）
+    local cPot = DB.AddCustomTo("spec", { kind = "item", itemID = 7, bar = "utility" })
+    eq("專精層的同一個物品 ⇒ c:2", cPot, "c:2")
+    eqList("被蓋掉的戰隊層物品不在核心技能上", C.Bar("essential"), { 11, 12, "w:2", "k:3", "c:1" })
+    eqList("專精層那筆在它自己的條上", C.Bar("utility"), { 21, "c:2" })
+    CU.Sync()
+    eq("Sync：被蓋掉的 id 沒有 rec", CU.Get(wPot), nil)
+    eq("Sync：同一個身分拿同一顆 rec", CU.Get(cPot), rPot)
+    eq("Sync：rec 換成窄層的 id", rPot.cooldownID, cPot)
+
+    -- hideUnknown 關掉 ⇒ 沒學的照列（問號格）
+    DB.CustomEntry(kGone).hideUnknown = false
+    eqList("hideUnknown = false ⇒ 沒學的照列", C.Bar("essential"), { 11, 12, "w:2", "k:3", "k:4", "c:1" })
+    eq("問號格：isKnown false", C.Info(kGone) and C.Info(kGone).isKnown, false)
+
+    -- 種族技能解不到（種族不認得）⇒ 不列
+    env.UnitRace = function() return "?", "Murloc", 99 end
+    eqList("種族技能解不到 ⇒ 不列", C.Bar("essential"), { 11, 12, "k:3", "k:4", "c:1" })
+    env.UnitRace = nil
+
+    -- 刪寬層的一筆 ⇒ 不用挪位，其他 id 不變
+    check("RemoveCustom k:3", DB.RemoveCustom(kDef))
+    eqList("刪掉之後其他 id 不變", C.Bar("essential"), { 11, 12, "k:4", "c:1" })
+
+    for i = #list, 1, -1 do list[i] = nil end
+    p.customShared, p.customClass, p.customNextUID = nil, nil, nil
+    CU.Sync()
+end
+
 print(("Custom_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

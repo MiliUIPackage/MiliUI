@@ -1,14 +1,16 @@
 ------------------------------------------------------------
 -- 自訂項目：光環格、自訂法術冷卻、自訂物品冷卻
 --
---   ns.Custom.Sync()                       Bars 每輪排版前叫：照目前專精的 custom 清單對上框
---   ns.Custom.Get(id)                      "c:i" → rec（Bars 當一格 entry 用）
+--   ns.Custom.Sync()                       Bars 每輪排版前叫：照目前專精生效的自訂項目（三層合併）對上框
+--   ns.Custom.Get(id)                      "c:i"／"k:uid"／"w:uid" → rec（Bars 當一格 entry 用）
 --   ns.Custom.Place(rec, container, r, barKey, gen)   放進格子（光環格的持有框走 ns.Write）
 --   ns.Custom.EndBar(barKey, gen)          這條這一輪沒放到的框收起來
 --   ns.Custom.Records() / ForEachPlaced(fn) / Counts()
 --
--- 資料在 spells[specID].custom（Core/DB.lua），id 是 "c:<index>"；框依「身分」池化
+-- 資料在三層（Core/DB.lua：戰隊 customShared "w:<uid>"、職業 customClass "k:<uid>"、專精 spells[specID].custom
+-- "c:<index>"），這裡只吃合併後的生效清單（DB.EffectiveCustom）；框依「身分」池化
 -- （光環：spellID＋filter；法術：spellID；物品：itemID），換專精換回來拿同一顆，不重建。
+-- 種族技能（kind = "racial"）在生效清單裡已經解析成這個角色的那個法術，這裡當普通的自訂法術。
 --
 -- ── 光環格（kind = "aura"）───────────────────────────────────────────
 -- 一顆**持有框**（自己的 Frame、parent 是條的容器、一個 spellID＋filter 一顆、永不改用）＋
@@ -87,7 +89,7 @@ local QUESTION = 134400
 local GCD_MAX = 1.5
 
 local records = {}          -- 身分 key → rec
-local byId = {}             -- "c:i" → rec（Sync 重建）
+local byId = {}             -- 自訂項目 id → rec（Sync 重建）
 local pendingBuild = {}     -- rec → true（戰鬥中要換容器）
 local pendingKick = {}      -- rec → true（戰鬥中要補踢）
 CU.lastError = nil
@@ -1489,11 +1491,14 @@ local function HideRec(rec)
 end
 
 function CU.Sync()
-    local list = ns.DB.CustomList(false) or {}
+    -- 三層合併後的生效清單（Core/DB.lua 的 EffectiveCustom：戰隊／職業／專精，窄蓋寬；種族技能是解析後的視圖）。
+    -- 框照身分池化：同一個法術從專精層搬到戰隊層（id 換了）拿的還是同一顆框
+    local list = ns.DB.EffectiveCustom()
     local seen = {}
     local counts = {}
     byId = {}
-    for i, e in ipairs(list) do
+    for _, it in ipairs(list) do
+        local e = it.entry
         if ns.Catalog.ValidCustom(e) then
             local key = IdentityKey(e)
             counts[key] = (counts[key] or 0) + 1
@@ -1503,7 +1508,7 @@ function CU.Sync()
                 rec = New(e)
                 records[key] = rec
             end
-            local id = "c:" .. i
+            local id = it.id
             if rec.cooldownID ~= id then rec.decorated = nil end   -- 覆寫跟著 id 走
             rec.cooldownID, rec.entry, rec.bar = id, e, e.bar
             byId[id] = rec

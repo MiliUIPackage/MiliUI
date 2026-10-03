@@ -161,5 +161,22 @@ do
     check("有時間螺旋那一組", keys.timeSpiral)
 end
 
+------------------------------------------------------------
+-- 種族技能的動態解析（P8：戰隊層的那一筆 kind = "racial"，每個角色照自己的種族解析；isKnown 由呼叫端注入）
+------------------------------------------------------------
+do
+    local known = { [33702] = true, [20572] = false, [33697] = false }
+    local function isKnown(id) return known[id] end
+    eq("解析：這個種族學了的那一個", P.ResolveRacial("Orc", isKnown), 33702)
+    eq("解析：讀不到（nil）當學了 ⇒ 表裡第一個", P.ResolveRacial("Orc", function() return nil end), 20572)
+    eq("解析：一個都沒學 ⇒ nil", P.ResolveRacial("Orc", function() return false end), nil)
+    eq("解析：沒給 isKnown ⇒ 表裡第一個", P.ResolveRacial("Dwarf"), 20594)
+    eq("解析：不認得的種族 ⇒ nil", P.ResolveRacial("Murloc", isKnown), nil)
+    eq("解析：種族不是字串 ⇒ nil", P.ResolveRacial(nil, isKnown), nil)
+    local e = P.RacialEntry("essential")
+    check("種族技能那一筆：不帶 ID", e.kind == "racial" and e.bar == "essential" and e.spellID == nil)
+    check("每次回新表", P.RacialEntry("essential") ~= e)
+end
+
 print(("Presets_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

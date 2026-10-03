@@ -13,15 +13,19 @@
 --                      **照暴雪面板的分頁分成兩排**（「法術」／「增益效果」）：同一件飾品、同一瓶藥水在暴雪那邊
 --                      是兩個項目（一個追蹤冷卻、一個追蹤它給的增益），圖示一模一樣，混在一排看起來像重複。
 --   常用預設          （圖示類、長條類的條都有）四顆鈕「種族技能」「防禦技能」「藥水與治療石」「團隊增益」，各開一個
---                      清單彈窗（一列一項：圖示＋名字，滑過是法術／物品提示，點一下就加；這個專精已經有的那一列
---                      灰掉並寫「已加入」）。資料在 Core/Presets.lua。最下面一個勾選「同時加到這個職業的其他專精」
---                      （防禦技能不給：別的專精學不學得到不知道），勾了就對其他專精各叫一次 DB.CopyCustomEntry。
---   自訂 ID            三顆鈕「光環」「法術」「物品」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
---                      spells[spec].custom 追加一筆（bar ＝ 這條）。圖示類、長條類的條都收（長條上畫成長條，
+--                      清單彈窗（一列一項：圖示＋名字，滑過是法術／物品提示，點一下就加；這個專精已經看得到的那一列
+--                      灰掉並寫「已加入」）。資料在 Core/Presets.lua。種族技能只有一列：加的是動態的那一筆
+--                      （kind = "racial"，每個角色照自己的種族解析）。
+--   自訂 ID            四顆鈕「光環」「法術」「物品」「裝備欄位」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
+--                      加一筆（bar ＝ 這條）。圖示類、長條類的條都收（長條上畫成長條，
 --                      kind 照舊，見 Modules/Custom.lua）；「已在暴雪冷卻管理器」與候選池照舊長條只收長條。
---                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；同專精不收重複；
+--                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；這個專精已經看得到同一個的不收
+--                      （任何一層）、目標那一層已經有的也不收；
 --                      減益只收 C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret 的（玩家自己算友方，
 --                      友方減益不准用 ID 過濾，加了也是一個永遠不亮的格子）。
+-- 適用範圍（2026-10-03）：常用預設與自訂 ID 的彈窗底部一列「適用範圍」下拉（戰隊／這個職業／這個專精）＋下一列灰字，
+--   加到哪一層（Core/DB.lua 的 AddCustomTo）。每次開彈窗回到那一種的預設：藥水與治療石、團隊增益、裝備欄位、種族技能＝戰隊；
+--   防禦技能＝職業；手動輸入 ID（光環／法術／物品）＝專精。
 -- 暴雪面板開著時（Catalog.IsPaused）清單不準：整個挑選器鎖住並說明，面板關掉自動重讀。
 ------------------------------------------------------------
 local _, ns = ...
@@ -76,27 +80,112 @@ local function DebuffTrackable(id)
     return level == NEVER_SECRET
 end
 
--- 回傳 entry 或 nil, 給玩家看的原因
-function Picker.ValidateCustom(kind, text, filter, barKey)
+------------------------------------------------------------
+-- 適用範圍（自訂項目的三層，Core/DB.lua）：文字、說明、下拉列
+------------------------------------------------------------
+local SCOPE_LABEL = {
+    shared = function() return L["Warband (all characters)"] end,
+    class  = function() return L["This class"] end,
+    spec   = function() return L["This specialization"] end,
+}
+local SCOPE_DESC = {
+    shared = function() return L["Every character and specialization using this profile sees it. Its settings exist only once."] end,
+    class  = function() return L["Every specialization of this class sees it."] end,
+    spec   = function() return L["Only this specialization."] end,
+}
+
+function Picker.ScopeText(scope)
+    local fn = SCOPE_LABEL[scope]
+    return fn and fn() or tostring(scope)
+end
+
+function Picker.ScopeDesc(scope)
+    local fn = SCOPE_DESC[scope]
+    return fn and fn() or ""
+end
+
+-- 下拉的選項（寬 → 窄）
+function Picker.ScopeItems()
+    local items = {}
+    for _, s in ipairs(ns.DB.SCOPE_ORDER) do items[#items + 1] = { text = Picker.ScopeText(s), value = s } end
+    return items
+end
+
+-- 彈窗用的一列：「適用範圍」標籤＋下拉，下一列灰字說明。row:SetScope(s)／row:GetScope()／row:Measure() → 高度
+-- （說明換行的高度要等顯示之後才量得準：呼叫端在彈窗 Show 之後再 Measure）
+function Picker.ScopeRow(parent, width, onChange)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetSize(width, 44)
+    local label = row:CreateFontString(nil, "OVERLAY")
+    label:SetFontObject(W.fontNormal)
+    label:SetJustifyH("LEFT")
+    label:SetText(L["Scope"])
+    label:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -3)
+    local lw = math.ceil(label:GetStringWidth() or 60)
+    local ddW = math.max(120, width - lw - 8)
+    local dd = W.CreateDropdown(row, math.min(180, ddW), Picker.ScopeItems(), function(value)
+        row:SetScope(value)
+        if onChange then onChange(value) end
+    end)
+    dd:SetMaxWidth(ddW)
+    dd:SetPoint("TOPLEFT", row, "TOPLEFT", lw + 8, 0)
+    local desc = row:CreateFontString(nil, "OVERLAY")
+    desc:SetFontObject(W.fontSmall)
+    desc:SetTextColor(0.65, 0.65, 0.65)
+    desc:SetJustifyH("LEFT")
+    desc:SetWordWrap(true)
+    desc:SetWidth(width)
+    desc:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -24)
+    row.dd, row.desc = dd, desc
+    function row:SetScope(s)
+        if not ns.DB.SCOPE_RANK[s] then s = "spec" end
+        self.scope = s
+        dd:SetSelectedValue(s)
+        desc:SetText(Picker.ScopeDesc(s))
+    end
+    function row:GetScope() return self.scope or "spec" end
+    function row:Measure()
+        local sh = desc:GetStringHeight()
+        local h = 24 + math.max(14, type(sh) == "number" and sh or 0)
+        self:SetHeight(h)
+        return h
+    end
+    row:SetScope("spec")
+    return row
+end
+
+-- 這一筆已經有了（這個專精現在看得到同一個，或目標那一層已經有）→ 給玩家看的原因；沒有 ⇒ nil
+local function AlreadyWhy(e, scope)
+    if ns.DB.FindEffective(e) then return L["Already tracked in this specialization."] end
+    if ns.DB.FindInScope(scope or "spec", e) then return L["That scope already has it."] end
+    return nil
+end
+Picker.AlreadyWhy = AlreadyWhy
+
+-- 回傳 entry 或 nil, 給玩家看的原因。scope 省略 ＝ 專精層
+function Picker.ValidateCustom(kind, text, filter, barKey, scope)
     if not ns.specID then return nil, L["Pick a specialization first."] end
     local id = ParseID(text)
     if not id then return nil, L["Enter a number."] end
+    local e
     if kind == "item" then
         if not ItemExists(id) then return nil, L["No item with that ID."] end
-        if ns.DB.FindCustom("item", id) then return nil, L["Already tracked in this specialization."] end
-        return { kind = "item", itemID = id, bar = barKey }
-    end
-    if not SpellExists(id) then return nil, L["No spell with that ID."] end
-    if kind == "aura" then
-        filter = filter == "HARMFUL" and "HARMFUL" or "HELPFUL"
-        if filter == "HARMFUL" and not DebuffTrackable(id) then
-            return nil, L["Blizzard only lets addons track a few debuffs on you by ID, and this isn't one of them."]
+        e = { kind = "item", itemID = id, bar = barKey }
+    else
+        if not SpellExists(id) then return nil, L["No spell with that ID."] end
+        if kind == "aura" then
+            filter = filter == "HARMFUL" and "HARMFUL" or "HELPFUL"
+            if filter == "HARMFUL" and not DebuffTrackable(id) then
+                return nil, L["Blizzard only lets addons track a few debuffs on you by ID, and this isn't one of them."]
+            end
+            e = { kind = "aura", spellID = id, filter = filter, placeholder = true, bar = barKey }
+        else
+            e = { kind = "spell", spellID = id, bar = barKey }
         end
-        if ns.DB.FindCustom("aura", id, filter) then return nil, L["Already tracked in this specialization."] end
-        return { kind = "aura", spellID = id, filter = filter, placeholder = true, bar = barKey }
     end
-    if ns.DB.FindCustom("spell", id) then return nil, L["Already tracked in this specialization."] end
-    return { kind = "spell", spellID = id, bar = barKey }
+    local why = AlreadyWhy(e, scope)
+    if why then return nil, why end
+    return e
 end
 
 local function IsBarsKind(key)
@@ -485,14 +574,15 @@ local function AfterAdd(key)
     Picker.Refresh()
 end
 
-local function Commit(entry)
-    local i = ns.DB.AddCustom(entry)
-    if not i then Notice(L["Pick a specialization first."]) return end
+-- 加到 scope 那一層（省略 ＝ 專精層），回傳 id
+local function Commit(entry, scope)
+    local id = ns.DB.AddCustomTo(scope or "spec", entry)
+    if not id then Notice(L["Pick a specialization first."]) return end
     AfterAdd(curKey)
-    return i
+    return id
 end
 
-local function AskFilter(text)
+local function AskFilter(text, scope)
     local key = curKey
     if not filterPopup then
         filterPopup = W.CreateChoicePopup(ns.Options.panel, 360,
@@ -502,15 +592,15 @@ local function AskFilter(text)
                 { text = L["Cancel"], color = "normal" },
             })
     end
-    filterPopup.pendingText, filterPopup.pendingKey = text, key
+    filterPopup.pendingText, filterPopup.pendingKey, filterPopup.pendingScope = text, key, scope
     filterPopup:Show()
 end
 
 function Picker.FinishAura(filter)
-    local text, key = filterPopup.pendingText, filterPopup.pendingKey
-    local entry, why = Picker.ValidateCustom("aura", text, filter, key)
+    local text, key, scope = filterPopup.pendingText, filterPopup.pendingKey, filterPopup.pendingScope
+    local entry, why = Picker.ValidateCustom("aura", text, filter, key, scope)
     if not entry then Notice(why) return end
-    Commit(entry)
+    Commit(entry, scope)
 end
 
 local TITLES = {
@@ -774,11 +864,43 @@ Picker.ParseID = ParseID
 Picker.SpellExists = SpellExists
 
 ------------------------------------------------------------
+-- 輸入彈窗底部的「適用範圍」列（自訂 ID 的光環／法術／物品）：跟「開啟天賦與法術書」同一套插法——
+-- 錨在確定／取消那一列正上方、彈窗跟著加高。說明換行的高度要顯示之後才量得準：OnShow 重量，
+-- 差多少就加高多少（輸入錯誤說明列記著的基準高度一起調，不然下一次出錯會縮回去）
+------------------------------------------------------------
+local function GrowPopup(popup, delta)
+    if delta == 0 then return end
+    popup:SetHeight((popup:GetHeight() or 0) + delta)
+    local n = errNotes[popup]
+    if n then n.baseH = n.baseH + delta end
+end
+
+local function FitScopeRow(popup)
+    local row = popup.scopeRow
+    if not row then return end
+    local nh = row:Measure()
+    GrowPopup(popup, nh - (row.h or nh))
+    row.h = nh
+end
+
+function Picker.AddScopeRow(popup)
+    local h0 = popup:GetHeight()
+    if type(h0) ~= "number" or h0 <= 0 then return end
+    local row = Picker.ScopeRow(popup, INPUT_W - 28, function() FitScopeRow(popup) end)
+    row:SetPoint("TOPLEFT", popup, "TOPLEFT", 14, -(h0 - 46))
+    row.h = row:Measure()
+    P.Height(popup, h0 + row.h + 10)
+    popup.scopeRow = row
+    popup:HookScript("OnShow", function() FitScopeRow(popup) end)
+end
+
+------------------------------------------------------------
 -- 裝備欄位：不用輸入 ID，選哪一格就好。追蹤的是「現在裝在那一格的物品」，換裝自動跟上；
 -- 不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係。飾品兩格排最前面（Catalog.CUSTOM_SLOT_ORDER）
 ------------------------------------------------------------
 local SLOT_W, SLOT_ROW, SLOT_GAP = 380, 26, 2
 local slotPopup
+local LayoutSlotPopup      -- 前置宣告（定義在 BuildSlotPopup 下面）
 
 local function SlotLabel(slot)
     return ns.Catalog.SlotName(slot) or (slot == 13 or slot == 14) and L["Trinket %d"]:format(slot - 12) or ("#" .. slot)
@@ -827,12 +949,17 @@ local function BuildSlotPopup()
             GameTooltip:Hide()
         end)
         row:SetScript("OnClick", function(self)
+            local scope = f.scopeRow:GetScope()
             f:Hide()
-            if ns.DB.FindCustom("slot", self.slot) then Notice(L["Already tracked in this specialization."]) return end
-            Commit({ kind = "slot", slot = self.slot, bar = curKey })
+            local e = { kind = "slot", slot = self.slot, bar = curKey }
+            local why = AlreadyWhy(e, scope)
+            if why then Notice(why) return end
+            Commit(e, scope)
         end)
         f.rows[i] = row
     end
+    -- 適用範圍（預設戰隊：飾品欄每個角色都有）
+    f.scopeRow = Picker.ScopeRow(f, SLOT_W - PAD * 2, function() if f:IsShown() then LayoutSlotPopup(f) end end)
     f.cancel = W.CreateButton(f, L["Cancel"], "normal", 90, 22)
     W.FitButton(f.cancel, 90, 22)
     f.cancel:SetPoint("BOTTOMRIGHT", -PAD, 12)
@@ -842,10 +969,8 @@ local function BuildSlotPopup()
     return f
 end
 
-function Picker.AskSlot()
-    if not ns.specID then Notice(L["Pick a specialization first."]) return end
-    slotPopup = slotPopup or BuildSlotPopup()
-    local f = slotPopup
+-- 排版（開的時候、換了適用範圍時說明換行高度會變）
+LayoutSlotPopup = function(f)
     local y = -(12 + (f.title:GetStringHeight() or 14) + 10)
     for _, row in ipairs(f.rows) do
         local slot = row.slot
@@ -870,28 +995,46 @@ function Picker.AskSlot()
         row:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
         y = y - SLOT_ROW - SLOT_GAP
     end
-    P.Height(f, -y + 22 + 12 + 8)
+    y = y - 8
+    f.scopeRow:ClearAllPoints()
+    f.scopeRow:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+    y = y - f.scopeRow:Measure()
+    P.Height(f, -y + 22 + 12 + 10)
+end
+
+function Picker.AskSlot()
+    if not ns.specID then Notice(L["Pick a specialization first."]) return end
+    slotPopup = slotPopup or BuildSlotPopup()
+    local f = slotPopup
+    f.scopeRow:SetScope("shared")
+    -- 先顯示再排：說明換行的高度要顯示之後才量得準（同一幀內，畫面上看不到中間狀態）
     f:Show()
+    LayoutSlotPopup(f)
 end
 
 ------------------------------------------------------------
 -- 常用預設的清單彈窗（資料：Core/Presets.lua）
 --
---   Picker.PresetRows(kind, key) → { { kind = "spell"|"item"|"aura", id, icon, name, added, make() }, … }
+--   Picker.PresetRows(kind, key, scope) → { { kind = "spell"|"item"|"aura", id, icon, name, added, make() }, … }
 --   Picker.AskPreset(kind)        開彈窗
 --
--- 一列一項（W.CreateRowList，清單長就捲）；點一下就加、彈窗不關，那一列當場變「已加入」。
--- 「同時加到這個職業的其他專精」：每次開都預設勾（防禦技能不顯示這個勾選）。
+-- 一列一項（W.CreateRowList，清單長就捲）；點一下就加、彈窗不關，那一列當場變「已加入」
+-- （這個專精已經看得到同一個，或選的那一層已經有）。
+-- 底部「適用範圍」：每次開回到那一種的預設（PRESET_SCOPE）；加進哪一層照它（DB.AddCustomTo）。
+-- 種族技能只有一列：加的是動態的那一筆（kind = "racial"），每個角色照自己的種族解析。
 ------------------------------------------------------------
 local PRESET_W, PRESET_ROW, PRESET_MAX_ROWS = 380, 30, 8
 local presetPopup
 
 local PRESET_TITLES = {
-    racials    = function() return L["Your race's active abilities that you know. Click one to track its cooldown."] end,
+    racials    = function() return L["Each character tracks its own race's ability, so one entry covers all your characters. Click it to add."] end,
     defensives = function() return L["Your class's defensive abilities that you currently know. Click one to track its cooldown."] end,
     items      = function() return L["Potions and healthstones. Each one shows whichever version you have in your bags. Click one to track it."] end,
     auras      = function() return L["Bloodlust and the like, Time Spiral and potion buffs on you, whoever cast them. Click one to add an aura slot."] end,
 }
+
+-- 每一種的預設範圍（使用者 2026-10-03 定案）
+local PRESET_SCOPE = { racials = "shared", defensives = "class", items = "shared", auras = "shared" }
 
 local function PlainValue(fn, ...)
     if not fn then return nil end
@@ -900,12 +1043,14 @@ local function PlainValue(fn, ...)
     return v
 end
 
-local function SpellRow(id)
+local function Added(e, scope) return AlreadyWhy(e, scope) ~= nil end
+
+local function SpellRow(id, scope)
     return {
         kind = "spell", id = id,
         icon = PlainValue(C_Spell and C_Spell.GetSpellTexture, id),
         name = PlainValue(C_Spell and C_Spell.GetSpellName, id),
-        added = ns.DB.FindCustom("spell", id) ~= nil,
+        added = Added({ kind = "spell", spellID = id }, scope),
         make = function(key) return ns.Presets.SpellEntry(id, key) end,
     }
 end
@@ -914,14 +1059,25 @@ local function BagCount(id)
     return PlainValue(C_Item and C_Item.GetItemCount, id, false, true)
 end
 
-function Picker.PresetRows(kind, key)
+function Picker.PresetRows(kind, key, scope)
     local PR = ns.Presets
     local out = {}
     if kind == "racials" then
+        -- 一列：動態的種族技能（圖示與名字用這個角色解析出來的那一個）。這個專精已經有那個法術（舊版逐個加的）也算加過
         local race = PlainValue(function() return select(2, UnitRace("player")) end)
-        for _, id in ipairs(PR.Racials(race, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id) end
+        local sid = PR.ResolveRacial(race, ns.Catalog.SpellKnown)
+        if sid then
+            local spellName = PlainValue(C_Spell and C_Spell.GetSpellName, sid)
+            out[1] = {
+                kind = "spell", id = sid,
+                icon = PlainValue(C_Spell and C_Spell.GetSpellTexture, sid),
+                name = L["Racial ability: %s"]:format(spellName or ("#" .. tostring(sid))),
+                added = Added(PR.RacialEntry(key), scope) or ns.DB.FindEffective({ kind = "spell", spellID = sid }) ~= nil,
+                make = function(k) return PR.RacialEntry(k) end,
+            }
+        end
     elseif kind == "defensives" then
-        for _, id in ipairs(PR.Defensives(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id) end
+        for _, id in ipairs(PR.Defensives(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id, scope) end
     elseif kind == "items" then
         for _, def in ipairs(PR.ITEMS) do
             -- 圖示與名字用包包裡有的那件（都沒有就用主的）
@@ -932,7 +1088,7 @@ function Picker.PresetRows(kind, key)
                 kind = "item", id = shown,
                 icon = PlainValue(C_Item and C_Item.GetItemIconByID, shown),
                 name = name,
-                added = ns.DB.FindCustom("item", def.items[1]) ~= nil,
+                added = Added({ kind = "item", itemID = def.items[1] }, scope),
                 make = function(k) return PR.ItemEntry(def, k) end,
             }
         end
@@ -943,7 +1099,7 @@ function Picker.PresetRows(kind, key)
             -- 判「已加入」看整組任何一個 ID（換陣營的角色共用設定檔時主 ID 不同）
             local added = false
             for _, id in ipairs(PR.AuraIDs(def)) do
-                if ns.DB.FindCustom("aura", id, "HELPFUL") then added = true break end
+                if Added({ kind = "aura", spellID = id, filter = "HELPFUL" }, scope) then added = true break end
             end
             if e then out[#out + 1] = {
                 kind = "aura", id = e.spellID,
@@ -959,21 +1115,14 @@ end
 
 local RenderPreset          -- 前置宣告
 
--- 加一列：這個專精加一筆；勾了就複製到其他專精（目標已有就跳過）
+-- 加一列：加到底部選的那一層
 local function AddPreset(row)
     local f = presetPopup
     if not (f and row) or row.added then return end
     local key = curKey
     local entry = row.make(key)
     if not entry then return end
-    local i = ns.DB.AddCustom(entry)
-    if not i then Notice(L["Pick a specialization first."]) return end
-    if f.alsoCB:IsShown() and f.alsoCB:GetChecked() then
-        for _, spec in ipairs(ns.DB.ClassSpecs()) do
-            if spec.id ~= ns.specID then ns.DB.CopyCustomEntry(ns.DB.CustomID(i), spec.id) end
-        end
-    end
-    AfterAdd(key)
+    if not Commit(entry, f.scopeRow:GetScope()) then return end
     RenderPreset()
 end
 
@@ -1042,8 +1191,8 @@ local function BuildPresetPopup()
     f.list = W.CreateRowList(f, PRESET_W - PAD * 2, PRESET_ROW * PRESET_MAX_ROWS, PRESET_ROW, BuildPresetRow)
     f.empty = Text(f, true)
     f.empty:SetText(L["Nothing to list here."])
-    f.alsoCB = W.CreateCheckButton(f, L["Also add to this class's other specializations"])
-    f.alsoExtra = f.alsoCB:SetLabelMaxWidth(PRESET_W - PAD * 2 - 18 - f.alsoCB.labelGap) or 0
+    -- 適用範圍（底部）：換了範圍「已加入」要重判、說明換行高度會變 ⇒ 重排
+    f.scopeRow = Picker.ScopeRow(f, PRESET_W - PAD * 2, function() if f:IsShown() then RenderPreset() end end)
     f.close = W.CreateButton(f, L["Close"], "normal", 90, 22)
     W.FitButton(f.close, 90, 22)
     f.close:SetPoint("BOTTOMRIGHT", -PAD, 12)
@@ -1065,7 +1214,7 @@ end
 RenderPreset = function()
     local f = presetPopup
     if not (f and f.kind and curKey) then return end
-    local rows = Picker.PresetRows(f.kind, curKey)
+    local rows = Picker.PresetRows(f.kind, curKey, f.scopeRow:GetScope())
     f.title:SetText(PRESET_TITLES[f.kind]())
     local y = -(12 + (f.title:GetStringHeight() or 14) + 10)
     local n = #rows
@@ -1083,14 +1232,9 @@ RenderPreset = function()
         f.empty:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
         y = y - (f.empty:GetStringHeight() or 14) - 10
     end
-    -- 防禦技能不給「其他專精」：別的專精學不學得到不知道
-    local also = f.kind ~= "defensives"
-    f.alsoCB:SetShown(also)
-    if also then
-        f.alsoCB:ClearAllPoints()
-        f.alsoCB:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
-        y = y - 18 - (f.alsoExtra or 0) - 10
-    end
+    f.scopeRow:ClearAllPoints()
+    f.scopeRow:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+    y = y - f.scopeRow:Measure() - 10
     P.Height(f, -y + 22 + 12 + 4)
 end
 
@@ -1100,9 +1244,10 @@ function Picker.AskPreset(kind)
     presetPopup = presetPopup or BuildPresetPopup()
     local f = presetPopup
     f.kind = kind
-    f.alsoCB:SetChecked(true)                -- 每次開都預設勾
-    RenderPreset()
+    f.scopeRow:SetScope(PRESET_SCOPE[kind] or "spec")      -- 每次開回到這一種的預設
+    -- 先顯示再排：說明換行的高度要顯示之後才量得準（同一幀內，畫面上看不到中間狀態）
     f:Show()
+    RenderPreset()
 end
 
 function Picker.AskCustom(kind)
@@ -1116,30 +1261,36 @@ function Picker.AskCustom(kind)
                   .. " " .. L["Or Shift-click it in your bags, spellbook or talents to fill in the ID."] },
         })
         if kind == "item" then Picker.AddBagsOpener(popup) else Picker.AddSpellsOpener(popup) end
+        Picker.AddScopeRow(popup)            -- 適用範圍（確定／取消正上方）
         inputs[kind] = popup
     end
     SetInputError(popup, nil)
     Picker.WatchInput(popup, kind)
+    if popup.scopeRow then popup.scopeRow:SetScope("spec") end     -- 手動輸入 ID 預設只給這個專精
     popup:Open({}, function(values)
         local text = values.id
+        local scope = popup.scopeRow and popup.scopeRow:GetScope() or "spec"
         if kind == "aura" then
-            -- 先把 ID 本身驗過（不存在就留在輸入框），增益／減益下一步再問
-            local _, why = Picker.ValidateCustom("spell", text, nil, curKey)
-            if why and why ~= L["Already tracked in this specialization."] then
+            -- 先把 ID 本身驗過（不存在就留在輸入框），增益／減益與重複下一步再判
+            local why
+            if not ns.specID then why = L["Pick a specialization first."]
+            elseif not ParseID(text) then why = L["Enter a number."]
+            elseif not SpellExists(ParseID(text)) then why = L["No spell with that ID."] end
+            if why then
                 SetInputError(popup, why)
                 return false
             end
             SetInputError(popup, nil)
-            AskFilter(text)
+            AskFilter(text, scope)
             return
         end
-        local entry, why = Picker.ValidateCustom(kind, text, nil, curKey)
+        local entry, why = Picker.ValidateCustom(kind, text, nil, curKey, scope)
         if not entry then
             SetInputError(popup, why)
             return false
         end
         SetInputError(popup, nil)
-        Commit(entry)
+        Commit(entry, scope)
     end, title)
 end
 

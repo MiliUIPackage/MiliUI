@@ -501,6 +501,17 @@ do
     check("別份設定檔的空覆寫整筆拿掉", sv.profiles.Other.spells[99].overrides[7] == nil)
     local c = S.CustomAdd("", "MyVoice\\c.ogg")
     check("刪掉的 id 不重用", c.id ~= a.id and c.id > b.id)
+    -- 職業層／戰隊層的自訂項目（P8）：覆寫跟著那一筆走，刪語音時一樣要清
+    sv.profiles.Other = {
+        customShared = { { kind = "aura", spellID = 2825, uid = 1, overrides = { gainSound = Logic.CustomValue(c.id) } } },
+        customClass = { MAGE = { { kind = "spell", spellID = 1, uid = 2,
+                                   overrides = { readySound = Logic.CustomValue(c.id), procGlow = false } } } },
+    }
+    local ci
+    for i, x in ipairs(S.CustomList()) do if x.id == c.id then ci = i end end
+    eq("寬層：清掉兩格", S.CustomRemove(ci), 2)
+    eq("寬層：空覆寫整張拿掉", sv.profiles.Other.customShared[1].overrides, nil)
+    eq("寬層：別的覆寫不動", sv.profiles.Other.customClass.MAGE[1].overrides and sv.profiles.Other.customClass.MAGE[1].overrides.procGlow, false)
     sv.profiles.Other = nil
 end
 

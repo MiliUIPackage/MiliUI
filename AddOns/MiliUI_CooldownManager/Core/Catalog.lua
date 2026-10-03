@@ -9,10 +9,10 @@
 --   ns.Catalog.TalentBlocked(id) 逐法術的天賦條件不成立 ⇒ true（正式清單不收；見下面「天賦條件」）
 --   ns.Catalog.Replacements()  以增益取代：byA（A → B）、byB（B → A）；B 不進任何一條的清單（見那一節）
 --
--- 自訂項目（spells[spec].custom，id 是 "c:<index>"）也從這裡進清單：Bar(key) 把
--- custom[i].bar == key 的排進去，順序跟其他格一樣走 order 表（光環格也是，可以放在任意位置；
--- 條上有光環格時 Bars 會強制固定格位，位置本來就不動）。
--- Info("c:i") 回同一個形狀的表（多 custom／kind／itemID／filter）。
+-- 自訂項目（三層：戰隊 "w:<uid>"／職業 "k:<uid>"／專精 "c:<index>"，合併規則在 Core/DB.lua 的
+-- EffectiveCustom）也從這裡進清單：Bar(key) 把生效清單裡 bar == key 的排進去，順序跟其他格一樣走 order 表
+-- （光環格也是，可以放在任意位置；條上有光環格時 Bars 會強制固定格位，位置本來就不動）。
+-- Info(id) 回同一個形狀的表（多 custom／kind／itemID／filter／scope）。
 --
 -- 資料來源只有兩個明文 API：`C_CooldownViewer.GetCooldownViewerCategorySet(category, true)`
 -- 與 `GetCooldownViewerCooldownInfo(id)`，全部 pcall，欄位過 canaccessvalue 才收。
@@ -380,6 +380,13 @@ C.TalentKnown = TalentKnown
 -- 這一格的條件（目前專精的覆寫；SpellsTable 定義在下面，用前置宣告）
 local SpellsTable
 local function TalentCondOf(sp, id)
+    -- 職業層／戰隊層的自訂項目：覆寫跟著那一筆走（Core/DB.lua 的 OverrideTable）
+    local DB = ns.DB
+    local scope = DB and DB.ParseCustomID and DB.ParseCustomID(id)
+    if scope == "class" or scope == "shared" then
+        local o = DB.OverrideTable(id, false)
+        return type(o) == "table" and o.talentCond or nil
+    end
     local all = sp and type(sp.overrides) == "table" and sp.overrides
     local o = all and id ~= nil and all[id]
     return type(o) == "table" and o.talentCond or nil
@@ -398,12 +405,33 @@ end
 local function TalentSig()
     local sp = SpellsTable()
     local all = sp and type(sp.overrides) == "table" and sp.overrides
-    if not all then return "" end
     local out = {}
-    for id in pairs(all) do
+    for id in pairs(all or EMPTY) do
         if Blocked(sp, id) then out[#out + 1] = tostring(id) end
     end
+    -- 寬層的自訂項目：條件存在那一筆身上（不在 spells[spec].overrides 裡）
+    local DB = ns.DB
+    if DB and DB.EffectiveCustom then
+        for _, it in ipairs(DB.EffectiveCustom()) do
+            if it.scope ~= "spec" and Blocked(sp, it.id) then out[#out + 1] = it.id end
+        end
+    end
+    if #out == 0 then return "" end
     table.sort(out)
+    return table.concat(out, ",")
+end
+
+-- 簽章用：這個專精生效的自訂項目（窄蓋寬、寬層「沒學就不列」的結果變了 ⇒ 清單變了 ⇒ 要重排）
+local function CustomSig()
+    local DB = ns.DB
+    if not (DB and DB.EffectiveCustom) then return "" end
+    local out = {}
+    for _, it in ipairs(DB.EffectiveCustom()) do
+        if it.scope ~= "spec" then
+            local e = it.entry
+            out[#out + 1] = it.id .. "=" .. tostring(type(e) == "table" and e.spellID or "")
+        end
+    end
     return table.concat(out, ",")
 end
 
@@ -515,7 +543,8 @@ local function Build()
     C.adopted = 0
 
     -- 簽章：版面原字串＋專精＋每條清單（天賦改變 isKnown 也會反映在清單上）＋天賦條件的結果
-    local parts = { str or "", tostring(tag), TalentSig() }
+    -- ＋寬層自訂項目的生效結果（學會／忘掉技能讓職業層的防禦技出現／消失、種族技能解析成哪一個）
+    local parts = { str or "", tostring(tag), TalentSig(), CustomSig() }
     for _, bar in ipairs(C.SOURCE_BARS) do
         parts[#parts + 1] = table.concat(lists[bar], ",")
     end
@@ -700,19 +729,28 @@ SpellsTable = function()
     return type(sp) == "table" and sp or nil
 end
 
-local function CustomList()
-    local sp = SpellsTable()
-    local list = sp and sp.custom
-    return type(list) == "table" and list or EMPTY
+-- 這個專精實際生效的自訂項目（三層合併、窄蓋寬，Core/DB.lua 的 EffectiveCustom）：{ { id, key, entry, raw, scope }, … }
+local function Effective()
+    local DB = ns.DB
+    if DB and DB.EffectiveCustom then return DB.EffectiveCustom() end
+    return EMPTY
 end
 
+-- id 解析一律走 DB.ParseCustomID（"c:"／"k:"／"w:"）
+local function Parse(id)
+    local DB = ns.DB
+    if DB and DB.ParseCustomID then return DB.ParseCustomID(id) end
+    return nil
+end
+
+-- "c:3" → 3（專精層的陣列位置）；寬層與非自訂 id 回 nil
 function C.CustomIndex(id)
-    if type(id) ~= "string" then return nil end
-    local n = id:match("^c:(%d+)$")
-    return n and tonumber(n) or nil
+    local scope, n = Parse(id)
+    if scope == "spec" then return n end
+    return nil
 end
 
-function C.IsCustom(id) return C.CustomIndex(id) ~= nil end
+function C.IsCustom(id) return Parse(id) ~= nil end
 
 -- 這一筆的形狀對不對（匯入的字串、舊版存檔都可能帶來壞資料；壞的一律當不存在）
 -- 選用欄位壞掉不算整筆壞：物品的 alts、光環格的 spellIDs 不是表就當沒有（Modules/Custom.lua 讀的時候濾）
@@ -724,10 +762,15 @@ local function ValidCustom(e)
 end
 C.ValidCustom = ValidCustom
 
+-- 生效的那一筆（種族技能是解析後的視圖）、編號（陣列位置／uid）、範圍；被窄層蓋掉、用不到、壞資料 ⇒ nil
 function C.CustomEntry(id)
-    local i = C.CustomIndex(id)
-    local e = i and CustomList()[i]
-    if ValidCustom(e) then return e, i end
+    if not Parse(id) then return nil end
+    for _, it in ipairs(Effective()) do
+        if it.id == id then
+            if ValidCustom(it.entry) then return it.entry, it.key, it.scope end
+            return nil
+        end
+    end
     return nil
 end
 
@@ -738,7 +781,8 @@ end
 
 -- 這條上有沒有光環格（有的話固定格位被強制打開）
 function C.BarHasAuraSlot(barKey)
-    for _, e in ipairs(CustomList()) do
+    for _, it in ipairs(Effective()) do
+        local e = it.entry
         if ValidCustom(e) and e.kind == "aura" and e.bar == barKey then return true end
     end
     return false
@@ -767,11 +811,13 @@ end
 C.SpellKnown = SpellKnown
 
 local function CustomInfo(id)
-    local e, i = C.CustomEntry(id)
+    local e, i, scope = C.CustomEntry(id)
     if not e then return nil end
     local info = {
         cooldownID = id, custom = true, index = i, kind = e.kind, bar = e.bar,
         spellID = e.spellID, itemID = e.itemID, filter = e.filter, slot = e.slot, isKnown = true,
+        -- 範圍（"shared"｜"class"｜"spec"）；種族技能那一筆（解析成這個角色的那一個）多 racial
+        scope = scope, racial = e.racial and true or nil,
     }
     if e.kind == "slot" then
         -- 裝備欄位：圖示與名字照現在裝的物品；空格用空格圖與欄位名
@@ -989,12 +1035,13 @@ function C.Bar(barKey, withHidden)
         end
     end
 
-    -- 自訂項目（圖示類、長條類的條都收：放在長條上時 Modules/Custom.lua 換成長條框）。
+    -- 自訂項目（圖示類、長條類的條都收：放在長條上時 Modules/Custom.lua 換成長條框）。三層合併後的
+    -- 生效清單（戰隊 → 職業 → 專精；被窄層蓋掉的、這個角色用不到的不在裡面）。
     -- hidden 對它無效：自己加的項目「移除」就是整筆刪掉，沒有「藏著」這種狀態
-    for i, e in ipairs(CustomList()) do
+    for _, it in ipairs(Effective()) do
+        local e = it.entry
         if ValidCustom(e) and e.bar == barKey then
-            local id = "c:" .. i
-            if Allowed(id) then out[#out + 1] = id end
+            if Allowed(it.id) then out[#out + 1] = it.id end
         end
     end
 

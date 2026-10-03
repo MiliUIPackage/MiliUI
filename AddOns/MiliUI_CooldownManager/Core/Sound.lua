@@ -409,17 +409,28 @@ function S.CustomRemove(index)
     if not e then return 0 end
     table.remove(list, index)
     local value, cleared = Logic.CustomValue(e.id), 0
+    local function Clean(o)
+        for _, f in ipairs(SOUND_FIELDS) do
+            if o[f] == value then o[f] = nil; cleared = cleared + 1 end
+        end
+        return next(o) == nil
+    end
     for _, profile in pairs((Account() or {}).profiles or {}) do
         for _, sp in pairs(type(profile.spells) == "table" and profile.spells or {}) do
             local all = type(sp) == "table" and sp.overrides
             for id, o in pairs(type(all) == "table" and all or {}) do
-                if type(o) == "table" then
-                    for _, f in ipairs(SOUND_FIELDS) do
-                        if o[f] == value then o[f] = nil; cleared = cleared + 1 end
-                    end
-                    if next(o) == nil then all[id] = nil end
-                end
+                if type(o) == "table" and Clean(o) then all[id] = nil end
             end
+        end
+        -- 職業層／戰隊層的自訂項目：覆寫跟著那一筆走（Core/DB.lua）
+        if ns.DB and ns.DB.EachWideList then
+            ns.DB.EachWideList(profile, function(list)
+                for _, ce in ipairs(list) do
+                    if type(ce) == "table" and type(ce.overrides) == "table" and Clean(ce.overrides) then
+                        ce.overrides = nil
+                    end
+                end
+            end)
         end
     end
     CustomChanged()

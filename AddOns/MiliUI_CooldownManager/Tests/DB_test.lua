@@ -588,5 +588,213 @@ do
     eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移）", ns.DB_VERSION, 4)
 end
 
+------------------------------------------------------------
+-- 15. 自訂項目的三層範圍（P8）：ParseCustomID、ResolveScopes（窄蓋寬）、CustomView（種族技能、沒學就不列）、
+--     EffectiveCustom 的合併順序、AddCustomTo／uid、覆寫跟著那一筆走、MoveCustomScope、RemoveCustom（寬層）、DeleteBar
+------------------------------------------------------------
+do
+    local P = ns.profile
+    local cur = ns.specID
+    local other = cur + 1
+    local function ids(list) local o = {} for i, it in ipairs(list) do o[i] = it.id end return table.concat(o, ",") end
+
+    -- ParseCustomID：三種、與不是自訂項目的
+    local s1, k1 = DB.ParseCustomID("c:3")
+    check("Parse c:", s1 == "spec" and k1 == 3)
+    local s2, k2 = DB.ParseCustomID("k:12")
+    check("Parse k:", s2 == "class" and k2 == 12)
+    local s3, k3 = DB.ParseCustomID("w:7")
+    check("Parse w:", s3 == "shared" and k3 == 7)
+    eq("Parse 數字 ⇒ nil", DB.ParseCustomID(1234), nil)
+    eq("Parse 前綴不認得 ⇒ nil", DB.ParseCustomID("x:3"), nil)
+    eq("Parse 編號不是數字 ⇒ nil", DB.ParseCustomID("w:x"), nil)
+    eq("Parse 多一段 ⇒ nil", DB.ParseCustomID("w:3:1"), nil)
+    eq("CustomIndex 只認專精層", DB.CustomIndex("k:3"), nil)
+    eq("CustomIndex c: 照舊", DB.CustomIndex("c:4"), 4)
+    eq("ScopedCustomID 戰隊", DB.ScopedCustomID("shared", 9), "w:9")
+    eq("ScopedCustomID 職業", DB.ScopedCustomID("class", 9), "k:9")
+    eq("ScopedCustomID 專精", DB.ScopedCustomID("spec", 2), "c:2")
+
+    -- ResolveScopes：窄的蓋寬的（三種身分：法術、物品、光環＋filter）
+    local shared = {
+        { kind = "item", itemID = 5512, bar = "essential", uid = 1 },
+        { kind = "spell", spellID = 642, bar = "essential", uid = 2 },
+        { kind = "aura", spellID = 2825, filter = "HELPFUL", bar = "buffs", uid = 3 },
+        { kind = "aura", spellID = 800, filter = "HARMFUL", bar = "buffs", uid = 4 },
+        { kind = "spell", spellID = 999, bar = "essential" },                 -- 沒 uid 的壞資料：跳過
+    }
+    local class = {
+        { kind = "spell", spellID = 642, bar = "utility", uid = 5 },          -- 蓋掉戰隊層的 642
+        { kind = "aura", spellID = 800, filter = "HELPFUL", bar = "buffs", uid = 6 },  -- filter 不同：不蓋
+    }
+    local spec = {
+        { kind = "item", itemID = 5512, bar = "utility" },                    -- 蓋掉戰隊層的 5512
+        { kind = "aura", spellID = 2825, filter = "HARMFUL", bar = "buffs" }, -- filter 不同：不蓋
+        { kind = "spell", spellID = 1, bar = "essential" },
+    }
+    local r = DB.ResolveScopes(shared, class, spec)
+    eq("窄蓋寬：生效清單（戰隊 → 職業 → 專精）", ids(r), "w:3,w:4,k:5,k:6,c:1,c:2,c:3")
+    eq("被蓋掉的那筆不在（物品）", ids(DB.ResolveScopes(shared, nil, { spec[1] })), "w:2,w:3,w:4,c:1")
+    eq("只有專精層 ＝ 舊行為", ids(DB.ResolveScopes(nil, nil, spec)), "c:1,c:2,c:3")
+    eq("每一項帶範圍與原始資料", r[1].scope .. "/" .. tostring(r[1].raw == shared[3]) .. "/" .. tostring(r[1].key), "shared/true/3")
+    eq("職業蓋戰隊（法術）：職業層那筆在", r[3].entry.bar, "utility")
+    local dup = DB.ResolveScopes(nil, nil, { { kind = "spell", spellID = 1 }, { kind = "spell", spellID = 1 } })
+    eq("同一層的重複照留（Custom.Sync 自己分 key）", ids(dup), "c:1,c:2")
+    eq("壞資料（不是表）在專精層照留（Catalog 自己濾）", ids(DB.ResolveScopes(nil, nil, { "x" })), "c:1")
+    local dropped = DB.ResolveScopes(shared, nil, nil, function(raw) if raw.kind == "item" then return nil end return raw end)
+    eq("resolve 回 nil ＝ 不列", ids(dropped), "w:2,w:3,w:4")
+
+    -- CustomView：種族技能、寬層沒學就不列
+    local known = { [20594] = true, [642] = false }
+    local opts = { isKnown = function(id) return known[id] end, racial = function() return 20594 end }
+    local racial = { kind = "racial", bar = "essential", uid = 8, hideUnknown = true, overrides = { readySound = "x" } }
+    local v = DB.CustomView(racial, "shared", opts)
+    check("種族技能 ⇒ 法術視圖", v and v.kind == "spell" and v.spellID == 20594 and v.racial == true)
+    eq("視圖讀得到原本那筆的欄位", v and v.bar, "essential")
+    racial.bar = "utility"
+    eq("視圖跟著原本那筆變", v and v.bar, "utility")
+    eq("視圖不改原本那筆的種類", racial.kind, "racial")
+    eq("種族技能解不到 ⇒ 不列", DB.CustomView(racial, "shared", { racial = function() return nil end }), nil)
+    eq("寬層沒學 ⇒ 不列", DB.CustomView({ kind = "spell", spellID = 642, uid = 9 }, "class", opts), nil)
+    check("寬層沒學但 hideUnknown = false ⇒ 照列（問號格）",
+        DB.CustomView({ kind = "spell", spellID = 642, uid = 9, hideUnknown = false }, "class", opts) ~= nil)
+    check("專精層沒學 ⇒ 照列（舊行為）", DB.CustomView({ kind = "spell", spellID = 642 }, "spec", opts) ~= nil)
+    check("讀不到（nil）⇒ 當學了", DB.CustomView({ kind = "spell", spellID = 77, uid = 9 }, "shared", opts) ~= nil)
+    check("物品不看學了沒", DB.CustomView({ kind = "item", itemID = 642, uid = 9 }, "shared", opts) ~= nil)
+    eq("身分：種族技能（原本那筆）", DB.CustomIdentity(racial), "racial")
+    eq("身分：種族技能的視圖 ＝ 那個法術", DB.CustomIdentity(v), "spell:20594")
+    eq("身分：光環分 filter", DB.CustomIdentity({ kind = "aura", spellID = 5 }), "aura:5:HELPFUL")
+    -- 種族技能在戰隊層、專精層有同一個法術 ⇒ 專精層的蓋掉它
+    local rr = DB.ResolveScopes({ racial }, nil, { { kind = "spell", spellID = 20594 } },
+        function(raw, scope) return DB.CustomView(raw, scope, opts) end)
+    eq("種族技能被專精層的同一個法術蓋掉", ids(rr), "c:1")
+
+    -- AddCustomTo／uid／EffectiveCustom 的合併順序（遊戲裡的 opts：沒有 Catalog ⇒ 當學了）
+    P.spells = P.spells or {}
+    P.spells[cur], P.spells[other] = nil, nil
+    P.customShared, P.customClass, P.customNextUID = nil, nil, nil
+    eq("沒有寬層 ⇒ 生效清單是空的", #DB.EffectiveCustom(), 0)
+    local cSpec = DB.AddCustomTo("spec", { kind = "spell", spellID = 100, bar = "essential" })
+    eq("AddCustomTo 專精 ⇒ c:1", cSpec, "c:1")
+    local wPot = DB.AddCustomTo("shared", { kind = "item", itemID = 5512, bar = "essential" })
+    eq("AddCustomTo 戰隊 ⇒ w:1", wPot, "w:1")
+    local kDef = DB.AddCustomTo("class", { kind = "spell", spellID = 642, bar = "essential" })
+    eq("AddCustomTo 職業 ⇒ k:2（兩層共用一個號碼空間）", kDef, "k:2")
+    eq("職業層存在這個職業底下", P.customClass.PALADIN[1].spellID, 642)
+    eq("寬層的一筆 hideUnknown 預設開", P.customShared[1].hideUnknown, true)
+    eq("流水號往前走", P.customNextUID, 3)
+    eq("不認得的範圍 ⇒ nil", DB.AddCustomTo("guild", { kind = "spell", spellID = 1 }), nil)
+    eq("不認得的種類 ⇒ nil", DB.AddCustomTo("shared", { kind = "totem", spellID = 1 }), nil)
+    eq("合併順序：戰隊 → 職業 → 專精", ids(DB.EffectiveCustom()), "w:1,k:2,c:1")
+    -- 流水號比現有的小（手改過／匯入的）⇒ 從最大的下一號接
+    P.customNextUID = 1
+    eq("流水號落後 ⇒ 接在最大的後面", DB.NextCustomUID(), 3)
+    eq("流水號不是數字 ⇒ 從最大的 uid 重算", (function() P.customNextUID = "x"; return DB.NextCustomUID() end)(), 3)
+    eq("CustomEntry 寬層", DB.CustomEntry("w:1").itemID, 5512)
+    eq("CustomEntry 寬層：第二個回傳是 uid", select(2, DB.CustomEntry("k:2")), 2)
+    eq("CustomEntry 寬層：第三個回傳是範圍", select(3, DB.CustomEntry("k:2")), "class")
+    eq("CustomEntry 不存在的 uid", DB.CustomEntry("w:99"), nil)
+    -- 別的職業看不到這個職業的職業層
+    ns.playerClass = "MAGE"
+    eq("別的職業：職業層不列", ids(DB.EffectiveCustom()), "w:1,c:1")
+    eq("別的職業：CustomEntry 職業層 ＝ nil", DB.CustomEntry("k:2"), nil)
+    ns.playerClass = "PALADIN"
+    -- 別的專精：戰隊層、職業層照樣看得到，專精層是它自己的
+    ns.specID = other
+    eq("別的專精：寬層照樣在", ids(DB.EffectiveCustom()), "w:1,k:2")
+    ns.specID = cur
+    -- FindEffective／FindInScope
+    eq("FindEffective：戰隊層的物品", DB.FindEffective({ kind = "item", itemID = 5512 }), "w:1")
+    eq("FindEffective：沒有", DB.FindEffective({ kind = "item", itemID = 1 }), nil)
+    eq("FindInScope：職業層有", DB.FindInScope("class", { kind = "spell", spellID = 642 }), 1)
+    eq("FindInScope：戰隊層沒有", DB.FindInScope("shared", { kind = "spell", spellID = 642 }), nil)
+
+    -- 覆寫跟著那一筆走：SpellSetting／SetOverride／CountOverrides／ClearOverrides／ResetOverrides／HasOverrides
+    DB.SetOverride("w:1", "readySound", "Ding")
+    DB.SetOverride("w:1", "borderColor", { r = 1, g = 0, b = 0, a = 1 })
+    eq("寬層覆寫存在那一筆身上", P.customShared[1].overrides.readySound, "Ding")
+    check("不寫進專精表", not (P.spells[cur].overrides and P.spells[cur].overrides["w:1"]))
+    eq("SpellSetting 讀得到", ns.SpellSetting("essential", "w:1", "readySound"), "Ding")
+    ns.specID = other
+    eq("別的專精讀同一份", ns.SpellSetting("essential", "w:1", "readySound"), "Ding")
+    ns.specID = cur
+    eq("沒覆寫的欄位退回條層", ns.SpellSetting("essential", "w:1", "procGlow"), ns.Setting("essential", "glow.proc.enabled"))
+    eq("CountOverrides（sound 組）", DB.CountOverrides({ "w:1", "k:2" }, "sound"), 1)
+    DB.ClearOverrides({ "w:1" }, "sound")
+    eq("ClearOverrides 清 sound 組", ns.SpellOverride("w:1", "readySound"), nil)
+    check("其他組留著", ns.SpellOverride("w:1", "borderColor") ~= nil)
+    check("HasOverrides", DB.HasOverrides("w:1") and not DB.HasOverrides("k:2"))
+    DB.ResetOverrides("w:1")
+    eq("ResetOverrides 整張拿掉", P.customShared[1].overrides, nil)
+    DB.SetOverride("k:2", "procGlow", false)
+    DB.SetOverride("k:2", "procGlow", nil)
+    eq("清到空 ⇒ 整張拿掉", P.customClass.PALADIN[1].overrides, nil)
+    eq("SetOverride 不存在的寬層 id ⇒ false", DB.SetOverride("w:99", "procGlow", true), false)
+
+    -- MoveCustomScope
+    local sp = DB.SpecSpells(true)
+    sp.order.essential = { 11, "c:1", "w:1", "k:2", 12 }
+    DB.SetOverride("c:1", "readySound", "Bell")
+    -- 專精 → 戰隊：覆寫搬到那一筆身上、順序裡換新 id、專精層那筆拿掉
+    local n1 = DB.MoveCustomScope("c:1", "shared")
+    eq("專精 → 戰隊：新 id", n1, "w:4")
+    eq("覆寫跟著走", ns.SpellOverride(n1, "readySound"), "Bell")
+    eq("專精表的舊覆寫拿掉", sp.overrides["c:1"], nil)
+    eq("順序裡換新 id、位置不跳", table.concat((function() local o = {} for i, x in ipairs(sp.order.essential) do o[i] = tostring(x) end return o end)(), ","), "11,w:4,w:1,k:2,12")
+    eq("專精層那筆沒了", #DB.CustomList(false), 0)
+    eq("同一層 ⇒ 沒有錯誤原因", select(2, DB.MoveCustomScope("k:2", "class")), nil)
+    eq("同一層 ⇒ 原 id", DB.MoveCustomScope("k:2", "class"), "k:2")
+    -- 職業 → 戰隊：所有專精的順序都換
+    P.spells[other] = { order = { essential = { "k:2" } }, hidden = {}, groupOf = {}, overrides = {} }
+    DB.SetOverride("k:2", "procGlow", false)
+    local n2 = DB.MoveCustomScope("k:2", "shared")
+    eq("職業 → 戰隊：新 id", n2, "w:5")
+    eq("別的專精的順序也換", P.spells[other].order.essential[1], "w:5")
+    eq("覆寫跟著到戰隊層", ns.SpellOverride(n2, "procGlow"), false)
+    eq("職業層那筆沒了", #P.customClass.PALADIN, 0)
+    -- 戰隊 → 專精（往窄）：只搬到目前專精，別的專精的舊 id 清掉；覆寫搬進專精表
+    local n3 = DB.MoveCustomScope(n2, "spec")
+    eq("戰隊 → 專精：追加到尾端", n3, "c:1")
+    eq("覆寫搬到專精表", sp.overrides[n3] and sp.overrides[n3].procGlow, false)
+    eq("目前專精的順序換新 id", sp.order.essential[4], "c:1")
+    eq("別的專精的順序清掉舊 id", #P.spells[other].order.essential, 0)
+    ns.specID = other
+    eq("別的專精看不到了", DB.FindEffective({ kind = "spell", spellID = 642 }), nil)
+    ns.specID = cur
+    -- 目標層已經有同身分的 ⇒ exists、不動
+    DB.AddCustomTo("shared", { kind = "spell", spellID = 642, bar = "essential" })
+    local nx, why = DB.MoveCustomScope("c:1", "shared")
+    check("目標層已有 ⇒ nil, exists", nx == nil and why == "exists")
+    eq("不動：專精層那筆還在", DB.CustomEntry("c:1") and DB.CustomEntry("c:1").spellID, 642)
+    eq("不認得的範圍 ⇒ bad", select(2, DB.MoveCustomScope("c:1", "guild")), "bad")
+    eq("不存在的 ⇒ missing", select(2, DB.MoveCustomScope("w:99", "spec")), "missing")
+
+    -- RemoveCustom（寬層）：不用挪位、所有專精的順序／隱藏／群組清掉那個 id
+    sp.hidden["w:1"] = true
+    sp.groupOf["w:1"] = "g9"
+    P.spells[other].order.essential = { "w:1", 21 }
+    check("RemoveCustom w:1", DB.RemoveCustom("w:1"))
+    eq("戰隊層那筆沒了", DB.CustomEntry("w:1"), nil)
+    eq("其他寬層的 uid 不變", DB.CustomEntry("w:4") and DB.CustomEntry("w:4").spellID, 100)
+    eq("目前專精的隱藏清掉", sp.hidden["w:1"], nil)
+    eq("目前專精的群組清掉", sp.groupOf["w:1"], nil)
+    eq("別的專精的順序清掉", table.concat(P.spells[other].order.essential, ","), "21")
+    eq("刪不存在的寬層 id ⇒ false", DB.RemoveCustom("w:1"), false)
+
+    -- DeleteBar：寬層上的一筆回家（光環 → 增益圖示、其他 → 核心）
+    local g = DB.CreateBar("icons", "寬層群組")
+    DB.SetCustomBar("w:4", g)
+    eq("SetCustomBar 寬層", DB.CustomEntry("w:4").bar, g)
+    DB.DeleteBar(g)
+    eq("刪群組：寬層那筆回核心技能", DB.CustomEntry("w:4").bar, "essential")
+
+    -- CopyCustomEntry：寬層不給（本來就每個專精都看得到）
+    eq("CopyCustomEntry 寬層 ⇒ false", DB.CopyCustomEntry("w:4", other), false)
+
+    P.customShared, P.customClass, P.customNextUID = nil, nil, nil
+    P.spells[cur], P.spells[other] = nil, nil
+    eq("DB_VERSION 沒動（P8 不遷移）", ns.DB_VERSION, 4)
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

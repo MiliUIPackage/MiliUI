@@ -1350,7 +1350,7 @@ local function StepAuras(ctx)
         end
         sp.custom[#sp.custom + 1] = { kind = "aura", spellID = sid, filter = filter,
                                       placeholder = e.placeholder ~= false, bar = bar }
-        local id = "c:" .. #sp.custom
+        local id = ns.DB.CustomID(#sp.custom)      -- 匯入只產生專精層（不產生職業／戰隊層）
         ctx.auraIndex[specID] = ctx.auraIndex[specID] or {}
         ctx.auraIndex[specID][sid] = id
         if e.hideCooldownText == true then

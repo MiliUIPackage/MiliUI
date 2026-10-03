@@ -10,6 +10,8 @@
 --        → 過濾後的 spellID 清單（isKnown 由呼叫端注入）
 --   Presets.SpellEntry(spellID, barKey) / ItemEntry(def, barKey) / AuraEntry(def, barKey, faction)
 --        → 自訂項目的那一筆（Core/DB.lua 的 spells[spec].custom 形狀）
+--   Presets.RacialEntry(barKey)                → 動態的種族技能那一筆（kind = "racial"，不帶 ID）
+--   Presets.ResolveRacial(raceFile, isKnown)   → 這個種族學了的那個種族技能 ID（解不到 nil）
 --   Presets.AuraIDs(def)   這一組的全部法術（「這個專精已經加過了沒」用）
 --
 -- 名稱與圖示**不寫在這裡**，執行時問 C_Spell／C_Item（官方譯名、換季也跟著變）。
@@ -118,6 +120,23 @@ end
 function P.Racials(raceFile, isKnown)
     if type(raceFile) ~= "string" then return {} end
     return Filter(P.RACIALS[raceFile], isKnown)
+end
+
+-- 種族技能（動態的那一筆 kind = "racial"，Core/DB.lua 的 CustomView）：這個種族學了的第一個 ID；
+-- 一個都沒學（或種族不認得、不是字串）⇒ nil。isKnown 回 false 才算沒學（nil ＝ 讀不到，當學了）
+function P.ResolveRacial(raceFile, isKnown)
+    if type(raceFile) ~= "string" then return nil end
+    local list = P.RACIALS[raceFile]
+    if type(list) ~= "table" then return nil end
+    for _, id in ipairs(list) do
+        if type(isKnown) ~= "function" or isKnown(id) ~= false then return id end
+    end
+    return nil
+end
+
+-- 種族技能那一筆（不帶 spellID：每個角色登入時照自己的種族解析）
+function P.RacialEntry(barKey)
+    return { kind = "racial", bar = barKey }
 end
 
 function P.Defensives(classFile, isKnown)

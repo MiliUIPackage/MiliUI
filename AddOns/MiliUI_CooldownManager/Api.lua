@@ -196,6 +196,29 @@ local function Debug()
         end
         if total > 0 then p(("  光環格容器 IsProtected：%d／%d（細節 /mcdm aura）"):format(prot, total)) end
     end
+    -- 自訂項目每筆的範圍（戰隊／職業／專精；窄蓋寬之後生效的那幾筆）＋寬層裡這個角色看不到的筆數
+    if ns.DB and ns.DB.EffectiveCustom then
+        local SCOPE_TEXT = { shared = "戰隊", class = "職業", spec = "專精" }
+        local items = ns.DB.EffectiveCustom()
+        local shown = {}
+        for _, it in ipairs(items) do
+            local e = it.entry
+            local what = type(e) == "table" and (e.kind or "?") .. ":" .. tostring(e.spellID or e.itemID or e.slot)
+                .. (e.racial and "（種族技能）" or "") or "壞資料"
+            p(("    %s  %s  %s  條=%s"):format(it.id, SCOPE_TEXT[it.scope] or it.scope, what,
+                tostring(type(e) == "table" and e.bar or nil)))
+            shown[it.raw] = true
+        end
+        local hiddenWide = 0
+        for _, scope in ipairs({ "shared", "class" }) do
+            for _, raw in ipairs(ns.DB.ScopeList(scope, false) or {}) do
+                if not shown[raw] then hiddenWide = hiddenWide + 1 end
+            end
+        end
+        if hiddenWide > 0 then
+            p(("    寬層（戰隊／職業）這裡不列的 %d 筆（被專精／職業層蓋掉、沒學、種族技能解不到）"):format(hiddenWide))
+        end
+    end
     if G and G.Counts then
         local proc, ready, pandemic = G.Counts()
         p(("  發光：觸發 %d  就緒 %d（觸發過 %d 次）  無損刷新 %d  探針 %d 顆  manager 掛勾 %s")

@@ -160,15 +160,23 @@ local ns = {
     specID = 65,
 }
 
-local chunk, err
-if setfenv then
-    chunk, err = loadfile(PATH)
-    if chunk then setfenv(chunk, env) end
-else
-    chunk, err = loadfile(PATH, "t", env)
+-- 自訂項目的 id 解析與三層合併在 Core/DB.lua（DB.ParseCustomID／EffectiveCustom）：先載 DB 再載 Catalog（TOC 也是這個順序）
+local function LoadInto(path)
+    local chunk, err
+    if setfenv then
+        chunk, err = loadfile(path)
+        if chunk then setfenv(chunk, env) end
+    else
+        chunk, err = loadfile(path, "t", env)
+    end
+    assert(chunk, err)
+    chunk("MiliUI_CooldownManager", ns)
 end
-assert(chunk, err)
-chunk("MiliUI_CooldownManager", ns)
+env.CreateFrame = env.CreateFrame or function()    -- DB.lua 載入時建一個等脫戰的框（這裡用不到）
+    return { SetScript = function() end, RegisterEvent = function() end, UnregisterEvent = function() end }
+end
+LoadInto(here .. "/../Core/DB.lua")
+LoadInto(PATH)
 local C = ns.Catalog
 
 local function countFired(name)
@@ -773,6 +781,70 @@ do
     player[11] = false
     ns.profile = savedProfile
     env.C_SpellBook, env.IsPlayerSpell = nil, nil
+end
+
+------------------------------------------------------------
+-- 自訂項目的三層範圍（P8）：C.Bar 列三層、被窄層蓋掉的連設定頁清單都不列（挑選器「已在…」區跟著不列）、
+-- 寬層的天賦條件存在那一筆身上、寬層「沒學就不列」的結果變了 ⇒ 簽章變、廣播 CatalogChanged
+------------------------------------------------------------
+do
+    local savedProfile, savedClass = ns.profile, ns.playerClass
+    layoutString = "1|B64main2"
+    C.Refresh("scopes")
+    ns.playerClass = "PALADIN"
+    local learned = { [9100] = true, [11] = false }      -- 11：天賦條件要的天賦沒點
+    env.C_SpellBook = { IsSpellKnown = function(id) local v = learned[id]; if v == nil then return true end return v end }
+    ns.profile = {
+        bars = {
+            essential = { source = "essential", kind = "icons" },
+            buffs     = { source = "buffs", kind = "icons" },
+        },
+        customShared = {
+            { kind = "spell", spellID = 9000, bar = "essential", uid = 1, hideUnknown = true },
+            { kind = "aura", spellID = 8000, filter = "HELPFUL", placeholder = true, bar = "buffs", uid = 2, hideUnknown = true },
+            { kind = "item", itemID = 241308, bar = "essential", uid = 3, hideUnknown = true,
+              overrides = { talentCond = { spellID = 11, mode = "known" } } },     -- 寬層的條件存在那一筆身上
+        },
+        customClass = {
+            PALADIN = {
+                { kind = "spell", spellID = 9000, bar = "essential", uid = 4, hideUnknown = true },   -- 蓋掉戰隊層的 9000
+                { kind = "spell", spellID = 9100, bar = "essential", uid = 5, hideUnknown = true },
+            },
+            MAGE = { { kind = "spell", spellID = 9200, bar = "essential", uid = 6 } },             -- 別的職業：不列
+        },
+        spells = {
+            [65] = {
+                custom = { { kind = "spell", spellID = 9300, bar = "essential" } },
+                order = { essential = { "c:1", 102, "k:5" } },
+            },
+        },
+    }
+    eqList("三層都列，照 order 排（沒列到的照戰隊 → 職業 → 專精接在後）", C.Bar("essential"), { "c:1", 102, "k:5", 101, "k:4" })
+    local vis, hid = C.Bar("essential", true)
+    check("被窄層蓋掉的連設定頁清單都不列", (function()
+        for _, id in ipairs(vis) do if id == "w:1" then return false end end
+        for _, id in ipairs(hid or {}) do if id == "w:1" then return false end end
+        return true
+    end)())
+    eqList("寬層的天賦條件不成立：設定頁清單照樣有", vis, { "c:1", 102, "k:5", 101, "w:3", "k:4" })
+    check("TalentBlocked：寬層的", C.TalentBlocked("w:3"))
+    check("BarHasAuraSlot：戰隊層的光環格", C.BarHasAuraSlot("buffs"))
+    eq("Info：被蓋掉的 ⇒ nil", C.Info("w:1"), nil)
+    eq("Info：別的職業的 ⇒ nil", C.Info("k:6"), nil)
+    eq("Info：範圍", C.Info("k:5") and C.Info("k:5").scope, "class")
+
+    -- 換天賦：職業層的 9100 忘掉 ⇒ 不列（hideUnknown），簽章變了 ⇒ CatalogChanged
+    C.Refresh("scopes-baseline")
+    local before = countFired("CatalogChanged")
+    C.Refresh("scopes-same")
+    eq("沒變 ⇒ 不廣播", countFired("CatalogChanged"), before)
+    learned[9100] = false
+    C.Refresh("spells")
+    eq("寬層沒學就不列的結果變了 ⇒ CatalogChanged", countFired("CatalogChanged"), before + 1)
+    eqList("忘掉之後職業層的 9100 不列", C.Bar("essential"), { "c:1", 102, 101, "k:4" })
+
+    ns.profile, ns.playerClass = savedProfile, savedClass
+    env.C_SpellBook = nil
 end
 
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
