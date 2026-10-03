@@ -174,8 +174,9 @@ env.GetInventorySlotInfo = function(token) if token == "TRINKET1SLOT" then retur
 env.TRINKET1SLOT = "飾品"
 eq("AddCustom 裝備欄位 → 6", DB.AddCustom({ kind = "slot", slot = 13, bar = "essential" }), 6)
 eq("AddCustom 裝備欄位 2 → 7", DB.AddCustom({ kind = "slot", slot = 14, bar = "essential" }), 7)
-eq("AddCustom 不是飾品欄位的 slot", DB.AddCustom({ kind = "slot", slot = 1, bar = "essential" }), nil)
-check("ValidCustom：只收 13／14", C.ValidCustom({ kind = "slot", slot = 13 }) and not C.ValidCustom({ kind = "slot", slot = 16 }))
+eq("AddCustom 襯衣欄不收", DB.AddCustom({ kind = "slot", slot = 4, bar = "essential" }), nil)
+check("ValidCustom：裝備欄收、襯衣／外袍不收", C.ValidCustom({ kind = "slot", slot = 13 }) and C.ValidCustom({ kind = "slot", slot = 16 })
+    and not C.ValidCustom({ kind = "slot", slot = 4 }) and not C.ValidCustom({ kind = "slot", slot = 19 }))
 eq("FindCustom 裝備欄位", DB.FindCustom("slot", 13), 6)
 local s1 = C.Info("c:6")
 check("裝備欄位 Info：照現在裝的物品（itemID、圖示）", s1 and s1.kind == "slot" and s1.slot == 13 and s1.itemID == 7 and s1.icon == 800007)

@@ -1265,7 +1265,7 @@ end
 -- 新增，回傳 index（沒有專精 ⇒ nil）
 function DB.AddCustom(entry)
     if type(entry) ~= "table" or not DB.CUSTOM_KINDS[entry.kind] then return nil end
-    if entry.kind == "slot" and entry.slot ~= 13 and entry.slot ~= 14 then return nil end   -- 只有兩格飾品欄
+    if entry.kind == "slot" and not (ns.Catalog and ns.Catalog.CUSTOM_SLOTS[entry.slot]) then return nil end
     local list = DB.CustomList(true)
     if not list then return nil end
     list[#list + 1] = entry

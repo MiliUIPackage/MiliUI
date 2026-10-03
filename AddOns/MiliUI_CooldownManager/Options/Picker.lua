@@ -344,7 +344,7 @@ local function Build()
     sections.customHead = W.CreateGroupLabel(frame, L["Custom ID"])
     sections.customNote = Text(frame, true)
     sections.customBtns = {}
-    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] }, { "slot", L["Trinket slot"] } }) do
+    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] }, { "slot", L["Equipment slot"] } }) do
         local kind = def[1]
         local b = W.CreateButton(frame, def[2], "normal", 80, 22)
         W.FitButton(b, 80, 22)
@@ -455,7 +455,7 @@ function Picker.Refresh()
     -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），直接建議走物品 ID
     sections.customNote:SetText(iconBar
         and (L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
-            .. L["Blizzard's trinket tracking is unreliable. Use the \"Trinket slot\" button instead: it follows whatever is equipped in that slot."])
+            .. L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."])
         or L["Custom entries go on icon bars only."])
     Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
     for _, b in ipairs(sections.customBtns) do b:SetShown(iconBar) end
@@ -787,12 +787,18 @@ Picker.ParseID = ParseID
 Picker.SpellExists = SpellExists
 
 ------------------------------------------------------------
--- 裝備欄位（飾品 1／2）：不用輸入 ID，選哪一格就好。追蹤的是「現在裝在那一格的物品」，
--- 換裝自動跟上；不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係
+-- 裝備欄位：不用輸入 ID，選哪一格就好。追蹤的是「現在裝在那一格的物品」，換裝自動跟上；
+-- 不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係。飾品兩格排最前面（Catalog.CUSTOM_SLOT_ORDER）
 ------------------------------------------------------------
+local SLOT_W, SLOT_ROW, SLOT_GAP = 380, 26, 2
 local slotPopup
+
+local function SlotLabel(slot)
+    return ns.Catalog.SlotName(slot) or (slot == 13 or slot == 14) and L["Trinket %d"]:format(slot - 12) or ("#" .. slot)
+end
+
 local function BuildSlotPopup()
-    local f = W.CreateFrame(nil, ns.Options.panel, 380, 150)
+    local f = W.CreateFrame(nil, ns.Options.panel, SLOT_W, 150)
     f:SetFrameStrata("FULLSCREEN_DIALOG")
     f:SetFrameLevel(410)
     f:SetBackdropBorderColor(W.Accent(1))
@@ -800,23 +806,23 @@ local function BuildSlotPopup()
     W.CloseOnEscape(f)
     f.title = Text(f, false)
     f.title:SetPoint("TOPLEFT", PAD, -12)
-    f.title:SetWidth(380 - PAD * 2)
+    f.title:SetWidth(SLOT_W - PAD * 2)
     f.title:SetJustifyH("LEFT")
-    f.title:SetText(L["Track whatever is equipped in that trinket slot. Swapping trinkets follows automatically."])
-    -- 一格一列：圖示＋「飾品 N：名字」，滑過是那件物品的提示，點了就加
+    f.title:SetText(L["Track whatever is equipped in that slot. Swapping gear follows automatically."])
+    -- 一格一列：圖示＋「欄位：名字」，滑過是那件物品的提示，點了就加
     f.rows = {}
-    for i, slot in ipairs({ 13, 14 }) do
+    for i, slot in ipairs(ns.Catalog.CUSTOM_SLOT_ORDER) do
         local row = CreateFrame("Button", nil, f, "BackdropTemplate")
-        row:SetSize(380 - PAD * 2, 30)
+        row:SetSize(SLOT_W - PAD * 2, SLOT_ROW)
         W.Stylize(row, { 0, 0, 0, 1 }, { 0, 0, 0, 1 })
         row.slot = slot
         row.icon = row:CreateTexture(nil, "ARTWORK")
-        row.icon:SetSize(24, 24)
+        row.icon:SetSize(SLOT_ROW - 6, SLOT_ROW - 6)
         row.icon:SetPoint("LEFT", 3, 0)
         row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         row.label = Text(row, false)
         row.label:SetPoint("LEFT", row.icon, "RIGHT", 8, 0)
-        row.label:SetWidth(380 - PAD * 2 - 3 - 24 - 8 - 6)
+        row.label:SetWidth(SLOT_W - PAD * 2 - 3 - (SLOT_ROW - 6) - 8 - 6)
         row.label:SetJustifyH("LEFT")
         row.label:SetWordWrap(false)         -- 太長就截「…」，完整名字在滑鼠提示裡
         row:SetScript("OnEnter", function(self)
@@ -824,7 +830,7 @@ local function BuildSlotPopup()
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             local shown = self.itemID and pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", self.slot)
             if not shown then
-                GameTooltip:SetText(L["Trinket %d"]:format(self.slot - 12))
+                GameTooltip:SetText(SlotLabel(self.slot))
                 GameTooltip:AddLine(L["(empty)"], 0.8, 0.8, 0.8)
             end
             GameTooltip:Show()
@@ -849,8 +855,6 @@ local function BuildSlotPopup()
     return f
 end
 
--- 裝備欄位（飾品 1／2）：不用輸入 ID，點那一列就好。追蹤的是「現在裝在那一格的物品」，
--- 換裝自動跟上；不經過暴雪的冷卻管理器，所以它的飾品項目不穩定也沒關係
 function Picker.AskSlot()
     if not ns.specID then Notice(L["Pick a specialization first."]) return end
     slotPopup = slotPopup or BuildSlotPopup()
@@ -867,16 +871,17 @@ function Picker.AskSlot()
             local ok2, tex = pcall(C_Item.GetItemIconByID, itemID)
             if ok2 and not ns.IsSecret(tex) then icon = tex end
         end
-        if not icon and GetInventorySlotInfo then
-            local ok3, _, tex = pcall(GetInventorySlotInfo, slot == 13 and "TRINKET0SLOT" or "TRINKET1SLOT")
+        local token = ns.Catalog.EQUIP_SLOT_NAME[slot]
+        if not icon and token and GetInventorySlotInfo then
+            local ok3, _, tex = pcall(GetInventorySlotInfo, token)
             if ok3 then icon = tex end
         end
         row.icon:SetTexture(icon or QUESTION)
         row.icon:SetDesaturated(itemID == nil)
-        row.label:SetText(("%s：%s"):format(L["Trinket %d"]:format(slot - 12), name or L["(empty)"]))
+        row.label:SetText(("%s：%s"):format(SlotLabel(slot), name or L["(empty)"]))
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
-        y = y - 30 - 4
+        y = y - SLOT_ROW - SLOT_GAP
     end
     P.Height(f, -y + 22 + 12 + 8)
     f:Show()

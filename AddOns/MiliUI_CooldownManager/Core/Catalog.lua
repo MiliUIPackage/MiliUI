@@ -234,7 +234,13 @@ local SPELL_CATEGORY = {
     [1711] = { icon = "Interface\\Icons\\Warlock_ Healthstone",  title = "COOLDOWN_VIEWER_TOOLTIP_POTION_HEALTHSTONE_TITLE" },
     [2566] = { icon = "Interface\\Icons\\Warlock_ Bloodstone",   title = "COOLDOWN_VIEWER_TOOLTIP_POTION_DEMONIC_HEALTHSTONE_TITLE" },
 }
-local EQUIP_SLOT_NAME = { [13] = "TRINKET0SLOT", [14] = "TRINKET1SLOT", [16] = "MAINHANDSLOT", [17] = "SECONDARYHANDSLOT" }
+local EQUIP_SLOT_NAME = {
+    [1] = "HEADSLOT", [2] = "NECKSLOT", [3] = "SHOULDERSLOT", [5] = "CHESTSLOT", [6] = "WAISTSLOT",
+    [7] = "LEGSSLOT", [8] = "FEETSLOT", [9] = "WRISTSLOT", [10] = "HANDSSLOT",
+    [11] = "FINGER0SLOT", [12] = "FINGER1SLOT", [13] = "TRINKET0SLOT", [14] = "TRINKET1SLOT",
+    [15] = "BACKSLOT", [16] = "MAINHANDSLOT", [17] = "SECONDARYHANDSLOT",
+}
+C.EQUIP_SLOT_NAME = EQUIP_SLOT_NAME
 
 local function GlobalText(name)
     local s = name and _G[name]
@@ -578,10 +584,19 @@ end
 -- 自訂項目
 ------------------------------------------------------------
 local QUESTION = 134400
--- slot：裝備欄位（飾品 1／2），追蹤「現在裝在那一格的物品」，換裝自動跟上；不經過暴雪的冷卻管理器
+-- slot：裝備欄位，追蹤「現在裝在那一格的物品」，換裝自動跟上；不經過暴雪的冷卻管理器
+-- 挑選清單的順序：會用的多半是飾品，兩格排最前面，其餘照角色面板（襯衣、外袍不收）
 local CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true }
-local CUSTOM_SLOTS = { [13] = true, [14] = true }
+C.CUSTOM_SLOT_ORDER = { 13, 14, 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 16, 17 }
+local CUSTOM_SLOTS = {}
+for _, slot in ipairs(C.CUSTOM_SLOT_ORDER) do CUSTOM_SLOTS[slot] = true end
 C.CUSTOM_SLOTS = CUSTOM_SLOTS
+
+-- 欄位名：有編號版（「手指 1」「飾品 2」）用編號版，兩格同名才分得出來
+function C.SlotName(slot)
+    local token = EQUIP_SLOT_NAME[slot]
+    return token and (GlobalText(token .. "_UNIQUE") or GlobalText(token)) or nil
+end
 
 -- 那一格現在裝的物品（明文 itemID 或 nil）
 function C.SlotItemID(slot)
@@ -685,7 +700,7 @@ local function CustomInfo(id)
             local ok, _, tex = pcall(_G.GetInventorySlotInfo, token)
             if ok then info.icon = Plain(tex) end
         end
-        info.slotName = GlobalText(token)
+        info.slotName = C.SlotName(e.slot)
         if info.name == nil then info.name = info.slotName end
     elseif e.kind == "item" then
         -- 帶替代品的（e.alts）：圖示與名字照現在包包裡有的那件（Modules/Custom.lua 的 ResolveItem）；
