@@ -9,7 +9,7 @@
 --   * 真實尺寸：版面照 ns.Layout.Compute 算（每列上限、間距、兩列尺寸、成長方向），
 --     比可用寬大就水平捲動，太高就垂直捲動（滾輪；有橫向溢出時 Shift＋滾輪橫捲）。
 --   * 外觀走 ns.Decorate.ApplyPreview：跟真實條同一套邊框／縮放／轉圈色／文字樣式。
---   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒；技能印充能「2」、
+--   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒（核心／輔助技能兩條不畫假冷卻，全部就緒）；技能印充能「2」、
 --     增益印層數「2」；長條跑一個十五秒的循環（名字＝法術名、時間 15→0）。
 --
 -- 互動
@@ -41,6 +41,7 @@ local MIN_H     = 56
 local DRAG_MIN  = 3
 local CYCLE     = 15
 local AURA_SRC  = { buffs = true, buffbars = true }
+local NO_FAKE_CD = { essential = true, utility = true }
 
 local instances = {}
 
@@ -453,7 +454,8 @@ function Proto:Fill(c, e, i, r, now)
         c.aura = AURA_SRC[src] and true or false
         c.custom, c.known = false, true    -- false 不是 nil：格子是池化的框，欄位要明確蓋掉
     end
-    c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden
+    -- 核心／輔助技能（暴雪那兩條）不畫假冷卻：轉圈、倒數、去飽和一律不上，看起來就是就緒的樣子（使用者 2026-10-03）
+    c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NO_FAKE_CD[key]
     -- 假冷卻的格每隔一格當成「還在倒增益的持續時間」（倒數換 durationColor）；自訂項目沒有那一段
     c.auraPhase = (c.onCD and not c.custom and (i % 4 == 1)) and true or false
     c.name = (info and info.name) or ("#" .. tostring(id))
