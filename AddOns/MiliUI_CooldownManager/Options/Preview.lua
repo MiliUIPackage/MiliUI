@@ -9,7 +9,8 @@
 --   * 真實尺寸：版面照 ns.Layout.Compute 算（每列上限、間距、兩列尺寸、成長方向），
 --     比可用寬大就水平捲動，太高就垂直捲動（滾輪；有橫向溢出時 Shift＋滾輪橫捲）。
 --   * 外觀走 ns.Decorate.ApplyPreview：跟真實條同一套邊框／縮放／轉圈色／文字樣式。
---   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒（核心／輔助技能兩條不畫假冷卻，全部就緒）；技能印充能「2」、
+--   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒（核心／輔助技能兩條不畫假冷卻，全部就緒，
+--     改由底下的效果預覽列按了才演示五秒：冷卻中／增益持續時間／觸發發光／就緒發光）；技能印充能「2」、
 --     增益印層數「2」；長條跑一個十五秒的循環（名字＝法術名、時間 15→0）。
 --
 -- 互動
@@ -42,6 +43,18 @@ local DRAG_MIN  = 3
 local CYCLE     = 15
 local AURA_SRC  = { buffs = true, buffbars = true }
 local NO_FAKE_CD = { essential = true, utility = true }
+
+-- 效果預覽列（核心／輔助技能才有，這兩條平常不畫假冷卻）：按一下，全部格子演示那個效果 FX_SECS 秒
+--   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
+--   aura      增益持續時間：同上，倒數用增益那一段的換色
+--   proc／ready  觸發／就緒發光：照這條的發光設定畫在每一格上
+local FX_H, FX_SECS = 30, 5
+local FX_BUTTONS = {
+    { kind = "cooldown", label = L["On cooldown"] },
+    { kind = "aura",     label = L["Buff duration"] },
+    { kind = "proc",     label = L["Proc glow"] },
+    { kind = "ready",    label = L["Ready glow"] },
+}
 
 local instances = {}
 
@@ -312,14 +325,36 @@ function Preview.Create(parent, key, width)
     line:Hide()
     pv.line = line
 
-    -- 長條的十五秒循環（只在顯示中跑）
+    -- 長條的十五秒循環、效果預覽的倒數（只在顯示中跑）
     local acc = 0
     f:SetScript("OnUpdate", function(_, elapsed)
         acc = acc + elapsed
         if acc < 0.05 then return end
         acc = 0
         pv:Tick()
+        pv:FxTick()
     end)
+
+    -- 效果預覽列：預覽框底下那一條（捲動區與橫向捲軸往上讓出 FX_H）
+    if NO_FAKE_CD[key] then
+        scroll:SetPoint("BOTTOMRIGHT", -1, 1 + FX_H)
+        hbar:ClearAllPoints()
+        hbar:SetPoint("BOTTOMLEFT", 2, 2 + FX_H)
+        hbar:SetPoint("BOTTOMRIGHT", -2, 2 + FX_H)
+        local row = CreateFrame("Frame", nil, f)
+        row:SetPoint("BOTTOMLEFT", 1, 1)
+        row:SetPoint("BOTTOMRIGHT", -1, 1)
+        row:SetHeight(FX_H)
+        local x = PAD
+        for _, def in ipairs(FX_BUTTONS) do
+            local b = W.CreateButton(row, def.label, "normal", 70, 20)
+            W.FitButton(b, 70, 20)
+            b:SetPoint("LEFT", row, "LEFT", x, 0)
+            b:SetScript("OnClick", function() pv:StartFx(def.kind) end)
+            x = x + (b:GetWidth() or 70) + 6
+        end
+        pv.fxRow = row
+    end
 
     instances[key] = pv
     return pv
@@ -384,7 +419,7 @@ function Proto:Refresh()
     self.maxX = math.max(0, contentW - viewW + 2)
     self.maxY = math.max(0, contentH - viewH + 2)
     if self.maxX > 0 then viewH = math.min(MAX_H + 8, viewH + 8) end   -- 讓出捲軸那一條
-    P.Size(self.frame, viewW, viewH)
+    P.Size(self.frame, viewW, viewH + (self.fxRow and FX_H or 0))
     self.canvas:SetSize(math.max(viewW, contentW), math.max(viewH, contentH))
     self.hbar:SetShown(self.maxX > 0)
     self.hbar:SetMinMaxValues(0, self.maxX)
@@ -456,8 +491,13 @@ function Proto:Fill(c, e, i, r, now)
     end
     -- 核心／輔助技能（暴雪那兩條）不畫假冷卻：轉圈、倒數、去飽和一律不上，看起來就是就緒的樣子（使用者 2026-10-03）
     c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NO_FAKE_CD[key]
+    -- 效果預覽（冷卻中／增益持續時間）：所有技能格一起演示
+    local fx = self:ActiveFx()
+    local fxTimer = fx and (fx.kind == "cooldown" or fx.kind == "aura")
+    if fxTimer then c.onCD = (not c.aura) and not e.hidden end
     -- 假冷卻的格每隔一格當成「還在倒增益的持續時間」（倒數換 durationColor）；自訂項目沒有那一段
     c.auraPhase = (c.onCD and not c.custom and (i % 4 == 1)) and true or false
+    if fxTimer then c.auraPhase = (c.onCD and fx.kind == "aura") and true or false end
     c.name = (info and info.name) or ("#" .. tostring(id))
     c.decorated = nil
     if c.kind == "bars" then
@@ -468,7 +508,9 @@ function Proto:Fill(c, e, i, r, now)
     else
         c.Icon:SetTexture(tex)
         if c.Cooldown then
-            if c.onCD then
+            if c.onCD and fxTimer then
+                c.Cooldown:SetCooldown(fx.start, FX_SECS)
+            elseif c.onCD then
                 c.Cooldown:SetCooldown(now - ((i * 2) % CYCLE), CYCLE)
             else
                 c.Cooldown:Clear()
@@ -476,6 +518,7 @@ function Proto:Fill(c, e, i, r, now)
         end
     end
     ns.Decorate.ApplyPreview(c, key, id, r.w, r.h)
+    self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready") and not c.aura and not e.hidden) and fx.kind or nil)
     -- 生效發光：勾了的增益在預覽上常亮（樣式、顏色照單一法術小窗的設定）。長條亮在圖示那一格
     if ns.Glow and ns.Glow.PreviewActive then
         if not c.glowHost then
@@ -489,7 +532,7 @@ function Proto:Fill(c, e, i, r, now)
         c.Bar.Name:SetText(c.name)
         c.Icon.Applications:SetText("")      -- 假層數不印（礙眼；增益圖示的預覽同樣不印）
     else
-        c.cdText:SetText("15")
+        c.cdText:SetText(fxTimer and self:FxText(c) or "15")
         c.chargeText:SetText(c.charges and tostring(c.charges) or "")
         c.stackText:SetText("2")
     end
@@ -595,7 +638,95 @@ function Proto:RestoreTicker()
         if acc < 0.05 then return end
         acc = 0
         pv:Tick()
+        pv:FxTick()
     end)
+end
+
+------------------------------------------------------------
+-- 效果預覽（核心／輔助技能）
+------------------------------------------------------------
+-- 進行中的效果（過期的當沒有：計時器收尾前那幾幀也不會畫錯）
+function Proto:ActiveFx()
+    local fx = self.fx
+    if fx and GetTime() < fx.start + FX_SECS then return fx end
+    return nil
+end
+
+function Proto:StartFx(kind)
+    local fx = { kind = kind, start = GetTime() }
+    self.fx = fx
+    self:Refresh()
+    C_Timer.After(FX_SECS, function()
+        if self.fx ~= fx then return end         -- 期間又按了別的：讓新的那個收尾
+        self.fx = nil
+        if self.frame:IsVisible() then self:Refresh() else self:ClearFxGlows() end
+    end)
+end
+
+-- 一格的效果發光：which ＝ "proc"／"ready"／nil（收掉）。發光框是格子上自己的子框（池化的格子一起重用）
+function Proto:FxGlow(c, which)
+    local G = ns.Glow
+    if not (G and G.PaintOn) then return end
+    local cur = c.fxGlow
+    if cur and cur.which == which then return end
+    if cur then
+        G.StopOn(c.fxHost, cur.t, "pvfx")
+        c.fxGlow = nil
+    end
+    if not which then return end
+    if not c.fxHost then
+        c.fxHost = CreateFrame("Frame", nil, c)
+        c.fxHost:SetFrameLevel(c:GetFrameLevel() + 4)
+    end
+    c.fxHost:ClearAllPoints()
+    c.fxHost:SetAllPoints(c.kind == "bars" and c.Icon or c)
+    local cfg = ns.Setting(self.key, "glow." .. which)
+    local t = G.PaintOn(c.fxHost, type(cfg) == "table" and cfg or {}, which, "pvfx", true)
+    if t then c.fxGlow = { which = which, t = t } end
+end
+
+-- 頁面關著時效果到期：發光直接收掉（下次 Refresh 也會收，這裡只是不讓它在背景一直轉）
+function Proto:ClearFxGlows()
+    for _, pool in pairs(self.cells) do
+        for _, c in ipairs(pool) do self:FxGlow(c, nil) end
+    end
+end
+
+-- 倒數字：照這條「倒數文字」的小數門檻；回傳字串
+function Proto:FxText(c)
+    local fx = self:ActiveFx()
+    if not fx then return "" end
+    local left = math.max(0, fx.start + FX_SECS - GetTime())
+    local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
+    local dec = tonumber(ct.decimalsBelow) or 0
+    if left < dec then return ("%.1f"):format(left) end
+    return tostring(math.ceil(left))
+end
+
+local function RGBA(t, r, g, b, a)
+    if type(t) ~= "table" then return r, g, b, a end
+    return t.r or r, t.g or g, t.b or b, t.a or a
+end
+
+-- 冷卻中／增益持續時間：倒數每 0.05 秒重寫一次，低秒變色照設定（增益那一段用它自己的低秒色）
+function Proto:FxTick()
+    local fx = self:ActiveFx()
+    if not fx or (fx.kind ~= "cooldown" and fx.kind ~= "aura") or self.kind == "bars" then return end
+    local style = ns.Decorate.Resolve(self.key)
+    local ct = style.cooldownText or {}
+    local left = fx.start + FX_SECS - GetTime()
+    local low = left < (tonumber(ct.lowBelow) or 0)
+    for _, c in ipairs(self.slots or {}) do
+        if c.onCD and c.cdText then
+            c.cdText:SetText(self:FxText(c))
+            if low then
+                local lc = (c.durColor and style.durationLowColor) or ct.lowColor
+                c.cdText:SetTextColor(RGBA(lc, 1, 0.3, 0.3, 1))
+            else
+                c.cdText:SetTextColor(RGBA(c.durColor or ct.color, 1, 1, 1, 1))
+            end
+        end
+    end
 end
 
 function Proto:BeginDrag()
