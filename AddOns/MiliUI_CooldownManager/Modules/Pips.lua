@@ -173,6 +173,9 @@ local CUSTOM_RECOMMENDED = {
     PALADIN = {
         { kind = "charges", spellID = 190784 },                     -- 神性戰馬
     },
+    DEATHKNIGHT = {
+        { kind = "stacks", spellID = 195181, max = 10, spec = 250 }, -- 骸骨之盾（血魄）
+    },
     EVOKER = {
         { kind = "charges", spellID = 358267 },                     -- 盤旋
         { kind = "stacks", spellID = 359618, max = 2, spec = 1467 }, -- 龍能爆發（湮滅）
@@ -181,14 +184,25 @@ local CUSTOM_RECOMMENDED = {
     HUNTER = {
         { kind = "stacks", spellID = 260242, max = 2, spec = 254 },  -- 精準射擊（射擊）
     },
+    MAGE = {
+        { kind = "stacks", spellID = 44544, max = 2, spec = 64 },    -- 冰霜之指（冰霜）
+    },
     MONK = {
         { kind = "charges", spellID = 109132 },                     -- 迅空翻
         { kind = "charges", spellID = 115008 },                     -- 真氣飛龍穿（天賦，取代迅空翻；沒點就靜默跳過）
         { kind = "stacks", spellID = 202090, max = 4, spec = 270 },  -- 僧院教義（織霧）
     },
+    PRIEST = {
+        { kind = "stacks", spellID = 114255, max = 2, spec = 257 },  -- 光之澎湃（神聖）
+    },
+    SHAMAN = {
+        { kind = "stacks", spellID = 191634, max = 2, spec = 262 },  -- 風暴守護者（元素）
+        { kind = "stacks", spellID = 53390, max = 2, spec = 264 },   -- 治療之潮（恢復）
+    },
     WARLOCK = {
         { kind = "stacks", spellID = 264173, max = 4, spec = 266 },  -- 魔能之核（惡魔學）
         { kind = "stacks", spellID = 296553, max = 10, spec = 266 }, -- 狂野小鬼（惡魔學）
+        { kind = "stacks", spellID = 117828, max = 2, spec = 267 },  -- 爆燃（毀滅；點閃燃是 4）
     },
 }
 Pips.CUSTOM_RECOMMENDED = CUSTOM_RECOMMENDED
