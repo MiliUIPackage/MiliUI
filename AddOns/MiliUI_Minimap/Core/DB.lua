@@ -54,7 +54,7 @@ local DEFAULTS = {
     borderColor       = Color(0, 0, 0, 1),   -- borderClassColor = false 時才用
 
     font        = "default",
-    fontOutline = "OUTLINE",                 -- NONE | OUTLINE | THICKOUTLINE
+    fontOutline = "OUTLINE",                 -- NONE | OUTLINE | THICKOUTLINE | MONOCHROME,(THICK)OUTLINE
     -- ⚠ 這個字級同時決定**上下兩條帶的高度**（Map/Skin.lua：字級 + BAR_PAD 5），
     --   所以調它是連帶把兩條帶一起加高，不只是字變大。
     fontSize    = 12,

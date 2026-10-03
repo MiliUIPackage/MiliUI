@@ -21,6 +21,7 @@ local CONTROLS = {
       items = function() return ns.Media.FontItems() end },
     { type = "slider", key = "fontSize", label = L["Font size"],
       min = LIMITS.fontSize[1], max = LIMITS.fontSize[2], step = 1 },
+    { type = "dropdown", key = "outline", label = L["Outline"], items = ns.Media.OUTLINE_ITEMS },
 
     { type = "header", label = L["The list"] },
     { type = "toggle", key = "includeBank", label = L["Count the bank"] },

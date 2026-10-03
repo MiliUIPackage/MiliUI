@@ -26,6 +26,7 @@ local function BuildDefaults()
         settings = {
             font     = "",
             fontSize = 12,
+            outline  = "",   -- SetFont flags，選項見 Media.OUTLINE_ITEMS；預設不描邊（深底視窗）
 
             -- 持有量要不要把銀行／材料銀行／戰隊銀行算進來。
             -- 預設關：多數人買材料是為了「現在就做」，而現在能用的只有背包裡的。
@@ -110,6 +111,7 @@ local function Normalize(db)
     local lo, hi = DB.LIMITS.fontSize[1], DB.LIMITS.fontSize[2]
     if type(s.fontSize) ~= "number" then s.fontSize = 12 end
     s.fontSize = math.min(hi, math.max(lo, math.floor(s.fontSize)))
+    if not ns.Media.OUTLINE_VALID[s.outline] then s.outline = "" end
 
     lo, hi = DB.LIMITS.priceGuard[1], DB.LIMITS.priceGuard[2]
     if type(s.priceGuard) ~= "number" then s.priceGuard = 3 end

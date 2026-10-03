@@ -480,7 +480,7 @@ function ns.CreateTile(name, opts)
 
     if opts.text then
         local fs = tile:CreateFontString(nil, "OVERLAY")
-        fs:SetFont(ns.LOCALE_FONT, ns.GetDB().fontSize, "")
+        fs:SetFont(ns.FontPath(), ns.GetDB().fontSize, ns.FontFlags())
         fs:SetPoint("CENTER")
         fs:SetJustifyH("CENTER")
         fs:SetWordWrap(false)
@@ -536,7 +536,7 @@ function ns.CreateTile(name, opts)
 
     function tile:ApplyFont(size)
         if self.text then
-            self.text:SetFont(ns.LOCALE_FONT, size, "")
+            self.text:SetFont(ns.FontPath(), size, ns.FontFlags())
             -- 字級變了寬度也會變，重量一次
             local str = self._lastText
             self._lastText = nil

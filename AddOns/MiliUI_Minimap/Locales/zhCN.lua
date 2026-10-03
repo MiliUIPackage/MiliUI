@@ -47,6 +47,8 @@ L["Default (localized)"] = "默认（本地化）"
 L["Outline"] = "描边"
 L["None"] = "无"
 L["Thick outline"] = "粗描边"
+L["Monochrome outline"] = "单色描边"
+L["Monochrome thick outline"] = "单色粗描边"
 L["Font size"] = "字号"
 
 -- 地图上的元素

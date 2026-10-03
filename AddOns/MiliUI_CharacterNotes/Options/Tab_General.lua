@@ -19,6 +19,7 @@ local CONTROLS = {
       items = function() return ns.Media.FontItems() end },
     { type = "slider", key = "fontSize", label = L["Font size"],
       min = LIMITS.fontSize[1], max = LIMITS.fontSize[2], step = 1 },
+    { type = "dropdown", key = "outline", label = L["Outline"], items = ns.Media.OUTLINE_ITEMS },
     { type = "toggle", sub = "minimap", key = "show", label = L["Minimap button"] },
     { type = "text", label = L["Show the notebook button on the minimap"] },
 

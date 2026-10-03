@@ -223,7 +223,7 @@ local function BuildDefaults()
             -- 文字
             ------------------------------------------------------------
             font = "default",
-            fontOutline = "OUTLINE",    -- NONE | OUTLINE | THICKOUTLINE
+            fontOutline = "OUTLINE",    -- NONE | OUTLINE | THICKOUTLINE | MONOCHROME,(THICK)OUTLINE
             leftFontSize  = 12,
             rightFontSize = 12,
             leftTextUseClassColor  = false,

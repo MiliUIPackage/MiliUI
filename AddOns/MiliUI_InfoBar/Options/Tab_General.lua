@@ -22,7 +22,10 @@ local CONTROLS = {
     { type = "toggle", key = "enabled", label = L["ENABLE_BAR"] },
     { type = "text",   label = L["ENABLE_BAR_DESC"] },
     { type = "slider", key = "height",   label = L["BAR_HEIGHT"], min = 20, max = 36, step = 1 },
+    { type = "dropdown", key = "font",    label = L["FONT"],    items = ns.FontItems },
+    { type = "dropdown", key = "outline", label = L["OUTLINE"], items = ns.OUTLINE_ITEMS },
     { type = "slider", key = "fontSize", label = L["FONT_SIZE"],  min = 9,  max = 16, step = 1 },
+    { type = "text",   label = L["FONT_DESC"] },
     { type = "slider", key = "blockGap", label = L["BLOCK_GAP"],  min = 0,  max = 12, step = 1 },
     { type = "text",   label = L["BLOCK_GAP_DESC"] },
 
