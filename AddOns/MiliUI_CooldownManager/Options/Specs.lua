@@ -495,10 +495,10 @@ function Specs.Themed(mode, key)
         CS(TS("icon", "toggle", "icon.showAuraTime", L["Show buff duration"])),
         CS(Note(L["After you use a spell that gives you a buff, the icon counts down the buff first and the cooldown after it ends. Off shows the cooldown right away."], "icon")),
         -- 增益那一段的倒數換色：開關關著時沒有那一段可換色 ⇒ 兩列停用
-        CS(TS("icon", "toggle", "icon.colorDuration", L["Color while buff lasts"], { disabled = AuraTimeOff })),
-        CS(TS("icon", "color", "icon.durationColor", L["Duration color"], { disabled = DurationOff })),
-        CS(TS("icon", "color", "icon.durationLowColor", L["Duration low color"], { disabled = DurationOff })),
-        CS(TS("icon", "color", "icon.durationSwipeColor", L["Duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
+        CS(TS("icon", "toggle", "icon.colorDuration", L["Recolor buff duration"], { disabled = AuraTimeOff })),
+        CS(TS("icon", "color", "icon.durationColor", L["Buff duration color"], { disabled = DurationOff })),
+        CS(TS("icon", "color", "icon.durationLowColor", L["Buff duration low color"], { disabled = DurationOff })),
+        CS(TS("icon", "color", "icon.durationSwipeColor", L["Buff duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
@@ -570,7 +570,7 @@ function Specs.Themed(mode, key)
     end
     -- 生效期間發光：跟觸發／就緒同一套（開關、樣式、顏色、線條、粗細、預覽，跟隨主題的繼承也一樣；使用者 2026-10-03）。
     -- 預設關：多半只在幾個法術上個別打開（預覽點圖示）
-    add(Nested(L["Glow while active"], "glow"),
+    add(Nested(L["Glow during buff"], "glow"),
         TS("glow", "toggle", "glow.active.enabled", L["Enable"]),
         Note(L["Glows while the buff is up; on Essential and Utility, while the icon shows the buff's time. Off by default: turn it on for single spells by clicking their icon in the preview."], "glow"),
         TS("glow", "dropdown", "glow.active.type", L["Style"], { items = GLOW_ITEMS }),

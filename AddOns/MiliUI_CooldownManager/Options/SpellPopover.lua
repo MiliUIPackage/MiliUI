@@ -115,7 +115,7 @@ local function ActiveGlowWhen(kind, class) return class == "aura" or kind == nil
 local TOGGLES = {
     { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, tab = "glow" },
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
-    { field = "activeGlow",       label = L["Glow while active"],      when = ActiveGlowWhen, tab = "glow" },
+    { field = "activeGlow",       label = L["Glow during buff"],      when = ActiveGlowWhen, tab = "glow" },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
     { field = "hideCooldownText", label = L["Hide countdown"],         tab = "look" },
     { field = "hideStackText",    label = L["Hide stacks"],            tab = "look" },
@@ -272,6 +272,20 @@ local function SpellNameOf(id)
     return type(name) == "string" and name ~= "" and name or nil
 end
 
+-- 「先倒增益時間」這件事的說明（增益時間分頁、音效分頁的增益出現／消失）：舉反魔法護罩為例，法術名與職業名
+-- 用遊戲的官方譯名（C_Spell.GetSpellName、LOCALIZED_CLASS_NAMES_MALE），不進語系檔
+local EXAMPLE_SPELL = 48707          -- 反魔法護罩
+local function ExampleArgs()
+    local name
+    local fn = C_Spell and C_Spell.GetSpellName
+    if fn then
+        local ok, v = pcall(fn, EXAMPLE_SPELL)
+        if ok and type(v) == "string" and v ~= "" then name = v end
+    end
+    local cls = _G.LOCALIZED_CLASS_NAMES_MALE and _G.LOCALIZED_CLASS_NAMES_MALE.DEATHKNIGHT
+    return name or "Anti-Magic Shell", cls or "Death Knight"
+end
+
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
 local function Build()
@@ -282,6 +296,28 @@ local function Build()
     frame:SetBackdropBorderColor(W.Accent(1))
     frame:Hide()
     W.CloseOnEscape(frame)
+
+    -- 一列說明字（控件欄寬、換行；黃字＝使用者 2026-10-03 指定的「適用範圍」說明）
+    local function NoteRow(text, when, yellow)
+        local nr = CreateFrame("Frame", nil, frame)
+        local fs = Note(nr)
+        if yellow then fs:SetTextColor(1, 0.82, 0) end
+        fs:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
+        fs:SetWidth(ROW_W - CTRL_X)
+        fs:SetWordWrap(true)
+        fs:SetText(text)
+        local h = 2 + math.max(14, fs:GetStringHeight() or 0) + 6
+        nr:SetSize(ROW_W, h)
+        local entry = { frame = nr, h = h, when = when }
+        entry.remeasure = function()
+            local sh = fs:GetStringHeight()
+            local nh = 2 + math.max(14, type(sh) == "number" and sh or 0) + 6
+            nr:SetHeight(nh)
+            entry.h = nh
+        end
+        AddRow(entry)
+        return entry
+    end
 
     local close = W.CreateButton(frame, "", "red", 18, 18)
     close:SetPoint("TOPRIGHT", -4, -4)
@@ -589,7 +625,7 @@ local function Build()
 
     -- 持續時間換色＋三個顏色（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）：五個欄位跟主題頁同一套、
     -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 三個顏色列停用（Refresh）
-    local cdr, cdh = NewRow(L["Color while buff lasts"], BlizzCooldown)
+    local cdr, cdh = NewRow(L["Recolor buff duration"], BlizzCooldown)
     local cdItems = {
         { text = FollowText(), value = "follow" },
         { text = L["Recolor"],         value = "on" },
@@ -632,9 +668,11 @@ local function Build()
         RightClickClears(r2, h2, field)
         colorRows[#colorRows + 1] = { field = field, cb = cb2, swatch = sw, fallback = fallback }
     end
-    ColorOverrideRow(L["Duration color"],       "durationColor",      false, { r = 1,    g = 0.85, b = 0.1,  a = 1 })
-    ColorOverrideRow(L["Duration low color"],   "durationLowColor",   false, { r = 0.95, g = 0.45, b = 0.70, a = 1 })
-    ColorOverrideRow(L["Duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
+    ColorOverrideRow(L["Buff duration color"],       "durationColor",      false, { r = 1,    g = 0.85, b = 0.1,  a = 1 })
+    ColorOverrideRow(L["Buff duration low color"],   "durationLowColor",   false, { r = 0.95, g = 0.45, b = 0.70, a = 1 })
+    ColorOverrideRow(L["Buff duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
+    NoteRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
+        BlizzCooldown, true)
 
     -- 層數發光（暴雪的增益）：勾選框＋「≥」數字框＋色票；沒勾時數字框記著要用的門檻
     local sgr = NewRow(L["Stack glow"], BlizzAura)
@@ -698,7 +736,7 @@ local function Build()
     snTip:SetPoint("TOPLEFT", snRow, "TOPLEFT", CTRL_X, -2)
     snTip:SetWidth(ROW_W - CTRL_X)
     snTip:SetWordWrap(true)
-    snTip:SetText(L["Glows once the buff has at least this many stacks. While it's on, glow while active isn't used."])
+    snTip:SetText(L["Glows once the buff has at least this many stacks. While it's on, glow during buff isn't used."])
     local snH = 2 + math.max(14, snTip:GetStringHeight() or 0) + 6
     snRow:SetSize(ROW_W, snH)
     local snEntry = { frame = snRow, h = snH, when = BlizzAura }
@@ -792,6 +830,9 @@ local function Build()
         speaks[#speaks + 1] = entry
         RightClickClears(kr, kh, field)
     end
+    -- 冷卻格的增益出現／消失：適用範圍（黃字）
+    NoteRow(L["Buff gained and lost only apply to spells that show their buff's time first after you cast them, like %s (%s): gained plays when the buff's countdown starts, lost when it ends and the icon switches to the cooldown."]:format(ExampleArgs()),
+        BlizzCooldownSound, true)
     -- 語音播報的說明（下一列灰字）
     local spRow = CreateFrame("Frame", nil, frame)
     local spTip = Note(spRow)
