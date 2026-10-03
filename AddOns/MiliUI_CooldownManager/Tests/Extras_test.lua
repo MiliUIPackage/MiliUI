@@ -1110,6 +1110,47 @@ do
     check("充能數秘密不報錯", pcall(onSet, cd, 100, 20, 1))
     eq("充能數讀不到 ⇒ 走回充那條", last("FromDur") and last("FromDur")[2], chargeDur)
 
+    -- 暴雪標了「可以有充能」、實際只有一次（武器戰法術反射沒點第二次充能的天賦）：
+    -- 回充永遠是零，問它就什麼都畫不出來 ⇒ 照一般技能餵冷卻（2026-10-04 回報）
+    chargeInfo = { currentCharges = 1, maxCharges = 1 }
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("上限 1 ⇒ 餵技能冷卻", last("FromDur") and last("FromDur")[2], curDur)
+    eq("上限 1 ⇒ 畫轉圈", last("SetDrawSwipe") and last("SetDrawSwipe")[2], true)
+    chargeInfo = nil
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("GetSpellCharges 回 nil ⇒ 餵技能冷卻", last("FromDur") and last("FromDur")[2], curDur)
+    -- 讀不到（秘密）⇒ 用同一招上次記的；換了一招 ⇒ 不沿用
+    local r1 = {}
+    chargeInfo = { currentCharges = 1, maxCharges = 1 }
+    eq("IsChargeSpell 明文 1", D.IsChargeSpell(r1, 5, true), false)
+    chargeInfo = { currentCharges = Secret(), maxCharges = Secret() }
+    eq("IsChargeSpell 秘密 ⇒ 沿用上次", D.IsChargeSpell(r1, 5, true), false)
+    eq("IsChargeSpell 秘密、換了一招 ⇒ 退回旗標", D.IsChargeSpell(r1, 6, true), true)
+    eq("IsChargeSpell 旗標 false ⇒ 不問", D.IsChargeSpell(r1, 6, false), false)
+    chargeInfo = { currentCharges = 2, maxCharges = 2 }
+    eq("IsChargeSpell 明文 2", D.IsChargeSpell(r1, 6, true), true)
+
+    -- 隱藏 GCD 轉圈：只有一次的「充能旗標」技能要問技能冷卻，不能問回充（回充永遠是零 ⇒ 冷卻框一直藏著）
+    do
+        local asked
+        local saveCD, saveCh = env.C_Spell.GetSpellCooldownDuration, env.C_Spell.GetSpellChargeDuration
+        env.C_Spell.GetSpellCooldownDuration = function() asked = "cooldown"; return { IsZero = function() return false end } end
+        env.C_Spell.GetSpellChargeDuration = function() asked = "charge"; return { IsZero = function() return true end } end
+        local alphaSet
+        local gcdCD = { SetAlphaFromBoolean = function(_, z, a, b) alphaSet = z and a or b end, SetAlpha = function() end }
+        local grec = { cooldownID = 7, style = { hideGCD = true } }
+        chargeInfo = { currentCharges = 1, maxCharges = 1 }
+        D.ApplyGCDAlpha({ Cooldown = gcdCD }, grec)
+        eq("藏GCD：上限 1 ⇒ 問技能冷卻", asked, "cooldown")
+        eq("藏GCD：上限 1、冷卻中 ⇒ 冷卻框看得到", alphaSet, 1)
+        chargeInfo = { currentCharges = 1, maxCharges = 2 }
+        D.ApplyGCDAlpha({ Cooldown = gcdCD }, grec)
+        eq("藏GCD：上限 2 ⇒ 問回充", asked, "charge")
+        env.C_Spell.GetSpellCooldownDuration, env.C_Spell.GetSpellChargeDuration = saveCD, saveCh
+    end
+
     -- 裝備欄項目不蓋
     C.Info = function(id) return { spellID = id * 100, equipSlot = 13 } end
     onFlag(cd, true)

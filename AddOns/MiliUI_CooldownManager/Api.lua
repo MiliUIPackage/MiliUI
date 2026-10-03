@@ -86,7 +86,9 @@ local function ItemLines(out)
                 local cdf = rawget(item, "Cooldown")
                 local cdInfo = (" 法術=%s/%s%s 冷卻框 alpha=%s%s%s%s"):format(
                     tostring(info and info.spellID), tostring(info and info.overrideSpellID),
-                    (info and info.charges) and " 充能" or "",
+                    -- 「充能」＝現在真的是充能法術；「充能旗標」＝暴雪資料說可以有、但現在只有一次
+                    (info and info.charges) and ((ns.Decorate.IsChargeSpell(rec, info.overrideSpellID or info.spellID, true)
+                        and " 充能" or " 充能旗標")) or "",
                     cdf and Num(Read(cdf, "GetAlpha")) or "✕",
                     (rec.style and rec.style.hideGCD) and " 藏GCD" or "",
                     rec.auraFlag and " 增益中" or "", rec.auraHidden and "（改餵冷卻）" or "")

@@ -452,13 +452,42 @@ local function TryDur(fn, ...)
     return nil
 end
 
+-- 這個法術**現在**是不是充能法術（上限 > 1）。
+-- ⚠ 暴雪資料的 charges 旗標是「這招可以有充能」：天賦給第二次充能的技能（武器戰的法術反射）沒點天賦時
+--   旗標照樣是 true，實際只有一次。拿它去問 GetSpellChargeDuration 會拿到永遠是零的回充 ⇒
+--   隱藏 GCD 轉圈把整個冷卻框一直藏著（2026-10-04 玩家回報「就緒發光會亮、倒數完全不顯示」）。
+--   所以旗標只是「要不要去問」，問 GetSpellCharges 的 maxCharges 才算數（Modules/Custom.lua 同一套）。
+-- 明文讀到就記在 rec 上（天賦一換就會變，每次讀得到都更新）；讀不到（秘密值）用上次記的，從沒讀到過退回旗標。
+local function IsChargeSpell(rec, id, flag)
+    if not flag then return false end
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    if not fn then return true end
+    local ok, info = pcall(fn, id)
+    -- 快取跟著法術走：item 會換身分（SetCooldownID），別拿上一招記的值
+    local cached = nil
+    if rec.isChargeID == id then cached = rec.isCharge end   -- ⚠ 不寫 a and b or nil：記的是 false 時會變 nil
+    if not ok then return cached ~= false end
+    if type(info) ~= "table" then                                       -- 不是充能法術：API 回 nil
+        rec.isChargeID, rec.isCharge = id, false
+        return false
+    end
+    local okM, m = pcall(function() return info.maxCharges end)
+    m = okM and Plain(m) or nil
+    if type(m) == "number" then
+        rec.isChargeID, rec.isCharge = id, m > 1
+        return m > 1
+    end
+    return cached ~= false
+end
+D.IsChargeSpell = IsChargeSpell                                     -- 測試用
+
 -- 這一格能不能蓋：法術類 → spellID, 有沒有充能；裝備欄項目／沒有明文法術 ⇒ nil
 local function HideTarget(rec)
     local info = rec and ns.Catalog.Info(rec.cooldownID)
     if not info or type(info.equipSlot) == "number" then return nil end
     local id = info.overrideSpellID or info.spellID
     if type(id) ~= "number" then return nil end
-    return id, info.charges and true or false
+    return id, IsChargeSpell(rec, id, info.charges)
 end
 D.HideTarget = HideTarget                                           -- 測試用
 
@@ -717,7 +746,7 @@ function D.ApplyGCDAlpha(item, rec)
     local spellID = info and (info.overrideSpellID or info.spellID)
     if type(spellID) ~= "number" or not (C_Spell and C_Spell.GetSpellCooldownDuration) then return end
     local dur
-    if info.charges and C_Spell.GetSpellChargeDuration then
+    if IsChargeSpell(rec, spellID, info.charges) and C_Spell.GetSpellChargeDuration then
         local ok, d = pcall(C_Spell.GetSpellChargeDuration, spellID)
         if ok then dur = d end
     end
