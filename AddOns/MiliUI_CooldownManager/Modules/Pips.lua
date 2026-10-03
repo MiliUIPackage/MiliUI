@@ -175,6 +175,11 @@ local CUSTOM_RECOMMENDED = {
     },
     EVOKER = {
         { kind = "charges", spellID = 358267 },                     -- 盤旋
+        { kind = "stacks", spellID = 359618, max = 2, spec = 1467 }, -- 龍能爆發（湮滅）
+        { kind = "stacks", spellID = 369299, max = 2, spec = 1468 }, -- 龍能爆發（恩護）
+    },
+    HUNTER = {
+        { kind = "stacks", spellID = 260242, max = 2, spec = 254 },  -- 精準射擊（射擊）
     },
     MONK = {
         { kind = "charges", spellID = 109132 },                     -- 迅空翻
