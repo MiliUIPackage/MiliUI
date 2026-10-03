@@ -629,7 +629,7 @@ do
     local has = { [190784] = true }
     local rp = {
         exists = function(id) return id ~= 296553 end,
-        known = function(id) return id ~= 374227 end,
+        known = function(id) return id ~= 358267 end,
         hasCharges = function(id) return has[id] == true end,
     }
     local function recs(cls, spec, kind) return PI.CustomRecommendations(rcfg, cls, spec, kind, rp) end
