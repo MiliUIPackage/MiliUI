@@ -409,6 +409,43 @@ end
 eq("簽章帶自訂圖示", D.Signature({ sig = "s" }, 11, { customIcon = 5 }, 1, 1)
     ~= D.Signature({ sig = "s" }, 11, { customIcon = 6 }, 1, 1), true)
 
+-- 長條名字的退路：暴雪寫進 nil／空字串時用法術名字頂（召喚物第一拍沒名字）；秘密字串與真名不碰
+do
+    local fs = { log = {} }
+    function fs:SetText(v) self.text = v; self.log[#self.log + 1] = v end
+    local bi = { Bar = { Name = fs } }
+    local br = { barKey = "buffbars", cooldownID = 12 }
+    ns.Viewers.frames[bi] = br
+    itemIDs[bi] = 12
+    local nh2 = #hooks
+    D.HookItem(bi, br)
+    local nameHook
+    for i = nh2 + 1, #hooks do if hooks[i].t == fs then nameHook = hooks[i].fn end end
+    check("HookItem 掛上名字的 SetText 後掛勾", nameHook ~= nil)
+    fs:SetText(nil); nameHook(fs, nil)
+    eq("nil ⇒ 用法術名字頂", fs.text, "法術1200")
+    fs:SetText(""); nameHook(fs, "")
+    eq("空字串 ⇒ 用法術名字頂", fs.text, "法術1200")
+    fs:SetText("真名"); nameHook(fs, "真名")
+    eq("真名不碰", fs.text, "真名")
+    local s2 = Secret()
+    fs:SetText(s2)
+    local ok2, err2 = pcall(nameHook, fs, s2)
+    check("秘密字串：掛勾不碰、不拋錯", ok2, err2)
+    eq("秘密字串留著", fs.text, s2)
+    -- 自訂框不掛
+    local fs2 = {}
+    function fs2:SetText() end
+    local ci = { Bar = { Name = fs2 } }
+    local cr = { barKey = "buffbars", custom = true }
+    ns.Viewers.frames[ci] = cr
+    local nh3 = #hooks
+    D.HookItem(ci, cr)
+    local hooked = false
+    for i = nh3 + 1, #hooks do if hooks[i].t == fs2 then hooked = true end end
+    eq("自訂框不掛名字掛勾", hooked, false)
+end
+
 ------------------------------------------------------------
 -- 3. 跟著游標
 ------------------------------------------------------------

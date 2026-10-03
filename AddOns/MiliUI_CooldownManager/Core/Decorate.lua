@@ -41,6 +41,7 @@ local ICON_OVERLAY_ATLAS = "UI-HUD-CoolDownManager-IconOverlay"
 local generation = 0            -- 設定變了就 +1，進簽章
 local cooldownOwner = setmetatable({}, { __mode = "k" })   -- Cooldown 框 → item
 local iconOwner     = setmetatable({}, { __mode = "k" })   -- Icon 貼圖 → item
+local nameOwner     = setmetatable({}, { __mode = "k" })   -- 長條名字 FontString → item
 
 local function Plain(v)
     if v == nil or ns.IsSecret(v) then return nil end
@@ -845,6 +846,30 @@ local function OnSetBarContent(item)
     if rec.barGeometry then D.ApplyBarGeometry(item, rec, rec.barGeometry) end
 end
 
+-- 長條名字：暴雪寫進 nil／空字串時用法術名字頂
+--   名字是暴雪在 RefreshName 寫的（我們只管樣式，見 Text.ApplyBar），召喚類（惡魔暴君這種）
+--   第一次 PLAYER_TOTEM_UPDATE 時 GetTotemInfo 還沒有單位名字 ⇒ 寫進去的是 nil，而暴雪之後
+--   不一定再叫一次 RefreshName（只有下一次 RefreshData 會）⇒ 整條空到消失。
+--   秘密字串不碰（拿著不讀）；真名之後寫進來就自然蓋掉。只讀 Catalog 的明文資料，不碰 totemData。
+local nameGuard = false
+local function OnBarNameSetText(fs, text)
+    if nameGuard or ns.released then return end
+    if ns.IsSecret(text) then return end                -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
+    if text ~= nil and text ~= "" then return end
+    local item = nameOwner[fs]
+    local rec = item and ns.Viewers.frames[item]
+    if not rec or rec.custom then return end
+    local info = ns.Catalog.Info(rec.cooldownID)
+    local spellID = info and (info.overrideSpellID or info.spellID)
+    if type(spellID) ~= "number" then return end
+    local ok, name = pcall(C_Spell.GetSpellName, spellID)
+    name = ok and Plain(name) or nil
+    if type(name) ~= "string" or name == "" then return end
+    nameGuard = true
+    pcall(fs.SetText, fs, name)
+    nameGuard = false
+end
+
 function D.HookItem(item, rec)
     if rec.decoHooked then return end
     rec.decoHooked = true
@@ -874,6 +899,11 @@ function D.HookItem(item, rec)
     end
     if item.SetBarContent then
         hooksecurefunc(item, "SetBarContent", ns.Guard(OnSetBarContent))
+    end
+    local nameFS = not rec.custom and item.Bar and item.Bar.Name
+    if nameFS and type(nameFS.SetText) == "function" then
+        nameOwner[nameFS] = item
+        hooksecurefunc(nameFS, "SetText", ns.Guard(OnBarNameSetText))
     end
 end
 
