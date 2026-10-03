@@ -167,13 +167,15 @@ end
 
 ------------------------------------------------------------
 -- 推薦清單：新增格子的輸入彈窗裡那顆下拉，選了就帶入法術 ID（層數列連上限一起）
---   class 必填；spec 有寫 ＝ 只給那個專精（術士這種天賦專屬的），沒寫 ＝ 整個職業
+--   class 必填；spec 有寫 ＝ 只給那個專精（術士這種天賦專屬的），沒寫 ＝ 整個職業；
+--   requires 有寫 ＝ 那個天賦（法術 ID）學了才推薦（英雄天賦這種跨專精的）
 ------------------------------------------------------------
 local CUSTOM_RECOMMENDED = {
     PALADIN = {
         { kind = "charges", spellID = 190784 },                     -- 神性戰馬
     },
     DEATHKNIGHT = {
+        { kind = "charges", spellID = 444347, requires = 444010 },   -- 死亡戰騎（技能；英雄天賦「死亡戰騎」444010 才有）
         { kind = "stacks", spellID = 195181, max = 10, spec = 250 }, -- 骸骨之盾（血魄）
     },
     EVOKER = {
@@ -208,7 +210,7 @@ local CUSTOM_RECOMMENDED = {
 Pips.CUSTOM_RECOMMENDED = CUSTOM_RECOMMENDED
 
 -- 純函式：這個職業／專精、這種列能推薦哪些。用不了的一律靜默跳過（不顯示、不佔位）：
---   別的專精的、這個專精已經加過的、法術不存在的（probe.exists）、
+--   別的專精的、這個專精已經加過的、法術不存在的（probe.exists）、要求的天賦沒學的（probe.talent）、
 --   充能列：沒學會（probe.known）或現在沒有充能（probe.hasCharges，換天賦會變）
 function Pips.CustomRecommendations(cfg, classFile, specID, kind, probe)
     local out = {}
@@ -220,6 +222,7 @@ function Pips.CustomRecommendations(cfg, classFile, specID, kind, probe)
             and (r.spec == nil or r.spec == specID)
             and not Pips.FindCustomRow(cfg, specID, r.kind, r.spellID)
             and (not probe.exists or probe.exists(r.spellID))
+            and (not r.requires or not probe.talent or probe.talent(r.requires))
         if ok and kind == "charges" then
             ok = (not probe.known or probe.known(r.spellID))
                 and (not probe.hasCharges or probe.hasCharges(r.spellID))
@@ -353,6 +356,16 @@ Pips.gameProbe = gameProbe
 -- 推薦清單用的 probe：充能看「現在」有沒有（不吃 lastChargeMax 的舊值 —— 換掉天賦後那是過期的）
 Pips.recommendProbe = {
     known = CustomKnown,
+    -- 天賦學了沒：被動天賦只有 IsPlayerSpell 準，IsSpellKnown 一起問；任一個明文 true 就算（讀不到當沒學：推薦寧缺勿濫）
+    talent = function(id)
+        for _, fn in ipairs({ _G.IsPlayerSpell or false, C_SpellBook and C_SpellBook.IsSpellKnown or false }) do
+            if fn then
+                local ok, v = pcall(fn, id)
+                if ok and not ns.IsSecret(v) and v == true then return true end
+            end
+        end
+        return false
+    end,
     exists = function(id)
         local fn = C_Spell and C_Spell.GetSpellInfo
         if not fn then return true end
