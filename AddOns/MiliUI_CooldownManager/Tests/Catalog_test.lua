@@ -520,7 +520,7 @@ do
 end
 
 ------------------------------------------------------------
--- 長條類的條也列自訂項目（光環格照樣是固定前綴、順序覆寫照舊）
+-- 長條類的條也列自訂項目（光環格跟其他格同走 order 表、沒有固定前綴）
 ------------------------------------------------------------
 do
     local savedProfile = ns.profile
@@ -545,8 +545,8 @@ do
             },
         },
     }
-    eqList("增益長條：光環格在最前、暴雪的長條、自訂法術接在後", C.Bar("buffbars"), { "c:2", 401, "c:1" })
-    eqList("長條型自訂群組：物品／裝備欄照順序覆寫、光環格拉到最前", C.Bar("g2"), { "c:5", "c:4", "c:3" })
+    eqList("增益長條：暴雪的長條在前、自訂照清單順序接在後（光環格不拉到最前）", C.Bar("buffbars"), { 401, "c:1", "c:2" })
+    eqList("長條型自訂群組：照順序覆寫，光環格也照 order（沒列進去的接在後）", C.Bar("g2"), { "c:4", "c:3", "c:5" })
     check("長條 BarHasAuraSlot（固定格位強制打開）", C.BarHasAuraSlot("buffbars") and C.BarHasAuraSlot("g2"))
     eq("長條上的自訂項目 SourceOf ＝ 它的 bar", C.SourceOf("c:3"), "g2")
     ns.profile = savedProfile

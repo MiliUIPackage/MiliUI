@@ -151,7 +151,7 @@ sp.hidden["c:3"] = nil
 DB.SetCustomBar("c:2", "buffbars")
 eqList("長條也收自訂項目（接在暴雪的後面）", C.Bar("buffbars"), { 41, "c:2" })
 DB.SetCustomBar("c:1", "buffbars")
-eqList("長條上的光環格一樣拉到最前（固定前綴）", C.Bar("buffbars"), { "c:1", 41, "c:2" })
+eqList("長條上的光環格也照清單順序（沒有固定前綴）", C.Bar("buffbars"), { 41, "c:1", "c:2" })
 check("長條 BarHasAuraSlot", C.BarHasAuraSlot("buffbars"))
 DB.SetCustomBar("c:1", "essential")
 DB.SetCustomBar("c:2", "essential")
