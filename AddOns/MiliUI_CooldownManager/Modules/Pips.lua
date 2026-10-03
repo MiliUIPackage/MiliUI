@@ -71,8 +71,11 @@ Pips.Cfg, Pips.StyleCfg = Cfg, StyleCfg
 ------------------------------------------------------------
 -- 清單與「要建哪些列」
 --
---   resources.customRows[specID] = { { kind = "charges"|"stacks", spellID, max, color, height, showTime, enabled }, … }
+--   resources.customRows[specID] = { { kind = "charges"|"stacks", spellID, max, color, height, text, showTime, enabled }, … }
 --   height 沒存 ＝ CUSTOM_DEFAULT_HEIGHT（不跟資源條的列高走）
+--   text = { show, size, font, outline }：這一列自己的數字（充能＝回充秒數、層數＝引擎寫的層數）；
+--   沒存 ＝ 充能列看舊欄位 showTime、層數列不顯示；size 0 ＝ 照列高、font／outline "INHERIT" ＝ 跟資源條／主題
+--   （Pips.TextStyle）
 --
 -- 清單的讀寫與規劃都是純函式（吃 cfg、specID 與一個查詢 probe），離線測試得到。
 -- cfg 是**資源條的設定表**（清單存在那裡）。
@@ -87,6 +90,36 @@ Pips.HEIGHT_MIN, Pips.HEIGHT_MAX = 2, 30
 function Pips.CustomHeight(entry)
     local h = math.floor(tonumber(type(entry) == "table" and entry.height) or Pips.CUSTOM_DEFAULT_HEIGHT)
     return math.max(Pips.HEIGHT_MIN, math.min(Pips.HEIGHT_MAX, h))
+end
+
+-- 數字：每一列自己的（entry.text），不跟資源條的「長條上顯示數值」走
+Pips.TEXT_SIZE_MIN, Pips.TEXT_SIZE_MAX = 6, 30
+
+-- 純函式：這一列的數字 → show, size, font token, outline token
+--   show     text.show 布林；沒存 ⇒ 充能列看舊欄位 showTime（預設開）、層數列預設關
+--   size     text.size；0／沒存／壞值 ⇒ 照列高（max(8, 列高−4)）；其餘夾在 TEXT_SIZE_MIN～MAX
+--   font     text.font；沒存／空字串 ⇒ "INHERIT"（跟資源條的 textFont → 通用字型）
+--   outline  text.outline；沒存 ⇒ "INHERIT"（跟主題的描邊）；其餘原樣回（呼叫端用 Media.Outline 驗）
+function Pips.TextStyle(entry, height)
+    local e = type(entry) == "table" and entry or {}
+    local t = type(e.text) == "table" and e.text or {}
+    local show
+    if type(t.show) == "boolean" then
+        show = t.show
+    elseif e.kind == "charges" then
+        show = e.showTime ~= false
+    else
+        show = false
+    end
+    local size = math.floor(tonumber(t.size) or 0)
+    if size <= 0 then
+        size = math.max(8, (tonumber(height) or Pips.CUSTOM_DEFAULT_HEIGHT) - 4)
+    else
+        size = math.max(Pips.TEXT_SIZE_MIN, math.min(Pips.TEXT_SIZE_MAX, size))
+    end
+    local font = (type(t.font) == "string" and t.font ~= "" and t.font ~= "INHERIT") and t.font or "INHERIT"
+    local outline = (type(t.outline) == "string" and t.outline ~= "INHERIT") and t.outline or "INHERIT"
+    return show, size, font, outline
 end
 
 -- 這個專精的清單；create ＝ 沒有就建（寫入用），否則沒有回 nil
@@ -356,7 +389,15 @@ local function HideCells(row, from)
 end
 
 -- 層數列：引擎寫的那條（AuraBar）。回傳 true ＝ 用引擎；false ＝ 退回明文格子
-local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex)
+-- 這一列的數字（Pips.TextStyle 解成遊戲端的值）：show, 字級（UIParent 座標）, 字型 token, 描邊旗標
+local function RowText(plan, style)
+    local show, size, font, outline = Pips.TextStyle(plan.entry, plan.height)
+    local token = ns.Media.ElementFont(font, ns.Media.ElementFont(style.textFont, ns.Setting(nil, "font")))
+    local flags = (outline == "INHERIT") and ns.Media.ThemeOutline() or ns.Media.Outline(outline)
+    return show, size, token, flags
+end
+
+local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex, count)
     if not ns.AuraBar then return false end
     row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
     local n = plan.numSeg
@@ -368,6 +409,7 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
     local status = ns.AuraBar.Apply(row.ab, {
         spellIDs = { plan.spellID }, max = n, texture = tex, color = { r = r, g = g, b = b }, alpha = alpha,
         reversed = reversed, inside = inside and geom or nil,
+        count = count,          -- 層數文字（引擎寫；樣式進簽章，改了換容器、戰鬥中等脫戰）
     })
     row.engineStatus = status
     if status ~= "ready" then
@@ -394,10 +436,18 @@ local function LayoutCustomRow(row, plan, style, W, H)
     local r, g, b = CustomColor(plan.entry)
     local alpha = tonumber(style.barAlpha) or 1
     local charges = plan.kind == "charges"
+    local showText, fontSize, font, outline = RowText(plan, style)
 
     row.engine = false
     if not charges then
-        row.engine = LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex)
+        -- 層數文字交給引擎（SetApplicationCount）：字級換成實體像素（按鈕子樹裡的 FontString 忽略父層縮放）
+        local count
+        if showText then
+            local scale = UIParent:GetEffectiveScale()
+            if not scale or scale <= 0 then scale = 1 end
+            count = { font = ns.Media.Font(font), size = fontSize * scale, outline = outline }
+        end
+        row.engine = LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex, count)
         if row.engine then
             HideCells(row, 1)
             return
@@ -407,9 +457,6 @@ local function LayoutCustomRow(row, plan, style, W, H)
         if ns.AuraBar then ns.AuraBar.HideRowDecor(row) end
     end
 
-    local showTime = plan.entry.showTime ~= false
-    local fontSize = math.max(8, plan.height - 4)
-    local font = ns.Media.ElementFont(style.textFont, ns.Setting(nil, "font"))
     local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
     for i = 1, numSeg do
         local cell = row.cells[i]
@@ -448,10 +495,10 @@ local function LayoutCustomRow(row, plan, style, W, H)
             local cd = cell.cd
             if cd then
                 cd:SetFrameLevel(lv + 3)
-                if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(not showTime) end
+                if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(not showText) end
                 local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
                 if fs then
-                    ns.Media.SetPixelFont(fs, fontSize, ns.Media.ThemeOutline(), font)
+                    ns.Media.SetPixelFont(fs, fontSize, outline, font)
                     fs:SetTextColor(1, 1, 1, 1)
                     fs:ClearAllPoints()
                     fs:SetPoint("CENTER", cell, "CENTER", 0, 0)

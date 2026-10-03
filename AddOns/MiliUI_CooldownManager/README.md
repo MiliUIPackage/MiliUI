@@ -779,7 +779,8 @@ customRows[specID] = {
     { kind = "charges" | "stacks", spellID = n,
       max = n,             -- stacks：格數（1–10，預設 5）；charges：新增時記下的充能上限，只在 API 讀不到時用
       color = { r, g, b, a },   -- 新增時預設職業色
-      showTime = true,     -- charges 的「下一格」顯示回充秒數
+      showTime = true,     -- 舊欄位：charges 的「下一格」顯示回充秒數（text.show 沒存時才看）
+      text = nil,          -- 這一列自己的數字：{ show, size, font, outline }（2026-10-03；見下面「數字」）
       showWhen = nil,      -- nil／"always" ＝ 一直顯示；"active"（充能：回充中；層數：有光環）；"activeOrCombat"（充能限定）
       enabled = true },    -- false ＝ 不建列（目前沒有介面開關）
 }
@@ -821,8 +822,13 @@ customRows[specID] = {
   引擎給得出的布林。**不是「一直顯示」的列照樣佔位**：秘密值下不知道它現在顯不顯示，面板高度只看有幾列（收合判斷不變）。
 - **保護**：層數列的 AuraContainer 讓列與面板變保護框 ⇒ 戰鬥中不重排（記旗標、脫戰補），只重畫值；收合（高度 0）切換本來就走
   `SetPanelSize` → `ns.Write`＋結構排程，戰鬥中記帳。
-- **秒數**：`showTime`（預設開）；倒數字是秒數 Cooldown 自己的 `GetCountdownFontString()`，換成像素字型、字級 ＝ 這一列的高 − 4（最小 8），
-  `PlainFormatter(0)`＋`SetCountdownMillisecondsThreshold(0)`；關掉走 `SetHideCountdownNumbers(true)`。
+- **數字**（每一列自己的，`entry.text = { show, size, font, outline }`，`Pips.TextStyle` 純函式；設定頁每筆卡片底下四列：
+  顯示數字／數字大小／數字字型／數字描邊）：充能列＝回充秒數、層數列＝層數。`show` 沒存時充能列看舊欄位 `showTime`（預設開）、
+  層數列預設關；`size` 0／沒存 ＝ 照列高（高 − 4，最小 8）；`font` 沒存 ＝ 跟資源條的字型（再跟通用字型）；`outline` 沒存 ＝ 跟主題。
+  - 充能列：倒數字是秒數 Cooldown 自己的 `GetCountdownFontString()`，像素字型、`PlainFormatter(0)`＋`SetCountdownMillisecondsThreshold(0)`；
+    關掉走 `SetHideCountdownNumbers(true)`。
+  - 層數列（引擎寫）：字交給 `AuraBar` 的 `count`（`SetApplicationCount(fs, {})`，不給格式器），字級換成實體像素；樣式進容器簽章，
+    改了換一顆容器、戰鬥中等脫戰。明文退路（容器沒好）不印數字。
 - **讀不到**（充能 API 回 nil）：整列 alpha 0.5，`/mcdm debug` 的自訂格子段寫「讀不到」；秘密值照常畫、寫「秘密」；引擎寫的寫「引擎寫」
   與容器狀態（ready／pending／failed）、「交條」（`initializeFrame` 有沒有跑完 `SetApplicationBar`）。
 - **事件**（自己一個事件框）：`SPELL_UPDATE_CHARGES`／`SPELL_UPDATE_COOLDOWN`（有充能列才註冊）、`UNIT_AURA`（player；有層數列才註冊，明文退路用）、
@@ -1544,4 +1550,5 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 188. 語音播報在首領戰、M+ 裡會不會被擋（`SpeakText` 沒標 HasRestrictions，但插件限制系統沒驗過）；被擋的話 pcall 接住、不報錯。
 189. 長條火花：勾了之後增益長條倒數中填充末端有暴雪的亮點，跟條高（6～60）搭起來不突兀（暴雪的圖是 atlas 原尺寸，我們沒改大小）；
      取消勾選消失；預覽的假條跟著畫一條白線。
+190. 自訂格子每一列自己的數字：充能列關掉「顯示數字」秒數消失、層數列開了之後引擎印層數（副本戰鬥中也印）；大小 0 照列高、改字型／描邊層數列脫戰才換（容器簽章）；舊存檔的充能列照 `showTime` 顯示、層數列沒有數字。
 

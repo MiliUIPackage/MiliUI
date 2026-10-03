@@ -127,6 +127,7 @@ local OUTLINE_ITEMS = {
     { text = L["Monochrome outline"],       value = "MONOCHROME,OUTLINE" },
     { text = L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
 }
+Specs.OUTLINE_ITEMS = OUTLINE_ITEMS       -- 自訂格子每一列的數字描邊（Options/Tab_Resources.lua）也用這張
 
 -- 錨定的「邊」：本條貼在目標的哪一邊
 local EDGE_ITEMS = {

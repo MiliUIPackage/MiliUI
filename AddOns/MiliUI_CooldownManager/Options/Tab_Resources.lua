@@ -551,7 +551,7 @@ local function CardsEnd(parent, x, y)
     return 0
 end
 
--- 第二列：顏色；充能多「顯示秒數」、層數多「上限」
+-- 第二列：顏色；層數多「上限」（數字的開關與樣式在下面各自一列）
 local function CustomOptionsRow(i, kind)
     return function(parent, x, y, width, ctx)
         local cy = y - CUSTOM_ROW_H / 2
@@ -564,16 +564,8 @@ local function CustomOptionsRow(i, kind)
         swatch:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
         local lw = swatch.label:GetStringWidth()
         local nx = x + 14 + 5 + ((type(lw) == "number" and lw > 0) and lw or 30) + 18
-        local cb, box
-        if kind == "charges" then
-            cb = W.CreateCheckButton(parent, L["Show seconds"], function(on)
-                local e = CustomEntry(i)
-                if not e then return end
-                e.showTime = on and true or false
-                Touched(ctx)
-            end)
-            cb:SetPoint("LEFT", parent, "TOPLEFT", nx, cy)
-        else
+        local box
+        if kind ~= "charges" then
             local fs = parent:CreateFontString(nil, "OVERLAY")
             fs:SetFontObject(W.fontNormal)
             fs:SetPoint("LEFT", parent, "TOPLEFT", nx, cy)
@@ -593,7 +585,6 @@ local function CustomOptionsRow(i, kind)
             if not e then return end
             local r, g, b = ns.Pips.CustomColor(e)
             swatch:SetColor({ r = r, g = g, b = b, a = 1 })
-            if cb then cb:SetChecked(e.showTime ~= false) end
             if box then box:SetValue(ns.Pips.ClampSegments(e.max) or ns.Pips.CUSTOM_DEFAULT_STACKS) end
         end
         Refresh()
@@ -639,6 +630,89 @@ local function HeightSpec(i)
     })
 end
 
+-- 這一列的數字（entry.text = { show, size, font, outline }，Modules/Pips.lua 的 Pips.TextStyle）：
+-- 充能列＝回充秒數、層數列＝引擎寫的層數。開關、大小、字型、描邊都是每一列自己的；原地套用不換表單。
+-- 「跟隨」存 nil（沒存就是跟）：大小 0 ＝ 照列高、字型跟資源條的字型、描邊跟主題
+local function TextTable(i, create)
+    local e = CustomEntry(i)
+    if not e then return nil end
+    if type(e.text) ~= "table" then
+        if not create then return nil end
+        e.text = {}
+    end
+    return e.text
+end
+
+local function TextShowSpec(i)
+    return BS("toggle", "customRows.textShow." .. i, L["Show number"], {
+        noReset = true,
+        get = function() return (ns.Pips.TextStyle(CustomEntry(i))) end,
+        set = function(_, v)
+            local t = TextTable(i, true)
+            if t then t.show = v and true or false end
+        end,
+    })
+end
+
+local function TextSizeSpec(i)
+    return BS("slider", "customRows.textSize." .. i, L["Number size"], {
+        min = 0, max = ns.Pips.TEXT_SIZE_MAX, step = 1, noReset = true,
+        get = function()
+            local t = TextTable(i)
+            local v = math.floor(tonumber(t and t.size) or 0)
+            return v > 0 and v or 0
+        end,
+        set = function(_, v)
+            local t = TextTable(i, true)
+            if not t then return end
+            v = math.floor(tonumber(v) or 0)
+            t.size = (v > 0) and v or nil
+        end,
+    })
+end
+
+local function TextFontSpec(i)
+    return BS("dropdown", "customRows.textFont." .. i, L["Number font"], {
+        items = ns.Specs.ElementFontItems, noReset = true,
+        get = function()
+            local t = TextTable(i)
+            return ns.Specs.InheritOr(t and t.font)
+        end,
+        set = function(_, v)
+            local t = TextTable(i, true)
+            if t then t.font = (type(v) == "string" and v ~= "" and v ~= ns.Media.INHERIT) and v or nil end
+        end,
+    })
+end
+
+local function OutlineItems()
+    local items = { { text = L["Follow the theme"], value = ns.Media.INHERIT } }
+    for _, it in ipairs(ns.Specs.OUTLINE_ITEMS) do items[#items + 1] = it end
+    return items
+end
+
+local function TextOutlineSpec(i)
+    return BS("dropdown", "customRows.textOutline." .. i, L["Number outline"], {
+        items = OutlineItems, noReset = true,
+        get = function()
+            local _, _, _, outline = ns.Pips.TextStyle(CustomEntry(i))
+            return outline
+        end,
+        set = function(_, v)
+            local t = TextTable(i, true)
+            if t then t.outline = (type(v) == "string" and v ~= ns.Media.INHERIT) and v or nil end
+        end,
+    })
+end
+
+local function AppendTextSpecs(add, i)
+    add(TextShowSpec(i))
+    add(TextSizeSpec(i))
+    add(Note(L["0 sizes the number to the row height."]))
+    add(TextFontSpec(i))
+    add(TextOutlineSpec(i))
+end
+
 -- 自訂格子的位置與錨定（profile.pips）：跟條頁同一支 Specs.Anchor，讀寫轉到 pips
 AppendPipsPlacement = function(list)
     local function add(s) list[#list + 1] = s end
@@ -675,6 +749,7 @@ local function AppendCustomRows(list)
                 add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
                 add(HeightSpec(i))
                 add(ShowWhenSpec(i, e.kind))
+                AppendTextSpecs(add, i)
             end
         end
     end
