@@ -29,6 +29,12 @@
 --   ⚠ 待實機驗證：Cooldown 倒數是否照 FontString 規則解析 |c 色碼（光環按鈕的
 --   SetDurationText 在某個 build 上不吃 formatter 裡的色碼，Cooldown 是另一條路徑）。
 --   建 formatter 失敗（API 不在、AddBreakpoint 拒收）時退回只設小數門檻、不變色。
+--
+-- ── 增益持續時間那一段換色（ApplyPhaseColor）──────────────────────────────
+-- 技能用掉後暴雪先倒增益的持續時間、增益掉了才倒冷卻；前半段的數字換 durationColor。
+-- 一樣只是多叫一次 SetTextColor：要換哪個色看 rec.auraTime（Decorate 的 SetUseAuraDisplayTime
+-- 後掛勾記的明文旗標）與 rec.style.cdColor／durColor（Decorate.Apply 算好的）。零讀取。
+-- formatter 裡的低秒色碼在字串層級，壓過這個顏色（增益快掉也是「快到期」）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -196,8 +202,21 @@ end
 -- 圖示類（核心／輔助／增益圖示）
 --   style：Decorate 解好的那一包（見 Decorate.Resolve）
 --   spell：{ hideCooldownText, hideStackText }
+--   rec：  暴雪 item 的記錄（增益持續時間換色用；自訂框沒有那一段，rec.style.cdColor 是 nil 就不動）
 ------------------------------------------------------------
-function T.ApplyIcon(item, style, spell)
+
+-- 倒數數字照「現在倒的是增益還是冷卻」上色（rec.style.cdColor 沒有 ＝ 這格不做）
+function T.ApplyPhaseColor(item, rec)
+    local st = rec and rec.style
+    local cd = item and item.Cooldown
+    if not (st and st.cdColor and cd and cd.GetCountdownFontString) then return end
+    local fs = cd:GetCountdownFontString()
+    if not fs then return end
+    local c = (rec.auraTime and st.durColor) or st.cdColor
+    fs:SetTextColor(c[1], c[2], c[3], c[4])
+end
+
+function T.ApplyIcon(item, style, spell, rec)
     local font, outline = style.font, style.outline
 
     -- 倒數
@@ -220,6 +239,8 @@ function T.ApplyIcon(item, style, spell)
         if not fmt and cd.SetCountdownMillisecondsThreshold then
             pcall(cd.SetCountdownMillisecondsThreshold, cd, tonumber(c.decimalsBelow) or 0)
         end
+        -- 現在倒的是增益那一段就換色（上面先寫了倒數原色）
+        if rec then T.ApplyPhaseColor(item, rec) end
     end
 
     -- 充能（核心／輔助）
@@ -285,6 +306,7 @@ end
 --   cell.cdText     假倒數（冷卻中的格才顯示；增益格一律顯示）
 --   cell.chargeText 假充能（技能類）
 --   cell.stackText  假層數（增益類）
+--   cell.durColor   假冷卻格裡標成「增益那一段」的，倒數用這個色（Decorate.ApplyPreview 算好；nil ＝ 原色）
 -- 字是預覽自己寫的（「15」「2」），這裡只管樣式與顯示與否。
 ------------------------------------------------------------
 function T.ApplyPreviewIcon(cell, style, spell)
@@ -293,7 +315,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
     if cdText then
         local c = style.cooldownText or {}
         SetFont(cdText, c.size or 16, outline, ns.Media.ElementFont(c.font, font))
-        cdText:SetTextColor(Color(c.color))
+        cdText:SetTextColor(Color(cell.durColor or c.color))
         Anchor(cdText, cell, c.point or "CENTER", c.x, c.y)
         cdText:SetAlpha(((cell.onCD or cell.aura) and not spell.hideCooldownText) and 1 or 0)
     end

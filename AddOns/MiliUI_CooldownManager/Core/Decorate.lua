@@ -6,6 +6,7 @@
 --   ns.Decorate.HookItem(item, rec)              Viewers 第一次看到 item 時叫（每框一次）
 --   ns.Decorate.HoverEnter(rec) / HoverLeave(rec) 可點擊群組的鈕轉來的 hover（提示照 overlay 的設定）
 --   ns.Decorate.ApplyItemAlpha(item, rec, barAlpha) 暴雪 item 的 alpha 唯一出口（條的淡出 × 冷卻狀態，見下面那一節）
+--   ns.Decorate.DurationColorOf(override, barOn, barColor) 增益持續時間那一段的倒數顏色（純函式，見下面那一節）
 --
 -- 規則
 --   * **只寫有變的**：每個 item 存一個簽章字串（rec.decorated），條設定＋逐法術覆寫＋
@@ -123,6 +124,10 @@ end
 
 local function SpellStyle(barKey, id)
     local SS = ns.SpellSetting
+    -- 三態要分得出「跟隨」：只讀覆寫本身（SpellSetting 沒覆寫時會回條的顏色）。
+    -- ⚠ 不能寫成 `ns.SpellOverride and ns.SpellOverride(…) or nil`：覆寫是 false 時會變成 nil
+    local durationColor
+    if ns.SpellOverride then durationColor = ns.SpellOverride(id, "durationColor") end
     return {
         borderColor      = SS(barKey, id, "borderColor"),
         desaturate       = SS(barKey, id, "desaturate"),
@@ -131,7 +136,40 @@ local function SpellStyle(barKey, id)
         cdState          = SS(barKey, id, "cdState"),
         cdStateAlpha     = SS(barKey, id, "cdStateAlpha"),
         customIcon       = D.IconOverrideOf(id),
+        durationColor    = durationColor,
     }
+end
+D.SpellStyle = SpellStyle                                           -- 測試用
+
+------------------------------------------------------------
+-- 增益持續時間的倒數換色
+--
+-- 核心／輔助的技能用掉之後，暴雪的格子先倒**增益的持續時間**、增益掉了才改倒冷卻
+-- （CooldownViewerCooldownItemMixin:RefreshSpellCooldownInfo：先 cooldownFrame:SetUseAuraDisplayTime(旗標)
+-- 再 CooldownFrame_Set）。旗標是暴雪 Lua 裡的字面布林（CacheCooldownValues 那幾支寫的），
+-- 我們在 SetUseAuraDisplayTime 的後掛勾裡記進 rec.auraTime（讀不到／秘密值 ＝ false），
+-- SetCooldown 的後掛勾（暴雪緊接著就叫）與重新裝飾時照它換倒數數字的顏色（ns.Text.ApplyPhaseColor）。
+-- 只做暴雪核心／輔助的 item（含被搬進自訂群組的）：增益兩條整條都是增益時間、自訂法術沒有增益階段。
+-- 低秒變色（formatter 裡的 |c 色碼）兩段都照舊生效、壓過這個顏色。
+--
+--   override  逐法術覆寫：nil 跟隨條、false 這一招不換色、色表 這一招用這個色（條層關著也換）
+--   barOn     條層 cooldownText.colorDuration
+--   barColor  條層 cooldownText.durationColor
+-- 回傳色表（{ r, g, b, a }，設定本身的參照）或 nil（不換色）
+------------------------------------------------------------
+function D.DurationColorOf(override, barOn, barColor)
+    if override == false then return nil end
+    if type(override) == "table" then return override end
+    if barOn and type(barColor) == "table" then return barColor end
+    return nil
+end
+
+-- 倒數數字兩段的顏色（陣列 { r, g, b, a }）：cooldownText ＝ 條層解好的那張、override ＝ 逐法術覆寫（三態）
+-- 回傳 cdColor（冷卻那一段＝倒數原色）, durColor（增益那一段；nil ＝ 這格不換色）
+function D.PhaseColors(cooldownText, override)
+    local ct = type(cooldownText) == "table" and cooldownText or {}
+    local dc = D.DurationColorOf(override, ct.colorDuration, ct.durationColor)
+    return { C4(ct.color, 1, 1, 1, 1) }, dc and { C4(dc, 1, 1, 1, 1) } or nil
 end
 
 ------------------------------------------------------------
@@ -349,6 +387,16 @@ end
 ------------------------------------------------------------
 local desatGuard = false
 
+-- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色在 SetCooldown 後掛勾做
+local function OnSetUseAuraDisplayTime(cd, flag)
+    if ns.released then return end
+    local item = cooldownOwner[cd]
+    local rec = item and ns.Viewers.frames[item]
+    if not rec then return end
+    rec.auraTime = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色）
+end
+D.OnSetUseAuraDisplayTime = OnSetUseAuraDisplayTime              -- 測試用
+
 local function OnSetCooldown(cd, start, duration, modRate)
     if ns.released then return end                  -- 已還給暴雪（Bars.ReleaseAll）
     local item = cooldownOwner[cd]
@@ -360,6 +408,8 @@ local function OnSetCooldown(cd, start, duration, modRate)
     local st = rec.style
     if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
+    -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的）
+    if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor then ns.Text.ApplyPhaseColor(item, rec) end
     D.ApplyGCDAlpha(item, rec)
     -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
     if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
@@ -803,6 +853,15 @@ function D.HookItem(item, rec)
         cooldownOwner[cd] = item
         hooksecurefunc(cd, "SetCooldown", ns.Guard(OnSetCooldown))
         if cd.Clear then hooksecurefunc(cd, "Clear", ns.Guard(OnClearCooldown)) end
+        if cd.SetUseAuraDisplayTime then
+            hooksecurefunc(cd, "SetUseAuraDisplayTime", ns.Guard(OnSetUseAuraDisplayTime))
+            -- 掛上的當下可能正在增益那一段（/reload 時增益還在）：先問一次 C 端 getter（只讀、pcall），
+            -- 不然要等暴雪下一次刷新才知道
+            if cd.GetUseAuraDisplayTime then
+                local ok, v = pcall(cd.GetUseAuraDisplayTime, cd)
+                rec.auraTime = ok and Plain(v) == true or false
+            end
+        end
     end
     -- 無損刷新（ShowPandemicStateFrame／Hide…）的後掛勾在 Glow
     if not rec.custom and ns.Glow and ns.Glow.HookItem then ns.Glow.HookItem(item, rec) end
@@ -902,6 +961,7 @@ local function Signature(style, id, spell, w, h)
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
         .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha)
         .. "|" .. tostring(spell.customIcon)
+        .. "|" .. CSig(spell.durationColor)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -1030,6 +1090,10 @@ function D.Apply(item, rec, barKey, w, h)
         cdState    = (not isBar and not ns.Viewers.AURA_KIND[rec.barKey]) and StateMode(spell.cdState) or nil,
         cdAlpha    = ClampAlpha(spell.cdStateAlpha, 0.4),
     }
+    -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
+    if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
+        rec.style.cdColor, rec.style.durColor = D.PhaseColors(style.cooldownText, spell.durationColor)
+    end
     if not rec.custom then itemOf[rec] = item end
 
     local ov = EnsureOverlay(item, rec, isBar)
@@ -1117,7 +1181,7 @@ function D.Apply(item, rec, barKey, w, h)
             icon:SetDesaturated(false)
             desatGuard = false
         end
-        ns.Text.ApplyIcon(item, style, spell)
+        ns.Text.ApplyIcon(item, style, spell, rec)
     end
 
     -- 自訂圖示（暴雪 item；自訂框在 Custom.Update 自己設）
@@ -1155,6 +1219,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
     local mode = (not isBar and not cell.aura) and StateMode(spell.cdState) or nil
     cell.stateAlpha = D.PreviewStateAlpha(mode, spell.cdStateAlpha, cell.onCD)
     local sig = Signature(style, id, spell, w, h) .. "|" .. tostring(cell.onCD) .. tostring(cell.aura)
+        .. tostring(cell.auraPhase)
     if cell.decorated == sig then return end
 
     local ov = cell.overlay
@@ -1211,6 +1276,10 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             cd:SetSwipeColor(C4(style.swipeColor, 0, 0, 0, 0.8))
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
         end
+        -- 增益持續時間那一段：Preview 標了 cell.auraPhase 的假冷卻格照設定換色（逐法術覆寫也照套）
+        local ct = style.cooldownText or {}
+        cell.durColor = (cell.auraPhase and not cell.aura)
+            and D.DurationColorOf(spell.durationColor, ct.colorDuration, ct.durationColor) or nil
         ns.Text.ApplyPreviewIcon(cell, style, spell)
     end
     cell.decorated = sig

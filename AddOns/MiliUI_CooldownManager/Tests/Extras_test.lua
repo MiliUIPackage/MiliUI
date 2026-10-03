@@ -12,6 +12,9 @@
 --      OnUpdate 只在看得到時掛、保護框不動
 --   4. 語音播報：要念的字（SpeakText）、Speak 的參數／總開關／節流、WantsReady／出現消失批次會念、覆寫分組
 --   5. 長條火花：預設值、進條層簽章；新欄位的預設值（舊存檔沒有＝行為不變）
+--   6. 增益持續時間的倒數換色：三態 × 條層開關（DurationColorOf）、兩段顏色（PhaseColors）、預設值與
+--      覆寫登記、SpellOverride 分得出跟隨、簽章、SetUseAuraDisplayTime 後掛勾（明文／秘密／掛上時先問 getter）
+--      ＋ SetCooldown 後掛勾換色
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -644,6 +647,162 @@ do
     local b = D.Resolve("buffbars", true).sig
     check("火花進條層簽章", a ~= b)
     p.bars.buffbars.bar.spark = false
+end
+
+------------------------------------------------------------
+-- 6. 增益持續時間的倒數換色
+------------------------------------------------------------
+do
+    local YELLOW = { r = 1, g = 0.85, b = 0.1, a = 1 }
+    local MINE = { r = 0.2, g = 0.4, b = 1, a = 1 }
+    -- 三態 × 條層開關
+    eq("跟隨＋條開 ⇒ 條的顏色", D.DurationColorOf(nil, true, YELLOW), YELLOW)
+    eq("跟隨＋條關 ⇒ 不換色", D.DurationColorOf(nil, false, YELLOW), nil)
+    eq("不換色＋條開 ⇒ 不換色", D.DurationColorOf(false, true, YELLOW), nil)
+    eq("不換色＋條關 ⇒ 不換色", D.DurationColorOf(false, false, YELLOW), nil)
+    eq("自訂＋條開 ⇒ 自訂色", D.DurationColorOf(MINE, true, YELLOW), MINE)
+    eq("自訂＋條關 ⇒ 照樣自訂色（覆寫就是覆寫）", D.DurationColorOf(MINE, false, YELLOW), MINE)
+    eq("條開但沒有顏色 ⇒ 不換色", D.DurationColorOf(nil, true, nil), nil)
+    eq("壞值當跟隨", D.DurationColorOf(true, true, YELLOW), YELLOW)
+
+    -- 預設值與覆寫登記
+    local ct = p.theme.cooldownText
+    eq("主題預設開", ct.colorDuration, true)
+    near("主題預設黃 r", ct.durationColor.r, 1); near("g", ct.durationColor.g, 0.85); near("b", ct.durationColor.b, 0.1)
+    eq("條讀得到（繼承主題）", ns.Setting("essential", "cooldownText.colorDuration"), true)
+    eq("SPELL_FALLBACK durationColor", DB.SPELL_FALLBACK.durationColor, "cooldownText.durationColor")
+    eq("覆寫分組：文字節", DB.OVERRIDE_GROUP.durationColor, "text")
+
+    -- SpellOverride 分得出跟隨；SpellSetting 沒覆寫時回條的顏色
+    eq("沒覆寫 ⇒ nil", ns.SpellOverride(11, "durationColor"), nil)
+    eq("SpellSetting 沒覆寫回條的顏色", ns.SpellSetting("essential", 11, "durationColor"), ct.durationColor)
+    eq("SpellStyle 跟隨 ⇒ nil", D.SpellStyle("essential", 11).durationColor, nil)
+    DB.SetOverride(11, "durationColor", false)
+    eq("覆寫成不換色", ns.SpellOverride(11, "durationColor"), false)
+    eq("SpellStyle 保留 false（不被 or 吃掉）", D.SpellStyle("essential", 11).durationColor, false)
+    eq("SpellSetting 照樣回 false", ns.SpellSetting("essential", 11, "durationColor"), false)
+    DB.SetOverride(11, "durationColor", MINE)
+    eq("覆寫成色表", ns.SpellOverride(11, "durationColor"), MINE)
+    DB.SetOverride(11, "durationColor", nil)
+    eq("清掉回到跟隨", ns.SpellOverride(11, "durationColor"), nil)
+
+    -- 兩段顏色（Decorate.Apply 寫進 rec.style 的那兩張）
+    local cdc, durc = D.PhaseColors({ color = { r = 1, g = 1, b = 1 }, colorDuration = true, durationColor = YELLOW }, nil)
+    near("冷卻段＝倒數原色", cdc[1], 1); near("a 補 1", cdc[4], 1)
+    near("增益段＝黃 g", durc and durc[2], 0.85)
+    cdc, durc = D.PhaseColors({ colorDuration = false, durationColor = YELLOW }, nil)
+    eq("條關 ⇒ 增益段 nil", durc, nil)
+    near("沒有原色 ⇒ 白", cdc[1], 1)
+    cdc, durc = D.PhaseColors({ colorDuration = false, durationColor = YELLOW }, MINE)
+    near("條關＋自訂 ⇒ 自訂色 b", durc and durc[3], 1)
+    cdc, durc = D.PhaseColors({ colorDuration = true, durationColor = YELLOW }, false)
+    eq("條開＋不換色 ⇒ nil", durc, nil)
+    cdc, durc = D.PhaseColors(nil, nil)
+    eq("沒有 cooldownText 不炸、不換色", durc, nil)
+
+    -- 覆寫進簽章
+    local st = D.Resolve("essential", true)
+    local base = { borderColor = nil, durationColor = nil }
+    local a = D.Signature(st, 11, base, 30, 30)
+    local b = D.Signature(st, 11, { durationColor = false }, 30, 30)
+    local c = D.Signature(st, 11, { durationColor = MINE }, 30, 30)
+    check("不換色進簽章", a ~= b)
+    check("自訂色進簽章", a ~= c and b ~= c)
+    -- 條層開關進條層簽章
+    local s1 = D.Resolve("essential", true).sig
+    ct.colorDuration = false
+    local s2 = D.Resolve("essential", true).sig
+    ct.colorDuration = true
+    check("條層開關進簽章", s1 ~= s2)
+
+    -- 掛勾：SetUseAuraDisplayTime 只記旗標，SetCooldown 換色
+    Load("Core/Text.lua")
+    local fs = { colors = {} }
+    function fs:SetTextColor(r, g, b, a2) self.colors[#self.colors + 1] = { r, g, b, a2 } end
+    local getterFlag = true
+    local cd = {
+        SetCooldown = function() end, Clear = function() end,
+        SetUseAuraDisplayTime = function() end,
+        GetUseAuraDisplayTime = function() return getterFlag end,
+        GetCountdownFontString = function() return fs end,
+    }
+    local item = { Cooldown = cd }
+    local rec = { barKey = "essential", cooldownID = 11 }
+    ns.Viewers.frames[item] = rec
+    local h0 = #hooks
+    D.HookItem(item, rec)
+    local onFlag, onSet
+    for i = h0 + 1, #hooks do
+        if hooks[i].t == cd and hooks[i].name == "SetUseAuraDisplayTime" then onFlag = hooks[i].fn end
+        if hooks[i].t == cd and hooks[i].name == "SetCooldown" then onSet = hooks[i].fn end
+    end
+    check("掛了 SetUseAuraDisplayTime", onFlag ~= nil)
+    eq("掛上時先問 getter（增益還在）", rec.auraTime, true)
+    rec.style = { cdColor = { 1, 1, 1, 1 }, durColor = { 1, 0.85, 0.1, 1 } }
+    onSet(cd, 1, 2, 1)
+    local last2 = fs.colors[#fs.colors]
+    near("增益那一段 ⇒ 黃", last2 and last2[2], 0.85)
+    onFlag(cd, false)
+    eq("旗標 false", rec.auraTime, false)
+    onSet(cd, 1, 2, 1)
+    last2 = fs.colors[#fs.colors]
+    near("冷卻那一段 ⇒ 原色", last2 and last2[2], 1)
+    onFlag(cd, true)
+    eq("旗標 true", rec.auraTime, true)
+    local ok = pcall(onFlag, cd, Secret())
+    check("秘密旗標不報錯", ok)
+    eq("秘密旗標當 false", rec.auraTime, false)
+    onFlag(cd, true)
+    rec.style.durColor = nil
+    onSet(cd, 1, 2, 1)
+    last2 = fs.colors[#fs.colors]
+    near("這格不換色（durColor nil）⇒ 原色", last2 and last2[2], 1)
+    rec.style.cdColor = nil
+    local n0 = #fs.colors
+    onSet(cd, 1, 2, 1)
+    eq("沒有 cdColor（自訂框／增益類）⇒ 不動", #fs.colors, n0)
+    -- 不是我們的 item 不理
+    local stranger = { SetCooldown = function() end }
+    check("陌生的 Cooldown 不報錯", pcall(onFlag, stranger, true))
+    -- getter 回秘密值：掛上時當 false
+    getterFlag = Secret()
+    local cd2 = {
+        SetCooldown = function() end, SetUseAuraDisplayTime = function() end,
+        GetUseAuraDisplayTime = function() return getterFlag end,
+    }
+    local rec2 = { barKey = "utility", cooldownID = 21 }
+    local item2 = { Cooldown = cd2 }
+    ns.Viewers.frames[item2] = rec2
+    D.HookItem(item2, rec2)
+    eq("getter 秘密 ⇒ false", rec2.auraTime, false)
+    -- 自訂框不掛
+    local cd3 = { SetCooldown = function() end, SetUseAuraDisplayTime = function() end }
+    local rec3 = { custom = true }
+    local h1 = #hooks
+    D.HookItem({ Cooldown = cd3 }, rec3)
+    local hooked3 = false
+    for i = h1 + 1, #hooks do if hooks[i].t == cd3 then hooked3 = true end end
+    check("自訂框不掛 Cooldown 的後掛勾", not hooked3)
+    ns.Viewers.frames[item], ns.Viewers.frames[item2] = nil, nil
+
+    -- 預覽格：ApplyPreviewIcon 用 cell.durColor
+    ns.Media = ns.Media or {}
+    ns.Media.SetPixelFont = ns.Media.SetPixelFont or function() end
+    ns.Media.ElementFont = ns.Media.ElementFont or function() return nil end
+    local function FS()
+        local f = { colors = {} }
+        function f:SetTextColor(r, g, b, a2) self.colors[#self.colors + 1] = { r, g, b, a2 } end
+        function f:ClearAllPoints() end
+        function f:SetPoint() end
+        function f:SetAlpha(v) self.alpha = v end
+        return f
+    end
+    local cell = { cdText = FS(), onCD = true, durColor = YELLOW }
+    ns.Text.ApplyPreviewIcon(cell, { cooldownText = { color = { r = 1, g = 1, b = 1 } } }, {})
+    near("預覽增益段 ⇒ 黃", cell.cdText.colors[1][2], 0.85)
+    cell.durColor = nil
+    ns.Text.ApplyPreviewIcon(cell, { cooldownText = { color = { r = 1, g = 1, b = 1 } } }, {})
+    near("預覽其他格 ⇒ 原色", cell.cdText.colors[2][2], 1)
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))

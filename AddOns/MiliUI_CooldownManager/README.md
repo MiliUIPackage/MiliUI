@@ -51,7 +51,7 @@
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序與固定前綴）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -368,6 +368,35 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   - 秘密值下判不出來的類別項目（藥水那種，暴雪的欄位讀不到時）維持顯示。
   - 隱藏的格上面的發光（觸發／就緒）、按鍵文字跟著看不到（都是 item 的子框）；「轉好時看不到」配就緒發光沒有意義。
   - 精準重算的條件很保守：施放技能那一下的事件幾乎都帶 GCD 類別 ⇒ 全掃；精準的多半是冷卻結束／重置那種只帶 spellID 的事件。
+
+### 增益持續時間的倒數換色（`Core/Decorate.lua`、`Core/Text.lua`、`Options/SpellPopover.lua`）
+
+核心／輔助技能用掉之後，暴雪的格子**先倒增益的持續時間、增益掉了才改倒冷卻**（例：20 秒增益、2 分鐘冷卻的招，前 20 秒倒的是增益）。
+兩段的數字原本一模一樣；現在前半段換一個顏色，主題預設黃色，逐法術可以改色或關掉。
+
+- **訊號**：暴雪 `RefreshSpellCooldownInfo` 每次刷新都是先 `cooldownFrame:SetUseAuraDisplayTime(item.cooldownUseAuraDisplayTime)`
+  再 `CooldownFrame_Set`（→ `SetCooldown`）。旗標是暴雪 Lua 的字面布林（`CacheCooldownValues` 那幾支寫：圖騰或自身增益還在 ＝ true，
+  充能／法術冷卻／裝備欄／編輯模式／沒有來源 ＝ false）。我們在 Cooldown 的 `SetUseAuraDisplayTime` 後掛勾裡**只記** `rec.auraTime`
+  （`Plain` 讀不到／秘密值 ＝ false ＝ 不換色），換色交給緊接著的 `SetCooldown` 後掛勾（`ns.Text.ApplyPhaseColor`）與重新裝飾
+  （`Text.ApplyIcon` 末尾）。掛上的當下先問一次 C 端 getter `GetUseAuraDisplayTime()`（pcall、過 `Plain`），`/reload` 時增益還在也不用等下一次刷新。
+  `CooldownFrame_Clear` 不會再設旗標，但 Clear 之後數字本來就不顯示，下一次 `SetCooldown` 之前一定會再設一次。
+- **換色**：倒數數字是暴雪 Cooldown 內建的那顆（`GetCountdownFontString()`），本來就只改它的樣式；換色＝多叫一次 `SetTextColor`，零讀取。
+  兩個顏色由 `Decorate.Apply` 算好放在 `rec.style.cdColor`（倒數原色）／`rec.style.durColor`（nil ＝ 這格不換色），純函式
+  `Decorate.PhaseColors`／`Decorate.DurationColorOf`。
+- **設定**：主題 → 條的 `cooldownText.colorDuration`（預設開）＋ `cooldownText.durationColor`（預設黃 1, 0.85, 0.1）。
+  **舊存檔沒有這兩欄 ＝ 合併預設值補成開**（使用者拍板：要的就是主題黃色，不套「舊存檔行為不變」）。
+  逐法術 `overrides[id].durationColor` 三態：nil 跟隨條（條開才換）／`false` 這一招不換色／色表 這一招用這個色（**條層關著也換**）。
+  `SPELL_FALLBACK` 指到條的顏色、`OVERRIDE_GROUP` 歸 `"text"`（條頁文字節的「清除覆寫」會清掉它）。因為 `SpellSetting` 沒覆寫時回的是條的顏色、
+  分不出「跟隨」，引擎讀三態走新的 `ns.SpellOverride(id, key)`（只讀覆寫本身，`SpellSetting` 也改成先問它）。
+- **設定頁**：「文字 › 倒數」在低秒變色那三列之前：勾選框「增益持續中換色」＋色票「持續時間顏色」（勾選框關著時停用）＋一列灰字。
+  增益兩條（內建）與長條類的條不顯示這三列（沒有那一段）。**逐法術面板**（暴雪的冷卻類才有；自訂項目與增益類沒有）一列「持續時間顏色」：
+  下拉「跟隨這一條／不換色／自訂顏色」＋色票（只在自訂顏色時能動；初值＝目前生效的顏色），右鍵整列清掉。
+- **預覽**：假冷卻的格每隔一格（`i % 4 == 1`，自訂項目除外）標 `cell.auraPhase`，倒數用生效的持續時間顏色（條層開關＋逐法術覆寫都照套）。
+- **範圍**：暴雪核心／輔助兩條的 item（含被搬進自訂圖示群組的）。增益圖示整條都是增益時間（暴雪只在 OnLoad 設一次 true）、
+  自訂法術（`Modules/Custom.lua`）只餵 `GetSpellCooldownDuration` 沒有增益階段、長條只收增益長條 ⇒ 都不適用（`rec.style.cdColor` 是 nil，換色那支直接走）。
+  Masque 模式不影響（文字一直是我們管）。編輯模式暴雪寫 false ⇒ 原色。
+- **低秒變色優先**：formatter 裡的 `|cff…|r` 色碼在字串層級，兩段都照舊生效、壓過這個顏色——增益快掉也是「快到期」，警示留著。
+  這是決定，不另做兩套 formatter。
 
 ### 戰鬥輔助：下一招醒目標示＋下一招圖示（`Core/Assist.lua`、`Modules/AssistIcon.lua`、`Options/Tab_Assist.lua`）
 
@@ -1166,6 +1195,14 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     「沒生效 ⇒ 0」改由另一支 `OnActiveStateChanged` 後掛勾與放格時判斷。
 92. **層數發光的預覽沿用 `Glow.PreviewActive`**（多看一個欄位），換色不做預覽。
 
+**增益持續時間的倒數換色（2026-10-03）**
+
+93. **多一支 `ns.SpellOverride(id, key)`**（`Core/DB.lua`，`SpellSetting` 改成先問它）：計畫要 `durationColor` 登記 `SPELL_FALLBACK`，
+    但那樣 `SpellSetting` 沒覆寫時回的是條的顏色、分不出「跟隨」與「自訂」，三態讀不到。登記照做（條頁清覆寫、面板初值用得到），引擎改讀覆寫本身。
+94. **掛上 `SetUseAuraDisplayTime` 時先問一次 `GetUseAuraDisplayTime()`**（計畫只記後掛勾）：`/reload` 時增益還在的那一格不用等暴雪下一次刷新才變黃。
+95. **預覽照套逐法術覆寫**（計畫寫預覽不管）：預覽本來就照套逐法術的去飽和、隱藏倒數、冷卻狀態，持續時間顏色跟著一致，面板改了當場看得到。
+96. **設定頁那三列在增益兩條（內建）與長條類的條不顯示**（計畫沒寫）、色票在勾選框關著時停用；兩個顏色抽成純函式 `Decorate.PhaseColors` 方便離線測。
+
 ## 待實機驗證
 
 依區塊排，編號連續。打一場記得開 `/console taintLog 2`，看完別 /reload（會清掉 taint.log）。
@@ -1552,3 +1589,11 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      取消勾選消失；預覽的假條跟著畫一條白線。
 190. 自訂格子每一列自己的數字：充能列關掉「顯示數字」秒數消失、層數列開了之後引擎印層數（副本戰鬥中也印）；大小 0 照列高、改字型／描邊層數列脫戰才換（容器簽章）；舊存檔的充能列照 `showTime` 顯示、層數列沒有數字。
 
+**增益持續時間的倒數換色（2026-10-03）**
+
+191. `SetUseAuraDisplayTime` 後掛勾收到的是明文布林（戰鬥中也是）；收到秘密值時不報錯、只是不換色。
+192. 用掉一記有自身增益的招：增益期間數字黃、增益結束改倒冷卻當場變回倒數顏色；充能法術（增益期間暴雪保留充能數字）同樣。
+193. 圖騰類（暴雪走 totemData 那條）也黃。
+194. 逐法術「不換色」「自訂顏色」各一招驗；右鍵清掉回到跟隨。
+195. 低秒變色在增益最後幾秒照樣壓過黃色。
+196. 預覽格每隔一個冷卻中的格顯示黃字；關掉「增益持續中換色」預覽與實際都回白。
