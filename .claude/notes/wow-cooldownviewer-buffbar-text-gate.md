@@ -1,6 +1,6 @@
 ---
 name: wow-cooldownviewer-buffbar-text-gate
-description: 暴雪增益長條只在文字框「正在顯示」的那一刻寫字——名字一律保持顯示讓暴雪寫、插件只管樣式與位置；絕不從污染路徑叫 RefreshName（召喚物的 totemData 是秘密表），nil 那一秒用法術名字頂
+description: 暴雪增益長條只在文字框「正在顯示」的那一刻寫字——名字一律保持顯示讓暴雪寫、插件只管樣式與位置；絕不從污染路徑叫 RefreshName（召喚物的 totemData 是秘密表）；**召喚物第一拍名字是 nil 而且暴雪不會再補寫 ⇒ SetText 後掛勾用法術名字頂是必要的不是好看**
 metadata: 
   node_type: memory
   type: reference
@@ -59,3 +59,14 @@ end
 套組裡的實作在 `Ayije_CDM/Core/Style.lua`（就地改，見 [[project-local-addon-forks]]）：
 名字 alpha-only、可見度掛勾只留給倒數與層數、`SetBarContent` 後掛勾 `Show()`、`InstallBarNameTextHook`
 處理自訂名字與 nil 退路、`ApplyCustomBarName` 處理自訂名字切換。沒有任何地方呼叫暴雪的 `RefreshName`。
+
+**修正（2026-10-03，MiliUI_CooldownManager 惡魔暴君整條沒名字）**：上面「頂一秒、之後秘密字串自然換掉」的觀察
+是在 Ayije 底下看到的——那第二次寫字八成是 Ayije 自己的延後重套觸發的 RefreshData，**不是暴雪**。暴雪的路徑只有
+`PLAYER_TOTEM_UPDATE → OnPlayerTotemUpdateEvent → RefreshData → RefreshName` 這一次，而 `GetTotemInfo` 在那一拍對
+召喚惡魔（265187 惡魔暴君）回的 name 是 nil（單位名字還沒從伺服器來）；之後沒有事件會再叫 RefreshName
+（UNIT_AURA 的局部更新只刷有 auraInstanceID 對應的 item），所以**整條空到消失**，暴雪原版也一樣。
+指紋：條、底色、秒數都對、沒 Lua 錯誤、`/mcdm debug` 的 diag 沒東西。
+正解＝`Bar.Name` 的 `SetText` 後掛勾（`Core/Decorate.lua` `OnBarNameSetText`）：**先 `ns.IsSecret(text)` 擋掉再比 nil／""**
+（秘密值連跟 nil 比都會拋錯），空的就用 `Catalog.Info(rec.cooldownID)` 的明文 `overrideSpellID or spellID` 問
+`C_Spell.GetSpellName` 頂上去（寫的是法術名「召喚惡魔暴君」不是單位名），有重入閘、自訂框不掛、不碰 totemData。
+離線測試在 `Tests/Extras_test.lua` 第 2 節尾。
