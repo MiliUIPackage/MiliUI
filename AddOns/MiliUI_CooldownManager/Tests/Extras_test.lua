@@ -432,6 +432,14 @@ do
     eq("空字串 ⇒ 用法術名字頂", fs.text, "法術1200")
     fs:SetText("真名"); nameHook(fs, "真名")
     eq("真名不碰", fs.text, "真名")
+    -- item 自己的 GetSpellID 優先（暴雪寫名字用的就是它），讀不到明文才退 Catalog
+    bi.GetSpellID = function() return 4321 end
+    fs:SetText(nil); nameHook(fs, nil)
+    eq("item:GetSpellID 優先", fs.text, "法術4321")
+    bi.GetSpellID = function() return Secret() end
+    fs:SetText(nil); nameHook(fs, nil)
+    eq("GetSpellID 是秘密值 ⇒ 退 Catalog", fs.text, "法術1200")
+    bi.GetSpellID = nil
     local s2 = Secret()
     fs:SetText(s2)
     local ok2, err2 = pcall(nameHook, fs, s2)
