@@ -385,7 +385,11 @@ function DB.BuildDefaults()
                           -- 冷卻狀態（核心／輔助、自訂法術／物品／飾品欄；增益類不適用）：
                           -- "none" 不變｜"dim" 冷卻中變暗（cdStateAlpha）｜"hideOnCD" 冷卻中看不到｜"hideReady" 轉好時看不到。
                           -- 舊存檔沒有這欄 ＝ "none"（合併預設值補上），行為不變、不遷移
-                          cdState = "none", cdStateAlpha = 0.4 },
+                          cdState = "none", cdStateAlpha = 0.4,
+                          -- 增益持續中顯示持續時間（核心／輔助）：技能用掉後暴雪先倒增益、增益掉了才倒冷卻。
+                          -- false ＝ 蓋掉增益那一段、直接倒技能真正的冷卻（Core/Decorate.lua）。
+                          -- 預設 true ＝ 暴雪原本的行為；舊存檔沒有這欄 ＝ 合併預設值補成 true，行為不變、不遷移
+                          showAuraTime = true },
                 -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
@@ -859,6 +863,9 @@ local SPELL_FALLBACK = {
     -- 色表 ＝ 這一招用這個顏色（條層關著也換）。⚠ SpellSetting 沒覆寫時回的是條的顏色、分不出「跟隨」，
     -- 引擎要三態走 ns.SpellOverride（Core/Decorate.lua 的 DurationColorOf）
     durationColor = "cooldownText.durationColor",
+    -- 增益持續中顯示持續時間：nil 跟隨條／true 顯示／false 不顯示（引擎讀 SpellSetting 的布林，
+    -- 設定頁要三態走 ns.SpellOverride）
+    showAuraTime  = "icon.showAuraTime",
 }
 -- 沒有條層對應的覆寫欄位 → 固定預設
 local SPELL_CONST = {
@@ -1144,6 +1151,7 @@ end
 -- 覆寫欄位 → 設定頁的哪一節（「本條 N 個法術有覆寫」「清除覆寫」用）
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
+    showAuraTime = "icon",
     procGlow = "glow", readyGlow = "glow",
     -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
     activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",

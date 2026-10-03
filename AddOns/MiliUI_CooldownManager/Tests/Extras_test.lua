@@ -15,6 +15,10 @@
 --   6. 增益持續時間的倒數換色：三態 × 條層開關（DurationColorOf）、兩段顏色（PhaseColors）、預設值與
 --      覆寫登記、SpellOverride 分得出跟隨、簽章、SetUseAuraDisplayTime 後掛勾（明文／秘密／掛上時先問 getter）
 --      ＋ SetCooldown 後掛勾換色
+--   7. 增益持續中不顯示持續時間：預設值與覆寫登記、SpellStyle 的三態 × 條層開關、簽章；後掛勾（旗標 true＋藏 ⇒
+--      餵 duration 物件、SetUseAuraDisplayTime(false) 不清掉記號、探針走 ArmProbe、倒數原色；不藏 ⇒ 不蓋；
+--      沒有物件 ⇒ Clear 且不當成轉好；充能三種狀態；裝備欄項目與秘密旗標不蓋；探針只在真的冷卻時武裝）、
+--      去飽和（曲線求值、暴雪寫 false 之後重算、設定關掉不動）、設定切換（SyncAuraHide）
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -803,6 +807,287 @@ do
     cell.durColor = nil
     ns.Text.ApplyPreviewIcon(cell, { cooldownText = { color = { r = 1, g = 1, b = 1 } } }, {})
     near("預覽其他格 ⇒ 原色", cell.cdText.colors[2][2], 1)
+end
+
+------------------------------------------------------------
+-- 7. 增益持續中不顯示持續時間
+------------------------------------------------------------
+do
+    -- 預設值與覆寫登記
+    eq("主題預設顯示", p.theme.icon.showAuraTime, true)
+    eq("條讀得到（繼承主題）", ns.Setting("essential", "icon.showAuraTime"), true)
+    eq("SPELL_FALLBACK showAuraTime", DB.SPELL_FALLBACK.showAuraTime, "icon.showAuraTime")
+    eq("覆寫分組：圖示節", DB.OVERRIDE_GROUP.showAuraTime, "icon")
+
+    -- 三態 × 條層開關（引擎讀 SpellSetting 的布林）
+    eq("跟隨＋條開 ⇒ 顯示", D.SpellStyle("essential", 11).showAuraTime, true)
+    p.theme.icon.showAuraTime = false
+    eq("跟隨＋條關 ⇒ 不顯示", D.SpellStyle("essential", 11).showAuraTime, false)
+    DB.SetOverride(11, "showAuraTime", true)
+    eq("覆寫顯示＋條關 ⇒ 顯示", D.SpellStyle("essential", 11).showAuraTime, true)
+    eq("三態：覆寫本身讀得到 true", ns.SpellOverride(11, "showAuraTime"), true)
+    p.theme.icon.showAuraTime = true
+    DB.SetOverride(11, "showAuraTime", false)
+    eq("覆寫不顯示＋條開 ⇒ 不顯示", D.SpellStyle("essential", 11).showAuraTime, false)
+    eq("三態：覆寫本身讀得到 false", ns.SpellOverride(11, "showAuraTime"), false)
+    DB.SetOverride(11, "showAuraTime", nil)
+    eq("清掉回到跟隨", ns.SpellOverride(11, "showAuraTime"), nil)
+
+    -- 簽章
+    local st0 = D.Resolve("essential", true)
+    local a = D.Signature(st0, 11, { showAuraTime = true }, 30, 30)
+    local b = D.Signature(st0, 11, { showAuraTime = false }, 30, 30)
+    check("顯示持續時間進簽章", a ~= b)
+
+    -- API 替身
+    local curDur = { EvaluateRemainingDuration = function() return 1 end }
+    local chargeDur = { EvaluateRemainingDuration = function() return 1 end, charge = true }
+    local cdInfo = { isActive = true, isOnGCD = false }
+    local chargeInfo = nil
+    local savedSpell = {}
+    for _, k in ipairs({ "GetSpellCooldownDuration", "GetSpellChargeDuration", "GetSpellCooldown", "GetSpellCharges" }) do
+        savedSpell[k] = env.C_Spell[k]
+    end
+    env.C_Spell.GetSpellCooldownDuration = function(id, ignoreGCD)
+        if ignoreGCD ~= true then error("要 ignoreGCD") end
+        return curDur
+    end
+    env.C_Spell.GetSpellChargeDuration = function() return chargeDur end
+    env.C_Spell.GetSpellCooldown = function() return cdInfo end
+    env.C_Spell.GetSpellCharges = function() return chargeInfo end
+    local curvePoints = 0
+    env.C_CurveUtil = { CreateCurve = function()
+        return { SetType = function() end, AddPoint = function() curvePoints = curvePoints + 1 end }
+    end }
+    env.Enum.LuaCurveType = { Step = 1 }
+
+    local glow = { armed = {}, setCD = 0, cleared = 0, started = 0 }
+    ns.Glow = {
+        ArmProbe = function(r, d) glow.armed[#glow.armed + 1] = d end,
+        OnItemSetCooldown = function() glow.setCD = glow.setCD + 1 end,
+        OnItemClear = function() glow.cleared = glow.cleared + 1 end,
+        CooldownStarted = function() glow.started = glow.started + 1 end,
+    }
+
+    -- 假的暴雪 item：Cooldown 記下每次呼叫；我們掛上的後掛勾由替身方法轉呼（模擬 hooksecurefunc）
+    local calls = {}
+    local function log(name, ...) calls[#calls + 1] = { name, ... } end
+    local function last(name)
+        for i = #calls, 1, -1 do if calls[i][1] == name then return calls[i] end end
+    end
+    local function count(name)
+        local n = 0
+        for _, c in ipairs(calls) do if c[1] == name then n = n + 1 end end
+        return n
+    end
+    local fs = { colors = {} }
+    function fs:SetTextColor(r, g, b2, a2) self.colors[#self.colors + 1] = { r, g, b2, a2 } end
+    local cd = {
+        SetCooldown = function() end,
+        Clear = function() log("Clear") end,
+        SetUseAuraDisplayTime = function(_, v) log("SetUseAuraDisplayTime", v) end,
+        GetUseAuraDisplayTime = function() return false end,
+        SetCooldownFromDurationObject = function(_, d, clearIfZero) log("FromDur", d, clearIfZero) end,
+        SetDrawSwipe = function(_, v) log("SetDrawSwipe", v) end,
+        SetDrawEdge = function(_, v) log("SetDrawEdge", v) end,
+        GetCountdownFontString = function() return fs end,
+    }
+    local icon = {
+        GetObjectType = function() return "Texture" end,
+        SetDesaturated = function(_, v) log("SetDesaturated", v) end,
+        SetDesaturation = function(_, v) log("SetDesaturation", v) end,
+    }
+    local item = { Cooldown = cd, Icon = icon }
+    local rec = { barKey = "essential", cooldownID = 11 }
+    ns.Viewers.frames[item] = rec
+    local h0 = #hooks
+    D.HookItem(item, rec)
+    local onFlag, onSet, onClear, onDesat
+    for i = h0 + 1, #hooks do
+        local hk = hooks[i]
+        if hk.t == cd and hk.name == "SetUseAuraDisplayTime" then onFlag = hk.fn end
+        if hk.t == cd and hk.name == "SetCooldown" then onSet = hk.fn end
+        if hk.t == cd and hk.name == "Clear" then onClear = hk.fn end
+        if hk.t == icon and hk.name == "SetDesaturated" then onDesat = hk.fn end
+    end
+    check("掛了四支後掛勾", onFlag and onSet and onClear and onDesat)
+    do
+        local raw1, raw2, raw3 = cd.SetUseAuraDisplayTime, cd.Clear, icon.SetDesaturated
+        cd.SetUseAuraDisplayTime = function(self, v) raw1(self, v); onFlag(self, v) end
+        cd.Clear = function(self) raw2(self); onClear(self) end
+        icon.SetDesaturated = function(self, v) raw3(self, v); onDesat(self, v) end
+    end
+    eq("掛上時 getter 說沒在增益 ⇒ 不藏", rec.auraHidden, false)
+
+    -- 旗標 true＋藏
+    rec.style = { cdColor = { 1, 1, 1, 1 }, durColor = { 1, 0.85, 0.1, 1 }, hideAuraTime = true }
+    onFlag(cd, true)
+    eq("旗標 true＋藏 ⇒ auraHidden", rec.auraHidden, true)
+    eq("換色當冷卻那段", rec.auraTime, false)
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    local u = last("SetUseAuraDisplayTime")
+    eq("自己關掉增益時間", u and u[2], false)
+    eq("自己叫的 SetUseAuraDisplayTime 不清掉記號", rec.auraHidden, true)
+    local fd = last("FromDur")
+    eq("餵技能冷卻的 duration 物件（原封轉交）", fd and fd[2], curDur)
+    eq("clearIfZero", fd and fd[3], true)
+    eq("非充能：畫轉圈", last("SetDrawSwipe") and last("SetDrawSwipe")[2], true)
+    eq("探針走 ArmProbe（同一個物件）", glow.armed[#glow.armed], curDur)
+    eq("不叫 OnItemSetCooldown", glow.setCD, 0)
+    eq("明文確認進了冷卻 ⇒ CooldownStarted", glow.started, 1)
+    near("倒數原色", fs.colors[#fs.colors][2], 1)
+    eq("冷卻中去飽和：曲線求值後 SetDesaturation", last("SetDesaturation") and last("SetDesaturation")[2], 1)
+    check("曲線建了", curvePoints == 3)
+
+    -- 暴雪接著寫 SetDesaturated(false)（增益期間）：照我們的冷卻重算
+    calls = {}
+    icon:SetDesaturated(false)
+    eq("暴雪寫 false 後重算去飽和", last("SetDesaturation") and last("SetDesaturation")[2], 1)
+    -- 秘密的求值結果原樣轉交
+    local sv = Secret()
+    curDur.EvaluateRemainingDuration = function() return sv end
+    calls = {}
+    check("秘密求值不報錯", pcall(icon.SetDesaturated, icon, Secret()))
+    check("秘密求值原樣交給 SetDesaturation", last("SetDesaturation") and last("SetDesaturation")[2] == sv)
+    curDur.EvaluateRemainingDuration = function() return 1 end
+    -- 設定關掉冷卻中去飽和 ⇒ 走原本那條（SetDesaturated(false)），不求值
+    rec.style.desaturate = false
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("關掉去飽和：蓋掉時不 SetDesaturation", count("SetDesaturation"), 0)
+    rec.style.desaturate = nil
+    -- 求值失敗 ⇒ 不動、不報錯
+    curDur.EvaluateRemainingDuration = function() error("boom") end
+    calls = {}
+    check("求值失敗不報錯", pcall(onSet, cd, 100, 20, 1))
+    eq("求值失敗不 SetDesaturation", count("SetDesaturation"), 0)
+    curDur.EvaluateRemainingDuration = function() return 1 end
+
+    -- 探針只在真的冷卻時武裝
+    local n = #glow.armed
+    cdInfo = { isActive = false, isOnGCD = false }
+    onSet(cd, 100, 20, 1)
+    eq("技能沒在冷卻 ⇒ 不武裝", #glow.armed, n)
+    cdInfo = { isActive = true, isOnGCD = true }
+    onSet(cd, 100, 20, 1)
+    eq("只是 GCD ⇒ 不武裝", #glow.armed, n)
+    cdInfo = { isActive = Secret(), isOnGCD = Secret() }
+    check("旗標秘密不報錯", pcall(onSet, cd, 100, 20, 1))
+    eq("旗標讀不到 ⇒ 武裝", #glow.armed, n + 1)
+    cdInfo = { isActive = true, isOnGCD = false }
+
+    -- 沒有 duration 物件 ⇒ Clear，且不當成轉好
+    curDur = nil
+    calls = {}
+    local cl0 = glow.cleared
+    onSet(cd, 100, 20, 1)
+    eq("拿不到物件 ⇒ Clear", count("Clear"), 1)
+    eq("自己 Clear 不進 Glow.OnItemClear", glow.cleared, cl0)
+    eq("沒有物件不武裝", #glow.armed, n + 1)
+    calls = {}
+    icon:SetDesaturated(false)
+    eq("沒有物件：暴雪的 false 不動", count("SetDesaturation"), 0)
+    curDur = { EvaluateRemainingDuration = function() return 1 end }
+    -- 暴雪自己的 Clear 照舊轉給 Glow
+    onClear(cd)
+    eq("暴雪的 Clear 照舊轉給 Glow", glow.cleared, cl0 + 1)
+
+    -- 充能
+    local realInfo = C.Info
+    C.Info = function(id) return { spellID = id * 100, charges = true } end
+    chargeInfo = { currentCharges = 1, maxCharges = 2 }
+    calls = {}
+    n = #glow.armed
+    onSet(cd, 100, 20, 1)
+    eq("充能：餵回充的物件", last("FromDur") and last("FromDur")[2], chargeDur)
+    eq("充能：不畫轉圈", last("SetDrawSwipe") and last("SetDrawSwipe")[2], false)
+    eq("充能：畫邊緣", last("SetDrawEdge") and last("SetDrawEdge")[2], true)
+    eq("充能回充中 ⇒ 武裝", glow.armed[#glow.armed], chargeDur)
+    eq("充能：有充能在回充時不去飽和", count("SetDesaturation"), 0)
+    chargeInfo = { currentCharges = 2, maxCharges = 2 }
+    n = #glow.armed
+    onSet(cd, 100, 20, 1)
+    eq("充能滿了 ⇒ 不武裝", #glow.armed, n)
+    chargeInfo = { currentCharges = 0, maxCharges = 2 }
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("0 充能 ⇒ 改餵技能冷卻", last("FromDur") and last("FromDur")[2], curDur)
+    eq("0 充能 ⇒ 畫轉圈", last("SetDrawSwipe") and last("SetDrawSwipe")[2], true)
+    chargeInfo = { currentCharges = Secret(), maxCharges = Secret() }
+    calls = {}
+    check("充能數秘密不報錯", pcall(onSet, cd, 100, 20, 1))
+    eq("充能數讀不到 ⇒ 走回充那條", last("FromDur") and last("FromDur")[2], chargeDur)
+
+    -- 裝備欄項目不蓋
+    C.Info = function(id) return { spellID = id * 100, equipSlot = 13 } end
+    onFlag(cd, true)
+    eq("裝備欄項目 ⇒ 不藏", rec.auraHidden, false)
+    eq("裝備欄項目照常換色", rec.auraTime, true)
+    calls = {}
+    local sc0 = glow.setCD
+    onSet(cd, 100, 20, 1)
+    eq("裝備欄項目不餵物件", count("FromDur"), 0)
+    eq("裝備欄項目走正常探針", glow.setCD, sc0 + 1)
+    C.Info = realInfo
+
+    -- 不藏 ⇒ 什麼都不蓋
+    rec.style.hideAuraTime = false
+    onFlag(cd, true)
+    eq("不藏 ⇒ auraHidden false", rec.auraHidden, false)
+    eq("不藏 ⇒ 增益那段換色", rec.auraTime, true)
+    calls = {}
+    sc0 = glow.setCD
+    onSet(cd, 100, 20, 1)
+    eq("不藏：不餵物件", count("FromDur"), 0)
+    eq("不藏：不關增益時間", count("SetUseAuraDisplayTime"), 0)
+    eq("不藏：走正常探針", glow.setCD, sc0 + 1)
+    near("不藏：增益那段黃", fs.colors[#fs.colors][2], 0.85)
+
+    -- 秘密旗標 ⇒ 不藏
+    rec.style.hideAuraTime = true
+    check("秘密旗標不報錯", pcall(onFlag, cd, Secret()))
+    eq("秘密旗標 ⇒ 不藏", rec.auraHidden, false)
+    -- 增益結束（暴雪寫 false）⇒ 正常路徑
+    onFlag(cd, true)
+    eq("又進增益 ⇒ 藏", rec.auraHidden, true)
+    onFlag(cd, false)
+    eq("增益結束 ⇒ 不藏", rec.auraHidden, false)
+    eq("增益結束清掉物件", rec.auraDur, nil)
+
+    -- 設定切換（Apply 末尾 SyncAuraHide）：增益中改成不顯示 ⇒ 當場蓋
+    rec.style.hideAuraTime = false
+    onFlag(cd, true)
+    rec.style.hideAuraTime = true
+    calls = {}
+    D.SyncAuraHide(item, rec)
+    eq("切成不顯示 ⇒ 當場蓋", last("FromDur") and last("FromDur")[2], curDur)
+    eq("切成不顯示 ⇒ 換色當冷卻", rec.auraTime, false)
+    -- 改回顯示：不做事，等暴雪下一次刷新；這之前照原色
+    rec.style.hideAuraTime = false
+    calls = {}
+    D.SyncAuraHide(item, rec)
+    eq("切回顯示 ⇒ 不藏", rec.auraHidden, false)
+    eq("切回顯示 ⇒ 不碰 Cooldown", #calls, 0)
+    eq("切回顯示 ⇒ 暴雪刷新前照原色", rec.auraTime, false)
+    onFlag(cd, true)
+    eq("暴雪刷新後 ⇒ 增益那段換色", rec.auraTime, true)
+    -- 沒在增益：同步什麼都不做
+    onFlag(cd, false)
+    rec.style.hideAuraTime = true
+    calls = {}
+    D.SyncAuraHide(item, rec)
+    eq("沒在增益 ⇒ 同步不蓋", #calls, 0)
+
+    -- 自訂框不同步
+    local crec = { custom = true, style = { hideAuraTime = true }, auraFlag = true }
+    calls = {}
+    D.SyncAuraHide({ Cooldown = cd }, crec)
+    eq("自訂框不同步", #calls, 0)
+
+    ns.Viewers.frames[item] = nil
+    ns.Glow = nil
+    for k, v in pairs(savedSpell) do env.C_Spell[k] = v end
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))

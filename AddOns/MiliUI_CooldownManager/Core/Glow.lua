@@ -36,6 +36,8 @@
 --     再 CooldownFrame_Set ⇒ 我們的 SetCooldown 後掛勾跑到時，**Cooldown 框自己的 C 端 getter**
 --     `GetUseAuraDisplayTime()` 就是這一次的值（第一順位，pcall）；讀不到才退回 item 上暴雪的快取欄位
 --     `cooldownUseAuraDisplayTime`（CacheCooldownValues* 寫的，欄位名照原始碼，rawget 只讀）。
+--     ⚠ 設成「增益持續中不顯示持續時間」的格（Core/Decorate.lua 的 FeedRealCooldown）這支不會被叫：
+--     Decorate 改餵技能自己的 duration 物件，探針走 G.ArmProbe 吃同一個物件（明文確認沒在冷卻／只是 GCD 就不武裝）。
 --   * 「這次是回充」：item 的 `HasVisualDataSource_Charges()`（暴雪的 getter，回 `wasSetFromCharges`）
 --     第一順位（pcall），退路 rawget(item, "wasSetFromCharges")。兩者都過 Plain。
 --   * GCD：duration 是明文而且 ≤ 1.5 秒就不算（不動探針，已經武裝的真冷卻照跑）。

@@ -25,6 +25,10 @@
 -- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
 -- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
 --
+-- 增益持續中顯示持續時間（暴雪的核心／輔助才有，同下面的持續時間顏色）：下拉三項「跟隨這一條」（清掉覆寫）／
+-- 「顯示」（寫 true）／「不顯示」（寫 false）；右鍵整列清掉。生效的值是「不顯示」時持續時間顏色那一列停用
+-- （沒有那一段可換色）。
+--
 -- 持續時間顏色（暴雪的核心／輔助才有：先倒增益、再倒冷卻的那種格；自訂項目與增益類沒有那一段）：
 -- 下拉三項「跟隨這一條」（清掉覆寫）／「不換色」（寫 false）／「自訂顏色」（寫色表，初值＝目前生效的顏色）
 -- ＋右邊一顆色票（只在自訂顏色時能動）。右鍵整列清掉。
@@ -316,8 +320,28 @@ local function Build()
     frame.cdStateDD = csdd
     RightClickClears(csr, csh, "cdState")
 
+    -- 增益持續中顯示持續時間（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）
+    local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
+    local atr, ath = NewRow(L["Show buff duration"], BlizzCooldown)
+    local atItems = {
+        { text = L["Follow this bar"], value = "follow" },
+        { text = L["Show"],            value = "show" },
+        { text = L["Don't show"],      value = "hide" },
+    }
+    local atdd = W.CreateDropdown(atr, ROW_W - CTRL_X, atItems, function(value)
+        if not cur then return end
+        local v = nil
+        if value == "show" then v = true elseif value == "hide" then v = false end
+        ns.DB.SetOverride(cur.id, "showAuraTime", v)
+        Changed()
+    end)
+    atdd:SetMaxWidth(ROW_W - CTRL_X)
+    atdd:SetPoint("LEFT", atr, "LEFT", CTRL_X, 0)
+    frame.auraTimeDD = atdd
+    RightClickClears(atr, ath, "showAuraTime")
+
     -- 持續時間顏色（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）
-    local dcr, dch = NewRow(L["Duration color"], function(kind, class) return kind == nil and class ~= "aura" end)
+    local dcr, dch = NewRow(L["Duration color"], BlizzCooldown)
     local dcItems = {
         { text = L["Follow this bar"], value = "follow" },
         { text = L["Don't recolor"],   value = "off" },
@@ -784,8 +808,14 @@ function Pop.Refresh()
     local dcShow = ns.Decorate.DurationColorOf(dv, ns.Setting(key, "cooldownText.colorDuration"),
         ns.Setting(key, "cooldownText.durationColor")) or ns.Setting(key, "cooldownText.durationColor")
     frame.durSwatch:SetColor(type(dcShow) == "table" and dcShow or { r = 1, g = 0.85, b = 0.1, a = 1 })
-    frame.durSwatch:SetEnabled(dcOwn)
-    frame.durSwatch:SetAlpha(dcOwn and 1 or 0.4)
+    -- 增益持續中顯示持續時間：三態回填；生效的值是「不顯示」（覆寫成不顯示，或跟隨而條層關著）⇒ 持續時間顏色那列停用
+    local av = Override("showAuraTime")
+    frame.auraTimeDD:SetSelectedValue(av == true and "show" or av == false and "hide" or "follow")
+    local auraShown = ns.SpellSetting(key, id, "showAuraTime") ~= false
+    frame.durDD:SetEnabled(auraShown)
+    frame.durDD:SetAlpha(auraShown and 1 or 0.4)
+    frame.durSwatch:SetEnabled(dcOwn and auraShown)
+    frame.durSwatch:SetAlpha((dcOwn and auraShown) and 1 or 0.4)
     local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false
     frame.activeCB:SetChecked(activeOn)
     local ac = ns.SpellSetting(key, id, "activeGlowColor")

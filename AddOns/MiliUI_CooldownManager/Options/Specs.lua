@@ -432,6 +432,7 @@ function Specs.Themed(mode, key)
     local barsKind = type(bt) == "table" and bt.kind == "bars" or false
     local function CS(s) if auraBar or barsKind then return nil end return s end
     local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
+    local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
 
     -- 圖示
     add({ type = "header", label = L["Icons"] })
@@ -451,6 +452,9 @@ function Specs.Themed(mode, key)
         CS(TS("icon", "slider", "icon.cdStateAlpha", L["Dimmed opacity"],
             { min = 10, max = 90, step = 5, scale = 100, disabled = NotDim })),
         CS(Note(L["Hidden icons keep their place. The global cooldown doesn't count, and a spell with a charge left counts as ready. Buffs aren't affected."], "icon")),
+        -- 增益持續中顯示持續時間（核心／輔助才有「先倒增益」那一段：增益兩條與長條類的條不顯示）
+        CS(TS("icon", "toggle", "icon.showAuraTime", L["Show buff duration"])),
+        CS(Note(L["After you use a spell that gives you a buff, the icon counts down the buff first and the cooldown after it ends. Off shows the cooldown right away."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
         TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),
@@ -469,9 +473,12 @@ function Specs.Themed(mode, key)
         TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }),
         Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text"),
         -- 增益持續時間那一段換色（核心／輔助的技能才有那一段：增益兩條與長條類的條不顯示）
-        CS(TS("text", "toggle", "cooldownText.colorDuration", L["Color while buff lasts"])),
+        -- 圖示節的「增益持續中顯示持續時間」關著時沒有那一段可換色 ⇒ 兩列停用
+        CS(TS("text", "toggle", "cooldownText.colorDuration", L["Color while buff lasts"], { disabled = AuraTimeOff })),
         CS(TS("text", "color", "cooldownText.durationColor", L["Duration color"], {
-            disabled = function(info) return not ReadThemed(info, "cooldownText.colorDuration") end })),
+            disabled = function(info)
+                return AuraTimeOff(info) or not ReadThemed(info, "cooldownText.colorDuration")
+            end })),
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "text")),
         TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
             get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
