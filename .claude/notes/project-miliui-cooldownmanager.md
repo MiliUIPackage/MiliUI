@@ -188,3 +188,8 @@ IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄�
 探針埋 log 的坑見 [[wow-121-hook-print-dropped]]。
 「生效期間發光」2026-10-03 起跟觸發／就緒同一套：條層 glow.active（enabled 預設關、樣式／顏色／線條／粗細、跟隨主題），
 逐法術只蓋開關；不要再做逐法術的發光顏色／樣式（使用者明確改回一致）。
+- 2026-10-03 續（同日另一個 session 並行推 master：法術小窗分頁、天賦條件、生效發光重做…，合併時衝突交 Opus 解）：
+  **P6** 每種資源自己的設定視窗（`resources.style[key]` 代理表 `R.StyleFor`，貼在設定視窗右邊；「顯示數字」逐資源獨立、沒有統一開關）；
+  **P7** 顯示條件補敵對目標／飛行騎乘／房屋，逐法術 `replaceWith`（以增益取代；覆寫自成 "replace" 組；只能選增益圖示列，長條鏡射不可行＝**P9 擱置**）；
+  **P8** 自訂項目三層範圍 戰隊 `w:<uid>`／職業 `k:<uid>`／專精 `c:<index>`，窄的蓋寬的（`DB.ResolveScopes`），覆寫跟著寬層那一筆走（`DB.OverrideTable` 分流），
+  種族技能是動態 `kind="racial"`，預覽記號 PNG 由 `miliui-cdm-scope-icons` 技能產生。使用者定案不做角色專屬層（之後用排除開關）、不做 EUI 式同步。
