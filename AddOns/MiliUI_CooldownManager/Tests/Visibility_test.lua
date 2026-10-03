@@ -12,6 +12,8 @@
 --      房屋（IsInsideHouseOrPlot、明文 true 才算）
 --   3. 事件：PLAYER_CAN_GLIDE_CHANGED／HOUSE_PLOT_ENTERED／HOUSE_PLOT_EXITED 只在客戶端認得時註冊、
 --      UNIT_FACTION 只看 target；DebugLine 印三個新欄位
+--   4. 效能（2026-10-04 E1）：Alpha／PanelAlpha 給 s 就不建 Snapshot、Refresh 不跑 item、
+--      ApplyPanels 讀 current.essential、ApplyAll 一輪只建一次 Snapshot
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Visibility.lua"
@@ -220,6 +222,79 @@ do
     check("DebugLine 印敵對目標", line:find("敵對目標", 1, true) ~= nil, line)
     check("DebugLine 印飛行騎乘", line:find("飛行騎乘", 1, true) ~= nil, line)
     check("DebugLine 印房屋", line:find("房屋", 1, true) ~= nil, line)
+end
+
+------------------------------------------------------------
+-- 4. 效能 #1／#7：Snapshot 一輪只建一次、Refresh 不跑 item、面板讀 current.essential
+------------------------------------------------------------
+do
+    hasTarget, canAttack, gliding, housing = false, false, nil, nil
+    Install()
+    local containerAlpha, itemCalls, cursorCalls = {}, 0, 0
+    local function Container(key)
+        return { SetAlpha = function(_, a) containerAlpha[key] = a end }
+    end
+    local conts = { essential = Container("essential"), utility = Container("utility"), resources = Container("resources") }
+    ns.profile = { bars = { essential = { visibility = {} }, utility = { visibility = { showTarget = true } } } }
+    local fades = {}
+    ns.Setting = function(key, field) return field == "fade" and fades[key] or nil end
+    local panelCfg = { resources = { enabled = true, fadeWithEssential = true, loadConditions = {} } }
+    ns.DB = {
+        PANEL_ORDER = { "resources" },
+        IsPanel = function(k) return panelCfg[k] ~= nil end,
+        ConfigTable = function(k) return panelCfg[k] or (ns.profile.bars[k]) end,
+    }
+    ns.Bars = {
+        Get = function(k) return conts[k] end,
+        ForEachClaimed = function(_, fn) fn({}, {}) end,
+    }
+    ns.Decorate = { ApplyItemAlpha = function() itemCalls = itemCalls + 1 end }
+    ns.Cursor = { OnAlpha = function() cursorCalls = cursorCalls + 1 end }
+
+    -- Alpha：給 s 就不建 Snapshot；沒給才建
+    local s = Vis.Snapshot()
+    local n0 = Vis.snapshots
+    eq("Alpha 給 s：值", Vis.Alpha("utility", s), 0)
+    eq("Alpha 給 s：不建 Snapshot", Vis.snapshots, n0)
+    Vis.Alpha("utility")
+    eq("Alpha 沒給 s：建一次", Vis.snapshots, n0 + 1)
+
+    -- Refresh：容器、current、跟著游標；不跑 item
+    n0 = Vis.snapshots
+    eq("Refresh 回傳 alpha", Vis.Refresh("essential", s), 1)
+    eq("Refresh：容器套了", containerAlpha.essential, 1)
+    eq("Refresh：current 寫了", Vis.Current("essential"), 1)
+    eq("Refresh：跟著游標的開關叫了", cursorCalls, 1)
+    eq("Refresh：不跑 item", itemCalls, 0)
+    eq("Refresh 給 s：不建 Snapshot", Vis.snapshots, n0)
+    -- Apply ＝ Refresh ＋ item
+    Vis.Apply("utility", s)
+    eq("Apply：跑 item", itemCalls, 1)
+    eq("Apply：容器套了（沒目標 ⇒ 0）", containerAlpha.utility, 0)
+
+    -- PanelAlpha：沒給 essAlpha 用 current.essential，給了用給的
+    fades.essential = { enabled = true, alpha = 0.3 }
+    Vis.Refresh("essential", s)
+    eq("核心技能淡出 0.3", Vis.Current("essential"), 0.3)
+    n0 = Vis.snapshots
+    eq("PanelAlpha：讀 current.essential", Vis.PanelAlpha("resources", s), 0.3)
+    eq("PanelAlpha：給 essAlpha 用給的", Vis.PanelAlpha("resources", s, 0.8), 0.8)
+    eq("PanelAlpha 給 s：不建 Snapshot", Vis.snapshots, n0)
+
+    -- ApplyPanels：只套面板、用 current.essential、不碰條
+    containerAlpha.essential, containerAlpha.utility = nil, nil
+    Vis.ApplyPanels(s)
+    eq("ApplyPanels：面板用 current.essential", containerAlpha.resources, 0.3)
+    eq("ApplyPanels：不碰條", containerAlpha.essential, nil)
+    eq("ApplyPanels 給 s：不建 Snapshot", Vis.snapshots, n0)
+
+    -- ApplyAll：整輪只建一次 Snapshot，面板讀的是同一輪剛算好的核心技能
+    fades.essential = { enabled = true, alpha = 0.6 }
+    n0 = Vis.snapshots
+    Vis.ApplyAll()
+    eq("ApplyAll：Snapshot 只建一次", Vis.snapshots, n0 + 1)
+    eq("ApplyAll：核心技能", containerAlpha.essential, 0.6)
+    eq("ApplyAll：面板跟著這一輪的核心技能", containerAlpha.resources, 0.6)
 end
 
 print(("Visibility_test: %d passed, %d failed"):format(passed, failed))

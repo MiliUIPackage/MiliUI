@@ -158,6 +158,9 @@ local function Debug(silent)
         p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",
                     tostring(C.IsPaused()), tostring(C.specTag), C.adopted or 0, B.resyncs or 0))
+        -- 重新取出只補做（Viewers.CHEAP_REACQUIRE；false ＝ 每次取出都整套重裝飾）
+        p(("  重新取出只補做 %s  （Decorate.Reattach %d 次）"):format(tostring(V.CHEAP_REACQUIRE),
+            ns.Decorate and ns.Decorate.applyReattach or 0))
         -- 從另一支插件匯入、還沒對到 cooldownID 的法術（那個專精第一次登入時才對得到）
         if ns.Import and ns.Import.DebugLines then
             for _, line in ipairs(ns.Import.DebugLines()) do p(line) end
@@ -374,6 +377,7 @@ local PERF = {
     { "Decorate",   "applyCalls",          "Decorate.Apply" },
     { "Decorate",   "applySkipped",        "  簽章命中跳過",        of = "Decorate.applyCalls" },
     { "Decorate",   "applyPre",            "  前置鍵命中",          of = "Decorate.applyCalls" },
+    { "Decorate",   "applyReattach",       "  重新取出只補做",      of = "Decorate.applyCalls" },
     { "Decorate",   "setCooldownHooks",    "SetCooldown 掛勾" },
     { "Decorate",   "afterCooldownWrites", "  寫轉圈色／倒數色",    of = "Decorate.setCooldownHooks" },
     { "SpellIndex", "rebuilds",            "法術索引重建" },

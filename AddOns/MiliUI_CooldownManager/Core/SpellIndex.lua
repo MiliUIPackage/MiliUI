@@ -1,7 +1,12 @@
 ------------------------------------------------------------
 -- 法術 → 格子的索引，與「這次 SPELL_UPDATE_COOLDOWN 只要重算哪幾格」的判斷
 --
---   ns.SpellIndex.Rebuild()               Bars 每輪排版結尾、目錄變了之後叫：照現在認領／放好的格子重建
+--   ns.SpellIndex.Rebuild()               照現在認領／放好的格子重建。目錄變了（CatalogChanged）當場叫一次；
+--                                         Bars 每輪排版結尾只在「認領變了（Bars.claimsChanged）或 SI.dirty」時叫
+--   ns.SpellIndex.dirty                   索引的輸入在認領之外變了 ⇒ 下一輪排版結尾要重建。設的地方（寫入出口）：
+--                                         Catalog 重建目錄（C.info 整張換新：覆寫法術不在目錄簽章裡，
+--                                         簽章沒變也可能換了）、Catalog.Adopt 收養、自訂法術的 overrideID 換了
+--                                         （Modules/Custom.lua 的 UpdateSpell）。Rebuild 清掉
 --   ns.SpellIndex.Lookup(spellID)         → { { owner, rec, key }, … }（沒有回共用的空表，唯讀）
 --   ns.SpellIndex.Build(sources)          純函式：sources = { { ids = { … }, owner, rec, key }, … } → 索引表
 --   ns.SpellIndex.Classify(lookup, isSecret, spellID, baseSpellID, category, startRecoveryCategory, itemID)
@@ -26,6 +31,7 @@ local EMPTY = setmetatable({}, { __newindex = function() error("SpellIndex: EMPT
 SI.EMPTY = EMPTY
 
 local index = {}
+SI.dirty = true                 -- 見檔頭；開機第一輪一定建
 SI.rebuilds = 0
 SI.precise, SI.full = 0, 0      -- 合併後的批次各走了幾次（debug）
 
@@ -110,6 +116,7 @@ function SI.Lookup(spellID)
 end
 
 function SI.Rebuild()
+    SI.dirty = false
     local sources = {}
     local p = ns.profile
     local B, C = ns.Bars, ns.Catalog

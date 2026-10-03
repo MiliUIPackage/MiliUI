@@ -62,14 +62,14 @@
 
 | 檔案 | 職責 |
 |---|---|
-| `Core/Catalog.lua` | cooldownID → 法術資料；四條檢視器各自的有序清單。玩家在暴雪面板排的順序自己解 `C_CooldownViewer.GetLayoutData()`（不問暴雪的 DataProvider，那會寫它的快取欄位）；解不開就無感退回類別集合順序。`Bar(key)` 回套好本專精 `order`／`groupOf`／`hidden` 的清單。暴雪設定面板開著時 `IsPaused()`；`CheckFresh` 輪詢版面字串最多每秒一次 |
+| `Core/Catalog.lua` | cooldownID → 法術資料；四條檢視器各自的有序清單。玩家在暴雪面板排的順序自己解 `C_CooldownViewer.GetLayoutData()`（不問暴雪的 DataProvider，那會寫它的快取欄位）；解不開就無感退回類別集合順序。`Bar(key)` 回套好本專精 `order`／`groupOf`／`hidden` 的清單。暴雪設定面板開著時 `IsPaused()`；`CheckFresh` 輪詢版面字串最多每秒一次，**戰鬥中不輪詢**（面板鎖著、專精換不了；標髒的事件路徑照做） |
 | `Core/Layout.lua` | 純函式 `Compute(items, layout, kind)` → 每格 (x, y, w, h)、容器寬高、容器錨點；`AnchorOf`／`AnchorSide`／`StackTarget` ＝ 錨定的排開（跟著同一條同一邊的往外排，見「錨定的排開」）。不碰任何 WoW API，離線可測 |
-| `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1 |
+| `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1。取出（`Track`）**不清樣式簽章**，只標 `rec.reacquired`（`CHEAP_REACQUIRE`，見「進場、換專精」） |
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上；實際貼在誰身上由排開決定，一條變了整疊兩段式重貼）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上；`ReleaseAll` 全部還給暴雪 |
-| `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；`Bars` 每輪排版結尾與目錄變了之後重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`；讀不懂一律全掃），見「冷卻狀態效果」 |
-| `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過 |
+| `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；目錄變了當場重建，`Bars` 排版結尾只在認領變了（`Bars.claimsChanged`）或 `SI.dirty`（目錄重建、收養、自訂法術換覆寫）時重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`；讀不懂一律全掃），見「冷卻狀態效果」 |
+| `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過；剛重新取出而簽章相同 ⇒ `Reattach` 只補暴雪取出時會重設的那一樣（倒數數字開關） |
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭）。字型分兩層：通用字型（`font`，主題／條）＋每段文字自己的 `font`（倒數、充能、層數、按鍵文字、長條的 `bar.nameFont／timeFont`、施法條 `castbar.font`、資源條與自訂格子 `resources.textFont`），值 `"INHERIT"`／沒存＝跟隨通用字型（`ns.Media.ElementFont`） |
-| `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha）。條件模型見「顯示條件」 |
+| `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha）。判斷快照（`Snapshot`）一輪只建一次往下傳；`Refresh` 只套容器、`Apply` 再加 item、`ApplyPanels` 只套面板。條件模型見「顯示條件」 |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
 | `Core/StackGate.lua` | 層數門檻：增益「層數到 N 才發光」與增益長條「層數到 N 換色」（閘＋裁切框，秘密層數也成立），見「層數門檻發光＋長條層數門檻換色」 |
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
@@ -89,15 +89,20 @@
 ```
 暴雪：取出 item／RefreshLayout／Layout／SetCooldownID／ClearCooldownID／光環上下
   └─ Viewers 的後掛勾（ns.Guard）：更新弱鍵表上的身分，丟訊號
-       ├─ Layout 後掛勾：當場用上次的格子快取把 item 放回去（Bars.Reapply，不重算，避免閃一幀）
+       ├─ Layout 後掛勾：當場用上次的格子快取把 item 放回去（Bars.Reapply，不重算，避免閃一幀；
+       │    alpha 用這條上次套的 Visibility.Current，不再每顆建一次 Snapshot）
        └─ Bars.RequestSource → 受影響的條標髒（取最高等級）：來源條、認領著它的 item 的條、
-            從它拉法術的條（groupOf）；設定變了才 RequestAll
+            從它拉法術的條（groupOf）；設定變了才 RequestAll。目標集合快取到下一輪 Flush（gen ＝ Bars.flushes；
+            RequestAll 與設定頁 ApplyEngine 當場作廢；Flush 執行中不寫）
             └─ 排程：同一幀合併成一次 C_Timer.After(0)；兩次排版至少隔 0.1 秒
                  └─ Flush（暴雪設定面板開著就等它關）
-                      Catalog.CheckFresh（最多每秒讀一次版面字串）→ 每條：Catalog.Bar ∩ 作用中的 item → Layout.Compute
-                      → item ClearAllPoints＋SetPoint(TOPLEFT, 容器, x, -y)＋SetSize → Decorate.Apply
+                      Catalog.CheckFresh（最多每秒讀一次版面字串，戰鬥中不輪詢）→ Visibility.Snapshot 一次
+                      → 每條：Catalog.Bar ∩ 作用中的 item → Layout.Compute → Visibility.Refresh（容器 alpha）
+                      → item ClearAllPoints＋SetPoint(TOPLEFT, 容器, x, -y)＋SetSize → Decorate.Apply → ApplyItemAlpha
+                      → 認領序列（id／框／停放）跟上一輪比，變了才記 claimsChanged
                       → 沒被認領的 item 停到畫面外（alpha 0、錨 UIParent (-10000, 10000)）
-                      → Visibility.ApplyAll
+                      → 認領變了或 SI.dirty 才 SpellIndex.Rebuild
+                      → Visibility.ApplyPanels（只剩面板：這一輪沒排的條顯示條件沒變——條件一變 Visibility 自己會 ApplyAll）
 ```
 
 ### 髒標記三級
@@ -127,6 +132,14 @@
 **取出時不沿用舊身分**：`Viewers.Track` 讀 item 當下的 cooldownID（池子回收時暴雪已清掉，通常是 nil，同一輪的
 `SetCooldownID` 後掛勾補上）。沿用上一輩子的身分的話，檢視器藏著時（`RefreshLayout` 不叫 `RefreshData`）那顆框會頂著舊身分被認領。
 
+**取出時不整套重裝飾**（`Viewers.CHEAP_REACQUIRE = true`，2026-10-04）：暴雪每次 `RefreshLayout`（增益上下就有）把整條池子放掉重取，
+以前 `Track` 會清樣式簽章 ⇒ 每顆都走完整 `Decorate.Apply`。現在 `Track` 只標 `rec.reacquired`；身分後掛勾在這個旗標下也不清簽章
+（池子回收把 cooldownID 清成 nil、同一輪再設回來，永遠是「nil → id」——真的換了法術時簽章裡的 id 不同，照樣完整重套）。
+`Decorate.Apply` 簽章命中而且 `reacquired` ⇒ `Decorate.Reattach`：只補暴雪取出時（`CooldownViewerMixin:OnAcquireItemFrame` 的
+`SetTimerShown`）重寫、我們又沒有後掛勾的**倒數數字開關**（`SetHideCountdownNumbers`）。其他取出時的重設——縮放（SetScale 後掛勾）、
+長條內容（SetBarContent 後掛勾）、長條寬（Bars 放格的 SetSize）、錨點（放格）、滑鼠與顯示（不歸我們管）——各有接手的地方，
+查證清單寫在 `D.Reattach` 上面。`CHEAP_REACQUIRE = false` 回到舊行為；`/mcdm debug` 印它的值與 Reattach 次數。
+
 **圖示套皮插件（`Core/Compat.lua`）**：另一支插件會在每次 `RefreshLayout` 把還沒套過的 item 交給皮膚函式庫（重設遮罩／
 texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了會重套，但戰鬥中與插件限制生效時跳過。兩邊在同一批框上
 輪流蓋：登入那批相安無事，之後暴雪生出的新框就成了「它的皮＋我們的格子」的混合體（圖示比格子大、外面一圈深色框、
@@ -152,9 +165,9 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 | 計數 | 加在哪 |
 |---|---|
-| `Bars.flushes`／`relayoutBars`／`requestSource`／`requestSourceHit`／`reapplyItems` | `Flush`／`Relayout`（條，面板不算）／`RequestSource` 入口／（快取命中，快取做之前恆 0）／`Reapply` 放回一顆 |
+| `Bars.flushes`／`relayoutBars`／`requestSource`／`requestSourceHit`／`reapplyItems` | `Flush`／`Relayout`（條，面板不算）／`RequestSource` 入口／目標快取命中／`Reapply` 放回一顆 |
 | `Visibility.snapshots` | `Snapshot()` |
-| `Decorate.applyCalls`／`applySkipped`／`applyPre` | `D.Apply` 入口／簽章命中／（前置鍵命中，做之前恆 0） |
+| `Decorate.applyCalls`／`applySkipped`／`applyPre`／`applyReattach` | `D.Apply` 入口／簽章命中／（前置鍵命中，做之前恆 0）／簽章命中而且剛重新取出（`D.Reattach`） |
 | `Decorate.setCooldownHooks`／`afterCooldownWrites` | `OnSetCooldown` 入口／`AfterCooldown` 有轉圈色・邊緣・倒數換色要寫 |
 | `Glow.pandemicCalls`／`pandemicChanges` | `OnShowPandemic`／`OnHidePandemic` 入口／狀態真的變了 |
 | `Custom.updates`／`colorOnly` | `UpdateSpell`／（只重算顏色，做之前恆 0） |
@@ -620,7 +633,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   - 找格子：`SpellIndex.Lookup(spellID)`（索引收了 spellID 與 overrideSpellID）→ `Assist.Targets` 濾掉增益類（暴雪增益兩條的 item、
     自訂光環格／物品）、停放中、收起來的。換建議時舊的熄、新的亮。
   - 畫法：`Core/Glow.lua` 的第四種發光 `"assist"`（宿主在 overlay 底下、層級在觸發發光之上；預設色 (0.25, 0.75, 1)）。
-    `G.Sync` **不碰它**（不屬於觸發／就緒／生效的對帳）；`Bars` 每輪排版結尾（法術索引重建之後）與目錄變了之後叫 `Assist.Reapply` 重接；
+    `G.Sync` **不碰它**（不屬於觸發／就緒／生效的對帳）；`Bars` 每輪排版結尾（法術索引該重建時已重建）與目錄變了之後叫 `Assist.Reapply` 重接；
     停放（`OnParked`）一律熄。設定頁有一顆常亮的樣本（`Specs.GlowSampleRow("assist", "assist")`）。
 - **下一招圖示**（`Modules/AssistIcon.lua`，面板 `assistIcon`）：獨立的一顆圖示＋按鍵文字＋公共冷卻轉圈，純顯示、不收滑鼠。
   `profile.assistIcon = { enabled = false, pos = { CENTER, 0, -120 }, anchor = false, size = 44, onlyCombat = true, showKeybind = true, showGCD = true, strata = "MEDIUM" }`。
@@ -2083,6 +2096,21 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      `/reload` 後 `MiliUI_CooldownManager_DB.diag.perf` 讀得到上一次的輸出。
 263. **基準數字**：同一個角色，一場首領戰（或 M+ 一隻王），`/mcdm perf reset` → 打 → `/mcdm perf`，把輸出貼進下面「效能基準」
      （E1～E3 之後同一個場景各量一次，並列）。
+
+**效能修整 E1（訊號與重排，2026-10-04）**
+
+264. 增益上下（打一隻木樁、連續觸發幾個增益）：`/mcdm perf` 的 `RequestSource` 底下「快取命中」佔大多數；畫面跟改之前一樣——
+     增益出現在正確的格、消失時收合／占位照舊、「以增益取代」那一格照常換人；`法術索引重建` 遠少於 `排版 Flush`
+     （只有認領真的變了才重建），而且冷卻狀態效果／隱藏 GCD 轉圈／戰鬥輔助醒目標示在增益上下之後照樣跟著正確的格。
+265. 改設定之後目標條**立刻**重排（快取沒把它們漏掉）：把法術拖進自訂群組、從群組拖回去、改「以增益取代」、刪群組、
+     換設定檔；各做一次之後馬上觸發那個增益，格子出現在新的那一條。自訂法術被天賦換成覆寫法術（例：變形技）之後，
+     冷卻事件的精準重算照樣命中那一格（`SI.dirty`）。
+266. 重新取出不整套重裝飾（`Viewers.CHEAP_REACQUIRE`）：進副本、換專精、暴雪冷卻管理器面板開關、增益連續上下之後，四條的邊框／字型／
+     轉圈色／Masque 皮／長條的圖示邊與材質／「隱藏倒數文字」的格都還在（**倒數數字的開關是唯一補做的一樣**，特別看設了隱藏倒數的格
+     有沒有冒出數字、暴雪編輯模式關掉「顯示計時器」時沒設隱藏的格數字還在不在）。`/mcdm debug` 印「重新取出只補做 true（Reattach N 次）」；
+     `/mcdm perf` 的 `Decorate.Apply` 比改之前少、「重新取出只補做」有數字。把 `Core/Viewers.lua` 的 `CHEAP_REACQUIRE` 改 false 對照一次。
+267. 戰鬥中不輪詢版面字串（`Catalog.CheckFresh`）：戰鬥中改不了暴雪面板（面板鎖），不會漏；**排追隨者地城被系統換專精**那一段
+     （「暴雪 API 在神聖專精給的是懲戒的清單」）發生在戰鬥外，換完之後清單照常更新。脫戰後第一輪排版有接到戰鬥中累積的變化。
 
 **效能基準**
 

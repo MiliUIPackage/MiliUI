@@ -1310,5 +1310,46 @@ do
     env.print = savedPrint
 end
 
+------------------------------------------------------------
+-- 9. 重新取出只補做（效能 #14）：簽章命中＋rec.reacquired ⇒ D.Reattach
+--    暴雪取出時的 SetTimerShown 會重寫 SetHideCountdownNumbers（圖示類），只補這一樣
+------------------------------------------------------------
+do
+    local function Cd()
+        local cd = { hides = {} }
+        function cd:SetHideCountdownNumbers(v) self.hides[#self.hides + 1] = v end
+        return cd
+    end
+    local item = { Cooldown = Cd() }
+    local rec = { cooldownID = 11, barKey = "essential" }
+    local style = D.Resolve("essential")
+    local sig = D.Signature(style, 11, D.SpellStyle("essential", 11), 30, 30)
+    rec.decorated, rec.decoratedBar = sig, "essential"
+    local skip0, re0 = D.applySkipped, D.applyReattach
+
+    D.Apply(item, rec, "essential", 30, 30)
+    eq("沒標重新取出：簽章命中照樣跳過", D.applySkipped, skip0 + 1)
+    eq("沒標重新取出：不補做", #item.Cooldown.hides, 0)
+
+    rec.reacquired = true
+    D.Apply(item, rec, "essential", 30, 30)
+    eq("重新取出＋簽章命中：走 Reattach", D.applyReattach, re0 + 1)
+    eq("Reattach：補回倒數數字的開關", #item.Cooldown.hides, 1)
+    eq("Reattach：照「隱藏倒數文字」（沒設 ＝ 顯示）", item.Cooldown.hides[1], false)
+    eq("Reattach：清掉旗標", rec.reacquired, nil)
+
+    D.Apply(item, rec, "essential", 30, 30)
+    eq("清掉之後再命中：不再補做", #item.Cooldown.hides, 1)
+
+    -- 長條：暴雪取出只動 Duration 的 Show（我們只調 alpha）、SetBarContent 有後掛勾 ⇒ 不補，但旗標照清
+    local barRec = { reacquired = true }
+    D.Reattach({ Cooldown = Cd(), Bar = {} }, barRec, {}, true)
+    eq("長條 Reattach：清掉旗標", barRec.reacquired, nil)
+    -- 隱藏倒數文字的法術
+    local it2 = { Cooldown = Cd() }
+    D.Reattach(it2, { reacquired = true }, { hideCooldownText = true }, false)
+    eq("隱藏倒數文字：補成藏", it2.Cooldown.hides[1], true)
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

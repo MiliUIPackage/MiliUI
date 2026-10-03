@@ -409,6 +409,22 @@ do
     C.MarkDirty()
     eq("節流：標髒（事件路徑）不受限", C.CheckFresh(), true)
     eqList("節流：標髒後清單是新的", C.lists.essential, { 102, 701, 202 })
+    -- 戰鬥中不輪詢（#16b）：過了一秒、字串也變了，照樣不讀；標髒（事件路徑）照做
+    local combat = true
+    env.InCombatLockdown = function() return combat end
+    clock = 105
+    layoutString = "1|B64main2"
+    local r2 = reads
+    eq("戰鬥中：不輪詢", C.CheckFresh(), false)
+    eq("戰鬥中：沒有呼叫 GetLayoutData", reads, r2)
+    C.MarkDirty()
+    eq("戰鬥中：標髒照樣重讀", C.CheckFresh(), true)
+    eqList("戰鬥中：標髒後清單是新的", C.lists.essential, { 101, 102 })
+    combat = false
+    layoutString = "1|B64main"
+    clock = 107
+    eq("脫戰：輪詢回來、抓到變化", C.CheckFresh(), true)
+    env.InCombatLockdown = nil
     env.GetTime = nil
     env.C_CooldownViewer.GetLayoutData = realGet
 end
@@ -845,6 +861,20 @@ do
 
     ns.profile, ns.playerClass = savedProfile, savedClass
     env.C_SpellBook = nil
+end
+
+------------------------------------------------------------
+-- 法術索引的作廢點（效能 #6）：目錄每重建一次（C.info 整張換新）就把 SpellIndex.dirty 標起來——
+-- 覆寫法術不在目錄簽章裡，簽章沒變也可能換了
+------------------------------------------------------------
+do
+    local savedSI = ns.SpellIndex
+    ns.SpellIndex = { dirty = false }
+    C.Refresh("si-dirty")
+    eq("目錄重建：SpellIndex.dirty 標起來", ns.SpellIndex.dirty, true)
+    ns.SpellIndex.dirty = false
+    eq("版面沒變的 CheckFresh 不重建、不標髒", (function() C.CheckFresh(); return ns.SpellIndex.dirty end)(), false)
+    ns.SpellIndex = savedSI
 end
 
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))

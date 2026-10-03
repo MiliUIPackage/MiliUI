@@ -553,7 +553,12 @@ local function UpdateSpell(rec)
     local known = ns.Catalog.SpellKnown(base)
     rec.known = known and true or false           -- 冷卻狀態效果：未學會（問號）的格不套
     local ov = Plain(Try(C_Spell and C_Spell.GetOverrideSpell, base))
-    rec.overrideID = (type(ov) == "number" and ov ~= base) and ov or nil
+    ov = (type(ov) == "number" and ov ~= base) and ov or nil
+    if rec.overrideID ~= ov then
+        rec.overrideID = ov
+        -- 法術索引收 overrideID：換了 ⇒ 下一輪排版結尾重建（Core/SpellIndex.lua 的 SI.dirty）
+        if ns.SpellIndex then ns.SpellIndex.dirty = true end
+    end
     local id = rec.overrideID or base
     local icon = IconTex(f)
     local isBar = f.Bar ~= nil
@@ -1482,6 +1487,8 @@ local function HideRec(rec)
     if not rec.placedBar and not rec.placedSig then return end
     rec.placedBar, rec.placedSig, rec.claimKey = nil, nil, nil
     rec.hidden = true
+    -- 法術索引收放好的自訂法術（光環格不收）：收起來 ⇒ 下一輪排版結尾重建（Core/Bars.lua 的 claimsChanged）
+    if rec.kind ~= "aura" and ns.Bars then ns.Bars.claimsChanged = true end
     local f = rec.frame
     if rec.kind == "aura" then
         ns.Write(f, function(fr) fr:Hide() end, "place")
@@ -1528,6 +1535,8 @@ end
 
 ------------------------------------------------------------
 -- 放進格子
+--   回傳 true ＝ 這一格對法術索引的貢獻可能變了（換了框、換了條、從收起來放回來；位置變了也算，寧多勿漏）：
+--   Bars 收到就設 claimsChanged。光環格不進索引，一律回 false
 ------------------------------------------------------------
 function CU.Place(rec, c, r, barKey, gen)
     -- 框照這條的 kind 取（圖示類 → 圖示框／持有框，長條類 → 長條框／長條持有框）
@@ -1552,7 +1561,7 @@ function CU.Place(rec, c, r, barKey, gen)
         EnsureContainer(rec, barKey, r.w, r.h)
         -- 出現／消失音效走 AddAuraSound 登記（對帳、下一幀、戰鬥中延後，見 Core/Sound.lua）
         if ns.Sound then ns.Sound.RequestAuraSync() end
-        return
+        return false
     end
     if f:GetParent() ~= c then f:SetParent(c) end
     f:SetFrameLevel((c:GetFrameLevel() or 1) + 2)
@@ -1587,6 +1596,7 @@ function CU.Place(rec, c, r, barKey, gen)
     if rec.kind == "spell" and rec.procActive == nil then CU.InitialOverlay(rec) end
     if ns.Glow then ns.Glow.Sync(f, rec, barKey) end
     if ns.Keybinds then ns.Keybinds.Apply(f, rec, barKey) end
+    return moved
 end
 
 -- 這條這一輪沒放到的（被隱藏、搬到別條、條被刪）收起來
