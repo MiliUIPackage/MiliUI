@@ -177,6 +177,8 @@ local CUSTOM_RECOMMENDED = {
         { kind = "charges", spellID = 358267 },                     -- 盤旋
     },
     MONK = {
+        { kind = "charges", spellID = 109132 },                     -- 迅空翻
+        { kind = "charges", spellID = 115008 },                     -- 真氣飛龍穿（天賦，取代迅空翻；沒點就靜默跳過）
         { kind = "stacks", spellID = 202090, max = 4, spec = 270 },  -- 僧院教義（織霧）
     },
     WARLOCK = {
