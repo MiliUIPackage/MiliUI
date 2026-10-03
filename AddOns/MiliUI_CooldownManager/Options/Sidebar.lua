@@ -382,6 +382,7 @@ end
 -- 拖曳放置目標（預覽的圖示拖到左欄上）
 --   Sidebar.BeginDrop({ [id] = true, … })  可放的按鈕亮職業色邊
 --   Sidebar.DropTargetAtCursor()           游標底下那顆可放的 id（沒有回 nil）
+--   Sidebar.ButtonAtCursor()               游標底下那顆按鈕的 id（不管能不能放）
 --   Sidebar.EndDrop()                      還原
 ------------------------------------------------------------
 function Sidebar.BeginDrop(candidates)
@@ -407,6 +408,14 @@ function Sidebar.DropTargetAtCursor()
         dropHover = hit
     end
     return hit
+end
+
+-- 游標底下的左欄按鈕（不管能不能放）：放不進去的要說為什麼，不能放開就沒反應
+function Sidebar.ButtonAtCursor()
+    if not (scroll and scroll:IsMouseOver()) then return nil end
+    for id, b in pairs(byId) do
+        if b:IsShown() and b:IsMouseOver() then return id, b end
+    end
 end
 
 function Sidebar.EndDrop()
