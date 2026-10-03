@@ -659,6 +659,7 @@ L["Not available while this group is clickable: the click targets can't move dur
 L["Offset from the pointer"] = "커서와의 간격"
 L["Settings…"] = "설정…"
 L["Follow the resource bar's look"] = "자원 바 외형 따르기"
+L["Starts out following the Class Resources tab; right-click to follow it again."] = "처음에는 직업 자원 탭의 설정을 따릅니다. 우클릭하면 다시 따릅니다."
 L["While checked, this resource uses the Appearance section of the Class Resources tab. Uncheck it to give this resource its own look."] = "체크하면 이 자원은 직업 자원 탭의 외형을 따릅니다. 해제하면 이 자원만 따로 외형을 정할 수 있습니다."
 L["Appearance (default for every resource)"] = "외형 (모든 자원의 기본값)"
 L["Each resource can use a different look in its own settings."] = "자원마다 각자의 설정에서 다른 외형을 쓸 수 있습니다."

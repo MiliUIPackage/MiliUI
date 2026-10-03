@@ -659,6 +659,7 @@ L["Not available while this group is clickable: the click targets can't move dur
 L["Offset from the pointer"] = "离指针的偏移"
 L["Settings…"] = "设置…"
 L["Follow the resource bar's look"] = "跟随资源条的外观"
+L["Starts out following the Class Resources tab; right-click to follow it again."] = "一开始跟着“职业资源”分页的设置；右键可以改回跟着。"
 L["While checked, this resource uses the Appearance section of the Class Resources tab. Uncheck it to give this resource its own look."] = "勾选时这种资源用「职业资源」分页的外观；取消勾选就能单独调它的外观。"
 L["Appearance (default for every resource)"] = "外观（所有资源的默认）"
 L["Each resource can use a different look in its own settings."] = "每种资源可以在自己的设置里改用不一样的外观。"

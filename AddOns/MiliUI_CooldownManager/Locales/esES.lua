@@ -659,6 +659,7 @@ L["Not available while this group is clickable: the click targets can't move dur
 L["Offset from the pointer"] = "Desplazamiento del puntero"
 L["Settings…"] = "Ajustes…"
 L["Follow the resource bar's look"] = "Seguir la barra de recursos"
+L["Starts out following the Class Resources tab; right-click to follow it again."] = "Al principio sigue la pestaña Recursos de clase; clic derecho para volver a seguirla."
 L["While checked, this resource uses the Appearance section of the Class Resources tab. Uncheck it to give this resource its own look."] = "Marcado, este recurso usa la apariencia de la pestaña Recursos de clase. Desmárcalo para darle su propia apariencia."
 L["Appearance (default for every resource)"] = "Apariencia (predeterminada para todos los recursos)"
 L["Each resource can use a different look in its own settings."] = "Cada recurso puede usar otra apariencia en sus propios ajustes."

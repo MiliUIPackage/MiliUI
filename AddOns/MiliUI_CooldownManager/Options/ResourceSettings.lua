@@ -128,7 +128,6 @@ local function AppendStyle(add, key, info)
     add(SS("slider", key, "barAlpha", L["Fill opacity"], { min = 0.1, max = 1, step = 0.05 }))
     if info.mode == "bar" then add(SS("toggle", key, "smooth", L["Smooth bar changes"])) end
     if not info.noText then
-        add(SS("toggle", key, "showText", L["Show value on the bar"]))
         add(SS("dropdown", key, "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() return ns.Specs.InheritOr(StyleGet(key, "textFont")) end }))
         add(SS("slider", key, "textSize", L["Font size"], { min = 6, max = 24, step = 1 }))
@@ -291,6 +290,19 @@ local function Controls(key)
         set = function(_, v) R.SetKeyHeight(Cfg(), key, v) end,
     }))
     add(Note(L["Height is per resource and shared by every specialization too."]))
+    -- 「長條上顯示數值」放在版面、不看「跟隨」（使用者 2026-10-03 指定）：這一列自己存，沒存＝照資源條的全域值
+    -- （右鍵重設＝清掉＝回到全域）；字型、字級仍在外觀那一節跟著「跟隨」走
+    if not info.noText then
+        add(BS("toggle", "style." .. key .. ".showText", L["Show value on the bar"], {
+            get = function()
+                local own = OwnStyle(key)
+                if own and own.showText ~= nil then return own.showText and true or false end
+                local c = Cfg()
+                return c and c.showText and true or false
+            end,
+        }))
+        add(Note(L["Starts out following the Class Resources tab; right-click to follow it again."]))
+    end
     AppendStyle(add, key, info)
     AppendNumbers(add, key, info)
     AppendColors(add, key, info)
