@@ -305,7 +305,7 @@ function Preview.DropRefusal(key, id, target)
     local origin = ns.Catalog.SourceOf(id)
     if ns.DB.IsBuiltinBar(target) then
         if origin and FAMILY[origin] and FAMILY[origin] == FAMILY[target] then
-            return L["To move it to %s, drag it there in Blizzard's Cooldown Manager (the button at the top of this page)."]:format(name)
+            return L["To move it to %s, drag it there in Blizzard's Cooldown Manager."]:format(name)
         end
         return L["%s only shows what Blizzard's Cooldown Manager puts on it."]:format(name)
     end
@@ -891,21 +891,11 @@ function Proto:DragTick()
     g:SetPoint("CENTER", UIParent, "BOTTOMLEFT", ux + 12, uy - 12)
 
     local line = self.line
-    if ns.Sidebar.DropTargetAtCursor() then
-        self:RefusalTip(nil)
+    if ns.Sidebar.DropTargetAtCursor() or ns.Sidebar.ButtonAtCursor() then
         line:Hide()
         press.pos = nil
         return
     end
-    -- 指在放不進去的左欄按鈕上：說明為什麼（不然放開只會默默彈回原位）
-    local over, btn = ns.Sidebar.ButtonAtCursor()
-    if over then
-        self:RefusalTip(btn, Preview.DropRefusal(self.key, press.cell.id, over))
-        line:Hide()
-        press.pos = nil
-        return
-    end
-    self:RefusalTip(nil)
     local pos, s, side = self:InsertionAt()
     press.pos = pos
     if not pos then line:Hide() return end
@@ -928,27 +918,25 @@ function Proto:DragTick()
     line:Show()
 end
 
--- 拖曳中指著放不進去的按鈕：在按鈕旁邊用紅字說原因（btn nil 或沒有原因 ＝ 收起）
-function Proto:RefusalTip(btn, reason)
-    local press = self.press
-    if btn and reason then
-        if press and press.tipFor == btn then return end
-        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-        GameTooltip:SetText(reason, 1, 0.3, 0.3, 1, true)
-        GameTooltip:Show()
-        if press then press.tipFor = btn end
-    elseif press and press.tipFor then
-        if GameTooltip:IsOwned(press.tipFor) then GameTooltip:Hide() end
-        press.tipFor = nil
+-- 放在放不進去的左欄按鈕上：彈窗說原因，附一顆開暴雪冷卻管理器（跨暴雪清單只能在那裡搬）。
+-- 不關自己的視窗：開暴雪面板的慣例是兩邊並排（Tab_Bar.OpenBlizzard）
+local refusePopup
+local function ShowRefusal(reason)
+    if not refusePopup then
+        refusePopup = W.CreateChoicePopup(ns.Options.panel, 360, "", {
+            { text = L["Open Blizzard Cooldown Manager"], color = "primary",
+              onClick = function() if ns.TabBar and ns.TabBar.OpenBlizzard then ns.TabBar.OpenBlizzard() end end },
+            { text = L["Close"], color = "normal" },
+        })
     end
+    refusePopup.text:SetText(reason)
+    refusePopup:Hide()          -- 重開才會跑 OnShow 依字數重算高度
+    refusePopup:Show()
 end
+Preview.ShowRefusal = ShowRefusal
 
 function Proto:EndDrag(commit)
     local press = self.press
-    if press and press.tipFor then
-        if GameTooltip:IsOwned(press.tipFor) then GameTooltip:Hide() end
-        press.tipFor = nil
-    end
     self.press = nil
     self:RestoreTicker()
     self.line:Hide()
@@ -965,11 +953,10 @@ function Proto:EndDrag(commit)
         Preview.MoveTo(c.id, target, self.key)
         return
     end
-    -- 放在放不進去的左欄按鈕上：聊天框留一行原因（滑過時的提示放開就收掉了）
     if over then
-        local reason = Preview.DropRefusal(self.key, c.id, over)
-        if reason then ns.Print(reason) end
         self:Refresh()
+        local reason = Preview.DropRefusal(self.key, c.id, over)
+        if reason then ShowRefusal(reason) end
         return
     end
     local pos = press.pos

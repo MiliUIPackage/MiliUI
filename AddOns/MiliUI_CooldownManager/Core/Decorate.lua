@@ -554,7 +554,7 @@ local function AfterCooldown(item, rec, cd)
     local st = rec.style
     if not st then return end
     -- 轉圈色：增益那一段用它自己的背景色（換色開著才有 durSwipe）
-    local sw = (rec.auraTime and st.durSwipe) or st.swipe
+    local sw = ((rec.auraTime or st.allAura) and st.durSwipe) or st.swipe
     if sw then cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
     -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的；蓋掉的格是 false ＝ 原色）
@@ -1361,6 +1361,20 @@ function D.Apply(item, rec, barKey, w, h)
     local spell = SpellStyle(barKey, id)
     local isBar = style.kind == "bars" and item.Bar ~= nil
     local sig = Signature(style, id, spell, w, h)
+    -- 以增益取代：這顆增益 item 正頂著 A 的格（rec.replacing ＝ A），A 勾了「使用增益時間樣式」（預設）
+    -- ⇒ 倒數整段照 A 的增益時間樣式（A 的 SpellStyle：換色開關＋三個顏色，沒覆寫退回這一條）。
+    -- 沒勾 ⇒ aSpell nil，照增益原本的倒數樣式（不換色）
+    local aSpell
+    if rec.replacing ~= nil and not isBar and not rec.custom then
+        if ns.SpellSetting(barKey, rec.replacing, "replaceAuraStyle") ~= false then
+            aSpell = SpellStyle(barKey, rec.replacing)
+        end
+        sig = sig .. "|rp" .. tostring(rec.replacing)
+        if aSpell then
+            sig = sig .. "," .. tostring(aSpell.colorDuration) .. "," .. CSig(aSpell.durationColor)
+                .. "," .. CSig(aSpell.durationLowColor) .. "," .. CSig(aSpell.durationSwipeColor)
+        end
+    end
     if rec.decorated == sig and rec.decoratedBar == barKey then return end
 
     D.HookItem(item, rec)
@@ -1392,6 +1406,17 @@ function D.Apply(item, rec, barKey, w, h)
         end
         -- 增益持續中不顯示持續時間（同一個條件；裝備欄項目在 HideTarget 再擋）
         rec.style.hideAuraTime = spell.showAuraTime == false
+    elseif aSpell then
+        -- 頂著 A 的增益：整段都是增益時間 ⇒ allAura（ApplyPhaseColor／AfterCooldown 不看 rec.auraTime 旗標）
+        local cdColor, durColor = D.PhaseColors(style, aSpell)
+        if durColor then
+            rec.style.cdColor, rec.style.durColor, rec.style.allAura = cdColor, durColor, true
+            rec.style.durSwipe = { C4(aSpell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
+            local ct = style.cooldownText or {}
+            rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
+            rec.style.durFmt = ns.Text.CountdownFormatter({ decimalsBelow = ct.decimalsBelow, lowBelow = ct.lowBelow,
+                                                           lowColor = aSpell.durationLowColor or ct.lowColor })
+        end
     end
     if not rec.custom then itemOf[rec] = item end
 
@@ -1471,7 +1496,7 @@ function D.Apply(item, rec, barKey, w, h)
         end
         -- 轉圈色一律是我們的（Masque 套皮時會寫它的色，所以在 Sync 之後寫）
         if cd then
-            local sw = (rec.auraTime and rec.style.durSwipe) or { sr, sg, sb, sa }
+            local sw = ((rec.auraTime or rec.style.allAura) and rec.style.durSwipe) or { sr, sg, sb, sa }
             cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
         end

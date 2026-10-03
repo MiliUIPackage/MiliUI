@@ -445,6 +445,36 @@ local function Build()
     end
     AddRow(rnEntry)
 
+    -- 使用增益時間樣式（預設勾）：頂著這一格的增益照這一招「增益時間」那幾項（換色／三個顏色）畫倒數。
+    -- 只存 false（勾回去就清掉覆寫）；沒設以增益取代時停用（Refresh）
+    local asr, ash = NewRow(L["Use buff time style"], ReplaceCapable)
+    local ascb = W.CreateCheckButton(asr, nil, function(on)
+        if not cur then return end
+        local v = nil
+        if not on then v = false end
+        ns.DB.SetOverride(cur.id, "replaceAuraStyle", v)
+        Changed()
+    end)
+    ascb:SetPoint("LEFT", asr, "LEFT", CTRL_X, 0)
+    frame.replaceStyle, frame.replaceStyleRow = ascb, asr
+    RightClickClears(asr, ash, "replaceAuraStyle")
+    local asnRow = CreateFrame("Frame", nil, frame)
+    local asnTip = Note(asnRow)
+    asnTip:SetPoint("TOPLEFT", asnRow, "TOPLEFT", CTRL_X, -2)
+    asnTip:SetWidth(ROW_W - CTRL_X)
+    asnTip:SetWordWrap(true)
+    asnTip:SetText(L["The buff's countdown uses this spell's buff time colors. Unchecked, it keeps the buff's own look."])
+    local asnH = 2 + math.max(14, asnTip:GetStringHeight() or 0) + 6
+    asnRow:SetSize(ROW_W, asnH)
+    local asnEntry = { frame = asnRow, h = asnH, when = ReplaceCapable }
+    asnEntry.remeasure = function()
+        local sh2 = asnTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        asnRow:SetHeight(nh)
+        asnEntry.h = nh
+    end
+    AddRow(asnEntry)
+
     -- 天賦條件：下拉（無／學了才顯示／沒學才顯示）；控件欄只有一百五十幾寬，ID 框放下一列
     local tcr, tch = NewRow(L["Talent condition"])
     local tcItems = {
@@ -1141,6 +1171,10 @@ function Pop.Refresh()
         frame.replaceDD:SetItems(Pop.ReplaceItems(id))
         local rw = Override("replaceWith")
         frame.replaceDD:SetSelectedValue(type(rw) == "number" and rw or false)
+        local rwOn = type(rw) == "number"
+        frame.replaceStyle:SetChecked(ns.SpellSetting(key, id, "replaceAuraStyle") ~= false)
+        frame.replaceStyle:SetEnabled(rwOn)
+        frame.replaceStyle:SetAlpha(rwOn and 1 or 0.4)
     end
 
     -- 天賦條件：模式＋ID＋法術名（查不到紅字）

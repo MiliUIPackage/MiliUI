@@ -937,6 +937,9 @@ local SPELL_CONST = {
     -- 以增益取代（核心／輔助的暴雪技能才有，Core/Catalog.lua 的 Replacements）：增益圖示列的 cooldownID；
     -- false ＝ 不取代
     replaceWith      = false,
+    -- 以增益取代時，頂著這一格的增益用這一招的增益時間樣式（colorDuration／三個顏色，跟這一招自己先倒增益那段同一套）；
+    -- false ＝ 照增益原本的倒數樣式（不換色）
+    replaceAuraStyle = true,
 }
 DB.SPELL_FALLBACK, DB.SPELL_CONST = SPELL_FALLBACK, SPELL_CONST
 
@@ -1200,7 +1203,7 @@ DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
     showAuraTime = "icon",
     -- 以增益取代：決定格子放誰，不是外觀 ⇒ 自成一組（條頁「清除外觀覆寫」不會把它清掉；跟天賦條件同一個理由）
-    replaceWith = "replace",
+    replaceWith = "replace", replaceAuraStyle = "replace",
     procGlow = "glow", readyGlow = "glow", readyGlowMode = "glow", readyGlowUsable = "glow",
     -- 生效發光跟觸發／就緒同一組（2026-10-03 改成同一套繼承）；activeGlowColor／activeGlowType 是舊存檔的殘留，
     -- 留在這一組讓「清除發光覆寫」順手清掉
