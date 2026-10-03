@@ -165,6 +165,46 @@ function Pips.RemoveCustomRow(cfg, specID, i)
     return true
 end
 
+------------------------------------------------------------
+-- 推薦清單：新增格子的輸入彈窗裡那顆下拉，選了就帶入法術 ID（層數列連上限一起）
+--   class 必填；spec 有寫 ＝ 只給那個專精（術士這種天賦專屬的），沒寫 ＝ 整個職業
+------------------------------------------------------------
+local CUSTOM_RECOMMENDED = {
+    PALADIN = {
+        { kind = "charges", spellID = 190784 },                     -- 神性戰馬
+    },
+    EVOKER = {
+        { kind = "charges", spellID = 374227 },                     -- 輕風
+    },
+    WARLOCK = {
+        { kind = "stacks", spellID = 264173, max = 4, spec = 266 },  -- 魔能之核（惡魔學）
+        { kind = "stacks", spellID = 296553, max = 10, spec = 266 }, -- 狂野小鬼（惡魔學）
+    },
+}
+Pips.CUSTOM_RECOMMENDED = CUSTOM_RECOMMENDED
+
+-- 純函式：這個職業／專精、這種列能推薦哪些。用不了的一律靜默跳過（不顯示、不佔位）：
+--   別的專精的、這個專精已經加過的、法術不存在的（probe.exists）、
+--   充能列：沒學會（probe.known）或現在沒有充能（probe.hasCharges，換天賦會變）
+function Pips.CustomRecommendations(cfg, classFile, specID, kind, probe)
+    local out = {}
+    local list = CUSTOM_RECOMMENDED[classFile]
+    if type(list) ~= "table" or specID == nil then return out end
+    probe = probe or {}
+    for _, r in ipairs(list) do
+        local ok = r.kind == kind
+            and (r.spec == nil or r.spec == specID)
+            and not Pips.FindCustomRow(cfg, specID, r.kind, r.spellID)
+            and (not probe.exists or probe.exists(r.spellID))
+        if ok and kind == "charges" then
+            ok = (not probe.known or probe.known(r.spellID))
+                and (not probe.hasCharges or probe.hasCharges(r.spellID))
+        end
+        if ok then out[#out + 1] = r end
+    end
+    return out
+end
+
 local function ClampSegments(n)
     n = math.floor(tonumber(n) or 0)
     if n < 1 then return nil end
@@ -285,6 +325,23 @@ end
 
 local gameProbe = { known = CustomKnown, maxCharges = CustomMaxCharges }
 Pips.gameProbe = gameProbe
+
+-- 推薦清單用的 probe：充能看「現在」有沒有（不吃 lastChargeMax 的舊值 —— 換掉天賦後那是過期的）
+Pips.recommendProbe = {
+    known = CustomKnown,
+    exists = function(id)
+        local fn = C_Spell and C_Spell.GetSpellInfo
+        if not fn then return true end
+        local ok, info = pcall(fn, id)
+        return ok and type(info) == "table"
+    end,
+    hasCharges = function(id)
+        local fn = C_Spell and C_Spell.GetSpellCharges
+        if not fn then return true end
+        local ok, info = pcall(fn, id)
+        return ok and type(info) == "table"
+    end,
+}
 
 -- 自訂列的顏色：存檔的色 → 職業色
 local function CustomColor(entry)

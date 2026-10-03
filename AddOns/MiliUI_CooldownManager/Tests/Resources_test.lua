@@ -623,6 +623,32 @@ eq("壞資料跳過，剩一列", #pl, 1)
 eq("壞資料跳過：位置照清單", pl[1].index, 4)
 eq("customRows 不是表 → 空", #PI.PlanCustomRows({ customRows = 5 }, 65, probe), 0)
 eq("不給 probe：充能照建（當學了）、上限退回存檔的 max", PI.PlanCustomRows(ccfg, 65, nil)[1].numSeg, 2)
+-- 推薦清單：職業／專精過濾、已加過的跳過、用不了的靜默跳過
+do
+    local rcfg = {}
+    local has = { [190784] = true }
+    local rp = {
+        exists = function(id) return id ~= 296553 end,
+        known = function(id) return id ~= 374227 end,
+        hasCharges = function(id) return has[id] == true end,
+    }
+    local function recs(cls, spec, kind) return PI.CustomRecommendations(rcfg, cls, spec, kind, rp) end
+    eq("推薦：聖騎任何專精都有神性戰馬", recs("PALADIN", 65, "charges")[1].spellID, 190784)
+    eq("推薦：種類不同不給", #recs("PALADIN", 65, "stacks"), 0)
+    eq("推薦：沒列的職業 → 空", #recs("MAGE", 62, "charges"), 0)
+    eq("推薦：術士專屬專精，痛苦 → 空", #recs("WARLOCK", 265, "stacks"), 0)
+    local demo = recs("WARLOCK", 266, "stacks")
+    eq("推薦：惡魔學只剩存在的那一筆", #demo, 1)
+    eq("推薦：帶上限", demo[1].max, 4)
+    eq("推薦：沒學會的充能法術靜默跳過", #recs("EVOKER", 1467, "charges"), 0)
+    has[190784] = nil
+    eq("推薦：換天賦後沒有充能 → 跳過", #recs("PALADIN", 70, "charges"), 0)
+    has[190784] = true
+    PI.AddCustomRow(rcfg, 70, { kind = "charges", spellID = 190784 })
+    eq("推薦：這個專精已經加過 → 跳過", #recs("PALADIN", 70, "charges"), 0)
+    eq("推薦：別的專精照給", #recs("PALADIN", 66, "charges"), 1)
+    eq("推薦：沒有專精 → 空", #recs("PALADIN", nil, "charges"), 0)
+end
 -- 刪除
 check("刪第 1 筆", PI.RemoveCustomRow(ccfg, 65, 1))
 eq("刪掉之後剩層數列", PI.CustomRowList(ccfg, 65)[1].spellID, 2002)
