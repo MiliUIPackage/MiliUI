@@ -628,7 +628,11 @@ function Proto:BeginDrag()
     ns.Sidebar.BeginDrop(press.candidates)
 end
 
--- 游標底下的插入位置：離游標最近的格，決定插在它前面或後面
+-- 游標底下的插入位置：離游標最近的格，決定插在它前面或後面。
+-- 「後面」是清單順序的方向，不一定是右邊／下面：條往上長（長條、直向圖示）時第 1 格在最下面、
+-- 往左長時第 1 格在最右邊。方向照相鄰格的實際位置量（同一列的鄰格最近，換列那格比較遠），
+-- 只有一格時才退回預設（長條往下、圖示往右）。
+-- 回傳 pos, 格子, 插入線畫在格子的哪一邊（"TOP"／"BOTTOM"／"LEFT"／"RIGHT"）
 function Proto:InsertionAt()
     if not self.frame:IsMouseOver() then return nil end
     local cx, cy = Cursor(self.canvas)
@@ -643,9 +647,31 @@ function Proto:InsertionAt()
     if not best then return nil end
     local s = self.slots[best]
     local x, y = s:GetCenter()
-    local after
-    if self.kind == "bars" then after = cy < y else after = cx > x end
-    return best + (after and 1 or 0), s, after
+    -- 清單順序往後的方向向量（dx, dy）
+    local dx, dy
+    local nearD
+    for _, j in ipairs({ best - 1, best + 1 }) do
+        local n = self.slots[j]
+        local nx, ny = n and n:GetCenter()
+        if nx then
+            local d = (nx - x) ^ 2 + (ny - y) ^ 2
+            if d > 0 and (not nearD or d < nearD) then
+                nearD = d
+                if j > best then dx, dy = nx - x, ny - y else dx, dy = x - nx, y - ny end
+            end
+        end
+    end
+    if not dx then
+        if self.kind == "bars" then dx, dy = 0, -1 else dx, dy = 1, 0 end
+    end
+    local after = (cx - x) * dx + (cy - y) * dy > 0
+    local side
+    if math.abs(dx) >= math.abs(dy) then
+        side = ((dx > 0) == after) and "RIGHT" or "LEFT"
+    else
+        side = ((dy > 0) == after) and "TOP" or "BOTTOM"
+    end
+    return best + (after and 1 or 0), s, side
 end
 
 function Proto:DragTick()
@@ -671,7 +697,7 @@ function Proto:DragTick()
         press.pos = nil
         return
     end
-    local pos, s, after = self:InsertionAt()
+    local pos, s, side = self:InsertionAt()
     press.pos = pos
     if not pos then line:Hide() return end
     local invalid = pos <= (self.lockedCount or 0)
@@ -679,11 +705,17 @@ function Proto:DragTick()
     if invalid then line:SetVertexColor(1, 0.2, 0.2, 1) else line:SetVertexColor(W.Accent(1)) end
     line:ClearAllPoints()
     local t = P.Scale(2)
-    if self.kind == "bars" then
-        line:SetPoint(after and "TOPLEFT" or "BOTTOMLEFT", s, after and "BOTTOMLEFT" or "TOPLEFT", 0, after and -1 or 1)
+    if side == "BOTTOM" then
+        line:SetPoint("TOPLEFT", s, "BOTTOMLEFT", 0, -1)
         line:SetSize(s:GetWidth(), t)
+    elseif side == "TOP" then
+        line:SetPoint("BOTTOMLEFT", s, "TOPLEFT", 0, 1)
+        line:SetSize(s:GetWidth(), t)
+    elseif side == "RIGHT" then
+        line:SetPoint("TOPLEFT", s, "TOPRIGHT", 1, 0)
+        line:SetSize(t, s:GetHeight())
     else
-        line:SetPoint(after and "TOPLEFT" or "TOPRIGHT", s, after and "TOPRIGHT" or "TOPLEFT", after and 1 or -1, 0)
+        line:SetPoint("TOPRIGHT", s, "TOPLEFT", -1, 0)
         line:SetSize(t, s:GetHeight())
     end
     line:Show()
