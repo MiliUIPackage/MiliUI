@@ -152,10 +152,39 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 核心／輔助技能用掉後暴雪先倒**增益持續時間**、增益掉了才倒冷卻（`CheckCacheCooldownValuesFromAura` 優先於法術冷卻）。
 **訊號＝`Cooldown:SetUseAuraDisplayTime(旗標)` 後掛勾**：暴雪每次 `RefreshSpellCooldownInfo` 都先設它再 `SetCooldown`，
 旗標是暴雪 Lua 的字面布林（預期明文），記 `rec.auraTime`，`SetCooldown` 後掛勾只多一次 `SetTextColor`。
-主題 `cooldownText.colorDuration`（預設開）＋`durationColor`（黃 1/0.85/0.1）；逐法術 `durationColor` 三態（nil 跟隨／false 不換／色表），
+主題 `icon.colorDuration`（預設開）＋`icon.durationColor`（黃 1/0.85/0.1，**放圖示節、跟「顯示增益持續時間」開關同一組**）；逐法術 `durationColor` 三態（nil 跟隨／false 不換／色表），
 **三態要讀覆寫本身 `ns.SpellOverride`**（SpellSetting 沒覆寫時退回條層、分不出跟隨）。增益兩條／長條／自訂法術沒有這一段、不適用。
-低秒變色（formatter 色碼）兩段都壓過它（決定）。
+低秒變色兩段各一顆 formatter（`icon.durationLowColor` 預設粉 0.95/0.45/0.70、門檻共用）、增益那一段轉圈背景 `icon.durationSwipeColor`（淡黃 a0.5），三色同一個「持續時間換色」開關。
 **Ayije_CDM 從來不顯示持續時間的原因**：逐法術「Show Aura Overlay」預設關（只有內建 DoT 清單預設開），關著時它在 `SetCooldown`
 後掛勾裡 `SetUseAuraDisplayTime(false)` 再用 `GetSpellCooldownDuration` 的 duration 物件重餵、蓋掉暴雪的增益倒數。
-暴雪那邊沒有玩家設定（只有 `CooldownSetSpellFlags.HideAura` 資料旗標）。**待開第二條 plan**：「增益持續中顯示持續時間」開關
-（主題預設顯示＋逐法術覆寫，關＝照 Ayije 那招重餵冷卻 duration 物件），使用者 2026-10-03 已同意等換色驗收後接著做。
+暴雪那邊沒有玩家設定（只有 `CooldownSetSpellFlags.HideAura` 資料旗標）。
+**「增益持續中顯示持續時間」開關已做（2026-10-03，未實機驗證，README 待實機驗證 203～211）**：plan `~/.claude/plans/miliui-cdm-aura-time-toggle.md`。
+主題 `icon.showAuraTime`（預設 true＝暴雪行為）、逐法術三態。關＝`SetCooldown` 後掛勾裡 `FeedRealCooldown`：`SetUseAuraDisplayTime(false)`＋
+餵 `GetSpellCooldownDuration(id,true)`／回充 `GetSpellChargeDuration` 的 duration 物件（拿不到就 Clear），**探針改走 `Glow.ArmProbe`**
+（`Glow.OnItemSetCooldown` 看到增益旗標會直接 return、探針永遠不武裝），去飽和走 `Decorate.DesatCurve`＋`EvaluateRemainingDuration`
+（曲線從 Custom.lua 搬來共用）；自己叫的 SetUseAuraDisplayTime／Clear 用 `overriding` 守衛擋掉自己的後掛勾。
+只做法術類，飾品（裝備欄項目）照暴雪顯示增益。最可能實機翻車：去飽和在冷卻轉好那一刻要等暴雪下一次刷新才還原（207）。
+
+**逐法術的持續時間換色跟主題頁同一套五欄位（2026-10-03，DB v4，未實機驗證）**：使用者要求「個別設定也都要可以獨立設置，
+邏輯和關聯性和主題頁一樣」。逐法術覆寫 `colorDuration`（三態）＋`durationColor`／`durationLowColor`／`durationSwipeColor`（各自 nil 或色表），
+全部走 `SpellSetting` 退回條層；`Decorate.SpellStyle` 解成生效值、`PhaseColors(style, spell)`／`DurationColorOf(on, color)` 改簽章。
+面板：換色下拉（跟隨／換色／不換色）＋三列「自訂」勾選框＋色票（抄邊框顏色那列），停用連動＝顯示增益持續時間 → 換色 → 顏色。
+**舊三態 `durationColor`（false／色表＝條層關著也換）靠 `MIGRATIONS[4]` 拆開**，行為不變。
+**Why:** 逐法術用「一個下拉兼開關與顏色」跟主題頁的「開關＋顏色」是兩套心智模型，使用者要的是同一套。
+**How to apply:** 逐法術覆寫新增欄位時照主題頁的欄位一對一開（SPELL_FALLBACK 指同名路徑），不要把開關折進值裡。
+
+**長條類的條也收自訂項目（2026-10-03，Opus 實作、未實機驗證）**：plan `~/.claude/plans/miliui-cdm-custom-bars.md`。
+框依條的 kind 池化（`rec.frames = { icons, bars }`，`CU.UseFrame`）、搬條換框；法術／物品的條身走
+`StatusBar:SetTimerDuration(duo, nil, RemainingTime)`、秒數用一顆只印數字的 Cooldown（`.Bar.Timer`）讓引擎寫；
+光環長條在 initializeFrame 同時交 `SetDurationBar`＋`SetDurationText`＋`SetApplicationCount`、名字自己寫；
+長條不畫發光（`rec.noGlow`）。Decorate／Text 零改動。最要驗：零長度物件能不能清空條身（`CU.clearPath`）、三個 API 同時交會不會打架、搬條舊框收乾淨。
+**光環格可放任意位置（同日定案）**：拿掉 Catalog 的 AuraPrefix，光環格走同一張 order 表；理由是條上有光環格時固定格位已強制打開、
+位置本來就不動。代價：戰鬥中暴雪清單變動那一場位置可能不對。匯入的光環格現在接在後面（不寫 order）。
+
+## 12.1 冷卻格「正在倒增益時間」的唯一可靠訊號（2026-10-03 實機）
+Cooldown:SetUseAuraDisplayTime(旗標) 的後掛勾：按下技能 true、增益掉了 false、戰鬥中明文。冷卻格的
+IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄位（永遠 false）、IsExpired()（永遠 true，
+暴雪每次刷新幾乎都 Clear）都不能用。冷卻格的「生效期間發光」就接在這個旗標上（rec.auraFlag → Glow.SyncActive）。
+探針埋 log 的坑見 [[wow-121-hook-print-dropped]]。
+「生效期間發光」2026-10-03 起跟觸發／就緒同一套：條層 glow.active（enabled 預設關、樣式／顏色／線條／粗細、跟隨主題），
+逐法術只蓋開關；不要再做逐法術的發光顏色／樣式（使用者明確改回一致）。

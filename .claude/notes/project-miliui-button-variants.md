@@ -60,6 +60,10 @@ metadata:
    「重按會怎樣」—— 使用者原話「這樣不用解釋重複加入清單的話 blablabla 了」。提示裡只留現況數據
    （清單裡幾份、還缺幾樣），「點一下會…」這類操作說明在停用時一律不列。
 
+## 按鈕文字
+
+- 結尾不加「…」／「...」，見 [[feedback-button-no-ellipsis]]。
+
 ## 實作入口
 
 - **自製插件**：`W.CreateButton(parent, text, "primary", w, h)`。這是共用層
