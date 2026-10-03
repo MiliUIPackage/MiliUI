@@ -1,5 +1,8 @@
 ------------------------------------------------------------
--- 資源條的「條件規則」編輯器（資源條頁底下的一段）
+-- 資源條的「條件規則」編輯器（每種資源設定視窗底下的一段，Options/ResourceSettings.lua）
+--
+-- 宿主只要給：一張 Specs.MakeCtx 的 ctx（增刪規則／檢查叫 ctx.apply，宿主在 apply 裡照 FormSignature
+-- 換表單），以及候選清單 cand（只有一種就不出「編輯對象」下拉）。這支不認得任何頁面。
 --
 -- 資料模型、求值語意與白名單在 Modules/ResourceConditions.lua，這支只負責畫表單。
 -- 一條規則長這樣：
@@ -17,7 +20,7 @@
 --
 -- ⚠ **什麼時候可以換表單**：frame 刪不掉，換一份表單就是把舊的藏起來永久留著 ⇒
 -- 連續操作（拖滑桿、打字、調色）一次都不准換。只有「列數真的變了」才換：增刪規則／檢查、
--- 上移、換編輯對象、換目標 —— 那些都會改到 RC.FormSignature，資源條頁照簽章換一份（快取）。
+-- 上移、換編輯對象、換目標 —— 那些都會改到 RC.FormSignature，宿主照簽章換一份（快取）。
 -- 換變數型別與勾選覆寫都**不換** —— 那幾個控件一開始就建好，原地顯示／隱藏。
 ------------------------------------------------------------
 local _, ns = ...
@@ -34,6 +37,7 @@ local ROW_H = 26
 local ROW_H_TALL = 30
 
 -- 現在在編輯哪個資源。**刻意不存進 DB**：那是「面板開在哪一頁」，不是玩家的設定
+-- （設定視窗一次只給一種資源，這裡就是那一種）
 local editKey
 
 local function Cfg() return ns.DB.ConfigTable("resources") end
@@ -130,7 +134,7 @@ local function Hairline(parent, x, y, width)
     return t
 end
 
--- 每一次結構變動都叫 ctx.apply（資源條頁的 apply 會照簽章決定要不要換表單）
+-- 每一次結構變動都叫 ctx.apply（宿主的 apply 會照簽章決定要不要換表單）
 local function Changed(ctx)
     ctx.lastSpec = { structural = true }
     ctx.apply()

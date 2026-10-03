@@ -1,9 +1,10 @@
 ------------------------------------------------------------
 -- 「資源條」頁（profile.resources；引擎在 Modules/Resources.lua）
 --
--- 控件清單照單位框架的資源條分頁改：顯示／尺寸／外觀／顏色與條件／這個專精要顯示哪幾列，
--- 多了法力的數字格式、載入條件（騎乘隱藏、只在戰鬥中、跟核心技能一起淡）與「錨定」一節
--- （跟條頁同一支 Specs.Anchor；key ＝ "resources"）。
+-- 職業資源分頁：顯示 → 這個專精要顯示哪些 → 版面 → 外觀（所有資源的預設）→ 載入條件（騎乘隱藏、只在戰鬥中、
+-- 跟核心技能一起淡）→「錨定」一節（跟條頁同一支 Specs.Anchor；key ＝ "resources"）→ 恢復預設。
+-- 每種資源自己的東西（高、外觀、數字格式、顏色、醉仙緩勁／符文／氣漩／征戰聖擊／血量等職業特有的設定、
+-- 條件規則）在那一列的「設定…」開的視窗裡（Options/ResourceSettings.lua）。
 --
 -- 「自訂格子」一節：整組開關（profile.pips.enabled）＋目前專精的 customRows 清單（法術充能／光環層數），
 -- 一筆三列：名字＋圖示＋種類＋［刪除］、顏色＋（充能）顯示秒數／（層數）上限、顯示時機（下拉）；底下「＋ 新增格子」
@@ -15,11 +16,11 @@
 --
 -- 「這個專精要顯示哪些」一列一個資源：勾選框（resources.rows[specID][key]，分專精）＋上移／下移
 -- （resources.order，不分專精；移一下就把目前候選的完整順序寫回去，見 Modules/Resources.lua 的 R.MergeOrder）。
--- 血量列（Health）的設定在「顏色與條件」那一段：職業色、百分比、門檻換色（彈窗在 Options/HealthThresholds.lua）。
+-- 每列右邊一顆「設定…」開那種資源的設定視窗（一次一個，開另一列就換內容）。
 --
--- 資源清單跟著專精走、條件規則的列數跟著規則走，所以表單照「形狀」快取（專精、候選清單（含順序）、
--- 條件編輯器的結構、自訂格子清單、有沒有錨定、條清單）：形狀變了才另建一份、變回來就拿舊的
--- （frame 刪不掉，每改一次重建一次就是洩漏）。形狀的比對延一幀做（不在按鈕的處理器裡換表單）。
+-- 資源清單跟著專精走，所以表單照「形狀」快取（專精、候選清單（含順序）、自訂格子清單、有沒有錨定、條清單）：
+-- 形狀變了才另建一份、變回來就拿舊的（frame 刪不掉，每改一次重建一次就是洩漏）。
+-- 形狀的比對延一幀做（不在按鈕的處理器裡換表單）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -49,27 +50,6 @@ local function Note(label) return { type = "text", label = label } end
 local FILL_ITEMS = {
     { text = L["Left to right"], value = "ltr" },
     { text = L["Right to left"], value = "rtl" },
-}
-
-local RUNE_TEXT_ITEMS = {
-    { text = L["Seconds left on each rune"], value = "countdown" },
-    { text = L["Ready runes count"],         value = "count" },
-}
-
-local ARCANE_SOUL_ITEMS = {
-    { text = L["Seconds left"],       value = "seconds" },
-    { text = L["Global cooldowns left"], value = "gcd" },
-}
-
-local CRUSADING_FILL_ITEMS = {
-    { text = L["Time since the last swing (fills up)"], value = "elapsed" },
-    { text = L["Time until the next swing (empties)"], value = "remaining" },
-}
-
-local MANA_ITEMS = {
-    { text = L["Full number"],           value = "none" },
-    { text = L["K / M"],                 value = "k" },
-    { text = L["10K / 100M (wan / yi)"], value = "wan" },
 }
 
 -- 重設整張 profile.resources 與 profile.pips（自訂格子的位置／錨定也在這一頁）。
@@ -784,15 +764,6 @@ local function CustomSignature()
 end
 Tab.CustomSignature = CustomSignature
 
--- 條件規則編輯器的候選：引擎寫值的列（auraBar、auraTimer）與血量（秘密值）不列
-function Tab.ConditionCandidates(cand)
-    local out = {}
-    for _, key in ipairs(cand or {}) do
-        if ns.Resources.SupportsConditions(key) then out[#out + 1] = key end
-    end
-    return out
-end
-
 ------------------------------------------------------------
 -- 「這個專精要顯示哪些」：勾選框（同原本的開關）＋ 上移／下移
 ------------------------------------------------------------
@@ -860,78 +831,20 @@ local function ShowRow(cand, i)
         SetArrowEnabled(down, not last)
         up:SetScript("OnClick", function() MoveRow(ctx, key, -1) end)
         down:SetScript("OnClick", function() MoveRow(ctx, key, 1) end)
-        -- 這一列的高（所有專精共用，跟順序一樣）
-        local hl = parent:CreateFontString(nil, "OVERLAY")
-        hl:SetFontObject(W.fontSmall)
-        hl:SetTextColor(0.65, 0.65, 0.65)
-        hl:SetText(L["Height"])
-        hl:SetPoint("LEFT", down, "RIGHT", 12, 0)
-        local hb = W.CreateNumberBox(parent, 40, 1, function(v)
-            local c = Cfg()
-            if not c then return end
-            R.SetKeyHeight(c, key, v)
-            Touched(ctx)
-        end)
-        hb:SetPoint("LEFT", hl, "RIGHT", 6, 0)
+        -- 這一列自己的設定（高、外觀、數字、顏色、條件規則）：開一個小視窗（Options/ResourceSettings.lua）
+        local sb = W.CreateButton(parent, L["Settings…"], "normal", 70, 20)
+        W.FitButton(sb, 70, 20)
+        sb:SetPoint("LEFT", down, "RIGHT", 12, 0)
+        sb:SetScript("OnClick", function() ns.ResourceSettings.Open(key) end)
         local function Refresh()
-            local c = Cfg()
-            cb:SetChecked(R.RowOn(c, ns.specID, key))
-            hb:SetValue(R.KeyRowHeight(c, key))
+            cb:SetChecked(R.RowOn(Cfg(), ns.specID, key))
         end
         Refresh()
         return ROW_TOGGLE_H, Refresh
     end }
 end
 
--- 醉仙緩勁第 3／4 段的顏色：標籤是門檻本身（≥ N%），跟著滑桿改 ⇒ 標籤自己畫、Refresh 時重寫
--- （共用層的色票列標籤建好就固定，門檻放進表單簽章的話拖一次滑桿就多一份表單）
-local TIER_ROW_H = 26
-local function StaggerTierColorRow(tier)
-    local R = ns.Resources
-    return { type = "custom", h = TIER_ROW_H, noReset = true, build = function(parent, x, y, width, ctx)
-        local cy = y - TIER_ROW_H / 2
-        local fs = parent:CreateFontString(nil, "OVERLAY")
-        fs:SetFontObject(W.fontNormal)
-        fs:SetJustifyH("RIGHT")
-        fs:SetWidth(LABEL_W)
-        fs:SetPoint("RIGHT", parent, "TOPLEFT", x - CTRL_GAP, cy)
-        local cp = W.CreateColorPicker(parent, nil, false, function(r, g, b)
-            local c = Cfg()
-            if not c then return end
-            local colors = type(c.colors) == "table" and c.colors or {}
-            c.colors = colors
-            if type(colors.Stagger) ~= "table" then colors.Stagger = {} end
-            colors.Stagger[tier .. "Color"] = { r = r, g = g, b = b, a = 1 }
-            Touched(ctx)
-        end)
-        cp:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
-        local function Refresh()
-            local c = Cfg()
-            fs:SetText(R.StaggerLabel(tier, c))
-            cp:SetColor(R.ResolveColor(c, "Stagger", tier .. "Color"))
-        end
-        Refresh()
-        return TIER_ROW_H, Refresh
-    end }
-end
-
--- 血量門檻那一列：按鈕寫著目前筆數，點開是編輯器（Options/HealthThresholds.lua）
-local function HealthThresholdRow()
-    return { type = "custom", label = "", h = 30, noReset = true, build = function(parent, x, y)
-        local btn = W.CreateButton(parent, L["Health thresholds"], "normal", 160, 22)
-        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
-        local function UpdateText()
-            btn:SetText(("%s  (%d)"):format(L["Health thresholds"], ns.HealthThresholds.Count()))
-            W.FitButton(btn, 160, 22)
-        end
-        btn:SetScript("OnClick", function() ns.HealthThresholds.Open(UpdateText) end)
-        UpdateText()
-        return 30, UpdateText
-    end }
-end
-
 local function Controls(cand, sub)
-    local R = ns.Resources
     if sub == "pips" then
         local only = {}
         AppendCustomRows(only)
@@ -950,7 +863,7 @@ local function Controls(cand, sub)
     else
         for i in ipairs(cand) do add(ShowRow(cand, i)) end
         add(Note(L["The arrows set the stacking order; it's shared by every specialization. Resources you never moved keep their default place below the ones you did."]))
-        add(Note(L["Height is per resource and shared by every specialization too."]))
+        add(Note(L["Height, look, colors and condition rules are set per resource: click Settings… on its row."]))
     end
 
     for _, s in ipairs({
@@ -962,101 +875,20 @@ local function Controls(cand, sub)
         Note(L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
         Note(L["Right to left also lights point-style resources from the right: the first point is the rightmost segment."]),
-        { type = "header", label = L["Appearance"] },
+        -- 外觀（預設）：每種資源可以在自己的設定視窗裡改用自己的外觀（resources.style[key]）
+        { type = "header", label = L["Appearance (default for every resource)"] },
+        Note(L["Each resource can use a different look in its own settings."]),
         BS("dropdown", "texture", L["Texture"], { items = ns.Specs.TextureItems }),
-        BS("dropdown", "bgTexture", L["Background texture"], { items = function()
-            local items = ns.Specs.TextureItems()
-            table.insert(items, 1, { text = L["Same as fill"], value = ns.Media.INHERIT })
-            return items
-        end, get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.bgTexture) end }),
+        BS("dropdown", "bgTexture", L["Background texture"], { items = ns.ResourceSettings.BgTextureItems,
+            get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.bgTexture) end }),
         BS("slider", "barAlpha", L["Fill opacity"], { min = 0.1, max = 1, step = 0.05 }),
         BS("toggle", "smooth", L["Smooth bar changes"]),
         BS("toggle", "showText", L["Show value on the bar"]),
         BS("dropdown", "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textFont) end }),
         BS("slider", "textSize", L["Font size"], { min = 6, max = 24, step = 1 }),
-        BS("dropdown", "manaAbbrev", L["Mana number format"], { items = MANA_ITEMS }),
-        BS("toggle", "manaPercent", L["Mana as percent"]),
         Note(L["Numbers are only printed while the game lets addons read them; the bar itself always moves."]),
     }) do add(s) end
-
-    if #cand > 0 then
-        add({ type = "header", label = L["Colors and conditions"] })
-        for _, key in ipairs(cand) do
-            -- 標籤直接用資源名（暴雪的官方譯名／法術名）
-            add(BS("color", "colors." .. key .. ".color", R.Name(key), { hasAlpha = false }))
-            if key == "ComboPoints" then
-                add(BS("color", "colors.ComboPoints.chargedColor", L["Charged color"], { hasAlpha = false }))
-                add(BS("color", "colors.ComboPoints.chargedEmptyColor", L["Charged (empty)"], { hasAlpha = false }))
-                add(Note(L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."]))
-            elseif key == "Stagger" then
-                -- 中度／重度的標籤是暴雪自己的減益名（中度醉仙緩勁、重度醉仙緩勁）
-                add(BS("color", "colors.Stagger.moderateColor", R.StaggerLabel("moderate"), { hasAlpha = false }))
-                add(BS("color", "colors.Stagger.heavyColor", R.StaggerLabel("heavy"), { hasAlpha = false }))
-                add(BS("slider", "staggerModerateAt", L["Moderate threshold (percent of max health)"], { min = 1, max = 100, step = 1 }))
-                add(BS("slider", "staggerHeavyAt", L["Heavy threshold (percent of max health)"], { min = 1, max = 200, step = 1 }))
-                -- 第 3／4 段：開關＋門檻＋顏色（標籤是門檻本身，見 StaggerTierColorRow）
-                add(BS("toggle", "staggerTier3Enabled", L["Third tier"]))
-                add(BS("slider", "staggerTier3At", L["Third tier threshold (percent of max health)"], { min = 1, max = R.STAGGER_CEILING_MAX, step = 1 }))
-                add(StaggerTierColorRow("tier3"))
-                add(BS("toggle", "staggerTier4Enabled", L["Fourth tier"]))
-                add(BS("slider", "staggerTier4At", L["Fourth tier threshold (percent of max health)"], { min = 1, max = R.STAGGER_CEILING_MAX, step = 1 }))
-                add(StaggerTierColorRow("tier4"))
-                add(Note(L["The third and fourth tiers add colors above heavy stagger. Raise \"Full bar at\" above 100 to see them fill on the bar."]))
-                add(BS("slider", "staggerCeiling", L["Full bar at (percent of max health)"], { min = 10, max = R.STAGGER_CEILING_MAX, step = 5 }))
-                add(Note(L["The color follows how much of your max health is staggered. In instanced combat the numbers are sometimes unreadable; those updates keep the previous color and bar scale."]))
-            elseif key == "Runes" then
-                add(BS("dropdown", "runeText", L["Numbers on runes"], { items = RUNE_TEXT_ITEMS }))
-                add(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show value on the bar\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
-                add(BS("toggle", "runeQueued", L["Count waiting runes"]))
-                add(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
-            elseif key == "IgnorePain" then
-                add(Note(L["Shows only your own Ignore Pain shield, as a percent of how big it can get; the game fills it in itself, so it stays right in combat. Showing the value on the bar prints the percent. Until the bar is ready (for example right after logging in during combat) it falls back to the total of every absorb shield on you, where a full bar is 30 percent of your max health."]))
-            elseif key == "MaelstromWeapon" then
-                add(BS("toggle", "maelstromFold", L["Fold into 5 segments"]))
-                add(Note(L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."]))
-                add(BS("color", "colors.MaelstromWeapon.overflowColor", L["Overflow color"], { hasAlpha = false }))
-            elseif key == "SoulShards" then
-                add(Note(L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."]))
-            elseif key == "Essence" then
-                add(Note(L["The next segment fills up as Essence recharges, a shade darker."]))
-            elseif key == "ArcaneSoul" then
-                add(BS("dropdown", "arcaneSoulText", L["Number on the bar"], { items = ARCANE_SOUL_ITEMS }))
-                add(Note(L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."]))
-            elseif key == "CrusadingStrikes" then
-                add(BS("color", "colors.CrusadingStrikes.backColor", L["Background color"], { hasAlpha = true }))
-                add(BS("dropdown", "crusadingFill", L["Bar fills with"], { items = CRUSADING_FILL_ITEMS }))
-                add(BS("toggle", "crusadingHideBar", L["Hide Crusading Strikes on the buff bars"]))
-                -- 沒在暴雪的追蹤量條裡 ⇒ 這一列沒有來源、一直空著：紅字講清楚（戰鬥中查不到就不講，不猜）
-                if R.CrusadingTracked() == "no" then
-                    add(Note("|cffff5555" .. L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] .. "|r"))
-                end
-                add(Note(L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."]))
-            elseif key == "Ironfur" then
-                add(Note(L["One segment per active application, each draining with its own remaining time."]))
-            elseif key == "Health" then
-                add(BS("toggle", "healthClassColor", L["Use the class color for the fill"]))
-                add(Note(L["While this is on, the color above isn't used."]))
-                add(BS("toggle", "healthPercent", L["Health as percent"]))
-                add(BS("toggle", "healthThresholdEnabled", L["Recolor below a threshold"]))
-                add(Note(L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."]))
-                add(HealthThresholdRow())
-            end
-            local info = R.Info(key)
-            if info and info.crusading then
-                -- 征戰聖擊的說明在上面那段（鏡射暴雪的追蹤量條）
-            elseif info and info.mode == "auraTimer" then
-                -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
-                add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))
-            elseif not R.SupportsConditions(key) and not (info and (info.health or info.mode == "auraPct")) then
-                -- 血量不印這句（條件規則不適用由門檻換色那段帶過）
-                add(Note(L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."]:format(R.Name(key))))
-            end
-        end
-        -- 條件規則只給 Lua 讀得到值的列（引擎寫的沒有值可比）
-        local condCand = Tab.ConditionCandidates(cand)
-        if #condCand > 0 then ns.ResourceConditionsUI.Append(list, condCand) end
-    end
 
     add({ type = "header", label = L["Load conditions"] })
     add(BS("toggle", "loadConditions.hideMounted", L["Hide while mounted"]))
@@ -1085,11 +917,8 @@ local function Signature()
     return table.concat({
         currentSub,
         tostring(specID), table.concat(cand, ","),
-        ns.ResourceConditionsUI.FormSignature(Tab.ConditionCandidates(cand)),
         CustomSignature(),
         type(cfg.anchor) == "table" and "a" or "-",
-        -- 氣漩武器摺疊改了格數：條件規則的「第幾格」選單跟著換
-        cfg.maelstromFold and "f" or "-",
         type(ns.DB.GetPath(ns.DB.ConfigTable(PIPS), "anchor")) == "table" and "pa" or "-",
         table.concat(p and p.barOrder or {}, ","),
         ns.Specs.AnchorGraphSig(),
@@ -1150,15 +979,17 @@ function Tab.Build(parent, title)
         ns.Resources.Apply()
         -- 自訂格子：清單、樣式（列高、格距…）與它自己的位置／錨定都在這一頁
         if ns.Pips then ns.Pips.Apply() end
-        -- 顏色與條件規則（條件編輯器直接叫 ctx.apply，分不出是哪一格）：跟隨我們的插件重畫，合併節流
+        -- 外觀、恢復預設（顏色可能一起變）：跟隨我們顏色的插件重畫，合併節流
         if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
         if ns.Fire then ns.Fire("BarsListChanged") end
-        -- 形狀可能變了（規則增刪、錨定開關、開關列）：延一幀再比對，不在按鈕的處理器裡換表單
+        -- 形狀可能變了（自訂格子增刪、錨定開關、開關列）：延一幀再比對，不在按鈕的處理器裡換表單。
+        -- 每種資源的設定視窗開著的話一起重讀（跟著全域外觀時顯示的是這一頁的值）
         ns.Defer(function()
             if page:IsVisible() and (page.sig ~= Signature() or (spec and spec.refreshPage)) then
                 page:RefreshForm()
             end
+            ns.ResourceSettings.Refresh()
         end)
     end
 
@@ -1195,8 +1026,9 @@ function Tab.Build(parent, title)
             if b.id == sub and highlightSub then highlightSub(b) end
         end
         if changed then
-            -- 換分頁：捲回最上面（同一個分頁裡換表單形狀才維持捲動位置）
+            -- 換分頁：捲回最上面（同一個分頁裡換表單形狀才維持捲動位置）；每種資源的設定視窗屬於職業資源分頁
             self.form = nil
+            ns.ResourceSettings.Close()
         end
         self:RefreshForm()
     end
@@ -1205,6 +1037,9 @@ function Tab.Build(parent, title)
     function page:OnShowPage()
         self:SetSub(currentSub)
     end
+
+    -- 離開這一頁：每種資源的設定視窗一起收（它不是暴雪框，沒有別的地方會關它）
+    page:HookScript("OnHide", function() ns.ResourceSettings.Close() end)
 
     return page
 end

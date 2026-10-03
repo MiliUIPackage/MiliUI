@@ -27,6 +27,8 @@
 --      無視苦痛百分比條（auraPct：畫法、退路、層數文字簽章）、氣漩武器摺疊（Folded／FoldRange／格數）、
 --      醉仙緩勁 4 段（StaggerBand／StaggerTiers／StaggerCeiling／標籤）、秘法靈魂剩幾個 GCD（GcdLength／ReadGcd／
 --      GcdFormatter 的分段）、分專精開關（SetRow／SpecCandidates／MigrateFlatRows／設定遷移 v3）
+--  13. 每種資源自己的外觀（R.StyleFor 代理表：跟／不跟、退回全域、非外觀欄位照讀、唯讀、不可遍歷、
+--      快取在 R.Apply 後作廢）、預設 style 空表、DefaultFor 回 nil
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -1362,6 +1364,83 @@ do
     eq("背景挑了 → 那張", R.BgTexture({ texture = "a", bgTexture = "b" }), "TEX:b")
     eq("資源條預設：背景跟填充", ns.DB.BuildDefaults().profile.resources.bgTexture, "INHERIT")
     ns.Media = saveMedia
+end
+
+-- 每種資源自己的外觀（R.StyleFor：resources.style[key]，P6）
+do
+    local d = ns.DB.BuildDefaults().profile.resources
+    check("預設：style 是空表", type(d.style) == "table" and next(d.style) == nil)
+    eq("DefaultFor 外觀欄位 → nil（右鍵重設＝回到跟隨）", ns.DB.DefaultFor("bar", "resources", "style.Mana.texture"), nil)
+    eq("DefaultFor 跟隨 → nil", ns.DB.DefaultFor("bar", "resources", "style.Mana.follow"), nil)
+
+    local cfg = { texture = "g", bgTexture = "INHERIT", barAlpha = 1, smooth = true, showText = true,
+                  textFont = "INHERIT", textSize = 14, manaAbbrev = "wan", fillDirection = "rtl",
+                  colors = { Mana = { color = { r = 0, g = 0, b = 1 } } } }
+    eq("style 整張沒有：回原表", R.StyleFor(cfg, "Mana"), cfg)
+    check("style 整張沒有：跟", R.StyleFollows(cfg, "Mana"))
+    eq("不是表：原樣回", R.StyleFor(nil, "Mana"), nil)
+    cfg.style = {}
+    eq("這一種沒存：回原表", R.StyleFor(cfg, "Mana"), cfg)
+    cfg.style.Mana = { texture = "own" }
+    eq("follow 沒存＝跟：回原表（存了別的欄位也不讀）", R.StyleFor(cfg, "Mana"), cfg)
+    cfg.style.Mana.follow = true
+    eq("follow true：回原表", R.StyleFor(cfg, "Mana"), cfg)
+    check("follow true：跟", R.StyleFollows(cfg, "Mana"))
+
+    cfg.style.Mana = { follow = false, texture = "own", showText = false, textSize = 9, manaAbbrev = "none", colors = {} }
+    check("follow false：不跟", not R.StyleFollows(cfg, "Mana"))
+    local px = R.StyleFor(cfg, "Mana")
+    check("follow false：代理表（不是原表）", px ~= cfg and type(px) == "table")
+    eq("自己的欄位優先", px.texture, "own")
+    eq("自己存的 false 不會退回全域", px.showText, false)
+    eq("自己的字級", px.textSize, 9)
+    eq("沒存的外觀欄位退回全域", px.barAlpha, 1)
+    eq("沒存的外觀欄位退回全域（布林）", px.smooth, true)
+    eq("非外觀欄位照讀原表（style 裡同名的不算）", px.manaAbbrev, "wan")
+    eq("非外觀欄位：colors 是原表那張", px.colors, cfg.colors)
+    eq("非外觀欄位：填充方向", ns.FillReversed(px), true)
+    eq("follow 欄位本身不外漏", px.follow, nil)
+    eq("其他資源照舊回原表", R.StyleFor(cfg, "Rage"), cfg)
+    eq("同一種資源：快取同一張", R.StyleFor(cfg, "Mana"), px)
+    -- 讀值是即時的：之後改 style 的欄位照樣讀得到（同一張 style[key] 不必重建）
+    cfg.style.Mana.barAlpha = 0.5
+    eq("即時讀 style", px.barAlpha, 0.5)
+    cfg.style.Mana.barAlpha = nil
+    eq("清掉退回全域", px.barAlpha, 1)
+
+    -- 唯讀、不能被當設定表遍歷
+    local ok = pcall(function() px.texture = "x" end)
+    check("代理表寫入會報錯", not ok)
+    eq("寫入失敗沒有落地", rawget(px, "texture"), nil)
+    local n = 0
+    for _ in pairs(px) do n = n + 1 end
+    eq("pairs 遍歷不到任何欄位（不是設定表）", n, 0)
+
+    -- 背景材質走代理表：自己的填充、全域的「跟填充相同」
+    local saveMedia = ns.Media
+    ns.Media = { INHERIT = "INHERIT", Texture = function(t) return "TEX:" .. tostring(t) end }
+    eq("背景跟填充：用自己的填充材質", R.BgTexture(px), "TEX:own")
+    cfg.style.Mana.bgTexture = "bgOwn"
+    eq("自己挑了背景", R.BgTexture(px), "TEX:bgOwn")
+    ns.Media = saveMedia
+
+    -- 數字格式（manaAbbrev）不搬家：代理表照讀全域的
+    local fs = { SetText = function(self, t) self.t = t end }
+    R.SetNumberText(fs, 25000, 50000, px)
+    eq("法力格式照全域（萬）", fs.t, "2.5wan")
+
+    -- 作廢：R.Apply 之後換一張；cfg／style[key] 換了表也換一張
+    R.Apply()
+    local px2 = R.StyleFor(cfg, "Mana")
+    check("R.Apply 後快取作廢（新的一張）", px2 ~= px and px2.texture == "own")
+    cfg.style.Mana = { follow = false, texture = "other" }
+    local px3 = R.StyleFor(cfg, "Mana")
+    check("style[key] 換了表：新的一張", px3 ~= px2 and px3.texture == "other")
+    local cfg2 = { texture = "g2", style = { Mana = cfg.style.Mana } }
+    local px4 = R.StyleFor(cfg2, "Mana")
+    check("設定檔換了（另一張 cfg）：新的一張、退回的是新 cfg", px4 ~= px3 and px4.barAlpha == nil and px4.texture == "other")
+    cfg.style.Mana.follow = nil
+    eq("切回跟隨：立刻回原表", R.StyleFor(cfg, "Mana"), cfg)
 end
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
