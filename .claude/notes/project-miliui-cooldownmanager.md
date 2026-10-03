@@ -180,3 +180,9 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 長條不畫發光（`rec.noGlow`）。Decorate／Text 零改動。最要驗：零長度物件能不能清空條身（`CU.clearPath`）、三個 API 同時交會不會打架、搬條舊框收乾淨。
 **光環格可放任意位置（同日定案）**：拿掉 Catalog 的 AuraPrefix，光環格走同一張 order 表；理由是條上有光環格時固定格位已強制打開、
 位置本來就不動。代價：戰鬥中暴雪清單變動那一場位置可能不對。匯入的光環格現在接在後面（不寫 order）。
+
+## 12.1 冷卻格「正在倒增益時間」的唯一可靠訊號（2026-10-03 實機）
+Cooldown:SetUseAuraDisplayTime(旗標) 的後掛勾：按下技能 true、增益掉了 false、戰鬥中明文。冷卻格的
+IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄位（永遠 false）、IsExpired()（永遠 true，
+暴雪每次刷新幾乎都 Clear）都不能用。冷卻格的「生效期間發光」就接在這個旗標上（rec.auraFlag → Glow.SyncActive）。
+探針埋 log 的坑見 [[wow-121-hook-print-dropped]]。

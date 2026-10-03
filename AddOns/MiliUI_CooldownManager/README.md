@@ -349,6 +349,10 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   生效看暴雪 item 的 `IsActive()`（後掛勾 `OnActiveStateChanged`）；讀不到一律不亮，「沒生效也顯示」的灰圖示不會亮。
   同一格開了**層數發光**（見「層數門檻發光＋長條層數門檻換色」）時生效發光不畫（互斥，層數的為準）。
   覆寫分組自成 `activeGlow`：條頁「清除發光覆寫」不會清掉。從 Ayije 匯入 `spellRegistry[spec].glowEnabled／glowColors`。
+  **暴雪的冷卻格（核心／輔助，含搬進自訂群組的）也有**（2026-10-03，反魔法護罩使用中要亮）：「生效」＝暴雪正在倒增益時間，
+  訊號是 `Cooldown:SetUseAuraDisplayTime(旗標)` 的後掛勾（`rec.auraFlag`，值變了就 `Glow.SyncActive`）。實機 log 確認：
+  按下去 true、增益掉了 false、戰鬥中是明文。冷卻格的 `IsActive()`／item 的 `cooldownUseAuraDisplayTime` 欄位／`IsExpired()`
+  在 12.1 都不能用（各自跟著重排翻、永遠 false、永遠 true）。自訂法術／物品沒有「先倒增益」那段，不提供。
   自訂光環格吃同一個開關：發光在 `initializeFrame` 裡用 MiliUIGlow 的 Attach 系列建在引擎按鈕底下（按鈕只在光環存在時顯示），
   樣式／顏色／格子尺寸進容器簽章，改了換容器、戰鬥中改等脫戰。
 - **就緒發光**：探針（見「與計畫不同」第 28 條）；亮 `glow.ready.duration` 秒（預設 3），期間技能用掉（進了新的冷卻，GCD 不算）就提早熄；回充中的多充能技能不提早熄（暴雪每次 GCD 都重設充能計時，分不出來）。

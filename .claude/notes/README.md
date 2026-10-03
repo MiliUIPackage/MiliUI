@@ -81,6 +81,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-keyboard-capture-blocks-bindings.md](wow-keyboard-capture-blocks-bindings.md) | 鍵盤啟用又不轉發的框會擋掉**全部**快捷鍵含 ESC —— 擷取按鍵要用顯示／隱藏覆蓋層 |
 | [wow-uispecialframes-login-closed.md](wow-uispecialframes-login-closed.md) | 登記 UISpecialFrames（ESC 關）的彈窗在 PLAYER_LOGIN 開會被 CloseAllWindows 收掉；登入時的必選彈窗不能登記 |
 | [wow-actionbar-text-overlay-level-500.md](wow-actionbar-text-overlay-level-500.md) | 快捷鍵文字層在 MEDIUM level 500 —— 自訂 HUD 被按鍵文字蓋住的成因；墊 level 不要改 strata |
+| [wow-121-hook-print-dropped.md](wow-121-hook-print-dropped.md) | 戰鬥中在 Cooldown setter 的後掛勾裡直接 print 沒輸出也不報錯；探針要收字串、下一幀再印 |
 | [wow-actionbar-taint-blame.md](wow-actionbar-taint-blame.md) | MultiBar SetAttribute 被封鎖卻牽拖到不碰快捷列的插件 —— 共用表汙染的指紋與 taintLog 診斷法 |
 | [wow-frame-vs-texture-layering.md](wow-frame-vs-texture-layering.md) | 子 frame 永遠畫在父層貼圖之上，**跟 DrawLayer 無關** —— 貼圖被蓋住時調 layer 是白費工 |
 | [wow-toplevel-flattens-child-strata.md](wow-toplevel-flattens-child-strata.md) | toplevel 框隱含 render layer flattening，子孫的 SetFrameStrata 在繪製上無效、照祖先那層畫 —— strata 要設在祖先上 |

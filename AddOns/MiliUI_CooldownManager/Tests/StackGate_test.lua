@@ -533,6 +533,28 @@ do
 end
 
 ------------------------------------------------------------
+-- 7b. 冷卻格的生效發光：看 rec.auraFlag（暴雪正在倒增益時間），不看 IsActive
+------------------------------------------------------------
+do
+    overrides[60] = { activeGlow = true }
+    local it = Item({ active = true })
+    local rec = Rec(it, "essential", 60)
+    rec.claimKey = "essential"
+    G.SyncActive(it, rec, "essential")
+    check("冷卻格：沒在倒增益 ⇒ 不亮（IsActive 是真也不算）", not (rec.glowOn and rec.glowOn.active))
+    rec.auraFlag = true
+    G.SyncActive(it, rec, "essential")
+    check("冷卻格：倒增益中 ⇒ 亮", rec.glowOn and rec.glowOn.active ~= nil)
+    rec.auraFlag = false
+    G.SyncActive(it, rec, "essential")
+    check("冷卻格：增益掉了 ⇒ 熄", not (rec.glowOn and rec.glowOn.active))
+    overrides[60].activeGlow = nil
+    rec.auraFlag = true
+    G.SyncActive(it, rec, "essential")
+    check("冷卻格：沒開這個法術 ⇒ 不亮", not (rec.glowOn and rec.glowOn.active))
+end
+
+------------------------------------------------------------
 -- 8. 已還給暴雪：什麼都不做
 ------------------------------------------------------------
 do

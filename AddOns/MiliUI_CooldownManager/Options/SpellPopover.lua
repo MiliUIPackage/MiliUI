@@ -612,7 +612,9 @@ local function Build()
     -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色，下一列樣式（沒挑過＝ glow.active 的預設）；
     -- 右鍵整列全清。標題的圖示即時預覽
     buildTab = "glow"
-    local ar, ah = NewRow(L["Glow while active"], function(_, class) return class == "aura" end)
+    -- 暴雪的冷卻格也有（kind ＝ nil）：生效＝暴雪正在倒增益時間（Core/Glow.lua 的 SyncActive）
+    local function ActiveGlowRow(kind, class) return class == "aura" or kind == nil end
+    local ar, ah = NewRow(L["Glow while active"], ActiveGlowRow)
     local acb = W.CreateCheckButton(ar, nil, function(on)
         if not cur then return end
         ns.DB.SetOverride(cur.id, "activeGlow", on and true or nil)
@@ -652,7 +654,7 @@ local function Build()
             Changed()
         end
     end)
-    local tr2 = NewRow(L["Glow style"], function(_, class) return class == "aura" end)
+    local tr2 = NewRow(L["Glow style"], ActiveGlowRow)
     local tdd = W.CreateDropdown(tr2, ROW_W - CTRL_X, GlowTypeItems(), function(value)
         if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
         ns.DB.SetOverride(cur.id, "activeGlowType", value)
@@ -1169,7 +1171,7 @@ function Pop.Refresh()
         W.FitButton(frame.stackColorsBtn, ROW_W - CTRL_X, 22)
     end
     if ns.Glow and ns.Glow.PreviewActive then
-        ns.Glow.PreviewActive(frame.glowHost, key, class == "aura" and id or nil)
+        ns.Glow.PreviewActive(frame.glowHost, key, (class == "aura" or kind == nil) and id or nil)
     end
     frame.iconClear:SetEnabled(Override("customIcon") ~= nil)
     -- 語音播報：勾著＝有覆寫（true 或字串）；換了一格才清輸入框（同一格沒勾時保留剛打的字）
