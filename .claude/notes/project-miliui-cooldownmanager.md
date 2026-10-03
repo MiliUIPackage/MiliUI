@@ -157,5 +157,10 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 低秒變色（formatter 色碼）兩段都壓過它（決定）。
 **Ayije_CDM 從來不顯示持續時間的原因**：逐法術「Show Aura Overlay」預設關（只有內建 DoT 清單預設開），關著時它在 `SetCooldown`
 後掛勾裡 `SetUseAuraDisplayTime(false)` 再用 `GetSpellCooldownDuration` 的 duration 物件重餵、蓋掉暴雪的增益倒數。
-暴雪那邊沒有玩家設定（只有 `CooldownSetSpellFlags.HideAura` 資料旗標）。**待開第二條 plan**：「增益持續中顯示持續時間」開關
-（主題預設顯示＋逐法術覆寫，關＝照 Ayije 那招重餵冷卻 duration 物件），使用者 2026-10-03 已同意等換色驗收後接著做。
+暴雪那邊沒有玩家設定（只有 `CooldownSetSpellFlags.HideAura` 資料旗標）。
+**「增益持續中顯示持續時間」開關已做（2026-10-03，未實機驗證，README 待實機驗證 203～211）**：plan `~/.claude/plans/miliui-cdm-aura-time-toggle.md`。
+主題 `icon.showAuraTime`（預設 true＝暴雪行為）、逐法術三態。關＝`SetCooldown` 後掛勾裡 `FeedRealCooldown`：`SetUseAuraDisplayTime(false)`＋
+餵 `GetSpellCooldownDuration(id,true)`／回充 `GetSpellChargeDuration` 的 duration 物件（拿不到就 Clear），**探針改走 `Glow.ArmProbe`**
+（`Glow.OnItemSetCooldown` 看到增益旗標會直接 return、探針永遠不武裝），去飽和走 `Decorate.DesatCurve`＋`EvaluateRemainingDuration`
+（曲線從 Custom.lua 搬來共用）；自己叫的 SetUseAuraDisplayTime／Clear 用 `overriding` 守衛擋掉自己的後掛勾。
+只做法術類，飾品（裝備欄項目）照暴雪顯示增益。最可能實機翻車：去飽和在冷卻轉好那一刻要等暴雪下一次刷新才還原（207）。
