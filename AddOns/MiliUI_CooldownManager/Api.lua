@@ -80,12 +80,22 @@ local function ItemLines(out)
                 local by = B and B.ReplacedBy and B.ReplacedBy(rec.cooldownID)
                 local rep = (by and ("（被 " .. tostring(by) .. " 取代）") or "")
                     .. (rec.replacing and ("（取代 " .. tostring(rec.replacing) .. "）") or "")
-                out[#out + 1] = ("    %s #%s id=%s%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s")
+                -- 冷卻框（轉圈＋倒數字）：隱藏 GCD 轉圈會整個調它的 alpha、增益那段可能被改餵技能冷卻
+                -- （Core/Decorate.lua）—— 「發光會亮、倒數不顯示」要看這幾欄
+                local info = ns.Catalog.Info(rec.cooldownID)
+                local cdf = rawget(item, "Cooldown")
+                local cdInfo = (" 法術=%s/%s%s 冷卻框 alpha=%s%s%s%s"):format(
+                    tostring(info and info.spellID), tostring(info and info.overrideSpellID),
+                    (info and info.charges) and " 充能" or "",
+                    cdf and Num(Read(cdf, "GetAlpha")) or "✕",
+                    (rec.style and rec.style.hideGCD) and " 藏GCD" or "",
+                    rec.auraFlag and " 增益中" or "", rec.auraHidden and "（改餵冷卻）" or "")
+                out[#out + 1] = ("    %s #%s id=%s%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s%s")
                     :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID), rep,
                             tostring(Read(item, "IsShown")), alpha, Num(Read(item, "GetScale")),
                             Num(w), Num(h), tostring(point), relName, Num(x), Num(y),
                             tostring(rec.claimKey or "—"), rec.parked and " 停放" or "",
-                            st and (" 冷卻狀態=" .. st .. (rec.stateHidden and "（藏）" or "")) or "")
+                            st and (" 冷卻狀態=" .. st .. (rec.stateHidden and "（藏）" or "")) or "", cdInfo)
             end, key)
             if n == 0 then out[#out + 1] = ("    %s（沒有作用中的 item）"):format(key) end
         end
@@ -93,10 +103,11 @@ local function ItemLines(out)
     local _ = B
 end
 
-local function Debug()
+-- silent ＝ 不印聊天框（設定視窗的除錯分頁「重新產生」用）；回傳不帶色碼的輸出行
+local function Debug(silent)
     local dump = {}
     local function p(line)
-        print(line)
+        if not silent then print(line) end
         -- 存檔裡不留色碼
         dump[#dump + 1] = (tostring(line):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
     end
@@ -281,10 +292,22 @@ local function Debug()
             xpcall(ItemLines, ns.ReportError, dump)
         end
         ns.Diag.SaveDump(dump)
-        print("  |cffaaaaaa（這份輸出已存檔；/reload 或登出後寫進 SavedVariables）|r")
+        if not silent then print("  |cffaaaaaa（這份輸出已存檔；/reload 或登出後寫進 SavedVariables）|r") end
     end
+    return dump
 end
 ns.Debug = Debug
+
+-- 設定視窗除錯分頁的全文：debug 輸出＋完整的診斷記錄（聊天框只印最近幾行）。玩家整段複製貼給作者
+function ns.DebugText()
+    local lines = Debug(true)
+    if ns.Diag and ns.Diag.Count and ns.Diag.Count() > 0 then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = "  完整診斷記錄（新→舊）："
+        for _, line in ipairs(ns.Diag.Lines(ns.Diag.Count())) do lines[#lines + 1] = "   " .. line end
+    end
+    return table.concat(lines, "\n")
+end
 
 ------------------------------------------------------------
 -- /mcdm aura：每個光環格的持有框／容器／所在條容器的 IsProtected、待辦旗標、最近錯誤
@@ -336,6 +359,8 @@ SlashCmdList.MILIUICDM = function(msg)
         ns.Print(shown and L["Minimap button shown."] or L["Minimap button hidden. Type /mcdm minimap to bring it back."])
     elseif msg == "debug" then
         Debug()
+        -- 設定視窗多一個「除錯」分頁（這次登入期間一直在），直接切過去：玩家全選複製就能貼給作者
+        if ns.ready and ns.Options and ns.Options.ShowDebugTab then ns.Options.ShowDebugTab() end
     elseif msg == "aura" then
         AuraDebug()
     elseif msg == "release" then

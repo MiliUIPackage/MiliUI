@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 -- 主設定視窗：700×520。上緣外側四個分頁鈕（一般／主題／設定檔／關於，跟套組其他插件同款，
--- 也是拖曳把手）；「一般」分頁裡是左欄導覽（Options/Sidebar.lua）＋ 右側一頁一頁，
+-- 也是拖曳把手；打過 /mcdm debug 之後多一個「除錯」，這次登入期間一直在）；「一般」分頁裡是左欄導覽（Options/Sidebar.lua）＋ 右側一頁一頁，
 -- 其餘三頁佔滿整個視窗。
 --
 -- 頁面是懶建的：Options.RegisterPage(id, title, build) 只登記，第一次切過去才建。
@@ -36,15 +36,17 @@ local TABS = {
     { id = "theme",   label = L["Theme"] },
     { id = "profile", label = L["Profiles"] },
     { id = "about",   label = L["About"] },
+    { id = "debug",   label = L["Debug"], hidden = true },   -- /mcdm debug 之後才出現
 }
 -- 佔滿整個視窗的頁（不是「一般」分頁裡的）
-local FULL_PAGES = { theme = true, profile = true, about = true }
+local FULL_PAGES = { theme = true, profile = true, about = true, debug = true }
 Options.FULL_PAGES = FULL_PAGES
 
 local panel, closeBtn, content, fullContent
 local tabButtons, highlightTab = {}, nil
 local pages, pageDefs = {}, {}
 local currentPage, currentTab
+local debugTabOn = false
 
 ------------------------------------------------------------
 -- 頁面登記
@@ -285,6 +287,7 @@ local function CreatePanel()
             b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
         end
         W.MakeDragHandle(b, panel, SavePosition)
+        if tab.hidden then b:SetShown(debugTabOn) end
         prev = b
         tabButtons[i] = b
     end
@@ -362,6 +365,63 @@ Options.RegisterPage("about", L["About"], function(parent, title)
     return page
 end)
 
+-- 除錯：/mcdm debug 的全文＋完整診斷記錄，玩家全選複製貼給作者（比找存檔直覺）。
+-- 內容是程式產生的：一被輸入就還原（跟 W.CreateCopyBox 同一招），但要捲得動所以不用 CopyBox
+Options.RegisterPage("debug", L["Debug"], function(parent, title)
+    local page, y = Options.NewPage(parent, title)
+    local note = page:CreateFontString(nil, "OVERLAY")
+    note:SetFontObject(W.fontSmall)
+    note:SetTextColor(0.65, 0.65, 0.65)
+    note:SetPoint("TOPLEFT", PAGE_PAD + 4, y - 4)
+    note:SetWidth(PAGE_W_FULL - 8)
+    note:SetJustifyH("LEFT")
+    note:SetText(L["Click Select all, press Ctrl+C to copy, then paste it to the author."])
+    local noteH = math.max(14, math.ceil(note:GetStringHeight()))
+
+    local BTN_ROW = 22 + 12
+    local boxTop = y - 4 - noteH - 8
+    local box = W.CreateScrollEditBox(page, PAGE_W_FULL, PANEL_H + boxTop - PAGE_PAD - BTN_ROW)
+    box:SetPoint("TOPLEFT", PAGE_PAD, boxTop)
+    local eb = box.editBox
+    eb:SetFontObject(W.fontSmall)
+    local text = ""
+    local function Fill()
+        eb:SetText(text)
+        eb:SetCursorPosition(0)
+    end
+    eb:SetScript("OnTextChanged", function(_, userInput)
+        if userInput then Fill() end
+    end)
+
+    local selectBtn = W.CreateButton(page, L["Select all"], "primary", 100, 22)
+    W.FitButton(selectBtn, 100, 22)
+    selectBtn:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -12)
+    selectBtn:SetScript("OnClick", function()
+        eb:SetFocus()
+        eb:HighlightText()
+    end)
+    local regenBtn = W.CreateButton(page, L["Refresh"], "normal", 100, 22)
+    W.FitButton(regenBtn, 100, 22)
+    regenBtn:SetPoint("LEFT", selectBtn, "RIGHT", 6, 0)
+
+    function page:OnShowPage()
+        local ok, t = xpcall(ns.DebugText, ns.ReportError)
+        text = ok and t or ""
+        Fill()
+    end
+    regenBtn:SetScript("OnClick", function() page:OnShowPage() end)
+    return page
+end)
+
+-- /mcdm debug：分頁鈕現身（這次登入期間一直在）並切過去
+function Options.ShowDebugTab()
+    debugTabOn = true
+    for _, b in ipairs(tabButtons) do
+        if b.id == "debug" then b:Show() end
+    end
+    Options.Open("debug")
+end
+
 ------------------------------------------------------------
 -- 開關
 ------------------------------------------------------------
@@ -378,7 +438,10 @@ function Options.Open(pageId)
     panel:Show()
     panel:Raise()        -- 已開但被別的對話框蓋住時拉到最前（關閉鈕跟著抬，見 CreateCloseButton）
     local w = WindowDB()
-    Options.ShowPage(pageId or (w and w.lastBar) or "essential")
+    local last = w and w.lastBar
+    -- 上次停在除錯分頁、但這次登入還沒打過 /mcdm debug（分頁鈕藏著）⇒ 回第一頁
+    if last == "debug" and not debugTabOn then last = nil end
+    Options.ShowPage(pageId or last or "essential")
 end
 
 -- 從編輯模式點一下藍框、畫面上的點擊層直接跳到某條的頁面（自訂群組也要開得到）
