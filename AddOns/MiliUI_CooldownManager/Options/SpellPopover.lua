@@ -86,6 +86,14 @@ local TOGGLES = {
     { field = "hideStackText",    label = L["Hide stacks"] },
 }
 
+-- 「跟隨這一條」寫明條的名字（『核心技能』『我的爆發』…）：面板開在哪一條就是哪一條，自訂群組也顯示自己的名字
+local function BarName()
+    local key = cur and cur.key
+    return key and (ns.Options.PageTitle(key) or ns.Options.BarTitle(key)) or key or "?"
+end
+local function FollowText() return L["Follow “%s”"]:format(BarName()) end
+local followItems = {}   -- 第一項是「跟隨『條名』」的下拉的 items 表：Refresh 時改字
+
 local function Override(field)
     local sp = ns.DB.SpecSpells(false)
     local o = sp and type(sp.overrides) == "table" and cur and sp.overrides[cur.id]
@@ -312,7 +320,8 @@ local function Build()
 
     -- 冷卻狀態（冷卻類才有）：第一項「跟隨這一條」＝清掉覆寫；變暗的透明度逐法術不另給（吃條的值）
     local csr, csh = NewRow(L["Cooldown state"], NotAura)
-    local csItems = { { text = L["Follow this bar"], value = false } }
+    local csItems = { { text = FollowText(), value = false } }
+    followItems[#followItems + 1] = { items = csItems, dd = nil }
     for _, it in ipairs(ns.Specs.CDSTATE_ITEMS) do csItems[#csItems + 1] = it end
     local csdd = W.CreateDropdown(csr, ROW_W - CTRL_X, csItems, function(value)
         if not cur then return end
@@ -322,13 +331,14 @@ local function Build()
     csdd:SetMaxWidth(ROW_W - CTRL_X)
     csdd:SetPoint("LEFT", csr, "LEFT", CTRL_X, 0)
     frame.cdStateDD = csdd
+    followItems[#followItems].dd = csdd
     RightClickClears(csr, csh, "cdState")
 
     -- 增益持續中顯示持續時間（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）
     local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
     local atr, ath = NewRow(L["Show buff duration"], BlizzCooldown)
     local atItems = {
-        { text = L["Follow this bar"], value = "follow" },
+        { text = FollowText(), value = "follow" },
         { text = L["Show"],            value = "show" },
         { text = L["Don't show"],      value = "hide" },
     }
@@ -342,13 +352,14 @@ local function Build()
     atdd:SetMaxWidth(ROW_W - CTRL_X)
     atdd:SetPoint("LEFT", atr, "LEFT", CTRL_X, 0)
     frame.auraTimeDD = atdd
+    followItems[#followItems + 1] = { items = atItems, dd = atdd }
     RightClickClears(atr, ath, "showAuraTime")
 
     -- 持續時間換色＋三個顏色（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）：五個欄位跟主題頁同一套、
     -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 三個顏色列停用（Refresh）
     local cdr, cdh = NewRow(L["Color while buff lasts"], BlizzCooldown)
     local cdItems = {
-        { text = L["Follow this bar"], value = "follow" },
+        { text = FollowText(), value = "follow" },
         { text = L["Recolor"],         value = "on" },
         { text = L["Don't recolor"],   value = "off" },
     }
@@ -362,6 +373,7 @@ local function Build()
     cddd:SetMaxWidth(ROW_W - CTRL_X)
     cddd:SetPoint("LEFT", cdr, "LEFT", CTRL_X, 0)
     frame.colorDurDD = cddd
+    followItems[#followItems + 1] = { items = cdItems, dd = cddd }
     RightClickClears(cdr, cdh, "colorDuration")
 
     -- 顏色列：勾「自訂」才寫覆寫（初值＝目前生效的顏色），色票只在自訂時能動；跟上面的邊框顏色同一套
@@ -790,6 +802,11 @@ function Pop.Refresh()
     end
     local class = SoundClass(id, kind)
     Layout(kind, class)
+    -- 「跟隨『條名』」：面板開在哪一條就寫哪一條的名字（下面各下拉 SetSelectedValue 時會重寫顯示文字）
+    for _, f in ipairs(followItems) do
+        f.items[1].text = FollowText()
+        if f.dd then f.dd:SetItems(f.items) end
+    end
 
     frame.barDD:SetItems(BarItems(id))
     if kind then
@@ -815,7 +832,7 @@ function Pop.Refresh()
         else
             local src = ns.DB.SpellFallbackSource(key, r.field)
             r.note:SetText(src == "theme" and L["(follows the theme)"]
-                or src == "bar" and L["(follows this bar)"] or L["(default)"])
+                or src == "bar" and L["(follows “%s”)"]:format(BarName()) or L["(default)"])
         end
     end
     local cs = Override("cdState")
