@@ -433,18 +433,25 @@ ns.Custom.AuraIDsOf = nil
 ------------------------------------------------------------
 do
     local N = Logic.NormalizePath
+    -- 2026-10-03 起：Interface 之後的相對路徑（不再限定 AddOns）
     eq("路徑：相對路徑照收", N("MyVoice\\kick.ogg"), "MyVoice\\kick.ogg")
     eq("路徑：斜線轉反斜線、去頭尾空白", N("  MyVoice/sub/kick.mp3 "), "MyVoice\\sub\\kick.mp3")
-    eq("路徑：去掉 Interface\\AddOns\\", N("Interface\\AddOns\\MyVoice\\kick.ogg"), "MyVoice\\kick.ogg")
-    eq("路徑：大小寫不拘", N("interface/addons/MyVoice/kick.OGG"), "MyVoice\\kick.OGG")
-    eq("路徑：AddOns\\ 開頭", N("AddOns\\MyVoice\\kick.ogg"), "MyVoice\\kick.ogg")
-    eq("路徑：整段絕對路徑", N("\"C:\\Program Files\\World of Warcraft\\_retail_\\Interface\\AddOns\\MyVoice\\kick.ogg\""), "MyVoice\\kick.ogg")
+    eq("路徑：去掉 Interface\\、留 AddOns\\", N("Interface\\AddOns\\MyVoice\\kick.ogg"), "AddOns\\MyVoice\\kick.ogg")
+    eq("路徑：大小寫不拘", N("interface/addons/MyVoice/kick.OGG"), "addons\\MyVoice\\kick.OGG")
+    eq("路徑：AddOns\\ 開頭照收", N("AddOns\\MyVoice\\kick.ogg"), "AddOns\\MyVoice\\kick.ogg")
+    eq("路徑：Interface 底下別的資料夾", N("Interface\\Sounds\\kick.ogg"), "Sounds\\kick.ogg")
+    eq("路徑：整段絕對路徑", N("\"C:\\Program Files\\World of Warcraft\\_retail_\\Interface\\AddOns\\MyVoice\\kick.ogg\""), "AddOns\\MyVoice\\kick.ogg")
+    eq("路徑：名字裡含 interface 的資料夾不當成根", N("MyInterface\\kick.ogg"), "MyInterface\\kick.ogg")
     eq("路徑：重複反斜線收成一個", N("MyVoice\\\\kick.ogg"), "MyVoice\\kick.ogg")
+    -- 舊存檔（AddOns 之後）一次性補前綴
+    local old = { customSounds = { { id = 1, name = "a", path = "MyVoice\\kick.ogg" } } }
+    check("遷移：補 AddOns 前綴", Logic.MigrateRoot(old) and old.customSounds[1].path == "AddOns\\MyVoice\\kick.ogg")
+    check("遷移：只做一次", not Logic.MigrateRoot(old) and old.customSounds[1].path == "AddOns\\MyVoice\\kick.ogg")
     local r, why = N("MyVoice\\kick.wav")
     check("路徑：wav 不收", r == nil and why == "ext", why)
     r, why = N("   ")
     check("路徑：空白不收", r == nil and why == "empty", why)
-    r, why = N("Interface\\AddOns\\")
+    r, why = N("Interface\\")
     check("路徑：只有前綴不收", r == nil and why == "empty", why)
     eq("預設名字＝檔名去副檔名", Logic.DefaultName("MyVoice\\sub\\kick.ogg"), "kick")
     eq("代號往返", Logic.CustomID(Logic.CustomValue(12)), 12)
@@ -459,7 +466,7 @@ do
     check("id 不同", a.id ~= b.id)
     local bad, why2 = S.CustomAdd("x", "nope.txt")
     check("不合法的路徑不新增", bad == nil and why2 == "ext" and #S.CustomList() == 2)
-    eq("Path：自訂語音解成完整路徑", S.Path(Logic.CustomValue(a.id)), "Interface\\AddOns\\MyVoice\\kick.ogg")
+    eq("Path：自訂語音解成完整路徑", S.Path(Logic.CustomValue(a.id)), "Interface\\MyVoice\\kick.ogg")
     eq("DisplayName：自訂語音顯示名字", S.DisplayName(Logic.CustomValue(b.id)), "Boom")
     eq("DisplayName：LSM 名稱照舊", S.DisplayName("Ding"), "Ding")
     check("Path：不存在的代號 ＝ nil", S.Path("custom:999") == nil)
@@ -472,10 +479,10 @@ do
 
     -- 改名、改路徑：代號不變，指到它的格子跟著變
     DB.SetOverride(5001, "readySound", Logic.CustomValue(a.id))
-    check("編輯", S.CustomEdit(1, "Kick!", "MyVoice\\kick2.ogg"))
+    check("編輯", S.CustomEdit(1, "Kick!", "AddOns\\MyVoice\\kick2.ogg"))
     eq("編輯後名字", S.CustomList()[1].name, "Kick!")
     eq("編輯後格子解到新路徑", S.Path(S.NameOf("essential", 5001, "readySound")), "Interface\\AddOns\\MyVoice\\kick2.ogg")
-    check("編輯不合法的路徑：不動", S.CustomEdit(1, "x", "") == nil and S.CustomList()[1].path == "MyVoice\\kick2.ogg")
+    check("編輯不合法的路徑：不動", S.CustomEdit(1, "x", "") == nil and S.CustomList()[1].path == "AddOns\\MyVoice\\kick2.ogg")
 
     -- 排序
     check("下移", S.CustomMove(1, 1))

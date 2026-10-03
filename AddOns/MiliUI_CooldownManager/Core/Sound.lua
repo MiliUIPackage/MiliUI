@@ -25,7 +25,9 @@
 --   帳號層 customSoundNext                             下一個 id（不重用，刪掉的代號不會被別筆接走）
 --
 -- ── 自訂語音 ───────────────────────────────────────────────────────────
--- 玩家自己放在 AddOns 底下的音檔：填「AddOns 底下的相對路徑」（遊戲沒有列資料夾內容的 API，
+-- 玩家自己放在 Interface 底下的音檔：填「Interface 之後的相對路徑」（2026-10-03 起；之前是 AddOns 之後，
+-- 玩家問「為什麼要放 AddOns 裡」⇒ 放寬到整個 Interface。舊存檔一次性補上 AddOns\ 前綴，見 S.CustomList）
+-- （遊戲沒有列資料夾內容的 API，
 -- 只能讓玩家自己打）。逐法術的值存代號 "custom:<id>"，不存名字也不存路徑 ⇒ 改名、改路徑
 -- 不必回頭改每一格；刪掉時把所有設定檔裡指到它的格子清掉（不然下拉會露出代號）。
 -- 不註冊進 LibSharedMedia：LSM 沒有撤銷，改名／刪除要 /reload 才乾淨，名字也會跟別的插件撞。
@@ -185,21 +187,17 @@ function Logic.CustomID(v)
     return n and tonumber(n) or nil
 end
 
--- 玩家填的路徑 → AddOns 底下的相對路徑（反斜線、去掉頭尾空白與開頭的 Interface\AddOns\）。
+-- 玩家填的路徑 → Interface 底下的相對路徑（反斜線、去掉頭尾空白與開頭的 Interface\）。
+-- 整段絕對路徑（…\_retail_\Interface\…）一樣只留 Interface 之後那截。
 -- 只收 .ogg／.mp3（PlaySoundFile 只播這兩種）。不合法回 nil, 原因（"empty"｜"ext"）
 function Logic.NormalizePath(input)
     if type(input) ~= "string" then return nil, "empty" end
     local p = input:gsub("^%s+", ""):gsub("%s+$", "")
     p = p:gsub("^[\"']+", ""):gsub("[\"']+$", "")       -- 從檔案總管複製時常帶引號
     p = p:gsub("/", "\\"):gsub("\\+", "\\")
-    -- 整段絕對路徑（…\_retail_\Interface\AddOns\…）或 Interface\AddOns\ 開頭：只留後面那截
-    local low = p:lower()
-    local _, cut = low:find("interface\\addons\\", 1, true)
-    if cut then
-        p = p:sub(cut + 1)
-    elseif low:find("^\\?addons\\") then
-        p = p:gsub("^\\?[Aa][Dd][Dd][Oo][Nn][Ss]\\", "")
-    end
+    local low = "\\" .. p:lower()
+    local _, cut = low:find("\\interface\\", 1, true)
+    if cut then p = p:sub(cut) end                       -- low 前面多墊了一個反斜線：cut 剛好是 p 裡的下一個字
     p = p:gsub("^\\+", "")
     if p == "" then return nil, "empty" end
     local ext = (p:match("%.([^.\\]+)$") or ""):lower()
@@ -207,7 +205,18 @@ function Logic.NormalizePath(input)
     return p
 end
 
-function Logic.FullPath(rel) return "Interface\\AddOns\\" .. rel end
+function Logic.FullPath(rel) return "Interface\\" .. rel end
+
+-- 舊存檔（路徑是 AddOns 之後）→ Interface 之後：補 AddOns\ 前綴。帳號層記 customSoundsRoot 只做一次
+Logic.SOUND_ROOT = "Interface"
+function Logic.MigrateRoot(sv)
+    if type(sv) ~= "table" or sv.customSoundsRoot == Logic.SOUND_ROOT then return false end
+    for _, e in ipairs(type(sv.customSounds) == "table" and sv.customSounds or {}) do
+        if type(e) == "table" and type(e.path) == "string" and e.path ~= "" then e.path = "AddOns\\" .. e.path end
+    end
+    sv.customSoundsRoot = Logic.SOUND_ROOT
+    return true
+end
 
 -- 沒取名字時用檔名（去掉副檔名）
 function Logic.DefaultName(rel)
@@ -322,6 +331,7 @@ function S.CustomList()
     local sv = Account()
     if type(sv) ~= "table" then return {} end
     if type(sv.customSounds) ~= "table" then sv.customSounds = {} end
+    Logic.MigrateRoot(sv)
     return sv.customSounds
 end
 

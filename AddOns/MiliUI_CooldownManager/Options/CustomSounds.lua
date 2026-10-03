@@ -51,7 +51,7 @@ local function EnsureEditPopup()
     editPopup = W.CreateInputPopup(ns.Options.panel, 460, L["Add sound"], {
         { key = "name", label = L["Name"], maxLetters = 60 },
         { key = "path", label = L["File path"], maxLetters = 260,
-          hint = L["The path after the AddOns folder, e.g. MyVoice\\kick.ogg. Only .ogg and .mp3 files play."] },
+          hint = L["The path after the Interface folder, e.g. AddOns\\MyVoice\\kick.ogg or Sounds\\kick.ogg. Only .ogg and .mp3 files play."] },
     })
     RaiseAbove(editPopup)
     return editPopup
@@ -234,7 +234,7 @@ local function CreatePopup()
     hint:SetJustifyH("LEFT")
     hint:SetWordWrap(true)
     hint:SetSpacing(2)
-    hint:SetText(L["Put .ogg or .mp3 files in any folder under AddOns and enter the path after AddOns. The game only sees files that were there when it started: after adding one, restart the game (/reload isn't enough). These sounds are listed first in every spell's sound menu, in this order."])
+    hint:SetText(L["Put .ogg or .mp3 files in any folder under Interface (a folder inside AddOns works too) and enter the path after Interface. The game only sees files that were there when it started: after adding one, restart the game (/reload isn't enough). These sounds are listed first in every spell's sound menu, in this order."])
 
     list = W.CreateRowList(popup, LIST_W, ROW_H * VISIBLE + 4, ROW_H, BuildRow)
 

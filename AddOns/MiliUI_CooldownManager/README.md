@@ -664,8 +664,10 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 萬一清單是空的（理論上不會發生），下拉只剩「無」，面板多一列灰字說明。
 
 **自訂語音**（主題頁「音效」一節的「自訂語音｜編輯清單（N）」，`Options/CustomSounds.lua`）：玩家自己放在
-AddOns 底下的 .ogg／.mp3，填 AddOns 之後的相對路徑（遊戲沒有列資料夾的 API）；`Logic.NormalizePath` 收斜線、
-引號、`Interface\AddOns\` 前綴與整段絕對路徑。清單存帳號層 `customSounds = { { id, name, path } }`（換設定檔、換角色同一份），
+Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相對路徑（遊戲沒有列資料夾的 API；2026-10-03 起，
+之前限定 AddOns 之後——玩家問為什麼一定要放 AddOns 裡）；`Logic.NormalizePath` 收斜線、引號、`Interface\` 前綴與
+整段絕對路徑。舊存檔一次性補 `AddOns\` 前綴（`Logic.MigrateRoot`，帳號層 `customSoundsRoot = "Interface"` 記做過了）。
+⚠ 直接放在 Interface 底下（不在 AddOns 裡）的檔能不能播，待實機驗證。清單存帳號層 `customSounds = { { id, name, path } }`（換設定檔、換角色同一份），
 一列一筆可上下移、試聽、編輯、刪除；順序＝逐法術音效下拉裡的順序（排在 LSM 音效前面）。逐法術存代號 `"custom:<id>"`
 （`S.Path` 解成完整路徑；id 不重用），改名／改路徑不必動格子，刪除時把**所有設定檔**裡指到它的格子清掉。
 不註冊進 LibSharedMedia：LSM 沒有撤銷，改名／刪除會殘留到 /reload，名字也會跟別的插件撞。
