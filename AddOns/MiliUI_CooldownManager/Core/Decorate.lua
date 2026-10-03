@@ -546,7 +546,7 @@ end
 local function ReadyWhileOn(rec)
     local G = ns.Glow
     if not (G and G.ReadyMode and rec.claimKey) then return false end
-    return G.ReadyMode(rec.claimKey) == "whileReady"
+    return G.ReadyMode(rec.claimKey, rec) == "whileReady"
 end
 
 -- SetCooldown 後掛勾的尾巴（正常路徑與蓋掉的那條共用）：轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態

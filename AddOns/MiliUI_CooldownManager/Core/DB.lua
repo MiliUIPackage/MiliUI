@@ -883,6 +883,9 @@ local SPELL_FALLBACK = {
     borderColor = "border.color",
     procGlow    = "glow.proc.enabled",
     readyGlow   = "glow.ready.enabled",
+    -- 就緒發光亮多久（timed／untilUsed／whileReady）與資源檢查：逐法術可以蓋（Core/Glow.lua 的 ReadyMode／RequireUsable）
+    readyGlowMode   = "glow.ready.mode",
+    readyGlowUsable = "glow.ready.requireUsable",
     desaturate  = "icon.desaturateOnCooldown",
     -- 冷卻狀態：逐法術可以蓋模式；變暗的透明度逐法術沒有控件（吃條的值），欄位照樣登記
     cdState      = "icon.cdState",
@@ -1187,7 +1190,7 @@ end
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
     showAuraTime = "icon",
-    procGlow = "glow", readyGlow = "glow",
+    procGlow = "glow", readyGlow = "glow", readyGlowMode = "glow", readyGlowUsable = "glow",
     -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
     activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",
     activeGlowOutOfCombat = "activeGlow",

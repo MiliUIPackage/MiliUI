@@ -18,6 +18,9 @@
 --   * 多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
 --     DB.CopyCustomEntry（連同這一筆的覆寫）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
+-- 分頁（玩家回報 2026-10-03 列太長）：一般（所在條、天賦條件、占位）／外觀（邊框、圖示、去飽和、倒數與層數、
+-- 冷卻狀態、層數換色）／增益時間／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／音效。每一列建立時記下
+-- 當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
 --
 -- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」；增益類（暴雪
 -- 增益圖示／增益長條、光環格）兩列「出現音效」「消失音效」。每列一個下拉（第一項「無」＝清掉覆寫，
@@ -69,7 +72,24 @@ local ROW_W   = WIDTH - PAD * 2
 local TOP_Y   = -PAD - 32 - 12
 
 local frame, cur
-local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind, class) → bool }
+local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind, class) → bool, tab }
+
+-- 分頁：每一列建的時候記下當時的 buildTab；"all" 是每頁都有的（底部說明與按鈕）。
+-- 這一格沒有任何一列能顯示的分頁不出現；換一格時目前的分頁不存在就回第一個
+local TABS = {
+    { id = "general",  label = L["General"] },
+    { id = "look",     label = L["Appearance"] },
+    { id = "duration", label = L["Buff duration"] },
+    { id = "glow",     label = L["Glow"] },
+    { id = "sound",    label = L["Sounds"] },
+}
+local buildTab = "general"
+local curTab = "general"
+local function AddRow(entry)
+    entry.tab = entry.tab or buildTab
+    rows[#rows + 1] = entry
+    return entry
+end
 local toggles = {}
 local colorRows = {}     -- 持續時間的三個顏色列：{ field, cb, swatch, fallback }
 local sounds = {}        -- { field, dd }
@@ -86,11 +106,18 @@ local SOUNDS = {
 }
 
 local TOGGLES = {
-    { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true },
-    { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true },
-    { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true },
-    { field = "hideCooldownText", label = L["Hide countdown"] },
-    { field = "hideStackText",    label = L["Hide stacks"] },
+    { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, tab = "glow" },
+    { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
+    { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
+    { field = "hideCooldownText", label = L["Hide countdown"],         tab = "look" },
+    { field = "hideStackText",    label = L["Hide stacks"],            tab = "look" },
+}
+
+-- 就緒發光亮多久（逐法術覆寫 readyGlowMode；第一項「跟隨『條名』」＝清掉）
+local READY_MODES = {
+    { text = L["A few seconds"],       value = "timed" },
+    { text = L["Until used"],          value = "untilUsed" },
+    { text = L["Whenever it's ready"], value = "whileReady" },
 }
 
 -- 「跟隨這一條」寫明條的名字（『核心技能』『我的爆發』…）：面板開在哪一條就是哪一條，自訂群組也顯示自己的名字
@@ -152,7 +179,7 @@ local function NewRow(label, when)
             row.h = nh
         end
     end
-    rows[#rows + 1] = row
+    AddRow(row)
     return r, h, row
 end
 
@@ -279,7 +306,23 @@ local function Build()
     idText:SetWordWrap(false)
     frame.idText = idText
 
+    -- 分頁鈕（排版時依這一格有哪些分頁換行排，Layout）
+    frame.tabBtns = {}
+    for i, t in ipairs(TABS) do
+        local b = W.CreateButton(frame, t.label, "accent-hover", 56, 20)
+        W.FitButton(b, 56, 20)
+        b.id = t.id
+        frame.tabBtns[i] = b
+    end
+    frame.tabBar = CreateFrame("Frame", nil, frame)
+    frame.tabBar:SetSize(ROW_W, 20)
+    frame.highlightTab = W.CreateButtonGroup(frame.tabBtns, function(id)
+        curTab = id
+        if cur then Layout(frame.kind, frame.soundClass) end
+    end)
+
     -- 所在條
+    buildTab = "general"
     local r, h = NewRow(L["On bar"])
     local dd = W.CreateDropdown(r, ROW_W - CTRL_X, {}, function(value)
         if not cur then return end
@@ -380,9 +423,10 @@ local function Build()
         tnRow:SetHeight(nh)
         tnEntry.h = nh
     end
-    rows[#rows + 1] = tnEntry
+    AddRow(tnEntry)
 
     -- 邊框顏色：勾「自訂」才寫覆寫
+    buildTab = "look"
     local br, bh = NewRow(L["Border color"])
     local custom = W.CreateCheckButton(br, L["Custom"], function(on)
         if not cur then return end
@@ -426,6 +470,7 @@ local function Build()
     for _, t in ipairs(TOGGLES) do
         local when = nil
         if t.noAura then when = t.noBar and NotAuraNotBar or NotAura end
+        buildTab = t.tab
         local tr, th = NewRow(t.label, when)
         local cb = W.CreateCheckButton(tr, nil, function(on)
             if not cur then return end
@@ -439,9 +484,45 @@ local function Build()
         note:SetWordWrap(false)
         toggles[#toggles + 1] = { field = t.field, cb = cb, note = note }
         RightClickClears(tr, th, t.field)
+        if t.field == "readyGlow" then
+            -- 亮多久：跟條頁同三種（Core/Glow.lua 的 ReadyMode）；就緒發光生效是關時停用（Refresh）
+            local mr, mh = NewRow(L["Glow for"], NotAuraNotBar)
+            local mItems = { { text = FollowText(), value = false } }
+            for _, it in ipairs(READY_MODES) do mItems[#mItems + 1] = it end
+            local mdd = W.CreateDropdown(mr, ROW_W - CTRL_X, mItems, function(value)
+                if not cur then return end
+                ns.DB.SetOverride(cur.id, "readyGlowMode", (type(value) == "string" and value ~= "") and value or nil)
+                Changed()
+            end)
+            mdd:SetMaxWidth(ROW_W - CTRL_X)
+            mdd:SetPoint("LEFT", mr, "LEFT", CTRL_X, 0)
+            frame.readyModeDD = mdd
+            followItems[#followItems + 1] = { items = mItems, dd = mdd }
+            RightClickClears(mr, mh, "readyGlowMode")
+            -- 等資源：三態（跟隨／等／不等）；「就緒時一直亮」不看資源 ⇒ 停用
+            local ur, uh = NewRow(L["Wait for resources"], NotAuraNotBar)
+            local uItems = {
+                { text = FollowText(), value = "follow" },
+                { text = L["Wait"],         value = "on" },
+                { text = L["Don't wait"],   value = "off" },
+            }
+            local udd = W.CreateDropdown(ur, ROW_W - CTRL_X, uItems, function(value)
+                if not cur then return end
+                local v = nil
+                if value == "on" then v = true elseif value == "off" then v = false end
+                ns.DB.SetOverride(cur.id, "readyGlowUsable", v)
+                Changed()
+            end)
+            udd:SetMaxWidth(ROW_W - CTRL_X)
+            udd:SetPoint("LEFT", ur, "LEFT", CTRL_X, 0)
+            frame.readyUsableDD = udd
+            followItems[#followItems + 1] = { items = uItems, dd = udd }
+            RightClickClears(ur, uh, "readyGlowUsable")
+        end
     end
 
     -- 冷卻狀態（冷卻類才有）：第一項「跟隨這一條」＝清掉覆寫；變暗的透明度逐法術不另給（吃條的值）
+    buildTab = "look"
     local csr, csh = NewRow(L["Cooldown state"], NotAuraNotBar)
     local csItems = { { text = FollowText(), value = false } }
     followItems[#followItems + 1] = { items = csItems, dd = nil }
@@ -459,6 +540,7 @@ local function Build()
 
     -- 增益持續中顯示持續時間（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）
     local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
+    buildTab = "duration"
     local atr, ath = NewRow(L["Show buff duration"], BlizzCooldown)
     local atItems = {
         { text = FollowText(), value = "follow" },
@@ -529,6 +611,7 @@ local function Build()
 
     -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色，下一列樣式（沒挑過＝ glow.active 的預設）；
     -- 右鍵整列全清。標題的圖示即時預覽
+    buildTab = "glow"
     local ar, ah = NewRow(L["Glow while active"], function(_, class) return class == "aura" end)
     local acb = W.CreateCheckButton(ar, nil, function(on)
         if not cur then return end
@@ -652,10 +735,11 @@ local function Build()
         snRow:SetHeight(nh)
         snEntry.h = nh
     end
-    rows[#rows + 1] = snEntry
+    AddRow(snEntry)
 
     -- 層數換色（增益長條）：按鈕寫著目前筆數，點開是編輯器（Options/StackColors.lua）
     -- 這一列沒有標籤：按鈕靠右、寬度至少到控件欄，長譯文往左邊（空著的標籤欄）撐（Refresh 換字後 FitButton）
+    buildTab = "look"
     local scr = NewRow(nil, BlizzAuraBar)
     local scbtn = W.CreateButton(scr, L["Stack colors (%d)"]:format(0), "normal", ROW_W - CTRL_X, 22)
     scbtn:SetPoint("RIGHT", scr, "RIGHT", 0, 0)
@@ -666,6 +750,7 @@ local function Build()
     frame.stackColorsBtn = scbtn
 
     -- 音效：下拉＋試聽（右鍵整列清掉＝無）
+    buildTab = "sound"
     for _, t in ipairs(SOUNDS) do
         local cls = t.class
         local sr, sh = NewRow(t.label, function(_, class) return class == cls end)
@@ -746,7 +831,7 @@ local function Build()
         spRow:SetHeight(nh)
         spEntry.h = nh
     end
-    rows[#rows + 1] = spEntry
+    AddRow(spEntry)
     -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
     local nsRow = CreateFrame("Frame", nil, frame)
     local nsTip = Note(nsRow)
@@ -763,9 +848,10 @@ local function Build()
         nsRow:SetHeight(nh)
         nsEntry.h = nh
     end
-    rows[#rows + 1] = nsEntry
+    AddRow(nsEntry)
 
     -- 光環格：不在時顯示占位（存在那一筆自訂項目上，不是覆寫）
+    buildTab = "general"
     local pr, ph = NewRow(L["Placeholder when missing"], IsAura)
     local pcb = W.CreateCheckButton(pr, nil, function(on)
         if not cur then return end
@@ -793,7 +879,8 @@ local function Build()
         tipRow:SetHeight(nh)
         tipEntry.h = nh
     end
-    rows[#rows + 1] = tipEntry
+    tipEntry.tab = "all"
+    AddRow(tipEntry)
 
     -- 按鈕：移除（從這條拿掉；見 Preview.Remove）／還原設定
     local btnRow = CreateFrame("Frame", nil, frame)
@@ -823,7 +910,7 @@ local function Build()
         Pop.AskCopy(cur.id)
     end)
     frame.removeBtn, frame.restoreBtn, frame.copyBtn, frame.btnRow = remove, restore, copy, btnRow
-    rows[#rows + 1] = { frame = btnRow, h = 22 + 6, buttons = true }
+    AddRow({ frame = btnRow, h = 22 + 6, buttons = true, tab = "all" })
 
     -- 顯示之後才量得到字高（換行的語系）：每次顯示重量、照目前種類重排
     frame:HookScript("OnShow", function()
@@ -844,9 +931,30 @@ end
 -- 依種類排列：kind = nil（暴雪的法術）| "aura" | "spell" | "item"；class = "cooldown" | "aura"（音效列）
 Layout = function(kind, class)
     frame.kind, frame.soundClass = kind, class
-    local y = TOP_Y
+    -- 這一格有哪些分頁（有任何一列能顯示）；目前的分頁不在裡面就回第一個
+    local has = {}
     for _, row in ipairs(rows) do
-        local show = not row.when or row.when(kind, class)
+        if row.tab ~= "all" and (not row.when or row.when(kind, class)) then has[row.tab] = true end
+    end
+    if not has[curTab] then
+        for _, t in ipairs(TABS) do
+            if has[t.id] then curTab = t.id break end
+        end
+    end
+    local list, sel = {}, nil
+    for _, b in ipairs(frame.tabBtns) do
+        b:SetShown(has[b.id] and true or false)
+        if has[b.id] then list[#list + 1] = b end
+        if b.id == curTab then sel = b end
+    end
+    if sel then frame.highlightTab(sel) end
+    frame.tabBar:ClearAllPoints()
+    frame.tabBar:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, TOP_Y)
+    local _, tbh = W.FlowLayout(frame.tabBar, list, ROW_W, 4, 4, 20)
+    frame.tabBar:SetHeight(tbh)
+    local y = TOP_Y - tbh - 10
+    for _, row in ipairs(rows) do
+        local show = (row.tab == "all" or row.tab == curTab) and (not row.when or row.when(kind, class))
         row.frame:SetShown(show)
         if show then
             row.frame:ClearAllPoints()
@@ -983,6 +1091,17 @@ function Pop.Refresh()
                 or src == "bar" and L["(follows “%s”)"]:format(BarName()) or L["(default)"])
         end
     end
+    -- 就緒發光亮多久／等資源：就緒發光生效是關 ⇒ 兩列停用；「就緒時一直亮」⇒ 等資源停用
+    local rgOn = ns.SpellSetting(key, id, "readyGlow") and true or false
+    local rm = Override("readyGlowMode")
+    frame.readyModeDD:SetSelectedValue((type(rm) == "string" and rm ~= "") and rm or false)
+    frame.readyModeDD:SetEnabled(rgOn)
+    frame.readyModeDD:SetAlpha(rgOn and 1 or 0.4)
+    local ru = Override("readyGlowUsable")
+    frame.readyUsableDD:SetSelectedValue(ru == true and "on" or ru == false and "off" or "follow")
+    local ruOn = rgOn and ns.SpellSetting(key, id, "readyGlowMode") ~= "whileReady"
+    frame.readyUsableDD:SetEnabled(ruOn)
+    frame.readyUsableDD:SetAlpha(ruOn and 1 or 0.4)
     local cs = Override("cdState")
     frame.cdStateDD:SetSelectedValue((type(cs) == "string" and cs ~= "") and cs or false)
     -- 增益持續中顯示持續時間：三態回填；生效的值是「不顯示」（覆寫成不顯示，或跟隨而條層關著）⇒ 換色那列停用

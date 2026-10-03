@@ -63,7 +63,8 @@
 -- 寧可照舊亮，也不要因為讀不到就永遠不亮）。就緒音效不等，照舊在轉好那一刻響。
 -- 自訂物品／裝備欄不檢查（物品沒有資源的問題）。等待中又用掉、被藏、停放、換身分 ⇒ 取消等待。
 -- 亮 glow.ready.duration 秒（預設 3）後熄；期間技能被用掉（進了新的冷卻）就提早熄（G.CooldownStarted）。
--- glow.ready.mode 三種（玩家回報 2026-10-03：打斷要一直亮）：
+-- glow.ready.mode 三種（玩家回報 2026-10-03：打斷要一直亮；逐法術可蓋 overrides[id].readyGlowMode，
+-- 資源檢查同樣可蓋 readyGlowUsable，法術小窗「發光」分頁）：
 --   "timed"      上面那樣，亮幾秒
 --   "untilUsed"  不排計時，一直亮到 CooldownStarted。
 --     ⚠ 只在「轉好那一刻」點燈：/reload、上線時本來就轉好的技能不亮，用過一次才開始。
@@ -140,8 +141,12 @@ local function Wanted(rec, barKey, which)
 end
 
 local READY_MODES = { timed = true, untilUsed = true, whileReady = true }
-local function ReadyMode(barKey)
-    local m = barKey and ns.Setting(barKey, "glow.ready.mode")
+-- rec 給了就先看逐法術覆寫（overrides[id].readyGlowMode，法術小窗的「亮多久」），沒覆寫退回條層
+local function ReadyMode(barKey, rec)
+    if not barKey then return "timed" end
+    local m
+    if rec and rec.cooldownID ~= nil then m = ns.SpellSetting(barKey, rec.cooldownID, "readyGlowMode")
+    else m = ns.Setting(barKey, "glow.ready.mode") end
     return READY_MODES[m] and m or "timed"
 end
 G.ReadyMode = ReadyMode
@@ -410,7 +415,7 @@ function G.Sync(owner, rec, barKey)
         if Hidden(rec) or not Wanted(rec, barKey, "ready") then CancelPending(rec) else MarkDirty() end
     end
     -- 就緒時一直亮：狀態對帳（模式切走了也在這裡收）
-    if rec.readyWhile or (barKey and ReadyMode(barKey) == "whileReady") then
+    if rec.readyWhile or (barKey and ReadyMode(barKey, rec) == "whileReady") then
         G.ApplyReadyState(rec, owner)
     -- 就緒發光亮著的時候設定變了：照新樣式重畫；被關掉了就熄
     elseif rec.glowOn and rec.glowOn.ready then
@@ -538,10 +543,15 @@ local function ReadUsable(rec)
     return nil
 end
 
+-- 資源檢查開關：逐法術覆寫（overrides[id].readyGlowUsable）優先，沒覆寫退回條層 glow.ready.requireUsable
+local function RequireUsable(rec, barKey)
+    return ns.SpellSetting(barKey, rec.cooldownID, "readyGlowUsable") and true or false
+end
+
 -- 亮＋排計時熄（冷卻轉好當下、或等資源等到了）
 local function Light(rec, barKey)
     G.readyFired = G.readyFired + 1
-    local mode = ReadyMode(barKey)
+    local mode = ReadyMode(barKey, rec)
     if mode == "whileReady" then
         -- 狀態模式：照現況重算；探針與本尊的到期可能差幾毫秒，過一下再對一次
         G.ApplyReadyState(rec)
@@ -606,7 +616,7 @@ ScanPending = function()
             CancelPending(rec)
         else
             local barKey = rec.claimKey
-            if G.ReadyGate(ns.Setting(barKey, "glow.ready.requireUsable"), ReadUsable(rec)) == "now" then
+            if G.ReadyGate(RequireUsable(rec, barKey), ReadUsable(rec)) == "now" then
                 CancelPending(rec)
                 Light(rec, barKey)
             end
@@ -631,7 +641,7 @@ local function Fire(rec)
     if not Wanted(rec, barKey, "ready") then return end
     CancelPending(rec)
     -- 資源檢查只管「亮幾秒」「亮到用掉」：「就緒時一直亮」是狀態模式（ApplyReadyState），不等
-    local req = ReadyMode(barKey) ~= "whileReady" and ns.Setting(barKey, "glow.ready.requireUsable") and true or false
+    local req = ReadyMode(barKey, rec) ~= "whileReady" and RequireUsable(rec, barKey) and true or false
     local usable = nil                    -- ⚠ 不能寫成 req and ReadUsable(rec) or nil：false 會被吃掉
     if req then usable = ReadUsable(rec) end
     if G.ReadyGate(req, usable) == "wait" then
@@ -671,7 +681,7 @@ function G.ApplyReadyState(rec, owner)
     local barKey = rec.claimKey or rec.placedBar
     local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
     local want = barKey and not aura and not Hidden(rec) and not (ns.released and not rec.custom)
-        and ReadyMode(barKey) == "whileReady" and Wanted(rec, barKey, "ready")
+        and ReadyMode(barKey, rec) == "whileReady" and Wanted(rec, barKey, "ready")
     if not want then
         if rec.readyWhile then
             rec.readyWhile = nil
