@@ -450,6 +450,14 @@ function Specs.Themed(mode, key)
     -- 小數門檻與低秒變色都換不了），只留層數
     local function NB(s) if barsKind then return nil end return s end
     local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
+    -- 像素發光的線條數／粗細：粗細只有像素樣式吃；線條數像素與自動施法都吃（玩家回報邊框太粗、以前習慣設 1）
+    local function NotPixel(path) return function(info) return (ReadThemed(info, path) or "pixel") ~= "pixel" end end
+    local function NoLines(path)
+        return function(info)
+            local t = ReadThemed(info, path) or "pixel"
+            return t ~= "pixel" and t ~= "autocast"
+        end
+    end
     local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
     local function DurationOff(info) return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration") end
 
@@ -529,17 +537,25 @@ function Specs.Themed(mode, key)
             Note(L["Replaces Blizzard's proc glow. When off, Blizzard's own glow shows."], "glow"),
             TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.proc.color", L["Color"]),
+            TS("glow", "slider", "glow.proc.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.proc.type") }),
+            TS("glow", "slider", "glow.proc.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.proc.type") }),
             GlowSampleRow("proc"),
             Nested(L["Ready glow"], "glow"),
             TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
             Note(L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."], "glow"),
             TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.ready.color", L["Color"]),
+            TS("glow", "slider", "glow.ready.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.ready.type") }),
+            TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.ready.type") }),
             GlowSampleRow("ready"),
             TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
     end
-    -- 生效發光（增益）沒有統一設定：逐法術在預覽點圖示開、樣式與顏色也在那裡挑（使用者 2026-10-02 拿掉這一節）；
-    -- 沒挑的用 glow.active 的預設（Core/DB.lua）
+    -- 生效發光（增益）的樣式與顏色逐法術挑（預覽點圖示；使用者 2026-10-02 拿掉統一設定）；這裡只放像素發光的
+    -- 線條數／粗細（逐法術沒有這兩項、全部吃 glow.active 的；玩家回報 2026-10-03）
+    add(Nested(L["Glow while active"], "glow"),
+        Note(L["Style and color are chosen per spell: click an icon in the preview. These two only matter for the pixel style."], "glow"),
+        TS("glow", "slider", "glow.active.lines", L["Lines"], { min = 2, max = 16, step = 1 }),
+        TS("glow", "slider", "glow.active.thickness", L["Thickness"], { min = 1, max = 4, step = 1 }))
     add(Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
