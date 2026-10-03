@@ -10,7 +10,8 @@
 --
 -- 覆蓋：玩家順序解析（去重、丟掉不存在的、新 id 接在後面）、分類覆寫（含蓋過 HideByDefault）、
 -- 候選池類別、isKnown／隱形項目過濾、各種解不開的退路（無感）、字串鍵、簽章比對、
--- 設定面板開關的暫停與「沒變就不重讀」、profile 的 order／groupOf／hidden 套用。
+-- 設定面板開關的暫停與「沒變就不重讀」、profile 的 order／groupOf／hidden 套用、
+-- 天賦條件（TalentCondPass、TalentKnown、C.Bar 正式清單不收／設定頁清單照收、結果變了才廣播）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Catalog.lua"
@@ -550,6 +551,86 @@ do
     check("長條 BarHasAuraSlot（固定格位強制打開）", C.BarHasAuraSlot("buffbars") and C.BarHasAuraSlot("g2"))
     eq("長條上的自訂項目 SourceOf ＝ 它的 bar", C.SourceOf("c:3"), "g2")
     ns.profile = savedProfile
+end
+
+------------------------------------------------------------
+-- 天賦條件（overrides[id].talentCond）：純函式＋ C.Bar 的正式清單／設定頁清單
+------------------------------------------------------------
+do
+    local Pass = C.TalentCondPass
+    local function known(set) return function(id) return set[id] end end
+    local K = known({ [1] = true, [2] = false })
+    check("沒條件 ⇒ 成立", Pass(nil, K))
+    check("known：學了 ⇒ 成立", Pass({ spellID = 1, mode = "known" }, K))
+    check("known：沒學 ⇒ 不成立", not Pass({ spellID = 2, mode = "known" }, K))
+    check("unknown：沒學 ⇒ 成立", Pass({ spellID = 2, mode = "unknown" }, K))
+    check("unknown：學了 ⇒ 不成立", not Pass({ spellID = 1, mode = "unknown" }, K))
+    check("isKnown 回 nil（讀不到）⇒ 成立", Pass({ spellID = 3, mode = "known" }, K))
+    check("isKnown 回 nil、unknown 也成立", Pass({ spellID = 3, mode = "unknown" }, K))
+    check("沒給 isKnown ⇒ 成立", Pass({ spellID = 2, mode = "known" }, nil))
+    check("壞資料：mode 不認得", Pass({ spellID = 2, mode = "maybe" }, K))
+    check("壞資料：spellID 是字串", Pass({ spellID = "2", mode = "known" }, K))
+    check("壞資料：spellID 是 0", Pass({ spellID = 0, mode = "known" }, K))
+    check("壞資料：spellID 是小數", Pass({ spellID = 2.5, mode = "known" }, K))
+    check("壞資料：只有 mode", Pass({ mode = "known" }, K))
+    check("壞資料：不是表", Pass(true, K))
+
+    -- 遊戲裡的 isKnown：兩支 API 任一明文 true 就算學了，都明文 false 才算沒學，讀不到 nil
+    local book, player = {}, {}
+    env.C_SpellBook = { IsSpellKnown = function(id) return book[id] end }
+    env.IsPlayerSpell = function(id) return player[id] end
+    book[10], player[10] = false, true
+    eq("TalentKnown：天賦被動只有 IsPlayerSpell 是 true", C.TalentKnown(10), true)
+    book[11], player[11] = false, false
+    eq("TalentKnown：兩個都 false ⇒ false", C.TalentKnown(11), false)
+    book[12] = false
+    eq("TalentKnown：一個讀不到又沒有 true ⇒ nil", C.TalentKnown(12), nil)
+    env.IsPlayerSpell = function() error("boom") end
+    eq("TalentKnown：pcall 失敗算讀不到", C.TalentKnown(11), nil)
+    env.IsPlayerSpell = function(id) return player[id] end
+
+    local savedProfile = ns.profile
+    layoutString = "1|B64main2"
+    C.Refresh("talent-cond")
+    ns.profile = {
+        bars = {
+            essential = { source = "essential", kind = "icons" },
+        },
+        spells = {
+            [65] = {
+                custom = {
+                    { kind = "spell", spellID = 9000, bar = "essential" },
+                    { kind = "spell", spellID = 9001, bar = "essential" },
+                },
+                overrides = {
+                    [101]  = { talentCond = { spellID = 11, mode = "known" } },     -- 沒學 ⇒ 擋掉
+                    [102]  = { talentCond = { spellID = 10, mode = "known" } },     -- 學了 ⇒ 留著
+                    ["c:1"] = { talentCond = { spellID = 10, mode = "unknown" } },  -- 學了 ⇒ 擋掉
+                    ["c:2"] = { talentCond = { spellID = 12, mode = "known" } },    -- 讀不到 ⇒ 留著
+                },
+            },
+        },
+    }
+    eqList("天賦條件：正式清單沒有不成立的（暴雪的與自訂的）", C.Bar("essential"), { 102, "c:2" })
+    local vis, hid = C.Bar("essential", true)
+    eqList("天賦條件：withHidden 的第一張照樣有", vis, { 101, 102, "c:1", "c:2" })
+    eqList("天賦條件：不進隱藏那張", hid, {})
+    check("TalentBlocked：暴雪的", C.TalentBlocked(101) and not C.TalentBlocked(102))
+    check("TalentBlocked：自訂的", C.TalentBlocked("c:1") and not C.TalentBlocked("c:2"))
+    check("TalentBlocked：沒條件", not C.TalentBlocked(701))
+
+    -- 換天賦：條件結果變了 ⇒ 簽章變、廣播 CatalogChanged；沒變 ⇒ 不廣播
+    C.Refresh("talents-baseline")
+    local before = countFired("CatalogChanged")
+    C.Refresh("talents-same")
+    eq("天賦條件結果沒變 ⇒ 不廣播", countFired("CatalogChanged"), before)
+    player[11] = true
+    C.Refresh("talents")
+    eq("天賦條件結果變了 ⇒ CatalogChanged", countFired("CatalogChanged"), before + 1)
+    eqList("學了之後正式清單有它", C.Bar("essential"), { 101, 102, "c:2" })
+    player[11] = false
+    ns.profile = savedProfile
+    env.C_SpellBook, env.IsPlayerSpell = nil, nil
 end
 
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))

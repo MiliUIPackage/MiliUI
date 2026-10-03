@@ -57,6 +57,11 @@
 --     觸發時音效與發光各看各的設定。
 --   * 冷卻狀態效果（Core/Decorate.lua，rec.style.cdState）也吃同一個訊號：有設就建探針、武裝；
 --     觸發（與暴雪 Clear）時先 Decorate.RefreshState 重算 alpha，再看發光／音效。
+-- 資源夠了才亮（glow.ready.requireUsable，條層、預設關）：冷卻轉好那一刻問 C_Spell.IsSpellUsable，
+-- 明文 false（能量／怒氣不夠）就先不亮、記 rec.readyPending，等 SPELL_UPDATE_USABLE／UNIT_POWER_FREQUENT
+-- （只在有格子等待中時註冊；處理器只標髒、下一幀掃）可用了才亮。讀不到／秘密值一律當可用（fail-open：
+-- 寧可照舊亮，也不要因為讀不到就永遠不亮）。就緒音效不等，照舊在轉好那一刻響。
+-- 自訂物品／裝備欄不檢查（物品沒有資源的問題）。等待中又用掉、被藏、停放、換身分 ⇒ 取消等待。
 -- 亮 glow.ready.duration 秒（預設 3）後熄；期間技能被用掉（進了新的冷卻）就提早熄（G.CooldownStarted）：
 --   * 暴雪 item：SetCooldown 後掛勾裡 isOnGCD == false 且 isActive == true（都要明文）。
 --     回充不算：暴雪每次 GCD 都會對回充中的格子重設一次充能計時，拿它當訊號會按任何招就熄。
@@ -326,6 +331,9 @@ local function Hidden(rec)
     return rec.parked or rec.hidden or false
 end
 
+-- 就緒發光「等資源」的兩支（定義在下面就緒發光那一段；Sync／OnParked 先用到）
+local CancelPending, MarkDirty
+
 function G.SyncProc(owner, rec, barKey)
     barKey = barKey or rec.claimKey
     if owner and owner.SpellActivationAlert and ns.Decorate then
@@ -380,6 +388,10 @@ function G.Sync(owner, rec, barKey)
     barKey = barKey or rec.claimKey
     G.SyncProc(owner, rec, barKey)
     G.SyncActive(owner, rec, barKey)
+    -- 等資源中：被藏了、就緒發光被關掉就取消；資源設定可能剛被關掉 ⇒ 下一幀重掃一次
+    if rec.readyPending then
+        if Hidden(rec) or not Wanted(rec, barKey, "ready") then CancelPending(rec) else MarkDirty() end
+    end
     -- 就緒發光亮著的時候設定變了：照新樣式重畫；被關掉了就熄
     if rec.glowOn and rec.glowOn.ready then
         if Hidden(rec) or not Wanted(rec, barKey, "ready") then
@@ -415,6 +427,7 @@ function G.OnParked(rec)
     Stop(rec, "ready")
     Stop(rec, "active")
     Stop(rec, "assist")
+    CancelPending(rec)
     if ns.StackGate then ns.StackGate.OnParked(rec) end
 end
 
@@ -471,13 +484,42 @@ local function ReadyOn(rec)
     return barKey and not Hidden(rec) and (Wanted(rec, barKey, "ready") or SoundWanted(rec) or CdStateOn(rec))
 end
 
-local function Fire(rec)
-    -- 冷卻狀態先重算（不受下面發光／音效的提早 return 影響）
-    if ns.Decorate and ns.Decorate.RefreshState then ns.Decorate.RefreshState(rec) end
-    if not ReadyOn(rec) then return end
-    local barKey = rec.claimKey
-    if SoundWanted(rec) then ns.Sound.OnReady(rec) end
-    if not Wanted(rec, barKey, "ready") then return end
+-- 「要不要現在亮」（純函式，離線可測）：usable 是已經過 Plain 的明文（讀不到＝nil）。
+-- 只有「開了資源檢查、而且明文確定不可用」才等；其餘一律現在亮（讀不到 fail-open）
+function G.ReadyGate(requireUsable, usable)
+    if requireUsable and usable == false then return "wait" end
+    return "now"
+end
+
+-- 暴雪 item 用哪個法術問引擎要 duration 物件／問資源夠不夠（覆寫優先）
+local function SpellOf(rec)
+    local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
+    return info and (info.overrideSpellID or info.spellID) or nil
+end
+
+-- 問資源用哪個法術：暴雪 item 照 SpellOf；自訂法術用它自己的；自訂物品／裝備欄不問
+local function UsableSpellOf(rec)
+    if rec.custom then
+        if rec.kind ~= "spell" then return nil end
+        return rec.overrideID or rec.spellID
+    end
+    return SpellOf(rec)
+end
+
+-- 明文布林或 nil（秘密值、API 不在、pcall 失敗都是 nil ⇒ ReadyGate 當可用）
+local function ReadUsable(rec)
+    local id = UsableSpellOf(rec)
+    local api = C_Spell and C_Spell.IsSpellUsable
+    if not (id and api) then return nil end
+    local ok, usable = pcall(api, id)
+    if not ok then return nil end
+    usable = Plain(usable)
+    if type(usable) == "boolean" then return usable end
+    return nil
+end
+
+-- 亮＋排計時熄（冷卻轉好當下、或等資源等到了）
+local function Light(rec, barKey)
     G.readyFired = G.readyFired + 1
     Start(rec, "ready", barKey)
     local token = (rec.readyToken or 0) + 1
@@ -488,10 +530,94 @@ local function Fire(rec)
         if rec.readyToken == token then Stop(rec, "ready") end
     end)
 end
+
+-- ── 等資源的格子 ─────────────────────────────────────────────────────────
+-- 弱鍵表：rec 被回收也不會卡在這裡。事件只在至少有一格等待中時註冊，最後一格清掉就解除
+local pending = setmetatable({}, { __mode = "k" })
+local watching, scanArmed = false, false
+local ScanPending
+
+MarkDirty = function()
+    if scanArmed then return end
+    scanArmed = true
+    ns.Defer(ScanPending)
+end
+
+local function Watch(on)
+    if watching == on then return end
+    watching = on
+    local E = ns.Events
+    if on then
+        E.Register("SPELL_UPDATE_USABLE", "glow_ready_wait", MarkDirty)
+        E.Register("UNIT_POWER_FREQUENT", "glow_ready_wait", MarkDirty, "player")
+    else
+        E.Unregister("SPELL_UPDATE_USABLE", "glow_ready_wait")
+        E.Unregister("UNIT_POWER_FREQUENT", "glow_ready_wait")
+    end
+end
+
+CancelPending = function(rec)
+    if not (rec and rec.readyPending) then return end
+    rec.readyPending = nil
+    pending[rec] = nil
+    if next(pending) == nil then Watch(false) end
+end
+G.CancelPending = CancelPending
+
+-- readyPending 存的是等待開始時的 cooldownID：暴雪回收框給別的法術（身分換了）就不算數
+local function StillPending(rec)
+    return rec.readyPending ~= nil and rec.readyPending == rec.cooldownID and ReadyOn(rec)
+        and Wanted(rec, rec.claimKey, "ready")
+end
+
+ScanPending = function()
+    scanArmed = false
+    for rec in pairs(pending) do
+        if not StillPending(rec) then
+            CancelPending(rec)
+        else
+            local barKey = rec.claimKey
+            if G.ReadyGate(ns.Setting(barKey, "glow.ready.requireUsable"), ReadUsable(rec)) == "now" then
+                CancelPending(rec)
+                Light(rec, barKey)
+            end
+        end
+    end
+end
+G.ScanPending = ScanPending
+
+function G.PendingCount()
+    local n = 0
+    for _ in pairs(pending) do n = n + 1 end
+    return n
+end
+
+local function Fire(rec)
+    -- 冷卻狀態先重算（不受下面發光／音效的提早 return 影響）
+    if ns.Decorate and ns.Decorate.RefreshState then ns.Decorate.RefreshState(rec) end
+    if not ReadyOn(rec) then return end
+    local barKey = rec.claimKey
+    -- 音效在轉好那一刻響，不看資源
+    if SoundWanted(rec) then ns.Sound.OnReady(rec) end
+    if not Wanted(rec, barKey, "ready") then return end
+    CancelPending(rec)
+    local req = ns.Setting(barKey, "glow.ready.requireUsable") and true or false
+    local usable = nil                    -- ⚠ 不能寫成 req and ReadUsable(rec) or nil：false 會被吃掉
+    if req then usable = ReadUsable(rec) end
+    if G.ReadyGate(req, usable) == "wait" then
+        rec.readyPending = rec.cooldownID
+        pending[rec] = true
+        Watch(true)
+        return
+    end
+    Light(rec, barKey)
+end
 G.FireReady = Fire
 
--- 進了新的冷卻（用掉了）：就緒發光不用等滿秒數，當場熄。token 換掉讓計時到期那支什麼都不做
+-- 進了新的冷卻（用掉了）：就緒發光不用等滿秒數，當場熄。token 換掉讓計時到期那支什麼都不做。
+-- 還在等資源的也取消（等的那一次冷卻已經不算數了）
 function G.CooldownStarted(rec)
+    CancelPending(rec)
     if not (rec and rec.glowOn and rec.glowOn.ready) then return end
     rec.readyToken = (rec.readyToken or 0) + 1
     Stop(rec, "ready")
@@ -522,12 +648,6 @@ local function Probe(rec)
     rec.probe = p
     G.probes = G.probes + 1
     return p
-end
-
--- 暴雪 item 用哪個法術問引擎要 duration 物件（覆寫優先）
-local function SpellOf(rec)
-    local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
-    return info and (info.overrideSpellID or info.spellID) or nil
 end
 
 -- 暴雪的布林：getter 優先（pcall），讀不到退回欄位（rawget，只讀）；秘密／讀不到＝nil

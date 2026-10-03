@@ -45,6 +45,11 @@
 --   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
 --     再下一列灰字說明。勾了它時「生效發光」那兩列變暗（兩者互斥，層數的為準）。右鍵整列清。
 --   * 增益長條才有的「層數換色（N）」：開 Options/StackColors.lua 的小彈窗。
+--
+-- 天賦條件（所有條、所有種類都有；引擎在 Core/Catalog.lua）：寫進 overrides[id].talentCond = { spellID, mode }。
+--   「天賦條件」一列下拉（無／學了才顯示／沒學才顯示）；下一列 ID 輸入框＋法術名確認（查不到紅字）；
+--   再下一列灰字說明。ID 框有焦點時收 Shift 點天賦樹／法術書（Picker.WatchInput，收件的是一個看不見的
+--   代理框，Picker 寫的「名字（ID）」確認字不會畫出來，名字由這裡自己顯示）。改了一律 membership 級重排。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -212,6 +217,26 @@ local function StackOn()
         and ns.StackGate.Threshold(ns.SpellSetting(cur.key, cur.id, "stackGlow")) ~= nil
 end
 
+-- 天賦條件：寫進覆寫（spellID 留空也存 mode：等玩家填 ID；沒有 ID 的條件引擎當沒有）
+local function SetTalentCond(mode, spellID)
+    if not cur then return end
+    local v = nil
+    if mode == "known" or mode == "unknown" then v = { spellID = spellID, mode = mode } end
+    ns.DB.SetOverride(cur.id, "talentCond", v)
+    -- 目錄簽章帶著條件結果：標髒讓下一次排版重建（換天賦時才比得出變化）
+    if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
+    Changed("membership")
+end
+
+-- 法術名（明文才收；查不到 nil）
+local function SpellNameOf(id)
+    local fn = C_Spell and C_Spell.GetSpellName
+    if type(id) ~= "number" or not fn then return nil end
+    local ok, name = pcall(fn, id)
+    if not ok or name == nil or ns.IsSecret(name) then return nil end
+    return type(name) == "string" and name ~= "" and name or nil
+end
+
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
 local function Build()
@@ -265,6 +290,97 @@ local function Build()
     dd:SetMaxWidth(ROW_W - CTRL_X)
     dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
     frame.barDD = dd
+
+    -- 天賦條件：下拉（無／學了才顯示／沒學才顯示）；控件欄只有一百五十幾寬，ID 框放下一列
+    local tcr, tch = NewRow(L["Talent condition"])
+    local tcItems = {
+        { text = L["None"],               value = "none" },
+        { text = L["Show if learned"],     value = "known" },
+        { text = L["Show if not learned"], value = "unknown" },
+    }
+    local tcdd = W.CreateDropdown(tcr, ROW_W - CTRL_X, tcItems, function(value)
+        if not cur then return end
+        local cond = Override("talentCond")
+        local sid = type(cond) == "table" and cond.spellID or nil
+        if value == "none" then sid = nil end
+        SetTalentCond(value, sid)
+    end)
+    tcdd:SetMaxWidth(ROW_W - CTRL_X)
+    tcdd:SetPoint("LEFT", tcr, "LEFT", CTRL_X, 0)
+    frame.talentDD = tcdd
+    -- 右鍵整列清掉（不走 RightClickClears：要 membership 級重排）
+    local tchit = CreateFrame("Frame", nil, tcr)
+    tchit:SetPoint("TOPLEFT", tcr, "TOPLEFT", 0, 0)
+    tchit:SetPoint("BOTTOMLEFT", tcr, "BOTTOMLEFT", 0, 0)
+    tchit:SetWidth(LABEL_W)
+    tchit:EnableMouse(true)
+    tchit:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" and cur then SetTalentCond(nil) end
+    end)
+
+    -- ID 框＋法術名（下一列，沒有標籤，對齊控件欄）
+    local tir = NewRow(nil)
+    local tbox = W.CreateEditBox(tir, 70, 20)
+    tbox:SetPoint("LEFT", tir, "LEFT", CTRL_X, 0)
+    tbox:SetNumeric(true)
+    tbox:SetMaxLetters(10)
+    local tname = tir:CreateFontString(nil, "OVERLAY")
+    tname:SetFontObject(W.fontSmall)
+    tname:SetPoint("LEFT", tbox, "RIGHT", 6, 0)
+    tname:SetPoint("RIGHT", tir, "RIGHT", 0, 0)
+    tname:SetJustifyH("LEFT")
+    tname:SetWordWrap(false)
+    frame.talentBox, frame.talentName = tbox, tname
+    -- 提交：沒選模式時填了 ID ⇒ 當成「學了才顯示」；清空 ⇒ 留著模式、拿掉 ID（引擎當沒有條件）
+    local function CommitTalentID()
+        if not cur then return end
+        local n = ns.Picker.ParseID(tbox:GetText())
+        local cond = Override("talentCond")
+        local mode = type(cond) == "table" and cond.mode or nil
+        local old = type(cond) == "table" and cond.spellID or nil
+        if n == old and (n == nil or mode ~= nil) then return end
+        if n and mode ~= "known" and mode ~= "unknown" then mode = "known" end
+        if not mode then return end
+        SetTalentCond(mode, n)
+    end
+    tbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    tbox:HookScript("OnEditFocusLost", CommitTalentID)
+    -- Shift 點天賦樹／法術書填進來的（程式寫入，不是打字）：直接提交，不必再按 Enter
+    tbox:HookScript("OnTextChanged", function(_, userInput)
+        if not userInput and tbox.filling == nil then CommitTalentID() end
+    end)
+    -- Picker.WatchInput 的收件者：要有 IsShown 與 boxes.id。用一個看不見的代理框
+    -- （Picker 會在它身上寫確認字、改高度，代理框 alpha 0、不參與排版）。
+    -- IsShown 改成「面板看得到**而且 ID 框有焦點**」才收：這個面板不是獨佔的輸入彈窗，
+    -- 開著時玩家照樣會 Shift 點法術貼到聊天，不能被這裡吃掉（還會默默把格子藏起來）。
+    -- Shift 點天賦時輸入框不會失焦（聊天框插連結也是靠這個），TakeLink 填完會再 SetFocus
+    local proxy = CreateFrame("Frame", nil, tir)
+    proxy:SetSize(1, 1)
+    proxy:SetPoint("TOPLEFT", tir, "TOPLEFT", 0, 0)
+    proxy:SetAlpha(0)
+    proxy.boxes = { id = tbox }
+    function proxy:IsShown() return self:IsVisible() and tbox:HasFocus() and true or false end
+    tbox:HookScript("OnEditFocusGained", function()
+        ns.Picker.WatchInput(proxy, "spell", L["That is an item link. Enter a spell ID here."])
+    end)
+
+    -- 說明（下一列灰字）
+    local tnRow = CreateFrame("Frame", nil, frame)
+    local tnTip = Note(tnRow)
+    tnTip:SetPoint("TOPLEFT", tnRow, "TOPLEFT", CTRL_X, -2)
+    tnTip:SetWidth(ROW_W - CTRL_X)
+    tnTip:SetWordWrap(true)
+    tnTip:SetText(L["Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree. Shows or hides automatically when you change talents."])
+    local tnH = 2 + math.max(14, tnTip:GetStringHeight() or 0) + 6
+    tnRow:SetSize(ROW_W, tnH)
+    local tnEntry = { frame = tnRow, h = tnH }
+    tnEntry.remeasure = function()
+        local sh2 = tnTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        tnRow:SetHeight(nh)
+        tnEntry.h = nh
+    end
+    rows[#rows + 1] = tnEntry
 
     -- 邊框顏色：勾「自訂」才寫覆寫
     local br, bh = NewRow(L["Border color"])
@@ -693,8 +809,11 @@ local function Build()
     restore:SetScript("OnClick", function()
         if not cur then return end
         local sp = ns.DB.SpecSpells(false)
+        local had = Override("talentCond") ~= nil
         if sp and type(sp.overrides) == "table" then sp.overrides[cur.id] = nil end
-        Changed()
+        -- 拿掉了天賦條件 ⇒ 格子可能要回到畫面上
+        if had and ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
+        Changed(had and "membership" or nil)
     end)
     -- 自訂項目才有：複製到這個職業的其他專精（連同覆寫）
     local copy = W.CreateButton(btnRow, L["Copy to other specializations"], "normal", 130, 22)
@@ -822,6 +941,28 @@ function Pop.Refresh()
         local sp = ns.DB.SpecSpells(false)
         local g = sp and type(sp.groupOf) == "table" and sp.groupOf[id]
         frame.barDD:SetSelectedValue((g and ns.DB.BarTable(g)) and g or ns.Catalog.SourceOf(id))
+    end
+
+    -- 天賦條件：模式＋ID＋法術名（查不到紅字）
+    local tc = Override("talentCond")
+    local tmode = type(tc) == "table" and (tc.mode == "known" or tc.mode == "unknown") and tc.mode or "none"
+    local tsid = type(tc) == "table" and ns.Catalog.ValidTalentCond({ spellID = tc.spellID, mode = "known" }) or nil
+    frame.talentDD:SetSelectedValue(tmode)
+    frame.talentBox.filling = true            -- 回填不算 Shift 點擊（OnTextChanged 不提交）
+    frame.talentBox:SetText(tsid and tostring(tsid) or "")
+    frame.talentBox.filling = nil
+    frame.talentBox:SetCursorPosition(0)
+    if tsid then
+        local tn = SpellNameOf(tsid)
+        if tn then
+            frame.talentName:SetText(tn)
+            frame.talentName:SetTextColor(0.8, 0.8, 0.8)
+        else
+            frame.talentName:SetText(L["Spell not found"])
+            frame.talentName:SetTextColor(1, 0.3, 0.3)
+        end
+    else
+        frame.talentName:SetText("")
     end
 
     local own = Override("borderColor")

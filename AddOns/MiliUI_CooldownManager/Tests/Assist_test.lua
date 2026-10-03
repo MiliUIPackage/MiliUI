@@ -11,7 +11,8 @@
 --   3. 「該不該輪詢」（Assist.ShouldPoll）、API 回傳的清洗（Normalize：秘密值不比較）、要亮的格（Targets）
 --   4. 輪詢與醒目標示的流程（假 ticker、假 API、假法術索引、假 Glow）：開關、進出戰鬥、換建議、秘密值、
 --      目標可攻擊／死了、API 不存在、醒目標示關掉全熄、AssistSpellChanged 廣播
---   5. Glow 的第四種發光 "assist"：預設色、G.Sync 不熄它、停放熄它、Counts 第五個值
+--   5. Glow 的第四種發光 "assist"：預設色、G.Sync 不熄它、停放熄它、Counts 第五個值；
+--      就緒發光看資源（ReadyGate、等資源→事件→亮、秘密值 fail-open、自訂物品不檢查、取消等待的四種情況）
 --   6. 下一招圖示的尺寸夾值（AssistIcon.Size）
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -450,6 +451,123 @@ eq("停放熄 assist", grec.glowOn.assist, nil)
 check("停放：Stop 的 key 是 assist", #stopped >= 1 and stopped[#stopped].key == "assist")
 _, _, _, _, nAssist = G.Counts()
 eq("Counts：熄了之後 0", nAssist, 0)
+
+------------------------------------------------------------
+-- 5b. 就緒發光看資源（glow.ready.requireUsable）
+------------------------------------------------------------
+do
+    eq("ReadyGate：沒開 ⇒ now", G.ReadyGate(false, false), "now")
+    eq("ReadyGate：開了、可用 ⇒ now", G.ReadyGate(true, true), "now")
+    eq("ReadyGate：開了、不可用 ⇒ wait", G.ReadyGate(true, false), "wait")
+    eq("ReadyGate：開了、讀不到 ⇒ now（fail-open）", G.ReadyGate(true, nil), "now")
+
+    local origSetting, origSpell, origAfter = ns.Setting, ns.SpellSetting, env.C_Timer.After
+    local origCatalog, origSound = ns.Catalog, ns.Sound
+    local req = true
+    ns.Setting = function(bk, path)
+        if path == "glow.ready.requireUsable" then return req end
+        return origSetting(bk, path)
+    end
+    ns.SpellSetting = function(bk, id, key, spec)
+        if key == "readyGlow" then return true end
+        return origSpell(bk, id, key, spec)
+    end
+    env.C_Timer.After = function() end          -- 計時熄不跑：只看「有沒有亮」
+    ns.MiliUIGlow.ButtonGlow_Start = function() end   -- 就緒發光預設樣式是快捷鍵閃光
+    ns.Catalog = { Info = function(id) return { spellID = id * 10 } end }
+    local usable = {}
+    env.C_Spell = { IsSpellUsable = function(id) return usable[id] end }
+    local rang = 0
+    ns.Sound = { WantsReady = function() return true end, OnReady = function() rang = rang + 1 end }
+    local function Waiting() return handlers.SPELL_UPDATE_USABLE and handlers.SPELL_UPDATE_USABLE.glow_ready_wait ~= nil end
+    local function NewRec(id, extra)
+        local r = { overlay = env.CreateFrame(), cooldownID = id, barKey = "essential", claimKey = "essential", glowW = 30, glowH = 30 }
+        for k, v in pairs(extra or {}) do r[k] = v end
+        return r
+    end
+
+    local r = NewRec(7)
+    usable[70] = false
+    local fired0 = G.readyFired
+    G.FireReady(r)
+    eq("資源不夠：不亮", G.readyFired, fired0)
+    eq("資源不夠：記等待", r.readyPending, 7)
+    eq("資源不夠：音效照響", rang, 1)
+    check("資源不夠：註冊 SPELL_UPDATE_USABLE", Waiting())
+    eq("等待中一格", G.PendingCount(), 1)
+    Fire("SPELL_UPDATE_USABLE")
+    eq("還是不夠：還在等", G.readyFired, fired0)
+    usable[70] = true
+    Fire("UNIT_POWER_FREQUENT", "player")
+    eq("夠了：亮", G.readyFired, fired0 + 1)
+    check("夠了：發光開著", r.glowOn and r.glowOn.ready ~= nil)
+    eq("夠了：清掉等待", r.readyPending, nil)
+    eq("夠了：音效不重響", rang, 1)
+    check("沒人等了：解除事件", not Waiting())
+    G.CooldownStarted(r)
+
+    -- 秘密值／讀不到 ⇒ 照舊立刻亮（不拿秘密值比較）
+    local r2 = NewRec(8)
+    usable[80] = SECRET
+    G.FireReady(r2)
+    eq("秘密值：立刻亮", G.readyFired, fired0 + 2)
+    eq("秘密值：不等", r2.readyPending, nil)
+    env.C_Spell = { IsSpellUsable = function() error("boom") end }
+    local r3 = NewRec(9)
+    G.FireReady(r3)
+    eq("pcall 失敗：立刻亮", G.readyFired, fired0 + 3)
+    env.C_Spell = { IsSpellUsable = function(id) return usable[id] end }
+
+    -- 沒開資源檢查：不可用也立刻亮
+    req = false
+    local r4 = NewRec(10)
+    usable[100] = false
+    G.FireReady(r4)
+    eq("沒開：不可用也亮", G.readyFired, fired0 + 4)
+    req = true
+
+    -- 自訂物品不檢查；自訂法術用自己的 spellID（覆寫優先）
+    local r5 = NewRec("c:1", { custom = true, kind = "item", itemID = 5 })
+    G.FireReady(r5)
+    eq("自訂物品：直接亮", G.readyFired, fired0 + 5)
+    local r6 = NewRec("c:2", { custom = true, kind = "spell", spellID = 600, overrideID = 601 })
+    usable[600], usable[601] = true, false
+    G.FireReady(r6)
+    eq("自訂法術：問覆寫的那個", r6.readyPending, "c:2")
+    G.CooldownStarted(r6)
+    eq("又用掉了：取消等待", r6.readyPending, nil)
+    eq("取消後沒人等", G.PendingCount(), 0)
+    check("取消後解除事件", not Waiting())
+
+    -- 停放／被藏／換身分 ⇒ 取消，不亮
+    local r7 = NewRec(11)
+    usable[110] = false
+    G.FireReady(r7)
+    G.OnParked(r7)
+    eq("停放：取消等待", r7.readyPending, nil)
+    local r8 = NewRec(12)
+    usable[120] = false
+    G.FireReady(r8)
+    r8.hidden = true
+    usable[120] = true
+    local f8 = G.readyFired
+    Fire("SPELL_UPDATE_USABLE")
+    eq("被藏：不亮", G.readyFired, f8)
+    eq("被藏：取消等待", r8.readyPending, nil)
+    local r9 = NewRec(13)
+    usable[130] = false
+    G.FireReady(r9)
+    r9.cooldownID = 14                 -- 暴雪把框回收給別的法術
+    usable[130], usable[140] = true, true
+    Fire("SPELL_UPDATE_USABLE")
+    eq("換身分：不亮", G.readyFired, f8)
+    eq("換身分：取消等待", r9.readyPending, nil)
+    check("全部清掉：解除事件", not Waiting())
+
+    ns.Setting, ns.SpellSetting, env.C_Timer.After = origSetting, origSpell, origAfter
+    ns.Catalog, ns.Sound, env.C_Spell = origCatalog, origSound, nil
+    ns.MiliUIGlow.ButtonGlow_Start = nil
+end
 
 ------------------------------------------------------------
 -- 6. 下一招圖示的尺寸

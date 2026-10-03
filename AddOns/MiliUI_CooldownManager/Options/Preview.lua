@@ -415,8 +415,10 @@ function Proto:Refresh()
         end
         -- 清單上有、暴雪卻沒給框的：畫面上不會有，這裡標暗（提示有說明），不要假裝它在
         c.missing = (not e.plus and ns.Bars and ns.Bars.IsMissing and ns.Bars.IsMissing(key, e.id)) and true or false
+        -- 天賦條件不成立（Core/Catalog.lua）：畫面上不顯示，預覽照樣列出來（點得到才改得回來），一樣標暗
+        c.talentBlocked = (not e.plus and ns.Catalog.TalentBlocked(e.id)) and true or false
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
-        c:SetAlpha((e.hidden or c.missing) and 0.35 or (not e.plus and c.stateAlpha) or 1)
+        c:SetAlpha((e.hidden or c.missing or c.talentBlocked) and 0.35 or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
     if self.onRefresh then self.onRefresh(self) end
@@ -530,6 +532,9 @@ local function ShowTip(c)
     GameTooltip:SetText(c.name or "")
     if c.custom and not c.known then
         GameTooltip:AddLine(L["Not learned"], 1, 0.3, 0.3)
+    end
+    if c.talentBlocked then
+        GameTooltip:AddLine(L["Talent condition not met, so it isn't shown on screen."], 1, 0.3, 0.3, true)
     end
     if c.missing then
         GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."], 1, 0.3, 0.3, true)

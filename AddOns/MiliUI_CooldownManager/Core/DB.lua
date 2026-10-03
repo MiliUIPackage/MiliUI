@@ -398,9 +398,9 @@ function DB.BuildDefaults()
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
                               lines = 8, thickness = 2, frequency = 0.2 },
-                    -- duration：冷卻轉好之後亮幾秒
+                    -- duration：冷卻轉好之後亮幾秒；requireUsable：資源不夠時先不亮、等到夠了才亮（Core/Glow.lua）
                     ready = { enabled = false, type = "button", color = rgba(0.3, 1, 0.3, 1),
-                              lines = 8, thickness = 2, frequency = 0.2, duration = 3 },
+                              lines = 8, thickness = 2, frequency = 0.2, duration = 3, requireUsable = false },
                     -- 生效發光（增益）：沒有條層開關，逐法術 overrides[id].activeGlow 才亮；這裡只給樣式與預設色
                     active = { type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
                                lines = 8, thickness = 2, frequency = 0.2 },
@@ -1199,6 +1199,8 @@ DB.OVERRIDE_GROUP = {
     readySound = "sound", gainSound = "sound", loseSound = "sound",
     -- 語音播報跟音效同一節（同一個觸發點、同一個總開關）
     readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound",
+    -- 天賦條件（Core/Catalog.lua，{ spellID, mode }）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
+    talentCond = "talent",
 }
 
 -- v = nil 清掉那一格；整張空了就拿掉

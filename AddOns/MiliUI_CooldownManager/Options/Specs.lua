@@ -553,7 +553,9 @@ function Specs.Themed(mode, key)
             TS("glow", "slider", "glow.ready.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.ready.type") }),
             TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.ready.type") }),
             GlowSampleRow("ready"),
-            TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
+            TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }),
+            TS("glow", "toggle", "glow.ready.requireUsable", L["Wait for resources"]),
+            Note(L["If the cooldown is ready but you lack the resources, the glow waits until you have enough."], "glow"))
     end
     -- 生效發光（增益）的樣式與顏色逐法術挑（預覽點圖示；使用者 2026-10-02 拿掉統一設定）；這裡只放像素發光的
     -- 線條數／粗細（逐法術沒有這兩項、全部吃 glow.active 的；玩家回報 2026-10-03）

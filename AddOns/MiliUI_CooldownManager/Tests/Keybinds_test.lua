@@ -85,8 +85,16 @@ eq("slot 72 左下最後", cmd(72, 1), "MULTIACTIONBAR1BUTTON12")
 eq("slot 145 動作條 6", cmd(145, 1), "MULTIACTIONBAR5BUTTON1")
 eq("slot 160 動作條 7", cmd(160, 1), "MULTIACTIONBAR6BUTTON4")
 eq("slot 180 動作條 8", cmd(180, 1), "MULTIACTIONBAR7BUTTON12")
-eq("slot 75 變形那頁（沒變形）不收", cmd(75, 1), nil)
+local DRUID = K.BONUS_PAGES.DRUID
+eq("slot 75 變形那頁（德魯伊沒變形）是備援", (K.CommandForSlot(75, 1, DRUID)), "ACTIONBUTTON3")
+eq("slot 75 德魯伊沒變形時 rank 2", select(2, K.CommandForSlot(75, 1, DRUID)), 2)
+eq("slot 75 沒有變形頁的職業不收（那是快捷列插件的頁）", cmd(75, 1), nil)
+eq("slot 85 盜賊只有潛行頁：第 8 頁不收", (K.CommandForSlot(85, 1, K.BONUS_PAGES.ROGUE)), nil)
+eq("slot 75 盜賊潛行頁是備援", (K.CommandForSlot(75, 1, K.BONUS_PAGES.ROGUE)), "ACTIONBUTTON3")
 eq("slot 75 變形成第 7 頁", cmd(75, 7), "ACTIONBUTTON3")
+eq("slot 75 變形成第 7 頁時 rank 0", select(2, K.CommandForSlot(75, 7)), 0)
+eq("slot 110 第 10 頁（德魯伊沒變形）是備援", (K.CommandForSlot(110, 1, DRUID)), "ACTIONBUTTON2")
+eq("slot 3 變形成第 7 頁時是備援", select(2, K.CommandForSlot(3, 7)), 2)
 eq("slot 121 載具那頁不收", cmd(121, 1), nil)
 eq("slot 0 不收", cmd(0, 1), nil)
 eq("slot nil 不收", cmd(nil, 1), nil)
@@ -105,7 +113,15 @@ eq("都沒綁 ⇒ nil", K.FromSlots({ 4, 5 }), nil)
 bonus = 1          -- 變形：主條顯示第 7 頁（73–84）
 bindings.ACTIONBUTTON5 = "5"
 eq("變形時第 7 頁的格子優先", K.FromSlots({ 3, 77 }), "5")
+eq("變形時只在第 1 頁的技能照樣有鍵", K.FromSlots({ 3 }), "3")
 bonus = 0
+ns.playerClass = "DRUID"   -- 變形頁的備援只有德魯伊／盜賊（K.BONUS_PAGES）
+eq("人形時第 1 頁與第 7 頁都有 ⇒ 第 1 頁", K.FromSlots({ 77, 3 }), "3")
+eq("人形時只在第 7 頁的技能照樣有鍵", K.FromSlots({ 77 }), "5")
+eq("人形時側邊勝過第 7 頁的備援", K.FromSlots({ 77, 62 }), "s2")
+ns.playerClass = "MAGE"
+eq("沒有變形頁的職業：第 7 頁的格子不算（快捷列插件的頁）", K.FromSlots({ 77 }), nil)
+ns.playerClass = nil
 
 ------------------------------------------------------------
 -- 4. 法術／物品查詢與快取

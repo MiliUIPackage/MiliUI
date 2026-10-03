@@ -6,6 +6,7 @@
 --                                hasAura, charges, isInvisible, isKnown, effectiveCategory, home }
 --   ns.Catalog.Refresh(reason) 重讀；內容（簽章）變了才廣播 "CatalogChanged"
 --   ns.Catalog.IsPaused()      暴雪冷卻管理器設定面板開著 ⇒ true（Bars 暫停重排）
+--   ns.Catalog.TalentBlocked(id) 逐法術的天賦條件不成立 ⇒ true（正式清單不收；見下面「天賦條件」）
 --
 -- 自訂項目（spells[spec].custom，id 是 "c:<index>"）也從這裡進清單：Bar(key) 把
 -- custom[i].bar == key 的排進去，順序跟其他格一樣走 order 表（光環格也是，可以放在任意位置；
@@ -321,6 +322,91 @@ local function ReadInfo(id)
 end
 
 ------------------------------------------------------------
+-- 天賦條件（逐法術覆寫 overrides[id].talentCond = { spellID, mode = "known"｜"unknown" }）
+--
+-- 同一個專精換天賦時不用手動藏格子／加回來：「學了天賦 X 才顯示」「沒學 Y 才顯示」。
+--   C.TalentCondPass(cond, isKnown)  純函式；isKnown(spellID) → true／false／nil（讀不到）
+--   C.TalentKnown(spellID)           遊戲裡的 isKnown
+--   C.TalentBlocked(id)              這一格目前被天賦條件擋掉（設定頁預覽畫暗用）
+-- 規則：
+--   * 沒存、壞資料（spellID 不是正整數、mode 不認得）＝沒有條件。
+--   * 讀不到（秘密值、API 不在、pcall 失敗）＝條件成立（fail-open：不要因為讀不到就把格子藏掉）。
+--   * 條件不成立的 id 不進 C.Bar 的正式清單（排版看不到）；withHidden（設定頁）照樣放進第一張，
+--     玩家才點得到、改得回來。
+--   * 換天賦會派 SPELLS_CHANGED／TRAIT_CONFIG_UPDATED ⇒ Later 重建；簽章帶著每個條件的結果，
+--     結果變了才廣播 CatalogChanged（Bars 收到就整套 membership 重排）。
+------------------------------------------------------------
+local TALENT_MODES = { known = true, unknown = true }
+
+-- 合法的條件 ⇒ spellID, mode；其餘 nil
+local function ValidTalentCond(cond)
+    if type(cond) ~= "table" then return nil end
+    local id, mode = cond.spellID, cond.mode
+    if type(id) ~= "number" or id <= 0 or id ~= math.floor(id) then return nil end
+    if not TALENT_MODES[mode] then return nil end
+    return id, mode
+end
+C.ValidTalentCond = ValidTalentCond
+
+function C.TalentCondPass(cond, isKnown)
+    local id, mode = ValidTalentCond(cond)
+    if not id then return true end
+    local known = isKnown and isKnown(id)
+    if type(known) ~= "boolean" then return true end      -- 讀不到：當成立
+    if mode == "known" then return known end
+    return not known
+end
+
+-- 天賦學了沒：C_SpellBook.IsSpellKnown 與 IsPlayerSpell 都問（天賦被動只有 IsPlayerSpell 準），
+-- 任一個明文 true 就算學了；兩個都明文 false 才算沒學；有一個讀不到又沒有 true ⇒ nil（fail-open）
+local function TalentKnown(spellID)
+    local unsure, asked = false, false
+    local book = C_SpellBook
+    for _, fn in ipairs({ book and book.IsSpellKnown or false, _G.IsPlayerSpell or false }) do
+        if fn then
+            asked = true
+            local ok, v = pcall(fn, spellID)
+            if ok then v = Plain(v) else v = nil end     -- ⚠ 不能寫成 ok and Plain(v) or nil：false 會被吃掉
+            if v == true then return true end
+            if v ~= false then unsure = true end
+        end
+    end
+    if unsure or not asked then return nil end
+    return false
+end
+C.TalentKnown = TalentKnown
+
+-- 這一格的條件（目前專精的覆寫；SpellsTable 定義在下面，用前置宣告）
+local SpellsTable
+local function TalentCondOf(sp, id)
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    local o = all and id ~= nil and all[id]
+    return type(o) == "table" and o.talentCond or nil
+end
+
+local function Blocked(sp, id)
+    local cond = TalentCondOf(sp, id)
+    return cond ~= nil and not C.TalentCondPass(cond, C.TalentKnown)
+end
+
+function C.TalentBlocked(id)
+    return Blocked(SpellsTable(), id)
+end
+
+-- 簽章用：目前被擋掉的 id（排序後串起來）
+local function TalentSig()
+    local sp = SpellsTable()
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    if not all then return "" end
+    local out = {}
+    for id in pairs(all) do
+        if Blocked(sp, id) then out[#out + 1] = tostring(id) end
+    end
+    table.sort(out)
+    return table.concat(out, ",")
+end
+
+------------------------------------------------------------
 -- 重建
 ------------------------------------------------------------
 local function Build()
@@ -427,8 +513,8 @@ local function Build()
     C.placed = placed
     C.adopted = 0
 
-    -- 簽章：版面原字串＋專精＋每條清單（天賦改變 isKnown 也會反映在清單上）
-    local parts = { str or "", tostring(tag) }
+    -- 簽章：版面原字串＋專精＋每條清單（天賦改變 isKnown 也會反映在清單上）＋天賦條件的結果
+    local parts = { str or "", tostring(tag), TalentSig() }
     for _, bar in ipairs(C.SOURCE_BARS) do
         parts[#parts + 1] = table.concat(lists[bar], ",")
     end
@@ -606,7 +692,7 @@ function C.SlotItemID(slot)
     return type(id) == "number" and id or nil
 end
 
-local function SpellsTable()
+SpellsTable = function()
     local p = ns.profile
     local spec = ns.specID
     local sp = p and type(p.spells) == "table" and spec and p.spells[spec]
@@ -771,10 +857,15 @@ function C.Bar(barKey, withHidden)
     -- 資源條的征戰聖擊列顯示時，增益長條上那條同一件事的整個拿掉（不進 hid：不是玩家藏的）
     local autoHide = ns.Resources and ns.Resources.HidesTrackedBar
 
+    -- 天賦條件不成立：正式清單不收；設定頁（withHidden）照樣收進第一張，預覽畫暗（C.TalentBlocked）
+    local function Allowed(id)
+        return withHidden or not Blocked(sp, id)
+    end
+
     local function Add(id)
         if autoHide and autoHide(id) then return end
         if not hidden[id] then
-            out[#out + 1] = id
+            if Allowed(id) then out[#out + 1] = id end
         elseif hid then
             hid[#hid + 1] = id
         end
@@ -817,7 +908,10 @@ function C.Bar(barKey, withHidden)
     -- 自訂項目（圖示類、長條類的條都收：放在長條上時 Modules/Custom.lua 換成長條框）。
     -- hidden 對它無效：自己加的項目「移除」就是整筆刪掉，沒有「藏著」這種狀態
     for i, e in ipairs(CustomList()) do
-        if ValidCustom(e) and e.bar == barKey then out[#out + 1] = "c:" .. i end
+        if ValidCustom(e) and e.bar == barKey then
+            local id = "c:" .. i
+            if Allowed(id) then out[#out + 1] = id end
+        end
     end
 
     -- 我們自己的順序覆寫：列到的照列的順序排在前面，沒列到的照原順序接在後面
