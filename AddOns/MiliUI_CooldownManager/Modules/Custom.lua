@@ -94,6 +94,8 @@ local pendingBuild = {}     -- rec → true（戰鬥中要換容器）
 local pendingKick = {}      -- rec → true（戰鬥中要補踢）
 CU.lastError = nil
 CU.builds = 0
+-- /mcdm perf：UpdateSpell 跑幾次／只重算顏色幾次（只重算顏色的路徑還沒做之前一直是 0）
+CU.updates, CU.colorOnly = 0, 0
 
 local function Plain(v)
     if v == nil or ns.IsSecret(v) then return nil end
@@ -545,6 +547,7 @@ local function SpellCharges(rec, spellID)
 end
 
 local function UpdateSpell(rec)
+    CU.updates = CU.updates + 1
     local f = rec.frame
     local base = rec.spellID
     local known = ns.Catalog.SpellKnown(base)

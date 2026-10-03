@@ -2086,7 +2086,9 @@ local mirrorHides = false      -- 增益長條上的征戰聖擊要不要藏（�
 function R.HidesTrackedBar(id)
     return mirrorHides and MirrorMatches(id) or false
 end
+R.mirrorTicks, R.valueFlushes = 0, 0   -- /mcdm perf：征戰聖擊鏡射的 OnUpdate 跑幾幀／只重畫值的 Flush 幾次
 local function MirrorTick()
+    R.mirrorTicks = R.mirrorTicks + 1
     for i = 1, mirrorCount do
         local row = mirrorRows[i]
         if row and row.mode == "mirror" then R.MirrorRow(row) end
@@ -2526,6 +2528,7 @@ local function Flush()
     if re then
         R.Reevaluate()
     elseif va then
+        R.valueFlushes = R.valueFlushes + 1
         R.Update(false)
     end
 end

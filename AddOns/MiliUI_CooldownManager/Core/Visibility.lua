@@ -136,7 +136,9 @@ function Vis.Evaluate(vis, fade, s)
     return a
 end
 
+Vis.snapshots = 0          -- /mcdm perf：Snapshot 建了幾次
 local function Snapshot()
+    Vis.snapshots = Vis.snapshots + 1
     return {
         combat   = inCombat,
         target   = HasTarget(),

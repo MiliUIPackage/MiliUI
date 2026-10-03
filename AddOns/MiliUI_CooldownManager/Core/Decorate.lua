@@ -36,6 +36,11 @@ local _, ns = ...
 
 ns.Decorate = {}
 local D = ns.Decorate
+-- /mcdm perf 的計數（Api.lua；只 +1，不配置）：
+--   applyCalls／applySkipped（簽章命中）／applyPre（前置鍵命中，前置鍵還沒做之前一直是 0）
+--   setCooldownHooks（SetCooldown 後掛勾被叫幾次）／afterCooldownWrites（其中真的有樣式要寫的次數）
+D.applyCalls, D.applySkipped, D.applyPre = 0, 0, 0
+D.setCooldownHooks, D.afterCooldownWrites = 0, 0
 
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 local ICON_OVERLAY_ATLAS = "UI-HUD-CoolDownManager-IconOverlay"
@@ -582,6 +587,10 @@ end
 local function AfterCooldown(item, rec, cd)
     local st = rec.style
     if not st then return end
+    -- /mcdm perf：下面三樣（轉圈色／邊緣／倒數換色）真的有要寫的才算一次
+    if st.swipe or st.durSwipe or type(st.drawEdge) == "boolean" or st.cdColor then
+        D.afterCooldownWrites = D.afterCooldownWrites + 1
+    end
     -- 轉圈色：增益那一段用它自己的背景色（換色開著才有 durSwipe）
     local sw = ((rec.auraTime or st.allAura) and st.durSwipe) or st.swipe
     if sw then cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4]) end
@@ -622,6 +631,7 @@ end
 D.OnSetUseAuraDisplayTime = OnSetUseAuraDisplayTime              -- 測試用
 
 local function OnSetCooldown(cd, start, duration, modRate)
+    D.setCooldownHooks = D.setCooldownHooks + 1
     if ns.released then return end                  -- 已還給暴雪（Bars.ReleaseAll）
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
@@ -1385,6 +1395,7 @@ end
 ------------------------------------------------------------
 function D.Apply(item, rec, barKey, w, h)
     if not (item and rec and barKey) then return end
+    D.applyCalls = D.applyCalls + 1
     local style = D.Resolve(barKey)
     local id = rec.cooldownID
     local spell = SpellStyle(barKey, id)
@@ -1404,7 +1415,10 @@ function D.Apply(item, rec, barKey, w, h)
                 .. "," .. CSig(aSpell.durationLowColor) .. "," .. CSig(aSpell.durationSwipeColor)
         end
     end
-    if rec.decorated == sig and rec.decoratedBar == barKey then return end
+    if rec.decorated == sig and rec.decoratedBar == barKey then
+        D.applySkipped = D.applySkipped + 1
+        return
+    end
 
     D.HookItem(item, rec)
     StripBlizzard(item, rec, isBar)
