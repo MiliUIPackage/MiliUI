@@ -398,9 +398,9 @@ function DB.BuildDefaults()
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
                               lines = 8, thickness = 2, frequency = 0.2 },
-                    -- duration：冷卻轉好之後亮幾秒；untilUsed：不計秒、亮到用掉（回充照秒數，Core/Glow.lua）
+                    -- mode：timed 亮 duration 秒／untilUsed 亮到用掉（回充照秒數）／whileReady 就緒時一直亮（Core/Glow.lua）
                     ready = { enabled = false, type = "button", color = rgba(0.3, 1, 0.3, 1),
-                              lines = 8, thickness = 2, frequency = 0.2, duration = 3, untilUsed = false },
+                              lines = 8, thickness = 2, frequency = 0.2, duration = 3, mode = "timed" },
                     -- 生效發光（增益）：沒有條層開關，逐法術 overrides[id].activeGlow 才亮；這裡只給樣式與預設色
                     active = { type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
                                lines = 8, thickness = 2, frequency = 0.2 },

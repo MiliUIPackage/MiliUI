@@ -542,6 +542,13 @@ local function FeedRealCooldown(item, rec, cd)
     end
 end
 
+-- 這一格的就緒發光是不是「就緒時一直亮」（Core/Glow.lua）：SetCooldown 與 SPELL_UPDATE_COOLDOWN 都要替它重算
+local function ReadyWhileOn(rec)
+    local G = ns.Glow
+    if not (G and G.ReadyMode and rec.claimKey) then return false end
+    return G.ReadyMode(rec.claimKey) == "whileReady"
+end
+
 -- SetCooldown 後掛勾的尾巴（正常路徑與蓋掉的那條共用）：轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態
 local function AfterCooldown(item, rec, cd)
     local st = rec.style
@@ -555,6 +562,8 @@ local function AfterCooldown(item, rec, cd)
     D.ApplyGCDAlpha(item, rec)
     -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
     if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
+    -- 就緒時一直亮的發光（Core/Glow.lua）：同一個時機重算
+    if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or ReadyWhileOn(rec)) then ns.Glow.ApplyReadyState(rec, item) end
 end
 
 -- 旗標（暴雪的明文布林）＋目前設定 → rec.auraHidden／rec.auraTime
@@ -876,6 +885,7 @@ end
 
 -- rec → 暴雪 item（就緒探針只拿得到 rec）。弱鍵弱值：item 是池化的框，rec 是 Viewers 的弱鍵表裡的值
 local itemOf = setmetatable({}, { __mode = "kv" })
+function D.ItemOf(rec) return rec and itemOf[rec] end
 
 function D.RefreshState(rec, noRetry)
     if not rec or ns.released then return end
@@ -905,12 +915,14 @@ local cdArmed = false
 
 local function NeedsWork(rec)
     local st = rec.style
-    return st and (st.hideGCD or st.cdState) and true or false
+    return (st and (st.hideGCD or st.cdState)) or rec.readyWhile or ReadyWhileOn(rec) or false
 end
 
 local function RefreshOne(item, rec)
-    if rec.style.hideGCD then D.ApplyGCDAlpha(item, rec) end
-    if rec.style.cdState then D.ApplyItemAlpha(item, rec) end
+    local st = rec.style
+    if st and st.hideGCD then D.ApplyGCDAlpha(item, rec) end
+    if st and st.cdState then D.ApplyItemAlpha(item, rec) end
+    if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or ReadyWhileOn(rec)) then ns.Glow.ApplyReadyState(rec, item) end
 end
 
 local function RefreshCooldownAll()

@@ -88,6 +88,13 @@ local GLOW_ITEMS = {
 }
 Specs.GLOW_ITEMS = GLOW_ITEMS
 
+-- 就緒發光亮多久（glow.ready.mode，Core/Glow.lua）
+local READY_MODE_ITEMS = {
+    { text = L["A few seconds"],         value = "timed" },
+    { text = L["Until used"],            value = "untilUsed" },
+    { text = L["Whenever it's ready"],   value = "whileReady" },
+}
+
 -- 冷卻狀態（icon.cdState，Core/Decorate.lua 的冷卻狀態效果）
 local CDSTATE_ITEMS = {
     { text = L["No change"],              value = "none" },
@@ -547,15 +554,16 @@ function Specs.Themed(mode, key)
             GlowSampleRow("proc"),
             Nested(L["Ready glow"], "glow"),
             TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
-            Note(L["Glows for a moment when a cooldown finishes. The global cooldown doesn't count."], "glow"),
+            Note(L["Glows when a cooldown is ready. The global cooldown doesn't count."], "glow"),
             TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.ready.color", L["Color"]),
             TS("glow", "slider", "glow.ready.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.ready.type") }),
             TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.ready.type") }),
             GlowSampleRow("ready"),
-            TS("glow", "toggle", "glow.ready.untilUsed", L["Stay lit until used"]),
-            Note(L["Spells with charges still go out after the duration below."], "glow"),
-            TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1 }))
+            TS("glow", "dropdown", "glow.ready.mode", L["Glow for"], { items = READY_MODE_ITEMS }),
+            Note(L["\"Until used\" starts when a cooldown finishes, so after a reload it waits for the first use. Spells with charges still go out after the duration."], "glow"),
+            TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1,
+                disabled = function(info) return (ReadThemed(info, "glow.ready.mode") or "timed") == "whileReady" end }))
     end
     -- 生效發光（增益）的樣式與顏色逐法術挑（預覽點圖示；使用者 2026-10-02 拿掉統一設定）；這裡只放像素發光的
     -- 線條數／粗細（逐法術沒有這兩項、全部吃 glow.active 的；玩家回報 2026-10-03）

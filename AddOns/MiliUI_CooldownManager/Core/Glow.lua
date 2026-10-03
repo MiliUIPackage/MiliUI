@@ -58,9 +58,16 @@
 --   * 冷卻狀態效果（Core/Decorate.lua，rec.style.cdState）也吃同一個訊號：有設就建探針、武裝；
 --     觸發（與暴雪 Clear）時先 Decorate.RefreshState 重算 alpha，再看發光／音效。
 -- 亮 glow.ready.duration 秒（預設 3）後熄；期間技能被用掉（進了新的冷卻）就提早熄（G.CooldownStarted）。
--- glow.ready.untilUsed 開著：不排計時，一直亮到 CooldownStarted（玩家回報 2026-10-03：打斷要一直亮）。
---   ⚠ 只在「轉好那一刻」點燈：/reload、上線時本來就轉好的技能不亮，用過一次才開始。
---   ⚠ 暴雪 item 的回充（rec.probeCharges）收不到 CooldownStarted（下面那條規則），照秒數熄。
+-- glow.ready.mode 三種（玩家回報 2026-10-03：打斷要一直亮）：
+--   "timed"      上面那樣，亮幾秒
+--   "untilUsed"  不排計時，一直亮到 CooldownStarted。
+--     ⚠ 只在「轉好那一刻」點燈：/reload、上線時本來就轉好的技能不亮，用過一次才開始。
+--     ⚠ 暴雪 item 的回充（rec.probeCharges）收不到 CooldownStarted（下面那條規則），照秒數熄。
+--   "whileReady" 不看探針的那一刻，看**狀態**：發光一直開著，宿主的 alpha 跟著「在不在冷卻」切
+--     （G.ApplyReadyState）。判斷跟冷卻狀態效果同一支（Decorate.CooldownState／Custom.CooldownState）：
+--     GCD 不算冷卻、充能法術還有充能就算就緒；明文直接 SetAlpha，秘密布林交給宿主的 SetAlphaFromBoolean
+--     （宿主是我們自己的框，之後不讀回）；判不出來＝不亮。重算時機：排版（G.Sync）、SetCooldown／Clear
+--     後掛勾、SPELL_UPDATE_COOLDOWN 的批次（Decorate.RefreshCooldownAll、Custom.Update）、探針觸發。
 --   * 暴雪 item：SetCooldown 後掛勾裡 isOnGCD == false 且 isActive == true（都要明文）。
 --     回充不算：暴雪每次 GCD 都會對回充中的格子重設一次充能計時，拿它當訊號會按任何招就熄。
 --   * 自訂法術：Custom 的更新裡同一組明文旗標；自訂物品：武裝新的明文冷卻那一刻。
@@ -126,6 +133,13 @@ local function Wanted(rec, barKey, which)
     if not barKey then return false end
     return ns.SpellSetting(barKey, rec.cooldownID, WANT_FIELD[which]) and true or false
 end
+
+local READY_MODES = { timed = true, untilUsed = true, whileReady = true }
+local function ReadyMode(barKey)
+    local m = barKey and ns.Setting(barKey, "glow.ready.mode")
+    return READY_MODES[m] and m or "timed"
+end
+G.ReadyMode = ReadyMode
 
 local function Cfg(barKey, which)
     local c = ns.Setting(barKey, "glow." .. which)
@@ -383,8 +397,11 @@ function G.Sync(owner, rec, barKey)
     barKey = barKey or rec.claimKey
     G.SyncProc(owner, rec, barKey)
     G.SyncActive(owner, rec, barKey)
+    -- 就緒時一直亮：狀態對帳（模式切走了也在這裡收）
+    if rec.readyWhile or (barKey and ReadyMode(barKey) == "whileReady") then
+        G.ApplyReadyState(rec, owner)
     -- 就緒發光亮著的時候設定變了：照新樣式重畫；被關掉了就熄
-    if rec.glowOn and rec.glowOn.ready then
+    elseif rec.glowOn and rec.glowOn.ready then
         if Hidden(rec) or not Wanted(rec, barKey, "ready") then
             Stop(rec, "ready")
         else
@@ -482,11 +499,18 @@ local function Fire(rec)
     if SoundWanted(rec) then ns.Sound.OnReady(rec) end
     if not Wanted(rec, barKey, "ready") then return end
     G.readyFired = G.readyFired + 1
+    local mode = ReadyMode(barKey)
+    if mode == "whileReady" then
+        -- 狀態模式：照現況重算；探針與本尊的到期可能差幾毫秒，過一下再對一次
+        G.ApplyReadyState(rec)
+        C_Timer.After(0.1, function() G.ApplyReadyState(rec) end)
+        return
+    end
     Start(rec, "ready", barKey)
     local token = (rec.readyToken or 0) + 1
     rec.readyToken = token
     -- 亮到用掉為止：不排計時，熄燈只靠 CooldownStarted。回充那條收不到「用掉了」（見檔頭），照秒數熄
-    if ns.Setting(barKey, "glow.ready.untilUsed") and not rec.probeCharges then return end
+    if mode == "untilUsed" and not rec.probeCharges then return end
     local dur = tonumber(ns.Setting(barKey, "glow.ready.duration")) or 3
     if dur <= 0 then dur = 3 end
     C_Timer.After(dur, function()
@@ -498,8 +522,49 @@ G.FireReady = Fire
 -- 進了新的冷卻（用掉了）：就緒發光不用等滿秒數，當場熄。token 換掉讓計時到期那支什麼都不做
 function G.CooldownStarted(rec)
     if not (rec and rec.glowOn and rec.glowOn.ready) then return end
+    if rec.readyWhile then G.ApplyReadyState(rec) return end      -- 狀態模式不熄，換宿主 alpha
     rec.readyToken = (rec.readyToken or 0) + 1
     Stop(rec, "ready")
+end
+
+-- 就緒時一直亮（mode "whileReady"）：發光開著，宿主 alpha 跟「在不在冷卻」。冪等，高頻呼叫（每次 GCD）。
+-- 不適用（模式不是、沒開、停放、隱藏、增益類、未學會）⇒ 這一格之前是狀態模式點的燈就收掉、宿主 alpha 還原。
+local function CooldownStateOf(rec, owner)
+    if rec.custom then
+        if rec.kind == "spell" and rec.known == false then return nil end
+        return ns.Custom and ns.Custom.CooldownState and ns.Custom.CooldownState(rec)
+    end
+    local D = ns.Decorate
+    if not (D and D.CooldownState) then return nil end
+    return D.CooldownState(owner or (D.ItemOf and D.ItemOf(rec)), rec)
+end
+
+function G.ApplyReadyState(rec, owner)
+    if not rec then return end
+    local barKey = rec.claimKey or rec.placedBar
+    local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
+    local want = barKey and not aura and not Hidden(rec) and not (ns.released and not rec.custom)
+        and ReadyMode(barKey) == "whileReady" and Wanted(rec, barKey, "ready")
+    if not want then
+        if rec.readyWhile then
+            rec.readyWhile = nil
+            Stop(rec, "ready")
+            local h = rec.glowHosts and rec.glowHosts.ready
+            if h then h:SetAlpha(1) end
+        end
+        return
+    end
+    rec.readyWhile = true
+    rec.readyToken = (rec.readyToken or 0) + 1        -- 計時模式留下的熄燈計時作廢
+    Start(rec, "ready", barKey)
+    local h = rec.glowHosts and rec.glowHosts.ready
+    if not h then return end
+    local kind, v = CooldownStateOf(rec, owner)
+    if kind == "plain" then
+        h:SetAlpha(v and 0 or 1)
+    elseif not (kind == "secret" and h.SetAlphaFromBoolean and pcall(h.SetAlphaFromBoolean, h, v, 1, 0)) then
+        h:SetAlpha(0)                                  -- 判不出來＝不亮
+    end
 end
 
 local function Probe(rec)
@@ -605,6 +670,7 @@ function G.OnItemClear(item, rec)
     -- 冷卻狀態：暴雪清掉冷卻（到期或被重置）＝現在可能轉好了，先照現況重算 alpha。
     -- 暴雪對沒在冷卻的格子每次 GCD 也會 Clear ⇒ 這裡不排 0.1 秒的補算（探針觸發的 Fire 才排）
     if ns.Decorate and ns.Decorate.RefreshState then ns.Decorate.RefreshState(rec, true) end
+    if rec.readyWhile then G.ApplyReadyState(rec, item) end
     if not rec.probeArmed then return end
     rec.probeArmed = false
     if rec.probe then pcall(rec.probe.Clear, rec.probe) end
