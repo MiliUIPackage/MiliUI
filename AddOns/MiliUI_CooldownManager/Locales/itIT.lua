@@ -675,3 +675,18 @@ L["Each resource can use a different look in its own settings."] = "Ogni risorsa
 L["Number format"] = "Formato numeri"
 L["One number format is shared by mana, health and the other large numbers."] = "Mana, salute e gli altri numeri grandi condividono lo stesso formato."
 L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "Altezza, aspetto, colori e regole di condizione sono per risorsa: fai clic su \"Impostazioni…\" nella sua riga."
+
+-- 自訂語音（Options/CustomSounds.lua）
+L["Custom sounds"] = "Suoni personalizzati"
+L["Edit list (%d)…"] = "Modifica elenco (%d)…"
+L["Add sound"] = "Aggiungi suono"
+L["Edit sound"] = "Modifica suono"
+L["File path"] = "Percorso del file"
+L["The path after the AddOns folder, e.g. MyVoice\\kick.ogg. Only .ogg and .mp3 files play."] = "Il percorso dopo la cartella AddOns, es. MyVoice\\kick.ogg. Si riproducono solo file .ogg e .mp3."
+L["Enter the file path."] = "Inserisci il percorso del file."
+L["Only .ogg and .mp3 files can be played."] = "Si possono riprodurre solo file .ogg e .mp3."
+L["Delete the sound \"%s\"? Spells using it go back to no sound."] = "Eliminare il suono \"%s\"? Gli incantesimi che lo usano resteranno senza suono."
+L["Edit"] = "Modifica"
+L["%s (file not found)"] = "%s (file non trovato)"
+L["Put .ogg or .mp3 files in any folder under AddOns and enter the path after AddOns. The game only sees files that were there when it started: after adding one, restart the game (/reload isn't enough). These sounds are listed first in every spell's sound menu, in this order."] = "Metti file .ogg o .mp3 in una cartella qualsiasi dentro AddOns e inserisci il percorso dopo AddOns. Il gioco vede solo i file presenti all'avvio: dopo averne aggiunto uno, riavvia il gioco (/reload non basta). Questi suoni compaiono per primi nel menu suoni di ogni incantesimo, in quest'ordine."
+L["No custom sounds yet."] = "Ancora nessun suono personalizzato."

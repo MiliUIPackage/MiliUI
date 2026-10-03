@@ -336,6 +336,21 @@ local function OverrideRow(group)
     end }
 end
 
+-- 自訂語音那一列：按鈕寫著目前筆數，點開是編輯器（Options/CustomSounds.lua）
+local function CustomSoundsRow()
+    return { type = "custom", label = L["Custom sounds"], h = 30, noReset = true, build = function(parent, x, y)
+        local btn = W.CreateButton(parent, "", "normal", 160, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        local function UpdateText()
+            btn:SetText(L["Edit list (%d)…"]:format(ns.CustomSounds.Count()))
+            W.FitButton(btn, 160, 22)
+        end
+        btn:SetScript("OnClick", function() ns.CustomSounds.Open(UpdateText) end)
+        UpdateText()
+        return 30, UpdateText
+    end }
+end
+
 local function FollowToggle(group)
     -- 圖示那一節的跟隨：開關一切換，這條實際要的圖示外觀（米利／Masque）可能就變了
     return BS("toggle", "follow." .. group, L["Follow global theme"],
@@ -559,6 +574,7 @@ function Specs.Themed(mode, key)
     else
         add(TS(nil, "toggle", "sound.enabled", L["Enable"]),
             TS(nil, "dropdown", "sound.channel", L["Channel"], { items = CHANNEL_ITEMS }),
+            CustomSoundsRow(),
             Note(L["Which sound plays is set per spell: click an icon in a bar's preview. Nothing plays for 2 seconds after a loading screen, and the same spell doesn't repeat within 1.5 seconds."]))
     end
     return list

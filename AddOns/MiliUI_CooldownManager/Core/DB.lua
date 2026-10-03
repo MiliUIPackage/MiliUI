@@ -4,6 +4,7 @@
 --   MiliUI_CooldownManager_DB = {
 --       schemaVersion, schemaVersionSeen,             -- 遷移鏈
 --       minimap, optionsWindow,                       -- 帳號層，不跟設定檔走
+--       customSounds, customSoundNext,                -- 自訂語音清單（帳號層，見 Core/Sound.lua）
 --       profiles     = { ["Default"] = <profile>, … },
 --       profileKeys  = { ["角色 - 伺服器"] = "Default" },            -- 每角色目前用哪份
 --       specProfiles = { ["角色 - 伺服器"] = { enabled = bool, [專精序號] = "設定檔名" } },
@@ -361,6 +362,8 @@ function DB.BuildDefaults()
         account = {
             minimap       = { hide = false, angle = 215 },
             optionsWindow = { x = 0, y = 0, lastBar = "essential" },
+            customSounds    = {},           -- { { id, name, path }, … }：path 是 AddOns 底下的相對路徑
+            customSoundNext = 1,
         },
         profile = {
             theme = {

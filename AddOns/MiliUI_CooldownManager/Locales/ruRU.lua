@@ -675,3 +675,18 @@ L["Each resource can use a different look in its own settings."] = "Каждом
 L["Number format"] = "Формат чисел"
 L["One number format is shared by mana, health and the other large numbers."] = "Мана, здоровье и другие большие числа используют один формат."
 L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "Высота, вид, цвета и правила условий задаются для каждого ресурса: нажмите «Настройки» в его строке."
+
+-- 自訂語音（Options/CustomSounds.lua）
+L["Custom sounds"] = "Свои звуки"
+L["Edit list (%d)…"] = "Изменить список (%d)…"
+L["Add sound"] = "Добавить звук"
+L["Edit sound"] = "Изменить звук"
+L["File path"] = "Путь к файлу"
+L["The path after the AddOns folder, e.g. MyVoice\\kick.ogg. Only .ogg and .mp3 files play."] = "Путь после папки AddOns, например MyVoice\\kick.ogg. Воспроизводятся только файлы .ogg и .mp3."
+L["Enter the file path."] = "Укажите путь к файлу."
+L["Only .ogg and .mp3 files can be played."] = "Воспроизводятся только файлы .ogg и .mp3."
+L["Delete the sound \"%s\"? Spells using it go back to no sound."] = "Удалить звук \"%s\"? У заклинаний, которые его используют, звука не будет."
+L["Edit"] = "Изменить"
+L["%s (file not found)"] = "%s (файл не найден)"
+L["Put .ogg or .mp3 files in any folder under AddOns and enter the path after AddOns. The game only sees files that were there when it started: after adding one, restart the game (/reload isn't enough). These sounds are listed first in every spell's sound menu, in this order."] = "Положите файлы .ogg или .mp3 в любую папку внутри AddOns и укажите путь после AddOns. Игра видит только файлы, которые были на месте при её запуске: после добавления перезапустите игру (/reload недостаточно). Эти звуки идут первыми в меню звуков каждого заклинания, в этом порядке."
+L["No custom sounds yet."] = "Своих звуков пока нет."

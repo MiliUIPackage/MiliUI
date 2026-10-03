@@ -162,16 +162,20 @@ local function IsAura(kind) return kind == "aura" end
 local function NotAura(_, class) return class ~= "aura" end
 local function IsCustom(kind) return kind ~= nil end
 
--- 音效下拉：第一項「無」，其餘 LSM 的音效名（已排序）
+-- 音效下拉：第一項「無」，接著自訂語音（玩家排的順序，值是代號 "custom:<id>"），其餘 LSM 的音效名（已排序）
 local function SoundItems()
     local items = { { text = L["None"], value = false } }
+    local S = ns.Sound
+    for _, e in ipairs(S.CustomList()) do
+        items[#items + 1] = { text = e.name, value = S.Logic.CustomValue(e.id) }
+    end
     for _, name in ipairs(ns.Media.List("sound")) do
         items[#items + 1] = { text = name, value = name }
     end
     return items
 end
 
-local function NoSounds() return #ns.Media.List("sound") == 0 end
+local function NoSounds() return #ns.Media.List("sound") == 0 and #ns.Sound.CustomList() == 0 end
 
 -- 層數門檻只給暴雪的增益（kind 只有自訂項目才有，暴雪的是 nil）
 local function BlizzAura(kind, class) return class == "aura" and kind == nil end

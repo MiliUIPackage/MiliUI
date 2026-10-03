@@ -675,3 +675,18 @@ L["Each resource can use a different look in its own settings."] = "자원마다
 L["Number format"] = "숫자 형식"
 L["One number format is shared by mana, health and the other large numbers."] = "마나, 생명력 등 큰 숫자는 모두 같은 숫자 형식을 씁니다."
 L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "높이, 외형, 색상, 조건 규칙은 자원마다 따로 정합니다. 그 줄의 \"설정…\"을 누르세요."
+
+-- 自訂語音（Options/CustomSounds.lua）
+L["Custom sounds"] = "사용자 음성"
+L["Edit list (%d)…"] = "목록 편집 (%d)…"
+L["Add sound"] = "음성 추가"
+L["Edit sound"] = "음성 편집"
+L["File path"] = "파일 경로"
+L["The path after the AddOns folder, e.g. MyVoice\\kick.ogg. Only .ogg and .mp3 files play."] = "AddOns 폴더 이후의 경로입니다. 예: MyVoice\\kick.ogg. .ogg와 .mp3 파일만 재생됩니다."
+L["Enter the file path."] = "파일 경로를 입력하세요."
+L["Only .ogg and .mp3 files can be played."] = ".ogg와 .mp3 파일만 재생할 수 있습니다."
+L["Delete the sound \"%s\"? Spells using it go back to no sound."] = "음성 \"%s\"을(를) 삭제할까요? 이 음성을 쓰던 주문은 소리 없음으로 돌아갑니다."
+L["Edit"] = "편집"
+L["%s (file not found)"] = "%s (파일 없음)"
+L["Put .ogg or .mp3 files in any folder under AddOns and enter the path after AddOns. The game only sees files that were there when it started: after adding one, restart the game (/reload isn't enough). These sounds are listed first in every spell's sound menu, in this order."] = "AddOns 아래 아무 폴더에 .ogg 또는 .mp3 파일을 넣고 AddOns 이후의 경로를 입력하세요. 게임은 시작할 때 있던 파일만 인식합니다: 파일을 추가했다면 게임을 다시 시작하세요(/reload로는 부족합니다). 여기 음성은 이 순서대로 모든 주문의 소리 메뉴 맨 앞에 표시됩니다."
+L["No custom sounds yet."] = "아직 사용자 음성이 없습니다."

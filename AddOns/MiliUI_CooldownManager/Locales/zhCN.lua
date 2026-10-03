@@ -675,3 +675,18 @@ L["Each resource can use a different look in its own settings."] = "每种资源
 L["Number format"] = "数字格式"
 L["One number format is shared by mana, health and the other large numbers."] = "法力、生命值与其他大数字共用同一种数字格式。"
 L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "高度、外观、颜色与条件规则是每种资源各自设置的：点那一行的「设置」。"
+
+-- 自訂語音（Options/CustomSounds.lua）
+L["Custom sounds"] = "自定义语音"
+L["Edit list (%d)…"] = "编辑列表（%d）…"
+L["Add sound"] = "添加语音"
+L["Edit sound"] = "编辑语音"
+L["File path"] = "文件路径"
+L["The path after the AddOns folder, e.g. MyVoice\\kick.ogg. Only .ogg and .mp3 files play."] = "AddOns 文件夹之后的路径，例如 MyVoice\\kick.ogg。只能播放 .ogg 和 .mp3。"
+L["Enter the file path."] = "请填写文件路径。"
+L["Only .ogg and .mp3 files can be played."] = "只能播放 .ogg 和 .mp3 文件。"
+L["Delete the sound \"%s\"? Spells using it go back to no sound."] = "删除语音“%s”？用到它的法术会改回无音效。"
+L["Edit"] = "编辑"
+L["%s (file not found)"] = "%s（找不到文件）"
+L["Put .ogg or .mp3 files in any folder under AddOns and enter the path after AddOns. The game only sees files that were there when it started: after adding one, restart the game (/reload isn't enough). These sounds are listed first in every spell's sound menu, in this order."] = "把 .ogg 或 .mp3 放进 AddOns 下的任意文件夹，再填写 AddOns 之后的路径。游戏只认得启动时就存在的文件：新放进去的要完全重启游戏（/reload 不够）。这里的语音会按这个顺序排在每个法术音效菜单的最前面。"
+L["No custom sounds yet."] = "还没有自定义语音。"

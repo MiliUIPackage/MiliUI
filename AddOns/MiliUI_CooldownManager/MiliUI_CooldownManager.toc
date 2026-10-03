@@ -87,6 +87,7 @@ Options\ResourceConditions.lua
 Options\HealthThresholds.lua
 Options\ResourceSettings.lua
 Options\StackColors.lua
+Options\CustomSounds.lua
 Options\Tab_Resources.lua
 Options\Tab_Castbar.lua
 Options\Tab_Assist.lua
