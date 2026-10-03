@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 -- 自訂項目的資料路徑：Core/DB.lua 的新增／刪除（id 往前挪）／搬條／刪群組，
--- Core/Catalog.lua 的清單（排序、光環格固定前綴、隱藏、長條不收）與 Info（不進 TOC）
+-- Core/Catalog.lua 的清單（排序、光環格照 order 排、隱藏、長條不收）與 Info（不進 TOC）
 --
 --   lua  AddOns/MiliUI_CooldownManager/Tests/Custom_test.lua
 --
@@ -126,23 +126,25 @@ eq("FindCustom 物品", DB.FindCustom("item", 7), 3)
 eq("FindCustom 光環跟法術不混", DB.FindCustom("spell", 700), nil)
 
 ------------------------------------------------------------
--- 3. 清單：光環格固定前綴、順序覆寫照舊、隱藏
+-- 3. 清單：光環格照 order 排（沒有 order 時照清單順序）、隱藏
 ------------------------------------------------------------
-eqList("核心：暴雪的在前、自訂接在後、光環格拉到最前", C.Bar("essential"), { "c:1", "c:4", 11, 12, "c:2", "c:3" })
+eqList("沒有 order：暴雪的在前、自訂照清單順序接在後（光環格不拉到最前）", C.Bar("essential"), { 11, 12, "c:1", "c:2", "c:3", "c:4" })
 check("BarHasAuraSlot 核心", C.BarHasAuraSlot("essential"))
 check("BarHasAuraSlot 輔助沒有", not C.BarHasAuraSlot("utility"))
 local sp = DB.SpecSpells(true)
+sp.order.essential = { 11, "c:1", 12 }
+eqList("光環格夾在兩個暴雪 id 之間：順序保留，沒列到的照原順序接在後", C.Bar("essential"), { 11, "c:1", 12, "c:2", "c:3", "c:4" })
 sp.order.essential = { "c:3", 12, "c:4", "c:2", 11, "c:1" }
-eqList("順序覆寫照舊，光環格仍在最前（彼此照覆寫的順序）", C.Bar("essential"), { "c:4", "c:1", "c:3", 12, "c:2", 11 })
+eqList("光環格照 order 排，跟其他格一樣", C.Bar("essential"), { "c:3", 12, "c:4", "c:2", 11, "c:1" })
 sp.hidden["c:3"] = true
 local vis, hid = C.Bar("essential", true)
 -- hidden 對自訂項目無效：自己加的「移除」就是整筆刪掉，沒有「藏著」這種狀態（舊存檔留著的旗標不會讓它憑空消失）
 eqList("自訂項目不吃 hidden：不進移除清單", hid, {})
-eqList("自訂項目不吃 hidden：照樣顯示", vis, { "c:4", "c:1", "c:3", 12, "c:2", 11 })
+eqList("自訂項目不吃 hidden：照樣顯示", vis, { "c:3", 12, "c:4", "c:2", 11, "c:1" })
 sp.hidden[12] = true
 vis, hid = C.Bar("essential", true)
 eqList("暴雪清單上的法術移除：進移除清單", hid, { 12 })
-eqList("暴雪清單上的法術移除：不顯示", vis, { "c:4", "c:1", "c:3", "c:2", 11 })
+eqList("暴雪清單上的法術移除：不顯示", vis, { "c:3", "c:4", "c:2", 11, "c:1" })
 sp.hidden[12] = nil
 sp.hidden["c:3"] = nil
 DB.SetCustomBar("c:2", "buffbars")
@@ -307,7 +309,7 @@ ip = C.Info("c:" .. nPot)
 eq("物品 Info：都沒有 ⇒ 主的圖示", ip and ip.icon, 800000 + 241308)
 local il = C.Info("c:" .. nLust)
 eq("多法術光環 Info：圖示用主的", il and il.icon, 900000 + 2825)
-check("多法術光環是光環格（固定前綴）", C.IsAuraSlot("c:" .. nLust))
+check("多法術光環是光環格", C.IsAuraSlot("c:" .. nLust))
 
 ------------------------------------------------------------
 -- 10. UpdateItem 的替代品路徑（CU.Update；框與引擎都 stub）
