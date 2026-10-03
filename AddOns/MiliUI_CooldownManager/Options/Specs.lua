@@ -442,7 +442,7 @@ function Specs.Themed(mode, key)
     -- 反過來：核心／輔助（內建的冷卻兩條）沒有光環，減益邊框用不到
     local cdBar = bar and key and ns.DB.IsBuiltinBar(key) and not ns.Viewers.AURA_KIND[key] and true or false
     local function AU(s) if cdBar then return nil end return s end
-    -- 冷卻狀態效果：增益兩條（內建）與長條類的條用不到（長條型群組只收增益長條）
+    -- 冷卻狀態效果：增益兩條（內建）與長條類的條用不到（長條上的自訂冷卻也不套：Decorate 對長條不給 cdState）
     local bt = bar and key and ns.DB.BarTable(key)
     local barsKind = type(bt) == "table" and bt.kind == "bars" or false
     local function CS(s) if auraBar or barsKind then return nil end return s end

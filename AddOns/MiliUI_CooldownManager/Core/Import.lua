@@ -1319,7 +1319,7 @@ end
 -- 對方：customBuffRegistry[spellID] = { kind = "aura", auraFilter, placeholder, hideCooldownText, … }
 -- 是帳號層的登記，哪個專精顯示看 ungroupedCustomBuffOrder[specID] = { { spellID, afterNative }, … }
 -- （或放在那個專精的增益群組裡）。本插件的光環格是逐專精的 spells[specID].custom，
--- 光環格永遠排在該條最前面（afterNative 的相對順序不帶）。
+-- 光環格跟其他格同走 order 表；匯入不寫 order ⇒ 接在原有的格後面，玩家要排前面自己拖（afterNative 的相對順序不帶）。
 -- 不是光環格的登記（施放後固定秒數的計時）本插件沒有 ⇒ 略過。
 ------------------------------------------------------------
 local function EnsureSpec(profile, specID)

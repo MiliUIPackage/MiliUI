@@ -30,8 +30,8 @@
 --
 -- 自訂項目（Modules/Custom.lua，id "c:<index>"）也是一格 entry：光環格的持有框、自訂法術／物品的
 -- 圖示框。它們是**容器的子框**（條的淡出由容器的 alpha 帶），持有框的 SetPoint／SetSize／Show
--- 走 ns.Write（持有框整條鏈是保護框）。條上有光環格時固定格位強制打開：光環格排在最前面、
--- 其他 item 收合也不會讓它們的 x 變，戰鬥中不必動持有框。
+-- 走 ns.Write（持有框整條鏈是保護框）。條上有光環格時固定格位強制打開：光環格放在哪一格都一樣，
+-- 其他 item 收合也不會讓它的 x 變，戰鬥中不必動持有框。
 --
 -- 可點擊的自訂圖示群組（Core/Clickable.lua）：每格上面蓋一顆 secure 鈕（parent／錨點都是容器），
 -- 一樣強制固定格位；鈕的寫入走 ns.Write＋簽章去重。不可點擊的條每輪 Release（沒鈕就是 no-op）。
@@ -397,8 +397,9 @@ B.AuraPresent = AuraPresent
 
 -- 占位格是自己的框，畫在容器上；item 出現時蓋在它上面
 --   圖示類：圖示貼圖（去飽和、半透明）＋跟真實格一樣的邊框
---   長條類：一條空的長條（照 EllesmereUI「未作用時隱藏」關掉時的樣子）——圖示＋底色＋名字，填充 0、
---           沒有倒數與層數。結構跟設定頁預覽的假長條一樣，外觀走同一支 Decorate.ApplyPreview
+--   長條類：一條空的長條（照 EllesmereUI「未作用時隱藏」關掉時的樣子）——灰圖示＋底色＋灰名字，填充 0、
+--           沒有倒數與層數（跟自訂光環長條的占位同一個樣子）。結構跟設定頁預覽的假長條一樣，外觀走同一支
+--           Decorate.ApplyPreview
 local function Placeholder(key, idx)
     local ph = state[key].placeholders
     local f = ph.pool[idx]
@@ -687,7 +688,11 @@ local function Relayout(key, level, index, gen)
             ns.Decorate.ApplyPreview(f, key, e.id, r.w, r.h)
             local spellID = info and (info.overrideSpellID or info.spellID)
             local name = type(spellID) == "number" and C_Spell.GetSpellName(spellID) or nil
+            -- 跟自訂光環長條的占位同一個樣子（Modules/Custom.lua UpdateBarPlaceholder）：灰圖示、灰名字
+            f.Icon.Icon:SetDesaturated(true)
+            f.Icon.Icon:SetAlpha(0.35)
             f.Bar.Name:SetText(name or "")
+            f.Bar.Name:SetTextColor(0.6, 0.6, 0.6, 1)
             f.Bar.Duration:SetText("")
             f.Icon.Applications:SetText("")
             f.Bar:SetValue(0)

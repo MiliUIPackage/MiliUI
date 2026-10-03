@@ -12,12 +12,13 @@
 --                      那要在暴雪自己的面板裡拖進去 —— 附一顆開面板的按鈕。
 --                      **照暴雪面板的分頁分成兩排**（「法術」／「增益效果」）：同一件飾品、同一瓶藥水在暴雪那邊
 --                      是兩個項目（一個追蹤冷卻、一個追蹤它給的增益），圖示一模一樣，混在一排看起來像重複。
---   常用預設          （只有圖示類的條）四顆鈕「種族技能」「防禦技能」「藥水與治療石」「團隊增益」，各開一個
+--   常用預設          （圖示類、長條類的條都有）四顆鈕「種族技能」「防禦技能」「藥水與治療石」「團隊增益」，各開一個
 --                      清單彈窗（一列一項：圖示＋名字，滑過是法術／物品提示，點一下就加；這個專精已經有的那一列
 --                      灰掉並寫「已加入」）。資料在 Core/Presets.lua。最下面一個勾選「同時加到這個職業的其他專精」
 --                      （防禦技能不給：別的專精學不學得到不知道），勾了就對其他專精各叫一次 DB.CopyCustomEntry。
 --   自訂 ID            三顆鈕「光環」「法術」「物品」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
---                      spells[spec].custom 追加一筆（bar ＝ 這條）。只有圖示類的條收自訂項目。
+--                      spells[spec].custom 追加一筆（bar ＝ 這條）。圖示類、長條類的條都收（長條上畫成長條，
+--                      kind 照舊，見 Modules/Custom.lua）；「已在暴雪冷卻管理器」與候選池照舊長條只收長條。
 --                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；同專精不收重複；
 --                      減益只收 C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret 的（玩家自己算友方，
 --                      友方減益不准用 ID 過濾，加了也是一個永遠不亮的格子）。
@@ -436,37 +437,23 @@ function Picker.Refresh()
     end
     Place(sections.openBtn, y); y = y - 22 - 14
 
-    local iconBar = not IsBarsKind(key)
-    -- 常用預設（只有圖示類的條）
-    sections.presetHead:SetShown(iconBar)
-    sections.presetNote:SetShown(iconBar)
-    sections.presetRow:SetShown(iconBar)
-    for _, b in ipairs(sections.presetBtns) do b:SetShown(iconBar) end
-    if iconBar then
-        Place(sections.presetHead, y); y = y - 16
-        Place(sections.presetNote, y); y = y - (sections.presetNote:GetStringHeight() + 6)
-        Place(sections.presetRow, y)
-        local _, ph = W.FlowLayout(sections.presetRow, sections.presetBtns, WIDTH - PAD * 2, 6, 4, 22)
-        sections.presetRow:SetHeight(ph)
-        y = y - ph - 14
-    end
+    -- 常用預設、自訂 ID：圖示類、長條類的條都有（放在長條上的自訂項目畫成長條，見 Modules/Custom.lua）
+    Place(sections.presetHead, y); y = y - 16
+    Place(sections.presetNote, y); y = y - (sections.presetNote:GetStringHeight() + 6)
+    Place(sections.presetRow, y)
+    local _, ph = W.FlowLayout(sections.presetRow, sections.presetBtns, WIDTH - PAD * 2, 6, 4, 22)
+    sections.presetRow:SetHeight(ph)
+    y = y - ph - 14
 
     Place(sections.customHead, y); y = y - 16
     -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），直接建議走物品 ID
-    sections.customNote:SetText(iconBar
-        and (L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
-            .. L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."])
-        or L["Custom entries go on icon bars only."])
+    sections.customNote:SetText(L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
+        .. L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."])
     Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
-    for _, b in ipairs(sections.customBtns) do b:SetShown(iconBar) end
-    if iconBar then
-        Place(sections.customRow, y)
-        local _, bh = W.FlowLayout(sections.customRow, sections.customBtns, WIDTH - PAD * 2, 6, 4, 22)
-        sections.customRow:SetHeight(bh)
-        y = y - bh - 12
-    else
-        y = y - 6
-    end
+    Place(sections.customRow, y)
+    local _, bh = W.FlowLayout(sections.customRow, sections.customBtns, WIDTH - PAD * 2, 6, 4, 22)
+    sections.customRow:SetHeight(bh)
+    y = y - bh - 12
 
     P.Height(frame, -y)
     sections.mask:SetShown(ns.Catalog.IsPaused())

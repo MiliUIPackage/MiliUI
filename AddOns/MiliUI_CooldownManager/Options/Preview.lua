@@ -19,9 +19,10 @@
 --   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單）；拖到左欄的自訂群組上
 --                      ＝拉進那一群（groupOf），拖回原本的檢視器上＝清掉 groupOf
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
--- 光環格（自訂項目 kind = "aura"）是固定前綴：cell.locked，蓋紅色半透明、拖不動、中鍵不藏，
--- 別的格也不能插到它們前面（插入線變紅）。左鍵照樣開逐法術面板。
--- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（圖示類的條都收，含四條檢視器）。
+-- 光環格（自訂項目 kind = "aura"）跟其他格一樣：可以拖到條上任意位置（同一張 order 表）、拖到左欄群組，
+-- 中鍵＝整筆移除，左鍵照樣開逐法術面板。
+-- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（任何一條都收，含四條檢視器與長條類的條）。
+-- 長條格的自訂項目：名字＝法術／物品名、跑同一個十五秒假條；沒學會的自訂法術圖示灰掉。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -106,13 +107,8 @@ local function NewIconCell(canvas)
     SetupFont(c.chargeText, 12)
     c.stackText = ov:CreateFontString(nil, "OVERLAY")
     SetupFont(c.stackText, 12)
-    c.lock = ov:CreateTexture(nil, "OVERLAY", nil, 6)
-    c.lock:SetAllPoints()
-    c.lock:SetTexture(WHITE)
-    c.lock:SetVertexColor(0.8, 0.1, 0.1, 0.45)
-    c.lock:Hide()
     c.kind = "icons"
-    c.isPlus, c.hiddenItem, c.locked, c.dragging = false, false, false, false
+    c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
 end
 
@@ -145,13 +141,8 @@ local function NewBarCell(canvas)
     ov:SetAllPoints()
     ov:SetFrameLevel(c:GetFrameLevel() + 5)
     c.overlay = ov
-    c.lock = ov:CreateTexture(nil, "OVERLAY", nil, 6)
-    c.lock:SetAllPoints()
-    c.lock:SetTexture(WHITE)
-    c.lock:SetVertexColor(0.8, 0.1, 0.1, 0.45)
-    c.lock:Hide()
     c.kind = "bars"
-    c.isPlus, c.hiddenItem, c.locked, c.dragging = false, false, false, false
+    c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
 end
 
@@ -164,7 +155,7 @@ local function NewPlusCell(canvas)
     fs:SetPoint("CENTER")
     fs:SetText("+")
     c.label = fs
-    c.isPlus, c.hiddenItem, c.locked, c.dragging = true, false, false, false
+    c.isPlus, c.hiddenItem, c.dragging = true, false, false
     c:SetScript("OnEnter", function(self)
         self:SetBackdropColor(0.23, 0.23, 0.23, 1)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -242,10 +233,10 @@ end
 function Preview.DropCandidates(key, id)
     local out = {}
     if ns.Catalog.IsCustom(id) then
-        -- 自訂項目：任何一條圖示類的條（長條的 item 是另一種框，放不進去）
+        -- 自訂項目：任何一條（圖示類、長條類都收；放在長條上時畫成長條，見 Modules/Custom.lua）
         local p = ns.profile
         for k, bar in pairs(p and p.bars or {}) do
-            if k ~= key and type(bar) == "table" and bar.kind ~= "bars" then out[k] = true end
+            if k ~= key and type(bar) == "table" then out[k] = true end
         end
         return out
     end
@@ -401,8 +392,6 @@ function Proto:Refresh()
 
     local now = GetTime()
     self.slots = {}
-    self.hasLocked = false
-    local lockedCount = 0
     for i, e in ipairs(entries) do
         local r = rects[i]
         local c
@@ -420,13 +409,8 @@ function Proto:Refresh()
         c:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", ox + r.x, -(PAD + r.y))
         c:SetSize(r.w, r.h)
         c.id, c.hiddenItem, c.index = e.id, e.hidden and true or false, i
-        c.locked = false        -- 光環格的固定前綴由 Fill 設
         if not e.plus then
             self:Fill(c, e, i, r, now)
-            if c.locked then
-                self.hasLocked = true
-                if not e.hidden then lockedCount = lockedCount + 1 end
-            end
             if not e.hidden then self.slots[#self.slots + 1] = c end
         end
         -- 清單上有、暴雪卻沒給框的：畫面上不會有，這裡標暗（提示有說明），不要假裝它在
@@ -435,7 +419,6 @@ function Proto:Refresh()
         c:SetAlpha((e.hidden or c.missing) and 0.35 or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
-    self.lockedCount = lockedCount
     if self.onRefresh then self.onRefresh(self) end
 end
 
@@ -462,7 +445,6 @@ function Proto:Fill(c, e, i, r, now)
     local tex = ns.IconFor(key, id, info) or QUESTION
     if info and info.custom then
         c.aura = info.kind == "aura"
-        c.locked = c.aura
         c.custom, c.known = info.kind, info.isKnown ~= false
     else
         local src = ns.Catalog.SourceOf(id)
@@ -476,6 +458,8 @@ function Proto:Fill(c, e, i, r, now)
     c.decorated = nil
     if c.kind == "bars" then
         c.Icon.Icon:SetTexture(tex)
+        -- 沒學會的自訂法術：問號＋灰（圖示格那邊由轉圈的假冷卻表達，長條沒有）
+        c.Icon.Icon:SetDesaturated((c.custom and not c.known) and true or false)
         c.cycleOffset = (i * 3) % CYCLE
     else
         c.Icon:SetTexture(tex)
@@ -505,7 +489,6 @@ function Proto:Fill(c, e, i, r, now)
         c.chargeText:SetText(c.charges and tostring(c.charges) or "")
         c.stackText:SetText("2")
     end
-    c.lock:SetShown(c.locked and true or false)
 end
 
 -- 長條的時間跑 15→0（名字＝法術名）。**只印整數**：真的長條秒數是暴雪每幀用秘密的剩餘時間寫的
@@ -555,15 +538,13 @@ local function ShowTip(c)
             GameTooltip:AddLine(L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."], 1, 0.82, 0, true)
         end
     end
-    if c.locked then
-        GameTooltip:AddLine(L["Aura slot: always at the front of the bar, can't be dragged."], 1, 0.82, 0, true)
-        GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
-    else
-        GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
+    if c.custom == "aura" then
+        -- 光環格：只講它什麼時候出現；位置跟其他格一樣可以拖
+        GameTooltip:AddLine(L["Aura slot: only appears while the aura is up."], 1, 0.82, 0, true)
     end
+    GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
     GameTooltip:Show()
 end
 
@@ -574,7 +555,7 @@ function Proto:Wire(c)
         c:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
     c:SetScript("OnMouseDown", function(self, button)
-        if button ~= "LeftButton" or self.isPlus or self.hiddenItem or self.locked then return end
+        if button ~= "LeftButton" or self.isPlus or self.hiddenItem then return end
         local x, y = Cursor(pv.canvas)
         pv.press = { cell = self, x = x, y = y }
         pv.frame:SetScript("OnUpdate", function(_, elapsed) pv:DragTick(elapsed) end)
@@ -700,9 +681,7 @@ function Proto:DragTick()
     local pos, s, side = self:InsertionAt()
     press.pos = pos
     if not pos then line:Hide() return end
-    local invalid = pos <= (self.lockedCount or 0)
-    press.invalid = invalid
-    if invalid then line:SetVertexColor(1, 0.2, 0.2, 1) else line:SetVertexColor(W.Accent(1)) end
+    line:SetVertexColor(W.Accent(1))
     line:ClearAllPoints()
     local t = P.Scale(2)
     if side == "BOTTOM" then
@@ -739,7 +718,7 @@ function Proto:EndDrag(commit)
         return
     end
     local pos = press.pos
-    if not pos or press.invalid then self:Refresh() return end
+    if not pos then self:Refresh() return end
     -- 新順序：可見的照畫面順序、拖的那顆移到插入位置；隱藏的接在後面
     local ids, from = {}, nil
     for i, s in ipairs(self.slots) do

@@ -9,9 +9,11 @@
 -- 「所在條」改的是 groupOf：原本的檢視器（＝清掉）或同類型的任一自訂群組。
 --
 -- 自訂項目（id "c:<index>"）：
---   * 「所在條」改的是它自己的 bar（任何一條圖示類的條）。
+--   * 「所在條」改的是它自己的 bar（任何一條，圖示類、長條類都收）。
+--   * 放在長條類的條上的冷卻類（法術／物品／裝備欄）：觸發／就緒發光與冷卻狀態那幾列藏起來（長條不畫發光、
+--     冷卻狀態不套長條；判準跟 Decorate 的 isBar 同一個：這一條的 kind ＝ bars）。
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
---     多一列「不在時顯示占位」；沒有「隱藏此法術」（固定前綴）。
+--     多一列「不在時顯示占位」；沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
 --   * 多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
 --     DB.CopyCustomEntry（連同這一筆的覆寫）。
@@ -79,8 +81,8 @@ local SOUNDS = {
 }
 
 local TOGGLES = {
-    { field = "procGlow",         label = L["Proc glow"],              noAura = true },
-    { field = "readyGlow",        label = L["Ready glow"],             noAura = true },
+    { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true },
+    { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true },
     { field = "hideCooldownText", label = L["Hide countdown"] },
     { field = "hideStackText",    label = L["Hide stacks"] },
@@ -168,6 +170,9 @@ local function IsAura(kind) return kind == "aura" end
 -- 只給有冷卻的（核心／輔助技能、自訂法術／物品／裝備欄）：增益類（暴雪的增益兩條、光環格）沒有觸發亮框、
 -- 沒有冷卻可轉好或去飽和。看 class 不看 kind —— kind 只有自訂項目才有，暴雪的增益是 nil
 local function NotAura(_, class) return class ~= "aura" end
+-- 面板開在長條類的條上（跟 Decorate 的 isBar 同一個判準）：長條不畫發光、冷卻狀態不套
+local function OnBars() return cur ~= nil and ns.Setting(cur.key, "kind") == "bars" end
+local function NotAuraNotBar(kind, class) return NotAura(kind, class) and not OnBars() end
 local function IsCustom(kind) return kind ~= nil end
 
 -- 音效下拉：第一項「無」，接著自訂語音（玩家排的順序，值是代號 "custom:<id>"），其餘 LSM 的音效名（已排序）
@@ -303,7 +308,9 @@ local function Build()
     RightClickClears(ir, ih, "customIcon")
 
     for _, t in ipairs(TOGGLES) do
-        local tr, th = NewRow(t.label, t.noAura and NotAura or nil)
+        local when = nil
+        if t.noAura then when = t.noBar and NotAuraNotBar or NotAura end
+        local tr, th = NewRow(t.label, when)
         local cb = W.CreateCheckButton(tr, nil, function(on)
             if not cur then return end
             ns.DB.SetOverride(cur.id, t.field, on and true or false)
@@ -319,7 +326,7 @@ local function Build()
     end
 
     -- 冷卻狀態（冷卻類才有）：第一項「跟隨這一條」＝清掉覆寫；變暗的透明度逐法術不另給（吃條的值）
-    local csr, csh = NewRow(L["Cooldown state"], NotAura)
+    local csr, csh = NewRow(L["Cooldown state"], NotAuraNotBar)
     local csItems = { { text = FollowText(), value = false } }
     followItems[#followItems + 1] = { items = csItems, dd = nil }
     for _, it in ipairs(ns.Specs.CDSTATE_ITEMS) do csItems[#csItems + 1] = it end
@@ -738,14 +745,14 @@ Layout = function(kind, class)
     P.Height(frame, -y + PAD)
 end
 
--- 所在條：原本的檢視器 ＋ 同類型的自訂群組；自訂項目是任何一條圖示類的條
+-- 所在條：原本的檢視器 ＋ 同類型的自訂群組；自訂項目是任何一條（圖示類、長條類都收）
 local function BarItems(id)
     local items = {}
     local p = ns.profile
     if ns.Catalog.IsCustom(id) then
         for _, k in ipairs(p and p.barOrder or {}) do
             local b = ns.DB.BarTable(k)
-            if b and b.kind ~= "bars" then
+            if b then
                 items[#items + 1] = { text = ns.Options.PageTitle(k) or ns.Options.BarTitle(k), value = k }
             end
         end
