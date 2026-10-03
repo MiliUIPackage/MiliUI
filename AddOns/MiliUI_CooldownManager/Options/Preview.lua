@@ -9,8 +9,8 @@
 --   * 真實尺寸：版面照 ns.Layout.Compute 算（每列上限、間距、兩列尺寸、成長方向），
 --     比可用寬大就水平捲動，太高就垂直捲動（滾輪；有橫向溢出時 Shift＋滾輪橫捲）。
 --   * 外觀走 ns.Decorate.ApplyPreview：跟真實條同一套邊框／縮放／轉圈色／文字樣式。
---   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒（核心／輔助技能兩條不畫假冷卻，全部就緒，
---     改由底下的效果預覽列按了才演示五秒：冷卻中／增益持續時間／觸發發光／就緒發光）；技能印充能「2」、
+--   * 假資料：奇數格「冷卻中」（轉圈＋倒數「15」＋去飽和），偶數格就緒。核心／輔助技能與自訂圖示群組不畫假冷卻，
+--     改由底下的效果預覽列按了才在第一個技能格演示五秒（冷卻中／增益持續時間／觸發發光／就緒發光）。技能印充能「2」、
 --     增益印層數「2」；長條跑一個十五秒的循環（名字＝法術名、時間 15→0）。
 --
 -- 互動
@@ -42,9 +42,16 @@ local MIN_H     = 56
 local DRAG_MIN  = 3
 local CYCLE     = 15
 local AURA_SRC  = { buffs = true, buffbars = true }
-local NO_FAKE_CD = { essential = true, utility = true }
+-- 不畫假冷卻、改用效果預覽列的條：核心／輔助技能與自訂圖示群組（使用者 2026-10-03）。
+-- 增益類（增益圖示、增益長條）本來就沒有假冷卻；長條類另有十五秒假條
+local function NoFakeCD(key)
+    if key == "essential" or key == "utility" then return true end
+    local b = ns.DB.BarTable(key)          -- BarCfg 定義在下面，這裡直接問
+    return type(b) == "table" and b.source == "custom" and b.kind ~= "bars" or false
+end
 
--- 效果預覽列（核心／輔助技能才有，這兩條平常不畫假冷卻）：按一下，全部格子演示那個效果 FX_SECS 秒
+-- 效果預覽列（NoFakeCD 的條才有，平常不畫假冷卻）：按一下，**第一個技能格**演示那個效果 FX_SECS 秒
+--   （光環格、被移除的格不算；整排一起演示太吵，看一格就知道長相）
 --   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
 --   aura      增益持續時間：同上，倒數用增益那一段的換色
 --   proc／ready  觸發／就緒發光：照這條的發光設定畫在每一格上
@@ -336,7 +343,7 @@ function Preview.Create(parent, key, width)
     end)
 
     -- 效果預覽列：預覽框底下那一條（捲動區與橫向捲軸往上讓出 FX_H）
-    if NO_FAKE_CD[key] then
+    if NoFakeCD(key) then
         scroll:SetPoint("BOTTOMRIGHT", -1, 1 + FX_H)
         hbar:ClearAllPoints()
         hbar:SetPoint("BOTTOMLEFT", 2, 2 + FX_H)
@@ -396,6 +403,7 @@ function Proto:Refresh()
     local bar = BarCfg(key)
     for _, pool in pairs(self.cells) do for _, c in ipairs(pool) do c:Hide() end end
     self.used = {}
+    self.fxTaken = false
     if not bar then return end
     local kind = bar.kind == "bars" and "bars" or "icons"
     self.kind = kind
@@ -490,9 +498,11 @@ function Proto:Fill(c, e, i, r, now)
         c.custom, c.known = false, true    -- false 不是 nil：格子是池化的框，欄位要明確蓋掉
     end
     -- 核心／輔助技能（暴雪那兩條）不畫假冷卻：轉圈、倒數、去飽和一律不上，看起來就是就緒的樣子（使用者 2026-10-03）
-    c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NO_FAKE_CD[key]
-    -- 效果預覽（冷卻中／增益持續時間）：所有技能格一起演示
+    c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NoFakeCD(key)
+    -- 效果預覽：只有第一個技能格演示（Refresh 開頭把 fxTaken 歸零）
     local fx = self:ActiveFx()
+    if fx and (c.aura or e.hidden or self.fxTaken) then fx = nil end
+    if fx then self.fxTaken = true end
     local fxTimer = fx and (fx.kind == "cooldown" or fx.kind == "aura")
     if fxTimer then c.onCD = (not c.aura) and not e.hidden end
     -- 假冷卻的格每隔一格當成「還在倒增益的持續時間」（倒數換 durationColor）；自訂項目沒有那一段
@@ -518,6 +528,10 @@ function Proto:Fill(c, e, i, r, now)
         end
     end
     ns.Decorate.ApplyPreview(c, key, id, r.w, r.h)
+    -- 沒學會的自訂法術：圖示格以前靠假冷卻的去飽和表達，假冷卻拿掉之後自己灰（同長條）
+    if c.kind ~= "bars" and c.custom and not c.known and c.Icon and c.Icon.SetDesaturated then
+        c.Icon:SetDesaturated(true)
+    end
     self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready") and not c.aura and not e.hidden) and fx.kind or nil)
     -- 生效發光：勾了的增益在預覽上常亮（樣式、顏色照單一法術小窗的設定）。長條亮在圖示那一格
     if ns.Glow and ns.Glow.PreviewActive then
