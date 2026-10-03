@@ -7,6 +7,8 @@
 --   ns.Decorate.HoverEnter(rec) / HoverLeave(rec) 可點擊群組的鈕轉來的 hover（提示照 overlay 的設定）
 --   ns.Decorate.ApplyItemAlpha(item, rec, barAlpha) 暴雪 item 的 alpha 唯一出口（條的淡出 × 冷卻狀態，見下面那一節）
 --   ns.Decorate.DurationColorOf(override, barOn, barColor) 增益持續時間那一段的倒數顏色（純函式，見下面那一節）
+--   ns.Decorate.SyncAuraHide(item, rec)          「增益持續中不顯示持續時間」照現況蓋／還原（Apply 末尾叫，見那一節）
+--   ns.Decorate.DesatCurve()                     去飽和的階梯曲線（剩餘 > 0 ⇒ 1；自訂法術與蓋掉增益的格共用）
 --
 -- 規則
 --   * **只寫有變的**：每個 item 存一個簽章字串（rec.decorated），條設定＋逐法術覆寫＋
@@ -137,6 +139,8 @@ local function SpellStyle(barKey, id)
         cdStateAlpha     = SS(barKey, id, "cdStateAlpha"),
         customIcon       = D.IconOverrideOf(id),
         durationColor    = durationColor,
+        -- 增益持續中顯示持續時間：布林（沒覆寫退回條層 icon.showAuraTime）；false ＝ 這格蓋掉增益那一段
+        showAuraTime     = SS(barKey, id, "showAuraTime"),
     }
 end
 D.SpellStyle = SpellStyle                                           -- 測試用
@@ -387,13 +391,179 @@ end
 ------------------------------------------------------------
 local desatGuard = false
 
--- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色在 SetCooldown 後掛勾做
+------------------------------------------------------------
+-- 去飽和的階梯曲線（剩餘 > 0 ⇒ 1，剩 0 ⇒ 0），第一次用到才建，失敗就不用（回 nil）。
+-- duration:EvaluateRemainingDuration(曲線) 由引擎求值（秘密值照樣成立），結果餵 Texture:SetDesaturation。
+-- 自訂法術（Modules/Custom.lua）與「蓋掉增益那一段」的暴雪格共用這一顆
+------------------------------------------------------------
+local desatCurve
+function D.DesatCurve()
+    if desatCurve ~= nil then return desatCurve or nil end
+    desatCurve = false
+    local CU2 = C_CurveUtil
+    if not (CU2 and CU2.CreateCurve) then return nil end
+    local ok, c = pcall(CU2.CreateCurve)
+    if not ok or not c then return nil end
+    local step = Enum and Enum.LuaCurveType and Enum.LuaCurveType.Step
+    if step and c.SetType then pcall(c.SetType, c, step) end
+    local added = pcall(function()
+        c:AddPoint(0, 0)
+        c:AddPoint(0.05, 1)
+        c:AddPoint(86400, 1)
+    end)
+    if added then desatCurve = c end
+    return desatCurve or nil
+end
+
+------------------------------------------------------------
+-- 增益持續中不顯示持續時間（主題／條 icon.showAuraTime、逐法術 showAuraTime；false ＝ 不顯示）
+--
+-- 暴雪的 RefreshSpellCooldownInfo 每次刷新：SetSwipeColor → SetDrawSwipe → SetUseAuraDisplayTime(旗標) →
+-- CooldownFrame_Set（→ SetCooldown）。增益期間旗標 true、start/duration 是增益的。讓暴雪不用增益做不到
+-- （CanUseAuraForDisplay 讀的是暴雪資料表的旗標），所以**蓋掉顯示**：
+--   1. SetUseAuraDisplayTime 後掛勾：旗標 true（明文）＋這格設成不顯示＋是法術類 ⇒ rec.auraHidden
+--      （倒數換色當冷卻那段：rec.auraTime ＝ false）。
+--   2. SetCooldown 後掛勾看到 rec.auraHidden ⇒ FeedRealCooldown：SetUseAuraDisplayTime(false)、引擎給的
+--      duration 物件原封轉交 SetCooldownFromDurationObject（有充能在回充：GetSpellChargeDuration＋只畫邊緣；
+--      否則 GetSpellCooldownDuration(id, true)＋轉圈）；拿不到物件 ⇒ Clear。就緒探針改走 Glow.ArmProbe
+--      （同一個物件；Glow.OnItemSetCooldown 這次不叫——它看到增益旗標會直接走，探針永遠不武裝）。
+--      冷卻中去飽和：EvaluateRemainingDuration(階梯曲線) → SetDesaturation。最後照常做尾巴（AfterCooldown）。
+--   3. 暴雪下一次刷新又餵增益、我們又蓋一次（幾個 C 呼叫）；增益結束暴雪旗標變 false，正常路徑接手。
+--   * SetCooldownFromDurationObject 不是 SetCooldown，不會再進我們的後掛勾（沒有遞迴）；我們自己叫的
+--     SetUseAuraDisplayTime／Clear 會進後掛勾 ⇒ overriding 守衛：那兩支看到就走。
+--   * 只做法術類（明文 spellID、不是裝備欄項目）；飾品照暴雪顯示增益（明文 GetInventoryItemCooldown 才建得出
+--     duration 物件，秘密值時沒輒，留到有人要再說）。
+--   * 設定改了（簽章變）：Apply 末尾 SyncAuraHide 照現況重蓋；從「藏」改「顯示」不做事，等暴雪下一次刷新餵回增益。
+------------------------------------------------------------
+local overriding = false
+
+local function TryDur(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local ok, d = pcall(fn, ...)
+    if ok and d then return d end
+    return nil
+end
+
+-- 這一格能不能蓋：法術類 → spellID, 有沒有充能；裝備欄項目／沒有明文法術 ⇒ nil
+local function HideTarget(rec)
+    local info = rec and ns.Catalog.Info(rec.cooldownID)
+    if not info or type(info.equipSlot) == "number" then return nil end
+    local id = info.overrideSpellID or info.spellID
+    if type(id) ~= "number" then return nil end
+    return id, info.charges and true or false
+end
+D.HideTarget = HideTarget                                           -- 測試用
+
+-- 充能法術這一刻：走回充那條（還有充能、只畫邊緣）？回充有沒有在跑（full ＝ 明文確認滿了）？
+-- 讀不到（秘密值）⇒ 走回充那條、當作在跑（暴雪有充能時也是這樣畫）
+local function ChargeState(id)
+    local info = C_Spell and C_Spell.GetSpellCharges and TryDur(C_Spell.GetSpellCharges, id)
+    if type(info) ~= "table" then return true, false end
+    local cur, max = Plain(info.currentCharges), Plain(info.maxCharges)
+    if type(cur) ~= "number" then return true, false end
+    if cur <= 0 then return false, false end             -- 0 充能：暴雪畫技能冷卻（轉圈）
+    return true, type(max) == "number" and cur >= max
+end
+
+-- 就緒探針這次要不要武裝：明文確認「沒在冷卻／只是 GCD」就不（零長度的物件會被 clearIfZero 清掉，
+-- 卻留著「武裝中」的記號 ⇒ 下一次暴雪 Clear 會被當成轉好）。讀不到 ⇒ 武裝（跟暴雪 item 的正常路徑一樣）
+local function ShouldArm(rec, id, chargePath, full)
+    if chargePath then return not full end
+    local info = C_Spell and C_Spell.GetSpellCooldown and TryDur(C_Spell.GetSpellCooldown, id)
+    if type(info) ~= "table" then return true end
+    local gcd, active = Plain(info.isOnGCD), Plain(info.isActive)
+    if gcd == true or active == false then return false end
+    -- 明文確認進了新的冷卻（技能用掉了）⇒ 還亮著的就緒發光收掉（正常路徑在 Glow.OnItemSetCooldown 做，這條路不經過它）
+    if gcd == false and active == true and ns.Glow and ns.Glow.CooldownStarted then ns.Glow.CooldownStarted(rec) end
+    return true
+end
+
+-- 蓋掉的格的去飽和：dur 由引擎求值（秘密值也行）。沒有 dur ／曲線建不出來／求值失敗 ⇒ 不動
+local function ApplyHiddenDesat(item, rec)
+    local dur = rec.auraDur
+    local icon = item.Icon
+    if not (dur and dur.EvaluateRemainingDuration and icon and icon.SetDesaturation) then return end
+    if rec.style and rec.style.desaturate == false then return end
+    local curve = D.DesatCurve()
+    if not curve then return end
+    local ok, v = pcall(dur.EvaluateRemainingDuration, dur, curve)
+    -- 秘密值連跟 nil 比都會拋錯：先問是不是秘密值
+    if not ok or not (ns.IsSecret(v) or v ~= nil) then return end
+    desatGuard = true
+    pcall(icon.SetDesaturation, icon, v)
+    desatGuard = false
+end
+
+-- 把這格的 Cooldown 改餵技能自己的冷卻（呼叫端確認過 rec.auraHidden）
+local function FeedRealCooldown(item, rec, cd)
+    local id, charges = HideTarget(rec)
+    if not id then return end
+    local chargePath, full = false, false
+    if charges then chargePath, full = ChargeState(id) end
+    local dur, edgeOnly
+    if chargePath and C_Spell then
+        dur = TryDur(C_Spell.GetSpellChargeDuration, id)
+        edgeOnly = dur ~= nil
+    end
+    if not dur and C_Spell then
+        dur = TryDur(C_Spell.GetSpellCooldownDuration, id, true)
+        chargePath = false
+    end
+    overriding = true
+    if cd.SetUseAuraDisplayTime then pcall(cd.SetUseAuraDisplayTime, cd, false) end
+    local fed = false
+    if dur and cd.SetCooldownFromDurationObject then
+        if edgeOnly then
+            if cd.SetDrawSwipe then pcall(cd.SetDrawSwipe, cd, false) end
+            if cd.SetDrawEdge then pcall(cd.SetDrawEdge, cd, true) end
+        elseif cd.SetDrawSwipe then
+            pcall(cd.SetDrawSwipe, cd, true)
+        end
+        fed = pcall(cd.SetCooldownFromDurationObject, cd, dur, true)
+    end
+    if not fed then
+        dur = nil
+        if cd.Clear then pcall(cd.Clear, cd) end
+    end
+    overriding = false
+    -- 去飽和只跟技能冷卻那條（有充能在回充時暴雪也不去飽和）
+    rec.auraDur = (dur and not edgeOnly) and dur or nil
+    ApplyHiddenDesat(item, rec)
+    if dur and ns.Glow and ns.Glow.ArmProbe and ShouldArm(rec, id, chargePath, full) then
+        ns.Glow.ArmProbe(rec, dur)
+    end
+end
+
+-- SetCooldown 後掛勾的尾巴（正常路徑與蓋掉的那條共用）：轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態
+local function AfterCooldown(item, rec, cd)
+    local st = rec.style
+    if not st then return end
+    if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
+    if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
+    -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的；蓋掉的格是 false ＝ 原色）
+    if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor then ns.Text.ApplyPhaseColor(item, rec) end
+    D.ApplyGCDAlpha(item, rec)
+    -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
+    if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
+end
+
+-- 旗標（暴雪的明文布林）＋目前設定 → rec.auraHidden／rec.auraTime
+local function ResolveAuraFlag(rec)
+    local on = rec.auraFlag == true
+    local hide = on and rec.style ~= nil and rec.style.hideAuraTime == true and HideTarget(rec) ~= nil
+    rec.auraHidden = hide and true or false
+    rec.auraTime = on and not hide
+    if not hide then rec.auraDur = nil end
+end
+
+-- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色／蓋掉在 SetCooldown 後掛勾做
 local function OnSetUseAuraDisplayTime(cd, flag)
-    if ns.released then return end
+    if overriding or ns.released then return end      -- 我們自己蓋的那一次（false）不算
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
-    rec.auraTime = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色）
+    rec.auraFlag = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
+    ResolveAuraFlag(rec)
 end
 D.OnSetUseAuraDisplayTime = OnSetUseAuraDisplayTime              -- 測試用
 
@@ -402,17 +572,30 @@ local function OnSetCooldown(cd, start, duration, modRate)
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
-    -- 就緒發光的探針：同一組參數轉交（Core/Glow.lua，不讀不算）
-    if ns.Glow and ns.Glow.OnItemSetCooldown then ns.Glow.OnItemSetCooldown(item, rec, start, duration, modRate, cd) end
-    if not rec.style then return end
-    local st = rec.style
-    if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
-    if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
-    -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的）
-    if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor then ns.Text.ApplyPhaseColor(item, rec) end
-    D.ApplyGCDAlpha(item, rec)
-    -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
-    if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
+    if rec.auraHidden and rec.style then
+        -- 增益那一段不顯示：改餵技能自己的冷卻（探針在裡面走 ArmProbe）
+        FeedRealCooldown(item, rec, cd)
+    elseif ns.Glow and ns.Glow.OnItemSetCooldown then
+        -- 就緒發光的探針：同一組參數轉交（Core/Glow.lua，不讀不算）
+        ns.Glow.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
+    end
+    AfterCooldown(item, rec, cd)
+end
+D.OnSetCooldown = OnSetCooldown                                  -- 測試用
+
+-- 設定變了／重新裝飾：照暴雪最後一次的旗標重判；要藏而現在是增益 ⇒ 當場蓋一次（/reload 時增益還在也一樣）。
+-- 藏 → 顯示：Cooldown 上是我們餵的冷卻，等暴雪下一次刷新餵回增益（換色旗標由後掛勾補，這之前照原色）
+function D.SyncAuraHide(item, rec)
+    local cd = item and item.Cooldown
+    if not (cd and rec and rec.style) or rec.custom or ns.released then return end
+    local was = rec.auraHidden
+    ResolveAuraFlag(rec)
+    if rec.auraHidden then
+        FeedRealCooldown(item, rec, cd)
+        AfterCooldown(item, rec, cd)
+    elseif was then
+        rec.auraTime = false
+    end
 end
 
 ------------------------------------------------------------
@@ -725,6 +908,8 @@ ns.Events.Register("SPELL_UPDATE_COOLDOWN", "decorate_gcd", function(...)
 end)
 
 local function OnClearCooldown(cd)
+    -- 我們自己清的（蓋掉增益那一段、技能拿不到冷卻物件）：不是暴雪說「轉好了」，alpha 由 AfterCooldown 重算
+    if overriding then return end
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if rec and ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec) end
@@ -739,6 +924,12 @@ local function OnSetDesaturated(icon, desaturated)
         desatGuard = true
         icon:SetDesaturated(false)
         desatGuard = false
+        return
+    end
+    -- 增益那一段被蓋掉的格：暴雪增益期間寫 false（不去飽和），照我們餵的冷卻重算（傳進來的值不比較）。
+    -- 沒有冷卻物件（技能沒在冷卻／有充能在回充）⇒ 不動，暴雪的就是對的
+    if rec.auraHidden then
+        ApplyHiddenDesat(item, rec)
         return
     end
     -- 只管裝備欄項目（先判這個：法術類的格子到這裡就走了，不碰傳進來的值）
@@ -859,7 +1050,9 @@ function D.HookItem(item, rec)
             -- 不然要等暴雪下一次刷新才知道
             if cd.GetUseAuraDisplayTime then
                 local ok, v = pcall(cd.GetUseAuraDisplayTime, cd)
-                rec.auraTime = ok and Plain(v) == true or false
+                rec.auraFlag = ok and Plain(v) == true or false
+                -- 要不要蓋在 Apply 末尾（SyncAuraHide）判：第一次掛上時 rec.style 還沒寫
+                ResolveAuraFlag(rec)
             end
         end
     end
@@ -961,7 +1154,7 @@ local function Signature(style, id, spell, w, h)
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
         .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha)
         .. "|" .. tostring(spell.customIcon)
-        .. "|" .. CSig(spell.durationColor)
+        .. "|" .. CSig(spell.durationColor) .. "," .. tostring(spell.showAuraTime)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -1093,6 +1286,8 @@ function D.Apply(item, rec, barKey, w, h)
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
         rec.style.cdColor, rec.style.durColor = D.PhaseColors(style.cooldownText, spell.durationColor)
+        -- 增益持續中不顯示持續時間（同一個條件；裝備欄項目在 HideTarget 再擋）
+        rec.style.hideAuraTime = spell.showAuraTime == false
     end
     if not rec.custom then itemOf[rec] = item end
 
@@ -1195,6 +1390,9 @@ function D.Apply(item, rec, barKey, w, h)
     if ns.StackGate and ns.StackGate.Apply then ns.StackGate.Apply(item, rec, barKey, w, h, isBar) end
     -- 發光的框跟著格子尺寸走（尺寸由我們給，不從 item 讀）；樣式變了的發光重畫
     if ns.Glow and ns.Glow.AfterApply then ns.Glow.AfterApply(item, rec, barKey, w, h) end
+    -- 增益持續中不顯示持續時間：設定變了（或 /reload 時增益還在）照現況蓋／還原。排最後：
+    -- 探針（Glow）與倒數換色（Text.ApplyIcon）都已就位
+    if not isBar and not rec.custom then D.SyncAuraHide(item, rec) end
 end
 
 ------------------------------------------------------------
@@ -1277,8 +1475,9 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
         end
         -- 增益持續時間那一段：Preview 標了 cell.auraPhase 的假冷卻格照設定換色（逐法術覆寫也照套）
+        -- 設成「增益持續中不顯示持續時間」的格：那一段被蓋成冷卻，當普通冷卻格畫（原色）
         local ct = style.cooldownText or {}
-        cell.durColor = (cell.auraPhase and not cell.aura)
+        cell.durColor = (cell.auraPhase and not cell.aura and spell.showAuraTime ~= false)
             and D.DurationColorOf(spell.durationColor, ct.colorDuration, ct.durationColor) or nil
         ns.Text.ApplyPreviewIcon(cell, style, spell)
     end

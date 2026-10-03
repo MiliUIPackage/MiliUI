@@ -182,25 +182,10 @@ function CU.ResolveItem(e)
 end
 
 ------------------------------------------------------------
--- 共用：階梯曲線（剩餘 > 0 ⇒ 1，剩 0 ⇒ 0），第一次用到才建，失敗就不用
+-- 共用：階梯曲線（剩餘 > 0 ⇒ 1，剩 0 ⇒ 0）。本體在 Core/Decorate.lua（暴雪格「蓋掉增益那一段」也用同一顆）
 ------------------------------------------------------------
-local desatCurve
 local function DesatCurve()
-    if desatCurve ~= nil then return desatCurve or nil end
-    desatCurve = false
-    local CU2 = C_CurveUtil
-    if not (CU2 and CU2.CreateCurve) then return nil end
-    local ok, c = pcall(CU2.CreateCurve)
-    if not ok or not c then return nil end
-    local step = Enum and Enum.LuaCurveType and Enum.LuaCurveType.Step
-    if step and c.SetType then pcall(c.SetType, c, step) end
-    local added = pcall(function()
-        c:AddPoint(0, 0)
-        c:AddPoint(0.05, 1)
-        c:AddPoint(86400, 1)
-    end)
-    if added then desatCurve = c end
-    return desatCurve or nil
+    return ns.Decorate and ns.Decorate.DesatCurve and ns.Decorate.DesatCurve() or nil
 end
 
 ------------------------------------------------------------
