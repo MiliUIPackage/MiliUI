@@ -19,7 +19,7 @@
 --   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單）；拖到左欄的自訂群組上
 --                      ＝拉進那一群（groupOf），拖回原本的檢視器上＝清掉 groupOf
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
--- 光環格（自訂項目 kind = "aura"）是固定前綴：cell.locked，蓋紅色半透明、拖不動、中鍵不藏，
+-- 光環格（自訂項目 kind = "aura"）是固定前綴：cell.locked 只記「在前綴裡」——可以拖（只能在前綴內排序、或拖到左欄群組）、中鍵不藏，
 -- 別的格也不能插到它們前面（插入線變紅）。左鍵照樣開逐法術面板。
 -- 自訂項目（"c:<index>"）拖到左欄＝改它的 bar（圖示類的條都收，含四條檢視器）。
 ------------------------------------------------------------
@@ -505,7 +505,7 @@ function Proto:Fill(c, e, i, r, now)
         c.chargeText:SetText(c.charges and tostring(c.charges) or "")
         c.stackText:SetText("2")
     end
-    c.lock:SetShown(c.locked and true or false)
+    c.lock:SetShown(false)      -- 光環格不再蓋紅：它可以拖（前綴內排序、拖到別的群組）
 end
 
 -- 長條的時間跑 15→0（名字＝法術名）。**只印整數**：真的長條秒數是暴雪每幀用秘密的剩餘時間寫的
@@ -556,7 +556,9 @@ local function ShowTip(c)
         end
     end
     if c.locked then
-        GameTooltip:AddLine(L["Aura slot: always at the front of the bar, can't be dragged."], 1, 0.82, 0, true)
+        -- 光環格：位置固定在前綴（持有框是保護框、戰鬥中不能移），但前綴內可以互相排序、也可以拖到別的群組
+        -- （使用者 2026-10-03：戰鬥中本來就不能拖，脫戰排序沒有影響）
+        GameTooltip:AddLine(L["Aura slot: stays at the front of the bar. Drag to reorder among aura slots, or drop on a group on the left."], 1, 0.82, 0, true)
         GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
         GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
     else
@@ -574,7 +576,7 @@ function Proto:Wire(c)
         c:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
     c:SetScript("OnMouseDown", function(self, button)
-        if button ~= "LeftButton" or self.isPlus or self.hiddenItem or self.locked then return end
+        if button ~= "LeftButton" or self.isPlus or self.hiddenItem then return end
         local x, y = Cursor(pv.canvas)
         pv.press = { cell = self, x = x, y = y }
         pv.frame:SetScript("OnUpdate", function(_, elapsed) pv:DragTick(elapsed) end)
@@ -674,7 +676,10 @@ function Proto:DragTick()
     local pos, s, after = self:InsertionAt()
     press.pos = pos
     if not pos then line:Hide() return end
-    local invalid = pos <= (self.lockedCount or 0)
+    -- 插入位置的合法範圍：光環格只能落在前綴裡（1～前綴數＋1），其他格只能落在前綴後面
+    local n = self.lockedCount or 0
+    local invalid
+    if press.cell.locked then invalid = pos > n + 1 else invalid = pos <= n end
     press.invalid = invalid
     if invalid then line:SetVertexColor(1, 0.2, 0.2, 1) else line:SetVertexColor(W.Accent(1)) end
     line:ClearAllPoints()
