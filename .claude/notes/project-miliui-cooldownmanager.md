@@ -186,3 +186,5 @@ Cooldown:SetUseAuraDisplayTime(旗標) 的後掛勾：按下技能 true、增益
 IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄位（永遠 false）、IsExpired()（永遠 true，
 暴雪每次刷新幾乎都 Clear）都不能用。冷卻格的「生效期間發光」就接在這個旗標上（rec.auraFlag → Glow.SyncActive）。
 探針埋 log 的坑見 [[wow-121-hook-print-dropped]]。
+「生效期間發光」2026-10-03 起跟觸發／就緒同一套：條層 glow.active（enabled 預設關、樣式／顏色／線條／粗細、跟隨主題），
+逐法術只蓋開關；不要再做逐法術的發光顏色／樣式（使用者明確改回一致）。

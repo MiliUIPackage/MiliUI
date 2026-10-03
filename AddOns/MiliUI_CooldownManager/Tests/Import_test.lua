@@ -584,7 +584,7 @@ do
     }, { specID = 70, resolve = resolve70 })
     local o = S4.spells[70] and S4.spells[70].overrides[5001]
     eq("生效發光 目前專精對到", o and o.activeGlow, true)
-    eqColor("生效發光 顏色（沒 alpha 補 1）", o and o.activeGlowColor, 1, 0, 0, 1)
+    eq("生效發光 顏色不帶（顏色是條層的）", o and o.activeGlowColor, nil)
     eq("glowEnabled false 不收", S4.spells[70].overrides[5002], nil)
     eq("別專精 ⇒ pending", S4.pendingImport and S4.pendingImport[66] and S4.pendingImport[66].overrides[1].fields.activeGlow, true)
     eq("光環格直接寫在 c:1", S4.spells[70].overrides["c:1"] and S4.spells[70].overrides["c:1"].activeGlow, true)

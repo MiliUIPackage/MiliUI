@@ -79,8 +79,9 @@
 --   * 自訂法術：Custom 的更新裡同一組明文旗標；自訂物品：武裝新的明文冷卻那一刻。
 --
 -- ── 生效發光（增益）────────────────────────────────────────────────────
--- 暴雪增益格（圖示列、長條、被搬進自訂群組的增益）與自訂光環格在光環生效期間一直亮。**只有逐法術開關**
--- （overrides[id].activeGlow，加上可選的 activeGlowColor），條層只給樣式與預設色，沒有統一開。
+-- 暴雪增益格（圖示列、長條、被搬進自訂群組的增益）與自訂光環格在光環生效期間一直亮。開關與繼承跟觸發／就緒
+-- 同一套：條層 glow.active.enabled（**預設關**）＋樣式／顏色／線條／粗細，逐法術 overrides[id].activeGlow 蓋開關
+-- （玩家多半只在幾個法術上個別打開）。
 -- 「生效」讀暴雪 item 自己的 IsActive()（欄位 isActive）：12.1.0.69933 的 CooldownViewer.lua 裡
 -- 它是暴雪拿光環 expirationTime 跟 GetTime() 用 Lua 比出來的布林，SetIsActive 寫完就叫
 -- OnActiveStateChanged ⇒ 後掛勾那支當訊號。讀不到（秘密／nil）一律當沒生效：暴雪的增益列設成
@@ -161,17 +162,10 @@ local function Cfg(barKey, which)
     return type(c) == "table" and c or {}
 end
 
--- 生效發光：預設樣式（glow.active，沒有統一設定頁）＋逐法術的樣式與顏色（有設才蓋）
-local function ActiveCfg(rec, barKey)
-    local c = Cfg(barKey, "active")
-    local col = ns.SpellSetting(barKey, rec.cooldownID, "activeGlowColor")
-    local typ = ns.SpellSetting(barKey, rec.cooldownID, "activeGlowType")
-    if type(col) ~= "table" and type(typ) ~= "string" then return c end
-    local t = {}
-    for k, v in pairs(c) do t[k] = v end
-    if type(col) == "table" then t.color = col end
-    if type(typ) == "string" then t.type = typ end
-    return t
+-- 生效發光的樣式：跟觸發／就緒同一套，條層（或跟隨主題）的 glow.active。逐法術只開關、不挑樣式
+-- （使用者 2026-10-03 改回；舊存檔的 activeGlowColor／activeGlowType 不再讀）
+local function ActiveCfg(_, barKey)
+    return Cfg(barKey, "active")
 end
 G.ActiveCfg = ActiveCfg
 

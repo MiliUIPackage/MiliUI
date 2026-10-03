@@ -512,7 +512,6 @@ do
 
     -- 預覽：層數發光開著 ⇒ 照它的樣式（顏色覆寫）
     overrides[50].stackGlowColor = { r = 0, g = 0, b = 1, a = 1 }
-    overrides[50].activeGlowColor = { r = 1, g = 0, b = 0, a = 1 }
     local host = NewFrame("Frame")
     G.PreviewActive(host, "buffs", 50)
     local last = painted[#painted]
@@ -522,7 +521,7 @@ do
     overrides[50].stackGlow = nil
     G.PreviewActive(host, "buffs", 50)
     last = painted[#painted]
-    eq("預覽換回生效發光的顏色", last.color[1], 1)
+    eq("預覽換回生效發光的顏色（條層 glow.active）", last.color[1], 0.95)
     -- 自訂項目（字串 id）不走層數
     overrides["c:2"] = { stackGlow = 2 }
     local host2 = NewFrame("Frame")

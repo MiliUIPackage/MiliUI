@@ -105,9 +105,13 @@ local SOUNDS = {
     { field = "loseSound",  label = L["Lose sound"],  class = "aura" },
 }
 
+-- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益時間）
+local function ActiveGlowWhen(kind, class) return class == "aura" or kind == nil end
+
 local TOGGLES = {
     { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, tab = "glow" },
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
+    { field = "activeGlow",       label = L["Glow while active"],      when = ActiveGlowWhen, tab = "glow" },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
     { field = "hideCooldownText", label = L["Hide countdown"],         tab = "look" },
     { field = "hideStackText",    label = L["Hide stacks"],            tab = "look" },
@@ -229,7 +233,7 @@ local function BlizzAuraBar(kind, class)
     return BlizzAura(kind, class) and cur ~= nil and ns.Setting(cur.key, "kind") == "bars"
 end
 
--- 發光樣式的選項（生效發光與層數發光共用；每個下拉各拿一份）
+-- 發光樣式的選項（層數發光用；每個下拉各拿一份）
 local function GlowTypeItems()
     return {
         { text = L["Pixel"],         value = "pixel" },
@@ -468,7 +472,7 @@ local function Build()
     RightClickClears(ir, ih, "customIcon")
 
     for _, t in ipairs(TOGGLES) do
-        local when = nil
+        local when = t.when
         if t.noAura then when = t.noBar and NotAuraNotBar or NotAura end
         buildTab = t.tab
         local tr, th = NewRow(t.label, when)
@@ -482,8 +486,27 @@ local function Build()
         note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
         note:SetPoint("RIGHT", tr, "RIGHT", 0, 0)
         note:SetWordWrap(false)
-        toggles[#toggles + 1] = { field = t.field, cb = cb, note = note }
+        toggles[#toggles + 1] = { field = t.field, cb = cb, note = note, row = tr }
         RightClickClears(tr, th, t.field)
+        if t.field == "activeGlow" then
+            frame.activeRow = tr
+            -- 脫戰也亮（預設勾）：取消 ＝ 只在戰鬥中亮。只存 false（勾回去就清掉覆寫）。
+            -- 自訂光環格不給：發光烘在受保護的按鈕裡，戰鬥中切不了
+            local or_, oh = NewRow(L["Out of combat too"], function(kind, class)
+                return ActiveGlowWhen(kind, class) and kind ~= "aura"
+            end)
+            local occb = W.CreateCheckButton(or_, nil, function(on)
+                if not cur then return end
+                -- ⚠ 不能寫 `(not on) and false or nil`：`false or nil` 是 nil，取消勾選永遠存不進去
+                local v = nil
+                if not on then v = false end
+                ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", v)
+                Changed()
+            end)
+            occb:SetPoint("LEFT", or_, "LEFT", CTRL_X, 0)
+            frame.activeOOC, frame.activeOOCRow = occb, or_
+            RightClickClears(or_, oh, "activeGlowOutOfCombat")
+        end
         if t.field == "readyGlow" then
             -- 亮多久：跟條頁同三種（Core/Glow.lua 的 ReadyMode）；就緒發光生效是關時停用（Refresh）
             local mr, mh = NewRow(L["Glow for"], NotAuraNotBar)
@@ -608,62 +631,6 @@ local function Build()
     ColorOverrideRow(L["Duration color"],       "durationColor",      false, { r = 1,    g = 0.85, b = 0.1,  a = 1 })
     ColorOverrideRow(L["Duration low color"],   "durationLowColor",   false, { r = 0.95, g = 0.45, b = 0.70, a = 1 })
     ColorOverrideRow(L["Duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
-
-    -- 生效發光：暴雪的增益與光環格（增益類）。勾選框＋顏色，下一列樣式（沒挑過＝ glow.active 的預設）；
-    -- 右鍵整列全清。標題的圖示即時預覽
-    buildTab = "glow"
-    -- 暴雪的冷卻格也有（kind ＝ nil）：生效＝暴雪正在倒增益時間（Core/Glow.lua 的 SyncActive）
-    local function ActiveGlowRow(kind, class) return class == "aura" or kind == nil end
-    local ar, ah = NewRow(L["Glow while active"], ActiveGlowRow)
-    local acb = W.CreateCheckButton(ar, nil, function(on)
-        if not cur then return end
-        ns.DB.SetOverride(cur.id, "activeGlow", on and true or nil)
-        Changed()
-    end)
-    acb:SetPoint("LEFT", ar, "LEFT", CTRL_X, 0)
-    local aswatch = W.CreateColorPicker(ar, nil, true, function(rr, g, b, a)
-        if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
-        ns.DB.SetOverride(cur.id, "activeGlowColor", { r = rr, g = g, b = b, a = a })
-        Changed()
-    end)
-    aswatch:SetPoint("LEFT", acb, "RIGHT", 10, 0)
-    frame.activeCB, frame.activeSwatch = acb, aswatch
-    -- 脫戰也亮（預設勾）：取消 ＝ 只在戰鬥中亮。只存 false（勾回去就清掉覆寫）。
-    -- 自訂光環格不給：發光烘在受保護的按鈕裡，戰鬥中切不了
-    local occb = W.CreateCheckButton(ar, L["Out of combat too"], function(on)
-        if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
-        -- ⚠ 不能寫 `(not on) and false or nil`：`false or nil` 是 nil，取消勾選永遠存不進去
-        local v = nil
-        if not on then v = false end
-        ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", v)
-        Changed()
-    end)
-    occb:SetPoint("LEFT", aswatch, "RIGHT", 14, 0)
-    frame.activeOOC = occb
-    local ahit = CreateFrame("Frame", nil, ar)
-    ahit:SetPoint("TOPLEFT", ar, "TOPLEFT", 0, 0)
-    ahit:SetPoint("BOTTOMLEFT", ar, "BOTTOMLEFT", 0, 0)
-    ahit:SetWidth(LABEL_W)
-    ahit:EnableMouse(true)
-    ahit:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and cur then
-            ns.DB.SetOverride(cur.id, "activeGlow", nil)
-            ns.DB.SetOverride(cur.id, "activeGlowColor", nil)
-            ns.DB.SetOverride(cur.id, "activeGlowType", nil)
-            ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", nil)
-            Changed()
-        end
-    end)
-    local tr2 = NewRow(L["Glow style"], ActiveGlowRow)
-    local tdd = W.CreateDropdown(tr2, ROW_W - CTRL_X, GlowTypeItems(), function(value)
-        if not cur or not ns.SpellSetting(cur.key, cur.id, "activeGlow") then return end
-        ns.DB.SetOverride(cur.id, "activeGlowType", value)
-        Changed()
-    end)
-    tdd:SetMaxWidth(ROW_W - CTRL_X)
-    tdd:SetPoint("LEFT", tr2, "LEFT", CTRL_X, 0)
-    frame.activeTypeDD = tdd
-    frame.activeRow, frame.activeTypeRow = ar, tr2
 
     -- 層數發光（暴雪的增益）：勾選框＋「≥」數字框＋色票；沒勾時數字框記著要用的門檻
     local sgr = NewRow(L["Stack glow"], BlizzAura)
@@ -1127,26 +1094,15 @@ function Pop.Refresh()
         r.swatch:SetEnabled(own and recolor)
         r.swatch:SetAlpha((own and recolor) and 1 or 0.4)
     end
+    -- 脫戰也亮：生效發光生效是關 ⇒ 停用
     local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false
-    frame.activeCB:SetChecked(activeOn)
-    local ac = ns.SpellSetting(key, id, "activeGlowColor")
-    if type(ac) ~= "table" then ac = ns.Setting(key, "glow.active.color") end
-    frame.activeSwatch:SetColor(type(ac) == "table" and ac or { r = 0.95, g = 0.95, b = 0.32, a = 1 })
-    frame.activeSwatch:SetEnabled(activeOn)
-    frame.activeSwatch:SetAlpha(activeOn and 1 or 0.4)
-    local at = ns.SpellSetting(key, id, "activeGlowType")
-    if type(at) ~= "string" then at = ns.Setting(key, "glow.active.type") end
-    frame.activeTypeDD:SetSelectedValue(type(at) == "string" and at or "pixel")
-    frame.activeTypeDD:SetEnabled(activeOn)
-    frame.activeOOC:SetShown(kind ~= "aura")
     frame.activeOOC:SetChecked(ns.SpellSetting(key, id, "activeGlowOutOfCombat") ~= false)
     frame.activeOOC:SetEnabled(activeOn)
     frame.activeOOC:SetAlpha(activeOn and 1 or 0.4)
-    frame.activeTypeDD:SetAlpha(activeOn and 1 or 0.4)
     -- 層數門檻（暴雪的增益才顯示這幾列）：勾了層數發光時生效發光那兩列變暗（互斥，層數的為準）
     local stackOn = BlizzAura(kind, class) and StackOn()
     frame.activeRow:SetAlpha(stackOn and 0.4 or 1)
-    frame.activeTypeRow:SetAlpha(stackOn and 0.4 or 1)
+    frame.activeOOCRow:SetAlpha(stackOn and 0.4 or 1)
     if BlizzAura(kind, class) then
         local n = ns.StackGate.Threshold(ns.SpellSetting(key, id, "stackGlow"))
         frame.stackCB:SetChecked(n ~= nil)

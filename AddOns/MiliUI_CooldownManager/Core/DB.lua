@@ -406,8 +406,8 @@ function DB.BuildDefaults()
                     -- requireUsable：資源不夠時先不亮、等到夠了才亮（Core/Glow.lua）
                     ready = { enabled = false, type = "button", color = rgba(0.3, 1, 0.3, 1),
                               lines = 8, thickness = 2, frequency = 0.2, duration = 3, mode = "timed", requireUsable = false },
-                    -- 生效發光（增益）：沒有條層開關，逐法術 overrides[id].activeGlow 才亮；這裡只給樣式與預設色
-                    active = { type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
+                    -- 生效發光：跟觸發／就緒同一套（條層開關＋樣式），**預設關**，玩家在個別法術上打開（overrides[id].activeGlow）
+                    active = { enabled = false, type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
                                lines = 8, thickness = 2, frequency = 0.2 },
                 },
                 -- 淡出後的透明度；false ＝ 這個條件不淡
@@ -887,6 +887,8 @@ local SPELL_FALLBACK = {
     borderColor = "border.color",
     procGlow    = "glow.proc.enabled",
     readyGlow   = "glow.ready.enabled",
+    -- 生效期間發光：跟觸發／就緒同一套（條層開關預設關，逐法術蓋）
+    activeGlow  = "glow.active.enabled",
     -- 就緒發光亮多久（timed／untilUsed／whileReady）與資源檢查：逐法術可以蓋（Core/Glow.lua 的 ReadyMode／RequireUsable）
     readyGlowMode   = "glow.ready.mode",
     readyGlowUsable = "glow.ready.requireUsable",
@@ -913,8 +915,6 @@ local SPELL_FALLBACK = {
 local SPELL_CONST = {
     hideCooldownText = false,
     hideStackText    = false,
-    -- 生效發光（增益）：只有逐法術；顏色／樣式（activeGlowColor／activeGlowType）沒設（nil）＝ glow.active 的預設
-    activeGlow       = false,
     -- 生效發光脫戰也亮（預設）；false ＝ 只在戰鬥中亮。自訂光環格不適用（發光烘在受保護的按鈕裡）
     activeGlowOutOfCombat = true,
     -- 層數門檻（暴雪的增益 item 才有，Core/StackGate.lua）：stackGlow ＝ 門檻 N（1～99）、stackColors ＝
@@ -1195,9 +1195,9 @@ DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
     showAuraTime = "icon",
     procGlow = "glow", readyGlow = "glow", readyGlowMode = "glow", readyGlowUsable = "glow",
-    -- 生效發光是逐法術挑的（沒有條層值可「跟隨」）：自成一組，條頁「清除發光覆寫」不會把它清掉
-    activeGlow = "activeGlow", activeGlowColor = "activeGlow", activeGlowType = "activeGlow",
-    activeGlowOutOfCombat = "activeGlow",
+    -- 生效發光跟觸發／就緒同一組（2026-10-03 改成同一套繼承）；activeGlowColor／activeGlowType 是舊存檔的殘留，
+    -- 留在這一組讓「清除發光覆寫」順手清掉
+    activeGlow = "glow", activeGlowColor = "glow", activeGlowType = "glow", activeGlowOutOfCombat = "glow",
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
     hideCooldownText = "text", hideStackText = "text",

@@ -204,12 +204,19 @@ eq("沒覆寫 → 觸發發光開", SS("essential", 1234, "procGlow"), true)
 eq("沒覆寫 → 就緒發光關", SS("essential", 1234, "readyGlow"), false)
 eq("沒覆寫 → 固定預設", SS("essential", 1234, "hideCooldownText"), false)
 eq("未知欄位", SS("essential", 1234, "nope"), nil)
-eq("生效發光沒有條層值 ⇒ 關", SS("buffs", 1234, "activeGlow"), false)
+eq("生效發光條層預設關 ⇒ 關", SS("buffs", 1234, "activeGlow"), false)
 eq("各段文字字型預設跟隨通用字型", S("essential", "cooldownText.font"), "INHERIT")
 eq("施法條字型預設跟隨", P.castbar and P.castbar.font, "INHERIT")
 eq("資源條字型預設跟隨", P.resources and P.resources.textFont, "INHERIT")
 eq("生效發光顏色沒設 ⇒ nil（用條層預設色）", SS("buffs", 1234, "activeGlowColor"), nil)
-check("生效發光的預設樣式在主題裡", type(P.theme.glow.active) == "table" and P.theme.glow.active.enabled == nil)
+check("生效發光的開關與樣式在主題裡、預設關", type(P.theme.glow.active) == "table" and P.theme.glow.active.enabled == false)
+P.bars.buffs.follow = P.bars.buffs.follow or {}
+P.bars.buffs.follow.glow = false
+P.bars.buffs.glow = P.bars.buffs.glow or {}
+P.bars.buffs.glow.active = { enabled = true }
+eq("條層生效發光開 ⇒ 逐法術沒覆寫時跟著開（跟觸發／就緒同一套）", SS("buffs", 1234, "activeGlow"), true)
+P.bars.buffs.glow.active = nil
+P.bars.buffs.follow.glow = nil
 
 P.spells[ns.specID] = { overrides = { [1234] = { procGlow = false, borderColor = { r = 1, g = 0, b = 0, a = 1 } },
                                         ["c:1"] = { hideStackText = true } } }
@@ -229,8 +236,8 @@ eq("值從哪來：essential 的邊框跟隨主題", DB.SpellFallbackSource("ess
 eq("值從哪來：沒有條層值 → nil", DB.SpellFallbackSource("essential", "hideCooldownText"), nil)
 eq("生效發光樣式沒設 ⇒ nil", SS("buffs", 1234, "activeGlowType"), nil)
 eq("生效發光預設脫戰也亮", SS("buffs", 1234, "activeGlowOutOfCombat"), true)
-eq("脫戰也亮算在 activeGlow 那一組", DB.OVERRIDE_GROUP.activeGlowOutOfCombat, "activeGlow")
-eq("生效發光樣式算在 activeGlow 那一組", DB.OVERRIDE_GROUP.activeGlowType, "activeGlow")
+eq("脫戰也亮算在 glow 那一組", DB.OVERRIDE_GROUP.activeGlowOutOfCombat, "glow")
+eq("生效發光算在 glow 那一組（跟觸發／就緒同一套）", DB.OVERRIDE_GROUP.activeGlow, "glow")
 
 ------------------------------------------------------------
 -- 5. 設定檔：建立／複製／切換／刪除
@@ -535,11 +542,11 @@ do
         eq("覆寫分組 " .. f .. " ＝ stack", DB.OVERRIDE_GROUP[f], "stack")
     end
     DB.SetOverride(5555, "stackGlow", 4)
-    DB.SetOverride(5555, "activeGlow", true)
     eq("覆寫門檻", SS2("buffs", 5555, "stackGlow"), 4)
     eq("層數門檻不算在 glow 那一組", DB.CountOverrides({ 5555 }, "glow"), 0)
     eq("層數門檻算在 stack 那一組", DB.CountOverrides({ 5555 }, "stack"), 1)
     DB.ClearOverrides({ 5555 }, "glow")
+    DB.SetOverride(5555, "activeGlow", true)
     eq("清發光覆寫不清層數", SS2("buffs", 5555, "stackGlow"), 4)
     DB.ClearOverrides({ 5555 }, "stack")
     eq("清 stack 那一組", SS2("buffs", 5555, "stackGlow"), false)

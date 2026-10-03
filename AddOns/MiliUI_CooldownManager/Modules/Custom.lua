@@ -1001,12 +1001,10 @@ local function AuraStyle(rec, barKey, w, h, shape)
     if SS(barKey, id, "activeGlow") and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
         local g = S(barKey, "glow.active")
         g = type(g) == "table" and g or {}
-        local col = SS(barKey, id, "activeGlowColor")
-        local typ = SS(barKey, id, "activeGlowType")
-        if not GLOW_TYPES[typ] then typ = g.type end
+        -- 樣式只讀條層（跟觸發／就緒同一套），逐法術只開關
         st.glow = {
-            type      = GLOW_TYPES[typ] and typ or "pixel",
-            color     = RGBA(type(col) == "table" and col or g.color, 0.95, 0.95, 0.32, 1),
+            type      = GLOW_TYPES[g.type] and g.type or "pixel",
+            color     = RGBA(g.color, 0.95, 0.95, 0.32, 1),
             lines     = tonumber(g.lines) or 8,
             thickness = tonumber(g.thickness) or 2,
             frequency = tonumber(g.frequency) or 0.2,

@@ -1399,7 +1399,7 @@ end
 --   soundEnabled＋soundOnShow  → gainSound（soundOnShowEnabled ~= false）
 --   soundEnabled＋soundOnHide  → loseSound（soundOnHideEnabled ~= false）
 -- ungroupedCooldownOverrides 本來就用 cooldownID 當鍵，直接寫；增益／長條那兩張用 spellID，進 pending。
--- spellRegistry[specID].glowEnabled／glowColors（增益群組裡逐法術的「啟用發光」）→ activeGlow／activeGlowColor，
+-- spellRegistry[specID].glowEnabled（增益群組裡逐法術的「啟用發光」）→ activeGlow（glowColors 不帶：顏色是條層的），
 -- 一樣用 spellID 進 pending（kind "buff"）；對到自訂光環格的直接寫在 "c:<i>" 上（Ayije 本地版的光環格
 -- 不發光，這種資料只會是改成光環格之前留下的；我們的光環格支援生效發光，照樣帶過來）。
 -- 同一張的 colors（逐法術邊框色）沒有對應。
@@ -1471,15 +1471,11 @@ local function StepOverrides(ctx)
     for _, spec in ipairs(SortedKeys(reg)) do
         local specID, node = tonumber(spec), reg[spec]
         if specID and type(node) == "table" then
-            local colors = type(node.glowColors) == "table" and node.glowColors or {}
             for _, sk in ipairs(SortedKeys(node.glowEnabled)) do
                 local sid = tonumber(sk)
                 if sid and node.glowEnabled[sk] == true then
+                    -- 逐法術顏色不帶：生效發光的顏色是條層的（跟觸發／就緒同一套）
                     local fields = { activeGlow = true }
-                    local c = colors[sk]
-                    if type(c) == "table" and Num(c.r) and Num(c.g) and Num(c.b) then
-                        fields.activeGlowColor = { r = c.r, g = c.g, b = c.b, a = Num(c.a) or 1 }
-                    end
                     local aura = ctx.auraIndex and ctx.auraIndex[specID] and ctx.auraIndex[specID][sid]
                     if aura then
                         local sp = EnsureSpec(ctx.out, specID)

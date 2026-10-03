@@ -203,14 +203,16 @@ eq("清效果節不動音效", S.NameOf(nil, 21, "gainSound"), "Bell")
 DB.SetOverride(31, "readySound", "Ding")
 DB.ClearOverrides({ 31 }, "sound")
 eq("清音效節", p.spells[61].overrides[31], nil)
--- 生效發光自成一組：清效果節不會把逐增益挑的發光清掉
+-- 生效發光跟觸發／就緒同一組（2026-10-03）：清效果節一起清；音效不動
 DB.SetOverride(41, "activeGlow", true)
 DB.SetOverride(41, "activeGlowColor", { r = 1, g = 0, b = 0, a = 1 })
 DB.SetOverride(41, "procGlow", false)
+DB.SetOverride(41, "gainSound", "Bell")
 DB.ClearOverrides({ 41 }, "glow")
-eq("清效果節不動生效發光", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlow, true)
-eq("清效果節不動生效發光顏色", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlowColor.r, 1)
+eq("清效果節清掉生效發光", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlow, nil)
+eq("清效果節順手清掉舊的生效發光顏色", p.spells[61].overrides[41] and p.spells[61].overrides[41].activeGlowColor, nil)
 eq("效果節的觸發發光清掉了", p.spells[61].overrides[41] and p.spells[61].overrides[41].procGlow, nil)
+eq("清效果節不動音效（生效發光那格）", p.spells[61].overrides[41] and p.spells[61].overrides[41].gainSound, "Bell")
 
 ------------------------------------------------------------
 -- 6. 播放：總開關、聲道、節流、靜音

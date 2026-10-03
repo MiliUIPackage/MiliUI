@@ -344,11 +344,14 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **觸發發光**：後掛勾 `ActionButtonSpellAlertManager:ShowAlert／HideAlert`，frame 是我們認得的 item 就在 overlay
   上畫 MiliUIGlow（pixel／autocast／button／proc），暴雪的 `SpellActivationAlert` 熄 alpha（不 Hide）。
   條層「觸發發光」開著（或法術覆寫成開）才接管；都關時還給暴雪。自訂法術聽 `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE`。
-- **生效發光**（增益）：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）在光環生效期間一直亮。**只有逐法術開關**
-  （`overrides[id].activeGlow`＋可選的 `activeGlowColor`，點預覽圖示設定），**沒有統一設定**（2026-10-02 使用者拿掉主題頁／條頁那一節）：樣式與顏色都在單一法術小窗挑（`activeGlowType`／`activeGlowColor`，沒挑＝ `glow.active` 的預設：像素、黃）。小窗標題圖示與條預覽的格子都即時亮（`Glow.PreviewActive`）。「脫戰也亮」（`activeGlowOutOfCombat`，預設真、只存 false）：取消＝只在戰鬥中亮，`PLAYER_REGEN_*` 時把增益兩條的 item 全部重對一次；自訂光環格不提供（發光烘在受保護的按鈕裡，戰鬥中切不了）。
-  生效看暴雪 item 的 `IsActive()`（後掛勾 `OnActiveStateChanged`）；讀不到一律不亮，「沒生效也顯示」的灰圖示不會亮。
+- **生效發光**：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）與自訂光環格在光環生效期間一直亮。
+  **開關與繼承跟觸發／就緒同一套**（2026-10-03 使用者改回）：條層（或跟隨主題）`glow.active` 有啟用（**預設關**）、
+  樣式、顏色、線條數、粗細與預覽；逐法術只蓋開關（`overrides[id].activeGlow`，小窗「發光」分頁一列勾選框＋「（跟隨…）」）。
+  玩家多半是條層關著、在個別法術上打開。舊存檔的 `activeGlowColor`／`activeGlowType` 不再讀（算在 glow 組，「清除發光覆寫」會清掉），
+  從 Ayije 匯入也只帶開關不帶顏色。「脫戰也亮」（`activeGlowOutOfCombat`，預設真、只存 false）：小窗下一列；
+  `PLAYER_REGEN_*` 時四條全部重對一次；自訂光環格不提供（發光烘在受保護的按鈕裡，戰鬥中切不了）。
   同一格開了**層數發光**（見「層數門檻發光＋長條層數門檻換色」）時生效發光不畫（互斥，層數的為準）。
-  覆寫分組自成 `activeGlow`：條頁「清除發光覆寫」不會清掉。從 Ayije 匯入 `spellRegistry[spec].glowEnabled／glowColors`。
+  覆寫分組是 `glow`（跟觸發／就緒一起清）。從 Ayije 匯入 `spellRegistry[spec].glowEnabled`。
   **暴雪的冷卻格（核心／輔助，含搬進自訂群組的）也有**（2026-10-03，反魔法護罩使用中要亮）：「生效」＝暴雪正在倒增益時間，
   訊號是 `Cooldown:SetUseAuraDisplayTime(旗標)` 的後掛勾（`rec.auraFlag`，值變了就 `Glow.SyncActive`）。實機 log 確認：
   按下去 true、增益掉了 false、戰鬥中是明文。冷卻格的 `IsActive()`／item 的 `cooldownUseAuraDisplayTime` 欄位／`IsExpired()`

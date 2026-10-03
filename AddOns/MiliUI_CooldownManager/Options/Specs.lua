@@ -568,12 +568,16 @@ function Specs.Themed(mode, key)
                 { disabled = function(info) return (ReadThemed(info, "glow.ready.mode") or "timed") == "whileReady" end }),
             Note(L["If the cooldown is ready but you lack the resources, the glow waits until you have enough."], "glow"))
     end
-    -- 生效發光（增益）的樣式與顏色逐法術挑（預覽點圖示；使用者 2026-10-02 拿掉統一設定）；這裡只放像素發光的
-    -- 線條數／粗細（逐法術沒有這兩項、全部吃 glow.active 的；玩家回報 2026-10-03）
+    -- 生效期間發光：跟觸發／就緒同一套（開關、樣式、顏色、線條、粗細、預覽，跟隨主題的繼承也一樣；使用者 2026-10-03）。
+    -- 預設關：多半只在幾個法術上個別打開（預覽點圖示）
     add(Nested(L["Glow while active"], "glow"),
-        Note(L["Style and color are chosen per spell: click an icon in the preview. These two only matter for the pixel style."], "glow"),
-        TS("glow", "slider", "glow.active.lines", L["Lines"], { min = 2, max = 16, step = 1 }),
-        TS("glow", "slider", "glow.active.thickness", L["Thickness"], { min = 1, max = 4, step = 1 }))
+        TS("glow", "toggle", "glow.active.enabled", L["Enable"]),
+        Note(L["Glows while the buff is up; on Essential and Utility, while the icon shows the buff's time. Off by default: turn it on for single spells by clicking their icon in the preview."], "glow"),
+        TS("glow", "dropdown", "glow.active.type", L["Style"], { items = GLOW_ITEMS }),
+        TS("glow", "color", "glow.active.color", L["Color"]),
+        TS("glow", "slider", "glow.active.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.active.type") }),
+        TS("glow", "slider", "glow.active.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.active.type") }),
+        GlowSampleRow("active"))
     add(Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
