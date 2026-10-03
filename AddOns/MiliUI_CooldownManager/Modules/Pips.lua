@@ -174,7 +174,7 @@ local CUSTOM_RECOMMENDED = {
         { kind = "charges", spellID = 190784 },                     -- 神性戰馬
     },
     EVOKER = {
-        { kind = "charges", spellID = 374227 },                     -- 輕風
+        { kind = "charges", spellID = 358267 },                     -- 盤旋
     },
     WARLOCK = {
         { kind = "stacks", spellID = 264173, max = 4, spec = 266 },  -- 魔能之核（惡魔學）
