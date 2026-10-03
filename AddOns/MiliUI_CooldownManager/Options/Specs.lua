@@ -446,6 +446,9 @@ function Specs.Themed(mode, key)
     local bt = bar and key and ns.DB.BarTable(key)
     local barsKind = type(bt) == "table" and bt.kind == "bars" or false
     local function CS(s) if auraBar or barsKind then return nil end return s end
+    -- 長條類的條：倒數與充能的文字樣式用不到（長條的秒數字型／字級在「長條」節；秒數是暴雪每幀寫的，
+    -- 小數門檻與低秒變色都換不了），只留層數
+    local function NB(s) if barsKind then return nil end return s end
     local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
     local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
     local function DurationOff(info) return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration") end
@@ -488,26 +491,26 @@ function Specs.Themed(mode, key)
     -- 通用字型：每段文字的字型沒另外挑時用這個（條頁沒跟隨主題時也能改）
     add(TS("text", "dropdown", "font", L["General font"], { items = FontItems }),
         TS("text", "dropdown", "outline", L["Outline"], { items = OUTLINE_ITEMS }))
-    add(Nested(L["Countdown"], "text"),
-        FontTS("text", "cooldownText.font"),
-        TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 }),
-        TS("text", "color", "cooldownText.color", L["Color"]),
-        TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }),
-        Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text"),
-        TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
+    add(NB(Nested(L["Countdown"], "text")),
+        NB(FontTS("text", "cooldownText.font")),
+        NB(TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 })),
+        NB(TS("text", "color", "cooldownText.color", L["Color"])),
+        NB(TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 })),
+        NB(Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text")),
+        NB(TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
             get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
             set = function(info, on) WriteThemed(info, "cooldownText.lowBelow", on and 5 or 0) end,
-        }),
-        TS("text", "color", "cooldownText.lowColor", L["Low color"]),
-        TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 }),
-        Nested(L["Charges"], "text"),
-        FontTS("text", "chargeText.font"),
-        TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
-        TS("text", "color", "chargeText.color", L["Color"]),
-        TS("text", "dropdown", "chargeText.point", L["Anchor"], { items = POINT_ITEMS }),
-        TS("text", "numbers", nil, L["Offset"], { sub = "chargeText", path = false,
+        })),
+        NB(TS("text", "color", "cooldownText.lowColor", L["Low color"])),
+        NB(TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 })),
+        NB(Nested(L["Charges"], "text")),
+        NB(FontTS("text", "chargeText.font")),
+        NB(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
+        NB(TS("text", "color", "chargeText.color", L["Color"])),
+        NB(TS("text", "dropdown", "chargeText.point", L["Anchor"], { items = POINT_ITEMS })),
+        NB(TS("text", "numbers", nil, L["Offset"], { sub = "chargeText", path = false,
             resetPaths = { "chargeText.x", "chargeText.y" },
-            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
+            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })),
         Nested(L["Stacks"], "text"),
         FontTS("text", "stackText.font"),
         TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 }),

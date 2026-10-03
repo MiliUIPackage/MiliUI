@@ -483,7 +483,7 @@ function Proto:Fill(c, e, i, r, now)
     end
     if c.kind == "bars" then
         c.Bar.Name:SetText(c.name)
-        c.Icon.Applications:SetText("2")
+        c.Icon.Applications:SetText("")      -- 假層數不印（礙眼；增益圖示的預覽同樣不印）
     else
         c.cdText:SetText("15")
         c.chargeText:SetText("2")
@@ -492,22 +492,19 @@ function Proto:Fill(c, e, i, r, now)
     c.lock:SetShown(c.locked and true or false)
 end
 
--- 長條的時間跑 15→0（名字＝法術名；小數門檻照設定）
+-- 長條的時間跑 15→0（名字＝法術名）。**只印整數**：真的長條秒數是暴雪每幀用秘密的剩餘時間寫的
+-- （RefreshCooldownInfo 的 COOLDOWN_DURATION_SEC），插件換不了格式，小數門檻對長條無效；
+-- 預覽印小數會讓玩家以為設定沒生效（2026-10-03 使用者回報）
 function Proto:Tick()
     if self.kind ~= "bars" then return end
     local pool = self.cells.bars
     local now = GetTime()
-    local dec = tonumber(ns.Setting(self.key, "cooldownText.decimalsBelow")) or 0
     for n = 1, self.used.bars or 0 do
         local c = pool[n]
         if c and c:IsShown() then
             local left = CYCLE - ((now + (c.cycleOffset or 0)) % CYCLE)
             c.Bar:SetValue(left / CYCLE)
-            if left < dec then
-                c.Bar.Duration:SetFormattedText("%.1f", left)
-            else
-                c.Bar.Duration:SetFormattedText("%d", math.ceil(left))
-            end
+            c.Bar.Duration:SetFormattedText("%d", math.ceil(left))
         end
     end
 end
