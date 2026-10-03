@@ -298,8 +298,8 @@ powerMax[9] = 5
 eq("聖能 5 格", R.SegmentsFor("HolyPower"), 5)
 powerMax[9] = SECRET
 eq("上限秘密 → 沿用上次的 5", R.SegmentsFor("HolyPower"), 5)
-powerMax[9] = 12
-eq("格數上限 10", R.SegmentsFor("HolyPower"), 10)
+powerMax[9] = 40
+eq("格數上限 30", R.SegmentsFor("HolyPower"), 30)
 eq("連續條 0 格", R.SegmentsFor("Mana"), 0)
 eq("光環型用定義的格數", R.SegmentsFor("MaelstromWeapon"), 10)
 
@@ -586,8 +586,8 @@ PI.CustomRowList(ccfg, 65)[1].max = 4
 eq("充能上限讀不到 → 退回存檔的 max", plan(65)[1].numSeg, 4)
 PI.CustomRowList(ccfg, 65)[1].max = nil
 eq("兩邊都沒有 → 2", plan(65)[1].numSeg, 2)
-maxC[1001] = 25
-eq("充能上限夾到 10", plan(65)[1].numSeg, 10)
+maxC[1001] = 40
+eq("充能上限夾到 30", plan(65)[1].numSeg, 30)
 maxC[1001] = 0
 PI.CustomRowList(ccfg, 65)[1].max = 2
 eq("API 回 0 當讀不到 → 存檔的 max", plan(65)[1].numSeg, 2)
@@ -596,8 +596,8 @@ maxC[1001] = 3
 local st2 = PI.CustomRowList(ccfg, 65)[2]
 st2.max = 0
 eq("層數上限 0 → 預設 5", plan(65)[2].numSeg, 5)
-st2.max = 15
-eq("層數上限夾到 10", plan(65)[2].numSeg, 10)
+st2.max = 45
+eq("層數上限夾到 30", plan(65)[2].numSeg, 30)
 st2.max = 2.7
 eq("層數上限取整", plan(65)[2].numSeg, 2)
 st2.max = "x"

@@ -809,7 +809,7 @@ local function SegmentsFor(key)
     local def = RESOURCES[key]
     if not def then return 0 end
     if def.mode == "auraBar" then
-        -- 引擎畫的連續填色：格數不受點數型的 10 格上限限制（橫掃攻擊 18 層）
+        -- 引擎畫的連續填色：格數不受點數型的 30 格上限限制（橫掃攻擊 18 層）
         local m = def.maxFn and def.maxFn() or def.max
         return math.max(1, math.min(30, math.floor(tonumber(m) or 1)))
     end
