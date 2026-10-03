@@ -580,26 +580,79 @@ end
 --   暴雪每次 GCD 都刷新每一格 ⇒ 只在（旗標, 秘密?, IsActive, 戰鬥）組合變了才記一行；聊天印＋存進 diag。
 --   確認完就拿掉。字串不進語系檔（開發用）。
 D.auraLog = false
+-- 第二版（2026-10-03 玩家回報「戰鬥中放技能一行都沒印」）：除了 SetUseAuraDisplayTime 的後掛勾，
+--   開探針時另外在每一格冷卻 item 掛 RefreshSpellCooldownInfo（暴雪設旗標的那支）讀它自己的欄位，
+--   並統計每場戰鬥三支的呼叫次數（脫戰時印），分得出「沒被叫」還是「叫了但值沒變」；
+--   記錄本身出錯也印出來（不只丟給錯誤收集器）。
+local auraLogCount = { set = 0, refresh = 0, clear = 0 }
+local auraLogHooked = setmetatable({}, { __mode = "k" })
 local function AuraLogValue(v)
     if v == nil then return "nil" end
     if ns.IsSecret(v) then return "秘密" end
     return tostring(v)
 end
-local function AuraLog(item, rec, flag)
-    local okA, act = false, nil
-    if type(item.IsActive) == "function" then okA, act = pcall(item.IsActive, item) end
+local function AuraLogCall(item, getter)
+    local fn = item[getter]
+    if type(fn) ~= "function" then return "無" end
+    local ok, v = pcall(fn, item)
+    if not ok then return "錯" end
+    return AuraLogValue(v)
+end
+local function AuraLogLine(item, rec, src, flag)
     local fight = InCombatLockdown() and "戰鬥中" or "脫戰"
-    local sig = table.concat({ AuraLogValue(flag), okA and AuraLogValue(act) or "無", fight }, "|")
-    if rec.auraLogSig == sig then return end
-    rec.auraLogSig = sig
+    local act = AuraLogCall(item, "IsActive")
+    local vis = AuraLogCall(item, "HasVisualDataSource_Aura")
+    local exp = AuraLogCall(item, "IsExpired")
+    local sig = table.concat({ src, AuraLogValue(flag), act, vis, exp, fight }, "|")
+    rec.auraLogSig = rec.auraLogSig or {}
+    if rec.auraLogSig[src] == sig then return end
+    rec.auraLogSig[src] = sig
     local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
     local sid = info and (info.overrideSpellID or info.spellID)
     local name = sid and C_Spell.GetSpellName(sid) or "?"
-    local line = ("%s(%s) 增益時間旗標=%s IsActive=%s %s"):format(tostring(name), tostring(rec.cooldownID),
-        AuraLogValue(flag), okA and AuraLogValue(act) or "無", fight)
+    local line = ("%s(%s) [%s] 增益時間旗標=%s IsActive=%s 光環來源=%s 過期=%s %s"):format(tostring(name),
+        tostring(rec.cooldownID), src, AuraLogValue(flag), act, vis, exp, fight)
     print(ns.PREFIX_COLOR .. "[生效探針]|r " .. line)
     if ns.Diag then ns.Diag.Note("activelog", line) end
 end
+local function AuraLog(item, rec, src, flag)
+    local ok, err = pcall(AuraLogLine, item, rec, src, flag)
+    if not ok then print(ns.PREFIX_COLOR .. "[生效探針]|r 記錄出錯：" .. tostring(err)) end
+end
+local function AuraLogTarget(item)
+    local rec = item and ns.Viewers.frames[item]
+    if not rec or rec.custom or ns.Viewers.AURA_KIND[rec.barKey] then return nil end
+    return rec
+end
+local function OnAuraLogRefresh(item)
+    if not D.auraLog then return end
+    auraLogCount.refresh = auraLogCount.refresh + 1
+    local rec = AuraLogTarget(item)
+    if rec then AuraLog(item, rec, "刷新", rawget(item, "cooldownUseAuraDisplayTime")) end
+end
+function D.AuraLogArm()
+    local n = 0
+    ns.Viewers.EnumerateItems(function(item, rec)
+        if rec.custom or ns.Viewers.AURA_KIND[rec.barKey] or auraLogHooked[item] then return end
+        if type(item.RefreshSpellCooldownInfo) == "function" then
+            hooksecurefunc(item, "RefreshSpellCooldownInfo", OnAuraLogRefresh)
+            auraLogHooked[item] = true
+            n = n + 1
+        end
+    end)
+    return n
+end
+local function AuraLogSummary(label)
+    print(("%s[生效探針]|r %s：SetUseAuraDisplayTime %d 次、RefreshSpellCooldownInfo %d 次、Clear %d 次"):format(
+        ns.PREFIX_COLOR, label, auraLogCount.set, auraLogCount.refresh, auraLogCount.clear))
+    auraLogCount.set, auraLogCount.refresh, auraLogCount.clear = 0, 0, 0
+end
+ns.Events.Register("PLAYER_REGEN_DISABLED", "decorate_auralog", function()
+    if D.auraLog then AuraLogSummary("進戰鬥前") end
+end)
+ns.Events.Register("PLAYER_REGEN_ENABLED", "decorate_auralog", function()
+    if D.auraLog then AuraLogSummary("這場戰鬥") end
+end)
 
 -- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色／蓋掉在 SetCooldown 後掛勾做
 local function OnSetUseAuraDisplayTime(cd, flag)
@@ -607,7 +660,10 @@ local function OnSetUseAuraDisplayTime(cd, flag)
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
-    if D.auraLog and not ns.Viewers.AURA_KIND[rec.barKey] then AuraLog(item, rec, flag) end
+    if D.auraLog then
+        auraLogCount.set = auraLogCount.set + 1
+        if AuraLogTarget(item) then AuraLog(item, rec, "設旗標", flag) end
+    end
     rec.auraFlag = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
     ResolveAuraFlag(rec)
 end
@@ -959,6 +1015,7 @@ end)
 local function OnClearCooldown(cd)
     -- 我們自己清的（蓋掉增益那一段、技能拿不到冷卻物件）：不是暴雪說「轉好了」，alpha 由 AfterCooldown 重算
     if overriding then return end
+    if D.auraLog then auraLogCount.clear = auraLogCount.clear + 1 end
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if rec and ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec) end
