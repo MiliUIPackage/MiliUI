@@ -28,7 +28,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 3
+ns.DB_VERSION = 4
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -517,6 +517,29 @@ local MIGRATIONS = {
         if not (R and R.MigrateFlatRows) then return end
         R.MigrateFlatRows(res.rows)
     end,
+    -- v4（2026-10-03）：逐法術「持續時間顏色」從三態（false 不換色／色表 條層關著也換）拆成跟主題頁同一套：
+    -- colorDuration 開關＋ durationColor 純顏色。行為不變地搬：false → colorDuration=false、顏色清掉；
+    -- 色表 → colorDuration=true（原本「條層關著也換」）、顏色留著。已經有 colorDuration 的不碰。
+    [4] = function(profile)
+        local spells = profile.spells
+        if type(spells) ~= "table" then return end
+        for _, spec in pairs(spells) do
+            local all = type(spec) == "table" and spec.overrides
+            if type(all) == "table" then
+                for _, o in pairs(all) do
+                    if type(o) == "table" then
+                        local dc = o.durationColor
+                        if dc == false then
+                            if o.colorDuration == nil then o.colorDuration = false end
+                            o.durationColor = nil
+                        elseif type(dc) == "table" and o.colorDuration == nil then
+                            o.colorDuration = true
+                        end
+                    end
+                end
+            end
+        end
+    end,
 }
 DB.MIGRATIONS = MIGRATIONS
 
@@ -863,10 +886,17 @@ local SPELL_FALLBACK = {
     -- 冷卻狀態：逐法術可以蓋模式；變暗的透明度逐法術沒有控件（吃條的值），欄位照樣登記
     cdState      = "icon.cdState",
     cdStateAlpha = "icon.cdStateAlpha",
-    -- 增益持續時間的倒數顏色：三態 nil ＝ 跟隨條（條的 colorDuration 開才換）、false ＝ 這一招不換色、
-    -- 色表 ＝ 這一招用這個顏色（條層關著也換）。⚠ SpellSetting 沒覆寫時回的是條的顏色、分不出「跟隨」，
-    -- 引擎要三態走 ns.SpellOverride（Core/Decorate.lua 的 DurationColorOf）
-    durationColor = "icon.durationColor",
+    -- 增益持續時間那一段的換色（逐法術跟條層同一套五個欄位、同一套連動，Core/Decorate.lua 的 SpellStyle）：
+    --   colorDuration      三態 nil 跟隨條／true 換色／false 不換色（引擎讀 SpellSetting 的布林）
+    --   durationColor      色表＝這一招的字色；nil 跟隨條
+    --   durationLowColor   色表＝這一招的低秒字色；nil 跟隨條
+    --   durationSwipeColor 色表＝這一招的轉圈背景色；nil 跟隨條
+    -- 三個顏色只在「顯示增益持續時間」與「換色」都生效時才用得上（跟主題頁的停用規則一樣）。
+    -- （v4 之前 durationColor 兼作開關：false ＝ 不換色、色表 ＝ 條層關著也換；MIGRATIONS[4] 拆成 colorDuration）
+    colorDuration      = "icon.colorDuration",
+    durationColor      = "icon.durationColor",
+    durationLowColor   = "icon.durationLowColor",
+    durationSwipeColor = "icon.durationSwipeColor",
     -- 增益持續中顯示持續時間：nil 跟隨條／true 顯示／false 不顯示（引擎讀 SpellSetting 的布林，
     -- 設定頁要三態走 ns.SpellOverride）
     showAuraTime  = "icon.showAuraTime",
@@ -1162,7 +1192,8 @@ DB.OVERRIDE_GROUP = {
     activeGlowOutOfCombat = "activeGlow",
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
-    hideCooldownText = "text", hideStackText = "text", durationColor = "icon",
+    hideCooldownText = "text", hideStackText = "text",
+    colorDuration = "icon", durationColor = "icon", durationLowColor = "icon", durationSwipeColor = "icon",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉
     readySound = "sound", gainSound = "sound", loseSound = "sound",

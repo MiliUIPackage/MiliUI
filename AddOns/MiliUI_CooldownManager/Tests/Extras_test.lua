@@ -704,61 +704,97 @@ end
 do
     local YELLOW = { r = 1, g = 0.85, b = 0.1, a = 1 }
     local MINE = { r = 0.2, g = 0.4, b = 1, a = 1 }
-    -- 三態 × 條層開關
-    eq("跟隨＋條開 ⇒ 條的顏色", D.DurationColorOf(nil, true, YELLOW), YELLOW)
-    eq("跟隨＋條關 ⇒ 不換色", D.DurationColorOf(nil, false, YELLOW), nil)
-    eq("不換色＋條開 ⇒ 不換色", D.DurationColorOf(false, true, YELLOW), nil)
-    eq("不換色＋條關 ⇒ 不換色", D.DurationColorOf(false, false, YELLOW), nil)
-    eq("自訂＋條開 ⇒ 自訂色", D.DurationColorOf(MINE, true, YELLOW), MINE)
-    eq("自訂＋條關 ⇒ 照樣自訂色（覆寫就是覆寫）", D.DurationColorOf(MINE, false, YELLOW), MINE)
-    eq("條開但沒有顏色 ⇒ 不換色", D.DurationColorOf(nil, true, nil), nil)
-    eq("壞值當跟隨", D.DurationColorOf(true, true, YELLOW), YELLOW)
+    -- 開關 × 顏色（SpellStyle 解好的生效值）
+    eq("開＋有顏色 ⇒ 那個顏色", D.DurationColorOf(true, YELLOW), YELLOW)
+    eq("關 ⇒ 不換色", D.DurationColorOf(false, YELLOW), nil)
+    eq("開但沒有顏色 ⇒ 不換色", D.DurationColorOf(true, nil), nil)
+    eq("壞值當沒顏色", D.DurationColorOf(true, true), nil)
 
-    -- 預設值與覆寫登記
+    -- 預設值與覆寫登記（五個欄位逐法術跟條層同一套）
     local ct = p.theme.icon
     eq("主題預設開", ct.colorDuration, true)
     near("增益低秒預設粉 r", ct.durationLowColor.r, 0.95); near("增益低秒預設粉 g", ct.durationLowColor.g, 0.45)
     near("增益轉圈預設淡黃 a", ct.durationSwipeColor.a, 0.5)
     near("主題預設黃 r", ct.durationColor.r, 1); near("g", ct.durationColor.g, 0.85); near("b", ct.durationColor.b, 0.1)
     eq("條讀得到（繼承主題）", ns.Setting("essential", "icon.colorDuration"), true)
-    eq("SPELL_FALLBACK durationColor", DB.SPELL_FALLBACK.durationColor, "icon.durationColor")
-    eq("覆寫分組：圖示節", DB.OVERRIDE_GROUP.durationColor, "icon")
+    for _, f in ipairs({ "colorDuration", "durationColor", "durationLowColor", "durationSwipeColor" }) do
+        eq("SPELL_FALLBACK " .. f, DB.SPELL_FALLBACK[f], "icon." .. f)
+        eq("覆寫分組：圖示節 " .. f, DB.OVERRIDE_GROUP[f], "icon")
+    end
 
-    -- SpellOverride 分得出跟隨；SpellSetting 沒覆寫時回條的顏色
-    eq("沒覆寫 ⇒ nil", ns.SpellOverride(11, "durationColor"), nil)
-    eq("SpellSetting 沒覆寫回條的顏色", ns.SpellSetting("essential", 11, "durationColor"), ct.durationColor)
-    eq("SpellStyle 跟隨 ⇒ nil", D.SpellStyle("essential", 11).durationColor, nil)
-    DB.SetOverride(11, "durationColor", false)
-    eq("覆寫成不換色", ns.SpellOverride(11, "durationColor"), false)
-    eq("SpellStyle 保留 false（不被 or 吃掉）", D.SpellStyle("essential", 11).durationColor, false)
-    eq("SpellSetting 照樣回 false", ns.SpellSetting("essential", 11, "durationColor"), false)
+    -- 跟隨：SpellStyle 的生效值就是條層的
+    local ss = D.SpellStyle("essential", 11)
+    eq("跟隨 ⇒ 開關＝條層", ss.colorDuration, true)
+    eq("跟隨 ⇒ 字色＝條層", ss.durationColor, ct.durationColor)
+    eq("跟隨 ⇒ 低秒色＝條層", ss.durationLowColor, ct.durationLowColor)
+    eq("跟隨 ⇒ 背景色＝條層", ss.durationSwipeColor, ct.durationSwipeColor)
+    -- 逐法術關：條層開也不換
+    DB.SetOverride(11, "colorDuration", false)
+    eq("覆寫不換色", ns.SpellOverride(11, "colorDuration"), false)
+    eq("SpellStyle 保留 false", D.SpellStyle("essential", 11).colorDuration, false)
+    -- 逐法術開＋條層關：照換（覆寫就是覆寫）
+    DB.SetOverride(11, "colorDuration", true)
+    ct.colorDuration = false
+    eq("覆寫開＋條關 ⇒ 開", D.SpellStyle("essential", 11).colorDuration, true)
+    eq("條關＋沒覆寫 ⇒ 關", D.SpellStyle("essential", 12).colorDuration, false)
+    ct.colorDuration = true
+    DB.SetOverride(11, "colorDuration", nil)
+    eq("清掉回到跟隨", ns.SpellOverride(11, "colorDuration"), nil)
+    -- 三個顏色各自覆寫
     DB.SetOverride(11, "durationColor", MINE)
-    eq("覆寫成色表", ns.SpellOverride(11, "durationColor"), MINE)
+    DB.SetOverride(11, "durationLowColor", MINE)
+    DB.SetOverride(11, "durationSwipeColor", MINE)
+    ss = D.SpellStyle("essential", 11)
+    eq("覆寫字色", ss.durationColor, MINE)
+    eq("覆寫低秒色", ss.durationLowColor, MINE)
+    eq("覆寫背景色", ss.durationSwipeColor, MINE)
     DB.SetOverride(11, "durationColor", nil)
-    eq("清掉回到跟隨", ns.SpellOverride(11, "durationColor"), nil)
+    DB.SetOverride(11, "durationLowColor", nil)
+    DB.SetOverride(11, "durationSwipeColor", nil)
+    eq("顏色清掉回到跟隨", D.SpellStyle("essential", 11).durationColor, ct.durationColor)
 
     -- 兩段顏色（Decorate.Apply 寫進 rec.style 的那兩張）
-    local cdc, durc = D.PhaseColors({ cooldownText = { color = { r = 1, g = 1, b = 1 } }, colorDuration = true, durationColor = YELLOW }, nil)
+    local cdc, durc = D.PhaseColors({ cooldownText = { color = { r = 1, g = 1, b = 1 } } }, { colorDuration = true, durationColor = YELLOW })
     near("冷卻段＝倒數原色", cdc[1], 1); near("a 補 1", cdc[4], 1)
     near("增益段＝黃 g", durc and durc[2], 0.85)
-    cdc, durc = D.PhaseColors({ colorDuration = false, durationColor = YELLOW }, nil)
-    eq("條關 ⇒ 增益段 nil", durc, nil)
+    cdc, durc = D.PhaseColors({}, { colorDuration = false, durationColor = YELLOW })
+    eq("關 ⇒ 增益段 nil", durc, nil)
     near("沒有原色 ⇒ 白", cdc[1], 1)
-    cdc, durc = D.PhaseColors({ colorDuration = false, durationColor = YELLOW }, MINE)
-    near("條關＋自訂 ⇒ 自訂色 b", durc and durc[3], 1)
-    cdc, durc = D.PhaseColors({ colorDuration = true, durationColor = YELLOW }, false)
-    eq("條開＋不換色 ⇒ nil", durc, nil)
+    cdc, durc = D.PhaseColors({}, { colorDuration = true, durationColor = MINE })
+    near("自訂色 b", durc and durc[3], 1)
     cdc, durc = D.PhaseColors(nil, nil)
     eq("沒有 style 不炸、不換色", durc, nil)
 
     -- 覆寫進簽章
     local st = D.Resolve("essential", true)
-    local base = { borderColor = nil, durationColor = nil }
+    local base = { colorDuration = true, durationColor = YELLOW }
     local a = D.Signature(st, 11, base, 30, 30)
-    local b = D.Signature(st, 11, { durationColor = false }, 30, 30)
-    local c = D.Signature(st, 11, { durationColor = MINE }, 30, 30)
-    check("不換色進簽章", a ~= b)
-    check("自訂色進簽章", a ~= c and b ~= c)
+    local b = D.Signature(st, 11, { colorDuration = false, durationColor = YELLOW }, 30, 30)
+    local c = D.Signature(st, 11, { colorDuration = true, durationColor = MINE }, 30, 30)
+    local d = D.Signature(st, 11, { colorDuration = true, durationColor = YELLOW, durationLowColor = MINE }, 30, 30)
+    local e = D.Signature(st, 11, { colorDuration = true, durationColor = YELLOW, durationSwipeColor = MINE }, 30, 30)
+    check("開關進簽章", a ~= b)
+    check("字色進簽章", a ~= c and b ~= c)
+    check("低秒色進簽章", a ~= d)
+    check("背景色進簽章", a ~= e and d ~= e)
+
+    -- v4 遷移：舊的三態 durationColor（false 不換色／色表 條層關著也換）拆成開關＋顏色，行為不變
+    do
+        local prof = { spells = { [65] = { overrides = {
+            [1] = { durationColor = false },
+            [2] = { durationColor = MINE },
+            [3] = { durationColor = MINE, colorDuration = false },
+            [4] = { borderColor = MINE },
+        } } } }
+        DB.MIGRATIONS[4](prof)
+        local o = prof.spells[65].overrides
+        eq("false → 開關關", o[1].colorDuration, false); eq("false → 顏色清掉", o[1].durationColor, nil)
+        eq("色表 → 開關開", o[2].colorDuration, true); eq("色表留著", o[2].durationColor, MINE)
+        eq("已有開關不碰", o[3].colorDuration, false)
+        eq("無關的覆寫不動", o[4].colorDuration, nil)
+        DB.MIGRATIONS[4]({})
+        check("沒有 spells 不炸", true)
+    end
     -- 條層開關進條層簽章
     local s1 = D.Resolve("essential", true).sig
     ct.colorDuration = false

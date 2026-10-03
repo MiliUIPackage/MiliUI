@@ -6,7 +6,7 @@
 --   ns.Decorate.HookItem(item, rec)              Viewers 第一次看到 item 時叫（每框一次）
 --   ns.Decorate.HoverEnter(rec) / HoverLeave(rec) 可點擊群組的鈕轉來的 hover（提示照 overlay 的設定）
 --   ns.Decorate.ApplyItemAlpha(item, rec, barAlpha) 暴雪 item 的 alpha 唯一出口（條的淡出 × 冷卻狀態，見下面那一節）
---   ns.Decorate.DurationColorOf(override, barOn, barColor) 增益持續時間那一段的倒數顏色（純函式，見下面那一節）
+--   ns.Decorate.DurationColorOf(on, color)      增益持續時間那一段的倒數顏色（純函式，見下面那一節）
 --   ns.Decorate.SyncAuraHide(item, rec)          「增益持續中不顯示持續時間」照現況蓋／還原（Apply 末尾叫，見那一節）
 --   ns.Decorate.DesatCurve()                     去飽和的階梯曲線（剩餘 > 0 ⇒ 1；自訂法術與蓋掉增益的格共用）
 --
@@ -132,10 +132,6 @@ end
 
 local function SpellStyle(barKey, id)
     local SS = ns.SpellSetting
-    -- 三態要分得出「跟隨」：只讀覆寫本身（SpellSetting 沒覆寫時會回條的顏色）。
-    -- ⚠ 不能寫成 `ns.SpellOverride and ns.SpellOverride(…) or nil`：覆寫是 false 時會變成 nil
-    local durationColor
-    if ns.SpellOverride then durationColor = ns.SpellOverride(id, "durationColor") end
     return {
         borderColor      = SS(barKey, id, "borderColor"),
         desaturate       = SS(barKey, id, "desaturate"),
@@ -144,7 +140,11 @@ local function SpellStyle(barKey, id)
         cdState          = SS(barKey, id, "cdState"),
         cdStateAlpha     = SS(barKey, id, "cdStateAlpha"),
         customIcon       = D.IconOverrideOf(id),
-        durationColor    = durationColor,
+        -- 增益持續時間那一段的換色（五個欄位跟條層同一套，沒覆寫自然退回條層）：開關是布林、三個顏色是色表
+        colorDuration      = SS(barKey, id, "colorDuration") and true or false,
+        durationColor      = SS(barKey, id, "durationColor"),
+        durationLowColor   = SS(barKey, id, "durationLowColor"),
+        durationSwipeColor = SS(barKey, id, "durationSwipeColor"),
         -- 增益持續中顯示持續時間：布林（沒覆寫退回條層 icon.showAuraTime）；false ＝ 這格蓋掉增益那一段
         showAuraTime     = SS(barKey, id, "showAuraTime"),
     }
@@ -162,25 +162,25 @@ D.SpellStyle = SpellStyle                                           -- 測試用
 -- 只做暴雪核心／輔助的 item（含被搬進自訂群組的）：增益兩條整條都是增益時間、自訂法術沒有增益階段。
 -- 低秒變色（formatter 裡的 |c 色碼）兩段都照舊生效、壓過這個顏色。
 --
---   override  逐法術覆寫：nil 跟隨條、false 這一招不換色、色表 這一招用這個色（條層關著也換）
---   barOn     條層 icon.colorDuration
---   barColor  條層 icon.durationColor
+-- 設定是五個欄位、逐法術跟條層同一套（SpellStyle 用 SpellSetting 解好：沒覆寫退回條層）：
+--   showAuraTime 顯示增益持續時間 → colorDuration 換色開關 → durationColor／durationLowColor／durationSwipeColor
+--   on     生效的 colorDuration（布林）
+--   color  生效的 durationColor（色表）
 -- 回傳色表（{ r, g, b, a }，設定本身的參照）或 nil（不換色）
 ------------------------------------------------------------
-function D.DurationColorOf(override, barOn, barColor)
-    if override == false then return nil end
-    if type(override) == "table" then return override end
-    if barOn and type(barColor) == "table" then return barColor end
+function D.DurationColorOf(on, color)
+    if on and type(color) == "table" then return color end
     return nil
 end
 
--- 倒數數字兩段的顏色（陣列 { r, g, b, a }）：style ＝ Resolve 解好的那包（cooldownText.color、colorDuration、
--- durationColor）、override ＝ 逐法術覆寫（三態）
+-- 倒數數字兩段的顏色（陣列 { r, g, b, a }）：style ＝ Resolve 解好的那包（cooldownText.color）、
+-- spell ＝ SpellStyle 解好的那包（colorDuration、durationColor；逐法術沒覆寫就是條層的值）
 -- 回傳 cdColor（冷卻那一段＝倒數原色）, durColor（增益那一段；nil ＝ 這格不換色）
-function D.PhaseColors(style, override)
+function D.PhaseColors(style, spell)
     local st = type(style) == "table" and style or {}
+    local sp = type(spell) == "table" and spell or {}
     local ct = type(st.cooldownText) == "table" and st.cooldownText or {}
-    local dc = D.DurationColorOf(override, st.colorDuration, st.durationColor)
+    local dc = D.DurationColorOf(sp.colorDuration, sp.durationColor)
     return { C4(ct.color, 1, 1, 1, 1) }, dc and { C4(dc, 1, 1, 1, 1) } or nil
 end
 
@@ -1217,7 +1217,8 @@ local function Signature(style, id, spell, w, h)
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
         .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha)
         .. "|" .. tostring(spell.customIcon)
-        .. "|" .. CSig(spell.durationColor) .. "," .. tostring(spell.showAuraTime)
+        .. "|" .. tostring(spell.colorDuration) .. "," .. CSig(spell.durationColor) .. "," .. CSig(spell.durationLowColor)
+        .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -1348,14 +1349,15 @@ function D.Apply(item, rec, barKey, w, h)
     }
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
-        rec.style.cdColor, rec.style.durColor = D.PhaseColors(style, spell.durationColor)
-        -- 換色開著的格：增益那一段自己的轉圈背景色＋低秒顏色的 formatter（兩段各一顆，ApplyPhaseColor 換）
+        rec.style.cdColor, rec.style.durColor = D.PhaseColors(style, spell)
+        -- 換色開著的格：增益那一段自己的轉圈背景色＋低秒顏色的 formatter（兩段各一顆，ApplyPhaseColor 換）；
+        -- 兩個顏色逐法術可覆寫（SpellStyle 解好，沒覆寫就是條層的）
         if rec.style.durColor then
-            rec.style.durSwipe = { C4(style.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
+            rec.style.durSwipe = { C4(spell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
             local ct = style.cooldownText or {}
             rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
             rec.style.durFmt = ns.Text.CountdownFormatter({ decimalsBelow = ct.decimalsBelow, lowBelow = ct.lowBelow,
-                                                           lowColor = style.durationLowColor or ct.lowColor })
+                                                           lowColor = spell.durationLowColor or ct.lowColor })
         end
         -- 增益持續中不顯示持續時間（同一個條件；裝備欄項目在 HideTarget 再擋）
         rec.style.hideAuraTime = spell.showAuraTime == false
@@ -1544,11 +1546,11 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         -- 增益持續時間那一段：Preview 標了 cell.auraPhase 的假冷卻格照設定換色（逐法術覆寫也照套）
         -- 設成「增益持續中不顯示持續時間」的格：那一段被蓋成冷卻，當普通冷卻格畫（原色）
         cell.durColor = (cell.auraPhase and not cell.aura and spell.showAuraTime ~= false)
-            and D.DurationColorOf(spell.durationColor, style.colorDuration, style.durationColor) or nil
+            and D.DurationColorOf(spell.colorDuration, spell.durationColor) or nil
         local cd = cell.Cooldown
         if cd then
-            -- 增益那一段的格轉圈用它自己的背景色
-            if cell.durColor then cd:SetSwipeColor(C4(style.durationSwipeColor, 1, 0.9, 0.5, 0.5))
+            -- 增益那一段的格轉圈用它自己的背景色（逐法術覆寫也照套）
+            if cell.durColor then cd:SetSwipeColor(C4(spell.durationSwipeColor, 1, 0.9, 0.5, 0.5))
             else cd:SetSwipeColor(C4(style.swipeColor, 0, 0, 0, 0.8)) end
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
         end

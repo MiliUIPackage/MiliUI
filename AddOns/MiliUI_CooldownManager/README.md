@@ -386,12 +386,15 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **設定**：主題 → 條的 `icon.colorDuration`（預設開）＋ `icon.durationColor`（預設黃 1, 0.85, 0.1）——放在「圖示」節，
   跟「顯示增益持續時間」開關同一組（2026-10-03 從 `cooldownText` 搬過來，釋出前搬的、沒有遷移）。
   **舊存檔沒有這兩欄 ＝ 合併預設值補成開**（使用者拍板：要的就是主題黃色，不套「舊存檔行為不變」）。
-  逐法術 `overrides[id].durationColor` 三態：nil 跟隨條（條開才換）／`false` 這一招不換色／色表 這一招用這個色（**條層關著也換**）。
-  `SPELL_FALLBACK` 指到條的顏色、`OVERRIDE_GROUP` 歸 `"icon"`（條頁圖示節的「清除覆寫」會清掉它）。因為 `SpellSetting` 沒覆寫時回的是條的顏色、
-  分不出「跟隨」，引擎讀三態走新的 `ns.SpellOverride(id, key)`（只讀覆寫本身，`SpellSetting` 也改成先問它）。
-- **設定頁**：「圖示」節「顯示增益持續時間」開關正下方：勾選框「持續時間換色」＋色票「持續時間顏色」（勾選框關著時停用）＋一列灰字。
-  增益兩條（內建）與長條類的條不顯示這三列（沒有那一段）。**逐法術面板**（暴雪的冷卻類才有；自訂項目與增益類沒有）一列「持續時間顏色」：
-  下拉「跟隨這一條／不換色／自訂顏色」＋色票（只在自訂顏色時能動；初值＝目前生效的顏色），右鍵整列清掉。
+  **逐法術五個欄位跟條層同一套、同一套連動**（2026-10-03，DB v4）：`overrides[id].colorDuration` 三態（nil 跟隨條／true 換色／false 不換色）、
+  `durationColor`／`durationLowColor`／`durationSwipeColor` 各自 nil 跟隨條或色表。全部登記在 `SPELL_FALLBACK`（指到條的同名欄位）、
+  `OVERRIDE_GROUP` 歸 `"icon"`。引擎只讀 `SpellSetting`（沒覆寫自然退回條層），`Decorate.SpellStyle` 解成生效值交給
+  `PhaseColors(style, spell)`／`DurationColorOf(on, color)`。**v4 遷移**（`MIGRATIONS[4]`）把舊的三態 `durationColor`
+  （`false` 不換色／色表 條層關著也換）拆開：`false` → `colorDuration=false`、顏色清掉；色表 → `colorDuration=true`、顏色留著。
+- **設定頁**：「圖示」節「顯示增益持續時間」開關正下方：勾選框「持續時間換色」＋三顆色票「持續時間顏色／低秒顏色／背景色」
+  （勾選框關著時停用）＋一列灰字。增益兩條（內建）與長條類的條不顯示這幾列（沒有那一段）。**逐法術面板**（暴雪的冷卻類才有；
+  自訂項目與增益類沒有）同樣五列：「持續時間換色」下拉「跟隨這一條／換色／不換色」（「顯示增益持續時間」生效是不顯示時停用）；
+  三個顏色各一列勾選框「自訂」＋色票（跟邊框顏色同一套：勾了才寫覆寫、初值＝目前生效的顏色；換色生效是關時停用）。每列右鍵清掉那一格。
 - **預覽**：假冷卻的格每隔一格（`i % 4 == 1`，自訂項目除外）標 `cell.auraPhase`，倒數用生效的持續時間顏色（條層開關＋逐法術覆寫都照套）。
 - **範圍**：暴雪核心／輔助兩條的 item（含被搬進自訂圖示群組的）。增益圖示整條都是增益時間（暴雪只在 OnLoad 設一次 true）、
   自訂法術（`Modules/Custom.lua`）只餵 `GetSpellCooldownDuration` 沒有增益階段、長條只收增益長條 ⇒ 都不適用（`rec.style.cdColor` 是 nil，換色那支直接走）。
@@ -400,7 +403,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   是增益那一段「低於 lowBelow 秒」的字色，門檻與小數跟倒數的「低秒變色」共用；`icon.durationSwipeColor`（預設淡黃 1/0.9/0.5，a 0.5）
   是增益那一段的轉圈背景色。做法：換色開著的格 `rec.style` 多存兩顆 formatter（`cdFmt`／`durFmt`，色碼不同、同一個快取）＋
   `durSwipe`，`ApplyPhaseColor` 換字色時順便 `SetCountdownFormatter`，`AfterCooldown` 的 `SetSwipeColor` 照段挑。三個顏色都由
-  「持續時間換色」一個開關管；逐法術「不換色」＝三個一起不換、「自訂顏色」只換字色。
+  「持續時間換色」一個開關管；逐法術也是同一個開關＋三個顏色各自覆寫（見上面「設定」）。
 
 ### 增益持續中不顯示持續時間（開關）（`Core/Decorate.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`）
 
@@ -438,8 +441,9 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   **只做法術類**（明文 spellID）；**裝備欄項目（飾品）不做**，照暴雪顯示增益——要做得走 `GetInventoryItemCooldown` 明文＋
   `C_DurationUtil.CreateDuration` 自己建物件，秘密值時沒輒，留到有人要再說。
 - **設定頁**：「圖示」節「冷卻狀態」那三列之後一個勾選框「顯示增益持續時間」＋一列灰字（增益兩條與長條類的條不顯示）；
-  緊接在下面的「持續時間換色」兩列在它關著時停用（沒有那一段可換色）。**逐法術面板**（暴雪的冷卻類才有）在「冷卻狀態」與
-  「持續時間顏色」之間一列下拉「跟隨這一條／顯示／不顯示」，右鍵整列清；生效的值是不顯示時「持續時間顏色」那列變暗停用。
+  緊接在下面的「持續時間換色」那幾列在它關著時停用（沒有那一段可換色）。**逐法術面板**（暴雪的冷卻類才有）在「冷卻狀態」與
+  「持續時間換色」之間一列下拉「跟隨這一條／顯示／不顯示」，右鍵整列清；生效的值是不顯示時「持續時間換色」那列變暗停用
+  （連帶三個顏色列）。
 - **預覽**：`cell.auraPhase` 的格，條層或逐法術說不顯示 ⇒ 當普通冷卻格畫（倒數原色，不黃）。
 
 ### 戰鬥輔助：下一招醒目標示＋下一招圖示（`Core/Assist.lua`、`Modules/AssistIcon.lua`、`Options/Tab_Assist.lua`）

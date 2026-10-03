@@ -177,6 +177,7 @@ L["Color while buff lasts"] = "Цвет, пока действует эффек�
 L["Duration color"] = "Цвет длительности"
 L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."] = "После заклинания, дающего вам эффект усиления, отсчет сначала показывает оставшееся время эффекта и только потом восстановление. Этот цвет применяется к первой части."
 L["Don't recolor"] = "Не перекрашивать"
+L["Recolor"] = "Перекрашивать"
 L["Custom color"] = "Свой цвет"
 L["Duration low color"] = "Цвет длительности (мало)"
 L["Duration swipe color"] = "Фон длительности"
