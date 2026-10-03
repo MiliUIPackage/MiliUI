@@ -299,7 +299,9 @@ function T.ApplyBar(item, style, spell, bar)
         local c = style.stackText or {}
         SetFont(stack, bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
-        Anchor(stack, icon, "BOTTOMRIGHT", -1, 1)
+        -- 錨點固定在圖示右下（長條的圖示太小、換角沒意義），X／Y 位移照「層數」的設定加在上面
+        -- （玩家回報「層數的 XY 改了不會動」，2026-10-03）
+        Anchor(stack, icon, "BOTTOMRIGHT", -1 + (tonumber(c.x) or 0), 1 + (tonumber(c.y) or 0))
         stack:SetAlpha((bar.showStacks and not spell.hideStackText) and 1 or 0)
     end
 end

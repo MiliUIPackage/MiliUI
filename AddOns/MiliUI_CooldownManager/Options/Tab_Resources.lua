@@ -886,6 +886,8 @@ local function Controls(cand, sub)
         BS("dropdown", "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textFont) end }),
         BS("slider", "textSize", L["Font size"], { min = 6, max = 24, step = 1 }),
+        BS("dropdown", "textOutline", L["Number outline"], { items = OutlineItems,
+            get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textOutline) end }),
         Note(L["Numbers are only printed while the game lets addons read them; the bar itself always moves."]),
     }) do add(s) end
 

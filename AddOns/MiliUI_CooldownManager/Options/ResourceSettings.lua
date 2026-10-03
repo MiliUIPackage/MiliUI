@@ -115,6 +115,12 @@ local function SS(kind, key, field, label, extra)
     return s
 end
 
+local function OutlineItems()
+    local items = { { text = L["Follow the theme"], value = ns.Media.INHERIT } }
+    for _, it in ipairs(ns.Specs.OUTLINE_ITEMS) do items[#items + 1] = it end
+    return items
+end
+
 local function AppendStyle(add, key, info)
     add({ type = "header", label = L["Appearance"] })
     add(BS("toggle", "style." .. key .. ".follow", L["Follow the resource bar's look"], {
@@ -131,6 +137,8 @@ local function AppendStyle(add, key, info)
         add(SS("dropdown", key, "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() return ns.Specs.InheritOr(StyleGet(key, "textFont")) end }))
         add(SS("slider", key, "textSize", L["Font size"], { min = 6, max = 24, step = 1 }))
+        add(SS("dropdown", key, "textOutline", L["Number outline"], { items = OutlineItems,
+            get = function() return ns.Specs.InheritOr(StyleGet(key, "textOutline")) end }))
     end
 end
 

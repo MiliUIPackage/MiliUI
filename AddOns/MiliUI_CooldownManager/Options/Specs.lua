@@ -515,7 +515,7 @@ function Specs.Themed(mode, key)
         FontTS("text", "stackText.font"),
         TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
         TS("text", "color", "stackText.color", L["Color"]),
-        TS("text", "dropdown", "stackText.point", L["Anchor"], { items = POINT_ITEMS }),
+        NB(TS("text", "dropdown", "stackText.point", L["Anchor"], { items = POINT_ITEMS })),   -- 長條的層數固定在圖示右下，只吃位移
         TS("text", "numbers", nil, L["Offset"], { sub = "stackText", path = false,
             resetPaths = { "stackText.x", "stackText.y" },
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))

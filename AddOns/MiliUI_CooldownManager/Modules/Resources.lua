@@ -1005,6 +1005,14 @@ end
 
 -- 符文格的秒數（懶建；只有符文列、倒數開著才顯示）。
 -- 顯示／隱藏只在排版時做，更新只換字（SetText("")），熱路徑上不碰 Show／Hide
+-- 數字的描邊：資源條自己的 textOutline（全域；每種資源可在自己的外觀裡蓋，R.StyleFor 的代理表）；
+-- 沒存／"INHERIT" ＝ 跟主題的描邊（玩家回報「法力條不支援改描邊」，2026-10-03）
+local function TextOutline(cfg)
+    local v = type(cfg) == "table" and cfg.textOutline
+    if type(v) == "string" and v ~= "" and v ~= ns.Media.INHERIT then return ns.Media.Outline(v) end
+    return ns.Media.ThemeOutline()
+end
+
 local function LayoutRuneTimer(seg, on, cfg)
     if not on then
         if seg.timer then seg.timer:Hide() end
@@ -1020,7 +1028,7 @@ local function LayoutRuneTimer(seg, on, cfg)
         fs:SetTextColor(1, 1, 1, 1)
         seg.timer = fs
     end
-    ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, ns.Media.ThemeOutline(), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, TextOutline(cfg), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
     seg.timer:SetText("")
     seg.timerSec = nil
     seg.timer:Show()
@@ -1120,7 +1128,7 @@ R.RowHeight = RowHeight
 ------------------------------------------------------------
 -- 每種資源自己的外觀（resources.style[key]；設定頁每一列「設定…」視窗裡那一節，Options/ResourceSettings.lua）
 --
---   style[key] = { follow = true|false, texture, bgTexture, barAlpha, smooth, showText, textFont, textSize }
+--   style[key] = { follow = true|false, texture, bgTexture, barAlpha, smooth, showText, textFont, textSize, textOutline }
 --   follow 沒存 ＝ 跟（舊存檔沒有這張表 ⇒ 畫面一模一樣，不遷移）；跟著時其餘欄位不讀。
 --
 -- 不跟時，那一列的排版與更新（LayoutRow／UpdateRow 那一整串）讀 R.StyleFor 回的**代理表**：
@@ -1130,7 +1138,7 @@ R.RowHeight = RowHeight
 --   設定頁與匯出一律讀原表。每個 key 快取一張（cfg／style[key] 換了表就重建），R.Apply 時作廢
 ------------------------------------------------------------
 local STYLE_FIELDS = { texture = true, bgTexture = true, barAlpha = true, smooth = true,
-                       showText = true, textFont = true, textSize = true }
+                       showText = true, textFont = true, textSize = true, textOutline = true }
 R.STYLE_FIELDS = STYLE_FIELDS
 
 local function OwnStyle(cfg, key)
@@ -1286,7 +1294,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
         text = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
-            outline = ns.Media.ThemeOutline(),
+            outline = TextOutline(cfg),
             decimals = TIMER_DECIMALS_BELOW,
         }
     end
@@ -1328,7 +1336,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
         count = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
-            outline = ns.Media.ThemeOutline(),
+            outline = TextOutline(cfg),
             suffix = "%",
         }
     end
@@ -1400,7 +1408,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     local tex = ns.Media.Texture(cfg.texture)
     local showText = cfg.showText and true or false
     if def.fill == "rune" then showText = showText and R.RuneText(cfg) == "count" end
-    ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, ns.Media.ThemeOutline(), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, TextOutline(cfg), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
     row.text:SetText("")
 
     -- 這一列實際的畫法：容器沒好時 auraBar 退回 pip（明文層數）、auraTimer 退回空條
