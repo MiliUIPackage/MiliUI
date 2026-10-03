@@ -154,7 +154,7 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 旗標是暴雪 Lua 的字面布林（預期明文），記 `rec.auraTime`，`SetCooldown` 後掛勾只多一次 `SetTextColor`。
 主題 `icon.colorDuration`（預設開）＋`icon.durationColor`（黃 1/0.85/0.1，**放圖示節、跟「顯示增益持續時間」開關同一組**）；逐法術 `durationColor` 三態（nil 跟隨／false 不換／色表），
 **三態要讀覆寫本身 `ns.SpellOverride`**（SpellSetting 沒覆寫時退回條層、分不出跟隨）。增益兩條／長條／自訂法術沒有這一段、不適用。
-低秒變色（formatter 色碼）兩段都壓過它（決定）。
+低秒變色兩段各一顆 formatter（`icon.durationLowColor` 預設粉 0.95/0.45/0.70、門檻共用）、增益那一段轉圈背景 `icon.durationSwipeColor`（淡黃 a0.5），三色同一個「持續時間換色」開關。
 **Ayije_CDM 從來不顯示持續時間的原因**：逐法術「Show Aura Overlay」預設關（只有內建 DoT 清單預設開），關著時它在 `SetCooldown`
 後掛勾裡 `SetUseAuraDisplayTime(false)` 再用 `GetSpellCooldownDuration` 的 duration 物件重餵、蓋掉暴雪的增益倒數。
 暴雪那邊沒有玩家設定（只有 `CooldownSetSpellFlags.HideAura` 資料旗標）。
