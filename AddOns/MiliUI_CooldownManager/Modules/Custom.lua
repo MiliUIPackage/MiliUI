@@ -749,6 +749,7 @@ function CU.Update(rec, placing)
     if rec.kind == "spell" then UpdateSpell(rec)
     elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec, placing) end
     CU.ApplyState(rec)
+    if ns.Glow and ns.Glow.ApplyReadyState then ns.Glow.ApplyReadyState(rec) end
 end
 
 ------------------------------------------------------------
@@ -759,6 +760,28 @@ end
 --   法術          GetSpellCooldown 的兩個明文旗標；讀不到用 rec.dur:IsZero()（可能是秘密布林）→ SetAlphaFromBoolean
 --   未學會（問號）、空的飾品欄、編輯模式中、沒設 ⇒ 1
 ------------------------------------------------------------
+-- 「現在在不在冷卻」（冷卻狀態效果與「就緒時一直亮」的發光共用；Decorate.CooldownState 的自訂框版）
+--   → "plain", onCD | "secret", zero（「不含 GCD 的冷卻是零」的秘密布林）| nil（判不出來）
+function CU.CooldownState(rec)
+    if not rec or rec.kind == "aura" then return nil end
+    if rec.kind ~= "spell" then
+        if type(rec.cdOnCD) == "boolean" then return "plain", rec.cdOnCD end
+        return nil
+    end
+    local info = Try(C_Spell and C_Spell.GetSpellCooldown, rec.overrideID or rec.spellID)
+    if type(info) == "table" then
+        local active, gcd = Plain(info.isActive), Plain(info.isOnGCD)
+        if type(active) == "boolean" and type(gcd) == "boolean" then return "plain", (active and not gcd) and true or false end
+    end
+    local dur = rec.dur
+    if dur and dur.IsZero then
+        local ok, zero = pcall(dur.IsZero, dur)
+        if ok and ns.IsSecret(zero) then return "secret", zero end
+        if ok and type(zero) == "boolean" then return "plain", not zero end
+    end
+    return nil
+end
+
 function CU.ApplyState(rec)
     local f = rec and rec.frame
     if not f or rec.kind == "aura" then return end
@@ -771,28 +794,14 @@ function CU.ApplyState(rec)
         return
     end
     local aCD, aReady = ns.Decorate.StateAlphas(mode, st.cdAlpha, 1)
-    local onCD
-    if rec.kind == "spell" then
-        local info = Try(C_Spell and C_Spell.GetSpellCooldown, rec.overrideID or rec.spellID)
-        if type(info) == "table" then
-            local active, gcd = Plain(info.isActive), Plain(info.isOnGCD)
-            if type(active) == "boolean" and type(gcd) == "boolean" then onCD = active and not gcd end
+    local kind, onCD = CU.CooldownState(rec)
+    if kind == "secret" then
+        -- onCD 這時是 zero ＝「不含 GCD 的冷卻是零」：真 ⇒ 轉好的 alpha。之後不讀回這顆框的 alpha
+        if f.SetAlphaFromBoolean and pcall(f.SetAlphaFromBoolean, f, onCD, aReady, aCD) then
+            rec.stateHidden, rec.alphaSecret = nil, true
+            return
         end
-        local dur = rec.dur
-        if onCD == nil and dur and dur.IsZero then
-            local ok, zero = pcall(dur.IsZero, dur)
-            if ok and ns.IsSecret(zero) then
-                -- zero ＝「不含 GCD 的冷卻是零」：真 ⇒ 轉好的 alpha。之後不讀回這顆框的 alpha
-                if f.SetAlphaFromBoolean and pcall(f.SetAlphaFromBoolean, f, zero, aReady, aCD) then
-                    rec.stateHidden, rec.alphaSecret = nil, true
-                    return
-                end
-            elseif ok and type(zero) == "boolean" then
-                onCD = not zero
-            end
-        end
-    else
-        onCD = rec.cdOnCD
+        onCD = nil
     end
     if type(onCD) ~= "boolean" then
         f:SetAlpha(1)

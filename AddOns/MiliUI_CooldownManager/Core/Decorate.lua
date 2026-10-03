@@ -542,6 +542,13 @@ local function FeedRealCooldown(item, rec, cd)
     end
 end
 
+-- 這一格的就緒發光是不是「就緒時一直亮」（Core/Glow.lua）：SetCooldown 與 SPELL_UPDATE_COOLDOWN 都要替它重算
+local function ReadyWhileOn(rec)
+    local G = ns.Glow
+    if not (G and G.ReadyMode and rec.claimKey) then return false end
+    return G.ReadyMode(rec.claimKey) == "whileReady"
+end
+
 -- SetCooldown 後掛勾的尾巴（正常路徑與蓋掉的那條共用）：轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態
 local function AfterCooldown(item, rec, cd)
     local st = rec.style
@@ -555,6 +562,8 @@ local function AfterCooldown(item, rec, cd)
     D.ApplyGCDAlpha(item, rec)
     -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
     if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
+    -- 就緒時一直亮的發光（Core/Glow.lua）：同一個時機重算
+    if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or ReadyWhileOn(rec)) then ns.Glow.ApplyReadyState(rec, item) end
 end
 
 -- 旗標（暴雪的明文布林）＋目前設定 → rec.auraHidden／rec.auraTime
@@ -566,12 +575,39 @@ local function ResolveAuraFlag(rec)
     if not hide then rec.auraDur = nil end
 end
 
+-- 臨時探針（/mcdm activelog，玩家回報 2026-10-03「冷卻格使用中想發光」）：驗證這個旗標能不能當「使用中」訊號
+--   要看三件事：用技能那一刻轉 true、增益掉了轉 false、戰鬥中是不是明文。
+--   暴雪每次 GCD 都刷新每一格 ⇒ 只在（旗標, 秘密?, IsActive, 戰鬥）組合變了才記一行；聊天印＋存進 diag。
+--   確認完就拿掉。字串不進語系檔（開發用）。
+D.auraLog = false
+local function AuraLogValue(v)
+    if v == nil then return "nil" end
+    if ns.IsSecret(v) then return "秘密" end
+    return tostring(v)
+end
+local function AuraLog(item, rec, flag)
+    local okA, act = false, nil
+    if type(item.IsActive) == "function" then okA, act = pcall(item.IsActive, item) end
+    local fight = InCombatLockdown() and "戰鬥中" or "脫戰"
+    local sig = table.concat({ AuraLogValue(flag), okA and AuraLogValue(act) or "無", fight }, "|")
+    if rec.auraLogSig == sig then return end
+    rec.auraLogSig = sig
+    local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
+    local sid = info and (info.overrideSpellID or info.spellID)
+    local name = sid and C_Spell.GetSpellName(sid) or "?"
+    local line = ("%s(%s) 增益時間旗標=%s IsActive=%s %s"):format(tostring(name), tostring(rec.cooldownID),
+        AuraLogValue(flag), okA and AuraLogValue(act) or "無", fight)
+    print(ns.PREFIX_COLOR .. "[生效探針]|r " .. line)
+    if ns.Diag then ns.Diag.Note("activelog", line) end
+end
+
 -- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色／蓋掉在 SetCooldown 後掛勾做
 local function OnSetUseAuraDisplayTime(cd, flag)
     if overriding or ns.released then return end      -- 我們自己蓋的那一次（false）不算
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
+    if D.auraLog and not ns.Viewers.AURA_KIND[rec.barKey] then AuraLog(item, rec, flag) end
     rec.auraFlag = Plain(flag) == true        -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
     ResolveAuraFlag(rec)
 end
@@ -849,6 +885,7 @@ end
 
 -- rec → 暴雪 item（就緒探針只拿得到 rec）。弱鍵弱值：item 是池化的框，rec 是 Viewers 的弱鍵表裡的值
 local itemOf = setmetatable({}, { __mode = "kv" })
+function D.ItemOf(rec) return rec and itemOf[rec] end
 
 function D.RefreshState(rec, noRetry)
     if not rec or ns.released then return end
@@ -878,12 +915,14 @@ local cdArmed = false
 
 local function NeedsWork(rec)
     local st = rec.style
-    return st and (st.hideGCD or st.cdState) and true or false
+    return (st and (st.hideGCD or st.cdState)) or rec.readyWhile or ReadyWhileOn(rec) or false
 end
 
 local function RefreshOne(item, rec)
-    if rec.style.hideGCD then D.ApplyGCDAlpha(item, rec) end
-    if rec.style.cdState then D.ApplyItemAlpha(item, rec) end
+    local st = rec.style
+    if st and st.hideGCD then D.ApplyGCDAlpha(item, rec) end
+    if st and st.cdState then D.ApplyItemAlpha(item, rec) end
+    if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or ReadyWhileOn(rec)) then ns.Glow.ApplyReadyState(rec, item) end
 end
 
 local function RefreshCooldownAll()
