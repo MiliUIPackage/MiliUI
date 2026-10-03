@@ -174,6 +174,9 @@ function Options.ShowPage(id)
     if not pageDefs[id] then id = "essential" end
     -- 下拉選單掛在 UIParent 的 TOOLTIP strata，不是頁面的子框 —— 切頁前先收
     W.CloseDropdowns()
+    -- 「＋」挑選器與逐法術設定都綁著開它的那一條，換頁就跟著收（不然加進去的是上一條）
+    if ns.Picker and ns.Picker.IsShown() then ns.Picker.Close() end
+    if ns.SpellPopover and ns.SpellPopover.IsShown() then ns.SpellPopover.Close() end
     local full = FULL_PAGES[id] and true or false
     local page = pages[id]
     if not page then
