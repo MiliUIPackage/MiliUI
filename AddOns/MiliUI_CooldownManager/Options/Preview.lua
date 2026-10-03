@@ -352,7 +352,11 @@ function Preview.Create(parent, key, width)
         row:SetPoint("BOTTOMLEFT", 1, 1)
         row:SetPoint("BOTTOMRIGHT", -1, 1)
         row:SetHeight(FX_H)
-        local x = PAD
+        local label = row:CreateFontString(nil, "OVERLAY")
+        label:SetFontObject(W.fontNormal)
+        label:SetPoint("LEFT", row, "LEFT", PAD, 0)
+        label:SetText(L["Preview:"])
+        local x = PAD + math.ceil(label:GetStringWidth() or 0) + 6
         for _, def in ipairs(FX_BUTTONS) do
             local b = W.CreateButton(row, def.label, "normal", 70, 20)
             W.FitButton(b, 70, 20)
