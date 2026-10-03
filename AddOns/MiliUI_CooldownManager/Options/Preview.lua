@@ -633,8 +633,10 @@ function Proto:InsertionAt()
     local nearD
     for _, j in ipairs({ best - 1, best + 1 }) do
         local n = self.slots[j]
-        local nx, ny = n and n:GetCenter()
-        if nx then
+        -- ⚠ 不能寫 `n and n:GetCenter()`：and 只留第一個回傳值，ny 會是 nil
+        local nx, ny
+        if n then nx, ny = n:GetCenter() end
+        if nx and ny then
             local d = (nx - x) ^ 2 + (ny - y) ^ 2
             if d > 0 and (not nearD or d < nearD) then
                 nearD = d
