@@ -176,6 +176,9 @@ local CUSTOM_RECOMMENDED = {
     EVOKER = {
         { kind = "charges", spellID = 358267 },                     -- 盤旋
     },
+    MONK = {
+        { kind = "stacks", spellID = 202090, max = 4, spec = 270 },  -- 僧院教義（織霧）
+    },
     WARLOCK = {
         { kind = "stacks", spellID = 264173, max = 4, spec = 266 },  -- 魔能之核（惡魔學）
         { kind = "stacks", spellID = 296553, max = 10, spec = 266 }, -- 狂野小鬼（惡魔學）
