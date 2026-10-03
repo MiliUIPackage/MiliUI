@@ -151,6 +151,7 @@ L["Desaturate on cooldown"] = "Обесцвечивать при восстан�
 L["Cooldown state"] = "Состояние восстановления"
 L["Replace with buff"] = "Заменять баффом"
 L["While this buff is active, this slot shows it instead. The buff no longer appears on Tracked Buffs."] = "Пока этот бафф активен, эта ячейка показывает его. Бафф больше не появляется в «Отслеживаемых баффах»."
+L["Only buffs on Tracked Buffs can be picked. Tracked Bars can't be mirrored into an icon slot; drag the buff to Tracked Buffs in Blizzard's Cooldown Manager first."] = "Можно выбрать только баффы из строки отслеживаемых баффов. Отслеживаемые полосы не помещаются в ячейку иконки; сначала перетащите бафф в отслеживаемые баффы в менеджере восстановления Blizzard."
 L["%s (used by %s)"] = "%s (занят: %s)"
 L["No change"] = "Без изменений"
 L["Dim while on cooldown"] = "Затемнять при восстановлении"

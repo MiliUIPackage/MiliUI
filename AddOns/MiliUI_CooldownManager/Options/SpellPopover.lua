@@ -73,7 +73,7 @@ local W, P = ns.W, ns.P
 ns.SpellPopover = {}
 local Pop = ns.SpellPopover
 
-local WIDTH   = 320
+local WIDTH   = 380          -- 五個分頁（一般／外觀／增益時間／發光／音效）要在同一列（使用者 2026-10-03 指定）
 local PAD     = 12
 local LABEL_W = 130
 local ROW_H   = 26
@@ -511,6 +511,8 @@ local function Build()
         rnEntry.h = nh
     end
     AddRow(rnEntry)
+    -- 黃字強調：只能選增益圖示列上的（增益長條的框搬不進方格、鏡射又印不出層數；EllesmereUI 同樣的限制）
+    EmphasisRow(L["Only buffs on Tracked Buffs can be picked. Tracked Bars can't be mirrored into an icon slot; drag the buff to Tracked Buffs in Blizzard's Cooldown Manager first."], ReplaceCapable)
 
     -- 天賦條件：下拉（無／學了才顯示／沒學才顯示）；控件欄只有一百五十幾寬，ID 框放下一列
     local tcr, tch = NewRow(L["Talent condition"])
