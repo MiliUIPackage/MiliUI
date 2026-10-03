@@ -34,7 +34,7 @@
 -- 技能用掉後暴雪先倒增益的持續時間、增益掉了才倒冷卻；前半段的數字換 durationColor。
 -- 一樣只是多叫一次 SetTextColor：要換哪個色看 rec.auraTime（Decorate 的 SetUseAuraDisplayTime
 -- 後掛勾記的明文旗標）與 rec.style.cdColor／durColor（Decorate.Apply 算好的）。零讀取。
--- formatter 裡的低秒色碼在字串層級，壓過這個顏色（增益快掉也是「快到期」）。
+-- 低秒變色兩段各一顆 formatter（門檻與小數共用、色碼不同：增益那一段用 icon.durationLowColor），ApplyPhaseColor 一起換。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -214,6 +214,9 @@ function T.ApplyPhaseColor(item, rec)
     if not fs then return end
     local c = (rec.auraTime and st.durColor) or st.cdColor
     fs:SetTextColor(c[1], c[2], c[3], c[4])
+    -- 低秒變色：增益那一段用它自己的 formatter（色碼不同、門檻同）；兩顆都有才換，少一顆就留 ApplyIcon 設的那顆
+    local fmt = (rec.auraTime and st.durFmt) or st.cdFmt
+    if fmt and st.durFmt and st.cdFmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
 end
 
 function T.ApplyIcon(item, style, spell, rec)

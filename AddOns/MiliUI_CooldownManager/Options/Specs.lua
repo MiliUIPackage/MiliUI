@@ -433,6 +433,7 @@ function Specs.Themed(mode, key)
     local function CS(s) if auraBar or barsKind then return nil end return s end
     local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
     local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
+    local function DurationOff(info) return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration") end
 
     -- 圖示
     add({ type = "header", label = L["Icons"] })
@@ -457,10 +458,9 @@ function Specs.Themed(mode, key)
         CS(Note(L["After you use a spell that gives you a buff, the icon counts down the buff first and the cooldown after it ends. Off shows the cooldown right away."], "icon")),
         -- 增益那一段的倒數換色：開關關著時沒有那一段可換色 ⇒ 兩列停用
         CS(TS("icon", "toggle", "icon.colorDuration", L["Color while buff lasts"], { disabled = AuraTimeOff })),
-        CS(TS("icon", "color", "icon.durationColor", L["Duration color"], {
-            disabled = function(info)
-                return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration")
-            end })),
+        CS(TS("icon", "color", "icon.durationColor", L["Duration color"], { disabled = DurationOff })),
+        CS(TS("icon", "color", "icon.durationLowColor", L["Duration low color"], { disabled = DurationOff })),
+        CS(TS("icon", "color", "icon.durationSwipeColor", L["Duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),

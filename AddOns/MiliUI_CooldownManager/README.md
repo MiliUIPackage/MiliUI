@@ -396,8 +396,11 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **範圍**：暴雪核心／輔助兩條的 item（含被搬進自訂圖示群組的）。增益圖示整條都是增益時間（暴雪只在 OnLoad 設一次 true）、
   自訂法術（`Modules/Custom.lua`）只餵 `GetSpellCooldownDuration` 沒有增益階段、長條只收增益長條 ⇒ 都不適用（`rec.style.cdColor` 是 nil，換色那支直接走）。
   Masque 模式不影響（文字一直是我們管）。編輯模式暴雪寫 false ⇒ 原色。
-- **低秒變色優先**：formatter 裡的 `|cff…|r` 色碼在字串層級，兩段都照舊生效、壓過這個顏色——增益快掉也是「快到期」，警示留著。
-  這是決定，不另做兩套 formatter。
+- **低秒變色兩段各自一色、背景色也分開**（2026-10-03 使用者要的）：`icon.durationLowColor`（預設粉 0.95/0.45/0.70，比聖騎粉重一點）
+  是增益那一段「低於 lowBelow 秒」的字色，門檻與小數跟倒數的「低秒變色」共用；`icon.durationSwipeColor`（預設淡黃 1/0.9/0.5，a 0.5）
+  是增益那一段的轉圈背景色。做法：換色開著的格 `rec.style` 多存兩顆 formatter（`cdFmt`／`durFmt`，色碼不同、同一個快取）＋
+  `durSwipe`，`ApplyPhaseColor` 換字色時順便 `SetCountdownFormatter`，`AfterCooldown` 的 `SetSwipeColor` 照段挑。三個顏色都由
+  「持續時間換色」一個開關管；逐法術「不換色」＝三個一起不換、「自訂顏色」只換字色。
 
 ### 增益持續中不顯示持續時間（開關）（`Core/Decorate.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`）
 
@@ -1709,3 +1712,5 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 209. 設定切「顯示」↔「不顯示」不用 /reload 就生效（最慢等暴雪下一次刷新）。
 210. 飾品（裝備欄項目）不受影響、照暴雪顯示增益。
 211. 倒數換色：關掉顯示持續時間後那一格永遠是倒數原色。
+212. 增益那一段的低秒變色是粉色、冷卻那一段是紅色（門檻同一個）；`SetCountdownFormatter` 每次刷新換一顆不閃、不報錯。
+213. 增益那一段轉圈背景是淡黃半透明、增益結束當場換回轉圈色；關掉「持續時間換色」兩者都回原本；預覽格的黃字格轉圈也是淡黃。

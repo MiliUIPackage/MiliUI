@@ -709,6 +709,8 @@ do
     -- 預設值與覆寫登記
     local ct = p.theme.icon
     eq("主題預設開", ct.colorDuration, true)
+    near("增益低秒預設粉 r", ct.durationLowColor.r, 0.95); near("增益低秒預設粉 g", ct.durationLowColor.g, 0.45)
+    near("增益轉圈預設淡黃 a", ct.durationSwipeColor.a, 0.5)
     near("主題預設黃 r", ct.durationColor.r, 1); near("g", ct.durationColor.g, 0.85); near("b", ct.durationColor.b, 0.1)
     eq("條讀得到（繼承主題）", ns.Setting("essential", "icon.colorDuration"), true)
     eq("SPELL_FALLBACK durationColor", DB.SPELL_FALLBACK.durationColor, "icon.durationColor")
@@ -779,15 +781,23 @@ do
     end
     check("掛了 SetUseAuraDisplayTime", onFlag ~= nil)
     eq("掛上時先問 getter（增益還在）", rec.auraTime, true)
-    rec.style = { cdColor = { 1, 1, 1, 1 }, durColor = { 1, 0.85, 0.1, 1 } }
+    local fmts, swipes = {}, {}
+    cd.SetCountdownFormatter = function(_, f) fmts[#fmts + 1] = f end
+    cd.SetSwipeColor = function(_, r, g, b, a) swipes[#swipes + 1] = { r, g, b, a } end
+    rec.style = { cdColor = { 1, 1, 1, 1 }, durColor = { 1, 0.85, 0.1, 1 }, cdFmt = "CD", durFmt = "DUR",
+                  swipe = { 0, 0, 0, 0.8 }, durSwipe = { 1, 0.9, 0.5, 0.5 } }
     onSet(cd, 1, 2, 1)
     local last2 = fs.colors[#fs.colors]
     near("增益那一段 ⇒ 黃", last2 and last2[2], 0.85)
+    eq("增益那一段 ⇒ 增益的 formatter", fmts[#fmts], "DUR")
+    near("增益那一段 ⇒ 淡黃轉圈", swipes[#swipes] and swipes[#swipes][2], 0.9)
     onFlag(cd, false)
     eq("旗標 false", rec.auraTime, false)
     onSet(cd, 1, 2, 1)
     last2 = fs.colors[#fs.colors]
     near("冷卻那一段 ⇒ 原色", last2 and last2[2], 1)
+    eq("冷卻那一段 ⇒ 冷卻的 formatter", fmts[#fmts], "CD")
+    near("冷卻那一段 ⇒ 原轉圈色", swipes[#swipes] and swipes[#swipes][4], 0.8)
     onFlag(cd, true)
     eq("旗標 true", rec.auraTime, true)
     local ok = pcall(onFlag, cd, Secret())

@@ -388,7 +388,9 @@ function DB.BuildDefaults()
                           showAuraTime = true,
                           -- colorDuration／durationColor：增益那一段的倒數數字換這個顏色（Core/Text.lua 的 ApplyPhaseColor）。
                           -- 預設開（使用者拍板：舊存檔沒有這兩欄 ＝ 合併預設值補成開，不套「舊存檔行為不變」）
-                          colorDuration = true, durationColor = rgba(1, 0.85, 0.1) },
+                          colorDuration = true, durationColor = rgba(1, 0.85, 0.1),
+                          -- 增益那一段自己的低秒顏色（門檻共用 cooldownText.lowBelow；粉，比聖騎粉重一點）與轉圈背景色（淡黃）
+                          durationLowColor = rgba(0.95, 0.45, 0.70), durationSwipeColor = rgba(1, 0.9, 0.5, 0.5) },
                 -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),

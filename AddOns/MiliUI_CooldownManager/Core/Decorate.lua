@@ -102,6 +102,8 @@ function D.Resolve(barKey, fresh)
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
         colorDuration = S(barKey, "icon.colorDuration") and true or false,   -- 增益那一段的倒數換色（PhaseColors）
         durationColor = S(barKey, "icon.durationColor"),
+        durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益那一段的低秒顏色（門檻共用 cooldownText.lowBelow）
+        durationSwipeColor = S(barKey, "icon.durationSwipeColor"),     -- 增益那一段的轉圈背景色
         cooldownText = S(barKey, "cooldownText") or {},
         chargeText   = S(barKey, "chargeText") or {},
         stackText    = S(barKey, "stackText") or {},
@@ -111,7 +113,7 @@ function D.Resolve(barKey, fresh)
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
-        tostring(r.colorDuration), CSig(r.durationColor),
+        tostring(r.colorDuration), CSig(r.durationColor), CSig(r.durationLowColor), CSig(r.durationSwipeColor),
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
         type(r.bar) == "table" and TSig(r.bar) or "-",
         tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
@@ -544,7 +546,9 @@ end
 local function AfterCooldown(item, rec, cd)
     local st = rec.style
     if not st then return end
-    if st.swipe then cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4]) end
+    -- 轉圈色：增益那一段用它自己的背景色（換色開著才有 durSwipe）
+    local sw = (rec.auraTime and st.durSwipe) or st.swipe
+    if sw then cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
     -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的；蓋掉的格是 false ＝ 原色）
     if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor then ns.Text.ApplyPhaseColor(item, rec) end
@@ -1321,6 +1325,14 @@ function D.Apply(item, rec, barKey, w, h)
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
         rec.style.cdColor, rec.style.durColor = D.PhaseColors(style, spell.durationColor)
+        -- 換色開著的格：增益那一段自己的轉圈背景色＋低秒顏色的 formatter（兩段各一顆，ApplyPhaseColor 換）
+        if rec.style.durColor then
+            rec.style.durSwipe = { C4(style.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
+            local ct = style.cooldownText or {}
+            rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
+            rec.style.durFmt = ns.Text.CountdownFormatter({ decimalsBelow = ct.decimalsBelow, lowBelow = ct.lowBelow,
+                                                           lowColor = style.durationLowColor or ct.lowColor })
+        end
         -- 增益持續中不顯示持續時間（同一個條件；裝備欄項目在 HideTarget 再擋）
         rec.style.hideAuraTime = spell.showAuraTime == false
     end
@@ -1402,7 +1414,8 @@ function D.Apply(item, rec, barKey, w, h)
         end
         -- 轉圈色一律是我們的（Masque 套皮時會寫它的色，所以在 Sync 之後寫）
         if cd then
-            cd:SetSwipeColor(sr, sg, sb, sa)
+            local sw = (rec.auraTime and rec.style.durSwipe) or { sr, sg, sb, sa }
+            cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
         end
         -- 關掉「冷卻中去飽和」：當場還原一次，之後靠 SetDesaturated 後掛勾擋
@@ -1504,15 +1517,17 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             -- 冷卻中的格才去飽和（增益沒有冷卻，不去飽和）
             icon:SetDesaturated((cell.onCD and not cell.aura and spell.desaturate) and true or false)
         end
-        local cd = cell.Cooldown
-        if cd then
-            cd:SetSwipeColor(C4(style.swipeColor, 0, 0, 0, 0.8))
-            if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
-        end
         -- 增益持續時間那一段：Preview 標了 cell.auraPhase 的假冷卻格照設定換色（逐法術覆寫也照套）
         -- 設成「增益持續中不顯示持續時間」的格：那一段被蓋成冷卻，當普通冷卻格畫（原色）
         cell.durColor = (cell.auraPhase and not cell.aura and spell.showAuraTime ~= false)
             and D.DurationColorOf(spell.durationColor, style.colorDuration, style.durationColor) or nil
+        local cd = cell.Cooldown
+        if cd then
+            -- 增益那一段的格轉圈用它自己的背景色
+            if cell.durColor then cd:SetSwipeColor(C4(style.durationSwipeColor, 1, 0.9, 0.5, 0.5))
+            else cd:SetSwipeColor(C4(style.swipeColor, 0, 0, 0, 0.8)) end
+            if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
+        end
         ns.Text.ApplyPreviewIcon(cell, style, spell)
     end
     cell.decorated = sig
