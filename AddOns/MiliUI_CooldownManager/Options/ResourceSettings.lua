@@ -132,6 +132,11 @@ local function AppendStyle(add, key, info)
     add(SS("dropdown", key, "bgTexture", L["Background texture"], { items = RS.BgTextureItems,
         get = function() return ns.Specs.InheritOr(StyleGet(key, "bgTexture")) end }))
     add(SS("slider", key, "barAlpha", L["Fill opacity"], { min = 0.1, max = 1, step = 0.05 }))
+    add(SS("slider", key, "bgAlpha", L["Background opacity"], { min = 0, max = 1, step = 0.05 }))
+    add(SS("toggle", key, "bgCustom", L["Custom background color"], { refreshPage = true }))
+    local bc = SS("color", key, "bgColor", L["Background color"], { hasAlpha = false })
+    bc.disabled = function() return Following(key) or not StyleGet(key, "bgCustom") end
+    add(bc)
     if info.mode == "bar" then add(SS("toggle", key, "smooth", L["Smooth bar changes"])) end
     if not info.noText then
         add(SS("dropdown", key, "textFont", L["Font"], { items = ns.Specs.ElementFontItems,

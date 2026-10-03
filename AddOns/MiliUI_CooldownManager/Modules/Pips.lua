@@ -56,7 +56,6 @@ local R = ns.Resources
 local RC = ns.ResCond
 local MAX_SEGMENTS = RC.MAX_SEGMENTS
 local SOLID = "Interface\\BUTTONS\\WHITE8X8"
-local DIM = R.DIM
 local Plain = R.Plain
 
 local KEY = "pips"
@@ -484,7 +483,7 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
     local n = plan.numSeg
     local geom = {
         W = W, H = H, n = n, gap = gap, segW = (W - gap * (n - 1)) / n, reversed = reversed, segments = true,
-        dim = { DIM.r, DIM.g, DIM.b, DIM.a }, px = ns.P.Scale(1), bgTex = ns.Resources.BgTexture(style),
+        dim = ns.Resources.DimArray(style), px = ns.P.Scale(1), bgTex = ns.Resources.BgTexture(style),
     }
     local inside = plan.showWhen == "active"
     local status = ns.AuraBar.Apply(row.ab, {
@@ -556,7 +555,8 @@ local function LayoutCustomRow(row, plan, style, W, H)
         -- 層級每次重排都重設：父層的 strata／level 可能被結構套用改過
         local lv = cell:GetFrameLevel()
         cell.bg:SetTexture(ns.Resources.BgTexture(style))
-        cell.bg:SetVertexColor(DIM.r, DIM.g, DIM.b, DIM.a)
+        local dc, da = ns.Resources.DimColor(nil, style)
+        cell.bg:SetVertexColor(dc.r, dc.g, dc.b, da)
         cell.gate:SetFrameLevel(lv + 1)
         cell.clip:SetFrameLevel(lv + 1)
         cell.rc:SetFrameLevel(lv + 2)
