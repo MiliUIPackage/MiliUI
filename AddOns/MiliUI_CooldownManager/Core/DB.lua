@@ -208,7 +208,7 @@ ResourcesDefaults = function()
         textFont      = "INHERIT",         -- 條上數字的字型（自訂格子也照這個）；"INHERIT" ＝ 跟隨主題的通用字型
         rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移。沒有控件了：只當 heights 沒設的列的起始值
         heights       = {},                -- [資源key] = 列高（所有專精共用；每種資源設定視窗的「高」）
-        -- [資源key] = { follow, texture, bgTexture, barAlpha, smooth, showText, textFont, textSize }：
+        -- [資源key] = { follow, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText, textFont, textSize }：
         -- 每種資源自己的外觀（設定視窗的「外觀」那一節）。開放式、預設空；follow 沒存 ＝ 跟下面這幾欄（全域）。
         -- 引擎讀 Modules/Resources.lua 的 R.StyleFor 回的代理表
         style         = {},
@@ -218,6 +218,10 @@ ResourcesDefaults = function()
         texture       = "solid",
         bgTexture     = "INHERIT",         -- 空的那截（背景）的材質；"INHERIT" ＝ 跟填充同一張（自訂格子也照這個）
         barAlpha      = 1,                 -- 填充色的不透明度
+        -- 背景（空的那截）：bgAlpha 乘在預設深淺上（1 ＝ 原樣、0 ＝ 透明）；bgCustom 勾了才用 bgColor 換掉自動推的底色
+        bgAlpha       = 1,
+        bgCustom      = false,
+        bgColor       = { r = 0.15, g = 0.15, b = 0.15, a = 1 },
         smooth        = true,              -- 連續條的原生內插（引擎做，吃秘密值）
         -- 條上的數值：預設開、14 號字、置中（使用者 2026-10-01 指定，不遷移）
         showText      = true,

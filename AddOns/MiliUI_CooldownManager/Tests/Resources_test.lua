@@ -1319,6 +1319,30 @@ do
     check("征戰聖擊底色：黑 60%（帶 alpha）", back[1] == 0 and back[2] == 0 and back[3] == 0 and back[4] == 0.6)
     local dim = R.TimerBack(d, "EbonMight", { r = 1, g = 1, b = 1 })
     check("沒有 backColor 的列照主色推", dim[1] == 0.25 and dim[4] == 0.8)
+
+    -- 背景設定（bgAlpha 乘在最後、bgCustom＋bgColor 換掉自動推的色、規則 bgColor 優先）
+    local function near(a, b) return math.abs(a - b) < 1e-9 end
+    local dc, da = R.DimColor(nil, d)
+    check("預設：暗灰 0.6", dc == R.DIM and near(da, 0.6))
+    local half = { bgAlpha = 0.5 }
+    dc, da = R.DimColor(nil, half)
+    check("bgAlpha 0.5：0.3", near(da, 0.3))
+    eq("bgAlpha 夾到 0", R.BgAlpha({ bgAlpha = -1 }), 0)
+    local cust = { bgAlpha = 0.5, bgCustom = true, bgColor = { r = 1, g = 0, b = 0 } }
+    dc, da = R.DimColor(nil, cust)
+    check("自訂背景色", dc.r == 1 and dc.g == 0 and near(da, 0.3))
+    eq("沒勾自訂：不換色", R.BgCustom({ bgColor = { r = 1, g = 0, b = 0 } }), nil)
+    dc, da = R.DimColor({ bgColor = { r = 0, g = 1, b = 0, a = 0.4 } }, cust)
+    check("規則 bgColor 優先、照乘", dc.g == 1 and near(da, 0.2))
+    local arr = R.DimArray(cust)
+    check("DimArray", arr[1] == 1 and near(arr[4], 0.3))
+    local tb = R.TimerBg(cust, "EbonMight", { r = 1, g = 1, b = 1 })
+    check("剩餘時間條：自訂色＋乘", tb[1] == 1 and tb[2] == 0 and near(tb[4], 0.4))
+    local dc2 = { colors = d.colors, bgAlpha = 0.5, bgCustom = true, bgColor = { r = 1, g = 0, b = 0 } }
+    local tb2 = R.TimerBg(dc2, "CrusadingStrikes", c.color)
+    check("自己有 backColor：顏色照它、只乘", tb2[1] == 0 and near(tb2[4], 0.3))
+    local raw = R.TimerBack(dc2, "CrusadingStrikes", c.color)
+    check("TimerBack 不受背景設定影響（經過時間模式拿它當填充）", near(raw[4], 0.6))
 end
 
 -- 征戰聖擊：鏡射暴雪追蹤量條（找 item、原封轉手、沒亮時畫底色）
