@@ -605,8 +605,9 @@ end
 -- 表單引擎的 toggle 沒有「停用」這個狀態，所以自己畫一列（custom）：勾選框＋下一列灰字，
 -- 灰字依狀態換三種說法（一般／有光環格／可點擊），高度取三種裡最高的那個（列高在建表單時就定了）。
 ------------------------------------------------------------
-function FixedSlotsRow(key)
-    local NORMAL = L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
+function FixedSlotsRow(key, isBars)
+    local NORMAL = isBars and L["Buffs that aren't up keep their place as an empty bar, so the others don't shift."]
+        or L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
     local FORCED = L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."]
     local FORCED_CLICK = L["Always on while this bar is clickable: the click targets can't move during combat."]
     -- 強制的原因：有光環格優先（兩者都成立時講光環格那句）；nil ＝ 沒有強制
@@ -813,6 +814,9 @@ function Specs.Layout(key)
         add(BS("slider", "bar.height", L["Height"], { min = 6, max = 60, step = 1 }))
         add(BS("dropdown", "bar.iconSide", L["Icon position"], { items = SIDE_ITEMS }))
         add(BS("slider", "bar.iconGap", L["Icon gap"], { min = 0, max = 10, step = 1 }))
+        if bar.source == "buffbars" or bar.source == "custom" then
+            add(FixedSlotsRow(key, true))
+        end
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
         add(BS("color", "bar.color", L["Bar color"]))
         add(BS("color", "bar.bgColor", L["Background color"]))

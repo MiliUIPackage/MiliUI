@@ -370,7 +370,35 @@ local function SafeShown(item)
 end
 B.SafeShown = SafeShown
 
--- 占位格是自己的框（圖示貼圖＋跟真實格一樣的邊框），畫在容器上；item 出現時蓋在它上面
+-- 生效狀態：暴雪 item 自己的 IsActive()（欄位 isActive；Glow 的生效發光讀的是同一個）。
+-- **不能用 IsShown**：暴雪「未作用時隱藏」沒勾時，增益不在 item 照樣顯示（暗條／暗圖示）——
+-- 判在不在一律看這個（EllesmereUI 的追蹤長條同一招）。讀不到（秘密／沒有這支）回 nil ＝ 當作在（fail-open，
+-- 跟 SafeShown 同方向：寧可多畫一格，不要把真的在的增益收掉）。
+local function ItemActive(item)
+    local fn = item.IsActive
+    if type(fn) == "function" then
+        local ok, v = pcall(fn, item)
+        if ok and not ns.IsSecret(v) and v ~= nil then return v and true or false end
+    end
+    local v = rawget(item, "isActive")
+    if ns.IsSecret(v) or v == nil then return nil end
+    return v and true or false
+end
+B.ItemActive = ItemActive
+
+-- 增益 item 這一刻算不算「在」：顯示中、而且不是暴雪畫的未作用暗格。
+-- 編輯模式例外：暴雪在編輯模式把全部 item 顯示出來給人拖，這裡也照舊全部排（不看生效）
+local function AuraPresent(item)
+    if not SafeShown(item) then return false end
+    if ns.EditMode and ns.EditMode.active then return true end
+    return ItemActive(item) ~= false
+end
+B.AuraPresent = AuraPresent
+
+-- 占位格是自己的框，畫在容器上；item 出現時蓋在它上面
+--   圖示類：圖示貼圖（去飽和、半透明）＋跟真實格一樣的邊框
+--   長條類：一條空的長條（照 EllesmereUI「未作用時隱藏」關掉時的樣子）——圖示＋底色＋名字，填充 0、
+--           沒有倒數與層數。結構跟設定頁預覽的假長條一樣，外觀走同一支 Decorate.ApplyPreview
 local function Placeholder(key, idx)
     local ph = state[key].placeholders
     local f = ph.pool[idx]
@@ -386,10 +414,46 @@ local function Placeholder(key, idx)
     return f
 end
 
-local function ReleasePlaceholders(key, from)
+local function BarPlaceholder(key, idx)
+    local ph = state[key].placeholders
+    ph.barPool = ph.barPool or {}
+    local f = ph.barPool[idx]
+    if not f then
+        local c = containers[key]
+        f = CreateFrame("Frame", nil, c)
+        f:SetFrameLevel(c:GetFrameLevel())
+        local icon = CreateFrame("Frame", nil, f)
+        icon.Icon = icon:CreateTexture(nil, "ARTWORK")
+        icon.Icon:SetAllPoints()
+        icon.Applications = icon:CreateFontString(nil, "OVERLAY")
+        icon.Applications:SetFontObject(GameFontHighlightSmall)   -- 先有字型才能 SetText（樣式由 ApplyPreview 蓋）
+        f.Icon = icon
+        local bar = CreateFrame("StatusBar", nil, f)
+        bar:SetMinMaxValues(0, 1)
+        bar:SetValue(0)
+        bar.BarBG = bar:CreateTexture(nil, "BACKGROUND")
+        bar.Name = bar:CreateFontString(nil, "OVERLAY")
+        bar.Name:SetFontObject(GameFontHighlightSmall)
+        bar.Name:SetWordWrap(false)
+        bar.Duration = bar:CreateFontString(nil, "OVERLAY")
+        bar.Duration:SetFontObject(GameFontHighlightSmall)
+        f.Bar = bar
+        local ov = CreateFrame("Frame", nil, f)
+        ov:SetAllPoints()
+        ov:SetFrameLevel(f:GetFrameLevel() + 5)
+        f.overlay = ov
+        f.aura = true
+        ph.barPool[idx] = f
+    end
+    return f
+end
+
+local function ReleasePlaceholders(key, from, barFrom)
     local ph = state[key].placeholders
     for i = from, #ph.pool do ph.pool[i]:Hide() end
     ph.used = from - 1
+    local bp = ph.barPool
+    if bp then for i = barFrom or 1, #bp do bp[i]:Hide() end end
 end
 
 local QUESTION = 134400   -- INV_Misc_QuestionMark
@@ -529,7 +593,7 @@ local function Relayout(key, level, index, gen)
             local rec = ns.Viewers.frames[item]
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
             local shown = true
-            if aura then shown = SafeShown(item) end
+            if aura then shown = AuraPresent(item) end
             if shown then
                 entries[#entries + 1] = { id = id, item = item, rec = rec }
             elseif fixed then
@@ -578,12 +642,18 @@ local function Relayout(key, level, index, gen)
 
     -- item 放進格子
     local alpha = VisAlpha(key)
-    local phUsed = 0
+    local phUsed, barUsed = 0, 0
     for i, e in ipairs(entries) do
         local r = rects[i]
         local item, rec = e.item, e.rec
         if e.crec then
             ns.Custom.Place(e.crec, c, r, key, gen)
+        elseif e.placeholder and SafeShown(item) then
+            -- 增益不在、暴雪卻還顯示著（「未作用時隱藏」沒勾的暗格）：收走，不能蓋在占位上。
+            -- 增益回來時 OnActiveStateChanged 會再排一次，那時才放進格子。
+            -- 不記 slotOf：暴雪格線重排後的同步放回（Reapply）沒格子 ⇒ 照樣收著。
+            -- （暴雪自己藏著的 item 照舊走下面那條預先放進格子：一出現就在原位）
+            Park(item, rec)
         else
             ns.Viewers.EnsureScale(item, rec, key)
             item:ClearAllPoints()
@@ -606,7 +676,24 @@ local function Relayout(key, level, index, gen)
             end
             slotOf[e.id] = { key = key, x = r.x, y = r.y, w = r.w, h = r.h }
         end
-        if e.placeholder then
+        if e.placeholder and bar.kind == "bars" then
+            barUsed = barUsed + 1
+            local f = BarPlaceholder(key, barUsed)
+            local info = ns.Catalog.Info(e.id)
+            f:ClearAllPoints()
+            f:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
+            f:SetSize(r.w, r.h)
+            f.Icon.Icon:SetTexture((info and info.icon) or QUESTION)
+            ns.Decorate.ApplyPreview(f, key, e.id, r.w, r.h)
+            local spellID = info and (info.overrideSpellID or info.spellID)
+            local name = type(spellID) == "number" and C_Spell.GetSpellName(spellID) or nil
+            f.Bar.Name:SetText(name or "")
+            f.Bar.Duration:SetText("")
+            f.Icon.Applications:SetText("")
+            f.Bar:SetValue(0)
+            f:SetAlpha(alpha)
+            f:Show()
+        elseif e.placeholder then
             phUsed = phUsed + 1
             local f = Placeholder(key, phUsed)
             local info = ns.Catalog.Info(e.id)
@@ -622,7 +709,7 @@ local function Relayout(key, level, index, gen)
         -- 可點擊：這一格上面蓋 secure 鈕（簽章去重、走 ns.Write；沒有動作的格收起來）
         if clickable then ns.Clickable.Place(key, c, i, r, e) end
     end
-    ReleasePlaceholders(key, phUsed + 1)
+    ReleasePlaceholders(key, phUsed + 1, barUsed + 1)
     if ns.Clickable then
         if clickable then ns.Clickable.EndBar(key, #entries) else ns.Clickable.Release(key) end
     end

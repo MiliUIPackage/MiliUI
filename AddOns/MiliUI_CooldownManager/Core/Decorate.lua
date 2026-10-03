@@ -1094,6 +1094,12 @@ local function OnBarNameSetText(fs, text)
     nameGuard = false
 end
 
+local function OnActiveRelayout(item)
+    if ns.released then return end
+    local rec = ns.Viewers.frames[item]
+    if rec and ns.Bars and ns.Bars.RequestSource then ns.Bars.RequestSource(rec.barKey, "membership") end
+end
+
 function D.HookItem(item, rec)
     if rec.decoHooked then return end
     rec.decoHooked = true
@@ -1125,6 +1131,11 @@ function D.HookItem(item, rec)
     end
     if item.SetBarContent then
         hooksecurefunc(item, "SetBarContent", ns.Guard(OnSetBarContent))
+    end
+    -- 增益生效／失效：排版判「在不在」看 IsActive（Bars 的 AuraPresent），暴雪「未作用時隱藏」沒勾時
+    -- item 不會 Show／Hide，只有這個訊號 ⇒ 重排來源條（池化的框不換檢視器，rec.barKey 固定）
+    if not rec.custom and item.OnActiveStateChanged and ns.Viewers.AURA_KIND[rec.barKey] then
+        hooksecurefunc(item, "OnActiveStateChanged", ns.Guard(OnActiveRelayout))
     end
     local nameFS = not rec.custom and item.Bar and item.Bar.Name
     if nameFS and type(nameFS.SetText) == "function" then
