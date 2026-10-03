@@ -1,6 +1,7 @@
 ------------------------------------------------------------
 -- 自訂項目的資料路徑：Core/DB.lua 的新增／刪除（id 往前挪）／搬條／刪群組，
--- Core/Catalog.lua 的清單（排序、光環格固定前綴、隱藏、長條不收）與 Info（不進 TOC）
+-- Core/Catalog.lua 的清單（排序、光環格固定前綴、隱藏、長條也收）與 Info，
+-- Modules/Custom.lua 依條的 kind 取框（圖示框／長條框、光環持有框各一顆）、長條框的形狀、EndFlush（不進 TOC）
 --
 --   lua  AddOns/MiliUI_CooldownManager/Tests/Custom_test.lua
 --
@@ -146,7 +147,11 @@ eqList("暴雪清單上的法術移除：不顯示", vis, { "c:4", "c:1", "c:3",
 sp.hidden[12] = nil
 sp.hidden["c:3"] = nil
 DB.SetCustomBar("c:2", "buffbars")
-eqList("長條不收自訂項目", C.Bar("buffbars"), { 41 })
+eqList("長條也收自訂項目（接在暴雪的後面）", C.Bar("buffbars"), { 41, "c:2" })
+DB.SetCustomBar("c:1", "buffbars")
+eqList("長條上的光環格一樣拉到最前（固定前綴）", C.Bar("buffbars"), { "c:1", 41, "c:2" })
+check("長條 BarHasAuraSlot", C.BarHasAuraSlot("buffbars"))
+DB.SetCustomBar("c:1", "essential")
 DB.SetCustomBar("c:2", "essential")
 
 ------------------------------------------------------------
@@ -360,6 +365,226 @@ do
     eq("沒有替代品：不清武裝（讀不到冷卻時沿用）", plain.armedStart, 5)
     eq("沒有替代品：不 Invalidate", inval, 2)
     ns.Keybinds, ns.Clickable, ns.Bars, ns.SpellSetting = nil, nil, nil, savedSS
+end
+
+------------------------------------------------------------
+-- 11. 依條的 kind 取框：圖示框／長條框、光環持有框各一顆；長條框的形狀；EndFlush 不收長條
+--     （框是假的：任何方法都記帳、少數幾個回值；Decorate／Glow／Text 都 stub）
+------------------------------------------------------------
+do
+    -- 這幾個是框上的**欄位**（子框／區域），不是方法：沒設就是 nil（真的框也是）
+    local FIELDS = { Bar = true, Timer = true, Cooldown = true, ChargeCooldown = true, ChargeCount = true, Icon = true,
+                     Name = true, Duration = true, BarBG = true, Pip = true, Applications = true, Current = true,
+                     SpellActivationAlert = true, SetBarContent = true }
+    local function Obj(otype, parent)
+        local o = { otype = otype, parent = parent, shown = true, calls = {}, level = 1 }
+        setmetatable(o, { __index = function(t, k)
+            if FIELDS[k] or type(k) ~= "string" or not k:match("^%u") then return nil end
+            local fn = function(_, ...)
+                t.calls[k] = (t.calls[k] or 0) + 1
+                t["last_" .. k] = { ... }
+            end
+            rawset(t, k, fn)
+            return fn
+        end })
+        function o:Hide() self.shown = false end
+        function o:Show() self.shown = true end
+        function o:SetShown(v) self.shown = v and true or false end
+        function o:IsShown() return self.shown end
+        function o:SetParent(p2) self.parent = p2 end
+        function o:GetParent() return self.parent end
+        function o:GetFrameLevel() return self.level end
+        function o:SetFrameLevel(v) self.level = v end
+        function o:CreateTexture() return Obj("Texture", self) end
+        function o:CreateFontString() return Obj("FontString", self) end
+        function o:SetText(v) self.text = v end
+        o.hooks, o.scripts = {}, {}
+        function o:HookScript(ev, fn) self.hooks[ev] = fn end
+        function o:SetScript(ev, fn) self.scripts[ev] = fn end
+        if otype == "StatusBar" then
+            o.fill = Obj("Texture", o)
+            function o:GetStatusBarTexture() return self.fill end
+            function o:SetTimerDuration(d, _, dir)
+                if self.rejectZero and d and d.zero then error("rejected") end
+                self.timer = d; self.timerDir = dir
+            end
+        elseif otype == "Cooldown" then
+            o.countdown = Obj("FontString", o)
+            function o:GetCountdownFontString() return self.countdown end
+            function o:SetCooldownFromDurationObject(d) self.duo = d end
+            function o:Clear() self.duo = nil; self.cleared = (self.cleared or 0) + 1 end
+        elseif otype == "AuraContainer" then
+            function o:AddAuraSlot(key, filter, opts) self.slot = { key = key, filter = filter, opts = opts } end
+        end
+        return o
+    end
+    local savedCF, savedUI = env.CreateFrame, env.UIParent
+    env.CreateFrame = function(otype, _, parent) return Obj(otype, parent) end
+    env.UIParent = Obj("Frame")
+    function env.UIParent:GetEffectiveScale() return 1 end
+    env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
+    env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
+    local fakeDur = { name = "spellDur" }
+    env.C_Spell.GetSpellCooldownDuration = function() return fakeDur end
+    env.C_Spell.GetSpellCharges = function() return nil end
+    env.C_Spell.IsSpellUsable = function() return true end
+    env.C_Spell.SpellHasRange = function() return false end
+    env.C_Spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
+    env.C_DurationUtil = { CreateDuration = function()
+        local d = { zero = false }
+        function d:SetTimeFromStart(_, du) self.zero = (du == 0) end
+        return d
+    end }
+
+    local saved = { ns.Decorate, ns.Glow, ns.Keybinds, ns.Text, ns.Media, ns.Write, ns.Layout, ns.P, ns.Sound, ns.MiliUIGlow }
+    local applied, parked = {}, 0
+    ns.Decorate = {
+        Apply = function(f, rec, barKey) applied[#applied + 1] = { f = f, bar = barKey }; rec.decorated = "deco:" .. barKey end,
+        Resolve = function() return { bar = { showTime = true, timeSize = 14 }, font = "DEFAULT", outline = "" } end,
+        IconOverrideOf = function() return nil end,
+        StateAlphas = function() return 1, 1 end,
+    }
+    ns.Glow = { OnParked = function() parked = parked + 1 end, Sync = function() end, ArmProbe = function() end,
+                CooldownStarted = function() end, SetProcActive = function() end }
+    ns.Keybinds = { Apply = function() end, Invalidate = function() end }
+    ns.Text = { SetFont = function() end, Anchor = function(fs, rel, point, x, y) fs.anchor = { rel, point, x, y } end,
+                PixelScale = function() return 1 end, PlainFormatter = function(d) return { formatter = true, decimals = d } end }
+    ns.Media = { SetFont = function() end, Font = function(t) return "font:" .. tostring(t) end,
+                 ElementFont = function(own, gen) if own ~= nil and own ~= "INHERIT" then return own end return gen end,
+                 Texture = function(t) return "tex:" .. tostring(t) end }
+    ns.Write = function(frame, fn) fn(frame) return true end
+    ns.Layout = { Snap = function(v) return v end }
+    ns.P = { Scale = function(v) return v end }
+    ns.Sound = { RequestAuraSync = function() end }
+    ns.MiliUIGlow = nil
+
+    -- 本專精重來一份乾淨的清單：法術（會被覆寫成 501）＋光環
+    local list = DB.CustomList(true)
+    for i = #list, 1, -1 do list[i] = nil end
+    local iSpell = DB.AddCustom({ kind = "spell", spellID = 500, bar = "essential" })
+    local iAura = DB.AddCustom({ kind = "aura", spellID = 700, filter = "HELPFUL", placeholder = true, bar = "essential" })
+    CU.Sync()
+    local rec = CU.Get("c:" .. iSpell)
+    local arec = CU.Get("c:" .. iAura)
+    check("Sync 建 rec 但不建框（第一次放進那種條才建）", rec and rec.frame == nil and next(rec.frames) == nil)
+    eq("ShapeOf：核心是圖示", CU.ShapeOf("essential"), "icons")
+    eq("ShapeOf：增益長條是長條", CU.ShapeOf("buffbars"), "bars")
+
+    local cont1, cont2 = Obj("Frame"), Obj("Frame")
+    CU.Place(rec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 1)
+    local iconFrame = rec.frame
+    check("圖示類的條：圖示框（.Cooldown、沒有 .Bar）", iconFrame and iconFrame.Cooldown ~= nil and iconFrame.Bar == nil)
+    eq("圖示類的條：shape", rec.shape, "icons")
+    eq("圖示框掛在容器上", iconFrame:GetParent(), cont1)
+    check("圖示類：不擋發光", not rec.noGlow)
+    eq("圖示框吃法術冷卻", iconFrame.Cooldown.duo, fakeDur)
+
+    -- 有 overlay（Decorate 建的）時，搬條要把它帶到新框
+    rec.overlay = Obj("Frame", iconFrame)
+    CU.Place(rec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 2)
+    local barFrame = rec.frame
+    check("長條類的條：換成長條框", barFrame ~= iconFrame and barFrame.Bar ~= nil)
+    eq("長條類的條：shape", rec.shape, "bars")
+    check("長條框形狀：.Icon 是框、底下 .Icon 貼圖與 .Applications",
+        barFrame.Icon and barFrame.Icon.otype == "Frame" and barFrame.Icon.Icon and barFrame.Icon.Icon.otype == "Texture"
+        and barFrame.Icon.Applications and barFrame.Icon.Applications.otype == "FontString")
+    local b = barFrame.Bar
+    check("長條框形狀：.Bar 是 StatusBar，有 .Name／.Duration／.BarBG／.Pip＋ownPip",
+        b.otype == "StatusBar" and b.Name and b.Duration and b.BarBG and b.Pip and b.ownPip == true)
+    check("長條框形狀：秒數那顆 Cooldown（.Bar.Timer）", b.Timer and b.Timer.otype == "Cooldown")
+    eq("秒數 Cooldown 不畫轉圈", b.Timer.last_SetDrawSwipe and b.Timer.last_SetDrawSwipe[1], false)
+    eq("秒數 Cooldown 開倒數數字", b.Timer.last_SetHideCountdownNumbers and b.Timer.last_SetHideCountdownNumbers[1], false)
+    eq("秒數整數（毫秒門檻 0）", b.Timer.last_SetCountdownMillisecondsThreshold and b.Timer.last_SetCountdownMillisecondsThreshold[1], 0)
+    eq("舊的圖示框收起來", iconFrame.shown, false)
+    eq("overlay 搬到新框", rec.overlay:GetParent(), barFrame)
+    check("長條：擋發光（rec.noGlow）", rec.noGlow == true)
+    check("搬條：發光熄掉", parked >= 1)
+    eq("Decorate.Apply 套在長條框上", applied[#applied].f, barFrame)
+    eq("條身吃引擎的 duration 物件", b.timer, fakeDur)
+    eq("條身方向：剩餘時間", b.timerDir, env.Enum.StatusBarTimerDirection.RemainingTime)
+    eq("秒數吃同一顆物件", b.Timer.duo, fakeDur)
+    eq("名字寫法術名（覆寫後的）", b.Name.text, "法術501")
+    eq("秒數字樣排在條的右邊", b.Timer.countdown.anchor and b.Timer.countdown.anchor[2], "RIGHT")
+    eq("長條框掛在容器上", barFrame:GetParent(), cont2)
+
+    -- 搬回圖示類：同一顆圖示框（池化），長條框收起來
+    CU.Place(rec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 3)
+    eq("搬回圖示類：拿回同一顆圖示框", rec.frame, iconFrame)
+    eq("搬回圖示類：長條框收起來", barFrame.shown, false)
+    check("搬回圖示類：不再擋發光", not rec.noGlow)
+    eq("搬回圖示類：overlay 跟回來", rec.overlay:GetParent(), iconFrame)
+    CU.Place(rec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 4)
+    eq("再搬到長條：拿回同一顆長條框", rec.frame, barFrame)
+
+    -- 清掉條身：零長度物件被收 ⇒ "zero"；被拒 ⇒ 退回 SetValue(0)
+    CU.ClearBar(barFrame)
+    eq("清條：零長度物件", CU.clearPath, "zero")
+    check("清條：秒數 Cooldown 也清", (b.Timer.cleared or 0) >= 1)
+    b.rejectZero = true
+    CU.ClearBar(barFrame)
+    eq("清條：零長度被拒 ⇒ SetValue(0)", CU.clearPath, "value")
+    eq("清條：SetValue(0)", b.last_SetValue and b.last_SetValue[1], 0)
+    b.rejectZero = nil
+
+    -- 光環：長條的持有框＋容器；initializeFrame 走長條版
+    CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
+    local barHolder = arec.frame
+    check("光環在長條上：持有框（有容器池）", barHolder and type(barHolder.containers) == "table")
+    eq("光環在長條上：shape", arec.shape, "bars")
+    local c = arec.container
+    check("建了容器", c and c.otype == "AuraContainer" and c.slot ~= nil)
+    check("簽章帶長條的外觀", type(arec.sig) == "string" and arec.sig:find("|bars,", 1, true) ~= nil)
+    eq("容器在持有框上", c and c:GetParent(), barHolder)
+    eq("鏡像：rec.containers 是持有框的池", arec.containers, barHolder.containers)
+    check("占位：底色、圖示、灰名字", barHolder.phBG and barHolder.phBG.shown and barHolder.phIcon.shown
+        and barHolder.phName.text == "法術700")
+    -- 跑一次 initializeFrame（假按鈕）
+    local btn = Obj("Frame")
+    local got = {}
+    function btn:SetIcon(t) got.icon = t end
+    function btn:SetDurationBar(bar, opts) got.bar, got.barOpts = bar, opts end
+    function btn:SetDurationText(fs, opts) got.text, got.textOpts = fs, opts end
+    function btn:SetApplicationCount(...) got.countArgs = { n = select("#", ...), ... } end
+    arec.lastError = nil
+    c.slot.opts.initializeFrame(btn)
+    eq("initializeFrame 沒有錯誤", arec.lastError, nil)
+    check("長條：條交給 SetDurationBar", got.bar and got.bar.otype == "StatusBar")
+    eq("長條：剩餘時間方向", got.barOpts and got.barOpts.direction, env.Enum.StatusBarTimerDirection.RemainingTime)
+    check("長條：秒數交給 SetDurationText（整數 formatter）", got.text and got.textOpts and got.textOpts.textFormatter
+        and got.textOpts.textFormatter.decimals == 0)
+    check("長條：層數 SetApplicationCount(fs, {})（不給格式器）", got.countArgs and got.countArgs.n == 2
+        and type(got.countArgs[2]) == "table" and next(got.countArgs[2]) == nil)
+    check("長條：圖示交給 SetIcon", got.icon and got.icon.otype == "Texture")
+    check("長條：條身沒自己寫值", got.bar and got.bar.calls.SetValue == nil and got.bar.calls.SetMinMaxValues == nil)
+
+    -- 光環搬到圖示類：另一顆持有框、另一個容器池
+    CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 6)
+    check("光環搬到圖示類：換一顆持有框", arec.frame ~= barHolder)
+    eq("光環搬到圖示類：舊持有框收起來", barHolder.shown, false)
+    check("光環搬到圖示類：容器是新持有框的", arec.container ~= c and arec.container:GetParent() == arec.frame)
+    check("圖示版的簽章不帶長條", not arec.sig:find("|bars,", 1, true))
+    CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 7)
+    eq("光環搬回長條：同一顆持有框", arec.frame, barHolder)
+    eq("光環搬回長條：同簽章拿回同一個容器（不重建）", arec.container, c)
+
+    -- EndFlush：長條類的條上的不收；條不在了才收
+    CU.EndFlush()
+    eq("EndFlush：長條上的法術照放著", rec.placedBar, "buffbars")
+    eq("EndFlush：長條上的光環照放著", arec.placedBar, "buffbars")
+    rec.placedBar = "gone"
+    CU.EndFlush()
+    eq("EndFlush：條不在了 ⇒ 收", rec.placedBar, nil)
+    eq("EndFlush：收起來的框藏起來", barFrame.shown, false)
+
+    local n = CU.Counts()
+    check("Counts：容器數照持有框算", n.containers >= 2)
+    check("Counts：裝備欄種類不炸（slot 欄位在）", n.slot ~= nil)
+
+    for i = #list, 1, -1 do list[i] = nil end
+    CU.Sync()
+    env.CreateFrame, env.UIParent = savedCF, savedUI
+    ns.Decorate, ns.Glow, ns.Keybinds, ns.Text, ns.Media, ns.Write, ns.Layout, ns.P, ns.Sound, ns.MiliUIGlow =
+        saved[1], saved[2], saved[3], saved[4], saved[5], saved[6], saved[7], saved[8], saved[9], saved[10]
 end
 
 print(("Custom_test: %d passed, %d failed"):format(passed, failed))

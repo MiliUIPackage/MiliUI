@@ -519,5 +519,38 @@ do
     check("光環沒有主 ID ⇒ 壞", not V({ kind = "aura", spellIDs = { 32182 } }))
 end
 
+------------------------------------------------------------
+-- 長條類的條也列自訂項目（光環格照樣是固定前綴、順序覆寫照舊）
+------------------------------------------------------------
+do
+    local savedProfile = ns.profile
+    layoutString = "1|B64main2"
+    C.Refresh("custom-bars")
+    ns.profile = {
+        bars = {
+            essential = { source = "essential", kind = "icons" },
+            buffbars  = { source = "buffbars", kind = "bars" },
+            g2        = { source = "custom", kind = "bars" },
+        },
+        spells = {
+            [65] = {
+                custom = {
+                    { kind = "spell", spellID = 9000, bar = "buffbars" },
+                    { kind = "aura", spellID = 8000, filter = "HELPFUL", placeholder = true, bar = "buffbars" },
+                    { kind = "item", itemID = 241308, bar = "g2" },
+                    { kind = "slot", slot = 13, bar = "g2" },
+                    { kind = "aura", spellID = 8001, filter = "HELPFUL", placeholder = false, bar = "g2" },
+                },
+                order = { g2 = { "c:4", "c:3", "c:5" } },
+            },
+        },
+    }
+    eqList("增益長條：光環格在最前、暴雪的長條、自訂法術接在後", C.Bar("buffbars"), { "c:2", 401, "c:1" })
+    eqList("長條型自訂群組：物品／裝備欄照順序覆寫、光環格拉到最前", C.Bar("g2"), { "c:5", "c:4", "c:3" })
+    check("長條 BarHasAuraSlot（固定格位強制打開）", C.BarHasAuraSlot("buffbars") and C.BarHasAuraSlot("g2"))
+    eq("長條上的自訂項目 SourceOf ＝ 它的 bar", C.SourceOf("c:3"), "g2")
+    ns.profile = savedProfile
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

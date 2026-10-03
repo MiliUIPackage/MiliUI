@@ -58,6 +58,24 @@
 -- 光環格的**多法術**（e.spellIDs，嗜血那種「一格代表好幾個法術」）：includeSpellIDs 放全部，
 -- 簽章把整組排序後串進去；占位圖示、身分用主的。只收增益（減益照舊只看主的那一個）。
 -- 事件只標髒、下一幀一次更新全部（SPELL_UPDATE_COOLDOWN 很密）。
+--
+-- ── 放在長條類的條上（增益長條、長條型自訂群組：ns.Setting(條, "kind") == "bars"）────────────
+-- 同一個 rec、同一個身分 key，**框依條的種類換**：rec.frames = { icons = 圖示框, bars = 長條框 }，
+-- 第一次放進那種條才建（New 不建框），之後池化；搬條（圖示↔長條）時舊框收起來、overlay（Decorate 建的：
+-- 邊框、提示、發光宿主、按鍵文字的父框）搬到新框、樣式與武裝重來。光環格的持有框也是一種 kind 一顆，
+-- 容器池各自掛在自己的持有框上（h.containers）。
+--   長條框（NewBarFrame）的形狀照設定頁預覽的長條格：.Icon（Frame；.Icon 貼圖、.Applications 層數／數量）、
+--   .Bar（StatusBar；.Name／.Duration／.BarBG／.Pip＋ownPip）⇒ Decorate.Apply 的長條分支原封套上
+--   （高、圖示邊、間距、材質、顏色、底色、火花、名字字型、層數）。名字我們自己寫（明文的法術／物品名）。
+--   條身：StatusBar:SetTimerDuration(duration 物件, nil, RemainingTime)，用掉時滿、轉好時空，值與上限不經 Lua。
+--     法術吃 GetSpellCooldownDuration（有充能時吃 GetSpellChargeDuration：回充中就在跑），物品／裝備欄吃
+--     明文時自己 arm 的那顆（已 arm 的不重 arm）。清掉：先餵一顆零長度物件，不行才 SetValue(0)（待實機驗證）。
+--   秒數：條上另一顆 Cooldown 框（.Bar.Timer，不畫轉圈／邊緣／閃光，只開倒數數字、整數）吃同一顆物件，
+--     它的倒數 FontString 照「長條」節的秒數字型／字級排在條的右邊（.Bar.Duration 留空）。
+--   發光：長條不畫（rec.noGlow，Core/Glow.lua 的 Start 擋掉）；就緒音效照常（探針照武裝）。
+--   光環長條：initializeFrame 裡建整格寬的 StatusBar 交給 SetDurationBar（剩餘時間往下縮）、秒數交給
+--     SetDurationText（整數 formatter 先建好）、層數交給 SetApplicationCount(fs, {})、名字自己寫；
+--     長條的外觀全部進簽章。占位（placeholder）畫去飽和圖示＋空條＋灰名字在持有框上。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -88,6 +106,25 @@ local function Try(fn, ...)
     if not ok then return nil end
     return a, b, c, d, e
 end
+
+-- 這條要長條框還是圖示框（跟 Decorate.Apply 的 isBar 同一個判準）
+local function ShapeOf(barKey)
+    return (barKey ~= nil and ns.Setting and ns.Setting(barKey, "kind") == "bars") and "bars" or "icons"
+end
+CU.ShapeOf = ShapeOf
+
+-- 框上的圖示貼圖、數量／充能數字：長條框在 .Icon（Frame）底下，圖示框直接是 .Icon
+local function IconTex(f)
+    if not f then return nil end
+    if f.Bar then return f.Icon and f.Icon.Icon or nil end
+    return f.Icon
+end
+local function CountFS(f)
+    if not f then return nil end
+    if f.Bar then return f.Icon and f.Icon.Applications or nil end
+    return f.ChargeCount and f.ChargeCount.Current or nil
+end
+CU.IconTex, CU.CountFS = IconTex, CountFS
 
 -- 自訂圖示（逐法術覆寫 customIcon，Core/Decorate.lua 判讀）：沒設 ＝ nil
 local function IconOverride(rec)
@@ -228,6 +265,131 @@ local function NewIconFrame(rec)
 end
 
 ------------------------------------------------------------
+-- 法術／物品的長條框（放在長條類的條上）：形狀照設定頁預覽的長條格（Options/Preview.lua 的 NewBarCell），
+-- Decorate.Apply 的長條分支（ApplyBarGeometry／ApplyBarLook／Text.ApplyBar）原封套得上
+------------------------------------------------------------
+local function NewBarFrame(rec)
+    local f = CreateFrame("Frame", nil, UIParent)
+    f:SetSize(1, 1)
+    f:Hide()
+    local icon = CreateFrame("Frame", nil, f)
+    icon.Icon = icon:CreateTexture(nil, "ARTWORK")
+    icon.Icon:SetAllPoints()
+    icon.Applications = icon:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(icon.Applications, 12, "OUTLINE")   -- 先有字型才能 SetText（樣式之後由 Text.ApplyBar 套）
+    f.Icon = icon
+    local bar = CreateFrame("StatusBar", nil, f)
+    bar:SetStatusBarTexture(WHITE)
+    bar:SetMinMaxValues(0, 1)                           -- 起始值：之後由 SetTimerDuration 的引擎接手
+    bar:SetValue(0)
+    bar.BarBG = bar:CreateTexture(nil, "BACKGROUND")
+    bar.Name = bar:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(bar.Name, 12, "OUTLINE")
+    bar.Duration = bar:CreateFontString(nil, "OVERLAY")   -- 留空：秒數是下面那顆 Cooldown 的倒數數字
+    ns.Media.SetFont(bar.Duration, 12, "OUTLINE")
+    -- 火花：填充末端一條 2px 亮線，錨點與顯示由 Decorate 的 ApplyBarLook 管（ownPip）
+    bar.Pip = bar:CreateTexture(nil, "OVERLAY")
+    bar.Pip:SetTexture(WHITE)
+    bar.Pip:SetVertexColor(1, 1, 1, 0.9)
+    bar.Pip:SetWidth(2)
+    bar.Pip:SetAlpha(0)
+    bar.ownPip = true
+    -- 秒數：只開倒數數字的 Cooldown（引擎寫字；整數，跟暴雪的長條一致）
+    local ok, cd = pcall(CreateFrame, "Cooldown", nil, bar, "CooldownFrameTemplate")
+    if ok and cd then
+        cd:SetAllPoints(bar)
+        if cd.SetDrawSwipe then cd:SetDrawSwipe(false) end
+        if cd.SetDrawEdge then cd:SetDrawEdge(false) end
+        if cd.SetDrawBling then cd:SetDrawBling(false) end
+        if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(false) end
+        if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
+        -- 自己的框，隨便掛：轉完要重算去飽和／數量
+        cd:SetScript("OnCooldownDone", function() CU.MarkDirty() end)
+        bar.Timer = cd
+    end
+    f.Bar = bar
+    return f
+end
+CU.NewBarFrame = NewBarFrame          -- 測試用
+
+-- 條身：引擎依 duration 物件往下縮（值、上限都不經 Lua）；秒數那顆 Cooldown 吃同一顆物件
+local function RemainingDir()
+    local E = Enum and Enum.StatusBarTimerDirection
+    return E and E.RemainingTime or nil
+end
+
+local function FeedBar(f, dur)
+    local b = f and f.Bar
+    if not (b and dur) then return false end
+    local ok = b.SetTimerDuration and pcall(b.SetTimerDuration, b, dur, nil, RemainingDir()) or false
+    local t = b.Timer
+    if t and t.SetCooldownFromDurationObject then pcall(t.SetCooldownFromDurationObject, t, dur, true) end
+    return ok and true or false
+end
+
+-- 清掉（冷卻轉好／物品換了／沒學會）：先餵一顆零長度物件；不收就退回 SetValue(0)。
+-- 走了哪一條記在 CU.clearPath（"zero"｜"value"），哪一條真的會把條清空待實機驗證
+local zeroDuo
+local function ZeroDuration()
+    if zeroDuo == nil then
+        zeroDuo = false
+        local U = C_DurationUtil
+        if U and U.CreateDuration then
+            local ok, d = pcall(U.CreateDuration)
+            if ok and d then
+                if d.SetTimeFromStart then pcall(d.SetTimeFromStart, d, 0, 0) end
+                zeroDuo = d
+            end
+        end
+    end
+    return zeroDuo or nil
+end
+
+local function ClearBar(f)
+    local b = f and f.Bar
+    if not b then return end
+    if b.Timer and b.Timer.Clear then b.Timer:Clear() end
+    local z = ZeroDuration()
+    if z and b.SetTimerDuration and pcall(b.SetTimerDuration, b, z, nil, RemainingDir()) then
+        CU.clearPath = "zero"
+        return
+    end
+    pcall(b.SetMinMaxValues, b, 0, 1)
+    pcall(b.SetValue, b, 0)
+    CU.clearPath = "value"
+end
+CU.FeedBar, CU.ClearBar = FeedBar, ClearBar     -- 測試用
+
+-- 框上的冷卻：圖示框轉圈、長條框條身＋秒數
+local function FeedCooldown(f, dur)
+    if f.Bar then return FeedBar(f, dur) end
+    if f.Cooldown then return pcall(f.Cooldown.SetCooldownFromDurationObject, f.Cooldown, dur, true) end
+    return false
+end
+
+local function ClearCooldown(f)
+    if f.Bar then ClearBar(f) return end
+    if f.Cooldown then f.Cooldown:Clear() end
+end
+
+-- 長條上的名字（明文：法術／物品名）；變了才寫
+local function SetBarName(rec, f, name)
+    local fs = f and f.Bar and f.Bar.Name
+    if not fs then return end
+    name = name or ""
+    if rec.barName == name then return end
+    rec.barName = name
+    fs:SetText(name)
+end
+
+local function ItemName(rec, itemID)
+    local n = itemID and Plain(Try(C_Item and C_Item.GetItemNameByID, itemID))
+    if n then return n end
+    if rec.kind == "slot" and ns.Catalog.SlotName then return ns.Catalog.SlotName(rec.slot) end
+    return itemID and ("#" .. tostring(itemID)) or ""
+end
+
+------------------------------------------------------------
 -- 自訂法術的超出距離／不可用上色（跟暴雪核心／輔助 item 的 RefreshIconColor 同一套判法與顏色）
 --
 --   CU.ColorState(outOfRange, usable, noMana) → "range"｜"usable"｜"noMana"｜"unusable"   純函式
@@ -279,12 +441,12 @@ function CU.StateColor(state)
 end
 
 local function ApplyIconColor(rec)
-    local f = rec.frame
-    if not (f and f.Icon) then return end
+    local tex = IconTex(rec.frame)
+    if not tex then return end
     local state = rec.colorState or "usable"
     if rec.colorApplied == state then return end
     rec.colorApplied = state
-    f.Icon:SetVertexColor(CU.StateColor(state))
+    tex:SetVertexColor(CU.StateColor(state))
 end
 
 -- 距離檢查：哪些法術是我們開的（id → 筆數；同一個法術匯入重複時會有兩筆）
@@ -388,9 +550,12 @@ local function UpdateSpell(rec)
     local ov = Plain(Try(C_Spell and C_Spell.GetOverrideSpell, base))
     rec.overrideID = (type(ov) == "number" and ov ~= base) and ov or nil
     local id = rec.overrideID or base
+    local icon = IconTex(f)
+    local isBar = f.Bar ~= nil
     -- 自訂圖示（逐法術覆寫 customIcon）優先；未學會照舊問號
     local tex = known and (IconOverride(rec) or Plain(Try(C_Spell and C_Spell.GetSpellTexture, id))) or QUESTION
-    if rec.tex ~= tex then f.Icon:SetTexture(tex); rec.tex = tex end
+    if rec.tex ~= tex then icon:SetTexture(tex); rec.tex = tex end
+    if isBar then SetBarName(rec, f, Plain(Try(C_Spell and C_Spell.GetSpellName, id)) or ("#" .. tostring(id))) end
 
     -- 冷卻：引擎給的 duration 物件（ignoreGCD ⇒ GCD 不會進來）
     local dur = known and Try(C_Spell and C_Spell.GetSpellCooldownDuration, id, true) or nil
@@ -402,9 +567,10 @@ local function UpdateSpell(rec)
 
     -- 充能：回充畫邊緣、數字讀得到就寫、讀不到交給引擎格式化
     local cur = known and SpellCharges(rec, id) or nil
-    local fs = f.ChargeCount and f.ChargeCount.Current
+    local fs = CountFS(f)
+    local cdur
     if rec.isCharge and known then
-        local cdur = Try(C_Spell and C_Spell.GetSpellChargeDuration, id)
+        cdur = Try(C_Spell and C_Spell.GetSpellChargeDuration, id)
         if f.ChargeCooldown then
             if cdur then pcall(f.ChargeCooldown.SetCooldownFromDurationObject, f.ChargeCooldown, cdur, true)
             else f.ChargeCooldown:Clear() end
@@ -425,18 +591,25 @@ local function UpdateSpell(rec)
         if fs then fs:SetText("") end
     end
 
+    -- 長條：條身＋秒數。充能法術吃回充（有充能、沒轉滿時也在跑），其他吃技能冷卻；
+    -- 轉好＝剩餘 0 ＝空條（列一直在，跟圖示一樣）。物件是引擎給的，每次更新照餵（不讀）
+    if isBar then
+        local bd = (rec.isCharge and known and cdur) or dur
+        if bd then FeedBar(f, bd) else ClearBar(f) end
+    end
+
     -- 去飽和：剩餘 > 0 ⇒ 1（引擎求值，秘密值照樣成立）
     local want = ns.SpellSetting(rec.bar, rec.cooldownID, "desaturate")
     if not known then
-        f.Icon:SetDesaturation(1)
+        icon:SetDesaturation(1)
     elseif want == false or not dur then
-        f.Icon:SetDesaturation(0)
+        icon:SetDesaturation(0)
     else
         local curve = DesatCurve()
         local ok, v = false, nil
         if curve then ok, v = pcall(dur.EvaluateRemainingDuration, dur, curve) end
         -- 秘密值連跟 nil 比都會拋錯：先問是不是秘密值
-        if ok and (ns.IsSecret(v) or v ~= nil) then pcall(f.Icon.SetDesaturation, f.Icon, v) else f.Icon:SetDesaturation(0) end
+        if ok and (ns.IsSecret(v) or v ~= nil) then pcall(icon.SetDesaturation, icon, v) else icon:SetDesaturation(0) end
     end
 
     if ns.Glow and dur then ns.Glow.ArmProbe(rec, dur) end
@@ -460,15 +633,17 @@ end
 -- 裝備欄位：空格的圖與去飽和，沒有冷卻可讀
 local function UpdateEmptySlot(rec)
     local f = rec.frame
+    local icon = IconTex(f)
     local info = ns.Catalog.Info(rec.cooldownID)
     local tex = (info and info.icon) or QUESTION
-    if rec.tex ~= tex then f.Icon:SetTexture(tex); rec.tex = tex end
-    if rec.armedStart and f.Cooldown then f.Cooldown:Clear() end
+    if rec.tex ~= tex then icon:SetTexture(tex); rec.tex = tex end
+    if f.Bar then SetBarName(rec, f, (info and info.name) or ItemName(rec, nil)) end
+    if rec.armedStart then ClearCooldown(f) end
     rec.armedStart, rec.armedDur = nil, nil
     rec.cdOnCD = nil                               -- 空格沒有冷卻可判：冷卻狀態效果不套
-    local fs = f.ChargeCount and f.ChargeCount.Current
+    local fs = CountFS(f)
     if fs then fs:SetText("") end
-    f.Icon:SetDesaturation(1)
+    icon:SetDesaturation(1)
 end
 
 local function UpdateItem(rec, placing)
@@ -479,7 +654,7 @@ local function UpdateItem(rec, placing)
         if itemID ~= rec.itemID then
             rec.itemID = itemID
             rec.armedStart, rec.armedDur = nil, nil
-            if f.Cooldown then f.Cooldown:Clear() end
+            ClearCooldown(f)
             if ns.Keybinds and ns.Keybinds.Invalidate then ns.Keybinds.Invalidate() end
         end
         if not itemID then return UpdateEmptySlot(rec) end
@@ -489,7 +664,7 @@ local function UpdateItem(rec, placing)
         if itemID ~= rec.itemID then
             rec.itemID = itemID
             rec.armedStart, rec.armedDur = nil, nil
-            if f.Cooldown then f.Cooldown:Clear() end
+            ClearCooldown(f)
             if ns.Keybinds and ns.Keybinds.Invalidate then ns.Keybinds.Invalidate() end
             -- 可點擊的條：鈕的 item 屬性跟著換（Place 途中換的那次，同一輪的 Clickable.Place 就會讀到新值）
             local bar = rec.placedBar
@@ -499,9 +674,11 @@ local function UpdateItem(rec, placing)
         end
     end
     local itemID = rec.itemID
+    local icon = IconTex(f)
     local tex = IconOverride(rec) or Plain(Try(C_Item and C_Item.GetItemIconByID, itemID))
         or Plain(select(5, Try(C_Item and C_Item.GetItemInfoInstant, itemID))) or QUESTION
-    if rec.tex ~= tex then f.Icon:SetTexture(tex); rec.tex = tex end
+    if rec.tex ~= tex then icon:SetTexture(tex); rec.tex = tex end
+    if f.Bar then SetBarName(rec, f, ItemName(rec, itemID)) end
 
     local start, duration, enable = ItemCooldown(itemID)
     local s, d = Plain(start), Plain(duration)
@@ -513,8 +690,9 @@ local function UpdateItem(rec, placing)
             if rec.armedStart ~= s or rec.armedDur ~= d then
                 rec.armedStart, rec.armedDur = s, d
                 rec.duo = rec.duo or (C_DurationUtil and C_DurationUtil.CreateDuration and Try(C_DurationUtil.CreateDuration))
-                if rec.duo and pcall(rec.duo.SetTimeFromStart, rec.duo, s, d) and f.Cooldown then
-                    pcall(f.Cooldown.SetCooldownFromDurationObject, f.Cooldown, rec.duo, true)
+                -- 圖示框：轉圈；長條框：條身＋秒數（同一顆物件，已 arm 的不重 arm）
+                if rec.duo and pcall(rec.duo.SetTimeFromStart, rec.duo, s, d) and (f.Cooldown or f.Bar) then
+                    FeedCooldown(f, rec.duo)
                     if ns.Glow then
                         ns.Glow.CooldownStarted(rec)
                         ns.Glow.ArmProbe(rec, rec.duo)
@@ -522,7 +700,7 @@ local function UpdateItem(rec, placing)
                 end
             end
         else
-            if rec.armedStart and f.Cooldown then f.Cooldown:Clear() end
+            if rec.armedStart then ClearCooldown(f) end
             rec.armedStart, rec.armedDur = nil, nil
         end
     else
@@ -532,7 +710,7 @@ local function UpdateItem(rec, placing)
     rec.cdOnCD = onCD                              -- 冷卻狀態效果讀這個（明文布林）
 
     local count = Plain(Try(C_Item and C_Item.GetItemCount, itemID, false, true))
-    local fs = f.ChargeCount and f.ChargeCount.Current
+    local fs = CountFS(f)
     local consumable = Try(C_Item and C_Item.IsConsumableItem, itemID)
     if fs then
         if type(count) == "number" and (Plain(consumable) or count ~= 1) then
@@ -543,8 +721,27 @@ local function UpdateItem(rec, placing)
     end
     local want = ns.SpellSetting(rec.bar, rec.cooldownID, "desaturate")
     local desat = (count == 0) or disabled or (onCD and want ~= false)
-    f.Icon:SetDesaturation(desat and 1 or 0)
+    icon:SetDesaturation(desat and 1 or 0)
 end
+
+-- 長條框的秒數（.Bar.Timer 的倒數數字）：照「長條」節的秒數字型／字級排在條的右邊，跟 Text.ApplyBar
+-- 對 .Bar.Duration 做的一樣（錨點 RIGHT -4、像素字型）；顯示與否照「顯示秒數」與逐法術「隱藏倒數」
+local function StyleBarTimer(rec, f, barKey)
+    local cd = f.Bar and f.Bar.Timer
+    if not (cd and cd.GetCountdownFontString) then return end
+    local style = ns.Decorate.Resolve(barKey)
+    local bar = type(style.bar) == "table" and style.bar or {}
+    local hide = not bar.showTime or ns.SpellSetting(barKey, rec.cooldownID, "hideCooldownText") and true or false
+    if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(hide) end
+    if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
+    local fs = cd:GetCountdownFontString()
+    if not fs then return end
+    ns.Text.SetFont(fs, bar.timeSize or 12, style.outline, ns.Media.ElementFont(bar.timeFont, style.font))
+    fs:SetTextColor(1, 1, 1, 1)
+    ns.Text.Anchor(fs, f.Bar, "RIGHT", -4, 0)
+    if fs.SetJustifyH then fs:SetJustifyH("RIGHT") end
+end
+CU.StyleBarTimer = StyleBarTimer      -- 測試用
 
 function CU.Update(rec, placing)
     if not (rec.frame and rec.placedBar) then return end
@@ -666,7 +863,8 @@ local function Kick(c)
     if c.SetEnabled then pcall(c.SetEnabled, c, true) end
 end
 
-local function OnHolderShow(rec)
+local function OnHolderShow(rec, h)
+    if h and rec.frame ~= h then return end         -- 搬條收起來的那顆（另一種 kind 的持有框）
     local c = rec.container
     if not c or not rec.placedBar then return end
     if InCombatLockdown() then
@@ -687,8 +885,11 @@ local function NewHolder(rec)
     ph:SetAllPoints()
     ph:Hide()
     h.placeholder = ph
+    -- 容器池掛在持有框上（一種 kind 一顆持有框、各自的池）
+    h.containers = {}
+    h.container, h.sig = nil, nil
     -- 掛勾裡只記帳（容器層的 Show 可能在別人的流程裡），工作丟到下一幀
-    h:HookScript("OnShow", function() ns.Defer(OnHolderShow, rec) end)
+    h:HookScript("OnShow", function() ns.Defer(OnHolderShow, rec, h) end)
     return h
 end
 
@@ -725,7 +926,8 @@ end
 
 local GLOW_TYPES = { pixel = true, autocast = true, button = true, proc = true }
 
-local function AuraStyle(rec, barKey, w, h)
+-- shape ＝ "bars"：長條的外觀（ApplyBarGeometry／ApplyBarLook／Text.ApplyBar 讀的那幾格）也解進來、進簽章
+local function AuraStyle(rec, barKey, w, h, shape)
     local S, SS, id = ns.Setting, ns.SpellSetting, rec.cooldownID
     local border = S(barKey, "border") or {}
     local cdT = S(barKey, "cooldownText") or {}
@@ -754,7 +956,38 @@ local function AuraStyle(rec, barKey, w, h)
         stPoint  = stT.point or "TOP", stX = tonumber(stT.x) or 0, stY = tonumber(stT.y) or 0,
     }
     local function C(c) return string.format("%.3f,%.3f,%.3f,%.3f", c[1], c[2], c[3], c[4]) end
-    -- 生效發光：開著而且知道格子尺寸才畫；關著時不進簽章（尺寸變了不必換容器）
+    -- 長條：圖示一邊留 h×h、其餘是條身（照 Decorate.ApplyBarGeometry）；字型、顏色、開關全部解成純數字
+    local barSig
+    if shape == "bars" then
+        local bar = S(barKey, "bar")
+        bar = type(bar) == "table" and bar or {}
+        local font = S(barKey, "font")
+        local side = bar.iconSide
+        if side ~= "RIGHT" and side ~= "NONE" then side = "LEFT" end
+        st.shape     = "bars"
+        st.bh        = tonumber(h) or tonumber(bar.height) or 20
+        st.side      = side
+        st.bgap      = ns.Layout.Snap(tonumber(bar.iconGap) or 0)
+        st.btex      = ns.Media.Texture(bar.texture)
+        st.bfill     = RGBA(bar.color, 0.4, 0.6, 0.9, 1)
+        st.bbg       = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
+        st.spark     = bar.spark and true or false
+        st.nameFont  = ns.Media.Font(ns.Media.ElementFont(bar.nameFont, font))
+        st.nameSize  = tonumber(bar.nameSize) or 12
+        st.timeFont  = ns.Media.Font(ns.Media.ElementFont(bar.timeFont, font))
+        st.timeSize  = tonumber(bar.timeSize) or 12
+        st.barStack  = tonumber(bar.stackSize) or tonumber(stT.size) or 12
+        st.showName  = bar.showName and true or false
+        st.showTime  = bar.showTime and true or false
+        st.showStacks = bar.showStacks and true or false
+        st.name      = Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or ""
+        barSig = table.concat({ "bars", string.format("%.2f,%.2f", st.bh, st.bgap), st.side, st.btex, C(st.bfill), C(st.bbg),
+            tostring(st.spark), st.nameFont, st.nameSize, st.timeFont, st.timeSize, st.barStack,
+            tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name }, ",")
+    end
+    -- 生效發光：開著而且知道格子尺寸才畫；關著時不進簽章（尺寸變了不必換容器）。
+    -- 長條畫在圖示那一格（h×h）；沒有圖示（NONE）時畫整格
+    if shape == "bars" and st.side ~= "NONE" then w = h end
     local glowSig = "-"
     if SS(barKey, id, "activeGlow") and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
         local g = S(barKey, "glow.active")
@@ -782,16 +1015,59 @@ local function AuraStyle(rec, barKey, w, h)
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
         st.stPoint, st.stX, st.stY, glowSig,
     }, "|")
+    if barSig then st.sig = st.sig .. "|" .. barSig end
     return st
 end
+CU.AuraStyle = AuraStyle              -- 測試用
 
 -- 物件（formatter、曲線、列舉值）在容器建立前先解好：initializeFrame 裡一次 CreateColor 都不做
 local function Warm(st)
-    st.formatter = ns.Text.PlainFormatter(st.decimals)
-    if st.lowBelow > 0 then st.colorCurve = ColorCurve(st.lowBelow, st.lowColor, st.cdColor) end
+    if st.shape == "bars" then
+        -- 長條的秒數：整數（跟暴雪的長條一致），不做低秒變色
+        st.formatter = ns.Text.PlainFormatter(0)
+        local SB = Enum and Enum.StatusBarTimerDirection
+        st.remaining = SB and SB.RemainingTime or nil
+        local IP = Enum and Enum.StatusBarInterpolation
+        st.interp = IP and IP.Immediate or nil
+    else
+        st.formatter = ns.Text.PlainFormatter(st.decimals)
+        if st.lowBelow > 0 then st.colorCurve = ColorCurve(st.lowBelow, st.lowColor, st.cdColor) end
+    end
     local P = Enum and Enum.DurationTextBindingProperty
     st.remainingProp = P and P.RemainingDuration or 0
     st.inset = (st.bsize > 0) and ns.P.Scale(st.bsize) or 0
+end
+
+-- 生效發光（只能從 initializeFrame 呼叫）：按鈕底下自己的子框，圍住 anchor；尺寸用 gl 給的、不讀
+local function AttachGlow(btn, anchor, gl, level, rec)
+    local LCG = ns.MiliUIGlow
+    if not (gl and LCG and LCG.PixelGlow_Attach) then return end
+    local f = CreateFrame("Frame", nil, btn)
+    f:SetFrameLevel(level)
+    local gw, gh = gl.w, gl.h
+    if gl.type == "button" or gl.type == "proc" then
+        -- 這兩種畫成格子的 1.4 倍（跟 Start 系列一樣）
+        local dx, dy = gw * 0.2, gh * 0.2
+        f:SetPoint("TOPLEFT", anchor, "TOPLEFT", -dx, dy)
+        f:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", dx, -dy)
+        gw, gh = gw * 1.4, gh * 1.4
+    else
+        f:SetAllPoints(anchor)
+    end
+    f:Show()
+    local anim
+    if gl.type == "autocast" then
+        LCG.AutoCastGlow_Attach(f, gl.color, gl.lines, gl.frequency, 1, gw, gh)
+    elseif gl.type == "button" then
+        anim = LCG.ButtonGlow_Attach(f, gl.color, gl.frequency, gw, gh)
+    elseif gl.type == "proc" then
+        anim = LCG.ProcGlow_Attach(f, gl.color, 1, gw, gh)
+    else
+        LCG.PixelGlow_Attach(f, gl.color, gl.lines, gl.frequency, nil, gl.thickness, gw, gh)
+    end
+    -- 入場動畫：交給引擎在光環出現時播（我們不 Play）
+    if anim and btn.AddAuraShownAnimation then pcall(btn.AddAuraShownAnimation, btn, anim) end
+    rec.glowAttached = (rec.glowAttached or 0) + 1
 end
 
 -- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。不 CreateColor、不掛 script、顏色純數字
@@ -865,38 +1141,126 @@ local function InitAuraButton(btn, c, st, rec)
     end
 
     -- 生效發光：按鈕底下自己的子框（只在這個視窗內建得了），尺寸用 st 給的、不讀
-    local gl = st.glow
-    local LCG = ns.MiliUIGlow
-    if gl and LCG and LCG.PixelGlow_Attach then
-        local f = CreateFrame("Frame", nil, btn)
-        f:SetFrameLevel((ov:GetFrameLevel() or 1) + 1)
-        local gw, gh = gl.w, gl.h
-        if gl.type == "button" or gl.type == "proc" then
-            -- 這兩種畫成按鈕的 1.4 倍（跟 Start 系列一樣）
-            local dx, dy = gw * 0.2, gh * 0.2
-            f:SetPoint("TOPLEFT", btn, "TOPLEFT", -dx, dy)
-            f:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", dx, -dy)
-            gw, gh = gw * 1.4, gh * 1.4
-        else
-            f:SetAllPoints(btn)
-        end
-        f:Show()
-        local anim
-        if gl.type == "autocast" then
-            LCG.AutoCastGlow_Attach(f, gl.color, gl.lines, gl.frequency, 1, gw, gh)
-        elseif gl.type == "button" then
-            anim = LCG.ButtonGlow_Attach(f, gl.color, gl.frequency, gw, gh)
-        elseif gl.type == "proc" then
-            anim = LCG.ProcGlow_Attach(f, gl.color, 1, gw, gh)
-        else
-            LCG.PixelGlow_Attach(f, gl.color, gl.lines, gl.frequency, nil, gl.thickness, gw, gh)
-        end
-        -- 入場動畫：交給引擎在光環出現時播（我們不 Play）
-        if anim and btn.AddAuraShownAnimation then pcall(btn.AddAuraShownAnimation, btn, anim) end
-        rec.glowAttached = (rec.glowAttached or 0) + 1
-    end
+    AttachGlow(btn, btn, st.glow, (ov:GetFrameLevel() or 1) + 1, rec)
     rec.inits = (rec.inits or 0) + 1
 end
+
+-- 1px 邊（四條純色細條，跟圖示版的光環格同一套）：畫在 parent 上、圍住 region
+local function Edges(parent, region, t, bc)
+    local function Edge()
+        local e = parent:CreateTexture(nil, "OVERLAY", nil, 7)
+        e:SetColorTexture(bc[1], bc[2], bc[3], bc[4])
+        return e
+    end
+    local top, bottom, left, right = Edge(), Edge(), Edge(), Edge()
+    top:SetPoint("TOPLEFT", region, "TOPLEFT", 0, 0); top:SetPoint("TOPRIGHT", region, "TOPRIGHT", 0, 0); top:SetHeight(t)
+    bottom:SetPoint("BOTTOMLEFT", region, "BOTTOMLEFT", 0, 0); bottom:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", 0, 0); bottom:SetHeight(t)
+    left:SetPoint("TOPLEFT", region, "TOPLEFT", 0, -t); left:SetPoint("BOTTOMLEFT", region, "BOTTOMLEFT", 0, t); left:SetWidth(t)
+    right:SetPoint("TOPRIGHT", region, "TOPRIGHT", 0, -t); right:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", 0, t); right:SetWidth(t)
+end
+
+-- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。光環長條：圖示（h×h，條的「長條」節決定在哪一邊）＋
+-- 整格寬的 StatusBar 交給 SetDurationBar（剩餘時間往下縮，值與上限都不經 Lua）＋秒數 SetDurationText＋
+-- 層數 SetApplicationCount（**不給格式器**）＋名字（明文，自己寫）。不 CreateColor、不掛 script、顏色純數字、
+-- 尺寸全部來自 st（不從按鈕讀）
+local function InitAuraBarButton(btn, c, st, rec)
+    pcall(btn.SetMouseClickEnabled, btn, false)
+    pcall(btn.SetMouseMotionEnabled, btn, true)          -- 讓暴雪自己的光環提示照常出現
+    pcall(function()
+        btn:ClearAllPoints()
+        btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout
+    end)
+    local H, gap, side, s = st.bh, st.bgap, st.side, st.scale
+
+    local icon = btn:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(H, H)
+    if side == "RIGHT" then icon:SetPoint("RIGHT", btn, "RIGHT", 0, 0) else icon:SetPoint("LEFT", btn, "LEFT", 0, 0) end
+    local z = st.zoom
+    icon:SetTexCoord(z, 1 - z, z, 1 - z)
+    if side == "NONE" then icon:SetAlpha(0) end
+    btn:SetIcon(icon)
+
+    local bar = CreateFrame("StatusBar", nil, btn)
+    if side == "RIGHT" then
+        bar:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+        bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -(H + gap), 0)
+    elseif side == "NONE" then
+        bar:SetAllPoints(btn)
+    else
+        bar:SetPoint("TOPLEFT", btn, "TOPLEFT", H + gap, 0)
+        bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+    end
+    bar:SetStatusBarTexture(st.btex)
+    local fill = bar:GetStatusBarTexture()
+    if fill then fill:SetVertexColor(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4]) end
+    local bg = bar:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(bar)
+    bg:SetTexture(WHITE)
+    bg:SetVertexColor(st.bbg[1], st.bbg[2], st.bbg[3], st.bbg[4])
+    if st.spark and fill then
+        local pip = bar:CreateTexture(nil, "OVERLAY")
+        pip:SetTexture(WHITE)
+        pip:SetVertexColor(1, 1, 1, 0.9)
+        pip:SetWidth(2)
+        pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
+        pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
+    end
+    -- 不自己 SetMinMaxValues／SetValue：剩餘時間由引擎寫（CustomAuraButtonDurationBarOptions：interpolation、direction）
+    local opts = {}
+    if st.remaining then opts.direction = st.remaining end
+    if st.interp then opts.interpolation = st.interp end
+    btn:SetDurationBar(bar, opts)
+
+    local ov = CreateFrame("Frame", nil, btn)
+    ov:SetAllPoints(btn)
+    ov:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
+    local t = st.inset
+    if t > 0 then
+        if side ~= "NONE" then Edges(ov, icon, t, st.bcolor) end
+        Edges(ov, bar, t, st.bcolor)
+    end
+
+    -- 名字：主法術的名字（明文），按鈕只在光環存在時顯示 ⇒ 名字跟著出現
+    if st.showName and st.name ~= "" then
+        local fs = ov:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(st.nameFont, st.nameSize * s, st.outline)
+        pcall(fs.SetIgnoreParentScale, fs, true)
+        fs:SetTextColor(1, 1, 1, 1)
+        fs:SetPoint("LEFT", bar, "LEFT", 4 * s, 0)
+        fs:SetPoint("RIGHT", bar, "RIGHT", -(st.timeSize * 3) * s, 0)
+        fs:SetJustifyH("LEFT")
+        pcall(fs.SetWordWrap, fs, false)
+        fs:SetText(st.name)
+    end
+
+    -- 秒數：引擎寫（整數 formatter 在容器建立前建好）；失敗只丟文字、不丟條
+    if st.showTime and not st.hideCD and btn.SetDurationText then
+        local fs = ov:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(st.timeFont, st.timeSize * s, st.outline)
+        pcall(fs.SetIgnoreParentScale, fs, true)
+        fs:SetTextColor(1, 1, 1, 1)
+        fs:SetJustifyH("RIGHT")
+        fs:SetPoint("RIGHT", bar, "RIGHT", -4 * s, 0)
+        if not (st.formatter and pcall(btn.SetDurationText, btn, fs, { textFormatter = st.formatter })) then
+            pcall(btn.SetDurationText, btn, fs)
+        end
+    end
+
+    -- 層數：圖示右下（照 Text.ApplyBar：BOTTOMRIGHT -1, 1 ＋層數的 X／Y 位移）。**絕不傳 formatter**
+    if st.showStacks and not st.hideStack and side ~= "NONE" and btn.SetApplicationCount then
+        local fs = ov:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(st.stFont, st.barStack * s, st.outline)
+        pcall(fs.SetIgnoreParentScale, fs, true)
+        fs:SetTextColor(st.stColor[1], st.stColor[2], st.stColor[3], st.stColor[4])
+        fs:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", (-1 + st.stX) * s, (1 + st.stY) * s)
+        pcall(btn.SetApplicationCount, btn, fs, {})
+    end
+
+    -- 生效發光：圖示那一格（沒有圖示時整格）
+    AttachGlow(btn, side ~= "NONE" and icon or btn, st.glow, (ov:GetFrameLevel() or 1) + 1, rec)
+    rec.inits = (rec.inits or 0) + 1
+end
+CU.InitAuraBarButton = InitAuraBarButton      -- 測試用
 
 local function BuildContainer(rec, st)
     local h = rec.frame
@@ -911,10 +1275,11 @@ local function BuildContainer(rec, st)
     end
     local include = {}
     for _, id in ipairs(st.ids or { rec.spellID }) do include[id] = true end
+    local init = (st.shape == "bars") and InitAuraBarButton or InitAuraButton
     c:AddAuraSlot("slot", rec.filter, {
         candidateFilters = { includeSpellIDs = include },
         initializeFrame = function(btn)
-            xpcall(InitAuraButton, handler, btn, c, st, rec)
+            xpcall(init, handler, btn, c, st, rec)
         end,
     })
     -- ⚠ 不對容器掛任何 script（forbidden intrinsic）；重新可見的補踢掛在持有框上
@@ -923,19 +1288,22 @@ local function BuildContainer(rec, st)
 end
 
 -- 簽章對上容器：同簽章不動；換了就從池子拿（沒有才建）。戰鬥中只記旗標。
+-- 池子、目前的容器與簽章記在**持有框**上（一種 kind 一顆持有框）；rec.container／sig／containers 是目前那顆的鏡像
 local function EnsureContainer(rec, barKey, w, h)
-    local st = AuraStyle(rec, barKey, w, h)
+    local holder = rec.frame
+    if not holder then return end
+    local st = AuraStyle(rec, barKey, w, h, rec.shape)
     rec.wantSig = st.sig
-    if rec.sig == st.sig and rec.container then return end
+    if holder.sig == st.sig and holder.container then return end
     if InCombatLockdown() then
         pendingBuild[rec] = true
         ns.Events.Register("PLAYER_REGEN_ENABLED", "custom", CU.OnRegen)
         return
     end
     pendingBuild[rec] = nil
-    rec.containers = rec.containers or {}
-    local old = rec.container
-    local c = rec.containers[st.sig]
+    holder.containers = holder.containers or {}
+    local old = holder.container
+    local c = holder.containers[st.sig]
     if c then
         pcall(c.Show, c)
         Kick(c)
@@ -948,14 +1316,86 @@ local function EnsureContainer(rec, barKey, w, h)
             return
         end
         c = built
-        rec.containers[st.sig] = c
+        holder.containers[st.sig] = c
         CU.builds = CU.builds + 1
     end
     if old and old ~= c then pcall(old.Hide, old) end
-    rec.container, rec.sig = c, st.sig
+    holder.container, holder.sig = c, st.sig
+    rec.container, rec.sig, rec.containers = c, st.sig, holder.containers
+end
+
+-- 光環長條的占位：去飽和圖示＋空條（底色）＋灰名字，畫在持有框上（按鈕出現自然蓋住）。
+-- 排法照 Decorate.ApplyBarGeometry（圖示一邊 h×h、間距、其餘是條身）；排法變了才重排，重排走 ns.Write
+-- （持有框整條鏈是保護框，戰鬥中記帳）
+local function UpdateBarPlaceholder(rec, barKey, w, h)
+    local hd = rec.frame
+    local e = rec.entry
+    if hd.placeholder then hd.placeholder:Hide() end
+    local function HideAll()
+        if hd.phBG then hd.phBG:Hide(); hd.phIcon:Hide(); hd.phName:Hide() end
+        hd.phSig = nil
+    end
+    if not (e and e.placeholder) then HideAll() return end
+    local bar = ns.Setting(barKey, "bar")
+    bar = type(bar) == "table" and bar or {}
+    local side = bar.iconSide
+    if side ~= "RIGHT" and side ~= "NONE" then side = "LEFT" end
+    local H = tonumber(h) or 20
+    local gap = ns.Layout.Snap(tonumber(bar.iconGap) or 0)
+    local font = ns.Media.ElementFont(bar.nameFont, ns.Setting(barKey, "font"))
+    local outline = ns.Setting(barKey, "outline") or ""
+    local tex = Plain(Try(C_Spell and C_Spell.GetSpellTexture, rec.spellID)) or QUESTION
+    local name = Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or ""
+    local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
+    local bgc = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
+    local sig = table.concat({ side, string.format("%.2f,%.2f", H, gap), tostring(font), outline, tostring(tex), name, z,
+        tostring(bar.nameSize), tostring(bar.timeSize), tostring(bar.showName and true or false),
+        string.format("%.3f,%.3f,%.3f,%.3f", bgc[1], bgc[2], bgc[3], bgc[4]) }, "|")
+    if hd.phSig == sig and hd.phBG and hd.phBG:IsShown() then return end
+    hd.phSig = sig
+    if not hd.phBG then
+        hd.phBG = hd:CreateTexture(nil, "BACKGROUND")
+        hd.phIcon = hd:CreateTexture(nil, "ARTWORK")
+        hd.phName = hd:CreateFontString(nil, "OVERLAY")
+        ns.Media.SetFont(hd.phName, 12, "OUTLINE")         -- 先有字型才能 SetText
+    end
+    ns.Write(hd, function(fr)
+        local bgT, icon, fs = fr.phBG, fr.phIcon, fr.phName
+        bgT:ClearAllPoints()
+        if side == "RIGHT" then
+            bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", 0, 0)
+            bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", -(H + gap), 0)
+        elseif side == "NONE" then
+            bgT:SetAllPoints(fr)
+        else
+            bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", H + gap, 0)
+            bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", 0, 0)
+        end
+        bgT:SetTexture(WHITE)
+        bgT:SetVertexColor(bgc[1], bgc[2], bgc[3], bgc[4])
+        bgT:Show()
+        icon:ClearAllPoints()
+        icon:SetSize(H, H)
+        if side == "RIGHT" then icon:SetPoint("RIGHT", fr, "RIGHT", 0, 0) else icon:SetPoint("LEFT", fr, "LEFT", 0, 0) end
+        icon:SetTexture(tex)
+        icon:SetTexCoord(z, 1 - z, z, 1 - z)
+        icon:SetDesaturated(true)
+        icon:SetAlpha(0.35)
+        icon:SetShown(side ~= "NONE")
+        ns.Text.SetFont(fs, bar.nameSize or 12, outline, font)
+        fs:SetTextColor(0.6, 0.6, 0.6, 1)
+        local s = ns.Text.PixelScale()
+        fs:ClearAllPoints()
+        fs:SetPoint("LEFT", bgT, "LEFT", 4 * s, 0)
+        fs:SetPoint("RIGHT", bgT, "RIGHT", -((bar.timeSize or 12) * 3) * s, 0)
+        if fs.SetJustifyH then fs:SetJustifyH("LEFT") end
+        fs:SetText(name)
+        fs:SetShown(bar.showName and true or false)
+    end, "placeholder")
 end
 
 local function UpdatePlaceholder(rec, barKey, w, h)
+    if rec.shape == "bars" then return UpdateBarPlaceholder(rec, barKey, w, h) end
     local ph = rec.frame.placeholder
     local e = rec.entry
     if not (e and e.placeholder) then ph:Hide() return end
@@ -976,10 +1416,55 @@ local function New(e)
         custom = true, kind = e.kind, spellID = e.spellID, itemID = e.itemID, slot = e.slot,
         filter = e.kind == "aura" and (e.filter == "HARMFUL" and "HARMFUL" or "HELPFUL") or nil,
         barKey = "custom",           -- Decorate 用它判斷「是不是增益檢視器」：不是
+        frames = {},                 -- "icons"｜"bars" → 框（第一次放進那種條才建，見 UseFrame）
     }
-    rec.frame = (e.kind == "aura") and NewHolder(rec) or NewIconFrame(rec)
     return rec
 end
+CU.New = New                          -- 測試用
+
+-- 搬到另一種條：舊框收起來（光環的持有框走 ns.Write）。冷卻轉圈／條身清掉、發光熄掉
+local function Retire(rec, old)
+    if rec.kind == "aura" then
+        ns.Write(old, function(fr) fr:Hide() end, "place")
+        return
+    end
+    old:Hide()
+    if old.Cooldown then old.Cooldown:Clear() end
+    if old.ChargeCooldown then old.ChargeCooldown:Clear() end
+    if old.Bar then ClearBar(old) end
+    if ns.Glow then ns.Glow.OnParked(rec) end
+end
+
+-- 這條要的框（依條的 kind）；沒有就建、池化在 rec.frames。換了框時：
+--   * 光環：rec.container／sig／containers 換成新持有框的鏡像，位置重寫
+--   * 法術／物品：overlay（Decorate 建的邊框、提示、發光宿主、按鍵文字的父框）搬到新框；樣式、貼圖、名字、
+--     武裝的快取全部作廢（新框上什麼都還沒畫），標髒讓 Place 補一次 Update
+local function UseFrame(rec, shape)
+    if rec.frame and rec.shape == shape then return rec.frame, false end
+    rec.frames = rec.frames or {}
+    local f = rec.frames[shape]
+    if not f then
+        if rec.kind == "aura" then f = NewHolder(rec)
+        elseif shape == "bars" then f = NewBarFrame(rec)
+        else f = NewIconFrame(rec) end
+        rec.frames[shape] = f
+    end
+    local old = rec.frame
+    rec.frame, rec.shape = f, shape
+    rec.noGlow = (shape == "bars") or nil          -- 長條不畫發光（Core/Glow.lua 的 Start 看這個）
+    rec.placedSig = nil
+    if rec.kind == "aura" then
+        rec.container, rec.sig, rec.containers = f.container, f.sig, f.containers
+    else
+        rec.decorated, rec.timerSig, rec.tex, rec.colorApplied, rec.barName = nil, nil, nil, nil, nil
+        rec.armedStart, rec.armedDur = nil, nil
+        rec.dirty = true
+        if rec.overlay and old then rec.overlay:SetParent(f) end
+    end
+    if old and old ~= f then Retire(rec, old) end
+    return f, true
+end
+CU.UseFrame = UseFrame                -- 測試用
 
 local function HideRec(rec)
     if not rec.placedBar and not rec.placedSig then return end
@@ -1030,8 +1515,10 @@ end
 -- 放進格子
 ------------------------------------------------------------
 function CU.Place(rec, c, r, barKey, gen)
-    local f = rec.frame
+    -- 框照這條的 kind 取（圖示類 → 圖示框／持有框，長條類 → 長條框／長條持有框）
+    local f = UseFrame(rec, ShapeOf(barKey))
     rec.placedBar, rec.placedGen, rec.claimKey, rec.hidden = barKey, gen, barKey, false
+    rec.placeW, rec.placeH = r.w, r.h            -- 脫戰補建容器時用（長條的圖示大小、發光尺寸）
     if rec.kind == "aura" then
         local sig = table.concat({ tostring(c), r.x, r.y, r.w, r.h }, "|")
         if rec.placedSig ~= sig then
@@ -1071,6 +1558,11 @@ function CU.Place(rec, c, r, barKey, gen)
         if rec.rangeID then rec.dirty = true end       -- 起始狀態要畫上去
     end
     ns.Decorate.Apply(f, rec, barKey, r.w, r.h)
+    -- 長條框的秒數字樣（Decorate 不碰 .Bar.Timer）：樣式重套過才重排
+    if f.Bar and rec.timerSig ~= rec.decorated then
+        StyleBarTimer(rec, f, barKey)
+        rec.timerSig = rec.decorated
+    end
     if moved or rec.dirty or rec.decorated ~= styled then
         -- 結尾會 ApplyState。第二個參數：替代品在這裡換了不必再要求重排（同一輪的 Clickable.Place 會讀到）
         CU.Update(rec, true)
@@ -1089,13 +1581,13 @@ function CU.EndBar(barKey, gen)
     end
 end
 
--- 條不存在了（或長條類）：上面那條也收不到，這裡補收
+-- 條不存在了（或這筆被刪了）：上面那條也收不到，這裡補收。長條類的條照收自訂項目（框依條的 kind 換）
 function CU.EndFlush()
     local p = ns.profile
     local bars = p and p.bars or {}
     for _, rec in pairs(records) do
         local b = rec.placedBar and bars[rec.placedBar]
-        if rec.placedBar and (type(b) ~= "table" or b.kind == "bars" or not rec.cooldownID) then HideRec(rec) end
+        if rec.placedBar and (type(b) ~= "table" or not rec.cooldownID) then HideRec(rec) end
     end
 end
 
@@ -1138,7 +1630,8 @@ function CU.OnRegen()
     for rec in pairs(pendingBuild) do
         pendingBuild[rec] = nil
         if rec.placedBar then
-            local ok, err = xpcall(EnsureContainer, ns.ReportError, rec, rec.placedBar)
+            -- 尺寸照最後一次放格的（長條的圖示大小、發光尺寸在簽章裡；沒給的話簽章對不上、下一輪又換一顆）
+            local ok, err = xpcall(EnsureContainer, ns.ReportError, rec, rec.placedBar, rec.placeW, rec.placeH)
             if not ok then CU.lastError = err end
         end
     end
@@ -1152,11 +1645,15 @@ end
 -- 除錯
 ------------------------------------------------------------
 function CU.Counts()
-    local n = { aura = 0, spell = 0, item = 0, placed = 0, containers = 0 }
+    local n = { aura = 0, spell = 0, item = 0, slot = 0, placed = 0, containers = 0, barFrames = 0 }
     for _, rec in pairs(records) do
-        if rec.cooldownID then n[rec.kind] = n[rec.kind] + 1 end
+        if rec.cooldownID then n[rec.kind] = (n[rec.kind] or 0) + 1 end
         if rec.placedBar then n.placed = n.placed + 1 end
-        for _ in pairs(rec.containers or {}) do n.containers = n.containers + 1 end
+        -- 容器池掛在持有框上（一種 kind 一顆持有框）
+        for shape, f in pairs(rec.frames or {}) do
+            for _ in pairs(f.containers or {}) do n.containers = n.containers + 1 end
+            if shape == "bars" then n.barFrames = n.barFrames + 1 end
+        end
     end
     return n
 end
