@@ -206,7 +206,11 @@ ResourcesDefaults = function()
         width         = 0,                 -- 0 ＝ 跟核心技能第一列同寬
         textFont      = "INHERIT",         -- 條上數字的字型（自訂格子也照這個）；"INHERIT" ＝ 跟隨主題的通用字型
         rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移。沒有控件了：只當 heights 沒設的列的起始值
-        heights       = {},                -- [資源key] = 列高（所有專精共用；設定頁「這個專精要顯示哪些」每列的數字）
+        heights       = {},                -- [資源key] = 列高（所有專精共用；每種資源設定視窗的「高」）
+        -- [資源key] = { follow, texture, bgTexture, barAlpha, smooth, showText, textFont, textSize }：
+        -- 每種資源自己的外觀（設定視窗的「外觀」那一節）。開放式、預設空；follow 沒存 ＝ 跟下面這幾欄（全域）。
+        -- 引擎讀 Modules/Resources.lua 的 R.StyleFor 回的代理表
+        style         = {},
         rowSpacing    = 1,
         segmentSpacing = 0,                -- 點數型（聖能、連擊點…）的格距；0 ＝ 相鄰兩格共用 1px 邊（使用者 2026-10-01 指定，不遷移）
         fillDirection = "ltr",             -- ltr | rtl（點數型從右邊亮起）

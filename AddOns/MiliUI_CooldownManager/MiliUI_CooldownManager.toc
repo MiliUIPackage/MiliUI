@@ -85,6 +85,7 @@ Options\Tab_Theme.lua
 Options\Tab_Profile.lua
 Options\ResourceConditions.lua
 Options\HealthThresholds.lua
+Options\ResourceSettings.lua
 Options\StackColors.lua
 Options\Tab_Resources.lua
 Options\Tab_Castbar.lua

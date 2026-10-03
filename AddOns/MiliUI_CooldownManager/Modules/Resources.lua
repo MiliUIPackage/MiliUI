@@ -10,6 +10,7 @@
 -- 列的順序：預設照專精的清單（法力、血量排最下面），玩家可以在設定頁上下移（resources.order，
 -- 整份設定檔共用、不分專精；見 R.ApplyOrder）。
 -- 哪幾列要顯示是**分專精**存的（resources.rows[specID][key]，見 R.RowOn／R.SetRow）。
+-- 高度（resources.heights[key]）與外觀（resources.style[key]，見 R.StyleFor）是逐列的、所有專精共用。
 --
 -- 每一列自己決定長相：
 --   pip        分段（點數型：聖能／連擊點數／真氣／碎片／充能／精華／符文，以及光環堆疊型：冰刺…）
@@ -1116,7 +1117,62 @@ function R.BgTexture(cfg)
 end
 R.RowHeight = RowHeight
 
--- 一列的高度：resources.heights[key]（設定頁「這個專精要顯示哪些」每列的數字，所有專精共用，跟 order 一樣）。
+------------------------------------------------------------
+-- 每種資源自己的外觀（resources.style[key]；設定頁每一列「設定…」視窗裡那一節，Options/ResourceSettings.lua）
+--
+--   style[key] = { follow = true|false, texture, bgTexture, barAlpha, smooth, showText, textFont, textSize }
+--   follow 沒存 ＝ 跟（舊存檔沒有這張表 ⇒ 畫面一模一樣，不遷移）；跟著時其餘欄位不讀。
+--
+-- 不跟時，那一列的排版與更新（LayoutRow／UpdateRow 那一整串）讀 R.StyleFor 回的**代理表**：
+-- 外觀七欄先查 style[key]、沒存的退回資源條的全域值；其他欄位（manaAbbrev、colors、conditions、
+-- fillDirection、segmentSpacing…）一律照讀 cfg。
+-- ⚠ 代理表只給引擎讀值：不存進 SV、不 pairs（Lua 5.1 沒有 __pairs，遍歷是空的）、不寫（寫就報錯）。
+--   設定頁與匯出一律讀原表。每個 key 快取一張（cfg／style[key] 換了表就重建），R.Apply 時作廢
+------------------------------------------------------------
+local STYLE_FIELDS = { texture = true, bgTexture = true, barAlpha = true, smooth = true,
+                       showText = true, textFont = true, textSize = true }
+R.STYLE_FIELDS = STYLE_FIELDS
+
+local function OwnStyle(cfg, key)
+    local st = type(cfg) == "table" and cfg.style
+    local s = type(st) == "table" and st[key]
+    return type(s) == "table" and s or nil
+end
+
+-- 這一列的外觀跟不跟資源條（判準是 follow ~= false）
+function R.StyleFollows(cfg, key)
+    local own = OwnStyle(cfg, key)
+    return not (own and own.follow == false)
+end
+
+local styleProxies = {}          -- [key] = { cfg, own, proxy }
+
+local function ProxyWrite() error("MiliUI_CooldownManager: resource style proxy is read-only", 2) end
+
+function R.StyleFor(cfg, key)
+    local own = OwnStyle(cfg, key)
+    if not own or own.follow ~= false then return cfg end
+    local hit = styleProxies[key]
+    if hit and hit.cfg == cfg and hit.own == own then return hit.proxy end
+    local proxy = setmetatable({}, {
+        __index = function(_, k)
+            if STYLE_FIELDS[k] then
+                local v = own[k]
+                if v ~= nil then return v end
+            end
+            return cfg[k]
+        end,
+        __newindex = ProxyWrite,
+    })
+    styleProxies[key] = { cfg = cfg, own = own, proxy = proxy }
+    return proxy
+end
+
+function R.InvalidateStyles()
+    for k in pairs(styleProxies) do styleProxies[k] = nil end
+end
+
+-- 一列的高度：resources.heights[key]（每種資源設定視窗的「高」，所有專精共用，跟 order 一樣）。
 -- 沒設過的退回舊的共用值：征戰聖擊 crusadingHeight（預設 4）、其他 rowHeight（預設 14）——
 -- 這兩個欄位不再有控件，留著當起始值，舊存檔不用遷移
 R.HEIGHT_MIN, R.HEIGHT_MAX = 1, 30
@@ -2210,6 +2266,8 @@ local function UpdateRow(row, cfg)
     local key = row.key
     local def = key and RESOURCES[key]
     if not def then return end
+    -- 外觀：這一列自己的（R.StyleFor；往下傳的函式只讀不寫、不拿 cfg 當 key）
+    cfg = R.StyleFor(cfg, key)
     if row.mode == "engine" then
         -- 引擎寫層數：Lua 這邊沒有東西要畫
         row.text:SetText("")
@@ -2306,7 +2364,8 @@ local function Relayout(cfg, list, W)
         row:Show()
         local H = ns.P.Scale(R.KeyRowHeight(cfg, key))
         total = total + H
-        LayoutRow(row, key, cfg, row.numSeg, W, H)
+        -- 外觀：這一列自己的（不跟資源條時是代理表，見 R.StyleFor）；高度、列距、錨定照全域
+        LayoutRow(row, key, R.StyleFor(cfg, key), row.numSeg, W, H)
         if row.ab and ns.AuraBar then ns.AuraBar.KickPending(row.ab) end
     end
     for i = #list + 1, #rows do
@@ -2527,6 +2586,7 @@ end
 
 -- 設定頁改了值：重排＋結構（錨點、strata、開關）＋ alpha
 function R.Apply()
+    R.InvalidateStyles()
     if not container then return end
     R.Invalidate()
     R.Update(true)

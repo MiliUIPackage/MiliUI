@@ -1,11 +1,11 @@
 ------------------------------------------------------------
--- 資源條血量列的門檻編輯器（資源條頁「顏色與條件」的血量那一段開的彈窗）
+-- 資源條血量列的門檻編輯器（血量的設定視窗「顏色」那一段開的彈窗，Options/ResourceSettings.lua）
 --
 -- 一列一個門檻：血量百分比 ＋ 顏色。存進 profile.resources.healthThresholds，
 -- 由 Modules/Resources.lua 的 R.HealthCurvePoints 組成 Step 曲線交給引擎求值。
 -- 照套組單位框架的血量門檻編輯器改（同一套語意與版面）。
 --
--- 為什麼開成獨立視窗而不是塞進資源條頁的一列：門檻數是可增減的，而資源條頁的表單
+-- 為什麼開成獨立視窗而不是塞進設定視窗的一列：門檻數是可增減的，而設定視窗的表單
 -- 是照形狀建一次就快取重用的（custom 那一列的高度在建立當下就固定了）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -185,6 +185,11 @@ function HT.Open(changedCallback)
     if not popup then return end
     popup:Show()
     Refresh()
+end
+
+-- 開它的設定視窗收起來時一起收
+function HT.Close()
+    if popup then popup:Hide() end
 end
 
 function HT.Count()
