@@ -671,6 +671,11 @@ local function EndFade(color, label)
     f:Show()
 end
 
+-- 被打斷、施法失敗都震（跟暴雪自己的施法條一樣）
+local function Shake()
+    if (Cfg() or {}).interruptShake ~= false then f.shake:Restart() end
+end
+
 local function ShowInterrupted()
     S.active = false
     S.castState = 4                       -- 停留中：還算「在施法」（不讓容器當場被藏）
@@ -685,7 +690,7 @@ local function ShowInterrupted()
     if tex then tex:SetVertexColor(C(c, 1, 0.204, 0.145)) end
     f.nameText:SetText(L["Interrupted"])
     f.timeText:SetText("")
-    if (Cfg() or {}).interruptShake ~= false then f.shake:Restart() end
+    Shake()
     S.displayToken = S.displayToken + 1
     local tok = S.displayToken
     C_Timer.After(INTERRUPT_HOLD, function()
@@ -1061,7 +1066,10 @@ local function OnCastEvent(t, sent, event, evUnit, arg2, arg3, arg4, arg5)
         if arg2 ~= nil and S.castGUID ~= nil and not IsSecret(arg2) and not IsSecret(S.castGUID) then
             mine = (arg2 == S.castGUID)
         end
-        if mine then EndFade(Colors().interrupted) end
+        if mine then
+            EndFade(Colors().interrupted)
+            Shake()
+        end
     else    -- UNIT_SPELLCAST_STOP
         if S.castState ~= 1 then return end
         EndFade()
