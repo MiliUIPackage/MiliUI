@@ -64,8 +64,18 @@ fontSmall:SetTextColor(0.8, 0.8, 0.8)
 fontSmall:SetShadowColor(0, 0, 0)
 fontSmall:SetShadowOffset(1, -1)
 
-W.fontNormal, W.fontTitle, W.fontDisabled, W.fontSmall =
-    fontNormal, fontTitle, fontDisabled, fontSmall
+-- 強調說明字（「黃字說明」）：適用範圍、注意事項這種要玩家先看到的說明。字級跟 fontSmall 一樣，只換顏色。
+-- 全套組通用（使用者 2026-10-03 指定：說「黃字說明」就是這個顏色）；色值另外放 W.EMPHASIS_COLOR，
+-- 給沒有走字型物件的地方（|c 色碼、SetTextColor）用同一個值。
+W.EMPHASIS_COLOR = { r = 1, g = 0.82, b = 0 }
+local fontEmphasis = CreateFont(NS .. "_FontEmphasis")
+fontEmphasis:SetFont(Env.Font(), 11, "")
+fontEmphasis:SetTextColor(W.EMPHASIS_COLOR.r, W.EMPHASIS_COLOR.g, W.EMPHASIS_COLOR.b)
+fontEmphasis:SetShadowColor(0, 0, 0)
+fontEmphasis:SetShadowOffset(1, -1)
+
+W.fontNormal, W.fontTitle, W.fontDisabled, W.fontSmall, W.fontEmphasis =
+    fontNormal, fontTitle, fontDisabled, fontSmall, fontEmphasis
 
 ------------------------------------------------------------
 -- 文字量測

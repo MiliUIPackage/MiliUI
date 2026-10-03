@@ -121,6 +121,17 @@ ChatBar 與 DamageMeters 各帶一份幾乎一樣的引擎，結果同一個「E
 版面與互動的設計規則（打勾欄、標題階層、子選單寬限期）寫在
 [`miliui-menu-design`](../../../../.claude/skills/miliui-menu-design/SKILL.md) 技能。
 
+### 說明文字的兩種顏色
+
+```lua
+fs:SetFontObject(W.fontSmall)      -- 一般說明（灰字）：控件下一列的補充
+fs:SetFontObject(W.fontEmphasis)   -- 強調說明（黃字）：適用範圍、注意事項，要玩家先看到的
+W.EMPHASIS_COLOR                   -- 同一個黃色的 { r, g, b }，給 |c 色碼或 SetTextColor 用
+```
+
+「黃字說明」是全套組的用語：使用者說要黃字說明，就是 `W.fontEmphasis` 這個顏色，不要另外挑黃色。
+字級跟 `fontSmall` 一樣，只換顏色。
+
 ### 按鈕配色（`W.CreateButton` 的 colorKey）
 
 ```lua

@@ -297,21 +297,22 @@ local function Build()
     frame:Hide()
     W.CloseOnEscape(frame)
 
-    -- 一列說明字（控件欄寬、換行；黃字＝使用者 2026-10-03 指定的「適用範圍」說明）
-    local function NoteRow(text, when, yellow)
+    -- 強調說明（黃字，共用層的 W.fontEmphasis）：整列寬、排在底部灰字說明的正上方（使用者 2026-10-03 指定）
+    local function EmphasisRow(text, when, tab)
         local nr = CreateFrame("Frame", nil, frame)
-        local fs = Note(nr)
-        if yellow then fs:SetTextColor(1, 0.82, 0) end
-        fs:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
-        fs:SetWidth(ROW_W - CTRL_X)
+        local fs = nr:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontEmphasis)
+        fs:SetJustifyH("LEFT")
+        fs:SetPoint("TOPLEFT", nr, "TOPLEFT", 0, -4)
+        fs:SetWidth(ROW_W)
         fs:SetWordWrap(true)
         fs:SetText(text)
-        local h = 2 + math.max(14, fs:GetStringHeight() or 0) + 6
+        local h = 4 + math.max(14, fs:GetStringHeight() or 0) + 2
         nr:SetSize(ROW_W, h)
-        local entry = { frame = nr, h = h, when = when }
+        local entry = { frame = nr, h = h, when = when, tab = tab }
         entry.remeasure = function()
             local sh = fs:GetStringHeight()
-            local nh = 2 + math.max(14, type(sh) == "number" and sh or 0) + 6
+            local nh = 4 + math.max(14, type(sh) == "number" and sh or 0) + 2
             nr:SetHeight(nh)
             entry.h = nh
         end
@@ -671,8 +672,6 @@ local function Build()
     ColorOverrideRow(L["Buff duration color"],       "durationColor",      false, { r = 1,    g = 0.85, b = 0.1,  a = 1 })
     ColorOverrideRow(L["Buff duration low color"],   "durationLowColor",   false, { r = 0.95, g = 0.45, b = 0.70, a = 1 })
     ColorOverrideRow(L["Buff duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
-    NoteRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
-        BlizzCooldown, true)
 
     -- 層數發光（暴雪的增益）：勾選框＋「≥」數字框＋色票；沒勾時數字框記著要用的門檻
     local sgr = NewRow(L["Stack glow"], BlizzAura)
@@ -830,9 +829,6 @@ local function Build()
         speaks[#speaks + 1] = entry
         RightClickClears(kr, kh, field)
     end
-    -- 冷卻格的增益出現／消失：適用範圍（黃字）
-    NoteRow(L["Buff gained and lost only apply to spells that show their buff's time first after you cast them, like %s (%s): gained plays when the buff's countdown starts, lost when it ends and the icon switches to the cooldown."]:format(ExampleArgs()),
-        BlizzCooldownSound, true)
     -- 語音播報的說明（下一列灰字）
     local spRow = CreateFrame("Frame", nil, frame)
     local spTip = Note(spRow)
@@ -880,6 +876,12 @@ local function Build()
     end)
     pcb:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
     frame.placeholderCB = pcb
+
+    -- 強調說明（黃字）：「先倒增益時間」的適用範圍，各在自己的分頁、底部說明的正上方
+    EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
+        BlizzCooldown, "duration")
+    EmphasisRow(L["Buff gained and lost only apply to spells that show their buff's time first after you cast them, like %s (%s): gained plays when the buff's countdown starts, lost when it ends and the icon switches to the cooldown."]:format(ExampleArgs()),
+        BlizzCooldownSound, "sound")
 
     -- 說明
     local tipRow = CreateFrame("Frame", nil, frame)
