@@ -84,14 +84,16 @@ local function ItemLines(out)
                 -- （Core/Decorate.lua）—— 「發光會亮、倒數不顯示」要看這幾欄
                 local info = ns.Catalog.Info(rec.cooldownID)
                 local cdf = rawget(item, "Cooldown")
-                local cdInfo = (" 法術=%s/%s%s 冷卻框 alpha=%s%s%s%s"):format(
+                local cdInfo = (" 法術=%s/%s%s 冷卻框 alpha=%s%s%s%s%s"):format(
                     tostring(info and info.spellID), tostring(info and info.overrideSpellID),
                     -- 「充能」＝現在真的是充能法術；「充能旗標」＝暴雪資料說可以有、但現在只有一次
                     (info and info.charges) and ((ns.Decorate.IsChargeSpell(rec, info.overrideSpellID or info.spellID, true)
                         and " 充能" or " 充能旗標")) or "",
                     cdf and Num(Read(cdf, "GetAlpha")) or "✕",
                     (rec.style and rec.style.hideGCD) and " 藏GCD" or "",
-                    rec.auraFlag and " 增益中" or "", rec.auraHidden and "（改餵冷卻）" or "")
+                    rec.auraFlag and " 增益中" or "", rec.auraHidden and "（改餵冷卻）" or "",
+                    -- 效果不在時變暗：勾了才印（「勾了沒變暗」先看這格有沒有 增益中 旗標）
+                    (rec.style and rec.style.dimNoAura) and " 效果不在變暗" or "")
                 out[#out + 1] = ("    %s #%s id=%s%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s%s")
                     :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID), rep,
                             tostring(Read(item, "IsShown")), alpha, Num(Read(item, "GetScale")),
