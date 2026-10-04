@@ -76,6 +76,18 @@ end
 
 T.PixelScale, T.SetFont, T.Anchor = PixelScale, SetFont, Anchor
 
+-- 充能／層數那一框墊到 overlay 之上：overlay（邊框、發光、層數閘）在 item ＋10 起跳，
+-- 暴雪的 ChargeCount／Applications 比它低，數字一錨到邊上就被邊框蓋掉（玩家回報，2026-10-04）。
+-- 只叫 C 端的 SetFrameLevel，不寫欄位；倒數數字在 Cooldown 框上，墊它會連轉圈一起蓋過邊框，不動。
+T.TEXT_LIFT = 5                    -- 高過發光宿主（Glow.lua 最高＋3；StackGate 的發光宿主＋2）
+local function Lift(frame, rec)
+    local ov = rec and rec.overlay
+    if not (frame and frame.SetFrameLevel and ov) then return end
+    local lvl = (ov:GetFrameLevel() or 1) + T.TEXT_LIFT
+    if lvl > 9000 then lvl = 9000 end
+    if frame:GetFrameLevel() ~= lvl then frame:SetFrameLevel(lvl) end
+end
+
 ------------------------------------------------------------
 -- 倒數 formatter（依設定簽章快取；同一顆可以給很多個 Cooldown 共用）
 ------------------------------------------------------------
@@ -251,6 +263,7 @@ function T.ApplyIcon(item, style, spell, rec)
     -- 充能（核心／輔助）
     local charge = item.ChargeCount and item.ChargeCount.Current
     if charge then
+        Lift(item.ChargeCount, rec)
         local c = style.chargeText or {}
         SetFont(charge, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         charge:SetTextColor(Color(c.color))
@@ -260,6 +273,7 @@ function T.ApplyIcon(item, style, spell, rec)
     -- 層數（增益圖示）
     local stack = item.Applications and item.Applications.Applications
     if stack then
+        Lift(item.Applications, rec)
         local c = style.stackText or {}
         SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
