@@ -518,6 +518,12 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **觸發發光**：後掛勾 `ActionButtonSpellAlertManager:ShowAlert／HideAlert`，frame 是我們認得的 item 就在 overlay
   上畫 MiliUIGlow（pixel／autocast／button／proc），暴雪的 `SpellActivationAlert` 熄 alpha（不 Hide）。
   條層「觸發發光」開著（或法術覆寫成開）才接管；都關時還給暴雪。自訂法術聽 `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE`。
+  **暴雪的冷卻格也自己聽那兩個事件**（2026-10-05，`G.OnOverlayEvent`）：暴雪的 `NeedSpellActivationUpdate` 拿事件 id 比
+  `item:GetSpellID()`，目標身上有這格追蹤的減益時它回減益 id ⇒ 事件被丟掉、晚 3～5 秒才亮（血魄心臟打擊的緩速＋薩萊因吸血鬼打擊）。
+  比對基本法術／目錄的覆蓋／當下的 `FindSpellOverrideByID`，認到的 id 記 `rec.procEventID`（熄的時候覆蓋已換回也認得）；
+  暴雪 RefreshData 拿減益 id 問出來的 `HideAlert` 在那個 id 還 `IsSpellOverlayed` 時擋掉。只改我們接管的發光，暴雪自己的
+  `SpellActivationAlert` 不碰（要它亮得在暴雪框上建欄位）。⚠ 待實機驗證：戰鬥中事件 id／`IsSpellOverlayed` 是不是明文
+  （讀不到 ⇒ 退回原本只靠 manager 掛勾的行為）。
 - **生效發光**：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）與自訂光環格在光環生效期間一直亮。
   **開關與繼承跟觸發／就緒同一套**（2026-10-03 使用者改回）：條層（或跟隨主題）`glow.active` 有啟用（**預設關**）、
   樣式、顏色、線條數、粗細與預覽；逐法術只蓋開關（`overrides[id].activeGlow`，小窗「發光」分頁一列勾選框＋「（跟隨…）」）。
