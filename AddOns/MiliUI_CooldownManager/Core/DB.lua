@@ -367,6 +367,10 @@ CastbarDefaults = function()
         showTime      = true,
         timeFormat    = "remainTotal",     -- remainTotal | elapsedTotal | remain | elapsed
         textSize      = 12,
+        -- 名字／時間的位移（2026-10-04，玩家要求）：錨點固定（名字錨左緣、時間錨右緣、都是垂直中線），
+        -- 預設 y ＝ 0 ⇒ 被動垂直置中；x 是離邊的留白。舊存檔靠 MergeDefaults 補上，不遷移
+        nameOffset    = { x = 4, y = 0 },
+        timeOffset    = { x = -4, y = 0 },
         showSpark     = true,
         interruptShake = true,             -- 被打斷或施法失敗時震動一下
         ticks         = true,              -- 引導刻度

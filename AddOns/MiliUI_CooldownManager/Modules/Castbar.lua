@@ -384,10 +384,13 @@ function CB.Layout()
     local outline = ns.Media.ThemeOutline()
     ns.Media.SetFont(f.nameText, size, outline, font)
     ns.Media.SetFont(f.timeText, size, outline, font)
+    -- 錨點固定在左右兩緣的垂直中線（y ＝ 0 就是被動置中），位移照設定
+    local no = type(cfg.nameOffset) == "table" and cfg.nameOffset or {}
+    local to = type(cfg.timeOffset) == "table" and cfg.timeOffset or {}
     f.timeText:ClearAllPoints()
-    f.timeText:SetPoint("RIGHT", f.textFrame, "RIGHT", -4, 0)
+    f.timeText:SetPoint("RIGHT", f.textFrame, "RIGHT", tonumber(to.x) or -4, tonumber(to.y) or 0)
     f.nameText:ClearAllPoints()
-    f.nameText:SetPoint("LEFT", f.textFrame, "LEFT", 4, 0)
+    f.nameText:SetPoint("LEFT", f.textFrame, "LEFT", tonumber(no.x) or 4, tonumber(no.y) or 0)
     f.nameText:SetPoint("RIGHT", f.timeText, "LEFT", -4, 0)
     f.nameText:SetShown(cfg.showName ~= false)
     f.timeText:SetShown(cfg.showTime ~= false)
