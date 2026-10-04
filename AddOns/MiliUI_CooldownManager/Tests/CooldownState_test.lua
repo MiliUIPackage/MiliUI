@@ -454,5 +454,33 @@ do
     check("前置鍵：從沒存過 ⇒ 不中", not D.PreKeyMatch({ decorated = "sig" }, Args()))
 end
 
+------------------------------------------------------------
+-- 光環不在時變暗（auraMissing）：只看 rec.auraFlag，不看冷卻
+------------------------------------------------------------
+do
+    eq("auraMissing 是適用的模式", D.StateMode("auraMissing"), "auraMissing")
+    local m, p = D.StateAlphas("auraMissing", 0.5, 0.8)
+    near("auraMissing 不在 ＝ 條 × 透明度", m, 0.4)
+    near("auraMissing 在 ＝ 條", p, 0.8)
+    eq("auraMissing 預覽照原樣", D.PreviewStateAlpha("auraMissing", 0.5, true), 1)
+    local it = Item()
+    local r = { cooldownID = 1, claimKey = "essential", style = { cdState = "auraMissing", cdAlpha = 0.5 } }
+    cooldowns[100] = { isActive = true, isOnGCD = false }
+    D.ApplyItemAlpha(it, r, 1)
+    near("沒旗標 ⇒ 變暗", it.alpha, 0.5)
+    r.auraFlag = true
+    D.ApplyItemAlpha(it, r, 1)
+    near("旗標在 ⇒ 全亮（冷卻中也一樣）", it.alpha, 1)
+    r.auraFlag = false
+    cooldowns[100] = { isActive = false, isOnGCD = false }
+    D.ApplyItemAlpha(it, r, 0.8)
+    near("旗標掉了 ⇒ 變暗（轉好也一樣）", it.alpha, 0.4)
+    eq("auraMissing 不算藏", r.stateHidden, nil)
+    ns.EditMode.active = true
+    D.ApplyItemAlpha(it, r, 1)
+    eq("編輯模式中不套", it.alpha, 1)
+    ns.EditMode.active = false
+end
+
 print(("CooldownState_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

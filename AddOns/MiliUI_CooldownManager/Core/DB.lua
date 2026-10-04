@@ -411,7 +411,7 @@ function DB.BuildDefaults()
                           -- 暴雪的減益類型邊框（打在目標上的魔法／詛咒…減益會框一圈驅散色）：預設藏
                           hideDebuffBorder = true,
                           -- 冷卻狀態（核心／輔助、自訂法術／物品／飾品欄；增益類不適用）：
-                          -- "none" 不變｜"dim" 冷卻中變暗（cdStateAlpha）｜"hideOnCD" 冷卻中看不到｜"hideReady" 轉好時看不到。
+                          -- "none" 不變｜"dim" 冷卻中變暗（cdStateAlpha）｜"hideOnCD" 冷卻中看不到｜"hideReady" 轉好時看不到｜"auraMissing" 光環不在時變暗（只有暴雪的冷卻格）。
                           -- 舊存檔沒有這欄 ＝ "none"（合併預設值補上），行為不變、不遷移
                           cdState = "none", cdStateAlpha = 0.4,
                           -- 增益持續中顯示持續時間（核心／輔助）：技能用掉後暴雪先倒增益、增益掉了才倒冷卻。

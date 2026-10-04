@@ -206,11 +206,51 @@ local function VerticalAnchor(a)
     return (p:find("^TOP") and r:find("^BOTTOM")) or (p:find("^BOTTOM") and r:find("^TOP"))
 end
 
+-- ── 半像素補正 ──────────────────────────────────────────────────────
+-- 容器的錨點多半是置中的（CENTER、TOP→BOTTOM）：自己跟錨定對象的寬（或高）換成實體像素後奇偶不同，
+-- 左緣（上緣）就落在半個像素上。裡面每條 1px 的邊、格距被引擎各自四捨五入成 0／1／2px，
+-- 玩家看到的是「資源條的間隔粗細不一」（2026-10-04 回報：術士靈魂裂片）。
+-- 補法：偏移量多給半個像素，讓邊緣落回整數像素。只看尺寸、不讀位置 ⇒ 每個容器自己對齊、錨定對象也對齊，
+-- 整條鏈就都在格線上（UIParent 的左緣是 0，寬是整數像素）。
+-- 尺寸的奇偶一變（圖示增減、面板改高）就要重貼：自己、和直接貼在它身上的條（PixelRefix）。
+-- 補正量不進存檔：存的 pos／anchor 偏移照舊，st.place 記「補正前」的那一組。
+local function HFactor(p)
+    if p:find("LEFT") then return 0 elseif p:find("RIGHT") then return 1 end
+    return 0.5
+end
+local function VFactor(p)
+    if p:find("TOP") then return 1 elseif p:find("BOTTOM") then return 0 end
+    return 0.5
+end
+local function PixelCount(v, px)
+    return math.floor((tonumber(v) or 0) / px + 0.5)
+end
+-- 回傳 dx, dy（0 或半個像素，UI 單位）
+local function HalfPixelFix(f, point, rel, relPoint)
+    local P = ns.P
+    local px = P and P.Scale and P.Scale(1)
+    if not (px and px > 0 and rel and rel.GetSize) then return 0, 0 end
+    local w, h = f:GetSize()
+    local rw, rh = rel:GetSize()
+    local fx = (PixelCount(rw, px) * HFactor(relPoint) - PixelCount(w, px) * HFactor(point)) % 1
+    local fy = (PixelCount(rh, px) * VFactor(relPoint) - PixelCount(h, px) * VFactor(point)) % 1
+    return (fx ~= 0) and px / 2 or 0, (fy ~= 0) and px / 2 or 0
+end
+B.HalfPixelFix = HalfPixelFix                     -- 測試用
+
+local function SetPlace(f, st, point, rel, relPoint, x, y)
+    local dx, dy = HalfPixelFix(f, point, rel, relPoint)
+    st.place = { point, rel, relPoint, x, y }
+    st.placeFix = dx .. "," .. dy
+    f:SetPoint(point, rel, relPoint, x + dx, y + dy)
+end
+
 -- 容器貼到位置（錨在別條上優先、否則 pos）；已經在 ns.Write 裡
 local function PlaceContainer(f, key, bar, st)
     -- 跟著游標（編輯模式中、設定視窗開著時不跟：照下面貼回存檔位置）
     if ns.Cursor and ns.Cursor.Following(key) then
         st.stackTo = nil
+        st.place = nil
         ns.Cursor.Place(f, key)
         return
     end
@@ -223,13 +263,13 @@ local function PlaceContainer(f, key, bar, st)
         EnsureContainer(to)
         local y = snap(tonumber(a.y) or 0)
         if st.collapsed and VerticalAnchor(a) then y = 0 end
-        f:SetPoint(a.point or "TOP", containers[to], a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), y)
+        SetPlace(f, st, a.point or "TOP", containers[to], a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), y)
         st.stackTo = to
     else
         st.stackTo = nil
         local pos = type(bar.pos) == "table" and bar.pos or {}
         -- 容器用版面算出來的錨點（圖示增減時那一邊不動），貼在 UIParent 的 pos.point 上
-        f:SetPoint(st.anchorPoint or "CENTER", UIParent, pos.point or "CENTER", snap(tonumber(pos.x) or 0), snap(tonumber(pos.y) or 0))
+        SetPlace(f, st, st.anchorPoint or "CENTER", UIParent, pos.point or "CENTER", snap(tonumber(pos.x) or 0), snap(tonumber(pos.y) or 0))
     end
 end
 
@@ -263,6 +303,29 @@ local function ApplyOne(key)
     -- 跟著游標：結構一變（開關、可點擊、光環格、刪條）重判要不要掛 OnUpdate
     if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
 end
+
+-- 尺寸變了以後：補正量不一樣了就照同一組錨點重貼（不重算排開 ⇒ 不會撞上錨定循環）
+local function RefixOne(k)
+    local c, st = containers[k], state[k]
+    if not (c and st and st.place) or k == ns.dragging then return end
+    local p = st.place
+    local dx, dy = HalfPixelFix(c, p[1], p[2], p[3])
+    if st.placeFix == dx .. "," .. dy then return end
+    ns.Write(c, function(f)
+        local q = st.place
+        if not q then return end
+        f:ClearAllPoints()
+        SetPlace(f, st, q[1], q[2], q[3], q[4], q[5])
+    end, "pixfix")
+end
+-- 自己、和直接貼在它身上的條（再往外的只看自己跟直接對象的尺寸，不受影響）
+local function PixelRefix(key)
+    RefixOne(key)
+    for k, st in pairs(state) do
+        if k ~= key and st.stackTo == key then RefixOne(k) end
+    end
+end
+B.PixelRefix = PixelRefix
 
 -- 「實際貼在誰身上」跟現況不一樣的條（排開的結果變了：同一疊裡有人加入、離開、開關）
 local function StackChanged(except)
@@ -689,7 +752,7 @@ local function Relayout(key, level, index, gen, s)
     local cw, ch = totalW > 0 and totalW or 1, totalH > 0 and totalH or 1
     if st.w ~= cw or st.h ~= ch then
         st.w, st.h = cw, ch
-        ns.Write(c, function(f) f:SetSize(cw, ch) end, "size")
+        ns.Write(c, function(f) f:SetSize(cw, ch); PixelRefix(key) end, "size")
     end
     st.count = #entries
 
@@ -1215,7 +1278,8 @@ function B.SetPanelSize(key, w, h)
     -- 框本身永遠留 1 的高度：高度 0 的框沒有有效的矩形，照字面錨在它身上的東西會整個畫不出來。
     -- 收合是邏輯狀態（st.h == 0、st.collapsed），排開時別人會跳過它。
     local fh = h > 0 and h or 1
-    ns.Write(c, function(f) f:SetSize(w, fh) end, "size")
+    -- 重貼放在同一筆寫入裡：戰鬥中記帳的話，脫戰時先換尺寸再對齊
+    ns.Write(c, function(f) f:SetSize(w, fh); PixelRefix(key) end, "size")
     if (st.collapsed or false) ~= collapsed then
         st.collapsed = collapsed
         -- 錨定的 y 偏移跟著收／放：結構級（戰鬥中記帳到脫戰）
