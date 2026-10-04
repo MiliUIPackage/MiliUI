@@ -658,5 +658,102 @@ do
     CU.Sync()
 end
 
+------------------------------------------------------------
+-- 12. 效能修整 E3 #10：SPELL_UPDATE_USABLE 只重算顏色、事件動態註冊（CU.WantedEvents／SyncEvents）
+------------------------------------------------------------
+do
+    local CU = ns.Custom
+    -- WantedEvents（純函式）
+    local function Count(t) local n = 0; for _ in pairs(t) do n = n + 1 end; return n end
+    local w = CU.WantedEvents({}, {})
+    eq("沒有項目 ⇒ 一個都不聽", Count(w), 0)
+    w = CU.WantedEvents({ a = { kind = "aura" } }, {})
+    eq("只有光環格 ⇒ 一個都不聽", Count(w), 0)
+    w = CU.WantedEvents({ a = { kind = "item" } }, {})
+    eq("有物品 ⇒ 全標那五個", Count(w), #CU.MARK_EVENTS)
+    check("有物品 ⇒ BAG_UPDATE_COOLDOWN", w.BAG_UPDATE_COOLDOWN == true)
+    eq("只有物品 ⇒ 不聽 SPELL_UPDATE_USABLE", w.SPELL_UPDATE_USABLE, nil)
+    w = CU.WantedEvents({ a = { kind = "spell" }, b = { kind = "aura" } }, {})
+    eq("有法術 ⇒ SPELL_UPDATE_USABLE", w.SPELL_UPDATE_USABLE, true)
+    eq("距離表空 ⇒ 不聽距離事件", w.SPELL_RANGE_CHECK_UPDATE, nil)
+    eq("距離表空 ⇒ 不聽換目標", w.PLAYER_TARGET_CHANGED, nil)
+    eq("冷卻事件不在這裡（SpellIndex 管）", w.SPELL_UPDATE_COOLDOWN, nil)
+    w = CU.WantedEvents({ a = { kind = "spell" } }, { [500] = 1 })
+    eq("距離表非空 ⇒ SPELL_RANGE_CHECK_UPDATE", w.SPELL_RANGE_CHECK_UPDATE, true)
+    eq("距離表非空 ⇒ PLAYER_TARGET_CHANGED", w.PLAYER_TARGET_CHANGED, true)
+    local out = { STALE = true }
+    local w2 = CU.WantedEvents({}, {}, out)
+    check("給了 out ⇒ 重複用同一張、清乾淨", w2 == out and out.STALE == nil)
+
+    -- colorDirty：只走 RefreshColor（UpdateSpell 不跑）；dirty 照舊整套
+    local saveUpdate, saveColor = CU.Update, CU.RefreshColor
+    local recs = CU.Records()
+    local sp = { kind = "spell", placedBar = "essential", frame = {}, spellID = 500 }
+    local it = { kind = "item", placedBar = "essential", frame = {}, itemID = 5 }
+    recs["test:sp"], recs["test:it"] = sp, it
+    local updated = {}
+    CU.Update = function(rec) updated[rec] = (updated[rec] or 0) + 1; rec.dirty, rec.colorDirty = nil, nil end
+    -- RefreshColor 是 local：stub 它讀的 API，用 colorOnly 計數驗證
+    local u0, c0 = CU.updates, CU.colorOnly
+    CU.OnUsable()
+    eq("SPELL_UPDATE_USABLE：法術標 colorDirty", sp.colorDirty, nil)    -- Defer 同步 ⇒ 已經 Flush 掉
+    eq("SPELL_UPDATE_USABLE：不整套更新", updated[sp], nil)
+    eq("SPELL_UPDATE_USABLE：物品不動", updated[it], nil)
+    eq("SPELL_UPDATE_USABLE：colorOnly +1", CU.colorOnly, c0 + 1)
+    eq("SPELL_UPDATE_USABLE：UpdateSpell 沒跑", CU.updates, u0)
+    -- 同時髒兩級：整套那條吃掉 colorDirty（不重算兩次）
+    sp.dirty, sp.colorDirty = true, true
+    CU.Flush()
+    eq("兩級都髒 ⇒ 整套一次", updated[sp], 1)
+    eq("兩級都髒 ⇒ 不另外只算顏色", CU.colorOnly, c0 + 1)
+    eq("兩級都髒 ⇒ colorDirty 清掉", sp.colorDirty, nil)
+    -- 沒放在條上的：留著 colorDirty（之後 Place 會整套 Update）
+    sp.placedBar = nil
+    CU.OnUsable()
+    eq("沒放在條上 ⇒ 不重算", CU.colorOnly, c0 + 1)
+    eq("沒放在條上 ⇒ 旗標留著", sp.colorDirty, true)
+    sp.colorDirty = nil
+    -- 冷卻事件的消費者：GCD 開始照舊全標（自訂框沒有 SetCooldown 後掛勾當安全網）；精準只標命中的
+    sp.dirty, it.dirty = nil, nil
+    it.placedBar = nil
+    CU.OnCooldownBatch(false, {}, true)
+    eq("GCD 開始：全標（法術）", sp.dirty, true)
+    eq("GCD 開始：全標（物品）", it.dirty, true)
+    sp.dirty, it.dirty = nil, nil
+    CU.OnCooldownBatch(false, { [{ rec = it }] = true }, false)
+    eq("精準：只標命中的（暴雪那邊的 entry 沒有 custom 旗標 ⇒ 不標）", it.dirty, nil)
+    it.custom = true
+    CU.OnCooldownBatch(false, { [{ rec = it }] = true }, false)
+    eq("精準：命中的自訂項目標髒", it.dirty, true)
+    eq("精準：沒命中的不標", sp.dirty, nil)
+    recs["test:sp"], recs["test:it"] = nil, nil
+    CU.Update, CU.RefreshColor = saveUpdate, saveColor
+
+    -- SyncEvents：照生效清單註冊／反註冊（Sync 結尾叫）
+    local reg = {}
+    ns.Events = {
+        Register = function(ev, key) reg[ev] = key end,
+        Unregister = function(ev, key) if reg[ev] == key then reg[ev] = nil end end,
+    }
+    for k in pairs(CU.evOn) do CU.evOn[k] = nil end
+    CU.Sync()
+    local anyNonAura = CU.activeNonAura > 0
+    CU.SyncEvents()
+    eq("SyncEvents：有非光環項目 ⇔ 註冊了 SPELL_UPDATE_CHARGES", reg.SPELL_UPDATE_CHARGES ~= nil, anyNonAura)
+    eq("SyncEvents：SPELL_UPDATE_COOLDOWN 從不在這裡註冊", reg.SPELL_UPDATE_COOLDOWN, nil)
+    -- 距離表從空到有、從有到空
+    local saveRange = next(CU.rangeOn)
+    if saveRange == nil then
+        CU.rangeOn[123] = 1
+        CU.SyncEvents()
+        eq("距離表有東西 ⇒ 註冊 SPELL_RANGE_CHECK_UPDATE", reg.SPELL_RANGE_CHECK_UPDATE, "custom_range")
+        CU.rangeOn[123] = nil
+        CU.SyncEvents()
+        eq("距離表空了 ⇒ 反註冊", reg.SPELL_RANGE_CHECK_UPDATE, nil)
+        eq("距離表空了 ⇒ 換目標也反註冊", reg.PLAYER_TARGET_CHANGED, nil)
+    end
+    ns.Events = { Register = function() end }
+end
+
 print(("Custom_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

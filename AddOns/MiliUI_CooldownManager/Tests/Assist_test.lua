@@ -570,6 +570,96 @@ do
 end
 
 ------------------------------------------------------------
+-- 5c. 效能修整 E3 #12：就緒時一直亮（明文分支）冷卻中直接熄、就緒才亮；秘密分支照舊
+--     E3 #13：無損刷新掛勾的無事路徑
+------------------------------------------------------------
+do
+    local origSpell, origCreate, origDecorate = ns.SpellSetting, env.CreateFrame, ns.Decorate
+    ns.SpellSetting = function(bk, id, key, spec)
+        if key == "readyGlowMode" then return "whileReady" end
+        if key == "readyGlow" then return true end
+        return origSpell(bk, id, key, spec)
+    end
+    env.CreateFrame = function(...)
+        local f = origCreate(...)
+        function f:SetAlpha(a) self.alpha = a; self.fromBool = nil end
+        function f:SetAlphaFromBoolean(b, t, fa) self.fromBool = { b, t, fa } end
+        return f
+    end
+    ns.MiliUIGlow.ButtonGlow_Start = function() end
+    local state = { kind = "plain", v = true }
+    local synced = 0
+    ns.Decorate = {
+        CooldownState = function() return state.kind, state.v end,
+        CdWorkSync = function() synced = synced + 1 end,
+        cdWork = {},
+    }
+    local r = { overlay = env.CreateFrame(), cooldownID = 21, barKey = "essential", claimKey = "essential", glowW = 30, glowH = 30 }
+    local owner = {}
+    -- 明文、冷卻中 ⇒ 不亮（沒畫）、readyWhile 照舊 true（旗標＝開著這個模式）
+    G.ApplyReadyState(r, owner)
+    eq("明文冷卻中：readyWhile 照舊 true", r.readyWhile, true)
+    check("明文冷卻中：發光沒開", not (r.glowOn and r.glowOn.ready))
+    eq("readyWhile 從無到有：同步 cdWork 一次", synced, 1)
+    -- 轉好 ⇒ 亮、宿主 alpha 1
+    state.v = false
+    G.ApplyReadyState(r, owner)
+    check("明文就緒：發光開著", r.glowOn and r.glowOn.ready ~= nil)
+    eq("明文就緒：宿主 alpha 1", r.glowHosts.ready.alpha, 1)
+    eq("readyWhile 沒翻：不再同步", synced, 1)
+    -- 用掉 ⇒ 直接熄（不是 alpha 0 照跑）、宿主 alpha 還原 1
+    state.v = true
+    G.ApplyReadyState(r, owner)
+    check("明文冷卻中（用掉）：發光熄了", not r.glowOn.ready)
+    eq("明文冷卻中（用掉）：宿主 alpha 1", r.glowHosts.ready.alpha, 1)
+    -- 秘密分支：發光開著、交給 SetAlphaFromBoolean
+    state.kind, state.v = "secret", SECRET
+    G.ApplyReadyState(r, owner)
+    check("秘密：發光開著", r.glowOn.ready ~= nil)
+    check("秘密：SetAlphaFromBoolean(值, 1, 0)", r.glowHosts.ready.fromBool and r.glowHosts.ready.fromBool[1] == SECRET
+        and r.glowHosts.ready.fromBool[2] == 1 and r.glowHosts.ready.fromBool[3] == 0)
+    -- 判不出來：發光開著、alpha 0（照舊）
+    state.kind, state.v = nil, nil
+    G.ApplyReadyState(r, owner)
+    check("判不出來：發光開著", r.glowOn.ready ~= nil)
+    eq("判不出來：宿主 alpha 0", r.glowHosts.ready.alpha, 0)
+    -- 模式關掉 ⇒ readyWhile 清掉、熄、同步 cdWork
+    ns.SpellSetting = function(bk, id, key, spec)
+        if key == "readyGlowMode" then return "timed" end
+        return origSpell(bk, id, key, spec)
+    end
+    G.ApplyReadyState(r, owner)
+    eq("模式關掉：readyWhile 清掉", r.readyWhile, nil)
+    eq("模式關掉：同步 cdWork", synced, 2)
+
+    -- #13 無損刷新：狀態沒變只記呼叫次數
+    local item = {}
+    local prec = { claimKey = "essential", cooldownID = 31 }
+    ns.Viewers.frames[item] = prec
+    local applied = 0
+    local origApply = G.ApplyPandemic
+    G.ApplyPandemic = function() applied = applied + 1 end
+    local c0, ch0 = G.pandemicCalls, G.pandemicChanges
+    G.OnShowPandemic(item)
+    G.OnShowPandemic(item)
+    G.OnShowPandemic(item)
+    eq("無損刷新：叫三次", G.pandemicCalls, c0 + 3)
+    eq("無損刷新：只變一次", G.pandemicChanges, ch0 + 1)
+    eq("無損刷新：只套一次", applied, 1)
+    eq("無損刷新：狀態記上", prec.pandemic, true)
+    G.OnHidePandemic(item)
+    G.OnHidePandemic(item)
+    eq("無損刷新：熄一次", applied, 2)
+    eq("無損刷新：狀態清掉", prec.pandemic, false)
+    G.OnShowPandemic({})                -- 不認得的框（動作條）：立刻走
+    eq("不認得的框：不套", applied, 2)
+    G.ApplyPandemic = origApply
+
+    ns.SpellSetting, env.CreateFrame, ns.Decorate = origSpell, origCreate, origDecorate
+    ns.MiliUIGlow.ButtonGlow_Start = nil
+end
+
+------------------------------------------------------------
 -- 6. 下一招圖示的尺寸
 ------------------------------------------------------------
 Load("Modules/AssistIcon.lua")

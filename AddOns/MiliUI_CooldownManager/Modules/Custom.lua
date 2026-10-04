@@ -94,7 +94,7 @@ local pendingBuild = {}     -- rec → true（戰鬥中要換容器）
 local pendingKick = {}      -- rec → true（戰鬥中要補踢）
 CU.lastError = nil
 CU.builds = 0
--- /mcdm perf：UpdateSpell 跑幾次／只重算顏色幾次（只重算顏色的路徑還沒做之前一直是 0）
+-- /mcdm perf：UpdateSpell 跑幾次／只重算顏色幾次（SPELL_UPDATE_USABLE 的 colorDirty 路徑）
 CU.updates, CU.colorOnly = 0, 0
 
 local function Plain(v)
@@ -482,6 +482,7 @@ function CU.EnsureRange(rec)
     rangeOn[id] = (rangeOn[id] or 0) + 1
     rec.rangeID = id
     rec.outOfRange = InRangeNow(id)
+    if CU.SyncEvents then CU.SyncEvents() end       -- 第一筆 ⇒ 註冊距離事件
 end
 
 function CU.DropRange(rec)
@@ -492,6 +493,7 @@ function CU.DropRange(rec)
     local n = (rangeOn[id] or 1) - 1
     if n > 0 then rangeOn[id] = n return end
     rangeOn[id] = nil
+    if CU.SyncEvents then CU.SyncEvents() end       -- 最後一筆 ⇒ 反註冊距離事件
     -- 暴雪自己的 item 也在查這個法術：留著（關了它的距離上色就停了）
     if BlizzardChecksRange(id) then return end
     if C_Spell and C_Spell.EnableSpellRangeCheck then pcall(C_Spell.EnableSpellRangeCheck, id, false) end
@@ -755,7 +757,7 @@ CU.StyleBarTimer = StyleBarTimer      -- 測試用
 
 function CU.Update(rec, placing)
     if not (rec.frame and rec.placedBar) then return end
-    rec.dirty = nil
+    rec.dirty, rec.colorDirty = nil, nil          -- 整套更新包含 RefreshColor
     if rec.kind == "spell" then UpdateSpell(rec)
     elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec, placing) end
     CU.ApplyState(rec)
@@ -830,17 +832,29 @@ end
 
 ------------------------------------------------------------
 -- 事件：標髒、下一幀更新標髒的那幾筆
+--
+-- 兩級髒標記（效能修整 E3 #10）：
+--   rec.dirty       整套 CU.Update（冷卻、充能、數量、去飽和、探針、顏色）
+--   rec.colorDirty  只 RefreshColor（SPELL_UPDATE_USABLE：可用／資源不足只影響上色）。rec.dirty 一併做掉
 ------------------------------------------------------------
 local dirtyArmed = false
 local function Flush()
     dirtyArmed = false
     for _, rec in pairs(records) do
-        if rec.placedBar and rec.kind ~= "aura" and rec.dirty then
-            local ok, err = xpcall(CU.Update, ns.ReportError, rec)
-            if not ok then CU.lastError = err end
+        if rec.placedBar and rec.kind ~= "aura" then
+            if rec.dirty then
+                local ok, err = xpcall(CU.Update, ns.ReportError, rec)
+                if not ok then CU.lastError = err end
+            elseif rec.colorDirty then
+                rec.colorDirty = nil
+                CU.colorOnly = CU.colorOnly + 1
+                local ok, err = xpcall(RefreshColor, ns.ReportError, rec)
+                if not ok then CU.lastError = err end
+            end
         end
     end
 end
+CU.Flush = Flush                      -- 測試用
 
 local function ArmFlush()
     if dirtyArmed then return end
@@ -849,30 +863,122 @@ local function ArmFlush()
 end
 
 -- 每筆都標髒（沒放在條上的也標：之後被放上去時 Place 看 rec.dirty 補一次 Update）
-function CU.MarkDirty()
+local function MarkAll()
     for _, rec in pairs(records) do
         if rec.kind ~= "aura" then rec.dirty = true end
     end
+end
+
+function CU.MarkDirty()
+    MarkAll()
     ArmFlush()
 end
 
--- SPELL_UPDATE_COOLDOWN：帶明文 spellID 而且索引查得到 ⇒ 只標那幾筆；讀不懂 ⇒ 全標（Core/SpellIndex.lua）。
--- 同一幀的多次事件自然合併：全標過的那一輪 Flush 本來就全部更新
-local function OnSpellCooldown(...)
-    local SI = ns.SpellIndex
-    local hits = SI and SI.Classify(SI.Lookup, ns.IsSecret, ...)
-    if not hits then return CU.MarkDirty() end
+-- SPELL_UPDATE_USABLE：只有自訂法術有可用／資源不足的上色（RefreshColor 只看 kind == "spell"）
+local function OnUsable()
     local any = false
-    for _, e in ipairs(hits) do
+    for _, rec in pairs(records) do
+        if rec.kind == "spell" then
+            rec.colorDirty = true
+            any = true
+        end
+    end
+    if any then ArmFlush() end
+end
+CU.OnUsable = OnUsable                -- 測試用
+
+-- SPELL_UPDATE_COOLDOWN 的消費者（事件處理器在 Core/SpellIndex.lua：分類一次、合併、延一幀才交過來）：
+-- 全掃 ⇒ 全標；否則 entries 裡挑自訂法術標髒。
+-- GCD 開始（gcd，SI.GCD_PRECISE）在這裡**照舊全標**：暴雪 item 有 SetCooldown 後掛勾當安全網（暴雪每次 GCD 對每一格
+-- 都刷新，Decorate 的 AfterCooldown 會補算），自訂框沒有——「施放 X 順便改了 Y 的冷卻」如果只跟著 X 的事件來，
+-- 只標命中的格會漏掉 Y。以前帶 GCD 類別一律全標，維持原樣（行為零改動）。
+-- 已經是事件的下一幀 ⇒ 直接 Flush（再 ArmFlush 會多晚一幀；已排著的那次 Flush 之後跑到時沒事做）
+local function OnCooldownBatch(all, entries, gcd)
+    if all or gcd then
+        MarkAll()
+        Flush()
+        return
+    end
+    local any = false
+    for e in pairs(entries) do
         local rec = e.rec
         if rec and rec.custom and rec.kind ~= "aura" then
             rec.dirty = true
             any = true
         end
     end
-    if any then ArmFlush() end
+    if any then Flush() end
 end
-CU.OnSpellCooldown = OnSpellCooldown
+CU.OnCooldownBatch = OnCooldownBatch
+
+-- 目前生效的非光環項目有幾筆（Sync 數；SpellIndex 的 wants 看它：0 ⇒ 冷卻事件對 Custom 沒事做）
+CU.activeNonAura = 0
+
+------------------------------------------------------------
+-- 事件註冊動態化（效能修整 E3 #10；樣板是 Modules/Pips.lua 的 SyncEvents）
+--
+--   CU.WantedEvents(recs, rangeOn [, out])   純函式：生效中的 rec 集合＋距離表 → 要註冊的事件集合
+--     有任何非光環項目     SPELL_UPDATE_CHARGES、BAG_UPDATE_COOLDOWN、BAG_UPDATE_DELAYED、SPELLS_CHANGED、
+--                         PLAYER_EQUIPMENT_CHANGED（全標）
+--     有自訂法術           SPELL_UPDATE_USABLE（只重算顏色）
+--     距離表非空           SPELL_RANGE_CHECK_UPDATE、PLAYER_TARGET_CHANGED（兩個處理器開頭本來就看 rangeOn）
+--   SPELL_UPDATE_COOLDOWN 不在這裡：Core/SpellIndex.lua 唯一的處理器，wants 看 CU.activeNonAura。
+--   CU.SyncEvents()  Sync 結尾（生效清單變了）、EnsureRange／DropRange（距離表從空變有／從有變空）叫
+------------------------------------------------------------
+local MARK_EVENTS = { "SPELL_UPDATE_CHARGES", "BAG_UPDATE_COOLDOWN", "BAG_UPDATE_DELAYED", "SPELLS_CHANGED",
+                      "PLAYER_EQUIPMENT_CHANGED" }
+CU.MARK_EVENTS = MARK_EVENTS
+
+function CU.WantedEvents(recs, range, out)
+    out = out or {}
+    for k in pairs(out) do out[k] = nil end
+    local any, spell = false, false
+    for _, rec in pairs(recs or {}) do
+        if rec.kind ~= "aura" then
+            any = true
+            if rec.kind == "spell" then spell = true end
+        end
+    end
+    if any then
+        for _, ev in ipairs(MARK_EVENTS) do out[ev] = true end
+    end
+    if spell then out.SPELL_UPDATE_USABLE = true end
+    if range and next(range) ~= nil then
+        out.SPELL_RANGE_CHECK_UPDATE = true
+        out.PLAYER_TARGET_CHANGED = true
+    end
+    return out
+end
+
+-- 事件 → { 鍵, 處理器 }（處理器只建一次）
+local EVENT_FNS = {}
+do
+    local mark = function() CU.MarkDirty() end      -- ⚠ 包一層：MarkDirty 不收事件參數
+    for _, ev in ipairs(MARK_EVENTS) do EVENT_FNS[ev] = { "custom_cd", mark } end
+    EVENT_FNS.SPELL_UPDATE_USABLE = { "custom_usable", function() OnUsable() end }
+    -- 距離上色：事件是同步派送的（換目標的 secure 流程裡也會來）⇒ 一律延一幀，參數整包帶過去
+    EVENT_FNS.SPELL_RANGE_CHECK_UPDATE = { "custom_range", function(...) ns.Defer(OnRangeUpdate, ...) end }
+    EVENT_FNS.PLAYER_TARGET_CHANGED = { "custom_range", function() ns.Defer(OnTargetChanged) end }
+end
+
+local evOn = {}                       -- 事件 → true（現在註冊著）
+local wantScratch = {}
+CU.evOn = evOn                        -- /mcdm debug、測試用
+
+function CU.SyncEvents()
+    local E = ns.Events
+    if not (E and E.Register and E.Unregister) then return end
+    local want = CU.WantedEvents(byId, rangeOn, wantScratch)
+    for ev, h in pairs(EVENT_FNS) do
+        if want[ev] and not evOn[ev] then
+            evOn[ev] = true
+            E.Register(ev, h[1], h[2])
+        elseif not want[ev] and evOn[ev] then
+            evOn[ev] = nil
+            E.Unregister(ev, h[1])
+        end
+    end
+end
 
 ------------------------------------------------------------
 -- 光環格：持有框、容器、按鈕樣式
@@ -1531,6 +1637,12 @@ function CU.Sync()
             HideRec(rec)
         end
     end
+    local n = 0
+    for _, rec in pairs(byId) do
+        if rec.kind ~= "aura" then n = n + 1 end
+    end
+    CU.activeNonAura = n
+    CU.SyncEvents()
 end
 
 ------------------------------------------------------------
@@ -1700,14 +1812,11 @@ function CU.Init()
     if initialized then return end
     initialized = true
     local E = ns.Events
-    for _, ev in ipairs({ "SPELL_UPDATE_COOLDOWN", "SPELL_UPDATE_CHARGES", "SPELL_UPDATE_USABLE",
-                          "BAG_UPDATE_COOLDOWN", "BAG_UPDATE_DELAYED", "SPELLS_CHANGED",
-                          "PLAYER_EQUIPMENT_CHANGED" }) do
-        -- ⚠ 包一層：MarkDirty 不收事件參數
-        E.Register(ev, "custom_cd", function() CU.MarkDirty() end)
+    -- 冷卻／數量事件改成動態註冊（CU.SyncEvents，Sync 結尾）：沒有非光環項目就一個都不聽。
+    -- SPELL_UPDATE_COOLDOWN 由 Core/SpellIndex.lua 唯一的處理器分類後交過來（帶法術 ID 只標那幾筆，讀不懂就全標）
+    if ns.SpellIndex and ns.SpellIndex.Subscribe then
+        ns.SpellIndex.Subscribe(OnCooldownBatch, function() return CU.activeNonAura > 0 end)
     end
-    -- 冷卻事件帶法術 ID：只標那幾筆（讀不懂就全標）
-    E.Register("SPELL_UPDATE_COOLDOWN", "custom_cd", OnSpellCooldown)
     -- 進出編輯模式：冷卻狀態效果在編輯模式中不套（全亮）。訊號可能在暴雪的流程裡同步派送 ⇒ 延一幀
     ns.RegisterCallback("EditModeChanged", "custom_state", function()
         ns.Defer(function()
@@ -1716,9 +1825,7 @@ function CU.Init()
             end
         end)
     end)
-    -- 距離上色：事件是同步派送的（換目標的 secure 流程裡也會來）⇒ 一律延一幀，參數整包帶過去
-    E.Register("SPELL_RANGE_CHECK_UPDATE", "custom_range", function(...) ns.Defer(OnRangeUpdate, ...) end)
-    E.Register("PLAYER_TARGET_CHANGED", "custom_range", function() ns.Defer(OnTargetChanged) end)
+    -- 距離上色（SPELL_RANGE_CHECK_UPDATE／PLAYER_TARGET_CHANGED）：距離表非空才註冊，見 CU.SyncEvents
     E.Register("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", "custom_glow", function(id) ns.Defer(OnOverlay, true, id) end)
     E.Register("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", "custom_glow", function(id) ns.Defer(OnOverlay, false, id) end)
     ns.RegisterCallback("BarsReady", "custom", function()

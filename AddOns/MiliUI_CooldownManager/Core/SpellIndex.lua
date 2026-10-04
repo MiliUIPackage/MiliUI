@@ -11,8 +11,17 @@
 --   ns.SpellIndex.Build(sources)          純函式：sources = { { ids = { … }, owner, rec, key }, … } → 索引表
 --   ns.SpellIndex.Classify(lookup, isSecret, spellID, baseSpellID, category, startRecoveryCategory, itemID)
 --                                         純函式：nil ＝ 全掃；否則回這次事件命中的 entry 清單
+--   ns.SpellIndex.ClassifyGCD(lookup, isSecret, spellID, baseSpellID, category, startRecoveryCategory, itemID)
+--                                         純函式：「GCD 開始」的精準分類（效能修整 E3 #8）。只有 startRecoveryCategory
+--                                         有值、spellID 是明文數字、category／itemID 都是 nil 才回清單（可以是空的），其餘 nil
 --   ns.SpellIndex.NewBatch() / Add(batch, …) / Take(batch)
---                                         同一幀多次事件合併：任何一次是「全掃」就全掃，否則收集命中的格子
+--                                         同一幀多次事件合併：任何一次是「全掃」就全掃，否則收集命中的格子；
+--                                         Take 回 all, entries, gcd（gcd ＝ 這一批有 GCD 開始，全掃時恆 false）
+--   ns.SpellIndex.Subscribe(fn, wants)    SPELL_UPDATE_COOLDOWN 的消費者（Decorate、Custom）。事件處理器只有這裡一支：
+--                                         分類只跑一次、合併、延一幀，之後 fn(all, entries, gcd) 逐一交出（逐項隔離）。
+--                                         wants() 回 false 的消費者沒事做；**全部都沒事做時連分類與 Defer 都不排**
+--   ns.SpellIndex.GCD_PRECISE             true ＝ GCD 開始的事件走 ClassifyGCD（命中的格整套重算＋其餘隱藏 GCD 的格只重算
+--                                         GCD 轉圈，見 Core/Decorate.lua）；false ＝ 回到「帶 GCD 類別一律全掃」
 --
 -- 只收「認領中／放在條上」的：暴雪 item 收 Catalog 的 spellID 與 overrideSpellID，自訂法術收
 -- rec.spellID 與 rec.overrideID。key 一律是明文數字（秘密值不進來，Catalog／Custom 讀的時候已過 Plain）。
@@ -34,6 +43,9 @@ local index = {}
 SI.dirty = true                 -- 見檔頭；開機第一輪一定建
 SI.rebuilds = 0
 SI.precise, SI.full = 0, 0      -- 合併後的批次各走了幾次（debug）
+SI.gcd = 0                      -- 精準的批次裡有幾次帶「GCD 開始」（/mcdm perf）
+-- 事件參數形狀沒實機驗過（README 待實機驗證 276）：關掉 ⇒ 帶 startRecoveryCategory 的事件照舊全掃
+SI.GCD_PRECISE = true
 
 ------------------------------------------------------------
 -- 純函式
@@ -55,15 +67,8 @@ function SI.Build(sources)
     return out
 end
 
--- lookup(id) → 清單（沒有回空表或 nil）；isSecret(v) → 布林
-function SI.Classify(lookup, isSecret, spellID, baseSpellID, category, startRecoveryCategory, itemID)
-    -- 秘密值連跟 nil 比都會拋錯：每個參數先問是不是秘密值
-    if isSecret(spellID) or isSecret(baseSpellID) or isSecret(category)
-        or isSecret(startRecoveryCategory) or isSecret(itemID) then
-        return nil
-    end
-    if type(spellID) ~= "number" then return nil end
-    if category ~= nil or startRecoveryCategory ~= nil or itemID ~= nil then return nil end
+-- spellID（＋不同的 baseSpellID）在索引裡命中的 entry，去重
+local function Collect(lookup, spellID, baseSpellID)
     local hits, seen = {}, {}
     local function take(id)
         if type(id) ~= "number" then return end
@@ -76,19 +81,49 @@ function SI.Classify(lookup, isSecret, spellID, baseSpellID, category, startReco
     end
     take(spellID)
     if baseSpellID ~= spellID then take(baseSpellID) end
+    return hits
+end
+
+-- lookup(id) → 清單（沒有回空表或 nil）；isSecret(v) → 布林
+function SI.Classify(lookup, isSecret, spellID, baseSpellID, category, startRecoveryCategory, itemID)
+    -- 秘密值連跟 nil 比都會拋錯：每個參數先問是不是秘密值
+    if isSecret(spellID) or isSecret(baseSpellID) or isSecret(category)
+        or isSecret(startRecoveryCategory) or isSecret(itemID) then
+        return nil
+    end
+    if type(spellID) ~= "number" then return nil end
+    if category ~= nil or startRecoveryCategory ~= nil or itemID ~= nil then return nil end
+    local hits = Collect(lookup, spellID, baseSpellID)
     if #hits == 0 then return nil end
     return hits
 end
 
+-- GCD 開始（startRecoveryCategory 有值）：暴雪自己的檢視器會刷新每一格的 GCD 轉圈，但 GCD 不影響「在不在冷卻」
+-- （冷卻狀態、就緒時一直亮都是 isActive and not isOnGCD）⇒ 命中的格整套重算、其餘只要重算 GCD 轉圈。
+-- 查不到也回空清單（施放沒追蹤的法術：只有 GCD 轉圈要動）。共用冷卻（category）、物品（itemID）照舊 nil ＝ 全掃
+function SI.ClassifyGCD(lookup, isSecret, spellID, baseSpellID, category, startRecoveryCategory, itemID)
+    if isSecret(spellID) or isSecret(baseSpellID) or isSecret(category)
+        or isSecret(startRecoveryCategory) or isSecret(itemID) then
+        return nil
+    end
+    if type(spellID) ~= "number" then return nil end
+    if startRecoveryCategory == nil or category ~= nil or itemID ~= nil then return nil end
+    return Collect(lookup, spellID, baseSpellID)
+end
+
 function SI.NewBatch()
-    return { all = false, entries = {}, n = 0 }
+    return { all = false, entries = {}, n = 0, gcd = false }
 end
 
 function SI.Add(batch, lookup, isSecret, ...)
     if batch.all then return end
     local hits = SI.Classify(lookup, isSecret, ...)
+    if not hits and SI.GCD_PRECISE then
+        hits = SI.ClassifyGCD(lookup, isSecret, ...)
+        if hits then batch.gcd = true end
+    end
     if not hits then
-        batch.all = true
+        batch.all, batch.gcd = true, false
         batch.entries, batch.n = {}, 0
         return
     end
@@ -100,11 +135,11 @@ function SI.Add(batch, lookup, isSecret, ...)
     end
 end
 
--- 取出並清空：回 all, entries（set：entry → true）
+-- 取出並清空：回 all, entries（set：entry → true）, gcd
 function SI.Take(batch)
-    local all, entries = batch.all, batch.entries
-    batch.all, batch.entries, batch.n = false, {}, 0
-    return all, entries
+    local all, entries, gcd = batch.all, batch.entries, batch.gcd
+    batch.all, batch.entries, batch.n, batch.gcd = false, {}, 0, false
+    return all, entries, gcd and not all
 end
 
 ------------------------------------------------------------
@@ -145,4 +180,61 @@ function SI.Count()
     local n = 0
     for _ in pairs(index) do n = n + 1 end
     return n
+end
+
+------------------------------------------------------------
+-- SPELL_UPDATE_COOLDOWN：唯一的事件處理器（效能修整 E3 #8）
+--
+-- 以前 Decorate 與 Custom 各註冊一支、各 Classify 一次（各配置 hits／seen／閉包）。現在這裡分類一次、合併到
+-- 共用批次、延一幀（ns.Defer）交給每個消費者：
+--   Decorate  暴雪 item：全掃只走 Decorate.cdWork（開了隱藏 GCD／冷卻狀態／就緒時一直亮的格）。GCD 開始：命中的格
+--             整套重算，其餘隱藏 GCD 的格只重算 GCD 轉圈（暴雪每次 GCD 對每一格 SetCooldown，冷卻狀態與就緒發光
+--             另有 SetCooldown 後掛勾補算）
+--   Custom    自訂法術／物品：entries 裡挑 rec.custom 標髒；全掃與 GCD 開始全標（自訂框沒有那個後掛勾當安全網）。
+--             它在這一輪直接 Flush（已經是事件的下一幀，再 Defer 會多晚一幀）
+-- 每個消費者的 wants() 都回 false（沒有要做的格）⇒ 事件來了直接走，連分類都不做
+------------------------------------------------------------
+local subs = {}
+local cdBatch = SI.NewBatch()
+local cdArmed = false
+
+function SI.Subscribe(fn, wants)
+    subs[#subs + 1] = { fn = fn, wants = wants }
+end
+
+local function AnyWants()
+    for i = 1, #subs do
+        local w = subs[i].wants
+        if not w or w() then return true end
+    end
+    return false
+end
+SI.AnyWants = AnyWants                    -- 測試用
+
+local function Dispatch()
+    cdArmed = false
+    local all, entries, gcd = SI.Take(cdBatch)
+    if all then
+        SI.full = SI.full + 1
+    else
+        SI.precise = SI.precise + 1
+        if gcd then SI.gcd = SI.gcd + 1 end
+    end
+    local report = ns.ReportError or geterrorhandler
+    for i = 1, #subs do
+        xpcall(subs[i].fn, report, all, entries, gcd)
+    end
+end
+SI.Dispatch = Dispatch                    -- 測試用
+
+function SI.OnCooldownEvent(...)
+    if not AnyWants() then return end
+    SI.Add(cdBatch, SI.Lookup, ns.IsSecret, ...)
+    if cdArmed then return end
+    cdArmed = true
+    ns.Defer(Dispatch)
+end
+
+if ns.Events and ns.Events.Register then
+    ns.Events.Register("SPELL_UPDATE_COOLDOWN", "spellindex", function(...) SI.OnCooldownEvent(...) end)
 end

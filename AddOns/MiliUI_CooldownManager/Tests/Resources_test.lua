@@ -1510,5 +1510,52 @@ do
     cfg.style.Mana.follow = nil
     eq("切回跟隨：立刻回原表", R.StyleFor(cfg, "Mana"), cfg)
 end
+------------------------------------------------------------
+-- 效能修整 E3 #16a：光環／生命事件依列動態註冊（R.WantedEvents 純函式）
+------------------------------------------------------------
+do
+    local function Set(t) local n = 0; for _ in pairs(t) do n = n + 1 end; return n end
+    eq("沒有列 ⇒ 一個都不聽", Set(R.WantedEvents({}, "SHAMAN")), 0)
+    eq("只有能量列 ⇒ 一個都不聽", Set(R.WantedEvents({ "Mana", "Maelstrom" }, "SHAMAN")), 0)
+    local w = R.WantedEvents({ "Maelstrom", "MaelstromWeapon" }, "SHAMAN")
+    eq("漩渦之武（層數型）⇒ UNIT_AURA", w.UNIT_AURA, true)
+    eq("漩渦之武 ⇒ 不聽生命", w.UNIT_HEALTH, nil)
+    eq("矛尖 ⇒ UNIT_AURA", R.WantedEvents({ "TipOfTheSpear" }, "HUNTER").UNIT_AURA, true)
+    eq("靈魂碎片（施放次數）⇒ UNIT_AURA", R.WantedEvents({ "SoulFragments" }, "DEMONHUNTER").UNIT_AURA, true)
+    eq("噬靈魂碎片（讀光環層數）⇒ UNIT_AURA", R.WantedEvents({ "DevourerFragments" }, "DEMONHUNTER").UNIT_AURA, true)
+    eq("冰刺 ⇒ UNIT_AURA", R.WantedEvents({ "Icicles" }, "MAGE").UNIT_AURA, true)
+    eq("秘法靈魂（auraTimer）⇒ UNIT_AURA", R.WantedEvents({ "ArcaneSoul" }, "MAGE").UNIT_AURA, true)
+    eq("秘法充能（能量）⇒ 不聽", R.WantedEvents({ "ArcaneCharges" }, "MAGE").UNIT_AURA, nil)
+    eq("鐵鬃 ⇒ UNIT_AURA", R.WantedEvents({ "Rage", "Ironfur" }, "DRUID").UNIT_AURA, true)
+    eq("野德連擊點（滿溢之力）⇒ UNIT_AURA", R.WantedEvents({ "Energy", "ComboPoints" }, "DRUID").UNIT_AURA, true)
+    eq("盜賊連擊點 ⇒ 不聽 UNIT_AURA（不是光環職業）", R.WantedEvents({ "ComboPoints" }, "ROGUE").UNIT_AURA, nil)
+    eq("貓以外的德魯伊列（星能）⇒ 不聽", R.WantedEvents({ "LunarPower", "Mana" }, "DRUID").UNIT_AURA, nil)
+    -- 以前就沒註冊 UNIT_AURA 的職業：光環列走引擎，照舊不聽
+    eq("戰士橫掃（auraBar）⇒ 不聽 UNIT_AURA", R.WantedEvents({ "SweepingStrikes" }, "WARRIOR").UNIT_AURA, nil)
+    eq("增輝黯黑力量 ⇒ 不聽 UNIT_AURA", R.WantedEvents({ "EbonMight" }, "EVOKER").UNIT_AURA, nil)
+    -- 醉仙緩勁：光環＋生命
+    w = R.WantedEvents({ "Energy", "Stagger" }, "MONK")
+    eq("醉仙緩勁 ⇒ UNIT_AURA", w.UNIT_AURA, true)
+    eq("醉仙緩勁 ⇒ UNIT_HEALTH", w.UNIT_HEALTH, true)
+    eq("醉仙緩勁 ⇒ UNIT_MAXHEALTH", w.UNIT_MAXHEALTH, true)
+    eq("醉仙緩勁 ⇒ 不聽吸收", w.UNIT_ABSORB_AMOUNT_CHANGED, nil)
+    eq("風行武僧（真氣）⇒ 一個都不聽", Set(R.WantedEvents({ "Energy", "Chi" }, "MONK")), 0)
+    -- 血量列：任何職業
+    w = R.WantedEvents({ "HolyPower", "Health" }, "PALADIN")
+    eq("血量列 ⇒ UNIT_HEALTH", w.UNIT_HEALTH, true)
+    eq("血量列 ⇒ UNIT_MAXHEALTH", w.UNIT_MAXHEALTH, true)
+    eq("血量列 ⇒ 不聽 UNIT_AURA", w.UNIT_AURA, nil)
+    -- 無視苦痛：吸收量＋最大生命
+    w = R.WantedEvents({ "Rage", "IgnorePain" }, "WARRIOR")
+    eq("無視苦痛 ⇒ UNIT_ABSORB_AMOUNT_CHANGED", w.UNIT_ABSORB_AMOUNT_CHANGED, true)
+    eq("無視苦痛 ⇒ UNIT_MAXHEALTH", w.UNIT_MAXHEALTH, true)
+    eq("無視苦痛 ⇒ 不聽 UNIT_HEALTH", w.UNIT_HEALTH, nil)
+    eq("無視苦痛 ⇒ 不聽 UNIT_AURA（戰士）", w.UNIT_AURA, nil)
+    -- 不認得的 key 不報錯；out 重複用
+    local out = { STALE = true }
+    local w2 = R.WantedEvents({ "NoSuchKey" }, "SHAMAN", out)
+    check("out 重複用、清乾淨、壞 key 略過", w2 == out and Set(out) == 0)
+    eq("keys 是 nil 不報錯", Set(R.WantedEvents(nil, "MONK")), 0)
+end
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

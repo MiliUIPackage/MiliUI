@@ -316,9 +316,16 @@ do
     eq("Rebuild：別的沒有", #SI.Lookup(555), 0)
     eq("SI.dirty：再建一次又清掉", SI.dirty, false)
 
-    -- SPELL_UPDATE_COOLDOWN：精準只跑命中的那一格
-    local h = handlers["SPELL_UPDATE_COOLDOWN|decorate_gcd"]
-    check("Decorate 有註冊冷卻事件", type(h) == "function")
+    -- SPELL_UPDATE_COOLDOWN：唯一的處理器在 SpellIndex（E3 #8）；精準只跑命中的那一格、全掃只走 D.cdWork
+    local h = handlers["SPELL_UPDATE_COOLDOWN|spellindex"]
+    check("SpellIndex 有註冊冷卻事件", type(h) == "function")
+    check("Decorate 不再自己註冊", handlers["SPELL_UPDATE_COOLDOWN|decorate_gcd"] == nil)
+    -- 全掃清單：rA 設了冷卻狀態（D.Apply 會存 cdNeed，這裡直接給）、rB 什麼都沒設
+    rA.cdNeed, rB.cdNeed = true, false
+    D.CdWorkSync(rA, itA)
+    D.CdWorkSync(rB, itB)
+    eq("cdWork：設了冷卻狀態的格收進來", D.cdWork[rA], itA)
+    eq("cdWork：什麼都沒設的不收", D.cdWork[rB], nil)
     cooldowns[100] = { isActive = true, isOnGCD = false }
     itA.log = {}; itB.log = {}
     local full0, prec0 = SI.full, SI.precise
@@ -411,11 +418,14 @@ do
         if id == 777 then return { { rec = hitRec }, { rec = blizzRec } } end
         return SI.EMPTY
     end
-    CU.OnSpellCooldown(777)
+    local b = SI.NewBatch()
+    SI.Add(b, SI.Lookup, IsSecret, 777)
+    local all, set = SI.Take(b)
+    CU.OnCooldownBatch(all, set)
     eq("精準：命中的自訂法術標髒", hitRec.dirty, true)
     eq("精準：沒命中的不標", otherRec.dirty, nil)
     eq("精準：暴雪 item 不歸 Custom 管", blizzRec.dirty, nil)
-    check("全掃（nil）不報錯", pcall(CU.OnSpellCooldown, nil))
+    check("全掃不報錯", pcall(CU.OnCooldownBatch, true, {}))
     SI.Lookup = saved
 end
 
@@ -480,6 +490,139 @@ do
     D.ApplyItemAlpha(it, r, 1)
     eq("編輯模式中不套", it.alpha, 1)
     ns.EditMode.active = false
+end
+
+------------------------------------------------------------
+-- 8. 效能修整 E3 #8：SI.Subscribe 派送、沒事做時不排批次、GCD 開始的精準分類（SI.ClassifyGCD）、cdWork 的維護
+------------------------------------------------------------
+do
+    local idx = SI.Build({
+        { ids = { 10 }, owner = "ia", rec = { n = "A" }, key = "essential" },
+        { ids = { 11 }, owner = "ib", rec = { n = "B" }, key = "utility" },
+    })
+    local function lk(id) return idx[id] end
+    -- ClassifyGCD（純函式）
+    eq("GCD：沒帶 startRecoveryCategory ⇒ 不是 GCD 事件", SI.ClassifyGCD(lk, IsSecret, 10), nil)
+    local g = SI.ClassifyGCD(lk, IsSecret, 10, nil, nil, 133)
+    eq("GCD：明文 spellID ⇒ 命中那一格", g and #g, 1)
+    g = SI.ClassifyGCD(lk, IsSecret, 99, nil, nil, 133)
+    check("GCD：查不到 ⇒ 空清單（不是全掃）", type(g) == "table" and #g == 0)
+    eq("GCD：帶 category ⇒ 全掃", SI.ClassifyGCD(lk, IsSecret, 10, nil, 5, 133), nil)
+    eq("GCD：帶 itemID ⇒ 全掃", SI.ClassifyGCD(lk, IsSecret, 10, nil, nil, 133, 5512), nil)
+    eq("GCD：spellID nil ⇒ 全掃", SI.ClassifyGCD(lk, IsSecret, nil, nil, nil, 133), nil)
+    eq("GCD：GCD 類別是秘密值 ⇒ 全掃", SI.ClassifyGCD(lk, IsSecret, 10, nil, nil, Secret(133)), nil)
+    eq("GCD：spellID 秘密 ⇒ 全掃", SI.ClassifyGCD(lk, IsSecret, Secret(10), nil, nil, 133), nil)
+    g = SI.ClassifyGCD(lk, IsSecret, 11, 10, nil, 133)
+    eq("GCD：覆寫＋基底合併", g and #g, 2)
+    -- 批次：GCD_PRECISE 開著 ⇒ 不全掃、帶 gcd；關掉 ⇒ 全掃
+    eq("GCD_PRECISE 預設開", SI.GCD_PRECISE, true)
+    local b = SI.NewBatch()
+    SI.Add(b, lk, IsSecret, 99, nil, nil, 133)
+    local all, set, gcd = SI.Take(b)
+    eq("批次 GCD：不全掃", all, false)
+    eq("批次 GCD：gcd 旗標", gcd, true)
+    check("批次 GCD：沒命中 ⇒ 沒有格", next(set) == nil)
+    SI.Add(b, lk, IsSecret, 10, nil, nil, 133)
+    SI.Add(b, lk, IsSecret, 11)
+    all, set, gcd = SI.Take(b)
+    local n = 0; for _ in pairs(set) do n = n + 1 end
+    eq("批次 GCD＋精準合併：兩格", n, 2)
+    eq("批次 GCD＋精準合併：gcd", gcd, true)
+    SI.Add(b, lk, IsSecret, 10, nil, nil, 133)
+    SI.Add(b, lk, IsSecret, nil)
+    all, set, gcd = SI.Take(b)
+    eq("GCD 之後來一次全掃 ⇒ 全掃", all, true)
+    eq("全掃時 gcd 恆 false", gcd, false)
+    all, set, gcd = SI.Take(b)
+    eq("Take 之後 gcd 清掉", gcd, false)
+    SI.GCD_PRECISE = false
+    SI.Add(b, lk, IsSecret, 10, nil, nil, 133)
+    all = SI.Take(b)
+    eq("GCD_PRECISE 關掉 ⇒ GCD 事件全掃", all, true)
+    SI.GCD_PRECISE = true
+
+    -- Subscribe 派送：每個消費者拿到同一份 (all, entries, gcd)；一個拋錯不連坐
+    local got = {}
+    local spyWants = false
+    SI.Subscribe(function(a, e, gc) got[#got + 1] = { a, e, gc } end, function() return spyWants end)
+    SI.Subscribe(function() error("boom") end, function() return false end)
+    -- 清空 cdWork：Decorate 沒事做、spy 也沒事做 ⇒ 連批次都不排
+    for rec in pairs(D.cdWork) do D.cdWork[rec] = nil end
+    eq("AnyWants：全部沒事做", SI.AnyWants(), false)
+    local f0, p0 = SI.full, SI.precise
+    handlers["SPELL_UPDATE_COOLDOWN|spellindex"](nil)
+    eq("沒事做：不派送", #got, 0)
+    eq("沒事做：計數不動", SI.full + SI.precise, f0 + p0)
+    spyWants = true
+    local saveReport = ns.ReportError
+    local reported = 0
+    ns.ReportError = function() reported = reported + 1 end
+    handlers["SPELL_UPDATE_COOLDOWN|spellindex"](nil)
+    eq("有事做：派送一次", #got, 1)
+    eq("有事做：全掃", got[1] and got[1][1], true)
+    eq("有事做：全掃計數", SI.full, f0 + 1)
+    eq("拋錯的消費者被隔離（ReportError 一次）", reported, 1)
+    ns.ReportError = saveReport
+    spyWants = false
+
+    -- cdWork 的維護（CdWorkSync）：認領中、沒停放、需要（cdNeed 或 readyWhile）才收；自訂框不收
+    local it = Item()
+    local r = { cooldownID = 77, claimKey = "essential", cdNeed = false }
+    ns.Viewers.frames[it] = r
+    D.CdWorkSync(r, it)
+    eq("cdWork：不需要 ⇒ 不收", D.cdWork[r], nil)
+    r.readyWhile = true
+    D.CdWorkSync(r, it)
+    eq("cdWork：readyWhile ⇒ 收", D.cdWork[r], it)
+    r.readyWhile = nil
+    D.CdWorkSync(r)
+    eq("cdWork：readyWhile 熄掉 ⇒ 移除（item 從表裡取）", D.cdWork[r], nil)
+    r.cdNeed = true
+    D.CdWorkSync(r, it)
+    eq("cdWork：cdNeed ⇒ 收", D.cdWork[r], it)
+    r.parked = true
+    D.CdWorkSync(r)
+    eq("cdWork：停放 ⇒ 移除", D.cdWork[r], nil)
+    r.parked = false
+    D.CdWorkSync(r, it)
+    r.claimKey = nil
+    D.CdWorkSync(r)
+    eq("cdWork：沒認領 ⇒ 移除", D.cdWork[r], nil)
+    r.claimKey = "essential"
+    local cr = { custom = true, claimKey = "essential", cdNeed = true }
+    D.CdWorkSync(cr, Item())
+    eq("cdWork：自訂框不收", D.cdWork[cr], nil)
+
+    -- Decorate 消費者：GCD 開始 ⇒ 命中的格整套重算，其餘只有開了隱藏 GCD 的格重算 GCD 轉圈
+    local gcdCalls, alphaCalls = {}, {}
+    local saveG, saveA = D.ApplyGCDAlpha, D.ApplyItemAlpha
+    D.ApplyGCDAlpha = function(item, rec) gcdCalls[rec] = (gcdCalls[rec] or 0) + 1 end
+    D.ApplyItemAlpha = function(item, rec) alphaCalls[rec] = (alphaCalls[rec] or 0) + 1 end
+    local iH, iG, iS = Item(), Item(), Item()
+    local rH = { cooldownID = 81, claimKey = "essential", cdNeed = true, cdReady = false, style = { hideGCD = true, cdState = "dim" } }
+    local rG = { cooldownID = 82, claimKey = "essential", cdNeed = true, cdReady = false, style = { hideGCD = true } }
+    local rS = { cooldownID = 83, claimKey = "essential", cdNeed = true, cdReady = false, style = { cdState = "dim" } }
+    for i, pr in ipairs({ { iH, rH }, { iG, rG }, { iS, rS } }) do
+        ns.Viewers.frames[pr[1]] = pr[2]
+        D.CdWorkSync(pr[2], pr[1])
+    end
+    local entry = { owner = iH, rec = rH }
+    D.OnCooldownBatch(false, { [entry] = true }, true)
+    eq("GCD：命中的格重算 GCD 轉圈一次（不重複）", gcdCalls[rH], 1)
+    eq("GCD：命中的格重算冷卻狀態", alphaCalls[rH], 1)
+    eq("GCD：沒命中、隱藏 GCD 的格只重算 GCD 轉圈", gcdCalls[rG], 1)
+    eq("GCD：沒命中、只有冷卻狀態的格不動", alphaCalls[rS], nil)
+    gcdCalls, alphaCalls = {}, {}
+    D.OnCooldownBatch(false, { [entry] = true }, false)
+    eq("非 GCD 的精準：沒命中的不動", gcdCalls[rG], nil)
+    D.OnCooldownBatch(true, {}, false)
+    eq("全掃：cdWork 每一格（隱藏 GCD）", gcdCalls[rG], 1)
+    eq("全掃：cdWork 每一格（冷卻狀態）", alphaCalls[rS], 1)
+    rS.parked = true
+    alphaCalls = {}
+    D.OnCooldownBatch(true, {}, false)
+    eq("全掃：停放的格（表裡殘留也不跑）", alphaCalls[rS], nil)
+    D.ApplyGCDAlpha, D.ApplyItemAlpha = saveG, saveA
 end
 
 print(("CooldownState_test: %d passed, %d failed"):format(passed, failed))

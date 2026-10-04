@@ -13,7 +13,7 @@
 --     尺寸由我們給（Relayout 算出來的 w, h），**不從 item 讀尺寸**。暴雪 item 本身一個欄位都不寫。
 --   * 引擎用 vendor 的 MiliUIGlow 的 Start 系列（普通框、driver 推動）；發光宿主不在光環按鈕子樹裡，
 --     不需要 Attach 系列。
---   * 每個掛勾本體 ns.Guard。
+--   * 每個掛勾本體 ns.Guard——**唯一例外**是無損刷新的兩支（每幀叫，無事路徑不可能拋錯，見那一節）。
 --   * 自訂法術／物品放在長條類的條上（rec.noGlow，Modules/Custom.lua 換框時設）：Start 一律不畫，
 --     探針照樣武裝（就緒音效、冷卻狀態照常）。
 --
@@ -69,11 +69,11 @@
 --   "untilUsed"  不排計時，一直亮到 CooldownStarted。
 --     ⚠ 只在「轉好那一刻」點燈：/reload、上線時本來就轉好的技能不亮，用過一次才開始。
 --     ⚠ 暴雪 item 的回充（rec.probeCharges）收不到 CooldownStarted（下面那條規則），照秒數熄。
---   "whileReady" 不看探針的那一刻，看**狀態**：發光一直開著，宿主的 alpha 跟著「在不在冷卻」切
---     （G.ApplyReadyState）。判斷跟冷卻狀態效果同一支（Decorate.CooldownState／Custom.CooldownState）：
---     GCD 不算冷卻、充能法術還有充能就算就緒；明文直接 SetAlpha，秘密布林交給宿主的 SetAlphaFromBoolean
---     （宿主是我們自己的框，之後不讀回）；判不出來＝不亮。重算時機：排版（G.Sync）、SetCooldown／Clear
---     後掛勾、SPELL_UPDATE_COOLDOWN 的批次（Decorate.RefreshCooldownAll、Custom.Update）、探針觸發。
+--   "whileReady" 不看探針的那一刻，看**狀態**（G.ApplyReadyState）。判斷跟冷卻狀態效果同一支
+--     （Decorate.CooldownState／Custom.CooldownState）：GCD 不算冷卻、充能法術還有充能就算就緒；
+--     明文：冷卻中 Stop（宿主 alpha 還原 1）、就緒 Start；秘密：發光一直開著、秘密布林交給宿主的
+--     SetAlphaFromBoolean（宿主是我們自己的框，之後不讀回）；判不出來＝發光開著、宿主 alpha 0。重算時機：排版（G.Sync）、
+--     SetCooldown／Clear 後掛勾、SPELL_UPDATE_COOLDOWN 的批次（Decorate.OnCooldownBatch、Custom.Update）、探針觸發。
 --   * 暴雪 item：SetCooldown 後掛勾裡 isOnGCD == false 且 isActive == true（都要明文）。
 --     回充不算：暴雪每次 GCD 都會對回充中的格子重設一次充能計時，拿它當訊號會按任何招就熄。
 --   * 自訂法術：Custom 的更新裡同一組明文旗標；自訂物品：武裝新的明文冷卻那一刻。
@@ -454,6 +454,9 @@ end
 -- 停放（alpha 0、畫面外）：發光一律熄；procActive 留著，重新認領時 Sync 再接回去
 function G.OnParked(rec)
     if not rec then return end
+    -- 冷卻事件的全掃清單（Core/Decorate.lua 的 D.cdWork）：停放的不再算
+    local D = ns.Decorate
+    if D and D.cdWork then D.cdWork[rec] = nil end
     Stop(rec, "proc")
     Stop(rec, "ready")
     Stop(rec, "active")
@@ -688,24 +691,43 @@ function G.ApplyReadyState(rec, owner)
     local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
     local want = barKey and not aura and not Hidden(rec) and not (ns.released and not rec.custom)
         and ReadyMode(barKey, rec) == "whileReady" and Wanted(rec, barKey, "ready")
+    local D = ns.Decorate
     if not want then
         if rec.readyWhile then
             rec.readyWhile = nil
+            if D and D.CdWorkSync then D.CdWorkSync(rec, owner) end     -- 冷卻事件的全掃清單跟著重判
             Stop(rec, "ready")
             local h = rec.glowHosts and rec.glowHosts.ready
             if h then h:SetAlpha(1) end
         end
         return
     end
-    rec.readyWhile = true
+    if not rec.readyWhile then
+        rec.readyWhile = true
+        if D and D.CdWorkSync then D.CdWorkSync(rec, owner) end
+    end
     rec.readyToken = (rec.readyToken or 0) + 1        -- 計時模式留下的熄燈計時作廢
+    local kind, v = CooldownStateOf(rec, owner)
+    -- 明文（效能修整 E3 #12）：冷卻中直接 Stop、宿主 alpha 還原 1；就緒才 Start（有簽章去重，重複呼叫便宜）。
+    -- 以前冷卻中是「發光照開、宿主 alpha 0」——MiliUIGlow 的共用 driver 對 alpha 0 的框照樣每幀算。
+    -- rec.readyWhile 仍是 true（＝這格開著就緒時一直亮，不是「正在亮」）。
+    -- 秘密分支不動：Lua 不知道亮不亮，只能發光一直開著、交給宿主的 SetAlphaFromBoolean
+    if kind == "plain" then
+        local h = rec.glowHosts and rec.glowHosts.ready
+        if v then
+            Stop(rec, "ready")
+            if h then h:SetAlpha(1) end
+        else
+            Start(rec, "ready", barKey)
+            h = rec.glowHosts and rec.glowHosts.ready
+            if h then h:SetAlpha(1) end
+        end
+        return
+    end
     Start(rec, "ready", barKey)
     local h = rec.glowHosts and rec.glowHosts.ready
     if not h then return end
-    local kind, v = CooldownStateOf(rec, owner)
-    if kind == "plain" then
-        h:SetAlpha(v and 0 or 1)
-    elseif not (kind == "secret" and h.SetAlphaFromBoolean and pcall(h.SetAlphaFromBoolean, h, v, 1, 0)) then
+    if not (kind == "secret" and h.SetAlphaFromBoolean and pcall(h.SetAlphaFromBoolean, h, v, 1, 0)) then
         h:SetAlpha(0)                                  -- 判不出來＝不亮
     end
 end
@@ -865,23 +887,34 @@ function G.ApplyPandemic(owner, rec, barKey)
     end
 end
 
+-- ⚠ 這兩支是「後掛勾本體一律 ns.Guard」的**唯一例外**（效能修整 E3 #13）：暴雪在 item 的 OnUpdate 裡每幀叫
+-- Show／HidePandemicStateFrame，以前每次都經過 ns.Guard 的 xpcall＋geterrorhandler()。無事路徑只有
+-- 一次弱鍵表查詢（frames[item]，item 是框不是秘密值）＋一個布林比對＋計數，不可能拋錯 ⇒ 不包；
+-- 狀態真的變了才進 Guard 包著的 ApplyPandemicGuarded（那裡會碰設定、邊框、條身材質，可能拋錯）。
+-- 改這兩支時別往無事路徑加任何東西。
+local frames = ns.Viewers and ns.Viewers.frames or {} -- Core/Viewers.lua 在本檔之前載入；HookItem 再對一次（表本身不換）
+local function ApplyPandemicState(item, rec, on)
+    rec.pandemic = on
+    G.ApplyPandemic(item, rec)
+end
+local ApplyPandemicGuarded = ns.Guard and ns.Guard(ApplyPandemicState) or ApplyPandemicState
+
 local function OnShowPandemic(item)
     G.pandemicCalls = G.pandemicCalls + 1
-    local rec = ns.Viewers.frames[item]
+    local rec = frames[item]
     if not rec or rec.pandemic then return end      -- 暴雪每幀叫：狀態沒變就走
     G.pandemicChanges = G.pandemicChanges + 1
-    rec.pandemic = true
-    G.ApplyPandemic(item, rec)
+    ApplyPandemicGuarded(item, rec, true)
 end
 
 local function OnHidePandemic(item)
     G.pandemicCalls = G.pandemicCalls + 1
-    local rec = ns.Viewers.frames[item]
+    local rec = frames[item]
     if not rec or not rec.pandemic then return end
     G.pandemicChanges = G.pandemicChanges + 1
-    rec.pandemic = false
-    G.ApplyPandemic(item, rec)
+    ApplyPandemicGuarded(item, rec, false)
 end
+G.OnShowPandemic, G.OnHidePandemic = OnShowPandemic, OnHidePandemic   -- 測試用
 
 local function OnActiveStateChanged(item)
     local rec = ns.Viewers.frames[item]
@@ -896,11 +929,13 @@ function G.HookItem(item, rec)
     if item.OnActiveStateChanged then
         hooksecurefunc(item, "OnActiveStateChanged", ns.Guard(OnActiveStateChanged))
     end
+    -- 無損刷新：不包 Guard（見 OnShowPandemic 上面的說明；Apply 那段自己包）
+    frames = ns.Viewers.frames
     if item.ShowPandemicStateFrame then
-        hooksecurefunc(item, "ShowPandemicStateFrame", ns.Guard(OnShowPandemic))
+        hooksecurefunc(item, "ShowPandemicStateFrame", OnShowPandemic)
     end
     if item.HidePandemicStateFrame then
-        hooksecurefunc(item, "HidePandemicStateFrame", ns.Guard(OnHidePandemic))
+        hooksecurefunc(item, "HidePandemicStateFrame", OnHidePandemic)
     end
 end
 
