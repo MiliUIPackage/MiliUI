@@ -9,7 +9,7 @@
 ## Category-zhTW: 戰鬥
 ## Category-zhCN: 战斗
 ## Author: Mili
-## Version: 1.2.1
+## Version: 1.2.2
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\Spell_Nature_TimeStop
 ## SavedVariables: MiliUI_CooldownManager_DB
