@@ -593,11 +593,18 @@ do
         eq(key .. "：showEnemy 預設 false", v.showEnemy, false)
         eq(key .. "：hideSkyriding 預設 false", v.hideSkyriding, false)
         eq(key .. "：hideHousing 預設 false", v.hideHousing, false)
+        eq(key .. "：hideResting 預設 false（F5）", v.hideResting, false)
+        eq(key .. "：hideVehicle 預設 false（F5）", v.hideVehicle, false)
     end
     local nb = DB.NewBarTable("icons", "x")
     eq("新群組：showEnemy 預設 false", nb.visibility.showEnemy, false)
     eq("新群組：hideSkyriding 預設 false", nb.visibility.hideSkyriding, false)
     eq("新群組：hideHousing 預設 false", nb.visibility.hideHousing, false)
+    eq("新群組：hideResting 預設 false（F5）", nb.visibility.hideResting, false)
+    eq("新群組：hideVehicle 預設 false（F5）", nb.visibility.hideVehicle, false)
+    local lb = DB.NewBarTable("bars", "y")
+    eq("新長條群組：hideResting 預設 false（F5）", lb.visibility.hideResting, false)
+    eq("新長條群組：hideVehicle 預設 false（F5）", lb.visibility.hideVehicle, false)
 
     eq("SPELL_CONST replaceWith ＝ false", DB.SPELL_CONST.replaceWith, false)
     eq("replaceWith 沒有條層對應", DB.SPELL_FALLBACK.replaceWith, nil)

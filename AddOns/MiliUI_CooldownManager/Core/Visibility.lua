@@ -14,12 +14,16 @@
 --   時機  showCombat／showTarget／showEnemy（有目標而且能攻擊它）：都沒勾 ＝ 一直顯示；
 --         勾了任一個 ＝ 任一成立才顯示
 --   限制  hideMounted（騎乘或坐載具）、hideSkyriding（騎著能飛行騎乘的坐騎，地面上也算）、
---         hideHousing（在房屋或房屋地塊裡）、onlyInstances（不在副本）、group（solo／party／raid
+--         hideHousing（在房屋或房屋地塊裡）、hideResting（休息中：旅館／主城）、hideVehicle（只看載具，
+--         騎馬不算——跟 hideMounted 不同）、onlyInstances（不在副本）、group（solo／party／raid
 --         不符）——任一成立就不顯示，蓋過時機
---   三個 2026-10-03 加的欄位（showEnemy／hideSkyriding／hideHousing）舊存檔沒有 ＝ false，不遷移。
+--   三個 2026-10-03 加的欄位（showEnemy／hideSkyriding／hideHousing）與兩個 2026-10-04 加的
+--  （hideResting／hideVehicle）舊存檔沒有 ＝ false，不遷移。
 --   判斷：敵對 ＝ UnitCanAttack("player", "target")，秘密值當成立（寧可多顯示）；
 --         飛行騎乘 ＝ C_PlayerInfo.GetGlidingInfo() 第二個回傳 canGlide，明文 true 才算；
---         房屋 ＝ C_Housing.IsInsideHouseOrPlot()，明文 true 才算。API 不在／pcall 失敗 ＝ false
+--         房屋 ＝ C_Housing.IsInsideHouseOrPlot()，明文 true 才算；
+--         休息中 ＝ IsResting()；載具 ＝ UnitHasVehicleUI("player") 或 UnitInVehicle("player")；
+--         兩者都是明文 true 才算。API 不在／pcall 失敗 ＝ false
 --   顯示時再套淡出（fade：enabled／alpha；keepInCombat／keepWithTarget 任一成立不淡；whenMounted 一律淡），
 --   同時成立取最低
 --
@@ -96,6 +100,24 @@ local function InHousing()
     return v == true
 end
 
+-- 一支「回傳明文 true 才算」的 API 呼叫（秘密／拋錯／API 不在 ＝ false）
+local function PlainTrue(fn, ...)
+    if not fn then return false end
+    local ok, v = pcall(fn, ...)
+    if not ok or ns.IsSecret(v) then return false end
+    return v == true
+end
+
+-- 休息中（旅館／主城）
+local function Resting()
+    return PlainTrue(IsResting)
+end
+
+-- 坐載具（只看載具，騎馬不算；「騎乘時隱藏」的 Mounted() 兩者都算）
+local function InVehicle()
+    return PlainTrue(UnitHasVehicleUI, "player") or PlainTrue(UnitInVehicle, "player")
+end
+
 local function InInstance()
     if not IsInInstance then return false end
     local inside, kind = IsInInstance()
@@ -122,6 +144,8 @@ function Vis.Evaluate(vis, fade, s)
     if vis.hideMounted and s.mounted then return 0 end
     if vis.hideSkyriding and s.skyriding then return 0 end
     if vis.hideHousing and s.housing then return 0 end
+    if vis.hideResting and s.resting then return 0 end
+    if vis.hideVehicle and s.vehicle then return 0 end
     if vis.onlyInstances and not s.instance then return 0 end
     if not GroupOK(vis.group, s.group) then return 0 end
     -- 時機 OR
@@ -153,6 +177,8 @@ local function Snapshot()
         enemy    = HasEnemyTarget(),
         skyriding = Skyriding(),
         housing  = InHousing(),
+        resting  = Resting(),
+        vehicle  = InVehicle(),
     }
 end
 Vis.Snapshot = Snapshot
@@ -160,9 +186,9 @@ Vis.Snapshot = Snapshot
 -- /mcdm debug：顯示條件用的判斷快照（alpha 全是 0 時第一個要看的東西）
 function Vis.DebugLine()
     local s = Snapshot()
-    return ("  顯示條件快照：戰鬥 %s  目標 %s  敵對目標 %s  騎乘 %s  飛行騎乘 %s  房屋 %s  副本 %s  隊伍 %s"):format(
+    return ("  顯示條件快照：戰鬥 %s  目標 %s  敵對目標 %s  騎乘 %s  飛行騎乘 %s  房屋 %s  休息中 %s  載具 %s  副本 %s  隊伍 %s"):format(
         tostring(s.combat), tostring(s.target), tostring(s.enemy), tostring(s.mounted), tostring(s.skyriding),
-        tostring(s.housing), tostring(s.instance), tostring(s.group))
+        tostring(s.housing), tostring(s.resting), tostring(s.vehicle), tostring(s.instance), tostring(s.group))
 end
 
 -- s：Snapshot() 的形狀（同一輪排版／套用共用一份）；沒給才自己建
@@ -327,6 +353,8 @@ function Vis.Init()
     E.Register("ZONE_CHANGED_NEW_AREA", "visibility", Later)
     E.Register("PLAYER_ENTERING_WORLD", "visibility", Later)
     E.Register("GROUP_ROSTER_UPDATE", "visibility", Later)
+    -- 進出休息區（旅館／主城）
+    E.Register("PLAYER_UPDATE_RESTING", "visibility", Later)
     E.Register("UNIT_ENTERED_VEHICLE", "visibility", Later, "player")
     E.Register("UNIT_EXITED_VEHICLE", "visibility", Later, "player")
     -- 目標的敵我關係變了（中立怪被打成敵對、決鬥開始）
