@@ -108,7 +108,9 @@ local function IconBar(o)
         visibility = { showCombat = false, showTarget = false, hideMounted = false,
                        onlyInstances = false, group = "any",     -- group: any | solo | party | raid
                        -- 2026-10-03 加的三個（舊存檔沒有 ＝ false，不遷移；見 Core/Visibility.lua）
-                       showEnemy = false, hideSkyriding = false, hideHousing = false },
+                       showEnemy = false, hideSkyriding = false, hideHousing = false,
+                       -- 2026-10-04 加的兩個（F5；舊存檔沒有 ＝ false，不遷移）
+                       hideResting = false, hideVehicle = false },
         bar        = o.bar or false,        -- kind = "bars" 才有
         strata     = "MEDIUM",
         clickable  = false,                 -- 點了施放／使用（只有自訂圖示群組讀，判準在 DB.BarClickable）

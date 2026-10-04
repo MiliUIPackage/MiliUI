@@ -51,7 +51,7 @@
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -333,6 +333,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `hideMounted` | 限制 | 騎乘或坐載具 |
 | `hideSkyriding`（2026-10-03） | 限制 | 騎著能飛行騎乘的坐騎：`C_PlayerInfo.GetGlidingInfo()` 的**第二個**回傳 `canGlide`（回傳順序 isGliding, canGlide, forwardSpeed，warcraft.wiki.gg 查過）；明文 true 才算，秘密／API 不在＝不成立。在地面上也是 true（只要是飛行騎乘的坐騎、在能飛行騎乘的區域），跟暴雪自己換快捷列的規則同一個訊號 |
 | `hideHousing`（2026-10-03） | 限制 | 在房屋或房屋地塊上：`C_Housing.IsInsideHouseOrPlot()`（11.2.7 起有）；明文 true 才算，API 不在＝不成立 |
+| `hideResting`（2026-10-04，F5） | 限制 | 休息中（旅館／主城）：`IsResting()`；明文 true 才算，秘密／拋錯／API 不在＝不成立 |
+| `hideVehicle`（2026-10-04，F5） | 限制 | 坐載具：`UnitHasVehicleUI("player")` 或 `UnitInVehicle("player")`，任一明文 true 才算（秘密／拋錯／API 不在＝那一支不成立）。**騎馬不算**——跟 `hideMounted`（騎乘或坐載具都算）是兩個獨立條件，`hideMounted` 不改 |
 | `onlyInstances` | 限制 | 不在副本 ⇒ 不顯示 |
 | `group` | 限制 | any／solo／party／raid 不符 ⇒ 不顯示 |
 
@@ -347,6 +349,12 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - `/mcdm debug` 的「顯示條件快照」多印敵對目標、飛行騎乘、房屋。
 - 匯入：另一支插件沒有飛行騎乘／房屋的對應設定，`Core/Import.lua` 不動。
 - 面板（資源條、自訂格子、施法條、下一招圖示）走自己的載入條件（`Vis.EvaluatePanel`），這三個不適用。
+- **休息中隱藏／載具中隱藏（2026-10-04，F5）**：`IconBar` 預設（長條沿用）多兩欄 false，舊存檔沒有＝false，不遷移、`DB_VERSION` 不動。
+  `Snapshot` 多 `resting`、`vehicle`（判斷共用一支「明文 true 才算」的 pcall 包裝）；`Vis.Init` 多聽 `PLAYER_UPDATE_RESTING`，
+  載具本來就聽 `UNIT_ENTERED_VEHICLE`／`UNIT_EXITED_VEHICLE`（只看 player）。設定頁「限制」節在房屋之後加兩列，各帶一列灰字：
+  「在旅店或主城裡時。」「只在坐載具時；騎坐騎不算。『騎乘時隱藏』兩者都算。」`/mcdm debug` 快照多印「休息中」「載具」。
+  匯入不動：另一支插件的 Resting／In Vehicle 是「顯示／隱藏」兩道各自一個開關，對不上我們「時機 OR、限制優先」的模型
+  （它的「休息時顯示」在我們這裡沒有對應的時機），硬轉會改掉玩家原本的意思。面板同樣不適用。
 
 ## 自訂項目與效果
 
@@ -2417,6 +2425,14 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      宿主沒有殘留在舊的那層裁切框裡。
 299. 設定頁：比較子下拉五項、沒勾時挑了不寫入（勾下去才寫）；挑 `<` 配 1 時數字框變紅、下一列出現灰字，改成 2 或換比較子就消失；
      右鍵標籤清掉後回到 ≥；舊存檔（沒有 `stackGlowOp`）顯示 ≥、行為不變；九個語系的說明灰字不超過三行。
+
+**顯示條件補兩種：休息中隱藏、載具中隱藏（2026-10-04，F5）**
+
+300. 勾「休息中隱藏」：走進旅店／主城（左上角頭像出現休息圖示）那一刻條淡到 0、走出來恢復；`/mcdm debug` 快照的「休息中」跟著 true／false。
+301. 勾「載具中隱藏」：上有自己快捷列的載具（以及沒有快捷列、只是坐上去的那種，例如雙人坐騎的乘客座／任務載具）隱藏、下來恢復；
+     **騎一般坐騎與飛行騎乘不隱藏**；`/mcdm debug` 的「騎乘」與「載具」各自對得上（坐載具時兩個都 true、騎馬只有騎乘 true）。
+302. 兩個跟「騎乘時隱藏」疊加：三個都勾時騎馬、坐載具、休息都隱藏；只勾載具＋休息時騎馬照常顯示。戰鬥中上下載具照常切換、沒有 `ADDON_ACTION_BLOCKED`。
+303. 設定頁：兩列勾選與灰字在德文／法文不超過兩行；舊存檔打開時兩個都是沒勾、行為跟改版前一樣。
 
 **效能基準**
 

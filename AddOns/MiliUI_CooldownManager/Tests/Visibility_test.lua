@@ -12,6 +12,9 @@
 --      房屋（IsInsideHouseOrPlot、明文 true 才算）
 --   3. 事件：PLAYER_CAN_GLIDE_CHANGED／HOUSE_PLOT_ENTERED／HOUSE_PLOT_EXITED 只在客戶端認得時註冊、
 --      UNIT_FACTION 只看 target；DebugLine 印三個新欄位
+--   5. 2026-10-04 F5：hideResting／hideVehicle（限制）的成立與組合、跟 hideMounted 的差別；
+--      Snapshot 的 resting／vehicle（明文 true 才算、秘密／拋錯／API 不在不算）、快照形狀、
+--      PLAYER_UPDATE_RESTING 註冊、DebugLine 印休息中／載具
 --   4. 效能（2026-10-04 E1）：Alpha／PanelAlpha 給 s 就不建 Snapshot、Refresh 不跑 item、
 --      ApplyPanels 讀 current.essential、ApplyAll 一輪只建一次 Snapshot
 ------------------------------------------------------------
@@ -47,9 +50,12 @@ env.UnitCanAttack = function(a, b)
     if canAttack == "error" then error("boom") end
     return canAttack
 end
-env.IsMounted = function() return false end
-env.UnitInVehicle = function() return false end
-env.UnitHasVehicleUI = function() return false end
+local mountedNow, restingNow, inVehicleNow, vehicleUINow = false, false, false, false
+local function Ret(v) if v == "error" then error("boom") end return v end
+env.IsMounted = function() return mountedNow end
+env.IsResting = function() return Ret(restingNow) end
+env.UnitInVehicle = function(u) assert(u == "player", "要問 player"); return Ret(inVehicleNow) end
+env.UnitHasVehicleUI = function(u) assert(u == "player", "要問 player"); return Ret(vehicleUINow) end
 env.IsInInstance = function() return false, "none" end
 env.IsInRaid = function() return false end
 env.IsInGroup = function() return false end
@@ -105,7 +111,7 @@ local Vis = ns.Visibility
 ------------------------------------------------------------
 local function S(t)
     local s = { combat = false, target = false, mounted = false, instance = false, group = "solo",
-                enemy = false, skyriding = false, housing = false }
+                enemy = false, skyriding = false, housing = false, resting = false, vehicle = false }
     for k, v in pairs(t or {}) do s[k] = v end
     return s
 end
@@ -222,6 +228,75 @@ do
     check("DebugLine 印敵對目標", line:find("敵對目標", 1, true) ~= nil, line)
     check("DebugLine 印飛行騎乘", line:find("飛行騎乘", 1, true) ~= nil, line)
     check("DebugLine 印房屋", line:find("房屋", 1, true) ~= nil, line)
+end
+
+------------------------------------------------------------
+-- 5. F5：休息中隱藏／載具中隱藏
+------------------------------------------------------------
+-- Evaluate
+eq("舊存檔：休息中照常顯示", E({}, nil, S{ resting = true }), 1)
+eq("舊存檔：載具中照常顯示", E({}, nil, S{ vehicle = true }), 1)
+eq("休息中隱藏：不在休息 → 1", E({ hideResting = true }, nil, S()), 1)
+eq("休息中隱藏：休息中 → 0", E({ hideResting = true }, nil, S{ resting = true }), 0)
+eq("休息中隱藏：蓋過時機", E({ hideResting = true, showTarget = true }, nil, S{ resting = true, target = true }), 0)
+eq("休息中隱藏：時機成立、不在休息 → 1", E({ hideResting = true, showCombat = true }, nil, S{ combat = true }), 1)
+eq("休息中隱藏＋淡出：不成立時照淡出", E({ hideResting = true }, { enabled = true, alpha = 0.4 }, S()), 0.4)
+eq("載具中隱藏：不在載具 → 1", E({ hideVehicle = true }, nil, S()), 1)
+eq("載具中隱藏：載具中 → 0", E({ hideVehicle = true }, nil, S{ vehicle = true, mounted = true }), 0)
+eq("載具中隱藏：騎馬不算（mounted 但不是載具）", E({ hideVehicle = true }, nil, S{ mounted = true }), 1)
+eq("載具中隱藏：蓋過敵對目標", E({ hideVehicle = true, showEnemy = true }, nil, S{ vehicle = true, target = true, enemy = true }), 0)
+eq("騎乘隱藏＋載具隱藏：騎馬 → 0（騎乘那欄）", E({ hideMounted = true, hideVehicle = true }, nil, S{ mounted = true }), 0)
+eq("騎乘隱藏＋載具隱藏：都沒有 → 1", E({ hideMounted = true, hideVehicle = true }, nil, S()), 1)
+eq("休息＋載具兩欄：只有休息 → 0", E({ hideResting = true, hideVehicle = true }, nil, S{ resting = true }), 0)
+eq("休息＋載具兩欄：只有載具 → 0", E({ hideResting = true, hideVehicle = true }, nil, S{ vehicle = true }), 0)
+eq("休息隱藏＋只在副本：在副本、休息中 → 0", E({ hideResting = true, onlyInstances = true }, nil, S{ instance = true, resting = true }), 0)
+
+-- Snapshot
+do
+    local function reset() mountedNow, restingNow, inVehicleNow, vehicleUINow = false, false, false, false end
+    reset()
+    local s = snap()
+    for _, k in ipairs({ "combat", "target", "mounted", "instance", "group", "enemy", "skyriding", "housing", "resting", "vehicle" }) do
+        check("Snapshot 形狀：有 " .. k, s[k] ~= nil)
+    end
+    eq("休息：不在 → 假", s.resting, false)
+    eq("載具：不在 → 假", s.vehicle, false)
+    restingNow = true;  eq("休息：IsResting 真 → 真", snap().resting, true)
+    restingNow = SECRET; eq("休息：秘密值不算", snap().resting, false)
+    restingNow = "error"; eq("休息：拋錯不算", snap().resting, false)
+    restingNow = 1;     eq("休息：不是明文 true 不算", snap().resting, false)
+    restingNow = false
+    do
+        local saved = env.IsResting
+        env.IsResting = nil
+        eq("休息：API 不在 ＝ false", snap().resting, false)
+        env.IsResting = saved
+    end
+    vehicleUINow = true; local s2 = snap()
+    eq("載具：UnitHasVehicleUI 真 → 真", s2.vehicle, true)
+    eq("載具：騎乘（Mounted）也照舊算", s2.mounted, true)
+    vehicleUINow = false; inVehicleNow = true
+    eq("載具：UnitInVehicle 真 → 真", snap().vehicle, true)
+    inVehicleNow = SECRET; eq("載具：秘密值不算", snap().vehicle, false)
+    -- （載具 API 拋錯的情形不在 Snapshot 層測：既有的 Mounted() 沒包 pcall，「騎乘時隱藏」不改）
+    vehicleUINow = SECRET; inVehicleNow = true
+    eq("載具：一支秘密、另一支明文真 → 真", snap().vehicle, true)
+    reset(); mountedNow = true
+    local s3 = snap()
+    eq("騎馬：mounted 真", s3.mounted, true)
+    eq("騎馬：vehicle 假", s3.vehicle, false)
+    reset()
+    do
+        local a, b = env.UnitInVehicle, env.UnitHasVehicleUI
+        env.UnitInVehicle, env.UnitHasVehicleUI = nil, nil
+        eq("載具：API 不在 ＝ false", snap().vehicle, false)
+        env.UnitInVehicle, env.UnitHasVehicleUI = a, b
+    end
+    eq("PLAYER_UPDATE_RESTING 註冊了", registered.PLAYER_UPDATE_RESTING, true)
+    eq("既有：UNIT_ENTERED_VEHICLE 只看 player", registered.UNIT_ENTERED_VEHICLE, "player")
+    local line = Vis.DebugLine()
+    check("DebugLine 印休息中", line:find("休息中", 1, true) ~= nil, line)
+    check("DebugLine 印載具", line:find("載具", 1, true) ~= nil, line)
 end
 
 ------------------------------------------------------------
