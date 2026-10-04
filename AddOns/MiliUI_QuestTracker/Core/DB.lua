@@ -105,6 +105,8 @@ local function BuildDefaults()
         mythicPlus = {
             enabled      = true,
             tooltipCount = true,
+            -- 文字靠哪一邊："RIGHT"（預設，追蹤器在右側）／"LEFT"（追蹤器擺左側用）
+            align        = "RIGHT",
             timerSize    = 34,
             keySize      = 20,
             textSize     = 16,
@@ -230,6 +232,11 @@ local function Normalize(db)
         for questID in pairs(au.dismissedSlow) do
             au.slowQuests[questID] = nil
         end
+    end
+
+    local mp = db.mythicPlus
+    if mp and mp.align ~= "LEFT" and mp.align ~= "RIGHT" then
+        mp.align = "RIGHT"
     end
 
     local a = db.appearance

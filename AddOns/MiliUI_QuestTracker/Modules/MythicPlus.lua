@@ -251,30 +251,42 @@ function MP.Layout()
 
     local function SetFont(fs, size) fs:SetFont(font, size, outline) end
 
+    -- 對齊：文字整塊鏡射。三段計時條不鏡射 —— 它們是時間軸（+3 那段最先走完），
+    -- 條上的剩餘時間也一律掛在該段的終點（右緣）
+    local side = (c.align == "LEFT") and "LEFT" or "RIGHT"
+    local anchor = "TOP" .. side
+    local dx = (side == "LEFT") and PAD or -PAD
+    local function PlaceText(fs, size, yy)
+        SetFont(fs, size)
+        fs:SetJustifyH(side)
+        fs:ClearAllPoints()
+        fs:SetPoint(anchor, panel, anchor, dx, -yy)
+        fs:SetWidth(inner)
+    end
+
     local y = PAD
 
     -- 死亡
-    SetFont(panel.deaths, c.textSize)
-    panel.deaths:ClearAllPoints()
-    panel.deaths:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PAD, -y)
-    panel.deaths:SetWidth(inner)
+    PlaceText(panel.deaths, c.textSize, y)
     y = y + c.textSize + GAP_V
 
     -- 計時
-    SetFont(panel.timer, c.timerSize)
-    panel.timer:ClearAllPoints()
-    panel.timer:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PAD, -y)
-    panel.timer:SetWidth(inner)
+    PlaceText(panel.timer, c.timerSize, y)
     y = y + c.timerSize + GAP_V
 
-    -- 鑰石：詞綴靠右，等級貼在它左邊
+    -- 鑰石：等級在前、詞綴在後，整組貼著對齊的那一邊。
+    -- 寬度依內容變，所以外側那個錨面板、內側那個用錨點串在它旁邊、垂直置中對齊
     SetFont(panel.affixes, c.textSize)
     SetFont(panel.key, c.keySize)
     panel.affixes:ClearAllPoints()
-    panel.affixes:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PAD, -y - math.max(0, (c.keySize - c.textSize) / 2))
-    -- 等級貼在詞綴左邊、垂直置中對齊它：等級寬度依內容變，所以用錨點串起來
     panel.key:ClearAllPoints()
-    panel.key:SetPoint("RIGHT", panel.affixes, "LEFT", -4, 0)
+    if side == "RIGHT" then
+        panel.affixes:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PAD, -y - math.max(0, (c.keySize - c.textSize) / 2))
+        panel.key:SetPoint("RIGHT", panel.affixes, "LEFT", -4, 0)
+    else
+        panel.key:SetPoint("TOPLEFT", panel, "TOPLEFT", PAD, -y - math.max(0, (c.textSize - c.keySize) / 2))
+        panel.affixes:SetPoint("LEFT", panel.key, "RIGHT", 4, 0)
+    end
     y = y + math.max(c.keySize, c.textSize) + GAP_V + 4
 
     -- 三段計時條：+3 在最左（最寬）、+1 在最右。文字坐在條的上緣右側
@@ -306,16 +318,17 @@ function MP.Layout()
     LayoutBarEdges(forcesBar)
     SetFont(forcesBar.text, textH)
     forcesBar.text:ClearAllPoints()
-    forcesBar.text:SetPoint("TOPRIGHT", forcesBar, "BOTTOMRIGHT", -TEXT_INSET, -1)
+    if side == "RIGHT" then
+        forcesBar.text:SetPoint("TOPRIGHT", forcesBar, "BOTTOMRIGHT", -TEXT_INSET, -1)
+    else
+        forcesBar.text:SetPoint("TOPLEFT", forcesBar, "BOTTOMLEFT", TEXT_INSET, -1)
+    end
     y = y + c.barHeight + TEXT_INSET + textH + GAP_V + 4
 
     -- 首領
     for i = 1, MAX_OBJECTIVES do
         local fs = objectiveTexts[i]
-        SetFont(fs, c.objectiveSize)
-        fs:ClearAllPoints()
-        fs:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PAD, -y)
-        fs:SetWidth(inner)
+        PlaceText(fs, c.objectiveSize, y)
         if state.objectives[i] then
             fs:Show()
             y = y + c.objectiveSize + GAP_V

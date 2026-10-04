@@ -21,6 +21,11 @@ local function BuildControls()
         { type = "text",   label = L["While a keystone is running the list folds away and this panel takes its place under the title bar: timer with +2/+3 splits, key level and affixes, deaths, bosses with kill times, and the enemy forces bar. It needs \"During a Mythic+ run\" on the Folding tab to be on."] },
         { type = "toggle", key = "enabled",      label = L["Show the panel"] },
         { type = "toggle", key = "tooltipCount", label = L["Enemy forces in unit tooltips"] },
+        { type = "dropdown", key = "align", label = L["Text alignment"], items = {
+            { text = L["Right"], value = "RIGHT" },
+            { text = L["Left"],  value = "LEFT" },
+        } },
+        { type = "text",   label = L["Pick Left when the tracker sits on the left side of the screen. The three timer bars keep their order: they run left to right with time."] },
 
         { type = "header", label = L["Sizes"] },
         { type = "slider", key = "timerSize",     label = L["Timer size"],     min = 16, max = 48, step = 1 },
