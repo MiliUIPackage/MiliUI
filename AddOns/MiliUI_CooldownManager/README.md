@@ -644,8 +644,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
      ⇒ `rec.auraHidden`，倒數換色當冷卻那段（`rec.auraTime` ＝ false）。
   2. `SetCooldown` 後掛勾看到 `rec.auraHidden` ⇒ `FeedRealCooldown`，**順序**：
      先 `SetUseAuraDisplayTime(false)` → 引擎給的 duration 物件原封轉交 `SetCooldownFromDurationObject(dur, true)`
-     （充能法術而且還有充能 ⇒ `GetSpellChargeDuration`＋`SetDrawSwipe(false)`＋`SetDrawEdge(true)`；其餘 ⇒ `GetSpellCooldownDuration(id, true)`＋
-     `SetDrawSwipe(true)`；拿不到物件 ⇒ `Clear`）→ 去飽和 → 就緒探針走 `Glow.ArmProbe(rec, dur)`（同一個物件；**不叫**
+     （充能法術而且還有充能 ⇒ `GetSpellChargeDuration`＋`SetDrawSwipe(false)`＋`SetDrawEdge(true)`；其餘 ⇒ 畫含 GCD 的 `GetSpellCooldownDuration(id)`（暴雪正常路徑也畫 GCD；
+     隱藏 GCD 由 `ApplyGCDAlpha` 管；去飽和／探針用 `GetSpellCooldownDuration(id, true)`）＋`SetDrawSwipe(true)`；拿不到物件 ⇒ `Clear`）→ 去飽和 → 就緒探針走 `Glow.ArmProbe(rec, dur)`（同一個物件；**不叫**
      `Glow.OnItemSetCooldown`——它看到增益旗標就直接走，探針永遠不會武裝、就緒發光就不會在真正的冷卻結束亮）→
      原本的尾巴（轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態，`AfterCooldown`，正常路徑共用）。
   3. 沒有遞迴：`SetCooldownFromDurationObject` 不是 `SetCooldown`；我們自己叫的 `SetUseAuraDisplayTime(false)`／`Clear` 會進後掛勾，
