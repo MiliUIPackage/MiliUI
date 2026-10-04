@@ -465,16 +465,12 @@ do
 end
 
 ------------------------------------------------------------
--- 光環不在時變暗（auraMissing）：只看 rec.auraFlag，不看冷卻
+-- 效果不在時變暗（dimNoAura）：條的 alpha 乘上變暗透明度，冷卻狀態照常疊上去
 ------------------------------------------------------------
 do
-    eq("auraMissing 是適用的模式", D.StateMode("auraMissing"), "auraMissing")
-    local m, p = D.StateAlphas("auraMissing", 0.5, 0.8)
-    near("auraMissing 不在 ＝ 條 × 透明度", m, 0.4)
-    near("auraMissing 在 ＝ 條", p, 0.8)
-    eq("auraMissing 預覽照原樣", D.PreviewStateAlpha("auraMissing", 0.5, true), 1)
+    eq("auraMissing 不是冷卻狀態的模式", D.StateMode("auraMissing"), nil)
     local it = Item()
-    local r = { cooldownID = 1, claimKey = "essential", style = { cdState = "auraMissing", cdAlpha = 0.5 } }
+    local r = { cooldownID = 1, claimKey = "essential", style = { dimNoAura = true, cdAlpha = 0.5 } }
     cooldowns[100] = { isActive = true, isOnGCD = false }
     D.ApplyItemAlpha(it, r, 1)
     near("沒旗標 ⇒ 變暗", it.alpha, 0.5)
@@ -482,10 +478,16 @@ do
     D.ApplyItemAlpha(it, r, 1)
     near("旗標在 ⇒ 全亮（冷卻中也一樣）", it.alpha, 1)
     r.auraFlag = false
+    D.ApplyItemAlpha(it, r, 0.8)
+    near("旗標掉了 ⇒ 條 × 透明度", it.alpha, 0.4)
+    -- 跟冷卻中變暗疊：0.8 × 0.5（效果不在）× 0.5（冷卻中）
+    r.style.cdState = "dim"
+    D.ApplyItemAlpha(it, r, 0.8)
+    near("兩個都開 ⇒ 相乘", it.alpha, 0.2)
     cooldowns[100] = { isActive = false, isOnGCD = false }
     D.ApplyItemAlpha(it, r, 0.8)
-    near("旗標掉了 ⇒ 變暗（轉好也一樣）", it.alpha, 0.4)
-    eq("auraMissing 不算藏", r.stateHidden, nil)
+    near("轉好但效果不在 ⇒ 只乘一次", it.alpha, 0.4)
+    r.style.cdState = nil
     ns.EditMode.active = true
     D.ApplyItemAlpha(it, r, 1)
     eq("編輯模式中不套", it.alpha, 1)

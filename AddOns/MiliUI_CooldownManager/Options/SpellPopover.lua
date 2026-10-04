@@ -127,6 +127,9 @@ local TOGGLES = {
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
     { field = "activeGlow",       label = L["Glow during buff"],      when = ActiveGlowWhen, tab = "glow" },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
+    -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
+    { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look",
+      tip = L["Dims the icon while it isn't counting down your buff or debuff. For example, a Warlock's damage-over-time spells on Essential Cooldowns: the icon dims while your current target doesn't have your debuff (or you have no target)."] },
     { field = "hideCooldownText", label = L["Hide countdown"],         tab = "look" },
     { field = "hideStackText",    label = L["Hide stacks"],            tab = "look" },
 }
@@ -695,6 +698,25 @@ local function Build()
         note:SetWordWrap(false)
         toggles[#toggles + 1] = { field = t.field, cb = cb, note = note, row = tr }
         RightClickClears(tr, th, t.field)
+        if t.tip then
+            -- 說明放下一列灰字（不接在勾選框右邊）
+            local tipRow = CreateFrame("Frame", nil, frame)
+            local tipFs = Note(tipRow)
+            tipFs:SetPoint("TOPLEFT", tipRow, "TOPLEFT", CTRL_X, -2)
+            tipFs:SetWidth(ROW_W - CTRL_X)
+            tipFs:SetWordWrap(true)
+            tipFs:SetText(t.tip)
+            local tipH = 2 + math.max(14, tipFs:GetStringHeight() or 0) + 6
+            tipRow:SetSize(ROW_W, tipH)
+            local tipEntry = { frame = tipRow, h = tipH, when = when }
+            tipEntry.remeasure = function()
+                local sh2 = tipFs:GetStringHeight()
+                local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+                tipRow:SetHeight(nh)
+                tipEntry.h = nh
+            end
+            AddRow(tipEntry)
+        end
         if t.field == "activeGlow" then
             frame.activeRow = tr
             -- 脫戰也亮（預設勾）：取消 ＝ 只在戰鬥中亮。只存 false（勾回去就清掉覆寫）。
