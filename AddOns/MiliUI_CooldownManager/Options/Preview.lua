@@ -685,6 +685,10 @@ function Proto:Fill(c, e, i, r, now)
         end
     end
     ns.Decorate.ApplyPreview(c, key, id, r.w, r.h)
+    -- 層數當填充／層數刻度（增益長條）：假條上照真實條的算法畫（Core/StackGate.lua）
+    if c.kind == "bars" and ns.StackGate and ns.StackGate.ApplyPreview then
+        ns.StackGate.ApplyPreview(c, key, id, r.w, r.h)
+    end
     -- 沒學會的自訂法術：圖示格以前靠假冷卻的去飽和表達，假冷卻拿掉之後自己灰（同長條）
     if c.kind ~= "bars" and c.custom and not c.known and c.Icon and c.Icon.SetDesaturated then
         c.Icon:SetDesaturated(true)
@@ -742,7 +746,12 @@ function Proto:Tick()
         local c = pool[n]
         if c and c:IsShown() then
             local left = CYCLE - ((now + (c.cycleOffset or 0)) % CYCLE)
-            c.Bar:SetValue(left / CYCLE)
+            -- 層數當填充：條畫成 2/N（不跑時間）；時間字照跑
+            if c.stackPreviewMax then
+                c.Bar:SetValue(ns.StackGate.PreviewFill(c.stackPreviewMax))
+            else
+                c.Bar:SetValue(left / CYCLE)
+            end
             c.Bar.Duration:SetFormattedText("%d", math.ceil(left))
         end
     end

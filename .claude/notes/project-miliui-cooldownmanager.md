@@ -194,3 +194,9 @@ IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄�
   **P8** 自訂項目三層範圍 戰隊 `w:<uid>`／職業 `k:<uid>`／專精 `c:<index>`，窄的蓋寬的（`DB.ResolveScopes`），覆寫跟著寬層那一筆走（`DB.OverrideTable` 分流），
   種族技能是動態 `kind="racial"`，預覽記號 PNG 由 `miliui-cdm-scope-icons` 技能產生。使用者定案不做角色專屬層（之後用排除開關）、不做 EUI 式同步。
 - 2026-10-04：**冷卻管理器資料的 `charges` 只是「可以有充能」**（天賦給第二次的技能沒點也是 true）；凡是照它選 `GetSpellChargeDuration` 的地方要過 `Decorate.IsChargeSpell`（`maxCharges > 1`），否則單次技能的回充永遠是零 ⇒ 隱藏 GCD 轉圈把冷卻框一直藏著。`/mcdm debug` 之後設定視窗有「除錯」分頁可全選複製，玩家回報先叫他「按技能 → 冷卻中打 /mcdm debug → 全選貼回來」。
+
+**冷卻格的增益旗標只在「沒到期」才寫（2026-10-04 實機）**：`SetUseAuraDisplayTime` 後掛勾是「暴雪正在倒增益時間」的唯一訊號，
+但暴雪 `RefreshSpellCooldownInfo` 到期那條（光環掉了、技能又沒冷卻，例：痛苦詛咒）只叫 `CooldownFrame_Clear`、**不寫 false**
+⇒ `rec.auraFlag` 卡在 true（症狀：效果不在時變暗勾了，DoT 掉了／換目標還是亮）。解法在 Decorate：setter 記 `rec.auraFlagPending`，
+SetCooldown 後掛勾消掉，Clear 後掛勾看不到這一筆 ⇒ 當 false（`SetAuraFlag` 共用連帶：音效、生效發光、變暗）。
+**How to apply:** 任何吃 auraFlag 的新功能都走 `SetAuraFlag`，不要只掛 setter。逐法術「效果不在時變暗」（`dimNoAura`）就是靠這個。

@@ -4,7 +4,8 @@
 --   lua  AddOns/MiliUI_CooldownManager/Tests/StackGate_test.lua
 --
 -- 覆蓋：閘的算式（GateRange）、發光閘外擴量（Margin）、門檻清洗（Threshold）、stackColors 的清洗
--- （排序、去重、上限 3、壞資料丟掉）、設定組合（Config／GlowStyle）與簽章；
+-- （排序、去重、上限 5、壞資料丟掉）、層數當填充／刻度（ParseTicks、CleanTicks、刻度位置與 x、條身寬、
+-- 填充條取代時間層、色塊改錨、刻度框層級、預覽）、設定組合（Config／GlowStyle）與簽章；
 -- 用假框（記錄 SetMinMaxValues／SetValue）測「餵秘密 sentinel 時不比較、原樣轉交」、
 -- 讀層數的順序（getter → auraInstanceID 退路 → 0）、生效狀態只在該看的時候看、
 -- 後掛勾的提早 return、停放與重新放格、長條換色把暴雪條調透明／還原、無損刷新後重調、
@@ -118,7 +119,7 @@ local settings = {
     ["bar"] = { texture = "solid", color = { r = 0.4, g = 0.6, b = 0.9, a = 1 }, bgColor = { r = 0.1, g = 0.1, b = 0.1, a = 0.8 } },
     ["kind"] = "bars",
 }
-local CONST = { stackGlow = false, stackColors = false, activeGlow = false, activeGlowOutOfCombat = true }
+local CONST = { stackGlow = false, stackColors = false, stackBar = false, stackTicks = false, activeGlow = false, activeGlowOutOfCombat = true }
 
 local painted, stopped = {}, {}
 local ns = {
@@ -223,16 +224,78 @@ do
         { at = 3, color = "nope" },             -- 顏色壞
         { at = 2, color = blue },               -- 重複門檻：留第一筆
         { at = 9, color = gold },
-        { at = 7, color = blue },               -- 第 4 筆：超過上限
+        { at = 7, color = blue },
+        { at = 12, color = red },
+        { at = 11, color = green },
+        { at = 15, color = gold },              -- 第 6 筆：超過上限 5
     })
-    eq("留 3 筆", #out, 3)
+    eq("上限是 5", SG.MAX_COLORS, 5)
+    eq("留 5 筆", #out, 5)
     eq("由低到高 1", out[1].at, 2); eq("由低到高 2", out[2].at, 5); eq("由低到高 3", out[3].at, 7)
+    eq("由低到高 4", out[4].at, 9); eq("由低到高 5", out[5].at, 11)
     eq("重複門檻留第一筆（綠）", out[1].color.g, 1)
     eq("沒給 a ⇒ 1", out[1].color.a, 1)
     eq("a 保留", out[3].color.a, 0.5)
     check("是新表（不改原資料）", out[1].color ~= green)
     out = SG.CleanColors({ { at = 120, color = red } })
     eq("門檻夾到 99", out[1].at, 99)
+end
+
+------------------------------------------------------------
+-- 2b. 層數當填充／刻度的純函式
+------------------------------------------------------------
+do
+    local function list(t) return type(t) == "table" and table.concat(t, ",") or tostring(t) end
+    -- ParseTicks
+    eq("留白 ⇒ all", SG.ParseTicks("", 10), "all")
+    eq("空白字 ⇒ all", SG.ParseTicks("   ", 10), "all")
+    eq("nil ⇒ all", SG.ParseTicks(nil, 10), "all")
+    eq("all ⇒ all", SG.ParseTicks("all", 10), "all")
+    eq("ALL 不分大小寫", SG.ParseTicks(" ALL ", 10), "all")
+    eq("1,5,8", list(SG.ParseTicks("1,5,8", 10)), "1,5,8")
+    eq("排序", list(SG.ParseTicks("8, 1 ,5", 10)), "1,5,8")
+    eq("去重", list(SG.ParseTicks("3,3,2,3", 10)), "2,3")
+    eq("空白分隔也收", list(SG.ParseTicks("2 4", 10)), "2,4")
+    eq("全形逗號也收", list(SG.ParseTicks("2，4", 10)), "2,4")
+    eq("亂字丟掉、留能用的", list(SG.ParseTicks("x,2,y", 10)), "2")
+    eq("全是亂字 ⇒ nil", SG.ParseTicks("abc", 10), nil)
+    eq("超過 max 丟掉（第 max 層是右緣也丟）", list(SG.ParseTicks("2,5,9,10,12", 10)), "2,5,9")
+    eq("全超過 ⇒ nil", SG.ParseTicks("10,20", 10), nil)
+    eq("小數與 0、負數丟掉", list(SG.ParseTicks("0,-1,2.5,3", 10)), "3")
+    eq("不是字串 ⇒ nil", SG.ParseTicks(5, 10), nil)
+    eq("TicksText(all) ＝ 留白", SG.TicksText("all"), "")
+    eq("TicksText(list)", SG.TicksText({ 1, 5, 8 }), "1,5,8")
+
+    -- BarMax／CleanTicks
+    eq("BarMax false", SG.BarMax(false), nil)
+    eq("BarMax 沒有 max", SG.BarMax({}), nil)
+    eq("BarMax 5", SG.BarMax({ max = 5 }), 5)
+    eq("BarMax 夾到 99", SG.BarMax({ max = 300 }), 99)
+    eq("CleanTicks false", SG.CleanTicks(false, nil), nil)
+    local t = SG.CleanTicks({ at = "all" }, nil)
+    eq("沒 max ⇒ 預設 5", t.n, 5)
+    eq("預設顏色黑 0.6", t.color.a, 0.6)
+    t = SG.CleanTicks({ at = { 8, 1, 1, "x" }, max = 10, color = { r = 1, g = 1, b = 1 } }, nil)
+    eq("at 清洗", list(t.at), "1,8"); eq("用自己的 max", t.n, 10); eq("顏色沒 a ⇒ 1", t.color.a, 1)
+    t = SG.CleanTicks({ at = "all", max = 10 }, 4)
+    eq("有層數當填充 ⇒ 用它的 N", t.n, 4)
+    eq("at 壞掉 ⇒ all", SG.CleanTicks({ at = {} }, nil).at, "all")
+    eq("N ＝ 1 畫不出 ⇒ nil", SG.CleanTicks({ at = "all" }, 1), nil)
+
+    -- 刻度位置與 x
+    eq("all、N=5 ⇒ 1～4", list(SG.TickPositions(5, "all")), "1,2,3,4")
+    eq("指定、只留 1～N-1", list(SG.TickPositions(5, { 1, 5, 8 })), "1")
+    eq("N=1 ⇒ 沒有", #SG.TickPositions(1, "all"), 0)
+    near("x ＝ 寬×k/N", SG.TickX(200, 5, 1), 40)
+    near("x 第 4 條", SG.TickX(200, 5, 4), 160)
+    near("x 寬 0", SG.TickX(0, 5, 2), 0)
+    eq("N 0 不除以 0", SG.TickX(100, 0, 1), 0)
+    eq("條身寬：左圖示", SG.BodyWidth(220, 20, "LEFT", 2), 198)
+    eq("條身寬：右圖示", SG.BodyWidth(220, 20, "RIGHT", 0), 200)
+    eq("條身寬：沒圖示", SG.BodyWidth(220, 20, "NONE", 5), 220)
+    eq("條身寬不為負", SG.BodyWidth(10, 20, "LEFT", 0), 0)
+    near("預覽填 2/N", SG.PreviewFill(5), 0.4)
+    eq("預覽 N=1 滿", SG.PreviewFill(1), 1)
 end
 
 ------------------------------------------------------------
@@ -272,7 +335,33 @@ do
     check("換色顏色進簽章", SG.Signature(SG.Config("buffbars", 10, true, true), 36, 36, settings.bar) ~= s1)
     check("條身材質進簽章", SG.Signature(c1, 36, 36, { texture = "other" }) ~= s1)
     eq("沒設定沒有簽章", SG.Signature(nil, 1, 1), nil)
-    overrides[10], overrides[11] = nil, nil
+
+    -- 層數當填充／刻度：只有長條才有；進簽章
+    overrides[12] = { stackBar = { max = 5 } }
+    eq("圖示沒有層數當填充", SG.Config("buffs", 12, true, false), nil)
+    local cb = SG.Config("buffbars", 12, true, true)
+    eq("長條：層數當填充 N", cb.stackBar, 5)
+    check("層數當填充算條身底下那一層", SG.HasLayers(cb))
+    local sb = SG.Signature(cb, 220, 20, settings.bar)
+    overrides[12].stackBar = { max = 6 }
+    check("N 進簽章", SG.Signature(SG.Config("buffbars", 12, true, true), 220, 20, settings.bar) ~= sb)
+    overrides[12].stackBar = { max = 5 }
+    overrides[12].stackTicks = { at = "all" }
+    local ct = SG.Config("buffbars", 12, true, true)
+    eq("刻度跟著層數當填充的 N", ct.ticks.n, 5)
+    local st = SG.Signature(ct, 220, 20, settings.bar)
+    check("刻度進簽章", st ~= sb)
+    overrides[12].stackTicks = { at = { 2 } }
+    check("刻度位置進簽章", SG.Signature(SG.Config("buffbars", 12, true, true), 220, 20, settings.bar) ~= st)
+    overrides[12].stackTicks = { at = "all", color = { r = 1, g = 0, b = 0, a = 1 } }
+    check("刻度顏色進簽章", SG.Signature(SG.Config("buffbars", 12, true, true), 220, 20, settings.bar) ~= st)
+    check("圖示邊進簽章（條身寬）", SG.Signature(ct, 220, 20, { texture = "solid", iconSide = "NONE" })
+        ~= SG.Signature(ct, 220, 20, { texture = "solid" }))
+    overrides[13] = { stackTicks = { at = "all", max = 8 } }
+    local c13 = SG.Config("buffbars", 13, true, true)
+    eq("只有刻度：用自己的 max", c13.ticks.n, 8)
+    eq("只有刻度：沒有層數當填充", c13.stackBar, nil)
+    overrides[10], overrides[11], overrides[12], overrides[13] = nil, nil, nil, nil
 end
 
 ------------------------------------------------------------
@@ -478,6 +567,97 @@ do
     eq("拿掉設定 ⇒ rec.stackCfg nil", rec.stackCfg, nil)
     eq("拿掉設定 ⇒ 根框藏", ui.under.shown, false)
     eq("拿掉設定 ⇒ 暴雪填充還原", it.Bar.fill.color[4], 1)
+end
+
+------------------------------------------------------------
+-- 6b. 層數當填充＋刻度：填充條取代時間層、色塊錨在填充條上、刻度位置照我們的條寬
+------------------------------------------------------------
+do
+    overrides[41] = { stackBar = { max = 5 }, stackTicks = { at = { 1, 3, 9 }, color = { r = 1, g = 1, b = 1, a = 1 } },
+        stackColors = { { at = 3, color = { r = 1, g = 0, b = 0, a = 1 } } } }
+    local S = Secret()
+    local it = Item({ bar = true, auraData = { applications = S }, active = true })
+    it.Bar.Pip = Tex()
+    local rec = Rec(it, "buffbars", 41)
+    SG.Apply(it, rec, "buffbars", 220, 20, true)
+    local ui = rec.stackUI
+    local fb = ui.fillBar
+    check("有填充條", fb ~= nil and fb.shown)
+    eq("填充條 0～N（min）", fb.min, 0); eq("填充條 0～N（max）", fb.max, 5)
+    check("填充條收到秘密層數原樣", rawequal(fb.value, S))
+    eq("填充條錨在條身", fb.allPoints, it.Bar)
+    eq("時間那層不畫", ui.under.base.shown, false)
+    eq("填充條顏色照條", fb.fill.color[1], 0.4)
+    eq("色塊錨在填充條的填充貼圖（不是暴雪的）", ui.colors[1].tex.allPoints, fb.fill)
+    check("填充條在根框之上、色塊之下", fb.level > ui.under.level and fb.level < ui.colors[1].gate.level)
+    local tf = ui.ticks
+    check("刻度框在色塊之上、條身之下", tf.level > ui.colors[1].gate.level and tf.level < 511)
+    local lines = tf.tickLines
+    eq("只畫 1～N-1 的指定位置（1、3）", #lines, 2)
+    -- 條身寬 ＝ 220 − 20（圖示）− 0（間距）＝ 200；x ＝ 200×k/5
+    eq("第 1 條 x", lines[1].points[1][4], 40)
+    eq("第 2 條 x", lines[2].points[1][4], 120)
+    eq("刻度錨在條身左緣", lines[1].points[1][2], it.Bar)
+    eq("刻度顏色", lines[1].color[1], 1)
+    eq("暴雪火花調透明（跟時間走）", it.Bar.Pip.alpha, 0)
+    eq("暴雪填充調透明", it.Bar.fill.color[4], 0)
+
+    -- 條寬變了：刻度跟著重算（簽章有 w）
+    SG.Apply(it, rec, "buffbars", 120, 20, true)
+    eq("條寬 120 ⇒ 第 1 條 x 20", lines[1].points[1][4], 20)
+
+    -- 改成全部：線數變多、池化重用
+    local first = lines[1]
+    overrides[41].stackTicks = { at = "all" }
+    SG.Apply(it, rec, "buffbars", 120, 20, true)
+    eq("all ⇒ 4 條", #tf.tickLines, 4)
+    eq("貼圖重用", tf.tickLines[1], first)
+    eq("預設顏色", tf.tickLines[1].color[4], 0.6)
+    overrides[41].stackTicks = { at = { 2 } }
+    SG.Apply(it, rec, "buffbars", 120, 20, true)
+    eq("少了 ⇒ 多的藏", tf.tickLines[2].shown, false)
+
+    -- 拿掉層數當填充（只留換色）：時間層回來、填充條藏、色塊改錨暴雪的填充
+    overrides[41].stackBar = nil
+    overrides[41].stackTicks = nil
+    SG.Apply(it, rec, "buffbars", 220, 20, true)
+    eq("時間層回來", ui.under.base.shown, true)
+    eq("填充條藏", fb.shown, false)
+    eq("色塊錨回暴雪填充", ui.colors[1].tex.allPoints, it.Bar.fill)
+    eq("刻度框藏", tf.shown, false)
+
+    -- 只有刻度：也是條身底下那一層（暴雪的調透明、我們畫底色）
+    overrides[41] = { stackTicks = { at = "all", max = 4 } }
+    SG.Apply(it, rec, "buffbars", 220, 20, true)
+    eq("只有刻度 ⇒ 根框亮", ui.under.shown, true)
+    eq("只有刻度 ⇒ 暴雪填充透明", it.Bar.fill.color[4], 0)
+    eq("只有刻度 ⇒ 3 條", (function() local n = 0 for _, l in ipairs(tf.tickLines) do if l.shown then n = n + 1 end end return n end)(), 3)
+
+    -- 停放還原
+    G.OnParked(rec)
+    eq("停放 ⇒ 暴雪填充還原", it.Bar.fill.color[4], 1)
+    overrides[41] = nil
+    SG.Apply(it, rec, "buffbars", 220, 20, true)
+    eq("拿掉 ⇒ 根框藏", ui.under.shown, false)
+end
+
+------------------------------------------------------------
+-- 6c. 預覽的假長條：層數當填充記 N、刻度畫在假條上；不適用時清掉
+------------------------------------------------------------
+do
+    overrides[42] = { stackBar = { max = 4 }, stackTicks = { at = "all" } }
+    local c = NewFrame("Frame")
+    c.Bar = NewFrame("StatusBar", c)
+    c.aura = true
+    SG.ApplyPreview(c, "buffbars", 42, 220, 20)
+    eq("預覽記著 N", c.stackPreviewMax, 4)
+    eq("預覽刻度 3 條", #c.Bar.tickLines, 3)
+    eq("預覽刻度錨在假條", c.Bar.tickLines[1].points[1][2], c.Bar)
+    c.custom = "aura"
+    SG.ApplyPreview(c, "buffbars", 42, 220, 20)
+    eq("自訂光環格 ⇒ 沒有", c.stackPreviewMax, nil)
+    eq("自訂光環格 ⇒ 刻度藏", c.Bar.tickLines[1].shown, false)
+    overrides[42] = nil
 end
 
 ------------------------------------------------------------

@@ -697,7 +697,11 @@ L["Glows once the buff has at least this many stacks. While it's on, glow during
 L["Stack colors (%d)"] = "Cores por acúmulos (%d)"
 L["Stack colors"] = "Cores por acúmulos"
 L["Stacks ≥"] = "Acúmulos ≥"
-L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "A barra assume a cor do maior limiar de acúmulos alcançado e mantém a cor normal abaixo de todos. Até 3."
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to %d."] = "A barra assume a cor do maior limiar de acúmulos alcançado e mantém a cor normal abaixo de todos. Até %d."
+L["Stacks as fill"] = "Acúmulos como preenchimento"
+L["The bar shows the stack count (0 up to the max) instead of the remaining time."] = "A barra mostra os acúmulos (de 0 ao máximo) em vez do tempo restante."
+L["Stack ticks"] = "Marcas de acúmulos"
+L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."] = "Uma linha fina em cada um destes números de acúmulos, por exemplo 1,5,8. Deixe em branco para uma linha em cada acúmulo."
 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "Mostrar centelha"
