@@ -150,6 +150,7 @@ local function SpellStyle(barKey, id)
         hideStackText    = SS(barKey, id, "hideStackText"),
         cdState          = SS(barKey, id, "cdState"),
         cdStateAlpha     = SS(barKey, id, "cdStateAlpha"),
+        dimNoAura        = SS(barKey, id, "dimNoAura"),
         customIcon       = D.IconOverrideOf(id),
         -- 增益持續時間那一段的換色（五個欄位跟條層同一套，沒覆寫自然退回條層）：開關是布林、三個顏色是色表
         colorDuration      = SS(barKey, id, "colorDuration") and true or false,
@@ -617,7 +618,7 @@ local function AfterCooldown(item, rec, cd)
     end
     D.ApplyGCDAlpha(item, rec)
     -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
-    if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
+    if (st.cdState or st.dimNoAura) and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
     -- 就緒時一直亮的發光（Core/Glow.lua）：同一個時機重算
     if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or ReadyWhileOn(rec)) then ns.Glow.ApplyReadyState(rec, item) end
 end
@@ -645,9 +646,9 @@ local function OnSetUseAuraDisplayTime(cd, flag)
     ResolveAuraFlag(rec)
     -- 冷卻格的「生效期間發光」吃這個旗標（Core/Glow.lua 的 SyncActive）：變了才對帳
     if was ~= rec.auraFlag and ns.Glow and ns.Glow.SyncActive then ns.Glow.SyncActive(item, rec) end
-    -- 光環不在時變暗：暴雪接著不一定 SetCooldown（沒冷卻的持續傷害走 Clear），變了就當場套
+    -- 效果不在時變暗：暴雪接著不一定 SetCooldown（沒冷卻的持續傷害走 Clear），變了就當場套
     local st = rec.style
-    if was ~= rec.auraFlag and st and st.cdState == "auraMissing" and rec.claimKey and not rec.parked then
+    if was ~= rec.auraFlag and st and st.dimNoAura and rec.claimKey and not rec.parked then
         D.ApplyItemAlpha(item, rec)
     end
 end
@@ -814,13 +815,14 @@ end
 -- 秘密值：讀不到明文旗標就拿引擎的「不含 GCD 的冷卻是零」秘密布林餵 SetAlphaFromBoolean，
 -- 之後**不讀回**那顆框的 alpha（rec.alphaSecret 記著，/mcdm debug 直接印「秘密」）。
 --
--- 第四種 auraMissing「光環不在時變暗」（玩家要求：術士的持續傷害，目前目標身上沒有就變暗）：
--- 不看冷卻，只看暴雪這一格是不是正在倒光環時間（rec.auraFlag，SetUseAuraDisplayTime 後掛勾記的明文）。
+-- 效果不在時變暗（逐法術勾選 dimNoAura，預設不勾；玩家要求：術士的持續傷害，目前目標身上沒有就變暗）：
+-- 跟冷卻狀態是兩回事、可以同時開——它只把「條的 alpha」再乘上變暗透明度（cdStateAlpha），其餘照冷卻狀態算。
+-- 訊號是暴雪這一格是不是正在倒光環時間（rec.auraFlag，SetUseAuraDisplayTime 後掛勾記的明文）。
 -- 放在核心／輔助的持續傷害，暴雪倒的就是目前目標身上那個減益；換目標由暴雪自己重刷（射程檢查的格、
 -- 光環在目標身上的格都登記了換目標更新）。沒有目標＝沒有光環＝變暗。旗標變了在後掛勾裡當場重套。
--- 自訂項目沒有這個旗標 ⇒ 不適用（rec.style.cdState 給 nil）。變暗程度吃同一個 cdStateAlpha。
+-- 只有暴雪的冷卻格有這個訊號：自訂項目、長條、增益類一律不給（rec.style.dimNoAura ＝ nil）。
 ------------------------------------------------------------
-local CD_MODES = { dim = true, hideOnCD = true, hideReady = true, auraMissing = true }
+local CD_MODES = { dim = true, hideOnCD = true, hideReady = true }
 D.CD_MODES = CD_MODES
 local PREVIEW_HIDDEN = 0.25          -- 預覽裡「看不到」畫成這麼淡（完全看不到就點不到了）
 
@@ -844,9 +846,6 @@ function D.StateAlphas(mode, x, barAlpha)
         return 0, barAlpha
     elseif mode == "hideReady" then
         return barAlpha, 0
-    elseif mode == "auraMissing" then
-        -- 這一模式的兩個值是「光環不在」「光環在」
-        return barAlpha * ClampAlpha(x, 0.4), barAlpha
     end
     return nil
 end
@@ -855,7 +854,6 @@ function D.PreviewStateAlpha(mode, x, onCD)
     if mode == "dim" then return onCD and ClampAlpha(x, 0.4) or 1 end
     if mode == "hideOnCD" then return onCD and PREVIEW_HIDDEN or 1 end
     if mode == "hideReady" then return onCD and 1 or PREVIEW_HIDDEN end
-    -- auraMissing：預覽沒有目標可看，照原樣畫
     return 1
 end
 
@@ -912,18 +910,16 @@ function D.ApplyItemAlpha(item, rec, barAlpha)
     if barAlpha == nil then barAlpha = CurrentBarAlpha(rec and rec.claimKey) end
     local st = rec and rec.style
     local mode = st and st.cdState
+    -- 效果不在時變暗：條的 alpha 先乘上去，下面冷卻狀態照常算（編輯模式中全亮）
+    if st and st.dimNoAura and rec.auraFlag ~= true and not EditModeActive() then
+        barAlpha = barAlpha * st.cdAlpha
+    end
     if not mode or EditModeActive() then
         item:SetAlpha(barAlpha)
         if rec then rec.stateHidden = nil end
         return
     end
     local aCD, aReady = D.StateAlphas(mode, st.cdAlpha, barAlpha)
-    if mode == "auraMissing" then
-        local a = (rec.auraFlag == true) and aReady or aCD
-        item:SetAlpha(a)
-        rec.stateHidden = nil
-        return
-    end
     local kind, v = D.CooldownState(item, rec)
     if kind == "plain" then
         local a = v and aCD or aReady
@@ -972,13 +968,13 @@ local cdArmed = false
 
 local function NeedsWork(rec)
     local st = rec.style
-    return (st and (st.hideGCD or st.cdState)) or rec.readyWhile or ReadyWhileOn(rec) or false
+    return (st and (st.hideGCD or st.cdState or st.dimNoAura)) or rec.readyWhile or ReadyWhileOn(rec) or false
 end
 
 local function RefreshOne(item, rec)
     local st = rec.style
     if st and st.hideGCD then D.ApplyGCDAlpha(item, rec) end
-    if st and st.cdState then D.ApplyItemAlpha(item, rec) end
+    if st and (st.cdState or st.dimNoAura) then D.ApplyItemAlpha(item, rec) end
     if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or ReadyWhileOn(rec)) then ns.Glow.ApplyReadyState(rec, item) end
 end
 
@@ -1324,7 +1320,7 @@ D.ApplyProcAlert = ApplyProcAlert
 local function Signature(style, id, spell, w, h)
     return style.sig .. "|" .. tostring(id) .. "|" .. CSig(spell.borderColor) .. "|"
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
-        .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha)
+        .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha) .. "," .. tostring(spell.dimNoAura)
         .. "|" .. tostring(spell.customIcon)
         .. "|" .. tostring(spell.colorDuration) .. "," .. CSig(spell.durationColor) .. "," .. CSig(spell.durationLowColor)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
@@ -1558,10 +1554,11 @@ function D.Apply(item, rec, barKey, w, h)
         hideGCD    = style.hideGCDSwipe and not ns.Viewers.AURA_KIND[rec.barKey],
         desaturate = spell.desaturate,
         -- 冷卻狀態：長條與增益類不適用（nil ＝ alpha 只跟條走）。alpha 本身由呼叫端走 ApplyItemAlpha／Custom.ApplyState
-        -- 光環不在時變暗只有暴雪的冷卻格有訊號（自訂項目沒有 auraFlag）
-        cdState    = (not isBar and not ns.Viewers.AURA_KIND[rec.barKey]
-                      and not (rec.custom and spell.cdState == "auraMissing")) and StateMode(spell.cdState) or nil,
+        cdState    = (not isBar and not ns.Viewers.AURA_KIND[rec.barKey]) and StateMode(spell.cdState) or nil,
         cdAlpha    = ClampAlpha(spell.cdStateAlpha, 0.4),
+        -- 效果不在時變暗：只有暴雪的冷卻格有訊號（rec.auraFlag）
+        dimNoAura  = (spell.dimNoAura == true and not isBar and not rec.custom
+                      and not ns.Viewers.AURA_KIND[rec.barKey]) or nil,
     }
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then

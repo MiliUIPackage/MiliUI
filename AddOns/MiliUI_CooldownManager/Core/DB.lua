@@ -411,7 +411,7 @@ function DB.BuildDefaults()
                           -- 暴雪的減益類型邊框（打在目標上的魔法／詛咒…減益會框一圈驅散色）：預設藏
                           hideDebuffBorder = true,
                           -- 冷卻狀態（核心／輔助、自訂法術／物品／飾品欄；增益類不適用）：
-                          -- "none" 不變｜"dim" 冷卻中變暗（cdStateAlpha）｜"hideOnCD" 冷卻中看不到｜"hideReady" 轉好時看不到｜"auraMissing" 光環不在時變暗（只有暴雪的冷卻格）。
+                          -- "none" 不變｜"dim" 冷卻中變暗（cdStateAlpha）｜"hideOnCD" 冷卻中看不到｜"hideReady" 轉好時看不到。
                           -- 舊存檔沒有這欄 ＝ "none"（合併預設值補上），行為不變、不遷移
                           cdState = "none", cdStateAlpha = 0.4,
                           -- 增益持續中顯示持續時間（核心／輔助）：技能用掉後暴雪先倒增益、增益掉了才倒冷卻。
@@ -961,6 +961,9 @@ local SPELL_CONST = {
     loseSpeak        = false,
     -- 自訂圖示：貼圖檔案編號（正整數）；false ＝ 用原本的圖示（Core/Decorate.lua 的 IconOverrideOf）
     customIcon       = false,
+    -- 效果不在時變暗（只有逐法術、預設不勾；暴雪的冷卻格才有效，Core/Decorate.lua）：
+    -- 圖示沒在倒增益／減益時間就變暗（變暗程度吃條的 cdStateAlpha）
+    dimNoAura        = false,
     -- 以增益取代（核心／輔助的暴雪技能才有，Core/Catalog.lua 的 Replacements）：增益圖示列的 cooldownID；
     -- false ＝ 不取代
     replaceWith      = false,
@@ -1234,7 +1237,7 @@ end
 -- 覆寫欄位 → 設定頁的哪一節（「本條 N 個法術有覆寫」「清除覆寫」用）
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
-    showAuraTime = "icon",
+    showAuraTime = "icon", dimNoAura = "icon",
     -- 以增益取代：決定格子放誰，不是外觀 ⇒ 自成一組（條頁「清除外觀覆寫」不會把它清掉；跟天賦條件同一個理由）
     replaceWith = "replace", replaceAuraStyle = "replace",
     procGlow = "glow", readyGlow = "glow", readyGlowMode = "glow", readyGlowUsable = "glow",

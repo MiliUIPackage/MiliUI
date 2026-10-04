@@ -101,7 +101,6 @@ local CDSTATE_ITEMS = {
     { text = L["Dim while on cooldown"],  value = "dim" },
     { text = L["Hide while on cooldown"], value = "hideOnCD" },
     { text = L["Hide when ready"],        value = "hideReady" },
-    { text = L["Dim while its effect is missing"], value = "auraMissing" },
 }
 Specs.CDSTATE_ITEMS = CDSTATE_ITEMS
 
@@ -462,10 +461,7 @@ function Specs.Themed(mode, key)
     -- 長條類的條：倒數與充能的文字樣式用不到（長條的秒數字型／字級在「長條」節；秒數是暴雪每幀寫的，
     -- 小數門檻與低秒變色都換不了），只留層數
     local function NB(s) if barsKind then return nil end return s end
-    local function NotDim(info)
-        local v = ReadThemed(info, "icon.cdState") or "none"
-        return v ~= "dim" and v ~= "auraMissing"
-    end
+    local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
     -- 像素發光的線條數／粗細：粗細只有像素樣式吃；線條數像素與自動施法都吃（玩家回報邊框太粗、以前習慣設 1）
     local function NotPixel(path) return function(info) return (ReadThemed(info, path) or "pixel") ~= "pixel" end end
     local function NoLines(path)
@@ -495,7 +491,6 @@ function Specs.Themed(mode, key)
         CS(TS("icon", "slider", "icon.cdStateAlpha", L["Dimmed opacity"],
             { min = 10, max = 90, step = 5, scale = 100, disabled = NotDim })),
         CS(Note(L["Hidden icons keep their place. The global cooldown doesn't count, and a spell with a charge left counts as ready. Buffs aren't affected."], "icon")),
-        CS(Note(L["\"Dim while its effect is missing\" looks at whether the icon is counting down a buff or debuff. For a damage-over-time spell on this bar, it dims while the current target doesn't have your debuff (or you have no target). Custom entries aren't affected."], "icon")),
         -- 增益持續中顯示持續時間（核心／輔助才有「先倒增益」那一段：增益兩條與長條類的條不顯示）
         CS(TS("icon", "toggle", "icon.showAuraTime", L["Show buff duration"])),
         CS(Note(L["After you use a spell that gives you a buff, the icon counts down the buff first and the cooldown after it ends. Off shows the cooldown right away."], "icon")),
