@@ -235,6 +235,11 @@ local function Debug(silent)
         p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",
                     tostring(C.IsPaused()), tostring(C.specTag), C.adopted or 0, B.resyncs or 0))
+        -- 增益兩條的每個 id 落在哪、沒落地是哪一關擋的（「暴雪面板加了、這邊不顯示」的回報看這段）
+        if C.Explain then
+            p("  增益診斷（✓ 落在哪條／✕ 擋在哪一關；暴雪面板開著時目錄暫停，關掉再看）：")
+            for _, line in ipairs(C.Explain({ "buffs", "buffbars" })) do p(line) end
+        end
         -- 重新取出只補做（Viewers.CHEAP_REACQUIRE；false ＝ 每次取出都整套重裝飾）
         p(("  重新取出只補做 %s  （Decorate.Reattach %d 次）"):format(tostring(V.CHEAP_REACQUIRE),
             ns.Decorate and ns.Decorate.applyReattach or 0))
@@ -248,7 +253,7 @@ local function Debug(silent)
         local CV = C_CooldownViewer
         local cats = Enum and Enum.CooldownViewerCategory
         if CV and CV.GetCooldownViewerCategorySet and CV.GetCooldownViewerCooldownInfo and cats then
-            for _, def in ipairs({ { "核心", cats.Essential }, { "輔助", cats.Utility } }) do
+            for _, def in ipairs({ { "核心", cats.Essential }, { "輔助", cats.Utility }, { "增益", cats.TrackedBuff }, { "長條", cats.TrackedBar } }) do
                 local ok, ids = pcall(CV.GetCooldownViewerCategorySet, def[2], true)
                 if ok and type(ids) == "table" then
                     local known, head = 0, {}

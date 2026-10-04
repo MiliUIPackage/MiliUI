@@ -372,6 +372,20 @@ do
     eqList("GroupTargets：別的專精沒有 groupOf", keys(C.GroupTargets("essential")), {})
     ns.specID = 65
 end
+do
+    -- Explain（/mcdm debug 的增益診斷）：每個 id 落在哪條、沒落地是哪一關
+    local lines = C.Explain({ "essential" })
+    local function find(id)
+        for _, l in ipairs(lines) do
+            if l:find(" " .. id .. " ", 1, true) then return l end
+        end
+    end
+    check("Explain：拉去群組的落在 g1", (find(102) or ""):find("✓ 102 .*在 g1") ~= nil, find(102))
+    check("Explain：面板覆寫進核心的 202", (find(202) or ""):find("面板覆寫.*在 essential") ~= nil, find(202))
+    check("Explain：玩家移除的 701", (find(701) or ""):find("✕ 701 .*移除") ~= nil, find(701))
+    check("Explain：沒學會的 103", (find(103) or ""):find("✕ 103 .*沒學會") ~= nil, find(103))
+    check("Explain：別條來源的不列", find(301) == nil)
+end
 ns.profile = nil
 eqList("沒有 profile ⇒ 空", C.Bar("essential"), {})
 

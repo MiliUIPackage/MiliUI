@@ -211,6 +211,7 @@ C.info       = {}          -- [cooldownID] = info
 C.ordered    = {}          -- 完整的有效順序（跨類別）
 C.lists      = {}          -- [sourceBar] = { cooldownID… }（還沒套我們的覆寫）
 C.pool       = {}          -- [homeBar] = 還在候選池（沒被拖進任何檢視器）的 id
+C.layoutOverrides = {}     -- [cooldownID] = 暴雪面板的分類覆寫（解碼版面得來；C.Explain 用）
 C.sig        = nil         -- 內容簽章（版面字串＋專精＋每條的清單）
 C.layoutString = nil       -- 上次讀到的 GetLayoutData 原字串
 C.source     = "none"      -- 順序從哪來：layout | fallback:<原因>
@@ -537,6 +538,7 @@ local function Build()
     end
 
     C.info, C.ordered, C.lists, C.pool = info, ordered, lists, pool
+    C.layoutOverrides = overrides
     -- 法術索引讀 C.info 的 spellID／overrideSpellID；覆寫不在下面的簽章裡，簽章沒變也可能換了 ⇒ 一律標髒
     if ns.SpellIndex then ns.SpellIndex.dirty = true end
     -- 哪些 id 已經排在某條檢視器的清單上（C.Adopt 用）
@@ -1290,6 +1292,97 @@ function C.Pool(homeBar)
     EnsureBuilt()
     local out = {}
     for _, id in ipairs(C.pool[homeBar] or EMPTY) do out[#out + 1] = id end
+    return out
+end
+
+------------------------------------------------------------
+-- 診斷（/mcdm debug）：某幾條暴雪檢視器的每個 id 最後落在哪條、沒落地的話是哪一關擋掉的。
+-- 「暴雪面板加了、我們這邊不顯示」的回報靠這段定位，關卡順序照 Build → BarBase → 溢出：
+--   有效類別（分類覆寫 > HideByDefault > 資料類別）→ isKnown → 隱形項目 →
+--   征戰聖擊列自動藏 → 以增益取代 → groupOf → 玩家移除（hidden）→ 天賦條件
+-- 有效類別是「不顯示」、而且沒有分類覆寫的（暴雪預設就不顯示、玩家也沒拖過）大多是無關的法術，
+-- 只收成一行 id 清單，不逐筆展開。回傳行（不帶色碼）。
+------------------------------------------------------------
+function C.Explain(sources)
+    EnsureBuilt()
+    local want = {}
+    for _, k in ipairs(sources) do want[k] = true end
+    local catName = {}
+    local E = Enum and Enum.CooldownViewerCategory
+    for name, v in pairs(E or EMPTY) do catName[v] = name end
+    local function Cat(v)
+        if v == HIDDEN then return "不顯示" end
+        return v ~= nil and (catName[v] or tostring(v)) or "?"
+    end
+
+    -- 最後落在哪幾條（已套溢出）
+    local where = {}
+    local p = ns.profile
+    local bars = p and type(p.bars) == "table" and p.bars or EMPTY
+    local function BarName(k)
+        local b = bars[k]
+        return (type(b) == "table" and type(b.name) == "string" and b.name ~= "") and (k .. "「" .. b.name .. "」") or tostring(k)
+    end
+    for _, k in ipairs(BarKeys()) do
+        for _, id in ipairs(C.Bar(k)) do
+            where[id] = where[id] and (where[id] .. "," .. BarName(k)) or BarName(k)
+        end
+    end
+
+    local sp = SpellsTable()
+    local groupOf = sp and type(sp.groupOf) == "table" and sp.groupOf or EMPTY
+    local hidden  = sp and type(sp.hidden) == "table" and sp.hidden or EMPTY
+    local autoHide = ns.Resources and ns.Resources.HidesTrackedBar
+    local replacedBy = C.ReplacedSet()
+    local ov = C.Overflow and C.Overflow()
+    local ovFrom = {}
+    for dst, m in pairs(ov and ov.from or EMPTY) do
+        for id, src in pairs(m) do ovFrom[id] = tostring(src) .. "→" .. tostring(dst) end
+    end
+    local hideInvisible = _G.CDM_HIDE_INVISIBLE_ITEMS == true
+    local layoutOv = C.layoutOverrides or EMPTY
+
+    local out, quiet = {}, {}
+    for _, id in ipairs(C.ordered) do
+        local rec = C.info[id]
+        if rec and (want[rec.home] or want[rec.bar]) then
+            local eff = rec.effectiveCategory
+            if eff == HIDDEN and layoutOv[id] == nil then
+                quiet[#quiet + 1] = tostring(id)
+            else
+                local why
+                if where[id] then
+                    why = "在 " .. where[id] .. (ovFrom[id] and ("（溢出 " .. ovFrom[id] .. "）") or "")
+                elseif not rec.bar then
+                    why = (eff == HIDDEN) and "暴雪面板放在「不顯示」" or "有效類別不屬於四條檢視器（還在候選池）"
+                elseif not rec.isKnown then
+                    why = "暴雪回報沒學會（isKnown=false）"
+                elseif hideInvisible and rec.isInvisible then
+                    why = "隱形項目（CDM_HIDE_INVISIBLE_ITEMS）"
+                elseif autoHide and autoHide(id) then
+                    why = "資源條的征戰聖擊列顯示中，自動藏起"
+                elseif replacedBy[id] ~= nil then
+                    why = "被 " .. tostring(replacedBy[id]) .. " 拿去取代"
+                elseif groupOf[id] ~= nil and groupOf[id] ~= rec.bar then
+                    why = "拉去 " .. BarName(groupOf[id]) .. (type(bars[groupOf[id]]) == "table" and "（那條沒收到）" or "（那條不存在）")
+                elseif hidden[id] then
+                    why = "玩家在本插件移除（hidden）"
+                elseif Blocked(sp, id) then
+                    why = "天賦條件不成立"
+                else
+                    why = "原因不明"
+                end
+                out[#out + 1] = ("    %s %s %s(%s/%s) 類別 %s→%s%s 學會=%s：%s"):format(
+                    where[id] and "✓" or "✕", tostring(id), tostring(rec.name or "?"),
+                    tostring(rec.spellID), tostring(rec.overrideSpellID),
+                    Cat(rec.category), Cat(eff), layoutOv[id] ~= nil and "（面板覆寫）" or "",
+                    tostring(rec.isKnown), why)
+            end
+        end
+    end
+    if #quiet > 0 then
+        out[#out + 1] = ("    暴雪預設不顯示、沒拖過的 %d 個：%s"):format(#quiet, table.concat(quiet, ","))
+    end
     return out
 end
 
