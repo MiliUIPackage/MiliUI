@@ -799,3 +799,8 @@ L["Overflows to: %s"] = "Eccedenza verso: %s"
 L["From: %s"] = "Da: %s"
 L["Go to that bar"] = "Vai a quella barra"
 L["This icon overflows here from %s. Its place follows the order on that bar, so reorder it there."] = "Questa icona arriva qui come eccedenza di %s. La sua posizione segue l'ordine di quella barra: riordinala lì."
+
+-- 挑選器「背包物品」（F6）
+L["Bag items"] = "Oggetti nelle borse"
+L["Items in your bags that have a use effect (toys too). Click one to track its cooldown."] = "Oggetti nelle tue borse con un effetto Usa (giocattoli inclusi). Fai clic su uno per tracciarne il tempo di recupero."
+L["Rescan"] = "Ripeti scansione"

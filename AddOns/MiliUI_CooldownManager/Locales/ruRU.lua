@@ -799,3 +799,8 @@ L["Overflows to: %s"] = "Излишек на: %s"
 L["From: %s"] = "С панели: %s"
 L["Go to that bar"] = "Перейти к ней"
 L["This icon overflows here from %s. Its place follows the order on that bar, so reorder it there."] = "Этот значок перешёл сюда с «%s». Его место зависит от порядка на той панели — меняйте порядок там."
+
+-- 挑選器「背包物品」（F6）
+L["Bag items"] = "Предметы в сумках"
+L["Items in your bags that have a use effect (toys too). Click one to track its cooldown."] = "Предметы в сумках с эффектом «Использование» (игрушки тоже). Нажмите, чтобы отслеживать восстановление."
+L["Rescan"] = "Обновить список"

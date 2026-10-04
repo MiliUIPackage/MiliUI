@@ -17,7 +17,8 @@
 --                      灰掉並寫「已加入」）。資料在 Core/Presets.lua。種族技能只有一列：加的是動態的那一筆
 --                      （kind = "racial"，每個角色照自己的種族解析）。
 --   自訂 ID            四顆鈕「光環」「法術」「物品」「裝備欄位」→ 輸入 ID（光環多選增益／減益）→ 驗證 →
---                      加一筆（bar ＝ 這條）。圖示類、長條類的條都收（長條上畫成長條，
+--                      加一筆（bar ＝ 這條）。第五顆「背包物品」開清單彈窗（跟常用預設同一個），列包包裡
+--                      有使用效果的物品（C_Item.GetItemSpell 有回傳；玩具也算），點一下就加成自訂物品。圖示類、長條類的條都收（長條上畫成長條，
 --                      kind 照舊，見 Modules/Custom.lua）；「已在暴雪冷卻管理器」與候選池照舊長條只收長條。
 --                      驗證：法術 C_Spell.GetSpellInfo、物品 C_Item.GetItemInfoInstant；這個專精已經看得到同一個的不收
 --                      （任何一層）、目標那一層已經有的也不收；
@@ -25,7 +26,7 @@
 --                      友方減益不准用 ID 過濾，加了也是一個永遠不亮的格子）。
 -- 適用範圍（2026-10-03）：常用預設與自訂 ID 的彈窗底部一列「適用範圍」下拉（戰隊／這個職業／這個專精）＋下一列灰字，
 --   加到哪一層（Core/DB.lua 的 AddCustomTo）。每次開彈窗回到那一種的預設：藥水與治療石、團隊增益、裝備欄位、種族技能＝戰隊；
---   防禦技能＝職業；手動輸入 ID（光環／法術／物品）＝專精。
+--   防禦技能＝職業；手動輸入 ID（光環／法術／物品）＝專精；背包物品＝戰隊。
 -- 暴雪面板開著時（Catalog.IsPaused）清單不準：整個挑選器鎖住並說明，面板關掉自動重讀。
 ------------------------------------------------------------
 local _, ns = ...
@@ -434,12 +435,15 @@ local function Build()
     sections.customHead = W.CreateGroupLabel(frame, L["Custom ID"])
     sections.customNote = Text(frame, true)
     sections.customBtns = {}
-    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] }, { "slot", L["Equipment slot"] } }) do
+    for _, def in ipairs({ { "aura", L["Aura"] }, { "spell", L["Spell"] }, { "item", L["Item"] }, { "slot", L["Equipment slot"] },
+                           { "bag", L["Bag items"] } }) do
         local kind = def[1]
         local b = W.CreateButton(frame, def[2], "normal", 80, 22)
         W.FitButton(b, 80, 22)
         if kind == "slot" then
             b:SetScript("OnClick", function() Picker.AskSlot() end)
+        elseif kind == "bag" then
+            b:SetScript("OnClick", function() Picker.AskPreset("bag") end)
         else
             b:SetScript("OnClick", function() Picker.AskCustom(kind) end)
         end
@@ -1015,8 +1019,10 @@ end
 ------------------------------------------------------------
 -- 常用預設的清單彈窗（資料：Core/Presets.lua）
 --
---   Picker.PresetRows(kind, key, scope) → { { kind = "spell"|"item"|"aura", id, icon, name, added, make() }, … }
---   Picker.AskPreset(kind)        開彈窗
+--   Picker.PresetRows(kind, key, scope) → { { kind = "spell"|"item"|"aura", id, icon, name, added, make(), [count] }, … }
+--   Picker.AskPreset(kind)        開彈窗（kind ＝ "bag"：自訂 ID 區的「背包物品」，也走這個彈窗）
+--   Picker.BagRows(scan, hasSpell, nameOf, countOf, added)   背包物品的列（純函式：去重、排序、已加入）
+--   Picker.ScanBags()             包包 0～4 掃出來的 itemID（可重複）
 --
 -- 一列一項（W.CreateRowList，清單長就捲）；點一下就加、彈窗不關，那一列當場變「已加入」
 -- （這個專精已經看得到同一個，或選的那一層已經有）。
@@ -1031,10 +1037,11 @@ local PRESET_TITLES = {
     defensives = function() return L["Your class's defensive abilities that you currently know. Click one to track its cooldown."] end,
     items      = function() return L["Potions and healthstones. Each one shows whichever version you have in your bags. Click one to track it."] end,
     auras      = function() return L["Bloodlust and the like, Time Spiral and potion buffs on you, whoever cast them. Click one to add an aura slot."] end,
+    bag        = function() return L["Items in your bags that have a use effect (toys too). Click one to track its cooldown."] end,
 }
 
--- 每一種的預設範圍（使用者 2026-10-03 定案）
-local PRESET_SCOPE = { racials = "shared", defensives = "class", items = "shared", auras = "shared" }
+-- 每一種的預設範圍（使用者 2026-10-03 定案；背包物品 2026-10-04，F6）
+local PRESET_SCOPE = { racials = "shared", defensives = "class", items = "shared", auras = "shared", bag = "shared" }
 
 local function PlainValue(fn, ...)
     if not fn then return nil end
@@ -1057,6 +1064,85 @@ end
 
 local function BagCount(id)
     return PlainValue(C_Item and C_Item.GetItemCount, id, false, true)
+end
+
+------------------------------------------------------------
+-- 背包物品（F6）：包包 0～4 有使用效果的物品。全部只讀、明文才收；戰鬥中照常（只讀背包）
+------------------------------------------------------------
+-- scan：掃出來的 itemID（可重複）；hasSpell(id) → 有沒有使用效果；nameOf(id) → 名字或 nil（還沒載入）；
+-- countOf(id) → 數量或 nil；added(id) → 已加入沒。
+-- 回 { { kind = "item", id, name, count, added }, … }：同一個 ID 只留一列；有名字的依名字排（同名依 ID），
+-- 名字還沒載入的接在後面依 ID 排（畫成「#id」，資料到了重畫時就排回去）
+function Picker.BagRows(scan, hasSpell, nameOf, countOf, added)
+    local out, seen = {}, {}
+    for _, id in ipairs(type(scan) == "table" and scan or {}) do
+        if type(id) == "number" and id > 0 and not seen[id] then
+            seen[id] = true
+            if hasSpell(id) then
+                local name = nameOf and nameOf(id)
+                if type(name) ~= "string" or name == "" then name = nil end
+                local count = countOf and countOf(id)
+                if type(count) ~= "number" then count = nil end
+                out[#out + 1] = { kind = "item", id = id, name = name, count = count,
+                                  added = (added and added(id)) and true or false,
+                                  sortKey = name and name:lower() or nil }
+            end
+        end
+    end
+    table.sort(out, function(a, b)
+        if (a.sortKey ~= nil) ~= (b.sortKey ~= nil) then return a.sortKey ~= nil end
+        if a.sortKey and a.sortKey ~= b.sortKey then return a.sortKey < b.sortKey end
+        return a.id < b.id
+    end)
+    for _, r in ipairs(out) do r.sortKey = nil end
+    return out
+end
+
+function Picker.ScanBags()
+    local out = {}
+    local CC = C_Container
+    if not (CC and CC.GetContainerNumSlots and CC.GetContainerItemID) then return out end
+    local B = Enum and Enum.BagIndex
+    local first = (B and type(B.Backpack) == "number") and B.Backpack or 0
+    local last = (B and type(B.Bag_4) == "number") and B.Bag_4 or 4
+    for bag = first, last do
+        local n = PlainValue(CC.GetContainerNumSlots, bag)
+        if type(n) == "number" then
+            for slot = 1, n do
+                local id = PlainValue(CC.GetContainerItemID, bag, slot)
+                if type(id) == "number" then out[#out + 1] = id end
+            end
+        end
+    end
+    return out
+end
+
+local function RequestItem(id)
+    if C_Item and C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, id) end
+end
+
+-- 有沒有使用效果：GetItemSpell 有回傳就算（秘密值＝有東西，不比較）。
+-- 物品資料還沒載入時它也回 nil ⇒ 順手要資料，到了重畫會再判一次
+local function ItemHasSpell(id)
+    if not (C_Item and C_Item.GetItemSpell) then return false end
+    local ok, spellName, spellID = pcall(C_Item.GetItemSpell, id)
+    if not ok then return false end
+    if ns.IsSecret(spellName) or ns.IsSecret(spellID) then return true end
+    if spellName ~= nil or spellID ~= nil then return true end
+    if C_Item.IsItemDataCachedByID then
+        local ok2, cached = pcall(C_Item.IsItemDataCachedByID, id)
+        if ok2 and cached == false then RequestItem(id) end
+    end
+    return false
+end
+
+local function BagItemName(id)
+    local name = PlainValue(C_Item and C_Item.GetItemNameByID, id)
+    if type(name) ~= "string" or name == "" then
+        RequestItem(id)
+        return nil
+    end
+    return name
 end
 
 function Picker.PresetRows(kind, key, scope)
@@ -1108,6 +1194,17 @@ function Picker.PresetRows(kind, key, scope)
                 added = added,
                 make = function(k) return PR.AuraEntry(def, k, faction) end,
             } end
+        end
+    elseif kind == "bag" then
+        local rows = Picker.BagRows(Picker.ScanBags(), ItemHasSpell, BagItemName, BagCount, function(id)
+            return Added({ kind = "item", itemID = id }, scope)
+        end)
+        for _, r in ipairs(rows) do
+            local id = r.id
+            r.icon = PlainValue(C_Item and C_Item.GetItemIconByID, id)
+            -- 同自訂物品 ID 的那一筆（Picker.ValidateCustom）
+            r.make = function(k) return { kind = "item", itemID = id, bar = k } end
+            out[#out + 1] = r
         end
     end
     return out
@@ -1173,7 +1270,12 @@ local function UpdatePresetRow(row, d)
     b.icon:SetDesaturated(d.added and true or false)
     b.label:SetText(d.name or ("#" .. tostring(d.id)))
     b.label:SetTextColor(d.added and 0.5 or 1, d.added and 0.5 or 1, d.added and 0.5 or 1)
-    b.status:SetText(d.added and L["Already added"] or "")
+    -- 背包物品多一個數量（明文數字才寫）
+    local status = d.added and L["Already added"] or ""
+    if type(d.count) == "number" then
+        status = ("×%d"):format(d.count) .. (status ~= "" and ("   " .. status) or "")
+    end
+    b.status:SetText(status)
     -- 列會回收再用：點擊的 closure 每次重設
     b:SetScript("OnClick", (not d.added) and function() AddPreset(d) end or nil)
 end
@@ -1197,17 +1299,38 @@ local function BuildPresetPopup()
     W.FitButton(f.close, 90, 22)
     f.close:SetPoint("BOTTOMRIGHT", -PAD, 12)
     f.close:SetScript("OnClick", function() f:Hide() end)
+    -- 背包物品才有：重新掃描（開著時換包包內容也會自動重掃，這顆是保底）
+    f.rescan = W.CreateButton(f, L["Rescan"], "normal", 90, 22)
+    W.FitButton(f.rescan, 90, 22)
+    f.rescan:SetPoint("BOTTOMLEFT", PAD, 12)
+    f.rescan:SetScript("OnClick", function() RenderPreset() end)
+    f.rescan:Hide()
     f:Hide()
     ns.RegisterCallback("OptionsHidden", "picker_preset", function() f:Hide() end)
-    -- 物品名字第一次問常常還沒快取：資料到了重畫（只在彈窗開著時聽，下一幀合併）
+    -- 物品名字第一次問常常還沒快取：資料到了重畫；背包物品另外聽包包內容變了就重掃。
+    -- 只在彈窗開著時聽（OnShow 註冊、OnHide 反註冊），下一幀合併成一次重畫
     local armed = false
-    local function OnItemInfo()
-        if armed or not (f:IsShown() and f.kind == "items") then return end
+    local function Soon()
+        if armed then return end
         armed = true
         ns.Defer(function() armed = false; if f:IsShown() then RenderPreset() end end)
     end
-    f:HookScript("OnShow", function() ns.Events.Register("GET_ITEM_INFO_RECEIVED", "picker_preset", OnItemInfo) end)
-    f:HookScript("OnHide", function() ns.Events.Unregister("GET_ITEM_INFO_RECEIVED", "picker_preset") end)
+    local function OnItemInfo()
+        if f:IsShown() and (f.kind == "items" or f.kind == "bag") then Soon() end
+    end
+    local function OnBags()
+        if f:IsShown() and f.kind == "bag" then Soon() end
+    end
+    f:HookScript("OnShow", function()
+        ns.Events.Register("GET_ITEM_INFO_RECEIVED", "picker_preset", OnItemInfo)
+        ns.Events.Register("ITEM_DATA_LOAD_RESULT", "picker_preset", OnItemInfo)
+        ns.Events.Register("BAG_UPDATE_DELAYED", "picker_preset", OnBags)
+    end)
+    f:HookScript("OnHide", function()
+        ns.Events.Unregister("GET_ITEM_INFO_RECEIVED", "picker_preset")
+        ns.Events.Unregister("ITEM_DATA_LOAD_RESULT", "picker_preset")
+        ns.Events.Unregister("BAG_UPDATE_DELAYED", "picker_preset")
+    end)
     return f
 end
 
@@ -1216,6 +1339,7 @@ RenderPreset = function()
     if not (f and f.kind and curKey) then return end
     local rows = Picker.PresetRows(f.kind, curKey, f.scopeRow:GetScope())
     f.title:SetText(PRESET_TITLES[f.kind]())
+    f.rescan:SetShown(f.kind == "bag")
     local y = -(12 + (f.title:GetStringHeight() or 14) + 10)
     local n = #rows
     f.list:SetShown(n > 0)

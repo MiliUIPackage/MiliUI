@@ -799,3 +799,8 @@ L["Overflows to: %s"] = "넘침: %s(으)로"
 L["From: %s"] = "출처: %s"
 L["Go to that bar"] = "그 바로 이동"
 L["This icon overflows here from %s. Its place follows the order on that bar, so reorder it there."] = "이 아이콘은 %s에서 넘쳐 온 것입니다. 위치는 그 바의 순서를 따르므로 순서는 그 바에서 바꾸세요."
+
+-- 挑選器「背包物品」（F6）
+L["Bag items"] = "가방 아이템"
+L["Items in your bags that have a use effect (toys too). Click one to track its cooldown."] = "가방에 있는 사용 효과가 있는 아이템입니다(장난감 포함). 클릭하면 재사용 대기시간을 추적합니다."
+L["Rescan"] = "다시 검색"

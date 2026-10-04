@@ -21,6 +21,8 @@
 --      去飽和（曲線求值、暴雪寫 false 之後重算、設定關掉不動）、設定切換（SyncAuraHide）
 --   8. /mcdm perf：計數表 → 文字行（PerfLines：每秒、佔幾 %、沒有的計數、現況值）、脫戰那一行（PerfSummary）、
 --      指令（reset 只記基準不動模組上的計數、log 開關、進出戰鬥的那一場）
+--  12. 挑選器「背包物品」（F6）：BagRows 的去重／有使用效果才列／依名字排序（沒名字的排後面依 ID）／數量／已加入；
+--      ScanBags（bag 0～4、秘密值與空格跳過）；PresetRows("bag") 接起來（加入後標已加入、make 的形狀）
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -1472,6 +1474,94 @@ do
     ns.Viewers.frames[item] = nil
     eq("InvalidateAll ⇒ rec.decorated 清掉", rec.decorated, nil)
     check("InvalidateAll ⇒ 前置鍵不中", not D.PreKeyMatch(rec, D.styleGen, DB.overrideGen, 11, 30, 30, nil, "essential", false))
+end
+
+------------------------------------------------------------
+-- 12. 挑選器「背包物品」（F6）
+------------------------------------------------------------
+do
+    ns.L = ns.L or setmetatable({}, { __index = function(_, k) return k end })
+    Load("Options/Picker.lua")
+    local PK = ns.Picker
+
+    -- BagRows：純函式
+    local spells = { [10] = true, [20] = true, [30] = true, [40] = true, [50] = true }
+    local names = { [10] = "Zeta", [20] = "alpha", [30] = "Beta", [50] = "Beta" }      -- 40 名字還沒載入
+    local counts = { [10] = 3, [20] = 1, [30] = 12, [50] = 2 }
+    local asked = {}
+    local rows = PK.BagRows({ 10, 20, 10, 60, 30, 40, 50, 20, Secret(), 0, -1 },
+        function(id) asked[#asked + 1] = id; return spells[id] == true end,
+        function(id) return names[id] end,
+        function(id) return counts[id] end,
+        function(id) return id == 30 end)
+    eq("BagRows：去重＋沒使用效果的不列", #rows, 5)
+    eq("BagRows：每個 ID 只問一次有沒有使用效果", #asked, 6)
+    eq("BagRows：依名字排（不分大小寫）1", rows[1].id, 20)
+    eq("BagRows：同名依 ID 2", rows[2].id, 30)
+    eq("BagRows：同名依 ID 3", rows[3].id, 50)
+    eq("BagRows：依名字排 4", rows[4].id, 10)
+    eq("BagRows：名字沒載入的排最後", rows[5].id, 40)
+    eq("BagRows：名字沒載入 ⇒ name nil（畫成 #id）", rows[5].name, nil)
+    eq("BagRows：數量", rows[1].count, 1)
+    eq("BagRows：數量讀不到 ⇒ nil", rows[5].count, nil)
+    eq("BagRows：已加入", rows[2].added, true)
+    eq("BagRows：沒加入 ⇒ false", rows[1].added, false)
+    eq("BagRows：種類", rows[1].kind, "item")
+    eq("BagRows：排序用的欄位不外流", rows[1].sortKey, nil)
+    eq("BagRows：空清單", #PK.BagRows({}, function() return true end), 0)
+    eq("BagRows：scan 不是表", #PK.BagRows(nil, function() return true end), 0)
+    local r2 = PK.BagRows({ 7 }, function() return true end, function() return "" end, nil, nil)
+    eq("BagRows：空字串名字當沒載入", r2[1].name, nil)
+    eq("BagRows：沒給 added ⇒ false", r2[1].added, false)
+
+    -- ScanBags：bag 0～4（Enum.BagIndex），秘密值與空格跳過
+    local bags = { [0] = { 101, nil, 102 }, [1] = { Secret(), 103 }, [4] = { 104 }, [5] = { 999 } }
+    local slotsAsked = {}
+    env.Enum.BagIndex = { Backpack = 0, Bag_4 = 4 }
+    env.C_Container = {
+        GetContainerNumSlots = function(bag) slotsAsked[bag] = true; return bags[bag] and 3 or 0 end,
+        GetContainerItemID = function(bag, slot) return bags[bag] and bags[bag][slot] end,
+    }
+    local scan = PK.ScanBags()
+    eq("ScanBags：只掃 0～4、跳過空格與秘密值", table.concat(scan, ","), "101,102,103,104")
+    check("ScanBags：不掃材料包（5）", not slotsAsked[5])
+    env.C_Container = nil
+    eq("ScanBags：API 不在 ⇒ 空", #PK.ScanBags(), 0)
+
+    -- PresetRows("bag")：接起來
+    env.C_Container = {
+        GetContainerNumSlots = function(bag) return bag == 0 and 3 or 0 end,
+        GetContainerItemID = function(bag, slot) return ({ 201, 202, 201 })[slot] end,
+    }
+    local savedItem = env.C_Item
+    local requested = {}
+    env.C_Item = setmetatable({
+        GetItemSpell = function(id) if id == 201 then return "使用", 5001 end end,
+        GetItemNameByID = function(id) if id == 201 then return "治療石" end end,
+        GetItemCount = function(id, bank, uses) check("GetItemCount 參數", bank == false and uses == true); return 4 end,
+        RequestLoadItemDataByID = function(id) requested[#requested + 1] = id end,
+        IsItemDataCachedByID = function() return true end,
+    }, { __index = savedItem })
+    local pr = PK.PresetRows("bag", "essential", "shared")
+    eq("PresetRows bag：只列有使用效果的", #pr, 1)
+    eq("PresetRows bag：ID", pr[1].id, 201)
+    eq("PresetRows bag：名字", pr[1].name, "治療石")
+    eq("PresetRows bag：數量", pr[1].count, 4)
+    eq("PresetRows bag：圖示", pr[1].icon, 800201)
+    eq("PresetRows bag：還沒加", pr[1].added, false)
+    eq("PresetRows bag：已快取的不要資料", #requested, 0)
+    local e = pr[1].make("essential")
+    check("PresetRows bag：make 的形狀同自訂物品 ID", e.kind == "item" and e.itemID == 201 and e.bar == "essential")
+    check("加到戰隊層", DB.AddCustomTo("shared", e) ~= nil)
+    eq("加入後 ⇒ 已加入", PK.PresetRows("bag", "essential", "shared")[1].added, true)
+    eq("加入後換範圍 ⇒ 這個專精看得到，仍然已加入", PK.PresetRows("bag", "essential", "spec")[1].added, true)
+    -- 名字沒載入 ⇒ 要資料
+    env.C_Item.GetItemNameByID = function() return nil end
+    local pr2 = PK.PresetRows("bag", "essential", "shared")
+    eq("名字沒載入 ⇒ name nil", pr2[1].name, nil)
+    eq("名字沒載入 ⇒ 要資料", requested[1], 201)
+    env.C_Item = savedItem
+    env.C_Container = nil
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))

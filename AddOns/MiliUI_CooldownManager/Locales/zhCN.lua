@@ -799,3 +799,8 @@ L["Overflows to: %s"] = "溢出到：%s"
 L["From: %s"] = "来自：%s"
 L["Go to that bar"] = "前往那条"
 L["This icon overflows here from %s. Its place follows the order on that bar, so reorder it there."] = "这格是从“%s”溢出过来的。它的位置跟着那条的顺序，要排序请到那条调整。"
+
+-- 挑選器「背包物品」（F6）
+L["Bag items"] = "背包物品"
+L["Items in your bags that have a use effect (toys too). Click one to track its cooldown."] = "背包里有使用效果的物品（玩具也算）。点一下就追踪它的冷却。"
+L["Rescan"] = "重新扫描"
