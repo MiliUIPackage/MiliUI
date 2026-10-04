@@ -52,6 +52,8 @@ local function BuildControls()
             { text = L["Ready runes count"],         value = "count" },
         } }
         list[#list + 1] = { type = "text", label = L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show value on the bar\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."] }
+        list[#list + 1] = { type = "toggle", key = "runeQueued", label = L["Count waiting runes"] }
+        list[#list + 1] = { type = "text", label = L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."] }
     end
 
     ---------------------------------------------------------
