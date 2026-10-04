@@ -693,7 +693,8 @@ L["Couldn't read your specializations."] = "Не удалось прочитат
 
 -- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
 L["Stack glow"] = "Свечение по стакам"
-L["Glows once the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "Светится, когда у баффа не меньше этого числа стаков. Пока включено, «Свечение во время эффекта» не используется."
+L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "Светится, пока число стаков баффа проходит сравнение. «≤» и «<» не светятся без баффа. Пока включено, «Свечение во время эффекта» не используется."
+L["Fewer than 1 stack is never true."] = "Меньше 1 стака не бывает никогда."
 L["Stack colors (%d)"] = "Цвета по стакам (%d)"
 L["Stack colors"] = "Цвета по стакам"
 L["Stacks ≥"] = "Стаки ≥"

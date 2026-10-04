@@ -958,6 +958,9 @@ local SPELL_CONST = {
     -- 沒設（nil）＝ glow.active 的預設
     stackGlow        = false,
     stackColors      = false,
+    -- 層數發光的比較子（F4）：">=" | "<=" | "==" | ">" | "<"；沒覆寫 ＝ ">="（舊存檔的「到 N 以上」不變）。
+    -- 只影響層數發光；層數換色維持「到 N 以上」
+    stackGlowOp      = ">=",
     -- 增益長條的層數當填充（{ max = N }）與層數刻度（{ at = {…}|"all", max = N, color }）；false ＝ 關
     stackBar         = false,
     stackTicks       = false,
@@ -1260,7 +1263,7 @@ DB.OVERRIDE_GROUP = {
     activeGlow = "glow", activeGlowColor = "glow", activeGlowType = "glow", activeGlowOutOfCombat = "glow",
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
-    stackBar = "stack", stackTicks = "stack",
+    stackGlowOp = "stack", stackBar = "stack", stackTicks = "stack",
     hideCooldownText = "text", hideStackText = "text",
     colorDuration = "icon", durationColor = "icon", durationLowColor = "icon", durationSwipeColor = "icon",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：

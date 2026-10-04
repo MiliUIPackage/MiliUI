@@ -562,7 +562,9 @@ do
     eq("SPELL_CONST stackTicks ＝ false", DB.SPELL_CONST.stackTicks, false)
     eq("沒覆寫 ⇒ 層數當填充關", SS2("buffbars", 5555, "stackBar"), false)
     eq("沒覆寫 ⇒ 層數刻度關", SS2("buffbars", 5555, "stackTicks"), false)
-    for _, f in ipairs({ "stackGlow", "stackGlowType", "stackGlowColor", "stackColors", "stackBar", "stackTicks" }) do
+    eq("SPELL_CONST stackGlowOp ＝ >=", DB.SPELL_CONST.stackGlowOp, ">=")
+    eq("沒覆寫 ⇒ 比較子 >=（舊存檔不變）", SS2("buffs", 5555, "stackGlowOp"), ">=")
+    for _, f in ipairs({ "stackGlow", "stackGlowType", "stackGlowColor", "stackGlowOp", "stackColors", "stackBar", "stackTicks" }) do
         eq("覆寫分組 " .. f .. " ＝ stack", DB.OVERRIDE_GROUP[f], "stack")
     end
     DB.SetOverride(5555, "stackGlow", 4)

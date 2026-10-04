@@ -693,7 +693,8 @@ L["Couldn't read your specializations."] = "读不到你的专精。"
 
 -- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
 L["Stack glow"] = "层数发光"
-L["Glows once the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "增益层数达到这个数字时发光。开着时不使用「增益期间发光」。"
+L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "增益层数符合这个比较时发光；「≤」「<」在增益不在时不亮。开着时不使用「增益期间发光」。"
+L["Fewer than 1 stack is never true."] = "小于 1 层永远不成立。"
 L["Stack colors (%d)"] = "层数换色（%d）"
 L["Stack colors"] = "层数换色"
 L["Stacks ≥"] = "层数 ≥"

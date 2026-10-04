@@ -693,7 +693,8 @@ L["Couldn't read your specializations."] = "Impossibile leggere le tue specializ
 
 -- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
 L["Stack glow"] = "Bagliore per accumuli"
-L["Glows once the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "Si illumina quando il beneficio ha almeno questo numero di accumuli. Finché è attivo, \"Bagliore durante il potenziamento\" non viene usato."
+L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "Si illumina finché gli accumuli del beneficio soddisfano il confronto. \"≤\" e \"<\" restano spenti se il beneficio manca. Finché è attivo, \"Bagliore durante il potenziamento\" non viene usato."
+L["Fewer than 1 stack is never true."] = "Meno di 1 accumulo non è mai vero."
 L["Stack colors (%d)"] = "Colori per accumuli (%d)"
 L["Stack colors"] = "Colori per accumuli"
 L["Stacks ≥"] = "Accumuli ≥"
