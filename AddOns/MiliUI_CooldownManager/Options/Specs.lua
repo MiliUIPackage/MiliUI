@@ -934,14 +934,16 @@ function Specs.Layout(key)
         if bar.source == "buffbars" or bar.source == "custom" then
             add(FixedSlotsRow(key, true))
             -- 空位的樣子：預設隱藏（位置照佔、什麼都不畫，同 EllesmereUI 圖示的 Keep Buffs in Same Place）；
-            -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條。固定格位沒開（也沒被強制）時停用
+            -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條。固定格位沒開（也沒被強制）、
+            -- 也沒有任何一招逐法術勾「不在時顯示占位」（F7，同樣照這個樣子畫）時停用
             add(BS("dropdown", "layout.emptyStyle", L["Empty slots"], { items = EMPTY_STYLE_ITEMS, level = "layout",
                 get = function() local b = ns.DB.BarTable(key); local l = b and b.layout
                     return type(l) == "table" and l.emptyStyle == "bar" and "bar" or "hide" end,
                 disabled = function()
                     local b = ns.DB.BarTable(key)
                     local on = b and type(b.layout) == "table" and b.layout.fixedSlots
-                    return not (on or ns.Catalog.BarHasAuraSlot(key) or ns.DB.BarClickable(key))
+                    if on or ns.Catalog.BarHasAuraSlot(key) or ns.DB.BarClickable(key) then return false end
+                    return ns.DB.CountOverrides(ns.Catalog.Bar(key), "slot") == 0
                 end }))
         end
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))

@@ -18,6 +18,8 @@
 --     冷卻狀態不套長條；判準跟 Decorate 的 isBar 同一個：這一條的 kind ＝ bars）。
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
 --     多一列「不在時顯示占位」；沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
+--   * 暴雪的增益（增益圖示／增益長條）也有同一列「不在時顯示占位」（逐法術覆寫 placeholder，F7）：下一列灰字；
+--     條的固定格位開著（或被強制）時停用、灰字換成原因；右鍵清。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
 --   * 專精層的多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
 --     DB.CopyCustomEntry（連同這一筆的覆寫）。職業層／戰隊層的不給（本來就每個專精都看得到）。
@@ -261,6 +263,15 @@ local function BlizzAura(kind, class) return class == "aura" and kind == nil end
 -- 換色只有長條（條的種類＝ bars，跟 Decorate 的 isBar 同一個判準）
 local function BlizzAuraBar(kind, class)
     return BlizzAura(kind, class) and cur ~= nil and ns.Setting(cur.key, "kind") == "bars"
+end
+
+-- 面板開在的這一條：固定格位開著或被強制（光環格、可點擊；跟 Core/Bars.lua 的 fixed 同一個判準）。
+-- 成立時暴雪增益的「不在時顯示占位」不起作用（每一格本來就保留）
+local function BarFixedSlots()
+    if not cur then return false end
+    local b = ns.DB.BarTable(cur.key)
+    local on = b and type(b.layout) == "table" and b.layout.fixedSlots
+    return (on or ns.Catalog.BarHasAuraSlot(cur.key) or ns.DB.BarClickable(cur.key)) and true or false
 end
 
 -- 發光樣式的選項（層數發光用；每個下拉各拿一份）
@@ -1261,11 +1272,22 @@ local function Build()
     end
     AddRow(nsEntry)
 
-    -- 光環格：不在時顯示占位（存在那一筆自訂項目上，不是覆寫）
+    -- 不在時顯示占位：
+    --   光環格 → 存在那一筆自訂項目上（e.placeholder），不是覆寫
+    --   暴雪的增益圖示／增益長條 → 逐法術覆寫 overrides[id].placeholder（F7，Core/Bars.lua 的 Relayout）；
+    --     條的固定格位開著（或被強制）時每一格本來就保留 ⇒ 停用＋灰字寫原因；右鍵標籤清
     buildTab = "general"
-    local pr, ph = NewRow(L["Placeholder when missing"], IsAura)
+    local pr = NewRow(L["Placeholder when missing"], function(kind, class)
+        return IsAura(kind) or BlizzAura(kind, class)
+    end)
     local pcb = W.CreateCheckButton(pr, nil, function(on)
         if not cur then return end
+        if frame.kind == nil then
+            if BarFixedSlots() then return end
+            ns.DB.SetOverride(cur.id, "placeholder", on and true or nil)
+            Changed()
+            return
+        end
         local e = ns.DB.CustomEntry(cur.id)
         if not e then return end
         e.placeholder = on and true or false
@@ -1274,6 +1296,38 @@ local function Build()
     end)
     pcb:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
     frame.placeholderCB = pcb
+    -- 暴雪的增益才有右鍵清（光環格的值不是覆寫，沒有「跟隨」可回）：寫法同 RightClickClears，多一道種類閘
+    do
+        local hit = CreateFrame("Frame", nil, pr)
+        hit:SetPoint("TOPLEFT", pr, "TOPLEFT", 0, 0)
+        hit:SetPoint("BOTTOMLEFT", pr, "BOTTOMLEFT", 0, 0)
+        hit:SetWidth(LABEL_W)
+        hit:EnableMouse(true)
+        hit:SetScript("OnMouseUp", function(_, button)
+            if button == "RightButton" and cur and frame.kind == nil then
+                ns.DB.SetOverride(cur.id, "placeholder", nil)
+                Changed()
+            end
+        end)
+    end
+    -- 下一列灰字（暴雪的增益）：平常是說明，固定格位開著時換成停用的原因（Refresh 換字、在 Layout 之前重量）
+    local phRow = CreateFrame("Frame", nil, frame)
+    local phTip = Note(phRow)
+    phTip:SetPoint("TOPLEFT", phRow, "TOPLEFT", CTRL_X, -2)
+    phTip:SetWidth(ROW_W - CTRL_X)
+    phTip:SetWordWrap(true)
+    phTip:SetText(L["While this buff isn't up, it keeps its place, so the others don't shift."])
+    local phH = 2 + math.max(14, phTip:GetStringHeight() or 0) + 6
+    phRow:SetSize(ROW_W, phH)
+    local phEntry = { frame = phRow, h = phH, when = BlizzAura }
+    phEntry.remeasure = function()
+        local sh2 = phTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        phRow:SetHeight(nh)
+        phEntry.h = nh
+    end
+    AddRow(phEntry)
+    frame.placeholderTip, frame.placeholderTipEntry = phTip, phEntry
 
     -- 強調說明（黃字）：「先倒增益時間」的適用範圍，各在自己的分頁、底部說明的正上方
     EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
@@ -1472,6 +1526,14 @@ function Pop.Refresh()
         and L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."]
         or L["Settings here apply to this spell in your current specialization. Right-click a row to follow the bar again."])
     frame.tipEntry.remeasure()
+    -- 暴雪增益的「不在時顯示占位」：灰字照固定格位換（換字之後重量，Layout 才排得對）
+    local phFixed = kind == nil and class == "aura" and BarFixedSlots()
+    if kind == nil and class == "aura" then
+        frame.placeholderTip:SetText(phFixed
+            and L["Every slot on this bar is already kept: “Keep empty slots for missing buffs” is on (or forced on)."]
+            or L["While this buff isn't up, it keeps its place, so the others don't shift."])
+        frame.placeholderTipEntry.remeasure()
+    end
     Layout(kind, class)
     -- 「跟隨『條名』」：面板開在哪一條就寫哪一條的名字（下面各下拉 SetSelectedValue 時會重寫顯示文字）
     for _, f in ipairs(followItems) do
@@ -1667,6 +1729,13 @@ function Pop.Refresh()
     if kind == "aura" then
         local e = ns.DB.CustomEntry(id)
         frame.placeholderCB:SetChecked(e and e.placeholder and true or false)
+        frame.placeholderCB:SetEnabled(true)
+        frame.placeholderCB:SetAlpha(1)
+    elseif kind == nil and class == "aura" then
+        -- 固定格位開著：勾選框顯示「有保留」（勾著）並停用；存的覆寫不動，條件解除就回來
+        frame.placeholderCB:SetChecked(phFixed or Override("placeholder") == true)
+        frame.placeholderCB:SetEnabled(not phFixed)
+        frame.placeholderCB:SetAlpha(phFixed and 0.4 or 1)
     end
     frame.restoreBtn:SetEnabled(ns.DB.HasOverrides(id))
 end

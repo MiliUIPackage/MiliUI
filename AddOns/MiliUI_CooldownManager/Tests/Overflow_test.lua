@@ -4,7 +4,7 @@
 --   lua  AddOns/MiliUI_CooldownManager/Tests/Overflow_test.lua
 --
 -- 覆蓋：成立條件（沒設上限／沒選目標／目標不存在／目標是長條類／目標自己有上限／指到自己／互指成環／
--- 自己是長條類）、截斷位置、接收條的順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（occ）、
+-- 自己是長條類）、截斷位置、接收條的順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（occ，含逐法術占位）、
 -- Receivers、Pairs、MaxOf 的清洗。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -34,6 +34,12 @@ do
     chunk("MiliUI_CooldownManager", ns)
 end
 local O = ns.Overflow
+do
+    -- 佔位判斷跟 Bars 放格共用的判準（Layout.AuraSlot）
+    ns.P = { Scale = function(v) return v end }
+    local chunk = assert(loadfile(here .. "/../Core/Layout.lua"))
+    chunk("MiliUI_CooldownManager", ns)
+end
 
 local function Icons(max, to) return { kind = "icons", layout = { maxIcons = max, overflowTo = to } } end
 local function Bars(max, to) return { kind = "bars", layout = { maxIcons = max, overflowTo = to } } end
@@ -163,6 +169,16 @@ eqList("occ 全真 ＝ 照順序截", res.out.buffs, { 31, 32 })
 -- occ 回 nil 當佔位（只有明確 false 才不算）
 res = O.Resolve(KEYS, baseOf, cfgOf, function() return nil end)
 eqList("occ 回 nil 當佔位", res.out.buffs, { 31, 32 })
+
+-- 逐法術「不在時顯示占位」（F7）：不在的增益勾了占位 ⇒ 佔一格、算顆數（Bars.Occupancy 照 Layout.AuraSlot 判）
+do
+    local ph = { [31] = true }        -- 31 不在但勾了占位；33 不在也沒勾
+    res = O.Resolve(KEYS, baseOf, cfgOf, function(_, id)
+        return ns.Layout.AuraSlot(present[id], false, ph[id]) ~= nil
+    end)
+    eqList("逐法術占位：占位格算顆數", res.out.buffs, { 31, 32, 33 })
+    eqList("逐法術占位：後面的溢出", res.out.g1, { "c:1", 34, 35 })
+end
 
 -- 接收條清單上已經有的 id 不重複放
 Reset()
