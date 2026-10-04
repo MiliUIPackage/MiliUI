@@ -5,7 +5,8 @@
 --
 -- 覆蓋：綁定字串縮寫（修飾鍵、滑鼠鍵、數字鍵盤、特殊鍵、減號鍵）、動作條格 → 指令名
 -- （主動作條翻頁／變形、左下右下右側、動作條 6–8、不收的頁）、同一個法術多格時的優先序、
--- 覆寫法術優先、物品掃格子、快取與清快取。
+-- 覆寫法術優先、物品掃格子、快取與清快取；按鍵鏡射（綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、
+-- 按下／放開的狀態機、2 秒保險、載具與寵物對戰、掛勾只掛一次）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Keybinds.lua"
@@ -40,7 +41,16 @@ env.GetActionInfo = function(slot)
     local a = actions[slot]
     if a then return a[1], a[2] end
 end
-env.C_Timer = { After = function() end }
+local timers = {}
+env.C_Timer = { After = function(sec, fn) timers[#timers + 1] = { sec = sec, fn = fn } end }
+local hooks = {}
+env.hooksecurefunc = function(name, fn) hooks[name] = (hooks[name] or 0) + 1 end
+local vehicle, petBattle = false, false
+env.HasVehicleActionBar = function() return vehicle end
+env.HasOverrideActionBar = function() return false end
+env.C_PetBattles = { IsInBattle = function() return petBattle end }
+env.ActionButtonDown, env.ActionButtonUp = function() end, function() end
+env.MultiActionButtonDown, env.MultiActionButtonUp = function() end, function() end
 
 local ns = { IsSecret = function() return false end, Events = { Register = function() end } }
 local chunk, err
@@ -161,6 +171,226 @@ do
     check("NoKeybind：核心技能條照舊要畫", not K.NoKeybind("essential"))
     ns.Setting, ns.DB = savedSetting, savedDB
 end
+
+
+------------------------------------------------------------
+-- 按鍵鏡射（F2）
+------------------------------------------------------------
+-- 1) 綁定指令參數 → 格號：全表。框名 ↔ 指令前綴照 Bindings_Standard.xml（MULTIACTIONBAR<k>BUTTON<n> 叫
+--    MultiActionButtonDown("<框名>", n)），框名 ↔ actionpage 照 MultiActionBars.xml
+local BAR_CMD = {
+    MultiBarBottomLeft = { 6, "MULTIACTIONBAR1BUTTON" }, MultiBarBottomRight = { 5, "MULTIACTIONBAR2BUTTON" },
+    MultiBarRight = { 3, "MULTIACTIONBAR3BUTTON" }, MultiBarLeft = { 4, "MULTIACTIONBAR4BUTTON" },
+    MultiBar5 = { 13, "MULTIACTIONBAR5BUTTON" }, MultiBar6 = { 14, "MULTIACTIONBAR6BUTTON" },
+    MultiBar7 = { 15, "MULTIACTIONBAR7BUTTON" },
+}
+local nBars = 0
+for name in pairs(K.PRESS_BAR_PAGE) do
+    nBars = nBars + 1
+    check("PRESS_BAR_PAGE 只有已知的框名 " .. name, BAR_CMD[name] ~= nil)
+end
+eq("PRESS_BAR_PAGE 七條", nBars, 7)
+for name, def in pairs(BAR_CMD) do
+    local page, prefix = def[1], def[2]
+    eq("PRESS_BAR_PAGE " .. name, K.PRESS_BAR_PAGE[name], page)
+    eq("MULTI 同一張對照 " .. name, K.MULTI[page], prefix)
+    for id = 1, 12 do
+        local slot = K.SlotFromButton(name, id, 1)
+        eq(("SlotFromButton %s %d"):format(name, id), slot, (page - 1) * 12 + id)
+        -- 反過來：那一格的綁定指令就是這顆鍵
+        eq(("格號回指令 %s %d"):format(name, id), (K.CommandForSlot(slot, 1)), prefix .. id)
+    end
+    eq("主動作條翻頁不影響其他條 " .. name, K.SlotFromButton(name, 3, 7), (page - 1) * 12 + 3)
+end
+for _, pg in ipairs({ 1, 2, 7, 8, 9, 10 }) do
+    for id = 1, 12 do
+        eq(("SlotFromButton 主動作條 第%d頁 %d"):format(pg, id), K.SlotFromButton(nil, id, pg), (pg - 1) * 12 + id)
+    end
+end
+eq("SlotFromButton 主動作條 mainPage nil ＝ 第 1 頁", K.SlotFromButton(nil, 5, nil), 5)
+eq("SlotFromButton 不認得的框名", K.SlotFromButton("StanceBar", 1, 1), nil)
+eq("SlotFromButton 寵物條", K.SlotFromButton("PetActionBar", 1, 1), nil)
+eq("SlotFromButton id 0", K.SlotFromButton(nil, 0, 1), nil)
+eq("SlotFromButton id 13", K.SlotFromButton("MultiBarLeft", 13, 1), nil)
+eq("SlotFromButton id 小數", K.SlotFromButton(nil, 1.5, 1), nil)
+eq("SlotFromButton id nil", K.SlotFromButton(nil, nil, 1), nil)
+eq("SlotFromButton id 字串數字", K.SlotFromButton("MultiBarRight", "2", 1), 26)
+
+-- 2) 登記／撤銷：K.Apply 放格時登記（跟按鍵文字的開關無關）
+local function FakeTex()
+    local t = { shown = false, shows = 0, hides = 0 }
+    function t:SetTexture() end
+    function t:SetAllPoints() end
+    function t:SetBlendMode(m) self.blend = m end
+    function t:SetVertexColor(r, g, b, a) self.a = a end
+    function t:Show() self.shown = true; self.shows = self.shows + 1 end
+    function t:Hide() self.shown = false; self.hides = self.hides + 1 end
+    function t:IsShown() return self.shown end
+    return t
+end
+local texMade = 0
+local function FakeOverlay()
+    return { CreateTexture = function() texMade = texMade + 1; return FakeTex() end,
+             CreateFontString = function() return { SetText = function() end, Hide = function() end } end }
+end
+local press = { flash = true, alpha = 0.5, kind = "icons", keybind = false, source = "essential" }
+local savedSetting, savedDB = ns.Setting, ns.DB
+ns.Setting = function(_, path)
+    if path == "icon.pressFlash" then return press.flash end
+    if path == "icon.pressFlashAlpha" then return press.alpha end
+    if path == "kind" then return press.kind end
+    if path == "keybind.enabled" then return press.keybind end
+end
+ns.DB = { BarTable = function() return { kind = press.kind, source = press.source } end }
+local function count(t) local n = 0 for _ in pairs(t or {}) do n = n + 1 end return n end
+
+spellSlots[700] = { 5, 63 }               -- 主動作條第 5 格＋左下第 3 格
+spellSlots[701] = { 63 }                  -- 覆寫法術也在左下第 3 格（去重）
+spellSlots[710] = { 5 }                   -- 另一招也放在第 5 格（同一格兩個格子都登記）
+local recA = { overlay = FakeOverlay(), custom = true, kind = "spell", spellID = 700, overrideID = 701 }
+local recB = { overlay = FakeOverlay(), custom = true, kind = "spell", spellID = 710 }
+K.Apply({}, recA, "essential")
+K.Apply({}, recB, "essential")
+check("掛勾：第一次有條要用才掛、四支各一次", hooks.ActionButtonDown == 1 and hooks.ActionButtonUp == 1
+    and hooks.MultiActionButtonDown == 1 and hooks.MultiActionButtonUp == 1)
+eq("登記：第 5 格兩顆", count(K.slotOwners[5]), 2)
+eq("登記：第 63 格一顆（覆寫與基礎去重）", count(K.slotOwners[63]), 1)
+check("按鍵文字關著也登記（沒建字串）", recA.keyFS == nil and count(K.slotOwners[63]) == 1)
+eq("還沒按過不建貼圖", texMade, 0)
+K.Apply({}, recA, "essential")
+eq("重複 Apply 不重複登記", count(K.slotOwners[5]), 2)
+K.Apply({}, recB, "essential")
+check("掛勾不重掛", hooks.ActionButtonDown == 1)
+
+-- 3) 按下／放開
+page, bonus = 1, 0
+K.OnPress(nil, 5, true)
+check("按下：兩顆都亮", recA.pressTex and recA.pressTex.shown and recB.pressTex and recB.pressTex.shown)
+eq("貼圖 ADD", recA.pressTex.blend, "ADD")
+eq("透明度照條層", recA.pressTex.a, 0.5)
+eq("保險計時 2 秒", timers[#timers].sec, 2)
+K.OnPress(nil, 5, false)
+check("放開：都收", not recA.pressTex.shown and not recB.pressTex.shown)
+K.OnPress("MultiBarBottomLeft", 3, true)
+check("左下第 3 格：只有 A 亮", recA.pressTex.shown and not recB.pressTex.shown)
+K.OnPress("MultiBarBottomLeft", 3, false)
+check("左下放開", not recA.pressTex.shown)
+-- 同一顆 A 兩格同時按住：放開一格還亮著，兩格都放開才收
+K.OnPress(nil, 5, true)
+K.OnPress("MultiBarBottomLeft", 3, true)
+K.OnPress(nil, 5, false)
+check("兩格按住放開一格：A 還亮、B 收", recA.pressTex.shown and not recB.pressTex.shown)
+K.OnPress("MultiBarBottomLeft", 3, false)
+check("兩格都放開：A 收", not recA.pressTex.shown)
+-- 翻頁：主動作條第 2 頁的第 5 鍵是第 17 格，不是這兩顆
+page = 2
+K.OnPress(nil, 5, true)
+check("翻到第 2 頁：第 5 鍵不亮第 5 格", not recA.pressTex.shown and not recB.pressTex.shown)
+K.OnPress(nil, 5, false)
+page = 1
+-- 按下時在第 1 頁、放開前變形（頁變了）：放開照樣收按下時亮的那幾顆
+K.OnPress(nil, 5, true)
+bonus = 1
+K.OnPress(nil, 5, false)
+check("按下後變形再放開：照樣收", not recA.pressTex.shown and not recB.pressTex.shown)
+bonus = 0
+-- 漏了 Up 又按一次：先收上一次（不疊計數）
+K.OnPress(nil, 5, true)
+K.OnPress(nil, 5, true)
+K.OnPress(nil, 5, false)
+check("漏 Up 再按：放開一次就收", not recA.pressTex.shown and (recA.pressN or 0) == 0)
+
+-- 4) 2 秒保險：放開事件漏掉
+timers = {}
+K.OnPress(nil, 5, true)
+check("保險前亮著", recA.pressTex.shown)
+eq("排了一個保險計時", #timers, 1)
+timers[1].fn()
+check("2 秒保險：收掉", not recA.pressTex.shown and not recB.pressTex.shown)
+eq("保險收完沒有按住的鍵", count(K.held), 0)
+-- 保險計時到之前已經放開又重按：舊的保險不收新的那次
+timers = {}
+K.OnPress(nil, 5, true)
+K.OnPress(nil, 5, false)
+K.OnPress(nil, 5, true)
+timers[1].fn()
+check("舊保險不收新的按下", recA.pressTex.shown)
+timers[2].fn()
+check("新保險照收", not recA.pressTex.shown)
+
+-- 5) 秘密值、載具、寵物對戰
+local savedSecret = ns.IsSecret
+ns.IsSecret = function(v) return v == "SECRET" end
+K.OnPress(nil, "SECRET", true)
+check("秘密參數：忽略", not recA.pressTex.shown)
+K.OnPress("SECRET", 3, true)
+check("秘密框名：忽略", not recA.pressTex.shown)
+ns.IsSecret = savedSecret
+vehicle = true
+K.OnPress(nil, 5, true)
+check("載具：主動作條的鍵不閃", not recA.pressTex.shown)
+K.OnPress("MultiBarBottomLeft", 3, true)
+check("載具：側邊條照閃", recA.pressTex.shown)
+K.OnPress("MultiBarBottomLeft", 3, false)
+vehicle = false
+petBattle = true
+K.OnPress("MultiBarBottomLeft", 3, true)
+check("寵物對戰：不閃", not recA.pressTex.shown)
+petBattle = false
+
+-- 6) 停放、關掉、以增益取代、長條類／增益圖示列
+K.OnPress(nil, 5, true)
+K.OnParked(recA)
+check("停放：收掉閃光", not recA.pressTex.shown)
+eq("停放：撤銷登記", count(K.slotOwners[5]), 1)
+eq("停放：左下那格整格清掉", K.slotOwners[63], nil)
+K.OnPress(nil, 5, false)
+eq("停放後放開不出錯、計數不為負", recA.pressN, 0)
+K.Apply({}, recA, "essential")
+eq("重新放格：再登記", count(K.slotOwners[5]), 2)
+press.alpha = 0.2
+K.Apply({}, recA, "essential")
+eq("透明度改了：已建的貼圖跟著換", recA.pressTex.a, 0.2)
+press.alpha = 0.5
+recA.replacing = 999
+K.Apply({}, recA, "essential")
+eq("以增益取代中：撤銷", count(K.slotOwners[5]), 1)
+recA.replacing = nil
+press.source = "buffs"
+K.Apply({}, recA, "tracked")
+eq("增益圖示列：不登記", count(K.slotOwners[5]), 1)
+press.source, press.kind = "custom", "bars"
+K.Apply({}, recA, "g1")
+eq("長條類：不登記", count(K.slotOwners[5]), 1)
+press.source, press.kind = "essential", "icons"
+press.flash = false
+K.Apply({}, recB, "essential")
+eq("關掉：撤銷", K.slotOwners[5], nil)
+check("全部撤銷後掛勾第一行就走", next(K.slotOwners) == nil)
+K.OnPress(nil, 5, true)
+check("沒有登記：按了不亮", not recB.pressTex.shown)
+press.flash = true
+
+-- 7) RefreshAll 整張重建（動作條變了：第 5 格的法術搬到第 6 格）
+K.Apply({}, recA, "essential")
+K.Apply({}, recB, "essential")
+local placed = { recA, recB }
+ns.profile = { bars = { essential = {} } }
+ns.Bars = { ForEachClaimed = function(_, fn) for _, r in ipairs(placed) do fn({}, r) end end }
+spellSlots[700] = { 6 }
+spellSlots[710] = { 6 }
+local oldTable = K.slotOwners
+K.RefreshAll()
+check("RefreshAll：換一張新表", K.slotOwners ~= oldTable)
+eq("RefreshAll：舊格清掉", K.slotOwners[5], nil)
+eq("RefreshAll：新格兩顆", count(K.slotOwners[6]), 2)
+-- Invalidate：有登記時排一次 RefreshAll
+timers = {}
+K.Invalidate()
+eq("Invalidate：排一次重建", #timers, 1)
+eq("Invalidate：0.2 秒合併", timers[1].sec, 0.2)
+ns.Bars, ns.profile = nil, nil
+ns.Setting, ns.DB = savedSetting, savedDB
 
 print(("Keybinds_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

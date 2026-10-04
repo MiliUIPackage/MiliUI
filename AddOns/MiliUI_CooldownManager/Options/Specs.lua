@@ -461,6 +461,9 @@ function Specs.Themed(mode, key)
     -- 長條類的條：倒數與充能的文字樣式用不到（長條的秒數字型／字級在「長條」節；秒數是暴雪每幀寫的，
     -- 小數門檻與低秒變色都換不了），只留層數
     local function NB(s) if barsKind then return nil end return s end
+    -- 按鍵鏡射：長條類與增益圖示列不做（Core/Keybinds.lua 的 NoKeybind 同時涵蓋兩者）
+    local noPress = bar and key and ns.Keybinds.NoKeybind(key) or false
+    local function NK(s) if noPress then return nil end return s end
     local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
     -- 像素發光的線條數／粗細：粗細只有像素樣式吃；線條數像素與自動施法都吃（玩家回報邊框太粗、以前習慣設 1）
     local function NotPixel(path) return function(info) return (ReadThemed(info, path) or "pixel") ~= "pixel" end end
@@ -503,7 +506,13 @@ function Specs.Themed(mode, key)
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
         TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),
-        Note(L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."], "icon"))
+        Note(L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."], "icon"),
+        -- 按鍵鏡射（Core/Keybinds.lua）：長條類與增益圖示列不做（同按鍵文字的 NoKeybind），條頁不出現這三列
+        NK(TS("icon", "toggle", "icon.pressFlash", L["Flash on key press"])),
+        NK(Note(L["Flashes when you press the key bound to this spell's action bar slot. Only key bindings count; clicking the action bar doesn't."], "icon")),
+        NK(TS("icon", "slider", "icon.pressFlashAlpha", L["Flash opacity"],
+            { min = 10, max = 80, step = 5, scale = 100,
+              disabled = function(info) return not ReadThemed(info, "icon.pressFlash") end })))
 
     -- 文字
     add({ type = "header", label = L["Text"] })

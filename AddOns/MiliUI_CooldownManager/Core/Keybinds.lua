@@ -7,6 +7,8 @@
 --   ns.Keybinds.TextForSpell(spellID [, override])／TextForItem(itemID)   查快取
 --   ns.Keybinds.Apply(owner, rec, barKey)   畫在 rec.overlay 上（排版時、綁定變了時叫）
 --   ns.Keybinds.RefreshAll()                綁定／動作條變了：清快取、全部重畫
+--   ns.Keybinds.SlotFromButton(bar, id, mainPage)  按鍵鏡射：綁定指令的參數 → 動作條格號（純函式）
+--   ns.Keybinds.OnPress(bar, id, down)      按鍵鏡射：綁定指令的後掛勾叫這支（見檔尾「按鍵鏡射」）
 --
 -- 格 → 指令的對照照暴雪動作條的定義（Blizzard_ActionBar：MultiActionBars.xml 的 actionpage
 -- 與各條按鈕模板的 buttonType、ActionButton.lua 的 UpdateHotkeys = buttonType..id）：
@@ -117,6 +119,7 @@ local function MainPage()
     end
     return page
 end
+K.MainPage = MainPage
 
 -- 一串格號 → 第一個有綁鍵的縮寫
 local function FromSlots(slots)
@@ -169,25 +172,64 @@ end
 
 -- 物品沒有「找格子」的 API：掃一遍動作條（只在綁定／動作條變了之後掃一次，結果進快取）
 local MAX_SLOT = 180
+local slotCache = {}            -- "s<id>:<override>"／"i<id>" → 格號清單（按鍵鏡射用；跟 cache 同時清）
+
+local function ItemSlots(itemID)
+    local key = "i" .. itemID
+    local slots = slotCache[key]
+    if slots then return slots end
+    slots = {}
+    local info = _G.GetActionInfo
+    if info then
+        for slot = 1, MAX_SLOT do
+            local ok, kind, id = pcall(info, slot)
+            if ok and not ns.IsSecret(kind) and not ns.IsSecret(id) and kind == "item" and id == itemID then
+                slots[#slots + 1] = slot
+            end
+        end
+    end
+    slotCache[key] = slots
+    return slots
+end
+
 function K.TextForItem(itemID)
     if type(itemID) ~= "number" then return nil end
     local key = "i" .. itemID
     local v = cache[key]
     if v == nil then
-        local slots = {}
-        local info = _G.GetActionInfo
-        if info then
-            for slot = 1, MAX_SLOT do
-                local ok, kind, id = pcall(info, slot)
-                if ok and not ns.IsSecret(kind) and not ns.IsSecret(id) and kind == "item" and id == itemID then
-                    slots[#slots + 1] = slot
-                end
-            end
-        end
-        v = FromSlots(slots) or NONE
+        v = FromSlots(ItemSlots(itemID)) or NONE
         cache[key] = v
     end
     return v or nil
+end
+
+-- 按鍵鏡射：這個法術放在哪些格（覆寫法術＋基礎法術的聯集，只留明文格號）。
+-- 跟按鍵文字不同，**每一格都要**（不只有綁鍵、排第一的那格）：按哪一格的鍵都要閃
+function K.SlotsForSpell(spellID, overrideID)
+    if type(spellID) ~= "number" then return nil end
+    local key = "s" .. spellID .. ":" .. tostring(overrideID)
+    local slots = slotCache[key]
+    if slots then return slots end
+    slots = {}
+    local seen = {}
+    local function add(list)
+        if type(list) ~= "table" then return end
+        for _, slot in ipairs(list) do
+            if not ns.IsSecret(slot) and type(slot) == "number" and not seen[slot] then
+                seen[slot] = true
+                slots[#slots + 1] = slot
+            end
+        end
+    end
+    if overrideID and overrideID ~= spellID then add(SpellSlots(overrideID)) end
+    add(SpellSlots(spellID))
+    slotCache[key] = slots
+    return slots
+end
+
+function K.SlotsForItem(itemID)
+    if type(itemID) ~= "number" then return nil end
+    return ItemSlots(itemID)
 end
 
 ------------------------------------------------------------
@@ -205,6 +247,19 @@ local function TextFor(rec)
     return K.TextForSpell(info.spellID, info.overrideSpellID)
 end
 
+-- 同一套判斷，回格號清單（按鍵鏡射）
+local function SlotsFor(rec)
+    if rec.custom then
+        if rec.kind == "item" or rec.kind == "slot" then return K.SlotsForItem(rec.itemID) end
+        if rec.kind == "spell" then return K.SlotsForSpell(rec.spellID, rec.overrideID) end
+        return nil
+    end
+    local info = ns.Catalog and ns.Catalog.Info(rec.cooldownID)
+    if not info or not info.spellID then return nil end
+    return K.SlotsForSpell(info.spellID, info.overrideSpellID)
+end
+K.SlotsFor = SlotsFor
+
 -- 不畫按鍵文字的條（使用者指定，不設選項）：
 --   長條（增益長條與長條型自訂群組）：那是圖示上的東西，條上沒有位置給它（2026-10-01）
 --   增益圖示列：監控的是光環不是要按的技能，查到的鍵是觸發它的那個技能的，只會誤導（2026-10-02）
@@ -216,6 +271,8 @@ K.NoKeybind = NoKeybind
 
 function K.Apply(owner, rec, barKey)
     if not (rec and rec.overlay) then return end
+    -- 按鍵鏡射：格號登記跟按鍵文字的開關無關，排在最前面（下面有早退）
+    K.SyncPress(rec, barKey)
     -- 以增益取代（Core/Bars.lua）：頂著技能那一格的增益不畫按鍵（增益沒有按鍵；條是核心技能也一樣）
     local on = barKey and ns.Setting(barKey, "keybind.enabled") and not NoKeybind(barKey) and rec.replacing == nil
     local fs = rec.keyFS
@@ -254,10 +311,15 @@ end
 -- 裝備欄位的自訂項目換了物品：快取要重算（下一次 Apply 重查動作條）
 function K.Invalidate()
     cache = {}
+    slotCache = {}
+    -- 按鍵鏡射的格號表整張重建：不是每顆都會馬上重新 Apply，排一次 RefreshAll（0.2 秒合併）
+    if next(K.slotOwners) ~= nil then K.Later() end
 end
 
 function K.RefreshAll()
     cache = {}
+    slotCache = {}
+    K.slotOwners = {}            -- 整張重建：下面每顆重新 Apply 時重新登記
     local B = ns.Bars
     local p = ns.profile
     if B and B.ForEachClaimed and p and type(p.bars) == "table" then
@@ -282,6 +344,246 @@ function K.CacheSize()
     local n = 0
     for _ in pairs(cache) do n = n + 1 end
     return n
+end
+
+------------------------------------------------------------
+-- 按鍵鏡射：按下某格技能的綁定鍵時，那一格亮一層白（放開就收）
+--
+-- 訊號：綁定指令 ACTIONBUTTON<n>／MULTIACTIONBAR<k>BUTTON<n> 的本體就是叫這四支全域函式
+-- （Blizzard_FrameXML/Bindings_Standard.xml；函式在 Blizzard_ActionBar/Shared/ActionButton.lua 與
+-- MultiActionBars.lua）：
+--   ActionButtonDown(id)／ActionButtonUp(id)              主動作條（id 1–12，格號照目前那一頁）
+--   MultiActionButtonDown(bar, id)／MultiActionButtonUp(bar, id)  其餘六條（bar 是框名）
+-- 後掛勾（hooksecurefunc，原函式先跑完、我們只在自己的貼圖上 Show／Hide，不寫任何暴雪的東西）。
+-- 滑鼠點動作條不經過這四支 ⇒ 不閃（設定頁有寫）。
+-- **只在第一次有條要用時才掛**（掛了拆不掉）；之後沒有任何一格登記時，掛勾第一行就走。
+--
+-- 格號 → 格子：K.slotOwners[slot] = { [rec] = true }（弱鍵），K.Apply 每次放格時順手登記（SyncPress）；
+-- 綁定／動作條變了 RefreshAll 整張重建。保險：按下 2 秒後一定收（放開事件漏掉時不會卡亮）。
+------------------------------------------------------------
+-- 綁定指令裡的框名 → 那條的 actionpage（MultiActionBars.xml）；跟上面 MULTI（page → 指令前綴）是同一張對照：
+--   MULTIACTIONBAR1＝MultiBarBottomLeft（第 6 頁）、2＝BottomRight（5）、3＝Right（3）、4＝Left（4）、5／6／7＝MultiBar5／6／7（13／14／15）
+local PRESS_BAR_PAGE = {
+    MultiBarBottomLeft = 6, MultiBarBottomRight = 5, MultiBarRight = 3, MultiBarLeft = 4,
+    MultiBar5 = 13, MultiBar6 = 14, MultiBar7 = 15,
+}
+K.PRESS_BAR_PAGE = PRESS_BAR_PAGE
+
+-- barName nil ＝ 主動作條（ActionButtonDown）；mainPage 是主動作條目前那一頁（MainPage()，含變形頁）
+function K.SlotFromButton(barName, id, mainPage)
+    id = tonumber(id)
+    if not id or id < 1 or id > 12 or id % 1 ~= 0 then return nil end
+    if barName == nil then
+        local page = tonumber(mainPage) or 1
+        if page < 1 or page % 1 ~= 0 then return nil end
+        return (page - 1) * 12 + id
+    end
+    local page = PRESS_BAR_PAGE[barName]
+    if not page then return nil end
+    return (page - 1) * 12 + id
+end
+
+local WHITE = "Interface\\BUTTONS\\WHITE8X8"
+local PRESS_SAFETY = 2
+K.PRESS_SAFETY = PRESS_SAFETY
+K.slotOwners = {}
+local held = {}                 -- "main:3"／"MultiBarLeft:5" → { recs = {…} }：放開時收的是按下時亮的那幾格
+K.held = held
+K.pressHooked = false
+K.pressCount = 0                -- /mcdm debug：閃過幾次
+
+local function PlainArg(v)
+    if v == nil or (ns.IsSecret and ns.IsSecret(v)) then return nil end
+    local can = _G.canaccessvalue
+    if can and not can(v) then return nil end
+    return v
+end
+
+-- 閃光貼圖（設定頁預覽格與真實格共用）：holder 上存 pressTex，第一次用才建在 parent（overlay）上
+function K.PressTexture(holder, parent, alpha)
+    local t = holder.pressTex
+    if not t then
+        t = parent:CreateTexture(nil, "OVERLAY", nil, 1)     -- 邊框與按鍵文字是 7，閃光墊在它們底下
+        t:SetTexture(WHITE)
+        t:SetAllPoints(parent)
+        if t.SetBlendMode then t:SetBlendMode("ADD") end
+        t:Hide()
+        holder.pressTex = t
+        holder.pressTexA = nil
+    end
+    alpha = tonumber(alpha) or 0.35
+    if holder.pressTexA ~= alpha then
+        t:SetVertexColor(1, 1, 1, alpha)
+        holder.pressTexA = alpha
+    end
+    return t
+end
+
+-- 這條、這一格要不要鏡射：條層 icon.pressFlash（主題繼承），長條類／增益圖示列不做（同按鍵文字的 NoKeybind），
+-- 頂著技能格的增益（以增益取代）不做
+local function PressConfig(barKey)
+    local D = ns.Decorate
+    if D and D.Resolve then
+        local r = D.Resolve(barKey)
+        return r.pressFlash, r.pressAlpha, r.kind
+    end
+    return ns.Setting(barKey, "icon.pressFlash") and true or false,
+        tonumber((ns.Setting(barKey, "icon.pressFlashAlpha"))) or 0.35, (ns.Setting(barKey, "kind"))
+end
+
+local function Unregister(rec)
+    local slots = rec.pressSlots
+    if slots then
+        local owners = rec.pressOwners
+        if owners then
+            for _, slot in ipairs(slots) do
+                local t = owners[slot]
+                if t then
+                    t[rec] = nil
+                    if next(t) == nil then owners[slot] = nil end
+                end
+            end
+        end
+    end
+    rec.pressSlots, rec.pressOwners = nil, nil
+end
+
+local WEAK = { __mode = "k" }
+local function Register(rec, slots)
+    local owners = K.slotOwners
+    if rec.pressSlots == slots and rec.pressOwners == owners then return end
+    Unregister(rec)
+    if type(slots) ~= "table" or #slots == 0 then return end
+    for _, slot in ipairs(slots) do
+        local t = owners[slot]
+        if not t then
+            t = setmetatable({}, WEAK)
+            owners[slot] = t
+        end
+        t[rec] = true
+    end
+    rec.pressSlots, rec.pressOwners = slots, owners
+end
+
+local EnsureHooks
+
+-- K.Apply 叫：登記／撤銷這格的格號、透明度跟著條層設定
+function K.SyncPress(rec, barKey)
+    local on, alpha, kind = false, 0.35, nil
+    if barKey then on, alpha, kind = PressConfig(barKey) end
+    on = on and kind ~= "bars" and not NoKeybind(barKey) and rec.replacing == nil and not rec.parked
+    if not on then
+        Unregister(rec)
+        if rec.pressTex and rec.pressTex:IsShown() then rec.pressTex:Hide() end
+        rec.pressN = 0
+        return
+    end
+    EnsureHooks()
+    rec.pressAlpha = alpha
+    if rec.pressTex then K.PressTexture(rec, rec.overlay, alpha) end
+    Register(rec, SlotsFor(rec))
+end
+
+local function ShowPress(rec)
+    if rec.parked or not rec.overlay then return end
+    rec.pressN = (rec.pressN or 0) + 1
+    K.PressTexture(rec, rec.overlay, rec.pressAlpha):Show()
+end
+
+local function HidePress(rec)
+    local n = (rec.pressN or 0) - 1
+    if n < 0 then n = 0 end
+    rec.pressN = n
+    if n == 0 and rec.pressTex then rec.pressTex:Hide() end
+end
+
+local function Release(bkey)
+    local entry = held[bkey]
+    if not entry then return end
+    held[bkey] = nil
+    for _, rec in ipairs(entry.recs) do HidePress(rec) end
+end
+K.Release = Release
+
+-- 載具／控制條（暴雪的 GetActionButtonForID 換成 OverrideActionBarButton）與寵物對戰時，主動作條的鍵不是動作條格
+local function MainBarOverridden()
+    for _, name in ipairs({ "HasVehicleActionBar", "HasOverrideActionBar" }) do
+        local fn = _G[name]
+        if fn then
+            local ok, v = pcall(fn)
+            if ok and PlainArg(v) then return true end
+        end
+    end
+    return false
+end
+
+local function InPetBattle()
+    local pb = _G.C_PetBattles
+    if pb and pb.IsInBattle then
+        local ok, v = pcall(pb.IsInBattle)
+        if ok and PlainArg(v) then return true end
+    end
+    return false
+end
+
+-- 四支掛勾的共同本體。barName nil ＝ 主動作條
+function K.OnPress(barName, id, down)
+    if next(K.slotOwners) == nil and next(held) == nil then return end       -- 沒有任何一格要鏡射
+    barName, id = PlainArg(barName), PlainArg(id)
+    if type(id) ~= "number" or (barName ~= nil and type(barName) ~= "string") then return end
+    local bkey = (barName or "main") .. ":" .. id
+    if not down then return Release(bkey) end
+    Release(bkey)                       -- 同一顆鍵沒放開又按一次（漏了 Up）：先收上一次的
+    if InPetBattle() then return end
+    if barName == nil and MainBarOverridden() then return end
+    local slot = K.SlotFromButton(barName, id, barName == nil and K.MainPage() or nil)
+    local owners = slot and K.slotOwners[slot]
+    if not owners or next(owners) == nil then return end
+    local entry = { recs = {} }
+    for rec in pairs(owners) do
+        ShowPress(rec)
+        entry.recs[#entry.recs + 1] = rec
+    end
+    held[bkey] = entry
+    K.pressCount = K.pressCount + 1
+    C_Timer.After(PRESS_SAFETY, function()
+        if held[bkey] == entry then Release(bkey) end
+    end)
+end
+
+EnsureHooks = function()
+    if K.pressHooked then return end
+    local hook = _G.hooksecurefunc
+    if not hook then return end
+    K.pressHooked = true
+    local G = ns.Guard or function(fn) return fn end
+    if _G.ActionButtonDown then hook("ActionButtonDown", G(function(id) K.OnPress(nil, id, true) end)) end
+    if _G.ActionButtonUp then hook("ActionButtonUp", G(function(id) K.OnPress(nil, id, false) end)) end
+    if _G.MultiActionButtonDown then hook("MultiActionButtonDown", G(function(bar, id) K.OnPress(bar, id, true) end)) end
+    if _G.MultiActionButtonUp then hook("MultiActionButtonUp", G(function(bar, id) K.OnPress(bar, id, false) end)) end
+end
+K.EnsureHooks = function() return EnsureHooks() end
+
+-- 停放／還給暴雪（Glow.OnParked 叫）：撤銷登記、收掉閃光
+function K.OnParked(rec)
+    if not rec then return end
+    Unregister(rec)
+    rec.pressN = 0
+    if rec.pressTex then rec.pressTex:Hide() end
+end
+
+function K.PressDebugLine()
+    local slots, recs = 0, {}
+    for _, t in pairs(K.slotOwners) do
+        slots = slots + 1
+        for rec in pairs(t) do recs[rec] = true end
+    end
+    local n = 0
+    for _ in pairs(recs) do n = n + 1 end
+    local h = 0
+    for _ in pairs(held) do h = h + 1 end
+    return ("  按鍵鏡射：掛勾 %s、登記 %d 格（%d 顆）、按住 %d、閃過 %d 次"):format(
+        K.pressHooked and "已掛" or "未掛", slots, n, h, K.pressCount)
 end
 
 ------------------------------------------------------------

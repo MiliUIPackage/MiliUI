@@ -65,12 +65,16 @@ end
 --   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
 --   aura      增益持續時間：同上，倒數用增益那一段的換色
 --   proc／ready  觸發／就緒發光：照這條的發光設定畫在每一格上
+--   press     按鍵鏡射：每 FX_PRESS_EVERY 秒閃 FX_PRESS_ON 秒（貼圖與真實格同一支 Keybinds.PressTexture，
+--             透明度照這條的 icon.pressFlashAlpha；沒勾「按鍵閃光」也照樣演示，看長相用）
 local FX_H, FX_SECS = 30, 5
+local FX_PRESS_SECS, FX_PRESS_EVERY, FX_PRESS_ON = 6, 1.5, 0.15
 local FX_BUTTONS = {
     { kind = "cooldown", label = L["On cooldown"] },
     { kind = "aura",     label = L["Buff duration"] },
     { kind = "proc",     label = L["Proc glow"] },
     { kind = "ready",    label = L["Ready glow"] },
+    { kind = "press",    label = L["Key press"] },
 }
 
 local instances = {}
@@ -653,6 +657,9 @@ function Proto:Fill(c, e, i, r, now)
     local fx = self:ActiveFx()
     if fx and (c.aura or e.hidden or self.fxTaken) then fx = nil end
     if fx then self.fxTaken = true end
+    -- 按鍵演示的那一格（FxTick 照時間開關閃光）；其餘格的閃光一律收掉（格子是池化的）
+    c.fxPress = (fx and fx.kind == "press" and c.kind ~= "bars") and true or false
+    if c.pressTex and not c.fxPress then c.pressTex:Hide() end
     local fxTimer = fx and (fx.kind == "cooldown" or fx.kind == "aura")
     if fxTimer then c.onCD = (not c.aura) and not e.hidden end
     -- 假冷卻的格每隔一格當成「還在倒增益的持續時間」（倒數換 durationColor）；自訂項目沒有那一段
@@ -857,6 +864,7 @@ function Proto:StartFx(kind)
     -- 倒數類（冷卻中／增益持續時間）要看得到「正常 → 低秒變色／小數」的轉換：從門檻（低秒、小數取大的）
     -- 再往上 3 秒開始倒，至少 FX_SECS；預設門檻 5 ⇒ 倒 8 秒。發光類固定 FX_SECS
     local secs = FX_SECS
+    if kind == "press" then secs = FX_PRESS_SECS end
     if kind == "cooldown" or kind == "aura" then
         local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
         local th = math.max(tonumber(ct.lowBelow) or 0, tonumber(ct.decimalsBelow) or 0)
@@ -897,7 +905,11 @@ end
 -- 頁面關著時效果到期：發光直接收掉（下次 Refresh 也會收，這裡只是不讓它在背景一直轉）
 function Proto:ClearFxGlows()
     for _, pool in pairs(self.cells) do
-        for _, c in ipairs(pool) do self:FxGlow(c, nil) end
+        for _, c in ipairs(pool) do
+            self:FxGlow(c, nil)
+            c.fxPress = false
+            if c.pressTex then c.pressTex:Hide() end
+        end
     end
 end
 
@@ -920,6 +932,17 @@ end
 -- 冷卻中／增益持續時間：倒數每 0.05 秒重寫一次，低秒變色照設定（增益那一段用它自己的低秒色）
 function Proto:FxTick()
     local fx = self:ActiveFx()
+    if fx and fx.kind == "press" and self.kind ~= "bars" then
+        local on = ((GetTime() - fx.start) % FX_PRESS_EVERY) < FX_PRESS_ON
+        local alpha = tonumber(ns.Setting(self.key, "icon.pressFlashAlpha")) or 0.35   -- 拖滑桿當下就看得到
+        for _, c in ipairs(self.slots or {}) do
+            if c.fxPress and c.overlay then
+                local t = ns.Keybinds.PressTexture(c, c.overlay, alpha)
+                if t:IsShown() ~= on then t:SetShown(on) end
+            end
+        end
+        return
+    end
     if not fx or (fx.kind ~= "cooldown" and fx.kind ~= "aura") or self.kind == "bars" then return end
     local style = ns.Decorate.Resolve(self.key)
     local ct = style.cooldownText or {}
