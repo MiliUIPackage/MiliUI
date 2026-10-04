@@ -1159,6 +1159,60 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - **預覽**：不畫記號（預覽本來就每格都畫）。
 - `/mcdm debug`：每條印「逐法術占位 N 格」，固定格位開著時註明「每一格本來就保留」。
 
+### 長條：漸層填充（`Core/Decorate.lua`、`Core/StackGate.lua`、`Core/Glow.lua`、`Modules/Custom.lua`、`Options/Specs.lua`，2026-10-04，F8a）
+
+條層 `bar.gradient = false | { color2 = rgba, dir = "H" | "V" }`（`LongBar` 預設 `false`；舊存檔沒有＝單色，不遷移、`DB_VERSION` 不動）。
+
+- **上色的唯一出口** `Decorate.PaintFill(tex, bar, solid)`：開著 ⇒ 填充貼圖 `SetGradient(HORIZONTAL|VERTICAL, CreateColor(bar.color), CreateColor(color2))`，
+  起點（橫的左、直的下）＝條色、終點＝`color2`；關／`solid`（無損刷新的提醒色）⇒ 單色。漸層跨的是**已填的那一截**（貼圖被拉伸到填充寬）。
+  `SetVertexColor` 與 `SetGradient` 是共用頂點色還是相乘沒查證 ⇒ 兩種模型都對的呼叫順序：開漸層先 `SetVertexColor` 白再 `SetGradient`；
+  畫過漸層的貼圖要回單色時先 `SetGradient` 白→白再 `SetVertexColor`（畫過的記在弱鍵表，不寫貼圖欄位）。
+- 走這支的地方：`ApplyBarLook`（暴雪增益長條、自訂長條框、設定頁預覽假條、增益長條的空長條占位全是它）、無損刷新的上色／還原（`Glow.ApplyPandemic`）、
+  StackGate 自己畫的原色填充與層數填充條、停放還原（`Restore`）、充能分段的計數條與進度條（F8b）。層數換色的色塊維持單色（門檻色）。
+- 自訂光環長條（AuraContainer）：顏色物件在 `AuraStyle`（容器建立前）建好、依「方向＋兩色」快取，`initializeFrame` 裡只 `SetGradient` 查表；進容器簽章。
+- 簽章：條層簽章 `TSig(r.bar)` 已整張進；StackGate 的層簽章多 `Decorate.GradientSig`。純函式 `CleanGradient`／`GradientSig`（`Tests/Extras_test.lua` 第 13 節）。
+- 設定頁（長條的「版面」節，條色／底色下面）：「漸層」勾選（勾下去給方向橫、終點色＝條色往白混一半）＋「漸層方向」下拉＋「漸層終點顏色」色票（沒勾停用、右鍵不單獨重設）＋下一列灰字。
+
+### 長條：充能分段＋分隔線（`Modules/Custom.lua`、`Core/StackGate.lua`、`Options/Specs.lua`，2026-10-04，F8b）
+
+條層 `bar.chargeSegments = false`、`bar.chargeLineColor = rgba(0, 0, 0, 0.6)`。只對**自訂法術**的長條框（`NewBarFrame`）、`rec.isCharge`；暴雪的增益長條沒有充能，不適用。
+
+- **框**（全是 `.Bar` 的子框，第一次需要才建、池化在 `.Bar.Seg`；`.Bar` 開 `SetClipsChildren(true)`）：
+  - 計數條（level ＋1）→ `SetAllPoints(.Bar)`；`SetMinMaxValues(0, maxCharges)`＋`SetValue(現有充能)`（秘密原樣餵）。之後不讀它的值／幾何／alpha。
+  - 進度條（＋2）→ 兩點錨在**計數條的填充貼圖**右緣（`TOPLEFT`→`TOPRIGHT`、`BOTTOMLEFT`→`BOTTOMRIGHT`；直向：`BOTTOMLEFT/RIGHT`→填充頂緣），
+    寬＝條身長／max（直向是高）；`SetTimerDuration(回充物件, nil, ElapsedTime)`。充能滿時它在條外、被條身裁掉；沒有物件 ⇒ 餵零長度物件，被拒退回 `SetValue(0)`。只錨不讀。
+  - 分隔線框（＋3）→ `SetAllPoints(.Bar)`；`StackGate.DrawTicks(框, .Bar, 條身長, { n = max, at = "all", color })`，線錨 `.Bar`（明文幾何）。
+  - 字框（＋4）→ `SetAllPoints(.Bar)`；名字與火花在分段時 `SetParent` 到這裡（子框永遠蓋過父框的字），關掉時搬回 `.Bar`；秒數 Cooldown 的層級也墊到 ＋4。
+  - 火花跟進度條的填充末端（`.Bar.pipAnchor`，`ApplyBarLook` 照它錨）。
+- `.Bar` 自己的填充（舊行為的回充那一條）在分段時用貼圖的 `SetAlpha(0)` 藏（不是頂點色），每次更新照設；秒數照舊吃回充物件。
+- **上限**：`C_Spell.GetSpellCharges(id).maxCharges` 過 `Plain`，明文時記 `rec.maxCharges`；戰鬥中秘密時沿用最後一次明文的（同 `rec.isCharge` 的做法）。
+  從沒讀到明文 ⇒ 不分段、退回舊行為，`Diag.Note("chargeseg", …)`（每筆一次）＋`/mcdm debug` 的「充能分段」行（分段中幾條、退回幾次、最近原因）。
+- 純函式 `SegmentMode(on, isCharge, max)`（回段數或 nil＋原因 off／notcharge／unknown）、`SegmentGeometry(len, max)`（`Tests/Custom_test.lua` 第 11、12 節）。
+- 設定頁（「版面」節，圖示間距下面）：「充能分段」勾選＋「分隔線顏色」色票（沒勾停用）＋下一列灰字。
+- ⚠ 限制：設定頁預覽的假長條不畫分段（預覽格沒有真的充能）。分隔線色票在舊存檔第一次打開時顯示的是色票自己的預設色（欄位還沒存）。
+
+### 長條：垂直（`Core/Layout.lua`、`Core/Bars.lua`、`Core/Decorate.lua`、`Core/Text.lua`、`Core/StackGate.lua`、`Modules/Custom.lua`、`EditMode/Frames.lua`、`Options/Preview.lua`、`Options/Specs.lua`，2026-10-04，F8c）
+
+條層 `bar.vertical = false`。開了整條直立：填充由下往上、條並排。
+
+- **格子尺寸**：「寬」仍是條長、「高」仍是粗細，`Layout.BarCellSize` 轉 90 度（格子 w＝粗細、h＝條長）；`Bars.BarSize`、預覽的 `Sizing`、編輯模式的 `CellSize` 同一套。
+  寬 0 照舊＝核心技能第一列的寬（直向時就是那麼高）。
+- **排版**（`Layout.Compute(kind = "bars")`，`layout.vertical`）：等於直向圖示 maxPerRow 1——grow 用直向那組（`DOWN|UP` ＝ 貼頂／貼底、`RIGHT|LEFT` ＝ 往右／往左排），
+  錨點 `TOPLEFT`…；存的是橫向長條的值（`CENTER_DOWN／UP`）⇒ 縱向那半當伸展、往右排（`Layout.VerticalBarGrow`）。反過來橫向長條吃到直向的值 ⇒ 伸展那半當縱向。
+  兩套值互通，切換垂直不改存檔；設定頁的「成長方向」下拉依目前方向列那一套、顯示時換算。
+- **幾何**（`ApplyBarGeometry` 的直向分支，`g = { h, w, side, gap, vertical }`）：條身 `SetOrientation("VERTICAL")`（切回橫向設回 `HORIZONTAL`）；圖示 w×w，
+  `iconSide` 的 LEFT／RIGHT 當上／下（設定頁的字換成「上／下」）；暴雪條的火花（暴雪只在 OnLoad 錨一次）改錨填充頂緣、轉 90 度，切回橫向照暴雪原本的錨回去
+  （動過的記在弱鍵表）。自訂長條框的火花（`ownPip`）在 `ApplyBarLook` 改成頂緣一條橫線。Masque 的圖示尺寸跟著換成 w。
+- **字**：名字不畫（FontString 不能轉；暴雪的名字只調 alpha）；秒數疊在條身內頂端（`TOP, 0, -4`、置中；自訂框的 `.Bar.Timer` 同）；層數照舊在圖示右下
+  （⚠ 跟 plan 寫的「疊在條內」不同：暴雪條的層數字是圖示框的字，條身層級比圖示高，搬過去會被填充蓋住）。
+- **StackGate**：層數填充條 `SetOrientation` 跟著、刻度改水平線（`DrawTicks(…, vertical)`：離底緣 y＝條身長 × k/N）、`BodyWidth(w, h, side, gap, vertical)`；層簽章進 vertical。
+  原色填充與換色色塊錨在填充貼圖上，自動跟著方向。漸層方向（H／V）語意不變、照貼圖座標。
+- **自訂光環長條**（AuraContainer）：`AuraStyle` 多 `vert`／`isz`（進簽章），`InitAuraBarButton` 照直向排圖示／條身／火花／秒數、不建名字；長條占位同。
+- 設定頁：「高度」下面「垂直」勾選（重建表單）＋下一列灰字（寬＝長、高＝粗、不顯示名字、時間在頂端）；直向時「名字字型」「名字字級」停用（原因寫在那句灰字）。
+  頁面上沒有獨立的「顯示名字」開關（`bar.showName` 只有匯入會寫），所以停用的是名字的兩列字型設定。
+- 純函式測試：`Tests/Layout_test.lua`（直向長條排版、grow 互通、`BarCellSize`）、`Tests/StackGate_test.lua`（直向條身長、水平刻度、填充條方向）、
+  `Tests/Extras_test.lua` 第 14 節（直向幾何、暴雪火花轉向與還原）。
+
 ## 資源條與施法條
 
 四者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
@@ -2483,6 +2537,19 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      條頁「清除覆寫」（圖示／發光節）不會清掉占位；`/mcdm debug` 的「逐法術占位 N 格」對得上。
 311. 搭配格數上限＋溢出（F1）：勾了占位的不在增益照樣算一顆，增益一上一下不會讓它溢到別條；戰鬥中增益上下 `/console taintLog 2` 零 ADDON_ACTION_BLOCKED；
      九個語系的兩句灰字不超過三行。
+
+**長條：漸層、充能分段、垂直（2026-10-04，F8）**
+
+312. 漸層：長條群組與增益長條勾「漸層」：填充從條色漸變到終點色（橫向左→右、選垂直方向時下→上），條縮短時兩端顏色都還在；取消勾選回到純色、沒有殘留的漸層；
+     無損刷新期間整條提醒色（純色）、結束回到漸層；層數換色／層數當填充開著時原色填充那層也是漸層、門檻色塊是純色；設定頁預覽同步。
+313. 漸層：自訂光環長條（AuraContainer）也是漸層；戰鬥中改漸層設定要等脫戰換容器，`/console taintLog 2` 零 ADDON_ACTION_BLOCKED。
+314. 充能分段：兩充能技能（例如 2 層的衝鋒類）放進長條群組、勾「充能分段」：條身兩段、中間一條分隔線；用一次 → 第二段從空開始跑、滿了停；用兩次 → 第一段跑、第二段空；
+     副本首領戰中（秘密充能數）照樣；火花跟在跑的那一段末端；名字與秒數在最上層看得到；取消勾選回到舊行為（條身＝回充進度）、名字沒有消失。
+315. 充能分段：剛登入就進戰鬥（還沒讀過明文上限）時退回舊行為、`/mcdm debug` 的「充能分段」行有「退回」；脫戰後自動分段。分隔線色票改色有效。
+316. 垂直：直向長條群組一排四條並排、四種成長方向（貼頂／貼底 × 往右／往左）對；時間字在條內頂端對齊；名字不畫；火花（暴雪條的 Pip）在填充頂端、轉成橫的；
+     圖示「上／下／無」三種對；切回橫向後火花回到暴雪原本位置、名字回來。
+317. 垂直：增益長條的層數當填充／刻度（水平線）／換色色塊方向對；無損刷新色塊方向對；編輯模式拖曳框的大小對（直的）；設定頁預覽同步；
+     自訂光環長條與空長條占位直向排對；九個語系的「垂直」灰字不超過三行、成長方向下拉的四個選項放得下。
 
 **效能基準**
 

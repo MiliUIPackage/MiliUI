@@ -1306,26 +1306,69 @@ end
 ------------------------------------------------------------
 -- 長條的版面：圖示邊、條身、底色、材質
 ------------------------------------------------------------
+-- 暴雪條的火花（Pip）：暴雪只在 OnLoad 錨一次（CENTER → 填充貼圖的 RIGHT, 0, -1），之後不再動。
+-- 直向時改錨填充的頂緣、轉 90 度；切回橫向時照暴雪原本的錨回去。動過的記在弱鍵表（不寫暴雪的欄位）
+local turnedPip = setmetatable({}, { __mode = "k" })
+local function OrientBlizzPip(b, vertical)
+    local pip = b.Pip
+    if not pip or b.ownPip then return end
+    if not vertical and not turnedPip[pip] then return end
+    local ok, fill = pcall(b.GetStatusBarTexture, b)
+    if not ok or not fill then return end
+    pip:ClearAllPoints()
+    if vertical then
+        pip:SetPoint("CENTER", fill, "TOP", 0, 0)
+        if pip.SetRotation then pcall(pip.SetRotation, pip, math.pi / 2) end
+        turnedPip[pip] = true
+    else
+        pip:SetPoint("CENTER", fill, "RIGHT", 0, -1)
+        if pip.SetRotation then pcall(pip.SetRotation, pip, 0) end
+        turnedPip[pip] = nil
+    end
+end
+
+-- g = { h, w, side, gap, vertical }：格子尺寸由排版給（不讀框）。
+-- 直向（F8c）：圖示 w×w（w ＝ 條的粗細），side 的 LEFT／RIGHT 當上／下；條身 SetOrientation("VERTICAL")
 function D.ApplyBarGeometry(item, rec, g)
     local icon, b = item.Icon, item.Bar
     if not (icon and b) then return end
     local h = g.h
     local gap = ns.Layout.Snap(g.gap or 0)
+    if b.SetOrientation then b:SetOrientation(g.vertical and "VERTICAL" or "HORIZONTAL") end
+    OrientBlizzPip(b, g.vertical)
     icon:ClearAllPoints()
-    icon:SetSize(h, h)
     b:ClearAllPoints()
-    if g.side == "RIGHT" then
-        icon:SetPoint("RIGHT", item, "RIGHT", 0, 0)
-        b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
-        b:SetPoint("BOTTOMRIGHT", icon, "BOTTOMLEFT", -gap, 0)
-    elseif g.side == "NONE" then
-        icon:SetPoint("LEFT", item, "LEFT", 0, 0)
-        b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
-        b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+    if g.vertical then
+        local s = g.w or h
+        icon:SetSize(s, s)
+        if g.side == "RIGHT" then
+            icon:SetPoint("BOTTOM", item, "BOTTOM", 0, 0)
+            b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
+            b:SetPoint("BOTTOMRIGHT", icon, "TOPRIGHT", 0, gap)
+        elseif g.side == "NONE" then
+            icon:SetPoint("TOP", item, "TOP", 0, 0)
+            b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
+            b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+        else
+            icon:SetPoint("TOP", item, "TOP", 0, 0)
+            b:SetPoint("TOPLEFT", icon, "BOTTOMLEFT", 0, -gap)
+            b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+        end
     else
-        icon:SetPoint("LEFT", item, "LEFT", 0, 0)
-        b:SetPoint("TOPLEFT", icon, "TOPRIGHT", gap, 0)
-        b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+        icon:SetSize(h, h)
+        if g.side == "RIGHT" then
+            icon:SetPoint("RIGHT", item, "RIGHT", 0, 0)
+            b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
+            b:SetPoint("BOTTOMRIGHT", icon, "BOTTOMLEFT", -gap, 0)
+        elseif g.side == "NONE" then
+            icon:SetPoint("LEFT", item, "LEFT", 0, 0)
+            b:SetPoint("TOPLEFT", item, "TOPLEFT", 0, 0)
+            b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+        else
+            icon:SetPoint("LEFT", item, "LEFT", 0, 0)
+            b:SetPoint("TOPLEFT", icon, "TOPRIGHT", gap, 0)
+            b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+        end
     end
     if g.side == "NONE" then
         icon:SetAlpha(0)
@@ -1335,13 +1378,77 @@ function D.ApplyBarGeometry(item, rec, g)
     end
 end
 
+------------------------------------------------------------
+-- 漸層填充（bar.gradient，F8a）
+--   bar.gradient = false | { color2 = rgba, dir = "H" | "V" }
+--   起點（橫向的左、直向的下）是 bar.color、終點是 color2；SetGradient 套在**填充貼圖**上，
+--   所以漸層跨的是「已填的那一截」（條縮短時兩端顏色都在，跟條身寬無關）。
+--
+-- SetVertexColor 與 SetGradient 的關係（共用頂點色、後寫的贏，或是兩者相乘）沒查證 ⇒ 兩種模型都對的寫法：
+--   開漸層：先 SetVertexColor 白、再 SetGradient（共用 ⇒ 漸層贏；相乘 ⇒ 白 × 漸層）
+--   關／單色：畫過漸層的貼圖先 SetGradient 白→白、再 SetVertexColor（共用 ⇒ 單色贏；相乘 ⇒ 白 × 單色）
+-- 畫過漸層的貼圖記在弱鍵表（只是我們的對照，不寫暴雪貼圖的欄位）。
+------------------------------------------------------------
+local gradTex = setmetatable({}, { __mode = "k" })
+local whiteColor
+
+-- 清洗：開著回 { r1..a1 不管，color2 = {r,g,b,a}, dir = "H"|"V" }；關／壞值回 nil（純函式，Tests/Extras_test.lua）
+function D.CleanGradient(g)
+    if type(g) ~= "table" then return nil end
+    local c = g.color2
+    if type(c) ~= "table" then return nil end
+    return { color2 = { r = tonumber(c.r) or 1, g = tonumber(c.g) or 1, b = tonumber(c.b) or 1, a = tonumber(c.a) or 1 },
+             dir = g.dir == "V" and "V" or "H" }
+end
+
+-- 簽章片段（StackGate 的層簽章用；條層簽章 TSig(r.bar) 已經整張進）
+function D.GradientSig(g)
+    local cg = D.CleanGradient(g)
+    if not cg then return "-" end
+    return cg.dir .. ":" .. CSig(cg.color2)
+end
+
+local function MakeColor(r, g, b, a)
+    local mk = _G.CreateColor
+    return mk and mk(r, g, b, a) or nil
+end
+
+-- 填充貼圖上色的唯一出口：bar 的單色或漸層；solid（rgba 表）給了 ⇒ 一律單色（無損刷新的提醒色）
+function D.PaintFill(tex, bar, solid)
+    if not tex then return end
+    bar = type(bar) == "table" and bar or {}
+    local cg = (not solid) and D.CleanGradient(bar.gradient) or nil
+    if cg and tex.SetGradient then
+        local c1 = MakeColor(C4(bar.color, 0.4, 0.6, 0.9, 1))
+        local c2 = MakeColor(cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a)
+        if c1 and c2 then
+            tex:SetVertexColor(1, 1, 1, 1)
+            local ok = pcall(tex.SetGradient, tex, cg.dir == "V" and "VERTICAL" or "HORIZONTAL", c1, c2)
+            if ok then
+                gradTex[tex] = true
+                return
+            end
+        end
+    end
+    if gradTex[tex] and tex.SetGradient then
+        whiteColor = whiteColor or MakeColor(1, 1, 1, 1)
+        if whiteColor then pcall(tex.SetGradient, tex, "HORIZONTAL", whiteColor, whiteColor) end
+        gradTex[tex] = nil
+    end
+    if solid then
+        tex:SetVertexColor(C4(solid, 1, 1, 1, 1))
+    else
+        tex:SetVertexColor(C4(bar.color, 0.4, 0.6, 0.9, 1))
+    end
+end
+
 local function ApplyBarLook(item, rec, style, bar)
     local b = item.Bar
     if not b then return end
     if b.SetStatusBarTexture then
         b:SetStatusBarTexture(ns.Media.Texture(bar.texture))
         local tex = b:GetStatusBarTexture()
-        if tex then tex:SetVertexColor(C4(bar.color, 0.4, 0.6, 0.9, 1)) end
+        if tex then D.PaintFill(tex, bar) end
     end
     local bg = b.BarBG
     if bg then
@@ -1355,11 +1462,20 @@ local function ApplyBarLook(item, rec, style, bar)
     local pip = b.Pip
     if pip then
         if b.ownPip then
-            local fill = b.GetStatusBarTexture and b:GetStatusBarTexture()
+            -- 充能分段（F8b）時跟著進度條的填充末端（b.pipAnchor，Modules/Custom.lua 設；只錨不讀）
+            local fill = b.pipAnchor or (b.GetStatusBarTexture and b:GetStatusBarTexture())
             pip:ClearAllPoints()
             if fill then
-                pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
-                pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
+                if bar.vertical then
+                    -- 直向（F8c）：填充由下往上，火花是頂緣一條橫線
+                    pip:SetPoint("LEFT", fill, "TOPLEFT", 0, 0)
+                    pip:SetPoint("RIGHT", fill, "TOPRIGHT", 0, 0)
+                    pip:SetHeight(2)
+                else
+                    pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
+                    pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
+                    pip:SetWidth(2)
+                end
             end
         end
         pip:SetAlpha(bar.spark and 1 or 0)
@@ -1670,15 +1786,16 @@ function D.Apply(item, rec, barKey, w, h)
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
-        rec.barGeometry = { h = h, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0 }
+        rec.barGeometry = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false }
         D.ApplyBarGeometry(item, rec, rec.barGeometry)
         ApplyBarLook(item, rec, style, bar)
         -- 長條交給 Masque 的是 item.Icon 那一層（整個 item 交出去的話皮會被拉成條的寬度）；
         -- 尺寸＝ApplyBarGeometry 剛設的 h×h
         local skinned = false
         if style.masque and item.Icon and item.Icon.Icon then
+            local isz = rec.barGeometry.vertical and w or h      -- 直向：圖示邊長 ＝ 條的粗細（格寬）
             skinned = ns.Masque.Sync(rec, item.Icon, { Icon = item.Icon.Icon },
-                ns.Masque.TypeFor(barKey, rec.barKey), h, h, OnLate)
+                ns.Masque.TypeFor(barKey, rec.barKey), isz, isz, OnLate)
         elseif rec.msqButton then
             ns.Masque.Release(rec)
         end
@@ -1799,12 +1916,13 @@ function D.ApplyPreview(cell, barKey, id, w, h)
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
-        local g = { h = h, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0 }
+        local g = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false }
         D.ApplyBarGeometry(cell, nil, g)
         ApplyBarLook(cell, nil, style, bar)
         local skinned = false
         if masque and cell.Icon and cell.Icon.Icon then
-            skinned = masque.Sync(cell, cell.Icon, { Icon = cell.Icon.Icon }, masque.TypeFor(barKey), h, h)
+            local isz = g.vertical and w or h
+            skinned = masque.Sync(cell, cell.Icon, { Icon = cell.Icon.Icon }, masque.TypeFor(barKey), isz, isz)
         end
         cell.border = cell.border or MakeBorder(ov)
         cell.border2 = cell.border2 or MakeBorder(ov)

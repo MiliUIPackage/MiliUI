@@ -285,13 +285,20 @@ function T.ApplyBar(item, style, spell, bar)
             name:SetPoint("LEFT", b, "LEFT", 4 * s, 0)
             name:SetPoint("RIGHT", b, "RIGHT", -((bar.timeSize or 12) * 3) * s, 0)
             if name.SetJustifyH then name:SetJustifyH("LEFT") end
-            name:SetAlpha(bar.showName and 1 or 0)
+            -- 直向（F8c）：FontString 不能轉，名字不畫
+            name:SetAlpha((bar.showName and not bar.vertical) and 1 or 0)
         end
         local dur = b.Duration
         if dur then
             SetFont(dur, bar.timeSize or 12, outline, ns.Media.ElementFont(bar.timeFont, font))
             dur:SetTextColor(1, 1, 1, 1)
-            Anchor(dur, b, "RIGHT", -4, 0)
+            -- 直向：秒數疊在條身內的頂端（層數照舊在圖示右下）
+            if bar.vertical then
+                Anchor(dur, b, "TOP", 0, -4)
+                if dur.SetJustifyH then dur:SetJustifyH("CENTER") end
+            else
+                Anchor(dur, b, "RIGHT", -4, 0)
+            end
             dur:SetAlpha((bar.showTime and not spell.hideCooldownText) and 1 or 0)
         end
     end

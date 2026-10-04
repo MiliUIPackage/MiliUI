@@ -23,6 +23,11 @@
 --     起點那一端（DOWN 貼頂、UP 貼底）。第二列起用 row2Size。anchorPoint：伸展 DOWN → TOP…、
 --     UP → BOTTOM…；換列 RIGHT → …LEFT、LEFT → …RIGHT（起點那個角不動）。
 --   * 長條（kind = "bars"）一列一條，橫向那半不看：錨點只有 TOP／BOTTOM。
+--     長條存了直向的 grow（"UP_RIGHT"…，直向長條切回橫向時留下的）⇒ 伸展那半當縱向（UP → 往上）。
+--   * 直向長條（kind = "bars" 且 layout.vertical，F8c）：條一條一條並排，等於直向圖示 maxPerRow ＝ 1：
+--     grow 用直向那組（伸展 DOWN／UP ＝ 貼頂／貼底，換列 RIGHT／LEFT ＝ 往右／往左排）；
+--     存的是橫向長條的 grow（"CENTER_DOWN"／"CENTER_UP"）⇒ 縱向那半當伸展、往右排。
+--     size 由呼叫端給好（w ＝ 條的粗細、h ＝ 條長）。
 --   * 第一列用 size，第二列起用 row2Size（false ＝ 跟第一列一樣）。
 --   * 容器寬取最寬那列，每列在容器裡各自對齊。
 --   * anchorPoint：縱向 DOWN → TOP…、UP → BOTTOM…；橫向 CENTER 不加、LEFT／RIGHT 接在後面
@@ -131,16 +136,33 @@ local function ComputeColumns(n, layout, growDir, wrapDir)
     return rects, totalW, totalH, anchorPoint
 end
 
+-- 直向長條的 grow：直向那組照收；橫向那組（長條只有 CENTER_DOWN／CENTER_UP）換成「同一個縱向、往右排」
+function Layout.VerticalBarGrow(grow)
+    local g, w = Layout.ParseColumn(grow)
+    if g then return g, w end
+    local _, v = Layout.ParseGrow(grow)
+    return v, "RIGHT"
+end
+
 function Layout.Compute(items, layout, kind)
     layout = type(layout) == "table" and layout or {}
+    local n0 = type(items) == "table" and #items or 0
     if kind ~= "bars" then
         local g, w = Layout.ParseColumn(layout.grow)
-        if g then return ComputeColumns(type(items) == "table" and #items or 0, layout, g, w) end
+        if g then return ComputeColumns(n0, layout, g, w) end
+    elseif layout.vertical then
+        local g, w = Layout.VerticalBarGrow(layout.grow)
+        return ComputeColumns(n0, { maxPerRow = 1, spacing = layout.spacing, size = layout.size }, g, w)
     end
     local hAlign, vDir = Layout.ParseGrow(layout.grow)
+    if kind == "bars" then
+        -- 直向長條切回橫向時留下的直向 grow：伸展那半當縱向
+        local g = Layout.ParseColumn(layout.grow)
+        if g then vDir = g end
+    end
     local anchorPoint = Layout.AnchorPoint(hAlign, vDir, kind)
 
-    local n = type(items) == "table" and #items or 0
+    local n = n0
     local rects = {}
     if n == 0 then return rects, 0, 0, anchorPoint end
 
@@ -209,6 +231,12 @@ function Layout.Compute(items, layout, kind)
     end
 
     return rects, totalW, totalH, anchorPoint
+end
+
+-- 長條格子的尺寸（F8c）：橫向 w ＝ 條長、h ＝ 粗細；直向反過來（w ＝ 粗細、h ＝ 條長）
+function Layout.BarCellSize(length, thickness, vertical)
+    if vertical then return thickness, length end
+    return length, thickness
 end
 
 -- 第一列的寬度（長條「寬 0 ＝ 跟核心技能第一列同寬」用）

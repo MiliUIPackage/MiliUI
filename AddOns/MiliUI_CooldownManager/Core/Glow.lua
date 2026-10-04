@@ -867,7 +867,9 @@ function G.ApplyPandemic(owner, rec, barKey)
         local b = owner and owner.Bar
         if b and b.GetStatusBarTexture and ns.Setting(barKey, "pandemic.bars") then
             local tex = b:GetStatusBarTexture()
-            if tex and type(c) == "table" then tex:SetVertexColor(c.r or 1, c.g or 0.5, c.b or 0, c.a or 1) end
+            if tex and type(c) == "table" then
+                ns.Decorate.PaintFill(tex, nil, { r = c.r or 1, g = c.g or 0.5, b = c.b or 0, a = c.a or 1 })
+            end
             rec.pandemicBar = true
         end
         rec.pandemicShown = true
@@ -878,11 +880,8 @@ function G.ApplyPandemic(owner, rec, barKey)
             rec.pandemicBar = false
             local b = owner and owner.Bar
             local tex = b and b.GetStatusBarTexture and b:GetStatusBarTexture()
-            local c = barKey and ns.Setting(barKey, "bar.color")
-            if tex then
-                if type(c) == "table" then tex:SetVertexColor(c.r or 0.4, c.g or 0.6, c.b or 0.9, c.a or 1)
-                else tex:SetVertexColor(0.4, 0.6, 0.9, 1) end
-            end
+            -- 還原成條的單色或漸層（F8a；同 ApplyBarLook 的那支）
+            if tex then ns.Decorate.PaintFill(tex, barKey and ns.Setting(barKey, "bar") or nil) end
             -- 層數換色那一層在條身底下、暴雪的填充要維持透明（Core/StackGate.lua）
             if ns.StackGate then ns.StackGate.Reconceal(owner, rec) end
         end

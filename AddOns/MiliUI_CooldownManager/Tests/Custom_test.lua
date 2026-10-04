@@ -377,7 +377,7 @@ do
     -- 這幾個是框上的**欄位**（子框／區域），不是方法：沒設就是 nil（真的框也是）
     local FIELDS = { Bar = true, Timer = true, Cooldown = true, ChargeCooldown = true, ChargeCount = true, Icon = true,
                      Name = true, Duration = true, BarBG = true, Pip = true, Applications = true, Current = true,
-                     SpellActivationAlert = true, SetBarContent = true }
+                     SpellActivationAlert = true, SetBarContent = true, Seg = true }
     local function Obj(otype, parent)
         local o = { otype = otype, parent = parent, shown = true, calls = {}, level = 1 }
         setmetatable(o, { __index = function(t, k)
@@ -527,6 +527,75 @@ do
     eq("清條：零長度被拒 ⇒ SetValue(0)", CU.clearPath, "value")
     eq("清條：SetValue(0)", b.last_SetValue and b.last_SetValue[1], 0)
     b.rejectZero = nil
+
+    -- 充能分段（F8b）：計數條＋進度條＋分隔線；上限讀不到明文 ⇒ 退回舊行為
+    do
+        local savedDeco, savedSG, savedDiag = ns.Decorate, ns.StackGate, ns.Diag
+        local barCfg = { showTime = true, timeSize = 14, chargeSegments = true, iconSide = "LEFT", iconGap = 2,
+                         texture = "solid", color = { r = 0.4, g = 0.6, b = 0.9, a = 1 } }
+        local painted = 0
+        ns.Decorate = setmetatable({
+            Resolve = function() return { bar = barCfg, font = "DEFAULT", outline = "" } end,
+            PaintFill = function() painted = painted + 1 end,
+            GradientSig = function() return "-" end,
+        }, { __index = savedDeco })
+        local ticks
+        ns.StackGate = {
+            BodyWidth = function(w, h, side, gap, vertical)
+                if vertical then w, h = h, w end
+                return w - h - gap
+            end,
+            DrawTicks = function(host, anchor, len, t, vertical) ticks = { host = host, anchor = anchor, len = len, t = t, v = vertical } end,
+        }
+        local notes = 0
+        ns.Diag = { Note = function() notes = notes + 1 end }
+        local chargeDur = { name = "chargeDur" }
+        local charges = { maxCharges = 2, currentCharges = 1 }
+        env.C_Spell.GetSpellCharges = function() return charges end
+        env.C_Spell.GetSpellChargeDuration = function() return chargeDur end
+        rec.placeW, rec.placeH = 200, 20
+        CU.Update(rec)
+        local seg = b.Seg
+        check("分段：建了計數條／進度條", seg and seg.count and seg.prog and seg.count.otype == "StatusBar")
+        eq("分段：條身裁切子框", b.last_SetClipsChildren and b.last_SetClipsChildren[1], true)
+        eq("分段：計數條上限＝充能上限", seg.count.last_SetMinMaxValues and seg.count.last_SetMinMaxValues[2], 2)
+        eq("分段：計數條吃現有充能", seg.count.last_SetValue and seg.count.last_SetValue[1], 1)
+        eq("分段：進度條吃回充物件", seg.prog.timer, chargeDur)
+        eq("分段：進度條方向＝已過時間", seg.prog.timerDir, env.Enum.StatusBarTimerDirection.ElapsedTime)
+        eq("分段：進度條錨在計數條的填充貼圖", seg.prog.last_SetPoint and seg.prog.last_SetPoint[2], seg.count.fill)
+        eq("分段：進度條寬＝條身長／上限", seg.prog.last_SetWidth and seg.prog.last_SetWidth[1], (200 - 20 - 2) / 2)
+        eq("分段：分隔線的段數", ticks and ticks.t.n, 2)
+        eq("分段：分隔線錨條身", ticks and ticks.anchor, b)
+        eq("分段：自己的填充調透明", b.fill.last_SetAlpha and b.fill.last_SetAlpha[1], 0)
+        eq("分段：名字搬到字框", b.Name:GetParent(), seg.text)
+        eq("分段：火花跟著進度條", b.pipAnchor, seg.prog.fill)
+        eq("分段：秒數照吃回充物件", b.Timer.duo, chargeDur)
+        check("分段：兩條的填充都上色", painted >= 2)
+        -- 戰鬥中秘密：上限讀不到明文 ⇒ 沿用最後一次明文的
+        charges = { maxCharges = nil, currentCharges = 0 }
+        CU.Update(rec)
+        eq("秘密上限：沿用明文的那次", b.segOn, true)
+        eq("秘密上限：計數條照餵", seg.count.last_SetValue[1], 0)
+        -- 從沒讀到明文 ⇒ 退回舊行為、記 debug
+        rec.maxCharges = nil
+        CU.Update(rec)
+        eq("讀不到上限 ⇒ 不分段", b.segOn, false)
+        eq("退回：計數條藏起來", seg.count.shown, false)
+        eq("退回：名字搬回條身", b.Name:GetParent(), b)
+        eq("退回：自己的填充不透明", b.fill.last_SetAlpha[1], 1)
+        eq("退回：記一行 diag", notes, 1)
+        check("退回：debug 行", CU.SegDebugLine():find("退回舊行為", 1, true) ~= nil)
+        -- 關掉設定
+        charges = { maxCharges = 3, currentCharges = 3 }
+        CU.Update(rec)
+        eq("再開：三段", seg.count.last_SetMinMaxValues[2], 3)
+        barCfg.chargeSegments = false
+        CU.Update(rec)
+        eq("設定關 ⇒ 不分段", b.segOn, false)
+        ns.Decorate, ns.StackGate, ns.Diag = savedDeco, savedSG, savedDiag
+        env.C_Spell.GetSpellCharges = function() return nil end
+        rec.isCharge, rec.maxCharges = nil, nil
+    end
 
     -- 光環：長條的持有框＋容器；initializeFrame 走長條版
     CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
@@ -753,6 +822,25 @@ do
         eq("距離表空了 ⇒ 換目標也反註冊", reg.PLAYER_TARGET_CHANGED, nil)
     end
     ns.Events = { Register = function() end }
+end
+
+------------------------------------------------------------
+-- 12. 充能分段的純函式（F8b）：要不要分段、分段幾何
+------------------------------------------------------------
+do
+    local CU = ns.Custom
+    eq("分段：關 ⇒ nil", (CU.SegmentMode(false, true, 2)), nil)
+    eq("分段：關的原因", select(2, CU.SegmentMode(false, true, 2)), "off")
+    eq("分段：不是充能 ⇒ notcharge", select(2, CU.SegmentMode(true, false, 2)), "notcharge")
+    eq("分段：上限讀不到 ⇒ unknown", select(2, CU.SegmentMode(true, true, nil)), "unknown")
+    eq("分段：上限 1 ⇒ 不分", (CU.SegmentMode(true, true, 1)), nil)
+    eq("分段：上限 3", (CU.SegmentMode(true, true, 3)), 3)
+    local segLen, lines = CU.SegmentGeometry(180, 3)
+    eq("幾何：一段長", segLen, 60)
+    check("幾何：分隔線位置", #lines == 2 and lines[1] == 60 and lines[2] == 120, list(lines))
+    eq("幾何：上限 1 ⇒ nil", CU.SegmentGeometry(180, 1), nil)
+    eq("幾何：長度 0 ⇒ nil", CU.SegmentGeometry(0, 3), nil)
+    eq("預設值：充能分段關", ns.DB.NewBarTable("bars", "x").bar.chargeSegments, false)
 end
 
 print(("Custom_test: %d passed, %d failed"):format(passed, failed))

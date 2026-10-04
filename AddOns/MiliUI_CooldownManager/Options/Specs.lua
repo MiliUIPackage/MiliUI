@@ -45,7 +45,16 @@ local GlowSampleRow      -- 發光的預覽圖示（定義在下面）
 ------------------------------------------------------------
 -- 下拉清單
 ------------------------------------------------------------
-local function GrowItems(kind)
+local function GrowItems(kind, vertical)
+    if kind == "bars" and vertical then
+        -- 直向長條（F8c）：條並排；值是直向圖示那組「伸展_換列」（Core/Layout.lua 的 VerticalBarGrow）
+        return {
+            { text = L["Align top, add bars to the right"],    value = "DOWN_RIGHT" },
+            { text = L["Align top, add bars to the left"],     value = "DOWN_LEFT" },
+            { text = L["Align bottom, add bars to the right"], value = "UP_RIGHT" },
+            { text = L["Align bottom, add bars to the left"],  value = "UP_LEFT" },
+        }
+    end
     if kind == "bars" then
         return {
             { text = L["Downward"], value = "CENTER_DOWN" },
@@ -108,6 +117,12 @@ local SIDE_ITEMS = {
     { text = L["Left"],  value = "LEFT" },
     { text = L["Right"], value = "RIGHT" },
     { text = L["None"],  value = "NONE" },
+}
+-- 直向長條（F8c）：同一個欄位，LEFT ＝ 上、RIGHT ＝ 下
+local SIDE_ITEMS_V = {
+    { text = L["Top"],    value = "LEFT" },
+    { text = L["Bottom"], value = "RIGHT" },
+    { text = L["None"],   value = "NONE" },
 }
 
 local EMPTY_STYLE_ITEMS = {
@@ -883,6 +898,62 @@ function Specs.OverflowSig(key)
     return table.concat(parts, ",")
 end
 
+-- 漸層填充（bar.gradient，F8a）：勾選＋方向＋終點色＋灰字。關 ＝ false；勾下去給一組預設
+-- （方向橫、終點色＝條色往白混一半）。方向與終點色沒勾時停用、右鍵不重設（整組由勾選那列重設）
+local GRADIENT_DIR_ITEMS = {
+    { text = L["Horizontal"], value = "H" },
+    { text = L["Vertical"],   value = "V" },
+}
+local function GradientRows(key)
+    local function Cfg(info)
+        local b = ns.DB.ConfigTable(info and info.key or key)
+        return type(b) == "table" and type(b.bar) == "table" and b.bar or nil
+    end
+    local function On(info)
+        local bar = Cfg(info)
+        return bar ~= nil and ns.Decorate.CleanGradient(bar.gradient) ~= nil
+    end
+    return {
+        BS("toggle", "bar.gradient", L["Gradient"], {
+            get = function(info) return On(info) end,
+            set = function(info, on)
+                local bar = Cfg(info)
+                if not bar then return end
+                if on then
+                    local c = type(bar.color) == "table" and bar.color or {}
+                    local function mix(v, d) return ((tonumber(v) or d) + 1) / 2 end
+                    bar.gradient = { dir = "H", color2 = { r = mix(c.r, 0.4), g = mix(c.g, 0.6), b = mix(c.b, 0.9),
+                                                           a = tonumber(c.a) or 1 } }
+                else
+                    bar.gradient = false
+                end
+            end }),
+        BS("dropdown", "bar.gradient.dir", L["Gradient direction"], { items = GRADIENT_DIR_ITEMS, noReset = true,
+            get = function(info)
+                local bar = Cfg(info)
+                local g = bar and type(bar.gradient) == "table" and bar.gradient or nil
+                return (g and g.dir == "V") and "V" or "H"
+            end,
+            set = function(info, v)
+                local bar = Cfg(info)
+                if bar and type(bar.gradient) == "table" then bar.gradient.dir = (v == "V") and "V" or "H" end
+            end,
+            disabled = function(info) return not On(info) end }),
+        BS("color", "bar.gradient.color2", L["Gradient end color"], { noReset = true,
+            get = function(info)
+                local bar = Cfg(info)
+                local g = bar and type(bar.gradient) == "table" and bar.gradient or nil
+                return g and type(g.color2) == "table" and g.color2 or nil
+            end,
+            set = function(info, c)
+                local bar = Cfg(info)
+                if bar and type(bar.gradient) == "table" and type(c) == "table" then bar.gradient.color2 = c end
+            end,
+            disabled = function(info) return not On(info) end }),
+        Note(L["The fill fades from the bar color to the end color: left to right when horizontal, bottom to top when vertical."]),
+    }
+end
+
 function Specs.Layout(key)
     local bar = ns.DB.BarTable(key) or {}
     local kind = bar.kind == "bars" and "bars" or "icons"
@@ -894,7 +965,24 @@ function Specs.Layout(key)
         for _, row in ipairs(OverflowRows(key)) do add(row) end
     end
     add(BS("slider", "layout.spacing", L["Spacing"], { min = 0, max = 20, step = 1 }))
-    add(BS("dropdown", "layout.grow", L["Growth"], { items = GrowItems(kind) }))
+    local vertical = kind == "bars" and type(bar.bar) == "table" and bar.bar.vertical and true or false
+    if kind == "bars" then
+        -- 長條的 grow 兩套值互通（Layout.Compute 兩邊都認）：顯示時換成這個方向那一套的值
+        add(BS("dropdown", "layout.grow", L["Growth"], { items = GrowItems(kind, vertical),
+            get = function(info)
+                local g = ns.DB.GetPath(ns.DB.ConfigTable(info.key), "layout.grow")
+                if vertical then
+                    local a, b = ns.Layout.VerticalBarGrow(g)
+                    return a .. "_" .. b
+                end
+                local col = ns.Layout.ParseColumn(g)
+                if col then return "CENTER_" .. col end
+                local _, v = ns.Layout.ParseGrow(g)
+                return "CENTER_" .. v
+            end }))
+    else
+        add(BS("dropdown", "layout.grow", L["Growth"], { items = GrowItems(kind) }))
+    end
     if kind == "icons" then
         add(BS("numbers", nil, L["Icon size"], { sub = "layout.size", path = false, resetPaths = { "layout.size" },
             fields = { { key = "w", label = L["W"] }, { key = "h", label = L["H"] } } }))
@@ -929,8 +1017,16 @@ function Specs.Layout(key)
         add(BS("slider", "bar.width", L["Width"], { min = 0, max = 600, step = 1 }))
         add(Note(L["0 matches the first row of Essential Cooldowns."]))
         add(BS("slider", "bar.height", L["Height"], { min = 6, max = 60, step = 1 }))
-        add(BS("dropdown", "bar.iconSide", L["Icon position"], { items = SIDE_ITEMS }))
+        -- 直向（F8c）：整條轉 90 度；表單要換圖示位置的字與成長方向的選項 ⇒ 重建
+        add(BS("toggle", "bar.vertical", L["Vertical"], { refreshPage = true }))
+        add(Note(L["The bar stands upright and fills from the bottom; bars line up side by side. Width is the bar's length and height its thickness. Names aren't shown, and the time sits at the top of the bar."]))
+        add(BS("dropdown", "bar.iconSide", L["Icon position"], { items = vertical and SIDE_ITEMS_V or SIDE_ITEMS }))
         add(BS("slider", "bar.iconGap", L["Icon gap"], { min = 0, max = 10, step = 1 }))
+        -- 充能分段（F8b，Modules/Custom.lua）：只對自己加的、有充能的法術；分隔線色沒勾時停用
+        add(BS("toggle", "bar.chargeSegments", L["Charge segments"]))
+        add(BS("color", "bar.chargeLineColor", L["Divider color"], { hasAlpha = true,
+            disabled = function(info) return not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.chargeSegments") end }))
+        add(Note(L["Spells with charges that you added yourself: one segment per charge, and the one recharging fills up."]))
         if bar.source == "buffbars" or bar.source == "custom" then
             add(FixedSlotsRow(key, true))
             -- 空位的樣子：預設隱藏（位置照佔、什麼都不畫，同 EllesmereUI 圖示的 Keep Buffs in Same Place）；
@@ -949,12 +1045,17 @@ function Specs.Layout(key)
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
         add(BS("color", "bar.color", L["Bar color"]))
         add(BS("color", "bar.bgColor", L["Background color"]))
+        for _, row in ipairs(GradientRows(key)) do add(row) end
         add(BS("toggle", "bar.spark", L["Show spark"]))
         add(Note(L["A bright marker at the moving end of the bar."]))
         -- 長條上的名字／時間：字型與字級（層數跟著「文字」那一節的層數）
         add(Nested(L["Bar text"]))
-        add(FontBS("bar.nameFont", L["Name font"]))
-        add(BS("slider", "bar.nameSize", L["Name size"], { min = 6, max = 30, step = 1 }))
+        -- 直向不畫名字（上面「垂直」的灰字寫了原因）⇒ 兩列停用
+        local function NoName(info) return ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.vertical") and true or false end
+        local nf = FontBS("bar.nameFont", L["Name font"])
+        nf.disabled = NoName
+        add(nf)
+        add(BS("slider", "bar.nameSize", L["Name size"], { min = 6, max = 30, step = 1, disabled = NoName }))
         add(FontBS("bar.timeFont", L["Time font"]))
         add(BS("slider", "bar.timeSize", L["Time size"], { min = 6, max = 30, step = 1 }))
     end

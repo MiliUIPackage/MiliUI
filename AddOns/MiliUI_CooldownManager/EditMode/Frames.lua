@@ -67,6 +67,7 @@ local function CellSize(bar)
         local bw = tonumber(cfg.width) or 0
         if bw > 0 then w = bw end
         h = tonumber(cfg.height) or h
+        if cfg.vertical then w, h = h, w end        -- 直向長條（F8c）：格子轉 90 度
     end
     return w, h
 end

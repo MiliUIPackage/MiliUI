@@ -524,5 +524,39 @@ do
     eq("AuraSlot：占位只認明確 true", Lay.AuraSlot(false, false, "yes"), nil)
 end
 
+------------------------------------------------------------
+-- 直向長條（F8c）：條並排（等於直向圖示 maxPerRow 1）；grow 兩套值互通；格子尺寸轉 90 度
+------------------------------------------------------------
+do
+    local lay = { spacing = 2, grow = "CENTER_DOWN", size = { w = 20, h = 200 }, vertical = true }
+    local r, w, h, a = Lay.Compute(N(4), lay, "bars")
+    eq("直向長條：橫向 grow 換成貼頂往右 ⇒ 錨 TOPLEFT", a, "TOPLEFT")
+    eq("直向長條：寬＝四條並排", w, 4 * 20 + 3 * 2)
+    eq("直向長條：高＝條長", h, 200)
+    rect("直向長條 #1", r[1], 0, 0, 20, 200)
+    rect("直向長條 #4", r[4], 66, 0, 20, 200)
+    lay.grow = "UP_LEFT"
+    r, w, h, a = Lay.Compute(N(2), lay, "bars")
+    eq("直向長條 UP_LEFT：錨 BOTTOMRIGHT", a, "BOTTOMRIGHT")
+    rect("直向長條 UP_LEFT #1 在最右", r[1], 22, 0, 20, 200)
+    lay.grow = "CENTER_UP"
+    local _, _, _, a2 = Lay.Compute(N(2), lay, "bars")
+    eq("直向長條：CENTER_UP ⇒ 貼底往右", a2, "BOTTOMLEFT")
+    -- 不同長度的條一起並排：貼底時 y 對齊底
+    eq("VerticalBarGrow：直向值照收", select(2, Lay.VerticalBarGrow("DOWN_LEFT")), "LEFT")
+    eq("VerticalBarGrow：橫向值 ⇒ 縱向＋RIGHT", Lay.VerticalBarGrow("CENTER_UP"), "UP")
+    eq("VerticalBarGrow：亂寫 ⇒ DOWN", Lay.VerticalBarGrow(nil), "DOWN")
+    -- 切回橫向時留下直向的 grow：伸展那半當縱向
+    local _, _, _, a3 = Lay.Compute(N(2), { spacing = 2, grow = "UP_RIGHT", size = { w = 200, h = 20 } }, "bars")
+    eq("橫向長條吃到直向 grow：UP ⇒ BOTTOM", a3, "BOTTOM")
+    local rr = Lay.Compute(N(2), { spacing = 2, grow = "DOWN_LEFT", size = { w = 200, h = 20 } }, "bars")
+    rect("橫向長條吃到直向 grow：照一列一條", rr[2], 0, 22, 200, 20)
+    -- 格子尺寸
+    local cw, ch = Lay.BarCellSize(200, 20, true)
+    check("BarCellSize 直向：寬＝粗細、高＝長", cw == 20 and ch == 200)
+    cw, ch = Lay.BarCellSize(200, 20, false)
+    check("BarCellSize 橫向：照舊", cw == 200 and ch == 20)
+end
+
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

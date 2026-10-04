@@ -298,6 +298,7 @@ local function Debug(silent)
         local pb, pk = CU.PendingCounts()
         p(("  自訂項目：光環格 %d  法術 %d  物品 %d（放好的框 %d、光環容器 %d 顆、建過 %d 次）  待建 %d  待補踢 %d")
             :format(n.aura, n.spell, n.item, n.placed, n.containers, CU.builds, pb, pk))
+        if CU.SegDebugLine then p(CU.SegDebugLine()) end
         local prot, total = 0, 0
         for _, rec in pairs(CU.Records()) do
             if rec.kind == "aura" and rec.container then

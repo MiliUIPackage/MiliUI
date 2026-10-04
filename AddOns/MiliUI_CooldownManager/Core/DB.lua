@@ -136,6 +136,11 @@ local function LongBar(o)
             showTime  = true, timeSize = 16, timeFont = "INHERIT",
             showStacks = true, stackSize = 12,
             spark     = false,              -- 填充末端的火花（暴雪條的 Pip）；false ＝ 藏（舊行為）
+            -- 2026-10-04 加的三組（F8；舊存檔沒有 ＝ false ＝ 舊行為，不遷移）
+            gradient  = false,              -- false | { color2 = rgba, dir = "H" | "V" }：填充從 color 漸變到 color2
+            chargeSegments  = false,        -- 自訂法術的充能：條身分成 maxCharges 段（Modules/Custom.lua）
+            chargeLineColor = rgba(0, 0, 0, 0.6),   -- 分段的分隔線顏色
+            vertical  = false,              -- 整條直向（填充由下往上、圖示在上／下、條並排）
         },
     }
     b.kind = "bars"

@@ -364,6 +364,226 @@ local function ClearBar(f)
 end
 CU.FeedBar, CU.ClearBar = FeedBar, ClearBar     -- 測試用
 
+------------------------------------------------------------
+-- 充能分段（bar.chargeSegments，F8b；自訂法術、有充能、放在長條類的條上）
+--
+-- 條身（.Bar）改成三樣（全是 .Bar 的子框，第一次需要才建，之後池化在 .Bar.Seg；.Bar 開 SetClipsChildren）：
+--   計數條  StatusBar SetAllPoints(.Bar)，SetMinMaxValues(0, maxCharges)＋SetValue(現有充能)（秘密原樣餵）
+--   進度條  StatusBar，寬＝條身長／maxCharges；LEFT 兩點錨在**計數條的填充貼圖**的右緣（直向：BOTTOM 錨頂緣），
+--           SetTimerDuration(回充物件, nil, ElapsedTime) ⇒ 在下一段裡從空跑到滿；充能滿時它在條外、被裁掉
+--   分隔線  maxCharges-1 條 1px，x ＝ 條身長 × k/max（同層數刻度的畫法：StackGate.DrawTicks），錨 .Bar 的明文幾何
+-- 計數條餵過秘密值之後幾何是秘密的：除了進度條（與跟著進度條的火花）以外沒有東西錨在它的填充貼圖上，
+-- 計數條／進度條我們一律不讀值、幾何、alpha（只錨不讀）。
+-- .Bar 自己的填充（回充的那一條，舊行為）在分段時調透明（貼圖的 SetAlpha，不是頂點色），秒數照舊吃回充物件；
+-- 名字與火花搬到最上層的字框（子框永遠蓋過父框的貼圖與字），關掉時搬回 .Bar。
+-- maxCharges：C_Spell.GetSpellCharges 的 maxCharges 過 Plain，明文時記在 rec.maxCharges（戰鬥中秘密時沿用最後一次明文的）；
+-- 從沒讀到明文 ⇒ 不分段、退回舊行為，記 /mcdm debug。
+------------------------------------------------------------
+CU.seg = { on = 0, fallback = 0, last = nil }      -- /mcdm debug：分段中的框數（Configure 時記）、退回次數、最近一次退回原因
+
+-- 要不要分段（純函式）：回 段數 或 nil, 原因（"off"｜"notcharge"｜"unknown"）
+function CU.SegmentMode(on, isCharge, maxC)
+    if not on then return nil, "off" end
+    if not isCharge then return nil, "notcharge" end
+    if type(maxC) ~= "number" then return nil, "unknown" end
+    maxC = math.floor(maxC)
+    if maxC < 2 then return nil, "notcharge" end
+    return maxC, nil
+end
+
+-- 分段的幾何（純函式）：一段多長、分隔線離起點多遠（1～max-1）；max < 2 或長度 0 回 nil
+function CU.SegmentGeometry(len, max)
+    len, max = tonumber(len) or 0, math.floor(tonumber(max) or 0)
+    if max < 2 or len <= 0 then return nil end
+    local lines = {}
+    for k = 1, max - 1 do lines[k] = len * k / max end
+    return len / max, lines
+end
+
+local function ElapsedDir()
+    local E = Enum and Enum.StatusBarTimerDirection
+    return E and E.ElapsedTime or nil
+end
+
+local function NewSegBar(parent)
+    local sb = CreateFrame("StatusBar", nil, parent)
+    sb:SetStatusBarTexture(WHITE)
+    sb:SetMinMaxValues(0, 1)
+    sb:SetValue(0)
+    return sb
+end
+
+local function EnsureSeg(b)
+    local seg = b.Seg
+    if seg then return seg end
+    seg = { count = NewSegBar(b), prog = NewSegBar(b), lines = CreateFrame("Frame", nil, b), text = CreateFrame("Frame", nil, b) }
+    seg.count:SetAllPoints(b)
+    seg.lines:SetAllPoints(b)
+    seg.text:SetAllPoints(b)
+    seg.countFill = seg.count:GetStatusBarTexture()
+    seg.progFill = seg.prog:GetStatusBarTexture()
+    b:SetClipsChildren(true)
+    b.Seg = seg
+    return seg
+end
+
+-- 分段的外觀與幾何（簽章變了才重做）：len ＝ 條身長（明文，照排版算）
+local function ConfigureSeg(b, max, len, bar, vertical)
+    local seg = EnsureSeg(b)
+    local sig = table.concat({ max, len, tostring(bar.texture), ns.Decorate.GradientSig and ns.Decorate.GradientSig(bar.gradient) or "",
+        tostring(type(bar.color) == "table" and (bar.color.r or 0) .. "," .. (bar.color.g or 0) .. "," .. (bar.color.b or 0) .. "," .. (bar.color.a or 1)),
+        tostring(type(bar.chargeLineColor) == "table" and (bar.chargeLineColor.r or 0) .. "," .. (bar.chargeLineColor.g or 0)
+            .. "," .. (bar.chargeLineColor.b or 0) .. "," .. (bar.chargeLineColor.a or 1)),
+        tostring(vertical), tostring(b:GetFrameLevel()) }, "|")
+    if b.segOn and b.segSig == sig then return seg end
+    b.segSig = sig
+    local lv = b:GetFrameLevel() or 1
+    local tex = ns.Media.Texture(bar.texture)
+    local orient = vertical and "VERTICAL" or "HORIZONTAL"
+    for _, sb in ipairs({ seg.count, seg.prog }) do
+        sb:SetStatusBarTexture(tex)
+        if sb.SetOrientation then sb:SetOrientation(orient) end
+        local ft = sb:GetStatusBarTexture()
+        if ft then ns.Decorate.PaintFill(ft, bar) end
+    end
+    seg.countFill = seg.count:GetStatusBarTexture()
+    seg.progFill = seg.prog:GetStatusBarTexture()
+    seg.count:SetMinMaxValues(0, max)
+    seg.count:SetFrameLevel(lv + 1)
+    seg.prog:SetFrameLevel(lv + 2)
+    seg.lines:SetFrameLevel(lv + 3)
+    seg.text:SetFrameLevel(lv + 4)
+    if b.Timer then b.Timer:SetFrameLevel(lv + 4) end
+    -- 進度條：只錨不讀（錨點是計數條的填充貼圖）
+    local segLen = (CU.SegmentGeometry(len, max)) or 0
+    seg.prog:ClearAllPoints()
+    if seg.countFill then
+        if vertical then
+            seg.prog:SetPoint("BOTTOMLEFT", seg.countFill, "TOPLEFT", 0, 0)
+            seg.prog:SetPoint("BOTTOMRIGHT", seg.countFill, "TOPRIGHT", 0, 0)
+            seg.prog:SetHeight(math.max(1, segLen))
+        else
+            seg.prog:SetPoint("TOPLEFT", seg.countFill, "TOPRIGHT", 0, 0)
+            seg.prog:SetPoint("BOTTOMLEFT", seg.countFill, "BOTTOMRIGHT", 0, 0)
+            seg.prog:SetWidth(math.max(1, segLen))
+        end
+    end
+    -- 分隔線：同層數刻度（1～max-1 每段一條）
+    local SG = ns.StackGate
+    if SG and SG.DrawTicks then
+        seg.lines.tickLayer = "OVERLAY"
+        SG.DrawTicks(seg.lines, b, len, { n = max, at = "all", color = bar.chargeLineColor or { r = 0, g = 0, b = 0, a = 0.6 } },
+            vertical)
+    end
+    seg.count:Show()
+    seg.prog:Show()
+    seg.lines:Show()
+    seg.text:Show()
+    -- 名字、火花搬到最上層的字框；火花跟著進度條的填充末端
+    if b.Name and b.Name.SetParent then b.Name:SetParent(seg.text) end
+    if b.Pip and b.Pip.SetParent then
+        b.Pip:SetParent(seg.text)
+        b.pipAnchor = seg.progFill
+        if b.ownPip and seg.progFill then
+            b.Pip:ClearAllPoints()
+            if vertical then
+                b.Pip:SetPoint("LEFT", seg.progFill, "TOPLEFT", 0, 0)
+                b.Pip:SetPoint("RIGHT", seg.progFill, "TOPRIGHT", 0, 0)
+            else
+                b.Pip:SetPoint("TOP", seg.progFill, "TOPRIGHT", 0, 0)
+                b.Pip:SetPoint("BOTTOM", seg.progFill, "BOTTOMRIGHT", 0, 0)
+            end
+        end
+    end
+    b.segOn = true
+    return seg
+end
+
+local function UnconfigureSeg(b, vertical)
+    if not b.segOn then return end
+    b.segOn, b.segSig = false, nil
+    local seg = b.Seg
+    if seg then
+        seg.count:Hide()
+        seg.prog:Hide()
+        seg.lines:Hide()
+        seg.text:Hide()
+    end
+    if b.Name and b.Name.SetParent then b.Name:SetParent(b) end
+    if b.Pip and b.Pip.SetParent then b.Pip:SetParent(b) end
+    b.pipAnchor = nil
+    local fill = b.GetStatusBarTexture and b:GetStatusBarTexture()
+    if fill then fill:SetAlpha(1) end
+    -- 火花錨回自己的填充末端（ApplyBarLook 下一次重套時也會照這個錨）
+    if b.Pip and b.ownPip and fill then
+        b.Pip:ClearAllPoints()
+        if vertical then
+            b.Pip:SetPoint("LEFT", fill, "TOPLEFT", 0, 0)
+            b.Pip:SetPoint("RIGHT", fill, "TOPRIGHT", 0, 0)
+        else
+            b.Pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
+            b.Pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
+        end
+    end
+end
+CU.UnconfigureSeg = UnconfigureSeg    -- 測試用
+
+-- 這一框這一次要不要分段：要 ⇒ 設好並回 true；不要 ⇒ 收掉（退回舊行為）
+local function SyncSeg(rec, f, known)
+    local b = f and f.Bar
+    if not b then return false end
+    local barKey = rec.placedBar
+    local style = barKey and ns.Decorate.Resolve(barKey)
+    local bar = style and type(style.bar) == "table" and style.bar or {}
+    local n, why = CU.SegmentMode(bar.chargeSegments and known, rec.isCharge, rec.maxCharges)
+    if not n then
+        if why == "unknown" then
+            CU.seg.fallback = CU.seg.fallback + 1
+            CU.seg.last = "讀不到明文的充能上限（" .. tostring(rec.spellID) .. "）"
+            if ns.Diag and not rec.segNoted then
+                rec.segNoted = true
+                ns.Diag.Note("chargeseg", tostring(rec.spellID) .. " 充能上限讀不到明文 ⇒ 不分段")
+            end
+        end
+        UnconfigureSeg(b, bar.vertical)
+        return false
+    end
+    local vertical = bar.vertical and true or false
+    local SG = ns.StackGate
+    local len = SG and SG.BodyWidth and SG.BodyWidth(rec.placeW, rec.placeH, bar.iconSide or "LEFT", bar.iconGap or 0, vertical) or 0
+    ConfigureSeg(b, n, len, bar, vertical)
+    -- 自己的回充那一條（舊行為）調透明：ApplyBarLook 換材質時可能換回不透明，每次照設
+    local fill = b.GetStatusBarTexture and b:GetStatusBarTexture()
+    if fill then fill:SetAlpha(0) end
+    return true
+end
+
+-- 分段的餵值：計數條吃現有充能（秘密原樣），進度條吃回充物件（沒有 ⇒ 清掉；滿的時候本來就在條外）
+local function FeedSeg(f, cur, cdur)
+    local seg = f.Bar and f.Bar.Seg
+    if not seg then return end
+    local c = seg.count
+    if ns.IsSecret(cur) or cur ~= nil then pcall(c.SetValue, c, cur) else pcall(c.SetValue, c, 0) end
+    local p = seg.prog
+    if cdur and p.SetTimerDuration and pcall(p.SetTimerDuration, p, cdur, nil, ElapsedDir()) then return end
+    local z = ZeroDuration()
+    if not (z and p.SetTimerDuration and pcall(p.SetTimerDuration, p, z, nil, ElapsedDir())) then
+        pcall(p.SetMinMaxValues, p, 0, 1)
+        pcall(p.SetValue, p, 0)
+    end
+end
+CU.SyncSeg, CU.FeedSeg = SyncSeg, FeedSeg        -- 測試用
+
+function CU.SegDebugLine()
+    local on = 0
+    for _, rec in pairs(records) do
+        local f = rec.frames and rec.frames.bars
+        if f and f.Bar and f.Bar.segOn and rec.placedBar then on = on + 1 end
+    end
+    return ("  充能分段：分段中 %d 條  退回舊行為 %d 次%s"):format(on, CU.seg.fallback,
+        CU.seg.last and ("（最近：" .. CU.seg.last .. "）") or "")
+end
+
 -- 框上的冷卻：圖示框轉圈、長條框條身＋秒數
 local function FeedCooldown(f, dur)
     if f.Bar then return FeedBar(f, dur) end
@@ -544,7 +764,10 @@ local function SpellCharges(rec, spellID)
     local info = Try(C_Spell and C_Spell.GetSpellCharges, spellID)
     if type(info) ~= "table" then return nil end
     local maxC = Plain(info.maxCharges)
-    if type(maxC) == "number" then rec.isCharge = maxC > 1 end
+    if type(maxC) == "number" then
+        rec.isCharge = maxC > 1
+        rec.maxCharges = maxC         -- 充能分段（F8b）用；秘密時沿用最後一次明文的
+    end
     return info.currentCharges
 end
 
@@ -608,6 +831,8 @@ local function UpdateSpell(rec)
     if isBar then
         local bd = (rec.isCharge and known and cdur) or dur
         if bd then FeedBar(f, bd) else ClearBar(f) end
+        -- 充能分段（F8b）：開著、有充能、上限讀過明文 ⇒ 計數條＋進度條；否則收掉回舊行為
+        if SyncSeg(rec, f, known) then FeedSeg(f, cur, cdur) end
     end
 
     -- 去飽和：剩餘 > 0 ⇒ 1（引擎求值，秘密值照樣成立）
@@ -750,8 +975,14 @@ local function StyleBarTimer(rec, f, barKey)
     if not fs then return end
     ns.Text.SetFont(fs, bar.timeSize or 12, style.outline, ns.Media.ElementFont(bar.timeFont, style.font))
     fs:SetTextColor(1, 1, 1, 1)
-    ns.Text.Anchor(fs, f.Bar, "RIGHT", -4, 0)
-    if fs.SetJustifyH then fs:SetJustifyH("RIGHT") end
+    -- 直向（F8c）：疊在條身內的頂端
+    if bar.vertical then
+        ns.Text.Anchor(fs, f.Bar, "TOP", 0, -4)
+        if fs.SetJustifyH then fs:SetJustifyH("CENTER") end
+    else
+        ns.Text.Anchor(fs, f.Bar, "RIGHT", -4, 0)
+        if fs.SetJustifyH then fs:SetJustifyH("RIGHT") end
+    end
 end
 CU.StyleBarTimer = StyleBarTimer      -- 測試用
 
@@ -1052,6 +1283,7 @@ end
 local GLOW_TYPES = { pixel = true, autocast = true, button = true, proc = true }
 
 -- shape ＝ "bars"：長條的外觀（ApplyBarGeometry／ApplyBarLook／Text.ApplyBar 讀的那幾格）也解進來、進簽章
+local gradCache = {}        -- 光環長條的漸層顏色物件（F8a）：依「方向＋兩色」快取，換容器時不重配
 local function AuraStyle(rec, barKey, w, h, shape)
     local S, SS, id = ns.Setting, ns.SpellSetting, rec.cooldownID
     local border = S(barKey, "border") or {}
@@ -1106,13 +1338,32 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.showTime  = bar.showTime and true or false
         st.showStacks = bar.showStacks and true or false
         st.name      = Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or ""
+        -- 直向（F8c）：格子是 w（粗細）× h（條長），圖示 w×w 在上／下（side 的 LEFT／RIGHT），名字不畫
+        st.vert      = bar.vertical and true or false
+        st.isz       = st.vert and (tonumber(w) or 20) or st.bh
+        -- 漸層（F8a）：顏色物件在這裡（容器建立之前）建好，initializeFrame 裡只查表
+        local cg = ns.Decorate and ns.Decorate.CleanGradient and ns.Decorate.CleanGradient(bar.gradient)
+        if cg and CreateColor then
+            local gsig = cg.dir .. C(st.bfill) .. ">" .. C({ cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a })
+            local hit = gradCache[gsig]
+            if not hit then
+                hit = { o = cg.dir == "V" and "VERTICAL" or "HORIZONTAL", sig = gsig,
+                    c1 = CreateColor(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4]),
+                    c2 = CreateColor(cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a) }
+                gradCache[gsig] = hit
+            end
+            st.bgrad = hit
+        end
         barSig = table.concat({ "bars", string.format("%.2f,%.2f", st.bh, st.bgap), st.side, st.btex, C(st.bfill), C(st.bbg),
             tostring(st.spark), st.nameFont, st.nameSize, st.timeFont, st.timeSize, st.barStack,
-            tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name }, ",")
+            tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name,
+            tostring(st.vert), string.format("%.2f", st.isz), st.bgrad and st.bgrad.sig or "-" }, ",")
     end
     -- 生效發光：開著而且知道格子尺寸才畫；關著時不進簽章（尺寸變了不必換容器）。
-    -- 長條畫在圖示那一格（h×h）；沒有圖示（NONE）時畫整格
-    if shape == "bars" and st.side ~= "NONE" then w = h end
+    -- 長條畫在圖示那一格（h×h；直向 w×w）；沒有圖示（NONE）時畫整格
+    if shape == "bars" and st.side ~= "NONE" then
+        if st.vert then h = w else w = h end
+    end
     local glowSig = "-"
     if SS(barKey, id, "activeGlow") and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
         local g = S(barKey, "glow.active")
@@ -1293,29 +1544,49 @@ local function InitAuraBarButton(btn, c, st, rec)
         btn:ClearAllPoints()
         btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout
     end)
-    local H, gap, side, s = st.bh, st.bgap, st.side, st.scale
+    local H, gap, side, s = st.isz or st.bh, st.bgap, st.side, st.scale
+    local vert = st.vert
 
     local icon = btn:CreateTexture(nil, "ARTWORK")
     icon:SetSize(H, H)
-    if side == "RIGHT" then icon:SetPoint("RIGHT", btn, "RIGHT", 0, 0) else icon:SetPoint("LEFT", btn, "LEFT", 0, 0) end
+    if vert then
+        if side == "RIGHT" then icon:SetPoint("BOTTOM", btn, "BOTTOM", 0, 0) else icon:SetPoint("TOP", btn, "TOP", 0, 0) end
+    elseif side == "RIGHT" then icon:SetPoint("RIGHT", btn, "RIGHT", 0, 0) else icon:SetPoint("LEFT", btn, "LEFT", 0, 0) end
     local z = st.zoom
     icon:SetTexCoord(z, 1 - z, z, 1 - z)
     if side == "NONE" then icon:SetAlpha(0) end
     btn:SetIcon(icon)
 
     local bar = CreateFrame("StatusBar", nil, btn)
-    if side == "RIGHT" then
+    if side == "NONE" then
+        bar:SetAllPoints(btn)
+    elseif vert and side == "RIGHT" then
+        bar:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+        bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, H + gap)
+    elseif vert then
+        bar:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, -(H + gap))
+        bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+    elseif side == "RIGHT" then
         bar:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
         bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -(H + gap), 0)
-    elseif side == "NONE" then
-        bar:SetAllPoints(btn)
     else
         bar:SetPoint("TOPLEFT", btn, "TOPLEFT", H + gap, 0)
         bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
     end
+    if vert then bar:SetOrientation("VERTICAL") end
     bar:SetStatusBarTexture(st.btex)
     local fill = bar:GetStatusBarTexture()
-    if fill then fill:SetVertexColor(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4]) end
+    if fill then
+        local gr = st.bgrad
+        if gr and fill.SetGradient then
+            fill:SetVertexColor(1, 1, 1, 1)
+            if not pcall(fill.SetGradient, fill, gr.o, gr.c1, gr.c2) then
+                fill:SetVertexColor(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4])
+            end
+        else
+            fill:SetVertexColor(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4])
+        end
+    end
     local bg = bar:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints(bar)
     bg:SetTexture(WHITE)
@@ -1324,9 +1595,15 @@ local function InitAuraBarButton(btn, c, st, rec)
         local pip = bar:CreateTexture(nil, "OVERLAY")
         pip:SetTexture(WHITE)
         pip:SetVertexColor(1, 1, 1, 0.9)
-        pip:SetWidth(2)
-        pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
-        pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
+        if vert then
+            pip:SetHeight(2)
+            pip:SetPoint("LEFT", fill, "TOPLEFT", 0, 0)
+            pip:SetPoint("RIGHT", fill, "TOPRIGHT", 0, 0)
+        else
+            pip:SetWidth(2)
+            pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
+            pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
+        end
     end
     -- 不自己 SetMinMaxValues／SetValue：剩餘時間由引擎寫（CustomAuraButtonDurationBarOptions：interpolation、direction）
     local opts = {}
@@ -1344,7 +1621,7 @@ local function InitAuraBarButton(btn, c, st, rec)
     end
 
     -- 名字：主法術的名字（明文），按鈕只在光環存在時顯示 ⇒ 名字跟著出現
-    if st.showName and st.name ~= "" then
+    if st.showName and not vert and st.name ~= "" then
         local fs = ov:CreateFontString(nil, "OVERLAY")
         fs:SetFont(st.nameFont, st.nameSize * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
@@ -1362,8 +1639,13 @@ local function InitAuraBarButton(btn, c, st, rec)
         fs:SetFont(st.timeFont, st.timeSize * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
         fs:SetTextColor(1, 1, 1, 1)
-        fs:SetJustifyH("RIGHT")
-        fs:SetPoint("RIGHT", bar, "RIGHT", -4 * s, 0)
+        if vert then
+            fs:SetJustifyH("CENTER")
+            fs:SetPoint("TOP", bar, "TOP", 0, -4 * s)
+        else
+            fs:SetJustifyH("RIGHT")
+            fs:SetPoint("RIGHT", bar, "RIGHT", -4 * s, 0)
+        end
         if not (st.formatter and pcall(btn.SetDurationText, btn, fs, { textFormatter = st.formatter })) then
             pcall(btn.SetDurationText, btn, fs)
         end
@@ -1463,7 +1745,8 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     bar = type(bar) == "table" and bar or {}
     local side = bar.iconSide
     if side ~= "RIGHT" and side ~= "NONE" then side = "LEFT" end
-    local H = tonumber(h) or 20
+    local vert = bar.vertical and true or false        -- 直向（F8c）：圖示 w×w 在上／下、名字不畫
+    local H = vert and (tonumber(w) or 20) or (tonumber(h) or 20)
     local gap = ns.Layout.Snap(tonumber(bar.iconGap) or 0)
     local font = ns.Media.ElementFont(bar.nameFont, ns.Setting(barKey, "font"))
     local outline = ns.Setting(barKey, "outline") or ""
@@ -1473,7 +1756,7 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     local bgc = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
     local sig = table.concat({ side, string.format("%.2f,%.2f", H, gap), tostring(font), outline, tostring(tex), name, z,
         tostring(bar.nameSize), tostring(bar.timeSize), tostring(bar.showName and true or false),
-        string.format("%.3f,%.3f,%.3f,%.3f", bgc[1], bgc[2], bgc[3], bgc[4]) }, "|")
+        string.format("%.3f,%.3f,%.3f,%.3f", bgc[1], bgc[2], bgc[3], bgc[4]), tostring(vert) }, "|")
     if hd.phSig == sig and hd.phBG and hd.phBG:IsShown() then return end
     hd.phSig = sig
     if not hd.phBG then
@@ -1485,7 +1768,13 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     ns.Write(hd, function(fr)
         local bgT, icon, fs = fr.phBG, fr.phIcon, fr.phName
         bgT:ClearAllPoints()
-        if side == "RIGHT" then
+        if vert and side == "RIGHT" then
+            bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", 0, 0)
+            bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", 0, H + gap)
+        elseif vert and side ~= "NONE" then
+            bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", 0, -(H + gap))
+            bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", 0, 0)
+        elseif side == "RIGHT" then
             bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", 0, 0)
             bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", -(H + gap), 0)
         elseif side == "NONE" then
@@ -1499,7 +1788,9 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
         bgT:Show()
         icon:ClearAllPoints()
         icon:SetSize(H, H)
-        if side == "RIGHT" then icon:SetPoint("RIGHT", fr, "RIGHT", 0, 0) else icon:SetPoint("LEFT", fr, "LEFT", 0, 0) end
+        if vert then
+            if side == "RIGHT" then icon:SetPoint("BOTTOM", fr, "BOTTOM", 0, 0) else icon:SetPoint("TOP", fr, "TOP", 0, 0) end
+        elseif side == "RIGHT" then icon:SetPoint("RIGHT", fr, "RIGHT", 0, 0) else icon:SetPoint("LEFT", fr, "LEFT", 0, 0) end
         icon:SetTexture(tex)
         icon:SetTexCoord(z, 1 - z, z, 1 - z)
         icon:SetDesaturated(true)
@@ -1513,7 +1804,7 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
         fs:SetPoint("RIGHT", bgT, "RIGHT", -((bar.timeSize or 12) * 3) * s, 0)
         if fs.SetJustifyH then fs:SetJustifyH("LEFT") end
         fs:SetText(name)
-        fs:SetShown(bar.showName and true or false)
+        fs:SetShown((bar.showName and not vert) and true or false)
     end, "placeholder")
 end
 
@@ -1554,7 +1845,10 @@ local function Retire(rec, old)
     old:Hide()
     if old.Cooldown then old.Cooldown:Clear() end
     if old.ChargeCooldown then old.ChargeCooldown:Clear() end
-    if old.Bar then ClearBar(old) end
+    if old.Bar then
+        ClearBar(old)
+        UnconfigureSeg(old.Bar)
+    end
     if ns.Glow then ns.Glow.OnParked(rec) end
 end
 

@@ -21,6 +21,8 @@
 --      去飽和（曲線求值、暴雪寫 false 之後重算、設定關掉不動）、設定切換（SyncAuraHide）
 --   8. /mcdm perf：計數表 → 文字行（PerfLines：每秒、佔幾 %、沒有的計數、現況值）、脫戰那一行（PerfSummary）、
 --      指令（reset 只記基準不動模組上的計數、log 開關、進出戰鬥的那一場）
+--  14. 直向長條（F8c）：ApplyBarGeometry 直向分支、暴雪火花轉向與還原
+--  13. 長條漸層填充（F8a）：CleanGradient／GradientSig／PaintFill 的呼叫順序、預設值
 --  12. 挑選器「背包物品」（F6）：BagRows 的去重／有使用效果才列／依名字排序（沒名字的排後面依 ID）／數量／已加入；
 --      ScanBags（bag 0～4、秘密值與空格跳過）；PresetRows("bag") 接起來（加入後標已加入、make 的形狀）
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
@@ -1562,6 +1564,90 @@ do
     eq("名字沒載入 ⇒ 要資料", requested[1], 201)
     env.C_Item = savedItem
     env.C_Container = nil
+end
+
+------------------------------------------------------------
+-- 13. 長條的漸層填充（F8a）：清洗、簽章片段、上色出口（兩種頂點色模型都對的呼叫順序）
+------------------------------------------------------------
+do
+    eq("漸層：false ⇒ nil", D.CleanGradient(false), nil)
+    eq("漸層：沒有終點色 ⇒ nil", D.CleanGradient({ dir = "H" }), nil)
+    local g = D.CleanGradient({ color2 = { r = 1, g = 0.5, b = 0 }, dir = "亂寫" })
+    eq("漸層：壞方向 ⇒ H", g.dir, "H")
+    eq("漸層：alpha 沒給 ⇒ 1", g.color2.a, 1)
+    eq("漸層：V 照收", D.CleanGradient({ color2 = {}, dir = "V" }).dir, "V")
+    eq("漸層簽章：關", D.GradientSig(false), "-")
+    check("漸層簽章：方向不同就不同",
+        D.GradientSig({ color2 = { r = 1, g = 1, b = 1, a = 1 }, dir = "H" }) ~= D.GradientSig({ color2 = { r = 1, g = 1, b = 1, a = 1 }, dir = "V" }))
+    eq("預設值：漸層關", DB.NewBarTable("bars", "x").bar.gradient, false)
+
+    local savedCC = env.CreateColor
+    env.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
+    local calls = {}
+    local tex = {}
+    function tex:SetVertexColor(r, g, b, a) calls[#calls + 1] = { "v", r, g, b, a } end
+    function tex:SetGradient(o, c1, c2) calls[#calls + 1] = { "g", o, c1, c2 } end
+    local bar = { color = { r = 0.2, g = 0.3, b = 0.4, a = 1 }, gradient = { dir = "V", color2 = { r = 1, g = 0, b = 0, a = 0.5 } } }
+    D.PaintFill(tex, bar)
+    eq("漸層：先白", calls[1][1] .. calls[1][2], "v1")
+    eq("漸層：再 SetGradient", calls[2][1], "g")
+    eq("漸層：V ⇒ VERTICAL", calls[2][2], "VERTICAL")
+    eq("漸層：起點＝條色", calls[2][3].r, 0.2)
+    eq("漸層：終點＝color2", calls[2][4].a, 0.5)
+    calls = {}
+    bar.gradient = false
+    D.PaintFill(tex, bar)
+    eq("關掉：畫過漸層的先洗成白→白", calls[1][1], "g")
+    eq("關掉：白", calls[1][3].r, 1)
+    eq("關掉：再單色", calls[2][1] .. tostring(calls[2][2]), "v0.2")
+    calls = {}
+    D.PaintFill(tex, bar)
+    eq("沒畫過漸層：只 SetVertexColor", #calls, 1)
+    calls = {}
+    bar.gradient = { dir = "H", color2 = { r = 1, g = 1, b = 1, a = 1 } }
+    D.PaintFill(tex, bar)
+    D.PaintFill(tex, bar, { r = 1, g = 0.5, b = 0, a = 1 })
+    eq("提醒色：洗掉漸層", calls[3][1], "g")
+    eq("提醒色：單色", calls[4][1] .. tostring(calls[4][2]) .. tostring(calls[4][3]), "v10.5")
+    env.CreateColor = savedCC
+end
+
+------------------------------------------------------------
+-- 14. 直向長條的幾何（F8c）：ApplyBarGeometry 的直向分支、暴雪火花轉向與還原
+------------------------------------------------------------
+do
+    local function R()
+        local o = { pts = {} }
+        function o:ClearAllPoints() self.pts = {} end
+        function o:SetPoint(...) self.pts[#self.pts + 1] = { ... } end
+        function o:SetSize(w, h) self.w, self.h = w, h end
+        function o:SetAlpha(a) self.alpha = a end
+        function o:IsShown() return true end
+        function o:SetOrientation(v) self.orient = v end
+        function o:SetRotation(v) self.rot = v end
+        return o
+    end
+    local item, icon, bar, pip, fill = R(), R(), R(), R(), R()
+    bar.Pip = pip
+    function bar:GetStatusBarTexture() return fill end
+    item.Icon, item.Bar = icon, bar
+    D.ApplyBarGeometry(item, nil, { h = 220, w = 20, side = "LEFT", gap = 2, vertical = true })
+    eq("直向：條身直向", bar.orient, "VERTICAL")
+    check("直向：圖示 w×w", icon.w == 20 and icon.h == 20)
+    eq("直向：圖示在上", icon.pts[1][1], "TOP")
+    eq("直向：條身頂接圖示底", bar.pts[1][3], "BOTTOMLEFT")
+    eq("直向：間距往下", bar.pts[1][5], -2)
+    eq("直向：暴雪火花錨填充頂緣", pip.pts[1][3], "TOP")
+    check("直向：火花轉 90 度", pip.rot and pip.rot > 1.5)
+    D.ApplyBarGeometry(item, nil, { h = 220, w = 20, side = "RIGHT", gap = 2, vertical = true })
+    eq("直向 RIGHT：圖示在下", icon.pts[1][1], "BOTTOM")
+    D.ApplyBarGeometry(item, nil, { h = 20, w = 220, side = "LEFT", gap = 2 })
+    eq("橫向：條身橫向", bar.orient, "HORIZONTAL")
+    eq("橫向：火花錨回暴雪原本的 RIGHT", pip.pts[1][3], "RIGHT")
+    eq("橫向：火花轉回 0", pip.rot, 0)
+    pip.pts = { "untouched" }
+    D.ApplyBarGeometry(item, nil, { h = 20, w = 220, side = "LEFT", gap = 2 })
+    eq("沒轉過的火花不碰", pip.pts[1], "untouched")
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))

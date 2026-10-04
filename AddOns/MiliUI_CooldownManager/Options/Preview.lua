@@ -103,7 +103,10 @@ local function Sizing(key, bar)
         if w <= 0 then w = (type(layout.size) == "table" and tonumber(layout.size.w)) or 200 end
     end
     local h = tonumber(cfg.height) or 20
-    return { maxPerRow = 1, spacing = layout.spacing, grow = layout.grow, size = { w = w, h = h } }
+    -- 直向（F8c）：「寬」是條長、「高」是粗細 ⇒ 格子轉 90 度，條並排（Layout.Compute 看 vertical）
+    local vertical = cfg.vertical and true or false
+    w, h = ns.Layout.BarCellSize(w, h, vertical)
+    return { maxPerRow = 1, spacing = layout.spacing, grow = layout.grow, size = { w = w, h = h }, vertical = vertical }
 end
 
 local function SetupFont(fs, size)

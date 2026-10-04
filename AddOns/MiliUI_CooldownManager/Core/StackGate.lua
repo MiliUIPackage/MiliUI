@@ -257,10 +257,12 @@ function SG.TickX(bodyW, n, k)
     return bodyW * k / n
 end
 
--- 條身寬：格寬扣掉圖示（正方形，邊長 ＝ 格高）與間距；圖示「無」時整格都是條身
+-- 條身長（沿填充方向）：格寬扣掉圖示（正方形，邊長 ＝ 格高）與間距；圖示「無」時整格都是條身。
+-- 直向（vertical，F8c）：格高扣掉圖示（邊長 ＝ 格寬）與間距
 -- （跟 Decorate.ApplyBarGeometry 的錨法對應；不讀暴雪的框）
-function SG.BodyWidth(w, h, side, gap)
+function SG.BodyWidth(w, h, side, gap, vertical)
     w, h, gap = tonumber(w) or 0, tonumber(h) or 0, tonumber(gap) or 0
+    if vertical then w, h = h, w end
     if side == "NONE" then return math.max(0, w) end
     return math.max(0, w - h - gap)
 end
@@ -331,6 +333,14 @@ function SG.HasLayers(cfg)
     return cfg ~= nil and (cfg.colors ~= nil or cfg.stackBar ~= nil or cfg.ticks ~= nil)
 end
 
+-- 漸層的簽章片段（F8a；Decorate 沒載入的測試環境照自己的格式）
+local function GradSig(g)
+    local D = ns.Decorate
+    if D and D.GradientSig then return D.GradientSig(g) end
+    if type(g) ~= "table" or type(g.color2) ~= "table" then return "-" end
+    return (g.dir == "V" and "V" or "H") .. ":" .. CSig(g.color2)
+end
+
 -- 簽章：門檻、發光樣式、各段門檻與顏色、層數當填充的 N、刻度、格子尺寸、
 -- 條身材質／顏色／底色、圖示邊與間距（條身寬）、火花（條身底下那一層自己畫）
 function SG.Signature(cfg, w, h, bar)
@@ -354,6 +364,7 @@ function SG.Signature(cfg, w, h, bar)
         bar = type(bar) == "table" and bar or {}
         parts[#parts + 1] = tostring(bar.texture) .. "/" .. CSig(bar.color) .. "/" .. CSig(bar.bgColor)
             .. "/" .. tostring(bar.iconSide) .. "/" .. tostring(bar.iconGap) .. "/" .. tostring(bar.spark)
+            .. "/" .. GradSig(bar.gradient) .. "/" .. tostring(bar.vertical and true or false)
     end
     return table.concat(parts, "|")
 end
@@ -486,6 +497,13 @@ local function C4(c, dr, dg, db, da)
     return c.r or dr, c.g or dg, c.b or db, c.a or da
 end
 
+-- 填充貼圖上色（單色或漸層，F8a）：同 Decorate.ApplyBarLook 的那支；測試環境沒有 Decorate 時退回單色
+local function PaintFill(tex, bar)
+    local D = ns.Decorate
+    if D and D.PaintFill then return D.PaintFill(tex, bar) end
+    tex:SetVertexColor(C4(type(bar) == "table" and bar.color, 0.4, 0.6, 0.9, 1))
+end
+
 local function Conceal(item, rec)
     local ui = rec.stackUI
     local bar = ui and ui.barStyle
@@ -511,7 +529,7 @@ local function Restore(item, rec)
     local bar = ui.barStyle or {}
     local b, fill = BlizzBar(item)
     if not b then return end
-    if fill then fill:SetVertexColor(C4(bar.color, 0.4, 0.6, 0.9, 1)) end
+    if fill then PaintFill(fill, bar) end
     if b.BarBG then b.BarBG:SetVertexColor(C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8)) end
     if bar.stackBar and b.Pip then b.Pip:SetAlpha(bar.spark and 1 or 0) end
 end
@@ -598,8 +616,10 @@ end
 ------------------------------------------------------------
 -- 刻度（真實條與設定頁預覽共用）：host 是自己的框（貼圖池 host.tickLines），線錨在 anchor
 -- （條身）左緣往右 x；x 與線寬像素對齊。ticks ＝ CleanTicks 的結果；nil 全藏
+-- vertical（F8c）：條身直向、填充由下往上 ⇒ 改畫水平線，離底緣 y ＝ 條身長 × k/N
+-- 充能分段（Modules/Custom.lua，F8b）的分隔線也用這支（ticks ＝ { n = 段數, at = "all", color }）
 ------------------------------------------------------------
-function SG.DrawTicks(host, anchor, bodyW, ticks)
+function SG.DrawTicks(host, anchor, bodyW, ticks, vertical)
     if not host then return end
     local pool = host.tickLines
     if not pool then
@@ -619,9 +639,15 @@ function SG.DrawTicks(host, anchor, bodyW, ticks)
         end
         local x = snap(SG.TickX(bodyW, ticks.n, k))
         line:ClearAllPoints()
-        line:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, 0)
-        line:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", x, 0)
-        line:SetWidth(px)
+        if vertical then
+            line:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", 0, x)
+            line:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", 0, x)
+            line:SetHeight(px)
+        else
+            line:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, 0)
+            line:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", x, 0)
+            line:SetWidth(px)
+        end
         line:SetVertexColor(r, g, b, a)
         line:Show()
     end
@@ -674,8 +700,10 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         fb:SetAllPoints(b)
         fb:SetFrameLevel(lv + 1)
         fb:SetStatusBarTexture(tex)
+        -- 直向長條（F8c）：層數填充由下往上，跟暴雪條身同方向
+        if fb.SetOrientation then fb:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL") end
         local ft = fb:GetStatusBarTexture()
-        if ft then ft:SetVertexColor(C4(bar.color, 0.4, 0.6, 0.9, 1)) end
+        if ft then PaintFill(ft, bar) end
         fb:SetMinMaxValues(0, cfg.stackBar)
         fb:Show()
         root.base:Hide()
@@ -686,7 +714,7 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         root.base:ClearAllPoints()
         root.base:SetAllPoints(fill)
         root.base:SetTexture(tex)
-        root.base:SetVertexColor(C4(bar.color, 0.4, 0.6, 0.9, 1))
+        PaintFill(root.base, bar)
         root.base:Show()
     end
     local colors = cfg.colors or {}
@@ -724,12 +752,13 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         tf:ClearAllPoints()
         tf:SetAllPoints(root)
         tf:SetFrameLevel(lv + 2 + SG.MAX_COLORS)
-        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0), cfg.ticks)
+        local vert = bar.vertical and true or false
+        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg.ticks, vert)
         tf:Show()
     elseif ui.ticks then
         ui.ticks:Hide()
     end
-    ui.barStyle = { color = bar.color, bgColor = bar.bgColor, spark = bar.spark,
+    ui.barStyle = { color = bar.color, bgColor = bar.bgColor, spark = bar.spark, gradient = bar.gradient,
         stackBar = cfg.stackBar ~= nil }
     root:Show()
     Conceal(item, rec)
@@ -896,7 +925,8 @@ function SG.ApplyPreview(cell, barKey, id, w, h)
     bar = type(bar) == "table" and bar or {}
     local host = cell.Bar
     host.tickLayer, host.tickSub = "ARTWORK", 7          -- 在填充上面、名字／時間字底下
-    SG.DrawTicks(host, host, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0), cfg and cfg.ticks)
+    local vert = bar.vertical and true or false
+    SG.DrawTicks(host, host, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg and cfg.ticks, vert)
 end
 
 -- 預覽條的值（0～1）：層數當填充畫 2 層（N 小於 2 就是滿的）

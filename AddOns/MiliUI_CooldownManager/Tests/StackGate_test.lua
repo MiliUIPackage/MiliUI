@@ -296,6 +296,9 @@ do
     eq("條身寬：右圖示", SG.BodyWidth(220, 20, "RIGHT", 0), 200)
     eq("條身寬：沒圖示", SG.BodyWidth(220, 20, "NONE", 5), 220)
     eq("條身寬不為負", SG.BodyWidth(10, 20, "LEFT", 0), 0)
+    -- 直向（F8c）：格子 w ＝ 粗細、h ＝ 條長；圖示 w×w
+    eq("條身長：直向上圖示", SG.BodyWidth(20, 220, "LEFT", 2, true), 198)
+    eq("條身長：直向沒圖示", SG.BodyWidth(20, 220, "NONE", 2, true), 220)
     near("預覽填 2/N", SG.PreviewFill(5), 0.4)
     eq("預覽 N=1 滿", SG.PreviewFill(1), 1)
 end
@@ -337,6 +340,15 @@ do
     check("換色顏色進簽章", SG.Signature(SG.Config("buffbars", 10, true, true), 36, 36, settings.bar) ~= s1)
     check("條身材質進簽章", SG.Signature(c1, 36, 36, { texture = "other" }) ~= s1)
     eq("沒設定沒有簽章", SG.Signature(nil, 1, 1), nil)
+    -- 漸層（F8a）：條身底下那一層的原色填充套同一個漸層 ⇒ 進簽章
+    local gbar = { texture = "solid", color = settings.bar.color, bgColor = settings.bar.bgColor,
+                   gradient = { dir = "H", color2 = { r = 1, g = 1, b = 1, a = 1 } } }
+    local sg1 = SG.Signature(c1, 36, 36, gbar)
+    check("漸層進簽章", sg1 ~= s1)
+    gbar.gradient.dir = "V"
+    check("漸層方向進簽章", SG.Signature(c1, 36, 36, gbar) ~= sg1)
+    gbar.gradient = false
+    eq("漸層 false ＝ 沒漸層的簽章", SG.Signature(c1, 36, 36, gbar), s1)
 
     -- 層數當填充／刻度：只有長條才有；進簽章
     overrides[12] = { stackBar = { max = 5 } }
@@ -796,6 +808,22 @@ do
     overrides[41].stackTicks = { at = { 2 } }
     SG.Apply(it, rec, "buffbars", 120, 20, true)
     eq("少了 ⇒ 多的藏", tf.tickLines[2].shown, false)
+
+    -- 直向長條（F8c）：填充條轉直向、刻度改水平線（離底緣 y ＝ 條身長 × k/N）
+    settings.bar.vertical = true
+    local orient
+    fb.SetOrientation = function(_, o) orient = o end
+    overrides[41].stackTicks = { at = "all" }
+    SG.Apply(it, rec, "buffbars", 20, 220, true)
+    eq("直向：填充條直向", orient, "VERTICAL")
+    -- 條身長 ＝ 220 − 20（圖示 w×w）＝ 200；第 1 條 y ＝ 40
+    eq("直向：刻度錨底緣", tf.tickLines[1].points[1][1], "BOTTOMLEFT")
+    eq("直向：第 1 條 y", tf.tickLines[1].points[1][5], 40)
+    eq("直向：水平線的兩點", tf.tickLines[1].points[2][1], "BOTTOMRIGHT")
+    settings.bar.vertical = nil
+    SG.Apply(it, rec, "buffbars", 120, 20, true)
+    eq("切回橫向：填充條橫向", orient, "HORIZONTAL")
+    overrides[41].stackTicks = { at = { 2 } }
 
     -- 拿掉層數當填充（只留換色）：時間層回來、填充條藏、色塊改錨暴雪的填充
     overrides[41].stackBar = nil
