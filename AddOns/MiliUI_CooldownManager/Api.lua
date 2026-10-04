@@ -309,6 +309,7 @@ local function Debug(silent)
     if ns.Keybinds and ns.Keybinds.CacheSize then
         p(("  按鍵文字：快取 %d 筆"):format(ns.Keybinds.CacheSize()))
     end
+    if ns.Keybinds and ns.Keybinds.PressDebugLine then p(ns.Keybinds.PressDebugLine()) end
     p("  容器層待補寫入（戰鬥記帳）：" .. tostring(ns.PendingWrites()))
     if ns.EditMode and ns.EditMode.DebugLines then
         for _, line in ipairs(ns.EditMode.DebugLines()) do p(line) end

@@ -106,6 +106,9 @@ function D.Resolve(barKey, fresh)
         border       = S(barKey, "border") or {},
         zoom         = tonumber(S(barKey, "icon.zoom")) or 0,
         tooltips     = S(barKey, "icon.tooltips") and true or false,
+        -- 按鍵鏡射（Core/Keybinds.lua 的 SyncPress 讀這兩欄）：舊存檔沒有 ＝ 主題預設 false／0.35
+        pressFlash   = S(barKey, "icon.pressFlash") and true or false,
+        pressAlpha   = tonumber(S(barKey, "icon.pressFlashAlpha")) or 0.35,
         swipeColor   = S(barKey, "icon.swipeColor"),
         hideGCDSwipe = S(barKey, "icon.hideGCDSwipe") and true or false,
         hideDebuffBorder = S(barKey, "icon.hideDebuffBorder") ~= false,   -- 舊存檔沒有這欄 ＝ 預設藏
@@ -123,6 +126,7 @@ function D.Resolve(barKey, fresh)
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
+        tostring(r.pressFlash), r.pressAlpha,
         tostring(r.colorDuration), CSig(r.durationColor), CSig(r.durationLowColor), CSig(r.durationSwipeColor),
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
         type(r.bar) == "table" and TSig(r.bar) or "-",

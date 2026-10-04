@@ -411,6 +411,9 @@ function DB.BuildDefaults()
                 -- skin：圖示外觀 "miliui"（自己畫邊框／縮放）| "masque"（交給 Masque，Core/Masque.lua）；
                 -- 舊存檔沒有這欄 ＝ 預設，不遷移
                 icon  = { skin = "miliui", zoom = 0.08, swipeColor = rgba(0, 0, 0, 0.8), tooltips = true,
+                          -- 按鍵鏡射（Core/Keybinds.lua）：按下這格的綁定鍵時亮一層白。長條類／增益圖示列不做。
+                          -- 舊存檔沒有這兩欄 ＝ 合併預設值補成關，行為不變、不遷移
+                          pressFlash = false, pressFlashAlpha = 0.35,
                           hideGCDSwipe = false, desaturateOnCooldown = true,
                           -- 暴雪的減益類型邊框（打在目標上的魔法／詛咒…減益會框一圈驅散色）：預設藏
                           hideDebuffBorder = true,

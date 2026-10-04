@@ -51,7 +51,7 @@
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -74,7 +74,7 @@
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上。無損刷新的兩支後掛勾是「本體一律 `ns.Guard`」的唯一例外（每幀叫，無事路徑只查表＋比布林；狀態變了才進 Guard） |
 | `Core/StackGate.lua` | 層數門檻：增益「層數到 N 才發光」與增益長條「層數到 N 換色」（閘＋裁切框，秘密層數也成立），見「層數門檻發光＋長條層數門檻換色」 |
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
-| `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
+| `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角；按鍵鏡射（綁定指令的後掛勾 → 格號 → 那幾格亮一層白，見「按鍵鏡射」） |
 | `Core/Assist.lua` | 戰鬥輔助：自己輪詢下一招建議（`C_AssistedCombat.GetNextCastSpell`），醒目標示畫在索引查到的格子上；建議變了廣播 `AssistSpellChanged`（見「戰鬥輔助」） |
 | `Core/Cursor.lua` | 跟著游標的自訂圖示群組：資格判斷、共用 driver 框的 OnUpdate（只在有這種條而且看得到時掛），見「小項」 |
 | `Core/Clickable.lua` | 可點擊的自訂圖示群組：每格蓋一顆透明的 secure 鈕（屬性戰鬥外寫好、寫入走 `ns.Write`＋簽章去重），見「可點擊的自訂群組」 |
@@ -1017,6 +1017,38 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
   - 接收條不能再溢出，也不能自己設上限；一條可以同時接收好幾條。
   - 從 `Ayije_CDM` 匯入沒有對應：它沒有這兩個設定（「Max Icons／Overflow To」是另一支冷卻管理器插件的功能，它的設定不在匯入範圍）。
 
+### 按鍵鏡射（`Core/Keybinds.lua`、`Core/Decorate.lua`、`Options/Specs.lua`、`Options/Preview.lua`，2026-10-04，F2）
+
+按下某格技能的綁定鍵時，那一格亮一層白（跟動作條按鈕被按下的樣子一樣），放開就收。只認綁定鍵：滑鼠點動作條不經過這條路。
+
+- **資料**：主題 `icon.pressFlash = false`、`icon.pressFlashAlpha = 0.35`（圖示節，走 `follow.icon` 繼承到條）。沒有逐法術欄位。
+  舊存檔沒有 ＝ 合併預設值補成關，不遷移、不動 `DB_VERSION`。兩欄進 `Decorate.Resolve` 的條層簽章（`r.pressFlash`／`r.pressAlpha`）。
+- **訊號**：綁定指令 `ACTIONBUTTON<n>`／`MULTIACTIONBAR<k>BUTTON<n>` 的本體就是叫四支全域函式（暴雪 `Bindings_Standard.xml`）：
+  `ActionButtonDown(id)`／`ActionButtonUp(id)`（`Blizzard_ActionBar/Shared/ActionButton.lua`）、
+  `MultiActionButtonDown(bar, id)`／`MultiActionButtonUp(bar, id)`（`MultiActionBars.lua`，bar 是框名）。
+  `hooksecurefunc` 後掛勾（`ns.Guard`）：原函式先跑完，我們只在自己的貼圖上 Show／Hide。**第一次有條要用時才掛**（`K.SyncPress` 叫 `EnsureHooks`；掛了拆不掉），
+  之後沒有任何一格登記時，掛勾第一行（`next(slotOwners) == nil`）就走。參數先過 Plain，秘密值忽略。
+- **參數 → 格號**（純函式 `K.SlotFromButton(barName, id, mainPage)`）：主動作條 ＝ `(mainPage-1)*12+id`（`K.MainPage()`，含變形頁）；
+  其餘照固定表 `K.PRESS_BAR_PAGE`（框名 → actionpage：左下 6、右下 5、右側 3、右側第二條 4、動作條 6／7／8 ＝ 13／14／15），跟按鍵文字的 `MULTI`
+  （page → 指令前綴）是同一張對照，測試兩邊對釘。不認得的框名、id 不在 1–12 一律忽略。
+  載具／控制條（`HasVehicleActionBar`／`HasOverrideActionBar`：暴雪那時把主動作條的鍵轉給 OverrideActionBar）時主動作條的鍵不閃；寵物對戰全部不閃。
+- **格號 → 格子**：`K.slotOwners[slot] = { [rec] = true }`（弱鍵）。`K.Apply` 每次放格時先 `SyncPress`（**跟按鍵文字開關無關**，排在它的早退前面）：
+  條層開著、不是長條類、不是增益圖示列（同按鍵文字的 `NoKeybind`）、不是以增益取代中的格 ⇒ 登記這格的**每一個**格號（`K.SlotsForSpell`：覆寫＋基礎法術的聯集；
+  物品掃動作條；快取跟按鍵文字一起清）；否則撤銷。同一張清單（快取的同一張表）再 Apply 不重登。`RefreshAll`（綁定／動作條變了）換一張新表整張重建；
+  `Invalidate`（自訂物品換了）有登記時排一次 `RefreshAll`。停放（`Glow.OnParked` → `K.OnParked`）撤銷並收掉閃光。
+- **狀態機**：按下 ⇒ 該格號的每一格 `pressN + 1`、貼圖 Show；按住的那顆鍵（`"main:5"`／`"MultiBarLeft:3"`）記下它亮了哪幾格。放開 ⇒ 照按下時記的那幾格 `pressN - 1`，
+  歸零才 Hide——按下後變形（頁變了）再放開一樣收得掉；同一格兩顆鍵同時按住，兩顆都放開才收。同一顆鍵漏了放開又按 ⇒ 先收上一次。
+  **保險**：按下後 `C_Timer.After(2)`，那顆鍵還是同一次按下就收（放開事件漏掉時不會卡亮）。
+- **畫法**（`K.PressTexture`，預覽格與真實格共用）：`rec.overlay` 底下一張 `WHITE8X8`（第一次閃才建，OVERLAY 第 1 層，墊在邊框與按鍵文字底下）、`SetAllPoints` overlay、
+  `ADD`、`SetVertexColor(1,1,1, pressFlashAlpha)`。自訂法術／物品格同一套（overlay 也是我們的）；Masque 模式照常（貼圖不在 Masque 管的 regions 裡）。
+- **設定頁**：主題頁與條頁「圖示」節，「滑鼠移到圖示上顯示提示」那組下面：「按鍵閃光」勾選＋灰字＋「閃光透明度」滑桿（10%～80%，沒開時停用）。
+  長條類的條與增益圖示列的條頁不出現這三列。效果預覽列多一顆「按鍵」：第一個技能格每 1.5 秒閃 0.15 秒、演示 6 秒（透明度照滑桿當下的值，沒勾也照樣演示）。
+- `/mcdm debug`：「按鍵鏡射：掛勾 已掛／未掛、登記 N 格（M 顆）、按住 K、閃過 X 次」。
+- ⚠ 已知限制：
+  - 只認暴雪預設的綁定路徑。快捷列插件自己的按鈕（綁的是插件的點擊綁定、不叫這四支）不會閃；暴雪的「按下時施放」設定不影響（Down／Up 兩支都掛）。
+  - 增益圖示列不做（使用者對按鍵文字的同一個決定：查到的鍵是觸發它的技能，只會誤導）。
+  - 閃的是「這一格現在對應的動作條格」：主動作條翻到別頁時，只有那一頁的格子會閃。
+
 ## 資源條與施法條
 
 四者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
@@ -1661,6 +1693,12 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      「Max Icons／Overflow To」是另一支冷卻管理器插件的功能，而匯入只讀 `Ayije_CDMDB`。
 138. **下拉的第一項是「無」不是「無（截掉）」**（計畫同意）：沒選目標就不截。原因字只有三種（目標不存在時存的值會被 `DeleteBar` 清掉，
      所以那種情況顯示一般說明）；原因字是灰字，沒用黃字（不是需要強調的警告，跟「固定格位」被強制時的黃字分開）。
+139. **按鍵鏡射的增益圖示列也不做**（計畫只排除長條類）：跟按鍵文字同一個理由（查到的鍵是觸發它的技能），條頁那三列跟著不出現；以增益取代中的格也不做。
+140. **放開照「按下時亮了哪幾格」收，不重算格號**（計畫寫 Up ⇒ 收）：按下變形鍵後頁就變了，重算會對到別格、只能等 2 秒保險。
+141. **載具／控制條、寵物對戰時主動作條的鍵不閃**（計畫沒寫）：暴雪那時把 `ActionButtonDown(id)` 轉給 OverrideActionBar／寵物對戰，格號對不上。
+142. **`Invalidate` 不當場清格號表，改排一次 `RefreshAll`**（計畫寫整張清掉重建）：它只在一顆自訂物品換了時叫，當場清掉的話沒被重新 Apply 的格會漏掉登記到下次排版。
+143. **zhTW 灰字用「快捷列」**（交辦字樣是「滑鼠點動作條不算」）：暴雪 zhTW 官方詞彙是快捷列（本插件既有字串也是）；zhCN 照官方用「动作条」。
+144. **效果預覽「按鍵」演示 6 秒**（其他四顆是 5 秒）：每 1.5 秒閃一次，6 秒剛好閃 4 次。
 
 ## 待實機驗證
 
@@ -2264,6 +2302,13 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 285. 戰鬥中（含副本）溢出跟著增益上下照常重排，沒有 `ADDON_ACTION_BLOCKED`；`/console taintLog 2` 沒有新的本插件 taint。
      自訂群組（有光環格）溢到另一個群組：接收群組的固定格位被強制打開、「跟著游標」不能勾。
 286. 以增益取代的 A 溢到接收條：B 生效時頂在接收條上 A 那一格、結束換回 A。
+287. 按鍵鏡射：主動作條、左下／右下、右側兩條、動作條 6–8、變形頁（德魯伊豹形／熊形、盜賊潛行）的綁定鍵都閃對格；同一法術放兩格時按任一格的鍵都閃；放開就消失；
+     按住超過 2 秒（引導法術）會被保險收掉——確認這是可接受的長相。`/mcdm debug` 的「閃過 N 次」跟著按鍵增加。
+288. 戰鬥中（含副本、M+）閃光正常；`/console taintLog 2` 打一場沒有本插件的條目、沒有 `ADDON_ACTION_BLOCKED`（掛的是綁定指令所叫全域函式的後掛勾，
+     原函式已經跑完；確認 `ActionButton<n>:SetAttribute` 那一類快捷列封鎖沒有被算到本插件頭上）。
+289. 自訂法術／物品／飾品欄格也閃；長條類的條、增益圖示列不閃，條頁不出現那三列；以增益取代中頂著技能格的增益不閃。
+290. 載具（有自己快捷列的那種）上按 1–6 不閃核心格；下載具後恢復。寵物對戰中不閃。滑鼠點動作條不閃。
+291. 圖示外觀＝Masque 時閃光照樣蓋在圖示上（不被 Masque 的皮蓋掉、也不蓋到外框外面）；透明度滑桿 10%／80% 的長相；設定頁效果預覽列「按鍵」演示閃 4 次。
 
 **效能基準**
 

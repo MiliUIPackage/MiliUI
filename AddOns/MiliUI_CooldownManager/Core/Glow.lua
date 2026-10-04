@@ -463,6 +463,8 @@ function G.OnParked(rec)
     Stop(rec, "assist")
     CancelPending(rec)
     if ns.StackGate then ns.StackGate.OnParked(rec) end
+    -- 按鍵鏡射（Core/Keybinds.lua）：撤銷格號登記、收掉閃光
+    if ns.Keybinds and ns.Keybinds.OnParked then ns.Keybinds.OnParked(rec) end
 end
 
 ------------------------------------------------------------
