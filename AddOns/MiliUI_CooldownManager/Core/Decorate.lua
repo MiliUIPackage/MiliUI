@@ -563,25 +563,31 @@ local function FeedRealCooldown(item, rec, cd)
     local chargePath, full = false, false
     if charges then chargePath, full = ChargeState(id) end
     local dur, edgeOnly
+    -- show：畫在 Cooldown 上的。技能冷卻那條要含 GCD（暴雪正常路徑也畫 GCD；「隱藏 GCD 轉圈」由
+    -- AfterCooldown 的 ApplyGCDAlpha 另外管）——曾經只餵 ignoreGCD 的，目標身上一直掛著減益的格
+    -- （血魄心臟打擊的緩速）就一直沒有 GCD，2026-10-05。去飽和與就緒探針照舊用不含 GCD 的 dur。
+    local show
     if chargePath and C_Spell then
         dur = TryDur(C_Spell.GetSpellChargeDuration, id)
         edgeOnly = dur ~= nil
+        show = dur
     end
     if not dur and C_Spell then
         dur = TryDur(C_Spell.GetSpellCooldownDuration, id, true)
+        show = TryDur(C_Spell.GetSpellCooldownDuration, id) or dur
         chargePath = false
     end
     overriding = true
     if cd.SetUseAuraDisplayTime then pcall(cd.SetUseAuraDisplayTime, cd, false) end
     local fed = false
-    if dur and cd.SetCooldownFromDurationObject then
+    if show and cd.SetCooldownFromDurationObject then
         if edgeOnly then
             if cd.SetDrawSwipe then pcall(cd.SetDrawSwipe, cd, false) end
             if cd.SetDrawEdge then pcall(cd.SetDrawEdge, cd, true) end
         elseif cd.SetDrawSwipe then
             pcall(cd.SetDrawSwipe, cd, true)
         end
-        fed = pcall(cd.SetCooldownFromDurationObject, cd, dur, true)
+        fed = pcall(cd.SetCooldownFromDurationObject, cd, show, true)
     end
     if not fed then
         dur = nil

@@ -945,8 +945,9 @@ do
     for _, k in ipairs({ "GetSpellCooldownDuration", "GetSpellChargeDuration", "GetSpellCooldown", "GetSpellCharges" }) do
         savedSpell[k] = env.C_Spell[k]
     end
+    local gcdDur = nil        -- 含 GCD 的那個（沒設 ⇒ 不回，引擎退回 ignoreGCD 的）
     env.C_Spell.GetSpellCooldownDuration = function(id, ignoreGCD)
-        if ignoreGCD ~= true then error("要 ignoreGCD") end
+        if ignoreGCD ~= true then return gcdDur end
         return curDur
     end
     env.C_Spell.GetSpellChargeDuration = function() return chargeDur end
@@ -1036,6 +1037,14 @@ do
     near("倒數原色", fs.colors[#fs.colors][2], 1)
     eq("冷卻中去飽和：曲線求值後 SetDesaturation", last("SetDesaturation") and last("SetDesaturation")[2], 1)
     check("曲線建了", curvePoints == 3)
+    -- 顯示要含 GCD（目標一直掛著減益的格不能從此沒有 GCD）；去飽和與探針照舊用不含 GCD 的
+    gcdDur = { EvaluateRemainingDuration = function() return 0 end }
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("顯示含 GCD 的物件", last("FromDur") and last("FromDur")[2], gcdDur)
+    eq("去飽和照不含 GCD 的", rec.auraDur, curDur)
+    eq("探針照不含 GCD 的", glow.armed[#glow.armed], curDur)
+    gcdDur = nil
 
     -- 暴雪接著寫 SetDesaturated(false)（增益期間）：照我們的冷卻重算
     calls = {}
