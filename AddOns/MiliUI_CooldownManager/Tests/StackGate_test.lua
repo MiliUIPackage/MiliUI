@@ -9,7 +9,8 @@
 -- 用假框（記錄 SetMinMaxValues／SetValue）測「餵秘密 sentinel 時不比較、原樣轉交」、
 -- 讀層數的順序（getter → auraInstanceID 退路 → 0）、生效狀態只在該看的時候看、
 -- 後掛勾的提早 return、停放與重新放格、長條換色把暴雪條調透明／還原、無損刷新後重調、
--- 與生效發光互斥（Glow.SyncActive）、預覽走層數發光的樣式（Glow.PreviewActive）。
+-- 與生效發光互斥（Glow.SyncActive）、預覽走層數發光的樣式（Glow.PreviewActive）、
+-- 比較子（F4：Op 清洗、GateSpec 五種 op、巢狀閘的父子鏈與錨點、每層都餵、永不成立整組藏）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -73,6 +74,7 @@ function FRAME_MT.SetPoint(f, ...) f.points = f.points or {}; f.points[#f.points
 function FRAME_MT.ClearAllPoints(f) f.points = {} end
 function FRAME_MT.SetAllPoints(f, rel) f.allPoints = rel end
 function FRAME_MT.SetClipsChildren(f, v) f.clips = v end
+function FRAME_MT.SetParent(f, p) f.parent = p end
 function FRAME_MT.SetTexture(f, t) f.texture = t end
 local function Tex() return setmetatable({ kind = "Texture" }, FRAME_MT) end
 function FRAME_MT.CreateTexture(f)
@@ -119,7 +121,7 @@ local settings = {
     ["bar"] = { texture = "solid", color = { r = 0.4, g = 0.6, b = 0.9, a = 1 }, bgColor = { r = 0.1, g = 0.1, b = 0.1, a = 0.8 } },
     ["kind"] = "bars",
 }
-local CONST = { stackGlow = false, stackColors = false, stackBar = false, stackTicks = false, activeGlow = false, activeGlowOutOfCombat = true }
+local CONST = { stackGlowOp = ">=", stackGlow = false, stackColors = false, stackBar = false, stackTicks = false, activeGlow = false, activeGlowOutOfCombat = true }
 
 local painted, stopped = {}, {}
 local ns = {
@@ -365,6 +367,106 @@ do
 end
 
 ------------------------------------------------------------
+-- 3b. 比較子（F4）：Op 清洗、GateSpec、Config／簽章
+------------------------------------------------------------
+-- 一組條件在明文層數 v 下成立嗎（模擬閘的幾何：fill ＝ v ≥ b；rest ＝ v ≤ a）
+local function SpecHolds(spec, v)
+    if not spec then return false end
+    for _, c in ipairs(spec) do
+        if c.side == "fill" then
+            if not (v >= c.b) then return false end
+        else
+            if not (v <= c.a) then return false end
+        end
+    end
+    return true
+end
+do
+    eq("Op 沒設 ⇒ >=", SG.Op(nil), ">=")
+    eq("Op false ⇒ >=", SG.Op(false), ">=")
+    eq("Op 亂寫 ⇒ >=", SG.Op("=>"), ">=")
+    eq("Op 數字 ⇒ >=", SG.Op(3), ">=")
+    for _, op in ipairs({ ">=", "<=", "==", ">", "<" }) do eq("Op 收 " .. op, SG.Op(op), op) end
+    eq("OPS 五種", #SG.OPS, 5)
+    check("< 1 永不成立", SG.Never("<", 1))
+    check("< 2 會成立", not SG.Never("<", 2))
+    check("<= 1 會成立", not SG.Never("<=", 1))
+
+    local truth = {
+        [">="] = function(v, n) return v >= n end,
+        [">"]  = function(v, n) return v > n end,
+        ["<="] = function(v, n) return v >= 1 and v <= n end,
+        ["<"]  = function(v, n) return v >= 1 and v < n end,
+        ["=="] = function(v, n) return v == n end,
+    }
+    local depth = { [">="] = 1, [">"] = 1, ["<="] = 2, ["<"] = 2, ["=="] = 2 }
+    for _, op in ipairs(SG.OPS) do
+        for _, n in ipairs({ 1, 2, 5, 99 }) do
+            local spec = SG.GateSpec(op, n)
+            local tag = op .. " " .. n
+            if op == "<" and n <= 1 then
+                eq("GateSpec " .. tag .. " 永不成立 ⇒ nil", spec, nil)
+            else
+                check("GateSpec " .. tag .. " 有清單", type(spec) == "table")
+                eq("GateSpec " .. tag .. " 層數", spec and #spec, depth[op])
+                check("GateSpec " .. tag .. " 不超過 MAX_GATES", spec and #spec <= SG.MAX_GATES)
+                local ok = true
+                for _, c in ipairs(spec or {}) do
+                    if not (c.b == c.a + 1 and c.a >= 0 and (c.side == "fill" or c.side == "rest")) then ok = false end
+                end
+                check("GateSpec " .. tag .. " 每層是寬 1 的閘", ok)
+                for v = 0, 101 do
+                    if SpecHolds(spec, v) ~= truth[op](v, n) then
+                        check("GateSpec " .. tag .. " 層數 " .. v, false, "幾何算出 " .. tostring(SpecHolds(spec, v)))
+                        break
+                    end
+                end
+            end
+        end
+    end
+    -- 照 plan 的表逐條對
+    local s = SG.GateSpec(">=", 5)
+    check(">= 5 ＝ (4,5) fill", s[1].a == 4 and s[1].b == 5 and s[1].side == "fill")
+    s = SG.GateSpec(">", 5)
+    check("> 5 ＝ (5,6) fill", s[1].a == 5 and s[1].b == 6 and s[1].side == "fill")
+    s = SG.GateSpec("<=", 5)
+    check("<= 5 ＝ (5,6) rest ＋ (0,1) fill", s[1].a == 5 and s[1].side == "rest" and s[2].a == 0 and s[2].b == 1 and s[2].side == "fill")
+    s = SG.GateSpec("<", 5)
+    check("< 5 ＝ (4,5) rest ＋ (0,1) fill", s[1].a == 4 and s[1].b == 5 and s[1].side == "rest" and s[2].a == 0 and s[2].side == "fill")
+    s = SG.GateSpec("==", 5)
+    check("== 5 ＝ (4,5) fill ＋ (5,6) rest", s[1].a == 4 and s[1].side == "fill" and s[2].a == 5 and s[2].b == 6 and s[2].side == "rest")
+    eq("亂 op 退回 >=", #SG.GateSpec("??", 3), 1)
+    eq("門檻壞掉 ⇒ nil", SG.GateSpec(">=", 0), nil)
+    eq("門檻過大夾到 99", SG.GateSpec(">=", 500)[1].b, 99)
+
+    -- Config：沒設 op ＝ >=（舊存檔）、亂 op 清成 >=、op 進簽章
+    overrides[14] = { stackGlow = 3 }
+    local c = SG.Config("buffs", 14, true, false)
+    eq("舊存檔沒有 op ⇒ >=", c.op, ">=")
+    eq("舊存檔閘照舊 (2,3) fill", c.gates[1].a, 2)
+    eq("舊存檔一層閘", #c.gates, 1)
+    local s0 = SG.Signature(c, 36, 36, settings.bar)
+    overrides[14].stackGlowOp = "bogus"
+    eq("亂 op ⇒ >=", SG.Config("buffs", 14, true, false).op, ">=")
+    eq("亂 op 簽章同 >=", SG.Signature(SG.Config("buffs", 14, true, false), 36, 36, settings.bar), s0)
+    overrides[14].stackGlowOp = "=="
+    local ce = SG.Config("buffs", 14, true, false)
+    eq("op ==", ce.op, "==")
+    eq("== 兩層閘", #ce.gates, 2)
+    check("op 進簽章", SG.Signature(ce, 36, 36, settings.bar) ~= s0)
+    overrides[14] = { stackGlow = 1, stackGlowOp = "<" }
+    local cn = SG.Config("buffs", 14, true, false)
+    eq("< 1：門檻還在（跟生效發光互斥）", cn.glow, 1)
+    eq("< 1：沒有閘", cn.gates, nil)
+    overrides[14] = { stackGlowOp = "<=" }
+    eq("只有 op 沒有門檻 ⇒ 沒設定", SG.Config("buffs", 14, true, false), nil)
+    overrides[14] = { stackGlow = 3, stackGlowOp = "<=", stackColors = { { at = 2, color = { r = 1, g = 0, b = 0 } } } }
+    local cc = SG.Config("buffbars", 14, true, true)
+    eq("換色不吃比較子（照舊 at）", cc.colors[1].at, 2)
+    overrides[14] = nil
+end
+
+------------------------------------------------------------
 -- 4. 餵值：秘密 sentinel 原樣轉交、讀的順序
 ------------------------------------------------------------
 -- 假的暴雪增益 item（圖示或長條）
@@ -477,6 +579,84 @@ do
     eq("身分換了 ⇒ 不餵", gate.sets, sets)
     rec.cooldownID = 20
     overrides[20] = nil
+end
+
+------------------------------------------------------------
+-- 4b. 比較子的巢狀閘：父子鏈、每層錨點、每層都餵同一個秘密值、op 換了重建、永不成立整組藏
+------------------------------------------------------------
+do
+    local S = Secret()
+    overrides[25] = { stackGlow = 3, stackGlowOp = "<=" }
+    local it = Item({ auraData = { applications = S }, active = true })
+    local rec = Rec(it, "buffs", 25)
+    SG.Apply(it, rec, "buffs", 36, 36, false)
+    local gs = rec.stackUI.glow
+    eq("<= 兩層", gs.depth, 2)
+    local g1, g2 = gs.levels[1], gs.levels[2]
+    eq("外層閘的父框是 overlay", g1.gate.parent, rec.overlay)
+    eq("外層裁切框的父框是 overlay", g1.clip.parent, rec.overlay)
+    eq("內層閘的父框是外層裁切框", g2.gate.parent, g1.clip)
+    eq("內層裁切框的父框是外層裁切框", g2.clip.parent, g1.clip)
+    check("兩層都開裁切", g1.clip.clips and g2.clip.clips)
+    check("外層 (3,4)", g1.gate.min == 3 and g1.gate.max == 4)
+    check("內層 (0,1)", g2.gate.min == 0 and g2.gate.max == 1)
+    -- 外層 rest：TOPLEFT 錨填充貼圖 TOPRIGHT、BOTTOMRIGHT 錨閘 BOTTOMRIGHT
+    local p = g1.clip.points
+    check("rest：TOPLEFT → 填充貼圖 TOPRIGHT", p[1][1] == "TOPLEFT" and p[1][2] == g1.gate.fill and p[1][3] == "TOPRIGHT")
+    check("rest：BOTTOMRIGHT → 閘 BOTTOMRIGHT", p[2][1] == "BOTTOMRIGHT" and p[2][2] == g1.gate and p[2][3] == "BOTTOMRIGHT")
+    local q = g2.clip.points
+    check("fill：兩點都錨填充貼圖", q[1][2] == g2.gate.fill and q[2][2] == g2.gate.fill and q[2][3] == "BOTTOMRIGHT")
+    local mx = SG.Margin(36, 36)
+    eq("內層閘也錨 overlay（明文幾何）", g2.gate.points[1][2], rec.overlay)
+    eq("內層閘同一個外擴", g2.gate.points[1][4], -mx)
+    eq("宿主在最內層裁切框底下", gs.hostParent, g2.clip)
+    eq("宿主錨 overlay 中央", gs.host.points[1][2], rec.overlay)
+    check("兩層都餵同一個秘密值", rawequal(g1.gate.value, S) and rawequal(g2.gate.value, S))
+    check("發光畫著", rec.stackGlowOn ~= nil)
+    it.auraData = { applications = 2 }
+    Fire(it, "RefreshApplications")
+    check("掛勾也兩層都餵", g1.gate.value == 2 and g2.gate.value == 2)
+
+    -- 換成 >=：一層、宿主回外層裁切框、內層藏
+    overrides[25].stackGlowOp = ">="
+    SG.Apply(it, rec, "buffs", 36, 36, false)
+    eq(">= 一層", gs.depth, 1)
+    eq("宿主回到外層裁切框", gs.hostParent, g1.clip)
+    eq("宿主真的 SetParent 了", gs.host.parent, g1.clip)
+    eq("內層閘藏", g2.gate.shown, false)
+    eq("外層換回 fill 錨", g1.clip.points[1][2], g1.gate.fill)
+    eq("外層換回 fill 錨（TOPLEFT）", g1.clip.points[1][3], "TOPLEFT")
+    check("外層 (2,3)", g1.gate.min == 2 and g1.gate.max == 3)
+    local sets2 = g2.gate.sets
+    Fire(it, "RefreshApplications")
+    eq("藏起來的內層不再餵", g2.gate.sets, sets2)
+
+    -- ==：內層 rest
+    overrides[25].stackGlowOp = "=="
+    SG.Apply(it, rec, "buffs", 36, 36, false)
+    eq("== 兩層", gs.depth, 2)
+    eq("== 重用同一顆內層", gs.levels[2], g2)
+    eq("== 內層 rest", g2.clip.points[1][3], "TOPRIGHT")
+    eq("== 宿主在內層", gs.host.parent, g2.clip)
+
+    -- 停放／重新放格：兩層一起藏、一起亮
+    G.OnParked(rec)
+    check("停放 ⇒ 兩層藏", g1.gate.shown == false and g2.clip.shown == false)
+    SG.Feed(it, rec)
+    check("重新放格 ⇒ 兩層亮", g1.gate.shown and g2.clip.shown)
+
+    -- < 1：永不成立 ⇒ 整組藏、發光不畫
+    overrides[25] = { stackGlow = 1, stackGlowOp = "<" }
+    SG.Apply(it, rec, "buffs", 36, 36, false)
+    eq("< 1 ⇒ 發光不畫", rec.stackGlowOn, nil)
+    check("< 1 ⇒ 閘全藏", g1.gate.shown == false and g2.gate.shown == false)
+    local sets1 = g1.gate.sets
+    Fire(it, "RefreshApplications")
+    eq("< 1 ⇒ 不餵", g1.gate.sets, sets1)
+    SG.Feed(it, rec)
+    eq("< 1 ⇒ 重新放格也不畫", rec.stackGlowOn, nil)
+    overrides[25] = nil
+    SG.Apply(it, rec, "buffs", 36, 36, false)
 end
 
 ------------------------------------------------------------

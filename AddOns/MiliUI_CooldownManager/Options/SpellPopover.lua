@@ -278,6 +278,29 @@ local function StackOn()
         and ns.StackGate.Threshold(ns.SpellSetting(cur.key, cur.id, "stackGlow")) ~= nil
 end
 
+-- 層數發光的比較子（F4）：存了覆寫用它；同一格沒勾時記著剛挑的（frame.stackOpSel）；換一格回到 ≥
+local function StackOpNow()
+    if not cur then return ns.StackGate.DEFAULT_OP end
+    local o = Override("stackGlowOp")
+    if type(o) == "string" then return ns.StackGate.Op(o) end
+    if frame.stackOpFor == cur.id and frame.stackOpSel then return ns.StackGate.Op(frame.stackOpSel) end
+    return ns.StackGate.DEFAULT_OP
+end
+-- 層數發光的門檻（存的；沒勾時同一格用數字框記著的、換一格用預設）
+local function StackNumNow()
+    if not cur then return ns.StackGate.DEFAULT_THRESHOLD end
+    local n = ns.StackGate.Threshold(ns.SpellSetting(cur.key, cur.id, "stackGlow"))
+    if n then return n end
+    if frame.stackNumFor == cur.id and frame.stackNum then
+        return ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
+    end
+    return ns.StackGate.DEFAULT_THRESHOLD
+end
+-- 「< 1」永遠不成立：數字框標紅＋下一列灰字
+local function StackNever(kind, class)
+    return BlizzAura(kind, class) and ns.StackGate.Never(StackOpNow(), StackNumNow())
+end
+
 -- 層數當填充／層數刻度（增益長條）：目前存的表（沒有＝nil）
 local function StackBarTable()
     if not cur or type(cur.id) ~= "number" then return nil end
@@ -894,23 +917,39 @@ local function Build()
     ColorOverrideRow(L["Buff duration low color"],   "durationLowColor",   false, { r = 0.95, g = 0.45, b = 0.70, a = 1 })
     ColorOverrideRow(L["Buff duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
 
-    -- 層數發光（暴雪的增益）：勾選框＋「≥」數字框＋色票；沒勾時數字框記著要用的門檻
+    -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
+    -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫
     local sgr = NewRow(L["Stack glow"], BlizzAura)
     local scb = W.CreateCheckButton(sgr, nil, function(on)
         if not cur then return end
         if on then
             local n = ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
             ns.DB.SetOverride(cur.id, "stackGlow", n)
+            local op = StackOpNow()
+            ns.DB.SetOverride(cur.id, "stackGlowOp", op ~= ns.StackGate.DEFAULT_OP and op or nil)
         else
             ns.DB.SetOverride(cur.id, "stackGlow", nil)
         end
         Changed()
     end)
     scb:SetPoint("LEFT", sgr, "LEFT", CTRL_X, 0)
-    local ge = sgr:CreateFontString(nil, "OVERLAY")
-    ge:SetFontObject(W.fontNormal)
-    ge:SetPoint("LEFT", scb, "RIGHT", 8, 0)
-    ge:SetText("≥")
+    local opItems = {}
+    for i, op in ipairs(ns.StackGate.OPS) do
+        opItems[i] = { text = op == ">=" and "≥" or op == "<=" and "≤" or op == "==" and "=" or op, value = op }
+    end
+    local opdd = W.CreateDropdown(sgr, 44, opItems, function(value)
+        if not cur then return end
+        frame.stackOpSel, frame.stackOpFor = value, cur.id
+        if StackOn() then
+            -- ≥ 是預設：存 nil（跟沒設過的舊存檔一樣）
+            ns.DB.SetOverride(cur.id, "stackGlowOp", value ~= ns.StackGate.DEFAULT_OP and value or nil)
+            Changed()
+        else
+            Pop.Refresh()                -- 「< 1」的紅字／灰字要跟著換
+        end
+    end)
+    opdd:SetPoint("LEFT", scb, "RIGHT", 8, 0)
+    frame.stackOpDD = opdd
     local num = W.CreateNumberBox(sgr, 40, 1, function(v)
         if not cur then return end
         local n = ns.StackGate.Threshold(v) or 1
@@ -918,9 +957,11 @@ local function Build()
         if StackOn() then
             ns.DB.SetOverride(cur.id, "stackGlow", n)
             Changed()
+        else
+            Pop.Refresh()
         end
     end)
-    num:SetPoint("LEFT", ge, "RIGHT", 4, 0)
+    num:SetPoint("LEFT", opdd, "RIGHT", 4, 0)
     local sswatch = W.CreateColorPicker(sgr, nil, true, function(rr, g, b, a)
         if not StackOn() then return end
         ns.DB.SetOverride(cur.id, "stackGlowColor", { r = rr, g = g, b = b, a = a })
@@ -938,9 +979,29 @@ local function Build()
             ns.DB.SetOverride(cur.id, "stackGlow", nil)
             ns.DB.SetOverride(cur.id, "stackGlowColor", nil)
             ns.DB.SetOverride(cur.id, "stackGlowType", nil)
+            ns.DB.SetOverride(cur.id, "stackGlowOp", nil)
+            frame.stackOpSel = nil
             Changed()
         end
     end)
+    -- 「< 1」永遠不成立：數字框標紅（Refresh）＋這一列灰字（只在那個組合出現）
+    frame.stackNumColor = { num:GetTextColor() }
+    local nvRow = CreateFrame("Frame", nil, frame)
+    local nvTip = Note(nvRow)
+    nvTip:SetPoint("TOPLEFT", nvRow, "TOPLEFT", CTRL_X, -2)
+    nvTip:SetWidth(ROW_W - CTRL_X)
+    nvTip:SetWordWrap(true)
+    nvTip:SetText(L["Fewer than 1 stack is never true."])
+    local nvH = 2 + math.max(14, nvTip:GetStringHeight() or 0) + 6
+    nvRow:SetSize(ROW_W, nvH)
+    local nvEntry = { frame = nvRow, h = nvH, when = StackNever }
+    nvEntry.remeasure = function()
+        local sh2 = nvTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        nvRow:SetHeight(nh)
+        nvEntry.h = nh
+    end
+    AddRow(nvEntry)
     local str = NewRow(L["Glow style"], BlizzAura)
     local sdd = W.CreateDropdown(str, ROW_W - CTRL_X, GlowTypeItems(), function(value)
         if not StackOn() then return end
@@ -956,7 +1017,7 @@ local function Build()
     snTip:SetPoint("TOPLEFT", snRow, "TOPLEFT", CTRL_X, -2)
     snTip:SetWidth(ROW_W - CTRL_X)
     snTip:SetWordWrap(true)
-    snTip:SetText(L["Glows once the buff has at least this many stacks. While it's on, glow during buff isn't used."])
+    snTip:SetText(L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."])
     local snH = 2 + math.max(14, snTip:GetStringHeight() or 0) + 6
     snRow:SetSize(ROW_W, snH)
     local snEntry = { frame = snRow, h = snH, when = BlizzAura }
@@ -1530,6 +1591,16 @@ function Pop.Refresh()
             frame.stackNum:SetValue(ns.StackGate.DEFAULT_THRESHOLD)
         end
         frame.stackNumFor = id
+        -- 比較子：存的覆寫 → 同一格沒勾時剛挑的 → ≥；「< 1」數字框標紅
+        if frame.stackOpFor ~= id then frame.stackOpSel, frame.stackOpFor = nil, nil end
+        local op = StackOpNow()
+        frame.stackOpDD:SetSelectedValue(op)
+        if ns.StackGate.Never(op, frame.stackNum:GetValue()) then
+            frame.stackNum:SetTextColor(1, 0.3, 0.3)
+        else
+            local c = frame.stackNumColor
+            frame.stackNum:SetTextColor(c[1] or 1, c[2] or 1, c[3] or 1, c[4] or 1)
+        end
         local sc = ns.SpellSetting(key, id, "stackGlowColor")
         if type(sc) ~= "table" then sc = ns.Setting(key, "glow.active.color") end
         frame.stackSwatch:SetColor(type(sc) == "table" and sc or { r = 0.95, g = 0.95, b = 0.32, a = 1 })

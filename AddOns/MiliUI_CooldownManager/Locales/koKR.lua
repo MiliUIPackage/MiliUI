@@ -693,7 +693,8 @@ L["Couldn't read your specializations."] = "전문화 정보를 읽을 수 없�
 
 -- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
 L["Stack glow"] = "중첩 발광"
-L["Glows once the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "강화 효과의 중첩이 이 숫자 이상이면 빛납니다. 켜져 있으면 '강화 효과 동안 빛'은 쓰지 않습니다."
+L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "강화 효과의 중첩이 이 비교를 만족하는 동안 빛납니다. '≤'와 '<'는 강화 효과가 없으면 빛나지 않습니다. 켜져 있으면 '강화 효과 동안 빛'은 쓰지 않습니다."
+L["Fewer than 1 stack is never true."] = "1 중첩 미만은 절대 성립하지 않습니다."
 L["Stack colors (%d)"] = "중첩별 색상 (%d)"
 L["Stack colors"] = "중첩별 색상"
 L["Stacks ≥"] = "중첩 ≥"

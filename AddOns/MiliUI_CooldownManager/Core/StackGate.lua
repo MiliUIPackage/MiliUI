@@ -9,6 +9,8 @@
 --
 -- 設定（逐法術覆寫，DB.SPELL_CONST 給 false；覆寫分組 "stack"）：
 --   stackGlow       門檻 N（1～99）；false／沒設 ＝ 關
+--   stackGlowOp     比較子 ">=" | "<=" | "==" | ">" | "<"（F4）；沒設／壞值 ＝ ">="（舊存檔行為不變）。
+--                   只影響層數發光；層數換色維持「到 N 以上」
 --   stackGlowType   發光樣式；沒設 ＝ glow.active 的樣式
 --   stackGlowColor  發光顏色；沒設 ＝ glow.active 的顏色
 --   stackColors     { { at = N, color = {r,g,b,a} }, … } 最多 5 筆（增益長條才有）；false／沒設 ＝ 關
@@ -27,6 +29,18 @@
 --   要「到門檻才出現」的東西當裁切框的子孫，但**錨在格子／條身上**（被裁切，不是被壓扁）。
 -- ⚠ 閘餵過秘密值之後幾何是秘密的：除了裁切框以外沒有東西錨在閘的填充貼圖上；
 --   閘、裁切框與它們的子孫，我們一律不讀任何值／幾何／alpha。
+--
+-- 比較子（stackGlowOp，F4）：Lua 照樣不比較，全靠閘的幾何。一顆閘 (a, b) 餵層數之後：
+--   fill 邊（裁切框錨在閘的填充貼圖上）＝ 層數 ≥ b 才露出；
+--   rest 邊（裁切框 TOPLEFT 錨填充貼圖的 TOPRIGHT、BOTTOMRIGHT 錨閘的 BOTTOMRIGHT ＝ 沒填的那一段）＝ 層數 ≤ a 才露出。
+--   SG.GateSpec(op, N) 回由外到內的條件清單，巢狀疊起來（外層裁切框是內層閘與內層裁切框的父框），
+--   全部成立宿主才露出來：
+--     >= N  (N-1, N) fill            > N   (N, N+1) fill
+--     <= N  (N, N+1) rest ＋ (0, 1) fill（≥1：光環不在／0 層時不亮）
+--     <  N  (N-1, N) rest ＋ (0, 1) fill；N ≤ 1 永不成立（回 nil，發光整組藏起來）
+--     == N  (N-1, N) fill ＋ (N, N+1) rest
+--   每一層的閘都錨在 overlay 上（明文幾何，同一個外擴範圍），各自 SetValue 同一個層數；rest 邊的裁切框
+--   錨在閘本身與閘的填充貼圖上，一樣只錨不讀。
 --
 -- 發光：閘比格子大一圈（四邊各外擴 Margin(w, h)：發光會超出圖示，按鈕／觸發樣式是 1.4 倍），
 --   宿主在裁切框底下、錨在 overlay 中央、尺寸照排版的 w／h；發光用 MiliUIGlow 的 Start 系列
@@ -85,6 +99,10 @@ SG.MAX_STACK  = 99
 SG.DEFAULT_THRESHOLD = 3
 SG.DEFAULT_BAR_MAX = 5         -- 層數當填充／刻度沒給最大層數時
 SG.TICK_COLOR = { r = 0, g = 0, b = 0, a = 0.6 }
+SG.DEFAULT_OP = ">="
+SG.OPS = { ">=", "<=", "==", ">", "<" }       -- 設定頁下拉的順序
+SG.MAX_GATES = 2                              -- GateSpec 最多幾層
+local VALID_OP = { [">="] = true, ["<="] = true, ["=="] = true, [">"] = true, ["<"] = true }
 
 local SOLID = "Interface\\BUTTONS\\WHITE8X8"
 local BAR_LEVEL = 511          -- 暴雪增益長條的條身（CooldownViewer.xml：frameLevel="511"），讀不到時用
@@ -109,6 +127,37 @@ end
 ------------------------------------------------------------
 -- 閘的 min／max：SetValue(層數) 之後層數 ≥ n 是滿的、≤ n-1 是空的
 function SG.GateRange(n) return n - 1, n end
+
+-- 比較子清洗：五種之一，否則（沒設、false、亂寫）＝ ">="
+function SG.Op(v)
+    if type(v) == "string" and VALID_OP[v] then return v end
+    return SG.DEFAULT_OP
+end
+
+-- 這組比較子＋門檻永遠不成立（< 1）：設定頁標紅、發光不畫
+function SG.Never(op, n)
+    return SG.Op(op) == "<" and (tonumber(n) or 0) <= 1
+end
+
+-- 比較子 → 巢狀閘的條件清單（由外到內）：{ { a = , b = , side = "fill"|"rest" }, … }；
+-- 永不成立（< 1 以下）或門檻壞掉回 nil。op 先過 SG.Op
+function SG.GateSpec(op, n)
+    n = SG.Threshold(n)
+    if not n then return nil end
+    op = SG.Op(op)
+    if op == ">=" then
+        return { { a = n - 1, b = n, side = "fill" } }
+    elseif op == ">" then
+        return { { a = n, b = n + 1, side = "fill" } }
+    elseif op == "<=" then
+        return { { a = n, b = n + 1, side = "rest" }, { a = 0, b = 1, side = "fill" } }
+    elseif op == "<" then
+        if n <= 1 then return nil end
+        return { { a = n - 1, b = n, side = "rest" }, { a = 0, b = 1, side = "fill" } }
+    else -- "=="
+        return { { a = n - 1, b = n, side = "fill" }, { a = n, b = n + 1, side = "rest" } }
+    end
+end
 
 -- 發光閘四邊外擴量（水平、垂直）：至少 12，或那一邊長的 0.4（按鈕／觸發樣式畫成 1.4 倍，每邊多 0.2）
 function SG.Margin(w, h)
@@ -259,7 +308,8 @@ end
 
 -- 這一格的層數設定（快取在 rec.stackCfg）；沒有任何層數設定回 nil。
 --   aura：暴雪的增益 item（不是自訂項目）；isBar：增益長條（才有換色）
---   回傳 { glow, style, colors, stackBar = N, ticks = { at, n, color } }
+--   回傳 { glow, op, gates, style, colors, stackBar = N, ticks = { at, n, color } }
+--   op ＝ 層數發光的比較子（SG.Op）；gates ＝ SG.GateSpec(op, glow)（永不成立時 nil，發光不畫）
 function SG.Config(barKey, id, aura, isBar)
     if not aura or type(id) ~= "number" then return nil end
     local n = SG.Threshold(ns.SpellSetting(barKey, id, "stackGlow"))
@@ -270,7 +320,9 @@ function SG.Config(barKey, id, aura, isBar)
         ticks = SG.CleanTicks(ns.SpellSetting(barKey, id, "stackTicks"), barN)
     end
     if not n and not colors and not barN and not ticks then return nil end
-    return { glow = n, style = n and SG.GlowStyle(barKey, id) or nil, colors = colors,
+    local op = n and SG.Op(ns.SpellSetting(barKey, id, "stackGlowOp")) or nil
+    return { glow = n, op = op, gates = n and SG.GateSpec(op, n) or nil,
+        style = n and SG.GlowStyle(barKey, id) or nil, colors = colors,
         stackBar = barN, ticks = ticks }
 end
 
@@ -283,7 +335,7 @@ end
 -- 條身材質／顏色／底色、圖示邊與間距（條身寬）、火花（條身底下那一層自己畫）
 function SG.Signature(cfg, w, h, bar)
     if not cfg then return nil end
-    local parts = { tostring(cfg.glow), tostring(w), tostring(h) }
+    local parts = { tostring(cfg.glow), tostring(cfg.op), tostring(w), tostring(h) }
     local s = cfg.style
     if s then
         parts[#parts + 1] = table.concat({ tostring(s.type), tostring(s.lines), tostring(s.thickness),
@@ -365,6 +417,22 @@ end
 ------------------------------------------------------------
 -- 框（全是我們自己的；建在 rec 上池化）
 ------------------------------------------------------------
+-- 裁切框錨在哪一邊：fill ＝ 填充貼圖本身（層數 ≥ b）；rest ＝ 填充右緣到閘右緣（層數 ≤ a）。只錨不讀
+local function AnchorClip(g, side)
+    if g.side == side then return end
+    local clip, gate, fill = g.clip, g.gate, g.fill
+    if not fill then return end
+    clip:ClearAllPoints()
+    if side == "rest" then
+        clip:SetPoint("TOPLEFT", fill, "TOPRIGHT", 0, 0)
+        clip:SetPoint("BOTTOMRIGHT", gate, "BOTTOMRIGHT", 0, 0)
+    else
+        clip:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, 0)
+        clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, 0)
+    end
+    g.side = side
+end
+
 local function NewGate(parent)
     local gate = CreateFrame("StatusBar", nil, parent)
     gate:SetStatusBarTexture(SOLID)
@@ -374,12 +442,10 @@ local function NewGate(parent)
     gate:SetValue(0)
     local clip = CreateFrame("Frame", nil, parent)
     clip:SetClipsChildren(true)
-    -- ⚠ 只有裁切框錨在閘的填充貼圖上（見檔頭）
-    if fill then
-        clip:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, 0)
-        clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, 0)
-    end
-    return { gate = gate, clip = clip }
+    -- ⚠ 只有裁切框錨在閘（的填充貼圖）上（見檔頭）
+    local g = { gate = gate, clip = clip, fill = fill }
+    AnchorClip(g, "fill")
+    return g
 end
 
 local function UI(rec)
@@ -401,7 +467,7 @@ end
 
 local function PaintGlow(rec)
     local cfg, ui = rec.stackCfg, rec.stackUI
-    if not (cfg and cfg.glow and ui and ui.glow) or rec.stackGlowOn then return end
+    if not (cfg and cfg.gates and ui and ui.glow) or rec.stackGlowOn then return end
     if not (ns.Glow and ns.Glow.PaintOn) then return end
     rec.stackGlowOn = ns.Glow.PaintOn(ui.glow.host, cfg.style or {}, "active", "stack", false)
 end
@@ -450,49 +516,82 @@ local function Restore(item, rec)
     if bar.stackBar and b.Pip then b.Pip:SetAlpha(bar.spark and 1 or 0) end
 end
 
+-- 發光那一組的閘／裁切框全藏（外層藏了內層本來就看不到，但層數變少時多的那層也要藏）
+local function HideGlowGates(gs)
+    for _, g in ipairs(gs.levels) do
+        g.gate:Hide()
+        g.clip:Hide()
+    end
+end
+
 local function HideAll(rec)
     local ui = rec.stackUI
     if not ui then return end
-    if ui.glow then
-        ui.glow.gate:Hide()
-        ui.glow.clip:Hide()
-    end
+    if ui.glow then HideGlowGates(ui.glow) end
     if ui.under then ui.under:Hide() end
 end
 
--- 發光那一組：閘（比格子大一圈）→ 裁切框 → 宿主（錨在 overlay 中央、排版給的尺寸）
+-- 發光那一組（巢狀，照 cfg.gates 由外到內）：
+--   第 1 層 閘＋裁切框 → overlay 的子框
+--   第 k 層 閘＋裁切框 → 第 k-1 層裁切框的子框（被外層裁切）
+--   宿主 → 最內層裁切框的子框，錨在 overlay 中央、排版給的尺寸
+-- 每一層的閘都錨在 overlay 上（比格子大一圈，明文幾何）；裁切框照 side 錨在自己那顆閘上（只錨不讀）。
+-- 層框池化在 gs.levels[k]，父框固定（第 k 層永遠是第 k-1 層裁切框的子框），層數變少時多的藏起來；
+-- 宿主照用到的層數 SetParent 到最內層的裁切框（我們自己的框）。
+-- 永不成立（cfg.gates 是 nil）：整組藏起來、發光不畫。
 local function BuildGlow(rec, cfg, w, h)
     local ui = UI(rec)
     local ov = rec.overlay
-    if not cfg.glow or not ov then
+    local spec = cfg.glow and cfg.gates or nil
+    if not spec or not ov then
         if ui.glow then
             StopGlow(rec)
-            ui.glow.gate:Hide()
-            ui.glow.clip:Hide()
+            HideGlowGates(ui.glow)
         end
         return
     end
     local gs = ui.glow
     if not gs then
-        gs = NewGate(ov)
-        gs.host = CreateFrame("Frame", nil, gs.clip)
+        local g1 = NewGate(ov)
+        gs = { levels = { g1 }, host = CreateFrame("Frame", nil, g1.clip) }
+        gs.hostParent = g1.clip
         ui.glow = gs
     end
-    StopGlow(rec)                    -- 樣式／尺寸可能變了：重畫
+    StopGlow(rec)                    -- 樣式／尺寸／比較子可能變了：重畫
     local mx, my = SG.Margin(w, h)
-    gs.gate:ClearAllPoints()
-    gs.gate:SetPoint("TOPLEFT", ov, "TOPLEFT", -mx, my)
-    gs.gate:SetPoint("BOTTOMRIGHT", ov, "BOTTOMRIGHT", mx, -my)
-    gs.gate:SetMinMaxValues(SG.GateRange(cfg.glow))
     local lv = (ov:GetFrameLevel() or 1) + 1      -- 跟生效發光的宿主同一層（兩者互斥）
-    gs.gate:SetFrameLevel(lv)
-    gs.clip:SetFrameLevel(lv)
+    for k, c in ipairs(spec) do
+        local g = gs.levels[k]
+        if not g then
+            g = NewGate(gs.levels[k - 1].clip)
+            gs.levels[k] = g
+        end
+        g.gate:ClearAllPoints()
+        g.gate:SetPoint("TOPLEFT", ov, "TOPLEFT", -mx, my)
+        g.gate:SetPoint("BOTTOMRIGHT", ov, "BOTTOMRIGHT", mx, -my)
+        g.gate:SetMinMaxValues(c.a, c.b)
+        AnchorClip(g, c.side)
+        g.gate:SetFrameLevel(lv)
+        g.clip:SetFrameLevel(lv)
+        g.gate:Show()
+        g.clip:Show()
+    end
+    for k = #spec + 1, #gs.levels do
+        gs.levels[k].gate:Hide()
+        gs.levels[k].clip:Hide()
+    end
+    gs.depth = #spec
+    -- 舊欄位名（外層）：除錯與既有測試讀的
+    gs.gate, gs.clip = gs.levels[1].gate, gs.levels[1].clip
+    local inner = gs.levels[#spec].clip
+    if gs.hostParent ~= inner then
+        gs.host:SetParent(inner)
+        gs.hostParent = inner
+    end
     gs.host:ClearAllPoints()
     gs.host:SetPoint("CENTER", ov, "CENTER", 0, 0)
     gs.host:SetSize(tonumber(w) or 36, tonumber(h) or 36)
     gs.host:SetFrameLevel(lv + 1)
-    gs.gate:Show()
-    gs.clip:Show()
     gs.host:Show()
 end
 
@@ -650,7 +749,13 @@ end
 local function SetAll(rec, v)
     local ui = rec.stackUI
     if not ui then return end
-    if ui.glow and rec.stackCfg.glow then pcall(ui.glow.gate.SetValue, ui.glow.gate, v) end
+    if ui.glow and rec.stackCfg.gates then
+        -- 巢狀的每一層閘都餵同一個層數（秘密值原樣轉手）
+        for k = 1, ui.glow.depth or 0 do
+            local gate = ui.glow.levels[k].gate
+            pcall(gate.SetValue, gate, v)
+        end
+    end
     local colors = rec.stackCfg.colors
     if colors and ui.under then
         for k = 1, #colors do
@@ -682,9 +787,11 @@ local function Unpark(item, rec)
     local ui = rec.stackUI
     if not ui then return end
     local cfg = rec.stackCfg
-    if ui.glow and cfg.glow then
-        ui.glow.gate:Show()
-        ui.glow.clip:Show()
+    if ui.glow and cfg.gates then
+        for k = 1, ui.glow.depth or 0 do
+            ui.glow.levels[k].gate:Show()
+            ui.glow.levels[k].clip:Show()
+        end
     end
     if ui.under and SG.HasLayers(cfg) then
         ui.under:Show()
@@ -803,24 +910,25 @@ end
 -- 除錯
 ------------------------------------------------------------
 function SG.Counts()
-    local glow, colors, lit, bars, ticks = 0, 0, 0, 0, 0
+    local glow, colors, lit, bars, ticks, ops = 0, 0, 0, 0, 0, 0
     for _, rec in pairs(ns.Viewers.frames) do
         local cfg = rec.stackCfg
         if cfg then
             if cfg.glow then glow = glow + 1 end
+            if cfg.glow and cfg.op ~= SG.DEFAULT_OP then ops = ops + 1 end
             if cfg.colors then colors = colors + 1 end
             if cfg.stackBar then bars = bars + 1 end
             if cfg.ticks then ticks = ticks + 1 end
             if rec.stackGlowOn then lit = lit + 1 end
         end
     end
-    return glow, colors, lit, bars, ticks
+    return glow, colors, lit, bars, ticks, ops
 end
 
 local LAST_TEXT = { plain = "明文", secret = "秘密", none = "沒有光環資料（0）", inactive = "沒生效（0）" }
 
 function SG.DebugLine()
-    local glow, colors, lit, bars, ticks = SG.Counts()
-    return ("  層數門檻：發光 %d 格（宿主在畫 %d）  換色 %d 格  層數當填充 %d 格  刻度 %d 格  掛了 RefreshApplications %d 格  餵了 %d 次  最近一次 %s")
-        :format(glow, lit, colors, bars, ticks, SG.hooked, SG.feeds, SG.last and (LAST_TEXT[SG.last] or SG.last) or "—")
+    local glow, colors, lit, bars, ticks, ops = SG.Counts()
+    return ("  層數門檻：發光 %d 格（宿主在畫 %d、比較子不是 ≥ 的 %d）  換色 %d 格  層數當填充 %d 格  刻度 %d 格  掛了 RefreshApplications %d 格  餵了 %d 次  最近一次 %s")
+        :format(glow, lit, ops, colors, bars, ticks, SG.hooked, SG.feeds, SG.last and (LAST_TEXT[SG.last] or SG.last) or "—")
 end
