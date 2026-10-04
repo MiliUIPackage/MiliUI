@@ -262,7 +262,11 @@ local function ReadInfo(id)
     local spellID    = Plain(raw.spellID)
     local overrideID = Plain(raw.overrideSpellID)
     local tipID      = Plain(raw.overrideTooltipSpellID)
-    local shown      = overrideID or spellID
+    -- 名字／圖示照暴雪設定面板的靜態路徑（CooldownViewerItemDataMixin:GetSpellID／GetSpellTexture，
+    -- layout manager 不吃光環資料）：overrideTooltipSpellID 優先。增益類常靠它指到真正追蹤的光環，
+    -- 例如鮮血女王的精華的 spellID 是吸血鬼打擊、tooltip 那個才是精華；只看 spellID 會在預覽／挑選器
+    -- 顯示成技能本身，玩家認不出是哪一格。法術索引、冷卻比對照舊用 spellID／overrideSpellID，不看這裡
+    local shown      = tipID or overrideID or spellID
     local icon, name
     if shown and C_Spell then
         if C_Spell.GetSpellTexture then
@@ -1375,9 +1379,9 @@ function C.Explain(sources)
                 if not where[id] and rec.bar and g ~= nil and g ~= rec.bar then
                     why = "拉去 " .. BarName(g) .. (type(bars[g]) == "table" and "，" or "（那條不存在，留在原條），") .. why
                 end
-                out[#out + 1] = ("    %s %s %s(%s/%s) 類別 %s→%s%s 學會=%s：%s"):format(
+                out[#out + 1] = ("    %s %s %s(%s/%s/%s) 類別 %s→%s%s 學會=%s：%s"):format(
                     where[id] and "✓" or "✕", tostring(id), tostring(rec.name or "?"),
-                    tostring(rec.spellID), tostring(rec.overrideSpellID),
+                    tostring(rec.spellID), tostring(rec.overrideSpellID), tostring(rec.overrideTooltipSpellID),
                     Cat(rec.category), Cat(eff), layoutOv[id] ~= nil and "（面板覆寫）" or "",
                     tostring(rec.isKnown), why)
             end

@@ -1136,5 +1136,18 @@ do
     C.Refresh("overflow-done")
 end
 
+------------------------------------------------------------
+-- 名字／圖示走 overrideTooltipSpellID（暴雪設定面板的靜態路徑）
+------------------------------------------------------------
+do
+    infos[301].overrideTooltipSpellID = 9999
+    C.Refresh("tooltip-name")
+    eq("名字：tooltip 法術優先", C.Info(301).name, "法術9999")
+    eq("法術 id 照舊", C.Info(301).spellID, 3010)
+    infos[301].overrideTooltipSpellID = nil
+    C.Refresh("tooltip-name-done")
+    eq("沒有 tooltip 法術 ⇒ 照舊用 spellID", C.Info(301).name, "法術3010")
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
