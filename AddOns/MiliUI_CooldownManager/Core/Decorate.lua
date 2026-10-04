@@ -37,8 +37,9 @@ local _, ns = ...
 ns.Decorate = {}
 local D = ns.Decorate
 -- /mcdm perf 的計數（Api.lua；只 +1，不配置）：
---   applyCalls／applySkipped（簽章命中）／applyPre（前置鍵命中，前置鍵還沒做之前一直是 0）
---   setCooldownHooks（SetCooldown 後掛勾被叫幾次）／afterCooldownWrites（其中真的有樣式要寫的次數）
+--   applyCalls／applySkipped（簽章命中）／applyPre（前置鍵命中：連 SpellStyle／簽章都沒算，見 D.PreKeyMatch）
+--   setCooldownHooks（SetCooldown 後掛勾被叫幾次）／afterCooldownWrites（其中倒數色／formatter 真的重寫的次數：
+--   去重沒擋下來的；轉圈色與邊緣暴雪每次都重寫，我們每次都蓋，不算在這裡，見 AfterCooldown）
 D.applyCalls, D.applySkipped, D.applyPre = 0, 0, 0
 D.setCooldownHooks, D.afterCooldownWrites = 0, 0
 D.applyReattach = 0             -- 簽章命中而且剛重新取出 ⇒ 只補做（D.Reattach）
@@ -47,6 +48,9 @@ local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 local ICON_OVERLAY_ATLAS = "UI-HUD-CoolDownManager-IconOverlay"
 
 local generation = 0            -- 設定變了就 +1，進簽章
+-- 條層樣式的世代（前置鍵的第一欄）：InvalidateAll 時 +1。Resolve 的快取 resolved[barKey] 只靠 generation 作廢
+-- （沒有任何地方單獨清 resolved[barKey]；fresh 的那條路不讀也不寫快取），所以兩個一起動
+D.styleGen = 0
 local cooldownOwner = setmetatable({}, { __mode = "k" })   -- Cooldown 框 → item
 local iconOwner     = setmetatable({}, { __mode = "k" })   -- Icon 貼圖 → item
 local nameOwner     = setmetatable({}, { __mode = "k" })   -- 長條名字 FontString → item
@@ -130,6 +134,7 @@ end
 
 function D.InvalidateAll()
     generation = generation + 1
+    D.styleGen = D.styleGen + 1
     for _, rec in pairs(ns.Viewers.frames) do rec.decorated = nil end
     if ns.Custom and ns.Custom.Records then
         for _, rec in pairs(ns.Custom.Records()) do rec.decorated = nil end
@@ -585,19 +590,31 @@ local function ReadyWhileOn(rec)
 end
 
 -- SetCooldown 後掛勾的尾巴（正常路徑與蓋掉的那條共用）：轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態
+--
+-- 去重（效能修整 E2 #9）：只有**倒數色＋formatter**（ns.Text.ApplyPhaseColor）照「上次套的是哪一包樣式
+-- （rec.style 的參照）＋哪一段（增益／冷卻）」去重——rec.acStyle／rec.acAura 都沒變就不再寫。
+-- 查證（Gethe/wow-ui-source live，Blizzard_CooldownViewer/CooldownViewer.lua、Blizzard_FrameXMLUtil/Cooldown.lua）：
+--   * CooldownViewerCooldownItemMixin:RefreshSpellCooldownInfo 每次刷新都 cooldownFrame:SetSwipeColor(…)、
+--     CooldownFrame_Set 每次都 SetDrawEdge(forceShowDrawEdge) 再 SetCooldown；增益圖示的 RefreshCooldownInfo 也先
+--     SetSwipeColor ⇒ **轉圈色與邊緣暴雪每次都重寫，不能去重**（FeedRealCooldown 自己也會改邊緣），照舊每次蓋
+--   * 倒數數字的顏色（GetCountdownFontString:SetTextColor）與 SetCountdownFormatter：整個檢視器沒有一處寫，
+--     CooldownFrame_Set／CooldownFrame_SetDisplayAsPercentage 也不碰 ⇒ 可以去重
+-- 作廢：D.Apply 換了 rec.style（新表 ⇒ 參照不等；Text.ApplyIcon 會先寫倒數原色）、增益旗標變了（rec.auraTime 變 ⇒
+-- 布林不等）、D.Reattach（暴雪取出時的 SetTimerShown 會動倒數數字，保守起見清掉）
 local function AfterCooldown(item, rec, cd)
     local st = rec.style
     if not st then return end
-    -- /mcdm perf：下面三樣（轉圈色／邊緣／倒數換色）真的有要寫的才算一次
-    if st.swipe or st.durSwipe or type(st.drawEdge) == "boolean" or st.cdColor then
-        D.afterCooldownWrites = D.afterCooldownWrites + 1
-    end
     -- 轉圈色：增益那一段用它自己的背景色（換色開著才有 durSwipe）
-    local sw = ((rec.auraTime or st.allAura) and st.durSwipe) or st.swipe
+    local aura = (rec.auraTime or st.allAura) and true or false
+    local sw = (aura and st.durSwipe) or st.swipe
     if sw then cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
     -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的；蓋掉的格是 false ＝ 原色）
-    if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor then ns.Text.ApplyPhaseColor(item, rec) end
+    if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor and (rec.acStyle ~= st or rec.acAura ~= aura) then
+        D.afterCooldownWrites = D.afterCooldownWrites + 1
+        ns.Text.ApplyPhaseColor(item, rec)
+        rec.acStyle, rec.acAura = st, aura
+    end
     D.ApplyGCDAlpha(item, rec)
     -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
     if st.cdState and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
@@ -1112,6 +1129,9 @@ end
 --   法術 id 先問 item 自己的 GetSpellID（暴雪會把 linkedSpell／光環的 id 算進去，跟它寫名字用的是同一個），
 --   讀不到明文再退 Catalog。每次處理都記一行 diag（去重），實機不對時 /mcdm debug 看得到。
 local nameGuard = false
+-- 秘密字串那一支的 diag 只記一次（Diag.Note 自己會合併同字，但每次仍要 date()＋組字串）；進場清掉、下一輪再記一次
+local notedSecret = {}
+ns.Events.Register("PLAYER_ENTERING_WORLD", "decorate_barname", function() notedSecret = {} end)
 local function BarItemSpellID(item, rec)
     local get = item.GetSpellID
     if type(get) == "function" then
@@ -1131,7 +1151,13 @@ local function OnBarNameSetText(fs, text)
     if not rec or rec.custom then return end
     local Note = ns.Diag and ns.Diag.Note
     if ns.IsSecret(text) then                           -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
-        if Note then Note("barname", tostring(rec.cooldownID) .. " 秘密字串（留著）") end
+        local cid = rec.cooldownID
+        if Note and cid ~= nil and not notedSecret[cid] then
+            notedSecret[cid] = true
+            Note("barname", tostring(cid) .. " 秘密字串（留著）")
+        elseif Note and cid == nil then
+            Note("barname", "nil 秘密字串（留著）")
+        end
         return
     end
     if text ~= nil and text ~= "" then return end
@@ -1404,14 +1430,56 @@ end
 --   * RefreshData 系列（轉圈色、邊緣、去飽和、圖示貼圖、觸發發光、層數字）每次刷新都會寫，本來就靠後掛勾，
 --     跟取出無關
 ------------------------------------------------------------
-function D.Reattach(item, rec, spell, isBar)
+-- spell 可以是 nil（前置鍵命中那條路沒算 SpellStyle）：這時照 barKey 只讀「隱藏倒數文字」這一個欄位
+function D.Reattach(item, rec, spell, isBar, barKey)
     rec.reacquired = nil
+    rec.acStyle = nil               -- AfterCooldown 的倒數色去重作廢（下一次 SetCooldown 照現況重寫一次）
     D.applyReattach = D.applyReattach + 1
     if isBar then return end
     local cd = item.Cooldown
     if cd and cd.SetHideCountdownNumbers then
-        cd:SetHideCountdownNumbers(spell.hideCooldownText and true or false)     -- 同 Text.ApplyIcon
+        local hide
+        if spell then hide = spell.hideCooldownText
+        else hide = ns.SpellSetting(barKey, rec.cooldownID, "hideCooldownText") end
+        cd:SetHideCountdownNumbers(hide and true or false)     -- 同 Text.ApplyIcon
     end
+end
+
+------------------------------------------------------------
+-- 前置鍵（效能修整 E2 #3）：簽章的全部輸入縮成八個純量，八個都跟上一次一樣 ⇒ 簽章一定一樣 ⇒ 連 SpellStyle
+-- （新表＋十幾次 SpellSetting）與 Signature（幾個 string.format）都不算
+--
+--   欄位        ← 簽章的哪個輸入
+--   pK_style    D.styleGen：style.sig（Resolve 的快取只靠 generation 作廢，InvalidateAll 兩個一起 +1）
+--   pK_over     ns.DB.overrideGen：SpellStyle 的逐法術覆寫（含 customIcon）、IconOverrideOf 看的「是不是光環格」
+--               （自訂清單寫入一併 +1）、replaceAuraStyle 與 A 的 SpellStyle（也是覆寫）
+--   pK_id       rec.cooldownID
+--   pK_w／pK_h  格子尺寸
+--   pK_rep      rec.replacing（頂著哪個 A）
+--   pK_bar      barKey（＝ rec.decoratedBar 那個比較）
+--   pK_masque   ns.Masque.Active()（style.sig 裡的 Masque 那一段是 Resolve 當下的值；這裡比現況，只會更嚴）
+-- 另外 rec.decorated 是 nil 就一律不中：所有「強制重套」的地方（InvalidateAll、身分換了、Masque 補做完的 OnLate、
+-- 自訂框換 id）都是清 rec.decorated，前置鍵不另外清。
+-- SpellStyle 裡退回條層的值（ns.Setting）不在八欄裡：條層設定變了一律經過 InvalidateAll（設定頁 ApplyEngine 0.2 秒
+-- 合併後、換設定檔／專精、Masque 變了、整套重來）⇒ styleGen 變。
+-- 預覽格（ApplyPreview）不走前置鍵：它每次都要照設定頁當下的值重畫。
+------------------------------------------------------------
+function D.PreKeyMatch(rec, sgen, ogen, id, w, h, rep, barKey, msq)
+    return rec.decorated ~= nil
+        and rec.pK_style == sgen and rec.pK_over == ogen and rec.pK_id == id
+        and rec.pK_w == w and rec.pK_h == h and rec.pK_rep == rep
+        and rec.pK_bar == barKey and rec.pK_masque == msq
+end
+
+function D.PreKeyStore(rec, sgen, ogen, id, w, h, rep, barKey, msq)
+    rec.pK_style, rec.pK_over, rec.pK_id = sgen, ogen, id
+    rec.pK_w, rec.pK_h, rec.pK_rep = w, h, rep
+    rec.pK_bar, rec.pK_masque = barKey, msq
+end
+
+local function MasqueActive()
+    local M = ns.Masque
+    return (M and M.Active and M.Active()) and true or false
 end
 
 ------------------------------------------------------------
@@ -1420,8 +1488,18 @@ end
 function D.Apply(item, rec, barKey, w, h)
     if not (item and rec and barKey) then return end
     D.applyCalls = D.applyCalls + 1
+    -- 前置鍵：輸入在算簽章之前先讀好（中途有人作廢 ⇒ 存進去的是舊世代，下一次自然不中）
+    local sgen, ogen = D.styleGen, ns.DB and ns.DB.overrideGen or 0
+    local id, rep, msq = rec.cooldownID, rec.replacing, MasqueActive()
+    if D.PreKeyMatch(rec, sgen, ogen, id, w, h, rep, barKey, msq) then
+        D.applyPre = D.applyPre + 1
+        if rec.reacquired then
+            local st = D.Resolve(barKey)
+            D.Reattach(item, rec, nil, st.kind == "bars" and item.Bar ~= nil, barKey)
+        end
+        return
+    end
     local style = D.Resolve(barKey)
-    local id = rec.cooldownID
     local spell = SpellStyle(barKey, id)
     local isBar = style.kind == "bars" and item.Bar ~= nil
     local sig = Signature(style, id, spell, w, h)
@@ -1441,7 +1519,8 @@ function D.Apply(item, rec, barKey, w, h)
     end
     if rec.decorated == sig and rec.decoratedBar == barKey then
         D.applySkipped = D.applySkipped + 1
-        if rec.reacquired then D.Reattach(item, rec, spell, isBar) end
+        if rec.reacquired then D.Reattach(item, rec, spell, isBar, barKey) end
+        D.PreKeyStore(rec, sgen, ogen, id, w, h, rep, barKey, msq)
         return
     end
     rec.reacquired = nil              -- 下面整套重套，取出時被重設的一併蓋回去
@@ -1584,6 +1663,7 @@ function D.Apply(item, rec, barKey, w, h)
     D.ApplyGCDAlpha(item, rec)          -- 開關切換當場生效（關掉要把 alpha 還回 1）
     ApplyTooltip(ov, rec, style.tooltips)
     rec.decorated, rec.decoratedBar = sig, barKey
+    D.PreKeyStore(rec, sgen, ogen, id, w, h, rep, barKey, msq)
     -- 層數門檻（增益）：設定快取在 rec.stackCfg、閘照簽章重建。排在 ApplyBarLook 之後（暴雪條的填充貼圖要有材質）、
     -- Glow.AfterApply 之前（生效發光要看 rec.stackCfg 決定讓不讓位）
     if ns.StackGate and ns.StackGate.Apply then ns.StackGate.Apply(item, rec, barKey, w, h, isBar) end

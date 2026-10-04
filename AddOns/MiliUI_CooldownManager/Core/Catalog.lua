@@ -213,6 +213,7 @@ C.sig        = nil         -- 內容簽章（版面字串＋專精＋每條的�
 C.layoutString = nil       -- 上次讀到的 GetLayoutData 原字串
 C.source     = "none"      -- 順序從哪來：layout | fallback:<原因>
 C.builds     = 0           -- 實際重建次數（debug／測試用）
+C.buildGen   = 0           -- C.info／C.placed 換了就 +1（Build 成功、Adopt 收養）：Replacements 的 memo 作廢點
 local dirty  = true
 local paused = false
 
@@ -543,6 +544,7 @@ local function Build()
     end
     C.placed = placed
     C.adopted = 0
+    C.buildGen = C.buildGen + 1         -- C.info／C.lists／C.placed 都換了新表
 
     -- 簽章：版面原字串＋專精＋每條清單（天賦改變 isKnown 也會反映在清單上）＋天賦條件的結果
     -- ＋寬層自訂項目的生效結果（學會／忘掉技能讓職業層的防禦技出現／消失、種族技能解析成哪一個）
@@ -678,6 +680,7 @@ function C.Adopt(live)
                     rec.adopted = true
                     list[#list + 1] = id
                     placed[id] = true
+                    C.buildGen = C.buildGen + 1     -- C.placed／C.info 原地改了（Replacements 的 memo）
                     n = n + 1
                     if ns.SpellIndex then ns.SpellIndex.dirty = true end      -- C.info 多了一筆
                     notes = notes or {}
@@ -769,15 +772,26 @@ local function ValidCustom(e)
 end
 C.ValidCustom = ValidCustom
 
+-- 生效清單的 id → 那一項（同一個 id 只留第一個，跟原本「線性掃到第一個就回」同語意）。
+-- 跟著 EffectiveCustom 的 memo 走：它回同一張表 ⇒ 這張也不重建（換幀、customGen 變了它回新表，這裡跟著重建）
+local byIDList, byID = nil, {}
+local function EffectiveByID()
+    local list = Effective()
+    if list ~= byIDList then
+        byID = {}
+        for _, it in ipairs(list) do
+            if byID[it.id] == nil then byID[it.id] = it end
+        end
+        byIDList = list
+    end
+    return byID
+end
+
 -- 生效的那一筆（種族技能是解析後的視圖）、編號（陣列位置／uid）、範圍；被窄層蓋掉、用不到、壞資料 ⇒ nil
 function C.CustomEntry(id)
     if not Parse(id) then return nil end
-    for _, it in ipairs(Effective()) do
-        if it.id == id then
-            if ValidCustom(it.entry) then return it.entry, it.key, it.scope end
-            return nil
-        end
-    end
+    local it = EffectiveByID()[id]
+    if it and ValidCustom(it.entry) then return it.entry, it.key, it.scope end
     return nil
 end
 
@@ -817,7 +831,30 @@ local function SpellKnown(spellID)
 end
 C.SpellKnown = SpellKnown
 
+-- memo（效能修整 E2）：DB.customGen、GetTime() 戳記、專精、設定檔四樣都相同才回上一次的表（一輪排版同一格會問好幾次）。
+-- 讀的東西（裝在欄位上的物品、包包裡的替代品、學了沒、覆寫法術、圖示與名字）同一幀內不會變；
+-- 自訂項目本身的寫入走 customGen（Core/DB.lua「寫入世代」）。讀不到 GetTime（離線測試）⇒ 不 memo。
+-- ⚠ 回傳的表呼叫端不准改（同一幀的其他呼叫拿到的是同一張）
+local infoMemo, infoKey = {}, { gen = -1 }
+local BuildCustomInfo
 local function CustomInfo(id)
+    local now = _G.GetTime and _G.GetTime() or nil
+    if now == nil then return BuildCustomInfo(id) end
+    local DB, k = ns.DB, infoKey
+    local gen = DB and DB.customGen or 0
+    if k.at ~= now or k.gen ~= gen or k.spec ~= ns.specID or k.profile ~= ns.profile then
+        infoMemo = {}
+        k.at, k.gen, k.spec, k.profile = now, gen, ns.specID, ns.profile
+    end
+    local v = infoMemo[id]
+    if v == nil then
+        v = BuildCustomInfo(id) or false
+        infoMemo[id] = v
+    end
+    return v or nil
+end
+
+BuildCustomInfo = function(id)
     local e, i, scope = C.CustomEntry(id)
     if not e then return nil end
     local info = {
@@ -906,18 +943,35 @@ end
 --   * A、B 都沒被逐法術的天賦條件擋掉（Blocked；A 被擋 ⇒ 沒有那一格，B 不能跟著消失；
 --     B 被擋 ⇒ 玩家本來就不要它出現）
 --   * 同一個 B 只給一個 A（設定頁會擋；擋不住的舊資料取 cooldownID 小的那個，結果固定）
--- 不快取：覆寫的寫入路徑很多（單一法術小窗、清除覆寫、還原此法術、匯入、換設定檔／專精），
--- 作廢點漏一個就是「改了沒反應」；現算只是走一遍這個專精的覆寫表。
+-- memo（效能修整 E2）：鍵是 DB.overrideGen（覆寫與專精表的寫入出口，含 hidden）、C.buildGen（C.info／C.placed 換了）、
+-- GetTime() 戳記（天賦條件 Blocked 的結果每幀重算）、這個專精的表本身（換專精／設定檔）。讀不到 GetTime ⇒ 不 memo。
+-- ⚠ 回傳的 byA／byB **呼叫端不准改**（同一幀的其他呼叫拿到的是同一張；目前的呼叫端都只讀）。
 -- 在掛勾的訊號路徑上（GroupTargets）也會叫，所以**不重建目錄**，只讀上次建好的 C.info／C.placed。
 ------------------------------------------------------------
 local REPLACE_FROM = { essential = true, utility = true }
 local REPLACE_TO   = "buffs"
 C.REPLACE_FROM, C.REPLACE_TO = REPLACE_FROM, REPLACE_TO
 
--- 回傳 byA（A → B）、byB（B → A）。都是新表
+-- 回傳 byA（A → B）、byB（B → A）
+local replMemo = { og = -1 }
+local BuildReplacements
 function C.Replacements()
-    local byA, byB = {}, {}
+    local now = _G.GetTime and _G.GetTime() or nil
+    if now == nil then return BuildReplacements(SpellsTable()) end
     local sp = SpellsTable()
+    local DB = ns.DB
+    local og = DB and DB.overrideGen or 0
+    local m = replMemo
+    if m.at == now and m.og == og and m.bg == C.buildGen and m.sp == sp then
+        return m.byA, m.byB
+    end
+    local byA, byB = BuildReplacements(sp)
+    m.at, m.og, m.bg, m.sp, m.byA, m.byB = now, og, C.buildGen, sp, byA, byB
+    return byA, byB
+end
+
+BuildReplacements = function(sp)
+    local byA, byB = {}, {}
     local all = sp and type(sp.overrides) == "table" and sp.overrides
     if not all then return byA, byB end
     local hidden = type(sp.hidden) == "table" and sp.hidden or EMPTY

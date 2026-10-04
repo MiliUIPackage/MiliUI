@@ -379,7 +379,7 @@ local PERF = {
     { "Decorate",   "applyPre",            "  前置鍵命中",          of = "Decorate.applyCalls" },
     { "Decorate",   "applyReattach",       "  重新取出只補做",      of = "Decorate.applyCalls" },
     { "Decorate",   "setCooldownHooks",    "SetCooldown 掛勾" },
-    { "Decorate",   "afterCooldownWrites", "  寫轉圈色／倒數色",    of = "Decorate.setCooldownHooks" },
+    { "Decorate",   "afterCooldownWrites", "  重寫倒數色（去重後）", of = "Decorate.setCooldownHooks" },
     { "SpellIndex", "rebuilds",            "法術索引重建" },
     { "SpellIndex", "precise",             "冷卻事件 精準" },
     { "SpellIndex", "full",                "冷卻事件 全掃" },

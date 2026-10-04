@@ -419,5 +419,40 @@ do
     SI.Lookup = saved
 end
 
+------------------------------------------------------------
+-- 7. Decorate.Apply 的前置鍵（效能修整 E2 #3）：八欄逐一變動都 miss；rec.decorated 被清掉（強制重套）也 miss
+------------------------------------------------------------
+do
+    local base = { 3, 7, 101, 40, 36, nil, "essential", false }
+    local function Args(i, v)
+        local a = { base[1], base[2], base[3], base[4], base[5], base[6], base[7], base[8] }
+        if i then a[i] = v end
+        return a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]
+    end
+    local rec = { decorated = "sig" }
+    D.PreKeyStore(rec, Args())
+    check("前置鍵：八欄全等 ⇒ 中", D.PreKeyMatch(rec, Args()))
+    local changes = {
+        { 1, 4,           "條層樣式世代（styleGen）" },
+        { 2, 8,           "覆寫世代（overrideGen）" },
+        { 3, 102,         "cooldownID" },
+        { 4, 41,          "寬" },
+        { 5, 37,          "高" },
+        { 6, 555,         "頂著的 A（replacing）" },
+        { 7, "utility",   "barKey" },
+        { 8, true,        "Masque 作用中" },
+    }
+    for _, c in ipairs(changes) do
+        check("前置鍵：" .. c[3] .. " 變了 ⇒ 不中", not D.PreKeyMatch(rec, Args(c[1], c[2])))
+    end
+    -- nil ↔ 值也算變（cooldownID、replacing 會是 nil）
+    D.PreKeyStore(rec, Args(6, 555))
+    check("前置鍵：replacing 值 → nil ⇒ 不中", not D.PreKeyMatch(rec, Args()))
+    D.PreKeyStore(rec, Args())
+    rec.decorated = nil
+    check("前置鍵：rec.decorated 被清掉（強制重套）⇒ 不中", not D.PreKeyMatch(rec, Args()))
+    check("前置鍵：從沒存過 ⇒ 不中", not D.PreKeyMatch({ decorated = "sig" }, Args()))
+end
+
 print(("CooldownState_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

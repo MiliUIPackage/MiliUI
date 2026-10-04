@@ -433,6 +433,8 @@ function S.CustomRemove(index)
             end)
         end
     end
+    -- 上面直接改了覆寫表（不經 DB.SetOverride）：讀取端的 memo 作廢點（Core/DB.lua「寫入世代」）
+    if ns.DB and ns.DB.TouchOverrides then ns.DB.TouchOverrides() end
     CustomChanged()
     return cleared
 end

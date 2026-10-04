@@ -1844,6 +1844,8 @@ function Import.ResolvePending(specID)
     if type(p) ~= "table" or type(p.pendingImport) ~= "table" or specID == nil then return false end
     if type(p.pendingImport[specID]) ~= "table" then return false end
     local done = Import.ApplyPending(p, specID, Import.BuildResolver(CatalogRecords()))
+    -- 直接寫進了目前這份的 spells[spec]（覆寫／群組／順序）：讀取端的 memo 作廢點（Core/DB.lua「寫入世代」）
+    if (done or 0) > 0 and ns.DB and ns.DB.TouchOverrides then ns.DB.TouchOverrides() end
     return (done or 0) > 0
 end
 

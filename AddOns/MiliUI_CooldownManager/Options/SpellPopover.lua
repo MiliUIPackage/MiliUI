@@ -423,6 +423,7 @@ local function Build()
         local e = ns.DB.CustomEntry(cur.id)
         if not e then return end
         e.hideUnknown = on and true or false
+        ns.DB.TouchCustom()               -- 生效清單變了（DB.EffectiveCustom 的 memo 作廢點）
         if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
         Changed("membership")
     end)
@@ -1037,6 +1038,7 @@ local function Build()
         local e = ns.DB.CustomEntry(cur.id)
         if not e then return end
         e.placeholder = on and true or false
+        ns.DB.TouchCustom()
         Changed("membership")
     end)
     pcb:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)

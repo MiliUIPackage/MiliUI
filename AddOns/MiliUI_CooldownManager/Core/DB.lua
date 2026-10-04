@@ -34,6 +34,27 @@ ns.DB_VERSION = 4
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
 
+------------------------------------------------------------
+-- 寫入世代（讀取端 memo 的作廢點；效能修整 E2，2026-10-04）
+--
+--   DB.overrideGen  逐法術覆寫、專精表（spells[spec] 的 order／groupOf／hidden／overrides）、自訂項目有任何寫入就 +1
+--                   讀的人：Catalog.Replacements 的 memo、Decorate.Apply 的前置鍵（SpellStyle 讀覆寫；IconOverrideOf
+--                   也看「這個 id 是不是光環格」＝自訂清單，所以自訂項目的寫入一併 +1）
+--   DB.customGen    自訂項目（三層清單、一筆的欄位）有任何寫入就 +1
+--                   讀的人：EffectiveCustom 的 memo、Catalog.CustomInfo 的 memo
+-- 作廢點一律放在**寫入的出口**：SpecSpells／CustomList／ScopeList／OverrideTable 的 create=true（＝呼叫端要寫）、
+-- SetOverride／DropOverrideTable／ClearOverrides、增刪搬複製自訂項目、DeleteBar、Activate（換設定檔）、
+-- ResetProfile、ImportProfile、換專精。拿到表之後直接改欄位的少數地方（設定頁改 hideUnknown／placeholder、
+-- 刪自訂語音時清覆寫、匯入的待對應覆寫）自己叫 DB.TouchCustom／DB.TouchOverrides。
+-- 讀取端另外都有「每幀戳記」當第二道保險：漏掉一個作廢點最多錯到這一幀結束。
+------------------------------------------------------------
+DB.overrideGen, DB.customGen = 0, 0
+function DB.TouchOverrides() DB.overrideGen = DB.overrideGen + 1 end
+function DB.TouchCustom()
+    DB.customGen = DB.customGen + 1
+    DB.overrideGen = DB.overrideGen + 1
+end
+
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 local ResourcesDefaults, PipsDefaults, CastbarDefaults, AssistIconDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 
@@ -639,6 +660,7 @@ function DB.Activate(name)
     if not p then return nil end
     MergeDefaults(p, DB.BuildDefaults().profile)
     ns.sv, ns.profile, ns.profileName = sv, p, name
+    DB.TouchCustom()                      -- 換了一整份設定檔：讀取端的 memo 全部作廢
     return p
 end
 
@@ -794,6 +816,7 @@ local function OnSpecMaybeChanged()
     local before = ns.specID
     ns.RefreshSpec()
     if ns.specID == before then return end
+    DB.TouchCustom()                      -- 專精換了：「目前專精」的覆寫／自訂清單是另一張表
     DB.ApplySpecProfile()
     ns.Fire("SpecChanged", ns.specID)
 end
@@ -991,6 +1014,7 @@ function DB.ResetProfile()
     if not p then return end
     Wipe(p)
     MergeDefaults(p, DB.BuildDefaults().profile)
+    DB.TouchCustom()
     ns.Fire("ProfileChanged", ns.profileName)
 end
 
@@ -1148,6 +1172,7 @@ function DB.DeleteBar(key)
         if type(spec) == "table" and type(spec.custom) == "table" then Rehome(spec.custom) end
     end
     DB.EachWideList(p, Rehome)          -- 定義在下面「自訂項目」那一節
+    DB.TouchCustom()                    -- groupOf／order 與自訂項目的 bar 都可能改了
     for other, bar in pairs(p.bars) do
         if other ~= key and type(bar) == "table" and type(bar.anchor) == "table" and bar.anchor.to == key then
             bar.anchor = false
@@ -1182,10 +1207,12 @@ end
 ------------------------------------------------------------
 -- 逐專精的法術表：spells[specID] = { order, groupOf, hidden, overrides, custom }
 ------------------------------------------------------------
+-- create ＝ 呼叫端要寫 ⇒ 這裡就是作廢點（DB.overrideGen）；只讀一律傳 false
 function DB.SpecSpells(create, specID)
     local p = ns.profile
     specID = specID or ns.specID
     if not (p and specID) then return nil end
+    if create then DB.TouchOverrides() end
     if type(p.spells) ~= "table" then
         if not create then return nil end
         p.spells = {}
@@ -1230,20 +1257,23 @@ DB.OVERRIDE_GROUP = {
 -- 某個 id 的覆寫表（{ 欄位 = 值 }）。唯一的分流點：
 --   職業層／戰隊層的自訂項目（"k:"／"w:"）→ 那一筆自己身上的 entry.overrides
 --   其餘（暴雪的數字 id、專精層的 "c:"）→ spells[specID].overrides[id]
--- create ＝ 沒有就建（那一筆不存在時照樣回 nil）。第二個回傳值是「拿掉這張表」的函式（整張空了時用）。
+-- create ＝ 沒有就建（那一筆不存在時照樣回 nil），也是「呼叫端要寫」的宣告 ⇒ DB.overrideGen 的作廢點。
+-- 只回表（2026-10-04 之前第二個回傳值是「拿掉這張表」的閉包：每次讀覆寫都配置一個，SpellStyle 一次讀十幾個）；
+-- 整張拿掉改叫 DB.DropOverrideTable。
 function DB.OverrideTable(cooldownID, create, specID)
     if cooldownID == nil then return nil end
     local scope = DB.ParseCustomID(cooldownID)
     if scope == "class" or scope == "shared" then
         local e = DB.CustomEntry(cooldownID)
         if type(e) ~= "table" then return nil end
+        if create then DB.TouchOverrides() end
         if type(e.overrides) ~= "table" then
             if not create then return nil end
             e.overrides = {}
         end
-        return e.overrides, function() e.overrides = nil end
+        return e.overrides
     end
-    local sp = DB.SpecSpells(create, specID)
+    local sp = DB.SpecSpells(create, specID)       -- create ⇒ SpecSpells 已經 +1
     local all = sp and type(sp.overrides) == "table" and sp.overrides
     if not all then return nil end
     local o = all[cooldownID]
@@ -1252,13 +1282,33 @@ function DB.OverrideTable(cooldownID, create, specID)
         o = {}
         all[cooldownID] = o
     end
-    return o, function() all[cooldownID] = nil end
+    return o
+end
+
+-- 某個 id 的覆寫表整張拿掉（OverrideTable 的分流照抄：寬層的自訂項目拿掉那一筆身上的，其餘拿掉專精表裡的）
+function DB.DropOverrideTable(cooldownID, specID)
+    if cooldownID == nil then return end
+    local scope = DB.ParseCustomID(cooldownID)
+    if scope == "class" or scope == "shared" then
+        local e = DB.CustomEntry(cooldownID)
+        if type(e) == "table" and e.overrides ~= nil then
+            e.overrides = nil
+            DB.TouchOverrides()
+        end
+        return
+    end
+    local sp = DB.SpecSpells(false, specID)
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    if all and all[cooldownID] ~= nil then
+        all[cooldownID] = nil
+        DB.TouchOverrides()
+    end
 end
 
 -- v = nil 清掉那一格；整張空了就拿掉
 function DB.SetOverride(cooldownID, field, v)
     if cooldownID == nil then return false end
-    local o, drop = DB.OverrideTable(cooldownID, v ~= nil)
+    local o = DB.OverrideTable(cooldownID, v ~= nil)
     if not o then
         -- 清一個本來就沒有的覆寫 ＝ 成功（那一筆不存在時照舊回 false）
         if v ~= nil then return false end
@@ -1268,14 +1318,14 @@ function DB.SetOverride(cooldownID, field, v)
         return sp ~= nil and type(sp.overrides) == "table"
     end
     o[field] = v
-    if next(o) == nil then drop() end
+    DB.TouchOverrides()                   -- 清掉（v = nil）那條路沒有經過 create
+    if next(o) == nil then DB.DropOverrideTable(cooldownID) end
     return true
 end
 
 -- 某個 id 的覆寫整張拿掉（單一法術小窗的「還原此法術」）
 function DB.ResetOverrides(cooldownID)
-    local o, drop = DB.OverrideTable(cooldownID, false)
-    if o then drop() end
+    DB.DropOverrideTable(cooldownID)
 end
 
 -- 某個 id 有沒有任何覆寫
@@ -1303,12 +1353,13 @@ end
 
 function DB.ClearOverrides(ids, group)
     for _, id in ipairs(ids or {}) do
-        local o, drop = DB.OverrideTable(id, false)
+        local o = DB.OverrideTable(id, false)
         if type(o) == "table" then
             for field in pairs(o) do
                 if InGroup(field, group) then o[field] = nil end
             end
-            if next(o) == nil then drop() end
+            DB.TouchOverrides()
+            if next(o) == nil then DB.DropOverrideTable(id) end
         end
     end
 end
@@ -1383,10 +1434,12 @@ local function PositiveInt(v)
 end
 
 -- 某一層的清單（"spec" ＝ 這個專精的 custom；"class" ＝ 這個角色職業的；"shared" ＝ 戰隊層）
+-- create ＝ 呼叫端要寫 ⇒ DB.customGen 的作廢點（"spec" 走 CustomList，同一個規矩）
 function DB.ScopeList(scope, create, specID)
     if scope == "spec" then return DB.CustomList(create, specID) end
     local p = ns.profile
     if not p then return nil end
+    if create then DB.TouchCustom() end
     if scope == "shared" then
         if type(p.customShared) ~= "table" then
             if not create then return nil end
@@ -1569,11 +1622,26 @@ local RUNTIME_OPTS = { isKnown = RuntimeKnown, racial = RuntimeRacial }
 local function RuntimeView(raw, scope) return DB.CustomView(raw, scope, RUNTIME_OPTS) end
 
 -- 這個專精實際生效的自訂項目（三層合併、窄蓋寬、種族技能解析、用不到的不列）。
--- Catalog／Custom.Sync／設定頁都吃這支；每次現算（寫入路徑很多，快取的作廢點漏一個就是「改了沒反應」）
+-- Catalog／Custom.Sync／設定頁都吃這支；一輪排版會被叫很多次（每條的 Catalog.Bar、BarHasAuraSlot、CustomEntry…）。
+-- memo（效能修整 E2）：DB.customGen、GetTime() 戳記、專精、設定檔四樣都相同才回上一次的表。
+--   * customGen 是寫入出口的作廢點（見檔頭「寫入世代」）⇒ 同一幀寫完立刻讀也拿得到新的
+--   * 每幀戳記是第二道保險，也讓「學了沒」「種族技能解成哪一個」（RuntimeFresh，本來就是每幀）跟著換幀重算
+--   * 讀不到 GetTime（離線測試）⇒ 不 memo
+-- ⚠ 回傳的表（連同裡面每一項）**呼叫端不准改**：同一幀的其他呼叫拿到的是同一張
+local effMemo = { gen = -1 }
 function DB.EffectiveCustom(specID)
-    if not ns.profile then return {} end
-    return DB.ResolveScopes(DB.ScopeList("shared", false), DB.ScopeList("class", false),
+    local p = ns.profile
+    if not p then return {} end
+    local spec = specID or ns.specID
+    local now = _G.GetTime and _G.GetTime() or nil
+    local m = effMemo
+    if now ~= nil and m.at == now and m.gen == DB.customGen and m.spec == spec and m.profile == p then
+        return m.list
+    end
+    local list = DB.ResolveScopes(DB.ScopeList("shared", false), DB.ScopeList("class", false),
         DB.CustomList(false, specID), RuntimeView)
+    m.gen, m.at, m.spec, m.profile, m.list = DB.customGen, now, spec, p, list
+    return list
 end
 
 -- 生效清單裡的那一項（不在 ＝ nil）
@@ -1588,6 +1656,7 @@ end
 function DB.CustomList(create, specID)
     local sp = DB.SpecSpells(create, specID)
     if not sp then return nil end
+    if create then DB.TouchCustom() end
     if type(sp.custom) ~= "table" then
         if not create then return nil end
         sp.custom = {}
@@ -1688,6 +1757,7 @@ function DB.SetCustomBar(id, bar)
     local e = DB.CustomEntry(id)
     if not e or type(bar) ~= "string" then return false end
     e.bar = bar
+    DB.TouchCustom()                      -- Catalog.CustomInfo 的 memo 帶著 bar
     return true
 end
 
@@ -1745,6 +1815,7 @@ function DB.RemoveCustom(id, specID)
         if not pos then return false end
         table.remove(list, pos)
         PurgeEverywhere(id)
+        DB.TouchCustom()
         return true
     end
     local i = DB.CustomIndex(id)
@@ -1778,6 +1849,7 @@ function DB.RemoveCustom(id, specID)
             end
         end
     end
+    DB.TouchCustom()                      -- 清單挪位、覆寫跟著挪
     return true
 end
 
@@ -1834,6 +1906,7 @@ function DB.MoveCustomScope(id, newScope)
         if type(cur.overrides) == "table" then cur.overrides[id] = nil end
         RenameIn(cur, id, newID)
         DB.RemoveCustom(id)
+        DB.TouchCustom()                  -- 覆寫跟著搬（RemoveCustom 也 +1，這裡寫明出口）
         return newID
     end
     -- 舊的在寬層
@@ -1848,6 +1921,7 @@ function DB.MoveCustomScope(id, newScope)
     local list = DB.ScopeList(scope, false)
     local _, pos = FindUID(list, key)
     if pos then table.remove(list, pos) end
+    DB.TouchCustom()                      -- 舊的拿掉、覆寫跟著搬
     return newID
 end
 
@@ -1874,6 +1948,7 @@ function DB.CopyCustomEntry(id, targetSpecID)
         local tsp = DB.SpecSpells(true, targetSpecID)
         tsp.overrides[DB.CustomID(n)] = DeepCopy(o)
     end
+    DB.TouchCustom()
     return n
 end
 
@@ -1936,6 +2011,7 @@ function DB.ImportProfile(profile, fromVersion, name)
     local copy = DeepCopy(profile)
     DB.MigrateProfile(copy, fromVersion)
     SV().profiles[name] = copy
+    DB.TouchCustom()                      -- 新的一份（不是目前這份）；照 plan 一律作廢，便宜
     return name
 end
 

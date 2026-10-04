@@ -67,7 +67,7 @@
 | `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1。取出（`Track`）**不清樣式簽章**，只標 `rec.reacquired`（`CHEAP_REACQUIRE`，見「進場、換專精」） |
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上；實際貼在誰身上由排開決定，一條變了整疊兩段式重貼）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上；`ReleaseAll` 全部還給暴雪 |
 | `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；目錄變了當場重建，`Bars` 排版結尾只在認領變了（`Bars.claimsChanged`）或 `SI.dirty`（目錄重建、收養、自訂法術換覆寫）時重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`；讀不懂一律全掃），見「冷卻狀態效果」 |
-| `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過；剛重新取出而簽章相同 ⇒ `Reattach` 只補暴雪取出時會重設的那一樣（倒數數字開關） |
+| `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過；簽章之前先比**前置鍵**（八個純量，見「設定讀取的 memo 與前置鍵」），八欄全等連 `SpellStyle`／簽章都不算；剛重新取出而簽章（或前置鍵）相同 ⇒ `Reattach` 只補暴雪取出時會重設的那一樣（倒數數字開關）。`SetCooldown` 後掛勾的倒數色＋formatter 照「樣式那包＋哪一段」去重，轉圈色與邊緣暴雪每次都重寫、照舊每次蓋 |
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭）。字型分兩層：通用字型（`font`，主題／條）＋每段文字自己的 `font`（倒數、充能、層數、按鍵文字、長條的 `bar.nameFont／timeFont`、施法條 `castbar.font`、資源條與自訂格子 `resources.textFont`），值 `"INHERIT"`／沒存＝跟隨通用字型（`ns.Media.ElementFont`） |
 | `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha）。判斷快照（`Snapshot`）一輪只建一次往下傳；`Refresh` 只套容器、`Apply` 再加 item、`ApplyPanels` 只套面板。條件模型見「顯示條件」 |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
@@ -98,7 +98,7 @@
                  └─ Flush（暴雪設定面板開著就等它關）
                       Catalog.CheckFresh（最多每秒讀一次版面字串，戰鬥中不輪詢）→ Visibility.Snapshot 一次
                       → 每條：Catalog.Bar ∩ 作用中的 item → Layout.Compute → Visibility.Refresh（容器 alpha）
-                      → item ClearAllPoints＋SetPoint(TOPLEFT, 容器, x, -y)＋SetSize → Decorate.Apply → ApplyItemAlpha
+                      → item ClearAllPoints＋SetPoint(TOPLEFT, 容器, x, -y)＋SetSize → Decorate.Apply（前置鍵 → 簽章）→ ApplyItemAlpha
                       → 認領序列（id／框／停放）跟上一輪比，變了才記 claimsChanged
                       → 沒被認領的 item 停到畫面外（alpha 0、錨 UIParent (-10000, 10000)）
                       → 認領變了或 SI.dirty 才 SpellIndex.Rebuild
@@ -159,6 +159,32 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 隱藏 GCD 轉圈與「增益期間改餵冷卻」原本照旗標問 `GetSpellChargeDuration`，單次的回充永遠是零 ⇒ 冷卻框一直透明
 （2026-10-04 回報，匯入 Ayije 帶進 `hideGCDSwipe` 才踩到）。現在一律過 `Decorate.IsChargeSpell`（問 `maxCharges > 1`，秘密時沿用同一招上次的明文）。
 
+### 設定讀取的 memo 與前置鍵（效能修整 E2，2026-10-04）
+
+一輪排版裡同一份設定會被讀很多次（每條的 `Catalog.Bar`、`BarHasAuraSlot`、`CustomEntry` 在迴圈裡、每顆 item 的 `SpellStyle`＋簽章）。
+四個快取，規矩一樣：**作廢點放在寫入的出口**（世代計數），另加 `GetTime()` 每幀戳記當第二道保險（漏一個作廢點最多錯到這一幀結束）；
+讀不到 `GetTime`（離線測試）就不 memo。回傳的表**呼叫端不准改**（同一幀的其他呼叫拿到同一張；現有呼叫端都只讀）。
+
+| 世代 | 作廢點（寫入出口） | 誰在讀 |
+|---|---|---|
+| `DB.overrideGen` | `SpecSpells`／`OverrideTable` 的 `create=true`、`SetOverride`（含清掉那條）、`DropOverrideTable`、`ClearOverrides`、`ResetOverrides`；自訂項目的每一個寫入（`TouchCustom` 一併 +1）；`Activate`（換設定檔）、`ResetProfile`、`ImportProfile`、換專精；直接改表的 `Sound.CustomRemove`、`Import.ResolvePending` 自己叫 `DB.TouchOverrides` | `Catalog.Replacements`、Decorate 的前置鍵 |
+| `DB.customGen` | `CustomList`／`ScopeList` 的 `create=true`（`AddCustom`／`AddCustomTo`）、`RemoveCustom`、`MoveCustomScope`、`CopyCustomEntry`、`SetCustomBar`、`DeleteBar`、`Activate`、`ResetProfile`、`ImportProfile`、換專精；設定頁直接改 `hideUnknown`／`placeholder` 叫 `DB.TouchCustom` | `DB.EffectiveCustom`、`Catalog.CustomInfo` |
+| `Catalog.buildGen` | `Build` 成功（`C.info`／`C.placed` 換新）、`Adopt` 收養（原地改） | `Catalog.Replacements` |
+| `Decorate.styleGen` | `InvalidateAll`（`resolved[barKey]` 只靠 generation 作廢，沒有單獨清的地方） | Decorate 的前置鍵 |
+
+- `DB.EffectiveCustom`：鍵＝customGen＋戳記＋專精＋設定檔。`Catalog.CustomEntry` 改查跟著它的那張 `byID` 表（不再線性掃）。
+- `Catalog.CustomInfo`（自訂項目的 `Info`）：同一組鍵，換了就整張丟掉重建。
+- `Catalog.Replacements`：鍵＝overrideGen＋buildGen＋戳記＋這個專精的表；`hidden` 寫入都經過 `SpecSpells(true)` ⇒ 也作廢。
+- `DB.OverrideTable` 只回表（以前第二個回傳值是閉包，每讀一次覆寫配置一個）；整張拿掉走 `DB.DropOverrideTable`。
+- **前置鍵**（`D.PreKeyMatch`／`D.PreKeyStore`，存在 rec 上）：styleGen、overrideGen、cooldownID、寬、高、`rec.replacing`、barKey、
+  `Masque.Active()`；`rec.decorated` 是 nil（任何強制重套）一律不中。命中 ⇒ `applyPre`＋（剛重新取出就 `Reattach`）＋return；
+  不中照舊算簽章，簽章命中或套完都把八欄寫回。預覽格不走前置鍵。條層設定（`SpellStyle` 退回 `ns.Setting` 的值）不在八欄裡：
+  條層設定變了一律經過 `InvalidateAll`（設定頁 0.2 秒合併後的 `ApplyEngine`、換設定檔／專精、Masque 變了、整套重來）。
+- **倒數色去重**（`AfterCooldown`）：`rec.acStyle`（上次套的 `rec.style` 參照）＋`rec.acAura`（增益那一段與否）都沒變就不再
+  `ApplyPhaseColor`。暴雪 `RefreshSpellCooldownInfo` 每次都 `SetSwipeColor`、`CooldownFrame_Set` 每次都 `SetDrawEdge` ⇒ 這兩樣不去重；
+  倒數字色與 formatter 整個檢視器沒有一處寫 ⇒ 可以去重。作廢：`Apply` 換了 `rec.style`、增益旗標變了、`Reattach`。
+- 長條名字的秘密字串那一支 diag 每個 cooldownID 只記一次，`PLAYER_ENTERING_WORLD` 清掉重記。
+
 ### 效能計數（`/mcdm perf`，`Api.lua`）
 
 計數器是各模組表上的整數（熱路徑只有 `+ 1`，不配置、不新增 OnUpdate／輪詢），`Api.lua` 只負責讀、相減、印：
@@ -167,8 +193,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 |---|---|
 | `Bars.flushes`／`relayoutBars`／`requestSource`／`requestSourceHit`／`reapplyItems` | `Flush`／`Relayout`（條，面板不算）／`RequestSource` 入口／目標快取命中／`Reapply` 放回一顆 |
 | `Visibility.snapshots` | `Snapshot()` |
-| `Decorate.applyCalls`／`applySkipped`／`applyPre`／`applyReattach` | `D.Apply` 入口／簽章命中／（前置鍵命中，做之前恆 0）／簽章命中而且剛重新取出（`D.Reattach`） |
-| `Decorate.setCooldownHooks`／`afterCooldownWrites` | `OnSetCooldown` 入口／`AfterCooldown` 有轉圈色・邊緣・倒數換色要寫 |
+| `Decorate.applyCalls`／`applySkipped`／`applyPre`／`applyReattach` | `D.Apply` 入口／簽章命中／前置鍵命中（連簽章都沒算；跟 `applySkipped` 不重疊）／簽章或前置鍵命中而且剛重新取出（`D.Reattach`） |
+| `Decorate.setCooldownHooks`／`afterCooldownWrites` | `OnSetCooldown` 入口／`AfterCooldown` 的倒數色＋formatter 真的重寫（去重沒擋下；轉圈色與邊緣每次都蓋，不算） |
 | `Glow.pandemicCalls`／`pandemicChanges` | `OnShowPandemic`／`OnHidePandemic` 入口／狀態真的變了 |
 | `Custom.updates`／`colorOnly` | `UpdateSpell`／（只重算顏色，做之前恆 0） |
 | `Resources.mirrorTicks`／`valueFlushes` | `MirrorTick`／事件 Flush 只重畫值的那一支 |
@@ -413,8 +439,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   同一個身分（同種類＋同主 ID，光環還要同 filter；`DB.CustomIdentity`）在多層都有時只有最窄那層生效，寬的那筆對這個專精當不存在
   （條上不列、設定頁清單不列、挑選器「已在…」區也不列）。`resolve` 是 `DB.CustomView`：種族技能換成那個法術的唯讀視圖
   （metatable 讀原本那筆：`bar`、`placeholder`、`overrides` 都是原本的）、寬層沒學的不列。每次現算不快取（寫入路徑太多），
-  只有「學了沒」與種族技能的解析在同一幀裡共用結果（`GetTime` 換了就作廢）。框照身分池化：同一個法術換了層（id 換了）拿的是同一顆框。
-- **覆寫的唯一分流點** `DB.OverrideTable(id)`：寬層 → `entry.overrides`，其餘 → `spells[specID].overrides[id]`。`ns.SpellOverride`／`SpellSetting`、
+  2026-10-04 起 memo（customGen＋每幀戳記，見「設定讀取的 memo 與前置鍵」），「學了沒」與種族技能的解析本來就是同一幀共用。框照身分池化：同一個法術換了層（id 換了）拿的是同一顆框。
+- **覆寫的唯一分流點** `DB.OverrideTable(id)`（只回表；整張拿掉走 `DB.DropOverrideTable(id)`，同一套分流）：寬層 → `entry.overrides`，其餘 → `spells[specID].overrides[id]`。`ns.SpellOverride`／`SpellSetting`、
   `SetOverride`、`CountOverrides`、`ClearOverrides`、`ResetOverrides`（還原此法術）、`HasOverrides`、天賦條件（`Catalog` 的 `TalentCondOf`）、
   刪自訂語音時清音效（`Sound.CustomRemove`）都走它或照它分流。
 - **範圍切換** `DB.MoveCustomScope(id, newScope) → 新 id`：那一筆連覆寫搬到目標層、配新 id。專精 → 寬層：目前專精的順序／隱藏／群組裡換新 id，
@@ -2111,6 +2137,16 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      `/mcdm perf` 的 `Decorate.Apply` 比改之前少、「重新取出只補做」有數字。把 `Core/Viewers.lua` 的 `CHEAP_REACQUIRE` 改 false 對照一次。
 267. 戰鬥中不輪詢版面字串（`Catalog.CheckFresh`）：戰鬥中改不了暴雪面板（面板鎖），不會漏；**排追隨者地城被系統換專精**那一段
      （「暴雪 API 在神聖專精給的是懲戒的清單」）發生在戰鬥外，換完之後清單照常更新。脫戰後第一輪排版有接到戰鬥中累積的變化。
+
+**效能修整 E2（設定讀取與簽章，2026-10-04）**
+
+268. 改主題頁任何一項、改逐法術任何一項、清覆寫、換設定檔、換專精、搬範圍：畫面立刻跟著變（前置鍵與三個 memo 的作廢點沒漏）。
+     特別試**同一幀寫完立刻讀**的路徑：逐法術小窗改一項後預覽立刻重畫、挑選器加一筆後清單立刻出現、移除／加回一格後
+     「以增益取代」的成立與否立刻反映在預覽；「未學會時不顯示」勾掉／勾回、光環格的占位開關、自訂項目換條、刪自訂群組（項目回家）。
+     條層設定改了之後最多等設定頁 0.2 秒合併（`ApplyEngine` → `InvalidateAll`）才重套，跟改之前的最終畫面一樣。
+269. `/mcdm perf`：「前置鍵命中」佔 `Decorate.Apply` 的比例（戰鬥中應該接近 100%）；「重寫倒數色（去重後）」遠低於「SetCooldown 掛勾」。
+270. 倒數色去重：增益那一段 → 冷卻那一段的倒數換色、低秒變色、轉圈底色切換都還正確；暴雪 `RefreshLayout`（增益上下）之後顏色沒掉；
+     「以增益取代」頂著 A 的增益整段照 A 的增益樣式；設了換色的格進副本／換專精後顏色照舊。
 
 **效能基準**
 

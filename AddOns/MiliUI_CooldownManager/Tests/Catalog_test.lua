@@ -877,5 +877,105 @@ do
     ns.SpellIndex = savedSI
 end
 
+------------------------------------------------------------
+-- 讀取端的 memo（效能修整 E2 #5）：customGen 在每個自訂項目寫入 API 之後都變；EffectiveCustom 同幀同 gen
+-- 回同一張表、同一幀寫完立刻讀拿得到新的、換幀重算；Catalog.Info（自訂）／CustomEntry／Replacements 跟著作廢
+------------------------------------------------------------
+do
+    local DB = ns.DB
+    local savedProfile, savedClass, savedSpec = ns.profile, ns.playerClass, ns.specID
+    local clock = 500
+    env.GetTime = function() return clock end
+    ns.playerClass = "PALADIN"
+    ns.specID = 65
+    local sp = { order = {}, groupOf = {}, hidden = {}, overrides = {} }
+    ns.profile = {
+        bars = {
+            essential = { source = "essential", kind = "icons" },
+            utility   = { source = "utility", kind = "icons" },
+            buffs     = { source = "buffs", kind = "icons" },
+            buffbars  = { source = "buffbars", kind = "bars" },
+            g9        = { source = "custom", kind = "icons" },
+        },
+        spells = { [65] = sp },
+    }
+    layoutString = "1|B64main"
+    C.Refresh("memo")
+
+    local function Changes(name, fn)
+        local before = DB.customGen
+        local r = fn()
+        check("customGen 變了：" .. name, DB.customGen ~= before, "還是 " .. tostring(before))
+        return r
+    end
+
+    -- EffectiveCustom：同幀同 gen ⇒ 同一張
+    local e1 = DB.EffectiveCustom()
+    check("同幀同 gen：同一張表", DB.EffectiveCustom() == e1)
+    clock = clock + 1
+    check("換幀：重算（新表）", DB.EffectiveCustom() ~= e1)
+
+    -- 同一幀寫完立刻讀：拿得到新的（作廢點在寫入出口）
+    local e2 = DB.EffectiveCustom()
+    local cid = Changes("AddCustom（CustomList(true)）", function()
+        return DB.AddCustom({ kind = "spell", spellID = 9300, bar = "essential" })
+    end)
+    local e3 = DB.EffectiveCustom()
+    check("同幀寫完立刻讀：新表", e3 ~= e2)
+    eq("同幀寫完立刻讀：新的那筆在", e3[#e3] and e3[#e3].id, "c:" .. tostring(cid))
+    local info = C.Info("c:1")
+    check("Info：同幀同 gen 回同一張", info ~= nil and C.Info("c:1") == info)
+    eq("CustomEntry：查得到", (C.CustomEntry("c:1") or {}).spellID, 9300)
+
+    local wid = Changes("AddCustomTo 職業層（ScopeList(true)）", function()
+        return DB.AddCustomTo("class", { kind = "spell", spellID = 9400, bar = "essential" })
+    end)
+    eq("CustomEntry：同幀新增的寬層查得到", (C.CustomEntry(wid) or {}).spellID, 9400)
+    Changes("AddCustomTo 戰隊層", function() DB.AddCustomTo("shared", { kind = "aura", spellID = 8100, bar = "buffs" }) end)
+    Changes("SetCustomBar", function() DB.SetCustomBar("c:1", "g9") end)
+    eq("Info：同幀改了條 ⇒ 讀得到新的條", C.Info("c:1") and C.Info("c:1").bar, "g9")
+    local moved = Changes("MoveCustomScope", function() return DB.MoveCustomScope(wid, "shared") end)
+    check("MoveCustomScope 成功", moved ~= nil)
+    eq("CustomEntry：搬走的舊 id 查不到", C.CustomEntry(wid), nil)
+    Changes("CopyCustomEntry", function() DB.CopyCustomEntry("c:1", 66) end)
+    Changes("RemoveCustom（專精層）", function() DB.RemoveCustom("c:1") end)
+    eq("CustomEntry：同幀刪掉 ⇒ 查不到", C.CustomEntry("c:1"), nil)
+    Changes("RemoveCustom（寬層）", function() DB.RemoveCustom(moved) end)
+    Changes("DeleteBar（自訂項目回家）", function() DB.DeleteBar("g9") end)
+    Changes("TouchCustom（設定頁直接改欄位）", function() DB.TouchCustom() end)
+
+    -- 只讀不動世代
+    local g = DB.customGen
+    DB.EffectiveCustom(); DB.CustomList(false); DB.ScopeList("class", false); DB.CustomEntry("w:1"); C.Info("w:1")
+    eq("只讀不動 customGen", DB.customGen, g)
+
+    -- Replacements：同幀同鍵 ⇒ 同一張；覆寫寫入、hidden 寫入（SpecSpells(true)）、收養 ⇒ 同幀就作廢
+    sp = ns.profile.spells[65]
+    local a1 = C.Replacements()
+    check("Replacements：同幀同鍵 ⇒ 同一張", C.Replacements() == a1)
+    DB.SetOverride(102, "replaceWith", 301)
+    eq("Replacements：同幀寫覆寫 ⇒ 立刻成立", C.ReplaceTarget(102), 301)
+    DB.SpecSpells(true).hidden[102] = true
+    eq("Replacements：同幀寫 hidden ⇒ 立刻不成立", C.ReplaceTarget(102), nil)
+    DB.SpecSpells(true).hidden[102] = nil
+    eq("Replacements：同幀拿掉 hidden ⇒ 回來", C.ReplaceTarget(102), 301)
+    local bg = C.buildGen
+    C.Adopt({ essential = { 777 } })
+    check("Adopt 收養 ⇒ buildGen 變", C.buildGen ~= bg)
+    local a2 = C.Replacements()
+    clock = clock + 1
+    check("Replacements：換幀 ⇒ 新表", C.Replacements() ~= a2)
+
+    -- 換專精、換設定檔：鍵裡有專精／設定檔
+    local e4 = DB.EffectiveCustom()
+    ns.specID = 66
+    check("EffectiveCustom：換專精 ⇒ 新表", DB.EffectiveCustom() ~= e4)
+    ns.specID = 65
+
+    ns.profile, ns.playerClass, ns.specID = savedProfile, savedClass, savedSpec
+    env.GetTime = nil
+    C.Refresh("memo-done")
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

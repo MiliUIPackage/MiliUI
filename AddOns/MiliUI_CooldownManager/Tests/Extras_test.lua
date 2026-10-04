@@ -1351,5 +1351,117 @@ do
     eq("隱藏倒數文字：補成藏", it2.Cooldown.hides[1], true)
 end
 
+------------------------------------------------------------
+-- 10. AfterCooldown 去重（效能修整 E2 #9）：倒數色＋formatter 只在「樣式那包換了／增益↔冷卻那一段換了／
+--     重新取出」時重寫；轉圈色與邊緣暴雪每次刷新都重寫（RefreshSpellCooldownInfo／CooldownFrame_Set），照舊每次蓋
+------------------------------------------------------------
+do
+    local fs = { colors = {} }
+    function fs:SetTextColor(r, g, b, a2) self.colors[#self.colors + 1] = { r, g, b, a2 } end
+    local fmts, swipes, edges = {}, {}, {}
+    local cd = {
+        SetCooldown = function() end, Clear = function() end,
+        SetUseAuraDisplayTime = function() end,
+        GetUseAuraDisplayTime = function() return false end,
+        GetCountdownFontString = function() return fs end,
+        SetCountdownFormatter = function(_, f) fmts[#fmts + 1] = f end,
+        SetSwipeColor = function(_, r, g, b, a) swipes[#swipes + 1] = { r, g, b, a } end,
+        SetDrawEdge = function(_, v) edges[#edges + 1] = v end,
+        SetHideCountdownNumbers = function() end,
+    }
+    local item = { Cooldown = cd }
+    local rec = { barKey = "essential", cooldownID = 12 }
+    ns.Viewers.frames[item] = rec
+    local h0 = #hooks
+    D.HookItem(item, rec)
+    local onFlag, onSet
+    for i = h0 + 1, #hooks do
+        if hooks[i].t == cd and hooks[i].name == "SetUseAuraDisplayTime" then onFlag = hooks[i].fn end
+        if hooks[i].t == cd and hooks[i].name == "SetCooldown" then onSet = hooks[i].fn end
+    end
+    local function Style()
+        return { cdColor = { 1, 1, 1, 1 }, durColor = { 1, 0.85, 0.1, 1 }, cdFmt = "CD", durFmt = "DUR",
+                 swipe = { 0, 0, 0, 0.8 }, durSwipe = { 1, 0.9, 0.5, 0.5 }, drawEdge = false }
+    end
+    rec.style = Style()
+    onFlag(cd, true)
+    local w0, c0 = D.afterCooldownWrites, #fs.colors
+    onSet(cd, 1, 2, 1); onSet(cd, 1, 2, 1); onSet(cd, 1, 2, 1)
+    eq("去重：同一包樣式、同一段 ⇒ 倒數色只寫一次", #fs.colors, c0 + 1)
+    eq("去重：formatter 也只寫一次", #fmts, 1)
+    eq("去重：afterCooldownWrites 數實際寫入", D.afterCooldownWrites, w0 + 1)
+    eq("轉圈色照舊每次蓋（暴雪每次刷新都重寫）", #swipes, 3)
+    eq("邊緣照舊每次蓋（CooldownFrame_Set 每次都重寫）", #edges, 3)
+    near("轉圈色：增益那一段", swipes[3][2], 0.9)
+
+    onFlag(cd, false)
+    onSet(cd, 1, 2, 1)
+    eq("增益 → 冷卻那一段 ⇒ 重寫", #fs.colors, c0 + 2)
+    near("冷卻那一段 ⇒ 原色", fs.colors[#fs.colors][2], 1)
+    eq("冷卻那一段 ⇒ 冷卻的 formatter", fmts[#fmts], "CD")
+    onSet(cd, 1, 2, 1)
+    eq("同一段再刷新 ⇒ 不寫", #fs.colors, c0 + 2)
+    near("轉圈色：冷卻那一段", swipes[#swipes][4], 0.8)
+
+    rec.style = Style()                 -- D.Apply 套完換成新表
+    onSet(cd, 1, 2, 1)
+    eq("樣式那包換了 ⇒ 重寫", #fs.colors, c0 + 3)
+
+    D.Reattach(item, rec, {}, false)    -- 重新取出
+    onSet(cd, 1, 2, 1)
+    eq("重新取出（Reattach）⇒ 重寫", #fs.colors, c0 + 4)
+    onSet(cd, 1, 2, 1)
+    eq("重新取出之後同一段 ⇒ 不寫", #fs.colors, c0 + 4)
+
+    -- 頂著 A 的增益（allAura）：旗標怎麼變都算增益那一段
+    rec.style = Style(); rec.style.allAura = true
+    onFlag(cd, false)
+    onSet(cd, 1, 2, 1)
+    near("allAura ⇒ 增益色", fs.colors[#fs.colors][2], 0.85)
+    local n = #fs.colors
+    onFlag(cd, true)
+    onSet(cd, 1, 2, 1)
+    eq("allAura：旗標變了但段落沒變 ⇒ 不寫", #fs.colors, n)
+    ns.Viewers.frames[item] = nil
+end
+
+------------------------------------------------------------
+-- 11. 前置鍵接進 D.Apply：命中數 applyPre；InvalidateAll／覆寫寫入／尺寸變了 ⇒ 不中、照簽章走
+------------------------------------------------------------
+do
+    local function Cd()
+        local cd = { hides = {} }
+        function cd:SetHideCountdownNumbers(v) self.hides[#self.hides + 1] = v end
+        return cd
+    end
+    local item = { Cooldown = Cd() }
+    local rec = { cooldownID = 11, barKey = "essential" }
+    rec.decorated, rec.decoratedBar = D.Signature(D.Resolve("essential"), 11, D.SpellStyle("essential", 11), 30, 30), "essential"
+    D.Apply(item, rec, "essential", 30, 30)            -- 簽章命中 ⇒ 存前置鍵
+    local pre0, skip0 = D.applyPre, D.applySkipped
+    D.Apply(item, rec, "essential", 30, 30)
+    eq("前置鍵命中", D.applyPre, pre0 + 1)
+    eq("前置鍵命中 ⇒ 不再算簽章", D.applySkipped, skip0)
+    rec.reacquired = true
+    local re0 = D.applyReattach
+    D.Apply(item, rec, "essential", 30, 30)
+    eq("前置鍵命中＋重新取出 ⇒ Reattach", D.applyReattach, re0 + 1)
+    eq("前置鍵命中＋重新取出 ⇒ 補回倒數數字開關（照 SpellSetting）", item.Cooldown.hides[#item.Cooldown.hides], false)
+    eq("前置鍵命中＋重新取出 ⇒ 清旗標", rec.reacquired, nil)
+    -- 覆寫寫入 ⇒ overrideGen 變 ⇒ 前置鍵不中（之後照簽章：簽章也不同 ⇒ 完整重套，這裡的假框跑不了完整 Apply，只驗不中）
+    local function Hit() return D.PreKeyMatch(rec, D.styleGen, DB.overrideGen, 11, 30, 30, nil, "essential", false) end
+    check("寫入之前：前置鍵中", Hit())
+    DB.SetOverride(11, "hideCooldownText", true)
+    check("覆寫寫入 ⇒ 前置鍵不中", not Hit())
+    check("覆寫寫入 ⇒ 簽章也不同（照簽章完整重套）",
+        D.Signature(D.Resolve("essential"), 11, D.SpellStyle("essential", 11), 30, 30) ~= rec.decorated)
+    DB.SetOverride(11, "hideCooldownText", nil)
+    ns.Viewers.frames[item] = rec
+    D.InvalidateAll()
+    ns.Viewers.frames[item] = nil
+    eq("InvalidateAll ⇒ rec.decorated 清掉", rec.decorated, nil)
+    check("InvalidateAll ⇒ 前置鍵不中", not D.PreKeyMatch(rec, D.styleGen, DB.overrideGen, 11, 30, 30, nil, "essential", false))
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

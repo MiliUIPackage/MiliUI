@@ -271,5 +271,63 @@ do
     P.customShared, P.customClass, P.customNextUID = nil, nil, nil
 end
 
+------------------------------------------------------------
+-- 9. 覆寫的寫入世代（效能修整 E2 #4／#5）：每個寫入 API 之後 DB.overrideGen 都變；
+--    OverrideTable 只回一個值；DropOverrideTable 整張拿掉
+------------------------------------------------------------
+do
+    local function Changes(name, fn)
+        local before = DB.overrideGen
+        fn()
+        check("overrideGen 變了：" .. name, DB.overrideGen ~= before, "還是 " .. tostring(before))
+    end
+    local P = ns.profile
+    Changes("SetOverride 寫", function() DB.SetOverride(21, "procGlow", false) end)
+    Changes("SetOverride 清（nil）", function() DB.SetOverride(21, "procGlow", nil) end)
+    Changes("SetOverride 再寫", function() DB.SetOverride(21, "borderColor", { r = 1, g = 1, b = 1, a = 1 }) end)
+    Changes("ClearOverrides", function() DB.ClearOverrides({ 21 }, "icon") end)
+    DB.SetOverride(22, "procGlow", false)
+    Changes("ResetOverrides", function() DB.ResetOverrides(22) end)
+    DB.SetOverride(23, "procGlow", false)
+    Changes("DropOverrideTable", function() DB.DropOverrideTable(23) end)
+    Changes("OverrideTable(create)", function() DB.OverrideTable(24, true) end)
+    Changes("SpecSpells(create)", function() DB.SpecSpells(true) end)
+    Changes("ImportProfile", function() DB.ImportProfile({ bars = {} }, ns.DB_VERSION, "Gen") end)
+    Changes("SwitchProfile（Activate）", function() DB.SwitchProfile("Gen") end)
+    Changes("ResetProfile", function() DB.ResetProfile() end)
+    DB.SwitchProfile(DB.DEFAULT_PROFILE)
+
+    -- 讀不動世代
+    local g = DB.overrideGen
+    DB.OverrideTable(21, false)
+    ns.SpellSetting("essential", 21, "procGlow")
+    DB.HasOverrides(21)
+    DB.CountOverrides({ 21, 22 })
+    eq("只讀不動 overrideGen", DB.overrideGen, g)
+
+    -- OverrideTable 只回表
+    DB.SetOverride(25, "procGlow", false)
+    eq("OverrideTable 只回一個值", select("#", DB.OverrideTable(25, false)), 1)
+    check("OverrideTable 回的是那張表", DB.OverrideTable(25, false).procGlow == false)
+    DB.DropOverrideTable(25)
+    eq("DropOverrideTable：整張拿掉", DB.OverrideTable(25, false), nil)
+    eq("DropOverrideTable：讀回條層", ns.SpellSetting("essential", 25, "procGlow"), true)
+    DB.DropOverrideTable(25)        -- 沒有也不出錯
+
+    -- 寬層的自訂項目：覆寫跟著那一筆走，DropOverrideTable 拿掉那一筆身上的
+    P = ns.profile
+    P.customShared = { { kind = "spell", spellID = 100, bar = "essential", uid = 9, overrides = { procGlow = false } } }
+    eq("寬層：OverrideTable 回那一筆身上的", DB.OverrideTable("w:9", false).procGlow, false)
+    local g2 = DB.overrideGen
+    DB.DropOverrideTable("w:9")
+    eq("寬層：DropOverrideTable 拿掉 entry.overrides", P.customShared[1].overrides, nil)
+    check("寬層：DropOverrideTable 動世代", DB.overrideGen ~= g2)
+    Changes("寬層：SetOverride", function() DB.SetOverride("w:9", "procGlow", true) end)
+    eq("寬層：SetOverride 寫在那一筆身上", P.customShared[1].overrides.procGlow, true)
+    Changes("寬層：SetOverride 清到空", function() DB.SetOverride("w:9", "procGlow", nil) end)
+    eq("寬層：清到空 ⇒ entry.overrides 拿掉", P.customShared[1].overrides, nil)
+    P.customShared = nil
+end
+
 print(("Settings_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
