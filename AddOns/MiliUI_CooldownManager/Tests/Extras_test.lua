@@ -1085,6 +1085,17 @@ do
     -- 暴雪自己的 Clear 照舊轉給 Glow
     onClear(cd)
     eq("暴雪的 Clear 照舊轉給 Glow", glow.cleared, cl0 + 1)
+    -- 暴雪「到期」那條只 Clear、不寫旗標 ⇒ 旗標歸零（痛苦詛咒掉了還亮著的成因）
+    eq("沒寫旗標就 Clear ⇒ 不在增益", rec.auraFlag, false)
+    eq("沒寫旗標就 Clear ⇒ 不再藏", rec.auraHidden, false)
+    -- 同一次刷新：先寫 true 再 Clear（零長度）⇒ 照暴雪剛寫的
+    onFlag(cd, true)
+    onClear(cd)
+    eq("寫了 true 接著 Clear ⇒ 旗標照舊", rec.auraFlag, true)
+    -- 下一次刷新又只 Clear ⇒ 這次才歸零
+    onClear(cd)
+    eq("下一次只 Clear ⇒ 歸零", rec.auraFlag, false)
+    onFlag(cd, true)                     -- 回到「增益中＋藏」讓下面的充能測試照舊
 
     -- 充能
     local realInfo = C.Info
