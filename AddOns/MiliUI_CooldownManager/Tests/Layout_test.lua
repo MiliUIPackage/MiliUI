@@ -7,7 +7,8 @@
 -- 另外跑一輪「對齊到 0.5 的倍數」的 P，確認對齊有套在每個座標上。
 --
 -- 覆蓋：單列、兩列不同尺寸、置中奇偶數、向上換列、LEFT／RIGHT、長條、空清單、maxPerRow=1、
--- 錨點對照、認不得的 grow、第一列寬；就地比較的序列（SeqPut／SeqTrim／SameIDs，Bars 的認領序列用）。
+-- 錨點對照、認不得的 grow、第一列寬；就地比較的序列（SeqPut／SeqTrim／SameIDs，Bars 的認領序列用）；
+-- 增益 item 的放格判準（AuraSlot：在／固定格位／逐法術占位）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Layout.lua"
@@ -508,6 +509,19 @@ do
     check("SameIDs：長度不同", not Lay.SameIDs({ 1, 2 }, { 1 }))
     check("SameIDs：順序不同", not Lay.SameIDs({ 1, 2 }, { 2, 1 }))
     check("SameIDs：nil 當空", Lay.SameIDs(nil, {}))
+end
+
+-- 增益 item 這一格怎麼排（Bars.Relayout／Occupancy 共用，F7）
+do
+    local Lay = ns.Layout
+    eq("AuraSlot：在 ⇒ item", Lay.AuraSlot(true, false, false), "item")
+    eq("AuraSlot：在、固定格位也一樣", Lay.AuraSlot(true, true, true), "item")
+    eq("AuraSlot：不在、什麼都沒開 ⇒ 收合", Lay.AuraSlot(false, false, false), nil)
+    eq("AuraSlot：不在、沒覆寫（nil）⇒ 收合", Lay.AuraSlot(false, false, nil), nil)
+    eq("AuraSlot：不在、固定格位 ⇒ 占位", Lay.AuraSlot(false, true, false), "placeholder")
+    eq("AuraSlot：不在、逐法術占位 ⇒ 占位", Lay.AuraSlot(false, false, true), "placeholder")
+    eq("AuraSlot：不在、兩個都開 ⇒ 占位", Lay.AuraSlot(false, true, true), "placeholder")
+    eq("AuraSlot：占位只認明確 true", Lay.AuraSlot(false, false, "yes"), nil)
 end
 
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))

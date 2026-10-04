@@ -189,6 +189,29 @@ DB.SetOverride(11, "procGlow", nil)
 eq("SetOverride nil 清到空 ⇒ 拿掉", sp.overrides[11], nil)
 eq("沒覆寫退回條層", ns.SpellSetting("essential", 11, "procGlow"), true)
 
+-- 不在時顯示占位（F7，暴雪的增益）：沒有條層值（SPELL_CONST false）、自成一組 "slot"
+eq("placeholder：SPELL_CONST ＝ false", DB.SPELL_CONST.placeholder, false)
+eq("placeholder：沒有條層對應", DB.SPELL_FALLBACK.placeholder, nil)
+eq("placeholder：覆寫分組 slot", DB.OVERRIDE_GROUP.placeholder, "slot")
+eq("placeholder：沒覆寫 ＝ false（舊存檔不變）", ns.SpellSetting("buffs", 31, "placeholder"), false)
+eq("placeholder：任何條都一樣（沒有條層）", ns.SpellSetting("buffbars", 31, "placeholder"), false)
+DB.SetOverride(31, "placeholder", true)
+DB.SetOverride(31, "borderColor", { r = 1, g = 0, b = 0, a = 1 })
+eq("placeholder：讀覆寫", ns.SpellSetting("buffs", 31, "placeholder"), true)
+eq("placeholder：SpellOverride 讀得到", ns.SpellOverride(31, "placeholder"), true)
+eq("placeholder：占位節 1 個", DB.CountOverrides({ 31 }, "slot"), 1)
+DB.ClearOverrides({ 31 }, "icon")
+eq("placeholder：清圖示節不清它", ns.SpellSetting("buffs", 31, "placeholder"), true)
+eq("placeholder：圖示節的清掉了", sp.overrides[31].borderColor, nil)
+DB.ClearOverrides({ 31 }, "glow")
+eq("placeholder：清發光節也不清它", ns.SpellSetting("buffs", 31, "placeholder"), true)
+DB.SetOverride(31, "placeholder", nil)
+eq("placeholder：右鍵清 ⇒ 回 false", ns.SpellSetting("buffs", 31, "placeholder"), false)
+eq("placeholder：清到空 ⇒ 整張拿掉", sp.overrides[31], nil)
+DB.SetOverride(32, "placeholder", true)
+DB.ClearOverrides({ 32 }, "slot")
+eq("placeholder：清占位節", sp.overrides[32], nil)
+
 ------------------------------------------------------------
 -- 6. 設定檔改名／不重複的名字／匯入
 ------------------------------------------------------------

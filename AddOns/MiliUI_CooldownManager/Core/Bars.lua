@@ -477,7 +477,8 @@ end
 B.AuraPresent = AuraPresent
 
 -- 溢出的佔位判斷（Catalog.SetOccupancy；每輪 Flush 建好索引後換一支）：這一顆在來源條上佔不佔一格。
--- 跟 Relayout 放格同一個判準：暴雪沒給框的不佔；增益類收合中不在的不佔（固定格位開著／被強制時佔，它是占位格）。
+-- 跟 Relayout 放格同一個判準：暴雪沒給框的不佔；增益類收合中不在的不佔（固定格位開著／被強制、或這一招逐法術勾了
+-- 「不在時顯示占位」時佔，它是占位格）。
 -- 自訂項目一律佔（光環格會強制固定格位；自訂法術／物品一直都有框）
 function B.Occupancy(index)
     local fixedOf = {}
@@ -496,7 +497,9 @@ function B.Occupancy(index)
             fixedOf[barKey] = fixed
         end
         if fixed then return true end
-        return AuraPresent(item) and true or false
+        if AuraPresent(item) then return true end
+        -- 逐法術「不在時顯示占位」（F7）：那一格照留 ⇒ 照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
+        return ns.Layout.AuraSlot(false, false, ns.SpellSetting(barKey, id, "placeholder")) ~= nil
     end
 end
 
@@ -732,15 +735,20 @@ local function Relayout(key, level, index, gen, s)
         elseif item and not claimedBy[item] then
             local rec = ns.Viewers.frames[item]
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
-            local shown = true
-            if aura then shown = AuraPresent(item) end
-            if shown then
+            local mode = "item"
+            if aura then
+                -- 不在時：固定格位開著／被強制，或這一招逐法術勾了「不在時顯示占位」（F7）⇒ 占位格（同一條路）
+                local present = AuraPresent(item)
+                mode = ns.Layout.AuraSlot(present, fixed,
+                    (not present and not fixed) and ns.SpellSetting(key, id, "placeholder") or nil)
+            end
+            if mode == "item" then
                 entries[#entries + 1] = { id = id, item = item, rec = rec }
-            elseif fixed then
+            elseif mode == "placeholder" then
                 entries[#entries + 1] = { id = id, item = item, rec = rec, placeholder = true }
             end
-            -- 收合模式下沒顯示的增益：不認領 ⇒ 最後的停放掃描會把它收走
-            if shown or fixed then claimedBy[item] = key end
+            -- 收合模式下沒顯示（也沒勾占位）的增益：不認領 ⇒ 最後的停放掃描會把它收走
+            if mode then claimedBy[item] = key end
         end
     end
 

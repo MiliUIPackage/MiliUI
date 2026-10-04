@@ -231,6 +231,19 @@ local function Debug(silent)
                 end
             end
         end
+        -- 逐法術「不在時顯示占位」（F7，暴雪的增益）：哪幾條有、固定格位開著時這個勾不起作用
+        for _, key in ipairs(C.BarKeys and C.BarKeys() or {}) do
+            local n = 0
+            for _, id in ipairs(C.Bar(key)) do
+                if type(id) == "number" and ns.SpellOverride(id, "placeholder") == true then n = n + 1 end
+            end
+            if n > 0 then
+                local b = C.BarCfgOf(key)
+                local fixed = (type(b) == "table" and type(b.layout) == "table" and b.layout.fixedSlots)
+                    or C.BarHasAuraSlot(key) or (ns.Clickable and ns.Clickable.Enabled(key))
+                p(("  %-9s 逐法術占位 %d 格%s"):format(key, n, fixed and "（固定格位開著：每一格本來就保留）" or ""))
+            end
+        end
         local sig = C.sig or ""
         p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",
