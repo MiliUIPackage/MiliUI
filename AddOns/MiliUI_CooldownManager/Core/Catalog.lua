@@ -950,6 +950,56 @@ function C.SourceOf(id)
     return rec and rec.bar or nil
 end
 
+-- 探針：「清單上有、暴雪沒給框」的那一格，暴雪自己是怎麼看的（只讀，給 [missing] 與 /mcdm debug 用）
+--   API      ＝ 現在問 C_CooldownViewer 的 isKnown（新鮮的）
+--   暴雪快取 ＝ 暴雪設定資料提供者快取裡的 isKnown（檢視器排版與面板灰不灰都看這份；只在它標髒的事件才重建）
+--   兩者不同 ⇒ 暴雪的快取過期了；都是 false ⇒ 暴雪本身就認為沒學會。裝備欄項目另外印那一格的物品與使用效果
+-- ⚠ 只能直接讀欄位，不能呼叫資料提供者的方法：GetCooldownInfoForID 標髒時會就地重建快取，從插件跑等於污染整份
+function C.KnownProbe(id)
+    local CV = C_CooldownViewer
+    local api, cat, slot = "?", "?", nil
+    if CV and CV.GetCooldownViewerCooldownInfo then
+        local ok, raw = pcall(CV.GetCooldownViewerCooldownInfo, id)
+        if ok and type(raw) == "table" then
+            api, cat, slot = tostring(Plain(raw.isKnown)), tostring(Plain(raw.category)), Plain(raw.equipSlot)
+        elseif ok then
+            api = "無資料"
+        end
+    end
+    local cache, dirty = "?", "?"
+    local settings = _G.CooldownViewerSettings
+    local dp = type(settings) == "table" and rawget(settings, "dataProvider")
+    if type(dp) == "table" then
+        dirty = tostring(Plain(rawget(dp, "displayDataDirty")))
+        local dd = rawget(dp, "displayData")
+        local byID = type(dd) == "table" and rawget(dd, "cooldownInfoByID")
+        local ci = type(byID) == "table" and byID[id]
+        cache = type(ci) == "table" and tostring(Plain(ci.isKnown)) or "不在快取"
+    end
+    local rec = C.info and C.info[id]
+    local s = ("%s API=%s 暴雪快取=%s（髒=%s） 我們=%s 類別=%s"):format(tostring(id), api, cache, dirty,
+        rec and tostring(rec.isKnown) or "—", cat)
+    if type(slot) == "number" then
+        local item, spell, cached = nil, nil, nil
+        if GetInventoryItemID then
+            local ok, v = pcall(GetInventoryItemID, "player", slot)
+            item = ok and Plain(v) or nil
+        end
+        if type(item) == "number" and C_Item then
+            if C_Item.GetItemSpell then
+                local ok, _, v = pcall(C_Item.GetItemSpell, item)
+                spell = ok and Plain(v) or nil
+            end
+            if C_Item.IsItemDataCachedByID then
+                local ok, v = pcall(C_Item.IsItemDataCachedByID, item)
+                cached = ok and Plain(v) or nil
+            end
+        end
+        s = s .. ("  槽%d 物品=%s 使用效果=%s 物品快取=%s"):format(slot, tostring(item), tostring(spell), tostring(cached))
+    end
+    return s
+end
+
 ------------------------------------------------------------
 -- 以增益取代（spells[spec].overrides[A].replaceWith = B）
 --

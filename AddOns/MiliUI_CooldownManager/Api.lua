@@ -284,6 +284,17 @@ local function Debug(silent)
                         :format(def[1], #ids, known, table.concat(head, "、")))
                 end
             end
+            -- 裝備欄項目（飾品／武器）：面板上「有時候變灰、條上抓不到」——API 與暴雪快取的 isKnown 各是多少
+            if ns.Catalog.KnownProbe then
+                for _, cat in ipairs({ cats.EquipSlotEssential, cats.EquipSlotTracked }) do
+                    local ok, ids = pcall(CV.GetCooldownViewerCategorySet, cat, true)
+                    if ok and type(ids) == "table" then
+                        for i = 1, #ids do
+                            if not ns.IsSecret(ids[i]) then p("  裝備欄 " .. ns.Catalog.KnownProbe(ids[i])) end
+                        end
+                    end
+                end
+            end
         end
         if ns.Compat then
             p(("  圖示套皮插件：%s"):format(ns.Compat.Active() and ("已請它跳過（蓋印 " .. tostring(ns.Compat.marked) .. " 次）") or "沒有／不處理"))

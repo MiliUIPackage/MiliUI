@@ -705,6 +705,12 @@ local function Relayout(key, level, index, gen, s)
             missing[key] = gone
             if sig ~= "" and ns.Diag then
                 ns.Diag.Note("missing", ("%s：清單上有、暴雪沒有給框：%s"):format(key, sig))
+                -- 每一格暴雪自己怎麼看（API 與暴雪快取的 isKnown、裝備欄那一格的物品）：「有時候」的那一刻記下來
+                if ns.Catalog.KnownProbe then
+                    for id in pairs(gone) do
+                        ns.Diag.Note("missing", "  " .. ns.Catalog.KnownProbe(id))
+                    end
+                end
             end
             if ns.Fire then ns.Fire("MissingChanged", key) end
         end
