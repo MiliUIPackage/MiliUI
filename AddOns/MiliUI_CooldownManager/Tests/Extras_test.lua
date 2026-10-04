@@ -1650,5 +1650,78 @@ do
     eq("沒轉過的火花不碰", pip.pts[1], "untouched")
 end
 
+------------------------------------------------------------
+-- 15. 增益時間不顯示的格：圖示跟著法術走（D.ApplyHiddenIcon）＋冷卻算在當下的覆蓋法術（HideTarget）
+------------------------------------------------------------
+do
+    local function Tex()
+        local t = { log = {} }
+        function t:SetTexture(v) self.tex = v; self.log[#self.log + 1] = v end
+        function t:GetObjectType() return "Texture" end
+        return t
+    end
+    local savedTex = env.C_Spell.GetSpellTexture
+    local item = { Icon = Tex() }
+    local rec = { barKey = "essential", cooldownID = 12, auraHidden = true }
+    ns.Viewers.frames[item] = rec
+    itemIDs[item] = 12
+    local nh = #hooks
+    D.ApplyHiddenIcon(item, rec)
+    eq("換成法術圖示（基本法術交給 GetSpellTexture）", item.Icon.tex, 900000 + 1200)
+    eq("掛上 SetTexture 後掛勾", #hooks, nh + 1)
+    local onTex = hooks[#hooks].fn
+    -- 暴雪 RefreshSpellTexture 寫回減益的圖（可能是秘密值）：蓋回法術圖示
+    local sec = Secret()
+    item.Icon:SetTexture(sec)
+    local ok, err = pcall(onTex, item.Icon, sec)
+    check("掛勾不碰秘密參數", ok, err)
+    eq("暴雪寫回增益圖 ⇒ 蓋回法術圖示", item.Icon.tex, 900000 + 1200)
+    -- 動態圖示（GetSpellTexture 第三個回傳）優先，秘密值原樣交給 SetTexture
+    env.C_Spell.GetSpellTexture = function(id) return 1, 2, 3 end
+    onTex(item.Icon, 0)
+    eq("有動態圖示用動態那個", item.Icon.tex, 3)
+    local sc = Secret()
+    env.C_Spell.GetSpellTexture = function(id) return 1, 2, sc end
+    ok, err = pcall(onTex, item.Icon, 0)
+    check("動態圖示是秘密值：不拋錯", ok, err)
+    eq("秘密值原樣轉交", item.Icon.tex, sc)
+    env.C_Spell.GetSpellTexture = function() return nil end
+    item.Icon:SetTexture(4242); onTex(item.Icon, 4242)
+    eq("查不到圖示 ⇒ 不動", item.Icon.tex, 4242)
+    env.C_Spell.GetSpellTexture = savedTex
+    -- 不是藏增益的時候（增益結束、或玩家開著增益時間）：暴雪的圖留著
+    rec.auraHidden = false
+    item.Icon:SetTexture(5555); onTex(item.Icon, 5555)
+    eq("沒藏增益 ⇒ 暴雪的圖留著", item.Icon.tex, 5555)
+    rec.auraHidden = true
+    -- 身分對不上（SetCooldownID 剛換）：不動
+    itemIDs[item] = 31
+    item.Icon:SetTexture(6666); onTex(item.Icon, 6666)
+    eq("身分對不上 ⇒ 不動", item.Icon.tex, 6666)
+    itemIDs[item] = 12
+    -- 自訂圖示優先
+    D.ApplyIconOverride(item, rec, 12, false, 135400)
+    item.Icon:SetTexture(7777); onTex(item.Icon, 7777)
+    eq("自訂圖示優先", item.Icon.tex, 135400)
+    D.ApplyIconOverride(item, rec, 12, false, nil)
+    -- 自訂框不碰
+    local citem = { Icon = Tex() }
+    local crec = { barKey = "essential", cooldownID = 12, auraHidden = true, custom = true }
+    itemIDs[citem] = 12
+    D.ApplyHiddenIcon(citem, crec)
+    eq("自訂框不碰", citem.Icon.tex, nil)
+
+    -- HideTarget：覆蓋法術當下問 C_SpellBook.FindSpellOverrideByID
+    local hrec = { cooldownID = 12 }
+    eq("沒有 FindSpellOverrideByID ⇒ 目錄的 id", (D.HideTarget(hrec)), 1200)
+    env.C_SpellBook.FindSpellOverrideByID = function(id) if id == 1200 then return 4338 end end
+    eq("有覆蓋 ⇒ 用當下那一招", (D.HideTarget(hrec)), 4338)
+    env.C_SpellBook.FindSpellOverrideByID = function() return Secret() end
+    eq("回秘密值 ⇒ 退回目錄", (D.HideTarget(hrec)), 1200)
+    env.C_SpellBook.FindSpellOverrideByID = function() error("boom") end
+    eq("拋錯 ⇒ 退回目錄", (D.HideTarget(hrec)), 1200)
+    env.C_SpellBook.FindSpellOverrideByID = nil
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

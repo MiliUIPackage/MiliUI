@@ -661,6 +661,14 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **設定切換**：簽章多了 `showAuraTime`，改了就重新裝飾；`Decorate.Apply` 末尾 `SyncAuraHide` 照暴雪最後一次的旗標重判：
   增益中改成不顯示 ⇒ 當場蓋（`/reload` 時增益還在也一樣：掛上時先問 getter）；改回顯示 ⇒ 不做事，等暴雪下一次刷新餵回增益
   （不另加計時器；這之前數字照原色，不會黃字倒冷卻）。
+- **圖示也不跟增益**（2026-10-05）：暴雪 `GetSpellTexture` 在 `PreferAuraDataOverSpellData` 成立時直接回光環的圖；主動施放的冷卻格
+  只要目標身上有它追蹤的減益就成立 ⇒ 減益期間圖示鎖成減益圖、覆蓋法術完全不看（血魄心臟打擊的緩速掛著時，薩萊因觸發的吸血鬼打擊
+  不換圖；暴雪內建一樣）。`rec.auraHidden` 的格改走暴雪「沒有光環」那條：`overrideTooltipSpellID` 或基本法術交給
+  `C_Spell.GetSpellTexture`（它自己套覆蓋，有動態圖示用第三個回傳），`D.ApplyHiddenIcon`。掛點跟自訂圖示共用 Icon 貼圖的
+  `SetTexture` 後掛勾（暴雪 `RefreshData` 先冷卻後貼圖 ⇒ 同一次刷新讀得到新的 `auraHidden`；觸發換招走 `SPELL_UPDATE_ICON`
+  也只叫 `RefreshSpellTexture`），`FeedRealCooldown` 每次再補一次。自訂圖示優先；身分對不上不動；回傳值不比對、原樣交給 SetTexture。
+  冷卻那邊 `HideTarget` 也改成當下問 `C_SpellBook.FindSpellOverrideByID`（EUI 同招），不等目錄被覆蓋事件延後重建。
+  ⚠ 待實機驗證：戰鬥中 `GetSpellTexture` 交給 SetTexture 不報錯；血魄＋薩萊因對假人打心臟打擊、等吸血鬼打擊觸發，圖示要跟著換。
 - **範圍**：跟上一節同一個條件（核心／輔助的 item，含被搬進自訂群組的；增益兩條、長條、自訂法術沒有那一段）。
   **只做法術類**（明文 spellID）；**裝備欄項目（飾品）不做**，照暴雪顯示增益——要做得走 `GetInventoryItemCooldown` 明文＋
   `C_DurationUtil.CreateDuration` 自己建物件，秘密值時沒輒，留到有人要再說。

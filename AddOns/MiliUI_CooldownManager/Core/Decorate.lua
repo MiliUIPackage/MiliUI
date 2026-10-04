@@ -502,6 +502,15 @@ local function HideTarget(rec)
     local info = rec and ns.Catalog.Info(rec.cooldownID)
     if not info or type(info.equipSlot) == "number" then return nil end
     local id = info.overrideSpellID or info.spellID
+    -- 覆蓋法術當下問（英雄天賦的觸發換招：心臟打擊→吸血鬼打擊）：目錄要等覆蓋事件延後重建才跟上，
+    -- 這一刻的冷卻要算在現在那一招身上。FindSpellOverrideByID 回明文（EUI 同一招，戰鬥中照用）
+    local base = info.spellID
+    local find = C_SpellBook and C_SpellBook.FindSpellOverrideByID
+    if find and type(base) == "number" then
+        local ok, ov = pcall(find, base)
+        ov = ok and Plain(ov) or nil
+        if type(ov) == "number" and ov > 0 then id = ov end
+    end
     if type(id) ~= "number" then return nil end
     return id, IsChargeSpell(rec, id, info.charges)
 end
@@ -585,6 +594,8 @@ local function FeedRealCooldown(item, rec, cd)
     if dur and ns.Glow and ns.Glow.ArmProbe and ShouldArm(rec, id, chargePath, full) then
         ns.Glow.ArmProbe(rec, dur)
     end
+    -- 圖示也不跟增益（D.ApplyHiddenIcon 在自訂圖示那一節）
+    D.ApplyHiddenIcon(item, rec)
 end
 
 -- 這一格的就緒發光是不是「就緒時一直亮」（Core/Glow.lua）：SetCooldown 與 SPELL_UPDATE_COOLDOWN 都要替它重算
@@ -1144,7 +1155,10 @@ local function OnIconSetTexture(tex)
     local item = iconTexOwner[tex]
     local rec = item and ns.Viewers.frames[item]
     local want = rec and rec.iconOverride
-    if not want then return end
+    if not want then
+        if rec and rec.auraHidden then D.ApplyHiddenIcon(item, rec, tex) end
+        return
+    end
     local V = ns.Viewers
     local now = V.ReadItemID and V.ReadItemID(item)
     if now ~= rec.iconFor then
@@ -1190,6 +1204,44 @@ local function ApplyIconOverride(item, rec, id, isBar, want)
     end
 end
 D.ApplyIconOverride = ApplyIconOverride                             -- 測試用
+
+------------------------------------------------------------
+-- 增益時間不顯示的格（rec.auraHidden）：圖示也跟著法術走，不跟增益
+--
+-- 暴雪 GetSpellTexture 在 PreferAuraDataOverSpellData 成立時直接回光環的圖示；主動施放的冷卻格只要
+-- 目標身上有它追蹤的減益就成立 ⇒ 減益期間圖示鎖成減益圖，覆蓋法術完全不看（血魄心臟打擊的緩速掛著，
+-- 薩萊因觸發吸血鬼打擊也不換圖，2026-10-05 NGA 回報；暴雪內建一樣）。
+-- 玩家把增益時間關掉＝不要追蹤這個光環，圖示改走暴雪「沒有光環」那條：overrideTooltipSpellID 優先、
+-- 否則基本法術，交給 C_Spell.GetSpellTexture（它自己套覆蓋），有動態圖示用動態那個。
+--   * 時機：暴雪 RefreshData 是先冷卻（SetUseAuraDisplayTime → 我們判 auraHidden）再 RefreshSpellTexture
+--     ⇒ 同一次刷新 SetTexture 後掛勾就讀得到新的 auraHidden；觸發換招走 SPELL_UPDATE_ICON 也只叫
+--     RefreshSpellTexture，一樣進後掛勾。FeedRealCooldown 每次也補蓋一次（設定切換的 SyncAuraHide 路徑）。
+--   * 自訂圖示優先；身分對不上（SetCooldownID 剛換、rec 還是舊的）不動。
+--   * 回傳值可能是秘密值：不比對、原樣交給 SetTexture。
+--   * 藏 → 顯示：不還原，暴雪下一次刷新會寫回它自己的。
+------------------------------------------------------------
+function D.ApplyHiddenIcon(item, rec, tex)
+    if rec.iconOverride or rec.custom or ns.released then return end
+    if not (C_Spell and C_Spell.GetSpellTexture) then return end
+    if ns.Viewers.ReadItemID(item) ~= rec.cooldownID then return end
+    local info = ns.Catalog.Info(rec.cooldownID)
+    local sid = info and (info.overrideTooltipSpellID or info.spellID)
+    if type(sid) ~= "number" then return end
+    tex = tex or IconTexture(item, rec.style ~= nil and rec.style.kind == "bars" and item.Bar ~= nil)
+    if not tex then return end
+    if not iconTexOwner[tex] then
+        iconTexOwner[tex] = item
+        hooksecurefunc(tex, "SetTexture", ns.Guard(OnIconSetTexture))
+    end
+    local ok, icon, _, cond = pcall(C_Spell.GetSpellTexture, sid)
+    if not ok then return end
+    -- 秘密值連跟 nil 比都會拋錯：先問是不是秘密值
+    if ns.IsSecret(cond) or cond ~= nil then icon = cond end
+    if not ns.IsSecret(icon) and icon == nil then return end
+    iconGuard = true
+    pcall(tex.SetTexture, tex, icon)
+    iconGuard = false
+end
 D.IconTextureOwner = function(tex) return iconTexOwner[tex] end     -- 測試用
 
 -- 暴雪換長條內容（僅圖示／僅名字）時會藏名字、重錨條：把名字 Show 回來（名字要一直
