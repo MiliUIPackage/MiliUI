@@ -29,6 +29,10 @@
 -- 長條格的自訂項目：名字＝法術／物品名、跑同一個十五秒假條；沒學會的自訂法術圖示灰掉。
 -- 以增益取代（overrides[id].replaceWith）：那一格右下角畫一個 12×12、1px 黑邊的增益圖示當記號；
 -- 被拿去取代的增益不在任何一條的清單上（Catalog.Bar 拿掉了），預覽自然不列（跟真實條一致）。
+-- 格數上限＋溢出（Core/Overflow.lua；預覽用 Catalog.OverflowStatic：每一格都算顆數）：
+--   來源條：溢出去的那幾格畫暗（0.35）＋右下角「→」＋提示「溢出到：X」；照樣能拖（順序決定哪幾顆溢出）、中鍵移除
+--   接收條：溢來的格畫在尾端（「＋」前面）＋同樣的記號＋提示「來自：A」；外觀照這條。**不能拖**（順序屬於來源條，
+--          拖了跳彈窗，附「前往那條」）；中鍵移除對來源條生效（移除本來就不分條：hidden／整筆刪掉）
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -186,6 +190,13 @@ local function NewIconCell(canvas)
     mark.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     mark:Hide()
     c.replaceMark = mark
+    -- 溢出記號（來源條溢出去的格、接收條溢來的格）：右下角一個「→」；有取代記號時排在它左邊
+    local om = ov:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(om, 12, "OUTLINE")
+    om:SetText("→")
+    om:SetTextColor(1, 0.82, 0, 1)
+    om:Hide()
+    c.ovMark = om
     c.scopeMark = NewScopeMark(ov, ov)
     c.kind = "icons"
     c.isPlus, c.hiddenItem, c.dragging = false, false, false
@@ -485,6 +496,13 @@ end
 function Preview.Refresh(key)
     local pv = instances[key]
     if pv and pv.frame:IsVisible() then pv:Refresh() end
+    -- 溢出的兩端互相牽動（來源條改順序／移除，接收條尾端跟著變；反之亦然）
+    local pairsList = ns.Catalog.OverflowPairs and ns.Catalog.OverflowPairs()
+    for _, pr in ipairs(pairsList or {}) do
+        local other = (pr.src == key and pr.dst) or (pr.dst == key and pr.src) or nil
+        local opv = other and instances[other]
+        if opv and opv.frame:IsVisible() then opv:Refresh() end
+    end
 end
 
 -- 引擎那邊「畫不出來的格子」變了：預覽跟著重畫
@@ -527,7 +545,19 @@ function Proto:Refresh()
     local visible, hidden = ns.Catalog.Bar(key, true)
     hidden = hidden or {}
     local entries = {}
-    for _, id in ipairs(visible) do entries[#entries + 1] = { id = id } end
+    -- 溢出（圖示類才有）：來源條要畫暗的那幾顆、接收條尾端要補畫的那幾顆
+    local ov = kind == "icons" and ns.Catalog.OverflowStatic and ns.Catalog.OverflowStatic() or nil
+    local goneSet = ov and ov.toSet[key]
+    local goneTo = ov and ov.target[key]
+    for _, id in ipairs(visible) do
+        entries[#entries + 1] = { id = id, overflowTo = goneSet and goneSet[id] and goneTo or nil }
+    end
+    local from = ov and ov.from[key]
+    if from then
+        for _, id in ipairs(ov.out[key]) do
+            if from[id] then entries[#entries + 1] = { id = id, incoming = from[id] } end
+        end
+    end
     entries[#entries + 1] = { plus = true }
     self.count, self.hiddenCount = #visible, #hidden
 
@@ -568,16 +598,18 @@ function Proto:Refresh()
         c:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", ox + r.x, -(PAD + r.y))
         c:SetSize(r.w, r.h)
         c.id, c.hiddenItem, c.index = e.id, e.hidden and true or false, i
+        c.overflowTo, c.incoming = e.overflowTo or false, e.incoming or false
         if not e.plus then
             self:Fill(c, e, i, r, now)
-            if not e.hidden then self.slots[#self.slots + 1] = c end
+            -- 溢來的格不進 slots：拖曳排序寫的是這條自己的 order，它的順序屬於來源條
+            if not e.hidden and not e.incoming then self.slots[#self.slots + 1] = c end
         end
         -- 清單上有、暴雪卻沒給框的：畫面上不會有，這裡標暗（提示有說明），不要假裝它在
         c.missing = (not e.plus and ns.Bars and ns.Bars.IsMissing and ns.Bars.IsMissing(key, e.id)) and true or false
         -- 天賦條件不成立（Core/Catalog.lua）：畫面上不顯示，預覽照樣列出來（點得到才改得回來），一樣標暗
         c.talentBlocked = (not e.plus and ns.Catalog.TalentBlocked(e.id)) and true or false
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
-        c:SetAlpha((e.hidden or c.missing or c.talentBlocked) and 0.35 or (not e.plus and c.stateAlpha) or 1)
+        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or e.overflowTo) and 0.35 or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
     if self.onRefresh then self.onRefresh(self) end
@@ -679,6 +711,17 @@ function Proto:Fill(c, e, i, r, now)
             c.replaceMark:Hide()
         end
     end
+    -- 溢出記號：溢出去的（來源條）與溢來的（接收條）都畫；有取代記號時排在它左邊
+    if c.ovMark then
+        local om = c.ovMark
+        om:ClearAllPoints()
+        if c.replaceMark and c.replaceMark:IsShown() then
+            om:SetPoint("BOTTOMRIGHT", c.replaceMark, "BOTTOMLEFT", -1, 0)
+        else
+            om:SetPoint("BOTTOMRIGHT", c.overlay, "BOTTOMRIGHT", -1, 1)
+        end
+        om:SetShown((e.overflowTo or e.incoming) and true or false)
+    end
 end
 
 -- 長條的時間跑 15→0（名字＝法術名）。**只印整數**：真的長條秒數是暴雪每幀用秘密的剩餘時間寫的
@@ -739,9 +782,18 @@ local function ShowTip(c)
     if c.custom and c.scope then
         GameTooltip:AddLine(L["Scope: %s"]:format(ns.Picker.ScopeText(c.scope)), 0.8, 0.8, 0.8)
     end
+    -- 溢出：去向／來源（條名）
+    if c.overflowTo then
+        GameTooltip:AddLine(L["Overflows to: %s"]:format(ns.Options.BarTitle(c.overflowTo) or c.overflowTo), 1, 0.82, 0, true)
+    end
+    if c.incoming then
+        GameTooltip:AddLine(L["From: %s"]:format(ns.Options.BarTitle(c.incoming) or c.incoming), 1, 0.82, 0, true)
+    end
     GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
     GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
-    GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
+    if not c.incoming then
+        GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
+    end
     GameTooltip:Show()
 end
 
@@ -762,6 +814,8 @@ function Proto:Wire(c)
         if press and press.dragging then pv:EndDrag(true) return end
         pv.press = nil
         pv:RestoreTicker()
+        -- 溢來的格被拖、已經跳了彈窗：這次放手不算點擊（不管按了多久）
+        if self.suppressClick then self.suppressClick = nil return end
         -- 拖曳剛在 OnUpdate 那邊收掉（放手的那一幀先跑到 DragTick）：這一下不算點擊
         if pv.dragEnded and GetTime() - pv.dragEnded < 0.2 then return end
         if not self:IsMouseOver() then return end
@@ -960,6 +1014,16 @@ function Proto:DragTick()
     local x, y = Cursor(self.canvas)
     if not press.dragging then
         if math.abs(x - press.x) < DRAG_MIN and math.abs(y - press.y) < DRAG_MIN then return end
+        -- 溢來的格：順序屬於來源條，這裡不能拖 ⇒ 收掉這次按下、跳彈窗說明（附「前往那條」）
+        if press.cell.incoming then
+            local src = press.cell.incoming
+            self.press = nil
+            press.cell.suppressClick = true  -- 放手那一下不算點擊（不開逐法術面板）
+            self:RestoreTicker()
+            GameTooltip:Hide()
+            Preview.ShowIncomingRefusal(src)
+            return
+        end
         self:BeginDrag()
     end
     local g = Ghost()
@@ -1011,6 +1075,23 @@ local function ShowRefusal(reason)
     refusePopup:Show()
 end
 Preview.ShowRefusal = ShowRefusal
+
+-- 溢來的格被拖：說明它的位置跟著來源條，附一顆「前往那條」（切到來源條的頁面）
+local incomingPopup, incomingSrc
+function Preview.ShowIncomingRefusal(src)
+    incomingSrc = src
+    if not incomingPopup then
+        incomingPopup = W.CreateChoicePopup(ns.Options.panel, 360, "", {
+            { text = L["Go to that bar"], color = "primary",
+              onClick = function() if incomingSrc then ns.Options.ShowPage(incomingSrc) end end },
+            { text = L["Close"], color = "normal" },
+        })
+    end
+    local name = ns.Options.BarTitle(src) or tostring(src)
+    incomingPopup.text:SetText(L["This icon overflows here from %s. Its place follows the order on that bar, so reorder it there."]:format(name))
+    incomingPopup:Hide()        -- 重開才會跑 OnShow 依字數重算高度
+    incomingPopup:Show()
+end
 
 function Proto:EndDrag(commit)
     local press = self.press

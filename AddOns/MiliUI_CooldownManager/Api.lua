@@ -168,6 +168,25 @@ local function Debug(silent)
                 p(("  %-9s（自訂）清單 %d  認領 %d"):format(key, #C.Bar(key), B.Count(key)))
             end
         end
+        -- 格數上限＋溢出（Core/Overflow.lua）：成立的印去向與顆數；設了上限卻不成立的印原因
+        do
+            local O = ns.Overflow
+            local ov = C.Overflow and C.Overflow()
+            for _, key in ipairs(C.BarKeys and C.BarKeys() or {}) do
+                local dst = ov and ov.target[key]
+                if dst then
+                    p(("  %-9s 溢出 → %s（%d 顆）"):format(key, dst, #(ov.to[key] or {})))
+                elseif O and O.MaxOf(C.BarCfgOf(key)) > 0 then
+                    local _, why = O.Target(key, C.BarCfgOf)
+                    p(("  %-9s 上限 %d 不成立（%s）：不限制顆數"):format(key, O.MaxOf(C.BarCfgOf(key)), tostring(why)))
+                end
+                for _, src in ipairs(ov and ov.into[key] or {}) do
+                    local n = 0
+                    for _, from in pairs(ov.from[key]) do if from == src then n = n + 1 end end
+                    p(("  %-9s 接收 ← %s（%d 顆）"):format(key, src, n))
+                end
+            end
+        end
         local sig = C.sig or ""
         p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",

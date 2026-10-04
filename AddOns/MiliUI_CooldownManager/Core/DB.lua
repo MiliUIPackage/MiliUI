@@ -98,6 +98,10 @@ local function IconBar(o)
             size       = { w = o.w, h = o.h },
             row2Size   = false,                     -- false ＝ 第二列起跟第一列同尺寸；或 { w, h }
             fixedSlots = o.fixedSlots or false,     -- 增益不在時保留空位
+            -- 格數上限＋溢出（2026-10-04，F1；舊存檔沒有 ＝ 0／false ＝ 不限，不遷移；規則在 Core/Overflow.lua）。
+            -- 只有圖示類的條讀（長條類也帶著這兩欄，用不到）
+            maxIcons   = 0,                         -- 0 ＝ 不限；1～20
+            overflowTo = false,                     -- false 或另一條圖示類的條的 key
         },
         follow     = { text = true, icon = true, glow = true, fade = true },
         text = {}, icon = {}, glow = {}, fade = {},
@@ -1176,6 +1180,10 @@ function DB.DeleteBar(key)
     for other, bar in pairs(p.bars) do
         if other ~= key and type(bar) == "table" and type(bar.anchor) == "table" and bar.anchor.to == key then
             bar.anchor = false
+        end
+        -- 溢出到它的條：目標清掉（＝不限顆數）。群組的 key 會被下一個新群組重用（NextBarKey），留著會指到新的那條
+        if other ~= key and type(bar) == "table" and type(bar.layout) == "table" and bar.layout.overflowTo == key then
+            bar.layout.overflowTo = false
         end
     end
     for pk in pairs(PANEL_KEYS) do

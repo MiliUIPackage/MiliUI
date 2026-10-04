@@ -977,5 +977,150 @@ do
     C.Refresh("memo-done")
 end
 
+------------------------------------------------------------
+-- 格數上限＋溢出（Core/Overflow.lua）：C.Bar 套溢出、withHidden 只回 base、GroupTargets、
+-- 接收條算「有光環格」、佔位判斷、memo 的鍵
+------------------------------------------------------------
+do
+    LoadInto(here .. "/../Core/Overflow.lua")
+    local function keys(t)
+        local out = {}
+        for k in pairs(t) do out[#out + 1] = k end
+        table.sort(out, function(a, b) return tostring(a) < tostring(b) end)
+        return out
+    end
+    local savedProfile, savedSpec = ns.profile, ns.specID
+    layoutString = "1|B64main"
+    C.Refresh("overflow")
+    ns.specID = 65
+    -- 核心 {102, 701, 202}、輔助 {201, 101}、增益圖示 {301, 302}、增益長條 {401}
+    local sp = { order = {}, groupOf = {}, hidden = {}, overrides = {} }
+    local function Icons(src, max, to)
+        return { source = src, kind = "icons", layout = { maxIcons = max, overflowTo = to } }
+    end
+    ns.profile = {
+        barOrder = { "essential", "utility", "buffs", "buffbars", "g1" },
+        bars = {
+            essential = Icons("essential", 0, false),
+            utility   = Icons("utility", 0, false),
+            buffs     = Icons("buffs", 0, false),
+            buffbars  = { source = "buffbars", kind = "bars", layout = {} },
+            g1        = Icons("custom", 0, false),
+        },
+        spells = { [65] = sp },
+    }
+    eqList("沒設 ⇒ 核心照舊", C.Bar("essential"), { 102, 701, 202 })
+    eq("沒設 ⇒ Overflow() nil", C.Overflow(), nil)
+    eq("沒設 ⇒ OverflowPairs nil", C.OverflowPairs(), nil)
+
+    ns.profile.bars.essential.layout.maxIcons = 2
+    eqList("有上限沒目標 ⇒ 不截斷", C.Bar("essential"), { 102, 701, 202 })
+    ns.profile.bars.essential.layout.overflowTo = "utility"
+    eqList("核心留兩顆", C.Bar("essential"), { 102, 701 })
+    eqList("輔助尾端接溢來的", C.Bar("utility"), { 201, 101, 202 })
+    eqList("BarBase：核心照舊", C.BarBase("essential"), { 102, 701, 202 })
+    do
+        local vis, hid = C.Bar("essential", true)
+        eqList("withHidden 只回 base（設定頁自己畫溢出）", vis, { 102, 701, 202 })
+        eqList("withHidden 第二張照舊", hid, {})
+        local u = C.Bar("utility", true)
+        eqList("withHidden：接收條不含溢來的", u, { 201, 101 })
+    end
+    local b1 = C.Bar("utility")
+    b1[1] = "x"
+    eqList("C.Bar 回的是複本", C.Bar("utility"), { 201, 101, 202 })
+    eq("不帶 withHidden 回兩個值", select("#", C.Bar("utility")), 2)
+    -- 順序覆寫：溢出的是 order 後的最後幾顆
+    sp.order.essential = { 202, 102, 701 }
+    eqList("order：核心留 order 的前兩顆", C.Bar("essential"), { 202, 102 })
+    eqList("order：溢出的是 701", C.Bar("utility"), { 201, 101, 701 })
+    sp.order.essential = nil
+    -- 被移除的不算顆數
+    sp.hidden[701] = true
+    eqList("hidden 的不算：剛好兩顆", C.Bar("essential"), { 102, 202 })
+    eqList("hidden 的不算：沒有溢出", C.Bar("utility"), { 201, 101 })
+    sp.hidden[701] = nil
+
+    -- 佔位判斷（Bars 交進來）：202 沒框 ⇒ 不佔位 ⇒ 留在核心
+    C.SetOccupancy(function(_, id) return id ~= 701 end, {})
+    eqList("occ：不佔位的不算、不搬", C.Bar("essential"), { 102, 701, 202 })
+    eqList("occ：輔助照舊", C.Bar("utility"), { 201, 101 })
+    C.SetOccupancy(nil, nil)
+
+    -- 以增益取代：A 溢出去之後 B 照樣從每一條拿掉（Replacements 看 placed，不看條）
+    sp.overrides[202] = { replaceWith = 301 }
+    eq("取代：A 溢到輔助也成立", C.ReplaceTarget(202), 301)
+    eqList("取代：B 照樣從增益圖示拿掉", C.Bar("buffs"), { 302 })
+    eqList("取代：A 在接收條上", C.Bar("utility"), { 201, 101, 202 })
+    sp.overrides[202] = nil
+
+    -- 成立條件不成立 ⇒ 整條照舊
+    ns.profile.bars.utility.layout.maxIcons = 1
+    eqList("目標自己有上限 ⇒ 不截斷", C.Bar("essential"), { 102, 701, 202 })
+    ns.profile.bars.utility.layout.maxIcons = 0
+    ns.profile.bars.essential.layout.overflowTo = "buffbars"
+    eqList("目標是長條類 ⇒ 不截斷", C.Bar("essential"), { 102, 701, 202 })
+    ns.profile.bars.essential.layout.overflowTo = "nope"
+    eqList("目標不存在 ⇒ 不截斷", C.Bar("essential"), { 102, 701, 202 })
+
+    -- GroupTargets：來源條受影響 ⇒ 接收條也算
+    ns.profile.bars.essential.layout.overflowTo = "g1"
+    eqList("溢到群組：群組尾端", C.Bar("g1"), { 202 })
+    eqList("GroupTargets：核心檢視器有動靜 ⇒ 接收條", keys(C.GroupTargets("essential")), { "g1" })
+    eqList("GroupTargets：別條檢視器不算", keys(C.GroupTargets("utility")), {})
+    eqList("GroupTargets：傳進來的表裡已經有來源條（認領）也算",
+        keys(C.GroupTargets("buffs", { essential = true })), { "essential", "g1" })
+    eqList("GroupTargets：接收條的動靜不牽動來源條", keys(C.GroupTargets("g1")), {})
+    -- 以增益取代＋溢出：B 在增益圖示 ⇒ A 所在的條（核心）⇒ 接著接收條
+    sp.overrides[202] = { replaceWith = 301 }
+    eqList("GroupTargets：取代那一段算到核心 ⇒ 溢出那一段再算到群組", keys(C.GroupTargets("buffs")), { "essential", "g1" })
+    sp.overrides[202] = nil
+
+    -- 接收條算「有光環格」（固定格位強制、不能跟著游標）：成立的來源條上有光環格才算
+    local savedEff = ns.DB.EffectiveCustom
+    ns.DB.EffectiveCustom = function()
+        return { { id = "c:1", entry = { kind = "aura", spellID = 1, bar = "essential" } } }
+    end
+    eq("BarHasAuraSlot：來源條自己", C.BarHasAuraSlot("essential"), true)
+    eq("BarHasAuraSlot：接收條也算", C.BarHasAuraSlot("g1"), true)
+    eq("BarHasAuraSlot：無關的條", C.BarHasAuraSlot("utility"), false)
+    ns.profile.bars.essential.layout.maxIcons = 0
+    eq("BarHasAuraSlot：溢出不成立 ⇒ 接收條不算", C.BarHasAuraSlot("g1"), false)
+    ns.profile.bars.essential.layout.maxIcons = 2
+    ns.DB.EffectiveCustom = savedEff
+
+    -- memo：同幀同鍵回同一份；Bars.flushes、occ 代號、設定檔換了就重算
+    local clock = 900
+    env.GetTime = function() return clock end
+    local savedBars = ns.Bars
+    ns.Bars = { flushes = 1 }
+    local r1 = C.Overflow()
+    check("memo：同幀同鍵同一份", r1 ~= nil and C.Overflow() == r1)
+    ns.Bars.flushes = 2
+    local r2 = C.Overflow()
+    check("memo：flushes 變了 ⇒ 重算", r2 ~= r1)
+    C.SetOccupancy(function() return true end, {})
+    check("memo：occ 代號換了 ⇒ 重算", C.Overflow() ~= r2)
+    local r3 = C.Overflow()
+    ns.DB.SpecSpells(true).hidden[701] = true
+    check("memo：hidden 寫入（overrideGen）⇒ 同幀重算", C.Overflow() ~= r3)
+    eqList("memo：同幀寫 hidden 立刻反映", C.Bar("essential"), { 102, 202 })
+    ns.DB.SpecSpells(true).hidden[701] = nil
+    local r4 = C.Overflow()
+    clock = clock + 1
+    check("memo：換幀 ⇒ 重算", C.Overflow() ~= r4)
+    C.SetOccupancy(nil, nil)
+    env.GetTime = nil
+    ns.Bars = savedBars
+
+    -- BarKeys：barOrder 在前、其他照字母
+    ns.profile.bars.z9 = Icons("custom", 0, false)
+    ns.profile.bars.a1 = Icons("custom", 0, false)
+    eqList("BarKeys", C.BarKeys(), { "essential", "utility", "buffs", "buffbars", "g1", "a1", "z9" })
+
+    ns.profile, ns.specID = savedProfile, savedSpec
+    C.Refresh("overflow-done")
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

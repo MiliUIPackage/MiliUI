@@ -794,6 +794,91 @@ Specs.GlowSampleRow = function(which, path) return GlowSampleRow(which, path) en
 ------------------------------------------------------------
 -- 版面（條自己的欄位）
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 格數上限＋溢出（Core/Overflow.lua）：「最多顆數」滑桿＋灰字、「超出的放到」下拉＋灰字。圖示類的條才有。
+--   * 下拉的候選：其他圖示類、自己沒設上限的條（接收條不能再溢出）；目前存的目標就算不成立也列出來（灰字寫原因）
+--   * 自己沒設上限時下拉停用（值不動）
+--   * 被別條指為接收條（那條有設上限）：滑桿停用、灰字寫原因
+-- 誰指到誰、誰有上限都進 BarSignature（自己的上限除外：拖滑桿過 0 不能整張表單重建），所以候選清單與原因字
+-- 在建表單時算就準
+------------------------------------------------------------
+local function OverflowRows(key)
+    local O, C = ns.Overflow, ns.Catalog
+    local cfgOf = C.BarCfgOf
+    local keys = C.BarKeys()
+    local function Title(k) return ns.Options.BarTitle(k) or tostring(k) end
+    local rows = {}
+    local recv = O.Receivers(keys, cfgOf)[key]
+    local function Receiving() return O.Receivers(C.BarKeys(), cfgOf)[key] ~= nil end
+    rows[#rows + 1] = BS("slider", "layout.maxIcons", L["Max icons"], { min = 0, max = O.MAX, step = 1,
+        fallback = 0,
+        get = function() return O.MaxOf(cfgOf(key)) end,
+        disabled = Receiving })
+    if recv then
+        local names = {}
+        for i, k in ipairs(recv) do names[i] = Title(k) end
+        rows[#rows + 1] = Note(L["This bar takes the overflow from %s, so it can't have a limit of its own."]
+            :format(table.concat(names, " / ")))
+    else
+        rows[#rows + 1] = Note(L["0 means no limit. Icons past the limit move to the bar chosen below."])
+    end
+
+    local cur = O.TargetKey(cfgOf(key))
+    local items = { { text = L["None"], value = "none" } }
+    for _, k in ipairs(keys) do
+        local b = cfgOf(k)
+        if k ~= key and (k == cur or (b.kind ~= "bars" and O.MaxOf(b) == 0)) then
+            items[#items + 1] = { text = Title(k), value = k }
+        end
+    end
+    rows[#rows + 1] = BS("dropdown", "layout.overflowTo", L["Overflow to"], { items = items, refreshPage = true,
+        resetPaths = { "layout.overflowTo" },
+        get = function()
+            local to = O.TargetKey(cfgOf(key))
+            return (to and cfgOf(to)) and to or "none"
+        end,
+        set = function(_, v)
+            local b = ns.DB.BarTable(key)
+            if not b then return end
+            if type(b.layout) ~= "table" then b.layout = {} end
+            b.layout.overflowTo = (v ~= "none" and v ~= key) and v or false
+        end,
+        disabled = function() return O.MaxOf(cfgOf(key)) <= 0 end })
+    -- 存的目標不成立的原因（跟自己的上限無關的那三種）；成立或沒選就是一般說明
+    local why
+    if cur and cur ~= key then
+        local t = cfgOf(cur)
+        if not t then why = "missing"
+        elseif t.kind == "bars" then why = "notIcons"
+        elseif O.MaxOf(t) > 0 then why = "capped" end
+    end
+    if why == "notIcons" then
+        rows[#rows + 1] = Note(L["%s shows bars, not icons, so the number of icons isn't limited."]:format(Title(cur)))
+    elseif why == "capped" then
+        rows[#rows + 1] = Note(L["%s has a limit of its own, so the number of icons isn't limited."]:format(Title(cur)))
+    else
+        rows[#rows + 1] = Note(L["Without a target, the number of icons isn't limited."])
+    end
+    return rows
+end
+
+-- 表單簽章裡的溢出那一段：別條的「有沒有上限／指到誰／類型」＋自己指到誰（自己的上限不進：見 OverflowRows）
+function Specs.OverflowSig(key)
+    local O, C = ns.Overflow, ns.Catalog
+    if not (O and C and C.BarKeys) then return "" end
+    local parts = {}
+    for _, k in ipairs(C.BarKeys()) do
+        local b = C.BarCfgOf(k)
+        local to = O.TargetKey(b) or "-"
+        if k == key then
+            parts[#parts + 1] = "@>" .. to
+        else
+            parts[#parts + 1] = k .. (b.kind == "bars" and "b" or "i") .. (O.MaxOf(b) > 0 and "#" or "") .. ">" .. to
+        end
+    end
+    return table.concat(parts, ",")
+end
+
 function Specs.Layout(key)
     local bar = ns.DB.BarTable(key) or {}
     local kind = bar.kind == "bars" and "bars" or "icons"
@@ -802,6 +887,7 @@ function Specs.Layout(key)
 
     if kind == "icons" then
         add(BS("slider", "layout.maxPerRow", L["Icons per row"], { min = 1, max = 20, step = 1 }))
+        for _, row in ipairs(OverflowRows(key)) do add(row) end
     end
     add(BS("slider", "layout.spacing", L["Spacing"], { min = 0, max = 20, step = 1 }))
     add(BS("dropdown", "layout.grow", L["Growth"], { items = GrowItems(kind) }))
@@ -1027,6 +1113,7 @@ function Specs.BarSignature(key)
         type(bar.anchor) == "table" and "a" or "-",
         table.concat(p and p.barOrder or {}, ","),
         Specs.AnchorGraphSig(),
+        Specs.OverflowSig(key),
     }, "|")
 end
 

@@ -45,6 +45,7 @@ Core\Media.lua
 Core\Style.lua
 Core\DB.lua
 Core\Import.lua
+Core\Overflow.lua
 Core\Catalog.lua
 Core\Presets.lua
 Core\Layout.lua

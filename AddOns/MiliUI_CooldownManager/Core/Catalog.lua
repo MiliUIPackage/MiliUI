@@ -1,7 +1,9 @@
 ------------------------------------------------------------
 -- 目錄：cooldownID → 法術資料，與每一條的有序清單
 --
---   ns.Catalog.Bar(barKey)     有序 cooldownID 陣列（已套本專精的 order／groupOf／hidden）
+--   ns.Catalog.Bar(barKey)     有序 cooldownID 陣列（已套本專精的 order／groupOf／hidden，再套格數上限＋溢出）
+--   ns.Catalog.BarBase(barKey) 同上但不套溢出（設定頁的 withHidden 路徑、溢出的輸入）
+--   ns.Catalog.Overflow()      這一輪的溢出結果（Core/Overflow.lua 的 Resolve；沒有任何一條成立 ⇒ nil）
 --   ns.Catalog.Info(id)        { spellID, overrideSpellID, icon, name, category, equipSlot,
 --                                hasAura, charges, isInvisible, isKnown, effectiveCategory, home }
 --   ns.Catalog.Refresh(reason) 重讀；內容（簽章）變了才廣播 "CatalogChanged"
@@ -801,10 +803,22 @@ function C.IsAuraSlot(id)
 end
 
 -- 這條上有沒有光環格（有的話固定格位被強制打開）
+-- 溢出：接收條算「有」——只要有一條成立的來源條上有光環格（保守：不管這一輪有沒有真的溢過來）。
+-- 光環格的持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標
 function C.BarHasAuraSlot(barKey)
-    for _, it in ipairs(Effective()) do
-        local e = it.entry
-        if ValidCustom(e) and e.kind == "aura" and e.bar == barKey then return true end
+    local function Has(k)
+        for _, it in ipairs(Effective()) do
+            local e = it.entry
+            if ValidCustom(e) and e.kind == "aura" and e.bar == k then return true end
+        end
+        return false
+    end
+    if Has(barKey) then return true end
+    local ov = C.OverflowPairs and C.OverflowPairs()
+    if ov then
+        for _, pr in ipairs(ov) do
+            if pr.dst == barKey and Has(pr.src) then return true end
+        end
     end
     return false
 end
@@ -1027,10 +1041,10 @@ function C.ReplaceNow(b)
     return v == true
 end
 
--- 條的有序清單（已套 order／groupOf／hidden）。回傳的是新表，呼叫端可以自由改。
+-- 條的有序清單（已套 order／groupOf／hidden；**還沒套溢出**）。回傳的是新表，呼叫端可以自由改。
 -- withHidden = true 時多回一張「本來在這條、但被藏起來」的清單（設定頁的預覽排在尾端用），
 -- 同樣照 order 排。
-function C.Bar(barKey, withHidden)
+function C.BarBase(barKey, withHidden)
     EnsureBuilt()
     local out, hid = {}, withHidden and {} or nil
     local p = ns.profile
@@ -1130,6 +1144,99 @@ function C.Bar(barKey, withHidden)
     return out, hid
 end
 
+------------------------------------------------------------
+-- 格數上限＋溢出到別條（規則在 Core/Overflow.lua）
+--
+-- C.Bar(key) ＝ C.BarBase(key) 套溢出：來源條截掉最後幾顆、接收條尾端接上溢來的。
+-- withHidden（設定頁）照舊只回 base——預覽自己用 C.OverflowStatic() 畫記號與溢來的格。
+--
+-- 佔位判斷（occ）由 Core/Bars.lua 在每輪 Flush 建好索引之後交進來（C.SetOccupancy）：收合中不在的增益、
+-- 暴雪沒給框的不算顆數。沒交（離線測試、引擎還沒起來）⇒ 每一顆都算。
+--
+-- memo：一輪 Flush 算一次。鍵 ＝ GetTime() 戳記＋Bars.flushes＋DB.overrideGen（order／groupOf／hidden 的寫入出口）
+-- ＋DB.customGen＋C.buildGen＋occ 的代號（Bars 每輪換一張索引表）＋設定檔表＋這個專精的表。
+-- 上限／目標本身是條層設定：寫入之後設定頁一定 ApplyEngine → RequestAll → 下一輪 Flush（flushes 換了）。
+-- 讀不到 GetTime（離線測試）⇒ 不 memo。⚠ 回傳的表**呼叫端不准改**（C.Bar 回的是複本）。
+------------------------------------------------------------
+local occFn, occToken = nil, nil
+function C.SetOccupancy(fn, token)
+    occFn, occToken = fn, token
+end
+
+local function BarKeys()
+    local p = ns.profile
+    local bars = p and type(p.bars) == "table" and p.bars
+    if not bars then return EMPTY end
+    local keys, seen = {}, {}
+    for _, k in ipairs(type(p.barOrder) == "table" and p.barOrder or EMPTY) do
+        if type(bars[k]) == "table" and not seen[k] then seen[k] = true; keys[#keys + 1] = k end
+    end
+    local rest = {}
+    for k, b in pairs(bars) do
+        if type(b) == "table" and not seen[k] then rest[#rest + 1] = k end
+    end
+    table.sort(rest, function(a, b) return tostring(a) < tostring(b) end)
+    for _, k in ipairs(rest) do keys[#keys + 1] = k end
+    return keys
+end
+C.BarKeys = BarKeys
+
+local function CfgOf(k)
+    local p = ns.profile
+    local bars = p and type(p.bars) == "table" and p.bars
+    local b = bars and bars[k]
+    return type(b) == "table" and b or nil
+end
+C.BarCfgOf = CfgOf
+
+local function BaseOf(k) return (C.BarBase(k)) end
+
+local function ResolveOverflow(occ)
+    local O = ns.Overflow
+    if not O then return nil end
+    return O.Resolve(BarKeys(), BaseOf, CfgOf, occ)
+end
+
+local ovMemo = { flushes = -1 }
+function C.Overflow()
+    local now = _G.GetTime and _G.GetTime() or nil
+    if now == nil then return ResolveOverflow(occFn) end
+    local DB = ns.DB
+    local m = ovMemo
+    local fl = ns.Bars and ns.Bars.flushes or 0
+    local og, cg = DB and DB.overrideGen or 0, DB and DB.customGen or 0
+    local prof, sp = ns.profile, SpellsTable()
+    if m.at == now and m.flushes == fl and m.og == og and m.cg == cg and m.bg == C.buildGen
+        and m.occ == occToken and m.prof == prof and m.sp == sp then
+        return m.res
+    end
+    local res = ResolveOverflow(occFn)
+    m.at, m.flushes, m.og, m.cg, m.bg, m.occ, m.prof, m.sp, m.res = now, fl, og, cg, C.buildGen, occToken, prof, sp, res
+    return res
+end
+
+-- 設定頁：每一顆都算顆數（預覽每格都畫），不 memo
+function C.OverflowStatic()
+    return ResolveOverflow(nil)
+end
+
+function C.Bar(barKey, withHidden)
+    if withHidden then return C.BarBase(barKey, true) end
+    local res = C.Overflow()
+    local list = res and res.out[barKey]
+    if not list then return C.BarBase(barKey) end
+    local out = {}
+    for i = 1, #list do out[i] = list[i] end
+    return out, nil
+end
+
+-- 成立的溢出對（只看設定，不算清單）：{ { src, dst }… } 或 nil
+function C.OverflowPairs()
+    local O = ns.Overflow
+    if not O then return nil end
+    return O.Pairs(BarKeys(), CfgOf)
+end
+
 -- 從暴雪某條檢視器拉法術出去的條（本專精 groupOf 指到、而且真的存在的條），加進 out[key] = true。
 -- Bars.RequestSource 用：那條檢視器有動靜時，只有這些條（跟來源條自己）的清單可能變。
 -- 在掛勾的訊號路徑上叫，**不重建目錄**（只讀上次建好的 C.info）；讀不到來源的 id 一律算進去。
@@ -1160,6 +1267,18 @@ function C.GroupTargets(sourceKey, out)
                 for key, bar in pairs(bars) do
                     if type(bar) == "table" and src ~= nil and bar.source == src then out[key] = true end
                 end
+            end
+        end
+    end
+    -- 溢出：來源條會受影響（它自己、它的 source 是這條檢視器、或上面已經算進去）⇒ 接收條也要重排
+    -- （溢出去的那幾顆跟著來源條的清單變；Flush 只放掉「這一輪要排的條」的認領）。排在取代那一段後面：
+    -- A 在來源條、B 生效時 A 那一格可能在接收條上
+    local ov = C.OverflowPairs()
+    if ov then
+        for _, pr in ipairs(ov) do
+            local sb = bars[pr.src]
+            if out[pr.src] or pr.src == sourceKey or (type(sb) == "table" and sb.source == sourceKey) then
+                out[pr.dst] = true
             end
         end
     end

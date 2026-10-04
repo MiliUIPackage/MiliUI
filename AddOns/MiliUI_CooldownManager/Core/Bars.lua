@@ -476,6 +476,30 @@ local function AuraPresent(item)
 end
 B.AuraPresent = AuraPresent
 
+-- 溢出的佔位判斷（Catalog.SetOccupancy；每輪 Flush 建好索引後換一支）：這一顆在來源條上佔不佔一格。
+-- 跟 Relayout 放格同一個判準：暴雪沒給框的不佔；增益類收合中不在的不佔（固定格位開著／被強制時佔，它是占位格）。
+-- 自訂項目一律佔（光環格會強制固定格位；自訂法術／物品一直都有框）
+function B.Occupancy(index)
+    local fixedOf = {}
+    return function(barKey, id)
+        if type(id) ~= "number" then return true end
+        local item = index[id]
+        if not item then return false end
+        local rec = ns.Viewers.frames[item]
+        if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
+        local fixed = fixedOf[barKey]
+        if fixed == nil then
+            local bar = BarCfg(barKey)
+            local layout = bar and type(bar.layout) == "table" and bar.layout or {}
+            fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(barKey)
+                or (ns.Clickable and ns.Clickable.Enabled(barKey))) and true or false
+            fixedOf[barKey] = fixed
+        end
+        if fixed then return true end
+        return AuraPresent(item) and true or false
+    end
+end
+
 -- 以增益取代用：B 的 item 真的看得到（自己顯示＋整條增益檢視器沒被暴雪藏起來，例如編輯模式的
 -- 「可見：只在戰鬥中」）。看不到還換過去會變成一格空的。讀不到當看得到（同 SafeShown）
 local function SafeVisible(item)
@@ -1012,6 +1036,18 @@ Flush = function()
         local prof = Profile()
         for key in pairs(type(prof) == "table" and type(prof.bars) == "table" and prof.bars or {}) do
             if key ~= ns.dragging and not work[key] then work[key] = LEVEL.membership end
+        end
+    end
+
+    -- 格數上限＋溢出（Core/Overflow.lua）：這一輪的佔位判斷交給 Catalog（溢出結果每輪算一次，見 Catalog.Overflow）。
+    -- 來源條要排 ⇒ 接收條也排（溢出去的那幾顆跟著來源條的清單變；認領只放掉這一輪要排的條）
+    ns.Catalog.SetOccupancy(B.Occupancy(index), index)
+    local ovPairs = ns.Catalog.OverflowPairs and ns.Catalog.OverflowPairs()
+    if ovPairs then
+        for _, pr in ipairs(ovPairs) do
+            if work[pr.src] and pr.dst ~= ns.dragging and (work[pr.dst] or 0) < work[pr.src] then
+                work[pr.dst] = work[pr.src]
+            end
         end
     end
 

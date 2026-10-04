@@ -420,6 +420,26 @@ do
 end
 
 ------------------------------------------------------------
+-- 10b. 格數上限＋溢出（layout.maxIcons／overflowTo）：預設、刪掉接收條時清掉指向它的目標
+------------------------------------------------------------
+do
+    eq("內建條 maxIcons 預設 0", ns.profile.bars.essential.layout.maxIcons, 0)
+    eq("內建條 overflowTo 預設 false", ns.profile.bars.utility.layout.overflowTo, false)
+    eq("NewBarTable 圖示群組 maxIcons 0", DB.NewBarTable("icons", "x").layout.maxIcons, 0)
+    eq("DefaultFor 自訂群組的 overflowTo", DB.DefaultFor("bar", "nope", "layout.overflowTo"), false)
+    local g = DB.CreateBar("icons", "接收")
+    ns.profile.bars.essential.layout.maxIcons = 4
+    ns.profile.bars.essential.layout.overflowTo = g
+    ns.profile.bars.utility.layout.overflowTo = "buffs"
+    DB.DeleteBar(g)
+    eq("刪掉接收條 ⇒ 指向它的目標清掉", ns.profile.bars.essential.layout.overflowTo, false)
+    eq("刪掉接收條 ⇒ 上限留著（不成立＝不限）", ns.profile.bars.essential.layout.maxIcons, 4)
+    eq("指向別條的不動", ns.profile.bars.utility.layout.overflowTo, "buffs")
+    ns.profile.bars.essential.layout.maxIcons = 0
+    ns.profile.bars.utility.layout.overflowTo = false
+end
+
+------------------------------------------------------------
 -- 11. 冷卻狀態效果（icon.cdState／cdStateAlpha）：預設、三層繼承、覆寫分組、舊存檔補預設
 ------------------------------------------------------------
 do

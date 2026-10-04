@@ -51,7 +51,7 @@
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -62,7 +62,8 @@
 
 | 檔案 | 職責 |
 |---|---|
-| `Core/Catalog.lua` | cooldownID → 法術資料；四條檢視器各自的有序清單。玩家在暴雪面板排的順序自己解 `C_CooldownViewer.GetLayoutData()`（不問暴雪的 DataProvider，那會寫它的快取欄位）；解不開就無感退回類別集合順序。`Bar(key)` 回套好本專精 `order`／`groupOf`／`hidden` 的清單。暴雪設定面板開著時 `IsPaused()`；`CheckFresh` 輪詢版面字串最多每秒一次，**戰鬥中不輪詢**（面板鎖著、專精換不了；標髒的事件路徑照做） |
+| `Core/Catalog.lua` | cooldownID → 法術資料；四條檢視器各自的有序清單。玩家在暴雪面板排的順序自己解 `C_CooldownViewer.GetLayoutData()`（不問暴雪的 DataProvider，那會寫它的快取欄位）；解不開就無感退回類別集合順序。`Bar(key)` 回套好本專精 `order`／`groupOf`／`hidden`、再套格數上限＋溢出的清單（`BarBase(key)` 是不套溢出的那一層）。暴雪設定面板開著時 `IsPaused()`；`CheckFresh` 輪詢版面字串最多每秒一次，**戰鬥中不輪詢**（面板鎖著、專精換不了；標髒的事件路徑照做） |
+| `Core/Overflow.lua` | 純函式：格數上限＋溢出到別條的成立條件與截法（`Target`／`Resolve`／`Receivers`），見「格數上限＋溢出到別條」 |
 | `Core/Layout.lua` | 純函式 `Compute(items, layout, kind)` → 每格 (x, y, w, h)、容器寬高、容器錨點；`AnchorOf`／`AnchorSide`／`StackTarget` ＝ 錨定的排開（跟著同一條同一邊的往外排，見「錨定的排開」）。不碰任何 WoW API，離線可測 |
 | `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1。取出（`Track`）**不清樣式簽章**，只標 `rec.reacquired`（`CHEAP_REACQUIRE`，見「進場、換專精」） |
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上；實際貼在誰身上由排開決定，一條變了整疊兩段式重貼）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上；`ReleaseAll` 全部還給暴雪 |
@@ -170,6 +171,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `DB.overrideGen` | `SpecSpells`／`OverrideTable` 的 `create=true`、`SetOverride`（含清掉那條）、`DropOverrideTable`、`ClearOverrides`、`ResetOverrides`；自訂項目的每一個寫入（`TouchCustom` 一併 +1）；`Activate`（換設定檔）、`ResetProfile`、`ImportProfile`、換專精；直接改表的 `Sound.CustomRemove`、`Import.ResolvePending` 自己叫 `DB.TouchOverrides` | `Catalog.Replacements`、Decorate 的前置鍵 |
 | `DB.customGen` | `CustomList`／`ScopeList` 的 `create=true`（`AddCustom`／`AddCustomTo`）、`RemoveCustom`、`MoveCustomScope`、`CopyCustomEntry`、`SetCustomBar`、`DeleteBar`、`Activate`、`ResetProfile`、`ImportProfile`、換專精；設定頁直接改 `hideUnknown`／`placeholder` 叫 `DB.TouchCustom` | `DB.EffectiveCustom`、`Catalog.CustomInfo` |
 | `Catalog.buildGen` | `Build` 成功（`C.info`／`C.placed` 換新）、`Adopt` 收養（原地改） | `Catalog.Replacements` |
+| `Bars.flushes` | 每輪 `Flush` 開頭 | `Catalog.Overflow`（溢出結果一輪算一次；見「格數上限＋溢出到別條」） |
 | `Decorate.styleGen` | `InvalidateAll`（`resolved[barKey]` 只靠 generation 作廢，沒有單獨清的地方） | Decorate 的前置鍵 |
 
 - `DB.EffectiveCustom`：鍵＝customGen＋戳記＋專精＋設定檔。`Catalog.CustomEntry` 改查跟著它的那張 `byID` 表（不再線性掃）。
@@ -975,6 +977,46 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
   - B 的 item 仍是增益檢視器的子框：它的 strata／框層級跟著增益圖示列，不是 A 那條。兩條 strata 設得不一樣時，那一格的疊層會跟旁邊不同。
   - 只有增益**圖示列**；增益長條的 item、自訂光環格不能當 B，自訂項目不能當 A。
 
+### 格數上限＋溢出到別條（`Core/Overflow.lua`、`Core/Catalog.lua`、`Core/Bars.lua`、`Options/Specs.lua`、`Options/Preview.lua`，2026-10-04，F1）
+
+圖示類的條可以設「最多 N 顆」；超出的照清單順序流到另一條圖示類的條（例：核心技能只留 8 顆，其餘接在輔助技能或某個自訂群組的尾端）。
+
+- **資料**：條的 `layout.maxIcons = 0`（0 ＝ 不限；1～20）、`layout.overflowTo = false`（false 或另一條的 key），`IconBar` 預設表帶這兩欄。
+  舊存檔沒有 ＝ 0／false ＝ 不限，不遷移、不動 `DB_VERSION`。只有圖示類的條讀（長條類也帶著，用不到）。
+  刪掉一條群組時，指到它的 `overflowTo` 一併清成 false（群組 key 會被下一個新群組重用，`DB.DeleteBar`）。
+- **成立條件**（`Overflow.Target`，不成立 ⇒ 整條照舊、**不截斷**）：自己是圖示類、`maxIcons > 0`；目標存在、不是自己、同為圖示類、
+  而且自己 `maxIcons == 0`（不連鎖：接收條不能再溢出；兩條互指時兩邊都有上限 ⇒ 兩邊都不成立）。
+- **截法**（`Overflow.Resolve(barKeys, baseOf, cfgOf, occ)`）：溢出的是清單順序最後的那幾顆。**佔一格的才算顆數**：
+  `occ(key, id)` 由 `Bars.Occupancy(index)` 每輪 Flush 建好索引後交給 Catalog（`Catalog.SetOccupancy`），跟放格同一個判準——
+  暴雪沒給框的不佔；增益類收合中不在的不佔（固定格位開著／被強制時佔，它是占位格）；自訂項目一律佔。不佔的留在來源條、不搬
+  （它出現的那一輪重算，可能就換它溢出去）。接收條的清單 ＝ 自己的 ＋ 溢來的（接在尾端；多條溢到同一條時照左欄順序，每條內保留來源條的順序）。
+- **清單**：`Catalog.Bar(key)` ＝ `Catalog.BarBase(key)`（原本的 `Bar`）套溢出；`withHidden`（設定頁）只回 base，預覽自己畫溢出。
+  溢出結果每輪 Flush 算一次（`Catalog.Overflow()`，memo 鍵：`GetTime()` 戳記＋`Bars.flushes`＋`DB.overrideGen`＋`DB.customGen`＋`Catalog.buildGen`
+  ＋佔位判斷的代號（Bars 每輪換一張索引表）＋設定檔表＋專精表）。上限與目標是條層設定：設定頁寫完一定 `ApplyEngine` → `RequestAll` → 下一輪 Flush。
+  沒有任何一條成立時連 base 清單都不算（`Overflow.Pairs` 只看設定）。
+- **放格**：`Bars.Relayout` 不改——它吃 `Catalog.Bar` 的結果，溢來的 item 由接收條認領（`claimedBy`／`rec.claimKey` 指到接收條），
+  外觀照接收條（`Decorate.Apply(item, rec, 接收條)`），逐法術覆寫照它自己的 id（本來就不分條）。法術索引、按鍵文字、發光、層數門檻、音效都跟著 claimKey 走，不改。
+  以增益取代：A 溢出去之後 B 照樣頂在 A 的格上（`Replacements` 看 `placed` 不看條）。
+- **訊號**：`Catalog.GroupTargets` 多一段（排在取代那一段後面）：來源條受影響（它的 source 是這條檢視器、或已經算進去）⇒ 接收條也標髒。
+  `Flush` 開頭再補一道：這一輪要排的來源條 ⇒ 接收條一起排（認領只放掉這一輪要排的條，不一起排會有一顆框兩邊都不認領）。
+  RequestSource 的目標快取鍵是 `B.flushes`，這裡算出來的會進那張快取，沒有衝突。
+- **光環格**：成立的來源條上有光環格 ⇒ 接收條的 `BarHasAuraSlot` 也回 true（保守：不管這一輪有沒有真的溢過來）——
+  光環格的持有框是保護框，溢過去之後一樣不能在戰鬥中移，接收條要固定格位、不能跟著游標。
+- **設定頁**（`Specs.Layout`，圖示類才有，排在「每列上限」下面）：「最多顆數」滑桿（0～20）＋灰字；「超出的放到」下拉（第一項「無」；
+  候選＝其他圖示類、自己沒設上限的條；目前存的目標就算不成立也列出來）＋灰字（一般是「沒有選目標時不限制顆數」，存的目標不成立時換成原因）；
+  自己沒設上限時下拉停用。被別條（有設上限的）指為接收條 ⇒「最多顆數」停用、灰字寫「這條正在接收 A 溢出的技能」。
+  誰指到誰、誰有上限都進 `BarSignature`（`Specs.OverflowSig`；**自己的上限不進**：拖滑桿過 0 不能整張表單重建），所以候選與原因字建表單時算就準。
+- **預覽**（`Catalog.OverflowStatic()`：每一格都算顆數，預覽本來就每格都畫）：來源條溢出去的格畫暗（0.35）＋右下角黃色「→」＋提示「溢出到：X」，
+  照樣能拖（順序決定哪幾顆溢出）；接收條在「＋」前面補畫溢來的格（外觀照這條）＋同樣的記號＋提示「來自：A」，**不能拖**
+  （順序屬於來源條：拖了跳彈窗，附「前往那條」切到來源條的頁面），左鍵照樣開逐法術面板（這條的 key）、中鍵移除（移除本來就不分條）。
+  一邊改了，看得到的另一邊預覽跟著重畫（`Preview.Refresh` 多刷溢出的另一端）。
+- `/mcdm debug`：每條印「溢出 → X（N 顆）」「接收 ← A（N 顆）」；設了上限卻不成立的印「上限 N 不成立（原因）：不限制顆數」。
+- ⚠ 已知限制：
+  - 增益圖示列沒開固定格位時，哪幾顆溢出跟著「現在有哪些增益」變：增益一上一下，最後幾顆可能在兩條之間換位置（每次都隔一輪排版）。
+    設定頁預覽不分在不在，一律照清單順序畫（跟固定格位開著時一樣）。
+  - 接收條不能再溢出，也不能自己設上限；一條可以同時接收好幾條。
+  - 從 `Ayije_CDM` 匯入沒有對應：它沒有這兩個設定（「Max Icons／Overflow To」是另一支冷卻管理器插件的功能，它的設定不在匯入範圍）。
+
 ## 資源條與施法條
 
 四者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
@@ -1604,6 +1646,22 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 129. 拿掉的語系 key（九個語系一併刪）：「Also add to this class's other specializations」（被「適用範圍」取代）、
     「Your race's active abilities that you know. Click one to track its cooldown.」（種族技能清單改成一列，標題換新的一句）。
 
+**格數上限＋溢出到別條（2026-10-04，F1）**
+
+130. **`Core/Overflow.lua` 排在 `Core/Import.lua` 之後、`Core/Catalog.lua` 之前**（計畫寫「Layout 之後、Catalog 之前」）：TOC 裡 Catalog 本來就排在 Layout 前面，
+     兩個條件不能同時成立；Overflow 沒有載入期的依賴，放在 Catalog 前面就夠。
+131. **佔位才算顆數**（計畫只寫「固定格位的占位也算一顆」）：增益列沒開固定格位時，不在的增益不佔格，算進去會讓來源條明明有空位卻把在的增益擠走。
+     所以 Bars 每輪交一支佔位判斷（`Bars.Occupancy`）給 Catalog；設定頁預覽不用它（每格都算）。
+132. **溢出結果的 memo 鍵多了 customGen 與佔位判斷的代號**（計畫只寫 flushes＋戳記）：同一輪裡自訂項目的寫入、離線測試換佔位判斷都要立刻反映。
+133. **`Flush` 開頭也補「來源條要排 ⇒ 接收條一起排」**（計畫只改 `GroupTargets`）：`B.Request(key)` 直接標髒的路徑（設定頁以外的單條重排）不經過 `GroupTargets`。
+134. **接收條算「有光環格」**（計畫沒寫）：光環格溢過去之後持有框是接收條的子框，戰鬥中一樣不能移。
+135. **刪群組時清掉指到它的 `overflowTo`**（計畫只寫「接收條被刪 ⇒ 來源條回到不限」）：群組 key 會被下一個新群組重用，留著會指到新的那條。
+136. **拖溢來的格跳的彈窗附「前往那條」**，不是「開暴雪冷卻管理器」：順序要到來源條改，不是暴雪面板。
+137. **匯入沒有做**（計畫寫 `Convert` 補 `maxIcons`／`overflowTarget`）：`Ayije_CDM`（本機 3.92 與它的語系、預設值）沒有這兩個設定，
+     「Max Icons／Overflow To」是另一支冷卻管理器插件的功能，而匯入只讀 `Ayije_CDMDB`。
+138. **下拉的第一項是「無」不是「無（截掉）」**（計畫同意）：沒選目標就不截。原因字只有三種（目標不存在時存的值會被 `DeleteBar` 清掉，
+     所以那種情況顯示一般說明）；原因字是灰字，沒用黃字（不是需要強調的警告，跟「固定格位」被強制時的黃字分開）。
+
 ## 待實機驗證
 
 依區塊排，編號連續。打一場記得開 `/console taintLog 2`，看完別 /reload（會清掉 taint.log）。
@@ -2193,6 +2251,19 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      `/mcdm debug` 的「資源條光環／生命事件」跟著變、值有更新；切回去事件收掉。戰鬥中（光環條讓面板成了保護框）換形態延到脫戰時，
      事件集合也跟著延到那一刻。
 280. **E3 之後再量一次基準**（263 的同一場景），E1／E2／E3 三組數字並列寫進下面「效能基準」。
+
+**格數上限＋溢出到別條（2026-10-04，F1）**
+
+281. 核心技能設 6 顆溢到輔助：第 7 顆起長在輔助尾端、外觀照輔助（尺寸、邊框、文字）、按鍵文字／發光／音效照它自己的逐法術；
+     增益上下、換專精、換天賦後不錯位；`/mcdm debug` 印「essential 溢出 → utility（N 顆）」「utility 接收 ← essential（N 顆）」。
+     核心第一列寬變了，寬 0 的長條／資源條跟著變。
+282. 來源條改順序（預覽拖曳）：哪幾顆溢出跟著變；接收條預覽的「來自」記號同步；拖接收條上溢來的格 ⇒ 彈窗、「前往那條」切到來源條頁面、
+     放手不開逐法術面板；中鍵移除溢來的格 ⇒ 它從兩邊都消失。
+283. 接收條被刪／自己被指為接收條時「最多顆數」停用並寫原因；來源條的目標設了上限（舊資料）⇒ 來源條回到不限、下拉下面寫原因。
+284. 固定格位開著的增益條設上限：占位也算顆數；沒開固定格位時，只有在的增益算顆數（增益一上一下，最後幾顆在兩條之間換位置，不卡、不重疊）。
+285. 戰鬥中（含副本）溢出跟著增益上下照常重排，沒有 `ADDON_ACTION_BLOCKED`；`/console taintLog 2` 沒有新的本插件 taint。
+     自訂群組（有光環格）溢到另一個群組：接收群組的固定格位被強制打開、「跟著游標」不能勾。
+286. 以增益取代的 A 溢到接收條：B 生效時頂在接收條上 A 那一格、結束換回 A。
 
 **效能基準**
 
