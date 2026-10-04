@@ -217,12 +217,12 @@ local RESOURCES = {
     SoulFragments   = { name = L["Soul Fragments"],   mode = "pip", cast = 228477, max = 6,  passive = 203981 },
     -- 2026-09-30 補齊
     Icicles         = { name = SpellName(205473, "Icicles"), nameSpell = 205473, mode = "pip", aura = 205473, max = 5 },
-    DevourerFragments = { name = L["Soul Fragments"], mode = "bar", get = DevourerValue, bigNumber = false },
+    DevourerFragments = { name = L["Soul Fragments"], mode = "bar", get = DevourerValue, bigNumber = false, auraRead = true },
     Stagger         = { name = PowerName("STAGGER", SpellName(115069, "Stagger")), mode = "bar", get = StaggerValue,
                         passive = 115069, stagger = true, bigNumber = true },
     -- 無視苦痛：引擎寫增益 190456 的層數（＝盾量佔上限的百分比）；get／cap 是容器沒好時的 absorbBar 退路
     IgnorePain      = { name = SpellName(190456, "Ignore Pain"), nameSpell = 190456, mode = "auraPct", auras = { 190456 },
-                        appMax = 100, get = AbsorbValue, passive = 190456, cap = 0.3, bigNumber = true },
+                        appMax = 100, get = AbsorbValue, passive = 190456, cap = 0.3, bigNumber = true, absorb = true },
     WhirlwindStacks = { name = SpellName(85739, "Whirlwind"), nameSpell = 85739, mode = "auraBar",
                         auras = { 85739, 190411 }, max = 4, passive = 12950 },
     SweepingStrikes = { name = SpellName(260708, "Sweeping Strikes"), nameSpell = 260708, mode = "auraBar",
@@ -2087,11 +2087,61 @@ function R.HidesTrackedBar(id)
     return mirrorHides and MirrorMatches(id) or false
 end
 R.mirrorTicks, R.valueFlushes = 0, 0   -- /mcdm perf：征戰聖擊鏡射的 OnUpdate 跑幾幀／只重畫值的 Flush 幾次
-local function MirrorTick()
-    R.mirrorTicks = R.mirrorTicks + 1
+-- 來源不可見時不每幀跑（效能修整 E3 #11）：以前來源（增益長條的征戰聖擊 item）沒亮時照樣每幀寫
+-- SetMinMaxValues(0,1)＋SetValue。現在 MirrorTick 一看到來源不可見：每列寫一次閒置狀態（row.mirrorIdle 守衛）、
+-- 卸掉 OnUpdate、起一顆 0.25 秒的探針（C_Timer.NewTicker）；探針看到來源 IsVisible() ⇒ 停探針、掛回 OnUpdate。
+-- 增益剛出現時 Viewers 的 OnActiveStateChanged → Signal → Flush → 資源條 Relayout → SetMirrorDriver 也順手探一次，
+-- 不必等 0.25 秒。SetMirrorDriver 沒有 mirror 列時兩個都收。這是「不新增輪詢」的例外：探針只在來源不可見時跑、可見就停
+local mirrorProbe              -- 閒置時的探針（ticker）；nil ＝ 沒在閒置（OnUpdate 掛著，或根本沒有 mirror 列）
+local MirrorTick
+
+local function StopMirrorProbe()
+    if mirrorProbe then
+        mirrorProbe:Cancel()
+        mirrorProbe = nil
+    end
+end
+
+local function SourceVisible()
+    local item = R.MirrorSource()
+    return item ~= nil and item:IsVisible() and true or false
+end
+
+function R.MirrorProbe()
+    if not mirrorProbe then return end
+    if not SourceVisible() then return end
+    StopMirrorProbe()
     for i = 1, mirrorCount do
         local row = mirrorRows[i]
-        if row and row.mode == "mirror" then R.MirrorRow(row) end
+        if row then row.mirrorIdle = nil end
+    end
+    if mirrorDriver then mirrorDriver:SetScript("OnUpdate", MirrorTick) end
+    MirrorTick()                                     -- 這一幀就轉手一次
+end
+
+MirrorTick = function()
+    R.mirrorTicks = R.mirrorTicks + 1
+    if not SourceVisible() then
+        -- 閒置：每列寫一次閒置狀態（MirrorRow 的 else 分支），之後交給探針
+        for i = 1, mirrorCount do
+            local row = mirrorRows[i]
+            if row and row.mode == "mirror" and not row.mirrorIdle then
+                R.MirrorRow(row)
+                row.mirrorIdle = true
+            end
+        end
+        if mirrorDriver then mirrorDriver:SetScript("OnUpdate", nil) end
+        if not mirrorProbe and C_Timer and C_Timer.NewTicker then
+            mirrorProbe = C_Timer.NewTicker(0.25, R.MirrorProbe)
+        end
+        return
+    end
+    for i = 1, mirrorCount do
+        local row = mirrorRows[i]
+        if row and row.mode == "mirror" then
+            row.mirrorIdle = nil
+            R.MirrorRow(row)
+        end
     end
 end
 function R.SetMirrorDriver(list, count, cfg)
@@ -2101,7 +2151,14 @@ function R.SetMirrorDriver(list, count, cfg)
     end
     mirrorRows, mirrorCount = list, count
     if any and not mirrorDriver then mirrorDriver = CreateFrame("Frame") end
-    if mirrorDriver then mirrorDriver:SetScript("OnUpdate", any and MirrorTick or nil) end
+    if not any then
+        StopMirrorProbe()
+        if mirrorDriver then mirrorDriver:SetScript("OnUpdate", nil) end
+    elseif mirrorProbe then
+        R.MirrorProbe()                              -- 閒置中：順手探一次（增益剛出現就不必等 0.25 秒）
+    elseif mirrorDriver then
+        mirrorDriver:SetScript("OnUpdate", MirrorTick)
+    end
     if any and R.ScheduleTrackedCheck then R.ScheduleTrackedCheck() end
     local hides = any and not (type(cfg) == "table" and cfg.crusadingHideBar == false)
     if hides ~= mirrorHides then
@@ -2377,6 +2434,7 @@ end
 -- 重排與重畫
 ------------------------------------------------------------
 local shownCount = 0
+local SyncUnitEvents             -- 定義在事件那一段（前置宣告；Relayout 結尾與整條關掉時叫）
 local healthShown = false        -- 畫面上有沒有血量列（沒有的職業不必為 UNIT_HEALTH 重畫）
 local laidOut = false            -- 排過版了沒（false ＝ 下一次 Update 一定重排）
 local pendingRelayout = false    -- 戰鬥中面板是保護框（有 auraBar 的容器）、該重排的時候記在這裡
@@ -2439,6 +2497,7 @@ local function Relayout(cfg, list, W)
     end
     shownCount = #list
     R.SetMirrorDriver(rows, shownCount, cfg)
+    SyncUnitEvents()
     local n = #list
     ns.Bars.SetPanelSize("resources", W, n > 0 and (total + (n - 1) * gap) or 1)
 end
@@ -2458,6 +2517,7 @@ function R.Update(force)
         healthShown = false
         laidOut = false
         R.SetMirrorDriver(rows, 0, cfg)
+        SyncUnitEvents()
         return
     end
     if force or not laidOut then
@@ -2566,6 +2626,67 @@ local REEVAL_EVENTS = {
 
 local evFrame
 
+------------------------------------------------------------
+-- 光環／生命事件依列動態註冊（效能修整 E3 #16a）
+--
+--   R.WantedEvents(keys, class [, out])   純函式：畫面上的列（資源 key 陣列）＋職業 → 要註冊的事件集合
+--     UNIT_AURA                     職業在 AURA_DRIVEN_CLASSES（以前就只有這六個職業註冊）而且有列要吃它：
+--                                   層數型（def.aura／def.auras）、施放次數型（def.cast：靈魂碎片）、醉仙緩勁
+--                                   （def.stagger：減益每跳都發）、讀光環層數的取值（def.auraRead：噬靈魂碎片）、
+--                                   野德的連擊點（滿溢之力畫在連擊點上，ChargedPoints）
+--     UNIT_HEALTH                   血量列（def.health）、醉仙緩勁
+--     UNIT_MAXHEALTH                血量列、醉仙緩勁、無視苦痛（def.absorb：上限是最大生命）
+--     UNIT_ABSORB_AMOUNT_CHANGED    無視苦痛（以前只有戰士註冊，這一列只有戰士有）
+--   能量、符文、點數充能、急速照舊一次註冊。作廢點＝Relayout 結尾（Reevaluate、R.Apply、Bars 的 relayout 都經過它）
+--   與整條關掉的那一支；戰鬥中重排延後時畫面上的列沒變，事件集合跟著不變
+------------------------------------------------------------
+local UNIT_EVENTS = { "UNIT_AURA", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_ABSORB_AMOUNT_CHANGED" }
+
+function R.WantedEvents(keys, class, out)
+    out = out or {}
+    for k in pairs(out) do out[k] = nil end
+    local auraClass = AURA_DRIVEN_CLASSES[class] == true
+    for _, key in ipairs(keys or {}) do
+        local def = RESOURCES[key]
+        if def then
+            if auraClass and (def.aura or def.auras or def.cast or def.stagger or def.auraRead
+                or (key == "ComboPoints" and class == "DRUID")) then
+                out.UNIT_AURA = true
+            end
+            if def.health or def.stagger then
+                out.UNIT_HEALTH, out.UNIT_MAXHEALTH = true, true
+            end
+            if def.absorb then
+                out.UNIT_MAXHEALTH, out.UNIT_ABSORB_AMOUNT_CHANGED = true, true
+            end
+        end
+    end
+    return out
+end
+
+local unitEvOn = {}                  -- 事件 → true（現在註冊著）
+local shownKeys, wantScratch = {}, {}
+R.unitEvOn = unitEvOn                 -- /mcdm debug、測試用
+
+SyncUnitEvents = function()
+    if not evFrame then return end
+    for i = #shownKeys, 1, -1 do shownKeys[i] = nil end
+    for i = 1, shownCount do
+        local row = rows[i]
+        if row and row.key then shownKeys[#shownKeys + 1] = row.key end
+    end
+    local want = R.WantedEvents(shownKeys, CLASS, wantScratch)
+    for _, ev in ipairs(UNIT_EVENTS) do
+        if want[ev] and not unitEvOn[ev] then
+            unitEvOn[ev] = true
+            evFrame:RegisterUnitEvent(ev, "player")
+        elseif not want[ev] and unitEvOn[ev] then
+            unitEvOn[ev] = nil
+            evFrame:UnregisterEvent(ev)
+        end
+    end
+end
+
 local function OnEvent(_, event)
     if event == "UNIT_POWER_POINT_CHARGE" then chargedDirty = true end
     if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
@@ -2607,14 +2728,9 @@ local function RegisterEvents()
     if CLASS == "ROGUE" then evFrame:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", "player") end
     -- 秘法靈魂的「剩幾個 GCD」：格式器的分段跟著 GCD 長度
     if CLASS == "MAGE" then evFrame:RegisterUnitEvent("UNIT_SPELL_HASTE", "player") end
-    -- 光環堆疊型（漩渦之武／矛尖）與野德的滿溢之力只能吃 UNIT_AURA：有這種資源的職業才註冊
-    -- （自訂格子的層數列另外由 Modules/Pips.lua 自己註冊）
-    if AURA_DRIVEN_CLASSES[CLASS] then evFrame:RegisterUnitEvent("UNIT_AURA", "player") end
-    -- 生命：血量列每個職業都可能開（UNIT_HEALTH／UNIT_MAXHEALTH），戰士另外看吸收量
-    evFrame:RegisterUnitEvent("UNIT_HEALTH", "player")
-    evFrame:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
-    if CLASS_HEALTH.UNIT_ABSORB_AMOUNT_CHANGED then evFrame:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", "player") end
+    -- UNIT_AURA／UNIT_HEALTH／UNIT_MAXHEALTH／UNIT_ABSORB_AMOUNT_CHANGED：依畫面上的列動態註冊（SyncUnitEvents）
     evFrame:SetScript("OnEvent", OnEvent)
+    SyncUnitEvents()
 end
 
 ------------------------------------------------------------

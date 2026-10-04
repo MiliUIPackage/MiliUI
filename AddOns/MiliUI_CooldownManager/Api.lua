@@ -106,6 +106,20 @@ local function ItemLines(out)
 end
 
 -- silent ＝ 不印聊天框（設定視窗的除錯分頁「重新產生」用）；回傳不帶色碼的輸出行
+local function CountKeys(t)
+    local n = 0
+    for _ in pairs(t or {}) do n = n + 1 end
+    return n
+end
+
+-- 事件集合（事件 → true）→ 排序後的一行；空的印「（無）」
+local function EventList(set)
+    local list = {}
+    for ev in pairs(set or {}) do list[#list + 1] = ev end
+    table.sort(list)
+    return #list > 0 and table.concat(list, " ") or "（無）"
+end
+
 local function Debug(silent)
     local dump = {}
     local function p(line)
@@ -244,8 +258,17 @@ local function Debug(silent)
     if ns.StackGate and ns.StackGate.DebugLine then p(ns.StackGate.DebugLine()) end
     local SI = ns.SpellIndex
     if SI and SI.Count then
-        p(("  法術索引：%d 個法術、重建 %d 次  冷卻事件（合併後）精準 %d 次／全掃 %d 次")
-            :format(SI.Count(), SI.rebuilds or 0, SI.precise or 0, SI.full or 0))
+        p(("  法術索引：%d 個法術、重建 %d 次  冷卻事件（合併後）精準 %d 次（其中 GCD %d）／全掃 %d 次  GCD 精準 %s  全掃清單 %d 格")
+            :format(SI.Count(), SI.rebuilds or 0, SI.precise or 0, SI.gcd or 0, SI.full or 0,
+                    tostring(SI.GCD_PRECISE), CountKeys(ns.Decorate and ns.Decorate.cdWork)))
+    end
+    -- 動態註冊的事件（效能修整 E3）：自訂項目（Custom.SyncEvents）與資源條（光環／生命事件）
+    if ns.Custom and ns.Custom.evOn then
+        p(("  自訂項目事件：%s  （生效中的非光環項目 %d 筆）"):format(EventList(ns.Custom.evOn),
+            ns.Custom.activeNonAura or 0))
+    end
+    if ns.Resources and ns.Resources.unitEvOn then
+        p("  資源條光環／生命事件：" .. EventList(ns.Resources.unitEvOn))
     end
     if ns.Sound and ns.Sound.DebugLine then p(ns.Sound.DebugLine()) end
     if ns.Cursor and ns.Cursor.DebugLine then
@@ -382,12 +405,13 @@ local PERF = {
     { "Decorate",   "afterCooldownWrites", "  重寫倒數色（去重後）", of = "Decorate.setCooldownHooks" },
     { "SpellIndex", "rebuilds",            "法術索引重建" },
     { "SpellIndex", "precise",             "冷卻事件 精準" },
+    { "SpellIndex", "gcd",                 "  其中 GCD 開始",      of = "SpellIndex.precise" },
     { "SpellIndex", "full",                "冷卻事件 全掃" },
     { "Glow",       "pandemicCalls",       "無損刷新掛勾" },
     { "Glow",       "pandemicChanges",     "  狀態真的變了",        of = "Glow.pandemicCalls" },
     { "StackGate",  "feeds",               "層數門檻餵值" },
     { "Custom",     "updates",             "自訂法術 UpdateSpell" },
-    { "Custom",     "colorOnly",           "  只重算顏色",          of = "Custom.updates" },
+    { "Custom",     "colorOnly",           "自訂法術只重算顏色" },
     { "Cursor",     "ticks",               "跟著游標 OnUpdate" },
     { "Resources",  "mirrorTicks",         "征戰聖擊鏡射 OnUpdate" },
     { "Resources",  "valueFlushes",        "資源條只重畫值" },

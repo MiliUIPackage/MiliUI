@@ -941,56 +941,100 @@ function D.RefreshState(rec, noRetry)
 end
 
 ------------------------------------------------------------
--- SPELL_UPDATE_COOLDOWN 很密：只收集、下一幀對認領中、開了隱藏 GCD 或冷卻狀態的 item 補一次。
--- 事件帶明文 spellID 而且索引查得到 ⇒ 只跑那幾格；讀不懂（nil／秘密／帶 category 等）⇒ 全掃（Core/SpellIndex.lua）。
--- 同一幀的多次事件合併：任何一次是全掃就全掃。
+-- SPELL_UPDATE_COOLDOWN 很密：事件處理器在 Core/SpellIndex.lua（分類一次、合併、延一幀），這裡是暴雪 item 那個消費者。
+-- 事件帶明文 spellID 而且索引查得到 ⇒ 只跑那幾格；讀不懂（nil／秘密／帶 category 等）⇒ 全掃。
+--
+-- 全掃只走 D.cdWork（效能修整 E3 #8）：弱鍵表 rec → item，收「認領中、沒停放、而且開了隱藏 GCD／冷卻狀態／
+-- 就緒時一直亮」的暴雪 item（自訂框不收，它們歸 Custom 那個消費者）。以前全掃走過每條的每顆 item、每顆再問一次
+-- ReadyWhileOn（SpellSetting）。維護點（寫入出口）：
+--   * D.Apply 結尾（三條出路都經過 CdWorkSync）：簽章命中與完整套用時重算 rec.cdNeed／rec.cdReady
+--     （樣式快取 rec.style 只在完整套用時換；ReadyMode 吃的設定變了一律經過 InvalidateAll ⇒ 前置鍵不中 ⇒ 會重算）；
+--     前置鍵命中時輸入全等、只重新判「認領中、沒停放」（停放後重新放格會走這條）
+--   * Glow.OnParked（停放、還給暴雪）：移除
+--   * Glow.ApplyReadyState 翻 rec.readyWhile（兩個方向）：重判
+-- 迴圈裡照舊檢查 frames[item] == rec、認領中、沒停放（漏掉的作廢點最多多跑一格，不會跑錯格）。
+-- cdWork 空了（而且 Custom 也沒事做）⇒ 事件處理器連分類與 Defer 都不排（SI.Subscribe 的 wants）。
 ------------------------------------------------------------
 local SI = ns.SpellIndex
-local cdBatch = SI.NewBatch()
-local cdArmed = false
+local cdWork = setmetatable({}, { __mode = "k" })
+D.cdWork = cdWork
 
 local function NeedsWork(rec)
     local st = rec.style
     return (st and (st.hideGCD or st.cdState)) or rec.readyWhile or ReadyWhileOn(rec) or false
 end
 
-local function RefreshOne(item, rec)
+-- D.Apply 算一次存在 rec 上（rec.readyWhile 不在這裡：它由 Glow 翻、翻的時候自己叫 CdWorkSync）
+local function CdNeedStore(rec)
+    local st = rec.style
+    rec.cdReady = ReadyWhileOn(rec) and true or false
+    rec.cdNeed = ((st and (st.hideGCD or st.cdState)) and true or false) or rec.cdReady
+end
+
+-- 照 rec 現在的狀態加入／移除。item 沒給 ⇒ 用 Apply 記下的 itemOf，再沒有用表裡原本的
+function D.CdWorkSync(rec, item)
+    if not rec or rec.custom then return end
+    item = item or itemOf[rec] or cdWork[rec]
+    if item and rec.claimKey and not rec.parked and (rec.cdNeed or rec.readyWhile) then
+        cdWork[rec] = item
+    else
+        cdWork[rec] = nil
+    end
+end
+
+-- rw：要不要重算就緒時一直亮。nil ＝ 照舊現問（精準那條）；全掃傳 Apply 存的 rec.cdReady（不再每格問設定）
+local function RefreshOne(item, rec, rw)
     local st = rec.style
     if st and st.hideGCD then D.ApplyGCDAlpha(item, rec) end
     if st and st.cdState then D.ApplyItemAlpha(item, rec) end
-    if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or ReadyWhileOn(rec)) then ns.Glow.ApplyReadyState(rec, item) end
+    if rw == nil then rw = ReadyWhileOn(rec) end
+    if ns.Glow and ns.Glow.ApplyReadyState and (rec.readyWhile or rw) then ns.Glow.ApplyReadyState(rec, item) end
 end
 
-local function RefreshCooldownAll()
-    cdArmed = false
-    local all, entries = SI.Take(cdBatch)
-    if not (ns.Bars and ns.Bars.ForEachClaimed and ns.profile) or ns.released then return end
+local function Valid(item, rec)
+    return rec and not rec.custom and ns.Viewers.frames[item] == rec and rec.claimKey and not rec.parked
+end
+
+-- 全掃先把 cdWork 抄進暫存陣列（迴圈裡 ApplyReadyState 可能翻 readyWhile ⇒ 改到 cdWork）
+local scratchI, scratchR = {}, {}
+local doneRec = {}
+
+local function OnCooldownBatch(all, entries, gcd)
+    if not (ns.Bars and ns.profile) or ns.released then return end
     if all then
-        SI.full = SI.full + 1
-        for key in pairs(ns.profile.bars or {}) do
-            ns.Bars.ForEachClaimed(key, function(item, rec)
-                if NeedsWork(rec) then RefreshOne(item, rec) end
-            end)
+        local n = 0
+        for rec, item in pairs(cdWork) do
+            n = n + 1
+            scratchI[n], scratchR[n] = item, rec
+        end
+        for i = 1, n do
+            local item, rec = scratchI[i], scratchR[i]
+            scratchI[i], scratchR[i] = nil, nil
+            if Valid(item, rec) then RefreshOne(item, rec, rec.cdReady) end
         end
         return
     end
-    SI.precise = SI.precise + 1
     for e in pairs(entries) do
         local item, rec = e.owner, e.rec
-        if rec and not rec.custom and ns.Viewers.frames[item] == rec and rec.claimKey and not rec.parked
-            and NeedsWork(rec) then
+        if Valid(item, rec) and NeedsWork(rec) then
             RefreshOne(item, rec)
+            if gcd then doneRec[rec] = true end
         end
     end
+    -- GCD 開始（SI.GCD_PRECISE）：沒命中的格只重算 GCD 轉圈（GCD 不影響冷卻狀態與就緒時一直亮；
+    -- 萬一施放順便動了別格的冷卻，暴雪 GCD 時對每一格的 SetCooldown 會經過 AfterCooldown 補算那兩樣）
+    if gcd then
+        for rec, item in pairs(cdWork) do
+            local st = rec.style
+            if st and st.hideGCD and not doneRec[rec] and Valid(item, rec) then D.ApplyGCDAlpha(item, rec) end
+        end
+        for rec in pairs(doneRec) do doneRec[rec] = nil end
+    end
 end
-D.RefreshCooldownAll = RefreshCooldownAll
+D.OnCooldownBatch = OnCooldownBatch                              -- 測試用
+D.RefreshCooldownAll = function() OnCooldownBatch(true, SI.EMPTY, false) end
 
-ns.Events.Register("SPELL_UPDATE_COOLDOWN", "decorate_gcd", function(...)
-    SI.Add(cdBatch, SI.Lookup, ns.IsSecret, ...)
-    if cdArmed then return end
-    cdArmed = true
-    ns.Defer(RefreshCooldownAll)
-end)
+SI.Subscribe(OnCooldownBatch, function() return next(cdWork) ~= nil end)
 
 local function OnClearCooldown(cd)
     -- 我們自己清的（蓋掉增益那一段、技能拿不到冷卻物件）：不是暴雪說「轉好了」，alpha 由 AfterCooldown 重算
@@ -1497,6 +1541,7 @@ function D.Apply(item, rec, barKey, w, h)
             local st = D.Resolve(barKey)
             D.Reattach(item, rec, nil, st.kind == "bars" and item.Bar ~= nil, barKey)
         end
+        D.CdWorkSync(rec, item)       -- 輸入全等：只重判認領／停放（停放後重新放格）
         return
     end
     local style = D.Resolve(barKey)
@@ -1521,6 +1566,7 @@ function D.Apply(item, rec, barKey, w, h)
         D.applySkipped = D.applySkipped + 1
         if rec.reacquired then D.Reattach(item, rec, spell, isBar, barKey) end
         D.PreKeyStore(rec, sgen, ogen, id, w, h, rep, barKey, msq)
+        if not rec.custom then CdNeedStore(rec); D.CdWorkSync(rec, item) end
         return
     end
     rec.reacquired = nil              -- 下面整套重套，取出時被重設的一併蓋回去
@@ -1664,6 +1710,8 @@ function D.Apply(item, rec, barKey, w, h)
     ApplyTooltip(ov, rec, style.tooltips)
     rec.decorated, rec.decoratedBar = sig, barKey
     D.PreKeyStore(rec, sgen, ogen, id, w, h, rep, barKey, msq)
+    -- 冷卻事件的全掃清單（D.cdWork）：rec.style 剛換，重算
+    if not rec.custom then CdNeedStore(rec); D.CdWorkSync(rec, item) end
     -- 層數門檻（增益）：設定快取在 rec.stackCfg、閘照簽章重建。排在 ApplyBarLook 之後（暴雪條的填充貼圖要有材質）、
     -- Glow.AfterApply 之前（生效發光要看 rec.stackCfg 決定讓不讓位）
     if ns.StackGate and ns.StackGate.Apply then ns.StackGate.Apply(item, rec, barKey, w, h, isBar) end

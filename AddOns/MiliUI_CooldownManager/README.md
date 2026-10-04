@@ -51,7 +51,7 @@
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏的成立與組合、三個判斷的秘密值與 API 不在、事件只在客戶端認得時註冊）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -66,18 +66,18 @@
 | `Core/Layout.lua` | 純函式 `Compute(items, layout, kind)` → 每格 (x, y, w, h)、容器寬高、容器錨點；`AnchorOf`／`AnchorSide`／`StackTarget` ＝ 錨定的排開（跟著同一條同一邊的往外排，見「錨定的排開」）。不碰任何 WoW API，離線可測 |
 | `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1。取出（`Track`）**不清樣式簽章**，只標 `rec.reacquired`（`CHEAP_REACQUIRE`，見「進場、換專精」） |
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上；實際貼在誰身上由排開決定，一條變了整疊兩段式重貼）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上；`ReleaseAll` 全部還給暴雪 |
-| `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；目錄變了當場重建，`Bars` 排版結尾只在認領變了（`Bars.claimsChanged`）或 `SI.dirty`（目錄重建、收養、自訂法術換覆寫）時重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`；讀不懂一律全掃），見「冷卻狀態效果」 |
+| `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；目錄變了當場重建，`Bars` 排版結尾只在認領變了（`Bars.claimsChanged`）或 `SI.dirty`（目錄重建、收養、自訂法術換覆寫）時重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`／`ClassifyGCD`；讀不懂一律全掃）。**`SPELL_UPDATE_COOLDOWN` 唯一的處理器**在這裡：分類一次、合併、延一幀交給消費者（`SI.Subscribe`：Decorate、Custom），全部消費者都沒事做（`wants`）時連分類都不做，見「冷卻狀態效果」 |
 | `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過；簽章之前先比**前置鍵**（八個純量，見「設定讀取的 memo 與前置鍵」），八欄全等連 `SpellStyle`／簽章都不算；剛重新取出而簽章（或前置鍵）相同 ⇒ `Reattach` 只補暴雪取出時會重設的那一樣（倒數數字開關）。`SetCooldown` 後掛勾的倒數色＋formatter 照「樣式那包＋哪一段」去重，轉圈色與邊緣暴雪每次都重寫、照舊每次蓋 |
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭）。字型分兩層：通用字型（`font`，主題／條）＋每段文字自己的 `font`（倒數、充能、層數、按鍵文字、長條的 `bar.nameFont／timeFont`、施法條 `castbar.font`、資源條與自訂格子 `resources.textFont`），值 `"INHERIT"`／沒存＝跟隨通用字型（`ns.Media.ElementFont`） |
 | `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha）。判斷快照（`Snapshot`）一輪只建一次往下傳；`Refresh` 只套容器、`Apply` 再加 item、`ApplyPanels` 只套面板。條件模型見「顯示條件」 |
-| `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上 |
+| `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上。無損刷新的兩支後掛勾是「本體一律 `ns.Guard`」的唯一例外（每幀叫，無事路徑只查表＋比布林；狀態變了才進 Guard） |
 | `Core/StackGate.lua` | 層數門檻：增益「層數到 N 才發光」與增益長條「層數到 N 換色」（閘＋裁切框，秘密層數也成立），見「層數門檻發光＋長條層數門檻換色」 |
 | `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角 |
 | `Core/Assist.lua` | 戰鬥輔助：自己輪詢下一招建議（`C_AssistedCombat.GetNextCastSpell`），醒目標示畫在索引查到的格子上；建議變了廣播 `AssistSpellChanged`（見「戰鬥輔助」） |
 | `Core/Cursor.lua` | 跟著游標的自訂圖示群組：資格判斷、共用 driver 框的 OnUpdate（只在有這種條而且看得到時掛），見「小項」 |
 | `Core/Clickable.lua` | 可點擊的自訂圖示群組：每格蓋一顆透明的 secure 鈕（屬性戰鬥外寫好、寫入走 `ns.Write`＋簽章去重），見「可點擊的自訂群組」 |
-| `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；放在長條類的條上時換成長條框／長條版的光環按鈕；每一格都是 Bars 的一個 entry |
+| `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；放在長條類的條上時換成長條框／長條版的光環按鈕；每一格都是 Bars 的一個 entry。冷卻／數量／可用／距離事件依生效清單動態註冊（`CU.SyncEvents`，沒有非光環項目就一個都不聽）；`SPELL_UPDATE_USABLE` 只重算顏色（`rec.colorDirty`） |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
 → Interrupt → Resources → Pips → Castbar → Assist → AssistIcon → Visibility → Cursor（`Core/Init.lua` 的 `ns.StartEngine`）。
@@ -196,8 +196,9 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Decorate.applyCalls`／`applySkipped`／`applyPre`／`applyReattach` | `D.Apply` 入口／簽章命中／前置鍵命中（連簽章都沒算；跟 `applySkipped` 不重疊）／簽章或前置鍵命中而且剛重新取出（`D.Reattach`） |
 | `Decorate.setCooldownHooks`／`afterCooldownWrites` | `OnSetCooldown` 入口／`AfterCooldown` 的倒數色＋formatter 真的重寫（去重沒擋下；轉圈色與邊緣每次都蓋，不算） |
 | `Glow.pandemicCalls`／`pandemicChanges` | `OnShowPandemic`／`OnHidePandemic` 入口／狀態真的變了 |
-| `Custom.updates`／`colorOnly` | `UpdateSpell`／（只重算顏色，做之前恆 0） |
+| `Custom.updates`／`colorOnly` | `UpdateSpell`／`SPELL_UPDATE_USABLE` 只重算顏色的那條（`Flush` 的 `colorDirty` 分支，跟 `updates` 不重疊） |
 | `Resources.mirrorTicks`／`valueFlushes` | `MirrorTick`／事件 Flush 只重畫值的那一支 |
+| `SpellIndex.gcd` | 精準的批次裡帶「GCD 開始」的次數（`SI.GCD_PRECISE`） |
 | 既有：`SpellIndex.rebuilds／precise／full`、`StackGate.feeds`、`Cursor.ticks`；現況值：`Glow.Counts()` | — |
 
 - `/mcdm perf`：每個計數「自上次重設以來」的總數、每秒、子計數佔母計數幾 %；最上面一行是 `C_AddOnProfiler.GetAddOnMetric`
@@ -515,11 +516,14 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   自訂光環格吃同一個開關：發光在 `initializeFrame` 裡用 MiliUIGlow 的 Attach 系列建在引擎按鈕底下（按鈕只在光環存在時顯示），
   樣式／顏色／格子尺寸進容器簽章，改了換容器、戰鬥中改等脫戰。
 - **就緒發光**：探針（見「與計畫不同」第 28 條）；亮 `glow.ready.duration` 秒（預設 3），期間技能用掉（進了新的冷卻，GCD 不算）就提早熄；回充中的多充能技能不提早熄（暴雪每次 GCD 都重設充能計時，分不出來）。
+  「就緒時一直亮」（`whileReady`）明文判得出冷卻中時**真的 Stop**、宿主 alpha 還原 1，就緒才 `Start`（效能修整 E3 #12：以前是發光照開、宿主 alpha 0，
+  MiliUIGlow 的共用 driver 照樣每幀算）；`rec.readyWhile` 仍是「這格開著這個模式」。秘密值時照舊發光一直開著、交給宿主的 `SetAlphaFromBoolean`。
   「觸發」樣式在裝了 Masque 時改用 Masque 的方形循環圖（`Masque/Textures/Square/SpellAlert-Loop-Modern`，6×5、每格 84px，沒有入場動畫），
   沒裝就是暴雪的圓角圖集；只換貼圖，不碰 Masque、不讀它的設定。
   設定頁的觸發／就緒發光各有一顆「預覽」樣本圖示，常亮目前的樣式與顏色（`ns.Glow.PaintOn`／`StopOn` 與格子共用）。
 - **無損刷新**：後掛勾 item 的 `ShowPandemicStateFrame／HidePandemicStateFrame`，邊框換 `pandemic.color`，
-  `pandemic.bars` 時長條條身也換色；Hide 換回。暴雪的 PandemicIcon 不碰。
+  `pandemic.bars` 時長條條身也換色；Hide 換回。暴雪的 PandemicIcon 不碰。暴雪在 OnUpdate 裡每幀叫這兩支 ⇒ 掛勾本體**不包** `ns.Guard`
+  （無事路徑只有弱鍵表查詢＋布林，不可能拋錯），狀態真的變了才進 Guard 包著的套用（效能修整 E3 #13，全插件唯一的例外）。
   圖示外觀＝Masque 時平常不畫我們的邊框，無損刷新期間才把那圈彩色邊框亮出來（粗細照設定、至少 1），Hide 藏回去。
 - **按鍵文字**：`FindSpellActionButtons`（覆寫法術優先）→ 格號 → 綁定指令（主動作條目前那一頁／左下右下右側／
   動作條 6–8，照暴雪 `MultiActionBars.xml` 的 actionpage 與按鈕模板的 buttonType）→ `GetBindingKey` → 縮寫
@@ -545,7 +549,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   `rec.alphaSecret` 記著、`/mcdm debug` 印「秘密」）。編輯模式中不套（全亮）。模式快取在 `rec.style.cdState`（`Decorate.Apply` 寫，兩個欄位都進簽章）；
   長條與增益類一律 nil。
 - **什麼時候重算**：排版、顯示條件、`SetCooldown` 後掛勾（暴雪每次刷新冷卻都會經過）、`SPELL_UPDATE_COOLDOWN` 延一幀（跟隱藏 GCD 轉圈同一輪，
-  `RefreshCooldownAll`）、**轉好的那一刻**（就緒探針：`Glow.ReadyOn` 把「這格設了冷卻狀態」也算進來，探針照建照武裝；`Fire` 與暴雪 `Clear` 的後掛勾
+  `Decorate.OnCooldownBatch`）、**轉好的那一刻**（就緒探針：`Glow.ReadyOn` 把「這格設了冷卻狀態」也算進來，探針照建照武裝；`Fire` 與暴雪 `Clear` 的後掛勾
   在發光／音效判斷之前先 `Decorate.RefreshState`，`Fire` 那次 0.1 秒後再補算一次，蓋過探針與本尊到期差的那幾毫秒）、進出編輯模式。
 - **自訂法術／物品／飾品欄**（`Custom.ApplyState`）：框是容器的子框，條的淡出由容器帶 ⇒ 這裡的條 alpha 當 1。物品／飾品欄用 `UpdateItem` 算好的明文
   `onCD`（`rec.cdOnCD`）；法術用同一組明文旗標，讀不到改 `rec.dur:IsZero()` → `SetAlphaFromBoolean`。未學會（問號）、空的飾品欄、編輯模式中 ⇒ 1。
@@ -557,11 +561,20 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   （`Decorate` 只重算命中的暴雪 item、`Custom` 只標命中的那幾筆 `rec.dirty`，`Custom` 的 Flush 也改成只更新標髒的）。其餘一律全掃——
   暴雪自己的檢視器對共用冷卻（category）、GCD 開始（startRecoveryCategory）、物品（itemID）都會刷新別的格，我們沒有那些對照，全掃才不會漏。
   同一幀的多次事件合併（任何一次是全掃就全掃）。`/mcdm debug` 的「法術索引」一行印索引大小與精準／全掃次數。
+  - **處理器只有一支**（效能修整 E3 #8，2026-10-04）：`Core/SpellIndex.lua` 分類一次、合併、延一幀，`SI.Subscribe` 的消費者各拿同一份
+    `(all, entries, gcd)`。消費者的 `wants()`（Decorate：`D.cdWork` 非空；Custom：生效中有非光環項目）全部回 false ⇒ 事件來了直接走。
+  - **全掃只走 `Decorate.cdWork`**（弱鍵表 rec → item）：認領中、沒停放、開了隱藏 GCD／冷卻狀態／就緒時一直亮的暴雪 item。
+    維護點：`Decorate.Apply` 結尾（簽章命中與完整套用時重算 `rec.cdNeed`／`rec.cdReady`，前置鍵命中只重判認領／停放）、
+    `Glow.OnParked`（移除）、`Glow.ApplyReadyState` 翻 `rec.readyWhile`（重判）。迴圈裡照舊檢查身分／認領／停放。
+  - **GCD 開始精準**（`SI.GCD_PRECISE = true`）：`startRecoveryCategory` 有值、`spellID` 明文、`category`／`itemID` 是 nil ⇒
+    命中的格整套重算＋`cdWork` 裡其餘開了隱藏 GCD 的格只重算 GCD 轉圈（GCD 不影響「在不在冷卻」；暴雪每次 GCD 對每一格
+    `SetCooldown`，冷卻狀態與就緒發光另有後掛勾補算）。查不到也算精準（施放沒追蹤的法術）。**自訂項目在 GCD 開始時照舊全標**
+    （自訂框沒有那個後掛勾當安全網）。`GCD_PRECISE = false` ⇒ 回到帶 GCD 類別一律全掃。
 - ⚠ 已知限制：
   - 可點擊群組：隱藏的格鈕還在、照樣點得到（跟淡出同一個限制）。
   - 秘密值下判不出來的類別項目（藥水那種，暴雪的欄位讀不到時）維持顯示。
   - 隱藏的格上面的發光（觸發／就緒）、按鍵文字跟著看不到（都是 item 的子框）；「轉好時看不到」配就緒發光沒有意義。
-  - 精準重算的條件很保守：施放技能那一下的事件幾乎都帶 GCD 類別 ⇒ 全掃；精準的多半是冷卻結束／重置那種只帶 spellID 的事件。
+  - 精準重算的條件很保守：施放技能那一下的事件幾乎都帶 GCD 類別（`GCD_PRECISE` 關掉時 ⇒ 全掃）；精準的多半是冷卻結束／重置那種只帶 spellID 的事件。
 
 ### 增益持續時間的倒數換色（`Core/Decorate.lua`、`Core/Text.lua`、`Options/SpellPopover.lua`）
 
@@ -1060,7 +1073,7 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 | 無視苦痛「只算自己這顆盾」 | **補了**（2026-10-02）：Lua 讀不到，但引擎讀得到——光環層數（＝佔上限的百分比）交給 AuraContainer 的 `SetApplicationBar` 寫，見上表的 auraPct。原本「只在追蹤了暴雪增益圖示時才讀得到」是 Lua 讀取的限制，引擎寫值不受影響 |
 | 鐵鬃「依施放推算」 | 引擎的 AuraGroup 已經給得出每一層的真實剩餘時間，不必用施放事件猜（推算不含延長效果、戰鬥中身分讀不到） |
 | 增輝喚能師的黯黑力量、秘法法師的秘法靈魂 | **補了**（2026-09-30）：新增 auraTimer 模式，見上表。光環 ID 以 wowhead 核對；參考實作的秘法靈魂是「秘法奔騰結束時」給、固定 4 秒，wowhead 的「歐爾的記憶」寫「秘法鳳凰消失時」給、4 秒——ID 一致（451038），觸發時機的差異不影響做法（只看增益在不在） |
-| 懲戒聖騎的征戰聖擊（普攻計時） | **補了**（2026-10-02）：資源列 `CrusadingStrikes`（`mode = "mirror"`，天賦閘 404542），預設顯示、排在聖能上方。**鏡射**暴雪追蹤量條的 item（我們認領的 buffbars 框，只讀）：每幀 `row.bar:SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手秘密值，活性看 `item:IsVisible()`。先試的 auraTimer 實機整列空白——冷卻清單登記的是天賦本身 404542 這個被動光環，AuraContainer 看不到 ⇒ **征戰聖擊一定要在暴雪的追蹤量條裡**（這一列顯示時增益長條上那條自動拿掉：`crusadingHideBar` 預設開，`R.HidesTrackedBar` 給 `Catalog.Bar` 濾掉，不進「藏著」清單）。高度預設 4（`R.KeyRowHeight`、面板高度逐列加總）、填充 `crusadingFill`（elapsed＝反向填充＋兩層角色互換）、底色 `colors.CrusadingStrikes.backColor`（含 alpha）、不印數字。征戰聖擊不在追蹤量條裡時（`R.CrusadingTracked` 查目錄的 buffbars 清單）：設定頁征戰聖擊那段一行紅字、聊天框提示一次（進場／換專精／目錄變了後等 5 秒、脫戰才看，同一段「沒有」只講一次）。預設值照德莫的征戰聖擊助手。助手偵測到本插件就不再掛到資源條上，只剩「同時掛在目標名條」 |
+| 懲戒聖騎的征戰聖擊（普攻計時） | **補了**（2026-10-02）：資源列 `CrusadingStrikes`（`mode = "mirror"`，天賦閘 404542），預設顯示、排在聖能上方。**鏡射**暴雪追蹤量條的 item（我們認領的 buffbars 框，只讀）：每幀 `row.bar:SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手秘密值，活性看 `item:IsVisible()`。來源不可見時寫一次閒置狀態、卸掉 OnUpdate、改 0.25 秒探針（可見就停、掛回；資源條重排經過 `SetMirrorDriver` 時順手探一次，效能修整 E3 #11）。先試的 auraTimer 實機整列空白——冷卻清單登記的是天賦本身 404542 這個被動光環，AuraContainer 看不到 ⇒ **征戰聖擊一定要在暴雪的追蹤量條裡**（這一列顯示時增益長條上那條自動拿掉：`crusadingHideBar` 預設開，`R.HidesTrackedBar` 給 `Catalog.Bar` 濾掉，不進「藏著」清單）。高度預設 4（`R.KeyRowHeight`、面板高度逐列加總）、填充 `crusadingFill`（elapsed＝反向填充＋兩層角色互換）、底色 `colors.CrusadingStrikes.backColor`（含 alpha）、不印數字。征戰聖擊不在追蹤量條裡時（`R.CrusadingTracked` 查目錄的 buffbars 清單）：設定頁征戰聖擊那段一行紅字、聊天框提示一次（進場／換專精／目錄變了後等 5 秒、脫戰才看，同一段「沒有」只講一次）。預設值照德莫的征戰聖擊助手。助手偵測到本插件就不再掛到資源條上，只剩「同時掛在目標名條」 |
 | 醉仙緩勁的數值文字、條件規則（秘密值那幾下） | 秘密值不能比較、不能算術；明文時照常 |
 - **條件規則**（`Modules/ResourceConditions.lua`，純邏輯）：形狀跟單位框架的資源條一模一樣（`conditions[key] = { rule… }`，
   第一條成立的勝出、`target` 指定第幾格、`and` 巢狀、深度上限、壞資料當不成立）。**只在值是明文時求值**：
@@ -1073,9 +1086,11 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - **法力數字**：`manaAbbrev` = none／k（K、M）／wan（萬、億；中韓預設）；`manaPercent` 印百分比。`manaAbbrev` 同時是血量與醉仙緩勁（無視苦痛的退路也是）的大數字格式——設定視窗裡法力、血量、醉仙緩勁三種都有這個下拉，存的是同一格（P6 只搬顯示位置、不搬存放位置）。
 - **事件**：`UNIT_POWER_FREQUENT`（＋`UNIT_POWER_UPDATE` 當回滿保底）、`UNIT_MAXPOWER`、`UNIT_DISPLAYPOWER`、
   `UPDATE_SHAPESHIFT_FORM`、`PLAYER_SPECIALIZATION_CHANGED`、天賦、進出載具、`RUNE_POWER_UPDATE`（死騎）、
-  `UNIT_POWER_POINT_CHARGE`（盜賊）、`UNIT_AURA`（有光環型資源的職業：薩滿、獵人、惡魔獵人、德魯伊、法師、武僧）、
-  `UNIT_HEALTH`／`UNIT_MAXHEALTH`（每個職業都註冊：血量列；沒有血量列時只有武僧（醉仙緩勁每跳扣血）與戰士的 `UNIT_MAXHEALTH` 會重畫）、
-  `UNIT_ABSORB_AMOUNT_CHANGED`（戰士：無視苦痛的退路）、`UNIT_SPELL_HASTE`（法師：秘法靈魂印 GCD 時，GCD 長度變了才重排），
+  `UNIT_POWER_POINT_CHARGE`（盜賊）、`UNIT_SPELL_HASTE`（法師：秘法靈魂印 GCD 時，GCD 長度變了才重排），
+  **依畫面上的列動態註冊**（效能修整 E3 #16a，純函式 `R.WantedEvents(keys, class)`、`Relayout` 結尾與整條關掉時對帳）：
+  `UNIT_AURA`（有光環型資源的職業——薩滿、獵人、惡魔獵人、德魯伊、法師、武僧——**而且**有層數型／施放次數型／醉仙緩勁／
+  噬靈魂碎片／野德連擊點的列）、`UNIT_HEALTH`（血量列、醉仙緩勁）、`UNIT_MAXHEALTH`（血量列、醉仙緩勁、無視苦痛）、
+  `UNIT_ABSORB_AMOUNT_CHANGED`（無視苦痛的退路）；`/mcdm debug` 印現在註冊了哪些，
   全部綁 `player`、**只標髒、下一幀做**。auraBar／auraTimer／auraPct 的列不需要事件（引擎自己寫）。
   符文與精華的回充進度沒有事件：共用一個 0.1 秒 ticker（`R.ArmTicker`），有格子在回充才跑、全部好了就停。
   能量事件走「只重畫值」那條（不重算清單、不配表）；清單／格數／尺寸變了才重排。
@@ -1159,7 +1174,7 @@ customRows[specID] = {
 - **事件**（自己一個事件框）：`SPELL_UPDATE_CHARGES`／`SPELL_UPDATE_COOLDOWN`（有充能列才註冊）、`UNIT_AURA`（player；有層數列才註冊，明文退路用）、
   `PLAYER_REGEN_DISABLED／ENABLED`（有「回充中或戰鬥中」的列才註冊），
   只標髒、下一幀只重畫值；`SPELLS_CHANGED`、天賦、換專精、進世界、`FirstRowWidthChanged`（寬 0 時）、設定檔／專精回呼走重排。
-  資源條的能量事件不碰自訂格子；資源條的 `UNIT_AURA` 只剩「有光環型資源的職業」註冊。
+  資源條的能量事件不碰自訂格子；資源條的 `UNIT_AURA` 只剩「有光環型資源的職業、而且畫面上有那種列」時註冊（`R.WantedEvents`）。
 - **顯示條件**：`pips.enabled = false` → alpha 0（容器藏、收合；設定頁「自訂格子」一節最上面的開關）；
   `pips.loadConditions`（騎乘或坐載具時隱藏、只在戰鬥中）→ alpha 0（自訂格子自己的一份，跟資源條的各管各的）；
   `pips.fadeWithEssential` 同資源條（取核心技能現在的 alpha）。資源條關掉不影響自訂格子。
@@ -2148,6 +2163,28 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 270. 倒數色去重：增益那一段 → 冷卻那一段的倒數換色、低秒變色、轉圈底色切換都還正確；暴雪 `RefreshLayout`（增益上下）之後顏色沒掉；
      「以增益取代」頂著 A 的增益整段照 A 的增益樣式；設了換色的格進副本／換專精後顏色照舊。
 
+**效能修整 E3（事件與常駐成本，2026-10-04）**
+
+271. 征戰聖擊列（懲戒）：增益出現後 ≤0.25 秒開始跟（剛好碰上重排時當場就跟）、消失後條清空成閒置（已揮時間＝滿底色、
+     剩餘時間＝空）；閒置時 `/mcdm perf` 的「征戰聖擊鏡射 OnUpdate」不再增加，揮起來又開始數。關掉這一列、換專精 ⇒ 探針與 OnUpdate 都收。
+272. 就緒發光「就緒時一直亮」：轉好亮、用掉熄（現在是真的 Stop，不是 alpha 0 照跑）、充能法術還有充能照亮、`/reload` 時冷卻中的格不亮、
+     轉好才亮；副本／首領戰中（秘密分支，`SetAlphaFromBoolean`）行為跟改前一樣；換發光樣式、改格子尺寸後轉好的那次照新樣式亮。
+273. `SPELL_UPDATE_COOLDOWN`（`SpellIndex.GCD_PRECISE = true`）：施放沒追蹤的法術時，隱藏 GCD 轉圈的格照樣藏 GCD、冷卻狀態效果
+     （變暗／冷卻中看不到／轉好時看不到）與就緒時一直亮都沒漏格；施放追蹤中的法術那一格當場變；`/mcdm perf` 的「冷卻事件 全掃」
+     比例明顯下降、「其中 GCD 開始」有數字；`/mcdm debug` 的法術索引行印「GCD 精準 true」與「全掃清單 N 格」（N ＝ 開了隱藏 GCD／
+     冷卻狀態／就緒時一直亮的格數，沒開任何一樣時是 0 ⇒ 冷卻事件整個不做）。把 `Core/SpellIndex.lua` 的 `GCD_PRECISE` 改 false 對照一次。
+     自訂法術：施放 A 順便縮短 B 冷卻的天賦（自訂群組裡放 B）B 的轉圈照樣更新（GCD 事件在 Custom 照舊全標）。
+274. 自訂法術資源不足時變藍、夠了變白、超出距離照常上色（`colorDirty` 只重算顏色那條；`/mcdm perf` 的「自訂法術只重算顏色」有數字、
+     `UpdateSpell` 沒有跟著漲）；**被天賦／觸發換成覆寫法術的自訂法術**圖示照樣換（以前 `SPELL_UPDATE_USABLE` 會整套 Update，
+     現在只算顏色——覆寫改由冷卻／`SPELLS_CHANGED` 那幾條接，若換圖慢了就是這條漏了）。放上條／收起來時距離事件的註冊跟著開關：
+     `/mcdm debug` 的「自訂項目事件」一行，沒有自訂法術物品時是「（無）」、有距離的法術放上條才出現 `SPELL_RANGE_CHECK_UPDATE`。
+275. 無損刷新（pandemic）邊框色／長條條身照常亮／熄；`/mcdm perf` 的「無損刷新掛勾」很高、「狀態真的變了」很低；
+     掛勾本體不再包 `ns.Guard`（只有狀態變了的那段包），`/console taintLog 2` 打一場看不到新的 taint。
+276. 資源條：沒有血量列時切出血量列、沒有光環列的專精切到有的（增強薩、生存獵、野德貓形、釀酒醉仙緩勁、防戰無視苦痛）：
+     `/mcdm debug` 的「資源條光環／生命事件」跟著變、值有更新；切回去事件收掉。戰鬥中（光環條讓面板成了保護框）換形態延到脫戰時，
+     事件集合也跟著延到那一刻。
+277. **E3 之後再量一次基準**（263 的同一場景），E1／E2／E3 三組數字並列寫進下面「效能基準」。
+
 **效能基準**
 
-（尚未量測）
+（尚未量測；E1、E2、E3 之後各一組，同一個角色同一個場景並列）
