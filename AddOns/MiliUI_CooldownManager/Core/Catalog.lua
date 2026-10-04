@@ -1363,14 +1363,17 @@ function C.Explain(sources)
                     why = "資源條的征戰聖擊列顯示中，自動藏起"
                 elseif replacedBy[id] ~= nil then
                     why = "被 " .. tostring(replacedBy[id]) .. " 拿去取代"
-                elseif groupOf[id] ~= nil and groupOf[id] ~= rec.bar then
-                    why = "拉去 " .. BarName(groupOf[id]) .. (type(bars[groupOf[id]]) == "table" and "（那條沒收到）" or "（那條不存在）")
                 elseif hidden[id] then
                     why = "玩家在本插件移除（hidden）"
                 elseif Blocked(sp, id) then
                     why = "天賦條件不成立"
                 else
                     why = "原因不明"
+                end
+                -- BarBase 先分條（groupOf）再過上面那幾關：拉去別條的另外註明，原因照樣是上面那個
+                local g = groupOf[id]
+                if not where[id] and rec.bar and g ~= nil and g ~= rec.bar then
+                    why = "拉去 " .. BarName(g) .. (type(bars[g]) == "table" and "，" or "（那條不存在，留在原條），") .. why
                 end
                 out[#out + 1] = ("    %s %s %s(%s/%s) 類別 %s→%s%s 學會=%s：%s"):format(
                     where[id] and "✓" or "✕", tostring(id), tostring(rec.name or "?"),
