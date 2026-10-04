@@ -636,14 +636,9 @@ local function ResolveAuraFlag(rec)
     if not hide then rec.auraDur = nil end
 end
 
--- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色／蓋掉在 SetCooldown 後掛勾做
-local function OnSetUseAuraDisplayTime(cd, flag)
-    if overriding or ns.released then return end      -- 我們自己蓋的那一次（false）不算
-    local item = cooldownOwner[cd]
-    local rec = item and ns.Viewers.frames[item]
-    if not rec then return end
+-- 旗標換成 plain（明文布林、或 nil ＝ 秘密／讀不到）之後的連帶：音效、蓋增益判斷、生效發光、效果不在時變暗
+local function SetAuraFlag(item, rec, plain)
     local was = rec.auraFlag
-    local plain = Plain(flag)
     rec.auraFlag = plain == true              -- 秘密值／讀不到 ⇒ false（不換色、不蓋）
     -- 冷卻格的「增益出現／消失」音效與語音（Core/Sound.lua）：明文才算，它自己去重
     if ns.Sound and ns.Sound.OnAuraFlag then ns.Sound.OnAuraFlag(rec, plain) end
@@ -656,6 +651,19 @@ local function OnSetUseAuraDisplayTime(cd, flag)
         D.ApplyItemAlpha(item, rec)
     end
 end
+
+-- 暴雪在每次刷新冷卻（SetCooldown 之前）寫「這次顯示的是不是光環時間」：只記下來，換色／蓋掉在 SetCooldown 後掛勾做
+-- ⚠ 暴雪的 RefreshSpellCooldownInfo 只在「沒到期」那條路寫這個旗標；到期（光環掉了、技能又沒冷卻）只叫
+--   CooldownFrame_Clear、**不會寫 false** ⇒ 旗標會卡在 true（實機：痛苦詛咒掉了、換到沒上的目標還是亮的，
+--   2026-10-04）。所以這裡記一筆「這次刷新寫過了」，Clear 後掛勾看沒有這一筆 ⇒ 走的是到期那條 ⇒ 當成 false。
+local function OnSetUseAuraDisplayTime(cd, flag)
+    if overriding or ns.released then return end      -- 我們自己蓋的那一次（false）不算
+    local item = cooldownOwner[cd]
+    local rec = item and ns.Viewers.frames[item]
+    if not rec then return end
+    rec.auraFlagPending = true
+    SetAuraFlag(item, rec, Plain(flag))
+end
 D.OnSetUseAuraDisplayTime = OnSetUseAuraDisplayTime              -- 測試用
 
 local function OnSetCooldown(cd, start, duration, modRate)
@@ -664,6 +672,7 @@ local function OnSetCooldown(cd, start, duration, modRate)
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
+    rec.auraFlagPending = nil                       -- 這次刷新的旗標已經配到 SetCooldown 了
     if rec.auraHidden and rec.style then
         -- 增益那一段不顯示：改餵技能自己的冷卻（探針在裡面走 ArmProbe）
         FeedRealCooldown(item, rec, cd)
@@ -1062,7 +1071,15 @@ local function OnClearCooldown(cd)
     if overriding then return end
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
-    if rec and ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec) end
+    if not rec then return end
+    -- 前面沒寫旗標就清 ＝ 暴雪走「到期」那條：什麼都沒在倒 ⇒ 增益時間的旗標歸零（見 OnSetUseAuraDisplayTime）。
+    -- 剛寫過旗標接著清（CooldownFrame_Set 拿到零長度）＝ 同一次刷新，旗標照暴雪剛寫的
+    if rec.auraFlagPending then
+        rec.auraFlagPending = nil
+    elseif rec.auraFlag and not ns.released then
+        SetAuraFlag(item, rec, false)
+    end
+    if ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec) end
 end
 
 local function OnSetDesaturated(icon, desaturated)
