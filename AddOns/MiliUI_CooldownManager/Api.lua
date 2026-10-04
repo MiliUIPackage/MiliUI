@@ -51,6 +51,45 @@ local function Num(v)
     return tostring(v == nil and "?" or v)
 end
 
+-- 秘密值／nil 一律印字串，不比較
+local function Txt(v)
+    if ns.IsSecret(v) then return "秘密" end
+    return tostring(v)
+end
+
+-- 增益類 item：暴雪自己認為生效了沒、光環從哪個單位抓到、抓到哪個法術、這一項連結了哪些法術
+-- （「目標有腐蝕術、增益圖示卻是灰的」：看抓不抓得到、連結的法術 ID 跟目標身上的對不對得上）
+local function AuraInfo(item, rec)
+    local active = Read(item, "IsActive")
+    local unit = rawget(item, "auraDataUnit")
+    local sid = rawget(item, "auraSpellID")
+    local linked = "—"
+    local CV = C_CooldownViewer
+    if CV and CV.GetCooldownViewerCooldownInfo and type(rec.cooldownID) == "number" then
+        local ok, info = pcall(CV.GetCooldownViewerCooldownInfo, rec.cooldownID)
+        if ok and type(info) == "table" and type(info.linkedSpellIDs) == "table" then
+            local t = {}
+            for i, id in ipairs(info.linkedSpellIDs) do t[i] = Txt(id) end
+            if #t > 0 then linked = table.concat(t, "/") end
+        end
+    end
+    return (" 生效=%s 光環單位=%s 光環法術=%s 連結=%s"):format(Txt(active), Txt(unit), Txt(sid), linked)
+end
+
+-- 目標身上「你上的」減益：法術 ID＋名字（戰鬥中可能整串秘密，讀不到就印秘密）
+local function TargetDebuffLine(out)
+    local U = C_UnitAuras
+    if not (U and U.GetAuraDataByIndex) then return end
+    local parts = {}
+    for i = 1, 40 do
+        local ok, a = pcall(U.GetAuraDataByIndex, "target", i, "HARMFUL|PLAYER")
+        if not ok or type(a) ~= "table" then break end
+        parts[#parts + 1] = Txt(a.spellId) .. "=" .. Txt(a.name)
+    end
+    out[#out + 1] = "  目標身上你的減益：" .. (#parts > 0 and table.concat(parts, "、") or "（無）")
+end
+ns.DebugTargetDebuffLine = TargetDebuffLine
+
 -- 每條檢視器與每顆 item 的現況（只進存檔，不印聊天框：幾十行）
 local function ItemLines(out)
     local V, B = ns.Viewers, ns.Bars
@@ -94,6 +133,9 @@ local function ItemLines(out)
                     rec.auraFlag and " 增益中" or "", rec.auraHidden and "（改餵冷卻）" or "",
                     -- 效果不在時變暗：勾了才印（「勾了沒變暗」先看這格有沒有 增益中 旗標）
                     (rec.style and rec.style.dimNoAura) and " 效果不在變暗" or "")
+                if ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey] then
+                    cdInfo = cdInfo .. AuraInfo(item, rec)
+                end
                 out[#out + 1] = ("    %s #%s id=%s%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s%s")
                     :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID), rep,
                             tostring(Read(item, "IsShown")), alpha, Num(Read(item, "GetScale")),
@@ -337,6 +379,7 @@ local function Debug(silent)
         end
         -- 每顆 item 的現況只進存檔
         if ns.Viewers and ns.Bars and ns.Viewers.ready then
+            xpcall(TargetDebuffLine, ns.ReportError, dump)
             dump[#dump + 1] = "  item 現況："
             xpcall(ItemLines, ns.ReportError, dump)
         end
