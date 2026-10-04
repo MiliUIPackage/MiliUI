@@ -1818,7 +1818,7 @@ function D.Apply(item, rec, barKey, w, h)
                 iconTex:SetTexCoord(z, 1 - z, z, 1 - z)
             end
         end
-        ns.Text.ApplyBar(item, style, spell, bar)
+        ns.Text.ApplyBar(item, style, spell, bar, rec)
     else
         rec.barGeometry = nil
         local icon, cd = item.Icon, item.Cooldown

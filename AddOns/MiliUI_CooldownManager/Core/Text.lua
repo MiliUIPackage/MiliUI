@@ -88,6 +88,24 @@ local function Lift(frame, rec)
     if frame:GetFrameLevel() ~= lvl then frame:SetFrameLevel(lvl) end
 end
 
+-- 增益長條的層數是 item.Icon 框上的一顆 FontString，跟圖示貼圖同一框：墊 item.Icon 會連圖示一起
+-- 蓋過邊框。改把那顆 FontString 換父層到 overlay 底下自己的框（同樣 ＋TEXT_LIFT）。字照舊由暴雪寫，
+-- 我們不讀；holder 是 item 的孫框，item 被池化挪去別條時跟著走
+local function LiftRegion(fs, rec)
+    local ov = rec and rec.overlay
+    if not (fs and fs.SetParent and ov) then return end
+    local h = rec.textHolder
+    if not h then
+        h = CreateFrame("Frame", nil, ov)
+        h:SetAllPoints(ov)
+        rec.textHolder = h
+    end
+    local lvl = (ov:GetFrameLevel() or 1) + T.TEXT_LIFT
+    if lvl > 9000 then lvl = 9000 end
+    if h:GetFrameLevel() ~= lvl then h:SetFrameLevel(lvl) end
+    if fs:GetParent() ~= h then fs:SetParent(h) end
+end
+
 ------------------------------------------------------------
 -- 倒數 formatter（依設定簽章快取；同一顆可以給很多個 Cooldown 共用）
 ------------------------------------------------------------
@@ -286,7 +304,7 @@ end
 -- 增益長條：名字／時間／層數
 --   名字讓暴雪寫；我們只調樣式與位置，要藏就熄 alpha
 ------------------------------------------------------------
-function T.ApplyBar(item, style, spell, bar)
+function T.ApplyBar(item, style, spell, bar, rec)
     local font, outline = style.font, style.outline
     local b = item.Bar
     if b then
@@ -319,13 +337,16 @@ function T.ApplyBar(item, style, spell, bar)
     local icon = item.Icon
     local stack = icon and icon.Applications
     if stack then
+        LiftRegion(stack, rec)            -- 設定頁的預覽格沒有 rec：不動
         local c = style.stackText or {}
         SetFont(stack, bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         -- 錨點固定在圖示右下（長條的圖示太小、換角沒意義），X／Y 位移照「層數」的設定加在上面
         -- （玩家回報「層數的 XY 改了不會動」，2026-10-03）
         Anchor(stack, icon, "BOTTOMRIGHT", -1 + (tonumber(c.x) or 0), 1 + (tonumber(c.y) or 0))
-        stack:SetAlpha((bar.showStacks and not spell.hideStackText) and 1 or 0)
+        -- 圖示藏起來（side ＝ NONE 只熄 item.Icon 的 alpha）：換了父層就不會跟著熄，這裡自己熄
+        local noIcon = rec and rec.barGeometry and rec.barGeometry.side == "NONE"
+        stack:SetAlpha((bar.showStacks and not spell.hideStackText and not noIcon) and 1 or 0)
     end
 end
 
