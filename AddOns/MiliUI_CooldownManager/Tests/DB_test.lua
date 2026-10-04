@@ -558,7 +558,11 @@ do
     eq("沒覆寫 ⇒ 層數換色關", SS2("buffbars", 5555, "stackColors"), false)
     eq("層數發光樣式沒設 ⇒ nil", SS2("buffs", 5555, "stackGlowType"), nil)
     eq("層數發光顏色沒設 ⇒ nil", SS2("buffs", 5555, "stackGlowColor"), nil)
-    for _, f in ipairs({ "stackGlow", "stackGlowType", "stackGlowColor", "stackColors" }) do
+    eq("SPELL_CONST stackBar ＝ false", DB.SPELL_CONST.stackBar, false)
+    eq("SPELL_CONST stackTicks ＝ false", DB.SPELL_CONST.stackTicks, false)
+    eq("沒覆寫 ⇒ 層數當填充關", SS2("buffbars", 5555, "stackBar"), false)
+    eq("沒覆寫 ⇒ 層數刻度關", SS2("buffbars", 5555, "stackTicks"), false)
+    for _, f in ipairs({ "stackGlow", "stackGlowType", "stackGlowColor", "stackColors", "stackBar", "stackTicks" }) do
         eq("覆寫分組 " .. f .. " ＝ stack", DB.OVERRIDE_GROUP[f], "stack")
     end
     DB.SetOverride(5555, "stackGlow", 4)

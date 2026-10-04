@@ -697,7 +697,11 @@ L["Glows once the buff has at least this many stacks. While it's on, glow during
 L["Stack colors (%d)"] = "중첩별 색상 (%d)"
 L["Stack colors"] = "중첩별 색상"
 L["Stacks ≥"] = "중첩 ≥"
-L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "바는 강화 효과가 도달한 가장 높은 중첩 구간의 색으로 바뀌고, 어느 구간에도 못 미치면 원래 색을 유지합니다. 최대 3개."
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to %d."] = "바는 강화 효과가 도달한 가장 높은 중첩 구간의 색으로 바뀌고, 어느 구간에도 못 미치면 원래 색을 유지합니다. 최대 %d개."
+L["Stacks as fill"] = "중첩을 바로 표시"
+L["The bar shows the stack count (0 up to the max) instead of the remaining time."] = "바가 남은 시간 대신 중첩 수(0부터 최대까지)를 표시합니다."
+L["Stack ticks"] = "중첩 눈금"
+L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."] = "이 중첩 수 위치마다 가는 선을 그립니다. 예: 1,5,8. 비워 두면 모든 중첩에 선을 그립니다."
 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "불꽃 표시"

@@ -697,7 +697,11 @@ L["Glows once the buff has at least this many stacks. While it's on, glow during
 L["Stack colors (%d)"] = "Цвета по стакам (%d)"
 L["Stack colors"] = "Цвета по стакам"
 L["Stacks ≥"] = "Стаки ≥"
-L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "Полоса принимает цвет самого высокого достигнутого порога стаков, ниже всех порогов — свой обычный цвет. До 3."
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to %d."] = "Полоса принимает цвет самого высокого достигнутого порога стаков, ниже всех порогов — свой обычный цвет. До %d."
+L["Stacks as fill"] = "Стаки как заполнение"
+L["The bar shows the stack count (0 up to the max) instead of the remaining time."] = "Полоса показывает число стаков (от 0 до максимума) вместо оставшегося времени."
+L["Stack ticks"] = "Отметки стаков"
+L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."] = "Тонкая линия на каждом из этих чисел стаков, например 1,5,8. Оставьте пустым — линия на каждом стаке."
 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "Показывать искру"

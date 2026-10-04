@@ -697,7 +697,11 @@ L["Glows once the buff has at least this many stacks. While it's on, glow during
 L["Stack colors (%d)"] = "層數換色（%d）"
 L["Stack colors"] = "層數換色"
 L["Stacks ≥"] = "層數 ≥"
-L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "條身換成增益已達到的最高那一段的顏色；一段都沒到時維持原本的顏色。最多 3 段。"
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to %d."] = "條身換成增益已達到的最高那一段的顏色；一段都沒到時維持原本的顏色。最多 %d 段。"
+L["Stacks as fill"] = "層數當填充"
+L["The bar shows the stack count (0 up to the max) instead of the remaining time."] = "條身改顯示層數（0 到上限），不顯示剩餘時間。"
+L["Stack ticks"] = "層數刻度"
+L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."] = "在這幾個層數的位置畫一條細線，例如 1,5,8。留白＝每一層都畫。"
 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "顯示火花"

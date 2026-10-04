@@ -697,7 +697,11 @@ L["Glows once the buff has at least this many stacks. While it's on, glow during
 L["Stack colors (%d)"] = "Couleurs de cumuls (%d)"
 L["Stack colors"] = "Couleurs de cumuls"
 L["Stacks ≥"] = "Cumuls ≥"
-L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."] = "La barre prend la couleur du palier de cumuls le plus élevé atteint, et garde sa couleur normale en dessous. Jusqu'à 3."
+L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to %d."] = "La barre prend la couleur du palier de cumuls le plus élevé atteint, et garde sa couleur normale en dessous. Jusqu'à %d."
+L["Stacks as fill"] = "Cumuls en remplissage"
+L["The bar shows the stack count (0 up to the max) instead of the remaining time."] = "La barre affiche le nombre de cumuls (de 0 au max.) au lieu du temps restant."
+L["Stack ticks"] = "Repères de cumuls"
+L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."] = "Une fine ligne à chacun de ces nombres de cumuls, par exemple 1,5,8. Laissez vide pour une ligne à chaque cumul."
 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "Afficher l'étincelle"

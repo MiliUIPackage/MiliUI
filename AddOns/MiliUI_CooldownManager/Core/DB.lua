@@ -954,10 +954,13 @@ local SPELL_CONST = {
     -- 生效發光脫戰也亮（預設）；false ＝ 只在戰鬥中亮。自訂光環格不適用（發光烘在受保護的按鈕裡）
     activeGlowOutOfCombat = true,
     -- 層數門檻（暴雪的增益 item 才有，Core/StackGate.lua）：stackGlow ＝ 門檻 N（1～99）、stackColors ＝
-    -- { { at, color }, … } 最多 3 筆（增益長條）。false ＝ 關；樣式／顏色（stackGlowType／stackGlowColor）
+    -- { { at, color }, … } 最多 5 筆（增益長條）。false ＝ 關；樣式／顏色（stackGlowType／stackGlowColor）
     -- 沒設（nil）＝ glow.active 的預設
     stackGlow        = false,
     stackColors      = false,
+    -- 增益長條的層數當填充（{ max = N }）與層數刻度（{ at = {…}|"all", max = N, color }）；false ＝ 關
+    stackBar         = false,
+    stackTicks       = false,
     -- 音效：LibSharedMedia 的音效名；沒設（nil）或 false ＝ 無
     readySound       = false,
     gainSound        = false,
@@ -1257,6 +1260,7 @@ DB.OVERRIDE_GROUP = {
     activeGlow = "glow", activeGlowColor = "glow", activeGlowType = "glow", activeGlowOutOfCombat = "glow",
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
+    stackBar = "stack", stackTicks = "stack",
     hideCooldownText = "text", hideStackText = "text",
     colorDuration = "icon", durationColor = "icon", durationLowColor = "icon", durationSwipeColor = "icon",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：

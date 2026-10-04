@@ -4,9 +4,9 @@
 --   ns.StackColors.Open(barKey, cooldownID, changedCallback)
 --   ns.StackColors.Count(barKey, cooldownID)
 --
--- 一列一段：「層數 ≥ N」＋色票＋刪除，最多 3 段（ns.StackGate.MAX_COLORS），＋新增。
+-- 一列一段：「層數 ≥ N」＋色票＋刪除，最多 5 段（ns.StackGate.MAX_COLORS），＋新增。
 -- 存成逐法術覆寫 overrides[id].stackColors = { { at, color }, … }（寫入前一律過 StackGate.CleanColors：
--- 由低到高排、去重、上限 3）；刪光了清掉覆寫（SPELL_CONST 的 false ＝ 關）。
+-- 由低到高排、去重、上限 5）；刪光了清掉覆寫（SPELL_CONST 的 false ＝ 關）。
 -- 引擎那一側（閘＋裁切框＋色塊）在 Core/StackGate.lua。照 Options/HealthThresholds.lua 的版面做。
 ------------------------------------------------------------
 local _, ns = ...
@@ -145,7 +145,7 @@ local function CreatePopup()
     hint:SetJustifyH("LEFT")
     hint:SetWordWrap(true)
     hint:SetSpacing(2)
-    hint:SetText(L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to 3."])
+    hint:SetText(L["The bar takes the color of the highest stack count the buff has reached, and keeps its normal color below all of them. Up to %d."]:format(SG().MAX_COLORS))
 
     list = W.CreateRowList(popup, LIST_W, ROW_H * SG().MAX_COLORS + 4, ROW_H, BuildRow)
 

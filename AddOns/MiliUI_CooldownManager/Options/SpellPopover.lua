@@ -57,7 +57,10 @@
 -- 層數門檻（暴雪的增益才有，自訂光環格不做；引擎在 Core/StackGate.lua）：
 --   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
 --     再下一列灰字說明。勾了它時「生效發光」那兩列變暗（兩者互斥，層數的為準）。右鍵整列清。
---   * 增益長條才有的「層數換色（N）」：開 Options/StackColors.lua 的小彈窗。
+--   * 增益長條才有的「層數換色（N）」：開 Options/StackColors.lua 的小彈窗（最多 5 段）。
+--   * 增益長條才有（外觀分頁、層數換色按鈕下面）：「層數當填充」勾選框＋最大層數數字框（1～99，預設 5）＋下一列灰字；
+--     「層數刻度」勾選框＋位置輸入框（1,5,8；留白＝每一層，StackGate.ParseTicks）＋色票；沒勾層數當填充時
+--     下一列多一個刻度自己的「最大層數」（勾了就共用上面那個）；再下一列灰字。右鍵各列標籤整列清。
 --
 -- 天賦條件（所有條、所有種類都有；引擎在 Core/Catalog.lua）：寫進 overrides[id].talentCond = { spellID, mode }。
 --   「天賦條件」一列下拉（無／學了才顯示／沒學才顯示）；下一列 ID 輸入框＋法術名確認（查不到紅字）；
@@ -273,6 +276,36 @@ end
 local function StackOn()
     return cur ~= nil and type(cur.id) == "number"
         and ns.StackGate.Threshold(ns.SpellSetting(cur.key, cur.id, "stackGlow")) ~= nil
+end
+
+-- 層數當填充／層數刻度（增益長條）：目前存的表（沒有＝nil）
+local function StackBarTable()
+    if not cur or type(cur.id) ~= "number" then return nil end
+    local v = ns.SpellSetting(cur.key, cur.id, "stackBar")
+    return type(v) == "table" and ns.StackGate.BarMax(v) and v or nil
+end
+local function StackTicksTable()
+    if not cur or type(cur.id) ~= "number" then return nil end
+    local v = ns.SpellSetting(cur.key, cur.id, "stackTicks")
+    return type(v) == "table" and v or nil
+end
+local function StackBarOn() return StackBarTable() ~= nil end
+-- 刻度用的最大層數：層數當填充開著用它的、否則刻度自己的
+local function TickMax()
+    local sb = StackBarTable()
+    if sb then return ns.StackGate.BarMax(sb) end
+    local t = StackTicksTable()
+    return (t and ns.StackGate.Threshold(t.max)) or ns.StackGate.DEFAULT_BAR_MAX
+end
+-- 改刻度表的一個欄位（沒勾就不寫：輸入框／數字框只是記著）
+local function SetTicksField(field, value)
+    local t = StackTicksTable()
+    if not t then return false end
+    local nt = {}
+    for k, v in pairs(t) do nt[k] = v end
+    nt[field] = value
+    ns.DB.SetOverride(cur.id, "stackTicks", nt)
+    return true
 end
 
 -- 天賦條件：寫進覆寫（spellID 留空也存 mode：等玩家填 ID；沒有 ID 的條件引擎當沒有）
@@ -947,6 +980,121 @@ local function Build()
     end)
     frame.stackColorsBtn = scbtn
 
+    -- 灰字說明列（控件欄寬、下一列；跟上面幾段同一個做法）
+    local function NoteRow(text, when)
+        local nr = CreateFrame("Frame", nil, frame)
+        local tip = Note(nr)
+        tip:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
+        tip:SetWidth(ROW_W - CTRL_X)
+        tip:SetWordWrap(true)
+        tip:SetText(text)
+        local nh = 2 + math.max(14, tip:GetStringHeight() or 0) + 6
+        nr:SetSize(ROW_W, nh)
+        local entry = { frame = nr, h = nh, when = when }
+        entry.remeasure = function()
+            local sh2 = tip:GetStringHeight()
+            local h2 = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+            nr:SetHeight(h2)
+            entry.h = h2
+        end
+        AddRow(entry)
+        return entry
+    end
+
+    -- 層數當填充（增益長條）：勾選框＋「最大層數」數字框；沒勾時數字框記著要用的值（預設 5）
+    local sbr, sbh = NewRow(L["Stacks as fill"], BlizzAuraBar)
+    local sbcb = W.CreateCheckButton(sbr, nil, function(on)
+        if not cur then return end
+        if on then
+            local n = ns.StackGate.Threshold(frame.stackBarNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
+            ns.DB.SetOverride(cur.id, "stackBar", { max = n })
+        else
+            ns.DB.SetOverride(cur.id, "stackBar", nil)
+        end
+        Changed()
+    end)
+    sbcb:SetPoint("LEFT", sbr, "LEFT", CTRL_X, 0)
+    local sbl = sbr:CreateFontString(nil, "OVERLAY")
+    sbl:SetFontObject(W.fontNormal)
+    sbl:SetPoint("LEFT", sbcb, "RIGHT", 8, 0)
+    sbl:SetText(L["Max stacks"])
+    local sbnum = W.CreateNumberBox(sbr, 40, 1, function(v)
+        if not cur then return end
+        local n = ns.StackGate.Threshold(v) or 1
+        if frame.stackBarNum:GetValue() ~= n then frame.stackBarNum:SetValue(n) end
+        if StackBarOn() then
+            ns.DB.SetOverride(cur.id, "stackBar", { max = n })
+            Changed()
+        end
+    end)
+    sbnum:SetPoint("LEFT", sbl, "RIGHT", 6, 0)
+    frame.stackBarCB, frame.stackBarNum = sbcb, sbnum
+    RightClickClears(sbr, sbh, "stackBar")
+    NoteRow(L["The bar shows the stack count (0 up to the max) instead of the remaining time."], BlizzAuraBar)
+
+    -- 層數刻度（增益長條）：勾選框＋位置輸入框（1,5,8；留白＝每一層）＋色票
+    local tkr, tkh = NewRow(L["Stack ticks"], BlizzAuraBar)
+    local tkcb = W.CreateCheckButton(tkr, nil, function(on)
+        if not cur then return end
+        if on then
+            local at = ns.StackGate.ParseTicks(frame.stackTicksBox:GetText(), TickMax()) or "all"
+            local c = frame.stackTicksSwatch.color or ns.StackGate.TICK_COLOR
+            local t = { at = at, color = { r = c.r, g = c.g, b = c.b, a = c.a } }
+            if not StackBarOn() then
+                t.max = ns.StackGate.Threshold(frame.stackTicksNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
+            end
+            ns.DB.SetOverride(cur.id, "stackTicks", t)
+        else
+            ns.DB.SetOverride(cur.id, "stackTicks", nil)
+        end
+        Changed()
+    end)
+    tkcb:SetPoint("LEFT", tkr, "LEFT", CTRL_X, 0)
+    local tkbox = W.CreateEditBox(tkr, 110, 20)
+    tkbox:SetPoint("LEFT", tkcb, "RIGHT", 8, 0)
+    tkbox:SetMaxLetters(120)
+    local function CommitTicks(self)
+        if not cur then return end
+        local at = ns.StackGate.ParseTicks(self:GetText(), TickMax())
+        if at == nil then
+            -- 一個能用的都沒有：還原成存著的（沒勾就清空）
+            local t = StackTicksTable()
+            self:SetText(t and ns.StackGate.TicksText(t.at) or "")
+            self:SetCursorPosition(0)
+            return
+        end
+        self:SetText(ns.StackGate.TicksText(at))
+        self:SetCursorPosition(0)
+        local t = StackTicksTable()
+        local old = t and ns.StackGate.TicksText(t.at)
+        if t and old ~= ns.StackGate.TicksText(at) then
+            if SetTicksField("at", at) then Changed() end
+        end
+    end
+    tkbox:SetScript("OnEnterPressed", function(self) CommitTicks(self); self:ClearFocus() end)
+    tkbox:HookScript("OnEditFocusLost", CommitTicks)
+    local tksw = W.CreateColorPicker(tkr, nil, true, function(rr, g, b, a)
+        if not cur then return end
+        if SetTicksField("color", { r = rr, g = g, b = b, a = a or 1 }) then Changed() end
+    end)
+    tksw:SetPoint("LEFT", tkbox, "RIGHT", 10, 0)
+    frame.stackTicksCB, frame.stackTicksBox, frame.stackTicksSwatch = tkcb, tkbox, tksw
+    RightClickClears(tkr, tkh, "stackTicks")
+    -- 刻度自己的最大層數：只有沒勾層數當填充時才出現（勾了就跟它共用）
+    local tmr, tmh = NewRow(L["Max stacks"], function(kind, class)
+        return BlizzAuraBar(kind, class) and not StackBarOn()
+    end)
+    local tmnum = W.CreateNumberBox(tmr, 40, 1, function(v)
+        if not cur then return end
+        local n = ns.StackGate.Threshold(v) or 1
+        if frame.stackTicksNum:GetValue() ~= n then frame.stackTicksNum:SetValue(n) end
+        if SetTicksField("max", n) then Changed() end
+    end)
+    tmnum:SetPoint("LEFT", tmr, "LEFT", CTRL_X, 0)
+    frame.stackTicksNum = tmnum
+    RightClickClears(tmr, tmh, "stackTicks")
+    NoteRow(L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."], BlizzAuraBar)
+
     -- 音效：下拉＋試聽（右鍵整列清掉＝無）
     buildTab = "sound"
     for _, t in ipairs(SOUNDS) do
@@ -1394,6 +1542,31 @@ function Pop.Refresh()
         frame.stackTypeDD:SetAlpha(stackOn and 1 or 0.4)
         frame.stackColorsBtn:SetText(L["Stack colors (%d)"]:format(ns.StackColors.Count(key, id)))
         W.FitButton(frame.stackColorsBtn, ROW_W - CTRL_X, 22)
+        -- 層數當填充／刻度：換了一格就回到預設；同一格沒勾時保留剛打的值
+        local SGm = ns.StackGate
+        local sb = StackBarTable()
+        frame.stackBarCB:SetChecked(sb ~= nil)
+        if sb then
+            frame.stackBarNum:SetValue(SGm.BarMax(sb))
+        elseif frame.stackBarFor ~= id or not SGm.Threshold(frame.stackBarNum:GetValue()) then
+            frame.stackBarNum:SetValue(SGm.DEFAULT_BAR_MAX)
+        end
+        frame.stackBarFor = id
+        local tk = StackTicksTable()
+        frame.stackTicksCB:SetChecked(tk ~= nil)
+        if tk then
+            frame.stackTicksBox:SetText(SGm.TicksText(tk.at))
+            frame.stackTicksNum:SetValue(SGm.Threshold(tk.max) or SGm.DEFAULT_BAR_MAX)
+        elseif frame.stackTicksFor ~= id then
+            frame.stackTicksBox:SetText("")
+            frame.stackTicksNum:SetValue(SGm.DEFAULT_BAR_MAX)
+        end
+        frame.stackTicksBox:SetCursorPosition(0)
+        frame.stackTicksFor = id
+        local tc = tk and tk.color
+        frame.stackTicksSwatch:SetColor(type(tc) == "table" and tc or SGm.TICK_COLOR)
+        frame.stackTicksSwatch:SetEnabled(tk ~= nil)
+        frame.stackTicksSwatch:SetAlpha(tk and 1 or 0.4)
     end
     if ns.Glow and ns.Glow.PreviewActive then
         ns.Glow.PreviewActive(frame.glowHost, key, (class == "aura" or kind == nil) and id or nil)
