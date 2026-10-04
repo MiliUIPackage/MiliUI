@@ -477,12 +477,74 @@ local function OnShowAlert(_, frame)
     G.SyncProc(frame, rec)
 end
 
+-- 觸發中的法術（我們自己從事件認到的，rec.procEventID）是不是還在發光：明文 true 才算
+local function StillOverlayed(rec)
+    local id = rec.procEventID
+    if not id then return false end
+    local api = C_SpellActivationOverlay and C_SpellActivationOverlay.IsSpellOverlayed
+    if not api then return false end
+    local ok, on = pcall(api, id)
+    if ok and Plain(on) == true then return true end
+    rec.procEventID = nil
+    return false
+end
+
 local function OnHideAlert(_, frame)
     local rec = frame and ns.Viewers.frames[frame]
     if not rec then return end
+    -- 暴雪每次 RefreshData 都 RefreshOverlayGlow：減益鎖住 GetSpellID 時拿減益的 id 去問 ⇒ 誤判熄掉（見 OnOverlayEvent）
+    if StillOverlayed(rec) then return end
     rec.procActive = false
     G.SyncProc(frame, rec)
 end
+
+-- 暴雪冷卻格的觸發事件自己也聽一份。
+-- 暴雪的 NeedSpellActivationUpdate 拿事件的 spellID 比 item:GetSpellID()，而 GetSpellID 在
+-- PreferAuraDataOverSpellData 成立時回的是光環的 id：主動施放的格只要目標身上有它追蹤的減益就成立
+-- ⇒ 事件被丟掉、ShowAlert 不叫，要等之後哪次刷新剛好問對才亮（血魄心臟打擊的緩速掛著時，
+-- 薩萊因的吸血鬼打擊觸發發光晚 3～5 秒才出現，快捷列是立刻，2026-10-05；暴雪內建一樣）。
+-- 比對用這一格的基本法術／目錄的覆蓋法術／當下的覆蓋法術（C_SpellBook.FindSpellOverrideByID，明文）。
+-- 認到的 id 記在 rec.procEventID：熄的時候覆蓋可能已經換回去了，靠它認；暴雪誤判的 HideAlert 也靠它擋。
+-- 只改 rec.procActive ⇒ 我們接管的發光；沒接管（暴雪自己的 SpellActivationAlert）不碰——要它亮得叫暴雪的
+-- manager 在它的框上建欄位，會污染。
+local function CellMatches(rec, id)
+    if rec.procEventID == id then return true end
+    local info = ns.Catalog.Info(rec.cooldownID)
+    if not info or type(info.equipSlot) == "number" then return false end
+    local base = info.spellID
+    if id == base or id == info.overrideSpellID then return true end
+    local find = C_SpellBook and C_SpellBook.FindSpellOverrideByID
+    if find and type(base) == "number" then
+        local ok, ov = pcall(find, base)
+        if ok and Plain(ov) == id then return true end
+    end
+    return false
+end
+
+local function OnOverlayEvent(show, id)
+    id = Plain(id)
+    if type(id) ~= "number" or ns.released then return end
+    local aura = ns.Viewers.AURA_KIND
+    ns.Viewers.EnumerateItems(function(item, rec)
+        if rec.custom or rec.cooldownID == nil or (aura and aura[rec.barKey]) then return end
+        if not CellMatches(rec, id) then return end
+        if show then
+            rec.procEventID = id
+            if rec.procActive ~= true then
+                rec.procActive = true
+                G.SyncProc(item, rec)
+            end
+        else
+            rec.procEventID = nil
+            if rec.procActive ~= false then
+                rec.procActive = false
+                G.SyncProc(item, rec)
+            end
+        end
+    end)
+end
+G.OnOverlayEvent = OnOverlayEvent                                   -- 測試用
+G.OnHideAlert = OnHideAlert                                         -- 測試用
 
 function G.SetProcActive(rec, on, owner, barKey)
     if not rec then return end
@@ -977,6 +1039,8 @@ function G.Init()
     inCombat = InCombatLockdown() and true or false
     ns.Events.Register("PLAYER_REGEN_DISABLED", "glow_combat", function() OnCombatChanged(true) end)
     ns.Events.Register("PLAYER_REGEN_ENABLED", "glow_combat", function() OnCombatChanged(false) end)
+    ns.Events.Register("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", "glow_proc", function(id) OnOverlayEvent(true, id) end)
+    ns.Events.Register("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", "glow_proc", function(id) OnOverlayEvent(false, id) end)
     if not InstallAlertHooks() then
         -- 動作條那一包理論上一定在；萬一比我們晚，等登入完成再試一次
         ns.Events.Register("PLAYER_ENTERING_WORLD", "glow_hooks", function()

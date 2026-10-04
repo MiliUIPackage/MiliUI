@@ -672,5 +672,75 @@ eq("Size：太大夾到 128", AIc.Size({ size = 999 }), 128)
 eq("Size：字串照轉", AIc.Size({ size = "50" }), 50)
 eq("Size：壞值 → 44", AIc.Size({ size = "x" }), 44)
 
+------------------------------------------------------------
+-- 7. 暴雪冷卻格的觸發事件自己聽（減益鎖住 GetSpellID 時暴雪會丟掉事件、還會誤判熄掉）
+------------------------------------------------------------
+do
+    local G = ns.Glow
+    local origSync, origViewers, origCatalog = G.SyncProc, ns.Viewers, ns.Catalog
+    local synced = {}
+    G.SyncProc = function(item, rec) synced[#synced + 1] = { item = item, on = rec.procActive } end
+    local items = {}
+    ns.Viewers = {
+        AURA_KIND = { buffs = true, buffbars = true },
+        frames = {},
+        EnumerateItems = function(fn) for item, rec in pairs(items) do fn(item, rec) end end,
+    }
+    local infos = { [7] = { spellID = 206930 }, [8] = { spellID = 999 }, [9] = { equipSlot = 13 } }
+    ns.Catalog = { Info = function(id) return infos[id] end }
+    local hs, other, buff, cust = {}, {}, {}, {}
+    local hsRec = { cooldownID = 7, barKey = "essential" }
+    items[hs] = hsRec
+    items[other] = { cooldownID = 8, barKey = "essential" }
+    items[buff] = { cooldownID = 7, barKey = "buffs" }
+    items[cust] = { cooldownID = 7, barKey = "essential", custom = true }
+    ns.Viewers.frames[hs] = hsRec
+    env.C_SpellBook = { FindSpellOverrideByID = function(id) if id == 206930 then return 433895 end return id end }
+    local overlayed = { [433895] = true }
+    env.C_SpellActivationOverlay = { IsSpellOverlayed = function(id) return overlayed[id] == true end }
+
+    G.OnOverlayEvent(true, 433895)
+    eq("當下的覆蓋法術認得到 ⇒ 亮", hsRec.procActive, true)
+    eq("記下認到的 id", hsRec.procEventID, 433895)
+    eq("只同步命中的那格", #synced, 1)
+    eq("別的法術不碰", items[other].procActive, nil)
+    eq("增益條不碰", items[buff].procActive, nil)
+    eq("自訂框不碰", items[cust].procActive, nil)
+    G.OnOverlayEvent(true, 433895)
+    eq("已經亮著 ⇒ 不重複同步", #synced, 1)
+
+    -- 暴雪 RefreshData 拿減益的 id 問 ⇒ HideAlert：還在觸發就擋掉
+    G.OnHideAlert(nil, hs)
+    eq("暴雪誤判的 HideAlert 擋掉", hsRec.procActive, true)
+
+    -- 觸發用掉：覆蓋已經換回去了，靠記下的 id 認
+    env.C_SpellBook.FindSpellOverrideByID = function(id) return id end
+    overlayed[433895] = nil
+    G.OnOverlayEvent(false, 433895)
+    eq("熄：覆蓋換回去也認得到", hsRec.procActive, false)
+    eq("熄：清掉記下的 id", hsRec.procEventID, nil)
+
+    -- 不是我們認到的觸發：暴雪的 HideAlert 照常
+    hsRec.procActive = true
+    G.OnHideAlert(nil, hs)
+    eq("沒有記下的 id ⇒ HideAlert 照常熄", hsRec.procActive, false)
+    -- 記下的 id 已經不發光（漏了 HIDE 事件）⇒ 照常熄、清掉
+    hsRec.procActive, hsRec.procEventID = true, 433895
+    G.OnHideAlert(nil, hs)
+    eq("已經不發光 ⇒ 照常熄", hsRec.procActive, false)
+    eq("已經不發光 ⇒ 清掉 id", hsRec.procEventID, nil)
+
+    -- 基本法術本身、秘密 id
+    G.OnOverlayEvent(true, 206930)
+    eq("基本法術也認", hsRec.procActive, true)
+    hsRec.procActive, hsRec.procEventID = false, nil
+    local ok = pcall(G.OnOverlayEvent, true, SECRET)
+    check("秘密 id 不拋錯", ok)
+    eq("秘密 id 不動", hsRec.procActive, false)
+
+    G.SyncProc, ns.Viewers, ns.Catalog = origSync, origViewers, origCatalog
+    env.C_SpellBook, env.C_SpellActivationOverlay = nil, nil
+end
+
 print(("Assist_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
