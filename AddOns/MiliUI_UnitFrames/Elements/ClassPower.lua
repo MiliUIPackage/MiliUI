@@ -1254,31 +1254,52 @@ end
 --
 -- GetRuneCooldown(i) 的 start／duration／ready 在 12.1 是明文；仍一律過 pcall／IsSecret，
 -- 讀不到的那顆當「在轉、進度不明」（不填、不印秒數），排序照樣排在最後，不會跳格。
--- 同時最多三顆在轉，其餘的 start 在未來（排隊中）：進度 0、不印秒數。
+-- 同時最多三顆在轉，其餘的 start 在未來（排隊中）。edb.runeQueued（預設開）決定排隊中的怎麼畫：
+--   開  秒數印 start＋duration－now（＝從現在到這顆轉好的總等待時間）；填充照「花掉那一刻 → 轉好」
+--       整段等待時間走（RuneProgress），排隊轉成在轉時不跳回 0
+--   關  舊行為：排隊中進度 0、不印秒數，填充只算自己那段冷卻
+-- 「花掉那一刻」沒有 API，自己記（runeSpentAt：看到某顆從轉好變成沒轉好的那次更新）。
 -- 檔案層級的 scratch（平行陣列，不配表）
 ------------------------------------------------------------
-local runeReady, runeRemain, runeProgress, runeOrder = {}, {}, {}, {}
+local runeReady, runeRemain, runeProgress, runeQueued, runeOrder = {}, {}, {}, {}, {}
+local runeSpentAt = {}               -- [符文編號] = 看到它沒轉好的第一個時間點；轉好時清掉
+
+-- 沒轉好的符文的填充進度（0～1）。countQueued 關：只算自己那段冷卻（排隊中＝0）；
+-- 開：從 spentAt（花掉那一刻）到 start＋duration 的整段等待時間，spentAt 晚於 start 時以 start 為準
+local function RuneProgress(now, start, duration, spentAt, countQueued)
+    local t0, span = start, duration
+    if countQueued and type(spentAt) == "number" and spentAt < start then
+        t0 = spentAt
+        span = start + duration - spentAt
+    end
+    if span <= 0 then return 0 end
+    local prog = (now - t0) / span
+    if prog < 0 then prog = 0 elseif prog > 1 then prog = 1 end
+    return prog
+end
 
 -- 回傳轉好的顆數、有沒有在轉的
-local function ReadRunes(n, now)
+local function ReadRunes(n, now, countQueued)
     local readyCount, anyRecharging = 0, false
     for i = 1, n do
         local ok, start, duration, isReady = pcall(GetRuneCooldown, i)
-        local r, rem, prog = false, nil, nil
+        local r, rem, prog, queued = false, nil, nil, false
         if ok and isReady ~= nil and not ns.IsSecret(isReady) then r = isReady and true or false end
         if r then
             readyCount = readyCount + 1
+            runeSpentAt[i] = nil
         else
             anyRecharging = true
+            if not runeSpentAt[i] then runeSpentAt[i] = now end
             local st, d = ok and PlainNumber(start), ok and PlainNumber(duration)
             if st and d and d > 0 then
                 rem = st + d - now
                 if rem < 0 then rem = 0 end
-                prog = (now - st) / d
-                if prog < 0 then prog = 0 elseif prog > 1 then prog = 1 end
+                queued = st > now
+                prog = RuneProgress(now, st, d, runeSpentAt[i], countQueued)
             end
         end
-        runeReady[i], runeRemain[i], runeProgress[i] = r, rem, prog
+        runeReady[i], runeRemain[i], runeProgress[i], runeQueued[i] = r, rem, prog, queued
     end
     return readyCount, anyRecharging
 end
@@ -1308,9 +1329,11 @@ local function RuneOrder(n)
     return order
 end
 
--- 在轉的格子要印的秒數（無條件進位，跟冷卻數字同一種讀法）；排隊中／讀不到回 nil
-local function RuneSeconds(remain, progress)
-    if type(remain) ~= "number" or type(progress) ~= "number" or progress <= 0 or remain <= 0 then return nil end
+-- 沒轉好的格子要印的秒數（無條件進位，跟冷卻數字同一種讀法）；
+-- 排隊中的：countQueued 開印總等待時間、關不印；讀不到／轉完回 nil
+local function RuneSeconds(remain, queued, countQueued)
+    if type(remain) ~= "number" or remain <= 0 then return nil end
+    if queued and not countQueued then return nil end
     return math.ceil(remain)
 end
 
@@ -1352,7 +1375,8 @@ local function UpdateRow(row, edb, isPreview, numSeg)
         end
         if def.fill == "rune" and not isPreview then
             -- 符文：先排序再畫（轉好的靠左、在轉的依剩餘時間往右排），在轉的格子填進度
-            local readyCount, anyRecharging = ReadRunes(numSeg, GetTime())
+            local countQueued = edb.runeQueued ~= false
+            local readyCount, anyRecharging = ReadRunes(numSeg, GetTime(), countQueued)
             local order = RuneOrder(numSeg)
             local barOv
             if conds then
@@ -1390,7 +1414,7 @@ local function UpdateRow(row, edb, isPreview, numSeg)
                     seg.bg:SetVertexColor(dimC.r, dimC.g, dimC.b, dimA)
                 end
                 if seg.timer then
-                    local sec = countdown and not ready and RuneSeconds(runeRemain[idx], runeProgress[idx])
+                    local sec = countdown and not ready and RuneSeconds(runeRemain[idx], runeQueued[idx], countQueued)
                     if sec then
                         if seg.timerSec ~= sec then
                             seg.timerSec = sec

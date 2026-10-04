@@ -371,6 +371,7 @@ function DB.BuildDefaults()
                                    spacing = 1, rowSpacing = 2, level = 5,
                                    barAlpha = 1, showText = true,
                                    runeText = "countdown",  -- 死騎符文列的數字：countdown／count，showText 開著才有（見 ClassPower.lua 的 RuneText）
+                                   runeQueued = true,       -- 排隊中（還沒開始轉）的符文也算：印總等待秒數、填充照整段等待時間走（見 ClassPower.lua 的 RuneProgress）
                                    resources = {},   -- [資源key] = false 表示關掉
                                    -- 條件規則（見 Elements/ClassPower.lua 的「條件規則」）：
                                    -- [資源key] = { rule, rule, ... }，由上而下第一條成立的就用它。
