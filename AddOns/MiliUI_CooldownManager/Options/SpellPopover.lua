@@ -738,7 +738,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     do
         local tc = W.CreateTabCard(frame, {
             tabs = { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Buff duration"] } },
-            help = L["Cooldown: the countdown while the spell recharges. Buff duration: the countdown of a buff, on buff icons and in the part where a spell shows its buff's time first."],
+            help = ns.Specs.SubTabHelp,
             selected = curSub,
             onSelect = function(id)
                 if id == curSub then return end
