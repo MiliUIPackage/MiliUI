@@ -37,6 +37,15 @@
 -- 暴雪的 id、資料帶裝備欄位、來源是核心／輔助）改放我們的飾品欄框（一格 crec entry，跟自訂項目同一條路）。
 -- 暴雪恢復給框的那一輪照舊放暴雪的 item，代畫格沒被放 ⇒ Custom.EndBar 收起來。代畫中的不算 missing（B.IsProxied）。
 --
+-- 沒有物品時隱藏／被動飾品不顯示（判準 Catalog.HideReason，排法 Layout.HiddenSlot）：自訂物品、飾品欄、代畫格被收掉時
+-- **在決定 entries 這一層讓位**（不放進 entries ⇒ Custom.EndBar 收起來、後面的往前補；Occupancy 同一個判準 ⇒ 不算顆數、
+-- 溢出跟著重算），不是 alpha 0。固定格位的條（光環格／飾品疊增益／可點擊強制、或玩家自己開）只留空格（blank entry：
+-- 佔一格、什麼都不放），位置不動 ⇒ 戰鬥中也不會移動保護框。被收掉的框都是普通框（自訂物品／飾品欄的圖示框），
+-- 戰鬥中 Hide 照做；飾品欄的增益疊層持有框（保護框）照舊走 ns.Write 記帳。
+-- 會變的訊號：包包數量（BAG_UPDATE_DELAYED）、物品資料到了（GET_ITEM_INFO_RECEIVED）——只在有條需要時註冊
+-- （hideWatch，每輪 Relayout 重建；SyncHideEvents）；事件只標記、下一幀重算，結果變了才 RequestAll。
+-- 換裝備由 Catalog 的 PLAYER_EQUIPMENT_CHANGED 全部重排，不另外聽。
+--
 -- 可點擊的自訂圖示群組（Core/Clickable.lua）：每格上面蓋一顆 secure 鈕（parent／錨點都是容器），
 -- 一樣強制固定格位；鈕的寫入走 ns.Write＋簽章去重。不可點擊的條每輪 Release（沒鈕就是 no-op）。
 --
@@ -84,6 +93,11 @@ local ArmStructurePending          -- 前置宣告（定義在 Relayout 前面�
 local viewerShown = {}             -- 來源條 → 檢視器上一次看到是不是顯示中（稽核用）
 local missing, missingSig = {}, {} -- 條 → { [id] = true }：清單上有、暴雪沒有給框的（稽核用，預覽讀）
 local proxied, proxiedSig = {}, {} -- 條 → { [id] = 裝備欄位 }：暴雪沒給框、由我們代畫的（稽核用，預覽讀）
+-- 條 → { ids = { id… }, n, wsig, hsig, bag, info }：這條上要聽事件才知道會不會收掉的格（沒有物品時隱藏／被動飾品不顯示）。
+--   ids／n  watch 不是 nil 的那幾格（Catalog.HideReason 的第二個回傳）
+--   wsig    那幾格的「理由:watch」串（事件來時重算比對，變了才重排）
+--   hsig    這條被收掉的格（理由）串：變了就通知設定頁預覽（MissingChanged）
+local hideWatch = {}
 local pinGuard, parkGuard = false, false
 local pinned = {}                  -- 釘過的檢視器（ReleaseAll 只解這些，沒碰過的不動）
 B.ready = false
@@ -487,13 +501,7 @@ B.AuraPresent = AuraPresent
 -- 自訂項目一律佔（光環格會強制固定格位；自訂法術／物品一直都有框）
 function B.Occupancy(index)
     local fixedOf = {}
-    return function(barKey, id)
-        if type(id) ~= "number" then return true end
-        local item = index[id]
-        -- 暴雪沒給框：代畫的裝備欄冷卻格照樣佔一格（Relayout 會放它），其餘不佔
-        if not item then return ns.Catalog.ProxySlotOf(id) ~= nil end
-        local rec = ns.Viewers.frames[item]
-        if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
+    local function Fixed(barKey)
         local fixed = fixedOf[barKey]
         if fixed == nil then
             local bar = BarCfg(barKey)
@@ -502,7 +510,21 @@ function B.Occupancy(index)
                 or (ns.Clickable and ns.Clickable.Enabled(barKey))) and true or false
             fixedOf[barKey] = fixed
         end
-        if fixed then return true end
+        return fixed
+    end
+    -- 沒有物品時隱藏／被動飾品不顯示：讓位的（Layout.HiddenSlot ＝ "skip"）不佔；固定格位留空格的照佔
+    local function Skipped(barKey, id)
+        local why = ns.Catalog.HideReason and ns.Catalog.HideReason(barKey, id)
+        return why ~= nil and ns.Layout.HiddenSlot(why, Fixed(barKey)) == "skip"
+    end
+    return function(barKey, id)
+        if type(id) ~= "number" then return not Skipped(barKey, id) end
+        local item = index[id]
+        -- 暴雪沒給框：代畫的裝備欄冷卻格照樣佔一格（Relayout 會放它；被收掉讓位的不佔），其餘不佔
+        if not item then return ns.Catalog.ProxySlotOf(id) ~= nil and not Skipped(barKey, id) end
+        local rec = ns.Viewers.frames[item]
+        if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
+        if Fixed(barKey) then return true end
         if AuraPresent(item) then return true end
         -- 逐法術「不在時顯示占位」（F7）：那一格照留 ⇒ 照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
         return ns.Layout.AuraSlot(false, false, ns.SpellSetting(barKey, id, "placeholder")) ~= nil
@@ -670,6 +692,91 @@ local function RelayoutPanel(key, level)
     if pd and pd.relayout then pd.relayout(level) end
 end
 
+------------------------------------------------------------
+-- 沒有物品時隱藏／被動飾品不顯示：每輪的記帳與事件（見檔頭與 hideWatch）
+------------------------------------------------------------
+-- 這一格要不要收、怎麼收（Layout.HiddenSlot：nil 照常｜"blank" 空格｜"skip" 讓位）；順手記 hideWatch
+local function HiddenMode(key, id, hw, fixed)
+    local why, watch = ns.Catalog.HideReason(key, id)
+    if watch then
+        local n = hw.n + 1
+        hw.n = n
+        hw.ids[n] = id
+        if watch == "bag" then hw.bag = true else hw.info = true end
+        hw.wnext = hw.wnext .. tostring(id) .. ":" .. tostring(why) .. ":" .. watch .. ","
+    end
+    if why then hw.hnext = hw.hnext .. tostring(id) .. "=" .. why .. "," end
+    return ns.Layout.HiddenSlot(why, fixed)
+end
+
+local function EndHideWatch(key, hw)
+    for i = #hw.ids, hw.n + 1, -1 do hw.ids[i] = nil end
+    hw.wsig = hw.wnext
+    if hw.hsig ~= hw.hnext then
+        hw.hsig = hw.hnext
+        if ns.Fire then ns.Fire("MissingChanged", key) end       -- 設定頁預覽：被收掉的格畫暗＋提示
+    end
+    hw.wnext, hw.hnext = nil, nil
+end
+
+-- 事件來了（下一幀）：要聽的那幾格重算一次，「理由:watch」變了才整套重排（溢出可能跟著變，所以不只排這一條）
+local hideArmed = false
+local function HideRecheck()
+    hideArmed = false
+    for key, hw in pairs(hideWatch) do
+        if hw.n > 0 and BarCfg(key) then
+            local sig = ""
+            for i = 1, hw.n do
+                local id = hw.ids[i]
+                local why, watch = ns.Catalog.HideReason(key, id)
+                if watch then sig = sig .. tostring(id) .. ":" .. tostring(why) .. ":" .. watch .. "," end
+            end
+            if sig ~= hw.wsig then
+                -- 每一條都排（不含面板）：收掉的格可能是溢過來的，來源條的清單也跟著變
+                local p = Profile()
+                for k in pairs(type(p) == "table" and type(p.bars) == "table" and p.bars or {}) do
+                    B.Request(k, "membership")
+                end
+                return
+            end
+        end
+    end
+end
+B.HideRecheck = HideRecheck           -- 測試用
+
+local function OnHideEvent()
+    if hideArmed then return end
+    hideArmed = true
+    ns.Defer(HideRecheck)
+end
+
+-- 有條需要才註冊（Flush 結尾叫；照 Custom.SyncEvents 的模式）
+local hideEvOn = {}
+B.hideEvOn = hideEvOn                 -- 測試、/mcdm debug 用
+local function SetHideEvent(ev, want, E)
+    if want and not hideEvOn[ev] then
+        hideEvOn[ev] = true
+        E.Register(ev, "bars_hide", OnHideEvent)
+    elseif not want and hideEvOn[ev] then
+        hideEvOn[ev] = nil
+        E.Unregister(ev, "bars_hide")
+    end
+end
+local function SyncHideEvents()
+    local E = ns.Events
+    if not (E and E.Register and E.Unregister) then return end
+    local bag, info = false, false
+    for key, hw in pairs(hideWatch) do
+        if BarCfg(key) then
+            if hw.bag then bag = true end
+            if hw.info then info = true end
+        end
+    end
+    SetHideEvent("BAG_UPDATE_DELAYED", bag, E)
+    SetHideEvent("GET_ITEM_INFO_RECEIVED", info, E)
+end
+B.SyncHideEvents = SyncHideEvents     -- 測試用
+
 local SeqPut, SeqTrim                -- ns.Layout 的（Relayout 第一次用到才取：Layout.lua 載入順序在後面也沒關係）
 
 local function Relayout(key, level, index, gen, s)
@@ -683,6 +790,7 @@ local function Relayout(key, level, index, gen, s)
         if ns.Clickable then ns.Clickable.Release(key) end      -- 群組被刪：secure 鈕收起來、脫離錨點
         st.count = 0
         proxied[key], proxiedSig[key] = nil, nil                -- 代畫格由 Custom.EndFlush 收（條不在了）
+        hideWatch[key] = nil
         -- 認領序列清空（之前有認領 ⇒ 法術索引要重建）
         if st.claimSeq and #st.claimSeq > 0 then
             for i = #st.claimSeq, 1, -1 do st.claimSeq[i] = nil end
@@ -748,6 +856,10 @@ local function Relayout(key, level, index, gen, s)
     local clickable = ns.Clickable and ns.Clickable.Enabled(key) or false
     local fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(key) or clickable) and true or false
     local entries = {}
+    -- 沒有物品時隱藏／被動飾品不顯示：這一輪重記要聽的格（就地改寫，見 hideWatch）
+    local hw = hideWatch[key]
+    if not hw then hw = { ids = {}, n = 0, wsig = "", hsig = "" }; hideWatch[key] = hw end
+    hw.n, hw.bag, hw.info, hw.wnext, hw.hnext = 0, false, false, "", ""
     -- 以增益取代：A → B（只有成立的才在表裡）
     local replaceOf = ns.Catalog.Replacements and ns.Catalog.Replacements() or {}
     for _, id in ipairs(ids) do
@@ -768,10 +880,22 @@ local function Relayout(key, level, index, gen, s)
             claimedBy[bItem] = key
             replacedNow[id] = { b = bID, key = key }
         elseif crec then
-            entries[#entries + 1] = { id = id, crec = crec }
+            -- 自訂物品／飾品欄：沒有物品時隱藏／被動飾品不顯示（讓位 ⇒ 不放；固定格位 ⇒ 空格）
+            local hm = (crec.kind == "item" or crec.kind == "slot") and HiddenMode(key, id, hw, fixed) or nil
+            if hm == nil then
+                entries[#entries + 1] = { id = id, crec = crec }
+            elseif hm == "blank" then
+                entries[#entries + 1] = { id = id, blank = true }
+            end
         elseif not item and proxyOf and proxyOf[id] then
-            -- 暴雪沒給框的裝備欄冷卻格：我們的飾品欄框代畫（Custom.Proxy；放格、疊層、按鍵文字、可點擊都走自訂那條）
-            entries[#entries + 1] = { id = id, crec = ns.Custom.Proxy(id, proxyOf[id], key) }
+            -- 暴雪沒給框的裝備欄冷卻格：我們的飾品欄框代畫（Custom.Proxy；放格、疊層、按鍵文字、可點擊都走自訂那條）。
+            -- 被動飾品不顯示同上（收掉時不拿代畫 rec ⇒ 上一輪放過的由 EndBar 收）
+            local hm = HiddenMode(key, id, hw, fixed)
+            if hm == nil then
+                entries[#entries + 1] = { id = id, crec = ns.Custom.Proxy(id, proxyOf[id], key) }
+            elseif hm == "blank" then
+                entries[#entries + 1] = { id = id, blank = true }
+            end
         elseif item and not claimedBy[item] then
             local rec = ns.Viewers.frames[item]
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
@@ -791,6 +915,8 @@ local function Relayout(key, level, index, gen, s)
             if mode then claimedBy[item] = key end
         end
     end
+
+    EndHideWatch(key, hw)
 
     local sizing = BarSize(key, bar)
     local rects, totalW, totalH, anchorPoint = ns.Layout.Compute(entries, sizing, bar.kind)
@@ -834,7 +960,9 @@ local function Relayout(key, level, index, gen, s)
     for i, e in ipairs(entries) do
         local r = rects[i]
         local item, rec = e.item, e.rec
-        if e.crec then
+        if e.blank then
+            -- 收掉、留空格（固定格位）：什麼都不放。原本放在這裡的自訂框沒被 Place ⇒ 下面的 Custom.EndBar 收起來
+        elseif e.crec then
             -- 回 true ＝ 換了框／換了條／從收起來放回來（法術索引記的是框與條）
             if ns.Custom.Place(e.crec, c, r, key, gen) then B.claimsChanged = true end
         elseif e.placeholder and SafeShown(item) then
@@ -1144,6 +1272,7 @@ Flush = function()
         end
     end)
     if ns.Custom then ns.Custom.EndFlush() end
+    SyncHideEvents()
 
     -- 檢視器確保釘在容器上
     for _, src in ipairs(ns.Viewers.ORDER) do

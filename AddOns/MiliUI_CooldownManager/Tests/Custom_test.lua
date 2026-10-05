@@ -1860,6 +1860,249 @@ do
         CU.Sync()
     end
 
+    ------------------------------------------------------------
+    -- 17. 沒有物品時隱藏／被動飾品不顯示（G）：純函式（ItemsGone／PassiveOf／Layout.HiddenSlot）、HideReason
+    --     （條層／逐格覆寫、替代品、讀不到不收、資料沒載入等載入）、Relayout 讓位（非固定）／留空格（固定）、
+    --     Occupancy 同一個判準、代畫格、戰鬥中、事件只在有需要時註冊、事件來了結果變了才重排
+    ------------------------------------------------------------
+    do
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+        local th = p.theme.icon
+        eq("預設：沒有物品時隱藏 關", th.hideNoItem, false)
+        eq("預設：被動飾品不顯示 開", th.hidePassiveTrinket, true)
+        eq("SPELL_FALLBACK hideNoItem", DB.SPELL_FALLBACK.hideNoItem, "icon.hideNoItem")
+        eq("SPELL_FALLBACK hidePassiveTrinket", DB.SPELL_FALLBACK.hidePassiveTrinket, "icon.hidePassiveTrinket")
+        eq("覆寫分組：圖示節", DB.OVERRIDE_GROUP.hidePassiveTrinket, "icon")
+
+        -- 純函式
+        local cnt = { [1] = 0, [2] = 0, [3] = 2 }
+        local function cof(id) return cnt[id] end
+        eq("ItemsGone：全都 0", C.ItemsGone({ 1, 2 }, cof), true)
+        eq("ItemsGone：替代品有 ⇒ 不收", C.ItemsGone({ 1, 3 }, cof), false)
+        eq("ItemsGone：讀不到 ⇒ 不收", C.ItemsGone({ 1, 9 }, cof), false)
+        eq("ItemsGone：空清單 ⇒ 不收", C.ItemsGone({}, cof), false)
+        eq("PassiveOf：沒裝東西", C.PassiveOf(nil, true, nil), nil)
+        eq("PassiveOf：資料沒載入", C.PassiveOf(5, false, nil), "pending")
+        eq("PassiveOf：判不出來 ⇒ 不收", C.PassiveOf(5, nil, nil), nil)
+        eq("PassiveOf：沒有使用效果", C.PassiveOf(5, true, nil), "passive")
+        eq("PassiveOf：有使用效果", C.PassiveOf(5, true, 123), nil)
+
+        -- 環境：槽 13 有使用效果、槽 14 被動（290000 沒有 GetItemSpell）；包包數量、物品資料快取
+        local savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedEvents = ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.Events
+        local savedCount, savedCached = env.C_Item.GetItemCount, env.C_Item.IsItemDataCachedByID
+        local savedReq = env.C_Item.RequestLoadItemDataByID
+        local bag = { [5512] = 0, [5513] = 0 }
+        env.C_Item.GetItemCount = function(id) return bag[id] or 1 end
+        local cached = {}
+        env.C_Item.IsItemDataCachedByID = function(id) if cached[id] == nil then return true end return cached[id] end
+        local requested = {}
+        env.C_Item.RequestLoadItemDataByID = function(id) requested[#requested + 1] = id end
+        equipped[13], equipped[14] = 270175, 290000
+        C.InvalidateSlotBuffs()
+        local evs = {}
+        ns.Events = { Register = function(ev, key) if key == "bars_hide" then evs[ev] = key end end,
+                      Unregister = function(ev, key) if key == "bars_hide" then evs[ev] = nil end end }
+        ns.Diag = { Note = function() end }
+        ns.Style = { ApplyPanel = function() end }
+        ns.Viewers = { AURA_KIND = { buffs = true, buffbars = true }, frames = {}, EnsureScale = function() end,
+                       Get = function() return nil end }
+        ns.Decorate.ApplyItemAlpha = function() end
+        load("Core/Layout.lua")
+        load("Core/Bars.lua")
+        local B = ns.Bars
+        eq("HiddenSlot：照常", ns.Layout.HiddenSlot(nil, true), nil)
+        eq("HiddenSlot：固定格位 ⇒ 空格", ns.Layout.HiddenSlot("noItem", true), "blank")
+        eq("HiddenSlot：非固定 ⇒ 讓位", ns.Layout.HiddenSlot("passive", false), "skip")
+
+        -- 輔助：21（暴雪）＋物品 5512（替代品 5513）＋槽 14（被動）＋法術 500
+        local iItem = DB.AddCustom({ kind = "item", itemID = 5512, alts = { 5513 }, bar = "utility" })
+        local iPas = DB.AddCustom({ kind = "slot", slot = 14, bar = "utility" })
+        local iSp = DB.AddCustom({ kind = "spell", spellID = 500, bar = "utility" })
+        local idItem, idPas, idSp = "c:" .. iItem, "c:" .. iPas, "c:" .. iSp
+        CU.Sync()
+        check("輔助不是固定格位（槽 14 被動、沒有增益可疊）", not C.BarHasAuraSlot("utility"))
+
+        eq("HideReason：被動飾品（預設開）", C.HideReason("utility", idPas), "passive")
+        eq("HideReason：物品（預設關）⇒ 不收", C.HideReason("utility", idItem), nil)
+        eq("HideReason：法術不適用", C.HideReason("utility", idSp), nil)
+        th.hideNoItem = true
+        local why, watch = C.HideReason("utility", idItem)
+        eq("HideReason：條層開＋主與替代品都 0 ⇒ 收", why, "noItem")
+        eq("HideReason：物品要聽包包", watch, "bag")
+        bag[5513] = 2
+        eq("HideReason：替代品有 ⇒ 不收", C.HideReason("utility", idItem), nil)
+        bag[5513] = 0
+        DB.SetOverride(idItem, "hideNoItem", false)
+        eq("HideReason：逐格覆寫關 ⇒ 不收", C.HideReason("utility", idItem), nil)
+        DB.SetOverride(idItem, "hideNoItem", nil)
+        th.hideNoItem = false
+        DB.SetOverride(idItem, "hideNoItem", true)
+        eq("HideReason：條層關、逐格覆寫開 ⇒ 收", C.HideReason("utility", idItem), "noItem")
+        local savedSecret = ns.IsSecret
+        ns.IsSecret = function(v) return v == 0 end
+        eq("HideReason：數量是秘密值 ⇒ 不收", C.HideReason("utility", idItem), nil)
+        ns.IsSecret = savedSecret
+        DB.SetOverride(idPas, "hidePassiveTrinket", false)
+        eq("HideReason：被動飾品逐格關 ⇒ 不收", C.HideReason("utility", idPas), nil)
+        DB.SetOverride(idPas, "hidePassiveTrinket", nil)
+        cached[290000] = false
+        local pw, pwatch = C.HideReason("utility", idPas)
+        eq("HideReason：物品資料沒載入 ⇒ 不收", pw, nil)
+        eq("HideReason：等物品資料", pwatch, "info")
+        eq("HideReason：要求載入一次", requested[1], 290000)
+        C.HideReason("utility", idPas)
+        eq("HideReason：不重複要求", #requested, 1)
+        cached[290000] = nil
+        equipped[14] = nil
+        eq("HideReason：空格不屬於這條 ⇒ 不收", C.HideReason("utility", idPas), nil)
+        equipped[14] = 290000
+        equipped[13] = 270175
+
+        -- Relayout：非固定 ⇒ 讓位
+        -- 每一輪換一顆暴雪 item（直接叫 Relayout 不經 Flush，上一輪的認領不會放掉）
+        local index = {}
+        local function Fresh()
+            local it = Obj("Frame")
+            ns.Viewers.frames[it] = { barKey = "utility", cooldownID = 21 }
+            index[21] = it
+        end
+        Fresh()
+        local rItem, rPas, rSp = CU.Get(idItem), CU.Get(idPas), CU.Get(idSp)
+        Fresh()
+        B.Relayout("utility", 2, index, 300)
+        eq("讓位：4 格收 2 格 ⇒ 2", B.Count("utility"), 2)
+        eq("讓位：物品沒放", rItem.placedBar, nil)
+        eq("讓位：被動飾品沒放", rPas.placedBar, nil)
+        eq("讓位：法術往前補（第 2 格 x）", rSp.frame and rSp.frame.last_SetPoint and rSp.frame.last_SetPoint[4] ~= nil
+            and rSp.frame.last_SetPoint[4] > 0 and rSp.frame.last_SetPoint[4] < 80, true)
+        B.SyncHideEvents()
+        eq("事件：包包數量（有物品格開著）", evs.BAG_UPDATE_DELAYED, "bars_hide")
+        eq("事件：物品資料都到了 ⇒ 不聽", evs.GET_ITEM_INFO_RECEIVED, nil)
+        local occ = B.Occupancy(index)
+        eq("Occupancy：讓位的物品不佔", occ("utility", idItem), false)
+        eq("Occupancy：讓位的被動飾品不佔", occ("utility", idPas), false)
+        eq("Occupancy：法術照佔", occ("utility", idSp), true)
+
+        -- 有了 ⇒ 放回來（事件：結果變了才要求重排）
+        local reqs = {}
+        local savedReqFn = B.Request
+        B.Request = function(k, lv) reqs[#reqs + 1] = k .. ":" .. lv end
+        B.HideRecheck()
+        eq("事件：沒變 ⇒ 不重排", #reqs, 0)
+        bag[5512] = 3
+        B.HideRecheck()
+        check("事件：數量變了 ⇒ 重排", #reqs > 0)
+        B.Request = savedReqFn
+        Fresh()
+        B.Relayout("utility", 2, index, 301)
+        eq("有了 ⇒ 3 格", B.Count("utility"), 3)
+        eq("有了 ⇒ 物品放回輔助", rItem.placedBar, "utility")
+        eq("被動飾品照樣收著", rPas.placedBar, nil)
+
+        -- 戰鬥中用掉最後一個（非固定的條）：照常即時讓位
+        combat = true
+        bag[5512] = 0
+        Fresh()
+        B.Relayout("utility", 2, index, 302)
+        eq("戰鬥中（非固定）：即時讓位", B.Count("utility"), 2)
+        eq("戰鬥中（非固定）：物品收起來", rItem.placedBar, nil)
+        combat = false
+
+        -- 固定格位 ⇒ 留空格（格數不變、後面的不往前補、不佔位以外照算）
+        local util = DB.BarTable("utility")
+        util.layout = util.layout or {}
+        util.layout.fixedSlots = true
+        local xFixed
+        Fresh()
+        B.Relayout("utility", 2, index, 303)
+        eq("固定格位：4 格照留", B.Count("utility"), 4)
+        eq("固定格位：物品不放", rItem.placedBar, nil)
+        eq("固定格位：被動飾品不放", rPas.placedBar, nil)
+        xFixed = rSp.frame.last_SetPoint[4]
+        check("固定格位：法術留在第 4 格（不往前補）", xFixed and xFixed > 80, xFixed)
+        local occ2 = B.Occupancy(index)
+        eq("Occupancy：固定格位的空格照佔", occ2("utility", idItem), true)
+        combat = true
+        bag[5512] = 1
+        Fresh()
+        B.Relayout("utility", 2, index, 304)
+        eq("戰鬥中（固定）：放回原格，格數不變", B.Count("utility"), 4)
+        eq("戰鬥中（固定）：物品放回", rItem.placedBar, "utility")
+        combat = false
+        util.layout.fixedSlots = nil
+
+        -- 代畫格：被動飾品不顯示（槽 14 被動）；收掉時不拿代畫 rec
+        local savedInfo3 = CV.GetCooldownViewerCooldownInfo
+        local savedSet1 = SETS[1]
+        SETS[1] = { 21, 198604 }
+        CV.GetCooldownViewerCooldownInfo = function(id)
+            if id == 198604 then
+                return { cooldownID = id, spellID = 1400001, category = 1, equipSlot = 14, isKnown = true, flags = 0 }
+            end
+            return savedInfo3(id)
+        end
+        C.Refresh("test")
+        bag[5512] = 1
+        eq("ProxySlotOf：槽 14", C.ProxySlotOf(198604), 14)
+        eq("HideReason：代畫格被動 ⇒ 收", C.HideReason("utility", 198604), "passive")
+        Fresh()
+        B.Relayout("utility", 2, index, 305)
+        eq("代畫格被動：還是記成代畫（預覽要畫暗）", B.IsProxied("utility", 198604), 14)
+        eq("代畫格被動：不算 missing", B.IsMissing("utility", 198604), false)
+        local px = CU.Proxies()[198604]
+        check("代畫格被動：沒放（沒拿 rec 或收著）", px == nil or px.placedBar == nil)
+        eq("Occupancy：讓位的代畫格不佔", B.Occupancy(index)("utility", 198604), false)
+        equipped[14] = 280000                         -- 換成有使用效果的
+        C.InvalidateSlotBuffs()
+        eq("代畫格換成主動飾品 ⇒ 不收", C.HideReason("utility", 198604), nil)
+        Fresh()
+        B.Relayout("utility", 2, index, 306)
+        px = CU.Proxies()[198604]
+        eq("代畫格主動：放上輔助", px and px.placedBar, "utility")
+        equipped[14] = 290000
+        C.InvalidateSlotBuffs()
+        Fresh()
+        B.Relayout("utility", 2, index, 307)
+        eq("代畫格換回被動：收起來", px.placedBar, nil)
+        CV.GetCooldownViewerCooldownInfo = savedInfo3
+        SETS[1] = savedSet1
+        C.Refresh("test")
+
+        -- 物品資料沒載入 ⇒ 聽 GET_ITEM_INFO_RECEIVED；到了就不聽
+        cached[290000] = false
+        Fresh()
+        B.Relayout("utility", 2, index, 308)
+        B.SyncHideEvents()
+        eq("事件：等物品資料", evs.GET_ITEM_INFO_RECEIVED, "bars_hide")
+        eq("資料沒載入：被動飾品先顯示", rPas.placedBar, "utility")
+        cached[290000] = nil
+        Fresh()
+        B.Relayout("utility", 2, index, 309)
+        B.SyncHideEvents()
+        eq("事件：資料到了就不聽", evs.GET_ITEM_INFO_RECEIVED, nil)
+        eq("資料到了：被動飾品收起來", rPas.placedBar, nil)
+
+        -- 都關掉 ⇒ 一個事件都不聽
+        DB.SetOverride(idItem, "hideNoItem", nil)
+        th.hideNoItem = false
+        Fresh()
+        B.Relayout("utility", 2, index, 310)
+        B.SyncHideEvents()
+        eq("事件：沒有格子需要 ⇒ 不聽包包", evs.BAG_UPDATE_DELAYED, nil)
+
+        DB.SetOverride(idItem, "hideNoItem", nil)
+        th.hideNoItem = false
+        env.C_Item.GetItemCount, env.C_Item.IsItemDataCachedByID = savedCount, savedCached
+        env.C_Item.RequestLoadItemDataByID = savedReq
+        ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.Events = savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedEvents
+        ns.Decorate.ApplyItemAlpha = nil
+        equipped[13], equipped[14] = 270175, nil
+        C.InvalidateSlotBuffs()
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+    end
+
     for i = #list, 1, -1 do list[i] = nil end
     CU.Sync()
     env.CreateFrame, env.UIParent, env.InCombatLockdown, ns.Events = savedCF, savedUI, savedICL, savedEv

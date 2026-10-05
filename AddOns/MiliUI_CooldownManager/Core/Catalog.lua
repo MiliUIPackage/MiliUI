@@ -9,6 +9,7 @@
 --   ns.Catalog.Refresh(reason) 重讀；內容（簽章）變了才廣播 "CatalogChanged"
 --   ns.Catalog.IsPaused()      暴雪冷卻管理器設定面板開著 ⇒ true（Bars 暫停重排）
 --   ns.Catalog.TalentBlocked(id) 逐法術的天賦條件不成立 ⇒ true（正式清單不收；見下面「天賦條件」）
+--   ns.Catalog.HideReason(barKey, id) 沒有物品時隱藏／被動飾品不顯示 ⇒ "noItem"｜"passive"（只讀判準；讓位在 Core/Bars.lua）
 --   ns.Catalog.Replacements()  以增益取代：byA（A → B）、byB（B → A）；B 不進任何一條的清單（見那一節）
 --
 -- 自訂項目（三層：戰隊 "w:<uid>"／職業 "k:<uid>"／專精 "c:<index>"，合併規則在 Core/DB.lua 的
@@ -1344,6 +1345,102 @@ function C.ProxySlotOf(id)
     local aura = (ns.Viewers and ns.Viewers.AURA_KIND) or AURA_SOURCE
     if src == nil or aura[src] then return nil end
     return slot
+end
+
+------------------------------------------------------------
+-- 沒有物品時隱藏／被動飾品不顯示（使用者 2026-10-05 拍板）
+--
+--   ns.Catalog.ItemsGone(ids, countOf)            純函式：每一件 countOf(id) 都是明文 0 ⇒ true；
+--                                                   任一件讀不到（nil／秘密／不是數字）或 > 0、或清單是空的 ⇒ false
+--   ns.Catalog.PassiveOf(itemID, cached, useSpell) 純函式 → "passive"｜"pending"｜nil
+--       沒裝東西 ⇒ nil（空格照舊畫空格圖，不屬於這條）；物品資料還沒載入（cached == false）⇒ "pending"；
+--       載入了（cached == true）而且沒有使用效果（useSpell == nil）⇒ "passive"；判不出來（cached 讀不到）⇒ nil
+--   ns.Catalog.HideReason(barKey, id)  → reason, watch
+--       reason  這一格現在要不要收："noItem"｜"passive"｜nil
+--       watch   要聽什麼才知道它會變："bag"（包包數量，BAG_UPDATE_DELAYED）｜"info"（物品資料還沒到，
+--               GET_ITEM_INFO_RECEIVED）｜nil（換裝走 PLAYER_EQUIPMENT_CHANGED，本來就會全部重排）
+--       設定照 barKey 那一條讀（逐法術覆寫 > 條層 > 主題；ns.SpellSetting 的 hideNoItem／hidePassiveTrinket）。
+--       適用：自訂物品（kind "item"：主＋替代品全都沒有才收）；飾品欄（kind "slot"）與代畫格（暴雪的數字 id、
+--       C.ProxySlotOf 成立——呼叫端自己確認那一格這一輪真的是代畫）。其餘（暴雪的格、光環格、飾品欄增益）一律 nil。
+-- 規則：只用明文判斷，讀不到一律不收（寧可多顯示）。收掉之後怎麼排（讓位／固定格位留空格）是 Core/Bars.lua 的事：
+-- 數量在戰鬥中也會變，固定格位要看條，所以判準放在這裡（純讀），排法跟 Occupancy 放在 Bars（同一支 B.HideMode）。
+--
+-- ⚠ 暴雪自己的消耗品格（帶 spellCategoryID 的那類：戰鬥藥水、治療藥水、治療石）**不做**：暴雪的格子本身沒有
+-- 「這一類有哪些物品」的清單，只記最後一次用掉的那件（C_Spell.GetLastCategoryCooldownSource，用過才有）與兩個
+-- 寫死在它檔案裡的治療石預設物品；藥水類連預設都沒有。插件讀不到「包包裡還有沒有這一類的任何一件」，
+-- 拿「最後用掉的那件數量是 0」當判準會在換了別種藥水時把格子誤收，所以不做（README 有記）。
+------------------------------------------------------------
+local function ItemCountOf(itemID)
+    local api = C_Item and C_Item.GetItemCount
+    if not (api and type(itemID) == "number") then return nil end
+    local ok, n = pcall(api, itemID, false, true)
+    if not ok then return nil end
+    n = Plain(n)
+    return type(n) == "number" and n or nil
+end
+
+function C.ItemsGone(ids, countOf)
+    if type(ids) ~= "table" or #ids == 0 or type(countOf) ~= "function" then return false end
+    for _, id in ipairs(ids) do
+        local n = countOf(id)
+        if type(n) ~= "number" or n > 0 then return false end
+    end
+    return true
+end
+
+function C.PassiveOf(itemID, cached, useSpell)
+    if type(itemID) ~= "number" then return nil end
+    if cached == false then return "pending" end
+    if cached ~= true then return nil end
+    if useSpell == nil then return "passive" end
+    return nil
+end
+
+-- 物品資料還沒到的：要一次（到了派 GET_ITEM_INFO_RECEIVED，Core/Bars.lua 聽著就重排）
+local loadRequested = {}
+local function SlotPassive(slot)
+    local itemID = C.SlotItemID(slot)
+    if not itemID then return nil end
+    local I = C_Item
+    local cached = Plain(Try(I and I.IsItemDataCachedByID, itemID))
+    if type(cached) ~= "boolean" then cached = nil end
+    local st = C.PassiveOf(itemID, cached, cached and SlotItemSpell(itemID) or nil)
+    if st == "pending" then
+        if not loadRequested[itemID] and I and I.RequestLoadItemDataByID then
+            loadRequested[itemID] = true
+            pcall(I.RequestLoadItemDataByID, itemID)
+        end
+    else
+        loadRequested[itemID] = nil
+    end
+    return st
+end
+
+function C.HideReason(barKey, id)
+    local SS = ns.SpellSetting
+    if id == nil or not SS then return nil end
+    local kind, slot, e
+    if type(id) == "number" then
+        slot = C.ProxySlotOf(id)
+        if not slot then return nil end
+        kind = "slot"
+    else
+        e = C.CustomEntry(id)
+        if not e then return nil end
+        kind, slot = e.kind, e.slot
+    end
+    if kind == "item" then
+        if SS(barKey, id, "hideNoItem") ~= true then return nil end
+        local CU = ns.Custom
+        local ids = (CU and CU.ItemIDs) and CU.ItemIDs(e) or { e.itemID }
+        return C.ItemsGone(ids, ItemCountOf) and "noItem" or nil, "bag"
+    elseif kind == "slot" then
+        if SS(barKey, id, "hidePassiveTrinket") ~= true then return nil end
+        local st = SlotPassive(slot)
+        if st == "pending" then return nil, "info" end
+        return st, nil
+    end
+    return nil
 end
 
 -- 探針：「清單上有、暴雪沒給框」的那一格，暴雪自己是怎麼看的（只讀，給 [missing] 與 /mcdm debug 用）

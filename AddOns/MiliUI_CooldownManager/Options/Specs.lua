@@ -520,6 +520,11 @@ function Specs.Themed(mode, key)
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
+        -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：收掉＝讓位（Core/Bars.lua）；逐法術小窗可以蓋
+        TS("icon", "toggle", "icon.hideNoItem", L["Hide when none in bags"]),
+        Note(L["Items you added yourself don't show once none are left in your bags (alternatives count too), and the icons after them move up. Bars with fixed slots keep the slot empty."], "icon"),
+        TS("icon", "toggle", "icon.hidePassiveTrinket", L["Hide passive trinkets"]),
+        Note(L["Equipment slot icons don't show while the equipped item has no use effect, such as a passive trinket. Empty slots still show."], "icon"),
         TS("icon", "toggle", "icon.tooltips", L["Show tooltip on hover"]),
         Note(L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."], "icon"),
         -- 按鍵鏡射（Core/Keybinds.lua）：長條類與增益圖示列不做（同按鍵文字的 NoKeybind），條頁不出現這三列

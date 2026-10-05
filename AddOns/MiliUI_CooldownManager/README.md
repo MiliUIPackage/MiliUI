@@ -458,6 +458,34 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - 逐法術面板：自訂飾品欄的「增益時間」分頁（顯示增益持續時間＋換色＋三個顏色）打開；解不出增益時整段停用＋黃字原因。
   ⚠ 生效發光與「增益出現／消失音效」的列還沒對自訂飾品欄開（疊層的引擎認得那兩組欄位，介面沒給）。
 
+#### 沒有物品時隱藏／被動飾品不顯示（`Core/Catalog.lua`、`Core/Bars.lua`、`Core/Layout.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`、`Options/Preview.lua`，2026-10-05，G）
+
+- **設定**：條層 `icon.hideNoItem`（沒有物品時隱藏，**預設關**）／`icon.hidePassiveTrinket`（被動飾品不顯示，**預設開**；舊存檔
+  合併預設值補成開——使用者拍板，不套「舊存檔行為不變」），在 THEMED 的 `icon` 節（主題可繼承）。逐法術 `overrides[id].hideNoItem`／
+  `hidePassiveTrinket` 三態（nil 跟隨條；`SPELL_FALLBACK` 指到條層、`OVERRIDE_GROUP` 歸 `"icon"`：條頁「清除圖示覆寫」一起清）。
+  逐法術小窗的「一般」分頁：自訂物品只有前者、自訂飾品欄與暴雪的裝備欄冷卻格（`Catalog.ProxySlotOf`）只有後者；右鍵清除＝回條層。
+- **判準**（`Catalog.HideReason(barKey, id)` → 理由, 要聽什麼；純函式 `ItemsGone`／`PassiveOf` 離線可測）：
+  自訂物品＝主＋替代品的 `GetItemCount(id, false, true)` **全部明文 0**；飾品欄／代畫格＝那一格有裝東西、物品資料已載入
+  （`IsItemDataCachedByID` 明文 true）、`GetItemSpell` 明文沒有使用效果。讀不到（秘密、資料沒到、API 不在）一律不收；
+  資料沒到時 `RequestLoadItemDataByID` 一次並聽 `GET_ITEM_INFO_RECEIVED`。空格（沒裝東西）不屬於這條，照舊畫空格圖；
+  飾品欄增益（slotbuff）不受影響。
+- **放在哪一層**：決定 entries 的那一層（`Bars.Relayout`），不是 Catalog 的清單、也不是 alpha 0。理由：數量在戰鬥中會變、
+  固定格位要看條（Catalog 的 `BarHasAuraSlot` 又會回頭讀 `BarBase`，放進清單層會繞回自己）；天賦條件放在清單層是因為它只在
+  戰鬥外隨目錄事件變。排法 `Layout.HiddenSlot(理由, fixed)`：非固定 ⇒ `"skip"` 讓位（不放、後面的往前補）；固定格位（自己開、
+  或光環格／飾品疊增益／可點擊強制）⇒ `"blank"` 空格（佔一格、什麼都不放，位置不動）。`Bars.Occupancy` 同一支判準
+  （讓位的不佔、不算顆數，溢出跟著重算；空格照佔）。被收的自訂框／代畫格沒被 `Place` ⇒ `Custom.EndBar` 收起來（代畫格收掉時
+  不拿 rec；`IsProxied` 照記，預覽才知道它是代畫）。暴雪自己給框的裝備欄格不歸這兩個開關管。
+- **戰鬥中**：被收的是普通框（自訂物品／飾品欄的圖示框），`Hide` 照做；不在保護鏈上的條即時讓位。保護鏈上的條本來就是固定格位
+  ⇒ 只會留空格、位置不動，不對保護框做結構寫入；飾品欄增益疊層的持有框與可點擊的 secure 鈕照舊走 `ns.Write` 記帳到脫戰
+  （那段期間空格上的鈕還點得到，點了沒有東西可用）。
+- **事件**：每輪 `Relayout` 重記 `hideWatch[條]`（要聽的格與「理由:watch」簽章），`Flush` 結尾 `SyncHideEvents`：有開著的自訂物品格
+  才註冊 `BAG_UPDATE_DELAYED`、有資料沒到的飾品才註冊 `GET_ITEM_INFO_RECEIVED`，沒有就一個都不聽。事件只排下一幀重算，
+  簽章變了才把每一條都標 membership 重排（溢出可能跟著變）。換裝由 Catalog 的 `PLAYER_EQUIPMENT_CHANGED` 全部重排，不另聽。
+- **預覽**：被收的格照樣列出、標暗（同天賦條件），提示寫原因；收掉的集合變了 `Fire("MissingChanged")` 通知預覽。
+- **暴雪的消耗品格（戰鬥藥水、治療藥水、治療石）不做**：暴雪的格本身沒有「這一類有哪些物品」的清單，只記最後用掉的那件
+  （`C_Spell.GetLastCategoryCooldownSource`，用過才有）與兩個寫死在它檔案裡的治療石預設物品，藥水類連預設都沒有。
+  插件判不出「包包裡還有沒有這一類任何一件」；拿最後用掉那件的數量當判準，換別種藥水就會誤收。
+
 #### 三層範圍：戰隊／職業／專精（`Core/DB.lua`、`Core/Catalog.lua`、`Modules/Custom.lua`，2026-10-03，P8）
 
 設定檔本來就是帳號層（任何角色可選同一份），條、主題、資源條已經是「戰隊共用」，自訂項目與覆寫原本只到「同專精」。
@@ -2662,6 +2690,20 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      ⚠ 實機確認：暴雪 item 的 `Icon` 套皮後 `GetNumMaskTextures`／`GetMaskTexture` 讀得到 Masque 的遮罩、錨點讀得懂（錨在 item 或 Icon 上）；
      overlay 上 `CreateMaskTexture`＋`AddMaskTexture` 在戰鬥中不被擋（overlay 是我們的框）。
      層數發光（「層數到 N 才亮」）與設定頁的樣本／條預覽照舊方形（不在這次範圍）。
+
+**沒有物品時隱藏／被動飾品不顯示（2026-10-05，G）**
+
+327. 被動飾品不顯示（預設開）：飾品欄裝被動飾品 ⇒ 那一格不見、後面的往前補；換成有使用效果的（脫戰）⇒ 出現在原順序；
+     空著的飾品欄照樣顯示空格圖。暴雪沒給框、由米利代畫的飾品冷卻格裝被動飾品也一樣收掉（`/mcdm debug` 仍記 `[proxy]`）。
+     ⚠ 實機確認：剛登入物品資料還沒到時先顯示、資料到了（`GET_ITEM_INFO_RECEIVED`）才收；`IsItemDataCachedByID` 為 true 時
+     `GetItemSpell` 對有使用效果的飾品一定回得到法術（不會在法術資料還沒載入時回 nil 把主動飾品誤判成被動）。
+328. 沒有物品時隱藏（條層或逐法術打開）：自訂物品（含替代品）用到包包裡一件都不剩 ⇒ 那一格不見、後面的往前補；
+     再拿到一件（撿到、從銀行拿）⇒ 回到原位置。**戰鬥中用掉最後一瓶**：非固定格位的條即時讓位、不跳 ADDON_ACTION_BLOCKED；
+     固定格位的條（自己開、或條上有光環格／飾品疊增益／可點擊）留空格、其他格不動；可點擊的條脫戰後那一格的鈕才收。
+     `/console taintLog 2` 打一場確認零污染。
+329. 設定頁：條頁「圖示」節兩個勾選與灰字；逐法術小窗「一般」分頁只在自訂物品（沒有物品時隱藏）／自訂飾品欄與暴雪的
+     裝備欄冷卻格（被動飾品不顯示）出現，右鍵清除回條層；預覽被收掉的格標暗、提示寫原因。都關掉時 `/mcdm perf` 前後比，
+     沒有多出 `BAG_UPDATE_DELAYED`／`GET_ITEM_INFO_RECEIVED` 的處理（只在需要時註冊）。
 
 **效能基準**
 

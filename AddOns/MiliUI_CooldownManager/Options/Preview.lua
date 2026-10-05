@@ -663,8 +663,16 @@ function Proto:Refresh()
         c.proxied = (not e.plus and ns.Bars and ns.Bars.IsProxied and ns.Bars.IsProxied(key, e.id)) and true or false
         -- 天賦條件不成立（Core/Catalog.lua）：畫面上不顯示，預覽照樣列出來（點得到才改得回來），一樣標暗
         c.talentBlocked = (not e.plus and ns.Catalog.TalentBlocked(e.id)) and true or false
+        -- 沒有物品時隱藏／被動飾品不顯示（Core/Catalog.lua 的 HideReason）：畫面上收掉了，預覽照樣列、標暗、提示寫原因。
+        -- 暴雪的數字 id 只在這一輪真的是代畫格時才算（暴雪自己給框的那格不歸這兩個開關管）
+        local hideWhy = nil
+        if not e.plus and (type(e.id) ~= "number" or c.proxied) then
+            hideWhy = ns.Catalog.HideReason(key, e.id)
+        end
+        c.itemHidden = hideWhy or false
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
-        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or e.overflowTo) and 0.35 or (not e.plus and c.stateAlpha) or 1)
+        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo) and 0.35
+            or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
     if self.onRefresh then self.onRefresh(self) end
@@ -843,6 +851,11 @@ local function ShowTip(c)
     end
     if c.talentBlocked then
         GameTooltip:AddLine(L["Talent condition not met, so it isn't shown on screen."], 1, 0.3, 0.3, true)
+    end
+    if c.itemHidden == "noItem" then
+        GameTooltip:AddLine(L["None left in your bags, so it isn't shown on screen."], 1, 0.3, 0.3, true)
+    elseif c.itemHidden == "passive" then
+        GameTooltip:AddLine(L["The equipped item has no use effect, so it isn't shown on screen."], 1, 0.3, 0.3, true)
     end
     if c.missing then
         GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."], 1, 0.3, 0.3, true)

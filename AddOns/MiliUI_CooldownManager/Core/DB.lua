@@ -440,7 +440,12 @@ function DB.BuildDefaults()
                           -- 預設開（使用者拍板：舊存檔沒有這兩欄 ＝ 合併預設值補成開，不套「舊存檔行為不變」）
                           colorDuration = true, durationColor = rgba(1, 0.85, 0.1),
                           -- 增益那一段自己的低秒顏色（門檻共用 cooldownText.lowBelow；粉，比聖騎粉重一點）與轉圈背景色（淡黃）
-                          durationLowColor = rgba(0.95, 0.45, 0.70), durationSwipeColor = rgba(1, 0.9, 0.5, 0.5) },
+                          durationLowColor = rgba(0.95, 0.45, 0.70), durationSwipeColor = rgba(1, 0.9, 0.5, 0.5),
+                          -- 沒有物品時隱藏（自訂物品：主＋替代品包包裡全都沒有）／被動飾品不顯示（飾品欄與代畫格：
+                          -- 那一格裝的東西沒有使用效果）。收掉＝讓位（Core/Bars.lua 的 Relayout；固定格位的條留空格）。
+                          -- hideNoItem 預設關；hidePassiveTrinket 預設開（使用者拍板：舊存檔沒有這欄 ＝ 合併預設值補成開，
+                          -- 不套「舊存檔行為不變」）
+                          hideNoItem = false, hidePassiveTrinket = true },
                 -- 預設樣式：觸發＝觸發、就緒＝快捷鍵閃光（2026-10-01 使用者指定；舊存檔不遷移）
                 glow  = {
                     proc  = { enabled = true,  type = "proc",  color = rgba(1, 0.85, 0, 1),
@@ -962,6 +967,9 @@ local SPELL_FALLBACK = {
     -- 增益持續中顯示持續時間：nil 跟隨條／true 顯示／false 不顯示（引擎讀 SpellSetting 的布林，
     -- 設定頁要三態走 ns.SpellOverride）
     showAuraTime  = "icon.showAuraTime",
+    -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：nil 跟隨條／true／false（Core/Catalog.lua 的 HideReason）
+    hideNoItem         = "icon.hideNoItem",
+    hidePassiveTrinket = "icon.hidePassiveTrinket",
 }
 -- 沒有條層對應的覆寫欄位 → 固定預設
 local SPELL_CONST = {
@@ -1275,6 +1283,8 @@ end
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
     showAuraTime = "icon", dimNoAura = "icon",
+    -- 沒有物品時隱藏／被動飾品不顯示：條層的開關在「圖示」節 ⇒ 同一組（條頁「清除圖示覆寫」一起清，回到條層的值）
+    hideNoItem = "icon", hidePassiveTrinket = "icon",
     -- 以增益取代：決定格子放誰，不是外觀 ⇒ 自成一組（條頁「清除外觀覆寫」不會把它清掉；跟天賦條件同一個理由）
     replaceWith = "replace", replaceAuraStyle = "replace",
     procGlow = "glow", readyGlow = "glow", readyGlowMode = "glow", readyGlowUsable = "glow",

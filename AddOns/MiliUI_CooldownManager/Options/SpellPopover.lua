@@ -133,6 +133,13 @@ local SOUNDS = {
 -- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益時間）
 local function ActiveGlowWhen(kind, class) return class == "aura" or kind == nil end
 
+-- 沒有物品時隱藏：只有自訂物品；被動飾品不顯示：自訂飾品欄與暴雪的裝備欄冷卻格（暴雪沒給框時由米利代畫的那種）
+local function HideNoItemWhen(kind) return kind == "item" end
+local function HidePassiveWhen(kind)
+    if kind == "slot" then return true end
+    return kind == nil and cur ~= nil and type(cur.id) == "number" and ns.Catalog.ProxySlotOf(cur.id) ~= nil
+end
+
 local TOGGLES = {
     { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, tab = "glow" },
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
@@ -143,6 +150,9 @@ local TOGGLES = {
     -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
     { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look",
       tip = L["Dims the icon while it isn't counting down your buff or debuff. For example, a Warlock's damage-over-time spells on Essential Cooldowns: the icon dims while your current target doesn't have your debuff (or you have no target)."] },
+    -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：決定格子在不在 ⇒ 一般分頁
+    { field = "hideNoItem",       label = L["Hide when none in bags"], when = HideNoItemWhen, tab = "general" },
+    { field = "hidePassiveTrinket", label = L["Hide passive trinkets"], when = HidePassiveWhen, tab = "general" },
     { field = "hideCooldownText", label = L["Hide countdown"],         tab = "look" },
     { field = "hideStackText",    label = L["Hide stacks"],            tab = "look" },
 }
