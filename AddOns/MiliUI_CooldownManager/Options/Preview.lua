@@ -252,6 +252,12 @@ local function NewBarCell(canvas)
     ov:SetFrameLevel(c:GetFrameLevel() + 5)
     c.overlay = ov
     c.scopeMark = NewScopeMark(ov, icon)       -- 長條：記號在左邊圖示那一格的右上角
+    -- 層數字墊到邊框（ov）與發光之上：真實條是 Text.ApplyBar 把它換父層到 TextHolder（overlay ＋TEXT_LIFT），
+    -- 預覽格沒有 rec 走不到那條路，這裡直接建一層同高度的框
+    local th = CreateFrame("Frame", nil, c)
+    th:SetAllPoints()
+    th:SetFrameLevel(ov:GetFrameLevel() + ns.Text.TEXT_LIFT)
+    icon.Applications:SetParent(th)
     c.kind = "bars"
     c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
