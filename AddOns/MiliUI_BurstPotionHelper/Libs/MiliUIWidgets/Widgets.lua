@@ -418,6 +418,224 @@ function W.CreateButtonGroup(buttons, onClick)
 end
 
 ------------------------------------------------------------
+-- 分頁卡片：一排分頁鈕＋底下一張卡片（像資料夾的分頁）
+--
+-- 用在「頁面裡的一段有好幾種選擇」的子分頁：卡片包住那個分頁的全部列，
+-- 一眼看得出分頁鈕管到哪裡為止。整頁的頂層分頁不需要（卡片會包住整頁，沒有資訊）。
+--
+--   卡片    底＝CARD_FILL（比面板 0.1 亮一階的不透明純色）、1px 邊＝職業色 × BTN_BORDER_SCALE
+--           （primary 平時的邊，同一條公式）、直角
+--   選中鈕  底＝卡片底、邊＝卡片邊、**底邊打通**（跟卡片連成一塊）；滑過不變（點了也不做事）
+--   未選中  normal 按鈕原樣
+--   狀態只換明暗：選中＝跟卡片一樣亮、閒置＝WIDGET_FILL、滑過＝normal 的滑過；色相只有職業色一個
+--
+-- ⚠ 卡片是畫在 **parent 上的貼圖**（BACKGROUND／BORDER 層），不是一個 frame：
+--   子 frame 永遠蓋過父層貼圖，所以 parent 底下的列（控件、遮罩、右鍵接收框）不管 frame level
+--   多少都在卡片上面，不用排層級。parent 自己的字（OVERLAY）也照樣在上面。
+--   代價是 parent 上不能再有別的 BACKGROUND 貼圖蓋在同一塊（backdrop 的底在 -8 子層，不受影響）。
+--
+-- 座標一律是 parent 的 TOPLEFT 起算（y 往下是負的），跟 Controls.Build 回傳的 rows 同一套 ——
+-- 表單排完之後直接拿 rows[i].bottom 當卡片的底。
+--
+-- 分頁鈕放不下就換排（同 W.FlowLayout 的規則）。換了排而選中的鈕不在最後一排時，
+-- 它跟卡片之間隔著別排的鈕，打通不了 ⇒ 那一顆只換底與邊（卡片上緣整條畫滿）。
+------------------------------------------------------------
+local CARD_FILL = { 0.15, 0.15, 0.15, 1 }
+W.CARD_FILL = CARD_FILL
+W.TAB_CARD_PAD = 4      -- 卡片內距的建議值（分頁鈕列底下到第一列、最後一列到卡片底）
+
+function W.CreateTabCard(parent, opts)
+    opts = opts or {}
+    local tabH   = opts.tabHeight or 20
+    local minW   = opts.tabMinWidth or 56
+    local gapX   = opts.tabGap or 2
+    local gapY   = opts.rowGap or 2
+    local inset  = opts.inset or 6
+    local border = BTN_COLORS.primary[3]
+    local selColors = { CARD_FILL, CARD_FILL, border, border }
+
+    local tc = { buttons = {}, byId = {} }
+    local strip = CreateFrame("Frame", nil, parent)
+    strip:SetSize(1, tabH)
+    tc.strip = strip
+
+    -- 卡片：底＋四邊（上緣分左右兩段，中間留給選中的那顆鈕）
+    local function Tex(layer)
+        local t = parent:CreateTexture(nil, layer, nil, 1)
+        t:SetTexture(WHITE)
+        t:Hide()
+        return t
+    end
+    local bg = Tex("BACKGROUND")
+    bg:SetVertexColor(unpack(CARD_FILL))
+    local edges = {}
+    for _, k in ipairs({ "left", "right", "bottom", "topL", "topR" }) do
+        edges[k] = Tex("BORDER")
+        edges[k]:SetVertexColor(unpack(border))
+    end
+
+    local placed, shown = false, true
+    local cardX, cardW, cardTop, cardBottom = 0, 0, 0, nil
+    local stripX, stripY, lastRow = 0, 0, 1
+    local selected
+
+    local function Bar(t, x, y, w, h)
+        if w <= 0 or h <= 0 then t:Hide() return end
+        t:ClearAllPoints()
+        t:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+        t:SetSize(w, h)
+        t:Show()
+    end
+
+    local function DrawCard()
+        local on = shown and placed and cardBottom ~= nil and cardTop - cardBottom > 0
+        if not on then
+            bg:Hide()
+            for _, t in pairs(edges) do t:Hide() end
+            return
+        end
+        local px = P.Scale(1)
+        local h = cardTop - cardBottom
+        Bar(bg, cardX, cardTop, cardW, h)
+        Bar(edges.left, cardX, cardTop, px, h)
+        Bar(edges.right, cardX + cardW - px, cardTop, px, h)
+        Bar(edges.bottom, cardX, cardBottom + px, cardW, px)
+        -- 選中的鈕在最後一排 ⇒ 上緣在它底下斷開（左右各多蓋 1px，接住鈕的左右邊，轉角才是連著的）
+        local b = selected
+        if b and b:IsShown() and b._tcRow == lastRow then
+            local bx = stripX + b._tcX
+            Bar(edges.topL, cardX, cardTop, bx + px - cardX, px)
+            local rx = bx + b:GetWidth() - px
+            Bar(edges.topR, rx, cardTop, cardX + cardW - rx, px)
+        else
+            Bar(edges.topL, cardX, cardTop, cardW, px)
+            edges.topR:Hide()
+        end
+    end
+
+    local function Paint()
+        for _, b in ipairs(tc.buttons) do
+            local sel = b == selected
+            if sel then
+                b._colors = selColors
+            else
+                b._colors = BTN_COLORS.normal
+                b:SetBackdropBorderColor(0, 0, 0, 1)
+            end
+            W.PaintButton(b, b:IsVisible() and b:IsMouseOver())
+            b._tcBridge:SetShown(sel and b._tcRow == lastRow)
+        end
+        DrawCard()
+    end
+
+    -- 分頁鈕排版（自己走一次換排，順便記下每顆在第幾排、離列首多遠：卡片上緣要照它斷開）
+    local function LayoutTabs()
+        local maxW = strip:GetWidth()
+        if type(maxW) ~= "number" or maxW <= 0 then maxW = math.huge end
+        local row, x, prev = 1, 0, nil
+        for _, b in ipairs(tc.buttons) do
+            if b:IsShown() then
+                local w = b:GetWidth() or 0
+                if prev and x + gapX + w > maxW then row, x, prev = row + 1, 0, nil end
+                if prev then x = x + gapX end
+                b:ClearAllPoints()
+                b:SetPoint("TOPLEFT", strip, "TOPLEFT", x, -(row - 1) * (tabH + gapY))
+                b._tcRow, b._tcX = row, x
+                x = x + w
+                prev = b
+            end
+        end
+        lastRow = row
+        local h = row * tabH + (row - 1) * gapY
+        strip:SetHeight(h)
+        return h
+    end
+
+    for i, d in ipairs(opts.tabs or {}) do
+        local b = W.CreateButton(strip, d.label, "normal", minW, tabH)
+        W.FitButton(b, minW, tabH)
+        b.id = d.id
+        -- 底邊打通：用卡片底蓋掉鈕的下邊框（左右邊框留著）。ARTWORK 層在 backdrop 的邊之上、字之下
+        local bridge = b:CreateTexture(nil, "ARTWORK")
+        bridge:SetTexture(WHITE)
+        bridge:SetVertexColor(unpack(CARD_FILL))
+        bridge:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", P.Scale(1), 0)
+        bridge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -P.Scale(1), 0)
+        bridge:SetHeight(P.Scale(1))
+        bridge:Hide()
+        b._tcBridge = bridge
+        b:SetScript("OnClick", function(self)
+            if self == selected then return end
+            tc:Select(self.id)
+            if opts.onSelect then opts.onSelect(self.id, self) end
+        end)
+        tc.buttons[i], tc.byId[d.id] = b, b
+    end
+
+    -- 分頁鈕列的左上角放在 parent 的 (x, y)，卡片的左右邊＝x～x + width（鈕列內縮 inset、放不下換排）。
+    -- 回傳鈕列高；卡片上緣＝y − 鈕列高
+    function tc:Place(x, y, width)
+        cardX, cardW = x, width
+        stripX, stripY = x + inset, y
+        strip:ClearAllPoints()
+        strip:SetPoint("TOPLEFT", parent, "TOPLEFT", stripX, y)
+        strip:SetWidth(math.max(1, width - inset * 2))
+        local h = LayoutTabs()
+        cardTop = y - h
+        placed = true
+        Paint()
+        return h
+    end
+
+    -- 卡片底緣（parent 座標；表單用 rows[i].bottom − 內距）
+    function tc:SetBottom(y)
+        cardBottom = y
+        DrawCard()
+    end
+
+    -- 卡片高（從鈕列底緣往下；自由版面用）
+    function tc:SetCardHeight(h)
+        cardBottom = cardTop - (h or 0)
+        DrawCard()
+    end
+
+    -- 只顯示 ids 裡的鈕（nil＝全部），重排；回傳鈕列高（卡片上緣跟著動，底緣不動）
+    function tc:SetTabs(ids)
+        local has
+        if ids then
+            has = {}
+            for _, id in ipairs(ids) do has[id] = true end
+        end
+        for _, b in ipairs(self.buttons) do b:SetShown(not has or has[b.id] == true) end
+        local h = LayoutTabs()
+        if placed then cardTop = stripY - h end
+        Paint()
+        return h
+    end
+
+    -- 高亮 id 那顆（不叫 onSelect）
+    function tc:Select(id)
+        selected = self.byId[id] or selected
+        Paint()
+    end
+
+    function tc:GetSelected() return selected and selected.id end
+    function tc:GetCardTop() return cardTop end
+
+    function tc:SetShown(on)
+        shown = on and true or false
+        strip:SetShown(shown)
+        DrawCard()
+    end
+    function tc:Show() self:SetShown(true) end
+    function tc:Hide() self:SetShown(false) end
+
+    if opts.selected then selected = tc.byId[opts.selected] end
+    selected = selected or tc.buttons[1]
+    return tc
+end
+
+------------------------------------------------------------
 -- 視窗拖曳把手 ／ 標題列
 --
 -- 設定視窗沒有暴雪那種厚標題列，所以「哪裡可以抓」完全沒有訊號。九個插件本來

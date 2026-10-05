@@ -388,6 +388,8 @@ end
 -- 只進那個子分頁的表單（Specs.FilterSubTab）；子分頁鈕那一列（SubTabRow）點了叫 ctx.onSubTab(id)，
 -- 頁面換一張表單、捲動位置不動（子分頁鈕上面的列兩張表單一模一樣）。目前選哪個存在 ctx.subTab（頁面建表單時填）。
 -- 子分頁鈕那一列 breakMask：跟隨遮罩在這裡斷開（鈕本身不蓋）
+-- 卡片（L）：子分頁鈕＋底下一張卡片包住子分頁的列（W.CreateTabCard）。卡片是 content 上的貼圖 ⇒ 列與遮罩都在它上面；
+-- 鈕列這一列建卡片、記在 ctx.tabCard，底緣等 BuildForm 排完才知道（最後一個帶 subTab 的列）
 ------------------------------------------------------------
 local SUBTAB_DEFS = {
     { id = "cooldown", label = L["Cooldown"] },
@@ -395,6 +397,9 @@ local SUBTAB_DEFS = {
 }
 Specs.SUBTAB_DEFS = SUBTAB_DEFS
 local SUBTAB_BTN_H, SUBTAB_BTN_MIN_W = 20, 56
+-- 卡片（L，W.CreateTabCard）：左右邊佔表單整寬（標籤欄也包進去），右邊離控件欄留一點；
+-- 上緣＝子分頁鈕列底，底＝這張表單最後一個帶 subTab 的列（BuildForm 排完之後補）
+local CARD_X, CARD_R, CARD_TOP = 0, 4, 4
 
 local function Sub(id, spec)
     if spec then spec.subTab = id end
@@ -402,29 +407,20 @@ local function Sub(id, spec)
 end
 
 local function SubTabRow()
-    return { type = "custom", h = SUBTAB_BTN_H + 8, noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
-        local holder = CreateFrame("Frame", nil, parent)
-        holder:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
-        holder:SetSize(width, SUBTAB_BTN_H)
-        local btns = {}
-        for i, d in ipairs(SUBTAB_DEFS) do
-            local b = W.CreateButton(holder, d.label, "accent-hover", SUBTAB_BTN_MIN_W, SUBTAB_BTN_H)
-            W.FitButton(b, SUBTAB_BTN_MIN_W, SUBTAB_BTN_H)
-            b.id = d.id
-            btns[i] = b
-        end
-        local highlight = W.CreateButtonGroup(btns, function(id)
-            if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end
-        end)
-        local _, h = W.FlowLayout(holder, btns, width, 4, 4, SUBTAB_BTN_H)
-        holder:SetHeight(h)
-        local function Paint()
-            for _, b in ipairs(btns) do
-                if b.id == (ctx.subTab or SUBTAB_DEFS[1].id) then highlight(b) end
-            end
-        end
+    return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
+        local tc = W.CreateTabCard(parent, {
+            tabs = SUBTAB_DEFS, tabHeight = SUBTAB_BTN_H, tabMinWidth = SUBTAB_BTN_MIN_W,
+            selected = ctx.subTab,
+            onSelect = function(id)
+                if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end
+            end,
+        })
+        local formW = parent:GetWidth() or (x + width)
+        local h = tc:Place(CARD_X, y - CARD_TOP, formW - CARD_X - CARD_R)
+        ctx.tabCard = tc
+        local function Paint() tc:Select(ctx.subTab or SUBTAB_DEFS[1].id) end
         Paint()
-        return h + 8, Paint
+        return CARD_TOP + h + W.TAB_CARD_PAD, Paint
     end }
 end
 
@@ -1436,6 +1432,15 @@ function Specs.BuildForm(parent, controls, ctx, width)
     local form = { content = content, height = height + 20, refreshers = refreshers, rows = rows, masks = {}, ctx = ctx }
     content:SetHeight(form.height)
     ctx.form = form
+
+    -- 子分頁的卡片（L）：底緣＝最後一個帶 subTab 的列（底下接的是小節標題，上方本來就留了 HEADER_GAP，內距吃得下）
+    if ctx.tabCard then
+        local last
+        for _, row in ipairs(rows) do
+            if row.spec.subTab then last = row end
+        end
+        if last then ctx.tabCard:SetBottom(last.bottom - W.TAB_CARD_PAD) else ctx.tabCard:SetBottom(nil) end
+    end
 
     -- 跟隨遮罩的範圍：同一個 section 連續的那一段（中間夾的沒有 section 的列算進去）。
     -- 以前是一節一個矩形（第一列到最後一列）；「文字」節裡夾了一列歸「圖示」管的（增益持續時間的變色顏色，J），

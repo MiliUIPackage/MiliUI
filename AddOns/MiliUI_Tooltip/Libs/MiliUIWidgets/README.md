@@ -27,7 +27,7 @@ python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前�
 | `Errors.lua` | 逐字複製 | 錯誤處理器與封鎖動作攔截（`ns.Errors`）。**無相依，排在最前面** |
 | `Metro.lua` | 逐字複製 | 共用輪詢 ticker（`ns.Metro.New`）。**無相依，排在最前面** |
 | `BlizzOptions.lua` | 逐字複製 | 暴雪「選項 > 插件」入口頁（`ns.RegisterBlizzardCategory`），排在 `Options\Blizzard.lua` 之前 |
-| `Widgets.lua` | 逐字複製 | 元件庫：按鈕／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗／標題列 |
+| `Widgets.lua` | 逐字複製 | 元件庫：按鈕／分頁卡片／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗／標題列 |
 | `ContextMenu.lua` | 逐字複製 | 右鍵／情境選單（長在遊戲畫面上的那種，不是設定表單裡的下拉） |
 | `Controls.lua` | 逐字複製 | 表單引擎：吃一張 spec 清單，吐出對齊好的一整頁控制項 |
 | `PixelPerfect.lua` | 可略 | 像素對齊。插件已經有自己的一份就別帶，把 `Env.P` 指過去即可 |
@@ -227,6 +227,51 @@ local rows    = W.FlowRows(buttons, maxW, gapX)                        -- 只數
 訊息換完行有四行的語系會讓後兩行**蓋在確定／取消上面**。現在兩者的 `OnShow` 會量文字、
 撞到按鈕才加高（撞不到就維持原高）。⚠ 一定要在 `OnShow` 量：訊息多半是重用的彈窗在
 `Show()` 之前才 `popup.text:SetText(...)` 填的。
+
+### 子分頁卡片（`W.CreateTabCard`）
+
+頁面裡**一段**有好幾種選擇（「冷卻｜持續時間」那種子分頁）時用：一排分頁鈕＋底下一張卡片，
+卡片包住那個分頁的全部列，玩家一眼看得出分頁鈕管到哪裡為止。選中的鈕跟卡片同底、底邊打通（資料夾分頁），
+未選中的是 `normal` 按鈕。整頁的頂層分頁不用它（卡片會包住整頁，沒有資訊），照舊 `W.CreateButtonGroup`。
+
+```lua
+local tc = W.CreateTabCard(parent, {
+    tabs     = { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Duration"] } },
+    selected = "cooldown",               -- 選用，預設第一顆
+    onSelect = function(id, btn) end,    -- 點了**別顆**才叫（點選中的那顆不叫）；高亮已經換好
+    -- 選用：tabHeight 20、tabMinWidth 56、tabGap 2（鈕距）、rowGap 2（換排的排距）、inset 6（鈕列離卡片左右邊）
+})
+local stripH = tc:Place(x, y, width)     -- 鈕列左上角在 parent 的 (x, y)；卡片左右邊＝x～x+width；回傳鈕列高
+tc:SetBottom(y2)                         -- 卡片底緣（parent 座標）。表單：rows[i].bottom - W.TAB_CARD_PAD
+tc:SetCardHeight(h)                      -- 或：卡片高（從鈕列底緣往下），自由版面用
+tc:Select(id)                            -- 只換高亮，不叫 onSelect
+tc:SetTabs(ids)                          -- 只顯示這幾顆（nil＝全部）、重排；回傳鈕列高
+tc:SetShown(on) / tc:Show() / tc:Hide()  -- 鈕列連卡片一起
+tc:GetSelected() / tc:GetCardTop()
+tc.strip / tc.buttons / tc.byId          -- 鈕列 frame、按鈕（照 tabs 順序）、id → 按鈕
+W.TAB_CARD_PAD                           -- 卡片內距建議值（4）
+W.CARD_FILL                              -- 卡片底色 { r, g, b, a }（唯讀）
+```
+
+**座標一律是 parent 的 `TOPLEFT` 起算**（y 往下是負的），跟 `Controls.Build` 回傳的 `rows` 同一套。
+表單用法：鈕列做成一列 `custom`（`build` 裡 `Place`、回傳 `上方留白 + stripH + W.TAB_CARD_PAD`），
+`Controls.Build` 排完再拿那個分頁最後一列的 `bottom` 去 `SetBottom`。自由版面：排到鈕列時 `Place`、
+排完那個分頁的最後一列時 `SetBottom`（或一開始就知道高度的用 `SetCardHeight`）。
+
+視覺：
+
+| 部位 | 值 | 來源 |
+|---|---|---|
+| 卡片底 | `W.CARD_FILL` = 0.15 不透明 | 面板 0.1、控件 0.115 往上一階；比 normal 滑過（0.23）暗，滑過的鈕仍看得出來 |
+| 卡片邊、選中鈕的邊 | 1px，職業色 × 0.60 | primary 平時的邊（`BTN_BORDER_SCALE`），同一條公式 |
+| 選中鈕 | 底＝卡片底、底邊打通、滑過不變 | |
+| 未選中鈕 | `normal` 原樣（0.115 底、黑邊、滑過 0.23） | |
+| 字 | 白 | |
+
+⚠ **卡片是畫在 parent 上的貼圖**（`BACKGROUND`／`BORDER` 子層 1），不是 frame：子 frame 永遠蓋過父層貼圖，
+所以 parent 底下的列、遮罩、接收框不管 frame level 多少都在卡片上面，不用排層級；parent 自己的字（`OVERLAY`）也在上面。
+parent 有 backdrop 也沒關係（backdrop 在 -8 子層）。
+換排之後選中的鈕不在最後一排的話跟卡片之間隔著別排，打通不了 ⇒ 那一顆只換底與邊、卡片上緣畫滿。
 
 ### 三個比較不明顯的元件
 

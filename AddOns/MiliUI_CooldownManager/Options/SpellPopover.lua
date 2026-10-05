@@ -93,6 +93,7 @@ local LABEL_W = 130
 local ROW_H   = 26
 local CTRL_X  = LABEL_W + 10
 local ROW_W   = WIDTH - PAD * 2
+local SUB_CARD_OUT, SUB_CARD_TOP = 6, 3      -- 子分頁卡片（L）：左右比列寬多出多少（< PAD）、鈕列上方留白
 local TOP_Y   = -PAD - 32 - 12
 
 local frame, cur
@@ -732,30 +733,25 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     -- 變色秒數），標籤不帶前綴。增益持續時間那組只在有增益持續時間的格出現（增益類、暴雪的冷卻格、飾品欄；長條的秒數
     -- 換不了 ⇒ 長條兩組都沒有）；沒有增益持續時間的格不出子分頁鈕、只有冷卻那組
     local function BuffTimeRows(kind, class) return not OnBars() and (class == "aura" or DurationRows(kind, class)) end
+    -- 子分頁鈕＋卡片（L，W.CreateTabCard）：卡片左右比列寬各多出 SUB_CARD_OUT（包住標籤與控件），
+    -- 上緣＝鈕列底、底＝最後一個子分頁的列（Layout 排的時候補）。鈕列本身就是這一列的 frame
     do
-        local sr = CreateFrame("Frame", nil, frame)
-        local holder = CreateFrame("Frame", nil, sr)
-        holder:SetPoint("TOPLEFT", sr, "TOPLEFT", CTRL_X, -3)
-        local btns = {}
-        for i, id in ipairs({ "cooldown", "duration" }) do
-            local b = W.CreateButton(holder, id == "cooldown" and L["Cooldown"] or L["Buff duration"], "accent-hover", 56, 20)
-            W.FitButton(b, 56, 20)
-            b.id = id
-            btns[i] = b
-        end
-        local highlight = W.CreateButtonGroup(btns, function(id)
-            if id == curSub then return end
-            curSub = id
-            if cur then Layout(frame.kind, frame.soundClass) end
-        end)
-        local _, bh = W.FlowLayout(holder, btns, ROW_W - CTRL_X, 4, 4, 20)
-        holder:SetSize(ROW_W - CTRL_X, bh)
-        sr:SetSize(ROW_W, bh + 6)
-        AddRow({ frame = sr, h = bh + 6, when = BuffTimeRows, subStrip = true, paint = function(id)
-            for _, b in ipairs(btns) do
-                if b.id == id then highlight(b) end
-            end
-        end })
+        local tc = W.CreateTabCard(frame, {
+            tabs = { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Buff duration"] } },
+            selected = curSub,
+            onSelect = function(id)
+                if id == curSub then return end
+                curSub = id
+                if cur then Layout(frame.kind, frame.soundClass) end
+            end,
+        })
+        frame.subCard = tc
+        AddRow({ frame = tc.strip, h = 0, when = BuffTimeRows, subStrip = true,
+            place = function(y)
+                local sh = tc:Place(PAD - SUB_CARD_OUT, y - SUB_CARD_TOP, ROW_W + SUB_CARD_OUT * 2)
+                return SUB_CARD_TOP + sh + W.TAB_CARD_PAD
+            end,
+            paint = function(id) tc:Select(id) end })
     end
 
     -- 冷卻：低秒變色的開關跟門檻是同一個欄位（門檻 0 ＝ 關，同條頁）；勾起來時門檻 5
@@ -1904,6 +1900,14 @@ Layout = function(kind, class)
     local _, tbh = W.FlowLayout(frame.tabBar, list, ROW_W, 4, 4, 20)
     frame.tabBar:SetHeight(tbh)
     local y = TOP_Y - tbh - 10
+    -- 子分頁的卡片（L）：鈕列出現就開，碰到第一個不屬於子分頁的列（或排完）就收底
+    local card, cardOpen = frame.subCard, false
+    local function CloseCard()
+        if not cardOpen then return end
+        cardOpen = false
+        card:SetBottom(y - W.TAB_CARD_PAD)
+        y = y - W.TAB_CARD_PAD - 6
+    end
     for _, row in ipairs(rows) do
         local show = (row.tab == "all" or row.tab == curTab) and (not row.when or row.when(kind, class))
         if show and row.subStrip then
@@ -1911,8 +1915,17 @@ Layout = function(kind, class)
             row.paint(sub)
         end
         if show and row.sub and row.sub ~= sub then show = false end
-        row.frame:SetShown(show)
-        if show then
+        if row.subStrip then
+            card:SetShown(show)
+        else
+            row.frame:SetShown(show)
+        end
+        if show and cardOpen and not row.sub then CloseCard() end
+        if show and row.subStrip then
+            row.h = row.place(y)
+            cardOpen = true
+            y = y - row.h
+        elseif show then
             row.frame:ClearAllPoints()
             row.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, y)
             if row.buttons then
@@ -1926,6 +1939,7 @@ Layout = function(kind, class)
             y = y - row.h
         end
     end
+    CloseCard()
     P.Height(frame, -y + PAD)
 end
 
