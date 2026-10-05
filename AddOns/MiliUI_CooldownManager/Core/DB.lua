@@ -417,7 +417,7 @@ function DB.BuildDefaults()
                 -- 每段文字的 font："INHERIT" ＝ 跟隨上面的通用字型（ns.Media.ElementFont）
                 cooldownText = { size = 16, color = rgba(1, 1, 1), decimalsBelow = 3,
                                  lowColor = rgba(1, 0.3, 0.3), lowBelow = 5, font = "INHERIT",
-                                 -- 增益時間的倒數（暴雪增益圖示、技能格倒增益那一段、光環格家族）自己的小數門檻、
+                                 -- 增益持續時間的倒數（暴雪增益圖示、技能格倒增益那一段、光環格家族）自己的小數門檻、
                                  -- 低秒變色開關與變色秒數（Core/Text.lua 的 BuffTiming）：冷卻倒數不受影響、也不借冷卻的。
                                  -- 顏色用 icon.durationLowColor（資料路徑留在 icon，設定列在「文字」節）。小數門檻與開關預設
                                  -- 0／關（使用者拍板：舊存檔沒有這兩欄 ＝ 合併預設值補成這樣，不套「舊存檔行為不變」）；
@@ -447,7 +447,7 @@ function DB.BuildDefaults()
                           -- colorDuration／durationColor：增益那一段的倒數數字換這個顏色（Core/Text.lua 的 ApplyPhaseColor）。
                           -- 預設開（使用者拍板：舊存檔沒有這兩欄 ＝ 合併預設值補成開，不套「舊存檔行為不變」）
                           colorDuration = true, durationColor = rgba(1, 0.85, 0.1),
-                          -- 增益時間的低秒顏色（cooldownText.buffLowColor 開著才用、門檻 cooldownText.buffLowBelow；
+                          -- 增益持續時間的低秒顏色（cooldownText.buffLowColor 開著才用、門檻 cooldownText.buffLowBelow；
                           -- 粉，比聖騎粉重一點）與增益那一段的轉圈背景色（淡黃）
                           durationLowColor = rgba(0.95, 0.45, 0.70), durationSwipeColor = rgba(1, 0.9, 0.5, 0.5),
                           -- 沒有物品時隱藏（自訂物品：主＋替代品包包裡全都沒有）／被動飾品不顯示（飾品欄與代畫格：
@@ -992,10 +992,10 @@ local SPELL_FALLBACK = {
     cooldownTextDecimals = "cooldownText.decimalsBelow",
     cooldownTextLowBelow = "cooldownText.lowBelow",
     cooldownTextLowColor = "cooldownText.lowColor",
-    -- 增益時間的小數門檻與低秒變色開關（I）：覆寫 key 跟條層同名
+    -- 增益持續時間的小數門檻與低秒變色開關（I）：覆寫 key 跟條層同名
     buffDecimalsBelow    = "cooldownText.buffDecimalsBelow",
     buffLowColor         = "cooldownText.buffLowColor",
-    buffLowBelow         = "cooldownText.buffLowBelow",            -- 增益時間的變色秒數（J）
+    buffLowBelow         = "cooldownText.buffLowBelow",            -- 增益持續時間的變色秒數（J）
     chargeTextFont  = "chargeText.font",
     chargeTextSize  = "chargeText.size",
     chargeTextColor = "chargeText.color",
@@ -1055,7 +1055,7 @@ local SPELL_CONST = {
     -- 以增益取代（核心／輔助的暴雪技能才有，Core/Catalog.lua 的 Replacements）：增益圖示列的 cooldownID；
     -- false ＝ 不取代
     replaceWith      = false,
-    -- 以增益取代時，頂著這一格的增益用這一招的增益時間樣式（colorDuration／三個顏色，跟這一招自己先倒增益那段同一套）；
+    -- 以增益取代時，頂著這一格的增益用這一招的增益持續時間樣式（colorDuration／三個顏色，跟這一招自己先倒增益那段同一套）；
     -- false ＝ 照增益原本的倒數樣式（不換色）
     replaceAuraStyle = true,
     -- 無增益時保留空位（暴雪的增益圖示／增益長條的 item 才有，Core/Bars.lua 的 Relayout／Occupancy，F7）：
@@ -1358,7 +1358,7 @@ DB.OVERRIDE_GROUP = {
     stackTextX = "text", stackTextY = "text",
     keybindFont = "text", keybindSize = "text", keybindPoint = "text", keybindX = "text", keybindY = "text",
     colorDuration = "icon", durationColor = "icon", durationSwipeColor = "icon",
-    -- 增益時間變色顏色：控件在文字節（跟增益時間另外三列排在一起），覆寫也歸文字組，文字節的清除覆寫一起清（資料路徑照舊 icon.*）
+    -- 增益持續時間變色顏色：控件在文字節（跟增益持續時間另外三列排在一起），覆寫也歸文字組，文字節的清除覆寫一起清（資料路徑照舊 icon.*）
     durationLowColor = "text",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉

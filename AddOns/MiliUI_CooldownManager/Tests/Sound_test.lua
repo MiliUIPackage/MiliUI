@@ -326,7 +326,7 @@ active = false; onActive(old); active = true; onActive(old); Flush()
 eq("退路：同一幀消失又出現抵消", #plays, n0 + 1)
 
 ------------------------------------------------------------
--- 7b. 暴雪的冷卻格：增益時間開始／結束（S.OnAuraFlag）
+-- 7b. 暴雪的冷卻格：增益持續時間開始／結束（S.OnAuraFlag）
 ------------------------------------------------------------
 do
     local crec = { barKey = "essential", cooldownID = 21 }

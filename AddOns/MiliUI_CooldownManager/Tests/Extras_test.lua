@@ -1025,7 +1025,7 @@ do
     calls = {}
     onSet(cd, 100, 20, 1)
     local u = last("SetUseAuraDisplayTime")
-    eq("自己關掉增益時間", u and u[2], false)
+    eq("自己關掉增益持續時間", u and u[2], false)
     eq("自己叫的 SetUseAuraDisplayTime 不清掉記號", rec.auraHidden, true)
     local fd = last("FromDur")
     eq("餵技能冷卻的 duration 物件（原封轉交）", fd and fd[2], curDur)
@@ -1198,7 +1198,7 @@ do
     sc0 = glow.setCD
     onSet(cd, 100, 20, 1)
     eq("不藏：不餵物件", count("FromDur"), 0)
-    eq("不藏：不關增益時間", count("SetUseAuraDisplayTime"), 0)
+    eq("不藏：不關增益持續時間", count("SetUseAuraDisplayTime"), 0)
     eq("不藏：走正常探針", glow.setCD, sc0 + 1)
     near("不藏：增益那段黃", fs.colors[#fs.colors][2], 0.85)
 
@@ -1660,7 +1660,7 @@ do
 end
 
 ------------------------------------------------------------
--- 15. 增益時間不顯示的格：圖示跟著法術走（D.ApplyHiddenIcon）＋冷卻算在當下的覆蓋法術（HideTarget）
+-- 15. 增益持續時間不顯示的格：圖示跟著法術走（D.ApplyHiddenIcon）＋冷卻算在當下的覆蓋法術（HideTarget）
 ------------------------------------------------------------
 do
     local function Tex()
@@ -1698,7 +1698,7 @@ do
     item.Icon:SetTexture(4242); onTex(item.Icon, 4242)
     eq("查不到圖示 ⇒ 不動", item.Icon.tex, 4242)
     env.C_Spell.GetSpellTexture = savedTex
-    -- 不是藏增益的時候（增益結束、或玩家開著增益時間）：暴雪的圖留著
+    -- 不是藏增益的時候（增益結束、或玩家開著增益持續時間）：暴雪的圖留著
     rec.auraHidden = false
     item.Icon:SetTexture(5555); onTex(item.Icon, 5555)
     eq("沒藏增益 ⇒ 暴雪的圖留著", item.Icon.tex, 5555)
@@ -1895,7 +1895,7 @@ do
 end
 
 ------------------------------------------------------------
--- 18. 增益時間的小數門檻與低秒變色（I／J）：Text.BuffTiming（預設 0／關、開了用自己的 buffLowBelow、不借冷卻的 lowBelow、
+-- 18. 增益持續時間的小數門檻與低秒變色（I／J）：Text.BuffTiming（預設 0／關、開了用自己的 buffLowBelow、不借冷卻的 lowBelow、
 --     低秒色退倒數的）、
 --     formatter 依值共用（冷卻與增益同值同一顆）、SpellText 合併與簽章、Text.ApplyIcon 依增益類挑哪一組
 ------------------------------------------------------------
@@ -1906,15 +1906,15 @@ do
     local ct = ns.Setting("essential", "cooldownText")
     local PINK = { r = 0.95, g = 0.45, b = 0.70, a = 1 }
     local d, l, lc = T.BuffTiming(ct, PINK)
-    eq("預設：增益時間沒有小數", d, 0)
-    eq("預設：增益時間不變色", l, 0)
+    eq("預設：增益持續時間沒有小數", d, 0)
+    eq("預設：增益持續時間不變色", l, 0)
     check("冷卻倒數照舊有小數與變色", (tonumber(ct.decimalsBelow) or 0) > 0 and (tonumber(ct.lowBelow) or 0) > 0)
-    eq("預設：增益時間變色秒數 5（關著也存著）", ct.buffLowBelow, 5)
+    eq("預設：增益持續時間變色秒數 5（關著也存著）", ct.buffLowBelow, 5)
     d, l, lc = T.BuffTiming({ buffDecimalsBelow = 4, buffLowColor = true, buffLowBelow = 8, lowBelow = 6,
                               lowColor = { r = 1, g = 0, b = 0 } }, PINK)
-    check("開了：小數門檻與變色秒數都是自己的（不借 lowBelow）、顏色＝增益時間低秒顏色", d == 4 and l == 8 and lc == PINK)
+    check("開了：小數門檻與變色秒數都是自己的（不借 lowBelow）、顏色＝增益持續時間低秒顏色", d == 4 and l == 8 and lc == PINK)
     d, l, lc = T.BuffTiming({ buffLowColor = true, buffLowBelow = 6, lowColor = { r = 1, g = 0, b = 0 } }, nil)
-    check("沒有增益時間低秒顏色 ⇒ 退倒數的低秒色", lc and lc.r == 1 and lc.g == 0)
+    check("沒有增益持續時間低秒顏色 ⇒ 退倒數的低秒色", lc and lc.r == 1 and lc.g == 0)
     d, l = T.BuffTiming({ buffLowColor = true, buffLowBelow = 7, lowBelow = 0 })
     eq("冷卻不變色（lowBelow 0）不影響增益", l, 7)
     d, l = T.BuffTiming({ buffLowColor = true, lowBelow = 6 })
@@ -1963,7 +1963,7 @@ do
     for _, r in ipairs(fb4.rules) do
         if r.format:find("|cfff273b3", 1, true) then hasColor = true end
     end
-    check("增益變色用增益時間低秒顏色（粉）", hasColor)
+    check("增益變色用增益持續時間低秒顏色（粉）", hasColor)
 
     -- SpellText 合併：覆寫 key 跟條層同名、進簽章、文字那一組
     DB.SetOverride(id, "buffDecimalsBelow", 2)
@@ -1998,7 +1998,7 @@ do
     local sp = { cooldownText = { decimalsBelow = 3, buffDecimalsBelow = 1, lowBelow = 5 } }
     T.ApplyIcon(itB, style, sp, { barKey = "buffs", cooldownID = 31 })
     T.ApplyIcon(itC, style, sp, { barKey = "essential", cooldownID = 11 })
-    eq("增益圖示：增益時間的小數門檻", itB.Cooldown.ms[1], 1)
+    eq("增益圖示：增益持續時間的小數門檻", itB.Cooldown.ms[1], 1)
     eq("技能格：冷卻倒數的小數門檻", itC.Cooldown.ms[1], 3)
     local itX = Item()
     T.ApplyIcon(itX, style, sp, { barKey = "buffs", custom = true })

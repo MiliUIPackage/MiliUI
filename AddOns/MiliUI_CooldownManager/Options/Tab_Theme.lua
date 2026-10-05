@@ -6,6 +6,7 @@
 --
 -- 分頁（J）：圖示｜文字｜效果｜音效，照 Specs.Themed 的四個頂層 header（Specs.SplitTabs）。
 -- 每個分頁一張表單，第一次切過去才建；記得上次看的分頁（只存執行期，同單一法術小窗）。
+-- 文字分頁的倒數有子分頁（冷卻｜增益持續時間，K）：每個子分頁也是一張表單（Specs.FilterSubTab）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -31,6 +32,7 @@ Options.RegisterPage("theme", Options.PageTitle("theme"), function(parent, title
 
     local byTab, ids = Sp.SplitTabs(Sp.Themed("theme"))
     local forms, curTab = {}, ids[1]
+    local curSub = Sp.SUBTAB_DEFS[1].id     -- 文字分頁裡倒數的子分頁（冷卻｜增益持續時間，K）
     local ShowTab
 
     local strip = Sp.CreateTabStrip(page, Options.PAGE_W_FULL - 4, function(id) ShowTab(id) end)
@@ -51,15 +53,29 @@ Options.RegisterPage("theme", Options.PageTitle("theme"), function(parent, title
         local switched = id ~= curTab or not page.form
         curTab = id
         strip:SetTabs(ids, id)
-        local form = forms[id]
+        -- 子分頁（K）：每個子分頁一張表單；換子分頁捲動位置不動（子分頁鈕上面的列兩張一樣）
+        local specs, hasSub = Sp.FilterSubTab(byTab[id], curSub)
+        local fkey = hasSub and (id .. "/" .. curSub) or id
+        local form = forms[fkey]
         if not form then
-            form = Sp.BuildForm(scroll.child, byTab[id], Sp.MakeCtx({ mode = "theme" }, OnApply), FORM_W)
-            forms[id] = form
+            local ctx = Sp.MakeCtx({ mode = "theme" }, OnApply)
+            ctx.subTab = curSub
+            ctx.onSubTab = function(sub)
+                curSub = sub
+                ShowTab(curTab)
+            end
+            form = Sp.BuildForm(scroll.child, specs, ctx, FORM_W)
+            forms[fkey] = form
         end
         for _, f in pairs(forms) do f.content:SetShown(f == form) end
+        local keep = (not switched) and scroll:GetVerticalScroll() or 0
         page.form = form
         scroll:SetContentHeight(form.height)
-        if switched then scroll:SetVerticalScroll(0) end
+        if switched then
+            scroll:SetVerticalScroll(0)
+        elseif keep > 0 then
+            scroll:SetVerticalScroll(math.min(keep, math.max(0, form.height - (scroll:GetHeight() or 0))))
+        end
         form:Refresh()
     end
 

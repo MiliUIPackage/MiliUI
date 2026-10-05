@@ -11,6 +11,7 @@
 -- 表單照「形狀」（Specs.BarSignature：第二列尺寸開關、有沒有錨定、條清單）＋分頁快取：
 -- 形狀變了才另建一份、變回來就拿舊的（frame 刪不掉，每改一次重建一次就是洩漏）。
 -- 同一個形狀的每個分頁第一次切過去才建。上次看的分頁每條各記一個（只存執行期，同單一法術小窗）。
+-- 文字分頁的倒數有子分頁（冷卻｜增益持續時間，K）：每個子分頁也是一張表單（Specs.FilterSubTab），選擇同樣只存執行期。
 --
 -- 套用兩層：值寫進去的當下只重畫預覽；真實條由 Options.ApplyEngine 合併 0.2 秒一次
 -- （Controls 自己已經把滑桿拖動合併成 0.05 秒一次 apply）。
@@ -106,6 +107,7 @@ function TabBar.Build(parent, title, key)
 
     -- 分頁鈕（預覽與說明在它上面、不跟分頁走）
     local curTab
+    local curSub = ns.Specs.SUBTAB_DEFS[1].id     -- 文字分頁裡倒數的子分頁（冷卻｜增益持續時間，K）
     local strip = ns.Specs.CreateTabStrip(page, Options.PAGE_W, function(id)
         if id == curTab then return end
         curTab = id
@@ -143,11 +145,19 @@ function TabBar.Build(parent, title, key)
         local tab = shape.byTab[curTab] and curTab or shape.ids[1]
         if tab ~= curTab then curTab, tabChanged = tab, true end
         strip:SetTabs(shape.ids, tab)
-        local form = shape.forms[tab]
+        -- 子分頁（K）：每個子分頁一張表單，快取 key 是「分頁/子分頁」；換子分頁不算換分頁（捲動位置不動）
+        local specs, hasSub = Sp.FilterSubTab(shape.byTab[tab], curSub)
+        local fkey = hasSub and (tab .. "/" .. curSub) or tab
+        local form = shape.forms[fkey]
         if not form then
             local ctx = Sp.MakeCtx({ mode = "bar", key = key }, OnApply)
-            form = Sp.BuildForm(scroll.child, shape.byTab[tab], ctx, FORM_W)
-            shape.forms[tab] = form
+            ctx.subTab = curSub
+            ctx.onSubTab = function(id)
+                curSub = id
+                page:RefreshForm()
+            end
+            form = Sp.BuildForm(scroll.child, specs, ctx, FORM_W)
+            shape.forms[fkey] = form
             allForms[#allForms + 1] = form
         end
         for _, f in ipairs(allForms) do f.content:SetShown(f == form) end

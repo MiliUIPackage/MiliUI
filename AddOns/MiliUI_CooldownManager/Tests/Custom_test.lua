@@ -1119,19 +1119,19 @@ do
     eq("右鍵清光 ⇒ 回條層字級", CU.AuraStyle(o, "essential", 36, 36, "icons").cdSize,
         tonumber(ns.Setting("essential", "cooldownText.size")) or 16)
 
-    -- 增益時間的小數與低秒變色（I）：疊層倒的是增益時間 ⇒ 預設沒有小數、不變色（冷卻倒數的 3／5 不看）；
-    -- 逐法術開了 ⇒ 小數與變色秒數照增益自己的（J：不借 lowBelow）、顏色＝增益時間低秒顏色；改了進簽章
+    -- 增益持續時間的小數與低秒變色（I）：疊層倒的是增益持續時間 ⇒ 預設沒有小數、不變色（冷卻倒數的 3／5 不看）；
+    -- 逐法術開了 ⇒ 小數與變色秒數照增益自己的（J：不借 lowBelow）、顏色＝增益持續時間低秒顏色；改了進簽章
     local stI = CU.AuraStyle(o, "essential", 36, 36, "icons")
-    check("增益時間預設：0 小數、不變色", stI.decimals == 0 and stI.lowBelow == 0)
+    check("增益持續時間預設：0 小數、不變色", stI.decimals == 0 and stI.lowBelow == 0)
     local sigI = stI.sig
     DB.SetOverride(sid, "buffDecimalsBelow", 2)
     DB.SetOverride(sid, "buffLowColor", true)
     DB.SetOverride(sid, "durationLowColor", { r = 0, g = 0, b = 1, a = 1 })
     DB.SetOverride(sid, "buffLowBelow", 8)
     stI = CU.AuraStyle(o, "essential", 36, 36, "icons")
-    eq("逐法術：增益時間小數門檻", stI.decimals, 2)
-    eq("逐法術：變色門檻＝增益時間自己的變色秒數", stI.lowBelow, 8)
-    eq("逐法術：增益時間低秒顏色", stI.lowColor[3], 1)
+    eq("逐法術：增益持續時間小數門檻", stI.decimals, 2)
+    eq("逐法術：變色門檻＝增益持續時間自己的變色秒數", stI.lowBelow, 8)
+    eq("逐法術：增益持續時間低秒顏色", stI.lowColor[3], 1)
     check("改了進簽章", stI.sig ~= sigI)
     for _, f in ipairs({ "buffDecimalsBelow", "buffLowColor", "durationLowColor", "buffLowBelow" }) do DB.SetOverride(sid, f, nil) end
 
@@ -1270,12 +1270,12 @@ do
         eq("Sync 之後：代畫格還在條上", prx.placedBar, "essential")
         eq("Sync 之後：cooldownID 還在", prx.cooldownID, 198603)
 
-        -- BarHasAuraSlot：自訂飾品欄關掉增益時間之後，代畫格（不管有沒有框）照樣讓核心強制固定格位
+        -- BarHasAuraSlot：自訂飾品欄關掉增益持續時間之後，代畫格（不管有沒有框）照樣讓核心強制固定格位
         local ovs = DB.SpecSpells(true).overrides
         ovs[sid] = { showAuraTime = false }
         check("BarHasAuraSlot：代畫格會疊增益 ⇒ 是", C.BarHasAuraSlot("essential"))
         ovs[198603] = { showAuraTime = false }
-        check("BarHasAuraSlot：代畫格也關掉增益時間 ⇒ 不是", not C.BarHasAuraSlot("essential"))
+        check("BarHasAuraSlot：代畫格也關掉增益持續時間 ⇒ 不是", not C.BarHasAuraSlot("essential"))
         ovs[198603] = nil
         check("BarHasAuraSlot：輔助沒有裝備欄冷卻格", not C.BarHasAuraSlot("utility"))
 

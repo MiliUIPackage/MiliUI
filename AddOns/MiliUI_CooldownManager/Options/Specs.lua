@@ -8,6 +8,7 @@
 --   Specs.MakeCtx(info, onApply)  info = { mode, key }；onApply(spec) 在值寫進去之後叫
 --   Specs.BuildForm(parent, controls, ctx, width) → form（content／height／Refresh）
 --   Specs.SplitTabs(controls) ／ Specs.CreateTabStrip(...)  主題頁與條頁的分頁（檔尾，J）
+--   Specs.FilterSubTab(specs, cur)  分頁裡的子分頁（倒數文字的冷卻｜增益持續時間，K）
 --
 -- 每條 spec 除了 Controls 要的欄位，另外帶：
 --   root     "theme"：主題形狀的欄位（ns.Setting 的 path，條頁讀的是三層繼承後的值、
@@ -25,6 +26,8 @@
 --            表單引擎（共用層）沒有停用狀態，遮罩是 BuildForm 自己畫的；每次套用後重判
 --   reloadCheck  寫完（含右鍵重設）檢查圖示外觀要不要重載（Specs.CheckSkinReload）
 --   tab      頂層 header 才帶：這一節放在哪個分頁（Specs.SplitTabs；沒分頁的頁不看）
+--   subTab   "cooldown" | "duration"：只進那個子分頁的表單（倒數文字的子分頁，K；Specs.FilterSubTab）
+--   breakMask  跟隨遮罩在這一列斷開、這一列不蓋（子分頁鈕）
 --
 -- ⚠ 條頁的主題欄位**讀的是繼承後的值**：沒跟隨、但這一格自己沒存的，看到的是主題的值。
 --   顏色若直接回主題那張表，Controls 的色票會就地改掉主題（它拿到表就直接寫 r/g/b）。
@@ -378,6 +381,64 @@ local function Nested(label, section)
     return { type = "header", label = label, nested = true, section = section }
 end
 
+------------------------------------------------------------
+-- 子分頁（K：倒數文字的「冷卻｜增益持續時間」）
+--
+-- 表單引擎沒有「藏列」：子分頁的每一個選擇各是一張表單（同分頁的做法往下一層）。spec 帶 subTab 的列
+-- 只進那個子分頁的表單（Specs.FilterSubTab）；子分頁鈕那一列（SubTabRow）點了叫 ctx.onSubTab(id)，
+-- 頁面換一張表單、捲動位置不動（子分頁鈕上面的列兩張表單一模一樣）。目前選哪個存在 ctx.subTab（頁面建表單時填）。
+-- 子分頁鈕那一列 breakMask：跟隨遮罩在這裡斷開（鈕本身不蓋）
+------------------------------------------------------------
+local SUBTAB_DEFS = {
+    { id = "cooldown", label = L["Cooldown"] },
+    { id = "duration", label = L["Buff duration"] },
+}
+Specs.SUBTAB_DEFS = SUBTAB_DEFS
+local SUBTAB_BTN_H, SUBTAB_BTN_MIN_W = 20, 56
+
+local function Sub(id, spec)
+    if spec then spec.subTab = id end
+    return spec
+end
+
+local function SubTabRow()
+    return { type = "custom", h = SUBTAB_BTN_H + 8, noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
+        local holder = CreateFrame("Frame", nil, parent)
+        holder:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+        holder:SetSize(width, SUBTAB_BTN_H)
+        local btns = {}
+        for i, d in ipairs(SUBTAB_DEFS) do
+            local b = W.CreateButton(holder, d.label, "accent-hover", SUBTAB_BTN_MIN_W, SUBTAB_BTN_H)
+            W.FitButton(b, SUBTAB_BTN_MIN_W, SUBTAB_BTN_H)
+            b.id = d.id
+            btns[i] = b
+        end
+        local highlight = W.CreateButtonGroup(btns, function(id)
+            if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end
+        end)
+        local _, h = W.FlowLayout(holder, btns, width, 4, 4, SUBTAB_BTN_H)
+        holder:SetHeight(h)
+        local function Paint()
+            for _, b in ipairs(btns) do
+                if b.id == (ctx.subTab or SUBTAB_DEFS[1].id) then highlight(b) end
+            end
+        end
+        Paint()
+        return h + 8, Paint
+    end }
+end
+
+-- → 這個子分頁要的列（沒帶 subTab 的列一律留下）, 這串列有沒有子分頁
+function Specs.FilterSubTab(specs, cur)
+    cur = cur or SUBTAB_DEFS[1].id
+    local out, has = {}, false
+    for _, spec in ipairs(specs) do
+        if spec.subTab then has = true end
+        if not spec.subTab or spec.subTab == cur then out[#out + 1] = spec end
+    end
+    return out, has
+end
+
 -- 「本條 N 個法術有覆寫 ［清除覆寫］」：畫在小節標題那一行的右側，本身不佔高度
 local function OverrideRow(group)
     return { type = "custom", h = 0, noReset = true, build = function(parent, x, y, width, ctx)
@@ -544,8 +605,8 @@ function Specs.Themed(mode, key)
     end
     local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
     local function DurationOff(info) return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration") end
-    -- 增益時間的變色顏色／變色秒數：只有增益時間的低秒變色（I）用得到 ⇒ 開關關著就停用
-    -- （換色那一段的字色是「增益時間顏色」，低秒那一段的顏色不歸換色開關管：Text.BuffTiming）
+    -- 增益持續時間的變色顏色／變色秒數：只有增益持續時間的低秒變色（I）用得到 ⇒ 開關關著就停用
+    -- （換色那一段的字色是「增益持續時間顏色」，低秒那一段的顏色不歸換色開關管：Text.BuffTiming）
     local function BuffLowOff(info) return not ReadThemed(info, "cooldownText.buffLowColor") end
 
     -- 圖示
@@ -572,7 +633,7 @@ function Specs.Themed(mode, key)
         -- 增益那一段的倒數換色：開關關著時沒有那一段可換色 ⇒ 兩列停用
         CS(TS("icon", "toggle", "icon.colorDuration", L["Recolor buff duration"], { disabled = AuraTimeOff })),
         CS(TS("icon", "color", "icon.durationColor", L["Buff duration color"], { disabled = DurationOff })),
-        -- 增益時間的變色顏色（icon.durationLowColor）搬到「文字」節增益時間那一組（J），資料路徑不變
+        -- 增益持續時間的變色顏色（icon.durationLowColor）搬到「文字」節增益持續時間那一組（J），資料路徑不變
         CS(TS("icon", "color", "icon.durationSwipeColor", L["Buff duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
@@ -601,24 +662,28 @@ function Specs.Themed(mode, key)
         NB(FontTS("text", "cooldownText.font")),
         NB(TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 })),
         NB(TS("text", "color", "cooldownText.color", L["Color"])),
-        NB(TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 })),
-        NB(Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text")),
-        -- 技能冷卻的低秒變色：開關與秒數是同一個欄位（0 ＝ 關）；增益時間不借這三列（J）
-        NB(TS("text", "toggle", "cooldownText.lowBelow", L["Cooldown color when low"], {
+        -- 從小數門檻開始分兩個子分頁「冷卻｜增益持續時間」（K）：同一組四列（小數門檻、低秒變色、變色顏色、變色秒數），
+        -- 標籤不帶前綴（子分頁已經講了是哪一種）。子分頁鈕那一列不歸任何 section（勾著跟隨也要點得到：
+        -- 增益持續時間那組的變色顏色歸「圖示」的跟隨管，文字跟隨著時照樣要切得過去），也切斷跟隨遮罩的那一段
+        NB(SubTabRow()),
+        -- 冷卻：低秒變色的開關與秒數是同一個欄位（0 ＝ 關）
+        NB(Sub("cooldown", TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }))),
+        NB(Sub("cooldown", Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text"))),
+        NB(Sub("cooldown", TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
             get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
             set = function(info, on) WriteThemed(info, "cooldownText.lowBelow", on and 5 or 0) end,
-        })),
-        NB(TS("text", "color", "cooldownText.lowColor", L["Cooldown low color"])),
-        NB(TS("text", "slider", "cooldownText.lowBelow", L["Cooldown low below (sec)"], { min = 0, max = 30, step = 1 })),
-        -- 增益時間（I／J）：自己的小數門檻、低秒變色開關、變色顏色、變色秒數，四列排在一起。長條類的條沒有
+        }))),
+        NB(Sub("cooldown", TS("text", "color", "cooldownText.lowColor", L["Low color"]))),
+        NB(Sub("cooldown", TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 }))),
+        -- 增益持續時間（I／J）：自己的小數門檻、低秒變色開關、變色顏色、變色秒數。長條類的條沒有
         -- （秒數是暴雪寫的／整數）。變色顏色的資料在 icon.durationLowColor（跟「圖示」那一節的跟隨與覆寫分組），
         -- 所以那一列的 section 是 icon：條頁勾著圖示跟隨時蓋的是圖示的遮罩
-        NB(TS("text", "slider", "cooldownText.buffDecimalsBelow", L["Buff duration decimals below"], { min = 0, max = 10, step = 1 })),
-        NB(TS("text", "toggle", "cooldownText.buffLowColor", L["Color buff duration when low"])),
-        NB(TS("icon", "color", "icon.durationLowColor", L["Buff duration low color"], { disabled = BuffLowOff })),
-        NB(TS("text", "slider", "cooldownText.buffLowBelow", L["Buff duration low below (sec)"],
-            { min = 1, max = 30, step = 1, disabled = BuffLowOff })),
-        NB(Note(L["Buff durations only: buff icons, the buff part of a spell's countdown, and aura slots. Cooldown countdowns use the cooldown rows above."], "text")),
+        NB(Sub("duration", TS("text", "slider", "cooldownText.buffDecimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }))),
+        NB(Sub("duration", Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text"))),
+        NB(Sub("duration", TS("text", "toggle", "cooldownText.buffLowColor", L["Color when low"]))),
+        NB(Sub("duration", TS("icon", "color", "icon.durationLowColor", L["Low color"], { disabled = BuffLowOff }))),
+        NB(Sub("duration", TS("text", "slider", "cooldownText.buffLowBelow", L["Low below (sec)"],
+            { min = 1, max = 30, step = 1, disabled = BuffLowOff }))),
         NB(Nested(L["Charges"], "text")),
         NB(FontTS("text", "chargeText.font")),
         NB(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
@@ -1373,12 +1438,14 @@ function Specs.BuildForm(parent, controls, ctx, width)
     ctx.form = form
 
     -- 跟隨遮罩的範圍：同一個 section 連續的那一段（中間夾的沒有 section 的列算進去）。
-    -- 以前是一節一個矩形（第一列到最後一列）；「文字」節裡夾了一列歸「圖示」管的（增益時間的變色顏色，J），
-    -- 一節一個矩形的話文字的遮罩會連它一起蓋 ⇒ 改成一段一段
+    -- 以前是一節一個矩形（第一列到最後一列）；「文字」節裡夾了一列歸「圖示」管的（增益持續時間的變色顏色，J），
+    -- 一節一個矩形的話文字的遮罩會連它一起蓋 ⇒ 改成一段一段。breakMask 的列（子分頁鈕，K）把那一段切斷、自己不蓋
     local runs, run = {}, nil
     for _, row in ipairs(rows) do
         local sec = row.spec.section
-        if sec then
+        if row.spec.breakMask then
+            run = nil
+        elseif sec then
             if run and run.sec == sec then
                 run.bottom = row.bottom
             else

@@ -842,7 +842,7 @@ local equipScan = {}                -- 類別名 → 掃一次的結果（infos 
 local slotBuffCache = {}           -- "slot|buffIndex" → { ids, sig }
 local NO_IDS = setmetatable({}, { __newindex = function() error("read-only") end })
 
--- catName：EquipSlotTracked（增益那幾筆，預設）｜EquipSlotEssential（冷卻那一筆：暴雪「使用增益時間」認的增益）
+-- catName：EquipSlotTracked（增益那幾筆，預設）｜EquipSlotEssential（冷卻那一筆：暴雪「使用增益持續時間」認的增益）
 local function ScanEquipBuffs(catName)
     catName = catName or "EquipSlotTracked"
     if equipScan[catName] then return equipScan[catName] end

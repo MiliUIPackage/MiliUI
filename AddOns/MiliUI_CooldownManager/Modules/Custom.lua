@@ -1351,8 +1351,8 @@ local function AuraStyle(rec, barKey, w, h, shape)
         stColor  = RGBA(stT.color, 1, 1, 1, 1),
         stPoint  = stT.point or "TOP", stX = tonumber(stT.x) or 0, stY = tonumber(stT.y) or 0,
     }
-    -- 小數與低秒變色（decimals／lowBelow／lowColor）：光環格家族倒的全是增益時間 ⇒ 照「增益時間」那一組
-    -- （I／J：cooldownText.buffDecimalsBelow／buffLowColor／buffLowBelow，預設 0／關／5；低秒色＝增益時間低秒顏色，沒有退倒數的低秒色），
+    -- 小數與低秒變色（decimals／lowBelow／lowColor）：光環格家族倒的全是增益持續時間 ⇒ 照「增益持續時間」那一組
+    -- （I／J：cooldownText.buffDecimalsBelow／buffLowColor／buffLowBelow，預設 0／關／5；低秒色＝增益持續時間低秒顏色，沒有退倒數的低秒色），
     -- 冷卻倒數的小數門檻與低秒變色不看。解法跟暴雪格同一支（Text.BuffTiming）
     do
         local d, l, lc = TX.BuffTiming(cdT, SS(barKey, id, "durationLowColor"))
@@ -1446,9 +1446,9 @@ local function AuraStyle(rec, barKey, w, h, shape)
         glowSig = table.concat({ gl.type, C(gl.color), gl.lines, gl.thickness, gl.frequency,
             string.format("%.2f,%.2f", w, h), gl.art and gl.art.sig or "-" }, ",")
     end
-    -- 飾品欄的增益疊層（rec.overlayOf）：整段都是增益時間 ⇒ 套「增益那一段」的設定（跟暴雪冷卻格倒增益時同一組，
+    -- 飾品欄的增益疊層（rec.overlayOf）：整段都是增益持續時間 ⇒ 套「增益那一段」的設定（跟暴雪冷卻格倒增益時同一組，
     -- Core/Decorate.lua 的 PhaseColors）：換色開著 ⇒ 倒數字色＝durationColor、轉圈色＝durationSwipeColor
-    -- （小數與低秒變色上面已照「增益時間」那一組解好）。隱藏倒數照 hideCooldownText（上面）。
+    -- （小數與低秒變色上面已照「增益持續時間」那一組解好）。隱藏倒數照 hideCooldownText（上面）。
     -- 這幾個值本來就在簽章裡，另外加一個 "ov" 記號（同一個法術組的光環格與疊層不共用容器）
     local ovSig = "-"
     if rec.overlayOf then
