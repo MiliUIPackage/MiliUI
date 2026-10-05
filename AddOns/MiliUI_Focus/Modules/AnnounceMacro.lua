@@ -26,6 +26,9 @@
 --   * 11.0.2 起 macrotext 裡的 /click 叫不動另一顆巨集按鈕；
 --   * 宣告那顆巨集也不能直接塞專注那幾行——喇叭鈕本身在滑鼠底下，
 --     `/clearfocus [@mouseover,noexists]` 會把專注目標清掉。
+-- 隊友那串只在「脫戰＋手動點喇叭」時帶（使用者指定）：戰鬥中與自動宣告一律只喊
+-- 自己的。巨集書戰鬥中改不了，所以進戰那一刻（PLAYER_REGEN_DISABLED，鎖定還沒
+-- 生效）把宣告巨集先改成不帶隊友的版本，脫戰再改回來。
 -- 宣告前一行 /stopmacro 擋掉「滑鼠下沒有活著的敵人」（快捷鍵對空氣按＝清專注、
 -- 對隊友設專注），只有真的盯上一隻怪才喊。
 ------------------------------------------------------------
@@ -63,6 +66,14 @@ local lastBody = nil     -- 最後一次確認寫進巨集的內容
 local markState    = "off"
 local markLastBody = nil
 local writing  = false   -- EditMacro 會派 UPDATE_MACROS，擋掉重入
+-- 自己記的戰鬥旗標：PLAYER_REGEN_DISABLED 派送當下 InCombatLockdown() 還是 false，
+-- 那一刻要當成戰鬥中組內容（不帶隊友）、但還寫得進巨集
+local inCombat = false
+
+-- 戰鬥中（含剛進戰那一刻）宣告不帶隊友
+function AM.InCombat()
+    return inCombat or InCombatLockdown()
+end
 
 ----------------------------------------------------------------------
 -- 頻道：chatType 給 SendChatMessage 退路用、slash 給巨集用
@@ -92,8 +103,9 @@ end
 --   forChat  = true 用 {rtN}（送進頻道由客戶端轉圖示）；
 --              false 用 |T...|t 材質跳脫（print / tooltip 本地顯示用，{rtN} 在本地不會轉）
 --   maxBytes = 位元組上限（巨集用）；隊友那串放不下就從後面砍，砍到剩主句為止
+--   noPeers  = true 不帶隊友那串；戰鬥中不管傳什麼都不帶
 -- 回傳 訊息 或 nil, 錯誤說明
-function AM.BuildMessage(forChat, maxBytes)
+function AM.BuildMessage(forChat, maxBytes, noPeers)
     local index = ns.db and ns.db.focus.markIndex or 0
     if index < 1 or index > 8 then
         return nil, L["Pick a marker icon first (click the icon on the left)."]
@@ -103,8 +115,10 @@ function AM.BuildMessage(forChat, maxBytes)
     local base = (text:gsub("{icon}", iconToken))
 
     -- 帶上隊友的標記，隊友一眼就看得出誰盯哪一隻。只列有設標記的。
+    -- 只在脫戰手動宣告時帶：戰鬥中要短、自動宣告每次設專注目標都喊，帶了就洗版
     local parts, truncated = {}, false
-    for _, p in ipairs(ns.Sync.GetPeers()) do
+    local peers = (noPeers or AM.InCombat()) and {} or ns.Sync.GetPeers()
+    for _, p in ipairs(peers) do
         if p.index >= 1 and p.index <= 8 then
             if #parts >= MAX_PEERS then truncated = true; break end
             local token = forChat and ("{rt" .. p.index .. "}") or MarkIcon(p.index, 16)
@@ -186,7 +200,7 @@ end
 -- 第二顆巨集的內容：專注／標記那幾行（跟 Shift+點擊的 macrotext 同一份）＋擋線＋宣告
 local function BuildMarkBody(slash)
     local prefix = ns.Focuser.GetMacroForMarkIndex(nil) .. "\n" .. STOP_LINE .. "\n" .. slash .. " "
-    local msg = AM.BuildMessage(true, MACRO_BYTES - #prefix)
+    local msg = AM.BuildMessage(true, MACRO_BYTES - #prefix, true)
     return msg and (prefix .. msg) or nil
 end
 
@@ -269,8 +283,14 @@ function AM.IsMarkMacroUsable()  return markState == "ready" end
 ----------------------------------------------------------------------
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
-    if event == "PLAYER_REGEN_ENABLED" then
-        if pending then AM.Refresh() end
+    if event == "PLAYER_REGEN_DISABLED" then
+        -- 鎖定還沒生效的最後一刻：宣告巨集換成不帶隊友的版本
+        inCombat = true
+        AM.Refresh()
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        -- 一律重算：戰鬥中的變動要補寫，隊友那串也要加回來
+        inCombat = false
+        AM.Refresh()
     else
         -- PLAYER_ENTERING_WORLD：登入／重載後對一次
         -- GROUP_ROSTER_UPDATE：頻道可能變（隊伍↔團隊↔副本隊伍↔沒組隊）
@@ -283,6 +303,7 @@ end)
 ns.RegisterCallback("Init", "announceMacro", function()
     ev:RegisterEvent("PLAYER_ENTERING_WORLD")
     ev:RegisterEvent("GROUP_ROSTER_UPDATE")
+    ev:RegisterEvent("PLAYER_REGEN_DISABLED")
     ev:RegisterEvent("PLAYER_REGEN_ENABLED")
     ev:RegisterEvent("UPDATE_MACROS")
     AM.Refresh()
