@@ -260,6 +260,21 @@ state.now = 202.1
 S.OnReady(rec)
 eq("讀取畫面結束 2 秒後響", #plays, 5)
 
+-- 不屬於任何一格的音效（虛空化身的門檻規則）：同一個出口，key 由呼叫端給
+state.now = 210
+check("PlayNamed 響", S.PlayNamed("Bell", "meta:time:1"))
+eq("PlayNamed 播的是 LSM 路徑", plays[6] and plays[6].path, media.Bell)
+state.now = 210.5
+check("PlayNamed 同一個 key 節流", not S.PlayNamed("Bell", "meta:time:1"))
+check("PlayNamed 別的 key 照響", S.PlayNamed("Bell", "meta:stars:1"))
+eq("PlayNamed 記在最近一次", S.last and S.last.why, "meta")
+p.theme.sound.enabled = false
+state.now = 220
+check("PlayNamed 看總開關", not S.PlayNamed("Bell", "meta:time:2"))
+p.theme.sound.enabled = true
+check("PlayNamed 沒有名字不響", not S.PlayNamed(nil, "meta:time:3"))
+eq("PlayNamed 一共響兩次", #plays, 7)
+
 ------------------------------------------------------------
 -- 7. 增益 item：暴雪警示後掛勾 → 下一幀合併
 ------------------------------------------------------------

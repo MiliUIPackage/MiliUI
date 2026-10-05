@@ -9,6 +9,7 @@
 --   ns.Sound.HookItem(item, rec)      Viewers 第一次看到 item 時叫（只掛增益兩條）
 --   ns.Sound.RequestAuraSync()        光環格（含飾品欄的增益疊層）放好／收起、暴雪增益 item 換了身分、設定變了：
 --                                      下一幀對一次 AddAuraSound 登記
+--   ns.Sound.PlayNamed(name, key)     不屬於任何一格的音效（虛空化身的門檻規則）：同 S.Play 的總開關／靜音／節流
 --   ns.Sound.Preview(name)            設定介面「試聽」（不看總開關、不節流）
 --   ns.Sound.Path(name)               LSM 音效名或自訂語音代號 → 路徑字串或檔案編號（查不到 nil）
 --   ns.Sound.DisplayName(name)        下拉選單上的字（自訂語音是玩家取的名字）
@@ -348,6 +349,12 @@ function S.Play(name, key, why)
         return true
     end
     return false
+end
+
+-- 不屬於任何一格的音效（資源條：虛空化身計時／崩陷之星的門檻規則，Modules/DevourerMeta.lua）：
+-- 跟逐法術那幾種同一個出口（總開關、聲道、讀取畫面靜音、節流），key 由呼叫端給（"meta:time:<規則序號>"…）
+function S.PlayNamed(name, key)
+    return S.Play(name, key, "meta")
 end
 
 function S.Preview(name)

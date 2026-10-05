@@ -376,6 +376,9 @@ local function SoundItems()
     return items
 end
 
+-- 虛空化身的門檻規則（Options/MetaRules.lua）也用這張：跟逐法術音效同一個下拉來源
+ns.SpellPopover.SoundItems = SoundItems
+
 local function NoSounds() return #ns.Media.List("sound") == 0 and #ns.Sound.CustomList() == 0 end
 
 -- 層數門檻只給暴雪的增益（kind 只有自訂項目才有，暴雪的是 nil）

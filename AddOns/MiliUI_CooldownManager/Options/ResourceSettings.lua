@@ -14,8 +14,12 @@
 --          醉仙緩勁與血量也有數字格式（跟法力同一個欄位，說明列寫明），符文、秘法靈魂的數字
 --   顏色   主色＋各資源的額外色、醉仙緩勁的門檻、氣漩摺疊、征戰聖擊、血量的職業色／門檻換色……
 --          （原本資源條頁「顏色與條件」那一段，整段搬來）＋條件規則（只這一種資源）
+--   虛空化身  只有噬靈魂碎片（DevourerFragments，專精 1480）：節標題是法術名（1217607），
+--          W.CreateTabCard 兩個子分頁「計時｜崩陷之星」，兩頁控件一樣（只差預設值、計時的格式、星的前綴），
+--          讀寫 resources.metaTime.*／metaStars.*（Modules/DevourerMeta.lua）。子分頁照 Specs 的做法：
+--          每個子分頁一張表單（spec.subTab ＋ Specs.FilterSubTab），目前選哪個存在 metaTab、進表單簽章
 --
--- 一次只開一個；表單照「形狀」快取（key、條件規則的結構、氣漩摺不摺、征戰聖擊在不在追蹤量條）：
+-- 一次只開一個；表單照「形狀」快取（key、條件規則的結構、氣漩摺不摺、征戰聖擊在不在追蹤量條、虛空化身的子分頁）：
 -- frame 刪不掉，形狀一樣就重用。「跟隨」切換不換表單（遮罩是即時判的）。
 -- 非強制回應的小視窗（同逐法術面板）：DIALOG 300，彈窗（血量門檻、確認）在 FULLSCREEN_DIALOG 蓋在它上面。
 ------------------------------------------------------------
@@ -291,6 +295,205 @@ local function AppendColors(add, key, info)
     end
 end
 
+------------------------------------------------------------
+-- 虛空化身（噬靈魂碎片列上的計時＋崩陷之星計數，Modules/DevourerMeta.lua）
+------------------------------------------------------------
+local metaTab = "time"          -- 目前的子分頁（time｜stars）；進表單簽章
+
+local META_TABS = {
+    { id = "time",  label = L["Timer"] },
+    { id = "stars", label = L["Collapsing Star"] },     -- 建表單時換成法術名（MetaTabRow）
+}
+
+local SIDE_ITEMS = {
+    { text = L["Left side"],  value = "LEFT" },
+    { text = L["Right side"], value = "RIGHT" },
+}
+
+local FORMAT_ITEMS = {
+    { text = "0:23", value = "mss" },
+    { text = "23",   value = "sec" },
+}
+
+local PREFIX_ITEMS = {
+    { text = L["None"],       value = "none" },
+    { text = L["Spell icon"], value = "icon" },
+    { text = L["Text"],       value = "text" },
+}
+
+-- 卡片左緣照卡片裡最長的標籤外推（同 Specs 的 SubTabRow；標籤欄靠右對齊、長度依語系）
+local META_CARD_TOP, META_CARD_PAD_X, META_CARD_CTRL_W = 4, 10, 230
+local META_LABELS = { "Show", "Position", "X offset", "Y offset", "Font", "Font size", "Outline", "Color",
+                      "Format", "Prefix", "Prefix text", "Keep after it ends", "Keep for (sec)", "Preview value" }
+
+local function MetaTabRow()
+    return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
+        local DM = ns.DevourerMeta
+        local tabs = {
+            { id = "time",  label = META_TABS[1].label },
+            { id = "stars", label = DM.StarName() },
+        }
+        local tc = W.CreateTabCard(parent, {
+            tabs = tabs, tabHeight = 20, tabMinWidth = 56,
+            selected = ctx.subTab,
+            onSelect = function(id)
+                if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end
+            end,
+        })
+        local measure = parent:CreateFontString(nil, "OVERLAY")
+        measure:SetFontObject(W.fontNormal)
+        local labelW = 0
+        for _, k in ipairs(META_LABELS) do
+            measure:SetText(L[k])
+            labelW = math.max(labelW, math.ceil(measure:GetStringWidth() or 0))
+        end
+        measure:Hide()
+        labelW = math.min(labelW, LABEL_W)
+        local left = math.max(0, x - CTRL_GAP - labelW - META_CARD_PAD_X)
+        local right = math.min(x + width, x + META_CARD_CTRL_W + META_CARD_PAD_X)
+        local h = tc:Place(left, y - META_CARD_TOP, right - left)
+        ctx.tabCard = tc
+        ctx.tabCardX = { left = left, right = right }   -- 卡片裡停用列的遮罩只蓋卡片內（Specs.BuildForm）
+        local function Paint() tc:Select(ctx.subTab or "time") end
+        Paint()
+        return META_CARD_TOP + h + W.TAB_CARD_PAD, Paint
+    end }
+end
+
+-- 顏色的代理表：讀照有效值（存的或預設），第一次寫才把值複製進 metaTime／metaStars（色票拿到表就直接寫 r/g/b）
+local colorProxies = {}
+local function MetaColorProxy(which)
+    if colorProxies[which] then return colorProxies[which] end
+    local DM = ns.DevourerMeta
+    local proxy = setmetatable({}, {
+        __index = function(_, k)
+            local c = DM.Get(Cfg(), which, "color")
+            return c and c[k]
+        end,
+        __newindex = function(_, k, v)
+            local c = Cfg()
+            if not c then return end
+            local f = DM.FIELD[which]
+            if type(c[f]) ~= "table" then c[f] = {} end
+            local own = c[f]
+            if not ns.ResCond.ValidColor(own.color) then
+                local d = DM.Get(c, which, "color")
+                own.color = { r = d.r, g = d.g, b = d.b, a = tonumber(d.a) or 1 }
+            end
+            own.color[k] = v
+        end,
+    })
+    colorProxies[which] = proxy
+    return proxy
+end
+
+-- 「跟隨這一列的數字」的下拉值：沒存 ＝ INHERIT；寫 INHERIT 時清成 nil
+local function FollowGet(which, field)
+    local own = ns.DevourerMeta.Own(Cfg(), which)
+    local v = own and own[field]
+    if type(v) ~= "string" or v == ns.Media.INHERIT then return ns.Media.INHERIT end
+    if field == "font" and v == "" then return ns.Media.INHERIT end
+    return v
+end
+
+local function MetaFontItems()
+    local items = ns.Specs.FontItems()
+    table.insert(items, 1, { text = L["Follow row number"], value = ns.Media.INHERIT })
+    return items
+end
+
+local function MetaOutlineItems()
+    local items = { { text = L["Follow row number"], value = ns.Media.INHERIT } }
+    for _, it in ipairs(ns.Specs.OUTLINE_ITEMS) do items[#items + 1] = it end
+    return items
+end
+
+-- 門檻那一列：按鈕寫著目前筆數，點開是編輯器（Options/MetaRules.lua）
+local function MetaRulesRow(which)
+    return { type = "custom", label = "", h = 30, noReset = true, subTab = which, build = function(parent, x, y)
+        local btn = W.CreateButton(parent, "", "normal", 140, 22)
+        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+        local function UpdateText()
+            btn:SetText(L["Thresholds (%d)"]:format(ns.MetaRules.Count(which)))
+            W.FitButton(btn, 140, 22)
+        end
+        btn:SetScript("OnClick", function() ns.MetaRules.Open(which, UpdateText) end)
+        UpdateText()
+        return 30, UpdateText
+    end }
+end
+
+-- 虛空化身一段的一列：寫 metaTime.<field>／metaStars.<field>，只進那個子分頁的表單；
+-- 「顯示」以外的列在那一段關著時停用
+local function MS(kind, which, field, label, extra)
+    local DM = ns.DevourerMeta
+    local s = BS(kind, DM.FIELD[which] .. "." .. field, label, extra)
+    s.subTab = which
+    if not s.get then s.get = function() return DM.Get(Cfg(), which, field) end end
+    if field ~= "enabled" and s.disabled == nil then
+        s.disabled = function() return not DM.Get(Cfg(), which, "enabled") end
+    end
+    return s
+end
+
+local function AppendMetaTab(add, key, which)
+    local DM = ns.DevourerMeta
+    local path = DM.FIELD[which] .. "."
+    local function Off() return not DM.Get(Cfg(), which, "enabled") end
+    local function Clear(field)
+        return function(_, v)
+            ns.DB.SetPath(Cfg(), path .. field, (v ~= ns.Media.INHERIT) and v or nil)
+        end
+    end
+    add(MS("toggle", which, "enabled", L["Show"]))
+    if which == "time" then
+        add({ type = "text", subTab = which, label = L["Time since you entered Void Metamorphosis. It has no fixed length, so this counts up instead of counting down."] })
+    else
+        add({ type = "text", subTab = which, label = L["How many times you cast Collapsing Star during this Void Metamorphosis; it resets when you enter it."] })
+    end
+    add(MS("dropdown", which, "side", L["Position"], { items = SIDE_ITEMS }))
+    add(MS("slider", which, "x", L["X offset"], { min = DM.OFFSET_MIN, max = DM.OFFSET_MAX, step = 1 }))
+    add(MS("slider", which, "y", L["Y offset"], { min = DM.OFFSET_MIN, max = DM.OFFSET_MAX, step = 1 }))
+    add(MS("dropdown", which, "font", L["Font"], { items = MetaFontItems,
+        get = function() return FollowGet(which, "font") end, set = Clear("font") }))
+    -- 字級沒存時顯示這一列數字的字級（跟隨）；右鍵重設回到跟隨
+    add(MS("slider", which, "size", L["Font size"], { min = DM.SIZE_MIN, max = DM.SIZE_MAX, step = 1,
+        get = function()
+            local own = DM.Get(Cfg(), which, "size")
+            if own then return own end
+            local st = ns.Resources.StyleFor(Cfg(), key)
+            return tonumber(type(st) == "table" and st.textSize) or 10
+        end }))
+    add(MS("dropdown", which, "outline", L["Outline"], { items = MetaOutlineItems,
+        get = function() return FollowGet(which, "outline") end, set = Clear("outline") }))
+    add(MS("color", which, "color", L["Color"], { hasAlpha = true, get = function() return MetaColorProxy(which) end }))
+    if which == "time" then
+        add(MS("dropdown", which, "format", L["Format"], { items = FORMAT_ITEMS }))
+    else
+        add(MS("dropdown", which, "prefix", L["Prefix"], { items = PREFIX_ITEMS }))
+        add(MS("input", which, "prefixText", L["Prefix text"], {
+            disabled = function() return Off() or DM.Get(Cfg(), which, "prefix") ~= "text" end }))
+    end
+    add(MS("toggle", which, "hold", L["Keep after it ends"]))
+    add(MS("slider", which, "holdSec", L["Keep for (sec)"], { min = DM.HOLD_MIN, max = DM.HOLD_MAX, step = 1,
+        disabled = function() return Off() or not DM.Get(Cfg(), which, "hold") end }))
+    add(MetaRulesRow(which))
+    -- 預覽值：只影響設定視窗開著／編輯模式中的畫面，不進 SV
+    add(MS("slider", which, "preview", L["Preview value"], {
+        min = 0, max = (which == "time") and 120 or 20, step = 1, noReset = true,
+        get = function() return DM.preview[which] end,
+        set = function(_, v) DM.preview[which] = math.floor((tonumber(v) or 0) + 0.5) end,
+    }))
+    add({ type = "text", subTab = which, label = L["Shown on the bar while these settings are open or in Edit Mode, when you aren't in Void Metamorphosis. Thresholds apply to it; sounds don't play."] })
+end
+
+local function AppendMeta(add, key)
+    add({ type = "header", label = ns.DevourerMeta.MetaName() })
+    add(MetaTabRow())
+    AppendMetaTab(add, key, "time")
+    AppendMetaTab(add, key, "stars")
+end
+
 local function Controls(key)
     local R = ns.Resources
     local info = R.Info(key) or {}
@@ -321,6 +524,8 @@ local function Controls(key)
     AppendColors(add, key, info)
     -- 條件規則只給 Lua 讀得到值的列（引擎寫的、血量沒有值可比）；只這一種資源，編輯器不出「編輯對象」下拉
     if R.SupportsConditions(key) then ns.ResourceConditionsUI.Append(list, { key }) end
+    -- 噬靈魂碎片：虛空化身計時＋崩陷之星計數（兩個子分頁）
+    if info.meta and ns.DevourerMeta then AppendMeta(add, key) end
     return list
 end
 
@@ -342,6 +547,8 @@ local function Signature(key)
         (info.foldable and cfg.maelstromFold) and "f" or "-",
         -- 征戰聖擊不在追蹤量條裡時多一行紅字
         info.crusading and R.CrusadingTracked() or "-",
+        -- 虛空化身的子分頁：每個子分頁一張表單
+        info.meta and metaTab or "-",
     }, "|")
 end
 
@@ -394,7 +601,18 @@ ShowForm = function(reset)
     local form = forms[sig]
     if not form then
         local ctx = ns.Specs.MakeCtx({ mode = "panel", key = KEY }, OnApply)
-        form = ns.Specs.BuildForm(scroll.child, Controls(cur), ctx, FORM_W)
+        -- 子分頁（虛空化身的計時｜崩陷之星）：只留目前那個子分頁的列；沒有子分頁的資源原樣
+        local specs = Controls(cur)
+        local info = ns.Resources.Info(cur) or {}
+        if info.meta then
+            specs = ns.Specs.FilterSubTab(specs, metaTab)
+            ctx.subTab = metaTab
+            ctx.onSubTab = function(id)
+                metaTab = id
+                ShowForm(false)          -- 換子分頁：捲動位置與上緣不動
+            end
+        end
+        form = ns.Specs.BuildForm(scroll.child, specs, ctx, FORM_W)
         forms[sig] = form
     end
     for _, fm in pairs(forms) do fm.content:SetShown(fm == form) end
@@ -444,6 +662,7 @@ local function Build()
     -- 血量門檻的彈窗跟著這個視窗走（它改的是這一種資源）
     frame:HookScript("OnHide", function()
         if ns.HealthThresholds and ns.HealthThresholds.Close then ns.HealthThresholds.Close() end
+        if ns.MetaRules and ns.MetaRules.Close then ns.MetaRules.Close() end
     end)
 
     ns.RegisterCallback("OptionsHidden", "resourcesettings", function() frame:Hide() end)
