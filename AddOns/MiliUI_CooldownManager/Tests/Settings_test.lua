@@ -189,7 +189,7 @@ DB.SetOverride(11, "procGlow", nil)
 eq("SetOverride nil 清到空 ⇒ 拿掉", sp.overrides[11], nil)
 eq("沒覆寫退回條層", ns.SpellSetting("essential", 11, "procGlow"), true)
 
--- 不在時顯示占位（F7，暴雪的增益）：沒有條層值（SPELL_CONST false）、自成一組 "slot"
+-- 無增益時保留空位（F7，暴雪的增益）：沒有條層值（SPELL_CONST false）、自成一組 "slot"
 eq("placeholder：SPELL_CONST ＝ false", DB.SPELL_CONST.placeholder, false)
 eq("placeholder：沒有條層對應", DB.SPELL_FALLBACK.placeholder, nil)
 eq("placeholder：覆寫分組 slot", DB.OVERRIDE_GROUP.placeholder, "slot")

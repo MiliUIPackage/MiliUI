@@ -170,7 +170,7 @@ eqList("occ 全真 ＝ 照順序截", res.out.buffs, { 31, 32 })
 res = O.Resolve(KEYS, baseOf, cfgOf, function() return nil end)
 eqList("occ 回 nil 當佔位", res.out.buffs, { 31, 32 })
 
--- 逐法術「不在時顯示占位」（F7）：不在的增益勾了占位 ⇒ 佔一格、算顆數（Bars.Occupancy 照 Layout.AuraSlot 判）
+-- 逐法術「無增益時保留空位」（F7）：不在的增益勾了占位 ⇒ 佔一格、算顆數（Bars.Occupancy 照 Layout.AuraSlot 判）
 do
     local ph = { [31] = true }        -- 31 不在但勾了占位；33 不在也沒勾
     res = O.Resolve(KEYS, baseOf, cfgOf, function(_, id)

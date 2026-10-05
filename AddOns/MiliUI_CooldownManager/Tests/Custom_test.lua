@@ -599,6 +599,12 @@ do
     end
 
     -- 光環：長條的持有框＋容器；initializeFrame 走長條版
+    -- 長條的占位跟暴雪增益長條同一套：「空位樣式」是 bar 才畫（Custom.WantPlaceholder）
+    do
+        local bt = DB.BarTable("buffbars")
+        bt.layout = bt.layout or {}
+        bt.layout.emptyStyle = "bar"
+    end
     CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
     local barHolder = arec.frame
     check("光環在長條上：持有框（有容器池）", barHolder and type(barHolder.containers) == "table")
@@ -1708,10 +1714,10 @@ do
         CU.Place(ar, bc, R, "buffs", 102)
         eq("搬回圖示：同一顆持有框", ar.frame, hd)
 
-        -- (k) 占位關掉：占位框收起來（增益不在時什麼都沒有，跟米利一致）
+        -- (k) 存檔的占位關掉也照畫：有光環格的條固定格位一定被強制，不在的一律保留占位（跟暴雪增益同一套）
         ar.entry.placeholder = false
         CU.Place(ar, bc, R, "buffs", 103)
-        eq("占位關：占位框收起來", ph.frame.shown, false)
+        eq("占位關：固定格位照樣畫占位", ph.frame.shown, true)
         ar.entry.placeholder = true
 
         -- (l) 飾品冷卻格的疊層：不建探針；冷卻格是 Masque 在畫 ⇒ 照它的 Icon 讀形狀、不畫米利邊也不畫皮外框

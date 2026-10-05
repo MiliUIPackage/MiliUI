@@ -1915,6 +1915,17 @@ end
 -- 光環長條的占位：去飽和圖示＋空條（底色）＋灰名字，畫在持有框上（按鈕出現自然蓋住）。
 -- 排法照 Decorate.ApplyBarGeometry（圖示一邊 h×h、間距、其餘是條身）；排法變了才重排，重排走 ns.Write
 -- （持有框整條鏈是保護框，戰鬥中記帳）
+-- 光環格的占位畫不畫：跟暴雪增益在固定格位條上同一套（Core/Bars.lua：固定格位開著 ⇒ 不在的增益一律畫占位；
+-- 長條類另看「空位樣式」，不是 "bar" 就只留空位不畫）。有光環格的條固定格位一定被強制打開，所以圖示類一律畫——
+-- 存檔的 e.placeholder 已經不影響畫面（設定頁那一列勾著＋停用、寫原因）
+local function WantPlaceholder(barKey, shape)
+    if shape ~= "bars" then return true end
+    local b = ns.DB and ns.DB.BarTable and ns.DB.BarTable(barKey)
+    local layout = type(b) == "table" and type(b.layout) == "table" and b.layout or {}
+    return layout.emptyStyle == "bar"
+end
+CU.WantPlaceholder = WantPlaceholder  -- 測試用
+
 local function UpdateBarPlaceholder(rec, barKey, w, h)
     local hd = rec.frame
     local e = rec.entry
@@ -1922,7 +1933,7 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
         if hd.phBG then hd.phBG:Hide(); hd.phIcon:Hide(); hd.phName:Hide() end
         hd.phSig = nil
     end
-    if not (e and e.placeholder) then HideAll() return end
+    if not (e and WantPlaceholder(barKey, "bars")) then HideAll() return end
     local bar = ns.Setting(barKey, "bar")
     bar = type(bar) == "table" and bar or {}
     local side = bar.iconSide
@@ -2138,7 +2149,7 @@ local function UpdatePlaceholder(rec, c, r, barKey)
     local hd = rec.frame
     local e = rec.entry
     local look = hd.ph
-    if not (e and e.placeholder) then
+    if not (e and WantPlaceholder(barKey, "icons")) then
         if look then look.frame:Hide() end
         return
     end

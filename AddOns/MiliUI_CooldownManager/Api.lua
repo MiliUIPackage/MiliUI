@@ -231,7 +231,7 @@ local function Debug(silent)
                 end
             end
         end
-        -- 逐法術「不在時顯示占位」（F7，暴雪的增益）：哪幾條有、固定格位開著時這個勾不起作用
+        -- 逐法術「無增益時保留空位」（F7，暴雪的增益）：哪幾條有、固定格位開著時這個勾不起作用
         for _, key in ipairs(C.BarKeys and C.BarKeys() or {}) do
             local n = 0
             for _, id in ipairs(C.Bar(key)) do

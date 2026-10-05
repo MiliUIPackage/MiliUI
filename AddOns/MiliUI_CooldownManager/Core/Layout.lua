@@ -424,7 +424,7 @@ end
 --   mode = Layout.AuraSlot(shown, fixed, placeholder)
 --     shown        這一刻在（AuraPresent）
 --     fixed        條的固定格位開著／被強制（光環格、可點擊）
---     placeholder  這一招逐法術勾了「不在時顯示占位」（ns.SpellSetting(…, "placeholder") == true）
+--     placeholder  這一招逐法術勾了「無增益時保留空位」（ns.SpellSetting(…, "placeholder") == true）
 --   → "item"         放 item 本身
 --     "placeholder"  不在、但格子照留（畫占位；長條類照 layout.emptyStyle）
 --     nil            收合：不佔格、不認領

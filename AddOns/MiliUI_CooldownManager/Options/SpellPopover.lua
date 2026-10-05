@@ -17,8 +17,8 @@
 --   * 放在長條類的條上的冷卻類（法術／物品／裝備欄）：觸發／就緒發光與冷卻狀態那幾列藏起來（長條不畫發光、
 --     冷卻狀態不套長條；判準跟 Decorate 的 isBar 同一個：這一條的 kind ＝ bars）。
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
---     多一列「不在時顯示占位」；沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
---   * 暴雪的增益（增益圖示／增益長條）也有同一列「不在時顯示占位」（逐法術覆寫 placeholder，F7）：下一列灰字；
+--     多一列「無增益時保留空位」；沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
+--   * 暴雪的增益（增益圖示／增益長條）也有同一列「無增益時保留空位」（逐法術覆寫 placeholder，F7）：下一列灰字；
 --     條的固定格位開著（或被強制）時停用、灰字換成原因；右鍵清。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
 --   * 專精層的多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
@@ -308,7 +308,7 @@ local function BlizzAuraBar(kind, class)
 end
 
 -- 面板開在的這一條：固定格位開著或被強制（光環格、可點擊；跟 Core/Bars.lua 的 fixed 同一個判準）。
--- 成立時暴雪增益的「不在時顯示占位」不起作用（每一格本來就保留）
+-- 成立時暴雪增益的「無增益時保留空位」不起作用（每一格本來就保留）
 local function BarFixedSlots()
     if not cur then return false end
     local b = ns.DB.BarTable(cur.key)
@@ -1330,12 +1330,12 @@ local function Build()
     end
     AddRow(nsEntry)
 
-    -- 不在時顯示占位：
+    -- 無增益時保留空位：
     --   光環格 → 存在那一筆自訂項目上（e.placeholder），不是覆寫
     --   暴雪的增益圖示／增益長條 → 逐法術覆寫 overrides[id].placeholder（F7，Core/Bars.lua 的 Relayout）；
     --     條的固定格位開著（或被強制）時每一格本來就保留 ⇒ 停用＋灰字寫原因；右鍵標籤清
     buildTab = "general"
-    local pr = NewRow(L["Placeholder when missing"], function(kind, class)
+    local pr = NewRow(L["Keep the slot while the buff is missing"], function(kind, class)
         return IsAura(kind) or BlizzAura(kind, class)
     end)
     local pcb = W.CreateCheckButton(pr, nil, function(on)
@@ -1377,7 +1377,7 @@ local function Build()
     phTip:SetText(L["While this buff isn't up, it keeps its place, so the others don't shift."])
     local phH = 2 + math.max(14, phTip:GetStringHeight() or 0) + 6
     phRow:SetSize(ROW_W, phH)
-    -- 自訂光環格（含飾品欄增益）也有同一列「不在時顯示占位」（存在那一筆上）：灰字換成它的說法（Refresh 換）
+    -- 自訂光環格（含飾品欄增益）也有同一列「無增益時保留空位」（存在那一筆上）：灰字換成它的說法（Refresh 換）
     local phEntry = { frame = phRow, h = phH, when = function(kind, class) return BlizzAura(kind, class) or kind == "aura" end }
     phEntry.remeasure = function()
         local sh2 = phTip:GetStringHeight()
@@ -1599,10 +1599,10 @@ function Pop.Refresh()
         and L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."]
         or L["Settings here apply to this spell in your current specialization. Right-click a row to follow the bar again."])
     frame.tipEntry.remeasure()
-    -- 暴雪增益的「不在時顯示占位」：灰字照固定格位換（換字之後重量，Layout 才排得對）
+    -- 暴雪增益的「無增益時保留空位」：灰字照固定格位換（換字之後重量，Layout 才排得對）
     local phFixed = kind == nil and class == "aura" and BarFixedSlots()
     if kind == "aura" then
-        frame.placeholderTip:SetText(L["While the buff isn't up, a dimmed icon holds its slot. Unchecked, the slot is left blank."])
+        frame.placeholderTip:SetText(L["Every slot on this bar is already kept: “Keep empty slots for missing buffs” is on (or forced on)."])
         frame.placeholderTipEntry.remeasure()
     elseif kind == nil and class == "aura" then
         frame.placeholderTip:SetText(phFixed
@@ -1807,10 +1807,10 @@ function Pop.Refresh()
         r.listen:SetEnabled(v ~= false)
     end
     if kind == "aura" then
-        local e = ns.DB.CustomEntry(id)
-        frame.placeholderCB:SetChecked(e and e.placeholder and true or false)
-        frame.placeholderCB:SetEnabled(true)
-        frame.placeholderCB:SetAlpha(1)
+        -- 光環格所在的條固定格位一定被強制打開 ⇒ 不在時一律保留占位（Modules/Custom.lua 的 WantPlaceholder）：勾著＋停用
+        frame.placeholderCB:SetChecked(true)
+        frame.placeholderCB:SetEnabled(false)
+        frame.placeholderCB:SetAlpha(0.4)
     elseif kind == nil and class == "aura" then
         -- 固定格位開著：勾選框顯示「有保留」（勾著）並停用；存的覆寫不動，條件解除就回來
         frame.placeholderCB:SetChecked(phFixed or Override("placeholder") == true)

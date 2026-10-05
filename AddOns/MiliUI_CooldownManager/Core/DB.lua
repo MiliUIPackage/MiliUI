@@ -1007,7 +1007,7 @@ local SPELL_CONST = {
     -- 以增益取代時，頂著這一格的增益用這一招的增益時間樣式（colorDuration／三個顏色，跟這一招自己先倒增益那段同一套）；
     -- false ＝ 照增益原本的倒數樣式（不換色）
     replaceAuraStyle = true,
-    -- 不在時顯示占位（暴雪的增益圖示／增益長條的 item 才有，Core/Bars.lua 的 Relayout／Occupancy，F7）：
+    -- 無增益時保留空位（暴雪的增益圖示／增益長條的 item 才有，Core/Bars.lua 的 Relayout／Occupancy，F7）：
     -- true ＝ 增益不在時那一格照留、畫占位（長條類照條的 layout.emptyStyle），跟固定格位同一條路；false ＝ 收合。
     -- 條的固定格位開著／被強制時每一格本來就保留，這個勾不起作用。（光環格的占位存在那一筆自訂項目上，不是這個欄位）
     placeholder      = false,
@@ -1304,7 +1304,7 @@ DB.OVERRIDE_GROUP = {
     readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound",
     -- 天賦條件（Core/Catalog.lua，{ spellID, mode }）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
     talentCond = "talent",
-    -- 不在時顯示占位（F7）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
+    -- 無增益時保留空位（F7）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
     placeholder = "slot",
 }
 

@@ -497,7 +497,7 @@ B.AuraPresent = AuraPresent
 
 -- 溢出的佔位判斷（Catalog.SetOccupancy；每輪 Flush 建好索引後換一支）：這一顆在來源條上佔不佔一格。
 -- 跟 Relayout 放格同一個判準：暴雪沒給框的不佔；增益類收合中不在的不佔（固定格位開著／被強制、或這一招逐法術勾了
--- 「不在時顯示占位」時佔，它是占位格）。
+-- 「無增益時保留空位」時佔，它是占位格）。
 -- 自訂項目一律佔（光環格會強制固定格位；自訂法術／物品一直都有框）
 function B.Occupancy(index)
     local fixedOf = {}
@@ -526,7 +526,7 @@ function B.Occupancy(index)
         if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
         if Fixed(barKey) then return true end
         if AuraPresent(item) then return true end
-        -- 逐法術「不在時顯示占位」（F7）：那一格照留 ⇒ 照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
+        -- 逐法術「無增益時保留空位」（F7）：那一格照留 ⇒ 照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
         return ns.Layout.AuraSlot(false, false, ns.SpellSetting(barKey, id, "placeholder")) ~= nil
     end
 end
@@ -901,7 +901,7 @@ local function Relayout(key, level, index, gen, s)
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
             local mode = "item"
             if aura then
-                -- 不在時：固定格位開著／被強制，或這一招逐法術勾了「不在時顯示占位」（F7）⇒ 占位格（同一條路）
+                -- 不在時：固定格位開著／被強制，或這一招逐法術勾了「無增益時保留空位」（F7）⇒ 占位格（同一條路）
                 local present = AuraPresent(item)
                 mode = ns.Layout.AuraSlot(present, fixed,
                     (not present and not fixed) and ns.SpellSetting(key, id, "placeholder") or nil)
