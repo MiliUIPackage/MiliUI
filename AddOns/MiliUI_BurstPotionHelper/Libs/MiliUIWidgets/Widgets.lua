@@ -206,6 +206,16 @@ function W.PaintButton(b, hover)
     end
 end
 
+-- 換一顆 W.CreateButton 的配色（"normal"｜"primary"…）並照目前狀態重畫。
+-- 給「按鈕本身表達開關狀態」的呼叫端用（例如預覽列：設定有啟用的那幾顆用 primary）；按鈕照樣能按
+function W.SetButtonVariant(b, colorKey)
+    local colors = BTN_COLORS[colorKey or "normal"] or BTN_COLORS.normal
+    if b._colors == colors then return end
+    b._colors = colors
+    if not colors[3] then b:SetBackdropBorderColor(0, 0, 0, 1) end
+    W.PaintButton(b, b:IsMouseOver())
+end
+
 function W.CreateButton(parent, text, colorKey, width, height)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
     P.Size(b, width or 60, height or 20)

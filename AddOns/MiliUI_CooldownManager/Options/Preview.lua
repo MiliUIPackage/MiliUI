@@ -70,13 +70,15 @@ end
 --             透明度照這條的 icon.pressFlashAlpha；沒勾「按鍵閃光」也照樣演示，看長相用）
 local FX_H, FX_SECS = 30, 5
 local FX_PRESS_SECS, FX_PRESS_EVERY, FX_PRESS_ON = 6, 1.5, 0.15
+-- on：這條實際（主題繼承後）有沒有啟用那個效果 ⇒ 按鈕用 primary（職業色）；沒有 on 的（冷卻中）一律 normal。
+-- 只是配色：沒啟用的照樣按得下去、照樣演示（看長相用）
 local FX_BUTTONS = {
     { kind = "cooldown", label = L["On cooldown"] },
-    { kind = "aura",     label = L["Buff duration"] },
-    { kind = "proc",     label = L["Proc glow"] },
-    { kind = "ready",    label = L["Ready glow"] },
-    { kind = "active",   label = L["Glow during buff"] },
-    { kind = "press",    label = L["Key press"] },
+    { kind = "aura",     label = L["Buff duration"],    on = function(k) return ns.Setting(k, "icon.showAuraTime") ~= false end },
+    { kind = "proc",     label = L["Proc glow"],        on = function(k) return ns.Setting(k, "glow.proc.enabled") and true or false end },
+    { kind = "ready",    label = L["Ready glow"],       on = function(k) return ns.Setting(k, "glow.ready.enabled") and true or false end },
+    { kind = "active",   label = L["Glow during buff"], on = function(k) return ns.Setting(k, "glow.active.enabled") and true or false end },
+    { kind = "press",    label = L["Key press"],        on = function(k) return ns.Setting(k, "icon.pressFlash") and true or false end },
 }
 
 local instances = {}
@@ -495,6 +497,7 @@ function Preview.Create(parent, key, width)
             local fs = b:GetFontString()
             b.textW = math.ceil(fs and fs:GetStringWidth() or 0)
             b:SetScript("OnClick", function() pv:StartFx(def.kind) end)
+            b.fxDef = def
             btns[#btns + 1] = b
         end
         -- 排法：放得下就照自然寬、間距 6；放不下（按鈕多、語系長、視窗窄）就照比例縮，但不小於字寬＋8、間距 4
@@ -520,6 +523,7 @@ function Preview.Create(parent, key, width)
         row:SetScript("OnSizeChanged", LayoutFx)
         LayoutFx()
         pv.fxRow = row
+        pv.fxBtns = btns
     end
 
     instances[key] = pv
@@ -564,9 +568,18 @@ function Proto:Acquire(kind)
     return c
 end
 
+-- 效果列的按鈕配色跟著設定（Refresh 每次叫：設定一改預覽就重畫，這裡順手對一次）
+function Proto:PaintFxButtons()
+    for _, b in ipairs(self.fxBtns or {}) do
+        local on = b.fxDef.on
+        W.SetButtonVariant(b, (on and on(self.key)) and "primary" or "normal")
+    end
+end
+
 function Proto:Refresh()
     local key = self.key
     local bar = BarCfg(key)
+    self:PaintFxButtons()
     for _, pool in pairs(self.cells) do for _, c in ipairs(pool) do c:Hide() end end
     self.used = {}
     self.fxTaken = false
