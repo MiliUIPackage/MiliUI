@@ -6,8 +6,8 @@
 -- 覆蓋：
 --   1. 預設值與面板登記（PANEL_KEYS／PANEL_ORDER 排最後／ConfigTable／舊存檔合併）
 --   2. 顯示判斷 SR.Evaluate／SR.Active：秘密值或讀不到、德比賽跑、地面上充能全滿、專用動作條、
---      舊的獨立插件還載著（blocked）、兩排都關、API 拋錯
---   3. 版面：兩排都開／只開一排的高與 y、上下對調、格數（明文 maxCharges、讀不到 6、上限）
+--      舊的獨立插件還載著（blocked）、三排都關、API 拋錯
+--   3. 版面：三排（旋轉急衝緊貼速度條下方）／只開一兩排的高與 y、上下對調、格數（明文 maxCharges、讀不到 6、上限）；新欄位的預設值
 --   4. 速度：百分比換算、地區最高速度（巨龍群島系／競速／其他）、平滑、換色狀態（增益優先、時間啟發式容差）
 --   5. 旋轉急衝的顯示時機
 --   6. 接力的錨定決定（SR.RelayPlace）：資源條正常、關掉／收合、沒有錨定、錨定指回自己
@@ -137,7 +137,13 @@ eq("預設：接力", sd.placement, "relay")
 eq("預設：藏起冷卻管理器", sd.hideCdm, true)
 eq("預設：不錨定", sd.anchor, false)
 eq("預設：寬 0", sd.width, 0)
-eq("預設：迴旋衝刺冷卻中才顯示", sd.surge, "cooldown")
+eq("預設：旋轉急衝圖示不顯示（有長條）", sd.surge, "off")
+eq("預設：旋轉急衝長條開", sd.surgeBar, true)
+eq("預設：電光開", sd.surgeFx, true)
+eq("預設：填滿震動開", sd.surgeShake, true)
+eq("預設：充能數字開", sd.chargeText, true)
+check("預設：充能數字白色、置中", sd.colors.chargeText.r == 1 and sd.colors.chargeText.g == 1 and sd.colors.chargeText.b == 1
+    and sd.chargeTextOffset.x == 0 and sd.chargeTextOffset.y == 0 and sd.chargeTextFont == "INHERIT")
 check("PANEL_KEYS 有 skyriding", DB.PANEL_KEYS.skyriding == true and DB.IsPanel("skyriding"))
 eq("PANEL_ORDER：排最後", DB.PANEL_ORDER[#DB.PANEL_ORDER], "skyriding")
 ns.profile = d
@@ -163,7 +169,7 @@ local E = SR.Evaluate
 eq("飛行中 → 顯示", E(cfg, St()), true)
 eq("舊插件還載著 → 不顯示", E(cfg, St{ blocked = true }), false)
 eq("關掉 → 不顯示", E({ enabled = false }, St()), false)
-eq("兩排都關 ＝ 關掉", E({ showSpeed = false, showCharges = false }, St()), false)
+eq("三排都關 ＝ 關掉", E({ showSpeed = false, showCharges = false, surgeBar = false }, St()), false)
 eq("只開一排照常", E({ showSpeed = false }, St()), true)
 eq("德比賽跑 → 不顯示", E(cfg, St{ powerBarID = 650 }), false)
 do
@@ -217,25 +223,43 @@ ns.profile.skyriding.hideCdm = true
 -- 3. 版面
 ------------------------------------------------------------
 do
-    local g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 1, speedOnTop = true })
+    -- 不開旋轉急衝長條：照舊兩排
+    local g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 1, speedOnTop = true, surgeBar = false })
     eq("兩排：總高", g.h, 19)
     eq("兩排：速度在上 y", g.speedY, 0)
     eq("兩排：充能 y", g.chargeY, 9)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 1, speedOnTop = false })
+    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 1, speedOnTop = false, surgeBar = false })
     eq("對調：充能 y", g.chargeY, 0)
     eq("對調：速度 y", g.speedY, 11)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 3, showSpeed = false })
+    -- 三排：旋轉急衝一律緊貼在速度條下方
+    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, surgeHeight = 6, gap = 1, speedOnTop = true })
+    eq("三排：速度 y", g.speedY, 0)
+    eq("三排：旋轉急衝在速度下方", g.surgeY, 9)
+    eq("三排：充能在最下面", g.chargeY, 16)
+    eq("三排：總高 8+1+6+1+10", g.h, 26)
+    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, surgeHeight = 6, gap = 1, speedOnTop = false })
+    eq("三排對調：充能在最上面", g.chargeY, 0)
+    eq("三排對調：速度在充能下方", g.speedY, 11)
+    eq("三排對調：旋轉急衝仍在速度下方", g.surgeY, 20)
+    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, surgeHeight = 6, gap = 2, showSpeed = false })
+    eq("關速度：旋轉急衝頂上去", g.surgeY, 0)
+    eq("關速度：充能 y", g.chargeY, 8)
+    eq("關速度：總高 6+2+10", g.h, 18)
+    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 3, showSpeed = false, surgeBar = false })
     eq("只開充能：高（不加間距）", g.h, 10)
     eq("只開充能：速度高 0", g.speedH, 0)
     eq("只開充能：y", g.chargeY, 0)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 3, showCharges = false })
+    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 3, showCharges = false, surgeBar = false })
     eq("只開速度：高", g.h, 8)
     eq("只開速度：y", g.speedY, 0)
     g = SR.Geometry({})
-    eq("沒存：預設 8＋1＋10", g.h, 19)
-    g = SR.Geometry({ speedHeight = 999, chargeHeight = -3, gap = 99 })
+    eq("沒存：預設 8＋1＋6＋1＋10", g.h, 26)
+    check("三排都關：等同關掉", not SR.Enabled({ showSpeed = false, showCharges = false, surgeBar = false }))
+    check("只開旋轉急衝：還算開著", SR.Enabled({ showSpeed = false, showCharges = false }))
+    g = SR.Geometry({ speedHeight = 999, chargeHeight = -3, surgeHeight = 0, gap = 99 })
     eq("夾值：速度 40", g.speedH, 40)
     eq("夾值：充能 1", g.chargeH, 1)
+    eq("夾值：旋轉急衝 1", g.surgeH, 1)
     eq("夾值：間距 20", g.gap, 20)
 
     eq("格數：明文 6", SR.CellCount(6), 6)

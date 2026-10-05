@@ -417,7 +417,18 @@ SkyridingDefaults = function()
         speedText        = "RIGHT",        -- OFF | LEFT | RIGHT | CENTER（字型照主題，大小跟資源條的文字設定）
         hideGroundedFull = true,           -- 在地面上而且充能全滿 ⇒ 不顯示
         speedColorOnCharges = false,       -- 充能格改用速度條目前的顏色
-        surge            = "cooldown",     -- off | cooldown（冷卻中才顯示）| ready（好了才顯示）| always
+        -- 充能次數：六格正中間的數字（目前的活力），使用者 2026-10-06 指定預設開、白字、上下置中
+        chargeText       = true,
+        chargeTextSize   = 12,
+        chargeTextFont   = "INHERIT",      -- "INHERIT" ＝ 跟隨主題的通用字型
+        chargeTextOffset = { x = 0, y = 0 },
+        -- 旋轉急衝長條：緊貼在速度條下方的一排，好了是滿的、冷卻中從空長到滿（使用者 2026-10-06 指定）
+        surgeBar         = true,
+        surgeHeight      = 6,
+        surgeFx          = true,           -- 滿的時候的電光（掃光＋呼吸亮層）
+        surgeShake       = true,           -- 冷卻好了、填滿那一刻震一下（同施法條被打斷的震動）
+        -- 旋轉急衝圖示：有長條之後預設不顯示
+        surge            = "off",          -- off | cooldown（冷卻中才顯示）| ready（好了才顯示）| always
         surgeSize        = 24,
         surgeSide        = "RIGHT",        -- LEFT | RIGHT | TOP | BOTTOM（錨在整塊面板那一邊的外面，間距 ＝ gap）
         colors = {
@@ -426,6 +437,8 @@ SkyridingDefaults = function()
             lowSpeed   = rgba(0.80, 0.80, 0.80),
             groundSkim = rgba(0.95, 0.75, 0.25),
             thrill     = rgba(0.35, 0.90, 0.45),
+            surge      = rgba(0.30, 0.85, 1.00),
+            chargeText = rgba(1, 1, 1),
         },
         strata           = "MEDIUM",
     }

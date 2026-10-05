@@ -1,8 +1,13 @@
 ------------------------------------------------------------
 -- 天空騎術面板（獨立 HUD，面板 skyriding，容器 MiliUICDM_Bar_skyriding）
 --
--- 活力充能格一排＋速度條一排（speedOnTop 決定上下），外加一顆旋轉急衝的冷卻圖示（錨在整塊面板外面，
--- 不算在面板尺寸裡 ⇒ 不影響排開）。走既有的面板機制（Bars.RegisterPanel）⇒ 編輯模式、磁吸、錨定候選、
+-- 速度條、旋轉急衝長條（一律緊貼在速度條下方）、活力充能格三排（speedOnTop 決定速度那兩排在充能的上面或下面），
+-- 充能格正中間印目前的活力數字；另有一顆可選的旋轉急衝冷卻圖示（錨在整塊面板外面，不算在面板尺寸裡 ⇒ 不影響排開）。
+--
+-- 旋轉急衝長條：好了 ＝ 滿的（一顆靜態的 StatusBar），冷卻中 ＝ 另一顆 StatusBar 吃 GetSpellCooldownDuration 的
+-- duration 物件從空長到滿（引擎跑）。滿的時候疊電光（裁切框裡一道 ADD 掃光＋整條呼吸亮層），冷卻好了那一刻震一下
+--（數值同施法條被打斷的震動）。全部是 AnimationGroup，不掛 OnUpdate；面板沒顯示就停。
+-- 冷卻結束靠 SPELL_UPDATE_COOLDOWN，明文時另外排一個 C_Timer 在結束時刻補一次（世代計數擋舊的）。走既有的面板機制（Bars.RegisterPanel）⇒ 編輯模式、磁吸、錨定候選、
 -- 點擊層都自動有。設定跟著設定檔走，不分專精（profile.skyriding，Core/DB.lua 的 SkyridingDefaults）。
 --
 -- 位置兩種（placement）：
@@ -71,6 +76,11 @@ SR.THRILL_AT = THRILL_AT
 local DEFAULT_CHARGES = 6
 local MAX_CHARGES   = 12            -- 框池上限（實際格數照明文 maxCharges，按需建）
 local TICK          = 0.05          -- 速度條的節流
+local SWEEP_TIME    = 0.9           -- 電光掃過一次的秒數
+local SWEEP_PAUSE   = 0.7           -- 兩次掃光之間的停頓
+local GLOW_TIME     = 0.6           -- 呼吸亮層半個週期
+-- 震動：數值同施法條的打斷震動（停 0.1 秒後每 0.05 秒跳一次，四段位移加總歸零）
+local SHAKE_STEPS   = { { 0, 0, 0.1, 0 }, { -1, 1, 0, 0.05 }, { 1, -2, 0, 0.05 }, { 1, 2, 0, 0.05 }, { -1, -1, 0, 0.05 } }
 local STATE_EVERY   = 5             -- 每幾拍重讀一次換色狀態（增益／回充時間）
 local RECHARGE_DIM  = 0.55          -- 回充那一格的顏色係數（同資源條的符文）
 local SOLID = "Interface\\BUTTONS\\WHITE8X8"
@@ -92,16 +102,16 @@ end
 ------------------------------------------------------------
 -- 純函式（Tests/Skyriding_test.lua）
 ------------------------------------------------------------
--- 兩排各自開不開；兩排都關 ＝ 等同關掉
+-- 三排各自開不開（速度、充能、旋轉急衝）；全部都關 ＝ 等同關掉
 function SR.Rows(cfg)
     cfg = type(cfg) == "table" and cfg or {}
-    return cfg.showSpeed ~= false, cfg.showCharges ~= false
+    return cfg.showSpeed ~= false, cfg.showCharges ~= false, cfg.surgeBar ~= false
 end
 
 function SR.Enabled(cfg)
     if type(cfg) ~= "table" or cfg.enabled == false then return false end
-    local s, c = SR.Rows(cfg)
-    return s or c
+    local s, c, u = SR.Rows(cfg)
+    return s or c or u
 end
 
 -- 接力模式（預設）：沒存／不認得的值都當 relay
@@ -139,23 +149,32 @@ function SR.Evaluate(cfg, st)
     return true
 end
 
--- 版面（UI 單位，未換像素）：兩排的高與 y（從上緣往下量）、整塊的高
+-- 版面（UI 單位，未換像素）：三排的高與 y（從上緣往下量）、整塊的高。
+-- 旋轉急衝一律緊貼在速度條下方；speedOnTop 決定「速度＋旋轉急衝」在充能的上面還是下面。
+-- 關掉的那排不佔高度、也不多一段間距
 function SR.Geometry(cfg)
     cfg = type(cfg) == "table" and cfg or {}
-    local showS, showC = SR.Rows(cfg)
-    local sh = showS and Clamp(cfg.speedHeight, 1, 40, 8) or 0
-    local ch = showC and Clamp(cfg.chargeHeight, 1, 40, 10) or 0
-    local gap = Clamp(cfg.gap, 0, 20, 1)
-    local both = showS and showC
+    local showS, showC, showU = SR.Rows(cfg)
     local g = {
-        showSpeed = showS, showCharges = showC, speedH = sh, chargeH = ch, gap = gap,
-        h = sh + ch + (both and gap or 0),
+        showSpeed = showS, showCharges = showC, showSurge = showU,
+        speedH  = showS and Clamp(cfg.speedHeight, 1, 40, 8) or 0,
+        chargeH = showC and Clamp(cfg.chargeHeight, 1, 40, 10) or 0,
+        surgeH  = showU and Clamp(cfg.surgeHeight, 1, 40, 6) or 0,
+        gap     = Clamp(cfg.gap, 0, 20, 1),
+        speedY = 0, chargeY = 0, surgeY = 0,
     }
-    if cfg.speedOnTop ~= false then
-        g.speedY, g.chargeY = 0, both and (sh + gap) or 0
-    else
-        g.chargeY, g.speedY = 0, both and (ch + gap) or 0
+    local order = cfg.speedOnTop ~= false and { "speed", "surge", "charge" } or { "charge", "speed", "surge" }
+    local y, any = 0, false
+    for _, k in ipairs(order) do
+        local h = g[k .. "H"]
+        if h > 0 then
+            if any then y = y + g.gap end
+            g[k .. "Y"] = y
+            y = y + h
+            any = true
+        end
     end
+    g.h = y
     return g
 end
 
@@ -349,7 +368,7 @@ end
 -- 框
 ------------------------------------------------------------
 local container, root
-local speedRow, chargeRow, surge
+local speedRow, chargeRow, surgeRow, surge
 local cells = {}               -- 池化的充能格（frame 刪不掉）
 local recharge                 -- 回充那一格的進度條（只有一顆，排版時對到那一格）
 local layoutN = 0              -- 上次排版的格數
@@ -363,6 +382,10 @@ local tickAcc, tickN = 0, 0
 local ticking = false
 local dirty = false
 local events = { charges = false, live = false, cd = false }
+local surgeReady = nil         -- 旋轉急衝上次看到的狀態：true 好了／false 冷卻中／nil 不知道（剛出現、讀不到）
+local surgeGen = 0             -- 冷卻結束補一次的 C_Timer 世代
+local shownCount = nil         -- 充能數字上次寫的值（明文才記）
+local Mark                     -- 前置宣告（定義在事件那一節；DrawSurgeBar 的 C_Timer 也叫它）
 local geo                      -- 上次排版的 SR.Geometry
 local Wpx = 0                  -- 上次排版的寬（像素對齊後）
 
@@ -440,6 +463,94 @@ local function Build()
     chargeRow = CreateFrame("Frame", nil, root)
     recharge = NewBar(chargeRow, 3)
     recharge:Hide()
+    -- 充能數字：蓋在所有格子（含格子的邊框）上面
+    chargeRow.textHost = CreateFrame("Frame", nil, chargeRow)
+    chargeRow.textHost:SetAllPoints(chargeRow)
+    chargeRow.textHost:SetFrameLevel(chargeRow:GetFrameLevel() + 8)
+    chargeRow.text = chargeRow.textHost:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetPixelFont(chargeRow.text, 12, "OUTLINE")     -- 先有字型才能 SetText
+    chargeRow.text:SetJustifyH("CENTER")
+    chargeRow.text:SetJustifyV("MIDDLE")
+    chargeRow.text:SetText("")
+
+    -- 旋轉急衝長條：full（好了：靜態滿條）與 timer（冷卻中：引擎跑 duration 物件）兩顆，只顯示一顆。
+    -- 不在同一顆上切換：SetValue 會不會清掉 SetTimerDuration 沒有文件保證
+    surgeRow = CreateFrame("Frame", nil, root)
+    surgeRow.bg = surgeRow:CreateTexture(nil, "BACKGROUND")
+    surgeRow.bg:SetAllPoints(surgeRow)
+    surgeRow.bg:SetTexture(SOLID)
+    surgeRow.full = NewBar(surgeRow, 1)
+    surgeRow.full:SetAllPoints(surgeRow)
+    surgeRow.full:SetValue(1)
+    surgeRow.timer = NewBar(surgeRow, 1)
+    surgeRow.timer:SetAllPoints(surgeRow)
+    surgeRow.timer:Hide()
+    -- 電光：裁切框（只畫在條裡面）裡一層呼吸亮層＋一道掃過去的亮帶，ADD 混色
+    local fx = CreateFrame("Frame", nil, surgeRow)
+    fx:SetAllPoints(surgeRow)
+    fx:SetFrameLevel(surgeRow:GetFrameLevel() + 2)
+    if fx.SetClipsChildren then fx:SetClipsChildren(true) end
+    surgeRow.fx = fx
+    local glow = fx:CreateTexture(nil, "ARTWORK")
+    glow:SetAllPoints(fx)
+    glow:SetTexture(SOLID)
+    glow:SetBlendMode("ADD")
+    glow:SetAlpha(0)
+    surgeRow.glow = glow
+    local ga = glow:CreateAnimationGroup()
+    ga:SetLooping("BOUNCE")
+    local a1 = ga:CreateAnimation("Alpha")
+    a1:SetFromAlpha(0.05)
+    a1:SetToAlpha(0.35)
+    a1:SetDuration(GLOW_TIME)
+    a1:SetSmoothing("IN_OUT")
+    surgeRow.glowAnim = ga
+    -- 掃光：兩半漸層（透明→亮→透明），放在子框上整框平移
+    local sweep = CreateFrame("Frame", nil, fx)
+    sweep:SetFrameLevel(fx:GetFrameLevel() + 1)
+    local function Half(point)
+        local t = sweep:CreateTexture(nil, "OVERLAY")
+        t:SetTexture(SOLID)
+        t:SetBlendMode("ADD")
+        t:SetPoint("TOP", sweep, "TOP")
+        t:SetPoint("BOTTOM", sweep, "BOTTOM")
+        t:SetPoint(point, sweep, "CENTER")
+        t:SetPoint(point == "RIGHT" and "LEFT" or "RIGHT", sweep, point == "RIGHT" and "LEFT" or "RIGHT")
+        return t
+    end
+    local left, right = Half("RIGHT"), Half("LEFT")
+    if CreateColor then
+        pcall(left.SetGradient, left, "HORIZONTAL", CreateColor(1, 1, 1, 0), CreateColor(1, 1, 1, 0.85))
+        pcall(right.SetGradient, right, "HORIZONTAL", CreateColor(1, 1, 1, 0.85), CreateColor(1, 1, 1, 0))
+    end
+    sweep:Hide()
+    surgeRow.sweep = sweep
+    local sa = sweep:CreateAnimationGroup()
+    sa:SetLooping("REPEAT")
+    local move = sa:CreateAnimation("Translation")
+    move:SetDuration(SWEEP_TIME)
+    move:SetSmoothing("IN_OUT")
+    move:SetOrder(1)
+    local hold = sa:CreateAnimation("Alpha")             -- 停頓：什麼都不變，只佔時間
+    hold:SetFromAlpha(1)
+    hold:SetToAlpha(1)
+    hold:SetDuration(SWEEP_PAUSE)
+    hold:SetOrder(2)
+    surgeRow.sweepAnim, surgeRow.sweepMove = sa, move
+    surgeRow.top = CreateFrame("Frame", nil, surgeRow)
+    surgeRow.top:SetAllPoints(surgeRow)
+    surgeRow.top:SetFrameLevel(surgeRow:GetFrameLevel() + 4)
+    ns.Resources.Edges(surgeRow.top)
+    -- 震動：Translation 只動畫面上的位置，不改錨點
+    local shake = surgeRow:CreateAnimationGroup()
+    for i, st in ipairs(SHAKE_STEPS) do
+        local t = shake:CreateAnimation("Translation")
+        t:SetOffset(st[1], st[2])
+        t:SetDuration(st[3])
+        t:SetStartDelay(st[4])
+        t:SetOrder(i)
+    end
+    surgeRow.shake = shake
 
     -- 旋轉急衝：容器的子框（alpha 跟著容器），錨在整塊面板外面
     surge = CreateFrame("Frame", nil, container)
@@ -478,7 +589,7 @@ local function TextStyle()
 end
 
 local function LayoutSurge(cfg, H)
-    local mode = cfg.surge or "cooldown"
+    local mode = cfg.surge or "off"
     if mode == "off" then
         surge:Hide()
         return
@@ -579,9 +690,46 @@ function SR.Layout(n)
         end
         for i = n + 1, #cells do cells[i]:Hide() end
         recharge:SetStatusBarTexture(tex)
+        -- 充能數字：正中間（上下置中）＋位移，字型／大小／顏色可調
+        local t = chargeRow.text
+        local font = ns.Media.ElementFont(cfg.chargeTextFont, ns.Setting(nil, "font"))
+        ns.Media.SetPixelFont(t, Clamp(cfg.chargeTextSize, 6, 40, 12), ns.Media.ThemeOutline(), font)
+        t:SetTextColor(Color(cfg, "chargeText"))
+        local off = type(cfg.chargeTextOffset) == "table" and cfg.chargeTextOffset or {}
+        t:ClearAllPoints()
+        t:SetPoint("CENTER", chargeRow.textHost, "CENTER", tonumber(off.x) or 0, tonumber(off.y) or 0)
+        t:SetShown(cfg.chargeText ~= false)
+        shownCount = nil
         chargeRow:Show()
     else
         chargeRow:Hide()
+    end
+
+    -- 旋轉急衝長條
+    surgeRow:ClearAllPoints()
+    if geo.showSurge then
+        local sh = ns.P.Scale(geo.surgeH)
+        surgeRow:SetPoint("TOPLEFT", root, "TOPLEFT", 0, -ns.P.Scale(geo.surgeY))
+        surgeRow:SetSize(W, sh)
+        surgeRow.full:SetStatusBarTexture(tex)
+        surgeRow.timer:SetStatusBarTexture(tex)
+        surgeRow.bg:SetTexture(bgTex)
+        surgeRow.bg:SetVertexColor(dim.r, dim.g, dim.b, dim.a)
+        local r, g, b = Color(cfg, "surge")
+        surgeRow.glow:SetVertexColor(r, g, b, 1)
+        -- 掃光寬 ＝ 條寬的 18%（至少 12 像素），從左邊外面掃到右邊外面
+        local sw = math.max(ns.P.Scale(12), math.floor(W * 0.18 + 0.5))
+        local sweep = surgeRow.sweep
+        sweep:ClearAllPoints()
+        sweep:SetSize(sw, sh)
+        sweep:SetPoint("TOPLEFT", surgeRow.fx, "TOPLEFT", -sw, 0)
+        local playing = surgeRow.sweepAnim:IsPlaying()
+        if playing then surgeRow.sweepAnim:Stop() end
+        surgeRow.sweepMove:SetOffset(W + sw, 0)
+        if playing then surgeRow.sweepAnim:Play() end
+        surgeRow:Show()
+    else
+        surgeRow:Hide()
     end
     layoutN = n
     LayoutSurge(cfg, H)
@@ -634,6 +782,45 @@ local function ArmRecharge(idx, r, g, b)
     end
 end
 
+-- 充能數字：明文取整、變了才 SetText；秘密值原樣交給 SetText（不比、不算）
+local function SetChargeText(cfg, cur)
+    local t = chargeRow.text
+    if cfg.chargeText == false then return end
+    local v = Plain(cur)
+    if v == nil then
+        shownCount = nil
+        if cur == nil then t:SetText("") else pcall(t.SetText, t, cur) end
+        return
+    end
+    v = math.floor(v)
+    if v == shownCount then return end
+    shownCount = v
+    t:SetText(tostring(v))
+end
+
+-- 電光開關（好了而且看得到才放）
+local function SurgeFx(on)
+    local playing = surgeRow.glowAnim:IsPlaying()
+    if on then
+        if playing then return end
+        surgeRow.sweep:Show()
+        surgeRow.glowAnim:Play()
+        surgeRow.sweepAnim:Play()
+    else
+        if playing then surgeRow.glowAnim:Stop() end
+        if surgeRow.sweepAnim:IsPlaying() then surgeRow.sweepAnim:Stop() end
+        surgeRow.glow:SetAlpha(0)
+        surgeRow.sweep:Hide()
+    end
+end
+
+local function StopSurgeBar()
+    surgeGen = surgeGen + 1
+    surgeReady = nil
+    SurgeFx(false)
+    if surgeRow.shake:IsPlaying() then surgeRow.shake:Stop() end
+end
+
 local function DrawCharges(cfg, st)
     if not geo or not geo.showCharges then return end
     local n = SR.CellCount(st.maxCharges)
@@ -658,6 +845,7 @@ local function DrawCharges(cfg, st)
         c.sw:SetMinMaxValues(i - 1, i)
         c.sw:SetValue(swTotal or 0)
     end
+    SetChargeText(cfg, cur)
     local max = Plain(st.maxCharges)
     if plainCur and max and plainCur < max and plainCur + 1 <= n then
         ArmRecharge(math.floor(plainCur) + 1, r, g, b)
@@ -683,14 +871,63 @@ local function DrawSpeed(cfg, speed)
     SetSpeedText(cfg, SR.SpeedPct(dispSpeed))
 end
 
+-- 旋轉急衝長條。onCD：true 冷卻中／false 好了／nil 讀不到（秘密）
+local function DrawSurgeBar(cfg, id, info, onCD)
+    if not (geo and geo.showSurge) then StopSurgeBar() return end
+    local r, g, b, a = Color(cfg, "surge")
+    local bar = surgeRow
+    if onCD == false then
+        bar.timer:Hide()
+        bar.full:SetStatusBarColor(r, g, b, a)
+        bar.full:Show()
+        SurgeFx(cfg.surgeFx ~= false)
+        -- 冷卻中 → 好了：填滿那一刻震一下（剛出現、讀不到之後變好了都不震）
+        if surgeReady == false and cfg.surgeShake ~= false then bar.shake:Restart() end
+    else
+        SurgeFx(false)
+        bar.full:Hide()
+        bar.timer:SetStatusBarColor(r * RECHARGE_DIM, g * RECHARGE_DIM, b * RECHARGE_DIM, a)
+        local dur = Call(C_Spell and C_Spell.GetSpellCooldownDuration, id)
+        local D = Enum and Enum.StatusBarTimerDirection
+        local dir = D and (D.ElapsedTime or D.Elapsed) or nil
+        if dur and pcall(bar.timer.SetTimerDuration, bar.timer, dur, nil, dir) then
+            bar.timer:Show()
+        else
+            bar.timer:SetMinMaxValues(0, 1)
+            bar.timer:SetValue(0)
+            bar.timer:Show()
+        end
+        -- 明文時在冷卻結束的時刻補一次（SPELL_UPDATE_COOLDOWN 之外的保險）
+        surgeGen = surgeGen + 1
+        if onCD == true and type(info) == "table" and C_Timer and GetTime then
+            local start, len = Plain(info.startTime), Plain(info.duration)
+            if type(start) == "number" and type(len) == "number" then
+                local left = start + len - GetTime()
+                if left > 0 then
+                    local gen = surgeGen
+                    C_Timer.After(left + 0.05, function() if gen == surgeGen then Mark() end end)
+                end
+            end
+        end
+    end
+    surgeReady = onCD
+end
+
 local function DrawSurge(cfg)
-    local mode = cfg.surge or "cooldown"
-    if mode == "off" then surge:Hide() return end
+    local mode = cfg.surge or "off"
+    local barOn = geo and geo.showSurge
+    if mode == "off" and not barOn then
+        surge:Hide()
+        StopSurgeBar()
+        return
+    end
     local id = SurgeSpell()
-    local tex = Plain(Call(C_Spell and C_Spell.GetSpellTexture, id))
-    surge.icon:SetTexture(tex or 134400)
     local info = Call(C_Spell and C_Spell.GetSpellCooldown, id)
     local onCD = SR.SurgeOnCooldown(type(info) == "table" and info.duration or nil)
+    DrawSurgeBar(cfg, id, info, onCD)
+    if mode == "off" then surge:Hide() return end
+    local tex = Plain(Call(C_Spell and C_Spell.GetSpellTexture, id))
+    surge.icon:SetTexture(tex or 134400)
     local show = SR.SurgeShown(mode, onCD)
     if show and surge.cd then
         local dur = Call(C_Spell and C_Spell.GetSpellCooldownDuration, id)
@@ -719,6 +956,10 @@ local function DrawPreview(cfg)
             c.fill:SetValue(4)
             c.sw:SetValue(0)
         end
+        if cfg.chargeText ~= false then
+            shownCount = nil
+            chargeRow.text:SetText("4")
+        end
         local c = cells[5]
         recharge:ClearAllPoints()
         recharge:SetAllPoints(c)
@@ -728,7 +969,19 @@ local function DrawPreview(cfg)
         recharge:SetValue(0.5)
         recharge:Show()
     end
-    local mode = cfg.surge or "cooldown"
+    -- 旋轉急衝長條：滿的＋電光（預覽不震）
+    if geo.showSurge then
+        local r, g, b, a = Color(cfg, "surge")
+        surgeRow.timer:Hide()
+        surgeRow.full:SetStatusBarColor(r, g, b, a)
+        surgeRow.full:Show()
+        surgeGen = surgeGen + 1
+        surgeReady = nil
+        SurgeFx(cfg.surgeFx ~= false)
+    else
+        StopSurgeBar()
+    end
+    local mode = cfg.surge or "off"
     if mode ~= "off" then
         surge.icon:SetTexture(Plain(Call(C_Spell and C_Spell.GetSpellTexture, SurgeSpell())) or 134400)
         if surge.cd then surge.cd:Clear() end
@@ -740,7 +993,6 @@ end
 -- 速度的 OnUpdate（檔案層級的固定函式；只在狀態轉換時掛／卸）
 ------------------------------------------------------------
 local SpeedTick, StopSpeed
-local Mark
 
 SpeedTick = function(_, elapsed)
     tickAcc = tickAcc + elapsed
@@ -810,8 +1062,8 @@ local function SyncEvents(wantCharges, wantLive, cfg)
             E.Unregister("BAG_UPDATE_DELAYED", "skyriding")
         end
     end
-    -- 迴旋衝刺的冷卻：面板顯示中而且圖示有開才聽
-    local wantCD = wantLive and (cfg.surge or "cooldown") ~= "off"
+    -- 旋轉急衝的冷卻：面板顯示中而且圖示或長條有開才聽
+    local wantCD = wantLive and ((cfg.surge or "off") ~= "off" or cfg.surgeBar ~= false)
     if wantCD ~= events.cd then
         events.cd = wantCD
         if wantCD then E.Register("SPELL_UPDATE_COOLDOWN", "skyriding", Mark)
@@ -844,6 +1096,7 @@ function SR.Refresh()
         StopSpeed()
         dispSpeed = nil
         recharge:Hide()
+        StopSurgeBar()
         return
     end
     if racingDirty then
