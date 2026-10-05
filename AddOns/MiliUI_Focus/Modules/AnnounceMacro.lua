@@ -17,6 +17,17 @@
 --   * 巨集上限 255 位元組；隊友那串塞不下就從後面砍。
 --   * 沒組隊時 /p 會噴系統錯誤 → 這時按鈕不掛巨集，退回本地印預覽。
 --   * 標記列沒開就不建巨集：不要替沒用這功能的人在巨集書裡塞東西。
+--
+-- 「每次設專注目標都宣告」模式（db.bar.announceOnMark）另用第二顆巨集
+-- MiliUI_FocusMark：內容＝Shift+點擊的專注／標記那幾行＋宣告那一行，
+-- Focuser 的巨集按鈕改跑它（type=macro 的 macro 屬性優先於 macrotext）。
+-- 為什麼不能沿用 macrotext 再串一下：
+--   * macrotext 送不出聊天（M+／首領戰會擋）；
+--   * 11.0.2 起 macrotext 裡的 /click 叫不動另一顆巨集按鈕；
+--   * 宣告那顆巨集也不能直接塞專注那幾行——喇叭鈕本身在滑鼠底下，
+--     `/clearfocus [@mouseover,noexists]` 會把專注目標清掉。
+-- 宣告前一行 /stopmacro 擋掉「滑鼠下沒有活著的敵人」（快捷鍵對空氣按＝清專注、
+-- 對隊友設專注），只有真的盯上一隻怪才喊。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -24,11 +35,16 @@ ns.AnnounceMacro = {}
 local AM = ns.AnnounceMacro
 
 local MACRO_NAME  = "MiliUI_Focus"              -- 巨集名稱上限 16 字
+local MARK_MACRO_NAME = "MiliUI_FocusMark"      -- 剛好 16 字
 local MACRO_ICON  = "Ability_Warrior_BattleShout"
 local MACRO_BYTES = 255
 local MAX_PEERS   = 6                           -- 宣告附帶的隊友上限（團隊裡不洗版）
 
 AM.MACRO_NAME = MACRO_NAME
+AM.MARK_MACRO_NAME = MARK_MACRO_NAME
+
+-- 滑鼠下不是活著的敵人就不喊（沒有東西／友方／屍體）
+local STOP_LINE = "/stopmacro [@mouseover,noharm][@mouseover,dead]"
 
 local L = ns.L
 
@@ -43,6 +59,9 @@ local L = ns.L
 local state    = "off"
 local pending  = false   -- 戰鬥中有變動還沒寫進巨集
 local lastBody = nil     -- 最後一次確認寫進巨集的內容
+-- 「每次設專注目標都宣告」那顆的狀態，跟上面同一套代碼，另加 noautomark（自動標記沒開）
+local markState    = "off"
+local markLastBody = nil
 local writing  = false   -- EditMacro 會派 UPDATE_MACROS，擋掉重入
 
 ----------------------------------------------------------------------
@@ -122,31 +141,30 @@ local function NormalizeBody(body)
     return (body:gsub("\n+$", ""))
 end
 
--- 讓巨集書裡的保留巨集內容等於 body。脫戰才叫。回傳 true，或 false, 原因
-local function EnsureMacro(body)
+-- 讓巨集書裡的保留巨集 name 內容等於 body。脫戰才叫。回傳 true，或 false, 原因
+local function EnsureMacro(name, body, createdMsg)
     if not HasMacroAPI() then return false, "failed" end
-    local idx = GetMacroIndexByName(MACRO_NAME)
+    local idx = GetMacroIndexByName(name)
     if idx and idx > 0 then
         local _, _, existing = GetMacroInfo(idx)
         if NormalizeBody(existing) == NormalizeBody(body) then return true end
-        local ok = pcall(EditMacro, idx, MACRO_NAME, MACRO_ICON, body)
+        local ok = pcall(EditMacro, idx, name, MACRO_ICON, body)
         return ok, (not ok) and "failed" or nil
     end
 
     local general, perChar = GetNumMacros()
     local ok
     if (general or 0) < (MAX_ACCOUNT_MACROS or 120) then
-        ok = pcall(CreateMacro, MACRO_NAME, MACRO_ICON, body, false)
+        ok = pcall(CreateMacro, name, MACRO_ICON, body, false)
     elseif (perChar or 0) < (MAX_CHARACTER_MACROS or 18) then
-        ok = pcall(CreateMacro, MACRO_NAME, MACRO_ICON, body, true)
+        ok = pcall(CreateMacro, name, MACRO_ICON, body, true)
     else
         return false, "noslot"
     end
-    idx = GetMacroIndexByName(MACRO_NAME)
+    idx = GetMacroIndexByName(name)
     if ok and idx and idx > 0 then
         -- 巨集書裡突然多一顆巨集，要講一聲，不然玩家會以為是別的東西塞的
-        ns.Print(L["Created the %s macro in your macro book. It carries the focus announcement so it can be sent in Mythic+ and boss fights; deleting it just recreates it."]
-            :format("|cffffd200" .. MACRO_NAME .. "|r"))
+        ns.Print(createdMsg:format("|cffffd200" .. name .. "|r"))
         return true
     end
     return false, "failed"
@@ -159,21 +177,36 @@ local function ShouldExist()
     return ns.db and ns.db.bar.shown and ns.db.focus.enabled
 end
 
+-- 「每次設專注目標都宣告」另外要自動標記有開（Refresh 裡判）：沒標上去還喊
+-- 「我的目標是{icon}」只會誤導隊友
+local function ShouldExistMark()
+    return ShouldExist() and ns.db.bar.announceOnMark
+end
+
+-- 第二顆巨集的內容：專注／標記那幾行（跟 Shift+點擊的 macrotext 同一份）＋擋線＋宣告
+local function BuildMarkBody(slash)
+    local prefix = ns.Focuser.GetMacroForMarkIndex(nil) .. "\n" .. STOP_LINE .. "\n" .. slash .. " "
+    local msg = AM.BuildMessage(true, MACRO_BYTES - #prefix)
+    return msg and (prefix .. msg) or nil
+end
+
 function AM.Refresh()
     if not ns.db or writing then return end
 
-    local desired
-    if ShouldExist() then
-        local _, slash = AM.GetChannel()
-        if slash then
-            local msg = AM.BuildMessage(true, MACRO_BYTES - #slash - 1)
-            if msg then desired = slash .. " " .. msg end
-        end
+    local desired, desiredMark
+    local _, slash = AM.GetChannel()
+    if slash and ShouldExist() then
+        local msg = AM.BuildMessage(true, MACRO_BYTES - #slash - 1)
+        if msg then desired = slash .. " " .. msg end
+    end
+    local autoMarkOn = ns.Focuser.GetEffectiveMarkIndex() >= 1
+    if slash and ShouldExistMark() and autoMarkOn then
+        desiredMark = BuildMarkBody(slash)
     end
 
     if InCombatLockdown() then
         -- 巨集與按鈕的保護屬性都不能動；只記下「有沒有東西等著寫」
-        if desired ~= lastBody then pending = true end
+        if desired ~= lastBody or desiredMark ~= markLastBody then pending = true end
         if ns.MarkBar and ns.MarkBar.ApplyAnnounceButton then ns.MarkBar.ApplyAnnounceButton() end
         return
     end
@@ -189,7 +222,8 @@ function AM.Refresh()
         state = "toolong"
     else
         writing = true
-        local ok, why = EnsureMacro(desired)
+        local ok, why = EnsureMacro(MACRO_NAME, desired,
+            L["Created the %s macro in your macro book. It carries the focus announcement so it can be sent in Mythic+ and boss fights; deleting it just recreates it."])
         writing = false
         if ok then
             state, lastBody = "ready", desired
@@ -198,12 +232,37 @@ function AM.Refresh()
         end
     end
 
+    markLastBody = nil
+    if not ShouldExistMark() then
+        markState = "off"
+    elseif not autoMarkOn then
+        markState = "noautomark"
+    elseif not slash then
+        markState = "nogroup"
+    elseif not desiredMark or #desiredMark > MACRO_BYTES then
+        markState = "toolong"   -- 主句加上專注那幾行就超過 255
+    else
+        writing = true
+        local ok, why = EnsureMacro(MARK_MACRO_NAME, desiredMark,
+            L["Created the %s macro in your macro book. It sets focus, marks and announces in one go when \"announce on every focus\" is on; deleting it just recreates it."])
+        writing = false
+        if ok then
+            markState, markLastBody = "ready", desiredMark
+        else
+            markState = why or "failed"
+        end
+    end
+    -- 巨集按鈕改跑哪一份（第二顆巨集／原本的 macrotext）
+    ns.Focuser.ApplyAnnounceMode()
+
     if ns.MarkBar and ns.MarkBar.ApplyAnnounceButton then ns.MarkBar.ApplyAnnounceButton() end
 end
 
 function AM.GetState()  return state end
 function AM.IsUsable()  return state == "ready" end
 function AM.IsPending() return pending end
+function AM.GetMarkState()       return markState end
+function AM.IsMarkMacroUsable()  return markState == "ready" end
 
 ----------------------------------------------------------------------
 -- Events

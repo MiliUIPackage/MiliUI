@@ -7,6 +7,7 @@
 --      （{icon} → {rtN}；宣告的是設定的圖示，不讀專注目標單位，避開秘密值）。
 --      走巨集書裡的保留巨集（Modules/AnnounceMacro.lua），M+／首領戰中也送得出去；
 --      巨集掛不上（沒組隊、欄位滿）才退回 Lua 路徑。
+--      右鍵切換「每次設專注目標都宣告」（開著時角落掛「自動」）。
 -- 整條工具列本身是非安全框架，但選單格子與宣告鈕是保護按鈕（標記只能走安全動作、
 -- 宣告只能走巨集），所以開關與建立都要 InCombatLockdown 守衛。
 ------------------------------------------------------------
@@ -163,6 +164,13 @@ local function CreatePicker()
                 local fb = self:GetFrameRef("focuser")
                 local macro = self:GetAttribute("focusermacro")
                 if fb and macro and macro ~= "" then
+                    -- 「每次設專注目標都宣告」的巨集書巨集戰鬥中改不了，標記換了
+                    -- 就先不跑它（退回 macrotext），脫戰由 AnnounceMacro 掛回來
+                    if fb:GetAttribute("macrotext") ~= macro then
+                        fb:SetAttribute("macro", nil)
+                        fb:SetAttribute("macrorelease", nil)
+                        fb:SetAttribute("macro1", nil)
+                    end
                     fb:SetAttribute("macrotext", macro)
                     fb:SetAttribute("macrotextrelease", macro)
                     fb:SetAttribute("macrotext1", macro)
@@ -250,6 +258,33 @@ local function UpdateAnnounceState()
     local blocked = not ns.AnnounceMacro.IsUsable() and ns.IsChatRestricted()
     local g = blocked and 0.42 or 1
     announceBtn.icon:SetVertexColor(g, g, g)
+end
+
+-- 「每次設專注目標都宣告」開著的話，喇叭鈕角落掛「自動」小字
+local function UpdateAnnounceModeBadge()
+    if not announceBtn then return end
+    announceBtn.autoText:SetShown(DB().announceOnMark and true or false)
+end
+
+-- 喇叭鈕右鍵：切換「每次設專注目標都宣告」
+local function ToggleAnnounceOnMark()
+    local db = DB()
+    db.announceOnMark = not db.announceOnMark
+    UpdateAnnounceModeBadge()
+    local L = ns.L
+    if db.announceOnMark then
+        ns.Print(L["Announce on every focus: |cff00ff00on|r"])
+        if ns.Focuser.GetEffectiveMarkIndex() < 1 then
+            ns.Print(L["Auto-mark is off in the Focus settings, so nothing is announced until you turn it on."])
+        end
+    else
+        ns.Print(L["Announce on every focus: |cffff5555off|r (click the speaker to announce)"])
+    end
+    if InCombatLockdown() then
+        ns.Print(L["Takes effect after combat."])
+    end
+    -- AnnounceMacro.Refresh 會建／改第二顆巨集並切換巨集按鈕（戰鬥中延到脫戰）
+    ns.Fire("SettingsChanged")
 end
 
 -- 巨集掛不上時的退路（沒組隊／還沒選標記／巨集欄位滿／內容太長）。
@@ -497,10 +532,22 @@ local function CreateBar()
     announceBtn:RegisterForClicks("AnyDown", "AnyUp")
     -- 線條風自製圖示，保留 4px 留白（不像技能圖示要填滿裁邊）
     announceBtn.icon:SetTexture(ANNOUNCE_ICON)
+    -- 「自動」角標：純白小字、靠右下，不換顏色（套組慣例，狀態只換明暗不換色）
+    announceBtn.autoText = announceBtn:CreateFontString(nil, "OVERLAY")
+    announceBtn.autoText:SetFont(ns.Media.Font(), 10, "OUTLINE")
+    announceBtn.autoText:SetPoint("BOTTOMRIGHT", -1, 2)
+    announceBtn.autoText:SetText(L["Auto"])
+    UpdateAnnounceModeBadge()
     -- 巨集有掛上：安全動作已經送出，這裡只補「戰鬥中內容還沒更新」的提醒；
     -- 沒掛上：退回 Lua 路徑（印預覽／提示／封鎖時印原文）。放開邊緣做一次就好。
+    -- 右鍵（type2 沒設，安全動作不做事）：切換「每次設專注目標都宣告」。
     announceBtn:SetScript("PostClick", function(_, mouseButton, down)
-        if down or mouseButton ~= "LeftButton" then return end
+        if down then return end
+        if mouseButton == "RightButton" then
+            ToggleAnnounceOnMark()
+            return
+        end
+        if mouseButton ~= "LeftButton" then return end
         if ns.AnnounceMacro.IsUsable() then
             if ns.AnnounceMacro.IsPending() then
                 ns.Print(L["In combat: the announcement macro still holds the previous content; it updates after combat."])
@@ -544,6 +591,25 @@ local function CreateBar()
             GameTooltip:AddLine(L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and battlegrounds — right now this can only be printed to you."],
                 1, 0.3, 0.3, true)
         end
+        -- 「每次設專注目標都宣告」現況
+        GameTooltip:AddLine(" ")
+        if DB().announceOnMark then
+            GameTooltip:AddLine(L["Announce on every focus: |cff00ff00on|r"], 1, 1, 1)
+            local ms = AM.GetMarkState()
+            local why = (ms == "noautomark" and L["Auto-mark is off in the Focus settings, so nothing is announced until you turn it on."])
+                or (ms == "nogroup" and L["Not in a group: nothing to announce to yet."])
+                or (ms == "noslot" and L["No free macro slot, so the %s macro could not be created."]:format("|cffffd200" .. AM.MARK_MACRO_NAME .. "|r"))
+                or (ms == "toolong" and L["The announcement is longer than 255 bytes and does not fit in a macro; shorten the text."])
+                or (ms == "failed" and L["Could not write the %s macro."]:format("|cffffd200" .. AM.MARK_MACRO_NAME .. "|r"))
+            if why then
+                GameTooltip:AddLine(why, 1, 0.3, 0.3, true)
+            else
+                GameTooltip:AddLine(L["Shift-click / the focus hotkey announces whenever it lands on a living enemy."], 0.6, 0.6, 0.6, true)
+            end
+        else
+            GameTooltip:AddLine(L["Announce on every focus: |cffff5555off|r (click the speaker to announce)"], 1, 1, 1)
+        end
+        GameTooltip:AddLine(L["Right-click to toggle announcing on every focus"], 0.5, 0.8, 1)
         GameTooltip:AddLine(L["The announcement text can be changed in the settings"], 0.5, 0.8, 1)
         GameTooltip:Show()
     end)
@@ -591,6 +657,10 @@ end
 ----------------------------------------------------------------------
 function MarkBar.UpdateMarkIcon()
     UpdateMarkIcon()
+end
+
+function MarkBar.UpdateAnnounceModeBadge()
+    UpdateAnnounceModeBadge()
 end
 
 -- 預存「選了編號 i 時巨集該長什麼樣」到各格子的屬性，讓格子的安全快照
