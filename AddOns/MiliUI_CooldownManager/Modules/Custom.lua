@@ -2079,8 +2079,15 @@ local function AssetOf(t)
     if atlas then return atlas, nil end
     local file = Str(Try(t.GetTextureFilePath, t))
     if not file then
+        -- ⚠ 插件自己的貼圖（皮的檔案都是）檔案編號是**負數**（實測 Raeli 的外框 -5272）：只要不是 0 都收。
+        -- 再退 GetTexture（回編號或路徑）
         local id = Num(Try(t.GetTextureFileID, t))
-        if id and id > 0 then file = id end
+        if id and id ~= 0 then
+            file = id
+        else
+            local v = Plain(Try(t.GetTexture, t))
+            if (type(v) == "number" and v ~= 0) or (type(v) == "string" and v ~= "") then file = v end
+        end
     end
     return nil, file
 end
@@ -2167,6 +2174,14 @@ local function ShapeFor(cache, frame, icon, w, h, normalOf)
     local stale = cache.shapeGen ~= g or cache.shapeSize ~= size
     if not stale and not (cache.msqShape and cache.msqShape.mask) then
         stale = (Num(Try(icon.GetNumMaskTextures, icon)) or 0) > 0
+    end
+    -- 外框也一樣：上次沒讀到（nil／false），現在那張貼圖顯示著而且有貼圖 ⇒ 重讀（套皮晚到）
+    if not stale and normalOf and not (cache.msqShape and type(cache.msqShape.normal) == "table") then
+        local nt = normalOf()
+        if nt and Plain(Try(nt.IsShown, nt)) == true then
+            local _, f = AssetOf(nt)
+            stale = f ~= nil or Str(Try(nt.GetAtlas, nt)) ~= nil
+        end
     end
     if stale then
         cache.msqShape = ReadShape(frame, icon, w, h, normalOf and normalOf() or nil)
