@@ -591,7 +591,7 @@ end
 --   占位（Bars 的增益占位、自訂光環格的占位）：Decorate.ApplyPlaceholder 在占位框上畫一份，跟占位圖示一樣半透明
 --     （光環格的占位一直在、按鈕出現時蓋在上面：兩份字同位置同樣式，看起來就是一份）
 ------------------------------------------------------------
-T.LABEL_PH_ALPHA = 0.35            -- 占位上的那一份：跟占位圖示同一個透明度
+T.LABEL_PH_ALPHA = 1               -- 占位上的那一份：不透明（半透明時底下的框線會透過字顯出來，看起來像被蓋住；使用者 2026-10-06）
 
 local LABEL_POINTS = {
     TOP = "CENTER", BOTTOM = "CENTER", CENTER = "CENTER", LEFT = "LEFT", RIGHT = "RIGHT",

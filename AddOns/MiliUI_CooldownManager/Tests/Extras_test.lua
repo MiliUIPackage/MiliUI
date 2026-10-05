@@ -2121,7 +2121,7 @@ do
     cell.aura = true
     T.ApplyPreviewIcon(cell, style, { label = lst })
     check("預覽：增益格畫", cell.labelText.shown and cell.labelText.text == "英勇")
-    eq("占位那份的透明度", T.LABEL_PH_ALPHA, 0.35)
+    eq("占位那份不透明（半透明會透出框線）", T.LABEL_PH_ALPHA, 1)
     env.CreateFrame = savedCF
     DB.ResetOverrides(id)
     eq("還原此法術 ⇒ 自訂文字清掉", T.LabelStyle("buffs", id), nil)
