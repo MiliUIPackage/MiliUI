@@ -87,7 +87,7 @@ local W, P = ns.W, ns.P
 ns.SpellPopover = {}
 local Pop = ns.SpellPopover
 
-local WIDTH   = 380          -- 五個分頁（一般／文字／外觀／發光／音效）要在同一列（使用者 2026-10-03 指定）
+local WIDTH   = 450          -- 六個分頁（一般／文字／外觀／發光／音效／自訂文字）要在同一列（使用者 2026-10-03 指定五個、2026-10-06 加到六個）
 local PAD     = 12
 local LABEL_W = 130
 local ROW_H   = 26
