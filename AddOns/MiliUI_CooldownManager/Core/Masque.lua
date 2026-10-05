@@ -11,6 +11,8 @@
 --   ns.Masque.Sync(holder, button, regions, btype, w, h, onLate) → 這一格現在是不是 Masque 在畫
 --   ns.Masque.Release(holder)        從群組拿掉（格子換到米利樣式的條上）
 --   ns.Masque.IsSkinned(holder)
+--   ns.Masque.Generation()           Masque 那邊的設定每變一次 +1（從自己的框上讀回皮的形狀時，拿它判斷要不要重讀）
+--   ns.Masque.GetNormal(button)      這一格現在畫皮外框的那張貼圖（光環格的探針用，見 Modules/Custom.lua）
 --   ns.Masque.OpenOptions()
 --
 -- 分工（Core/Decorate.lua 依 Mode 分支）：
@@ -37,6 +39,10 @@
 --   Cooldown 上寫 _MSQ_* 欄位，並在 item 上建外框圖與遮罩。**我們自己一個欄位都不寫**；
 --   Masque 寫的那些 key 暴雪的程式不讀（污染只跟著那幾個 key），而且只有玩家選了 Masque 才發生。
 --   跟 MasqueBlizzBars 套冷卻管理器時做的是同一件事；Compat.lua 照樣請它跳過我們的 item。
+--
+-- 光環格（AuraContainer 的按鈕建好就 forbidden，Masque 碰不到）：Modules/Custom.lua 另建一顆看不見的普通框
+-- （探針）交給同一個群組，再從它身上讀回 Icon 的遮罩／尺寸／texcoord 與皮外框（Normal）的外觀，烘進按鈕
+-- （見那邊的「光環格的 Masque」）。
 --
 -- 群組在 Masque 裡被停用／啟用（Masque 自己的設定）：它會自己把按鈕還成預設皮或重新套皮。
 -- 我們掛它的回呼，全部格子重套一次：停用時邊框、縮放、方角轉圈回到我們畫，但 Masque 預設皮留下的
@@ -130,6 +136,9 @@ end
 ------------------------------------------------------------
 local group
 local warned = false
+local gen = 0
+
+function M.Generation() return gen end
 
 local function Disabled()
     -- db 是 Masque 群組自己的設定表（唯讀；它的 options 也是讀這個欄位）
@@ -144,6 +153,7 @@ end
 -- Masque 那邊的設定變了（換皮、縮放、背景、停用／啟用…）：全部格子重套一次，
 -- 把轉圈色、我們暫代的邊框照新狀態寫回去
 local function OnMasqueChanged(_, option, value)
+    gen = gen + 1
     if ns.Decorate then ns.Decorate.InvalidateAll() end
     if ns.Bars and ns.Bars.RequestAll then ns.Bars.RequestAll("layout") end
     if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
@@ -213,6 +223,20 @@ function M.Sync(holder, button, regions, btype, w, h, onLate)
     end, "masque")
     queued = not done
     return (not queued) and M.IsSkinned(holder) or false
+end
+
+------------------------------------------------------------
+-- 光環格的探針（Modules/Custom.lua）：皮外框畫在哪一張貼圖上。Masque 多半不用我們給的 Normal，
+-- 而是在按鈕上另建一張（皮沒有分狀態時把我們那張藏起來）⇒ 只能問它的公開 API GetNormal（拿到的是**我們自己框上**的貼圖）。
+-- 沒有這支 API、或出錯 ⇒ nil（呼叫端當「讀不到」，退回米利邊）
+------------------------------------------------------------
+function M.GetNormal(button)
+    if not (api and button) then return nil end
+    local get = api.GetNormal
+    if type(get) ~= "function" then return nil end
+    local ok, t = pcall(get, api, button)
+    if ok and type(t) == "table" then return t end
+    return nil
 end
 
 ------------------------------------------------------------
