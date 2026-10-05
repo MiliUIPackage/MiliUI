@@ -66,6 +66,7 @@ Core\Bars.lua
 Core\Visibility.lua
 Core\Cursor.lua
 Modules\ResourceConditions.lua
+Modules\DevourerMeta.lua
 Modules\AuraBar.lua
 Modules\Resources.lua
 Modules\Pips.lua
@@ -87,6 +88,7 @@ Options\Tab_Theme.lua
 Options\Tab_Profile.lua
 Options\ResourceConditions.lua
 Options\HealthThresholds.lua
+Options\MetaRules.lua
 Options\ResourceSettings.lua
 Options\StackColors.lua
 Options\CustomSounds.lua

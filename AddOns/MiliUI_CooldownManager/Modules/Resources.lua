@@ -217,7 +217,9 @@ local RESOURCES = {
     SoulFragments   = { name = L["Soul Fragments"],   mode = "pip", cast = 228477, max = 6,  passive = 203981 },
     -- 2026-09-30 補齊
     Icicles         = { name = SpellName(205473, "Icicles"), nameSpell = 205473, mode = "pip", aura = 205473, max = 5 },
-    DevourerFragments = { name = L["Soul Fragments"], mode = "bar", get = DevourerValue, bigNumber = false, auraRead = true },
+    -- meta：這一列另外畫虛空化身計時＋崩陷之星計數（Modules/DevourerMeta.lua）
+    DevourerFragments = { name = L["Soul Fragments"], mode = "bar", get = DevourerValue, bigNumber = false, auraRead = true,
+                          meta = true },
     Stagger         = { name = PowerName("STAGGER", SpellName(115069, "Stagger")), mode = "bar", get = StaggerValue,
                         passive = 115069, stagger = true, bigNumber = true },
     -- 無視苦痛：引擎寫增益 190456 的層數（＝盾量佔上限的百分比）；get／cap 是容器沒好時的 absorbBar 退路
@@ -526,6 +528,9 @@ R.GetValue = GetValue
 ------------------------------------------------------------
 local function Cfg() return ns.DB and ns.DB.ConfigTable("resources") end
 R.Cfg = Cfg
+
+-- 虛空化身門檻規則的清理（設定頁寫入前；純函式本體在 Modules/DevourerMeta.lua）
+function R.CleanMetaRules(rules) return ns.DevourerMeta.CleanRules(rules) end
 
 -- 顏色：玩家調的 cfg.colors[key][field] → Core/DB.lua 的預設。回傳既有的表，一次都不配新的
 local function DefaultColor(key, field)
@@ -1012,6 +1017,7 @@ local function TextOutline(cfg)
     if type(v) == "string" and v ~= "" and v ~= ns.Media.INHERIT then return ns.Media.Outline(v) end
     return ns.Media.ThemeOutline()
 end
+R.TextOutline = TextOutline          -- 虛空化身那兩段字「跟隨這一列的數字」用（Modules/DevourerMeta.lua）
 
 local function LayoutRuneTimer(seg, on, cfg)
     if not on then
@@ -1050,6 +1056,7 @@ local function MakeRow(parent)
     -- 懶建的零件先放 false（有就是框、沒有就是 false；沒寫過的欄位別指望是 nil 以外的東西）
     row.ab, row.abDecor, row.absorbClip, row.absorbBar = false, false, false, false
     row.overs, row.folded = false, false      -- 氣漩武器摺疊的上層（懶建）
+    row.metaTime, row.metaStars = false, false   -- 噬滅的虛空化身計時／崩陷之星計數（懶建，Modules/DevourerMeta.lua）
     row.textFrame = CreateFrame("Frame", nil, row)
     row.textFrame:SetAllPoints(row)
     row.text = row.textFrame:CreateFontString(nil, "OVERLAY")
@@ -2428,6 +2435,8 @@ local function UpdateRow(row, cfg)
     else
         UpdateBarRow(row, cfg, def, key, cc, conds)
     end
+    -- 虛空化身計時／崩陷之星計數：對齊化身狀態、值變了才換字
+    if def.meta and row.metaTime and ns.DevourerMeta then ns.DevourerMeta.Update(row) end
 end
 
 ------------------------------------------------------------
@@ -2463,6 +2472,8 @@ local function Relayout(cfg, list, W)
     W = ns.P.Scale(W)
     local prev
     healthShown = false
+    local metaShown = false
+    local DM = ns.DevourerMeta
     for i, key in ipairs(list) do
         local row = rows[i]
         if not row then
@@ -2488,7 +2499,16 @@ local function Relayout(cfg, list, W)
         -- 外觀：這一列自己的（不跟資源條時是代理表，見 R.StyleFor）；高度、列距、錨定照全域
         LayoutRow(row, key, R.StyleFor(cfg, key), row.numSeg, W, H)
         if row.ab and ns.AuraBar then ns.AuraBar.KickPending(row.ab) end
+        -- 噬靈魂碎片列上的虛空化身計時／崩陷之星計數（池化的列換成別的資源就收起來）
+        if DM and RESOURCES[key] and RESOURCES[key].meta then
+            DM.Layout(row, R.StyleFor(cfg, key), cfg)
+            metaShown = true
+        elseif DM and row.metaTime then
+            DM.Hide(row)
+        end
     end
+    -- 沒有靈魂碎片列了（換專精、列被關）：狀態整個重設
+    if DM and not metaShown then DM.Reset() end
     for i = #list + 1, #rows do
         local row = rows[i]
         row:Hide()
@@ -2516,6 +2536,7 @@ function R.Update(force)
         shownCount = 0
         healthShown = false
         laidOut = false
+        if ns.DevourerMeta then ns.DevourerMeta.Reset() end
         R.SetMirrorDriver(rows, 0, cfg)
         SyncUnitEvents()
         return
@@ -2541,17 +2562,25 @@ local TICKED_FILL = { rune = true, essence = true }
 local rechargeTicker
 local rechargeRearmed = false    -- 這一趟有沒有人說「還有格子在回充」
 
+-- 虛空化身計時（噬滅）也搭這班：化身中、或還有「結束後保留」沒清時，每趟只重畫那兩段字（DM.Paint，
+-- 整數秒變了才換字），不重畫整列。停止條件 ＝ 回充與化身計時都沒人要
 local function RechargeTick()
     rechargeRearmed = false
     local cfg = Cfg()
     local busy = false
     if cfg and cfg.enabled ~= false then
+        local DM = ns.DevourerMeta
         for i = 1, shownCount do
             local row = rows[i]
             local def = row.key and RESOURCES[row.key]
             if def and TICKED_FILL[def.fill] and row.mode == "pip" and row:IsShown() then
                 busy = true
                 local ok, err = xpcall(UpdateRow, ns.ReportError, row, cfg)
+                if not ok then R.lastError = err end
+            elseif def and def.meta and DM and row.metaTime and DM.NeedsTick(DM.state) then
+                busy = true
+                rechargeRearmed = true          -- 化身計時自己續班（DM.Paint 清掉過期的保留後下一趟就不續了）
+                local ok, err = xpcall(DM.Paint, ns.ReportError, row)
                 if not ok then R.lastError = err end
             end
         end
@@ -2637,10 +2666,11 @@ local evFrame
 --     UNIT_HEALTH                   血量列（def.health）、醉仙緩勁
 --     UNIT_MAXHEALTH                血量列、醉仙緩勁、無視苦痛（def.absorb：上限是最大生命）
 --     UNIT_ABSORB_AMOUNT_CHANGED    無視苦痛（以前只有戰士註冊，這一列只有戰士有）
+--     UNIT_SPELLCAST_SUCCEEDED      噬靈魂碎片列（def.meta：崩陷之星計數，只有專精 1480 有這一列）
 --   能量、符文、點數充能、急速照舊一次註冊。作廢點＝Relayout 結尾（Reevaluate、R.Apply、Bars 的 relayout 都經過它）
 --   與整條關掉的那一支；戰鬥中重排延後時畫面上的列沒變，事件集合跟著不變
 ------------------------------------------------------------
-local UNIT_EVENTS = { "UNIT_AURA", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_ABSORB_AMOUNT_CHANGED" }
+local UNIT_EVENTS = { "UNIT_AURA", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_SPELLCAST_SUCCEEDED" }
 
 function R.WantedEvents(keys, class, out)
     out = out or {}
@@ -2659,6 +2689,7 @@ function R.WantedEvents(keys, class, out)
             if def.absorb then
                 out.UNIT_MAXHEALTH, out.UNIT_ABSORB_AMOUNT_CHANGED = true, true
             end
+            if def.meta then out.UNIT_SPELLCAST_SUCCEEDED = true end
         end
     end
     return out
@@ -2687,7 +2718,12 @@ SyncUnitEvents = function()
     end
 end
 
-local function OnEvent(_, event)
+local function OnEvent(_, event, ...)
+    if event == "UNIT_SPELLCAST_SUCCEEDED" then
+        -- 崩陷之星計數：計數變了才重畫（施法很頻繁，別的法術不標髒）
+        if ns.DevourerMeta and ns.DevourerMeta.OnSpellcast(...) then Mark(false) end
+        return
+    end
     if event == "UNIT_POWER_POINT_CHARGE" then chargedDirty = true end
     if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
         -- 沒有血量列、這個職業的資源也不看生命 ⇒ 不重畫（每次受傷都來，別白做）
@@ -2728,7 +2764,8 @@ local function RegisterEvents()
     if CLASS == "ROGUE" then evFrame:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", "player") end
     -- 秘法靈魂的「剩幾個 GCD」：格式器的分段跟著 GCD 長度
     if CLASS == "MAGE" then evFrame:RegisterUnitEvent("UNIT_SPELL_HASTE", "player") end
-    -- UNIT_AURA／UNIT_HEALTH／UNIT_MAXHEALTH／UNIT_ABSORB_AMOUNT_CHANGED：依畫面上的列動態註冊（SyncUnitEvents）
+    -- UNIT_AURA／UNIT_HEALTH／UNIT_MAXHEALTH／UNIT_ABSORB_AMOUNT_CHANGED／UNIT_SPELLCAST_SUCCEEDED：
+    -- 依畫面上的列動態註冊（SyncUnitEvents）
     evFrame:SetScript("OnEvent", OnEvent)
     SyncUnitEvents()
 end
@@ -2761,6 +2798,10 @@ function R.Init()
     ns.RegisterCallback("CatalogChanged", "resources_cstrack", function() R.ScheduleTrackedCheck() end)
     -- 職業色晚到（自訂職業色表）：血量列的底色與門檻曲線的最後一個點要重組
     ns.RegisterCallback("AccentChanged", "resources", function() Mark(true) end)
+    -- 虛空化身那兩段字的預覽（設定視窗開著／暴雪編輯模式中）：進出時重畫值
+    ns.RegisterCallback("OptionsShown", "resources_meta", function() Mark(false) end)
+    ns.RegisterCallback("OptionsHidden", "resources_meta", function() Mark(false) end)
+    ns.RegisterCallback("EditModeChanged", "resources_meta", function() Mark(false) end)
     R.Reevaluate()
 end
 
@@ -2828,6 +2869,7 @@ function R.DebugLines()
             :format(i, key, def.mode, (def.mode == "pip" or def.mode == "auraBar") and ("×" .. tostring(row.numSeg)) or "",
                     tostring(row.mode), secret and "是" or "否", n and #n or 0, tostring(gateLog[key] or ""), extra)
     end
+    if CLASS == "DEMONHUNTER" and ns.DevourerMeta then out[#out + 1] = "  " .. ns.DevourerMeta.DebugLine() end
     for key, why in pairs(gateLog) do
         local listed = false
         for i = 1, shownCount do if rows[i].key == key then listed = true end end
