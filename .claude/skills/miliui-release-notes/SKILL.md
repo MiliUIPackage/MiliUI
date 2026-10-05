@@ -147,6 +147,30 @@ body 才有「玩家實際會看到什麼」「設定在哪一頁」「預設開
   第一個 `<p>` 到最後一個 `</p>`。
 - 區間內真的沒有玩家看得到的改動 → 輸出 `<p><strong>調整</strong><br>・細部調整與穩定性改善</p>`。
 
+## CurseForge 模式（curseforge-upload.sh 呼叫）
+
+發佈腳本上傳插件補給站之後，[.claude/scripts/curseforge-upload.sh](../../scripts/curseforge-upload.sh)
+會再叫一次這個技能（`release-notes.sh … en`），要「CurseForge 模式」。產出直接塞進 CurseForge
+的 changelog，讀者是英文玩家。規則跟網站模式**完全一樣**（區間由呼叫端給、只回一行 HTML、
+`<p>` 分段、`<br>` 分條），只差下面幾點：
+
+- **只出英文。** 不是把繁中逐字翻過去 —— 照「玩家會看到什麼不一樣」重寫成自然的英文句子。
+- 段落標題與順序：**New** → **Changes** → **Fixes**，沒內容的段落整段省略。
+- 條目開頭用 `- `（半形減號＋空白），不要 `・`。
+- **不要任何 emoji**，包括 ✨🎉🔥🐛✅⚡ 這類「裝飾用」的，也不要用符號字元當圖示。
+  語氣平實，不要行銷腔（"awesome"、"huge update"、驚嘆號都不要）。
+- **遊戲內容一律用暴雪官方英文名詞**：上面三語表的 English 欄是最低要求；技能、物品、
+  天賦、首領、地城、詞綴這類專有名詞照英文用戶端實際顯示的名稱寫（Bloodlust、Great Vault、
+  Mythic+ Keystone、Cooldown Manager、Edit Mode……），不確定就去插件的 `Locales/` 或程式碼
+  找英文原名，不要自己意譯中文名稱。職業／專精用官方名（Death Knight、Frost、Restoration）。
+- 設定路徑用英文介面實際顯示的字（L 的 key 就是英文原文），層級用 ` > ` 隔開：
+  `Unit > Health Bar > Color > Threshold coloring`。
+- 區間內真的沒有玩家看得到的改動 → 輸出 `<p><strong>Changes</strong><br>- Minor adjustments and stability improvements</p>`。
+
+```html
+<p><strong>New</strong><br>- Item one<br>- Item two</p><p><strong>Fixes</strong><br>- Item one</p>
+```
+
 ## 檢查清單
 
 1. 區間是同類 tag 相比，不是拿插件 tag 對日期 tag
