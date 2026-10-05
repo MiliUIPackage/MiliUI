@@ -396,6 +396,15 @@ local SUBTAB_DEFS = {
     { id = "duration", label = L["Buff duration"] },
 }
 Specs.SUBTAB_DEFS = SUBTAB_DEFS
+
+-- 子分頁卡片的「!」說明（W.CreateTabCard 的 help）：兩種各一行，名稱上強調黃（共用層 W.EMPHASIS_COLOR）
+function Specs.SubTabHelp()
+    local c = W.EMPHASIS_COLOR or { r = 1, g = 0.82, b = 0 }
+    local hex = string.format("ff%02x%02x%02x", math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5))
+    local function Y(t) return "|c" .. hex .. t .. "|r" end
+    return L["%s: the countdown while the spell recharges."]:format(Y(L["Cooldown"])) .. "\n"
+        .. L["%s: the countdown of a buff, on buff icons and in the part where a spell shows its buff's time first."]:format(Y(L["Buff duration"]))
+end
 local SUBTAB_BTN_H, SUBTAB_BTN_MIN_W = 20, 56
 -- 卡片（L，W.CreateTabCard）：左右邊跟設定列同寬（見 SubTabRow）；
 -- 上緣＝子分頁鈕列底，底＝這張表單最後一個帶 subTab 的列（BuildForm 排完之後補）
@@ -413,7 +422,7 @@ local function SubTabRow()
     return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
         local tc = W.CreateTabCard(parent, {
             tabs = SUBTAB_DEFS, tabHeight = SUBTAB_BTN_H, tabMinWidth = SUBTAB_BTN_MIN_W,
-            help = L["Cooldown: the countdown while the spell recharges. Buff duration: the countdown of a buff, on buff icons and in the part where a spell shows its buff's time first."],
+            help = Specs.SubTabHelp,
             selected = ctx.subTab,
             onSelect = function(id)
                 if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end
