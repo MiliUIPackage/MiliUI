@@ -895,9 +895,6 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
         Track(r, { fx, fy })
     end
 
-    -- 最上面一列灰字：標籤變暗的意思（每種格都有倒數 ⇒ 這一頁一定有東西）
-    NoteRow(L["Dimmed labels follow the bar. Change a row to set it for this spell only; right-click its label to follow the bar again."], Always)
-
     -- 倒數
     HeaderRow(L["Countdown"], Always)
     ToggleRow("hideCooldownText", L["Hide countdown"], Always)
