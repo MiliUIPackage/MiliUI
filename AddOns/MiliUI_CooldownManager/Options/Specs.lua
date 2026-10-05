@@ -397,9 +397,12 @@ local SUBTAB_DEFS = {
 }
 Specs.SUBTAB_DEFS = SUBTAB_DEFS
 local SUBTAB_BTN_H, SUBTAB_BTN_MIN_W = 20, 56
--- 卡片（L，W.CreateTabCard）：左右邊佔表單整寬（標籤欄也包進去），右邊離控件欄留一點；
+-- 卡片（L，W.CreateTabCard）：左右邊跟設定列同寬（見 SubTabRow）；
 -- 上緣＝子分頁鈕列底，底＝這張表單最後一個帶 subTab 的列（BuildForm 排完之後補）
-local CARD_X, CARD_R, CARD_TOP = 0, 4, 4
+local CARD_TOP = 4
+-- 卡片左右界：控件欄起點 x 往左扣「標籤與控件的間距＋最長標籤＋內距」，往右到標準控件寬＋內距（共用層 Controls 的版面常數）
+local CARD_GAP, CARD_PAD_X, CARD_CTRL_W, CARD_LABEL_MAX = 12, 10, 230, 128
+local CARD_LABELS = { "Decimals below", "Color when low", "Low color", "Low below (sec)" }
 
 local function Sub(id, spec)
     if spec then spec.subTab = id end
@@ -415,8 +418,20 @@ local function SubTabRow()
                 if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end
             end,
         })
-        local formW = parent:GetWidth() or (x + width)
-        local h = tc:Place(CARD_X, y - CARD_TOP, formW - CARD_X - CARD_R)
+        -- 卡片跟上面的設定列同寬（使用者 2026-10-06：「太胖了，應該和上面一樣的縮排」）：
+        -- 左緣＝卡片裡最長的標籤再外推一點（標籤欄靠右對齊，長度依語系），右緣＝控件欄的右緣（標準控件寬）
+        local measure = parent:CreateFontString(nil, "OVERLAY")
+        measure:SetFontObject(W.fontNormal)
+        local labelW = 0
+        for _, k in ipairs(CARD_LABELS) do
+            measure:SetText(L[k])
+            labelW = math.max(labelW, math.ceil(measure:GetStringWidth() or 0))
+        end
+        measure:Hide()
+        labelW = math.min(labelW, CARD_LABEL_MAX)
+        local left = math.max(0, x - CARD_GAP - labelW - CARD_PAD_X)
+        local right = math.min(x + width, x + CARD_CTRL_W + CARD_PAD_X)
+        local h = tc:Place(left, y - CARD_TOP, right - left)
         ctx.tabCard = tc
         local function Paint() tc:Select(ctx.subTab or SUBTAB_DEFS[1].id) end
         Paint()
