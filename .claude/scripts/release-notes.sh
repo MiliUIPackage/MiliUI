@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # 叫 Claude 用 miliui-release-notes 技能的「網站模式」寫一個插件的更新說明
-# 給各插件的 package.command 用（套組本體的 _retail_/Packaging.command 自己有一份同樣的流程）。
+# 給發版管理介面（~/Projects/MiliUI_ReleaseManager）的 scripts/release.sh 與 fork 各自的 package.command 用（套組本體的 _retail_/Packaging.command 自己有一份同樣的流程）。
 #
 # 用法：release-notes.sh <插件資料夾名> <tag 的 grep -E 樣式> <這次的 tag> <這次的版本號> [en]
 #   例：release-notes.sh MiliUI_UnitFrames '^Miliui_UnitFrames-[0-9.]+$' Miliui_UnitFrames-1.4.3 1.4.3
@@ -10,7 +10,7 @@
 #
 # 區間＝同類 tag 裡最新的一個（排除這次的 tag，重發同一版時才不會變空區間）..這次的 tag，
 # 只看 AddOns/<插件>（多個資料夾就全部一起看）。這次的 tag 還不存在就算到 HEAD。
-# 第五個參數給 en 時改用「CurseForge 模式」，出英文版（給 curseforge-upload.sh 用）。
+# 第五個參數給 en 時改用「CurseForge 模式」，出英文版（給發版管理介面的 curseforge-upload.sh 用）。
 # 成功：stdout 印出一行 HTML、exit 0。失敗：stdout 空、exit 1，原因印在 stderr。
 # 呼叫端失敗時照舊上傳、不帶說明。
 # ============================================================
