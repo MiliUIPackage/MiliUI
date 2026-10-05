@@ -200,6 +200,7 @@ local function Items()
     out[#out + 1] = { id = "resources" }
     out[#out + 1] = { id = "castbar" }
     out[#out + 1] = { id = "assist" }          -- 戰鬥輔助（下一招醒目標示＋下一招圖示）
+    out[#out + 1] = { id = "skyriding" }       -- 天空騎術（活力充能＋速度條）
     return out
 end
 

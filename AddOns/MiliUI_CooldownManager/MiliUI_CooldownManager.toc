@@ -72,6 +72,7 @@ Modules\Pips.lua
 Modules\Interrupt.lua
 Modules\Castbar.lua
 Modules\AssistIcon.lua
+Modules\Skyriding.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
@@ -93,6 +94,7 @@ Options\CustomSounds.lua
 Options\Tab_Resources.lua
 Options\Tab_Castbar.lua
 Options\Tab_Assist.lua
+Options\Tab_Skyriding.lua
 Options\ClickLayer.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua

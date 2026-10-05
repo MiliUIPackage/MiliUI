@@ -58,7 +58,14 @@
 -- 暴雪排版後的同步放回（Reapply）才不會把 B 停走、把 A 放回來。B 生效／結束的訊號照舊走
 -- RequestSource("buffs")，Catalog.GroupTargets 把 A 所在的條算進去。
 --
--- 面板（資源條、自訂格子、施法條、下一招圖示；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
+-- 天空騎術（面板 skyriding，Modules/Skyriding.lua）的接力模式（placement ＝ relay，預設）：跟資源條輪流出現在同一個位置。
+--   * 錨定不看自己存的 anchor／pos：貼資源條容器的固定邊（資源條的錨點，預設 BOTTOM；SR.RelayPlace）；資源條關掉或收合（enabled／StackSkip，
+--     不讀框的幾何）時改用資源條自己的錨定設定（同樣的 to／point／relPoint／x／y），資源條也沒錨定就用資源條的 pos。
+--   * 不參與排開：不進 StackKeys、AnchorCfg 把它當不存在（別人不能把它當排開目標，錨在它身上的改用自己的 pos）。
+--   * 資源條的結構一套完（ApplyOne）就跟著重貼它（開關會換錨定目標）。
+--   獨立擺放（standalone）時就是一般的面板。
+--
+-- 面板（資源條、自訂格子、施法條、下一招圖示、天空騎術；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
 -- 同一套 ApplyStructure（pos／anchor、strata、enabled＝false 就 Hide）與編輯模式／磁吸，
 -- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
 -- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
@@ -174,8 +181,18 @@ end
 -- 排開與錨定看的設定表：設了「跟著游標」的條（Core/Cursor.lua）當作不存在 ——
 -- 它自己不錨定、不參與排開，已經錨著它的條當作目標不存在（改用自己的位置）。
 -- 判準是 Configured（跟編輯模式／設定視窗無關），所以進出編輯模式時別條的排開不會跟著變
+-- 天空騎術的接力模式（Modules/Skyriding.lua）
+local SKY = "skyriding"
+local function SkyRelay()
+    local SR = ns.Skyriding
+    return SR and SR.RelayMode and SR.RelayMode() or false
+end
+B.SkyRelay = SkyRelay
+
 local function AnchorCfg(key)
     if ns.Cursor and ns.Cursor.Configured(key) then return nil end
+    -- 接力中的天空騎術不是任何人的錨定／排開目標
+    if key == SKY and SkyRelay() then return nil end
     return BarCfg(key)
 end
 
@@ -186,7 +203,8 @@ end
 
 -- 排開：跟著同一個目標、同一邊的照這個順序往外排（小的靠近目標），規則在 Core/Layout.lua。
 -- 自訂群組排在內建的後面，彼此照左欄順序；下一招圖示排在所有東西的最後面（最外圈）。
-local STACK_RANK = { resources = 1, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6, essential = 7,
+-- 天空騎術（只有獨立擺放時參與排開）緊貼在資源條外面
+local STACK_RANK = { resources = 1, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6, essential = 7,
                      assistIcon = 900 }
 local function StackRank(key)
     if STACK_RANK[key] then return STACK_RANK[key] end
@@ -203,8 +221,10 @@ local function StackKeys()
     if type(p) == "table" and type(p.bars) == "table" then
         for k in pairs(p.bars) do keys[#keys + 1] = k end
     end
+    local relay = SkyRelay()
     for _, k in ipairs(ns.DB.PANEL_ORDER) do
-        if BarCfg(k) then keys[#keys + 1] = k end
+        -- 接力中的天空騎術不參與排開（不然會把輔助技能、施法條往外推）
+        if BarCfg(k) and not (k == SKY and relay) then keys[#keys + 1] = k end
     end
     return keys
 end
@@ -273,8 +293,29 @@ local function PlaceContainer(f, key, bar, st)
         ns.Cursor.Place(f, key)
         return
     end
-    local a = AnchorTarget(key)
     local snap = ns.Layout.Snap
+    if key == SKY and SkyRelay() then
+        -- 接力：跟資源條同一個位置（規則見檔頭與 Modules/Skyriding.lua 的 SR.RelayPlace）
+        f:ClearAllPoints()
+        local res = AnchorCfg("resources")
+        local usable = res ~= nil and res.enabled ~= false and not StackSkip("resources")
+        local kind, t = ns.Skyriding.RelayPlace(res, usable, B.AnchorPoint("resources"))
+        if kind == "anchor" and AnchorCfg(t.to) then
+            EnsureContainer(t.to)
+            SetPlace(f, st, t.point, containers[t.to], t.relPoint, snap(t.x), snap(t.y))
+            st.stackTo = t.to
+            return
+        end
+        -- 沒有可錨的目標：資源條自己的 pos，貼在資源條的錨點那一邊
+        if kind ~= "pos" then
+            local p = type(res) == "table" and type(res.pos) == "table" and res.pos or {}
+            t = { point = p.point or "CENTER", x = tonumber(p.x) or 0, y = tonumber(p.y) or 0 }
+        end
+        st.stackTo = nil
+        SetPlace(f, st, B.AnchorPoint("resources"), UIParent, t.point, snap(t.x), snap(t.y))
+        return
+    end
+    local a = AnchorTarget(key)
     f:ClearAllPoints()
     if a then
         -- 貼在「排開」算出來的那一條上（同一邊已經有別人就貼在它外面），邊與偏移照自己的設定
@@ -308,6 +349,8 @@ local function ApplyOne(key)
             if ns.EditMode and ns.EditMode.ApplyBarNow then ns.EditMode.ApplyBarNow(key) end
         end, "shown")
         if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
+        -- 資源條關掉：接力中的天空騎術改用資源條自己的錨定（見下面 Show 那條路的同一段）
+        if key == "resources" and containers[SKY] and SkyRelay() then ApplyOne(SKY) end
         return
     end
     local anchorPoint = st.anchorPoint or "CENTER"
@@ -321,6 +364,8 @@ local function ApplyOne(key)
     st.appliedAnchor = anchorPoint
     -- 跟著游標：結構一變（開關、可點擊、光環格、刪條）重判要不要掛 OnUpdate
     if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
+    -- 資源條的結構變了（開關、位置）：接力中的天空騎術跟著重貼（沒有人錨在它身上，直接貼不會成環）
+    if key == "resources" and containers[SKY] and SkyRelay() then ApplyOne(SKY) end
 end
 
 -- 尺寸變了以後：補正量不一樣了就照同一組錨點重貼（不重算排開 ⇒ 不會撞上錨定循環）
@@ -402,6 +447,36 @@ function B.Restack()
     local changed = StackChanged(nil)
     if not changed then return end
     ApplyStructure(changed[1])
+end
+
+-- 天空騎術切換接力／獨立擺放（設定頁叫）：錨定關係整個換了一套。先把天空騎術與「現在貼在它身上」的條全部拆錨，
+-- 那些條先照新規則貼回去、天空騎術最後貼——不然資源條還貼著天空騎術時，天空騎術改貼資源條會撞上
+-- 「錨在依賴自己的框上」。之後整疊再對一次（結構級）
+function B.SkyPlacementChanged()
+    local sky = containers[SKY]
+    if not sky then return end
+    if InCombatLockdown() then
+        B.RequestAll("structure")
+        return
+    end
+    local list = {}
+    for k, st in pairs(state) do
+        local onSky = st.stackTo == SKY or (type(st.place) == "table" and st.place[2] == sky)
+        if k ~= SKY and containers[k] and onSky then list[#list + 1] = k end
+    end
+    ns.Write(sky, function(f) f:ClearAllPoints() end, "point")
+    for i = 1, #list do
+        ns.Write(containers[list[i]], function(f) f:ClearAllPoints() end, "point")
+    end
+    restacking = true
+    for i = 1, #list do
+        local ok, err = xpcall(ApplyOne, ns.ReportError, list[i])
+        if not ok then B.lastError = err end
+    end
+    local ok, err = xpcall(ApplyOne, ns.ReportError, SKY)
+    if not ok then B.lastError = err end
+    restacking = false
+    B.RequestAll("structure")
 end
 
 ------------------------------------------------------------

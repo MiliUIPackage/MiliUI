@@ -372,5 +372,46 @@ do
     eq("ApplyAll：面板跟著這一輪的核心技能", containerAlpha.resources, 0.6)
 end
 
+------------------------------------------------------------
+-- 5. 天空騎術的「藏起冷卻管理器」（Snapshot.skyridingHideCdm）：條與其他面板 0、天空騎術自己照
+--    Snapshot.skyridingPanel、編輯模式不套用、舊插件還載著時天空騎術編輯模式也 0。
+--    沒有 ns.Skyriding（舊的測試環境）時快照兩欄都是 false，既有行為不變
+------------------------------------------------------------
+do
+    local panelCfg = { resources = { enabled = true, fadeWithEssential = false, loadConditions = {} },
+                       skyriding = { enabled = true } }
+    ns.profile = { bars = { essential = { visibility = {} } } }
+    ns.Setting = function() return nil end
+    ns.DB = {
+        PANEL_ORDER = { "resources", "skyriding" },
+        IsPanel = function(k) return panelCfg[k] ~= nil end,
+        ConfigTable = function(k) return panelCfg[k] or ns.profile.bars[k] end,
+    }
+    local s0 = Vis.Snapshot()
+    eq("沒有 ns.Skyriding：skyridingPanel false", s0.skyridingPanel, false)
+    eq("沒有 ns.Skyriding：skyridingHideCdm false", s0.skyridingHideCdm, false)
+    local on = S{ skyridingPanel = true, skyridingHideCdm = true }
+    local keep = S{ skyridingPanel = true, skyridingHideCdm = false }
+    eq("hideCdm：條 0", Vis.Alpha("essential", on), 0)
+    eq("hideCdm：蓋過「一直顯示」", Vis.Alpha("essential", on), 0)
+    eq("hideCdm 關：條照常", Vis.Alpha("essential", keep), 1)
+    eq("hideCdm：資源條 0", Vis.PanelAlpha("resources", on, 1), 0)
+    eq("hideCdm：天空騎術自己 1", Vis.PanelAlpha("skyriding", on), 1)
+    eq("天空騎術沒在顯示 → 0", Vis.PanelAlpha("skyriding", S()), 0)
+    ns.EditMode = { active = true }
+    eq("編輯模式：條不套 hideCdm", Vis.Alpha("essential", on), 1)
+    eq("編輯模式：資源條不套 hideCdm", Vis.PanelAlpha("resources", on, 1), 1)
+    eq("編輯模式：天空騎術全亮", Vis.PanelAlpha("skyriding", S()), 1)
+    ns.falconBlocked = true
+    eq("舊插件還載著：天空騎術編輯模式也 0", Vis.PanelAlpha("skyriding", S()), 0)
+    ns.falconBlocked = nil
+    ns.EditMode = nil
+    -- 快照接 ns.Skyriding
+    ns.Skyriding = { Shown = function() return true end, HidesCdm = function(a) return a end }
+    local s1 = Vis.Snapshot()
+    check("快照：Shown／HidesCdm 帶進來", s1.skyridingPanel == true and s1.skyridingHideCdm == true)
+    ns.Skyriding = nil
+end
+
 print(("Visibility_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

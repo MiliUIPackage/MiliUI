@@ -1273,10 +1273,12 @@ local function AnchorItems(key)
     local cand = {}
     for _, other in ipairs(p and p.barOrder or {}) do cand[#cand + 1] = other end
     for _, other in ipairs(ns.DB.PANEL_ORDER) do cand[#cand + 1] = other end
+    local skyRelay = ns.Bars and ns.Bars.SkyRelay and ns.Bars.SkyRelay()
     for _, other in ipairs(cand) do
-        -- 跟著游標的條不能被錨定（Core/Bars.lua 把它當不存在）
+        -- 跟著游標的條、接力中的天空騎術不能被錨定（Core/Bars.lua 把它們當不存在）
         if other ~= key and ns.DB.ConfigTable(other) and not ns.DB.AnchorWouldCycle(key, other)
-            and not (ns.Cursor and ns.Cursor.Configured(other)) then
+            and not (ns.Cursor and ns.Cursor.Configured(other))
+            and not (other == "skyriding" and skyRelay) then
             items[#items + 1] = { text = ns.Options.PageTitle(other) or ns.Options.BarTitle(other), value = other }
         end
     end
@@ -1379,6 +1381,8 @@ function Specs.AnchorGraphSig()
     for k in pairs(p and p.bars or {}) do keys[#keys + 1] = k end
     for _, k in ipairs(ns.DB.PANEL_ORDER) do keys[#keys + 1] = k end
     table.sort(keys)
+    -- 天空騎術接力／獨立擺放一切換，它在不在錨定候選裡就跟著變
+    if ns.Bars and ns.Bars.SkyRelay and ns.Bars.SkyRelay() then parts[#parts + 1] = "sky:relay" end
     for _, k in ipairs(keys) do
         local t = ns.DB.ConfigTable(k)
         local a = t and t.anchor
