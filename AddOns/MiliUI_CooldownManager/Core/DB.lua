@@ -1062,6 +1062,14 @@ local SPELL_CONST = {
     -- true ＝ 增益不在時那一格照留、畫占位（長條類照條的 layout.emptyStyle），跟固定格位同一條路；false ＝ 收合。
     -- 條的固定格位開著／被強制時每一格本來就保留，這個勾不起作用。（光環格的占位存在那一筆自訂項目上，不是這個欄位）
     placeholder      = false,
+    -- 自訂文字（M：增益圖示的提醒字，單一法術小窗最後一個分頁）：只有逐法術、沒有條層值。
+    -- labelText 字串（沒設／空 ＝ 不畫）；labelFont 沒設 ＝ 條的通用字型；labelColor 沒設 ＝ 白（色表，不繼承）；
+    -- labelPoint 是「圖示內的那個角／邊」（同倒數、層數）。預設＝圖示內下緣置中、往下 2（字的下半略壓過下緣，
+    -- 使用者給的參考圖）。引擎不直接讀這幾個，一律走 Text.LabelStyle
+    labelSize        = 12,
+    labelPoint       = "BOTTOM",
+    labelX           = 0,
+    labelY           = -2,
 }
 DB.SPELL_FALLBACK, DB.SPELL_CONST = SPELL_FALLBACK, SPELL_CONST
 
@@ -1369,6 +1377,10 @@ DB.OVERRIDE_GROUP = {
     talentCond = "talent",
     -- 無增益時保留空位（F7）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
     placeholder = "slot",
+    -- 自訂文字（M）：玩家逐格打的提醒字，條頁沒有對應的節（沒有條層值、也沒有「清除覆寫」鈕）；
+    -- 自成一組 ⇒ 條頁任何一節的「清除覆寫」都不會把玩家打的字清掉（只有小窗右鍵各列、「還原此法術」清）
+    labelText = "label", labelFont = "label", labelSize = "label", labelColor = "label",
+    labelPoint = "label", labelX = "label", labelY = "label",
 }
 
 -- 某個 id 的覆寫表（{ 欄位 = 值 }）。唯一的分流點：

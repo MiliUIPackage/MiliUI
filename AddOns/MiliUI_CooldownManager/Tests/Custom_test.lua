@@ -101,6 +101,7 @@ local RealText = ns.Text
 local function TextStub(t)
     t.SpellText, t.BarTimePlace, t.Color, t.EMPTY = RealText.SpellText, RealText.BarTimePlace, RealText.Color, RealText.EMPTY
     t.BuffTiming = RealText.BuffTiming
+    t.LabelStyle, t.LabelPlace, t.LabelSig = RealText.LabelStyle, RealText.LabelPlace, RealText.LabelSig
     return t
 end
 local DB, C = ns.DB, ns.Catalog
@@ -648,6 +649,41 @@ do
     eq("光環搬到圖示類：舊持有框收起來", barHolder.shown, false)
     check("光環搬到圖示類：容器是新持有框的", arec.container ~= c and arec.container:GetParent() == arec.frame)
     check("圖示版的簽章不帶長條", not arec.sig:find("|bars,", 1, true))
+    -- 自訂文字（M）：圖示形的光環格才烘（值解進 st.label、進簽章 ⇒ 換容器；initializeFrame 在按鈕的 ov 上建）；長條形不烘
+    do
+        local aid = arec.cooldownID
+        local sig0, c0 = arec.sig, arec.container
+        eq("自訂文字：沒設 ⇒ 不解", CU.AuraStyle(arec, "essential", 36, 36, "icons").label, nil)
+        DB.SetOverride(aid, "labelText", "提醒")
+        DB.SetOverride(aid, "labelColor", { r = 0, g = 1, b = 0, a = 1 })
+        local stL = CU.AuraStyle(arec, "essential", 36, 36, "icons")
+        local lb = stL.label
+        check("自訂文字：解進 st.label（字、預設圖示內下緣、y -2、字級 12、顏色）", lb and lb.text == "提醒"
+            and lb.point == "BOTTOM" and lb.justify == "CENTER" and lb.x == 0 and lb.y == -2 and lb.size == 12
+            and lb.color[1] == 0 and lb.color[2] == 1)
+        CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 61)
+        check("自訂文字 ⇒ 簽章變、換容器", arec.sig ~= sig0 and arec.container ~= c0)
+        local lbtn = Obj("Frame")
+        function lbtn:SetIcon() end
+        function lbtn:SetDurationText() end
+        function lbtn:SetApplicationCount() end
+        arec.labelsBaked, arec.lastError = 0, nil
+        arec.container.slot.opts.initializeFrame(lbtn)
+        eq("initializeFrame：沒有錯誤", arec.lastError, nil)
+        eq("initializeFrame：烘了一顆自訂文字", arec.labelsBaked, 1)
+        DB.SetOverride(aid, "labelPoint", "TOPLEFT")
+        DB.SetOverride(aid, "labelY", 0)
+        lb = CU.AuraStyle(arec, "essential", 36, 36, "icons").label
+        check("自訂文字：九宮格＝圖示內的角（左上靠左）、偏移 0 也是覆寫", lb.point == "TOPLEFT" and lb.justify == "LEFT" and lb.y == 0)
+        eq("自訂文字：長條形不解", CU.AuraStyle(arec, "buffbars", 200, 20, "bars").label, nil)
+        for _, f in ipairs({ "labelText", "labelColor", "labelPoint", "labelY" }) do DB.SetOverride(aid, f, nil) end
+        eq("自訂文字：清掉 ⇒ 不解", CU.AuraStyle(arec, "essential", 36, 36, "icons").label, nil)
+        DB.SetOverride(aid, "labelText", "   ")
+        eq("自訂文字：只有空白 ＝ 沒字", CU.AuraStyle(arec, "essential", 36, 36, "icons").label, nil)
+        DB.SetOverride(aid, "labelText", nil)
+        CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 62)
+        eq("清掉 ⇒ 拿回原本那顆容器（池化）", arec.container, c0)
+    end
     CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 7)
     eq("光環搬回長條：同一顆持有框", arec.frame, barHolder)
     eq("光環搬回長條：同簽章拿回同一個容器（不重建）", arec.container, c)
@@ -1118,6 +1154,10 @@ do
     for _, f in ipairs({ "cooldownTextSize", "cooldownTextX", "stackTextColor", "stackTextSize" }) do DB.SetOverride(sid, f, nil) end
     eq("右鍵清光 ⇒ 回條層字級", CU.AuraStyle(o, "essential", 36, 36, "icons").cdSize,
         tonumber(ns.Setting("essential", "cooldownText.size")) or 16)
+    -- 自訂文字（M）：飾品冷卻格上的增益疊層是冷卻格 ⇒ 就算覆寫裡有字也不畫
+    DB.SetOverride(sid, "labelText", "不畫")
+    eq("疊層不解自訂文字", CU.AuraStyle(o, "essential", 36, 36, "icons").label, nil)
+    DB.SetOverride(sid, "labelText", nil)
 
     -- 增益持續時間的小數與低秒變色（I）：疊層倒的是增益持續時間 ⇒ 預設沒有小數、低秒變色開在 5 秒（冷卻倒數的 3／5 不看）；
     -- 逐法術開了 ⇒ 小數與變色秒數照增益自己的（J：不借 lowBelow）、顏色＝增益持續時間低秒顏色；改了進簽章

@@ -568,6 +568,124 @@ function T.ApplyBar(item, style, spell, bar, rec)
 end
 
 ------------------------------------------------------------
+-- 自訂文字（M）：玩家逐格打的提醒字（「這個增益是什麼」），只畫在增益圖示類的格上
+--
+--   ns.Text.LabelStyle(barKey, id [, fresh]) → st 或 nil（沒打字 ＝ nil ＝ 不畫）
+--     st = { text, font（字型 token，已退條的通用字型）, size, color = { r, g, b, a }, point, x, y, outline, sig }
+--   ns.Text.LabelPlace(point) → 錨點（文字與圖示同一點）, 對齊
+--   ns.Text.ApplyLabel(fs, relTo, st [, alpha])   套在**我們自己的** FontString 上（st nil ＝ 收起來）
+--   ns.Text.ItemLabel(item, rec, st)              暴雪增益格：FontString 建在 overlay 的墊高文字框（TextHolder）
+--
+-- 欄位全是逐法術覆寫（沒有條層值，Core/DB.lua 的 SPELL_CONST）：labelText／labelFont／labelSize／labelColor／
+-- labelPoint／labelX／labelY。描邊吃條的 outline，不另給。字是玩家打的明文 ⇒ 直接 SetText，不拼色碼；顏色走 SetTextColor。
+--
+-- ── 錨點的語意：九宮格＝「圖示內的那個角／邊」（跟倒數、層數、充能的錨點同一套：文字的那一點貼圖示的那一點）──
+--   使用者 2026-10-06 給了參考圖：預設在圖示內、下緣置中，字的下半略壓過下緣（超出一點點可以）
+--   ⇒ 預設 labelPoint ＝ BOTTOM、labelY ＝ -2（DB 的 SPELL_CONST；偏移跟其他文字同一個單位，Text.Anchor 的換算）。
+--   預設的 -2 就是 Y 框裡看得到的值，玩家改成 0 就整個收在圖示裡。
+--
+-- 三種格怎麼畫：
+--   暴雪的增益圖示（增益圖示列、放增益的自訂圖示群組）：Decorate.Apply → ItemLabel；跟著 item 顯示／alpha，暴雪框零寫入
+--   光環格家族（自訂光環格、飾品欄增益；圖示形）：Custom.AuraStyle 解進 st.label、進簽章，InitAuraButton 在按鈕的 ov 上建
+--     （改了換容器、戰鬥中等脫戰）；飾品冷卻格上的增益疊層不畫（那一格是冷卻格）
+--   占位（Bars 的增益占位、自訂光環格的占位）：Decorate.ApplyPlaceholder 在占位框上畫一份，跟占位圖示一樣半透明
+--     （光環格的占位一直在、按鈕出現時蓋在上面：兩份字同位置同樣式，看起來就是一份）
+------------------------------------------------------------
+T.LABEL_PH_ALPHA = 0.35            -- 占位上的那一份：跟占位圖示同一個透明度
+
+local LABEL_POINTS = {
+    TOP = "CENTER", BOTTOM = "CENTER", CENTER = "CENTER", LEFT = "LEFT", RIGHT = "RIGHT",
+    TOPLEFT = "LEFT", BOTTOMLEFT = "LEFT", TOPRIGHT = "RIGHT", BOTTOMRIGHT = "RIGHT",
+}
+T.LABEL_POINTS = LABEL_POINTS
+
+function T.LabelPlace(point)
+    if not LABEL_POINTS[point] then point = "BOTTOM" end
+    return point, LABEL_POINTS[point]
+end
+
+local labelCache = {}           -- barKey → id → { sg, og, st }（st 可以是 false ＝ 沒字）
+
+function T.LabelStyle(barKey, id, fresh)
+    if id == nil then return nil end
+    local bk = barKey or "theme"
+    local sg, og = Gens()
+    if not fresh then
+        local byBar = labelCache[bk]
+        local e = byBar and byBar[id]
+        if e and e.sg == sg and e.og == og then return e.st or nil end
+    end
+    local DB = ns.DB
+    local ov = (DB and DB.OverrideTable) and DB.OverrideTable(id, false) or nil
+    local st = false
+    local text = type(ov) == "table" and ov.labelText
+    if type(text) == "string" and text:find("%S") then           -- 空字串、只有空白 ＝ 沒字
+        local S = ns.Setting
+        local C = DB.SPELL_CONST or EMPTY
+        local col = type(ov.labelColor) == "table" and ov.labelColor or nil
+        local point = ov.labelPoint
+        if not LABEL_POINTS[point] then point = C.labelPoint or "BOTTOM" end
+        st = {
+            -- 玩家打的原字：「|」跳脫成「||」，免得被當成色碼／貼圖／連結的控制碼（照原樣顯示）
+            text    = (text:gsub("|", "||")),
+            font    = ns.Media.ElementFont(ov.labelFont, S and S(barKey, "font")),
+            size    = tonumber(ov.labelSize) or C.labelSize or 12,
+            color   = { r = col and tonumber(col.r) or 1, g = col and tonumber(col.g) or 1,
+                        b = col and tonumber(col.b) or 1, a = col and tonumber(col.a) or 1 },
+            point   = point,
+            x       = tonumber(ov.labelX) or C.labelX or 0,
+            y       = tonumber(ov.labelY) or C.labelY or 0,
+            outline = (S and S(barKey, "outline")) or "",
+        }
+        st.sig = table.concat({ text, tostring(st.font), st.size, Hex(st.color), string.format("%.2f", st.color.a),
+            point, st.x, st.y, st.outline }, "\031")
+    end
+    if not fresh then
+        local byBar = labelCache[bk]
+        if not byBar then byBar = {}; labelCache[bk] = byBar end
+        local e = byBar[id]
+        if not e then e = {}; byBar[id] = e end
+        e.sg, e.og, e.st = sg, og, st
+    end
+    return st or nil
+end
+
+-- 簽章用（Decorate.Signature）：沒字 ＝ "-"
+function T.LabelSig(st) return st and st.sig or "-" end
+
+function T.ApplyLabel(fs, relTo, st, alpha)
+    if not fs then return end
+    if not (st and relTo) then fs:Hide() return end
+    SetFont(fs, st.size, st.outline, st.font)              -- 先有字型才能 SetText
+    local c = st.color
+    fs:SetTextColor(c.r, c.g, c.b, c.a)
+    local p, j = T.LabelPlace(st.point)
+    Anchor(fs, relTo, p, st.x, st.y)
+    if fs.SetWordWrap then fs:SetWordWrap(false) end
+    if fs.SetJustifyH then fs:SetJustifyH(j) end
+    fs:SetText(st.text)
+    fs:SetAlpha(alpha or 1)
+    fs:Show()
+end
+
+-- 暴雪的增益圖示：只寫我們自己的 FontString（overlay 底下的墊高文字框，跟著 item 顯示／alpha）
+function T.ItemLabel(item, rec, st)
+    if not rec then return end
+    local fs = rec.labelFS
+    if not st then
+        if fs then fs:Hide() end
+        return
+    end
+    if not fs then
+        local h = T.TextHolder(rec)
+        if not h then return end
+        fs = h:CreateFontString(nil, "OVERLAY")
+        rec.labelFS = fs
+    end
+    T.ApplyLabel(fs, item, st)
+end
+
+------------------------------------------------------------
 -- 設定頁的預覽格（圖示類）：同一套字型／顏色／錨點，套在我們自己的 FontString 上
 --   cell.cdText     假倒數（冷卻中的格才顯示）
 --   cell.chargeText 充能上限（技能類；真的有充能才印，cell.charges）
@@ -604,4 +722,6 @@ function T.ApplyPreviewIcon(cell, style, spell)
         Anchor(stack, cell, c.point or "TOP", c.x, c.y)
         stack:SetAlpha(0)
     end
+    -- 自訂文字（M）：增益類的格才畫（光環格、暴雪的增益圖示；冷卻格不畫）
+    if cell.labelText then T.ApplyLabel(cell.labelText, cell, cell.aura and spell.label or nil) end
 end

@@ -28,7 +28,7 @@
 -- 分頁（玩家回報 2026-10-03 列太長；2026-10-05 H 改成五頁）：一般（所在條、以增益取代、天賦條件、占位）／
 -- 文字（倒數、充能、層數、按鍵文字的字型／字級／顏色／位置與隱藏；增益那一段的換色與兩個字色）／外觀（邊框、圖示、
 -- 去飽和、冷卻狀態、顯示增益持續時間、增益轉圈背景色、層數換色）／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／
--- 音效。每一列建立時記下當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
+-- 音效／自訂文字（M，增益圖示類的格才有，排最後；見 BuildLabelTab）。每一列建立時記下當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
 --
 -- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」，這招現在有充能
 -- （ChargeWhen）時多一列「充能滿音效」、兩列下面各一列灰字講差別（就緒＝每回一層、充能滿＝全部回滿）；增益類（暴雪
@@ -107,6 +107,8 @@ local TABS = {
     { id = "look",     label = L["Appearance"] },
     { id = "glow",     label = L["Glow"] },
     { id = "sound",    label = L["Sounds"] },
+    -- 自訂文字（M）：增益圖示類的格才有，排最後（使用者 2026-10-06）
+    { id = "label",    label = L["Custom text"] },
 }
 local buildTab = "general"
 local curTab = "general"
@@ -125,6 +127,7 @@ local colorRows = {}     -- 持續時間的三個顏色列：{ field, cb, swatch
 -- 「文字」分頁（H）的列：Refresh 照合併後的值（Text.SpellText）回填
 local textCtl = {}       -- { kind = "font"|"point"|"size"|"color"|"offset"|"low", section, key, field(s), ... }
 local textLabels = {}    -- { fs, fields }：沒覆寫（跟隨條）＝標籤變暗，覆寫了＝白
+local labelCtl = {}      -- 自訂文字分頁（M）的控件：Refresh 照覆寫（沒有＝固定預設）回填
 local sounds = {}        -- { field, dd }
 local speaks = {}        -- { field, cb, box, listen }
 
@@ -496,6 +499,177 @@ end
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
 ------------------------------------------------------------
+-- 自訂文字（M）：增益圖示類的格（暴雪的增益圖示、圖示形的光環格與飾品欄增益）才有；長條不出現（長條本來就有名字）。
+-- 欄位全是逐法術覆寫、沒有條層值（Core/DB.lua 的 SPELL_CONST，引擎在 Core/Text.lua 的 LabelStyle）：
+--   文字   輸入框；按 Enter 或失焦才寫（不每個字重排），Esc 放棄這次的修改；空白 ＝ 清掉（不畫）
+--   字型   下拉；第一項「跟隨通用字型」＝清掉（條的通用字型）
+--   字級   拉桿，放開才寫（預設 12）
+--   顏色   直接一個色票（沒設 ＝ 白；不繼承，沒有「自訂」勾選）
+--   錨點   九宮格（圖示內的那個角／邊，同倒數；預設「下」）
+--   偏移   X／Y（預設 0／-2：字的下半略壓過圖示下緣）
+-- 描邊吃條的設定。每一列右鍵標籤清掉那一格（回預設）；沒覆寫的標籤變暗（同文字分頁）
+------------------------------------------------------------
+local function BuildLabelTab(NoteRow, PointRow, Track)
+    buildTab = "label"
+    local function LabelWhen(kind, class)
+        return (IsAura(kind) or BlizzAura(kind, class)) and not OnBars()
+    end
+    local function Default(field) return ns.DB.SPELL_CONST[field] end
+
+    -- 文字
+    do
+        local r, h = NewRow(L["Text"], LabelWhen)
+        local box = W.CreateEditBox(r, ROW_W - CTRL_X, 20)
+        box:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        box:SetMaxLetters(60)
+        -- 打字中換了一格（小窗還開著、點了別的預覽格）：失焦時 cur 已經是別格 ⇒ 這次的字丟掉，不寫到別格上
+        local function Commit(self)
+            if not cur or cur.id ~= self.editID then return end
+            local txt = strtrim(self:GetText() or "")
+            local want = txt ~= "" and txt or nil
+            if Override("labelText") == want then return end
+            ns.DB.SetOverride(cur.id, "labelText", want)
+            Changed()
+        end
+        box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+        box:SetScript("OnEscapePressed", function(self)
+            self.cancel = true
+            local v = Override("labelText")
+            self:SetText(type(v) == "string" and v or "")
+            self:ClearFocus()
+        end)
+        box:HookScript("OnEditFocusGained", function(self) self.editID = cur and cur.id end)
+        box:HookScript("OnEditFocusLost", function(self)
+            if self.cancel then self.cancel = nil return end
+            Commit(self)
+        end)
+        RightClickClears(r, h, "labelText")
+        labelCtl[#labelCtl + 1] = { kind = "text", box = box }
+        Track(r, { "labelText" })
+    end
+    NoteRow(L["A short note on this icon, for example what the buff is. Leave it blank to show nothing."], LabelWhen)
+
+    -- 字型：第一項「跟隨通用字型」（INHERIT）＝清掉
+    do
+        local r, h = NewRow(L["Font"], LabelWhen)
+        local dd = W.CreateDropdown(r, ROW_W - CTRL_X, ns.Specs.ElementFontItems(), function(value)
+            if not cur then return end
+            local v = (type(value) == "string" and value ~= "" and value ~= ns.Media.INHERIT) and value or nil
+            ns.DB.SetOverride(cur.id, "labelFont", v)
+            Changed()
+        end)
+        dd:SetMaxWidth(ROW_W - CTRL_X)
+        dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        RightClickClears(r, h, "labelFont")
+        labelCtl[#labelCtl + 1] = { kind = "font", dd = dd }
+        Track(r, { "labelFont" })
+    end
+
+    -- 字級：放開才寫
+    do
+        local r, h = NewRow(L["Font size"], LabelWhen)
+        local sl = W.CreateSlider(r, 6, 40, ROW_W - CTRL_X, 1, nil, function(v)
+            if not cur then return end
+            ns.DB.SetOverride(cur.id, "labelSize", v)
+            Changed()
+        end)
+        sl:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        RightClickClears(r, h, "labelSize")
+        labelCtl[#labelCtl + 1] = { kind = "size", slider = sl }
+        Track(r, { "labelSize" })
+    end
+
+    -- 顏色：直接一個色票（不繼承：沒設 ＝ 白），右鍵標籤回白
+    do
+        local r, h = NewRow(L["Color"], LabelWhen)
+        local sw = W.CreateColorPicker(r, nil, false, function(rr, g, b)
+            if not cur then return end
+            ns.DB.SetOverride(cur.id, "labelColor", { r = rr, g = g, b = b, a = 1 })
+            Changed()
+        end)
+        sw:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        RightClickClears(r, h, "labelColor")
+        labelCtl[#labelCtl + 1] = { kind = "color", swatch = sw }
+        Track(r, { "labelColor" })
+    end
+
+    -- 錨點：九宮格（文字分頁那一支；沒覆寫 ＝ 預設「下」）
+    PointRow("labelPoint", LabelWhen, nil, Default("labelPoint") or "BOTTOM")
+
+    -- 偏移：X／Y（沒覆寫 ＝ 固定預設 0／-2）；右鍵標籤兩個一起清
+    do
+        local r = NewRow(L["Offset"], LabelWhen)
+        local px = CTRL_X
+        local boxes = {}
+        for _, f in ipairs({ { "X", "labelX" }, { "Y", "labelY" } }) do
+            local tag = r:CreateFontString(nil, "OVERLAY")
+            tag:SetFontObject(W.fontSmall)
+            tag:SetTextColor(0.6, 0.6, 0.6)
+            tag:SetPoint("LEFT", r, "LEFT", px, 0)
+            tag:SetText(f[1])
+            px = px + (tag:GetStringWidth() or 8) + 4
+            local field = f[2]
+            local nb = W.CreateNumberBox(r, 46, 1, function(v)
+                if not cur then return end
+                ns.DB.SetOverride(cur.id, field, v)
+                Changed()
+            end)
+            nb:SetPoint("LEFT", r, "LEFT", px, 0)
+            px = px + 46 + 10
+            boxes[#boxes + 1] = { nb = nb, field = field }
+        end
+        local hit = CreateFrame("Frame", nil, r)
+        hit:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+        hit:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+        hit:SetWidth(LABEL_W)
+        hit:EnableMouse(true)
+        hit:SetScript("OnMouseUp", function(_, button)
+            if button == "RightButton" and cur then
+                ns.DB.SetOverride(cur.id, "labelX", nil)
+                ns.DB.SetOverride(cur.id, "labelY", nil)
+                Changed()
+            end
+        end)
+        labelCtl[#labelCtl + 1] = { kind = "offset", boxes = boxes }
+        Track(r, { "labelX", "labelY" })
+    end
+end
+
+-- 自訂文字分頁的回填（Pop.Refresh 叫）：值＝覆寫，沒有就是固定預設
+local function RefreshLabelTab()
+    local C = ns.DB.SPELL_CONST
+    local function Val(field)
+        local v = Override(field)
+        if v == nil then v = C[field] end
+        return v
+    end
+    for _, c in ipairs(labelCtl) do
+        if c.kind == "text" then
+            -- 打字打到一半換了一格：那段字是上一格的，丟掉（Commit 也會擋），框換成這一格的字
+            if c.box:HasFocus() and cur and c.box.editID ~= cur.id then
+                c.box.cancel = true
+                c.box:ClearFocus()
+            end
+            if not c.box:HasFocus() then
+                local v = Override("labelText")
+                c.box:SetText(type(v) == "string" and v or "")
+                c.box:SetCursorPosition(0)
+            end
+        elseif c.kind == "font" then
+            local v = Override("labelFont")
+            c.dd:SetSelectedValue((type(v) == "string" and v ~= "") and v or ns.Media.INHERIT)
+        elseif c.kind == "size" then
+            c.slider:SetValue(tonumber(Val("labelSize")) or 12)
+        elseif c.kind == "color" then
+            local v = Override("labelColor")
+            c.swatch:SetColor(type(v) == "table" and v or { r = 1, g = 1, b = 1, a = 1 })
+        elseif c.kind == "offset" then
+            for _, b in ipairs(c.boxes) do b.nb:SetValue(tonumber(Val(b.field)) or 0) end
+        end
+    end
+end
+
+------------------------------------------------------------
 -- 「文字」分頁（H）：Build 叫一次。DurationRows／ColorOverrideRow／NoteRow 是 Build 裡的區域函式，傳進來用
 ------------------------------------------------------------
 local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
@@ -861,6 +1035,9 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     PointRow("keybindPoint", KeyRows, "keybind", "TOPRIGHT")
     OffsetRow("keybind", "keybindX", "keybindY", KeyRows)
     NoteRow(L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."], KeyOff)
+
+    -- 自訂文字分頁（M）：借這裡的九宮格與標籤變暗；從這裡叫（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
+    BuildLabelTab(NoteRow, PointRow, Track)
 end
 
 local function Build()
@@ -1434,6 +1611,7 @@ local function Build()
     end
 
     -- 文字分頁（H）：拆成自己的函式（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
+    -- 文字分頁（H）＋自訂文字分頁（M，BuildTextTab 最後叫）
     BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
 
     -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
@@ -2209,6 +2387,7 @@ function Pop.Refresh()
         end
     end
     -- 拉桿與數字框看不出有沒有覆寫：這一頁的標籤沒覆寫（跟隨條）時變暗
+    RefreshLabelTab()                   -- 自訂文字（M）
     for _, tl in ipairs(textLabels) do
         local own = false
         for _, f in ipairs(tl.fields) do

@@ -195,6 +195,10 @@ local function NewIconCell(canvas)
     SetupFont(c.chargeText, 12)
     c.stackText = ov:CreateFontString(nil, "OVERLAY")
     SetupFont(c.stackText, 12)
+    -- 自訂文字（M）：增益類的格照逐法術的設定畫（Text.ApplyPreviewIcon）
+    c.labelText = ov:CreateFontString(nil, "OVERLAY")
+    SetupFont(c.labelText, 12)
+    c.labelText:Hide()
     -- 以增益取代的記號：右下角一個小圖示（外框 1px 黑），層級在倒數／充能字的上面
     local mark = CreateFrame("Frame", nil, ov)
     mark:SetSize(14, 14)
