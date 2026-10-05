@@ -1352,7 +1352,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
         stPoint  = stT.point or "TOP", stX = tonumber(stT.x) or 0, stY = tonumber(stT.y) or 0,
     }
     -- 小數與低秒變色（decimals／lowBelow／lowColor）：光環格家族倒的全是增益時間 ⇒ 照「增益時間」那一組
-    -- （I：cooldownText.buffDecimalsBelow／buffLowColor，預設 0／關；低秒色＝增益時間低秒顏色，沒有退倒數的低秒色），
+    -- （I／J：cooldownText.buffDecimalsBelow／buffLowColor／buffLowBelow，預設 0／關／5；低秒色＝增益時間低秒顏色，沒有退倒數的低秒色），
     -- 冷卻倒數的小數門檻與低秒變色不看。解法跟暴雪格同一支（Text.BuffTiming）
     do
         local d, l, lc = TX.BuffTiming(cdT, SS(barKey, id, "durationLowColor"))

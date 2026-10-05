@@ -5,10 +5,12 @@
 --   標題（自訂群組多一顆「改名」）＋ 開暴雪冷卻管理器／開暴雪警示設定
 --   預覽即編輯器（Options/Preview.lua）
 --   一行灰字操作說明
---   捲動表單：版面／圖示／文字／效果／顯示條件／錨定（規格在 Options/Specs.lua）
+--   分頁鈕（J）：版面（含錨定）｜顯示條件｜圖示｜文字｜效果｜音效（Specs.SplitTabs；這條沒有的節不出鈕）
+--   捲動表單：目前分頁那一張（規格在 Options/Specs.lua）
 --
--- 表單照「形狀」（Specs.BarSignature：第二列尺寸開關、有沒有錨定、條清單）快取：
+-- 表單照「形狀」（Specs.BarSignature：第二列尺寸開關、有沒有錨定、條清單）＋分頁快取：
 -- 形狀變了才另建一份、變回來就拿舊的（frame 刪不掉，每改一次重建一次就是洩漏）。
+-- 同一個形狀的每個分頁第一次切過去才建。上次看的分頁每條各記一個（只存執行期，同單一法術小窗）。
 --
 -- 套用兩層：值寫進去的當下只重畫預覽；真實條由 Options.ApplyEngine 合併 0.2 秒一次
 -- （Controls 自己已經把滑桿拖動合併成 0.05 秒一次 apply）。
@@ -102,13 +104,22 @@ function TabBar.Build(parent, title, key)
     note:SetWordWrap(true)
     pv.onRefresh = function() note:SetText(HelpText(pv)) end
 
+    -- 分頁鈕（預覽與說明在它上面、不跟分頁走）
+    local curTab
+    local strip = ns.Specs.CreateTabStrip(page, Options.PAGE_W, function(id)
+        if id == curTab then return end
+        curTab = id
+        page:RefreshForm(true)
+    end)
+    strip:SetPoint("TOPLEFT", note, "BOTTOMLEFT", -2, -8)
+
     -- 表單
     local holder = CreateFrame("Frame", nil, page)
-    holder:SetPoint("TOPLEFT", note, "BOTTOMLEFT", -2, -6)
+    holder:SetPoint("TOPLEFT", strip, "BOTTOMLEFT", 0, -6)
     holder:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -8, 10)
     local scroll = W.CreateScrollFrame(holder)
     page.scroll = scroll
-    local forms = {}
+    local shapes, allForms = {}, {}      -- 形狀簽章 → { byTab, ids, forms[分頁] }；建過的每一張表單
 
     local function OnApply(spec)
         if spec and spec.refreshPage then page:RefreshForm() end
@@ -116,22 +127,34 @@ function TabBar.Build(parent, title, key)
         Options.ApplyEngine("structure")
     end
 
-    function page:RefreshForm()
+    -- tabChanged：玩家點了分頁鈕（捲動歸零）；其他情況（形狀變了、重新顯示）維持捲動位置
+    function page:RefreshForm(tabChanged)
         if not ns.DB.BarTable(key) then return end
-        local sig = ns.Specs.BarSignature(key)
-        local form = forms[sig]
-        if not form then
-            local Sp = ns.Specs
+        local Sp = ns.Specs
+        local sig = Sp.BarSignature(key)
+        local shape = shapes[sig]
+        if not shape then
             local controls = Concat(Sp.Layout(key), Sp.Themed("bar", key), Sp.Visibility(), Sp.Anchor(key))
-            local ctx = Sp.MakeCtx({ mode = "bar", key = key }, OnApply)
-            form = Sp.BuildForm(scroll.child, controls, ctx, FORM_W)
-            forms[sig] = form
+            local byTab, ids = Sp.SplitTabs(controls)
+            shape = { byTab = byTab, ids = ids, forms = {} }
+            shapes[sig] = shape
         end
-        for _, f in pairs(forms) do f.content:SetShown(f == form) end
-        -- 表單換了形狀（規則增刪、開關長出新列）：**維持原本的捲動位置**，只在第一次建這頁時歸零。
+        -- 這個形狀沒有上次那個分頁（不會發生在現有的節上，保險）⇒ 回第一個
+        local tab = shape.byTab[curTab] and curTab or shape.ids[1]
+        if tab ~= curTab then curTab, tabChanged = tab, true end
+        strip:SetTabs(shape.ids, tab)
+        local form = shape.forms[tab]
+        if not form then
+            local ctx = Sp.MakeCtx({ mode = "bar", key = key }, OnApply)
+            form = Sp.BuildForm(scroll.child, shape.byTab[tab], ctx, FORM_W)
+            shape.forms[tab] = form
+            allForms[#allForms + 1] = form
+        end
+        for _, f in ipairs(allForms) do f.content:SetShown(f == form) end
+        -- 表單換了形狀（規則增刪、開關長出新列）：**維持原本的捲動位置**，只在第一次建這頁與換分頁時歸零。
         -- 換表單就跳回最上面的話，按一下「新增規則」整頁飛走、玩家還得拉回來找自己在哪
-        local keep = self.form and scroll:GetVerticalScroll() or 0
-        if self.form ~= form and not self.form then scroll:SetVerticalScroll(0) end
+        local keep = (self.form and not tabChanged) and scroll:GetVerticalScroll() or 0
+        if tabChanged or not self.form then scroll:SetVerticalScroll(0) end
         self.form = form
         scroll:SetContentHeight(form.height)
         if keep > 0 then

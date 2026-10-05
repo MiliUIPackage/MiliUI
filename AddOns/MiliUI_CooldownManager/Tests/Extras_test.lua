@@ -725,7 +725,7 @@ do
     eq("條讀得到（繼承主題）", ns.Setting("essential", "icon.colorDuration"), true)
     for _, f in ipairs({ "colorDuration", "durationColor", "durationLowColor", "durationSwipeColor" }) do
         eq("SPELL_FALLBACK " .. f, DB.SPELL_FALLBACK[f], "icon." .. f)
-        eq("覆寫分組：圖示節 " .. f, DB.OVERRIDE_GROUP[f], "icon")
+        eq("覆寫分組 " .. f, DB.OVERRIDE_GROUP[f], f == "durationLowColor" and "text" or "icon")
     end
 
     -- 跟隨：SpellStyle 的生效值就是條層的
@@ -1895,7 +1895,8 @@ do
 end
 
 ------------------------------------------------------------
--- 18. 增益時間的小數門檻與低秒變色（I）：Text.BuffTiming（預設 0／關、開了借 lowBelow、低秒色退倒數的）、
+-- 18. 增益時間的小數門檻與低秒變色（I／J）：Text.BuffTiming（預設 0／關、開了用自己的 buffLowBelow、不借冷卻的 lowBelow、
+--     低秒色退倒數的）、
 --     formatter 依值共用（冷卻與增益同值同一顆）、SpellText 合併與簽章、Text.ApplyIcon 依增益類挑哪一組
 ------------------------------------------------------------
 do
@@ -1908,12 +1909,18 @@ do
     eq("預設：增益時間沒有小數", d, 0)
     eq("預設：增益時間不變色", l, 0)
     check("冷卻倒數照舊有小數與變色", (tonumber(ct.decimalsBelow) or 0) > 0 and (tonumber(ct.lowBelow) or 0) > 0)
-    d, l, lc = T.BuffTiming({ buffDecimalsBelow = 4, buffLowColor = true, lowBelow = 6, lowColor = { r = 1, g = 0, b = 0 } }, PINK)
-    check("開了：小數門檻自己的、變色門檻借 lowBelow、顏色＝增益時間低秒顏色", d == 4 and l == 6 and lc == PINK)
-    d, l, lc = T.BuffTiming({ buffLowColor = true, lowBelow = 6, lowColor = { r = 1, g = 0, b = 0 } }, nil)
+    eq("預設：增益時間變色秒數 5（關著也存著）", ct.buffLowBelow, 5)
+    d, l, lc = T.BuffTiming({ buffDecimalsBelow = 4, buffLowColor = true, buffLowBelow = 8, lowBelow = 6,
+                              lowColor = { r = 1, g = 0, b = 0 } }, PINK)
+    check("開了：小數門檻與變色秒數都是自己的（不借 lowBelow）、顏色＝增益時間低秒顏色", d == 4 and l == 8 and lc == PINK)
+    d, l, lc = T.BuffTiming({ buffLowColor = true, buffLowBelow = 6, lowColor = { r = 1, g = 0, b = 0 } }, nil)
     check("沒有增益時間低秒顏色 ⇒ 退倒數的低秒色", lc and lc.r == 1 and lc.g == 0)
-    d, l = T.BuffTiming({ buffLowColor = true, lowBelow = 0 })
-    eq("倒數的變色秒數是 0（冷卻不變色）⇒ 增益照樣變色、用預設 5 秒", l, 5)
+    d, l = T.BuffTiming({ buffLowColor = true, buffLowBelow = 7, lowBelow = 0 })
+    eq("冷卻不變色（lowBelow 0）不影響增益", l, 7)
+    d, l = T.BuffTiming({ buffLowColor = true, lowBelow = 6 })
+    eq("沒有 buffLowBelow ⇒ 不借 lowBelow（0 ＝ 不變色）", l, 0)
+    d, l = T.BuffTiming({ buffLowColor = false, buffLowBelow = 7 })
+    eq("開關關著 ⇒ 秒數不算", l, 0)
     d, l = T.BuffTiming(nil)
     check("沒有表 ⇒ 0／0", d == 0 and l == 0)
 
@@ -1948,9 +1955,10 @@ do
     eq("快取：增益同值（0／不變色）共用同一顆", fb2, fb)
     eq("快取：沒有多建", made, n0)
     local fb3 = T.BuffFormatter({ decimalsBelow = 7, lowBelow = 9, lowColor = { r = 1, g = 0, b = 0 },
-                                  buffDecimalsBelow = 7, buffLowColor = true })
+                                  buffDecimalsBelow = 7, buffLowColor = true, buffLowBelow = 9 })
     eq("增益設成跟冷卻同值 ⇒ 跟冷卻同一顆", fb3, fc)
-    local fb4 = T.BuffFormatter({ lowBelow = 9, buffDecimalsBelow = 5, buffLowColor = true, lowColor = { r = 1, g = 0, b = 0 } }, PINK)
+    local fb4 = T.BuffFormatter({ lowBelow = 9, buffDecimalsBelow = 5, buffLowColor = true, buffLowBelow = 9,
+                                  lowColor = { r = 1, g = 0, b = 0 } }, PINK)
     hasColor = false
     for _, r in ipairs(fb4.rules) do
         if r.format:find("|cfff273b3", 1, true) then hasColor = true end
@@ -1960,8 +1968,11 @@ do
     -- SpellText 合併：覆寫 key 跟條層同名、進簽章、文字那一組
     DB.SetOverride(id, "buffDecimalsBelow", 2)
     DB.SetOverride(id, "buffLowColor", true)
+    DB.SetOverride(id, "buffLowBelow", 3)
     local t = T.SpellText("essential", id, "cooldownText")
-    check("逐法術：合併後讀得到", t.buffDecimalsBelow == 2 and t.buffLowColor == true)
+    check("逐法術：合併後讀得到", t.buffDecimalsBelow == 2 and t.buffLowColor == true and t.buffLowBelow == 3)
+    check("逐法術：變色秒數進簽章", T.OverrideSig(id):find("buffLowBelow=3", 1, true) ~= nil)
+    eq("逐法術：變色秒數照自己的", select(2, T.BuffTiming(t)), 3)
     check("逐法術：進簽章", T.OverrideSig(id):find("buffLowColor=true", 1, true) ~= nil)
     eq("長條秒數不收", T.SpellText("essential", id, "barTime").buffDecimalsBelow, nil)
     DB.SetOverride(id, "buffLowColor", false)

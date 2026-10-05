@@ -115,7 +115,7 @@ function D.Resolve(barKey, fresh)
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
         colorDuration = S(barKey, "icon.colorDuration") and true or false,   -- 增益那一段的倒數換色（PhaseColors）
         durationColor = S(barKey, "icon.durationColor"),
-        durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益時間的低秒顏色（cooldownText.buffLowColor 開著才用，門檻借 lowBelow）
+        durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益時間的低秒顏色（cooldownText.buffLowColor 開著才用，門檻 buffLowBelow）
         durationSwipeColor = S(barKey, "icon.durationSwipeColor"),     -- 增益那一段的轉圈背景色
         cooldownText = S(barKey, "cooldownText") or {},
         chargeText   = S(barKey, "chargeText") or {},
