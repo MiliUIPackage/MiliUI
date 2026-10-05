@@ -473,6 +473,28 @@ local function MasqueLines(p, rec)
     p(("  形狀：%s  圖示 %sx%s  遮罩 %s  外框 %s")
         :format(sh and "讀到" or "沒讀到", sh and tostring(sh.iw) or "—", sh and tostring(sh.ih) or "—",
             mk and tostring(mk.atlas or mk.file) or "無", sh and nmTxt or "—"))
+    -- 現在（不是快取）探針身上的狀態：Icon 掛了幾張遮罩、GetNormal 拿到的貼圖長怎樣；占位圖示也看一次
+    local function Live(t)
+        if not t then return "—" end
+        local ok, n = pcall(t.GetNumMaskTextures, t)
+        local okT, tex = pcall(t.GetTexture, t)
+        return ("遮罩 %s 張、貼圖 %s"):format(ok and tostring(n) or "✕", okT and tostring(tex) or "✕")
+    end
+    if L then
+        p("  探針 Icon 現況：" .. Live(L.icon))
+        local M = ns.Masque
+        local nt = M and M.GetNormal and M.GetNormal(L.frame)
+        if nt then
+            local okS, shown = pcall(nt.IsShown, nt)
+            local okA, a = pcall(nt.GetAlpha, nt)
+            local okT, tex = pcall(nt.GetTexture, nt)
+            p(("  探針 GetNormal：%s（是我們給的=%s）顯示=%s alpha=%s 貼圖=%s"):format(tostring(nt), tostring(nt == L.normal),
+                okS and tostring(shown) or "✕", okA and tostring(a) or "✕", okT and tostring(tex) or "✕"))
+        else
+            p("  探針 GetNormal：nil")
+        end
+    end
+    if h.ph then p("  占位圖示現況：" .. Live(h.ph.tex) .. "  交給 Masque=" .. tostring(h.ph.msqButton ~= nil)) end
     local sig = tostring(rec.sig or "未建")
     p("  容器簽章：" .. (sig:match("msq:[^|]*") or (sig:sub(1, 60) .. "…（沒有 msq 段）")))
 end
