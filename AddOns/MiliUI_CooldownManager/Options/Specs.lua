@@ -621,6 +621,8 @@ function Specs.Themed(mode, key)
     -- 增益持續時間的變色顏色／變色秒數：只有增益持續時間的低秒變色（I）用得到 ⇒ 開關關著就停用
     -- （換色那一段的字色是「增益持續時間顏色」，低秒那一段的顏色不歸換色開關管：Text.BuffTiming）
     local function BuffLowOff(info) return not ReadThemed(info, "cooldownText.buffLowColor") end
+    -- 冷卻那一組同理：低秒變色的開關就是變色秒數（0 ＝ 關）⇒ 關著時變色顏色／變色秒數停用（跟增益持續時間那組一樣蓋遮罩）
+    local function CdLowOff(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) <= 0 end
 
     -- 圖示
     add({ type = "header", label = L["Icons"], tab = "icon" })
@@ -686,8 +688,10 @@ function Specs.Themed(mode, key)
             get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
             set = function(info, on) WriteThemed(info, "cooldownText.lowBelow", on and 5 or 0) end,
         }))),
-        NB(Sub("cooldown", TS("text", "color", "cooldownText.lowColor", L["Low color"]))),
-        NB(Sub("cooldown", TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 }))),
+        NB(Sub("cooldown", TS("text", "color", "cooldownText.lowColor", L["Low color"], { disabled = CdLowOff }))),
+        -- 拉桿最小 1：0 ＝ 關交給上面的勾選（拉到 0 會把自己蓋掉，跟增益持續時間那組一樣從 1 起）
+        NB(Sub("cooldown", TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"],
+            { min = 1, max = 30, step = 1, disabled = CdLowOff }))),
         -- 增益持續時間（I／J）：自己的小數門檻、低秒變色開關、變色顏色、變色秒數。長條類的條沒有
         -- （秒數是暴雪寫的／整數）。變色顏色的資料在 icon.durationLowColor（跟「圖示」那一節的跟隨與覆寫分組），
         -- 所以那一列的 section 是 icon：條頁勾著圖示跟隨時蓋的是圖示的遮罩
