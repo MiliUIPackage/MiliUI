@@ -452,6 +452,9 @@ function DB.BuildDefaults()
                     -- 生效發光：跟觸發／就緒同一套（條層開關＋樣式），**預設關**，玩家在個別法術上打開（overrides[id].activeGlow）
                     active = { enabled = false, type = "pixel", color = rgba(0.95, 0.95, 0.32, 1),
                                lines = 8, thickness = 2, frequency = 0.2 },
+                    -- 充能滿了發光：充能技能每一層都回滿時一直亮（Core/Glow.lua 的 SyncFull）。同一套繼承，**預設關**
+                    full = { enabled = false, type = "pixel", color = rgba(1, 0.55, 0.2, 1),
+                             lines = 8, thickness = 2, frequency = 0.2 },
                 },
                 -- 淡出後的透明度；false ＝ 這個條件不淡
                 -- 淡出：一個透明度；「不淡出的時機」任一成立就維持完整顯示（跟顯示條件的「時機 OR」同一套語彙）；
@@ -936,6 +939,8 @@ local SPELL_FALLBACK = {
     readyGlow   = "glow.ready.enabled",
     -- 生效期間發光：跟觸發／就緒同一套（條層開關預設關，逐法術蓋）
     activeGlow  = "glow.active.enabled",
+    -- 充能滿了發光：同一套（條層開關預設關，逐法術蓋）
+    fullGlow    = "glow.full.enabled",
     -- 就緒發光亮多久（timed／untilUsed／whileReady）與資源檢查：逐法術可以蓋（Core/Glow.lua 的 ReadyMode／RequireUsable）
     readyGlowMode   = "glow.ready.mode",
     readyGlowUsable = "glow.ready.requireUsable",
@@ -1276,6 +1281,7 @@ DB.OVERRIDE_GROUP = {
     -- 生效發光跟觸發／就緒同一組（2026-10-03 改成同一套繼承）；activeGlowColor／activeGlowType 是舊存檔的殘留，
     -- 留在這一組讓「清除發光覆寫」順手清掉
     activeGlow = "glow", activeGlowColor = "glow", activeGlowType = "glow", activeGlowOutOfCombat = "glow",
+    fullGlow = "glow",
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
     stackGlowOp = "stack", stackBar = "stack", stackTicks = "stack",

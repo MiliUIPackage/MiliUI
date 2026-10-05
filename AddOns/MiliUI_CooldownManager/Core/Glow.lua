@@ -140,7 +140,7 @@ function G.OwnsProc(barKey, id)
     return ns.SpellSetting(barKey, id, "procGlow") == true
 end
 
-local WANT_FIELD = { proc = "procGlow", ready = "readyGlow", active = "activeGlow" }
+local WANT_FIELD = { proc = "procGlow", ready = "readyGlow", active = "activeGlow", full = "fullGlow" }
 
 local function Wanted(rec, barKey, which)
     if not barKey then return false end
@@ -258,6 +258,7 @@ local function PaintOn(h, c, which, key, startAnim)
     if which == "proc" then color = ColorOf(c.color, 1, 0.85, 0)
     elseif which == "active" then color = ColorOf(c.color, 0.95, 0.95, 0.32)
     elseif which == "assist" then color = ColorOf(c.color, 0.25, 0.75, 1)
+    elseif which == "full" then color = ColorOf(c.color, 1, 0.55, 0.2)
     else color = ColorOf(c.color, 0.3, 1, 0.3) end
     local lines = tonumber(c.lines) or 8
     local freq = tonumber(c.frequency) or 0.2
@@ -410,12 +411,91 @@ function G.SyncActive(owner, rec, barKey)
     end
 end
 
+------------------------------------------------------------
+-- 充能滿了發光（which ＝ "full"）
+--
+-- 充能技能每一層都回滿時一直亮（EUI 的 Max Stacks Glow 同一套判斷）。開關與繼承跟觸發／就緒同一套：
+-- 條層 glow.full（**預設關**）＋樣式，逐法術 overrides[id].fullGlow 蓋開關。
+--   * 判斷只讀明文：GetSpellCharges 的 maxCharges > 1（Decorate.IsChargeSpell，秘密值時用上次記的）而且
+--     isActive（回充在跑）明文 false。**不讀 currentCharges**（戰鬥中是秘密值）。isActive 讀不到 ⇒ 不亮（fail-closed：
+--     寧可不亮，也不要回充中一直亮）。
+--   * 法術：暴雪的冷卻格用目錄的基本法術＋當下的覆蓋（C_SpellBook.FindSpellOverrideByID，明文）；
+--     自訂法術用 rec.overrideID／spellID。裝備欄、物品、光環不做。
+--   * 時機：排版（G.Sync）＋ SPELL_UPDATE_CHARGES（用掉一層、回滿一層都會派）。只有開著的格進 fullWatch，
+--     事件也只在 fullWatch 有東西時才註冊。冷卻的 SetCooldown 掛勾不能當訊號：最後一層回滿那一刻暴雪不一定 SetCooldown。
+------------------------------------------------------------
+local fullWatch = setmetatable({}, { __mode = "k" })   -- rec → owner
+local fullEventOn = false
+
+local function FullSpellOf(rec)
+    if rec.custom then
+        if rec.kind ~= "spell" then return nil end
+        local id = rec.overrideID or rec.spellID
+        return type(id) == "number" and id or nil
+    end
+    local aura = ns.Viewers.AURA_KIND
+    if aura and aura[rec.barKey] then return nil end
+    local info = ns.Catalog.Info(rec.cooldownID)
+    if not info or type(info.equipSlot) == "number" then return nil end
+    local base = info.spellID
+    local id = info.overrideSpellID or base
+    local find = C_SpellBook and C_SpellBook.FindSpellOverrideByID
+    if find and type(base) == "number" then
+        local ok, ov = pcall(find, base)
+        ov = ok and Plain(ov) or nil
+        if type(ov) == "number" and ov > 0 then id = ov end
+    end
+    return type(id) == "number" and id or nil
+end
+
+-- 這一刻是不是滿的：nil ＝ 不是充能技能（不用看著）、true／false ＝ 滿／沒滿
+local function FullState(rec, id)
+    local D = ns.Decorate
+    if not (D and D.IsChargeSpell and D.IsChargeSpell(rec, id, true)) then return nil end
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    if not fn then return false end
+    local ok, info = pcall(fn, id)
+    if not ok or type(info) ~= "table" then return false end
+    local okA, a = pcall(function() return info.isActive end)
+    return okA and Plain(a) == false
+end
+G.FullState = FullState                                             -- 測試用
+
+local function OnChargesChanged()
+    for rec, owner in pairs(fullWatch) do G.SyncFull(owner, rec) end
+end
+
+local function WatchFull(rec, owner, on)
+    if on then fullWatch[rec] = owner or fullWatch[rec] or false else fullWatch[rec] = nil end
+    local any = next(fullWatch) ~= nil
+    if any ~= fullEventOn then
+        fullEventOn = any
+        if any then ns.Events.Register("SPELL_UPDATE_CHARGES", "glow_full", OnChargesChanged)
+        else ns.Events.Unregister("SPELL_UPDATE_CHARGES", "glow_full") end
+    end
+end
+
+function G.SyncFull(owner, rec, barKey)
+    barKey = barKey or rec.claimKey or rec.placedBar
+    local id = (not Hidden(rec) and Wanted(rec, barKey, "full")) and FullSpellOf(rec) or nil
+    -- ⚠ 不寫 id and FullState(…) or nil：沒滿（false）會變成 nil ＝ 被當成不是充能技能、不看了
+    local full = nil
+    if id then full = FullState(rec, id) end
+    WatchFull(rec, owner, full ~= nil)
+    if full then
+        Start(rec, "full", barKey)
+    else
+        Stop(rec, "full")
+    end
+end
+
 -- ⚠ 下一招醒目標示（"assist"）不在這裡對帳：它由 Core/Assist.lua 管，這裡不准熄它
 function G.Sync(owner, rec, barKey)
     if not rec then return end
     barKey = barKey or rec.claimKey
     G.SyncProc(owner, rec, barKey)
     G.SyncActive(owner, rec, barKey)
+    G.SyncFull(owner, rec, barKey)
     -- 等資源中：被藏了、就緒發光被關掉就取消；資源設定可能剛被關掉 ⇒ 下一幀重掃一次
     if rec.readyPending then
         if Hidden(rec) or not Wanted(rec, barKey, "ready") then CancelPending(rec) else MarkDirty() end
@@ -460,7 +540,9 @@ function G.OnParked(rec)
     Stop(rec, "proc")
     Stop(rec, "ready")
     Stop(rec, "active")
+    Stop(rec, "full")
     Stop(rec, "assist")
+    WatchFull(rec, nil, false)
     CancelPending(rec)
     if ns.StackGate then ns.StackGate.OnParked(rec) end
     -- 按鍵鏡射（Core/Keybinds.lua）：撤銷格號登記、收掉閃光
