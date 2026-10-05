@@ -25,9 +25,10 @@
 --     DB.CopyCustomEntry（連同這一筆的覆寫）。職業層／戰隊層的不給（本來就每個專精都看得到）。
 --   * 職業層／戰隊層的「從這條移除」＝整筆刪掉、每個專精都沒了 ⇒ 先問（Preview.RemoveCustom）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
--- 分頁（玩家回報 2026-10-03 列太長）：一般（所在條、以增益取代、天賦條件、占位）／外觀（邊框、圖示、去飽和、倒數與層數、
--- 冷卻狀態、層數換色）／增益時間／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／音效。每一列建立時記下
--- 當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
+-- 分頁（玩家回報 2026-10-03 列太長；2026-10-05 H 改成五頁）：一般（所在條、以增益取代、天賦條件、占位）／
+-- 文字（倒數、充能、層數、按鍵文字的字型／字級／顏色／位置與隱藏；增益那一段的換色與兩個字色）／外觀（邊框、圖示、
+-- 去飽和、冷卻狀態、顯示增益持續時間、增益轉圈背景色、層數換色）／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／
+-- 音效。每一列建立時記下當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
 --
 -- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」；增益類（暴雪
 -- 增益圖示／增益長條、光環格）兩列「出現音效」「消失音效」。每列一個下拉（第一項「無」＝清掉覆寫，
@@ -39,7 +40,7 @@
 --
 -- 增益持續時間那一段（暴雪的核心／輔助、自訂飾品欄（裝備欄位）才有：先倒增益、再倒冷卻的那種格；飾品欄與代畫格的
 -- 增益是疊在冷卻格上的增益按鈕（Modules/Custom.lua 的疊層），同一組欄位；其餘自訂項目與增益類沒有那一段）：
--- 五列跟主題頁同一套欄位、同一套連動——
+-- 五列跟主題頁同一套欄位、同一套連動（顯示與否、轉圈背景色在「外觀」；換色與兩個字色在「文字」的倒數那一段）——
 --   「顯示增益持續時間」下拉三項「跟隨這一條」（清掉覆寫）／「顯示」（true）／「不顯示」（false）；
 --   「持續時間換色」下拉三項「跟隨這一條」／「換色」（true）／「不換色」（false）——上面生效是不顯示時停用；
 --   「持續時間顏色」「持續時間低秒顏色」「持續時間背景色」各一列勾選框「自訂」＋色票（跟邊框顏色同一套：
@@ -84,7 +85,7 @@ local W, P = ns.W, ns.P
 ns.SpellPopover = {}
 local Pop = ns.SpellPopover
 
-local WIDTH   = 380          -- 五個分頁（一般／外觀／增益時間／發光／音效）要在同一列（使用者 2026-10-03 指定）
+local WIDTH   = 380          -- 五個分頁（一般／文字／外觀／發光／音效）要在同一列（使用者 2026-10-03 指定）
 local PAD     = 12
 local LABEL_W = 130
 local ROW_H   = 26
@@ -99,8 +100,8 @@ local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind, 
 -- 這一格沒有任何一列能顯示的分頁不出現；換一格時目前的分頁不存在就回第一個
 local TABS = {
     { id = "general",  label = L["General"] },
+    { id = "text",     label = L["Text"] },
     { id = "look",     label = L["Appearance"] },
-    { id = "duration", label = L["Buff duration"] },
     { id = "glow",     label = L["Glow"] },
     { id = "sound",    label = L["Sounds"] },
 }
@@ -113,6 +114,9 @@ local function AddRow(entry)
 end
 local toggles = {}
 local colorRows = {}     -- 持續時間的三個顏色列：{ field, cb, swatch, fallback }
+-- 「文字」分頁（H）的列：Refresh 照合併後的值（Text.SpellText）回填
+local textCtl = {}       -- { kind = "font"|"point"|"size"|"color"|"offset"|"low", section, key, field(s), ... }
+local textLabels = {}    -- { fs, fields }：沒覆寫（跟隨條）＝標籤變暗，覆寫了＝白
 local sounds = {}        -- { field, dd }
 local speaks = {}        -- { field, cb, box, listen }
 
@@ -156,8 +160,7 @@ local TOGGLES = {
     -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：決定格子在不在 ⇒ 一般分頁
     { field = "hideNoItem",       label = L["Hide when none in bags"], when = HideNoItemWhen, tab = "general" },
     { field = "hidePassiveTrinket", label = L["Hide passive trinkets"], when = HidePassiveWhen, tab = "general" },
-    { field = "hideCooldownText", label = L["Hide countdown"],         tab = "look" },
-    { field = "hideStackText",    label = L["Hide stacks"],            tab = "look" },
+    -- 隱藏倒數／層數搬到「文字」分頁（H，跟那一段的其他列放一起；存檔欄位不變）
 }
 
 -- 就緒發光亮多久（逐法術覆寫 readyGlowMode；第一項「跟隨『條名』」＝清掉）
@@ -419,6 +422,273 @@ local function ExampleArgs()
 end
 
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
+
+------------------------------------------------------------
+-- 「文字」分頁（H）：Build 叫一次。DurationRows／ColorOverrideRow／NoteRow 是 Build 裡的區域函式，傳進來用
+------------------------------------------------------------
+local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
+    --------------------------------------------------------
+    -- 文字（H）：倒數／充能／層數／按鍵文字，每一列都是逐法術覆寫（三態：沒覆寫＝跟隨條；右鍵標籤清掉）。
+    -- 控件照條頁「文字」節：字型與錨點是下拉（第一項「跟隨『條名』」＝清掉）、字級與門檻是拉桿、顏色是「自訂」＋色票、
+    -- 偏移是 X／Y 兩個數字框。拉桿與數字框看不出有沒有覆寫 ⇒ 這一頁的標籤沒覆寫時變暗（Refresh），最上面一列灰字說明。
+    -- 值一律照 Text.SpellText 合併後的回填（長條的秒數另有自己的底，見那支）。
+    -- 哪些列出現：
+    --   倒數  每一種格都有；小數門檻與低秒變色長條沒有（秒數是暴雪寫的字串／整數 formatter）
+    --         換色開關＋兩個字色＝「先倒增益」那一段（暴雪的冷卻格、飾品欄），從原本的「增益時間」分頁搬來
+    --   充能  圖示類的冷卻格（暴雪核心／輔助、自訂法術／物品／飾品欄）；增益類與長條沒有
+    --   層數  增益類（暴雪的增益、光環格）、飾品欄（疊在上面的增益按鈕）、長條上的格（圖示右下那個數字）；
+    --         長條的層數固定在圖示右下 ⇒ 沒有錨點列（同條頁）
+    --   按鍵  條層有這一節的（不是長條、不是增益圖示列；Keybinds.NoKeybind）而且不是光環格
+    --------------------------------------------------------
+    buildTab = "text"
+    -- 倒數那一段在這一格讀哪個底：長條 ⇒ 長條的秒數（"barTime"），其餘 ⇒ 條層的倒數
+    local function CdSection() return OnBars() and "barTime" or "cooldownText" end
+    local function Always() return true end
+    local function NotBarsRow() return not OnBars() end
+    local function ChargeRows(_, class) return not OnBars() and class ~= "aura" end
+    local function StackRows(kind, class)
+        return class == "aura" or OnBars() or kind == "slot" or CurSlot() ~= nil
+    end
+    local function StackAnchorRow(kind, class) return StackRows(kind, class) and not OnBars() end
+    local function KeyRows(kind)
+        return cur ~= nil and kind ~= "aura" and not ns.Keybinds.NoKeybind(cur.key)
+    end
+    local function KeyOff(kind)
+        return KeyRows(kind) and not ns.Setting(cur.key, "keybind.enabled")
+    end
+
+    local function Track(r, fields)
+        if r and r.label then
+            textLabels[#textLabels + 1] = { fs = r.label, fields = fields }
+        end
+    end
+
+    -- 小節標題（同條頁的 nested 標題：accent 小字、右緣對齊標籤欄）
+    local function HeaderRow(text, when)
+        local hr = CreateFrame("Frame", nil, frame)
+        local fs = W.CreateGroupLabel(hr, text)
+        fs:SetPoint("BOTTOMRIGHT", hr, "BOTTOMLEFT", LABEL_W, 4)
+        fs:SetJustifyH("RIGHT")
+        hr:SetSize(ROW_W, 22)
+        AddRow({ frame = hr, h = 22, when = when })
+    end
+
+    -- 勾選（隱藏）：寫 true／false；旁邊灰字講值從哪來（同上面的 TOGGLES）
+    local function ToggleRow(field, label, when)
+        local tr, th = NewRow(label, when)
+        local cb = W.CreateCheckButton(tr, nil, function(on)
+            if not cur then return end
+            ns.DB.SetOverride(cur.id, field, on and true or false)
+            Changed()
+        end)
+        cb:SetPoint("LEFT", tr, "LEFT", CTRL_X, 0)
+        local note = Note(tr)
+        note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
+        note:SetPoint("RIGHT", tr, "RIGHT", 0, 0)
+        note:SetWordWrap(false)
+        toggles[#toggles + 1] = { field = field, cb = cb, note = note, row = tr }
+        RightClickClears(tr, th, field)
+        Track(tr, { field })
+    end
+
+    -- 字型：第一項「跟隨『條名』」＝清掉，第二項「跟隨通用字型」（INHERIT，這也是一個覆寫值），其餘照 LibSharedMedia（Refresh 時才列）
+    local function FontRow(section, field, when)
+        local r, h = NewRow(L["Font"], when)
+        local dd = W.CreateDropdown(r, ROW_W - CTRL_X, { { text = FollowText(), value = false } }, function(value)
+            if not cur then return end
+            ns.DB.SetOverride(cur.id, field, (type(value) == "string" and value ~= "") and value or nil)
+            Changed()
+        end)
+        dd:SetMaxWidth(ROW_W - CTRL_X)
+        dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        RightClickClears(r, h, field)
+        textCtl[#textCtl + 1] = { kind = "font", dd = dd, field = field, section = section }
+        Track(r, { field })
+    end
+
+    -- 錨點（九宮格）：第一項「跟隨『條名』」＝清掉
+    local function PointRow(field, when)
+        local r, h = NewRow(L["Anchor"], when)
+        local items = { { text = FollowText(), value = false } }
+        for _, it in ipairs(ns.Specs.POINT_ITEMS) do items[#items + 1] = it end
+        local dd = W.CreateDropdown(r, ROW_W - CTRL_X, items, function(value)
+            if not cur then return end
+            ns.DB.SetOverride(cur.id, field, (type(value) == "string" and value ~= "") and value or nil)
+            Changed()
+        end)
+        dd:SetMaxWidth(ROW_W - CTRL_X)
+        dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        followItems[#followItems + 1] = { items = items, dd = dd }
+        RightClickClears(r, h, field)
+        textCtl[#textCtl + 1] = { kind = "point", dd = dd, field = field }
+        Track(r, { field })
+    end
+
+    -- 拉桿（字級、小數門檻、變色秒數）：放開才寫（拖動中不寫）；顯示合併後的值
+    local function SizeRow(label, section, key, field, lo, hi, when)
+        local r, h = NewRow(label, when)
+        local sl = W.CreateSlider(r, lo, hi, ROW_W - CTRL_X, 1, nil, function(v)
+            if not cur then return end
+            ns.DB.SetOverride(cur.id, field, v)
+            Changed()
+        end)
+        sl:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        RightClickClears(r, h, field)
+        textCtl[#textCtl + 1] = { kind = "size", slider = sl, section = section, key = key, field = field, lo = lo }
+        Track(r, { field })
+    end
+
+    -- 顏色：勾「自訂」才寫覆寫（初值＝目前生效的顏色），同上面的顏色列
+    local function TextColorRow(label, section, key, field, fallback, when)
+        local r, h = NewRow(label, when)
+        local cb = W.CreateCheckButton(r, L["Custom"], function(on)
+            if not cur then return end
+            if on then
+                local t = ns.Text.SpellText(cur.key, cur.id, type(section) == "function" and section() or section, true)
+                local c = type(t[key]) == "table" and t[key] or fallback
+                ns.DB.SetOverride(cur.id, field, { r = c.r or 1, g = c.g or 1, b = c.b or 1, a = c.a or 1 })
+            else
+                ns.DB.SetOverride(cur.id, field, nil)
+            end
+            Changed()
+        end)
+        cb:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        local sw = W.CreateColorPicker(r, nil, false, function(rr, g, b)
+            if not cur or type(Override(field)) ~= "table" then return end
+            ns.DB.SetOverride(cur.id, field, { r = rr, g = g, b = b, a = 1 })
+            Changed()
+        end)
+        sw:SetPoint("LEFT", cb.label, "RIGHT", 10, 0)
+        RightClickClears(r, h, field)
+        textCtl[#textCtl + 1] = { kind = "color", cb = cb, swatch = sw, section = section, key = key, field = field,
+                                  fallback = fallback }
+        Track(r, { field })
+    end
+
+    -- 偏移：X／Y 兩個數字框（同條頁）；右鍵標籤兩個一起清
+    local function OffsetRow(section, fx, fy, when)
+        local r = NewRow(L["Offset"], when)
+        local px = CTRL_X
+        local boxes = {}
+        for _, f in ipairs({ { "X", fx, "x" }, { "Y", fy, "y" } }) do
+            local tag = r:CreateFontString(nil, "OVERLAY")
+            tag:SetFontObject(W.fontSmall)
+            tag:SetTextColor(0.6, 0.6, 0.6)
+            tag:SetPoint("LEFT", r, "LEFT", px, 0)
+            tag:SetText(f[1])
+            px = px + (tag:GetStringWidth() or 8) + 4
+            local field = f[2]
+            local nb = W.CreateNumberBox(r, 46, 1, function(v)
+                if not cur then return end
+                ns.DB.SetOverride(cur.id, field, v)
+                Changed()
+            end)
+            nb:SetPoint("LEFT", r, "LEFT", px, 0)
+            px = px + 46 + 10
+            boxes[#boxes + 1] = { nb = nb, key = f[3] }
+        end
+        local hit = CreateFrame("Frame", nil, r)
+        hit:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+        hit:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+        hit:SetWidth(LABEL_W)
+        hit:EnableMouse(true)
+        hit:SetScript("OnMouseUp", function(_, button)
+            if button == "RightButton" and cur then
+                ns.DB.SetOverride(cur.id, fx, nil)
+                ns.DB.SetOverride(cur.id, fy, nil)
+                Changed()
+            end
+        end)
+        textCtl[#textCtl + 1] = { kind = "offset", boxes = boxes, section = section }
+        Track(r, { fx, fy })
+    end
+
+    -- 最上面一列灰字：標籤變暗的意思（每種格都有倒數 ⇒ 這一頁一定有東西）
+    NoteRow(L["Dimmed labels follow the bar. Change a row to set it for this spell only; right-click its label to follow the bar again."], Always)
+
+    -- 倒數
+    HeaderRow(L["Countdown"], Always)
+    ToggleRow("hideCooldownText", L["Hide countdown"], Always)
+    FontRow(CdSection, "cooldownTextFont", Always)
+    SizeRow(L["Font size"], CdSection, "size", "cooldownTextSize", 6, 40, Always)
+    TextColorRow(L["Color"], CdSection, "color", "cooldownTextColor", { r = 1, g = 1, b = 1, a = 1 }, Always)
+    PointRow("cooldownTextPoint", Always)
+    OffsetRow(CdSection, "cooldownTextX", "cooldownTextY", Always)
+    SizeRow(L["Decimals below"], "cooldownText", "decimalsBelow", "cooldownTextDecimals", 0, 10, NotBarsRow)
+    NoteRow(L["Shows one decimal place under this many seconds; 0 never shows decimals."], NotBarsRow)
+    -- 低秒變色：開關跟門檻是同一個欄位（門檻 0 ＝ 關，同條頁）；勾起來時門檻 5
+    do
+        local lr, lh = NewRow(L["Color when low"], NotBarsRow)
+        local lcb = W.CreateCheckButton(lr, nil, function(on)
+            if not cur then return end
+            local t = ns.Text.SpellText(cur.key, cur.id, "cooldownText", true)
+            local now = tonumber(t.lowBelow) or 0
+            ns.DB.SetOverride(cur.id, "cooldownTextLowBelow", on and (now > 0 and now or 5) or 0)
+            Changed()
+        end)
+        lcb:SetPoint("LEFT", lr, "LEFT", CTRL_X, 0)
+        local lnote = Note(lr)
+        lnote:SetPoint("LEFT", lcb, "RIGHT", 8, 0)
+        lnote:SetPoint("RIGHT", lr, "RIGHT", 0, 0)
+        lnote:SetWordWrap(false)
+        RightClickClears(lr, lh, "cooldownTextLowBelow")
+        textCtl[#textCtl + 1] = { kind = "low", cb = lcb, note = lnote }
+        Track(lr, { "cooldownTextLowBelow" })
+    end
+    TextColorRow(L["Low color"], "cooldownText", "lowColor", "cooldownTextLowColor", { r = 1, g = 0.3, b = 0.3, a = 1 }, NotBarsRow)
+    SizeRow(L["Low below (sec)"], "cooldownText", "lowBelow", "cooldownTextLowBelow", 0, 30, NotBarsRow)
+
+    -- 增益那一段的換色＋兩個字色（「先倒增益」的格；原本在「增益時間」分頁）：五個欄位跟主題頁同一套、
+    -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 顏色列停用（Refresh）
+    local cdr, cdh = NewRow(L["Recolor buff duration"], DurationRows)
+    local cdItems = {
+        { text = FollowText(), value = "follow" },
+        { text = L["Recolor"],         value = "on" },
+        { text = L["Don't recolor"],   value = "off" },
+    }
+    local cddd = W.CreateDropdown(cdr, ROW_W - CTRL_X, cdItems, function(value)
+        if not cur then return end
+        local v = nil
+        if value == "on" then v = true elseif value == "off" then v = false end
+        ns.DB.SetOverride(cur.id, "colorDuration", v)
+        Changed()
+    end)
+    cddd:SetMaxWidth(ROW_W - CTRL_X)
+    cddd:SetPoint("LEFT", cdr, "LEFT", CTRL_X, 0)
+    frame.colorDurDD = cddd
+    followItems[#followItems + 1] = { items = cdItems, dd = cddd }
+    RightClickClears(cdr, cdh, "colorDuration")
+    Track(cdr, { "colorDuration" })
+    Track(ColorOverrideRow(L["Buff duration color"],     "durationColor",    false, { r = 1,    g = 0.85, b = 0.1,  a = 1 }), { "durationColor" })
+    Track(ColorOverrideRow(L["Buff duration low color"], "durationLowColor", false, { r = 0.95, g = 0.45, b = 0.70, a = 1 }), { "durationLowColor" })
+
+    -- 充能
+    HeaderRow(L["Charges"], ChargeRows)
+    ToggleRow("hideChargeText", L["Hide charges"], ChargeRows)
+    FontRow("chargeText", "chargeTextFont", ChargeRows)
+    SizeRow(L["Font size"], "chargeText", "size", "chargeTextSize", 6, 30, ChargeRows)
+    TextColorRow(L["Color"], "chargeText", "color", "chargeTextColor", { r = 1, g = 1, b = 1, a = 1 }, ChargeRows)
+    PointRow("chargeTextPoint", ChargeRows)
+    OffsetRow("chargeText", "chargeTextX", "chargeTextY", ChargeRows)
+
+    -- 層數
+    HeaderRow(L["Stacks"], StackRows)
+    ToggleRow("hideStackText", L["Hide stacks"], StackRows)
+    FontRow("stackText", "stackTextFont", StackRows)
+    SizeRow(L["Font size"], "stackText", "size", "stackTextSize", 6, 30, StackRows)
+    TextColorRow(L["Color"], "stackText", "color", "stackTextColor", { r = 1, g = 1, b = 1, a = 1 }, StackRows)
+    PointRow("stackTextPoint", StackAnchorRow)
+    OffsetRow("stackText", "stackTextX", "stackTextY", StackRows)
+
+    -- 按鍵文字（沒有顏色：一律白字，同條層）
+    HeaderRow(L["Keybind text"], KeyRows)
+    ToggleRow("hideKeybind", L["Hide keybind text"], KeyRows)
+    FontRow("keybind", "keybindFont", KeyRows)
+    SizeRow(L["Font size"], "keybind", "size", "keybindSize", 6, 24, KeyRows)
+    PointRow("keybindPoint", KeyRows)
+    OffsetRow("keybind", "keybindX", "keybindY", KeyRows)
+    NoteRow(L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."], KeyOff)
+end
 
 local function Build()
     if frame then return end
@@ -914,10 +1184,11 @@ local function Build()
     followItems[#followItems].dd = csdd
     RightClickClears(csr, csh, "cdState")
 
-    -- 增益持續中顯示持續時間（暴雪的冷卻類、自訂飾品欄才有；其餘自訂項目沒有「先倒增益」那一段）
+    -- 增益持續中顯示持續時間（暴雪的冷卻類、自訂飾品欄才有；其餘自訂項目沒有「先倒增益」那一段）。
+    -- 「增益時間」分頁拆掉之後（H）：顯示與否、轉圈背景色留在外觀；換色開關與兩個字色搬到「文字」的倒數那一段
     local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
     local DurationRows = function(kind, class) return BlizzCooldown(kind, class) or kind == "slot" end
-    buildTab = "duration"
+    buildTab = "look"
     local atr, ath = NewRow(L["Show buff duration"], DurationRows)
     local atItems = {
         { text = FollowText(), value = "follow" },
@@ -936,27 +1207,6 @@ local function Build()
     frame.auraTimeDD = atdd
     followItems[#followItems + 1] = { items = atItems, dd = atdd }
     RightClickClears(atr, ath, "showAuraTime")
-
-    -- 持續時間換色＋三個顏色（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）：五個欄位跟主題頁同一套、
-    -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 三個顏色列停用（Refresh）
-    local cdr, cdh = NewRow(L["Recolor buff duration"], DurationRows)
-    local cdItems = {
-        { text = FollowText(), value = "follow" },
-        { text = L["Recolor"],         value = "on" },
-        { text = L["Don't recolor"],   value = "off" },
-    }
-    local cddd = W.CreateDropdown(cdr, ROW_W - CTRL_X, cdItems, function(value)
-        if not cur then return end
-        local v = nil
-        if value == "on" then v = true elseif value == "off" then v = false end
-        ns.DB.SetOverride(cur.id, "colorDuration", v)
-        Changed()
-    end)
-    cddd:SetMaxWidth(ROW_W - CTRL_X)
-    cddd:SetPoint("LEFT", cdr, "LEFT", CTRL_X, 0)
-    frame.colorDurDD = cddd
-    followItems[#followItems + 1] = { items = cdItems, dd = cddd }
-    RightClickClears(cdr, cdh, "colorDuration")
 
     -- 顏色列：勾「自訂」才寫覆寫（初值＝目前生效的顏色），色票只在自訂時能動；跟上面的邊框顏色同一套
     local function ColorOverrideRow(label, field, hasAlpha, fallback)
@@ -981,13 +1231,38 @@ local function Build()
         sw:SetPoint("LEFT", cb2.label, "RIGHT", 10, 0)
         RightClickClears(r2, h2, field)
         colorRows[#colorRows + 1] = { field = field, cb = cb2, swatch = sw, fallback = fallback }
+        return r2
     end
-    ColorOverrideRow(L["Buff duration color"],       "durationColor",      false, { r = 1,    g = 0.85, b = 0.1,  a = 1 })
-    ColorOverrideRow(L["Buff duration low color"],   "durationLowColor",   false, { r = 0.95, g = 0.45, b = 0.70, a = 1 })
     ColorOverrideRow(L["Buff duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
 
+    -- 灰字說明列（控件欄寬、下一列；跟上面幾段同一個做法）
+    local function NoteRow(text, when)
+        local nr = CreateFrame("Frame", nil, frame)
+        local tip = Note(nr)
+        tip:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
+        tip:SetWidth(ROW_W - CTRL_X)
+        tip:SetWordWrap(true)
+        tip:SetText(text)
+        local nh = 2 + math.max(14, tip:GetStringHeight() or 0) + 6
+        nr:SetSize(ROW_W, nh)
+        local entry = { frame = nr, h = nh, when = when }
+        entry.remeasure = function()
+            local sh2 = tip:GetStringHeight()
+            local h2 = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+            nr:SetHeight(h2)
+            entry.h = h2
+        end
+        AddRow(entry)
+        return entry
+    end
+
+    -- 文字分頁（H）：拆成自己的函式（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
+    BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
+
     -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
-    -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫
+    -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫。
+    -- 放「發光」分頁（檔頭的分頁表）；以前接在增益時間那幾列後面、沒換 buildTab，一直落在「增益時間」分頁
+    buildTab = "glow"
     local sgr = NewRow(L["Stack glow"], BlizzAura)
     local scb = W.CreateCheckButton(sgr, nil, function(on)
         if not cur then return end
@@ -1109,27 +1384,6 @@ local function Build()
         ns.StackColors.Open(cur.key, cur.id, function() Changed() end)
     end)
     frame.stackColorsBtn = scbtn
-
-    -- 灰字說明列（控件欄寬、下一列；跟上面幾段同一個做法）
-    local function NoteRow(text, when)
-        local nr = CreateFrame("Frame", nil, frame)
-        local tip = Note(nr)
-        tip:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
-        tip:SetWidth(ROW_W - CTRL_X)
-        tip:SetWordWrap(true)
-        tip:SetText(text)
-        local nh = 2 + math.max(14, tip:GetStringHeight() or 0) + 6
-        nr:SetSize(ROW_W, nh)
-        local entry = { frame = nr, h = nh, when = when }
-        entry.remeasure = function()
-            local sh2 = tip:GetStringHeight()
-            local h2 = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
-            nr:SetHeight(h2)
-            entry.h = h2
-        end
-        AddRow(entry)
-        return entry
-    end
 
     -- 層數當填充（增益長條）：勾選框＋「最大層數」數字框；沒勾時數字框記著要用的值（預設 5）
     local sbr, sbh = NewRow(L["Stacks as fill"], BlizzAuraBar)
@@ -1389,11 +1643,14 @@ local function Build()
     frame.placeholderTip, frame.placeholderTipEntry = phTip, phEntry
 
     -- 強調說明（黃字）：「先倒增益時間」的適用範圍，各在自己的分頁、底部說明的正上方
-    EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
-        function(kind, class) return BlizzCooldown(kind, class) and CurSlot() == nil end, "duration")
-    -- 飾品欄／代畫格解不出增益：增益持續時間那一段停用的原因
-    EmphasisRow(L["What's equipped in this slot has no buff to track."],
-        function(kind, class) return DurationRows(kind, class) and CurSlotNoBuff() end, "duration")
+    -- 「增益時間」分頁拆掉之後（H），那幾列分在外觀（顯示與否、轉圈背景色）與文字（換色、兩個字色）：兩頁各一份
+    for _, tab in ipairs({ "text", "look" }) do
+        EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
+            function(kind, class) return BlizzCooldown(kind, class) and CurSlot() == nil end, tab)
+        -- 飾品欄／代畫格解不出增益：增益持續時間那一段停用的原因
+        EmphasisRow(L["What's equipped in this slot has no buff to track."],
+            function(kind, class) return DurationRows(kind, class) and CurSlotNoBuff() end, tab)
+    end
     -- 飾品欄增益解不出增益：問號格的原因（一般分頁）
     EmphasisRow(L["This trinket has no buff to track."],
         function(kind) return kind == "aura" and CurSlotBuffMissing() == "nobuff" end, "general")
@@ -1713,6 +1970,55 @@ function Pop.Refresh()
         r.swatch:SetColor(type(c) == "table" and c or r.fallback)
         r.swatch:SetEnabled(own and recolor)
         r.swatch:SetAlpha((own and recolor) and 1 or 0.4)
+    end
+    -- 文字（H）：照合併後的值回填（Text.SpellText 的 fresh：剛寫的覆寫、還沒 InvalidateAll 的條層值都看得到）
+    local TX = ns.Text
+    local fontItems
+    local function SrcNote(field)
+        if Override(field) ~= nil then return L["(overridden, right-click to reset)"] end
+        local src = ns.DB.SpellFallbackSource(key, field)
+        return src == "theme" and L["(follows the theme)"]
+            or src == "bar" and L["(follows “%s”)"]:format(BarName()) or L["(default)"]
+    end
+    for _, c in ipairs(textCtl) do
+        local sec = c.section
+        if type(sec) == "function" then sec = sec() end
+        local t = sec and TX.SpellText(key, id, sec, true) or TX.EMPTY
+        if c.kind == "font" then
+            if not fontItems then
+                fontItems = { { text = FollowText(), value = false } }
+                for _, it in ipairs(ns.Specs.ElementFontItems()) do fontItems[#fontItems + 1] = it end
+            end
+            c.dd:SetItems(fontItems)
+            local v = Override(c.field)
+            c.dd:SetSelectedValue((type(v) == "string" and v ~= "") and v or false)
+        elseif c.kind == "point" then
+            local v = Override(c.field)
+            c.dd:SetSelectedValue((type(v) == "string" and v ~= "") and v or false)
+        elseif c.kind == "size" then
+            c.slider:SetValue(tonumber(t[c.key]) or c.lo)
+        elseif c.kind == "color" then
+            local own = type(Override(c.field)) == "table"
+            c.cb:SetChecked(own)
+            local col = t[c.key]
+            c.swatch:SetColor(type(col) == "table" and col or c.fallback)
+            c.swatch:SetEnabled(own)
+            c.swatch:SetAlpha(own and 1 or 0.4)
+        elseif c.kind == "offset" then
+            for _, b in ipairs(c.boxes) do b.nb:SetValue(tonumber(t[b.key]) or 0) end
+        elseif c.kind == "low" then
+            local ct = TX.SpellText(key, id, "cooldownText", true)
+            c.cb:SetChecked((tonumber(ct.lowBelow) or 0) > 0)
+            c.note:SetText(SrcNote("cooldownTextLowBelow"))
+        end
+    end
+    -- 拉桿與數字框看不出有沒有覆寫：這一頁的標籤沒覆寫（跟隨條）時變暗
+    for _, tl in ipairs(textLabels) do
+        local own = false
+        for _, f in ipairs(tl.fields) do
+            if Override(f) ~= nil then own = true break end
+        end
+        if own then tl.fs:SetTextColor(1, 1, 1) else tl.fs:SetTextColor(0.6, 0.6, 0.6) end
     end
     -- 脫戰也亮：生效發光生效是關 ⇒ 停用
     local activeOn = ns.SpellSetting(key, id, "activeGlow") and true or false

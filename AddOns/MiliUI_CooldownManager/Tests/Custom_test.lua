@@ -96,6 +96,12 @@ load("Core/DB.lua")
 load("Core/Catalog.lua")
 load("Core/MasqueShape.lua")
 load("Modules/Custom.lua")          -- 替代品／多法術的純函式（第 8 節起）；載入時不建任何框
+load("Core/Text.lua")               -- 逐法術文字樣式的合併（Text.SpellText）：下面 stub 掉 ns.Text 的地方借用真的那幾支
+local RealText = ns.Text
+local function TextStub(t)
+    t.SpellText, t.BarTimePlace, t.Color, t.EMPTY = RealText.SpellText, RealText.BarTimePlace, RealText.Color, RealText.EMPTY
+    return t
+end
 local DB, C = ns.DB, ns.Catalog
 ns.RefreshSpec()
 DB.Init()
@@ -450,8 +456,8 @@ do
     ns.Glow = { OnParked = function() parked = parked + 1 end, Sync = function() end, ArmProbe = function() end,
                 CooldownStarted = function() end, SetProcActive = function() end }
     ns.Keybinds = { Apply = function() end, Invalidate = function() end }
-    ns.Text = { SetFont = function() end, Anchor = function(fs, rel, point, x, y) fs.anchor = { rel, point, x, y } end,
-                PixelScale = function() return 1 end, PlainFormatter = function(d) return { formatter = true, decimals = d } end }
+    ns.Text = TextStub({ SetFont = function() end, Anchor = function(fs, rel, point, x, y) fs.anchor = { rel, point, x, y } end,
+                PixelScale = function() return 1 end, PlainFormatter = function(d) return { formatter = true, decimals = d } end })
     ns.Media = { SetFont = function() end, Font = function(t) return "font:" .. tostring(t) end,
                  ElementFont = function(own, gen) if own ~= nil and own ~= "INHERIT" then return own end return gen end,
                  Texture = function(t) return "tex:" .. tostring(t) end }
@@ -989,8 +995,8 @@ do
     ns.Glow = { OnParked = function() end, Sync = function() end, ArmProbe = function() end,
                 CooldownStarted = function() end, SetProcActive = function() end }
     ns.Keybinds = { Apply = function() end, Invalidate = function() end }
-    ns.Text = { SetFont = function() end, Anchor = function() end, PixelScale = function() return 1 end,
-                PlainFormatter = function(d) return { formatter = true, decimals = d } end }
+    ns.Text = TextStub({ SetFont = function() end, Anchor = function() end, PixelScale = function() return 1 end,
+                PlainFormatter = function(d) return { formatter = true, decimals = d } end })
     ns.Media = { SetFont = function() end, Font = function(t) return "font:" .. tostring(t) end,
                  ElementFont = function(own, gen) if own ~= nil and own ~= "INHERIT" then return own end return gen end,
                  Texture = function(t) return "tex:" .. tostring(t) end }
@@ -1081,6 +1087,36 @@ do
     function btn2:SetApplicationCount() end
     o.container.slot.opts.initializeFrame(btn2)
     eq("隱藏倒數 ⇒ 不掛 SetDurationText", got2.text, nil)
+
+    -- 逐法術的文字覆寫（H）：疊層照冷卻格那一筆的 id 讀，值解進 st、進簽章 ⇒ 改了換一顆容器
+    DB.SpecSpells(true).overrides[sid] = nil
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 5)
+    local sigT0, contT0 = o.sig, o.container
+    DB.SetOverride(sid, "cooldownTextSize", 22)
+    DB.SetOverride(sid, "cooldownTextPoint", "BOTTOM")
+    DB.SetOverride(sid, "stackTextColor", { r = 0, g = 1, b = 0, a = 1 })
+    local stT = CU.AuraStyle(o, "essential", 36, 36, "icons")
+    eq("文字覆寫：倒數字級", stT.cdSize, 22)
+    eq("文字覆寫：倒數錨點", stT.cdPoint, "BOTTOM")
+    eq("文字覆寫：沒覆寫的欄位退條層（倒數 X）", stT.cdX, tonumber(ns.Setting("essential", "cooldownText.x")) or 0)
+    eq("文字覆寫：層數顏色", stT.stColor[2], 1)
+    eq("文字覆寫：層數顏色（紅）", stT.stColor[1], 0)
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 6)
+    check("文字覆寫 ⇒ 簽章變、換容器", o.sig ~= sigT0 and o.container ~= contT0)
+    -- 長條形狀：秒數的底是「長條」節，覆寫蓋字級；錨點沒蓋 ⇒ 預設右緣；層數字級覆寫優先於 bar.stackSize
+    DB.SetOverride(sid, "cooldownTextPoint", nil)
+    DB.SetOverride(sid, "stackTextSize", 9)
+    local stB = CU.AuraStyle(o, "essential", 120, 20, "bars")
+    eq("長條：秒數字級吃覆寫", stB.timeSize, 22)
+    eq("長條：秒數錨點預設右緣", stB.timePoint, "RIGHT")
+    eq("長條：秒數預設內縮 4", stB.timeX, -4)
+    eq("長條：層數字級覆寫優先", stB.barStack, 9)
+    local sigB = stB.sig
+    DB.SetOverride(sid, "cooldownTextX", 3)
+    check("長條：秒數偏移進簽章", CU.AuraStyle(o, "essential", 120, 20, "bars").sig ~= sigB)
+    for _, f in ipairs({ "cooldownTextSize", "cooldownTextX", "stackTextColor", "stackTextSize" }) do DB.SetOverride(sid, f, nil) end
+    eq("右鍵清光 ⇒ 回條層字級", CU.AuraStyle(o, "essential", 36, 36, "icons").cdSize,
+        tonumber(ns.Setting("essential", "cooldownText.size")) or 16)
 
     -- showAuraTime 關掉 ⇒ 不疊（持有框收起來、容器留在池裡）
     local pooled = 0

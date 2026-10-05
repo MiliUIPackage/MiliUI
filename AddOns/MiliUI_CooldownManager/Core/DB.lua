@@ -970,11 +970,44 @@ local SPELL_FALLBACK = {
     -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：nil 跟隨條／true／false（Core/Catalog.lua 的 HideReason）
     hideNoItem         = "icon.hideNoItem",
     hidePassiveTrinket = "icon.hidePassiveTrinket",
+    -- 文字（單一法術小窗的「文字」分頁，H）：條層路徑的扁平名，沒覆寫退回條層那一格。
+    -- 引擎**不直接讀這幾個**，一律走 Core/Text.lua 的 Text.SpellText（逐法術 ⊕ 條層的合併，依世代快取；
+    -- 長條的秒數另有自己的底：條層「長條」節的秒數字型／字級，見那支）。登記在這裡是讓 SpellSetting／
+    -- SpellFallbackSource 認得它們（設定頁的「（跟隨…）」）
+    cooldownTextFont     = "cooldownText.font",
+    cooldownTextSize     = "cooldownText.size",
+    cooldownTextColor    = "cooldownText.color",
+    cooldownTextPoint    = "cooldownText.point",
+    cooldownTextX        = "cooldownText.x",
+    cooldownTextY        = "cooldownText.y",
+    cooldownTextDecimals = "cooldownText.decimalsBelow",
+    cooldownTextLowBelow = "cooldownText.lowBelow",
+    cooldownTextLowColor = "cooldownText.lowColor",
+    chargeTextFont  = "chargeText.font",
+    chargeTextSize  = "chargeText.size",
+    chargeTextColor = "chargeText.color",
+    chargeTextPoint = "chargeText.point",
+    chargeTextX     = "chargeText.x",
+    chargeTextY     = "chargeText.y",
+    stackTextFont   = "stackText.font",
+    stackTextSize   = "stackText.size",
+    stackTextColor  = "stackText.color",
+    stackTextPoint  = "stackText.point",
+    stackTextX      = "stackText.x",
+    stackTextY      = "stackText.y",
+    keybindFont     = "keybind.font",
+    keybindSize     = "keybind.size",
+    keybindPoint    = "keybind.point",
+    keybindX        = "keybind.x",
+    keybindY        = "keybind.y",
 }
 -- 沒有條層對應的覆寫欄位 → 固定預設
 local SPELL_CONST = {
     hideCooldownText = false,
     hideStackText    = false,
+    -- 隱藏充能／按鍵文字（H）：同上，條層沒有對應的「隱藏」（按鍵文字的條層開關 keybind.enabled 另外看，兩個都要過）
+    hideChargeText   = false,
+    hideKeybind      = false,
     -- 生效發光脫戰也亮（預設）；false ＝ 只在戰鬥中亮。自訂光環格不適用（發光烘在受保護的按鈕裡）
     activeGlowOutOfCombat = true,
     -- 層數門檻（暴雪的增益 item 才有，Core/StackGate.lua）：stackGlow ＝ 門檻 N（1～99）、stackColors ＝
@@ -1295,7 +1328,17 @@ DB.OVERRIDE_GROUP = {
     -- 層數門檻也是逐法術挑的：自成一組，條頁「清除發光覆寫」不會清掉
     stackGlow = "stack", stackGlowType = "stack", stackGlowColor = "stack", stackColors = "stack",
     stackGlowOp = "stack", stackBar = "stack", stackTicks = "stack",
-    hideCooldownText = "text", hideStackText = "text",
+    -- 文字（H）：倒數／充能／層數／按鍵文字的逐法術覆寫一組，條頁「文字」節的「清除覆寫」一次清。
+    -- 按鍵文字的條層設定在「效果」節，覆寫照樣算這一組（逐法術小窗把它們放在同一個「文字」分頁）
+    hideCooldownText = "text", hideStackText = "text", hideChargeText = "text", hideKeybind = "text",
+    cooldownTextFont = "text", cooldownTextSize = "text", cooldownTextColor = "text", cooldownTextPoint = "text",
+    cooldownTextX = "text", cooldownTextY = "text", cooldownTextDecimals = "text", cooldownTextLowBelow = "text",
+    cooldownTextLowColor = "text",
+    chargeTextFont = "text", chargeTextSize = "text", chargeTextColor = "text", chargeTextPoint = "text",
+    chargeTextX = "text", chargeTextY = "text",
+    stackTextFont = "text", stackTextSize = "text", stackTextColor = "text", stackTextPoint = "text",
+    stackTextX = "text", stackTextY = "text",
+    keybindFont = "text", keybindSize = "text", keybindPoint = "text", keybindX = "text", keybindY = "text",
     colorDuration = "icon", durationColor = "icon", durationLowColor = "icon", durationSwipeColor = "icon",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉

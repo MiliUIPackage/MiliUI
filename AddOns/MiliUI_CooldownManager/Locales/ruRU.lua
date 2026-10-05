@@ -841,3 +841,7 @@ L["Hide passive trinkets"] = "Скрывать пассивные аксессу
 L["Equipment slot icons don't show while the equipped item has no use effect, such as a passive trinket. Trinket buff icons don't show while the trinket has no buff to track. Empty slots still show."] = "Значки ячеек экипировки не показываются, пока у надетого предмета нет эффекта при использовании (например, пассивный аксессуар). Баффы аксессуаров тоже не показываются, пока у аксессуара нет отслеживаемого баффа. Пустые ячейки по-прежнему показываются."
 L["None left in your bags, so it isn't shown on screen."] = "В сумках не осталось ни одного — на экране не показывается."
 L["The equipped item has no use effect, so it isn't shown on screen."] = "У надетого предмета нет эффекта при использовании — на экране не показывается."
+L["Hide charges"] = "Скрыть заряды"
+L["Hide keybind text"] = "Скрыть клавишу"
+L["Dimmed labels follow the bar. Change a row to set it for this spell only; right-click its label to follow the bar again."] = "Строки с тусклой подписью следуют панели. Измените строку, чтобы задать её только для этого заклинания; ПКМ по подписи — снова как у панели."
+L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."] = "Текст клавиш на этой панели выключен: эти настройки заработают, когда он включён (Эффекты, Текст клавиш)."

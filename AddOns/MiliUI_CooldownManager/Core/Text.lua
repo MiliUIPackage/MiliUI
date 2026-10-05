@@ -237,9 +237,165 @@ function T.GcdFormatter(gcd, last)
 end
 
 ------------------------------------------------------------
+-- 逐法術的文字樣式（單一法術小窗的「文字」分頁，H）：條層 ⊕ 逐法術覆寫的**唯一**合併點
+--
+--   ns.Text.SpellText(barKey, id, section [, fresh]) → t, hide, own
+--     section  "cooldownText" | "chargeText" | "stackText" | "keybind"：底＝條層同名那張表（ns.Setting）
+--              "barTime"：長條的秒數（暴雪增益長條、自訂長條框、光環長條）。底＝條層「長條」節的秒數字型／字級
+--              （bar.timeFont／timeSize），顏色白、錨點照長條的預設；覆寫欄位跟倒數同一組（cooldownTextFont…）
+--     t        合併後的表（讀法跟條層那張一樣：t.size、t.font…）。沒有任何覆寫 ＝ 條層那張表本身（唯讀）
+--     hide     這一段要不要藏（hideCooldownText／hideChargeText／hideStackText／hideKeybind；沒覆寫 ＝ false）
+--     own      只有覆寫的欄位（沒有 ＝ EMPTY）：要分得出「這一招自己改了」的地方用
+--              （長條的層數字級：沒覆寫時 bar.stackSize 優先；長條秒數的錨點：沒覆寫時照預設位置＋偏移）
+--   ns.Text.OverrideSig(id)   這一招的文字覆寫串成一段字（簽章用：Decorate／自訂長條的 timerSig）
+--
+-- 快取：每個（條、id、段）一筆，對 Decorate.styleGen（條層設定）與 DB.overrideGen（逐法術覆寫）兩個世代；
+-- 命中時不配置任何表（Keybinds.Apply 每次排版都叫）。合併的表用 __index 指回條層那張，條層原地改值
+-- （色票）也讀得到；換了表一定經過 InvalidateAll（styleGen +1）。
+-- fresh ＝ true：不讀也不寫快取（設定頁預覽：滑桿拖動中只重畫預覽、還沒 InvalidateAll）。
+------------------------------------------------------------
+local EMPTY = {}
+T.EMPTY = EMPTY
+
+-- 段 → { hide ＝ 隱藏欄位, keys ＝ { 條層欄位 ＝ 覆寫欄位 } }；順序表給簽章用（pairs 的順序不固定）
+local CD_KEYS = {
+    { "font", "cooldownTextFont" }, { "size", "cooldownTextSize" }, { "color", "cooldownTextColor" },
+    { "point", "cooldownTextPoint" }, { "x", "cooldownTextX" }, { "y", "cooldownTextY" },
+    { "decimalsBelow", "cooldownTextDecimals" }, { "lowBelow", "cooldownTextLowBelow" },
+    { "lowColor", "cooldownTextLowColor" },
+}
+local function Pos(prefix)
+    return { { "font", prefix .. "Font" }, { "size", prefix .. "Size" }, { "color", prefix .. "Color" },
+             { "point", prefix .. "Point" }, { "x", prefix .. "X" }, { "y", prefix .. "Y" } }
+end
+local SECTIONS = {
+    cooldownText = { hide = "hideCooldownText", keys = CD_KEYS },
+    -- 長條秒數：秒數是暴雪每幀寫的字串（或整數 formatter），小數門檻與低秒變色換不了 ⇒ 只收位置與外觀
+    barTime      = { hide = "hideCooldownText", keys = { CD_KEYS[1], CD_KEYS[2], CD_KEYS[3], CD_KEYS[4], CD_KEYS[5], CD_KEYS[6] } },
+    chargeText   = { hide = "hideChargeText", keys = Pos("chargeText") },
+    stackText    = { hide = "hideStackText", keys = Pos("stackText") },
+    -- 按鍵文字沒有顏色（一律白字，同條層）
+    keybind      = { hide = "hideKeybind", keys = { { "font", "keybindFont" }, { "size", "keybindSize" },
+                     { "point", "keybindPoint" }, { "x", "keybindX" }, { "y", "keybindY" } } },
+}
+T.TEXT_SECTIONS = SECTIONS
+
+local function Base(barKey, section)
+    local S = ns.Setting
+    if section == "barTime" then
+        local bar = S and S(barKey, "bar")
+        bar = type(bar) == "table" and bar or EMPTY
+        return { font = bar.timeFont, size = tonumber(bar.timeSize) or 12 }
+    end
+    local t = S and S(barKey, section)
+    return type(t) == "table" and t or EMPTY
+end
+
+local textCache = {}            -- barKey → id → section → { sg, og, t, hide, own }
+
+local function Gens()
+    local D, DB = ns.Decorate, ns.DB
+    return (D and D.styleGen) or 0, (DB and DB.overrideGen) or 0
+end
+
+function T.SpellText(barKey, id, section, fresh)
+    local spec = SECTIONS[section]
+    if not spec then return EMPTY, false, EMPTY end
+    local bk = barKey or "theme"
+    local sg, og = Gens()
+    local byId
+    if not fresh then
+        local byBar = textCache[bk]
+        byId = byBar and id ~= nil and byBar[id]
+        local e = byId and byId[section]
+        if e and e.sg == sg and e.og == og then return e.t, e.hide, e.own end
+    end
+    local base = Base(barKey, section)
+    local DB = ns.DB
+    local ov = (id ~= nil and DB and DB.OverrideTable) and DB.OverrideTable(id, false) or nil
+    local own, hide = nil, false
+    if type(ov) == "table" then
+        for _, kv in ipairs(spec.keys) do
+            local v = ov[kv[2]]
+            if v ~= nil then
+                own = own or {}
+                own[kv[1]] = v
+            end
+        end
+        hide = ov[spec.hide] and true or false
+    end
+    local t = base
+    if own then
+        t = {}
+        for k, v in pairs(own) do t[k] = v end
+        setmetatable(t, { __index = base })
+    end
+    own = own or EMPTY
+    if not fresh and id ~= nil then
+        local byBar = textCache[bk]
+        if not byBar then byBar = {}; textCache[bk] = byBar end
+        byId = byBar[id]
+        if not byId then byId = {}; byBar[id] = byId end
+        local e = byId[section]
+        if not e then e = {}; byId[section] = e end
+        e.sg, e.og, e.t, e.hide, e.own = sg, og, t, hide, own
+    end
+    return t, hide, own
+end
+
+-- 這一招的文字覆寫（倒數／充能／層數三段＋三個隱藏；按鍵文字不在內，Keybinds.Apply 有自己的簽章）串成字。
+-- 沒有 ＝ ""。依 DB.overrideGen 快取（Decorate 只在前置鍵沒中時叫；自訂光環格的 AuraStyle 每次放格都叫）
+local sigCache = {}             -- id → { og, s }
+local SIG_FIELDS = { "hideCooldownText", "hideChargeText", "hideStackText" }
+for _, sec in ipairs({ "cooldownText", "chargeText", "stackText" }) do
+    for _, kv in ipairs(SECTIONS[sec].keys) do SIG_FIELDS[#SIG_FIELDS + 1] = kv[2] end
+end
+T.SIG_FIELDS = SIG_FIELDS
+
+function T.OverrideSig(id)
+    if id == nil then return "" end
+    local _, og = Gens()
+    local e = sigCache[id]
+    if e and e.og == og then return e.s end
+    local DB = ns.DB
+    local ov = DB and DB.OverrideTable and DB.OverrideTable(id, false) or nil
+    local s = ""
+    if type(ov) == "table" then
+        local parts
+        for _, f in ipairs(SIG_FIELDS) do
+            local v = ov[f]
+            if v ~= nil then
+                parts = parts or {}
+                if type(v) == "table" then v = Hex(v) .. string.format("%.2f", tonumber(v.a) or 1) end
+                parts[#parts + 1] = f .. "=" .. tostring(v)
+            end
+        end
+        if parts then s = table.concat(parts, ";") end
+    end
+    if not e then e = {}; sigCache[id] = e end
+    e.og, e.s = og, s
+    return s
+end
+
+-- 長條秒數的位置：沒覆寫錨點 ＝ 長條的預設（橫向右緣內縮 4、直向頂端內縮 4）＋覆寫的偏移；
+-- 覆寫了錨點 ＝ 那個錨點＋覆寫的偏移（沒寫 0）。回傳 point, x, y, justifyH（偏移是縮放 1 的單位）
+function T.BarTimePlace(own, vertical)
+    own = own or EMPTY
+    local ox, oy = tonumber(own.x) or 0, tonumber(own.y) or 0
+    local p = own.point
+    if type(p) == "string" and p ~= "" then
+        local j = p:find("RIGHT") and "RIGHT" or (p:find("LEFT") and "LEFT" or "CENTER")
+        return p, ox, oy, j
+    end
+    if vertical then return "TOP", ox, -4 + oy, "CENTER" end
+    return "RIGHT", -4 + ox, oy, "RIGHT"
+end
+
+------------------------------------------------------------
 -- 圖示類（核心／輔助／增益圖示）
 --   style：Decorate 解好的那一包（見 Decorate.Resolve）
---   spell：{ hideCooldownText, hideStackText }
+--   spell：Decorate 的 SpellStyle（hideCooldownText／hideChargeText／hideStackText；cooldownText／chargeText／
+--          stackText ＝ Text.SpellText 合併好的表，沒有就退條層）
 --   rec：  暴雪 item 的記錄（增益持續時間換色用；自訂框沒有那一段，rec.style.cdColor 是 nil 就不動）
 ------------------------------------------------------------
 
@@ -268,7 +424,7 @@ function T.ApplyIcon(item, style, spell, rec)
         local hide = spell.hideCooldownText and true or false
         if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(hide) end
         local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
-        local c = style.cooldownText or {}
+        local c = spell.cooldownText or style.cooldownText or {}
         if fs then
             SetFont(fs, c.size or 16, outline, ns.Media.ElementFont(c.font, font))
             fs:SetTextColor(Color(c.color))
@@ -290,17 +446,18 @@ function T.ApplyIcon(item, style, spell, rec)
     local charge = item.ChargeCount and item.ChargeCount.Current
     if charge then
         Lift(item.ChargeCount, rec)
-        local c = style.chargeText or {}
+        local c = spell.chargeText or style.chargeText or {}
         SetFont(charge, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         charge:SetTextColor(Color(c.color))
         Anchor(charge, item, c.point or "BOTTOMRIGHT", c.x, c.y)
+        charge:SetAlpha(spell.hideChargeText and 0 or 1)
     end
 
     -- 層數（增益圖示）
     local stack = item.Applications and item.Applications.Applications
     if stack then
         Lift(item.Applications, rec)
-        local c = style.stackText or {}
+        local c = spell.stackText or style.stackText or {}
         SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         Anchor(stack, item, c.point or "TOP", c.x, c.y)
@@ -330,15 +487,14 @@ function T.ApplyBar(item, style, spell, bar, rec)
         end
         local dur = b.Duration
         if dur then
-            SetFont(dur, bar.timeSize or 12, outline, ns.Media.ElementFont(bar.timeFont, font))
-            dur:SetTextColor(1, 1, 1, 1)
+            -- 字型／字級／顏色／位置：條層「長條」節的秒數 ⊕ 逐法術覆寫（Text.SpellText 的 "barTime"）
+            local tt, own = spell.barTime or { font = bar.timeFont, size = bar.timeSize }, spell.barTimeOwn
+            SetFont(dur, tt.size or 12, outline, ns.Media.ElementFont(tt.font, font))
+            dur:SetTextColor(Color(tt.color))
             -- 直向：秒數疊在條身內的頂端（層數照舊在圖示右下）
-            if bar.vertical then
-                Anchor(dur, b, "TOP", 0, -4)
-                if dur.SetJustifyH then dur:SetJustifyH("CENTER") end
-            else
-                Anchor(dur, b, "RIGHT", -4, 0)
-            end
+            local p, x, y, j = T.BarTimePlace(own, bar.vertical)
+            Anchor(dur, b, p, x, y)
+            if dur.SetJustifyH then dur:SetJustifyH(j) end
             dur:SetAlpha((bar.showTime and not spell.hideCooldownText) and 1 or 0)
         end
     end
@@ -346,8 +502,10 @@ function T.ApplyBar(item, style, spell, bar, rec)
     local stack = icon and icon.Applications
     if stack then
         LiftRegion(stack, rec)            -- 設定頁的預覽格沒有 rec：不動
-        local c = style.stackText or {}
-        SetFont(stack, bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
+        local c = spell.stackText or style.stackText or {}
+        -- 字級：這一招自己改過的優先，其次「長條」節的層數字級，再其次條層的層數字級
+        local own = spell.stackOwn or EMPTY
+        SetFont(stack, own.size or bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         -- 錨點固定在圖示右下（長條的圖示太小、換角沒意義），X／Y 位移照「層數」的設定加在上面
         -- （玩家回報「層數的 XY 改了不會動」，2026-10-03）
@@ -372,7 +530,7 @@ function T.ApplyPreviewIcon(cell, style, spell)
     local font, outline = style.font, style.outline
     local cdText = cell.cdText
     if cdText then
-        local c = style.cooldownText or {}
+        local c = spell.cooldownText or style.cooldownText or {}
         SetFont(cdText, c.size or 16, outline, ns.Media.ElementFont(c.font, font))
         cdText:SetTextColor(Color(cell.durColor or c.color))
         Anchor(cdText, cell, c.point or "CENTER", c.x, c.y)
@@ -380,15 +538,16 @@ function T.ApplyPreviewIcon(cell, style, spell)
     end
     local charge = cell.chargeText
     if charge then
-        local c = style.chargeText or {}
+        local c = spell.chargeText or style.chargeText or {}
         SetFont(charge, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         charge:SetTextColor(Color(c.color))
         Anchor(charge, cell, c.point or "BOTTOMRIGHT", c.x, c.y)
-        charge:SetAlpha((cell.charges and not cell.aura) and 1 or 0)   -- 真的有充能的格才印（Preview.Fill 查的）
+        -- 真的有充能的格才印（Preview.Fill 查的）；這一招設了隱藏充能就不印
+        charge:SetAlpha((cell.charges and not cell.aura and not spell.hideChargeText) and 1 or 0)
     end
     local stack = cell.stackText
     if stack then
-        local c = style.stackText or {}
+        local c = spell.stackText or style.stackText or {}
         SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         Anchor(stack, cell, c.point or "TOP", c.x, c.y)

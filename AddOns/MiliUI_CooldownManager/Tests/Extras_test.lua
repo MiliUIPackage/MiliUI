@@ -1767,5 +1767,132 @@ do
     check("SlotBuffEntry：Catalog 收", ns.Catalog.ValidCustom(e))
 end
 
+------------------------------------------------------------
+-- 17. 逐法術的文字樣式（H）：合併函式 Text.SpellText（覆寫優先序、右鍵清除、快取、fresh、段之間不串）、
+--     長條秒數的底與位置（barTime／BarTimePlace）、簽章（OverrideSig → Decorate.Signature）、覆寫分組與清除、
+--     SPELL_FALLBACK、Text.ApplyIcon 讀合併值＋隱藏充能
+------------------------------------------------------------
+do
+    local T = ns.Text
+    local id = 12
+    DB.ResetOverrides(id)
+    local base = ns.Setting("essential", "cooldownText")
+    local t, hide, own = T.SpellText("essential", id, "cooldownText")
+    check("沒覆寫 ⇒ 條層那張表本身", rawequal(t, base))
+    eq("沒覆寫 ⇒ 不藏", hide, false)
+    eq("沒覆寫 ⇒ own 是空表", next(own), nil)
+    check("快取命中：同一張", rawequal(T.SpellText("essential", id, "cooldownText"), t))
+    DB.SetOverride(id, "cooldownTextSize", 25)
+    DB.SetOverride(id, "cooldownTextLowColor", { r = 0, g = 0, b = 1, a = 1 })
+    t, hide, own = T.SpellText("essential", id, "cooldownText")
+    eq("覆寫優先：字級", t.size, 25)
+    eq("沒覆寫的退條層：小數門檻", t.decimalsBelow, base.decimalsBelow)
+    eq("own 只有覆寫的（字級）", own.size, 25)
+    eq("own 沒有條層的（小數門檻）", own.decimalsBelow, nil)
+    eq("覆寫優先：低秒色", t.lowColor.b, 1)
+    check("覆寫後快取命中：同一張", rawequal(T.SpellText("essential", id, "cooldownText"), t))
+    local oldDec = base.decimalsBelow
+    base.decimalsBelow = 7
+    eq("條層原地改值（色票那種）讀得到", t.decimalsBelow, 7)
+    base.decimalsBelow = oldDec
+    DB.SetOverride(id, "hideCooldownText", true)
+    local _, h2 = T.SpellText("essential", id, "cooldownText")
+    eq("隱藏倒數（既有欄位）", h2, true)
+    -- 右鍵清除（SetOverride nil）：全部清掉 ⇒ 回到條層那張
+    for _, f in ipairs({ "cooldownTextSize", "cooldownTextLowColor", "hideCooldownText" }) do DB.SetOverride(id, f, nil) end
+    check("右鍵清光 ⇒ 回到條層那張", rawequal(T.SpellText("essential", id, "cooldownText"), base))
+    -- fresh：不讀不寫快取
+    DB.SetOverride(id, "chargeTextPoint", "TOP")
+    local tf = T.SpellText("essential", id, "chargeText", true)
+    check("fresh：每次新算、值對", not rawequal(tf, T.SpellText("essential", id, "chargeText", true)) and tf.point == "TOP")
+    check("段之間不串：充能的覆寫不影響層數",
+        rawequal(T.SpellText("essential", id, "stackText"), ns.Setting("essential", "stackText")))
+    DB.SetOverride(id, "chargeTextPoint", nil)
+    -- 條層的優先序：條沒跟隨主題、自己存了 ⇒ 底是條自己的；覆寫再蓋過它
+    local bt0 = DB.BarTable("essential")
+    local follow0 = bt0.follow
+    bt0.follow = { text = false }
+    DB.OwnSet("essential", "stackText.size", 19)
+    D.InvalidateAll()
+    eq("條自己的值當底", T.SpellText("essential", id, "stackText").size, 19)
+    DB.SetOverride(id, "stackTextSize", 8)
+    eq("覆寫蓋過條自己的值", T.SpellText("essential", id, "stackText").size, 8)
+    eq("SpellFallbackSource：條自己的", DB.SpellFallbackSource("essential", "stackTextSize"), "bar")
+    DB.SetOverride(id, "stackTextSize", nil)
+    DB.OwnSet("essential", "stackText.size", nil)
+    bt0.follow = follow0
+    D.InvalidateAll()
+    eq("SPELL_FALLBACK：SpellSetting 退條層", ns.SpellSetting("essential", id, "cooldownTextSize"), base.size)
+    -- 長條秒數：底是「長條」節（bar.timeSize），覆寫的倒數字級照收、小數門檻不收
+    DB.SetOverride(id, "cooldownTextDecimals", 2)
+    DB.SetOverride(id, "cooldownTextSize", 18)
+    local bt, _, bo = T.SpellText("essential", id, "barTime")
+    eq("長條秒數：字級覆寫", bt.size, 18)
+    eq("長條秒數：小數門檻不收（own）", bo.decimalsBelow, nil)
+    eq("長條秒數：小數門檻不收（合併）", bt.decimalsBelow, nil)
+    DB.SetOverride(id, "cooldownTextSize", nil)
+    eq("長條秒數：沒覆寫 ⇒ 長條節的字級（沒設 12）", T.SpellText("essential", id, "barTime").size,
+        tonumber((ns.Setting("essential", "bar") or {}).timeSize) or 12)
+    -- 長條秒數的位置
+    local p, x, y, j = T.BarTimePlace(T.EMPTY, false)
+    check("位置：橫向預設右緣內縮 4", p == "RIGHT" and x == -4 and y == 0 and j == "RIGHT")
+    p, x, y, j = T.BarTimePlace(nil, true)
+    check("位置：直向預設頂端內縮 4", p == "TOP" and x == 0 and y == -4 and j == "CENTER")
+    p, x, y = T.BarTimePlace({ x = 2, y = 1 }, false)
+    check("位置：只改偏移 ⇒ 疊在預設上", p == "RIGHT" and x == -2 and y == 1)
+    p, x, y, j = T.BarTimePlace({ point = "LEFT", x = 3 }, false)
+    check("位置：改了錨點 ⇒ 那個錨點＋偏移", p == "LEFT" and x == 3 and y == 0 and j == "LEFT")
+    -- 簽章
+    local s1 = T.OverrideSig(id)
+    check("OverrideSig：帶著覆寫", s1:find("cooldownTextDecimals=2", 1, true) ~= nil)
+    DB.SetOverride(id, "keybindSize", 20)
+    eq("OverrideSig：按鍵文字不進（Keybinds.Apply 自己有簽章）", T.OverrideSig(id), s1)
+    local style = D.Resolve("essential", true)
+    local sigA = D.Signature(style, id, D.SpellStyle("essential", id), 36, 36)
+    DB.SetOverride(id, "stackTextColor", { r = 1, g = 0, b = 0, a = 1 })
+    local sigB = D.Signature(style, id, D.SpellStyle("essential", id), 36, 36)
+    check("Decorate 簽章帶文字覆寫（改了才重套）", sigA ~= sigB)
+    DB.SetOverride(id, "stackTextColor", { r = 1, g = 0, b = 0, a = 1 })
+    eq("同值 ⇒ 簽章不變", D.Signature(style, id, D.SpellStyle("essential", id), 36, 36), sigB)
+    -- 覆寫分組：文字一組，條頁「文字」節的清除覆寫一次清（含按鍵文字），別組留著
+    for _, f in ipairs(T.SIG_FIELDS) do eq("分組 " .. f, DB.OVERRIDE_GROUP[f], "text") end
+    for _, f in ipairs({ "hideKeybind", "keybindFont", "keybindSize", "keybindPoint", "keybindX", "keybindY" }) do
+        eq("分組 " .. f, DB.OVERRIDE_GROUP[f], "text")
+    end
+    DB.SetOverride(id, "borderColor", { r = 1, g = 1, b = 1, a = 1 })
+    check("清除前有文字覆寫", DB.CountOverrides({ id }, "text") == 1)
+    DB.ClearOverrides({ id }, "text")
+    eq("清文字覆寫：文字全清", DB.CountOverrides({ id }, "text"), 0)
+    check("清文字覆寫：圖示那組留著", ns.SpellOverride(id, "borderColor") ~= nil)
+    check("清完 ⇒ 合併回條層", rawequal(T.SpellText("essential", id, "chargeText"), ns.Setting("essential", "chargeText")))
+    DB.ResetOverrides(id)
+    -- Text.ApplyIcon 讀合併值：充能錨點覆寫、隱藏充能
+    local function FS()
+        local f = {}
+        function f:SetTextColor(...) self.color = { ... } end
+        function f:ClearAllPoints() self.pts = {} end
+        function f:SetPoint(pt) self.point = pt end
+        function f:SetAlpha(a) self.alpha = a end
+        return f
+    end
+    local cdfs, chfs = FS(), FS()
+    local item = {
+        Cooldown = { SetHideCountdownNumbers = function() end, GetCountdownFontString = function() return cdfs end,
+                     SetCountdownMillisecondsThreshold = function() end },
+        ChargeCount = { Current = chfs },
+    }
+    DB.SetOverride(id, "chargeTextPoint", "TOPLEFT")
+    DB.SetOverride(id, "hideChargeText", true)
+    DB.SetOverride(id, "cooldownTextPoint", "BOTTOM")
+    T.ApplyIcon(item, D.Resolve("essential", true), D.SpellStyle("essential", id), nil)
+    eq("ApplyIcon：充能錨點吃覆寫", chfs.point, "TOPLEFT")
+    eq("ApplyIcon：隱藏充能 ⇒ alpha 0", chfs.alpha, 0)
+    eq("ApplyIcon：倒數錨點吃覆寫", cdfs.point, "BOTTOM")
+    DB.ResetOverrides(id)
+    T.ApplyIcon(item, D.Resolve("essential", true), D.SpellStyle("essential", id), nil)
+    eq("ApplyIcon：清掉 ⇒ 充能回條層錨點", chfs.point, ns.Setting("essential", "chargeText.point") or "BOTTOMRIGHT")
+    eq("ApplyIcon：清掉 ⇒ 充能顯示", chfs.alpha, 1)
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

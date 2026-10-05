@@ -1001,12 +1001,19 @@ function Proto:ClearFxGlows()
     end
 end
 
--- 倒數字：照這條「倒數文字」的小數門檻；回傳字串
+-- 這一格的倒數樣式：條層 ⊕ 這一招的文字覆寫（Text.SpellText；快取命中不配置，倒數每 0.05 秒重寫一次）
+local function CellCountdown(key, c)
+    local T = ns.Text
+    if T and T.SpellText and c and c.id ~= nil then return (T.SpellText(key, c.id, "cooldownText")) end
+    return ns.Decorate.Resolve(key).cooldownText or {}
+end
+
+-- 倒數字：照這一格「倒數文字」的小數門檻（逐法術可蓋）；回傳字串
 function Proto:FxText(c)
     local fx = self:ActiveFx()
     if not fx then return "" end
     local left = math.max(0, fx.start + fx.secs - GetTime())
-    local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
+    local ct = CellCountdown(self.key, c)
     local dec = tonumber(ct.decimalsBelow) or 0
     if left < dec then return ("%.1f"):format(left) end
     return tostring(math.ceil(left))
@@ -1032,15 +1039,14 @@ function Proto:FxTick()
         return
     end
     if not fx or (fx.kind ~= "cooldown" and fx.kind ~= "aura") or self.kind == "bars" then return end
-    local style = ns.Decorate.Resolve(self.key)
-    local ct = style.cooldownText or {}
     local left = fx.start + fx.secs - GetTime()
-    local low = left < (tonumber(ct.lowBelow) or 0)
     for _, c in ipairs(self.slots or {}) do
         if c.onCD and c.cdText then
+            -- 門檻與顏色逐格（逐法術的文字覆寫）；增益那一段的低秒色也逐法術（durationLowColor）
+            local ct = CellCountdown(self.key, c)
             c.cdText:SetText(self:FxText(c))
-            if low then
-                local lc = (c.durColor and style.durationLowColor) or ct.lowColor
+            if left < (tonumber(ct.lowBelow) or 0) then
+                local lc = (c.durColor and ns.SpellSetting(self.key, c.id, "durationLowColor")) or ct.lowColor
                 c.cdText:SetTextColor(RGBA(lc, 1, 0.3, 0.3, 1))
             else
                 c.cdText:SetTextColor(RGBA(c.durColor or ct.color, 1, 1, 1, 1))

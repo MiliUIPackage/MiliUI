@@ -145,9 +145,28 @@ function D.InvalidateAll()
     end
 end
 
-local function SpellStyle(barKey, id)
+-- fresh：文字樣式不讀也不寫快取（設定頁預覽，同 Resolve 的 fresh）
+local function SpellStyle(barKey, id, fresh)
     local SS = ns.SpellSetting
+    local T = ns.Text
+    local cdT, chT, hideCh, stT, stOwn, btT, btOwn
+    if T and T.SpellText then
+        cdT = T.SpellText(barKey, id, "cooldownText", fresh)
+        chT, hideCh = T.SpellText(barKey, id, "chargeText", fresh)
+        stT, _, stOwn = T.SpellText(barKey, id, "stackText", fresh)
+        btT, _, btOwn = T.SpellText(barKey, id, "barTime", fresh)
+    end
     return {
+        -- 文字（單一法術小窗的「文字」分頁）：條層 ⊕ 逐法術覆寫，合併只在 Text.SpellText 一處；
+        -- textSig 是覆寫本身（進簽章：改了那一格就重套）
+        cooldownText     = cdT,
+        chargeText       = chT,
+        stackText        = stT,
+        stackOwn         = stOwn,
+        barTime          = btT,
+        barTimeOwn       = btOwn,
+        hideChargeText   = hideCh,
+        textSig          = (T and T.OverrideSig) and T.OverrideSig(id) or "",
         borderColor      = SS(barKey, id, "borderColor"),
         desaturate       = SS(barKey, id, "desaturate"),
         hideCooldownText = SS(barKey, id, "hideCooldownText"),
@@ -195,7 +214,9 @@ end
 function D.PhaseColors(style, spell)
     local st = type(style) == "table" and style or {}
     local sp = type(spell) == "table" and spell or {}
-    local ct = type(st.cooldownText) == "table" and st.cooldownText or {}
+    -- 倒數原色：這一招的文字覆寫優先（SpellStyle 合併好的），沒有退條層
+    local ct = (type(sp.cooldownText) == "table" and sp.cooldownText)
+        or (type(st.cooldownText) == "table" and st.cooldownText) or {}
     local dc = D.DurationColorOf(sp.colorDuration, sp.durationColor)
     return { C4(ct.color, 1, 1, 1, 1) }, dc and { C4(dc, 1, 1, 1, 1) } or nil
 end
@@ -1566,6 +1587,7 @@ local function Signature(style, id, spell, w, h)
         .. "|" .. tostring(spell.customIcon)
         .. "|" .. tostring(spell.colorDuration) .. "," .. CSig(spell.durationColor) .. "," .. CSig(spell.durationLowColor)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
+        .. "|" .. tostring(spell.textSig)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -1811,7 +1833,7 @@ function D.Apply(item, rec, barKey, w, h)
         -- 兩個顏色逐法術可覆寫（SpellStyle 解好，沒覆寫就是條層的）
         if rec.style.durColor then
             rec.style.durSwipe = { C4(spell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
-            local ct = style.cooldownText or {}
+            local ct = spell.cooldownText or style.cooldownText or {}
             rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
             rec.style.durFmt = ns.Text.CountdownFormatter({ decimalsBelow = ct.decimalsBelow, lowBelow = ct.lowBelow,
                                                            lowColor = spell.durationLowColor or ct.lowColor })
@@ -1824,7 +1846,7 @@ function D.Apply(item, rec, barKey, w, h)
         if durColor then
             rec.style.cdColor, rec.style.durColor, rec.style.allAura = cdColor, durColor, true
             rec.style.durSwipe = { C4(aSpell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
-            local ct = style.cooldownText or {}
+            local ct = spell.cooldownText or style.cooldownText or {}
             rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
             rec.style.durFmt = ns.Text.CountdownFormatter({ decimalsBelow = ct.decimalsBelow, lowBelow = ct.lowBelow,
                                                            lowColor = aSpell.durationLowColor or ct.lowColor })
@@ -1957,7 +1979,7 @@ end
 function D.ApplyPreview(cell, barKey, id, w, h)
     if not (cell and barKey) then return end
     local style = D.Resolve(barKey, true)
-    local spell = SpellStyle(barKey, id)
+    local spell = SpellStyle(barKey, id, true)
     local isBar = style.kind == "bars" and cell.Bar ~= nil
     -- 冷卻狀態：假冷卻的格照設定畫（Options/Preview.lua 讀 cell.stateAlpha 疊在格子的 alpha 上）
     local mode = (not isBar and not cell.aura) and StateMode(spell.cdState) or nil

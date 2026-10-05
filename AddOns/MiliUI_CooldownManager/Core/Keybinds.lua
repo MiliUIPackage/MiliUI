@@ -273,8 +273,17 @@ function K.Apply(owner, rec, barKey)
     if not (rec and rec.overlay) then return end
     -- 按鍵鏡射：格號登記跟按鍵文字的開關無關，排在最前面（下面有早退）
     K.SyncPress(rec, barKey)
+    -- 樣式：條層 ⊕ 這一招的文字覆寫（Text.SpellText 的 "keybind"；快取命中不配置）。hide ＝ 這一招設了隱藏按鍵文字
+    local c, hideK
+    local T = ns.Text
+    if barKey and T and T.SpellText then
+        c, hideK = T.SpellText(barKey, rec.cooldownID, "keybind")
+    else
+        c = barKey and ns.Setting(barKey, "keybind")
+    end
     -- 以增益取代（Core/Bars.lua）：頂著技能那一格的增益不畫按鍵（增益沒有按鍵；條是核心技能也一樣）
     local on = barKey and ns.Setting(barKey, "keybind.enabled") and not NoKeybind(barKey) and rec.replacing == nil
+        and not hideK
     local fs = rec.keyFS
     if not on then
         if fs and rec.keySig ~= "off" then
@@ -285,7 +294,6 @@ function K.Apply(owner, rec, barKey)
         return
     end
     local text = TextFor(rec) or ""
-    local c = ns.Setting(barKey, "keybind")
     c = type(c) == "table" and c or {}
     local font = ns.Media.ElementFont(c.font, ns.Setting(barKey, "font"))
     local outline = ns.Setting(barKey, "outline") or ""

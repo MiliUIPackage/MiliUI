@@ -88,6 +88,7 @@ local POINT_ITEMS = {
     { text = L["Bottom"],       value = "BOTTOM" },
     { text = L["Bottom right"], value = "BOTTOMRIGHT" },
 }
+Specs.POINT_ITEMS = POINT_ITEMS           -- 單一法術小窗的「文字」分頁（Options/SpellPopover.lua）也用這張
 
 local GLOW_ITEMS = {
     { text = L["Pixel"],          value = "pixel" },

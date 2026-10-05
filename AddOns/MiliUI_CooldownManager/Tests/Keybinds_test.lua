@@ -172,6 +172,25 @@ do
     ns.Setting, ns.DB = savedSetting, savedDB
 end
 
+------------------------------------------------------------
+-- 逐法術「隱藏按鍵文字」（H）：樣式與隱藏都從 Text.SpellText(barKey, id, "keybind") 拿（合併只在那一支）
+------------------------------------------------------------
+do
+    local savedSetting, savedDB, savedText = ns.Setting, ns.DB, ns.Text
+    ns.Setting = function(_, path) if path == "keybind.enabled" then return true end end
+    ns.DB = { BarTable = function() return { kind = "icons", source = "essential" } end }
+    local asked
+    ns.Text = { SpellText = function(bk, id, sec) asked = { bk, id, sec }; return { size = 14 }, true, {} end }
+    local hidden, text = false, nil
+    local fs = { SetText = function(_, t) text = t end, Hide = function() hidden = true end }
+    local rec = { overlay = {}, keyFS = fs, keySig = "old", cooldownID = 302 }
+    K.Apply({}, rec, "essential")
+    check("問的是這一條、這一招、按鍵那一段", asked and asked[1] == "essential" and asked[2] == 302 and asked[3] == "keybind")
+    eq("這一招隱藏按鍵文字 ⇒ 收起來", rec.keySig, "off")
+    check("隱藏 ⇒ 藏起來、字清掉", hidden and text == "")
+    ns.Setting, ns.DB, ns.Text = savedSetting, savedDB, savedText
+end
+
 
 ------------------------------------------------------------
 -- 按鍵鏡射（F2）

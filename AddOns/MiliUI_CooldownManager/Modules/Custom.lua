@@ -983,27 +983,26 @@ local function UpdateItem(rec, placing)
 end
 
 -- 長條框的秒數（.Bar.Timer 的倒數數字）：照「長條」節的秒數字型／字級排在條的右邊，跟 Text.ApplyBar
--- 對 .Bar.Duration 做的一樣（錨點 RIGHT -4、像素字型）；顯示與否照「顯示秒數」與逐法術「隱藏倒數」
+-- 對 .Bar.Duration 做的一樣（錨點 RIGHT -4、像素字型）；顯示與否照「顯示秒數」與逐法術「隱藏倒數」。
+-- 這一招的文字覆寫（字型、字級、顏色、位置）走 Text.SpellText 的 "barTime"；呼叫端用 rec.decorated 當 timerSig，
+-- Decorate 的簽章帶著文字覆寫（Text.OverrideSig），改了就重排
 local function StyleBarTimer(rec, f, barKey)
     local cd = f.Bar and f.Bar.Timer
     if not (cd and cd.GetCountdownFontString) then return end
     local style = ns.Decorate.Resolve(barKey)
     local bar = type(style.bar) == "table" and style.bar or {}
-    local hide = not bar.showTime or ns.SpellSetting(barKey, rec.cooldownID, "hideCooldownText") and true or false
+    local tt, hideCD, own = ns.Text.SpellText(barKey, rec.cooldownID, "barTime")
+    local hide = (not bar.showTime or hideCD) and true or false
     if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(hide) end
     if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
     local fs = cd:GetCountdownFontString()
     if not fs then return end
-    ns.Text.SetFont(fs, bar.timeSize or 12, style.outline, ns.Media.ElementFont(bar.timeFont, style.font))
-    fs:SetTextColor(1, 1, 1, 1)
+    ns.Text.SetFont(fs, tt.size or 12, style.outline, ns.Media.ElementFont(tt.font, style.font))
+    fs:SetTextColor(ns.Text.Color(tt.color))
     -- 直向（F8c）：疊在條身內的頂端
-    if bar.vertical then
-        ns.Text.Anchor(fs, f.Bar, "TOP", 0, -4)
-        if fs.SetJustifyH then fs:SetJustifyH("CENTER") end
-    else
-        ns.Text.Anchor(fs, f.Bar, "RIGHT", -4, 0)
-        if fs.SetJustifyH then fs:SetJustifyH("RIGHT") end
-    end
+    local p, x, y, j = ns.Text.BarTimePlace(own, bar.vertical)
+    ns.Text.Anchor(fs, f.Bar, p, x, y)
+    if fs.SetJustifyH then fs:SetJustifyH(j) end
 end
 CU.StyleBarTimer = StyleBarTimer      -- 測試用
 
@@ -1327,8 +1326,11 @@ local gradCache = {}        -- 光環長條的漸層顏色物件（F8a）：依�
 local function AuraStyle(rec, barKey, w, h, shape)
     local S, SS, id = ns.Setting, ns.SpellSetting, rec.cooldownID
     local border = S(barKey, "border") or {}
-    local cdT = S(barKey, "cooldownText") or {}
-    local stT = S(barKey, "stackText") or {}
+    -- 文字：條層 ⊕ 這一招的文字覆寫（Text.SpellText；疊層照冷卻格那一筆的 id）。值全部解進 st、進簽章
+    -- ⇒ 改了換一顆容器（戰鬥中記旗標、脫戰建）
+    local TX = ns.Text
+    local cdT, hideCDText = TX.SpellText(barKey, id, "cooldownText")
+    local stT, hideStText, stOwn = TX.SpellText(barKey, id, "stackText")
     local scale = UIParent:GetEffectiveScale() or 1
     if scale <= 0 then scale = 1 end
     local st = {
@@ -1340,14 +1342,14 @@ local function AuraStyle(rec, barKey, w, h, shape)
         stFont   = ns.Media.Font(ns.Media.ElementFont(stT.font, S(barKey, "font"))),
         outline  = S(barKey, "outline") or "",
         scale    = scale,
-        hideCD   = SS(barKey, id, "hideCooldownText") and true or false,
+        hideCD   = hideCDText and true or false,
         cdSize   = tonumber(cdT.size) or 16,
         cdColor  = RGBA(cdT.color, 1, 1, 1, 1),
         cdPoint  = cdT.point or "CENTER", cdX = tonumber(cdT.x) or 0, cdY = tonumber(cdT.y) or 0,
         decimals = tonumber(cdT.decimalsBelow) or 0,
         lowBelow = tonumber(cdT.lowBelow) or 0,
         lowColor = RGBA(cdT.lowColor, 1, 0.3, 0.3, 1),
-        hideStack = SS(barKey, id, "hideStackText") and true or false,
+        hideStack = hideStText and true or false,
         stSize   = tonumber(stT.size) or 12,
         stColor  = RGBA(stT.color, 1, 1, 1, 1),
         stPoint  = stT.point or "TOP", stX = tonumber(stT.x) or 0, stY = tonumber(stT.y) or 0,
@@ -1371,9 +1373,14 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.spark     = bar.spark and true or false
         st.nameFont  = ns.Media.Font(ns.Media.ElementFont(bar.nameFont, font))
         st.nameSize  = tonumber(bar.nameSize) or 12
-        st.timeFont  = ns.Media.Font(ns.Media.ElementFont(bar.timeFont, font))
-        st.timeSize  = tonumber(bar.timeSize) or 12
-        st.barStack  = tonumber(bar.stackSize) or tonumber(stT.size) or 12
+        -- 秒數：「長條」節的秒數 ⊕ 這一招的覆寫（Text.SpellText 的 "barTime"；位置照 Text.BarTimePlace）
+        local tt, _, tOwn = TX.SpellText(barKey, id, "barTime")
+        st.timeFont  = ns.Media.Font(ns.Media.ElementFont(tt.font, font))
+        st.timeSize  = tonumber(tt.size) or 12
+        st.timeColor = RGBA(tt.color, 1, 1, 1, 1)
+        st.timePoint, st.timeX, st.timeY, st.timeJustify = TX.BarTimePlace(tOwn, bar.vertical)
+        -- 層數字級：這一招自己改過的優先，其次「長條」節的層數字級（同 Text.ApplyBar）
+        st.barStack  = tonumber(stOwn.size) or tonumber(bar.stackSize) or tonumber(stT.size) or 12
         st.showName  = bar.showName and true or false
         st.showTime  = bar.showTime and true or false
         st.showStacks = bar.showStacks and true or false
@@ -1396,6 +1403,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
         end
         barSig = table.concat({ "bars", string.format("%.2f,%.2f", st.bh, st.bgap), st.side, st.btex, C(st.bfill), C(st.bbg),
             tostring(st.spark), st.nameFont, st.nameSize, st.timeFont, st.timeSize, st.barStack,
+            C(st.timeColor), st.timePoint, st.timeX, st.timeY,
             tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name,
             tostring(st.vert), string.format("%.2f", st.isz), st.bgrad and st.bgrad.sig or "-" }, ",")
     end
@@ -1772,14 +1780,11 @@ local function InitAuraBarButton(btn, c, st, rec)
         local fs = ov:CreateFontString(nil, "OVERLAY")
         fs:SetFont(st.timeFont, st.timeSize * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
-        fs:SetTextColor(1, 1, 1, 1)
-        if vert then
-            fs:SetJustifyH("CENTER")
-            fs:SetPoint("TOP", bar, "TOP", 0, -4 * s)
-        else
-            fs:SetJustifyH("RIGHT")
-            fs:SetPoint("RIGHT", bar, "RIGHT", -4 * s, 0)
-        end
+        local tc = st.timeColor
+        fs:SetTextColor(tc[1], tc[2], tc[3], tc[4])
+        -- 位置：AuraStyle 解好的（Text.BarTimePlace：預設橫向右緣、直向頂端，逐法術可蓋錨點與偏移）
+        fs:SetJustifyH(st.timeJustify)
+        fs:SetPoint(st.timePoint, bar, st.timePoint, st.timeX * s, st.timeY * s)
         if not (st.formatter and pcall(btn.SetDurationText, btn, fs, { textFormatter = st.formatter })) then
             pcall(btn.SetDurationText, btn, fs)
         end
