@@ -7,13 +7,14 @@
 #   例：curseforge-upload.sh MiliUI_UnitFrames '^Miliui_UnitFrames-[0-9.]+$' Miliui_UnitFrames-1.4.3 1.4.3 \
 #           /tmp/MiliUI_UnitFrames_1.4.3.zip MiliUI_UnitFrames/MiliUI_UnitFrames.toc
 #
-# 設定（.env，不進版控）：
+# 設定（優先順序：環境變數 ＞ 專案 .env ＞ ~/Projects/.curseforge.env；兩個檔案都只補還沒設定的變數，
+#       發版管理介面 MiliUI_ReleaseManager 直接注入的值才不會被舊檔蓋掉；.env 不進版控）：
 #   專案資料夾的 .env：
 #     CURSEFORGE_PROJECT_ID     CurseForge 專案編號（專案頁右側 About Project 的 Project ID）。
 #                               沒填＝這個插件不上 CurseForge，整段安靜略過。
 #     CURSEFORGE_RELEASE_TYPE   release / beta / alpha，選填，預設 release
 #     CURSEFORGE_GAME_VERSIONS  選填，逗號分隔的遊戲版本名（12.1.0,12.1.5）；不填就從 toc 的 ## Interface 換算
-#   ~/Projects/.curseforge.env（全部插件共用；專案 .env 裡有同名變數時以專案的為準）：
+#   ~/Projects/.curseforge.env（全部插件共用；專案 .env 或環境變數裡有同名變數時以它們為準）：
 #     CURSEFORGE_API_TOKEN      https://legacy.curseforge.com/account/api-tokens 產生的 API token
 #
 # 英文說明產生失敗照樣上傳、不帶說明；上傳失敗只印訊息，不影響呼叫端。
@@ -31,19 +32,27 @@ if [ -z "${ADDON}" ] || [ -z "${TAG_PATTERN}" ] || [ -z "${CUR_TAG}" ] || [ -z "
     exit 1
 fi
 
-# 共用的先讀、專案的後讀，專案 .env 才蓋得過共用值
+# 只補還沒設定（或是空的）變數：已經在環境裡的（呼叫端讀過的 .env、發版管理介面注入的）一律不蓋。
+# 專案的先補、共用的後補，專案 .env 才蓋得過共用值。
+load_env_missing() {
+    local f="$1" k v
+    [ -f "${f}" ] || return 0
+    for k in $(sed -nE 's/^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*/\2/p' "${f}"); do
+        [ -n "${!k}" ] && continue
+        v="$(set -a; source "${f}" >/dev/null 2>&1; printf '%s' "${!k}")"
+        export "${k}=${v}"
+    done
+}
 SHARED_ENV="${HOME}/Projects/.curseforge.env"
-set -a
-[ -f "${SHARED_ENV}" ] && source "${SHARED_ENV}"
-[ -f ".env" ] && source ".env"
-set +a
+load_env_missing ".env"
+load_env_missing "${SHARED_ENV}"
 
 if [ -z "${CURSEFORGE_PROJECT_ID}" ]; then
-    echo "ℹ️ .env 沒有 CURSEFORGE_PROJECT_ID，略過 CurseForge"
+    echo "ℹ️ 沒有 CURSEFORGE_PROJECT_ID（.env 與發版管理介面都沒給），略過 CurseForge"
     exit 0
 fi
 if [ -z "${CURSEFORGE_API_TOKEN}" ]; then
-    echo "❌ 找不到 CURSEFORGE_API_TOKEN（${SHARED_ENV} 或 .env），略過 CurseForge"
+    echo "❌ 找不到 CURSEFORGE_API_TOKEN（發版管理介面、${SHARED_ENV} 或 .env），略過 CurseForge"
     exit 1
 fi
 if [ ! -f "${ZIP_PATH}" ]; then
