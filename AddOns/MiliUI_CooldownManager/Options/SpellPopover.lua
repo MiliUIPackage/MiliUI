@@ -572,21 +572,61 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
         Track(r, { field })
     end
 
-    -- 錨點（九宮格）：第一項「跟隨『條名』」＝清掉
-    local function PointRow(field, when)
-        local r, h = NewRow(L["Anchor"], when)
-        local items = { { text = FollowText(), value = false } }
-        for _, it in ipairs(ns.Specs.POINT_ITEMS) do items[#items + 1] = it end
-        local dd = W.CreateDropdown(r, ROW_W - CTRL_X, items, function(value)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, field, (type(value) == "string" and value ~= "") and value or nil)
-            Changed()
-        end)
-        dd:SetMaxWidth(ROW_W - CTRL_X)
-        dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        followItems[#followItems + 1] = { items = items, dd = dd }
+    -- 錨點：九宮格（同條頁 Options/Specs.lua 的 PointGridTS）。格子顯示生效的值（沒覆寫＝條的值，標籤變暗）；
+    -- 點一格＝這一招覆寫成那個錨點，右鍵標籤清掉回跟隨條
+    local GRID_CELL, GRID_GAP, GRID_PAD = 14, 2, 4
+    local GRID_IDLE, GRID_HOVER = { 0.28, 0.28, 0.28, 1 }, { 0.45, 0.45, 0.45, 1 }
+    local POINT_TEXT = {}
+    for _, it in ipairs(ns.Specs.POINT_ITEMS) do POINT_TEXT[it.value] = it.text end
+    local function PointRow(field, when, section, fallback)
+        local r, h, row = NewRow(L["Anchor"], when)
+        local side = GRID_CELL * 3 + GRID_GAP * 2
+        local gridH = side + GRID_PAD * 2
+        local function Fit()
+            local nh = math.max(row.h or h, gridH)
+            r:SetHeight(nh)
+            row.h = nh
+        end
+        local remeasure = row.remeasure
+        row.remeasure = function()
+            if remeasure then remeasure() end
+            Fit()
+        end
+        Fit()
+        local holder = CreateFrame("Frame", nil, r)
+        holder:SetSize(side, side)
+        holder:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+        local name = r:CreateFontString(nil, "OVERLAY")
+        name:SetFontObject(W.fontSmall)
+        name:SetTextColor(0.65, 0.65, 0.65)
+        name:SetPoint("LEFT", holder, "RIGHT", 8, 0)
+        local ctl = { kind = "point", field = field, section = section, fallback = fallback, cells = {}, name = name }
+        function ctl.Paint()
+            for _, b in ipairs(ctl.cells) do
+                if b.point == ctl.cur then b:SetBackdropColor(W.Accent(1))
+                else b:SetBackdropColor(unpack(b.hover and GRID_HOVER or GRID_IDLE)) end
+            end
+            name:SetText(POINT_TEXT[ctl.cur] or "")
+        end
+        for i, it in ipairs(ns.Specs.POINT_ITEMS) do
+            local b = CreateFrame("Button", nil, holder, "BackdropTemplate")
+            b:SetSize(GRID_CELL, GRID_CELL)
+            b:SetPoint("TOPLEFT", ((i - 1) % 3) * (GRID_CELL + GRID_GAP), -math.floor((i - 1) / 3) * (GRID_CELL + GRID_GAP))
+            W.Stylize(b, GRID_IDLE, { 0, 0, 0, 1 })
+            b.point = it.value
+            b:SetScript("OnEnter", function() b.hover = true; ctl.Paint() end)
+            b:SetScript("OnLeave", function() b.hover = false; ctl.Paint() end)
+            b:SetScript("OnClick", function()
+                if not cur then return end
+                ns.DB.SetOverride(cur.id, field, it.value)
+                ctl.cur = it.value
+                ctl.Paint()
+                Changed()
+            end)
+            ctl.cells[i] = b
+        end
         RightClickClears(r, h, field)
-        textCtl[#textCtl + 1] = { kind = "point", dd = dd, field = field }
+        textCtl[#textCtl + 1] = ctl
         Track(r, { field })
     end
 
@@ -678,7 +718,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     FontRow(CdSection, "cooldownTextFont", Always)
     SizeRow(L["Font size"], CdSection, "size", "cooldownTextSize", 6, 40, Always)
     TextColorRow(L["Color"], CdSection, "color", "cooldownTextColor", { r = 1, g = 1, b = 1, a = 1 }, Always)
-    PointRow("cooldownTextPoint", Always)
+    PointRow("cooldownTextPoint", Always, "cooldownText", "CENTER")
     OffsetRow(CdSection, "cooldownTextX", "cooldownTextY", Always)
     SizeRow(L["Decimals below"], "cooldownText", "decimalsBelow", "cooldownTextDecimals", 0, 10, NotBarsRow)
     NoteRow(L["Shows one decimal place under this many seconds; 0 never shows decimals."], NotBarsRow)
@@ -734,7 +774,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     FontRow("chargeText", "chargeTextFont", ChargeRows)
     SizeRow(L["Font size"], "chargeText", "size", "chargeTextSize", 6, 30, ChargeRows)
     TextColorRow(L["Color"], "chargeText", "color", "chargeTextColor", { r = 1, g = 1, b = 1, a = 1 }, ChargeRows)
-    PointRow("chargeTextPoint", ChargeRows)
+    PointRow("chargeTextPoint", ChargeRows, "chargeText", "BOTTOMRIGHT")
     OffsetRow("chargeText", "chargeTextX", "chargeTextY", ChargeRows)
 
     -- 層數
@@ -743,7 +783,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     FontRow("stackText", "stackTextFont", StackRows)
     SizeRow(L["Font size"], "stackText", "size", "stackTextSize", 6, 30, StackRows)
     TextColorRow(L["Color"], "stackText", "color", "stackTextColor", { r = 1, g = 1, b = 1, a = 1 }, StackRows)
-    PointRow("stackTextPoint", StackAnchorRow)
+    PointRow("stackTextPoint", StackAnchorRow, "stackText", "TOP")
     OffsetRow("stackText", "stackTextX", "stackTextY", StackRows)
 
     -- 按鍵文字（沒有顏色：一律白字，同條層）
@@ -751,7 +791,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     ToggleRow("hideKeybind", L["Hide keybind text"], KeyRows)
     FontRow("keybind", "keybindFont", KeyRows)
     SizeRow(L["Font size"], "keybind", "size", "keybindSize", 6, 24, KeyRows)
-    PointRow("keybindPoint", KeyRows)
+    PointRow("keybindPoint", KeyRows, "keybind", "TOPRIGHT")
     OffsetRow("keybind", "keybindX", "keybindY", KeyRows)
     NoteRow(L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."], KeyOff)
 end
@@ -2050,8 +2090,11 @@ function Pop.Refresh()
             local v = Override(c.field)
             c.dd:SetSelectedValue((type(v) == "string" and v ~= "") and v or false)
         elseif c.kind == "point" then
+            -- 生效的錨點：這一招的覆寫，沒有就是條的（合併後的表），再沒有就是條頁的預設
             local v = Override(c.field)
-            c.dd:SetSelectedValue((type(v) == "string" and v ~= "") and v or false)
+            if not (type(v) == "string" and v ~= "") then v = t.point end
+            c.cur = (type(v) == "string" and v ~= "") and v or c.fallback
+            c.Paint()
         elseif c.kind == "size" then
             c.slider:SetValue(tonumber(t[c.key]) or c.lo)
         elseif c.kind == "color" then
