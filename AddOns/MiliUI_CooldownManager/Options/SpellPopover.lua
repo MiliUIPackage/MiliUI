@@ -31,7 +31,7 @@
 --
 -- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」，這招現在有充能
 -- （ChargeWhen）時多一列「充能滿音效」、兩列下面各一列灰字講差別（就緒＝每回一層、充能滿＝全部回滿）；增益類（暴雪
--- 增益圖示／增益長條、光環格）三列「出現音效」「消失音效」「層數增加音效」（後者沒有語音播報、下一列灰字）。
+-- 增益圖示／增益長條、光環格）三列「出現音效」「消失音效」「層數增加音效」（後者沒有語音播報、說明放標籤後面的「?」）。
 -- 每列一個下拉（第一項「無」＝清掉覆寫，
 -- 其餘是 LibSharedMedia 的音效名，開選單那一刻才列、依名稱排序；清單長時下拉自己會裁切＋滾輪捲）
 -- ＋「試聽」。一個音效都沒有時多一列灰字說明。
@@ -62,7 +62,7 @@
 --
 -- 語音播報（Core/Sound.lua；遊戲有文字轉語音 API 才顯示、光環格沒有）：每個音效列下面一列——勾選框＋輸入框
 --   （空白＝念法術名）＋「試聽」。勾著才寫進覆寫（readySpeak／gainSpeak／loseSpeak：字串或 true），
---   沒勾時輸入框只是記著字。最後一列灰字說明。
+--   沒勾時輸入框只是記著字。說明放標籤後面的「?」（滑過顯示）。
 --
 -- 層數門檻（暴雪的增益才有，自訂光環格不做；引擎在 Core/StackGate.lua）：
 --   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
@@ -160,7 +160,7 @@ local SOUNDS = {
     { field = "loseSound",  label = L["Lose sound"],  class = "aura" },
     -- 層數增加（暴雪的增益與光環格都有）：AddAuraSound 的 ApplicationsIncreased，沒有語音播報
     { field = "stackSound", label = L["Stack gained sound"], class = "aura",
-      note = L["Plays each time the buff gains a stack. The first stack counts as gained, not as a new stack, so a buff that stacks to 2 plays exactly when it reaches 2."] },
+      help = L["Plays each time the buff gains a stack. The first stack counts as gained, not as a new stack, so a buff that stacks to 2 plays exactly when it reaches 2."] },
     { field = "gainSound",  label = L["Buff gained sound"], when = BlizzCooldownSound },
     { field = "loseSound",  label = L["Buff lost sound"],   when = BlizzCooldownSound },
 }
@@ -238,13 +238,43 @@ local function Note(parent)
 end
 
 -- 一列：自己的框，左邊標籤（靠右對齊）、右邊控件；高度照標籤換行長
-local function NewRow(label, when)
+-- 說明問號（help）：標籤後面一個小「?」，滑過才顯示說明（取代下一列灰字：同一段說明在好幾列重複、
+-- 或灰字夾在兩列控件之間看不出是講哪一列時用）。標籤欄讓出問號的寬度，問號貼在標籤欄右緣
+local HELP_W = 14
+
+local function HelpMark(r, text)
+    local m = CreateFrame("Frame", nil, r, "BackdropTemplate")
+    m:SetSize(HELP_W, HELP_W)
+    m:SetPoint("RIGHT", r, "LEFT", LABEL_W, 0)
+    m:SetFrameLevel(r:GetFrameLevel() + 5)                -- 蓋過 RightClickClears 的標籤吃滑鼠層
+    W.Stylize(m, { 0.1, 0.1, 0.1, 0.9 }, { 0.4, 0.4, 0.4, 1 })
+    local q = m:CreateFontString(nil, "OVERLAY")
+    q:SetFontObject(W.fontSmall)
+    q:SetPoint("CENTER", m, "CENTER", 0, 0)
+    q:SetText("?")
+    q:SetTextColor(0.6, 0.6, 0.6)
+    m:EnableMouse(true)
+    m:SetScript("OnEnter", function(self)
+        q:SetTextColor(1, 1, 1)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(text, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    m:SetScript("OnLeave", function()
+        q:SetTextColor(0.6, 0.6, 0.6)
+        GameTooltip:Hide()
+    end)
+    return m
+end
+
+local function NewRow(label, when, help)
     local r = CreateFrame("Frame", nil, frame)
     local h = ROW_H
+    local labelW = help and (LABEL_W - HELP_W - 4) or LABEL_W
     if label then
         local fs = r:CreateFontString(nil, "OVERLAY")
         fs:SetFontObject(W.fontNormal)
-        fs:SetWidth(LABEL_W)
+        fs:SetWidth(labelW)
         fs:SetJustifyH("RIGHT")
         fs:SetWordWrap(true)
         fs:SetNonSpaceWrap(true)
@@ -254,6 +284,7 @@ local function NewRow(label, when)
         r.label = fs
     end
     r:SetSize(ROW_W, h)
+    if help then HelpMark(r, help) end
     local row = { frame = r, h = h, when = when }
     -- 視窗第一次顯示前量不到字高（TextExtraHeight 會回 0）：OnShow 時照這支重量一次。
     -- 控件一律錨在列的 LEFT（＝垂直置中），列高變了自己跟著走
@@ -1270,7 +1301,7 @@ local function Build()
             return class == cls
         end
         local SoundRowWhen = t.charge and ChargeWhen(BaseWhen) or BaseWhen
-        local sr, sh = NewRow(t.label, SoundRowWhen)
+        local sr, sh = NewRow(t.label, SoundRowWhen, t.help)
         local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
         W.FitButton(listen, 44, 20)
         listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
@@ -1293,7 +1324,7 @@ local function Build()
         if field then
             local kr, kh = NewRow(L["Speak"], function(kind, class)
                 return SoundRowWhen(kind, class) and kind ~= "aura" and ns.Sound.CanSpeak()
-            end)
+            end, L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
             local entry = { field = field }
             local kcb = W.CreateCheckButton(kr, nil, function(on)
                 if not cur then return end
@@ -1338,23 +1369,6 @@ local function Build()
             NoteRow(t.note, t.noteCharge and ChargeWhen(SoundRowWhen) or SoundRowWhen)
         end
     end
-    -- 語音播報的說明（下一列灰字）
-    local spRow = CreateFrame("Frame", nil, frame)
-    local spTip = Note(spRow)
-    spTip:SetPoint("TOPLEFT", spRow, "TOPLEFT", CTRL_X, -2)
-    spTip:SetWidth(ROW_W - CTRL_X)
-    spTip:SetWordWrap(true)
-    spTip:SetText(L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
-    local spH = 2 + math.max(14, spTip:GetStringHeight() or 0) + 6
-    spRow:SetSize(ROW_W, spH)
-    local spEntry = { frame = spRow, h = spH, when = function(kind) return kind ~= "aura" and ns.Sound.CanSpeak() end }
-    spEntry.remeasure = function()
-        local sh2 = spTip:GetStringHeight()
-        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
-        spRow:SetHeight(nh)
-        spEntry.h = nh
-    end
-    AddRow(spEntry)
     -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
     local nsRow = CreateFrame("Frame", nil, frame)
     local nsTip = Note(nsRow)
