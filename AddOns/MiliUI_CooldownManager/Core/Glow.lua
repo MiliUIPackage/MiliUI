@@ -420,7 +420,8 @@ G.PaintOn = PaintOn
 -- 開了層數發光（暴雪增益才有，Core/StackGate.lua）的格照層數發光的樣式常亮（兩者互斥，層數的為準）。
 -- 同一個 host 記上次畫的樣式與簽章，沒變不重畫（條預覽每次 Refresh 都會叫）
 local previewOn = setmetatable({}, { __mode = "k" })
-function G.PreviewActive(host, barKey, id)
+-- shape：預覽格交給 Masque 時皮的形狀（Glow.GlowShape(cell)；nil ＝ 方形）
+function G.PreviewActive(host, barKey, id, shape)
     if not host then return end
     local SG = ns.StackGate
     local stack = id ~= nil and SG and type(id) == "number"
@@ -431,7 +432,7 @@ function G.PreviewActive(host, barKey, id)
         if stack then c = SG.GlowStyle(barKey, id) else c = ActiveCfg({ cooldownID = id }, barKey) end
         local col = type(c.color) == "table" and c.color or {}
         sig = table.concat({ stack and "stack" or "active", tostring(c.type),
-            tostring(col.r), tostring(col.g), tostring(col.b), tostring(col.a) }, "|")
+            tostring(col.r), tostring(col.g), tostring(col.b), tostring(col.a), tostring(shape) }, "|")
     end
     local cur = previewOn[host]
     if cur and cur.sig == sig then return end
@@ -440,7 +441,7 @@ function G.PreviewActive(host, barKey, id)
         previewOn[host] = nil
     end
     if want then
-        local t = PaintOn(host, c, "active", "active", false)
+        local t = PaintOn(host, c, "active", "active", false, shape)
         if t then previewOn[host] = { t = t, sig = sig } end
     end
 end
