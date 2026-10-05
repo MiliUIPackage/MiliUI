@@ -881,7 +881,7 @@ local function Relayout(key, level, index, gen, s)
             replacedNow[id] = { b = bID, key = key }
         elseif crec then
             -- 自訂物品／飾品欄：沒有物品時隱藏／被動飾品不顯示（讓位 ⇒ 不放；固定格位 ⇒ 空格）
-            local hm = (crec.kind == "item" or crec.kind == "slot") and HiddenMode(key, id, hw, fixed) or nil
+            local hm = (crec.kind == "item" or crec.kind == "slot" or crec.slotBuff) and HiddenMode(key, id, hw, fixed) or nil
             if hm == nil then
                 entries[#entries + 1] = { id = id, crec = crec }
             elseif hm == "blank" then

@@ -441,7 +441,7 @@ end
 -- 被「沒有物品時隱藏／被動飾品不顯示」收掉的格怎麼排（Bars.Relayout 放格與 Bars.Occupancy 佔位判斷共用）
 --
 --   mode = Layout.HiddenSlot(reason, fixed)
---     reason  Catalog.HideReason 的結果（"noItem"／"passive"；nil ＝ 照常顯示）
+--     reason  Catalog.HideReason 的結果（"noItem"／"passive"／"noBuff"；nil ＝ 照常顯示）
 --     fixed   條的固定格位開著／被強制（光環格、飾品疊增益、可點擊）
 --   → nil      照常放
 --     "blank"  收掉、格子照留（固定格位：這一格空著，後面的不往前補；佔一格、算顆數）

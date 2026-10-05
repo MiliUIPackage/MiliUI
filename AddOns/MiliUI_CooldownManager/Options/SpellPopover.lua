@@ -137,6 +137,9 @@ local function ActiveGlowWhen(kind, class) return class == "aura" or kind == nil
 local function HideNoItemWhen(kind) return kind == "item" end
 local function HidePassiveWhen(kind)
     if kind == "slot" then return true end
+    -- 飾品欄增益（Catalog 的資訊是光環格形狀，看存檔的種類）
+    local e = cur and type(cur.id) == "string" and ns.Catalog.CustomEntry and ns.Catalog.CustomEntry(cur.id)
+    if e and e.kind == "slotbuff" then return true end
     return kind == nil and cur ~= nil and type(cur.id) == "number" and ns.Catalog.ProxySlotOf(cur.id) ~= nil
 end
 

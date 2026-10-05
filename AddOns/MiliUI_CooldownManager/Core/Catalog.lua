@@ -1439,6 +1439,23 @@ function C.HideReason(barKey, id)
         local st = SlotPassive(slot)
         if st == "pending" then return nil, "info" end
         return st, nil
+    elseif kind == "slotbuff" then
+        -- 飾品欄增益：現在裝的飾品解不出這一個增益（被動飾品、或這件沒有第 N 個）⇒ 同一個開關收掉
+        --（不然占位會一直掛著一顆用不到的飾品圖示）。空格照舊（占位畫空格圖）；物品資料還沒到先不收
+        if SS(barKey, id, "hidePassiveTrinket") ~= true then return nil end
+        local itemID = C.SlotItemID(slot)
+        if not itemID then return nil end
+        local I = C_Item
+        local cached = Plain(Try(I and I.IsItemDataCachedByID, itemID))
+        if cached == false then
+            SlotPassive(slot)                                  -- 順手要一次物品資料
+            return nil, "info"
+        end
+        if cached ~= true then return nil end
+        local b = e.buff
+        if not PositiveInt(b) then b = 1 end
+        local ids = C.SlotBuffIDs(slot, b)
+        return (#ids == 0) and "noBuff" or nil, nil
     end
     return nil
 end
