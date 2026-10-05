@@ -655,6 +655,13 @@ do
     rp.talent = function() return false end
     eq("推薦：沒學死亡戰騎天賦 → 不給", #recs("DEATHKNIGHT", 251, "charges"), 0)
     rp.talent = nil
+    has[444347] = nil
+    has[49576], has[48265] = true, true
+    eq("推薦：死亡之握任何專精都給", recs("DEATHKNIGHT", 250, "charges")[1].spellID, 49576)
+    eq("推薦：死神逼近只給冰霜（血魄只有死握）", #recs("DEATHKNIGHT", 250, "charges"), 1)
+    local frost = recs("DEATHKNIGHT", 251, "charges")
+    eq("推薦：冰霜有死握＋死神逼近", #frost, 2)
+    eq("推薦：冰霜第二筆是死神逼近", frost[2].spellID, 48265)
 end
 -- 刪除
 check("刪第 1 筆", PI.RemoveCustomRow(ccfg, 65, 1))

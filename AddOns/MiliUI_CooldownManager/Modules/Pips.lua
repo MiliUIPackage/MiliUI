@@ -175,6 +175,8 @@ local CUSTOM_RECOMMENDED = {
     },
     DEATHKNIGHT = {
         { kind = "charges", spellID = 444347, requires = 444010 },   -- 死亡戰騎（技能；英雄天賦「死亡戰騎」444010 才有）
+        { kind = "charges", spellID = 49576 },                      -- 死亡之握（點了兩次充能的天賦才有）
+        { kind = "charges", spellID = 48265, spec = 251 },          -- 死神逼近（冰霜）
         { kind = "stacks", spellID = 195181, max = 10, spec = 250 }, -- 骸骨之盾（血魄）
     },
     EVOKER = {
