@@ -871,7 +871,14 @@ do
         function o:GetParent() return self.parent end
         function o:GetFrameLevel() return self.level end
         function o:SetFrameLevel(v) self.level = v end
-        function o:CreateTexture() return Obj("Texture", self) end
+        function o:CreateTexture(_, layer, _, sub)
+            self.texCount = self.texCount + 1
+            local t = Obj("Texture", self)
+            t.layer, t.sub = layer, sub
+            self.texs = self.texs or {}
+            self.texs[#self.texs + 1] = t
+            return t
+        end
         function o:CreateFontString() return Obj("FontString", self) end
         function o:SetText(v) self.text = v end
         o.hooks, o.scripts = {}, {}
@@ -879,6 +886,45 @@ do
         function o:SetScript(ev, fn) self.scripts[ev] = fn end
         function o:SetSwipeColor(...) self.swipe = { ... } end
         function o:SetTextColor(...) self.color = { ... } end
+        -- 幾何（光環格的 Masque：從自己的框讀回形狀）：寫什麼記什麼、讀回來
+        o.points = {}
+        function o:SetPoint(p, rel, rp, x, y)
+            self.last_SetPoint = { p, rel, rp, x, y }
+            self.points[#self.points + 1] = { p, rel or self.parent, rp or p, x or 0, y or 0 }
+        end
+        function o:ClearAllPoints() self.points = {} end
+        function o:SetAllPoints(rel)
+            rel = rel or self.parent
+            self.points = { { "TOPLEFT", rel, "TOPLEFT", 0, 0 }, { "BOTTOMRIGHT", rel, "BOTTOMRIGHT", 0, 0 } }
+        end
+        function o:GetNumPoints() return #self.points end
+        function o:GetPoint(i) local q = self.points[i]; if q then return q[1], q[2], q[3], q[4], q[5] end end
+        function o:SetSize(w, h) self.last_SetSize = { w, h }; self.w, self.h = w, h end
+        function o:GetWidth() return self.w end
+        function o:GetHeight() return self.h end
+        function o:SetTexCoord(l, r, t, b) self.tc = { l, r, t, b } end
+        function o:GetTexCoord()
+            local c = self.tc or { 0, 1, 0, 1 }
+            return c[1], c[3], c[1], c[4], c[2], c[3], c[2], c[4]
+        end
+        function o:SetTexture(v, ...) self.last_SetTexture = { v, ... }; self.file = v end
+        function o:GetTextureFilePath() return type(self.file) == "string" and self.file or nil end
+        function o:SetAtlas(a) self.atlas = a end
+        function o:GetAtlas() return self.atlas end
+        function o:CreateMaskTexture() return Obj("MaskTexture", self) end
+        function o:AddMaskTexture(m) self.masks = self.masks or {}; self.masks[#self.masks + 1] = m end
+        function o:GetNumMaskTextures() return #(self.masks or {}) end
+        function o:GetMaskTexture(i) return (self.masks or {})[i] end
+        function o:SetSwipeTexture(v) self.swipeTex = v end
+        function o:SetAlpha(a) self.last_SetAlpha = { a }; self.alpha = a end
+        function o:GetAlpha() return self.alpha or 1 end
+        function o:SetVertexColor(...) self.vc = { ... } end
+        function o:GetVertexColor() local v = self.vc or { 1, 1, 1, 1 }; return v[1], v[2], v[3], v[4] end
+        function o:SetBlendMode(b) self.blend = b end
+        function o:GetBlendMode() return self.blend or "BLEND" end
+        function o:SetDrawLayer(l, sub) self.layer, self.sub = l, sub end
+        function o:GetDrawLayer() return self.layer or "ARTWORK", self.sub or 0 end
+        o.texCount = 0
         if otype == "StatusBar" then
             o.fill = Obj("Texture", o)
             function o:GetStatusBarTexture() return self.fill end
@@ -1264,9 +1310,10 @@ do
         eq("buff 2：rec.spellID ＝ 第 2 個增益", r2.spellID, 1305376)
         eq("buff 3：解不出 ⇒ 不建容器", r3.container, nil)
         eq("buff 3：持有框照放（位置照佔）", r3.frame and r3.frame.shown, true)
-        local ph3 = r3.frame and r3.frame.placeholder
-        eq("buff 3：占位用飾品圖示", ph3 and ph3.last_SetTexture and ph3.last_SetTexture[1], 800000 + 270175)
-        eq("buff 3：占位顯示", ph3 and ph3.shown, true)
+        local ph3 = r3.frame and r3.frame.ph
+        eq("buff 3：占位用飾品圖示", ph3 and ph3.tex.last_SetTexture and ph3.tex.last_SetTexture[1], 800000 + 270175)
+        eq("buff 3：占位顯示", ph3 and ph3.frame.shown, true)
+        eq("buff 3：占位是條容器的子框（不在持有框上）", ph3 and ph3.frame:GetParent(), bc)
         eq("buff 1：持有框 parent ＝ 條容器", r1.frame:GetParent(), bc)
 
         -- 換飾品（脫戰）：buff 1 換成新飾品的使用效果、換容器；buff 2 這件沒有 ⇒ 舊容器收起來
@@ -1392,6 +1439,364 @@ do
         env.Spell, env.ItemLocation = nil, nil
         env.C_Item.GetItemQualityByID, env.C_Item.GetItemQualityColor, env.C_Spell.GetSpellDescription = nil, nil, nil
 
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+    end
+
+    ------------------------------------------------------------
+    -- 16. 光環格的 Masque（E）：占位是條容器上的獨立框（米利／Masque 都是）、探針（Masque 模式才建、看不見、錨容器、
+    --     regions＝Icon＋Normal）、讀回形狀與皮外框進簽章、按鈕烘遮罩＋自己畫皮外框（不畫米利邊）、外框讀不到 ⇒ 米利 1px 邊、
+    --     皮沒有外框 ⇒ 兩種都不畫、Icon 讀不到 ⇒ 方形、群組停用 ⇒ 米利、收起來一起收、
+    --     飾品冷卻格疊層照冷卻格的皮讀形狀（不建探針、不畫外框）、戰鬥中只記旗標、ReadShape 的錨點換算與秘密值
+    ------------------------------------------------------------
+    do
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+        local phCalls = {}
+        ns.Decorate.ApplyPlaceholder = function(...)
+            phCalls[#phCalls + 1] = { n = select("#", ...), ... }
+        end
+        -- 跑一次 initializeFrame，抓按鈕底下建的 Cooldown 與 ov
+        local function RunInit(container)
+            local btn = Obj("Frame", container)
+            local got = { frames = {} }
+            function btn:SetIcon(t) got.icon = t end
+            function btn:SetDurationCooldown(cd) got.cd = cd end
+            function btn:SetDurationText(fs) got.text = fs end
+            function btn:SetApplicationCount(fs) got.count = fs end
+            local cf = env.CreateFrame
+            env.CreateFrame = function(otype, name, parent, tmpl)
+                local f = cf(otype, name, parent, tmpl)
+                if parent == btn then got.frames[#got.frames + 1] = f end
+                return f
+            end
+            container.slot.opts.initializeFrame(btn)
+            env.CreateFrame = cf
+            for _, f in ipairs(got.frames) do
+                if f.otype == "Frame" and not got.ov then got.ov = f end
+            end
+            got.btn = btn
+            -- 按鈕本體上除了圖示以外的貼圖 ＝ 皮外框
+            for _, t in ipairs(btn.texs or {}) do
+                if t ~= got.icon then got.normal = t end
+            end
+            return got
+        end
+
+        -- 新的法術 ID：前面幾節放過的光環格（700）的框是別一版假框建的，池化會拿回同一顆
+        local ia = DB.AddCustom({ kind = "aura", spellID = 710, filter = "HELPFUL", placeholder = true, bar = "buffs" })
+        CU.Sync()
+        local ar = CU.Get("c:" .. ia)
+        local bc = Obj("Frame"); bc.level = 40
+        local R = { x = 8, y = 0, w = 36, h = 36 }
+
+        -- (a) 沒裝 Masque（ns.Masque nil）：占位是獨立框、沒有探針、簽章沒有 Masque 那段、按鈕畫米利邊
+        local savedM = ns.Masque
+        ns.Masque = nil
+        CU.Place(ar, bc, R, "buffs", 30)
+        local hd = ar.frame
+        local ph = hd.ph
+        check("占位：獨立框（不是持有框）", ph and ph.frame ~= hd and ph.tex ~= nil)
+        eq("占位：parent ＝ 條容器", ph and ph.frame:GetParent(), bc)
+        eq("占位：錨條容器（不錨持有框）", ph and ph.frame.last_SetPoint and ph.frame.last_SetPoint[2], bc)
+        eq("占位：同一個矩形（x）", ph and ph.frame.last_SetPoint[4], 8)
+        eq("占位：層級＝容器（持有框底下）", ph and ph.frame:GetFrameLevel(), 40)
+        check("占位：持有框在它上面", hd:GetFrameLevel() > ph.frame:GetFrameLevel())
+        eq("占位：去飽和 0.35", ph and ph.tex.last_SetAlpha and ph.tex.last_SetAlpha[1], 0.35)
+        eq("占位：圖示", ph and ph.tex.file, 900710)
+        local pc = phCalls[#phCalls]
+        check("占位：交給 Decorate.ApplyPlaceholder（五個參數，沒有 noMasque）", pc and pc[1] == ph and pc[2] == "buffs" and pc.n == 5)
+        eq("沒裝 Masque：沒有探針", hd.skin, nil)
+        check("沒裝 Masque：簽章沒有 Masque 那段", ar.sig and not ar.sig:find("msq:", 1, true))
+        local g0 = RunInit(ar.container)
+        eq("米利：圖示整格", g0.icon and g0.icon.points[1] and g0.icon.points[1][1], "TOPLEFT")
+        eq("米利：圖示 ARTWORK", g0.icon and g0.icon.layer, "ARTWORK")
+        eq("米利：沒有遮罩", g0.icon and g0.icon.masks, nil)
+        eq("米利：方形轉圈", g0.cd and g0.cd.swipeTex, "Interface\\BUTTONS\\WHITE8X8")
+        eq("米利：按鈕畫 1px 邊（四條）", g0.ov and g0.ov.texCount, 4)
+        eq("米利：沒有皮外框", g0.normal, nil)
+        local sigMili = ar.sig
+
+        -- (b) 裝了 Masque、這條是米利模式：跟沒裝一樣
+        -- 假 Masque：照它的做法——Icon 改尺寸／錨點／texcoord、圓形皮掛遮罩；皮外框另建一張（把我們給的 Normal 藏起來），
+        -- GetNormal 回那一張
+        local fakeM = { mode = "miliui", active = true, gen = 0, syncs = 0, released = 0, normalMode = "draw" }
+        local NORMAL_ATLAS = "UI-HUD-ActionBar-IconFrame"
+        local function Skin(button, regions, w, h)
+            local icon = regions.Icon
+            if regions.Normal then
+                regions.Normal:SetAlpha(0); regions.Normal:Hide()
+                local nt = button.msqNormal
+                if not nt then nt = button:CreateTexture(); button.msqNormal = nt end
+                nt:SetAtlas(fakeM.normalMode == "none" and nil or NORMAL_ATLAS)
+                nt:SetAlpha(1)
+                if fakeM.normalMode == "none" then nt:Hide() else nt:Show() end
+                nt:SetSize(w * 1.1, h * 1.1)
+                nt:ClearAllPoints()
+                nt:SetPoint("CENTER", button, "CENTER", 0, 0)
+                nt:SetVertexColor(0.5, 0.6, 0.7, 0.8)
+                nt:SetBlendMode("BLEND")
+                nt:SetDrawLayer("ARTWORK", 1)
+            end
+            if fakeM.unknownAnchor then
+                icon:ClearAllPoints()
+                icon:SetPoint("CENTER", Obj("Frame"), "CENTER", 0, 0)     -- 錨在讀不懂的框上
+                icon:SetSize(w, h)
+                return
+            end
+            icon:ClearAllPoints()
+            icon:SetSize(w * 0.9, h * 0.9)
+            icon:SetPoint("CENTER", button, "CENTER", 1, -1)
+            icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+            if fakeM.round and not icon.masks then
+                local m = button:CreateMaskTexture()
+                m:SetTexture("Interface\\AddOns\\Masque\\Textures\\Circle\\Mask")
+                m:SetAllPoints(icon)
+                icon:AddMaskTexture(m)
+            end
+        end
+        fakeM.Mode = function() return fakeM.mode end
+        fakeM.TypeFor = function() return "Debuff" end
+        fakeM.Generation = function() return fakeM.gen end
+        fakeM.GetNormal = function(b)
+            if fakeM.normalMode == "unreadable" then return nil end
+            return b.msqNormal
+        end
+        fakeM.Release = function(holder) holder.msqButton = nil; fakeM.released = fakeM.released + 1 end
+        fakeM.Sync = function(holder, button, regions, btype, w, hh)
+            fakeM.syncs = fakeM.syncs + 1
+            fakeM.lastType, fakeM.lastRegions = btype, regions
+            holder.msqButton, holder.msqSize = button, tostring(w) .. "x" .. tostring(hh)
+            Skin(button, regions, w, hh)
+            return fakeM.active
+        end
+        ns.Masque = fakeM
+        CU.Place(ar, bc, R, "buffs", 31)
+        eq("米利模式：不建探針", hd.skin, nil)
+        eq("米利模式：不交給 Masque", fakeM.syncs, 0)
+        eq("米利模式：簽章不變", ar.sig, sigMili)
+
+        -- (c) Masque 模式、圓形皮：探針、形狀＋皮外框進簽章、按鈕烘遮罩＋自己畫外框、不畫米利邊
+        fakeM.mode, fakeM.round = "masque", true
+        local builds = CU.builds
+        CU.Place(ar, bc, R, "buffs", 32)
+        local L = hd.skin
+        check("Masque：建了探針", L and L.frame and L.icon and L.normal)
+        eq("探針：看不見（框 alpha 0）", L and L.frame.alpha, 0)
+        eq("探針：parent ＝ 條容器", L and L.frame:GetParent(), bc)
+        eq("探針：錨條容器（不錨持有框）", L and L.frame.last_SetPoint and L.frame.last_SetPoint[2], bc)
+        eq("探針：同一個矩形（寬）", L and L.frame.w, 36)
+        eq("探針：不吃滑鼠", L and L.frame.last_EnableMouse and L.frame.last_EnableMouse[1], false)
+        check("探針：regions ＝ Icon＋Normal（我們建的）", fakeM.lastRegions and fakeM.lastRegions.Icon == L.icon
+            and fakeM.lastRegions.Normal == L.normal)
+        eq("探針：Icon 透明但不是 alpha 0（顏色 0,0,0,0）", L and L.icon.last_SetColorTexture and L.icon.last_SetColorTexture[4], 0)
+        eq("探針：型別照 TypeFor", fakeM.lastType, "Debuff")
+        check("持有框沒有錨在探針上", hd.last_SetPoint and hd.last_SetPoint[2] == bc)
+        local pc2 = phCalls[#phCalls]
+        check("Masque：占位照樣交給 ApplyPlaceholder（五個參數）", pc2 and pc2[1] == ph and pc2.n == 5)
+        check("Masque：hd.msqOn", hd.msqOn == true)
+        local m = hd.msqShape
+        check("讀回形狀：圖示 0.9 倍、偏移 (1,-1)", m and math.abs(m.iw - 32.4) < 1e-6 and m.ix == 1 and m.iy == -1)
+        check("讀回形狀：texcoord", m and math.abs(m.l - 0.07) < 1e-6 and math.abs(m.b - 0.93) < 1e-6)
+        check("讀回形狀：遮罩（檔案、跟圖示同一個矩形）", m and m.mask and m.mask.file == "Interface\\AddOns\\Masque\\Textures\\Circle\\Mask"
+            and math.abs(m.mask.w - 32.4) < 1e-6 and m.mask.x == 1)
+        local nm = m and m.normal
+        check("讀回皮外框：GetNormal 那張（不是我們給的）的圖集、尺寸、中心", nm and nm.atlas == NORMAL_ATLAS
+            and math.abs(nm.w - 39.6) < 1e-6 and nm.x == 0)
+        check("讀回皮外框：顏色、blend、draw layer", nm and nm.cr == 0.5 and math.abs(nm.ca - 0.8) < 1e-6 and nm.blend == "BLEND"
+            and nm.layer == "ARTWORK" and nm.sub == 1)
+        check("簽章帶 Masque、遮罩與皮外框", ar.sig:find("msq:", 1, true) and ar.sig:find("Circle", 1, true)
+            and ar.sig:find(NORMAL_ATLAS, 1, true) and not ar.sig:find("+edge", 1, true))
+        check("簽章變了 ⇒ 換一顆容器", ar.sig ~= sigMili and CU.builds == builds + 1)
+        local st = CU.AuraStyle(ar, "buffs", 36, 36, "icons")
+        check("AuraStyle：noEdge、msq、normal", st.noEdge == true and st.msq == m and st.normal == nm)
+        local g1 = RunInit(ar.container)
+        eq("Masque：按鈕不畫米利邊", g1.ov and g1.ov.texCount, 0)
+        eq("Masque：圖示 BACKGROUND", g1.icon and g1.icon.layer, "BACKGROUND")
+        eq("Masque：圖示尺寸照讀回來的", g1.icon and g1.icon.w, m.iw)
+        eq("Masque：圖示錨中心＋偏移", g1.icon and g1.icon.points[1] and g1.icon.points[1][4], 1)
+        eq("Masque：texcoord", g1.icon and g1.icon.tc and g1.icon.tc[1], m.l)
+        local bm = g1.icon and g1.icon.masks and g1.icon.masks[1]
+        check("Masque：圖示掛上遮罩（按鈕上的新遮罩貼圖）", bm and bm.otype == "MaskTexture" and bm.parent == g1.btn
+            and bm.file == m.mask.file and bm.w == m.mask.w)
+        eq("Masque：轉圈材質＝遮罩那張", g1.cd and g1.cd.swipeTex, m.mask.file)
+        eq("Masque：轉圈排在遮罩的矩形", g1.cd and g1.cd.w, m.mask.w)
+        local bn = g1.normal
+        check("Masque：皮外框畫在按鈕本體（不是 ov）", bn and bn.parent == g1.btn)
+        check("Masque：皮外框照讀回來的（圖集、尺寸、顏色、blend、層）", bn and bn.atlas == NORMAL_ATLAS and bn.w == nm.w
+            and bn.vc and bn.vc[1] == 0.5 and bn.blend == "BLEND" and bn.layer == "ARTWORK" and bn.sub == 1)
+        check("Masque：倒數／層數的 ov 是比按鈕高的子框（文字在外框上面）", g1.ov and g1.ov.level > g1.btn.level)
+        CU.Place(ar, bc, R, "buffs", 33)
+        eq("同簽章：不換容器", CU.builds, builds + 1)
+
+        -- (d) 皮外框讀不到（GetNormal 沒有）⇒ 退回米利 1px 邊；遮罩照樣烘
+        fakeM.normalMode = "unreadable"
+        fakeM.gen = fakeM.gen + 1
+        CU.Place(ar, bc, R, "buffs", 34)
+        eq("外框讀不到 ⇒ normal nil", hd.msqShape and hd.msqShape.normal, nil)
+        check("外框讀不到 ⇒ 簽章 +edge", ar.sig:find("+edge", 1, true) ~= nil)
+        local g4 = RunInit(ar.container)
+        eq("外框讀不到 ⇒ 米利 1px 邊（四條）", g4.ov and g4.ov.texCount, 4)
+        eq("外框讀不到 ⇒ 沒有皮外框", g4.normal, nil)
+        check("外框讀不到 ⇒ 遮罩照樣", g4.icon and g4.icon.masks and #g4.icon.masks == 1)
+
+        -- (e) 這張皮沒有外框（Normal 藏著）⇒ 兩種邊都不畫
+        fakeM.normalMode = "none"
+        fakeM.gen = fakeM.gen + 1
+        CU.Place(ar, bc, R, "buffs", 35)
+        eq("皮沒有外框 ⇒ normal false", hd.msqShape and hd.msqShape.normal, false)
+        check("皮沒有外框 ⇒ 簽章 N:none", ar.sig:find("N:none", 1, true) ~= nil)
+        local g5 = RunInit(ar.container)
+        eq("皮沒有外框 ⇒ 不畫米利邊", g5.ov and g5.ov.texCount, 0)
+        eq("皮沒有外框 ⇒ 不畫皮外框", g5.normal, nil)
+        fakeM.normalMode = "draw"
+
+        -- (f) 皮的 Icon 錨在讀不懂的地方 ⇒ 方形、外框也不讀 ⇒ 米利邊
+        fakeM.unknownAnchor = true
+        fakeM.gen = fakeM.gen + 1
+        CU.Place(ar, bc, R, "buffs", 36)
+        eq("讀不到形狀 ⇒ msqShape nil", hd.msqShape, nil)
+        check("讀不到形狀 ⇒ 簽章 msq:square+edge", ar.sig:find("msq:square+edge", 1, true) ~= nil)
+        local g2 = RunInit(ar.container)
+        eq("方形：圖示整格", g2.icon and g2.icon.points[1] and g2.icon.points[1][1], "TOPLEFT")
+        eq("方形：沒有遮罩", g2.icon and g2.icon.masks, nil)
+        eq("方形：方形轉圈", g2.cd and g2.cd.swipeTex, "Interface\\BUTTONS\\WHITE8X8")
+        eq("方形：米利邊", g2.ov and g2.ov.texCount, 4)
+        fakeM.unknownAnchor = nil
+        fakeM.gen = fakeM.gen + 1
+
+        -- (g) 群組停用（Sync 回 false）：探針收起來、回到米利樣式
+        fakeM.active = false
+        CU.Place(ar, bc, R, "buffs", 37)
+        eq("群組停用：探針收起來", L.frame.shown, false)
+        eq("群組停用：msqOn 清掉", hd.msqOn, nil)
+        eq("群組停用：簽章回到米利（池裡拿回原容器）", ar.sig, sigMili)
+        fakeM.active = true
+        CU.Place(ar, bc, R, "buffs", 38)
+        check("重新啟用：Masque 那段回來", hd.msqOn and ar.sig:find(NORMAL_ATLAS, 1, true))
+
+        -- (h) 戰鬥中換皮：容器不建、記旗標；脫戰補建
+        fakeM.round = false
+        L.icon.masks = nil
+        fakeM.gen = fakeM.gen + 1
+        local b0 = CU.builds
+        combat = true
+        CU.Place(ar, bc, R, "buffs", 39)
+        eq("戰鬥中：容器不建", CU.builds, b0)
+        check("戰鬥中：記旗標", (CU.IsPending(ar)))
+        combat = false
+        CU.OnRegen()
+        check("脫戰：補建（方形皮沒有遮罩）", CU.builds == b0 + 1 and ar.sig:find("msq:", 1, true) and not ar.sig:find("Circle", 1, true))
+
+        -- (i) 收起來：占位、探針跟著收
+        CU.EndBar("buffs", 99)
+        eq("收起來：持有框", hd.shown, false)
+        eq("收起來：占位", ph.frame.shown, false)
+        eq("收起來：探針", L.frame.shown, false)
+        CU.Place(ar, bc, R, "buffs", 100)
+        check("放回來：占位、探針出現", ph.frame.shown and L.frame.shown)
+
+        -- (j) 搬到長條：長條不歸 Masque（不建探針），圖示那顆的占位／探針收起來
+        local bb = Obj("Frame"); bb.level = 60
+        CU.Place(ar, bb, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 101)
+        check("長條：換一顆持有框", ar.frame ~= hd)
+        eq("長條：沒有探針", ar.frame.skin, nil)
+        eq("長條：圖示那顆的占位收起來", ph.frame.shown, false)
+        eq("長條：圖示那顆的探針收起來", L.frame.shown, false)
+        check("長條：簽章沒有 Masque 那段", not ar.sig:find("msq:", 1, true))
+        CU.Place(ar, bc, R, "buffs", 102)
+        eq("搬回圖示：同一顆持有框", ar.frame, hd)
+
+        -- (k) 占位關掉：占位框收起來（增益不在時什麼都沒有，跟米利一致）
+        ar.entry.placeholder = false
+        CU.Place(ar, bc, R, "buffs", 103)
+        eq("占位關：占位框收起來", ph.frame.shown, false)
+        ar.entry.placeholder = true
+
+        -- (l) 飾品冷卻格的疊層：不建探針；冷卻格是 Masque 在畫 ⇒ 照它的 Icon 讀形狀、不畫米利邊也不畫皮外框
+        local isl = DB.AddCustom({ kind = "slot", slot = 13, bar = "essential" })
+        CU.Sync()
+        local sr = CU.Get("c:" .. isl)
+        local deco = ns.Decorate.Apply
+        local skinCD = false
+        ns.Decorate.Apply = function(f, rec, barKey)
+            rec.decorated = "deco:" .. barKey
+            rec.msqSkinned = skinCD
+            if skinCD and f.Icon then
+                fakeM.round = true
+                Skin(f, { Icon = f.Icon }, 36, 36)
+            end
+        end
+        local ec = Obj("Frame"); ec.level = 10
+        CU.Place(sr, ec, { x = 0, y = 0, w = 36, h = 36 }, "essential", 104)
+        local o = sr.buffOverlay
+        check("疊層（米利）：沒有 msq", o and o.frame and not o.frame.msqOn and not o.sig:find("msq:", 1, true))
+        skinCD = true
+        CU.Place(sr, ec, { x = 0, y = 0, w = 36, h = 36 }, "essential", 105)
+        local oh = o.frame
+        eq("疊層（Masque）：不建探針", oh.skin, nil)
+        eq("疊層（Masque）：不建占位", oh.ph, nil)
+        check("疊層（Masque）：照冷卻格的 Icon 讀形狀", oh.msqOn and oh.msqShape and oh.msqShape.mask
+            and oh.msqShape.mask.file:find("Circle", 1, true))
+        eq("疊層（Masque）：不讀皮外框", oh.msqShape and oh.msqShape.normal, nil)
+        check("疊層（Masque）：簽章帶遮罩、不退米利邊", o.sig:find("msq:", 1, true) and o.sig:find("Circle", 1, true)
+            and o.sig:find("^ov") and not o.sig:find("+edge", 1, true))
+        local g3 = RunInit(o.container)
+        eq("疊層（Masque）：不畫米利邊", g3.ov and g3.ov.texCount, 0)
+        eq("疊層（Masque）：不畫皮外框", g3.normal, nil)
+        check("疊層（Masque）：圖示掛遮罩", g3.icon and g3.icon.masks and #g3.icon.masks == 1)
+        eq("疊層：層級表不變（容器＋4）", oh:GetFrameLevel(), 14)
+        ns.Decorate.Apply = deco
+
+        -- (m) ReadShape：一點錨（TOPLEFT＋偏移）、SetAllPoints、圖集遮罩、秘密值 ⇒ 讀不到
+        local fr = Obj("Frame"); fr.w, fr.h = 40, 40
+        local ic = Obj("Texture", fr)
+        ic:SetSize(30, 20)
+        ic:SetPoint("TOPLEFT", fr, "TOPLEFT", 2, -3)
+        local sh = CU.ReadShape(fr, ic, 40, 40)
+        check("ReadShape：TOPLEFT＋偏移 ⇒ 中心", sh and sh.ix == -20 + 2 + 15 and sh.iy == 20 - 3 - 10 and sh.iw == 30 and sh.ih == 20)
+        check("ReadShape：沒遮罩 ⇒ mask nil、簽章 square", sh and sh.mask == nil and sh.sig:find("square", 1, true))
+        check("ReadShape：沒給外框 ⇒ normal nil（N:?）", sh and sh.normal == nil and sh.sig:find("N:?", 1, true))
+        local ic2 = Obj("Texture", fr)
+        ic2:SetAllPoints(fr)
+        local mk = Obj("MaskTexture", fr)
+        mk:SetAtlas("UI-HUD-ActionBar-IconFrame-Mask")
+        mk:SetSize(36, 36)
+        mk:SetPoint("CENTER", fr, "CENTER", 0, 0)
+        ic2:AddMaskTexture(mk)
+        local sh2 = CU.ReadShape(fr, ic2, 40, 40)
+        check("ReadShape：SetAllPoints ⇒ 整格", sh2 and sh2.ix == 0 and sh2.iw == 40)
+        check("ReadShape：圖集遮罩（錨在探針上）", sh2 and sh2.mask and sh2.mask.atlas == "UI-HUD-ActionBar-IconFrame-Mask"
+            and sh2.mask.file == nil and sh2.mask.w == 36)
+        -- 皮外框錨在 Icon 上（皮的 Anchor）＋檔案貼圖、draw layer BACKGROUND ⇒ 抬到 ARTWORK
+        local nt = Obj("Texture", fr)
+        nt:SetTexture("Interface\\Skin\\Border")
+        nt:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        nt:SetSize(44, 44)
+        nt:SetPoint("CENTER", ic, "CENTER", 0, 0)
+        nt:SetDrawLayer("BACKGROUND", 2)
+        local sh3 = CU.ReadShape(fr, ic, 40, 40, nt)
+        local n3 = sh3 and sh3.normal
+        check("ReadShape：外框錨在 Icon 上 ⇒ 中心跟 Icon", n3 and n3.x == sh3.ix and n3.y == sh3.iy and n3.w == 44)
+        check("ReadShape：外框檔案＋texcoord", n3 and n3.file == "Interface\\Skin\\Border" and math.abs(n3.l - 0.1) < 1e-6)
+        eq("ReadShape：BACKGROUND 抬到 ARTWORK（在圖示上面）", n3 and n3.layer, "ARTWORK")
+        nt:SetAlpha(0)
+        eq("ReadShape：外框透明 ⇒ false（這張皮沒有外框）", CU.ReadShape(fr, ic, 40, 40, nt).normal, false)
+        local savedIsSecret = ns.IsSecret
+        local SECRET = {}
+        ns.IsSecret = function(v) return v == SECRET end
+        local ic3 = Obj("Texture", fr)
+        ic3:SetPoint("CENTER", fr, "CENTER", 0, 0)
+        ic3.w, ic3.h = SECRET, 20
+        eq("ReadShape：秘密尺寸 ⇒ nil（不報錯）", CU.ReadShape(fr, ic3, 40, 40), nil)
+        nt:SetAlpha(1)
+        nt.w = SECRET
+        eq("ReadShape：外框秘密尺寸 ⇒ normal nil（讀不到 ⇒ 米利邊）", CU.ReadShape(fr, ic, 40, 40, nt).normal, nil)
+        ns.IsSecret = savedIsSecret
+        eq("ReadShape：沒有尺寸 ⇒ nil", CU.ReadShape(fr, ic, nil, 40), nil)
+
+        ns.Masque = savedM
+        ns.Decorate.ApplyPlaceholder = nil
         for i = #list, 1, -1 do list[i] = nil end
         CU.Sync()
     end

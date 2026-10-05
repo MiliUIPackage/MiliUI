@@ -34,15 +34,19 @@
 --     持有框 OnShow（ns.Defer）時戰鬥外 Hide→Show→SetEnabled(true) 補踢，戰鬥中記旗標。
 --   * 減益只收 C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret 的（玩家自己算友方，友方減益禁止用
 --     ID 過濾）——新增時就擋（Options/Picker.lua）。
---   * 占位圖示（placeholder）畫在持有框的 BACKGROUND 上、去飽和、alpha 0.35，按鈕出現自然蓋住。
+--   * 占位圖示（placeholder）是**獨立的普通框**（parent＝條容器、直接錨容器、層級在持有框底下；跟 Core/Bars.lua 的
+--     占位同一種結構 { frame, tex }），去飽和、alpha 0.35，邊框交給 Decorate.ApplyPlaceholder，按鈕出現自然蓋住。
+--     不畫在持有框上 ⇒ 不是保護框，戰鬥中照寫、Masque 也碰得到。長條的占位照舊畫在持有框上。
 --   * 生效發光（overrides[id].activeGlow，跟暴雪增益格同一個逐法術開關，Core/Glow.lua）：發光畫在**按鈕**
 --     底下（initializeFrame 裡建子框＋MiliUIGlow 的 Attach 系列，動畫全是宣告式動畫組，秘密狀態下照樣播）。
 --     按鈕只在光環存在時顯示 ⇒ 發光跟著光環出現／消失，插件端不必知道光環在不在。
 --     樣式、顏色、格子尺寸（Attach 要 caller 給尺寸，子樹裡不能讀）都進簽章：改了換一顆容器，
 --     戰鬥中改要等脫戰。按鈕／觸發樣式的入場動畫交給引擎（AddAuraShownAnimation）播。
 --     觸發／就緒發光仍不提供（光環格沒有冷卻）。
---   * 圖示外觀選 Masque 也一樣是米利樣式：按鈕的外觀只能在 initializeFrame 裡烘、之後 forbidden，
---     Masque 碰不到（佔位圖示跟著按鈕，也不交出去）。
+--   * 圖示外觀選 Masque（圖示類的條）：按鈕的外觀只能在 initializeFrame 裡烘、之後 forbidden，Masque 碰不到 ⇒
+--     占位交給 Masque（上一條）；另建一顆看不見的**探針**交給 Masque，從它身上讀回圖示的遮罩／尺寸／texcoord 與
+--     皮外框（Normal）的外觀，烘進按鈕（簽章帶著）：按鈕自己帶皮的外框、跟著增益出現／消失。見「光環格的 Masque」那一節。
+--     長條照舊是米利樣式。
 --   * 出現／消失音效：C_UnitAuras.AddAuraSound 登記給引擎播（Core/Sound.lua 對帳）。
 --
 -- ── 自訂法術（kind = "spell"）與物品（kind = "item"）─────────────────
@@ -1276,10 +1280,7 @@ local function NewHolder(rec)
     h:SetSize(1, 1)
     h:Hide()
     h:EnableMouse(false)
-    local ph = h:CreateTexture(nil, "BACKGROUND")
-    ph:SetAllPoints()
-    ph:Hide()
-    h.placeholder = ph
+    -- 圖示類的占位與探針（h.ph／h.skin）是條容器的子框，第一次要用才建（見「光環格的 Masque」）
     -- 容器池掛在持有框上（一種 kind 一顆持有框、各自的池）
     h.containers = {}
     h.container, h.sig = nil, nil
@@ -1435,10 +1436,29 @@ local function AuraStyle(rec, barKey, w, h, shape)
         end
         ovSig = dc and "ov+" or "ov"
     end
+    -- Masque（圖示類，見「光環格的 Masque」）：從皮上讀回來的形狀（遮罩、圖示尺寸與偏移、texcoord）照烘；
+    --   光環格／飾品欄增益：皮外框讀到了 ⇒ 按鈕自己畫那張（st.normal）、不畫米利邊；這張皮沒有外框（false）⇒ 兩種都不畫；
+    --                       讀不到 ⇒ 退回米利 1px 邊。
+    --   疊層：外框是底下冷卻格自己的皮 ⇒ 一律不畫米利邊、也不畫外框。都進簽章
+    local msqSig = "-"
+    local hd = rec.frame
+    if hd and hd.msqOn and shape ~= "bars" then
+        st.msq = hd.msqShape
+        if rec.overlayOf then
+            st.noEdge = true
+        else
+            local nm = st.msq and st.msq.normal
+            if nm ~= nil then
+                st.noEdge = true
+                st.normal = nm or nil
+            end
+        end
+        msqSig = "msq:" .. (st.msq and st.msq.sig or "square") .. (st.noEdge and "" or "+edge")
+    end
     -- 認哪些法術也進簽章（多法術的光環格：整組排序後串進去；單一法術時就是那個 ID）
     st.ids = CU.AuraIDsOf(rec)
     st.sig = table.concat({
-        ovSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
+        ovSig, msqSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
         st.stPoint, st.stX, st.stY, glowSig,
@@ -1498,6 +1518,34 @@ local function AttachGlow(btn, anchor, gl, level, rec)
     rec.glowAttached = (rec.glowAttached or 0) + 1
 end
 
+-- 遮罩（只能從 initializeFrame 呼叫，外面包 pcall）：在按鈕上建一張新的遮罩貼圖、照讀回來的矩形排、掛到圖示上。
+-- 包法照 Masque 的預設（CLAMPTOBLACKADDITIVE）
+local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
+local function BakeMask(btn, icon, mk)
+    local t = btn:CreateMaskTexture()
+    if mk.atlas then t:SetAtlas(mk.atlas) else t:SetTexture(mk.file, MASK_WRAP, MASK_WRAP) end
+    t:SetSize(mk.w, mk.h)
+    t:SetPoint("CENTER", btn, "CENTER", mk.x, mk.y)
+    icon:AddMaskTexture(t)
+    CU.masksBaked = (CU.masksBaked or 0) + 1          -- 測試用
+end
+
+-- 皮外框（只能從 initializeFrame 呼叫，外面包 pcall）：照讀回來的 Normal 外觀在按鈕本體上畫一張新貼圖。顏色純數字
+local function BakeNormal(btn, n)
+    local t = btn:CreateTexture(nil, n.layer, nil, n.sub)
+    if n.atlas then
+        t:SetAtlas(n.atlas)
+    else
+        t:SetTexture(n.file)
+        t:SetTexCoord(n.l, n.r, n.t, n.b)
+    end
+    t:SetSize(n.w, n.h)
+    t:SetPoint("CENTER", btn, "CENTER", n.x, n.y)
+    t:SetVertexColor(n.cr, n.cg, n.cb, n.ca)
+    t:SetBlendMode(n.blend)
+    CU.normalsBaked = (CU.normalsBaked or 0) + 1      -- 測試用
+end
+
 -- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。不 CreateColor、不掛 script、顏色純數字
 local function InitAuraButton(btn, c, st, rec)
     pcall(btn.SetMouseClickEnabled, btn, false)
@@ -1507,15 +1555,34 @@ local function InitAuraButton(btn, c, st, rec)
         btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout
     end)
 
-    local icon = btn:CreateTexture(nil, "ARTWORK")
-    icon:SetAllPoints(btn)
-    local z = st.zoom
-    icon:SetTexCoord(z, 1 - z, z, 1 - z)
+    -- Masque：圖示放 BACKGROUND（皮外框在它上面；Masque 的 Icon 也是這一層）
+    local m = st.msq
+    local icon = btn:CreateTexture(nil, m and "BACKGROUND" or "ARTWORK")
+    -- Masque：照從皮上讀回來的形狀排（尺寸、相對中心的偏移、texcoord、遮罩）；沒有就整格＋條的縮放
+    if m then
+        icon:SetSize(m.iw, m.ih)
+        icon:SetPoint("CENTER", btn, "CENTER", m.ix, m.iy)
+        icon:SetTexCoord(m.l, m.r, m.t, m.b)
+        if m.mask then pcall(BakeMask, btn, icon, m.mask) end
+    else
+        icon:SetAllPoints(btn)
+        local z = st.zoom
+        icon:SetTexCoord(z, 1 - z, z, 1 - z)
+    end
     btn:SetIcon(icon)
 
     local cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
-    cd:SetAllPoints(btn)
-    cd:SetSwipeTexture(WHITE)
+    -- 轉圈：Cooldown 框吃不了遮罩 ⇒ 照 Masque 自己的做法，轉圈材質換成遮罩那張圖（白色＋alpha 的形狀）、
+    -- 框排在遮罩的矩形上。遮罩是圖集（SetSwipeTexture 不收）或讀不到 ⇒ 方形
+    local mk = m and m.mask
+    if m then
+        local rr = mk or { x = m.ix, y = m.iy, w = m.iw, h = m.ih }
+        cd:SetSize(rr.w, rr.h)
+        cd:SetPoint("CENTER", btn, "CENTER", rr.x, rr.y)
+    else
+        cd:SetAllPoints(btn)
+    end
+    cd:SetSwipeTexture((mk and mk.file) or WHITE)
     cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4])
     cd:SetHideCountdownNumbers(true)
     cd:SetDrawEdge(false)
@@ -1526,8 +1593,11 @@ local function InitAuraButton(btn, c, st, rec)
     ov:SetAllPoints(btn)
     ov:SetFrameLevel((cd:GetFrameLevel() or 1) + 2)
 
+    -- Masque 的皮外框：按鈕本體上的一張貼圖（圖示 BACKGROUND 之上、轉圈與 ov 的文字子框之下，跟 Masque 對一般按鈕的疊法一樣）
+    if st.normal then pcall(BakeNormal, btn, st.normal) end
+
     local t = st.inset
-    if t > 0 then
+    if t > 0 and not st.noEdge then              -- Masque：外框是皮的（上面那張，或疊層底下冷卻格自己的）
         local bc = st.bcolor
         local function Edge()
             local e = ov:CreateTexture(nil, "OVERLAY", nil, 7)
@@ -1838,7 +1908,6 @@ end
 local function UpdateBarPlaceholder(rec, barKey, w, h)
     local hd = rec.frame
     local e = rec.entry
-    if hd.placeholder then hd.placeholder:Hide() end
     local function HideAll()
         if hd.phBG then hd.phBG:Hide(); hd.phIcon:Hide(); hd.phName:Hide() end
         hd.phSig = nil
@@ -1910,34 +1979,279 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     end, "placeholder")
 end
 
-local function UpdatePlaceholder(rec, barKey, w, h)
-    if rec.shape == "bars" then return UpdateBarPlaceholder(rec, barKey, w, h) end
-    local hd = rec.frame
-    local ph = hd.placeholder
-    local e = rec.entry
-    -- 邊框：跟暴雪增益格的占位（Core/Bars.lua）同一支 Decorate.ApplyPlaceholder——圖示暗、邊框照真實格的顏色與粗細。
-    -- 邊框是持有框上的貼圖（MakeBorder），不另建子框
-    hd.phLook = hd.phLook or { frame = hd, tex = ph }
-    local look = hd.phLook
-    if not (e and e.placeholder) then
-        ph:Hide()
-        if look.border then
-            for i = 1, 4 do look.border[i]:Hide() end
-            if look.border.edge then look.border.edge:Hide() end
+------------------------------------------------------------
+-- 光環格的 Masque（圖示類的條，ns.Masque.Mode(條) == "masque"）
+--
+-- AuraButton 建好就 forbidden，Masque 碰不到按鈕 ⇒ 全部在**我們自己的普通框**上做，再把結果烘進按鈕：
+--   1. 占位（hd.ph = { frame, tex }）：獨立的框，交給 Decorate.ApplyPlaceholder（跟暴雪增益的占位同一支，Masque 模式下
+--      它把框交給同一個群組）。米利模式也是這顆框（去飽和 0.35 圖示＋米利邊框，跟以前一樣）。占位關掉 ⇒ 增益不在時什麼都沒有。
+--   2. 探針（hd.skin = { frame, icon, normal }）：**永遠看不見**（框 SetAlpha(0)）的普通框，regions 給一張透明 Icon（顏色
+--      0,0,0,0、貼圖 alpha 1——alpha 0 會被 Masque 當成空格，換空格外框）＋一張我們建的 Normal，交給同一個群組、同一個
+--      型別（TypeFor）。Masque 照樣對它套皮，我們只讀：
+--        Icon   遮罩（GetNumMaskTextures／GetMaskTexture＋GetAtlas 或 GetTextureFilePath／GetTextureFileID）、矩形（錨點＋尺寸
+--               換算成相對探針中心）、texcoord
+--        Normal 皮外框那張貼圖（Masque 的公開 API GetNormal——它多半另建一張、把我們給的藏起來）：圖集／檔案、矩形、texcoord、
+--               vertex color、blend mode、draw layer、有沒有顯示（沒顯示 ＝ 這張皮沒有外框，是讀得到的結果）
+--      存成純數字／字串（hd.msqShape）⇒ AuraStyle 進簽章、InitAuraButton 照烘。全部 pcall＋Plain；Icon 讀不到 ⇒ 方形圖示，
+--      Normal 讀不到 ⇒ 按鈕退回米利 1px 邊（不會變成沒框）。
+--      Masque 換皮（回呼讓 Masque.Generation 加一）或格子尺寸變了才重讀；沒讀到遮罩時每輪看一眼有沒有冒出來（套皮可能晚到）。
+--      米利模式不建（建過的從群組拿掉、收起來）。
+--   3. 按鈕（InitAuraButton）：圖示照讀回來的形狀排＋新的遮罩貼圖；轉圈材質換成遮罩那張、排在遮罩矩形；皮外框是**按鈕自己的**
+--      一張貼圖（照讀回來的 Normal 畫，跟按鈕一起出現／消失），建在按鈕本體上——跟 Masque 對一般按鈕的疊法一樣：
+--      圖示（BACKGROUND）< 皮外框（讀回來的層，至少 ARTWORK）< 轉圈（子框）< ov 的倒數／層數字（再上一層子框）。
+--   飾品冷卻格的增益疊層（rec.overlayOf）不建探針、不畫外框：底下的冷卻格自己就交給 Masque（Decorate.Apply），外框是它的；
+--   疊層只從冷卻格的 Icon 讀回形狀、不畫米利邊（rec.msqSkinned ＝ 冷卻格現在是 Masque 在畫）。
+--
+-- 保護鏈：占位與探針都是 parent＝條容器 c、直接 SetPoint 到 c（同一個矩形），**不錨持有框、持有框也不錨它們** ⇒
+-- 不是保護框、戰鬥中照寫（不走 ns.Write）。收起來（HideRec）、搬條（Retire）時跟著持有框一起收。
+-- 層級（同一個 strata，跨父層比得出高低；c ＝ 條容器的層級）：
+--   占位、探針 c＋0（探針看不見，層級無所謂）→ 持有框 c＋2 → 容器 c＋3 → 按鈕 c＋4（圖示、皮外框都在它身上）
+--   → 按鈕的 Cooldown c＋5 → 按鈕裡的 ov（倒數、層數、米利邊）c＋7 → 生效發光 c＋8（像素發光的裁切子框 c＋9）
+------------------------------------------------------------
+local PH_LIFT = 0
+CU.PH_LIFT = PH_LIFT
+
+local function Num(v)
+    v = Plain(v)
+    return type(v) == "number" and v or nil
+end
+local function Str(v)
+    v = Plain(v)
+    return (type(v) == "string" and v ~= "") and v or nil
+end
+
+-- 自己的框（占位、探針）放到 c 的 r 上：直接錨容器，位置沒變不重寫
+local function PlacePart(part, c, r, lift)
+    local f = part.frame
+    local lvl = (c:GetFrameLevel() or 1) + lift
+    local sig = table.concat({ tostring(c), r.x, r.y, r.w, r.h, lvl }, "|")
+    if part.posSig ~= sig then
+        part.posSig = sig
+        if f:GetParent() ~= c then f:SetParent(c) end
+        f:SetFrameLevel(lvl)
+        f:ClearAllPoints()
+        f:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)     -- ⚠ 錨容器，不錨持有框
+        f:SetSize(r.w, r.h)
+    end
+    f:Show()
+end
+
+local function HideParts(hd)
+    if not hd then return end
+    if hd.ph then hd.ph.frame:Hide() end
+    if hd.skin then hd.skin.frame:Hide() end
+end
+
+-- region 的矩形 → { x, y（中心相對基準框中心）, w, h }。只認錨在 known 裡的框上的：一點錨（任何錨點＋偏移），
+-- 或 SetAllPoints（兩點、同一個框、錨點對錨點、偏移 0）。其他排法讀不懂 ⇒ nil
+local PX = { LEFT = -1, TOPLEFT = -1, BOTTOMLEFT = -1, RIGHT = 1, TOPRIGHT = 1, BOTTOMRIGHT = 1 }
+local PY = { TOP = 1, TOPLEFT = 1, TOPRIGHT = 1, BOTTOM = -1, BOTTOMLEFT = -1, BOTTOMRIGHT = -1 }
+local function RectOf(region, known)
+    local n = Num(Try(region.GetNumPoints, region))
+    if n == 1 then
+        local p, rel, rp, ox, oy = Try(region.GetPoint, region, 1)
+        p, rp, rel = Str(p), Str(rp), Plain(rel) or Try(region.GetParent, region)
+        local base = rel ~= nil and known[rel] or nil
+        local w, h = Num(Try(region.GetWidth, region)), Num(Try(region.GetHeight, region))
+        if not (base and p and rp and w and h and w > 0 and h > 0) then return nil end
+        ox, oy = Num(ox) or 0, Num(oy) or 0
+        return { x = base.x + (PX[rp] or 0) * base.w / 2 + ox - (PX[p] or 0) * w / 2,
+                 y = base.y + (PY[rp] or 0) * base.h / 2 + oy - (PY[p] or 0) * h / 2, w = w, h = h }
+    elseif n == 2 then
+        local p1, rel1, rp1, x1, y1 = Try(region.GetPoint, region, 1)
+        local p2, rel2, rp2, x2, y2 = Try(region.GetPoint, region, 2)
+        rel1, rel2 = Plain(rel1), Plain(rel2)
+        local base = rel1 ~= nil and rel1 == rel2 and known[rel1] or nil
+        if base and Str(p1) and Str(p1) == Str(rp1) and Str(p2) and Str(p2) == Str(rp2) and Str(p1) ~= Str(p2)
+            and Num(x1) == 0 and Num(y1) == 0 and Num(x2) == 0 and Num(y2) == 0 then
+            return { x = base.x, y = base.y, w = base.w, h = base.h }
         end
+    end
+    return nil
+end
+
+local function F2(v) return string.format("%.2f", v) end
+local function F4x4(a, b2, c2, d) return string.format("%.4f,%.4f,%.4f,%.4f", a, b2, c2, d) end
+
+-- 貼圖的內容：圖集優先，其次檔案路徑、檔案 ID。都沒有 ⇒ nil, nil
+local function AssetOf(t)
+    local atlas = Str(Try(t.GetAtlas, t))
+    if atlas then return atlas, nil end
+    local file = Str(Try(t.GetTextureFilePath, t))
+    if not file then
+        local id = Num(Try(t.GetTextureFileID, t))
+        if id and id > 0 then file = id end
+    end
+    return nil, file
+end
+
+-- GetTexCoord：左上 x,y、左下 x,y、右上 x,y、右下 x,y（八個值，Try 只回五個 ⇒ 直接 pcall）。讀不到 ⇒ 0,1,0,1
+local function TexCoordOf(t)
+    local ok, l, tp, _, _, _, _, r, b = pcall(t.GetTexCoord, t)
+    if ok then l, tp, r, b = Num(l), Num(tp), Num(r), Num(b) end
+    if not (ok and l and tp and r and b) then return 0, 1, 0, 1 end
+    return l, r, tp, b
+end
+
+local DRAW_LAYERS = { BACKGROUND = true, BORDER = true, ARTWORK = true, OVERLAY = true }
+local BLENDS = { BLEND = true, ADD = true, MOD = true, ALPHAKEY = true, DISABLE = true }
+
+-- 皮外框（Normal）的外觀：false ＝ 讀到了、這張皮沒有外框（藏著／沒貼圖／透明）；nil ＝ 讀不到
+local function ReadNormal(nt, known)
+    if not nt then return nil end
+    local shown = Plain(Try(nt.IsShown, nt))
+    if shown == nil then return nil end
+    local alpha = Num(Try(nt.GetAlpha, nt))
+    local atlas, file = AssetOf(nt)
+    if shown == false or alpha == 0 or not (atlas or file) then return false end
+    local rr = RectOf(nt, known)
+    if not rr then return nil end
+    local okC, cr, cg, cb, ca = pcall(nt.GetVertexColor, nt)
+    if okC then cr, cg, cb, ca = Num(cr), Num(cg), Num(cb), Num(ca) end
+    if not (okC and cr and cg and cb) then cr, cg, cb, ca = 1, 1, 1, 1 end
+    ca = (ca or 1) * (alpha or 1)
+    local blend = Str(Try(nt.GetBlendMode, nt))
+    if not BLENDS[blend] then blend = "BLEND" end
+    local okL, layer, sub = pcall(nt.GetDrawLayer, nt)
+    layer, sub = okL and Str(layer) or nil, okL and Num(sub) or nil
+    -- 至少 ARTWORK：圖示在 BACKGROUND，外框要在圖示上面
+    if not DRAW_LAYERS[layer] or layer == "BACKGROUND" then layer = "ARTWORK" end
+    sub = math.max(-8, math.min(7, math.floor(sub or 0)))
+    local l, r, t, b = TexCoordOf(nt)
+    local n = { atlas = atlas, file = file, x = rr.x, y = rr.y, w = rr.w, h = rr.h, l = l, r = r, t = t, b = b,
+                cr = cr, cg = cg, cb = cb, ca = ca, blend = blend, layer = layer, sub = sub }
+    n.sig = table.concat({ tostring(atlas or file), F2(rr.x), F2(rr.y), F2(rr.w), F2(rr.h), F4x4(l, r, t, b),
+        F4x4(cr, cg, cb, ca), blend, layer, sub }, ",")
+    return n
+end
+
+-- 從**我們自己的**框與它的 Icon（normal 給了的話連皮外框）讀回 Masque 套上去的形狀（框 w×h）。
+-- Icon 的矩形讀不懂 ⇒ nil（方形；這時也不讀外框，按鈕畫米利邊）
+local function ReadShape(frame, icon, w, h, normal)
+    if not (frame and icon and tonumber(w) and tonumber(h) and w > 0 and h > 0) then return nil end
+    local known = { [frame] = { x = 0, y = 0, w = w, h = h } }
+    local ir = RectOf(icon, known)
+    if not ir then return nil end
+    known[icon] = ir
+    local l, r, t, b = TexCoordOf(icon)
+    local mask
+    local n = Num(Try(icon.GetNumMaskTextures, icon)) or 0
+    for i = 1, n do
+        local mk = Plain(Try(icon.GetMaskTexture, icon, i))
+        if mk then
+            local atlas, file = AssetOf(mk)
+            if atlas or file then
+                -- 遮罩錨在 Icon（皮的 Mask）或探針（按鈕遮罩）上；讀不懂就當跟 Icon 同一個矩形
+                local mr = RectOf(mk, known) or ir
+                mask = { atlas = atlas, file = file, x = mr.x, y = mr.y, w = mr.w, h = mr.h }
+                break
+            end
+        end
+    end
+    local shape = { ix = ir.x, iy = ir.y, iw = ir.w, ih = ir.h, l = l, r = r, t = t, b = b, mask = mask }
+    if normal then shape.normal = ReadNormal(normal, known) end
+    shape.sig = table.concat({ F2(ir.x), F2(ir.y), F2(ir.w), F2(ir.h), F4x4(l, r, t, b),
+        mask and (tostring(mask.atlas or mask.file) .. "@" .. F2(mask.x) .. "," .. F2(mask.y) .. "," .. F2(mask.w)
+            .. "," .. F2(mask.h)) or "square",
+        shape.normal and ("N:" .. shape.normal.sig) or (shape.normal == false and "N:none" or "N:?") }, ",")
+    return shape
+end
+CU.ReadShape = ReadShape              -- 測試用
+
+-- 形狀快取（cache.msqShape／shapeGen／shapeSize）：Masque 換過設定、尺寸變了才重讀；沒遮罩時看一眼有沒有冒出來。
+-- normalOf：要讀皮外框時，回傳那張貼圖的函式（探針用；疊層不讀）
+local function ShapeFor(cache, frame, icon, w, h, normalOf)
+    local M = ns.Masque
+    local g = M and M.Generation and M.Generation() or 0
+    local size = tostring(w) .. "x" .. tostring(h)
+    local stale = cache.shapeGen ~= g or cache.shapeSize ~= size
+    if not stale and not (cache.msqShape and cache.msqShape.mask) then
+        stale = (Num(Try(icon.GetNumMaskTextures, icon)) or 0) > 0
+    end
+    if stale then
+        cache.msqShape = ReadShape(frame, icon, w, h, normalOf and normalOf() or nil)
+        cache.shapeGen, cache.shapeSize = g, size
+    end
+    return cache.msqShape
+end
+
+-- 探針（光環格與飾品欄增益；圖示類的條）。結果記在持有框上：hd.msqOn（Masque 在畫這一格）、hd.msqShape（形狀）
+local function SyncSkinLayer(rec, c, r, barKey)
+    local hd = rec.frame
+    local M = ns.Masque
+    local L = hd.skin
+    local skinned = false
+    if rec.shape ~= "bars" and M and M.Mode and M.Mode(barKey) == "masque" then
+        if not L then
+            local f = CreateFrame("Frame", nil, c)
+            f:EnableMouse(false)
+            f:SetAlpha(0)                                   -- 永遠看不見：只當 Masque 的參考
+            local icon = f:CreateTexture(nil, "BACKGROUND")
+            icon:SetAllPoints(f)
+            icon:SetColorTexture(0, 0, 0, 0)
+            local normal = f:CreateTexture(nil, "ARTWORK")
+            normal:SetAllPoints(f)
+            L = { frame = f, icon = icon, normal = normal }
+            hd.skin = L
+        end
+        PlacePart(L, c, r, PH_LIFT)
+        skinned = M.Sync(L, L.frame, { Icon = L.icon, Normal = L.normal }, M.TypeFor(barKey), r.w, r.h)
+    elseif L and L.msqButton and M then
+        M.Release(L)
+    end
+    if not skinned then
+        -- 米利模式、或 Masque 群組停用／這一格還沒交出去：探針收起來，按鈕畫米利邊
+        if L then L.frame:Hide() end
+        hd.msqOn, hd.msqShape = nil, nil
         return
     end
-    local tex = PlaceholderLook(rec)
-    ph:SetTexture(tex)
-    ph:SetDesaturated(true)
-    ph:SetAlpha(0.35)
-    ph:Show()
-    -- 縮放（TexCoord）也由它套（樣式的 zoom，跟暴雪占位同一個來源）
+    hd.msqOn = true
+    hd.msqShape = ShapeFor(L, L.frame, L.icon, r.w, r.h, function()
+        return M.GetNormal and M.GetNormal(L.frame) or nil
+    end)
+end
+CU.SyncSkinLayer = SyncSkinLayer      -- 測試用
+
+-- 飾品冷卻格的增益疊層：照底下冷卻格的皮（Decorate.Apply 交給 Masque 的那一格）讀形狀，不建探針、不讀外框
+local function OverlayShape(rec, h, shape, r)
+    local f = rec.frame
+    if shape == "bars" or not (rec.msqSkinned and f and f.Icon) then
+        h.msqOn, h.msqShape = nil, nil
+        return
+    end
+    h.msqOn = true
+    h.msqShape = ShapeFor(h, f, f.Icon, r.w, r.h, nil)
+end
+
+-- 圖示類的占位：獨立的框（見上）；長條類照舊畫在持有框上（UpdateBarPlaceholder）
+local function UpdatePlaceholder(rec, c, r, barKey)
+    if rec.shape == "bars" then return UpdateBarPlaceholder(rec, barKey, r.w, r.h) end
+    local hd = rec.frame
+    local e = rec.entry
+    local look = hd.ph
+    if not (e and e.placeholder) then
+        if look then look.frame:Hide() end
+        return
+    end
+    if not look then
+        local f = CreateFrame("Frame", nil, c)
+        f:EnableMouse(false)
+        local tex = f:CreateTexture(nil, "BACKGROUND")
+        tex:SetAllPoints(f)
+        look = { frame = f, tex = tex }
+        hd.ph = look
+    end
+    PlacePart(look, c, r, PH_LIFT)
+    local tex = look.tex
+    tex:SetTexture((PlaceholderLook(rec)))
+    tex:SetDesaturated(true)
+    tex:SetAlpha(0.35)                       -- 只有圖示暗，邊框照真實格的顏色
+    -- 邊框、縮放（米利）或整張皮（Masque）：跟暴雪增益格的占位（Core/Bars.lua）同一支
     if ns.Decorate and ns.Decorate.ApplyPlaceholder then
-        ns.Decorate.ApplyPlaceholder(look, barKey, rec.cooldownID, w, h, true)
+        ns.Decorate.ApplyPlaceholder(look, barKey, rec.cooldownID, r.w, r.h)
     else
         local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
-        ph:SetTexCoord(z, 1 - z, z, 1 - z)
+        tex:SetTexCoord(z, 1 - z, z, 1 - z)
     end
 end
 
@@ -1966,6 +2280,7 @@ CU.New = New                          -- 測試用
 local function Retire(rec, old)
     if rec.kind == "aura" then
         ns.Write(old, function(fr) fr:Hide() end, "place")
+        HideParts(old)                     -- 占位、探針（條容器的子框，不跟著持有框藏）
         return
     end
     old:Hide()
@@ -2020,6 +2335,8 @@ CU.UseFrame = UseFrame                -- 測試用
 --   * 設定照冷卻格那一筆的 cooldownID 讀（隱藏倒數／層數、邊框色、生效發光、出現／消失音效），外觀多套
 --     「增益那一段」的顏色（AuraStyle 的 overlayOf 分支）；
 --   * 不畫占位（沒增益時底下的冷卻格就是畫面）。
+--   * 圖示外觀＝Masque：不建探針、不畫皮外框（底下的冷卻格自己交給 Masque，外框是它的；再畫一圈就是兩圈）、
+--     只照冷卻格的 Icon 讀回形狀烘遮罩、不畫米利邊（OverlayShape，見「光環格的 Masque」）。
 -- 要不要疊：Catalog.SlotOverlayIDs（條層／逐法術 showAuraTime 沒關、而且解得出增益）——跟 BarHasAuraSlot 同一個判準，
 -- 所以有疊層的條固定格位一定被強制打開。不疊時持有框收起來（ns.Write Hide），容器留在池裡。
 --
@@ -2086,6 +2403,8 @@ local function PlaceOverlay(rec, c, r, barKey, gen)
             fr:Show()
         end, "place")
     end
+    -- Masque：照底下冷卻格的皮（Decorate.Apply 剛套過）讀形狀、不畫米利邊；不建探針（外框是冷卻格自己的）
+    OverlayShape(rec, h, shape, r)
     EnsureContainer(o, barKey, r.w, r.h)
     -- 出現／消失音效：照冷卻格那一筆的 gainSound／loseSound 登記（Core/Sound.lua 認得 rec.buffOverlay）
     if ns.Sound then ns.Sound.RequestAuraSync() end
@@ -2101,6 +2420,7 @@ local function HideRec(rec)
     local f = rec.frame
     if rec.kind == "aura" then
         ns.Write(f, function(fr) fr:Hide() end, "place")
+        HideParts(f)                                           -- 占位、探針跟著收
         if ns.Sound then ns.Sound.RequestAuraSync() end       -- 收起來的光環格撤掉音效登記
     else
         f:Hide()
@@ -2209,7 +2529,9 @@ function CU.Place(rec, c, r, barKey, gen)
                 fr:Show()
             end, "place")
         end
-        UpdatePlaceholder(rec, barKey, r.w, r.h)
+        UpdatePlaceholder(rec, c, r, barKey)
+        -- 探針（Masque）在建容器之前：讀回來的形狀與皮外框要進這一輪的簽章
+        SyncSkinLayer(rec, c, r, barKey)
         EnsureContainer(rec, barKey, r.w, r.h)
         -- 出現／消失音效走 AddAuraSound 登記（對帳、下一幀、戰鬥中延後，見 Core/Sound.lua）
         if ns.Sound then ns.Sound.RequestAuraSync() end

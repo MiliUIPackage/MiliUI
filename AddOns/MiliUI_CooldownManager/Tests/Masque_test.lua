@@ -319,6 +319,19 @@ eq("啟用 → 已交的格子又算 Masque 在畫", M.IsSkinned(hn), true)
 fakeGroup.cb(fakeGroup, "SkinID", "Zoomed")
 eq("換皮 → 重套（轉圈色寫回）", invalidated, 4)
 
+-- 光環格的探針：Generation 跟著回呼加、GetNormal 只走公開 API
+local g0 = M.Generation()
+fakeGroup.cb(fakeGroup, "Gloss", true)
+eq("回呼 → Generation +1", M.Generation(), g0 + 1)
+local nt = {}
+masqueLib.GetNormal = function(_, b) if b == "probe" then return nt end end
+eq("GetNormal：公開 API 拿到的貼圖", M.GetNormal("probe"), nt)
+eq("GetNormal：沒有 ⇒ nil", M.GetNormal("other"), nil)
+masqueLib.GetNormal = function() error("boom") end
+eq("GetNormal：API 出錯 ⇒ nil（不報錯）", M.GetNormal("probe"), nil)
+masqueLib.GetNormal = nil
+eq("GetNormal：沒有這支 API ⇒ nil", M.GetNormal("probe"), nil)
+
 ------------------------------------------------------------
 -- 6. 開 Masque 設定
 ------------------------------------------------------------
