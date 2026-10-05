@@ -167,6 +167,8 @@ function SetupButtons()   -- 已於檔案上方 forward-declare
     focuserButton:SetAttribute("macrotext", macro)
     focuserButton:SetAttribute("macrotextrelease", macro)
     focuserButton:SetAttribute("macrotext1", macro)
+    -- Init 回呼順序不保證：AnnounceMacro 可能先算好狀態、那時按鈕還沒建
+    Focuser.ApplyAnnounceMode()
 
     -- 綁定不直接掛在 focuserButton 上（鍵綁會送下+上兩個邊緣，配上
     -- pressAndHold 會跑兩次巨集），改綁到中繼按鈕：由 cvar 門檻挑一個
@@ -300,6 +302,19 @@ end
 
 function Focuser.GetButton()
     return focuserButton
+end
+
+-- 「每次設專注目標都宣告」：第二顆巨集就緒就讓巨集按鈕改跑它（type=macro 時
+-- macro 屬性優先於 macrotext），否則拿掉、退回 macrotext。AnnounceMacro.Refresh
+-- 算完狀態後呼叫；保護屬性，脫戰才寫。
+-- 戰鬥中從標記選單換圖示時，格子的安全快照會把這三個屬性清掉（巨集書戰鬥中改不了，
+-- 留著就會照舊標記編號標下去），脫戰 Refresh 再掛回來。
+function Focuser.ApplyAnnounceMode()
+    if not focuserButton or InCombatLockdown() then return end
+    local name = ns.AnnounceMacro.IsMarkMacroUsable() and ns.AnnounceMacro.MARK_MACRO_NAME or nil
+    focuserButton:SetAttribute("macro", name)
+    focuserButton:SetAttribute("macrorelease", name)
+    focuserButton:SetAttribute("macro1", name)
 end
 
 function Focuser.GetMacroForMarkIndex(index)

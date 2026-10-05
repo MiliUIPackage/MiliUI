@@ -230,6 +230,12 @@ local function CreatePanel()
         SetCombatLocked(InCombatLockdown())   -- 戰鬥中開窗也要鎖
     end)
 
+    -- 右上角「格線: ON／OFF」（共用層，滑過調間距）：開著設定視窗拖框時對齊用。
+    -- 佔掉分頁列最右邊那段，搜尋框的可用寬度跟著扣（Search.CreateBox 在下面才建）。
+    -- ⚠ 要排在上面兩行 SetScript 之後：共用層走 HookScript
+    local grid = W.CreateGridToggle(panel, { db = function() return ns.db.optionsWindow end })
+    Options.tabRoom = Options.tabRoom - grid.width - 8
+
     -- 搜尋框：跟標題同一列的另一端（標題在左、搜尋在右），不佔面板內部空間。
     -- ⚠ 一定要排在上面兩個 SetScript **之後**：CreateBox 內部用 HookScript 掛
     -- panel 的 OnHide 做關窗清理，先掛後 SetScript 會把它整個蓋掉 ⇒ 帶著搜尋結果

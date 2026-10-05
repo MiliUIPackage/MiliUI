@@ -313,6 +313,19 @@ local function ReadInfo(id)
         if name == nil then name = GlobalText(catDef.title) end
     end
     local isKnown = Plain(raw.isKnown)
+    -- 連帶的法術（增益類常是光環本身的 ID；Core/Sound.lua 的層數增加音效逐一登記）：只收明文數字
+    local linked
+    local okL, list = pcall(function() return raw.linkedSpellIDs end)
+    list = okL and Plain(list) or nil
+    if type(list) == "table" then
+        for _, v in ipairs(list) do
+            v = Plain(v)
+            if type(v) == "number" then
+                linked = linked or {}
+                linked[#linked + 1] = v
+            end
+        end
+    end
     return {
         cooldownID      = id,
         spellID         = spellID,
@@ -328,6 +341,7 @@ local function ReadInfo(id)
         isInvisible     = Plain(raw.isInvisible) and true or false,
         isKnown         = isKnown ~= false,       -- 讀不到當作學了（寧可多一格空位也不要少）
         flags           = Plain(raw.flags),
+        linkedSpellIDs  = linked,
     }
 end
 

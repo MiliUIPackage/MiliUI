@@ -5,7 +5,9 @@
 --
 -- 覆蓋：節流（1.5 秒、被擋那次不延長窗口）、讀取畫面中與結束後 2 秒靜音、同一批「消失又出現」
 -- 合併抵消（純函式與實際掛勾路徑）、AddAuraSound 對帳（多的撤、少的登、戰鬥中與秘密光環時延後、
--- 進場全部重登）、逐法術覆寫的讀寫與分組（Core/DB.lua 一起載）、主題預設值、LSM 回數字也能播。
+-- 進場全部重登）、逐法術覆寫的讀寫與分組（Core/DB.lua 一起載）、主題預設值、LSM 回數字也能播、
+-- 層數增加音效（光環格與暴雪增益 item 的 ApplicationsIncreased、法術展開去重、節流 0.3 進簽章、item 換身分才重登）、
+-- 充能滿音效（三態轉變、進表只記不響、監看表空時撤事件、換天賦出表；ns.Glow 用假的）。
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -445,6 +447,224 @@ eq("疊層收起來（不疊）⇒ 撤掉", S.AuraCount(), 1)
 customRecs.t = nil
 DB.SetOverride("c:3", "gainSound", nil)
 ns.Custom.AuraIDsOf = nil
+
+------------------------------------------------------------
+-- 8b. 層數增加音效：光環格與暴雪增益 item（ApplicationsIncreased、節流 0.3 進簽章）
+------------------------------------------------------------
+do
+    eq("層數增加音效：SPELL_CONST false", DB.SPELL_CONST.stackSound, false)
+    eq("層數增加音效：音效節", DB.OVERRIDE_GROUP.stackSound, "sound")
+    eq("充能滿音效：SPELL_CONST false", DB.SPELL_CONST.fullSound, false)
+    eq("充能滿音效：音效節", DB.OVERRIDE_GROUP.fullSound, "sound")
+    eq("充能滿語音：音效節", DB.OVERRIDE_GROUP.fullSpeak, "sound")
+    check("節流值進簽章", Logic.Sig(1, 5, "x", "Master", 0.3) ~= Logic.Sig(1, 5, "x", "Master", 1.5))
+    eq("沒給節流 ＝ 預設 1.5 的簽章", Logic.Sig(0, 5, "x", "Master"), Logic.Sig(0, 5, "x", "Master", 1.5))
+
+    S.RequestAuraSync(); Flush()
+    local base = S.AuraCount()                       -- 前一段留下的光環格（出現音效一筆）
+    local function Count(trig, sid)
+        local n = 0
+        for _, r in pairs(registered) do
+            if r.trigger == trig and (sid == nil or r.info.spellID == sid) then n = n + 1 end
+        end
+        return n
+    end
+    -- 光環格：stackSound ⇒ 多一筆 ApplicationsIncreased（trigger 1）、節流 0.3
+    DB.SetOverride("c:1", "stackSound", "Ding")
+    S.RequestAuraSync(); Flush()
+    eq("光環格層數增加：多一筆", S.AuraCount(), base + 1)
+    local inc
+    for _, r in pairs(registered) do if r.trigger == 1 then inc = r.info end end
+    eq("光環格層數增加：法術", inc and inc.spellID, 12345)
+    eq("光環格層數增加：節流 0.3", inc and inc.throttleSeconds, 0.3)
+    DB.SetOverride("c:1", "stackSound", nil)
+    S.RequestAuraSync(); Flush()
+    eq("光環格層數增加：拿掉就撤", S.AuraCount(), base)
+
+    -- 暴雪增益 item：目錄 spellID＋overrideTooltipSpellID＋linkedSpellIDs，去重、各一筆
+    local items = {
+        { {}, { barKey = "buffs", cooldownID = 701 } },
+        { {}, { barKey = "buffbars", cooldownID = 702 } },
+        { {}, { barKey = "buffs", cooldownID = nil } },          -- 池子裡、還沒身分
+        { {}, { barKey = "buffs", cooldownID = 703 } },          -- 沒設層數增加音效
+    }
+    local infos = {
+        [701] = { spellID = 51124, overrideTooltipSpellID = 51124, linkedSpellIDs = { 51124, 53365 } },
+        [702] = { spellID = 9001, linkedSpellIDs = { 9002, 9002 } },
+        [703] = { spellID = 9100 },
+    }
+    local origCatalog, origEnum = ns.Catalog, ns.Viewers.EnumerateItems
+    ns.Catalog = { Info = function(id) return infos[id] end }
+    ns.Viewers.EnumerateItems = function(fn, onlyKey)
+        for _, it in ipairs(items) do
+            if not onlyKey or it[2].barKey == onlyKey then fn(it[1], it[2]) end
+        end
+    end
+    eq("法術展開：去重", table.concat(S.BuffItemSpells(701), ","), "51124,53365")
+    eq("法術展開：linked 重複只算一次", table.concat(S.BuffItemSpells(702), ","), "9001,9002")
+    eq("法術展開：沒有目錄資訊 ⇒ 空", #S.BuffItemSpells(999), 0)
+
+    S.RequestAuraSync(); Flush()
+    eq("沒設 stackSound ⇒ 暴雪增益 item 不登", S.AuraCount(), base)
+    DB.SetOverride(701, "stackSound", "Bell")
+    DB.SetOverride(702, "stackSound", "Num")
+    S.RequestAuraSync(); Flush()
+    eq("暴雪增益 item：每個法術各一筆", S.AuraCount(), base + 4)
+    eq("殺戮機器 51124 一筆 ApplicationsIncreased", Count(1, 51124), 1)
+    eq("連帶的 53365 一筆", Count(1, 53365), 1)
+    eq("702 的兩個法術", Count(1, 9001) + Count(1, 9002), 2)
+    eq("沒設的 703 不登", Count(1, 9100), 0)
+    do
+        local th
+        for _, r in pairs(registered) do if r.info.spellID == 53365 then th = r.info.throttleSeconds end end
+        eq("暴雪增益 item 節流 0.3", th, 0.3)
+    end
+    eq("暴雪增益 item 不登出現／消失（那兩種走 Lua 掛勾）", Count(0, 51124) + Count(2, 51124), 0)
+
+    -- item 換身分：前後任一個有設才排對帳
+    local n0 = #deferred
+    S.OnBuffItemChanged(703, nil)
+    eq("沒設層數增加的 item 換身分 ⇒ 不排", #deferred, n0)
+    S.OnBuffItemChanged(nil, 701)
+    check("有設的 item 換身分 ⇒ 排對帳", #deferred > n0)
+    items[1][2].cooldownID = nil                     -- 701 從池子裡收掉
+    Flush()
+    eq("item 收掉 ⇒ 撤掉它的兩筆", S.AuraCount(), base + 2)
+    items[1][2].cooldownID = 701
+
+    -- 戰鬥中不能登：排到脫戰
+    state.combat = true
+    S.RequestAuraSync(); Flush()
+    eq("戰鬥中不動", S.AuraCount(), base + 2)
+    state.combat = false
+    FireEvent("PLAYER_REGEN_ENABLED"); Flush()
+    eq("脫戰補登", S.AuraCount(), base + 4)
+
+    -- 自訂項目的 rec 不算暴雪增益 item
+    items[5] = { {}, { barKey = "buffs", cooldownID = 701, custom = true } }
+    S.RequestAuraSync(); Flush()
+    eq("自訂 rec 不重複登", S.AuraCount(), base + 4)
+    items[5] = nil
+
+    DB.SetOverride(701, "stackSound", nil)
+    DB.SetOverride(702, "stackSound", nil)
+    S.RequestAuraSync(); Flush()
+    eq("拿掉 ⇒ 撤乾淨", S.AuraCount(), base)
+    ns.Catalog, ns.Viewers.EnumerateItems = origCatalog, origEnum
+end
+
+------------------------------------------------------------
+-- 8c. 充能滿音效：三態轉變、監看表、事件
+------------------------------------------------------------
+do
+    local FE = Logic.FullEdge
+    check("沒滿 → 滿 ⇒ 響", FE(false, true))
+    check("讀不到 → 滿 ⇒ 不響", not FE(nil, true))
+    check("滿 → 滿 ⇒ 不響", not FE(true, true))
+    check("滿 → 沒滿 ⇒ 不響", not FE(true, false))
+    check("沒滿 → 讀不到 ⇒ 不響", not FE(false, nil))
+
+    local charge, full = {}, {}                       -- 法術 → 是不是充能技能／三態
+    local origGlow = ns.Glow
+    ns.Glow = {
+        FullSpellOf = function(rec) return rec.spell end,
+        ReadFull = function(_, id) return charge[id] == true, full[id] end,
+    }
+    local function Full() return events.SPELL_UPDATE_CHARGES and events.SPELL_UPDATE_CHARGES.sound_full end
+    state.now = 600
+    local rec = { cooldownID = 51, claimKey = "essential", spell = 5100 }
+    charge[5100], full[5100] = true, true
+
+    S.SyncFull(rec, "essential", false)
+    eq("沒設 ⇒ 不進表", S.fullWatch[rec], nil)
+    check("表空 ⇒ 不聽事件", not Full())
+
+    DB.SetOverride(51, "fullSound", "Ding")
+    local n = #plays
+    S.SyncFull(rec, "essential", false)
+    check("設了 ⇒ 進表", S.fullWatch[rec] ~= nil)
+    check("表不空 ⇒ 聽 SPELL_UPDATE_CHARGES", Full() ~= nil)
+    eq("進表當下（滿著）只記不響", #plays, n)
+
+    full[5100] = false; FireEvent("SPELL_UPDATE_CHARGES")
+    eq("用掉一層（沒滿）⇒ 不響", #plays, n)
+    full[5100] = true; FireEvent("SPELL_UPDATE_CHARGES")
+    eq("沒滿 → 滿 ⇒ 響", #plays, n + 1)
+    eq("播的是充能滿音效", plays[#plays].path, media.Ding)
+    FireEvent("SPELL_UPDATE_CHARGES")
+    eq("滿 → 滿 ⇒ 不響", #plays, n + 1)
+
+    state.now = 610
+    full[5100] = false; FireEvent("SPELL_UPDATE_CHARGES")
+    full[5100] = nil; FireEvent("SPELL_UPDATE_CHARGES")
+    full[5100] = true; FireEvent("SPELL_UPDATE_CHARGES")
+    eq("沒滿 → 讀不到 → 滿 ⇒ 不響（讀不到把狀態清掉）", #plays, n + 1)
+    full[5100] = false; FireEvent("SPELL_UPDATE_CHARGES")
+    full[5100] = true; FireEvent("SPELL_UPDATE_CHARGES")
+    eq("再一次明確的沒滿 → 滿 ⇒ 響", #plays, n + 2)
+
+    -- 排版時（SyncFull）剛好碰上回滿也算
+    state.now = 620
+    full[5100] = false; S.SyncFull(rec, "essential", false)
+    full[5100] = true; S.SyncFull(rec, "essential", false)
+    eq("排版對帳：沒滿 → 滿 ⇒ 響", #plays, n + 3)
+
+    -- 框換了一招（cooldownID 換了）：重新進表、只記不響
+    state.now = 630
+    full[5100] = false; S.SyncFull(rec, "essential", false)
+    rec.cooldownID = 52; DB.SetOverride(52, "fullSound", "Bell")
+    full[5100] = true; S.SyncFull(rec, "essential", false)
+    eq("換了一招 ⇒ 只記不響", #plays, n + 3)
+    rec.cooldownID = 51
+
+    -- 語音播報：只設語音也進表、轉變時念
+    local rec2 = { cooldownID = 53, claimKey = "essential", spell = 5300 }
+    charge[5300], full[5300] = true, false
+    local spoken = {}
+    env.C_VoiceChat = { SpeakText = function(_, text) spoken[#spoken + 1] = text end }
+    env.C_TTSSettings = { GetVoiceOptionID = function() return 1 end }
+    DB.SetOverride(53, "fullSpeak", "滿了")
+    S.SyncFull(rec2, "essential", false)
+    check("只設語音也進表", S.fullWatch[rec2] ~= nil)
+    full[5300] = true; FireEvent("SPELL_UPDATE_CHARGES")
+    eq("語音播報念設定的字", spoken[#spoken], "滿了")
+    env.C_VoiceChat, env.C_TTSSettings = nil, nil
+    DB.SetOverride(53, "fullSpeak", nil)
+    S.SyncFull(rec2, "essential", false)
+    eq("拿掉語音 ⇒ 出表", S.fullWatch[rec2], nil)
+
+    -- 換天賦不再是充能技能：事件裡發現就出表、表空撤事件
+    charge[5100] = false
+    FireEvent("SPELL_UPDATE_CHARGES")
+    eq("不再是充能技能 ⇒ 出表", S.fullWatch[rec], nil)
+    check("表空 ⇒ 撤事件", not Full())
+
+    -- 藏起來／停放／總開關
+    charge[5100], full[5100] = true, true
+    S.SyncFull(rec, "essential", false)
+    check("回到充能技能 ⇒ 再進表", S.fullWatch[rec] ~= nil)
+    S.SyncFull(rec, "essential", true)
+    eq("藏起來 ⇒ 出表", S.fullWatch[rec], nil)
+    S.SyncFull(rec, "essential", false)
+    S.UnwatchFull(rec)
+    eq("停放 ⇒ 出表", S.fullWatch[rec], nil)
+    check("停放後表空 ⇒ 撤事件", not Full())
+    p.theme.sound.enabled = false
+    S.SyncFull(rec, "essential", false)
+    eq("總開關關掉 ⇒ 不進表", S.fullWatch[rec], nil)
+    p.theme.sound.enabled = true
+    -- 不是充能技能（三態回 nil 且 IsChargeSpell false）：不進表
+    local rec3 = { cooldownID = 51, claimKey = "essential", spell = 7777 }
+    S.SyncFull(rec3, "essential", false)
+    eq("不是充能技能 ⇒ 不進表", S.fullWatch[rec3], nil)
+    -- 解不出法術（物品、增益）：不進表
+    S.SyncFull({ cooldownID = 51, claimKey = "essential" }, "essential", false)
+    check("解不出法術 ⇒ 表還是空的", next(S.fullWatch) == nil)
+
+    DB.SetOverride(51, "fullSound", nil)
+    DB.SetOverride(52, "fullSound", nil)
+    ns.Glow = origGlow
+end
 
 ------------------------------------------------------------
 -- 自訂語音

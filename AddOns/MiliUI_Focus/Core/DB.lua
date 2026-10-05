@@ -64,6 +64,9 @@ local function BuildDefaults()
         bar = {
             shown = false,
             announceText = ns.L["My focus interrupt target is {icon}!"],
+            -- true = Shift+點擊／快捷鍵設專注目標時順便宣告（喇叭鈕右鍵切換）；
+            -- false = 只有點喇叭鈕才喊
+            announceOnMark = false,
             -- x / y = nil：第一次顯示時算出畫面中央偏下的位置（見 Modules/MarkBar.lua）
             x = nil, y = nil,
             -- 滑鼠不在上面就淡出（引擎在 Libs/MiliUISnap.lua）。預設關：既有玩家

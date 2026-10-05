@@ -469,6 +469,13 @@ end
 -- 增益長條：名字／時間／層數
 --   名字讓暴雪寫；我們只調樣式與位置，要藏就熄 alpha
 ------------------------------------------------------------
+-- 長條層數錨在圖示角落時往內縮 1px（右下 ＝ -1, 1，舊的固定位置）；置中的那一軸不縮
+function T.BarStackInset(pt)
+    local ix = pt:find("RIGHT") and -1 or (pt:find("LEFT") and 1 or 0)
+    local iy = pt:find("BOTTOM") and 1 or (pt:find("TOP") and -1 or 0)
+    return ix, iy
+end
+
 function T.ApplyBar(item, style, spell, bar, rec)
     local font, outline = style.font, style.outline
     local b = item.Bar
@@ -507,9 +514,14 @@ function T.ApplyBar(item, style, spell, bar, rec)
         local own = spell.stackOwn or EMPTY
         SetFont(stack, own.size or bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
-        -- 錨點固定在圖示右下（長條的圖示太小、換角沒意義），X／Y 位移照「層數」的設定加在上面
-        -- （玩家回報「層數的 XY 改了不會動」，2026-10-03）
-        Anchor(stack, icon, "BOTTOMRIGHT", -1 + (tonumber(c.x) or 0), 1 + (tonumber(c.y) or 0))
+        -- 錨點照「層數」的長條錨點（stackText.barPoint，九宮格選；預設右下＝舊行為），往內縮 1px 不貼邊，
+        -- X／Y 位移加在上面（玩家回報「層數的 XY 改了不會動」，2026-10-03）
+        local pt = style.stackBarPoint or "BOTTOMRIGHT"
+        local ix, iy = T.BarStackInset(pt)
+        Anchor(stack, icon, pt, ix + (tonumber(c.x) or 0), iy + (tonumber(c.y) or 0))
+        -- 暴雪的 XML 把這顆字定成 32×10、靠右對齊：錨在右下看不出來，換成置中／靠左時字會被推到框的右緣
+        -- （預覽格的字是自動尺寸，兩邊對不上）⇒ 解開成自動尺寸，錨點就是字本身的那一角
+        if stack.SetSize then stack:SetSize(0, 0) end
         -- 圖示藏起來（side ＝ NONE 只熄 item.Icon 的 alpha）：換了父層就不會跟著熄，這裡自己熄
         local noIcon = rec and rec.barGeometry and rec.barGeometry.side == "NONE"
         stack:SetAlpha((bar.showStacks and not spell.hideStackText and not noIcon) and 1 or 0)

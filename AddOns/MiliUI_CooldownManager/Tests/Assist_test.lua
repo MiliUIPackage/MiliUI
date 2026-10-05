@@ -818,6 +818,33 @@ do
     eq("停放 ⇒ 熄", c.glowOn.full, nil)
     eq("停放 ⇒ 事件撤掉", handlers.SPELL_UPDATE_CHARGES.glow_full, nil)
 
+    -- 三態（G.ReadFull，充能滿音效用）：滿／沒滿／讀不到分得開；不是充能技能 ⇒ isCharge false
+    local rr = Rec(20)
+    charges[2000] = { maxCharges = 2, isActive = false }
+    local ic, st = G.ReadFull(rr, 2000)
+    check("三態：滿", ic == true and st == true)
+    charges[2000].isActive = true
+    ic, st = G.ReadFull(rr, 2000)
+    check("三態：沒滿（明文 false 不被吃成 nil）", ic == true and st == false)
+    charges[2000].isActive = SECRET
+    ic, st = G.ReadFull(rr, 2000)
+    check("三態：秘密 ⇒ 讀不到", ic == true and st == nil)
+    eq("FullState 包三態：讀不到 ⇒ false（發光 fail-closed）", G.FullState(rr, 2000), false)
+    ic, st = G.ReadFull(rr, 2100)
+    check("三態：不是充能技能", ic == false and st == nil)
+    eq("FullState：不是充能技能 ⇒ nil", G.FullState(rr, 2100), nil)
+    charges[2000].isActive = false
+    -- 從 cooldownID 解法術（設定介面用）：暴雪冷卻格、增益條、裝備欄、自訂法術／物品
+    ns.Catalog.SourceOf = function(id) return id == 23 and "buffs" or "essential" end
+    infos[23] = { spellID = 2300 }
+    infos["c:5"] = { custom = true, kind = "spell", spellID = 3000, overrideSpellID = 3100 }
+    infos["c:6"] = { custom = true, kind = "item", itemID = 1 }
+    eq("FullSpellOfID：暴雪冷卻格", G.FullSpellOfID(20), 2000)
+    eq("FullSpellOfID：增益條 ⇒ nil", G.FullSpellOfID(23), nil)
+    eq("FullSpellOfID：裝備欄 ⇒ nil", G.FullSpellOfID(22), nil)
+    eq("FullSpellOfID：自訂法術用覆蓋", G.FullSpellOfID("c:5"), 3100)
+    eq("FullSpellOfID：自訂物品 ⇒ nil", G.FullSpellOfID("c:6"), nil)
+    eq("FullSpellOf 匯出", G.FullSpellOf(rr), 2000)
     ns.SpellSetting, ns.Catalog, ns.Viewers, ns.Decorate = origSpell, origCatalog, origViewers, origDecorate
     env.C_Spell = nil
 end

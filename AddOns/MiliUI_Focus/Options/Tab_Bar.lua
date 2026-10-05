@@ -20,6 +20,7 @@ local function Apply()
         bar.announceText = L["My focus interrupt target is {icon}!"]
     end
     ns.MarkBar.Refresh()
+    ns.MarkBar.UpdateAnnounceModeBadge()
     ns.MarkBar.ApplyFade()
     RefreshAll()
 end
@@ -79,6 +80,8 @@ local CONTROLS = {
     { type = "text",   label = L["{icon} is replaced with your marker icon."] },
     { type = "text",   label = L["It is sent through a macro named %s in your macro book (one macro slot), so it also works in Mythic+ and boss fights. Deleting the macro just recreates it."]:format("|cffffd200" .. ns.AnnounceMacro.MACRO_NAME .. "|r") },
     { type = "custom", label = L["Preview"], build = BuildPreviewRow },
+    { type = "toggle", key = "announceOnMark", label = L["Announce on every focus"] },
+    { type = "text",   label = L["Shift-click / the focus hotkey announces as it sets focus and marks a living enemy; needs auto-mark on. Uses a second macro, %s. Right-click the speaker on the bar to toggle quickly."]:format("|cffffd200" .. ns.AnnounceMacro.MARK_MACRO_NAME .. "|r") },
     { type = "button", label = "", text = L["Restore default text"],
       onClick = function()
           ns.db.bar.announceText = L["My focus interrupt target is {icon}!"]

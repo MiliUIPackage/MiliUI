@@ -81,6 +81,13 @@ local function ReportFrames()
         local _, _, body = GetMacroInfo(idx)
         print("   " .. tostring(body))
     end
+    -- 「每次設專注目標都宣告」那顆
+    ns.Print(L["Focus+announce macro:"], ns.AnnounceMacro.GetMarkState())
+    idx = GetMacroIndexByName and GetMacroIndexByName(ns.AnnounceMacro.MARK_MACRO_NAME)
+    if idx and idx > 0 then
+        local _, _, body = GetMacroInfo(idx)
+        for line in tostring(body):gmatch("[^\n]+") do print("   " .. line) end
+    end
 end
 
 SLASH_MILIUIFOCUS1 = "/mfocus"

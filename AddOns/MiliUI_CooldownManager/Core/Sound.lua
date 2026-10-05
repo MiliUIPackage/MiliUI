@@ -1,10 +1,14 @@
 ------------------------------------------------------------
--- 音效：就緒音效、光環出現／消失音效
+-- 音效：就緒音效、充能滿音效、光環出現／消失音效、層數增加音效
 --
 --   ns.Sound.WantsReady(rec)          這一格有沒有設就緒音效（Glow 決定要不要建探針、武裝）
 --   ns.Sound.OnReady(rec)             就緒探針觸發（Glow.FireReady 叫；跟就緒發光同一個訊號）
+--   ns.Sound.SyncFull(rec, barKey, hidden)   充能滿音效的監看表對帳（Glow.SyncFull 叫：排版、設定變了）
+--   ns.Sound.UnwatchFull(rec)         停放／收起：出監看表（Glow.OnParked 叫）
+--   ns.Sound.OnBuffItemChanged(old, new)   暴雪增益 item 換了身分（Viewers 叫）：有設層數增加音效的才重登
 --   ns.Sound.HookItem(item, rec)      Viewers 第一次看到 item 時叫（只掛增益兩條）
---   ns.Sound.RequestAuraSync()        光環格（含飾品欄的增益疊層）放好／收起、設定變了：下一幀對一次 AddAuraSound 登記
+--   ns.Sound.RequestAuraSync()        光環格（含飾品欄的增益疊層）放好／收起、暴雪增益 item 換了身分、設定變了：
+--                                      下一幀對一次 AddAuraSound 登記
 --   ns.Sound.Preview(name)            設定介面「試聽」（不看總開關、不節流）
 --   ns.Sound.Path(name)               LSM 音效名或自訂語音代號 → 路徑字串或檔案編號（查不到 nil）
 --   ns.Sound.DisplayName(name)        下拉選單上的字（自訂語音是玩家取的名字）
@@ -18,8 +22,10 @@
 -- 設定
 --   theme.sound = { enabled, channel }      總開關、聲道（Master／SFX／Music／Ambience／Dialog）
 --   spells[spec].overrides[id].readySound   冷卻類：LSM 音效名；nil／false ＝ 無
+--   ….fullSound                             冷卻類（只有充能技能）：所有充能都回滿的那一刻
 --   ….gainSound／loseSound                  增益類：出現／消失；暴雪的冷卻格：增益時間開始／結束（S.OnAuraFlag）
---   ….readySpeak／gainSpeak／loseSpeak       語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
+--   ….stackSound                            增益類：每多一層（引擎播，AddAuraSound；沒有語音播報）
+--   ….readySpeak／fullSpeak／gainSpeak／loseSpeak   語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
 --   音效沒有條層的值，只有逐法術（DB.SPELL_CONST 給 false）。
 --   帳號層 customSounds = { { id, name, path }, … }   自訂語音（順序＝玩家排的順序）
 --   帳號層 customSoundNext                             下一個 id（不重用，刪掉的代號不會被別筆接走）
@@ -43,6 +49,15 @@
 -- 暴雪 item 有自己的 TriggerAvailableAlert，但它只在玩家替那個法術設了暴雪警示時才被
 -- OnUpdate 叫到（NeedsOnUpdateRegistration），不能當通用訊號。
 --
+-- ── 充能滿音效 ─────────────────────────────────────────────────────────
+-- 就緒音效在充能技能上是「每回一層響一次」（可以用了）；充能滿音效是「全部回滿響一次」（再不用就浪費）。
+-- 判斷跟充能滿了發光同一套（Core/Glow.lua 的 G.FullSpellOf＋G.ReadFull：maxCharges > 1 而且 isActive 明文 false；
+-- 不讀 currentCharges），用三態：滿／沒滿／讀不到。只有「上一次明確沒滿 → 這一次明確滿了」才響；
+-- 讀不到把記的狀態清成「不知道」（秘密 → 明文那一下不算轉變，寧可漏響也不誤響）。進表當下只記不響。
+-- 監看表自己一份（弱鍵 rec → { 法術, cooldownID, 狀態 }），跟發光的 fullWatch 分開：發光沒開也要能響。
+-- 只有設了 fullSound／fullSpeak 的格進表；表空時不聽 SPELL_UPDATE_CHARGES。換天賦不再是充能技能 ⇒ 出表。
+-- 暴雪的冷卻格與自訂法術才有（FullSpellOf 涵蓋）；裝備欄、物品、光環不做。
+--
 -- ── 增益 item 的出現／消失 ────────────────────────────────────────────
 -- 後掛勾 item 的 TriggerAuraAppliedAlert／TriggerAuraRemovedAlert（暴雪自己的警示呼叫點，
 -- 12.1.0.69933 的 Blizzard_CooldownViewer/CooldownViewer.lua：CooldownViewerMixin:OnUnitAura 裡
@@ -56,7 +71,7 @@
 -- 圖騰型的增益（不是光環）不經過 UNIT_AURA，暴雪那兩支不會叫 ⇒ 沒有出現／消失音效（README）。
 --
 -- ── 自訂光環格 ─────────────────────────────────────────────────────────
--- C_UnitAuras.AddAuraSound(Enum.UnitAuraSoundTrigger.Added／Removed, { unitToken, spellID,
+-- C_UnitAuras.AddAuraSound(Enum.UnitAuraSoundTrigger.Added／ApplicationsIncreased／Removed, { unitToken, spellID,
 -- soundFileName|soundFileID, outputChannel, throttleSeconds })，回傳 auraSoundID，
 -- RemoveAuraSound(id) 撤銷。引擎自己播，插件端不看光環。
 --   * HasRestrictions：戰鬥中、以及光環是秘密值的情境（C_Secrets.ShouldAurasBeSecret()：副本、
@@ -66,6 +81,18 @@
 --   * 設定變了：對帳（Logic.Diff），多的撤、少的登，同樣的不動。
 --   * 音效路徑是登記當下烘死的，總開關／聲道變了也是換一筆登記。
 --   * 節流、讀取畫面靜音只管我們自己 PlaySoundFile 的那兩種；光環格由引擎播，只能給 throttleSeconds。
+--
+-- ── 層數增加音效 ───────────────────────────────────────────────────────
+-- 一樣走 AddAuraSound（ApplicationsIncreased）：Lua 端不碰層數（秘密值）。每多一層響一次，0→1 算「出現」不算增加
+-- ⇒ 最多 2 層的增益（殺戮機器）正好在疊到 2 層那一刻響。節流用 0.3 秒（Logic.STACK_THROTTLE；快速連疊不被吞），
+-- 節流值進簽章（改了會換一筆）。沒有語音播報（引擎播的，沒有訊號）。
+--   * 光環格（含飾品欄的增益疊層）：跟出現／消失同一條路，多一個欄位對應。
+--   * 暴雪的增益 item（增益圖示列／增益長條，搬進自訂群組也一樣）：它們的出現／消失走 Lua 掛勾，層數只能走引擎。
+--     法術 ID 用目錄的 spellID、overrideTooltipSpellID（增益類常靠它指到真正的光環）加上全部 linkedSpellIDs，
+--     去重後各登一筆（引擎只在那個 ID 的光環疊層時播，多登無害）。
+--     列舉的是檢視器池子裡作用中、有身分的 item，**不看放沒放格**：增益不在時暗格會被停放、增益回來才放格，
+--     那常在戰鬥中，登記不了 ⇒ 登記要跟身分走，不能跟放格走（出現／消失的掛勾一樣不看放格）。
+--     item 換身分（Viewers 的 SetCooldownID／ClearCooldownID 後掛勾）時，前後任一個有設層數增加音效才重登。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -79,6 +106,7 @@ local Logic = {}
 S.Logic = Logic
 
 Logic.THROTTLE  = 1.5      -- 同一個法術同一種音效的最短間隔（秒）
+Logic.STACK_THROTTLE = 0.3 -- 層數增加音效（引擎的 throttleSeconds）：快速連疊不要被吞
 Logic.LOAD_MUTE = 2        -- 讀取畫面結束後靜音幾秒
 
 Logic.CHANNELS = { "Master", "SFX", "Music", "Ambience", "Dialog" }
@@ -224,9 +252,15 @@ function Logic.DefaultName(rel)
     return (file:gsub("%.[^.]+$", ""))
 end
 
--- 一筆登記的簽章（路徑可能是字串或檔案編號）
-function Logic.Sig(trigger, spellID, path, channel)
-    return table.concat({ tostring(trigger), tostring(spellID), type(path), tostring(path), tostring(channel) }, "|")
+-- 一筆登記的簽章（路徑可能是字串或檔案編號；節流值也進簽章，改了要換一筆）
+function Logic.Sig(trigger, spellID, path, channel, throttle)
+    return table.concat({ tostring(trigger), tostring(spellID), type(path), tostring(path), tostring(channel),
+                          tostring(throttle or Logic.THROTTLE) }, "|")
+end
+
+-- 充能滿音效的轉變（純函式）：before／now ＝ true 滿／false 沒滿／nil 讀不到。只有明確的沒滿 → 明確的滿才響
+function Logic.FullEdge(before, now)
+    return before == false and now == true
 end
 
 -- 語音播報要念什麼：true ＝ 法術名；字串 ＝ 那段字（頭尾空白不算，空字串也念法術名）；false／nil／其他 ＝ 不念
@@ -323,7 +357,7 @@ end
 ------------------------------------------------------------
 -- 自訂語音清單（帳號層）
 ------------------------------------------------------------
-local SOUND_FIELDS = { "readySound", "gainSound", "loseSound" }
+local SOUND_FIELDS = { "readySound", "fullSound", "gainSound", "loseSound", "stackSound" }
 
 local function Account() return MiliUI_CooldownManager_DB end
 
@@ -532,6 +566,92 @@ function S.OnReady(rec)
 end
 
 ------------------------------------------------------------
+-- 充能滿音效（Glow.SyncFull 對帳、SPELL_UPDATE_CHARGES 判轉變）
+------------------------------------------------------------
+local fullWatch = setmetatable({}, { __mode = "k" })   -- rec → { spell, cid, state }
+local fullEventOn = false
+S.fullWatch = fullWatch                                 -- 測試用
+
+function S.WantsFull(rec, barKey)
+    if not rec or rec.cooldownID == nil or not S.Enabled() then return false end
+    barKey = barKey or rec.claimKey or rec.placedBar
+    return S.NameOf(barKey, rec.cooldownID, "fullSound") ~= nil
+        or S.SpeakTextOf(barKey, rec.cooldownID, "fullSpeak") ~= nil
+end
+
+local OnChargesChanged
+
+local function SetFullEvent()
+    local any = next(fullWatch) ~= nil
+    if any == fullEventOn then return end
+    fullEventOn = any
+    if any then ns.Events.Register("SPELL_UPDATE_CHARGES", "sound_full", OnChargesChanged)
+    else ns.Events.Unregister("SPELL_UPDATE_CHARGES", "sound_full") end
+end
+
+function S.UnwatchFull(rec)
+    if rec and fullWatch[rec] then
+        fullWatch[rec] = nil
+        SetFullEvent()
+    end
+end
+
+-- 記下這一次讀到的狀態；明確的沒滿 → 明確的滿就響（讀不到 ＝ nil：下次要先看到明確的沒滿才算）
+local function Step(w, now)
+    if Logic.FullEdge(w.state, now) then
+        local key = "full:" .. tostring(w.cid)
+        S.Play(S.NameOf(w.bar, w.cid, "fullSound"), key, "full")
+        S.Speak(S.SpeakTextOf(w.bar, w.cid, "fullSpeak"), key, "full")
+    end
+    w.state = now
+end
+
+OnChargesChanged = function()
+    if ns.released then return end
+    local G, gone = ns.Glow, nil
+    for rec, w in pairs(fullWatch) do
+        local isCharge, now = G.ReadFull(rec, w.spell)
+        if isCharge then
+            Step(w, now)
+        else
+            gone = gone or {}                       -- 換天賦不再是充能技能：出表
+            gone[#gone + 1] = rec
+        end
+    end
+    if gone then
+        for _, rec in ipairs(gone) do fullWatch[rec] = nil end
+        SetFullEvent()
+    end
+end
+S.OnChargesChanged = OnChargesChanged                 -- 測試用
+
+-- hidden：Glow 的 Hidden（停放、藏起來）
+function S.SyncFull(rec, barKey, hidden)
+    if not rec then return end
+    barKey = barKey or rec.claimKey or rec.placedBar
+    local G = ns.Glow
+    local spell = nil
+    if not hidden and not ns.released and G and G.FullSpellOf and G.ReadFull and S.WantsFull(rec, barKey) then
+        spell = G.FullSpellOf(rec)
+    end
+    local isCharge, now = false, nil
+    if spell then isCharge, now = G.ReadFull(rec, spell) end
+    if not isCharge then
+        S.UnwatchFull(rec)
+        return
+    end
+    local w = fullWatch[rec]
+    if w and w.spell == spell and w.cid == rec.cooldownID then
+        w.bar = barKey
+        Step(w, now)                                -- 已經在看：排版時剛好碰上回滿也算
+        return
+    end
+    -- 進表（或這顆框換了一招）：只記不響
+    fullWatch[rec] = { spell = spell, cid = rec.cooldownID, bar = barKey, state = now }
+    SetFullEvent()
+end
+
+------------------------------------------------------------
 -- 增益 item：出現／消失（批次、下一幀合併）
 ------------------------------------------------------------
 local batch = Logic.NewBatch()
@@ -643,7 +763,7 @@ end
 
 local function Triggers()
     local E = Enum and Enum.UnitAuraSoundTrigger
-    return (E and E.Added) or 0, (E and E.Removed) or 2
+    return (E and E.Added) or 0, (E and E.Removed) or 2, (E and E.ApplicationsIncreased) or 1
 end
 
 local function AurasSecret()
@@ -662,38 +782,91 @@ local function CanChange()
 end
 S.CanChangeRegistrations = CanChange
 
+-- 暴雪增益 item 要登記的法術：目錄的 spellID、overrideTooltipSpellID、全部 linkedSpellIDs（去重、只收明文數字；
+-- Catalog 讀進來時已過 Plain）
+local function BuffItemSpells(cooldownID)
+    local info = ns.Catalog and ns.Catalog.Info and ns.Catalog.Info(cooldownID)
+    if type(info) ~= "table" then return {} end
+    local out, seen = {}, {}
+    local function Add(v)
+        if type(v) == "number" and v > 0 and not seen[v] then
+            seen[v] = true
+            out[#out + 1] = v
+        end
+    end
+    Add(info.spellID)
+    Add(info.overrideTooltipSpellID)
+    if type(info.linkedSpellIDs) == "table" then
+        for _, v in ipairs(info.linkedSpellIDs) do Add(v) end
+    end
+    return out
+end
+S.BuffItemSpells = BuffItemSpells                    -- 測試用
+
+local function Want(want, trig, sid, path, channel, throttle)
+    local sig = Logic.Sig(trig, sid, path, channel, throttle)
+    want[sig] = { trigger = trig, spellID = sid, path = path, channel = channel, throttle = throttle }
+end
+
 function S.WantAuraSounds()
     local want = {}
-    local CU = ns.Custom
-    if not (API() and S.Enabled() and CU and CU.Records) then return want end
-    local added, removed = Triggers()
+    if not (API() and S.Enabled()) then return want end
+    local added, removed, increased = Triggers()
     local channel = S.Channel()
-    for _, r in pairs(CU.Records()) do
-        -- 飾品欄的增益疊層（r.buffOverlay，Modules/Custom.lua）是光環格形狀的子 rec：疊著的時候（placedBar 有值）
-        -- 照冷卻格那一筆的 cooldownID 讀 gainSound／loseSound、認的法術是解出來的增益（AuraIDsOf 讀 auraIDs）
-        local rec = r
-        if r.kind ~= "aura" then rec = r.buffOverlay end
-        if rec and rec.kind == "aura" and rec.placedBar and rec.cooldownID and type(rec.spellID) == "number" then
-            -- 多法術的光環格（嗜血那種）：每個法術各登一筆（引擎只認單一 spellID）
-            local ids = (CU.AuraIDsOf and CU.AuraIDsOf(rec)) or { rec.spellID }
-            for field, trig in pairs({ gainSound = added, loseSound = removed }) do
-                local path = S.Path(S.NameOf(rec.placedBar, rec.cooldownID, field))
-                if path ~= nil then
-                    for _, sid in ipairs(ids) do
-                        local sig = Logic.Sig(trig, sid, path, channel)
-                        want[sig] = { trigger = trig, spellID = sid, path = path, channel = channel }
+    local CU = ns.Custom
+    if CU and CU.Records then
+        local FIELDS = {
+            gainSound  = { trig = added,     throttle = Logic.THROTTLE },
+            loseSound  = { trig = removed,   throttle = Logic.THROTTLE },
+            stackSound = { trig = increased, throttle = Logic.STACK_THROTTLE },
+        }
+        for _, r in pairs(CU.Records()) do
+            -- 飾品欄的增益疊層（r.buffOverlay，Modules/Custom.lua）是光環格形狀的子 rec：疊著的時候（placedBar 有值）
+            -- 照冷卻格那一筆的 cooldownID 讀 gainSound／loseSound／stackSound、認的法術是解出來的增益（AuraIDsOf 讀 auraIDs）
+            local rec = r
+            if r.kind ~= "aura" then rec = r.buffOverlay end
+            if rec and rec.kind == "aura" and rec.placedBar and rec.cooldownID and type(rec.spellID) == "number" then
+                -- 多法術的光環格（嗜血那種）：每個法術各登一筆（引擎只認單一 spellID）
+                local ids = (CU.AuraIDsOf and CU.AuraIDsOf(rec)) or { rec.spellID }
+                for field, f in pairs(FIELDS) do
+                    local path = S.Path(S.NameOf(rec.placedBar, rec.cooldownID, field))
+                    if path ~= nil then
+                        for _, sid in ipairs(ids) do Want(want, f.trig, sid, path, channel, f.throttle) end
                     end
                 end
             end
         end
     end
+    -- 暴雪的增益 item：只有層數增加音效走這裡（出現／消失是 Lua 掛勾）。池子裡作用中、有身分的都算，不看放格（見檔頭）
+    local V = ns.Viewers
+    if not ns.released and V and V.EnumerateItems and V.AURA_KIND then
+        for src in pairs(V.AURA_KIND) do
+            V.EnumerateItems(function(_, rec)
+                local cid = rec.cooldownID
+                if cid == nil or rec.custom then return end
+                local path = S.Path(S.NameOf(nil, cid, "stackSound"))
+                if path == nil then return end
+                for _, sid in ipairs(BuffItemSpells(cid)) do
+                    Want(want, increased, sid, path, channel, Logic.STACK_THROTTLE)
+                end
+            end, src)
+        end
+    end
     return want
+end
+
+-- 暴雪增益 item 換了身分（Viewers 的 SetCooldownID／ClearCooldownID 後掛勾）：前後任一個有設層數增加音效才重登
+function S.OnBuffItemChanged(old, new)
+    if (old ~= nil and S.NameOf(nil, old, "stackSound") ~= nil)
+        or (new ~= nil and S.NameOf(nil, new, "stackSound") ~= nil) then
+        S.RequestAuraSync()
+    end
 end
 
 local function Register(spec)
     local U = API()
     local info = { unitToken = "player", spellID = spec.spellID, outputChannel = spec.channel,
-                   throttleSeconds = Logic.THROTTLE }
+                   throttleSeconds = spec.throttle or Logic.THROTTLE }
     if type(spec.path) == "number" then info.soundFileID = spec.path else info.soundFileName = spec.path end
     local ok, id = pcall(U.AddAuraSound, spec.trigger, info)
     if not (ok and id) then

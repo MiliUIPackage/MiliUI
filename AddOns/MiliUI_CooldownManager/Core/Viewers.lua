@@ -109,13 +109,22 @@ end
 ------------------------------------------------------------
 -- 登記一個 item（第一次看到時掛勾；池化的框永不銷毀，所以每框只掛一次）
 ------------------------------------------------------------
+-- 增益兩條的 item 換了身分：層數增加音效的 AddAuraSound 登記跟著身分走（Core/Sound.lua；只有設了的才重登）
+local function BuffIdentityChanged(rec, old, new)
+    if V.AURA_KIND[rec.barKey] and ns.Sound and ns.Sound.OnBuffItemChanged then
+        ns.Sound.OnBuffItemChanged(old, new)
+    end
+end
+
 local function OnSetCooldownID(item, cooldownID)
     local rec = V.frames[item]
     if not rec then return end
     local id = Plain(cooldownID)
     if type(id) ~= "number" then id = nil end
     if rec.cooldownID ~= id then
+        local old = rec.cooldownID
         rec.cooldownID = id
+        BuffIdentityChanged(rec, old, id)
         -- 逐法術覆寫跟著身分走。⚠ 剛重新取出的框（rec.reacquired）不清：池子回收時暴雪已把 cooldownID 清成 nil，
         -- 同一輪 RefreshData 再設回來，這裡永遠看到「nil → id」。真的換了法術時 Decorate.Apply 的簽章裡有 id，
         -- 簽章不同照樣完整重套；同一個法術回到同一顆框才走 Reattach
@@ -128,7 +137,9 @@ local function OnClearCooldownID(item)
     local rec = V.frames[item]
     if not rec then return end
     if rec.cooldownID ~= nil then
+        local old = rec.cooldownID
         rec.cooldownID = nil
+        BuffIdentityChanged(rec, old, nil)
         if not (V.CHEAP_REACQUIRE and rec.reacquired) then rec.decorated = nil end   -- 同上
     end
     Signal(rec.barKey, "membership")
@@ -225,7 +236,9 @@ local function Track(viewer, item)
     -- RefreshLayout 不會叫 RefreshData，沿用的話這顆框會頂著上一輩子的身分被認領。
     local now = ReadItemID(item)
     if now ~= rec.cooldownID then
+        local old = rec.cooldownID
         rec.cooldownID = now
+        BuffIdentityChanged(rec, old, now)
     end
     -- 第一次看到時的尺寸（我們 SetSize 之前）：Bars.ReleaseAll 還給暴雪時用；讀不到就不還原
     if rec.origW == nil then

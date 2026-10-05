@@ -120,6 +120,7 @@ function D.Resolve(barKey, fresh)
         cooldownText = S(barKey, "cooldownText") or {},
         chargeText   = S(barKey, "chargeText") or {},
         stackText    = S(barKey, "stackText") or {},
+        stackBarPoint = S(barKey, "stackText.barPoint") or "BOTTOMRIGHT",   -- 長條的層數錨點（Text.ApplyBar）
         bar          = S(barKey, "bar"),
         masque       = ns.Masque and ns.Masque.Mode(barKey) == "masque" or false,
     }
@@ -128,7 +129,7 @@ function D.Resolve(barKey, fresh)
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
         tostring(r.pressFlash), r.pressAlpha,
         tostring(r.colorDuration), CSig(r.durationColor), CSig(r.durationLowColor), CSig(r.durationSwipeColor),
-        TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText),
+        TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText), r.stackBarPoint,
         type(r.bar) == "table" and TSig(r.bar) or "-",
         tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
     }, "|")

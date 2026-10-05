@@ -1381,6 +1381,10 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.timePoint, st.timeX, st.timeY, st.timeJustify = TX.BarTimePlace(tOwn, bar.vertical)
         -- 層數字級：這一招自己改過的優先，其次「長條」節的層數字級（同 Text.ApplyBar）
         st.barStack  = tonumber(stOwn.size) or tonumber(bar.stackSize) or tonumber(stT.size) or 12
+        -- 長條的層數錨點＋往內縮的 1px（同 Text.ApplyBar／Text.BarStackInset；這裡先算好，initializeFrame 只查欄位）
+        st.stBarPoint = S(barKey, "stackText.barPoint") or "BOTTOMRIGHT"
+        st.stBarIX = st.stBarPoint:find("RIGHT") and -1 or (st.stBarPoint:find("LEFT") and 1 or 0)
+        st.stBarIY = st.stBarPoint:find("BOTTOM") and 1 or (st.stBarPoint:find("TOP") and -1 or 0)
         st.showName  = bar.showName and true or false
         st.showTime  = bar.showTime and true or false
         st.showStacks = bar.showStacks and true or false
@@ -1402,7 +1406,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
             st.bgrad = hit
         end
         barSig = table.concat({ "bars", string.format("%.2f,%.2f", st.bh, st.bgap), st.side, st.btex, C(st.bfill), C(st.bbg),
-            tostring(st.spark), st.nameFont, st.nameSize, st.timeFont, st.timeSize, st.barStack,
+            tostring(st.spark), st.nameFont, st.nameSize, st.timeFont, st.timeSize, st.barStack, st.stBarPoint,
             C(st.timeColor), st.timePoint, st.timeX, st.timeY,
             tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name,
             tostring(st.vert), string.format("%.2f", st.isz), st.bgrad and st.bgrad.sig or "-" }, ",")
@@ -1790,13 +1794,13 @@ local function InitAuraBarButton(btn, c, st, rec)
         end
     end
 
-    -- 層數：圖示右下（照 Text.ApplyBar：BOTTOMRIGHT -1, 1 ＋層數的 X／Y 位移）。**絕不傳 formatter**
+    -- 層數：照 Text.ApplyBar（長條錨點，角落往內縮 1px ＋層數的 X／Y 位移）。**絕不傳 formatter**
     if st.showStacks and not st.hideStack and side ~= "NONE" and btn.SetApplicationCount then
         local fs = ov:CreateFontString(nil, "OVERLAY")
         fs:SetFont(st.stFont, st.barStack * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
         fs:SetTextColor(st.stColor[1], st.stColor[2], st.stColor[3], st.stColor[4])
-        fs:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", (-1 + st.stX) * s, (1 + st.stY) * s)
+        fs:SetPoint(st.stBarPoint, icon, st.stBarPoint, (st.stBarIX + st.stX) * s, (st.stBarIY + st.stY) * s)
         pcall(btn.SetApplicationCount, btn, fs, {})
     end
 

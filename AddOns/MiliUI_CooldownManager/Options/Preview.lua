@@ -59,7 +59,7 @@ local function NoFakeCD(key)
     return type(b) == "table" and b.source == "custom" and b.kind ~= "bars" or false
 end
 
--- 效果預覽列（NoFakeCD 的條才有，平常不畫假冷卻）：按一下，**第一個技能格**演示那個效果 FX_SECS 秒
+-- 效果預覽列（NoFakeCD 的條才有，平常不畫假冷卻；長條類同一條列放的是 STACK_BUTTONS）：按一下，**第一個技能格**演示那個效果 FX_SECS 秒
 --   （倒數類會拉長到門檻＋3 秒，見 StartFx）
 --   （光環格、被移除的格不算；整排一起演示太吵，看一格就知道長相）
 --   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
@@ -81,6 +81,12 @@ local FX_BUTTONS = {
     { kind = "full",     label = L["Glow at max charges"], on = function(k) return ns.Setting(k, "glow.full.enabled") and true or false end },
     { kind = "active",   label = L["Glow during buff"], on = function(k) return ns.Setting(k, "glow.active.enabled") and true or false end },
     { kind = "press",    label = L["Flash on key press"], on = function(k) return ns.Setting(k, "icon.pressFlash") and true or false end },
+}
+-- 長條類（增益長條、自訂長條群組）的預覽列只有一顆開關：層數預覽（增益格印假層數「2」，讓玩家看著調層數字的位置）。
+-- 按一下開、再按一次關；primary ＝ 開著。不存檔：預覽框一隱藏就關（每次進這頁都是關的）
+local STACK_BUTTONS = {
+    { label = L["Show stacks"], on = function(_, pv) return pv.showStacks and true or false end,
+      click = function(pv) pv.showStacks = not pv.showStacks; pv:Refresh() end },
 }
 
 local instances = {}
@@ -246,6 +252,12 @@ local function NewBarCell(canvas)
     ov:SetFrameLevel(c:GetFrameLevel() + 5)
     c.overlay = ov
     c.scopeMark = NewScopeMark(ov, icon)       -- 長條：記號在左邊圖示那一格的右上角
+    -- 層數字墊到邊框（ov）與發光之上：真實條是 Text.ApplyBar 把它換父層到 TextHolder（overlay ＋TEXT_LIFT），
+    -- 預覽格沒有 rec 走不到那條路，這裡直接建一層同高度的框
+    local th = CreateFrame("Frame", nil, c)
+    th:SetAllPoints()
+    th:SetFrameLevel(ov:GetFrameLevel() + ns.Text.TEXT_LIFT)
+    icon.Applications:SetParent(th)
     c.kind = "bars"
     c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
@@ -479,7 +491,11 @@ function Preview.Create(parent, key, width)
 
     -- 效果預覽列：預覽框底下那一條（捲動區與橫向捲軸往上讓出 pv.fxH）。
     -- 按鈕照自然寬一顆接一顆排，放不下就換到下一列（各語系長短不同、視窗寬也不同），列高跟著長
-    if NoFakeCD(key) then
+    local barCfg = BarCfg(key)
+    local rowDefs = NoFakeCD(key) and FX_BUTTONS
+        or (type(barCfg) == "table" and barCfg.kind == "bars" and STACK_BUTTONS) or nil
+    if rowDefs then
+        f:HookScript("OnHide", function() pv.showStacks = false end)
         local row = CreateFrame("Frame", nil, f)
         row:SetPoint("BOTTOMLEFT", 1, 1)
         row:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -488,10 +504,12 @@ function Preview.Create(parent, key, width)
         label:SetText(L["Preview:"])
         local x0 = PAD + math.ceil(label:GetStringWidth() or 0) + 6
         local btns = {}
-        for _, def in ipairs(FX_BUTTONS) do
+        for _, def in ipairs(rowDefs) do
             local b = W.CreateButton(row, def.label, "normal", 70, FX_BTN_H)
             b.natW = W.FitButton(b, 70, FX_BTN_H)
-            b:SetScript("OnClick", function() pv:StartFx(def.kind) end)
+            b:SetScript("OnClick", function()
+                if def.click then def.click(pv) else pv:StartFx(def.kind) end
+            end)
             b.fxDef = def
             btns[#btns + 1] = b
         end
@@ -579,7 +597,7 @@ end
 function Proto:PaintFxButtons()
     for _, b in ipairs(self.fxBtns or {}) do
         local on = b.fxDef.on
-        W.SetButtonVariant(b, (on and on(self.key)) and "primary" or "normal")
+        W.SetButtonVariant(b, (on and on(self.key, self)) and "primary" or "normal")
     end
 end
 
@@ -767,7 +785,8 @@ function Proto:Fill(c, e, i, r, now)
     end
     if c.kind == "bars" then
         c.Bar.Name:SetText(c.name)
-        c.Icon.Applications:SetText("")      -- 假層數不印（礙眼；增益圖示的預覽同樣不印）
+        -- 假層數平常不印（礙眼；增益圖示的預覽同樣不印），按了預覽列的「顯示層數」才印在增益格上
+        c.Icon.Applications:SetText((self.showStacks and c.aura and not e.hidden) and "2" or "")
     else
         c.cdText:SetText(fxTimer and self:FxText(c) or "15")
         c.chargeText:SetText(c.charges and tostring(c.charges) or "")

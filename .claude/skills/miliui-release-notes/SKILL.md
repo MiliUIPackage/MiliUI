@@ -124,8 +124,9 @@ body 才有「玩家實際會看到什麼」「設定在哪一頁」「預設開
 發佈腳本會用 `claude -p` 叫這個技能，要求「網站模式」：
 
 - 套組本體：`_retail_/Packaging.command`
-- 自製插件／fork：各自 repo 的 `package.command`（`~/Projects/` 底下所有會上傳插件補給站的都有接），
-  經由 [.claude/scripts/release-notes.sh](../../scripts/release-notes.sh)；一次發佈多個資料夾的
+- 自製插件：發版管理介面（`~/Projects/MiliUI_ReleaseManager`）的通用發版腳本 `scripts/release.sh`，
+  經由 [.claude/scripts/release-notes.sh](../../scripts/release-notes.sh)
+- fork（Ayije_CDM、Cell）：各自工作 repo 的 `package.command`，同樣經由 release-notes.sh；一次發佈多個資料夾的
   （`Ayije_CDM` ＋ `Ayije_CDM_Options`）會附上全部路徑
 這時產出直接塞進插件補給站的更新說明欄，**沒有人會先看過**，所以規則照上面全部適用，
 只有交件格式不同：
@@ -146,6 +147,31 @@ body 才有「玩家實際會看到什麼」「設定在哪一頁」「預設開
 - **回覆只能有這段 HTML**：不要 code fence、不要前言結語、不要解釋。呼叫端會直接擷取
   第一個 `<p>` 到最後一個 `</p>`。
 - 區間內真的沒有玩家看得到的改動 → 輸出 `<p><strong>調整</strong><br>・細部調整與穩定性改善</p>`。
+
+## CurseForge 模式（curseforge-upload.sh 呼叫）
+
+發佈腳本上傳插件補給站之後，`curseforge-upload.sh`（在發版管理介面的 repo：
+`~/Projects/MiliUI_ReleaseManager/scripts/curseforge-upload.sh`，由同資料夾的 `release.sh` 呼叫）
+會再叫一次這個技能（`release-notes.sh … en`），要「CurseForge 模式」。產出直接塞進 CurseForge
+的 changelog，讀者是英文玩家。規則跟網站模式**完全一樣**（區間由呼叫端給、只回一行 HTML、
+`<p>` 分段、`<br>` 分條），只差下面幾點：
+
+- **只出英文。** 不是把繁中逐字翻過去 —— 照「玩家會看到什麼不一樣」重寫成自然的英文句子。
+- 段落標題與順序：**New** → **Changes** → **Fixes**，沒內容的段落整段省略。
+- 條目開頭用 `- `（半形減號＋空白），不要 `・`。
+- **不要任何 emoji**，包括 ✨🎉🔥🐛✅⚡ 這類「裝飾用」的，也不要用符號字元當圖示。
+  語氣平實，不要行銷腔（"awesome"、"huge update"、驚嘆號都不要）。
+- **遊戲內容一律用暴雪官方英文名詞**：上面三語表的 English 欄是最低要求；技能、物品、
+  天賦、首領、地城、詞綴這類專有名詞照英文用戶端實際顯示的名稱寫（Bloodlust、Great Vault、
+  Mythic+ Keystone、Cooldown Manager、Edit Mode……），不確定就去插件的 `Locales/` 或程式碼
+  找英文原名，不要自己意譯中文名稱。職業／專精用官方名（Death Knight、Frost、Restoration）。
+- 設定路徑用英文介面實際顯示的字（L 的 key 就是英文原文），層級用 ` > ` 隔開：
+  `Unit > Health Bar > Color > Threshold coloring`。
+- 區間內真的沒有玩家看得到的改動 → 輸出 `<p><strong>Changes</strong><br>- Minor adjustments and stability improvements</p>`。
+
+```html
+<p><strong>New</strong><br>- Item one<br>- Item two</p><p><strong>Fixes</strong><br>- Item one</p>
+```
 
 ## 檢查清單
 

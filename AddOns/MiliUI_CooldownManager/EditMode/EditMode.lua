@@ -86,7 +86,7 @@ end
 EM.GridSpacing = GridSpacing
 
 -- Shift 按著一律不吸（條對齊、格線、套組磁吸都不吸）；設定視窗開著（不在暴雪編輯模式）時一律吸，
--- 暴雪編輯模式裡照暴雪的「吸附」開關。格線另外要看得到才吸（GridShown）
+-- 暴雪編輯模式裡照暴雪的「吸附」開關。格線另外要看得到才吸（ActiveGridSpacing）
 local function SnapEnabled()
     if IsShiftKeyDown() then return false end
     if EM.optionsOpen and not EM.active then return true end
@@ -99,13 +99,19 @@ local function SnapEnabled()
 end
 EM.SnapEnabled = SnapEnabled
 
--- 格線看得到才吸格線：設定視窗開著（沒進編輯模式）、或編輯模式沒開格線時，吸一條看不到的線
--- 只會讓條停在莫名其妙的位置
-local function GridShown()
+-- 格線看得到才吸格線：吸一條看不到的線只會讓條停在莫名其妙的位置。
+-- 看得到的格線有兩種：暴雪編輯模式的、設定視窗右上角「格線」開的（共用層畫的）。
+-- 兩種同時開時共用層會讓位給暴雪的，所以先問暴雪。回傳那張格線的間距，沒有就 nil
+local function ActiveGridSpacing()
     local grid = EditModeManagerFrame and EditModeManagerFrame.Grid
-    if not (EM.active and grid and grid.IsShown) then return false end
-    local ok, v = pcall(grid.IsShown, grid)
-    return ok and v == true
+    if EM.active and grid and grid.IsVisible then
+        local ok, v = pcall(grid.IsVisible, grid)
+        if ok and v == true then return GridSpacing() end
+    end
+    if EM.optionsOpen and ns.Options and ns.Options.GridSpacing then
+        return ns.Options.GridSpacing()
+    end
+    return nil
 end
 
 -- 拖曳時可以對齊的其他條：看得到、有大小、而且不是（直接或間接）跟著拖的這條走的
@@ -189,9 +195,10 @@ local function DragTick()
         -- 第一幀才量：BeginDrag 的 Restack 會讓疊在它外面的條補位，要量補位之後的
         d.targets = d.targets or AlignTargets(d.key)
         local ax, ay = EM.AlignDelta({ l, l + d.w, t, t - d.h }, d.targets, EM.SNAP_RANGE)
-        if not (ax and ay) and GridShown() then
+        local step = not (ax and ay) and ActiveGridSpacing()
+        if step then
             local ox, oy = UIParent:GetCenter()
-            local gx, gy = EM.SnapDelta(d.anchorPoint, l, l + d.w, t, t - d.h, ox, oy, GridSpacing())
+            local gx, gy = EM.SnapDelta(d.anchorPoint, l, l + d.w, t, t - d.h, ox, oy, step)
             ax, ay = ax or gx, ay or gy
         end
         l, t = l + (ax or 0), t + (ay or 0)
@@ -517,7 +524,7 @@ function EM.DebugLines()
     local function onoff(v) return v and "是" or "否" end
     out[#out + 1] = ("  編輯模式：%s（暴雪 %s）  掛勾 %s  對話框掛勾 %s（藏著 %s）  拖曳中 %s  吸附 %s／格距 %s")
         :format(onoff(EM.active), onoff(EM.IsActive()), onoff(EM.hooked), onoff(EM.dialogHooked), onoff(muted ~= nil),
-                tostring(ns.dragging or "—"), onoff(SnapEnabled()), tostring(GridSpacing()))
+                tostring(ns.dragging or "—"), onoff(SnapEnabled()), tostring(ActiveGridSpacing() or GridSpacing()))
     local B = ns.Bars
     if not (B and B.Containers) then return out end
     local keys, seen = {}, {}

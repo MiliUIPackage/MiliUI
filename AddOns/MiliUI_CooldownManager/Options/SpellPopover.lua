@@ -30,8 +30,10 @@
 -- 去飽和、冷卻狀態、顯示增益持續時間、增益轉圈背景色、層數換色）／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／
 -- 音效。每一列建立時記下當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
 --
--- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」；增益類（暴雪
--- 增益圖示／增益長條、光環格）兩列「出現音效」「消失音效」。每列一個下拉（第一項「無」＝清掉覆寫，
+-- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」，這招現在有充能
+-- （ChargeWhen）時多一列「充能滿音效」、兩列下面各一列灰字講差別（就緒＝每回一層、充能滿＝全部回滿）；增益類（暴雪
+-- 增益圖示／增益長條、光環格）三列「出現音效」「消失音效」「層數增加音效」（後者沒有語音播報、說明放標籤後面的「?」）。
+-- 每列一個下拉（第一項「無」＝清掉覆寫，
 -- 其餘是 LibSharedMedia 的音效名，開選單那一刻才列、依名稱排序；清單長時下拉自己會裁切＋滾輪捲）
 -- ＋「試聽」。一個音效都沒有時多一列灰字說明。
 --
@@ -61,7 +63,7 @@
 --
 -- 語音播報（Core/Sound.lua；遊戲有文字轉語音 API 才顯示、光環格沒有）：每個音效列下面一列——勾選框＋輸入框
 --   （空白＝念法術名）＋「試聽」。勾著才寫進覆寫（readySpeak／gainSpeak／loseSpeak：字串或 true），
---   沒勾時輸入框只是記著字。最後一列灰字說明。
+--   沒勾時輸入框只是記著字。說明放標籤後面的「?」（滑過顯示）。
 --
 -- 層數門檻（暴雪的增益才有，自訂光環格不做；引擎在 Core/StackGate.lua）：
 --   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
@@ -121,15 +123,48 @@ local sounds = {}        -- { field, dd }
 local speaks = {}        -- { field, cb, box, listen }
 
 -- 音效欄位 → 同一個觸發的語音播報欄位
-local SPEAK_OF = { readySound = "readySpeak", gainSound = "gainSpeak", loseSound = "loseSpeak" }
+-- （層數增加音效沒有：引擎播的，Lua 端沒有訊號 ⇒ 不出語音播報列）
+local SPEAK_OF = { readySound = "readySpeak", fullSound = "fullSpeak", gainSound = "gainSpeak", loseSound = "loseSpeak" }
+
+-- 這招現在有沒有充能（maxCharges > 1）：充能滿音效、充能滿了發光那幾列只在有充能時出現。
+-- 法術照 Core/Glow.lua 的同一套解（G.FullSpellOfID）；解不出法術（物品、裝備欄、增益）＝沒有。
+-- 讀不到（API 不在、秘密值）⇒ 當作有（設定介面寧可多出一列）。天賦換了不即時重排，下次開或切格時重算
+local function HasCharges()
+    if not cur then return false end
+    local G = ns.Glow
+    local id = G and G.FullSpellOfID and G.FullSpellOfID(cur.id)
+    if type(id) ~= "number" then return false end
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    if not fn then return true end
+    local ok, info = pcall(fn, id)
+    if not ok then return true end
+    if type(info) ~= "table" then return false end                    -- 不是充能法術：API 回 nil
+    local okM, m = pcall(function() return info.maxCharges end)
+    if not okM or m == nil or ns.IsSecret(m) or type(m) ~= "number" then return true end
+    return m > 1
+end
+-- 先過原本的 when，再看有沒有充能
+local function ChargeWhen(when)
+    return function(kind, class)
+        if when and not when(kind, class) then return false end
+        return HasCharges()
+    end
+end
 
 -- 音效欄位與顯示在哪一類（class：「cooldown」冷卻類｜「aura」增益類）
 -- 暴雪的冷卻格（kind ＝ nil）另有增益出現／消失：暴雪開始／停止倒增益時間（Core/Sound.lua 的 OnAuraFlag），同一組欄位
 local function BlizzCooldownSound(kind, class) return kind == nil and class == "cooldown" end
+-- charge ＝ 整組（音效、語音播報、灰字）只在有充能時出現；note ＝ 下一列灰字（有語音播報列時排在它下面；noteCharge ＝ 灰字只在有充能時）
 local SOUNDS = {
-    { field = "readySound", label = L["Ready sound"], class = "cooldown" },
+    { field = "readySound", label = L["Ready sound"], class = "cooldown", noteCharge = true,
+      note = L["Plays each time a charge comes back: the spell is ready to use."] },
+    { field = "fullSound",  label = L["Max charges sound"], class = "cooldown", charge = true,
+      note = L["Plays once when every charge is back: use it or the next charge is wasted."] },
     { field = "gainSound",  label = L["Gain sound"],  class = "aura" },
     { field = "loseSound",  label = L["Lose sound"],  class = "aura" },
+    -- 層數增加（暴雪的增益與光環格都有）：AddAuraSound 的 ApplicationsIncreased，沒有語音播報
+    { field = "stackSound", label = L["Stack gained sound"], class = "aura",
+      help = L["Plays each time the buff gains a stack. The first stack counts as gained, not as a new stack, so a buff that stacks to 2 plays exactly when it reaches 2."] },
     { field = "gainSound",  label = L["Buff gained sound"], when = BlizzCooldownSound },
     { field = "loseSound",  label = L["Buff lost sound"],   when = BlizzCooldownSound },
 }
@@ -151,7 +186,7 @@ local TOGGLES = {
     { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, tab = "glow" },
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
     { field = "activeGlow",       label = L["Glow during buff"],      when = ActiveGlowWhen, tab = "glow" },
-    { field = "fullGlow",         label = L["Glow at max charges"],    noAura = true, noBar = true, tab = "glow",
+    { field = "fullGlow",         label = L["Glow at max charges"],    noAura = true, noBar = true, tab = "glow", charge = true,
       tip = L["Glows while a spell with charges has all of them back. Spells without charges never glow."] },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
     -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
@@ -206,13 +241,43 @@ local function Note(parent)
 end
 
 -- 一列：自己的框，左邊標籤（靠右對齊）、右邊控件；高度照標籤換行長
-local function NewRow(label, when)
+-- 說明問號（help）：標籤後面一個小「?」，滑過才顯示說明（取代下一列灰字：同一段說明在好幾列重複、
+-- 或灰字夾在兩列控件之間看不出是講哪一列時用）。標籤欄讓出問號的寬度，問號貼在標籤欄右緣
+local HELP_W = 14
+
+local function HelpMark(r, text)
+    local m = CreateFrame("Frame", nil, r, "BackdropTemplate")
+    m:SetSize(HELP_W, HELP_W)
+    m:SetPoint("RIGHT", r, "LEFT", LABEL_W, 0)
+    m:SetFrameLevel(r:GetFrameLevel() + 5)                -- 蓋過 RightClickClears 的標籤吃滑鼠層
+    W.Stylize(m, { 0.1, 0.1, 0.1, 0.9 }, { 0.4, 0.4, 0.4, 1 })
+    local q = m:CreateFontString(nil, "OVERLAY")
+    q:SetFontObject(W.fontSmall)
+    q:SetPoint("CENTER", m, "CENTER", 0, 0)
+    q:SetText("?")
+    q:SetTextColor(0.6, 0.6, 0.6)
+    m:EnableMouse(true)
+    m:SetScript("OnEnter", function(self)
+        q:SetTextColor(1, 1, 1)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(text, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    m:SetScript("OnLeave", function()
+        q:SetTextColor(0.6, 0.6, 0.6)
+        GameTooltip:Hide()
+    end)
+    return m
+end
+
+local function NewRow(label, when, help)
     local r = CreateFrame("Frame", nil, frame)
     local h = ROW_H
+    local labelW = help and (LABEL_W - HELP_W - 4) or LABEL_W
     if label then
         local fs = r:CreateFontString(nil, "OVERLAY")
         fs:SetFontObject(W.fontNormal)
-        fs:SetWidth(LABEL_W)
+        fs:SetWidth(labelW)
         fs:SetJustifyH("RIGHT")
         fs:SetWordWrap(true)
         fs:SetNonSpaceWrap(true)
@@ -222,6 +287,7 @@ local function NewRow(label, when)
         r.label = fs
     end
     r:SetSize(ROW_W, h)
+    if help then HelpMark(r, help) end
     local row = { frame = r, h = h, when = when }
     -- 視窗第一次顯示前量不到字高（TextExtraHeight 會回 0）：OnShow 時照這支重量一次。
     -- 控件一律錨在列的 LEFT（＝垂直置中），列高變了自己跟著走
@@ -1078,6 +1144,7 @@ local function Build()
     for _, t in ipairs(TOGGLES) do
         local when = t.when
         if t.noAura then when = t.noBar and NotAuraNotBar or NotAura end
+        if t.charge then when = ChargeWhen(when) end          -- 只在這招現在有充能時（連同下一列灰字）
         buildTab = t.tab
         local tr, th = NewRow(t.label, when)
         local cb = W.CreateCheckButton(tr, nil, function(on)
@@ -1483,11 +1550,12 @@ local function Build()
     buildTab = "sound"
     for _, t in ipairs(SOUNDS) do
         local cls = t.class
-        local function SoundRowWhen(kind, class)
+        local function BaseWhen(kind, class)
             if t.when then return t.when(kind, class) end
             return class == cls
         end
-        local sr, sh = NewRow(t.label, SoundRowWhen)
+        local SoundRowWhen = t.charge and ChargeWhen(BaseWhen) or BaseWhen
+        local sr, sh = NewRow(t.label, SoundRowWhen, t.help)
         local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
         W.FitButton(listen, 44, 20)
         listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
@@ -1505,67 +1573,56 @@ local function Build()
         sounds[#sounds + 1] = { field = t.field, dd = sdd, listen = listen }
         RightClickClears(sr, sh, t.field)
 
-        -- 同一個觸發的語音播報：勾選框＋輸入框（空白＝念法術名）＋試聽
+        -- 同一個觸發的語音播報：勾選框＋輸入框（空白＝念法術名）＋試聽（沒有對應欄位的不出這一列）
         local field = SPEAK_OF[t.field]
-        local kr, kh = NewRow(L["Speak"], function(kind, class)
-            return SoundRowWhen(kind, class) and kind ~= "aura" and ns.Sound.CanSpeak()
-        end)
-        local entry = { field = field }
-        local kcb = W.CreateCheckButton(kr, nil, function(on)
-            if not cur then return end
-            if on then
-                local txt = strtrim(entry.box:GetText() or "")
-                ns.DB.SetOverride(cur.id, field, txt ~= "" and txt or true)
-            else
-                ns.DB.SetOverride(cur.id, field, nil)
-            end
-            Changed()
-        end)
-        kcb:SetPoint("LEFT", kr, "LEFT", CTRL_X, 0)
-        local klisten = W.CreateButton(kr, L["Listen"], "normal", 44, 20)
-        W.FitButton(klisten, 44, 20)
-        klisten:SetPoint("RIGHT", kr, "RIGHT", 0, 0)
-        local kbox = W.CreateEditBox(kr, 80, 20)
-        kbox:SetPoint("LEFT", kcb, "RIGHT", 6, 0)
-        kbox:SetPoint("RIGHT", klisten, "LEFT", -6, 0)
-        kbox:SetMaxLetters(100)
-        kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
-        -- 勾著才寫（沒勾時只是記著字，勾下去那一刻一起存）
-        kbox:HookScript("OnEditFocusLost", function(self)
-            if not cur or not kcb:GetChecked() then return end
-            local txt = strtrim(self:GetText() or "")
-            local want = txt ~= "" and txt or true
-            if Override(field) == want then return end
-            ns.DB.SetOverride(cur.id, field, want)
-            Changed()
-        end)
-        klisten:SetScript("OnClick", function()
-            if not cur then return end
-            local txt = strtrim(kbox:GetText() or "")
-            local S = ns.Sound
-            S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, S.SpellName(cur.id)))
-        end)
-        entry.cb, entry.box, entry.listen = kcb, kbox, klisten
-        speaks[#speaks + 1] = entry
-        RightClickClears(kr, kh, field)
+        if field then
+            local kr, kh = NewRow(L["Speak"], function(kind, class)
+                return SoundRowWhen(kind, class) and kind ~= "aura" and ns.Sound.CanSpeak()
+            end, L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
+            local entry = { field = field }
+            local kcb = W.CreateCheckButton(kr, nil, function(on)
+                if not cur then return end
+                if on then
+                    local txt = strtrim(entry.box:GetText() or "")
+                    ns.DB.SetOverride(cur.id, field, txt ~= "" and txt or true)
+                else
+                    ns.DB.SetOverride(cur.id, field, nil)
+                end
+                Changed()
+            end)
+            kcb:SetPoint("LEFT", kr, "LEFT", CTRL_X, 0)
+            local klisten = W.CreateButton(kr, L["Listen"], "normal", 44, 20)
+            W.FitButton(klisten, 44, 20)
+            klisten:SetPoint("RIGHT", kr, "RIGHT", 0, 0)
+            local kbox = W.CreateEditBox(kr, 80, 20)
+            kbox:SetPoint("LEFT", kcb, "RIGHT", 6, 0)
+            kbox:SetPoint("RIGHT", klisten, "LEFT", -6, 0)
+            kbox:SetMaxLetters(100)
+            kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+            -- 勾著才寫（沒勾時只是記著字，勾下去那一刻一起存）
+            kbox:HookScript("OnEditFocusLost", function(self)
+                if not cur or not kcb:GetChecked() then return end
+                local txt = strtrim(self:GetText() or "")
+                local want = txt ~= "" and txt or true
+                if Override(field) == want then return end
+                ns.DB.SetOverride(cur.id, field, want)
+                Changed()
+            end)
+            klisten:SetScript("OnClick", function()
+                if not cur then return end
+                local txt = strtrim(kbox:GetText() or "")
+                local S = ns.Sound
+                S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, S.SpellName(cur.id)))
+            end)
+            entry.cb, entry.box, entry.listen = kcb, kbox, klisten
+            speaks[#speaks + 1] = entry
+            RightClickClears(kr, kh, field)
+        end
+        -- 下一列灰字（就緒音效的只在有充能時：沒有充能時它的意思本來就清楚）
+        if t.note then
+            NoteRow(t.note, t.noteCharge and ChargeWhen(SoundRowWhen) or SoundRowWhen)
+        end
     end
-    -- 語音播報的說明（下一列灰字）
-    local spRow = CreateFrame("Frame", nil, frame)
-    local spTip = Note(spRow)
-    spTip:SetPoint("TOPLEFT", spRow, "TOPLEFT", CTRL_X, -2)
-    spTip:SetWidth(ROW_W - CTRL_X)
-    spTip:SetWordWrap(true)
-    spTip:SetText(L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
-    local spH = 2 + math.max(14, spTip:GetStringHeight() or 0) + 6
-    spRow:SetSize(ROW_W, spH)
-    local spEntry = { frame = spRow, h = spH, when = function(kind) return kind ~= "aura" and ns.Sound.CanSpeak() end }
-    spEntry.remeasure = function()
-        local sh2 = spTip:GetStringHeight()
-        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
-        spRow:SetHeight(nh)
-        spEntry.h = nh
-    end
-    AddRow(spEntry)
     -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
     local nsRow = CreateFrame("Frame", nil, frame)
     local nsTip = Note(nsRow)

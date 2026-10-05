@@ -98,6 +98,24 @@ Options\Blizzard.lua
 `Secret` / `Errors` / `Metro` 三支**完全沒有相依**（不讀 Env、不讀語系），所以跟
 `PixelPerfect.lua` 一起排在最前面 —— 宿主的 `Core/*.lua` 在檔案層就會用到它們。
 
+### 格線開關（`W.CreateGridToggle`，opt-in）
+
+設定視窗開著就能拖東西的插件用：面板右上角（分頁列那一排、靠右）一顆「格線: ON／OFF」，
+滑過時正上方浮出「間距」滑桿，拖動即時重畫（關著的話順手打開）。
+
+```lua
+local grid = W.CreateGridToggle(panel, { db = function() return ns.sv.optionsWindow end })
+grid:Active()   -- 格線此刻畫在畫面上 ⇒ 間距（UIParent 單位、原點畫面中心）；否則 nil
+```
+
+- 存在宿主給的 db 表：`grid`（布林）、`gridSpacing`（10～200，預設 40）。
+- 只在面板開著時畫；畫法跟暴雪編輯模式的格線一樣（畫面中心往外、中心兩條職業色）。
+  宿主的拖曳吸附原點用 `UIParent:GetCenter()` 就對得上。
+- 畫線的框**全套組共用一張**（`_G.MiliUIWidgetsGridOverlay1`）：兩支插件的面板同時開格線
+  不會疊兩套線，誰最後動就照誰的間距。暴雪編輯模式的格線看得到時整張讓位。
+- 要排在宿主 `panel:SetScript("OnShow"/"OnHide")` **之後**（共用層走 HookScript）。
+- 文案（「格線」「間距」）跟拖曳提示一樣是共用層自帶的十語系，不吃宿主的 L。
+
 ### 右鍵選單（`ContextMenu.lua`）
 
 長在**遊戲畫面上**的那種選單，不是設定表單裡的 `CreateDropdown`。
