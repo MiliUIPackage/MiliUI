@@ -1780,6 +1780,13 @@ do
         check("ReadShape：外框錨在 Icon 上 ⇒ 中心跟 Icon", n3 and n3.x == sh3.ix and n3.y == sh3.iy and n3.w == 44)
         check("ReadShape：外框檔案＋texcoord", n3 and n3.file == "Interface\\Skin\\Border" and math.abs(n3.l - 0.1) < 1e-6)
         eq("ReadShape：BACKGROUND 抬到 ARTWORK（在圖示上面）", n3 and n3.layer, "ARTWORK")
+        -- 插件自己的貼圖：沒有路徑、檔案編號是負數（實測 Raeli 外框 -5272）⇒ 照收
+        local ntNeg = Obj("Texture", fr)
+        ntNeg:SetSize(44, 44)
+        ntNeg:SetPoint("CENTER", ic, "CENTER", 0, 0)
+        ntNeg.GetTextureFileID = function() return -5272 end
+        local nNeg = CU.ReadShape(fr, ic, 40, 40, ntNeg).normal
+        check("ReadShape：負的檔案編號照收（不是「沒有外框」）", type(nNeg) == "table" and nNeg.file == -5272)
         nt:SetAlpha(0)
         eq("ReadShape：外框透明 ⇒ false（這張皮沒有外框）", CU.ReadShape(fr, ic, 40, 40, nt).normal, false)
         local savedIsSecret = ns.IsSecret
