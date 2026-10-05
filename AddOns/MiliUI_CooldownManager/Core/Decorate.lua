@@ -1985,6 +1985,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             local isz = g.vertical and w or h
             skinned = masque.Sync(cell, cell.Icon, { Icon = cell.Icon.Icon }, masque.TypeFor(barKey), isz, isz)
         end
+        cell.msqSkinned, cell.barGeometry = skinned, g      -- 長條：發光／按鍵不跟形狀（同真實格）
         cell.border = cell.border or MakeBorder(ov)
         cell.border2 = cell.border2 or MakeBorder(ov)
         if skinned then
@@ -2003,6 +2004,9 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         if masque and icon then
             skinned = masque.Sync(cell, cell, { Icon = icon, Cooldown = cell.Cooldown }, masque.TypeFor(barKey), w, h)
         end
+        -- 跟真實格同一個旗標：預覽的發光樣本、按鍵演示（Glow／Keybinds 讀它決定要不要跟著皮的形狀）
+        cell.msqSkinned = skinned
+        cell.barGeometry = nil
         cell.border = cell.border or MakeBorder(ov)
         if skinned then
             cell.swipeSquare = nil

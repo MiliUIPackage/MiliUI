@@ -426,7 +426,15 @@ local function SyncPressMask(holder, t, parent)
     end
     local M, MS = ns.Masque, ns.MasqueShape
     if not (M and MS and M.Available()) then return end
+    -- 格子尺寸：發光記過的優先；沒有（設定頁預覽格沒跑過發光）就讀 overlay 自己的大小（我們的框，明文）
     local w, h = tonumber(holder.glowW), tonumber(holder.glowH)
+    if not (w and h) then
+        local okW, pw = pcall(parent.GetWidth, parent)
+        local okH, ph = pcall(parent.GetHeight, parent)
+        if okW and okH and type(pw) == "number" and type(ph) == "number" and not ns.IsSecret(pw) and pw > 0 and ph > 0 then
+            w, h = pw, ph
+        end
+    end
     local key = tostring(M.Generation()) .. "|" .. tostring(w) .. "x" .. tostring(h) .. "|" .. tostring(holder.msqSize)
     local pm = holder.pressMask
     if pm and pm.key == key then return end
