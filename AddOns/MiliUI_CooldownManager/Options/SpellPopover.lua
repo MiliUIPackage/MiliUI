@@ -1377,7 +1377,8 @@ local function Build()
     phTip:SetText(L["While this buff isn't up, it keeps its place, so the others don't shift."])
     local phH = 2 + math.max(14, phTip:GetStringHeight() or 0) + 6
     phRow:SetSize(ROW_W, phH)
-    local phEntry = { frame = phRow, h = phH, when = BlizzAura }
+    -- 自訂光環格（含飾品欄增益）也有同一列「不在時顯示占位」（存在那一筆上）：灰字換成它的說法（Refresh 換）
+    local phEntry = { frame = phRow, h = phH, when = function(kind, class) return BlizzAura(kind, class) or kind == "aura" end }
     phEntry.remeasure = function()
         local sh2 = phTip:GetStringHeight()
         local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
@@ -1600,7 +1601,10 @@ function Pop.Refresh()
     frame.tipEntry.remeasure()
     -- 暴雪增益的「不在時顯示占位」：灰字照固定格位換（換字之後重量，Layout 才排得對）
     local phFixed = kind == nil and class == "aura" and BarFixedSlots()
-    if kind == nil and class == "aura" then
+    if kind == "aura" then
+        frame.placeholderTip:SetText(L["While the buff isn't up, a dimmed icon holds its slot. Unchecked, the slot is left blank."])
+        frame.placeholderTipEntry.remeasure()
+    elseif kind == nil and class == "aura" then
         frame.placeholderTip:SetText(phFixed
             and L["Every slot on this bar is already kept: “Keep empty slots for missing buffs” is on (or forced on)."]
             or L["While this buff isn't up, it keeps its place, so the others don't shift."])
