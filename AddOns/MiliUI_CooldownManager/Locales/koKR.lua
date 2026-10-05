@@ -158,6 +158,7 @@ L["Blizzard frames debuffs you track (on your target) in their dispel-type color
 L["Show tooltip on hover"] = "마우스를 올리면 툴팁 표시"
 L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."] = "끄면 블리자드 기본 툴팁도 함께 숨깁니다. 클릭은 그대로 통과합니다."
 L["Flash on key press"] = "키 입력 시 반짝임"
+L["Show stacks"] = "중첩 표시"
 L["Flashes when you press the key bound to this spell's action bar slot. Only key bindings count; clicking the action bar doesn't."] = "이 주문이 있는 행동 단축바 칸의 단축키를 누르면 반짝입니다. 단축키만 인식하며, 행동 단축바를 마우스로 클릭하면 반짝이지 않습니다."
 L["Flash opacity"] = "반짝임 불투명도"
 L["Desaturate on cooldown"] = "재사용 대기 중 흑백"

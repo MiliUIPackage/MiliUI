@@ -158,6 +158,7 @@ L["Blizzard frames debuffs you track (on your target) in their dispel-type color
 L["Show tooltip on hover"] = "鼠标移到图标上显示提示"
 L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."] = "关掉时暴雪自己的提示也一起不显示；点击照旧穿过去。"
 L["Flash on key press"] = "按键闪光"
+L["Show stacks"] = "显示层数"
 L["Flashes when you press the key bound to this spell's action bar slot. Only key bindings count; clicking the action bar doesn't."] = "按下这格技能的绑定键时闪一下。只认绑定键，鼠标点动作条不算。"
 L["Flash opacity"] = "闪光透明度"
 L["Desaturate on cooldown"] = "冷却中去饱和"

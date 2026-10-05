@@ -158,6 +158,7 @@ L["Blizzard frames debuffs you track (on your target) in their dispel-type color
 L["Show tooltip on hover"] = "Показывать подсказку при наведении"
 L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."] = "Выключено — скрывается и собственная подсказка Blizzard для этих значков. Клики по-прежнему проходят."
 L["Flash on key press"] = "Вспышка при нажатии"
+L["Show stacks"] = "Показать стаки"
 L["Flashes when you press the key bound to this spell's action bar slot. Only key bindings count; clicking the action bar doesn't."] = "Вспыхивает, когда вы нажимаете клавишу, назначенную ячейке панели команд с этим заклинанием. Считаются только назначенные клавиши, щелчки по панели команд — нет."
 L["Flash opacity"] = "Непрозрачность вспышки"
 L["Desaturate on cooldown"] = "Обесцвечивать при восстановлении"

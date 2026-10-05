@@ -158,6 +158,7 @@ L["Blizzard frames debuffs you track (on your target) in their dispel-type color
 L["Show tooltip on hover"] = "Mostrar dica ao passar o mouse"
 L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."] = "Desligado também oculta a dica da própria Blizzard nesses ícones. Os cliques continuam passando."
 L["Flash on key press"] = "Piscar ao pressionar tecla"
+L["Show stacks"] = "Mostrar acúmulos"
 L["Flashes when you press the key bound to this spell's action bar slot. Only key bindings count; clicking the action bar doesn't."] = "Pisca quando você pressiona a tecla atribuída ao espaço da barra de ações deste feitiço. Só atalhos contam; clicar na barra de ações não."
 L["Flash opacity"] = "Opacidade do brilho"
 L["Desaturate on cooldown"] = "Dessaturar em recarga"
