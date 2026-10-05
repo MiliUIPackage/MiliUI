@@ -70,10 +70,10 @@ end
 --             透明度照這條的 icon.pressFlashAlpha；沒勾「按鍵閃光」也照樣演示，看長相用）
 local FX_H, FX_SECS = 30, 5
 local FX_PRESS_SECS, FX_PRESS_EVERY, FX_PRESS_ON = 6, 1.5, 0.15
--- on：這條實際（主題繼承後）有沒有啟用那個效果 ⇒ 按鈕用 primary（職業色）；沒有 on 的（冷卻中）一律 normal。
+-- on：這條實際（主題繼承後）有沒有啟用那個效果 ⇒ 按鈕用 primary（職業色）；冷卻中沒有開關、一律算開著。
 -- 只是配色：沒啟用的照樣按得下去、照樣演示（看長相用）
 local FX_BUTTONS = {
-    { kind = "cooldown", label = L["On cooldown"] },
+    { kind = "cooldown", label = L["On cooldown"],      on = function() return true end },   -- 冷卻一律會顯示：當成開著
     { kind = "aura",     label = L["Buff duration"],    on = function(k) return ns.Setting(k, "icon.showAuraTime") ~= false end },
     { kind = "proc",     label = L["Proc glow"],        on = function(k) return ns.Setting(k, "glow.proc.enabled") and true or false end },
     { kind = "ready",    label = L["Ready glow"],       on = function(k) return ns.Setting(k, "glow.ready.enabled") and true or false end },
