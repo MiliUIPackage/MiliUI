@@ -715,14 +715,14 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   Masque 模式不影響（文字一直是我們管）。編輯模式暴雪寫 false ⇒ 原色。
 - **低秒變色兩段各自一色、背景色也分開**（2026-10-03 使用者要的）：`icon.durationLowColor`（預設粉 0.95/0.45/0.70，比聖騎粉重一點）
   是增益持續時間「低於 lowBelow 秒」的字色；`icon.durationSwipeColor`（預設淡黃 1/0.9/0.5，a 0.5）是增益那一段的轉圈背景色。
-  **2026-10-05（I）起增益持續時間的小數與低秒變色獨立、預設關**（見下一節），增益持續時間低秒顏色只在「增益持續時間低秒變色」開著時才看得到。
+  **2026-10-05（I）起增益持續時間的小數與低秒變色獨立（小數預設 0、低秒變色 2026-10-06 起預設開）**（見下一節），增益持續時間低秒顏色只在「增益持續時間低秒變色」開著時才看得到。
   做法：暴雪冷卻格的 `rec.style` 一律存兩顆 formatter（`cdFmt`＝冷卻倒數那一組、`durFmt`＝增益持續時間那一組，同一個快取）＋
   換色開著時的 `durSwipe`，`ApplyPhaseColor` 換字色時順便 `SetCountdownFormatter`，`AfterCooldown` 的 `SetSwipeColor` 照段挑。
 
 ### 增益持續時間的小數門檻與低秒變色（`Core/Text.lua`、`Core/Decorate.lua`、`Modules/Custom.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`，2026-10-05，I）
 
-- **設定**：`cooldownText.buffDecimalsBelow`（拉桿 0～10，預設 0 ＝ 不顯示小數）、`cooldownText.buffLowColor`（勾選，預設關）、
-  `cooldownText.buffLowBelow`（J，拉桿 1～30，預設 5）。THEMED（跟「文字」節）；舊存檔沒有這幾欄 ＝ 合併預設值補成 0／關／5
+- **設定**：`cooldownText.buffDecimalsBelow`（拉桿 0～10，預設 0 ＝ 不顯示小數）、`cooldownText.buffLowColor`（勾選，預設開——2026-10-06 改，還沒發佈過所以不遷移）、
+  `cooldownText.buffLowBelow`（J，拉桿 1～30，預設 5）。THEMED（跟「文字」節）；舊存檔沒有這幾欄 ＝ 合併預設值補成 0／開／5
   （使用者拍板，不套「舊存檔行為不變」）。冷卻倒數的 `decimalsBelow`／`lowBelow`（預設 3／5）不變、也不受這幾欄影響。
   **J 起增益持續時間不借冷卻的 lowBelow**：門檻只讀 `buffLowBelow`、顏色用 `icon.durationLowColor`（沒有退倒數的低秒色）。
   `icon.durationLowColor` 的資料路徑不變（跟圖示節的跟隨、`OVERRIDE_GROUP` 仍是 `"icon"`），只有控件搬到文字節。

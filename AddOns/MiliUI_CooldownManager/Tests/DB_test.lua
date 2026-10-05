@@ -836,7 +836,7 @@ end
 do
     local d = DB.BuildDefaults().profile.theme.cooldownText
     eq("預設：增益持續時間小數門檻 0", d.buffDecimalsBelow, 0)
-    eq("預設：增益持續時間低秒變色關", d.buffLowColor, false)
+    eq("預設：增益持續時間低秒變色開", d.buffLowColor, true)
     eq("冷卻倒數的小數門檻不變", d.decimalsBelow, 3)
     eq("冷卻倒數的低秒變色不變（5 秒）", d.lowBelow, 5)
     eq("SPELL_FALLBACK buffDecimalsBelow", DB.SPELL_FALLBACK.buffDecimalsBelow, "cooldownText.buffDecimalsBelow")
@@ -854,7 +854,7 @@ do
     ns.profile.theme.cooldownText.buffLowBelow = nil
     DB.Init()
     eq("舊存檔補上 0", ns.profile.theme.cooldownText.buffDecimalsBelow, 0)
-    eq("舊存檔補上關", ns.profile.theme.cooldownText.buffLowColor, false)
+    eq("舊存檔補上開", ns.profile.theme.cooldownText.buffLowColor, true)
     eq("舊存檔補上 5", ns.profile.theme.cooldownText.buffLowBelow, 5)
     -- 玩家改過的不蓋
     ns.profile.theme.cooldownText.buffLowColor = true

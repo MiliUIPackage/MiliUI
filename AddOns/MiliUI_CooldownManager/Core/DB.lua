@@ -419,10 +419,10 @@ function DB.BuildDefaults()
                                  lowColor = rgba(1, 0.3, 0.3), lowBelow = 5, font = "INHERIT",
                                  -- 增益持續時間的倒數（暴雪增益圖示、技能格倒增益那一段、光環格家族）自己的小數門檻、
                                  -- 低秒變色開關與變色秒數（Core/Text.lua 的 BuffTiming）：冷卻倒數不受影響、也不借冷卻的。
-                                 -- 顏色用 icon.durationLowColor（資料路徑留在 icon，設定列在「文字」節）。小數門檻與開關預設
-                                 -- 0／關（使用者拍板：舊存檔沒有這兩欄 ＝ 合併預設值補成這樣，不套「舊存檔行為不變」）；
+                                 -- 顏色用 icon.durationLowColor（資料路徑留在 icon，設定列在「文字」節）。小數門檻預設 0、
+                                 -- 低秒變色預設開（2026-10-06 使用者改；這組欄位還沒發佈過，沒有舊存檔要遷移）；
                                  -- 變色秒數預設 5（J：舊存檔合併補 5，跟以前借冷卻那一欄的預設同一個數）
-                                 buffDecimalsBelow = 0, buffLowColor = false, buffLowBelow = 5 },
+                                 buffDecimalsBelow = 0, buffLowColor = true, buffLowBelow = 5 },
                 chargeText   = { size = 12, color = rgba(1, 1, 1), point = "BOTTOMRIGHT", x = 0, y = 0, font = "INHERIT" },
                 stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0, font = "INHERIT",
                                  -- 長條（kind = "bars"）的層數錨在圖示的哪一角；舊存檔沒有 ＝ 合併預設補成右下（舊行為）

@@ -1119,10 +1119,10 @@ do
     eq("右鍵清光 ⇒ 回條層字級", CU.AuraStyle(o, "essential", 36, 36, "icons").cdSize,
         tonumber(ns.Setting("essential", "cooldownText.size")) or 16)
 
-    -- 增益持續時間的小數與低秒變色（I）：疊層倒的是增益持續時間 ⇒ 預設沒有小數、不變色（冷卻倒數的 3／5 不看）；
+    -- 增益持續時間的小數與低秒變色（I）：疊層倒的是增益持續時間 ⇒ 預設沒有小數、低秒變色開在 5 秒（冷卻倒數的 3／5 不看）；
     -- 逐法術開了 ⇒ 小數與變色秒數照增益自己的（J：不借 lowBelow）、顏色＝增益持續時間低秒顏色；改了進簽章
     local stI = CU.AuraStyle(o, "essential", 36, 36, "icons")
-    check("增益持續時間預設：0 小數、不變色", stI.decimals == 0 and stI.lowBelow == 0)
+    check("增益持續時間預設：0 小數、5 秒變色", stI.decimals == 0 and stI.lowBelow == 5)
     local sigI = stI.sig
     DB.SetOverride(sid, "buffDecimalsBelow", 2)
     DB.SetOverride(sid, "buffLowColor", true)

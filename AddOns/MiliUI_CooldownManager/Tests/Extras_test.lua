@@ -1907,7 +1907,7 @@ do
     local PINK = { r = 0.95, g = 0.45, b = 0.70, a = 1 }
     local d, l, lc = T.BuffTiming(ct, PINK)
     eq("預設：增益持續時間沒有小數", d, 0)
-    eq("預設：增益持續時間不變色", l, 0)
+    eq("預設：增益持續時間低秒變色開、門檻 5", l, 5)
     check("冷卻倒數照舊有小數與變色", (tonumber(ct.decimalsBelow) or 0) > 0 and (tonumber(ct.lowBelow) or 0) > 0)
     eq("預設：增益持續時間變色秒數 5（關著也存著）", ct.buffLowBelow, 5)
     d, l, lc = T.BuffTiming({ buffDecimalsBelow = 4, buffLowColor = true, buffLowBelow = 8, lowBelow = 6,
