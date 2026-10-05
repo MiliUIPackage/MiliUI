@@ -79,7 +79,7 @@ local FX_BUTTONS = {
     { kind = "ready",    label = L["Ready glow"],       on = function(k) return ns.Setting(k, "glow.ready.enabled") and true or false end },
     { kind = "full",     label = L["Glow at max charges"], on = function(k) return ns.Setting(k, "glow.full.enabled") and true or false end },
     { kind = "active",   label = L["Glow during buff"], on = function(k) return ns.Setting(k, "glow.active.enabled") and true or false end },
-    { kind = "press",    label = L["Key press"],        on = function(k) return ns.Setting(k, "icon.pressFlash") and true or false end },
+    { kind = "press",    label = L["Flash on key press"], on = function(k) return ns.Setting(k, "icon.pressFlash") and true or false end },
 }
 
 local instances = {}
