@@ -48,7 +48,7 @@
 --   「持續時間顏色」「持續時間低秒顏色」「持續時間背景色」各一列勾選框「自訂」＋色票（跟邊框顏色同一套：
 --   勾了才寫覆寫、初值＝目前生效的顏色）——換色生效是關時三列停用。每列右鍵清掉那一格。
 --   飾品欄／代畫格解不出增益（空格、那件沒有使用效果的增益）：五列一起停用，底部說明正上方一列黃字寫原因
---   （暴雪那句「只對先倒增益時間的法術有效」在裝備欄的格上不出現）。
+--   （暴雪那句「只對先倒增益持續時間的法術有效」在裝備欄的格上不出現）。
 --
 -- 飾品欄增益（自訂項目 kind "slotbuff"，Catalog.Info 回 kind "aura"＋slotBuff）：列跟光環格一樣；身分行寫「飾品 N · 飾品欄增益」，
 --   滑過左上角圖示是 Catalog.SlotBuffTooltip（跟挑選器、預覽格同一支）；解不出增益時一般分頁多一列黃字原因。
@@ -109,8 +109,13 @@ local TABS = {
 }
 local buildTab = "general"
 local curTab = "general"
+-- 子分頁（K：文字分頁倒數的「冷卻｜增益持續時間」）：同分頁的做法，列建的時候記下 buildSub；
+-- 這一格有增益持續時間（子分頁鈕那一列 subStrip 出現）才照 curSub 挑，沒有就固定冷卻那組（不出鈕）
+local buildSub
+local curSub = "cooldown"
 local function AddRow(entry)
     entry.tab = entry.tab or buildTab
+    entry.sub = entry.sub or buildSub
     rows[#rows + 1] = entry
     return entry
 end
@@ -152,7 +157,7 @@ local function ChargeWhen(when)
 end
 
 -- 音效欄位與顯示在哪一類（class：「cooldown」冷卻類｜「aura」增益類）
--- 暴雪的冷卻格（kind ＝ nil）另有增益出現／消失：暴雪開始／停止倒增益時間（Core/Sound.lua 的 OnAuraFlag），同一組欄位
+-- 暴雪的冷卻格（kind ＝ nil）另有增益出現／消失：暴雪開始／停止倒增益持續時間（Core/Sound.lua 的 OnAuraFlag），同一組欄位
 local function BlizzCooldownSound(kind, class) return kind == nil and class == "cooldown" end
 -- charge ＝ 整組（音效、語音播報、灰字）只在有充能時出現；note ＝ 下一列灰字（有語音播報列時排在它下面；noteCharge ＝ 灰字只在有充能時）
 local SOUNDS = {
@@ -169,7 +174,7 @@ local SOUNDS = {
     { field = "loseSound",  label = L["Buff lost sound"],   when = BlizzCooldownSound },
 }
 
--- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益時間）
+-- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益持續時間）
 local function ActiveGlowWhen(kind, class) return class == "aura" or kind == nil end
 
 -- 沒有物品時隱藏：只有自訂物品；被動飾品不顯示：自訂飾品欄與暴雪的裝備欄冷卻格（暴雪沒給框時由米利代畫的那種）
@@ -473,7 +478,7 @@ local function SpellNameOf(id)
     return type(name) == "string" and name ~= "" and name or nil
 end
 
--- 「先倒增益時間」這件事的說明（增益時間分頁、音效分頁的增益出現／消失）：舉反魔法護罩為例，法術名與職業名
+-- 「先倒增益持續時間」這件事的說明（增益持續時間分頁、音效分頁的增益出現／消失）：舉反魔法護罩為例，法術名與職業名
 -- 用遊戲的官方譯名（C_Spell.GetSpellName、LOCALIZED_CLASS_NAMES_MALE），不進語系檔
 local EXAMPLE_SPELL = 48707          -- 反魔法護罩
 local function ExampleArgs()
@@ -500,9 +505,10 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     -- 值一律照 Text.SpellText 合併後的回填（長條的秒數另有自己的底，見那支）。
     -- 哪些列出現：
     --   倒數  每一種格都有；小數門檻與低秒變色長條沒有（秒數是暴雪寫的字串／整數 formatter）
-    --         換色開關＋兩個字色＝「先倒增益」那一段（暴雪的冷卻格、飾品欄），從原本的「增益時間」分頁搬來
-    --         增益時間的小數門檻＋低秒變色＋變色顏色＋變色秒數（I／J）＝有增益時間的格（增益類、暴雪的冷卻格、飾品欄），
-    --         長條沒有；四列排在一起，變色顏色與秒數只在增益時間的低秒變色生效時可改
+    --         換色開關＋兩個字色＝「先倒增益」那一段（暴雪的冷卻格、飾品欄），從原本的「增益持續時間」分頁搬來
+    --         從小數門檻開始分子分頁「冷卻｜增益持續時間」（K）：各四列（小數門檻＋低秒變色＋變色顏色＋變色秒數）；
+    --         增益持續時間那組（I／J）＝有增益持續時間的格（增益類、暴雪的冷卻格、飾品欄），沒有的格不出子分頁鈕、只有冷卻那組；
+    --         長條兩組都沒有。增益持續時間的變色顏色與秒數只在它的低秒變色生效時可改
     --   充能  圖示類的冷卻格（暴雪核心／輔助、自訂法術／物品／飾品欄）；增益類與長條沒有
     --   層數  增益類（暴雪的增益、光環格）、飾品欄（疊在上面的增益按鈕）、長條上的格（圖示右下那個數字）；
     --         長條的層數固定在圖示右下 ⇒ 沒有錨點列（同條頁）
@@ -722,11 +728,42 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     TextColorRow(L["Color"], CdSection, "color", "cooldownTextColor", { r = 1, g = 1, b = 1, a = 1 }, Always)
     PointRow("cooldownTextPoint", Always, "cooldownText", "CENTER")
     OffsetRow(CdSection, "cooldownTextX", "cooldownTextY", Always)
+    -- 從小數門檻開始分兩個子分頁「冷卻｜增益持續時間」（K，同條頁）：兩組各四列（小數門檻、低秒變色、變色顏色、
+    -- 變色秒數），標籤不帶前綴。增益持續時間那組只在有增益持續時間的格出現（增益類、暴雪的冷卻格、飾品欄；長條的秒數
+    -- 換不了 ⇒ 長條兩組都沒有）；沒有增益持續時間的格不出子分頁鈕、只有冷卻那組
+    local function BuffTimeRows(kind, class) return not OnBars() and (class == "aura" or DurationRows(kind, class)) end
+    do
+        local sr = CreateFrame("Frame", nil, frame)
+        local holder = CreateFrame("Frame", nil, sr)
+        holder:SetPoint("TOPLEFT", sr, "TOPLEFT", CTRL_X, -3)
+        local btns = {}
+        for i, id in ipairs({ "cooldown", "duration" }) do
+            local b = W.CreateButton(holder, id == "cooldown" and L["Cooldown"] or L["Buff duration"], "accent-hover", 56, 20)
+            W.FitButton(b, 56, 20)
+            b.id = id
+            btns[i] = b
+        end
+        local highlight = W.CreateButtonGroup(btns, function(id)
+            if id == curSub then return end
+            curSub = id
+            if cur then Layout(frame.kind, frame.soundClass) end
+        end)
+        local _, bh = W.FlowLayout(holder, btns, ROW_W - CTRL_X, 4, 4, 20)
+        holder:SetSize(ROW_W - CTRL_X, bh)
+        sr:SetSize(ROW_W, bh + 6)
+        AddRow({ frame = sr, h = bh + 6, when = BuffTimeRows, subStrip = true, paint = function(id)
+            for _, b in ipairs(btns) do
+                if b.id == id then highlight(b) end
+            end
+        end })
+    end
+
+    -- 冷卻：低秒變色的開關跟門檻是同一個欄位（門檻 0 ＝ 關，同條頁）；勾起來時門檻 5
+    buildSub = "cooldown"
     SizeRow(L["Decimals below"], "cooldownText", "decimalsBelow", "cooldownTextDecimals", 0, 10, NotBarsRow)
     NoteRow(L["Shows one decimal place under this many seconds; 0 never shows decimals."], NotBarsRow)
-    -- 低秒變色：開關跟門檻是同一個欄位（門檻 0 ＝ 關，同條頁）；勾起來時門檻 5
     do
-        local lr, lh = NewRow(L["Cooldown color when low"], NotBarsRow)
+        local lr, lh = NewRow(L["Color when low"], NotBarsRow)
         local lcb = W.CreateCheckButton(lr, nil, function(on)
             if not cur then return end
             local t = ns.Text.SpellText(cur.key, cur.id, "cooldownText", true)
@@ -743,26 +780,25 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
         textCtl[#textCtl + 1] = { kind = "low", cb = lcb, note = lnote }
         Track(lr, { "cooldownTextLowBelow" })
     end
-    TextColorRow(L["Cooldown low color"], "cooldownText", "lowColor", "cooldownTextLowColor", { r = 1, g = 0.3, b = 0.3, a = 1 }, NotBarsRow)
-    SizeRow(L["Cooldown low below (sec)"], "cooldownText", "lowBelow", "cooldownTextLowBelow", 0, 30, NotBarsRow)
+    TextColorRow(L["Low color"], "cooldownText", "lowColor", "cooldownTextLowColor", { r = 1, g = 0.3, b = 0.3, a = 1 }, NotBarsRow)
+    SizeRow(L["Low below (sec)"], "cooldownText", "lowBelow", "cooldownTextLowBelow", 0, 30, NotBarsRow)
 
-    -- 增益時間（I／J）：小數門檻、低秒變色、變色顏色、變色秒數四列排在一起（同條頁）。有增益時間的格才有
-    -- （增益類、暴雪的冷卻格、飾品欄；長條的秒數換不了）。覆寫 key 跟條層同名（變色顏色是 durationLowColor）；
-    -- 冷卻倒數照上面那幾列、增益時間不借
-    local function BuffTimeRows(kind, class) return not OnBars() and (class == "aura" or DurationRows(kind, class)) end
-    -- 變色顏色可改：增益時間的低秒變色生效（合併後）是開
+    -- 增益持續時間（I／J）：覆寫 key 跟條層同名（變色顏色是 durationLowColor）；變色顏色只在增益持續時間的低秒變色
+    -- 生效（合併後）時可改
+    buildSub = "duration"
     local function BuffLowOn(key, id)
         if OnBars() then return false end
         return ns.Text.SpellText(key, id, "cooldownText", true).buffLowColor == true
     end
-    SizeRow(L["Buff duration decimals below"], "cooldownText", "buffDecimalsBelow", "buffDecimalsBelow", 0, 10, BuffTimeRows)
-    ToggleRow("buffLowColor", L["Color buff duration when low"], BuffTimeRows)
-    Track(ColorOverrideRow(L["Buff duration low color"], "durationLowColor", false, { r = 0.95, g = 0.45, b = 0.70, a = 1 },
+    SizeRow(L["Decimals below"], "cooldownText", "buffDecimalsBelow", "buffDecimalsBelow", 0, 10, BuffTimeRows)
+    NoteRow(L["Shows one decimal place under this many seconds; 0 never shows decimals."], BuffTimeRows)
+    ToggleRow("buffLowColor", L["Color when low"], BuffTimeRows)
+    Track(ColorOverrideRow(L["Low color"], "durationLowColor", false, { r = 0.95, g = 0.45, b = 0.70, a = 1 },
         BuffTimeRows, BuffLowOn, true), { "durationLowColor" })
-    SizeRow(L["Buff duration low below (sec)"], "cooldownText", "buffLowBelow", "buffLowBelow", 1, 30, BuffTimeRows)
-    NoteRow(L["Buff durations only: buff icons, the buff part of a spell's countdown, and aura slots. Cooldown countdowns use the cooldown rows above."], BuffTimeRows)
+    SizeRow(L["Low below (sec)"], "cooldownText", "buffLowBelow", "buffLowBelow", 1, 30, BuffTimeRows)
 
-    -- 增益那一段的換色＋兩個字色（「先倒增益」的格；原本在「增益時間」分頁）：五個欄位跟主題頁同一套、
+    -- 增益那一段的換色＋字色：也是增益持續時間的設定 ⇒ 歸「增益持續時間」子分頁（切到「冷卻」時不出現，免得看起來像冷卻的）。
+    -- 原本在「增益持續時間」分頁：五個欄位跟主題頁同一套、
     -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 顏色列停用（Refresh）
     local cdr, cdh = NewRow(L["Recolor buff duration"], DurationRows)
     local cdItems = {
@@ -784,6 +820,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     RightClickClears(cdr, cdh, "colorDuration")
     Track(cdr, { "colorDuration" })
     Track(ColorOverrideRow(L["Buff duration color"],     "durationColor",    false, { r = 1,    g = 0.85, b = 0.1,  a = 1 }), { "durationColor" })
+    buildSub = nil
 
     -- 充能
     HeaderRow(L["Charges"], ChargeRows)
@@ -1035,7 +1072,7 @@ local function Build()
     -- 黃字強調：只能選增益圖示列上的（增益長條的框搬不進方格、鏡射又印不出層數；EllesmereUI 同樣的限制）
     EmphasisRow(L["Only buffs on Tracked Buffs can be picked. Tracked Bars can't be mirrored into an icon slot; drag the buff to Tracked Buffs in Blizzard's Cooldown Manager first."], ReplaceCapable)
 
-    -- 使用增益時間樣式（預設勾）：頂著這一格的增益照這一招「增益時間」那幾項（換色／三個顏色）畫倒數。
+    -- 使用增益持續時間樣式（預設勾）：頂著這一格的增益照這一招「增益持續時間」那幾項（換色／三個顏色）畫倒數。
     -- 只存 false（勾回去就清掉覆寫）；沒設以增益取代時停用（Refresh）
     local asr, ash = NewRow(L["Use buff time style"], ReplaceCapable)
     local ascb = W.CreateCheckButton(asr, nil, function(on)
@@ -1309,7 +1346,7 @@ local function Build()
     RightClickClears(csr, csh, "cdState")
 
     -- 增益持續中顯示持續時間（暴雪的冷卻類、自訂飾品欄才有；其餘自訂項目沒有「先倒增益」那一段）。
-    -- 「增益時間」分頁拆掉之後（H）：顯示與否、轉圈背景色留在外觀；換色開關與兩個字色搬到「文字」的倒數那一段
+    -- 「增益持續時間」分頁拆掉之後（H）：顯示與否、轉圈背景色留在外觀；換色開關與兩個字色搬到「文字」的倒數那一段
     local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
     local DurationRows = function(kind, class) return BlizzCooldown(kind, class) or kind == "slot" end
     buildTab = "look"
@@ -1334,7 +1371,7 @@ local function Build()
 
     -- 顏色列：勾「自訂」才寫覆寫（初值＝目前生效的顏色），色票只在自訂時能動；跟上面的邊框顏色同一套
     -- when：哪些格出現（預設 DurationRows）；alsoOn(key, id)：換色生效是關時還有什麼會讓這一列可改；
-    -- onlyAlso：只看 alsoOn、不管換色（增益時間的變色顏色：只有增益時間的低秒變色用得到，J）
+    -- onlyAlso：只看 alsoOn、不管換色（增益持續時間的變色顏色：只有增益持續時間的低秒變色用得到，J）
     local function ColorOverrideRow(label, field, hasAlpha, fallback, when, alsoOn, onlyAlso)
         local r2, h2 = NewRow(label, when or DurationRows)
         local cb2 = W.CreateCheckButton(r2, L["Custom"], function(on)
@@ -1388,7 +1425,7 @@ local function Build()
 
     -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
     -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫。
-    -- 放「發光」分頁（檔頭的分頁表）；以前接在增益時間那幾列後面、沒換 buildTab，一直落在「增益時間」分頁
+    -- 放「發光」分頁（檔頭的分頁表）；以前接在增益持續時間那幾列後面、沒換 buildTab，一直落在「增益持續時間」分頁
     buildTab = "glow"
     local sgr = NewRow(L["Stack glow"], BlizzAura)
     local scb = W.CreateCheckButton(sgr, nil, function(on)
@@ -1759,8 +1796,8 @@ local function Build()
     AddRow(phEntry)
     frame.placeholderTip, frame.placeholderTipEntry = phTip, phEntry
 
-    -- 強調說明（黃字）：「先倒增益時間」的適用範圍，各在自己的分頁、底部說明的正上方
-    -- 「增益時間」分頁拆掉之後（H），那幾列分在外觀（顯示與否、轉圈背景色）與文字（換色、兩個字色）：兩頁各一份
+    -- 強調說明（黃字）：「先倒增益持續時間」的適用範圍，各在自己的分頁、底部說明的正上方
+    -- 「增益持續時間」分頁拆掉之後（H），那幾列分在外觀（顯示與否、轉圈背景色）與文字（換色、兩個字色）：兩頁各一份
     for _, tab in ipairs({ "text", "look" }) do
         EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
             function(kind, class) return BlizzCooldown(kind, class) and CurSlot() == nil end, tab)
@@ -1855,6 +1892,7 @@ Layout = function(kind, class)
         end
     end
     local list, sel = {}, nil
+    local sub = "cooldown"          -- 子分頁鈕那一列出現了才換成 curSub（它排在兩組列前面）
     for _, b in ipairs(frame.tabBtns) do
         b:SetShown(has[b.id] and true or false)
         if has[b.id] then list[#list + 1] = b end
@@ -1868,6 +1906,11 @@ Layout = function(kind, class)
     local y = TOP_Y - tbh - 10
     for _, row in ipairs(rows) do
         local show = (row.tab == "all" or row.tab == curTab) and (not row.when or row.when(kind, class))
+        if show and row.subStrip then
+            sub = curSub
+            row.paint(sub)
+        end
+        if show and row.sub and row.sub ~= sub then show = false end
         row.frame:SetShown(show)
         if show then
             row.frame:ClearAllPoints()
@@ -2078,7 +2121,7 @@ function Pop.Refresh()
     frame.colorDurDD:SetAlpha(auraShown and 1 or 0.4)
     local recolor = auraShown and ns.SpellSetting(key, id, "colorDuration") and true or false
     -- 三個顏色：勾「自訂」＝有覆寫；色票顯示目前生效的顏色（沒覆寫＝條的）。
-    -- 可改＝這一格有「先倒增益」那一段而且換色生效，或這一列另有用途生效（增益時間低秒顏色：增益時間的低秒變色，I）
+    -- 可改＝這一格有「先倒增益」那一段而且換色生效，或這一列另有用途生效（增益持續時間低秒顏色：增益持續時間的低秒變色，I）
     for _, r in ipairs(colorRows) do
         local on = (recolor and r.phaseWhen ~= nil and r.phaseWhen(kind, class)) or (r.alsoOn ~= nil and r.alsoOn(key, id)) or false
         local own = type(Override(r.field)) == "table"

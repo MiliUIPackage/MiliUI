@@ -973,7 +973,7 @@ function Proto:StartFx(kind)
     if kind == "cooldown" or kind == "aura" then
         local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
         local th = math.max(tonumber(ct.lowBelow) or 0, tonumber(ct.decimalsBelow) or 0)
-        -- 增益持續時間的演示：增益時間自己的小數門檻（I）與變色秒數（J，開關開著才算）
+        -- 增益持續時間的演示：增益持續時間自己的小數門檻（I）與變色秒數（J，開關開著才算）
         if kind == "aura" then
             th = math.max(th, tonumber(ct.buffDecimalsBelow) or 0)
             if ct.buffLowColor == true then th = math.max(th, tonumber(ct.buffLowBelow) or 0) end
@@ -1032,7 +1032,7 @@ local function CellCountdown(key, c)
     return ns.Decorate.Resolve(key).cooldownText or {}
 end
 
--- 倒數字：照這一格「倒數文字」的小數門檻（逐法術可蓋；倒增益那一段的格照增益時間的小數門檻，I）；回傳字串
+-- 倒數字：照這一格「倒數文字」的小數門檻（逐法術可蓋；倒增益那一段的格照增益持續時間的小數門檻，I）；回傳字串
 function Proto:FxText(c)
     local fx = self:ActiveFx()
     if not fx then return "" end
@@ -1067,8 +1067,8 @@ function Proto:FxTick()
     local left = fx.start + fx.secs - GetTime()
     for _, c in ipairs(self.slots or {}) do
         if c.onCD and c.cdText then
-            -- 門檻與顏色逐格（逐法術的文字覆寫）；倒增益那一段的格照增益時間的低秒變色（I／J：開關預設關、門檻 buffLowBelow、
-            -- 顏色＝增益時間低秒顏色，也逐法術）
+            -- 門檻與顏色逐格（逐法術的文字覆寫）；倒增益那一段的格照增益持續時間的低秒變色（I／J：開關預設關、門檻 buffLowBelow、
+            -- 顏色＝增益持續時間低秒顏色，也逐法術）
             local ct = CellCountdown(self.key, c)
             c.cdText:SetText(self:FxText(c))
             local lowBelow, lc = tonumber(ct.lowBelow) or 0, ct.lowColor

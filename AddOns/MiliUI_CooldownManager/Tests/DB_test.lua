@@ -830,24 +830,24 @@ do
 end
 
 ------------------------------------------------------------
--- I. 增益時間的小數門檻與低秒變色（cooldownText.buffDecimalsBelow／buffLowColor）：預設 0／關、
+-- I. 增益持續時間的小數門檻與低秒變色（cooldownText.buffDecimalsBelow／buffLowColor）：預設 0／關、
 --    舊存檔合併補成這樣、冷卻倒數的預設不變、逐法術覆寫登記
 ------------------------------------------------------------
 do
     local d = DB.BuildDefaults().profile.theme.cooldownText
-    eq("預設：增益時間小數門檻 0", d.buffDecimalsBelow, 0)
-    eq("預設：增益時間低秒變色關", d.buffLowColor, false)
+    eq("預設：增益持續時間小數門檻 0", d.buffDecimalsBelow, 0)
+    eq("預設：增益持續時間低秒變色關", d.buffLowColor, false)
     eq("冷卻倒數的小數門檻不變", d.decimalsBelow, 3)
     eq("冷卻倒數的低秒變色不變（5 秒）", d.lowBelow, 5)
     eq("SPELL_FALLBACK buffDecimalsBelow", DB.SPELL_FALLBACK.buffDecimalsBelow, "cooldownText.buffDecimalsBelow")
     eq("SPELL_FALLBACK buffLowColor", DB.SPELL_FALLBACK.buffLowColor, "cooldownText.buffLowColor")
     eq("覆寫分組 buffDecimalsBelow ＝ text", DB.OVERRIDE_GROUP.buffDecimalsBelow, "text")
     eq("覆寫分組 buffLowColor ＝ text", DB.OVERRIDE_GROUP.buffLowColor, "text")
-    -- J：增益時間自己的變色秒數
-    eq("預設：增益時間變色秒數 5", d.buffLowBelow, 5)
+    -- J：增益持續時間自己的變色秒數
+    eq("預設：增益持續時間變色秒數 5", d.buffLowBelow, 5)
     eq("SPELL_FALLBACK buffLowBelow", DB.SPELL_FALLBACK.buffLowBelow, "cooldownText.buffLowBelow")
     eq("覆寫分組 buffLowBelow ＝ text", DB.OVERRIDE_GROUP.buffLowBelow, "text")
-    eq("增益時間變色顏色的資料路徑不變", DB.SPELL_FALLBACK.durationLowColor, "icon.durationLowColor")
+    eq("增益持續時間變色顏色的資料路徑不變", DB.SPELL_FALLBACK.durationLowColor, "icon.durationLowColor")
     -- 舊存檔沒有這幾欄
     ns.profile.theme.cooldownText.buffDecimalsBelow = nil
     ns.profile.theme.cooldownText.buffLowColor = nil

@@ -89,7 +89,7 @@
 -- OnActiveStateChanged ⇒ 後掛勾那支當訊號。讀不到（秘密／nil）一律當沒生效：暴雪的增益列設成
 -- 「沒生效也顯示」時灰圖示不能亮（fail-closed）。
 -- 暴雪的冷卻格（核心／輔助，含搬進自訂群組的）也吃同一個逐法術開關（玩家回報 2026-10-03：反魔法護罩使用中要亮）：
--- 「生效」＝暴雪正在倒增益時間。訊號是 Cooldown:SetUseAuraDisplayTime(旗標) 的後掛勾（Decorate 記進 rec.auraFlag，
+-- 「生效」＝暴雪正在倒增益持續時間。訊號是 Cooldown:SetUseAuraDisplayTime(旗標) 的後掛勾（Decorate 記進 rec.auraFlag，
 -- 值變了就叫 G.SyncActive）。實機 log（12.1，戰鬥中）：按下去那一刻 true、增益掉了那一刻 false，都是明文。
 --   ⚠ 冷卻格的 IsActive()、item 上的 cooldownUseAuraDisplayTime 欄位、IsExpired() 在 12.1 都沒用：
 --     IsActive 跟著整條重排翻、欄位永遠 false、IsExpired 永遠 true（暴雪每次刷新幾乎都是 Clear），只有那支 setter 可靠。
@@ -537,7 +537,7 @@ end
 function G.SyncActive(owner, rec, barKey)
     barKey = barKey or rec.claimKey
     local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
-    -- 暴雪的冷卻格（核心／輔助）：「生效」＝暴雪正在倒增益時間（rec.auraFlag，Decorate 的 SetUseAuraDisplayTime 後掛勾記的）
+    -- 暴雪的冷卻格（核心／輔助）：「生效」＝暴雪正在倒增益持續時間（rec.auraFlag，Decorate 的 SetUseAuraDisplayTime 後掛勾記的）
     local active
     if aura then
         active = owner ~= nil and ReadActive(owner)
@@ -1291,7 +1291,7 @@ local initialized = false
 local function OnCombatChanged(on)
     inCombat = on
     if not (ns.Viewers and ns.Viewers.EnumerateItems) then return end
-    -- 四條全掃：冷卻格也有生效發光（倒增益時間那段，「脫戰也亮」關著時要跟著切）
+    -- 四條全掃：冷卻格也有生效發光（倒增益持續時間那段，「脫戰也亮」關著時要跟著切）
     ns.Viewers.EnumerateItems(function(item, rec) G.SyncActive(item, rec) end)
 end
 

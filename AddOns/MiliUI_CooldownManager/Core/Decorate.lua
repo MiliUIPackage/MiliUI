@@ -115,7 +115,7 @@ function D.Resolve(barKey, fresh)
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
         colorDuration = S(barKey, "icon.colorDuration") and true or false,   -- 增益那一段的倒數換色（PhaseColors）
         durationColor = S(barKey, "icon.durationColor"),
-        durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益時間的低秒顏色（cooldownText.buffLowColor 開著才用，門檻 buffLowBelow）
+        durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益持續時間的低秒顏色（cooldownText.buffLowColor 開著才用，門檻 buffLowBelow）
         durationSwipeColor = S(barKey, "icon.durationSwipeColor"),     -- 增益那一段的轉圈背景色
         cooldownText = S(barKey, "cooldownText") or {},
         chargeText   = S(barKey, "chargeText") or {},
@@ -195,7 +195,7 @@ D.SpellStyle = SpellStyle                                           -- 測試用
 -- 再 CooldownFrame_Set）。旗標是暴雪 Lua 裡的字面布林（CacheCooldownValues 那幾支寫的），
 -- 我們在 SetUseAuraDisplayTime 的後掛勾裡記進 rec.auraTime（讀不到／秘密值 ＝ false），
 -- SetCooldown 的後掛勾（暴雪緊接著就叫）與重新裝飾時照它換倒數數字的顏色（ns.Text.ApplyPhaseColor）。
--- 只做暴雪核心／輔助的 item（含被搬進自訂群組的）：增益兩條整條都是增益時間、自訂法術沒有增益階段。
+-- 只做暴雪核心／輔助的 item（含被搬進自訂群組的）：增益兩條整條都是增益持續時間、自訂法術沒有增益階段。
 -- 低秒變色（formatter 裡的 |c 色碼）兩段都照舊生效、壓過這個顏色。
 --
 -- 設定是五個欄位、逐法術跟條層同一套（SpellStyle 用 SpellSetting 解好：沒覆寫退回條層）：
@@ -1114,7 +1114,7 @@ local function OnClearCooldown(cd)
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
-    -- 前面沒寫旗標就清 ＝ 暴雪走「到期」那條：什麼都沒在倒 ⇒ 增益時間的旗標歸零（見 OnSetUseAuraDisplayTime）。
+    -- 前面沒寫旗標就清 ＝ 暴雪走「到期」那條：什麼都沒在倒 ⇒ 增益持續時間的旗標歸零（見 OnSetUseAuraDisplayTime）。
     -- 剛寫過旗標接著清（CooldownFrame_Set 拿到零長度）＝ 同一次刷新，旗標照暴雪剛寫的
     if rec.auraFlagPending then
         rec.auraFlagPending = nil
@@ -1237,12 +1237,12 @@ end
 D.ApplyIconOverride = ApplyIconOverride                             -- 測試用
 
 ------------------------------------------------------------
--- 增益時間不顯示的格（rec.auraHidden）：圖示也跟著法術走，不跟增益
+-- 增益持續時間不顯示的格（rec.auraHidden）：圖示也跟著法術走，不跟增益
 --
 -- 暴雪 GetSpellTexture 在 PreferAuraDataOverSpellData 成立時直接回光環的圖示；主動施放的冷卻格只要
 -- 目標身上有它追蹤的減益就成立 ⇒ 減益期間圖示鎖成減益圖，覆蓋法術完全不看（血魄心臟打擊的緩速掛著，
 -- 薩萊因觸發吸血鬼打擊也不換圖，2026-10-05 NGA 回報；暴雪內建一樣）。
--- 玩家把增益時間關掉＝不要追蹤這個光環，圖示改走暴雪「沒有光環」那條：overrideTooltipSpellID 優先、
+-- 玩家把增益持續時間關掉＝不要追蹤這個光環，圖示改走暴雪「沒有光環」那條：overrideTooltipSpellID 優先、
 -- 否則基本法術，交給 C_Spell.GetSpellTexture（它自己套覆蓋），有動態圖示用動態那個。
 --   * 時機：暴雪 RefreshData 是先冷卻（SetUseAuraDisplayTime → 我們判 auraHidden）再 RefreshSpellTexture
 --     ⇒ 同一次刷新 SetTexture 後掛勾就讀得到新的 auraHidden；觸發換招走 SPELL_UPDATE_ICON 也只叫
@@ -1786,8 +1786,8 @@ function D.Apply(item, rec, barKey, w, h)
     local spell = SpellStyle(barKey, id)
     local isBar = style.kind == "bars" and item.Bar ~= nil
     local sig = Signature(style, id, spell, w, h)
-    -- 以增益取代：這顆增益 item 正頂著 A 的格（rec.replacing ＝ A），A 勾了「使用增益時間樣式」（預設）
-    -- ⇒ 倒數整段照 A 的增益時間樣式（A 的 SpellStyle：換色開關＋三個顏色，沒覆寫退回這一條）。
+    -- 以增益取代：這顆增益 item 正頂著 A 的格（rec.replacing ＝ A），A 勾了「使用增益持續時間樣式」（預設）
+    -- ⇒ 倒數整段照 A 的增益持續時間樣式（A 的 SpellStyle：換色開關＋三個顏色，沒覆寫退回這一條）。
     -- 沒勾 ⇒ aSpell nil，照增益原本的倒數樣式（不換色）
     local aSpell
     if rec.replacing ~= nil and not isBar and not rec.custom then
@@ -1830,7 +1830,7 @@ function D.Apply(item, rec, barKey, w, h)
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
         rec.style.cdColor, rec.style.durColor = D.PhaseColors(style, spell)
-        -- 兩段各一顆 formatter（ApplyPhaseColor 換）：冷卻那一段照倒數的小數／低秒，增益那一段照「增益時間」的
+        -- 兩段各一顆 formatter（ApplyPhaseColor 換）：冷卻那一段照倒數的小數／低秒，增益那一段照「增益持續時間」的
         -- 小數門檻與低秒變色（I，跟換色開關無關：換色關著也照這一組）。formatter 依值共用（Text 的快取）
         local ct = spell.cooldownText or style.cooldownText or {}
         rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
@@ -1842,12 +1842,12 @@ function D.Apply(item, rec, barKey, w, h)
         -- 增益持續中不顯示持續時間（同一個條件；裝備欄項目在 HideTarget 再擋）
         rec.style.hideAuraTime = spell.showAuraTime == false
     elseif aSpell then
-        -- 頂著 A 的增益：整段都是增益時間 ⇒ allAura（ApplyPhaseColor／AfterCooldown 不看 rec.auraTime 旗標）
+        -- 頂著 A 的增益：整段都是增益持續時間 ⇒ allAura（ApplyPhaseColor／AfterCooldown 不看 rec.auraTime 旗標）
         local cdColor, durColor = D.PhaseColors(style, aSpell)
         if durColor then
             rec.style.cdColor, rec.style.durColor, rec.style.allAura = cdColor, durColor, true
             rec.style.durSwipe = { C4(aSpell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
-            -- 整段都是增益時間：小數與低秒照這顆增益自己的「增益時間」設定，低秒色用 A 的增益時間低秒顏色
+            -- 整段都是增益持續時間：小數與低秒照這顆增益自己的「增益持續時間」設定，低秒色用 A 的增益持續時間低秒顏色
             local ct = spell.cooldownText or style.cooldownText or {}
             rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
             rec.style.durFmt = ns.Text.BuffFormatter(ct, aSpell.durationLowColor)
