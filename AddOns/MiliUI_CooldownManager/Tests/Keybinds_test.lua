@@ -6,7 +6,7 @@
 -- 覆蓋：綁定字串縮寫（修飾鍵、滑鼠鍵、數字鍵盤、特殊鍵、減號鍵）、動作條格 → 指令名
 -- （主動作條翻頁／變形、左下右下右側、動作條 6–8、不收的頁）、同一個法術多格時的優先序、
 -- 覆寫法術優先、物品掃格子、快取與清快取；按鍵鏡射（綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、
--- 按下／放開的狀態機、2 秒保險、載具與寵物對戰、掛勾只掛一次）。
+-- 按下／放開的狀態機、2 秒保險、載具與寵物對戰、掛勾只掛一次）；閃光跟著 Masque 皮的遮罩。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Keybinds.lua"
@@ -391,6 +391,119 @@ eq("Invalidate：排一次重建", #timers, 1)
 eq("Invalidate：0.2 秒合併", timers[1].sec, 0.2)
 ns.Bars, ns.profile = nil, nil
 ns.Setting, ns.DB = savedSetting, savedDB
+
+------------------------------------------------------------
+-- 8. 閃光跟著 Masque 皮的形狀（F）：從被套皮的 Icon 讀遮罩、在 overlay 上自己建一張掛到閃光上；
+--    沒交給 Masque 不讀不建、換皮重讀、拿掉、讀不到 ⇒ 方形
+------------------------------------------------------------
+do
+    local chunk2
+    if setfenv then
+        chunk2 = assert(loadfile(here .. "/../Core/MasqueShape.lua"))
+        setfenv(chunk2, env)
+    else
+        chunk2 = assert(loadfile(here .. "/../Core/MasqueShape.lua", "t", env))
+    end
+    chunk2("MiliUI_CooldownManager", ns)
+
+    local masks = 0
+    local function MaskTex()
+        masks = masks + 1
+        local m = { shown = true }
+        function m:SetTexture(f) self.file, self.atlas = f, nil end
+        function m:SetAtlas(a) self.atlas, self.file = a, nil end
+        function m:ClearAllPoints() self.point = nil end
+        function m:SetSize(w, h) self.w, self.h = w, h end
+        function m:SetPoint(...) self.point = { ... } end
+        function m:Show() self.shown = true end
+        function m:Hide() self.shown = false end
+        return m
+    end
+    local function Overlay()
+        local ov = FakeOverlay()
+        ov.CreateTexture = function()
+            local t = FakeTex()
+            t.masks = {}
+            function t:AddMaskTexture(m) self.masks[#self.masks + 1] = m end
+            function t:RemoveMaskTexture(m)
+                for i, x in ipairs(self.masks) do if x == m then table.remove(self.masks, i) break end end
+            end
+            return t
+        end
+        ov.CreateMaskTexture = function() return MaskTex() end
+        return ov
+    end
+    -- 被套皮的按鈕：Icon 錨按鈕中心 32×32；皮的遮罩錨 Icon 中心偏 (1,-1)、30×30、插件貼圖（檔案編號負數）
+    local reads = 0
+    local function Region(w, h, point, maskOf)
+        local r = { w = w, h = h, point = point }
+        function r:GetNumPoints() return 1 end
+        function r:GetPoint() return (table.unpack or unpack)(self.point) end
+        function r:GetWidth() return self.w end
+        function r:GetHeight() return self.h end
+        function r:GetTexCoord() return 0, 0, 0, 1, 1, 0, 1, 1 end
+        function r:GetNumMaskTextures() reads = reads + 1; return maskOf and #maskOf or 0 end
+        function r:GetMaskTexture(i) return maskOf[i] end
+        return r
+    end
+    local btn = {}
+    local skinMasks = {}
+    local icon = Region(32, 32, { "CENTER", btn, "CENTER", 0, 0 }, skinMasks)
+    btn.Icon = icon
+    local sm = Region(30, 30, { "CENTER", icon, "CENTER", 1, -1 })
+    sm.GetTextureFileID = function() return -5272 end
+    skinMasks[1] = sm
+
+    local gen, avail = 0, 0
+    local savedM = ns.Masque
+    ns.Masque = { Available = function() avail = avail + 1; return true end, Generation = function() return gen end }
+
+    -- 沒交給 Masque：不問 Masque、不讀、不建
+    local ovN = Overlay()
+    local rn = { overlay = ovN, glowW = 36, glowH = 36 }
+    K.PressTexture(rn, ovN, 0.5)
+    check("沒交出去：不問 Masque、不讀、不建遮罩", avail == 0 and reads == 0 and masks == 0 and rn.pressMask == nil)
+
+    local ov = Overlay()
+    local rec = { overlay = ov, msqSkinned = true, msqButton = btn, glowW = 36, glowH = 36, msqSize = "36x36" }
+    local t = K.PressTexture(rec, ov, 0.5)
+    local m = t.masks[1]
+    check("圓形皮：閃光掛上自己建的遮罩", m ~= nil and masks == 1 and rec.pressMask and rec.pressMask.on)
+    eq("遮罩：負的檔案編號照收", m and m.file, -5272)
+    check("遮罩：同一個矩形（30、相對中心 1,-1、錨 overlay）", m and m.w == 30 and m.point[2] == ov and m.point[4] == 1 and m.point[5] == -1)
+    local r0 = reads
+    K.PressTexture(rec, ov, 0.5)
+    eq("再按：快取（不重讀）", reads, r0)
+    eq("再按：不多掛", #t.masks, 1)
+    gen = gen + 1
+    sm.w = 28
+    K.PressTexture(rec, ov, 0.5)
+    check("換皮（Generation 變）：重讀、重用同一張遮罩", reads > r0 and masks == 1 and #t.masks == 1 and t.masks[1] == m and m.w == 28)
+    -- 群組停用／換回米利：拿掉遮罩
+    rec.msqSkinned = false
+    K.PressTexture(rec, ov, 0.5)
+    check("沒交出去了：遮罩拿掉（閃光回方形）", #t.masks == 0 and rec.pressMask == nil and not m.shown)
+    -- 方形皮（沒有遮罩）：照舊方形、讀過就記
+    rec.msqSkinned = true
+    skinMasks[1] = nil
+    gen = gen + 1
+    K.PressTexture(rec, ov, 0.5)
+    check("方形皮：沒有遮罩", #t.masks == 0 and rec.pressMask and not rec.pressMask.on)
+    local r1 = reads
+    K.PressTexture(rec, ov, 0.5)
+    eq("方形皮：讀過就記", reads, r1)
+    -- 讀到一半出錯：方形、不報錯
+    icon.GetPoint = function() error("boom") end
+    gen = gen + 1
+    local ok = pcall(K.PressTexture, rec, ov, 0.5)
+    check("讀不到：不報錯、方形", ok and #t.masks == 0)
+    -- 長條：不做
+    local rb = { overlay = Overlay(), msqSkinned = true, msqButton = btn, barGeometry = {}, glowW = 36, glowH = 36 }
+    local av0 = avail
+    K.PressTexture(rb, rb.overlay, 0.5)
+    eq("長條：不問 Masque", avail, av0)
+    ns.Masque = savedM
+end
 
 print(("Keybinds_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

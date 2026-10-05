@@ -13,6 +13,9 @@
 --   ns.Masque.IsSkinned(holder)
 --   ns.Masque.Generation()           Masque 那邊的設定每變一次 +1（從自己的框上讀回皮的形狀時，拿它判斷要不要重讀）
 --   ns.Masque.GetNormal(button)      這一格現在畫皮外框的那張貼圖（光環格的探針用，見 Modules/Custom.lua）
+--   ns.Masque.ShapeOf(frame)         交給 Masque 的框（我們交出去的那個）現在的皮是什麼形狀："Circle"／"Square"…／nil
+--   ns.Masque.SpellAlertLoop(shape)  公開 API GetSpellAlertFlipBook("Modern", shape) 的循環圖 → { tex, w, h[, rows, cols, frames] }／nil
+--   ns.Masque.SpellAlertOverlay(shape) 公開 API GetSpellAlert(shape) → glow, ants（快捷鍵閃光的兩張貼圖）／nil
 --   ns.Masque.OpenOptions()
 --
 -- 分工（Core/Decorate.lua 依 Mode 分支）：
@@ -43,6 +46,12 @@
 -- 光環格（AuraContainer 的按鈕建好就 forbidden，Masque 碰不到）：Modules/Custom.lua 另建一顆看不見的普通框
 -- （探針）交給同一個群組，再從它身上讀回 Icon 的遮罩／尺寸／texcoord 與皮外框（Normal）的外觀，烘進按鈕
 -- （見那邊的「光環格的 Masque」）。
+--
+-- ⚠ 「不讀 Masque 內部表」的**唯一例外**：ShapeOf 從交出去的框上唯讀 `_MSQ_CFG.Shape`（rawget＋pcall＋Plain、字串才收）。
+--   理由：發光要跟著皮的形狀（圓形皮配方形發光很突兀，Core/Glow.lua），而 Masque 沒有「這顆按鈕是什麼形狀」的公開 API——
+--   它自己的觸發／閃光也是讀這個欄位決定用哪一組貼圖（Core/Regions/SpellAlert.lua）。只讀這一個字串、不讀其他欄位、
+--   不呼叫 _MSQ_CFG 的任何方法；拿到形狀之後用的貼圖一律走公開 API（GetSpellAlertFlipBook／GetSpellAlert）。
+--   讀不到／不是字串 ⇒ nil（呼叫端當方形＝現狀）。依「框＋Generation」快取（弱鍵表，不在框上寫欄位）。
 --
 -- 群組在 Masque 裡被停用／啟用（Masque 自己的設定）：它會自己把按鈕還成預設皮或重新套皮。
 -- 我們掛它的回呼，全部格子重套一次：停用時邊框、縮放、方角轉圈回到我們畫，但 Masque 預設皮留下的
@@ -236,6 +245,75 @@ function M.GetNormal(button)
     if type(get) ~= "function" then return nil end
     local ok, t = pcall(get, api, button)
     if ok and type(t) == "table" then return t end
+    return nil
+end
+
+------------------------------------------------------------
+-- 皮的形狀（Core/Glow.lua 的發光、Modules/Custom.lua 光環格的生效發光用）
+--
+-- ShapeOf：見檔頭的例外說明。只在 Masque 有載入時讀；找到字串才快取（套皮可能晚到：還沒套上時讀不到，下次再讀）。
+-- Masque 那邊設定一變 Generation 就加一 ⇒ 快取作廢、重讀。
+------------------------------------------------------------
+local function Plain(v)
+    if v == nil or (ns.IsSecret and ns.IsSecret(v)) then return nil end
+    local can = _G.canaccessvalue
+    if can and not can(v) then return nil end
+    return v
+end
+
+local shapeOf = setmetatable({}, { __mode = "k" })     -- 框 → 形狀字串
+local shapeGen = setmetatable({}, { __mode = "k" })    -- 框 → 讀到形狀時的 Generation
+
+local function ReadShape(frame)
+    local cfg = Plain(rawget(frame, "_MSQ_CFG"))
+    if type(cfg) ~= "table" then return nil end
+    local s = Plain(rawget(cfg, "Shape"))
+    if type(s) == "string" and s ~= "" then return s end
+    return nil
+end
+
+function M.ShapeOf(frame)
+    if type(frame) ~= "table" or not M.Available() then return nil end
+    if shapeGen[frame] == gen then return shapeOf[frame] end
+    local ok, s = pcall(ReadShape, frame)
+    if ok and s then
+        shapeOf[frame], shapeGen[frame] = s, gen
+        return s
+    end
+    shapeOf[frame], shapeGen[frame] = nil, nil
+    return nil
+end
+
+-- 循環圖的風格固定 "Modern"：跟以前寫死的方形循環圖（Textures/Square/SpellAlert-Loop-Modern）同一組。
+-- Masque 自己用的是玩家在它設定裡選的風格（存在它的 db 裡，不讀）
+local LOOP_STYLE = "Modern"
+
+-- 回傳的表是我們自己的（每次新建，呼叫端自己快取）：tex、格子寬高；格子排法不是 6×5／30 格時才帶 rows／cols／frames
+function M.SpellAlertLoop(shape)
+    if type(shape) ~= "string" or not M.Available() then return nil end
+    local fn = api.GetSpellAlertFlipBook
+    if type(fn) ~= "function" then return nil end
+    local ok, d = pcall(fn, api, LOOP_STYLE, shape)
+    if not (ok and type(d) == "table") then return nil end
+    local tex = rawget(d, "LoopTexture")
+    if type(tex) ~= "string" or tex == "" then return nil end
+    local out = { tex = tex, w = tonumber(rawget(d, "FrameWidth")) or 0, h = tonumber(rawget(d, "FrameHeight")) or 0 }
+    local rows = tonumber(rawget(d, "Rows")) or 6
+    local cols = tonumber(rawget(d, "Columns")) or 5
+    local frames = tonumber(rawget(d, "Frames")) or 30
+    if rows ~= 6 or cols ~= 5 or frames ~= 30 then out.rows, out.cols, out.frames = rows, cols, frames end
+    return out
+end
+
+-- Masque 只附了圓形與方形兩組（六角形沒有 ⇒ nil）；皮可以用 AddSpellAlert 加
+function M.SpellAlertOverlay(shape)
+    if type(shape) ~= "string" or not M.Available() then return nil end
+    local fn = api.GetSpellAlert
+    if type(fn) ~= "function" then return nil end
+    local ok, glow, ants = pcall(fn, api, shape)
+    if ok and type(glow) == "string" and glow ~= "" and type(ants) == "string" and ants ~= "" then
+        return glow, ants
+    end
     return nil
 end
 

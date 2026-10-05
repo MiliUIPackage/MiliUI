@@ -16,6 +16,8 @@
 --   * 每個掛勾本體 ns.Guard——**唯一例外**是無損刷新的兩支（每幀叫，無事路徑不可能拋錯，見那一節）。
 --   * 自訂法術／物品放在長條類的條上（rec.noGlow，Modules/Custom.lua 換框時設）：Start 一律不畫，
 --     探針照樣武裝（就緒音效、冷卻狀態照常）。
+--   * 圖示外觀＝Masque 而且皮是非方形（圓形、六角形）：觸發／閃光換成那個形狀的貼圖、像素與自動施法改畫該形狀的觸發
+--     （見下面「發光跟著 Masque 皮的形狀」）。沒交給 Masque 的格子第一行就短路，跟以前完全一樣。
 --
 -- ── 觸發發光 ────────────────────────────────────────────────────────────
 -- 暴雪的冷卻管理器 item 用 ActionButtonSpellAlertManager:ShowAlert(item, skipBirth)／HideAlert(item)
@@ -220,6 +222,7 @@ G.StopOn = StopOn
 -- 發光框來自池子、會在觸發／就緒／設定頁樣本之間輪用 ⇒ 每次都把兩種狀態寫齊，不留上一次的。
 local MSQ_LOOP = [[Interface\AddOns\Masque\Textures\Square\SpellAlert-Loop-Modern]]
 local MSQ_CELL = 84
+local MSQ_SQUARE = { tex = MSQ_LOOP, w = MSQ_CELL, h = MSQ_CELL }
 local BLIZ_LOOP = "UI-HUD-ActionBar-Proc-Loop-Flipbook"
 
 local function MasqueSquare()
@@ -230,19 +233,35 @@ local function MasqueSquare()
 end
 G.MasqueSquare = MasqueSquare
 
-local function SkinProc(h, key, square)
+-- 循環圖的格子排法：暴雪圖集與 Masque 內建的都是 6×5／30 格。只有某張皮自己加的循環圖排法不同時才寫，
+-- 寫過之後（gridTouched）換回來的路徑才跟著把排法寫回預設（池化框會輪用）
+local gridTouched = false
+local function SetGrid(fb, rows, cols, frames)
+    fb:SetFlipBookRows(rows)
+    fb:SetFlipBookColumns(cols)
+    fb:SetFlipBookFrames(frames)
+end
+
+-- loop：nil ＝ 暴雪圖集；{ tex, w, h[, rows, cols, frames] } ＝ Masque 的循環圖（方形或皮的形狀）
+local function SkinProc(h, key, loop)
     local f = h["_ProcGlow" .. key]
-    local loop = f and f.ProcLoop
+    local tex = f and f.ProcLoop
     local fb = f and f.ProcLoopAnim and f.ProcLoopAnim.flipbookRepeat
-    if not (loop and fb) then return end
-    if square then
-        loop:SetTexture(MSQ_LOOP)
-        fb:SetFlipBookFrameWidth(MSQ_CELL)
-        fb:SetFlipBookFrameHeight(MSQ_CELL)
+    if not (tex and fb) then return end
+    if loop then
+        tex:SetTexture(loop.tex)
+        fb:SetFlipBookFrameWidth(loop.w)
+        fb:SetFlipBookFrameHeight(loop.h)
     else
-        loop:SetAtlas(BLIZ_LOOP)
+        tex:SetAtlas(BLIZ_LOOP)
         fb:SetFlipBookFrameWidth(0)
         fb:SetFlipBookFrameHeight(0)
+    end
+    if loop and loop.rows then
+        gridTouched = true
+        SetGrid(fb, loop.rows, loop.cols, loop.frames)
+    elseif gridTouched then
+        SetGrid(fb, 6, 5, 30)
     end
     -- Start 裡的 Show 已經開播：換了貼圖與格子尺寸要重播才吃得到
     if f.ProcLoopAnim:IsPlaying() then
@@ -251,11 +270,116 @@ local function SkinProc(h, key, square)
     end
 end
 
--- 回傳實際畫上去的樣式（失敗回 nil）
-local function PaintOn(h, c, which, key, startAnim)
+-- ── 發光跟著 Masque 皮的形狀 ─────────────────────────────────────────
+-- 交給 Masque 的格子、皮是非方形（圓形、六角形…）：從交出去的框上讀回形狀（ns.Masque.ShapeOf，唯一讀 Masque
+-- 內部資料的例外，見 Core/Masque.lua 檔頭），再用 Masque 的公開 API 拿那個形狀的貼圖：
+--   觸發（proc）          GetSpellAlertFlipBook("Modern", 形狀) 的循環圖（取代方形那張），沒有入場動畫
+--   快捷鍵閃光（button）   GetSpellAlert(形狀) 的 Glow／Ants 換掉暴雪的方形 IconAlert／IconAlertAnts
+--                         （Masque 只附圓形一組；六角形拿不到 ⇒ 跟像素一樣改用該形狀的觸發）
+--   像素、自動施法          沒有形狀可言 ⇒ 改畫該形狀的觸發，顏色沿用原設定
+--   API 讀不到             照原樣式（方形，＝現狀）
+-- Square／Modern／讀不到形狀 ＝ 方形，完全照現狀。
+-- 短路：格子沒交給 Masque（rec.msqSkinned 不是 true——沒裝 Masque 時永遠是這樣）、長條、條是米利模式 ⇒ 第一行就走，
+-- 不呼叫 ShapeOf、不建表。換皮（Generation 變了）、群組停用 ⇒ 形狀跟著變、進發光簽章 ⇒ 舊的照記下的樣式停掉、重畫。
+local SQUARE_SHAPES = { Square = true, Modern = true }
+
+-- frame（交給 Masque 的框）在 barKey 這條上的非方形形狀；其餘 nil
+local function SkinShape(frame, barKey)
+    local M = ns.Masque
+    if not (frame and M and M.Available() and M.Mode(barKey) == "masque") then return nil end
+    local s = M.ShapeOf(frame)
+    if s == nil or SQUARE_SHAPES[s] then return nil end
+    return s
+end
+G.SkinShape = SkinShape
+
+-- 格子（rec）的發光形狀：圖示類、交給了 Masque 的才問
+local function GlowShape(rec, barKey)
+    if not (rec and rec.msqSkinned == true) or rec.barGeometry then return nil end
+    return SkinShape(rec.msqButton, barKey or rec.claimKey or rec.placedBar)
+end
+G.GlowShape = GlowShape
+
+-- 形狀 × 樣式 → 實際樣式＋貼圖（art）。快取到 Masque 換設定為止（皮可以自己加貼圖組）
+local artCache, artGen = {}, nil
+local function ShapedStyle(t, shape)
+    if not shape then return t, nil end
+    local M = ns.Masque
+    local g = M.Generation and M.Generation() or 0
+    if artGen ~= g then artCache, artGen = {}, g end
+    local ck = t .. "|" .. shape
+    local hit = artCache[ck]
+    if hit == nil then
+        hit = false
+        if t == "button" then
+            local glow, ants = M.SpellAlertOverlay(shape)
+            if glow then hit = { t = "button", shape = shape, glow = glow, ants = ants, sig = shape .. ":" .. glow } end
+        end
+        if not hit then
+            local loop = M.SpellAlertLoop(shape)
+            if loop then
+                hit = { t = "proc", shape = shape, loop = loop,
+                    sig = table.concat({ shape, loop.tex, loop.w, loop.h, loop.rows or "-" }, ":") }
+            end
+        end
+        artCache[ck] = hit
+    end
+    if not hit then return t, nil end
+    return hit.t, hit
+end
+G.ShapedStyle = ShapedStyle
+
+-- 快捷鍵閃光的貼圖（池化框：上次換成哪個形狀記在弱鍵表；換回方形時寫回暴雪的兩張）
+local BTN_GLOW = [[Interface\SpellActivationOverlay\IconAlert]]
+local BTN_ANTS = [[Interface\SpellActivationOverlay\IconAlertAnts]]
+local BTN_GLOW_KEYS = { "spark", "innerGlow", "innerGlowOver", "outerGlow", "outerGlowOver" }
+local btnShape = setmetatable({}, { __mode = "k" })
+local btnTouched = false       -- 換過任何一顆之後，方形路徑才需要檢查（沒裝 Masque 永遠是 false）
+local function SkinButton(h, art)
+    local f = h._ButtonGlow
+    if not f then return end
+    local want = art and art.shape or nil
+    if btnShape[f] == want then return end
+    local glow, ants = BTN_GLOW, BTN_ANTS
+    if art then glow, ants = art.glow, art.ants end
+    for _, k in ipairs(BTN_GLOW_KEYS) do
+        if f[k] then f[k]:SetTexture(glow) end
+    end
+    if f.ants then f.ants:SetTexture(ants) end
+    btnShape[f] = want
+    if art then btnTouched = true end
+end
+
+-- 光環按鈕（Modules/Custom.lua 的 AttachGlow，initializeFrame 裡）：Attach 系列建好之後換同一組貼圖。
+-- f 是 Attach 剛建的新框，貼圖一定是暴雪的 ⇒ 只在有 art 時寫
+function G.SkinAttached(f, art)
+    if not (f and art) then return end
+    if art.t == "proc" and f.ProcLoop and f.ProcLoopAnim then
+        local fb = f.ProcLoopAnim.flipbookRepeat
+        f.ProcLoop:SetTexture(art.loop.tex)
+        if fb then
+            fb:SetFlipBookFrameWidth(art.loop.w)
+            fb:SetFlipBookFrameHeight(art.loop.h)
+            if art.loop.rows then SetGrid(fb, art.loop.rows, art.loop.cols, art.loop.frames) end
+        end
+        if f.ProcLoopAnim:IsPlaying() then
+            f.ProcLoopAnim:Stop()
+            f.ProcLoopAnim:Play()
+        end
+    elseif art.t == "button" then
+        if f.spark then f.spark:SetTexture(art.glow) end
+        if f.outerGlow then f.outerGlow:SetTexture(art.glow) end
+        if f.ants then f.ants:SetTexture(art.ants) end
+    end
+end
+
+-- 回傳實際畫上去的樣式（失敗回 nil）。shape：GlowShape 的結果（nil ＝ 方形、現狀）
+local function PaintOn(h, c, which, key, startAnim, shape)
     if not (h and LCG) then return nil end
     local t = c.type
     if not STOP[t] then t = "pixel" end
+    local art
+    if shape then t, art = ShapedStyle(t, shape) end
     local color
     if which == "proc" then color = ColorOf(c.color, 1, 0.85, 0)
     elseif which == "active" then color = ColorOf(c.color, 0.95, 0.95, 0.32)
@@ -269,10 +393,16 @@ local function PaintOn(h, c, which, key, startAnim)
         ok = pcall(LCG.AutoCastGlow_Start, h, color, lines, freq, 1, 0, 0, key)
     elseif t == "button" then
         ok = pcall(LCG.ButtonGlow_Start, h, color, freq)
+        if ok and (art or btnTouched) then pcall(SkinButton, h, art) end
     elseif t == "proc" then
-        local square = MasqueSquare()
-        ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = startAnim and not square, duration = 1 })
-        if ok then pcall(SkinProc, h, key, square) end
+        if art then
+            ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = false, duration = 1 })
+            if ok then pcall(SkinProc, h, key, art.loop) end
+        else
+            local square = MasqueSquare()
+            ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = startAnim and not square, duration = 1 })
+            if ok then pcall(SkinProc, h, key, square and MSQ_SQUARE or nil) end
+        end
     else
         ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, key)
     end
@@ -337,11 +467,14 @@ local function Start(rec, which, barKey, c)
     if not h then return end
     c = c or Cfg(barKey, which)
     local sig = CfgSig(c, rec.glowW, rec.glowH)
+    -- 皮的形狀（見「發光跟著 Masque 皮的形狀」）：沒交給 Masque 的格子第一行就回 nil，簽章不變
+    local shape = GlowShape(rec, barKey)
+    if shape then sig = sig .. "|" .. shape end
     rec.glowOn = rec.glowOn or {}
     rec.glowSig = rec.glowSig or {}
     if rec.glowOn[which] and rec.glowSig[which] == sig then return end
     Stop(rec, which)
-    local t = PaintOn(h, c, which, which, which == "proc")
+    local t = PaintOn(h, c, which, which, which == "proc", shape)
     if t then
         rec.glowOn[which] = t
         rec.glowSig[which] = sig

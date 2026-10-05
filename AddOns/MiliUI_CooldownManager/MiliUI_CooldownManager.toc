@@ -52,6 +52,7 @@ Core\Layout.lua
 Core\Viewers.lua
 Core\SpellIndex.lua
 Core\Text.lua
+Core\MasqueShape.lua
 Core\Masque.lua
 Core\Decorate.lua
 Core\Clickable.lua

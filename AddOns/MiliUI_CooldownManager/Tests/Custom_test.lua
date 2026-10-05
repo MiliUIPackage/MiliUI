@@ -94,6 +94,7 @@ local function load(rel)
 end
 load("Core/DB.lua")
 load("Core/Catalog.lua")
+load("Core/MasqueShape.lua")
 load("Modules/Custom.lua")          -- 替代品／多法術的純函式（第 8 節起）；載入時不建任何框
 local DB, C = ns.DB, ns.Catalog
 ns.RefreshSpec()
@@ -1801,6 +1802,57 @@ do
         eq("ReadShape：外框秘密尺寸 ⇒ normal nil（讀不到 ⇒ 米利邊）", CU.ReadShape(fr, ic, 40, 40, nt).normal, nil)
         ns.IsSecret = savedIsSecret
         eq("ReadShape：沒有尺寸 ⇒ nil", CU.ReadShape(fr, ic, nil, 40), nil)
+
+        -- (n) 生效發光跟著皮的形狀（F）：形狀從交給 Masque 的框讀（探針／疊層底下的冷卻格）、映射後的樣式＋貼圖進簽章、
+        --     AttachGlow 在 Attach 之後換貼圖；米利模式不問形狀
+        eq("疊層：交給 Masque 的框＝冷卻格", oh.msqFrame, sr.frame)
+        local shapeAsk, attached, attachedType = {}, nil, nil
+        local shapeVal = "Circle"
+        local ART = { t = "proc", shape = "Circle", sig = "Circle:loop", loop = { tex = "circle-loop", w = 84, h = 84 } }
+        ns.Glow.SkinShape = function(frame, barKey)
+            shapeAsk[#shapeAsk + 1] = { frame, barKey }
+            return shapeVal
+        end
+        ns.Glow.ShapedStyle = function(t, s)
+            if s == "Circle" then return "proc", ART end
+            return t, nil
+        end
+        ns.Glow.SkinAttached = function(f, art) attached = { f, art } end
+        local function Att(kind) return function() attachedType = kind end end
+        ns.MiliUIGlow = { PixelGlow_Attach = Att("pixel"), AutoCastGlow_Attach = Att("autocast"),
+                          ButtonGlow_Attach = Att("button"), ProcGlow_Attach = Att("proc") }
+        DB.SpecSpells(true).overrides[ar.cooldownID] = { activeGlow = true }
+        fakeM.mode, fakeM.round, fakeM.active, fakeM.gen = "masque", true, true, fakeM.gen + 1
+        CU.Place(ar, bc, R, "buffs", 110)
+        check("發光形狀：問的是探針（交給 Masque 的框）", #shapeAsk >= 1 and shapeAsk[#shapeAsk][1] == hd.skin.frame
+            and shapeAsk[#shapeAsk][2] == "buffs")
+        check("發光形狀：映射後的貼圖進簽章", ar.sig:find("Circle:loop", 1, true) ~= nil)
+        local stG = CU.AuraStyle(ar, "buffs", 36, 36, "icons")
+        eq("發光形狀：像素改畫觸發", stG.glow and stG.glow.type, "proc")
+        eq("發光形狀：art 帶進 st.glow", stG.glow and stG.glow.art, ART)
+        local gG = RunInit(ar.container)
+        eq("發光形狀：Attach 的是觸發", attachedType, "proc")
+        check("發光形狀：Attach 之後換貼圖", attached and attached[2] == ART and attached[1] and attached[1].otype == "Frame")
+        check("發光形狀：觸發畫成 1.4 倍（跟方形觸發一樣）", gG.btn and attached and attached[1].last_SetPoint
+            and attached[1].last_SetPoint[1] == "BOTTOMRIGHT")
+        -- 方形皮：SkinShape 回 nil ⇒ 照原樣式、不換貼圖、簽章沒有形狀
+        shapeVal, attached, attachedType = nil, nil, nil
+        fakeM.gen = fakeM.gen + 1
+        CU.Place(ar, bc, R, "buffs", 111)
+        check("方形皮：簽章沒有形狀", not ar.sig:find("Circle:loop", 1, true))
+        RunInit(ar.container)
+        eq("方形皮：照原樣式（像素）", attachedType, "pixel")
+        eq("方形皮：不換貼圖", attached, nil)
+        -- 米利模式：hd.msqOn 是 nil ⇒ 不問形狀
+        shapeVal = "Circle"
+        fakeM.mode = "miliui"
+        local asked = #shapeAsk
+        CU.Place(ar, bc, R, "buffs", 112)
+        eq("米利模式：不問形狀", #shapeAsk, asked)
+        eq("米利模式：沒有交給 Masque 的框", hd.msqFrame, nil)
+        check("米利模式：簽章沒有形狀", not ar.sig:find("Circle:loop", 1, true))
+        DB.SpecSpells(true).overrides[ar.cooldownID] = nil
+        ns.Glow.SkinShape, ns.Glow.ShapedStyle, ns.Glow.SkinAttached, ns.MiliUIGlow = nil, nil, nil, nil
 
         ns.Masque = savedM
         ns.Decorate.ApplyPlaceholder = nil
