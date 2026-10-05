@@ -34,7 +34,7 @@
 -- 會在進化身那一刻響。化身結束的保留期間字停在最後的值、外觀保留、不再響。
 --
 -- 預覽：設定視窗開著或暴雪編輯模式中（ns.EditMode.Editing()）、而且沒在化身裡，兩段顯示預覽值（0:23、3）
--- 並照預覽值跑一次規則（換色換字級看得到，音效不響）。預覽值是設定頁的拉桿調的、不進 SV。
+-- 並照預覽值跑一次規則（換色換字級看得到，音效不響）。預覽值固定，沒有設定。
 --
 -- 這支放狀態機與純函式（Tests/DevourerMeta_test.lua 測），畫字也在這裡；Modules/Resources.lua 在排版、
 -- 重畫、ticker、事件幾個點呼叫進來。
@@ -59,7 +59,7 @@ DM.VALUE_MAX = { time = 600, stars = 99 }   -- 門檻數值的上限（秒／顆
 DM.WHICH = { "time", "stars" }
 DM.FIELD = { time = "metaTime", stars = "metaStars" }
 
--- 預覽值（設定頁的拉桿改，不進 SV）
+-- 預覽值（固定；測試會改）
 DM.preview = { time = 23, stars = 3 }
 
 local DEFAULTS = {
