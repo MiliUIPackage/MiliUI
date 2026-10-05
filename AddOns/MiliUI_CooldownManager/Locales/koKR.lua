@@ -840,6 +840,6 @@ L["Align bottom, add bars to the left"] = "아래쪽 정렬, 왼쪽으로 추가
 L["Hide when none in bags"] = "가방에 없으면 숨기기"
 L["Items you added yourself don't show once none are left in your bags (alternatives count too), and the icons after them move up. Bars with fixed slots keep the slot empty."] = "직접 추가한 아이템은 가방에 하나도 남지 않으면(대체 아이템 포함) 표시하지 않고, 뒤의 아이콘이 앞으로 당겨집니다. 칸 고정을 쓰는 바는 빈칸을 남깁니다."
 L["Hide passive trinkets"] = "지속 효과 장신구 숨기기"
-L["Equipment slot icons don't show while the equipped item has no use effect, such as a passive trinket. Empty slots still show."] = "장착한 아이템에 사용 효과가 없으면(예: 지속 효과 장신구) 장비 칸 아이콘을 표시하지 않습니다. 빈 칸은 그대로 표시됩니다."
+L["Equipment slot icons don't show while the equipped item has no use effect, such as a passive trinket. Trinket buff icons don't show while the trinket has no buff to track. Empty slots still show."] = "장착한 아이템에 사용 효과가 없으면(예: 지속 효과 장신구) 장비 칸 아이콘을 표시하지 않습니다. 장신구 강화 효과도 장신구에 추적할 강화 효과가 없으면 표시하지 않습니다. 빈 칸은 그대로 표시됩니다."
 L["None left in your bags, so it isn't shown on screen."] = "가방에 남은 아이템이 없어 화면에 표시되지 않습니다."
 L["The equipped item has no use effect, so it isn't shown on screen."] = "장착한 아이템에 사용 효과가 없어 화면에 표시되지 않습니다."

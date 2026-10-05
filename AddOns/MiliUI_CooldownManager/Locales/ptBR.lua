@@ -840,6 +840,6 @@ L["Align bottom, add bars to the left"] = "Alinhar embaixo, adicionar à esquerd
 L["Hide when none in bags"] = "Ocultar se não houver nas bolsas"
 L["Items you added yourself don't show once none are left in your bags (alternatives count too), and the icons after them move up. Bars with fixed slots keep the slot empty."] = "Itens que você adicionou somem quando não resta nenhum nas bolsas (alternativas também contam), e os ícones seguintes avançam. Barras com espaços fixos deixam o espaço vazio."
 L["Hide passive trinkets"] = "Ocultar berloques passivos"
-L["Equipment slot icons don't show while the equipped item has no use effect, such as a passive trinket. Empty slots still show."] = "Ícones de slot de equipamento não aparecem enquanto o item equipado não tiver efeito de uso, como um berloque passivo. Slots vazios continuam aparecendo."
+L["Equipment slot icons don't show while the equipped item has no use effect, such as a passive trinket. Trinket buff icons don't show while the trinket has no buff to track. Empty slots still show."] = "Ícones de slot de equipamento não aparecem enquanto o item equipado não tiver efeito de uso, como um berloque passivo. Os bônus de berloque também não aparecem enquanto o berloque não tiver um bônus para acompanhar. Slots vazios continuam aparecendo."
 L["None left in your bags, so it isn't shown on screen."] = "Não resta nenhum nas bolsas, então não aparece na tela."
 L["The equipped item has no use effect, so it isn't shown on screen."] = "O item equipado não tem efeito de uso, então não aparece na tela."
