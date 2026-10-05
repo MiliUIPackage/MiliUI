@@ -137,6 +137,8 @@ local TOGGLES = {
     { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, tab = "glow" },
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
     { field = "activeGlow",       label = L["Glow during buff"],      when = ActiveGlowWhen, tab = "glow" },
+    { field = "fullGlow",         label = L["Glow at max charges"],    noAura = true, noBar = true, tab = "glow",
+      tip = L["Glows while a spell with charges has all of them back. Spells without charges never glow."] },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
     -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
     { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look",

@@ -590,7 +590,16 @@ function Specs.Themed(mode, key)
                 disabled = function(info) return (ReadThemed(info, "glow.ready.mode") or "timed") == "whileReady" end }),
             TS("glow", "toggle", "glow.ready.requireUsable", L["Wait for resources"],
                 { disabled = function(info) return (ReadThemed(info, "glow.ready.mode") or "timed") == "whileReady" end }),
-            Note(L["If the cooldown is ready but you lack the resources, the glow waits until you have enough."], "glow"))
+            Note(L["If the cooldown is ready but you lack the resources, the glow waits until you have enough."], "glow"),
+            -- 充能滿了發光（Core/Glow.lua 的 SyncFull）：同一套開關＋樣式，預設關
+            Nested(L["Glow at max charges"], "glow"),
+            TS("glow", "toggle", "glow.full.enabled", L["Enable"]),
+            Note(L["Glows while a spell with charges has all of them back. Spells without charges never glow."], "glow"),
+            TS("glow", "dropdown", "glow.full.type", L["Style"], { items = GLOW_ITEMS }),
+            TS("glow", "color", "glow.full.color", L["Color"]),
+            TS("glow", "slider", "glow.full.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.full.type") }),
+            TS("glow", "slider", "glow.full.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.full.type") }),
+            GlowSampleRow("full"))
     end
     -- 生效期間發光：跟觸發／就緒同一套（開關、樣式、顏色、線條、粗細、預覽，跟隨主題的繼承也一樣；使用者 2026-10-03）。
     -- 預設關：多半只在幾個法術上個別打開（預覽點圖示）

@@ -742,5 +742,85 @@ do
     env.C_SpellBook, env.C_SpellActivationOverlay = nil, nil
 end
 
+------------------------------------------------------------
+-- 8. 充能滿了發光（G.SyncFull）
+------------------------------------------------------------
+do
+    local G = ns.Glow
+    local origSpell, origCatalog, origViewers, origDecorate = ns.SpellSetting, ns.Catalog, ns.Viewers, ns.Decorate
+    local want = true
+    ns.SpellSetting = function(bk, id, key, spec)
+        if key == "fullGlow" then return want end
+        return origSpell(bk, id, key, spec)
+    end
+    ns.Setting = ns.Setting or function() return nil end
+    ns.Viewers = { AURA_KIND = { buffs = true, buffbars = true }, frames = {} }
+    local infos = { [20] = { spellID = 2000, charges = true }, [21] = { spellID = 2100 }, [22] = { equipSlot = 13 } }
+    ns.Catalog = { Info = function(id) return infos[id] end }
+    local isCharge = { [2000] = true, [2500] = true, [3000] = true }
+    ns.Decorate = { IsChargeSpell = function(_, id) return isCharge[id] == true end }
+    local charges = {}            -- id → { maxCharges, isActive }
+    env.C_Spell = { GetSpellCharges = function(id) return charges[id] end }
+    env.C_SpellBook = nil
+
+    local function Rec(id, barKey)
+        local ov = env.CreateFrame(); ov.level = 10
+        return { overlay = ov, cooldownID = id, barKey = barKey or "essential", claimKey = barKey or "essential",
+                 glowW = 40, glowH = 40 }
+    end
+    local r = Rec(20)
+    charges[2000] = { maxCharges = 2, isActive = false }
+    G.SyncFull({}, r)
+    check("滿了 ⇒ 亮", r.glowOn and r.glowOn.full ~= nil)
+    check("事件註冊了", handlers.SPELL_UPDATE_CHARGES and handlers.SPELL_UPDATE_CHARGES.glow_full ~= nil)
+    -- 用掉一層：SPELL_UPDATE_CHARGES ⇒ 熄
+    charges[2000].isActive = true
+    Fire("SPELL_UPDATE_CHARGES")
+    eq("回充中 ⇒ 熄", r.glowOn.full, nil)
+    -- 回滿
+    charges[2000].isActive = false
+    Fire("SPELL_UPDATE_CHARGES")
+    check("回滿 ⇒ 再亮", r.glowOn.full ~= nil)
+    -- 秘密的 isActive ⇒ 不亮（fail-closed），但繼續看著
+    charges[2000].isActive = SECRET
+    Fire("SPELL_UPDATE_CHARGES")
+    eq("isActive 秘密 ⇒ 不亮", r.glowOn.full, nil)
+    check("isActive 秘密 ⇒ 繼續看著", handlers.SPELL_UPDATE_CHARGES.glow_full ~= nil)
+    charges[2000].isActive = false
+    -- 當下的覆蓋法術
+    env.C_SpellBook = { FindSpellOverrideByID = function(id) if id == 2000 then return 2500 end return id end }
+    charges[2500] = { maxCharges = 3, isActive = true }
+    G.SyncFull({}, r)
+    eq("看當下的覆蓋那一招（回充中）", r.glowOn.full, nil)
+    charges[2500].isActive = false
+    G.SyncFull({}, r)
+    check("覆蓋那一招滿了 ⇒ 亮", r.glowOn.full ~= nil)
+    env.C_SpellBook = nil
+    -- 關掉 ⇒ 熄、不看了、事件撤掉
+    want = false
+    G.SyncFull({}, r)
+    eq("沒開 ⇒ 熄", r.glowOn.full, nil)
+    eq("沒人看 ⇒ 事件撤掉", handlers.SPELL_UPDATE_CHARGES.glow_full, nil)
+    want = true
+    -- 不是充能技能／裝備欄／增益條：不亮也不看
+    local r2, r3, r4 = Rec(21), Rec(22), Rec(20, "buffs")
+    G.SyncFull({}, r2); G.SyncFull({}, r3); G.SyncFull({}, r4)
+    check("非充能／裝備欄／增益條都不亮", not (r2.glowOn and r2.glowOn.full) and not (r3.glowOn and r3.glowOn.full)
+        and not (r4.glowOn and r4.glowOn.full))
+    eq("非充能不註冊事件", handlers.SPELL_UPDATE_CHARGES.glow_full, nil)
+    -- 自訂法術
+    local c = Rec("c:9"); c.custom = true; c.kind = "spell"; c.spellID = 3000; c.claimKey = nil; c.placedBar = "essential"
+    charges[3000] = { maxCharges = 2, isActive = false }
+    G.SyncFull({}, c)
+    check("自訂法術滿了 ⇒ 亮", c.glowOn and c.glowOn.full ~= nil)
+    -- 停放 ⇒ 熄、不看
+    G.OnParked(c)
+    eq("停放 ⇒ 熄", c.glowOn.full, nil)
+    eq("停放 ⇒ 事件撤掉", handlers.SPELL_UPDATE_CHARGES.glow_full, nil)
+
+    ns.SpellSetting, ns.Catalog, ns.Viewers, ns.Decorate = origSpell, origCatalog, origViewers, origDecorate
+    env.C_Spell = nil
+end
+
 print(("Assist_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

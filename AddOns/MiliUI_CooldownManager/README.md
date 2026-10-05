@@ -548,6 +548,12 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   暴雪 RefreshData 拿減益 id 問出來的 `HideAlert` 在那個 id 還 `IsSpellOverlayed` 時擋掉。只改我們接管的發光，暴雪自己的
   `SpellActivationAlert` 不碰（要它亮得在暴雪框上建欄位）。⚠ 待實機驗證：戰鬥中事件 id／`IsSpellOverlayed` 是不是明文
   （讀不到 ⇒ 退回原本只靠 manager 掛勾的行為）。
+- **充能滿了發光**（2026-10-05，`G.SyncFull`，參考 EUI 的 Max Stacks Glow）：充能技能每一層都回滿時一直亮。開關與繼承跟觸發／就緒
+  同一套：條層 `glow.full`（**預設關**，樣式／顏色／線條／粗細／預覽）＋逐法術 `overrides[id].fullGlow`（小窗「發光」分頁，下一列灰字）。
+  判斷只讀明文：`Decorate.IsChargeSpell`（maxCharges > 1）＋ `GetSpellCharges().isActive` 明文 false；不讀 currentCharges；
+  isActive 讀不到 ⇒ 不亮。法術：暴雪冷卻格＝目錄基本法術＋當下 `FindSpellOverrideByID`，自訂法術＝ overrideID／spellID；
+  裝備欄／物品／增益條不做。時機：排版＋ `SPELL_UPDATE_CHARGES`（只有開著的充能格進 `fullWatch`，有人看才註冊事件）。
+  ⚠ 待實機驗證：戰鬥中 `isActive` 是不是明文；最後一層回滿那一刻有沒有派 `SPELL_UPDATE_CHARGES`。
 - **生效發光**：暴雪增益格（增益圖示列、增益長條、搬進自訂群組的增益）與自訂光環格在光環生效期間一直亮。
   **開關與繼承跟觸發／就緒同一套**（2026-10-03 使用者改回）：條層（或跟隨主題）`glow.active` 有啟用（**預設關**）、
   樣式、顏色、線條數、粗細與預覽；逐法術只蓋開關（`overrides[id].activeGlow`，小窗「發光」分頁一列勾選框＋「（跟隨…）」）。
