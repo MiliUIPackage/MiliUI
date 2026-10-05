@@ -361,6 +361,9 @@ function T.ApplyBar(item, style, spell, bar, rec)
         local pt = style.stackBarPoint or "BOTTOMRIGHT"
         local ix, iy = T.BarStackInset(pt)
         Anchor(stack, icon, pt, ix + (tonumber(c.x) or 0), iy + (tonumber(c.y) or 0))
+        -- 暴雪的 XML 把這顆字定成 32×10、靠右對齊：錨在右下看不出來，換成置中／靠左時字會被推到框的右緣
+        -- （預覽格的字是自動尺寸，兩邊對不上）⇒ 解開成自動尺寸，錨點就是字本身的那一角
+        if stack.SetSize then stack:SetSize(0, 0) end
         -- 圖示藏起來（side ＝ NONE 只熄 item.Icon 的 alpha）：換了父層就不會跟著熄，這裡自己熄
         local noIcon = rec and rec.barGeometry and rec.barGeometry.side == "NONE"
         stack:SetAlpha((bar.showStacks and not spell.hideStackText and not noIcon) and 1 or 0)
