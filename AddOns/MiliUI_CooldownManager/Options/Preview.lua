@@ -980,7 +980,8 @@ function Proto:StartFx(kind)
     if kind == "press" then secs = FX_PRESS_SECS end
     if kind == "cooldown" or kind == "aura" then
         local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
-        local th = math.max(tonumber(ct.lowBelow) or 0, tonumber(ct.decimalsBelow) or 0)
+        -- 冷卻的變色秒數也是開關開著才算（Text.CdLowBelow：lowColorOn 關 ⇒ 0）
+        local th = math.max(ns.Text.CdLowBelow(ct), tonumber(ct.decimalsBelow) or 0)
         -- 增益持續時間的演示：增益持續時間自己的小數門檻（I）與變色秒數（J，開關開著才算）
         if kind == "aura" then
             th = math.max(th, tonumber(ct.buffDecimalsBelow) or 0)
@@ -1079,7 +1080,7 @@ function Proto:FxTick()
             -- 顏色＝增益持續時間低秒顏色，也逐法術）
             local ct = CellCountdown(self.key, c)
             c.cdText:SetText(self:FxText(c))
-            local lowBelow, lc = tonumber(ct.lowBelow) or 0, ct.lowColor
+            local lowBelow, lc = ns.Text.CdLowBelow(ct), ct.lowColor
             if c.buffTime then
                 local _
                 _, lowBelow, lc = ns.Text.BuffTiming(ct, ns.SpellSetting(self.key, c.id, "durationLowColor"))

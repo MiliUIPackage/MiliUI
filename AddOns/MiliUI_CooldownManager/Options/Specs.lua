@@ -630,8 +630,9 @@ function Specs.Themed(mode, key)
     -- 增益持續時間的變色顏色／變色秒數：只有增益持續時間的低秒變色（I）用得到 ⇒ 開關關著就停用
     -- （換色那一段的字色是「增益持續時間顏色」，低秒那一段的顏色不歸換色開關管：Text.BuffTiming）
     local function BuffLowOff(info) return not ReadThemed(info, "cooldownText.buffLowColor") end
-    -- 冷卻那一組同理：低秒變色的開關就是變色秒數（0 ＝ 關）⇒ 關著時變色顏色／變色秒數停用（跟增益持續時間那組一樣蓋遮罩）
-    local function CdLowOff(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) <= 0 end
+    -- 冷卻那一組同理：開關 lowColorOn 關著時變色顏色／變色秒數停用（跟增益持續時間那組一樣蓋遮罩）。
+    -- 開關只認 false 是關（引擎 Text.CdLowBelow 同一個判準：沒存 ＝ 開）
+    local function CdLowOff(info) return ReadThemed(info, "cooldownText.lowColorOn") == false end
 
     -- 圖示
     add({ type = "header", label = L["Icons"], tab = "icon" })
@@ -690,15 +691,12 @@ function Specs.Themed(mode, key)
         -- 標籤不帶前綴（子分頁已經講了是哪一種）。子分頁鈕那一列不歸任何 section（勾著跟隨也要點得到：
         -- 增益持續時間那組的變色顏色歸「圖示」的跟隨管，文字跟隨著時照樣要切得過去），也切斷跟隨遮罩的那一段
         NB(SubTabRow()),
-        -- 冷卻：低秒變色的開關與秒數是同一個欄位（0 ＝ 關）
+        -- 冷卻：低秒變色的開關（lowColorOn）與變色秒數（lowBelow）分兩欄，取消勾選不動秒數（2026-10-06 拆開，舊存檔 MIGRATIONS[5]）
         NB(Sub("cooldown", TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }))),
         NB(Sub("cooldown", Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text"))),
-        NB(Sub("cooldown", TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
-            get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
-            set = function(info, on) WriteThemed(info, "cooldownText.lowBelow", on and 5 or 0) end,
-        }))),
+        NB(Sub("cooldown", TS("text", "toggle", "cooldownText.lowColorOn", L["Color when low"]))),
         NB(Sub("cooldown", TS("text", "color", "cooldownText.lowColor", L["Low color"], { disabled = CdLowOff }))),
-        -- 拉桿最小 1：0 ＝ 關交給上面的勾選（拉到 0 會把自己蓋掉，跟增益持續時間那組一樣從 1 起）
+        -- 拉桿最小 1：關交給上面的勾選（跟增益持續時間那組一樣從 1 起）
         NB(Sub("cooldown", TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"],
             { min = 1, max = 30, step = 1, disabled = CdLowOff }))),
         -- 增益持續時間（I／J）：自己的小數門檻、低秒變色開關、變色顏色、變色秒數。長條類的條沒有

@@ -745,6 +745,26 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   標籤拿掉「技能冷卻」「增益持續時間」前綴，那段灰字說明拿掉。逐法術小窗同樣做子分頁（`buildSub`／`curSub`，Layout 照子分頁鈕那一列
   有沒有出現決定挑哪組）：那一格沒有增益持續時間（`BuffTimeRows` 不成立：自訂法術／物品）不出子分頁鈕、只有冷卻那組；長條兩組都沒有。
 
+### 冷卻倒數的低秒變色：開關與秒數分兩欄（`Core/Text.lua`、`Core/DB.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`，2026-10-06，DB v5）
+
+- **為什麼拆**：以前 `cooldownText.lowBelow` 兼作開關（0 ＝ 關），取消勾選「低秒變色」就寫 0，玩家調好的變色秒數被洗掉、
+  勾回來只剩預設 5（拉桿從 1 起之後甚至顯示 1）。改成跟增益持續時間那組（`buffLowColor`＋`buffLowBelow`）同一個形狀：
+  `cooldownText.lowColorOn`（勾選，預設開）＋ `cooldownText.lowBelow`（拉桿 1～30，預設 5）。取消勾選只寫開關，秒數不動。
+- **生效門檻**只在 `Text.CdLowBelow(c)` 一處算：`lowColorOn == false` ⇒ 0，否則 `lowBelow`。**開關只認 false 是關**，
+  沒存（nil）＝ 開——跟預設一致，也讓只帶幾格的倒數表（條自己的子表、測試的假表）照舊。讀的人：`CountdownFormatter`
+  （formatter 快取鍵用生效門檻 ⇒ 關著跟「不變色」同一顆）、設定頁預覽（演示秒數、假倒數變色）。條頁的停用遮罩 `CdLowOff` 同一個判準。
+- **逐法術**：`overrides[id].cooldownTextLowColorOn`，`SPELL_FALLBACK` 指回 `cooldownText.lowColorOn`、`OVERRIDE_GROUP` 歸 `"text"`；
+  `Text.SpellText` 的 `CD_KEYS` 多一對（`OverrideSig` 自動帶上）。小窗「冷卻」子分頁的勾選改走通用的 `ToggleRow`
+  （以前是自己一列、寫 `cooldownTextLowBelow` 0／5），變色秒數拉桿從 1 起。
+- **DB v5 遷移**（`MIGRATIONS[5]`，1.2.7 已發佈，舊存檔真的有 `lowBelow = 0`）：每份設定檔走
+  主題 `theme.cooldownText`、每條自己的 `bars[k].text.cooldownText`：存著 `lowBelow ≤ 0` ⇒ `lowColorOn = false`、`lowBelow = 5`；
+  存著 ＞ 0 ⇒ `lowColorOn = true`（成對明寫：條自己的子表沒寫開關的話，設定頁讀單格會退到主題的開關、跟引擎讀整張表對不上）；
+  沒存 `lowBelow` 的表不寫。逐法術覆寫（`spells[spec].overrides` 與寬層自訂項目身上的 `entry.overrides`）：
+  `cooldownTextLowBelow ≤ 0` ⇒ `cooldownTextLowColorOn = false`、秒數覆寫拿掉；＞ 0 ⇒ 補 `cooldownTextLowColorOn = true`
+  （以前逐法術有秒數＝這一招開，條層關著也變色；拆開後不明寫就會跟著條層變成關）。已經有開關的表不碰 ⇒ 重跑不變。
+  匯入設定字串照字串帶的版本號走同一步。
+- **匯入 Ayije**：對方的 `cooldownColorThresholdEnabled` 寫進 `lowColorOn`，秒數兩種情況都寫（對方沒給 ＝ 5），不再寫 `lowBelow = 0`。
+
 ### 增益持續中不顯示持續時間（開關）（`Core/Decorate.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`）
 
 上一節那種「先倒增益、增益掉了才倒冷卻」的格，有的玩家只想看冷卻（用掉那一刻就直接倒冷卻）。主題 → 條的 `icon.showAuraTime`
@@ -2836,6 +2856,15 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      不在時占位那份也是不透明的字；兩份疊在一起時看起來是一份（沒有疊影、沒有變粗）。Masque 模式同樣有字。
 361. 飾品冷卻格上的增益疊層、長條、光環長條：都不畫自訂文字（就算覆寫裡有字）。
 362. 設定頁預覽：增益類的預覽格照設定畫字；冷卻格不畫。條頁任何一節的「清除覆寫」都不會清掉自訂文字；「還原此法術」會。
+
+**冷卻倒數的低秒變色開關與秒數拆開（2026-10-06，DB v5）**
+
+363. 1.2.7 的存檔（冷卻低秒變色關著）升級第一次登入：條頁「文字 → 冷卻」低秒變色沒勾、變色秒數拉桿顯示 5、變色顏色／秒數蓋停用遮罩；
+     冷卻倒數不變色；`schemaVersion` 變 5。開著的存檔照舊變色、秒數不變。別份設定檔切過去也一樣。
+364. 取消勾選再勾回來：秒數停在原本調的值（例如 8），不會變成 1 或 5；倒數最後 8 秒變色。條自己不跟隨文字時同樣。
+365. 逐法術小窗「冷卻」子分頁：低秒變色勾選旁的灰字（跟隨主題／跟隨這一條／已覆寫，右鍵重設）正確；取消勾選後秒數拉桿不跳；
+     舊存檔裡逐法術關掉的那一招遷移後仍是關、逐法術開著（條層關著）的那一招遷移後仍變色。條頁「文字」節的清除覆寫連開關一起清。
+366. 匯入 Ayije 設定（對方關掉冷卻變色）：低秒變色沒勾、秒數是對方設的值（沒有就 5）。
 
 **效能基準**
 

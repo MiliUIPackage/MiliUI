@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 4
+ns.DB_VERSION = 5
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -417,6 +417,9 @@ function DB.BuildDefaults()
                 -- 每段文字的 font："INHERIT" ＝ 跟隨上面的通用字型（ns.Media.ElementFont）
                 cooldownText = { size = 16, color = rgba(1, 1, 1), decimalsBelow = 3,
                                  lowColor = rgba(1, 0.3, 0.3), lowBelow = 5, font = "INHERIT",
+                                 -- 冷卻倒數的低秒變色開關（Core/Text.lua 的 CdLowBelow）：跟變色秒數 lowBelow 分開存，
+                                 -- 取消勾選不動秒數。v5 之前 lowBelow 兼作開關（0 ＝ 關），MIGRATIONS[5] 搬成 false＋5
+                                 lowColorOn = true,
                                  -- 增益持續時間的倒數（暴雪增益圖示、技能格倒增益那一段、光環格家族）自己的小數門檻、
                                  -- 低秒變色開關與變色秒數（Core/Text.lua 的 BuffTiming）：冷卻倒數不受影響、也不借冷卻的。
                                  -- 顏色用 icon.durationLowColor（資料路徑留在 icon，設定列在「文字」節）。小數門檻預設 0、
@@ -606,6 +609,55 @@ local MIGRATIONS = {
                 end
             end
         end
+    end,
+    -- v5（2026-10-06）：冷卻倒數的低秒變色開關跟變色秒數拆成兩欄（lowColorOn＋lowBelow）。以前 lowBelow 兼作開關、
+    -- 0 ＝ 關，取消勾選就把秒數洗成 0。存著 lowBelow ≤ 0 的表 → lowColorOn = false、lowBelow = 5（拉桿有個能用的值）；
+    -- 存著 ＞ 0 的 → lowColorOn = true（跟秒數成對明寫）；沒存 lowBelow 的表（條自己的子表只存跟主題不同的幾格）不寫 lowColorOn，照舊跟隨／合併預設補開。
+    -- 走過的表：主題、每條自己的 text.cooldownText、逐法術覆寫（專精表＋寬層自訂項目身上的）：
+    -- cooldownTextLowBelow ≤ 0 → cooldownTextLowColorOn = false、秒數覆寫拿掉（跟隨條層的秒數）；
+    -- > 0 → cooldownTextLowColorOn = true（以前逐法術有秒數＝這一招開，條層關著也變色；拆開後要明寫才保得住）。
+    -- 已經有開關的不碰 ⇒ 重跑不會再改
+    [5] = function(profile)
+        local function Fix(ct)
+            if type(ct) ~= "table" or ct.lowColorOn ~= nil or ct.lowBelow == nil then return end
+            if (tonumber(ct.lowBelow) or 0) <= 0 then
+                ct.lowColorOn = false
+                ct.lowBelow = 5
+            else
+                -- 存著秒數 ＞ 0 ＝ 開：開關跟著明寫。條自己的子表尤其要寫——沒寫的話讀單格（設定頁）會退到主題的開關，
+                -- 主題被搬成關時這條就顯示成關，跟引擎讀整張表（沒有開關 ＝ 開）對不上
+                ct.lowColorOn = true
+            end
+        end
+        local function FixOverride(o)
+            if type(o) ~= "table" or o.cooldownTextLowBelow == nil or o.cooldownTextLowColorOn ~= nil then return end
+            if (tonumber(o.cooldownTextLowBelow) or 0) <= 0 then
+                o.cooldownTextLowColorOn = false
+                o.cooldownTextLowBelow = nil
+            else
+                -- 以前逐法術的秒數 > 0 本身就是「這一招開」（條層關著也變色）：補上開，行為不變
+                o.cooldownTextLowColorOn = true
+            end
+        end
+        if type(profile.theme) == "table" then Fix(profile.theme.cooldownText) end
+        if type(profile.bars) == "table" then
+            for _, bar in pairs(profile.bars) do
+                if type(bar) == "table" and type(bar.text) == "table" then Fix(bar.text.cooldownText) end
+            end
+        end
+        if type(profile.spells) == "table" then
+            for _, spec in pairs(profile.spells) do
+                local all = type(spec) == "table" and spec.overrides
+                if type(all) == "table" then
+                    for _, o in pairs(all) do FixOverride(o) end
+                end
+            end
+        end
+        DB.EachWideList(profile, function(list)
+            for _, e in pairs(list) do
+                if type(e) == "table" then FixOverride(e.overrides) end
+            end
+        end)
     end,
 }
 DB.MIGRATIONS = MIGRATIONS
@@ -990,6 +1042,7 @@ local SPELL_FALLBACK = {
     cooldownTextX        = "cooldownText.x",
     cooldownTextY        = "cooldownText.y",
     cooldownTextDecimals = "cooldownText.decimalsBelow",
+    cooldownTextLowColorOn = "cooldownText.lowColorOn",         -- 冷卻倒數的低秒變色開關（v5 從 lowBelow 拆出來）
     cooldownTextLowBelow = "cooldownText.lowBelow",
     cooldownTextLowColor = "cooldownText.lowColor",
     -- 增益持續時間的小數門檻與低秒變色開關（I）：覆寫 key 跟條層同名
@@ -1359,6 +1412,7 @@ DB.OVERRIDE_GROUP = {
     hideCooldownText = "text", hideStackText = "text", hideChargeText = "text", hideKeybind = "text",
     cooldownTextFont = "text", cooldownTextSize = "text", cooldownTextColor = "text", cooldownTextPoint = "text",
     cooldownTextX = "text", cooldownTextY = "text", cooldownTextDecimals = "text", cooldownTextLowBelow = "text",
+    cooldownTextLowColorOn = "text",
     cooldownTextLowColor = "text", buffDecimalsBelow = "text", buffLowColor = "text", buffLowBelow = "text",
     chargeTextFont = "text", chargeTextSize = "text", chargeTextColor = "text", chargeTextPoint = "text",
     chargeTextX = "text", chargeTextY = "text",

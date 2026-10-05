@@ -1980,6 +1980,37 @@ do
     DB.ClearOverrides({ id }, "text")
     check("清文字覆寫 ⇒ 回條層", rawequal(T.SpellText("essential", id, "cooldownText"), ns.Setting("essential", "cooldownText")))
 
+    -- 冷卻倒數的低秒變色：開關 lowColorOn 跟變色秒數 lowBelow 分兩欄（2026-10-06）。生效門檻＝開著才算秒數
+    eq("預設：冷卻低秒變色開", ns.Setting("essential", "cooldownText.lowColorOn"), true)
+    eq("預設：生效門檻 5", T.CdLowBelow(ns.Setting("essential", "cooldownText")), 5)
+    eq("關著 ⇒ 生效門檻 0（秒數留著也不算）", T.CdLowBelow({ lowColorOn = false, lowBelow = 8 }), 0)
+    eq("開著 ⇒ 秒數", T.CdLowBelow({ lowColorOn = true, lowBelow = 8 }), 8)
+    eq("沒有開關欄 ⇒ 當開（只帶幾格的表）", T.CdLowBelow({ lowBelow = 8 }), 8)
+    eq("沒有表 ⇒ 0", T.CdLowBelow(nil), 0)
+    local fOff = T.CountdownFormatter({ decimalsBelow = 7, lowColorOn = false, lowBelow = 9, lowColor = { r = 1, g = 0, b = 0 } })
+    local fNone = T.CountdownFormatter({ decimalsBelow = 7, lowBelow = 0, lowColor = { r = 1, g = 0, b = 0 } })
+    eq("冷卻關著 ⇒ 跟不變色同一顆（快取鍵用生效門檻）", fOff, fNone)
+    hasColor = false
+    for _, r in ipairs(fOff.rules) do
+        if r.format:find("|cff", 1, true) then hasColor = true end
+    end
+    check("冷卻關著 ⇒ 沒有色碼", not hasColor)
+    eq("冷卻開著 ⇒ 照舊那一顆", T.CountdownFormatter({ decimalsBelow = 7, lowColorOn = true, lowBelow = 9,
+        lowColor = { r = 1, g = 0, b = 0 } }), fc)
+    -- 逐法術：開關一個覆寫、秒數一個覆寫；關掉不動秒數
+    DB.SetOverride(id, "cooldownTextLowBelow", 7)
+    DB.SetOverride(id, "cooldownTextLowColorOn", false)
+    t = T.SpellText("essential", id, "cooldownText")
+    check("逐法術：合併後開關關、秒數留著", t.lowColorOn == false and t.lowBelow == 7)
+    eq("逐法術：關著生效門檻 0", T.CdLowBelow(t), 0)
+    check("逐法術：開關進簽章", T.OverrideSig(id):find("cooldownTextLowColorOn=false", 1, true) ~= nil)
+    eq("逐法術：開關沒覆寫 ⇒ 條層的", ns.SpellSetting("essential", id + 1, "cooldownTextLowColorOn"), true)
+    DB.SetOverride(id, "cooldownTextLowColorOn", true)
+    eq("逐法術：勾回來還是 7 秒", T.CdLowBelow(T.SpellText("essential", id, "cooldownText")), 7)
+    eq("長條秒數不收開關", T.SpellText("essential", id, "barTime").lowColorOn, nil)
+    DB.ClearOverrides({ id }, "text")
+    eq("清文字覆寫連開關一起清", ns.SpellOverride(id, "cooldownTextLowColorOn"), nil)
+
     -- ApplyIcon：增益類的 rec 用增益那一組、技能格用冷卻那一組（formatter 不在時退回毫秒門檻）
     env.C_StringUtil = nil
     local function Item()

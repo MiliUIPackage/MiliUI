@@ -198,10 +198,18 @@ local function Formatter(decimalsBelow, lowBelow, lowColor)
     return f or nil
 end
 
--- 冷卻倒數：倒數表（條層或合併後的）的 decimalsBelow／lowBelow／lowColor
+-- 冷卻倒數的低秒門檻（關 ＝ 0）：開關 lowColorOn 跟變色秒數 lowBelow 是兩個欄位（2026-10-06 拆開：
+-- 以前 lowBelow 兼作開關、0 ＝ 關，取消勾選就把玩家調的秒數洗掉；舊存檔的 0 由 DB 的 MIGRATIONS[5] 改成 關＋5 秒）。
+-- 開關只認 false 是關：沒存（nil）＝ 開，跟預設值一致，也讓只帶幾格的倒數表（條自己的子表、測試）照舊
+function T.CdLowBelow(c)
+    if type(c) ~= "table" or c.lowColorOn == false then return 0 end
+    return math.max(0, tonumber(c.lowBelow) or 0)
+end
+
+-- 冷卻倒數：倒數表（條層或合併後的）的 decimalsBelow／lowColorOn＋lowBelow／lowColor
 function T.CountdownFormatter(cdStyle)
     if type(cdStyle) ~= "table" then return nil end
-    return Formatter(cdStyle.decimalsBelow, cdStyle.lowBelow, cdStyle.lowColor)
+    return Formatter(cdStyle.decimalsBelow, T.CdLowBelow(cdStyle), cdStyle.lowColor)
 end
 
 -- 增益持續時間的倒數（I）：c ＝ 倒數表（條層或 SpellText 合併後的），lowColor ＝ 增益持續時間低秒顏色（nil 退倒數的低秒色）
@@ -291,8 +299,8 @@ T.EMPTY = EMPTY
 local CD_KEYS = {
     { "font", "cooldownTextFont" }, { "size", "cooldownTextSize" }, { "color", "cooldownTextColor" },
     { "point", "cooldownTextPoint" }, { "x", "cooldownTextX" }, { "y", "cooldownTextY" },
-    { "decimalsBelow", "cooldownTextDecimals" }, { "lowBelow", "cooldownTextLowBelow" },
-    { "lowColor", "cooldownTextLowColor" },
+    { "decimalsBelow", "cooldownTextDecimals" }, { "lowColorOn", "cooldownTextLowColorOn" },
+    { "lowBelow", "cooldownTextLowBelow" }, { "lowColor", "cooldownTextLowColor" },
     -- 增益持續時間的小數門檻與低秒變色開關（I）：覆寫 key 跟條層同名
     { "buffDecimalsBelow", "buffDecimalsBelow" }, { "buffLowColor", "buffLowColor" },
     { "buffLowBelow", "buffLowBelow" },

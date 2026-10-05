@@ -443,11 +443,11 @@ local function StepText(ctx)
     local lowOn = Take(ctx, "cooldownColorThresholdEnabled")
     local lowAt = Num(Take(ctx, "cooldownColorThreshold"))
     local lowColor = Color(Take(ctx, "cooldownColorThresholdColor"))
-    if lowOn == true then
+    -- 開關與秒數分開存（lowColorOn＋lowBelow）：關掉的也帶秒數，玩家之後打開拉桿就是對方設的那個值
+    if lowOn == true or lowOn == false then
+        cd.lowColorOn = lowOn
         cd.lowBelow = (lowAt and lowAt > 0) and lowAt or 5
-        if lowColor then cd.lowColor = lowColor end
-    elseif lowOn == false then
-        cd.lowBelow = 0
+        if lowOn and lowColor then cd.lowColor = lowColor end
     end
 
     local ch = theme.chargeText

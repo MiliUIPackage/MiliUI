@@ -99,7 +99,7 @@ DB.Init()
 local sv = env.MiliUI_CooldownManager_DB
 check("SV 建立", type(sv) == "table")
 eq("schemaVersion", sv.schemaVersion, ns.DB_VERSION)
-eq("DB_VERSION", ns.DB_VERSION, 4)
+eq("DB_VERSION", ns.DB_VERSION, 5)
 check("MIGRATIONS 有版本 3", type(DB.MIGRATIONS[3]) == "function")
 check("MIGRATIONS 有版本 4", type(DB.MIGRATIONS[4]) == "function")
 check("MIGRATIONS 有版本 1", type(DB.MIGRATIONS[1]) == "function")
@@ -322,10 +322,12 @@ local real = DB.MIGRATIONS[1]
 local real2 = DB.MIGRATIONS[2]
 local real3 = DB.MIGRATIONS[3]
 local real4 = DB.MIGRATIONS[4]
+local real5 = DB.MIGRATIONS[5]
 DB.MIGRATIONS[1] = function() calls = calls + 1 end
 DB.MIGRATIONS[2] = function() end
 DB.MIGRATIONS[3] = function() end
 DB.MIGRATIONS[4] = function() end
+DB.MIGRATIONS[5] = function() end
 DB.MigrateProfile({}, 0)
 eq("從 0 補到最新：v1 跑一次", calls, 1)
 DB.MigrateProfile({}, 1)
@@ -348,6 +350,7 @@ DB.MIGRATIONS[1] = real
 DB.MIGRATIONS[2] = real2
 DB.MIGRATIONS[3] = real3
 DB.MIGRATIONS[4] = real4
+DB.MIGRATIONS[5] = real5
 
 -- v2：施法條材質的預設改成暴雪施法條（值閘：舊預設或沒存才換）
 do
@@ -476,7 +479,7 @@ do
     DB.Init()
     eq("舊存檔補上 none", ns.profile.theme.icon.cdState, "none")
     eq("舊存檔補上 0.4", ns.profile.theme.icon.cdStateAlpha, 0.4)
-    eq("DB_VERSION 沒動（這一項不遷移）", ns.DB_VERSION, 4)
+    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關的遷移）", ns.DB_VERSION, 5)
 end
 
 ------------------------------------------------------------
@@ -578,7 +581,7 @@ do
     eq("清 stack 那一組", SS2("buffs", 5555, "stackGlow"), false)
     eq("清 stack 那一組不動生效發光", SS2("buffs", 5555, "activeGlow"), true)
     DB.SetOverride(5555, "activeGlow", nil)
-    eq("DB_VERSION 沒動（這一項不遷移）", ns.DB_VERSION, 4)
+    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關的遷移）", ns.DB_VERSION, 5)
 end
 
 ------------------------------------------------------------
@@ -618,7 +621,7 @@ do
     eq("清 icon 那一組 ⇒ 還在", SS2("essential", 7777, "replaceWith"), 8888)
     DB.ClearOverrides({ 7777 }, "replace")
     eq("清 replace 那一組 ⇒ 不取代", SS2("essential", 7777, "replaceWith"), false)
-    eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移）", ns.DB_VERSION, 4)
+    eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移、5 是冷卻低秒變色開關）", ns.DB_VERSION, 5)
 end
 
 ------------------------------------------------------------
@@ -826,7 +829,7 @@ do
 
     P.customShared, P.customClass, P.customNextUID = nil, nil, nil
     P.spells[cur], P.spells[other] = nil, nil
-    eq("DB_VERSION 沒動（P8 不遷移）", ns.DB_VERSION, 4)
+    eq("DB_VERSION 沒動（P8 不遷移；5 是冷卻低秒變色開關）", ns.DB_VERSION, 5)
 end
 
 ------------------------------------------------------------
@@ -862,6 +865,89 @@ do
     eq("玩家開過的留著", ns.profile.theme.cooldownText.buffLowColor, true)
     ns.profile.theme.cooldownText.buffLowColor = false
     eq("沒覆寫 ⇒ 條層的值", SS("essential", 4400, "buffDecimalsBelow"), 0)
+end
+
+------------------------------------------------------------
+-- K. 冷卻倒數的低秒變色：開關 lowColorOn 跟變色秒數 lowBelow 分兩欄（2026-10-06）。
+--    預設開、逐法術覆寫登記、MIGRATIONS[5] 把舊存檔的 lowBelow ≤ 0（＝關）搬成 關＋5 秒
+------------------------------------------------------------
+do
+    local d = DB.BuildDefaults().profile.theme.cooldownText
+    eq("預設：冷卻低秒變色開", d.lowColorOn, true)
+    eq("預設：冷卻變色秒數 5", d.lowBelow, 5)
+    eq("SPELL_FALLBACK cooldownTextLowColorOn", DB.SPELL_FALLBACK.cooldownTextLowColorOn, "cooldownText.lowColorOn")
+    eq("覆寫分組 cooldownTextLowColorOn ＝ text", DB.OVERRIDE_GROUP.cooldownTextLowColorOn, "text")
+
+    local M5 = DB.MIGRATIONS[5]
+    check("MIGRATIONS[5] 存在", type(M5) == "function")
+    local wide = { overrides = { cooldownTextLowBelow = 0 } }
+    local prof = {
+        theme = { cooldownText = { lowBelow = 0, size = 16 } },
+        bars = {
+            a = { text = { cooldownText = { lowBelow = 0 } } },          -- 條自己關掉
+            b = { text = { cooldownText = { lowBelow = 8 } } },          -- 條自己開著、8 秒
+            c = { text = { cooldownText = { size = 20 } } },             -- 沒存秒數：跟隨，不寫開關
+            d = { text = {} },
+            e = { text = { cooldownText = { lowBelow = 0, lowColorOn = true } } },   -- 已經有開關：不碰
+        },
+        spells = { [61] = { overrides = {
+            [100] = { cooldownTextLowBelow = 0, procGlow = false },
+            [101] = { cooldownTextLowBelow = 7 },
+            [102] = { cooldownTextLowColorOn = false, cooldownTextLowBelow = 0 },      -- 已經有開關：不碰
+        } } },
+        customShared = { wide },
+    }
+    M5(prof)
+    local th = prof.theme.cooldownText
+    check("主題 lowBelow 0 → 關＋5 秒", th.lowColorOn == false and th.lowBelow == 5)
+    eq("主題其他欄位不動", th.size, 16)
+    local b = prof.bars
+    check("條自己 0 → 關＋5 秒", b.a.text.cooldownText.lowColorOn == false and b.a.text.cooldownText.lowBelow == 5)
+    check("條自己 8 → 開＋8 秒（成對明寫）", b.b.text.cooldownText.lowColorOn == true and b.b.text.cooldownText.lowBelow == 8)
+    check("沒存秒數的條不寫開關", b.c.text.cooldownText.lowColorOn == nil and b.c.text.cooldownText.lowBelow == nil)
+    eq("沒有倒數子表的條不建表", b.d.text.cooldownText, nil)
+    check("已經有開關的條不碰", b.e.text.cooldownText.lowColorOn == true and b.e.text.cooldownText.lowBelow == 0)
+    local o = prof.spells[61].overrides
+    check("逐法術 0 → 開關覆寫成關、秒數覆寫拿掉",
+        o[100].cooldownTextLowColorOn == false and o[100].cooldownTextLowBelow == nil and o[100].procGlow == false)
+    check("逐法術 7 → 補上開（以前有秒數＝這一招開）、秒數留著",
+        o[101].cooldownTextLowColorOn == true and o[101].cooldownTextLowBelow == 7)
+    check("逐法術已經有開關的不碰", o[102].cooldownTextLowColorOn == false and o[102].cooldownTextLowBelow == 0)
+    check("寬層自訂項目身上的覆寫也搬", wide.overrides.cooldownTextLowColorOn == false and wide.overrides.cooldownTextLowBelow == nil)
+    -- 重跑不變（玩家之後在新版把秒數調成別的、又關掉，不會被洗）
+    th.lowBelow = 9
+    M5(prof)
+    check("重跑：主題不再改", th.lowColorOn == false and th.lowBelow == 9)
+    check("重跑：逐法術不再改", o[100].cooldownTextLowColorOn == false and o[100].cooldownTextLowBelow == nil
+        and o[101].cooldownTextLowColorOn == true and o[101].cooldownTextLowBelow == 7)
+
+    -- 整條路：1.2.7 的存檔（schemaVersion 4、主題 lowBelow = 0）登入 ⇒ 每份設定檔都搬
+    local P = sv.profiles.Default
+    P.theme.cooldownText.lowColorOn = nil
+    P.theme.cooldownText.lowBelow = 0
+    sv.profiles.Other = { theme = { cooldownText = { lowBelow = 0 } } }
+    sv.schemaVersion, sv.schemaVersionSeen = 4, nil
+    ns.profile, ns.profileName = nil, nil
+    DB.Init()
+    eq("登入遷移：版本推到 5", sv.schemaVersion, 5)
+    check("登入遷移：目前設定檔 關＋5 秒", P.theme.cooldownText.lowColorOn == false and P.theme.cooldownText.lowBelow == 5)
+    check("登入遷移：別份設定檔也搬", sv.profiles.Other.theme.cooldownText.lowColorOn == false
+        and sv.profiles.Other.theme.cooldownText.lowBelow == 5)
+    eq("讀單格：開關", S("essential", "cooldownText.lowColorOn"), false)
+    -- 取消勾選只寫開關：秒數留著，再勾回來就是原本的秒數
+    P.theme.cooldownText.lowColorOn = true
+    P.theme.cooldownText.lowBelow = 12
+    P.theme.cooldownText.lowColorOn = false
+    eq("取消勾選秒數不變", S("theme", "cooldownText.lowBelow"), 12)
+    P.theme.cooldownText.lowColorOn = true
+    eq("勾回來還是原本的秒數", S("theme", "cooldownText.lowBelow"), 12)
+    P.theme.cooldownText.lowBelow = 5
+    sv.profiles.Other = nil
+    -- 沒有開關欄（從沒存過的設定檔）：合併預設補成開
+    P.theme.cooldownText.lowColorOn = nil
+    ns.profile, ns.profileName = nil, nil
+    DB.Init()
+    eq("沒有開關 ⇒ 合併預設補開", P.theme.cooldownText.lowColorOn, true)
 end
 
 print(("DB_test: %d passed, %d failed"):format(passed, failed))

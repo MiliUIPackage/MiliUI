@@ -945,30 +945,14 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
             paint = function(id) tc:Select(id) end })
     end
 
-    -- 冷卻：低秒變色的開關跟門檻是同一個欄位（門檻 0 ＝ 關，同條頁）；勾起來時門檻 5
+    -- 冷卻：低秒變色的開關（cooldownTextLowColorOn）跟變色秒數（cooldownTextLowBelow）分兩個覆寫，同條頁與增益持續時間那組：
+    -- 取消勾選只寫開關，秒數不動（2026-10-06 拆開；舊存檔的「秒數覆寫 0 ＝ 關」由 DB 的 MIGRATIONS[5] 搬）
     buildSub = "cooldown"
     SizeRow(L["Decimals below"], "cooldownText", "decimalsBelow", "cooldownTextDecimals", 0, 10, NotBarsRow)
     NoteRow(L["Shows one decimal place under this many seconds; 0 never shows decimals."], NotBarsRow)
-    do
-        local lr, lh = NewRow(L["Color when low"], NotBarsRow)
-        local lcb = W.CreateCheckButton(lr, nil, function(on)
-            if not cur then return end
-            local t = ns.Text.SpellText(cur.key, cur.id, "cooldownText", true)
-            local now = tonumber(t.lowBelow) or 0
-            ns.DB.SetOverride(cur.id, "cooldownTextLowBelow", on and (now > 0 and now or 5) or 0)
-            Changed()
-        end)
-        lcb:SetPoint("LEFT", lr, "LEFT", CTRL_X, 0)
-        local lnote = Note(lr)
-        lnote:SetPoint("LEFT", lcb, "RIGHT", 8, 0)
-        lnote:SetPoint("RIGHT", lr, "RIGHT", 0, 0)
-        lnote:SetWordWrap(false)
-        RightClickClears(lr, lh, "cooldownTextLowBelow")
-        textCtl[#textCtl + 1] = { kind = "low", cb = lcb, note = lnote }
-        Track(lr, { "cooldownTextLowBelow" })
-    end
+    ToggleRow("cooldownTextLowColorOn", L["Color when low"], NotBarsRow)
     TextColorRow(L["Low color"], "cooldownText", "lowColor", "cooldownTextLowColor", { r = 1, g = 0.3, b = 0.3, a = 1 }, NotBarsRow)
-    SizeRow(L["Low below (sec)"], "cooldownText", "lowBelow", "cooldownTextLowBelow", 0, 30, NotBarsRow)
+    SizeRow(L["Low below (sec)"], "cooldownText", "lowBelow", "cooldownTextLowBelow", 1, 30, NotBarsRow)
 
     -- 增益持續時間（I／J）：覆寫 key 跟條層同名（變色顏色是 durationLowColor）；變色顏色只在增益持續時間的低秒變色
     -- 生效（合併後）時可改
@@ -2345,12 +2329,6 @@ function Pop.Refresh()
     -- 文字（H）：照合併後的值回填（Text.SpellText 的 fresh：剛寫的覆寫、還沒 InvalidateAll 的條層值都看得到）
     local TX = ns.Text
     local fontItems
-    local function SrcNote(field)
-        if Override(field) ~= nil then return L["(overridden, right-click to reset)"] end
-        local src = ns.DB.SpellFallbackSource(key, field)
-        return src == "theme" and L["(follows the theme)"]
-            or src == "bar" and L["(follows “%s”)"]:format(BarName()) or L["(default)"]
-    end
     for _, c in ipairs(textCtl) do
         local sec = c.section
         if type(sec) == "function" then sec = sec() end
@@ -2380,10 +2358,6 @@ function Pop.Refresh()
             c.swatch:SetAlpha(own and 1 or 0.4)
         elseif c.kind == "offset" then
             for _, b in ipairs(c.boxes) do b.nb:SetValue(tonumber(t[b.key]) or 0) end
-        elseif c.kind == "low" then
-            local ct = TX.SpellText(key, id, "cooldownText", true)
-            c.cb:SetChecked((tonumber(ct.lowBelow) or 0) > 0)
-            c.note:SetText(SrcNote("cooldownTextLowBelow"))
         end
     end
     -- 拉桿與數字框看不出有沒有覆寫：這一頁的標籤沒覆寫（跟隨條）時變暗

@@ -431,6 +431,7 @@ eq("描邊 NONE ⇒ 空字串", S.theme.outline, "")
 eqColor("倒數顏色", S.theme.cooldownText.color, 1, 1, 0)
 eq("小數門檻", S.theme.cooldownText.decimalsBelow, 2)
 eq("低秒門檻", S.theme.cooldownText.lowBelow, 4)
+eq("低秒變色開關（開）", S.theme.cooldownText.lowColorOn, true)
 eqColor("低秒顏色", S.theme.cooldownText.lowColor, 1, 0, 0)
 eq("充能位置", S.theme.chargeText.point .. S.theme.chargeText.x .. S.theme.chargeText.y, "TOPLEFT2-2")
 eq("層數位置", S.theme.stackText.point .. S.theme.stackText.x .. S.theme.stackText.y, "BOTTOM13")
@@ -702,6 +703,16 @@ do
     eq("施法條 沒勾圖集 ⇒ 照材質名", b.castbar and b.castbar.texture, "TukTex")
 end
 eq("Convert 收 nil 不報錯", type(select(2, Import.Convert(nil, {}))), "table")
+do
+    -- 冷卻低秒變色：開關跟秒數分兩欄寫（lowColorOn＋lowBelow）；關掉的也帶秒數，不再寫 lowBelow = 0
+    local a = Import.Convert({ cooldownColorThresholdEnabled = false, cooldownColorThreshold = 6 }, {})
+    local ct = a.theme.cooldownText
+    check("對方關掉 ⇒ 開關關、秒數照對方的", ct.lowColorOn == false and ct.lowBelow == 6)
+    local b = Import.Convert({ cooldownColorThresholdEnabled = false }, {})
+    check("對方關掉、沒秒數 ⇒ 開關關、秒數 5", b.theme.cooldownText.lowColorOn == false and b.theme.cooldownText.lowBelow == 5)
+    local c = Import.Convert({}, {})
+    check("對方沒這幾欄 ⇒ 不寫", c.theme.cooldownText.lowColorOn == nil and c.theme.cooldownText.lowBelow == nil)
+end
 
 print(("Import_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

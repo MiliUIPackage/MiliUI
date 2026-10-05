@@ -1297,7 +1297,7 @@ do
     eq("遷移：新形狀已有的值不蓋", mixed[258].Mana, false)
     eq("遷移：其他專精照寫", mixed[262].Mana, true)
     -- 設定遷移 v3（Core/DB.lua；這支測試有載資源模組）
-    eq("DB_VERSION 4（資源列的遷移是 v3）", ns.DB_VERSION, 4)
+    eq("DB_VERSION 5（資源列的遷移是 v3）", ns.DB_VERSION, 5)
     local prof = { resources = { rows = { Mana = true } } }
     ns.DB.MigrateProfile(prof, 2)
     check("v3：平面 → 分專精", prof.resources.rows.Mana == nil and prof.resources.rows[267].Mana == true)
