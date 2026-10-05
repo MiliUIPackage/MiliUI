@@ -119,11 +119,11 @@ body 才有「玩家實際會看到什麼」「設定在哪一頁」「預設開
 最後補一行實際採用的 tag 區間（`Miliui_UnitFrames-1.1.6 → 1.2.0`），
 讓使用者一眼看出範圍對不對、要不要改。
 
-## 網站模式（Packaging.command 呼叫）
+## 網站模式（發版腳本呼叫）
 
 發佈腳本會用 `claude -p` 叫這個技能，要求「網站模式」：
 
-- 套組本體：`_retail_/Packaging.command`
+- 套組本體：發版管理介面的 `scripts/release-suite.sh`（`_retail_/Packaging.command` 現在只是打開 App）
 - 自製插件：發版管理介面（`~/Projects/MiliUI_ReleaseManager`）的通用發版腳本 `scripts/release.sh`，
   經由 [.claude/scripts/release-notes.sh](../../scripts/release-notes.sh)
 - fork（Ayije_CDM、Cell）：各自工作 repo 的 `package.command`，同樣經由 release-notes.sh；一次發佈多個資料夾的

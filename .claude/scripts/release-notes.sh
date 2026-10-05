@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # 叫 Claude 用 miliui-release-notes 技能的「網站模式」寫一個插件的更新說明
-# 給發版管理介面（~/Projects/MiliUI_ReleaseManager）的 scripts/release.sh 與 fork 各自的 package.command 用（套組本體的 _retail_/Packaging.command 自己有一份同樣的流程）。
+# 給發版管理介面（~/Projects/MiliUI_ReleaseManager）的 scripts/release.sh 與 fork 各自的 package.command 用（套組本體的流程在發版管理的 scripts/release-suite.sh，自己有一份同樣的說明產生段）。
 #
 # 用法：release-notes.sh <插件資料夾名> <tag 的 grep -E 樣式> <這次的 tag> <這次的版本號> [en]
 #   例：release-notes.sh MiliUI_UnitFrames '^Miliui_UnitFrames-[0-9.]+$' Miliui_UnitFrames-1.4.3 1.4.3
