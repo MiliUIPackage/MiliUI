@@ -239,6 +239,7 @@ local tc = W.CreateTabCard(parent, {
     tabs     = { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Duration"] } },
     selected = "cooldown",               -- 選用，預設第一顆
     onSelect = function(id, btn) end,    -- 點了**別顆**才叫（點選中的那顆不叫）；高亮已經換好
+    help     = L["…"],                   -- 選用：最後一顆鈕後面一個「!」小方塊，滑過顯示這段（講各分頁管什麼；字串或回傳字串的函式）
     -- 選用：tabHeight 20、tabMinWidth 56、tabGap 2（鈕距）、rowGap 2（換排的排距）、inset 6（鈕列離卡片左右邊）
 })
 local stripH = tc:Place(x, y, width)     -- 鈕列左上角在 parent 的 (x, y)；卡片左右邊＝x～x+width；回傳鈕列高
@@ -248,6 +249,7 @@ tc:Select(id)                            -- 只換高亮，不叫 onSelect
 tc:SetTabs(ids)                          -- 只顯示這幾顆（nil＝全部）、重排；回傳鈕列高
 tc:SetShown(on) / tc:Show() / tc:Hide()  -- 鈕列連卡片一起
 tc:GetSelected() / tc:GetCardTop()
+-- 卡片左右界：跟頁面上的設定列同寬（左緣＝卡片裡最長的標籤再外推一點、右緣＝控件欄右緣），不要佔滿整個表單寬
 tc.strip / tc.buttons / tc.byId          -- 鈕列 frame、按鈕（照 tabs 順序）、id → 按鈕
 W.TAB_CARD_PAD                           -- 卡片內距建議值（4）
 W.CARD_FILL                              -- 卡片底色 { r, g, b, a }（唯讀）

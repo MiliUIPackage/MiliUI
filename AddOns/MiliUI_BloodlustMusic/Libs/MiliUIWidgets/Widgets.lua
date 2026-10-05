@@ -439,6 +439,9 @@ end
 --
 -- 分頁鈕放不下就換排（同 W.FlowLayout 的規則）。換了排而選中的鈕不在最後一排時，
 -- 它跟卡片之間隔著別排的鈕，打通不了 ⇒ 那一顆只換底與邊（卡片上緣整條畫滿）。
+--
+-- opts.help（字串，或回傳字串的函式）：最後一顆分頁鈕後面多一個「!」小方塊，滑過顯示這段說明
+-- （講這幾個分頁各管什麼；字由呼叫端給，共用層不帶語系）。放不下就跟著換排。
 ------------------------------------------------------------
 local CARD_FILL = { 0.15, 0.15, 0.15, 1 }
 W.CARD_FILL = CARD_FILL
@@ -458,6 +461,35 @@ function W.CreateTabCard(parent, opts)
     local strip = CreateFrame("Frame", nil, parent)
     strip:SetSize(1, tabH)
     tc.strip = strip
+
+    -- 說明「!」：跟分頁鈕同一列、緊接在最後一顆後面（LayoutTabs 排）
+    local helpMark
+    if opts.help then
+        local m = CreateFrame("Frame", nil, strip, "BackdropTemplate")
+        local sz = tabH - 4
+        P.Size(m, sz, sz)
+        W.Stylize(m, { 0.1, 0.1, 0.1, 0.9 }, { 0.4, 0.4, 0.4, 1 })
+        local q = m:CreateFontString(nil, "OVERLAY")
+        q:SetFontObject(W.fontSmall)
+        q:SetPoint("CENTER", m, "CENTER", 0, 0)
+        q:SetText("!")
+        q:SetTextColor(0.6, 0.6, 0.6)
+        m:EnableMouse(true)
+        m:SetScript("OnEnter", function(self)
+            q:SetTextColor(1, 1, 1)
+            local text = opts.help
+            if type(text) == "function" then text = text() end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(tostring(text or ""), 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        m:SetScript("OnLeave", function()
+            q:SetTextColor(0.6, 0.6, 0.6)
+            GameTooltip:Hide()
+        end)
+        helpMark = m
+        tc.help = m
+    end
 
     -- 卡片：底＋四邊（上緣分左右兩段，中間留給選中的那顆鈕）
     local function Tex(layer)
@@ -546,6 +578,13 @@ function W.CreateTabCard(parent, opts)
             end
         end
         lastRow = row
+        if helpMark then
+            local w = helpMark:GetWidth() or tabH
+            local gap = gapX + 4
+            if prev and x + gap + w > maxW then row, x, prev = row + 1, 0, nil; gap = 0 end
+            helpMark:ClearAllPoints()
+            helpMark:SetPoint("LEFT", strip, "TOPLEFT", x + (prev and gap or 0), -(row - 1) * (tabH + gapY) - tabH / 2)
+        end
         local h = row * tabH + (row - 1) * gapY
         strip:SetHeight(h)
         return h
