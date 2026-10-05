@@ -292,9 +292,13 @@ function K.Apply(owner, rec, barKey)
     local sig = table.concat({ text, tostring(c.size), tostring(c.point), tostring(c.x), tostring(c.y),
         tostring(font), tostring(outline) }, "|")
     if fs and rec.keySig == sig then return end
+    -- 放在墊高的文字框上（Text.TextHolder，overlay＋TEXT_LIFT）：發光宿主在 overlay＋1～＋3，按鍵文字要在發光上面
+    local holder = (ns.Text and ns.Text.TextHolder and ns.Text.TextHolder(rec)) or rec.overlay
     if not fs then
-        fs = rec.overlay:CreateFontString(nil, "OVERLAY", nil, 7)
+        fs = holder:CreateFontString(nil, "OVERLAY", nil, 7)
         rec.keyFS = fs
+    elseif fs:GetParent() ~= holder then
+        fs:SetParent(holder)
     end
     ns.Media.SetPixelFont(fs, tonumber(c.size) or 10, outline, font)
     fs:SetTextColor(1, 1, 1, 1)

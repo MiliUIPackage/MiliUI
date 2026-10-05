@@ -91,9 +91,10 @@ end
 -- 增益長條的層數是 item.Icon 框上的一顆 FontString，跟圖示貼圖同一框：墊 item.Icon 會連圖示一起
 -- 蓋過邊框。改把那顆 FontString 換父層到 overlay 底下自己的框（同樣 ＋TEXT_LIFT）。字照舊由暴雪寫，
 -- 我們不讀；holder 是 item 的孫框，item 被池化挪去別條時跟著走
-local function LiftRegion(fs, rec)
+-- overlay 底下墊高的文字框（＋TEXT_LIFT，高過發光）：搬過來的層數、按鍵文字（Core/Keybinds.lua）都放這裡
+function T.TextHolder(rec)
     local ov = rec and rec.overlay
-    if not (fs and fs.SetParent and ov) then return end
+    if not ov then return nil end
     local h = rec.textHolder
     if not h then
         h = CreateFrame("Frame", nil, ov)
@@ -103,6 +104,13 @@ local function LiftRegion(fs, rec)
     local lvl = (ov:GetFrameLevel() or 1) + T.TEXT_LIFT
     if lvl > 9000 then lvl = 9000 end
     if h:GetFrameLevel() ~= lvl then h:SetFrameLevel(lvl) end
+    return h
+end
+
+local function LiftRegion(fs, rec)
+    if not (fs and fs.SetParent) then return end
+    local h = T.TextHolder(rec)
+    if not h then return end
     if fs:GetParent() ~= h then fs:SetParent(h) end
 end
 

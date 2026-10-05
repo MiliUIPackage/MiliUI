@@ -198,6 +198,11 @@ local function Host(rec, which)
     return h
 end
 
+-- 發光框比宿主高幾層：函式庫預設 ＋8，會蓋過按鍵文字與層數（Text.TEXT_LIFT ＝ overlay＋5、宿主最高 overlay＋3）。
+-- 給 0 ⇒ 發光就在宿主那一層（overlay＋1～＋3），文字一律在發光上面
+local GLOW_LIFT = 0
+G.GLOW_LIFT = GLOW_LIFT
+
 local STOP = {
     pixel    = function(h, key) LCG.PixelGlow_Stop(h, key) end,
     autocast = function(h, key) LCG.AutoCastGlow_Stop(h, key) end,
@@ -390,21 +395,22 @@ local function PaintOn(h, c, which, key, startAnim, shape)
     local freq = tonumber(c.frequency) or 0.2
     local ok
     if t == "autocast" then
-        ok = pcall(LCG.AutoCastGlow_Start, h, color, lines, freq, 1, 0, 0, key)
+        ok = pcall(LCG.AutoCastGlow_Start, h, color, lines, freq, 1, 0, 0, key, GLOW_LIFT)
     elseif t == "button" then
-        ok = pcall(LCG.ButtonGlow_Start, h, color, freq)
+        ok = pcall(LCG.ButtonGlow_Start, h, color, freq, GLOW_LIFT)
         if ok and (art or btnTouched) then pcall(SkinButton, h, art) end
     elseif t == "proc" then
         if art then
-            ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = false, duration = 1 })
+            ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = false, duration = 1, frameLevel = GLOW_LIFT })
             if ok then pcall(SkinProc, h, key, art.loop) end
         else
             local square = MasqueSquare()
-            ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = startAnim and not square, duration = 1 })
+            ok = pcall(LCG.ProcGlow_Start, h, { color = color, key = key, startAnim = startAnim and not square, duration = 1,
+                frameLevel = GLOW_LIFT })
             if ok then pcall(SkinProc, h, key, square and MSQ_SQUARE or nil) end
         end
     else
-        ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, key)
+        ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, key, GLOW_LIFT)
     end
     return ok and t or nil
 end
