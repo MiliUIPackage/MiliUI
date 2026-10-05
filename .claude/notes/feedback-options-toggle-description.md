@@ -24,3 +24,7 @@ metadata:
 - 2026-09-24 全套組已遷移完（MythicPlus、UnitFrames、CharacterNotes、ShoppingList、Merchant、Skin 共 56 個）。
   剩下的 `hint` 都不是勾選框說明（輸入框佔位提示、對話框），不用動。盤點時注意 `hint  =`（對齊用的兩個空格）也要搜。
 - 相關：[[project-miliui-options-label-width]]（左欄標籤換行）、[[feedback-ui-visual-style]]、[[project-miliui-widgets-vendor]]。
+
+**例外：標籤後的「?」滑過說明（2026-10-05，MiliUI_CooldownManager 逐法術小窗）**：灰字夾在兩列控件之間、看不出是講上一列還下一列，
+或同一段說明在好幾列重複（每個「語音播報」列）時，使用者指定改成標籤後面一個小「?」、hover 才顯示說明（`SpellPopover.lua` 的
+`HelpMark`／`NewRow(label, when, help)`）。玩家做決定一定要看到的說明（就緒音效 vs 充能滿音效的差別）仍用下一列灰字。

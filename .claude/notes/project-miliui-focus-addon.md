@@ -119,3 +119,14 @@ TOC 標籤 `[焦點]` → `[專注]`。規則見 [[feedback-zhtw-blizzard-terms]
 
 待實機驗證：M+ 非首領時段 `/p` 是否真的放行、遭遇中的連送節流門檻、
 `UPDATE_MACROS` 在自己 EditMacro 之後有沒有重入（已用 `writing` 旗標擋）。
+
+## 每次設專注目標都宣告（2026-10-05）
+
+`db.bar.announceOnMark`（預設關），標記列喇叭**右鍵**切換、開著時角落掛「自動」；設定頁宣告區也有勾選。
+做法：第二顆巨集書巨集 `MiliUI_FocusMark`＝專注／標記那幾行＋`/stopmacro [@mouseover,noharm][@mouseover,dead]`＋宣告；
+`Focuser.ApplyAnnounceMode` 把巨集按鈕的 `macro/macrorelease/macro1` 指向它（macro 優先於 macrotext）。
+要自動標記有開才建（markState `noautomark`）。戰鬥中從標記選單換圖示時，格子安全快照會清掉 macro 屬性退回 macrotext
+（巨集書戰鬥中改不了），脫戰 AM.Refresh 掛回。待實機驗證：同一顆巨集裡 /focus＋/tm＋/p 在 M+ 能否都放行、連按節流。
+**隊友標記只在「脫戰＋手動點喇叭」時帶**（使用者指定 2026-10-05）：自動宣告巨集永遠不帶；手動那顆在
+PLAYER_REGEN_DISABLED（鎖定還沒生效）改成不帶隊友的版本、REGEN_ENABLED 改回。`AM.InCombat()` 用自記旗標。
+待驗證：進戰那一刻 EditMacro 是否真的寫得進去（寫不進就是戰鬥中仍喊舊的帶隊友版）。
