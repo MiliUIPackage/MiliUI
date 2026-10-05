@@ -1809,6 +1809,7 @@ end
 --       onChange = function(shown, spacing) end,         -- 選用：開關或間距變了
 --   })
 --   grid:Active()   -- 格線此刻畫在畫面上 ⇒ 間距；否則 nil（宿主的拖曳吸附讀這個）
+--   grid.width      -- 按鈕寬（固定）：分頁列右側還要排東西的宿主拿去扣
 --
 -- 用途：設定視窗開著就能拖的插件（冷卻管理器之類），給玩家一張對齊用的格線。
 -- 只在面板開著時畫；開關與間距存宿主的 db（帳號層那張），跟著視窗位置一起走。
@@ -1983,8 +1984,10 @@ function W.CreateGridToggle(panel, opts)
     btn:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", 0, 1)
 
     -- 浮出的間距滑桿：按鈕正上方、右緣對齊（標題列在左邊，不會撞）
+    -- 層級壓過面板裡的一切（關閉鈕 +200、標題列那排的搜尋框）：浮窗只在滑過時出現，蓋住是對的
     local pop = W.CreateFrame(nil, btn, GRID_POP_W, GRID_POP_H)
     pop:SetPoint("BOTTOMRIGHT", btn, "TOPRIGHT", 0, 2)
+    pop:SetFrameLevel(panel:GetFrameLevel() + 300)
     pop:SetBackdropBorderColor(W.Accent(0.8))
     pop:EnableMouse(true)
     pop:Hide()
@@ -2005,9 +2008,18 @@ function W.CreateGridToggle(panel, opts)
     local function Paint()
         local on = On()
         btn:SetText(gridText[1] .. ": " .. (on and "ON" or "OFF"))
-        W.FitButton(btn, 74, GRID_BTN_H)
         W.SetButtonVariant(btn, on and "primary" or "normal")
     end
+
+    -- 寬度照 ON／OFF 比較寬的那個一次定死：切換時按鈕不跟著伸縮（左邊有分頁或搜尋框在排）
+    local fs = btn:GetFontString()
+    local btnW = 74
+    for _, v in ipairs({ "ON", "OFF" }) do
+        btn:SetText(gridText[1] .. ": " .. v)
+        btnW = math.max(btnW, math.ceil(fs:GetStringWidth()) + W.BTN_TEXT_PAD)
+    end
+    P.Size(btn, btnW, GRID_BTN_H)
+    toggle.width = btnW     -- 宿主排分頁列右側空間時扣掉這段
 
     local slider = W.CreateSlider(pop, GRID_MIN, GRID_MAX,
         GRID_POP_W - 16 - math.ceil(label:GetStringWidth()) - 8, GRID_STEP,

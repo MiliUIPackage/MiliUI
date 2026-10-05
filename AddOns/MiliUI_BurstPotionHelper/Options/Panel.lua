@@ -174,6 +174,10 @@ local function CreatePanel()
         SetCombatLocked(InCombatLockdown())
     end)
 
+    -- 右上角「格線: ON／OFF」（共用層，滑過調間距）：開著設定視窗拖框時對齊用。
+    -- ⚠ 要排在上面兩行 SetScript 之後：共用層走 HookScript
+    W.CreateGridToggle(panel, { db = WindowPos })
+
     -- 遮罩自己是 FULLSCREEN_DIALOG，裡面再放一顆關閉鈕，否則戰鬥中視窗只剩 ESC 能關
     local mask = W.CreateCombatMask(panel)
     CreateCloseButton(mask, mask:GetFrameLevel() + 10)

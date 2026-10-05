@@ -35,3 +35,8 @@ if IsShiftKeyDown() then on = not on end                    -- 暫時反轉，�
 通則：**動編輯模式相關功能之前先查暴雪做了沒。** 這一塊 Blizzard 補得比想像中完整。
 
 相關：[[project-miliui-unit-frame]]
+
+⚠ **判斷暴雪格線「看得到」要問 `Grid:IsVisible()`，不是 `IsShown()`。** 玩家勾過「顯示格線」，
+暴雪載入設定時就 `Grid:SetShown(true)`，沒進編輯模式時旗標照樣是 true（只是父框藏著）。
+2026-10-05 共用層格線開關（`W.CreateGridToggle`）拿 IsShown 判「暴雪格線在 ⇒ 讓位」，
+結果永遠讓位、一條線都不畫（症狀：按鈕有、格線沒有）。
