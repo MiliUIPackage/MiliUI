@@ -115,7 +115,7 @@ function D.Resolve(barKey, fresh)
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
         colorDuration = S(barKey, "icon.colorDuration") and true or false,   -- 增益那一段的倒數換色（PhaseColors）
         durationColor = S(barKey, "icon.durationColor"),
-        durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益那一段的低秒顏色（門檻共用 cooldownText.lowBelow）
+        durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益時間的低秒顏色（cooldownText.buffLowColor 開著才用，門檻借 lowBelow）
         durationSwipeColor = S(barKey, "icon.durationSwipeColor"),     -- 增益那一段的轉圈背景色
         cooldownText = S(barKey, "cooldownText") or {},
         chargeText   = S(barKey, "chargeText") or {},
@@ -1830,14 +1830,14 @@ function D.Apply(item, rec, barKey, w, h)
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
         rec.style.cdColor, rec.style.durColor = D.PhaseColors(style, spell)
-        -- 換色開著的格：增益那一段自己的轉圈背景色＋低秒顏色的 formatter（兩段各一顆，ApplyPhaseColor 換）；
-        -- 兩個顏色逐法術可覆寫（SpellStyle 解好，沒覆寫就是條層的）
+        -- 兩段各一顆 formatter（ApplyPhaseColor 換）：冷卻那一段照倒數的小數／低秒，增益那一段照「增益時間」的
+        -- 小數門檻與低秒變色（I，跟換色開關無關：換色關著也照這一組）。formatter 依值共用（Text 的快取）
+        local ct = spell.cooldownText or style.cooldownText or {}
+        rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
+        rec.style.durFmt = ns.Text.BuffFormatter(ct, spell.durationLowColor)
+        -- 換色開著的格：增益那一段自己的轉圈背景色（逐法術可覆寫，SpellStyle 解好）
         if rec.style.durColor then
             rec.style.durSwipe = { C4(spell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
-            local ct = spell.cooldownText or style.cooldownText or {}
-            rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
-            rec.style.durFmt = ns.Text.CountdownFormatter({ decimalsBelow = ct.decimalsBelow, lowBelow = ct.lowBelow,
-                                                           lowColor = spell.durationLowColor or ct.lowColor })
         end
         -- 增益持續中不顯示持續時間（同一個條件；裝備欄項目在 HideTarget 再擋）
         rec.style.hideAuraTime = spell.showAuraTime == false
@@ -1847,10 +1847,10 @@ function D.Apply(item, rec, barKey, w, h)
         if durColor then
             rec.style.cdColor, rec.style.durColor, rec.style.allAura = cdColor, durColor, true
             rec.style.durSwipe = { C4(aSpell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
+            -- 整段都是增益時間：小數與低秒照這顆增益自己的「增益時間」設定，低秒色用 A 的增益時間低秒顏色
             local ct = spell.cooldownText or style.cooldownText or {}
             rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
-            rec.style.durFmt = ns.Text.CountdownFormatter({ decimalsBelow = ct.decimalsBelow, lowBelow = ct.lowBelow,
-                                                           lowColor = aSpell.durationLowColor or ct.lowColor })
+            rec.style.durFmt = ns.Text.BuffFormatter(ct, aSpell.durationLowColor)
         end
     end
     if not rec.custom then itemOf[rec] = item end
@@ -2045,8 +2045,8 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         end
         -- 增益持續時間那一段：Preview 標了 cell.auraPhase 的假冷卻格照設定換色（逐法術覆寫也照套）
         -- 設成「增益持續中不顯示持續時間」的格：那一段被蓋成冷卻，當普通冷卻格畫（原色）
-        cell.durColor = (cell.auraPhase and not cell.aura and spell.showAuraTime ~= false)
-            and D.DurationColorOf(spell.colorDuration, spell.durationColor) or nil
+        cell.buffTime = (cell.auraPhase and not cell.aura and spell.showAuraTime ~= false) and true or false
+        cell.durColor = cell.buffTime and D.DurationColorOf(spell.colorDuration, spell.durationColor) or nil
         local cd = cell.Cooldown
         if cd then
             -- 增益那一段的格轉圈用它自己的背景色（逐法術覆寫也照套）

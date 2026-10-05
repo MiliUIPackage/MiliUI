@@ -34,7 +34,14 @@
 -- 技能用掉後暴雪先倒增益的持續時間、增益掉了才倒冷卻；前半段的數字換 durationColor。
 -- 一樣只是多叫一次 SetTextColor：要換哪個色看 rec.auraTime（Decorate 的 SetUseAuraDisplayTime
 -- 後掛勾記的明文旗標）與 rec.style.cdColor／durColor（Decorate.Apply 算好的）。零讀取。
--- 低秒變色兩段各一顆 formatter（門檻與小數共用、色碼不同：增益那一段用 icon.durationLowColor），ApplyPhaseColor 一起換。
+-- 兩段各一顆 formatter（ApplyPhaseColor 一起換）：冷卻那一段照倒數的小數門檻／低秒變色；增益那一段照下面的「增益時間」。
+--
+-- ── 增益時間的小數與低秒變色（I）─────────────────────────────────────────
+-- 增益時間的倒數自己一組，冷卻倒數不受影響：小數門檻 cooldownText.buffDecimalsBelow（預設 0 ＝ 不顯示小數）、
+-- 低秒變色開關 cooldownText.buffLowColor（預設關；開 ⇒ 門檻借倒數的 lowBelow、顏色用增益時間低秒顏色
+-- icon.durationLowColor，沒有退倒數的低秒色）。逐法術同名覆寫，合併照 SpellText（在 cooldownText 那一段）。
+-- 「增益時間的倒數」三種格：暴雪增益圖示（ApplyIcon 依 rec.barKey 是 AURA_KIND）、技能格倒增益那一段
+-- （Decorate 的 durFmt）、光環格家族（Custom.AuraStyle：formatter＋色彩曲線）。解法只在 T.BuffTiming 一處。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -176,18 +183,47 @@ local function BuildFormatter(decimalsBelow, lowBelow, lowHex)
     return fmt
 end
 
-function T.CountdownFormatter(cdStyle)
-    if type(cdStyle) ~= "table" then return nil end
-    local d = tonumber(cdStyle.decimalsBelow) or 0
-    local lowHex = (cdStyle.lowColor and tonumber(cdStyle.lowBelow) and tonumber(cdStyle.lowBelow) > 0)
-        and Hex(cdStyle.lowColor) or nil
-    local key = d .. "|" .. tostring(cdStyle.lowBelow) .. "|" .. tostring(lowHex)
+-- 依（小數門檻, 低秒門檻, 色碼）取一顆；不變色時門檻一律記成 0（同一顆不重建）
+local function Formatter(decimalsBelow, lowBelow, lowColor)
+    local d = tonumber(decimalsBelow) or 0
+    local l = tonumber(lowBelow) or 0
+    local lowHex = (type(lowColor) == "table" and l > 0) and Hex(lowColor) or nil
+    if not lowHex then l = 0 end
+    local key = d .. "|" .. l .. "|" .. tostring(lowHex)
     local f = formatters[key]
     if f == nil then
-        f = BuildFormatter(d, cdStyle.lowBelow, lowHex) or false
+        f = BuildFormatter(d, l, lowHex) or false
         formatters[key] = f
     end
     return f or nil
+end
+
+-- 冷卻倒數：倒數表（條層或合併後的）的 decimalsBelow／lowBelow／lowColor
+function T.CountdownFormatter(cdStyle)
+    if type(cdStyle) ~= "table" then return nil end
+    return Formatter(cdStyle.decimalsBelow, cdStyle.lowBelow, cdStyle.lowColor)
+end
+
+-- 增益時間的倒數（I）：c ＝ 倒數表（條層或 SpellText 合併後的），lowColor ＝ 增益時間低秒顏色（nil 退倒數的低秒色）
+-- 回傳 小數門檻, 低秒門檻（關 ＝ 0）, 低秒顏色。舊存檔沒有這兩欄 ⇒ 0／關（合併預設值也補成這樣）
+local BUFF_LOW_DEFAULT = 5
+T.BUFF_LOW_DEFAULT = BUFF_LOW_DEFAULT
+function T.BuffTiming(c, lowColor)
+    if type(c) ~= "table" then return 0, 0, nil end
+    local d = tonumber(c.buffDecimalsBelow) or 0
+    -- 門檻借倒數的「變色秒數」；倒數自己的低秒變色關著（lowBelow ＝ 0）時增益照樣變色，用預設 5 秒
+    --（兩個開關互不牽連：勾了增益時間低秒變色就一定會變）
+    local l = 0
+    if c.buffLowColor == true then
+        l = tonumber(c.lowBelow) or 0
+        if l <= 0 then l = BUFF_LOW_DEFAULT end
+    end
+    return d, l, (type(lowColor) == "table" and lowColor) or c.lowColor
+end
+
+function T.BuffFormatter(c, lowColor)
+    if type(c) ~= "table" then return nil end
+    return Formatter(T.BuffTiming(c, lowColor))
 end
 
 -- 不帶色碼的版本（光環格的 SetDurationText 用：那條路不吃 format 裡的 |c，變色改走色彩曲線）
@@ -263,6 +299,8 @@ local CD_KEYS = {
     { "point", "cooldownTextPoint" }, { "x", "cooldownTextX" }, { "y", "cooldownTextY" },
     { "decimalsBelow", "cooldownTextDecimals" }, { "lowBelow", "cooldownTextLowBelow" },
     { "lowColor", "cooldownTextLowColor" },
+    -- 增益時間的小數門檻與低秒變色開關（I）：覆寫 key 跟條層同名
+    { "buffDecimalsBelow", "buffDecimalsBelow" }, { "buffLowColor", "buffLowColor" },
 }
 local function Pos(prefix)
     return { { "font", prefix .. "Font" }, { "size", prefix .. "Size" }, { "color", prefix .. "Color" },
@@ -430,13 +468,19 @@ function T.ApplyIcon(item, style, spell, rec)
             fs:SetTextColor(Color(c.color))
             Anchor(fs, item, c.point or "CENTER", c.x, c.y)
         end
-        local fmt = T.CountdownFormatter(c)
+        -- 暴雪的增益圖示（rec.barKey 是增益類；自訂框與預覽格不算）整條都是增益時間 ⇒ 照「增益時間」那一組
+        local buff = rec and not rec.custom and rec.barKey and ns.Viewers and ns.Viewers.AURA_KIND
+            and ns.Viewers.AURA_KIND[rec.barKey]
+        local fmt
+        if buff then fmt = T.BuffFormatter(c, spell.durationLowColor) else fmt = T.CountdownFormatter(c) end
         if fmt and cd.SetCountdownFormatter then
             local ok = pcall(cd.SetCountdownFormatter, cd, fmt)
             if not ok then fmt = nil end
         end
         if not fmt and cd.SetCountdownMillisecondsThreshold then
-            pcall(cd.SetCountdownMillisecondsThreshold, cd, tonumber(c.decimalsBelow) or 0)
+            local d = tonumber(c.decimalsBelow) or 0
+            if buff then d = (T.BuffTiming(c)) end
+            pcall(cd.SetCountdownMillisecondsThreshold, cd, d)
         end
         -- 現在倒的是增益那一段就換色（上面先寫了倒數原色）
         if rec then T.ApplyPhaseColor(item, rec) end

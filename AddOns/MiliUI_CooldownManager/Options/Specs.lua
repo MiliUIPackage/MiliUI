@@ -542,6 +542,13 @@ function Specs.Themed(mode, key)
     end
     local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
     local function DurationOff(info) return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration") end
+    -- 增益時間低秒顏色：換色開著用得到，增益時間的低秒變色（I）開著也用得到 ⇒ 兩個都關才停用。
+    -- 增益兩條（內建）沒有換色那一段：只看低秒變色
+    local function BuffLowOff(info) return not ReadThemed(info, "cooldownText.buffLowColor") end
+    local function DurationLowOff(info)
+        if auraBar then return BuffLowOff(info) end
+        return DurationOff(info) and BuffLowOff(info)
+    end
 
     -- 圖示
     add({ type = "header", label = L["Icons"] })
@@ -567,7 +574,8 @@ function Specs.Themed(mode, key)
         -- 增益那一段的倒數換色：開關關著時沒有那一段可換色 ⇒ 兩列停用
         CS(TS("icon", "toggle", "icon.colorDuration", L["Recolor buff duration"], { disabled = AuraTimeOff })),
         CS(TS("icon", "color", "icon.durationColor", L["Buff duration color"], { disabled = DurationOff })),
-        CS(TS("icon", "color", "icon.durationLowColor", L["Buff duration low color"], { disabled = DurationOff })),
+        -- 增益時間低秒顏色：增益圖示列也用得到（I 的低秒變色）⇒ 只有長條類的條不列
+        NB(TS("icon", "color", "icon.durationLowColor", L["Buff duration low color"], { disabled = DurationLowOff })),
         CS(TS("icon", "color", "icon.durationSwipeColor", L["Buff duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
@@ -604,6 +612,10 @@ function Specs.Themed(mode, key)
         })),
         NB(TS("text", "color", "cooldownText.lowColor", L["Low color"])),
         NB(TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 })),
+        -- 增益時間（I）：自己的小數門檻與低秒變色開關，冷卻倒數照上面那幾列。長條類的條沒有（秒數是暴雪寫的／整數）
+        NB(TS("text", "slider", "cooldownText.buffDecimalsBelow", L["Buff duration decimals below"], { min = 0, max = 10, step = 1 })),
+        NB(TS("text", "toggle", "cooldownText.buffLowColor", L["Color buff duration when low"])),
+        NB(Note(L["Buff durations only: buff icons, the buff part of a spell's countdown, and aura slots. Low-time coloring uses the seconds above and the buff duration low color; cooldown countdowns keep the settings above."], "text")),
         NB(Nested(L["Charges"], "text")),
         NB(FontTS("text", "chargeText.font")),
         NB(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),

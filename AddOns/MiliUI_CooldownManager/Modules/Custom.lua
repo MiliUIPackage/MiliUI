@@ -1346,14 +1346,19 @@ local function AuraStyle(rec, barKey, w, h, shape)
         cdSize   = tonumber(cdT.size) or 16,
         cdColor  = RGBA(cdT.color, 1, 1, 1, 1),
         cdPoint  = cdT.point or "CENTER", cdX = tonumber(cdT.x) or 0, cdY = tonumber(cdT.y) or 0,
-        decimals = tonumber(cdT.decimalsBelow) or 0,
-        lowBelow = tonumber(cdT.lowBelow) or 0,
-        lowColor = RGBA(cdT.lowColor, 1, 0.3, 0.3, 1),
         hideStack = hideStText and true or false,
         stSize   = tonumber(stT.size) or 12,
         stColor  = RGBA(stT.color, 1, 1, 1, 1),
         stPoint  = stT.point or "TOP", stX = tonumber(stT.x) or 0, stY = tonumber(stT.y) or 0,
     }
+    -- 小數與低秒變色（decimals／lowBelow／lowColor）：光環格家族倒的全是增益時間 ⇒ 照「增益時間」那一組
+    -- （I：cooldownText.buffDecimalsBelow／buffLowColor，預設 0／關；低秒色＝增益時間低秒顏色，沒有退倒數的低秒色），
+    -- 冷卻倒數的小數門檻與低秒變色不看。解法跟暴雪格同一支（Text.BuffTiming）
+    do
+        local d, l, lc = TX.BuffTiming(cdT, SS(barKey, id, "durationLowColor"))
+        st.decimals, st.lowBelow = d, l
+        st.lowColor = RGBA(lc, 0.95, 0.45, 0.70, 1)
+    end
     local function C(c) return string.format("%.3f,%.3f,%.3f,%.3f", c[1], c[2], c[3], c[4]) end
     -- 長條：圖示一邊留 h×h、其餘是條身（照 Decorate.ApplyBarGeometry）；字型、顏色、開關全部解成純數字
     local barSig
@@ -1442,8 +1447,8 @@ local function AuraStyle(rec, barKey, w, h, shape)
             string.format("%.2f,%.2f", w, h), gl.art and gl.art.sig or "-" }, ",")
     end
     -- 飾品欄的增益疊層（rec.overlayOf）：整段都是增益時間 ⇒ 套「增益那一段」的設定（跟暴雪冷卻格倒增益時同一組，
-    -- Core/Decorate.lua 的 PhaseColors）：換色開著 ⇒ 倒數字色＝durationColor、低秒色＝durationLowColor（沒設退倒數的
-    -- 低秒色，門檻同一個 cooldownText.lowBelow）、轉圈色＝durationSwipeColor。隱藏倒數照 hideCooldownText（上面）。
+    -- Core/Decorate.lua 的 PhaseColors）：換色開著 ⇒ 倒數字色＝durationColor、轉圈色＝durationSwipeColor
+    -- （小數與低秒變色上面已照「增益時間」那一組解好）。隱藏倒數照 hideCooldownText（上面）。
     -- 這幾個值本來就在簽章裡，另外加一個 "ov" 記號（同一個法術組的光環格與疊層不共用容器）
     local ovSig = "-"
     if rec.overlayOf then
@@ -1451,7 +1456,6 @@ local function AuraStyle(rec, barKey, w, h, shape)
             and ns.Decorate.DurationColorOf(SS(barKey, id, "colorDuration"), SS(barKey, id, "durationColor")) or nil
         if dc then
             st.cdColor  = RGBA(dc, 1, 0.85, 0.1, 1)
-            st.lowColor = RGBA(SS(barKey, id, "durationLowColor") or cdT.lowColor, 0.95, 0.45, 0.70, 1)
             st.swipe    = RGBA(SS(barKey, id, "durationSwipeColor"), 1, 0.9, 0.5, 0.5)
         end
         ovSig = dc and "ov+" or "ov"

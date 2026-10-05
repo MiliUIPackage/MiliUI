@@ -501,6 +501,8 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     -- 哪些列出現：
     --   倒數  每一種格都有；小數門檻與低秒變色長條沒有（秒數是暴雪寫的字串／整數 formatter）
     --         換色開關＋兩個字色＝「先倒增益」那一段（暴雪的冷卻格、飾品欄），從原本的「增益時間」分頁搬來
+    --         增益時間的小數門檻＋低秒變色（I）＝有增益時間的格（增益類、暴雪的冷卻格、飾品欄），長條沒有；
+    --         增益時間低秒顏色跟著這幾格出現（換色或增益時間的低秒變色開著才可改）
     --   充能  圖示類的冷卻格（暴雪核心／輔助、自訂法術／物品／飾品欄）；增益類與長條沒有
     --   層數  增益類（暴雪的增益、光環格）、飾品欄（疊在上面的增益按鈕）、長條上的格（圖示右下那個數字）；
     --         長條的層數固定在圖示右下 ⇒ 沒有錨點列（同條頁）
@@ -744,6 +746,13 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     TextColorRow(L["Low color"], "cooldownText", "lowColor", "cooldownTextLowColor", { r = 1, g = 0.3, b = 0.3, a = 1 }, NotBarsRow)
     SizeRow(L["Low below (sec)"], "cooldownText", "lowBelow", "cooldownTextLowBelow", 0, 30, NotBarsRow)
 
+    -- 增益時間的小數門檻與低秒變色（I）：有增益時間的格才有（增益類、暴雪的冷卻格、飾品欄；長條的秒數換不了）。
+    -- 覆寫 key 跟條層同名；冷卻倒數照上面那幾列
+    local function BuffTimeRows(kind, class) return not OnBars() and (class == "aura" or DurationRows(kind, class)) end
+    SizeRow(L["Buff duration decimals below"], "cooldownText", "buffDecimalsBelow", "buffDecimalsBelow", 0, 10, BuffTimeRows)
+    ToggleRow("buffLowColor", L["Color buff duration when low"], BuffTimeRows)
+    NoteRow(L["Buff durations only: buff icons, the buff part of a spell's countdown, and aura slots. Low-time coloring uses the seconds above and the buff duration low color; cooldown countdowns keep the settings above."], BuffTimeRows)
+
     -- 增益那一段的換色＋兩個字色（「先倒增益」的格；原本在「增益時間」分頁）：五個欄位跟主題頁同一套、
     -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 顏色列停用（Refresh）
     local cdr, cdh = NewRow(L["Recolor buff duration"], DurationRows)
@@ -766,7 +775,15 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     RightClickClears(cdr, cdh, "colorDuration")
     Track(cdr, { "colorDuration" })
     Track(ColorOverrideRow(L["Buff duration color"],     "durationColor",    false, { r = 1,    g = 0.85, b = 0.1,  a = 1 }), { "durationColor" })
-    Track(ColorOverrideRow(L["Buff duration low color"], "durationLowColor", false, { r = 0.95, g = 0.45, b = 0.70, a = 1 }), { "durationLowColor" })
+    -- 增益時間低秒顏色：換色那一段用得到、增益時間的低秒變色（I）也用得到 ⇒ 有增益時間的格都列；
+    -- 換色生效是關時，低秒變色開著（而且有門檻）照樣可改
+    local function BuffLowOn(key, id)
+        if OnBars() then return false end
+        local t = ns.Text.SpellText(key, id, "cooldownText", true)
+        return t.buffLowColor == true and (tonumber(t.lowBelow) or 0) > 0
+    end
+    Track(ColorOverrideRow(L["Buff duration low color"], "durationLowColor", false, { r = 0.95, g = 0.45, b = 0.70, a = 1 },
+        function(kind, class) return DurationRows(kind, class) or BuffTimeRows(kind, class) end, BuffLowOn), { "durationLowColor" })
 
     -- 充能
     HeaderRow(L["Charges"], ChargeRows)
@@ -1316,8 +1333,10 @@ local function Build()
     RightClickClears(atr, ath, "showAuraTime")
 
     -- 顏色列：勾「自訂」才寫覆寫（初值＝目前生效的顏色），色票只在自訂時能動；跟上面的邊框顏色同一套
-    local function ColorOverrideRow(label, field, hasAlpha, fallback)
-        local r2, h2 = NewRow(label, DurationRows)
+    -- when：哪些格出現（預設 DurationRows）；alsoOn(key, id)：換色生效是關時還有什麼會讓這一列可改（增益時間低秒顏色：
+    -- 增益時間的低秒變色開著，I）
+    local function ColorOverrideRow(label, field, hasAlpha, fallback, when, alsoOn)
+        local r2, h2 = NewRow(label, when or DurationRows)
         local cb2 = W.CreateCheckButton(r2, L["Custom"], function(on)
             if not cur then return end
             if on then
@@ -1337,7 +1356,8 @@ local function Build()
         end)
         sw:SetPoint("LEFT", cb2.label, "RIGHT", 10, 0)
         RightClickClears(r2, h2, field)
-        colorRows[#colorRows + 1] = { field = field, cb = cb2, swatch = sw, fallback = fallback }
+        colorRows[#colorRows + 1] = { field = field, cb = cb2, swatch = sw, fallback = fallback, alsoOn = alsoOn,
+                                      phaseWhen = DurationRows }
         return r2
     end
     ColorOverrideRow(L["Buff duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
@@ -2057,16 +2077,18 @@ function Pop.Refresh()
     frame.colorDurDD:SetEnabled(auraShown)
     frame.colorDurDD:SetAlpha(auraShown and 1 or 0.4)
     local recolor = auraShown and ns.SpellSetting(key, id, "colorDuration") and true or false
-    -- 三個顏色：勾「自訂」＝有覆寫；色票顯示目前生效的顏色（沒覆寫＝條的）
+    -- 三個顏色：勾「自訂」＝有覆寫；色票顯示目前生效的顏色（沒覆寫＝條的）。
+    -- 可改＝這一格有「先倒增益」那一段而且換色生效，或這一列另有用途生效（增益時間低秒顏色：增益時間的低秒變色，I）
     for _, r in ipairs(colorRows) do
+        local on = (recolor and r.phaseWhen(kind, class)) or (r.alsoOn ~= nil and r.alsoOn(key, id)) or false
         local own = type(Override(r.field)) == "table"
         r.cb:SetChecked(own)
-        r.cb:SetEnabled(recolor)
-        r.cb:SetAlpha(recolor and 1 or 0.4)
+        r.cb:SetEnabled(on)
+        r.cb:SetAlpha(on and 1 or 0.4)
         local c = ns.SpellSetting(key, id, r.field)
         r.swatch:SetColor(type(c) == "table" and c or r.fallback)
-        r.swatch:SetEnabled(own and recolor)
-        r.swatch:SetAlpha((own and recolor) and 1 or 0.4)
+        r.swatch:SetEnabled(own and on)
+        r.swatch:SetAlpha((own and on) and 1 or 0.4)
     end
     -- 文字（H）：照合併後的值回填（Text.SpellText 的 fresh：剛寫的覆寫、還沒 InvalidateAll 的條層值都看得到）
     local TX = ns.Text

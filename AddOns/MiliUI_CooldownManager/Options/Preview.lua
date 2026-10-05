@@ -973,6 +973,8 @@ function Proto:StartFx(kind)
     if kind == "cooldown" or kind == "aura" then
         local ct = ns.Decorate.Resolve(self.key).cooldownText or {}
         local th = math.max(tonumber(ct.lowBelow) or 0, tonumber(ct.decimalsBelow) or 0)
+        -- 增益持續時間的演示：增益時間自己的小數門檻（I）
+        if kind == "aura" then th = math.max(th, tonumber(ct.buffDecimalsBelow) or 0) end
         secs = math.max(FX_SECS, math.ceil(th) + 3)
     end
     local fx = { kind = kind, start = GetTime(), secs = secs }
@@ -1027,13 +1029,14 @@ local function CellCountdown(key, c)
     return ns.Decorate.Resolve(key).cooldownText or {}
 end
 
--- 倒數字：照這一格「倒數文字」的小數門檻（逐法術可蓋）；回傳字串
+-- 倒數字：照這一格「倒數文字」的小數門檻（逐法術可蓋；倒增益那一段的格照增益時間的小數門檻，I）；回傳字串
 function Proto:FxText(c)
     local fx = self:ActiveFx()
     if not fx then return "" end
     local left = math.max(0, fx.start + fx.secs - GetTime())
     local ct = CellCountdown(self.key, c)
     local dec = tonumber(ct.decimalsBelow) or 0
+    if c and c.buffTime then dec = (ns.Text.BuffTiming(ct)) end
     if left < dec then return ("%.1f"):format(left) end
     return tostring(math.ceil(left))
 end
@@ -1061,11 +1064,16 @@ function Proto:FxTick()
     local left = fx.start + fx.secs - GetTime()
     for _, c in ipairs(self.slots or {}) do
         if c.onCD and c.cdText then
-            -- 門檻與顏色逐格（逐法術的文字覆寫）；增益那一段的低秒色也逐法術（durationLowColor）
+            -- 門檻與顏色逐格（逐法術的文字覆寫）；倒增益那一段的格照增益時間的低秒變色（I：開關預設關、門檻借 lowBelow、
+            -- 顏色＝增益時間低秒顏色，也逐法術）
             local ct = CellCountdown(self.key, c)
             c.cdText:SetText(self:FxText(c))
-            if left < (tonumber(ct.lowBelow) or 0) then
-                local lc = (c.durColor and ns.SpellSetting(self.key, c.id, "durationLowColor")) or ct.lowColor
+            local lowBelow, lc = tonumber(ct.lowBelow) or 0, ct.lowColor
+            if c.buffTime then
+                local _
+                _, lowBelow, lc = ns.Text.BuffTiming(ct, ns.SpellSetting(self.key, c.id, "durationLowColor"))
+            end
+            if left < lowBelow then
                 c.cdText:SetTextColor(RGBA(lc, 1, 0.3, 0.3, 1))
             else
                 c.cdText:SetTextColor(RGBA(c.durColor or ct.color, 1, 1, 1, 1))

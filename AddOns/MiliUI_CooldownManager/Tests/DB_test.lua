@@ -829,5 +829,33 @@ do
     eq("DB_VERSION 沒動（P8 不遷移）", ns.DB_VERSION, 4)
 end
 
+------------------------------------------------------------
+-- I. 增益時間的小數門檻與低秒變色（cooldownText.buffDecimalsBelow／buffLowColor）：預設 0／關、
+--    舊存檔合併補成這樣、冷卻倒數的預設不變、逐法術覆寫登記
+------------------------------------------------------------
+do
+    local d = DB.BuildDefaults().profile.theme.cooldownText
+    eq("預設：增益時間小數門檻 0", d.buffDecimalsBelow, 0)
+    eq("預設：增益時間低秒變色關", d.buffLowColor, false)
+    eq("冷卻倒數的小數門檻不變", d.decimalsBelow, 3)
+    eq("冷卻倒數的低秒變色不變（5 秒）", d.lowBelow, 5)
+    eq("SPELL_FALLBACK buffDecimalsBelow", DB.SPELL_FALLBACK.buffDecimalsBelow, "cooldownText.buffDecimalsBelow")
+    eq("SPELL_FALLBACK buffLowColor", DB.SPELL_FALLBACK.buffLowColor, "cooldownText.buffLowColor")
+    eq("覆寫分組 buffDecimalsBelow ＝ text", DB.OVERRIDE_GROUP.buffDecimalsBelow, "text")
+    eq("覆寫分組 buffLowColor ＝ text", DB.OVERRIDE_GROUP.buffLowColor, "text")
+    -- 舊存檔沒有這兩欄
+    ns.profile.theme.cooldownText.buffDecimalsBelow = nil
+    ns.profile.theme.cooldownText.buffLowColor = nil
+    DB.Init()
+    eq("舊存檔補上 0", ns.profile.theme.cooldownText.buffDecimalsBelow, 0)
+    eq("舊存檔補上關", ns.profile.theme.cooldownText.buffLowColor, false)
+    -- 玩家改過的不蓋
+    ns.profile.theme.cooldownText.buffLowColor = true
+    DB.Init()
+    eq("玩家開過的留著", ns.profile.theme.cooldownText.buffLowColor, true)
+    ns.profile.theme.cooldownText.buffLowColor = false
+    eq("沒覆寫 ⇒ 條層的值", SS("essential", 4400, "buffDecimalsBelow"), 0)
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

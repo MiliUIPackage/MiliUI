@@ -696,10 +696,31 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   自訂法術（`Modules/Custom.lua`）只餵 `GetSpellCooldownDuration` 沒有增益階段、長條只收增益長條 ⇒ 都不適用（`rec.style.cdColor` 是 nil，換色那支直接走）。
   Masque 模式不影響（文字一直是我們管）。編輯模式暴雪寫 false ⇒ 原色。
 - **低秒變色兩段各自一色、背景色也分開**（2026-10-03 使用者要的）：`icon.durationLowColor`（預設粉 0.95/0.45/0.70，比聖騎粉重一點）
-  是增益那一段「低於 lowBelow 秒」的字色，門檻與小數跟倒數的「低秒變色」共用；`icon.durationSwipeColor`（預設淡黃 1/0.9/0.5，a 0.5）
-  是增益那一段的轉圈背景色。做法：換色開著的格 `rec.style` 多存兩顆 formatter（`cdFmt`／`durFmt`，色碼不同、同一個快取）＋
-  `durSwipe`，`ApplyPhaseColor` 換字色時順便 `SetCountdownFormatter`，`AfterCooldown` 的 `SetSwipeColor` 照段挑。三個顏色都由
-  「持續時間換色」一個開關管；逐法術也是同一個開關＋三個顏色各自覆寫（見上面「設定」）。
+  是增益時間「低於 lowBelow 秒」的字色；`icon.durationSwipeColor`（預設淡黃 1/0.9/0.5，a 0.5）是增益那一段的轉圈背景色。
+  **2026-10-05（I）起增益時間的小數與低秒變色獨立、預設關**（見下一節），增益時間低秒顏色只在「增益時間低秒變色」開著時才看得到。
+  做法：暴雪冷卻格的 `rec.style` 一律存兩顆 formatter（`cdFmt`＝冷卻倒數那一組、`durFmt`＝增益時間那一組，同一個快取）＋
+  換色開著時的 `durSwipe`，`ApplyPhaseColor` 換字色時順便 `SetCountdownFormatter`，`AfterCooldown` 的 `SetSwipeColor` 照段挑。
+
+### 增益時間的小數門檻與低秒變色（`Core/Text.lua`、`Core/Decorate.lua`、`Modules/Custom.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`，2026-10-05，I）
+
+- **設定**：`cooldownText.buffDecimalsBelow`（拉桿 0～10，預設 0 ＝ 不顯示小數）、`cooldownText.buffLowColor`（勾選，預設關）。
+  THEMED（跟「文字」節）；舊存檔沒有這兩欄 ＝ 合併預設值補成 0／關（使用者拍板，不套「舊存檔行為不變」）。冷卻倒數的
+  `decimalsBelow`／`lowBelow`（預設 3／5）不變、也不受這兩欄影響。低秒變色開著時**門檻借倒數的「變色秒數」lowBelow**
+  （倒數的低秒變色關著 ＝ lowBelow 0 ⇒ 增益照樣變色、門檻用預設 5 秒）、顏色用 `icon.durationLowColor`（沒有退倒數的低秒色）。
+- **逐法術**：覆寫 key 跟條層同名（`buffDecimalsBelow`／`buffLowColor`），`SPELL_FALLBACK` 指回條層、`OVERRIDE_GROUP` 歸 `"text"`；
+  合併照 `Text.SpellText` 的 `cooldownText` 段（`OverrideSig` 自動帶上）。
+- **三種格的接法**（解法只在 `Text.BuffTiming(c, lowColor)` 一處 → 小數門檻, 低秒門檻（關 ＝ 0）, 低秒顏色）：
+  - 暴雪增益圖示（增益圖示列／自訂群組裡的增益格）：`Text.ApplyIcon` 看 `rec.barKey` 是 `Viewers.AURA_KIND`（自訂框、預覽格不算）
+    就用 `Text.BuffFormatter`，否則 `CountdownFormatter`。不讀暴雪欄位。
+  - 技能格倒增益那一段：`Decorate.Apply` 的 `durFmt` 改成 `BuffFormatter`（跟換色開關無關）；以增益取代頂著 A 的增益格同樣
+    （低秒色用 A 的）。
+  - 光環格家族（手動光環格、飾品欄增益、飾品疊層）：`Custom.AuraStyle` 的 `decimals`／`lowBelow`／`lowColor` 改照
+    `BuffTiming`，formatter（`PlainFormatter`）與色彩曲線照舊依值快取；值進簽章 ⇒ 改了換容器（戰鬥中等脫戰）。
+  - 長條（暴雪增益長條、光環長條）的秒數不受影響（暴雪寫的字串／整數 formatter）。
+- **formatter 快取**：`Text` 裡一張表，key ＝（小數門檻, 低秒門檻, 色碼）；不變色時門檻記成 0。增益與冷卻同值時拿同一顆。
+- **設定頁**：條頁「文字」節倒數那段最後兩列＋一列灰字；「圖示」節的「增益時間低秒顏色」在換色或增益時間低秒變色任一開著時
+  可改，增益圖示列的條頁也列。逐法術小窗「文字」分頁同兩列＋灰字，只在有增益時間的格（增益類、暴雪冷卻格、飾品欄；長條除外）出現；
+  增益時間低秒顏色在這些格都列、換色或低秒變色生效時可改。預覽的「增益時間」演示照這兩個值畫。
 
 ### 增益持續中不顯示持續時間（開關）（`Core/Decorate.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`）
 
@@ -2380,7 +2401,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 198. 用掉一記有自身增益的招：增益期間數字黃、增益結束改倒冷卻當場變回倒數顏色；充能法術（增益期間暴雪保留充能數字）同樣。
 199. 圖騰類（暴雪走 totemData 那條）也黃。
 200. 逐法術「不換色」「自訂顏色」各一招驗；右鍵清掉回到跟隨。
-201. 低秒變色在增益最後幾秒照樣壓過黃色。
+201. 低秒變色在增益最後幾秒照樣壓過黃色（2026-10-05 起要先開「增益時間低秒變色」，預設關，見 341）。
 202. 預覽格每隔一個冷卻中的格顯示黃字；關掉「增益持續中換色」預覽與實際都回白。
 
 **增益持續中不顯示持續時間（2026-10-03）**
@@ -2395,7 +2416,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 209. 設定切「顯示」↔「不顯示」不用 /reload 就生效（最慢等暴雪下一次刷新）。
 210. 飾品（裝備欄項目）不受影響、照暴雪顯示增益。
 211. 倒數換色：關掉顯示持續時間後那一格永遠是倒數原色。
-212. 增益那一段的低秒變色是粉色、冷卻那一段是紅色（門檻同一個）；`SetCountdownFormatter` 每次刷新換一顆不閃、不報錯。
+212. 增益那一段的低秒變色是粉色（要開「增益時間低秒變色」，預設關）、冷卻那一段是紅色（門檻同一個）；`SetCountdownFormatter` 每次刷新換一顆不閃、不報錯。
 213. 增益那一段轉圈背景是淡黃半透明、增益結束當場換回轉圈色；關掉「持續時間換色」兩者都回原本；預覽格的黃字格轉圈也是淡黃。
 
 **長條類的條收自訂項目（2026-10-03）**
@@ -2736,6 +2757,17 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      充能滿音效、它的語音播報、兩列灰字，與「發光」分頁的「充能滿了發光」（連同灰字）都消失（下次開或切格時）。
 339. 單充能的技能：小窗沒有充能滿音效那幾列、就緒音效下面沒有灰字；增益格的層數增加音效列沒有語音播報列、標籤後面有「?」（滑過顯示說明）；每個語音播報列也有「?」，原本音效分頁最下面那段語音播報灰字沒了；「?」蓋過標籤的右鍵清除層，滑過有提示、右鍵標籤其他位置照樣清。
 340. 在副本內 `/reload` 之後層數增加音效要出副本（或脫戰／首領戰結束）才登得上（既有限制，`/mcdm debug` 顯示「待登記」）。
+
+**增益時間的小數與低秒變色（2026-10-05，I）**
+
+341. 預設（兩個都關）：暴雪增益圖示、技能格倒增益那一段、手動光環格／飾品欄增益／飾品疊層的倒數都是整數、最後幾秒不變色；
+     同一格倒到冷卻那一段照舊有小數（3 秒內）與紅色（5 秒內）。`/reload` 舊存檔之後同樣是這個樣子。
+342. 條頁開「增益時間低秒變色」＋增益時間小數門檻 3：上面三種格的增益時間最後 5 秒變粉（增益時間低秒顏色）、3 秒內有小數；
+     冷卻倒數不受影響。倒數的低秒變色關掉（變色秒數 0）⇒ 增益照樣變色、門檻用預設 5 秒。
+343. 技能格增益 → 冷卻換段時 `SetCountdownFormatter` 換一顆不閃、不報錯（換色關著的格以前不換 formatter，現在一律換）。
+     ⚠ 實機確認：增益圖示的 Cooldown 也吃 `SetCountdownFormatter` 的色碼（跟技能格同一條路）。
+344. 逐法術：文字分頁的兩列只在有增益時間的格出現（增益類、暴雪冷卻格、飾品欄；長條沒有），右鍵標籤回到條層的值；
+     光環格家族改了脫戰才換（容器簽章）。設定頁預覽「增益時間」演示照開關畫（小數、粉色）。
 
 **效能基準**
 
