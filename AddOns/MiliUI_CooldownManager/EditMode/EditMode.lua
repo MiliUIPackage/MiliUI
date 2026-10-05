@@ -104,8 +104,8 @@ EM.SnapEnabled = SnapEnabled
 -- 兩種同時開時共用層會讓位給暴雪的，所以先問暴雪。回傳那張格線的間距，沒有就 nil
 local function ActiveGridSpacing()
     local grid = EditModeManagerFrame and EditModeManagerFrame.Grid
-    if EM.active and grid and grid.IsShown then
-        local ok, v = pcall(grid.IsShown, grid)
+    if EM.active and grid and grid.IsVisible then
+        local ok, v = pcall(grid.IsVisible, grid)
         if ok and v == true then return GridSpacing() end
     end
     if EM.optionsOpen and ns.Options and ns.Options.GridSpacing then

@@ -1881,7 +1881,7 @@ local function GridOverlay()
             t:SetPoint("TOPLEFT", self, "TOPLEFT", x - px / 2, 0)
             t:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", x - px / 2, 0)
             t:SetWidth(px)
-            if center then t:SetVertexColor(ar, ag, ab, 0.7) else t:SetVertexColor(0, 0, 0, 0.45) end
+            if center then t:SetVertexColor(ar, ag, ab, 0.7) else t:SetVertexColor(0.6, 0.6, 0.6, 0.35) end
         end
         local function H(y, center)
             n = n + 1
@@ -1889,7 +1889,7 @@ local function GridOverlay()
             t:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, y - px / 2)
             t:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, y - px / 2)
             t:SetHeight(px)
-            if center then t:SetVertexColor(ar, ag, ab, 0.7) else t:SetVertexColor(0, 0, 0, 0.45) end
+            if center then t:SetVertexColor(ar, ag, ab, 0.7) else t:SetVertexColor(0.6, 0.6, 0.6, 0.35) end
         end
         for k = 1, math.floor(cx / spacing) do V(cx - k * spacing); V(cx + k * spacing) end
         for k = 1, math.floor(cy / spacing) do H(cy - k * spacing); H(cy + k * spacing) end
@@ -1901,10 +1901,13 @@ local function GridOverlay()
     end
 
     -- 暴雪編輯模式的格線看得到 ⇒ 我們讓位
+    -- ⚠ 要問 IsVisible 不是 IsShown：玩家在編輯模式勾過「顯示格線」的話，暴雪載入設定時就
+    --   Grid:SetShown(true)，沒進編輯模式時 Grid 自己的旗標照樣是 true（只是父框藏著）
+    --   ⇒ 問 IsShown 會永遠讓位、一條線都不畫
     local function BlizzGridShown()
         local g = EditModeManagerFrame and EditModeManagerFrame.Grid
-        if not (g and g.IsShown) then return false end
-        local ok, v = pcall(g.IsShown, g)
+        if not (g and g.IsVisible) then return false end
+        local ok, v = pcall(g.IsVisible, g)
         return ok and v == true
     end
     ov.BlizzGridShown = BlizzGridShown
