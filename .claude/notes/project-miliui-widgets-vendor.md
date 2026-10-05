@@ -176,3 +176,10 @@ vendor 最怕的就是「改了來源忘了同步」，這道檢查上線第一�
 ⚠ **消費者已經是 17 份**（`ls -d */Libs/MiliUIWidgets` 為準，上面寫的「十個」是舊數字）。
 
 相關：[[project-miliui-unit-frame]]、[[project-miliui-release-version]]
+
+## 分頁卡片 W.CreateTabCard（2026-10-06，使用者：「做成共用的樣式，以後會用到」）
+**頁裡的一段要分子分頁就用這支**：一排分頁鈕＋底下一張卡片（底 0.15、1px 職業色×0.6 邊、直角），選中鈕與卡片同底、底邊打通。
+`tc = W.CreateTabCard(parent, { tabs = {{id,label}…}, selected, onSelect })`；`tc:Place(x, y, width)` 回鈕列高，
+表單用 `tc:SetBottom(rows[i].bottom - W.TAB_CARD_PAD)`、自由版面用 `tc:SetCardHeight(h)`；`Select`／`SetTabs`／`SetShown`。
+卡片是畫在 parent 上的貼圖（不是 frame）⇒ 列、遮罩自動在上面。用法範例在共用層 README「子分頁卡片」。
+**頂層分頁（整頁的那排）不套卡片**：用 accent-hover 群組，跟子分頁卡片區分階層。首用處：MiliUI_CooldownManager 文字分頁「冷卻｜增益持續時間」。
