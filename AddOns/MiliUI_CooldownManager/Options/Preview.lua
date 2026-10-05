@@ -64,7 +64,7 @@ end
 --   （光環格、被移除的格不算；整排一起演示太吵，看一格就知道長相）
 --   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
 --   aura      增益持續時間：同上，倒數用增益那一段的換色
---   proc／ready／active  觸發／就緒／增益期間發光：照這條的發光設定畫在那一格上（條層的樣式與顏色，不看開關）；
+--   proc／ready／full／active  觸發／就緒／充能滿了／增益期間發光：照這條的發光設定畫在那一格上（條層的樣式與顏色，不看開關）；
 --             圖示交給 Masque 時跟著皮的形狀（Glow.GlowShape，同真實格）
 --   press     按鍵鏡射：每 FX_PRESS_EVERY 秒閃 FX_PRESS_ON 秒（貼圖與真實格同一支 Keybinds.PressTexture，
 --             透明度照這條的 icon.pressFlashAlpha；沒勾「按鍵閃光」也照樣演示，看長相用）
@@ -77,6 +77,7 @@ local FX_BUTTONS = {
     { kind = "aura",     label = L["Buff duration"],    on = function(k) return ns.Setting(k, "icon.showAuraTime") ~= false end },
     { kind = "proc",     label = L["Proc glow"],        on = function(k) return ns.Setting(k, "glow.proc.enabled") and true or false end },
     { kind = "ready",    label = L["Ready glow"],       on = function(k) return ns.Setting(k, "glow.ready.enabled") and true or false end },
+    { kind = "full",     label = L["Glow at max charges"], on = function(k) return ns.Setting(k, "glow.full.enabled") and true or false end },
     { kind = "active",   label = L["Glow during buff"], on = function(k) return ns.Setting(k, "glow.active.enabled") and true or false end },
     { kind = "press",    label = L["Key press"],        on = function(k) return ns.Setting(k, "icon.pressFlash") and true or false end },
 }
@@ -737,7 +738,8 @@ function Proto:Fill(c, e, i, r, now)
     if c.kind ~= "bars" and c.custom and not c.known and c.Icon and c.Icon.SetDesaturated then
         c.Icon:SetDesaturated(true)
     end
-    self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready" or fx.kind == "active") and not c.aura and not e.hidden)
+    self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready" or fx.kind == "full" or fx.kind == "active")
+            and not c.aura and not e.hidden)
         and fx.kind or nil)
     -- 生效發光：勾了的增益在預覽上常亮（樣式、顏色照單一法術小窗的設定）。長條亮在圖示那一格
     if ns.Glow and ns.Glow.PreviewActive then
@@ -945,7 +947,7 @@ function Proto:StartFx(kind)
     end)
 end
 
--- 一格的效果發光：which ＝ "proc"／"ready"／"active"／nil（收掉）。發光框是格子上自己的子框（池化的格子一起重用）。
+-- 一格的效果發光：which ＝ "proc"／"ready"／"full"／"active"／nil（收掉）。發光框是格子上自己的子框（池化的格子一起重用）。
 -- 圖示交給 Masque 時照皮的形狀畫（沒裝 Masque／米利模式 ⇒ GlowShape 第一行就回 nil，照舊方形）
 function Proto:FxGlow(c, which)
     local G = ns.Glow
