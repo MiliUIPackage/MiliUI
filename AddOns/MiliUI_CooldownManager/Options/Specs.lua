@@ -316,6 +316,57 @@ local function FontBS(path, label)
         get = function(info) return InheritOr(ns.DB.GetPath(ns.DB.ConfigTable(info.key), path)) end })
 end
 
+-- 錨點九宮格（取代錨點下拉）：3×3 小方格對應圖示的九個角／邊／中心，選中的塗職業色，右邊灰字寫名稱。
+-- 讀寫照一般主題欄位（ctx.get／ctx.set 看 root／path），右鍵標籤照樣重設（resettable）
+local POINT_TEXT = {}
+for _, it in ipairs(POINT_ITEMS) do POINT_TEXT[it.value] = it.text end
+local GRID_CELL, GRID_GAP, GRID_PAD = 14, 2, 4
+local GRID_IDLE, GRID_HOVER = { 0.28, 0.28, 0.28, 1 }, { 0.45, 0.45, 0.45, 1 }
+
+local function PointGridTS(section, path, label, fallback)
+    local side = GRID_CELL * 3 + GRID_GAP * 2
+    local spec = TS(section, "custom", path, label, { resettable = true, h = side + GRID_PAD * 2 })
+    spec.build = function(parent, x, y, _, ctx)
+        local holder = CreateFrame("Frame", nil, parent)
+        holder:SetSize(side, side)
+        holder:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - GRID_PAD)
+        local name = parent:CreateFontString(nil, "OVERLAY")
+        name:SetFontObject(W.fontSmall)
+        name:SetTextColor(0.65, 0.65, 0.65)
+        name:SetPoint("LEFT", holder, "RIGHT", 8, 0)
+        local cells, cur = {}, nil
+        local function Paint()
+            for _, b in ipairs(cells) do
+                if b.point == cur then b:SetBackdropColor(W.Accent(1))
+                else b:SetBackdropColor(unpack(b.hover and GRID_HOVER or GRID_IDLE)) end
+            end
+            name:SetText(POINT_TEXT[cur] or "")
+        end
+        for i, it in ipairs(POINT_ITEMS) do
+            local b = CreateFrame("Button", nil, holder, "BackdropTemplate")
+            b:SetSize(GRID_CELL, GRID_CELL)
+            b:SetPoint("TOPLEFT", ((i - 1) % 3) * (GRID_CELL + GRID_GAP), -math.floor((i - 1) / 3) * (GRID_CELL + GRID_GAP))
+            W.Stylize(b, GRID_IDLE, { 0, 0, 0, 1 })
+            b.point = it.value
+            b:SetScript("OnEnter", function() b.hover = true; Paint() end)
+            b:SetScript("OnLeave", function() b.hover = false; Paint() end)
+            b:SetScript("OnClick", function()
+                if cur == it.value then return end
+                cur = it.value
+                ctx.set(spec, cur)
+                ctx.apply()
+                Paint()
+            end)
+            cells[i] = b
+        end
+        return spec.h, function()
+            cur = ctx.get(spec) or fallback
+            Paint()
+        end
+    end
+    return spec
+end
+
 local function Note(label, section)
     return { type = "text", label = label, section = section }
 end
@@ -556,7 +607,7 @@ function Specs.Themed(mode, key)
         NB(FontTS("text", "chargeText.font")),
         NB(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
         NB(TS("text", "color", "chargeText.color", L["Color"])),
-        NB(TS("text", "dropdown", "chargeText.point", L["Anchor"], { items = POINT_ITEMS })),
+        NB(PointGridTS("text", "chargeText.point", L["Anchor"], "BOTTOMRIGHT")),
         NB(TS("text", "numbers", nil, L["Offset"], { sub = "chargeText", path = false,
             resetPaths = { "chargeText.x", "chargeText.y" },
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })),
@@ -564,7 +615,10 @@ function Specs.Themed(mode, key)
         FontTS("text", "stackText.font"),
         TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
         TS("text", "color", "stackText.color", L["Color"]),
-        NB(TS("text", "dropdown", "stackText.point", L["Anchor"], { items = POINT_ITEMS })),   -- 長條的層數固定在圖示右下，只吃位移
+        NB(PointGridTS("text", "stackText.point", L["Anchor"], "TOP")),
+        -- 長條的層數另存一個錨點（圖示小、預設右下）：主題頁兩個都列，長條類的條頁只列這個、標籤就叫「錨點」
+        (not bar or barsKind) and PointGridTS("text", "stackText.barPoint",
+            bar and L["Anchor"] or L["Anchor (bars)"], "BOTTOMRIGHT") or nil,
         TS("text", "numbers", nil, L["Offset"], { sub = "stackText", path = false,
             resetPaths = { "stackText.x", "stackText.y" },
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
@@ -627,7 +681,7 @@ function Specs.Themed(mode, key)
             TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]),
             FontTS("glow", "keybind.font"),
             TS("glow", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
-            TS("glow", "dropdown", "keybind.point", L["Anchor"], { items = POINT_ITEMS }),
+            PointGridTS("glow", "keybind.point", L["Anchor"], "TOPRIGHT"),
             TS("glow", "numbers", nil, L["Offset"], { sub = "keybind", path = false,
                 resetPaths = { "keybind.x", "keybind.y" },
                 fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
@@ -1328,7 +1382,7 @@ function Specs.BuildForm(parent, controls, ctx, width)
         end
     end
     for _, row in ipairs(rows) do
-        if RESETTABLE[row.spec.type] and not row.spec.noReset then ResetCatcher(content, row, ctx, x0) end
+        if (RESETTABLE[row.spec.type] or row.spec.resettable) and not row.spec.noReset then ResetCatcher(content, row, ctx, x0) end
     end
 
     -- 停用的列：暗色遮罩蓋整列（層級在右鍵重設的接收框之上、跟隨遮罩之下）
