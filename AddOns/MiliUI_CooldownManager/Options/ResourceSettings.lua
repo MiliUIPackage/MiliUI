@@ -436,6 +436,20 @@ local function MS(kind, which, field, label, extra)
     return s
 end
 
+-- 卡片裡的灰字說明：表單的 text 列寬到表單右緣，會凸出卡片（卡片右緣只到控件欄＋內距）⇒ 自己建一列、寬度收在卡片內
+local function MetaCardText(which, text)
+    return { type = "custom", noReset = true, subTab = which, build = function(parent, x, y, width, ctx)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+        local right = ctx.tabCardX and ctx.tabCardX.right or (x + width)
+        fs:SetWidth(math.max(40, right - META_CARD_PAD_X - x))
+        fs:SetJustifyH("LEFT")
+        fs:SetText(text)
+        return math.max(24, math.ceil(fs:GetStringHeight() or 0) + 10)
+    end }
+end
+
 local function AppendMetaTab(add, key, which)
     local DM = ns.DevourerMeta
     local path = DM.FIELD[which] .. "."
@@ -447,9 +461,9 @@ local function AppendMetaTab(add, key, which)
     end
     add(MS("toggle", which, "enabled", L["Show"]))
     if which == "time" then
-        add({ type = "text", subTab = which, label = L["Time since you entered Void Metamorphosis. It has no fixed length, so this counts up instead of counting down."] })
+        add(MetaCardText(which, L["Time since you entered %s. It has no fixed length, so this counts up instead of counting down."]:format(DM.MetaName())))
     else
-        add({ type = "text", subTab = which, label = L["How many times you cast Collapsing Star during this Void Metamorphosis; it resets when you enter it."] })
+        add(MetaCardText(which, L["How many times you cast %s during this %s; it resets when you enter it."]:format(DM.StarName(), DM.MetaName())))
     end
     add(MS("dropdown", which, "side", L["Position"], { items = SIDE_ITEMS }))
     add(MS("slider", which, "x", L["X offset"], { min = DM.OFFSET_MIN, max = DM.OFFSET_MAX, step = 1 }))
@@ -484,7 +498,7 @@ local function AppendMetaTab(add, key, which)
         get = function() return DM.preview[which] end,
         set = function(_, v) DM.preview[which] = math.floor((tonumber(v) or 0) + 0.5) end,
     }))
-    add({ type = "text", subTab = which, label = L["Shown on the bar while these settings are open or in Edit Mode, when you aren't in Void Metamorphosis. Thresholds apply to it; sounds don't play."] })
+    add(MetaCardText(which, L["Shown on the bar while these settings are open or in Edit Mode, when you aren't in %s. Thresholds apply to it; sounds don't play."]:format(DM.MetaName())))
 end
 
 local function AppendMeta(add, key)

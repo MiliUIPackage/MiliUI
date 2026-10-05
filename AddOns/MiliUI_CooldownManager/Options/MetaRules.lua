@@ -294,7 +294,7 @@ local function CreatePopup()
     hint:SetPoint("RIGHT", popup, "RIGHT", -16, 0)
     hint:SetJustifyH("LEFT")
     hint:SetSpacing(2)
-    hint:SetText(L["Rules are checked from top to bottom; the first one that matches applies. A rule's sound plays once when that rule starts to match, so a rule like \">= 0\" plays as you enter Void Metamorphosis."])
+    hint:SetText(L["Rules are checked from top to bottom; the first one that matches applies. A rule's sound plays once when that rule starts to match, so a rule like \">= 0\" plays as you enter %s."]:format(ns.DevourerMeta.MetaName()))
 
     list = W.CreateRowList(popup, LIST_W, LIST_H, ROW_H, BuildRow)
     list:SetPoint("TOPLEFT", 16, -80)
