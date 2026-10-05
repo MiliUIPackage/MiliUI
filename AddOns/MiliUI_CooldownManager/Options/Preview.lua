@@ -68,7 +68,8 @@ end
 --             圖示交給 Masque 時跟著皮的形狀（Glow.GlowShape，同真實格）
 --   press     按鍵鏡射：每 FX_PRESS_EVERY 秒閃 FX_PRESS_ON 秒（貼圖與真實格同一支 Keybinds.PressTexture，
 --             透明度照這條的 icon.pressFlashAlpha；沒勾「按鍵閃光」也照樣演示，看長相用）
-local FX_H, FX_SECS = 30, 5
+local FX_H, FX_SECS = 30, 5          -- FX_H：效果列只有一列時的高（換行後是 pv.fxH）
+local FX_BTN_H, FX_PAD_Y, FX_GAP_X, FX_GAP_Y = 20, 5, 6, 4
 local FX_PRESS_SECS, FX_PRESS_EVERY, FX_PRESS_ON = 6, 1.5, 0.15
 -- on：這條實際（主題繼承後）有沒有啟用那個效果 ⇒ 按鈕用 primary（職業色）；冷卻中沒有開關、一律算開著。
 -- 只是配色：沒啟用的照樣按得下去、照樣演示（看長相用）
@@ -476,51 +477,56 @@ function Preview.Create(parent, key, width)
         pv:FxTick()
     end)
 
-    -- 效果預覽列：預覽框底下那一條（捲動區與橫向捲軸往上讓出 FX_H）
+    -- 效果預覽列：預覽框底下那一條（捲動區與橫向捲軸往上讓出 pv.fxH）。
+    -- 按鈕照自然寬一顆接一顆排，放不下就換到下一列（各語系長短不同、視窗寬也不同），列高跟著長
     if NoFakeCD(key) then
-        scroll:SetPoint("BOTTOMRIGHT", -1, 1 + FX_H)
-        hbar:ClearAllPoints()
-        hbar:SetPoint("BOTTOMLEFT", 2, 2 + FX_H)
-        hbar:SetPoint("BOTTOMRIGHT", -2, 2 + FX_H)
         local row = CreateFrame("Frame", nil, f)
         row:SetPoint("BOTTOMLEFT", 1, 1)
         row:SetPoint("BOTTOMRIGHT", -1, 1)
-        row:SetHeight(FX_H)
         local label = row:CreateFontString(nil, "OVERLAY")
         label:SetFontObject(W.fontNormal)
-        label:SetPoint("LEFT", row, "LEFT", PAD, 0)
         label:SetText(L["Preview:"])
         local x0 = PAD + math.ceil(label:GetStringWidth() or 0) + 6
         local btns = {}
         for _, def in ipairs(FX_BUTTONS) do
-            local b = W.CreateButton(row, def.label, "normal", 70, 20)
-            b.natW = W.FitButton(b, 70, 20)
-            local fs = b:GetFontString()
-            b.textW = math.ceil(fs and fs:GetStringWidth() or 0)
+            local b = W.CreateButton(row, def.label, "normal", 70, FX_BTN_H)
+            b.natW = W.FitButton(b, 70, FX_BTN_H)
             b:SetScript("OnClick", function() pv:StartFx(def.kind) end)
             b.fxDef = def
             btns[#btns + 1] = b
         end
-        -- 排法：放得下就照自然寬、間距 6；放不下（按鈕多、語系長、視窗窄）就照比例縮，但不小於字寬＋8、間距 4
+        local function SetFxHeight(h)
+            row:SetHeight(h)
+            scroll:SetPoint("BOTTOMRIGHT", -1, 1 + h)
+            hbar:ClearAllPoints()
+            hbar:SetPoint("BOTTOMLEFT", 2, 2 + h)
+            hbar:SetPoint("BOTTOMRIGHT", -2, 2 + h)
+        end
         local function LayoutFx()
-            local avail = (row:GetWidth() or 0) - x0 - PAD
-            local sum = 0
-            for _, b in ipairs(btns) do sum = sum + b.natW end
-            local gap = 6
-            local scale = 1
-            if avail > 0 and sum + gap * (#btns - 1) > avail then
-                gap = 4
-                scale = math.max(0, (avail - gap * (#btns - 1))) / sum
-            end
-            local x = x0
+            local right = (row:GetWidth() or 0) - PAD
+            if right <= x0 then return end
+            local x, line = x0, 0
             for _, b in ipairs(btns) do
-                local w = scale < 1 and math.max(b.textW + 8, math.floor(b.natW * scale)) or b.natW
+                local w = math.min(b.natW, right - x0)
+                if x > x0 and x + w > right then
+                    x, line = x0, line + 1
+                end
                 b:SetWidth(w)
                 b:ClearAllPoints()
-                b:SetPoint("LEFT", row, "LEFT", x, 0)
-                x = x + w + gap
+                b:SetPoint("TOPLEFT", row, "TOPLEFT", x, -(FX_PAD_Y + line * (FX_BTN_H + FX_GAP_Y)))
+                x = x + w + FX_GAP_X
+            end
+            label:ClearAllPoints()
+            label:SetPoint("LEFT", row, "TOPLEFT", PAD, -(FX_PAD_Y + FX_BTN_H / 2))
+            local h = FX_PAD_Y * 2 + (line + 1) * FX_BTN_H + line * FX_GAP_Y
+            if pv.fxH ~= h then
+                pv.fxH = h
+                SetFxHeight(h)
+                ns.Defer(function() pv:Refresh() end)        -- 整個預覽框的高度要跟著變（Refresh 裡 P.Size）
             end
         end
+        pv.fxH = FX_H
+        SetFxHeight(FX_H)
         row:SetScript("OnSizeChanged", LayoutFx)
         LayoutFx()
         pv.fxRow = row
@@ -619,7 +625,7 @@ function Proto:Refresh()
     self.maxX = math.max(0, contentW - viewW + 2)
     self.maxY = math.max(0, contentH - viewH + 2)
     if self.maxX > 0 then viewH = math.min(MAX_H + 8, viewH + 8) end   -- 讓出捲軸那一條
-    P.Size(self.frame, viewW, viewH + (self.fxRow and FX_H or 0))
+    P.Size(self.frame, viewW, viewH + (self.fxRow and (self.fxH or FX_H) or 0))
     self.canvas:SetSize(math.max(viewW, contentW), math.max(viewH, contentH))
     self.hbar:SetShown(self.maxX > 0)
     self.hbar:SetMinMaxValues(0, self.maxX)
