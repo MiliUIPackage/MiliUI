@@ -740,6 +740,179 @@ function C.SlotItemID(slot)
     return type(id) == "number" and id or nil
 end
 
+------------------------------------------------------------
+-- 裝備欄的增益法術（飾品用掉之後身上的那個增益）
+--
+--   ns.Catalog.SlotBuffIDs(slot, buffIndex)  → { spellID… }, sig    buffIndex：第幾個增益（暴雪的 buffSlot，正整數、不設上限）；
+--                                                                 nil ＝ 全部合併去重
+--   ns.Catalog.SlotBuffIndices(slot)         → { buffIndex… }（排序；解得出增益的那幾個）
+--   ns.Catalog.SlotUseBuffIDs(slot)          → { spellID… }, sig    冷卻格（使用效果）認的增益（暴雪 EquipSlotEssential 那一筆）
+--   ns.Catalog.SlotOverlayIDs(barKey, id, slot) → ids, sig ｜ nil   冷卻格要不要疊增益按鈕（Modules/Custom.lua）
+--   ns.Catalog.InvalidateSlotBuffs()         作廢快取（換裝、暴雪資料重載／熱修正、進場）
+--
+-- 來源：EquipSlotTracked 類別裡 equipSlot == slot 的那幾筆的 linkedSpellIDs（暴雪從現在裝的物品帶出來的增益，
+-- 第 buffSlot 個）。暴雪沒給框的時候照樣讀得到。讀不到（一筆都沒有、或 linkedSpellIDs 空）時 buffIndex 為 nil 或 1
+-- 退回 C_Item.GetItemSpell 的使用效果（只當第 1 個）。那一格沒裝東西 ⇒ 空。
+-- 只問 C_CooldownViewer 的兩支明文 API（pcall、每個值過 Plain），**不讀任何光環**：增益在不在、剩幾秒全交給
+-- AuraContainer 的 includeSpellIDs（插件端零讀取）。
+-- 回傳的表是快取本身，呼叫端不准改。
+------------------------------------------------------------
+local function PositiveInt(v)
+    return type(v) == "number" and v > 0 and v == math.floor(v)
+end
+
+-- 簽章：排序後串起來（跟 Custom.AuraIDSig 同一個寫法；Catalog 先載入，不依賴它）
+local function IDSig(ids)
+    local t = {}
+    for i, id in ipairs(ids) do t[i] = id end
+    table.sort(t)
+    for i, id in ipairs(t) do t[i] = tostring(id) end
+    return table.concat(t, ",")
+end
+
+-- 純函式（離線可測）：infos ＝ { { equipSlot, buffSlot, linkedSpellIDs = { … } }, … }（已過 Plain），
+-- itemSpell ＝ 那一格物品的使用效果法術（退路；nil ＝ 沒有）。buffSlot 不是正整數當第 1 個。
+-- 順序：照 buffSlot、同一個 buffSlot 照 linkedSpellIDs 的順序；去重
+function C.SlotBuffIDsFrom(infos, slot, buffIndex, itemSpell)
+    local picked = {}
+    for i, it in ipairs(type(infos) == "table" and infos or {}) do
+        if type(it) == "table" and it.equipSlot == slot then
+            local n = PositiveInt(it.buffSlot) and it.buffSlot or 1
+            if buffIndex == nil or n == buffIndex then
+                picked[#picked + 1] = { n = n, i = i, ids = it.linkedSpellIDs }
+            end
+        end
+    end
+    table.sort(picked, function(a, b)
+        if a.n ~= b.n then return a.n < b.n end
+        return a.i < b.i
+    end)
+    local out, seen = {}, {}
+    for _, p in ipairs(picked) do
+        for _, id in ipairs(type(p.ids) == "table" and p.ids or {}) do
+            if PositiveInt(id) and not seen[id] then
+                seen[id] = true
+                out[#out + 1] = id
+            end
+        end
+    end
+    if #out == 0 and (buffIndex == nil or buffIndex == 1) and PositiveInt(itemSpell) then out[1] = itemSpell end
+    return out, IDSig(out)
+end
+
+-- 純函式：這一格解得出增益的 buffSlot（排序）；暴雪那邊一筆都解不出、但有使用效果 ⇒ { 1 }
+function C.SlotBuffIndicesFrom(infos, slot, itemSpell)
+    local set, out = {}, {}
+    for _, it in ipairs(type(infos) == "table" and infos or {}) do
+        if type(it) == "table" and it.equipSlot == slot and type(it.linkedSpellIDs) == "table" then
+            local n = PositiveInt(it.buffSlot) and it.buffSlot or 1
+            for _, id in ipairs(it.linkedSpellIDs) do
+                if PositiveInt(id) then set[n] = true break end
+            end
+        end
+    end
+    for n in pairs(set) do out[#out + 1] = n end
+    table.sort(out)
+    if #out == 0 and PositiveInt(itemSpell) then out[1] = 1 end
+    return out
+end
+
+local equipScan = {}                -- 類別名 → 掃一次的結果（infos 形狀）；沒有 ＝ 要重掃
+local slotBuffCache = {}           -- "slot|buffIndex" → { ids, sig }
+local NO_IDS = setmetatable({}, { __newindex = function() error("read-only") end })
+
+-- catName：EquipSlotTracked（增益那幾筆，預設）｜EquipSlotEssential（冷卻那一筆：暴雪「使用增益時間」認的增益）
+local function ScanEquipBuffs(catName)
+    catName = catName or "EquipSlotTracked"
+    if equipScan[catName] then return equipScan[catName] end
+    local out = {}
+    local CV = C_CooldownViewer
+    local cat = EnumCategory(catName)
+    if cat and CV and CV.GetCooldownViewerCategorySet and CV.GetCooldownViewerCooldownInfo then
+        local ok, set = pcall(CV.GetCooldownViewerCategorySet, cat, true)
+        if ok and type(set) == "table" then
+            for _, raw in ipairs(set) do
+                local id = Plain(raw)
+                local ok2, info = false, nil
+                if id ~= nil then ok2, info = pcall(CV.GetCooldownViewerCooldownInfo, id) end
+                if ok2 and type(info) == "table" then
+                    local linked = {}
+                    if type(info.linkedSpellIDs) == "table" then
+                        for _, v in ipairs(info.linkedSpellIDs) do
+                            local s = Plain(v)
+                            if s ~= nil then linked[#linked + 1] = s end
+                        end
+                    end
+                    out[#out + 1] = { cooldownID = id, equipSlot = Plain(info.equipSlot), buffSlot = Plain(info.buffSlot),
+                                      linkedSpellIDs = linked }
+                end
+            end
+        end
+    end
+    equipScan[catName] = out
+    return out
+end
+
+-- 那一格物品的使用效果法術（明文；C_Item.GetItemSpell 回 名字, spellID）
+local function SlotItemSpell(itemID)
+    local api = C_Item and C_Item.GetItemSpell
+    if not (api and itemID) then return nil end
+    local ok, _, spellID = pcall(api, itemID)
+    spellID = ok and Plain(spellID) or nil
+    return type(spellID) == "number" and spellID or nil
+end
+
+function C.SlotBuffIDs(slot, buffIndex)
+    if not (CUSTOM_SLOTS[slot] and (buffIndex == nil or PositiveInt(buffIndex))) then return NO_IDS, "" end
+    local key = slot .. "|" .. tostring(buffIndex)
+    local hit = slotBuffCache[key]
+    if hit then return hit.ids, hit.sig end
+    local itemID = C.SlotItemID(slot)
+    if not itemID then return NO_IDS, "" end          -- 空格：不快取（裝上去時 PLAYER_EQUIPMENT_CHANGED 會作廢）
+    local ids, sig = C.SlotBuffIDsFrom(ScanEquipBuffs(), slot, buffIndex, SlotItemSpell(itemID))
+    -- 解不出來不快取：剛登入物品資料還沒到時下一次再問（掃描本身照樣快取，只多一次 GetItemSpell）
+    if #ids > 0 then slotBuffCache[key] = { ids = ids, sig = sig } end
+    return ids, sig
+end
+
+function C.SlotBuffIndices(slot)
+    local itemID = CUSTOM_SLOTS[slot] and C.SlotItemID(slot) or nil
+    if not itemID then return {} end
+    return C.SlotBuffIndicesFrom(ScanEquipBuffs(), slot, SlotItemSpell(itemID))
+end
+
+C.slotBuffStale = false            -- 作廢過、還沒要求重排（Init 的 Later 下一幀消化）
+function C.InvalidateSlotBuffs()
+    for k in pairs(equipScan) do equipScan[k] = nil end
+    for k in pairs(slotBuffCache) do slotBuffCache[k] = nil end
+    C.slotBuffStale = true
+end
+
+-- 冷卻格（使用效果）認的增益：跟暴雪自己的飾品冷卻格一樣，照 EquipSlotEssential 那一筆（equipSlot == slot）的
+-- linkedSpellIDs——**不是**這一格全部的增益：第 2 個以後常是被動觸發，蓋在冷卻格上會讓人以為是用掉了。
+-- 那一筆解不出來 ⇒ 退第 1 個增益（SlotBuffIDs(slot, 1)，再退使用效果）
+function C.SlotUseBuffIDs(slot)
+    if not CUSTOM_SLOTS[slot] then return NO_IDS, "" end
+    local key = slot .. "|use"
+    local hit = slotBuffCache[key]
+    if hit then return hit.ids, hit.sig end
+    if not C.SlotItemID(slot) then return NO_IDS, "" end
+    local ids, sig = C.SlotBuffIDsFrom(ScanEquipBuffs("EquipSlotEssential"), slot, nil, nil)
+    if #ids == 0 then ids, sig = C.SlotBuffIDs(slot, 1) end
+    if #ids > 0 then slotBuffCache[key] = { ids = ids, sig = sig } end
+    return ids, sig
+end
+
+-- 飾品欄冷卻格要不要疊增益按鈕：條層／逐法術的「增益持續中顯示持續時間」沒關、而且解得出增益 ⇒ ids, sig
+-- （Modules/Custom.lua 的疊層與下面的 BarHasAuraSlot 同一個判準）
+function C.SlotOverlayIDs(barKey, id, slot)
+    if id == nil or not CUSTOM_SLOTS[slot] then return nil end
+    if ns.SpellSetting and ns.SpellSetting(barKey, id, "showAuraTime") == false then return nil end
+    local ids, sig = C.SlotUseBuffIDs(slot)
+    if #ids == 0 then return nil end
+    return ids, sig
+end
+
 SpellsTable = function()
     local p = ns.profile
     local spec = ns.specID
@@ -808,14 +981,18 @@ function C.IsAuraSlot(id)
     return e ~= nil and e.kind == "aura"
 end
 
--- 這條上有沒有光環格（有的話固定格位被強制打開）
--- 溢出：接收條算「有」——只要有一條成立的來源條上有光環格（保守：不管這一輪有沒有真的溢過來）。
--- 光環格的持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標
+-- 這條上有沒有保護框（有的話固定格位被強制打開）：光環格，**或**會疊增益按鈕的飾品欄（C.SlotOverlayIDs；
+-- 疊層的持有框跟光環格一樣是條容器底下的保護框）。名字沿用，設定頁的黃字原因同一句。
+-- 溢出：接收條算「有」——只要有一條成立的來源條上有（保守：不管這一輪有沒有真的溢過來）。
+-- 持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標
 function C.BarHasAuraSlot(barKey)
     local function Has(k)
         for _, it in ipairs(Effective()) do
             local e = it.entry
-            if ValidCustom(e) and e.kind == "aura" and e.bar == k then return true end
+            if ValidCustom(e) and e.bar == k then
+                if e.kind == "aura" then return true end
+                if e.kind == "slot" and C.SlotOverlayIDs(k, it.id, e.slot) then return true end
+            end
         end
         return false
     end
@@ -1489,22 +1666,28 @@ function C.Init()
             local r = pendingReason
             pendingReason = nil
             C.Refresh(r)
+            -- 裝備欄增益的快取作廢過：清單內容不一定變（CatalogChanged 不一定來），飾品欄的疊層要重放一次
+            if C.slotBuffStale then
+                C.slotBuffStale = false
+                if ns.Bars and ns.Bars.RequestAll then ns.Bars.RequestAll("layout") end
+            end
         end)
     end
 
     local E = ns.Events
-    E.Register("COOLDOWN_VIEWER_DATA_LOADED", "catalog", function() Later("data") end)
-    E.Register("COOLDOWN_VIEWER_TABLE_HOTFIXED", "catalog", function() Later("hotfix") end)
+    -- 裝備欄增益（C.SlotBuffIDs）的快取：作廢只清我們自己的表，可以在派送當下做；重排照樣走 Later
+    E.Register("COOLDOWN_VIEWER_DATA_LOADED", "catalog", function() C.InvalidateSlotBuffs(); Later("data") end)
+    E.Register("COOLDOWN_VIEWER_TABLE_HOTFIXED", "catalog", function() C.InvalidateSlotBuffs(); Later("hotfix") end)
     E.Register("COOLDOWN_VIEWER_SPELL_OVERRIDE_UPDATED", "catalog", function() Later("override") end)
     E.Register("PLAYER_SPECIALIZATION_CHANGED", "catalog", function() Later("spec") end, "player")
     -- 學會／忘掉技能、換裝備：暴雪那邊也會重建清單（isKnown 會變）
     E.Register("SPELLS_CHANGED", "catalog", function() Later("spells") end)
-    E.Register("PLAYER_EQUIPMENT_CHANGED", "catalog", function() Later("equipment") end)
+    E.Register("PLAYER_EQUIPMENT_CHANGED", "catalog", function() C.InvalidateSlotBuffs(); Later("equipment") end)
     E.Register("TRAIT_CONFIG_UPDATED", "catalog", function() Later("talents") end)
     E.Register("PLAYER_TALENT_UPDATE", "catalog", function() Later("talents") end)
     E.Register("ACTIVE_TALENT_GROUP_CHANGED", "catalog", function() Later("talentgroup") end)
     -- 進場：讀取畫面期間 API 回的東西不一定是最後的樣子，進來之後再對一次
-    E.Register("PLAYER_ENTERING_WORLD", "catalog", function() Later("world") end)
+    E.Register("PLAYER_ENTERING_WORLD", "catalog", function() C.InvalidateSlotBuffs(); Later("world") end)
 
     if EventRegistry and EventRegistry.RegisterCallback then
         local owner = {}

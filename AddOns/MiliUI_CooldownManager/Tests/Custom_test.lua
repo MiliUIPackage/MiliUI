@@ -843,5 +843,271 @@ do
     eq("預設值：充能分段關", ns.DB.NewBarTable("bars", "x").bar.chargeSegments, false)
 end
 
+------------------------------------------------------------
+-- 13. 飾品欄冷卻格的增益疊層（A）：要不要疊、持有框錨容器與層級、容器的法術與外觀、戰鬥中只記旗標、
+--     換形狀、收起來、BarHasAuraSlot 認得疊層
+------------------------------------------------------------
+do
+    local FIELDS = { Bar = true, Timer = true, Cooldown = true, ChargeCooldown = true, ChargeCount = true, Icon = true,
+                     Name = true, Duration = true, BarBG = true, Pip = true, Applications = true, Current = true,
+                     SpellActivationAlert = true, SetBarContent = true, Seg = true }
+    local function Obj(otype, parent)
+        local o = { otype = otype, parent = parent, shown = true, calls = {},
+                    level = parent and (parent.level or 1) + 1 or 1 }
+        setmetatable(o, { __index = function(t, k)
+            if FIELDS[k] or type(k) ~= "string" or not k:match("^%u") then return nil end
+            local fn = function(_, ...)
+                t.calls[k] = (t.calls[k] or 0) + 1
+                t["last_" .. k] = { ... }
+            end
+            rawset(t, k, fn)
+            return fn
+        end })
+        function o:Hide() self.shown = false end
+        function o:Show() self.shown = true end
+        function o:SetShown(v) self.shown = v and true or false end
+        function o:IsShown() return self.shown end
+        function o:SetParent(p2) self.parent = p2 end
+        function o:GetParent() return self.parent end
+        function o:GetFrameLevel() return self.level end
+        function o:SetFrameLevel(v) self.level = v end
+        function o:CreateTexture() return Obj("Texture", self) end
+        function o:CreateFontString() return Obj("FontString", self) end
+        function o:SetText(v) self.text = v end
+        o.hooks, o.scripts = {}, {}
+        function o:HookScript(ev, fn) self.hooks[ev] = fn end
+        function o:SetScript(ev, fn) self.scripts[ev] = fn end
+        function o:SetSwipeColor(...) self.swipe = { ... } end
+        function o:SetTextColor(...) self.color = { ... } end
+        if otype == "StatusBar" then
+            o.fill = Obj("Texture", o)
+            function o:GetStatusBarTexture() return self.fill end
+            function o:SetTimerDuration(d) self.timer = d end
+        elseif otype == "Cooldown" then
+            o.countdown = Obj("FontString", o)
+            function o:GetCountdownFontString() return self.countdown end
+            function o:SetCooldownFromDurationObject(d) self.duo = d end
+            function o:Clear() self.duo = nil end
+        elseif otype == "AuraContainer" then
+            function o:AddAuraSlot(key, filter, opts) self.slot = { key = key, filter = filter, opts = opts } end
+        end
+        return o
+    end
+    local savedCF, savedUI, savedICL, savedEv = env.CreateFrame, env.UIParent, env.InCombatLockdown, ns.Events
+    ns.Events = { Register = function() end, Unregister = function() end }
+    local combat = false
+    env.InCombatLockdown = function() return combat end
+    env.CreateFrame = function(otype, _, parent) return Obj(otype, parent) end
+    env.UIParent = Obj("Frame")
+    function env.UIParent:GetEffectiveScale() return 1 end
+    env.C_DurationUtil = { CreateDuration = function() return { SetTimeFromStart = function() end } end }
+    env.C_Item.GetItemCooldown = function() return 0, 0, 1 end
+    env.C_Item.GetItemCount = function() return 1 end
+    env.C_Item.IsConsumableItem = function() return false end
+
+    -- 裝備欄：槽 13 裝 270175，暴雪的 EquipSlotTracked（類別 8）兩筆增益
+    local equipped = { [13] = 270175 }
+    env.GetInventoryItemID = function(_, slot) return equipped[slot] end
+    local itemSpell = { [270175] = 1297761, [280000] = 1400000 }
+    env.C_Item.GetItemSpell = function(id) local sp = itemSpell[id]; if sp then return "使用效果", sp end end
+    env.Enum.CooldownViewerCategory.EquipSlotTracked = 8
+    local linked = { [801] = { 13, 1, { 1297761 } }, [802] = { 13, 2, { 1305376 } } }
+    local CV = env.C_CooldownViewer
+    local savedSet, savedInfo = CV.GetCooldownViewerCategorySet, CV.GetCooldownViewerCooldownInfo
+    CV.GetCooldownViewerCategorySet = function(cat, ...)
+        if cat == 8 then return { 801, 802 } end
+        return savedSet(cat, ...)
+    end
+    CV.GetCooldownViewerCooldownInfo = function(id)
+        local l = linked[id]
+        if l then return { cooldownID = id, equipSlot = l[1], buffSlot = l[2], linkedSpellIDs = l[3], category = 8 } end
+        return savedInfo(id)
+    end
+    C.InvalidateSlotBuffs()
+
+    local saved = { ns.Decorate, ns.Glow, ns.Keybinds, ns.Text, ns.Media, ns.Write, ns.Layout, ns.P, ns.Sound, ns.MiliUIGlow }
+    ns.Decorate = {
+        Apply = function(_, rec, barKey) rec.decorated = "deco:" .. barKey end,
+        Resolve = function() return { bar = { showTime = true, timeSize = 14 }, font = "DEFAULT", outline = "" } end,
+        IconOverrideOf = function() return nil end,
+        StateAlphas = function() return 1, 1 end,
+        DurationColorOf = function(on, color) if on and type(color) == "table" then return color end end,
+    }
+    ns.Glow = { OnParked = function() end, Sync = function() end, ArmProbe = function() end,
+                CooldownStarted = function() end, SetProcActive = function() end }
+    ns.Keybinds = { Apply = function() end, Invalidate = function() end }
+    ns.Text = { SetFont = function() end, Anchor = function() end, PixelScale = function() return 1 end,
+                PlainFormatter = function(d) return { formatter = true, decimals = d } end }
+    ns.Media = { SetFont = function() end, Font = function(t) return "font:" .. tostring(t) end,
+                 ElementFont = function(own, gen) if own ~= nil and own ~= "INHERIT" then return own end return gen end,
+                 Texture = function(t) return "tex:" .. tostring(t) end }
+    local writes = {}
+    ns.Write = function(frame, fn, key)
+        writes[#writes + 1] = { frame = frame, key = key }
+        fn(frame)
+        return true
+    end
+    ns.Layout = { Snap = function(v) return v end }
+    ns.P = { Scale = function(v) return v end }
+    local soundSyncs = 0
+    ns.Sound = { RequestAuraSync = function() soundSyncs = soundSyncs + 1 end }
+    ns.MiliUIGlow = nil
+
+    local list = DB.CustomList(true)
+    for i = #list, 1, -1 do list[i] = nil end
+    local iSlot = DB.AddCustom({ kind = "slot", slot = 13, bar = "essential" })
+    local iSlot2 = DB.AddCustom({ kind = "slot", slot = 14, bar = "utility" })
+    local sid = "c:" .. iSlot
+    CU.Sync()
+    local rec = CU.Get(sid)
+    check("飾品欄 rec", rec and rec.kind == "slot" and rec.slot == 13)
+
+    -- 判準（Catalog.SlotOverlayIDs）
+    -- 冷卻格只認使用效果那個增益（暴雪 EquipSlotEssential 那一筆沒給 ⇒ 退第 1 個），不合併第 2 個（常是被動觸發）
+    eqList("SlotOverlayIDs：只認第 1 個", (C.SlotOverlayIDs("essential", sid, 13)), { 1297761 })
+    eq("SlotOverlayIDs：槽 14 沒東西 ⇒ 不疊", C.SlotOverlayIDs("utility", "c:" .. iSlot2, 14), nil)
+    check("BarHasAuraSlot：有會疊增益的飾品欄 ⇒ 是", C.BarHasAuraSlot("essential"))
+    check("BarHasAuraSlot：飾品欄沒東西 ⇒ 不是", not C.BarHasAuraSlot("utility"))
+
+    local cont = Obj("Frame"); cont.level = 10
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 1)
+    local o = rec.buffOverlay
+    check("疊層：建了子 rec（光環格形狀、增益、overlayOf）", o and o.kind == "aura" and o.filter == "HELPFUL" and o.overlayOf == rec)
+    local h = o and o.frame
+    check("疊層：持有框", h ~= nil and h == o.holder)
+    eq("疊層：持有框 parent ＝ 條容器", h and h:GetParent(), cont)
+    eq("疊層：錨在條容器上（不是冷卻格）", h and h.last_SetPoint and h.last_SetPoint[2], cont)
+    eq("疊層：同一個矩形（x）", h and h.last_SetPoint and h.last_SetPoint[4], 40)
+    eq("疊層：尺寸", h and h.last_SetSize and h.last_SetSize[1], 36)
+    eq("冷卻格：容器＋2", rec.frame:GetFrameLevel(), 12)
+    eq("疊層：容器＋4（冷卻格的轉圈之上）", h and h:GetFrameLevel(), 14)
+    check("疊層：在 Decorate 的 overlay（冷卻格＋10）底下", h and h:GetFrameLevel() < rec.frame:GetFrameLevel() + 10)
+    local wroteHolder = false
+    for _, w in ipairs(writes) do if w.frame == h then wroteHolder = true end end
+    check("疊層：持有框的寫入走 ns.Write", wroteHolder)
+    eq("冷卻格本身不是保護框的子框（持有框不是它的孩子）", h:GetParent() ~= rec.frame, true)
+    local c = o.container
+    check("疊層：建了容器", c and c.otype == "AuraContainer" and c.slot ~= nil)
+    eq("疊層：容器 filter", c and c.slot.filter, "HELPFUL")
+    local inc = c and c.slot.opts.candidateFilters.includeSpellIDs or {}
+    check("疊層：includeSpellIDs ＝ 使用效果的增益（不含第 2 個）", inc[1297761] and not inc[1305376])
+    check("疊層：簽章帶 ov 記號與增益 ID", o.sig and o.sig:find("^ov") and o.sig:find("1297761", 1, true))
+    eq("鏡像：rec.buffOverlay.containers 是持有框的池", o.containers, h.containers)
+    check("疊層：音效對帳", soundSyncs > 0)
+    eq("Counts：疊層一顆", CU.Counts().overlays, 1)
+
+    -- 外觀：增益那一段的顏色（預設 colorDuration 開、durationColor 黃）
+    local btn = Obj("Frame", c)
+    local got = {}
+    function btn:SetIcon(t) got.icon = t end
+    function btn:SetDurationCooldown(cd) got.cd = cd end
+    function btn:SetDurationText(fs, opts) got.text, got.textOpts = fs, opts end
+    function btn:SetApplicationCount(fs) got.count = fs end
+    o.lastError = nil
+    c.slot.opts.initializeFrame(btn)
+    eq("initializeFrame 沒有錯誤", o.lastError, nil)
+    local dc = ns.SpellSetting("essential", sid, "durationColor")
+    check("倒數字色＝durationColor", got.text and got.text.color and dc and math.abs(got.text.color[1] - dc.r) < 1e-6
+        and math.abs(got.text.color[2] - dc.g) < 1e-6)
+    local sc = ns.SpellSetting("essential", sid, "durationSwipeColor")
+    check("轉圈色＝durationSwipeColor", got.cd and got.cd.swipe and sc and math.abs(got.cd.swipe[4] - sc.a) < 1e-6
+        and math.abs(got.cd.swipe[1] - sc.r) < 1e-6)
+    -- 換色關掉 ⇒ 簽章變（換一顆容器）、字色回倒數原色
+    local sig1 = o.sig
+    DB.SpecSpells(true).overrides[sid] = { colorDuration = false }
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 2)
+    check("換色關掉 ⇒ 簽章變、換容器", o.sig ~= sig1 and o.container ~= c)
+    -- 隱藏倒數 ⇒ 不掛 SetDurationText
+    DB.SpecSpells(true).overrides[sid] = { hideCooldownText = true }
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 3)
+    local btn2 = Obj("Frame", o.container)
+    local got2 = {}
+    function btn2:SetIcon() end
+    function btn2:SetDurationCooldown() end
+    function btn2:SetDurationText(fs) got2.text = fs end
+    function btn2:SetApplicationCount() end
+    o.container.slot.opts.initializeFrame(btn2)
+    eq("隱藏倒數 ⇒ 不掛 SetDurationText", got2.text, nil)
+
+    -- showAuraTime 關掉 ⇒ 不疊（持有框收起來、容器留在池裡）
+    local pooled = 0
+    for _ in pairs(h.containers) do pooled = pooled + 1 end
+    DB.SpecSpells(true).overrides[sid] = { showAuraTime = false }
+    eq("showAuraTime false ⇒ SlotOverlayIDs nil", C.SlotOverlayIDs("essential", sid, 13), nil)
+    check("showAuraTime false ⇒ BarHasAuraSlot 不再因它成立", not C.BarHasAuraSlot("essential"))
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 4)
+    eq("不疊 ⇒ 持有框收起來", h.shown, false)
+    eq("不疊 ⇒ placedBar 清掉（音效撤）", o.placedBar, nil)
+    local pooled2 = 0
+    for _ in pairs(h.containers) do pooled2 = pooled2 + 1 end
+    eq("不疊 ⇒ 容器留在池裡", pooled2, pooled)
+    eq("Counts：不疊 ⇒ 0 顆", CU.Counts().overlays, 0)
+    DB.SpecSpells(true).overrides[sid] = nil
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 5)
+    eq("打開回來 ⇒ 持有框顯示", h.shown, true)
+
+    -- 解不出增益（換成沒有使用效果的飾品）⇒ 不疊
+    equipped[13] = 290000
+    linked[801], linked[802] = nil, nil                -- 暴雪那邊跟著物品換：沒有增益項目
+    C.InvalidateSlotBuffs()
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 6)
+    eq("解不出增益 ⇒ 不疊", h.shown, false)
+
+    -- 戰鬥中換成別的增益：只記旗標，容器不換；脫戰補建
+    equipped[13] = 280000                              -- 暴雪沒有增益項目 ⇒ 退使用效果
+    C.InvalidateSlotBuffs()
+    local before = o.container
+    local builds = CU.builds
+    combat = true
+    CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 7)
+    eq("戰鬥中：容器不換", o.container, before)
+    eq("戰鬥中：沒建容器", CU.builds, builds)
+    check("戰鬥中：記旗標", (CU.IsPending(o)))
+    eqList("戰鬥中：要的法術已經是新的", o.auraIDs, { 1400000 })
+    combat = false
+    CU.OnRegen()
+    check("脫戰：補建", CU.builds == builds + 1 and o.container ~= before)
+    check("脫戰：新容器認新的增益", o.container.slot.opts.candidateFilters.includeSpellIDs[1400000] == true)
+    check("脫戰：簽章帶新的 ID", o.sig:find("1400000", 1, true) ~= nil)
+    check("脫戰：旗標清掉", not (CU.IsPending(o)))
+
+    -- 搬到長條類的條：另一顆持有框（長條形）、層級＋8，舊的收起來
+    local cont2 = Obj("Frame"); cont2.level = 20
+    CU.Place(rec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 8)
+    local hb = o.frame
+    check("長條：換一顆持有框", hb ~= h and o.shape == "bars")
+    eq("長條：舊持有框收起來", h.shown, false)
+    eq("長條：層級＝容器＋8", hb:GetFrameLevel(), 28)
+    check("長條：簽章帶長條外觀", o.sig:find("|bars,", 1, true) ~= nil)
+
+    -- 冷卻格收起來（這條這一輪沒放到）⇒ 疊層跟著收
+    CU.EndBar("buffbars", 9)
+    eq("收起來：冷卻格", rec.placedBar, nil)
+    eq("收起來：疊層持有框", hb.shown, false)
+    eq("收起來：疊層 placedBar", o.placedBar, nil)
+
+    -- 不是飾品欄的不疊
+    local iItem = DB.AddCustom({ kind = "item", itemID = 7, bar = "essential" })
+    CU.Sync()
+    local irec = CU.Get("c:" .. iItem)
+    CU.Place(irec, cont, { x = 80, y = 0, w = 36, h = 36 }, "essential", 10)
+    eq("自訂物品不疊", irec.buffOverlay, nil)
+
+    -- AuraIDsOf：slotBuff（給之後的「飾品欄增益」種類用）
+    eqList("AuraIDsOf：slotBuff 第 1 個", CU.AuraIDsOf({ slotBuff = { slot = 13, buff = 1 } }), { 1400000 })
+    eqList("AuraIDsOf：slotBuff 第 2 個解不出 ⇒ 空", CU.AuraIDsOf({ slotBuff = { slot = 13, buff = 2 } }), {})
+    eqList("AuraIDsOf：auraIDs 優先", CU.AuraIDsOf({ auraIDs = { 5, 6 }, spellID = 1 }), { 5, 6 })
+
+    for i = #list, 1, -1 do list[i] = nil end
+    CU.Sync()
+    env.CreateFrame, env.UIParent, env.InCombatLockdown, ns.Events = savedCF, savedUI, savedICL, savedEv
+    CV.GetCooldownViewerCategorySet, CV.GetCooldownViewerCooldownInfo = savedSet, savedInfo
+    env.Enum.CooldownViewerCategory.EquipSlotTracked = nil
+    env.GetInventoryItemID = nil
+    C.InvalidateSlotBuffs()
+    ns.Decorate, ns.Glow, ns.Keybinds, ns.Text, ns.Media, ns.Write, ns.Layout, ns.P, ns.Sound, ns.MiliUIGlow =
+        saved[1], saved[2], saved[3], saved[4], saved[5], saved[6], saved[7], saved[8], saved[9], saved[10]
+end
+
 print(("Custom_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

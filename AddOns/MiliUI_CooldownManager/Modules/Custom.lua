@@ -6,6 +6,7 @@
 --   ns.Custom.Place(rec, container, r, barKey, gen)   放進格子（光環格的持有框走 ns.Write）
 --   ns.Custom.EndBar(barKey, gen)          這條這一輪沒放到的框收起來
 --   ns.Custom.Records() / ForEachPlaced(fn) / Counts()
+--   飾品欄（kind = "slot"）的冷卻格上另疊一顆增益按鈕（rec.buffOverlay），見「飾品欄的增益疊層」那一節
 --
 -- 資料在三層（Core/DB.lua：戰隊 customShared "w:<uid>"、職業 customClass "k:<uid>"、專精 spells[specID].custom
 -- "c:<index>"），這裡只吃合併後的生效清單（DB.EffectiveCustom）；框依「身分」池化
@@ -204,8 +205,15 @@ function CU.AuraIDSig(ids)
 end
 
 -- rec 現在認的法術（entry 已經拿掉時退回主的）
+--   rec.auraIDs   已經解好的一組（飾品欄冷卻格的增益疊層：Catalog.SlotBuffIDs 的結果，見「飾品欄的增益疊層」）
+--   rec.slotBuff  { slot, buff }：裝備欄第 buff 個增益（照現在裝的物品解，換裝會變）
 function CU.AuraIDsOf(rec)
     if type(rec) ~= "table" then return {} end
+    if type(rec.auraIDs) == "table" then return rec.auraIDs end
+    local sb = rec.slotBuff
+    if type(sb) == "table" and ns.Catalog and ns.Catalog.SlotBuffIDs then
+        return (ns.Catalog.SlotBuffIDs(sb.slot, sb.buff or 1))
+    end
     if type(rec.entry) == "table" then return CU.AuraIDs(rec.entry) end
     return Merge(rec.spellID, nil)
 end
@@ -1381,10 +1389,25 @@ local function AuraStyle(rec, barKey, w, h, shape)
         glowSig = table.concat({ gl.type, C(gl.color), gl.lines, gl.thickness, gl.frequency,
             string.format("%.2f,%.2f", w, h) }, ",")
     end
+    -- 飾品欄的增益疊層（rec.overlayOf）：整段都是增益時間 ⇒ 套「增益那一段」的設定（跟暴雪冷卻格倒增益時同一組，
+    -- Core/Decorate.lua 的 PhaseColors）：換色開著 ⇒ 倒數字色＝durationColor、低秒色＝durationLowColor（沒設退倒數的
+    -- 低秒色，門檻同一個 cooldownText.lowBelow）、轉圈色＝durationSwipeColor。隱藏倒數照 hideCooldownText（上面）。
+    -- 這幾個值本來就在簽章裡，另外加一個 "ov" 記號（同一個法術組的光環格與疊層不共用容器）
+    local ovSig = "-"
+    if rec.overlayOf then
+        local dc = ns.Decorate and ns.Decorate.DurationColorOf
+            and ns.Decorate.DurationColorOf(SS(barKey, id, "colorDuration"), SS(barKey, id, "durationColor")) or nil
+        if dc then
+            st.cdColor  = RGBA(dc, 1, 0.85, 0.1, 1)
+            st.lowColor = RGBA(SS(barKey, id, "durationLowColor") or cdT.lowColor, 0.95, 0.45, 0.70, 1)
+            st.swipe    = RGBA(SS(barKey, id, "durationSwipeColor"), 1, 0.9, 0.5, 0.5)
+        end
+        ovSig = dc and "ov+" or "ov"
+    end
     -- 認哪些法術也進簽章（多法術的光環格：整組排序後串進去；單一法術時就是那個 ID）
     st.ids = CU.AuraIDsOf(rec)
     st.sig = table.concat({
-        rec.filter, CU.AuraIDSig(st.ids), st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
+        ovSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
         st.stPoint, st.stX, st.stY, glowSig,
@@ -1700,6 +1723,20 @@ local function EnsureContainer(rec, barKey, w, h)
     local st = AuraStyle(rec, barKey, w, h, rec.shape)
     rec.wantSig = st.sig
     if holder.sig == st.sig and holder.container then return end
+    -- 一個法術都認不到（裝備欄的增益解不出來）：不建，舊的收起來。空的 includeSpellIDs 不保證是「什麼都不收」
+    if #st.ids == 0 then
+        if not holder.container then return end
+        if InCombatLockdown() then
+            pendingBuild[rec] = true
+            ns.Events.Register("PLAYER_REGEN_ENABLED", "custom", CU.OnRegen)
+            return
+        end
+        pendingBuild[rec] = nil
+        pcall(holder.container.Hide, holder.container)
+        holder.container, holder.sig = nil, nil
+        rec.container, rec.sig = nil, nil
+        return
+    end
     if InCombatLockdown() then
         pendingBuild[rec] = true
         ns.Events.Register("PLAYER_REGEN_ENABLED", "custom", CU.OnRegen)
@@ -1883,6 +1920,89 @@ local function UseFrame(rec, shape)
 end
 CU.UseFrame = UseFrame                -- 測試用
 
+------------------------------------------------------------
+-- 飾品欄的增益疊層（rec.buffOverlay）
+--
+-- 冷卻格（kind = "slot"；之後代畫暴雪缺框的裝備欄冷卻格也是這個 kind）上疊一顆增益按鈕：增益在就蓋住冷卻、
+-- 掉了按鈕自己藏起來、露出底下的冷卻。疊層本身是一個**光環格形狀的子 rec**（kind = "aura"、filter = HELPFUL、
+-- overlayOf ＝ 冷卻格那一筆），持有框／容器池／簽章／戰鬥中延後全部走光環格那一套（UseFrame、EnsureContainer、
+-- OnRegen 的 pendingBuild／pendingKick），差別只有：
+--   * 認的法術 auraIDs ＝ Catalog.SlotOverlayIDs（現在裝的物品的增益，換飾品會變 ⇒ 進簽章 ⇒ 換一顆容器）；
+--   * 設定照冷卻格那一筆的 cooldownID 讀（隱藏倒數／層數、邊框色、生效發光、出現／消失音效），外觀多套
+--     「增益那一段」的顏色（AuraStyle 的 overlayOf 分支）；
+--   * 不畫占位（沒增益時底下的冷卻格就是畫面）。
+-- 要不要疊：Catalog.SlotOverlayIDs（條層／逐法術 showAuraTime 沒關、而且解得出增益）——跟 BarHasAuraSlot 同一個判準，
+-- 所以有疊層的條固定格位一定被強制打開。不疊時持有框收起來（ns.Write Hide），容器留在池裡。
+--
+-- 持有框是保護框 ⇒ **不能錨在冷卻格上**（保護沿錨點鏈傳染，冷卻格會跟著變保護框）：跟光環格一樣 parent＝條容器、
+-- 直接 SetPoint 到容器、同一個矩形。層級（frame level，同一個 strata 裡跨父層比得出高低）：
+--   圖示框  條容器 c ＋2 冷卻格 → ＋3 它的 Cooldown（轉圈與倒數數字）→ ＋6 數量框（Text 會再墊到 overlay＋5）
+--           → ＋12 Decorate 的 overlay（邊框、按鍵文字、提示；發光宿主 ＋13～＋15）
+--           疊層持有框 ＋4 → 容器 ＋5 → 按鈕 ＋6 → 按鈕的 Cooldown ＋7 → 按鈕裡的 ov（邊框、倒數、層數）＋9 → 生效發光 ＋10
+--           ⇒ 蓋過冷卻格的轉圈與數字、在 overlay 底下：按鍵文字與邊框在增益按鈕上面看得到。
+--   長條框  冷卻格 ＋2 → 條身 ＋3 → 秒數 ＋4 → 充能分段到 ＋7；Decorate 的 overlay 至少 530
+--           疊層持有框 ＋8（按鈕裡的 ov 是條身＋10，仍遠低於 530）
+-- （按鈕的層級是暴雪建按鈕時的預設：父層＋1；initializeFrame 裡不讀不改）
+------------------------------------------------------------
+local OVERLAY_LIFT = { icons = 4, bars = 8 }      -- 疊層持有框比條容器高幾層（見上表）
+CU.OVERLAY_LIFT = OVERLAY_LIFT
+
+local function NewOverlay(rec)
+    return {
+        custom = true, kind = "aura", filter = "HELPFUL", overlayOf = rec,
+        barKey = "custom", frames = {},
+    }
+end
+CU.NewOverlay = NewOverlay            -- 測試用
+
+-- 收起來（不疊、或冷卻格本身收起來）：持有框 Hide 走 ns.Write，音效登記撤掉
+local function HideOverlay(rec)
+    local o = rec.buffOverlay
+    if not o or not (o.placedBar or o.placedSig) then return end
+    o.placedBar, o.placedSig, o.hidden = nil, nil, true
+    if o.frame then ns.Write(o.frame, function(fr) fr:Hide() end, "place") end
+    if ns.Sound then ns.Sound.RequestAuraSync() end
+end
+
+-- 放格（CU.Place 的非光環分支結尾叫；冷卻格已經放好在 c 的 r 上）
+local function PlaceOverlay(rec, c, r, barKey, gen)
+    local ids, idSig
+    if rec.kind == "slot" and ns.Catalog and ns.Catalog.SlotOverlayIDs then
+        ids, idSig = ns.Catalog.SlotOverlayIDs(barKey, rec.cooldownID, rec.slot)
+    end
+    if not ids then return HideOverlay(rec) end
+    local o = rec.buffOverlay
+    if not o then
+        o = NewOverlay(rec)
+        rec.buffOverlay = o
+    end
+    o.cooldownID, o.slot, o.bar = rec.cooldownID, rec.slot, rec.bar
+    o.auraIDs, o.idSig, o.spellID = ids, idSig, ids[1]
+    local shape = ShapeOf(barKey)
+    local h = UseFrame(o, shape)
+    o.holder = h
+    o.placedBar, o.placedGen, o.claimKey, o.hidden = barKey, gen, barKey, false
+    o.placeW, o.placeH = r.w, r.h
+    local lvl = (c:GetFrameLevel() or 1) + (OVERLAY_LIFT[shape] or OVERLAY_LIFT.icons)
+    local sig = table.concat({ tostring(c), r.x, r.y, r.w, r.h, lvl }, "|")
+    if o.placedSig ~= sig then
+        o.placedSig = sig
+        local x, y, w, hh = r.x, r.y, r.w, r.h
+        ns.Write(h, function(fr)
+            if fr:GetParent() ~= c then fr:SetParent(c) end
+            fr:SetFrameLevel(lvl)
+            fr:ClearAllPoints()
+            fr:SetPoint("TOPLEFT", c, "TOPLEFT", x, -y)      -- ⚠ 錨容器，不錨冷卻格（保護會沿錨點鏈傳過去）
+            fr:SetSize(w, hh)
+            fr:Show()
+        end, "place")
+    end
+    EnsureContainer(o, barKey, r.w, r.h)
+    -- 出現／消失音效：照冷卻格那一筆的 gainSound／loseSound 登記（Core/Sound.lua 認得 rec.buffOverlay）
+    if ns.Sound then ns.Sound.RequestAuraSync() end
+end
+CU.PlaceOverlay = PlaceOverlay        -- 測試用
+
 local function HideRec(rec)
     if not rec.placedBar and not rec.placedSig then return end
     rec.placedBar, rec.placedSig, rec.claimKey = nil, nil, nil
@@ -1897,6 +2017,7 @@ local function HideRec(rec)
         f:Hide()
         CU.DropRange(rec)
         if ns.Glow then ns.Glow.OnParked(rec) end
+        HideOverlay(rec)                                       -- 飾品欄的增益疊層跟著收
     end
 end
 
@@ -2002,6 +2123,8 @@ function CU.Place(rec, c, r, barKey, gen)
     if rec.kind == "spell" and rec.procActive == nil then CU.InitialOverlay(rec) end
     if ns.Glow then ns.Glow.Sync(f, rec, barKey) end
     if ns.Keybinds then ns.Keybinds.Apply(f, rec, barKey) end
+    -- 飾品欄：增益疊層（要不要疊、放到同一個矩形、換容器；見「飾品欄的增益疊層」）
+    if rec.kind == "slot" or rec.buffOverlay then PlaceOverlay(rec, c, r, barKey, gen) end
     return moved
 end
 
@@ -2076,7 +2199,7 @@ end
 -- 除錯
 ------------------------------------------------------------
 function CU.Counts()
-    local n = { aura = 0, spell = 0, item = 0, slot = 0, placed = 0, containers = 0, barFrames = 0 }
+    local n = { aura = 0, spell = 0, item = 0, slot = 0, placed = 0, containers = 0, barFrames = 0, overlays = 0 }
     for _, rec in pairs(records) do
         if rec.cooldownID then n[rec.kind] = (n[rec.kind] or 0) + 1 end
         if rec.placedBar then n.placed = n.placed + 1 end
@@ -2084,6 +2207,14 @@ function CU.Counts()
         for shape, f in pairs(rec.frames or {}) do
             for _ in pairs(f.containers or {}) do n.containers = n.containers + 1 end
             if shape == "bars" then n.barFrames = n.barFrames + 1 end
+        end
+        -- 飾品欄的增益疊層：疊著的才算一顆；容器池照樣算進 containers
+        local o = rec.buffOverlay
+        if o then
+            if o.placedBar then n.overlays = n.overlays + 1 end
+            for _, f in pairs(o.frames or {}) do
+                for _ in pairs(f.containers or {}) do n.containers = n.containers + 1 end
+            end
         end
     end
     return n

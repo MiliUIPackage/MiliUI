@@ -93,6 +93,8 @@
 --     IsActive 跟著整條重排翻、欄位永遠 false、IsExpired 永遠 true（暴雪每次刷新幾乎都是 Clear），只有那支 setter 可靠。
 -- 這支只管暴雪 item。自訂光環格（AuraContainer）吃同一個逐法術開關，但發光在 Modules/Custom.lua 的
 -- initializeFrame 裡建在引擎按鈕底下（按鈕只在光環存在時顯示），不經過這裡。
+-- 飾品欄冷卻格的增益疊層（rec.buffOverlay）也是那一套：開關照冷卻格那一筆的 activeGlow，畫在疊層按鈕底下；
+-- 冷卻格自己的觸發／就緒發光照舊走這裡（宿主在 overlay 底下，層級比疊層高），兩邊互不干擾。
 -- 層數發光（Core/StackGate.lua，「層數到 N 才亮」）跟它互斥：那一格開了層數發光（rec.stackCfg.glow），
 -- SyncActive 一律熄生效發光；層數發光自己的宿主在 StackGate 的裁切框底下，不經過 Start／Stop。
 --

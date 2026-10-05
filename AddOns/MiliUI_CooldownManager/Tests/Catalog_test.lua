@@ -1149,5 +1149,95 @@ do
     eq("沒有 tooltip 法術 ⇒ 照舊用 spellID", C.Info(301).name, "法術3010")
 end
 
+------------------------------------------------------------
+-- 裝備欄的增益法術（C.SlotBuffIDs）：EquipSlotTracked 的 linkedSpellIDs、第幾個增益、退回使用效果、快取作廢
+------------------------------------------------------------
+do
+    -- 純函式
+    local INF = {
+        { equipSlot = 13, buffSlot = 2, linkedSpellIDs = { 1305376 } },
+        { equipSlot = 13, buffSlot = 1, linkedSpellIDs = { 1297761, 1297762 } },
+        { equipSlot = 14, buffSlot = 1, linkedSpellIDs = {} },
+        { equipSlot = 13, buffSlot = 3, linkedSpellIDs = { 1297761 } },      -- 跟第 1 個重複的 ID
+    }
+    eqList("From：第 1 個", (C.SlotBuffIDsFrom(INF, 13, 1, 5)), { 1297761, 1297762 })
+    eqList("From：第 2 個", (C.SlotBuffIDsFrom(INF, 13, 2, 5)), { 1305376 })
+    eqList("From：nil ＝ 全部照 buffSlot 排、去重", (C.SlotBuffIDsFrom(INF, 13, nil, 5)), { 1297761, 1297762, 1305376 })
+    eqList("From：第 4 個（沒有）不退使用效果", (C.SlotBuffIDsFrom(INF, 13, 4, 5)), {})
+    eqList("From：linkedSpellIDs 空 ⇒ 第 1 個退使用效果", (C.SlotBuffIDsFrom(INF, 14, 1, 77)), { 77 })
+    eqList("From：linkedSpellIDs 空 ⇒ nil 也退", (C.SlotBuffIDsFrom(INF, 14, nil, 77)), { 77 })
+    eqList("From：第 2 個不退", (C.SlotBuffIDsFrom(INF, 14, 2, 77)), {})
+    eqList("From：沒有使用效果 ⇒ 空", (C.SlotBuffIDsFrom(INF, 14, 1, nil)), {})
+    eq("From：簽章是排序後串起來", select(2, C.SlotBuffIDsFrom(INF, 13, nil, 5)), "1297761,1297762,1305376")
+    eq("From：空的簽章", select(2, C.SlotBuffIDsFrom(INF, 14, 2, nil)), "")
+    eqList("From：buffSlot 壞值當第 1 個", (C.SlotBuffIDsFrom({ { equipSlot = 13, buffSlot = "x", linkedSpellIDs = { 9 } } }, 13, 1)), { 9 })
+    eqList("From：壞的 ID 跳過", (C.SlotBuffIDsFrom({ { equipSlot = 13, buffSlot = 1, linkedSpellIDs = { 0, -1, 2.5, "9", 10 } } }, 13, 1)), { 10 })
+    eqList("IndicesFrom：解得出的那幾個（排序）", C.SlotBuffIndicesFrom(INF, 13, 5), { 1, 2, 3 })
+    eqList("IndicesFrom：都空 ⇒ 有使用效果就一個", C.SlotBuffIndicesFrom(INF, 14, 77), { 1 })
+    eqList("IndicesFrom：都空也沒使用效果 ⇒ 零個", C.SlotBuffIndicesFrom(INF, 14, nil), {})
+
+    -- 接上 API：EquipSlotTracked（類別 8）兩筆給槽 13、一筆空的給槽 14
+    def(801, 8, { equipSlot = 13, buffSlot = 1, linkedSpellIDs = { 1297761 } })
+    def(802, 8, { equipSlot = 13, buffSlot = 2, linkedSpellIDs = { 1305376 } })
+    def(803, 8, { equipSlot = 14, buffSlot = 1, linkedSpellIDs = {} })
+    sets[8] = { 801, 802, 803 }
+    local equipped = { [13] = 270175 }
+    local itemSpell = { [270175] = 1297761, [280000] = 1400000 }
+    local savedInv, savedItem = env.GetInventoryItemID, env.C_Item
+    local spellCalls = 0
+    env.GetInventoryItemID = function(_, slot) return equipped[slot] end
+    env.C_Item = { GetItemSpell = function(id)
+        spellCalls = spellCalls + 1
+        local s = itemSpell[id]
+        if s then return "使用效果", s end
+    end }
+    C.InvalidateSlotBuffs()
+    eqList("SlotBuffIDs：第 1 個", (C.SlotBuffIDs(13, 1)), { 1297761 })
+    eqList("SlotBuffIDs：第 2 個", (C.SlotBuffIDs(13, 2)), { 1305376 })
+    eqList("SlotBuffIDs：nil 全部", (C.SlotBuffIDs(13)), { 1297761, 1305376 })
+    eq("SlotBuffIDs：簽章", select(2, C.SlotBuffIDs(13)), "1297761,1305376")
+    eqList("SlotBuffIndices：槽 13 兩個", C.SlotBuffIndices(13), { 1, 2 })
+    eqList("SlotBuffIDs：槽 14 沒東西 ⇒ 空", (C.SlotBuffIDs(14, 1)), {})
+    eqList("SlotBuffIndices：槽 14 沒東西 ⇒ 零個", C.SlotBuffIndices(14), {})
+    eqList("SlotBuffIDs：不收的欄位 ⇒ 空", (C.SlotBuffIDs(4, 1)), {})
+    eqList("SlotBuffIDs：buffIndex 壞值 ⇒ 空", (C.SlotBuffIDs(13, 0)), {})
+    -- 槽 14 裝上去：linkedSpellIDs 空 ⇒ 第 1 個退使用效果
+    equipped[14] = 280000
+    eqList("SlotBuffIDs：沒作廢也照問（空格不快取）", (C.SlotBuffIDs(14, 1)), { 1400000 })
+    eqList("SlotBuffIDs：第 2 個不退", (C.SlotBuffIDs(14, 2)), {})
+    -- 快取：同一個 key 不重掃、不重問
+    local n0 = spellCalls
+    C.SlotBuffIDs(13, 1); C.SlotBuffIDs(13, 1)
+    eq("SlotBuffIDs：命中快取不再問 GetItemSpell", spellCalls, n0)
+    -- 換飾品：暴雪那邊的增益換了 ⇒ 作廢前還是舊的、作廢後是新的
+    infos[801].linkedSpellIDs = { 1500000 }
+    eqList("作廢前：快取", (C.SlotBuffIDs(13, 1)), { 1297761 })
+    C.InvalidateSlotBuffs()
+    check("作廢：記下要重排", C.slotBuffStale == true)
+    eqList("作廢後：新的增益", (C.SlotBuffIDs(13, 1)), { 1500000 })
+    -- 冷卻格（使用效果）認的增益：暴雪 EquipSlotEssential（類別 7）那一筆沒有 ⇒ 退第 1 個；有就照它、不合併第 2 個
+    eqList("SlotUseBuffIDs：沒有冷卻那一筆 ⇒ 第 1 個", (C.SlotUseBuffIDs(13)), { 1500000 })
+    local savedSet7, savedInfo = sets[7], infos[7901]
+    def(7901, 7, { equipSlot = 13, linkedSpellIDs = { 1600000 } })
+    sets[7] = { 7901 }
+    C.InvalidateSlotBuffs()
+    eqList("SlotUseBuffIDs：照冷卻那一筆的 linkedSpellIDs", (C.SlotUseBuffIDs(13)), { 1600000 })
+    eqList("SlotUseBuffIDs：槽 14 沒有那一筆 ⇒ 退使用效果", (C.SlotUseBuffIDs(14)), { 1400000 })
+    eqList("SlotUseBuffIDs：不收的欄位 ⇒ 空", (C.SlotUseBuffIDs(4)), {})
+    sets[7], infos[7901] = savedSet7, savedInfo
+    C.InvalidateSlotBuffs()
+    -- 秘密值（讀不到）的增益 ID 不收
+    env.canaccessvalue = function(v) return v ~= 1305376 end
+    C.InvalidateSlotBuffs()
+    eqList("秘密值的增益 ID 不收 ⇒ 第 2 個空、不退使用效果", (C.SlotBuffIDs(13, 2)), {})
+    env.canaccessvalue = function() return true end
+
+    sets[8] = {}
+    infos[801], infos[802], infos[803] = nil, nil, nil
+    env.GetInventoryItemID, env.C_Item = savedInv, savedItem
+    C.InvalidateSlotBuffs()
+    C.slotBuffStale = false
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

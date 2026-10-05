@@ -4,7 +4,7 @@
 --   ns.Sound.WantsReady(rec)          這一格有沒有設就緒音效（Glow 決定要不要建探針、武裝）
 --   ns.Sound.OnReady(rec)             就緒探針觸發（Glow.FireReady 叫；跟就緒發光同一個訊號）
 --   ns.Sound.HookItem(item, rec)      Viewers 第一次看到 item 時叫（只掛增益兩條）
---   ns.Sound.RequestAuraSync()        光環格放好／收起、設定變了：下一幀對一次 AddAuraSound 登記
+--   ns.Sound.RequestAuraSync()        光環格（含飾品欄的增益疊層）放好／收起、設定變了：下一幀對一次 AddAuraSound 登記
 --   ns.Sound.Preview(name)            設定介面「試聽」（不看總開關、不節流）
 --   ns.Sound.Path(name)               LSM 音效名或自訂語音代號 → 路徑字串或檔案編號（查不到 nil）
 --   ns.Sound.DisplayName(name)        下拉選單上的字（自訂語音是玩家取的名字）
@@ -668,8 +668,12 @@ function S.WantAuraSounds()
     if not (API() and S.Enabled() and CU and CU.Records) then return want end
     local added, removed = Triggers()
     local channel = S.Channel()
-    for _, rec in pairs(CU.Records()) do
-        if rec.kind == "aura" and rec.placedBar and rec.cooldownID and type(rec.spellID) == "number" then
+    for _, r in pairs(CU.Records()) do
+        -- 飾品欄的增益疊層（r.buffOverlay，Modules/Custom.lua）是光環格形狀的子 rec：疊著的時候（placedBar 有值）
+        -- 照冷卻格那一筆的 cooldownID 讀 gainSound／loseSound、認的法術是解出來的增益（AuraIDsOf 讀 auraIDs）
+        local rec = r
+        if r.kind ~= "aura" then rec = r.buffOverlay end
+        if rec and rec.kind == "aura" and rec.placedBar and rec.cooldownID and type(rec.spellID) == "number" then
             -- 多法術的光環格（嗜血那種）：每個法術各登一筆（引擎只認單一 spellID）
             local ids = (CU.AuraIDsOf and CU.AuraIDsOf(rec)) or { rec.spellID }
             for field, trig in pairs({ gainSound = added, loseSound = removed }) do

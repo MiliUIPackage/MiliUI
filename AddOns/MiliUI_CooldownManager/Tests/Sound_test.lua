@@ -426,6 +426,24 @@ end
 customRecs.a.ids = nil
 S.RequestAuraSync(); Flush()
 eq("拿掉多法術：撤回剩一筆", S.AuraCount(), 1)
+
+-- 飾品欄冷卻格的增益疊層（rec.buffOverlay）：疊著時照冷卻格那一筆的 cooldownID 登記、每個增益各一筆
+DB.SetOverride("c:3", "gainSound", "Ding")
+local ovl = { kind = "aura", placedBar = "essential", cooldownID = "c:3", spellID = 1297761, ids = { 1297761, 1305376 } }
+customRecs.t = { kind = "slot", placedBar = "essential", cooldownID = "c:3", slot = 13, buffOverlay = ovl }
+S.RequestAuraSync(); Flush()
+eq("疊層：每個增益各一筆（加上光環格那一筆）", S.AuraCount(), 3)
+do
+    local got = {}
+    for _, r in pairs(registered) do if r.info.spellID ~= 12345 then got[#got + 1] = r.info.spellID end end
+    table.sort(got)
+    eq("疊層：登記的是解出來的增益", table.concat(got, ","), "1297761,1305376")
+end
+ovl.placedBar = nil
+S.RequestAuraSync(); Flush()
+eq("疊層收起來（不疊）⇒ 撤掉", S.AuraCount(), 1)
+customRecs.t = nil
+DB.SetOverride("c:3", "gainSound", nil)
 ns.Custom.AuraIDsOf = nil
 
 ------------------------------------------------------------
