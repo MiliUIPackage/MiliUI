@@ -1732,5 +1732,40 @@ do
     env.C_SpellBook.FindSpellOverrideByID = nil
 end
 
+------------------------------------------------------------
+-- 16. 挑選器「飾品欄增益」（2026-10-05）：哪幾條換成飾品欄增益、每個槽的增益鈕（純函式）、存檔形狀
+------------------------------------------------------------
+do
+    local PK = ns.Picker
+    local bars = ns.profile.bars
+    bars.tg_icons = { kind = "icons", source = "custom" }
+    bars.tg_bars = { kind = "bars", source = "custom" }
+    check("WantsSlotBuff：增益圖示列", PK.WantsSlotBuff("buffs"))
+    check("WantsSlotBuff：增益長條", PK.WantsSlotBuff("buffbars"))
+    check("WantsSlotBuff：長條群組", PK.WantsSlotBuff("tg_bars"))
+    check("WantsSlotBuff：核心照舊是飾品欄", not PK.WantsSlotBuff("essential"))
+    check("WantsSlotBuff：輔助照舊是飾品欄", not PK.WantsSlotBuff("utility"))
+    check("WantsSlotBuff：圖示群組照舊是飾品欄", not PK.WantsSlotBuff("tg_icons"))
+    check("WantsSlotBuff：沒有這條", not PK.WantsSlotBuff("nope"))
+    bars.tg_icons, bars.tg_bars = nil, nil
+
+    -- 每個槽一列、鈕的數量照那件飾品實際有幾個增益（一個、零個、三個以上）
+    local per = { [13] = { 1 }, [14] = { 1, 2, 3, 5 } }
+    local rows = PK.SlotBuffRows({ 13, 14 }, function(slot) return per[slot] end,
+        function(slot, n) return slot == 14 and n == 2 end)
+    eq("SlotBuffRows：每個槽一列", #rows, 2)
+    eq("SlotBuffRows：一個增益一顆", #rows[1].buffs, 1)
+    eq("SlotBuffRows：四個增益四顆（不設上限）", #rows[2].buffs, 4)
+    eq("SlotBuffRows：buffSlot 照原值（5 不壓成 4）", rows[2].buffs[4].buff, 5)
+    eq("SlotBuffRows：已加入", rows[2].buffs[2].added, true)
+    eq("SlotBuffRows：沒加入", rows[2].buffs[1].added, false)
+    per[13] = {}
+    eq("SlotBuffRows：零個 ⇒ 列在、沒有鈕", #PK.SlotBuffRows({ 13 }, function(slot) return per[slot] end)[1].buffs, 0)
+    local e = PK.SlotBuffEntry(14, 3, "buffbars")
+    check("SlotBuffEntry：存檔形狀", e.kind == "slotbuff" and e.slot == 14 and e.buff == 3 and e.bar == "buffbars"
+        and e.placeholder == true)
+    check("SlotBuffEntry：Catalog 收", ns.Catalog.ValidCustom(e))
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

@@ -720,11 +720,17 @@ end
 local QUESTION = 134400
 -- slot：裝備欄位，追蹤「現在裝在那一格的物品」，換裝自動跟上；不經過暴雪的冷卻管理器
 -- 挑選清單的順序：會用的多半是飾品，兩格排最前面，其餘照角色面板（襯衣、外袍不收）
-local CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true }
+-- slotbuff：飾品欄增益（{ slot = 13|14, buff = N }，N ＝ 暴雪的 buffSlot、不設上限、缺 ＝ 1）：只在那件飾品的
+-- 第 N 個增益生效時出現的光環格（Modules/Custom.lua 當光環格畫，認的法術由 C.SlotBuffIDs 照現在裝的飾品解）
+local CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true }
 C.CUSTOM_SLOT_ORDER = { 13, 14, 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 16, 17 }
 local CUSTOM_SLOTS = {}
 for _, slot in ipairs(C.CUSTOM_SLOT_ORDER) do CUSTOM_SLOTS[slot] = true end
 C.CUSTOM_SLOTS = CUSTOM_SLOTS
+-- 飾品欄增益只收兩格飾品（暴雪的 EquipSlotTracked 也只為飾品帶增益）
+C.SLOTBUFF_SLOT_ORDER = { 13, 14 }
+local SLOTBUFF_SLOTS = { [13] = true, [14] = true }
+C.SLOTBUFF_SLOTS = SLOTBUFF_SLOTS
 
 -- 欄位名：有編號版（「手指 1」「飾品 2」）用編號版，兩格同名才分得出來
 function C.SlotName(slot)
@@ -913,6 +919,149 @@ function C.SlotOverlayIDs(barKey, id, slot)
     return ids, sig
 end
 
+------------------------------------------------------------
+-- 飾品欄增益的名字與滑鼠提示（挑選器的增益鈕、逐法術面板、預覽格共用一支）
+--
+--   ns.Catalog.SlotBuffName(itemName, buff)          → 「飾品名（增益 N）」
+--   ns.Catalog.SlotBuffLabel(buff)                   → 「增益 N」（暴雪自己的字串讀得到就用它的）
+--   ns.Catalog.SlotBuffTooltip(tooltip, slot, buff [, refresh])
+--       照暴雪飾品增益格的提示寫：標題＝飾品名（品質色）；buff 那個增益的每個法術一段：圖示＋法術名＋「增益 N」＋
+--       照這件裝備等級算過的效果說明（Spell:GetSpellDescriptionForItemLocation）。buff 為 nil ＝ 這一格全部的增益，
+--       各段標自己的「增益 N」。空格 ⇒ 欄位名＋「（空的）」；解不出增益 ⇒ 紅字「這件飾品沒有可追蹤的增益」。
+--       法術資料還沒載入：先畫標題、ContinueOnSpellLoad 載完叫 refresh()——只在提示還開著、擁有者沒換、
+--       中間沒有別的呼叫蓋過（序號）時才叫。refresh 省略 ＝ 不等。
+--   ⚠ tooltip 是暴雪的框：只呼叫方法，不寫任何欄位（序號記在自己的表，以擁有者為鍵、弱參照）
+------------------------------------------------------------
+local function TryCall(fn, ...)
+    if not fn then return nil end
+    local ok, a, b, c = pcall(fn, ...)
+    if not ok then return nil end
+    return a, b, c
+end
+
+-- 語系表：Catalog 比 Locales 晚載入，但離線測試沒有 ns.L ⇒ 查不到就回 key（跟 Locales/Locale.lua 同一個退路）
+local L = setmetatable({}, { __index = function(_, k)
+    local t = ns.L
+    return (t and t[k]) or k
+end })
+
+function C.SlotBuffLabel(buff)
+    local fmt = GlobalText("COOLDOWN_VIEWER_TRINKET_AURA_TOOLTIP_LABEL")
+    if fmt and fmt:find("%d", 1, true) then
+        local ok, txt = pcall(string.format, fmt, buff)
+        if ok then return txt end
+    end
+    return L["Buff %d"]:format(buff)
+end
+
+function C.SlotBuffName(itemName, buff)
+    return L["%s (buff %d)"]:format(tostring(itemName), PositiveInt(buff) and buff or 1)
+end
+
+local tipSerial = 0
+local tipOwnerSerial = setmetatable({}, { __mode = "k" })
+
+-- 這一段（第 buff 個增益）要畫的法術：{ { id, buff }, … }
+local function TooltipSpells(slot, buff)
+    local out = {}
+    if buff then
+        for _, id in ipairs((C.SlotBuffIDs(slot, buff))) do out[#out + 1] = { id = id, buff = buff } end
+        return out
+    end
+    for _, n in ipairs(C.SlotBuffIndices(slot)) do
+        for _, id in ipairs((C.SlotBuffIDs(slot, n))) do out[#out + 1] = { id = id, buff = n } end
+    end
+    return out
+end
+
+function C.SlotBuffTooltip(tooltip, slot, buff, refresh)
+    if not (tooltip and tooltip.SetText) then return end
+    tipSerial = tipSerial + 1
+    local serial = tipSerial
+    local owner = tooltip.GetOwner and tooltip:GetOwner() or nil
+    if owner then tipOwnerSerial[owner] = serial end
+    local itemID = C.SlotItemID(slot)
+    if not itemID then
+        tooltip:SetText(C.SlotName(slot) or ("#" .. tostring(slot)))
+        tooltip:AddLine(L["(empty)"], 0.8, 0.8, 0.8)
+        return
+    end
+    -- 標題：飾品名（品質色）
+    local I = C_Item
+    local name = Plain(TryCall(I and I.GetItemNameByID, itemID)) or C.SlotName(slot) or ("#" .. tostring(itemID))
+    local r, g, b = 1, 1, 1
+    local quality = Plain(TryCall(I and I.GetItemQualityByID, itemID))
+    if type(quality) == "number" and I and I.GetItemQualityColor then
+        local qr, qg, qb = TryCall(I.GetItemQualityColor, quality)
+        qr, qg, qb = Plain(qr), Plain(qg), Plain(qb)
+        if type(qr) == "number" and type(qg) == "number" and type(qb) == "number" then r, g, b = qr, qg, qb end
+    end
+    tooltip:SetText(name, r, g, b)
+    local spells = TooltipSpells(slot, buff)
+    if #spells == 0 then
+        tooltip:AddLine(L["This trinket has no buff to track."], 1, 0.3, 0.3, true)
+        return
+    end
+    -- 法術資料沒載入：照暴雪的做法先只畫標題，載完再整個重畫
+    local SpellObj = _G.Spell
+    local pending = {}
+    if SpellObj and SpellObj.CreateFromSpellID then
+        for _, sp in ipairs(spells) do
+            local ok, obj = pcall(SpellObj.CreateFromSpellID, SpellObj, sp.id)
+            sp.obj = ok and obj or nil
+            if sp.obj and sp.obj.IsSpellDataCached then
+                local okc, cached = pcall(sp.obj.IsSpellDataCached, sp.obj)
+                if okc and cached == false then pending[#pending + 1] = sp.obj end
+            end
+        end
+    end
+    if #pending > 0 then
+        if refresh and owner then
+            local function Again()
+                if tipOwnerSerial[owner] ~= serial then return end           -- 中間換過內容（同一顆鈕重開也算）
+                if not (tooltip:IsShown() and tooltip:GetOwner() == owner) then return end
+                refresh()
+            end
+            for _, obj in ipairs(pending) do
+                if obj.ContinueOnSpellLoad then pcall(obj.ContinueOnSpellLoad, obj, Again) end
+            end
+        end
+        return
+    end
+    local loc
+    if _G.ItemLocation and ItemLocation.CreateFromEquipmentSlot then
+        local ok, l = pcall(ItemLocation.CreateFromEquipmentSlot, ItemLocation, slot)
+        if ok then loc = l end
+    end
+    for i, sp in ipairs(spells) do
+        if i > 1 then tooltip:AddLine(" ") end
+        local spellName = Plain(TryCall(C_Spell and C_Spell.GetSpellName, sp.id)) or ("#" .. tostring(sp.id))
+        tooltip:AddLine(spellName, 1, 1, 1)
+        local tex = Plain(TryCall(C_Spell and C_Spell.GetSpellTexture, sp.id))
+        if tex and tooltip.AddTexture then
+            -- 跟暴雪同一個擺法：32×32 貼在這一行左邊、往下佔兩行（設定表不收就退回行內小圖示）
+            local okT = pcall(tooltip.AddTexture, tooltip, tex, {
+                width = 32, height = 32,
+                region = Enum and Enum.TooltipTextureRelativeRegion and Enum.TooltipTextureRelativeRegion.LeftLine,
+                anchor = Enum and Enum.TooltipTextureAnchor and Enum.TooltipTextureAnchor.LeftTop,
+                margin = { left = 0, right = 8, top = 0, bottom = -20 },
+            })
+            if not okT then pcall(tooltip.AddTexture, tooltip, tex) end
+        end
+        tooltip:AddLine(C.SlotBuffLabel(sp.buff), 1, 1, 1, false, 40)
+        local desc
+        if sp.obj and loc and sp.obj.GetSpellDescriptionForItemLocation then
+            local ok, d = pcall(sp.obj.GetSpellDescriptionForItemLocation, sp.obj, loc)
+            if ok then desc = d end
+        end
+        if desc == nil and C_Spell and C_Spell.GetSpellDescription then desc = TryCall(C_Spell.GetSpellDescription, sp.id) end
+        if desc ~= nil and (ns.IsSecret(desc) or desc ~= "") then
+            tooltip:AddLine(" ")
+            tooltip:AddLine(desc, 0.1, 1, 0.1, true)          -- 說明照暴雪的綠字（秘密值原樣交給提示畫）
+        end
+    end
+end
+
 SpellsTable = function()
     local p = ns.profile
     local spec = ns.specID
@@ -949,9 +1098,16 @@ local function ValidCustom(e)
     if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] then return false end
     if e.kind == "item" then return type(e.itemID) == "number" end
     if e.kind == "slot" then return CUSTOM_SLOTS[e.slot] == true end
+    if e.kind == "slotbuff" then
+        return SLOTBUFF_SLOTS[e.slot] == true and (e.buff == nil or PositiveInt(e.buff))
+    end
     return type(e.spellID) == "number"
 end
 C.ValidCustom = ValidCustom
+
+-- 光環格形狀的種類（光環格、飾品欄增益）：條上有它 ⇒ 持有框是保護框、固定格位強制打開
+local function AuraShaped(kind) return kind == "aura" or kind == "slotbuff" end
+C.AuraShaped = AuraShaped
 
 -- 生效清單的 id → 那一項（同一個 id 只留第一個，跟原本「線性掃到第一個就回」同語意）。
 -- 跟著 EffectiveCustom 的 memo 走：它回同一張表 ⇒ 這張也不重建（換幀、customGen 變了它回新表，這裡跟著重建）
@@ -978,10 +1134,10 @@ end
 
 function C.IsAuraSlot(id)
     local e = C.CustomEntry(id)
-    return e ~= nil and e.kind == "aura"
+    return e ~= nil and AuraShaped(e.kind)
 end
 
--- 這條上有沒有保護框（有的話固定格位被強制打開）：光環格，**或**會疊增益按鈕的飾品欄（C.SlotOverlayIDs；
+-- 這條上有沒有保護框（有的話固定格位被強制打開）：光環格（含飾品欄增益），**或**會疊增益按鈕的飾品欄（C.SlotOverlayIDs；
 -- 疊層的持有框跟光環格一樣是條容器底下的保護框）。名字沿用，設定頁的黃字原因同一句。
 -- 暴雪的裝備欄冷卻格（C.ProxySlotOf 成立的）也算：暴雪沒給框時由我們代畫（Core/Bars.lua），代畫格就是飾品欄、
 -- 一樣會疊增益。**不管這一輪暴雪有沒有給框**（保守：給框時固定格位多開不會壞；跟著框的有無翻來翻去反而會在
@@ -1009,7 +1165,7 @@ function C.BarHasAuraSlot(barKey)
         for _, it in ipairs(Effective()) do
             local e = it.entry
             if ValidCustom(e) and e.bar == k then
-                if e.kind == "aura" then return true end
+                if AuraShaped(e.kind) then return true end
                 if e.kind == "slot" and C.SlotOverlayIDs(k, it.id, e.slot) then return true end
             end
         end
@@ -1085,7 +1241,28 @@ BuildCustomInfo = function(id)
         -- 範圍（"shared"｜"class"｜"spec"）；種族技能那一筆（解析成這個角色的那一個）多 racial
         scope = scope, racial = e.racial and true or nil,
     }
-    if e.kind == "slot" then
+    if e.kind == "slotbuff" then
+        -- 飾品欄增益：引擎當光環格畫（kind 回 "aura"，設定頁的光環格路徑照走），多 slotBuff。
+        -- 圖示用飾品圖示（占位也是）、名字「飾品名（增益 N）」；解不出增益（空格、沒有可追蹤的增益、
+        -- 存了第 3 個而這件只有 1 個）⇒ isKnown false、問號格（提示寫原因，C.SlotBuffTooltip）
+        local buff = PositiveInt(e.buff) and e.buff or 1
+        local ids = C.SlotBuffIDs(e.slot, buff)
+        local itemID = C.SlotItemID(e.slot)
+        info.kind, info.filter, info.buff = "aura", "HELPFUL", buff
+        info.slotBuff = { slot = e.slot, buff = buff }
+        info.itemID, info.spellID = itemID, ids[1]
+        info.slotName = C.SlotName(e.slot)
+        info.isKnown = #ids > 0
+        local I = C_Item
+        local itemName = itemID and Plain(Try(I and I.GetItemNameByID, itemID)) or nil
+        info.name = C.SlotBuffName(itemName or info.slotName or ("#" .. tostring(e.slot)), buff)
+        if info.isKnown then
+            info.icon = itemID and Plain(Try(I and I.GetItemIconByID, itemID)) or nil
+            if info.icon == nil then info.icon = Plain(Try(C_Spell and C_Spell.GetSpellTexture, ids[1])) end
+        else
+            info.icon = QUESTION
+        end
+    elseif e.kind == "slot" then
         -- 裝備欄位：圖示與名字照現在裝的物品；空格用空格圖與欄位名
         local itemID = C.SlotItemID(e.slot)
         info.itemID = itemID

@@ -24,6 +24,9 @@
 --                      （任何一層）、目標那一層已經有的也不收；
 --                      減益只收 C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret 的（玩家自己算友方，
 --                      友方減益不准用 ID 過濾，加了也是一個永遠不亮的格子）。
+--                      **「裝備欄位」那顆看條換**（2026-10-05）：核心／輔助／圖示群組照舊是「裝備欄位」（加冷卻格，增益時間照條層／
+--                      逐法術的「顯示增益持續時間」疊上去）；增益圖示列／增益長條／長條群組上換成「飾品欄增益」（Picker.AskSlotBuff：
+--                      兩格飾品各一列，列裡一個增益一顆鈕，鈕上是增益圖示＋名字、滑過是照裝備等級算過的效果說明）。
 -- 適用範圍（2026-10-03）：常用預設與自訂 ID 的彈窗底部一列「適用範圍」下拉（戰隊／這個職業／這個專精）＋下一列灰字，
 --   加到哪一層（Core/DB.lua 的 AddCustomTo）。每次開彈窗回到那一種的預設：藥水與治療石、團隊增益、裝備欄位、種族技能＝戰隊；
 --   防禦技能＝職業；手動輸入 ID（光環／法術／物品）＝專精；背包物品＝戰隊。
@@ -441,7 +444,11 @@ local function Build()
         local b = W.CreateButton(frame, def[2], "normal", 80, 22)
         W.FitButton(b, 80, 22)
         if kind == "slot" then
-            b:SetScript("OnClick", function() Picker.AskSlot() end)
+            -- 增益類的條上換成「飾品欄增益」（字在 Refresh 換）
+            b:SetScript("OnClick", function()
+                if Picker.WantsSlotBuff(curKey) then Picker.AskSlotBuff() else Picker.AskSlot() end
+            end)
+            sections.slotBtn = b
         elseif kind == "bag" then
             b:SetScript("OnClick", function() Picker.AskPreset("bag") end)
         else
@@ -539,9 +546,15 @@ function Picker.Refresh()
     y = y - ph - 14
 
     Place(sections.customHead, y); y = y - 16
-    -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），直接建議走物品 ID
+    -- 裝備欄那顆：增益類的條上是「飾品欄增益」（加只在增益生效時出現的格），其餘是「裝備欄位」（加冷卻格）
+    local buffMode = Picker.WantsSlotBuff(key)
+    sections.slotBtn:SetText(buffMode and L["Trinket buff"] or L["Equipment slot"])
+    W.FitButton(sections.slotBtn, 80, 22)
+    -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），指向那顆按鈕
     sections.customNote:SetText(L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
-        .. L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."])
+        .. (buffMode
+            and L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button instead: it follows whatever trinket is equipped."]
+            or L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."]))
     Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
     Place(sections.customRow, y)
     local _, bh = W.FlowLayout(sections.customRow, sections.customBtns, WIDTH - PAD * 2, 6, 4, 22)
@@ -1017,6 +1030,261 @@ function Picker.AskSlot()
 end
 
 ------------------------------------------------------------
+-- 飾品欄增益（2026-10-05）：只在飾品的增益生效時出現的格（存檔 { kind = "slotbuff", slot, buff = N }，引擎當光環格畫）
+--
+--   Picker.WantsSlotBuff(key)       這條的「裝備欄」鈕是不是「飾品欄增益」：增益圖示列、增益長條、長條群組 ⇒ true；
+--                                   核心／輔助／圖示群組 ⇒ false（那邊加冷卻格，增益時間疊在冷卻格上）
+--   Picker.SlotBuffRows(slots, indicesOf, added) → { { slot, buffs = { { buff, added }, … } }, … }   純函式
+--   Picker.AskSlotBuff()            開彈窗
+--
+-- 版面：兩格飾品各一列——上面一行飾品圖示＋「飾品 1：名字」（滑過是物品提示），下面是這件飾品**實際有幾個增益**
+-- 就幾顆鈕（Catalog.SlotBuffIndices；一個就一顆、三個以上照排，放不下換行、列跟著長）。鈕上畫增益的圖示＋名字，
+-- 滑過照暴雪飾品增益格的提示（Catalog.SlotBuffTooltip：飾品名、增益名、照裝備等級算過的效果說明）。
+-- 零個 ⇒ 那列不放鈕、灰字說明（空格／這件飾品沒有可追蹤的增益）。已加過的（這個專精看得到、或選的那一層已經有）
+-- ⇒ 字改「名字（已加入）」＋停用。點了加一筆、彈窗不關（另一個增益可以接著加）。
+-- 鈕從每列的池子拿（frame 刪不掉）；換裝、物品資料到了 ⇒ 下一幀重排（只在彈窗開著時聽）。
+------------------------------------------------------------
+-- 明文才收（秘密值、讀不到 ⇒ nil）；常用預設那一節也用
+local function PlainValue(fn, ...)
+    if not fn then return nil end
+    local ok, v = pcall(fn, ...)
+    if not ok or ns.IsSecret(v) then return nil end
+    return v
+end
+
+local function Added(e, scope) return AlreadyWhy(e, scope) ~= nil end
+
+local SB_ICON, SB_BTN_H, SB_GAP = 18, 24, 4
+local slotBuffPopup
+local LayoutSlotBuffPopup
+
+local BUFF_SOURCES = { buffs = true, buffbars = true }
+function Picker.WantsSlotBuff(key)
+    local b = key and BarCfg(key)
+    if not b then return false end
+    if BUFF_SOURCES[key] or BUFF_SOURCES[b.source] then return true end
+    return b.kind == "bars"
+end
+
+function Picker.SlotBuffRows(slots, indicesOf, added)
+    local out = {}
+    for _, slot in ipairs(slots or {}) do
+        local row = { slot = slot, buffs = {} }
+        for _, n in ipairs(indicesOf(slot) or {}) do
+            row.buffs[#row.buffs + 1] = { buff = n, added = (added and added(slot, n)) and true or false }
+        end
+        out[#out + 1] = row
+    end
+    return out
+end
+
+local function SlotBuffEntry(slot, buff, key)
+    return { kind = "slotbuff", slot = slot, buff = buff, placeholder = true, bar = key }
+end
+Picker.SlotBuffEntry = SlotBuffEntry
+
+-- 一顆增益鈕的圖示與名字（第一個法術；讀不到 ⇒ 問號＋「增益 N」）
+local function BuffLook(slot, buff)
+    local ids = ns.Catalog.SlotBuffIDs(slot, buff)
+    local id = ids[1]
+    local tex = id and PlainValue(C_Spell and C_Spell.GetSpellTexture, id) or nil
+    local name = id and PlainValue(C_Spell and C_Spell.GetSpellName, id) or nil
+    if type(name) ~= "string" or name == "" then name = ns.Catalog.SlotBuffLabel(buff) end
+    return tex or QUESTION, name
+end
+
+local function ShowBuffTip(b)
+    if not b.slot then return end
+    GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+    ns.Catalog.SlotBuffTooltip(GameTooltip, b.slot, b.buff, function() ShowBuffTip(b) end)
+    GameTooltip:Show()
+end
+
+local function BuffButton(row, i)
+    local b = row.btns[i]
+    if b then return b end
+    b = CreateFrame("Button", nil, row.flow, "BackdropTemplate")
+    W.Stylize(b, { 0.115, 0.115, 0.115, 1 }, { 0, 0, 0, 1 })
+    b:SetHeight(SB_BTN_H)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetSize(SB_ICON, SB_ICON)
+    b.icon:SetPoint("LEFT", 3, 0)
+    b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    b.label = b:CreateFontString(nil, "OVERLAY")
+    b.label:SetFontObject(W.fontNormal)
+    b.label:SetJustifyH("LEFT")
+    b.label:SetWordWrap(false)
+    b.label:SetPoint("LEFT", b.icon, "RIGHT", 6, 0)
+    b.label:SetPoint("RIGHT", b, "RIGHT", -6, 0)
+    -- 停用的鈕照樣收滑過：已加入的也看得到效果說明
+    b:SetMotionScriptsWhileDisabled(true)
+    b:SetScript("OnEnter", function(self)
+        if self:IsEnabled() then self:SetBackdropBorderColor(W.Accent(1)) end
+        ShowBuffTip(self)
+    end)
+    b:SetScript("OnLeave", function(self)
+        self:SetBackdropBorderColor(0, 0, 0, 1)
+        GameTooltip:Hide()
+    end)
+    b:SetScript("OnClick", function(self)
+        local f = slotBuffPopup
+        if not (f and self.slot) then return end
+        local scope = f.scopeRow:GetScope()
+        local e = SlotBuffEntry(self.slot, self.buff, curKey)
+        local why = AlreadyWhy(e, scope)
+        if why then Notice(why) return end
+        if Commit(e, scope) and f:IsShown() then LayoutSlotBuffPopup(f) end
+    end)
+    row.btns[i] = b
+    return b
+end
+
+local function BuildSlotBuffPopup()
+    local f = W.CreateFrame(nil, ns.Options.panel, SLOT_W, 150)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetFrameLevel(410)
+    f:SetBackdropBorderColor(W.Accent(1))
+    f:SetPoint("CENTER")
+    W.CloseOnEscape(f)
+    f.title = Text(f, false)
+    f.title:SetPoint("TOPLEFT", PAD, -12)
+    f.title:SetWidth(SLOT_W - PAD * 2)
+    f.title:SetText(L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."])
+    f.rows = {}
+    for i, slot in ipairs(ns.Catalog.SLOTBUFF_SLOT_ORDER) do
+        local row = { slot = slot, btns = {} }
+        -- 上面一行：飾品圖示＋「飾品 1：名字」，滑過是那件物品的提示
+        local head = CreateFrame("Frame", nil, f)
+        head:SetSize(SLOT_W - PAD * 2, 20)
+        head:EnableMouse(true)
+        head.icon = head:CreateTexture(nil, "ARTWORK")
+        head.icon:SetSize(18, 18)
+        head.icon:SetPoint("LEFT", 0, 0)
+        head.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        head.label = Text(head, false)
+        head.label:SetPoint("LEFT", head.icon, "RIGHT", 6, 0)
+        head.label:SetWidth(SLOT_W - PAD * 2 - 24)
+        head.label:SetWordWrap(false)
+        head:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            local shown = row.itemID and pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", slot)
+            if not shown then
+                GameTooltip:SetText(SlotLabel(slot))
+                GameTooltip:AddLine(L["(empty)"], 0.8, 0.8, 0.8)
+            end
+            GameTooltip:Show()
+        end)
+        head:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        row.head = head
+        -- 下面：增益鈕（流式排版的容器）或灰字說明
+        row.flow = CreateFrame("Frame", nil, f)
+        row.flow:SetSize(SLOT_W - PAD * 2, SB_BTN_H)
+        row.note = Text(f, true)
+        f.rows[i] = row
+    end
+    f.scopeRow = Picker.ScopeRow(f, SLOT_W - PAD * 2, function() if f:IsShown() then LayoutSlotBuffPopup(f) end end)
+    f.close = W.CreateButton(f, L["Close"], "normal", 90, 22)
+    W.FitButton(f.close, 90, 22)
+    f.close:SetPoint("BOTTOMRIGHT", -PAD, 12)
+    f.close:SetScript("OnClick", function() f:Hide() end)
+    f:Hide()
+    ns.RegisterCallback("OptionsHidden", "picker_slotbuff", function() f:Hide() end)
+    -- 開著時換裝、物品／法術資料到了：下一幀重排（Catalog 在換裝事件派送當下就作廢了增益快取）
+    local armed = false
+    local function Soon()
+        if armed then return end
+        armed = true
+        ns.Defer(function() armed = false; if f:IsShown() then LayoutSlotBuffPopup(f) end end)
+    end
+    f:HookScript("OnShow", function()
+        ns.Events.Register("PLAYER_EQUIPMENT_CHANGED", "picker_slotbuff", Soon)
+        ns.Events.Register("GET_ITEM_INFO_RECEIVED", "picker_slotbuff", Soon)
+    end)
+    f:HookScript("OnHide", function()
+        ns.Events.Unregister("PLAYER_EQUIPMENT_CHANGED", "picker_slotbuff")
+        ns.Events.Unregister("GET_ITEM_INFO_RECEIVED", "picker_slotbuff")
+    end)
+    return f
+end
+
+LayoutSlotBuffPopup = function(f)
+    local scope = f.scopeRow:GetScope()
+    local W_IN = SLOT_W - PAD * 2
+    local data = Picker.SlotBuffRows(ns.Catalog.SLOTBUFF_SLOT_ORDER, ns.Catalog.SlotBuffIndices, function(slot, n)
+        return Added(SlotBuffEntry(slot, n, curKey), scope)
+    end)
+    local y = -(12 + (f.title:GetStringHeight() or 14) + 12)
+    for i, row in ipairs(f.rows) do
+        local d = data[i]
+        local slot = row.slot
+        local itemID = ns.Catalog.SlotItemID(slot)
+        row.itemID = itemID
+        local name = itemID and PlainValue(C_Item and C_Item.GetItemNameByID, itemID) or nil
+        local icon = itemID and PlainValue(C_Item and C_Item.GetItemIconByID, itemID) or nil
+        local token = ns.Catalog.EQUIP_SLOT_NAME[slot]
+        if not icon and token and GetInventorySlotInfo then
+            local ok, _, tex = pcall(GetInventorySlotInfo, token)
+            if ok and not ns.IsSecret(tex) then icon = tex end
+        end
+        local head = row.head
+        head.icon:SetTexture(icon or QUESTION)
+        head.icon:SetDesaturated(itemID == nil)
+        head.label:SetText(("%s：%s"):format(SlotLabel(slot), name or L["(empty)"]))
+        head:ClearAllPoints()
+        head:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+        y = y - 20 - 4
+        local list = {}
+        for j, bd in ipairs(d and d.buffs or {}) do
+            local b = BuffButton(row, j)
+            b.slot, b.buff = slot, bd.buff
+            local tex, bname = BuffLook(slot, bd.buff)
+            b.icon:SetTexture(tex)
+            b.icon:SetDesaturated(bd.added)
+            -- 做過的動作：字改現況＋停用（停用的鈕照樣滑得出效果說明）
+            b.label:SetText(bd.added and L["%s (added)"]:format(bname) or bname)
+            b.label:SetTextColor(bd.added and 0.5 or 1, bd.added and 0.5 or 1, bd.added and 0.5 or 1)
+            b:SetEnabled(not bd.added)
+            b:SetBackdropBorderColor(0, 0, 0, 1)
+            local tw = b.label:GetStringWidth() or 60
+            b:SetWidth(math.min(W_IN, math.ceil(3 + SB_ICON + 6 + tw + 8)))
+            b:Show()
+            list[#list + 1] = b
+        end
+        for j = #list + 1, #row.btns do row.btns[j]:Hide() end
+        row.flow:ClearAllPoints()
+        row.flow:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+        if #list > 0 then
+            row.note:Hide()
+            row.flow:Show()
+            local _, fh = W.FlowLayout(row.flow, list, W_IN, SB_GAP, SB_GAP, SB_BTN_H)
+            row.flow:SetHeight(fh)
+            y = y - fh - 12
+        else
+            row.flow:Hide()
+            row.note:SetText(itemID and L["This trinket has no buff to track."] or L["Nothing is equipped in this slot."])
+            row.note:ClearAllPoints()
+            row.note:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+            row.note:Show()
+            y = y - (row.note:GetStringHeight() or 14) - 12
+        end
+    end
+    f.scopeRow:ClearAllPoints()
+    f.scopeRow:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
+    y = y - f.scopeRow:Measure()
+    P.Height(f, -y + 22 + 12 + 10)
+end
+
+function Picker.AskSlotBuff()
+    if not ns.specID then Notice(L["Pick a specialization first."]) return end
+    slotBuffPopup = slotBuffPopup or BuildSlotBuffPopup()
+    local f = slotBuffPopup
+    f.scopeRow:SetScope("shared")          -- 跟飾品欄同一個預設：飾品每個角色都有
+    -- 先顯示再排：說明換行的高度要顯示之後才量得準（同一幀內，畫面上看不到中間狀態）
+    f:Show()
+    LayoutSlotBuffPopup(f)
+end
+
+------------------------------------------------------------
 -- 常用預設的清單彈窗（資料：Core/Presets.lua）
 --
 --   Picker.PresetRows(kind, key, scope) → { { kind = "spell"|"item"|"aura", id, icon, name, added, make(), [count] }, … }
@@ -1043,14 +1311,6 @@ local PRESET_TITLES = {
 -- 每一種的預設範圍（使用者 2026-10-03 定案；背包物品 2026-10-04，F6）
 local PRESET_SCOPE = { racials = "shared", defensives = "class", items = "shared", auras = "shared", bag = "shared" }
 
-local function PlainValue(fn, ...)
-    if not fn then return nil end
-    local ok, v = pcall(fn, ...)
-    if not ok or ns.IsSecret(v) then return nil end
-    return v
-end
-
-local function Added(e, scope) return AlreadyWhy(e, scope) ~= nil end
 
 local function SpellRow(id, scope)
     return {

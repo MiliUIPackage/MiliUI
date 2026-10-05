@@ -1196,6 +1196,206 @@ do
         C.Refresh("test")
     end
 
+    ------------------------------------------------------------
+    -- 15. 飾品欄增益（C，kind "slotbuff"）：身分、驗證、重複、範圍搬移；Catalog.Info（問號格）；引擎當光環格
+    --     （第幾個增益認不同的法術、占位用飾品圖示、換飾品換容器、戰鬥中只記旗標、存了第 3 個而這件只有 1 個不報錯）；
+    --     BarHasAuraSlot／IsAuraSlot；SlotBuffTooltip（標題、每個增益一段、資料沒載入時等載完、序號擋舊的）
+    ------------------------------------------------------------
+    do
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+        equipped[13], equipped[14] = 270175, nil
+        linked[801] = { 13, 1, { 1297761 } }
+        linked[802] = { 13, 2, { 1305376 } }
+        C.InvalidateSlotBuffs()
+
+        -- 身分與驗證
+        eq("身分：slotbuff:13:2", DB.CustomIdentity({ kind = "slotbuff", slot = 13, buff = 2 }), "slotbuff:13:2")
+        eq("身分：buff 缺 ＝ 1", DB.CustomIdentity({ kind = "slotbuff", slot = 13 }), "slotbuff:13:1")
+        check("ValidCustom：槽 13 buff 5（不設上限）", C.ValidCustom({ kind = "slotbuff", slot = 13, buff = 5 }))
+        check("ValidCustom：buff 缺也收", C.ValidCustom({ kind = "slotbuff", slot = 14 }))
+        check("ValidCustom：不是飾品欄的槽不收", not C.ValidCustom({ kind = "slotbuff", slot = 1, buff = 1 }))
+        check("ValidCustom：buff 0 不收", not C.ValidCustom({ kind = "slotbuff", slot = 13, buff = 0 }))
+        check("ValidCustom：buff 1.5 不收", not C.ValidCustom({ kind = "slotbuff", slot = 13, buff = 1.5 }))
+        eq("AddCustom：不是飾品欄的槽 ⇒ nil", DB.AddCustom({ kind = "slotbuff", slot = 16, buff = 1, bar = "buffs" }), nil)
+        local i1 = DB.AddCustom({ kind = "slotbuff", slot = 13, buff = 1, placeholder = true, bar = "buffs" })
+        local i2 = DB.AddCustom({ kind = "slotbuff", slot = 13, buff = 2, placeholder = true, bar = "buffs" })
+        local i3 = DB.AddCustom({ kind = "slotbuff", slot = 13, buff = 3, placeholder = true, bar = "buffs" })
+        check("AddCustom：三筆", i1 and i2 and i3)
+        eq("FindCustom：槽＋第幾個", DB.FindCustom("slotbuff", 13, 2), i2)
+        eq("FindCustom：第 4 個沒有", DB.FindCustom("slotbuff", 13, 4), nil)
+        eq("FindCustomLike：同槽同 buff", DB.FindCustomLike({ kind = "slotbuff", slot = 13, buff = 3 }), i3)
+        eq("FindCustomLike：別的槽不算", DB.FindCustomLike({ kind = "slotbuff", slot = 14, buff = 1 }), nil)
+        check("重複：這個專精看得到同槽同 buff", DB.FindEffective({ kind = "slotbuff", slot = 13, buff = 1 }) ~= nil)
+        check("重複：第 4 個不算", DB.FindEffective({ kind = "slotbuff", slot = 13, buff = 4 }) == nil)
+        check("重複：跟飾品欄（冷卻格）不混", DB.FindEffective({ kind = "slot", slot = 13 }) == nil)
+
+        -- Catalog.Info：光環格形狀、飾品圖示、「飾品名（增益 N）」；第 3 個這件沒有 ⇒ 問號格
+        local id1, id2, id3 = "c:" .. i1, "c:" .. i2, "c:" .. i3
+        local inf1 = C.Info(id1)
+        check("Info：kind aura＋slotBuff", inf1 and inf1.kind == "aura" and inf1.slotBuff and inf1.slotBuff.slot == 13
+            and inf1.slotBuff.buff == 1)
+        eq("Info：圖示＝飾品圖示", inf1 and inf1.icon, 800000 + 270175)
+        eq("Info：名字", inf1 and inf1.name, "物品270175 (buff 1)")
+        eq("Info：spellID ＝ 第 1 個增益", inf1 and inf1.spellID, 1297761)
+        eq("Info：解得出 ⇒ isKnown", inf1 and inf1.isKnown, true)
+        local inf3 = C.Info(id3)
+        eq("Info：第 3 個這件沒有 ⇒ isKnown false", inf3 and inf3.isKnown, false)
+        eq("Info：第 3 個 ⇒ 問號", inf3 and inf3.icon, 134400)
+        check("IsAuraSlot：飾品欄增益算", C.IsAuraSlot(id1))
+        check("BarHasAuraSlot：增益圖示列有飾品欄增益", C.BarHasAuraSlot("buffs"))
+        eqList("清單：照順序列在增益圖示列", C.Bar("buffs"), { 31, 32, id1, id2, id3 })
+
+        -- 引擎：光環格那一套
+        CU.Sync()
+        local r1, r2, r3 = CU.Get(id1), CU.Get(id2), CU.Get(id3)
+        check("rec：光環格（kind aura、HELPFUL、slotBuff）", r1 and r1.kind == "aura" and r1.filter == "HELPFUL"
+            and r1.slotBuff and r1.slotBuff.buff == 1)
+        check("rec：三個 buff 各一顆（身分不同）", r1 ~= r2 and r2 ~= r3)
+        local bc = Obj("Frame"); bc.level = 30
+        CU.Place(r1, bc, { x = 0, y = 0, w = 36, h = 36 }, "buffs", 20)
+        CU.Place(r2, bc, { x = 40, y = 0, w = 36, h = 36 }, "buffs", 20)
+        local ok3, err3 = pcall(CU.Place, r3, bc, { x = 80, y = 0, w = 36, h = 36 }, "buffs", 20)
+        check("存了第 3 個、這件只有 2 個：放格不報錯", ok3, err3)
+        local inc1 = r1.container and r1.container.slot.opts.candidateFilters.includeSpellIDs or {}
+        local inc2 = r2.container and r2.container.slot.opts.candidateFilters.includeSpellIDs or {}
+        check("buff 1：容器只認第 1 個增益", inc1[1297761] and not inc1[1305376])
+        check("buff 2：容器只認第 2 個增益", inc2[1305376] and not inc2[1297761])
+        eq("buff 2：rec.spellID ＝ 第 2 個增益", r2.spellID, 1305376)
+        eq("buff 3：解不出 ⇒ 不建容器", r3.container, nil)
+        eq("buff 3：持有框照放（位置照佔）", r3.frame and r3.frame.shown, true)
+        local ph3 = r3.frame and r3.frame.placeholder
+        eq("buff 3：占位用飾品圖示", ph3 and ph3.last_SetTexture and ph3.last_SetTexture[1], 800000 + 270175)
+        eq("buff 3：占位顯示", ph3 and ph3.shown, true)
+        eq("buff 1：持有框 parent ＝ 條容器", r1.frame:GetParent(), bc)
+
+        -- 換飾品（脫戰）：buff 1 換成新飾品的使用效果、換容器；buff 2 這件沒有 ⇒ 舊容器收起來
+        local c1, c2, s1 = r1.container, r2.container, r1.sig
+        equipped[13] = 280000
+        linked[801], linked[802] = nil, nil
+        C.InvalidateSlotBuffs()
+        CU.Place(r1, bc, { x = 0, y = 0, w = 36, h = 36 }, "buffs", 21)
+        CU.Place(r2, bc, { x = 40, y = 0, w = 36, h = 36 }, "buffs", 21)
+        eq("換飾品：buff 1 的 spellID", r1.spellID, 1400000)
+        check("換飾品：buff 1 簽章變、換容器", r1.sig ~= s1 and r1.container ~= c1)
+        check("換飾品：新容器認新的增益", r1.container.slot.opts.candidateFilters.includeSpellIDs[1400000] == true)
+        eq("換飾品：buff 2 解不出 ⇒ 容器拿掉", r2.container, nil)
+        eq("換飾品：buff 2 的舊容器收起來", c2.shown, false)
+        eq("換飾品：Info buff 2 變問號", C.Info(id2).isKnown, false)
+
+        -- 戰鬥中換回來：只記旗標，脫戰建
+        equipped[13] = 270175
+        linked[801] = { 13, 1, { 1297761 } }
+        linked[802] = { 13, 2, { 1305376 } }
+        C.InvalidateSlotBuffs()
+        local b0 = CU.builds
+        combat = true
+        CU.Place(r2, bc, { x = 40, y = 0, w = 36, h = 36 }, "buffs", 22)
+        eq("戰鬥中：不建容器", CU.builds, b0)
+        check("戰鬥中：記旗標", (CU.IsPending(r2)))
+        combat = false
+        CU.OnRegen()
+        check("脫戰：補建（buff 2 回來）", r2.container ~= nil
+            and r2.container.slot.opts.candidateFilters.includeSpellIDs[1305376] == true)
+
+        -- 空格：Info 問號、占位用欄位空格圖（沒有 API 就問號）、不報錯
+        equipped[13] = nil
+        C.InvalidateSlotBuffs()
+        eq("空格：Info 問號", C.Info(id1).isKnown, false)
+        local okE = pcall(CU.Place, r1, bc, { x = 0, y = 0, w = 36, h = 36 }, "buffs", 23)
+        check("空格：放格不報錯", okE)
+        equipped[13] = 270175
+        C.InvalidateSlotBuffs()
+
+        -- 範圍搬移：專精 → 戰隊（新 id）；戰隊已經有同身分 ⇒ exists
+        local nid = DB.MoveCustomScope(id3, "shared")
+        check("範圍搬移：新 id 在戰隊層", nid and DB.ParseCustomID(nid) == "shared")
+        eq("範圍搬移：戰隊層找得到", DB.FindInScope("shared", { kind = "slotbuff", slot = 13, buff = 3 }) ~= nil, true)
+        local i3b = DB.AddCustom({ kind = "slotbuff", slot = 13, buff = 3, bar = "buffs" })
+        local _, why = DB.MoveCustomScope("c:" .. i3b, "shared")
+        eq("範圍搬移：目標層已經有 ⇒ exists", why, "exists")
+        p.customShared = nil
+        DB.TouchCustom()
+
+        -- 滑鼠提示（Catalog.SlotBuffTooltip）
+        local function FakeTip(owner)
+            local t = { lines = {}, shown = true, owner = owner, textures = 0 }
+            function t:SetText(txt, r, g, b) self.title = { txt, r, g, b }; self.lines = {} end
+            function t:AddLine(txt, r, g, b, wrap, off) self.lines[#self.lines + 1] = { txt, r, g, b, wrap, off } end
+            function t:AddTexture() self.textures = self.textures + 1 end
+            function t:GetOwner() return self.owner end
+            function t:IsShown() return self.shown end
+            return t
+        end
+        local function Has(t, txt)
+            for _, l in ipairs(t.lines) do if l[1] == txt then return true end end
+            return false
+        end
+        env.C_Item.GetItemQualityByID = function() return 4 end
+        env.C_Item.GetItemQualityColor = function() return 0.64, 0.21, 0.93 end
+        env.C_Spell.GetSpellDescription = function(id) return "說明" .. id end
+        local cached = { [1297761] = true, [1305376] = true }
+        local waiting = {}
+        env.Spell = {
+            CreateFromSpellID = function(_, id)
+                return {
+                    IsSpellDataCached = function() return cached[id] == true end,
+                    ContinueOnSpellLoad = function(_, fn) waiting[#waiting + 1] = fn end,
+                    GetSpellDescriptionForItemLocation = function(_, loc) return "裝等說明" .. id .. "@" .. tostring(loc and loc.slot) end,
+                }
+            end,
+        }
+        env.ItemLocation = { CreateFromEquipmentSlot = function(_, slot) return { slot = slot } end }
+        local owner = Obj("Frame")
+        local tip = FakeTip(owner)
+        C.SlotBuffTooltip(tip, 13, 2)
+        eq("提示：標題＝飾品名", tip.title and tip.title[1], "物品270175")
+        eq("提示：標題品質色", tip.title and tip.title[2], 0.64)
+        check("提示：增益名", Has(tip, "法術1305376"))
+        check("提示：照裝備等級算過的說明（ItemLocation 是那一格）", Has(tip, "裝等說明1305376@13"))
+        check("提示：只畫第 2 個增益", not Has(tip, "法術1297761"))
+        check("提示：增益標籤", Has(tip, "Buff 2"))
+        eq("提示：一個增益一個圖示", tip.textures, 1)
+        local all = FakeTip(owner)
+        C.SlotBuffTooltip(all, 13, nil)
+        check("提示：buff nil ＝ 全部增益", Has(all, "法術1297761") and Has(all, "法術1305376")
+            and Has(all, "Buff 1") and Has(all, "Buff 2"))
+        local none = FakeTip(owner)
+        C.SlotBuffTooltip(none, 13, 3)
+        check("提示：第 3 個這件沒有 ⇒ 原因", Has(none, "This trinket has no buff to track."))
+        equipped[14] = nil
+        local empty = FakeTip(owner)
+        C.SlotBuffTooltip(empty, 14, 1)
+        check("提示：空格 ⇒ 欄位名＋（空的）", Has(empty, "(empty)"))
+        -- 資料沒載入：只畫標題、等載完；提示還開著、同一個擁有者、中間沒被蓋過才刷
+        cached[1305376] = false
+        local refreshed = 0
+        local lt = FakeTip(owner)
+        C.SlotBuffTooltip(lt, 13, 2, function() refreshed = refreshed + 1 end)
+        eq("沒載入：只有標題", #lt.lines, 0)
+        eq("沒載入：等一個", #waiting, 1)
+        waiting[1]()
+        eq("載完：刷新一次", refreshed, 1)
+        C.SlotBuffTooltip(lt, 13, 2, function() refreshed = refreshed + 100 end)
+        eq("沒載入：又等一個", #waiting, 2)
+        local stale = waiting[2]
+        C.SlotBuffTooltip(lt, 13, 1, function() refreshed = refreshed + 1000 end)   -- 同一顆擁有者換成別的內容
+        stale()
+        eq("被蓋過的舊等待不刷", refreshed, 1)
+        C.SlotBuffTooltip(lt, 13, 2, function() refreshed = refreshed + 10 end)
+        lt.shown = false
+        waiting[#waiting]()
+        eq("提示關了不刷", refreshed, 1)
+        lt.shown, lt.owner = true, Obj("Frame")
+        waiting[#waiting]()
+        eq("擁有者換了不刷", refreshed, 1)
+        env.Spell, env.ItemLocation = nil, nil
+        env.C_Item.GetItemQualityByID, env.C_Item.GetItemQualityColor, env.C_Spell.GetSpellDescription = nil, nil, nil
+
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+    end
+
     for i = #list, 1, -1 do list[i] = nil end
     CU.Sync()
     env.CreateFrame, env.UIParent, env.InCombatLockdown, ns.Events = savedCF, savedUI, savedICL, savedEv

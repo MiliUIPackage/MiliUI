@@ -338,6 +338,8 @@ local function Debug(silent)
         for _, it in ipairs(items) do
             local e = it.entry
             local what = type(e) == "table" and (e.kind or "?") .. ":" .. tostring(e.spellID or e.itemID or e.slot)
+                .. (e.kind == "slotbuff" and ("#" .. tostring(e.buff or 1) .. "→"
+                    .. table.concat((ns.Catalog.SlotBuffIDs(e.slot, e.buff or 1)), "/")) or "")
                 .. (e.racial and "（種族技能）" or "") or "壞資料"
             p(("    %s  %s  %s  條=%s"):format(it.id, SCOPE_TEXT[it.scope] or it.scope, what,
                 tostring(type(e) == "table" and e.bar or nil)))

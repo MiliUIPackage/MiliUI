@@ -781,8 +781,15 @@ end
 local function ShowTip(c)
     if c.isPlus or c.dragging then return end
     GameTooltip:SetOwner(c, "ANCHOR_TOP")
-    GameTooltip:SetText(c.name or "")
-    if c.custom and not c.known then
+    -- 飾品欄增益：上半段跟挑選器的增益鈕同一支（飾品名、增益名、照裝備等級算過的效果說明；解不出來寫原因）
+    local info = c.custom and ns.Catalog.Info(c.id)
+    local sb = info and info.slotBuff
+    if sb then
+        ns.Catalog.SlotBuffTooltip(GameTooltip, sb.slot, sb.buff, function() ShowTip(c) end)
+    else
+        GameTooltip:SetText(c.name or "")
+    end
+    if c.custom and not c.known and not sb then
         GameTooltip:AddLine(L["Not learned"], 1, 0.3, 0.3)
     end
     if c.talentBlocked then

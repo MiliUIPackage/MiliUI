@@ -1191,11 +1191,11 @@ function DB.DeleteBar(key)
             if type(spec.order) == "table" then spec.order[key] = nil end
         end
     end
-    -- 自訂項目沒有「原本的暴雪那條」可以回去：光環格回增益圖示、法術／物品回核心技能（三層都是）
+    -- 自訂項目沒有「原本的暴雪那條」可以回去：光環格（含飾品欄增益）回增益圖示、法術／物品回核心技能（三層都是）
     local function Rehome(list)
         for _, e in ipairs(list) do
             if type(e) == "table" and e.bar == key then
-                e.bar = (e.kind == "aura") and "buffs" or "essential"
+                e.bar = (e.kind == "aura" or e.kind == "slotbuff") and "buffs" or "essential"
             end
         end
     end
@@ -1406,6 +1406,8 @@ end
 -- 自訂項目：spells[specID].custom = { { kind, spellID|itemID, filter, placeholder, bar }, … }
 --
 --   kind         "aura"（光環格）| "spell"（法術冷卻）| "item"（物品冷卻）| "slot"（裝備欄位：slot = 13／14，追蹤裝在那一格的物品）
+--                | "slotbuff"（飾品欄增益：slot = 13／14、buff = N（暴雪的 buffSlot，正整數、不設上限、缺 ＝ 1），
+--                  那件飾品第 N 個增益生效時才出現的光環格；身分「slotbuff:<slot>:<N>」，同一層同槽同 N 只能一筆）
 --   filter       光環格才有："HELPFUL" | "HARMFUL"
 --   placeholder  光環格才有：光環不在時畫去飽和的占位圖示
 --   bar          放在哪一條（只收圖示類的條）
@@ -1432,7 +1434,7 @@ end
 --   寬的那筆對這個專精當不存在（DB.ResolveScopes，純函式）。
 --   舊存檔沒有這兩張表 ＝ 只有專精層，行為跟以前一樣（不遷移、DB_VERSION 不動）。
 ------------------------------------------------------------
-DB.CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, racial = true }
+DB.CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true, racial = true }
 
 -- 範圍：越大越窄（窄的蓋寬的）
 DB.SCOPE_RANK = { shared = 1, class = 2, spec = 3 }
@@ -1545,6 +1547,10 @@ function DB.CustomIdentity(e)
     if k == "racial" then return "racial" end
     if k == "item" then return e.itemID ~= nil and ("item:" .. tostring(e.itemID)) or nil end
     if k == "slot" then return e.slot ~= nil and ("slot:" .. tostring(e.slot)) or nil end
+    if k == "slotbuff" then
+        if e.slot == nil then return nil end
+        return "slotbuff:" .. tostring(e.slot) .. ":" .. tostring(PositiveInt(e.buff) and e.buff or 1)
+    end
     if e.spellID == nil then return nil end
     if k == "spell" then return "spell:" .. tostring(e.spellID) end
     if k == "aura" then
@@ -1737,13 +1743,16 @@ function DB.FindEffective(e)
     return nil
 end
 
--- 同一個專精裡已經有同樣的項目（同種類、同 ID、光環還要同 filter）
+-- 同一個專精裡已經有同樣的項目（同種類、同 ID、光環還要同 filter）。
+-- 飾品欄增益（kind "slotbuff"）：id ＝ 槽、filter 的位置放第幾個增益（缺 ＝ 1）
 function DB.FindCustom(kind, id, filter, specID)
     for i, e in ipairs(DB.CustomList(false, specID) or {}) do
         if type(e) == "table" and e.kind == kind then
             local same
             if kind == "item" then same = e.itemID == id
             elseif kind == "slot" then same = e.slot == id
+            elseif kind == "slotbuff" then
+                same = e.slot == id and (PositiveInt(e.buff) and e.buff or 1) == (PositiveInt(filter) and filter or 1)
             else same = e.spellID == id and (kind ~= "aura" or (e.filter or "HELPFUL") == (filter or "HELPFUL")) end
             if same then return i end
         end
@@ -1755,17 +1764,30 @@ end
 function DB.FindCustomLike(e, specID)
     if type(e) ~= "table" then return nil end
     local id
+    local filter = e.filter
     if e.kind == "item" then id = e.itemID
     elseif e.kind == "slot" then id = e.slot
+    elseif e.kind == "slotbuff" then id, filter = e.slot, e.buff
     else id = e.spellID end
     if id == nil then return nil end
-    return DB.FindCustom(e.kind, id, e.filter, specID)
+    return DB.FindCustom(e.kind, id, filter, specID)
+end
+
+-- 裝備欄位／飾品欄增益的槽對不對（其他種類一律 true）
+local function SlotEntryOK(entry)
+    local C = ns.Catalog
+    if entry.kind == "slot" then return (C and C.CUSTOM_SLOTS[entry.slot]) == true end
+    if entry.kind == "slotbuff" then
+        return (C and C.SLOTBUFF_SLOTS and C.SLOTBUFF_SLOTS[entry.slot]) == true
+            and (entry.buff == nil or PositiveInt(entry.buff))
+    end
+    return true
 end
 
 -- 新增（專精層），回傳 index（沒有專精 ⇒ nil）
 function DB.AddCustom(entry)
     if type(entry) ~= "table" or not DB.CUSTOM_KINDS[entry.kind] then return nil end
-    if entry.kind == "slot" and not (ns.Catalog and ns.Catalog.CUSTOM_SLOTS[entry.slot]) then return nil end
+    if not SlotEntryOK(entry) then return nil end
     local list = DB.CustomList(true)
     if not list then return nil end
     list[#list + 1] = entry
@@ -1780,7 +1802,7 @@ function DB.AddCustomTo(scope, entry)
     end
     if not DB.SCOPE_RANK[scope] then return nil end
     if type(entry) ~= "table" or not DB.CUSTOM_KINDS[entry.kind] then return nil end
-    if entry.kind == "slot" and not (ns.Catalog and ns.Catalog.CUSTOM_SLOTS[entry.slot]) then return nil end
+    if not SlotEntryOK(entry) then return nil end
     if not ns.specID then return nil end          -- 跟專精層同一個前提（設定頁要先有專精）
     local list = DB.ScopeList(scope, true)
     if not list then return nil end

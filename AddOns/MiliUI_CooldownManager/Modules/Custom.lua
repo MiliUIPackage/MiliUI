@@ -8,6 +8,8 @@
 --   ns.Custom.Records() / ForEachPlaced(fn) / Counts()
 --   飾品欄（kind = "slot"）的冷卻格上另疊一顆增益按鈕（rec.buffOverlay），見「飾品欄的增益疊層」那一節
 --   ns.Custom.Proxy(cooldownID, slot, barKey)  暴雪沒給框的裝備欄冷卻格由我們代畫（飾品欄形狀），見「代畫」那一節
+--   飾品欄增益（存檔 kind = "slotbuff"）在這裡就是光環格：rec.kind = "aura"、rec.slotBuff = { slot, buff }，
+--   認的法術照現在裝的飾品解（Catalog.SlotBuffIDs，經 CU.AuraIDsOf），見「飾品欄增益」那一節
 --
 -- 資料在三層（Core/DB.lua：戰隊 customShared "w:<uid>"、職業 customClass "k:<uid>"、專精 spells[specID].custom
 -- "c:<index>"），這裡只吃合併後的生效清單（DB.EffectiveCustom）；框依「身分」池化
@@ -148,6 +150,11 @@ function CU.Get(id) return id ~= nil and byId[id] or nil end
 local function IdentityKey(e)
     if e.kind == "item" then return "item:" .. e.itemID end
     if e.kind == "slot" then return "slot:" .. e.slot end
+    if e.kind == "slotbuff" then
+        local b = e.buff
+        if not (type(b) == "number" and b > 0 and b == math.floor(b)) then b = 1 end
+        return "slotbuff:" .. e.slot .. ":" .. b
+    end
     if e.kind == "spell" then return "spell:" .. e.spellID end
     return "aura:" .. e.spellID .. ":" .. (e.filter == "HARMFUL" and "HARMFUL" or "HELPFUL")
 end
@@ -1790,6 +1797,41 @@ local function EnsureContainer(rec, barKey, w, h)
     rec.container, rec.sig, rec.containers = c, st.sig, holder.containers
 end
 
+------------------------------------------------------------
+-- 飾品欄增益（rec.slotBuff）
+--
+-- 存檔 { kind = "slotbuff", slot = 13|14, buff = N }，New 把它變成光環格（kind = "aura"、filter HELPFUL）。差別只有：
+--   * 認的法術：CU.AuraIDsOf → Catalog.SlotBuffIDs(slot, N)，照現在裝的飾品解（暴雪 EquipSlotTracked 的
+--     linkedSpellIDs；第 1 個退使用效果）。換飾品（PLAYER_EQUIPMENT_CHANGED → Catalog 作廢快取 → 重排）⇒
+--     放格時 rec.spellID 換成新的第一個、簽章（AuraStyle 帶 ids）變了換一顆容器；戰鬥中只記旗標、脫戰建。
+--   * 解不出來（空格、這件沒有可追蹤的增益、存了第 3 個而這件只有 1 個）：不建容器（EnsureContainer 的空 ids 分支）、
+--     占位照畫（下面兩支的貼圖：飾品圖示，空格用欄位空格圖），設定頁是問號格（Catalog.CustomInfo）。不報錯。
+--   * 占位圖示用飾品圖示、長條占位的名字用增益名（解不出來用飾品名）
+------------------------------------------------------------
+local function SlotBuffPlaceholder(rec)
+    local sb = rec.slotBuff
+    local C = ns.Catalog
+    local itemID = C.SlotItemID and C.SlotItemID(sb.slot)
+    local tex = itemID and Plain(Try(C_Item and C_Item.GetItemIconByID, itemID)) or nil
+    if not tex then
+        local token = C.EQUIP_SLOT_NAME and C.EQUIP_SLOT_NAME[sb.slot]
+        if token and _G.GetInventorySlotInfo then tex = Plain(select(2, Try(_G.GetInventorySlotInfo, token))) end
+    end
+    local name = rec.spellID and Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or nil
+    if not name then
+        name = (itemID and Plain(Try(C_Item and C_Item.GetItemNameByID, itemID))) or (C.SlotName and C.SlotName(sb.slot)) or ""
+    end
+    return tex or QUESTION, name
+end
+CU.SlotBuffPlaceholder = SlotBuffPlaceholder     -- 測試用
+
+-- 占位畫什麼：光環格是主法術的圖示與名字；飾品欄增益見上
+local function PlaceholderLook(rec)
+    if rec.slotBuff then return SlotBuffPlaceholder(rec) end
+    return Plain(Try(C_Spell and C_Spell.GetSpellTexture, rec.spellID)) or QUESTION,
+        Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or ""
+end
+
 -- 光環長條的占位：去飽和圖示＋空條（底色）＋灰名字，畫在持有框上（按鈕出現自然蓋住）。
 -- 排法照 Decorate.ApplyBarGeometry（圖示一邊 h×h、間距、其餘是條身）；排法變了才重排，重排走 ns.Write
 -- （持有框整條鏈是保護框，戰鬥中記帳）
@@ -1811,8 +1853,7 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     local gap = ns.Layout.Snap(tonumber(bar.iconGap) or 0)
     local font = ns.Media.ElementFont(bar.nameFont, ns.Setting(barKey, "font"))
     local outline = ns.Setting(barKey, "outline") or ""
-    local tex = Plain(Try(C_Spell and C_Spell.GetSpellTexture, rec.spellID)) or QUESTION
-    local name = Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or ""
+    local tex, name = PlaceholderLook(rec)
     local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
     local bgc = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
     local sig = table.concat({ side, string.format("%.2f,%.2f", H, gap), tostring(font), outline, tostring(tex), name, z,
@@ -1874,7 +1915,7 @@ local function UpdatePlaceholder(rec, barKey, w, h)
     local ph = rec.frame.placeholder
     local e = rec.entry
     if not (e and e.placeholder) then ph:Hide() return end
-    local tex = Plain(Try(C_Spell and C_Spell.GetSpellTexture, rec.spellID)) or QUESTION
+    local tex = PlaceholderLook(rec)
     ph:SetTexture(tex)
     local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
     ph:SetTexCoord(z, 1 - z, z, 1 - z)
@@ -1893,6 +1934,13 @@ local function New(e)
         barKey = "custom",           -- Decorate 用它判斷「是不是增益檢視器」：不是
         frames = {},                 -- "icons"｜"bars" → 框（第一次放進那種條才建，見 UseFrame）
     }
+    -- 飾品欄增益：整條光環格路徑照走（持有框、容器、占位、長條、發光、音效、固定格位），差別見「飾品欄增益」那一節
+    if e.kind == "slotbuff" then
+        local b = e.buff
+        if not (type(b) == "number" and b > 0 and b == math.floor(b)) then b = 1 end
+        rec.kind, rec.filter, rec.slotBuff = "aura", "HELPFUL", { slot = e.slot, buff = b }
+        rec.spellID = CU.AuraIDsOf(rec)[1]
+    end
     return rec
 end
 CU.New = New                          -- 測試用
@@ -2129,6 +2177,8 @@ function CU.Place(rec, c, r, barKey, gen)
     rec.placedBar, rec.placedGen, rec.claimKey, rec.hidden = barKey, gen, barKey, false
     rec.placeW, rec.placeH = r.w, r.h            -- 脫戰補建容器時用（長條的圖示大小、發光尺寸）
     if rec.kind == "aura" then
+        -- 飾品欄增益：認的法術照現在裝的飾品重解（換飾品之後的第一輪；長條名字、音效登記都讀 rec.spellID）
+        if rec.slotBuff then rec.spellID = CU.AuraIDsOf(rec)[1] end
         local sig = table.concat({ tostring(c), r.x, r.y, r.w, r.h }, "|")
         if rec.placedSig ~= sig then
             rec.placedSig = sig

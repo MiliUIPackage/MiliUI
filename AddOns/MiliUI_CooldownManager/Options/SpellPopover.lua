@@ -37,12 +37,18 @@
 -- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
 -- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
 --
--- 增益持續時間那一段（暴雪的核心／輔助才有：先倒增益、再倒冷卻的那種格；自訂項目與增益類沒有那一段）：
+-- 增益持續時間那一段（暴雪的核心／輔助、自訂飾品欄（裝備欄位）才有：先倒增益、再倒冷卻的那種格；飾品欄與代畫格的
+-- 增益是疊在冷卻格上的增益按鈕（Modules/Custom.lua 的疊層），同一組欄位；其餘自訂項目與增益類沒有那一段）：
 -- 五列跟主題頁同一套欄位、同一套連動——
 --   「顯示增益持續時間」下拉三項「跟隨這一條」（清掉覆寫）／「顯示」（true）／「不顯示」（false）；
 --   「持續時間換色」下拉三項「跟隨這一條」／「換色」（true）／「不換色」（false）——上面生效是不顯示時停用；
 --   「持續時間顏色」「持續時間低秒顏色」「持續時間背景色」各一列勾選框「自訂」＋色票（跟邊框顏色同一套：
 --   勾了才寫覆寫、初值＝目前生效的顏色）——換色生效是關時三列停用。每列右鍵清掉那一格。
+--   飾品欄／代畫格解不出增益（空格、那件沒有使用效果的增益）：五列一起停用，底部說明正上方一列黃字寫原因
+--   （暴雪那句「只對先倒增益時間的法術有效」在裝備欄的格上不出現）。
+--
+-- 飾品欄增益（自訂項目 kind "slotbuff"，Catalog.Info 回 kind "aura"＋slotBuff）：列跟光環格一樣；身分行寫「飾品 N · 飾品欄增益」，
+--   滑過左上角圖示是 Catalog.SlotBuffTooltip（跟挑選器、預覽格同一支）；解不出增益時一般分頁多一列黃字原因。
 --
 -- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
 --   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
@@ -243,6 +249,27 @@ local function OnBars() return cur ~= nil and ns.Setting(cur.key, "kind") == "ba
 local function NotAuraNotBar(kind, class) return NotAura(kind, class) and not OnBars() end
 local function IsCustom(kind) return kind ~= nil end
 
+-- 這一格是哪個裝備欄位的冷卻格：自訂飾品欄（kind "slot"）、或暴雪沒給框由我們代畫的裝備欄冷卻格；其餘 nil
+local function CurSlot()
+    if not cur then return nil end
+    local info = ns.Catalog.Info(cur.id)
+    if info and info.custom then return info.kind == "slot" and info.slot or nil end
+    if type(cur.id) == "number" and ns.Bars and ns.Bars.IsProxied then return ns.Bars.IsProxied(cur.key, cur.id) end
+    return nil
+end
+-- 那一格解不出增益（疊不了增益按鈕）：增益持續時間那一段停用、黃字寫原因
+local function CurSlotNoBuff()
+    local slot = CurSlot()
+    return slot ~= nil and #ns.Catalog.SlotUseBuffIDs(slot) == 0
+end
+-- 飾品欄增益那一格解不出增益的原因："empty"（那一格空著）｜"nobuff"（這件沒有、或存的第 N 個這件沒有）｜nil
+local function CurSlotBuffMissing()
+    if not cur then return nil end
+    local info = ns.Catalog.Info(cur.id)
+    if not (info and info.slotBuff and info.isKnown == false) then return nil end
+    return ns.Catalog.SlotItemID(info.slotBuff.slot) and "nobuff" or "empty"
+end
+
 -- 音效下拉：第一項「無」，接著自訂語音（玩家排的順序，值是代號 "custom:<id>"），其餘 LSM 的音效名（已排序）
 local function SoundItems()
     local items = { { text = L["None"], value = false } }
@@ -428,6 +455,21 @@ local function Build()
     glowHost:SetAllPoints(icon)
     glowHost:SetFrameLevel(frame:GetFrameLevel() + 5)
     frame.glowHost = glowHost
+    -- 飾品欄增益：滑過圖示看那個增益的效果說明（Catalog.SlotBuffTooltip，跟挑選器、預覽格同一支）
+    local iconTip = CreateFrame("Frame", nil, frame)
+    iconTip:SetAllPoints(icon)
+    iconTip:SetFrameLevel(frame:GetFrameLevel() + 6)
+    iconTip:EnableMouseMotion(true)          -- 只收滑過，不吃點擊
+    local function ShowIconTip(self)
+        local info = cur and ns.Catalog.Info(cur.id)
+        local sb = info and info.slotBuff
+        if not sb then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        ns.Catalog.SlotBuffTooltip(GameTooltip, sb.slot, sb.buff, function() ShowIconTip(self) end)
+        GameTooltip:Show()
+    end
+    iconTip:SetScript("OnEnter", ShowIconTip)
+    iconTip:SetScript("OnLeave", function() GameTooltip:Hide() end)
     local name = frame:CreateFontString(nil, "OVERLAY")
     name:SetFontObject(W.fontTitle)
     name:SetPoint("TOPLEFT", icon, "TOPRIGHT", 8, -1)
@@ -857,10 +899,11 @@ local function Build()
     followItems[#followItems].dd = csdd
     RightClickClears(csr, csh, "cdState")
 
-    -- 增益持續中顯示持續時間（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）
+    -- 增益持續中顯示持續時間（暴雪的冷卻類、自訂飾品欄才有；其餘自訂項目沒有「先倒增益」那一段）
     local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
+    local DurationRows = function(kind, class) return BlizzCooldown(kind, class) or kind == "slot" end
     buildTab = "duration"
-    local atr, ath = NewRow(L["Show buff duration"], BlizzCooldown)
+    local atr, ath = NewRow(L["Show buff duration"], DurationRows)
     local atItems = {
         { text = FollowText(), value = "follow" },
         { text = L["Show"],            value = "show" },
@@ -881,7 +924,7 @@ local function Build()
 
     -- 持續時間換色＋三個顏色（暴雪的冷卻類才有；自訂項目沒有「先倒增益」那一段）：五個欄位跟主題頁同一套、
     -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 三個顏色列停用（Refresh）
-    local cdr, cdh = NewRow(L["Recolor buff duration"], BlizzCooldown)
+    local cdr, cdh = NewRow(L["Recolor buff duration"], DurationRows)
     local cdItems = {
         { text = FollowText(), value = "follow" },
         { text = L["Recolor"],         value = "on" },
@@ -902,7 +945,7 @@ local function Build()
 
     -- 顏色列：勾「自訂」才寫覆寫（初值＝目前生效的顏色），色票只在自訂時能動；跟上面的邊框顏色同一套
     local function ColorOverrideRow(label, field, hasAlpha, fallback)
-        local r2, h2 = NewRow(label, BlizzCooldown)
+        local r2, h2 = NewRow(label, DurationRows)
         local cb2 = W.CreateCheckButton(r2, L["Custom"], function(on)
             if not cur then return end
             if on then
@@ -1331,7 +1374,15 @@ local function Build()
 
     -- 強調說明（黃字）：「先倒增益時間」的適用範圍，各在自己的分頁、底部說明的正上方
     EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
-        BlizzCooldown, "duration")
+        function(kind, class) return BlizzCooldown(kind, class) and CurSlot() == nil end, "duration")
+    -- 飾品欄／代畫格解不出增益：增益持續時間那一段停用的原因
+    EmphasisRow(L["What's equipped in this slot has no buff to track."],
+        function(kind, class) return DurationRows(kind, class) and CurSlotNoBuff() end, "duration")
+    -- 飾品欄增益解不出增益：問號格的原因（一般分頁）
+    EmphasisRow(L["This trinket has no buff to track."],
+        function(kind) return kind == "aura" and CurSlotBuffMissing() == "nobuff" end, "general")
+    EmphasisRow(L["Nothing is equipped in this slot."],
+        function(kind) return kind == "aura" and CurSlotBuffMissing() == "empty" end, "general")
     EmphasisRow(L["Buff gained and lost only apply to spells that show their buff's time first after you cast them, like %s (%s): gained plays when the buff's countdown starts, lost when it ends and the icon switches to the cooldown."]:format(ExampleArgs()),
         BlizzCooldownSound, "sound")
 
@@ -1487,6 +1538,9 @@ local KIND_TEXT = {
     item  = function(info) return ("itemID %s  ·  %s"):format(tostring(info.itemID), L["Custom item"]) end,
     slot  = function(info) return ("%s  ·  %s"):format(tostring(info.slotName or info.slot), L["Equipment slot"]) end,
     aura  = function(info)
+        if info.slotBuff then
+            return ("%s  ·  %s"):format(tostring(info.slotName or info.slot), L["Trinket buff"])
+        end
         return ("spellID %s  ·  %s"):format(tostring(info.spellID),
             info.filter == "HARMFUL" and L["Aura slot (debuff)"] or L["Aura slot (buff)"])
     end,
@@ -1501,7 +1555,10 @@ function Pop.Refresh()
     local kind = info and info.custom and info.kind or nil
     frame.icon:SetTexture(ns.IconFor(key, id, info) or 134400)
     local name = (info and info.name) or ("#" .. tostring(id))
-    if info and info.isKnown == false and kind then name = name .. "  |cffff5555" .. L["Not learned"] .. "|r" end
+    -- 沒學會：飾品欄增益不算（解不出增益的原因在一般分頁的黃字）
+    if info and info.isKnown == false and kind and not info.slotBuff then
+        name = name .. "  |cffff5555" .. L["Not learned"] .. "|r"
+    end
     frame.name:SetText(name)
     if kind then
         -- 種族技能那一筆：解析成這個角色的那一個，標明是種族技能（每個角色各自解析）
@@ -1616,7 +1673,11 @@ function Pop.Refresh()
     -- 增益持續中顯示持續時間：三態回填；生效的值是「不顯示」（覆寫成不顯示，或跟隨而條層關著）⇒ 換色那列停用
     local av = Override("showAuraTime")
     frame.auraTimeDD:SetSelectedValue(av == true and "show" or av == false and "hide" or "follow")
-    local auraShown = ns.SpellSetting(key, id, "showAuraTime") ~= false
+    -- 飾品欄／代畫格解不出增益：整段停用（黃字寫原因）
+    local noBuff = CurSlotNoBuff()
+    frame.auraTimeDD:SetEnabled(not noBuff)
+    frame.auraTimeDD:SetAlpha(noBuff and 0.4 or 1)
+    local auraShown = not noBuff and ns.SpellSetting(key, id, "showAuraTime") ~= false
     -- 持續時間換色：三態回填；生效是關（或上面不顯示）⇒ 三個顏色列停用（跟主題頁同一套連動）
     local cdv = Override("colorDuration")
     frame.colorDurDD:SetSelectedValue(cdv == true and "on" or cdv == false and "off" or "follow")

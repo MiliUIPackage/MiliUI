@@ -646,7 +646,8 @@ function Specs.Themed(mode, key)
 end
 
 ------------------------------------------------------------
--- 固定格位：條上有光環格、或這條可點擊時強制打開（勾選框停用、說明換成原因；存的值不動）
+-- 固定格位：條上有光環格（含飾品欄增益）、疊著增益的飾品欄（Catalog.BarHasAuraSlot）、或這條可點擊時強制打開
+-- （勾選框停用、說明換成原因；存的值不動）
 --
 -- 表單引擎的 toggle 沒有「停用」這個狀態，所以自己畫一列（custom）：勾選框＋下一列灰字，
 -- 灰字依狀態換三種說法（一般／有光環格／可點擊），高度取三種裡最高的那個（列高在建表單時就定了）。
@@ -654,7 +655,7 @@ end
 function FixedSlotsRow(key, isBars)
     local NORMAL = isBars and L["Buffs that aren't up keep their place, so the others don't shift."]
         or L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
-    local FORCED = L["Always on while this bar has aura slots: they need fixed positions, because they can't move during combat."]
+    local FORCED = L["Always on while this bar has aura slots or trinkets showing their buff: they need fixed positions, because they can't move during combat."]
     local FORCED_CLICK = L["Always on while this bar is clickable: the click targets can't move during combat."]
     -- 強制的原因：有光環格優先（兩者都成立時講光環格那句）；nil ＝ 沒有強制
     local function ForcedText()
@@ -708,7 +709,7 @@ end
 ------------------------------------------------------------
 function CursorRow(key)
     local NORMAL = L["The group stays next to your mouse pointer. It goes back to its own position in Edit Mode and while this window is open."]
-    local NO_AURA = L["Not available while this group has aura slots: they can't move during combat."]
+    local NO_AURA = L["Not available while this group has aura slots or trinkets showing their buff: they can't move during combat."]
     local NO_CLICK = L["Not available while this group is clickable: the click targets can't move during combat."]
     local function Blocked()
         local b = ns.DB.BarTable(key)
