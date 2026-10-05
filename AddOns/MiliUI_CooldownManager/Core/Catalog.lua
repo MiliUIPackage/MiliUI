@@ -957,11 +957,18 @@ end
 -- ⚠ 只能直接讀欄位，不能呼叫資料提供者的方法：GetCooldownInfoForID 標髒時會就地重建快取，從插件跑等於污染整份
 function C.KnownProbe(id)
     local CV = C_CooldownViewer
-    local api, cat, slot = "?", "?", nil
+    local api, cat, slot, linked, buffSlot = "?", "?", nil, "—", nil
     if CV and CV.GetCooldownViewerCooldownInfo then
         local ok, raw = pcall(CV.GetCooldownViewerCooldownInfo, id)
         if ok and type(raw) == "table" then
             api, cat, slot = tostring(Plain(raw.isKnown)), tostring(Plain(raw.category)), Plain(raw.equipSlot)
+            buffSlot = Plain(raw.buffSlot)
+            -- 裝備欄增益項目：暴雪從現在裝的物品帶出來的增益法術（第 buffSlot 個）
+            if type(raw.linkedSpellIDs) == "table" then
+                local t = {}
+                for i, v in ipairs(raw.linkedSpellIDs) do t[i] = tostring(Plain(v)) end
+                if #t > 0 then linked = table.concat(t, "/") end
+            end
         elseif ok then
             api = "無資料"
         end
@@ -995,7 +1002,8 @@ function C.KnownProbe(id)
                 cached = ok and Plain(v) or nil
             end
         end
-        s = s .. ("  槽%d 物品=%s 使用效果=%s 物品快取=%s"):format(slot, tostring(item), tostring(spell), tostring(cached))
+        s = s .. ("  槽%d 物品=%s 使用效果=%s 物品快取=%s 增益=%s（第%s個）"):format(slot, tostring(item), tostring(spell),
+            tostring(cached), linked, tostring(buffSlot))
     end
     return s
 end
