@@ -457,6 +457,26 @@ local function Prot(f)
     return tostring(a) .. (b and "(explicit)" or "")
 end
 
+-- 光環格的 Masque（Modules/Custom.lua「光環格的 Masque」）：探針有沒有交出去、讀回來的形狀、容器簽章的 msq 段
+local function MasqueLines(p, rec)
+    local h = rec.frame
+    if not h then return end
+    local L = h.skin
+    local sh = h.msqShape
+    local mk = sh and sh.mask
+    local nm = sh and sh.normal
+    local nmTxt = nm == nil and "讀不到" or (nm == false and "這張皮沒有外框")
+        or ("%s %sx%s 層 %s"):format(tostring(nm.atlas or nm.file), tostring(nm.w), tostring(nm.h), tostring(nm.layer))
+    p(("  Masque：在畫=%s  探針=%s（交出去=%s、顯示=%s）")
+        :format(tostring(h.msqOn), L and "有" or "無", L and tostring(L.msqButton ~= nil) or "—",
+            L and tostring(L.frame:IsShown()) or "—"))
+    p(("  形狀：%s  圖示 %sx%s  遮罩 %s  外框 %s")
+        :format(sh and "讀到" or "沒讀到", sh and tostring(sh.iw) or "—", sh and tostring(sh.ih) or "—",
+            mk and tostring(mk.atlas or mk.file) or "無", sh and nmTxt or "—"))
+    local sig = tostring(rec.sig or "未建")
+    p("  容器簽章：" .. (sig:match("msq:[^|]*") or (sig:sub(1, 60) .. "…（沒有 msq 段）")))
+end
+
 local function AuraDebug()
     local p = print
     local CU = ns.Custom
@@ -478,8 +498,20 @@ local function AuraDebug()
             p(("  容器 %d 顆（簽章池）  按鈕初始化 %d 次  待建=%s  待補踢=%s")
                 :format(nc, inits, tostring(pb), tostring(pk)))
             if rec.lastError then p("  |cffff5555最近錯誤：" .. tostring(rec.lastError) .. "|r") end
+            MasqueLines(p, rec)
         end
     end
+    -- 飾品冷卻格的增益疊層（光環格形狀的子 rec）
+    for key, rec in pairs(CU.Records()) do
+        local o = rec.kind ~= "aura" and rec.buffOverlay
+        if o and o.placedBar then
+            n = n + 1
+            p(("%s[增益疊層]|r %s  條=%s  按鈕初始化 %d 次"):format(ns.PREFIX_COLOR, key, tostring(o.placedBar), o.inits or 0))
+            if o.lastError then p("  |cffff5555最近錯誤：" .. tostring(o.lastError) .. "|r") end
+            MasqueLines(p, o)
+        end
+    end
+    p(("  烘過的遮罩 %d 張、皮外框 %d 張"):format(CU.masksBaked or 0, CU.normalsBaked or 0))
     if n == 0 then p(ns.PREFIX_COLOR .. "[光環格]|r 這個專精沒有光環格") end
     p("  容器層待補寫入（戰鬥記帳）：" .. tostring(ns.PendingWrites()))
 end
