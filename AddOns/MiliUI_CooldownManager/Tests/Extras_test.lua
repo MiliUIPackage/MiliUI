@@ -2005,5 +2005,128 @@ do
     eq("自訂框不算增益類", itX.Cooldown.ms[1], 3)
 end
 
+------------------------------------------------------------
+-- 19. 增益圖示的自訂文字（M）：Text.LabelStyle（沒字＝nil、預設值、覆寫、字型退條的通用字型、快取／fresh、只有空白）、
+--     LabelPlace（圖示內的角／邊）、覆寫分組 "label"（條頁各節的清除覆寫不清它、還原此法術清）、
+--     Decorate 簽章帶自訂文字、ApplyLabel／ItemLabel（只寫自己的 FontString、沒字收起來）、占位那份半透明、預覽只畫增益格
+------------------------------------------------------------
+do
+    local T = ns.Text
+    local id = 31
+    DB.ResetOverrides(id)
+    local savedEF = ns.Media.ElementFont
+    ns.Media.ElementFont = function(own, gen)
+        if type(own) == "string" and own ~= "" and own ~= "INHERIT" then return own end
+        return gen
+    end
+    eq("沒設 ⇒ nil", T.LabelStyle("buffs", id), nil)
+    DB.SetOverride(id, "labelText", "  ")
+    eq("只有空白 ⇒ nil", T.LabelStyle("buffs", id), nil)
+    DB.SetOverride(id, "labelText", "嗜血")
+    local st = T.LabelStyle("buffs", id)
+    check("有字 ⇒ 預設：12、白、圖示內下緣、0／-2", st and st.text == "嗜血" and st.size == 12 and st.point == "BOTTOM"
+        and st.x == 0 and st.y == -2 and st.color.r == 1 and st.color.g == 1 and st.color.b == 1)
+    eq("字型沒設 ⇒ 條的通用字型", st.font, ns.Setting("buffs", "font"))
+    eq("描邊吃條的", st.outline, ns.Setting("buffs", "outline") or "")
+    check("快取命中：同一張", rawequal(T.LabelStyle("buffs", id), st))
+    check("fresh：新算", not rawequal(T.LabelStyle("buffs", id, true), st))
+    DB.SetOverride(id, "labelFont", "Fancy")
+    DB.SetOverride(id, "labelSize", 18)
+    DB.SetOverride(id, "labelColor", { r = 1, g = 0, b = 0, a = 1 })
+    DB.SetOverride(id, "labelPoint", "TOPRIGHT")
+    DB.SetOverride(id, "labelX", 3)
+    DB.SetOverride(id, "labelY", 0)
+    local st2 = T.LabelStyle("buffs", id)
+    check("覆寫：字型／字級／顏色／錨點／偏移（0 也是覆寫）", st2.font == "Fancy" and st2.size == 18 and st2.color.g == 0
+        and st2.point == "TOPRIGHT" and st2.x == 3 and st2.y == 0)
+    check("改了 ⇒ 簽章不同", T.LabelSig(st2) ~= T.LabelSig(st))
+    eq("沒字的簽章", T.LabelSig(nil), "-")
+    DB.SetOverride(id, "labelFont", "INHERIT")
+    eq("字型選「跟隨通用字型」（INHERIT）⇒ 條的通用字型", T.LabelStyle("buffs", id).font, ns.Setting("buffs", "font"))
+    DB.SetOverride(id, "labelFont", nil)
+    DB.SetOverride(id, "labelPoint", "NOPE")
+    eq("壞錨點 ⇒ 預設下", T.LabelStyle("buffs", id).point, "BOTTOM")
+    -- 九宮格＝圖示內的那個角／邊；對齊照左右
+    local p, j = T.LabelPlace("BOTTOMLEFT")
+    check("LabelPlace：左下＝左下、靠左", p == "BOTTOMLEFT" and j == "LEFT")
+    p, j = T.LabelPlace("RIGHT")
+    check("LabelPlace：右＝右、靠右", p == "RIGHT" and j == "RIGHT")
+    p, j = T.LabelPlace(nil)
+    check("LabelPlace：沒有 ⇒ 下、置中", p == "BOTTOM" and j == "CENTER")
+
+    -- 覆寫分組：自成 "label"；條頁的文字／圖示節清除不碰它，還原此法術才清
+    for _, f in ipairs({ "labelText", "labelFont", "labelSize", "labelColor", "labelPoint", "labelX", "labelY" }) do
+        eq("分組 " .. f, DB.OVERRIDE_GROUP[f], "label")
+        eq("沒有條層值 " .. f, DB.SPELL_FALLBACK[f], nil)
+    end
+    DB.ClearOverrides({ id }, "text")
+    DB.ClearOverrides({ id }, "icon")
+    eq("清文字／圖示覆寫 ⇒ 自訂文字留著", ns.SpellOverride(id, "labelText"), "嗜血")
+    eq("本條覆寫數（label 組）", DB.CountOverrides({ id }, "label"), 1)
+
+    -- Decorate 簽章帶自訂文字
+    local style = D.Resolve("buffs", true)
+    local sigA = D.Signature(style, id, D.SpellStyle("buffs", id), 36, 36)
+    DB.SetOverride(id, "labelText", "英勇")
+    local sigB = D.Signature(style, id, D.SpellStyle("buffs", id), 36, 36)
+    check("Decorate 簽章帶自訂文字（改了才重套）", sigA ~= sigB)
+
+    -- ApplyLabel／ItemLabel：只寫我們自己的 FontString
+    local function FS()
+        local f = { shown = true }
+        function f:SetTextColor(...) self.color = { ... } end
+        function f:ClearAllPoints() end
+        function f:SetPoint(pt, rel, rp, x, y) self.pt = { pt, rel, rp, x, y } end
+        function f:SetAlpha(a) self.alpha = a end
+        function f:SetText(t) self.text = t end
+        function f:SetWordWrap(v) self.wrap = v end
+        function f:SetJustifyH(v) self.justify = v end
+        function f:Hide() self.shown = false end
+        function f:Show() self.shown = true end
+        return f
+    end
+    local made = {}
+    local function Holder()
+        local h = Frame()
+        function h:SetAllPoints() end
+        function h:GetFrameLevel() return self.lvl or 1 end
+        function h:SetFrameLevel(v) self.lvl = v end
+        function h:CreateFontString() local f = FS(); made[#made + 1] = f; return f end
+        return h
+    end
+    local savedCF = env.CreateFrame
+    env.CreateFrame = function() return Holder() end
+    local item = { name = "item" }
+    local rec = { overlay = Holder() }
+    T.ItemLabel(item, rec, nil)
+    eq("沒字 ⇒ 不建 FontString", rec.labelFS, nil)
+    local lst = T.LabelStyle("buffs", id)
+    T.ItemLabel(item, rec, lst)
+    local lfs = rec.labelFS
+    check("有字 ⇒ 建在 overlay 底下的墊高文字框", lfs ~= nil and rec.textHolder ~= nil)
+    eq("SetText 玩家打的明文", lfs.text, "英勇")
+    check("錨在 item 的圖示內那一點（壞錨點退下）＋偏移", lfs.pt[1] == "BOTTOM" and lfs.pt[2] == item and lfs.pt[3] == "BOTTOM"
+        and lfs.pt[4] == 3 * state.scale and lfs.pt[5] == 0)
+    check("顏色走 SetTextColor（紅）", lfs.color[1] == 1 and lfs.color[2] == 0)
+    eq("不換行", lfs.wrap, false)
+    eq("實的", lfs.alpha, 1)
+    T.ItemLabel(item, rec, nil)
+    eq("清掉 ⇒ 收起來", lfs.shown, false)
+    -- 預覽：增益格才畫
+    local cell = { labelText = FS() }
+    T.ApplyLabel(cell.labelText, cell, nil)
+    eq("ApplyLabel(nil) ⇒ 收起來", cell.labelText.shown, false)
+    T.ApplyPreviewIcon(cell, style, { label = lst })
+    eq("預覽：冷卻格不畫", cell.labelText.shown, false)
+    cell.aura = true
+    T.ApplyPreviewIcon(cell, style, { label = lst })
+    check("預覽：增益格畫", cell.labelText.shown and cell.labelText.text == "英勇")
+    eq("占位那份的透明度", T.LABEL_PH_ALPHA, 0.35)
+    env.CreateFrame = savedCF
+    DB.ResetOverrides(id)
+    eq("還原此法術 ⇒ 自訂文字清掉", T.LabelStyle("buffs", id), nil)
+    ns.Media.ElementFont = savedEF
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

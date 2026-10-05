@@ -168,6 +168,8 @@ local function SpellStyle(barKey, id, fresh)
         barTimeOwn       = btOwn,
         hideChargeText   = hideCh,
         textSig          = (T and T.OverrideSig) and T.OverrideSig(id) or "",
+        -- 自訂文字（M）：沒打字 ＝ nil。畫不畫另看格的種類（暴雪的增益圖示、預覽的增益格才畫），這裡只解值
+        label            = (T and T.LabelStyle) and T.LabelStyle(barKey, id, fresh) or nil,
         borderColor      = SS(barKey, id, "borderColor"),
         desaturate       = SS(barKey, id, "desaturate"),
         hideCooldownText = SS(barKey, id, "hideCooldownText"),
@@ -1589,6 +1591,7 @@ local function Signature(style, id, spell, w, h)
         .. "|" .. tostring(spell.colorDuration) .. "," .. CSig(spell.durationColor) .. "," .. CSig(spell.durationLowColor)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
         .. "|" .. tostring(spell.textSig)
+        .. "|" .. ((ns.Text and ns.Text.LabelSig) and ns.Text.LabelSig(spell.label) or "-")
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -1606,6 +1609,12 @@ function D.ApplyPlaceholder(ph, barKey, id, w, h)
     local border = style.border or {}
     local br, bg, bb, ba = C4(ns.SpellSetting(barKey, id, "borderColor") or border.color, 0, 0, 0, 1)
     ph.border = ph.border or MakeBorder(ph.frame)
+    -- 自訂文字（M）：占位上也畫一份（玩家就是要提醒自己這格是什麼），跟占位圖示一樣半透明。
+    -- 只有增益類會有這個覆寫（單一法術小窗只在增益圖示類的格出這個分頁）
+    local T = ns.Text
+    local lb = T and T.LabelStyle and T.LabelStyle(barKey, id) or nil
+    if lb and not ph.label then ph.label = ph.frame:CreateFontString(nil, "OVERLAY") end
+    if ph.label then T.ApplyLabel(ph.label, ph.frame, lb, T.LABEL_PH_ALPHA) end
     local skinned = false
     if style.masque and ph.tex then
         skinned = ns.Masque.Sync(ph, ph.frame, { Icon = ph.tex }, ns.Masque.TypeFor(barKey), w, h)
@@ -1903,6 +1912,7 @@ function D.Apply(item, rec, barKey, w, h)
             end
         end
         ns.Text.ApplyBar(item, style, spell, bar, rec)
+        ns.Text.ItemLabel(item, rec, nil)          -- 長條不畫自訂文字（長條本來就有名字）
     else
         rec.barGeometry = nil
         local icon, cd = item.Icon, item.Cooldown
@@ -1943,6 +1953,8 @@ function D.Apply(item, rec, barKey, w, h)
             desatGuard = false
         end
         ns.Text.ApplyIcon(item, style, spell, rec)
+        -- 自訂文字（M）：暴雪的增益圖示才畫（自訂框、冷卻格不畫；以增益取代時頂著技能格的增益照樣是增益）
+        ns.Text.ItemLabel(item, rec, (not rec.custom and ns.Viewers.AURA_KIND[rec.barKey]) and spell.label or nil)
     end
 
     -- 自訂圖示（暴雪 item；自訂框在 Custom.Update 自己設）

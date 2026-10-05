@@ -1479,13 +1479,26 @@ local function AuraStyle(rec, barKey, w, h, shape)
         end
         msqSig = "msq:" .. (st.msq and st.msq.sig or "square") .. (st.noEdge and "" or "+edge")
     end
+    -- 自訂文字（M）：圖示形的光環格與飾品欄增益才有（長條本來就有名字；飾品冷卻格的增益疊層是冷卻格，不畫）。
+    -- 值全部解成純數字／字串（initializeFrame 裡只查表），整段進簽章 ⇒ 改了換一顆容器（戰鬥中記旗標、脫戰建）
+    local labelSig = "-"
+    if shape ~= "bars" and not rec.overlayOf then
+        local lb = TX.LabelStyle(barKey, id)
+        if lb then
+            local p, j = TX.LabelPlace(lb.point)
+            local lc = lb.color
+            st.label = { text = lb.text, font = ns.Media.Font(lb.font), size = lb.size,
+                color = { lc.r, lc.g, lc.b, lc.a }, point = p, justify = j, x = lb.x, y = lb.y }
+            labelSig = "lb:" .. lb.sig
+        end
+    end
     -- 認哪些法術也進簽章（多法術的光環格：整組排序後串進去；單一法術時就是那個 ID）
     st.ids = CU.AuraIDsOf(rec)
     st.sig = table.concat({
         ovSig, msqSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
-        st.stPoint, st.stX, st.stY, glowSig,
+        st.stPoint, st.stX, st.stY, glowSig, labelSig,
     }, "|")
     if barSig then st.sig = st.sig .. "|" .. barSig end
     return st
@@ -1662,6 +1675,20 @@ local function InitAuraButton(btn, c, st, rec)
         fs:SetTextColor(st.stColor[1], st.stColor[2], st.stColor[3], st.stColor[4])
         fs:SetPoint(st.stPoint, btn, st.stPoint, st.stX * s, st.stY * s)
         pcall(btn.SetApplicationCount, btn, fs)
+    end
+
+    -- 自訂文字（M）：玩家打的明文，直接 SetText（自己的 FontString，不經暴雪）；錨點同倒數（圖示內的那個角／邊）
+    local lb = st.label
+    if lb then
+        local fs = ov:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(lb.font, lb.size * s, st.outline)
+        pcall(fs.SetIgnoreParentScale, fs, true)
+        fs:SetWordWrap(false)
+        fs:SetJustifyH(lb.justify)
+        fs:SetTextColor(lb.color[1], lb.color[2], lb.color[3], lb.color[4])
+        fs:SetPoint(lb.point, btn, lb.point, lb.x * s, lb.y * s)
+        fs:SetText(lb.text)
+        rec.labelsBaked = (rec.labelsBaked or 0) + 1      -- 測試用
     end
 
     -- 生效發光：按鈕底下自己的子框（只在這個視窗內建得了），尺寸用 st 給的、不讀
