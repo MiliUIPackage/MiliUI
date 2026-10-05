@@ -419,7 +419,7 @@ check("輔助預設：跟著核心技能下方", type(ua) == "table" and ua.to =
 eq("ConfigTable 自訂格子", ns.DB.ConfigTable("pips"), pips)
 check("IsPanel 自訂格子", ns.DB.IsPanel("pips"))
 -- 下一招圖示（P2）排在最後：前三個的順序不變
-eq("面板順序：資源條、自訂格子、施法條、下一招圖示", table.concat(ns.DB.PANEL_ORDER, ","), "resources,pips,castbar,assistIcon")
+eq("面板順序：資源條、自訂格子、施法條、下一招圖示、天空騎術", table.concat(ns.DB.PANEL_ORDER, ","), "resources,pips,castbar,assistIcon,skyriding")
 check("核心技能 → 自訂格子會成環", ns.DB.AnchorWouldCycle("essential", "pips"))
 check("自訂格子 → 輔助不會成環（輔助跟的是核心）", not ns.DB.AnchorWouldCycle("pips", "utility"))
 check("施法條 → 自訂格子不會成環", not ns.DB.AnchorWouldCycle("castbar", "pips"))

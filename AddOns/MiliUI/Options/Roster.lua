@@ -60,7 +60,6 @@ ns.AddonRoster = {
           slash = "/msq",
           desc = "快捷列外觀美化。這一筆連同暴雪快捷列支援與 Caith / FlatSquares / Raeli\n三款樣式一起開關。\n光環圖示的樣式改由「米利的光環美化」提供。" },
         { key = "tullaRange", folders = { "tullaRange", "tullaRange_Config" }, category = "tullaRange" },
-        { key = "Falcon", folders = { "Falcon" }, slash = "/falcon" },
         { key = "Plumber", folders = { "Plumber" }, category = "Plumber" },
         { key = "EasyExperienceBar", folders = { "EasyExperienceBar" }, settings = true },
 

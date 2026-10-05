@@ -38,7 +38,14 @@
 --             自己的那一份（資源條的不帶過來）
 --   施法條  enabled ＝ false → 0；hideWhenNotCasting 且沒在施法（ns.Castbar.IsActive）→ 0
 --   下一招圖示  enabled ＝ false → 0；onlyCombat 且不在戰鬥 → 0；戰鬥輔助沒有建議（ns.Assist.Current）→ 0
+--   天空騎術  enabled ＝ false → 0；Snapshot.skyridingPanel（ns.Skyriding.Shown ＝ 上次 Active 的結果：在天空騎術、不在德比賽跑、
+--             沒有「地面上而且充能全滿」…，見 Modules/Skyriding.lua）→ 1，否則 0
 --   編輯模式中一律全亮（同條）。面板的框都是容器的子框，容器的 alpha 就管得到。
+--   例外：舊的獨立天空騎術插件這次登入還載著（ns.falconBlocked）時，天空騎術面板編輯模式中也是 0。
+--
+-- 天空騎術的「藏起冷卻管理器」（profile.skyriding.hideCdm）：面板顯示中（Snapshot.skyridingHideCdm）時，
+-- 每一條（Vis.Alpha）與天空騎術以外的每個面板（PanelAlpha）都是 0。加在既有的限制前面，不寫進每條的
+-- visibility 表、不改存檔；編輯模式中不套用（編輯模式的全亮在它前面判斷）。
 --
 -- 事件處理器只標髒、下一幀套（PLAYER_TARGET_CHANGED 會在按 Tab 的 secure 流程裡同步派送，
 -- 見 wow-121-addon-code-in-secure-stack）。脫戰多等 0.1 秒：戰鬥結束那一瞬間常常緊跟著
@@ -168,6 +175,8 @@ end
 Vis.snapshots = 0          -- /mcdm perf：Snapshot 建了幾次
 local function Snapshot()
     Vis.snapshots = Vis.snapshots + 1
+    local SR = ns.Skyriding
+    local sky = SR and SR.Shown and SR.Shown() or false     -- 上次判斷的結果，不重讀 API
     return {
         combat   = inCombat,
         target   = HasTarget(),
@@ -179,6 +188,8 @@ local function Snapshot()
         housing  = InHousing(),
         resting  = Resting(),
         vehicle  = InVehicle(),
+        skyridingPanel = sky,
+        skyridingHideCdm = SR and SR.HidesCdm and SR.HidesCdm(sky) or false,
     }
 end
 Vis.Snapshot = Snapshot
@@ -197,8 +208,11 @@ function Vis.Alpha(key, s)
     if not bar then return 0 end
     -- 編輯模式裡每條都全亮：玩家是來擺位置的，條件不成立（沒目標、騎乘中）的條也要看得到
     if ns.EditMode and ns.EditMode.active then return 1 end
+    s = s or Snapshot()
+    -- 天空騎術面板顯示中、藏起冷卻管理器：蓋過一切（不寫進 visibility 表）
+    if s.skyridingHideCdm then return 0 end
     local fade = ns.Setting(key, "fade")
-    return Vis.Evaluate(bar.visibility, fade, s or Snapshot())
+    return Vis.Evaluate(bar.visibility, fade, s)
 end
 
 -- 面板的 alpha（純邏輯；s 是 Snapshot 的形狀，essentialAlpha／casting／suggestion 由呼叫端給）
@@ -234,6 +248,8 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting, suggestion)
         if cfg.onlyCombat ~= false and not s.combat then return 0 end
         if suggestion == nil then return 0 end
         return 1
+    elseif key == "skyriding" then
+        return s.skyridingPanel and 1 or 0
     end
     return 1
 end
@@ -244,8 +260,11 @@ end
 function Vis.PanelAlpha(key, s, essAlpha)
     local cfg = ns.DB.ConfigTable(key)
     if not cfg or cfg.enabled == false then return 0 end
+    -- 舊的獨立插件還載著：這次登入的天空騎術面板不啟動（編輯模式也不亮，免得兩條疊在一起）
+    if key == "skyriding" and ns.falconBlocked then return 0 end
     if ns.EditMode and ns.EditMode.active then return 1 end
     s = s or Snapshot()
+    if key ~= "skyriding" and s.skyridingHideCdm then return 0 end
     local ess = 1
     if (key == "resources" or key == "pips") and cfg.fadeWithEssential ~= false then
         ess = essAlpha or current.essential

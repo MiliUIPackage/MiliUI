@@ -56,7 +56,7 @@ function DB.TouchCustom()
 end
 
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
-local ResourcesDefaults, PipsDefaults, CastbarDefaults, AssistIconDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
+local ResourcesDefaults, PipsDefaults, CastbarDefaults, AssistIconDefaults, SkyridingDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 
 -- 「整張表當一個值」的預設：設定檔裡**沒有這個鍵**才整張給，已經有（含空表）就一個字都不合併。
 -- 給內容是使用者自己的清單、但預設不是空的那種表用（資源條的上色規則）：逐元素合併會把預設規則的
@@ -398,6 +398,39 @@ AssistIconDefaults = function()
     }
 end
 
+-- 天空騎術面板（Modules/Skyriding.lua，面板 skyriding）：活力充能格＋速度條＋旋轉急衝圖示。
+-- 跟著設定檔走、不分專精。舊存檔沒有這張表 ＝ 合併預設值補上，不遷移。顏色與數值只是起點，驗收時再調
+SkyridingDefaults = function()
+    return {
+        enabled          = true,
+        placement        = "relay",        -- relay（接力：佔用資源條的位置）| standalone（獨立擺放）
+        hideCdm          = true,           -- 面板顯示中時，其餘的條與面板 alpha 0（編輯模式中不套用）
+        pos              = { point = "CENTER", x = 0, y = -180 },   -- standalone 用
+        anchor           = false,          -- standalone 可以在編輯模式錨到別條
+        width            = 0,              -- 0 ＝ 跟核心技能第一列同寬（同資源條）
+        chargeHeight     = 10,
+        speedHeight      = 8,
+        gap              = 1,              -- 兩排之間、充能格之間的間距
+        speedOnTop       = true,           -- 速度條在上、充能在下（false 對調）
+        showSpeed        = true,
+        showCharges      = true,
+        speedText        = "RIGHT",        -- OFF | LEFT | RIGHT | CENTER（字型照主題，大小跟資源條的文字設定）
+        hideGroundedFull = true,           -- 在地面上而且充能全滿 ⇒ 不顯示
+        speedColorOnCharges = false,       -- 充能格改用速度條目前的顏色
+        surge            = "cooldown",     -- off | cooldown（冷卻中才顯示）| ready（好了才顯示）| always
+        surgeSize        = 24,
+        surgeSide        = "RIGHT",        -- LEFT | RIGHT | TOP | BOTTOM（錨在整塊面板那一邊的外面，間距 ＝ gap）
+        colors = {
+            charge     = rgba(0.30, 0.65, 1.00),
+            secondWind = rgba(0.55, 0.40, 0.95),
+            lowSpeed   = rgba(0.80, 0.80, 0.80),
+            groundSkim = rgba(0.95, 0.75, 0.25),
+            thrill     = rgba(0.35, 0.90, 0.45),
+        },
+        strata           = "MEDIUM",
+    }
+end
+
 function DB.BuildDefaults()
     -- 位置與往上長：使用者 2026-10-01 指定（照使用者調好的那份），不遷移
     local buffbars = LongBar{ source = "buffbars", grow = "CENTER_UP", pos = { point = "BOTTOM", x = 0, y = 524 } }
@@ -512,6 +545,7 @@ function DB.BuildDefaults()
             pips      = PipsDefaults(),
             castbar   = CastbarDefaults(),
             assistIcon = AssistIconDefaults(),
+            skyriding = SkyridingDefaults(),
         },
     }
 end
@@ -1237,14 +1271,14 @@ function DB.BarClickable(key)
     return (b ~= nil and b.kind == "icons" and b.source == "custom" and b.clickable == true) and true or false
 end
 
--- 「面板」：資源條、自訂格子、施法條與下一招圖示。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
--- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套。
+-- 「面板」：資源條、自訂格子、施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
+-- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套（天空騎術的接力模式例外，見 Core/Bars.lua）。
 -- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
-local PANEL_KEYS = { resources = true, pips = true, castbar = true, assistIcon = true }
+local PANEL_KEYS = { resources = true, pips = true, castbar = true, assistIcon = true, skyriding = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS
--- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（下一招圖示排最後）
-DB.PANEL_ORDER = { "resources", "pips", "castbar", "assistIcon" }
+-- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排最後）
+DB.PANEL_ORDER = { "resources", "pips", "castbar", "assistIcon", "skyriding" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 條或面板的設定表（錨定、位置、編輯模式、設定頁的 root "bar" 一律走這支）

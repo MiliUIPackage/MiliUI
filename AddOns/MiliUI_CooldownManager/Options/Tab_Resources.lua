@@ -948,6 +948,10 @@ local function Controls(cand, sub)
     add(Note(L["Takes Essential Cooldowns' current opacity, including its visibility conditions and fades."]))
 
     for _, s in ipairs(ns.Specs.Anchor(KEY)) do add(s) end
+    -- 天空騎術接力中：這個位置在天空騎術時由那個面板接手（只放灰字，不放按鈕；切換在天空騎術頁）
+    if ns.Bars.SkyRelay and ns.Bars.SkyRelay() then
+        add(Note(L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."]))
+    end
 
     add({ type = "header", label = L["Reset"] })
     add(ResetRow(L["Restore defaults"], L["Restore resource defaults"],

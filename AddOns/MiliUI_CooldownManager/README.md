@@ -50,9 +50,10 @@
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
+| `Modules/Skyriding.lua`、`Options/Tab_Skyriding.lua` | 天空騎術的活力充能＋速度條＋旋轉急衝圖示（面板 `skyriding`；接力／獨立擺放、藏起冷卻管理器），見「天空騎術」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、光環格的 Masque（獨立占位框、探針的錨點與 regions、讀回形狀與皮外框進簽章、烘遮罩與外框、外框讀不到退米利邊、讀不到形狀退方形、疊層照冷卻格的皮）、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰、閃光跟著 Masque 皮的遮罩）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳（含層數增加：暴雪增益 item 的法術展開、節流進簽章）、充能滿音效的三態轉變與監看表、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做；皮的形狀與公開 API 的貼圖查詢；發光跟著形狀：沒裝不問形狀、米利模式／方形皮照舊、圓形／六角形皮 × 四種樣式、換皮停乾淨、池化閃光框換回暴雪貼圖、API 讀不到退方形）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（含逐法術占位）、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、光環格的 Masque（獨立占位框、探針的錨點與 regions、讀回形狀與皮外框進簽章、烘遮罩與外框、外框讀不到退米利邊、讀不到形狀退方形、疊層照冷卻格的皮）、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰、閃光跟著 Masque 皮的遮罩）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳（含層數增加：暴雪增益 item 的法術展開、節流進簽章）、充能滿音效的三態轉變與監看表、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做；皮的形狀與公開 API 的貼圖查詢；發光跟著形狀：沒裝不問形狀、米利模式／方形皮照舊、圓形／六角形皮 × 四種樣式、換皮停乾淨、池化閃光框換回暴雪貼圖、API 讀不到退方形）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（含逐法術占位）、Receivers／Pairs）、`Skyriding_test.lua`（天空騎術：預設值與面板登記、顯示判斷（秘密值／讀不到／德比賽跑／地面上充能全滿／專用動作條／舊插件還載著）、兩排的版面與格數、速度換算／地區最高速度／平滑／換色狀態、旋轉急衝的顯示時機、接力的錨定決定與 Bars 的實際錨點（資源條正常／關掉／收合／沒錨定）、接力不參與排開、獨立擺放照常排開、hideCdm 對條與面板 alpha 的影響）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -82,7 +83,7 @@
 | `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；放在長條類的條上時換成長條框／長條版的光環按鈕；每一格都是 Bars 的一個 entry。冷卻／數量／可用／距離事件依生效清單動態註冊（`CU.SyncEvents`，沒有非光環項目就一個都不聽）；`SPELL_UPDATE_USABLE` 只重算顏色（`rec.colorDirty`） |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
-→ Interrupt → Resources → Pips → Castbar → Assist → AssistIcon → Visibility → Cursor（`Core/Init.lua` 的 `ns.StartEngine`）。
+→ Interrupt → Resources → Pips → Castbar → Assist → AssistIcon → Skyriding → Visibility → Cursor（`Core/Init.lua` 的 `ns.StartEngine`）。
 換設定檔／專精：清樣式簽章、重讀目錄、全部重排、重套 alpha，不需要 /reload。
 任何一步 `Init` 拋錯 ⇒ `ns.EngineFailed`：`Bars.ReleaseAll` 把冷卻管理器還給暴雪，聊天框印一行。
 
@@ -363,8 +364,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   `PLAYER_CAN_GLIDE_CHANGED`、`HOUSE_PLOT_ENTERED`／`HOUSE_PLOT_EXITED`（後兩個 wiki 標 12.1.5／11.2.7 起有）。後三個**客戶端認得才註冊**
   （`C_EventUtils.IsEventValid`）；`ns.Events` 的註冊本身也改成 pcall（不認得的事件名 `RegisterEvent` 會拋錯，以前會拖垮那個模組的 Init）。
   房屋事件沒有的客戶端靠既有的 `PLAYER_ENTERING_WORLD`／`ZONE_CHANGED_NEW_AREA` 重判；上下坐騎本來就聽 `PLAYER_MOUNT_DISPLAY_CHANGED`。
-- 設定頁：「顯示時機」三個勾選（戰鬥中／有目標時／有敵對目標時）＋一列灰字；「限制」騎乘時隱藏、**飛行騎乘時隱藏**（＋灰字：
-  騎著能飛行騎乘的坐騎時，在地面上也算）、**在房屋裡隱藏**（＋灰字）、只在副本中顯示、隊伍＋灰字「限制條件優先」。
+- 設定頁：「顯示時機」三個勾選（戰鬥中／有目標時／有敵對目標時）＋一列灰字；「限制」騎乘時隱藏、**天空騎術時隱藏**（＋灰字：
+  騎著能使用天空騎術的坐騎時，在地面上也算）、**在房屋裡隱藏**（＋灰字）、只在副本中顯示、隊伍＋灰字「限制條件優先」。
 - `/mcdm debug` 的「顯示條件快照」多印敵對目標、飛行騎乘、房屋。
 - 匯入：另一支插件沒有飛行騎乘／房屋的對應設定，`Core/Import.lua` 不動。
 - 面板（資源條、自訂格子、施法條、下一招圖示）走自己的載入條件（`Vis.EvaluatePanel`），這三個不適用。
@@ -1388,7 +1389,7 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 
 ## 資源條與施法條
 
-四者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
+五者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）、天空騎術（`skyriding`，見「天空騎術」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
 `profile.resources`／`profile.pips`／`profile.castbar`／`profile.assistIcon`，資源條與施法條在左欄有自己的頁（自訂格子的設定在資源條頁、
 下一招圖示在戰鬥助手頁）；
 但**錨定語意跟條一模一樣**（`pos = { point, x, y }`、`anchor = false | { to, point, relPoint, x, y }`），
@@ -1396,7 +1397,7 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 
 | 位置 | 內容 |
 |---|---|
-| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`、`assistIcon`；順序＝顯示條件套用與錨定候選的順序，下一招圖示排最後）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
+| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`、`assistIcon`、`skyriding`；順序＝顯示條件套用與錨定候選的順序，天空騎術排最後）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
 | `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
 | `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
 | `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：spec 的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
@@ -1718,6 +1719,65 @@ customRows[specID] = {
   套用時 `Resources.Apply()` 與 `Pips.Apply()` 都叫（自訂格子沿用全域外觀）。
 - **施法條**：顯示、隱藏暴雪施法條、版面（材質多一項「暴雪施法條」）、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
   效果（火花、刻度、延遲）、沒在施法時隱藏、錨定、恢復預設。
+
+## 天空騎術（`Modules/Skyriding.lua`、`Options/Tab_Skyriding.lua`，2026-10-06）
+
+取代套組原本另裝的天空騎術插件（資料夾 `Falcon`，已從套組移除）：活力充能格一排＋速度條一排＋旋轉急衝圖示。
+**那支插件沒有授權，一行程式都沒有搬**，只用遊戲事實（法術 ID、API、數值）；畫法照資源條（材質、暗底 `R.DIM`、1px 黑邊 `R.Edges`、
+格寬 `R.SegCell`、寬度 `R.Width`）。左欄一頁「天空騎術」（頁名用暴雪官方譯名：GlobalStrings `ACCESSIBILITY_ADV_FLY_LABEL`
+＝ zhTW「天空騎術」、zhCN「驭空术」）。設定在 `profile.skyriding`（跟著設定檔走、不分專精；`Core/DB.lua` 的 `SkyridingDefaults`，
+舊存檔合併預設值補上、不遷移）。法術名（活力、重新振作、旋轉急衝、快意翱翔、貼地飛掠）執行期讀 `C_Spell.GetSpellName`，語系檔只當備用。
+
+- **顯示**（`SR.Evaluate` 純函式，`SR.Active` 讀 API 後交給它；同一幀只讀一次）：全部成立才顯示——
+  這次登入沒有因為舊插件還載著而停用（`ns.falconBlocked`）、開著而且兩排至少一排開著、不在德比賽跑（`UnitPowerBarID == 650`）、
+  在天空騎術（專用動作條 `GetBonusBarIndex() == 11 and GetBonusBarOffset() == 5`，或 `canGlide` 明文 true 而且能量條 ID ≠ 0）、
+  沒有「地面上（`isGliding` 不是明文 true）而且充能全滿而且 `hideGroundedFull`」。**讀到秘密值或讀不到一律當不成立**（寧可少顯示，不誤藏冷卻管理器）。
+  `Vis.EvaluatePanel` 的 `skyriding` 分支照 `Snapshot.skyridingPanel`；編輯模式中全亮（舊插件還載著時例外：編輯模式也是 0）。
+- **藏起冷卻管理器**（`hideCdm`，預設開）：`Snapshot.skyridingHideCdm`（面板顯示中＋開著）成立時，`Vis.Alpha`（每一條，含自訂群組）
+  與天空騎術以外的每個面板（`PanelAlpha`）都回 0。加在既有限制的前面，**不寫進每條的 `visibility` 表、不改存檔**；編輯模式中不套用。
+  快照讀 `SR.Shown()`（上次 `SR.Refresh` 判斷的結果，不重讀 API、不拿 GetTime 當快取鍵）；狀態一變（`SR.Refresh` 發現換了）叫 `Vis.Later()` 整套重套。
+- **接力**（`placement = "relay"`，預設）：跟資源條輪流出現在同一個位置。
+  - 錨定（`Core/Bars.lua` 的 `PlaceContainer`、決定在 `SR.RelayPlace`）：容器貼資源條容器的**固定邊**（資源條的錨點 `B.AnchorPoint("resources")`，預設 `BOTTOM` 對 `BOTTOM`，(0, 0)），忽略自己存的 `anchor`／`pos`。
+    比資源條高時往資源條長的方向多出去（TOP 對 TOP 的話多出來的那截會往下壓到核心技能）。
+    資源條關掉或收合（`enabled`／`StackSkip`，不讀框的幾何）⇒ 改用資源條自己的錨定設定（同樣的 to／point／relPoint／x／y）；
+    資源條也沒錨定（或錨定指回天空騎術）⇒ 資源條的 `pos`，貼在資源條的錨點那一邊（`BOTTOM`）。資源條的結構一套完（`ApplyOne`，含關掉那條路）就跟著重貼天空騎術。
+  - **不參與排開**：不進 `StackKeys`；`AnchorCfg` 把它當不存在（不能當別人的排開／錨定目標，錨在它身上的改用自己的 pos）；錨定候選不列它。
+  - 編輯模式：沒有自己的覆蓋層、選取框、點擊層，不能拖、不能方向鍵微調（`EM.SkyRelayHidden`）；資源條覆蓋層的條名寫成「資源條＋天空騎術」。
+    拖資源條時對齊目標不算它（`FollowsKey` 把它當跟著資源條走）。編輯模式中兩者的預覽疊在同一個位置。
+  - 資源條頁「錨定」節下面一行灰字說明這個位置會被接手。
+- **獨立擺放**（`standalone`）：一般的面板（自己的 `pos`／`anchor`、可拖、磁吸、可錨到別條、參與排開；`STACK_RANK` 1.5，緊貼資源條外面）。
+  錨定候選排最後。從接力切過來時 `SR.SetPlacement` 用 `EditMode.ReadPos` 把目前的螢幕位置存成 `pos`（留在原地）。
+  兩種模式互切走 `Bars.SkyPlacementChanged`：先拆掉天空騎術與貼在它身上的條，那些條先照新規則貼、天空騎術最後貼，再整疊結構級重排。
+- **畫法**：容器錨點 `TOP`。寬 0 ＝ 核心技能第一列寬（`R.Width`）。兩排（`SR.Geometry`）：`speedOnTop` 決定上下，關掉的那排不佔高度。
+  - 充能格：格數＝明文 `maxCharges`（讀不到 6、上限 12），框池按需建、多的藏起來；每格一個 cell 框（錨在列上）裡兩顆 StatusBar：
+    活力 `SetMinMaxValues(i-1, i)`＋`SetValue(目前值)`（秘密值也畫得對）、底下一層重新振作（明文才算 `cur + sw`，**競速中藏起來**）。
+    回充那一格（明文 `cur < max` 的第 cur+1 格）上面疊一顆共用的進度條，`C_Spell.GetSpellChargeDuration` 的 duration 物件交給
+    `SetTimerDuration`（引擎跑，不自己建 duration、不掛 OnUpdate；拿不到就不畫）。消耗動畫不做。
+  - 速度條：值＝`forwardSpeed`，範圍 0～這一區的最高速度（`SR.SpeedMax`：巨龍群島系地圖 2444／2454／2516／2522／2548／2569 或競速中 100，其他 85），線性；
+    顯示值每拍往目標靠一半（`SR.Smooth`）。秘密值原樣交給條、不印字。文字＝速度 ÷ 7 × 100 取整加「%」，0 不印；字型照主題、大小照資源條的 `textSize`。
+  - 換色（`SR.SpeedState`）：快意翱翔（天空之悅）增益 → `thrill`（加一條刻度線，位置 `THRILL_AT = 0.6`）；貼地飛掠增益 → `groundSkim`；其他 `lowSpeed`。
+    增益問 `C_UnitAuras.GetPlayerAuraBySpellID`（377234／1227961、404184／404183，秘密／nil／拋錯都當沒有）；兩者都不成立再退回活力回充時間的
+    啟發式（≤ 6.05 秒＝天空之悅、8.2～8.36 秒＝貼地飛掠，**容差比對**）。
+  - 旋轉急衝：學了哪一顆用哪一顆（1227921、361584），再套 `GetOverrideSpell`，**圖示與冷卻同一個 ID**。`surge`：`off`／`cooldown`（冷卻 > 2 秒，
+    扣掉公共冷卻）／`ready`／`always`，讀不到冷卻 ⇒ 前兩種不顯示。錨在整塊面板 `surgeSide` 那一邊外面（間距＝`gap`），不算在面板尺寸裡。
+    邊框、縮放、轉圈色照主題（`Decorate.LayoutBorder`）。
+  - 正在競速＝背包有青銅時光代幣（191140）而且任務日誌有一條任務的特殊物品就是它（`GetQuestLogSpecialItemInfo`）。
+  - 編輯模式預覽：4 格滿、第 5 格半格、第 6 格空，速度 65%、`thrill` 色＋刻度，旋轉急衝照 `surge`（`off` 不顯示）。
+- **事件與效能**（避開舊插件踩過的坑）：
+  - 一直聽的只有狀態轉換：`UPDATE_BONUS_ACTIONBAR`、`PLAYER_CAN_GLIDE_CHANGED`／`PLAYER_IS_GLIDING_CHANGED`（客戶端認得才註冊）、
+    `UNIT_POWER_BAR_SHOW/HIDE`（player）、`PLAYER_MOUNT_DISPLAY_CHANGED`、`PLAYER_ENTERING_WORLD`、`ZONE_CHANGED_NEW_AREA`（後兩個順便標競速重算）。
+  - `SPELL_UPDATE_CHARGES` 只在「在天空騎術」時聽；`SPELL_UPDATE_COOLDOWN`（旋轉急衝，圖示有開才聽）與 `QUEST_ACCEPTED`／`QUEST_REMOVED`／
+    `BAG_UPDATE_DELAYED`（競速重算）只在面板顯示中聽。**不聽 `ACTIONBAR_UPDATE_*`**。
+  - 事件只標髒、下一幀合併（`SR.Mark` → `ns.Defer(SR.Refresh)`）。
+  - 速度 OnUpdate 是檔案層級的固定函式 `SpeedTick`，只在「面板顯示中、`isGliding` 明文 true、速度條開著」時掛、狀態轉換時卸；
+    0.05 秒節流、每拍只讀一次 `GetGlidingInfo`、換色狀態每 5 拍重讀一次、文字取整後變了才 `SetText`；落地那一拍卸掉自己、交給下一幀完整判斷。
+  - 進出編輯模式（`EditModeChanged`）主動重算一次真實狀態；顯示／隱藏只走 Visibility 的 alpha（不做 Show／Hide 動畫、不靠計時器等版面）；
+    圖示錨點在排版當下算好；strata 照面板設定、不硬拉 frame level。
+- **舊插件的移除**（`Core/Init.lua`）：`PLAYER_LOGIN` 時 `C_AddOns.IsAddOnLoaded("Falcon")` 為真 ⇒ `DisableAddOn`（角色層級，沒停掉退回全角色；
+  同 `DisableAndReload` 但不立刻重新載入）、`ns.falconBlocked = true`（這次登入天空騎術面板不啟動、`hideCdm` 不作用）、跳一個提醒視窗
+  （主按鈕「重新載入」、一般按鈕「稍後」；**不登記 UISpecialFrames**）。跟冷卻管理器的互斥彈窗同時成立時**不另外跳**：互斥彈窗多一段說明，
+  留下本插件的兩個選項（匯入／直接改用）會在 `DisableAndReload` 裡順手停用它（`Keep Ayije` 那個不動它）。它的存檔 `FalconAddOnDB` 不讀、不匯入。
+- **`/mcdm debug`** 多一行：`天空騎術：開／關  接力／獨立  藏冷卻管理器  騎術中  顯示  滑翔  充能 n/m  競速  最高速  狀態  速度掛勾  alpha`。
 
 ## 套組接線
 
@@ -2929,6 +2989,20 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 373. 法術圖示前綴跟字一樣高、規則換字級時圖示跟著變大；自訂文字前綴的字型顯示得出來。
 374. 設定視窗開著（或編輯模式）而且沒在化身：兩段顯示預覽值、調門檻時換色換字級看得到、音效不響；關掉視窗字消失。
 375. 設定視窗「虛空化身」節的兩個子分頁：卡片寬度跟上面的設定列一致、停用列的遮罩收在卡片內、換子分頁捲動位置不動；門檻彈窗的下拉、字級框、試聽、上下移、刪除都正常，按鈕筆數跟著換。
+**天空騎術（2026-10-06）**
+
+376. `C_Spell.GetSpellCharges(372608)`／`GetSpellChargeDuration(372608)` 在 12.1 是不是明文；戰鬥中在天空騎術時呢（回充進度與重新振作只吃明文）。
+377. `GetBonusBarIndex() == 11 and GetBonusBarOffset() == 5` 在 12.1 還成立嗎；`UnitPowerBarID("player")` 在天空騎術坐騎上不是 0、德比賽跑是 650。
+378. `PLAYER_CAN_GLIDE_CHANGED`／`PLAYER_IS_GLIDING_CHANGED` 存在嗎、觸發時機對嗎（起飛、落地、上下坐騎各一次）。
+379. 天空之悅的刻度位置（`THRILL_AT = 0.6`）有沒有對準實際的觸發速度；85／100 兩種地區速度對不對，**巨龍群島那張地圖清單到地心之戰／至暗之夜還適用嗎**。
+380. 換色：快意翱翔／貼地飛掠的增益 ID（377234／1227961、404184／404183）哪一顆真的在身上、`GetPlayerAuraBySpellID` 讀不讀得到；
+     讀不到時退回的回充時間啟發式（≤ 6.05、8.2～8.36）還準不準。
+381. 旋轉急衝：1227921 與 361584 哪一顆是現在學到的、圖示與冷卻對不對；冷卻中才顯示／好了才顯示兩種模式切換正確。
+382. 接力：上坐騎、起飛、落地充滿這三個時機，資源條跟面板交接會不會閃；資源條關掉時面板貼在核心技能上方對不對；藏起冷卻管理器時所有條（含自訂群組、施法條）都藏、落地後回來。
+383. 競速：接競速任務（背包拿到青銅時光代幣）後最高速度變 100、重新振作藏起來；交掉任務後恢復。
+384. 本機還有舊的 Falcon 資料夾的玩家：登入後跳提醒、插件列表裡它變停用、按「重新載入」後只剩我們的面板；按「稍後」這次登入什麼都不顯示也不報錯。
+     同時開著 Ayije 時只跳互斥彈窗、選「匯入」或「直接改用」後兩支都停用；選「繼續用 Ayije」不動 Falcon。
+385. 獨立擺放：從接力切過去面板留在原地、可以拖、磁吸；切回接力貼回資源條、資源條覆蓋層的名字帶「＋天空騎術」。
 
 **效能基準**
 

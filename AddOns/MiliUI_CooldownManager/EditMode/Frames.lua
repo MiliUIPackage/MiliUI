@@ -6,6 +6,9 @@
 --   EM.RefreshBar(key)       依目前是否在編輯模式顯示／收起這條的覆蓋層與選取框（走 ns.Write）
 --   EM.AfterApply(key)       Bars.ApplyStructure 套完位置之後（覆蓋層重排、磁吸 Restore）
 --
+-- 天空騎術的接力模式（Modules/Skyriding.lua）：不給它自己的覆蓋層與選取框（不能拖，拖資源條就一起走），
+-- 改在資源條覆蓋層的條名後面接「＋天空騎術」讓玩家知道它跟著資源條。
+--
 -- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、
 -- 黃字提示列（拖曳會被限制時才出現）。整個 EnableMouse(false) —— 不能擋到底下選取框的拖曳。
 --
@@ -143,9 +146,21 @@ local function HintText(bar)
     return nil
 end
 
+-- 接力中的天空騎術（跟著資源條，沒有自己的覆蓋層）
+local function SkyRelay()
+    local B = ns.Bars
+    return B and B.SkyRelay and B.SkyRelay() or false
+end
+EM.SkyRelayHidden = function(key) return key == "skyriding" and SkyRelay() end
+
 local function UpdateTexts(key, bar)
     local ov = EM.overlay[key]
-    ov.name:SetText(EM.BarLabel(key))
+    local label = EM.BarLabel(key)
+    if key == "resources" and SkyRelay() then
+        local sky = BarCfg("skyriding")
+        if sky and sky.enabled ~= false then label = L["%s + %s"]:format(label, EM.BarLabel("skyriding")) end
+    end
+    ov.name:SetText(label)
     local hint = HintText(bar)
     if hint then
         ov.hint:SetText(hint)
@@ -287,7 +302,7 @@ function EM.ApplyBarNow(key)
     local bar = BarCfg(key)
     local csel = EM.customSel[key]
     local bsel = EM.WireViewer(key)
-    if EM.Editing() and bar then
+    if EM.Editing() and bar and not EM.SkyRelayHidden(key) then
         EM.LayoutOverlay(key)
         UpdateTexts(key, bar)
         ov:Show()

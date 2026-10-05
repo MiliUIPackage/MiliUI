@@ -121,8 +121,12 @@ local function FollowsKey(k, key)
     while cur and not seen[cur] do
         if cur == key then return true end
         seen[cur] = true
-        local a = ns.Layout.AnchorOf(cur, BarCfg)
-        cur = (B.StackTarget and B.StackTarget(cur)) or (a and a.to) or nil
+        if cur == "skyriding" and B.SkyRelay and B.SkyRelay() then
+            cur = "resources"                     -- 接力中的天空騎術跟著資源條走
+        else
+            local a = ns.Layout.AnchorOf(cur, BarCfg)
+            cur = (B.StackTarget and B.StackTarget(cur)) or (a and a.to) or nil
+        end
     end
     return false
 end
@@ -211,6 +215,7 @@ driver:SetScript("OnUpdate", DragTick)
 
 function EM.BeginDrag(key)
     if dragState or InCombatLockdown() then return end
+    if EM.SkyRelayHidden and EM.SkyRelayHidden(key) then return end   -- 接力中的天空騎術不能拖
     local c, bar = ns.Bars.Get(key), BarCfg(key)
     if not (c and bar) then return end
     local rect = EM.RectOf(c)
@@ -262,6 +267,7 @@ EM.HoveredKey = HoveredKey
 
 function EM.Nudge(key, dx, dy)
     if dragState or InCombatLockdown() then return false end
+    if EM.SkyRelayHidden and EM.SkyRelayHidden(key) then return false end
     local bar = BarCfg(key)
     if not (bar and ns.Bars.Get(key)) then return false end
     local t

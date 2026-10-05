@@ -241,15 +241,17 @@ ns.conflict = ConflictLoaded()
 -- 顯示名：對方 TOC 的 Title 拿掉色碼與「[冷卻]」這種分類標籤，再補上資料夾名。
 -- 標籤拿掉之後中文標題只剩「冷卻管理器」，跟暴雪的冷卻管理器、跟我們自己都分不出來，
 -- 所以括號裡一定帶資料夾名（玩家在插件列表的說明欄看得到它）。
-local function ConflictTitle()
+local function AddOnTitle(folder)
     -- 沒安裝時（設定檔頁也會叫）有的客戶端版本會拋錯，包起來
-    local ok, title = pcall(C_AddOns.GetAddOnMetadata, CONFLICT_ADDON, "Title")
-    if not ok or type(title) ~= "string" or title == "" then return CONFLICT_ADDON end
+    local ok, title = pcall(C_AddOns.GetAddOnMetadata, folder, "Title")
+    if not ok or type(title) ~= "string" or title == "" then return folder end
     title = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
     title = title:gsub("^%s*%[[^%]]*%]%s*", "")
-    if title == "" or title == CONFLICT_ADDON then return CONFLICT_ADDON end
-    return L["%s (%s)"]:format(title, CONFLICT_ADDON)
+    if title == "" or title == folder then return folder end
+    return L["%s (%s)"]:format(title, folder)
 end
+
+local function ConflictTitle() return AddOnTitle(CONFLICT_ADDON) end
 
 ns.ConflictTitle = ConflictTitle
 
@@ -262,7 +264,7 @@ local function AddOnCharacter()
 end
 ns.AddOnCharacter = AddOnCharacter
 
-local function DisableAndReload(folders)
+local function DisableAddOns(folders)
     local who = AddOnCharacter()
     for _, name in ipairs(folders) do
         pcall(C_AddOns.DisableAddOn, name, who)
@@ -272,6 +274,17 @@ local function DisableAndReload(folders)
             pcall(C_AddOns.DisableAddOn, name)
         end
     end
+end
+
+-- 留下本插件的選項（停用的不是本插件自己）時，舊的天空騎術插件也一起停用（見下面「舊的天空騎術插件」）
+local function DisableAndReload(folders)
+    local list, keepsUs = {}, true
+    for _, name in ipairs(folders) do
+        list[#list + 1] = name
+        if name == ADDON then keepsUs = false end
+    end
+    if keepsUs and ns.falconLoaded then list[#list + 1] = ns.FALCON_FOLDER end
+    DisableAddOns(list)
     ReloadUI()
 end
 ns.DisableAndReload = DisableAndReload
@@ -344,7 +357,13 @@ local function BuildConflictPopup()
     msg:SetPoint("TOPLEFT", PAD, -PAD)
     msg:SetWidth(inner)
     msg:SetJustifyH("LEFT")
-    msg:SetText(L["%s and MiliUI Cooldown Manager both take over Blizzard's Cooldown Manager, so only one can stay enabled. Pick the one to keep; the UI reloads right after."]:format(ConflictTitle()))
+    local text = L["%s and MiliUI Cooldown Manager both take over Blizzard's Cooldown Manager, so only one can stay enabled. Pick the one to keep; the UI reloads right after."]:format(ConflictTitle())
+    -- 舊的天空騎術插件也還載著：不另外跳第二個彈窗（兩個疊在一起），併進這一個——
+    -- 留下本插件的兩個選項本來就會重新載入，DisableAndReload 順手停用它
+    if ns.falconLoaded then
+        text = text .. "\n\n" .. L["%s is now part of MiliUI Cooldown Manager: keeping MiliUI turns it off too."]:format(AddOnTitle(ns.FALCON_FOLDER))
+    end
+    msg:SetText(text)
 
     local descs, prev = {}, msg
     for _, c in ipairs(choices) do
@@ -386,6 +405,67 @@ function ns.ShowConflictPopup()
 end
 
 ------------------------------------------------------------
+-- 舊的天空騎術插件（資料夾名 Falcon）
+--
+-- 它的功能已經做進本插件（Modules/Skyriding.lua），套組也已經拿掉它；但用解壓縮覆蓋安裝的玩家本機可能還留著
+-- 舊資料夾。登入時它還是載入狀態 ⇒ 幫玩家停用（不立刻重新載入）＋跳一個提醒，這次登入的天空騎術面板
+-- 不啟動（ns.falconBlocked：SR.Active 永遠 false、hideCdm 不作用），免得畫面上兩條一起出現。
+-- 沒載入（資料夾不在、或已經停用）就什麼都不做。它的存檔不讀、不匯入。
+--
+-- 跟冷卻管理器的互斥彈窗同時成立時不另外跳，併進那個彈窗（見 BuildConflictPopup）。
+-- 提醒視窗跟互斥彈窗一樣**不登記 UISpecialFrames**（理由見上面互斥彈窗的註解）。
+------------------------------------------------------------
+ns.FALCON_FOLDER = "Falcon"
+
+local function FalconLoaded()
+    local ok, loaded = pcall(C_AddOns.IsAddOnLoaded, ns.FALCON_FOLDER)
+    return ok and loaded and true or false
+end
+
+local falconNotice
+
+local function BuildFalconNotice()
+    local W, P = ns.W, ns.P
+    local WIDTH, PAD, GAP, BTN_W, BTN_H = 420, 16, 12, 120, 24
+    local popup = W.CreateFrame(nil, UIParent, WIDTH, 100)
+    popup:SetFrameStrata("FULLSCREEN_DIALOG")
+    popup:SetFrameLevel(410)
+    popup:SetBackdropBorderColor(W.Accent(1))
+    popup:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
+
+    local msg = popup:CreateFontString(nil, "OVERLAY")
+    msg:SetFontObject(W.fontNormal)
+    msg:SetPoint("TOPLEFT", PAD, -PAD)
+    msg:SetWidth(WIDTH - PAD * 2)
+    msg:SetJustifyH("LEFT")
+    msg:SetText(L["%s is now part of MiliUI Cooldown Manager, so it has been turned off for you. After reloading, MiliUI Cooldown Manager shows the skyriding bars instead; adjust their position and look in /mcdm → \"%s\"."]
+        :format(AddOnTitle(ns.FALCON_FOLDER), ns.SkyridingTitle and ns.SkyridingTitle() or L["Skyriding"]))
+
+    -- 主按鈕在右（重新載入）、一般按鈕在左（稍後）
+    local reload = W.CreateButton(popup, L["Reload"], "primary", BTN_W, BTN_H)
+    W.FitButton(reload, BTN_W, BTN_H)
+    reload:SetPoint("BOTTOMRIGHT", popup, "BOTTOMRIGHT", -PAD, PAD)
+    reload:SetScript("OnClick", function() ReloadUI() end)
+    local later = W.CreateButton(popup, L["Later"], "normal", BTN_W, BTN_H)
+    W.FitButton(later, BTN_W, BTN_H)
+    later:SetPoint("RIGHT", reload, "LEFT", -8, 0)
+    later:SetScript("OnClick", function() popup:Hide() end)
+
+    -- 高度在 OnShow 量（字串換行後的高度要等字型就緒才準）
+    popup:SetScript("OnShow", function(self)
+        P.Height(self, math.ceil(PAD * 2 + (msg:GetStringHeight() or 0) + GAP + BTN_H))
+    end)
+    popup:Hide()
+    return popup
+end
+
+function ns.ShowFalconNotice()
+    if not ns.W then return end
+    falconNotice = falconNotice or BuildFalconNotice()
+    falconNotice:Show()
+end
+
+------------------------------------------------------------
 -- 引擎啟動（登入流程在 DB 就緒之後叫一次）
 --
 -- 順序有意義：Catalog（知道每條該有哪些 id）→ Viewers（開始掛暴雪檢視器，退避重試）
@@ -393,7 +473,7 @@ end
 -- → Keybinds（綁定事件）
 -- → Bars（容器與排程；Viewers 就緒時它會收到 ViewersReady）
 -- → Interrupt／Resources／Pips／Castbar（資源條、自訂格子、施法條：在 Bars 上登記自己的面板容器）
--- → Assist（戰鬥輔助的輪詢與醒目標示）→ AssistIcon（下一招圖示：也是面板）
+-- → Assist（戰鬥輔助的輪詢與醒目標示）→ AssistIcon（下一招圖示：也是面板）→ Skyriding（天空騎術：也是面板）
 -- → Visibility（alpha；面板排在條後面，資源條要讀核心技能的 alpha）
 -- → Cursor（跟著游標的群組：要讀 Visibility 剛套好的 alpha 決定掛不掛 OnUpdate）。
 -- 每一步各自隔離，一支拋錯不會讓後面的不啟動。
@@ -401,7 +481,7 @@ end
 -- 設定檔／專精換了：清樣式簽章、重讀目錄、全部重排、重套 alpha——沒有任何選項要 /reload。
 ------------------------------------------------------------
 local ENGINE = { "Catalog", "Viewers", "Custom", "Glow", "Sound", "Keybinds", "Bars",
-                 "Interrupt", "Resources", "Pips", "Castbar", "Assist", "AssistIcon", "Visibility", "Cursor" }
+                 "Interrupt", "Resources", "Pips", "Castbar", "Assist", "AssistIcon", "Skyriding", "Visibility", "Cursor" }
 
 local function RestyleAll(reason)
     if ns.Decorate then ns.Decorate.InvalidateAll() end
@@ -452,6 +532,8 @@ loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function(self)
     self:UnregisterEvent("PLAYER_LOGIN")
     ns.conflict = ns.conflict or ConflictLoaded()
+    -- PLAYER_LOGIN 時每支插件都載完了，不必靠 OptionalDeps 排順序
+    ns.falconLoaded = FalconLoaded()
     if ns.conflict then
         -- 其餘初始化全部不跑：沒有 DB、沒有事件、沒有掛勾
         ns.ShowConflictPopup()
@@ -465,5 +547,10 @@ loader:SetScript("OnEvent", function(self)
     ns.Events.Start()
     ns.ready = true
     ns.Fire("Loaded")
+    if ns.falconLoaded then
+        ns.falconBlocked = true
+        DisableAddOns({ ns.FALCON_FOLDER })
+    end
     ns.StartEngine()
+    if ns.falconBlocked then ns.ShowFalconNotice() end
 end)
