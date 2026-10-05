@@ -1613,7 +1613,15 @@ function D.ApplyPlaceholder(ph, barKey, id, w, h)
     -- 只有增益類會有這個覆寫（單一法術小窗只在增益圖示類的格出這個分頁）
     local T = ns.Text
     local lb = T and T.LabelStyle and T.LabelStyle(barKey, id) or nil
-    if lb and not ph.label then ph.label = ph.frame:CreateFontString(nil, "OVERLAY") end
+    -- 字放在占位框上面一層的子框：占位框自己的邊框（MakeBorder，OVERLAY 7）、Masque 的外框都是占位框上的貼圖，
+    -- 同框畫的話會被它們蓋住（使用者 2026-10-06 回報）；子框一定在父框的貼圖上面
+    if lb and not ph.label then
+        local lf = CreateFrame("Frame", nil, ph.frame)
+        lf:SetAllPoints(ph.frame)
+        lf:SetFrameLevel((ph.frame:GetFrameLevel() or 1) + 2)
+        ph.labelFrame = lf
+        ph.label = lf:CreateFontString(nil, "OVERLAY")
+    end
     if ph.label then T.ApplyLabel(ph.label, ph.frame, lb, T.LABEL_PH_ALPHA) end
     local skinned = false
     if style.masque and ph.tex then

@@ -1680,7 +1680,11 @@ local function InitAuraButton(btn, c, st, rec)
     -- 自訂文字（M）：玩家打的明文，直接 SetText（自己的 FontString，不經暴雪）；錨點同倒數（圖示內的那個角／邊）
     local lb = st.label
     if lb then
-        local fs = ov:CreateFontString(nil, "OVERLAY")
+        -- 字放在 ov 上面一層的子框：ov 的 OVERLAY 7 是米利邊框，同框同層誰在上不保證（子框一定蓋過父框的貼圖）
+        local lf = CreateFrame("Frame", nil, ov)
+        lf:SetAllPoints(btn)
+        lf:SetFrameLevel((ov:GetFrameLevel() or 1) + 3)
+        local fs = lf:CreateFontString(nil, "OVERLAY")
         fs:SetFont(lb.font, lb.size * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
         fs:SetWordWrap(false)
