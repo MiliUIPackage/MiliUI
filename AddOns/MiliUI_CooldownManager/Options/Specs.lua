@@ -413,6 +413,7 @@ local function SubTabRow()
     return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
         local tc = W.CreateTabCard(parent, {
             tabs = SUBTAB_DEFS, tabHeight = SUBTAB_BTN_H, tabMinWidth = SUBTAB_BTN_MIN_W,
+            help = L["Cooldown: the countdown while the spell recharges. Buff duration: the countdown of a buff, on buff icons and in the part where a spell shows its buff's time first."],
             selected = ctx.subTab,
             onSelect = function(id)
                 if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end

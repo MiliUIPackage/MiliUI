@@ -738,6 +738,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     do
         local tc = W.CreateTabCard(frame, {
             tabs = { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Buff duration"] } },
+            help = L["Cooldown: the countdown while the spell recharges. Buff duration: the countdown of a buff, on buff icons and in the part where a spell shows its buff's time first."],
             selected = curSub,
             onSelect = function(id)
                 if id == curSub then return end
@@ -748,7 +749,23 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
         frame.subCard = tc
         AddRow({ frame = tc.strip, h = 0, when = BuffTimeRows, subStrip = true,
             place = function(y)
-                local sh = tc:Place(PAD - SUB_CARD_OUT, y - SUB_CARD_TOP, ROW_W + SUB_CARD_OUT * 2)
+                -- 左緣＝卡片裡最長的標籤再外推一點（標籤欄靠右對齊；不包空著的標籤欄左半，使用者 2026-10-06），
+                -- 右緣＝列的右緣再外推 SUB_CARD_OUT
+                local measure = frame.subCardMeasure
+                if not measure then
+                    measure = frame:CreateFontString(nil, "OVERLAY")
+                    measure:SetFontObject(W.fontNormal)
+                    measure:Hide()
+                    frame.subCardMeasure = measure
+                end
+                local lw = 0
+                for _, k in ipairs({ "Decimals below", "Color when low", "Low color", "Low below (sec)" }) do
+                    measure:SetText(L[k])
+                    lw = math.max(lw, math.ceil(measure:GetStringWidth() or 0))
+                end
+                local left = math.max(PAD - SUB_CARD_OUT, PAD + CTRL_X - 10 - math.min(lw, LABEL_W) - 10)
+                local right = PAD + ROW_W + SUB_CARD_OUT
+                local sh = tc:Place(left, y - SUB_CARD_TOP, right - left)
                 return SUB_CARD_TOP + sh + W.TAB_CARD_PAD
             end,
             paint = function(id) tc:Select(id) end })
