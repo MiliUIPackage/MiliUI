@@ -1544,7 +1544,7 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
   （總開關、聲道、讀取畫面靜音、節流 key `meta:time:<序號>`／`meta:stars:<序號>`）。進化身時規則狀態清掉 ⇒「>= 0」會在進化身那一刻響（＝化身開始音效）。
   保留期間字停在最後的值、規則外觀保留、不響。
 - 預覽：設定視窗開著或暴雪編輯模式中（`ns.EditMode.Editing()`）、沒在化身也沒在保留時，兩段顯示預覽值並照預覽值跑規則（音效不響）。
-  預覽值是設定頁的拉桿（計時 0～120 秒、星 0～20，預設 0:23／3），存在 `DM.preview`、不進 SV。`OptionsShown`／`OptionsHidden`／`EditModeChanged` 時重畫值。
+  預覽值固定 0:23／3（`DM.preview`，沒有設定；2026-10-06 使用者拿掉拉桿）。`OptionsShown`／`OptionsHidden`／`EditModeChanged` 時重畫值。
 - 設定頁：靈魂碎片設定視窗最後一節（標題是法術名），`W.CreateTabCard` 兩個子分頁「計時｜崩陷之星」（子分頁的列帶 `subTab`、`Specs.FilterSubTab`，
   目前的子分頁進表單簽章）。顏色走代理表（讀照有效值、第一次寫才複製進自己的表）；字型／描邊下拉第一項「跟隨這一列的數字」（寫 INHERIT 時清成 nil）。
 - `/mcdm debug` 多一行（惡魔獵人）：化身經過、崩陷之星計 N、略過秘密 M、這次幾顆、保留剩幾秒、兩段目前命中的規則。

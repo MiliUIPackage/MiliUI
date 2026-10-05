@@ -322,9 +322,9 @@ local PREFIX_ITEMS = {
 }
 
 -- 卡片左緣照卡片裡最長的標籤外推（同 Specs 的 SubTabRow；標籤欄靠右對齊、長度依語系）
-local META_CARD_TOP, META_CARD_PAD_X, META_CARD_CTRL_W = 4, 10, 230
+local META_CARD_TOP, META_CARD_PAD_X = 4, 10
 local META_LABELS = { "Show", "Position", "X offset", "Y offset", "Font", "Font size", "Outline", "Color",
-                      "Format", "Prefix", "Prefix text", "Keep after it ends", "Keep for (sec)", "Preview value" }
+                      "Format", "Prefix", "Prefix text", "Keep after it ends", "Keep for (sec)" }
 
 local function MetaTabRow()
     return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
@@ -350,7 +350,8 @@ local function MetaTabRow()
         measure:Hide()
         labelW = math.min(labelW, LABEL_W)
         local left = math.max(0, x - CTRL_GAP - labelW - META_CARD_PAD_X)
-        local right = math.min(x + width, x + META_CARD_CTRL_W + META_CARD_PAD_X)
+        -- 右緣拉到表單右緣（控件欄右邊留白 ROW_PAD_R＝內距），不要只包到標準控件寬：卡片太瘦、右邊空一截不協調
+        local right = x + width + META_CARD_PAD_X
         local h = tc:Place(left, y - META_CARD_TOP, right - left)
         ctx.tabCard = tc
         ctx.tabCardX = { left = left, right = right }   -- 卡片裡停用列的遮罩只蓋卡片內（Specs.BuildForm）
@@ -492,13 +493,6 @@ local function AppendMetaTab(add, key, which)
     add(MS("slider", which, "holdSec", L["Keep for (sec)"], { min = DM.HOLD_MIN, max = DM.HOLD_MAX, step = 1,
         disabled = function() return Off() or not DM.Get(Cfg(), which, "hold") end }))
     add(MetaRulesRow(which))
-    -- 預覽值：只影響設定視窗開著／編輯模式中的畫面，不進 SV
-    add(MS("slider", which, "preview", L["Preview value"], {
-        min = 0, max = (which == "time") and 120 or 20, step = 1, noReset = true,
-        get = function() return DM.preview[which] end,
-        set = function(_, v) DM.preview[which] = math.floor((tonumber(v) or 0) + 0.5) end,
-    }))
-    add(MetaCardText(which, L["Shown on the bar while these settings are open or in Edit Mode, when you aren't in %s. Thresholds apply to it; sounds don't play."]:format(DM.MetaName())))
 end
 
 local function AppendMeta(add, key)
