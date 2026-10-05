@@ -46,12 +46,13 @@
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
 | `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Cursor.lua`、`Core/Glow.lua`、`Core/StackGate.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
 | `Core/Presets.lua` | 挑選器「常用預設」的資料（種族技能、防禦技能、藥水與治療石、團隊增益）＋純函式，**每季要對一次**，見「常用預設＋複製到其他專精」 |
+| `Core/MasqueShape.lua` | 從我們交給 Masque 的框讀回皮套上的形狀（圖示矩形、遮罩、皮外框），光環格與按鍵鏡射的閃光共用 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、光環格的 Masque（獨立占位框、探針的錨點與 regions、讀回形狀與皮外框進簽章、烘遮罩與外框、外框讀不到退米利邊、讀不到形狀退方形、疊層照冷卻格的皮）、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（含逐法術占位）、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、光環格的 Masque（獨立占位框、探針的錨點與 regions、讀回形狀與皮外框進簽章、烘遮罩與外框、外框讀不到退米利邊、讀不到形狀退方形、疊層照冷卻格的皮）、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰、閃光跟著 Masque 皮的遮罩）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做；皮的形狀與公開 API 的貼圖查詢；發光跟著形狀：沒裝不問形狀、米利模式／方形皮照舊、圓形／六角形皮 × 四種樣式、換皮停乾淨、池化閃光框換回暴雪貼圖、API 讀不到退方形）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（含逐法術占位）、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -569,6 +570,11 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   MiliUIGlow 的共用 driver 照樣每幀算）；`rec.readyWhile` 仍是「這格開著這個模式」。秘密值時照舊發光一直開著、交給宿主的 `SetAlphaFromBoolean`。
   「觸發」樣式在裝了 Masque 時改用 Masque 的方形循環圖（`Masque/Textures/Square/SpellAlert-Loop-Modern`，6×5、每格 84px，沒有入場動畫），
   沒裝就是暴雪的圓角圖集；只換貼圖，不碰 Masque、不讀它的設定。
+  皮是非方形（圓形、六角形）時發光跟著皮的形狀（2026-10-05，F）：形狀從交給 Masque 的框上唯讀 `_MSQ_CFG.Shape`
+  （`ns.Masque.ShapeOf`，唯一讀 Masque 內部資料的例外），貼圖走它的公開 API——觸發用 `GetSpellAlertFlipBook("Modern", 形狀)`
+  的循環圖、快捷鍵閃光用 `GetSpellAlert(形狀)` 的 Glow／Ants（拿不到就改畫該形狀的觸發）、像素與自動施法改畫該形狀的觸發
+  （顏色照設定）。形狀進發光簽章：換皮、群組停用就照記下的樣式停掉重畫。格子沒交給 Masque（沒裝、米利模式、長條）第一行就短路。
+  光環格家族的生效發光同一套映射，形狀從探針／疊層底下的冷卻格讀、進容器簽章，`initializeFrame` 裡 Attach 之後換貼圖。
   設定頁的觸發／就緒發光各有一顆「預覽」樣本圖示，常亮目前的樣式與顏色（`ns.Glow.PaintOn`／`StopOn` 與格子共用）。
 - **無損刷新**：後掛勾 item 的 `ShowPandemicStateFrame／HidePandemicStateFrame`，邊框換 `pandemic.color`，
   `pandemic.bars` 時長條條身也換色；Hide 換回。暴雪的 PandemicIcon 不碰。暴雪在 OnUpdate 裡每幀叫這兩支 ⇒ 掛勾本體**不包** `ns.Guard`
@@ -1107,6 +1113,9 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
   **保險**：按下後 `C_Timer.After(2)`，那顆鍵還是同一次按下就收（放開事件漏掉時不會卡亮）。
 - **畫法**（`K.PressTexture`，預覽格與真實格共用）：`rec.overlay` 底下一張 `WHITE8X8`（第一次閃才建，OVERLAY 第 1 層，墊在邊框與按鍵文字底下）、`SetAllPoints` overlay、
   `ADD`、`SetVertexColor(1,1,1, pressFlashAlpha)`。自訂法術／物品格同一套（overlay 也是我們的）；Masque 模式照常（貼圖不在 Masque 管的 regions 裡）。
+  格子交給 Masque 時閃光跟著皮的形狀（2026-10-05，F）：從被套皮的 Icon 唯讀第一張遮罩（`Core/MasqueShape.lua` 的 `ReadShape`，跟光環格同一支），
+  在 overlay 上自己建一張 MaskTexture（同一張貼圖、同一個矩形）掛到閃光上；依 Masque 的 Generation＋格子尺寸快取、換皮重建。
+  沒交給 Masque（沒裝、米利模式、群組停用）第一個判斷就走、之前掛的遮罩拿掉；讀不到 ⇒ 方形。設定頁預覽格不交給 Masque ⇒ 照舊方形。
 - **設定頁**：主題頁與條頁「圖示」節，「滑鼠移到圖示上顯示提示」那組下面：「按鍵閃光」勾選＋灰字＋「閃光透明度」滑桿（10%～80%，沒開時停用）。
   長條類的條與增益圖示列的條頁不出現這三列。效果預覽列多一顆「按鍵」：第一個技能格每 1.5 秒閃 0.15 秒、演示 6 秒（透明度照滑桿當下的值，沒勾也照樣演示）。
 - `/mcdm debug`：「按鍵鏡射：掛勾 已掛／未掛、登記 N 格（M 顆）、按住 K、閃過 X 次」。
@@ -2632,6 +2641,21 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      `AddMaskTexture`／`SetSwipeTexture(遮罩檔)` 不被擋；`SetIcon` 之後引擎沒有把我們設的 texcoord／尺寸蓋掉；
      增益在時按鈕的外框跟底下占位的外框疊在一起（同一個位置、同一張皮）有沒有變粗／變暗；圖集外框（`SetAtlas` 不帶 useAtlasSize）
      照讀回來的尺寸畫是對的。
+
+**發光跟著 Masque 皮的形狀（2026-10-05，F）**
+
+326. 圖示外觀＝Masque、選圓形皮（例如 Raeli - Ring Edge）：觸發、就緒、生效、下一招醒目標示四種發光，各試像素／自動施法／
+     快捷鍵閃光／觸發四種樣式，**都是圓的**——像素與自動施法變成圓形的觸發樣式（顏色照設定）、快捷鍵閃光換成圓形的光暈與螞蟻線、
+     觸發是圓形循環圖（沒有入場動畫）。暴雪格、自訂法術／物品／飾品欄格、手動光環格／飾品欄增益／飾品冷卻格疊層的生效發光都看一次。
+     在 Masque 裡換成方形皮：脫戰後（或下一次重排）發光回到原樣式、沒有殘留的圓形發光；換回圓形又變圓。六角形皮的快捷鍵閃光
+     改畫六角形觸發（Masque 只附圓形的閃光貼圖）。
+     **沒裝 Masque、或那條是米利模式：四種樣式跟以前一模一樣**（`/mcdm perf` 前後比一次，沒有多出來的成本）。
+     ⚠ 實機確認：`_MSQ_CFG.Shape` 在交出去的框上讀得到（`/mcdm aura` 或 `/dump` 看一眼）；`GetSpellAlertFlipBook("Modern", "Circle")`
+     的循環圖在 84px 格子下對得齊（不跳格、不露出圖集其他格）；圓形閃光的螞蟻線格子排法跟暴雪那張一樣（48px、22 格）。
+     按鍵鏡射的閃光（按下快捷鍵時格子上的白色閃光）在圓形皮上也是圓的、位置跟圖示對齊；換方形皮回方形；沒裝 Masque 照舊方形。
+     ⚠ 實機確認：暴雪 item 的 `Icon` 套皮後 `GetNumMaskTextures`／`GetMaskTexture` 讀得到 Masque 的遮罩、錨點讀得懂（錨在 item 或 Icon 上）；
+     overlay 上 `CreateMaskTexture`＋`AddMaskTexture` 在戰鬥中不被擋（overlay 是我們的框）。
+     層數發光（「層數到 N 才亮」）與設定頁的樣本／條預覽照舊方形（不在這次範圍）。
 
 **效能基準**
 

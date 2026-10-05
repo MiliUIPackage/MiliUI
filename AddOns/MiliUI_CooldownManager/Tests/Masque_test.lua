@@ -9,7 +9,9 @@
 --
 -- 覆蓋：預設值、icon.skin 的繼承（跟 follow.icon）、沒裝 Masque 退回米利、登入快照與重載判斷、
 -- 之後才建的條用主題的快照、型別、交格子（完整 regions＋Strict、同尺寸不重套、尺寸變了 ReSkin、
--- 換框先 Remove、秘密幾何不交、戰鬥中保護框延到脫戰並叫 onLate）、群組停用、開 Masque 設定。
+-- 換框先 Remove、秘密幾何不交、戰鬥中保護框延到脫戰並叫 onLate）、群組停用、開 Masque 設定；
+-- 皮的形狀（ShapeOf 的快取與 Generation、秘密值、只讀原始欄位）、公開 API 的兩支貼圖查詢，
+-- 以及 Core/Glow.lua 的發光跟著形狀：沒裝 Masque、米利模式、方形皮、圓形／六角形皮 × 四種樣式、換皮重讀、API 讀不到退方形。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -124,6 +126,72 @@ local function Frame(w)
 end
 
 ------------------------------------------------------------
+-- 發光（Core/Glow.lua）用的假 MiliUIGlow：Start 系列照實建框（池化的閃光框會輪用），記帳
+------------------------------------------------------------
+local glowLog = {}
+local function GLog(...) glowLog[#glowLog + 1] = { ... } end
+local BTN_GLOW = [[Interface\SpellActivationOverlay\IconAlert]]
+local BTN_ANTS = [[Interface\SpellActivationOverlay\IconAlertAnts]]
+local function Tex(tex)
+    local t = { tex = tex, sets = 0 }
+    function t:SetTexture(v) self.tex, self.atlas, self.sets = v, nil, self.sets + 1 end
+    function t:SetAtlas(v) self.atlas, self.tex = v, nil end
+    return t
+end
+local function FlipBook()
+    local fb = {}
+    for _, k in ipairs({ "SetFlipBookFrameWidth", "SetFlipBookFrameHeight", "SetFlipBookRows", "SetFlipBookColumns", "SetFlipBookFrames" }) do
+        fb[k] = function(self, v) self[k:sub(4)] = v end
+    end
+    return fb
+end
+local function AnimGroup(fb)
+    local a = { flipbookRepeat = fb, playing = true, plays = 0 }
+    function a:IsPlaying() return self.playing end
+    function a:Stop() self.playing = false end
+    function a:Play() self.playing, self.plays = true, self.plays + 1 end
+    return a
+end
+local btnPool = {}
+local fakeLCG = {}
+function fakeLCG.PixelGlow_Start(h, color, _, _, _, _, _, _, _, key) GLog("pixel+", h, key, color) end
+function fakeLCG.PixelGlow_Stop(h, key) GLog("pixel-", h, key) end
+function fakeLCG.AutoCastGlow_Start(h, color, _, _, _, _, _, key) GLog("autocast+", h, key, color) end
+function fakeLCG.AutoCastGlow_Stop(h, key) GLog("autocast-", h, key) end
+function fakeLCG.ButtonGlow_Start(h, color)
+    if not h._ButtonGlow then
+        local f = table.remove(btnPool)
+        if not f then
+            f = { ants = Tex(BTN_ANTS) }
+            for _, k in ipairs({ "spark", "innerGlow", "innerGlowOver", "outerGlow", "outerGlowOver" }) do f[k] = Tex(BTN_GLOW) end
+        end
+        h._ButtonGlow = f
+    end
+    GLog("button+", h, nil, color)
+end
+function fakeLCG.ButtonGlow_Stop(h)
+    if h._ButtonGlow then btnPool[#btnPool + 1] = h._ButtonGlow; h._ButtonGlow = nil end
+    GLog("button-", h)
+end
+function fakeLCG.ProcGlow_Start(h, o)
+    local k = "_ProcGlow" .. o.key
+    local f = h[k]
+    if not f then
+        f = { ProcLoop = Tex(nil), ProcLoopAnim = AnimGroup(FlipBook()) }
+        f.ProcLoop:SetAtlas("UI-HUD-ActionBar-Proc-Loop-Flipbook")
+        h[k] = f
+    end
+    GLog("proc+", h, o.key, o.color, o.startAnim)
+end
+function fakeLCG.ProcGlow_Stop(h, key) h["_ProcGlow" .. key] = nil; GLog("proc-", h, key) end
+
+local function LastGlow() return glowLog[#glowLog] or {} end
+local function GlowRec(barKey, button)
+    return { overlay = {}, glowHosts = { proc = {}, ready = {}, active = {}, assist = {} }, glowW = 36, glowH = 36,
+             claimKey = barKey, msqSkinned = button ~= nil, msqButton = button }
+end
+
+------------------------------------------------------------
 -- 1. 沒裝 Masque
 ------------------------------------------------------------
 Load(here .. "/../Core/DB.lua")
@@ -149,6 +217,40 @@ do
     eq("沒裝時沒有群組", #groupNames, 0)
     M.OpenOptions()
     eq("沒裝時不開設定", slashArgs, nil)
+    eq("沒裝時 ShapeOf ⇒ nil", M.ShapeOf({ _MSQ_CFG = { Shape = "Circle" } }), nil)
+    eq("沒裝時 SpellAlertLoop ⇒ nil", M.SpellAlertLoop("Circle"), nil)
+    eq("沒裝時 SpellAlertOverlay ⇒ nil", M.SpellAlertOverlay("Circle"), nil)
+
+    -- 發光：沒裝 Masque 的路徑跟以前一樣（不問形狀、觸發用暴雪圖集＋入場動畫、閃光的貼圖一張都不換）
+    ns.MiliUIGlow = fakeLCG
+    Load(here .. "/../Core/Glow.lua")
+    local G = ns.Glow
+    local asks = 0
+    local realShapeOf = M.ShapeOf
+    M.ShapeOf = function(...) asks = asks + 1; return realShapeOf(...) end
+    local r = GlowRec("essential", nil)
+    G.Start(r, "proc", "essential", { type = "pixel" })
+    eq("沒裝：像素照畫像素", LastGlow()[1], "pixel+")
+    G.Start(r, "ready", "essential", { type = "autocast" })
+    eq("沒裝：自動施法照畫", LastGlow()[1], "autocast+")
+    G.Start(r, "active", "essential", { type = "button" })
+    eq("沒裝：閃光照畫", LastGlow()[1], "button+")
+    local bf = r.glowHosts.active._ButtonGlow
+    check("沒裝：閃光的貼圖沒換過", bf and bf.spark.sets == 0 and bf.ants.sets == 0 and bf.spark.tex == BTN_GLOW)
+    G.Start(r, "assist", nil, { type = "proc" })
+    eq("沒裝：觸發照畫", LastGlow()[1], "proc+")
+    eq("沒裝：assist 的觸發不播入場動畫（同以前）", LastGlow()[5], false)
+    G.Stop(r, "proc")
+    G.Start(r, "proc", "essential", { type = "proc" })
+    eq("沒裝：proc 那格有入場動畫", LastGlow()[5], true)
+    eq("沒裝：暴雪圖集", r.glowHosts.proc._ProcGlowproc.ProcLoop.atlas, "UI-HUD-ActionBar-Proc-Loop-Flipbook")
+    eq("沒裝：格子尺寸 0（圖集）", r.glowHosts.proc._ProcGlowproc.ProcLoopAnim.flipbookRepeat.FlipBookFrameWidth, 0)
+    eq("沒裝：記下的樣式", r.glowOn.proc, "proc")
+    r.msqSkinned = false
+    G.Start(r, "proc", "essential", { type = "button" })
+    eq("沒裝：一次都沒問形狀", asks, 0)
+    M.ShapeOf = realShapeOf
+    for k in pairs(r.glowOn) do G.Stop(r, k) end
     P.theme.icon.skin = "miliui"
 end
 
@@ -331,6 +433,203 @@ masqueLib.GetNormal = function() error("boom") end
 eq("GetNormal：API 出錯 ⇒ nil（不報錯）", M.GetNormal("probe"), nil)
 masqueLib.GetNormal = nil
 eq("GetNormal：沒有這支 API ⇒ nil", M.GetNormal("probe"), nil)
+
+------------------------------------------------------------
+-- 5b. 皮的形狀（ShapeOf）＋公開 API 的兩支貼圖查詢
+------------------------------------------------------------
+do
+    local cfg = { Shape = "Circle" }
+    local fr = { _MSQ_CFG = cfg }
+    eq("ShapeOf：讀 _MSQ_CFG.Shape", M.ShapeOf(fr), "Circle")
+    cfg.Shape = "Hexagon"
+    eq("ShapeOf：同一個 Generation 走快取", M.ShapeOf(fr), "Circle")
+    fakeGroup.cb(fakeGroup, "SkinID", "Hex")
+    eq("ShapeOf：Generation 變了 ⇒ 重讀", M.ShapeOf(fr), "Hexagon")
+    eq("ShapeOf：沒有 _MSQ_CFG ⇒ nil", M.ShapeOf({}), nil)
+    eq("ShapeOf：Shape 不是字串 ⇒ nil", M.ShapeOf({ _MSQ_CFG = { Shape = 3 } }), nil)
+    eq("ShapeOf：Shape 空字串 ⇒ nil", M.ShapeOf({ _MSQ_CFG = { Shape = "" } }), nil)
+    eq("ShapeOf：Shape 是秘密值 ⇒ nil", M.ShapeOf({ _MSQ_CFG = { Shape = SECRET } }), nil)
+    eq("ShapeOf：_MSQ_CFG 是秘密值 ⇒ nil", M.ShapeOf({ _MSQ_CFG = SECRET }), nil)
+    eq("ShapeOf：nil ⇒ nil", M.ShapeOf(nil), nil)
+    -- 只讀原始欄位：__index 不會被叫到
+    local touched = false
+    local trap = setmetatable({}, { __index = function() touched = true; error("boom") end })
+    eq("ShapeOf：欄位不在 ⇒ nil（不走 __index、不報錯）", M.ShapeOf(trap), nil)
+    eq("ShapeOf：沒碰 __index", touched, false)
+    local late = {}
+    eq("ShapeOf：套皮前讀不到", M.ShapeOf(late), nil)
+    late._MSQ_CFG = { Shape = "Circle" }
+    eq("ShapeOf：讀不到不快取（套皮晚到照樣讀得到）", M.ShapeOf(late), "Circle")
+
+    local styles = {}
+    local FB = {
+        Circle = { LoopTexture = "Masque/Circle/Loop", FrameWidth = 84, FrameHeight = 84 },
+        Square = { LoopTexture = "Masque/Square/Loop", FrameWidth = 84, FrameHeight = 84 },
+        Hexagon = { LoopTexture = "Masque/Hexagon/Loop", FrameWidth = 84, FrameHeight = 84 },
+        Odd = { LoopTexture = "Odd/Loop", FrameWidth = 64, FrameHeight = 64, Rows = 4, Columns = 4, Frames = 16 },
+        Junk = { LoopTexture = 12 },
+    }
+    masqueLib.GetSpellAlertFlipBook = function(_, style, shape) styles[#styles + 1] = style; return FB[shape] end
+    masqueLib.GetSpellAlert = function(_, shape)
+        if shape == "Circle" then return "Masque/Circle/Glow", "Masque/Circle/Ants" end
+    end
+    local lp = M.SpellAlertLoop("Circle")
+    check("SpellAlertLoop：圓形循環圖", lp and lp.tex == "Masque/Circle/Loop" and lp.w == 84 and lp.h == 84 and lp.rows == nil)
+    eq("SpellAlertLoop：風格固定 Modern", styles[1], "Modern")
+    local odd = M.SpellAlertLoop("Odd")
+    check("SpellAlertLoop：排法不是 6×5／30 才帶", odd and odd.rows == 4 and odd.cols == 4 and odd.frames == 16)
+    eq("SpellAlertLoop：沒有這個形狀 ⇒ nil", M.SpellAlertLoop("Star"), nil)
+    eq("SpellAlertLoop：資料不對 ⇒ nil", M.SpellAlertLoop("Junk"), nil)
+    eq("SpellAlertLoop：不是字串 ⇒ nil", M.SpellAlertLoop(nil), nil)
+    local g1, a1 = M.SpellAlertOverlay("Circle")
+    check("SpellAlertOverlay：圓形兩張", g1 == "Masque/Circle/Glow" and a1 == "Masque/Circle/Ants")
+    eq("SpellAlertOverlay：六角形沒有 ⇒ nil", M.SpellAlertOverlay("Hexagon"), nil)
+
+    --------------------------------------------------------
+    -- 發光跟著皮的形狀（Core/Glow.lua）
+    --------------------------------------------------------
+    env.C_AddOns = { IsAddOnLoaded = function(n) return n == "Masque" end }
+    local G = ns.Glow
+    local function Btn(shape) return { _MSQ_CFG = { Shape = shape } } end
+    local asks = 0
+    local realShapeOf = M.ShapeOf
+    M.ShapeOf = function(...) asks = asks + 1; return realShapeOf(...) end
+
+    -- 圓形皮 × 四種樣式
+    local circle = Btn("Circle")
+    local r = GlowRec("essential", circle)
+    G.Start(r, "active", "essential", { type = "pixel", color = { r = 0.2, g = 0.4, b = 0.6, a = 1 } })
+    local lg = LastGlow()
+    eq("圓形：像素改畫觸發", lg[1], "proc+")
+    eq("圓形：顏色沿用原設定", lg[4] and lg[4][2], 0.4)
+    eq("圓形：沒有入場動畫", lg[5], false)
+    eq("圓形：記下實際樣式（停的時候照它停）", r.glowOn.active, "proc")
+    local pf = r.glowHosts.active._ProcGlowactive
+    eq("圓形：循環圖換成圓形", pf and pf.ProcLoop.tex, "Masque/Circle/Loop")
+    eq("圓形：格子 84", pf and pf.ProcLoopAnim.flipbookRepeat.FlipBookFrameWidth, 84)
+    check("圓形：換了貼圖重播", pf and pf.ProcLoopAnim.plays >= 1)
+    check("圓形：問過形狀", asks > 0)
+    G.Start(r, "ready", "essential", { type = "autocast" })
+    eq("圓形：自動施法改畫觸發", LastGlow()[1], "proc+")
+    eq("圓形：自動施法 → 圓形循環圖", r.glowHosts.ready._ProcGlowready.ProcLoop.tex, "Masque/Circle/Loop")
+    G.Start(r, "proc", "essential", { type = "proc" })
+    eq("圓形：觸發照畫觸發", LastGlow()[1], "proc+")
+    eq("圓形：觸發沒有入場動畫", LastGlow()[5], false)
+    eq("圓形：觸發 → 圓形循環圖", r.glowHosts.proc._ProcGlowproc.ProcLoop.tex, "Masque/Circle/Loop")
+    G.Start(r, "assist", nil, { type = "button" })
+    eq("圓形：閃光照畫閃光", LastGlow()[1], "button+")
+    local bf = r.glowHosts.assist._ButtonGlow
+    check("圓形：閃光五張換成圓形 Glow", bf and bf.spark.tex == "Masque/Circle/Glow" and bf.outerGlowOver.tex == "Masque/Circle/Glow"
+        and bf.innerGlow.tex == "Masque/Circle/Glow")
+    eq("圓形：螞蟻線換成圓形 Ants", bf and bf.ants.tex, "Masque/Circle/Ants")
+    -- 同設定再叫：簽章一樣不重畫
+    local n0 = #glowLog
+    G.Start(r, "active", "essential", { type = "pixel", color = { r = 0.2, g = 0.4, b = 0.6, a = 1 } })
+    eq("圓形：同簽章不重畫", #glowLog, n0)
+
+    -- 換皮（Generation 變了）成方形：舊的照記下的樣式停乾淨、重畫成原樣式；閃光框回池子後拿回來要換回暴雪的貼圖
+    circle._MSQ_CFG.Shape = "Square"
+    fakeGroup.cb(fakeGroup, "SkinID", "Sq")
+    G.Start(r, "active", "essential", { type = "pixel", color = { r = 0.2, g = 0.4, b = 0.6, a = 1 } })
+    eq("換成方形：先停觸發", glowLog[#glowLog - 1][1], "proc-")
+    eq("換成方形：停的是那一格", glowLog[#glowLog - 1][3], "active")
+    eq("換成方形：重畫成像素", LastGlow()[1], "pixel+")
+    eq("換成方形：記下的樣式", r.glowOn.active, "pixel")
+    G.Start(r, "assist", nil, { type = "button" })
+    local bf2 = r.glowHosts.assist._ButtonGlow
+    check("換成方形：閃光換回暴雪的兩張", bf2 and bf2.spark.tex == BTN_GLOW and bf2.innerGlowOver.tex == BTN_GLOW
+        and bf2.ants.tex == BTN_ANTS)
+    -- 方形皮的觸發：跟以前一樣（Masque 的方形循環圖、沒有入場動畫）
+    G.Stop(r, "proc")
+    G.Start(r, "proc", "essential", { type = "proc" })
+    eq("方形皮：觸發用方形循環圖（同以前）", r.glowHosts.proc._ProcGlowproc.ProcLoop.tex,
+        [[Interface\AddOns\Masque\Textures\Square\SpellAlert-Loop-Modern]])
+    eq("方形皮：沒有入場動畫（同以前）", LastGlow()[5], false)
+    G.Start(r, "ready", "essential", { type = "autocast" })
+    eq("方形皮：自動施法照畫", LastGlow()[1], "autocast+")
+    -- 池化的閃光框輪到別的宿主：方形宿主拿到的是暴雪的貼圖
+    G.Stop(r, "assist")
+    local r2 = GlowRec("essential", Btn("Circle"))
+    G.Start(r2, "active", "essential", { type = "button" })
+    eq("另一格圓形：拿到池裡那顆、換成圓形", r2.glowHosts.active._ButtonGlow.spark.tex, "Masque/Circle/Glow")
+    G.Stop(r2, "active")
+    local r3 = GlowRec("essential", nil)
+    G.Start(r3, "active", "essential", { type = "button" })
+    eq("沒交給 Masque 的格子拿到同一顆：換回暴雪的", r3.glowHosts.active._ButtonGlow.spark.tex, BTN_GLOW)
+    eq("Modern 也算方形", (G.SkinShape(Btn("Modern"), "essential")), nil)
+
+    -- 六角形：閃光拿不到貼圖 ⇒ 改畫六角形的觸發
+    local r4 = GlowRec("essential", Btn("Hexagon"))
+    G.Start(r4, "active", "essential", { type = "button" })
+    eq("六角形：閃光改畫觸發", LastGlow()[1], "proc+")
+    eq("六角形：六角形循環圖", r4.glowHosts.active._ProcGlowactive.ProcLoop.tex, "Masque/Hexagon/Loop")
+
+    -- 循環圖排法不是 6×5：寫進去；之後換回暴雪圖集要把排法寫回預設
+    local r5 = GlowRec("essential", Btn("Odd"))
+    G.Start(r5, "proc", "essential", { type = "proc" })
+    local fb5 = r5.glowHosts.proc._ProcGlowproc.ProcLoopAnim.flipbookRepeat
+    check("排法不同：寫進去", fb5.FlipBookRows == 4 and fb5.FlipBookColumns == 4 and fb5.FlipBookFrames == 16)
+    env.C_AddOns = nil
+    local r6 = GlowRec("essential", nil)
+    G.Start(r6, "proc", "essential", { type = "proc" })
+    local fb6 = r6.glowHosts.proc._ProcGlowproc.ProcLoopAnim.flipbookRepeat
+    check("寫過之後換回圖集：排法寫回 6×5／30", fb6.FlipBookRows == 6 and fb6.FlipBookColumns == 5 and fb6.FlipBookFrames == 30)
+    env.C_AddOns = { IsAddOnLoaded = function(n) return n == "Masque" end }
+
+    -- 短路：米利模式的條、沒交出去、長條 ⇒ 不問形狀
+    asks = 0
+    local rm = GlowRec("utility", Btn("Circle"))          -- utility 的快照是米利
+    G.Start(rm, "active", "utility", { type = "pixel" })
+    eq("米利模式：照畫像素", LastGlow()[1], "pixel+")
+    local rn = GlowRec("essential", Btn("Circle")); rn.msqSkinned = false
+    G.Start(rn, "active", "essential", { type = "pixel" })
+    eq("沒交出去：照畫像素", LastGlow()[1], "pixel+")
+    local rb = GlowRec("essential", Btn("Circle")); rb.barGeometry = { h = 20 }
+    G.Start(rb, "active", "essential", { type = "pixel" })
+    eq("長條：照畫像素", LastGlow()[1], "pixel+")
+    eq("短路：三種都沒問形狀", asks, 0)
+
+    -- 群組停用（Active false）：Decorate 重套後 msqSkinned 變 false ⇒ 舊的圓形停掉、回原樣式
+    local rd = GlowRec("essential", Btn("Circle"))
+    G.Start(rd, "active", "essential", { type = "pixel" })
+    eq("停用前：圓形觸發", rd.glowOn.active, "proc")
+    rd.msqSkinned = false
+    G.Start(rd, "active", "essential", { type = "pixel" })
+    eq("停用後：舊的觸發停掉", glowLog[#glowLog - 1][1], "proc-")
+    eq("停用後：回到像素", rd.glowOn.active, "pixel")
+
+    -- API 讀不到（回 nil／出錯）⇒ 方形（原樣式）
+    masqueLib.GetSpellAlertFlipBook = function() return nil end
+    masqueLib.GetSpellAlert = function() error("boom") end
+    fakeGroup.cb(fakeGroup, "SkinID", "Broken")             -- 貼圖快取跟著 Generation 作廢
+    local ra = GlowRec("essential", Btn("Circle"))
+    G.Start(ra, "active", "essential", { type = "pixel" })
+    eq("API 讀不到：像素照畫像素", LastGlow()[1], "pixel+")
+    G.Start(ra, "assist", nil, { type = "button" })
+    eq("API 讀不到：閃光照畫閃光", LastGlow()[1], "button+")
+    eq("API 讀不到：閃光是暴雪的貼圖", ra.glowHosts.assist._ButtonGlow.spark.tex, BTN_GLOW)
+    G.Start(ra, "proc", "essential", { type = "proc" })
+    eq("API 讀不到：觸發用方形循環圖", ra.glowHosts.proc._ProcGlowproc.ProcLoop.tex,
+        [[Interface\AddOns\Masque\Textures\Square\SpellAlert-Loop-Modern]])
+    masqueLib.GetSpellAlertFlipBook, masqueLib.GetSpellAlert = nil, nil
+    fakeGroup.cb(fakeGroup, "SkinID", "None")
+    eq("API 不在：ShapedStyle 照原樣式", (G.ShapedStyle("pixel", "Circle")), "pixel")
+
+    -- 光環按鈕（Attach 之後換貼圖）
+    local af = { ProcLoop = Tex(nil), ProcLoopAnim = AnimGroup(FlipBook()) }
+    G.SkinAttached(af, { t = "proc", loop = { tex = "Masque/Circle/Loop", w = 84, h = 84 } })
+    check("SkinAttached：觸發換循環圖、格子、重播", af.ProcLoop.tex == "Masque/Circle/Loop"
+        and af.ProcLoopAnim.flipbookRepeat.FlipBookFrameWidth == 84 and af.ProcLoopAnim.plays == 1)
+    local ab = { spark = Tex(BTN_GLOW), outerGlow = Tex(BTN_GLOW), ants = Tex(BTN_ANTS) }
+    G.SkinAttached(ab, { t = "button", glow = "Masque/Circle/Glow", ants = "Masque/Circle/Ants" })
+    check("SkinAttached：閃光換三張", ab.spark.tex == "Masque/Circle/Glow" and ab.outerGlow.tex == "Masque/Circle/Glow"
+        and ab.ants.tex == "Masque/Circle/Ants")
+    G.SkinAttached(ab, nil)
+    eq("SkinAttached：沒有 art 不動", ab.spark.sets, 1)
+
+    M.ShapeOf = realShapeOf
+    env.C_AddOns = nil
+end
 
 ------------------------------------------------------------
 -- 6. 開 Masque 設定

@@ -1418,8 +1418,16 @@ local function AuraStyle(rec, barKey, w, h, shape)
             w = w, h = h,
         }
         local gl = st.glow
+        -- Masque 非方形的皮（圓形、六角形）：發光跟著皮的形狀，映射照 Core/Glow.lua（觸發／閃光換貼圖、像素與自動施法
+        -- 改畫該形狀的觸發）。形狀從交給 Masque 的框讀（探針、或疊層底下的冷卻格；hd.msqFrame）。
+        -- hd.msqOn 只在這條是 Masque 模式、而且那一格真的交出去了才是 true ⇒ 沒裝 Masque／米利模式第一個條件就走
+        local hd0 = rec.frame
+        if hd0 and hd0.msqOn and shape ~= "bars" and ns.Glow and ns.Glow.SkinShape then
+            local gshape = ns.Glow.SkinShape(hd0.msqFrame, barKey)
+            if gshape then gl.type, gl.art = ns.Glow.ShapedStyle(gl.type, gshape) end
+        end
         glowSig = table.concat({ gl.type, C(gl.color), gl.lines, gl.thickness, gl.frequency,
-            string.format("%.2f,%.2f", w, h) }, ",")
+            string.format("%.2f,%.2f", w, h), gl.art and gl.art.sig or "-" }, ",")
     end
     -- 飾品欄的增益疊層（rec.overlayOf）：整段都是增益時間 ⇒ 套「增益那一段」的設定（跟暴雪冷卻格倒增益時同一組，
     -- Core/Decorate.lua 的 PhaseColors）：換色開著 ⇒ 倒數字色＝durationColor、低秒色＝durationLowColor（沒設退倒數的
@@ -1513,6 +1521,8 @@ local function AttachGlow(btn, anchor, gl, level, rec)
     else
         LCG.PixelGlow_Attach(f, gl.color, gl.lines, gl.frequency, nil, gl.thickness, gw, gh)
     end
+    -- 皮的形狀（AuraStyle 解好的 gl.art）：換成那個形狀的貼圖，還在 initializeFrame 視窗裡
+    if gl.art and ns.Glow and ns.Glow.SkinAttached then ns.Glow.SkinAttached(f, gl.art) end
     -- 入場動畫：交給引擎在光環出現時播（我們不 Play）
     if anim and btn.AddAuraShownAnimation then pcall(btn.AddAuraShownAnimation, btn, anim) end
     rec.glowAttached = (rec.glowAttached or 0) + 1
@@ -1999,6 +2009,8 @@ end
 --   3. 按鈕（InitAuraButton）：圖示照讀回來的形狀排＋新的遮罩貼圖；轉圈材質換成遮罩那張、排在遮罩矩形；皮外框是**按鈕自己的**
 --      一張貼圖（照讀回來的 Normal 畫，跟按鈕一起出現／消失），建在按鈕本體上——跟 Masque 對一般按鈕的疊法一樣：
 --      圖示（BACKGROUND）< 皮外框（讀回來的層，至少 ARTWORK）< 轉圈（子框）< ov 的倒數／層數字（再上一層子框）。
+--   4. 生效發光：交給 Masque 的那顆框（探針、或疊層底下的冷卻格；hd.msqFrame）的皮是非方形 ⇒ AuraStyle 照 Core/Glow.lua
+--      的映射換樣式＋貼圖（gl.art，進簽章），AttachGlow 在 Attach 之後換貼圖（ns.Glow.SkinAttached）。換皮 ⇒ 簽章變 ⇒ 換容器。
 --   飾品冷卻格的增益疊層（rec.overlayOf）不建探針、不畫外框：底下的冷卻格自己就交給 Masque（Decorate.Apply），外框是它的；
 --   疊層只從冷卻格的 Icon 讀回形狀、不畫米利邊（rec.msqSkinned ＝ 冷卻格現在是 Masque 在畫）。
 --
@@ -2042,127 +2054,9 @@ local function HideParts(hd)
     if hd.skin then hd.skin.frame:Hide() end
 end
 
--- region 的矩形 → { x, y（中心相對基準框中心）, w, h }。只認錨在 known 裡的框上的：一點錨（任何錨點＋偏移），
--- 或 SetAllPoints（兩點、同一個框、錨點對錨點、偏移 0）。其他排法讀不懂 ⇒ nil
-local PX = { LEFT = -1, TOPLEFT = -1, BOTTOMLEFT = -1, RIGHT = 1, TOPRIGHT = 1, BOTTOMRIGHT = 1 }
-local PY = { TOP = 1, TOPLEFT = 1, TOPRIGHT = 1, BOTTOM = -1, BOTTOMLEFT = -1, BOTTOMRIGHT = -1 }
-local function RectOf(region, known)
-    local n = Num(Try(region.GetNumPoints, region))
-    if n == 1 then
-        local p, rel, rp, ox, oy = Try(region.GetPoint, region, 1)
-        p, rp, rel = Str(p), Str(rp), Plain(rel) or Try(region.GetParent, region)
-        local base = rel ~= nil and known[rel] or nil
-        local w, h = Num(Try(region.GetWidth, region)), Num(Try(region.GetHeight, region))
-        if not (base and p and rp and w and h and w > 0 and h > 0) then return nil end
-        ox, oy = Num(ox) or 0, Num(oy) or 0
-        return { x = base.x + (PX[rp] or 0) * base.w / 2 + ox - (PX[p] or 0) * w / 2,
-                 y = base.y + (PY[rp] or 0) * base.h / 2 + oy - (PY[p] or 0) * h / 2, w = w, h = h }
-    elseif n == 2 then
-        local p1, rel1, rp1, x1, y1 = Try(region.GetPoint, region, 1)
-        local p2, rel2, rp2, x2, y2 = Try(region.GetPoint, region, 2)
-        rel1, rel2 = Plain(rel1), Plain(rel2)
-        local base = rel1 ~= nil and rel1 == rel2 and known[rel1] or nil
-        if base and Str(p1) and Str(p1) == Str(rp1) and Str(p2) and Str(p2) == Str(rp2) and Str(p1) ~= Str(p2)
-            and Num(x1) == 0 and Num(y1) == 0 and Num(x2) == 0 and Num(y2) == 0 then
-            return { x = base.x, y = base.y, w = base.w, h = base.h }
-        end
-    end
-    return nil
-end
-
-local function F2(v) return string.format("%.2f", v) end
-local function F4x4(a, b2, c2, d) return string.format("%.4f,%.4f,%.4f,%.4f", a, b2, c2, d) end
-
--- 貼圖的內容：圖集優先，其次檔案路徑、檔案 ID。都沒有 ⇒ nil, nil
-local function AssetOf(t)
-    local atlas = Str(Try(t.GetAtlas, t))
-    if atlas then return atlas, nil end
-    local file = Str(Try(t.GetTextureFilePath, t))
-    if not file then
-        -- ⚠ 插件自己的貼圖（皮的檔案都是）檔案編號是**負數**（實測 Raeli 的外框 -5272）：只要不是 0 都收。
-        -- 再退 GetTexture（回編號或路徑）
-        local id = Num(Try(t.GetTextureFileID, t))
-        if id and id ~= 0 then
-            file = id
-        else
-            local v = Plain(Try(t.GetTexture, t))
-            if (type(v) == "number" and v ~= 0) or (type(v) == "string" and v ~= "") then file = v end
-        end
-    end
-    return nil, file
-end
-
--- GetTexCoord：左上 x,y、左下 x,y、右上 x,y、右下 x,y（八個值，Try 只回五個 ⇒ 直接 pcall）。讀不到 ⇒ 0,1,0,1
-local function TexCoordOf(t)
-    local ok, l, tp, _, _, _, _, r, b = pcall(t.GetTexCoord, t)
-    if ok then l, tp, r, b = Num(l), Num(tp), Num(r), Num(b) end
-    if not (ok and l and tp and r and b) then return 0, 1, 0, 1 end
-    return l, r, tp, b
-end
-
-local DRAW_LAYERS = { BACKGROUND = true, BORDER = true, ARTWORK = true, OVERLAY = true }
-local BLENDS = { BLEND = true, ADD = true, MOD = true, ALPHAKEY = true, DISABLE = true }
-
--- 皮外框（Normal）的外觀：false ＝ 讀到了、這張皮沒有外框（藏著／沒貼圖／透明）；nil ＝ 讀不到
-local function ReadNormal(nt, known)
-    if not nt then return nil end
-    local shown = Plain(Try(nt.IsShown, nt))
-    if shown == nil then return nil end
-    local alpha = Num(Try(nt.GetAlpha, nt))
-    local atlas, file = AssetOf(nt)
-    if shown == false or alpha == 0 or not (atlas or file) then return false end
-    local rr = RectOf(nt, known)
-    if not rr then return nil end
-    local okC, cr, cg, cb, ca = pcall(nt.GetVertexColor, nt)
-    if okC then cr, cg, cb, ca = Num(cr), Num(cg), Num(cb), Num(ca) end
-    if not (okC and cr and cg and cb) then cr, cg, cb, ca = 1, 1, 1, 1 end
-    ca = (ca or 1) * (alpha or 1)
-    local blend = Str(Try(nt.GetBlendMode, nt))
-    if not BLENDS[blend] then blend = "BLEND" end
-    local okL, layer, sub = pcall(nt.GetDrawLayer, nt)
-    layer, sub = okL and Str(layer) or nil, okL and Num(sub) or nil
-    -- 至少 ARTWORK：圖示在 BACKGROUND，外框要在圖示上面
-    if not DRAW_LAYERS[layer] or layer == "BACKGROUND" then layer = "ARTWORK" end
-    sub = math.max(-8, math.min(7, math.floor(sub or 0)))
-    local l, r, t, b = TexCoordOf(nt)
-    local n = { atlas = atlas, file = file, x = rr.x, y = rr.y, w = rr.w, h = rr.h, l = l, r = r, t = t, b = b,
-                cr = cr, cg = cg, cb = cb, ca = ca, blend = blend, layer = layer, sub = sub }
-    n.sig = table.concat({ tostring(atlas or file), F2(rr.x), F2(rr.y), F2(rr.w), F2(rr.h), F4x4(l, r, t, b),
-        F4x4(cr, cg, cb, ca), blend, layer, sub }, ",")
-    return n
-end
-
--- 從**我們自己的**框與它的 Icon（normal 給了的話連皮外框）讀回 Masque 套上去的形狀（框 w×h）。
--- Icon 的矩形讀不懂 ⇒ nil（方形；這時也不讀外框，按鈕畫米利邊）
-local function ReadShape(frame, icon, w, h, normal)
-    if not (frame and icon and tonumber(w) and tonumber(h) and w > 0 and h > 0) then return nil end
-    local known = { [frame] = { x = 0, y = 0, w = w, h = h } }
-    local ir = RectOf(icon, known)
-    if not ir then return nil end
-    known[icon] = ir
-    local l, r, t, b = TexCoordOf(icon)
-    local mask
-    local n = Num(Try(icon.GetNumMaskTextures, icon)) or 0
-    for i = 1, n do
-        local mk = Plain(Try(icon.GetMaskTexture, icon, i))
-        if mk then
-            local atlas, file = AssetOf(mk)
-            if atlas or file then
-                -- 遮罩錨在 Icon（皮的 Mask）或探針（按鈕遮罩）上；讀不懂就當跟 Icon 同一個矩形
-                local mr = RectOf(mk, known) or ir
-                mask = { atlas = atlas, file = file, x = mr.x, y = mr.y, w = mr.w, h = mr.h }
-                break
-            end
-        end
-    end
-    local shape = { ix = ir.x, iy = ir.y, iw = ir.w, ih = ir.h, l = l, r = r, t = t, b = b, mask = mask }
-    if normal then shape.normal = ReadNormal(normal, known) end
-    shape.sig = table.concat({ F2(ir.x), F2(ir.y), F2(ir.w), F2(ir.h), F4x4(l, r, t, b),
-        mask and (tostring(mask.atlas or mask.file) .. "@" .. F2(mask.x) .. "," .. F2(mask.y) .. "," .. F2(mask.w)
-            .. "," .. F2(mask.h)) or "square",
-        shape.normal and ("N:" .. shape.normal.sig) or (shape.normal == false and "N:none" or "N:?") }, ",")
-    return shape
-end
+-- 從自己的框讀回 Masque 套上去的形狀（ReadShape／AssetOf）在 Core/MasqueShape.lua：按鍵鏡射的閃光（Core/Keybinds.lua）也用同一支
+local function ReadShape(...) return ns.MasqueShape.ReadShape(...) end
+local function AssetOf(t) return ns.MasqueShape.AssetOf(t) end
 CU.ReadShape = ReadShape              -- 測試用
 
 -- 形狀快取（cache.msqShape／shapeGen／shapeSize）：Masque 換過設定、尺寸變了才重讀；沒遮罩時看一眼有沒有冒出來。
@@ -2217,10 +2111,10 @@ local function SyncSkinLayer(rec, c, r, barKey)
     if not skinned then
         -- 米利模式、或 Masque 群組停用／這一格還沒交出去：探針收起來，按鈕畫米利邊
         if L then L.frame:Hide() end
-        hd.msqOn, hd.msqShape = nil, nil
+        hd.msqOn, hd.msqShape, hd.msqFrame = nil, nil, nil
         return
     end
-    hd.msqOn = true
+    hd.msqOn, hd.msqFrame = true, L.frame
     hd.msqShape = ShapeFor(L, L.frame, L.icon, r.w, r.h, function()
         return M.GetNormal and M.GetNormal(L.frame) or nil
     end)
@@ -2231,10 +2125,10 @@ CU.SyncSkinLayer = SyncSkinLayer      -- 測試用
 local function OverlayShape(rec, h, shape, r)
     local f = rec.frame
     if shape == "bars" or not (rec.msqSkinned and f and f.Icon) then
-        h.msqOn, h.msqShape = nil, nil
+        h.msqOn, h.msqShape, h.msqFrame = nil, nil, nil
         return
     end
-    h.msqOn = true
+    h.msqOn, h.msqFrame = true, f
     h.msqShape = ShapeFor(h, f, f.Icon, r.w, r.h, nil)
 end
 

@@ -399,6 +399,61 @@ local function PlainArg(v)
     return v
 end
 
+-- ── 閃光跟著 Masque 皮的形狀（2026-10-05，F）────────────────────────────
+-- 格子交給 Masque（holder.msqSkinned，Decorate.Apply 交出去的；圖示類才有）：從那顆被套皮的 Icon（我們交給 Masque 的
+-- regions.Icon ＝ 交出去的框的 Icon）唯讀第一張遮罩的貼圖與相對位置（Core/MasqueShape.lua 的 ReadShape，跟光環格同一支），
+-- 在 overlay 上**自己建一張** MaskTexture（同一張貼圖、同一個矩形）掛到閃光上。overlay 跟格子同一個矩形，所以相對中心的
+-- 偏移照搬。依「Masque.Generation＋格子尺寸」快取（讀不到遮罩也記，皮是在交出去那一刻同步套上的，不會晚到），換皮重建。
+-- 短路：沒交給 Masque（沒裝、米利模式、長條、群組停用）⇒ 第一行就走、不讀不建；之前掛過的遮罩拿掉（閃光回方形）。
+-- 讀不到 ⇒ 方形（不報錯）。設定頁預覽格不交給 Masque ⇒ 照舊方形。
+local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
+
+local function DropPressMask(holder, t)
+    local pm = holder.pressMask
+    if not pm then return end
+    holder.pressMask = nil
+    if pm.on then
+        pcall(t.RemoveMaskTexture, t, pm.tex)
+        pm.tex:Hide()
+    end
+    holder.pressMaskTex = pm.tex                          -- 遮罩貼圖刪不掉：留著下次重用
+end
+
+local function SyncPressMask(holder, t, parent)
+    if holder.msqSkinned ~= true or holder.barGeometry then
+        if holder.pressMask then DropPressMask(holder, t) end
+        return
+    end
+    local M, MS = ns.Masque, ns.MasqueShape
+    if not (M and MS and M.Available()) then return end
+    local w, h = tonumber(holder.glowW), tonumber(holder.glowH)
+    local key = tostring(M.Generation()) .. "|" .. tostring(w) .. "x" .. tostring(h) .. "|" .. tostring(holder.msqSize)
+    local pm = holder.pressMask
+    if pm and pm.key == key then return end
+    if pm then DropPressMask(holder, t) end
+    local btn = holder.msqButton
+    local icon = type(btn) == "table" and rawget(btn, "Icon") or nil
+    local mk
+    if icon and w and h then
+        local ok, shape = pcall(MS.ReadShape, btn, icon, w, h)
+        mk = ok and shape and shape.mask or nil
+    end
+    pm = { key = key, tex = holder.pressMaskTex, on = false }
+    holder.pressMask, holder.pressMaskTex = pm, nil
+    if not mk then return end                             -- 方形皮／讀不到：閃光照舊方形
+    pm.on = pcall(function()
+        local m = pm.tex or parent:CreateMaskTexture()
+        pm.tex = m
+        if mk.atlas then m:SetAtlas(mk.atlas) else m:SetTexture(mk.file, MASK_WRAP, MASK_WRAP) end
+        m:ClearAllPoints()
+        m:SetSize(mk.w, mk.h)
+        m:SetPoint("CENTER", parent, "CENTER", mk.x, mk.y)
+        m:Show()
+        t:AddMaskTexture(m)
+    end)
+end
+K.SyncPressMask = SyncPressMask                           -- 測試用
+
 -- 閃光貼圖（設定頁預覽格與真實格共用）：holder 上存 pressTex，第一次用才建在 parent（overlay）上
 function K.PressTexture(holder, parent, alpha)
     local t = holder.pressTex
@@ -411,6 +466,8 @@ function K.PressTexture(holder, parent, alpha)
         holder.pressTex = t
         holder.pressTexA = nil
     end
+    -- Masque 皮的遮罩（見上）：沒交給 Masque 的格子第一個判斷就走
+    if holder.msqSkinned == true or holder.pressMask then SyncPressMask(holder, t, parent) end
     alpha = tonumber(alpha) or 0.35
     if holder.pressTexA ~= alpha then
         t:SetVertexColor(1, 1, 1, alpha)
