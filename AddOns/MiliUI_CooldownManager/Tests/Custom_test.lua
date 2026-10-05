@@ -1098,6 +1098,104 @@ do
     eqList("AuraIDsOf：slotBuff 第 2 個解不出 ⇒ 空", CU.AuraIDsOf({ slotBuff = { slot = 13, buff = 2 } }), {})
     eqList("AuraIDsOf：auraIDs 優先", CU.AuraIDsOf({ auraIDs = { 5, 6 }, spellID = 1 }), { 5, 6 })
 
+    ------------------------------------------------------------
+    -- 14. 代畫暴雪缺框的裝備欄冷卻格（B）：Bars.Relayout 放 Custom.Proxy、IsMissing／IsProxied、[proxy] 稽核、
+    --     暴雪恢復給框就收起來、Sync 不誤殺、事件照聽、Occupancy、BarHasAuraSlot 認得代畫格（不管有沒有框）
+    ------------------------------------------------------------
+    do
+        -- 核心技能清單：11、12（一般法術）＋198603（飾品的冷卻格：equipSlot 13，玩家拖進核心）
+        local savedInfo2 = CV.GetCooldownViewerCooldownInfo
+        local savedSet0 = SETS[0]
+        SETS[0] = { 11, 12, 198603 }
+        CV.GetCooldownViewerCooldownInfo = function(id)
+            if id == 198603 then
+                return { cooldownID = id, spellID = 1297761, category = 0, equipSlot = 13, isKnown = true, flags = 0 }
+            end
+            return savedInfo2(id)
+        end
+        C.Refresh("test")
+        local savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedP = ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.P
+        local notes = {}
+        ns.Diag = { Note = function(kind, text) notes[#notes + 1] = "[" .. kind .. "] " .. text end }
+        ns.Style = { ApplyPanel = function() end }
+        ns.P = { Scale = function(v) return v end }
+        ns.Viewers = { AURA_KIND = { buffs = true, buffbars = true }, frames = {}, EnsureScale = function() end,
+                       Get = function() return nil end }
+        ns.Decorate.ApplyItemAlpha = function() end
+        load("Core/Layout.lua")
+        load("Core/Bars.lua")
+        local B = ns.Bars
+
+        eq("ProxySlotOf：飾品冷卻格 ⇒ 槽", C.ProxySlotOf(198603), 13)
+        eq("ProxySlotOf：一般法術 ⇒ nil", C.ProxySlotOf(12), nil)
+        eq("ProxySlotOf：自訂項目 ⇒ nil", C.ProxySlotOf(sid), nil)
+
+        local item11 = Obj("Frame")
+        ns.Viewers.frames[item11] = { barKey = "essential", cooldownID = 11 }
+        local index = { [11] = item11 }              -- 12 與 198603 暴雪都沒給框
+        B.Relayout("essential", 2, index, 100)
+        eq("缺框的一般法術照舊算 missing", B.IsMissing("essential", 12), true)
+        eq("缺框的飾品冷卻格不算 missing", B.IsMissing("essential", 198603), false)
+        eq("IsProxied：槽 13", B.IsProxied("essential", 198603), 13)
+        eq("IsProxied：一般法術不代畫", B.IsProxied("essential", 12), nil)
+        local prx = CU.Proxies()[198603]
+        check("代畫 rec：飾品欄形狀、暴雪的數字 id", prx and prx.proxy and prx.kind == "slot" and prx.slot == 13
+            and prx.cooldownID == 198603 and prx.custom)
+        eq("代畫 rec：放在核心", prx and prx.placedBar, "essential")
+        eq("代畫 rec：bar ＝ 放的那條", prx and prx.bar, "essential")
+        eq("代畫 rec：不進 byId", CU.Get(198603), nil)
+        eq("代畫 rec：一般法術沒有代畫", CU.Proxies()[12], nil)
+        check("代畫 rec：增益疊層照疊（cooldownID 是數字 id）", prx and prx.buffOverlay and prx.buffOverlay.placedBar == "essential")
+        eq("Counts：代畫 1 顆", CU.Counts().proxy, 1)
+        local proxyNote = false
+        for _, n in ipairs(notes) do if n:find("[proxy] essential：代畫 198603（槽13）", 1, true) then proxyNote = true end end
+        check("稽核：記 [proxy]", proxyNote, table.concat(notes, " / "))
+        local before = #notes
+        B.Relayout("essential", 2, index, 101)
+        eq("稽核：沒變不重記", #notes, before)
+        eq("同一顆 rec（池化）", CU.Proxies()[198603], prx)
+        check("事件：代畫格算進生效清單", CU.LiveRecs()[198603] == prx)
+        local occ = B.Occupancy(index)
+        eq("Occupancy：代畫格佔一格", occ("essential", 198603), true)
+        eq("Occupancy：缺框的一般法術不佔", occ("essential", 12), false)
+
+        -- Sync 不能誤殺（代畫不在生效清單裡）
+        CU.Sync()
+        eq("Sync 之後：代畫格還在條上", prx.placedBar, "essential")
+        eq("Sync 之後：cooldownID 還在", prx.cooldownID, 198603)
+
+        -- BarHasAuraSlot：自訂飾品欄關掉增益時間之後，代畫格（不管有沒有框）照樣讓核心強制固定格位
+        local ovs = DB.SpecSpells(true).overrides
+        ovs[sid] = { showAuraTime = false }
+        check("BarHasAuraSlot：代畫格會疊增益 ⇒ 是", C.BarHasAuraSlot("essential"))
+        ovs[198603] = { showAuraTime = false }
+        check("BarHasAuraSlot：代畫格也關掉增益時間 ⇒ 不是", not C.BarHasAuraSlot("essential"))
+        ovs[198603] = nil
+        check("BarHasAuraSlot：輔助沒有裝備欄冷卻格", not C.BarHasAuraSlot("utility"))
+
+        -- 暴雪恢復給框：這一輪放暴雪的 item，代畫格收起來
+        local item603 = Obj("Frame")
+        local rec603 = { barKey = "essential", cooldownID = 198603 }
+        ns.Viewers.frames[item603] = rec603
+        index[198603] = item603
+        B.Relayout("essential", 2, index, 102)
+        eq("給框之後：不算代畫", B.IsProxied("essential", 198603), nil)
+        eq("給框之後：也不算 missing", B.IsMissing("essential", 198603), false)
+        eq("給框之後：暴雪的 item 放進核心", rec603.claimKey, "essential")
+        eq("給框之後：代畫格收起來", prx.placedBar, nil)
+        eq("給框之後：疊層跟著收", prx.buffOverlay.placedBar, nil)
+        eq("給框之後：事件不再算它", CU.LiveRecs()[198603], nil)
+        eq("Counts：代畫 0 顆", CU.Counts().proxy, 0)
+        eq("缺框的一般法術仍是 missing", B.IsMissing("essential", 12), true)
+        ovs[sid] = nil
+
+        ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.P = savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedP
+        ns.Decorate.ApplyItemAlpha = nil
+        CV.GetCooldownViewerCooldownInfo = savedInfo2
+        SETS[0] = savedSet0
+        C.Refresh("test")
+    end
+
     for i = #list, 1, -1 do list[i] = nil end
     CU.Sync()
     env.CreateFrame, env.UIParent, env.InCombatLockdown, ns.Events = savedCF, savedUI, savedICL, savedEv

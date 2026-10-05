@@ -613,6 +613,8 @@ function Proto:Refresh()
         end
         -- 清單上有、暴雪卻沒給框的：畫面上不會有，這裡標暗（提示有說明），不要假裝它在
         c.missing = (not e.plus and ns.Bars and ns.Bars.IsMissing and ns.Bars.IsMissing(key, e.id)) and true or false
+        -- 暴雪沒給框、由我們代畫的裝備欄冷卻格（Core/Bars.lua）：畫面上有，不標暗，提示換成代畫說明
+        c.proxied = (not e.plus and ns.Bars and ns.Bars.IsProxied and ns.Bars.IsProxied(key, e.id)) and true or false
         -- 天賦條件不成立（Core/Catalog.lua）：畫面上不顯示，預覽照樣列出來（點得到才改得回來），一樣標暗
         c.talentBlocked = (not e.plus and ns.Catalog.TalentBlocked(e.id)) and true or false
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
@@ -792,6 +794,9 @@ local function ShowTip(c)
         if info and info.equipSlot then
             GameTooltip:AddLine(L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."], 1, 0.82, 0, true)
         end
+    elseif c.proxied then
+        -- 代畫中：已經是照裝備欄畫的，「改用裝備欄」那句不必再講
+        GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't providing this one, so MiliUI draws it from the equipment slot instead."], 1, 0.82, 0, true)
     end
     if c.custom == "aura" then
         -- 光環格：只講它什麼時候出現；位置跟其他格一樣可以拖

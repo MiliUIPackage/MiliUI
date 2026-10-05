@@ -307,9 +307,20 @@ local function Debug(silent)
     if CU and CU.Counts then
         local n = CU.Counts()
         local pb, pk = CU.PendingCounts()
-        p(("  自訂項目：光環格 %d  法術 %d  物品 %d  飾品欄 %d（增益疊層 %d）（放好的框 %d、光環容器 %d 顆、建過 %d 次）  待建 %d  待補踢 %d")
-            :format(n.aura, n.spell, n.item, n.slot or 0, n.overlays or 0, n.placed, n.containers, CU.builds, pb, pk))
+        p(("  自訂項目：光環格 %d  法術 %d  物品 %d  飾品欄 %d  代畫 %d（增益疊層 %d）（放好的框 %d、光環容器 %d 顆、建過 %d 次）  待建 %d  待補踢 %d")
+            :format(n.aura, n.spell, n.item, n.slot or 0, n.proxy or 0, n.overlays or 0, n.placed, n.containers, CU.builds, pb, pk))
         if CU.SegDebugLine then p(CU.SegDebugLine()) end
+        -- 代畫（暴雪沒給框的裝備欄冷卻格，Core/Bars.lua）：哪條、哪個 id、槽、有沒有疊增益、疊層容器的簽章
+        local px = B and B.Proxied and B.Proxied() or {}
+        for key, ids in pairs(px) do
+            for id, slot in pairs(ids) do
+                local rec = CU.Proxies and CU.Proxies()[id]
+                local o = rec and rec.buffOverlay
+                local ov = (o and o.placedBar) and ("有、容器 " .. tostring(o.sig or "未建")) or "無"
+                p(("  代畫：%s  %d→槽%d（%s，疊層 %s）"):format(key, id, slot,
+                    (rec and rec.placedBar) and "放好了" or "沒放", ov))
+            end
+        end
         local prot, total = 0, 0
         for _, rec in pairs(CU.Records()) do
             if rec.kind == "aura" and rec.container then

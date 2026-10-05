@@ -983,15 +983,40 @@ end
 
 -- 這條上有沒有保護框（有的話固定格位被強制打開）：光環格，**或**會疊增益按鈕的飾品欄（C.SlotOverlayIDs；
 -- 疊層的持有框跟光環格一樣是條容器底下的保護框）。名字沿用，設定頁的黃字原因同一句。
+-- 暴雪的裝備欄冷卻格（C.ProxySlotOf 成立的）也算：暴雪沒給框時由我們代畫（Core/Bars.lua），代畫格就是飾品欄、
+-- 一樣會疊增益。**不管這一輪暴雪有沒有給框**（保守：給框時固定格位多開不會壞；跟著框的有無翻來翻去反而會在
+-- 戰鬥中改格位）。清單用 BarBase（不套溢出）：BarHasAuraSlot ← Bars.Occupancy ← Overflow 的佔位判斷，
+-- 這裡再走 C.Bar／C.Overflow 會繞回自己。
 -- 溢出：接收條算「有」——只要有一條成立的來源條上有（保守：不管這一輪有沒有真的溢過來）。
 -- 持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標
 function C.BarHasAuraSlot(barKey)
+    -- 先看有沒有任何一筆暴雪的裝備欄冷卻格排在條上：沒有就不必為每條重算 BarBase
+    local proxyCandidate = nil
+    local function AnyProxyCandidate()
+        if proxyCandidate == nil then
+            proxyCandidate = false
+            EnsureBuilt()
+            for _, list in pairs(C.lists or EMPTY) do
+                for _, id in ipairs(list) do
+                    if C.ProxySlotOf(id) then proxyCandidate = true break end
+                end
+                if proxyCandidate then break end
+            end
+        end
+        return proxyCandidate
+    end
     local function Has(k)
         for _, it in ipairs(Effective()) do
             local e = it.entry
             if ValidCustom(e) and e.bar == k then
                 if e.kind == "aura" then return true end
                 if e.kind == "slot" and C.SlotOverlayIDs(k, it.id, e.slot) then return true end
+            end
+        end
+        if AnyProxyCandidate() then
+            for _, id in ipairs((C.BarBase(k))) do
+                local slot = C.ProxySlotOf(id)
+                if slot and C.SlotOverlayIDs(k, id, slot) then return true end
             end
         end
         return false
@@ -1125,6 +1150,23 @@ function C.SourceOf(id)
     EnsureBuilt()
     local rec = id ~= nil and C.info[id]
     return rec and rec.bar or nil
+end
+
+-- 暴雪的裝備欄冷卻格（飾品、武器的使用效果）：暴雪沒給框時可以由我們代畫（Core/Bars.lua、Modules/Custom.lua 的
+-- Custom.Proxy）。成立 ⇒ 那一格的裝備欄位（C.CUSTOM_SLOTS 認得的），其餘 nil：
+--   * 暴雪的數字 cooldownID（自訂項目不算）、資料帶 equipSlot；
+--   * 來源條是冷卻類（核心／輔助）——增益類不在時本來就可能沒有框，而且那是增益不是冷卻。
+-- 只讀目錄（C.Info 已過 Plain），不問暴雪的框
+local AURA_SOURCE = { buffs = true, buffbars = true }       -- ns.Viewers.AURA_KIND 還沒載入時的退路（同值）
+function C.ProxySlotOf(id)
+    if type(id) ~= "number" then return nil end
+    local info = C.Info(id)
+    local slot = info and info.equipSlot
+    if type(slot) ~= "number" or not CUSTOM_SLOTS[slot] then return nil end
+    local src = info.bar
+    local aura = (ns.Viewers and ns.Viewers.AURA_KIND) or AURA_SOURCE
+    if src == nil or aura[src] then return nil end
+    return slot
 end
 
 -- 探針：「清單上有、暴雪沒給框」的那一格，暴雪自己是怎麼看的（只讀，給 [missing] 與 /mcdm debug 用）

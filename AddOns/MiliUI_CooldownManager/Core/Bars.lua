@@ -33,6 +33,10 @@
 -- 走 ns.Write（持有框整條鏈是保護框）。條上有光環格時固定格位強制打開：光環格放在哪一格都一樣，
 -- 其他 item 收合也不會讓它的 x 變，戰鬥中不必動持有框。
 --
+-- 代畫（Modules/Custom.lua 的 Custom.Proxy）：清單上有、暴雪沒給框的**裝備欄冷卻格**（Catalog.ProxySlotOf：
+-- 暴雪的 id、資料帶裝備欄位、來源是核心／輔助）改放我們的飾品欄框（一格 crec entry，跟自訂項目同一條路）。
+-- 暴雪恢復給框的那一輪照舊放暴雪的 item，代畫格沒被放 ⇒ Custom.EndBar 收起來。代畫中的不算 missing（B.IsProxied）。
+--
 -- 可點擊的自訂圖示群組（Core/Clickable.lua）：每格上面蓋一顆 secure 鈕（parent／錨點都是容器），
 -- 一樣強制固定格位；鈕的寫入走 ns.Write＋簽章去重。不可點擊的條每輪 Release（沒鈕就是 no-op）。
 --
@@ -79,6 +83,7 @@ local scheduled, lastRun = false, -1
 local ArmStructurePending          -- 前置宣告（定義在 Relayout 前面）
 local viewerShown = {}             -- 來源條 → 檢視器上一次看到是不是顯示中（稽核用）
 local missing, missingSig = {}, {} -- 條 → { [id] = true }：清單上有、暴雪沒有給框的（稽核用，預覽讀）
+local proxied, proxiedSig = {}, {} -- 條 → { [id] = 裝備欄位 }：暴雪沒給框、由我們代畫的（稽核用，預覽讀）
 local pinGuard, parkGuard = false, false
 local pinned = {}                  -- 釘過的檢視器（ReleaseAll 只解這些，沒碰過的不動）
 B.ready = false
@@ -485,7 +490,8 @@ function B.Occupancy(index)
     return function(barKey, id)
         if type(id) ~= "number" then return true end
         local item = index[id]
-        if not item then return false end
+        -- 暴雪沒給框：代畫的裝備欄冷卻格照樣佔一格（Relayout 會放它），其餘不佔
+        if not item then return ns.Catalog.ProxySlotOf(id) ~= nil end
         local rec = ns.Viewers.frames[item]
         if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
         local fixed = fixedOf[barKey]
@@ -676,6 +682,7 @@ local function Relayout(key, level, index, gen, s)
         ReleasePlaceholders(key, 1)
         if ns.Clickable then ns.Clickable.Release(key) end      -- 群組被刪：secure 鈕收起來、脫離錨點
         st.count = 0
+        proxied[key], proxiedSig[key] = nil, nil                -- 代畫格由 Custom.EndFlush 收（條不在了）
         -- 認領序列清空（之前有認領 ⇒ 法術索引要重建）
         if st.claimSeq and #st.claimSeq > 0 then
             for i = #st.claimSeq, 1, -1 do st.claimSeq[i] = nil end
@@ -687,18 +694,39 @@ local function Relayout(key, level, index, gen, s)
 
     local ids = ns.Catalog.Bar(key)
     -- 稽核：清單上有、暴雪卻沒有給框的（只看核心／輔助這兩類：它們的 item 一直都在；增益類不在時本來就可能沒有框）。
-    -- 我們畫不出來（圖示是暴雪的框），設定頁的預覽會把這幾格標暗並說明；變了才記一筆、才通知預覽
+    -- 裝備欄冷卻格由我們代畫（proxyOf，下面放格用；記 [proxy]），其餘畫不出來（圖示是暴雪的框），設定頁的預覽
+    -- 會把這幾格標暗並說明；變了才記一筆、才通知預覽
+    local proxyOf = nil
     do
         local gone, sig = nil, ""
+        local pSig = ""
         for _, id in ipairs(ids) do
             if type(id) == "number" and index[id] == nil then
                 local src = ns.Catalog.SourceOf(id)
                 if src and not ns.Viewers.AURA_KIND[src] then
-                    gone = gone or {}
-                    gone[id] = true
-                    sig = sig .. id .. ","
+                    local slot = ns.Custom and ns.Custom.Proxy and ns.Catalog.ProxySlotOf(id)
+                    if slot then
+                        proxyOf = proxyOf or {}
+                        proxyOf[id] = slot
+                        pSig = pSig .. id .. ":" .. slot .. ","
+                    else
+                        gone = gone or {}
+                        gone[id] = true
+                        sig = sig .. id .. ","
+                    end
                 end
             end
+        end
+        if (proxiedSig[key] or "") ~= pSig then
+            proxiedSig[key] = pSig
+            proxied[key] = proxyOf
+            if pSig ~= "" and ns.Diag then
+                local parts = {}
+                for id, slot in pairs(proxyOf) do parts[#parts + 1] = ("%d（槽%d）"):format(id, slot) end
+                table.sort(parts)
+                ns.Diag.Note("proxy", ("%s：代畫 %s"):format(key, table.concat(parts, "、")))
+            end
+            if sig == (missingSig[key] or "") and ns.Fire then ns.Fire("MissingChanged", key) end
         end
         if (missingSig[key] or "") ~= sig then
             missingSig[key] = sig
@@ -741,6 +769,9 @@ local function Relayout(key, level, index, gen, s)
             replacedNow[id] = { b = bID, key = key }
         elseif crec then
             entries[#entries + 1] = { id = id, crec = crec }
+        elseif not item and proxyOf and proxyOf[id] then
+            -- 暴雪沒給框的裝備欄冷卻格：我們的飾品欄框代畫（Custom.Proxy；放格、疊層、按鍵文字、可點擊都走自訂那條）
+            entries[#entries + 1] = { id = id, crec = ns.Custom.Proxy(id, proxyOf[id], key) }
         elseif item and not claimedBy[item] then
             local rec = ns.Viewers.frames[item]
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
@@ -898,6 +929,7 @@ local function Relayout(key, level, index, gen, s)
     changed = SeqTrim(seq, n, changed)
     if changed then B.claimsChanged = true end
 end
+B.Relayout = Relayout                 -- 測試用
 
 ------------------------------------------------------------
 -- 排程
@@ -1340,11 +1372,20 @@ function B.SetPanelSize(key, w, h)
     end
 end
 
--- 這個 id 在這條上是不是「清單有、暴雪沒給框」（畫不出來）
+-- 這個 id 在這條上是不是「清單有、暴雪沒給框」（畫不出來）。代畫中的不算（B.IsProxied）
 function B.IsMissing(key, id)
     local m = missing[key]
     return m ~= nil and m[id] == true
 end
+
+-- 這個 id 在這條上是不是暴雪沒給框、由我們代畫（回裝備欄位；不是 ⇒ nil）
+function B.IsProxied(key, id)
+    local m = proxied[key]
+    return m and m[id] or nil
+end
+
+-- 每條的代畫現況（/mcdm debug）：{ [條] = { [id] = 裝備欄位 } }，呼叫端只讀
+function B.Proxied() return proxied end
 
 function B.IsCollapsed(key)
     local st = state[key]

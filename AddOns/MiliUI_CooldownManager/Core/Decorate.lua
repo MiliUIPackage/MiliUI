@@ -787,7 +787,10 @@ function D.ApplyGCDAlpha(item, rec)
     local cd = item and item.Cooldown
     if not cd then return end
     local st = rec.style
-    if not (st and st.hideGCD) then
+    -- 自訂框（含代畫的裝備欄冷卻格）自己就不餵 GCD（法術 ignoreGCD、物品／飾品欄只收比 GCD 長的冷卻），
+    -- 而且沒有 SetCooldown 後掛勾會回來重算：這裡只在 Apply 時算一次的話，當下沒在冷卻 ⇒ 轉圈 alpha 0 一直留著，
+    -- 之後真的進冷卻也看不到。代畫格的 cooldownID 是暴雪的數字 id（Info 有 equipSlot），一定會走進下面那條
+    if not (st and st.hideGCD) or rec.custom then
         if rec.gcdAlpha then
             rec.gcdAlpha = nil
             pcall(cd.SetAlpha, cd, 1)

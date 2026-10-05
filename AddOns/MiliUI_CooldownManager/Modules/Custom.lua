@@ -7,6 +7,7 @@
 --   ns.Custom.EndBar(barKey, gen)          這條這一輪沒放到的框收起來
 --   ns.Custom.Records() / ForEachPlaced(fn) / Counts()
 --   飾品欄（kind = "slot"）的冷卻格上另疊一顆增益按鈕（rec.buffOverlay），見「飾品欄的增益疊層」那一節
+--   ns.Custom.Proxy(cooldownID, slot, barKey)  暴雪沒給框的裝備欄冷卻格由我們代畫（飾品欄形狀），見「代畫」那一節
 --
 -- 資料在三層（Core/DB.lua：戰隊 customShared "w:<uid>"、職業 customClass "k:<uid>"、專精 spells[specID].custom
 -- "c:<index>"），這裡只吃合併後的生效清單（DB.EffectiveCustom）；框依「身分」池化
@@ -91,6 +92,7 @@ local GCD_MAX = 1.5
 
 local records = {}          -- 身分 key → rec
 local byId = {}             -- 自訂項目 id → rec（Sync 重建）
+local proxies = {}          -- 暴雪的 cooldownID → 代畫的 rec（也在 records 裡，key "proxy:<id>"；見「代畫」）
 local pendingBuild = {}     -- rec → true（戰鬥中要換容器）
 local pendingKick = {}      -- rec → true（戰鬥中要補踢）
 CU.lastError = nil
@@ -1201,13 +1203,35 @@ do
 end
 
 local evOn = {}                       -- 事件 → true（現在註冊著）
+local liveScratch = {}
+
+-- 生效中的 rec：自訂項目（byId）＋放在條上的代畫格（代畫不進 byId，但冷卻／數量事件一樣要聽）。就地重填，呼叫端只讀
+function CU.LiveRecs()
+    for k in pairs(liveScratch) do liveScratch[k] = nil end
+    for id, rec in pairs(byId) do liveScratch[id] = rec end
+    for cid, rec in pairs(proxies) do
+        if rec.placedBar then liveScratch[cid] = rec end
+    end
+    return liveScratch
+end
+
+-- 非光環的生效數（SpellIndex 的 wants 看它）＋事件註冊：Sync 結尾、代畫格放上／收起時叫
+local function RecountLive()
+    local n = 0
+    for _, rec in pairs(CU.LiveRecs()) do
+        if rec.kind ~= "aura" then n = n + 1 end
+    end
+    CU.activeNonAura = n
+    CU.SyncEvents()
+end
+CU.RecountLive = RecountLive
 local wantScratch = {}
 CU.evOn = evOn                        -- /mcdm debug、測試用
 
 function CU.SyncEvents()
     local E = ns.Events
     if not (E and E.Register and E.Unregister) then return end
-    local want = CU.WantedEvents(byId, rangeOn, wantScratch)
+    local want = CU.WantedEvents(CU.LiveRecs(), rangeOn, wantScratch)
     for ev, h in pairs(EVENT_FNS) do
         if want[ev] and not evOn[ev] then
             evOn[ev] = true
@@ -2019,6 +2043,7 @@ local function HideRec(rec)
         if ns.Glow then ns.Glow.OnParked(rec) end
         HideOverlay(rec)                                       -- 飾品欄的增益疊層跟著收
     end
+    if rec.proxy then RecountLive() end                        -- 代畫格收起來：冷卻事件可能不必再聽
 end
 
 function CU.Sync()
@@ -2047,18 +2072,49 @@ function CU.Sync()
         end
     end
     for _, rec in pairs(records) do
-        if not seen[rec] then
+        -- 代畫格不在生效清單裡（不存檔）：它的去留由 Bars 每輪決定（沒被放 ⇒ EndBar 收），這裡不碰
+        if not seen[rec] and not rec.proxy then
             rec.cooldownID, rec.entry = nil, nil
             HideRec(rec)
         end
     end
-    local n = 0
-    for _, rec in pairs(byId) do
-        if rec.kind ~= "aura" then n = n + 1 end
-    end
-    CU.activeNonAura = n
-    CU.SyncEvents()
+    RecountLive()
 end
+
+------------------------------------------------------------
+-- 代畫：暴雪沒給框的裝備欄冷卻格（Core/Bars.lua 的 Relayout 叫）
+--
+-- 暴雪的檢視器排版讀的是它自己的快取；飾品的冷卻格有時登入那一刻被判成沒學會、之後不再重建 ⇒ 整場不給框
+-- （.claude/notes/wow-cdm-equipslot-stale-cache.md）。插件不能叫它重建（會污染整份資料），所以清單上有、
+-- 暴雪沒給框、而且是裝備欄冷卻格（Catalog.ProxySlotOf）的那一格，改用我們的飾品欄框畫在原位置：
+--   * rec 跟自訂飾品欄同一個形狀（New，kind = "slot"：GetInventoryItemCooldown 畫冷卻，完全不經暴雪的檢視器），
+--     但 cooldownID 是**暴雪的數字 id** ⇒ 逐法術覆寫、發光、音效、按鍵文字、增益疊層全照那一格的設定走；
+--     rec.proxy = true。身分 key "proxy:<cooldownID>"，池化在 records；不進 byId、不進生效清單、不存檔。
+--   * 去留每輪由 Bars 決定：這一輪暴雪給框了（或那一格不在清單上了）⇒ 沒被放 ⇒ 該條的 EndBar 收起來。
+--     Sync 不碰它（它不在生效清單裡）。框留在池裡，下次代畫拿同一顆。
+--   * 可點擊（Core/Clickable.lua）照飾品欄走 { type = "item", slot = n }；提示照飾品欄走 SetInventoryItem。
+------------------------------------------------------------
+function CU.Proxy(cooldownID, slot, barKey)
+    local key = "proxy:" .. tostring(cooldownID)
+    local rec = records[key]
+    if not rec then
+        rec = New({ kind = "slot", slot = slot })
+        rec.proxy = true
+        records[key] = rec
+    end
+    if rec.slot ~= slot then
+        -- 暴雪那一格換了欄位（理論上不會）：當成換了物品，下一次 Update 重讀
+        rec.slot, rec.itemID = slot, nil
+        rec.armedStart, rec.armedDur = nil, nil
+        rec.dirty = true
+    end
+    if rec.cooldownID ~= cooldownID then rec.decorated = nil end
+    rec.cooldownID, rec.bar = cooldownID, barKey
+    proxies[cooldownID] = rec
+    return rec
+end
+
+function CU.Proxies() return proxies end
 
 ------------------------------------------------------------
 -- 放進格子
@@ -2066,6 +2122,8 @@ end
 --   Bars 收到就設 claimsChanged。光環格不進索引，一律回 false
 ------------------------------------------------------------
 function CU.Place(rec, c, r, barKey, gen)
+    -- 代畫格從收起來放上條：冷卻／數量事件要開始聽（RecountLive 看 placedBar，放好之後才算）
+    local newProxy = rec.proxy and not rec.placedBar
     -- 框照這條的 kind 取（圖示類 → 圖示框／持有框，長條類 → 長條框／長條持有框）
     local f = UseFrame(rec, ShapeOf(barKey))
     rec.placedBar, rec.placedGen, rec.claimKey, rec.hidden = barKey, gen, barKey, false
@@ -2125,6 +2183,7 @@ function CU.Place(rec, c, r, barKey, gen)
     if ns.Keybinds then ns.Keybinds.Apply(f, rec, barKey) end
     -- 飾品欄：增益疊層（要不要疊、放到同一個矩形、換容器；見「飾品欄的增益疊層」）
     if rec.kind == "slot" or rec.buffOverlay then PlaceOverlay(rec, c, r, barKey, gen) end
+    if newProxy then RecountLive() end
     return moved
 end
 
@@ -2199,9 +2258,13 @@ end
 -- 除錯
 ------------------------------------------------------------
 function CU.Counts()
-    local n = { aura = 0, spell = 0, item = 0, slot = 0, placed = 0, containers = 0, barFrames = 0, overlays = 0 }
+    local n = { aura = 0, spell = 0, item = 0, slot = 0, placed = 0, containers = 0, barFrames = 0, overlays = 0,
+                proxy = 0 }
     for _, rec in pairs(records) do
-        if rec.cooldownID then n[rec.kind] = (n[rec.kind] or 0) + 1 end
+        -- 代畫格另算（不是玩家加的飾品欄）：放在條上的才算一顆
+        if rec.proxy then
+            if rec.placedBar then n.proxy = n.proxy + 1 end
+        elseif rec.cooldownID then n[rec.kind] = (n[rec.kind] or 0) + 1 end
         if rec.placedBar then n.placed = n.placed + 1 end
         -- 容器池掛在持有框上（一種 kind 一顆持有框）
         for shape, f in pairs(rec.frames or {}) do
