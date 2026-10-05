@@ -434,6 +434,7 @@ local function SubTabRow()
         local right = math.min(x + width, x + CARD_CTRL_W + CARD_PAD_X)
         local h = tc:Place(left, y - CARD_TOP, right - left)
         ctx.tabCard = tc
+        ctx.tabCardX = { left = left, right = right }   -- 卡片裡停用列的遮罩只蓋卡片內（BuildForm）
         local function Paint() tc:Select(ctx.subTab or SUBTAB_DEFS[1].id) end
         Paint()
         return CARD_TOP + h + W.TAB_CARD_PAD, Paint
@@ -1500,8 +1501,12 @@ function Specs.BuildForm(parent, controls, ctx, width)
         if spec.reloadCheck then watchReload = true end
         if spec.disabled then
             local m = CreateFrame("Frame", nil, content, "BackdropTemplate")
-            m:SetPoint("TOPLEFT", content, "TOPLEFT", 0, row.top)
-            m:SetSize(width, math.max(1, row.top - row.bottom))
+            -- 子分頁卡片裡的列：遮罩左右收在卡片框線內（不然整個表單寬，會凸出卡片兩側）
+            local mx, mw = 0, width
+            local cx = spec.subTab and ctx.tabCardX
+            if cx then mx, mw = cx.left + 1, cx.right - cx.left - 2 end
+            m:SetPoint("TOPLEFT", content, "TOPLEFT", mx, row.top)
+            m:SetSize(mw, math.max(1, row.top - row.bottom))
             m:SetFrameLevel(content:GetFrameLevel() + 30)
             m:EnableMouse(true)
             m:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
