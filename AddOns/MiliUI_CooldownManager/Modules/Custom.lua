@@ -1912,16 +1912,33 @@ end
 
 local function UpdatePlaceholder(rec, barKey, w, h)
     if rec.shape == "bars" then return UpdateBarPlaceholder(rec, barKey, w, h) end
-    local ph = rec.frame.placeholder
+    local hd = rec.frame
+    local ph = hd.placeholder
     local e = rec.entry
-    if not (e and e.placeholder) then ph:Hide() return end
+    -- 邊框：跟暴雪增益格的占位（Core/Bars.lua）同一支 Decorate.ApplyPlaceholder——圖示暗、邊框照真實格的顏色與粗細。
+    -- 邊框是持有框上的貼圖（MakeBorder），不另建子框
+    hd.phLook = hd.phLook or { frame = hd, tex = ph }
+    local look = hd.phLook
+    if not (e and e.placeholder) then
+        ph:Hide()
+        if look.border then
+            for i = 1, 4 do look.border[i]:Hide() end
+            if look.border.edge then look.border.edge:Hide() end
+        end
+        return
+    end
     local tex = PlaceholderLook(rec)
     ph:SetTexture(tex)
-    local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
-    ph:SetTexCoord(z, 1 - z, z, 1 - z)
     ph:SetDesaturated(true)
     ph:SetAlpha(0.35)
     ph:Show()
+    -- 縮放（TexCoord）也由它套（樣式的 zoom，跟暴雪占位同一個來源）
+    if ns.Decorate and ns.Decorate.ApplyPlaceholder then
+        ns.Decorate.ApplyPlaceholder(look, barKey, rec.cooldownID, w, h, true)
+    else
+        local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
+        ph:SetTexCoord(z, 1 - z, z, 1 - z)
+    end
 end
 
 ------------------------------------------------------------
