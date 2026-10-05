@@ -1800,3 +1800,269 @@ function W.CreateInputPopup(parent, width, title, fields)
 
     return popup
 end
+
+------------------------------------------------------------
+-- 格線開關（opt-in）：設定視窗右上角的「格線: ON／OFF」，滑過時上方浮出間距滑桿
+--
+--   local grid = W.CreateGridToggle(panel, {
+--       db = function() return ns.sv.optionsWindow end,  -- 存 grid（布林）／gridSpacing（數字）
+--       onChange = function(shown, spacing) end,         -- 選用：開關或間距變了
+--   })
+--   grid:Active()   -- 格線此刻畫在畫面上 ⇒ 間距；否則 nil（宿主的拖曳吸附讀這個）
+--
+-- 用途：設定視窗開著就能拖的插件（冷卻管理器之類），給玩家一張對齊用的格線。
+-- 只在面板開著時畫；開關與間距存宿主的 db（帳號層那張），跟著視窗位置一起走。
+--
+-- 格線跟暴雪編輯模式的格線同一種畫法：從畫面中心往外、UIParent 座標、中心兩條較亮。
+-- 所以吸附的原點一律是 UIParent:GetCenter()，跟暴雪那套換算一致。
+--
+-- ⚠ 畫格線的框是**全套組共用一張**（_G 具名），不是每份 vendor 各畫一張：兩支插件的
+--   面板同時開著格線時，兩套線交錯在一起就是 wow-editmode-blizzard-grid 那次的「格線好亂」。
+--   誰最後開／改間距就照誰的間距畫。名字帶版號：哪天畫法改了換名字，不要去改舊框。
+-- ⚠ 暴雪編輯模式的格線看得到時，我們的整張讓位（同理，兩套線不要疊）。不掛暴雪框的
+--   腳本（post-hook 會讓我們的 Lua 跑進進出編輯模式的執行堆疊），改成開著時 0.2 秒看一次。
+------------------------------------------------------------
+local GRID_TEXT = {
+    enUS = { "Grid", "Spacing" },
+    zhTW = { "格線", "間距" },
+    zhCN = { "网格", "间距" },
+    koKR = { "격자", "간격" },
+    deDE = { "Raster", "Abstand" },
+    frFR = { "Grille", "Espacement" },
+    esES = { "Cuadrícula", "Espaciado" },
+    itIT = { "Griglia", "Spaziatura" },
+    ptBR = { "Grade", "Espaçamento" },
+    ruRU = { "Сетка", "Шаг" },
+}
+GRID_TEXT.esMX = GRID_TEXT.esES
+GRID_TEXT.ptPT = GRID_TEXT.ptBR
+local gridText = GRID_TEXT[GetLocale()] or GRID_TEXT.enUS
+
+local GRID_MIN, GRID_MAX, GRID_STEP, GRID_DEFAULT = 10, 200, 2, 40
+local GRID_OVERLAY_NAME = "MiliUIWidgetsGridOverlay1"
+
+local function GridOverlay()
+    local ov = _G[GRID_OVERLAY_NAME]
+    if ov then return ov end
+
+    ov = CreateFrame("Frame", GRID_OVERLAY_NAME, UIParent)
+    ov:SetAllPoints(UIParent)
+    ov:SetFrameStrata("BACKGROUND")
+    ov:SetFrameLevel(0)
+    ov:EnableMouse(false)
+    ov:Hide()
+    ov.owners, ov.order, ov.lines, ov.used = {}, {}, {}, 0
+
+    local function Line(i)
+        local t = ov.lines[i]
+        if not t then
+            t = ov:CreateTexture(nil, "BACKGROUND")
+            t:SetTexture(WHITE)
+            ov.lines[i] = t
+        end
+        t:ClearAllPoints()
+        t:Show()
+        return t
+    end
+
+    -- 線池只長不丟（貼圖刪不掉）；間距變大時多的藏起來
+    function ov:Redraw()
+        local spacing = self.spacing
+        local w, h = self:GetSize()
+        if not (spacing and w and h and w > 0 and h > 0) then return end
+        -- 1 個實體像素在這張框上是多少 UI 單位
+        local px = (768 / select(2, GetPhysicalScreenSize())) / self:GetEffectiveScale()
+        local ar, ag, ab = W.Accent()
+        local n = 0
+        local cx, cy = w / 2, h / 2
+        local function V(x, center)
+            n = n + 1
+            local t = Line(n)
+            t:SetPoint("TOPLEFT", self, "TOPLEFT", x - px / 2, 0)
+            t:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", x - px / 2, 0)
+            t:SetWidth(px)
+            if center then t:SetVertexColor(ar, ag, ab, 0.7) else t:SetVertexColor(0, 0, 0, 0.45) end
+        end
+        local function H(y, center)
+            n = n + 1
+            local t = Line(n)
+            t:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, y - px / 2)
+            t:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, y - px / 2)
+            t:SetHeight(px)
+            if center then t:SetVertexColor(ar, ag, ab, 0.7) else t:SetVertexColor(0, 0, 0, 0.45) end
+        end
+        for k = 1, math.floor(cx / spacing) do V(cx - k * spacing); V(cx + k * spacing) end
+        for k = 1, math.floor(cy / spacing) do H(cy - k * spacing); H(cy + k * spacing) end
+        -- 中心兩條最後畫，蓋在一般線上面
+        V(cx, true)
+        H(cy, true)
+        for i = n + 1, self.used do self.lines[i]:Hide() end
+        self.used = n
+    end
+
+    -- 暴雪編輯模式的格線看得到 ⇒ 我們讓位
+    local function BlizzGridShown()
+        local g = EditModeManagerFrame and EditModeManagerFrame.Grid
+        if not (g and g.IsShown) then return false end
+        local ok, v = pcall(g.IsShown, g)
+        return ok and v == true
+    end
+    ov.BlizzGridShown = BlizzGridShown
+
+    function ov:Update()
+        local top = self.order[#self.order]
+        if not top then
+            self:Hide()
+            self.spacing = nil
+            return
+        end
+        self.spacing = self.owners[top]
+        local show = not BlizzGridShown()
+        self:SetShown(show)
+        if show then self:Redraw() end
+    end
+
+    -- owner 開著格線就給間距，關掉給 nil。最後動的那個排到最後（照它的間距畫）
+    function ov:SetOwner(owner, spacing)
+        for i = #self.order, 1, -1 do
+            if self.order[i] == owner then table.remove(self.order, i) end
+        end
+        self.owners[owner] = spacing
+        if spacing then self.order[#self.order + 1] = owner end
+        self:Update()
+    end
+
+    -- 可見與否：自己藏起來的時候 OnUpdate 也停，所以讓位的檢查掛在另一張常駐的小框上
+    local watch = CreateFrame("Frame")
+    local acc = 0
+    watch:SetScript("OnUpdate", function(_, elapsed)
+        if #ov.order == 0 then return end
+        acc = acc + elapsed
+        if acc < 0.2 then return end
+        acc = 0
+        local want = not BlizzGridShown()
+        if want ~= ov:IsShown() then
+            ov:SetShown(want)
+            if want then ov:Redraw() end
+        end
+    end)
+
+    ov:SetScript("OnSizeChanged", function(self) if self:IsShown() then self:Redraw() end end)
+    ov:RegisterEvent("UI_SCALE_CHANGED")
+    ov:RegisterEvent("DISPLAY_SIZE_CHANGED")
+    ov:SetScript("OnEvent", function(self) if self:IsShown() then self:Redraw() end end)
+    return ov
+end
+
+local GRID_BTN_H = 22
+local GRID_POP_W, GRID_POP_H = 230, 30
+
+function W.CreateGridToggle(panel, opts)
+    opts = opts or {}
+    local function DB()
+        local d = opts.db
+        if type(d) == "function" then d = d() end
+        return d
+    end
+    local function Spacing()
+        local d = DB()
+        local v = d and tonumber(d.gridSpacing) or GRID_DEFAULT
+        if v < GRID_MIN then v = GRID_MIN elseif v > GRID_MAX then v = GRID_MAX end
+        return v
+    end
+    local function On()
+        local d = DB()
+        return d and d.grid == true or false
+    end
+
+    local btn = W.CreateButton(panel, "", "normal", 74, GRID_BTN_H)
+    -- 跟左邊的分頁鈕同一排：面板上緣外側、靠右
+    btn:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", 0, 1)
+
+    -- 浮出的間距滑桿：按鈕正上方、右緣對齊（標題列在左邊，不會撞）
+    local pop = W.CreateFrame(nil, btn, GRID_POP_W, GRID_POP_H)
+    pop:SetPoint("BOTTOMRIGHT", btn, "TOPRIGHT", 0, 2)
+    pop:SetBackdropBorderColor(W.Accent(0.8))
+    pop:EnableMouse(true)
+    pop:Hide()
+
+    local label = pop:CreateFontString(nil, "OVERLAY")
+    label:SetFontObject(fontSmall)
+    label:SetPoint("LEFT", pop, "LEFT", 8, 0)
+    label:SetText(gridText[2])
+
+    local toggle = { button = btn, popup = pop }
+    local ov
+
+    local function Push()
+        ov = ov or GridOverlay()
+        ov:SetOwner(toggle, (On() and panel:IsShown()) and Spacing() or nil)
+    end
+
+    local function Paint()
+        local on = On()
+        btn:SetText(gridText[1] .. ": " .. (on and "ON" or "OFF"))
+        W.FitButton(btn, 74, GRID_BTN_H)
+        W.SetButtonVariant(btn, on and "primary" or "normal")
+    end
+
+    local slider = W.CreateSlider(pop, GRID_MIN, GRID_MAX,
+        GRID_POP_W - 16 - math.ceil(label:GetStringWidth()) - 8, GRID_STEP,
+        function(v)
+            local d = DB()
+            if d then d.gridSpacing = v end
+            -- 調間距就是想看格線：關著的話順手打開
+            if d and not d.grid then d.grid = true; Paint() end
+            Push()
+            if opts.onChange then opts.onChange(On(), v) end
+        end,
+        function(v)
+            local d = DB()
+            if d then d.gridSpacing = v end
+            Push()
+            if opts.onChange then opts.onChange(On(), v) end
+        end)
+    slider:SetPoint("LEFT", label, "RIGHT", 8, 0)
+
+    -- 滑鼠離開按鈕＋浮窗、而且沒在拖拉桿／打數字，0.3 秒後收起來
+    -- （中間要跨過 2px 的縫，不能一離開就關）
+    -- 拖拉桿時游標常常滑出浮窗，按著左鍵的期間不收（放開落在外面也照樣收得到：輪詢按鍵狀態）
+    local away, dragging = 0, false
+    slider.slider:HookScript("OnMouseDown", function() dragging = true end)
+    pop:SetScript("OnUpdate", function(self, elapsed)
+        if dragging and not IsMouseButtonDown("LeftButton") then dragging = false end
+        local busy = dragging or btn:IsMouseOver() or self:IsMouseOver() or slider.editBox:HasFocus()
+        if busy then away = 0 return end
+        away = away + elapsed
+        if away > 0.3 then self:Hide() end
+    end)
+
+    btn:SetScript("OnEnter", function(self)
+        W.PaintButton(self, true)
+        away = 0
+        slider:SetValue(Spacing())
+        pop:Show()
+    end)
+    btn:SetScript("OnLeave", function(self) W.PaintButton(self, false) end)
+    btn:SetScript("OnClick", function()
+        local d = DB()
+        if not d then return end
+        d.grid = not On()
+        Paint()
+        Push()
+        if opts.onChange then opts.onChange(On(), Spacing()) end
+    end)
+
+    panel:HookScript("OnShow", function() Paint(); Push() end)
+    panel:HookScript("OnHide", function() pop:Hide(); Push() end)
+
+    function toggle:Active()
+        if not (ov and ov.owners[self] and ov:IsShown()) then return nil end
+        return ov.spacing
+    end
+    function toggle:Refresh() Paint(); Push() end
+
+    Paint()
+    if panel:IsShown() then Push() end
+    return toggle
+end

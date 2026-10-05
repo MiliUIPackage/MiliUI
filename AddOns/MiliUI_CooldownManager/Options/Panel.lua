@@ -47,6 +47,7 @@ local tabButtons, highlightTab = {}, nil
 local pages, pageDefs = {}, {}
 local currentPage, currentTab
 local debugTabOn = false
+local gridToggle
 
 ------------------------------------------------------------
 -- 頁面登記
@@ -205,6 +206,11 @@ function Options.ShowPage(id)
     if not full and ns.Sidebar and ns.Sidebar.Highlight then ns.Sidebar.Highlight(id) end
 end
 
+-- 設定視窗的格線此刻畫在畫面上 ⇒ 間距（UIParent 單位，原點畫面中心）；否則 nil
+function Options.GridSpacing()
+    return gridToggle and gridToggle:Active() or nil
+end
+
 function Options.CurrentTab()
     return currentTab
 end
@@ -314,6 +320,11 @@ local function CreatePanel()
         if W.Menu and W.Menu.Hide then W.Menu.Hide() end
         ns.Fire("OptionsHidden")
     end)
+
+    -- 右上角「格線: ON／OFF」（共用層）：開著設定視窗就能拖條，給一張對齊用的格線，
+    -- 拖曳吸附也吸它（EditMode.lua 的 ActiveGridSpacing）。
+    -- ⚠ 要排在上面兩行 SetScript 之後：共用層走 HookScript
+    gridToggle = W.CreateGridToggle(panel, { db = WindowDB })
 
     -- 戰鬥遮罩：事件掛在 panel 自己身上（隱藏的框照樣收得到事件）
     -- 遮罩自己是 FULLSCREEN_DIALOG，裡面再放一顆關閉鈕，否則戰鬥中視窗只剩 ESC 能關
