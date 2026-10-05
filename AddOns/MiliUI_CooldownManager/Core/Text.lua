@@ -37,9 +37,9 @@
 -- 兩段各一顆 formatter（ApplyPhaseColor 一起換）：冷卻那一段照倒數的小數門檻／低秒變色；增益那一段照下面的「增益時間」。
 --
 -- ── 增益時間的小數與低秒變色（I）─────────────────────────────────────────
--- 增益時間的倒數自己一組，冷卻倒數不受影響：小數門檻 cooldownText.buffDecimalsBelow（預設 0 ＝ 不顯示小數）、
--- 低秒變色開關 cooldownText.buffLowColor（預設關；開 ⇒ 門檻借倒數的 lowBelow、顏色用增益時間低秒顏色
--- icon.durationLowColor，沒有退倒數的低秒色）。逐法術同名覆寫，合併照 SpellText（在 cooldownText 那一段）。
+-- 增益時間的倒數自己一組，冷卻倒數不受影響、也不借冷卻的：小數門檻 cooldownText.buffDecimalsBelow（預設 0 ＝ 不顯示小數）、
+-- 低秒變色開關 cooldownText.buffLowColor（預設關）、變色秒數 cooldownText.buffLowBelow（J，預設 5）、
+-- 變色顏色 icon.durationLowColor（沒有退倒數的低秒色）。逐法術同名覆寫，合併照 SpellText（在 cooldownText 那一段）。
 -- 「增益時間的倒數」三種格：暴雪增益圖示（ApplyIcon 依 rec.barKey 是 AURA_KIND）、技能格倒增益那一段
 -- （Decorate 的 durFmt）、光環格家族（Custom.AuraStyle：formatter＋色彩曲線）。解法只在 T.BuffTiming 一處。
 ------------------------------------------------------------
@@ -205,19 +205,13 @@ function T.CountdownFormatter(cdStyle)
 end
 
 -- 增益時間的倒數（I）：c ＝ 倒數表（條層或 SpellText 合併後的），lowColor ＝ 增益時間低秒顏色（nil 退倒數的低秒色）
--- 回傳 小數門檻, 低秒門檻（關 ＝ 0）, 低秒顏色。舊存檔沒有這兩欄 ⇒ 0／關（合併預設值也補成這樣）
-local BUFF_LOW_DEFAULT = 5
-T.BUFF_LOW_DEFAULT = BUFF_LOW_DEFAULT
+-- 回傳 小數門檻, 低秒門檻（關 ＝ 0）, 低秒顏色。舊存檔沒有這幾欄 ⇒ 0／關／5（合併預設值補上）
+-- 門檻只讀增益時間自己的 buffLowBelow（J）：冷卻倒數的 lowBelow 不管開關都不看
 function T.BuffTiming(c, lowColor)
     if type(c) ~= "table" then return 0, 0, nil end
     local d = tonumber(c.buffDecimalsBelow) or 0
-    -- 門檻借倒數的「變色秒數」；倒數自己的低秒變色關著（lowBelow ＝ 0）時增益照樣變色，用預設 5 秒
-    --（兩個開關互不牽連：勾了增益時間低秒變色就一定會變）
     local l = 0
-    if c.buffLowColor == true then
-        l = tonumber(c.lowBelow) or 0
-        if l <= 0 then l = BUFF_LOW_DEFAULT end
-    end
+    if c.buffLowColor == true then l = math.max(0, tonumber(c.buffLowBelow) or 0) end
     return d, l, (type(lowColor) == "table" and lowColor) or c.lowColor
 end
 
@@ -301,6 +295,7 @@ local CD_KEYS = {
     { "lowColor", "cooldownTextLowColor" },
     -- 增益時間的小數門檻與低秒變色開關（I）：覆寫 key 跟條層同名
     { "buffDecimalsBelow", "buffDecimalsBelow" }, { "buffLowColor", "buffLowColor" },
+    { "buffLowBelow", "buffLowBelow" },
 }
 local function Pos(prefix)
     return { { "font", prefix .. "Font" }, { "size", prefix .. "Size" }, { "color", prefix .. "Color" },

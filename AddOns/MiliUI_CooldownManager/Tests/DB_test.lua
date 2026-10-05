@@ -843,12 +843,19 @@ do
     eq("SPELL_FALLBACK buffLowColor", DB.SPELL_FALLBACK.buffLowColor, "cooldownText.buffLowColor")
     eq("覆寫分組 buffDecimalsBelow ＝ text", DB.OVERRIDE_GROUP.buffDecimalsBelow, "text")
     eq("覆寫分組 buffLowColor ＝ text", DB.OVERRIDE_GROUP.buffLowColor, "text")
-    -- 舊存檔沒有這兩欄
+    -- J：增益時間自己的變色秒數
+    eq("預設：增益時間變色秒數 5", d.buffLowBelow, 5)
+    eq("SPELL_FALLBACK buffLowBelow", DB.SPELL_FALLBACK.buffLowBelow, "cooldownText.buffLowBelow")
+    eq("覆寫分組 buffLowBelow ＝ text", DB.OVERRIDE_GROUP.buffLowBelow, "text")
+    eq("增益時間變色顏色的資料路徑不變", DB.SPELL_FALLBACK.durationLowColor, "icon.durationLowColor")
+    -- 舊存檔沒有這幾欄
     ns.profile.theme.cooldownText.buffDecimalsBelow = nil
     ns.profile.theme.cooldownText.buffLowColor = nil
+    ns.profile.theme.cooldownText.buffLowBelow = nil
     DB.Init()
     eq("舊存檔補上 0", ns.profile.theme.cooldownText.buffDecimalsBelow, 0)
     eq("舊存檔補上關", ns.profile.theme.cooldownText.buffLowColor, false)
+    eq("舊存檔補上 5", ns.profile.theme.cooldownText.buffLowBelow, 5)
     -- 玩家改過的不蓋
     ns.profile.theme.cooldownText.buffLowColor = true
     DB.Init()

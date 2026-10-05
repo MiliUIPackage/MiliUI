@@ -7,6 +7,7 @@
 --   Specs.Anchor(key)             錨定（條頁）
 --   Specs.MakeCtx(info, onApply)  info = { mode, key }；onApply(spec) 在值寫進去之後叫
 --   Specs.BuildForm(parent, controls, ctx, width) → form（content／height／Refresh）
+--   Specs.SplitTabs(controls) ／ Specs.CreateTabStrip(...)  主題頁與條頁的分頁（檔尾，J）
 --
 -- 每條 spec 除了 Controls 要的欄位，另外帶：
 --   root     "theme"：主題形狀的欄位（ns.Setting 的 path，條頁讀的是三層繼承後的值、
@@ -23,6 +24,7 @@
 --   disabled function(info) → 真 ＝ 這一列停用：蓋一層暗色遮罩（擋點擊與右鍵重設，值不動）。
 --            表單引擎（共用層）沒有停用狀態，遮罩是 BuildForm 自己畫的；每次套用後重判
 --   reloadCheck  寫完（含右鍵重設）檢查圖示外觀要不要重載（Specs.CheckSkinReload）
+--   tab      頂層 header 才帶：這一節放在哪個分頁（Specs.SplitTabs；沒分頁的頁不看）
 --
 -- ⚠ 條頁的主題欄位**讀的是繼承後的值**：沒跟隨、但這一格自己沒存的，看到的是主題的值。
 --   顏色若直接回主題那張表，Controls 的色票會就地改掉主題（它拿到表就直接寫 r/g/b）。
@@ -542,16 +544,12 @@ function Specs.Themed(mode, key)
     end
     local function AuraTimeOff(info) return ReadThemed(info, "icon.showAuraTime") == false end
     local function DurationOff(info) return AuraTimeOff(info) or not ReadThemed(info, "icon.colorDuration") end
-    -- 增益時間低秒顏色：換色開著用得到，增益時間的低秒變色（I）開著也用得到 ⇒ 兩個都關才停用。
-    -- 增益兩條（內建）沒有換色那一段：只看低秒變色
+    -- 增益時間的變色顏色／變色秒數：只有增益時間的低秒變色（I）用得到 ⇒ 開關關著就停用
+    -- （換色那一段的字色是「增益時間顏色」，低秒那一段的顏色不歸換色開關管：Text.BuffTiming）
     local function BuffLowOff(info) return not ReadThemed(info, "cooldownText.buffLowColor") end
-    local function DurationLowOff(info)
-        if auraBar then return BuffLowOff(info) end
-        return DurationOff(info) and BuffLowOff(info)
-    end
 
     -- 圖示
-    add({ type = "header", label = L["Icons"] })
+    add({ type = "header", label = L["Icons"], tab = "icon" })
     if bar then add(OverrideRow("icon"), FollowToggle("icon"),
         Note(L["While checked, this section uses the Theme page. Uncheck it to give this bar its own values."])) end
     add(SkinRows())
@@ -574,8 +572,7 @@ function Specs.Themed(mode, key)
         -- 增益那一段的倒數換色：開關關著時沒有那一段可換色 ⇒ 兩列停用
         CS(TS("icon", "toggle", "icon.colorDuration", L["Recolor buff duration"], { disabled = AuraTimeOff })),
         CS(TS("icon", "color", "icon.durationColor", L["Buff duration color"], { disabled = DurationOff })),
-        -- 增益時間低秒顏色：增益圖示列也用得到（I 的低秒變色）⇒ 只有長條類的條不列
-        NB(TS("icon", "color", "icon.durationLowColor", L["Buff duration low color"], { disabled = DurationLowOff })),
+        -- 增益時間的變色顏色（icon.durationLowColor）搬到「文字」節增益時間那一組（J），資料路徑不變
         CS(TS("icon", "color", "icon.durationSwipeColor", L["Buff duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
         AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
@@ -595,7 +592,7 @@ function Specs.Themed(mode, key)
               disabled = function(info) return not ReadThemed(info, "icon.pressFlash") end })))
 
     -- 文字
-    add({ type = "header", label = L["Text"] })
+    add({ type = "header", label = L["Text"], tab = "text" })
     if bar then add(OverrideRow("text"), FollowToggle("text")) end
     -- 通用字型：每段文字的字型沒另外挑時用這個（條頁沒跟隨主題時也能改）
     add(TS("text", "dropdown", "font", L["General font"], { items = FontItems }),
@@ -606,16 +603,22 @@ function Specs.Themed(mode, key)
         NB(TS("text", "color", "cooldownText.color", L["Color"])),
         NB(TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 })),
         NB(Note(L["Shows one decimal place under this many seconds; 0 never shows decimals."], "text")),
-        NB(TS("text", "toggle", "cooldownText.lowBelow", L["Color when low"], {
+        -- 技能冷卻的低秒變色：開關與秒數是同一個欄位（0 ＝ 關）；增益時間不借這三列（J）
+        NB(TS("text", "toggle", "cooldownText.lowBelow", L["Cooldown color when low"], {
             get = function(info) return (tonumber(ReadThemed(info, "cooldownText.lowBelow")) or 0) > 0 end,
             set = function(info, on) WriteThemed(info, "cooldownText.lowBelow", on and 5 or 0) end,
         })),
-        NB(TS("text", "color", "cooldownText.lowColor", L["Low color"])),
-        NB(TS("text", "slider", "cooldownText.lowBelow", L["Low below (sec)"], { min = 0, max = 30, step = 1 })),
-        -- 增益時間（I）：自己的小數門檻與低秒變色開關，冷卻倒數照上面那幾列。長條類的條沒有（秒數是暴雪寫的／整數）
+        NB(TS("text", "color", "cooldownText.lowColor", L["Cooldown low color"])),
+        NB(TS("text", "slider", "cooldownText.lowBelow", L["Cooldown low below (sec)"], { min = 0, max = 30, step = 1 })),
+        -- 增益時間（I／J）：自己的小數門檻、低秒變色開關、變色顏色、變色秒數，四列排在一起。長條類的條沒有
+        -- （秒數是暴雪寫的／整數）。變色顏色的資料在 icon.durationLowColor（跟「圖示」那一節的跟隨與覆寫分組），
+        -- 所以那一列的 section 是 icon：條頁勾著圖示跟隨時蓋的是圖示的遮罩
         NB(TS("text", "slider", "cooldownText.buffDecimalsBelow", L["Buff duration decimals below"], { min = 0, max = 10, step = 1 })),
         NB(TS("text", "toggle", "cooldownText.buffLowColor", L["Color buff duration when low"])),
-        NB(Note(L["Buff durations only: buff icons, the buff part of a spell's countdown, and aura slots. Low-time coloring uses the seconds above and the buff duration low color; cooldown countdowns keep the settings above."], "text")),
+        NB(TS("icon", "color", "icon.durationLowColor", L["Buff duration low color"], { disabled = BuffLowOff })),
+        NB(TS("text", "slider", "cooldownText.buffLowBelow", L["Buff duration low below (sec)"],
+            { min = 1, max = 30, step = 1, disabled = BuffLowOff })),
+        NB(Note(L["Buff durations only: buff icons, the buff part of a spell's countdown, and aura slots. Cooldown countdowns use the cooldown rows above."], "text")),
         NB(Nested(L["Charges"], "text")),
         NB(FontTS("text", "chargeText.font")),
         NB(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
@@ -637,7 +640,7 @@ function Specs.Themed(mode, key)
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
 
     -- 效果（發光、無損刷新、按鍵文字）＋淡出
-    add({ type = "header", label = L["Effects"] })
+    add({ type = "header", label = L["Effects"], tab = "glow" })
     if bar then add(OverrideRow("glow"), FollowToggle("glow")) end
     if not auraBar then
         add(Nested(L["Proc glow"], "glow"),
@@ -713,7 +716,7 @@ function Specs.Themed(mode, key)
 
     -- 音效：響什麼是逐法術設定（預覽裡點圖示）；主題頁放總開關與聲道，條頁只有覆寫數＋清除。
     -- 不掛 section：音效不走「跟隨全域主題」，條頁不蓋遮罩
-    add({ type = "header", label = L["Sounds"] })
+    add({ type = "header", label = L["Sounds"], tab = "sound" })
     if bar then
         add(OverrideRow("sound"),
             Note(L["Sounds are set per spell: click an icon in the preview above. The on/off switch and channel are on the Theme page."]))
@@ -1039,7 +1042,7 @@ end
 function Specs.Layout(key)
     local bar = ns.DB.BarTable(key) or {}
     local kind = bar.kind == "bars" and "bars" or "icons"
-    local list = { { type = "header", label = L["Layout"] } }
+    local list = { { type = "header", label = L["Layout"], tab = "layout" } }
     local function add(s) list[#list + 1] = s end
 
     if kind == "icons" then
@@ -1149,7 +1152,7 @@ end
 ------------------------------------------------------------
 function Specs.Visibility()
     return {
-        { type = "header", label = L["Visibility"] },
+        { type = "header", label = L["Visibility"], tab = "visibility" },
         Nested(L["Show when"]),
         BS("toggle", "visibility.showCombat", L["In combat"]),
         BS("toggle", "visibility.showTarget", L["Has a target"]),
@@ -1216,7 +1219,9 @@ function Specs.Anchor(key, opts)
         return s
     end
     local list = {
-        { type = "header", label = opts.header or L["Anchoring"], nested = opts.nested or nil },
+        -- 分頁：條頁的錨定跟版面同一頁（Specs.SplitTabs）；沒分頁的頁（施法條、資源條…）不看這欄
+        { type = "header", label = opts.header or L["Anchoring"], nested = opts.nested or nil,
+          tab = not opts.nested and "layout" or nil },
     }
     -- 自訂的圖示群組：跟著游標（勾選＋原因字）、離游標的位移
     if cursorCapable then
@@ -1367,22 +1372,23 @@ function Specs.BuildForm(parent, controls, ctx, width)
     content:SetHeight(form.height)
     ctx.form = form
 
-    -- 每一節的上下緣（有 section 的列）
-    local ranges = {}
+    -- 跟隨遮罩的範圍：同一個 section 連續的那一段（中間夾的沒有 section 的列算進去）。
+    -- 以前是一節一個矩形（第一列到最後一列）；「文字」節裡夾了一列歸「圖示」管的（增益時間的變色顏色，J），
+    -- 一節一個矩形的話文字的遮罩會連它一起蓋 ⇒ 改成一段一段
+    local runs, run = {}, nil
     for _, row in ipairs(rows) do
         local sec = row.spec.section
         if sec then
-            local r = ranges[sec]
-            if not r then
-                ranges[sec] = { top = row.top, bottom = row.bottom }
+            if run and run.sec == sec then
+                run.bottom = row.bottom
             else
-                if row.top > r.top then r.top = row.top end
-                if row.bottom < r.bottom then r.bottom = row.bottom end
+                run = { sec = sec, top = row.top, bottom = row.bottom }
+                runs[#runs + 1] = run
             end
         end
     end
     if ctx.info.mode == "bar" then
-        for sec, r in pairs(ranges) do
+        for _, r in ipairs(runs) do
             local m = CreateFrame("Frame", nil, content, "BackdropTemplate")
             m:SetPoint("TOPLEFT", content, "TOPLEFT", 0, r.top)
             m:SetSize(width, math.max(1, r.top - r.bottom))
@@ -1391,7 +1397,8 @@ function Specs.BuildForm(parent, controls, ctx, width)
             m:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
             m:SetBackdropColor(0.1, 0.1, 0.1, 0.6)
             m:Hide()
-            form.masks[sec] = m
+            m.sec = r.sec
+            form.masks[#form.masks + 1] = m
         end
     end
     for _, row in ipairs(rows) do
@@ -1442,8 +1449,74 @@ function Specs.BuildForm(parent, controls, ctx, width)
         if ctx.info.mode == "bar" then
             local bar = ns.DB.BarTable(ctx.info.key)
             local follow = bar and type(bar.follow) == "table" and bar.follow or {}
-            for sec, m in pairs(self.masks) do m:SetShown(follow[sec] ~= false) end
+            for _, m in ipairs(self.masks) do m:SetShown(follow[m.sec] ~= false) end
         end
     end
     return form
+end
+
+------------------------------------------------------------
+-- 分頁（主題頁／條頁，J）
+--
+-- 表單引擎不動：頂層 header 帶一個 tab 欄位（"layout"…），Specs.SplitTabs 把一串 spec 照它切成幾份，
+-- 每一份各自 BuildForm 成一張表單，頁面只顯示目前那一張（每張表單一個 ctx：BuildForm 會把 ctx.form
+-- 指向自己、包 ctx.apply）。沒帶 tab 的 header（小標題、沒分頁的頁）跟著上一個分頁走；
+-- 第一個 header 之前的列歸第一個分頁。分頁鈕跟單一法術小窗同一款（accent-hover ＋ W.CreateButtonGroup），
+-- 放不下就換行（W.FlowLayout）。
+------------------------------------------------------------
+local TAB_DEFS = {
+    { id = "layout",     label = L["Layout"] },        -- 版面＋錨定
+    { id = "visibility", label = L["Visibility"] },
+    { id = "icon",       label = L["Icons"] },
+    { id = "text",       label = L["Text"] },
+    { id = "glow",       label = L["Effects"] },       -- 效果＋淡出
+    { id = "sound",      label = L["Sounds"] },
+}
+Specs.TAB_DEFS = TAB_DEFS
+
+-- → byTab（id → spec 清單）, ids（有東西的分頁，照 TAB_DEFS 的順序）
+function Specs.SplitTabs(controls)
+    local byTab, cur = {}, nil
+    for _, spec in ipairs(controls) do
+        if spec.type == "header" and spec.tab then cur = spec.tab end
+        local id = cur or TAB_DEFS[1].id
+        local t = byTab[id]
+        if not t then t = {}; byTab[id] = t end
+        t[#t + 1] = spec
+    end
+    local ids = {}
+    for _, d in ipairs(TAB_DEFS) do
+        if byTab[d.id] then ids[#ids + 1] = d.id end
+    end
+    return byTab, ids
+end
+
+-- 分頁鈕列：strip:SetTabs(ids, cur) 只顯示 ids 裡的鈕、高亮 cur、換行排好，回傳高度（也設成 strip 的高）。
+-- 點鈕叫 onSelect(id)
+local TAB_BTN_H, TAB_BTN_MIN_W = 20, 56
+function Specs.CreateTabStrip(parent, width, onSelect)
+    local strip = CreateFrame("Frame", nil, parent)
+    strip:SetSize(width, TAB_BTN_H)
+    local btns, byId = {}, {}
+    for i, d in ipairs(TAB_DEFS) do
+        local b = W.CreateButton(strip, d.label, "accent-hover", TAB_BTN_MIN_W, TAB_BTN_H)
+        W.FitButton(b, TAB_BTN_MIN_W, TAB_BTN_H)
+        b.id = d.id
+        btns[i], byId[d.id] = b, b
+    end
+    local highlight = W.CreateButtonGroup(btns, function(id) onSelect(id) end)
+    function strip:SetTabs(ids, cur)
+        local has = {}
+        for _, id in ipairs(ids) do has[id] = true end
+        local list = {}
+        for _, b in ipairs(btns) do
+            b:SetShown(has[b.id] == true)
+            if has[b.id] then list[#list + 1] = b end
+        end
+        if byId[cur] then highlight(byId[cur]) end
+        local _, h = W.FlowLayout(strip, list, width, 4, 4, TAB_BTN_H)
+        strip:SetHeight(h)
+        return h
+    end
+    return strip
 end
