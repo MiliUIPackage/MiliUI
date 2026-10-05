@@ -1577,14 +1577,16 @@ D.Signature = Signature
 ------------------------------------------------------------
 -- w, h：格子尺寸（Masque 模式要它判斷要不要重套皮）。Masque 模式下佔位也交給同一個群組
 -- （是我們自己的框），外框跟真實格同一張皮
-function D.ApplyPlaceholder(ph, barKey, id, w, h)
+-- noMasque：自訂光環格的占位（Modules/Custom.lua）——它的按鈕不交給 Masque（外觀只能在 initializeFrame 烘），
+-- 占位也一律米利邊框，兩者才長得一樣
+function D.ApplyPlaceholder(ph, barKey, id, w, h, noMasque)
     if not (ph and ph.frame and barKey) then return end
     local style = D.Resolve(barKey)
     local border = style.border or {}
     local br, bg, bb, ba = C4(ns.SpellSetting(barKey, id, "borderColor") or border.color, 0, 0, 0, 1)
     ph.border = ph.border or MakeBorder(ph.frame)
     local skinned = false
-    if style.masque and ph.tex then
+    if style.masque and ph.tex and not noMasque then
         skinned = ns.Masque.Sync(ph, ph.frame, { Icon = ph.tex }, ns.Masque.TypeFor(barKey), w, h)
     elseif ph.msqButton then
         ns.Masque.Release(ph)
