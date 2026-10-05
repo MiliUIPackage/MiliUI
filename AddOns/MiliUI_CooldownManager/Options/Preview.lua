@@ -64,7 +64,8 @@ end
 --   （光環格、被移除的格不算；整排一起演示太吵，看一格就知道長相）
 --   cooldown  冷卻中：轉圈＋倒數＋去飽和／冷卻狀態效果（倒數照設定的小數門檻與低秒變色）
 --   aura      增益持續時間：同上，倒數用增益那一段的換色
---   proc／ready  觸發／就緒發光：照這條的發光設定畫在每一格上
+--   proc／ready／active  觸發／就緒／增益期間發光：照這條的發光設定畫在那一格上（條層的樣式與顏色，不看開關）；
+--             圖示交給 Masque 時跟著皮的形狀（Glow.GlowShape，同真實格）
 --   press     按鍵鏡射：每 FX_PRESS_EVERY 秒閃 FX_PRESS_ON 秒（貼圖與真實格同一支 Keybinds.PressTexture，
 --             透明度照這條的 icon.pressFlashAlpha；沒勾「按鍵閃光」也照樣演示，看長相用）
 local FX_H, FX_SECS = 30, 5
@@ -74,6 +75,7 @@ local FX_BUTTONS = {
     { kind = "aura",     label = L["Buff duration"] },
     { kind = "proc",     label = L["Proc glow"] },
     { kind = "ready",    label = L["Ready glow"] },
+    { kind = "active",   label = L["Glow during buff"] },
     { kind = "press",    label = L["Key press"] },
 }
 
@@ -485,14 +487,38 @@ function Preview.Create(parent, key, width)
         label:SetFontObject(W.fontNormal)
         label:SetPoint("LEFT", row, "LEFT", PAD, 0)
         label:SetText(L["Preview:"])
-        local x = PAD + math.ceil(label:GetStringWidth() or 0) + 6
+        local x0 = PAD + math.ceil(label:GetStringWidth() or 0) + 6
+        local btns = {}
         for _, def in ipairs(FX_BUTTONS) do
             local b = W.CreateButton(row, def.label, "normal", 70, 20)
-            W.FitButton(b, 70, 20)
-            b:SetPoint("LEFT", row, "LEFT", x, 0)
+            b.natW = W.FitButton(b, 70, 20)
+            local fs = b:GetFontString()
+            b.textW = math.ceil(fs and fs:GetStringWidth() or 0)
             b:SetScript("OnClick", function() pv:StartFx(def.kind) end)
-            x = x + (b:GetWidth() or 70) + 6
+            btns[#btns + 1] = b
         end
+        -- 排法：放得下就照自然寬、間距 6；放不下（按鈕多、語系長、視窗窄）就照比例縮，但不小於字寬＋8、間距 4
+        local function LayoutFx()
+            local avail = (row:GetWidth() or 0) - x0 - PAD
+            local sum = 0
+            for _, b in ipairs(btns) do sum = sum + b.natW end
+            local gap = 6
+            local scale = 1
+            if avail > 0 and sum + gap * (#btns - 1) > avail then
+                gap = 4
+                scale = math.max(0, (avail - gap * (#btns - 1))) / sum
+            end
+            local x = x0
+            for _, b in ipairs(btns) do
+                local w = scale < 1 and math.max(b.textW + 8, math.floor(b.natW * scale)) or b.natW
+                b:SetWidth(w)
+                b:ClearAllPoints()
+                b:SetPoint("LEFT", row, "LEFT", x, 0)
+                x = x + w + gap
+            end
+        end
+        row:SetScript("OnSizeChanged", LayoutFx)
+        LayoutFx()
         pv.fxRow = row
     end
 
@@ -698,7 +724,8 @@ function Proto:Fill(c, e, i, r, now)
     if c.kind ~= "bars" and c.custom and not c.known and c.Icon and c.Icon.SetDesaturated then
         c.Icon:SetDesaturated(true)
     end
-    self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready") and not c.aura and not e.hidden) and fx.kind or nil)
+    self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready" or fx.kind == "active") and not c.aura and not e.hidden)
+        and fx.kind or nil)
     -- 生效發光：勾了的增益在預覽上常亮（樣式、顏色照單一法術小窗的設定）。長條亮在圖示那一格
     if ns.Glow and ns.Glow.PreviewActive then
         if not c.glowHost then
@@ -706,7 +733,8 @@ function Proto:Fill(c, e, i, r, now)
             c.glowHost:SetAllPoints(c.kind == "bars" and c.Icon or c)
             c.glowHost:SetFrameLevel(c:GetFrameLevel() + 3)
         end
-        ns.Glow.PreviewActive(c.glowHost, key, (c.aura and not e.hidden) and id or nil)
+        ns.Glow.PreviewActive(c.glowHost, key, (c.aura and not e.hidden) and id or nil,
+            c.kind ~= "bars" and ns.Glow.GlowShape and ns.Glow.GlowShape(c, key) or nil)
     end
     if c.kind == "bars" then
         c.Bar.Name:SetText(c.name)
@@ -904,12 +932,14 @@ function Proto:StartFx(kind)
     end)
 end
 
--- 一格的效果發光：which ＝ "proc"／"ready"／nil（收掉）。發光框是格子上自己的子框（池化的格子一起重用）
+-- 一格的效果發光：which ＝ "proc"／"ready"／"active"／nil（收掉）。發光框是格子上自己的子框（池化的格子一起重用）。
+-- 圖示交給 Masque 時照皮的形狀畫（沒裝 Masque／米利模式 ⇒ GlowShape 第一行就回 nil，照舊方形）
 function Proto:FxGlow(c, which)
     local G = ns.Glow
     if not (G and G.PaintOn) then return end
+    local shape = which and c.kind ~= "bars" and G.GlowShape and G.GlowShape(c, self.key) or nil
     local cur = c.fxGlow
-    if cur and cur.which == which then return end
+    if cur and cur.which == which and cur.shape == shape then return end
     if cur then
         G.StopOn(c.fxHost, cur.t, "pvfx")
         c.fxGlow = nil
@@ -922,8 +952,8 @@ function Proto:FxGlow(c, which)
     c.fxHost:ClearAllPoints()
     c.fxHost:SetAllPoints(c.kind == "bars" and c.Icon or c)
     local cfg = ns.Setting(self.key, "glow." .. which)
-    local t = G.PaintOn(c.fxHost, type(cfg) == "table" and cfg or {}, which, "pvfx", true)
-    if t then c.fxGlow = { which = which, t = t } end
+    local t = G.PaintOn(c.fxHost, type(cfg) == "table" and cfg or {}, which, "pvfx", true, shape)
+    if t then c.fxGlow = { which = which, t = t, shape = shape } end
 end
 
 -- 頁面關著時效果到期：發光直接收掉（下次 Refresh 也會收，這裡只是不讓它在背景一直轉）
