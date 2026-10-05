@@ -52,7 +52,7 @@
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
-| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、光環格的 Masque（獨立占位框、探針的錨點與 regions、讀回形狀與皮外框進簽章、烘遮罩與外框、外框讀不到退米利邊、讀不到形狀退方形、疊層照冷卻格的皮）、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰、閃光跟著 Masque 皮的遮罩）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做；皮的形狀與公開 API 的貼圖查詢；發光跟著形狀：沒裝不問形狀、米利模式／方形皮照舊、圓形／六角形皮 × 四種樣式、換皮停乾淨、池化閃光框換回暴雪貼圖、API 讀不到退方形）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（含逐法術占位）、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
+| `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、光環格的 Masque（獨立占位框、探針的錨點與 regions、讀回形狀與皮外框進簽章、烘遮罩與外框、外框讀不到退米利邊、讀不到形狀退方形、疊層照冷卻格的皮）、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰、閃光跟著 Masque 皮的遮罩）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳（含層數增加：暴雪增益 item 的法術展開、節流進簽章）、充能滿音效的三態轉變與監看表、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做；皮的形狀與公開 API 的貼圖查詢；發光跟著形狀：沒裝不問形狀、米利模式／方形皮照舊、圓形／六角形皮 × 四種樣式、換皮停乾淨、池化閃光框換回暴雪貼圖、API 讀不到退方形）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（含逐法術占位）、Receivers／Pairs）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
 
 套組裡哪些插件認得本插件、透過哪支 API：見「套組接線」。
 
@@ -74,7 +74,7 @@
 | `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha）。判斷快照（`Snapshot`）一輪只建一次往下傳；`Refresh` 只套容器、`Apply` 再加 item、`ApplyPanels` 只套面板。條件模型見「顯示條件」 |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上。無損刷新的兩支後掛勾是「本體一律 `ns.Guard`」的唯一例外（每幀叫，無事路徑只查表＋比布林；狀態變了才進 Guard） |
 | `Core/StackGate.lua` | 層數門檻：增益「層數到 N 才發光」與增益長條「層數到 N 換色」（閘＋裁切框，秘密層數也成立），見「層數門檻發光＋長條層數門檻換色」 |
-| `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格的 `C_UnitAuras.AddAuraSound` 登記對帳；節流、讀取畫面靜音 |
+| `Core/Sound.lua` | 音效：就緒音效（吃就緒探針的訊號）、充能滿音效（跟充能滿了發光同一套判斷、自己的監看表）、暴雪增益 item 的出現／消失（暴雪警示呼叫點的後掛勾＋下一幀合併）、光環格與暴雪增益 item 的 `C_UnitAuras.AddAuraSound` 登記對帳（出現／消失／層數增加）；節流、讀取畫面靜音 |
 | `Core/Keybinds.lua` | 法術／物品 → 動作條格 → 綁定鍵 → 縮寫，畫在 overlay 一角；按鍵鏡射（綁定指令的後掛勾 → 格號 → 那幾格亮一層白，見「按鍵鏡射」） |
 | `Core/Assist.lua` | 戰鬥輔助：自己輪詢下一招建議（`C_AssistedCombat.GetNextCastSpell`），醒目標示畫在索引查到的格子上；建議變了廣播 `AssistSpellChanged`（見「戰鬥輔助」） |
 | `Core/Cursor.lua` | 跟著游標的自訂圖示群組：資格判斷、共用 driver 框的 OnUpdate（只在有這種條而且看得到時掛），見「小項」 |
@@ -933,7 +933,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 
 ### 音效（`Core/Sound.lua`）
 
-響什麼是**逐法術**設定（逐法術面板：冷卻類一列「就緒音效」，增益類兩列「出現音效」「消失音效」；下拉第一項
+響什麼是**逐法術**設定（逐法術面板：冷卻類一列「就緒音效」、這招現在有充能時再一列「充能滿音效」，增益類三列
+「出現音效」「消失音效」「層數增加音效」；下拉第一項
 「無」＝清掉覆寫，其餘是 LibSharedMedia 的音效名，開面板時才列、依名稱排序；旁邊「試聽」照目前聲道播一次，
 不看總開關）。沒有條層的值（`DB.SPELL_CONST` 給 false）。全域只有 `theme.sound = { enabled, channel }`
 （主題頁「音效」一節：總開關、聲道 Master／SFX／Music／Ambience／Dialog）。
@@ -954,14 +955,16 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 | 觸發 | 做法 |
 |---|---|
 | 就緒（暴雪核心／輔助 item、自訂法術／物品） | 跟就緒發光同一顆探針的 `OnCooldownDone`（`Core/Glow.lua`）。只設了音效沒開發光也照樣建探針、武裝；GCD 不算、多充能每回一層響一次（探針現況）。暴雪 item 自己的 `TriggerAvailableAlert` 只在玩家替那個法術設了暴雪警示時才被 OnUpdate 叫到，不能當通用訊號 |
+| 充能滿（2026-10-05；暴雪核心／輔助 item、自訂法術，只有充能技能） | 欄位 `fullSound`／`fullSpeak`。判斷跟「充能滿了發光」同一套（`Glow.FullSpellOf`＋`Glow.ReadFull`：`maxCharges > 1` 而且 `isActive` 明文 false，不讀 `currentCharges`），三態滿／沒滿／讀不到：只有「上一次明確沒滿 → 這一次明確滿」才響（`Logic.FullEdge`），讀不到把記的狀態清成不知道（寧可漏響不誤響）、進表當下只記不響。自己的弱鍵監看表（跟發光的 `fullWatch` 分開，發光沒開也響），只有設了的格進表；表空時不聽 `SPELL_UPDATE_CHARGES`。`Glow.SyncFull`（排版、設定變了）對帳、`Glow.OnParked` 出表；換天賦不再是充能技能也出表。節流 key `full:<cooldownID>`、讀取靜音照舊。就緒音效在充能技能上仍是每回一層響一次，兩列下面各一列灰字講差別 |
 | 暴雪增益圖示／增益長條 item 出現／消失 | 後掛勾 item 的 `TriggerAuraAppliedAlert`／`TriggerAuraRemovedAlert`（12.1.0.69933 的 `Blizzard_CooldownViewer/CooldownViewer.lua`，`CooldownViewerMixin:OnUnitAura` 裡先 `CheckAuraRemovedAlertTriggers`、後 `CheckAuraAddedAlertTriggers`；不管有沒有設暴雪警示都會叫）。掛勾本體只拿 item 查我們的弱鍵表拿明文 cooldownID。事件進批次、下一幀合併：同一格「消失又出現」（換光環實例的刷新）抵消不響（`Logic.Net`：第一個事件推之前狀態、最後一個事件是之後狀態）。這兩支哪天沒了退回 `OnActiveStateChanged` 後掛勾＋`IsActive()`／`IsShown()` 前後比對（讀得到才算） |
 | 暴雪核心／輔助冷卻格的增益出現／消失（2026-10-03，狂暴觸發要語音） | `Cooldown:SetUseAuraDisplayTime(旗標)` 後掛勾（Decorate 轉給 `Sound.OnAuraFlag`，明文才算）：旗標 false→true＝增益出現、true→false＝消失。暴雪一次刷新常連叫兩次同值 ⇒ 值變了才排；掛勾時讀的初值與框換了法術只記不響。設定欄位跟增益格同一組（`gainSound`／`loseSound`／`gainSpeak`／`loseSpeak`），小窗「音效」分頁的「增益出現音效」「增益消失音效」兩列；走同一個批次、節流、讀取靜音。只有暴雪會「先倒增益時間」的技能有效；自訂法術沒有那一段 |
-| 光環格出現／消失 | `C_UnitAuras.AddAuraSound(Enum.UnitAuraSoundTrigger.Added／Removed, { unitToken = "player", spellID, soundFileName 或 soundFileID, outputChannel, throttleSeconds = 1.5 })`，回傳 `auraSoundID`，`RemoveAuraSound(id)` 撤銷；引擎自己播。對帳（`Logic.Diff`：多的撤、少的登、同簽章不動）在光環格放好／收起、設定檔／專精換了時排到下一幀。**戰鬥中或 `C_Secrets.ShouldAurasBeSecret()`（副本、鑰石、PvP）不叫**（封鎖動作、pcall 攔不住），排到脫戰／首領戰結束／換區域／鑰石完成再試；`PLAYER_ENTERING_WORLD` 撤掉手上的全部重登（不跨 /reload） |
+| 光環格出現／消失／層數增加 | `C_UnitAuras.AddAuraSound(Enum.UnitAuraSoundTrigger.Added／Removed／ApplicationsIncreased, { unitToken = "player", spellID, soundFileName 或 soundFileID, outputChannel, throttleSeconds = 1.5 })`，回傳 `auraSoundID`，`RemoveAuraSound(id)` 撤銷；引擎自己播。對帳（`Logic.Diff`：多的撤、少的登、同簽章不動）在光環格放好／收起、設定檔／專精換了時排到下一幀。**戰鬥中或 `C_Secrets.ShouldAurasBeSecret()`（副本、鑰石、PvP）不叫**（封鎖動作、pcall 攔不住），排到脫戰／首領戰結束／換區域／鑰石完成再試；`PLAYER_ENTERING_WORLD` 撤掉手上的全部重登（不跨 /reload） |
+| 層數增加（2026-10-05；光環格、飾品欄增益疊層、暴雪增益圖示／增益長條 item） | 欄位 `stackSound`（沒有語音播報：引擎播的，Lua 端沒有訊號）。同一條 `AddAuraSound` 路，觸發 `ApplicationsIncreased`（Enum 沒有就退 1）、`throttleSeconds = 0.3`（`Logic.STACK_THROTTLE`；快速連疊不被吞），節流值進簽章（`Logic.Sig` 第五個參數）。Lua 端不碰層數。每多一層響一次，0→1 算出現不算增加 ⇒ 最多 2 層的增益在疊到 2 層那一刻響。暴雪增益 item：法術 ID 用目錄的 `spellID`、`overrideTooltipSpellID`、全部 `linkedSpellIDs`（`Catalog.ReadInfo` 新讀進來的欄位）去重後各登一筆。列舉的是檢視器池子裡作用中、有身分的 item（`Viewers.EnumerateItems`），**不看放沒放格**（暗格停放／增益回來才放格常在戰鬥中，登記不了）；item 換身分（`SetCooldownID`／`ClearCooldownID` 後掛勾、`Track`）時前後任一個有設才 `RequestAuraSync`，設定頁 `ApplyEngine` 的合併套用也對一次帳 |
 
 - 播放：`PlaySoundFile(路徑或檔案編號, 聲道)`；LSM 取出來是字串或數字都能播。
 - 節流：同一個法術同一種音效 1.5 秒內只響一次；讀取畫面中與結束後 2 秒內（`LOADING_SCREEN_ENABLED／DISABLED`、
   `PLAYER_ENTERING_WORLD`）靜音。這兩條只管我們自己 `PlaySoundFile` 的那兩種；光環格由引擎播，只能給 `throttleSeconds`。
-- 覆寫分組：三個音效欄位是 `DB.OVERRIDE_GROUP` 的 `"sound"`，條頁自成一節「音效」（「本條 N 個法術有覆寫」＋
+- 覆寫分組：五個音效欄位（`readySound`／`fullSound`／`gainSound`／`loseSound`／`stackSound`）與四個語音欄位是 `DB.OVERRIDE_GROUP` 的 `"sound"`，條頁自成一節「音效」（「本條 N 個法術有覆寫」＋
   「清除覆寫」），**不跟「效果」節的發光算在一起**：清發光覆寫不該順手把玩家挑好的音效清掉，而且音效沒有條層的值，
   「跟隨全域主題」對它沒有意義。逐法術面板的「還原此法術」照樣整筆清（含音效）。
 - 圖騰型的增益（不是光環）不經過 `UNIT_AURA`，暴雪那兩支警示不會叫 ⇒ 沒有出現／消失音效。
@@ -2704,6 +2707,19 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 329. 設定頁：條頁「圖示」節兩個勾選與灰字；逐法術小窗「一般」分頁只在自訂物品（沒有物品時隱藏）／自訂飾品欄與暴雪的
      裝備欄冷卻格（被動飾品不顯示）出現，右鍵清除回條層；預覽被收掉的格標暗、提示寫原因。都關掉時 `/mcdm perf` 前後比，
      沒有多出 `BAG_UPDATE_DELAYED`／`GET_ITEM_INFO_RECEIVED` 的處理（只在需要時註冊）。
+
+**充能滿音效／層數增加音效（2026-10-05）**
+
+330. 殺戮機器（51124）設層數增加音效：疊到 2 層響一次；已 2 層再觸發不響；用掉一層後再疊回 2 層會響。
+     ⚠ 實機確認：`ApplicationsIncreased` 一次上 2 層（0→2）會不會響；刷新持續時間（層數不變）不會誤響。
+331. 暴雪增益 item 的法術 ID 對不對：`/mcdm debug` 的「光環格登記 N 筆」在設了層數增加音效的增益格上多出
+     「spellID＋overrideTooltipSpellID＋linkedSpellIDs 去重」那幾筆；確認哪一個才是光環本身（只要其中一個是就會響）。
+     增益格搬進自訂群組、被移除（hidden）照樣響；換專精（增益格換一批）後舊的撤、新的登。
+332. 充能滿音效（例：兩次充能的技能）：用一層、回滿那一刻響一次；回第一層不響（還沒滿）；就緒音效照舊每回一層響。
+     戰鬥中照響（`isActive` 明文）；`/reload` 時剛好滿著不響（進表只記）。換天賦變成單充能：逐法術小窗「音效」分頁的
+     充能滿音效、它的語音播報、兩列灰字，與「發光」分頁的「充能滿了發光」（連同灰字）都消失（下次開或切格時）。
+333. 單充能的技能：小窗沒有充能滿音效那幾列、就緒音效下面沒有灰字；增益格的層數增加音效列沒有語音播報列、下面有灰字。
+334. 在副本內 `/reload` 之後層數增加音效要出副本（或脫戰／首領戰結束）才登得上（既有限制，`/mcdm debug` 顯示「待登記」）。
 
 **效能基準**
 

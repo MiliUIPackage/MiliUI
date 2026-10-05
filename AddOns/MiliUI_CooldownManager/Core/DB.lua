@@ -469,7 +469,7 @@ function DB.BuildDefaults()
                 pandemic = { enabled = true, color = rgba(1, 0.5, 0, 1), bars = true },
                 -- 按鍵文字：動作條上綁的鍵，縮寫後畫在圖示一角
                 keybind  = { enabled = true, size = 10, point = "TOPRIGHT", x = 1, y = -1, font = "INHERIT" },   -- 預設開、右上（使用者 2026-09-30 指定）
-                -- 音效（Core/Sound.lua）：總開關與聲道；要響什麼是逐法術覆寫（readySound／gainSound／loseSound）。
+                -- 音效（Core/Sound.lua）：總開關與聲道；要響什麼是逐法術覆寫（readySound／gainSound／loseSound／fullSound／stackSound）。
                 -- 不走條層繼承（不在 THEMED 裡），一律用 ns.Setting("theme", "sound.…") 讀
                 sound    = { enabled = true, channel = "Master" },
                 -- 戰鬥輔助的下一招醒目標示（Core/Assist.lua）：建議的那一招在任何一條上就亮一圈。
@@ -992,10 +992,15 @@ local SPELL_CONST = {
     readySound       = false,
     gainSound        = false,
     loseSound        = false,
-    -- 語音播報（文字轉語音，Core/Sound.lua）：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字（空字串也念法術名）
+    -- 充能滿音效（充能技能每一層都回滿的那一刻）、層數增加音效（增益每多一層；引擎播，AddAuraSound）
+    fullSound        = false,
+    stackSound       = false,
+    -- 語音播報（文字轉語音，Core/Sound.lua）：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字（空字串也念法術名）。
+    -- 層數增加音效沒有語音播報（引擎播的，Lua 端沒有訊號）
     readySpeak       = false,
     gainSpeak        = false,
     loseSpeak        = false,
+    fullSpeak        = false,
     -- 自訂圖示：貼圖檔案編號（正整數）；false ＝ 用原本的圖示（Core/Decorate.lua 的 IconOverrideOf）
     customIcon       = false,
     -- 效果不在時變暗（只有逐法術、預設不勾；暴雪的冷卻格才有效，Core/Decorate.lua）：
@@ -1299,9 +1304,9 @@ DB.OVERRIDE_GROUP = {
     colorDuration = "icon", durationColor = "icon", durationLowColor = "icon", durationSwipeColor = "icon",
     -- 音效在條頁自成一節（「音效」：本條 N 個法術有音效、清除），不跟發光算在一起：
     -- 清發光覆寫不該順手把玩家挑好的音效清掉
-    readySound = "sound", gainSound = "sound", loseSound = "sound",
+    readySound = "sound", gainSound = "sound", loseSound = "sound", fullSound = "sound", stackSound = "sound",
     -- 語音播報跟音效同一節（同一個觸發點、同一個總開關）
-    readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound",
+    readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound", fullSpeak = "sound",
     -- 天賦條件（Core/Catalog.lua，{ spellID, mode }）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
     talentCond = "talent",
     -- 無增益時保留空位（F7）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它

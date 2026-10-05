@@ -189,6 +189,21 @@ DB.SetOverride(11, "procGlow", nil)
 eq("SetOverride nil 清到空 ⇒ 拿掉", sp.overrides[11], nil)
 eq("沒覆寫退回條層", ns.SpellSetting("essential", 11, "procGlow"), true)
 
+-- 充能滿音效／層數增加音效（Core/Sound.lua）：只有逐法術（SPELL_CONST false）、跟其他音效同一組 "sound"
+for _, f in ipairs({ "fullSound", "fullSpeak", "stackSound" }) do
+    eq(f .. "：SPELL_CONST ＝ false", DB.SPELL_CONST[f], false)
+    eq(f .. "：沒有條層對應", DB.SPELL_FALLBACK[f], nil)
+    eq(f .. "：覆寫分組 sound", DB.OVERRIDE_GROUP[f], "sound")
+end
+DB.SetOverride(41, "fullSound", "Ding")
+DB.SetOverride(41, "stackSound", "Bell")
+DB.SetOverride(41, "procGlow", false)
+eq("音效節 1 個法術", DB.CountOverrides({ 41 }, "sound"), 1)
+DB.ClearOverrides({ 41 }, "glow")
+eq("清效果節不動充能滿音效", ns.SpellSetting("essential", 41, "fullSound"), "Ding")
+DB.ClearOverrides({ 41 }, "sound")
+eq("清音效節一起清掉兩個新欄位", sp.overrides[41], nil)
+
 -- 無增益時保留空位（F7，暴雪的增益）：沒有條層值（SPELL_CONST false）、自成一組 "slot"
 eq("placeholder：SPELL_CONST ＝ false", DB.SPELL_CONST.placeholder, false)
 eq("placeholder：沒有條層對應", DB.SPELL_FALLBACK.placeholder, nil)

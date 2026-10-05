@@ -565,19 +565,13 @@ end
 --     自訂法術用 rec.overrideID／spellID。裝備欄、物品、光環不做。
 --   * 時機：排版（G.Sync）＋ SPELL_UPDATE_CHARGES（用掉一層、回滿一層都會派）。只有開著的格進 fullWatch，
 --     事件也只在 fullWatch 有東西時才註冊。冷卻的 SetCooldown 掛勾不能當訊號：最後一層回滿那一刻暴雪不一定 SetCooldown。
+--   * 充能滿音效（Core/Sound.lua）用同一套判斷（G.FullSpellOf／G.ReadFull 的三態），監看表各管各的。
 ------------------------------------------------------------
 local fullWatch = setmetatable({}, { __mode = "k" })   -- rec → owner
 local fullEventOn = false
 
-local function FullSpellOf(rec)
-    if rec.custom then
-        if rec.kind ~= "spell" then return nil end
-        local id = rec.overrideID or rec.spellID
-        return type(id) == "number" and id or nil
-    end
-    local aura = ns.Viewers.AURA_KIND
-    if aura and aura[rec.barKey] then return nil end
-    local info = ns.Catalog.Info(rec.cooldownID)
+-- 暴雪的冷卻格（目錄資訊）用哪個法術問充能：目錄的基本法術＋當下的覆蓋（明文）；裝備欄 nil
+local function CatalogFullSpell(info)
     if not info or type(info.equipSlot) == "number" then return nil end
     local base = info.spellID
     local id = info.overrideSpellID or base
@@ -590,16 +584,57 @@ local function FullSpellOf(rec)
     return type(id) == "number" and id or nil
 end
 
--- 這一刻是不是滿的：nil ＝ 不是充能技能（不用看著）、true／false ＝ 滿／沒滿
-local function FullState(rec, id)
+local function FullSpellOf(rec)
+    if rec.custom then
+        if rec.kind ~= "spell" then return nil end
+        local id = rec.overrideID or rec.spellID
+        return type(id) == "number" and id or nil
+    end
+    local aura = ns.Viewers.AURA_KIND
+    if aura and aura[rec.barKey] then return nil end
+    return CatalogFullSpell(ns.Catalog.Info(rec.cooldownID))
+end
+G.FullSpellOf = FullSpellOf                                         -- Core/Sound.lua 的充能滿音效同一套
+
+-- 同一套、從 cooldownID 解（設定介面沒有 rec：Options/SpellPopover.lua 判「這招現在有沒有充能」）。
+-- 自訂法術用目錄的覆蓋／基本法術；暴雪的增益兩條、物品、裝備欄、光環格 nil
+function G.FullSpellOfID(cooldownID)
+    local info = cooldownID ~= nil and ns.Catalog.Info(cooldownID) or nil
+    if not info then return nil end
+    if info.custom then
+        if info.kind ~= "spell" then return nil end
+        local id = info.overrideSpellID or info.spellID
+        return type(id) == "number" and id or nil
+    end
+    local src = ns.Catalog.SourceOf and ns.Catalog.SourceOf(cooldownID)
+    local aura = ns.Viewers.AURA_KIND
+    if src and aura and aura[src] then return nil end
+    return CatalogFullSpell(info)
+end
+
+-- 這一刻滿不滿（三態）→ isCharge, state：
+--   isCharge ＝ 現在是不是充能技能（false ⇒ 不用看著）；state ＝ true 滿／false 沒滿／nil 讀不到（秘密值、API 不在）。
+-- 發光要 fail-closed（讀不到＝不亮，見 FullState）；音效要「明確的沒滿 → 明確的滿」才響，讀不到不能當沒滿（Core/Sound.lua）
+local function ReadFull(rec, id)
     local D = ns.Decorate
-    if not (D and D.IsChargeSpell and D.IsChargeSpell(rec, id, true)) then return nil end
+    if not (D and D.IsChargeSpell and D.IsChargeSpell(rec, id, true)) then return false, nil end
     local fn = C_Spell and C_Spell.GetSpellCharges
-    if not fn then return false end
+    if not fn then return true, nil end
     local ok, info = pcall(fn, id)
-    if not ok or type(info) ~= "table" then return false end
+    if not ok or type(info) ~= "table" then return true, nil end
     local okA, a = pcall(function() return info.isActive end)
-    return okA and Plain(a) == false
+    if not okA then return true, nil end
+    a = Plain(a)                                    -- ⚠ 不寫 okA and Plain(a) or nil：明文 false（＝滿）會變 nil
+    if type(a) ~= "boolean" then return true, nil end
+    return true, not a
+end
+G.ReadFull = ReadFull                                               -- Core/Sound.lua 用
+
+-- 這一刻是不是滿的：nil ＝ 不是充能技能（不用看著）、true／false ＝ 滿／沒滿（讀不到算沒滿）
+local function FullState(rec, id)
+    local isCharge, state = ReadFull(rec, id)
+    if not isCharge then return nil end
+    return state == true
 end
 G.FullState = FullState                                             -- 測試用
 
@@ -629,6 +664,8 @@ function G.SyncFull(owner, rec, barKey)
     else
         Stop(rec, "full")
     end
+    -- 充能滿音效（Core/Sound.lua）：自己的監看表，發光沒開也要能響；同一個時機對帳
+    if ns.Sound and ns.Sound.SyncFull then ns.Sound.SyncFull(rec, barKey, Hidden(rec)) end
 end
 
 -- ⚠ 下一招醒目標示（"assist"）不在這裡對帳：它由 Core/Assist.lua 管，這裡不准熄它
@@ -685,6 +722,7 @@ function G.OnParked(rec)
     Stop(rec, "full")
     Stop(rec, "assist")
     WatchFull(rec, nil, false)
+    if ns.Sound and ns.Sound.UnwatchFull then ns.Sound.UnwatchFull(rec) end
     CancelPending(rec)
     if ns.StackGate then ns.StackGate.OnParked(rec) end
     -- 按鍵鏡射（Core/Keybinds.lua）：撤銷格號登記、收掉閃光

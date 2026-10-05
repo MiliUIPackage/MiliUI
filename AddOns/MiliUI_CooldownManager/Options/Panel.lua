@@ -493,6 +493,8 @@ local function FlushEngine()
     if ns.Bars then ns.Bars.RequestAll(level) end
     if ns.Visibility then ns.Visibility.ApplyAll() end
     if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
+    -- 暴雪增益 item 的層數增加音效（AddAuraSound）不經過放格：設定變了自己對一次帳（光環格放格時本來就會叫）
+    if ns.Sound and ns.Sound.RequestAuraSync then ns.Sound.RequestAuraSync() end
 end
 
 function Options.ApplyEngine(level, now)
