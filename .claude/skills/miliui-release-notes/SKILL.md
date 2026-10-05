@@ -124,8 +124,9 @@ body 才有「玩家實際會看到什麼」「設定在哪一頁」「預設開
 發佈腳本會用 `claude -p` 叫這個技能，要求「網站模式」：
 
 - 套組本體：`_retail_/Packaging.command`
-- 自製插件／fork：各自 repo 的 `package.command`（`~/Projects/` 底下所有會上傳插件補給站的都有接），
-  經由 [.claude/scripts/release-notes.sh](../../scripts/release-notes.sh)；一次發佈多個資料夾的
+- 自製插件：發版管理介面（`~/Projects/MiliUI_ReleaseManager`）的通用發版腳本 `scripts/release.sh`，
+  經由 [.claude/scripts/release-notes.sh](../../scripts/release-notes.sh)
+- fork（Ayije_CDM、Cell）：各自工作 repo 的 `package.command`，同樣經由 release-notes.sh；一次發佈多個資料夾的
   （`Ayije_CDM` ＋ `Ayije_CDM_Options`）會附上全部路徑
 這時產出直接塞進插件補給站的更新說明欄，**沒有人會先看過**，所以規則照上面全部適用，
 只有交件格式不同：
@@ -149,7 +150,8 @@ body 才有「玩家實際會看到什麼」「設定在哪一頁」「預設開
 
 ## CurseForge 模式（curseforge-upload.sh 呼叫）
 
-發佈腳本上傳插件補給站之後，[.claude/scripts/curseforge-upload.sh](../../scripts/curseforge-upload.sh)
+發佈腳本上傳插件補給站之後，`curseforge-upload.sh`（在發版管理介面的 repo：
+`~/Projects/MiliUI_ReleaseManager/scripts/curseforge-upload.sh`，由同資料夾的 `release.sh` 呼叫）
 會再叫一次這個技能（`release-notes.sh … en`），要「CurseForge 模式」。產出直接塞進 CurseForge
 的 changelog，讀者是英文玩家。規則跟網站模式**完全一樣**（區間由呼叫端給、只回一行 HTML、
 `<p>` 分段、`<br>` 分條），只差下面幾點：
