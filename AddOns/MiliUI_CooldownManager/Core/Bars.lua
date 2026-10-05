@@ -906,13 +906,22 @@ local function Relayout(key, level, index, gen, s)
                 mode = ns.Layout.AuraSlot(present, fixed,
                     (not present and not fixed) and ns.SpellSetting(key, id, "placeholder") or nil)
             end
+            -- 暴雪的飾品增益格（EquipSlotTracked：資料帶裝備欄位）不在時：固定格位的條上只留空位、不畫暗圖示
+            --（被動飾品的增益格平常整格收著，條一被光環格／可點擊逼成固定格位就冒出一顆暗的飾品圖示；
+            -- 玩家 2026-10-05 回報）。逐法術自己勾了「無增益時保留空位」的照舊畫
+            if mode == "placeholder" and fixed and ns.SpellSetting(key, id, "placeholder") ~= true then
+                local inf = ns.Catalog.Info(id)
+                if inf and type(inf.equipSlot) == "number" then mode = "blank" end
+            end
             if mode == "item" then
                 entries[#entries + 1] = { id = id, item = item, rec = rec }
             elseif mode == "placeholder" then
                 entries[#entries + 1] = { id = id, item = item, rec = rec, placeholder = true }
+            elseif mode == "blank" then
+                entries[#entries + 1] = { id = id, blank = true }
             end
-            -- 收合模式下沒顯示（也沒勾占位）的增益：不認領 ⇒ 最後的停放掃描會把它收走
-            if mode then claimedBy[item] = key end
+            -- 收合模式下沒顯示（也沒勾占位）的增益：不認領 ⇒ 最後的停放掃描會把它收走（空位的也不認領：item 要停放）
+            if mode and mode ~= "blank" then claimedBy[item] = key end
         end
     end
 
