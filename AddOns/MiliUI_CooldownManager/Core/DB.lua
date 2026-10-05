@@ -418,7 +418,9 @@ function DB.BuildDefaults()
                 cooldownText = { size = 16, color = rgba(1, 1, 1), decimalsBelow = 3,
                                  lowColor = rgba(1, 0.3, 0.3), lowBelow = 5, font = "INHERIT" },
                 chargeText   = { size = 12, color = rgba(1, 1, 1), point = "BOTTOMRIGHT", x = 0, y = 0, font = "INHERIT" },
-                stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0, font = "INHERIT" },
+                stackText    = { size = 12, color = rgba(1, 1, 1), point = "TOP",         x = 0, y = 0, font = "INHERIT",
+                                 -- 長條（kind = "bars"）的層數錨在圖示的哪一角；舊存檔沒有 ＝ 合併預設補成右下（舊行為）
+                                 barPoint = "BOTTOMRIGHT" },
                 -- skin：圖示外觀 "miliui"（自己畫邊框／縮放）| "masque"（交給 Masque，Core/Masque.lua）；
                 -- 舊存檔沒有這欄 ＝ 預設，不遷移
                 icon  = { skin = "miliui", zoom = 0.08, swipeColor = rgba(0, 0, 0, 0.8), tooltips = true,
