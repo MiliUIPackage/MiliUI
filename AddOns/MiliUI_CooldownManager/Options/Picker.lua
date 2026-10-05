@@ -1038,7 +1038,7 @@ end
 --   Picker.AskSlotBuff()            開彈窗
 --
 -- 版面：兩格飾品各一列——上面一行飾品圖示＋「飾品 1：名字」（滑過是物品提示），下面是這件飾品**實際有幾個增益**
--- 就幾顆鈕（Catalog.SlotBuffIndices；一個就一顆、三個以上照排，放不下換行、列跟著長）。鈕上畫增益的圖示＋名字，
+-- 就幾顆鈕（Catalog.SlotBuffIndices；一個就一顆、三個以上照排，一顆一列、整列寬，垂直往下長）。鈕上畫增益的圖示＋名字，
 -- 滑過照暴雪飾品增益格的提示（Catalog.SlotBuffTooltip：飾品名、增益名、照裝備等級算過的效果說明）。
 -- 零個 ⇒ 那列不放鈕、灰字說明（空格／這件飾品沒有可追蹤的增益）。已加過的（這個專精看得到、或選的那一層已經有）
 -- ⇒ 字改「名字（已加入）」＋停用。點了加一筆、彈窗不關（另一個增益可以接著加）。
@@ -1245,8 +1245,10 @@ LayoutSlotBuffPopup = function(f)
             b.label:SetTextColor(bd.added and 0.5 or 1, bd.added and 0.5 or 1, bd.added and 0.5 or 1)
             b:SetEnabled(not bd.added)
             b:SetBackdropBorderColor(0, 0, 0, 1)
-            local tw = b.label:GetStringWidth() or 60
-            b:SetWidth(math.min(W_IN, math.ceil(3 + SB_ICON + 6 + tw + 8)))
+            -- 一個增益一列、整列寬（使用者 2026-10-05 指定：垂直排列）
+            b:SetWidth(W_IN)
+            b:ClearAllPoints()
+            b:SetPoint("TOPLEFT", row.flow, "TOPLEFT", 0, -(#list) * (SB_BTN_H + SB_GAP))
             b:Show()
             list[#list + 1] = b
         end
@@ -1256,8 +1258,8 @@ LayoutSlotBuffPopup = function(f)
         if #list > 0 then
             row.note:Hide()
             row.flow:Show()
-            local _, fh = W.FlowLayout(row.flow, list, W_IN, SB_GAP, SB_GAP, SB_BTN_H)
-            row.flow:SetHeight(fh)
+            local fh = #list * SB_BTN_H + (#list - 1) * SB_GAP
+            row.flow:SetSize(W_IN, fh)
             y = y - fh - 12
         else
             row.flow:Hide()
