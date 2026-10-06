@@ -141,7 +141,7 @@ function SR.Evaluate(cfg, st)
     if bar == nil then return false end          -- 讀不到就分不出德比賽跑：不顯示
     if bar == DERBY_BAR then return false end
     if not SR.Riding(st) then return false end
-    if cfg.hideGroundedFull ~= false and Plain(st.isGliding) ~= true then
+    if cfg.hideGroundedFull == true and Plain(st.isGliding) ~= true then     -- 沒存 ＝ 關（預設關）
         local cur, max = Plain(st.charges), Plain(st.maxCharges)
         if cur == nil or max == nil then return false end
         if cur >= max then return false end
@@ -353,8 +353,11 @@ local function SurgeSpell()
     return id
 end
 
--- 法術名：執行期讀（官方譯名），讀不到用語系檔的備用字
+-- 法術名：執行期讀（官方譯名），讀不到用語系檔的備用字。
+-- 活力例外：372608 的法術名是「向前疾衝」（充能掛在那顆技能上），不是資源名；資源名「活力」用語系檔
+--（照 GlobalStrings 的官方譯名寫）
 function SR.SpellName(which)
+    if which == "vigor" then return L["Vigor"] end
     local ids = { vigor = VIGOR_SPELL, secondWind = SECOND_WIND, surge = SURGE_SPELLS[2],
                   thrill = THRILL_AURAS[1], skim = SKIM_AURAS[1] }
     local fallback = { vigor = L["Vigor"], secondWind = L["Second Wind"], surge = L["Whirling Surge"],

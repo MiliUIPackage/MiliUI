@@ -1731,7 +1731,7 @@ customRows[specID] = {
 - **顯示**（`SR.Evaluate` 純函式，`SR.Active` 讀 API 後交給它；同一幀只讀一次）：全部成立才顯示——
   這次登入沒有因為舊插件還載著而停用（`ns.falconBlocked`）、開著而且兩排至少一排開著、不在德比賽跑（`UnitPowerBarID == 650`）、
   在天空騎術（專用動作條 `GetBonusBarIndex() == 11 and GetBonusBarOffset() == 5`，或 `canGlide` 明文 true 而且能量條 ID ≠ 0）、
-  沒有「地面上（`isGliding` 不是明文 true）而且充能全滿而且 `hideGroundedFull`」。**讀到秘密值或讀不到一律當不成立**（寧可少顯示，不誤藏冷卻管理器）。
+  沒有「地面上（`isGliding` 不是明文 true）而且充能全滿而且 `hideGroundedFull`（預設關，沒存＝關）」。**讀到秘密值或讀不到一律當不成立**（寧可少顯示，不誤藏冷卻管理器）。
   `Vis.EvaluatePanel` 的 `skyriding` 分支照 `Snapshot.skyridingPanel`；編輯模式中全亮（舊插件還載著時例外：編輯模式也是 0）。
 - **藏起冷卻管理器**（`hideCdm`，預設開）：`Snapshot.skyridingHideCdm`（面板顯示中＋開著）成立時，`Vis.Alpha`（每一條，含自訂群組）
   與天空騎術以外的每個面板（`PanelAlpha`）都回 0。加在既有限制的前面，**不寫進每條的 `visibility` 表、不改存檔**；編輯模式中不套用。

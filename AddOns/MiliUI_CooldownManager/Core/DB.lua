@@ -415,7 +415,7 @@ SkyridingDefaults = function()
         showSpeed        = true,
         showCharges      = true,
         speedText        = "RIGHT",        -- OFF | LEFT | RIGHT | CENTER（字型照主題，大小跟資源條的文字設定）
-        hideGroundedFull = true,           -- 在地面上而且充能全滿 ⇒ 不顯示
+        hideGroundedFull = false,          -- 在地面上而且充能全滿 ⇒ 不顯示（使用者 2026-10-06 指定預設關）
         speedColorOnCharges = false,       -- 充能格改用速度條目前的顏色
         -- 充能次數：六格正中間的數字（目前的活力），使用者 2026-10-06 指定預設開、白字、上下置中
         chargeText       = true,

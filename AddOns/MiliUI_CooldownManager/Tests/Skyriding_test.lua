@@ -139,6 +139,8 @@ eq("預設：不錨定", sd.anchor, false)
 eq("預設：寬 0", sd.width, 0)
 eq("預設：旋轉急衝圖示不顯示（有長條）", sd.surge, "off")
 eq("預設：旋轉急衝長條開", sd.surgeBar, true)
+eq("預設：地面上充能全滿不隱藏", sd.hideGroundedFull, false)
+eq("沒存 hideGroundedFull ＝ 關：地面上全滿照樣顯示", SR.Evaluate({ enabled = true }, { powerBarID = 631, bonusIndex = 11, bonusOffset = 5, isGliding = false, charges = 6, maxCharges = 6 }), true)
 eq("預設：電光開", sd.surgeFx, true)
 eq("預設：填滿震動開", sd.surgeShake, true)
 eq("預設：充能數字開", sd.chargeText, true)
@@ -201,7 +203,9 @@ ns.profile = DB.BuildDefaults().profile
 api.gliding, api.charges = true, 6
 eq("Active：飛行中", SR.Active(), true)
 api.gliding = false
-eq("Active：地面上充能全滿", SR.Active(), false)
+eq("Active：地面上充能全滿（預設不隱藏）", SR.Active(), true)
+ns.profile.skyriding.hideGroundedFull = true
+eq("Active：地面上充能全滿、開了隱藏", SR.Active(), false)
 api.charges = 2
 eq("Active：地面上在回充", SR.Active(), true)
 api.powerBar = 650
