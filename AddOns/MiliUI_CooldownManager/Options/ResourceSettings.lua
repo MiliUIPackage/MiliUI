@@ -325,7 +325,7 @@ local META_LABELS = { "Show", "Position", "X offset", "Y offset", "Font", "Font 
                       "Format", "Prefix", "Prefix text", "Keep after it ends", "Keep for (sec)" }
 
 local function MetaTabRow()
-    return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
+    return { type = "custom", noReset = true, build = function(parent, x, y, width, ctx)
         local DM = ns.DevourerMeta
         local tabs = {
             { id = "time",  label = META_TABS[1].label },

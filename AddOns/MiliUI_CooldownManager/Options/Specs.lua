@@ -28,7 +28,6 @@
 --   tab      頂層 header 才帶：這一節放在哪個分頁（Specs.SplitTabs；沒分頁的頁不看）
 --   subTab   "cooldown" | "duration" | "charges" | "stacks"：只進那個子分頁的表單（K；Specs.FilterSubTab）
 --   subGroup "cd" | "cs"：subTab 屬於哪一組子分頁（Specs.SUBTAB_GROUPS）
---   breakMask  跟隨遮罩在這一列斷開、這一列不蓋（子分頁鈕）
 --
 -- ⚠ 條頁的主題欄位**讀的是繼承後的值**：沒跟隨、但這一格自己沒存的，看到的是主題的值。
 --   顏色若直接回主題那張表，Controls 的色票會就地改掉主題（它拿到表就直接寫 r/g/b）。
@@ -413,7 +412,6 @@ end
 -- 只進那個子分頁的表單（Specs.FilterSubTab）；子分頁鈕那一列（SubTabRow）點了叫 ctx.onSubTab(id)，
 -- 頁面換一張表單、捲動位置不動（子分頁鈕上面的列兩張表單一模一樣）。目前選哪個存在 ctx.subTab（頁面建表單時填）。
 -- 一張表單可以有好幾組子分頁（SUBTAB_GROUPS），spec 的 subGroup 講是哪一組
--- 子分頁鈕那一列 breakMask：跟隨遮罩在這裡斷開（鈕本身不蓋）
 -- 卡片（L）：子分頁鈕＋底下一張卡片包住子分頁的列（W.CreateTabCard）。卡片是 content 上的貼圖 ⇒ 列與遮罩都在它上面；
 -- 鈕列這一列建卡片、記在 ctx.tabCards[組]，底緣等 BuildForm 排完才知道（同一組最後一個帶 subTab 的列）
 ------------------------------------------------------------
@@ -436,7 +434,7 @@ end
 --   cd  倒數的「冷卻｜增益持續時間」（K）
 --   cs  「充能｜層數」（兩節控件幾乎一樣；拆成兩節時表單太長、法術小窗超出螢幕，使用者 2026-10-06）
 -- 頁面記目前的選擇在一張表 { cd = id, cs = id }（ctx.subTab），表單快取 key 用 Specs.SubTabKey
--- labels：卡片裡會出現的標籤（量最長的那個定卡片左緣）；gap：鈕列上方多留的距離（cs 緊接在 cd 卡片底下）
+-- labels：卡片裡會出現的標籤（所有組一起量最長的那個定卡片左緣，兩張卡片才對齊）；gap：鈕列上方多留的距離（cs 緊接在 cd 卡片底下）
 local SUBTAB_GROUPS = {
     cd = { tabs = SUBTAB_DEFS, help = Specs.SubTabHelp, gap = 0,
            labels = { "Decimals below", "Color when low", "Low color", "Low below (sec)" } },
@@ -460,10 +458,12 @@ local CARD_TOP = 4
 -- 卡片左右界：控件欄起點 x 往左扣「標籤與控件的間距＋最長標籤＋內距」，往右到標準控件寬＋內距（共用層 Controls 的版面常數）
 local CARD_GAP, CARD_PAD_X, CARD_CTRL_W, CARD_LABEL_MAX = 12, 10, 230, 128
 
+-- 卡片裡的列：控件欄收在卡片右緣內（說明灰字在卡片裡換行、下拉不撐出卡片；共用層 Controls 的 maxW）
 local function Sub(id, spec, group)
     if spec then
         spec.subTab = id
         spec.subGroup = group or "cd"
+        spec.maxW = CARD_CTRL_W
     end
     return spec
 end
@@ -472,7 +472,7 @@ Specs.Sub = Sub
 local function SubTabRow(group)
     group = group or "cd"
     local def = SUBTAB_GROUPS[group]
-    return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
+    return { type = "custom", noReset = true, build = function(parent, x, y, width, ctx)
         local sel = type(ctx.subTab) == "table" and ctx.subTab or {}
         local tc = W.CreateTabCard(parent, {
             tabs = def.tabs, tabHeight = SUBTAB_BTN_H, tabMinWidth = SUBTAB_BTN_MIN_W,
@@ -484,12 +484,15 @@ local function SubTabRow(group)
         })
         -- 卡片跟上面的設定列同寬（使用者 2026-10-06：「太胖了，應該和上面一樣的縮排」）：
         -- 左緣＝卡片裡最長的標籤再外推一點（標籤欄靠右對齊，長度依語系），右緣＝控件欄的右緣（標準控件寬）
+        -- 量的是**每一組**的標籤：一張表單有兩張卡片時左緣要對齊（使用者 2026-10-06）
         local measure = parent:CreateFontString(nil, "OVERLAY")
         measure:SetFontObject(W.fontNormal)
         local labelW = 0
-        for _, k in ipairs(def.labels) do
-            measure:SetText(L[k])
-            labelW = math.max(labelW, math.ceil(measure:GetStringWidth() or 0))
+        for _, g in pairs(SUBTAB_GROUPS) do
+            for _, k in ipairs(g.labels) do
+                measure:SetText(L[k])
+                labelW = math.max(labelW, math.ceil(measure:GetStringWidth() or 0))
+            end
         end
         measure:Hide()
         labelW = math.min(labelW, CARD_LABEL_MAX)
@@ -769,8 +772,8 @@ function Specs.Themed(mode, key)
         NB(TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 })),
         NB(TS("text", "color", "cooldownText.color", L["Color"])),
         -- 從小數門檻開始分兩個子分頁「冷卻｜增益持續時間」（K）：同一組四列（小數門檻、低秒變色、變色顏色、變色秒數），
-        -- 標籤不帶前綴（子分頁已經講了是哪一種）。子分頁鈕那一列不歸任何 section（勾著跟隨也要點得到：
-        -- 增益持續時間那組的變色顏色歸「圖示」的跟隨管，文字跟隨著時照樣要切得過去），也切斷跟隨遮罩的那一段
+        -- 標籤不帶前綴（子分頁已經講了是哪一種）。子分頁鈕那一列不歸任何 section，但夾在文字那一段裡 ⇒
+        -- 文字跟隨時跟卡片一起被文字的遮罩蓋住（BuildForm）
         NB(SubTabRow()),
         -- 冷卻：低秒變色的開關（lowColorOn）與變色秒數（lowBelow）分兩欄，取消勾選不動秒數（2026-10-06 拆開，舊存檔 MIGRATIONS[5]）
         NB(Sub("cooldown", TS("text", "slider", "cooldownText.decimalsBelow", L["Decimals below"], { min = 0, max = 10, step = 1 }))),
@@ -1566,30 +1569,40 @@ function Specs.BuildForm(parent, controls, ctx, width)
             if row.spec.subTab and (row.spec.subGroup or "cd") == group then last = row end
         end
         if last then c.card:SetBottom(last.bottom - W.TAB_CARD_PAD) else c.card:SetBottom(nil) end
+        c.lastRow = last
     end
 
-    -- 跟隨遮罩的範圍：同一個 section 連續的那一段（中間夾的沒有 section 的列算進去）。
-    -- 以前是一節一個矩形（第一列到最後一列）；「文字」節裡夾了一列歸「圖示」管的（增益持續時間的變色顏色，J），
-    -- 一節一個矩形的話文字的遮罩會連它一起蓋 ⇒ 改成一段一段。breakMask 的列（子分頁鈕，K）把那一段切斷、自己不蓋
-    local runs, run = {}, nil
+    -- 跟隨遮罩的範圍：一個 section 一個矩形（這張表單裡它的第一列到最後一列，中間夾的子分頁鈕、卡片、
+    -- 別節的列都蓋進去）。子分頁鈕與卡片框也要一起暗（使用者 2026-10-06：只蓋列、鈕和框線亮著＝「遮罩全錯」）。
+    -- 代價：文字跟隨時，夾在裡面那一列歸「圖示」管的（增益持續時間的變色顏色，J）也被蓋住、子分頁切不過去。
+    -- 整段都在同一張卡片裡（例如只有那一列的「圖示」）⇒ 左右收在卡片框線內
+    local runs, bySec = {}, {}
     for _, row in ipairs(rows) do
         local sec = row.spec.section
-        if row.spec.breakMask then
-            run = nil
-        elseif sec then
-            if run and run.sec == sec then
-                run.bottom = row.bottom
+        if sec then
+            local cx = CardX(ctx, row.spec)
+            -- 卡片的最後一列：卡片底緣比列底多一段內距，遮罩要蓋到框線
+            local bottom = row.bottom
+            local card = row.spec.subTab and ctx.tabCards and ctx.tabCards[row.spec.subGroup or "cd"]
+            if card and card.lastRow == row then bottom = bottom - W.TAB_CARD_PAD - 1 end
+            local r = bySec[sec]
+            if r then
+                r.bottom = bottom
+                if r.cx ~= cx then r.cx = nil end
             else
-                run = { sec = sec, top = row.top, bottom = row.bottom }
-                runs[#runs + 1] = run
+                r = { sec = sec, top = row.top, bottom = bottom, cx = cx }
+                bySec[sec] = r
+                runs[#runs + 1] = r
             end
         end
     end
     if ctx.info.mode == "bar" then
         for _, r in ipairs(runs) do
             local m = CreateFrame("Frame", nil, content, "BackdropTemplate")
-            m:SetPoint("TOPLEFT", content, "TOPLEFT", 0, r.top)
-            m:SetSize(width, math.max(1, r.top - r.bottom))
+            local mx, mw = 0, width
+            if r.cx then mx, mw = r.cx.left + 1, r.cx.right - r.cx.left - 2 end
+            m:SetPoint("TOPLEFT", content, "TOPLEFT", mx, r.top)
+            m:SetSize(mw, math.max(1, r.top - r.bottom))
             m:SetFrameLevel(content:GetFrameLevel() + 40)
             m:EnableMouse(true)              -- 擋點擊；滾輪不擋（沒開 MouseWheel，照樣捲得動）
             m:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
