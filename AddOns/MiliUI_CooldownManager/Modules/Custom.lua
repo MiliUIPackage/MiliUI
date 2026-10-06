@@ -1493,10 +1493,12 @@ local function AuraStyle(rec, barKey, w, h, shape)
             labelSig = "lb:" .. lb.sig
         end
     end
+    -- 圖示的 texcoord（縮放＋非正方形裁切）：正方形時跟尺寸無關，改大小不會白換容器
+    st.tc = { ns.Layout.IconTexCoord(st.zoom, w, h, S(barKey, "icon.aspect") ~= "stretch") }
     -- 認哪些法術也進簽章（多法術的光環格：整組排序後串進去；單一法術時就是那個 ID）
     st.ids = CU.AuraIDsOf(rec)
     st.sig = table.concat({
-        ovSig, msqSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
+        ovSig, msqSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, string.format("%.4f,%.4f,%.4f,%.4f", st.tc[1], st.tc[2], st.tc[3], st.tc[4]), st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
         st.stPoint, st.stX, st.stY, glowSig, labelSig,
@@ -1606,8 +1608,7 @@ local function InitAuraButton(btn, c, st, rec)
         if m.mask then pcall(BakeMask, btn, icon, m.mask) end
     else
         icon:SetAllPoints(btn)
-        local z = st.zoom
-        icon:SetTexCoord(z, 1 - z, z, 1 - z)
+        icon:SetTexCoord(st.tc[1], st.tc[2], st.tc[3], st.tc[4])
     end
     btn:SetIcon(icon)
 
@@ -2217,8 +2218,8 @@ local function UpdatePlaceholder(rec, c, r, barKey)
     if ns.Decorate and ns.Decorate.ApplyPlaceholder then
         ns.Decorate.ApplyPlaceholder(look, barKey, rec.cooldownID, r.w, r.h)
     else
-        local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
-        tex:SetTexCoord(z, 1 - z, z, 1 - z)
+        tex:SetTexCoord(ns.Layout.IconTexCoord(ns.Setting(barKey, "icon.zoom"), r.w, r.h,
+            ns.Setting(barKey, "icon.aspect") ~= "stretch"))
     end
 end
 

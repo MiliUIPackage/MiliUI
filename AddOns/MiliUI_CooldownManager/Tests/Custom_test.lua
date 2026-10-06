@@ -466,7 +466,8 @@ do
                  ElementFont = function(own, gen) if own ~= nil and own ~= "INHERIT" then return own end return gen end,
                  Texture = function(t) return "tex:" .. tostring(t) end }
     ns.Write = function(frame, fn) fn(frame) return true end
-    ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode }
+    ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode,
+        IconTexCoord = RealLayout.IconTexCoord }
     ns.P = { Scale = function(v) return v end }
     ns.Sound = { RequestAuraSync = function() end }
     ns.MiliUIGlow = nil
@@ -1045,7 +1046,8 @@ do
         fn(frame)
         return true
     end
-    ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode }
+    ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode,
+        IconTexCoord = RealLayout.IconTexCoord }
     ns.P = { Scale = function(v) return v end }
     local soundSyncs = 0
     ns.Sound = { RequestAuraSync = function() soundSyncs = soundSyncs + 1 end }

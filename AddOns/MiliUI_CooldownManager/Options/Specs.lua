@@ -119,6 +119,12 @@ local CDSTATE_ITEMS = {
 }
 Specs.CDSTATE_ITEMS = CDSTATE_ITEMS
 
+-- 非正方形圖示：裁切保持比例（預設）｜拉伸（Layout.IconTexCoord）
+local ASPECT_ITEMS = {
+    { text = L["Crop to keep proportions"], value = "crop" },
+    { text = L["Stretch to fit"],           value = "stretch" },
+}
+
 local SIDE_ITEMS = {
     { text = L["Left"],  value = "LEFT" },
     { text = L["Right"], value = "RIGHT" },
@@ -748,6 +754,8 @@ function Specs.Themed(mode, key)
         TS("icon", "color", "border.color", L["Border color"], { disabled = MasqueOwns }),
         TS("icon", "slider", "icon.zoom", L["Icon zoom"], { min = 0, max = 0.2, step = 0.01, disabled = MasqueOwns }),
         Note(L["Crops the icon edges; 0 shows the whole texture."], "icon"),
+        TS("icon", "dropdown", "icon.aspect", L["Non-square icons"], { items = ASPECT_ITEMS, disabled = MasqueOwns,
+            get = function(info) return ReadThemed(info, "icon.aspect") or "crop" end }),
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
         CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"])),
         CD(TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"])),

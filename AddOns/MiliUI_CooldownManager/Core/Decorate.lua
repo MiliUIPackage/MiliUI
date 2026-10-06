@@ -105,6 +105,8 @@ function D.Resolve(barKey, fresh)
         outline      = S(barKey, "outline") or "",
         border       = S(barKey, "border") or {},
         zoom         = tonumber(S(barKey, "icon.zoom")) or 0,
+        -- 非正方形圖示：裁切保持比例（預設；舊存檔沒有這欄也當裁切）｜拉伸
+        crop         = S(barKey, "icon.aspect") ~= "stretch",
         tooltips     = S(barKey, "icon.tooltips") and true or false,
         -- 按鍵鏡射（Core/Keybinds.lua 的 SyncPress 讀這兩欄）：舊存檔沒有 ＝ 主題預設 false／0.35
         pressFlash   = S(barKey, "icon.pressFlash") and true or false,
@@ -125,7 +127,7 @@ function D.Resolve(barKey, fresh)
         masque       = ns.Masque and ns.Masque.Mode(barKey) == "masque" or false,
     }
     r.sig = table.concat({
-        generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom,
+        generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom, tostring(r.crop),
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
         tostring(r.pressFlash), r.pressAlpha,
         tostring(r.colorDuration), CSig(r.durationColor), CSig(r.durationLowColor), CSig(r.durationSwipeColor),
@@ -1634,8 +1636,7 @@ function D.ApplyPlaceholder(ph, barKey, id, w, h)
     end
     LayoutBorder(ph.border, ph.frame, tonumber(border.size) or 0, border.texture, br, bg, bb, ba)
     if ph.tex then
-        local z = style.zoom or 0
-        ph.tex:SetTexCoord(z, 1 - z, z, 1 - z)
+        ph.tex:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
     end
 end
 
@@ -1942,8 +1943,7 @@ function D.Apply(item, rec, barKey, w, h)
             rec.msqEdge = nil
             LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
             if icon and icon.SetTexCoord then
-                local z = style.zoom
-                icon:SetTexCoord(z, 1 - z, z, 1 - z)
+                icon:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
             end
             SquareSwipe(cd, rec)
         end
@@ -2055,7 +2055,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             LayoutBorder(cell.border, nil)
         else
             LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
-            if icon then icon:SetTexCoord(z, 1 - z, z, 1 - z) end
+            if icon then icon:SetTexCoord(ns.Layout.IconTexCoord(z, w, h, style.crop)) end
             SquareSwipe(cell.Cooldown, cell)
         end
         if icon then

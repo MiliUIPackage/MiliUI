@@ -233,6 +233,26 @@ function Layout.Compute(items, layout, kind)
     return rects, totalW, totalH, anchorPoint
 end
 
+-- 圖示的 texcoord：zoom 先四邊各切 z；crop（非正方形「裁切」）再把長邊多的那段兩頭對半切掉，
+-- 圖案維持正方形比例不被拉扁。crop 關（「拉伸」）或正方形 ⇒ 照舊四邊各切 z
+function Layout.IconTexCoord(z, w, h, crop)
+    z = tonumber(z) or 0
+    if z < 0 then z = 0 elseif z > 0.45 then z = 0.45 end
+    local l, r, t, b = z, 1 - z, z, 1 - z
+    w, h = tonumber(w), tonumber(h)
+    if crop and w and h and w > 0 and h > 0 and w ~= h then
+        local span = 1 - 2 * z
+        if w > h then
+            local m = span * (1 - h / w) / 2
+            t, b = t + m, b - m
+        else
+            local m = span * (1 - w / h) / 2
+            l, r = l + m, r - m
+        end
+    end
+    return l, r, t, b
+end
+
 -- 長條格子的尺寸（F8c）：橫向 w ＝ 條長、h ＝ 粗細；直向反過來（w ＝ 粗細、h ＝ 條長）
 function Layout.BarCellSize(length, thickness, vertical)
     if vertical then return thickness, length end

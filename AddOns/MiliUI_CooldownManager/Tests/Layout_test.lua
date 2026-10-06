@@ -584,5 +584,19 @@ do
     check("BarCellSize 橫向：照舊", cw == 200 and ch == 20)
 end
 
+-- 圖示 texcoord：縮放＋非正方形裁切
+do
+    local function near(a, b) return math.abs(a - b) < 1e-9 end
+    local l, r, t, b = Lay.IconTexCoord(0.1, 36, 36, true)
+    check("IconTexCoord 正方形：四邊各切 z", near(l, 0.1) and near(r, 0.9) and near(t, 0.1) and near(b, 0.9))
+    l, r, t, b = Lay.IconTexCoord(0, 60, 20, true)
+    check("IconTexCoord 寬圖裁切：左右不動", near(l, 0) and near(r, 1))
+    check("IconTexCoord 寬圖裁切：上下留 1/3 置中", near(t, 1 / 3) and near(b, 2 / 3))
+    l, r, t, b = Lay.IconTexCoord(0.1, 20, 40, true)
+    check("IconTexCoord 高圖裁切：縮放後再切左右", near(t, 0.1) and near(b, 0.9) and near(l, 0.3) and near(r, 0.7))
+    l, r, t, b = Lay.IconTexCoord(0.1, 60, 20, false)
+    check("IconTexCoord 拉伸：照舊", near(t, 0.1) and near(b, 0.9) and near(l, 0.1))
+end
+
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
