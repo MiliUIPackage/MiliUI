@@ -27,7 +27,7 @@
 -- **不給格式器**（引擎拿格式器處理秘密層數會整顆容器壞掉），要接單位（例如「%」）另建一顆固定字的
 -- FontString 貼在旁邊（無視苦痛的百分比條）。兩顆都錨在按鈕中線上，不互相錨定（層數那顆的字是秘密值）。
 --
--- 格子外觀（每格的暗底、1px 黑邊、格與格之間的分隔）是另外畫的「裝飾」：
+-- 格子外觀（每格的暗底、邊框（預設 1px 黑；粗細／顏色走 geom.px／geom.edge）、格與格之間的分隔）是另外畫的「裝飾」：
 --   * 一直顯示的列：裝飾畫在列上（不在按鈕子樹裡），尺寸變了原地重排，不必換容器
 --   * 「有光環才顯示」的列：裝飾也建在按鈕子樹裡（按鈕只在有光環時顯示 ⇒ 整列跟著出現），
 --     裝飾的幾何進簽章
@@ -94,13 +94,17 @@ local function Tex(pool, i, parent, layer)
     return t
 end
 
--- geom = { W, H, n, gap, segW, reversed, segments, dim = { r, g, b, a }, px (1 實體像素), bgTex（暗底的材質，nil ＝ 純色） }
+-- geom = { W, H, n, gap, segW, reversed, segments, dim = { r, g, b, a }, px（邊框粗細，UI 單位；0 ＝ 不畫邊框；沒給 ＝ 1）,
+--          edge = { r, g, b, a }（邊框與分隔的顏色；沒給 ＝ 不透明黑）, bgTex（暗底的材質，nil ＝ 純色） }
 local function LayoutDecor(d, anchor, geom)
     local g = AB.Geometry(geom.W, geom.segments and geom.n or 1, geom.segments and geom.gap or 0,
         geom.segments and geom.segW or geom.W)
-    local px = geom.px or 1
+    local px = tonumber(geom.px) or 1
     local H = geom.H
     local dim = geom.dim
+    local ec = geom.edge
+    local er, eg, eb, ea = 0, 0, 0, 1
+    if type(ec) == "table" then er, eg, eb, ea = ec[1] or 0, ec[2] or 0, ec[3] or 0, ec[4] or 1 end
     local function Place(t, x, w, y, h)
         t:ClearAllPoints()
         if geom.reversed then
@@ -120,13 +124,13 @@ local function LayoutDecor(d, anchor, geom)
         bg:SetTexture(geom.bgTex or SOLID)
         bg:SetVertexColor(dim[1], dim[2], dim[3], dim[4])
         Place(bg, c.x, c.w, 0, H)
-        -- 1px 黑邊：上下左右各一條（疊在填色之上）
+        -- 邊框：上下左右各一條（疊在填色之上）；粗細 0 ＝ 不畫
         local skipLeft = shared and ci > 1
         for side = 1, 4 do
-            if side ~= 3 or not skipLeft then
+            if px > 0 and (side ~= 3 or not skipLeft) then
                 ne = ne + 1
                 local e = Tex(d.edges, ne, d.overlay, "OVERLAY")
-                e:SetVertexColor(0, 0, 0, 1)
+                e:SetVertexColor(er, eg, eb, ea)
                 if side == 1 then Place(e, c.x, c.w, 0, px)
                 elseif side == 2 then Place(e, c.x, c.w, H - px, px)
                 elseif side == 3 then Place(e, c.x, px, 0, H)
@@ -137,7 +141,8 @@ local function LayoutDecor(d, anchor, geom)
     for _, s in pairs(g.gaps) do
         ns2 = ns2 + 1
         local t = Tex(d.seps, ns2, d.overlay, "OVERLAY")
-        t:SetVertexColor(0, 0, 0, 1)
+        -- 分隔要蓋住跨過格距的填色：跟邊框同色；沒有邊框時照舊用黑
+        if px > 0 then t:SetVertexColor(er, eg, eb, ea) else t:SetVertexColor(0, 0, 0, 1) end
         Place(t, s.x, s.w, 0, H)
     end
     for i = nb + 1, #d.bgs do d.bgs[i]:Hide() end
@@ -204,9 +209,10 @@ function AB.Signature(spec)
     local g = spec.inside
     if g then
         local dim = g.dim or {}
+        local edge = g.edge or {}
         parts[#parts + 1] = table.concat({ "in", Fmt(g.W), Fmt(g.H), tostring(g.n), Fmt(g.gap), Fmt(g.segW),
             tostring(g.segments and true or false), Fmt(g.px), Fmt(dim[1]), Fmt(dim[2]), Fmt(dim[3]), Fmt(dim[4]),
-            tostring(g.bgTex) }, ":")
+            tostring(g.bgTex), Fmt(edge[1]), Fmt(edge[2]), Fmt(edge[3]), Fmt(edge[4] or 1) }, ":")
     end
     return table.concat(parts, "|")
 end

@@ -245,7 +245,8 @@ ResourcesDefaults = function()
         textFont      = "INHERIT",         -- 條上數字的字型（自訂格子也照這個）；"INHERIT" ＝ 跟隨主題的通用字型
         rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移。沒有控件了：只當 heights 沒設的列的起始值
         heights       = {},                -- [資源key] = 列高（所有專精共用；每種資源設定視窗的「高」）
-        -- [資源key] = { follow, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText, textFont, textSize }：
+        -- [資源key] = { follow, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText, textFont, textSize,
+        --              textOutline, borderSize, borderColor }：
         -- 每種資源自己的外觀（設定視窗的「外觀」那一節）。開放式、預設空；follow 沒存 ＝ 跟下面這幾欄（全域）。
         -- 引擎讀 Modules/Resources.lua 的 R.StyleFor 回的代理表
         style         = {},
@@ -259,7 +260,11 @@ ResourcesDefaults = function()
         bgAlpha       = 1,
         bgCustom      = false,
         bgColor       = { r = 0.15, g = 0.15, b = 0.15, a = 1 },
-        smooth        = true,              -- 連續條的原生內插（引擎做，吃秘密值）
+        -- 邊框（每格／每條四邊，疊在填充上）：粗細是實體像素 0～4（0 ＝ 不畫）；預設 1px 不透明黑 ＝ 加設定以前的樣子。
+        -- 自訂格子照這兩個；每種資源可在自己的外觀裡蓋（style[key]）
+        borderSize    = 1,
+        borderColor   = { r = 0, g = 0, b = 0, a = 1 },
+        smooth        = true,             -- 連續條的原生內插（引擎做，吃秘密值）
         -- 條上的數值：預設開、14 號字、置中（使用者 2026-10-01 指定，不遷移）
         showText      = true,
         textSize      = 14,

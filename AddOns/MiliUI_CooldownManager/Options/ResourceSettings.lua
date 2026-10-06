@@ -7,7 +7,7 @@
 --
 -- 內容是 Specs.BuildForm 建的表單、放在捲動容器裡（同資源條頁／施法條頁的做法），小節：
 --   版面   高（resources.heights[key]，所有專精共用；R.KeyRowHeight／R.SetKeyHeight）
---   外觀   「跟隨資源條的外觀」（style[key].follow，沒存＝跟）＋材質、背景材質、填充透明度、平滑（連續條才有）、
+--   外觀   「跟隨資源條的外觀」（style[key].follow，沒存＝跟）＋材質、背景材質、填充透明度、邊框粗細／顏色、平滑（連續條才有）、
 --          數值文字、字型、字級——讀寫 style[key].*。跟著時這幾列蓋暗色遮罩（Specs 的 disabled 機制）、
 --          顯示的是資源條頁的全域值；取消勾選時沒存過的欄位也先顯示全域值，改了才寫進 style[key]
 --   文字   法力的數字格式／百分比、血量的百分比（欄位不搬家：manaAbbrev／manaPercent／healthPercent），
@@ -139,6 +139,9 @@ local function AppendStyle(add, key, info)
     local bc = SS("color", key, "bgColor", L["Background color"], { hasAlpha = false })
     bc.disabled = function() return Following(key) or not StyleGet(key, "bgCustom") end
     add(bc)
+    add(SS("slider", key, "borderSize", L["Border size"], { min = 0, max = 4, step = 1,
+        get = function() return ns.Resources.BorderSize({ borderSize = StyleGet(key, "borderSize") }) end }))
+    add(SS("color", key, "borderColor", L["Border color"], { hasAlpha = true }))
     if info.mode == "bar" then add(SS("toggle", key, "smooth", L["Smooth bar changes"])) end
     if not info.noText then
         add(SS("dropdown", key, "textFont", L["Font"], { items = ns.Specs.ElementFontItems,

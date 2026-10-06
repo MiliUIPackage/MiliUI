@@ -3,7 +3,7 @@
 --
 -- 資料與樣式都借資源條的：
 --   * 清單：profile.resources.customRows[specID]（每個專精一份，設定頁在資源條頁）
---   * 樣式：列距、格距、材質、填充方向、填充透明度、寬度（0 ＝ 核心技能第一列）一律讀
+--   * 樣式：列距、格距、材質、填充方向、填充透明度、邊框粗細／顏色、寬度（0 ＝ 核心技能第一列）一律讀
 --     profile.resources，不另開一組；**列高與顏色是每一列自己的**（entry.height／entry.color）
 --   * 自己的只有 profile.pips：enabled、pos、anchor、fadeWithEssential、loadConditions、strata
 -- 預設跟著核心技能下方（anchor TOP → essential BOTTOM），輔助技能也是：同一邊的自動排開
@@ -460,7 +460,7 @@ local function MakeCustomCell(row)
     cell.bar = CreateFrame("StatusBar", nil, cell)
     cell.bar:SetAllPoints(cell)
     cell.bar:SetStatusBarTexture(SOLID)
-    R.Edges(cell.bar)
+    cell.edges = R.Edges(cell.bar)
     cell:Hide()
     return cell
 end
@@ -498,7 +498,8 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
     local n = plan.numSeg
     local geom = {
         W = W, H = H, n = n, gap = gap, segW = (W - gap * (n - 1)) / n, reversed = reversed, segments = true,
-        dim = ns.Resources.DimArray(style), px = ns.P.Scale(1), bgTex = ns.Resources.BgTexture(style),
+        dim = ns.Resources.DimArray(style), px = R.DecorPx(style), edge = R.EdgeArray(style),
+        bgTex = ns.Resources.BgTexture(style),
     }
     local inside = plan.showWhen == "active"
     local status = ns.AuraBar.Apply(row.ab, {
@@ -553,13 +554,16 @@ local function LayoutCustomRow(row, plan, style, W, H)
     end
 
     local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
+    -- 邊框粗細／顏色照資源條的全域外觀（自訂格子沒有逐列外觀）
+    local bt, bc = R.BorderSize(style), R.BorderColor(style)
     for i = 1, numSeg do
         local cell = row.cells[i]
         if not cell then
             cell = MakeCustomCell(row)
             row.cells[i] = cell
         end
-        local x, segW = R.SegCell(W, numSeg, style.segmentSpacing, i)
+        local x, segW = R.SegCell(W, numSeg, style.segmentSpacing, i, bt)
+        R.PaintEdges(cell.edges, bt, bc)
         cell:SetSize(segW, H)
         cell:ClearAllPoints()
         if reversed then

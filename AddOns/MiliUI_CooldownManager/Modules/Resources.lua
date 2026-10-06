@@ -956,30 +956,88 @@ local container, root
 local rows = {}                 -- 池化的列（frame 刪不掉，換專精只換內容）
 local condState = RC.NewState()
 
--- 1px 黑邊：疊在填充之上（不是內縮），線寬換成整數實體像素
-local function MakeEdge(parent, p1, p2, w, h)
+-- 邊框：疊在填充之上（不是內縮），線寬換成整數實體像素。
+-- 粗細與顏色是資源條的外觀設定（borderSize 0～4 實體像素、borderColor；每種資源可在自己的外觀裡蓋，
+-- R.StyleFor 的代理表）。預設 1px 不透明黑 ＝ 加設定以前的樣子。0 ＝ 不畫邊框
+R.BORDER_MIN, R.BORDER_MAX, R.BORDER_DEFAULT = 0, 4, 1
+local BORDER_BLACK = { r = 0, g = 0, b = 0, a = 1 }
+
+function R.BorderSize(cfg)
+    local v = tonumber(type(cfg) == "table" and cfg.borderSize or nil)
+    if not v then return R.BORDER_DEFAULT end
+    v = math.floor(v + 0.5)
+    if v < R.BORDER_MIN then v = R.BORDER_MIN elseif v > R.BORDER_MAX then v = R.BORDER_MAX end
+    return v
+end
+
+-- 回傳色表 { r, g, b, a }（壞資料／沒存 ＝ 不透明黑）
+function R.BorderColor(cfg)
+    local c = type(cfg) == "table" and RC.ValidColor(cfg.borderColor) or nil
+    return c or BORDER_BLACK
+end
+
+local function MakeEdge(parent, p1, p2)
     local e = parent:CreateTexture(nil, "OVERLAY")
     e:SetTexture(SOLID)
     e:SetVertexColor(0, 0, 0, 1)
     e:SetPoint(p1)
     e:SetPoint(p2)
-    if w then e:SetWidth(ns.P.Scale(w)) end
-    if h then e:SetHeight(ns.P.Scale(h)) end
     return e
 end
 
--- 一格一個框的分段（點數型、自訂格子）：格寬與步距。
--- 每格自帶 1px 黑邊，間距 0 時相鄰兩條邊並排成 2px ⇒ 改成重疊 1 實體像素，兩格共用同一條邊。
--- 回傳 segW, gap（gap 可能是負的；第 i 格的 x ＝ (i-1)·(segW+gap)）
--- 第 i 格的 x 與寬（從填充起點量）。整列先換成整數實體像素再切：每格的左右邊界各自四捨五入，
--- 零頭平均分到各格，最後一格的右緣一定落在 W 上。
+-- 一組四條邊（上、下、左、右）的粗細與顏色。t ＝ 實體像素整數（0 ＝ 藏起來）、c ＝ 色表。
+-- 值沒變就不碰貼圖（重排時每列都會叫，設定沒改就零寫入）。
+-- ⚠ 線寬是 ns.P.Scale(t)：UI 縮放改了要重算 ⇒ 握柄也記下當時的 1px 換算值
+local function PaintEdges(edges, t, c)
+    if type(edges) ~= "table" then return end
+    t = tonumber(t) or R.BORDER_DEFAULT
+    c = c or BORDER_BLACK
+    local r, g, b, a = c.r or 0, c.g or 0, c.b or 0, c.a or 1
+    local px = ns.P.Scale(1)
+    if edges.t == t and edges.px == px and edges.r == r and edges.g == g and edges.b == b and edges.a == a then return end
+    edges.t, edges.px, edges.r, edges.g, edges.b, edges.a = t, px, r, g, b, a
+    if t <= 0 then
+        for i = 1, 4 do edges[i]:Hide() end
+        return
+    end
+    local w = ns.P.Scale(t)
+    edges[1]:SetHeight(w)
+    edges[2]:SetHeight(w)
+    edges[3]:SetWidth(w)
+    edges[4]:SetWidth(w)
+    for i = 1, 4 do
+        edges[i]:SetVertexColor(r, g, b, a)
+        edges[i]:Show()
+    end
+end
+R.PaintEdges = PaintEdges
+
+-- 給 AuraBar 裝飾（geom.px／geom.edge）：邊框粗細換成 UI 單位（0 ＝ 不畫）、顏色換成 { r, g, b, a } 陣列
+function R.DecorPx(cfg)
+    local t = R.BorderSize(cfg)
+    if t <= 0 then return 0 end
+    return ns.P.Scale(t)
+end
+
+function R.EdgeArray(cfg)
+    local c = R.BorderColor(cfg)
+    return { c.r or 0, c.g or 0, c.b or 0, c.a or 1 }
+end
+
+-- 一格一個框的分段（點數型、自訂格子）：第 i 格的 x 與寬（從填充起點量）。
+-- 整列先換成整數實體像素再切：每格的左右邊界各自四捨五入，零頭平均分到各格，最後一格的右緣一定落在 W 上。
 -- ⚠ 不能「格寬先對齊像素、再乘 n」：每格的捨入誤差會累積，6 格的符文列比同寬的符能條多出 2px
--- （玩家回報「自動同寬下兩列對不齊」）。格距 0 ＝ 相鄰兩格重疊 1px 共用一條邊
-function R.SegCell(W, n, spacing, i)
+-- （玩家回報「自動同寬下兩列對不齊」）。
+-- border ＝ 邊框粗細（實體像素；沒給 ＝ 1，天空騎術這種不吃資源條設定的呼叫端照舊）。
+-- 每格自帶邊框，格距 0 時相鄰兩條邊並排成 2t ⇒ 改成重疊 t 實體像素，兩格共用同一條邊；
+-- 邊框 0 時格距 0 ＝ 剛好相貼（不重疊）。格距 > 0 跟邊框無關：兩格之間空 spacing 實體像素
+function R.SegCell(W, n, spacing, i, border)
     local px = ns.P.Scale(1)
     if not px or px <= 0 then px = 1 end
+    local t = math.floor((tonumber(border) or 1) + 0.5)
+    if t < 0 then t = 0 end
     local gp = math.floor((tonumber(spacing) or 1) + 0.5)
-    if gp <= 0 then gp = -1 end
+    if gp <= 0 then gp = -t end
     local Wp = math.floor(W / px + 0.5)
     local span = Wp + gp
     local x0 = math.floor((i - 1) * span / n + 0.5)
@@ -987,11 +1045,17 @@ function R.SegCell(W, n, spacing, i)
     return x0 * px, (x1 - x0) * px
 end
 
-local function Edges(frame)
-    MakeEdge(frame, "TOPLEFT", "TOPRIGHT", nil, 1)
-    MakeEdge(frame, "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
-    MakeEdge(frame, "TOPLEFT", "BOTTOMLEFT", 1, nil)
-    MakeEdge(frame, "TOPRIGHT", "BOTTOMRIGHT", 1, nil)
+-- 在 frame 上建四條邊，回傳握柄（給 PaintEdges 改粗細／顏色）。沒給 t／c ＝ 1px 黑
+-- （天空騎術照這個預設，不吃資源條的設定）
+local function Edges(frame, t, c)
+    local edges = {
+        MakeEdge(frame, "TOPLEFT", "TOPRIGHT"),
+        MakeEdge(frame, "BOTTOMLEFT", "BOTTOMRIGHT"),
+        MakeEdge(frame, "TOPLEFT", "BOTTOMLEFT"),
+        MakeEdge(frame, "TOPRIGHT", "BOTTOMRIGHT"),
+    }
+    PaintEdges(edges, t or R.BORDER_DEFAULT, c or BORDER_BLACK)
+    return edges
 end
 R.Edges = Edges
 
@@ -1003,7 +1067,7 @@ local function MakeSegment(row)
     bg:SetTexture(SOLID)
     bg:SetAllPoints(seg)
     seg.bg = bg
-    Edges(seg)
+    seg.edges = Edges(seg)
     seg:Hide()
     return seg
 end
@@ -1051,7 +1115,7 @@ local function MakeRow(parent)
     row.bar:SetAllPoints(row)
     row.bar:SetStatusBarTexture(SOLID)
     -- 邊框建在 bar 上：bar 是層級更高的子框，建在 row 上會被填充蓋掉
-    Edges(row.bar)
+    row.barEdges = Edges(row.bar)
     -- 數值掛在獨立的高層框上，父層是 row（點數型會把 bar 整個藏起來）
     -- 懶建的零件先放 false（有就是框、沒有就是 false；沒寫過的欄位別指望是 nil 以外的東西）
     row.ab, row.abDecor, row.absorbClip, row.absorbBar = false, false, false, false
@@ -1178,7 +1242,7 @@ R.RowHeight = RowHeight
 -- 每種資源自己的外觀（resources.style[key]；設定頁每一列「設定…」視窗裡那一節，Options/ResourceSettings.lua）
 --
 --   style[key] = { follow = true|false, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText,
---                  textFont, textSize, textOutline }
+--                  textFont, textSize, textOutline, borderSize, borderColor }
 --   follow 沒存 ＝ 跟（舊存檔沒有這張表 ⇒ 畫面一模一樣，不遷移）；跟著時其餘欄位不讀。
 --
 -- 不跟時，那一列的排版與更新（LayoutRow／UpdateRow 那一整串）讀 R.StyleFor 回的**代理表**：
@@ -1189,7 +1253,8 @@ R.RowHeight = RowHeight
 ------------------------------------------------------------
 local STYLE_FIELDS = { texture = true, bgTexture = true, barAlpha = true, smooth = true,
                        showText = true, textFont = true, textSize = true, textOutline = true,
-                       bgAlpha = true, bgCustom = true, bgColor = true }
+                       bgAlpha = true, bgCustom = true, bgColor = true,
+                       borderSize = true, borderColor = true }
 R.STYLE_FIELDS = STYLE_FIELDS
 
 local function OwnStyle(cfg, key)
@@ -1291,7 +1356,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     local gap = ns.P.Scale(tonumber(cfg.segmentSpacing) or 1)
     local geom = {
         W = W, H = H, n = numSeg, gap = gap, segW = (W - gap * (numSeg - 1)) / numSeg, reversed = reversed,
-        segments = true, dim = R.DimArray(cfg), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
+        segments = true, dim = R.DimArray(cfg), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
     }
     local cc = ResolveColor(cfg, key, "color")
     local status = ns.AuraBar.Apply(row.ab, {
@@ -1380,7 +1445,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     -- 空條（暗底＋1px 黑邊）畫在列上：光環不在時按鈕藏著，看到的就是這個
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
-        dim = R.TimerBg(cfg, key, cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
+        dim = R.TimerBg(cfg, key, cc), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
@@ -1416,13 +1481,14 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
     -- 空條（暗底＋1px 黑邊、不分格）畫在列上：增益不在時按鈕藏著，看到的就是這個
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
-        dim = R.TimerBg(cfg, key, cc), px = ns.P.Scale(1), bgTex = R.BgTexture(cfg),
+        dim = R.TimerBg(cfg, key, cc), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
 
 -- 摺疊的上層（一格一顆，錨在列上、位置跟底層同一格；層級比底層高、自帶黑邊）
 local function LayoutFold(row, on, numSeg, W, H, cfg, tex, reversed)
+    local bt, bc = R.BorderSize(cfg), R.BorderColor(cfg)
     if not on then
         if row.overs then for _, o in ipairs(row.overs) do o:Hide() end end
         row.folded = false
@@ -1435,10 +1501,11 @@ local function LayoutFold(row, on, numSeg, W, H, cfg, tex, reversed)
         if not o then
             o = CreateFrame("StatusBar", nil, row)
             o:SetStatusBarTexture(SOLID)
-            Edges(o)
+            o.edges = Edges(o)
             row.overs[i] = o
         end
-        local x, segW = R.SegCell(W, numSeg, cfg.segmentSpacing, i)
+        local x, segW = R.SegCell(W, numSeg, cfg.segmentSpacing, i, bt)
+        PaintEdges(o.edges, bt, bc)
         o:SetSize(segW, H)
         o:ClearAllPoints()
         if reversed then
@@ -1499,6 +1566,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     local isBar = mode == "bar" or mode == "absorbBar" or mode == "timerIdle" or mode == "mirror"
     row.barBG:SetShown(isBar)
     row.bar:SetShown(isBar)
+    if isBar then PaintEdges(row.barEdges, R.BorderSize(cfg), R.BorderColor(cfg)) end
     if mode ~= "absorbBar" then HideAbsorb(row) end
 
     LayoutFold(row, isPip and R.Folded(cfg, key) or false, numSeg, W, H, cfg, tex, reversed)
@@ -1541,10 +1609,12 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
 
     -- 格寬是除出來的小數 → 對齊實體像素；每格直接錨在列上（不串在前一格）
     local isRune = def.fill == "rune" and cfg.showText and R.RuneText(cfg) == "countdown"
+    local bt, bc = R.BorderSize(cfg), R.BorderColor(cfg)
     local bgTex = R.BgTexture(cfg)
     for i = 1, numSeg do
         local seg = row.segs[i]
-        local x, segW = R.SegCell(W, numSeg, cfg.segmentSpacing, i)
+        local x, segW = R.SegCell(W, numSeg, cfg.segmentSpacing, i, bt)
+        PaintEdges(seg.edges, bt, bc)
         seg:SetSize(segW, H)
         seg:ClearAllPoints()
         -- 從右到左：第 1 格在最右邊

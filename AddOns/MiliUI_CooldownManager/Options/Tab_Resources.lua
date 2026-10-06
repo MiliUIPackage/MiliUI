@@ -941,6 +941,10 @@ local function Controls(cand, sub)
         BS("color", "bgColor", L["Background color"], { hasAlpha = false,
             disabled = function() local c = Cfg(); return not (c and c.bgCustom) end }),
         Note(L["Background opacity scales the default shade: 1 keeps it as is, 0 makes the empty part fully transparent. Without a custom color, the background follows each resource's color."]),
+        -- 邊框（每格／每條的四邊）：自訂格子也照這兩個（Modules/Pips.lua）
+        BS("slider", "borderSize", L["Border size"], { min = 0, max = 4, step = 1 }),
+        BS("color", "borderColor", L["Border color"], { hasAlpha = true }),
+        Note(L["0 removes the border. Custom segments use the same border."]),
         BS("toggle", "smooth", L["Smooth bar changes"]),
         BS("dropdown", "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textFont) end }),

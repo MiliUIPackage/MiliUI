@@ -379,6 +379,8 @@ check("資源條預設：聖能兩段換色（5、3）", #res.conditions.HolyPow
 check("資源條預設：氣旋武器兩段換色（10、9）", #res.conditions.MaelstromWeapon == 2
     and res.conditions.MaelstromWeapon[1].check.value == 10 and res.conditions.MaelstromWeapon[2].check.value == 9)
 check("資源條預設：列高 14、格距 0", res.rowHeight == 14 and res.segmentSpacing == 0)
+check("資源條預設：邊框 1px 不透明黑（＝ 加設定以前的樣子）", res.borderSize == 1 and type(res.borderColor) == "table"
+    and res.borderColor.r == 0 and res.borderColor.g == 0 and res.borderColor.b == 0 and res.borderColor.a == 1)
 do
     -- 上色規則是「整張表」的預設：設定檔裡已經有 conditions（含空表）就不合併
     local d = ns.DB.BuildDefaults().profile.resources
@@ -837,7 +839,102 @@ do
     local minW, maxW = math.huge, 0
     for i = 1, 6 do local _, w = R.SegCell(335, 6, 0, i); minW = math.min(minW, w); maxW = math.max(maxW, w) end
     check("分段：格寬最多差 1px", maxW - minW <= 1, minW .. "～" .. maxW)
+
+    -- 邊框粗細 t（R.SegCell 第 5 個參數）：格距 0 ⇒ 相鄰兩格重疊 t（t ＝ 0 時剛好相貼）；格距 > 0 跟 t 無關。
+    -- 每一種都要：整數像素、從 0 起、最後一格右緣剛好 W、相鄰距離一致（不累積漂移）、格寬最多差 1
+    local function cellsT(W, n, sp, t)
+        local ok, prevRight = true, nil
+        local minW, maxW = math.huge, 0
+        local want = (sp or 1) <= 0 and -t or sp
+        for i = 1, n do
+            local x, w = R.SegCell(W, n, sp, i, t)
+            if x % 1 ~= 0 or w % 1 ~= 0 or w <= 0 then ok = false end
+            if prevRight and x - prevRight ~= want then ok = false end
+            prevRight = x + w
+            minW, maxW = math.min(minW, w), math.max(maxW, w)
+        end
+        local x1 = R.SegCell(W, n, sp, 1, t)
+        return ok, x1, prevRight, maxW - minW
+    end
+    for _, t in ipairs({ 0, 1, 2, 3 }) do
+        for _, c in ipairs({ { 335, 6, 0 }, { 100, 4, 0 }, { 214, 6, 0 }, { 120, 3, 0 }, { 199, 7, 0 },
+                             { 100, 4, 2 }, { 200, 5, 1 }, { 199, 7, 3 }, { 333, 10, 4 } }) do
+            local W, n, sp = c[1], c[2], c[3]
+            local ok2, l2, r2, spread = cellsT(W, n, sp, t)
+            local tag = ("分段 t=%d：%d/%d 格距 %d"):format(t, W, n, sp)
+            check(tag .. " 間距一致（格距 0 重疊 t）", ok2)
+            eq(tag .. " 左緣", l2, 0)
+            eq(tag .. " 右緣剛好 W", r2, W)
+            check(tag .. " 格寬最多差 1px", spread <= 1, spread)
+        end
+    end
+    -- 格距 0 的重疊量明確驗：第 2 格的左緣 ＝ 第 1 格右緣 − t
+    for _, t in ipairs({ 0, 1, 2, 3 }) do
+        local x1, w1 = R.SegCell(335, 6, 0, 1, t)
+        local x2 = R.SegCell(335, 6, 0, 2, t)
+        eq(("分段 t=%d：格距 0 重疊 %d"):format(t, t), (x1 + w1) - x2, t)
+    end
+    -- 預設 ＝ 舊行為：不給 border（天空騎術）＝ border 1 ＝ 舊公式（格距 ≤0 ⇒ 重疊 1）
+    local function oldSegCell(W, n, spacing, i)
+        local gp = math.floor((tonumber(spacing) or 1) + 0.5)
+        if gp <= 0 then gp = -1 end
+        local Wp = math.floor(W + 0.5)
+        local span = Wp + gp
+        local x0 = math.floor((i - 1) * span / n + 0.5)
+        local x1 = math.floor(i * span / n + 0.5) - gp
+        return x0, x1 - x0
+    end
+    local sameDefault, sameOne = true, true
+    for _, c in ipairs({ { 335, 6, 0 }, { 100, 4, 2 }, { 200, 5, 1 }, { 214, 6, 0 }, { 199, 7, 3 }, { 120, 3, 0 }, { 150, 5, nil } }) do
+        for i = 1, c[2] do
+            local ox, ow = oldSegCell(c[1], c[2], c[3], i)
+            local ax, aw = R.SegCell(c[1], c[2], c[3], i)
+            local bx, bw = R.SegCell(c[1], c[2], c[3], i, 1)
+            if ax ~= ox or aw ~= ow then sameDefault = false end
+            if bx ~= ox or bw ~= ow then sameOne = false end
+        end
+    end
+    check("分段：不給邊框 ＝ 舊公式", sameDefault)
+    check("分段：邊框 1 ＝ 舊公式", sameOne)
+    -- 實體像素換算 ≠ 1（UI 縮放）：t 照實體像素算，結果仍是 px 的整數倍、右緣落在 W
+    ns.P = { Scale = function(v) return v * 0.5 end }   -- 1 實體像素 ＝ 0.5 UI 單位
+    do
+        local x1, w1 = R.SegCell(100, 4, 0, 1, 2)
+        local x2 = R.SegCell(100, 4, 0, 2, 2)
+        local x4, w4 = R.SegCell(100, 4, 0, 4, 2)
+        eq("分段 縮放 0.5：t=2 重疊 2 實體像素 ＝ 1 單位", (x1 + w1) - x2, 1)
+        eq("分段 縮放 0.5：右緣剛好 W", x4 + w4, 100)
+    end
     ns.P = savedP
+end
+
+-- 邊框設定的解析：R.BorderSize（0～4 整數、預設 1、壞資料退回 1、夾在範圍內）、R.BorderColor（預設不透明黑）
+do
+    eq("邊框：沒存 ＝ 1", R.BorderSize({}), 1)
+    eq("邊框：nil 設定表 ＝ 1", R.BorderSize(nil), 1)
+    eq("邊框：0 ＝ 不畫", R.BorderSize({ borderSize = 0 }), 0)
+    eq("邊框：3", R.BorderSize({ borderSize = 3 }), 3)
+    eq("邊框：小數四捨五入", R.BorderSize({ borderSize = 2.4 }), 2)
+    eq("邊框：超過上限夾 4", R.BorderSize({ borderSize = 9 }), 4)
+    eq("邊框：負的夾 0", R.BorderSize({ borderSize = -2 }), 0)
+    eq("邊框：壞資料 ＝ 1", R.BorderSize({ borderSize = "x" }), 1)
+    local c = R.BorderColor({})
+    check("邊框色：沒存 ＝ 不透明黑", c.r == 0 and c.g == 0 and c.b == 0 and (c.a or 1) == 1)
+    local c2 = R.BorderColor({ borderColor = { r = 1, g = 0.5, b = 0, a = 0.5 } })
+    check("邊框色：讀存的", c2.r == 1 and c2.g == 0.5 and c2.b == 0 and c2.a == 0.5)
+    local c3 = R.BorderColor({ borderColor = "red" })
+    check("邊框色：壞資料 ＝ 黑", c3.r == 0 and c3.g == 0 and c3.b == 0)
+    -- 每種資源自己的外觀可以蓋邊框（R.StyleFor 代理表）
+    check("邊框是外觀欄位（可逐資源覆寫）", R.STYLE_FIELDS.borderSize and R.STYLE_FIELDS.borderColor)
+    local cfgB = { borderSize = 1, borderColor = { r = 0, g = 0, b = 0, a = 1 },
+                   style = { HolyPower = { follow = false, borderSize = 3, borderColor = { r = 1, g = 1, b = 1, a = 1 } },
+                             ComboPoints = { follow = true, borderSize = 4 } } }
+    R.InvalidateStyles()
+    eq("逐資源：不跟 ⇒ 用自己的粗細", R.BorderSize(R.StyleFor(cfgB, "HolyPower")), 3)
+    eq("逐資源：不跟 ⇒ 用自己的顏色", R.BorderColor(R.StyleFor(cfgB, "HolyPower")).r, 1)
+    eq("逐資源：跟 ⇒ 全域粗細", R.BorderSize(R.StyleFor(cfgB, "ComboPoints")), 1)
+    eq("逐資源：沒有自己的表 ⇒ 全域", R.BorderSize(R.StyleFor(cfgB, "Chi")), 1)
+    R.InvalidateStyles()
 end
 -- 整列寬的填色，第 k 層的終點落在第 k 個分隔裡（被分隔蓋住，看起來還是一格一格）
 for k = 1, 3 do
@@ -852,6 +949,15 @@ check("簽章：換色就換", AB.Signature({ spellIDs = { 1, 2 }, max = 4, text
 check("簽章：上限進簽章", AB.Signature({ spellIDs = { 1, 2 }, max = 5, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }) ~= sigA)
 check("簽章：有光環才顯示（裝飾在子樹裡）進簽章", AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
     inside = { W = 100, H = 8, n = 4, gap = 1, segW = 24, segments = true, dim = { 0, 0, 0, 1 }, px = 1 } }) ~= sigA)
+do
+    local function insideSig(px, edge)
+        return AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
+            inside = { W = 100, H = 8, n = 4, gap = 1, segW = 24, segments = true, dim = { 0, 0, 0, 1 }, px = px, edge = edge } })
+    end
+    check("簽章：邊框粗細進簽章（裝飾在子樹裡）", insideSig(1) ~= insideSig(2))
+    check("簽章：邊框顏色進簽章（裝飾在子樹裡）", insideSig(1, { 0, 0, 0, 1 }) ~= insideSig(1, { 1, 1, 1, 1 }))
+    eq("簽章：沒給邊框色 ＝ 不透明黑", insideSig(1), insideSig(1, { 0, 0, 0, 1 }))
+end
 check("簽章：instances 與 applications 不同", AB.Signature({ kind = "instances", spellIDs = { 1, 2 }, max = 4, texture = "t",
     color = { r = 1, g = 0, b = 0 }, alpha = 1, cell = { segW = 24, H = 8, gap = 1 } }) ~= sigA)
 
