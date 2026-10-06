@@ -374,6 +374,21 @@ end
 D.LayoutBorder = LayoutBorder
 
 ------------------------------------------------------------
+-- 圖示貼回整格：Masque 碰過的圖示（套皮、卸皮 RemoveButton、群組在 Masque 設定裡被停用）是
+-- 「固定尺寸＋一個錨點」，之後格子改大小它不跟，停用中的 ReSkin 也什麼都不做 ⇒ 圖示凍在舊尺寸
+-- （玩家 2026-10-07 回報：設 60×20，圖示畫成 60×43 溢出格子）。米利模式每次套樣式時檢查一次：
+-- 不是兩點錨（SetAllPoints）就貼回去。暴雪模板本來就是 setAllPoints，沒被碰過的不寫
+------------------------------------------------------------
+local function RefillIcon(tex, frame)
+    if not (tex and frame and tex.GetNumPoints) then return end
+    local ok, n = pcall(tex.GetNumPoints, tex)
+    if ok and n == 2 then return end
+    tex:ClearAllPoints()
+    tex:SetAllPoints(frame)
+end
+D.RefillIcon = RefillIcon
+
+------------------------------------------------------------
 -- 暴雪自己的裝飾：圓角遮罩拔掉、外框圖熄 alpha（每框一次）
 ------------------------------------------------------------
 local function Unmask(tex)
@@ -1636,6 +1651,7 @@ function D.ApplyPlaceholder(ph, barKey, id, w, h)
     end
     LayoutBorder(ph.border, ph.frame, tonumber(border.size) or 0, border.texture, br, bg, bb, ba)
     if ph.tex then
+        RefillIcon(ph.tex, ph.frame)
         ph.tex:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
     end
 end
@@ -1943,8 +1959,10 @@ function D.Apply(item, rec, barKey, w, h)
             rec.msqEdge = nil
             LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
             if icon and icon.SetTexCoord then
+                RefillIcon(icon, item)
                 icon:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
             end
+            RefillIcon(cd, item)                 -- 轉圈框 Masque 也同樣凍過尺寸
             SquareSwipe(cd, rec)
         end
         -- 轉圈色一律是我們的（Masque 套皮時會寫它的色，所以在 Sync 之後寫）
@@ -2055,7 +2073,11 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             LayoutBorder(cell.border, nil)
         else
             LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
-            if icon then icon:SetTexCoord(ns.Layout.IconTexCoord(z, w, h, style.crop)) end
+            if icon then
+                RefillIcon(icon, cell)
+                icon:SetTexCoord(ns.Layout.IconTexCoord(z, w, h, style.crop))
+            end
+            RefillIcon(cell.Cooldown, cell)
             SquareSwipe(cell.Cooldown, cell)
         end
         if icon then
