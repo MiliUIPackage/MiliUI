@@ -923,3 +923,5 @@ L["Seconds left on the cooldown; nothing while it's ready."] = "冷却剩余秒�
 L["%s charges"] = "%s次数"
 L["How many %s charges you have."] = "当前的%s次数。"
 L["Shake after it fills up"] = "充满后震动"
+L["Lightning"] = "闪电"
+L["Sweep"] = "扫光"

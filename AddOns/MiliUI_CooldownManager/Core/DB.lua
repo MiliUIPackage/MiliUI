@@ -434,7 +434,8 @@ SkyridingDefaults = function()
             -- 旋轉急衝長條：好了是滿的、冷卻中從空長到滿（使用者 2026-10-06 指定）
             surge = SkyRow(true, 6, {
                 color = rgba(0.30, 0.85, 1.00),
-                fx    = true,                     -- 滿的時候的電光（掃光＋呼吸亮層）
+                fx    = true,                     -- 滿的時候的電光（呼吸亮層＋下面選的樣式）
+                fxStyle = "lightning",            -- lightning（閃電序列圖，使用者 2026-10-06 要求）| sweep（掃光）
                 shake = true,                     -- 冷卻好了、填滿之後震一下（同施法條被打斷的震動）
                 text  = SkyText(true, "CENTER", 0, 10),      -- 冷卻剩餘秒數（使用者 2026-10-06 指定預設開）
                 -- 旋轉急衝圖示（錨在整塊面板那一邊的外面，間距 ＝ gap；不算在面板尺寸裡）。有長條之後預設不顯示

@@ -923,3 +923,5 @@ L["Seconds left on the cooldown; nothing while it's ready."] = "Secondes de rech
 L["%s charges"] = "Charges de %s"
 L["How many %s charges you have."] = "Nombre de charges de %s."
 L["Shake after it fills up"] = "Secouer une fois remplie"
+L["Lightning"] = "Éclair"
+L["Sweep"] = "Balayage lumineux"

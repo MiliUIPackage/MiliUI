@@ -139,9 +139,18 @@ local function AppendText(add, key, base)
     add(BS("color", tb .. "color", L["Color"], { hasAlpha = false, disabled = off }))
 end
 
+-- 電光的樣式：閃電（自己畫的序列圖）／掃光
+local FX_STYLE_ITEMS = {
+    { text = L["Lightning"], value = "lightning" },
+    { text = L["Sweep"],     value = "sweep" },
+}
+
 local function AppendSurge(add, base)
     add({ type = "header", label = L["Effects"] })
     add(BS("toggle", base .. "fx", L["Electric effect when full"]))
+    add(BS("dropdown", base .. "fxStyle", L["Style"], { items = FX_STYLE_ITEMS,
+        disabled = function() return Row("surge").fx == false end,
+        get = function() return Row("surge").fxStyle == "sweep" and "sweep" or "lightning" end }))
     add(BS("toggle", base .. "shake", L["Shake after it fills up"]))
 
     local ib = base .. "icon."

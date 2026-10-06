@@ -89,6 +89,14 @@ local SURGE_TEXT_TICK = 0.1         -- 旋轉急衝秒數文字的 ticker
 local SWEEP_TIME    = 0.9           -- 電光掃過一次的秒數
 local SWEEP_PAUSE   = 0.7           -- 兩次掃光之間的停頓
 local GLOW_TIME     = 0.6           -- 呼吸亮層半個週期
+-- 閃電：自己畫的 FlipBook 序列圖（2 欄 × 4 列 ＝ 8 格，每格 512×32；最後兩格是餘暉）。
+-- 圖是腳本畫的（.claude/skills/miliui-cdm-skyriding-lightning），不是素材，要改造型改腳本。
+-- 不借暴雪天空騎術的閃電 atlas：那幾張是給直立寶石用的直式畫面（橫條會被壓扁），而且 atlas 改名／消失是靜默的
+local BOLT_TEX      = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\skyriding-lightning.png"
+local BOLT_ROWS, BOLT_COLS, BOLT_FRAMES = 4, 2, 8
+local BOLT_TIME     = 0.4           -- 八格播一次的秒數（一道閃電＋消散）
+local BOLT_PAUSE    = 0.55          -- 兩道閃電之間的停頓（看不見）
+local BOLT_WHITEN   = 0.6           -- 閃電顏色往白靠的比例（芯要比長條亮，才像放電）
 -- 震動：數值同施法條的打斷震動（停 0.1 秒後每 0.05 秒跳一次，四段位移加總歸零）
 local SHAKE_STEPS   = { { 0, 0, 0.1, 0 }, { -1, 1, 0, 0.05 }, { 1, -2, 0, 0.05 }, { 1, 2, 0, 0.05 }, { -1, -1, 0, 0.05 } }
 local STATE_EVERY   = 5             -- 每幾拍重讀一次換色狀態（增益／回充時間）
@@ -755,6 +763,36 @@ local function BuildSurgeRow()
     hold:SetDuration(SWEEP_PAUSE)
     hold:SetOrder(2)
     f.sweepAnim, f.sweepMove = sa, move
+    -- 閃電：同一個裁切框裡，整條拉滿；FlipBook 換格（引擎跑）＋看不見的停頓，循環
+    local bolt = fx:CreateTexture(nil, "OVERLAY", nil, 2)
+    bolt:SetTexture(BOLT_TEX)
+    bolt:SetBlendMode("ADD")
+    bolt:SetAllPoints(fx)
+    bolt:SetAlpha(0)
+    f.bolt = bolt
+    local ba = bolt:CreateAnimationGroup()
+    ba:SetLooping("REPEAT")
+    local flip = ba:CreateAnimation("FlipBook")
+    if flip then
+        pcall(flip.SetFlipBookRows, flip, BOLT_ROWS)
+        pcall(flip.SetFlipBookColumns, flip, BOLT_COLS)
+        pcall(flip.SetFlipBookFrames, flip, BOLT_FRAMES)
+        pcall(flip.SetFlipBookFrameWidth, flip, 0)
+        pcall(flip.SetFlipBookFrameHeight, flip, 0)
+        flip:SetDuration(BOLT_TIME)
+        flip:SetOrder(1)
+    end
+    local lit = ba:CreateAnimation("Alpha")              -- 播放那段全亮
+    lit:SetFromAlpha(1)
+    lit:SetToAlpha(1)
+    lit:SetDuration(BOLT_TIME)
+    lit:SetOrder(1)
+    local dark = ba:CreateAnimation("Alpha")             -- 停頓：看不見
+    dark:SetFromAlpha(0)
+    dark:SetToAlpha(0)
+    dark:SetDuration(BOLT_PAUSE)
+    dark:SetOrder(2)
+    f.boltAnim = ba
     -- 震動：Translation 只動畫面上的位置，不改錨點
     local shake = f:CreateAnimationGroup()
     for i, st in ipairs(SHAKE_STEPS) do
@@ -923,6 +961,7 @@ LAYOUT.surge = function(f, look, W, H, cfg)
     f.timer:SetStatusBarTexture(look.fill)
     local r, g, b = RowColor(cfg, "surge")
     f.glow:SetVertexColor(r, g, b, 1)
+    f.bolt:SetVertexColor(r + (1 - r) * BOLT_WHITEN, g + (1 - g) * BOLT_WHITEN, b + (1 - b) * BOLT_WHITEN, 1)
     -- 掃光寬 ＝ 條寬的 18%（至少 12 像素），從左邊外面掃到右邊外面
     local sw = math.max(ns.P.Scale(12), math.floor(W * 0.18 + 0.5))
     local sweep = f.sweep
@@ -1125,19 +1164,27 @@ local function DrawSpeed(cfg, speed)
 end
 
 -- 電光開關（好了而且看得到才放）
-local function SurgeFx(on)
+-- 電光開關。style：lightning（閃電序列圖，預設）| sweep（掃光）；兩種都疊呼吸亮層。
+-- 換樣式時先全停再開新的（不然舊的那種會一直跑）
+local function SurgeFx(on, style)
     local f = rows.surge
-    local playing = f.glowAnim:IsPlaying()
-    if on then
-        if playing then return end
+    style = style == "sweep" and "sweep" or "lightning"
+    if on and f.fxOn == style then return end
+    if f.glowAnim:IsPlaying() then f.glowAnim:Stop() end
+    if f.sweepAnim:IsPlaying() then f.sweepAnim:Stop() end
+    if f.boltAnim:IsPlaying() then f.boltAnim:Stop() end
+    f.glow:SetAlpha(0)
+    f.sweep:Hide()
+    f.bolt:SetAlpha(0)
+    f.fxOn = nil
+    if not on then return end
+    f.fxOn = style
+    f.glowAnim:Play()
+    if style == "sweep" then
         f.sweep:Show()
-        f.glowAnim:Play()
         f.sweepAnim:Play()
     else
-        if playing then f.glowAnim:Stop() end
-        if f.sweepAnim:IsPlaying() then f.sweepAnim:Stop() end
-        f.glow:SetAlpha(0)
-        f.sweep:Hide()
+        f.boltAnim:Play()
     end
 end
 
@@ -1187,7 +1234,7 @@ local function DrawSurgeBar(cfg, id, info, onCD)
         f.timer:Hide()
         f.full:SetStatusBarColor(r, g, b, a)
         f.full:Show()
-        SurgeFx(rcfg.fx ~= false)
+        SurgeFx(rcfg.fx ~= false, rcfg.fxStyle)
         -- 冷卻中 → 好了：填滿之後震一下（剛出現、讀不到之後變好了都不震）
         if surgeReady == false and rcfg.shake ~= false then f.shake:Restart() end
         surgeEnd = nil
@@ -1306,7 +1353,8 @@ local function DrawPreview(cfg)
         surgeReady = nil
         surgeEnd = nil
         StopSurgeTicker()
-        SurgeFx(SR.RowCfg(cfg, "surge").fx ~= false)
+        local sc = SR.RowCfg(cfg, "surge")
+        SurgeFx(sc.fx ~= false, sc.fxStyle)
         SetRowNumber(f, 12)
     else
         StopSurgeBar()
