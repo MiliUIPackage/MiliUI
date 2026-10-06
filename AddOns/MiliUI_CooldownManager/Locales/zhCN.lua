@@ -45,6 +45,7 @@ L["Failed to start (%s). Blizzard's Cooldown Manager has been handed back; type 
 L["This client can't create export strings."] = "这个客户端无法生成导出字符串。"
 L["Couldn't create the export string. Try again after /reload."] = "生成导出字符串失败，请 /reload 后再试一次。"
 L["Minimap button shown."] = "已显示小地图按钮。"
+L["Show minimap button"] = "显示小地图按钮"
 L["Minimap button hidden. Type /mcdm minimap to bring it back."] = "已隐藏小地图按钮，输入 /mcdm minimap 可以恢复。"
 L["Apply"] = "应用"
 L["Okay"] = "确定"
