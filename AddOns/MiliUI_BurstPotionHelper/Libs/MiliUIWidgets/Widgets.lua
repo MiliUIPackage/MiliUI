@@ -1755,9 +1755,11 @@ function W.CreateChoicePopup(parent, width, text, choices)
     fs:SetText(text)
     popup.text = fs
 
+    -- 高度貼著字長：上緣 12＋字高＋字與按鈕間距 14＋按鈕 22＋下緣 12（固定 96 的話一行字中間空一大塊）
     popup:SetScript("OnShow", function(self)
         mask:Show()
-        GrowPopupForText(self, fs, 96, 22, 12, 12)
+        local textH = fs:GetStringHeight() or 0
+        if textH > 0 then P.Height(self, 12 + textH + 14 + 22 + 12) end
     end)
     popup:SetScript("OnHide", function() mask:Hide() end)
 

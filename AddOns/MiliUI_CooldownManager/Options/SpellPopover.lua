@@ -905,9 +905,12 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     local function BuffTimeRows(kind, class) return not OnBars() and (class == "aura" or DurationRows(kind, class)) end
     -- 子分頁鈕＋卡片（L，W.CreateTabCard）：卡片左右比列寬各多出 SUB_CARD_OUT（包住標籤與控件），
     -- 上緣＝鈕列底、底＝最後一個子分頁的列（Layout 排的時候補）。鈕列本身就是這一列的 frame
-    -- labels：卡片裡的標籤（量最長的定左緣）；gap：鈕列上方多留的（cs 緊接在 cd 卡片底下）
+    -- labels：卡片裡的標籤，所有卡片的一起量、最長的定左緣（兩張卡片左緣對齊，使用者 2026-10-06）；
+    -- gap：鈕列上方多留的（cs 緊接在 cd 卡片底下）
     frame.subCards = {}
+    local cardLabels = {}
     local function SubCard(group, tabs, help, labels, gap, when)
+        for _, k in ipairs(labels) do cardLabels[#cardLabels + 1] = k end
         local tc = W.CreateTabCard(frame, {
             tabs = tabs,
             help = help,
@@ -931,7 +934,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
                     frame.subCardMeasure = measure
                 end
                 local lw = 0
-                for _, k in ipairs(labels) do
+                for _, k in ipairs(cardLabels) do
                     measure:SetText(L[k])
                     lw = math.max(lw, math.ceil(measure:GetStringWidth() or 0))
                 end
