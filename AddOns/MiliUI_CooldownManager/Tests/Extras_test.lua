@@ -1618,6 +1618,20 @@ do
     D.PaintFill(tex, bar, { r = 1, g = 0.5, b = 0, a = 1 })
     eq("提醒色：洗掉漸層", calls[3][1], "g")
     eq("提醒色：單色", calls[4][1] .. tostring(calls[4][2]) .. tostring(calls[4][3]), "v10.5")
+
+    -- 反向填充：起點色跟著填充起點 ⇒ 漸層沿填充方向時兩色對調；跨粗細那一軸不動
+    local G = { dir = "H", color2 = { r = 1, g = 0, b = 0, a = 0.5 } }
+    eq("對調：沒反向 ⇒ 不對調", D.GradientFlip({ gradient = G }), false)
+    eq("對調：反向＋橫條 H ⇒ 對調", D.GradientFlip({ gradient = G, reverseFill = true }), true)
+    eq("對調：反向＋橫條 V ⇒ 不對調", D.GradientFlip({ gradient = { dir = "V", color2 = {} }, reverseFill = true }), false)
+    eq("對調：反向＋直條 V ⇒ 對調", D.GradientFlip({ gradient = { dir = "V", color2 = {} }, reverseFill = true, vertical = true }), true)
+    eq("對調：反向＋直條 H ⇒ 不對調", D.GradientFlip({ gradient = G, reverseFill = true, vertical = true }), false)
+    eq("對調：沒漸層 ⇒ 不對調", D.GradientFlip({ gradient = false, reverseFill = true }), false)
+    calls = {}
+    D.PaintFill(tex, { color = { r = 0.2, g = 0.3, b = 0.4, a = 1 }, gradient = G, reverseFill = true })
+    eq("反向：左端（SetGradient 第一色）＝color2", calls[2][3].a, 0.5)
+    eq("反向：右端（填充起點）＝條色", calls[2][4].r, 0.2)
+    eq("預設值：反向填充關", DB.NewBarTable("bars", "x").bar.reverseFill, false)
     env.CreateColor = savedCC
 end
 
@@ -1633,7 +1647,10 @@ do
         function o:SetAlpha(a) self.alpha = a end
         function o:IsShown() return true end
         function o:SetOrientation(v) self.orient = v end
+        function o:SetReverseFill(v) self.rev = v end
         function o:SetRotation(v) self.rot = v end
+        function o:SetWidth(v) self.sw = v end
+        function o:SetHeight(v) self.sh = v end
         return o
     end
     local item, icon, bar, pip, fill = R(), R(), R(), R(), R()
@@ -1657,6 +1674,35 @@ do
     pip.pts = { "untouched" }
     D.ApplyBarGeometry(item, nil, { h = 20, w = 220, side = "LEFT", gap = 2 })
     eq("沒轉過的火花不碰", pip.pts[1], "untouched")
+    eq("沒反向：SetReverseFill(false) 照寫", bar.rev, false)
+
+    -- 反向填充：條身 SetReverseFill(true)、暴雪火花錨到填充移動的那一端
+    D.ApplyBarGeometry(item, nil, { h = 20, w = 220, side = "LEFT", gap = 2, reverse = true })
+    eq("反向：SetReverseFill(true)", bar.rev, true)
+    eq("反向：條身照舊橫向", bar.orient, "HORIZONTAL")
+    eq("反向：暴雪火花錨填充左緣", pip.pts[1][3], "LEFT")
+    eq("反向：火花不轉", pip.rot, 0)
+    D.ApplyBarGeometry(item, nil, { h = 220, w = 20, side = "LEFT", gap = 2, vertical = true, reverse = true })
+    eq("直向反向：火花錨填充底緣", pip.pts[1][3], "BOTTOM")
+    check("直向反向：火花轉 90 度", pip.rot and pip.rot > 1.5)
+    D.ApplyBarGeometry(item, nil, { h = 20, w = 220, side = "LEFT", gap = 2 })
+    eq("關掉反向：SetReverseFill(false)", bar.rev, false)
+    eq("關掉反向：火花錨回 RIGHT", pip.pts[1][3], "RIGHT")
+
+    -- 自己的火花（ownPip）：錨在填充移動的那一端
+    local own, f2 = R(), R()
+    D.AnchorFillPip(own, f2, false, false)
+    eq("自己的火花：橫向錨右上", own.pts[1][3], "TOPRIGHT")
+    eq("自己的火花：寬 2", own.sw, 2)
+    D.AnchorFillPip(own, f2, false, true)
+    eq("自己的火花：反向錨左上", own.pts[1][3], "TOPLEFT")
+    eq("自己的火花：反向錨左下", own.pts[2][3], "BOTTOMLEFT")
+    D.AnchorFillPip(own, f2, true, false)
+    eq("自己的火花：直向錨頂緣", own.pts[1][3], "TOPLEFT")
+    eq("自己的火花：直向高 2", own.sh, 2)
+    D.AnchorFillPip(own, f2, true, true)
+    eq("自己的火花：直向反向錨底緣", own.pts[1][3], "BOTTOMLEFT")
+    eq("自己的火花：直向反向另一點", own.pts[2][3], "BOTTOMRIGHT")
 end
 
 ------------------------------------------------------------

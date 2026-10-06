@@ -557,7 +557,9 @@ do
                 if vertical then w, h = h, w end
                 return w - h - gap
             end,
-            DrawTicks = function(host, anchor, len, t, vertical) ticks = { host = host, anchor = anchor, len = len, t = t, v = vertical } end,
+            DrawTicks = function(host, anchor, len, t, vertical, reverse)
+                ticks = { host = host, anchor = anchor, len = len, t = t, v = vertical, r = reverse }
+            end,
         }
         local notes = 0
         ns.Diag = { Note = function() notes = notes + 1 end }
@@ -601,6 +603,21 @@ do
         charges = { maxCharges = 3, currentCharges = 3 }
         CU.Update(rec)
         eq("再開：三段", seg.count.last_SetMinMaxValues[2], 3)
+        eq("正向：計數條 SetReverseFill(false)", seg.count.last_SetReverseFill and seg.count.last_SetReverseFill[1], false)
+        eq("正向：進度條接在填充右緣", seg.prog.last_SetPoint and seg.prog.last_SetPoint[3], "BOTTOMRIGHT")
+        -- 反向填充：整組鏡像（第 1 段在右、回充那一段從右往左填）
+        barCfg.reverseFill = true
+        CU.Update(rec)
+        eq("反向：計數條反向", seg.count.last_SetReverseFill and seg.count.last_SetReverseFill[1], true)
+        eq("反向：進度條也反向", seg.prog.last_SetReverseFill and seg.prog.last_SetReverseFill[1], true)
+        eq("反向：進度條錨在計數條填充", seg.prog.last_SetPoint and seg.prog.last_SetPoint[2], seg.count.fill)
+        eq("反向：進度條右下接填充左下", (seg.prog.last_SetPoint[1] or "") .. ">" .. (seg.prog.last_SetPoint[3] or ""),
+            "BOTTOMRIGHT>BOTTOMLEFT")
+        eq("反向：分隔線也反向", ticks and ticks.r, true)
+        eq("反向：火花錨進度條填充的左緣", b.Pip.last_SetPoint and b.Pip.last_SetPoint[3], "BOTTOMLEFT")
+        barCfg.reverseFill = nil
+        CU.Update(rec)
+        eq("關掉反向：計數條回正向", seg.count.last_SetReverseFill[1], false)
         barCfg.chargeSegments = false
         CU.Update(rec)
         eq("設定關 ⇒ 不分段", b.segOn, false)
@@ -645,6 +662,30 @@ do
         and type(got.countArgs[2]) == "table" and next(got.countArgs[2]) == nil)
     check("長條：圖示交給 SetIcon", got.icon and got.icon.otype == "Texture")
     check("長條：條身沒自己寫值", got.bar and got.bar.calls.SetValue == nil and got.bar.calls.SetMinMaxValues == nil)
+    eq("長條：沒反向 ⇒ SetReverseFill(false)", got.bar and got.bar.last_SetReverseFill and got.bar.last_SetReverseFill[1], false)
+    -- 反向填充：進簽章（換容器）、新條 SetReverseFill(true)
+    do
+        local bt = DB.BarTable("buffbars")
+        bt.bar = bt.bar or {}
+        local stR0 = CU.AuraStyle(arec, "buffbars", 200, 20, "bars")
+        bt.bar.reverseFill = true
+        local stR = CU.AuraStyle(arec, "buffbars", 200, 20, "bars")
+        eq("反向：st.rev", stR.rev, true)
+        check("反向：進簽章", stR.sig ~= stR0.sig)
+        local rbtn = Obj("Frame")
+        local rgot = {}
+        function rbtn:SetIcon() end
+        function rbtn:SetDurationBar(bar) rgot.bar = bar end
+        function rbtn:SetDurationText() end
+        function rbtn:SetApplicationCount() end
+        local sigR0 = arec.sig
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
+        check("反向：換一顆容器", arec.sig ~= sigR0 and arec.container ~= c)
+        arec.container.slot.opts.initializeFrame(rbtn)
+        eq("反向：新條 SetReverseFill(true)", rgot.bar and rgot.bar.last_SetReverseFill and rgot.bar.last_SetReverseFill[1], true)
+        bt.bar.reverseFill = nil
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
+    end
 
     -- 光環搬到圖示類：另一顆持有框、另一個容器池
     CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 6)
@@ -894,6 +935,15 @@ do
     eq("幾何：上限 1 ⇒ nil", CU.SegmentGeometry(180, 1), nil)
     eq("幾何：長度 0 ⇒ nil", CU.SegmentGeometry(0, 3), nil)
     eq("預設值：充能分段關", ns.DB.NewBarTable("bars", "x").bar.chargeSegments, false)
+    eq("預設值：反向填充關", ns.DB.NewBarTable("bars", "x").bar.reverseFill, false)
+    -- 充能分段的進度條錨點（純函式）：正向接右緣／頂緣、反向接左緣／底緣
+    local function A(v, r) local p, ax = CU.SegProgAnchor(v, r); return table.concat(p, ","), ax end
+    eq("進度條錨點：橫向", (A(false, false)), "TOPLEFT,TOPRIGHT,BOTTOMLEFT,BOTTOMRIGHT")
+    eq("進度條錨點：橫向反向", (A(false, true)), "TOPRIGHT,TOPLEFT,BOTTOMRIGHT,BOTTOMLEFT")
+    eq("進度條錨點：直向", (A(true, false)), "BOTTOMLEFT,TOPLEFT,BOTTOMRIGHT,TOPRIGHT")
+    eq("進度條錨點：直向反向", (A(true, true)), "TOPLEFT,BOTTOMLEFT,TOPRIGHT,BOTTOMRIGHT")
+    eq("進度條長度軸：橫向", select(2, A(false, true)), "w")
+    eq("進度條長度軸：直向", select(2, A(true, true)), "h")
 end
 
 ------------------------------------------------------------

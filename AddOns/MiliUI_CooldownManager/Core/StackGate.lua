@@ -365,6 +365,7 @@ function SG.Signature(cfg, w, h, bar)
         parts[#parts + 1] = tostring(bar.texture) .. "/" .. CSig(bar.color) .. "/" .. CSig(bar.bgColor)
             .. "/" .. tostring(bar.iconSide) .. "/" .. tostring(bar.iconGap) .. "/" .. tostring(bar.spark)
             .. "/" .. GradSig(bar.gradient) .. "/" .. tostring(bar.vertical and true or false)
+            .. "/" .. tostring(bar.reverseFill and true or false)
     end
     return table.concat(parts, "|")
 end
@@ -617,9 +618,10 @@ end
 -- 刻度（真實條與設定頁預覽共用）：host 是自己的框（貼圖池 host.tickLines），線錨在 anchor
 -- （條身）左緣往右 x；x 與線寬像素對齊。ticks ＝ CleanTicks 的結果；nil 全藏
 -- vertical（F8c）：條身直向、填充由下往上 ⇒ 改畫水平線，離底緣 y ＝ 條身長 × k/N
+-- reverse（bar.reverseFill）：填充從另一端長 ⇒ 距離改從右緣（直向＝頂緣）量，第 k 層的刻度照樣落在第 k 層的位置
 -- 充能分段（Modules/Custom.lua，F8b）的分隔線也用這支（ticks ＝ { n = 段數, at = "all", color }）
 ------------------------------------------------------------
-function SG.DrawTicks(host, anchor, bodyW, ticks, vertical)
+function SG.DrawTicks(host, anchor, bodyW, ticks, vertical, reverse)
     if not host then return end
     local pool = host.tickLines
     if not pool then
@@ -639,10 +641,18 @@ function SG.DrawTicks(host, anchor, bodyW, ticks, vertical)
         end
         local x = snap(SG.TickX(bodyW, ticks.n, k))
         line:ClearAllPoints()
-        if vertical then
+        if vertical and reverse then
+            line:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -x)
+            line:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", 0, -x)
+            line:SetHeight(px)
+        elseif vertical then
             line:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", 0, x)
             line:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", 0, x)
             line:SetHeight(px)
+        elseif reverse then
+            line:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", -x, 0)
+            line:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", -x, 0)
+            line:SetWidth(px)
         else
             line:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, 0)
             line:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", x, 0)
@@ -700,8 +710,9 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         fb:SetAllPoints(b)
         fb:SetFrameLevel(lv + 1)
         fb:SetStatusBarTexture(tex)
-        -- 直向長條（F8c）：層數填充由下往上，跟暴雪條身同方向
+        -- 直向長條（F8c）：層數填充由下往上，跟暴雪條身同方向；反向填充也跟著（從右／從上）
         if fb.SetOrientation then fb:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL") end
+        if fb.SetReverseFill then fb:SetReverseFill(bar.reverseFill and true or false) end
         local ft = fb:GetStatusBarTexture()
         if ft then PaintFill(ft, bar) end
         fb:SetMinMaxValues(0, cfg.stackBar)
@@ -753,13 +764,15 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         tf:SetAllPoints(root)
         tf:SetFrameLevel(lv + 2 + SG.MAX_COLORS)
         local vert = bar.vertical and true or false
-        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg.ticks, vert)
+        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg.ticks, vert,
+            bar.reverseFill and true or false)
         tf:Show()
     elseif ui.ticks then
         ui.ticks:Hide()
     end
+    -- vertical／reverseFill：還原時 PaintFill 要知道漸層兩色要不要對調（Decorate.GradientFlip）
     ui.barStyle = { color = bar.color, bgColor = bar.bgColor, spark = bar.spark, gradient = bar.gradient,
-        stackBar = cfg.stackBar ~= nil }
+        vertical = bar.vertical, reverseFill = bar.reverseFill, stackBar = cfg.stackBar ~= nil }
     root:Show()
     Conceal(item, rec)
 end
@@ -926,7 +939,8 @@ function SG.ApplyPreview(cell, barKey, id, w, h)
     local host = cell.Bar
     host.tickLayer, host.tickSub = "ARTWORK", 7          -- 在填充上面、名字／時間字底下
     local vert = bar.vertical and true or false
-    SG.DrawTicks(host, host, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg and cfg.ticks, vert)
+    SG.DrawTicks(host, host, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg and cfg.ticks, vert,
+        bar.reverseFill and true or false)
 end
 
 -- 預覽條的值（0～1）：層數當填充畫 2 層（N 小於 2 就是滿的）

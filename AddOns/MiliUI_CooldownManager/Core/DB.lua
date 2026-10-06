@@ -143,6 +143,7 @@ local function LongBar(o)
             chargeSegments  = false,        -- 自訂法術的充能：條身分成 maxCharges 段（Modules/Custom.lua）
             chargeLineColor = rgba(0, 0, 0, 0.6),   -- 分段的分隔線顏色
             vertical  = false,              -- 整條直向（填充由下往上、圖示在上／下、條並排）
+            reverseFill = false,            -- 反向填充：橫向從右往左、直向從上往下（只換起點，值不碰；舊存檔沒有 ＝ false）
         },
     }
     b.kind = "bars"

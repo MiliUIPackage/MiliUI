@@ -394,6 +394,8 @@ CU.FeedBar, CU.ClearBar = FeedBar, ClearBar     -- 測試用
 --   進度條  StatusBar，寬＝條身長／maxCharges；LEFT 兩點錨在**計數條的填充貼圖**的右緣（直向：BOTTOM 錨頂緣），
 --           SetTimerDuration(回充物件, nil, ElapsedTime) ⇒ 在下一段裡從空跑到滿；充能滿時它在條外、被裁掉
 --   分隔線  maxCharges-1 條 1px，x ＝ 條身長 × k/max（同層數刻度的畫法：StackGate.DrawTicks），錨 .Bar 的明文幾何
+--   反向填充（bar.reverseFill）：整組鏡像——計數條／進度條都 SetReverseFill，第 1 段在右（直向在上），
+--           進度條改錨在計數條填充的**左緣**（直向：底緣），回充那一段一樣從右往左（從上往下）填（CU.SegProgAnchor）
 -- 計數條餵過秘密值之後幾何是秘密的：除了進度條（與跟著進度條的火花）以外沒有東西錨在它的填充貼圖上，
 -- 計數條／進度條我們一律不讀值、幾何、alpha（只錨不讀）。
 -- .Bar 自己的填充（回充的那一條，舊行為）在分段時調透明（貼圖的 SetAlpha，不是頂點色），秒數照舊吃回充物件；
@@ -420,6 +422,34 @@ function CU.SegmentGeometry(len, max)
     local lines = {}
     for k = 1, max - 1 do lines[k] = len * k / max end
     return len / max, lines
+end
+
+-- 進度條錨在計數條填充的哪一緣（純函式，Tests/Custom_test.lua）：
+--   回 { 進度條點 1, 填充上的點 1, 進度條點 2, 填充上的點 2 }, 長度要設在哪一軸（"w" | "h"）
+--   正向：接在填充的右緣（直向：頂緣）往外長；反向：接在左緣（直向：底緣）往外長
+function CU.SegProgAnchor(vertical, reverse)
+    if vertical and reverse then
+        return { "TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT" }, "h"
+    elseif vertical then
+        return { "BOTTOMLEFT", "TOPLEFT", "BOTTOMRIGHT", "TOPRIGHT" }, "h"
+    elseif reverse then
+        return { "TOPRIGHT", "TOPLEFT", "BOTTOMRIGHT", "BOTTOMLEFT" }, "w"
+    end
+    return { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }, "w"
+end
+
+-- 自己畫的火花錨在填充移動的那一端（同 Decorate.AnchorFillPip；測試環境沒有 Decorate，這裡留一份）
+local function AnchorPip(pip, fill, vertical, reverse)
+    pip:ClearAllPoints()
+    if vertical then
+        local e = reverse and "BOTTOM" or "TOP"
+        pip:SetPoint("LEFT", fill, e .. "LEFT", 0, 0)
+        pip:SetPoint("RIGHT", fill, e .. "RIGHT", 0, 0)
+    else
+        local e = reverse and "LEFT" or "RIGHT"
+        pip:SetPoint("TOP", fill, "TOP" .. e, 0, 0)
+        pip:SetPoint("BOTTOM", fill, "BOTTOM" .. e, 0, 0)
+    end
 end
 
 local function ElapsedDir()
@@ -456,15 +486,17 @@ local function ConfigureSeg(b, max, len, bar, vertical)
         tostring(type(bar.color) == "table" and (bar.color.r or 0) .. "," .. (bar.color.g or 0) .. "," .. (bar.color.b or 0) .. "," .. (bar.color.a or 1)),
         tostring(type(bar.chargeLineColor) == "table" and (bar.chargeLineColor.r or 0) .. "," .. (bar.chargeLineColor.g or 0)
             .. "," .. (bar.chargeLineColor.b or 0) .. "," .. (bar.chargeLineColor.a or 1)),
-        tostring(vertical), tostring(b:GetFrameLevel()) }, "|")
+        tostring(vertical), tostring(bar.reverseFill and true or false), tostring(b:GetFrameLevel()) }, "|")
     if b.segOn and b.segSig == sig then return seg end
     b.segSig = sig
     local lv = b:GetFrameLevel() or 1
     local tex = ns.Media.Texture(bar.texture)
     local orient = vertical and "VERTICAL" or "HORIZONTAL"
+    local reverse = bar.reverseFill and true or false
     for _, sb in ipairs({ seg.count, seg.prog }) do
         sb:SetStatusBarTexture(tex)
         if sb.SetOrientation then sb:SetOrientation(orient) end
+        if sb.SetReverseFill then sb:SetReverseFill(reverse) end
         local ft = sb:GetStatusBarTexture()
         if ft then ns.Decorate.PaintFill(ft, bar) end
     end
@@ -480,22 +512,17 @@ local function ConfigureSeg(b, max, len, bar, vertical)
     local segLen = (CU.SegmentGeometry(len, max)) or 0
     seg.prog:ClearAllPoints()
     if seg.countFill then
-        if vertical then
-            seg.prog:SetPoint("BOTTOMLEFT", seg.countFill, "TOPLEFT", 0, 0)
-            seg.prog:SetPoint("BOTTOMRIGHT", seg.countFill, "TOPRIGHT", 0, 0)
-            seg.prog:SetHeight(math.max(1, segLen))
-        else
-            seg.prog:SetPoint("TOPLEFT", seg.countFill, "TOPRIGHT", 0, 0)
-            seg.prog:SetPoint("BOTTOMLEFT", seg.countFill, "BOTTOMRIGHT", 0, 0)
-            seg.prog:SetWidth(math.max(1, segLen))
-        end
+        local pts, axis = CU.SegProgAnchor(vertical, reverse)
+        seg.prog:SetPoint(pts[1], seg.countFill, pts[2], 0, 0)
+        seg.prog:SetPoint(pts[3], seg.countFill, pts[4], 0, 0)
+        if axis == "h" then seg.prog:SetHeight(math.max(1, segLen)) else seg.prog:SetWidth(math.max(1, segLen)) end
     end
     -- 分隔線：同層數刻度（1～max-1 每段一條）
     local SG = ns.StackGate
     if SG and SG.DrawTicks then
         seg.lines.tickLayer = "OVERLAY"
         SG.DrawTicks(seg.lines, b, len, { n = max, at = "all", color = bar.chargeLineColor or { r = 0, g = 0, b = 0, a = 0.6 } },
-            vertical)
+            vertical, reverse)
     end
     seg.count:Show()
     seg.prog:Show()
@@ -506,22 +533,13 @@ local function ConfigureSeg(b, max, len, bar, vertical)
     if b.Pip and b.Pip.SetParent then
         b.Pip:SetParent(seg.text)
         b.pipAnchor = seg.progFill
-        if b.ownPip and seg.progFill then
-            b.Pip:ClearAllPoints()
-            if vertical then
-                b.Pip:SetPoint("LEFT", seg.progFill, "TOPLEFT", 0, 0)
-                b.Pip:SetPoint("RIGHT", seg.progFill, "TOPRIGHT", 0, 0)
-            else
-                b.Pip:SetPoint("TOP", seg.progFill, "TOPRIGHT", 0, 0)
-                b.Pip:SetPoint("BOTTOM", seg.progFill, "BOTTOMRIGHT", 0, 0)
-            end
-        end
+        if b.ownPip and seg.progFill then AnchorPip(b.Pip, seg.progFill, vertical, reverse) end
     end
     b.segOn = true
     return seg
 end
 
-local function UnconfigureSeg(b, vertical)
+local function UnconfigureSeg(b, vertical, reverse)
     if not b.segOn then return end
     b.segOn, b.segSig = false, nil
     local seg = b.Seg
@@ -537,16 +555,7 @@ local function UnconfigureSeg(b, vertical)
     local fill = b.GetStatusBarTexture and b:GetStatusBarTexture()
     if fill then fill:SetAlpha(1) end
     -- 火花錨回自己的填充末端（ApplyBarLook 下一次重套時也會照這個錨）
-    if b.Pip and b.ownPip and fill then
-        b.Pip:ClearAllPoints()
-        if vertical then
-            b.Pip:SetPoint("LEFT", fill, "TOPLEFT", 0, 0)
-            b.Pip:SetPoint("RIGHT", fill, "TOPRIGHT", 0, 0)
-        else
-            b.Pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
-            b.Pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
-        end
-    end
+    if b.Pip and b.ownPip and fill then AnchorPip(b.Pip, fill, vertical, reverse) end
 end
 CU.UnconfigureSeg = UnconfigureSeg    -- 測試用
 
@@ -567,7 +576,7 @@ local function SyncSeg(rec, f, known)
                 ns.Diag.Note("chargeseg", tostring(rec.spellID) .. " 充能上限讀不到明文 ⇒ 不分段")
             end
         end
-        UnconfigureSeg(b, bar.vertical)
+        UnconfigureSeg(b, bar.vertical, bar.reverseFill)
         return false
     end
     local vertical = bar.vertical and true or false
@@ -1397,16 +1406,21 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.name      = Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or ""
         -- 直向（F8c）：格子是 w（粗細）× h（條長），圖示 w×w 在上／下（side 的 LEFT／RIGHT），名字不畫
         st.vert      = bar.vertical and true or false
+        st.rev       = bar.reverseFill and true or false     -- 反向填充：條＝SetReverseFill、火花換到另一端
         st.isz       = st.vert and (tonumber(w) or 20) or st.bh
-        -- 漸層（F8a）：顏色物件在這裡（容器建立之前）建好，initializeFrame 裡只查表
-        local cg = ns.Decorate and ns.Decorate.CleanGradient and ns.Decorate.CleanGradient(bar.gradient)
+        -- 漸層（F8a）：顏色物件在這裡（容器建立之前）建好，initializeFrame 裡只查表。
+        -- 反向填充時起點色跟著填充起點（Decorate.GradientFlip，同 PaintFill 的決定）⇒ 兩色對調、對調也進快取鍵
+        local D = ns.Decorate
+        local cg = D and D.CleanGradient and D.CleanGradient(bar.gradient)
         if cg and CreateColor then
-            local gsig = cg.dir .. C(st.bfill) .. ">" .. C({ cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a })
+            local flip = D.GradientFlip and D.GradientFlip(bar) or false
+            local gsig = cg.dir .. (flip and "~" or "") .. C(st.bfill) .. ">" .. C({ cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a })
             local hit = gradCache[gsig]
             if not hit then
-                hit = { o = cg.dir == "V" and "VERTICAL" or "HORIZONTAL", sig = gsig,
-                    c1 = CreateColor(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4]),
-                    c2 = CreateColor(cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a) }
+                local a = CreateColor(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4])
+                local z = CreateColor(cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a)
+                if flip then a, z = z, a end
+                hit = { o = cg.dir == "V" and "VERTICAL" or "HORIZONTAL", sig = gsig, c1 = a, c2 = z }
                 gradCache[gsig] = hit
             end
             st.bgrad = hit
@@ -1415,7 +1429,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
             tostring(st.spark), st.nameFont, st.nameSize, st.timeFont, st.timeSize, st.barStack, st.stBarPoint,
             C(st.timeColor), st.timePoint, st.timeX, st.timeY,
             tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name,
-            tostring(st.vert), string.format("%.2f", st.isz), st.bgrad and st.bgrad.sig or "-" }, ",")
+            tostring(st.vert), string.format("%.2f", st.isz), st.bgrad and st.bgrad.sig or "-", tostring(st.rev) }, ",")
     end
     -- 生效發光：開著而且知道格子尺寸才畫；關著時不進簽章（尺寸變了不必換容器）。
     -- 長條畫在圖示那一格（h×h；直向 w×w）；沒有圖示（NONE）時畫整格
@@ -1757,6 +1771,7 @@ local function InitAuraBarButton(btn, c, st, rec)
         bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
     end
     if vert then bar:SetOrientation("VERTICAL") end
+    bar:SetReverseFill(st.rev and true or false)          -- 新建的條：只換填充起點，引擎寫的值不碰
     bar:SetStatusBarTexture(st.btex)
     local fill = bar:GetStatusBarTexture()
     if fill then
@@ -1778,15 +1793,8 @@ local function InitAuraBarButton(btn, c, st, rec)
         local pip = bar:CreateTexture(nil, "OVERLAY")
         pip:SetTexture(WHITE)
         pip:SetVertexColor(1, 1, 1, 0.9)
-        if vert then
-            pip:SetHeight(2)
-            pip:SetPoint("LEFT", fill, "TOPLEFT", 0, 0)
-            pip:SetPoint("RIGHT", fill, "TOPRIGHT", 0, 0)
-        else
-            pip:SetWidth(2)
-            pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
-            pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
-        end
+        if vert then pip:SetHeight(2) else pip:SetWidth(2) end
+        AnchorPip(pip, fill, vert, st.rev)
     end
     -- 不自己 SetMinMaxValues／SetValue：剩餘時間由引擎寫（CustomAuraButtonDurationBarOptions：interpolation、direction）
     local opts = {}
