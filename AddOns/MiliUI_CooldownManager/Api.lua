@@ -231,17 +231,15 @@ local function Debug(silent)
                 end
             end
         end
-        -- 逐法術「無增益時保留空位」（F7，暴雪的增益）：哪幾條有、固定格位開著時這個勾不起作用
+        -- 增益不在時（條層生效值＋逐法術自己設的格數；條上有光環格／可點擊時收合不成立）
         for _, key in ipairs(C.BarKeys and C.BarKeys() or {}) do
             local n = 0
             for _, id in ipairs(C.Bar(key)) do
-                if type(id) == "number" and ns.SpellOverride(id, "placeholder") == true then n = n + 1 end
+                if ns.SpellOverride(id, "emptyMode") ~= nil then n = n + 1 end
             end
-            if n > 0 then
-                local b = C.BarCfgOf(key)
-                local fixed = (type(b) == "table" and type(b.layout) == "table" and b.layout.fixedSlots)
-                    or C.BarHasAuraSlot(key) or (ns.Clickable and ns.Clickable.Enabled(key))
-                p(("  %-9s 逐法術占位 %d 格%s"):format(key, n, fixed and "（固定格位開著：每一格本來就保留）" or ""))
+            local mode, forced = B.BarEmptyMode(key)
+            if n > 0 or mode ~= "collapse" then
+                p(("  %-9s 增益不在時 %s%s，逐法術 %d 格"):format(key, mode, forced and "（光環格／可點擊：不能收合）" or "", n))
             end
         end
         local sig = C.sig or ""

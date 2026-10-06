@@ -43,7 +43,7 @@ ns.Specs = {}
 local Specs = ns.Specs
 
 local LABEL_W = ns.WidgetsEnv.LABEL_W or 128
-local FixedSlotsRow      -- 版面那一節的固定格位列（定義在下面）
+local EmptyModeRow       -- 版面那一節的「增益不在時」列（定義在下面）
 local CursorRow          -- 錨定那一節的「跟著游標」列（定義在下面）
 local GlowSampleRow      -- 發光的預覽圖示（定義在下面）
 
@@ -131,10 +131,34 @@ local SIDE_ITEMS_V = {
     { text = L["None"],   value = "NONE" },
 }
 
-local EMPTY_STYLE_ITEMS = {
-    { text = L["Hidden"],    value = "hide" },
-    { text = L["Empty bar"], value = "bar" },
-}
+-- 「增益不在時」三態的選項（條層的版面列、單一法術小窗共用；每次給一份新表，呼叫端會改第一項）
+function Specs.EmptyModeItems(isBars)
+    return {
+        { text = L["Hide, others move over"], value = "collapse" },
+        { text = L["Hide, keep the slot"],    value = "blank" },
+        { text = isBars and L["Empty bar in its place"] or L["Dimmed icon in its place"], value = "dim" },
+    }
+end
+
+-- 選中那一項的說明（灰字）
+function Specs.EmptyModeDesc(mode, isBars)
+    if mode == "collapse" then
+        return L["While a buff is missing, its slot closes up and the ones after it move over. It slides back in when the buff returns."]
+    elseif mode == "blank" then
+        return L["While a buff is missing, its slot stays empty, so the others don't shift."]
+    end
+    return isBars and L["While a buff is missing, an empty bar holds its slot, so the others don't shift."]
+        or L["While a buff is missing, a dimmed icon holds its slot, so the others don't shift."]
+end
+
+-- 「往前補」不能選的原因（條上有光環格優先；兩者都成立時講光環格那句）；nil ＝ 能選
+Specs.EMPTY_FORCED = L["This bar has aura slots or trinkets showing their buff. They can't move during combat, so slots can't close up."]
+Specs.EMPTY_FORCED_CLICK = L["This bar is clickable. The click targets can't move during combat, so slots can't close up."]
+function Specs.EmptyModeForcedText(key)
+    if ns.Catalog.BarHasAuraSlot(key) then return Specs.EMPTY_FORCED end
+    if ns.DB.BarClickable(key) then return Specs.EMPTY_FORCED_CLICK end
+    return nil
+end
 
 local GROUP_ITEMS = {
     { text = L["Any"],   value = "any" },
@@ -819,57 +843,56 @@ function Specs.Themed(mode, key)
 end
 
 ------------------------------------------------------------
--- 固定格位：條上有光環格（含飾品欄增益）、疊著增益的飾品欄（Catalog.BarHasAuraSlot）、或這條可點擊時強制打開
--- （勾選框停用、說明換成原因；存的值不動）
---
--- 表單引擎的 toggle 沒有「停用」這個狀態，所以自己畫一列（custom）：勾選框＋下一列灰字，
--- 灰字依狀態換三種說法（一般／有光環格／可點擊），高度取三種裡最高的那個（列高在建表單時就定了）。
+-- 增益不在時（條層 layout.emptyMode）：三態下拉＋下一列灰字。收合／留空位／暗圖示（長條類：空長條）。
+-- 條上有光環格或可點擊（Bars.BarEmptyMode 的 forced）：「往前補」那一項灰掉（選了不寫）、顯示的是退回後的生效值，
+-- 灰字換成原因（黃字）；存的值不動，條件解除就回來。下拉自己建（表單引擎的下拉清單建表時就定了、也沒有停用項），
+-- 高度取所有說法裡最高的（列高在建表單時就定了）。
 ------------------------------------------------------------
-function FixedSlotsRow(key, isBars)
-    local NORMAL = isBars and L["Buffs that aren't up keep their place, so the others don't shift."]
-        or L["Buffs that aren't up keep their place as a dimmed icon, so the others don't shift."]
-    local FORCED = L["Always on while this bar has aura slots or trinkets showing their buff: they need fixed positions, because they can't move during combat."]
-    local FORCED_CLICK = L["Always on while this bar is clickable: the click targets can't move during combat."]
-    -- 強制的原因：有光環格優先（兩者都成立時講光環格那句）；nil ＝ 沒有強制
-    local function ForcedText()
-        if ns.Catalog.BarHasAuraSlot(key) then return FORCED end
-        if ns.DB.BarClickable(key) then return FORCED_CLICK end
-        return nil
+local LOCKED = "locked"
+function EmptyModeRow(key, isBars)
+    local FORCED, FORCED_CLICK = Specs.EMPTY_FORCED, Specs.EMPTY_FORCED_CLICK
+    local function Items(forced)
+        local items = Specs.EmptyModeItems(isBars)
+        if forced then
+            items[1] = { text = "|cff808080" .. items[1].text .. "|r", value = LOCKED }
+        end
+        return items
     end
-    return { type = "custom", label = L["Keep empty slots for missing buffs"], h = 26, root = "bar",
-             path = "layout.fixedSlots", key = "layout.fixedSlots",
+    return { type = "custom", label = L["While the buff is missing"], h = 26, root = "bar",
+             path = "layout.emptyMode", key = "layout.emptyMode",
              build = function(parent, x, y, width, ctx)
-        local cb = W.CreateCheckButton(parent, nil, function(on)
+        local dd
+        local Refresh
+        dd = W.CreateDropdown(parent, 180, Items(false), function(value)
             local b = ns.DB.BarTable(key)
-            if not b or ForcedText() then return end
-            b.layout.fixedSlots = on and true or false
+            if not b or value == LOCKED then Refresh() return end
+            if type(b.layout) ~= "table" then b.layout = {} end
+            b.layout.emptyMode = value
             ctx.lastSpec = { level = "layout" }
             ctx.apply()
         end)
-        cb:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
+        dd:SetMaxWidth(width)
+        dd:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
         local fs = parent:CreateFontString(nil, "OVERLAY")
         fs:SetFontObject(W.fontSmall)
         fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 30)
         fs:SetWidth(width)
         fs:SetJustifyH("LEFT")
         fs:SetWordWrap(true)
-        fs:SetText(FORCED)
-        local h1 = fs:GetStringHeight() or 14
-        fs:SetText(FORCED_CLICK)
-        local h3 = fs:GetStringHeight() or 14
-        fs:SetText(NORMAL)
-        local h2 = fs:GetStringHeight() or 14
-        local h = 30 + math.max(14, h1, h2, h3) + 8
-        local function Refresh()
-            local reason = ForcedText()
-            local forced = reason ~= nil
-            local b = ns.DB.BarTable(key)
-            local v = b and type(b.layout) == "table" and b.layout.fixedSlots
-            cb:SetChecked((forced or v) and true or false)
-            cb:SetEnabled(not forced)
-            cb:SetAlpha(forced and 0.5 or 1)
-            fs:SetText(reason or NORMAL)
-            fs:SetTextColor(forced and 1 or 0.65, forced and 0.82 or 0.65, forced and 0 or 0.65)
+        local tallest = 14
+        for _, t in ipairs({ FORCED, FORCED_CLICK, Specs.EmptyModeDesc("collapse"), Specs.EmptyModeDesc("blank"),
+                Specs.EmptyModeDesc("dim", isBars) }) do
+            fs:SetText(t)
+            tallest = math.max(tallest, fs:GetStringHeight() or 14)
+        end
+        local h = 30 + tallest + 8
+        Refresh = function()
+            local mode, forced = ns.Bars.BarEmptyMode(key)
+            dd:SetItems(Items(forced))
+            dd:SetSelectedValue(mode)
+            local reason = forced and Specs.EmptyModeForcedText(key) or nil
+            fs:SetText(reason or Specs.EmptyModeDesc(mode, isBars))
+            fs:SetTextColor(reason and 1 or 0.65, reason and 0.82 or 0.65, reason and 0 or 0.65)
         end
         return h, Refresh
     end }
@@ -878,7 +901,7 @@ end
 ------------------------------------------------------------
 -- 跟著游標（自訂圖示群組，Core/Cursor.lua）：勾選框＋下一列灰字。條上有光環格、或勾了可點擊時不能跟
 -- （容器變保護框，戰鬥中不能移）：勾選框停用、灰字換成原因（黃字）；存的值不動，條件解除就回來。
--- 寫法同 FixedSlotsRow（表單引擎的 toggle 沒有停用狀態），高度取三種說法裡最高的。
+-- 寫法同 EmptyModeRow（表單引擎的控件沒有停用狀態），高度取三種說法裡最高的。
 ------------------------------------------------------------
 function CursorRow(key)
     local NORMAL = L["The group stays next to your mouse pointer. It goes back to its own position in Edit Mode and while this window is open."]
@@ -1180,12 +1203,12 @@ function Specs.Layout(key)
                 fields = { { key = "w", label = L["W"] }, { key = "h", label = L["H"] } } }))
         end
         if bar.source == "custom" then
-            -- 可點擊：勾了之後固定格位被強制打開（下一列的原因字），所以排在它前面
+            -- 可點擊：勾了之後「增益不在時」不能選往前補（那一列的原因字），所以排在它前面
             add(BS("toggle", "clickable", L["Clickable"], { level = "layout", refreshPage = true }))
             add(Note(L["Icons cast their spell or use their item when clicked, like action bar buttons. Aura slots are not affected."]))
         end
         if bar.source == "buffs" or bar.source == "custom" then
-            add(FixedSlotsRow(key))
+            add(EmptyModeRow(key))
         end
     else
         add(BS("slider", "bar.width", L["Width"], { min = 0, max = 600, step = 1 }))
@@ -1202,19 +1225,8 @@ function Specs.Layout(key)
             disabled = function(info) return not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.chargeSegments") end }))
         add(Note(L["Spells with charges that you added yourself: one segment per charge, and the one recharging fills up."]))
         if bar.source == "buffbars" or bar.source == "custom" then
-            add(FixedSlotsRow(key, true))
-            -- 空位的樣子：預設隱藏（位置照佔、什麼都不畫，同 EllesmereUI 圖示的 Keep Buffs in Same Place）；
-            -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條。固定格位沒開（也沒被強制）、
-            -- 也沒有任何一招逐法術勾「無增益時保留空位」（F7，同樣照這個樣子畫）時停用
-            add(BS("dropdown", "layout.emptyStyle", L["Empty slots"], { items = EMPTY_STYLE_ITEMS, level = "layout",
-                get = function() local b = ns.DB.BarTable(key); local l = b and b.layout
-                    return type(l) == "table" and l.emptyStyle == "bar" and "bar" or "hide" end,
-                disabled = function()
-                    local b = ns.DB.BarTable(key)
-                    local on = b and type(b.layout) == "table" and b.layout.fixedSlots
-                    if on or ns.Catalog.BarHasAuraSlot(key) or ns.DB.BarClickable(key) then return false end
-                    return ns.DB.CountOverrides(ns.Catalog.Bar(key), "slot") == 0
-                end }))
+            -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條；留空位＝它圖示的 Keep Buffs in Same Place
+            add(EmptyModeRow(key, true))
         end
         add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
         add(BS("color", "bar.color", L["Bar color"]))

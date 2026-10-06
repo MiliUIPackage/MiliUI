@@ -171,7 +171,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | 世代 | 作廢點（寫入出口） | 誰在讀 |
 |---|---|---|
 | `DB.overrideGen` | `SpecSpells`／`OverrideTable` 的 `create=true`、`SetOverride`（含清掉那條）、`DropOverrideTable`、`ClearOverrides`、`ResetOverrides`；自訂項目的每一個寫入（`TouchCustom` 一併 +1）；`Activate`（換設定檔）、`ResetProfile`、`ImportProfile`、換專精；直接改表的 `Sound.CustomRemove`、`Import.ResolvePending` 自己叫 `DB.TouchOverrides` | `Catalog.Replacements`、Decorate 的前置鍵 |
-| `DB.customGen` | `CustomList`／`ScopeList` 的 `create=true`（`AddCustom`／`AddCustomTo`）、`RemoveCustom`、`MoveCustomScope`、`CopyCustomEntry`、`SetCustomBar`、`DeleteBar`、`Activate`、`ResetProfile`、`ImportProfile`、換專精；設定頁直接改 `hideUnknown`／`placeholder` 叫 `DB.TouchCustom` | `DB.EffectiveCustom`、`Catalog.CustomInfo` |
+| `DB.customGen` | `CustomList`／`ScopeList` 的 `create=true`（`AddCustom`／`AddCustomTo`）、`RemoveCustom`、`MoveCustomScope`、`CopyCustomEntry`、`SetCustomBar`、`DeleteBar`、`Activate`、`ResetProfile`、`ImportProfile`、換專精；設定頁直接改 `hideUnknown` 叫 `DB.TouchCustom` | `DB.EffectiveCustom`、`Catalog.CustomInfo` |
 | `Catalog.buildGen` | `Build` 成功（`C.info`／`C.placed` 換新）、`Adopt` 收養（原地改） | `Catalog.Replacements` |
 | `Bars.flushes` | 每輪 `Flush` 開頭 | `Catalog.Overflow`（溢出結果一輪算一次；見「格數上限＋溢出到別條」） |
 | `Decorate.styleGen` | `InvalidateAll`（`resolved[barKey]` 只靠 generation 作廢，沒有單獨清的地方） | Decorate 的前置鍵 |
@@ -402,7 +402,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 光環格的硬規則（每條都是 12.1 限制推出來的，細節在檔頭）：
 
 - **任意位置**：光環格跟其他格走同一張 `order` 表，拖到哪就在哪（可以夾在暴雪的增益格之間；沒有 order 時照清單順序接在後面）。
-  條上有光環格時**固定格位強制打開**（`layout.fixedSlots` 的值不動；設定頁那一列停用並寫原因）——
+  條上有光環格時「增益不在時」**不能選往前補**（`layout.emptyMode` 的值不動；設定頁那一項灰掉並寫原因，見「增益不在時（三態）」）——
   每一格的位置都不動，其他增益收合也不會讓光環格的 x 變，戰鬥中不必動持有框，所以光環格放哪一格都一樣，
   不需要再固定排在最前面（2026-10-03 拿掉「固定前綴」）。
   接受的代價：戰鬥中暴雪的清單本身變了（例如學到／失去技能讓整段索引位移），持有框要等脫戰才動得了，
@@ -444,12 +444,12 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   秒數 `SetDurationText(fs, { textFormatter = 整數 formatter })`、層數 `SetApplicationCount(fs, {})`（不給格式器）、名字自己寫
   （`C_Spell.GetSpellName(主 spellID)`）、底色與火花烘進去、1px 邊圍住圖示與條身；生效發光畫在圖示那一格。長條的外觀全部進簽章
   （`AuraStyle(…, "bars")` 的 `|bars,…` 那一段）。占位：去飽和圖示＋空條（底色）＋灰名字畫在持有框上（排法變了才重排，走 `ns.Write`）；
-  `placeholder = false` 時什麼都不畫但位置照佔。
+  「增益不在時」是留空位時什麼都不畫但位置照佔。
 - 條上有光環格 ⇒ 固定格位強制打開（`Catalog.BarHasAuraSlot`，長條一樣）；暴雪增益長條不在時的占位只畫圖示那一格（`Core/Bars.lua`），不拉滿整條。
 - 逐法術面板：放在長條上的冷卻類藏掉觸發／就緒發光與冷卻狀態那幾列（用原本的 `when` 閘）；「所在條」列出每一條。
 
 逐法術面板對自訂項目：「所在條」改的是它自己的 bar（任何一條，圖示類、長條類都收）；光環格藏掉觸發／就緒發光與去飽和、
-多一列「無增益時保留空位」；「從這條移除」對自訂項目是整筆刪掉（後面的 id 往前挪：
+多一列「增益不在時」；「從這條移除」對自訂項目是整筆刪掉（後面的 id 往前挪：
 `DB.RemoveCustom` 同步改順序、隱藏、覆寫）。刪自訂群組時，上面的光環格回增益圖示、法術／物品回核心技能。
 未學會的自訂法術顯示問號（預覽、挑選器、真實條都是），滑鼠提示寫「尚未學會」。
 
@@ -1315,23 +1315,32 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - ⚠ 假設（待實機驗證）：rest 邊要成立，閘在最小值時填充貼圖必須是「寬 0、貼在左緣」（這樣它的 `TOPRIGHT` 就是閘的左緣、rest 是整條）；
   fill 邊本來就靠同一個行為。巢狀 `SetClipsChildren`（裁切框裡再一個裁切框）是否照常裁切也待驗。
 
-### 逐法術「無增益時保留空位」（暴雪的增益）（`Core/Bars.lua`、`Core/Layout.lua`、`Core/DB.lua`、`Options/SpellPopover.lua`，2026-10-04，F7）
+### 增益不在時（三態）（`Core/Layout.lua`、`Core/Bars.lua`、`Core/DB.lua`、`Modules/Custom.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`，2026-10-06）
 
-固定格位是整條的開關；這一項讓**單一個**暴雪增益（增益圖示／增益長條的 item）不在時也留著它的格子，其他增益照常收合。
+取代 F7 的「無增益時保留空位」（逐法術勾選）、條層的固定格位勾選與長條的「空位」下拉、光環格的 `e.placeholder`：
+條層與逐法術同一個下拉、同三個值。
 
-- **資料**：逐法術覆寫 `placeholder`（`SPELL_CONST = false`、沒有條層對應；`OVERRIDE_GROUP = "slot"`——它決定格子在不在，不是外觀，
-  條頁「清除外觀／發光覆寫」都不會清掉它）。勾＝`true`、取消／右鍵＝清掉覆寫（讀回 false）。舊存檔沒有這欄＝收合照舊，不遷移、`DB_VERSION` 不動。
-  光環格的「無增益時保留空位」是另一回事：存在那一筆自訂項目上（`e.placeholder`），不走這個欄位。
-- **判準**（純函式 `Layout.AuraSlot(shown, fixed, placeholder)` → `"item"`／`"placeholder"`／nil）：在 ⇒ 放 item；不在時固定格位開著／被強制，
-  **或**這一招 `SpellSetting(…, "placeholder") == true` ⇒ 占位 entry（跟固定格位同一條路：暴雪還顯示著的暗格先停放、不記 `slotOf`；
-  長條類的條照 `layout.emptyStyle`）；否則收合。回非 nil 的才認領（`claimedBy`）。
-- **位置**：沒開固定格位時，占位格就在清單順序的位置（增益回來時它本來也在那），其他不在、沒勾的照常收合往前補。
-- **溢出（F1）**：`Bars.Occupancy` 用同一支 `AuraSlot` ⇒ 勾了占位的不在增益照樣佔一格、算顆數。
-- **設定頁**（逐法術小窗「一般」分頁）：光環格那列「無增益時保留空位」同一個標籤，對暴雪的增益也顯示，下一列灰字說明；
-  條的固定格位開著（或因光環格／可點擊被強制）時勾選框顯示勾著並停用、灰字換成「每一格本來就保留」的原因（存的覆寫不動，條件解除就回來）。右鍵標籤清。
-  長條類條頁的「空位」下拉原本只在固定格位開著時可選；現在條上有任何一招勾了占位時也能選（占位照它畫）。
-- **預覽**：不畫記號（預覽本來就每格都畫）。
-- `/mcdm debug`：每條印「逐法術占位 N 格」，固定格位開著時註明「每一格本來就保留」。
+| 值 | 圖示類 | 長條類 | 排法 |
+|---|---|---|---|
+| `collapse` | 隱藏，後面的往前補 | 同左 | 不佔格、不認領 |
+| `blank` | 隱藏，留空位 | 同左 | 佔一格、什麼都不畫（blank entry） |
+| `dim` | 暗圖示佔位 | 空長條佔位 | 佔一格、畫占位 |
+
+- **資料**：條層 `layout.emptyMode`（預設 `collapse`）；逐法術覆寫 `emptyMode`（沒覆寫＝跟隨條；`OVERRIDE_GROUP = "slot"`，清外觀覆寫不清它）。
+  不走 `SPELL_FALLBACK`：條層值還要過下一條，讀的人一律走 `Bars.EmptyMode(barKey, id)`／`Bars.BarEmptyMode(barKey)`。
+- **光環格或可點擊的條**（forced）：格子戰鬥中不能動 ⇒ `collapse` 不成立。條層存著 collapse ⇒ 圖示類退 `dim`、長條類照舊欄位
+  `layout.emptyStyle`（`"bar"` ⇒ `dim`，其餘 `blank`；跟以前「強制固定格位」的畫面一樣，所以 v7 不刪它）。逐法術存著 collapse ⇒ **讀取時**當跟隨條
+  （`Layout.SpellEmptyMode`）：光環格可以只在某個專精，條是整個設定檔共用的，改存檔會洗掉別的專精的設定。
+- **暴雪的飾品增益格**（資料帶裝備欄位）跟隨條的 `dim` 時只留空位（2026-10-05 被動飾品回報）；逐法術自己選 `dim` 的照畫。
+- **判準**（純函式）：`Layout.BarEmptyMode(stored, forced, isBars, legacyStyle)`、`Layout.SpellEmptyMode(override, barMode, forced)` → `mode, own`、
+  `Layout.AuraSlot(shown, mode)` → `"item"`／`"placeholder"`／`"blank"`／nil。`Bars.Relayout` 放格、`Bars.Occupancy`（溢出顆數）、
+  光環格的占位（`Custom.WantPlaceholder`：`dim` 才畫）共用。條層不收合（`barMode ~= "collapse"`）時「沒有物品時隱藏／被動飾品不顯示」留空格（`Layout.HiddenSlot` 的 fixed）。
+- **設定頁**：條頁版面節一列下拉（增益圖示／增益長條／自訂群組），下一列灰字說明選中那一項；forced 時「往前補」灰掉（`|cff808080`、value `"locked"`，選了不寫）、
+  灰字換成原因（黃）。逐法術小窗「一般」分頁：光環格與暴雪的增益同一列，第一項「跟隨「條名」（條的生效值）」；forced 時同樣灰掉、灰字補原因；右鍵標籤清。
+- **遷移（v7）**：條層 `fixedSlots` true ⇒ 圖示類 `dim`／長條類照 `emptyStyle`；false ⇒ `collapse`；`fixedSlots` 刪掉。
+  逐法術 `placeholder` true ⇒ 依那一招所在條（專精表 `order` 找得到的那條）同樣對照，找不到 ⇒ `dim`；`placeholder` 刪掉。
+- **Ayije 匯入**：光環格 `placeholder = false` ⇒ 逐法術 `emptyMode = "blank"`。
+- `/mcdm debug`：每條印條層生效值、是否 forced、逐法術設了幾格。
 
 ### 長條：漸層填充（`Core/Decorate.lua`、`Core/StackGate.lua`、`Core/Glow.lua`、`Modules/Custom.lua`、`Options/Specs.lua`，2026-10-04，F8a）
 
@@ -3015,6 +3024,14 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 386. 旋轉急衝長條：用掉之後從空開始長、約 30 秒長滿；公共冷卻不會讓它掉下來；`StatusBarTimerDirection` 的列舉名稱對、方向是從左往右長。
 387. 長滿那一刻震一下、電光開始跑（掃光不會畫到條外面、呼吸亮層的顏色跟著長條色）；落地藏起來再出現時不會無故震。
 388. 充能數字：正中間、上下置中，用掉一格立刻變；字型／大小／顏色／XY 位移改了馬上套；數字蓋在格子邊框上面不被擋。
+
+**增益不在時（三態，2026-10-06）**
+
+389. 舊設定升級（v7）：原本勾了固定格位的增益圖示列還是暗圖示、沒勾的照舊往前補；長條原本「空長條」的還是空長條；逐法術勾過保留空位的照舊保留。
+390. 條頁：三個值切換馬上生效；條上加了光環格或勾可點擊時「往前補」變灰、點了沒反應、灰字換成黃色原因，拿掉光環格後恢復原本的值。
+391. 光環格逐格選「隱藏，留空位」：增益不在時那格空著、旁邊的不補位；增益出現時圖示照原位冒出來（戰鬥中也是）。
+392. 暴雪的增益逐法術選「隱藏，留空位」（條上有光環格）：同上；選「往前補」在沒有光環格的條上照常收合。
+393. 小窗下拉第一項「跟隨「條名」（…）」括號裡跟著條層的值變；右鍵標籤清回跟隨。
 
 **效能基準**
 

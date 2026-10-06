@@ -557,6 +557,7 @@ eq("report.pending 沒有 70", R2.pending[70], nil)
 local list70 = S.spells[70].custom
 eq("群組裡的光環格", list70 and list70[1] and list70[1].bar, gp)
 eq("光環格 placeholder false", list70 and list70[1].placeholder, false)
+eq("光環格 placeholder false ⇒ 增益不在時留空位", S.spells[70].overrides["c:1"] and S.spells[70].overrides["c:1"].emptyMode, "blank")
 eq("光環格 hideCooldownText ⇒ c:1 覆寫", S.spells[70].overrides["c:1"] and S.spells[70].overrides["c:1"].hideCooldownText, true)
 check("固定秒數的自訂增益略過", HasSkip(R2, "customBuffRegistry.55555", "noEquivalent", "customBuffs"))
 

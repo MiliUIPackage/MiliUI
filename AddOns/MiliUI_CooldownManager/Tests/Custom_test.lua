@@ -95,6 +95,8 @@ end
 load("Core/DB.lua")
 load("Core/Catalog.lua")
 load("Core/MasqueShape.lua")
+load("Core/Layout.lua")             -- 「增益不在時」的判準（BarEmptyMode／SpellEmptyMode）：光環格的占位要用
+local RealLayout = ns.Layout
 load("Modules/Custom.lua")          -- 替代品／多法術的純函式（第 8 節起）；載入時不建任何框
 load("Core/Text.lua")               -- 逐法術文字樣式的合併（Text.SpellText）：下面 stub 掉 ns.Text 的地方借用真的那幾支
 local RealText = ns.Text
@@ -464,7 +466,7 @@ do
                  ElementFont = function(own, gen) if own ~= nil and own ~= "INHERIT" then return own end return gen end,
                  Texture = function(t) return "tex:" .. tostring(t) end }
     ns.Write = function(frame, fn) fn(frame) return true end
-    ns.Layout = { Snap = function(v) return v end }
+    ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode }
     ns.P = { Scale = function(v) return v end }
     ns.Sound = { RequestAuraSync = function() end }
     ns.MiliUIGlow = nil
@@ -1043,7 +1045,7 @@ do
         fn(frame)
         return true
     end
-    ns.Layout = { Snap = function(v) return v end }
+    ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode }
     ns.P = { Scale = function(v) return v end }
     local soundSyncs = 0
     ns.Sound = { RequestAuraSync = function() soundSyncs = soundSyncs + 1 end }
@@ -1414,14 +1416,14 @@ do
         eq("buff 3：占位用飾品圖示", ph3 and ph3.tex.last_SetTexture and ph3.tex.last_SetTexture[1], 800000 + 270175)
         eq("buff 3：占位顯示", ph3 and ph3.frame.shown, true)
         eq("buff 3：占位是條容器的子框（不在持有框上）", ph3 and ph3.frame:GetParent(), bc)
-        -- 增益不在時：隱藏（保留空位）⇒ 占位不畫、持有框照放；改回來占位回來
-        r3.entry.hideMissing = true
+        -- 增益不在時：逐法術選留空位 ⇒ 占位不畫、持有框照放；清掉（跟隨條）占位回來
+        DB.SetOverride(r3.cooldownID, "emptyMode", "blank")
         CU.Place(r3, bc, { x = 80, y = 0, w = 36, h = 36 }, "buffs", 20)
-        eq("hideMissing：占位藏起來", ph3 and ph3.frame.shown, false)
-        eq("hideMissing：持有框照放（格子照留）", r3.frame and r3.frame.shown, true)
-        r3.entry.hideMissing = nil
+        eq("留空位：占位藏起來", ph3 and ph3.frame.shown, false)
+        eq("留空位：持有框照放（格子照留）", r3.frame and r3.frame.shown, true)
+        DB.SetOverride(r3.cooldownID, "emptyMode", nil)
         CU.Place(r3, bc, { x = 80, y = 0, w = 36, h = 36 }, "buffs", 20)
-        eq("hideMissing 清掉：占位回來", ph3 and ph3.frame.shown, true)
+        eq("跟隨條：占位回來", ph3 and ph3.frame.shown, true)
         eq("buff 1：持有框 parent ＝ 條容器", r1.frame:GetParent(), bc)
 
         -- 換飾品（脫戰）：buff 1 換成新飾品的使用效果、換容器；buff 2 這件沒有 ⇒ 舊容器收起來
@@ -2119,7 +2121,7 @@ do
         -- 固定格位 ⇒ 留空格（格數不變、後面的不往前補、不佔位以外照算）
         local util = DB.BarTable("utility")
         util.layout = util.layout or {}
-        util.layout.fixedSlots = true
+        util.layout.emptyMode = "blank"
         local xFixed
         Fresh()
         B.Relayout("utility", 2, index, 303)
@@ -2137,7 +2139,7 @@ do
         eq("戰鬥中（固定）：放回原格，格數不變", B.Count("utility"), 4)
         eq("戰鬥中（固定）：物品放回", rItem.placedBar, "utility")
         combat = false
-        util.layout.fixedSlots = nil
+        util.layout.emptyMode = nil
 
         -- 代畫格：被動飾品不顯示（槽 14 被動）；收掉時不拿代畫 rec
         local savedInfo3 = CV.GetCooldownViewerCooldownInfo
