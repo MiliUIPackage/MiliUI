@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-09T17:44:06.146Z
+  modified: 2026-10-06T19:19:11.925Z
 ---
 
 Warcraft Wiki: https://warcraft.wiki.gg/wiki/Secret_Values
@@ -47,6 +47,8 @@ region 的錨定狀態，不是尺寸怎麼來的。解法只有兩個方向：`
 `HasSecretValues()` 都標著 `SecretReturnsForAspect = { ObjectSecrets }`，對著一個帶
 ObjectSecrets 的物件問，拿回來的是**秘密布林**，`if frame:IsAnchoringSecret() then` 當場報錯。
 一律寫成先落地再 `issecretvalue()` 檢查，「看不出來」當作秘密。
+連 `region:GetNumPoints()` 都會回秘密數字（2026-10-07，冷卻管理器 item.Icon；`pcall` 包住呼叫沒用，
+炸在**比較**那一行）。要判斷「這張貼圖被誰改過錨點」別讀它，改成自己記旗標（MCDM 的 `holder.msqTouched`）。
 
 **暴雪自己的光環按鈕（BuffFrame / DebuffFrame 的 AuraContainer 子按鈕）也是這個狀態。**
 `btn.Icon:GetSize()` 回的是秘密數字，拿去比大小就是
