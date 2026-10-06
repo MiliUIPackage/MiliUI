@@ -681,6 +681,26 @@ end
 ------------------------------------------------------------
 -- 圖示／文字／效果（條頁與主題頁同一份）
 ------------------------------------------------------------
+-- 長條上的名字／時間（條自己的欄位，不跟主題）：放在「文字」分頁、長條類的條才有
+-- （原本在「版面」分頁最底下，玩家找不到「顯示名字」，2026-10-07 搬過來）。
+-- 名字開關：直向不畫名字（「垂直」的灰字寫了原因）⇒ 直向時開關本身也停用；名字關掉或直向 ⇒ 名字字型／字級兩列停用
+local function BarTextRows()
+    local function IsVertical(info) return ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.vertical") and true or false end
+    local function NoName(info)
+        return IsVertical(info) or not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.showName")
+    end
+    local nf = FontBS("bar.nameFont", L["Name font"])
+    nf.disabled = NoName
+    return {
+        Nested(L["Bar text"]),
+        BS("toggle", "bar.showName", L["Show name"], { disabled = IsVertical }),
+        nf,
+        BS("slider", "bar.nameSize", L["Name size"], { min = 6, max = 30, step = 1, disabled = NoName }),
+        FontBS("bar.timeFont", L["Time font"]),
+        BS("slider", "bar.timeSize", L["Time size"], { min = 6, max = 30, step = 1 }),
+    }
+end
+
 function Specs.Themed(mode, key)
     local bar = mode == "bar"
     local list = {}
@@ -857,6 +877,9 @@ function Specs.Themed(mode, key)
             K(StackBarPoint()),
             K(StackOffset()))
     end
+    -- 長條文字排在文字這一節的**最後**：跟隨遮罩蓋的是 section 第一列到最後一列的整塊矩形，
+    -- 這幾列是條自己的欄位（不跟主題），夾在中間會跟著被蓋住
+    if barsKind and bar then add(unpack(BarTextRows())) end
 
     -- 效果（發光、無損刷新、按鍵文字）
     add({ type = "header", label = L["Effects"], tab = "glow" })
@@ -1330,21 +1353,6 @@ function Specs.Layout(key)
         for _, row in ipairs(GradientRows(key)) do add(row) end
         add(BS("toggle", "bar.spark", L["Show spark"]))
         add(Note(L["A bright marker at the moving end of the bar."]))
-        -- 長條上的名字／時間：字型與字級（層數跟著「文字」那一節的層數）
-        add(Nested(L["Bar text"]))
-        -- 名字開關：直向不畫名字（上面「垂直」的灰字寫了原因）⇒ 直向時開關本身也停用；
-        -- 名字關掉或直向 ⇒ 名字字型／字級兩列停用
-        local function IsVertical(info) return ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.vertical") and true or false end
-        local function NoName(info)
-            return IsVertical(info) or not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.showName")
-        end
-        add(BS("toggle", "bar.showName", L["Show name"], { disabled = IsVertical }))
-        local nf = FontBS("bar.nameFont", L["Name font"])
-        nf.disabled = NoName
-        add(nf)
-        add(BS("slider", "bar.nameSize", L["Name size"], { min = 6, max = 30, step = 1, disabled = NoName }))
-        add(FontBS("bar.timeFont", L["Time font"]))
-        add(BS("slider", "bar.timeSize", L["Time size"], { min = 6, max = 30, step = 1 }))
     end
     return list
 end
