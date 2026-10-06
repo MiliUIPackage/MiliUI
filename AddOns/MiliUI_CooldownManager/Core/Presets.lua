@@ -100,6 +100,8 @@ P.AURAS = {
     { key = "timeSpiral",
       ids = { 375234, 375226, 375229, 375230, 375238, 375240, 375252,
               375253, 375254, 375255, 375256, 375257, 375258 } },
+    { key = "powerInfusion",   ids = { 10060 } },                         -- 灌注（牧師給的外部增益）
+    { key = "innervate",       ids = { 29166 } },                         -- 激活（德魯伊給的外部增益）
     { key = "lightsPotential", ids = { 1236616 } },
     { key = "recklessness",    ids = { 1236994 } },
     { key = "liquidLuster",    ids = { 1295132 } },
