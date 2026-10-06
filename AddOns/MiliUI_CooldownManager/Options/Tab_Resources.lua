@@ -852,40 +852,50 @@ local function MoveRow(ctx, key, dir)
     Changed(ctx)
 end
 
-local function ShowRow(cand, i)
-    local R = ns.Resources
-    local key = cand[i]
-    local first, last = i == 1, i == #cand
-    return { type = "custom", label = R.Name(key), h = ROW_TOGGLE_H, noReset = true,
+-- 「顯示哪些」那種一列：勾選框＋上移／下移＋「設定」鈕（開那一列自己的設定視窗）。
+-- 對外出借（Tab.OrderRow）：天空騎術頁的四列也用這一支，長相一致、不另抄一份。
+--   o = { label, first, last, get() → bool, set(on, ctx), move(dir, ctx), open() }
+function Tab.OrderRow(o)
+    return { type = "custom", label = o.label, h = ROW_TOGGLE_H, noReset = true,
              build = function(parent, x, y, width, ctx)
         local cy = y - ROW_TOGGLE_H / 2
-        local cb = W.CreateCheckButton(parent, nil, function(on)
-            local c = Cfg()
-            if not c then return end
-            -- 存在這個專精底下（rows[specID][key]）：跟預設一樣就清掉（＝照預設），空的子表也清掉
-            R.SetRow(c, ns.specID, key, on)
-            Touched(ctx)
-        end)
+        local cb = W.CreateCheckButton(parent, nil, function(on) o.set(on, ctx) end)
         cb:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
         local up = ArrowButton(parent, math.rad(90))
         up:SetPoint("LEFT", parent, "TOPLEFT", x + 32, cy)
         local down = ArrowButton(parent, math.rad(-90))
         down:SetPoint("LEFT", up, "RIGHT", 3, 0)
-        SetArrowEnabled(up, not first)
-        SetArrowEnabled(down, not last)
-        up:SetScript("OnClick", function() MoveRow(ctx, key, -1) end)
-        down:SetScript("OnClick", function() MoveRow(ctx, key, 1) end)
-        -- 這一列自己的設定（高、外觀、數字、顏色、條件規則）：開一個小視窗（Options/ResourceSettings.lua）
+        SetArrowEnabled(up, not o.first)
+        SetArrowEnabled(down, not o.last)
+        up:SetScript("OnClick", function() o.move(-1, ctx) end)
+        down:SetScript("OnClick", function() o.move(1, ctx) end)
         local sb = W.CreateButton(parent, L["Settings"], "normal", 70, 20)
         W.FitButton(sb, 70, 20)
         sb:SetPoint("LEFT", down, "RIGHT", 12, 0)
-        sb:SetScript("OnClick", function() ns.ResourceSettings.Open(key) end)
-        local function Refresh()
-            cb:SetChecked(R.RowOn(Cfg(), ns.specID, key))
-        end
+        sb:SetScript("OnClick", function() o.open() end)
+        local function Refresh() cb:SetChecked(o.get() and true or false) end
         Refresh()
         return ROW_TOGGLE_H, Refresh
     end }
+end
+
+local function ShowRow(cand, i)
+    local R = ns.Resources
+    local key = cand[i]
+    return Tab.OrderRow({
+        label = R.Name(key), first = i == 1, last = i == #cand,
+        get   = function() return R.RowOn(Cfg(), ns.specID, key) end,
+        set   = function(on, ctx)
+            local c = Cfg()
+            if not c then return end
+            -- 存在這個專精底下（rows[specID][key]）：跟預設一樣就清掉（＝照預設），空的子表也清掉
+            R.SetRow(c, ns.specID, key, on)
+            Touched(ctx)
+        end,
+        move  = function(dir, ctx) MoveRow(ctx, key, dir) end,
+        -- 這一列自己的設定（高、外觀、數字、顏色、條件規則）：開一個小視窗（Options/ResourceSettings.lua）
+        open  = function() ns.ResourceSettings.Open(key) end,
+    })
 end
 
 local function Controls(cand, sub)

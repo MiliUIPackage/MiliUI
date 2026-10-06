@@ -6,8 +6,10 @@
 -- 覆蓋：
 --   1. 預設值與面板登記（PANEL_KEYS／PANEL_ORDER 排最後／ConfigTable／舊存檔合併）
 --   2. 顯示判斷 SR.Evaluate／SR.Active：秘密值或讀不到、德比賽跑、地面上充能全滿、專用動作條、
---      舊的獨立插件還載著（blocked）、三排都關、API 拋錯
---   3. 版面：三排（旋轉急衝緊貼速度條下方）／只開一兩排的高與 y、上下對調、格數（明文 maxCharges、讀不到 6、上限）；新欄位的預設值
+--      舊的獨立插件還載著（blocked）、四列都關、API 拋錯
+--   3. 版面：照 order 排四列、關掉的列不佔高也不多間距、四列都關＝關、order 的清洗與上下移、格數（活力：明文、讀不到 6；
+--      重新振作：明文、讀不到 3）、活力底層疊不疊／文字來源、旋轉急衝秒數、圖示設定的清洗
+--   3b. 發佈前的欄位搬家（SR.Upgrade）：每個舊欄位的對應、圖示一律關、冪等、沒有舊欄位不動、跑完舊欄位都是 nil
 --   4. 速度：百分比換算、地區最高速度（巨龍群島系／競速／其他）、平滑、換色狀態（增益優先、時間啟發式容差）
 --   5. 旋轉急衝的顯示時機
 --   6. 接力的錨定決定（SR.RelayPlace）：資源條正常、關掉／收合、沒有錨定、錨定指回自己
@@ -137,15 +139,27 @@ eq("預設：接力", sd.placement, "relay")
 eq("預設：藏起冷卻管理器", sd.hideCdm, true)
 eq("預設：不錨定", sd.anchor, false)
 eq("預設：寬 0", sd.width, 0)
-eq("預設：旋轉急衝圖示不顯示（有長條）", sd.surge, "off")
-eq("預設：旋轉急衝長條開", sd.surgeBar, true)
+eq("預設：旋轉急衝圖示不顯示（有長條）", sd.rows.surge.icon.mode, "off")
+eq("預設：圖示不在面板層", sd.surge, nil)
 eq("預設：地面上充能全滿不隱藏", sd.hideGroundedFull, false)
 eq("沒存 hideGroundedFull ＝ 關：地面上全滿照樣顯示", SR.Evaluate({ enabled = true }, { powerBarID = 631, bonusIndex = 11, bonusOffset = 5, isGliding = false, charges = 6, maxCharges = 6 }), true)
-eq("預設：電光開", sd.surgeFx, true)
-eq("預設：填滿震動開", sd.surgeShake, true)
-eq("預設：充能數字開", sd.chargeText, true)
-check("預設：充能數字白色、置中", sd.colors.chargeText.r == 1 and sd.colors.chargeText.g == 1 and sd.colors.chargeText.b == 1
-    and sd.chargeTextOffset.x == 0 and sd.chargeTextOffset.y == 0 and sd.chargeTextFont == "INHERIT")
+eq("預設順序", table.concat(sd.order, ","), "speed,surge,vigor,secondWind")
+eq("預設：速度條開", sd.rows.speed.enabled, true)
+eq("預設：旋轉急衝長條開", sd.rows.surge.enabled, true)
+eq("預設：活力開", sd.rows.vigor.enabled, true)
+eq("預設：重新振作關", sd.rows.secondWind.enabled, false)
+eq("預設：電光開", sd.rows.surge.fx, true)
+eq("預設：填滿震動開", sd.rows.surge.shake, true)
+eq("預設：旋轉急衝秒數開", sd.rows.surge.text.show, true)
+eq("預設：活力文字開", sd.rows.vigor.text.show, true)
+eq("預設：活力文字印活力", sd.rows.vigor.textSource, "vigor")
+check("預設：活力文字白色、置中", sd.rows.vigor.text.color.r == 1 and sd.rows.vigor.text.anchor == "CENTER"
+    and sd.rows.vigor.text.x == 0 and sd.rows.vigor.text.y == 0 and sd.rows.vigor.text.font == "INHERIT")
+check("預設：速度文字靠右內縮 3", sd.rows.speed.text.anchor == "RIGHT" and sd.rows.speed.text.x == -3)
+check("預設：材質跟資源條", sd.rows.speed.texture == "INHERIT" and sd.rows.vigor.bgTexture == "INHERIT")
+check("預設：背景色 ＝ 資源條的暗底", sd.rows.speed.bgColor.r == 0.15 and sd.rows.speed.bgColor.a == 0.6)
+check("預設：各列的背景色不是同一張表", sd.rows.speed.bgColor ~= sd.rows.vigor.bgColor)
+check("預設：沒有第一階段的舊欄位", sd.speedOnTop == nil and sd.showSpeed == nil and sd.colors == nil and sd.chargeText == nil)
 check("PANEL_KEYS 有 skyriding", DB.PANEL_KEYS.skyriding == true and DB.IsPanel("skyriding"))
 eq("PANEL_ORDER：排最後", DB.PANEL_ORDER[#DB.PANEL_ORDER], "skyriding")
 ns.profile = d
@@ -171,8 +185,9 @@ local E = SR.Evaluate
 eq("飛行中 → 顯示", E(cfg, St()), true)
 eq("舊插件還載著 → 不顯示", E(cfg, St{ blocked = true }), false)
 eq("關掉 → 不顯示", E({ enabled = false }, St()), false)
-eq("三排都關 ＝ 關掉", E({ showSpeed = false, showCharges = false, surgeBar = false }, St()), false)
-eq("只開一排照常", E({ showSpeed = false }, St()), true)
+eq("四列都關 ＝ 關掉", E({ rows = { speed = { enabled = false }, surge = { enabled = false }, vigor = { enabled = false } } }, St()), false)
+eq("只開重新振作照常", E({ rows = { speed = { enabled = false }, surge = { enabled = false }, vigor = { enabled = false },
+    secondWind = { enabled = true } } }, St()), true)
 eq("德比賽跑 → 不顯示", E(cfg, St{ powerBarID = 650 }), false)
 do
     local st = St()
@@ -227,43 +242,56 @@ ns.profile.skyriding.hideCdm = true
 -- 3. 版面
 ------------------------------------------------------------
 do
-    -- 不開旋轉急衝長條：照舊兩排
-    local g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 1, speedOnTop = true, surgeBar = false })
-    eq("兩排：總高", g.h, 19)
-    eq("兩排：速度在上 y", g.speedY, 0)
-    eq("兩排：充能 y", g.chargeY, 9)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 1, speedOnTop = false, surgeBar = false })
-    eq("對調：充能 y", g.chargeY, 0)
-    eq("對調：速度 y", g.speedY, 11)
-    -- 三排：旋轉急衝一律緊貼在速度條下方
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, surgeHeight = 6, gap = 1, speedOnTop = true })
-    eq("三排：速度 y", g.speedY, 0)
-    eq("三排：旋轉急衝在速度下方", g.surgeY, 9)
-    eq("三排：充能在最下面", g.chargeY, 16)
-    eq("三排：總高 8+1+6+1+10", g.h, 26)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, surgeHeight = 6, gap = 1, speedOnTop = false })
-    eq("三排對調：充能在最上面", g.chargeY, 0)
-    eq("三排對調：速度在充能下方", g.speedY, 11)
-    eq("三排對調：旋轉急衝仍在速度下方", g.surgeY, 20)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, surgeHeight = 6, gap = 2, showSpeed = false })
-    eq("關速度：旋轉急衝頂上去", g.surgeY, 0)
-    eq("關速度：充能 y", g.chargeY, 8)
-    eq("關速度：總高 6+2+10", g.h, 18)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 3, showSpeed = false, surgeBar = false })
-    eq("只開充能：高（不加間距）", g.h, 10)
-    eq("只開充能：速度高 0", g.speedH, 0)
-    eq("只開充能：y", g.chargeY, 0)
-    g = SR.Geometry({ speedHeight = 8, chargeHeight = 10, gap = 3, showCharges = false, surgeBar = false })
-    eq("只開速度：高", g.h, 8)
-    eq("只開速度：y", g.speedY, 0)
+    local function Rows(t)
+        local r = {}
+        for k, v in pairs(t) do r[k] = type(v) == "table" and v or { enabled = v } end
+        return r
+    end
+    -- 預設順序：速度、旋轉急衝、活力（重新振作預設關）
+    local g = SR.Geometry({ gap = 1, rows = Rows{ speed = { enabled = true, height = 8 }, surge = { enabled = true, height = 6 },
+                                                  vigor = { enabled = true, height = 10 } } })
+    eq("預設三列：清單", table.concat(g.list, ","), "speed,surge,vigor")
+    eq("預設三列：速度 y", g.rows.speed.y, 0)
+    eq("預設三列：旋轉急衝 y", g.rows.surge.y, 9)
+    eq("預設三列：活力 y", g.rows.vigor.y, 16)
+    eq("預設三列：總高 8+1+6+1+10", g.h, 26)
+    eq("重新振作關：不佔位", g.rows.secondWind, nil)
     g = SR.Geometry({})
     eq("沒存：預設 8＋1＋6＋1＋10", g.h, 26)
-    check("三排都關：等同關掉", not SR.Enabled({ showSpeed = false, showCharges = false, surgeBar = false }))
-    check("只開旋轉急衝：還算開著", SR.Enabled({ showSpeed = false, showCharges = false }))
-    g = SR.Geometry({ speedHeight = 999, chargeHeight = -3, surgeHeight = 0, gap = 99 })
-    eq("夾值：速度 40", g.speedH, 40)
-    eq("夾值：充能 1", g.chargeH, 1)
-    eq("夾值：旋轉急衝 1", g.surgeH, 1)
+    -- 照 order 排
+    g = SR.Geometry({ gap = 2, order = { "vigor", "secondWind", "speed", "surge" },
+                      rows = Rows{ secondWind = { enabled = true, height = 5 } } })
+    eq("照 order：清單", table.concat(g.list, ","), "vigor,secondWind,speed,surge")
+    eq("照 order：重新振作 y", g.rows.secondWind.y, 12)
+    eq("照 order：速度 y", g.rows.speed.y, 19)
+    eq("照 order：總高 10+2+5+2+8+2+6", g.h, 35)
+    -- 關掉的列不佔高也不多間距
+    g = SR.Geometry({ gap = 3, rows = Rows{ speed = false, surge = false } })
+    eq("只開活力：高（不加間距）", g.h, 10)
+    eq("只開活力：y", g.rows.vigor.y, 0)
+    g = SR.Geometry({ gap = 3, rows = Rows{ surge = false } })
+    eq("中間那列關掉：活力緊接速度", g.rows.vigor.y, 11)
+    check("四列都關：等同關掉", not SR.Enabled({ rows = Rows{ speed = false, surge = false, vigor = false, secondWind = false } }))
+    check("只開重新振作：還算開著", SR.Enabled({ rows = Rows{ speed = false, surge = false, vigor = false, secondWind = true } }))
+    -- order 的清洗
+    eq("order 缺 key：補在後面", table.concat(SR.Order({ order = { "vigor" } }), ","), "vigor,speed,surge,secondWind")
+    eq("order 多 key／重複：丟掉", table.concat(SR.Order({ order = { "x", "surge", "surge", 3, "speed" } }), ","), "surge,speed,vigor,secondWind")
+    eq("order 不是表：預設", table.concat(SR.Order({ order = "bad" }), ","), "speed,surge,vigor,secondWind")
+    -- 上下移
+    local c = { order = { "speed", "surge", "vigor", "secondWind" } }
+    eq("上移", SR.MoveRow(c, "vigor", -1), true)
+    eq("上移後", table.concat(c.order, ","), "speed,vigor,surge,secondWind")
+    eq("最上面不能再上移", SR.MoveRow(c, "speed", -1), false)
+    eq("最下面不能再下移", SR.MoveRow(c, "secondWind", 1), false)
+    c = { order = { "secondWind" } }
+    SR.MoveRow(c, "secondWind", 1)
+    eq("缺 key 的 order 移動：寫回完整清單", table.concat(c.order, ","), "speed,secondWind,surge,vigor")
+    -- 夾值
+    g = SR.Geometry({ gap = 99, rows = Rows{ speed = { enabled = true, height = 999 }, vigor = { enabled = true, height = -3 },
+                                             surge = { enabled = true, height = 0 } } })
+    eq("夾值：速度 40", g.rows.speed.h, 40)
+    eq("夾值：活力 1", g.rows.vigor.h, 1)
+    eq("夾值：旋轉急衝 1", g.rows.surge.h, 1)
     eq("夾值：間距 20", g.gap, 20)
 
     eq("格數：明文 6", SR.CellCount(6), 6)
@@ -272,6 +300,117 @@ do
     eq("格數：秘密 6", SR.CellCount(SECRET), 6)
     eq("格數：上限 12", SR.CellCount(40), 12)
     eq("格數：0 → 6", SR.CellCount(0), 6)
+    eq("重新振作格數：明文 3", SR.SecondWindCount(3), 3)
+    eq("重新振作格數：明文 2", SR.SecondWindCount(2), 2)
+    eq("重新振作格數：讀不到 3", SR.SecondWindCount(nil), 3)
+    eq("重新振作格數：秘密 3", SR.SecondWindCount(SECRET), 3)
+    eq("重新振作格數：0 → 3", SR.SecondWindCount(0), 3)
+    eq("重新振作格數：上限 12", SR.SecondWindCount(99), 12)
+
+    -- 活力：重新振作那一列開著不疊、關著疊；文字來源
+    eq("重新振作列關：疊", SR.VigorOverlay({}), true)
+    eq("重新振作列關（明寫）：疊", SR.VigorOverlay({ rows = Rows{ secondWind = false } }), true)
+    eq("重新振作列開：不疊", SR.VigorOverlay({ rows = Rows{ secondWind = true } }), false)
+    eq("文字來源：預設活力", SR.VigorTextValue({}, 4, 2), 4)
+    eq("文字來源：重新振作", SR.VigorTextValue({ rows = { vigor = { textSource = "secondWind" } } }, 4, 2), 2)
+    eq("文字來源：重新振作讀不到 → nil", SR.VigorTextValue({ rows = { vigor = { textSource = "secondWind" } } }, 4, nil), nil)
+    check("文字來源：秘密值原樣回", rawequal(SR.VigorTextValue({}, SECRET, 2), SECRET))
+
+    -- 旋轉急衝秒數
+    eq("秒數：無條件進位", SR.SurgeSeconds(110.2, 100), 11)
+    eq("秒數：最後一點點印 1", SR.SurgeSeconds(100.01, 100), 1)
+    eq("秒數：好了 → nil", SR.SurgeSeconds(100, 100), nil)
+    eq("秒數：秘密 → nil", SR.SurgeSeconds(SECRET, 100), nil)
+    eq("秒數：讀不到 → nil", SR.SurgeSeconds(nil, 100), nil)
+    eq("文字錨點：LEFT", SR.TextPoint("LEFT"), "LEFT")
+    eq("文字錨點：不認得 → CENTER", SR.TextPoint("TOPLEFT"), "CENTER")
+
+    -- 旋轉急衝圖示
+    local m, sz, sd2 = SR.SurgeIcon({})
+    check("圖示：沒存 ＝ 關、24、右", m == "off" and sz == 24 and sd2 == "RIGHT")
+    m, sz, sd2 = SR.SurgeIcon({ rows = { surge = { icon = { mode = "always", size = 99, side = "TOP" } } } })
+    check("圖示：一直顯示、夾值 64、上", m == "always" and sz == 64 and sd2 == "TOP")
+    m = SR.SurgeIcon({ rows = { surge = { icon = { mode = "bogus" } } } })
+    eq("圖示：不認得的模式 ＝ 關", m, "off")
+end
+
+------------------------------------------------------------
+-- 3b. 發佈前的欄位搬家（SR.Upgrade）
+------------------------------------------------------------
+do
+    local function Old()
+        -- 第一階段的存檔：合併預設值已經補上 rows（新預設），舊欄位還在
+        local c = DB.BuildDefaults().profile.skyriding
+        c.speedOnTop, c.showSpeed, c.showCharges, c.surgeBar = false, false, true, false
+        c.speedHeight, c.chargeHeight, c.surgeHeight = 9, 12, 4
+        c.speedText = "LEFT"
+        c.speedColorOnCharges = true
+        c.surgeFx, c.surgeShake = false, false
+        c.chargeText, c.chargeTextSize, c.chargeTextFont, c.chargeTextOffset = false, 15, "思源黑體", { x = 2, y = -1 }
+        c.colors = { charge = { r = 0.1, g = 0.2, b = 0.3 }, secondWind = { r = 0.4, g = 0.5, b = 0.6 },
+                     lowSpeed = { r = 0.7, g = 0.7, b = 0.7 }, groundSkim = { r = 0.8, g = 0.6, b = 0.1 },
+                     thrill = { r = 0.2, g = 0.9, b = 0.2 }, surge = { r = 0, g = 1, b = 1 }, chargeText = { r = 1, g = 1, b = 0 } }
+        c.surge, c.surgeSize, c.surgeSide = "cooldown", 30, "LEFT"
+        return c
+    end
+    local c = Old()
+    eq("Upgrade：有舊欄位 → true", SR.Upgrade(c), true)
+    local r = c.rows
+    eq("showSpeed → speed.enabled", r.speed.enabled, false)
+    eq("showCharges → vigor.enabled", r.vigor.enabled, true)
+    eq("surgeBar → surge.enabled", r.surge.enabled, false)
+    eq("speedHeight → speed.height", r.speed.height, 9)
+    eq("chargeHeight → vigor.height", r.vigor.height, 12)
+    eq("surgeHeight → surge.height", r.surge.height, 4)
+    check("speedText LEFT → 文字靠左內縮 3", r.speed.text.show == true and r.speed.text.anchor == "LEFT" and r.speed.text.x == 3)
+    eq("speedColorOnCharges → vigor.speedColor", r.vigor.speedColor, true)
+    eq("surgeFx → surge.fx", r.surge.fx, false)
+    eq("surgeShake → surge.shake", r.surge.shake, false)
+    eq("chargeText → vigor.text.show", r.vigor.text.show, false)
+    eq("chargeTextSize → vigor.text.size", r.vigor.text.size, 15)
+    eq("chargeTextFont → vigor.text.font", r.vigor.text.font, "思源黑體")
+    check("chargeTextOffset → vigor.text.x／y", r.vigor.text.x == 2 and r.vigor.text.y == -1)
+    eq("colors.charge → vigor.color", r.vigor.color.r, 0.1)
+    eq("colors.secondWind → vigor.secondWindColor", r.vigor.secondWindColor.b, 0.6)
+    eq("colors.secondWind → secondWind.color", r.secondWind.color.g, 0.5)
+    check("兩個重新振作色不是同一張表", r.vigor.secondWindColor ~= r.secondWind.color)
+    check("速度三色", r.speed.colors.low.r == 0.7 and r.speed.colors.skim.r == 0.8 and r.speed.colors.thrill.g == 0.9)
+    eq("colors.surge → surge.color", r.surge.color.g, 1)
+    eq("colors.chargeText → vigor.text.color", r.vigor.text.color.b, 0)
+    eq("speedOnTop=false → 活力排最上", table.concat(c.order, ","), "vigor,speed,surge,secondWind")
+    eq("舊圖示 cooldown → 搬完一律關", r.surge.icon.mode, "off")
+    check("圖示尺寸／位置照搬", r.surge.icon.size == 30 and r.surge.icon.side == "LEFT")
+    local leftover = {}
+    for _, k in ipairs({ "speedOnTop", "showSpeed", "showCharges", "surgeBar", "speedHeight", "chargeHeight", "surgeHeight",
+                         "speedText", "speedColorOnCharges", "surgeFx", "surgeShake", "chargeText", "chargeTextSize",
+                         "chargeTextFont", "chargeTextOffset", "colors", "surge", "surgeSize", "surgeSide" }) do
+        if c[k] ~= nil then leftover[#leftover + 1] = k end
+    end
+    eq("舊欄位全部清掉", table.concat(leftover, ","), "")
+    -- 冪等：跑第二次什麼都不動
+    r.surge.icon.mode = "always"            -- 玩家之後自己打開
+    local snap = table.concat({ r.speed.height, r.vigor.height, tostring(r.speed.enabled), table.concat(c.order, ",") }, "|")
+    eq("Upgrade 第二次 → false", SR.Upgrade(c), false)
+    eq("第二次：值不變", table.concat({ r.speed.height, r.vigor.height, tostring(r.speed.enabled), table.concat(c.order, ",") }, "|"), snap)
+    eq("新格式已經是 always：不被改", r.surge.icon.mode, "always")
+    -- 沒有舊欄位：不動
+    local fresh = DB.BuildDefaults().profile.skyriding
+    fresh.rows.surge.icon.mode = "always"
+    eq("新存檔：Upgrade → false", SR.Upgrade(fresh), false)
+    eq("新存檔：圖示照舊", fresh.rows.surge.icon.mode, "always")
+    eq("新存檔：order 照舊", table.concat(fresh.order, ","), "speed,surge,vigor,secondWind")
+    -- speedText OFF、speedOnTop true（順序不動）
+    c = DB.BuildDefaults().profile.skyriding
+    c.speedText, c.speedOnTop = "OFF", true
+    SR.Upgrade(c)
+    eq("speedText OFF → 不顯示", c.rows.speed.text.show, false)
+    eq("speedOnTop true：順序不動", table.concat(c.order, ","), "speed,surge,vigor,secondWind")
+    eq("只有部分舊欄位：圖示照樣強制關", c.rows.surge.icon.mode, "off")
+    eq("不是表：false", SR.Upgrade(nil), false)
+    -- rows 整張不見的舊存檔也搬得過去
+    c = { enabled = true, showSpeed = false }
+    SR.Upgrade(c)
+    eq("沒有 rows 也建得出來", c.rows.speed.enabled, false)
 end
 
 ------------------------------------------------------------
