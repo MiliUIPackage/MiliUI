@@ -6,7 +6,7 @@
 --
 -- 分頁（J）：圖示｜文字｜效果｜音效，照 Specs.Themed 的四個頂層 header（Specs.SplitTabs）。
 -- 每個分頁一張表單，第一次切過去才建；記得上次看的分頁（只存執行期，同單一法術小窗）。
--- 文字分頁的倒數有子分頁（冷卻｜增益持續時間，K）：每個子分頁也是一張表單（Specs.FilterSubTab）。
+-- 文字分頁有兩組子分頁（倒數的冷卻｜增益持續時間、充能｜層數，K）：每種選法也是一張表單（Specs.FilterSubTab）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -32,7 +32,7 @@ Options.RegisterPage("theme", Options.PageTitle("theme"), function(parent, title
 
     local byTab, ids = Sp.SplitTabs(Sp.Themed("theme"))
     local forms, curTab = {}, ids[1]
-    local curSub = Sp.SUBTAB_DEFS[1].id     -- 文字分頁裡倒數的子分頁（冷卻｜增益持續時間，K）
+    local curSub = Sp.NewSubTabs()     -- 文字分頁的子分頁（冷卻｜增益持續時間、充能｜層數，K）
     local ShowTab
 
     local strip = Sp.CreateTabStrip(page, Options.PAGE_W_FULL - 4, function(id) ShowTab(id) end)
@@ -55,13 +55,13 @@ Options.RegisterPage("theme", Options.PageTitle("theme"), function(parent, title
         strip:SetTabs(ids, id)
         -- 子分頁（K）：每個子分頁一張表單；換子分頁捲動位置不動（子分頁鈕上面的列兩張一樣）
         local specs, hasSub = Sp.FilterSubTab(byTab[id], curSub)
-        local fkey = hasSub and (id .. "/" .. curSub) or id
+        local fkey = hasSub and (id .. "/" .. Sp.SubTabKey(curSub)) or id
         local form = forms[fkey]
         if not form then
             local ctx = Sp.MakeCtx({ mode = "theme" }, OnApply)
-            ctx.subTab = curSub
-            ctx.onSubTab = function(sub)
-                curSub = sub
+            ctx.subTab = CopyTable(curSub)
+            ctx.onSubTab = function(group, sub)
+                curSub[group] = sub
                 ShowTab(curTab)
             end
             form = Sp.BuildForm(scroll.child, specs, ctx, FORM_W)

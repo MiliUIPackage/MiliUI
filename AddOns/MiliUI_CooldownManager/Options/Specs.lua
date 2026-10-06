@@ -26,7 +26,8 @@
 --            表單引擎（共用層）沒有停用狀態，遮罩是 BuildForm 自己畫的；每次套用後重判
 --   reloadCheck  寫完（含右鍵重設）檢查圖示外觀要不要重載（Specs.CheckSkinReload）
 --   tab      頂層 header 才帶：這一節放在哪個分頁（Specs.SplitTabs；沒分頁的頁不看）
---   subTab   "cooldown" | "duration"：只進那個子分頁的表單（倒數文字的子分頁，K；Specs.FilterSubTab）
+--   subTab   "cooldown" | "duration" | "charges" | "stacks"：只進那個子分頁的表單（K；Specs.FilterSubTab）
+--   subGroup "cd" | "cs"：subTab 屬於哪一組子分頁（Specs.SUBTAB_GROUPS）
 --   breakMask  跟隨遮罩在這一列斷開、這一列不蓋（子分頁鈕）
 --
 -- ⚠ 條頁的主題欄位**讀的是繼承後的值**：沒跟隨、但這一格自己沒存的，看到的是主題的值。
@@ -411,9 +412,10 @@ end
 -- 表單引擎沒有「藏列」：子分頁的每一個選擇各是一張表單（同分頁的做法往下一層）。spec 帶 subTab 的列
 -- 只進那個子分頁的表單（Specs.FilterSubTab）；子分頁鈕那一列（SubTabRow）點了叫 ctx.onSubTab(id)，
 -- 頁面換一張表單、捲動位置不動（子分頁鈕上面的列兩張表單一模一樣）。目前選哪個存在 ctx.subTab（頁面建表單時填）。
+-- 一張表單可以有好幾組子分頁（SUBTAB_GROUPS），spec 的 subGroup 講是哪一組
 -- 子分頁鈕那一列 breakMask：跟隨遮罩在這裡斷開（鈕本身不蓋）
 -- 卡片（L）：子分頁鈕＋底下一張卡片包住子分頁的列（W.CreateTabCard）。卡片是 content 上的貼圖 ⇒ 列與遮罩都在它上面；
--- 鈕列這一列建卡片、記在 ctx.tabCard，底緣等 BuildForm 排完才知道（最後一個帶 subTab 的列）
+-- 鈕列這一列建卡片、記在 ctx.tabCards[組]，底緣等 BuildForm 排完才知道（同一組最後一個帶 subTab 的列）
 ------------------------------------------------------------
 local SUBTAB_DEFS = {
     { id = "cooldown", label = L["Cooldown"] },
@@ -429,27 +431,55 @@ function Specs.SubTabHelp()
     return L["%s: the countdown while the spell recharges."]:format(Y(L["Cooldown"])) .. "\n"
         .. L["%s: the countdown of a buff, on buff icons and in the part where a spell shows its buff's time first."]:format(Y(L["Buff duration"]))
 end
+
+-- 子分頁組（一張表單可以有好幾張卡片，各自選）：
+--   cd  倒數的「冷卻｜增益持續時間」（K）
+--   cs  「充能｜層數」（兩節控件幾乎一樣；拆成兩節時表單太長、法術小窗超出螢幕，使用者 2026-10-06）
+-- 頁面記目前的選擇在一張表 { cd = id, cs = id }（ctx.subTab），表單快取 key 用 Specs.SubTabKey
+-- labels：卡片裡會出現的標籤（量最長的那個定卡片左緣）；gap：鈕列上方多留的距離（cs 緊接在 cd 卡片底下）
+local SUBTAB_GROUPS = {
+    cd = { tabs = SUBTAB_DEFS, help = Specs.SubTabHelp, gap = 0,
+           labels = { "Decimals below", "Color when low", "Low color", "Low below (sec)" } },
+    cs = { tabs = { { id = "charges", label = L["Charges"] }, { id = "stacks", label = L["Stacks"] } }, gap = 10,
+           labels = { "Hide charges", "Hide stacks", "Font", "Font size", "Color", "Anchor", "Anchor (bars)", "Offset" } },
+}
+Specs.SUBTAB_GROUPS = SUBTAB_GROUPS
+local SUBTAB_ORDER = { "cd", "cs" }
+
+-- 新頁面的選擇表：每組第一個
+function Specs.NewSubTabs()
+    local t = {}
+    for g, def in pairs(SUBTAB_GROUPS) do t[g] = def.tabs[1].id end
+    return t
+end
+
 local SUBTAB_BTN_H, SUBTAB_BTN_MIN_W = 20, 56
 -- 卡片（L，W.CreateTabCard）：左右邊跟設定列同寬（見 SubTabRow）；
--- 上緣＝子分頁鈕列底，底＝這張表單最後一個帶 subTab 的列（BuildForm 排完之後補）
+-- 上緣＝子分頁鈕列底，底＝這張表單同一組最後一個帶 subTab 的列（BuildForm 排完之後補）
 local CARD_TOP = 4
 -- 卡片左右界：控件欄起點 x 往左扣「標籤與控件的間距＋最長標籤＋內距」，往右到標準控件寬＋內距（共用層 Controls 的版面常數）
 local CARD_GAP, CARD_PAD_X, CARD_CTRL_W, CARD_LABEL_MAX = 12, 10, 230, 128
-local CARD_LABELS = { "Decimals below", "Color when low", "Low color", "Low below (sec)" }
 
-local function Sub(id, spec)
-    if spec then spec.subTab = id end
+local function Sub(id, spec, group)
+    if spec then
+        spec.subTab = id
+        spec.subGroup = group or "cd"
+    end
     return spec
 end
+Specs.Sub = Sub
 
-local function SubTabRow()
+local function SubTabRow(group)
+    group = group or "cd"
+    local def = SUBTAB_GROUPS[group]
     return { type = "custom", noReset = true, breakMask = true, build = function(parent, x, y, width, ctx)
+        local sel = type(ctx.subTab) == "table" and ctx.subTab or {}
         local tc = W.CreateTabCard(parent, {
-            tabs = SUBTAB_DEFS, tabHeight = SUBTAB_BTN_H, tabMinWidth = SUBTAB_BTN_MIN_W,
-            help = Specs.SubTabHelp,
-            selected = ctx.subTab,
+            tabs = def.tabs, tabHeight = SUBTAB_BTN_H, tabMinWidth = SUBTAB_BTN_MIN_W,
+            help = def.help,
+            selected = sel[group] or def.tabs[1].id,
             onSelect = function(id)
-                if id ~= ctx.subTab and ctx.onSubTab then ctx.onSubTab(id) end
+                if id ~= sel[group] and ctx.onSubTab then ctx.onSubTab(group, id) end
             end,
         })
         -- 卡片跟上面的設定列同寬（使用者 2026-10-06：「太胖了，應該和上面一樣的縮排」）：
@@ -457,7 +487,7 @@ local function SubTabRow()
         local measure = parent:CreateFontString(nil, "OVERLAY")
         measure:SetFontObject(W.fontNormal)
         local labelW = 0
-        for _, k in ipairs(CARD_LABELS) do
+        for _, k in ipairs(def.labels) do
             measure:SetText(L[k])
             labelW = math.max(labelW, math.ceil(measure:GetStringWidth() or 0))
         end
@@ -465,24 +495,51 @@ local function SubTabRow()
         labelW = math.min(labelW, CARD_LABEL_MAX)
         local left = math.max(0, x - CARD_GAP - labelW - CARD_PAD_X)
         local right = math.min(x + width, x + CARD_CTRL_W + CARD_PAD_X)
-        local h = tc:Place(left, y - CARD_TOP, right - left)
-        ctx.tabCard = tc
-        ctx.tabCardX = { left = left, right = right }   -- 卡片裡停用列的遮罩只蓋卡片內（BuildForm）
-        local function Paint() tc:Select(ctx.subTab or SUBTAB_DEFS[1].id) end
+        local top = CARD_TOP + def.gap
+        local h = tc:Place(left, y - top, right - left)
+        ctx.tabCards = ctx.tabCards or {}
+        -- x：卡片裡停用列的遮罩只蓋卡片內（BuildForm）
+        ctx.tabCards[group] = { card = tc, x = { left = left, right = right } }
+        local function Paint() tc:Select(sel[group] or def.tabs[1].id) end
         Paint()
-        return CARD_TOP + h + W.TAB_CARD_PAD, Paint
+        return top + h + W.TAB_CARD_PAD, Paint
     end }
 end
 
+-- 帶 subTab 的列所在卡片的左右界：給 BuildForm 的停用遮罩用（ctx.tabCardX 是資源設定小窗自己的單一卡片）
+local function CardX(ctx, spec)
+    if not spec.subTab then return nil end
+    local cards = ctx.tabCards
+    local c = cards and cards[spec.subGroup or "cd"]
+    if c then return c.x end
+    return ctx.tabCardX
+end
+
 -- → 這個子分頁要的列（沒帶 subTab 的列一律留下）, 這串列有沒有子分頁
+-- cur：選擇表（{ cd = id, cs = id }，Specs.NewSubTabs）；字串＝只有一組、spec 不分組（資源設定小窗自己的子分頁）
 function Specs.FilterSubTab(specs, cur)
-    cur = cur or SUBTAB_DEFS[1].id
     local out, has = {}, false
     for _, spec in ipairs(specs) do
         if spec.subTab then has = true end
-        if not spec.subTab or spec.subTab == cur then out[#out + 1] = spec end
+        local keep = not spec.subTab
+        if not keep then
+            if type(cur) == "table" then
+                local g = spec.subGroup or "cd"
+                keep = spec.subTab == (cur[g] or SUBTAB_GROUPS[g].tabs[1].id)
+            else
+                keep = spec.subTab == (cur or SUBTAB_DEFS[1].id)
+            end
+        end
+        if keep then out[#out + 1] = spec end
     end
     return out, has
+end
+
+-- 表單快取 key 的子分頁那一段（每組依序接起來）
+function Specs.SubTabKey(cur)
+    local parts = {}
+    for _, g in ipairs(SUBTAB_ORDER) do parts[#parts + 1] = cur[g] or SUBTAB_GROUPS[g].tabs[1].id end
+    return table.concat(parts, "/")
 end
 
 -- 「本條 N 個法術有覆寫 ［清除覆寫］」：畫在小節標題那一行的右側，本身不佔高度
@@ -731,26 +788,44 @@ function Specs.Themed(mode, key)
         NB(Sub("duration", TS("text", "toggle", "cooldownText.buffLowColor", L["Color when low"]))),
         NB(Sub("duration", TS("icon", "color", "icon.durationLowColor", L["Low color"], { disabled = BuffLowOff }))),
         NB(Sub("duration", TS("text", "slider", "cooldownText.buffLowBelow", L["Low below (sec)"],
-            { min = 1, max = 30, step = 1, disabled = BuffLowOff }))),
-        NB(Nested(L["Charges"], "text")),
-        NB(FontTS("text", "chargeText.font")),
-        NB(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
-        NB(TS("text", "color", "chargeText.color", L["Color"])),
-        NB(PointGridTS("text", "chargeText.point", L["Anchor"], "BOTTOMRIGHT")),
-        NB(TS("text", "numbers", nil, L["Offset"], { sub = "chargeText", path = false,
-            resetPaths = { "chargeText.x", "chargeText.y" },
-            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })),
-        Nested(L["Stacks"], "text"),
-        FontTS("text", "stackText.font"),
-        TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
-        TS("text", "color", "stackText.color", L["Color"]),
-        NB(PointGridTS("text", "stackText.point", L["Anchor"], "TOP")),
-        -- 長條的層數另存一個錨點（圖示小、預設右下）：主題頁兩個都列，長條類的條頁只列這個、標籤就叫「錨點」
-        (not bar or barsKind) and PointGridTS("text", "stackText.barPoint",
-            bar and L["Anchor"] or L["Anchor (bars)"], "BOTTOMRIGHT") or nil,
-        TS("text", "numbers", nil, L["Offset"], { sub = "stackText", path = false,
+            { min = 1, max = 30, step = 1, disabled = BuffLowOff }))))
+    -- 充能｜層數（cs 組子分頁）：兩節控件幾乎一樣 ⇒ 一張卡片切換（使用者 2026-10-06：選單太長超出螢幕）。
+    -- 長條類的條沒有充能 ⇒ 不出卡片，層數照舊是一個小節
+    local function StackOffset()
+        return TS("text", "numbers", nil, L["Offset"], { sub = "stackText", path = false,
             resetPaths = { "stackText.x", "stackText.y" },
-            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
+            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
+    end
+    -- 長條的層數另存一個錨點（圖示小、預設右下）：主題頁兩個都列，長條類的條頁只列這個、標籤就叫「錨點」
+    local function StackBarPoint()
+        return (not bar or barsKind) and PointGridTS("text", "stackText.barPoint",
+            bar and L["Anchor"] or L["Anchor (bars)"], "BOTTOMRIGHT") or nil
+    end
+    if barsKind then
+        add(Nested(L["Stacks"], "text"),
+            FontTS("text", "stackText.font"),
+            TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 }),
+            TS("text", "color", "stackText.color", L["Color"]),
+            StackBarPoint(),
+            StackOffset())
+    else
+        local function C(spec) return Sub("charges", spec, "cs") end
+        local function K(spec) return Sub("stacks", spec, "cs") end
+        add(SubTabRow("cs"),
+            C(FontTS("text", "chargeText.font")),
+            C(TS("text", "slider", "chargeText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
+            C(TS("text", "color", "chargeText.color", L["Color"])),
+            C(PointGridTS("text", "chargeText.point", L["Anchor"], "BOTTOMRIGHT")),
+            C(TS("text", "numbers", nil, L["Offset"], { sub = "chargeText", path = false,
+                resetPaths = { "chargeText.x", "chargeText.y" },
+                fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })),
+            K(FontTS("text", "stackText.font")),
+            K(TS("text", "slider", "stackText.size", L["Font size"], { min = 6, max = 30, step = 1 })),
+            K(TS("text", "color", "stackText.color", L["Color"])),
+            K(PointGridTS("text", "stackText.point", L["Anchor"], "TOP")),
+            K(StackBarPoint()),
+            K(StackOffset()))
+    end
 
     -- 效果（發光、無損刷新、按鍵文字）＋淡出
     add({ type = "header", label = L["Effects"], tab = "glow" })
@@ -1485,6 +1560,13 @@ function Specs.BuildForm(parent, controls, ctx, width)
         end
         if last then ctx.tabCard:SetBottom(last.bottom - W.TAB_CARD_PAD) else ctx.tabCard:SetBottom(nil) end
     end
+    for group, c in pairs(ctx.tabCards or {}) do
+        local last
+        for _, row in ipairs(rows) do
+            if row.spec.subTab and (row.spec.subGroup or "cd") == group then last = row end
+        end
+        if last then c.card:SetBottom(last.bottom - W.TAB_CARD_PAD) else c.card:SetBottom(nil) end
+    end
 
     -- 跟隨遮罩的範圍：同一個 section 連續的那一段（中間夾的沒有 section 的列算進去）。
     -- 以前是一節一個矩形（第一列到最後一列）；「文字」節裡夾了一列歸「圖示」管的（增益持續時間的變色顏色，J），
@@ -1530,7 +1612,7 @@ function Specs.BuildForm(parent, controls, ctx, width)
             local m = CreateFrame("Frame", nil, content, "BackdropTemplate")
             -- 子分頁卡片裡的列：遮罩左右收在卡片框線內（不然整個表單寬，會凸出卡片兩側）
             local mx, mw = 0, width
-            local cx = spec.subTab and ctx.tabCardX
+            local cx = CardX(ctx, spec)
             if cx then mx, mw = cx.left + 1, cx.right - cx.left - 2 end
             m:SetPoint("TOPLEFT", content, "TOPLEFT", mx, row.top)
             m:SetSize(mw, math.max(1, row.top - row.bottom))
