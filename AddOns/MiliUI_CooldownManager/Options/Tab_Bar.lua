@@ -5,7 +5,7 @@
 --   標題（自訂群組多一顆「改名」）＋ 開暴雪冷卻管理器／開暴雪警示設定
 --   預覽即編輯器（Options/Preview.lua）
 --   一行灰字操作說明
---   分頁鈕（J）：版面（含錨定）｜顯示條件｜圖示｜文字｜效果｜音效（Specs.SplitTabs；這條沒有的節不出鈕）
+--   分頁鈕（J）：版面（含錨定、淡出）｜顯示條件｜圖示｜文字｜效果｜音效（Specs.SplitTabs；這條沒有的節不出鈕）
 --   捲動表單：目前分頁那一張（規格在 Options/Specs.lua）
 --
 -- 表單照「形狀」（Specs.BarSignature：第二列尺寸開關、有沒有錨定、條清單）＋分頁快取：
@@ -137,7 +137,8 @@ function TabBar.Build(parent, title, key)
         local sig = Sp.BarSignature(key)
         local shape = shapes[sig]
         if not shape then
-            local controls = Concat(Sp.Layout(key), Sp.Themed("bar", key), Sp.Visibility(), Sp.Anchor(key))
+            -- 錨定排在 Themed 前面：「版面」分頁的順序＝版面、錨定、淡出（淡出在 Themed 裡）
+            local controls = Concat(Sp.Layout(key), Sp.Anchor(key), Sp.Themed("bar", key), Sp.Visibility())
             local byTab, ids = Sp.SplitTabs(controls)
             shape = { byTab = byTab, ids = ids, forms = {} }
             shapes[sig] = shape

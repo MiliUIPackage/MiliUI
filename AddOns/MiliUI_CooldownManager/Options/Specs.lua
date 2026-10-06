@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 設定表單的規格與接線（條頁與主題頁共用）
 --
---   Specs.Themed(mode, key)       圖示／文字／效果／音效四節（mode = "bar" | "theme"；key ＝ 哪一條，長條沒有按鍵文字那一節）
+--   Specs.Themed(mode, key)       淡出（版面分頁）＋圖示／文字／效果／音效四節（mode = "bar" | "theme"；key ＝ 哪一條，長條沒有按鍵文字那一節）
 --   Specs.Layout(key)             版面（條頁）
 --   Specs.Visibility()            顯示條件（條頁）
 --   Specs.Anchor(key)             錨定（條頁）
@@ -718,6 +718,20 @@ function Specs.Themed(mode, key)
     -- 開關只認 false 是關（引擎 Text.CdLowBelow 同一個判準：沒存 ＝ 開）
     local function CdLowOff(info) return ReadThemed(info, "cooldownText.lowColorOn") == false end
 
+    -- 淡出：歸「版面」分頁（整條怎麼出現，跟圖示的長相無關；使用者 2026-10-06 從「效果」搬來）。
+    -- 主題頁因此多一個「版面」分頁排最前面；條頁接在版面與錨定後面（Tab_Bar 的 Concat 順序）
+    add({ type = "header", label = L["Fade"], tab = "layout" })
+    if bar then add(BS("toggle", "follow.fade", L["Follow global theme"], { refreshPage = true })) end
+    add(TS("fade", "toggle", "fade.enabled", L["Fade the bar"]),
+        TS("fade", "slider", "fade.alpha", L["Faded opacity"], { min = 0, max = 100, step = 5, scale = 100 }),
+        Note(L["0 hides it completely."], "fade"),
+        Nested(L["Stay fully visible when"], "fade"),
+        TS("fade", "toggle", "fade.keepInCombat", L["In combat"]),
+        TS("fade", "toggle", "fade.keepWithTarget", L["Has a target"]),
+        Note(L["Any checked condition that holds keeps the bar fully visible. With none checked it stays faded whenever fading is on."], "fade"),
+        TS("fade", "toggle", "fade.whenMounted", L["Always fade while mounted"]),
+        Note(L["Mounted or in a vehicle: fades regardless of the conditions above."], "fade"))
+
     -- 圖示
     add({ type = "header", label = L["Icons"], tab = "icon" })
     if bar then add(OverrideRow("icon"), FollowToggle("icon"),
@@ -830,7 +844,7 @@ function Specs.Themed(mode, key)
             K(StackOffset()))
     end
 
-    -- 效果（發光、無損刷新、按鍵文字）＋淡出
+    -- 效果（發光、無損刷新、按鍵文字）
     add({ type = "header", label = L["Effects"], tab = "glow" })
     if bar then add(OverrideRow("glow"), FollowToggle("glow")) end
     if not auraBar then
@@ -893,18 +907,6 @@ function Specs.Themed(mode, key)
                 resetPaths = { "keybind.x", "keybind.y" },
                 fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
     end
-    add(Nested(L["Fade"]))
-    if bar then add(BS("toggle", "follow.fade", L["Follow global theme"], { refreshPage = true })) end
-    add(TS("fade", "toggle", "fade.enabled", L["Fade the bar"]),
-        TS("fade", "slider", "fade.alpha", L["Faded opacity"], { min = 0, max = 100, step = 5, scale = 100 }),
-        Note(L["0 hides it completely."], "fade"),
-        Nested(L["Stay fully visible when"], "fade"),
-        TS("fade", "toggle", "fade.keepInCombat", L["In combat"]),
-        TS("fade", "toggle", "fade.keepWithTarget", L["Has a target"]),
-        Note(L["Any checked condition that holds keeps the bar fully visible. With none checked it stays faded whenever fading is on."], "fade"),
-        TS("fade", "toggle", "fade.whenMounted", L["Always fade while mounted"]),
-        Note(L["Mounted or in a vehicle: fades regardless of the conditions above."], "fade"))
-
     -- 音效：響什麼是逐法術設定（預覽裡點圖示）；主題頁放總開關與聲道，條頁只有覆寫數＋清除。
     -- 不掛 section：音效不走「跟隨全域主題」，條頁不蓋遮罩
     add({ type = "header", label = L["Sounds"], tab = "sound" })
@@ -1680,11 +1682,11 @@ end
 -- 放不下就換行（W.FlowLayout）。
 ------------------------------------------------------------
 local TAB_DEFS = {
-    { id = "layout",     label = L["Layout"] },        -- 版面＋錨定
+    { id = "layout",     label = L["Layout"] },        -- 版面＋錨定＋淡出
     { id = "visibility", label = L["Visibility"] },
     { id = "icon",       label = L["Icons"] },
     { id = "text",       label = L["Text"] },
-    { id = "glow",       label = L["Effects"] },       -- 效果＋淡出
+    { id = "glow",       label = L["Effects"] },
     { id = "sound",      label = L["Sounds"] },
 }
 Specs.TAB_DEFS = TAB_DEFS
