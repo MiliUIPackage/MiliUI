@@ -17,7 +17,8 @@
 --   * 放在長條類的條上的冷卻類（法術／物品／裝備欄）：觸發／就緒發光與冷卻狀態那幾列藏起來（長條不畫發光、
 --     冷卻狀態不套長條；判準跟 Decorate 的 isBar 同一個：這一條的 kind ＝ bars）。
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
---     多一列「無增益時保留空位」；沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
+--     多一列「增益不在時」：顯示暗圖示／隱藏（保留空位）（e.hideMissing；格子永遠保留，只決定畫不畫暗圖示）；
+--     沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
 --   * 暴雪的增益（增益圖示／增益長條）也有同一列「無增益時保留空位」（逐法術覆寫 placeholder，F7）：下一列灰字；
 --     條的固定格位開著（或被強制）時停用、灰字換成原因；右鍵清。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
@@ -1913,31 +1914,57 @@ local function Build()
     end
     AddRow(nsEntry)
 
-    -- 無增益時保留空位：
-    --   光環格 → 存在那一筆自訂項目上（e.placeholder），不是覆寫
-    --   暴雪的增益圖示／增益長條 → 逐法術覆寫 overrides[id].placeholder（F7，Core/Bars.lua 的 Relayout）；
-    --     條的固定格位開著（或被強制）時每一格本來就保留 ⇒ 停用＋灰字寫原因；右鍵標籤清
+    -- 光環格（含飾品欄增益）的「增益不在時」：顯示暗圖示（預設）／隱藏（保留空位）。存在那一筆上（e.hideMissing），
+    -- 不是覆寫。光環格所在的條固定格位一定被強制打開 ⇒ 格子永遠保留，這裡只決定空格裡畫不畫暗圖示
+    -- （Modules/Custom.lua 的 WantPlaceholder）。下一列灰字照選的值換說法（Refresh）
     buildTab = "general"
-    local pr = NewRow(L["Keep the slot while the buff is missing"], function(kind, class)
-        return IsAura(kind) or BlizzAura(kind, class)
-    end)
-    local pcb = W.CreateCheckButton(pr, nil, function(on)
+    local hmr = NewRow(L["While the buff is missing"], IsAura)
+    local hmdd = W.CreateDropdown(hmr, ROW_W - CTRL_X, {
+        { text = L["Show a dimmed icon"], value = false },
+        { text = L["Hide (keep the slot)"], value = true },
+    }, function(value)
         if not cur then return end
-        if frame.kind == nil then
-            if BarFixedSlots() then return end
-            ns.DB.SetOverride(cur.id, "placeholder", on and true or nil)
-            Changed()
-            return
-        end
         local e = ns.DB.CustomEntry(cur.id)
         if not e then return end
-        e.placeholder = on and true or false
+        e.hideMissing = value == true or nil
         ns.DB.TouchCustom()
-        Changed("membership")
+        Changed("membership")             -- 會叫 Pop.Refresh：灰字照新值換
+    end)
+    hmdd:SetMaxWidth(ROW_W - CTRL_X)
+    hmdd:SetPoint("LEFT", hmr, "LEFT", CTRL_X, 0)
+    frame.hideMissingDD = hmdd
+    do
+        local hmRow = CreateFrame("Frame", nil, frame)
+        local hmTip = Note(hmRow)
+        hmTip:SetPoint("TOPLEFT", hmRow, "TOPLEFT", CTRL_X, -2)
+        hmTip:SetWidth(ROW_W - CTRL_X)
+        hmTip:SetWordWrap(true)
+        hmTip:SetText(L["While the buff is missing, a dimmed icon holds its slot."])
+        local hmH = 2 + math.max(14, hmTip:GetStringHeight() or 0) + 6
+        hmRow:SetSize(ROW_W, hmH)
+        local hmEntry = { frame = hmRow, h = hmH, when = IsAura }
+        hmEntry.remeasure = function()
+            local sh2 = hmTip:GetStringHeight()
+            local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+            hmRow:SetHeight(nh)
+            hmEntry.h = nh
+        end
+        AddRow(hmEntry)
+        frame.hideMissingTip, frame.hideMissingTipEntry = hmTip, hmEntry
+    end
+
+    -- 無增益時保留空位（暴雪的增益圖示／增益長條）：逐法術覆寫 overrides[id].placeholder（F7，Core/Bars.lua 的 Relayout）；
+    --   條的固定格位開著（或被強制）時每一格本來就保留 ⇒ 停用＋灰字寫原因；右鍵標籤清
+    local pr = NewRow(L["Keep the slot while the buff is missing"], BlizzAura)
+    local pcb = W.CreateCheckButton(pr, nil, function(on)
+        if not cur or frame.kind ~= nil then return end
+        if BarFixedSlots() then return end
+        ns.DB.SetOverride(cur.id, "placeholder", on and true or nil)
+        Changed()
     end)
     pcb:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
     frame.placeholderCB = pcb
-    -- 暴雪的增益才有右鍵清（光環格的值不是覆寫，沒有「跟隨」可回）：寫法同 RightClickClears，多一道種類閘
+    -- 右鍵清：寫法同 RightClickClears，多一道種類閘
     do
         local hit = CreateFrame("Frame", nil, pr)
         hit:SetPoint("TOPLEFT", pr, "TOPLEFT", 0, 0)
@@ -1960,8 +1987,7 @@ local function Build()
     phTip:SetText(L["While this buff isn't up, it keeps its place, so the others don't shift."])
     local phH = 2 + math.max(14, phTip:GetStringHeight() or 0) + 6
     phRow:SetSize(ROW_W, phH)
-    -- 自訂光環格（含飾品欄增益）也有同一列「無增益時保留空位」（存在那一筆上）：灰字換成它的說法（Refresh 換）
-    local phEntry = { frame = phRow, h = phH, when = function(kind, class) return BlizzAura(kind, class) or kind == "aura" end }
+    local phEntry = { frame = phRow, h = phH, when = BlizzAura }
     phEntry.remeasure = function()
         local sh2 = phTip:GetStringHeight()
         local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
@@ -2212,8 +2238,13 @@ function Pop.Refresh()
     -- 暴雪增益的「無增益時保留空位」：灰字照固定格位換（換字之後重量，Layout 才排得對）
     local phFixed = kind == nil and class == "aura" and BarFixedSlots()
     if kind == "aura" then
-        frame.placeholderTip:SetText(L["Every slot on this bar is already kept: “Keep empty slots for missing buffs” is on (or forced on)."])
-        frame.placeholderTipEntry.remeasure()
+        local raw = ns.DB.CustomEntry(id)
+        local hide = type(raw) == "table" and raw.hideMissing == true
+        frame.hideMissingDD:SetSelectedValue(hide)
+        frame.hideMissingTip:SetText(hide
+            and L["While the buff is missing, this slot stays empty. The icons next to it don't move over."]
+            or L["While the buff is missing, a dimmed icon holds its slot."])
+        frame.hideMissingTipEntry.remeasure()
     elseif kind == nil and class == "aura" then
         frame.placeholderTip:SetText(phFixed
             and L["Every slot on this bar is already kept: “Keep empty slots for missing buffs” is on (or forced on)."]
@@ -2461,12 +2492,7 @@ function Pop.Refresh()
         r.dd:SetSelectedValue(v)
         r.listen:SetEnabled(v ~= false)
     end
-    if kind == "aura" then
-        -- 光環格所在的條固定格位一定被強制打開 ⇒ 不在時一律保留占位（Modules/Custom.lua 的 WantPlaceholder）：勾著＋停用
-        frame.placeholderCB:SetChecked(true)
-        frame.placeholderCB:SetEnabled(false)
-        frame.placeholderCB:SetAlpha(0.4)
-    elseif kind == nil and class == "aura" then
+    if kind == nil and class == "aura" then
         -- 固定格位開著：勾選框顯示「有保留」（勾著）並停用；存的覆寫不動，條件解除就回來
         frame.placeholderCB:SetChecked(phFixed or Override("placeholder") == true)
         frame.placeholderCB:SetEnabled(not phFixed)

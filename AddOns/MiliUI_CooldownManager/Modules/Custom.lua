@@ -37,6 +37,7 @@
 --   * 占位圖示（placeholder）是**獨立的普通框**（parent＝條容器、直接錨容器、層級在持有框底下；跟 Core/Bars.lua 的
 --     占位同一種結構 { frame, tex }），去飽和、alpha 0.35，邊框交給 Decorate.ApplyPlaceholder，按鈕出現自然蓋住。
 --     不畫在持有框上 ⇒ 不是保護框，戰鬥中照寫、Masque 也碰得到。長條的占位照舊畫在持有框上。
+--     逐格可選「增益不在時：隱藏（保留空位）」（e.hideMissing）：占位不畫、格子照留（固定格位，後面的不補位）。
 --   * 生效發光（overrides[id].activeGlow，跟暴雪增益格同一個逐法術開關，Core/Glow.lua）：發光畫在**按鈕**
 --     底下（initializeFrame 裡建子框＋MiliUIGlow 的 Attach 系列，動畫全是宣告式動畫組，秘密狀態下照樣播）。
 --     按鈕只在光環存在時顯示 ⇒ 發光跟著光環出現／消失，插件端不必知道光環在不在。
@@ -1960,9 +1961,11 @@ end
 -- 排法照 Decorate.ApplyBarGeometry（圖示一邊 h×h、間距、其餘是條身）；排法變了才重排，重排走 ns.Write
 -- （持有框整條鏈是保護框，戰鬥中記帳）
 -- 光環格的占位畫不畫：跟暴雪增益在固定格位條上同一套（Core/Bars.lua：固定格位開著 ⇒ 不在的增益一律畫占位；
--- 長條類另看「空位樣式」，不是 "bar" 就只留空位不畫）。有光環格的條固定格位一定被強制打開，所以圖示類一律畫——
--- 存檔的 e.placeholder 已經不影響畫面（設定頁那一列勾著＋停用、寫原因）
-local function WantPlaceholder(barKey, shape)
+-- 長條類另看「空位樣式」，不是 "bar" 就只留空位不畫）。有光環格的條固定格位一定被強制打開，所以圖示類預設畫——
+-- 存檔的 e.placeholder 已經不影響畫面（舊欄位，不復活：匯入帶進來的 false 會突然把格子藏掉）。
+-- 逐格的 e.hideMissing == true（設定頁「增益不在時：隱藏（保留空位）」）⇒ 兩種條都不畫：格子照留、後面的不補位
+local function WantPlaceholder(barKey, shape, e)
+    if type(e) == "table" and e.hideMissing == true then return false end
     if shape ~= "bars" then return true end
     local b = ns.DB and ns.DB.BarTable and ns.DB.BarTable(barKey)
     local layout = type(b) == "table" and type(b.layout) == "table" and b.layout or {}
@@ -1977,7 +1980,7 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
         if hd.phBG then hd.phBG:Hide(); hd.phIcon:Hide(); hd.phName:Hide() end
         hd.phSig = nil
     end
-    if not (e and WantPlaceholder(barKey, "bars")) then HideAll() return end
+    if not (e and WantPlaceholder(barKey, "bars", e)) then HideAll() return end
     local bar = ns.Setting(barKey, "bar")
     bar = type(bar) == "table" and bar or {}
     local side = bar.iconSide
@@ -2193,7 +2196,7 @@ local function UpdatePlaceholder(rec, c, r, barKey)
     local hd = rec.frame
     local e = rec.entry
     local look = hd.ph
-    if not (e and WantPlaceholder(barKey, "icons")) then
+    if not (e and WantPlaceholder(barKey, "icons", e)) then
         if look then look.frame:Hide() end
         return
     end

@@ -1414,6 +1414,14 @@ do
         eq("buff 3：占位用飾品圖示", ph3 and ph3.tex.last_SetTexture and ph3.tex.last_SetTexture[1], 800000 + 270175)
         eq("buff 3：占位顯示", ph3 and ph3.frame.shown, true)
         eq("buff 3：占位是條容器的子框（不在持有框上）", ph3 and ph3.frame:GetParent(), bc)
+        -- 增益不在時：隱藏（保留空位）⇒ 占位不畫、持有框照放；改回來占位回來
+        r3.entry.hideMissing = true
+        CU.Place(r3, bc, { x = 80, y = 0, w = 36, h = 36 }, "buffs", 20)
+        eq("hideMissing：占位藏起來", ph3 and ph3.frame.shown, false)
+        eq("hideMissing：持有框照放（格子照留）", r3.frame and r3.frame.shown, true)
+        r3.entry.hideMissing = nil
+        CU.Place(r3, bc, { x = 80, y = 0, w = 36, h = 36 }, "buffs", 20)
+        eq("hideMissing 清掉：占位回來", ph3 and ph3.frame.shown, true)
         eq("buff 1：持有框 parent ＝ 條容器", r1.frame:GetParent(), bc)
 
         -- 換飾品（脫戰）：buff 1 換成新飾品的使用效果、換容器；buff 2 這件沒有 ⇒ 舊容器收起來
