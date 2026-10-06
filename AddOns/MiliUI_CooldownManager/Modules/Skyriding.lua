@@ -381,8 +381,7 @@ local function CopyColor(c)
     return { r = tonumber(c.r) or 1, g = tonumber(c.g) or 1, b = tonumber(c.b) or 1, a = tonumber(c.a) or 1 }
 end
 
-function SR.Upgrade(cfg)
-    if type(cfg) ~= "table" then return false end
+local function MoveOldFields(cfg)
     local any = false
     for _, k in ipairs(OLD_FIELDS) do
         if cfg[k] ~= nil then any = true break end
@@ -459,6 +458,26 @@ function SR.Upgrade(cfg)
 
     for _, k in ipairs(OLD_FIELDS) do cfg[k] = nil end
     return true
+end
+
+-- 發佈前的小改動，用 cfg.rev 記做到第幾步（rev **不放進預設值**：合併預設值會先補上它，步驟就永遠跑不到）。
+--   1  旋轉急衝的預設高度 6 → 12（使用者 2026-10-06 指定）：還是舊預設 6 的才改，玩家自己調過別的值不動
+local REV_STEPS = {
+    [1] = function(cfg)
+        local s = type(cfg.rows) == "table" and cfg.rows.surge
+        if type(s) == "table" and tonumber(s.height) == 6 then s.height = 12 end
+    end,
+}
+SR.REV = #REV_STEPS
+
+-- 回傳 true ＝ 這次有搬第一階段的舊欄位（rev 步驟不算進回傳值）
+function SR.Upgrade(cfg)
+    if type(cfg) ~= "table" then return false end
+    local moved = MoveOldFields(cfg)
+    local rev = tonumber(cfg.rev) or 0
+    for i = rev + 1, #REV_STEPS do REV_STEPS[i](cfg) end
+    if rev < #REV_STEPS then cfg.rev = #REV_STEPS end
+    return moved
 end
 
 ------------------------------------------------------------
@@ -558,10 +577,9 @@ local function SurgeSpell()
 end
 
 -- 法術名：執行期讀（官方譯名），讀不到用語系檔的備用字。
--- 活力例外：372608 的法術名是「向前疾衝」（充能掛在那顆技能上），不是資源名；資源名「活力」用語系檔
---（照 GlobalStrings 的官方譯名寫）
+-- 「vigor」那一列顯示的是充能掛的那顆技能的名字（372608，zhTW「向前疾衝」），不是資源名「活力」
+--（使用者 2026-10-06 指定）；讀不到才退回語系檔的「活力」
 function SR.SpellName(which)
-    if which == "vigor" then return L["Vigor"] end
     local ids = { vigor = VIGOR_SPELL, secondWind = SECOND_WIND, surge = SURGE_SPELLS[2],
                   thrill = THRILL_AURAS[1], skim = SKIM_AURAS[1] }
     local fallback = { vigor = L["Vigor"], secondWind = L["Second Wind"], surge = L["Whirling Surge"],
@@ -571,10 +589,10 @@ function SR.SpellName(which)
     return fallback[which]
 end
 
--- 列名（設定頁的「顯示哪些」與每列設定視窗的標題）：速度條、活力用語系檔；旋轉急衝、重新振作執行期讀法術名
+-- 列名（設定頁的「顯示哪些」與每列設定視窗的標題）：速度條用語系檔；其餘三列執行期讀法術名（向前疾衝／旋轉急衝／重新振作）
 function SR.RowName(key)
     if key == "speed" then return L["Speed bar"] end
-    if key == "vigor" then return L["Vigor"] end
+    if key == "vigor" then return SR.SpellName("vigor") end
     return SR.SpellName(key)
 end
 

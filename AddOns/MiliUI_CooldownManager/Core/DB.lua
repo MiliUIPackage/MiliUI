@@ -432,7 +432,7 @@ SkyridingDefaults = function()
                 text   = SkyText(true, "RIGHT", -3, 12),      -- 速度百分比
             }),
             -- 旋轉急衝長條：好了是滿的、冷卻中從空長到滿（使用者 2026-10-06 指定）
-            surge = SkyRow(true, 6, {
+            surge = SkyRow(true, 12, {         -- 高 12（使用者 2026-10-06 指定；舊存檔的 6 由 Skyriding 的 rev 1 改）
                 color = rgba(0.30, 0.85, 1.00),
                 fx    = true,                     -- 滿的時候的電光（呼吸亮層＋下面選的樣式）
                 fxStyle = "lightning",            -- lightning（閃電序列圖，使用者 2026-10-06 要求）| sweep（掃光）

@@ -398,6 +398,22 @@ do
     local fresh = DB.BuildDefaults().profile.skyriding
     fresh.rows.surge.icon.mode = "always"
     eq("新存檔：Upgrade → false", SR.Upgrade(fresh), false)
+eq("新存檔：旋轉急衝預設高 12", fresh.rows.surge.height, 12)
+eq("新存檔：rev 記到最新", fresh.rev, SR.REV)
+do
+    -- rev 1：旋轉急衝還是舊預設 6 的改 12；調過別的值不動；做過一次就不再改
+    local c = DB.BuildDefaults().profile.skyriding
+    c.rows.surge.height = 6
+    SR.Upgrade(c)
+    eq("rev 1：舊預設 6 → 12", c.rows.surge.height, 12)
+    c.rows.surge.height = 6
+    SR.Upgrade(c)
+    eq("rev 1：做過之後玩家自己改回 6 不再動", c.rows.surge.height, 6)
+    local d = DB.BuildDefaults().profile.skyriding
+    d.rows.surge.height = 9
+    SR.Upgrade(d)
+    eq("rev 1：調過別的值不動", d.rows.surge.height, 9)
+end
     eq("新存檔：圖示照舊", fresh.rows.surge.icon.mode, "always")
     eq("新存檔：order 照舊", table.concat(fresh.order, ","), "speed,surge,vigor,secondWind")
     -- speedText OFF、speedOnTop true（順序不動）
