@@ -1392,10 +1392,20 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - **StackGate**：層數填充條 `SetOrientation` 跟著、刻度改水平線（`DrawTicks(…, vertical)`：離底緣 y＝條身長 × k/N）、`BodyWidth(w, h, side, gap, vertical)`；層簽章進 vertical。
   原色填充與換色色塊錨在填充貼圖上，自動跟著方向。漸層方向（H／V）語意不變、照貼圖座標。
 - **自訂光環長條**（AuraContainer）：`AuraStyle` 多 `vert`／`isz`（進簽章），`InitAuraBarButton` 照直向排圖示／條身／火花／秒數、不建名字；長條占位同。
-- 設定頁：「高度」下面「垂直」勾選（重建表單）＋下一列灰字（寬＝長、高＝粗、不顯示名字、時間在頂端）；直向時「名字字型」「名字字級」停用（原因寫在那句灰字）。
-  頁面上沒有獨立的「顯示名字」開關（`bar.showName` 只有匯入會寫），所以停用的是名字的兩列字型設定。
+- 設定頁：「高度」下面「垂直」勾選（重建表單）＋下一列灰字（寬＝長、高＝粗、不顯示名字、時間在頂端）；直向時「顯示名字」「名字字型」「名字字級」停用（原因寫在那句灰字）。
 - 純函式測試：`Tests/Layout_test.lua`（直向長條排版、grow 互通、`BarCellSize`）、`Tests/StackGate_test.lua`（直向條身長、水平刻度、填充條方向）、
   `Tests/Extras_test.lua` 第 14 節（直向幾何、暴雪火花轉向與還原）。
+
+### 長條：反向填充、顯示名字開關（2026-10-07，玩家要求）
+
+- `bar.reverseFill`（預設 false，舊存檔沒有 ＝ false）：橫向從右往左、直向從上往下。一律 `StatusBar:SetReverseFill(true/false)`（每次兩種值都寫，關掉才回得去），**值不碰**。
+- 跟著反向的地方：`D.ApplyBarGeometry`（`g.reverse`；暴雪增益長條、自訂法術長條、設定頁預覽同一支）、暴雪火花 `OrientBlizzPip`（錨填充左緣／直向底緣，弱鍵表記著）、
+  自己的火花 `D.AnchorFillPip`（`Modules/Custom.lua` 留一份 `AnchorPip`，測試環境沒有 Decorate）、層數當填充的填充條＋刻度（`SG.DrawTicks` 的 `reverse`：從右緣／頂緣量）、
+  充能分段（計數條＋進度條都反向、進度條改接填充左緣／底緣 `CU.SegProgAnchor`、分隔線反向）、光環長條（`st.rev` 進簽章）。
+  光環長條的占位只有底色沒有填充，不用動。名字／秒數位置不動。
+- 漸層：起點色跟著**填充起點**（`D.GradientFlip`：反向而且漸層沿填充那一軸——橫條的 H、直條的 V——時兩色對調；跨粗細那一軸不動）。
+- 「顯示名字」（`bar.showName`）：條頁「長條文字」小節第一列；名字關掉或直向時名字字型／字級停用。
+- 待實機驗證：暴雪增益長條 `SetReverseFill` 之後暴雪的倒數照常、火花位置；充能分段反向時回充那一段的位置；漸層對調的觀感。
 
 ## 資源條與施法條
 

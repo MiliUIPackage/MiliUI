@@ -820,7 +820,31 @@ do
     eq("直向：刻度錨底緣", tf.tickLines[1].points[1][1], "BOTTOMLEFT")
     eq("直向：第 1 條 y", tf.tickLines[1].points[1][5], 40)
     eq("直向：水平線的兩點", tf.tickLines[1].points[2][1], "BOTTOMRIGHT")
+    -- 直向＋反向填充：刻度改從頂緣量（第 k 層的線照樣落在第 k 層的位置）
+    local rev
+    fb.SetReverseFill = function(_, v) rev = v end
+    settings.bar.reverseFill = true
+    SG.Apply(it, rec, "buffbars", 20, 220, true)
+    eq("直向反向：填充條反向", rev, true)
+    eq("直向反向：刻度錨頂緣", tf.tickLines[1].points[1][1], "TOPLEFT")
+    eq("直向反向：第 1 條 y 往下", tf.tickLines[1].points[1][5], -40)
     settings.bar.vertical = nil
+    overrides[41].stackTicks = { at = { 2 } }
+    SG.Apply(it, rec, "buffbars", 120, 20, true)
+    local xNormal
+    do
+        settings.bar.reverseFill = nil
+        SG.Apply(it, rec, "buffbars", 120, 20, true)
+        eq("關掉反向：填充條不反向", rev, false)
+        eq("正向：刻度錨左緣", tf.tickLines[1].points[1][1], "TOPLEFT")
+        xNormal = tf.tickLines[1].points[1][4]
+        settings.bar.reverseFill = true
+        SG.Apply(it, rec, "buffbars", 120, 20, true)
+        eq("反向：簽章變了重畫，刻度錨右緣", tf.tickLines[1].points[1][1], "TOPRIGHT")
+        eq("反向：離右緣同一段距離", tf.tickLines[1].points[1][4], -xNormal)
+        settings.bar.reverseFill = nil
+    end
+    overrides[41].stackTicks = { at = "all" }
     SG.Apply(it, rec, "buffbars", 120, 20, true)
     eq("切回橫向：填充條橫向", orient, "HORIZONTAL")
     overrides[41].stackTicks = { at = { 2 } }

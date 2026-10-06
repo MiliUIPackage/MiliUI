@@ -1311,6 +1311,8 @@ function Specs.Layout(key)
         -- 直向（F8c）：整條轉 90 度；表單要換圖示位置的字與成長方向的選項 ⇒ 重建
         add(BS("toggle", "bar.vertical", L["Vertical"], { refreshPage = true }))
         add(Note(L["The bar stands upright and fills from the bottom; bars line up side by side. Width is the bar's length and height its thickness. Names aren't shown, and the time sits at the top of the bar."]))
+        add(BS("toggle", "bar.reverseFill", L["Reverse fill"]))
+        add(Note(L["Fills from the right instead of the left (from the top when vertical)."]))
         add(BS("dropdown", "bar.iconSide", L["Icon position"], { items = vertical and SIDE_ITEMS_V or SIDE_ITEMS }))
         add(BS("slider", "bar.iconGap", L["Icon gap"], { min = 0, max = 10, step = 1 }))
         -- 充能分段（F8b，Modules/Custom.lua）：只對自己加的、有充能的法術；分隔線色沒勾時停用
@@ -1330,8 +1332,13 @@ function Specs.Layout(key)
         add(Note(L["A bright marker at the moving end of the bar."]))
         -- 長條上的名字／時間：字型與字級（層數跟著「文字」那一節的層數）
         add(Nested(L["Bar text"]))
-        -- 直向不畫名字（上面「垂直」的灰字寫了原因）⇒ 兩列停用
-        local function NoName(info) return ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.vertical") and true or false end
+        -- 名字開關：直向不畫名字（上面「垂直」的灰字寫了原因）⇒ 直向時開關本身也停用；
+        -- 名字關掉或直向 ⇒ 名字字型／字級兩列停用
+        local function IsVertical(info) return ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.vertical") and true or false end
+        local function NoName(info)
+            return IsVertical(info) or not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.showName")
+        end
+        add(BS("toggle", "bar.showName", L["Show name"], { disabled = IsVertical }))
         local nf = FontBS("bar.nameFont", L["Name font"])
         nf.disabled = NoName
         add(nf)

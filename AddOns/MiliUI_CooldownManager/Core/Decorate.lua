@@ -1408,18 +1408,24 @@ end
 -- 長條的版面：圖示邊、條身、底色、材質
 ------------------------------------------------------------
 -- 暴雪條的火花（Pip）：暴雪只在 OnLoad 錨一次（CENTER → 填充貼圖的 RIGHT, 0, -1），之後不再動。
--- 直向時改錨填充的頂緣、轉 90 度；切回橫向時照暴雪原本的錨回去。動過的記在弱鍵表（不寫暴雪的欄位）
+-- 直向時改錨填充的頂緣、轉 90 度；反向填充（bar.reverseFill）時移動的那一端在填充的左緣（直向＝底緣）；
+-- 回到橫向不反向時照暴雪原本的錨回去。動過的記在弱鍵表（不寫暴雪的欄位）
 local turnedPip = setmetatable({}, { __mode = "k" })
-local function OrientBlizzPip(b, vertical)
+local function OrientBlizzPip(b, vertical, reverse)
     local pip = b.Pip
     if not pip or b.ownPip then return end
-    if not vertical and not turnedPip[pip] then return end
+    local stock = not vertical and not reverse
+    if stock and not turnedPip[pip] then return end
     local ok, fill = pcall(b.GetStatusBarTexture, b)
     if not ok or not fill then return end
     pip:ClearAllPoints()
     if vertical then
-        pip:SetPoint("CENTER", fill, "TOP", 0, 0)
+        pip:SetPoint("CENTER", fill, reverse and "BOTTOM" or "TOP", 0, 0)
         if pip.SetRotation then pcall(pip.SetRotation, pip, math.pi / 2) end
+        turnedPip[pip] = true
+    elseif reverse then
+        pip:SetPoint("CENTER", fill, "LEFT", 0, -1)
+        if pip.SetRotation then pcall(pip.SetRotation, pip, 0) end
         turnedPip[pip] = true
     else
         pip:SetPoint("CENTER", fill, "RIGHT", 0, -1)
@@ -1428,15 +1434,37 @@ local function OrientBlizzPip(b, vertical)
     end
 end
 
--- g = { h, w, side, gap, vertical }：格子尺寸由排版給（不讀框）。
+-- 自己畫的火花（ownPip：設定頁假條、自訂長條；2px 亮線）錨在填充**移動的那一端**：
+--   橫向＝右緣（反向＝左緣）；直向（F8c）＝頂緣（反向＝底緣）。只錨不讀（fill 可能是跟著秘密值走的填充貼圖）
+--   Modules/Custom.lua 的充能分段／光環長條是同一套錨法（那邊在測試裡沒有 Decorate，自己留一份）
+function D.AnchorFillPip(pip, fill, vertical, reverse)
+    if not (pip and fill) then return end
+    pip:ClearAllPoints()
+    if vertical then
+        local e = reverse and "BOTTOM" or "TOP"
+        pip:SetPoint("LEFT", fill, e .. "LEFT", 0, 0)
+        pip:SetPoint("RIGHT", fill, e .. "RIGHT", 0, 0)
+        pip:SetHeight(2)
+    else
+        local e = reverse and "LEFT" or "RIGHT"
+        pip:SetPoint("TOP", fill, "TOP" .. e, 0, 0)
+        pip:SetPoint("BOTTOM", fill, "BOTTOM" .. e, 0, 0)
+        pip:SetWidth(2)
+    end
+end
+
+-- g = { h, w, side, gap, vertical, reverse }：格子尺寸由排版給（不讀框）。
 -- 直向（F8c）：圖示 w×w（w ＝ 條的粗細），side 的 LEFT／RIGHT 當上／下；條身 SetOrientation("VERTICAL")
+-- 反向填充（bar.reverseFill）：SetReverseFill 只換填充起點（橫向從右、直向從上），值一個都不碰（可能是秘密值）；
+-- true／false 每次都寫，關掉時才回得去
 function D.ApplyBarGeometry(item, rec, g)
     local icon, b = item.Icon, item.Bar
     if not (icon and b) then return end
     local h = g.h
     local gap = ns.Layout.Snap(g.gap or 0)
     if b.SetOrientation then b:SetOrientation(g.vertical and "VERTICAL" or "HORIZONTAL") end
-    OrientBlizzPip(b, g.vertical)
+    if b.SetReverseFill then b:SetReverseFill(g.reverse and true or false) end
+    OrientBlizzPip(b, g.vertical, g.reverse)
     icon:ClearAllPoints()
     b:ClearAllPoints()
     if g.vertical then
@@ -1484,6 +1512,8 @@ end
 --   bar.gradient = false | { color2 = rgba, dir = "H" | "V" }
 --   起點（橫向的左、直向的下）是 bar.color、終點是 color2；SetGradient 套在**填充貼圖**上，
 --   所以漸層跨的是「已填的那一截」（條縮短時兩端顏色都在，跟條身寬無關）。
+--   反向填充（bar.reverseFill）：起點色跟著**填充的起點**走（決定：條從右邊長出來時，起點色在右）⇒ 漸層方向
+--   跟條的填充方向同一軸時兩色對調（D.GradientFlip）；跨粗細那一軸（橫條的 V、直條的 H）不受反向影響。
 --
 -- SetVertexColor 與 SetGradient 的關係（共用頂點色、後寫的贏，或是兩者相乘）沒查證 ⇒ 兩種模型都對的寫法：
 --   開漸層：先 SetVertexColor 白、再 SetGradient（共用 ⇒ 漸層贏；相乘 ⇒ 白 × 漸層）
@@ -1509,6 +1539,14 @@ function D.GradientSig(g)
     return cg.dir .. ":" .. CSig(cg.color2)
 end
 
+-- 漸層兩色要不要對調（純函式，Tests/Extras_test.lua）：反向填充、而且漸層沿著填充方向（橫條的 H、直條的 V）
+function D.GradientFlip(bar)
+    if type(bar) ~= "table" or not bar.reverseFill then return false end
+    local cg = D.CleanGradient(bar.gradient)
+    if not cg then return false end
+    return (cg.dir == "V") == (bar.vertical and true or false)
+end
+
 local function MakeColor(r, g, b, a)
     local mk = _G.CreateColor
     return mk and mk(r, g, b, a) or nil
@@ -1523,6 +1561,7 @@ function D.PaintFill(tex, bar, solid)
         local c1 = MakeColor(C4(bar.color, 0.4, 0.6, 0.9, 1))
         local c2 = MakeColor(cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a)
         if c1 and c2 then
+            if D.GradientFlip(bar) then c1, c2 = c2, c1 end
             tex:SetVertexColor(1, 1, 1, 1)
             local ok = pcall(tex.SetGradient, tex, cg.dir == "V" and "VERTICAL" or "HORIZONTAL", c1, c2)
             if ok then
@@ -1564,20 +1603,10 @@ local function ApplyBarLook(item, rec, style, bar)
     if pip then
         if b.ownPip then
             -- 充能分段（F8b）時跟著進度條的填充末端（b.pipAnchor，Modules/Custom.lua 設；只錨不讀）
+            -- 直向（F8c）是頂緣一條橫線；反向填充時換到另一端（D.AnchorFillPip）
             local fill = b.pipAnchor or (b.GetStatusBarTexture and b:GetStatusBarTexture())
             pip:ClearAllPoints()
-            if fill then
-                if bar.vertical then
-                    -- 直向（F8c）：填充由下往上，火花是頂緣一條橫線
-                    pip:SetPoint("LEFT", fill, "TOPLEFT", 0, 0)
-                    pip:SetPoint("RIGHT", fill, "TOPRIGHT", 0, 0)
-                    pip:SetHeight(2)
-                else
-                    pip:SetPoint("TOP", fill, "TOPRIGHT", 0, 0)
-                    pip:SetPoint("BOTTOM", fill, "BOTTOMRIGHT", 0, 0)
-                    pip:SetWidth(2)
-                end
-            end
+            if fill then D.AnchorFillPip(pip, fill, bar.vertical, bar.reverseFill) end
         end
         pip:SetAlpha(bar.spark and 1 or 0)
     end
@@ -1903,7 +1932,8 @@ function D.Apply(item, rec, barKey, w, h)
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
-        rec.barGeometry = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false }
+        rec.barGeometry = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
+            reverse = bar.reverseFill and true or false }
         D.ApplyBarGeometry(item, rec, rec.barGeometry)
         ApplyBarLook(item, rec, style, bar)
         -- 長條交給 Masque 的是 item.Icon 那一層（整個 item 交出去的話皮會被拉成條的寬度）；
@@ -2037,7 +2067,8 @@ function D.ApplyPreview(cell, barKey, id, w, h)
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
-        local g = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false }
+        local g = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
+            reverse = bar.reverseFill and true or false }
         D.ApplyBarGeometry(cell, nil, g)
         ApplyBarLook(cell, nil, style, bar)
         local skinned = false
