@@ -918,3 +918,5 @@ L["Seconds left on the cooldown; nothing while it's ready."] = "재사용 대기
 L["%s charges"] = "%s 충전 횟수"
 L["How many %s charges you have."] = "현재 %s 충전 횟수입니다."
 L["Shake after it fills up"] = "가득 찬 뒤 흔들기"
+L["Lightning"] = "번개"
+L["Sweep"] = "훑는 빛"

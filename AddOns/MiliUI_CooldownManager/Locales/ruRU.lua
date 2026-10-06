@@ -918,3 +918,5 @@ L["Seconds left on the cooldown; nothing while it's ready."] = "Секунды �
 L["%s charges"] = "Заряды: %s"
 L["How many %s charges you have."] = "Сколько у вас зарядов «%s»."
 L["Shake after it fills up"] = "Встряхнуть после заполнения"
+L["Lightning"] = "Молния"
+L["Sweep"] = "Блик"
