@@ -45,6 +45,7 @@ L["Failed to start (%s). Blizzard's Cooldown Manager has been handed back; type 
 L["This client can't create export strings."] = "Questo client non può creare stringhe di esportazione."
 L["Couldn't create the export string. Try again after /reload."] = "Impossibile creare la stringa di esportazione. Riprova dopo /reload."
 L["Minimap button shown."] = "Pulsante della minimappa visibile."
+L["Show minimap button"] = "Mostra pulsante della minimappa"
 L["Minimap button hidden. Type /mcdm minimap to bring it back."] = "Pulsante della minimappa nascosto. Digita /mcdm minimap per farlo tornare."
 L["Apply"] = "Applica"
 L["Okay"] = "OK"

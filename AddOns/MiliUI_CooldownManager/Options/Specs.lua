@@ -720,6 +720,12 @@ function Specs.Themed(mode, key)
 
     -- 淡出：歸「版面」分頁（整條怎麼出現，跟圖示的長相無關；使用者 2026-10-06 從「效果」搬來）。
     -- 主題頁因此多一個「版面」分頁排最前面；條頁接在版面與錨定後面（Tab_Bar 的 Concat 順序）
+    -- 小地圖按鈕（帳號層 minimap.hide，不跟設定檔走）：主題頁「版面」分頁的第一列（還沒有分頁 header ⇒ SplitTabs 歸第一個分頁＝版面）
+    if not bar then
+        add({ type = "toggle", label = L["Show minimap button"], noReset = true,
+            get = function() return ns.IsMinimapButtonShown() end,
+            set = function(_, v) ns.SetMinimapButtonShown(v and true or false) end })
+    end
     add({ type = "header", label = L["Fade"], tab = "layout" })
     if bar then add(BS("toggle", "follow.fade", L["Follow global theme"], { refreshPage = true })) end
     add(TS("fade", "toggle", "fade.enabled", L["Fade the bar"]),
