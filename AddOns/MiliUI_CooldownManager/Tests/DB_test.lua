@@ -99,7 +99,7 @@ DB.Init()
 local sv = env.MiliUI_CooldownManager_DB
 check("SV 建立", type(sv) == "table")
 eq("schemaVersion", sv.schemaVersion, ns.DB_VERSION)
-eq("DB_VERSION", ns.DB_VERSION, 6)
+eq("DB_VERSION", ns.DB_VERSION, 7)
 check("MIGRATIONS 有版本 3", type(DB.MIGRATIONS[3]) == "function")
 check("MIGRATIONS 有版本 4", type(DB.MIGRATIONS[4]) == "function")
 check("MIGRATIONS 有版本 1", type(DB.MIGRATIONS[1]) == "function")
@@ -138,8 +138,8 @@ eq("自訂格子錨在核心", DB.GetPath(ns.profile, "pips.anchor.to"), "essent
 eq("輔助錨點", S("utility", "anchor.relPoint"), "BOTTOM")
 eq("核心沒有錨定", S("essential", "anchor"), false)
 eq("第二列尺寸預設關", S("essential", "layout.row2Size"), false)
-eq("增益預設不固定格位", S("buffs", "layout.fixedSlots"), false)
-eq("核心不固定格位", S("essential", "layout.fixedSlots"), false)
+eq("增益預設往前補", S("buffs", "layout.emptyMode"), "collapse")
+eq("核心預設往前補", S("essential", "layout.emptyMode"), "collapse")
 eq("barOrder[4]", ns.profile.barOrder[4], "buffbars")
 
 ------------------------------------------------------------
@@ -324,12 +324,14 @@ local real3 = DB.MIGRATIONS[3]
 local real4 = DB.MIGRATIONS[4]
 local real5 = DB.MIGRATIONS[5]
 local real6 = DB.MIGRATIONS[6]
+local real7 = DB.MIGRATIONS[7]
 DB.MIGRATIONS[1] = function() calls = calls + 1 end
 DB.MIGRATIONS[2] = function() end
 DB.MIGRATIONS[3] = function() end
 DB.MIGRATIONS[4] = function() end
 DB.MIGRATIONS[5] = function() end
 DB.MIGRATIONS[6] = function() end
+DB.MIGRATIONS[7] = function() end
 DB.MigrateProfile({}, 0)
 eq("從 0 補到最新：v1 跑一次", calls, 1)
 DB.MigrateProfile({}, 1)
@@ -343,10 +345,10 @@ eq("舊 SV：每份設定檔各跑一次", calls, 1)
 eq("舊 SV：版本推到目前", sv.schemaVersion, ns.DB_VERSION)
 
 calls = 0
-sv.schemaVersion = 7
+sv.schemaVersion = 8
 DB.Init()
 eq("較新的 SV：版本壓回目前", sv.schemaVersion, ns.DB_VERSION)
-eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, 7)
+eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, 8)
 eq("較新的 SV：不跑遷移", calls, 0)
 DB.MIGRATIONS[1] = real
 DB.MIGRATIONS[2] = real2
@@ -354,6 +356,7 @@ DB.MIGRATIONS[3] = real3
 DB.MIGRATIONS[4] = real4
 DB.MIGRATIONS[5] = real5
 DB.MIGRATIONS[6] = real6
+DB.MIGRATIONS[7] = real7
 
 -- v6：長條的 bar.stackSize 拿掉；跟生效字級一樣就刪，不一樣就搬到條自己的層數字級＋不跟隨全域文字
 do
@@ -508,7 +511,7 @@ do
     DB.Init()
     eq("舊存檔補上 none", ns.profile.theme.icon.cdState, "none")
     eq("舊存檔補上 0.4", ns.profile.theme.icon.cdStateAlpha, 0.4)
-    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級）", ns.DB_VERSION, 6)
+    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
 end
 
 ------------------------------------------------------------
@@ -610,7 +613,7 @@ do
     eq("清 stack 那一組", SS2("buffs", 5555, "stackGlow"), false)
     eq("清 stack 那一組不動生效發光", SS2("buffs", 5555, "activeGlow"), true)
     DB.SetOverride(5555, "activeGlow", nil)
-    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級）", ns.DB_VERSION, 6)
+    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
 end
 
 ------------------------------------------------------------
@@ -650,7 +653,7 @@ do
     eq("清 icon 那一組 ⇒ 還在", SS2("essential", 7777, "replaceWith"), 8888)
     DB.ClearOverrides({ 7777 }, "replace")
     eq("清 replace 那一組 ⇒ 不取代", SS2("essential", 7777, "replaceWith"), false)
-    eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移、5 是冷卻低秒變色開關、6 是長條層數字級）", ns.DB_VERSION, 6)
+    eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移、5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
 end
 
 ------------------------------------------------------------
@@ -858,7 +861,7 @@ do
 
     P.customShared, P.customClass, P.customNextUID = nil, nil, nil
     P.spells[cur], P.spells[other] = nil, nil
-    eq("DB_VERSION 沒動（P8 不遷移；5 是冷卻低秒變色開關、6 是長條層數字級）", ns.DB_VERSION, 6)
+    eq("DB_VERSION 沒動（P8 不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
 end
 
 ------------------------------------------------------------
@@ -958,7 +961,7 @@ do
     sv.schemaVersion, sv.schemaVersionSeen = 4, nil
     ns.profile, ns.profileName = nil, nil
     DB.Init()
-    eq("登入遷移：版本推到 6", sv.schemaVersion, 6)
+    eq("登入遷移：版本推到目前", sv.schemaVersion, ns.DB_VERSION)
     check("登入遷移：目前設定檔 關＋5 秒", P.theme.cooldownText.lowColorOn == false and P.theme.cooldownText.lowBelow == 5)
     check("登入遷移：別份設定檔也搬", sv.profiles.Other.theme.cooldownText.lowColorOn == false
         and sv.profiles.Other.theme.cooldownText.lowBelow == 5)
@@ -977,6 +980,57 @@ do
     ns.profile, ns.profileName = nil, nil
     DB.Init()
     eq("沒有開關 ⇒ 合併預設補開", P.theme.cooldownText.lowColorOn, true)
+end
+
+-- v7：「增益不在時」收成三態。條層 fixedSlots＋emptyStyle → layout.emptyMode；逐法術 placeholder → emptyMode
+do
+    local p = {
+        bars = {
+            buffs    = { kind = "icons", layout = { fixedSlots = true } },
+            essential = { kind = "icons", layout = { fixedSlots = false } },
+            buffbars = { kind = "bars", layout = { fixedSlots = true, emptyStyle = "bar" } },
+            g1       = { kind = "bars", layout = { fixedSlots = true } },
+            g2       = { kind = "bars", layout = { fixedSlots = false, emptyStyle = "bar" } },
+            done     = { kind = "icons", layout = { emptyMode = "blank" } },
+        },
+        spells = {
+            [250] = {
+                order = { buffbars = { 31 }, g1 = { 32 }, buffs = { 33 } },
+                overrides = {
+                    [31] = { placeholder = true },
+                    [32] = { placeholder = true },
+                    [33] = { placeholder = true, borderColor = 1 },
+                    [34] = { placeholder = true },            -- 不在任何 order 裡 ⇒ 暗圖示
+                    [35] = { placeholder = false },
+                    [36] = { placeholder = true, emptyMode = "collapse" },
+                },
+            },
+        },
+    }
+    DB.MIGRATIONS[7](p)
+    local L = function(k) return p.bars[k].layout end
+    eq("v7：圖示類固定格位 ⇒ dim", L("buffs").emptyMode, "dim")
+    eq("v7：固定格位欄拿掉", L("buffs").fixedSlots, nil)
+    eq("v7：沒固定 ⇒ collapse", L("essential").emptyMode, "collapse")
+    eq("v7：長條＋空長條 ⇒ dim", L("buffbars").emptyMode, "dim")
+    eq("v7：長條＋隱藏（預設）⇒ blank", L("g1").emptyMode, "blank")
+    eq("v7：長條沒固定 ⇒ collapse", L("g2").emptyMode, "collapse")
+    eq("v7：長條沒固定 ⇒ emptyStyle 留著（被強制時的退路）", L("g2").emptyStyle, "bar")
+    eq("v7：已有 emptyMode 不碰", L("done").emptyMode, "blank")
+    local o = p.spells[250].overrides
+    eq("v7：逐法術在空長條的長條 ⇒ dim", o[31].emptyMode, "dim")
+    eq("v7：逐法術在隱藏的長條 ⇒ blank", o[32].emptyMode, "blank")
+    eq("v7：逐法術在圖示類 ⇒ dim", o[33].emptyMode, "dim")
+    eq("v7：placeholder 拿掉", o[33].placeholder, nil)
+    eq("v7：別的覆寫不動", o[33].borderColor, 1)
+    eq("v7：找不到條 ⇒ dim", o[34].emptyMode, "dim")
+    eq("v7：placeholder false ⇒ 跟隨（不寫）", o[35].emptyMode, nil)
+    eq("v7：placeholder false 也拿掉", o[35].placeholder, nil)
+    eq("v7：已有 emptyMode 不碰", o[36].emptyMode, "collapse")
+    -- 重跑不再改
+    L("buffs").emptyMode = "collapse"
+    DB.MIGRATIONS[7](p)
+    eq("v7：重跑不改", L("buffs").emptyMode, "collapse")
 end
 
 print(("DB_test: %d passed, %d failed"):format(passed, failed))

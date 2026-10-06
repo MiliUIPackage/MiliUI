@@ -8,7 +8,7 @@
 --
 -- 覆蓋：單列、兩列不同尺寸、置中奇偶數、向上換列、LEFT／RIGHT、長條、空清單、maxPerRow=1、
 -- 錨點對照、認不得的 grow、第一列寬；就地比較的序列（SeqPut／SeqTrim／SameIDs，Bars 的認領序列用）；
--- 增益 item 的放格判準（AuraSlot：在／固定格位／逐法術占位）。
+-- 增益 item 的放格判準（AuraSlot：在／「增益不在時」三態；BarEmptyMode／SpellEmptyMode）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Layout.lua"
@@ -514,14 +514,40 @@ end
 -- 增益 item 這一格怎麼排（Bars.Relayout／Occupancy 共用，F7）
 do
     local Lay = ns.Layout
-    eq("AuraSlot：在 ⇒ item", Lay.AuraSlot(true, false, false), "item")
-    eq("AuraSlot：在、固定格位也一樣", Lay.AuraSlot(true, true, true), "item")
-    eq("AuraSlot：不在、什麼都沒開 ⇒ 收合", Lay.AuraSlot(false, false, false), nil)
-    eq("AuraSlot：不在、沒覆寫（nil）⇒ 收合", Lay.AuraSlot(false, false, nil), nil)
-    eq("AuraSlot：不在、固定格位 ⇒ 占位", Lay.AuraSlot(false, true, false), "placeholder")
-    eq("AuraSlot：不在、逐法術占位 ⇒ 占位", Lay.AuraSlot(false, false, true), "placeholder")
-    eq("AuraSlot：不在、兩個都開 ⇒ 占位", Lay.AuraSlot(false, true, true), "placeholder")
-    eq("AuraSlot：占位只認明確 true", Lay.AuraSlot(false, false, "yes"), nil)
+    eq("AuraSlot：在 ⇒ item", Lay.AuraSlot(true, "dim"), "item")
+    eq("AuraSlot：在、收合也一樣", Lay.AuraSlot(true, "collapse"), "item")
+    eq("AuraSlot：不在、收合 ⇒ nil", Lay.AuraSlot(false, "collapse"), nil)
+    eq("AuraSlot：不在、沒有 mode ⇒ nil", Lay.AuraSlot(false, nil), nil)
+    eq("AuraSlot：不在、留空位 ⇒ blank", Lay.AuraSlot(false, "blank"), "blank")
+    eq("AuraSlot：不在、暗圖示 ⇒ 占位", Lay.AuraSlot(false, "dim"), "placeholder")
+    eq("AuraSlot：壞值 ⇒ nil", Lay.AuraSlot(false, "yes"), nil)
+    eq("BarEmptyMode：forced 圖示類退暗圖示", Lay.BarEmptyMode("collapse", true, false), "dim")
+    local m, own = Lay.SpellEmptyMode("blank", "dim", true)
+    check("SpellEmptyMode：自己設的留空位", m == "blank" and own == true)
+end
+
+-- 「增益不在時」的判準（Core/Layout.lua 的純函式）
+do
+    local Lay = ns.Layout
+    eq("條層：存 collapse ⇒ collapse", Lay.BarEmptyMode("collapse", false, false), "collapse")
+    eq("條層：沒存 ⇒ collapse", Lay.BarEmptyMode(nil, false, false), "collapse")
+    eq("條層：壞值 ⇒ collapse", Lay.BarEmptyMode("x", false, false), "collapse")
+    eq("條層：blank", Lay.BarEmptyMode("blank", true, false), "blank")
+    eq("條層：forced＋collapse 圖示類 ⇒ dim", Lay.BarEmptyMode("collapse", true, false), "dim")
+    eq("條層：forced＋collapse 長條 ⇒ blank", Lay.BarEmptyMode("collapse", true, true), "blank")
+    eq("條層：forced＋collapse 長條＋舊空長條 ⇒ dim", Lay.BarEmptyMode("collapse", true, true, "bar"), "dim")
+    local m, own = Lay.SpellEmptyMode(nil, "blank", false)
+    check("逐法術：沒覆寫 ⇒ 跟隨條", m == "blank" and own == false)
+    m, own = Lay.SpellEmptyMode("dim", "collapse", false)
+    check("逐法術：自己設 dim", m == "dim" and own == true)
+    m, own = Lay.SpellEmptyMode("collapse", "dim", true)
+    check("逐法術：forced 時 collapse ⇒ 跟隨條", m == "dim" and own == false)
+    m, own = Lay.SpellEmptyMode("collapse", "blank", false)
+    check("逐法術：沒 forced 時 collapse 照用", m == "collapse" and own == true)
+    eq("AuraSlot：在 ⇒ item", Lay.AuraSlot(true, "collapse"), "item")
+    eq("AuraSlot：collapse ⇒ nil", Lay.AuraSlot(false, "collapse"), nil)
+    eq("AuraSlot：blank", Lay.AuraSlot(false, "blank"), "blank")
+    eq("AuraSlot：dim ⇒ placeholder", Lay.AuraSlot(false, "dim"), "placeholder")
 end
 
 ------------------------------------------------------------

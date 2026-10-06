@@ -32,6 +32,8 @@
 -- 圖示框。它們是**容器的子框**（條的淡出由容器的 alpha 帶），持有框的 SetPoint／SetSize／Show
 -- 走 ns.Write（持有框整條鏈是保護框）。條上有光環格時固定格位強制打開：光環格放在哪一格都一樣，
 -- 其他 item 收合也不會讓它的 x 變，戰鬥中不必動持有框。
+-- 「增益不在時」三態（收合／留空位／暗圖示；條層 layout.emptyMode ＋ 逐法術 emptyMode，判準 Layout.BarEmptyMode／
+-- SpellEmptyMode，條層生效值 B.BarEmptyMode、單格 B.EmptyMode）：光環格／可點擊的條上「收合」不成立（上面那個理由）。
 --
 -- 代畫（Modules/Custom.lua 的 Custom.Proxy）：清單上有、暴雪沒給框的**裝備欄冷卻格**（Catalog.ProxySlotOf：
 -- 暴雪的 id、資料帶裝備欄位、來源是核心／輔助）改放我們的飾品欄框（一格 crec entry，跟自訂項目同一條路）。
@@ -570,23 +572,35 @@ local function AuraPresent(item)
 end
 B.AuraPresent = AuraPresent
 
+-- 「增益不在時」的條層生效值（Layout.BarEmptyMode）：條上有光環格或可點擊 ⇒ forced（收合不成立）。
+-- 回 mode, forced。Relayout、Occupancy、光環格的占位（Modules/Custom.lua）、設定頁共用
+function B.BarEmptyMode(barKey)
+    local bar = BarCfg(barKey)
+    local layout = bar and type(bar.layout) == "table" and bar.layout or {}
+    local forced = (ns.Catalog.BarHasAuraSlot(barKey) or (ns.Clickable and ns.Clickable.Enabled(barKey))) and true or false
+    return ns.Layout.BarEmptyMode(layout.emptyMode, forced, bar and bar.kind == "bars", layout.emptyStyle), forced
+end
+
+-- 這一格生效的「增益不在時」（逐法術覆寫 emptyMode ＞ 條層）：回 mode, own（own ＝ 這一格自己設的）
+function B.EmptyMode(barKey, id)
+    local barMode, forced = B.BarEmptyMode(barKey)
+    return ns.Layout.SpellEmptyMode(ns.SpellSetting(barKey, id, "emptyMode"), barMode, forced)
+end
+
 -- 溢出的佔位判斷（Catalog.SetOccupancy；每輪 Flush 建好索引後換一支）：這一顆在來源條上佔不佔一格。
--- 跟 Relayout 放格同一個判準：暴雪沒給框的不佔；增益類收合中不在的不佔（固定格位開著／被強制、或這一招逐法術勾了
--- 「無增益時保留空位」時佔，它是占位格）。
--- 自訂項目一律佔（光環格會強制固定格位；自訂法術／物品一直都有框）
+-- 跟 Relayout 放格同一個判準：暴雪沒給框的不佔；增益類不在、而且這一格生效的「增益不在時」是收合的不佔
+-- （留空位／暗圖示都佔）。自訂項目一律佔（光環格會讓收合不成立；自訂法術／物品一直都有框）
 function B.Occupancy(index)
-    local fixedOf = {}
-    local function Fixed(barKey)
-        local fixed = fixedOf[barKey]
-        if fixed == nil then
-            local bar = BarCfg(barKey)
-            local layout = bar and type(bar.layout) == "table" and bar.layout or {}
-            fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(barKey)
-                or (ns.Clickable and ns.Clickable.Enabled(barKey))) and true or false
-            fixedOf[barKey] = fixed
+    local modeOf, forcedOf = {}, {}
+    local function BarMode(barKey)
+        local mode = modeOf[barKey]
+        if mode == nil then
+            mode, forcedOf[barKey] = B.BarEmptyMode(barKey)
+            modeOf[barKey] = mode
         end
-        return fixed
+        return mode, forcedOf[barKey]
     end
+    local function Fixed(barKey) return BarMode(barKey) ~= "collapse" end
     -- 沒有物品時隱藏／被動飾品不顯示：讓位的（Layout.HiddenSlot ＝ "skip"）不佔；固定格位留空格的照佔
     local function Skipped(barKey, id)
         local why = ns.Catalog.HideReason and ns.Catalog.HideReason(barKey, id)
@@ -599,10 +613,11 @@ function B.Occupancy(index)
         if not item then return ns.Catalog.ProxySlotOf(id) ~= nil and not Skipped(barKey, id) end
         local rec = ns.Viewers.frames[item]
         if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
-        if Fixed(barKey) then return true end
         if AuraPresent(item) then return true end
-        -- 逐法術「無增益時保留空位」（F7）：那一格照留 ⇒ 照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
-        return ns.Layout.AuraSlot(false, false, ns.SpellSetting(barKey, id, "placeholder")) ~= nil
+        -- 這一格生效的「增益不在時」不是收合 ⇒ 格子照留、照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
+        local barMode, forced = BarMode(barKey)
+        local mode = ns.Layout.SpellEmptyMode(ns.SpellSetting(barKey, id, "emptyMode"), barMode, forced)
+        return ns.Layout.AuraSlot(false, mode) ~= nil
     end
 end
 
@@ -926,10 +941,11 @@ local function Relayout(key, level, index, gen, s)
             if ns.Fire then ns.Fire("MissingChanged", key) end
         end
     end
-    local layout = type(bar.layout) == "table" and bar.layout or {}
-    -- 條上有光環格、或這條可點擊 ⇒ 固定格位強制打開（值不動；光環格的持有框與可點擊的 secure 鈕戰鬥中都不能移）
+    -- 增益不在時（條層）：條上有光環格、或這條可點擊 ⇒ 收合不成立（光環格的持有框與可點擊的 secure 鈕戰鬥中都不能移）。
+    -- fixed ＝ 條層不收合：沒有物品時隱藏／被動飾品不顯示的格留空格（Layout.HiddenSlot）
     local clickable = ns.Clickable and ns.Clickable.Enabled(key) or false
-    local fixed = (layout.fixedSlots or ns.Catalog.BarHasAuraSlot(key) or clickable) and true or false
+    local barMode, forced = B.BarEmptyMode(key)
+    local fixed = barMode ~= "collapse"
     local entries = {}
     -- 沒有物品時隱藏／被動飾品不顯示：這一輪重記要聽的格（就地改寫，見 hideWatch）
     local hw = hideWatch[key]
@@ -976,17 +992,20 @@ local function Relayout(key, level, index, gen, s)
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
             local mode = "item"
             if aura then
-                -- 不在時：固定格位開著／被強制，或這一招逐法術勾了「無增益時保留空位」（F7）⇒ 占位格（同一條路）
+                -- 不在時照這一格生效的「增益不在時」（逐法術 ＞ 條層；收合／留空位／暗圖示）
                 local present = AuraPresent(item)
-                mode = ns.Layout.AuraSlot(present, fixed,
-                    (not present and not fixed) and ns.SpellSetting(key, id, "placeholder") or nil)
-            end
-            -- 暴雪的飾品增益格（EquipSlotTracked：資料帶裝備欄位）不在時：固定格位的條上只留空位、不畫暗圖示
-            --（被動飾品的增益格平常整格收著，條一被光環格／可點擊逼成固定格位就冒出一顆暗的飾品圖示；
-            -- 玩家 2026-10-05 回報）。逐法術自己勾了「無增益時保留空位」的照舊畫
-            if mode == "placeholder" and fixed and ns.SpellSetting(key, id, "placeholder") ~= true then
-                local inf = ns.Catalog.Info(id)
-                if inf and type(inf.equipSlot) == "number" then mode = "blank" end
+                local em, own
+                if not present then
+                    em, own = ns.Layout.SpellEmptyMode(ns.SpellSetting(key, id, "emptyMode"), barMode, forced)
+                    -- 暴雪的飾品增益格（EquipSlotTracked：資料帶裝備欄位）跟隨條的暗圖示時只留空位、不畫暗圖示
+                    --（被動飾品的增益格平常整格收著，條一被光環格／可點擊逼成固定格位就冒出一顆暗的飾品圖示；
+                    -- 玩家 2026-10-05 回報）。逐法術自己選了暗圖示的照舊畫
+                    if em == "dim" and not own then
+                        local inf = ns.Catalog.Info(id)
+                        if inf and type(inf.equipSlot) == "number" then em = "blank" end
+                    end
+                end
+                mode = ns.Layout.AuraSlot(present, em)
             end
             if mode == "item" then
                 entries[#entries + 1] = { id = id, item = item, rec = rec }
@@ -995,7 +1014,7 @@ local function Relayout(key, level, index, gen, s)
             elseif mode == "blank" then
                 entries[#entries + 1] = { id = id, blank = true }
             end
-            -- 收合模式下沒顯示（也沒勾占位）的增益：不認領 ⇒ 最後的停放掃描會把它收走（空位的也不認領：item 要停放）
+            -- 收合的增益：不認領 ⇒ 最後的停放掃描會把它收走（留空位的也不認領：item 要停放）
             if mode and mode ~= "blank" then claimedBy[item] = key end
         end
     end
@@ -1078,9 +1097,8 @@ local function Relayout(key, level, index, gen, s)
             end
             slotOf[e.id] = { key = key, x = r.x, y = r.y, w = r.w, h = r.h }
         end
-        if e.placeholder and bar.kind == "bars" and layout.emptyStyle ~= "bar" then
-            -- 長條的空位預設隱藏：位置照佔（排版已經算進去）、什麼都不畫
-        elseif e.placeholder and bar.kind == "bars" then
+        -- 占位格只有「暗圖示」會來（留空位是 e.blank）：長條類畫空長條
+        if e.placeholder and bar.kind == "bars" then
             barUsed = barUsed + 1
             local f = BarPlaceholder(key, barUsed)
             local info = ns.Catalog.Info(e.id)

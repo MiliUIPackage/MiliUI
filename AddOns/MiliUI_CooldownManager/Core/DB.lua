@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 6
+ns.DB_VERSION = 7
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -97,7 +97,9 @@ local function IconBar(o)
             grow       = o.grow or "CENTER_DOWN",   -- <CENTER|LEFT|RIGHT>_<DOWN|UP>（橫向）或 <DOWN|UP>_<RIGHT|LEFT>（直向）
             size       = { w = o.w, h = o.h },
             row2Size   = false,                     -- false ＝ 第二列起跟第一列同尺寸；或 { w, h }
-            fixedSlots = o.fixedSlots or false,     -- 增益不在時保留空位
+            -- 增益不在時：collapse 隱藏、後面的往前補｜blank 隱藏、留空位｜dim 暗圖示（長條類：空長條）佔位。
+            -- 條上有光環格／可點擊時 collapse 不成立（判準 Layout.BarEmptyMode）。v7 之前是 fixedSlots（布林）＋ emptyStyle
+            emptyMode  = "collapse",
             -- 格數上限＋溢出（2026-10-04，F1；舊存檔沒有 ＝ 0／false ＝ 不限，不遷移；規則在 Core/Overflow.lua）。
             -- 只有圖示類的條讀（長條類也帶著這兩欄，用不到）
             maxIcons   = 0,                         -- 0 ＝ 不限；1～20
@@ -747,6 +749,52 @@ local MIGRATIONS = {
             end
         end
     end,
+    -- v7（2026-10-06）：「增益不在時」收成一個三態（collapse 隱藏後面往前補｜blank 隱藏留空位｜dim 暗圖示／空長條佔位），
+    -- 條層與逐法術同一套。畫面不變地搬：
+    --   條層 layout.fixedSlots true  → 圖示類 dim；長條類照 emptyStyle（"bar" → dim，其餘 → blank）
+    --                     false／沒存 → collapse（條上有光環格／可點擊時讀取端退回以前強制固定格位的樣子，見 Layout.BarEmptyMode；
+    --                                   所以 emptyStyle 留著不刪）
+    --   逐法術 placeholder == true    → 那一招所在條（專精表的 order 找得到的那條）是長條類而且 emptyStyle 不是 "bar" ⇒ blank，
+    --                                   其餘 ⇒ dim；false／nil 拿掉（跟隨條）
+    -- 已經有 emptyMode 的不碰 ⇒ 重跑不會再改
+    [7] = function(profile)
+        local bars = type(profile.bars) == "table" and profile.bars or {}
+        local function KeptMode(bar)
+            local layout = type(bar) == "table" and type(bar.layout) == "table" and bar.layout or {}
+            if type(bar) == "table" and bar.kind == "bars" then return layout.emptyStyle == "bar" and "dim" or "blank" end
+            return "dim"
+        end
+        for _, bar in pairs(bars) do
+            local layout = type(bar) == "table" and bar.layout
+            if type(layout) == "table" then
+                if layout.emptyMode == nil then
+                    layout.emptyMode = layout.fixedSlots == true and KeptMode(bar) or "collapse"
+                end
+                layout.fixedSlots = nil
+            end
+        end
+        local function Fix(o, bar)
+            if type(o) ~= "table" or o.placeholder == nil then return end
+            if o.placeholder == true and o.emptyMode == nil then o.emptyMode = KeptMode(bar) end
+            o.placeholder = nil
+        end
+        if type(profile.spells) == "table" then
+            for _, spec in pairs(profile.spells) do
+                local all = type(spec) == "table" and spec.overrides
+                if type(all) == "table" then
+                    local barOf = {}
+                    if type(spec.order) == "table" then
+                        for key, list in pairs(spec.order) do
+                            if type(list) == "table" then
+                                for _, id in ipairs(list) do barOf[id] = barOf[id] or key end
+                            end
+                        end
+                    end
+                    for id, o in pairs(all) do Fix(o, bars[barOf[id]]) end
+                end
+            end
+        end
+    end,
 }
 DB.MIGRATIONS = MIGRATIONS
 
@@ -1199,10 +1247,9 @@ local SPELL_CONST = {
     -- 以增益取代時，頂著這一格的增益用這一招的增益持續時間樣式（colorDuration／三個顏色，跟這一招自己先倒增益那段同一套）；
     -- false ＝ 照增益原本的倒數樣式（不換色）
     replaceAuraStyle = true,
-    -- 無增益時保留空位（暴雪的增益圖示／增益長條的 item 才有，Core/Bars.lua 的 Relayout／Occupancy，F7）：
-    -- true ＝ 增益不在時那一格照留、畫占位（長條類照條的 layout.emptyStyle），跟固定格位同一條路；false ＝ 收合。
-    -- 條的固定格位開著／被強制時每一格本來就保留，這個勾不起作用。（光環格的占位存在那一筆自訂項目上，不是這個欄位）
-    placeholder      = false,
+    -- 增益不在時（emptyMode："collapse"｜"blank"｜"dim"）：暴雪的增益圖示／增益長條與光環格的逐法術覆寫。
+    -- 沒有常數預設：沒覆寫 ＝ 跟隨條層 layout.emptyMode（不走 SPELL_FALLBACK：條層值還要過「光環格／可點擊 ⇒ 收合
+    -- 不成立」，判準在 Layout.BarEmptyMode／SpellEmptyMode，讀的人一律走 Bars.EmptyMode）。v7 之前是 placeholder（布林）
     -- 自訂文字（M：增益圖示的提醒字，單一法術小窗最後一個分頁）：只有逐法術、沒有條層值。
     -- labelText 字串（沒設／空 ＝ 不畫）；labelFont 沒設 ＝ 條的通用字型；labelColor 沒設 ＝ 白（色表，不繼承）；
     -- labelPoint 是「圖示內的那個角／邊」（同倒數、層數）。預設＝圖示內下緣置中、往下 2（字的下半略壓過下緣，
@@ -1517,8 +1564,8 @@ DB.OVERRIDE_GROUP = {
     readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound", fullSpeak = "sound",
     -- 天賦條件（Core/Catalog.lua，{ spellID, mode }）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
     talentCond = "talent",
-    -- 無增益時保留空位（F7）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
-    placeholder = "slot",
+    -- 增益不在時（v7 之前是 placeholder）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
+    emptyMode = "slot", placeholder = "slot",
     -- 自訂文字（M）：玩家逐格打的提醒字，條頁沒有對應的節（沒有條層值、也沒有「清除覆寫」鈕）；
     -- 自成一組 ⇒ 條頁任何一節的「清除覆寫」都不會把玩家打的字清掉（只有小窗右鍵各列、「還原此法術」清）
     labelText = "label", labelFont = "label", labelSize = "label", labelColor = "label",

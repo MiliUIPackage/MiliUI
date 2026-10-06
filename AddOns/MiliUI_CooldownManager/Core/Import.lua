@@ -1359,6 +1359,11 @@ local function StepAuras(ctx)
             sp.overrides[id] = sp.overrides[id] or {}
             sp.overrides[id].hideCooldownText = true
         end
+        -- 對方關掉占位 ＝ 增益不在時什麼都不畫；光環格的條不能收合 ⇒ 我們的「留空位」
+        if e.placeholder == false then
+            sp.overrides[id] = sp.overrides[id] or {}
+            sp.overrides[id].emptyMode = "blank"
+        end
         placed[sid] = true
         ctx.R.counts.auras = ctx.R.counts.auras + 1
     end

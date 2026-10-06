@@ -419,21 +419,51 @@ function Layout.SameIDs(a, b)
 end
 
 ------------------------------------------------------------
+-- 增益不在時（條層 layout.emptyMode ＋ 逐法術覆寫 emptyMode；設定頁同一個三態下拉）
+--
+--   "collapse"  隱藏，後面的往前補（收合：不佔格）
+--   "blank"     隱藏，留空位（格子照留、什麼都不畫）
+--   "dim"       暗圖示佔位（圖示類畫去飽和圖示；長條類畫空長條）
+--
+-- 條上有光環格或可點擊（forced）：格子戰鬥中不能動 ⇒ "collapse" 不成立。
+--   條層存著 collapse ⇒ 退回圖示類 "dim"、長條類照舊欄位 layout.emptyStyle（"bar" ⇒ "dim"，其餘 "blank"）——
+--   跟以前「強制固定格位」的畫面一樣（emptyStyle 已經沒有控件，只剩這個用途；v7 遷移不刪它）。
+--   逐法術存著 collapse ⇒ 當跟隨條（讀取時判，不改存檔：光環格可以只在某個專精，條是整個設定檔共用的）。
+--
+--   mode = Layout.BarEmptyMode(stored, forced, isBars, legacyStyle)
+--   mode, own = Layout.SpellEmptyMode(override, barMode, forced)   own ＝ 這一格自己設的（不是跟隨條）
+------------------------------------------------------------
+Layout.EMPTY_MODES = { collapse = true, blank = true, dim = true }
+
+function Layout.BarEmptyMode(stored, forced, isBars, legacyStyle)
+    local m = Layout.EMPTY_MODES[stored] and stored or "collapse"
+    if forced and m == "collapse" then
+        if isBars then return legacyStyle == "bar" and "dim" or "blank" end
+        return "dim"
+    end
+    return m
+end
+
+function Layout.SpellEmptyMode(override, barMode, forced)
+    if Layout.EMPTY_MODES[override] and not (forced and override == "collapse") then return override, true end
+    return barMode, false
+end
+
+------------------------------------------------------------
 -- 增益 item 這一格怎麼排（Bars.Relayout 放格與 Bars.Occupancy 佔位判斷共用同一個判準）
 --
---   mode = Layout.AuraSlot(shown, fixed, placeholder)
---     shown        這一刻在（AuraPresent）
---     fixed        條的固定格位開著／被強制（光環格、可點擊）
---     placeholder  這一招逐法術勾了「無增益時保留空位」（ns.SpellSetting(…, "placeholder") == true）
+--   slot = Layout.AuraSlot(shown, mode)
+--     shown  這一刻在（AuraPresent）
+--     mode   這一格生效的「增益不在時」（Layout.SpellEmptyMode 的結果）
 --   → "item"         放 item 本身
---     "placeholder"  不在、但格子照留（畫占位；長條類照 layout.emptyStyle）
+--     "placeholder"  不在、格子照留、畫占位（mode ＝ dim）
+--     "blank"        不在、格子照留、什麼都不畫（mode ＝ blank）
 --     nil            收合：不佔格、不認領
---
--- 回非 nil ＝ 認領這顆 item（claimedBy）、也算一顆（溢出的顆數）。
 ------------------------------------------------------------
-function Layout.AuraSlot(shown, fixed, placeholder)
+function Layout.AuraSlot(shown, mode)
     if shown then return "item" end
-    if fixed or placeholder == true then return "placeholder" end
+    if mode == "dim" then return "placeholder" end
+    if mode == "blank" then return "blank" end
     return nil
 end
 

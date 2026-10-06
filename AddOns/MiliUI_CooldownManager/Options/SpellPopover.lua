@@ -17,10 +17,9 @@
 --   * 放在長條類的條上的冷卻類（法術／物品／裝備欄）：觸發／就緒發光與冷卻狀態那幾列藏起來（長條不畫發光、
 --     冷卻狀態不套長條；判準跟 Decorate 的 isBar 同一個：這一條的 kind ＝ bars）。
 --   * 光環格：觸發／就緒發光、冷卻去飽和這三列藏起來（不知道光環在不在，也沒有冷卻）；
---     多一列「增益不在時」：顯示暗圖示／隱藏（保留空位）（e.hideMissing；格子永遠保留，只決定畫不畫暗圖示）；
 --     沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
---   * 暴雪的增益（增益圖示／增益長條）也有同一列「無增益時保留空位」（逐法術覆寫 placeholder，F7）：下一列灰字；
---     條的固定格位開著（或被強制）時停用、灰字換成原因；右鍵清。
+--   * 光環格與暴雪的增益（增益圖示／增益長條）多一列「增益不在時」下拉（逐法術覆寫 emptyMode：跟隨條／往前補／
+--     留空位／暗圖示）＋下一列灰字；條上有光環格或可點擊時「往前補」灰掉、灰字補原因；右鍵清。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
 --   * 專精層的多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
 --     DB.CopyCustomEntry（連同這一筆的覆寫）。職業層／戰隊層的不給（本來就每個專精都看得到）。
@@ -387,15 +386,6 @@ local function BlizzAura(kind, class) return class == "aura" and kind == nil end
 -- 換色只有長條（條的種類＝ bars，跟 Decorate 的 isBar 同一個判準）
 local function BlizzAuraBar(kind, class)
     return BlizzAura(kind, class) and cur ~= nil and ns.Setting(cur.key, "kind") == "bars"
-end
-
--- 面板開在的這一條：固定格位開著或被強制（光環格、可點擊；跟 Core/Bars.lua 的 fixed 同一個判準）。
--- 成立時暴雪增益的「無增益時保留空位」不起作用（每一格本來就保留）
-local function BarFixedSlots()
-    if not cur then return false end
-    local b = ns.DB.BarTable(cur.key)
-    local on = b and type(b.layout) == "table" and b.layout.fixedSlots
-    return (on or ns.Catalog.BarHasAuraSlot(cur.key) or ns.DB.BarClickable(cur.key)) and true or false
 end
 
 -- 發光樣式的選項（層數發光用；每個下拉各拿一份）
@@ -1914,57 +1904,23 @@ local function Build()
     end
     AddRow(nsEntry)
 
-    -- 光環格（含飾品欄增益）的「增益不在時」：顯示暗圖示（預設）／隱藏（保留空位）。存在那一筆上（e.hideMissing），
-    -- 不是覆寫。光環格所在的條固定格位一定被強制打開 ⇒ 格子永遠保留，這裡只決定空格裡畫不畫暗圖示
-    -- （Modules/Custom.lua 的 WantPlaceholder）。下一列灰字照選的值換說法（Refresh）
+    -- 增益不在時（暴雪的增益圖示／增益長條、光環格含飾品欄增益）：逐法術覆寫 emptyMode（v7 之前是 placeholder），
+    -- 第一項「跟隨條（條現在的生效值）」＝清掉覆寫。條上有光環格或可點擊時「往前補」灰掉（選了不寫）；
+    -- 存著往前補的覆寫讀取時當跟隨條（Layout.SpellEmptyMode），顯示也是跟隨條。下一列灰字照生效值換說法（Refresh）；右鍵標籤清
     buildTab = "general"
-    local hmr = NewRow(L["While the buff is missing"], IsAura)
-    local hmdd = W.CreateDropdown(hmr, ROW_W - CTRL_X, {
-        { text = L["Show a dimmed icon"], value = false },
-        { text = L["Hide (keep the slot)"], value = true },
-    }, function(value)
+    local EMPTY_LOCKED = "locked"
+    local function EmptyAura(kind, class) return IsAura(kind) or BlizzAura(kind, class) end
+    local pr = NewRow(L["While the buff is missing"], EmptyAura)
+    local emdd = W.CreateDropdown(pr, ROW_W - CTRL_X, {}, function(value)
         if not cur then return end
-        local e = ns.DB.CustomEntry(cur.id)
-        if not e then return end
-        e.hideMissing = value == true or nil
-        ns.DB.TouchCustom()
-        Changed("membership")             -- 會叫 Pop.Refresh：灰字照新值換
-    end)
-    hmdd:SetMaxWidth(ROW_W - CTRL_X)
-    hmdd:SetPoint("LEFT", hmr, "LEFT", CTRL_X, 0)
-    frame.hideMissingDD = hmdd
-    do
-        local hmRow = CreateFrame("Frame", nil, frame)
-        local hmTip = Note(hmRow)
-        hmTip:SetPoint("TOPLEFT", hmRow, "TOPLEFT", CTRL_X, -2)
-        hmTip:SetWidth(ROW_W - CTRL_X)
-        hmTip:SetWordWrap(true)
-        hmTip:SetText(L["While the buff is missing, a dimmed icon holds its slot."])
-        local hmH = 2 + math.max(14, hmTip:GetStringHeight() or 0) + 6
-        hmRow:SetSize(ROW_W, hmH)
-        local hmEntry = { frame = hmRow, h = hmH, when = IsAura }
-        hmEntry.remeasure = function()
-            local sh2 = hmTip:GetStringHeight()
-            local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
-            hmRow:SetHeight(nh)
-            hmEntry.h = nh
-        end
-        AddRow(hmEntry)
-        frame.hideMissingTip, frame.hideMissingTipEntry = hmTip, hmEntry
-    end
-
-    -- 無增益時保留空位（暴雪的增益圖示／增益長條）：逐法術覆寫 overrides[id].placeholder（F7，Core/Bars.lua 的 Relayout）；
-    --   條的固定格位開著（或被強制）時每一格本來就保留 ⇒ 停用＋灰字寫原因；右鍵標籤清
-    local pr = NewRow(L["Keep the slot while the buff is missing"], BlizzAura)
-    local pcb = W.CreateCheckButton(pr, nil, function(on)
-        if not cur or frame.kind ~= nil then return end
-        if BarFixedSlots() then return end
-        ns.DB.SetOverride(cur.id, "placeholder", on and true or nil)
+        if value == EMPTY_LOCKED then Pop.Refresh() return end
+        ns.DB.SetOverride(cur.id, "emptyMode", value or nil)
         Changed()
     end)
-    pcb:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
-    frame.placeholderCB = pcb
-    -- 右鍵清：寫法同 RightClickClears，多一道種類閘
+    emdd:SetMaxWidth(ROW_W - CTRL_X)
+    emdd:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
+    frame.emptyModeDD = emdd
+    -- 右鍵清：寫法同 RightClickClears
     do
         local hit = CreateFrame("Frame", nil, pr)
         hit:SetPoint("TOPLEFT", pr, "TOPLEFT", 0, 0)
@@ -1972,22 +1928,21 @@ local function Build()
         hit:SetWidth(LABEL_W)
         hit:EnableMouse(true)
         hit:SetScript("OnMouseUp", function(_, button)
-            if button == "RightButton" and cur and frame.kind == nil then
-                ns.DB.SetOverride(cur.id, "placeholder", nil)
+            if button == "RightButton" and cur then
+                ns.DB.SetOverride(cur.id, "emptyMode", nil)
                 Changed()
             end
         end)
     end
-    -- 下一列灰字（暴雪的增益）：平常是說明，固定格位開著時換成停用的原因（Refresh 換字、在 Layout 之前重量）
     local phRow = CreateFrame("Frame", nil, frame)
     local phTip = Note(phRow)
     phTip:SetPoint("TOPLEFT", phRow, "TOPLEFT", CTRL_X, -2)
     phTip:SetWidth(ROW_W - CTRL_X)
     phTip:SetWordWrap(true)
-    phTip:SetText(L["While this buff isn't up, it keeps its place, so the others don't shift."])
+    phTip:SetText(ns.Specs.EmptyModeDesc("collapse"))
     local phH = 2 + math.max(14, phTip:GetStringHeight() or 0) + 6
     phRow:SetSize(ROW_W, phH)
-    local phEntry = { frame = phRow, h = phH, when = BlizzAura }
+    local phEntry = { frame = phRow, h = phH, when = EmptyAura }
     phEntry.remeasure = function()
         local sh2 = phTip:GetStringHeight()
         local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
@@ -1995,7 +1950,27 @@ local function Build()
         phEntry.h = nh
     end
     AddRow(phEntry)
-    frame.placeholderTip, frame.placeholderTipEntry = phTip, phEntry
+    frame.emptyModeTip, frame.emptyModeTipEntry = phTip, phEntry
+    -- Refresh 叫：選項（跟隨條那一項帶條的生效值、往前補灰不灰）、選中值、灰字
+    frame.RefreshEmptyMode = function()
+        local key = cur.key
+        local isBars = ns.Setting(key, "kind") == "bars"
+        local barMode, forced = ns.Bars.BarEmptyMode(key)
+        local items = ns.Specs.EmptyModeItems(isBars)
+        local barText
+        for _, it in ipairs(items) do
+            if it.value == barMode then barText = it.text end
+        end
+        if forced then items[1] = { text = "|cff808080" .. items[1].text .. "|r", value = EMPTY_LOCKED } end
+        table.insert(items, 1, { text = L["%s (%s)"]:format(FollowText(), barText or ""), value = false })
+        emdd:SetItems(items)
+        local mode, own = ns.Layout.SpellEmptyMode(Override("emptyMode"), barMode, forced)
+        emdd:SetSelectedValue(own and mode or false)
+        local reason = forced and ns.Specs.EmptyModeForcedText(key) or nil
+        local desc = ns.Specs.EmptyModeDesc(mode, isBars)
+        phTip:SetText(reason and (desc .. " " .. reason) or desc)
+        phEntry.remeasure()
+    end
 
     -- 強調說明（黃字）：「先倒增益持續時間」的適用範圍，各在自己的分頁、底部說明的正上方
     -- 「增益持續時間」分頁拆掉之後（H），那幾列分在外觀（顯示與否、轉圈背景色）與文字（換色、兩個字色）：兩頁各一份
@@ -2235,22 +2210,8 @@ function Pop.Refresh()
         and L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."]
         or L["Settings here apply to this spell in your current specialization. Right-click a row to follow the bar again."])
     frame.tipEntry.remeasure()
-    -- 暴雪增益的「無增益時保留空位」：灰字照固定格位換（換字之後重量，Layout 才排得對）
-    local phFixed = kind == nil and class == "aura" and BarFixedSlots()
-    if kind == "aura" then
-        local raw = ns.DB.CustomEntry(id)
-        local hide = type(raw) == "table" and raw.hideMissing == true
-        frame.hideMissingDD:SetSelectedValue(hide)
-        frame.hideMissingTip:SetText(hide
-            and L["While the buff is missing, this slot stays empty. The icons next to it don't move over."]
-            or L["While the buff is missing, a dimmed icon holds its slot."])
-        frame.hideMissingTipEntry.remeasure()
-    elseif kind == nil and class == "aura" then
-        frame.placeholderTip:SetText(phFixed
-            and L["Every slot on this bar is already kept: “Keep empty slots for missing buffs” is on (or forced on)."]
-            or L["While this buff isn't up, it keeps its place, so the others don't shift."])
-        frame.placeholderTipEntry.remeasure()
-    end
+    -- 增益不在時：選項、選中值、灰字（換字之後重量，Layout 才排得對）
+    if kind == "aura" or (kind == nil and class == "aura") then frame.RefreshEmptyMode() end
     Layout(kind, class)
     -- 「跟隨『條名』」：面板開在哪一條就寫哪一條的名字（下面各下拉 SetSelectedValue 時會重寫顯示文字）
     for _, f in ipairs(followItems) do
@@ -2491,12 +2452,6 @@ function Pop.Refresh()
         v = (type(v) == "string" and v ~= "") and v or false
         r.dd:SetSelectedValue(v)
         r.listen:SetEnabled(v ~= false)
-    end
-    if kind == nil and class == "aura" then
-        -- 固定格位開著：勾選框顯示「有保留」（勾著）並停用；存的覆寫不動，條件解除就回來
-        frame.placeholderCB:SetChecked(phFixed or Override("placeholder") == true)
-        frame.placeholderCB:SetEnabled(not phFixed)
-        frame.placeholderCB:SetAlpha(phFixed and 0.4 or 1)
     end
     frame.restoreBtn:SetEnabled(ns.DB.HasOverrides(id))
 end
