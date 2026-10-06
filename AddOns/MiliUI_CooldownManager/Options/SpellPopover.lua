@@ -112,13 +112,18 @@ local TABS = {
 }
 local buildTab = "general"
 local curTab = "general"
--- 子分頁（K：文字分頁倒數的「冷卻｜增益持續時間」）：同分頁的做法，列建的時候記下 buildSub；
--- 這一格有增益持續時間（子分頁鈕那一列 subStrip 出現）才照 curSub 挑，沒有就固定冷卻那組（不出鈕）
-local buildSub
-local curSub = "cooldown"
+-- 子分頁（K）：同分頁的做法，列建的時候記下 buildSub（哪一頁）與 buildGroup（哪一組）。兩組：
+--   cd  文字分頁倒數的「冷卻｜增益持續時間」：這一格有增益持續時間（鈕列出現）才照 curSub.cd 挑，
+--       沒有就固定冷卻那組（不出鈕；SUB_FALLBACK）
+--   cs  「充能｜層數」（拆兩節時小窗超出螢幕，使用者 2026-10-06）：兩種都有的格（飾品欄）才出鈕；
+--       只有一種的格不出鈕、那一節照舊帶小節標題整個列出來
+local buildSub, buildGroup
+local curSub = { cd = "cooldown", cs = "charges" }
+local SUB_FALLBACK = { cd = "cooldown" }
 local function AddRow(entry)
     entry.tab = entry.tab or buildTab
     entry.sub = entry.sub or buildSub
+    if entry.sub then entry.group = entry.group or buildGroup end
     rows[#rows + 1] = entry
     return entry
 end
@@ -900,19 +905,21 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     local function BuffTimeRows(kind, class) return not OnBars() and (class == "aura" or DurationRows(kind, class)) end
     -- 子分頁鈕＋卡片（L，W.CreateTabCard）：卡片左右比列寬各多出 SUB_CARD_OUT（包住標籤與控件），
     -- 上緣＝鈕列底、底＝最後一個子分頁的列（Layout 排的時候補）。鈕列本身就是這一列的 frame
-    do
+    -- labels：卡片裡的標籤（量最長的定左緣）；gap：鈕列上方多留的（cs 緊接在 cd 卡片底下）
+    frame.subCards = {}
+    local function SubCard(group, tabs, help, labels, gap, when)
         local tc = W.CreateTabCard(frame, {
-            tabs = { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Buff duration"] } },
-            help = ns.Specs.SubTabHelp,
-            selected = curSub,
+            tabs = tabs,
+            help = help,
+            selected = curSub[group],
             onSelect = function(id)
-                if id == curSub then return end
-                curSub = id
+                if id == curSub[group] then return end
+                curSub[group] = id
                 if cur then Layout(frame.kind, frame.soundClass) end
             end,
         })
-        frame.subCard = tc
-        AddRow({ frame = tc.strip, h = 0, when = BuffTimeRows, subStrip = true,
+        frame.subCards[group] = tc
+        AddRow({ frame = tc.strip, h = 0, when = when, subStrip = group,
             place = function(y)
                 -- 左緣＝卡片裡最長的標籤再外推一點（標籤欄靠右對齊；不包空著的標籤欄左半，使用者 2026-10-06），
                 -- 右緣＝列的右緣再外推 SUB_CARD_OUT
@@ -924,17 +931,21 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
                     frame.subCardMeasure = measure
                 end
                 local lw = 0
-                for _, k in ipairs({ "Decimals below", "Color when low", "Low color", "Low below (sec)" }) do
+                for _, k in ipairs(labels) do
                     measure:SetText(L[k])
                     lw = math.max(lw, math.ceil(measure:GetStringWidth() or 0))
                 end
                 local left = math.max(PAD - SUB_CARD_OUT, PAD + CTRL_X - 10 - math.min(lw, LABEL_W) - 10)
                 local right = PAD + ROW_W + SUB_CARD_OUT
-                local sh = tc:Place(left, y - SUB_CARD_TOP, right - left)
-                return SUB_CARD_TOP + sh + W.TAB_CARD_PAD
+                local top = SUB_CARD_TOP + gap
+                local sh = tc:Place(left, y - top, right - left)
+                return top + sh + W.TAB_CARD_PAD
             end,
             paint = function(id) tc:Select(id) end })
     end
+    SubCard("cd", { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Buff duration"] } },
+        ns.Specs.SubTabHelp, { "Decimals below", "Color when low", "Low color", "Low below (sec)" }, 0, BuffTimeRows)
+    buildGroup = "cd"
 
     -- 冷卻：低秒變色的開關（cooldownTextLowColorOn）跟變色秒數（cooldownTextLowBelow）分兩個覆寫，同條頁與增益持續時間那組：
     -- 取消勾選只寫開關，秒數不動（2026-10-06 拆開；舊存檔的「秒數覆寫 0 ＝ 關」由 DB 的 MIGRATIONS[5] 搬）
@@ -984,8 +995,15 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     Track(ColorOverrideRow(L["Buff duration color"],     "durationColor",    false, { r = 1,    g = 0.85, b = 0.1,  a = 1 }), { "durationColor" })
     buildSub = nil
 
+    -- 充能｜層數（cs 組）：兩種都有的格才出鈕＋卡片；只有一種的格那一節照舊帶小節標題
+    local function BothCS(kind, class) return ChargeRows(kind, class) and StackRows(kind, class) end
+    SubCard("cs", { { id = "charges", label = L["Charges"] }, { id = "stacks", label = L["Stacks"] } }, nil,
+        { "Hide charges", "Hide stacks", "Font", "Font size", "Color", "Anchor", "Offset" }, 6, BothCS)
+    buildGroup = "cs"
+
     -- 充能
-    HeaderRow(L["Charges"], ChargeRows)
+    buildSub = "charges"
+    HeaderRow(L["Charges"], function(kind, class) return ChargeRows(kind, class) and not StackRows(kind, class) end)
     ToggleRow("hideChargeText", L["Hide charges"], ChargeRows)
     FontRow("chargeText", "chargeTextFont", ChargeRows)
     SizeRow(L["Font size"], "chargeText", "size", "chargeTextSize", 6, 30, ChargeRows)
@@ -994,13 +1012,15 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     OffsetRow("chargeText", "chargeTextX", "chargeTextY", ChargeRows)
 
     -- 層數
-    HeaderRow(L["Stacks"], StackRows)
+    buildSub = "stacks"
+    HeaderRow(L["Stacks"], function(kind, class) return StackRows(kind, class) and not ChargeRows(kind, class) end)
     ToggleRow("hideStackText", L["Hide stacks"], StackRows)
     FontRow("stackText", "stackTextFont", StackRows)
     SizeRow(L["Font size"], "stackText", "size", "stackTextSize", 6, 30, StackRows)
     TextColorRow(L["Color"], "stackText", "color", "stackTextColor", { r = 1, g = 1, b = 1, a = 1 }, StackRows)
     PointRow("stackTextPoint", StackAnchorRow, "stackText", "TOP")
     OffsetRow("stackText", "stackTextX", "stackTextY", StackRows)
+    buildSub, buildGroup = nil, nil
 
     -- 按鍵文字（沒有顏色：一律白字，同條層）
     HeaderRow(L["Keybind text"], KeyRows)
@@ -2068,7 +2088,8 @@ Layout = function(kind, class)
         end
     end
     local list, sel = {}, nil
-    local sub = "cooldown"          -- 子分頁鈕那一列出現了才換成 curSub（它排在兩組列前面）
+    -- 每組目前挑哪一頁：鈕列出現了才換成 curSub（它排在那一組的列前面）；沒出現＝SUB_FALLBACK（cs 沒有＝整組照 when 列）
+    local sub = { cd = SUB_FALLBACK.cd, cs = SUB_FALLBACK.cs }
     for _, b in ipairs(frame.tabBtns) do
         b:SetShown(has[b.id] and true or false)
         if has[b.id] then list[#list + 1] = b end
@@ -2080,30 +2101,30 @@ Layout = function(kind, class)
     local _, tbh = W.FlowLayout(frame.tabBar, list, ROW_W, 4, 4, 20)
     frame.tabBar:SetHeight(tbh)
     local y = TOP_Y - tbh - 10
-    -- 子分頁的卡片（L）：鈕列出現就開，碰到第一個不屬於子分頁的列（或排完）就收底
-    local card, cardOpen = frame.subCard, false
+    -- 子分頁的卡片（L）：鈕列出現就開，碰到第一個不屬於那一組子分頁的列（或排完）就收底
+    local card, cardGroup
     local function CloseCard()
-        if not cardOpen then return end
-        cardOpen = false
+        if not card then return end
         card:SetBottom(y - W.TAB_CARD_PAD)
+        card, cardGroup = nil, nil
         y = y - W.TAB_CARD_PAD - 6
     end
     for _, row in ipairs(rows) do
         local show = (row.tab == "all" or row.tab == curTab) and (not row.when or row.when(kind, class))
         if show and row.subStrip then
-            sub = curSub
-            row.paint(sub)
+            sub[row.subStrip] = curSub[row.subStrip]
+            row.paint(sub[row.subStrip])
         end
-        if show and row.sub and row.sub ~= sub then show = false end
+        if show and row.sub and sub[row.group] and row.sub ~= sub[row.group] then show = false end
         if row.subStrip then
-            card:SetShown(show)
+            frame.subCards[row.subStrip]:SetShown(show)
         else
             row.frame:SetShown(show)
         end
-        if show and cardOpen and not row.sub then CloseCard() end
+        if show and card and (row.subStrip or row.group ~= cardGroup) then CloseCard() end
         if show and row.subStrip then
             row.h = row.place(y)
-            cardOpen = true
+            card, cardGroup = frame.subCards[row.subStrip], row.subStrip
             y = y - row.h
         elseif show then
             row.frame:ClearAllPoints()
