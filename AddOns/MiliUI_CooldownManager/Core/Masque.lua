@@ -205,6 +205,7 @@ function M.Release(holder)
     local b = holder and holder.msqButton
     if not b then return end
     holder.msqButton, holder.msqSize = nil, nil
+    holder.msqTouched = true       -- RemoveButton 會把圖示凍在預設皮的尺寸：Decorate.RefillIcon 貼回整格
     local g = group
     if not g then return end
     ns.Write(b, function(f) g:RemoveButton(f) end, "masque")
@@ -224,6 +225,7 @@ function M.Sync(holder, button, regions, btype, w, h, onLate)
         if holder.msqButton ~= f then
             g:AddButton(f, regions, btype, true)
             holder.msqButton = f
+            holder.msqTouched = true   -- 套過皮：之後切回米利（或群組被停用）時 Decorate.RefillIcon 要貼回整格
         else
             g:ReSkin(f)
         end
