@@ -281,6 +281,9 @@ end
 --     section  "cooldownText" | "chargeText" | "stackText" | "keybind"：底＝條層同名那張表（ns.Setting）
 --              "barTime"：長條的秒數（暴雪增益長條、自訂長條框、光環長條）。底＝條層「長條」節的秒數字型／字級
 --              （bar.timeFont／timeSize），顏色白、錨點照長條的預設；覆寫欄位跟倒數同一組（cooldownTextFont…）
+--              "barName"：長條的名字（同上三種長條＋光環長條的占位）。底＝條層「長條」節的 showName／nameFont／nameSize；
+--              覆寫 barShowName（三態：nil 跟隨條／true 這一招顯示／false 這一招不顯示）、barNameFont、barNameSize。
+--              合併後 t.show 是生效的開關（第二個回傳值 hide ＝ not t.show）；直向長條一律不畫名字，那一關在呼叫端
 --     t        合併後的表（讀法跟條層那張一樣：t.size、t.font…）。沒有任何覆寫 ＝ 條層那張表本身（唯讀）
 --     hide     這一段要不要藏（hideCooldownText／hideChargeText／hideStackText／hideKeybind；沒覆寫 ＝ false）
 --     own      只有覆寫的欄位（沒有 ＝ EMPTY）：要分得出「這一招自己改了」的地方用
@@ -315,6 +318,8 @@ local SECTIONS = {
     barTime      = { hide = "hideCooldownText", keys = { CD_KEYS[1], CD_KEYS[2], CD_KEYS[3], CD_KEYS[4], CD_KEYS[5], CD_KEYS[6] } },
     chargeText   = { hide = "hideChargeText", keys = Pos("chargeText") },
     stackText    = { hide = "hideStackText", keys = Pos("stackText") },
+    -- 長條的名字：沒有隱藏欄位，開關本身就是三態的 barShowName（showKey：合併後的 t.show ＝ 生效的開關，hide ＝ not t.show）
+    barName      = { showKey = "show", keys = { { "show", "barShowName" }, { "font", "barNameFont" }, { "size", "barNameSize" } } },
     -- 按鍵文字沒有顏色（一律白字，同條層）
     keybind      = { hide = "hideKeybind", keys = { { "font", "keybindFont" }, { "size", "keybindSize" },
                      { "point", "keybindPoint" }, { "x", "keybindX" }, { "y", "keybindY" } } },
@@ -327,6 +332,11 @@ local function Base(barKey, section)
         local bar = S and S(barKey, "bar")
         bar = type(bar) == "table" and bar or EMPTY
         return { font = bar.timeFont, size = tonumber(bar.timeSize) or 12 }
+    end
+    if section == "barName" then
+        local bar = S and S(barKey, "bar")
+        bar = type(bar) == "table" and bar or EMPTY
+        return { show = bar.showName and true or false, font = bar.nameFont, size = tonumber(bar.nameSize) or 12 }
     end
     local t = S and S(barKey, section)
     return type(t) == "table" and t or EMPTY
@@ -363,7 +373,7 @@ function T.SpellText(barKey, id, section, fresh)
                 own[kv[1]] = v
             end
         end
-        hide = ov[spec.hide] and true or false
+        if spec.hide then hide = ov[spec.hide] and true or false end
     end
     local t = base
     if own then
@@ -372,6 +382,7 @@ function T.SpellText(barKey, id, section, fresh)
         setmetatable(t, { __index = base })
     end
     own = own or EMPTY
+    if spec.showKey then hide = not t[spec.showKey] end
     if not fresh and id ~= nil then
         local byBar = textCache[bk]
         if not byBar then byBar = {}; textCache[bk] = byBar end
@@ -384,11 +395,11 @@ function T.SpellText(barKey, id, section, fresh)
     return t, hide, own
 end
 
--- 這一招的文字覆寫（倒數／充能／層數三段＋三個隱藏；按鍵文字不在內，Keybinds.Apply 有自己的簽章）串成字。
+-- 這一招的文字覆寫（倒數／充能／層數三段＋三個隱藏＋長條名字（開關、字型、字級）；按鍵文字不在內，Keybinds.Apply 有自己的簽章）串成字。
 -- 沒有 ＝ ""。依 DB.overrideGen 快取（Decorate 只在前置鍵沒中時叫；自訂光環格的 AuraStyle 每次放格都叫）
 local sigCache = {}             -- id → { og, s }
 local SIG_FIELDS = { "hideCooldownText", "hideChargeText", "hideStackText" }
-for _, sec in ipairs({ "cooldownText", "chargeText", "stackText" }) do
+for _, sec in ipairs({ "cooldownText", "chargeText", "stackText", "barName" }) do
     for _, kv in ipairs(SECTIONS[sec].keys) do SIG_FIELDS[#SIG_FIELDS + 1] = kv[2] end
 end
 T.SIG_FIELDS = SIG_FIELDS
@@ -527,22 +538,25 @@ function T.ApplyBar(item, style, spell, bar, rec)
     local font, outline = style.font, style.outline
     local b = item.Bar
     if b then
+        -- 秒數：條層「長條」節的秒數 ⊕ 逐法術覆寫（Text.SpellText 的 "barTime"）
+        local tt, own = spell.barTime or { font = bar.timeFont, size = bar.timeSize }, spell.barTimeOwn
         local name = b.Name
         if name then
-            SetFont(name, bar.nameSize or 12, outline, ns.Media.ElementFont(bar.nameFont, font))
+            -- 名字：條層「長條」節的名字 ⊕ 逐法術覆寫（Text.SpellText 的 "barName"：開關三態、字型、字級）
+            local nt = spell.barName or { show = bar.showName, font = bar.nameFont, size = bar.nameSize }
+            SetFont(name, nt.size or 12, outline, ns.Media.ElementFont(nt.font, font))
             name:SetTextColor(1, 1, 1, 1)
             local s = PixelScale()
             name:ClearAllPoints()
             name:SetPoint("LEFT", b, "LEFT", 4 * s, 0)
-            name:SetPoint("RIGHT", b, "RIGHT", -((bar.timeSize or 12) * 3) * s, 0)
+            -- 右緣留三個秒數字寬（這一格生效的秒數字級，跟光環長條同一個算法）
+            name:SetPoint("RIGHT", b, "RIGHT", -((tonumber(tt.size) or 12) * 3) * s, 0)
             if name.SetJustifyH then name:SetJustifyH("LEFT") end
             -- 直向（F8c）：FontString 不能轉，名字不畫
-            name:SetAlpha((bar.showName and not bar.vertical) and 1 or 0)
+            name:SetAlpha((nt.show and not bar.vertical) and 1 or 0)
         end
         local dur = b.Duration
         if dur then
-            -- 字型／字級／顏色／位置：條層「長條」節的秒數 ⊕ 逐法術覆寫（Text.SpellText 的 "barTime"）
-            local tt, own = spell.barTime or { font = bar.timeFont, size = bar.timeSize }, spell.barTimeOwn
             SetFont(dur, tt.size or 12, outline, ns.Media.ElementFont(tt.font, font))
             dur:SetTextColor(Color(tt.color))
             -- 直向：秒數疊在條身內的頂端（層數照舊在圖示右下）

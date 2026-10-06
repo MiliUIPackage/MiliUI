@@ -26,7 +26,7 @@
 --   * 職業層／戰隊層的「從這條移除」＝整筆刪掉、每個專精都沒了 ⇒ 先問（Preview.RemoveCustom）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
 -- 分頁（玩家回報 2026-10-03 列太長；2026-10-05 H 改成五頁）：一般（所在條、以增益取代、天賦條件、占位）／
--- 文字（倒數、充能、層數、按鍵文字的字型／字級／顏色／位置與隱藏；增益那一段的換色與兩個字色）／外觀（邊框、圖示、
+-- 文字（長條的名字、倒數、充能、層數、按鍵文字的字型／字級／顏色／位置與隱藏；增益那一段的換色與兩個字色）／外觀（邊框、圖示、
 -- 去飽和、冷卻狀態、顯示增益持續時間、增益轉圈背景色、層數換色）／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／
 -- 音效／自訂文字（M，增益圖示類的格才有，排最後；見 BuildLabelTab）。每一列建立時記下當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
 --
@@ -678,7 +678,8 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     -- 偏移是 X／Y 兩個數字框。拉桿與數字框看不出有沒有覆寫 ⇒ 這一頁的標籤沒覆寫時變暗（Refresh），最上面一列灰字說明。
     -- 值一律照 Text.SpellText 合併後的回填（長條的秒數另有自己的底，見那支）。
     -- 哪些列出現：
-    --   倒數  每一種格都有；小數門檻與低秒變色長條沒有（秒數是暴雪寫的字串／整數 formatter）
+    --   名字  長條上的格（橫向；直向長條不畫名字）：顯示名字（三態 barShowName）、字型、字級，排在倒數前面（Text.SpellText 的 "barName"）
+    --   倒數  每一種格都有（長條上的格標題叫「時間」、隱藏叫「隱藏時間」）；小數門檻與低秒變色長條沒有（秒數是暴雪寫的字串／整數 formatter）
     --         換色開關＋兩個字色＝「先倒增益」那一段（暴雪的冷卻格、飾品欄），從原本的「增益持續時間」分頁搬來
     --         從小數門檻開始分子分頁「冷卻｜增益持續時間」（K）：各四列（小數門檻＋低秒變色＋變色顏色＋變色秒數）；
     --         增益持續時間那組（I／J）＝有增益持續時間的格（增益類、暴雪的冷卻格、飾品欄），沒有的格不出子分頁鈕、只有冷卻那組；
@@ -891,9 +892,20 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
         Track(r, { fx, fy })
     end
 
-    -- 倒數
-    HeaderRow(L["Countdown"], Always)
-    ToggleRow("hideCooldownText", L["Hide countdown"], Always)
+    -- 名字（長條的格才有，排最前面：長條上第一個看到的就是名字；直向長條不畫名字 ⇒ 不出）。
+    -- 開關是三態的 barShowName：沒覆寫＝跟隨條的「顯示名字」（勾選框照條的值、灰字「（跟隨『條名』）」），
+    -- 點了寫 true／false（條關著也能只開這一招、反之亦然），右鍵標籤回跟隨。字型／字級的底是條的名字字型／字級
+    local function NameRows() return OnBars() and not ns.Setting(cur.key, "bar.vertical") end
+    HeaderRow(L["Name text"], NameRows)
+    ToggleRow("barShowName", L["Show name"], NameRows)
+    FontRow("barName", "barNameFont", NameRows)
+    SizeRow(L["Font size"], "barName", "size", "barNameSize", 6, 30, NameRows)
+
+    -- 倒數（長條的格叫「時間」：倒的是長條右邊的秒數；存檔欄位同一個）
+    HeaderRow(L["Countdown"], NotBarsRow)
+    HeaderRow(L["Time text"], OnBars)
+    ToggleRow("hideCooldownText", L["Hide countdown"], NotBarsRow)
+    ToggleRow("hideCooldownText", L["Hide time"], OnBars)
     FontRow(CdSection, "cooldownTextFont", Always)
     SizeRow(L["Font size"], CdSection, "size", "cooldownTextSize", 6, 40, Always)
     TextColorRow(L["Color"], CdSection, "color", "cooldownTextColor", { r = 1, g = 1, b = 1, a = 1 }, Always)

@@ -686,6 +686,44 @@ do
         bt.bar.reverseFill = nil
         CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
     end
+    -- 長條名字的逐法術覆寫（barShowName 三態／barNameFont／barNameSize）：解進 st、進簽章（換容器）；占位的名字跟著
+    do
+        local aid = arec.cooldownID
+        local bt = DB.BarTable("buffbars")
+        bt.bar = bt.bar or {}
+        local oldShow = bt.bar.showName
+        bt.bar.showName = true
+        ns.Decorate.styleGen = (ns.Decorate.styleGen or 0) + 1   -- 條層換值（測試的 Decorate 是假的：自己推世代）
+        local st0 = CU.AuraStyle(arec, "buffbars", 200, 20, "bars")
+        eq("名字：沒覆寫 ⇒ 跟條（顯示）", st0.showName, true)
+        DB.SetOverride(aid, "barNameSize", 21)
+        local st1 = CU.AuraStyle(arec, "buffbars", 200, 20, "bars")
+        eq("名字：字級覆寫解進 st", st1.nameSize, 21)
+        check("名字：字級覆寫進簽章", st1.sig ~= st0.sig)
+        DB.SetOverride(aid, "barShowName", false)
+        local st2 = CU.AuraStyle(arec, "buffbars", 200, 20, "bars")
+        eq("名字：覆寫關 ⇒ 不顯示（條開著）", st2.showName, false)
+        check("名字：開關覆寫進簽章", st2.sig ~= st1.sig)
+        local sigN0 = arec.sig
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 51)
+        check("名字：換一顆容器", arec.sig ~= sigN0)
+        eq("占位：這一格關了名字 ⇒ 灰名字收起來", barHolder.phName.shown, false)
+        -- 條關著、這一招開
+        bt.bar.showName = false
+        DB.SetOverride(aid, "barShowName", true)
+        ns.Decorate.styleGen = (ns.Decorate.styleGen or 0) + 1   -- 條層換值（測試的 Decorate 是假的：自己推世代）
+        eq("名字：條關、覆寫開 ⇒ 顯示", CU.AuraStyle(arec, "buffbars", 200, 20, "bars").showName, true)
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 52)
+        eq("占位：條關、這一格開 ⇒ 灰名字顯示", barHolder.phName.shown, true)
+        bt.bar.vertical = true
+        ns.Decorate.styleGen = (ns.Decorate.styleGen or 0) + 1   -- 條層換值（測試的 Decorate 是假的：自己推世代）
+        eq("名字：直向照樣不畫（vert 另外擋）", CU.AuraStyle(arec, "buffbars", 20, 200, "bars").vert, true)
+        bt.bar.vertical = nil
+        for _, f in ipairs({ "barShowName", "barNameSize" }) do DB.SetOverride(aid, f, nil) end
+        bt.bar.showName = oldShow
+        ns.Decorate.styleGen = (ns.Decorate.styleGen or 0) + 1   -- 條層換值（測試的 Decorate 是假的：自己推世代）
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
+    end
 
     -- 光環搬到圖示類：另一顆持有框、另一個容器池
     CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 6)

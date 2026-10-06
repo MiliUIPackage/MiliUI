@@ -1208,6 +1208,11 @@ local SPELL_FALLBACK = {
     keybindPoint    = "keybind.point",
     keybindX        = "keybind.x",
     keybindY        = "keybind.y",
+    -- 長條的名字（長條類的條才有）：條層在「長條」節（bar.*，不跟主題）。barShowName 三態：nil 跟隨條／true 顯示／false 不顯示。
+    -- 引擎一樣不直接讀，走 Text.SpellText 的 "barName"
+    barShowName     = "bar.showName",
+    barNameFont     = "bar.nameFont",
+    barNameSize     = "bar.nameSize",
 }
 -- 沒有條層對應的覆寫欄位 → 固定預設
 local SPELL_CONST = {
@@ -1297,6 +1302,7 @@ function DB.SpellFallbackSource(barKey, field)
     if not path then return nil end
     if barKey == nil or barKey == "theme" then return "theme" end
     local group = THEMED[Split(path)[1]]
+    if not group then return "bar" end            -- 條自己的欄位（bar.*）：不跟主題，一律是這一條的值
     local bar = ns.profile and ns.profile.bars and ns.profile.bars[barKey]
     local follow = type(bar) == "table" and bar.follow
     if group and type(follow) == "table" and follow[group.follow] == false then return "bar" end
@@ -1560,6 +1566,8 @@ DB.OVERRIDE_GROUP = {
     stackTextFont = "text", stackTextSize = "text", stackTextColor = "text", stackTextPoint = "text",
     stackTextX = "text", stackTextY = "text",
     keybindFont = "text", keybindSize = "text", keybindPoint = "text", keybindX = "text", keybindY = "text",
+    -- 長條的名字（開關、字型、字級）：條層在「文字」分頁最後的「長條文字」小節 ⇒ 同一組
+    barShowName = "text", barNameFont = "text", barNameSize = "text",
     colorDuration = "icon", durationColor = "icon", durationSwipeColor = "icon",
     -- 增益持續時間變色顏色：控件在文字節（跟增益持續時間另外三列排在一起），覆寫也歸文字組，文字節的清除覆寫一起清（資料路徑照舊 icon.*）
     durationLowColor = "text",

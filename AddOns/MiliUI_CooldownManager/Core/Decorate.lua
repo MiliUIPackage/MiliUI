@@ -152,12 +152,13 @@ end
 local function SpellStyle(barKey, id, fresh)
     local SS = ns.SpellSetting
     local T = ns.Text
-    local cdT, chT, hideCh, stT, btT, btOwn
+    local cdT, chT, hideCh, stT, btT, btOwn, bnT
     if T and T.SpellText then
         cdT = T.SpellText(barKey, id, "cooldownText", fresh)
         chT, hideCh = T.SpellText(barKey, id, "chargeText", fresh)
         stT = T.SpellText(barKey, id, "stackText", fresh)
         btT, _, btOwn = T.SpellText(barKey, id, "barTime", fresh)
+        bnT = T.SpellText(barKey, id, "barName", fresh)       -- 長條的名字（t.show ＝ 生效的開關）
     end
     return {
         -- 文字（單一法術小窗的「文字」分頁）：條層 ⊕ 逐法術覆寫，合併只在 Text.SpellText 一處；
@@ -167,6 +168,7 @@ local function SpellStyle(barKey, id, fresh)
         stackText        = stT,
         barTime          = btT,
         barTimeOwn       = btOwn,
+        barName          = bnT,
         hideChargeText   = hideCh,
         textSig          = (T and T.OverrideSig) and T.OverrideSig(id) or "",
         -- 自訂文字（M）：沒打字 ＝ nil。畫不畫另看格的種類（暴雪的增益圖示、預覽的增益格才畫），這裡只解值

@@ -1386,8 +1386,10 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.bfill     = RGBA(bar.color, 0.4, 0.6, 0.9, 1)
         st.bbg       = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
         st.spark     = bar.spark and true or false
-        st.nameFont  = ns.Media.Font(ns.Media.ElementFont(bar.nameFont, font))
-        st.nameSize  = tonumber(bar.nameSize) or 12
+        -- 名字：「長條」節的名字 ⊕ 這一招的覆寫（Text.SpellText 的 "barName"：開關三態、字型、字級）
+        local nt = TX.SpellText(barKey, id, "barName")
+        st.nameFont  = ns.Media.Font(ns.Media.ElementFont(nt.font, font))
+        st.nameSize  = tonumber(nt.size) or 12
         -- 秒數：「長條」節的秒數 ⊕ 這一招的覆寫（Text.SpellText 的 "barTime"；位置照 Text.BarTimePlace）
         local tt, _, tOwn = TX.SpellText(barKey, id, "barTime")
         st.timeFont  = ns.Media.Font(ns.Media.ElementFont(tt.font, font))
@@ -1400,7 +1402,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.stBarPoint = S(barKey, "stackText.barPoint") or "BOTTOMRIGHT"
         st.stBarIX = st.stBarPoint:find("RIGHT") and -1 or (st.stBarPoint:find("LEFT") and 1 or 0)
         st.stBarIY = st.stBarPoint:find("BOTTOM") and 1 or (st.stBarPoint:find("TOP") and -1 or 0)
-        st.showName  = bar.showName and true or false
+        st.showName  = nt.show and true or false
         st.showTime  = bar.showTime and true or false
         st.showStacks = bar.showStacks and true or false
         st.name      = Plain(Try(C_Spell and C_Spell.GetSpellName, rec.spellID)) or ""
@@ -1997,13 +1999,18 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     local vert = bar.vertical and true or false        -- 直向（F8c）：圖示 w×w 在上／下、名字不畫
     local H = vert and (tonumber(w) or 20) or (tonumber(h) or 20)
     local gap = ns.Layout.Snap(tonumber(bar.iconGap) or 0)
-    local font = ns.Media.ElementFont(bar.nameFont, ns.Setting(barKey, "font"))
+    -- 名字：「長條」節 ⊕ 這一格的覆寫（Text.SpellText 的 "barName"，同光環長條本體）；右緣留的字寬照這一格的秒數字級
+    local nt = ns.Text.SpellText(barKey, rec.cooldownID, "barName")
+    local tt = ns.Text.SpellText(barKey, rec.cooldownID, "barTime")
+    local nameSize, timeSize = tonumber(nt.size) or 12, tonumber(tt.size) or 12
+    local showName = (nt.show and not vert) and true or false
+    local font = ns.Media.ElementFont(nt.font, ns.Setting(barKey, "font"))
     local outline = ns.Setting(barKey, "outline") or ""
     local tex, name = PlaceholderLook(rec)
     local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
     local bgc = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
     local sig = table.concat({ side, string.format("%.2f,%.2f", H, gap), tostring(font), outline, tostring(tex), name, z,
-        tostring(bar.nameSize), tostring(bar.timeSize), tostring(bar.showName and true or false),
+        nameSize, timeSize, tostring(showName),
         string.format("%.3f,%.3f,%.3f,%.3f", bgc[1], bgc[2], bgc[3], bgc[4]), tostring(vert) }, "|")
     if hd.phSig == sig and hd.phBG and hd.phBG:IsShown() then return end
     hd.phSig = sig
@@ -2044,15 +2051,15 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
         icon:SetDesaturated(true)
         icon:SetAlpha(0.35)
         icon:SetShown(side ~= "NONE")
-        ns.Text.SetFont(fs, bar.nameSize or 12, outline, font)
+        ns.Text.SetFont(fs, nameSize, outline, font)
         fs:SetTextColor(0.6, 0.6, 0.6, 1)
         local s = ns.Text.PixelScale()
         fs:ClearAllPoints()
         fs:SetPoint("LEFT", bgT, "LEFT", 4 * s, 0)
-        fs:SetPoint("RIGHT", bgT, "RIGHT", -((bar.timeSize or 12) * 3) * s, 0)
+        fs:SetPoint("RIGHT", bgT, "RIGHT", -(timeSize * 3) * s, 0)
         if fs.SetJustifyH then fs:SetJustifyH("LEFT") end
         fs:SetText(name)
-        fs:SetShown((bar.showName and not vert) and true or false)
+        fs:SetShown(showName)
     end, "placeholder")
 end
 

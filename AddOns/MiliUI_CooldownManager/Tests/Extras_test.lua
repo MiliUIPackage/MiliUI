@@ -25,6 +25,8 @@
 --  13. 長條漸層填充（F8a）：CleanGradient／GradientSig／PaintFill 的呼叫順序、預設值
 --  12. 挑選器「背包物品」（F6）：BagRows 的去重／有使用效果才列／依名字排序（沒名字的排後面依 ID）／數量／已加入；
 --      ScanBags（bag 0～4、秘密值與空格跳過）；PresetRows("bag") 接起來（加入後標已加入、make 的形狀）
+--  20. 長條名字的逐法術覆寫：登記、Text.SpellText 的 "barName"（三態開關 × 條層開關、字型／字級）、跟隨來源、簽章、
+--      Text.ApplyBar 讀合併值（直向不畫）、文字組清除
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -2203,6 +2205,127 @@ do
     DB.ResetOverrides(id)
     eq("還原此法術 ⇒ 自訂文字清掉", T.LabelStyle("buffs", id), nil)
     ns.Media.ElementFont = savedEF
+end
+
+------------------------------------------------------------
+-- 20. 長條名字的逐法術覆寫（2026-10-07）：登記（SPELL_FALLBACK／OVERRIDE_GROUP／SIG_FIELDS）、
+--     Text.SpellText 的 "barName"（三態開關 × 條層開關、字型／字級覆寫、快取跟條層世代）、跟隨來源、
+--     簽章（OverrideSig → Decorate.Signature）、Text.ApplyBar 讀合併值（直向一律不畫）、文字組清除
+------------------------------------------------------------
+do
+    local T = ns.Text
+    local id = 12
+    DB.ResetOverrides(id)
+    eq("SPELL_FALLBACK：開關退條層", DB.SPELL_FALLBACK.barShowName, "bar.showName")
+    eq("SPELL_FALLBACK：字型退條層", DB.SPELL_FALLBACK.barNameFont, "bar.nameFont")
+    eq("SPELL_FALLBACK：字級退條層", DB.SPELL_FALLBACK.barNameSize, "bar.nameSize")
+    for _, f in ipairs({ "barShowName", "barNameFont", "barNameSize" }) do
+        eq("分組 " .. f, DB.OVERRIDE_GROUP[f], "text")
+        local inSig = false
+        for _, g in ipairs(T.SIG_FIELDS) do if g == f then inSig = true end end
+        check("進簽章欄位 " .. f, inSig)
+    end
+    local bt = DB.BarTable("buffbars")
+    bt.bar = type(bt.bar) == "table" and bt.bar or {}
+    local bar = bt.bar
+    local saved = { showName = bar.showName, nameSize = bar.nameSize, nameFont = bar.nameFont, vertical = bar.vertical }
+    bar.showName, bar.nameSize, bar.nameFont, bar.vertical = true, 16, "INHERIT", nil
+    D.InvalidateAll()
+
+    local t, hide, own = T.SpellText("buffbars", id, "barName")
+    check("沒覆寫 ⇒ 跟條：顯示、字級 16、字型", t.show == true and t.size == 16 and t.font == "INHERIT")
+    eq("沒覆寫 ⇒ 不藏", hide, false)
+    eq("沒覆寫 ⇒ own 空", next(own), nil)
+    eq("SpellSetting：開關跟條", ns.SpellSetting("buffbars", id, "barShowName"), true)
+    eq("跟隨來源：條自己的（bar.* 不跟主題）", DB.SpellFallbackSource("buffbars", "barShowName"), "bar")
+    eq("跟隨來源：主題頁照舊", DB.SpellFallbackSource("theme", "barShowName"), "theme")
+    eq("既有欄位的跟隨來源不變（跟主題）", DB.SpellFallbackSource("buffbars", "cooldownTextSize"), "theme")
+
+    -- 三態：條開著、這一招關
+    DB.SetOverride(id, "barShowName", false)
+    t, hide = T.SpellText("buffbars", id, "barName")
+    check("條開、覆寫關 ⇒ 不顯示", t.show == false and hide == true)
+    -- 條關著：沒覆寫跟著關、覆寫開就這一招顯示
+    DB.SetOverride(id, "barShowName", nil)
+    bar.showName = false
+    D.InvalidateAll()
+    t, hide = T.SpellText("buffbars", id, "barName")
+    check("條關、沒覆寫 ⇒ 不顯示（條層換值走世代作廢）", t.show == false and hide == true)
+    DB.SetOverride(id, "barShowName", true)
+    t, hide, own = T.SpellText("buffbars", id, "barName")
+    check("條關、覆寫開 ⇒ 這一招顯示", t.show == true and hide == false)
+    eq("own 只有開關", own.show, true)
+    eq("SpellSetting：覆寫優先", ns.SpellSetting("buffbars", id, "barShowName"), true)
+    eq("別的招照條（關）", T.SpellText("buffbars", id + 1, "barName").show, false)
+
+    -- 字型／字級
+    DB.SetOverride(id, "barNameSize", 22)
+    DB.SetOverride(id, "barNameFont", "Arial Narrow")
+    t, _, own = T.SpellText("buffbars", id, "barName")
+    check("字級／字型覆寫", t.size == 22 and t.font == "Arial Narrow" and own.size == 22)
+    check("段之間不串：秒數不吃名字的字級", T.SpellText("buffbars", id, "barTime").size ~= 22)
+
+    -- 簽章
+    local sig = T.OverrideSig(id)
+    check("OverrideSig 帶名字覆寫", sig:find("barNameSize=22", 1, true) ~= nil and sig:find("barShowName=true", 1, true) ~= nil)
+    local style = D.Resolve("buffbars", true)
+    local sA = D.Signature(style, id, D.SpellStyle("buffbars", id), 200, 20)
+    DB.SetOverride(id, "barNameSize", 23)
+    local sB = D.Signature(style, id, D.SpellStyle("buffbars", id), 200, 20)
+    check("Decorate 簽章跟著名字字級變", sA ~= sB)
+    DB.SetOverride(id, "barShowName", false)
+    check("Decorate 簽章跟著名字開關變", D.Signature(style, id, D.SpellStyle("buffbars", id), 200, 20) ~= sB)
+    eq("SpellStyle 帶合併後的名字", D.SpellStyle("buffbars", id).barName.size, 23)
+
+    -- Text.ApplyBar 讀合併值
+    local savedPF, savedEF = ns.Media.SetPixelFont, ns.Media.ElementFont
+    ns.Media.SetPixelFont = function(fs, size, _, font) fs.size, fs.font = size, font end
+    ns.Media.ElementFont = function(own2, gen) return own2 or gen end
+    local function FS()
+        local f = { pts = {} }
+        function f:SetFont() end                  -- Text.SetFont 先看有沒有 SetFont
+        function f:SetTextColor() end
+        function f:ClearAllPoints() self.pts = {} end
+        function f:SetPoint(...) self.pts[#self.pts + 1] = { ... } end
+        function f:SetJustifyH() end
+        function f:SetAlpha(a) self.alpha = a end
+        return f
+    end
+    local nameFS = FS()
+    local item = { Bar = { Name = nameFS, Duration = FS() } }
+    local function Apply(sid)
+        T.ApplyBar(item, D.Resolve("buffbars", true), D.SpellStyle("buffbars", sid), ns.Setting("buffbars", "bar"), nil)
+    end
+    DB.SetOverride(id, "barShowName", true)
+    Apply(id)
+    check("ApplyBar：覆寫開 ⇒ 名字顯示（條關著）", nameFS.alpha == 1)
+    eq("ApplyBar：名字字級吃覆寫", nameFS.size, 23)
+    eq("ApplyBar：名字字型吃覆寫", nameFS.font, "Arial Narrow")
+    Apply(id + 1)
+    eq("ApplyBar：別的招照條（關）", nameFS.alpha, 0)
+    eq("ApplyBar：別的招照條的字級", nameFS.size, 16)
+    bar.vertical = true
+    D.InvalidateAll()
+    Apply(id)
+    eq("ApplyBar：直向一律不畫名字（覆寫開也一樣）", nameFS.alpha, 0)
+    bar.vertical = nil
+    bar.showName = true
+    D.InvalidateAll()
+    DB.SetOverride(id, "barShowName", false)
+    Apply(id)
+    eq("ApplyBar：條開、覆寫關 ⇒ 名字熄", nameFS.alpha, 0)
+    DB.SetOverride(id, "barShowName", nil)
+    Apply(id)
+    eq("ApplyBar：右鍵清掉 ⇒ 回到條的開", nameFS.alpha, 1)
+    ns.Media.SetPixelFont, ns.Media.ElementFont = savedPF, savedEF
+
+    -- 文字組清除一起清
+    check("清除前有名字覆寫", ns.SpellOverride(id, "barNameSize") ~= nil)
+    DB.ClearOverrides({ id }, "text")
+    check("清文字覆寫 ⇒ 名字覆寫一起清", ns.SpellOverride(id, "barNameSize") == nil and ns.SpellOverride(id, "barNameFont") == nil)
+    DB.ResetOverrides(id)
+    bar.showName, bar.nameSize, bar.nameFont, bar.vertical = saved.showName, saved.nameSize, saved.nameFont, saved.vertical
+    D.InvalidateAll()
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
