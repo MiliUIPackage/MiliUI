@@ -22,12 +22,13 @@
 -- 一次只開一個；表單照「形狀」快取（key、條件規則的結構、氣漩摺不摺、征戰聖擊在不在追蹤量條、虛空化身的子分頁）：
 -- frame 刪不掉，形狀一樣就重用。「跟隨」切換不換表單（遮罩是即時判的）。
 -- 非強制回應的小視窗（同逐法術面板）：DIALOG 300，彈窗（血量門檻、確認）在 FULLSCREEN_DIALOG 蓋在它上面。
+-- 視窗的殼（框、標題、捲動、貼位置、表單快取與換形狀）是共用的 Options/SettingsWindow.lua（天空騎術每一列的設定也用它）。
 ------------------------------------------------------------
 local _, ns = ...
 
 local L = ns.L
 
-local W, P = ns.W, ns.P
+local W = ns.W
 
 local Options = ns.Options
 
@@ -37,9 +38,6 @@ local RS = ns.ResourceSettings
 local KEY     = "resources"
 local WIDTH   = 540          -- 條件規則的列是照資源條頁的表單寬排的（變數／比較／數值／移除一路排到控件欄 +332）
 local MAX_H   = 560
-local PAD     = 12
-local HEAD_H  = 30
-local FORM_W  = WIDTH - PAD * 2 - 24      -- 扣掉捲軸
 local LABEL_W  = ns.WidgetsEnv.LABEL_W or 128
 local CTRL_GAP = 12                       -- 共用層表單：標籤欄與控件欄的間距（Controls.lua 的 GAP）
 
@@ -538,12 +536,8 @@ local function Controls(key)
 end
 
 ------------------------------------------------------------
--- 視窗
+-- 視窗（殼是共用的：Options/SettingsWindow.lua）
 ------------------------------------------------------------
-local frame, scroll
-local cur                      -- 現在開的資源 key
-local forms = {}               -- 簽章 → 表單（frame 刪不掉，形狀一樣就重用）
-
 local function Signature(key)
     local R = ns.Resources
     local info = R.Info(key) or {}
@@ -560,165 +554,64 @@ local function Signature(key)
     }, "|")
 end
 
-local ShowForm                 -- 前置宣告（OnApply 要用）
-
-local function OnApply(spec)
-    ns.Resources.Apply()
-    if ns.Pips then ns.Pips.Apply() end
-    -- 顏色與條件規則：跟隨我們顏色的插件重畫（合併節流）
-    if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
-    if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
-    -- 形狀可能變了（規則增刪、摺疊開關）：延一幀再比對，不在按鈕的處理器裡換表單。
-    -- 資源條頁開著的話一起重讀（「這個專精要顯示哪些」那幾列的狀態）
-    ns.Defer(function()
-        if frame and frame:IsShown() and cur and (frame.sig ~= Signature(cur) or (spec and spec.refreshPage)) then
-            ShowForm(false)
+local win
+win = ns.SettingsWindow.New({
+    id        = "resourcesettings",
+    configKey = KEY,
+    width     = WIDTH,
+    maxH      = MAX_H,
+    controls  = Controls,
+    signature = Signature,
+    -- 子分頁（虛空化身的計時｜崩陷之星）：只留目前那個子分頁的列；沒有子分頁的資源原樣
+    prepare   = function(key, specs, ctx)
+        local info = ns.Resources.Info(key) or {}
+        if not info.meta then return specs end
+        ctx.subTab = metaTab
+        ctx.onSubTab = function(id)
+            metaTab = id
+            win:ShowForm(false)          -- 換子分頁：捲動位置與上緣不動
         end
-        local page = Options.GetPage(KEY)
-        if page and page:IsVisible() and page.RefreshForm then page:RefreshForm() end
-    end)
-end
-
--- 視窗高度：內容少就縮、最多 MAX_H。keepTop：換表單形狀時上緣不動（往下長）。
--- 開窗時**貼在設定視窗右邊**（右邊放不下改左邊，再不行交給 PlaceClamped 平移）——跟逐法術面板、挑選器同一套：
--- 蓋在設定視窗正中央的話，「這個專精要顯示哪些」那排被遮住，要換另一種資源得先關窗
-local function Fit(form, keepTop)
-    local h = math.min(MAX_H, PAD + HEAD_H + form.height + PAD)
-    local parent = frame:GetParent()
-    local top, pb = frame:GetTop(), parent and parent:GetBottom()
-    local pcx = parent and parent:GetCenter()
-    local fcx = frame:GetCenter()
-    P.Height(frame, h)
-    if keepTop and top and pb and pcx and fcx then
-        frame:ClearAllPoints()
-        frame:SetPoint("TOP", parent, "BOTTOM", fcx - pcx, top - pb)
-    else
-        local pts = { "TOPLEFT", parent, "TOPRIGHT", 6, 0 }
-        local right, sw = parent and parent:GetRight(), UIParent:GetRight()
-        if right and sw and right + WIDTH + 10 > sw then
-            pts = { "TOPRIGHT", parent, "TOPLEFT", -6, 0 }
-        end
-        W.PlaceClamped(frame, pts)
-    end
-    return h - PAD - HEAD_H - PAD
-end
-
-ShowForm = function(reset)
-    if not (frame and cur) then return end
-    local sig = Signature(cur)
-    local form = forms[sig]
-    if not form then
-        local ctx = ns.Specs.MakeCtx({ mode = "panel", key = KEY }, OnApply)
-        -- 子分頁（虛空化身的計時｜崩陷之星）：只留目前那個子分頁的列；沒有子分頁的資源原樣
-        local specs = Controls(cur)
-        local info = ns.Resources.Info(cur) or {}
-        if info.meta then
-            specs = ns.Specs.FilterSubTab(specs, metaTab)
-            ctx.subTab = metaTab
-            ctx.onSubTab = function(id)
-                metaTab = id
-                ShowForm(false)          -- 換子分頁：捲動位置與上緣不動
-            end
-        end
-        form = ns.Specs.BuildForm(scroll.child, specs, ctx, FORM_W)
-        forms[sig] = form
-    end
-    for _, fm in pairs(forms) do fm.content:SetShown(fm == form) end
-    -- 同一種資源換表單形狀（規則增刪）：維持捲動位置與上緣；換資源或剛開窗：捲回最上面、置中
-    local keep = (not reset) and scroll:GetVerticalScroll() or 0
-    frame.form, frame.sig = form, sig
-    local viewH = Fit(form, not reset)
-    scroll:SetContentHeight(form.height)
-    scroll:SetVerticalScroll(math.min(keep, math.max(0, form.height - viewH)))
-    form:Refresh()
-end
-
-local function Build()
-    if frame then return end
-    frame = W.CreateFrame(nil, Options.panel, WIDTH, 300)
-    frame:SetFrameStrata("DIALOG")
-    frame:SetFrameLevel(300)
-    frame:SetBackdropBorderColor(W.Accent(1))
-    frame:SetPoint("CENTER")
-    frame:Hide()
-    W.CloseOnEscape(frame)
-
-    local close = W.CreateButton(frame, "", "red", 18, 18)
-    close:SetPoint("TOPRIGHT", -4, -4)
-    local x = close:CreateTexture(nil, "OVERLAY")
-    x:SetTexture("Interface\\Buttons\\UI-StopButton")
-    x:SetSize(10, 10)
-    x:SetPoint("CENTER")
-    close:SetScript("OnClick", function() frame:Hide() end)
-
-    local icon = frame:CreateTexture(nil, "ARTWORK")
-    P.Size(icon, 20, 20)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    icon:SetPoint("TOPLEFT", PAD, -PAD + 2)
-    frame.icon = icon
-    local title = frame:CreateFontString(nil, "OVERLAY")
-    title:SetFontObject(W.fontTitle)
-    title:SetJustifyH("LEFT")
-    title:SetWordWrap(false)
-    frame.title = title              -- 錨點在 SetHeader（有沒有圖示兩種排法）
-
-    local holder = CreateFrame("Frame", nil, frame)
-    holder:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD - 4, -(PAD + HEAD_H))
-    holder:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, PAD)
-    scroll = W.CreateScrollFrame(holder)
-
-    -- 血量門檻的彈窗跟著這個視窗走（它改的是這一種資源）
-    frame:HookScript("OnHide", function()
+        return ns.Specs.FilterSubTab(specs, metaTab)
+    end,
+    onApply   = function()
+        ns.Resources.Apply()
+        if ns.Pips then ns.Pips.Apply() end
+        -- 顏色與條件規則：跟隨我們顏色的插件重畫（合併節流）
+        if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
+        if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
+        -- 資源條頁開著的話一起重讀（「這個專精要顯示哪些」那幾列的狀態）；延一幀，不在按鈕的處理器裡換表單
+        ns.Defer(function()
+            local page = Options.GetPage(KEY)
+            if page and page:IsVisible() and page.RefreshForm then page:RefreshForm() end
+        end)
+    end,
+    -- 血量門檻、虛空化身門檻的彈窗跟著這個視窗走（它改的是這一種資源）
+    onHide    = function()
         if ns.HealthThresholds and ns.HealthThresholds.Close then ns.HealthThresholds.Close() end
         if ns.MetaRules and ns.MetaRules.Close then ns.MetaRules.Close() end
-    end)
-
-    ns.RegisterCallback("OptionsHidden", "resourcesettings", function() frame:Hide() end)
-    ns.RegisterCallback("SpecChanged", "resourcesettings", function() frame:Hide() end)
-    ns.RegisterCallback("ProfileChanged", "resourcesettings", function() frame:Hide() end)
-end
+    end,
+    hideOn    = { "OptionsHidden", "SpecChanged", "ProfileChanged" },
+})
 
 -- 標題：資源名；有對應的法術（R.Info(key).nameSpell）就在前面放它的圖示
-local function SetHeader(key)
-    local R = ns.Resources
-    local info = R.Info(key) or {}
-    local tex
+local function HeaderIcon(key)
+    local info = ns.Resources.Info(key) or {}
     if info.nameSpell and C_Spell and C_Spell.GetSpellTexture then
         local ok, t = pcall(C_Spell.GetSpellTexture, info.nameSpell)
-        if ok and not ns.IsSecret(t) and t ~= nil then tex = t end
+        if ok and not ns.IsSecret(t) and t ~= nil then return t end
     end
-    frame.icon:SetShown(tex ~= nil)
-    if tex then frame.icon:SetTexture(tex) end
-    frame.title:ClearAllPoints()
-    if tex then
-        frame.title:SetPoint("LEFT", frame.icon, "RIGHT", 8, 0)
-    else
-        frame.title:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -PAD - 1)
-    end
-    frame.title:SetPoint("RIGHT", frame, "RIGHT", -28, 0)
-    frame.title:SetText(R.Name(key))
+    return nil
 end
 
 function RS.Open(key)
     if type(key) ~= "string" or not ns.Resources.Info(key) or not Cfg() then return end
-    Build()
-    if not frame then return end
-    cur = key
-    SetHeader(key)
-    -- 先 Show 再建表單：說明列的換行高度要在顯示中才量得準
-    frame:Show()
-    ShowForm(true)
+    win:Open(key, ns.Resources.Name(key), HeaderIcon(key))
 end
 
 function RS.Close()
-    if frame then frame:Hide() end
+    win:Close()
 end
 
 function RS.Refresh()
-    if not (frame and frame:IsShown() and cur) then return end
-    if frame.sig ~= Signature(cur) then
-        ShowForm(false)
-    elseif frame.form then
-        frame.form:Refresh()
-    end
+    win:Refresh()
 end

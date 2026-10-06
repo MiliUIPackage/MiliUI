@@ -398,8 +398,21 @@ AssistIconDefaults = function()
     }
 end
 
--- 天空騎術面板（Modules/Skyriding.lua，面板 skyriding）：活力充能格＋速度條＋旋轉急衝圖示。
--- 跟著設定檔走、不分專精。舊存檔沒有這張表 ＝ 合併預設值補上，不遷移。顏色與數值只是起點，驗收時再調
+-- 天空騎術面板（Modules/Skyriding.lua，面板 skyriding）：四列（速度條、旋轉急衝、活力、重新振作）＋旋轉急衝圖示。
+-- 跟著設定檔走、不分專精。舊存檔沒有這張表 ＝ 合併預設值補上，不遷移。
+-- 2026-10-06 第二階段改成「列」：order 決定由上往下的順序、rows[key] 是每一列自己的設定（高、材質、顏色、文字）。
+-- 第一階段的舊欄位（speedOnTop、showSpeed、colors…）由 Skyriding.Upgrade 搬進 rows（發佈前的欄位搬家，不走 DB 遷移鏈）
+local function SkyText(show, anchor, x, size)
+    return { show = show, anchor = anchor, x = x, y = 0, font = "INHERIT", size = size, color = rgba(1, 1, 1) }
+end
+
+local function SkyRow(enabled, height, extra)
+    local r = { enabled = enabled, height = height, texture = "INHERIT", bgTexture = "INHERIT",
+                bgColor = rgba(0.15, 0.15, 0.15, 0.6) }        -- 背景色預設 ＝ 資源條的 DIM
+    for k, v in pairs(extra) do r[k] = v end
+    return r
+end
+
 SkyridingDefaults = function()
     return {
         enabled          = true,
@@ -408,37 +421,38 @@ SkyridingDefaults = function()
         pos              = { point = "CENTER", x = 0, y = -180 },   -- standalone 用
         anchor           = false,          -- standalone 可以在編輯模式錨到別條
         width            = 0,              -- 0 ＝ 跟核心技能第一列同寬（同資源條）
-        chargeHeight     = 10,
-        speedHeight      = 8,
-        gap              = 1,              -- 兩排之間、充能格之間的間距
-        speedOnTop       = true,           -- 速度條在上、充能在下（false 對調）
-        showSpeed        = true,
-        showCharges      = true,
-        speedText        = "RIGHT",        -- OFF | LEFT | RIGHT | CENTER（字型照主題，大小跟資源條的文字設定）
-        hideGroundedFull = false,          -- 在地面上而且充能全滿 ⇒ 不顯示（使用者 2026-10-06 指定預設關）
-        speedColorOnCharges = false,       -- 充能格改用速度條目前的顏色
-        -- 充能次數：六格正中間的數字（目前的活力），使用者 2026-10-06 指定預設開、白字、上下置中
-        chargeText       = true,
-        chargeTextSize   = 12,
-        chargeTextFont   = "INHERIT",      -- "INHERIT" ＝ 跟隨主題的通用字型
-        chargeTextOffset = { x = 0, y = 0 },
-        -- 旋轉急衝長條：緊貼在速度條下方的一排，好了是滿的、冷卻中從空長到滿（使用者 2026-10-06 指定）
-        surgeBar         = true,
-        surgeHeight      = 6,
-        surgeFx          = true,           -- 滿的時候的電光（掃光＋呼吸亮層）
-        surgeShake       = true,           -- 冷卻好了、填滿那一刻震一下（同施法條被打斷的震動）
-        -- 旋轉急衝圖示：有長條之後預設不顯示
-        surge            = "off",          -- off | cooldown（冷卻中才顯示）| ready（好了才顯示）| always
-        surgeSize        = 24,
-        surgeSide        = "RIGHT",        -- LEFT | RIGHT | TOP | BOTTOM（錨在整塊面板那一邊的外面，間距 ＝ gap）
-        colors = {
-            charge     = rgba(0.30, 0.65, 1.00),
-            secondWind = rgba(0.55, 0.40, 0.95),
-            lowSpeed   = rgba(0.80, 0.80, 0.80),
-            groundSkim = rgba(0.95, 0.75, 0.25),
-            thrill     = rgba(0.35, 0.90, 0.45),
-            surge      = rgba(0.30, 0.85, 1.00),
-            chargeText = rgba(1, 1, 1),
+        gap              = 1,              -- 列與列之間、充能格之間的間距
+        hideGroundedFull = false,          -- 在地面上而且活力全滿 ⇒ 不顯示（使用者 2026-10-06 指定預設關）
+        -- 由上往下的順序（設定頁的上下箭頭改這張）。整張是一個值：使用者排過的不跟預設逐格合併
+        --（逐格合併會把預設的 key 補進使用者少掉的格子、排出重複）；缺的 key 由 Skyriding.Order 補在後面
+        order            = Atomic({ "speed", "surge", "vigor", "secondWind" }),
+        rows = {
+            speed = SkyRow(true, 8, {
+                colors = { low = rgba(0.80, 0.80, 0.80), skim = rgba(0.95, 0.75, 0.25), thrill = rgba(0.35, 0.90, 0.45) },
+                text   = SkyText(true, "RIGHT", -3, 12),      -- 速度百分比
+            }),
+            -- 旋轉急衝長條：好了是滿的、冷卻中從空長到滿（使用者 2026-10-06 指定）
+            surge = SkyRow(true, 6, {
+                color = rgba(0.30, 0.85, 1.00),
+                fx    = true,                     -- 滿的時候的電光（掃光＋呼吸亮層）
+                shake = true,                     -- 冷卻好了、填滿之後震一下（同施法條被打斷的震動）
+                text  = SkyText(true, "CENTER", 0, 10),      -- 冷卻剩餘秒數（使用者 2026-10-06 指定預設開）
+                -- 旋轉急衝圖示（錨在整塊面板那一邊的外面，間距 ＝ gap；不算在面板尺寸裡）。有長條之後預設不顯示
+                icon  = { mode = "off",           -- off | cooldown（冷卻中才顯示）| ready（好了才顯示）| always
+                          size = 24, side = "RIGHT" },   -- side：LEFT | RIGHT | TOP | BOTTOM
+            }),
+            vigor = SkyRow(true, 10, {
+                color           = rgba(0.30, 0.65, 1.00),
+                speedColor      = false,          -- 改用速度條目前的顏色
+                secondWindColor = rgba(0.55, 0.40, 0.95),    -- 重新振作那一列關著時，疊在活力格底下的那層
+                textSource      = "vigor",        -- vigor | secondWind
+                text            = SkyText(true, "CENTER", 0, 12),
+            }),
+            -- 重新振作自己一列：預設關（關著時疊在活力格底下）
+            secondWind = SkyRow(false, 6, {
+                color = rgba(0.55, 0.40, 0.95),
+                text  = SkyText(true, "CENTER", 0, 10),
+            }),
         },
         strata           = "MEDIUM",
     }

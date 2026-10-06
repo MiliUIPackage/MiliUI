@@ -1,9 +1,12 @@
 ------------------------------------------------------------
 -- 「天空騎術」頁（profile.skyriding；引擎在 Modules/Skyriding.lua）
 --
--- 小節：一般（開關、位置：接力／獨立擺放、藏起冷卻管理器、地面上充能全滿時隱藏）→ 版面 → 文字 → 顏色 →
--- 旋轉急衝 →（獨立擺放時）錨定 → 恢復預設。說明一律下一列灰字。
--- 法術名（活力、重新振作、旋轉急衝、快意翱翔、貼地飛掠）執行期讀官方譯名（ns.Skyriding.SpellName）。
+-- 小節：一般（開關、位置：接力／獨立擺放、藏起冷卻管理器、地面上活力全滿時隱藏）→ 顯示哪些 → 版面（寬、間距）→
+--（獨立擺放時）錨定 → 恢復預設。說明一律下一列灰字。
+-- 「顯示哪些」照資源條頁「這個專精要顯示哪些」的長相（Tab_Resources 出借的 Tab.OrderRow）：四列（速度條、旋轉急衝、
+-- 活力、重新振作）各一列勾選框＋上下移＋「設定」。上下移寫 order（Skyriding.MoveRow），順序進表單簽章 ⇒ 換一份表單；
+-- 每一列的高、外觀、顏色、文字、旋轉急衝的效果與圖示在那一列的設定視窗（Options/SkyridingSettings.lua）。
+-- 法術名（重新振作、旋轉急衝、快意翱翔、貼地飛掠）執行期讀官方譯名（ns.Skyriding.SpellName）。
 --
 -- 套用：任何設定一改就重排這個面板（Skyriding.Apply）；placement 換了走 Bars.SkyPlacementChanged
 -- （錨定關係整套換掉）；placement 或 hideCdm 換了再 Bars.RequestAll＋Visibility.ApplyAll（會影響所有的條）。
@@ -39,27 +42,6 @@ local PLACEMENT_ITEMS = {
     { text = L["Standalone"],                  value = "standalone" },
 }
 
-local TEXT_ITEMS = {
-    { text = L["Don't show"], value = "OFF" },
-    { text = L["Left"],   value = "LEFT" },
-    { text = L["Center"], value = "CENTER" },
-    { text = L["Right"],  value = "RIGHT" },
-}
-
-local SURGE_ITEMS = {
-    { text = L["Don't show"], value = "off" },
-    { text = L["On cooldown"],    value = "cooldown" },
-    { text = L["When ready"],     value = "ready" },
-    { text = L["Always"],         value = "always" },
-}
-
-local SIDE_ITEMS = {
-    { text = L["Left"],   value = "LEFT" },
-    { text = L["Right"],  value = "RIGHT" },
-    { text = L["Top"],    value = "TOP" },
-    { text = L["Bottom"], value = "BOTTOM" },
-}
-
 local function ResetAll()
     local cfg = Cfg()
     if not cfg then return end
@@ -75,7 +57,7 @@ local function Controls()
 
     add({ type = "header", label = L["General"] })
     add(BS("toggle", "enabled", L["Show the skyriding bars"]))
-    add(Note(L["Vigor charges and your speed while skyriding, plus the %s icon."]:format(Spell("surge"))))
+    add(Note(L["Your speed, the %s cooldown and your %s while skyriding, one row each."]:format(Spell("surge"), Spell("vigor"))))
     add(BS("dropdown", "placement", L["Position"], { items = PLACEMENT_ITEMS, refreshPage = true, level = "structure",
         get = function() return Relay() and "relay" or "standalone" end,
         set = function(_, v) SR().SetPlacement(v) end }))
@@ -84,47 +66,35 @@ local function Controls()
     add(Note(L["Every other bar and panel fades out while these bars are showing. Edit Mode still shows everything."]))
     add(BS("toggle", "hideGroundedFull", L["Hide on the ground with full %s"]:format(Spell("vigor"))))
 
+    -- 顯示哪些：四列，順序就是由上往下的順序
+    add({ type = "header", label = L["Rows to show"] })
+    local order = SR().Order(Cfg())
+    for i, key in ipairs(order) do
+        add(ns.TabResources.OrderRow({
+            label = SR().RowName(key), first = i == 1, last = i == #order,
+            get   = function() return SR().RowOn(Cfg(), key) end,
+            set   = function(on, ctx)
+                local c = Cfg()
+                if not c then return end
+                ns.DB.SetPath(c, "rows." .. key .. ".enabled", on and true or false)
+                ctx.lastSpec = nil
+                ctx.apply()
+            end,
+            move  = function(dir, ctx)
+                if not SR().MoveRow(Cfg(), key, dir) then return end
+                -- 順序進了表單簽章：換一份表單（延一幀，OnApply 裡比）
+                ctx.lastSpec = { refreshPage = true }
+                ctx.apply()
+            end,
+            open  = function() ns.SkyridingSettings.Open(key) end,
+        }))
+    end
+    add(Note(L["The arrows set the order from top to bottom. Height, look, colors and text are set per row: click Settings on its row."]))
+
     add({ type = "header", label = L["Layout"] })
     add(BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }))
     add(Note(L["0 matches the first row of Essential Cooldowns."]))
-    add(BS("slider", "chargeHeight", L["Charge height"], { min = 1, max = 40, step = 1 }))
-    add(BS("slider", "speedHeight", L["Speed bar height"], { min = 1, max = 40, step = 1 }))
     add(BS("slider", "gap", L["Spacing"], { min = 0, max = 20, step = 1 }))
-    add(BS("toggle", "speedOnTop", L["Speed bar on top"]))
-    add(BS("toggle", "showSpeed", L["Show the speed bar"]))
-    add(BS("toggle", "showCharges", L["Show the charges"]))
-
-    add({ type = "header", label = L["Text"] })
-    add(BS("dropdown", "speedText", L["Speed text"], { items = TEXT_ITEMS }))
-    add(Note(L["Font follows the theme; size follows the resource bars' text size."]))
-    add(BS("toggle", "chargeText", L["Show the charge count"]))
-    add(Note(L["Your current %s, in the middle of the charge cells."]:format(Spell("vigor"))))
-    add(BS("dropdown", "chargeTextFont", L["Font"], { items = ns.Specs.ElementFontItems,
-        get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.chargeTextFont) end }))
-    add(BS("slider", "chargeTextSize", L["Font size"], { min = 6, max = 40, step = 1 }))
-    add(BS("color", "colors.chargeText", L["Color"], { hasAlpha = false }))
-    add(BS("numbers", nil, L["Offset"], { sub = "chargeTextOffset", path = false, resetPaths = { "chargeTextOffset" },
-        fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
-
-    add({ type = "header", label = L["Colors"] })
-    add(BS("color", "colors.charge", Spell("vigor"), { hasAlpha = false }))
-    add(BS("color", "colors.secondWind", Spell("secondWind"), { hasAlpha = false }))
-    add(BS("color", "colors.lowSpeed", L["Normal speed"], { hasAlpha = false }))
-    add(BS("color", "colors.groundSkim", Spell("skim"), { hasAlpha = false }))
-    add(BS("color", "colors.thrill", Spell("thrill"), { hasAlpha = false }))
-    add(BS("toggle", "speedColorOnCharges", L["Charges use the speed bar's color"]))
-
-    add({ type = "header", label = Spell("surge") })
-    add(BS("toggle", "surgeBar", L["Show the bar"]))
-    add(Note(L["Right under the speed bar: full when it's ready, refills over the cooldown."]))
-    add(BS("slider", "surgeHeight", L["Height"], { min = 1, max = 40, step = 1 }))
-    add(BS("color", "colors.surge", L["Color"], { hasAlpha = false }))
-    add(BS("toggle", "surgeFx", L["Electric effect when full"]))
-    add(BS("toggle", "surgeShake", L["Shake when it fills up"]))
-    add(BS("dropdown", "surge", L["Icon"], { items = SURGE_ITEMS }))
-    add(BS("slider", "surgeSize", L["Icon size"], { min = 12, max = 64, step = 1 }))
-    add(BS("dropdown", "surgeSide", L["Icon position"], { items = SIDE_ITEMS }))
-    add(Note(L["Border, zoom and cooldown swipe follow the theme's icon settings."]))
 
     if not Relay() then
         for _, s in ipairs(ns.Specs.Anchor(KEY)) do add(s) end
@@ -157,6 +127,7 @@ local function Signature()
     local p = ns.profile
     return table.concat({
         Relay() and "relay" or "standalone",
+        table.concat(SR() and SR().Order(cfg) or {}, ","),
         type(cfg.anchor) == "table" and "a" or "-",
         table.concat(p and p.barOrder or {}, ","),
         ns.Specs.AnchorGraphSig(),
@@ -193,6 +164,8 @@ function Tab.Build(parent, title)
         if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
         if ns.Fire then ns.Fire("BarsListChanged") end
         ns.Defer(function()
+            -- 每一列的設定視窗開著的話一起重讀（活力的「重新振作底色」跟著重新振作那一列的開關停用）
+            if ns.SkyridingSettings then ns.SkyridingSettings.Refresh() end
             if page:IsVisible() and (page.sig ~= Signature() or (spec and spec.refreshPage)) then
                 page:RefreshForm()
             end
@@ -202,6 +175,8 @@ function Tab.Build(parent, title)
     function page:RefreshForm()
         local cfg = Cfg()
         if not cfg then return end
+        -- 發佈前的欄位搬家（見 Skyriding.Upgrade）：表單讀的是 rows／order
+        if SR() then SR().Upgrade(cfg) end
         if lastPlacement == nil then
             lastPlacement, lastHide = Relay() and "relay" or "standalone", cfg.hideCdm ~= false
         end
@@ -227,6 +202,9 @@ function Tab.Build(parent, title)
     function page:OnShowPage()
         self:RefreshForm()
     end
+
+    -- 離開這一頁：每一列的設定視窗一起收（它不是暴雪框，沒有別的地方會關它）
+    page:HookScript("OnHide", function() if ns.SkyridingSettings then ns.SkyridingSettings.Close() end end)
     return page
 end
 
