@@ -150,11 +150,11 @@ end
 local function SpellStyle(barKey, id, fresh)
     local SS = ns.SpellSetting
     local T = ns.Text
-    local cdT, chT, hideCh, stT, stOwn, btT, btOwn
+    local cdT, chT, hideCh, stT, btT, btOwn
     if T and T.SpellText then
         cdT = T.SpellText(barKey, id, "cooldownText", fresh)
         chT, hideCh = T.SpellText(barKey, id, "chargeText", fresh)
-        stT, _, stOwn = T.SpellText(barKey, id, "stackText", fresh)
+        stT = T.SpellText(barKey, id, "stackText", fresh)
         btT, _, btOwn = T.SpellText(barKey, id, "barTime", fresh)
     end
     return {
@@ -163,7 +163,6 @@ local function SpellStyle(barKey, id, fresh)
         cooldownText     = cdT,
         chargeText       = chT,
         stackText        = stT,
-        stackOwn         = stOwn,
         barTime          = btT,
         barTimeOwn       = btOwn,
         hideChargeText   = hideCh,

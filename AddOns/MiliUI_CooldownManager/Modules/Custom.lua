@@ -1384,8 +1384,8 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.timeSize  = tonumber(tt.size) or 12
         st.timeColor = RGBA(tt.color, 1, 1, 1, 1)
         st.timePoint, st.timeX, st.timeY, st.timeJustify = TX.BarTimePlace(tOwn, bar.vertical)
-        -- 層數字級：這一招自己改過的優先，其次「長條」節的層數字級（同 Text.ApplyBar）
-        st.barStack  = tonumber(stOwn.size) or tonumber(bar.stackSize) or tonumber(stT.size) or 12
+        -- 層數字級：這一招自己改過的優先，其次條層「層數」的字級（同 Text.ApplyBar）
+        st.barStack  = tonumber(stOwn.size) or tonumber(stT.size) or 12
         -- 長條的層數錨點＋往內縮的 1px（同 Text.ApplyBar／Text.BarStackInset；這裡先算好，initializeFrame 只查欄位）
         st.stBarPoint = S(barKey, "stackText.barPoint") or "BOTTOMRIGHT"
         st.stBarIX = st.stBarPoint:find("RIGHT") and -1 or (st.stBarPoint:find("LEFT") and 1 or 0)

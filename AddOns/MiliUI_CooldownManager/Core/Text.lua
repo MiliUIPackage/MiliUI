@@ -284,7 +284,7 @@ end
 --     t        合併後的表（讀法跟條層那張一樣：t.size、t.font…）。沒有任何覆寫 ＝ 條層那張表本身（唯讀）
 --     hide     這一段要不要藏（hideCooldownText／hideChargeText／hideStackText／hideKeybind；沒覆寫 ＝ false）
 --     own      只有覆寫的欄位（沒有 ＝ EMPTY）：要分得出「這一招自己改了」的地方用
---              （長條的層數字級：沒覆寫時 bar.stackSize 優先；長條秒數的錨點：沒覆寫時照預設位置＋偏移）
+--              （長條秒數的錨點：沒覆寫時照預設位置＋偏移）
 --   ns.Text.OverrideSig(id)   這一招的文字覆寫串成一段字（簽章用：Decorate／自訂長條的 timerSig）
 --
 -- 快取：每個（條、id、段）一筆，對 Decorate.styleGen（條層設定）與 DB.overrideGen（逐法術覆寫）兩個世代；
@@ -557,9 +557,8 @@ function T.ApplyBar(item, style, spell, bar, rec)
     if stack then
         LiftRegion(stack, rec)            -- 設定頁的預覽格沒有 rec：不動
         local c = spell.stackText or style.stackText or {}
-        -- 字級：這一招自己改過的優先，其次「長條」節的層數字級，再其次條層的層數字級
-        local own = spell.stackOwn or EMPTY
-        SetFont(stack, own.size or bar.stackSize or c.size or 12, outline, ns.Media.ElementFont(c.font, font))
+        -- 字級：c 已經是這一招覆寫 ⊕ 條層「層數」的字級（v6 起沒有長條自己的層數字級）
+        SetFont(stack, c.size or 12, outline, ns.Media.ElementFont(c.font, font))
         stack:SetTextColor(Color(c.color))
         -- 錨點照「層數」的長條錨點（stackText.barPoint，九宮格選；預設右下＝舊行為），往內縮 1px 不貼邊，
         -- X／Y 位移加在上面（玩家回報「層數的 XY 改了不會動」，2026-10-03）

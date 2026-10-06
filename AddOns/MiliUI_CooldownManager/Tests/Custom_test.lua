@@ -1140,7 +1140,7 @@ do
     eq("文字覆寫：層數顏色（紅）", stT.stColor[1], 0)
     CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 6)
     check("文字覆寫 ⇒ 簽章變、換容器", o.sig ~= sigT0 and o.container ~= contT0)
-    -- 長條形狀：秒數的底是「長條」節，覆寫蓋字級；錨點沒蓋 ⇒ 預設右緣；層數字級覆寫優先於 bar.stackSize
+    -- 長條形狀：秒數的底是「長條」節，覆寫蓋字級；錨點沒蓋 ⇒ 預設右緣；層數字級覆寫優先於條層
     DB.SetOverride(sid, "cooldownTextPoint", nil)
     DB.SetOverride(sid, "stackTextSize", 9)
     local stB = CU.AuraStyle(o, "essential", 120, 20, "bars")

@@ -263,7 +263,7 @@ eq("層數 y", P.theme.stackText.y, 0)
 eq("增益圖示 倒數 16 ＝ 主題 ⇒ 不寫、仍跟隨主題", P.bars.buffs.follow.text, true)
 eq("增益長條 名稱字級", P.bars.buffbars.bar.nameSize, 16)
 eq("增益長條 時間字級", P.bars.buffbars.bar.timeSize, 16)
-eq("增益長條 層數字級", P.bars.buffbars.bar.stackSize, 12)
+eq("增益長條 層數字級 12 ＝ 主題 ⇒ 不寫（v6 起沒有 bar.stackSize）", P.bars.buffbars.bar.stackSize, nil)
 eq("增益長條 材質（LSM 名照搬）", P.bars.buffbars.bar.texture, "TukTex")
 
 -- 淡出、無損刷新

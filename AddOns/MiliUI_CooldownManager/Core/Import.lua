@@ -397,8 +397,9 @@ local function StepSizes(ctx)
         if v and v > 0 then bar.timeSize = v end
         v = Take(ctx, "buffBarShowApplications")
         if type(v) == "boolean" then bar.showStacks = v end
+        -- 層數字級：沒有長條自己的欄位（DB v6），寫成增益長條自己的層數字級；要跟主題比，等 StepText 讀完主題再寫
         v = Num(Take(ctx, "buffBarApplicationsFontSize"))
-        if v and v > 0 then bar.stackSize = v end
+        if v and v > 0 then ctx.buffBarStackSize = v end
         v = Texture(Take(ctx, "buffBarTexture"))
         if v then bar.texture = v end
         v = Color(Take(ctx, "buffBarColor"))
@@ -487,6 +488,7 @@ local function StepText(ctx)
     v = Num(Take(ctx, "buffCooldownFontSize"))
     if v and v > 0 then BarText(ctx, "buffs", "cooldownText.size", v) end
     BarText(ctx, "buffs", "cooldownText.color", Color(Take(ctx, "buffCooldownColor")))
+    BarText(ctx, "buffbars", "stackText.size", ctx.buffBarStackSize)
 end
 
 ------------------------------------------------------------

@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 5
+ns.DB_VERSION = 6
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -134,7 +134,7 @@ local function LongBar(o)
             iconGap   = 1,
             showName  = true, nameSize = 16, nameFont = "INHERIT",   -- 字型 "INHERIT" ＝ 跟隨通用字型
             showTime  = true, timeSize = 16, timeFont = "INHERIT",
-            showStacks = true, stackSize = 12,
+            showStacks = true,              -- 層數字級沒有自己的欄位：吃「層數」的字級（stackText.size；v6 拿掉 bar.stackSize）
             spark     = false,              -- 填充末端的火花（暴雪條的 Pip）；false ＝ 藏（舊行為）
             -- 2026-10-04 加的三組（F8；舊存檔沒有 ＝ false ＝ 舊行為，不遷移）
             gradient  = false,              -- false | { color2 = rgba, dir = "H" | "V" }：填充從 color 漸變到 color2
@@ -705,6 +705,32 @@ local MIGRATIONS = {
                 if type(e) == "table" then FixOverride(e.overrides) end
             end
         end)
+    end,
+    -- v6（2026-10-06）：長條的「層數字級」拿掉 bar.stackSize，一律吃「層數」那一段的字級（stackText.size）。
+    -- 以前 bar.stackSize 沒有控件、預設 12，蓋掉設定頁的層數字級 ⇒ 拉了不會變（玩家回報）。
+    -- 跟條實際生效的層數字級一樣（含沒改過的 12）⇒ 直接刪；不一樣（匯入時寫的）⇒ 搬到條自己的文字（text.stackText.size）
+    -- ＋不跟隨全域文字，畫面不變（同匯入的 BarText）。條自己已經有層數字級的照舊、只刪 stackSize
+    [6] = function(profile)
+        if type(profile.bars) ~= "table" then return end
+        local theme = type(profile.theme) == "table" and profile.theme or {}
+        local tst = type(theme.stackText) == "table" and theme.stackText or {}
+        for _, bar in pairs(profile.bars) do
+            local b = type(bar) == "table" and bar.bar
+            local old = type(b) == "table" and tonumber(b.stackSize)
+            if old then
+                local follow = type(bar.follow) == "table" and bar.follow or {}
+                local own = type(bar.text) == "table" and type(bar.text.stackText) == "table" and bar.text.stackText or nil
+                local cur = (follow.text == false and own and tonumber(own.size)) or tonumber(tst.size) or 12
+                if old ~= cur and not (own and own.size ~= nil and follow.text == false) then
+                    if type(bar.follow) ~= "table" then bar.follow = {} end
+                    bar.follow.text = false
+                    if type(bar.text) ~= "table" then bar.text = {} end
+                    if type(bar.text.stackText) ~= "table" then bar.text.stackText = {} end
+                    bar.text.stackText.size = old
+                end
+                b.stackSize = nil
+            end
+        end
     end,
 }
 DB.MIGRATIONS = MIGRATIONS
