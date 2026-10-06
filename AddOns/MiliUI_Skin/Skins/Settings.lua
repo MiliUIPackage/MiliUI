@@ -43,7 +43,7 @@
 -- * 右上 ×：自己畫的 ×，**零腳本**（它按下去就是 `Close()` → commit）。
 -- * 底部「套用」（primary）、「關閉」（secondary）、清單頂端「預設值」（secondary）：**零腳本**
 --   （`Engine.ScriptlessButton`）—— 三顆都會寫 CVar／按鍵綁定（預設值是先開確認彈窗，但同一條路）。
--- * 上方「遊戲／插件」兩顆分頁：原本的三片美術中和、改畫平面分頁；滑過自己畫（職業色邊）。
+-- * 上方「遊戲／插件」兩顆分頁：原本的三片美術中和、改畫貼著下緣的 26 高平面分頁；滑過自己畫（只提亮底）。
 -- * 左側分類欄、右側清單：各一塊 `fillInset` 內嵌底；分類欄的**群組標題列**底圖中和（池化列，
 --   勾 `SettingsCategoryListHeaderMixin:Init` 的 mixin 表）；清單頂端的分隔線換成髮絲線；兩條捲軸。
 -- * 搜尋框。
@@ -166,13 +166,29 @@ end
 -- 三片美術每次狀態改變都 `SetAtlas`（MinimalTab.lua:23-28），alpha 撐得住。
 -- 兩顆分頁與下方內容之間隔著 12（分頁底 y=-64、分類欄頂 y=-76）⇒ 不是「相連」的分頁，四邊都畫。
 -- 選中態畫不出來（檔頭）；滑過自己畫（這兩顆只是切換分類組，不在 commit 路徑上）。
+--
+-- ⚠ 框**不照按鈕矩形畫**：按鈕 37 高（端帽美術的高度），字卻錨在 `BOTTOM` y=4／6
+--   （MinimalTab.lua:41,44），整顆框起來就是一個近乎正方、字沉在底部的大方塊（實機擷圖）。
+--   改成從下緣往上 `TAB_FACE_HEIGHT` 的矩形，把字包在中間；字的位置是暴雪每次狀態改變都
+--   重設的（那支 `OnSelected` 是 mixin 方法、沒有全域出口），我們不搬字、只搬框。
+-- ⚠ 滑過只提亮底、邊維持黑色 —— 跟其他分頁同一個語彙（`Engine` 的 "underline" 樣式），
+--   狀態只換明暗不換色。
 ------------------------------------------------------------
+local TAB_FACE_HEIGHT = 26     -- 字底 4（閒置）／6（選中）＋ 一行小字 ≈ 16 ⇒ 上下各留 4～6
+
 local function SkinMinimalTab(tab, key)
     if not E.Usable(tab, key) then return end
     E.NeutralizeKeys(tab, { "Left", "Right", "Middle" }, key)
-    local ov = E.Overlay(tab, { key = key })
+    local ov = E.Overlay(tab, {
+        key = key,
+        points = {
+            { "BOTTOMLEFT", "BOTTOMLEFT", 0, 0 },
+            { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, 0 },
+        },
+        height = TAB_FACE_HEIGHT,
+    })
     E.Paint(ov, T.fill, T.border)
-    E.TrackButtonHover(tab, ov, T.fill)
+    E.TrackButtonHover(tab, ov, T.fill, nil, nil, { idleBorder = T.border, hoverBorder = T.border })
 end
 
 ------------------------------------------------------------

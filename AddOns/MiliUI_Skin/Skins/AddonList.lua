@@ -190,8 +190,19 @@ end
 --   高度寫死 22（列只有 16 高），換成純色就會是一條比列還高、左邊缺 40 的白帶。
 --   所以走 `opts.ownHover`（中和 Highlight ＋ `Engine.TrackSelectable` 兩態自己畫），
 --   跟成就分類列同一條退路。
+--
+-- ⚠ 列底**上下各外擴半個列距**：列本身只有 16 高（AddonList.xml:46,15），但列上的東西比它高
+--   —— 勾選框 24、標題前面的插件圖示 20（AddonList.lua:383-385 的 texture markup）。
+--   照列矩形畫，滑過就是一條比圖示還細、從圖示腰部橫切過去的灰帶（實機擷圖）。
+--   清單列距 8（AddonList.lua:255 `spacing`）⇒ 上下各 4，相鄰兩列的底剛好接上、不重疊。
+local ROW_SPACING = 8
+local ROW_POINTS = {
+    { "TOPLEFT", "TOPLEFT", 0, ROW_SPACING / 2 },
+    { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -ROW_SPACING / 2 },
+}
+
 local function ApplyEntryRow(row)
-    Skin.Row(row, "AddonListEntry", { fill = T.fillInset, ownHover = true })
+    Skin.Row(row, "AddonListEntry", { fill = T.fillInset, ownHover = true, points = ROW_POINTS })
 
     -- ⚠ `keepCheck`：**這顆勾是三態的，那張圖本身帶了狀態語意。**
     --   `TriStateCheckbox_SetState`（AddonList.lua:164-179，**local**、勾不到）
@@ -215,7 +226,7 @@ local function ApplyEntryRow(row)
 end
 
 local function ApplyCategoryRow(row)
-    Skin.Row(row, "AddonListCategory", { fill = T.fillInset, ownHover = true })
+    Skin.Row(row, "AddonListCategory", { fill = T.fillInset, ownHover = true, points = ROW_POINTS })
 
     -- 分類名字是 GameFontNormal（暗金），`AddonList_InitCategory` 只 SetText、
     -- 不重設顏色 ⇒ 設一次就撐得住。
