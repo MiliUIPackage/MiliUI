@@ -219,6 +219,13 @@ local RESOURCE_COLORS = {
     -- 光環剩餘時間條：黯黑力量（喚能師的古銅黑金）、秘法靈魂（秘法紫，跟秘法充能的藍分得開）
     EbonMight       = { color = { r = 0.80, g = 0.60, b = 0.20 } },
     ArcaneSoul      = { color = { r = 0.66, g = 0.40, b = 1    } },
+    -- 2026-10-08 補的六列（顏色照 YHUD 的預設）
+    DemonicCore     = { color = { r = 0.55, g = 0.30, b = 1    } },
+    ArcaneSalvo     = { color = { r = 0.65, g = 0.30, b = 1    } },
+    Frozen          = { color = { r = 0.35, g = 0.80, b = 1    } },
+    FireBlast       = { color = { r = 1,    g = 0.35, b = 0.08 } },
+    Enrage          = { color = { r = 0.95, g = 0.35, b = 0.12 } },
+    RemoteStrike    = { color = { r = 1,    g = 0.68, b = 0.12 } },
     -- 征戰聖擊：照德莫的征戰聖擊助手的預設（聖騎職業色填充、黑底 60%）；底色帶 alpha
     CrusadingStrikes = { color     = { r = 0.9568, g = 0.5490, b = 0.7294 },
                          backColor = { r = 0, g = 0, b = 0, a = 0.6 } },
@@ -298,6 +305,10 @@ ResourcesDefaults = function()
         -- 引擎寫層數的列（鐵鬃、旋風斬、橫掃攻擊）的文字（showText 開著才有）：auraText[key] ＝
         -- stacks 層數（沒存＝這個）／time 秒數／stacksTime 層數 (秒數)／timeStacks 秒數 (層數)，見 Resources.lua 的 R.AuraText
         auraText = {},
+        -- 鐵鬃每一格疊「這一層還剩多久」的暗色遮罩（依施放推算，Modules/CastStacks.lua）
+        castTimers = true,
+        -- 無視苦痛列底部的「盾還剩多久」細線（引擎畫）
+        ipDuration = true,
         -- 征戰聖擊列（懲戒）：自己的高度與填充方向，預設照德莫的征戰聖擊助手（高 4、已揮的時間長出來）
         crusadingHeight = 4,                   -- 沒有控件了：只當 heights.CrusadingStrikes 沒設時的起始值
         crusadingFill   = "elapsed",           -- elapsed | remaining

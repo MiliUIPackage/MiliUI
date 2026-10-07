@@ -2324,7 +2324,17 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     層數 (剩餘秒數)／剩餘秒數 (層數)，全由引擎寫（`SetApplicationCount`＋`SetDurationText`）。待驗：四種都印得出來、戰鬥中照常；
     「層數 (秒數)」的括號走 `SetDurationText` 的 `textFormat = "({})"`；**層數一律給 C 端 `NumericRuleFormatter`（"%d"／"(%d)"）**，
     為了 1 層也印（不給格式器時引擎 `applications > 1` 才印；光環不在時按鈕藏著，不會印 0）——第 69 條記過「層數給格式器整顆容器壞掉」，
-    這裡是 C 端格式器、未驗證：壞了（報錯或整列不出來）就把 `Modules/AuraBar.lua` 的 `st.countFormatter` 拿掉（退回 1 層不印、沒有括號）。兩段字不互相錨定、各自貼中線，字長不同時偏離正中一點屬預期。
+    這裡是 C 端格式器、未驗證：壞了（報錯或整列不出來）就把 `Modules/AuraBar.lua` 的 `st.countFormatter` 拿掉（退回 1 層不印、沒有括號）。
+    **2026-10-08 補（對照 YHUD／EllesmereUI）**，全部待實機驗證：
+    - **鐵鬃每層倒數**（`Modules/CastStacks.lua`，`castTimers` 預設開）：層數照引擎、每層時間依 `UNIT_SPELLCAST_SUCCEEDED` 推算
+      （7 秒、Ursoc's Endurance 393611 是 9 秒、Guardian of Elune 155578 搗擊後 15 秒內下一發 +3、狂暴恢復用掉；死亡／換型態清空），
+      每格疊暗色遮罩 `StatusBar:SetTimerDuration(自己建的 duration, ElapsedTime)`。驗：遮罩從格尾往前長、最後一個亮格最先到期、
+      `SetTimerDuration` 收自己建的 duration 物件、戰鬥中照常、遮罩在填色之上文字之下。
+    - **新列**：惡魔核心 264173、秘法齊射 1242974（上限 `GetSpellMaxCumulativeAuraApplications`，退 20／25）、
+      **Frozen 1221389（目標身上你上的減益，容器 unit = target、`HARMFUL|PLAYER`，換目標叫 `UpdateAllAuras`）**、
+      火焰衝擊充能（點數型，`GetSpellCharges` 轉手）、狂暴 184362、1226662（懲戒，`HELPFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY`，
+      征戰聖擊 404542 才列）。驗：各列有值、Frozen 換目標會跟著換、戰鬥中照常、名字是對的中文。
+    - **無視苦痛的剩餘時間細線**（`ipDuration` 預設開）：同一顆按鈕再交一條 `SetDurationBar`。驗：跟層數條同時運作、刷新時跟著回滿。兩段字不互相錨定、各自貼中線，字長不同時偏離正中一點屬預期。
     `layout` 的 elementWidth（小數）有沒有被接受；從右到左時 `SetFlowLayoutAnchorPoint("TOPRIGHT")`＋`SetFlowLayoutGrowthDirection(Left, Down)` 是否生效。
 60. 容器讓資源條／自訂格子面板變保護框：`IsProtected()` 是否真的往上傳到列與 root（`/mcdm debug` 的「延到脫戰」）；戰鬥中改設定、上限事件、換型態時零 ADDON_ACTION_BLOCKED；
     保護框上 `SetAlpha`／`SetAlphaFromBoolean`（條件規則、顯示時機、淡出）戰鬥中不被擋。12.1.5 的 Cooldown setter 標了 `IsProtectedFunction`：我們的秒數 Cooldown 不在保護鏈上，確認沒被擋。
