@@ -84,6 +84,47 @@ local function DebuffTrackable(id)
     return level == NEVER_SECRET
 end
 
+-- 沒學會的法術是「還沒學」還是「填錯」：法術書（含還沒到等級、其他專精）或這個職業的天賦樹（含英雄天賦）
+-- 找得到 ⇒ 職業法術，照常加；都找不到 ⇒ 多半填成了增益之類的 ID（例：曙光 431522），讓玩家確認。
+-- 只在新增時跑一次（天賦樹幾百個節點，不放進排版路徑）；API 讀不到就當找不到（寧可多問一次）
+local function InTalentTree(id)
+    local CT, T = C_ClassTalents, C_Traits
+    if not (CT and T and CT.GetActiveConfigID and T.GetConfigInfo and T.GetTreeNodes
+            and T.GetNodeInfo and T.GetEntryInfo and T.GetDefinitionInfo) then return false end
+    local ok, configID = pcall(CT.GetActiveConfigID)
+    if not ok or type(configID) ~= "number" then return false end
+    local okC, cfg = pcall(T.GetConfigInfo, configID)
+    if not okC or type(cfg) ~= "table" or type(cfg.treeIDs) ~= "table" then return false end
+    for _, treeID in ipairs(cfg.treeIDs) do
+        local okN, nodes = pcall(T.GetTreeNodes, treeID)
+        for _, nodeID in ipairs(okN and type(nodes) == "table" and nodes or {}) do
+            local okI, node = pcall(T.GetNodeInfo, configID, nodeID)
+            for _, entryID in ipairs(okI and type(node) == "table" and type(node.entryIDs) == "table" and node.entryIDs or {}) do
+                local okE, entry = pcall(T.GetEntryInfo, configID, entryID)
+                local defID = okE and type(entry) == "table" and entry.definitionID or nil
+                if defID then
+                    local okD, def = pcall(T.GetDefinitionInfo, defID)
+                    if okD and type(def) == "table" and (def.spellID == id or def.overriddenSpellID == id) then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function SpellLearnable(id)
+    local book = C_SpellBook
+    if book and book.FindSpellBookSlotForSpell then
+        -- includeHidden, includeFlyouts, includeFutureSpells, includeOffSpec
+        local ok, slot = pcall(book.FindSpellBookSlotForSpell, id, true, true, true, true)
+        if ok and slot ~= nil then return true end
+    end
+    return InTalentTree(id)
+end
+Picker.SpellLearnable = SpellLearnable
+
 ------------------------------------------------------------
 -- 適用範圍（自訂項目的三層，Core/DB.lua）：文字、說明、下拉列
 ------------------------------------------------------------
@@ -611,6 +652,27 @@ local function AskFilter(text, scope)
     end
     filterPopup.pendingText, filterPopup.pendingKey, filterPopup.pendingScope = text, key, scope
     filterPopup:Show()
+end
+
+-- 自訂法術：沒學會、法術書與天賦樹也找不到 ⇒ 多半是填成增益的 ID，問玩家要改光環還是照樣加
+local spellCheckPopup
+local function AskNotSpell(entry, text, scope)
+    if not spellCheckPopup then
+        spellCheckPopup = W.CreateChoicePopup(ns.Options.panel, 380,
+            L["You haven't learned this spell, and it isn't in your spellbook or talents. If it's a buff or debuff, track it as an aura instead; as a spell it shows a question mark."], {
+                { text = L["Track as aura"], color = "primary", onClick = function()
+                    local p = spellCheckPopup
+                    AskFilter(p.pendingText, p.pendingScope)
+                end },
+                { text = L["Add anyway"], color = "normal", onClick = function()
+                    local p = spellCheckPopup
+                    Commit(p.pendingEntry, p.pendingScope)
+                end },
+                { text = L["Cancel"], color = "normal" },
+            })
+    end
+    spellCheckPopup.pendingEntry, spellCheckPopup.pendingText, spellCheckPopup.pendingScope = entry, text, scope
+    spellCheckPopup:Show()
 end
 
 function Picker.FinishAura(filter)
@@ -1676,6 +1738,10 @@ function Picker.AskCustom(kind)
             return false
         end
         SetInputError(popup, nil)
+        if kind == "spell" and not ns.Catalog.SpellKnown(entry.spellID) and not SpellLearnable(entry.spellID) then
+            AskNotSpell(entry, text, scope)
+            return
+        end
         Commit(entry, scope)
     end, title)
 end

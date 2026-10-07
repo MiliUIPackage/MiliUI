@@ -537,8 +537,11 @@ function AB.DebugLines(h, spellIDs, indent)
                 end
             end
         end
-        out[#out + 1] = ("%s  容器：顯示 %s／可見 %s／尺寸 %s／alpha %s／層級 %s  按鈕 %s 顆（顯示 %d）%s")
-            :format(indent, DRead(c, "IsShown"), DRead(c, "IsVisible"), DRead(c, "GetSize"),
+        -- 啟用／UNIT_AURA 有沒有註冊：容器只在「可見且啟用」時註冊（暴雪 UpdateEventRegistrations），
+        -- 沒註冊 ＝ 身上有光環也不會出按鈕（補踢沒做到的指紋）
+        out[#out + 1] = ("%s  容器：顯示 %s／可見 %s／啟用 %s／UNIT_AURA 註冊 %s／尺寸 %s／alpha %s／層級 %s  按鈕 %s 顆（顯示 %d）%s")
+            :format(indent, DRead(c, "IsShown"), DRead(c, "IsVisible"), DRead(c, "IsEnabled"),
+                DRead(c, "IsEventRegistered", "UNIT_AURA"), DRead(c, "GetSize"),
                 DRead(c, "GetEffectiveAlpha"), DRead(c, "GetFrameLevel"),
                 kids[1] and tostring(nKids) or ("讀不到：" .. tostring(kids[2])), nShown,
                 #sizes > 0 and ("  " .. table.concat(sizes, " ")) or "")

@@ -425,6 +425,9 @@ L["Track an aura"] = "Отслеживать эффект"
 L["Track an aura on you, or a spell or item cooldown, by its ID."] = "Отслеживайте по ID эффект на себе или восстановление заклинания либо предмета."
 L["Track an item cooldown"] = "Отслеживать восстановление предмета"
 L["Track it as a buff or a debuff on you?"] = "Отслеживать как бафф или дебафф на вас?"
+L["You haven't learned this spell, and it isn't in your spellbook or talents. If it's a buff or debuff, track it as an aura instead; as a spell it shows a question mark."] = "Вы не изучили это заклинание, и его нет ни в книге заклинаний, ни в талантах. Если это бафф или дебафф, отслеживайте его как эффект; как заклинание оно будет показано знаком вопроса."
+L["Track as aura"] = "Отслеживать как эффект"
+L["Add anyway"] = "Всё равно добавить"
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Пока эффект можно обновить без потери времени, его рамка окрашивается в этот цвет."
 
 -- F 階段：資源條與施法條

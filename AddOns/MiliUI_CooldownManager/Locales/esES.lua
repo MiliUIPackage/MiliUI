@@ -425,6 +425,9 @@ L["Track an aura"] = "Seguir un aura"
 L["Track an aura on you, or a spell or item cooldown, by its ID."] = "Sigue por ID un aura sobre ti, o la reutilización de un hechizo u objeto."
 L["Track an item cooldown"] = "Seguir la reutilización de un objeto"
 L["Track it as a buff or a debuff on you?"] = "¿Seguirlo como beneficio o perjuicio sobre ti?"
+L["You haven't learned this spell, and it isn't in your spellbook or talents. If it's a buff or debuff, track it as an aura instead; as a spell it shows a question mark."] = "No has aprendido este hechizo y no está en tu libro de hechizos ni en tus talentos. Si es un beneficio o perjuicio, síguelo como aura; como hechizo se mostrará un signo de interrogación."
+L["Track as aura"] = "Seguir como aura"
+L["Add anyway"] = "Añadir igualmente"
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Mientras un aura se pueda renovar sin perder tiempo, su borde toma este color."
 
 -- F 階段：資源條與施法條

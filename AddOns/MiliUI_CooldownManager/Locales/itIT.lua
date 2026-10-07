@@ -425,6 +425,9 @@ L["Track an aura"] = "Traccia aura"
 L["Track an aura on you, or a spell or item cooldown, by its ID."] = "Traccia per ID un'aura su di te, o il recupero di un incantesimo o oggetto."
 L["Track an item cooldown"] = "Traccia recupero oggetto"
 L["Track it as a buff or a debuff on you?"] = "Tracciarlo come beneficio o penalità su di te?"
+L["You haven't learned this spell, and it isn't in your spellbook or talents. If it's a buff or debuff, track it as an aura instead; as a spell it shows a question mark."] = "Non hai appreso questo incantesimo e non è nel tuo libro degli incantesimi né nei talenti. Se è un beneficio o una penalità, traccialo come aura; come incantesimo mostrerà un punto interrogativo."
+L["Track as aura"] = "Traccia come aura"
+L["Add anyway"] = "Aggiungi comunque"
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "Finché un'aura può essere rinnovata senza perdere tempo, il bordo assume questo colore."
 
 -- F 階段：資源條與施法條

@@ -425,6 +425,9 @@ L["Track an aura"] = "追蹤光環"
 L["Track an aura on you, or a spell or item cooldown, by its ID."] = "用 ID 追蹤你身上的光環，或法術／物品的冷卻。"
 L["Track an item cooldown"] = "追蹤物品冷卻"
 L["Track it as a buff or a debuff on you?"] = "要追蹤你身上的增益還是減益？"
+L["You haven't learned this spell, and it isn't in your spellbook or talents. If it's a buff or debuff, track it as an aura instead; as a spell it shows a question mark."] = "你沒學會這個法術，法術書和天賦裡也找不到。如果它是增益或減益，請改用光環追蹤；當成法術會顯示問號。"
+L["Track as aura"] = "改用光環追蹤"
+L["Add anyway"] = "照樣加入"
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "光環可以無損刷新（續壓不浪費時間）的期間，邊框換成這個顏色。"
 
 -- F 階段：資源條與施法條

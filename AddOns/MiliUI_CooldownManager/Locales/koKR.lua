@@ -425,6 +425,9 @@ L["Track an aura"] = "효과 추적"
 L["Track an aura on you, or a spell or item cooldown, by its ID."] = "ID로 자신의 효과나 주문·아이템 재사용 대기시간을 추적합니다."
 L["Track an item cooldown"] = "아이템 재사용 대기시간 추적"
 L["Track it as a buff or a debuff on you?"] = "자신에게 걸린 강화 효과로 추적할까요, 약화 효과로 추적할까요?"
+L["You haven't learned this spell, and it isn't in your spellbook or talents. If it's a buff or debuff, track it as an aura instead; as a spell it shows a question mark."] = "배우지 않은 주문이며 주문책과 특성에도 없습니다. 강화 또는 약화 효과라면 효과로 추적하세요. 주문으로 추가하면 물음표로 표시됩니다."
+L["Track as aura"] = "효과로 추적"
+L["Add anyway"] = "그래도 추가"
 L["While a buff or debuff can be refreshed without losing time, its border turns this color."] = "효과를 시간 손실 없이 갱신할 수 있는 동안 테두리가 이 색으로 바뀝니다."
 
 -- F 階段：資源條與施法條
