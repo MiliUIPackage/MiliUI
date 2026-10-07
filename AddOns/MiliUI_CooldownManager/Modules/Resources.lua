@@ -1438,6 +1438,11 @@ local function RenderCastTimers(row)
                 end
             end
             bar:SetAlpha(armed and 1 or 0)
+            -- 每格秒數：推算的時間是明文，直接交給 Cooldown 的內建倒數（引擎跑，不用自己的 ticker）
+            local cd = bar.cd
+            if cd then
+                if e and armed then cd:SetCooldown(e.start, e.dur) else cd:Clear() end
+            end
         end
     end
 end
@@ -1445,11 +1450,52 @@ R.RenderCastTimers = RenderCastTimers
 
 local function HideCastTimers(row)
     row.ctOn = false
-    for _, bar in ipairs(row.ct or {}) do bar:SetAlpha(0) end
+    for _, bar in ipairs(row.ct or {}) do
+        bar:SetAlpha(0)
+        if bar.cd then bar.cd:Clear() end
+    end
+end
+
+-- 每格秒數的 Cooldown：不畫扇形／邊緣／閃光，只留倒數字；字貼在格子尾端（遮罩長出來那一側），
+-- 正中間留給引擎印的層數（同 DK 符文：每格秒數＋中間數字，這裡兩個同時有，所以錯開）
+local function CellCountdown(bar, cfg, reversed, lvl)
+    local cd = bar.cd
+    if not cd then
+        local ok, c = pcall(CreateFrame, "Cooldown", nil, bar, "CooldownFrameTemplate")
+        if not ok or not c then return end
+        cd = c
+        cd:SetAllPoints(bar)
+        if cd.SetDrawSwipe then cd:SetDrawSwipe(false) end
+        if cd.SetDrawEdge then cd:SetDrawEdge(false) end
+        if cd.SetDrawBling then cd:SetDrawBling(false) end
+        local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
+        if fs then ns.Media.SetPixelFont(fs, 10, "OUTLINE") end      -- ⚠ 先給字型
+        bar.cd = cd
+    end
+    cd:SetFrameLevel(lvl + 1)
+    if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(false) end
+    local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
+    if fs then
+        ns.Media.SetPixelFont(fs, tonumber(cfg.textSize) or 10, TextOutline(cfg),
+            ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+        fs:SetTextColor(1, 1, 1, 1)
+        fs:ClearAllPoints()
+        local inset = ns.P.Scale(2)
+        if reversed then
+            fs:SetJustifyH("LEFT")
+            fs:SetPoint("LEFT", bar, "LEFT", inset, 0)
+        else
+            fs:SetJustifyH("RIGHT")
+            fs:SetPoint("RIGHT", bar, "RIGHT", -inset, 0)
+        end
+    end
+    local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
+    if fmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
+    if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
 end
 
 -- geom 同 LayoutAuraBar 的（W、H、n、gap、segW、reversed）
-local function LayoutCastTimers(row, geom)
+local function LayoutCastTimers(row, geom, cfg)
     row.ct = row.ct or {}
     local g = ns.AuraBar.Geometry(geom.W, geom.n, geom.gap, geom.segW)
     local lvl = (row:GetFrameLevel() or 1) + 6
@@ -1471,8 +1517,12 @@ local function LayoutCastTimers(row, geom)
             bar:SetPoint("TOPLEFT", row, "TOPLEFT", cell.x, 0)
         end
         bar:SetSize(cell.w, geom.H)
+        CellCountdown(bar, cfg, geom.reversed, lvl)
     end
-    for i = #g.cells + 1, #row.ct do row.ct[i]:SetAlpha(0) end
+    for i = #g.cells + 1, #row.ct do
+        row.ct[i]:SetAlpha(0)
+        if row.ct[i].cd then row.ct[i].cd:Clear() end
+    end
     row.ctN, row.ctOn = #g.cells, true
     RenderCastTimers(row)
 end
@@ -1490,7 +1540,18 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     }
     local cc = ResolveColor(cfg, key, "color")
     local count
-    if cfg.showText and not def.instances then
+    if def.castTimers then
+        -- 鐵鬃：正中間的層數是自己的勾選（castCount），不看「顯示數字」也不看文字內容選項
+        if cfg.castCount ~= false then
+            local scale = UIParent:GetEffectiveScale()
+            if not scale or scale <= 0 then scale = 1 end
+            count = {
+                font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
+                size = (tonumber(cfg.textSize) or 10) * scale,
+                outline = TextOutline(cfg), mode = "stacks",
+            }
+        end
+    elseif cfg.showText and not def.instances then
         -- 文字交給引擎（層數 SetApplicationCount／秒數 SetDurationText）：字級換成實體像素，樣式進簽章
         local scale = UIParent:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -1517,7 +1578,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     end
     ns.AuraBar.RowDecor(row, geom, (row:GetFrameLevel() or 1) + 8)
     if def.castTimers and cfg.castTimers ~= false and not def.instances then
-        LayoutCastTimers(row, geom)
+        LayoutCastTimers(row, geom, cfg)
     elseif row.ct then
         HideCastTimers(row)
     end

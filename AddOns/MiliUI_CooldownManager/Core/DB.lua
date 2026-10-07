@@ -321,6 +321,8 @@ ResourcesDefaults = function()
         auraText = {},
         -- 鐵鬃每一格疊「這一層還剩多久」的暗色遮罩（依施放推算，Modules/CastStacks.lua）
         castTimers = true,
+        -- 鐵鬃正中間的層數（引擎寫）
+        castCount = true,
         -- 無視苦痛列底部的「盾還剩多久」細線（引擎畫）
         ipDuration = true,
         -- 征戰聖擊列（懲戒）：自己的高度與填充方向，預設照德莫的征戰聖擊助手（高 4、已揮的時間長出來）

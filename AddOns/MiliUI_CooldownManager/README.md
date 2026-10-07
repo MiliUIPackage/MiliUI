@@ -2382,6 +2382,9 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
       （7 秒、Ursoc's Endurance 393611 是 9 秒、Guardian of Elune 155578 搗擊後 15 秒內下一發 +3、狂暴恢復用掉；死亡／換型態清空），
       每格疊暗色遮罩 `StatusBar:SetTimerDuration(自己建的 duration, ElapsedTime)`。驗：遮罩從格尾往前長、最後一個亮格最先到期、
       `SetTimerDuration` 收自己建的 duration 物件、戰鬥中照常、遮罩在填色之上文字之下。
+      **設定改成兩個勾選（比照 DK 符文，預設都開）**：`castCount` 正中間的層數（引擎寫，不看「顯示數字」與文字內容下拉）、
+      `castTimers` 每格遮罩＋每格秒數（每格一顆不畫扇形的 Cooldown，`SetCooldown(推算的明文 start, dur)`，字貼格子尾端、
+      避開中間的層數）。驗：中間數字與第 3 格的秒數不重疊、每格秒數跟遮罩同步。
     - **新列**：惡魔核心 264173、秘法齊射 1242974（上限 `GetSpellMaxCumulativeAuraApplications`，退 20／25）、
       **Frozen 1221389（目標身上你上的減益，容器 unit = target、`HARMFUL|PLAYER`，換目標叫 `UpdateAllAuras`）**、
       火焰衝擊充能（點數型，`GetSpellCharges` 轉手）、狂暴 184362、1226662（懲戒，`HELPFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY`，
