@@ -104,3 +104,9 @@ metadata:
 打包專案：`/Users/mili/Projects/MiliUI_MythicPlus`（本機 git、無 remote），package.command 有 `UPLOAD=false` 開關，壓縮檔留在該資料夾；tag 照慣例 `Miliui_MythicPlus-<版本>`。
 
 **2026-09-26 拿掉整包 LibOpenRaid**（連同只為它帶的 AceComm／AceSerializer／CallbackHandler，約 1 MB）：只用得到「收 Details!／Plater 使用者廣播的鑰石」，改成 `UI/OpenRaidKeystone.lua` 精簡接收端——前綴 `LRS`、LibDeflate 壓縮編碼、`J`＝請求、`K,等級,mapID,challengeMapID,classID,分數,mythicPlusMapID,specID`＝資料；收訊要處理 AceComm 分框（`\001～\003` 多段、`\004` 跳脫，送出的請求也要照規則補 `\004`）。**只收不回**（使用者決定）：別人的 LibOpenRaid 看不到我們的鑰石，LibKeystone 那條照常會回。原版的旗標判斷 `bit.band(flags, "0x2")` 算出 0 也是真值，所以「向隊伍請求」會連公會一起發——精簡版只發隊伍／團隊。
+
+**2026-10-07 從 AdvancedMythicTracker 借四項（全部待實機驗證）**：
+- `ns.IsCommRestricted` 先問 `C_RestrictedActions`（Combat／Encounter／ChallengeMode／Chat）；PartyKeystone 的請求被擋就記 pending，`ADDON_RESTRICTION_STATE_CHANGED`（Inactive，延一幀）或脫戰補發，一般觸發 1 秒防抖、按鈕／打 key 立刻發
+- `UI/OpenRaidKeystone.lua` 擴成三協定接收端：LRS ＋ Details! 的 `PITB`（Base64＋Deflate，C_EncodingUtil 解，K 段第一欄是長度）＋ EnhanceQoL 的 `EQKS`（`K,challengeMapID,level`）；補上 AceComm 多段重組；只收隊伍／團隊／副本頻道。PITB／EQKS 格式只取自 AMT，本機沒原插件對照
+- `UI/KeystoneTooltip.lua`：鑰石提示加首領／小怪生命與傷害加成（GetPowerLevelDamageHealthMod × 鑰石連結裡的暴君 9／強悍 10，比例 0.25/0.15、0.20/0.20 每季要看）；`db.keystone.tooltipScaling` 預設開
+- 計時面板的死亡名單在 MiliUI_QuestTracker（UNIT_DIED GUID 對隊伍快照），見那支的 Modules/MythicPlus.lua
