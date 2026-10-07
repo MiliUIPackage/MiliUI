@@ -240,10 +240,10 @@ function T.PlainFormatter(decimalsBelow)
     return f or nil
 end
 
--- 光環層數的格式器（SetApplicationCount 的 options.formatter）：整數套進 fmt（例："(%d)"）。
--- 引擎自己的路徑在沒有格式器時 1 層不印字；有格式器時每一層都印。
+-- 光環層數的格式器（SetApplicationCount 的 options.formatter）：整數套進 fmt（"%d"／"(%d)"）。
+-- 引擎自己的路徑在沒有格式器時 1 層不印字；有格式器時每一層都印（使用者 2026-10-08：1 層也要印）。
 -- ⚠ 待實機驗證：README 記過「層數給格式器整顆容器會壞」，當時可能是 Lua 表當格式器；這顆是 C 端的
--- NumericRuleFormatter（FormatNumber 在 C 端跑），目前只有「剩餘秒數 (疊層數字)」用它
+-- NumericRuleFormatter（FormatNumber 在 C 端跑）。層數列的文字（Modules/AuraBar.lua）全部走它
 function T.CountFormatter(fmtString)
     local key = "count|" .. tostring(fmtString)
     local f = formatters[key]

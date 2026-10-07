@@ -296,11 +296,12 @@ local function BindDuration(btn, fs, st, wrap)
 end
 
 -- 文字層（applications 專用），照 cn.mode：
---   stacks      層數交給 SetApplicationCount（空的選項表、不給格式器：引擎 1 層不印），單位（cn.suffix，
---               無視苦痛的「%」）是另一顆固定字，兩顆貼在按鈕中線偏右一點的同一個點上（層數靠右、單位靠左）
+--   stacks      層數交給 SetApplicationCount，給 C 端格式器 "%d"（不給的話引擎 1 層不印；光環不在時按鈕藏著，
+--               所以不會印 0）。單位（cn.suffix，無視苦痛的「%」）是另一顆固定字，兩顆貼在按鈕中線偏右一點的
+--               同一個點上（層數靠右、單位靠左）；有單位的（無視苦痛）照舊不給格式器（第 69 條實測過的路）
 --   time        剩餘秒數置中（SetDurationText）
 --   stacksTime  「4 (3.2)」：層數靠右停在中線左邊、秒數用 textFormat "({})" 靠左從中線右邊起
---   timeStacks  「3.2 (4)」：秒數靠右停在中線左邊、層數靠左從中線右邊起，括號是層數的格式器（Text.CountFormatter）
+--   timeStacks  「3.2 (4)」：秒數靠右停在中線左邊、層數靠左從中線右邊起，括號是層數的格式器 "(%d)"
 -- 兩段的寬度都是秘密值 ⇒ 不互相錨定，各自錨在按鈕中線上（字長不同時整體會偏離正中一點）
 local function InitCountText(btn, bar, cn, st)
     local tf = CreateFrame("Frame", nil, btn)
@@ -322,7 +323,7 @@ local function InitCountText(btn, bar, cn, st)
         right:SetJustifyH("LEFT")
         right:SetPoint("LEFT", btn, "CENTER", half, 0)
         if mode == "stacksTime" then
-            btn:SetApplicationCount(left, {})
+            btn:SetApplicationCount(left, st.countFormatter and { formatter = st.countFormatter } or {})
             BindDuration(btn, right, st, "({})")
         else
             BindDuration(btn, left, st)
@@ -339,7 +340,7 @@ local function InitCountText(btn, bar, cn, st)
         fs:SetJustifyH("CENTER")
         fs:SetPoint("CENTER", btn, "CENTER", 0, 0)
     end
-    btn:SetApplicationCount(fs, {})
+    btn:SetApplicationCount(fs, (off <= 0 and st.countFormatter) and { formatter = st.countFormatter } or {})
     if off > 0 then
         local sx = TextFS(tf, cn)
         sx:SetJustifyH("LEFT")
@@ -499,11 +500,15 @@ function AB.Apply(h, spec)
             end
         end
         -- 層數列的文字要秒數時：秒數格式器、「秒數 (層數)」的層數括號格式器，同樣先建好
+        -- 層數格式器：1 層也印（不給格式器時引擎 1 層不印）；有單位的（無視苦痛「%」）不給
         local cn = st.count
-        if cn and cn.mode and cn.mode ~= "stacks" and ns.Text then
-            st.formatter = ns.Text.PlainFormatter and ns.Text.PlainFormatter(cn.decimals) or nil
-            if cn.mode == "timeStacks" and ns.Text.CountFormatter then
-                st.countFormatter = ns.Text.CountFormatter("(%d)")
+        if cn and ns.Text then
+            local mode = cn.mode or "stacks"
+            if mode ~= "stacks" and ns.Text.PlainFormatter then
+                st.formatter = ns.Text.PlainFormatter(cn.decimals)
+            end
+            if ns.Text.CountFormatter and not (cn.suffix and cn.suffix ~= "") and mode ~= "time" then
+                st.countFormatter = ns.Text.CountFormatter(mode == "timeStacks" and "(%d)" or "%d")
             end
         end
         if st.kind == "instances" and type(st.cell) ~= "table" then

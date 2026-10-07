@@ -745,7 +745,7 @@ local function AppendTextSpecs(add, i, kind)
     add(TextShowSpec(i))
     if kind == "stacks" then
         add(TextModeSpec(i))
-        add(Note(L["The game prints these numbers itself, so they stay right in combat. A single stack shows no stack number."]))
+        add(Note(L["The game prints these numbers itself, so they stay right in combat."]))
     end
     add(TextSizeSpec(i))
     add(Note(L["0 sizes the number to the row height."]))

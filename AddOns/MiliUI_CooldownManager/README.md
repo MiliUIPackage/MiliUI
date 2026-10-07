@@ -2322,9 +2322,9 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 59. 鐵鬃：~~每施放一次是一顆獨立的光環~~ 2026-10-08 實測是單顆光環疊層數，已改 applications 型；待驗：疊 2～5 層時格子逐格亮、戰鬥中照常、超過 5 層停在滿格。
     **層數列的文字內容**（2026-10-08，資源條 auraBar 的 `auraText[key]`、自訂格子層數列的 `text.mode`）：層數／剩餘秒數／
     層數 (剩餘秒數)／剩餘秒數 (層數)，全由引擎寫（`SetApplicationCount`＋`SetDurationText`）。待驗：四種都印得出來、戰鬥中照常；
-    「層數 (秒數)」的括號走 `SetDurationText` 的 `textFormat = "({})"`；**「秒數 (層數)」的括號是層數的 `NumericRuleFormatter("(%d)")`**——
-    第 69 條記過「層數給格式器整顆容器壞掉」，這裡是 C 端格式器、未驗證：壞了（報錯或整列不出來）就把 `Modules/AuraBar.lua`
-    的 timeStacks 改成不給格式器（括號拿掉）。兩段字不互相錨定、各自貼中線，字長不同時偏離正中一點屬預期。
+    「層數 (秒數)」的括號走 `SetDurationText` 的 `textFormat = "({})"`；**層數一律給 C 端 `NumericRuleFormatter`（"%d"／"(%d)"）**，
+    為了 1 層也印（不給格式器時引擎 `applications > 1` 才印；光環不在時按鈕藏著，不會印 0）——第 69 條記過「層數給格式器整顆容器壞掉」，
+    這裡是 C 端格式器、未驗證：壞了（報錯或整列不出來）就把 `Modules/AuraBar.lua` 的 `st.countFormatter` 拿掉（退回 1 層不印、沒有括號）。兩段字不互相錨定、各自貼中線，字長不同時偏離正中一點屬預期。
     `layout` 的 elementWidth（小數）有沒有被接受；從右到左時 `SetFlowLayoutAnchorPoint("TOPRIGHT")`＋`SetFlowLayoutGrowthDirection(Left, Down)` 是否生效。
 60. 容器讓資源條／自訂格子面板變保護框：`IsProtected()` 是否真的往上傳到列與 root（`/mcdm debug` 的「延到脫戰」）；戰鬥中改設定、上限事件、換型態時零 ADDON_ACTION_BLOCKED；
     保護框上 `SetAlpha`／`SetAlphaFromBoolean`（條件規則、顯示時機、淡出）戰鬥中不被擋。12.1.5 的 Cooldown setter 標了 `IsProtectedFunction`：我們的秒數 Cooldown 不在保護鏈上，確認沒被擋。

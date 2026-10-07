@@ -186,7 +186,7 @@ local function AppendNumbers(add, key, info)
     elseif info.mode == "auraBar" and not info.instances then
         put(BS("dropdown", "auraText." .. key, L["Number on the bar"], { items = RS.AuraTextItems,
             get = function() return ns.Resources.AuraText(Cfg(), key) end }))
-        put(Note(L["Shown while \"Show number\" is on. The game prints these numbers itself, so they stay right in combat. A single stack shows no stack number."]))
+        put(Note(L["Shown while \"Show number\" is on. The game prints these numbers itself, so they stay right in combat."]))
     elseif info.gcdText then
         put(BS("dropdown", "arcaneSoulText", L["Number on the bar"], { items = ARCANE_SOUL_ITEMS }))
         put(Note(L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."]))
