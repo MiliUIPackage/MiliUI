@@ -1701,6 +1701,9 @@ local function ShowTip(ov)
     if not (rec and GameTooltip) then return end
     -- 冷卻狀態把這格藏起來了（明文判得出來的才算；秘密值路徑不知道，照舊顯示）：看不到的格不冒提示
     if rec.stateHidden then return end
+    -- 整條被顯示條件藏起來（例如「只在戰鬥中」的脫戰時）：條是 SetAlpha(0) 不是 Hide，overlay 照樣收得到滑鼠 ⇒
+    -- 要自己擋。淡出（alpha > 0）照舊顯示；編輯模式 Visibility 回全亮，不受影響
+    if rec.claimKey and CurrentBarAlpha(rec.claimKey) <= 0 then return end
     GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
     local shown = false
     if rec.custom then

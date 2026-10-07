@@ -1183,10 +1183,13 @@ function W.CreateColorPicker(parent, label, hasAlpha, onConfirm)
                 b:SetColor({ r = r, g = g, b = bl, a = a })
                 if onConfirm then onConfirm(r, g, bl, a) end
             end,
+            -- 取消（取消鈕、ESC、**點選色器外面**都算）：暴雪給的舊值是 { r, g, b, a }，透明度在 a 不在 opacity。
+            -- 讀錯欄位會把透明度寫成 nil ⇒ 讀取端退回預設值，畫面當下常常還留著拖過的值，重載／換專精才露出來
             cancelFunc = function(prev)
                 if prev then
-                    b:SetColor({ r = prev.r, g = prev.g, b = prev.b, a = prev.opacity })
-                    if onConfirm then onConfirm(prev.r, prev.g, prev.b, prev.opacity) end
+                    local a = prev.a or prev.opacity or c.a
+                    b:SetColor({ r = prev.r, g = prev.g, b = prev.b, a = a })
+                    if onConfirm then onConfirm(prev.r, prev.g, prev.b, a) end
                 end
             end,
         }
