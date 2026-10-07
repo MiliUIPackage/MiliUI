@@ -2938,6 +2938,15 @@ function R.DebugLines()
         out[#out + 1] = ("    %d. %-15s %s%s  畫法 %s  秘密 %s  條件 %d  %s%s")
             :format(i, key, def.mode, (def.mode == "pip" or def.mode == "auraBar") and ("×" .. tostring(row.numSeg)) or "",
                     tostring(row.mode), secret and "是" or "否", n and #n or 0, tostring(gateLog[key] or ""), extra)
+        -- 引擎寫的列：容器、按鈕、身上光環的細節（「整列空白」分得出卡在哪一段）＋列本身的尺寸／可見
+        if R.EngineDriven(key) and row.ab and ns.AuraBar and ns.AuraBar.DebugLines then
+            local okS, rw, rh = pcall(row.GetSize, row)
+            local okV, vis = pcall(row.IsVisible, row)
+            out[#out + 1] = ("       列：尺寸 %sx%s  可見 %s  格數 %s"):format(
+                okS and tostring(Plain(rw)) or "?", okS and tostring(Plain(rh)) or "?",
+                okV and tostring(Plain(vis)) or "?", tostring(row.numSeg))
+            for _, line in ipairs(ns.AuraBar.DebugLines(row.ab, def.auras)) do out[#out + 1] = line end
+        end
     end
     if CLASS == "DEMONHUNTER" and ns.DevourerMeta then out[#out + 1] = "  " .. ns.DevourerMeta.DebugLine() end
     for key, why in pairs(gateLog) do

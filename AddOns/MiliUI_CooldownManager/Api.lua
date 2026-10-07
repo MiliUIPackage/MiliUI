@@ -90,6 +90,68 @@ local function TargetDebuffLine(out)
 end
 ns.DebugTargetDebuffLine = TargetDebuffLine
 
+-- 圖示貼圖本身的幾何（「改高度只有黃框變、圖示不變」：格子尺寸是 item 的，圖示是不是還貼滿整格看這裡）。
+-- 圖示=型別 實際尺寸 錨點數[第一個錨點] 裁切座標；Masque 旗標；轉圈框尺寸
+local function RelName(rel, item)
+    if rel == nil then return "nil" end
+    if rel == item then return "格" end
+    if type(rel) == "table" and rel.GetName then
+        local ok, n = pcall(rel.GetName, rel)
+        if ok and type(n) == "string" then return n end
+        if type(item) == "table" and rawget(item, "Icon") == rel then return "格.Icon" end
+        return "其他框"
+    end
+    return "?"
+end
+
+local function RegionGeo(region, item)
+    if not region then return "✕" end
+    local okT, ot = pcall(region.GetObjectType, region)
+    local w, h = Read(region, "GetSize")
+    local n = Read(region, "GetNumPoints")
+    local pts = {}
+    if type(n) == "number" then
+        for i = 1, math.min(n, 2) do
+            local pt, rel, rp, x, y = Read(region, "GetPoint", i)
+            if pt == "秘密" then pts[#pts + 1] = "秘密"
+            else pts[#pts + 1] = ("%s→%s.%s(%s,%s)"):format(tostring(pt), RelName(rel, item), tostring(rp), Num(x), Num(y)) end
+        end
+    end
+    return ("%s %sx%s 錨%s[%s]"):format(okT and tostring(ot) or "?", Num(w), Num(h), Txt(n), table.concat(pts, " "))
+end
+
+local function IconGeo(item, rec)
+    local icon = rawget(item, "Icon")
+    local tc = ""
+    if icon and icon.GetTexCoord then
+        local ok, a, b, c, d, e, f, g, h = pcall(icon.GetTexCoord, icon)
+        if ok then
+            -- 8 個值是四個角；印左上與右下就看得出裁切範圍
+            tc = (" 座標 %s,%s→%s,%s"):format(Num(a), Num(b), Num(g), Num(h))
+        end
+    end
+    local cd = rawget(item, "Cooldown")
+    return (" 圖示=%s%s 轉圈=%s Masque=%s/%s 條型=%s"):format(RegionGeo(icon, item), tc,
+        cd and RegionGeo(cd, item) or "✕", tostring(rec.msqButton ~= nil), tostring(rec.msqTouched and true or false),
+        tostring(rawget(item, "Bar") ~= nil))
+end
+
+-- 每條的格子設定（尺寸、第二列、非正方形圖示、縮放、外觀）：對照 item 行的尺寸
+local function BarCfgLines(out)
+    local p = ns.profile
+    if not (p and type(p.bars) == "table") then return end
+    out[#out + 1] = ("  格子設定：Masque 載入=%s"):format(tostring(ns.Masque and ns.Masque.Available and ns.Masque.Available() or false))
+    for key, bar in pairs(p.bars) do
+        local lay = type(bar.layout) == "table" and bar.layout or {}
+        local sz = type(lay.size) == "table" and lay.size or {}
+        local r2 = type(lay.row2Size) == "table" and lay.row2Size or nil
+        out[#out + 1] = ("    %s（%s/%s）尺寸 %sx%s 第二列 %s 非正方形 %s 縮放 %s 外觀 %s"):format(
+            tostring(key), tostring(bar.source), tostring(bar.kind), Num(sz.w), Num(sz.h),
+            r2 and (Num(r2.w) .. "x" .. Num(r2.h)) or "—",
+            tostring(ns.Setting(key, "icon.aspect")), Num(ns.Setting(key, "icon.zoom")), tostring(ns.Setting(key, "icon.skin")))
+    end
+end
+
 -- 每條檢視器與每顆 item 的現況（只進存檔，不印聊天框：幾十行）
 local function ItemLines(out)
     local V, B = ns.Viewers, ns.Bars
@@ -136,6 +198,7 @@ local function ItemLines(out)
                 if ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey] then
                     cdInfo = cdInfo .. AuraInfo(item, rec)
                 end
+                if rec.claimKey then cdInfo = cdInfo .. IconGeo(item, rec) end
                 out[#out + 1] = ("    %s #%s id=%s%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s%s")
                     :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID), rep,
                             tostring(Read(item, "IsShown")), alpha, Num(Read(item, "GetScale")),
@@ -423,6 +486,7 @@ local function Debug(silent)
         -- 每顆 item 的現況只進存檔
         if ns.Viewers and ns.Bars and ns.Viewers.ready then
             xpcall(TargetDebuffLine, ns.ReportError, dump)
+            xpcall(BarCfgLines, ns.ReportError, dump)
             dump[#dump + 1] = "  item 現況："
             xpcall(ItemLines, ns.ReportError, dump)
         end
