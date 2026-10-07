@@ -64,7 +64,7 @@ else
     NOTES_LABEL="更新說明"
 fi
 
-echo "📝 Claude 撰寫${NOTES_LABEL}中（${PREV_TAG}..${TO_REF}，最多等 5 分鐘）..." >&2
+echo "📝 Claude 撰寫${NOTES_LABEL}中（${PREV_TAG}..${TO_REF}，最多等 1 分鐘）..." >&2
 NOTES_OUT="$(mktemp -t miliui_notes)"
 NOTES_ERR="/tmp/miliui_notes_${ADDON}_${NOTES_LANG}_err.log"
 NOTES_START=$(date +%s)
@@ -75,8 +75,8 @@ NOTES_START=$(date +%s)
     > "${NOTES_OUT}" 2> "${NOTES_ERR}" &
 CLAUDE_PID=$!
 # 逾時看門狗在主 shell 裡輪詢，不另開背景程序：背景子 shell 裡的 sleep 被 kill 時不會跟著死，
-# 還握著 stdout，包在 $(...) 裡呼叫時整個呼叫端要等滿 300 秒才往下走。
-for ((i = 0; i < 300; i++)); do
+# 還握著 stdout，包在 $(...) 裡呼叫時整個呼叫端要等滿 60 秒才往下走。
+for ((i = 0; i < 60; i++)); do
     kill -0 "${CLAUDE_PID}" 2>/dev/null || break
     sleep 1
 done
