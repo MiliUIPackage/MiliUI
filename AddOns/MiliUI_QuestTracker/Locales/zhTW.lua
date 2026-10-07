@@ -19,6 +19,9 @@ L["About"] = "關於"
 L["Objectives"] = "目標"
 L["Auto turn-in"] = "自動交任務"
 L["Auto accept"] = "自動接任務"
+-- 標題列擠不下時的短字
+L["Turn in"] = "交任務"
+L["Accept"] = "接任務"
 
 -- 外觀：文字
 L["Text"] = "文字"

@@ -78,7 +78,7 @@ end
 -- 一個豆腐方塊，而且是那種「只有部分玩家看得到」的壞法。方框內填色是同樣的訊號，
 -- 而且填色本身就吃強調色，狀態只換明暗、色相不變。
 ------------------------------------------------------------
-local function CreateChip(parent, text, getFn, setFn)
+local function CreateChip(parent, text, shortText, getFn, setFn)
     local chip = CreateFrame("Button", nil, parent)
     chip:SetHeight(P.Scale(CHIP_H))
     chip:EnableMouse(true)
@@ -111,13 +111,29 @@ local function CreateChip(parent, text, getFn, setFn)
     --   不然這一行就把整個 EnsureFrames 打斷在半路
     ChipFont(chip.label)
     chip.label:SetText(text)
+    chip.fullText, chip.shortText = text, shortText
+    chip.mode = "full"
 
     chip.Get = getFn
     chip.Set = setFn
     chip.hovered = false
 
-    chip:SetScript("OnEnter", function(self) self.hovered = true; Chrome.RefreshChip(self) end)
-    chip:SetScript("OnLeave", function(self) self.hovered = false; Chrome.RefreshChip(self) end)
+    -- 字被縮短（或整個收掉）的時候，滑過要能看到完整名稱 —— 只剩方框的 chip
+    -- 不給提示就是一顆猜不出用途的按鈕
+    chip:SetScript("OnEnter", function(self)
+        self.hovered = true
+        Chrome.RefreshChip(self)
+        if self.mode ~= "full" then
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(self.fullText, 1, 1, 1)
+            GameTooltip:Show()
+        end
+    end)
+    chip:SetScript("OnLeave", function(self)
+        self.hovered = false
+        Chrome.RefreshChip(self)
+        if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+    end)
     chip:SetScript("OnMouseUp", function(self, button)
         -- 右鍵在標題列上任何地方都開同一份選單，包含壓在 chip 上的時候。
         -- chip 是 bar 的子框、會先吃到滑鼠，不轉發的話右鍵點到 chip 就沒反應
@@ -163,7 +179,14 @@ local function LayoutChip(chip)
     e.RIGHT:SetPoint("TOPRIGHT"); e.RIGHT:SetPoint("BOTTOMRIGHT"); e.RIGHT:SetWidth(px)
 
     ChipFont(chip.label)
-    chip:SetWidth(P.Scale(3 + CHIP_BOX + 4 + 6) + chip.label:GetStringWidth())
+    if chip.mode == "box" then
+        chip.label:Hide()
+        chip:SetWidth(P.Scale(3 + CHIP_BOX + 3))
+    else
+        chip.label:SetText(chip.mode == "short" and chip.shortText or chip.fullText)
+        chip.label:Show()
+        chip:SetWidth(P.Scale(3 + CHIP_BOX + 4 + 6) + chip.label:GetStringWidth())
+    end
 end
 
 ------------------------------------------------------------
@@ -227,10 +250,10 @@ local function EnsureFrames()
 
     -- 重建時先清空：上一輪如果死在半路，chips 裡會留著孤兒
     wipe(chips)
-    newBar.turnIn = CreateChip(newBar, L["Auto turn-in"],
+    newBar.turnIn = CreateChip(newBar, L["Auto turn-in"], L["Turn in"],
         function() return ns.db.automation.autoTurnIn end,
         function(v) ns.db.automation.autoTurnIn = v end)
-    newBar.accept = CreateChip(newBar, L["Auto accept"],
+    newBar.accept = CreateChip(newBar, L["Auto accept"], L["Accept"],
         function() return ns.db.automation.autoAccept end,
         function(v) ns.db.automation.autoAccept = v end)
 
@@ -519,6 +542,46 @@ function Chrome.UpdateLabel()
         bar.count:Show()
     else
         bar.count:Hide()
+    end
+    Chrome.FitChips()
+end
+
+------------------------------------------------------------
+-- 標題與 chip 擠不下時逐級讓位：完整 → 短字 → 只剩方框（滑過看完整名稱）
+--
+-- 讓位的一律是 chip，標題與讀數不縮：標題是這份清單的名字，chip 是開關，
+-- 開關的語意靠方框＋提示還撐得住，標題被截掉就什麼都不剩了。
+-- 英文的「Objectives (14)」＋「Auto turn-in」＋「Auto accept」在預設寬度下
+-- 一定疊在一起（中文剛好塞得下，所以一直沒被發現）。
+--
+-- 每次 UpdateLabel 都重算：讀數從個位數變兩位數也會改變剩下的寬度。
+-- chip 是從右緣往左鏈著錨的，只改寬度不必重錨。
+------------------------------------------------------------
+local FIT_GAP = 8
+local FIT_MODES = { "full", "short", "box" }
+
+function Chrome.FitChips()
+    if not bar then return end
+    local shown = {}
+    for _, chip in ipairs(chips) do
+        if chip:IsShown() then shown[#shown + 1] = chip end
+    end
+
+    local barW = bar:GetWidth() or 0
+    local left = P.Scale(BAR_INSET + 14 + 6) + bar.label:GetStringWidth()
+    if bar.count:IsShown() then
+        left = left + P.Scale(5) + bar.count:GetStringWidth()
+    end
+
+    for _, mode in ipairs(FIT_MODES) do
+        local right = P.Scale(BAR_INSET)
+        for i, chip in ipairs(shown) do
+            chip.mode = mode
+            LayoutChip(chip)
+            right = right + chip:GetWidth() + (i > 1 and P.Scale(6) or 0)
+        end
+        -- 版面還沒解出寬度（0）時就照完整字排，等下一次排版再量
+        if barW <= 0 or left + P.Scale(FIT_GAP) + right <= barW then break end
     end
 end
 

@@ -19,6 +19,9 @@ L["About"] = "关于"
 L["Objectives"] = "目标"
 L["Auto turn-in"] = "自动交任务"
 L["Auto accept"] = "自动接任务"
+-- 标题栏挤不下时的短字
+L["Turn in"] = "交任务"
+L["Accept"] = "接任务"
 
 -- 外观：文字
 L["Text"] = "文字"
