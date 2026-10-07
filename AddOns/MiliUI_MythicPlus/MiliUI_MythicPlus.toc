@@ -54,6 +54,7 @@ UI\Keystone.lua
 UI\OpenRaidKeystone.lua
 UI\PartyKeystone.lua
 UI\LootTable.lua
+UI\KeystoneTooltip.lua
 
 Debug\Probe.lua
 

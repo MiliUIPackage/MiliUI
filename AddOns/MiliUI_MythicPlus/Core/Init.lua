@@ -129,9 +129,23 @@ end
 
 ------------------------------------------------------------
 -- 12.1 在首領戰／M+ 計時中／PvP 戰場中封鎖插件通訊（addon message）。
--- 判斷照 MiliUI 本體 Init.lua 的同名函式（那邊抄自 Cell）；本插件單體發佈，自己留一份
+-- 判斷照 MiliUI 本體 Init.lua 的同名函式（那邊抄自 Cell）；本插件單體發佈，自己留一份。
+-- 有 12.x 的限制系統就先問它：這幾種限制下 SendAddonMessage 是直接彈封鎖對話框，不是排隊。
+-- （⚠ ADDON_RESTRICTION_STATE_CHANGED 派送當下這支對「正在變的那個型別」回 false，要延一幀再問）
 ------------------------------------------------------------
+local COMM_RESTRICTIONS = Enum.AddOnRestrictionType and {
+    Enum.AddOnRestrictionType.Combat,
+    Enum.AddOnRestrictionType.Encounter,
+    Enum.AddOnRestrictionType.ChallengeMode,
+    Enum.AddOnRestrictionType.Chat,
+}
+
 function ns.IsCommRestricted()
+    if COMM_RESTRICTIONS and C_RestrictedActions and C_RestrictedActions.IsAddOnRestrictionActive then
+        for _, kind in ipairs(COMM_RESTRICTIONS) do
+            if kind and C_RestrictedActions.IsAddOnRestrictionActive(kind) then return true end
+        end
+    end
     if IsEncounterInProgress and IsEncounterInProgress() then return true end
     if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
     if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end
@@ -160,6 +174,7 @@ boot:SetScript("OnEvent", function(self)
     ns.Keystone.Init()
     ns.PartyKeystone.Init()
     ns.LootTable.Init()
+    ns.KeystoneTooltip.Init()
     ns.KeystoneReport.Init()
     ns.MinimapButton.Apply()
 end)

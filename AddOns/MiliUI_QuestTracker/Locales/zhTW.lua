@@ -179,6 +179,8 @@ L["Boss list size"] = "首領清單字級"
 L["Bar height"] = "條的高度"
 L["Font and outline follow the Appearance tab. Colours are fixed: white text, grey timer bars, gold forces bar, green for completed."] = "字型與描邊跟著「外觀」分頁走。顏色固定：白字、灰色計時條、金色敵軍條、完成綠色。"
 L["%d deaths"] = "%d 次死亡"
+L["Deaths"] = "死亡"
+L["%d unnamed"] = "另有 %d 次認不出是誰"
 L["Enemy forces"] = "敵軍"
 
 -- /mquest debug 的診斷報告

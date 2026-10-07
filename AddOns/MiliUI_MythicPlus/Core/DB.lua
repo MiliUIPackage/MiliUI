@@ -71,6 +71,7 @@ local function BuildDefaults()
             partyPanel    = true,
             lootTable     = true,
             lootTableOpen = true,
+            tooltipScaling = true,
         },
 
         -- 自動貼到隊伍頻道的東西，預設都開（設定在「聊天」分頁）：
