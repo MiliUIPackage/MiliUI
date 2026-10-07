@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「施法條」分頁：專注目標施法監控、三態顏色、唱法音效、斷法巨集
+-- 「施法條」分頁：專注目標施法監控、三態顏色、重要法術發光、唱法音效、斷法巨集
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -66,9 +66,14 @@ local CONTROLS = {
           ns.CastBar.Apply()   -- 編輯模式的範例條用 ready 色，要立刻看得到
       end },
 
+    { type = "header", label = L["Important spells"] },
+    { type = "toggle", key = "glowImportant", label = L["Glow when the focus casts an important spell"] },
+    { type = "text",   label = L["Blizzard decides which spells count as important."] },
+    { type = "color",  key = "colorGlow", label = L["Glow color"], hasAlpha = false },
+
     { type = "header", label = L["Cast sound"] },
     { type = "toggle", key = "soundEnabled", label = L["Play a sound when the focus starts casting"] },
-    { type = "text",   label = L["Independent of the cast bar. Since 12.1 the sound can't depend on whether the cast is interruptible (Blizzard made that a secret value) — read the bar color instead."] },
+    { type = "text",   label = L["Independent of the cast bar. Since 12.1 the sound can't depend on whether the cast is interruptible or important (Blizzard made both secret values) — watch the bar color and glow instead."] },
     { type = "dropdown", key = "sound", label = L["Sound"], items = function() return Specs.SoundItems() end },
     { type = "button", label = "", text = L["Preview"], width = 80,
       onClick = function() ns.CastBar.PreviewSound() end },

@@ -2,6 +2,7 @@
 -- 專注目標施法監控
 --   * 施法條可在編輯模式拖曳
 --   * 三種斷法狀態顏色（可斷／斷法冷卻中／不可中斷）
+--   * 暴雪標為重要的法術外框發光
 --   * 開始唱法時播一次音效
 -- 本模組不依賴任何其他插件。
 ------------------------------------------------------------
@@ -225,6 +226,7 @@ end
 -- 要在兩個音效之間選就得寫 `if ready then A else B end`，那一行就是在 Lua
 -- 讀秘密布林 → taint。整個 *FromBoolean 家族都是 frame/texture 的 setter，
 -- 沒有音訊版本。這正是暴雪要封殺的自動斷法輔助，不是我們寫法的問題。
+-- 「重要法術才響」同理：IsSpellImportant 回的也是秘密布林，只能畫（發光）不能聽。
 ----------------------------------------------------------------------
 local function HandleSound(castTbl, chanTbl)
     local db = DB()
@@ -234,6 +236,47 @@ local function HandleSound(castTbl, chanTbl)
     -- 秘密字串可測 nil-ness（只洩漏有沒有在施法，可知）
     if castTbl[1] == nil and chanTbl[1] == nil then return end
     ns.Media.PlaySoundValue(db.sound)
+end
+
+----------------------------------------------------------------------
+-- 重要法術發光
+--
+-- 判定是暴雪的 C_Spell.IsSpellImportant(spellID)，不維護法術清單。受限內容裡
+-- spellID 與回傳值都是秘密值，這裡只當傳遞者：發光照開，SetAlphaFromBoolean
+-- 交給引擎決定看不看得到，Lua 從頭到尾不讀那個布林。
+-- 施法一結束就整個停掉，不讓共用 driver 對看不見的發光空轉。
+----------------------------------------------------------------------
+local LCG = ns.MiliUIGlow
+local IsSpellImportant = C_Spell and C_Spell.IsSpellImportant
+
+local function StopGlow()
+    if barFrame then LCG.PixelGlow_Stop(barFrame) end
+end
+
+-- important：明文或秘密布林；nil＝不問直接亮（編輯模式範例）
+local function ShowGlow(important)
+    local db = DB()
+    if not db.glowImportant then StopGlow(); return end
+    local glow = barFrame._PixelGlow
+    if not glow then
+        local c = db.colorGlow
+        -- border=false：條本身已經有 1px 黑邊，不要引擎再墊一圈底
+        LCG.PixelGlow_Start(barFrame, { c.r, c.g, c.b, 1 }, nil, nil, nil, nil, nil, nil, false)
+        glow = barFrame._PixelGlow
+    end
+    if important == nil then
+        glow:SetAlpha(1)
+    else
+        glow:SetAlphaFromBoolean(important, 1, 0)
+    end
+end
+
+-- spellID 可能是秘密值：只比 nil、原封不動交給 C 端。回傳 nil＝判斷不了（不發光）
+local function QueryImportant(spellID)
+    if spellID == nil or not IsSpellImportant then return nil end
+    local ok, v = pcall(IsSpellImportant, spellID)
+    if ok and v ~= nil then return v end
+    return nil
 end
 
 ----------------------------------------------------------------------
@@ -388,7 +431,10 @@ function HideBar()
     StopDisplayTicker()
     if barFrame then
         barFrame:SetScript("OnUpdate", nil)   -- 卸掉一般模式的每幀回呼
-        if not isInEditMode then barFrame:Hide() end
+        if not isInEditMode then
+            StopGlow()
+            barFrame:Hide()
+        end
     end
 end
 
@@ -400,6 +446,7 @@ local function ShowInterrupted(interrupterGUID)
     active = false                            -- 停止進度更新，但條保留顯示
     StopDisplayTicker()
     barFrame:SetScript("OnUpdate", nil)
+    StopGlow()                                -- 施法已經斷了，紅條不再標重要
 
     barStatusBar:SetMinMaxValues(0, 1)
     barStatusBar:SetValue(1)
@@ -466,14 +513,16 @@ local function StartDisplay(castTbl, chanTbl)
     if not (isCast or isChannel) then HideBar(); return end
 
     -- 依明文旗標選欄位（值本身可能是秘密，但這裡只是賦值，不分支）
-    local name, texture, notInt, s4, s5, isEmpowered
+    local name, texture, notInt, s4, s5, isEmpowered, spellID
     if isCast then
         name, texture, notInt = castTbl[1], castTbl[3], castTbl[8]
         s4, s5 = castTbl[4], castTbl[5]
+        spellID = castTbl[9]
         isEmpowered = false
     else
         name, texture, notInt = chanTbl[1], chanTbl[3], chanTbl[7]
         s4, s5 = chanTbl[4], chanTbl[5]
+        spellID = chanTbl[8]
         isEmpowered = chanTbl[9] and true or false     -- isEmpowered 為法術屬性，非秘密
     end
 
@@ -485,6 +534,9 @@ local function StartDisplay(castTbl, chanTbl)
     barIcon:SetTexture(texture)     -- 施法中必有圖示；勿用 texture or X（會對秘密值做真值判斷 → taint）
     nameText:SetText(name)
     timeText:SetTextColor(1, 1, 1)  -- 打斷顯示會把右側文字染職業色，這裡還原
+
+    local important = QueryImportant(spellID)
+    if important == nil then StopGlow() else ShowGlow(important) end
 
     if SecretsActive() then
         -- 秘密模式：起訖時間為秘密值，改用 duration 物件驅動 StatusBar；顏色用 C_CurveUtil
@@ -602,6 +654,7 @@ local function UpdateEditModeState()
         barStatusBar:SetValue(0.6)
         local c = ColorForState("ready")
         barStatusBar:SetStatusBarColor(c.r, c.g, c.b)
+        ShowGlow()                                 -- 範例條直接亮，看得到發光長相
         barFrame.editSelection:ShowHighlighted()
         UpdateBarPosition()
         UpdateBarSize()
@@ -611,7 +664,10 @@ local function UpdateEditModeState()
         barFrame.unlocked = false
         barFrame:EnableMouse(false)
         barFrame.editSelection:Hide()
-        if not active then barFrame:Hide() end
+        if not active then
+            StopGlow()
+            barFrame:Hide()
+        end
     end
 end
 
@@ -638,6 +694,7 @@ function CastBar.Apply()
     if not ns.db then return end
     if not DB().monitor then HideBar() end
     CreateBarFrame()
+    StopGlow()          -- 換色／關掉發光：拆掉重建，下面的刷新會照新設定再點亮
     UpdateBarPosition()
     UpdateBarSize()
     UpdateEditModeState()

@@ -22,6 +22,9 @@ local DEFAULT_COLORS = {
     cd     = Color(0.9058824181556702, 0.4235294461250305, 0.2000000178813934),
     immune = Color(0.5294117647058824, 0.5294117647058824, 0.5294117647058824),
 }
+-- 重要法術發光：LibCustomGlow 像素發光的預設黃
+local DEFAULT_GLOW_COLOR = Color(0.95, 0.95, 0.32)
+DB.DEFAULT_GLOW_COLOR = DEFAULT_GLOW_COLOR
 DB.DEFAULT_COLORS = DEFAULT_COLORS
 
 -- v1 時期的 zhTW 宣告預設值。zhTW 的 focus 官方譯名是「專注目標」，不是「焦點」，
@@ -84,6 +87,9 @@ local function BuildDefaults()
             colorReady  = CopyTable(DEFAULT_COLORS.ready),
             colorCD     = CopyTable(DEFAULT_COLORS.cd),
             colorImmune = CopyTable(DEFAULT_COLORS.immune),
+            -- 重要法術（暴雪 C_Spell.IsSpellImportant 判定）外框發光
+            glowImportant = true,
+            colorGlow     = CopyTable(DEFAULT_GLOW_COLOR),
             -- 12.1 起無法依斷法狀態挑音效（見 Modules/CastBar.lua 的 HandleSound），
             -- 只剩「開始唱法就播一次」
             soundEnabled = false,
