@@ -207,7 +207,7 @@ function AB.Signature(spec)
         parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.outline), tostring(tx.decimals) }, ":")
         if tx.gcd then parts[#parts + 1] = table.concat({ "gcd", Fmt(tx.gcd), tostring(tx.last) }, ":") end
     end
-    local cn = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.count
+    local cn = spec.kind ~= "instances" and spec.count
     if type(cn) == "table" then
         parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.outline), tostring(cn.suffix),
             tostring(cn.mode or "stacks"), tostring(cn.decimals) }, ":")
@@ -402,6 +402,11 @@ local function InitButton(btn, c, st, h, sig)
             local ok, err = pcall(InitTimerText, btn, bar, st)
             if not ok then AB.lastError = tostring(err) end
         end
+        -- 時間條上也可以印層數（鐵鬃：條身是剩餘時間、中間是層數），只收 stacks 型
+        if st.count and btn.SetApplicationCount then
+            local ok, err = pcall(InitCountText, btn, bar, st.count, st)
+            if not ok then AB.lastError = tostring(err) end
+        end
     else
         -- CustomAuraButtonApplicationBarOptions：maxApplications（必填）、interpolation（可省）。
         -- 12.1.5 多一個 minApplications（預設 0），12.1.0 沒有 ⇒ 不傳
@@ -513,7 +518,8 @@ function AB.Apply(h, spec)
             inside = spec.inside, kind = spec.kind, cell = spec.cell,
             strip = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.strip) == "table") and spec.strip or nil,
             text = (spec.kind == "duration" and type(spec.text) == "table") and spec.text or nil,
-            count = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.count) == "table") and spec.count or nil,
+            count = (spec.kind ~= "instances" and type(spec.count) == "table"
+                and (spec.kind ~= "duration" or (spec.count.mode or "stacks") == "stacks")) and spec.count or nil,
             interp = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil,
             remaining = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime or nil,
         }

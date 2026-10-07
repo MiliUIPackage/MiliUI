@@ -2326,13 +2326,12 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
     為了 1 層也印（不給格式器時引擎 `applications > 1` 才印；光環不在時按鈕藏著，不會印 0）——第 69 條記過「層數給格式器整顆容器壞掉」，
     這裡是 C 端格式器、未驗證：壞了（報錯或整列不出來）就把 `Modules/AuraBar.lua` 的 `st.countFormatter` 拿掉（退回 1 層不印、沒有括號）。
     **2026-10-08 補（對照 YHUD／EllesmereUI）**，全部待實機驗證：
-    - **鐵鬃每層倒數**（`Modules/CastStacks.lua`，`castTimers` 預設開）：層數照引擎、每層時間依 `UNIT_SPELLCAST_SUCCEEDED` 推算
-      （7 秒、Ursoc's Endurance 393611 是 9 秒、Guardian of Elune 155578 搗擊後 15 秒內下一發 +3、狂暴恢復用掉；死亡／換型態清空），
-      每格疊暗色遮罩 `StatusBar:SetTimerDuration(自己建的 duration, ElapsedTime)`。驗：遮罩從格尾往前長、最後一個亮格最先到期、
-      `SetTimerDuration` 收自己建的 duration 物件、戰鬥中照常、遮罩在填色之上文字之下。
-      **設定改成兩個勾選（比照 DK 符文，預設都開）**：`castCount` 正中間的層數（引擎寫，不看「顯示數字」與文字內容下拉）、
-      `castTimers` 每格遮罩＋每格秒數（每格一顆不畫扇形的 Cooldown，`SetCooldown(推算的明文 start, dur)`，字貼格子尾端、
-      避開中間的層數）。驗：中間數字與第 3 格的秒數不重疊、每格秒數跟遮罩同步。
+    - **鐵鬃**（`Modules/CastStacks.lua`）：畫法比照 YHUD／EllesmereUI——**剩餘時間條**（auraTimer：引擎用光環到期時間＝最晚那層）
+      ＋**中間層數**（`castCount`，引擎寫進同一顆按鈕，"%d" 格式器）＋**每層一根刻度線**（`castTimers`，位置＝該層剩餘／總時間，
+      依 `UNIT_SPELLCAST_SUCCEEDED` 推算：7 秒、Ursoc's Endurance 393611 是 9 秒、Guardian of Elune 155578 搗擊後 15 秒內下一發 +3、
+      狂暴恢復用掉；死亡／換型態清空；有層時才跑 OnUpdate）。兩個勾選預設都開、不印秒數（使用者 2026-10-08 定案；
+      先前做過的「每格遮罩＋每格秒數」已拿掉）。驗：條身跟最晚那層一起歸零、層數 1 層也印、刻度線往條的起點移動並在到期時消失、
+      戰鬥中照常、刻度線在填色之上文字之下。
     - **新列**：惡魔核心 264173、秘法齊射 1242974（上限 `GetSpellMaxCumulativeAuraApplications`，退 20／25）、
       **Frozen 1221389（目標身上你上的減益，容器 unit = target、`HARMFUL|PLAYER`，換目標叫 `UpdateAllAuras`）**、
       火焰衝擊充能（點數型，`GetSpellCharges` 轉手）、狂暴 184362、1226662（懲戒，`HELPFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY`，
