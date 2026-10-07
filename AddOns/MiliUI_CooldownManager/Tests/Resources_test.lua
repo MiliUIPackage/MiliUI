@@ -961,6 +961,24 @@ end
 check("簽章：instances 與 applications 不同", AB.Signature({ kind = "instances", spellIDs = { 1, 2 }, max = 4, texture = "t",
     color = { r = 1, g = 0, b = 0 }, alpha = 1, cell = { segW = 24, H = 8, gap = 1 } }) ~= sigA)
 
+-- 層數列的文字內容（R.AuraText／Pips.TextMode）：四種、沒存或壞值 ＝ 層數；模式進簽章
+eq("文字內容：沒存 ⇒ 層數", R.AuraText({}, "Ironfur"), "stacks")
+eq("文字內容：壞值 ⇒ 層數", R.AuraText({ auraText = { Ironfur = "nope" } }, "Ironfur"), "stacks")
+eq("文字內容：逐資源存", R.AuraText({ auraText = { Ironfur = "timeStacks" } }, "Ironfur"), "timeStacks")
+eq("文字內容：別的資源不受影響", R.AuraText({ auraText = { Ironfur = "time" } }, "WhirlwindStacks"), "stacks")
+if ns.Pips then
+    eq("自訂格子文字內容：沒存 ⇒ 層數", ns.Pips.TextMode({ kind = "stacks" }), "stacks")
+    eq("自訂格子文字內容：存了", ns.Pips.TextMode({ kind = "stacks", text = { mode = "stacksTime" } }), "stacksTime")
+end
+do
+    local function cntSig(mode)
+        return AB.Signature({ spellIDs = { 1 }, max = 5, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
+            count = { font = "f", size = 10, outline = "OUTLINE", mode = mode, decimals = 5 } })
+    end
+    check("簽章：文字內容不同 ⇒ 換容器", cntSig("stacks") ~= cntSig("time") and cntSig("stacksTime") ~= cntSig("timeStacks"))
+    eq("簽章：沒給模式 ＝ 層數", cntSig(nil), cntSig("stacks"))
+end
+
 ------------------------------------------------------------
 -- 9. 光環剩餘時間條（auraTimer）
 ------------------------------------------------------------

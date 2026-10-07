@@ -240,6 +240,28 @@ function T.PlainFormatter(decimalsBelow)
     return f or nil
 end
 
+-- 光環層數的格式器（SetApplicationCount 的 options.formatter）：整數套進 fmt（例："(%d)"）。
+-- 引擎自己的路徑在沒有格式器時 1 層不印字；有格式器時每一層都印。
+-- ⚠ 待實機驗證：README 記過「層數給格式器整顆容器會壞」，當時可能是 Lua 表當格式器；這顆是 C 端的
+-- NumericRuleFormatter（FormatNumber 在 C 端跑），目前只有「剩餘秒數 (疊層數字)」用它
+function T.CountFormatter(fmtString)
+    local key = "count|" .. tostring(fmtString)
+    local f = formatters[key]
+    if f ~= nil then return f or nil end
+    f = false
+    local SU = C_StringUtil
+    local RD = Enum and Enum.NumericRuleFormatRounding
+    if SU and SU.CreateNumericRuleFormatter and RD then
+        local ok, fmt = pcall(SU.CreateNumericRuleFormatter)
+        if ok and fmt and pcall(fmt.AddBreakpoint, fmt,
+                { threshold = 0, step = 1, rounding = RD.Down, format = fmtString }) then
+            f = fmt
+        end
+    end
+    formatters[key] = f
+    return f or nil
+end
+
 -- 「剩幾個 GCD」（資源條的秘法靈魂）：剩餘秒數 x、GCD 長度 g
 --   x ≥ g    印 ceil(x ／ g)（元件 div = g、step 1 往上取）
 --   x < g    印 last（最後一個 GCD；這一段沒有數字格式符）

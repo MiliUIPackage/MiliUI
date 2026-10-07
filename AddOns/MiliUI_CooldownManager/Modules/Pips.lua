@@ -72,7 +72,8 @@ Pips.Cfg, Pips.StyleCfg = Cfg, StyleCfg
 --
 --   resources.customRows[specID] = { { kind = "charges"|"stacks", spellID, max, color, height, text, showTime, enabled }, … }
 --   height 沒存 ＝ CUSTOM_DEFAULT_HEIGHT（不跟資源條的列高走）
---   text = { show, size, font, outline }：這一列自己的數字（充能＝回充秒數、層數＝引擎寫的層數）；
+--   text = { show, size, font, outline, mode }：這一列自己的數字（充能＝回充秒數、層數＝引擎寫的層數；
+--   層數列的 mode 選印層數／秒數／兩者，Pips.TextMode）；
 --   沒存 ＝ 充能列看舊欄位 showTime、層數列不顯示；size 0 ＝ 照列高、font／outline "INHERIT" ＝ 跟資源條／主題
 --   （Pips.TextStyle）
 --
@@ -119,6 +120,16 @@ function Pips.TextStyle(entry, height)
     local font = (type(t.font) == "string" and t.font ~= "" and t.font ~= "INHERIT") and t.font or "INHERIT"
     local outline = (type(t.outline) == "string" and t.outline ~= "INHERIT") and t.outline or "INHERIT"
     return show, size, font, outline
+end
+
+-- 純函式：層數列的文字內容（entry.text.mode）：stacks（沒存＝這個）／time／stacksTime／timeStacks，
+-- 值跟資源條的 R.AuraText 同一組。充能列沒有這個選項（一律回充秒數）
+function Pips.TextMode(entry)
+    local t = type(entry) == "table" and type(entry.text) == "table" and entry.text or nil
+    local v = t and t.mode
+    local modes = ns.Resources and ns.Resources.AURA_TEXT_MODES
+    if modes and modes[v] then return v end
+    return "stacks"
 end
 
 -- 這個專精的清單；create ＝ 沒有就建（寫入用），否則沒有回 nil
@@ -541,7 +552,8 @@ local function LayoutCustomRow(row, plan, style, W, H)
         if showText then
             local scale = UIParent:GetEffectiveScale()
             if not scale or scale <= 0 then scale = 1 end
-            count = { font = ns.Media.Font(font), size = fontSize * scale, outline = outline }
+            count = { font = ns.Media.Font(font), size = fontSize * scale, outline = outline,
+                      mode = Pips.TextMode(plan.entry), decimals = 0 }
         end
         row.engine = LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex, count)
         if row.engine then

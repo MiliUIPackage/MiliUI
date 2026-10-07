@@ -180,7 +180,9 @@ end
 --          cell = geom（instances 必填：一格的大小與格距，進簽章），
 --          text = { font = 路徑, size = 實體像素字級, outline = 描邊旗標, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字 }
 --                 | nil（duration 專用：秒數文字，進簽章），
---          count = { font, size, outline, suffix } | nil（applications 專用：層數文字，進簽章） }
+--          count = { font, size, outline, suffix, mode, decimals } | nil（applications 專用：文字，進簽章）
+--                 mode ＝ "stacks"（預設，層數）｜"time"（剩餘秒數）｜"stacksTime"（層數 (秒數)）｜"timeStacks"（秒數 (層數)）；
+--                 decimals ＝ 秒數低於這個值印一位小數 }
 ------------------------------------------------------------
 function AB.Signature(spec)
     local ids = {}
@@ -204,7 +206,8 @@ function AB.Signature(spec)
     end
     local cn = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.count
     if type(cn) == "table" then
-        parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.outline), tostring(cn.suffix) }, ":")
+        parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.outline), tostring(cn.suffix),
+            tostring(cn.mode or "stacks"), tostring(cn.decimals) }, ":")
     end
     local g = spec.inside
     if g then
@@ -268,17 +271,67 @@ local function InitTimerText(btn, bar, st)
     end
 end
 
--- 層數文字（applications 專用）：層數交給 SetApplicationCount（空的選項表、不給格式器），
--- 單位是另一顆固定字。兩顆貼在按鈕中線偏右一點的同一個點上（層數靠右、單位靠左），合起來大約置中
-local function InitCountText(btn, bar, cn)
-    local tf = CreateFrame("Frame", nil, btn)
-    tf:SetAllPoints(btn)
-    tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
-    local off = (cn.suffix and cn.suffix ~= "") and (tonumber(cn.size) or 10) * 0.3 or 0
+-- 文字層（applications 專用）的一顆 FontString：自己一層子框、字型先給（引擎會 SetText）、忽略父層縮放
+local function TextFS(tf, cn)
     local fs = tf:CreateFontString(nil, "OVERLAY")
     fs:SetFont(cn.font, cn.size, cn.outline or "OUTLINE")
     pcall(fs.SetIgnoreParentScale, fs, true)
     fs:SetTextColor(1, 1, 1, 1)
+    return fs
+end
+
+-- 秒數交給 SetDurationText。wrap ＝ 用引擎的 textFormat 包一層（"({})"：秒數的括號，數字仍由格式器排）；
+-- 包不起來退回只有秒數、格式器也不吃就用引擎預設
+local function BindDuration(btn, fs, st, wrap)
+    local fmt = st.formatter
+    local P = Enum and Enum.DurationTextBindingProperty
+    if wrap and fmt and P then
+        local ok = pcall(btn.SetDurationText, btn, fs, { textFormat = {
+            formatString = wrap, components = { { property = P.RemainingDuration, formatter = fmt } } } })
+        if ok then return end
+    end
+    if not (fmt and pcall(btn.SetDurationText, btn, fs, { textFormatter = fmt })) then
+        btn:SetDurationText(fs)
+    end
+end
+
+-- 文字層（applications 專用），照 cn.mode：
+--   stacks      層數交給 SetApplicationCount（空的選項表、不給格式器：引擎 1 層不印），單位（cn.suffix，
+--               無視苦痛的「%」）是另一顆固定字，兩顆貼在按鈕中線偏右一點的同一個點上（層數靠右、單位靠左）
+--   time        剩餘秒數置中（SetDurationText）
+--   stacksTime  「4 (3.2)」：層數靠右停在中線左邊、秒數用 textFormat "({})" 靠左從中線右邊起
+--   timeStacks  「3.2 (4)」：秒數靠右停在中線左邊、層數靠左從中線右邊起，括號是層數的格式器（Text.CountFormatter）
+-- 兩段的寬度都是秘密值 ⇒ 不互相錨定，各自錨在按鈕中線上（字長不同時整體會偏離正中一點）
+local function InitCountText(btn, bar, cn, st)
+    local tf = CreateFrame("Frame", nil, btn)
+    tf:SetAllPoints(btn)
+    tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
+    local mode = cn.mode or "stacks"
+    if mode == "time" then
+        local fs = TextFS(tf, cn)
+        fs:SetJustifyH("CENTER")
+        fs:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        BindDuration(btn, fs, st)
+        return
+    end
+    if mode == "stacksTime" or mode == "timeStacks" then
+        local half = (tonumber(cn.size) or 10) * 0.15
+        local left, right = TextFS(tf, cn), TextFS(tf, cn)
+        left:SetJustifyH("RIGHT")
+        left:SetPoint("RIGHT", btn, "CENTER", -half, 0)
+        right:SetJustifyH("LEFT")
+        right:SetPoint("LEFT", btn, "CENTER", half, 0)
+        if mode == "stacksTime" then
+            btn:SetApplicationCount(left, {})
+            BindDuration(btn, right, st, "({})")
+        else
+            BindDuration(btn, left, st)
+            btn:SetApplicationCount(right, st.countFormatter and { formatter = st.countFormatter } or {})
+        end
+        return
+    end
+    local off = (cn.suffix and cn.suffix ~= "") and (tonumber(cn.size) or 10) * 0.3 or 0
+    local fs = TextFS(tf, cn)
     if off > 0 then
         fs:SetJustifyH("RIGHT")
         fs:SetPoint("RIGHT", btn, "CENTER", off, 0)
@@ -288,10 +341,7 @@ local function InitCountText(btn, bar, cn)
     end
     btn:SetApplicationCount(fs, {})
     if off > 0 then
-        local sx = tf:CreateFontString(nil, "OVERLAY")
-        sx:SetFont(cn.font, cn.size, cn.outline or "OUTLINE")
-        pcall(sx.SetIgnoreParentScale, sx, true)
-        sx:SetTextColor(1, 1, 1, 1)
+        local sx = TextFS(tf, cn)
         sx:SetJustifyH("LEFT")
         sx:SetPoint("LEFT", btn, "CENTER", off, 0)
         sx:SetText(cn.suffix)
@@ -352,7 +402,7 @@ local function InitButton(btn, c, st, h, sig)
         btn:SetApplicationBar(bar, opts)
         -- 層數文字失敗只丟文字、不丟條
         if st.count and btn.SetApplicationCount then
-            local ok, err = pcall(InitCountText, btn, bar, st.count)
+            local ok, err = pcall(InitCountText, btn, bar, st.count, st)
             if not ok then AB.lastError = tostring(err) end
         end
     end
@@ -446,6 +496,14 @@ function AB.Apply(h, spec)
             end
             if not st.formatter and ns.Text.PlainFormatter then
                 st.formatter = ns.Text.PlainFormatter(st.text.decimals)
+            end
+        end
+        -- 層數列的文字要秒數時：秒數格式器、「秒數 (層數)」的層數括號格式器，同樣先建好
+        local cn = st.count
+        if cn and cn.mode and cn.mode ~= "stacks" and ns.Text then
+            st.formatter = ns.Text.PlainFormatter and ns.Text.PlainFormatter(cn.decimals) or nil
+            if cn.mode == "timeStacks" and ns.Text.CountFormatter then
+                st.countFormatter = ns.Text.CountFormatter("(%d)")
             end
         end
         if st.kind == "instances" and type(st.cell) ~= "table" then

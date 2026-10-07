@@ -729,8 +729,24 @@ local function TextOutlineSpec(i)
     })
 end
 
-local function AppendTextSpecs(add, i)
+-- 層數列的文字內容（entry.text.mode，Pips.TextMode）：跟資源條的鐵鬃那幾列同一組選項
+local function TextModeSpec(i)
+    return BS("dropdown", "customRows.textMode." .. i, L["Number on the bar"], {
+        items = ns.ResourceSettings.AuraTextItems, noReset = true,
+        get = function() return ns.Pips.TextMode(CustomEntry(i)) end,
+        set = function(_, v)
+            local t = TextTable(i, true)
+            if t then t.mode = (v ~= "stacks" and ns.Resources.AURA_TEXT_MODES[v]) and v or nil end
+        end,
+    })
+end
+
+local function AppendTextSpecs(add, i, kind)
     add(TextShowSpec(i))
+    if kind == "stacks" then
+        add(TextModeSpec(i))
+        add(Note(L["The game prints these numbers itself, so they stay right in combat. A single stack shows no stack number."]))
+    end
     add(TextSizeSpec(i))
     add(Note(L["0 sizes the number to the row height."]))
     add(TextFontSpec(i))
@@ -773,7 +789,7 @@ local function AppendCustomRows(list)
                 add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
                 add(HeightSpec(i))
                 add(ShowWhenSpec(i, e.kind))
-                AppendTextSpecs(add, i)
+                AppendTextSpecs(add, i, e.kind)
             end
         end
     end

@@ -61,6 +61,16 @@ local ARCANE_SOUL_ITEMS = {
     { text = L["Global cooldowns left"], value = "gcd" },
 }
 
+-- 引擎寫層數的列（鐵鬃、旋風斬、橫掃攻擊）與自訂格子的層數列共用（Tab_Resources 也拿這張）
+function RS.AuraTextItems()
+    return {
+        { text = L["Stacks"],                  value = "stacks" },
+        { text = L["Seconds left"],            value = "time" },
+        { text = L["Stacks (seconds left)"],   value = "stacksTime" },
+        { text = L["Seconds left (stacks)"],   value = "timeStacks" },
+    }
+end
+
 local CRUSADING_FILL_ITEMS = {
     { text = L["Time since the last swing (fills up)"], value = "elapsed" },
     { text = L["Time until the next swing (empties)"], value = "remaining" },
@@ -173,6 +183,10 @@ local function AppendNumbers(add, key, info)
         put(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show number\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
         put(BS("toggle", "runeQueued", L["Count waiting runes"]))
         put(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
+    elseif info.mode == "auraBar" and not info.instances then
+        put(BS("dropdown", "auraText." .. key, L["Number on the bar"], { items = RS.AuraTextItems,
+            get = function() return ns.Resources.AuraText(Cfg(), key) end }))
+        put(Note(L["Shown while \"Show number\" is on. The game prints these numbers itself, so they stay right in combat. A single stack shows no stack number."]))
     elseif info.gcdText then
         put(BS("dropdown", "arcaneSoulText", L["Number on the bar"], { items = ARCANE_SOUL_ITEMS }))
         put(Note(L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."]))
@@ -290,6 +304,9 @@ local function AppendColors(add, key, info)
     elseif info.mode == "auraTimer" then
         -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
         add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))
+    elseif info.mode == "auraBar" and not info.instances then
+        -- 層數列：文字由引擎印（上面「文字」那一節選內容），條件規則不適用
+        add(Note(L["%s: the game fills this row in itself, so it stays right in combat. Condition rules don't apply."]:format(R.Name(key))))
     elseif not R.SupportsConditions(key) and not (info.health or info.mode == "auraPct") then
         -- 血量不印這句（條件規則不適用由門檻換色那段帶過）
         add(Note(L["%s: the game fills this row in itself, so it stays right in combat; condition rules and value text don't apply."]:format(R.Name(key))))

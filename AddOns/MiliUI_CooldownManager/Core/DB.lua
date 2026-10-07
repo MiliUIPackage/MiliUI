@@ -295,6 +295,9 @@ ResourcesDefaults = function()
         maelstromFold = false,
         -- 秘法靈魂的數字（showText 開著才有）：seconds 剩餘秒數／gcd 剩幾個 GCD
         arcaneSoulText = "seconds",
+        -- 引擎寫層數的列（鐵鬃、旋風斬、橫掃攻擊）的文字（showText 開著才有）：auraText[key] ＝
+        -- stacks 層數（沒存＝這個）／time 秒數／stacksTime 層數 (秒數)／timeStacks 秒數 (層數)，見 Resources.lua 的 R.AuraText
+        auraText = {},
         -- 征戰聖擊列（懲戒）：自己的高度與填充方向，預設照德莫的征戰聖擊助手（高 4、已揮的時間長出來）
         crusadingHeight = 4,                   -- 沒有控件了：只當 heights.CrusadingStrikes 沒設時的起始值
         crusadingFill   = "elapsed",           -- elapsed | remaining

@@ -27,7 +27,8 @@
 --              這條 StatusBar 的填充貼圖上不錨任何東西、不讀它的尺寸。
 --   auraBar    **引擎寫層數**（Modules/AuraBar.lua）：GetPlayerAuraBySpellID 讀不到的增益（旋風斬、橫掃攻擊）
 --              用一顆單格 AuraContainer ＋ SetApplicationBar；每施放一次多一顆獨立光環的（鐵鬃）用
---              AddAuraGroup ＋ 每顆 SetDurationBar（一格一層、各自倒數）。條件規則與數值文字不適用。
+--              AddAuraGroup ＋ 每顆 SetDurationBar（一格一層、各自倒數；目前沒有使用者，鐵鬃實測是疊層數）。
+--              條件規則不適用；showText 時文字也交給引擎，內容照 R.AuraText（層數／秒數／兩者）。
 --              容器是受保護的 intrinsic ⇒ 有這種列時面板在戰鬥中不重排（記旗標、脫戰補）。
 --   auraTimer  **光環剩餘時間條**（黯黑力量、秘法靈魂）：同一支 AuraBar 的 kind = "duration"，單格 AuraContainer
 --              ＋ SetDurationBar（RemainingTime）：光環在身上時引擎往下縮、不在時是空條（列上畫的暗底）。
@@ -804,6 +805,17 @@ function R.ReadGcd()
     return gcdLast
 end
 
+-- 引擎寫層數的列（auraBar：鐵鬃、旋風斬、橫掃攻擊）的文字，showText 開著才有；逐資源存在 auraText[key]：
+--   stacks 疊層數字（預設）／time 剩餘秒數／stacksTime 疊層數字 (剩餘秒數)／timeStacks 剩餘秒數 (疊層數字)
+-- 自訂格子的層數列用同一組值（entry.text.mode，Pips.TextMode）
+R.AURA_TEXT_MODES = { stacks = true, time = true, stacksTime = true, timeStacks = true }
+function R.AuraText(cfg, key)
+    local t = type(cfg) == "table" and cfg.auraText
+    local v = type(t) == "table" and t[key]
+    if R.AURA_TEXT_MODES[v] then return v end
+    return "stacks"
+end
+
 -- 秘法靈魂的文字：seconds（剩餘秒數，預設）／gcd（剩幾個 GCD）
 function R.ArcaneSoulText(cfg)
     local v = type(cfg) == "table" and cfg.arcaneSoulText
@@ -1352,6 +1364,9 @@ end
 local function OnAuraRegen() R.Mark(true) end
 
 -- 引擎寫層數的列。回傳 true ＝ 容器就緒（這一列交給引擎）；false ＝ 退回明文畫法
+-- 剩餘時間條（與層數列選了秒數時）的秒數：低於這個秒數印一位小數（秘法靈魂 4 秒整段都有小數；黯黑力量剩 5 秒起）
+local TIMER_DECIMALS_BELOW = 5
+
 local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     if not ns.AuraBar then return false end
     row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
@@ -1361,10 +1376,23 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
         segments = true, dim = R.DimArray(cfg), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
     }
     local cc = ResolveColor(cfg, key, "color")
+    local count
+    if cfg.showText and not def.instances then
+        -- 文字交給引擎（層數 SetApplicationCount／秒數 SetDurationText）：字級換成實體像素，樣式進簽章
+        local scale = UIParent:GetEffectiveScale()
+        if not scale or scale <= 0 then scale = 1 end
+        count = {
+            font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
+            size = (tonumber(cfg.textSize) or 10) * scale,
+            outline = TextOutline(cfg),
+            mode = R.AuraText(cfg, key),
+            decimals = TIMER_DECIMALS_BELOW,
+        }
+    end
     local status = ns.AuraBar.Apply(row.ab, {
         kind = def.instances and "instances" or "applications",
         spellIDs = def.auras, max = numSeg, texture = tex, color = cc, alpha = tonumber(cfg.barAlpha) or 1,
-        reversed = reversed, cell = def.instances and geom or nil,
+        reversed = reversed, cell = def.instances and geom or nil, count = count,
     })
     row.engineStatus = status
     if status ~= "ready" then
@@ -1376,8 +1404,6 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     return true
 end
 
--- 剩餘時間條的秒數：低於這個秒數印一位小數（秘法靈魂 4 秒整段都有小數；黯黑力量剩 5 秒起）
-local TIMER_DECIMALS_BELOW = 5
 
 -- 空條的底色：跟連續條同一套（主色 × 0.25、alpha 0.8）。out 給了就填進去（熱路徑上不配表）
 function R.TimerDim(c, out)
