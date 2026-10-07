@@ -183,11 +183,13 @@ local function AppendNumbers(add, key, info)
         put(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show number\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
         put(BS("toggle", "runeQueued", L["Count waiting runes"]))
         put(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
+    elseif info.castTimers then
+        -- 鐵鬃：比照 DK 符文，中間數字＋每格秒數，兩個勾選（使用者 2026-10-08 指定，取代四選一的文字內容）
+        put(BS("toggle", "castCount", L["Show stack count"]))
+        put(Note(L["The stack count sits in the middle of the bar."]))
+        put(BS("toggle", "castTimers", L["Countdown on each stack"]))
+        put(Note(L["Each cast is its own stack with its own timer. Each lit segment shows its stack's seconds left and darkens as it runs out; the last lit segment expires first. The timers are worked out from your casts, so a stack gained another way stays fully lit with no seconds."]))
     elseif info.mode == "auraBar" and not info.instances then
-        if info.castTimers then
-            put(BS("toggle", "castTimers", L["Countdown on each stack"]))
-            put(Note(L["Each cast is its own stack with its own timer. A dark shade grows over each lit segment as that stack runs out; the last lit segment expires first. The timers are worked out from your casts, so a stack gained another way stays fully lit."]))
-        end
         put(BS("dropdown", "auraText." .. key, L["Number on the bar"], { items = RS.AuraTextItems,
             get = function() return ns.Resources.AuraText(Cfg(), key) end }))
         put(Note(L["Shown while \"Show number\" is on. The game prints these numbers itself, so they stay right in combat."]))
@@ -541,7 +543,8 @@ local function Controls(key)
     add(Note(L["Height is per resource and shared by every specialization too."]))
     -- 「顯示數字」是這一列獨立的設定（使用者 2026-10-03 指定，資源條頁沒有統一的開關）：存在 style.<key>.showText；
     -- 沒存過時沿用舊的全域欄位 resources.showText（舊存檔的值，預設開），所以不給右鍵重設；字型、字級仍在外觀那一節跟著「跟隨」走
-    if not info.noText then
+    -- 鐵鬃（castTimers）的文字是「文字」一節的兩個勾選，不走這個開關
+    if not info.noText and not info.castTimers then
         add(BS("toggle", "style." .. key .. ".showText", L["Show number"], {
             noReset = true,
             get = function()
