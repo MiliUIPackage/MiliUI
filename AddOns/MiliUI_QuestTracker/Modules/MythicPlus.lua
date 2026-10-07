@@ -17,7 +17,7 @@
 --
 -- 刻意不做的：
 --   * 當前拉怪的敵軍預估 —— 要靠戰鬥記錄配一份自己維護的怪物表，12.x 上那條路已經不準；
---   * 死亡名單 —— 12.1 的 GUID 常是秘密值，名單會缺；死亡數走官方 API 沒問題；
+--   * 死亡名單「保證完整」—— 名單只是滑過死亡數的提示，數不上的列成「未具名」（見下面「死亡名單」）；
 --   * 首領名字去翻 Encounter Journal —— 那要開／藏暴雪面板，會污染；criteria 的
 --     description 本來就是名字；
 --   * 分段紀錄；自動放鑰石（MiliUI_MythicPlus 的鑰石分頁已經在做）。
@@ -121,6 +121,7 @@ local function ResetState()
         forcesDone = false,
         forcesDoneTime = nil,
         objectives = {},          -- { name, done, time }
+        deathList = {},           -- { name, class, time }；死亡數以 GetDeathCount 為準，這裡可能比較少
     }
 end
 ResetState()
@@ -201,6 +202,13 @@ local function EnsurePanel()
     panel:Hide()
 
     panel.deaths  = NewText(panel, 16, C_TEXT)
+    -- 滑過死亡數看名單。只收滑鼠移動、不收點擊，點下去照樣穿透到後面
+    panel.deathsHit = CreateFrame("Frame", nil, panel)
+    panel.deathsHit:SetAllPoints(panel.deaths)
+    panel.deathsHit:SetMouseMotionEnabled(true)
+    panel.deathsHit:SetMouseClickEnabled(false)
+    panel.deathsHit:SetScript("OnEnter", function(self) MP.ShowDeathTooltip(self) end)
+    panel.deathsHit:SetScript("OnLeave", function() GameTooltip:Hide() end)
     panel.timer   = NewText(panel, 34, C_TEXT)
     panel.key     = NewText(panel, 20, C_DIM)
     panel.affixes = NewText(panel, 16, C_DIM)
@@ -496,6 +504,63 @@ local function LoadDeaths()
     state.timeLost = Num(lost) or 0
 end
 
+------------------------------------------------------------
+-- 死亡名單：UNIT_DIED 的 GUID 對開場拍的隊伍快照
+--
+-- 不走戰鬥記錄（12.1 整個封了）。GUID 在戰鬥中常是秘密值，所以快照在開場、
+-- 隊伍變動、脫戰時拍，讀到秘密的那格保留舊值不蓋掉；事件給的 GUID 是秘密就不記。
+-- 名單因此可能比死亡數少，提示裡把差額列成「未具名」，死亡數本身照官方的。
+-- 假死（獵人）排除；判不出來（秘密）就當假死不記，寧缺勿錯。
+-- 做法同 AdvancedMythicTracker 的 State/Deaths.lua。
+------------------------------------------------------------
+local partyByGUID = {}
+local PARTY_UNITS = { "player", "party1", "party2", "party3", "party4" }
+
+local function Plain(v)
+    if v == nil or IsSecret(v) then return nil end
+    return v
+end
+
+local function SnapshotParty()
+    for _, unit in ipairs(PARTY_UNITS) do
+        local guid = Plain(UnitGUID(unit))
+        local name = Plain((UnitName(unit)))
+        if guid and name then
+            local _, class = UnitClass(unit)
+            partyByGUID[guid] = { unit = unit, name = name, class = Plain(class) }
+        end
+    end
+end
+
+local function OnUnitDied(guid)
+    guid = Plain(guid)
+    local member = guid and partyByGUID[guid]
+    if not member then return end
+    -- 快照裡的 unit 可能因隊伍變動而錯位，對一下 GUID
+    if Plain(UnitGUID(member.unit)) ~= guid then return end
+    local feigning = UnitIsFeignDeath(member.unit)
+    if feigning == nil or IsSecret(feigning) or feigning then return end
+    local list = state.deathList
+    list[#list + 1] = { name = member.name, class = member.class, time = ElapsedNow() }
+end
+
+function MP.ShowDeathTooltip(owner)
+    if not state.inChallenge or state.deaths <= 0 then return end
+    local c = Cfg()
+    GameTooltip:SetOwner(owner, (c and c.align == "LEFT") and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
+    GameTooltip:AddLine(L["Deaths"], 1, 1, 1)
+    for _, d in ipairs(state.deathList) do
+        local color = d.class and RAID_CLASS_COLORS[d.class]
+        local name = color and color:WrapTextInColorCode(d.name) or d.name
+        GameTooltip:AddDoubleLine(name, FormatTime(d.time), 1, 1, 1, 1, 1, 1)
+    end
+    local unnamed = state.deaths - #state.deathList
+    if unnamed > 0 then
+        GameTooltip:AddLine((L["%d unnamed"]):format(unnamed), C_DIM[1], C_DIM[2], C_DIM[3])
+    end
+    GameTooltip:Show()
+end
+
 local function UpdateObjectives()
     local _, _, stepCount = C_Scenario.GetStepInfo()
     stepCount = Num(stepCount)
@@ -609,12 +674,15 @@ end
 local challengeEvents = {
     "CHALLENGE_MODE_COMPLETED", "CHALLENGE_MODE_DEATH_COUNT_UPDATED", "WORLD_STATE_TIMER_START",
     "SCENARIO_CRITERIA_UPDATE", "SCENARIO_POI_UPDATE",
+    "UNIT_DIED", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED",
 }
 local evt
 
 local function Enable()
     ResetState()
     state.inChallenge = true
+    wipe(partyByGUID)
+    SnapshotParty()
     for _, e in ipairs(challengeEvents) do evt:RegisterEvent(e) end
     LoadKeyDetails()
     LoadDeaths()
@@ -630,6 +698,7 @@ local function Disable()
     if not state.inChallenge then return end
     for _, e in ipairs(challengeEvents) do evt:UnregisterEvent(e) end
     ResetState()
+    wipe(partyByGUID)
     MP.UpdateVisibility()
     if ns.Visibility then ns.Visibility.Evaluate() end
 end
@@ -693,8 +762,12 @@ ns.RegisterCallback("Init", "mythicPlus", function()
     }) do
         evt:RegisterEvent(e)
     end
-    evt:SetScript("OnEvent", function(_, event)
-        if event == "CHALLENGE_MODE_START" then
+    evt:SetScript("OnEvent", function(_, event, arg1)
+        if event == "UNIT_DIED" then
+            OnUnitDied(arg1)
+        elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_REGEN_ENABLED" then
+            SnapshotParty()
+        elseif event == "CHALLENGE_MODE_START" then
             -- 放鑰石後的 10 秒倒數就會收到；重新開始也走這裡
             Enable()
         elseif event == "CHALLENGE_MODE_COMPLETED" then

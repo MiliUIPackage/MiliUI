@@ -9,6 +9,7 @@
 -- 同步來源（與 ElvUI_WindTools 同款，雙來源互補）：
 --   1. LibOpenRaid 協定（主）—— Details!／Plater 等的使用者會廣播。只用得到收鑰石，
 --      所以不內嵌整包函式庫，改用 UI/OpenRaidKeystone.lua 的精簡接收端（只收不回）。
+--      同一支接收端另外聽 Details! 的 PITB 與 EnhanceQoL 的 EQKS 廣播（只收）。
 --   2. LibKeystone （備）—— DBM／BigWigs 那套 PARTY／GUILD 請求協議，內嵌在 Libs/。
 --
 -- ⚠ 面板是 ChallengesFrame 的孩子（跟著它顯示／隱藏）。只建子框、不寫暴雪框的欄位。
@@ -99,13 +100,36 @@ local function GetUnitKeystone(unit)
     if Valid(data) then return data end
 end
 
--- 向隊伍請求鑰石資料
-local function RequestData()
+-- 向隊伍請求鑰石資料。
+-- 通訊被封鎖（戰鬥／首領戰／整趟鑰石／聊天限制）時送出去會直接彈封鎖對話框，
+-- 所以先記一筆，等限制解除或脫戰再補發；連續觸發用 1 秒防抖合併成一次。
+local REQUEST_DELAY = 1
+local requestPending, requestTimer = false, nil
+
+local function FlushRequest()
+    requestTimer = nil
+    if not requestPending then return end
+    if not IsInGroup() then requestPending = false; return end
+    if ns.IsCommRestricted() then return end    -- 繼續等，解除事件會再叫一次
+    requestPending = false
     OR.RequestFromParty()
     OR.RequestFromRaid()
     -- LibKeystone 只認 PARTY／GUILD（副本內走 LibOpenRaid 協定，所以只在一般隊伍請求）
     if KS and KS.Request and IsInGroup(LE_PARTY_CATEGORY_HOME) then
         KS.Request("PARTY")
+    end
+end
+
+-- now：玩家按的（更新鈕、隊友打 key）馬上發；其餘（開頁、隊伍變動）走防抖
+local function RequestData(now)
+    requestPending = true
+    if now then
+        if requestTimer then requestTimer:Cancel(); requestTimer = nil end
+        FlushRequest()
+        return
+    end
+    if not requestTimer then
+        requestTimer = C_Timer.NewTimer(REQUEST_DELAY, function() ns.Guard(FlushRequest) end)
     end
 end
 
@@ -204,7 +228,7 @@ local function BuildPanel()
     local refreshBtn = W.CreateButton(panel, L["Refresh"], "normal", 48, 20)
     refreshBtn:SetPoint("RIGHT", sendBtn, "LEFT", -4, 0)
     refreshBtn:SetScript("OnClick", function()
-        RequestData()
+        RequestData(true)
         Refresh()
     end)
 
@@ -351,7 +375,7 @@ local function OnTrigger()
     wipe(claims)
     claims[me] = true
 
-    RequestData()
+    RequestData(true)
     C_ChatInfo.SendAddonMessage(DEDUP_PREFIX, "CLAIM:" .. me, channel)
 
     -- CLAIM_WINDOW 同時用來等資料回來 ＋ 收集其他 MiliUI 的 CLAIM
@@ -392,6 +416,8 @@ function PK.Init()
 
     local f = CreateFrame("Frame")
     f:RegisterEvent("GROUP_ROSTER_UPDATE")
+    f:RegisterEvent("PLAYER_REGEN_ENABLED")
+    f:RegisterEvent("ADDON_RESTRICTION_STATE_CHANGED")
     f:RegisterEvent("CHAT_MSG_ADDON")
     f:RegisterEvent("CHAT_MSG_PARTY")
     f:RegisterEvent("CHAT_MSG_PARTY_LEADER")
@@ -402,6 +428,14 @@ function PK.Init()
             if panel and panel:IsVisible() then
                 RequestData()
                 C_Timer.After(1, function() ns.Guard(Refresh) end)
+            end
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            if requestPending then ns.Guard(FlushRequest) end
+        elseif event == "ADDON_RESTRICTION_STATE_CHANGED" then
+            -- 派送當下讀不到終值，延一幀再問（FlushRequest 裡還會再過一次閘）
+            local _, state = ...
+            if requestPending and Enum.AddOnRestrictionState and state == Enum.AddOnRestrictionState.Inactive then
+                C_Timer.After(0, function() ns.Guard(FlushRequest) end)
             end
         elseif event == "CHAT_MSG_ADDON" then
             local prefix, text = ...

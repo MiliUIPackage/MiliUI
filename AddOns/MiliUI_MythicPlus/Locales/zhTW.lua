@@ -188,3 +188,10 @@ L["When someone types key or 鑰石 in party chat, post everyone's keystone. Onl
 L["New keystone"] = "新鑰石通報"
 L["Post your new keystone after finishing your own key, or after changing it at the keystone NPC."] = "打完自己的鑰石、或在鑰石 NPC 換過鑰石之後，把新鑰石貼到隊伍。"
 L["New keystone: %s"] = "鑰石更新：%s"
+
+-- 鑰石滑鼠提示（UI/KeystoneTooltip.lua）
+L["Keystone tooltip"] = "鑰石滑鼠提示"
+L["Enemy scaling"] = "敵人強度"
+L["Add the boss and trash health and damage bonus for that key level, Tyrannical and Fortified included."] = "加上這個層數的首領與小怪生命、傷害加成，暴君與強悍也算進去。"
+L["Bosses: +%d%% health, +%d%% damage"] = "首領：生命 +%d%%、傷害 +%d%%"
+L["Trash: +%d%% health, +%d%% damage"] = "小怪：生命 +%d%%、傷害 +%d%%"

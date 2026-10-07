@@ -26,6 +26,10 @@ local function BuildSpecs()
         { type = "text", label = L["List everyone's keystone in the bottom-right corner, with a button to post it to party chat."] },
         { type = "toggle", sub = "keystone", key = "lootTable", label = L["Loot table"] },
         { type = "text", label = L["Show item levels and crests per key level beside the page. The button above its corner folds it away."] },
+
+        { type = "header", label = L["Keystone tooltip"] },
+        { type = "toggle", sub = "keystone", key = "tooltipScaling", label = L["Enemy scaling"] },
+        { type = "text", label = L["Add the boss and trash health and damage bonus for that key level, Tyrannical and Fortified included."] },
     }
 end
 
