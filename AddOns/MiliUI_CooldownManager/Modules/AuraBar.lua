@@ -307,6 +307,10 @@ local function InitButton(btn, c, st, h, sig)
             btn:ClearAllPoints()
             btn:SetAllPoints(c)                        -- slot 的按鈕不參與 flow layout
         end)
+    else
+        -- group 的流式排版只 SetPoint、**不設尺寸**（elementWidth／Height 只拿來算位置），
+        -- 按鈕自己沒尺寸就是 0x0、什麼都看不到 ⇒ 一格的大小在這裡給
+        pcall(btn.SetSize, btn, st.cell.segW, st.cell.H)
     end
     local g = st.inside
     if g then

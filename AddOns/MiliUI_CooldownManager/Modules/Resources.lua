@@ -229,7 +229,9 @@ local RESOURCES = {
                         auras = { 85739, 190411 }, max = 4, passive = 12950 },
     SweepingStrikes = { name = SpellName(260708, "Sweeping Strikes"), nameSpell = 260708, mode = "auraBar",
                         auras = { 260708 }, maxFn = SweepingMax, max = 12, passive = 260708 },
-    Ironfur         = { name = SpellName(192081, "Ironfur"), nameSpell = 192081, mode = "auraBar", instances = true,
+    -- 鐵鬃：12.1 實測是**一顆光環疊層數**（施放一次層數 1、暴雪追蹤長條顯示層數），不是一施放一顆獨立光環 ⇒
+    -- 跟旋風斬同一型（引擎寫 applications）。AuraBar 的 instances 型目前沒有使用者
+    Ironfur         = { name = SpellName(192081, "Ironfur"), nameSpell = 192081, mode = "auraBar",
                         auras = { 192081 }, max = 5, passive = 192081 },
     -- 光環剩餘時間條（auraTimer）。名字用光環的法術名
     --   黯黑力量：增輝的招牌技能 395152、身上的增益是 395296（基礎 10 秒，會被延長）

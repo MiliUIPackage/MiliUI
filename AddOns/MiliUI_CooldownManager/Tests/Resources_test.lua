@@ -793,7 +793,7 @@ auras[85739] = { applications = 3 }
 eq("auraBar 的明文退路：有層數", (R.GetValue("WhirlwindStacks")), 3)
 auras[85739] = nil
 -- 天賦閘：光環／取值型看被動；醉仙緩勁沒學 → 隱藏
-check("鐵鬃看被動 192081", R.RESOURCES.Ironfur.passive == 192081 and R.RESOURCES.Ironfur.instances == true)
+check("鐵鬃看被動 192081、疊層數型（不是 instances）", R.RESOURCES.Ironfur.passive == 192081 and not R.RESOURCES.Ironfur.instances)
 
 -- AuraBar 的純函式（Modules/AuraBar.lua）
 ns.Events = ns.Events or { Register = function() end }
