@@ -259,10 +259,11 @@ local RESOURCES = {
                         auras = { 85739, 190411 }, max = 4, passive = 12950 },
     SweepingStrikes = { name = SpellName(260708, "Sweeping Strikes"), nameSpell = 260708, mode = "auraBar",
                         auras = { 260708 }, maxFn = SweepingMax, max = 12, passive = 260708 },
-    -- 鐵鬃：12.1 實測是**一顆光環疊層數**（施放一次層數 1、暴雪追蹤長條顯示層數），不是一施放一顆獨立光環 ⇒
-    -- 跟旋風斬同一型（引擎寫 applications）。AuraBar 的 instances 型目前沒有使用者
-    Ironfur         = { name = SpellName(192081, "Ironfur"), nameSpell = 192081, mode = "auraBar",
-                        auras = { 192081 }, max = 5, passive = 192081, castTimers = true },
+    -- 鐵鬃：12.1 實測是**一顆光環疊層數**（每施放一次是獨立一層、各自到期，遊戲併成一顆光環＋層數）。
+    -- 畫法比照 YHUD／EllesmereUI：剩餘時間條（auraTimer，光環到期＝最晚那層）＋中間層數（引擎寫）＋
+    -- 每層一根刻度線（依施放推算，見「每層刻度線」）
+    Ironfur         = { name = SpellName(192081, "Ironfur"), nameSpell = 192081, mode = "auraTimer",
+                        auras = { 192081 }, passive = 192081, castTimers = true },
     -- 2026-10-08 補（對照 YHUD）：惡魔核心、秘法齊射（引擎寫層數）；Frozen 是**目標身上**你上的減益層數
     -- （unit ＝ target、HARMFUL|PLAYER；敵對單位上的減益可以用 ID 過濾，換目標時 AB.Refresh）
     DemonicCore     = { name = SpellName(264173, "Demonic Core"), nameSpell = 264173, mode = "auraBar",
@@ -1410,121 +1411,77 @@ local function OnAuraRegen() R.Mark(true) end
 
 -- 引擎寫層數的列。回傳 true ＝ 容器就緒（這一列交給引擎）；false ＝ 退回明文畫法
 ------------------------------------------------------------
--- 每層倒數（def.castTimers，目前只有鐵鬃；推算在 Modules/CastStacks.lua）
+-- 每層刻度線（def.castTimers，目前只有鐵鬃；推算在 Modules/CastStacks.lua）
 --
--- 層數照引擎寫（亮幾格永遠對）；每一格上另疊一條暗色遮罩 StatusBar，SetTimerDuration(自己建的 duration 物件,
--- ElapsedTime)：時間過去遮罩從格子的尾端往前長，亮的那截跟著縮（像符文回充反過來）。第 1 格＝最晚到期，
--- 最後一個亮著的格子最先到期。推算跟引擎對不起來時：沒對到的亮格整格亮、多出來的遮罩落在暗格上看不出來。
--- 遮罩是普通框（parent 是列、層級在引擎的填色之上、裝飾與文字之下），排版只在 Layout 做（列在戰鬥中是保護框，
--- 跟著 auraBar 的重排規矩走）；之後只寫 SetTimerDuration／SetAlpha。cfg.castTimers == false 時整組不畫
+-- 鐵鬃畫成一條剩餘時間條（auraTimer：引擎用光環自己的到期時間＝最晚那層，刷新、延長都對）＋中間的層數
+--（引擎寫，永遠對）＋**每一層一根刻度線**（比照 YHUD／EllesmereUI）：位置＝那一層剩餘時間 ／ 那一層總時間，
+-- 隨時間往條的起點移動，到期消失。刻度線依施放推算（Lua 讀不到每層的時間），天賦多疊的層沒有線。
+-- 刻度線畫在列上自己的一層框（引擎填色之上、裝飾與文字之下），有層時才跑 OnUpdate，沒有就停。
+-- cfg.castTimers == false 時不畫線
 ------------------------------------------------------------
-local Immediate = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil
-local ELAPSED_DIR = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.ElapsedTime or nil
 local castSorted = {}
 
-local function RenderCastTimers(row)
-    if not (row and row.ctOn and row.ct) then return end
+local function TickUpdate(frame)
+    local row = frame.row
     local CS = ns.CastStacks
-    local list = CS and CS.Sorted(GetTime(), castSorted) or castSorted
-    local mk = C_DurationUtil and C_DurationUtil.CreateDuration
-    for i = 1, row.ctN or 0 do
-        local bar, e = row.ct[i], list[i]
-        if bar then
-            local armed = false
-            if e and mk and bar.SetTimerDuration then
-                bar.dur = bar.dur or mk()
-                if bar.dur and pcall(bar.dur.SetTimeFromStart, bar.dur, e.start, e.dur, 1) then
-                    armed = pcall(bar.SetTimerDuration, bar, bar.dur, Immediate, ELAPSED_DIR)
-                end
-            end
-            bar:SetAlpha(armed and 1 or 0)
-            -- 每格秒數：推算的時間是明文，直接交給 Cooldown 的內建倒數（引擎跑，不用自己的 ticker）
-            local cd = bar.cd
-            if cd then
-                if e and armed then cd:SetCooldown(e.start, e.dur) else cd:Clear() end
-            end
+    local now = GetTime()
+    local list = CS and CS.Sorted(now, castSorted) or castSorted
+    local W, tw = row.tkW or 0, row.tkTW or 1
+    local ticks = row.tk
+    for i, e in ipairs(list) do
+        local t = ticks[i]
+        if not t then
+            t = frame:CreateTexture(nil, "OVERLAY", nil, 7)
+            t:SetTexture(SOLID)
+            ticks[i] = t
         end
-    end
-end
-R.RenderCastTimers = RenderCastTimers
-
-local function HideCastTimers(row)
-    row.ctOn = false
-    for _, bar in ipairs(row.ct or {}) do
-        bar:SetAlpha(0)
-        if bar.cd then bar.cd:Clear() end
-    end
-end
-
--- 每格秒數的 Cooldown：不畫扇形／邊緣／閃光，只留倒數字；字貼在格子尾端（遮罩長出來那一側），
--- 正中間留給引擎印的層數（同 DK 符文：每格秒數＋中間數字，這裡兩個同時有，所以錯開）
-local function CellCountdown(bar, cfg, reversed, lvl)
-    local cd = bar.cd
-    if not cd then
-        local ok, c = pcall(CreateFrame, "Cooldown", nil, bar, "CooldownFrameTemplate")
-        if not ok or not c then return end
-        cd = c
-        cd:SetAllPoints(bar)
-        if cd.SetDrawSwipe then cd:SetDrawSwipe(false) end
-        if cd.SetDrawEdge then cd:SetDrawEdge(false) end
-        if cd.SetDrawBling then cd:SetDrawBling(false) end
-        local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
-        if fs then ns.Media.SetPixelFont(fs, 10, "OUTLINE") end      -- ⚠ 先給字型
-        bar.cd = cd
-    end
-    cd:SetFrameLevel(lvl + 1)
-    if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(false) end
-    local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
-    if fs then
-        ns.Media.SetPixelFont(fs, tonumber(cfg.textSize) or 10, TextOutline(cfg),
-            ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
-        fs:SetTextColor(1, 1, 1, 1)
-        fs:ClearAllPoints()
-        local inset = ns.P.Scale(2)
-        if reversed then
-            fs:SetJustifyH("LEFT")
-            fs:SetPoint("LEFT", bar, "LEFT", inset, 0)
+        local frac = e.dur > 0 and (e.expire - now) / e.dur or 0
+        if frac < 0 then frac = 0 elseif frac > 1 then frac = 1 end
+        local x = frac * W
+        if x > W - tw then x = W - tw end
+        if x < 0 then x = 0 end
+        t:SetVertexColor(1, 1, 1, 0.9)
+        t:SetSize(tw, row.tkH or 1)
+        t:ClearAllPoints()
+        if row.tkRev then
+            t:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -x, 0)
         else
-            fs:SetJustifyH("RIGHT")
-            fs:SetPoint("RIGHT", bar, "RIGHT", -inset, 0)
+            t:SetPoint("TOPLEFT", frame, "TOPLEFT", x, 0)
         end
+        t:Show()
     end
-    local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
-    if fmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
-    if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
+    for i = #list + 1, #ticks do ticks[i]:Hide() end
+    if #list == 0 then frame:SetScript("OnUpdate", nil) end
 end
 
--- geom 同 LayoutAuraBar 的（W、H、n、gap、segW、reversed）
-local function LayoutCastTimers(row, geom, cfg)
-    row.ct = row.ct or {}
-    local g = ns.AuraBar.Geometry(geom.W, geom.n, geom.gap, geom.segW)
-    local lvl = (row:GetFrameLevel() or 1) + 6
-    for i, cell in ipairs(g.cells) do
-        local bar = row.ct[i]
-        if not bar then
-            bar = CreateFrame("StatusBar", nil, row)
-            bar:SetStatusBarTexture(SOLID)
-            row.ct[i] = bar
-        end
-        bar:SetFrameLevel(lvl)
-        bar:SetStatusBarColor(0, 0, 0, 0.6)
-        -- 遮罩從格子的尾端（填色前進的那一側）往回長
-        bar:SetReverseFill(not geom.reversed)
-        bar:ClearAllPoints()
-        if geom.reversed then
-            bar:SetPoint("TOPRIGHT", row, "TOPRIGHT", -cell.x, 0)
-        else
-            bar:SetPoint("TOPLEFT", row, "TOPLEFT", cell.x, 0)
-        end
-        bar:SetSize(cell.w, geom.H)
-        CellCountdown(bar, cfg, geom.reversed, lvl)
+local function StartTicks(row)
+    if row and row.tkOn and row.tkFrame then
+        row.tkFrame:SetScript("OnUpdate", TickUpdate)
+        TickUpdate(row.tkFrame)
     end
-    for i = #g.cells + 1, #row.ct do
-        row.ct[i]:SetAlpha(0)
-        if row.ct[i].cd then row.ct[i].cd:Clear() end
+end
+
+local function HideTicks(row)
+    row.tkOn = false
+    if row.tkFrame then
+        row.tkFrame:SetScript("OnUpdate", nil)
+        row.tkFrame:Hide()
     end
-    row.ctN, row.ctOn = #g.cells, true
-    RenderCastTimers(row)
+end
+
+local function LayoutTicks(row, W, H, reversed)
+    if not row.tkFrame then
+        local f = CreateFrame("Frame", nil, row)
+        f:SetAllPoints(row)
+        f.row = row
+        row.tkFrame, row.tk = f, {}
+    end
+    row.tkFrame:SetFrameLevel((row:GetFrameLevel() or 1) + 6)
+    row.tkFrame:Show()
+    row.tkW, row.tkH, row.tkRev = W, H, reversed and true or false
+    row.tkTW = ns.P.Scale(2)
+    row.tkOn = true
+    StartTicks(row)
 end
 
 -- 剩餘時間條（與層數列選了秒數時）的秒數：低於這個秒數印一位小數（秘法靈魂 4 秒整段都有小數；黯黑力量剩 5 秒起）
@@ -1540,18 +1497,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     }
     local cc = ResolveColor(cfg, key, "color")
     local count
-    if def.castTimers then
-        -- 鐵鬃：正中間的層數是自己的勾選（castCount），不看「顯示數字」也不看文字內容選項
-        if cfg.castCount ~= false then
-            local scale = UIParent:GetEffectiveScale()
-            if not scale or scale <= 0 then scale = 1 end
-            count = {
-                font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
-                size = (tonumber(cfg.textSize) or 10) * scale,
-                outline = TextOutline(cfg), mode = "stacks",
-            }
-        end
-    elseif cfg.showText and not def.instances then
+    if cfg.showText and not def.instances then
         -- 文字交給引擎（層數 SetApplicationCount／秒數 SetDurationText）：字級換成實體像素，樣式進簽章
         local scale = UIParent:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -1573,15 +1519,9 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     if status ~= "ready" then
         ns.AuraBar.HideContainer(row.ab)
         ns.AuraBar.HideRowDecor(row)
-        if row.ct then HideCastTimers(row) end
         return false
     end
     ns.AuraBar.RowDecor(row, geom, (row:GetFrameLevel() or 1) + 8)
-    if def.castTimers and cfg.castTimers ~= false and not def.instances then
-        LayoutCastTimers(row, geom, cfg)
-    elseif row.ct then
-        HideCastTimers(row)
-    end
     return true
 end
 
@@ -1635,6 +1575,20 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
             decimals = TIMER_DECIMALS_BELOW,
         }
     end
+    local count
+    if def.castTimers then
+        -- 鐵鬃：不印秒數；中間的層數是自己的勾選（castCount），引擎寫
+        text = nil
+        if cfg.castCount ~= false then
+            local scale = UIParent:GetEffectiveScale()
+            if not scale or scale <= 0 then scale = 1 end
+            count = {
+                font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
+                size = (tonumber(cfg.textSize) or 10) * scale,
+                outline = TextOutline(cfg), mode = "stacks",
+            }
+        end
+    end
     if text and def.gcdText and R.ArcaneSoulText(cfg) == "gcd" then
         -- 剩幾個 GCD：格式器只能在 initializeFrame 給 ⇒ GCD 長度（明文、0.05 秒一格）進簽章，變了換容器
         text.gcd = R.ReadGcd()
@@ -1642,7 +1596,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     end
     local status = ns.AuraBar.Apply(row.ab, {
         kind = "duration", spellIDs = def.auras, max = 1, texture = tex, color = cc,
-        alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, text = text,
+        alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, text = text, count = count,
         unit = def.unit, filter = def.filter,
     })
     row.gcdUsed = text and text.gcd or nil
@@ -1650,6 +1604,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     if status ~= "ready" then
         ns.AuraBar.HideContainer(row.ab)
         ns.AuraBar.HideRowDecor(row)
+        if row.tkFrame then HideTicks(row) end
         return false
     end
     -- 空條（暗底＋1px 黑邊）畫在列上：光環不在時按鈕藏著，看到的就是這個
@@ -1657,6 +1612,11 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
         dim = R.TimerBg(cfg, key, cc), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
+    if def.castTimers and cfg.castTimers ~= false then
+        LayoutTicks(row, W, H, reversed)
+    elseif row.tkFrame then
+        HideTicks(row)
+    end
     return true
 end
 
@@ -3001,20 +2961,11 @@ SyncUnitEvents = function()
     end
 end
 
--- 每層倒數：畫面上所有這種列重畫，並排「最近一層到期」那一刻再來一次（換順序、收掉到期的遮罩）
-local castGen = 0
+-- 每層刻度線：施放／重置後把畫面上這種列的 OnUpdate 叫起來（沒有層時自己停）
 function R.RenderAllCastTimers()
     for i = 1, shownCount do
         local row = rows[i]
-        if row and row.ctOn then RenderCastTimers(row) end
-    end
-    castGen = castGen + 1
-    local gen = castGen
-    local nextAt = ns.CastStacks and ns.CastStacks.NextExpiry(GetTime())
-    if nextAt and C_Timer and C_Timer.After then
-        C_Timer.After(math.max(0.05, nextAt - GetTime() + 0.05), function()
-            if gen == castGen then R.RenderAllCastTimers() end
-        end)
+        if row and row.tkOn then StartTicks(row) end
     end
 end
 

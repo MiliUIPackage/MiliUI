@@ -782,7 +782,8 @@ eq("橫掃攻擊：沒天賦 12 格", R.SegmentsFor("SweepingStrikes"), 12)
 known[1261049] = true
 eq("橫掃攻擊：點了天賦 18 格", R.SegmentsFor("SweepingStrikes"), 18)
 known[1261049] = nil
-eq("鐵鬃 5 格", R.SegmentsFor("Ironfur"), 5)
+eq("鐵鬃是連續時間條（不分格）", R.SegmentsFor("Ironfur"), 0)
+check("鐵鬃：時間條＋每層刻度線", R.RESOURCES.Ironfur.mode == "auraTimer" and R.RESOURCES.Ironfur.castTimers == true)
 eq("冰刺 5 格", R.SegmentsFor("Icicles"), 5)
 eq("醉仙緩勁是連續條", R.SegmentsFor("Stagger"), 0)
 check("條件規則：引擎寫的列不適用", not R.SupportsConditions("WhirlwindStacks") and not R.SupportsConditions("Ironfur"))
@@ -1267,9 +1268,13 @@ do
     check("簽章：層數文字進簽章", sigCnt ~= sigNo)
     apps.count.size = 12
     check("簽章：層數文字的字級進簽章", AB.Signature(apps) ~= sigCnt)
-    check("簽章：層數文字只算在 applications 上", AB.Signature({ kind = "duration", spellIDs = { 1 }, max = 1, texture = "t",
-        color = { r = 1, g = 0, b = 0 }, alpha = 1, count = { font = "f", size = 10, suffix = "%" } })
-        == AB.Signature({ kind = "duration", spellIDs = { 1 }, max = 1, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }))
+    check("簽章：時間條上的層數（鐵鬃）也進簽章", AB.Signature({ kind = "duration", spellIDs = { 1 }, max = 1, texture = "t",
+        color = { r = 1, g = 0, b = 0 }, alpha = 1, count = { font = "f", size = 10 } })
+        ~= AB.Signature({ kind = "duration", spellIDs = { 1 }, max = 1, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }))
+    check("簽章：instances 不收層數文字", AB.Signature({ kind = "instances", spellIDs = { 1 }, max = 1, texture = "t",
+        color = { r = 1, g = 0, b = 0 }, alpha = 1, cell = { segW = 1, H = 1, gap = 0 }, count = { font = "f", size = 10 } })
+        == AB.Signature({ kind = "instances", spellIDs = { 1 }, max = 1, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
+        cell = { segW = 1, H = 1, gap = 0 } }))
 
     -- 4a. 氣漩武器摺疊
     local cfgR = ns.DB.ConfigTable("resources")

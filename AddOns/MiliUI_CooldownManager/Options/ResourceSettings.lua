@@ -184,11 +184,11 @@ local function AppendNumbers(add, key, info)
         put(BS("toggle", "runeQueued", L["Count waiting runes"]))
         put(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
     elseif info.castTimers then
-        -- 鐵鬃：比照 DK 符文，中間數字＋每格秒數，兩個勾選（使用者 2026-10-08 指定，取代四選一的文字內容）
+        -- 鐵鬃：比照 YHUD／EllesmereUI，剩餘時間條＋中間層數＋每層一根刻度線，兩個勾選（使用者 2026-10-08 指定，不印秒數）
         put(BS("toggle", "castCount", L["Show stack count"]))
         put(Note(L["The stack count sits in the middle of the bar."]))
-        put(BS("toggle", "castTimers", L["Countdown on each stack"]))
-        put(Note(L["Each cast is its own stack with its own timer. Each lit segment shows its stack's seconds left and darkens as it runs out; the last lit segment expires first. The timers are worked out from your casts, so a stack gained another way stays fully lit with no seconds."]))
+        put(BS("toggle", "castTimers", L["Show a line for each stack"]))
+        put(Note(L["Each cast is its own stack with its own timer. Each stack gets a thin line that slides toward the start of the bar as it runs out. The lines are worked out from your casts, so a stack gained another way has no line."]))
     elseif info.mode == "auraBar" and not info.instances then
         put(BS("dropdown", "auraText." .. key, L["Number on the bar"], { items = RS.AuraTextItems,
             get = function() return ns.Resources.AuraText(Cfg(), key) end }))
@@ -310,6 +310,9 @@ local function AppendColors(add, key, info)
     end
     if info.crusading then
         -- 征戰聖擊的說明在上面那段（鏡射暴雪的追蹤量條）
+    elseif info.castTimers then
+        -- 鐵鬃：條身與層數由引擎畫，刻度線依施放推算（說明在「文字」那一節）
+        add(Note(L["%s: the game fills this row in itself, so it stays right in combat. Condition rules don't apply."]:format(R.Name(key))))
     elseif info.mode == "auraTimer" then
         -- 剩餘時間條：秒數由引擎印（數值文字適用），條件規則不適用
         add(Note(L["%s: the game runs this timer itself, so it stays right in combat. The bar drains with the buff's remaining time and stays empty while you don't have it; showing the value on the bar prints the seconds left. Condition rules don't apply."]:format(R.Name(key))))
