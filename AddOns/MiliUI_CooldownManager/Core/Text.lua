@@ -768,3 +768,51 @@ function T.ApplyPreviewIcon(cell, style, spell)
     -- 自訂文字（M）：增益類的格才畫（光環格、暴雪的增益圖示；冷卻格不畫）
     if cell.labelText then T.ApplyLabel(cell.labelText, cell, cell.aura and spell.label or nil) end
 end
+
+------------------------------------------------------------
+-- 圓環條（Decorate 的「圓環顯示」）：倒數／層數／充能錨到這一圈頂端的環帶上，同心圓的數字就上下錯開、不會全疊在圓心。
+-- 位置是純函式 Layout.RingTextPlace（真實格與預覽格共用）；字型、字級、顏色照 ApplyIcon／ApplyPreviewIcon 剛套的。
+-- 倒數開關：條的「倒數文字：不顯示」或這一招的隱藏倒數。層數／充能的開關照舊（ApplyIcon 的 alpha）
+------------------------------------------------------------
+local function AnchorTo(fs, point, relTo, relPoint, x, y)
+    if not (fs and relTo) then return end
+    local s = PixelScale()
+    fs:ClearAllPoints()
+    fs:SetPoint(point, relTo, relPoint, (x or 0) * s, (y or 0) * s)
+end
+
+local function RingPlace(style, spell)
+    local rs = style.ring
+    local c = spell.cooldownText or style.cooldownText or {}
+    return ns.Layout.RingTextPlace(rs, c.size or 16), rs
+end
+
+function T.ApplyRing(item, style, spell, rec)
+    if not (style and style.ring) then return end
+    local pl, rs = RingPlace(style, spell)
+    local cd = item.Cooldown
+    if cd then
+        if cd.SetHideCountdownNumbers then
+            cd:SetHideCountdownNumbers((spell.hideCooldownText or rs.timeText == "hide") and true or false)
+        end
+        local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
+        if fs then AnchorTo(fs, pl.cdPoint, item, "TOP", pl.cdX, pl.y) end
+    end
+    local stack = item.Applications and item.Applications.Applications
+    if stack then AnchorTo(stack, "LEFT", item, "TOP", pl.extraX, pl.y) end
+    local charge = item.ChargeCount and item.ChargeCount.Current
+    if charge then AnchorTo(charge, "LEFT", item, "TOP", pl.extraX, pl.y) end
+end
+
+function T.ApplyRingPreview(cell, style, spell)
+    if not (style and style.ring) then return end
+    local pl, rs = RingPlace(style, spell)
+    if cell.cdText then
+        AnchorTo(cell.cdText, pl.cdPoint, cell, "TOP", pl.cdX, pl.y)
+        -- 圓環每一圈都在倒（預覽格一律跑假循環）：增益格也印倒數
+        cell.cdText:SetAlpha((rs.timeText ~= "hide" and not spell.hideCooldownText) and 1 or 0)
+    end
+    if cell.chargeText then AnchorTo(cell.chargeText, "LEFT", cell, "TOP", pl.extraX, pl.y) end
+    -- 假層數照 ApplyPreviewIcon 的規矩不印（整排「2」礙眼），只對好位置
+    if cell.stackText then AnchorTo(cell.stackText, "LEFT", cell, "TOP", pl.extraX, pl.y) end
+end

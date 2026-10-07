@@ -282,8 +282,9 @@ function K.Apply(owner, rec, barKey)
         c = barKey and ns.Setting(barKey, "keybind")
     end
     -- 以增益取代（Core/Bars.lua）：頂著技能那一格的增益不畫按鍵（增益沒有按鍵；條是核心技能也一樣）
+    -- 圓環條（rec.ring，Core/Decorate.lua）不畫：按鍵文字錨在方形格的角上，同心圓的角落在外圈的環帶上
     local on = barKey and ns.Setting(barKey, "keybind.enabled") and not NoKeybind(barKey) and rec.replacing == nil
-        and not hideK
+        and not hideK and not rec.ring
     local fs = rec.keyFS
     if not on then
         if fs and rec.keySig ~= "off" then

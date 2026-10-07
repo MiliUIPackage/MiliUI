@@ -7,6 +7,7 @@
 --   items   有序陣列，只看長度（每項是什麼由呼叫端決定；之後的自訂項目也只是一格）
 --   layout  { maxPerRow, spacing, grow, size = { w, h }, row2Size = false | { w, h } }
 --   kind    "icons" | "bars"
+--   圓環（layout.style ＝ "rings"，只有圖示類）另外讀 layout.ring ＝ { thickness, gap, direction }（呼叫端從條的 ring 子表塞進來）
 --
 -- 輸出
 --   rects[i] = { x = , y = , w = , h = }   相對容器 **左上角**、x 往右、y 往下為正
@@ -33,6 +34,7 @@
 --   * anchorPoint：縱向 DOWN → TOP…、UP → BOTTOM…；橫向 CENTER 不加、LEFT／RIGHT 接在後面
 --     （CENTER_DOWN → TOP、LEFT_UP → BOTTOMLEFT）。位置存的是這個錨點那一邊的座標，
 --     格子增減時那一邊不動。
+--   * 圓環（layout.style ＝ "rings"）：同心圓，見下面「圓環」那一節（ComputeRings）。maxPerRow／row2Size／grow 不看。
 --   * 所有尺寸、間距、座標都過 P.Scale（像素對齊）。先把 w／h／間距對齊再累加，
 --     累加出來的座標本來就落在像素格上；只有置中那半格要再對齊一次。
 --
@@ -144,9 +146,118 @@ function Layout.VerticalBarGrow(grow)
     return v, "RIGHT"
 end
 
+------------------------------------------------------------
+-- 圓環（layout.style ＝ "rings"）：每格一圈同心圓
+--
+--   * 第 1 個 entry 是最內圈（direction ＝ "outward"）；"inward" 反過來，第 1 個是最外圈。
+--   * 基準直徑 base ＝ size.w；第 k 圈（k ＝ 從內往外數）直徑 D_k ＝ base ＋ 2·(k−1)·(thick ＋ gap)；容器 Dmax × Dmax。
+--   * 每格是邊長 D_k 的正方形，x ＝ y ＝ (Dmax − D_k) / 2 ＝ (n − k)·step：thick、gap 是整數 px，偏移永遠是整數，
+--     中心不會因奇偶跑掉；base 與 step 各自過 Snap 再累加 ⇒ 每個值都落在像素格上。
+--   * 錨點固定 CENTER（圈數增減時圓心不動）。
+--   * rect 多帶兩欄：ring ＝ k（從內往外第幾圈；Decorate 拿來排 overlay 層級：內圈高）、
+--     tex ＝ Layout.RingTexture(thick, D_k)（這一圈用第幾張環形貼圖）。
+--   留空位（emptyMode ＝ "blank"）的 entry 照樣佔一圈 ⇒ 每個效果固定在同一圈。
+------------------------------------------------------------
+-- 環形貼圖：Media/ring-01.png ～ ring-20.png，第 j 張的環寬比例（環寬 ÷ 直徑）＝ RING_MIN × (RING_MAX / RING_MIN)^((j−1)/(STEPS−1))。
+-- ⚠ 跟 .claude/skills/miliui-cdm-ring-textures/scripts/rings.py 的 STEPS／RATIO_MIN／RATIO_MAX 綁在一起
+Layout.RING_STEPS, Layout.RING_MIN, Layout.RING_MAX = 20, 0.02, 0.30
+Layout.RING_THICK = { min = 2, max = 24, default = 8 }
+Layout.RING_GAP   = { min = 0, max = 16, default = 3 }
+Layout.RING_ICON  = { min = 8, max = 32, default = 14 }
+
+local function Clamp(v, lo, hi)
+    if v < lo then return lo elseif v > hi then return hi end
+    return v
+end
+
+-- 第 j 張貼圖的環寬比例
+function Layout.RingRatio(j)
+    local n = Layout.RING_STEPS
+    return Layout.RING_MIN * (Layout.RING_MAX / Layout.RING_MIN) ^ ((j - 1) / (n - 1))
+end
+
+-- 環寬 thick、直徑 d 的那一圈該用第幾張：比例 thick / d 取對數距離最近的（比例是等比級數，對數下等距）。
+-- 比最細的還細／比最粗的還粗就用頭尾那張；壞值退回中間
+function Layout.RingTexture(thick, d)
+    thick, d = tonumber(thick), tonumber(d)
+    local n = Layout.RING_STEPS
+    if not (thick and d) or thick <= 0 or d <= 0 then return math.floor((n + 1) / 2) end
+    local r = thick / d
+    local lo, hi = Layout.RING_MIN, Layout.RING_MAX
+    if r <= lo then return 1 end
+    if r >= hi then return n end
+    local t = math.log(r / lo) / math.log(hi / lo) * (n - 1)
+    return Clamp(floor(t + 0.5) + 1, 1, n)
+end
+
+function Layout.RingFile(j)
+    return ("Interface\\AddOns\\MiliUI_CooldownManager\\Media\\ring-%02d.png"):format(Clamp(floor(tonumber(j) or 1), 1, Layout.RING_STEPS))
+end
+
+-- 條的 ring 子表 → 環寬、間距（整數 px，夾在範圍內）、方向
+function Layout.RingParams(ring)
+    ring = type(ring) == "table" and ring or {}
+    local T, G = Layout.RING_THICK, Layout.RING_GAP
+    local t = Clamp(floor((tonumber(ring.thickness) or T.default) + 0.5), T.min, T.max)
+    local g = Clamp(floor((tonumber(ring.gap) or G.default) + 0.5), G.min, G.max)
+    local dir = ring.direction == "inward" and "inward" or "outward"
+    return t, g, dir
+end
+
+-- 圖示大小（開「顯示法術圖示」時）：整數 px，夾在範圍內
+function Layout.RingIconSize(v)
+    local I = Layout.RING_ICON
+    return Clamp(floor((tonumber(v) or I.default) + 0.5), I.min, I.max)
+end
+
+-- 這條是不是圓環（圖示類才有；長條類存著 style 也不算）
+function Layout.IsRings(layout, kind)
+    return kind ~= "bars" and type(layout) == "table" and layout.style == "rings"
+end
+
+local function ComputeRings(n, layout)
+    local rects = {}
+    if n == 0 then return rects, 0, 0, "CENTER" end
+    local thick, gap, dir = Layout.RingParams(layout.ring)
+    local base = Snap((Dim(layout.size, 36, 36)))
+    local step = Snap(thick + gap)
+    local dmax = base + 2 * (n - 1) * step
+    for i = 1, n do
+        local k = (dir == "inward") and (n - i + 1) or i
+        local d = base + 2 * (k - 1) * step
+        local off = (n - k) * step
+        rects[i] = { x = off, y = off, w = d, h = d, ring = k, tex = Layout.RingTexture(thick, d) }
+    end
+    return rects, dmax, dmax, "CENTER"
+end
+
+-- 圓環條的文字位置（純函式；Core/Text.lua 與設定頁預覽共用）：一律錨在那一圈的 TOP，往下 thick/2 ＝ 落在頂端的環帶上。
+--   rs      Decorate.RingStyle 解好的那包（thick、showIcon、iconSize）
+--   cdSize  倒數的字級
+-- 回傳 { y, iconX, cdPoint, cdX, extraX }：
+--   沒開圖示：倒數 CENTER 在正中；層數／充能 LEFT 接在倒數右邊（估倒數兩位數寬的一半＋一點）
+--   開了圖示：圖示置中；倒數 LEFT 接在圖示右緣外 2；層數／充能再往右（估倒數兩位數寬）
+-- 層數不錨在倒數那顆 FontString 上（它的字是引擎寫的，寬度可能是秘密值，錨定鏈會傳染），一律用估的偏移
+function Layout.RingTextPlace(rs, cdSize)
+    rs = type(rs) == "table" and rs or {}
+    local thick = tonumber(rs.thick) or Layout.RING_THICK.default
+    local size = tonumber(cdSize) or 10
+    local p = { y = -thick / 2, iconX = 0 }
+    if rs.showIcon then
+        local half = (tonumber(rs.iconSize) or Layout.RING_ICON.default) / 2
+        p.cdPoint, p.cdX = "LEFT", half + 2
+        p.extraX = half + 2 + floor(size * 1.3 + 0.5)
+    else
+        p.cdPoint, p.cdX = "CENTER", 0
+        p.extraX = floor(size * 0.9 + 0.5)
+    end
+    return p
+end
+
 function Layout.Compute(items, layout, kind)
     layout = type(layout) == "table" and layout or {}
     local n0 = type(items) == "table" and #items or 0
+    if Layout.IsRings(layout, kind) then return ComputeRings(n0, layout) end
     if kind ~= "bars" then
         local g, w = Layout.ParseColumn(layout.grow)
         if g then return ComputeColumns(n0, layout, g, w) end
@@ -263,6 +374,13 @@ end
 function Layout.FirstRowWidth(n, layout)
     layout = type(layout) == "table" and layout or {}
     if not n or n <= 0 then return 0 end
+    -- 圓環：整組同心圓的直徑
+    if Layout.IsRings(layout, "icons") then
+        local items = {}
+        for k = 1, n do items[k] = k end
+        local _, w = Layout.Compute(items, layout, "icons")
+        return w
+    end
     -- 直向：看得到的寬是全部列加起來（第一列只有一格寬，拿它當基準沒意義）
     if Layout.ParseColumn(layout.grow) then
         local items = {}

@@ -1161,6 +1161,8 @@ end
 -- 溢出：接收條算「有」——只要有一條成立的來源條上有（保守：不管這一輪有沒有真的溢過來）。
 -- 持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標
 function C.BarHasAuraSlot(barKey)
+    -- 圓環條不放自訂項目（Core/Bars.lua）：條上的光環格不會畫出來，也就不必逼固定格位
+    if ns.DB.BarIsRings and ns.DB.BarIsRings(barKey) then return false end
     -- 先看有沒有任何一筆暴雪的裝備欄冷卻格排在條上：沒有就不必為每條重算 BarBase
     local proxyCandidate = nil
     local function AnyProxyCandidate()

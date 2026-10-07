@@ -1268,11 +1268,95 @@ local function GradientRows(key)
     }
 end
 
+------------------------------------------------------------
+-- 圓環顯示（layout.style ＝ "rings"；Core/Layout.lua 的 ComputeRings、Core/Decorate.lua 的「圓環顯示」）：
+-- 圖示類的條最上面一列「顯示樣式」（切換時整張表單重建：BarSignature 帶著 style）。圓環時每列上限／成長方向／
+-- 第二列尺寸／間距／可點擊藏起來（同心圓用不到），換成下面這幾列；格數上限＋溢出、增益不在時照常
+------------------------------------------------------------
+local STYLE_ITEMS = {
+    { text = L["Icons"], value = "icons" },
+    { text = L["Rings"], value = "rings" },
+}
+local RING_DIR_ITEMS = {
+    { text = L["Inside out"],  value = "outward" },
+    { text = L["Outside in"],  value = "inward" },
+}
+local RING_TIME_ITEMS = {
+    { text = L["Ring top"],   value = "top" },
+    { text = L["Don't show"], value = "hide" },
+}
+
+local function RingTable(info)
+    local b = ns.DB.ConfigTable(info.key)
+    if type(b) ~= "table" then return nil end
+    if type(b.ring) ~= "table" then b.ring = {} end
+    return b.ring
+end
+
+-- 職業色（填色 false）時色票顯示的顏色：每次一張新表（色票停用中，不會被就地改）
+local function ClassColorTable()
+    local r, g, b = ns.Style.Accent()
+    return { r = r, g = g, b = b, a = 1 }
+end
+
+local function RingRows(key, add)
+    local LY = ns.Layout
+    local T, G, I = LY.RING_THICK, LY.RING_GAP, LY.RING_ICON
+    local function ClassFill(info)
+        local r = ns.DB.GetPath(ns.DB.ConfigTable(info.key), "ring.fillColor")
+        return type(r) ~= "table"
+    end
+    local function IconOff(info)
+        return not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "ring.showIcon")
+    end
+    add(BS("slider", "layout.size.w", L["Inner ring diameter"], { min = 16, max = 200, step = 1 }))
+    add(BS("slider", "ring.thickness", L["Ring width"], { min = T.min, max = T.max, step = 1 }))
+    add(BS("slider", "ring.gap", L["Ring gap"], { min = G.min, max = G.max, step = 1 }))
+    add(BS("dropdown", "ring.direction", L["Ring direction"], { items = RING_DIR_ITEMS }))
+    add(Note(L["Inside out puts the first item on the innermost ring; outside in puts it on the outermost."]))
+    add(BS("color", "ring.trackColor", L["Track color"], { hasAlpha = true }))
+    add(BS("toggle", "ring.fillColor", L["Use class color"], {
+        get = function(info) return ClassFill(info) end,
+        set = function(info, on)
+            local ring = RingTable(info)
+            if not ring then return end
+            ring.fillColor = on and false or ClassColorTable()      -- 取消勾選：從現在的職業色開始調
+        end }))
+    add(BS("color", "ring.fillColor", L["Fill color"], { hasAlpha = true, noReset = true,
+        get = function(info)
+            local c = ns.DB.GetPath(ns.DB.ConfigTable(info.key), "ring.fillColor")
+            return type(c) == "table" and c or ClassColorTable()
+        end,
+        disabled = ClassFill }))
+    add(BS("dropdown", "ring.timeText", L["Countdown text"], { items = RING_TIME_ITEMS }))
+    add(BS("toggle", "ring.showIcon", L["Show spell icon"]))
+    add(BS("slider", "ring.iconSize", L["Icon size"], { min = I.min, max = I.max, step = 1, disabled = IconOff }))
+    add(Note(L["The icon covers the neighboring rings when it's bigger than the ring width plus the gap."]))
+end
+
 function Specs.Layout(key)
     local bar = ns.DB.BarTable(key) or {}
     local kind = bar.kind == "bars" and "bars" or "icons"
     local list = { { type = "header", label = L["Layout"], tab = "layout" } }
     local function add(s) list[#list + 1] = s end
+
+    local rings = kind == "icons" and ns.DB.BarIsRings(key)
+    if kind == "icons" then
+        add(BS("dropdown", "layout.style", L["Display style"], { items = STYLE_ITEMS, refreshPage = true,
+            get = function(info) return ns.DB.BarIsRings(info.key) and "rings" or "icons" end }))
+        if rings then
+            add(Note(L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars don't show custom items, glows or keybinds."]))
+        end
+    end
+    if rings then
+        for _, row in ipairs(OverflowRows(key)) do add(row) end
+        RingRows(key, add)
+        if bar.source == "buffs" or bar.source == "custom" then
+            add(EmptyModeRow(key))
+            add(Note(L["Set it to “Hide, keep the slot” to keep each effect on the same ring."]))
+        end
+        return list
+    end
 
     if kind == "icons" then
         add(BS("slider", "layout.maxPerRow", L["Icons per row"], { min = 1, max = 20, step = 1 }))
@@ -1521,6 +1605,8 @@ function Specs.BarSignature(key)
     local p = ns.profile
     return table.concat({
         tostring(bar.kind), tostring(bar.source),
+        -- 顯示樣式（圖示／圓環）：兩種的版面列完全不同
+        (bar.kind ~= "bars" and layout.style == "rings") and "rings" or "-",
         type(layout.row2Size) == "table" and "r2" or "-",
         type(bar.anchor) == "table" and "a" or "-",
         table.concat(p and p.barOrder or {}, ","),

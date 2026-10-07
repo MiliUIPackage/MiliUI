@@ -5,7 +5,8 @@
 --
 -- 覆蓋：主題欄位寫進條的哪張子表（OwnSet／OwnGet）、預設值（右鍵重設）、自訂群組的
 -- 新增／刪除（groupOf／order／錨定一併清）、錨定成環、逐法術覆寫的計數與清除、
--- 設定檔改名／取不重複的名字／匯入、匯出字串的來回與每一種錯誤代碼。
+-- 設定檔改名／取不重複的名字／匯入、匯出字串的來回與每一種錯誤代碼；
+-- 圓環顯示的寫入（條自己的欄位、不分子表）、右鍵重設、逐法術圓環顏色的計數與清除、恢復預設、匯出來回。
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -363,6 +364,50 @@ do
     Changes("寬層：SetOverride 清到空", function() DB.SetOverride("w:9", "procGlow", nil) end)
     eq("寬層：清到空 ⇒ entry.overrides 拿掉", P.customShared[1].overrides, nil)
     P.customShared = nil
+end
+
+------------------------------------------------------------
+-- 圓環顯示：條自己的欄位（不走主題繼承）、右鍵重設、逐法術圓環顏色、恢復預設
+------------------------------------------------------------
+do
+    local P = ns.profile
+    eq("圓環：StoragePath 不分子表（ring）", DB.BarStoragePath("ring.thickness"), "ring.thickness")
+    eq("圓環：StoragePath 不分子表（layout.style）", DB.BarStoragePath("layout.style"), "layout.style")
+    -- 設定頁的寫法：root "bar" ＝ DB.SetPath(ConfigTable(key), path, v)
+    DB.SetPath(DB.ConfigTable("buffs"), "layout.style", "rings")
+    DB.SetPath(DB.ConfigTable("buffs"), "ring.thickness", 12)
+    DB.SetPath(DB.ConfigTable("buffs"), "ring.direction", "inward")
+    DB.SetPath(DB.ConfigTable("buffs"), "ring.fillColor", { r = 1, g = 0.5, b = 0, a = 1 })
+    eq("圓環：寫進條自己的表", P.bars.buffs.ring.thickness, 12)
+    eq("圓環：讀得回來（ns.Setting 不繼承）", S("buffs", "ring.thickness"), 12)
+    eq("圓環：別條不受影響", S("essential", "ring.thickness"), 8)
+    check("圓環：BarIsRings 跟著寫入", DB.BarIsRings("buffs"))
+    eq("圓環：OwnGet 讀條自己的", DB.OwnGet("buffs", "ring.direction"), "inward")
+    -- 右鍵重設 ＝ 預設值的複本（顏色是新表，不是預設表本身）
+    eq("圓環：重設環寬", DB.DefaultFor("bar", "buffs", "ring.thickness"), 8)
+    eq("圓環：重設填色＝職業色（false）", DB.DefaultFor("bar", "buffs", "ring.fillColor"), false)
+    local tc = DB.DefaultFor("bar", "buffs", "ring.trackColor")
+    check("圓環：重設軌道色是一張新表", type(tc) == "table" and tc.a == 0.9 and tc ~= DB.BuildDefaults().profile.bars.buffs.ring.trackColor)
+    eq("圓環：重設顯示樣式", DB.DefaultFor("bar", "buffs", "layout.style"), "icons")
+    -- 逐法術圓環顏色：算在「圖示」那一組（條頁清除外觀覆寫一起清）
+    DB.SetOverride(901, "ringColor", { r = 0, g = 1, b = 1, a = 1 })
+    eq("圓環顏色：計入圖示組", DB.CountOverrides({ 901 }, "icon"), 1)
+    eq("圓環顏色：不算文字組", DB.CountOverrides({ 901 }, "text"), 0)
+    eq("圓環顏色：讀到覆寫", ns.SpellSetting("buffs", 901, "ringColor").g, 1)
+    DB.ClearOverrides({ 901 }, "icon")
+    eq("圓環顏色：清掉回到條層填色", ns.SpellSetting("buffs", 901, "ringColor").r, 1)
+    -- 匯出來回：圓環欄位跟著走
+    local str = DB.EncodeProfile()
+    local t = str and DB.DecodeProfileString(str)
+    local tp = type(t) == "table" and t.profile
+    check("圓環：匯出來回帶著 style 與 ring", type(tp) == "table" and type(tp.bars) == "table"
+        and tp.bars.buffs.layout.style == "rings" and tp.bars.buffs.ring.thickness == 12)
+    -- 恢復預設：回到圖示
+    DB.ResetProfile()
+    P = ns.profile
+    eq("圓環：恢復預設 ⇒ icons", P.bars.buffs.layout.style, "icons")
+    eq("圓環：恢復預設 ⇒ 環寬 8", P.bars.buffs.ring.thickness, 8)
+    check("圓環：恢復預設 ⇒ 不是圓環條", not DB.BarIsRings("buffs"))
 end
 
 print(("Settings_test: %d passed, %d failed"):format(passed, failed))

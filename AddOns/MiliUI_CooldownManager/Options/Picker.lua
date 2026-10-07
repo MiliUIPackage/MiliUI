@@ -30,6 +30,8 @@
 -- 適用範圍（2026-10-03）：常用預設與自訂 ID 的彈窗底部一列「適用範圍」下拉（戰隊／這個職業／這個專精）＋下一列灰字，
 --   加到哪一層（Core/DB.lua 的 AddCustomTo）。每次開彈窗回到那一種的預設：藥水與治療石、團隊增益、裝備欄位、種族技能＝戰隊；
 --   防禦技能＝職業；手動輸入 ID（光環／法術／物品）＝專精；背包物品＝戰隊。
+-- 圓環條（DB.BarIsRings）：常用預設與自訂 ID 兩區收起來，換成一行原因（自訂項目的外觀在建立時就固定了，畫不成圓環；
+--   Core/Bars.lua 也不放）。第一區（拉暴雪的項目進來）照常。
 -- 暴雪面板開著時（Catalog.IsPaused）清單不準：整個挑選器鎖住並說明，面板關掉自動重讀。
 ------------------------------------------------------------
 local _, ns = ...
@@ -499,6 +501,9 @@ local function Build()
     end
     sections.customRow = CreateFrame("Frame", nil, frame)
     sections.customRow:SetSize(WIDTH - PAD * 2, 22)
+    -- 圓環條：常用預設與自訂 ID 的位置改放這一行原因
+    sections.ringNote = Text(frame, true)
+    sections.ringNote:SetText(L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."])
 
     -- 暴雪面板開著：整片鎖住並講原因
     local mask = CreateFrame("Frame", nil, frame, "BackdropTemplate")
@@ -577,6 +582,21 @@ function Picker.Refresh()
         y = y - h - 8
     end
     Place(sections.openBtn, y); y = y - 22 - 14
+
+    -- 圓環條：常用預設、自訂 ID 兩區收起來，只留一行原因
+    local ring = ns.DB.BarIsRings(key)
+    for _, r in ipairs({ sections.presetHead, sections.presetNote, sections.presetRow,
+                         sections.customNote, sections.customRow }) do r:SetShown(not ring) end
+    for _, b in ipairs(sections.presetBtns) do b:SetShown(not ring) end
+    for _, b in ipairs(sections.customBtns) do b:SetShown(not ring) end
+    sections.ringNote:SetShown(ring)
+    if ring then
+        Place(sections.customHead, y); y = y - 16
+        Place(sections.ringNote, y); y = y - (sections.ringNote:GetStringHeight() + 12)
+        P.Height(frame, -y)
+        sections.mask:SetShown(ns.Catalog.IsPaused())
+        return
+    end
 
     -- 常用預設、自訂 ID：圖示類、長條類的條都有（放在長條上的自訂項目畫成長條，見 Modules/Custom.lua）
     Place(sections.presetHead, y); y = y - 16

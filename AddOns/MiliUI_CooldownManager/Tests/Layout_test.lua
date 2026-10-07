@@ -8,7 +8,8 @@
 --
 -- 覆蓋：單列、兩列不同尺寸、置中奇偶數、向上換列、LEFT／RIGHT、長條、空清單、maxPerRow=1、
 -- 錨點對照、認不得的 grow、第一列寬；就地比較的序列（SeqPut／SeqTrim／SameIDs，Bars 的認領序列用）；
--- 增益 item 的放格判準（AuraSlot：在／「增益不在時」三態；BarEmptyMode／SpellEmptyMode）。
+-- 增益 item 的放格判準（AuraSlot：在／「增益不在時」三態；BarEmptyMode／SpellEmptyMode）；
+-- 圓環（同心幾何：1 圈、5 圈、inward、留空位照佔一圈、偏移為整數、Snap 0.5、RingTexture 選最近、參數夾範圍、文字位置）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Layout.lua"
@@ -596,6 +597,126 @@ do
     check("IconTexCoord 高圖裁切：縮放後再切左右", near(t, 0.1) and near(b, 0.9) and near(l, 0.3) and near(r, 0.7))
     l, r, t, b = Lay.IconTexCoord(0.1, 60, 20, false)
     check("IconTexCoord 拉伸：照舊", near(t, 0.1) and near(b, 0.9) and near(l, 0.1))
+end
+
+-- 圓環：同心幾何（layout.style ＝ "rings"）
+do
+    local function ring(thick, gap, dir, w)
+        return { style = "rings", size = { w = w or 40, h = 30 }, maxPerRow = 2, grow = "LEFT_UP", row2Size = { w = 99, h = 99 },
+            ring = { thickness = thick, gap = gap, direction = dir } }
+    end
+    -- 空清單：錨點 CENTER
+    local r0, w0, h0, a0 = Lay.Compute({}, ring(8, 3), "icons")
+    check("圓環：空清單", #r0 == 0 and w0 == 0 and h0 == 0 and a0 == "CENTER")
+    -- 1 圈：基準直徑＝size.w（h、maxPerRow、row2Size、grow 不看）
+    local r1, w1, h1, a1 = Lay.Compute(N(1), ring(8, 3), "icons")
+    rect("圓環 1 圈", r1[1], 0, 0, 40, 40)
+    check("圓環 1 圈：容器＝基準直徑、CENTER", w1 == 40 and h1 == 40 and a1 == "CENTER")
+    eq("圓環 1 圈：第 1 圈", r1[1].ring, 1)
+    -- 5 圈（往外）：第 1 個最內圈；D_k ＝ 40 ＋ 2(k−1)·11
+    local r5, w5, h5 = Lay.Compute(N(5), ring(8, 3, "outward"), "icons")
+    eq("圓環 5 圈：容器", w5, 40 + 2 * 4 * 11)
+    eq("圓環 5 圈：正方形", h5, w5)
+    rect("圓環 5 圈 #1（最內）", r5[1], 44, 44, 40, 40)
+    rect("圓環 5 圈 #3", r5[3], 22, 22, 84, 84)
+    rect("圓環 5 圈 #5（最外）", r5[5], 0, 0, 128, 128)
+    local allInt, centered = true, true
+    for i = 1, 5 do
+        local r = r5[i]
+        if r.x ~= math.floor(r.x) or r.y ~= math.floor(r.y) then allInt = false end
+        if r.x + r.w / 2 ~= w5 / 2 or r.y + r.h / 2 ~= h5 / 2 then centered = false end
+    end
+    check("圓環：偏移都是整數", allInt)
+    check("圓環：每圈同一個圓心", centered)
+    eq("圓環 5 圈：ring 欄＝從內往外第幾圈", r5[4].ring, 4)
+    -- 往內：第 1 個是最外圈
+    local ri = Lay.Compute(N(5), ring(8, 3, "inward"), "icons")
+    rect("圓環往內 #1（最外）", ri[1], 0, 0, 128, 128)
+    rect("圓環往內 #5（最內）", ri[5], 44, 44, 40, 40)
+    eq("圓環往內：#1 是第 5 圈", ri[1].ring, 5)
+    -- 留空位的 entry 照樣佔一圈（Compute 只看格數）：第 3 個留空，第 4 個照舊在第 4 圈
+    local blank = { { id = 1 }, { id = 2 }, { blank = true }, { id = 4 } }
+    local rb = Lay.Compute(blank, ring(8, 3), "icons")
+    eq("圓環留空位：第 4 個在第 4 圈", rb[4].ring, 4)
+    eq("圓環留空位：第 4 個直徑", rb[4].w, 40 + 2 * 3 * 11)
+    -- 長條類存著 style ＝ rings 不算
+    local rbar = Lay.Compute(N(2), { style = "rings", spacing = 2, size = { w = 200, h = 20 } }, "bars")
+    rect("長條類不吃圓環", rbar[2], 0, 22, 200, 20)
+    check("IsRings：圖示類＋rings", Lay.IsRings({ style = "rings" }, "icons"))
+    check("IsRings：長條類不算", not Lay.IsRings({ style = "rings" }, "bars"))
+    check("IsRings：icons 不算", not Lay.IsRings({ style = "icons" }, "icons"))
+    -- 參數夾範圍、取整、方向認不得退往外
+    local t, g, d = Lay.RingParams({ thickness = 99, gap = -3, direction = "?" })
+    check("RingParams：夾範圍、方向退 outward", t == 24 and g == 0 and d == "outward")
+    t, g = Lay.RingParams({ thickness = 7.6, gap = 2.4 })
+    check("RingParams：取整", t == 8 and g == 2)
+    t, g, d = Lay.RingParams(nil)
+    check("RingParams：沒存＝預設 8／3／往外", t == 8 and g == 3 and d == "outward")
+    eq("RingIconSize：夾範圍", Lay.RingIconSize(99), 32)
+    eq("RingIconSize：沒存＝14", Lay.RingIconSize(nil), 14)
+    -- 第一列寬（長條寬 0 跟核心技能走）：圓環＝整組直徑
+    eq("FirstRowWidth 圓環", Lay.FirstRowWidth(3, ring(8, 3)), 40 + 2 * 2 * 11)
+
+    -- RingTexture：比例取對數距離最近的那張
+    eq("RingRatio 頭", Lay.RingRatio(1), 0.02)
+    check("RingRatio 尾", math.abs(Lay.RingRatio(20) - 0.30) < 1e-9)
+    eq("RingTexture：比最細還細 ⇒ 1", Lay.RingTexture(1, 100), 1)
+    eq("RingTexture：比最粗還粗 ⇒ 20", Lay.RingTexture(20, 40), 20)
+    eq("RingTexture：剛好第 12 張", Lay.RingTexture(Lay.RingRatio(12) * 1000, 1000), 12)
+    eq("RingTexture：壞值退中間", Lay.RingTexture(nil, 0), 10)
+    -- 每一個比例都挑到對數距離最近的那張（窮舉對照）
+    local worst = true
+    for thick = 2, 24 do
+        for d = 20, 300, 7 do
+            local j = Lay.RingTexture(thick, d)
+            local r = thick / d
+            local best, bd = nil, nil
+            for k = 1, 20 do
+                local dist = math.abs(math.log(r) - math.log(Lay.RingRatio(k)))
+                if not bd or dist < bd - 1e-12 then best, bd = k, dist end
+            end
+            if j ~= best then worst = false end
+        end
+    end
+    check("RingTexture：窮舉都挑最近", worst)
+    -- 同心圓每圈的貼圖：內圈比例大 ⇒ 編號不小於外圈
+    local mono = true
+    for i = 2, 5 do if r5[i].tex > r5[i - 1].tex then mono = false end end
+    check("圓環：外圈的貼圖編號不大於內圈", mono)
+    check("RingFile：路徑與兩位數編號", Lay.RingFile(3):match("Media\\ring%-03%.png$") ~= nil)
+    eq("RingFile：超出範圍夾住", Lay.RingFile(99):match("ring%-(%d+)%.png$"), "20")
+
+    -- 文字位置
+    local p1 = Lay.RingTextPlace({ thick = 8 }, 10)
+    check("RingTextPlace 沒圖示：倒數置中、在環帶中間", p1.cdPoint == "CENTER" and p1.cdX == 0 and p1.y == -4)
+    check("RingTextPlace 沒圖示：層數在倒數右邊", p1.extraX > 0)
+    local p2 = Lay.RingTextPlace({ thick = 8, showIcon = true, iconSize = 14 }, 10)
+    check("RingTextPlace 有圖示：倒數接在圖示右緣外", p2.cdPoint == "LEFT" and p2.cdX == 9)
+    check("RingTextPlace 有圖示：層數再往右", p2.extraX > p2.cdX)
+end
+
+-- 圓環的像素對齊：P 對齊到 0.5 的倍數，base 與 step 各自對齊後累加
+do
+    local ns2 = { P = { Scale = function(v) return math.floor(v * 2 + 0.5) / 2 end } }
+    local c2, e2
+    if setfenv then
+        c2, e2 = loadfile(PATH)
+        if c2 then setfenv(c2, env) end
+    else
+        c2, e2 = loadfile(PATH, "t", env)
+    end
+    assert(c2, e2)
+    c2("MiliUI_CooldownManager", ns2)
+    local r = ns2.Layout.Compute(N(3), { style = "rings", size = { w = 40.3 }, ring = { thickness = 8, gap = 3 } }, "icons")
+    local ok = true
+    for i = 1, 3 do
+        for _, k in ipairs({ "x", "y", "w", "h" }) do
+            local v = r[i][k]
+            if v * 2 ~= math.floor(v * 2) then ok = false end
+        end
+    end
+    check("圓環 Snap 0.5：每個值都在 0.5 格上", ok)
+    eq("圓環 Snap 0.5：基準直徑對齊", r[1].w, 40.5)
 end
 
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
