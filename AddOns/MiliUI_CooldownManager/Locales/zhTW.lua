@@ -967,3 +967,5 @@ L["Each item becomes a ring around the same center, and the lit part shrinks as 
 L["Set it to “Hide, keep the slot” to keep each effect on the same ring."] = "設成「隱藏，留空位」可以讓每個效果固定在同一圈。"
 L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."] = "圓環條不能放自訂項目：自訂項目的外觀在建立時就固定了，畫不成圓環。"
 L["Ring color"] = "圓環顏色"
+L["Ring group"] = "圓環群組"
+L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "只想讓其中幾個效果變成圓環：在左欄新增「圓環群組」，再點預覽裡的效果，把「所在條」設成它。"

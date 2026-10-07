@@ -967,3 +967,5 @@ L["Each item becomes a ring around the same center, and the lit part shrinks as 
 L["Set it to “Hide, keep the slot” to keep each effect on the same ring."] = "Mit „Ausblenden, Platz freihalten“ bleibt jeder Effekt auf demselben Ring."
 L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."] = "Ringleisten können keine eigenen Einträge aufnehmen: Ihr Aussehen steht beim Erstellen fest, sie lassen sich nicht als Ring zeichnen."
 L["Ring color"] = "Ringfarbe"
+L["Ring group"] = "Ringgruppe"
+L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "Um nur einige Effekte als Ringe zu zeigen, füge links eine Ringgruppe hinzu, klicke dann jeden Effekt in der Vorschau an und setze „Auf Leiste“ auf sie."

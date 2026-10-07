@@ -1087,5 +1087,25 @@ do
     P3.bars.buffs.layout.style = "icons"
 end
 
+------------------------------------------------------------
+-- 圓環群組（新增群組選「圓環群組」）：圖示類＋rings、直徑 80、留空位；右鍵重設照圓環那一套
+------------------------------------------------------------
+do
+    local g = DB.CreateBar("rings", "爆發圈")
+    local b = ns.profile.bars[g]
+    eq("圓環群組 kind icons", b.kind, "icons")
+    eq("圓環群組 source custom", b.source, "custom")
+    eq("圓環群組 style rings", b.layout.style, "rings")
+    eq("圓環群組 直徑 80", b.layout.size.w, 80)
+    eq("圓環群組 留空位", b.layout.emptyMode, "blank")
+    eq("圓環群組 是圓環條", DB.BarIsRings(g), true)
+    eq("圓環群組 重設直徑＝80", DB.DefaultFor("bar", g, "layout.size.w"), 80)
+    eq("圓環群組 重設樣式＝rings", DB.DefaultFor("bar", g, "layout.style"), "rings")
+    eq("圓環群組 重設空位＝blank", DB.DefaultFor("bar", g, "layout.emptyMode"), "blank")
+    eq("未知 kind 退回圖示群組", ns.profile.bars[DB.CreateBar("weird", "x")].layout.style, "icons")
+    local gi = DB.CreateBar("icons", "一般")
+    eq("圖示群組重設樣式＝icons", DB.DefaultFor("bar", gi, "layout.style"), "icons")
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

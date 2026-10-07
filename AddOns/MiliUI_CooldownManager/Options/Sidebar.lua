@@ -74,7 +74,7 @@ local function AskName(title, initial, onAccept)
     end, title)
 end
 
--- 真的建：kind = "icons" | "bars"。回傳新條的 key（左欄選到它、頁面切過去）
+-- 真的建：kind = "icons" | "bars" | "rings"。回傳新條的 key（左欄選到它、頁面切過去）
 function Sidebar.CreateGroup(kind, name)
     if InCombatLockdown() then return nil end
     local key = ns.DB.CreateBar(kind, name)
@@ -107,11 +107,13 @@ function Sidebar.NewGroup()
                 AskName(L["Name the new group"], "", function(name) Sidebar.CreateGroup(kind, name) end)
             end
         end
-        kindPopup = W.CreateChoicePopup(ns.Options.panel, 360,
+        -- 四顆鈕平分寬度：460 讓每顆約 100px（歐語、俄文「…群組」放得下）
+        kindPopup = W.CreateChoicePopup(ns.Options.panel, 460,
             L["What kind of group?"],
             {
                 { text = L["Icon group"], color = "normal", onClick = Pick("icons") },
                 { text = L["Bar group"],  color = "normal", onClick = Pick("bars") },
+                { text = L["Ring group"], color = "normal", onClick = Pick("rings") },
                 { text = L["Cancel"],     color = "normal" },
             })
     end

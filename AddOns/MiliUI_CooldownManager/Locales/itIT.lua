@@ -967,3 +967,5 @@ L["Each item becomes a ring around the same center, and the lit part shrinks as 
 L["Set it to “Hide, keep the slot” to keep each effect on the same ring."] = "Impostalo su «Nascondi, tieni lo spazio» per tenere ogni effetto sempre sullo stesso anello."
 L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."] = "Le barre ad anelli non accettano elementi personalizzati: il loro aspetto è fissato alla creazione e non si possono disegnare come anello."
 L["Ring color"] = "Colore dell'anello"
+L["Ring group"] = "Gruppo di anelli"
+L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "Per mostrare solo alcuni effetti come anelli, aggiungi un gruppo di anelli nella colonna di sinistra, poi clicca ogni effetto nell'anteprima e imposta “Sulla barra” su quel gruppo."

@@ -967,3 +967,5 @@ L["Each item becomes a ring around the same center, and the lit part shrinks as 
 L["Set it to “Hide, keep the slot” to keep each effect on the same ring."] = "“숨기기, 자리 유지”로 두면 효과마다 늘 같은 고리에 표시됩니다."
 L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."] = "고리 바에는 사용자 지정 항목을 넣을 수 없습니다. 사용자 지정 항목은 만들 때 모양이 정해져서 고리로 그릴 수 없습니다."
 L["Ring color"] = "고리 색"
+L["Ring group"] = "원형 그룹"
+L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "일부 효과만 원형으로 보려면 왼쪽 목록에서 원형 그룹을 추가한 뒤, 미리보기에서 효과를 클릭해 “위치한 바”를 그 그룹으로 지정하세요."

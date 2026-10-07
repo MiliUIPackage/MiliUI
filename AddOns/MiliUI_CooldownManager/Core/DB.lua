@@ -166,10 +166,15 @@ end
 
 -- 自訂群組的預設形狀（新增群組、右鍵「重設為預設」都照這個）。
 -- 只給版面與位置；text／icon／glow／fade 是空表、follow 全 true ⇒ 什麼都不複製。
+-- kind ＝ "rings"：圓環群組＝圖示類＋layout.style "rings"、最內圈直徑 80、增益不在時留空位（每個效果固定在同一圈）
 function DB.NewBarTable(kind, name)
     local b
     if kind == "bars" then
         b = LongBar{ source = "custom", pos = { point = "CENTER", x = 0, y = 0 } }
+    elseif kind == "rings" then
+        b = IconBar{ source = "custom", pos = { point = "CENTER", x = 0, y = 0 }, w = 80, h = 80 }
+        b.layout.style = "rings"
+        b.layout.emptyMode = "blank"
     else
         b = IconBar{ source = "custom", pos = { point = "CENTER", x = 0, y = 0 }, w = 36, h = 36 }
     end
@@ -1462,7 +1467,10 @@ function DB.DefaultFor(root, barKey, path)
     local ref = PANEL_KEYS[barKey] and d[barKey] or d.bars[barKey]
     if not ref then
         local bar = BarTable(barKey)
-        ref = DB.NewBarTable(bar and bar.kind or "icons", bar and bar.name)
+        local kind = bar and bar.kind or "icons"
+        -- 圓環群組的預設是圓環那一套（右鍵重設不會把直徑退回 36、樣式退回圖示）
+        if kind ~= "bars" and type(bar and bar.layout) == "table" and bar.layout.style == "rings" then kind = "rings" end
+        ref = DB.NewBarTable(kind, bar and bar.name)
     end
     return CopyValue(DB.GetPath(ref, path))
 end
@@ -1478,12 +1486,13 @@ function DB.NextBarKey()
     return "g" .. n
 end
 
--- 新增：kind = "icons" | "bars"。回傳 key
+-- 新增：kind = "icons" | "bars" | "rings"（圓環群組，見 NewBarTable）。回傳 key
 function DB.CreateBar(kind, name)
     local p = ns.profile
     if not p then return nil end
     local key = DB.NextBarKey()
-    p.bars[key] = DB.NewBarTable(kind == "bars" and "bars" or "icons", CleanName(name))
+    if kind ~= "bars" and kind ~= "rings" then kind = "icons" end
+    p.bars[key] = DB.NewBarTable(kind, CleanName(name))
     p.barOrder = type(p.barOrder) == "table" and p.barOrder or {}
     p.barOrder[#p.barOrder + 1] = key
     return key

@@ -1347,6 +1347,10 @@ function Specs.Layout(key)
         if rings then
             add(Note(L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars don't show custom items, glows or keybinds."]))
         end
+        -- 四條檢視器：整條轉圓環通常不是想要的，引導去開圓環群組、只挑幾個效果
+        if bar.source ~= "custom" then
+            add(Note(L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."]))
+        end
     end
     if rings then
         for _, row in ipairs(OverflowRows(key)) do add(row) end

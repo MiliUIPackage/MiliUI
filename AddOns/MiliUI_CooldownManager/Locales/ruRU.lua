@@ -967,3 +967,5 @@ L["Each item becomes a ring around the same center, and the lit part shrinks as 
 L["Set it to “Hide, keep the slot” to keep each effect on the same ring."] = "Выберите «Скрывать, сохранять место», чтобы каждый эффект оставался на своем кольце."
 L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."] = "На панель колец нельзя добавить свои элементы: их вид задается при создании, кольцом их не нарисовать."
 L["Ring color"] = "Цвет кольца"
+L["Ring group"] = "Группа колец"
+L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "Чтобы показать кольцами только несколько эффектов, добавьте группу колец в левой колонке, затем щёлкните эффект в предпросмотре и выберите её в поле «На панели»."
