@@ -964,6 +964,9 @@ function Pips.DebugLines()
             end
             out[#out + 1] = ("    自訂 %d. %-7s spellID %s  ×%d  高 %d  值 %s  顯示 %s%s")
                 :format(i, kind, id, row.plan.numSeg, row.plan.height, state, SHOW_TEXT[row.plan.showWhen] or "?", extra)
+            if row.plan.kind == "stacks" and row.ab and ns.AuraBar and ns.AuraBar.DebugLines then
+                for _, line in ipairs(ns.AuraBar.DebugLines(row.ab, { e.spellID })) do out[#out + 1] = line end
+            end
         else
             local why
             if type(e) ~= "table" or not CUSTOM_KINDS[e.kind] or type(e.spellID) ~= "number" then why = "壞資料"

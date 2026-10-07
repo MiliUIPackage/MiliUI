@@ -488,6 +488,95 @@ end
 function AB.IsPending(h) return pending[h] and true or false end
 
 ------------------------------------------------------------
+-- /mcdm debug：一顆持有框的細節（「整列空白」要分得出是容器沒建、按鈕沒出來、還是按鈕出來了卻看不到）
+-- 讀值一律 pcall、秘密值只印「秘密」不比較。玩家身上的光環另外用明文 API 掃一次對照（戰鬥中可能整串秘密）
+------------------------------------------------------------
+local function DTxt(v)
+    if ns.IsSecret and ns.IsSecret(v) then return "秘密" end
+    if type(v) == "number" then return (("%.1f"):format(v):gsub("%.0$", "")) end
+    return tostring(v)
+end
+
+local function DRead(obj, method, ...)
+    local fn = obj and obj[method]
+    if type(fn) ~= "function" then return "✕" end
+    local ok, a, b = pcall(fn, obj, ...)
+    if not ok then return "err" end
+    if b ~= nil then return DTxt(a) .. "x" .. DTxt(b) end
+    return DTxt(a)
+end
+
+function AB.DebugLines(h, spellIDs, indent)
+    indent = indent or "       "
+    local out = {}
+    if not h then
+        out[1] = indent .. "光環條：沒有持有框"
+        return out
+    end
+    local sig = h.sig or "—"
+    out[#out + 1] = ("%s光環條：簽章 %s  建過 %d 顆  待建 %s  持有框 顯示 %s／可見 %s／尺寸 %s  補踢待辦 %s")
+        :format(indent, tostring(sig), AB.builds, tostring(pending[h] and true or false),
+            DRead(h, "IsShown"), DRead(h, "IsVisible"), DRead(h, "GetSize"), tostring(h.pendingKick))
+    local err = h.sig and h.errSigs and h.errSigs[h.sig]
+    if err then out[#out + 1] = indent .. "  這個簽章的錯誤：" .. tostring(err) end
+    if AB.lastError then out[#out + 1] = indent .. "  最近錯誤：" .. tostring(AB.lastError) end
+    local c = h.container
+    if c then
+        local kids = { pcall(function() return c:GetChildren() end) }
+        local nKids, nShown = 0, 0
+        local sizes = {}
+        if kids[1] then
+            for i = 2, #kids do
+                local b = kids[i]
+                nKids = nKids + 1
+                local ok, s = pcall(b.IsShown, b)
+                if ok and not (ns.IsSecret and ns.IsSecret(s)) and s then nShown = nShown + 1 end
+                if #sizes < 6 then
+                    sizes[#sizes + 1] = ("%s@%s%s"):format(DRead(b, "GetSize"), DRead(b, "GetLeft"),
+                        (ok and (ns.IsSecret and ns.IsSecret(s))) and "(顯示秘密)" or (ok and s) and "" or "(藏)")
+                end
+            end
+        end
+        out[#out + 1] = ("%s  容器：顯示 %s／可見 %s／尺寸 %s／alpha %s／層級 %s  按鈕 %s 顆（顯示 %d）%s")
+            :format(indent, DRead(c, "IsShown"), DRead(c, "IsVisible"), DRead(c, "GetSize"),
+                DRead(c, "GetEffectiveAlpha"), DRead(c, "GetFrameLevel"),
+                kids[1] and tostring(nKids) or ("讀不到：" .. tostring(kids[2])), nShown,
+                #sizes > 0 and ("  " .. table.concat(sizes, " ")) or "")
+    else
+        out[#out + 1] = indent .. "  容器：沒有"
+    end
+    -- 明文對照：身上這幾個 ID 的光環有幾顆、每顆的層數欄（鐵鬃這類「一施放一顆」的層數欄應該是 0）
+    local U = C_UnitAuras
+    if type(spellIDs) == "table" and U and U.GetAuraDataByIndex then
+        local want = {}
+        for _, id in ipairs(spellIDs) do want[id] = true end
+        local found, secret = {}, 0
+        for i = 1, 80 do
+            local ok, a = pcall(U.GetAuraDataByIndex, "player", i, "HELPFUL")
+            if not ok or type(a) ~= "table" then break end
+            local sid = a.spellId
+            if ns.IsSecret and ns.IsSecret(sid) then
+                secret = secret + 1
+            elseif want[sid] then
+                found[#found + 1] = ("%s(層數 %s)"):format(DTxt(sid), DTxt(a.applications))
+            end
+        end
+        local direct = {}
+        if U.GetPlayerAuraBySpellID then
+            for _, id in ipairs(spellIDs) do
+                local ok, a = pcall(U.GetPlayerAuraBySpellID, id)
+                direct[#direct + 1] = ("%s=%s"):format(tostring(id),
+                    not ok and "err" or type(a) ~= "table" and "nil" or ("層數 " .. DTxt(a.applications)))
+            end
+        end
+        out[#out + 1] = ("%s  身上（明文掃描）：%s%s  直接查：%s"):format(indent,
+            #found > 0 and table.concat(found, "、") or "沒有",
+            secret > 0 and ("（另有 " .. secret .. " 顆 ID 是秘密）") or "", table.concat(direct, " "))
+    end
+    return out
+end
+
+------------------------------------------------------------
 -- 脫戰：補建、補踢
 ------------------------------------------------------------
 function AB.OnRegen()
