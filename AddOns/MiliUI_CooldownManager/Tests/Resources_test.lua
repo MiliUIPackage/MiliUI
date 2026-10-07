@@ -236,7 +236,7 @@ check("開關：分專精（別的專精的值不影響）", R.RowOn({ rows = { 
 check("開關：舊的平面鍵不認（遷移前的殘留不會被當成這個專精的值）", R.RowOn({ rows = { Mana = true } }, 263, "Mana") == false)
 check("開關：沒有專精照預設", R.RowOn({ rows = { [65] = { Mana = false } } }, nil, "Mana") == true)
 check("開關：沒有 rows 表也不炸", R.RowOn(nil, 263, "Mana") == false and R.RowOn({}, 65, "Mana") == true)
-eqList("秘法：秘法充能＋秘法靈魂＋法力", R.RawList("MAGE", 62, nil), { "ArcaneCharges", "ArcaneSoul", "Mana" })
+eqList("秘法：秘法充能＋秘法靈魂＋法力", R.RawList("MAGE", 62, nil), { "ArcaneCharges", "ArcaneSoul", "ArcaneSalvo", "Mana" })
 eqList("刺殺：能量＋連擊點", R.RawList("ROGUE", 259, nil), { "Energy", "ComboPoints" })
 eqList("血魄：符能＋符文", R.RawList("DEATHKNIGHT", 250, nil), { "RunicPower", "Runes" })
 eqList("增強：漩渦之武＋法力", R.RawList("SHAMAN", 263, nil), { "MaelstromWeapon", "Mana" })
@@ -245,10 +245,10 @@ eqList("生存：集中值＋矛尖", R.RawList("HUNTER", 255, nil), { "Focus", 
 eqList("復仇：魔怒＋靈魂碎片", R.RawList("DEMONHUNTER", 581, nil), { "Fury", "SoulFragments" })
 eqList("防戰：怒氣＋無視苦痛", R.RawList("WARRIOR", 73, nil), { "Rage", "IgnorePain" })
 eqList("武器戰：怒氣＋橫掃攻擊", R.RawList("WARRIOR", 71, nil), { "Rage", "SweepingStrikes" })
-eqList("狂怒戰：怒氣＋旋風斬", R.RawList("WARRIOR", 72, nil), { "Rage", "WhirlwindStacks" })
+eqList("狂怒戰：怒氣＋旋風斬", R.RawList("WARRIOR", 72, nil), { "Rage", "WhirlwindStacks", "Enrage" })
 eqList("釀酒：能量＋醉仙緩勁", R.RawList("MONK", 268, nil), { "Energy", "Stagger" })
-eqList("冰法：冰刺＋法力", R.RawList("MAGE", 64, nil), { "Icicles", "Mana" })
-eqList("火法：只有法力", R.RawList("MAGE", 63, nil), { "Mana" })
+eqList("冰法：冰刺＋法力", R.RawList("MAGE", 64, nil), { "Icicles", "Frozen", "Mana" })
+eqList("火法：火焰衝擊充能＋法力", R.RawList("MAGE", 63, nil), { "FireBlast", "Mana" })
 eqList("噬魂者：魔怒＋靈魂碎片", R.RawList("DEMONHUNTER", 1480, nil), { "Fury", "DevourerFragments" })
 eqList("守護德魯伊熊形：怒氣＋鐵鬃", R.RawList("DRUID", 104, 5), { "Rage", "Ironfur" })
 eqList("野性德魯伊人形：法力", R.RawList("DRUID", 103, nil), { "Mana" })
@@ -985,7 +985,7 @@ end
 -- 專精對照
 eqList("增輝：精華＋黯黑力量＋法力", R.RawList("EVOKER", 1473, nil), { "Essence", "EbonMight", "Mana" })
 eqList("湮滅：沒有黯黑力量", R.RawList("EVOKER", 1467, nil), { "Essence", "Mana" })
-eqList("火法：沒有秘法靈魂", R.RawList("MAGE", 63, nil), { "Mana" })
+eqList("火法：沒有秘法靈魂", R.RawList("MAGE", 63, nil), { "FireBlast", "Mana" })
 -- 定義、預設色、名字（光環的法術名）
 for _, k in ipairs({ "EbonMight", "ArcaneSoul" }) do
     check("剩餘時間條有定義：" .. k, R.RESOURCES[k] ~= nil and R.RESOURCES[k].mode == "auraTimer")
@@ -1028,22 +1028,22 @@ known[395152] = nil
 ns.specID = 62
 powerMax[16] = 4
 R.Invalidate()
-eqList("秘法：沒點 Sunfury → 不列", (R.Candidates()), { "ArcaneCharges", "Mana", "Health" })
+eqList("秘法：沒點 Sunfury → 不列", (R.Candidates()), { "ArcaneCharges", "ArcaneSalvo", "Mana", "Health" })
 check("秘法靈魂沒列的原因有記", type(R.gateLog.ArcaneSoul) == "string")
 known[449619] = true
 R.Invalidate()
-eqList("秘法：點了歐爾的記憶 → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana", "Health" })
+eqList("秘法：點了歐爾的記憶 → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "ArcaneSalvo", "Mana", "Health" })
 known[449619] = nil
 local hero = 40
 env.C_ClassTalents = { GetActiveHeroTalentSpec = function() return hero end }
 R.Invalidate()
-eqList("秘法：英雄樹是別棵 → 不列", (R.Candidates()), { "ArcaneCharges", "Mana", "Health" })
+eqList("秘法：英雄樹是別棵 → 不列", (R.Candidates()), { "ArcaneCharges", "ArcaneSalvo", "Mana", "Health" })
 hero = 39
 R.Invalidate()
-eqList("秘法：英雄樹是 Sunfury → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "Mana", "Health" })
+eqList("秘法：英雄樹是 Sunfury → 列", (R.Candidates()), { "ArcaneCharges", "ArcaneSoul", "ArcaneSalvo", "Mana", "Health" })
 hero = SECRET
 R.Invalidate()
-eqList("秘法：英雄樹讀不到 → 不列（不比較秘密值）", (R.Candidates()), { "ArcaneCharges", "Mana", "Health" })
+eqList("秘法：英雄樹讀不到 → 不列（不比較秘密值）", (R.Candidates()), { "ArcaneCharges", "ArcaneSalvo", "Mana", "Health" })
 env.C_ClassTalents = nil
 R.Invalidate()
 -- duration 簽章（Modules/AuraBar.lua）
@@ -1431,7 +1431,7 @@ end
 
 -- 征戰聖擊列（懲戒）：在聖能上方、預設顯示、自己的高度／填充／底色（預設照德莫的征戰聖擊助手）
 do
-    eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower" })
+    eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower", "RemoteStrike" })
     check("懲戒：征戰聖擊預設顯示", R.DefaultOn(70, "CrusadingStrikes") == true)
     check("征戰聖擊是鏡射列（條件規則不適用）", R.EngineDriven("CrusadingStrikes")
         and not R.SupportsConditions("CrusadingStrikes"))

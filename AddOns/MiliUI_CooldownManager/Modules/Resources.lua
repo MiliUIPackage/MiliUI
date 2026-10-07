@@ -192,6 +192,35 @@ end
 -- 橫掃攻擊：點了 1261049 上限 18，否則 12
 local function SweepingMax() return Known(1261049) and 18 or 12 end
 
+-- 光環的層數上限：C_Spell.GetSpellMaxCumulativeAuraApplications（明文；讀不到、秘密或不合理用 fallback）
+local function MaxApps(spellID, fallback)
+    local fn = C_Spell and C_Spell.GetSpellMaxCumulativeAuraApplications
+    if fn then
+        local ok, v = pcall(fn, spellID)
+        if ok and type(v) == "number" and not (ns.IsSecret and ns.IsSecret(v)) and v >= 1 and v <= 100 then
+            return math.floor(v + 0.5)
+        end
+    end
+    return fallback
+end
+-- 秘法齊射：點了 1260616 上限 25，否則 20（API 讀得到就照 API）
+local function ArcaneSalvoMax() return MaxApps(1242974, Known(1260616) and 25 or 20) end
+local function DemonicCoreMax() return MaxApps(264173, 4) end
+local function FrozenMax() return MaxApps(1221389, 20) end
+
+-- 火焰衝擊的充能：目前值直接轉手（可能是秘密值；點數型每格 SetValue 照樣畫得對），上限明文才給
+-- （秘密時回 nil，SegmentsFor 沿用上次的明文上限）
+local FIRE_BLAST = 108853
+local function FireBlastValue()
+    local fn = C_Spell and C_Spell.GetSpellCharges
+    if not fn then return 0, nil end
+    local ok, info = pcall(fn, FIRE_BLAST)
+    if not ok or type(info) ~= "table" then return 0, nil end
+    local cur, max = info.currentCharges, info.maxCharges
+    if max ~= nil and ns.IsSecret and ns.IsSecret(max) then max = nil end
+    return cur or 0, max
+end
+
 -- ⚠ 顏色不寫在這裡：預設色的單一來源是 Core/DB.lua 的 RESOURCE_COLORS
 local RESOURCES = {
     Mana            = { name = PowerName("MANA", "Mana"),             mode = "bar", power = PT.Mana, mana = true },
@@ -233,7 +262,18 @@ local RESOURCES = {
     -- 鐵鬃：12.1 實測是**一顆光環疊層數**（施放一次層數 1、暴雪追蹤長條顯示層數），不是一施放一顆獨立光環 ⇒
     -- 跟旋風斬同一型（引擎寫 applications）。AuraBar 的 instances 型目前沒有使用者
     Ironfur         = { name = SpellName(192081, "Ironfur"), nameSpell = 192081, mode = "auraBar",
-                        auras = { 192081 }, max = 5, passive = 192081 },
+                        auras = { 192081 }, max = 5, passive = 192081, castTimers = true },
+    -- 2026-10-08 補（對照 YHUD）：惡魔核心、秘法齊射（引擎寫層數）；Frozen 是**目標身上**你上的減益層數
+    -- （unit ＝ target、HARMFUL|PLAYER；敵對單位上的減益可以用 ID 過濾，換目標時 AB.Refresh）
+    DemonicCore     = { name = SpellName(264173, "Demonic Core"), nameSpell = 264173, mode = "auraBar",
+                        auras = { 264173 }, maxFn = DemonicCoreMax, max = 4 },
+    ArcaneSalvo     = { name = SpellName(1242974, "Arcane Salvo"), nameSpell = 1242974, mode = "auraBar",
+                        auras = { 1242974 }, maxFn = ArcaneSalvoMax, max = 20 },
+    Frozen          = { name = SpellName(1221389, "Frozen"), nameSpell = 1221389, mode = "auraBar",
+                        auras = { 1221389 }, maxFn = FrozenMax, max = 20, unit = "target", filter = "HARMFUL|PLAYER" },
+    -- 火焰衝擊的充能（點數型，值是 C_Spell.GetSpellCharges 轉手）
+    FireBlast       = { name = SpellName(FIRE_BLAST, "Fire Blast"), nameSpell = FIRE_BLAST, mode = "pip",
+                        get = FireBlastValue, passive = FIRE_BLAST, charges = true },
     -- 光環剩餘時間條（auraTimer）。名字用光環的法術名
     --   黯黑力量：增輝的招牌技能 395152、身上的增益是 395296（基礎 10 秒，會被延長）
     --   秘法靈魂：Sunfury 英雄天賦「歐爾的記憶」449619 給的 451038（4 秒）；1223522 是 11.1 起同名同圖示的
@@ -242,6 +282,11 @@ local RESOURCES = {
                         auras = { 395296 }, passive = 395152 },
     ArcaneSoul      = { name = SpellName(451038, "Arcane Soul"), nameSpell = 451038, mode = "auraTimer",
                         auras = { 451038, 1223522 }, passive = 449619, heroTree = 39, gcdText = true },
+    -- 狂暴（狂怒戰 184362）；1226662 是懲戒點了征戰聖擊（404542）之後的增益，過濾字串照 YHUD
+    --（INCLUDE_NAME_PLATE_ONLY：這個光環只標給名條）
+    Enrage          = { name = SpellName(184362, "Enrage"), nameSpell = 184362, mode = "auraTimer", auras = { 184362 } },
+    RemoteStrike    = { name = SpellName(1226662, "Remote Strike"), nameSpell = 1226662, mode = "auraTimer",
+                        auras = { 1226662 }, passive = 404542, filter = "HELPFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY" },
     -- 征戰聖擊（懲戒天賦 404542：普攻換成聖擊）：**鏡射**暴雪「追蹤的量條」裡那條（mode = "mirror"，見下面「征戰聖擊」一節）。
     --   這一列有自己的高度、填充方向與底色（crusadingHeight／crusadingFill／colors.CrusadingStrikes.backColor，
     --   預設值照德莫的征戰聖擊助手：高 4、已揮的時間左→右長出、黑底 60%），不印秒數（1.5 秒一刀，數字讀不完）
@@ -305,10 +350,10 @@ end
 
 -- 專精 → 資源清單（法力另外看 MANA_SPECS，預設排最下面；玩家可以重排，見 R.ApplyOrder）
 local SPEC_RESOURCES = {
-    [71]  = { "Rage", "SweepingStrikes" },       [72]  = { "Rage", "WhirlwindStacks" },
+    [71]  = { "Rage", "SweepingStrikes" },       [72]  = { "Rage", "WhirlwindStacks", "Enrage" },
     [73]  = { "Rage", "IgnorePain" },
     [65]  = { "HolyPower" },                     [66]  = { "HolyPower" },
-    [70]  = { "CrusadingStrikes", "HolyPower" },   -- 征戰聖擊預設在聖能上方（同助手的預設位置）
+    [70]  = { "CrusadingStrikes", "HolyPower", "RemoteStrike" },   -- 征戰聖擊預設在聖能上方（同助手的預設位置）
     [253] = { "Focus" },                         [254] = { "Focus" },
     [255] = { "Focus", "TipOfTheSpear" },
     [259] = { "Energy", "ComboPoints" },         [260] = { "Energy", "ComboPoints" },
@@ -318,8 +363,8 @@ local SPEC_RESOURCES = {
     [250] = { "RunicPower", "Runes" },           [251] = { "RunicPower", "Runes" },
     [252] = { "RunicPower", "Runes" },
     [262] = { "Maelstrom" },                     [263] = { "MaelstromWeapon" },  [264] = {},
-    [62]  = { "ArcaneCharges", "ArcaneSoul" },                 [63]  = {},  [64] = { "Icicles" },
-    [265] = { "SoulShards" },                    [266] = { "SoulShards" },  [267] = { "SoulShards" },
+    [62]  = { "ArcaneCharges", "ArcaneSoul", "ArcaneSalvo" },  [63]  = { "FireBlast" },  [64] = { "Icicles", "Frozen" },
+    [265] = { "SoulShards" },                    [266] = { "SoulShards", "DemonicCore" },  [267] = { "SoulShards" },
     [268] = { "Energy", "Stagger" },
     [269] = { "Energy", "Chi" },                 [270] = {},
     [102] = { "LunarPower" },                    [103] = { "Energy", "ComboPoints" },
@@ -1364,6 +1409,74 @@ end
 local function OnAuraRegen() R.Mark(true) end
 
 -- 引擎寫層數的列。回傳 true ＝ 容器就緒（這一列交給引擎）；false ＝ 退回明文畫法
+------------------------------------------------------------
+-- 每層倒數（def.castTimers，目前只有鐵鬃；推算在 Modules/CastStacks.lua）
+--
+-- 層數照引擎寫（亮幾格永遠對）；每一格上另疊一條暗色遮罩 StatusBar，SetTimerDuration(自己建的 duration 物件,
+-- ElapsedTime)：時間過去遮罩從格子的尾端往前長，亮的那截跟著縮（像符文回充反過來）。第 1 格＝最晚到期，
+-- 最後一個亮著的格子最先到期。推算跟引擎對不起來時：沒對到的亮格整格亮、多出來的遮罩落在暗格上看不出來。
+-- 遮罩是普通框（parent 是列、層級在引擎的填色之上、裝飾與文字之下），排版只在 Layout 做（列在戰鬥中是保護框，
+-- 跟著 auraBar 的重排規矩走）；之後只寫 SetTimerDuration／SetAlpha。cfg.castTimers == false 時整組不畫
+------------------------------------------------------------
+local Immediate = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil
+local ELAPSED_DIR = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.ElapsedTime or nil
+local castSorted = {}
+
+local function RenderCastTimers(row)
+    if not (row and row.ctOn and row.ct) then return end
+    local CS = ns.CastStacks
+    local list = CS and CS.Sorted(GetTime(), castSorted) or castSorted
+    local mk = C_DurationUtil and C_DurationUtil.CreateDuration
+    for i = 1, row.ctN or 0 do
+        local bar, e = row.ct[i], list[i]
+        if bar then
+            local armed = false
+            if e and mk and bar.SetTimerDuration then
+                bar.dur = bar.dur or mk()
+                if bar.dur and pcall(bar.dur.SetTimeFromStart, bar.dur, e.start, e.dur, 1) then
+                    armed = pcall(bar.SetTimerDuration, bar, bar.dur, Immediate, ELAPSED_DIR)
+                end
+            end
+            bar:SetAlpha(armed and 1 or 0)
+        end
+    end
+end
+R.RenderCastTimers = RenderCastTimers
+
+local function HideCastTimers(row)
+    row.ctOn = false
+    for _, bar in ipairs(row.ct or {}) do bar:SetAlpha(0) end
+end
+
+-- geom 同 LayoutAuraBar 的（W、H、n、gap、segW、reversed）
+local function LayoutCastTimers(row, geom)
+    row.ct = row.ct or {}
+    local g = ns.AuraBar.Geometry(geom.W, geom.n, geom.gap, geom.segW)
+    local lvl = (row:GetFrameLevel() or 1) + 6
+    for i, cell in ipairs(g.cells) do
+        local bar = row.ct[i]
+        if not bar then
+            bar = CreateFrame("StatusBar", nil, row)
+            bar:SetStatusBarTexture(SOLID)
+            row.ct[i] = bar
+        end
+        bar:SetFrameLevel(lvl)
+        bar:SetStatusBarColor(0, 0, 0, 0.6)
+        -- 遮罩從格子的尾端（填色前進的那一側）往回長
+        bar:SetReverseFill(not geom.reversed)
+        bar:ClearAllPoints()
+        if geom.reversed then
+            bar:SetPoint("TOPRIGHT", row, "TOPRIGHT", -cell.x, 0)
+        else
+            bar:SetPoint("TOPLEFT", row, "TOPLEFT", cell.x, 0)
+        end
+        bar:SetSize(cell.w, geom.H)
+    end
+    for i = #g.cells + 1, #row.ct do row.ct[i]:SetAlpha(0) end
+    row.ctN, row.ctOn = #g.cells, true
+    RenderCastTimers(row)
+end
+
 -- 剩餘時間條（與層數列選了秒數時）的秒數：低於這個秒數印一位小數（秘法靈魂 4 秒整段都有小數；黯黑力量剩 5 秒起）
 local TIMER_DECIMALS_BELOW = 5
 
@@ -1393,14 +1506,21 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
         kind = def.instances and "instances" or "applications",
         spellIDs = def.auras, max = numSeg, texture = tex, color = cc, alpha = tonumber(cfg.barAlpha) or 1,
         reversed = reversed, cell = def.instances and geom or nil, count = count,
+        unit = def.unit, filter = def.filter,
     })
     row.engineStatus = status
     if status ~= "ready" then
         ns.AuraBar.HideContainer(row.ab)
         ns.AuraBar.HideRowDecor(row)
+        if row.ct then HideCastTimers(row) end
         return false
     end
     ns.AuraBar.RowDecor(row, geom, (row:GetFrameLevel() or 1) + 8)
+    if def.castTimers and cfg.castTimers ~= false and not def.instances then
+        LayoutCastTimers(row, geom)
+    elseif row.ct then
+        HideCastTimers(row)
+    end
     return true
 end
 
@@ -1462,6 +1582,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     local status = ns.AuraBar.Apply(row.ab, {
         kind = "duration", spellIDs = def.auras, max = 1, texture = tex, color = cc,
         alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, text = text,
+        unit = def.unit, filter = def.filter,
     })
     row.gcdUsed = text and text.gcd or nil
     row.engineStatus = status
@@ -1499,6 +1620,9 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
     local status = ns.AuraBar.Apply(row.ab, {
         kind = "applications", spellIDs = def.auras, max = tonumber(def.appMax) or 100, texture = tex, color = cc,
         alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, count = count,
+        -- 盾的剩餘時間：條底部一條細線（引擎畫，含暴力爆發之類的刷新）；高度約列高的 1/5、至少 1 實體像素
+        strip = cfg.ipDuration ~= false and {
+            h = math.max(ns.P.Scale(1), math.floor(H / 5 + 0.5)), r = 1, g = 1, b = 1, a = 0.85 } or nil,
     })
     row.engineStatus = status
     if status ~= "ready" then
@@ -2787,7 +2911,7 @@ function R.WantedEvents(keys, class, out)
             if def.absorb then
                 out.UNIT_MAXHEALTH, out.UNIT_ABSORB_AMOUNT_CHANGED = true, true
             end
-            if def.meta then out.UNIT_SPELLCAST_SUCCEEDED = true end
+            if def.meta or def.castTimers then out.UNIT_SPELLCAST_SUCCEEDED = true end
         end
     end
     return out
@@ -2816,10 +2940,55 @@ SyncUnitEvents = function()
     end
 end
 
+-- 每層倒數：畫面上所有這種列重畫，並排「最近一層到期」那一刻再來一次（換順序、收掉到期的遮罩）
+local castGen = 0
+function R.RenderAllCastTimers()
+    for i = 1, shownCount do
+        local row = rows[i]
+        if row and row.ctOn then RenderCastTimers(row) end
+    end
+    castGen = castGen + 1
+    local gen = castGen
+    local nextAt = ns.CastStacks and ns.CastStacks.NextExpiry(GetTime())
+    if nextAt and C_Timer and C_Timer.After then
+        C_Timer.After(math.max(0.05, nextAt - GetTime() + 0.05), function()
+            if gen == castGen then R.RenderAllCastTimers() end
+        end)
+    end
+end
+
 local function OnEvent(_, event, ...)
     if event == "UNIT_SPELLCAST_SUCCEEDED" then
         -- 崩陷之星計數：計數變了才重畫（施法很頻繁，別的法術不標髒）
         if ns.DevourerMeta and ns.DevourerMeta.OnSpellcast(...) then Mark(false) end
+        -- 每層倒數（鐵鬃）：清單變了就重畫遮罩、排下一次到期
+        local _, _, spellID = ...
+        if ns.CastStacks and ns.CastStacks.OnSpellcast(spellID) then R.RenderAllCastTimers() end
+        return
+    end
+    if event == "PLAYER_DEAD" then
+        if ns.CastStacks then ns.CastStacks.Reset() R.RenderAllCastTimers() end
+        return
+    end
+    if event == "UPDATE_SHAPESHIFT_FORM" and ns.CastStacks then
+        ns.CastStacks.Reset()
+        R.RenderAllCastTimers()
+    end
+    if event == "PLAYER_TARGET_CHANGED" then
+        -- 看目標身上減益的列（Frozen）：容器不會自己因為換目標重掃
+        for i = 1, shownCount do
+            local row = rows[i]
+            local def = row and row.key and RESOURCES[row.key]
+            if def and def.unit == "target" and row.ab then ns.AuraBar.Refresh(row.ab) end
+        end
+        return
+    end
+    if event == "SPELL_UPDATE_CHARGES" then
+        -- 充能列（火焰衝擊）：只重畫值
+        for i = 1, shownCount do
+            local def = rows[i] and rows[i].key and RESOURCES[rows[i].key]
+            if def and def.charges then Mark(false) return end
+        end
         return
     end
     if event == "UNIT_POWER_POINT_CHARGE" then chargedDirty = true end
@@ -2859,9 +3028,15 @@ local function RegisterEvents()
         evFrame:RegisterEvent(e)
     end
     if CLASS == "DEATHKNIGHT" then evFrame:RegisterEvent("RUNE_POWER_UPDATE") end
+    if CLASS == "DRUID" then evFrame:RegisterEvent("PLAYER_DEAD") end       -- 鐵鬃的每層倒數清空
     if CLASS == "ROGUE" then evFrame:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", "player") end
     -- 秘法靈魂的「剩幾個 GCD」：格式器的分段跟著 GCD 長度
-    if CLASS == "MAGE" then evFrame:RegisterUnitEvent("UNIT_SPELL_HASTE", "player") end
+    if CLASS == "MAGE" then
+        evFrame:RegisterUnitEvent("UNIT_SPELL_HASTE", "player")
+        -- 火焰衝擊的充能、Frozen（目標身上的減益）換目標
+        evFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
+        evFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    end
     -- UNIT_AURA／UNIT_HEALTH／UNIT_MAXHEALTH／UNIT_ABSORB_AMOUNT_CHANGED／UNIT_SPELLCAST_SUCCEEDED：
     -- 依畫面上的列動態註冊（SyncUnitEvents）
     evFrame:SetScript("OnEvent", OnEvent)

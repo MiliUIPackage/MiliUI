@@ -68,6 +68,7 @@ Core\Cursor.lua
 Modules\ResourceConditions.lua
 Modules\DevourerMeta.lua
 Modules\AuraBar.lua
+Modules\CastStacks.lua
 Modules\Resources.lua
 Modules\Pips.lua
 Modules\Interrupt.lua

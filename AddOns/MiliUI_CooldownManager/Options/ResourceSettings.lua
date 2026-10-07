@@ -184,9 +184,16 @@ local function AppendNumbers(add, key, info)
         put(BS("toggle", "runeQueued", L["Count waiting runes"]))
         put(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
     elseif info.mode == "auraBar" and not info.instances then
+        if info.castTimers then
+            put(BS("toggle", "castTimers", L["Countdown on each stack"]))
+            put(Note(L["Each cast is its own stack with its own timer. A dark shade grows over each lit segment as that stack runs out; the last lit segment expires first. The timers are worked out from your casts, so a stack gained another way stays fully lit."]))
+        end
         put(BS("dropdown", "auraText." .. key, L["Number on the bar"], { items = RS.AuraTextItems,
             get = function() return ns.Resources.AuraText(Cfg(), key) end }))
         put(Note(L["Shown while \"Show number\" is on. The game prints these numbers itself, so they stay right in combat."]))
+    elseif info.mode == "auraPct" then
+        put(BS("toggle", "ipDuration", L["Show time left on the shield"]))
+        put(Note(L["A thin line along the bottom of the bar shrinks as the shield runs out. The game draws it, so refreshes are counted too."]))
     elseif info.gcdText then
         put(BS("dropdown", "arcaneSoulText", L["Number on the bar"], { items = ARCANE_SOUL_ITEMS }))
         put(Note(L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."]))

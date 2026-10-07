@@ -175,11 +175,13 @@ end
 -- 簽章與樣式（全部解成純數字；initializeFrame 裡只查這張表）
 --
 -- spec = { kind = "applications"（預設）| "instances", spellIDs = { id, … }, max, texture,
+--          unit ＝ 看誰身上（預設 "player"；"target" 時換目標要叫 AB.Refresh）, filter ＝ 過濾字串（預設 "HELPFUL"）,
 --          color = { r, g, b }, alpha, reversed,
 --          inside = geom | nil（「有光環才顯示」：裝飾建在按鈕子樹裡），
 --          cell = geom（instances 必填：一格的大小與格距，進簽章），
 --          text = { font = 路徑, size = 實體像素字級, outline = 描邊旗標, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字 }
 --                 | nil（duration 專用：秒數文字，進簽章），
+--          strip = { h, r, g, b, a } | nil（applications 專用：條底部一條細的「光環剩餘時間」，SetDurationBar，進簽章）,
 --          count = { font, size, outline, suffix, mode, decimals } | nil（applications 專用：文字，進簽章）
 --                 mode ＝ "stacks"（預設，層數）｜"time"（剩餘秒數）｜"stacksTime"（層數 (秒數)）｜"timeStacks"（秒數 (層數)）；
 --                 decimals ＝ 秒數低於這個值印一位小數 }
@@ -192,6 +194,7 @@ function AB.Signature(spec)
     local kindTag = (spec.kind == "instances" and "inst") or (spec.kind == "duration" and "dur") or "apps"
     local parts = {
         kindTag,
+        tostring(spec.unit or "player") .. "@" .. tostring(spec.filter or "HELPFUL"),
         table.concat(ids, ","), tostring(spec.max), tostring(spec.texture),
         Fmt(c.r), Fmt(c.g), Fmt(c.b), Fmt(spec.alpha), tostring(spec.reversed and true or false),
     }
@@ -208,6 +211,10 @@ function AB.Signature(spec)
     if type(cn) == "table" then
         parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.outline), tostring(cn.suffix),
             tostring(cn.mode or "stacks"), tostring(cn.decimals) }, ":")
+    end
+    local sp = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.strip
+    if type(sp) == "table" then
+        parts[#parts + 1] = table.concat({ "strip", Fmt(sp.h), Fmt(sp.r), Fmt(sp.g), Fmt(sp.b), Fmt(sp.a) }, ":")
     end
     local g = spec.inside
     if g then
@@ -401,6 +408,25 @@ local function InitButton(btn, c, st, h, sig)
         local opts = { maxApplications = st.max }
         if st.interp then opts.interpolation = st.interp end
         btn:SetApplicationBar(bar, opts)
+        -- 剩餘時間細條（無視苦痛）：同一顆按鈕再交一條 SetDurationBar，引擎用光環自己的持續時間（含延長）
+        local sp = st.strip
+        if sp and btn.SetDurationBar then
+            local ok, err = pcall(function()
+                local sb = CreateFrame("StatusBar", nil, btn)
+                sb:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+                sb:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+                sb:SetHeight(sp.h)
+                sb:SetStatusBarTexture(SOLID)
+                local t = sb:GetStatusBarTexture()
+                if t then t:SetVertexColor(sp.r, sp.g, sp.b, sp.a) end
+                sb:SetReverseFill(st.reversed)
+                sb:SetFrameLevel((bar:GetFrameLevel() or 1) + 3)
+                local opts = {}
+                if st.remaining then opts.direction = st.remaining end
+                btn:SetDurationBar(sb, opts)
+            end)
+            if not ok then AB.lastError = tostring(err) end
+        end
         -- 層數文字失敗只丟文字、不丟條
         if st.count and btn.SetApplicationCount then
             local ok, err = pcall(InitCountText, btn, bar, st.count, st)
@@ -415,7 +441,7 @@ local function BuildContainer(h, st, sig)
     c:SetAllPoints(h)
     c:SetFrameLevel((h:GetFrameLevel() or 1) + 1)
     -- 建立順序：SetUnit 在 slot 之前、SetEnabled 最後（本套組實跑過的順序）
-    c:SetUnit("player")
+    c:SetUnit(st.unit)
     local include = {}
     for _, id in ipairs(st.spellIDs) do include[id] = true end
     local handler = function(err)
@@ -434,14 +460,14 @@ local function BuildContainer(h, st, sig)
             if FD and c.SetFlowLayoutGrowthDirection then pcall(c.SetFlowLayoutGrowthDirection, c, FD.Left, FD.Down) end
         end
         local cg = st.cell
-        c:AddAuraGroup("bar", "HELPFUL", {
+        c:AddAuraGroup("bar", st.filter, {
             maxFrameCount = st.max,
             candidateFilters = { includeSpellIDs = include },
             initializeFrame = init,
             layout = { elementWidth = cg.segW, elementHeight = cg.H, elementSpacing = cg.gap },
         })
     else
-        c:AddAuraSlot("bar", "HELPFUL", {
+        c:AddAuraSlot("bar", st.filter, {
             candidateFilters = { includeSpellIDs = include },
             initializeFrame = init,
         })
@@ -480,10 +506,12 @@ function AB.Apply(h, spec)
         local c2 = spec.color or {}
         local st = {
             spellIDs = spec.spellIDs, max = math.max(1, math.floor(tonumber(spec.max) or 1)),
+            unit = spec.unit or "player", filter = spec.filter or "HELPFUL",
             texture = spec.texture or SOLID,
             r = tonumber(c2.r) or 1, g = tonumber(c2.g) or 1, b = tonumber(c2.b) or 1,
             alpha = tonumber(spec.alpha) or 1, reversed = spec.reversed and true or false,
             inside = spec.inside, kind = spec.kind, cell = spec.cell,
+            strip = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.strip) == "table") and spec.strip or nil,
             text = (spec.kind == "duration" and type(spec.text) == "table") and spec.text or nil,
             count = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.count) == "table") and spec.count or nil,
             interp = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil,
@@ -534,6 +562,13 @@ function AB.Apply(h, spec)
     if old and old ~= c then pcall(old.Hide, old) end
     h.container, h.sig, h.shownC = c, sig, true
     return "ready"
+end
+
+-- 看 target 的容器：換目標時容器自己不會重掃（只聽 UNIT_AURA），要外部叫 UpdateAllAuras。
+-- 這支在暴雪的 inbound（secureDelegates）介面上，暴雪註解寫明開放給「換目標之類的外部事件」用
+function AB.Refresh(h)
+    local c = h and h.container
+    if c and c.UpdateAllAuras then pcall(c.UpdateAllAuras, c) end
 end
 
 -- 列換成別的內容（或整列不顯示）：目前的容器收起來（留在池子裡）
