@@ -53,8 +53,11 @@
 --
 -- 圓環條（DB.BarIsRings：圖示類＋layout.style ＝ "rings"；幾何 Layout.Compute 的同心圓、外觀 Decorate 的「圓環顯示」）：
 --   * 每格的 rect 多帶 ring／tex 兩欄，放格時整個 rect 交給 Decorate.Apply（圈數決定 overlay 層級與貼圖）
---   * 自訂項目（光環格、自訂法術／物品、代畫的裝備欄格）**不放**：它們的樣式在建立當下就烘死（光環格的 initializeFrame），
---     要換成圓環得重建容器。跳過幾筆記在 state[key].ringSkipped（/mcdm debug 印），設定頁的挑選器也擋著不讓加
+--   * **只收增益**（2026-10-08）：暴雪增益檢視器的 item（ns.Viewers.AURA_KIND）＋自訂光環格（含飾品欄增益；Custom.Place
+--     收到的 rect 帶 ring／tex，光環格的按鈕在 initializeFrame 裡烘成一圈，見 Modules/Custom.lua 的「光環格畫成圓環」）。
+--     暴雪的冷卻格（核心／輔助）、自訂法術／物品／飾品欄冷卻、代畫的裝備欄格**不放**（RingRefuses）：不進 entries、不認領
+--     （暴雪的 item 照原本的停放／歸屬走）。跳過幾筆記在 state[key].ringSkipped（/mcdm debug 印），設定頁的挑選器也擋著不讓加。
+--     核心／輔助本身沒有圓環（DB.BarIsRings；存著 rings 的照圖示排，BarSize）
 --   * 不可點擊（同心圓的格子是一層套一層的正方形，secure 鈕會互相蓋住）
 --   * 「增益不在時：暗圖示」的占位只畫那一圈的軌道（Decorate.ApplyRingPlaceholder）
 --
@@ -597,6 +600,19 @@ end
 -- 溢出的佔位判斷（Catalog.SetOccupancy；每輪 Flush 建好索引後換一支）：這一顆在來源條上佔不佔一格。
 -- 跟 Relayout 放格同一個判準：暴雪沒給框的不佔；增益類不在、而且這一格生效的「增益不在時」是收合的不佔
 -- （留空位／暗圖示都佔）。自訂項目一律佔（光環格會讓收合不成立；自訂法術／物品一直都有框）
+-- 圓環條（只收增益）放不下這一格嗎：自訂項目只收光環格（含飾品欄增益；rec.kind ＝ "aura"），
+-- 暴雪的格子只收增益類檢視器的 item（ns.Viewers.AURA_KIND）。代畫格（暴雪沒給框的裝備欄冷卻格）一律不收。
+-- 暴雪沒給框、也不是代畫的：不放什麼，不算跳過
+local function RingRefuses(id, item, crec)
+    if crec then return crec.kind ~= "aura" end
+    if item then
+        local rec = ns.Viewers.frames[item]
+        return not (rec and ns.Viewers.AURA_KIND[rec.barKey])
+    end
+    return ns.Catalog.ProxySlotOf and ns.Catalog.ProxySlotOf(id) ~= nil or false
+end
+B.RingRefuses = RingRefuses           -- 測試用
+
 function B.Occupancy(index)
     local modeOf, forcedOf = {}, {}
     local function BarMode(barKey)
@@ -613,7 +629,18 @@ function B.Occupancy(index)
         local why = ns.Catalog.HideReason and ns.Catalog.HideReason(barKey, id)
         return why ~= nil and ns.Layout.HiddenSlot(why, Fixed(barKey)) == "skip"
     end
+    -- 圓環條只收增益：放不上去的不佔格（跟 Relayout 的 RingRefuses 同一個判準）
+    local ringOf = {}
+    local function RingBar(barKey)
+        local v = ringOf[barKey]
+        if v == nil then
+            v = ns.DB.BarIsRings(barKey)
+            ringOf[barKey] = v
+        end
+        return v
+    end
     return function(barKey, id)
+        if RingBar(barKey) and RingRefuses(id, index[id], ns.Custom and ns.Custom.Get(id)) then return false end
         if type(id) ~= "number" then return not Skipped(barKey, id) end
         local item = index[id]
         -- 暴雪沒給框：代畫的裝備欄冷卻格照樣佔一格（Relayout 會放它；被收掉讓位的不佔），其餘不佔
@@ -755,9 +782,11 @@ local function BarSize(key, bar)
     local layout = type(bar.layout) == "table" and bar.layout or {}
     if bar.kind ~= "bars" then
         -- 圓環：基準直徑沿用 size.w；環寬／間距／方向在條的 ring 子表（Layout.Compute 讀 layout.ring）
-        if ns.Layout.IsRings(layout, bar.kind) then
+        if ns.Layout.IsRings(layout, bar.kind, bar.source) then
             return { style = "rings", size = layout.size, ring = bar.ring }
         end
+        -- 核心／輔助存著 rings（圓環條只收增益，見檔頭）：照圖示排
+        if layout.style == "rings" then return ns.Layout.AsIcons(layout) end
         return layout
     end
     local cfg = type(bar.bar) == "table" and bar.bar or {}
@@ -956,7 +985,7 @@ local function Relayout(key, level, index, gen, s)
     end
     -- 增益不在時（條層）：條上有光環格、或這條可點擊 ⇒ 收合不成立（光環格的持有框與可點擊的 secure 鈕戰鬥中都不能移）。
     -- fixed ＝ 條層不收合：沒有物品時隱藏／被動飾品不顯示的格留空格（Layout.HiddenSlot）
-    local ring = ns.Layout.IsRings(bar.layout, bar.kind)
+    local ring = ns.Layout.IsRings(bar.layout, bar.kind, bar.source)
     -- 圓環條不可點擊（見檔頭）
     local clickable = not ring and ns.Clickable and ns.Clickable.Enabled(key) or false
     local ringSkipped = 0
@@ -973,12 +1002,17 @@ local function Relayout(key, level, index, gen, s)
         local item = index[id]
         local crec = ns.Custom and ns.Custom.Get(id)
         local bID = (not crec) and item and replaceOf[id] or nil
+        -- 圓環條只收增益（見檔頭）：暴雪的冷卻格、自訂法術／物品／飾品欄冷卻、代畫格不放
+        local ringNo = ring and RingRefuses(id, item, crec) or false
         local bItem = bID and index[bID] or nil
         local bRec = bItem and ns.Viewers.frames[bItem] or nil
         -- B 在不在跟增益條同一個判準（AuraPresent：顯示中＋不是未作用暗格），再加整條增益檢視器看得到；
         -- 生效只認 ItemActive 的明文 true（讀不到回 nil ⇒ ReplaceNow 當沒生效、放 A）。
         -- 編輯模式下 AuraPresent 一律算在，但 active 仍要真的生效才換
-        if bRec and ns.Catalog.ReplaceNow({
+        if ringNo then
+            -- 不進 entries、不認領 ⇒ 自訂框由 Custom.EndBar 收起來、暴雪的 item 照原本的停放／歸屬走
+            ringSkipped = ringSkipped + 1
+        elseif bRec and ns.Catalog.ReplaceNow({
                 item = true, free = not claimedBy[bItem], shown = AuraPresent(bItem) and SafeVisible(bItem),
                 active = ItemActive(bItem) }) then
             -- B 生效中：這一格放 B 的 item（樣式照這一條、發光／層數／音效照 B 自己的逐法術覆寫）。
@@ -986,9 +1020,6 @@ local function Relayout(key, level, index, gen, s)
             entries[#entries + 1] = { id = bID, item = bItem, rec = bRec, replaces = id }
             claimedBy[bItem] = key
             replacedNow[id] = { b = bID, key = key }
-        elseif crec and ring then
-            -- 圓環條不放自訂項目（見檔頭）：不進 entries ⇒ Custom.EndBar 收起來
-            ringSkipped = ringSkipped + 1
         elseif crec then
             -- 自訂物品／飾品欄：沒有物品時隱藏／被動飾品不顯示（讓位 ⇒ 不放；固定格位 ⇒ 空格）
             local hm = (crec.kind == "item" or crec.kind == "slot" or crec.slotBuff) and HiddenMode(key, id, hw, fixed) or nil
@@ -997,8 +1028,6 @@ local function Relayout(key, level, index, gen, s)
             elseif hm == "blank" then
                 entries[#entries + 1] = { id = id, blank = true }
             end
-        elseif not item and proxyOf and proxyOf[id] and ring then
-            ringSkipped = ringSkipped + 1                       -- 代畫格也是我們的自訂框：圓環條不放
         elseif not item and proxyOf and proxyOf[id] then
             -- 暴雪沒給框的裝備欄冷卻格：我們的飾品欄框代畫（Custom.Proxy；放格、疊層、按鍵文字、可點擊都走自訂那條）。
             -- 被動飾品不顯示同上（收掉時不拿代畫 rec ⇒ 上一輪放過的由 EndBar 收）
@@ -1043,7 +1072,7 @@ local function Relayout(key, level, index, gen, s)
     EndHideWatch(key, hw)
     if (st.ringSkipped or 0) ~= ringSkipped then
         if ringSkipped > 0 and ns.Diag then
-            ns.Diag.Note("ring", ("%s：圓環條不放自訂項目，跳過 %d 筆"):format(key, ringSkipped))
+            ns.Diag.Note("ring", ("%s：圓環條只收增益，跳過 %d 筆（技能冷卻、自訂法術／物品）"):format(key, ringSkipped))
         end
         st.ringSkipped = ringSkipped
     end

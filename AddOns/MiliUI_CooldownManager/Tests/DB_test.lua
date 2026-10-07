@@ -1074,6 +1074,16 @@ do
     check("BarIsRings：長條類不算", not DB.BarIsRings("buffbars"))
     check("BarIsRings：不存在的條", not DB.BarIsRings("nope"))
     P3.bars.buffbars.layout.style = "icons"
+    -- 圓環條只收增益（2026-10-08）：核心／輔助存著 rings 也一律當圖示（不遷移、存檔不動）
+    P3.bars.essential.layout.style = "rings"
+    P3.bars.utility.layout.style = "rings"
+    check("BarIsRings：核心存著 rings 也不算", not DB.BarIsRings("essential"))
+    check("BarIsRings：輔助存著 rings 也不算", not DB.BarIsRings("utility"))
+    eq("BarIsRings：核心的存檔不動", P3.bars.essential.layout.style, "rings")
+    check("RingsAllowed：增益、自訂收，核心、輔助不收", DB.RingsAllowed("buffs") and DB.RingsAllowed("custom")
+        and not DB.RingsAllowed("essential") and not DB.RingsAllowed("utility"))
+    P3.bars.essential.layout.style = "icons"
+    P3.bars.utility.layout.style = "icons"
     -- 逐法術填色：沒覆寫跟隨條層 ring.fillColor（false ＝ 職業色）；覆寫優先
     eq("SPELL_FALLBACK ringColor", DB.SPELL_FALLBACK.ringColor, "ring.fillColor")
     eq("覆寫分組 ringColor ＝ icon", DB.OVERRIDE_GROUP.ringColor, "icon")

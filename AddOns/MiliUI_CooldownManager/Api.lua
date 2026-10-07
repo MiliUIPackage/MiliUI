@@ -275,12 +275,12 @@ local function Debug(silent)
                 p(("  %-9s（自訂）清單 %d  認領 %d"):format(key, #C.Bar(key), B.Count(key)))
             end
         end
-        -- 圓環條（Core/Bars.lua）：自訂項目不放，有跳過的印原因
+        -- 圓環條（Core/Bars.lua）：只收增益，有跳過的印原因
         for _, key in ipairs(C.BarKeys and C.BarKeys() or {}) do
             if ns.DB.BarIsRings(key) then
                 local n = B.RingSkipped and B.RingSkipped(key) or 0
                 p(("  %-9s 圓環顯示%s"):format(key, n > 0
-                    and ("：|cffffd200自訂項目 %d 筆沒畫|r（光環格與自訂法術／物品的樣式在建立時就定了，畫不成圓環）"):format(n) or ""))
+                    and ("：|cffffd200%d 筆沒畫|r（圓環條只收增益：技能冷卻、自訂法術／物品／飾品欄冷卻放不上去）"):format(n) or ""))
             end
         end
         -- 格數上限＋溢出（Core/Overflow.lua）：成立的印去向與顆數；設了上限卻不成立的印原因

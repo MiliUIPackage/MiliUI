@@ -1160,9 +1160,8 @@ end
 -- 這裡再走 C.Bar／C.Overflow 會繞回自己。
 -- 溢出：接收條算「有」——只要有一條成立的來源條上有（保守：不管這一輪有沒有真的溢過來）。
 -- 持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標
+-- 圓環條只收增益（Core/Bars.lua）：只看光環格（含飾品欄增益）；飾品欄冷卻格與代畫格放不上去，不算
 function C.BarHasAuraSlot(barKey)
-    -- 圓環條不放自訂項目（Core/Bars.lua）：條上的光環格不會畫出來，也就不必逼固定格位
-    if ns.DB.BarIsRings and ns.DB.BarIsRings(barKey) then return false end
     -- 先看有沒有任何一筆暴雪的裝備欄冷卻格排在條上：沒有就不必為每條重算 BarBase
     local proxyCandidate = nil
     local function AnyProxyCandidate()
@@ -1179,14 +1178,15 @@ function C.BarHasAuraSlot(barKey)
         return proxyCandidate
     end
     local function Has(k)
+        local ring = ns.DB.BarIsRings and ns.DB.BarIsRings(k) or false
         for _, it in ipairs(Effective()) do
             local e = it.entry
             if ValidCustom(e) and e.bar == k then
                 if AuraShaped(e.kind) then return true end
-                if e.kind == "slot" and C.SlotOverlayIDs(k, it.id, e.slot) then return true end
+                if not ring and e.kind == "slot" and C.SlotOverlayIDs(k, it.id, e.slot) then return true end
             end
         end
-        if AnyProxyCandidate() then
+        if not ring and AnyProxyCandidate() then
             for _, id in ipairs((C.BarBase(k))) do
                 local slot = C.ProxySlotOf(id)
                 if slot and C.SlotOverlayIDs(k, id, slot) then return true end
@@ -1352,6 +1352,19 @@ end
 --   * 來源條是冷卻類（核心／輔助）——增益類不在時本來就可能沒有框，而且那是增益不是冷卻。
 -- 只讀目錄（C.Info 已過 Plain），不問暴雪的框
 local AURA_SOURCE = { buffs = true, buffbars = true }       -- ns.Viewers.AURA_KIND 還沒載入時的退路（同值）
+
+-- 圓環條收不收這一格（2026-10-08：圓環條只收增益）：自訂項目只收光環格形狀（光環格、飾品欄增益），
+-- 暴雪的格子只收增益類檢視器的（來源 buffs／buffbars）。設定頁（挑選器、預覽、所在條）問這支；
+-- 畫面那邊（Core/Bars.lua 的 RingRefuses）看的是框，判準一樣
+function C.RingAccepts(id)
+    if C.IsCustom(id) then
+        local e = C.CustomEntry(id)
+        return e ~= nil and AuraShaped(e.kind) or false
+    end
+    local src = C.SourceOf(id)
+    local aura = (ns.Viewers and ns.Viewers.AURA_KIND) or AURA_SOURCE
+    return src ~= nil and aura[src] == true
+end
 function C.ProxySlotOf(id)
     if type(id) ~= "number" then return nil end
     local info = C.Info(id)

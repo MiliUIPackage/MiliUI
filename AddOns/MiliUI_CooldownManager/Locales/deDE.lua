@@ -969,3 +969,7 @@ L["Ring bars can't hold custom items: their look is fixed when they're created, 
 L["Ring color"] = "Ringfarbe"
 L["Ring group"] = "Ringgruppe"
 L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "Um nur einige Effekte als Ringe zu zeigen, füge links eine Ringgruppe hinzu, klicke dann jeden Effekt in der Vorschau an und setze „Auf Leiste“ auf sie."
+
+-- 圓環條只收增益（2026-10-08）
+L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "Ringleisten nehmen nur Stärkungen auf: Abklingzeiten von Fähigkeiten, eigene Zauber und Gegenstände passen nicht hinein."
+L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Jeder Eintrag wird ein Ring um dieselbe Mitte; der helle Teil schrumpft mit der Zeit. Ringleisten nehmen nur Stärkungen auf und zeigen kein Leuchten und keine Tastenbelegung."

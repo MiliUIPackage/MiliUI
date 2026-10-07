@@ -210,9 +210,21 @@ function Layout.RingIconSize(v)
     return Clamp(floor((tonumber(v) or I.default) + 0.5), I.min, I.max)
 end
 
--- 這條是不是圓環（圖示類才有；長條類存著 style 也不算）
-function Layout.IsRings(layout, kind)
-    return kind ~= "bars" and type(layout) == "table" and layout.style == "rings"
+-- 這條是不是圓環（圖示類才有；長條類存著 style 也不算）。
+-- source：條的來源（給了才看）。圓環條只收增益：核心／輔助（冷卻類的暴雪檢視器）存著 rings 也當圖示
+-- （⚠ 跟 Core/DB.lua 的 BarIsRings 同一份規則）。只拿排版用的表（Bars 的 BarSize 解好的）時不給，
+-- 那張表已經照來源濾過（Layout.AsIcons）
+Layout.RING_DENY_SOURCE = { essential = true, utility = true }
+function Layout.IsRings(layout, kind, source)
+    return kind ~= "bars" and not Layout.RING_DENY_SOURCE[source] and type(layout) == "table" and layout.style == "rings"
+end
+
+-- 存著 rings、但這條不出圓環（核心／輔助）：排版照圖示排。淺複製一份、style 換成 icons（存檔不動）
+function Layout.AsIcons(layout)
+    local out = {}
+    for k, v in pairs(type(layout) == "table" and layout or {}) do out[k] = v end
+    out.style = "icons"
+    return out
 end
 
 local function ComputeRings(n, layout)

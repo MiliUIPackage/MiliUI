@@ -50,6 +50,20 @@
 --     長條照舊是米利樣式。
 --   * 出現／消失音效：C_UnitAuras.AddAuraSound 登記給引擎播（Core/Sound.lua 對帳）。
 --
+-- ── 光環格畫成圓環（圓環條：DB.BarIsRings，2026-10-08）──────────────────
+-- 圓環條只收增益：暴雪的增益 item（Core/Decorate.lua 的「圓環顯示」改造 item 自己的 Cooldown）＋光環格（含多法術、
+-- 飾品欄增益）。自訂法術／物品／飾品欄冷卻／代畫格不上圓環條（Core/Bars.lua 的 RingRefuses），疊層因此也不會出現在圓環上。
+-- 光環格多一種按鈕形狀 "rings"，照光環格既有的規矩走、不另立機制：
+--   * CU.Place 收到的 rect 帶 ring（從內往外第幾圈）／tex（第幾張環形貼圖）⇒ 記在 rec.placeRing，AuraStyle 解成
+--     st.ring（圈數、貼圖路徑、環寬、軌道色、填色＝這一招的圓環顏色 ＞ 條的填色、圖示開關與大小、文字位置
+--     Layout.RingTextPlace），全部純數字、全部進簽章 ⇒ 圈數、貼圖、顏色變了換一顆容器（戰鬥中記旗標、脫戰建）。
+--     條上有光環格 ⇒ 固定格位（收合不成立），戰鬥中圈數不會變。
+--   * InitAuraRingButton：按鈕上一張軌道貼圖＋環形 swipe 的 Cooldown 交給 SetDurationCooldown（SetReverse(false)：
+--     亮的部分＝剩餘時間，跟暴雪 item 的圓環同方向）、倒數／層數錨在這一圈頂端的環帶。圖示照給（引擎要寫），
+--     沒開「顯示法術圖示」時它的子框 alpha 0。邊框、發光、Masque（探針不交出去）、自訂文字一律不畫。
+--   * 持有框沿用圖示那一顆（rec.frames.icons），層級依圈數往上墊（內圈高，滑鼠提示內圈優先）。
+--   * 占位（增益不在時：暗圖示）：只畫這一圈的軌道（Decorate.ApplyRingPlaceholder，跟暴雪增益格同一支）。
+--
 -- ── 自訂法術（kind = "spell"）與物品（kind = "item"）─────────────────
 -- 自己的圖示框（parent 條容器，長得跟暴雪 item 一樣：.Icon／.Cooldown／.ChargeCount.Current），
 -- 邊框／縮放／轉圈色／文字交給 Decorate.Apply（同一套），發光、按鍵文字交給 Glow／Keybinds。
@@ -1332,8 +1346,10 @@ end
 local GLOW_TYPES = { pixel = true, autocast = true, button = true, proc = true }
 
 -- shape ＝ "bars"：長條的外觀（ApplyBarGeometry／ApplyBarLook／Text.ApplyBar 讀的那幾格）也解進來、進簽章
+-- ring：圓環條上這一格的 rect（{ ring ＝ 從內往外第幾圈, tex ＝ 第幾張環形貼圖 }，CU.Place 從 Layout.Compute 的 rect 記下來）；
+--       給了而且這條真的是圓環條（Decorate.RingStyle）⇒ st.shape ＝ "rings"，見「光環格畫成圓環」那一節
 local gradCache = {}        -- 光環長條的漸層顏色物件（F8a）：依「方向＋兩色」快取，換容器時不重配
-local function AuraStyle(rec, barKey, w, h, shape)
+local function AuraStyle(rec, barKey, w, h, shape, ring)
     local S, SS, id = ns.Setting, ns.SpellSetting, rec.cooldownID
     local border = S(barKey, "border") or {}
     -- 文字：條層 ⊕ 這一招的文字覆寫（Text.SpellText；疊層照冷卻格那一筆的 id）。值全部解進 st、進簽章
@@ -1370,6 +1386,33 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.lowColor = RGBA(lc, 0.95, 0.45, 0.70, 1)
     end
     local function C(c) return string.format("%.3f,%.3f,%.3f,%.3f", c[1], c[2], c[3], c[4]) end
+    -- 圓環（見「光環格畫成圓環」）：圈數、貼圖、環寬、軌道色、填色、文字位置全部解成純數字、進簽章。
+    -- 發光、Masque、自訂文字、邊框在圓環上一律不畫（下面各段看 ringOn）
+    local ringSig = "-"
+    local D0 = ns.Decorate
+    local rs = (shape ~= "bars" and type(ring) == "table" and D0 and D0.RingStyle) and D0.RingStyle(barKey) or nil
+    local ringOn = rs ~= nil
+    if ringOn then
+        local LY = ns.Layout
+        local k, tex = tonumber(ring.ring) or 1, tonumber(ring.tex) or 1
+        -- 填色：這一招的圓環顏色 ＞ 條的填色（ringColor 的退路就是 ring.fillColor，ns.SpellSetting 解）；false ＝ 職業色
+        local fr, fg, fb, fa = D0.RingFill(SS(barKey, id, "ringColor"))
+        local tc = rs.track
+        local pl = LY.RingTextPlace(rs, st.cdSize)
+        st.shape = "rings"
+        st.ring = {
+            rank = k, tex = tex, path = LY.RingFile(tex), thick = rs.thick,
+            track = RGBA(tc, 0.04, 0.06, 0.08, 0.9),
+            fill = { fr or 1, fg or 1, fb or 1, fa or 1 },
+            showIcon = rs.showIcon, iconSize = rs.iconSize,
+            y = pl.y, cdPoint = pl.cdPoint, cdX = pl.cdX, extraX = pl.extraX,
+        }
+        -- 「倒數文字：不顯示」＝ 這一格不建倒數（跟這一招的隱藏倒數同一個開關）
+        if rs.timeText == "hide" then st.hideCD = true end
+        local rg = st.ring
+        ringSig = table.concat({ "rings", rg.rank, rg.tex, rg.thick, C(rg.track), C(rg.fill), tostring(rg.showIcon), rg.iconSize,
+            string.format("%.2f,%.2f,%.2f", rg.y, rg.cdX, rg.extraX), rg.cdPoint }, ",")
+    end
     -- 長條：圖示一邊留 h×h、其餘是條身（照 Decorate.ApplyBarGeometry）；字型、顏色、開關全部解成純數字
     local barSig
     if shape == "bars" then
@@ -1439,7 +1482,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
         if st.vert then h = w else w = h end
     end
     local glowSig = "-"
-    if SS(barKey, id, "activeGlow") and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
+    if not ringOn and SS(barKey, id, "activeGlow") and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
         local g = S(barKey, "glow.active")
         g = type(g) == "table" and g or {}
         -- 樣式只讀條層（跟觸發／就緒同一套），逐法術只開關
@@ -1483,7 +1526,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
     --   疊層：外框是底下冷卻格自己的皮 ⇒ 一律不畫米利邊、也不畫外框。都進簽章
     local msqSig = "-"
     local hd = rec.frame
-    if hd and hd.msqOn and shape ~= "bars" then
+    if hd and hd.msqOn and shape ~= "bars" and not ringOn then
         st.msq = hd.msqShape
         if rec.overlayOf then
             st.noEdge = true
@@ -1499,7 +1542,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
     -- 自訂文字（M）：圖示形的光環格與飾品欄增益才有（長條本來就有名字；飾品冷卻格的增益疊層是冷卻格，不畫）。
     -- 值全部解成純數字／字串（initializeFrame 裡只查表），整段進簽章 ⇒ 改了換一顆容器（戰鬥中記旗標、脫戰建）
     local labelSig = "-"
-    if shape ~= "bars" and not rec.overlayOf then
+    if shape ~= "bars" and not rec.overlayOf and not ringOn then
         local lb = TX.LabelStyle(barKey, id)
         if lb then
             local p, j = TX.LabelPlace(lb.point)
@@ -1511,6 +1554,8 @@ local function AuraStyle(rec, barKey, w, h, shape)
     end
     -- 圖示的 texcoord（縮放＋非正方形裁切）：正方形時跟尺寸無關，改大小不會白換容器
     st.tc = { ns.Layout.IconTexCoord(st.zoom, w, h, S(barKey, "icon.aspect") ~= "stretch") }
+    -- 圓環：圖示是頂端環帶上的小方塊（iconSize × iconSize），照條的縮放裁（同 Decorate 的 ApplyRing）
+    if ringOn then st.tc = { ns.Layout.IconTexCoord(st.zoom, st.ring.iconSize, st.ring.iconSize, true) } end
     -- 認哪些法術也進簽章（多法術的光環格：整組排序後串進去；單一法術時就是那個 ID）
     st.ids = CU.AuraIDsOf(rec)
     st.sig = table.concat({
@@ -1520,6 +1565,7 @@ local function AuraStyle(rec, barKey, w, h, shape)
         st.stPoint, st.stX, st.stY, glowSig, labelSig,
     }, "|")
     if barSig then st.sig = st.sig .. "|" .. barSig end
+    if ringOn then st.sig = st.sig .. "|" .. ringSig end
     return st
 end
 CU.AuraStyle = AuraStyle              -- 測試用
@@ -1857,6 +1903,86 @@ local function InitAuraBarButton(btn, c, st, rec)
 end
 CU.InitAuraBarButton = InitAuraBarButton      -- 測試用
 
+-- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。光環格畫成一圈（見「光環格畫成圓環」）：軌道貼圖＋環形 swipe 的 Cooldown
+-- 交給 SetDurationCooldown（剩餘時間由引擎驅動）＋倒數／層數錨在這一圈頂端的環帶上。不 CreateColor、不掛 script、
+-- 顏色純數字、尺寸全部來自 st（不從按鈕讀）。邊框、發光、Masque、自訂文字一律不畫
+local function InitAuraRingButton(btn, c, st, rec)
+    pcall(btn.SetMouseClickEnabled, btn, false)
+    pcall(btn.SetMouseMotionEnabled, btn, true)          -- 讓暴雪自己的光環提示照常出現
+    pcall(function()
+        btn:ClearAllPoints()
+        btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout
+    end)
+    local rg, s = st.ring, st.scale
+
+    -- 軌道（深色底環）：按鈕本體最底層，按鈕跟著光環出現 ⇒ 光環不在時只剩占位那一圈軌道（UpdatePlaceholder）
+    local track = btn:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(btn)
+    track:SetTexture(rg.path)
+    track:SetVertexColor(rg.track[1], rg.track[2], rg.track[3], rg.track[4])
+
+    -- 進度：環形 swipe。方向跟暴雪增益 item 的圓環一致（Decorate.ReapplyRingCore：SetReverse(false)，亮的部分＝剩餘時間）
+    local cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
+    cd:SetAllPoints(btn)
+    cd:SetSwipeTexture(rg.path)
+    cd:SetSwipeColor(rg.fill[1], rg.fill[2], rg.fill[3], rg.fill[4])
+    cd:SetReverse(false)
+    cd:SetHideCountdownNumbers(true)
+    cd:SetDrawEdge(false)
+    cd:SetDrawBling(false)
+    btn:SetDurationCooldown(cd)
+
+    -- 圖示：引擎要寫圖示，一定要給；畫在 Cooldown 上面一層的子框（同 Decorate 的 ringIcon）。
+    -- 沒開「顯示法術圖示」⇒ 子框 alpha 0（引擎哪天對圖示 SetAlpha 也露不出來）
+    local lvl = cd:GetFrameLevel() or 1
+    local iconF = CreateFrame("Frame", nil, btn)
+    iconF:SetAllPoints(btn)
+    iconF:SetFrameLevel(lvl + 1)
+    local icon = iconF:CreateTexture(nil, "ARTWORK")
+    if rg.showIcon then
+        icon:SetSize(rg.iconSize, rg.iconSize)
+        icon:SetPoint("CENTER", btn, "TOP", 0, -rg.thick / 2)
+    else
+        icon:SetAllPoints(btn)
+        iconF:SetAlpha(0)
+    end
+    icon:SetTexCoord(st.tc[1], st.tc[2], st.tc[3], st.tc[4])
+    btn:SetIcon(icon)
+
+    local ov = CreateFrame("Frame", nil, btn)
+    ov:SetAllPoints(btn)
+    ov:SetFrameLevel(lvl + 2)
+
+    -- 倒數：照 InitAuraButton（formatter、低秒色曲線在 Warm 建好），錨點換成這一圈頂端的環帶（Layout.RingTextPlace）
+    if not st.hideCD and btn.SetDurationText then
+        local fs = ov:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(st.cdFont, st.cdSize * s, st.outline)
+        pcall(fs.SetIgnoreParentScale, fs, true)
+        fs:SetTextColor(st.cdColor[1], st.cdColor[2], st.cdColor[3], st.cdColor[4])
+        fs:SetPoint(rg.cdPoint, btn, "TOP", rg.cdX * s, rg.y * s)
+        local opts = st.formatter and { textFormatter = st.formatter } or {}
+        if st.colorCurve then opts.textColor = { curve = st.colorCurve, property = st.remainingProp } end
+        if not pcall(btn.SetDurationText, btn, fs, next(opts) and opts or nil) then
+            if not (st.formatter and pcall(btn.SetDurationText, btn, fs, { textFormatter = st.formatter })) then
+                pcall(btn.SetDurationText, btn, fs)
+            end
+        end
+    end
+
+    -- 層數：接在倒數右邊（同 Text.ApplyRing 的估算偏移，不錨在倒數那顆字上）。**絕不傳 formatter**
+    if not st.hideStack and btn.SetApplicationCount then
+        local fs = ov:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(st.stFont, st.stSize * s, st.outline)
+        pcall(fs.SetIgnoreParentScale, fs, true)
+        fs:SetTextColor(st.stColor[1], st.stColor[2], st.stColor[3], st.stColor[4])
+        fs:SetPoint("LEFT", btn, "TOP", rg.extraX * s, rg.y * s)
+        pcall(btn.SetApplicationCount, btn, fs)
+    end
+    rec.inits = (rec.inits or 0) + 1
+    rec.ringInits = (rec.ringInits or 0) + 1          -- 測試用
+end
+CU.InitAuraRingButton = InitAuraRingButton    -- 測試用
+
 local function BuildContainer(rec, st)
     local h = rec.frame
     local c = CreateFrame("AuraContainer", nil, h, "CustomAuraContainerTemplate")
@@ -1870,7 +1996,7 @@ local function BuildContainer(rec, st)
     end
     local include = {}
     for _, id in ipairs(st.ids or { rec.spellID }) do include[id] = true end
-    local init = (st.shape == "bars") and InitAuraBarButton or InitAuraButton
+    local init = (st.shape == "bars") and InitAuraBarButton or (st.shape == "rings") and InitAuraRingButton or InitAuraButton
     c:AddAuraSlot("slot", rec.filter, {
         candidateFilters = { includeSpellIDs = include },
         initializeFrame = function(btn)
@@ -1887,7 +2013,8 @@ end
 local function EnsureContainer(rec, barKey, w, h)
     local holder = rec.frame
     if not holder then return end
-    local st = AuraStyle(rec, barKey, w, h, rec.shape)
+    -- 圓環條上的格：圈數與貼圖照最後一次放格的（CU.Place 記在 rec.placeRing；脫戰補建也用這份）
+    local st = AuraStyle(rec, barKey, w, h, rec.shape, rec.placeRing)
     rec.wantSig = st.sig
     if holder.sig == st.sig and holder.container then return end
     -- 一個法術都認不到（裝備欄的增益解不出來）：不建，舊的收起來。空的 includeSpellIDs 不保證是「什麼都不收」
@@ -2096,6 +2223,8 @@ end
 ------------------------------------------------------------
 local PH_LIFT = 0
 CU.PH_LIFT = PH_LIFT
+-- 圓環條：持有框依圈數往上墊（內圈高），同 Core/Decorate.lua 的 RING_LIFT
+local RING_LIFT = 40
 
 local function Num(v)
     v = Plain(v)
@@ -2164,7 +2293,8 @@ local function SyncSkinLayer(rec, c, r, barKey)
     local M = ns.Masque
     local L = hd.skin
     local skinned = false
-    if rec.shape ~= "bars" and M and M.Mode and M.Mode(barKey) == "masque" then
+    -- 圓環條（rec.placeRing）不進 Masque 群組（跟暴雪 item 在圓環條上一樣）：探針收起來、按鈕不烘皮
+    if rec.shape ~= "bars" and not rec.placeRing and M and M.Mode and M.Mode(barKey) == "masque" then
         if not L then
             local f = CreateFrame("Frame", nil, c)
             f:EnableMouse(false)
@@ -2225,6 +2355,11 @@ local function UpdatePlaceholder(rec, c, r, barKey)
         hd.ph = look
     end
     PlacePart(look, c, r, PH_LIFT)
+    -- 圓環條：只畫這一圈的軌道（跟暴雪增益格在圓環條上的占位同一支；不交給 Masque）
+    if rec.placeRing and ns.Decorate and ns.Decorate.ApplyRingPlaceholder then
+        ns.Decorate.ApplyRingPlaceholder(look, barKey, rec.placeRing)
+        return
+    end
     local tex = look.tex
     tex:SetTexture((PlaceholderLook(rec)))
     tex:SetDesaturated(true)
@@ -2486,6 +2621,7 @@ function CU.Proxies() return proxies end
 
 ------------------------------------------------------------
 -- 放進格子
+--   圓環條（rect 帶 ring／tex）：光環格畫成一圈（見「光環格畫成圓環」）；自訂法術／物品不會來（Core/Bars.lua 擋掉）
 --   回傳 true ＝ 這一格對法術索引的貢獻可能變了（換了框、換了條、從收起來放回來；位置變了也算，寧多勿漏）：
 --   Bars 收到就設 claimsChanged。光環格不進索引，一律回 false
 ------------------------------------------------------------
@@ -2497,15 +2633,25 @@ function CU.Place(rec, c, r, barKey, gen)
     rec.placedBar, rec.placedGen, rec.claimKey, rec.hidden = barKey, gen, barKey, false
     rec.placeW, rec.placeH = r.w, r.h            -- 脫戰補建容器時用（長條的圖示大小、發光尺寸）
     if rec.kind == "aura" then
+        -- 圓環條上的格（rect 帶 ring／tex，只有 Layout 的同心圓幾何會給）：圈數與貼圖記下來（簽章、占位、脫戰補建都讀）
+        if r.ring and r.tex then
+            local pr = rec.placeRing or {}
+            pr.ring, pr.tex = r.ring, r.tex
+            rec.placeRing = pr
+        else
+            rec.placeRing = nil
+        end
+        -- 同心圓是一層套一層的正方形：內圈的持有框層級高（滑鼠提示內圈優先；外圈的環帶露在內圈正方形外面照樣拿得到）
+        local lift = 2 + (rec.placeRing and math.max(0, RING_LIFT - rec.placeRing.ring) or 0)
         -- 飾品欄增益：認的法術照現在裝的飾品重解（換飾品之後的第一輪；長條名字、音效登記都讀 rec.spellID）
         if rec.slotBuff then rec.spellID = CU.AuraIDsOf(rec)[1] end
-        local sig = table.concat({ tostring(c), r.x, r.y, r.w, r.h }, "|")
+        local sig = table.concat({ tostring(c), r.x, r.y, r.w, r.h, lift }, "|")
         if rec.placedSig ~= sig then
             rec.placedSig = sig
             local x, y, w, h = r.x, r.y, r.w, r.h
             ns.Write(f, function(fr)
                 if fr:GetParent() ~= c then fr:SetParent(c) end
-                fr:SetFrameLevel((c:GetFrameLevel() or 1) + 2)
+                fr:SetFrameLevel((c:GetFrameLevel() or 1) + lift)
                 fr:ClearAllPoints()
                 fr:SetPoint("TOPLEFT", c, "TOPLEFT", x, -y)
                 fr:SetSize(w, h)

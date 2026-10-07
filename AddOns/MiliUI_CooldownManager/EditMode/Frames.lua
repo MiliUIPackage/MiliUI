@@ -71,7 +71,7 @@ local function CellSize(bar)
         if bw > 0 then w = bw end
         h = tonumber(cfg.height) or h
         if cfg.vertical then w, h = h, w end        -- 直向長條（F8c）：格子轉 90 度
-    elseif layout.style == "rings" then
+    elseif ns.Layout.IsRings(layout, bar.kind, bar.source) then
         h = w                                       -- 圓環：最內圈＝基準直徑 × 基準直徑（Layout 的 ComputeRings 只看 size.w）
     end
     return w, h

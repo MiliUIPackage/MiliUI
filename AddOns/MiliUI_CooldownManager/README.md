@@ -1423,10 +1423,11 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - 小窗「文字」分頁：長條上的格（橫向）最上面一節「名字」——「顯示名字」勾選框（沒覆寫時勾選照條的值、灰字講跟隨誰；右鍵標籤回跟隨）、
   字型、字級（6～30）；接著的倒數那一節在長條上的格標題改「時間」、隱藏改「隱藏時間」（同一個 `hideCooldownText`）。
 
-### 圓環顯示（`Core/Layout.lua`、`Core/Decorate.lua`、`Core/Text.lua`、`Core/Bars.lua`、`Core/Glow.lua`、`Options/Specs.lua`、`Options/Preview.lua`，2026-10-08）
+### 圓環顯示（`Core/Layout.lua`、`Core/Decorate.lua`、`Core/Text.lua`、`Core/Bars.lua`、`Core/Glow.lua`、`Modules/Custom.lua`、`Options/Specs.lua`、`Options/Preview.lua`，2026-10-08）
 
-圖示類的條多一個「顯示樣式：圖示／圓環」（`layout.style`）。圓環＝每格一圈同心圓、進度沿環走，亮的那段＝剩下的時間。
-任何圖示類的條都能切（增益圖示最常用；核心／輔助放上去就是冷卻轉圈）。實作計畫在 `~/.claude/plans/miliui-cdm-rings.md`。
+增益圖示列與自訂圖示群組多一個「顯示樣式：圖示／圓環」（`layout.style`）。圓環＝每格一圈同心圓、進度沿環走，亮的那段＝剩下的時間。
+**圓環條只收增益**：暴雪增益檢視器的 item ＋ 自訂光環格（含多法術、飾品欄增益）。實作計畫在 `~/.claude/plans/miliui-cdm-rings.md`（第一版）
+與 `~/.claude/plans/miliui-cdm-rings-custom-aura.md`（光環格、只收增益、卸皮修正）。
 
 - **不自己建 Cooldown，改造暴雪 item 自己的 `item.Cooldown`**：光環時間沒有轉到自家 Cooldown 的路（`GetCooldownTimes` 秘密值、
   SetCooldown 後掛勾轉交在秘密下被拒、探針的 duration 物件是法術冷卻不是光環）⇒ 讓暴雪照常驅動，只換外觀：
@@ -1454,9 +1455,27 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - **不畫的**：我們的方形邊框、暴雪的減益框（alpha 0）、觸發／就緒／生效／充能滿／下一招醒目標示（`Glow.Start` 擋 `rec.ring`、`Glow.Sync` 熄掉已亮的；
   暴雪的觸發發光照樣熄）、層數門檻發光（`StackGate.Apply` 當沒設定）、按鍵文字（`Keybinds.Apply`）。不進 Masque 群組（`Resolve` 把 masque 壓成 false、已交的先 Release）。
   圓形發光之後另開一項（MiliUIGlow 沒有圓形版）。
-- **自訂項目不支援**（光環格、自訂法術／物品、代畫的裝備欄格）：它們的樣式在建立當下就烘死（光環格的 initializeFrame），換圓環得重建容器。
-  `Bars.Relayout` 在圓環條上不放它們（`state.ringSkipped`，`/mcdm debug` 印「自訂項目 N 筆沒畫」）；挑選器的常用預設／自訂 ID 兩區收起來換成一行原因；
-  預覽照樣列出來、標暗、提示寫原因；拖曳與小窗「所在條」不收圓環條。`Catalog.BarHasAuraSlot` 對圓環條回 false（不逼固定格位）。
+- **只收增益**（2026-10-08 拍板）：判準兩支、同一個規則——畫面那邊 `Bars.RingRefuses`（看框：暴雪 item 的 `rec.barKey` 在
+  `Viewers.AURA_KIND`、自訂 rec 是 `kind = "aura"`），設定頁 `Catalog.RingAccepts`（看 id：來源是增益類、自訂項目是光環格形狀）。
+  不收的：暴雪的核心／輔助冷卻格（不認領 ⇒ 照原本的停放／歸屬走）、自訂法術／物品／飾品欄冷卻、代畫的裝備欄格——`Bars.Relayout` 不放
+  （`state.ringSkipped`，`/mcdm debug` 印「N 筆沒畫」）、`Bars.Occupancy` 不算佔格。
+  - **核心／輔助沒有圓環**：`DB.BarIsRings`／`Layout.IsRings(layout, kind, source)` 對 essential／utility 一律回 false，存檔裡已經是 rings 的照留、
+    當圖示排（`Bars.BarSize`／預覽的 `Sizing` 用 `Layout.AsIcons` 換成圖示版面）——不遷移、不改存檔。「顯示樣式」那一列只出現在增益圖示列與自訂圖示群組；
+    引導灰字（開圓環群組）只在增益圖示列。
+  - **設定頁**：挑選器第一區只列增益類、第二區只列「增益效果」分頁；常用預設只留「團隊增益」、自訂 ID 只留「光環」與「飾品欄增益」，
+    說明第一句換成原因（`Picker.RingButton`）。預覽上收不下的標暗＋提示原因；拖曳與小窗「所在條」不列圓環條給收不下的（已經在那條上的照列，
+    所在條下面一列灰字講原因）；「圓環顏色」只在收得下的格出現。
+- **光環格畫成圓環**（`Modules/Custom.lua` 的「光環格畫成圓環」）：光環格多一種按鈕形狀 `"rings"`，照光環格既有的規矩走——
+  `CU.Place` 收到的 rect 帶 `ring`／`tex` ⇒ 記在 `rec.placeRing`；`AuraStyle` 解出圈數、貼圖、環寬、軌道色、填色（逐法術圓環顏色 ＞ 條的填色）、
+  圖示開關與大小、文字位置（`Layout.RingTextPlace`），全部純數字、**全部進簽章** ⇒ 圈數或設定變了換一顆容器（戰鬥中記旗標、脫戰建）。
+  `InitAuraRingButton`：軌道貼圖＋環形 swipe 的 Cooldown 交給 `SetDurationCooldown`（`SetReverse(false)`，跟暴雪 item 的圓環同方向）、
+  倒數 `SetDurationText`（formatter／低秒色曲線照舊）錨在頂端環帶、層數 `SetApplicationCount(fs)`（不給 formatter）接在右邊；圖示照給 `SetIcon`
+  （引擎要寫），沒開「顯示法術圖示」時它的子框 alpha 0。邊框、發光、Masque（探針不交出去）、自訂文字一律不畫。
+  持有框沿用圖示那一顆，層級依圈數往上墊（`容器 + 2 + (40 − 圈數)`，內圈高）；占位（暗圖示）只畫這一圈的軌道（`Decorate.ApplyRingPlaceholder`）。
+  條上有光環格 ⇒ 固定格位（收合不成立，`Catalog.BarHasAuraSlot`：圓環條只看光環格，飾品欄冷卻格與代畫格不算），戰鬥中圈數不會變。
+- **卸皮後的方框**（`Decorate.ReleaseSkin`）：buff 從 Masque 條搬進圓環群組（或條改回米利、改成圓環）時，Masque 卸皮（`RemoveButton`）
+  會把暴雪的切角外框（`UI-HUD-CoolDownManager-IconOverlay`）還原，而 `StripBlizzard` 只做一次（`rec.stripped`）⇒ 方框留到 `/reload`
+  （2026-10-08 實機確認：/reload 後方框就消失）。`D.Apply` 裡三處卸皮都改走 `ReleaseSkin`：卸皮後清旗標、當場重拔一次。
 - **不可點擊**：`DB.BarClickable` 對圓環條回 false（secure 鈕會互相蓋住；勾選值留著，切回圖示就回來）。設定頁那一列在圓環時藏起來。
 - 「增益不在時：暗圖示」的占位只畫那一圈的軌道（`Decorate.ApplyRingPlaceholder`）。
 - **還原**（`Decorate.RestoreRing`）：條改回圖示、item 搬到別的條（`D.Apply` 判 `rec.ring` 而這一輪不是圓環）、還給暴雪（`Bars.ReleaseAll`）都走這支——
@@ -3187,13 +3206,19 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 402. 切回圖示、把 item 搬去別條（拖到自訂群組）、`/reload`、`/mcdm release` 之後方形外觀完全還原：swipe 是方的、轉的方向對（增益往回轉、技能照常）、
      冷卻結束的 bling 回來、圖示整格、倒數回到中央。
 403. 滑鼠提示：內圈優先；外圈露在內圈正方形外面的環帶上也拿得到提示；整條被顯示條件藏起來時不冒提示。
-404. 核心技能切成圓環：技能冷卻轉圈的樣子、GCD 轉圈（隱藏 GCD 開著時整圈透明）、充能技能的回充。
+404. ~~核心技能切成圓環~~（2026-10-08 起圓環條只收增益）：核心／輔助的「版面」分頁沒有「顯示樣式」；之前切成圓環的存檔照圖示畫。
 405. 「增益不在時：隱藏，留空位」：每個 buff 固定在同一圈；「暗圖示」只畫那一圈的軌道。
-406. 圓環條上原本有光環格／自訂法術：畫面上不見（`/mcdm debug` 印「自訂項目 N 筆沒畫」）、預覽標暗並說明、切回圖示後回來；挑選器只剩原因字。
+406. 圓環條上的自訂法術／物品、核心／輔助的冷卻格：畫面上不見（`/mcdm debug` 印「N 筆沒畫」）、預覽標暗並說明、切回圖示後回來；
+     冷卻格回到原本的條（暴雪停放／歸屬照舊）；挑選器只剩光環那幾顆。
 407. 暴雪的無損刷新圖示（`PandemicIcon`，方形）在圓環上的樣子：要不要熄掉。暴雪的觸發發光在圓環條上確實熄掉。
-408. 登入時是 Masque 的條執行中切成圓環：卸皮後的外框圖收不收得乾淨（收不乾淨就跟群組停用一樣提示重載）。
+408. 從 Masque 條搬 buff 進圓環群組，不 /reload 也沒有方框（修正後待確認）。
 409. 設定頁：切換顯示樣式整張表單換掉、各滑桿即時生效（預覽與真實條）；逐法術「圓環顏色」只在圓環條的小窗出現、勾了才寫、右鍵清掉；
      使用職業色取消勾選從職業色開始調。
+410. 自訂光環格（單法術、多法術、飾品欄增益）在圓環上走時間，方向與暴雪 item 的圓環一致（亮的那段＝剩餘時間）；倒數／層數在頂端環帶、
+     圓環顏色覆寫生效；滑鼠提示內圈優先。
+411. 光環不在時：暗圖示＝只剩那一圈的軌道；留空位＝空。
+412. 戰鬥中光環上身／消失／刷新，零錯誤、`taintLog 2` 零新條目；戰鬥中改圓環設定（環寬、顏色、圈數）⇒ 脫戰才換容器。
+413. 圓環條上的光環格：Masque 模式的條也不烘皮（沒有方框、沒有遮罩）。
 
 **效能基準**
 

@@ -34,7 +34,7 @@
 --   接收條：溢來的格畫在尾端（「＋」前面）＋同樣的記號＋提示「來自：A」；外觀照這條。**不能拖**（順序屬於來源條，
 --          拖了跳彈窗，附「前往那條」）；中鍵移除對來源條生效（移除本來就不分條：hidden／整筆刪掉）
 -- 圓環條（layout.style ＝ "rings"）：圓環格（NewRingCell：軌道貼圖＋環形 swipe 的 Cooldown＋圖示框）照 Layout.Compute 的同心幾何排，
---   每一圈都跑假的十五秒循環（不分技能／增益）；「＋」放在整組圓環右邊。格子是一層套一層的正方形 ⇒ 內圈的框層級高（滑鼠內圈優先）；
+--   每一圈都跑假的十五秒循環；圓環條只收增益，技能冷卻與自訂法術／物品標暗＋提示寫原因（光環格照畫成一圈）；「＋」放在整組圓環右邊。格子是一層套一層的正方形 ⇒ 內圈的框層級高（滑鼠內圈優先）；
 --   拖曳的插入位置照「游標離圓心多遠」挑最近的那一圈（InsertionAt）。效果預覽列與發光樣本不畫（圓環條不畫發光）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -111,7 +111,9 @@ local function Sizing(key, bar)
     local layout = type(bar.layout) == "table" and bar.layout or {}
     if bar.kind ~= "bars" then
         -- 圓環：同 Bars 的 BarSize（基準直徑沿用 size.w，環寬／間距／方向在條的 ring 子表）
-        if ns.Layout.IsRings(layout, bar.kind) then return { style = "rings", size = layout.size, ring = bar.ring } end
+        if ns.Layout.IsRings(layout, bar.kind, bar.source) then return { style = "rings", size = layout.size, ring = bar.ring } end
+        -- 核心／輔助存著 rings（圓環條只收增益）：照圖示排
+        if layout.style == "rings" then return ns.Layout.AsIcons(layout) end
         return layout
     end
     local cfg = type(bar.bar) == "table" and bar.bar or {}
@@ -429,19 +431,22 @@ function Preview.DropCandidates(key, id)
     if ns.Catalog.IsCustom(id) then
         -- 自訂項目：任何一條（圖示類、長條類都收；放在長條上時畫成長條，見 Modules/Custom.lua）
         local p = ns.profile
+        local ringOK = ns.Catalog.RingAccepts(id)
         for k, bar in pairs(p and p.bars or {}) do
-            -- 圓環條不收自訂項目（Core/Bars.lua 不放；DropRefusal 說原因）
-            if k ~= key and type(bar) == "table" and not ns.DB.BarIsRings(k) then out[k] = true end
+            -- 圓環條只收增益（Core/Bars.lua 的 RingRefuses）：自訂法術／物品不收（DropRefusal 說原因），光環格收
+            if k ~= key and type(bar) == "table" and (ringOK or not ns.DB.BarIsRings(k)) then out[k] = true end
         end
         return out
     end
     local origin = ns.Catalog.SourceOf(id)
     local originBar = origin and BarCfg(origin)
     local wantBars = originBar and originBar.kind == "bars"
+    local ringOK = ns.Catalog.RingAccepts(id)
     local p = ns.profile
     for k, bar in pairs(p and p.bars or {}) do
         if k ~= key and type(bar) == "table" and not ns.DB.IsBuiltinBar(k)
-            and (bar.kind == "bars") == (wantBars and true or false) then
+            and (bar.kind == "bars") == (wantBars and true or false)
+            and (ringOK or not ns.DB.BarIsRings(k)) then
             out[k] = true
         end
     end
@@ -456,12 +461,11 @@ end
 local FAMILY = { essential = "cd", utility = "cd", buffs = "aura", buffbars = "aura" }
 function Preview.DropRefusal(key, id, target)
     if not target or target == key or id == nil then return nil end
-    if ns.Catalog.IsCustom(id) then
-        if ns.DB.BarIsRings(target) then
-            return L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."]
-        end
-        return nil
+    -- 圓環條只收增益：技能冷卻、自訂法術／物品不收
+    if ns.DB.BarIsRings(target) and not ns.Catalog.RingAccepts(id) then
+        return L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."]
     end
+    if ns.Catalog.IsCustom(id) then return nil end
     local bar = BarCfg(target)
     if type(bar) ~= "table" then return nil end
     local name = ns.Options.BarTitle(target) or target
@@ -773,8 +777,9 @@ function Proto:Refresh()
             hideWhy = ns.Catalog.HideReason(key, e.id)
         end
         c.itemHidden = hideWhy or false
-        -- 圓環條不放自訂項目（Core/Bars.lua）：畫面上不會有，預覽照樣列（點得到才移得走）、標暗、提示寫原因
-        c.ringSkip = (rings and not e.plus and ns.Catalog.IsCustom(e.id)) and true or false
+        -- 圓環條只收增益（Core/Bars.lua 的 RingRefuses）：技能冷卻、自訂法術／物品畫面上不會有，預覽照樣列
+        -- （點得到才移得走）、標暗、提示寫原因。光環格照畫成一圈
+        c.ringSkip = (rings and not e.plus and not ns.Catalog.RingAccepts(e.id)) and true or false
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
         c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo or c.ringSkip) and 0.35
             or (not e.plus and c.stateAlpha) or 1)
@@ -970,7 +975,7 @@ local function ShowTip(c)
         GameTooltip:AddLine(L["The equipped item has no use effect, so it isn't shown on screen."], 1, 0.3, 0.3, true)
     end
     if c.ringSkip then
-        GameTooltip:AddLine(L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."], 1, 0.3, 0.3, true)
+        GameTooltip:AddLine(L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."], 1, 0.3, 0.3, true)
     end
     if c.missing then
         GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."], 1, 0.3, 0.3, true)

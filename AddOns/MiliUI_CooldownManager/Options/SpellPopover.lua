@@ -54,7 +54,9 @@
 --   滑過左上角圖示是 Catalog.SlotBuffTooltip（跟挑選器、預覽格同一支）；解不出增益時一般分頁多一列黃字原因。
 --
 -- 圓環顏色（圓環條才有；外觀分頁、增益持續時間背景色下面）：勾「自訂」＋色票（同邊框顏色那一套），寫 overrides[id].ringColor；
---   沒自訂＝條的填色（ring.fillColor，false ＝ 職業色）。圓環條上「所在條」下拉不列別的圓環條給自訂項目（Core/Bars.lua 不放）。
+--   沒自訂＝條的填色（ring.fillColor，false ＝ 職業色）。圓環條只收增益（暴雪的增益格、光環格、飾品欄增益）：
+--   收不下的（技能冷卻、自訂法術／物品）「所在條」下拉不列圓環條（已經在那條上的照列），也不出圓環顏色，
+--   放在圓環條上時所在條下面一列灰字講原因。
 --
 -- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
 --   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
@@ -1218,6 +1220,30 @@ local function Build()
     dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
     frame.barDD = dd
 
+    -- 放在圓環條上、但圓環條不收的（技能冷卻、自訂法術／物品）：所在條下面一列灰字講為什麼畫面上沒有
+    -- （do 區塊：Build 的 local 數貼著 Lua 5.1 的上限，這幾個用完就收）
+    do
+        local function RingRefused()
+            return cur ~= nil and ns.DB.BarIsRings(cur.key) and not ns.Catalog.RingAccepts(cur.id)
+        end
+        local rrRow = CreateFrame("Frame", nil, frame)
+        local rrTip = Note(rrRow)
+        rrTip:SetPoint("TOPLEFT", rrRow, "TOPLEFT", CTRL_X, -2)
+        rrTip:SetWidth(ROW_W - CTRL_X)
+        rrTip:SetWordWrap(true)
+        rrTip:SetText(L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."])
+        local rrH = 2 + math.max(14, rrTip:GetStringHeight() or 0) + 6
+        rrRow:SetSize(ROW_W, rrH)
+        local rrEntry = { frame = rrRow, h = rrH, when = RingRefused }
+        rrEntry.remeasure = function()
+            local sh2 = rrTip:GetStringHeight()
+            local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+            rrRow:SetHeight(nh)
+            rrEntry.h = nh
+        end
+        AddRow(rrEntry)
+    end
+
     -- 以增益取代（一般分頁、所在條下面）：第一項「無」＝清掉覆寫；被別的技能用掉的那幾項 value 是 "taken"（選了不寫）
     local rwr, rwh = NewRow(L["Replace with buff"], ReplaceCapable)
     local rwdd = W.CreateDropdown(rwr, ROW_W - CTRL_X, {}, function(value)
@@ -1607,7 +1633,8 @@ local function Build()
         local r, g, b = ns.Style.Accent()
         if k == "r" then return r elseif k == "g" then return g elseif k == "b" then return b elseif k == "a" then return 1 end
     end })
-    local function OnRings() return cur ~= nil and ns.DB.BarIsRings(cur.key) end
+    -- 圓環條只收增益：放得上去的（增益類、光環格）才有圓環顏色
+    local function OnRings() return cur ~= nil and ns.DB.BarIsRings(cur.key) and ns.Catalog.RingAccepts(cur.id) end
     ColorOverrideRow(L["Ring color"], "ringColor", true, classFill, OnRings, function() return true end, true)
 
     -- 灰字說明列（控件欄寬、下一列；跟上面幾段同一個做法）
@@ -2170,15 +2197,20 @@ Layout = function(kind, class)
     P.Height(frame, -y + PAD)
 end
 
--- 所在條：原本的檢視器 ＋ 同類型的自訂群組；自訂項目是任何一條（圖示類、長條類都收）
+-- 所在條：原本的檢視器 ＋ 同類型的自訂群組；自訂項目是任何一條（圖示類、長條類都收）。
+-- 圓環條只收增益（Core/Bars.lua 的 RingRefuses）：收不下的（技能冷卻、自訂法術／物品）不列圓環條；它現在就在那條上的照列
+-- （看得到自己在哪，下面一列灰字講原因）
 local function BarItems(id)
     local items = {}
     local p = ns.profile
+    local ringOK = ns.Catalog.RingAccepts(id)
+    local function Listed(k)
+        return ringOK or not ns.DB.BarIsRings(k) or (cur ~= nil and cur.key == k)
+    end
     if ns.Catalog.IsCustom(id) then
         for _, k in ipairs(p and p.barOrder or {}) do
             local b = ns.DB.BarTable(k)
-            -- 圓環條不收自訂項目（Core/Bars.lua 不放）；它現在就在那條上的照列（看得到自己在哪）
-            if b and (not ns.DB.BarIsRings(k) or (cur and cur.key == k)) then
+            if b and Listed(k) then
                 items[#items + 1] = { text = ns.Options.PageTitle(k) or ns.Options.BarTitle(k), value = k }
             end
         end
@@ -2192,7 +2224,7 @@ local function BarItems(id)
     local wantBars = ob and ob.kind == "bars" or false
     for _, k in ipairs(p and p.barOrder or {}) do
         local b = ns.DB.BarTable(k)
-        if b and not ns.DB.IsBuiltinBar(k) and (b.kind == "bars") == wantBars then
+        if b and not ns.DB.IsBuiltinBar(k) and (b.kind == "bars") == wantBars and Listed(k) then
             items[#items + 1] = { text = ns.Options.BarTitle(k), value = k }
         end
     end

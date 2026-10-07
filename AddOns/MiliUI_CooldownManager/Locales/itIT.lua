@@ -969,3 +969,7 @@ L["Ring bars can't hold custom items: their look is fixed when they're created, 
 L["Ring color"] = "Colore dell'anello"
 L["Ring group"] = "Gruppo di anelli"
 L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "Per mostrare solo alcuni effetti come anelli, aggiungi un gruppo di anelli nella colonna di sinistra, poi clicca ogni effetto nell'anteprima e imposta “Sulla barra” su quel gruppo."
+
+-- 圓環條只收增益（2026-10-08）
+L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "Le barre ad anelli accettano solo benefici: tempi di recupero delle abilità, incantesimi e oggetti personalizzati non ci vanno."
+L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Ogni elemento diventa un anello attorno allo stesso centro e la parte accesa si accorcia col tempo. Le barre ad anelli accettano solo benefici e non mostrano bagliori né tasti."

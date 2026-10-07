@@ -1781,6 +1781,28 @@ do
 end
 
 ------------------------------------------------------------
+-- 9b. 卸皮後重拔暴雪的外框圖（D.ReleaseSkin）：Masque 卸皮會把切角外框（IconOverlay）還原，
+--     StripBlizzard 只做一次 ⇒ 卸皮之後清旗標、當場重拔（2026-10-08 實機確認的方框）
+------------------------------------------------------------
+do
+    local released = 0
+    local savedM = ns.Masque
+    ns.Masque = { Release = function(h) released = released + 1; h.msqButton = nil end }
+    local overlay = { alpha = 1 }
+    function overlay:GetAtlas() return "UI-HUD-CoolDownManager-IconOverlay" end
+    function overlay:GetObjectType() return "Texture" end
+    function overlay:SetAlpha(a) self.alpha = a end
+    local item = { Icon = {} }
+    function item:GetRegions() return overlay end
+    local rec = { stripped = true, msqButton = item }
+    D.ReleaseSkin(item, rec, false)
+    eq("卸皮：交還 Masque", released, 1)
+    eq("卸皮：外框圖重新熄掉", overlay.alpha, 0)
+    eq("卸皮：旗標重新記上", rec.stripped, true)
+    ns.Masque = savedM
+end
+
+------------------------------------------------------------
 -- 16. 挑選器「飾品欄增益」（2026-10-05）：哪幾條換成飾品欄增益、每個槽的增益鈕（純函式）、存檔形狀
 ------------------------------------------------------------
 do
@@ -1795,7 +1817,14 @@ do
     check("WantsSlotBuff：輔助照舊是飾品欄", not PK.WantsSlotBuff("utility"))
     check("WantsSlotBuff：圖示群組照舊是飾品欄", not PK.WantsSlotBuff("tg_icons"))
     check("WantsSlotBuff：沒有這條", not PK.WantsSlotBuff("nope"))
-    bars.tg_icons, bars.tg_bars = nil, nil
+    -- 圓環群組只收增益：裝備欄那顆是飾品欄增益；常用預設只留團隊增益、自訂 ID 只留光環與飾品欄增益
+    bars.tg_rings = DB.NewBarTable("rings", "r")
+    check("WantsSlotBuff：圓環群組", PK.WantsSlotBuff("tg_rings"))
+    check("RingButton：團隊增益、光環、裝備欄留著", PK.RingButton("auras") and PK.RingButton("aura") and PK.RingButton("slot"))
+    check("RingButton：法術、物品、背包、種族、防禦、藥水不留", not PK.RingButton("spell") and not PK.RingButton("item")
+        and not PK.RingButton("bag") and not PK.RingButton("racials") and not PK.RingButton("defensives")
+        and not PK.RingButton("items"))
+    bars.tg_icons, bars.tg_bars, bars.tg_rings = nil, nil, nil
 
     -- 每個槽一列、鈕的數量照那件飾品實際有幾個增益（一個、零個、三個以上）
     local per = { [13] = { 1 }, [14] = { 1, 2, 3, 5 } }

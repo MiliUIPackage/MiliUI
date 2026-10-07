@@ -432,6 +432,7 @@ end
 -- RefreshData／SetCooldownID 只換資料與轉圈「顏色」（SetSwipeColor，由 Decorate 的 SetCooldown 後掛勾重寫）；
 -- 池子的 reset 只 Hide＋清錨點＋ResetCooldownData。⇒ 池化的框一次拔乾淨就一直乾淨，取出時不必重做。
 -- 暴雪哪天在 Lua 裡重加遮罩／換轉圈材質，改成在 Viewers.Track 清 rec.stripped。
+-- 例外：Masque 卸皮（RemoveButton）會把暴雪的外框圖（IconOverlay）還原 ⇒ 卸皮之後要重拔一次，見 ReleaseSkin
 local function StripBlizzard(item, rec, isBar)
     if rec.stripped then return end
     rec.stripped = true
@@ -455,6 +456,16 @@ local function DimDebuffBorder(item, hide)
         if type(b) == "table" and b.SetAlpha then pcall(b.SetAlpha, b, a) end
     end
 end
+
+-- 從 Masque 群組拿出來（條改回米利、改成圓環、群組換掉）：卸皮會把暴雪的外框圖（切角的 IconOverlay）還原，
+-- 而 StripBlizzard 只做一次（rec.stripped）⇒ 方框留在畫面上直到 /reload（2026-10-08 實機確認：/reload 後方框就消失）。
+-- 卸皮之後清掉旗標、當場重拔一次（便宜、冪等）。卸皮本身走 ns.Write：暴雪 item 不是保護框，當場就做完
+local function ReleaseSkin(item, rec, isBar)
+    ns.Masque.Release(rec)
+    rec.stripped = nil
+    StripBlizzard(item, rec, isBar)
+end
+D.ReleaseSkin = ReleaseSkin           -- 測試用
 
 -- 圓角轉圈 → 方角（顏色參數不可省；實際色由 SetSwipeColor 決定）。
 -- 不併進 StripBlizzard 的「只做一次」：Masque 套皮會換成它的轉圈材質、群組停用時又換成空材質，
@@ -1645,6 +1656,10 @@ D.ApplyProcAlert = ApplyProcAlert
 ------------------------------------------------------------
 -- 圓環顯示（條層 layout.style ＝ "rings"；幾何在 Core/Layout.lua 的 ComputeRings）
 --
+-- 圓環條只收增益（2026-10-08）：這裡改造的是暴雪增益檢視器的 item；核心／輔助的冷卻格 Core/Bars.lua 不放上圓環條
+-- （核心／輔助本身也沒有圓環，DB.BarIsRings）。自訂光環格的圓環是按鈕自己烘的（Modules/Custom.lua 的「光環格畫成圓環」），
+-- 方向、軌道、填色、文字位置跟這裡一致。
+--
 -- 我們沒有把暴雪格子的光環時間轉到自己 Cooldown 上的路（GetCooldownTimes 回秘密值；SetCooldown 後掛勾轉交參數
 -- 在秘密下會被拒；探針那條 duration 物件拿的是法術冷卻不是光環）⇒ **讓暴雪照常驅動它自己的 item.Cooldown，只換外觀**：
 --   * cd:SetSwipeTexture(環形貼圖)：跟 SquareSwipe 同一招。暴雪的 Lua 不會重設 swipe 貼圖（只在 XML 宣告一次）
@@ -1671,6 +1686,8 @@ function D.RingStyle(barKey)
     local S = ns.Setting
     local LY = ns.Layout
     if not (S and LY) or (S(barKey, "kind") or "icons") == "bars" or S(barKey, "layout.style") ~= "rings" then return nil end
+    -- 核心／輔助存著 rings 也不算（圓環條只收增益，判準 DB.BarIsRings）
+    if ns.DB and ns.DB.BarIsRings and not ns.DB.BarIsRings(barKey) then return nil end
     local ring = S(barKey, "ring")
     ring = type(ring) == "table" and ring or {}
     local thick, gap, dir = LY.RingParams(ring)
@@ -2110,7 +2127,8 @@ function D.Apply(item, rec, barKey, w, h, ring)
     local spell = SpellStyle(barKey, id)
     local isBar = style.kind == "bars" and item.Bar ~= nil
     local sig = Signature(style, id, spell, w, h)
-    -- 圓環：圓環條、圖示類的暴雪 item（自訂項目不上圓環條，Bars 不會放）
+    -- 圓環：圓環條、圖示類的暴雪 item（自訂項目只有光環格上得了圓環條，按鈕在 Modules/Custom.lua 自己烘成一圈；
+    -- 自訂法術／物品 Bars 不會放）
     local ringOn = style.ring ~= nil and ring ~= nil and not isBar and not rec.custom
     if ringOn then sig = sig .. "|rg" .. tostring(ring.ring) .. "," .. tostring(ring.tex) end
     -- 以增益取代：這顆增益 item 正頂著 A 的格（rec.replacing ＝ A），A 勾了「使用增益持續時間樣式」（預設）
@@ -2219,7 +2237,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
             skinned = ns.Masque.Sync(rec, item.Icon, { Icon = item.Icon.Icon },
                 ns.Masque.TypeFor(barKey, rec.barKey), isz, isz, OnLate)
         elseif rec.msqButton then
-            ns.Masque.Release(rec)
+            ReleaseSkin(item, rec, true)
         end
         rec.msqSkinned = skinned
         -- 邊框：圖示一圈、條身一圈（Masque 在畫時圖示那圈藏著、排法記給無損刷新；條身那圈照常）
@@ -2244,7 +2262,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
         ns.Text.ItemLabel(item, rec, nil)          -- 長條不畫自訂文字（長條本來就有名字）
     elseif ringOn then
         rec.barGeometry = nil
-        if rec.msqButton then ns.Masque.Release(rec) end      -- 圓環條不進 Masque 群組（放在 ApplyRing 前：卸皮會換回它的轉圈材質）
+        if rec.msqButton then ReleaseSkin(item, rec, false) end      -- 圓環條不進 Masque 群組（放在 ApplyRing 前：卸皮會換回它的轉圈材質）
         rec.msqSkinned, rec.msqEdge = false, nil
         rec.border = rec.border or MakeBorder(ov)
         LayoutBorder(rec.border, nil)                         -- 方形邊框不畫
@@ -2268,7 +2286,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
             skinned = ns.Masque.Sync(rec, item, { Icon = icon, Cooldown = cd, ChargeCooldown = rec.custom and item.ChargeCooldown or nil },
                 ns.Masque.TypeFor(barKey, rec.custom and "custom" or rec.barKey), w, h, OnLate)
         elseif rec.msqButton then
-            ns.Masque.Release(rec)
+            ReleaseSkin(item, rec, false)
         end
         rec.msqSkinned = skinned
         rec.border = rec.border or MakeBorder(ov)

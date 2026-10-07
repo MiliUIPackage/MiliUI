@@ -969,3 +969,7 @@ L["Ring bars can't hold custom items: their look is fixed when they're created, 
 L["Ring color"] = "고리 색"
 L["Ring group"] = "원형 그룹"
 L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "일부 효과만 원형으로 보려면 왼쪽 목록에서 원형 그룹을 추가한 뒤, 미리보기에서 효과를 클릭해 “위치한 바”를 그 그룹으로 지정하세요."
+
+-- 圓環條只收增益（2026-10-08）
+L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "고리 바에는 강화 효과만 넣을 수 있습니다. 기술 재사용 대기시간, 사용자 지정 주문과 아이템은 넣을 수 없습니다."
+L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "항목마다 같은 중심을 도는 고리 하나가 되고, 밝은 부분이 시간이 지나며 줄어듭니다. 고리 바에는 강화 효과만 넣을 수 있고, 반짝임과 단축키는 표시되지 않습니다."

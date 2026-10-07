@@ -55,7 +55,7 @@
 --
 -- 圓環條（layout.style ＝ "rings"，Core/Decorate.lua 的「圓環顯示」）**不進群組**：Decorate.Resolve 把 masque 壓成 false，
 -- 已經交出去的格子在套圓環前 Release（皮的方形外框、遮罩套在同心圓上沒意義，轉圈材質也要換成環形）。
--- 登入時是 Masque、執行中才切成圓環的條：卸皮留下的外框圖收不乾淨的話跟下面「群組被停用」同一個情況，重載就乾淨。
+-- 卸皮（RemoveButton）會把暴雪 item 的切角外框圖（IconOverlay）還原：Decorate 卸皮後當場重拔一次（Core/Decorate.lua 的 ReleaseSkin）。
 --
 -- 群組在 Masque 裡被停用／啟用（Masque 自己的設定）：它會自己把按鈕還成預設皮或重新套皮。
 -- 我們掛它的回呼，全部格子重套一次：停用時邊框、縮放、方角轉圈回到我們畫，但 Masque 預設皮留下的

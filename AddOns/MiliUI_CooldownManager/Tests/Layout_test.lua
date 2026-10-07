@@ -645,6 +645,15 @@ do
     check("IsRings：圖示類＋rings", Lay.IsRings({ style = "rings" }, "icons"))
     check("IsRings：長條類不算", not Lay.IsRings({ style = "rings" }, "bars"))
     check("IsRings：icons 不算", not Lay.IsRings({ style = "icons" }, "icons"))
+    -- 圓環條只收增益：核心／輔助存著 rings 也不算；增益、自訂照算
+    check("IsRings：核心、輔助不算", not Lay.IsRings({ style = "rings" }, "icons", "essential")
+        and not Lay.IsRings({ style = "rings" }, "icons", "utility"))
+    check("IsRings：增益、自訂照算", Lay.IsRings({ style = "rings" }, "icons", "buffs")
+        and Lay.IsRings({ style = "rings" }, "icons", "custom"))
+    local src = { style = "rings", spacing = 2, maxPerRow = 8, size = { w = 30, h = 30 } }
+    local asI = Lay.AsIcons(src)
+    check("AsIcons：照圖示排、其餘欄位照抄、存檔不動", asI.style == "icons" and asI.maxPerRow == 8 and asI.size == src.size
+        and src.style == "rings" and not Lay.IsRings(asI, "icons"))
     -- 參數夾範圍、取整、方向認不得退往外
     local t, g, d = Lay.RingParams({ thickness = 99, gap = -3, direction = "?" })
     check("RingParams：夾範圍、方向退 outward", t == 24 and g == 0 and d == "outward")

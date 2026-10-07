@@ -969,3 +969,7 @@ L["Ring bars can't hold custom items: their look is fixed when they're created, 
 L["Ring color"] = "Color del anillo"
 L["Ring group"] = "Grupo de anillos"
 L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "Para mostrar solo algunos efectos como anillos, añade un grupo de anillos en la columna izquierda y luego haz clic en cada efecto de la vista previa y pon «En la barra» en ese grupo."
+
+-- 圓環條只收增益（2026-10-08）
+L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "Las barras de anillos solo admiten beneficios: los tiempos de reutilización de habilidades y los hechizos y objetos propios no caben."
+L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Cada elemento es un anillo alrededor del mismo centro y la parte iluminada se acorta con el tiempo. Las barras de anillos solo admiten beneficios y no muestran brillos ni atajos."

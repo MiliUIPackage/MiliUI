@@ -1270,7 +1270,8 @@ end
 
 ------------------------------------------------------------
 -- 圓環顯示（layout.style ＝ "rings"；Core/Layout.lua 的 ComputeRings、Core/Decorate.lua 的「圓環顯示」）：
--- 圖示類的條最上面一列「顯示樣式」（切換時整張表單重建：BarSignature 帶著 style）。圓環時每列上限／成長方向／
+-- 圖示類的條最上面一列「顯示樣式」（切換時整張表單重建：BarSignature 帶著 style）。圓環條只收增益 ⇒ 這一列只在
+-- 增益圖示列與自訂圖示群組出現（核心／輔助沒有）。圓環時每列上限／成長方向／
 -- 第二列尺寸／間距／可點擊藏起來（同心圓用不到），換成下面這幾列；格數上限＋溢出、增益不在時照常
 ------------------------------------------------------------
 local STYLE_ITEMS = {
@@ -1341,14 +1342,15 @@ function Specs.Layout(key)
     local function add(s) list[#list + 1] = s end
 
     local rings = kind == "icons" and ns.DB.BarIsRings(key)
-    if kind == "icons" then
+    -- 顯示樣式：圓環條只收增益 ⇒ 只有增益圖示列與自訂圖示群組有這一列（核心／輔助沒有；存著 rings 的當圖示看，DB.BarIsRings）
+    if kind == "icons" and ns.DB.RingsAllowed(bar.source) then
         add(BS("dropdown", "layout.style", L["Display style"], { items = STYLE_ITEMS, refreshPage = true,
             get = function(info) return ns.DB.BarIsRings(info.key) and "rings" or "icons" end }))
         if rings then
-            add(Note(L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars don't show custom items, glows or keybinds."]))
+            add(Note(L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."]))
         end
-        -- 四條檢視器：整條轉圓環通常不是想要的，引導去開圓環群組、只挑幾個效果
-        if bar.source ~= "custom" then
+        -- 增益圖示列：整條轉圓環通常不是想要的，引導去開圓環群組、只挑幾個效果
+        if bar.source == "buffs" then
             add(Note(L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."]))
         end
     end
@@ -1610,7 +1612,7 @@ function Specs.BarSignature(key)
     return table.concat({
         tostring(bar.kind), tostring(bar.source),
         -- 顯示樣式（圖示／圓環）：兩種的版面列完全不同
-        (bar.kind ~= "bars" and layout.style == "rings") and "rings" or "-",
+        ns.DB.BarIsRings(key) and "rings" or "-",
         type(layout.row2Size) == "table" and "r2" or "-",
         type(bar.anchor) == "table" and "a" or "-",
         table.concat(p and p.barOrder or {}, ","),

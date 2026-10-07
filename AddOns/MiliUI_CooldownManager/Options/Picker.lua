@@ -30,8 +30,9 @@
 -- 適用範圍（2026-10-03）：常用預設與自訂 ID 的彈窗底部一列「適用範圍」下拉（戰隊／這個職業／這個專精）＋下一列灰字，
 --   加到哪一層（Core/DB.lua 的 AddCustomTo）。每次開彈窗回到那一種的預設：藥水與治療石、團隊增益、裝備欄位、種族技能＝戰隊；
 --   防禦技能＝職業；手動輸入 ID（光環／法術／物品）＝專精；背包物品＝戰隊。
--- 圓環條（DB.BarIsRings）：常用預設與自訂 ID 兩區收起來，換成一行原因（自訂項目的外觀在建立時就固定了，畫不成圓環；
---   Core/Bars.lua 也不放）。第一區（拉暴雪的項目進來）照常。
+-- 圓環條（DB.BarIsRings）只收增益（2026-10-08；Core/Bars.lua 的 RingRefuses）：第一區只列增益類的暴雪項目
+--   （Catalog.RingAccepts）、第二區只列「增益效果」分頁；常用預設只留「團隊增益」、自訂 ID 只留「光環」與「飾品欄增益」，
+--   自訂 ID 的說明換成一行原因（技能冷卻、自訂法術與物品放不進來）。
 -- 暴雪面板開著時（Catalog.IsPaused）清單不準：整個挑選器鎖住並說明，面板關掉自動重讀。
 ------------------------------------------------------------
 local _, ns = ...
@@ -253,20 +254,25 @@ function Picker.MovableInto(key)
         end
     end
     local wantBars = IsBarsKind(key)
+    -- 圓環條只收增益：冷卻類的不列（Catalog.RingAccepts）
+    local ring = ns.DB.BarIsRings(key)
+    local function Fits(id, origin)
+        return origin and IsBarsKind(origin) == wantBars and not (ring and not ns.Catalog.RingAccepts(id))
+    end
     local p = ns.profile
     for _, other in ipairs(p and p.barOrder or {}) do
         if other ~= key and BarCfg(other) then
             local shown, gone = ns.Catalog.Bar(other, true)
             for _, id in ipairs(shown) do
                 local origin = ns.Catalog.SourceOf(id)
-                if not seen[id] and origin and IsBarsKind(origin) == wantBars then
+                if not seen[id] and Fits(id, origin) then
                     seen[id] = true
                     out[#out + 1] = { id = id, from = other }
                 end
             end
             for _, id in ipairs(gone or {}) do
                 local origin = ns.Catalog.SourceOf(id)
-                if not seen[id] and origin and IsBarsKind(origin) == wantBars then
+                if not seen[id] and Fits(id, origin) then
                     seen[id] = true
                     removed[#removed + 1] = { id = id, from = other, removed = true }
                 end
@@ -287,18 +293,20 @@ function Picker.PutInto(key, entry)
     ns.Preview.MoveTo(entry.id, key, entry.from)
 end
 
+-- 候選池從哪幾條暴雪檢視器拿：內建條是自己那條、長條群組是增益長條、圖示群組是核心／輔助／增益圖示
+-- （圓環群組只收增益 ⇒ 只有增益圖示）
+local function PoolHomes(key, bar)
+    if ns.Catalog.BAR_CATEGORY_NAME[bar.source] then return { bar.source } end
+    if bar.kind == "bars" then return { "buffbars" } end
+    if ns.DB.BarIsRings(key) then return { "buffs" } end
+    return { "essential", "utility", "buffs" }
+end
+
 -- 要先去暴雪面板加的：這條對應的候選池
 function Picker.PoolFor(key)
     local bar = BarCfg(key)
     if not bar then return {} end
-    local homes
-    if ns.Catalog.BAR_CATEGORY_NAME[bar.source] then
-        homes = { bar.source }
-    elseif bar.kind == "bars" then
-        homes = { "buffbars" }
-    else
-        homes = { "essential", "utility", "buffs" }
-    end
+    local homes = PoolHomes(key, bar)
     local out = {}
     for _, h in ipairs(homes) do
         for _, id in ipairs(ns.Catalog.Pool(h)) do out[#out + 1] = id end
@@ -311,14 +319,7 @@ local HOME_TAB = { essential = "spells", utility = "spells", buffs = "auras", bu
 function Picker.PoolGroups(key)
     local bar = BarCfg(key)
     if not bar then return {} end
-    local homes
-    if ns.Catalog.BAR_CATEGORY_NAME[bar.source] then
-        homes = { bar.source }
-    elseif bar.kind == "bars" then
-        homes = { "buffbars" }
-    else
-        homes = { "essential", "utility", "buffs" }
-    end
+    local homes = PoolHomes(key, bar)
     local byTab, order = {}, {}
     for _, h in ipairs(homes) do
         local tab = HOME_TAB[h] or "spells"
@@ -473,6 +474,7 @@ local function Build()
         local b = W.CreateButton(frame, def[2], "normal", 80, 22)
         W.FitButton(b, 80, 22)
         b:SetScript("OnClick", function() Picker.AskPreset(kind) end)
+        b.pickKind = kind
         sections.presetBtns[#sections.presetBtns + 1] = b
     end
     sections.presetRow = CreateFrame("Frame", nil, frame)
@@ -497,13 +499,11 @@ local function Build()
         else
             b:SetScript("OnClick", function() Picker.AskCustom(kind) end)
         end
+        b.pickKind = kind
         sections.customBtns[#sections.customBtns + 1] = b
     end
     sections.customRow = CreateFrame("Frame", nil, frame)
     sections.customRow:SetSize(WIDTH - PAD * 2, 22)
-    -- 圓環條：常用預設與自訂 ID 的位置改放這一行原因
-    sections.ringNote = Text(frame, true)
-    sections.ringNote:SetText(L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."])
 
     -- 暴雪面板開著：整片鎖住並講原因
     local mask = CreateFrame("Frame", nil, frame, "BackdropTemplate")
@@ -583,26 +583,24 @@ function Picker.Refresh()
     end
     Place(sections.openBtn, y); y = y - 22 - 14
 
-    -- 圓環條：常用預設、自訂 ID 兩區收起來，只留一行原因
+    -- 常用預設、自訂 ID：圖示類、長條類的條都有（放在長條上的自訂項目畫成長條，見 Modules/Custom.lua）。
+    -- 圓環條只收增益：只留光環那幾顆（Picker.RingButton），其餘藏起來
     local ring = ns.DB.BarIsRings(key)
-    for _, r in ipairs({ sections.presetHead, sections.presetNote, sections.presetRow,
-                         sections.customNote, sections.customRow }) do r:SetShown(not ring) end
-    for _, b in ipairs(sections.presetBtns) do b:SetShown(not ring) end
-    for _, b in ipairs(sections.customBtns) do b:SetShown(not ring) end
-    sections.ringNote:SetShown(ring)
-    if ring then
-        Place(sections.customHead, y); y = y - 16
-        Place(sections.ringNote, y); y = y - (sections.ringNote:GetStringHeight() + 12)
-        P.Height(frame, -y)
-        sections.mask:SetShown(ns.Catalog.IsPaused())
-        return
+    local presetBtns, customBtns = {}, {}
+    for _, b in ipairs(sections.presetBtns) do
+        local on = not ring or Picker.RingButton(b.pickKind)
+        b:SetShown(on)
+        if on then presetBtns[#presetBtns + 1] = b end
     end
-
-    -- 常用預設、自訂 ID：圖示類、長條類的條都有（放在長條上的自訂項目畫成長條，見 Modules/Custom.lua）
+    for _, b in ipairs(sections.customBtns) do
+        local on = not ring or Picker.RingButton(b.pickKind)
+        b:SetShown(on)
+        if on then customBtns[#customBtns + 1] = b end
+    end
     Place(sections.presetHead, y); y = y - 16
     Place(sections.presetNote, y); y = y - (sections.presetNote:GetStringHeight() + 6)
     Place(sections.presetRow, y)
-    local _, ph = W.FlowLayout(sections.presetRow, sections.presetBtns, WIDTH - PAD * 2, 6, 4, 22)
+    local _, ph = W.FlowLayout(sections.presetRow, presetBtns, WIDTH - PAD * 2, 6, 4, 22)
     sections.presetRow:SetHeight(ph)
     y = y - ph - 14
 
@@ -611,14 +609,16 @@ function Picker.Refresh()
     local buffMode = Picker.WantsSlotBuff(key)
     sections.slotBtn:SetText(buffMode and L["Trinket buff"] or L["Equipment slot"])
     W.FitButton(sections.slotBtn, 80, 22)
-    -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），指向那顆按鈕
-    sections.customNote:SetText(L["Track an aura on you, or a spell or item cooldown, by its ID."] .. "\n"
+    -- 飾品：暴雪那邊的裝備欄項目時有時無（拖進去了條上卻沒有框），指向那顆按鈕。
+    -- 圓環條：第一句換成原因（只收增益）
+    sections.customNote:SetText((ring and L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."]
+            or L["Track an aura on you, or a spell or item cooldown, by its ID."]) .. "\n"
         .. (buffMode
             and L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button instead: it follows whatever trinket is equipped."]
             or L["Blizzard's trinket tracking is unreliable. Use the \"Equipment slot\" button instead: it follows whatever is equipped in that slot."]))
     Place(sections.customNote, y); y = y - (sections.customNote:GetStringHeight() + 6)
     Place(sections.customRow, y)
-    local _, bh = W.FlowLayout(sections.customRow, sections.customBtns, WIDTH - PAD * 2, 6, 4, 22)
+    local _, bh = W.FlowLayout(sections.customRow, customBtns, WIDTH - PAD * 2, 6, 4, 22)
     sections.customRow:SetHeight(bh)
     y = y - bh - 12
 
@@ -1145,8 +1145,13 @@ function Picker.WantsSlotBuff(key)
     local b = key and BarCfg(key)
     if not b then return false end
     if BUFF_SOURCES[key] or BUFF_SOURCES[b.source] then return true end
+    if ns.DB.BarIsRings(key) then return true end         -- 圓環群組只收增益
     return b.kind == "bars"
 end
+
+-- 圓環條上留哪幾顆鈕（只收增益）：常用預設的「團隊增益」、自訂 ID 的「光環」與裝備欄那顆（圓環條上是「飾品欄增益」）
+local RING_BUTTONS = { auras = true, aura = true, slot = true }
+function Picker.RingButton(kind) return RING_BUTTONS[kind] == true end
 
 function Picker.SlotBuffRows(slots, indicesOf, added)
     local out = {}

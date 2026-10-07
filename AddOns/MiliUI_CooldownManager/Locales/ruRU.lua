@@ -969,3 +969,7 @@ L["Ring bars can't hold custom items: their look is fixed when they're created, 
 L["Ring color"] = "Цвет кольца"
 L["Ring group"] = "Группа колец"
 L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "Чтобы показать кольцами только несколько эффектов, добавьте группу колец в левой колонке, затем щёлкните эффект в предпросмотре и выберите её в поле «На панели»."
+
+-- 圓環條只收增益（2026-10-08）
+L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "На панель колец можно добавить только баффы: восстановление способностей, свои заклинания и предметы туда не попадут."
+L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Каждый элемент становится кольцом вокруг общего центра, светлая часть сокращается со временем. Панель колец принимает только баффы и не показывает свечение и клавиши."

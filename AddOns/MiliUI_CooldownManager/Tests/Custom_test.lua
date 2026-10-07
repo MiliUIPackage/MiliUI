@@ -206,6 +206,12 @@ eq("沒學會 ⇒ isKnown false", iu.isKnown, false)
 eq("SourceOf 自訂 ＝ 它的 bar", C.SourceOf("c:5"), "utility")
 eq("Info 不存在的自訂", C.Info("c:99"), nil)
 check("IsAuraSlot", C.IsAuraSlot("c:1") and not C.IsAuraSlot("c:2"))
+-- 圓環條只收增益（2026-10-08）：光環格收、自訂法術／物品不收；暴雪的格子看來源（增益收、核心／輔助不收）
+check("RingAccepts：光環格收", C.RingAccepts("c:1"))
+check("RingAccepts：自訂法術、物品不收", not C.RingAccepts("c:2") and not C.RingAccepts("c:3"))
+check("RingAccepts：暴雪增益格收", C.RingAccepts(31))
+check("RingAccepts：核心、輔助的格不收", not C.RingAccepts(11) and not C.RingAccepts(21))
+check("RingAccepts：不存在的不收", not C.RingAccepts("c:99") and not C.RingAccepts(999))
 
 -- 壞資料（匯入字串帶進來的）一律當不存在
 DB.CustomList(false)[6] = { kind = "spell" }
@@ -769,6 +775,135 @@ do
     CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 7)
     eq("光環搬回長條：同一顆持有框", arec.frame, barHolder)
     eq("光環搬回長條：同簽章拿回同一個容器（不重建）", arec.container, c)
+
+    -- 圓環條（光環格畫成一圈，見 Modules/Custom.lua 的「光環格畫成圓環」）：rect 帶 ring／tex ⇒ st.shape "rings"、
+    -- 圈數與貼圖進簽章（換圈數換容器）、文字位置照 Layout.RingTextPlace、發光／Masque／自訂文字不解、
+    -- initializeFrame 走圓環版（軌道＋環形 swipe 的 Cooldown 交給 SetDurationCooldown、層數不給格式器）、
+    -- 持有框依圈數墊層級、占位走 Decorate.ApplyRingPlaceholder；搬回一般條就回方形
+    do
+        local aid = arec.cooldownID
+        local rkey = DB.CreateBar("rings", "圓環")
+        check("圓環群組是圓環條", DB.BarIsRings(rkey))
+        local RS = { thick = 8, gap = 3, dir = "outward", track = { r = 0.1, g = 0.2, b = 0.3, a = 0.9 },
+                     timeText = "top", showIcon = false, iconSize = 14 }
+        local phCalls = {}
+        local savedDeco = ns.Decorate
+        ns.Decorate = setmetatable({
+            RingStyle = function(k) return k == rkey and RS or nil end,
+            RingFill = function(c) if type(c) == "table" then return c.r, c.g, c.b, c.a end return 0.5, 0.6, 0.7, 1 end,
+            ApplyRingPlaceholder = function(ph, k, r) phCalls[#phCalls + 1] = { ph = ph, key = k, ring = r.ring, tex = r.tex } end,
+            ApplyPlaceholder = function() end,
+        }, { __index = savedDeco })
+        local savedLY = ns.Layout
+        ns.Layout = setmetatable({ RingTextPlace = RealLayout.RingTextPlace, RingFile = RealLayout.RingFile }, { __index = savedLY })
+
+        -- 不給 ring（一般條）⇒ 方形
+        local st0 = CU.AuraStyle(arec, rkey, 80, 80, "icons")
+        check("沒給 ring ⇒ 不是圓環", st0.shape ~= "rings" and st0.ring == nil)
+        local st = CU.AuraStyle(arec, rkey, 80, 80, "icons", { ring = 2, tex = 7 })
+        eq("圓環：shape", st.shape, "rings")
+        check("圓環：圈數、貼圖、路徑", st.ring and st.ring.rank == 2 and st.ring.tex == 7 and st.ring.path:find("ring%-07%.png$") ~= nil)
+        check("圓環：簽章帶圈數與貼圖", st.sig:find("|rings,2,7,", 1, true) ~= nil, st.sig)
+        local st3 = CU.AuraStyle(arec, rkey, 102, 102, "icons", { ring = 3, tex = 6 })
+        check("圓環：換圈數 ⇒ 簽章不同", st3.sig ~= st.sig)
+        check("圓環：只換貼圖 ⇒ 簽章不同", CU.AuraStyle(arec, rkey, 80, 80, "icons", { ring = 2, tex = 8 }).sig ~= st.sig)
+        local pl = RealLayout.RingTextPlace(RS, st.cdSize)
+        check("圓環：文字位置照 RingTextPlace（頂端環帶、倒數置中）", st.ring.y == -4 and st.ring.y == pl.y
+            and st.ring.cdPoint == "CENTER" and st.ring.cdX == 0 and st.ring.extraX == pl.extraX)
+        check("圓環：軌道色、填色（沒覆寫 ⇒ 條的填色）解成純數字", st.ring.track[1] == 0.1 and st.ring.track[4] == 0.9
+            and st.ring.fill[1] == 0.5 and st.ring.fill[3] == 0.7)
+        DB.SetOverride(aid, "ringColor", { r = 1, g = 0, b = 0, a = 1 })
+        local stC = CU.AuraStyle(arec, rkey, 80, 80, "icons", { ring = 2, tex = 7 })
+        check("圓環：這一招的圓環顏色 ⇒ 填色、進簽章", stC.ring.fill[1] == 1 and stC.ring.fill[2] == 0 and stC.sig ~= st.sig)
+        DB.SetOverride(aid, "ringColor", nil)
+        -- 發光、自訂文字在圓環上不解
+        DB.SetOverride(aid, "activeGlow", true)
+        DB.SetOverride(aid, "labelText", "提醒")
+        local stG = CU.AuraStyle(arec, rkey, 80, 80, "icons", { ring = 2, tex = 7 })
+        check("圓環：生效發光、自訂文字不解", stG.glow == nil and stG.label == nil and stG.msq == nil and stG.normal == nil)
+        DB.SetOverride(aid, "activeGlow", nil)
+        DB.SetOverride(aid, "labelText", nil)
+        -- 開圖示：圖示裁切照 iconSize、倒數接在圖示右邊
+        RS.showIcon = true
+        local stI = CU.AuraStyle(arec, rkey, 80, 80, "icons", { ring = 2, tex = 7 })
+        check("圓環＋圖示：倒數 LEFT、接在圖示右緣外", stI.ring.cdPoint == "LEFT" and stI.ring.cdX == 9 and stI.sig ~= st.sig)
+        RS.showIcon = false
+        -- 倒數文字：不顯示 ⇒ 不建倒數
+        RS.timeText = "hide"
+        eq("圓環：倒數文字不顯示 ⇒ hideCD", CU.AuraStyle(arec, rkey, 80, 80, "icons", { ring = 2, tex = 7 }).hideCD, true)
+        RS.timeText = "top"
+
+        -- 放上圓環條：持有框依圈數墊層級、容器簽章是圓環的
+        local cont3 = Obj("Frame")
+        cont3.level = 10
+        CU.Place(arec, cont3, { x = 11, y = 11, w = 80, h = 80, ring = 2, tex = 7 }, rkey, 81)
+        check("放上圓環條：記下圈數與貼圖", arec.placeRing and arec.placeRing.ring == 2 and arec.placeRing.tex == 7)
+        eq("放上圓環條：持有框層級＝容器＋2＋(40−圈數)", arec.frame.level, 10 + 2 + 38)
+        check("放上圓環條：容器簽章是圓環的", arec.sig:find("|rings,2,7,", 1, true) ~= nil)
+        eq("留空位（圓環群組預設）⇒ 占位不畫", #phCalls, 0)
+        local cR = arec.container
+        local rbtn = Obj("Frame")
+        local rgot = {}
+        function rbtn:SetIcon(t) rgot.icon = t end
+        function rbtn:SetDurationCooldown(cd) rgot.cd = cd end
+        function rbtn:SetDurationText(fs, opts) rgot.text, rgot.textOpts = fs, opts end
+        function rbtn:SetApplicationCount(...) rgot.countArgs = { n = select("#", ...), ... } end
+        arec.lastError, arec.ringInits, arec.glowAttached = nil, 0, nil
+        local labels0 = arec.labelsBaked or 0
+        cR.slot.opts.initializeFrame(rbtn)
+        eq("圓環 initializeFrame：沒有錯誤", arec.lastError, nil)
+        eq("圓環 initializeFrame：走圓環版", arec.ringInits, 1)
+        local rcd = rgot.cd
+        check("圓環：Cooldown 交給 SetDurationCooldown", rcd and rcd.otype == "Cooldown")
+        check("圓環：swipe 是環形貼圖、亮的部分＝剩餘時間（SetReverse(false)）",
+            rcd and rcd.last_SetSwipeTexture and rcd.last_SetSwipeTexture[1]:find("ring%-07%.png$") ~= nil
+            and rcd.last_SetReverse and rcd.last_SetReverse[1] == false)
+        check("圓環：swipe 顏色＝填色、不畫邊緣與閃光", rcd and rcd.last_SetSwipeColor[1] == 0.5
+            and rcd.last_SetDrawEdge[1] == false and rcd.last_SetDrawBling[1] == false)
+        check("圓環：圖示照給 SetIcon", rgot.icon and rgot.icon.otype == "Texture")
+        check("圓環：沒開圖示 ⇒ 圖示所在的框 alpha 0", rgot.icon and rgot.icon.parent.last_SetAlpha
+            and rgot.icon.parent.last_SetAlpha[1] == 0)
+        check("圓環：倒數錨在這一圈頂端的環帶", rgot.text and rgot.text.last_SetPoint and rgot.text.last_SetPoint[1] == "CENTER"
+            and rgot.text.last_SetPoint[3] == "TOP" and rgot.text.last_SetPoint[5] == -4)
+        check("圓環：層數 SetApplicationCount(fs)（不給格式器）", rgot.countArgs and rgot.countArgs.n == 1)
+        check("圓環：不畫發光、不烘自訂文字", arec.glowAttached == nil and (arec.labelsBaked or 0) == labels0)
+
+        -- 換圈數（前面多一個）⇒ 換容器
+        CU.Place(arec, cont3, { x = 0, y = 0, w = 102, h = 102, ring = 3, tex = 6 }, rkey, 82)
+        check("換圈數 ⇒ 換一顆容器", arec.container ~= cR and arec.sig:find("|rings,3,6,", 1, true) ~= nil)
+        eq("換圈數 ⇒ 持有框層級跟著換", arec.frame.level, 10 + 2 + 37)
+        -- 戰鬥中改圓環設定 ⇒ 只記旗標，脫戰才換容器
+        env.InCombatLockdown = function() return true end
+        local cBefore = arec.container
+        RS.thick = 10
+        CU.Place(arec, cont3, { x = 0, y = 0, w = 102, h = 102, ring = 3, tex = 6 }, rkey, 83)
+        eq("戰鬥中：容器不換", arec.container, cBefore)
+        check("戰鬥中：記旗標", (CU.IsPending(arec)))
+        env.InCombatLockdown = function() return false end
+        local savedUnreg = ns.Events.Unregister
+        ns.Events.Unregister = ns.Events.Unregister or function() end
+        CU.OnRegen()
+        ns.Events.Unregister = savedUnreg
+        check("脫戰：換成新設定的容器", arec.container ~= cBefore and not (CU.IsPending(arec)))
+        RS.thick = 8
+
+        -- 暗圖示 ⇒ 占位只畫這一圈的軌道
+        local rb = DB.BarTable(rkey)
+        rb.layout.emptyMode = "dim"
+        CU.Place(arec, cont3, { x = 0, y = 0, w = 102, h = 102, ring = 3, tex = 6 }, rkey, 84)
+        local last = phCalls[#phCalls]
+        check("暗圖示 ⇒ ApplyRingPlaceholder（這一圈的貼圖）", last and last.key == rkey and last.ring == 3 and last.tex == 6)
+        rb.layout.emptyMode = "blank"
+
+        -- 搬回一般條：圈數清掉、簽章回方形
+        CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 85)
+        check("搬回一般條：不是圓環了", arec.placeRing == nil and not arec.sig:find("|rings,", 1, true))
+        eq("搬回一般條：持有框層級＝容器＋2", arec.frame.level, (cont1:GetFrameLevel() or 1) + 2)
+
+        ns.Decorate, ns.Layout = savedDeco, savedLY
+        DB.DeleteBar(rkey)
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 7)    -- 回到這一段開頭的狀態
+    end
 
     -- EndFlush：長條類的條上的不收；條不在了才收
     CU.EndFlush()
@@ -1396,6 +1531,23 @@ do
         local occ = B.Occupancy(index)
         eq("Occupancy：代畫格佔一格", occ("essential", 198603), true)
         eq("Occupancy：缺框的一般法術不佔", occ("essential", 12), false)
+
+        -- 圓環條只收增益（RingRefuses）：暴雪冷卻格、自訂法術、代畫格不放；增益格、光環格放
+        local item31 = Obj("Frame")
+        ns.Viewers.frames[item31] = { barKey = "buffs", cooldownID = 31 }
+        check("RingRefuses：核心的格不收", B.RingRefuses(11, item11, nil))
+        check("RingRefuses：增益格收", not B.RingRefuses(31, item31, nil))
+        check("RingRefuses：光環格收、自訂法術不收", not B.RingRefuses("c:1", nil, { kind = "aura" })
+            and B.RingRefuses("c:2", nil, { kind = "spell" }))
+        check("RingRefuses：代畫格不收", B.RingRefuses(198603, nil, nil))
+        check("RingRefuses：暴雪沒給框的一般法術不算跳過", not B.RingRefuses(12, nil, nil))
+        local rk = DB.CreateBar("rings", "圓環")
+        local occR = B.Occupancy({ [11] = item11, [31] = item31 })
+        eq("Occupancy：圓環條上的冷卻格不佔", occR(rk, 11), false)
+        eq("Occupancy：圓環條上的增益格照佔", occR(rk, 31), true)
+        eq("Occupancy：一般條照舊", occR("essential", 11), true)
+        DB.DeleteBar(rk)
+        ns.Viewers.frames[item31] = nil
 
         -- Sync 不能誤殺（代畫不在生效清單裡）
         CU.Sync()

@@ -1412,10 +1412,15 @@ function DB.OwnSet(barKey, path, v)
     return DB.SetPath(bar, DB.BarStoragePath(path), v)
 end
 
--- 圓環條（圖示類＋layout.style ＝ "rings"）的唯一判準（Bars／Catalog／設定頁／挑選器都問這支；幾何本身在 Layout.IsRings）
+-- 圓環條（圖示類＋layout.style ＝ "rings"）的唯一判準（Bars／Catalog／設定頁／挑選器都問這支；幾何本身在 Layout.IsRings）。
+-- 圓環條只收增益（2026-10-08）：核心／輔助（冷卻類的暴雪檢視器）沒有圓環，存檔裡已經是 rings 的照留、一律當圖示看
+-- （不遷移、不改存檔）。⚠ 跟 Core/Layout.lua 的 RING_DENY_SOURCE 是同一份規則（DB 比 Layout 先載入，各放一份）
+local RING_DENY_SOURCE = { essential = true, utility = true }
+function DB.RingsAllowed(source) return not RING_DENY_SOURCE[source] end
 function DB.BarIsRings(key)
     local b = BarTable(key)
-    return b ~= nil and b.kind ~= "bars" and type(b.layout) == "table" and b.layout.style == "rings" or false
+    return b ~= nil and b.kind ~= "bars" and not RING_DENY_SOURCE[b.source]
+        and type(b.layout) == "table" and b.layout.style == "rings" or false
 end
 
 local BUILTIN = { essential = true, utility = true, buffs = true, buffbars = true }

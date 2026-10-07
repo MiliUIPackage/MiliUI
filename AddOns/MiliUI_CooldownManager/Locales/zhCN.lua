@@ -969,3 +969,7 @@ L["Ring bars can't hold custom items: their look is fixed when they're created, 
 L["Ring color"] = "圆环颜色"
 L["Ring group"] = "圆环组"
 L["To show only a few effects as rings, add a ring group in the left column, then click each effect in the preview and set “On bar” to it."] = "只想让其中几个效果变成圆环：在左栏新增“圆环组”，再点预览里的效果，把“所在条”设成它。"
+
+-- 圓環條只收增益（2026-10-08）
+L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "圆环条只收增益：技能冷却、自定义法术与物品放不进来。"
+L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "每个项目一圈、围着同一个圆心，亮的部分随时间缩短。圆环条只收增益，也不画发光与按键文字。"
