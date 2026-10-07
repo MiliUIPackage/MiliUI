@@ -53,6 +53,9 @@
 -- 飾品欄增益（自訂項目 kind "slotbuff"，Catalog.Info 回 kind "aura"＋slotBuff）：列跟光環格一樣；身分行寫「飾品 N · 飾品欄增益」，
 --   滑過左上角圖示是 Catalog.SlotBuffTooltip（跟挑選器、預覽格同一支）；解不出增益時一般分頁多一列黃字原因。
 --
+-- 圓環顏色（圓環條才有；外觀分頁、增益持續時間背景色下面）：勾「自訂」＋色票（同邊框顏色那一套），寫 overrides[id].ringColor；
+--   沒自訂＝條的填色（ring.fillColor，false ＝ 職業色）。圓環條上「所在條」下拉不列別的圓環條給自訂項目（Core/Bars.lua 不放）。
+--
 -- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
 --   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
 --
@@ -1598,6 +1601,14 @@ local function Build()
         return r2
     end
     ColorOverrideRow(L["Buff duration swipe color"], "durationSwipeColor", true,  { r = 1,    g = 0.9,  b = 0.5,  a = 0.5 })
+    -- 圓環顏色（圓環條才有，Core/Decorate.lua 的「圓環顯示」）：區分不同效果用（不是狀態色）。沒自訂＝條的填色；
+    -- 條的填色是職業色（false）時色票顯示職業色（代理表：每次讀現算，強調色登入後才解得出來）
+    local classFill = setmetatable({}, { __index = function(_, k)
+        local r, g, b = ns.Style.Accent()
+        if k == "r" then return r elseif k == "g" then return g elseif k == "b" then return b elseif k == "a" then return 1 end
+    end })
+    local function OnRings() return cur ~= nil and ns.DB.BarIsRings(cur.key) end
+    ColorOverrideRow(L["Ring color"], "ringColor", true, classFill, OnRings, function() return true end, true)
 
     -- 灰字說明列（控件欄寬、下一列；跟上面幾段同一個做法）
     local function NoteRow(text, when)
@@ -2166,7 +2177,8 @@ local function BarItems(id)
     if ns.Catalog.IsCustom(id) then
         for _, k in ipairs(p and p.barOrder or {}) do
             local b = ns.DB.BarTable(k)
-            if b then
+            -- 圓環條不收自訂項目（Core/Bars.lua 不放）；它現在就在那條上的照列（看得到自己在哪）
+            if b and (not ns.DB.BarIsRings(k) or (cur and cur.key == k)) then
                 items[#items + 1] = { text = ns.Options.PageTitle(k) or ns.Options.BarTitle(k), value = k }
             end
         end

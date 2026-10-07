@@ -104,6 +104,20 @@ local function IconBar(o)
             -- 只有圖示類的條讀（長條類也帶著這兩欄，用不到）
             maxIcons   = 0,                         -- 0 ＝ 不限；1～20
             overflowTo = false,                     -- false 或另一條圖示類的條的 key
+            -- 顯示樣式（圖示類才讀；2026-10-08 加，舊存檔沒有 ＝ 補 "icons"，不遷移）：
+            -- "icons" 方形圖示｜"rings" 圓環（每格一圈同心圓，幾何在 Core/Layout.lua 的 ComputeRings；基準直徑沿用 size.w）
+            style      = "icons",
+        },
+        -- 圓環的設定（layout.style ＝ "rings" 才讀；2026-10-08 加，舊存檔由 MergeDefaults 補，不遷移）
+        ring       = {
+            thickness  = 8,                         -- 環寬 px，整數 2～24
+            gap        = 3,                         -- 圈與圈的間距 px，整數 0～16
+            direction  = "outward",                 -- "outward" 第一個在最內圈｜"inward" 第一個在最外圈
+            trackColor = rgba(0.04, 0.06, 0.08, 0.9),   -- 軌道（深色底環）
+            fillColor  = false,                     -- 填色：false ＝ 職業色，或 { r, g, b, a }（逐法術覆寫 ringColor 優先）
+            timeText   = "top",                     -- "top" 倒數在每圈頂端的環帶上｜"hide" 不顯示
+            showIcon   = false,                     -- 法術圖示放在每圈頂端的環帶中央
+            iconSize   = 14,                        -- px，8～32
         },
         follow     = { text = true, icon = true, glow = true, fade = true },
         text = {}, icon = {}, glow = {}, fade = {},
@@ -1213,6 +1227,9 @@ local SPELL_FALLBACK = {
     barShowName     = "bar.showName",
     barNameFont     = "bar.nameFont",
     barNameSize     = "bar.nameSize",
+    -- 圓環的填色（圓環條才用；Core/Decorate.lua 的 SpellStyle）：色表＝這一招的填色；沒覆寫跟隨條的 ring.fillColor
+    -- （條層 false ＝ 職業色，所以讀到 false 也是職業色）。「區分不同效果」用，不是狀態色
+    ringColor       = "ring.fillColor",
 }
 -- 沒有條層對應的覆寫欄位 → 固定預設
 local SPELL_CONST = {
@@ -1374,14 +1391,22 @@ function DB.OwnSet(barKey, path, v)
     return DB.SetPath(bar, DB.BarStoragePath(path), v)
 end
 
+-- 圓環條（圖示類＋layout.style ＝ "rings"）的唯一判準（Bars／Catalog／設定頁／挑選器都問這支；幾何本身在 Layout.IsRings）
+function DB.BarIsRings(key)
+    local b = BarTable(key)
+    return b ~= nil and b.kind ~= "bars" and type(b.layout) == "table" and b.layout.style == "rings" or false
+end
+
 local BUILTIN = { essential = true, utility = true, buffs = true, buffbars = true }
 function DB.IsBuiltinBar(key) return BUILTIN[key] == true end
 
 -- 「可點擊」的唯一判準（Bars／設定頁／Core/Clickable.lua 都問這支）：只有自訂的圖示群組。
 -- 內建條與長條型群組有這欄也不讀（nil 當 false，不做遷移）
+-- 圓環條不可點擊（同心圓的格子是一層套一層的正方形，secure 鈕會互相蓋住）；勾選值留著，切回圖示就回來
 function DB.BarClickable(key)
     local b = BarTable(key)
-    return (b ~= nil and b.kind == "icons" and b.source == "custom" and b.clickable == true) and true or false
+    return (b ~= nil and b.kind == "icons" and b.source == "custom" and b.clickable == true
+        and not DB.BarIsRings(key)) and true or false
 end
 
 -- 「面板」：資源條、自訂格子、施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
@@ -1584,6 +1609,8 @@ DB.OVERRIDE_GROUP = {
     -- 自成一組 ⇒ 條頁任何一節的「清除覆寫」都不會把玩家打的字清掉（只有小窗右鍵各列、「還原此法術」清）
     labelText = "label", labelFont = "label", labelSize = "label", labelColor = "label",
     labelPoint = "label", labelX = "label", labelY = "label",
+    -- 圓環顏色：外觀（逐法術小窗的「外觀」分頁），跟邊框顏色同一組
+    ringColor = "icon",
 }
 
 -- 某個 id 的覆寫表（{ 欄位 = 值 }）。唯一的分流點：

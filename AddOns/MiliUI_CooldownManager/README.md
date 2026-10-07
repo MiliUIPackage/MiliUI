@@ -1423,6 +1423,58 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - 小窗「文字」分頁：長條上的格（橫向）最上面一節「名字」——「顯示名字」勾選框（沒覆寫時勾選照條的值、灰字講跟隨誰；右鍵標籤回跟隨）、
   字型、字級（6～30）；接著的倒數那一節在長條上的格標題改「時間」、隱藏改「隱藏時間」（同一個 `hideCooldownText`）。
 
+### 圓環顯示（`Core/Layout.lua`、`Core/Decorate.lua`、`Core/Text.lua`、`Core/Bars.lua`、`Core/Glow.lua`、`Options/Specs.lua`、`Options/Preview.lua`，2026-10-08）
+
+圖示類的條多一個「顯示樣式：圖示／圓環」（`layout.style`）。圓環＝每格一圈同心圓、進度沿環走，亮的那段＝剩下的時間。
+任何圖示類的條都能切（增益圖示最常用；核心／輔助放上去就是冷卻轉圈）。實作計畫在 `~/.claude/plans/miliui-cdm-rings.md`。
+
+- **不自己建 Cooldown，改造暴雪 item 自己的 `item.Cooldown`**：光環時間沒有轉到自家 Cooldown 的路（`GetCooldownTimes` 秘密值、
+  SetCooldown 後掛勾轉交在秘密下被拒、探針的 duration 物件是法術冷卻不是光環）⇒ 讓暴雪照常驅動，只換外觀：
+  `SetSwipeTexture(環形貼圖)`、`SetReverse(false)`（增益圖示 XML 是 `reverse="true"`）、`SetDrawBling(false)` 各設一次——
+  暴雪的 Lua 只在刷新時 `SetSwipeColor`／`SetDrawSwipe`／`CooldownFrame_Set`，**不會**重設 swipe 貼圖與 reverse；
+  填色走 `rec.style.swipe`（`AfterCooldown` 每次重套），邊緣 `rec.style.drawEdge = false`。全程不讀秘密值。
+- **軌道**（深色底環）畫在我們自己的子框 `rec.ringTrack`（item 的子框、層級＝Cooldown − 1），同一張貼圖 `SetVertexColor` 上色。
+- **圖示**：`item.Icon` 換父層到 `rec.ringIcon`（Cooldown 上面一層、overlay 底下；跟層數 FontString 搬到 TextHolder 同一招）。
+  「顯示法術圖示」關著時那個框 alpha 0（暴雪哪天對圖示 SetAlpha 也露不出來）；開著時圖示錨在這一圈頂端環帶正中央、尺寸 `ring.iconSize`。
+- **幾何**（`Layout.Compute` 的 `ComputeRings`，純函式）：第 1 個 entry 最內圈（`ring.direction = "outward"`；`"inward"` 反過來）；
+  基準直徑＝`layout.size.w`；第 k 圈直徑 `base + 2(k−1)(thick+gap)`；格子是邊長 D 的正方形、偏移 `(n−k)·step`（整數），錨點固定 CENTER。
+  rect 多帶 `ring`（從內往外第幾圈）與 `tex`（第幾張貼圖）。`maxPerRow`／`row2Size`／`grow`／`spacing` 不看；`maxIcons`／`overflowTo`／`emptyMode` 照常
+  （「隱藏，留空位」照樣佔一圈 ⇒ 每個效果固定在同一圈）。
+- **環的粗細**：`SetSwipeTexture` 會把貼圖拉滿 Cooldown ⇒ 環寬跟直徑成正比。每圈依 `thick / D` 挑「環寬比例」最接近的貼圖
+  （`Layout.RingTexture`，對數距離；`Media/ring-01.png`～`ring-20.png`，0.02～0.30 等比 20 階，由 `.claude/skills/miliui-cdm-ring-textures` 的 Pillow 腳本產生）。
+  不走「實心圓＋遮罩挖洞」的連續粗細（要對暴雪 Cooldown 內部的 swipe 貼圖 `AddMaskTexture`，侵入性高）。
+- **文字**：倒數（暴雪內建數字）錨在每圈 `TOP` 往下 `thick/2`（頂端環帶上），同心圓的數字上下錯開；層數／充能接在右邊
+  （位置是純函式 `Layout.RingTextPlace`；不錨在倒數那顆 FontString 上——它的字是引擎寫的，寬度可能是秘密值，錨定鏈會傳染，改用估的偏移）。
+  開圖示時圖示置中、倒數接在圖示右邊。`ring.timeText = "hide"` ＝ `SetHideCountdownNumbers(true)`（`Decorate.Reattach` 也照這個補）。
+  字型／字級／顏色照「文字」分頁；錨點／偏移那幾列在圓環條上不生效。
+- **顏色**：軌道 `ring.trackColor`；填色 `ring.fillColor`（false ＝ 職業色，`Style.Accent`）；逐法術「圓環顏色」（`overrides[id].ringColor`，
+  `SPELL_FALLBACK` 指回 `ring.fillColor`，`OVERRIDE_GROUP` 歸 `"icon"`）有就用它——區分不同效果用，不是狀態色。
+- **overlay 層級內圈高、外圈低**（`EnsureOverlay` 的 ringRank：`+10 + (40 − 圈數)`）：一層套一層的正方形，內圈的整個在外圈裡面 ⇒ 滑鼠提示內圈優先；
+  外圈的環帶露在內圈正方形外面，照樣拿得到。
+- **不畫的**：我們的方形邊框、暴雪的減益框（alpha 0）、觸發／就緒／生效／充能滿／下一招醒目標示（`Glow.Start` 擋 `rec.ring`、`Glow.Sync` 熄掉已亮的；
+  暴雪的觸發發光照樣熄）、層數門檻發光（`StackGate.Apply` 當沒設定）、按鍵文字（`Keybinds.Apply`）。不進 Masque 群組（`Resolve` 把 masque 壓成 false、已交的先 Release）。
+  圓形發光之後另開一項（MiliUIGlow 沒有圓形版）。
+- **自訂項目不支援**（光環格、自訂法術／物品、代畫的裝備欄格）：它們的樣式在建立當下就烘死（光環格的 initializeFrame），換圓環得重建容器。
+  `Bars.Relayout` 在圓環條上不放它們（`state.ringSkipped`，`/mcdm debug` 印「自訂項目 N 筆沒畫」）；挑選器的常用預設／自訂 ID 兩區收起來換成一行原因；
+  預覽照樣列出來、標暗、提示寫原因；拖曳與小窗「所在條」不收圓環條。`Catalog.BarHasAuraSlot` 對圓環條回 false（不逼固定格位）。
+- **不可點擊**：`DB.BarClickable` 對圓環條回 false（secure 鈕會互相蓋住；勾選值留著，切回圖示就回來）。設定頁那一列在圓環時藏起來。
+- 「增益不在時：暗圖示」的占位只畫那一圈的軌道（`Decorate.ApplyRingPlaceholder`）。
+- **還原**（`Decorate.RestoreRing`）：條改回圖示、item 搬到別的條（`D.Apply` 判 `rec.ring` 而這一輪不是圓環）、還給暴雪（`Bars.ReleaseAll`）都走這支——
+  swipe 貼圖改回方形（`SquareSwipe` 的 WHITE；交給 Masque 的由接著的 Sync 換成皮的）、reverse／bling 照第一次套圓環前讀到的值（讀不到照模板：增益圖示 true、
+  核心／輔助 false；bling 畫）、圖示換回 item 並貼回整格、軌道收起來、倒數錨點交回圖示中央（接著 `Text.ApplyIcon` 照設定重錨）。
+  `D.Reattach`（暴雪重新取出）把 swipe 貼圖／reverse／bling 再套一次（三個 setter，保險）。
+- 編輯模式的最小尺寸（`EditMode.CellSize`）：圓環＝base × base。
+- 設定頁「版面」分頁：圖示類的條最上面「顯示樣式」下拉（`BarSignature` 帶 style ⇒ 切換時整張表單重建）。圓環時藏每列上限／間距／成長方向／圖示尺寸／
+  第二列尺寸／可點擊，換成：最內圈直徑（`layout.size.w`，16～200）、環寬（2～24）、圓環間距（0～16）、圓環方向（由內往外／由外往內）＋灰字、
+  軌道顏色、使用職業色＋填色（職業色時停用）、倒數文字（圓環頂端／不顯示）、顯示法術圖示、圖示尺寸（8～32，沒開圖示時停用）＋灰字；
+  格數上限＋溢出、增益不在時（＋「留空位就固定在同一圈」灰字）照常。預覽：`NewRingCell`（軌道貼圖＋環形 swipe 的 Cooldown＋圖示框），
+  每圈都跑假的十五秒循環、內圈層級高，「＋」在整組右邊；拖曳排序照「游標離圓心多遠」挑最近那一圈。
+- DB：`layout.style = "icons"`、`ring = { thickness 8, gap 3, direction "outward", trackColor, fillColor false, timeText "top", showIcon false, iconSize 14 }`，
+  純新增欄位、`MergeDefaults` 補 ⇒ 不遷移、不升 `DB_VERSION`。
+- 跟計畫不同：圖示用換父層＋框的 alpha 藏（計畫寫「圖示 alpha 0、只呼叫 SetPoint／SetSize／SetAlpha」）——不換父層的話圖示在 Cooldown 底下，
+  開「顯示法術圖示」時環形 swipe 會蓋過圖示；暴雪對圖示 SetAlpha 也會把整格大的圖示露出來。按鍵文字、層數門檻發光也一起不畫（計畫只寫發光）。
+  圓環條不可點擊（計畫沒提）。
+
 ## 資源條與施法條
 
 五者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）、天空騎術（`skyriding`，見「天空騎術」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
@@ -3105,6 +3157,26 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 396. 條開著名字、這一招取消勾選 ⇒ 只有這一條名字消失；條關掉名字、這一招勾起來 ⇒ 只有這一條有名字；右鍵「顯示名字」標籤 ⇒ 回到跟條、灰字「（跟隨『條名』）」。
 397. 字型／字級只那一格變；暴雪增益長條、自訂法術／物品長條、自訂光環長條（含它的灰色占位名字）、設定頁預覽各試一次；
      光環長條在戰鬥中改要脫戰才換。條頁文字分頁「清除覆寫」一起清掉這三項。
+
+**圓環顯示（2026-10-08）**
+
+398. 增益圖示列切成圓環：環形 swipe 在暴雪 buff Cooldown 上正確顯示；`SetReverse(false)` 後**亮的那段＝剩餘時間**、隨時間縮短。
+     方向反了 ⇒ 改成 `SetReverse(true)` 並把填色／軌道色對調畫法（`Decorate.ApplyRing`／`ReapplyRingCore`）。
+399. 暴雪重新取出 item（`OnAcquireItemFrame`：buff 上下、換專精、進出編輯模式、暴雪設定面板改版面）之後 swipe 貼圖／reverse 有沒有被洗掉
+     （`D.Reattach` 有補，但真的被洗掉的話要找出是哪一支、改成後掛勾）。
+400. 戰鬥中 buff 上身／刷新／消失，圓環照常走、零錯誤、`/console taintLog 2` 零新條目；首領戰與 M+ 各一次。
+401. 同心圓倒數數字上下錯開、不重疊；字級 10 在環寬 8 上讀得清楚嗎（層數／充能接在倒數右邊的估算偏移對不對）。開「顯示法術圖示」時圖示＋數字的排列、
+     圖示 14 在環寬 8＋間距 3 上蓋到相鄰圈的程度。
+402. 切回圖示、把 item 搬去別條（拖到自訂群組）、`/reload`、`/mcdm release` 之後方形外觀完全還原：swipe 是方的、轉的方向對（增益往回轉、技能照常）、
+     冷卻結束的 bling 回來、圖示整格、倒數回到中央。
+403. 滑鼠提示：內圈優先；外圈露在內圈正方形外面的環帶上也拿得到提示；整條被顯示條件藏起來時不冒提示。
+404. 核心技能切成圓環：技能冷卻轉圈的樣子、GCD 轉圈（隱藏 GCD 開著時整圈透明）、充能技能的回充。
+405. 「增益不在時：隱藏，留空位」：每個 buff 固定在同一圈；「暗圖示」只畫那一圈的軌道。
+406. 圓環條上原本有光環格／自訂法術：畫面上不見（`/mcdm debug` 印「自訂項目 N 筆沒畫」）、預覽標暗並說明、切回圖示後回來；挑選器只剩原因字。
+407. 暴雪的無損刷新圖示（`PandemicIcon`，方形）在圓環上的樣子：要不要熄掉。暴雪的觸發發光在圓環條上確實熄掉。
+408. 登入時是 Masque 的條執行中切成圓環：卸皮後的外框圖收不收得乾淨（收不乾淨就跟群組停用一樣提示重載）。
+409. 設定頁：切換顯示樣式整張表單換掉、各滑桿即時生效（預覽與真實條）；逐法術「圓環顏色」只在圓環條的小窗出現、勾了才寫、右鍵清掉；
+     使用職業色取消勾選從職業色開始調。
 
 **效能基準**
 

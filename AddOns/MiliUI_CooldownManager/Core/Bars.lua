@@ -51,6 +51,13 @@
 -- 可點擊的自訂圖示群組（Core/Clickable.lua）：每格上面蓋一顆 secure 鈕（parent／錨點都是容器），
 -- 一樣強制固定格位；鈕的寫入走 ns.Write＋簽章去重。不可點擊的條每輪 Release（沒鈕就是 no-op）。
 --
+-- 圓環條（DB.BarIsRings：圖示類＋layout.style ＝ "rings"；幾何 Layout.Compute 的同心圓、外觀 Decorate 的「圓環顯示」）：
+--   * 每格的 rect 多帶 ring／tex 兩欄，放格時整個 rect 交給 Decorate.Apply（圈數決定 overlay 層級與貼圖）
+--   * 自訂項目（光環格、自訂法術／物品、代畫的裝備欄格）**不放**：它們的樣式在建立當下就烘死（光環格的 initializeFrame），
+--     要換成圓環得重建容器。跳過幾筆記在 state[key].ringSkipped（/mcdm debug 印），設定頁的挑選器也擋著不讓加
+--   * 不可點擊（同心圓的格子是一層套一層的正方形，secure 鈕會互相蓋住）
+--   * 「增益不在時：暗圖示」的占位只畫那一圈的軌道（Decorate.ApplyRingPlaceholder）
+--
 -- 檢視器本體釘在容器上（TOPLEFT／BOTTOMRIGHT 對齊），被暴雪（編輯模式、底部管理框）
 -- 拉走就釘回來；_pinGuard 擋自己觸發自己。
 --
@@ -746,7 +753,13 @@ end
 
 local function BarSize(key, bar)
     local layout = type(bar.layout) == "table" and bar.layout or {}
-    if bar.kind ~= "bars" then return layout end
+    if bar.kind ~= "bars" then
+        -- 圓環：基準直徑沿用 size.w；環寬／間距／方向在條的 ring 子表（Layout.Compute 讀 layout.ring）
+        if ns.Layout.IsRings(layout, bar.kind) then
+            return { style = "rings", size = layout.size, ring = bar.ring }
+        end
+        return layout
+    end
     local cfg = type(bar.bar) == "table" and bar.bar or {}
     local w = tonumber(cfg.width) or 0
     if w <= 0 then
@@ -943,7 +956,10 @@ local function Relayout(key, level, index, gen, s)
     end
     -- 增益不在時（條層）：條上有光環格、或這條可點擊 ⇒ 收合不成立（光環格的持有框與可點擊的 secure 鈕戰鬥中都不能移）。
     -- fixed ＝ 條層不收合：沒有物品時隱藏／被動飾品不顯示的格留空格（Layout.HiddenSlot）
-    local clickable = ns.Clickable and ns.Clickable.Enabled(key) or false
+    local ring = ns.Layout.IsRings(bar.layout, bar.kind)
+    -- 圓環條不可點擊（見檔頭）
+    local clickable = not ring and ns.Clickable and ns.Clickable.Enabled(key) or false
+    local ringSkipped = 0
     local barMode, forced = B.BarEmptyMode(key)
     local fixed = barMode ~= "collapse"
     local entries = {}
@@ -970,6 +986,9 @@ local function Relayout(key, level, index, gen, s)
             entries[#entries + 1] = { id = bID, item = bItem, rec = bRec, replaces = id }
             claimedBy[bItem] = key
             replacedNow[id] = { b = bID, key = key }
+        elseif crec and ring then
+            -- 圓環條不放自訂項目（見檔頭）：不進 entries ⇒ Custom.EndBar 收起來
+            ringSkipped = ringSkipped + 1
         elseif crec then
             -- 自訂物品／飾品欄：沒有物品時隱藏／被動飾品不顯示（讓位 ⇒ 不放；固定格位 ⇒ 空格）
             local hm = (crec.kind == "item" or crec.kind == "slot" or crec.slotBuff) and HiddenMode(key, id, hw, fixed) or nil
@@ -978,6 +997,8 @@ local function Relayout(key, level, index, gen, s)
             elseif hm == "blank" then
                 entries[#entries + 1] = { id = id, blank = true }
             end
+        elseif not item and proxyOf and proxyOf[id] and ring then
+            ringSkipped = ringSkipped + 1                       -- 代畫格也是我們的自訂框：圓環條不放
         elseif not item and proxyOf and proxyOf[id] then
             -- 暴雪沒給框的裝備欄冷卻格：我們的飾品欄框代畫（Custom.Proxy；放格、疊層、按鍵文字、可點擊都走自訂那條）。
             -- 被動飾品不顯示同上（收掉時不拿代畫 rec ⇒ 上一輪放過的由 EndBar 收）
@@ -1020,6 +1041,12 @@ local function Relayout(key, level, index, gen, s)
     end
 
     EndHideWatch(key, hw)
+    if (st.ringSkipped or 0) ~= ringSkipped then
+        if ringSkipped > 0 and ns.Diag then
+            ns.Diag.Note("ring", ("%s：圓環條不放自訂項目，跳過 %d 筆"):format(key, ringSkipped))
+        end
+        st.ringSkipped = ringSkipped
+    end
 
     local sizing = BarSize(key, bar)
     local rects, totalW, totalH, anchorPoint = ns.Layout.Compute(entries, sizing, bar.kind)
@@ -1084,7 +1111,8 @@ local function Relayout(key, level, index, gen, s)
                 rec.claimGen = gen
                 rec.claimKey = key
                 rec.replacing = e.replaces       -- 以增益取代：這顆 B 現在頂著 A 的格（按鍵文字不畫、/mcdm debug 標記）
-                ns.Decorate.Apply(item, rec, key, r.w, r.h)
+                -- 圓環條：整個 rect 交過去（ring ＝ 第幾圈、tex ＝ 第幾張環形貼圖）
+                ns.Decorate.Apply(item, rec, key, r.w, r.h, ring and r or nil)
                 -- alpha：條的淡出 × 冷卻狀態（唯一出口；樣式快取在 Apply 裡寫，所以排在它後面）
                 ns.Decorate.ApplyItemAlpha(item, rec, alpha)
                 -- 層數門檻：停放後重新放格的接回＋餵一次目前層數。排在 Glow.Sync 前面：
@@ -1126,10 +1154,15 @@ local function Relayout(key, level, index, gen, s)
             f:ClearAllPoints()
             f:SetPoint("TOPLEFT", c, "TOPLEFT", r.x, -r.y)
             f:SetSize(r.w, r.h)
-            f.tex:SetTexture((info and info.icon) or QUESTION)
-            f.tex:SetDesaturated(true)
-            f.tex:SetAlpha(0.35)                      -- 只有圖示暗，邊框照真實格的顏色
-            ns.Decorate.ApplyPlaceholder(f.ph, key, e.id, r.w, r.h)
+            if ring then
+                -- 圓環條：只畫這一圈的軌道（暗圖示放在同心圓裡沒意義）
+                ns.Decorate.ApplyRingPlaceholder(f.ph, key, r)
+            else
+                f.tex:SetTexture((info and info.icon) or QUESTION)
+                f.tex:SetDesaturated(true)
+                f.tex:SetAlpha(0.35)                      -- 只有圖示暗，邊框照真實格的顏色
+                ns.Decorate.ApplyPlaceholder(f.ph, key, e.id, r.w, r.h)
+            end
             f:Show()
         end
         -- 可點擊：這一格上面蓋 secure 鈕（簽章去重、走 ns.Write；沒有動作的格收起來）
@@ -1492,6 +1525,8 @@ function B.ReleaseAll(reason)
             rec.keySig = "off"
         end
         if rec.overlay then pcall(rec.overlay.Hide, rec.overlay) end
+        -- 圓環：swipe 貼圖、reverse、圖示、軌道還原（Core/Decorate.lua 的 RestoreRing）
+        if rec.ring and ns.Decorate and ns.Decorate.RestoreRing then pcall(ns.Decorate.RestoreRing, item, rec) end
         local alert = item.SpellActivationAlert
         if alert and alert.SetAlpha then pcall(alert.SetAlpha, alert, 1) end
         pcall(item.SetAlpha, item, 1)
@@ -1537,6 +1572,12 @@ end
 function B.ReplacedBy(a)
     local r = a ~= nil and replacedNow[a]
     return r and r.b or nil
+end
+
+-- 圓環條這一輪跳過幾筆自訂項目（/mcdm debug）
+function B.RingSkipped(key)
+    local st = state[key]
+    return st and st.ringSkipped or 0
 end
 
 function B.Count(key)

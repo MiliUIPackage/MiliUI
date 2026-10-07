@@ -10,7 +10,7 @@
 --
 -- 覆蓋：預設值（套組現值）、三層繼承的每一種路徑、逐法術覆寫、設定檔建立／複製／
 -- 切換／刪除、戰鬥中切換延後、專精自動切換、遷移鏈與版本號、合併不覆蓋使用者值、
--- 可點擊的預設值與判準（DB.BarClickable）。
+-- 可點擊的預設值與判準（DB.BarClickable）、圓環顯示的預設值／舊存檔補值／判準（DB.BarIsRings）／填色覆寫。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local DB_PATH = here .. "/../Core/DB.lua"
@@ -1031,6 +1031,60 @@ do
     L("buffs").emptyMode = "collapse"
     DB.MIGRATIONS[7](p)
     eq("v7：重跑不改", L("buffs").emptyMode, "collapse")
+end
+
+------------------------------------------------------------
+-- 圓環顯示（layout.style／ring 子表）：預設、舊存檔由合併補、判準、逐法術填色跟隨條
+------------------------------------------------------------
+do
+    local P3 = ns.profile
+    for _, k in ipairs({ "essential", "utility", "buffs" }) do
+        eq("圓環：" .. k .. " 顯示樣式預設 icons", P3.bars[k].layout.style, "icons")
+        local r = P3.bars[k].ring
+        check("圓環：" .. k .. " ring 預設", type(r) == "table" and r.thickness == 8 and r.gap == 3
+            and r.direction == "outward" and r.fillColor == false and r.timeText == "top"
+            and r.showIcon == false and r.iconSize == 14)
+        local tc = r.trackColor
+        check("圓環：" .. k .. " 軌道色預設", type(tc) == "table" and tc.r == 0.04 and tc.g == 0.06 and tc.b == 0.08 and tc.a == 0.9)
+    end
+    local nb = DB.NewBarTable("icons", "圈")
+    check("圓環：新圖示群組也有 ring 預設", nb.layout.style == "icons" and type(nb.ring) == "table" and nb.ring.thickness == 8)
+    eq("圓環：DefaultFor 自訂群組的環寬", DB.DefaultFor("bar", "nope", "ring.thickness"), 8)
+    eq("圓環：DefaultFor 自訂群組的顯示樣式", DB.DefaultFor("bar", "nope", "layout.style"), "icons")
+    eq("圓環：DefaultFor 內建條的方向", DB.DefaultFor("bar", "buffs", "ring.direction"), "outward")
+    eq("圓環：純新增欄位，不升 DB_VERSION", ns.DB_VERSION, 7)
+    -- 舊存檔（沒有 style／ring）：合併補預設；玩家自己存的不蓋
+    local old = DB.BuildDefaults().profile
+    old.bars.buffs.layout.style = nil
+    old.bars.buffs.ring = nil
+    old.bars.essential.ring = { thickness = 12, fillColor = { r = 1, g = 0, b = 0, a = 1 } }
+    old.bars.essential.layout.style = "rings"
+    DB.MergeDefaults(old, DB.BuildDefaults().profile)
+    eq("圓環：舊存檔補 style", old.bars.buffs.layout.style, "icons")
+    eq("圓環：舊存檔補 ring 子表", old.bars.buffs.ring.gap, 3)
+    eq("圓環：玩家存的環寬不蓋", old.bars.essential.ring.thickness, 12)
+    eq("圓環：玩家存的填色不蓋", old.bars.essential.ring.fillColor.r, 1)
+    eq("圓環：缺的欄位照補", old.bars.essential.ring.gap, 3)
+    eq("圓環：玩家選的 rings 不蓋", old.bars.essential.layout.style, "rings")
+    -- 判準：圖示類＋rings；長條類存著也不算
+    check("BarIsRings：預設不是", not DB.BarIsRings("buffs"))
+    P3.bars.buffs.layout.style = "rings"
+    check("BarIsRings：圖示類＋rings", DB.BarIsRings("buffs"))
+    P3.bars.buffbars.layout.style = "rings"
+    check("BarIsRings：長條類不算", not DB.BarIsRings("buffbars"))
+    check("BarIsRings：不存在的條", not DB.BarIsRings("nope"))
+    P3.bars.buffbars.layout.style = "icons"
+    -- 逐法術填色：沒覆寫跟隨條層 ring.fillColor（false ＝ 職業色）；覆寫優先
+    eq("SPELL_FALLBACK ringColor", DB.SPELL_FALLBACK.ringColor, "ring.fillColor")
+    eq("覆寫分組 ringColor ＝ icon", DB.OVERRIDE_GROUP.ringColor, "icon")
+    eq("ringColor 沒覆寫 ⇒ 條層 false（職業色）", ns.SpellSetting("buffs", 777, "ringColor"), false)
+    P3.bars.buffs.ring.fillColor = { r = 0, g = 1, b = 0, a = 1 }
+    eq("ringColor 沒覆寫 ⇒ 條層的色", ns.SpellSetting("buffs", 777, "ringColor").g, 1)
+    DB.SetOverride(777, "ringColor", { r = 0, g = 0, b = 1, a = 1 })
+    eq("ringColor 覆寫優先", ns.SpellSetting("buffs", 777, "ringColor").b, 1)
+    DB.SetOverride(777, "ringColor", nil)
+    P3.bars.buffs.ring.fillColor = false
+    P3.bars.buffs.layout.style = "icons"
 end
 
 print(("DB_test: %d passed, %d failed"):format(passed, failed))

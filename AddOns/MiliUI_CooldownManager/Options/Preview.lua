@@ -33,6 +33,9 @@
 --   來源條：溢出去的那幾格畫暗（0.35）＋右下角「→」＋提示「溢出到：X」；照樣能拖（順序決定哪幾顆溢出）、中鍵移除
 --   接收條：溢來的格畫在尾端（「＋」前面）＋同樣的記號＋提示「來自：A」；外觀照這條。**不能拖**（順序屬於來源條，
 --          拖了跳彈窗，附「前往那條」）；中鍵移除對來源條生效（移除本來就不分條：hidden／整筆刪掉）
+-- 圓環條（layout.style ＝ "rings"）：圓環格（NewRingCell：軌道貼圖＋環形 swipe 的 Cooldown＋圖示框）照 Layout.Compute 的同心幾何排，
+--   每一圈都跑假的十五秒循環（不分技能／增益）；「＋」放在整組圓環右邊。格子是一層套一層的正方形 ⇒ 內圈的框層級高（滑鼠內圈優先）；
+--   拖曳的插入位置照「游標離圓心多遠」挑最近的那一圈（InsertionAt）。效果預覽列與發光樣本不畫（圓環條不畫發光）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -106,12 +109,16 @@ local function BarCfg(key) return ns.DB.BarTable(key) end
 -- 長條寬 0 ＝ 跟核心技能第一列同寬（跟 Bars 的算法同一條）
 local function Sizing(key, bar)
     local layout = type(bar.layout) == "table" and bar.layout or {}
-    if bar.kind ~= "bars" then return layout end
+    if bar.kind ~= "bars" then
+        -- 圓環：同 Bars 的 BarSize（基準直徑沿用 size.w，環寬／間距／方向在條的 ring 子表）
+        if ns.Layout.IsRings(layout, bar.kind) then return { style = "rings", size = layout.size, ring = bar.ring } end
+        return layout
+    end
     local cfg = type(bar.bar) == "table" and bar.bar or {}
     local w = tonumber(cfg.width) or 0
     if w <= 0 then
         local ess = BarCfg("essential")
-        w = ess and ns.Layout.FirstRowWidth(#ns.Catalog.Bar("essential"), ess.layout) or 0
+        w = ess and ns.Layout.FirstRowWidth(#ns.Catalog.Bar("essential"), Sizing("essential", ess)) or 0
         if w <= 0 then w = (type(layout.size) == "table" and tonumber(layout.size.w)) or 200 end
     end
     local h = tonumber(cfg.height) or 20
@@ -228,6 +235,41 @@ local function NewIconCell(canvas)
     c.kind = "icons"
     c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
+end
+
+-- 圓環格：圖示格＋軌道（格子自己最底層的貼圖，Cooldown 子框畫在它上面）＋圖示換到 Cooldown 上面一層的框（同真實格的 rec.ringIcon）。
+-- 外觀由 Decorate.ApplyRingPreview 套（環形 swipe、reverse、填色、軌道色、圖示位置），文字由 Text.ApplyRingPreview 錨
+local RING_LIFT = 40
+local function NewRingCell(canvas)
+    local c = NewIconCell(canvas)
+    c.ringTrack = c:CreateTexture(nil, "BACKGROUND")
+    c.ringTrack:SetAllPoints()
+    local ri = CreateFrame("Frame", nil, c)
+    ri:SetAllPoints()
+    ri:SetFrameLevel(((c.Cooldown and c.Cooldown:GetFrameLevel()) or c:GetFrameLevel()) + 1)
+    c.Icon:SetParent(ri)
+    c.ringIcon = ri
+    -- 每個子孫框相對格子的層級差（換層級時照這張表重設：不管客戶端會不會連帶調整子框，結果都一樣）
+    local offs = {}
+    local base = c:GetFrameLevel()
+    local function Walk(f)
+        for _, ch in ipairs({ f:GetChildren() }) do
+            offs[#offs + 1] = { f = ch, d = ch:GetFrameLevel() - base }
+            Walk(ch)
+        end
+    end
+    Walk(c)
+    c.levelOffs = offs
+    c.kind = "rings"
+    return c
+end
+
+-- 圓環格的層級：內圈（rank 小）高，滑鼠在一層套一層的正方形上內圈優先
+local function SetRingLevel(c, lvl)
+    if c:GetFrameLevel() == lvl then return end
+    c:SetFrameLevel(lvl)
+    for _, o in ipairs(c.levelOffs or {}) do o.f:SetFrameLevel(lvl + o.d) end
+    if c.glowHost then c.glowHost:SetFrameLevel(lvl + 3) end
 end
 
 local function NewBarCell(canvas)
@@ -388,7 +430,8 @@ function Preview.DropCandidates(key, id)
         -- 自訂項目：任何一條（圖示類、長條類都收；放在長條上時畫成長條，見 Modules/Custom.lua）
         local p = ns.profile
         for k, bar in pairs(p and p.bars or {}) do
-            if k ~= key and type(bar) == "table" then out[k] = true end
+            -- 圓環條不收自訂項目（Core/Bars.lua 不放；DropRefusal 說原因）
+            if k ~= key and type(bar) == "table" and not ns.DB.BarIsRings(k) then out[k] = true end
         end
         return out
     end
@@ -412,7 +455,13 @@ end
 --   * 自訂群組：圖示類的法術只進圖示群組、長條類只進長條群組（DropCandidates 同一條規則）
 local FAMILY = { essential = "cd", utility = "cd", buffs = "aura", buffbars = "aura" }
 function Preview.DropRefusal(key, id, target)
-    if not target or target == key or id == nil or ns.Catalog.IsCustom(id) then return nil end
+    if not target or target == key or id == nil then return nil end
+    if ns.Catalog.IsCustom(id) then
+        if ns.DB.BarIsRings(target) then
+            return L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."]
+        end
+        return nil
+    end
     local bar = BarCfg(target)
     if type(bar) ~= "table" then return nil end
     local name = ns.Options.BarTitle(target) or target
@@ -437,7 +486,7 @@ local Proto = {}
 Proto.__index = Proto
 
 function Preview.Create(parent, key, width)
-    local pv = setmetatable({ key = key, width = width, cells = { icons = {}, bars = {} }, used = {} }, Proto)
+    local pv = setmetatable({ key = key, width = width, cells = { icons = {}, bars = {}, rings = {} }, used = {} }, Proto)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     W.Stylize(f, { 0.06, 0.06, 0.06, 1 }, { 0, 0, 0, 1 })
     P.Size(f, width, MIN_H)
@@ -594,7 +643,9 @@ function Proto:Acquire(kind)
     self.used[kind] = n
     local c = pool[n]
     if not c then
-        c = kind == "bars" and NewBarCell(self.canvas) or NewIconCell(self.canvas)
+        if kind == "bars" then c = NewBarCell(self.canvas)
+        elseif kind == "rings" then c = NewRingCell(self.canvas)
+        else c = NewIconCell(self.canvas) end
         pool[n] = c
         self:Wire(c)
     end
@@ -641,7 +692,28 @@ function Proto:Refresh()
     self.count, self.hiddenCount = #visible, #hidden
 
     local sizing = Sizing(key, bar)
-    local rects, totalW, totalH = ns.Layout.Compute(entries, sizing, kind)
+    local rings = ns.Layout.IsRings(sizing, kind)
+    self.ring = rings
+    local rects, totalW, totalH
+    if rings then
+        -- 同心圓只排真的格子；「＋」放在整組右邊、垂直置中
+        local n = #entries - 1
+        local list = {}
+        for k = 1, n do list[k] = entries[k] end
+        rects, totalW, totalH = ns.Layout.Compute(list, sizing, kind)
+        local ps, gapX = 24, 8
+        local x = totalW > 0 and (totalW + gapX) or 0
+        totalW = x + ps
+        if totalH < ps then
+            for k = 1, n do rects[k].y = rects[k].y + math.floor((ps - totalH) / 2) end
+            totalH = ps
+        end
+        rects[#entries] = { x = x, y = math.floor((totalH - ps) / 2), w = ps, h = ps }
+        local thick, _, dir = ns.Layout.RingParams(bar.ring)
+        self.ringThick, self.ringDir = thick, dir
+    else
+        rects, totalW, totalH = ns.Layout.Compute(entries, sizing, kind)
+    end
 
     -- 視窗：寬固定（頁面寬），高跟著內容、上限 MAX_H；內容比較窄時置中
     local viewW = self.width
@@ -671,11 +743,16 @@ function Proto:Refresh()
                 self:Wire(c)
             end
         else
-            c = self:Acquire(kind)
+            c = self:Acquire(rings and "rings" or kind)
         end
         c:ClearAllPoints()
         c:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", ox + r.x, -(PAD + r.y))
         c:SetSize(r.w, r.h)
+        if rings and not e.plus then
+            c.ringRank, c.ringTex = r.ring, r.tex
+            c.ringR = (r.w - (self.ringThick or 0)) / 2           -- 環帶中線的半徑（拖曳的插入位置用）
+            SetRingLevel(c, self.canvas:GetFrameLevel() + 1 + math.max(0, RING_LIFT - (r.ring or 0)))
+        end
         c.id, c.hiddenItem, c.index = e.id, e.hidden and true or false, i
         c.overflowTo, c.incoming = e.overflowTo or false, e.incoming or false
         if not e.plus then
@@ -696,8 +773,10 @@ function Proto:Refresh()
             hideWhy = ns.Catalog.HideReason(key, e.id)
         end
         c.itemHidden = hideWhy or false
+        -- 圓環條不放自訂項目（Core/Bars.lua）：畫面上不會有，預覽照樣列（點得到才移得走）、標暗、提示寫原因
+        c.ringSkip = (rings and not e.plus and ns.Catalog.IsCustom(e.id)) and true or false
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
-        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo) and 0.35
+        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo or c.ringSkip) and 0.35
             or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
@@ -738,9 +817,12 @@ function Proto:Fill(c, e, i, r, now)
     PaintScopeMark(c.scopeMark, c.scope)
     -- 核心／輔助技能（暴雪那兩條）不畫假冷卻：轉圈、倒數、去飽和一律不上，看起來就是就緒的樣子（使用者 2026-10-03）
     c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NoFakeCD(key)
+    -- 圓環：每一圈都跑假循環（圓環條的長相就是那一圈在走），效果預覽不演示
+    local ringCell = c.kind == "rings"
+    if ringCell then c.onCD = not e.hidden end
     -- 效果預覽：只有第一個技能格演示（Refresh 開頭把 fxTaken 歸零）
     local fx = self:ActiveFx()
-    if fx and (c.aura or e.hidden or self.fxTaken) then fx = nil end
+    if fx and (c.aura or e.hidden or self.fxTaken or ringCell) then fx = nil end
     if fx then self.fxTaken = true end
     -- 按鍵演示的那一格（FxTick 照時間開關閃光）；其餘格的閃光一律收掉（格子是池化的）
     c.fxPress = (fx and fx.kind == "press" and c.kind ~= "bars") and true or false
@@ -750,6 +832,7 @@ function Proto:Fill(c, e, i, r, now)
     -- 假冷卻的格每隔一格當成「還在倒增益的持續時間」（倒數換 durationColor）；自訂項目沒有那一段
     c.auraPhase = (c.onCD and not c.custom and (i % 4 == 1)) and true or false
     if fxTimer then c.auraPhase = (c.onCD and fx.kind == "aura") and true or false end
+    if ringCell then c.auraPhase = false end
     c.name = (info and info.name) or ("#" .. tostring(id))
     c.decorated = nil
     if c.kind == "bars" then
@@ -762,6 +845,8 @@ function Proto:Fill(c, e, i, r, now)
         if c.Cooldown then
             if c.onCD and fxTimer then
                 c.Cooldown:SetCooldown(fx.start, fx.secs)
+            elseif c.onCD and ringCell then
+                c.Cooldown:SetCooldown(now - ((i * 3) % CYCLE), CYCLE)      -- 每圈錯開，看得出是各走各的
             elseif c.onCD then
                 c.Cooldown:SetCooldown(now - ((i * 2) % CYCLE), CYCLE)
             else
@@ -788,7 +873,7 @@ function Proto:Fill(c, e, i, r, now)
             c.glowHost:SetAllPoints(c.kind == "bars" and c.Icon or c)
             c.glowHost:SetFrameLevel(c:GetFrameLevel() + 3)
         end
-        ns.Glow.PreviewActive(c.glowHost, key, (c.aura and not e.hidden) and id or nil,
+        ns.Glow.PreviewActive(c.glowHost, key, (c.aura and not e.hidden and not ringCell) and id or nil,
             c.kind ~= "bars" and ns.Glow.GlowShape and ns.Glow.GlowShape(c, key) or nil)
     end
     if c.kind == "bars" then
@@ -883,6 +968,9 @@ local function ShowTip(c)
         GameTooltip:AddLine(L["None left in your bags, so it isn't shown on screen."], 1, 0.3, 0.3, true)
     elseif c.itemHidden == "passive" then
         GameTooltip:AddLine(L["The equipped item has no use effect, so it isn't shown on screen."], 1, 0.3, 0.3, true)
+    end
+    if c.ringSkip then
+        GameTooltip:AddLine(L["Ring bars can't hold custom items: their look is fixed when they're created, so they can't be drawn as rings."], 1, 0.3, 0.3, true)
     end
     if c.missing then
         GameTooltip:AddLine(L["Blizzard's Cooldown Manager isn't showing this one right now, so it can't appear on the bar."], 1, 0.3, 0.3, true)
@@ -1120,6 +1208,24 @@ end
 function Proto:InsertionAt()
     if not self.frame:IsMouseOver() then return nil end
     local cx, cy = Cursor(self.canvas)
+    -- 圓環：每一格同一個圓心，照「游標離圓心多遠」挑環帶中線最近的那一圈；比它遠＝外側。
+    -- 清單往後在由內往外是往外、由外往內是往內。插入線畫在那一格的頂邊
+    if self.ring then
+        local best, bestD, bestR
+        for i, s in ipairs(self.slots) do
+            local x, y = s:GetCenter()
+            if x then
+                local r = math.sqrt((x - cx) ^ 2 + (y - cy) ^ 2)
+                local d = math.abs(r - (s.ringR or 0))
+                if not bestD or d < bestD then best, bestD, bestR = i, d, r end
+            end
+        end
+        if not best then return nil end
+        local s = self.slots[best]
+        local outside = bestR > (s.ringR or 0)
+        local after = (self.ringDir == "inward") ~= outside
+        return best + (after and 1 or 0), s, "TOP"
+    end
     local best, bestD
     for i, s in ipairs(self.slots) do
         local x, y = s:GetCenter()

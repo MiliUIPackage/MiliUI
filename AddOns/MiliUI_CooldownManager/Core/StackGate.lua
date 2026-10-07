@@ -885,7 +885,8 @@ end
 function SG.Apply(item, rec, barKey, w, h, isBar)
     if not (item and rec) then return end
     local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey] or false
-    local cfg = (not ns.released) and SG.Config(barKey, rec.cooldownID, aura, isBar) or nil
+    -- 圓環條（rec.ring，Core/Decorate.lua）：層數發光是方形的，第一版不畫 ⇒ 當作沒設定（已經建好的收掉）
+    local cfg = (not ns.released and not rec.ring) and SG.Config(barKey, rec.cooldownID, aura, isBar) or nil
     if not cfg then
         if rec.stackCfg or rec.stackUI then Release(item, rec) end
         return

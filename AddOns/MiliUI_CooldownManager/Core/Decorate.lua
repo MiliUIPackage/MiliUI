@@ -31,6 +31,9 @@
 -- 邊框、縮放、轉圈材質由它畫；我們的邊框照樣排好但藏著，只有無損刷新期間亮出來
 -- （RecolorBorder／RestoreBorder）。交不出去（戰鬥中保護鏈上、幾何讀不到、群組在 Masque 裡被停用）
 -- 的時候照米利樣式畫，交出去了再重套一次。
+--
+-- 圓環顯示（條層 layout.style ＝ "rings"，見下面「圓環顯示」那一節）：暴雪 item 自己的 Cooldown 換成環形 swipe、
+-- 圖示收進我們的框、軌道畫在我們自己的子框上；不交給 Masque、不畫邊框與發光。還原路徑 D.RestoreRing。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -124,8 +127,10 @@ function D.Resolve(barKey, fresh)
         stackText    = S(barKey, "stackText") or {},
         stackBarPoint = S(barKey, "stackText.barPoint") or "BOTTOMRIGHT",   -- 長條的層數錨點（Text.ApplyBar）
         bar          = S(barKey, "bar"),
+        ring         = D.RingStyle(barKey),               -- 圓環條才有（nil ＝ 方形圖示）
         masque       = ns.Masque and ns.Masque.Mode(barKey) == "masque" or false,
     }
+    if r.ring then r.masque = false end                  -- 圓環條不進 Masque 群組
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom, tostring(r.crop),
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
@@ -134,6 +139,7 @@ function D.Resolve(barKey, fresh)
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText), r.stackBarPoint,
         type(r.bar) == "table" and TSig(r.bar) or "-",
         tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
+        D.RingSig(r.ring),
     }, "|")
     if not fresh then resolved[barKey] = r end
     return r
@@ -188,6 +194,8 @@ local function SpellStyle(barKey, id, fresh)
         durationSwipeColor = SS(barKey, id, "durationSwipeColor"),
         -- 增益持續中顯示持續時間：布林（沒覆寫退回條層 icon.showAuraTime）；false ＝ 這格蓋掉增益那一段
         showAuraTime     = SS(barKey, id, "showAuraTime"),
+        -- 圓環的填色（圓環條才用）：色表或 false（＝職業色）；沒覆寫退回條層 ring.fillColor
+        ringColor        = SS(barKey, id, "ringColor"),
     }
 end
 D.SpellStyle = SpellStyle                                           -- 測試用
@@ -260,7 +268,10 @@ end
 ------------------------------------------------------------
 -- overlay 框與邊框（自己的框、自己的貼圖）
 ------------------------------------------------------------
-local function EnsureOverlay(item, rec, isBar)
+-- ringRank：圓環條上這一格是從內往外第幾圈（nil ＝ 不是圓環）。同心圓的格子是一層套一層的正方形，
+-- 內圈的整個蓋在外圈裡面 ⇒ overlay（收滑鼠提示）內圈要比外圈高，內圈優先；外圈的環帶露在內圈正方形外面，照樣拿得到
+local RING_LIFT = 40
+local function EnsureOverlay(item, rec, isBar, ringRank)
     local ov = rec.overlay
     if not ov then
         ov = CreateFrame("Frame", nil, item)
@@ -271,6 +282,7 @@ local function EnsureOverlay(item, rec, isBar)
     -- 長條的子框是寫死的絕對層級（圖示 512、條 511、減益框 520），要蓋在它們上面
     local base = item:GetFrameLevel() or 1
     local lvl = base + 10
+    if ringRank then lvl = lvl + math.max(0, RING_LIFT - ringRank) end
     if isBar and lvl < 530 then lvl = 530 end
     if lvl > 9000 then lvl = 9000 end
     ov:SetFrameLevel(lvl)
@@ -1624,9 +1636,242 @@ local function ApplyProcAlert(item, rec, barKey)
     if not alert then return end
     local G = ns.Glow
     local owns = G and G.ownsProcAlert and (not G.OwnsProc or G.OwnsProc(barKey, rec and rec.cooldownID))
+    -- 圓環：發光第一版不畫（方形的觸發發光套在圓上很怪），暴雪的也一起熄
+    if rec and rec.ring then owns = true end
     alert:SetAlpha(owns and 0 or 1)
 end
 D.ApplyProcAlert = ApplyProcAlert
+
+------------------------------------------------------------
+-- 圓環顯示（條層 layout.style ＝ "rings"；幾何在 Core/Layout.lua 的 ComputeRings）
+--
+-- 我們沒有把暴雪格子的光環時間轉到自己 Cooldown 上的路（GetCooldownTimes 回秘密值；SetCooldown 後掛勾轉交參數
+-- 在秘密下會被拒；探針那條 duration 物件拿的是法術冷卻不是光環）⇒ **讓暴雪照常驅動它自己的 item.Cooldown，只換外觀**：
+--   * cd:SetSwipeTexture(環形貼圖)：跟 SquareSwipe 同一招。暴雪的 Lua 不會重設 swipe 貼圖（只在 XML 宣告一次）
+--   * cd:SetReverse(false)：增益圖示的 XML 是 reverse="true"（畫已經過去的那段）；圓環要畫剩下的那段
+--     （亮的部分隨時間縮短）。暴雪的 Lua 也不會呼叫 SetReverse ⇒ 設一次。核心／輔助的 XML 本來就是 false
+--   * 填色：暴雪每次刷新都 SetSwipeColor ⇒ rec.style.swipe 換成填色，AfterCooldown 照舊每次蓋
+--   * 不畫邊緣（rec.style.drawEdge ＝ false，AfterCooldown 每次寫）、不畫 bling（設一次）
+--   * 軌道（深色底環）：我們自己的子框（rec.ringTrack，item 的子框、層級低於 Cooldown）貼同一張環形貼圖、SetVertexColor 上軌道色
+--   * 圖示：item.Icon 換父層到我們的框（rec.ringIcon，層級在 Cooldown 上面、overlay 底下）。關著「顯示法術圖示」時那個框
+--     alpha 0（暴雪自己哪天對圖示 SetAlpha 也露不出來）；開著時圖示錨在這一圈頂端的環帶正中央
+--   * 方形的東西不畫：我們的邊框、暴雪的減益框（alpha 0）、觸發／就緒／生效發光（Glow 看 rec.ring）、層數門檻（StackGate）、
+--     按鍵文字（Keybinds）；不交給 Masque
+-- 全程不讀任何秘密值；暴雪 item 不是保護框，戰鬥中改尺寸／錨點沒問題（引擎本來就這樣放格）。
+-- 暴雪框上一個欄位都不寫：狀態都在 rec（弱鍵表 Viewers.frames 的值）上。
+--
+-- 還原（D.RestoreRing）：條改回圖示、item 搬去別條（D.Apply 開頭判 rec.ring 而這一輪不是圓環）、
+-- 還給暴雪（Bars.ReleaseAll）都走這支：swipe 貼圖改回方形（SquareSwipe 的 WHITE；交給 Masque 的格子由接著的 Sync 換成皮的）、
+-- reverse／bling 照第一次套圓環前讀到的值、圖示換回 item 並貼回整格、軌道收起來、倒數錨點交回圖示中央（接著 Text.ApplyIcon 照設定重錨）。
+------------------------------------------------------------
+local RING_TRACK = { r = 0.04, g = 0.06, b = 0.08, a = 0.9 }
+
+-- 條層的圓環設定解好（Resolve 叫）；不是圓環條回 nil
+function D.RingStyle(barKey)
+    local S = ns.Setting
+    local LY = ns.Layout
+    if not (S and LY) or (S(barKey, "kind") or "icons") == "bars" or S(barKey, "layout.style") ~= "rings" then return nil end
+    local ring = S(barKey, "ring")
+    ring = type(ring) == "table" and ring or {}
+    local thick, gap, dir = LY.RingParams(ring)
+    return {
+        thick    = thick,
+        gap      = gap,
+        dir      = dir,
+        track    = type(ring.trackColor) == "table" and ring.trackColor or RING_TRACK,
+        timeText = ring.timeText == "hide" and "hide" or "top",
+        showIcon = ring.showIcon and true or false,
+        iconSize = LY.RingIconSize(ring.iconSize),
+    }
+end
+
+function D.RingSig(rs)
+    if not rs then return "-" end
+    return table.concat({ "ring", rs.thick, rs.gap, rs.dir, CSig(rs.track), rs.timeText, tostring(rs.showIcon), rs.iconSize }, ",")
+end
+
+-- 填色：色表照用；false／nil ＝ 職業色（套組的強調色函式）
+function D.RingFill(c)
+    if type(c) == "table" then return C4(c, 1, 1, 1, 1) end
+    local St = ns.Style
+    if St and St.Accent then return St.Accent(1) end
+    return 1, 1, 1, 1
+end
+
+local function ReadBool(fn, obj)
+    if type(fn) ~= "function" then return nil end
+    local ok, v = pcall(fn, obj)
+    v = ok and Plain(v) or nil
+    if type(v) ~= "boolean" then return nil end
+    return v
+end
+
+-- 軌道框：item 的子框、貼滿 item，層級低於 Cooldown（不然蓋住環形 swipe）
+local function RingTrack(item, rec)
+    local f = rec.ringTrack
+    if not f then
+        f = CreateFrame("Frame", nil, item)
+        f.tex = f:CreateTexture(nil, "BACKGROUND")
+        f.tex:SetAllPoints(f)
+        rec.ringTrack = f
+    end
+    f:ClearAllPoints()
+    f:SetAllPoints(item)
+    local base = item:GetFrameLevel() or 1
+    local cd = item.Cooldown
+    local cl = cd and cd.GetFrameLevel and cd:GetFrameLevel() or nil
+    f:SetFrameLevel((cl and cl > base) and (cl - 1) or base)
+    f:Show()
+    return f
+end
+
+-- 圖示框：Cooldown 上面一層（圖示蓋在環形 swipe 上）、overlay（＋10 起跳）底下
+local function RingIconHolder(item, rec)
+    local h = rec.ringIcon
+    if not h then
+        h = CreateFrame("Frame", nil, item)
+        rec.ringIcon = h
+    end
+    h:ClearAllPoints()
+    h:SetAllPoints(item)
+    local cd = item.Cooldown
+    local cl = (cd and cd.GetFrameLevel and cd:GetFrameLevel()) or item:GetFrameLevel() or 1
+    h:SetFrameLevel(cl + 1)
+    h:Show()
+    return h
+end
+
+-- 暴雪取出時理論上不會重設、但保險起見 Reattach 也重套的三樣（swipe 貼圖、reverse、bling）
+function D.ReapplyRingCore(item, rec)
+    local cd = item and item.Cooldown
+    if not (cd and rec and rec.ringPath) then return end
+    if cd.SetSwipeTexture then pcall(cd.SetSwipeTexture, cd, rec.ringPath, 1, 1, 1, 1) end
+    if cd.SetReverse then pcall(cd.SetReverse, cd, false) end
+    if cd.SetDrawBling then pcall(cd.SetDrawBling, cd, false) end
+end
+
+-- ring：這一格的 rect（ring ＝ 從內往外第幾圈、tex ＝ 第幾張環形貼圖）
+local function ApplyRing(item, rec, style, ring)
+    local rs = style.ring
+    local cd, icon = item.Cooldown, item.Icon
+    if not rec.ring and cd then
+        -- 第一次套：記下原本的 reverse／bling（還原用；讀不到就照模板的預設，見 RestoreRing）
+        rec.ringRev0 = ReadBool(cd.GetReverse, cd)
+        rec.ringBling0 = ReadBool(cd.GetDrawBling, cd)
+    end
+    rec.ring = true                 -- Glow／StackGate／Keybinds 看這個
+    rec.swipeSquare = nil           -- 轉圈材質現在是環形的（RestoreRing 換回方形）
+    rec.ringPath = ns.Layout.RingFile(ring.tex)
+    rec.ringHideTime = rs.timeText == "hide"
+    if cd then
+        cd:ClearAllPoints()         -- 模板是 setAllPoints；圖示會被搬走，明確貼滿 item
+        cd:SetAllPoints(item)
+        D.ReapplyRingCore(item, rec)
+    end
+    local track = RingTrack(item, rec)
+    track.tex:SetTexture(rec.ringPath)
+    track.tex:SetVertexColor(C4(rs.track, 0.04, 0.06, 0.08, 0.9))
+    local holder = RingIconHolder(item, rec)
+    if icon and icon.SetParent then
+        if icon:GetParent() ~= holder then icon:SetParent(holder) end
+        icon:ClearAllPoints()
+        if rs.showIcon then
+            local isz = rs.iconSize
+            icon:SetPoint("CENTER", item, "TOP", 0, -rs.thick / 2)
+            icon:SetSize(isz, isz)
+            icon:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, isz, isz, true))
+        else
+            icon:SetAllPoints(item)
+        end
+    end
+    holder:SetAlpha(rs.showIcon and 1 or 0)
+end
+
+function D.RestoreRing(item, rec)
+    if not (item and rec and rec.ring) then return end
+    rec.ring, rec.ringPath, rec.ringHideTime = nil, nil, nil
+    local cd = item.Cooldown
+    if cd then
+        rec.swipeSquare = nil
+        SquareSwipe(cd, rec)
+        local aura = ns.Viewers and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
+        local rev = rec.ringRev0
+        if rev == nil then rev = aura and true or false end     -- 模板：增益圖示 reverse="true"、核心／輔助沒寫（false）
+        local bling = rec.ringBling0
+        if bling == nil then bling = true end                   -- 模板沒寫 ⇒ Cooldown 的預設（畫）
+        if cd.SetReverse then pcall(cd.SetReverse, cd, rev) end
+        if cd.SetDrawBling then pcall(cd.SetDrawBling, cd, bling) end
+        cd:ClearAllPoints()
+        cd:SetAllPoints(item)
+        local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
+        if fs then
+            fs:ClearAllPoints()
+            fs:SetPoint("CENTER", item, "CENTER", 0, 0)
+        end
+    end
+    if rec.ringTrack then rec.ringTrack:Hide() end
+    local icon = item.Icon
+    if icon and icon.SetParent then
+        if icon:GetParent() ~= item then icon:SetParent(item) end
+        icon:ClearAllPoints()
+        icon:SetAllPoints(item)
+    end
+    if rec.ringIcon then rec.ringIcon:Hide() end
+end
+
+-- 圓環條上「增益不在時：暗圖示」的占位：只畫這一圈的軌道（Bars 的占位框是我們自己的框）
+function D.ApplyRingPlaceholder(ph, barKey, r)
+    if not (ph and ph.frame and ph.tex and r) then return end
+    local style = D.Resolve(barKey)
+    local rs = style.ring
+    if not rs then return end
+    if ph.msqButton then ns.Masque.Release(ph) end
+    ph.border = ph.border or MakeBorder(ph.frame)
+    LayoutBorder(ph.border, nil)
+    if ph.label and ns.Text and ns.Text.ApplyLabel then ns.Text.ApplyLabel(ph.label, ph.frame, nil) end
+    ph.ring = true
+    local tex = ph.tex
+    tex:SetTexture(ns.Layout.RingFile(r.tex))
+    tex:SetTexCoord(0, 1, 0, 1)
+    tex:SetDesaturated(false)
+    tex:SetVertexColor(C4(rs.track, 0.04, 0.06, 0.08, 0.9))
+    tex:SetAlpha(1)
+end
+
+-- 設定頁預覽的圓環格（Options/Preview.lua：cell.ringTrack、cell.ringIcon（圖示框）、cell.ringTex、cell.ringRank）
+function D.ApplyRingPreview(cell, style, spell)
+    local rs = style.ring
+    local path = ns.Layout.RingFile(cell.ringTex)
+    if cell.msqButton and ns.Masque then ns.Masque.Release(cell) end
+    cell.msqSkinned, cell.barGeometry = false, nil
+    if cell.border then LayoutBorder(cell.border, nil) end
+    cell.ringTrack:SetTexture(path)
+    cell.ringTrack:SetVertexColor(C4(rs.track, 0.04, 0.06, 0.08, 0.9))
+    local cd = cell.Cooldown
+    if cd then
+        if cd.SetSwipeTexture then pcall(cd.SetSwipeTexture, cd, path, 1, 1, 1, 1) end
+        if cd.SetReverse then cd:SetReverse(false) end
+        if cd.SetDrawBling then cd:SetDrawBling(false) end
+        cd:SetDrawEdge(false)
+        cd:SetSwipeColor(D.RingFill(spell.ringColor))
+    end
+    local icon = cell.Icon
+    if icon then
+        icon:SetDesaturated(false)
+        icon:ClearAllPoints()
+        if rs.showIcon then
+            icon:SetPoint("CENTER", cell, "TOP", 0, -rs.thick / 2)
+            icon:SetSize(rs.iconSize, rs.iconSize)
+            icon:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, rs.iconSize, rs.iconSize, true))
+        else
+            icon:SetAllPoints(cell)
+        end
+    end
+    if cell.ringIcon then cell.ringIcon:SetAlpha(rs.showIcon and 1 or 0) end
+    cell.buffTime, cell.durColor = false, nil
+    ns.Text.ApplyPreviewIcon(cell, style, spell)
+    ns.Text.ApplyRingPreview(cell, style, spell)
+end
 
 ------------------------------------------------------------
 -- 簽章：條層設定＋逐法術覆寫＋格子尺寸（真實 item 與預覽格共用）
@@ -1640,6 +1885,7 @@ local function Signature(style, id, spell, w, h)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
         .. "|" .. tostring(spell.textSig)
         .. "|" .. ((ns.Text and ns.Text.LabelSig) and ns.Text.LabelSig(spell.label) or "-")
+        .. "|" .. CSig(spell.ringColor)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -1653,6 +1899,11 @@ D.Signature = Signature
 -- （是我們自己的框），外框跟真實格同一張皮。自訂光環格的占位（Modules/Custom.lua）也是同一種獨立框、走這裡
 function D.ApplyPlaceholder(ph, barKey, id, w, h)
     if not (ph and ph.frame and barKey) then return end
+    -- 上一輪是圓環條的軌道占位（D.ApplyRingPlaceholder）：顏色換回白（貼圖／去飽和／alpha 呼叫端剛寫過）
+    if ph.ring and ph.tex then
+        ph.ring = nil
+        ph.tex:SetVertexColor(1, 1, 1, 1)
+    end
     local style = D.Resolve(barKey)
     local border = style.border or {}
     local br, bg, bb, ba = C4(ns.SpellSetting(barKey, id, "borderColor") or border.color, 0, 0, 0, 1)
@@ -1786,11 +2037,14 @@ function D.Reattach(item, rec, spell, isBar, barKey)
     rec.acStyle = nil               -- AfterCooldown 的倒數色去重作廢（下一次 SetCooldown 照現況重寫一次）
     D.applyReattach = D.applyReattach + 1
     if isBar then return end
+    -- 圓環：swipe 貼圖／reverse／bling 暴雪只在 XML 宣告、取出時不會重設（查證同上），保險起見照記下的再套一次（三個 setter，便宜）
+    if rec.ring then D.ReapplyRingCore(item, rec) end
     local cd = item.Cooldown
     if cd and cd.SetHideCountdownNumbers then
         local hide
         if spell then hide = spell.hideCooldownText
         else hide = ns.SpellSetting(barKey, rec.cooldownID, "hideCooldownText") end
+        if rec.ring and rec.ringHideTime then hide = true end   -- 圓環條的「倒數文字：不顯示」
         cd:SetHideCountdownNumbers(hide and true or false)     -- 同 Text.ApplyIcon
     end
 end
@@ -1835,7 +2089,9 @@ end
 ------------------------------------------------------------
 -- 主入口
 ------------------------------------------------------------
-function D.Apply(item, rec, barKey, w, h)
+-- ring：圓環條上這一格的 rect（Layout.Compute 的 ring／tex 兩欄；不是圓環條給 nil）。它完全由 w、h 與條層設定決定
+-- （同一條、同一個直徑 ⇒ 同一圈、同一張貼圖），所以前置鍵不另外記
+function D.Apply(item, rec, barKey, w, h, ring)
     if not (item and rec and barKey) then return end
     D.applyCalls = D.applyCalls + 1
     -- 前置鍵：輸入在算簽章之前先讀好（中途有人作廢 ⇒ 存進去的是舊世代，下一次自然不中）
@@ -1854,6 +2110,9 @@ function D.Apply(item, rec, barKey, w, h)
     local spell = SpellStyle(barKey, id)
     local isBar = style.kind == "bars" and item.Bar ~= nil
     local sig = Signature(style, id, spell, w, h)
+    -- 圓環：圓環條、圖示類的暴雪 item（自訂項目不上圓環條，Bars 不會放）
+    local ringOn = style.ring ~= nil and ring ~= nil and not isBar and not rec.custom
+    if ringOn then sig = sig .. "|rg" .. tostring(ring.ring) .. "," .. tostring(ring.tex) end
     -- 以增益取代：這顆增益 item 正頂著 A 的格（rec.replacing ＝ A），A 勾了「使用增益持續時間樣式」（預設）
     -- ⇒ 倒數整段照 A 的增益持續時間樣式（A 的 SpellStyle：換色開關＋三個顏色，沒覆寫退回這一條）。
     -- 沒勾 ⇒ aSpell nil，照增益原本的倒數樣式（不換色）
@@ -1879,7 +2138,7 @@ function D.Apply(item, rec, barKey, w, h)
 
     D.HookItem(item, rec)
     StripBlizzard(item, rec, isBar)
-    DimDebuffBorder(item, style.hideDebuffBorder)
+    DimDebuffBorder(item, style.hideDebuffBorder or ringOn)     -- 圓環：方形的減益框一律熄
 
     -- 後掛勾讀的快取（暴雪下一次刷新時再套一次）
     local sr, sg, sb, sa = C4(style.swipeColor, 0, 0, 0, 0.8)
@@ -1921,9 +2180,16 @@ function D.Apply(item, rec, barKey, w, h)
             rec.style.durFmt = ns.Text.BuffFormatter(ct, aSpell.durationLowColor)
         end
     end
+    -- 圓環：swipe 顏色＝填色（暴雪每次刷新 SetSwipeColor 蓋掉，AfterCooldown 照這裡重套）；增益那一段不換背景色；
+    -- 不畫邊緣（AfterCooldown 每次寫）
+    if ringOn then
+        rec.style.swipe = { D.RingFill(spell.ringColor) }
+        rec.style.durSwipe = nil
+        rec.style.drawEdge = false
+    end
     if not rec.custom then itemOf[rec] = item end
 
-    local ov = EnsureOverlay(item, rec, isBar)
+    local ov = EnsureOverlay(item, rec, isBar, ringOn and ring.ring or nil)
     local border = style.border or {}
     local br, bg, bb, ba = C4(spell.borderColor or border.color, 0, 0, 0, 1)
     local size = tonumber(border.size) or 0
@@ -1935,6 +2201,9 @@ function D.Apply(item, rec, barKey, w, h)
         local key = rec.claimKey or rec.placedBar
         if key and ns.Bars and ns.Bars.Request then ns.Bars.Request(key, "layout") end
     end
+
+    -- 不是圓環了（條改回圖示、item 搬去別條）：先還原，下面照方形畫
+    if rec.ring and not ringOn then D.RestoreRing(item, rec) end
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
@@ -1973,6 +2242,23 @@ function D.Apply(item, rec, barKey, w, h)
         end
         ns.Text.ApplyBar(item, style, spell, bar, rec)
         ns.Text.ItemLabel(item, rec, nil)          -- 長條不畫自訂文字（長條本來就有名字）
+    elseif ringOn then
+        rec.barGeometry = nil
+        if rec.msqButton then ns.Masque.Release(rec) end      -- 圓環條不進 Masque 群組（放在 ApplyRing 前：卸皮會換回它的轉圈材質）
+        rec.msqSkinned, rec.msqEdge = false, nil
+        rec.border = rec.border or MakeBorder(ov)
+        LayoutBorder(rec.border, nil)                         -- 方形邊框不畫
+        if rec.border2 then LayoutBorder(rec.border2, nil) end
+        ApplyRing(item, rec, style, ring)
+        local cd = item.Cooldown
+        if cd then
+            local sw = rec.style.swipe
+            cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
+            cd:SetDrawEdge(false)
+        end
+        ns.Text.ApplyIcon(item, style, spell, rec)
+        ns.Text.ApplyRing(item, style, spell, rec)            -- 倒數／層數錨到這一圈頂端的環帶、倒數開關
+        ns.Text.ItemLabel(item, rec, nil)                     -- 自訂文字不畫（錨點是方形格的邊）
     else
         rec.barGeometry = nil
         local icon, cd = item.Icon, item.Cooldown
@@ -2060,6 +2346,14 @@ function D.ApplyPreview(cell, barKey, id, w, h)
     cell.stateAlpha = D.PreviewStateAlpha(mode, spell.cdStateAlpha, cell.onCD)
     local sig = Signature(style, id, spell, w, h) .. "|" .. tostring(cell.onCD) .. tostring(cell.aura)
         .. tostring(cell.auraPhase)
+    -- 圓環條的預覽格（Options/Preview.lua 的圓環格：cell.ringTrack＋這一圈的 ringRank／ringTex）
+    if style.ring and cell.ringTrack and not isBar then
+        sig = sig .. "|rg" .. tostring(cell.ringRank) .. "," .. tostring(cell.ringTex)
+        if cell.decorated == sig then return end
+        D.ApplyRingPreview(cell, style, spell)
+        cell.decorated = sig
+        return
+    end
     if cell.decorated == sig then return end
 
     local ov = cell.overlay

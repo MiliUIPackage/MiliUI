@@ -14,6 +14,8 @@
 --   * 引擎用 vendor 的 MiliUIGlow 的 Start 系列（普通框、driver 推動）；發光宿主不在光環按鈕子樹裡，
 --     不需要 Attach 系列。
 --   * 每個掛勾本體 ns.Guard——**唯一例外**是無損刷新的兩支（每幀叫，無事路徑不可能拋錯，見那一節）。
+--   * 圓環條上的格（rec.ring，Core/Decorate.lua 的「圓環顯示」）：第一版不畫發光（方形的觸發／按鈕／像素發光套在圓上很怪，
+--     MiliUIGlow 也沒有圓形版）——Start 擋掉、Sync 把已經亮著的熄掉，暴雪的觸發發光照樣熄（Decorate.ApplyProcAlert）。
 --   * 自訂法術／物品放在長條類的條上（rec.noGlow，Modules/Custom.lua 換框時設）：Start 一律不畫，
 --     探針照樣武裝（就緒音效、冷卻狀態照常）。
 --   * 圖示外觀＝Masque 而且皮是非方形（圓形、六角形）：觸發／閃光換成那個形狀的貼圖、像素與自動施法改畫該形狀的觸發
@@ -470,6 +472,7 @@ local function Start(rec, which, barKey, c)
     if not LCG then return end
     if ns.released and not rec.custom then return end     -- 已還給暴雪（Bars.ReleaseAll）
     if rec.noGlow then return end                         -- 自訂項目放在長條上：長條不畫發光（Modules/Custom.lua）
+    if rec.ring then return end                           -- 圓環條：第一版不畫發光（見檔頭）
     local h = Host(rec, which)
     if not h then return end
     c = c or Cfg(barKey, which)
@@ -672,6 +675,21 @@ end
 function G.Sync(owner, rec, barKey)
     if not rec then return end
     barKey = barKey or rec.claimKey
+    -- 圓環條：發光全部不畫，已經亮著的熄掉（切成圓環之前亮的、下一招醒目標示）；暴雪的觸發發光照樣熄。
+    -- 充能滿音效照常對帳（音效不是畫面）
+    if rec.ring then
+        if owner and owner.SpellActivationAlert and ns.Decorate then ns.Decorate.ApplyProcAlert(owner, rec, barKey) end
+        Stop(rec, "proc")
+        Stop(rec, "ready")
+        Stop(rec, "active")
+        Stop(rec, "full")
+        Stop(rec, "assist")
+        CancelPending(rec)
+        G.ApplyReadyState(rec, owner)                     -- 「就緒時一直亮」的狀態收掉（want 對圓環一律 false）
+        WatchFull(rec, nil, false)
+        if ns.Sound and ns.Sound.SyncFull then ns.Sound.SyncFull(rec, barKey, Hidden(rec)) end
+        return
+    end
     G.SyncProc(owner, rec, barKey)
     G.SyncActive(owner, rec, barKey)
     G.SyncFull(owner, rec, barKey)
@@ -1016,6 +1034,7 @@ function G.ApplyReadyState(rec, owner)
     local barKey = rec.claimKey or rec.placedBar
     local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
     local want = barKey and not aura and not Hidden(rec) and not (ns.released and not rec.custom)
+        and not rec.ring                                  -- 圓環條不畫發光（見檔頭）
         and ReadyMode(barKey, rec) == "whileReady" and Wanted(rec, barKey, "ready")
     local D = ns.Decorate
     if not want then
