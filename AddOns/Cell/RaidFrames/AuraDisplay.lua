@@ -3760,7 +3760,7 @@ function AD.Ghosts()
 end
 
 -- ============================================================
--- INSPECT  ->  /cab inspect [unit]
+-- INSPECT  ->  /cab inspect [unit]   (no unit = target, or player when nothing is targeted)
 --
 -- Dumps every container on one unit's button: what filter/candidateFilters it actually
 -- built with, how many spell IDs its include map holds, and its duration-text state.
@@ -4309,7 +4309,9 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     elseif cmd == "ghosts" then
         AD.Ghosts()
     elseif cmd == "inspect" then
-        AD.Inspect(arg and strtrim(arg) ~= "" and strtrim(arg) or "player")
+        -- 沒給單位就查目標（要查的通常是「畫面上那個人」），沒有目標才退回自己
+        AD.Inspect(arg and strtrim(arg) ~= "" and strtrim(arg)
+            or (UnitExists("target") and "target" or "player"))
     elseif cmd == "overdraw" then
         AD.Overdraw(arg and strtrim(arg) ~= "" and strtrim(arg) or "player")
     elseif cmd == "gate" then
@@ -4457,7 +4459,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他（/cell aura 或簡寫 /cab 都可以）：/cell aura list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test | probe [anim｜build｜reloadbuild on|off]")
+        p("其他（/cell aura 或簡寫 /cab 都可以）：/cell aura list | stats | ghosts | report [n] | bounce on|off | inspect [unit，預設目標] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test | probe [anim｜build｜reloadbuild on|off]")
     end
 end
 
