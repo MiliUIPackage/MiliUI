@@ -21,17 +21,25 @@ secret，對它做算術、拿它當 table 的 key、或把它印出來，都會
 | 要動光環顯示（buff/debuff 圖示、倒數） | [wow-121-aura-containers.md](../../notes/wow-121-aura-containers.md) |
 | AceConfig 設定面板整片空白 | [wow-121-setdesaturation-acegui.md](../../notes/wow-121-setdesaturation-acegui.md) |
 | SVG、徑向遮罩、Roleset、OnUpdateMode、改名與移除 | [wow-121-other-api-changes.md](../../notes/wow-121-other-api-changes.md) |
-| 想找「12.1 原生寫法長什麼樣」的範本 | [wow-121-coolinator-reference.md](../../notes/wow-121-coolinator-reference.md) |
+| 想找「12.1 原生寫法長什麼樣」的範本 | 本機直接翻 `AddOns/Cell`、`AddOns/Plumber`、`AddOns/BuffReminders`（Coolinator 原始碼已不在本機，[wow-121-coolinator-reference.md](../../notes/wow-121-coolinator-reference.md) 只剩結論） |
+| 錯誤怪到不相干的插件、堆疊全是暴雪 | [wow-121-addon-code-in-secure-stack.md](../../notes/wow-121-addon-code-in-secure-stack.md) |
+| 秘密值倒數要怎麼畫 | [wow-121-duration-objects.md](../../notes/wow-121-duration-objects.md) |
+| 白名單 buff 突然顯示全部、只有 /reload 救得回來 | [wow-121-identity-gate-failopen.md](../../notes/wow-121-identity-gate-failopen.md) |
+| 光環 filter 字串、candidateFilters 要填什麼 | [wow-121-aura-filter-vocabulary.md](../../notes/wow-121-aura-filter-vocabulary.md) |
+| 首領戰／M+／PvP 送不出插件訊息、聊天被擋 | [wow-12x-addon-restrictions.md](../../notes/wow-12x-addon-restrictions.md) |
+| 插件要開聊天輸入框／回覆密語 | [wow-121-chat-reply-secret-taint.md](../../notes/wow-121-chat-reply-secret-taint.md) |
+| 右鍵單位選單 | [wow-121-unitpopup-menu.md](../../notes/wow-121-unitpopup-menu.md) |
+| 戰鬥中掛勾裡 print 沒輸出 | [wow-121-hook-print-dropped.md](../../notes/wow-121-hook-print-dropped.md) |
 
 ## 三條最常踩的規則
 
-1. **光環資料整組讀不到了。** `UnitAura` 系列全部 secret，改用 Blizzard 的
+1. **光環資料整組讀不到了。** 光環受限時 `UnitAura` 系列的資料是 secret（依 spellID 查有無、`NeverSecret` 法術是例外，細節見 aura-containers 篇），改用 Blizzard 的
    `AuraContainer` / `AuraButton` —— 由暴雪負責比對和渲染，插件只交出 widget，永遠拿不回
    剩餘秒數。要條件式行為（剩 5 秒變色、播音效）就得換別的訊號來源。
 
 2. **AuraButton 的裝飾只有「建立當下」那一個視窗。** `initializeFrame` 之後整棵子樹會被
-   禁止存取，戰鬥中的重新套用會被拒絕 —— 每次 restyle 都要 `pcall`，失敗就記下來等
-   `PLAYER_REGEN_ENABLED` 重試。也不要從按鈕上讀尺寸（回傳 secret），尺寸一律來自設定。
+   禁止存取（跟戰不戰鬥無關，延一幀也沒用）—— 樣式一律在 `initializeFrame` 裡一次做完，
+   事後 restyle 要 `pcall`、失敗就記下來等重建。也不要從按鈕上讀尺寸（回傳 secret），尺寸一律來自設定。
 
 3. **secret 不能當 table 的 key。** 這是最常見的崩潰來源，寫法見上表第三篇。
 

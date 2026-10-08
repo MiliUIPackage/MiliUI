@@ -81,8 +81,7 @@ metadata:
 - 提示皮：滑過去的名單、浮在世界上的彈出面板
 - 設定視窗皮：設定面板、右鍵選單、設定裡的彈窗、ESC 選單那顆按鈕
 
-（另有一套舊的暗夜藍＋暗金 `S.ApplyButton`，只剩 LootTable 與 ESC 按鈕在用，
-不要往外擴散。）
+（另有一套舊的暗夜藍＋暗金 `S.ApplyButton`，（2026-10-09 體檢）已無任何呼叫端——ESC 按鈕改讀 `MiliUI.Style.Dark`、LootTable 搬去 MythicPlus——可以刪。）
 
 ## Why 這裡准許半透明，`miliui-color-states` 卻說「底色要不透明」
 
@@ -105,7 +104,7 @@ metadata:
 - 強調色的唯一來源是 `S.Accent()`（＝ `RAID_CLASS_COLORS[playerClass]`，
   有 `CUSTOM_CLASS_COLORS` 就優先）。⚠ 懶算＋快取：Style 類的檔案在 TOC 排很前面，
   載入那一刻 `UnitClass("player")` 不保證有值；載入時就算會永遠拿到灰色。
-- Cell 那類自訂職業色插件比我們晚載入 → 登入後要 `RefreshAccent()` 重解一次並廣播。
+- Cell 那類自訂職業色插件比我們晚載入 → 登入後要 `RefreshAccent()` 重解一次並廣播（這支在 `MiliUI_Minimap/Core/Style.lua`，本體 `MiliUI/Style.lua` 沒有）。
 
 相關：[[feedback-ui-visual-style]]、[[project-miliui-pixel-snapping]]、
 [[project-miliui-widgets-vendor]]、[[project-miliui-minimap]]、

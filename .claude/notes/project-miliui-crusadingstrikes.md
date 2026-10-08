@@ -40,7 +40,7 @@ bar:SetValue(src:GetValue())
 
 中間沒有任何 Lua 的比較或算術 ——「**當傳遞者，不當讀取者**」的教科書案例。
 參考實作是另一位作者的 EllesmereUI 版 CSAATimer（12.1.0 實機可用），我們只借了它的
-「找到那個 item frame」三段（`ChildMatches` / `FindTrackedChild` / `MirrorTrackedProgress`），
+「找到那個 item frame」三段（參考實作裡叫 `ChildMatches` / `FindTrackedChild` / `MirrorTrackedProgress`；我們 `Modules/Source.lua` 對應的是 `InfoMatches`／`ItemMatches`／`Scan`／`StillCurrent`），
 UI、OnUpdate 大雜燴與 EllesmereUI 相依都沒有抄。
 
 **前置條件在玩家端**：冷卻管理器要啟用，且征戰聖擊要在「追蹤的量條」列裡。

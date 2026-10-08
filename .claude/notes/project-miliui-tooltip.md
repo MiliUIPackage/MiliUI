@@ -11,7 +11,7 @@ metadata:
 **MiliUI_Tooltip**（2026-08-22 一次寫完，約 4700 行自寫 + 1200 行 vendor）：取代
 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。`AddOns/MiliUI_Tooltip/`，
 SV `MiliUI_Tooltip_DB`，namespace `_G.MiliUITip`，指令 `/mtip`（`/mtip reset`、`/mtip debug`）。
-計畫全文在 `~/.claude/plans/miliui-tooltip-rewrite.md`。**尚未 commit、尚未遊戲內驗證。**
+（計畫檔已不在 `~/.claude/plans/`。2026-08-22 `c01f3fde0` 已 commit、已發佈 1.0.0，後文有兩輪實測。）
 
 **Taint 圍堵設計**（核心賣點，接觸面清單維護在 `Core/Hooks.lua` 檔頭）：
 - 裝飾全在自己的 skin frame（tip 的 child、frameLevel = tip−1、SetAllPoints）：背景 1 貼圖＋
@@ -32,7 +32,7 @@ SV `MiliUI_Tooltip_DB`，namespace `_G.MiliUITip`，指令 `/mtip`（`/mtip rese
   Show() 只在 ProcessInfo 之外（目標行輪詢、非同步觀察刷新）呼叫。
 
 **設定介面**：MiliUIWidgets vendor **第二個消費者**（Env 六項契約夠用，見
-[[project-miliui-widgets-vendor]]）。Panel 700×520 照 UnitFrames；分頁：樣式/玩家/NPC/錨點/
+[[project-miliui-widgets-vendor]]）。Panel 當時 700×520 照 UnitFrames（第二輪起 1000×520，`PREVIEW_W = 340`）；分頁：樣式/玩家/NPC/錨點/
 物品與ID/關於。**即時預覽 = 自建 `CreateFrame("GameTooltip","MiliUITip_Preview",...,
 "GameTooltipTemplate")` 走 ns.TrackTip 進同一條管線**——玩家預覽 SetUnit("player")（明文）、
 物品預覽 SetItemByID(19019)，都是真管線；NPC 預覽餵假 raw。設定改動 → ns.ApplyAll →
@@ -75,7 +75,7 @@ spell.modifierShowAll=true、成就色；**遷移鏈已整個拔掉（未發佈�
 不夠，單位提示流程會弄回來 → Bar.Activate 每次重申；② 血條/模型層級要明寫 tip+1
 （skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）；③ 單位背景 default 分支
 不能拿 per-unit alpha 蓋全域 alpha（會讓「樣式」頁的背景透明度整個失效，預覽也走
-這條）；④ 預設縮放 1.2 → 1，配 v2 值閘遷移。
+這條）；④ 預設縮放 1.2 → 1（當時配 v2 值閘遷移，後來遷移鏈整個拔掉：`DB_VERSION = 1`、`PROFILE_MIGRATIONS = {}`）。
 
 ## 輪詢改走共用 ticker（2026-08-28）
 

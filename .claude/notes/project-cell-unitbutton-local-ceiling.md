@@ -1,6 +1,6 @@
 ---
 name: project-cell-unitbutton-local-ceiling
-description: Cell 的兩個 Lua 硬上限——主 chunk 200 個 local（UnitButton 餘裕 43、全檔都量）、函式 upvalue 60（拆分後最高 51）；check_cell.py 全檔擋；檔尾 return 會讓量法誤報 0
+description: Cell 的兩個 Lua 硬上限——主 chunk 200 個 local（UnitButton 餘裕 43、全檔都量）、函式 upvalue 60（Appearance.lua 最高 56，check_cell.py 實測全部 < 60）；check_cell.py 全檔擋；檔尾 return 會讓量法誤報 0
 metadata:
   node_type: memory
   type: project

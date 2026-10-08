@@ -14,7 +14,7 @@ metadata:
 `tmp/EllesmereUI-v9.0.7` 的 DataBars 研究成果，模板抄 [[project-miliui-esc-menu-window-migration]]
 的 BloodlustMusic（Panel／Tab／BlizzOptions／AceLocale），共用層 NAMESPACE=`MiliUIInfo`。
 
-## 三個承重機制（改動前要懂）
+## 三個承重機制（改動前要懂；⚠ ① 的 `*clickbutton1` 是第一版，現況是 `*macrotext1 = "/click <名字>"`，見下方「taint 紀律」節）
 
 1. **微型按鈕＝secure 點擊轉發**：每顆是 `SecureActionButtonTemplate`，
    `*clickbutton1` 指暴雪 MicroButton、`*type1="click"`、`useOnKeyDown=false`
@@ -161,7 +161,7 @@ metadata:
   拖進「不顯示」或點一下開關、滑過看說明）。DB 仍是 blocks[key]={enabled,order}，
   看板只是視圖，拖放後整條序列重編成 10/20/30 寫回 order。
 
-## 待驗證清單（還沒進過遊戲）
+## 待驗證清單（2026-09-05 寫的「還沒進過遊戲」；之後 09-06 效能對帳、09-07 taint 破案、09-21 taint.log 都是實機——secure 轉發／hider／編輯模式顯然跑過，下面只剩沒被後文覆蓋的才算待驗）
 
 - secure 轉發在戰鬥中實點（天賦、角色、收藏）；ActionButtonUseKeyDown 兩種設定各試。
 - hider 開關與編輯模式進出後暴雪列的狀態；載入畫面後的 force 重推有沒有生效。
@@ -259,7 +259,7 @@ OnClick 裡，分析器整段算給資訊列；「近期平均（最近 60 幀�
 - **編輯模式進出、`UpdateUIParentPosition` 掛勾只改旗標／只讀**，工作丟 `ns.NextFrame`
   （跟脫戰延遲的 `ns.Defer` 是兩回事，那個沒在戰鬥就當場執行、擋不住這種）。
 
-診斷靠 `_CDProbe`（隨套組發佈中）：`/cdprobe` 看引擎點名的封鎖、`/cdprobe scan` 掃
+診斷靠 `_CDProbe`（2026-09-10 `79a6b450d` 已從套組移除；做法見 [[wow-121-addon-code-in-secure-stack]]）：`/cdprobe` 看引擎點名的封鎖、`/cdprobe scan` 掃
 變數污染、`/cdprobe ui` 倒跨場次記錄。EUI 的對照：同樣的 clickbutton 轉發但戰鬥中用
 state driver 把點擊拔掉、完全不碰 HelpTip——它沒踩坑是因為沒做這兩個功能。
 

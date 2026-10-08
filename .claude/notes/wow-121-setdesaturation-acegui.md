@@ -26,7 +26,7 @@ end
 
 診斷這類「面板空白」的方法：用 pcall 分別呼叫 `Stuf:GetOptionsTable()`、`AceConfigRegistry:ValidateOptionsTable()`、`AceConfigDialog:Open(appName)`，錯誤會在最後一步現形（見 `MiliUI/Fix/Stuf_OptionsCategory.lua` 的 `/stufopt`）。
 
-**同一批修 Stuf 設定介面時踩到的其他問題**（都在 `SetDesaturation` 之前、各自獨立）：
+**同一批修 Stuf 設定介面時踩到的其他問題**（歷史：Stuf 2026-08-17 已移除、`Fix/Stuf_OptionsCategory.lua` 與 `/stufopt` 不在了；都在 `SetDesaturation` 之前、各自獨立）：
 1. `Stuf_Options` 內附 AceConfigDialog **r82**，其 `AddToBlizOptions` 呼叫 10.0 就移除的 `InterfaceOptions_AddCategory` → 註冊失敗。平時靠別的插件載入 r87+ 才勉強能用，那些插件一停用就壞。
 2. `AceGUI` 的 `BlizOptionsGroup` widget 需要 **v26**（v22 缺 10.0 才加的 `OnCommit`/`OnDefault`/`OnRefresh` 別名），否則 Settings canvas 撐不起面板。
 3. `Stuf_Options` 是 **LoadOnDemand** 且載入時不呼叫 `CreateOptionFrame()`，所以沒打過 `/stuf` 就完全沒有分類。解法：`options.lua` 尾端補一次 `CreateOptionFrame()`，並由 `MiliUI/Fix/Stuf_OptionsCategory.lua` 在登入時載入它。
@@ -41,7 +41,7 @@ end
 
 中招的是 **LibCustomGlow-1.0 的「按鈕發光」（`ButtonGlow_Start`）**：它在 OnUpdate
 裡用這個函式跑爬行螞蟻動畫，所以只要把發光類型選成按鈕發光，就會**每幀**噴
-`LibCustomGlow-1.0.lua:548: attempt to call a nil value`。本機有五份副本，
+`LibCustomGlow-1.0.lua:548: attempt to call a nil value`。本機當時有五份副本（（2026-10-09 體檢）只剩三份：Ayije_CDM v25、BuffReminders v25、MRT v19；Cell 改用 MiliUIGlow——v25 自己讀 `TextureUtil`，補全域實際只剩 MRT 需要），
 Ayije_CDM／Cell 是 v24、MRT 是 v19，都直接呼叫全域；只有
 BuffReminders 的 v25 已經自己改成 `(TextureUtil and TextureUtil.AnimateTexCoords) or _G.AnimateTexCoords`。
 

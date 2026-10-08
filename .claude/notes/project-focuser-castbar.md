@@ -39,7 +39,7 @@ Lua 對秘密值的規則（實測歸納）：
 - `interruptMap`（各職業斷法 spellID）要跟 Platynator/Display/Utilities.lua 同步（新職業/改法術時）。
 - UnitCastingInfo notInterruptible 在第 8 個回傳、UnitChannelInfo 在第 7 個。
 
-**編輯模式拖曳**：抄 BloodlustMusic 三層 hook + EditModeSystemSelectionTemplate，作法已寫成 skill [[wow-editmode-draggable]]。名稱走語系檔 `L["Focus cast bar"]`（zhTW「焦點目標施法條」），監控關閉時編輯模式不顯示。預設座標 x=0,y=260（刻意放 BLM 倒數條 y=300 下方，硬編碼不耦合）。
+**編輯模式拖曳**：抄 BloodlustMusic 三層 hook + EditModeSystemSelectionTemplate，作法已寫成 skill [[wow-editmode-draggable]]。名稱走語系檔 `L["Focus cast bar"]`（zhTW「專注目標施法條」，2026-09-05 正名，見 [[feedback-zhtw-blizzard-terms]]），監控關閉時編輯模式不顯示。預設座標 x=0,y=260（刻意放 BLM 倒數條 y=300 下方，硬編碼不耦合）。
 
 **唱法音效**：獨立於監控開關，三態各別啟用，SoundKit 數字或 LSM 字串（MiliUI 沒內建 LSM，用 `LibStub("LibSharedMedia-3.0", true)` 可選抓取）。
 

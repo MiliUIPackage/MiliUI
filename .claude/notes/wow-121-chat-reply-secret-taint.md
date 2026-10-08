@@ -1,6 +1,6 @@
 ---
 name: wow-121-chat-reply-secret-taint
-description: 12.1 密語回覆在秘密名字下的死路：SetAttribute/SendChatMessage 只收未污染的秘密值，聊天狀態一髒就到 /reload
+description: 12.1 插件開聊天輸入框只能走超連結（根治，2026-09-16）；前半是密語回覆在秘密名字下的死路史：SetAttribute/SendChatMessage 只收未污染的秘密值，聊天狀態一髒就到 /reload
 metadata: 
   node_type: memory
   type: reference
@@ -9,7 +9,7 @@ metadata:
 ---
 
 按 REPLY（預設 R）回覆密語，噴 `Lua Taint: <插件>` + `ChatFrameEditBox.lua:49 SetTellTarget`
-（或更早的 `GetLastTellTarget` 比較秘密字串）。三件事湊起來，**這條路救不回來**：
+（或更早的 `GetLastTellTarget` 比較秘密字串）。三件事湊起來，**這條路救不回來**（⚠ 先看下面 2026-09-16 的「根治」節，這篇前半與 08-28～09-06 各節都是歷史）：
 
 1. 最後一個密語對象的名字可能是**秘密字串**（跨服、戰網、不在隊伍裡的玩家）。
 2. `Frame:SetAttribute` 與 `C_ChatInfo.SendChatMessage` 在 API 標記上都是
@@ -79,7 +79,7 @@ MiliUI_ChatBar 的做法（`ChatBar.lua` 的 Sink 段 ＋ `Sink.xml`）：
 ⚠ 通則：**任何會替玩家開聊天輸入框的插件（點名字密語、頻道按鈕、「回覆」鍵）都必須走這條，
 否則這次登入的 R 鍵就沒了。** 已改走這條的：MiliUI_ChatBar、MiliUI_Minimap（好友／公會列點名字，
 `Panel/LinkSink.xml`，見 [[project-miliui-minimap]]）；Cell 的分享鈕改成「輸入框開著才填字」
-（[[project-local-addon-forks]]）。套組裡**還在**直呼 `ChatFrame_SendTell`／`OpenChat` 的：
+（[[project-local-addon-forks]]）。套組裡**還在**直呼 `ChatFrame_SendTell`／`OpenChat` 的（（2026-10-09 體檢）RaiderIO／YUI_NovaToolbox 已不在套組、TinyInspect-Remake 無此呼叫；現在 grep 到的是 MRT、YUI_AuctionHelper，自製的 Skin/Friends、Minimap/Tip、UnitFrames、Cell UnitPopupFix 要逐一看是不是超連結路徑）：
 MRT、RaiderIO、TinyInspect、YUI —— 每一下都會把全域弄髒，錯誤會怪到「最後一個開框的插件」頭上。
 
 以下為歷史紀錄。
@@ -179,7 +179,7 @@ attempt to perform string conversion on a secret string value (execution tainted
 
 - 怪罪對象是「載入了那份 ChatThrottleLib 的插件」，不是它做錯什麼；錯誤訊息裡的插件名會誤導。
 - 修法：`SafeStrLen()` 包一層 `issecretvalue`，秘密值回固定長度估值。
-- **每一份 v31 副本都要一起改**（目前三份：MiliUI／Cell／BugSack；WarpDeplete 那份隨插件在 2026-09-05 移出套組），誰先載入誰贏。
+- **每一份 v31 副本都要一起改**（（2026-10-09 體檢）Cell／BugSack 兩份有 `SafeStrLen`；MiliUI 那份 09-24 刪了、**MythicDungeonTools 09-26 新進的那份沒有**，要補，見 [[project-local-addon-forks]]），誰先載入誰贏。
 - **不要改成從 MiliUI 覆寫 `ChatThrottleLib.Hook_SendChatMessage`**：那只是把污染來源從
   Cell 換成 MiliUI，而且污染會落在「玩家按 Enter 送出訊息」這條執行路徑上，得不償失。
   這種在函式庫內部、後面沒有保護呼叫的地方，就地補 guard 比掛勾乾淨。
@@ -335,6 +335,6 @@ if ( self.setText == 1) then
 玩家打空格那一下（`OnSpacePressed`／`OnTextChanged` → `ParseText(0)`）在 REPLY 比對之前
 讀的東西已逐一核對：`GetText` 是 C、`ImportAllListsToHash` 走 `secureexecuterange`、
 `AutoCompleteEditBox_SetAutoCompleteSource` 只寫不讀 —— 沒有讀到我們寫過的欄位，靜態上是乾淨的。
-⚠ **仍待實測**：這條「降級真的能回覆到秘密對象」到目前為止沒有成功跑過一次（前一版在填字就炸了）。
+⚠ 這條「降級」連同 `Fix_ReplyTell.lua`／`ClearSecretTellTarget` 已於 2026-09-16 `614444e6f` 整個刪除，沒有待實測的對象了——用超連結根治。
 
 相關：[[wow-121-secret-values]]、[[wow-121-unit-api-secrets]]、[[project-miliui-chatbar-snap]]

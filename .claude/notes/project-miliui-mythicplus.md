@@ -8,7 +8,7 @@ metadata:
   modified: 2026-09-21T23:16:36.422Z
 ---
 
-2026-09-21 開的獨立插件（`/mmp`，SV `MiliUI_MythicPlus_DB` 帳號層級，Widgets NAMESPACE `MiliUIMPlus`，v0.1.0 雛形）。
+2026-09-21 開的獨立插件（`/mmp`，SV `MiliUI_MythicPlus_DB` 帳號層級，Widgets NAMESPACE `MiliUIMPlus`，當時 v0.1.0 雛形，2026-10-09 TOC 1.0.0）。
 流程照 [[feedback-plan-opus-verify-workflow]]：我寫 plan、Opus 實作、我驗收。
 
 **範圍判準＝「畫在哪個宿主上」，不是「主題是不是 M+」。** 所以：
@@ -100,7 +100,7 @@ metadata:
 **2026-09-23 觸發改照 EllesmereUI RunSummary（DB v2）**：完賽當下就 H.Add 存檔（run.statsPending/statsBaseline），領獎勵 CHALLENGE_MODE_COMPLETED_REWARDS／LOOT_CLOSED／PEW 任一先到開面板，統計補完是保底。舊版「偶爾沒跳出來」的推測成因：存檔＋開面板掛在 30 秒重試鏈尾巴，單次報錯就斷鏈；完賽後 IsChallengeModeActive 仍是 true，換地圖時 OnEnteringWorld 補開場把 gen +1 害重試自殺。面板位置改存 TOP 位移（預設 0,-73，由使用者 CENTER y=421 推得），v1 存檔換算。待實機驗證：REWARDS 事件存在且在 COMPLETED 之後到。
 
 **2026-09-24 第二階段開始**：AutoSlotKeystone＋ChallengesUI_Buttons 已搬進 `UI/Keystone.lua`＋「鑰石」分頁（db.keystone.autoSlot/buttons/countdown，預設開，本體那兩支已刪）。確認／倒數改 secure 巨集（visual W.CreateButton 上疊 SecureActionButtonTemplate，列是 UIParent 的孩子只錨在 ChallengesKeystoneFrame 下）。剩下候選：PartyKeystone、ChallengesUI_LootTable、KeystoneAutoReport（等使用者決定）。
-**2026-09-24 第二階段完成**：PartyKeystone／ChallengesUI_LootTable／KeystoneAutoReport 也搬進來了（UI/PartyKeystone.lua、UI/LootTable.lua、Run/KeystoneReport.lua；LibOpenRaid 等函式庫從本體 MiliUI/Libs 整包搬到 MythicPlus/Libs）。分頁：一般｜鑰石（鑰石視窗＋傳奇鑰石頁）｜聊天（db.announce.keyReply/newKey）｜關於，全部預設開。**LootTable 的 LOOT_DATA/SEASON_LABEL 每季要更新**。
+**2026-09-24 第二階段完成**：PartyKeystone／ChallengesUI_LootTable／KeystoneAutoReport 也搬進來了（UI/PartyKeystone.lua、UI/LootTable.lua、Run/KeystoneReport.lua；LibOpenRaid 等函式庫從本體 MiliUI/Libs 整包搬到 MythicPlus/Libs——09-26 又拿掉，現況 `Libs/` 只有 LibDeflate／LibKeystone／LibStub／MiliUIWidgets）。分頁：一般｜鑰石（鑰石視窗＋傳奇鑰石頁）｜聊天（db.announce.keyReply/newKey）｜關於，全部預設開。**LootTable 的 LOOT_DATA/SEASON_LABEL 每季要更新**。
 打包專案：`/Users/mili/Projects/MiliUI_MythicPlus`（本機 git、無 remote），package.command 有 `UPLOAD=false` 開關，壓縮檔留在該資料夾；tag 照慣例 `Miliui_MythicPlus-<版本>`。
 
 **2026-09-26 拿掉整包 LibOpenRaid**（連同只為它帶的 AceComm／AceSerializer／CallbackHandler，約 1 MB）：只用得到「收 Details!／Plater 使用者廣播的鑰石」，改成 `UI/OpenRaidKeystone.lua` 精簡接收端——前綴 `LRS`、LibDeflate 壓縮編碼、`J`＝請求、`K,等級,mapID,challengeMapID,classID,分數,mythicPlusMapID,specID`＝資料；收訊要處理 AceComm 分框（`\001～\003` 多段、`\004` 跳脫，送出的請求也要照規則補 `\004`）。**只收不回**（使用者決定）：別人的 LibOpenRaid 看不到我們的鑰石，LibKeystone 那條照常會回。原版的旗標判斷 `bit.band(flags, "0x2")` 算出 0 也是真值，所以「向隊伍請求」會連公會一起發——精簡版只發隊伍／團隊。

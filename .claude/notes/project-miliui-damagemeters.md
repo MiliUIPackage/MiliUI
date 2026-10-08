@@ -8,7 +8,7 @@ metadata:
   modified: 2026-09-15T04:33:06.086Z
 ---
 
-`AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，v1.0.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
+`AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，當時 v1.0.0、2026-10-09 TOC 1.1.1）。SavedVariables=`MiliUI_DamageMeters_DB`，
 指令 `/mdm`，NAMESPACE=`MiliUIDM`。約 5500 行、392KB。
 
 **設計哲學整包抄 `tmp/EUIStandaloneDamageMeters`**，通則寫在
@@ -23,7 +23,8 @@ Meter/    Data（C_DamageMeter 包裝＋秘密值守衛＋數字格式）
           Combat（戰鬥狀態機＋共用 ticker）  Menu（視窗內選單）
           Window（視窗工廠）  Rows（熱路徑繪製）  Breakdown  Tooltip  Home
           Move（拖曳／縮放／磁吸／編輯模式）  Manager（視窗池、統一套用、選單內容）
-Options/  Panel ＋ 六個分頁（一般／長條／文字／視窗／各視窗／關於）
+Options/  Panel ＋ 七個分頁（一般／長條／文字／視窗／各視窗／設定檔／關於）＋ ButtonBoard
+Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
 ```
 
 ## 七個跟 EUI 不一樣的決定（都是刻意的）
@@ -357,7 +358,7 @@ v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見下面
 - 值閘的固有代價：刻意選了「剛好等於舊預設」的人會被一起改到。分不出「沒動過」與
   「動過但選了同一個值」，要分得出來得養一張「碰過沒」的旗標表，不值得。
 
-## 發佈前：其餘預設值仍然不配遷移
+## ~~發佈前：其餘預設值仍然不配遷移~~（⚠ 作廢：2026-08-24 首個 commit 就在 tag 20260824 內＝已發佈，遷移鏈 v2～v4 見上節；改預設值要寫遷移）
 
 **這支還沒發佈**（2026-08-24 使用者明確交代），所以調任何 `BuildDefaults()` 的值都
 直接改，不要寫遷移。`MergeDefaults` 只補 nil，發佈之後才需要「版本閘＋值閘」那一套。
@@ -403,7 +404,7 @@ v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見下面
 （失效點：`SetDMType` / `SetSegment` / `InvalidateData` / `Tab_Each.Apply`）、
 `M.Font` 記住解出來的路徑（**只快取問到的** —— 註冊那支字型的插件可能比我們晚載入）。
 
-## 待驗證（都還沒進遊戲跑過）
+## 待驗證（2026-08-24 寫的「都還沒進遊戲跑過」；09-05／09-15 起已多輪實機，`C_DamageMeter` 欄位名顯然對過，下面只剩沒被後文覆蓋的才算待驗）
 
 - `C_DamageMeter` 的欄位名是從 EUI 的原始碼抄的，沒有實機對過
 - 標題列八張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）

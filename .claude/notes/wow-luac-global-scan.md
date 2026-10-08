@@ -135,3 +135,5 @@ file-scope local 就變 64。
 
 量法：`luac -l -l -p 檔案` 的每個 `function <檔:行,行>` 下一行就有
 `N upvalues`。`check_lua.py` 已經自動掃這個，超過就讓提交前檢查失敗。
+
+⚠ （2026-10-09 體檢）：`check_lua.py` 的全域**寫入**掃描只認單行 `SETTABUP … _ENV "名字"` 形式，沒有這篇說的三行（GETUPVAL／LOADK／SETTABLE）備援——常數 >255 的大檔會靜默漏掉，待補。

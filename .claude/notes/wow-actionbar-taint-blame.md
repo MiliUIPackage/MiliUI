@@ -46,6 +46,6 @@ taint.log 的 60 筆與 119 筆全部歸零，被封鎖的 `SetAttribute` / `Set
 不壞功能——嚴重度低，煩的是彈窗。
 
 另：taint.log 裡 `Cache.lua:29 arithmetic on a secret value was blocked` 洗版是**設計內**的
-pcall 探針（PlainFrac 的 Hundredth），不是 bug，見 [[wow-121-secret-values]]。
+pcall 探針（`Core/Cache.lua` 的 `PlainFrac`，行號與內部名字會漂），不是 bug，見 [[wow-121-secret-values]]。
 
 相關：[[project-miliui-hide-blizzard-taint]]、[[wow-121-unitpopup-menu]]

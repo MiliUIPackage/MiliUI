@@ -12,7 +12,7 @@ type: feedback
 
 **How to apply:**
 - 翻譯前先找對照：repo 內既有的正確樣本（`MiliUI_UnitFrames/Locales/zhTW.lua`、
-  `Cell/Locales/zhTW.lua` 都是 `L["Focus"] = "專注目標"`），或用 `wowhead-zhtw-lookup` 技能查。
+  `MiliUI_UnitFrames` 的 zhTW 是 `L["Focus"] = "專注目標"`；Cell 的 zhTW 是 `L["Focus"] = "專注"`、`L["focus"] = "專注目標"`），或用 `wowhead-zhtw-lookup` 技能查。
 - 「焦點」這兩個字只保留給 **UI 輸入焦點／滑鼠焦點**（EditBox、GetMouseFoci），
   那個跟 focus 單位無關，不要一起改。
 - zhCN 的 `焦点目标` 是對的，**不要跟著改**。

@@ -20,18 +20,18 @@ if class == nil or issecretvalue(class) then class = "PRIEST" end
 local c = classcolor[class] or classcolor.PRIEST
 ```
 
-**可能的進階寫法（未實測，需上 PTR 驗證）**：把自己的查表 table 用
+**可能的進階寫法（至今未實測）**：把自己的查表 table 用
 `settablesecurity(t, Enum.TableSecurityOption.SecretWrapContents)` 標記，讓 `t[secretKey]` 回傳 secret 值，再把 secret 直接餵給接受 secret 的 widget API。因為 r/g/b 要分開取，得拆成三張表
 （`classR` / `classG` / `classB`）才能 `fs:SetTextColor(classR[c], classG[c], classB[c])`。
-Enum 語意 wiki 沒寫，用之前先在 PTR 測。
+Enum 語意 wiki 沒寫，用之前先實測。
 
 **職業色的官方顯示管道（Platynator `Display/Colors.lua:290`）**：`class` 是秘密時不查表，改
 `C_ClassColor.GetClassColor(secretClass)` 拿 ColorMixin，直接餵 `texture:SetVertexColor(...)`（吃秘密色值；
-注意 FocuserCastBar 註記 `SetStatusBarColor` 不吃、要用 `GetStatusBarTexture():SetVertexColor`）。
+注意 FocuserCastBar（已併入 MiliUI_Focus）註記 `SetStatusBarColor` 不吃、要用 `GetStatusBarTexture():SetVertexColor`）。
 限制：拿到的分量是秘密 → 不能再做 `*0.3` 變暗、不能塞進 `|cff` 色碼字串。所以只適用「條的純色」，
 暗色變體與文字上色仍要退明文。
 
-Cell 的封裝值得抄（`Cell/Utils.lua` 約 2546 行起）：把 `issecretvalue` / `hasanysecretvalues` 統一包成 `F.IsValueNonSecret()`、`F.IsSecretValue()`、`F.HasAnySecretValues()`、`F.IsAuraNonSecret()`，並用 `C_Secrets.ShouldSpellAuraBeSecret()` 事先判斷某法術的 aura 會不會是 secret。原則是「全 addon 只有 Utils.lua 直接碰原生 secret API」。
+Cell 的封裝值得抄（`Cell/Utils.lua` 的 `F.HasAnySecretValues`／`F.IsAuraNonSecret`／`F.IsValueNonSecret`，行號會漂）：把 `issecretvalue` / `hasanysecretvalues` 統一包成 `F.IsValueNonSecret()`、`F.IsSecretValue()`、`F.HasAnySecretValues()`、`F.IsAuraNonSecret()`，並用 `C_Secrets.ShouldSpellAuraBeSecret()` 事先判斷某法術的 aura 會不會是 secret。原則是「全 addon 只有 Utils.lua 直接碰原生 secret API」。
 
 **多回傳值陷阱（實際踩過）**：`SafeValue(select(2, UnitClass(unit)))` 這種寫法會爆。`select(2, UnitClass(unit))` 一次吐出 `classFilename, classID` 兩個值，當成 `SafeValue(v, default)` 的最後一個引數時 `default` 會吃到 `classID`。若 `classFilename` 是 secret，guard 觸發後回傳 `default`（= 也是 secret 的 classID），secret 照樣外洩去查表爆掉。修法：多包一層括號把回傳截成單值 —— `SafeValue((select(2, UnitClass(unit))))`。任何「把 secret 過濾函式的最後引數接多回傳 API」都要小心。
 

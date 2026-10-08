@@ -6,7 +6,7 @@ metadata:
 ---
 
 2026-08-26 把 MiliUI 套組的 `Enhance/CharacterNotes.lua`（1776 行單檔）拆成獨立插件
-`AddOns/MiliUI_CharacterNotes`（Title-zhTW `|cffE8C56C[筆記]|r 米利的角色筆記`、
+`AddOns/MiliUI_CharacterNotes`（Title-zhTW `|cff33FFE0[筆記]|r 米利的角色筆記`、
 SV `MiliUI_CharacterNotes_DB`、指令 `/mnote`、NAMESPACE `MiliUINote`、選單 order 85）。
 **套組那支已 `git rm`**（同時跑會有兩個筆記本、兩顆小地圖鈕，而且寫的是不同 SV）。
 結構照 [[project-miliui-auraenhance]] 那套；設定介面走 [[project-miliui-widgets-vendor]]。
@@ -235,7 +235,7 @@ dungeonAreaMapID, link, shouldDisplayDifficulty, mapID, covenantID, isRaid`
 
 使用者指定「像 WeakAuras 那樣，有個 link 點開才會存；沒裝插件的只是文字、不會亂碼」。
 
-1. 序列化 → 切塊走插件頻道送出（`MiliUI_CN` 前綴）；2. 對方先放**記憶體**；
+1. 序列化 → 切塊走插件頻道送出（`MiliUI_CN` 前綴，通訊在 `Modules/Comm.lua`；`Share.lua` 只管聊天連結）；2. 對方先放**記憶體**；
 3. 分享方接著貼一則聊天連結；4. 點連結開預覽，按「儲存」才寫進 SV。
 
 - 連結型別用 `garrmission`（`|Hgarrmission:milinote-<token>|h[...]|h`）—— 玩家送出的聊天

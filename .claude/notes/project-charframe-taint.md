@@ -21,6 +21,6 @@ MiliUI 自製功能若掛在暴雪角色面板上，戰鬥中按 C 打不開（�
 - 自製頁籤寬度用 `PanelTemplates_TabResize(charTab, 0, nil, 36, 88)` 依文字調寬；接續錨點與原生一致：`TOPLEFT → 前一顆 TOPRIGHT, x=1, y=0`（舊模板的 -16 重疊量在現服會重疊）。
 - HookScript / hooksecurefunc / CreateFrame 子框 parent 到 CharacterFrame / 把自家框 SetPoint 錨到暴雪框 → 都不會汙染。
 
-2026-06 演進：先把 CharacterNotes.lua 的 SetupTab 改成 taint-safe（移除 PanelTemplates_*、改浮層覆蓋）；最終乾脆**整個移除對 CharacterFrame 的依附**——筆記改成獨立浮動視窗(parent UIParent) + 自包含可拖曳小地圖按鈕(ToggleNotes)，編輯器(editorFrame)依附主視窗 tabFrame 記錄相對偏移。這是最乾淨的根治：不碰角色面板就不可能汙染它。小地圖按鈕沿外圈以角度定位(MiliUI_DB.notesMinimapAngle)、視窗位置存 MiliUI_DB.notesWindowPos、ESC 關閉用 UISpecialFrames。
+2026-06 演進（角色筆記後來拆成獨立插件 `MiliUI_CharacterNotes`，[[project-miliui-characternotes]]，規則仍適用）：先把 CharacterNotes.lua 的 SetupTab 改成 taint-safe（移除 PanelTemplates_*、改浮層覆蓋）；最終乾脆**整個移除對 CharacterFrame 的依附**——筆記改成獨立浮動視窗(parent UIParent) + 自包含可拖曳小地圖按鈕(ToggleNotes)，編輯器(editorFrame)依附主視窗 tabFrame 記錄相對偏移。這是最乾淨的根治：不碰角色面板就不可能汙染它。小地圖按鈕沿外圈以角度定位(MiliUI_DB.notesMinimapAngle)、視窗位置存 MiliUI_DB.notesWindowPos、ESC 關閉用 UISpecialFrames。
 
 診斷管道：BugSack/!BugGrabber 會記 "execution tainted by 'X'" 直接點名；檔在 WTF/Account/<帳號>/SavedVariables/!BugGrabber.lua（reload/登出才寫檔）。相關 [[project-burst-helper]]（同樣戰鬥零讀取/秘密值考量）。

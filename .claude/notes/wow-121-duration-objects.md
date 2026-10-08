@@ -41,7 +41,7 @@ local dur = C_Spell.GetSpellCooldownDuration(spellID)   -- 引擎給的物件
 Eval(dur:IsZero(), 就緒色, 原色)                          -- 秘密布林直接餵曲線
 ```
 
-Platynator 的 `Display/Utilities.lua` 用同一套做 CastBar 的打斷標記；
+Platynator 的 `Display/Colors.lua`／`Display/Nameplate.lua` 用同一套做 CastBar 的打斷標記；
 MiliUI_UnitFrames 的 `Core/Interrupt.lua`（斷法就緒染色）跟著抄。
 
 ### 回秘密布林的函式要多回一個**明文**旗標
@@ -71,7 +71,7 @@ Secret values are only allowed during untainted execution for this argument.
 | 來源 | 秘密值下 |
 |---|---|
 | 引擎給的現成物件（`UnitCastingDuration` / `UnitChannelDuration` / `C_Spell.GetSpellCooldownDuration`） | **可用** |
-| 自己 `CreateDuration` + `SetTimeFromStart` | **不可用**，只在明文（戰鬥外）成立 |
+| 自己 `CreateDuration` + `SetTimeFromStart` | 餵秘密值**不可**；戰鬥外 arm 後進戰鬥照跑（見下節） |
 
 ## ⚠ 但「拿不到值」≠「不能有倒數」
 
@@ -125,7 +125,7 @@ VIEWERS = {  -- Ayije_CDM/Core/Constants.lua
 判斷準則：**要「精確的秘密計時」就得寄生暴雪的框；要「自己排版的顯示」就只能接受
 arm 不到時沒有數字。** 兩者不可兼得，別花時間找第三種。
 
-而 `C_UnitAuras.GetAuraDuration(unit, auraInstanceID)` 回的是**引擎給的** DurationObject
+⚠ 下面這段落後（2026-08-17 寫）：`GetAuraDuration` 吃 `auraInstanceID`，光環受限時那個 ID 是秘密值、而這支 API 是 `AllowedWhenUntainted`，污染端傳秘密 ID 直接 bad argument——以 [[wow-121-aura-containers]]「路線 B 幾乎被封死」為準；它引用的 Cell `Indicators/Base.lua` 兩支 `*_SetCooldownFromAura` 也是零呼叫點的死碼。原文：而 `C_UnitAuras.GetAuraDuration(unit, auraInstanceID)` 回的是**引擎給的** DurationObject
 （Cell/Indicators/Base.lua 用它 → `SetCooldownFromDurationObject`），所以**光環**類的
 秘密計時是可以自己畫的 —— 受限的是「沒有 duration 物件 API 的東西」，例如圖騰槽。
 

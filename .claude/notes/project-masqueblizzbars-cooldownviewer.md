@@ -25,7 +25,7 @@ Masque 套皮改圖示貼圖的錨點／texcoord／遮罩，沒有 NormalTexture
 `IconOverlay:SetShown(groupDisabled)` —— 群組關掉反而把暴雪的圓框秀回來；關群組時 Masque 也會把
 已套皮的圖示「還原」成暴雪預設錨點，一樣蓋掉 Ayije_CDM 的內縮。
 
-**修法**：`MiliUI/Fix/MasqueBlizzBars_CooldownViewer.lua` —— Ayije_CDM 有載入時，**只有增益長條檢視器**的
+**修法**：`MiliUI/Fix/MasqueBlizzBars_CooldownViewer.lua` —— **只管 Ayije_CDM**（MiliUI_CooldownManager 載入時由它自己的 `Core/Compat.lua` 對四條檢視器蓋同一個印記、整批跳過，2026-09-30 起）。Fix 檔現況是「長條整個不套皮（`BLOCK_VIEWERS`）＋三個圖示檢視器只保數字（`KEEP_COUNT_VIEWERS`）」，下面是第一版的描述：Ayije_CDM 有載入時，**只有增益長條檢視器**的
 `OnAcquireItemFrame` 後掛勾把 MasqueBlizzBars 自己的印記 `_MasqueBlizzBarsSkinned` 蓋到項目框
 （蓋在 `frame.Icon` 那層）。三個圖示檢視器不擋：使用者真的在用 Masque 皮（Raeli - Square Inset），
 而且 Action 型的皮跟 Ayije_CDM 沒打架。`Core:Skin` 看到印記就跳過 AddButton、PreHook 也不掛 SetSize。
