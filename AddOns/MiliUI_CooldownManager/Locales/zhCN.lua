@@ -973,3 +973,11 @@ L["To show only a few effects as rings, add a ring group in the left column, the
 -- 圓環條只收增益（2026-10-08）
 L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "圆环条只收增益：技能冷却、自定义法术与物品放不进来。"
 L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "每个项目一圈、围着同一个圆心，亮的部分随时间缩短。圆环条只收增益，也不画发光与按键文字。"
+
+-- 回充的長相（2026-10-08）
+L["While recharging"] = "充能恢复中"
+L["Show cooldown swipe"] = "显示冷却转圈"
+L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."] = "充能技能还有充能、下一层在恢复时，暴雪只在转圈的边缘画一条亮线。开启后也会像一般冷却那样盖上暗色转圈。"
+L["Hide edge line"] = "不显示边缘亮线"
+L["Hide recharge countdown"] = "隐藏恢复倒数"
+L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "只在还有充能时隐藏下一层的倒数；充能用完时，冷却倒数照常显示。"

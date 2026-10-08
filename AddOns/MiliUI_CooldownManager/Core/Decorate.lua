@@ -186,6 +186,10 @@ local function SpellStyle(barKey, id, fresh)
         cdState          = SS(barKey, id, "cdState"),
         cdStateAlpha     = SS(barKey, id, "cdStateAlpha"),
         dimNoAura        = SS(barKey, id, "dimNoAura"),
+        -- 回充的長相（三個布林，沒覆寫退回條層 icon.charge*）
+        chargeSwipe      = SS(barKey, id, "chargeSwipe") and true or false,
+        chargeHideEdge   = SS(barKey, id, "chargeHideEdge") and true or false,
+        chargeHideTimer  = SS(barKey, id, "chargeHideTimer") and true or false,
         customIcon       = D.IconOverrideOf(id),
         -- 增益持續時間那一段的換色（五個欄位跟條層同一套，沒覆寫自然退回條層）：開關是布林、三個顏色是色表
         colorDuration      = SS(barKey, id, "colorDuration") and true or false,
@@ -660,6 +664,7 @@ local function FeedRealCooldown(item, rec, cd)
         if cd.Clear then pcall(cd.Clear, cd) end
     end
     overriding = false
+    rec.fedCharge = (fed and edgeOnly) and true or nil   -- 回充的長相（ChargeLook）：這次餵的是回充
     -- 去飽和只跟技能冷卻那條（有充能在回充時暴雪也不去飽和）
     rec.auraDur = (dur and not edgeOnly) and dur or nil
     ApplyHiddenDesat(item, rec)
@@ -676,6 +681,72 @@ local function ReadyWhileOn(rec)
     if not (G and G.ReadyMode and rec.claimKey) then return false end
     return G.ReadyMode(rec.claimKey, rec) == "whileReady"
 end
+
+------------------------------------------------------------
+-- 回充的長相（主題／條 icon.chargeSwipe／chargeHideEdge／chargeHideTimer，逐法術可蓋 ⇒ rec.style.charge；三個都關 ＝ nil）
+--
+-- 暴雪對「還有充能、下一層在轉」的格（CheckCacheCooldownValuesFromCharges ⇒ wasSetFromCharges）每次刷新
+-- SetDrawSwipe(false)、CooldownFrame_Set 裡 SetDrawEdge(true)，倒數照常顯示（查證：12.1 live 的
+-- Blizzard_CooldownViewer/CooldownViewer.lua）。三個開關各改掉一項：
+--   * 「這次是回充」（Recharge）：
+--       正常路徑：item 的 HasVisualDataSource_Charges()（明文布林；退路 rawget wasSetFromCharges），而且這次不是
+--         光環時間（rec.auraFlag：光環優先顯示，暴雪的兩個來源旗標會同時是 true）
+--       蓋掉增益那一段的格：FeedRealCooldown 自己知道餵的是不是回充 ⇒ rec.fedCharge
+--   * 是回充：SetDrawSwipe(畫轉圈)、SetDrawEdge(not 不畫邊緣)。這兩個暴雪下一次刷新都會重寫 ⇒ 不是回充時不用還原；
+--     只有「設定剛關掉、而且還在回充」要寫回暴雪的值（rec.chargeLook 記著寫過）。
+--   * 隱藏倒數：倒數 FontString 的 alpha（0／1），**不用** SetHideCountdownNumbers——那支歸「隱藏倒數文字」管
+--     （Text.ApplyIcon、Reattach 寫），兩邊各管各的。alpha 暴雪不碰 ⇒ 要自己還原（rec.chargeDim 記著）。
+--   * 時機：SetCooldown 後掛勾的尾巴（AfterCooldown）；設定變了的完整套用當場照現況重套一次（不等暴雪下一次刷新）。
+--   * 圓環條（rec.ring）不做：swipe 是圓環的填色、邊緣一律不畫；只把隱藏倒數的 alpha 還原。
+--   * 自訂法術的回充是另一顆 .ChargeCooldown（Modules/Custom.lua 的 ApplyChargeLook，同一包 rec.style.charge）
+------------------------------------------------------------
+local function SetFromCharges(item)
+    local fn = item.HasVisualDataSource_Charges
+    if type(fn) == "function" then
+        local ok, v = pcall(fn, item)
+        if ok then
+            v = Plain(v)                  -- ⚠ 不能寫成 ok and Plain(v) or nil：false 會被吃掉
+            if type(v) == "boolean" then return v end
+        end
+    end
+    return Plain(rawget(item, "wasSetFromCharges")) == true
+end
+
+local function Recharge(item, rec)
+    if rec.auraHidden then return rec.fedCharge == true end
+    return rec.auraFlag ~= true and SetFromCharges(item)
+end
+D.Recharge = Recharge                                            -- 測試用
+
+local function ApplyChargeLook(item, rec, cd)
+    local st = rec.style
+    local c = st and st.charge
+    -- 沒開、也沒有要還原的：一次讀都不做（每次 SetCooldown 都會經過）
+    if not (c or rec.chargeLook or rec.chargeDim) then return end
+    local recharge = Recharge(item, rec)
+    if rec.ring then
+        c, rec.chargeLook = nil, nil
+    elseif c and recharge then
+        cd:SetDrawSwipe(c.swipe and true or false)
+        local edge = not c.hideEdge
+        if type(st.drawEdge) == "boolean" then edge = edge and st.drawEdge end
+        cd:SetDrawEdge(edge)
+        rec.chargeLook = true
+    elseif rec.chargeLook then
+        rec.chargeLook = nil
+        if recharge then                                  -- 設定剛關掉、還在回充：寫回暴雪的（不畫轉圈、畫邊緣）
+            cd:SetDrawSwipe(false)
+            cd:SetDrawEdge(type(st and st.drawEdge) ~= "boolean" or st.drawEdge)
+        end
+    end
+    local dim = (c and recharge and c.hideTimer) and true or nil
+    if dim ~= rec.chargeDim then
+        local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
+        if fs then fs:SetAlpha(dim and 0 or 1) end
+        rec.chargeDim = dim
+    end
+end
+D.ApplyChargeLook = ApplyChargeLook                              -- 測試用
 
 -- SetCooldown 後掛勾的尾巴（正常路徑與蓋掉的那條共用）：轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態
 --
@@ -697,6 +768,7 @@ local function AfterCooldown(item, rec, cd)
     local sw = (aura and st.durSwipe) or st.swipe
     if sw then cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
+    ApplyChargeLook(item, rec, cd)                       -- 回充的長相（在邊緣之後：「不畫邊緣」要蓋過它）
     -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的；蓋掉的格是 false ＝ 原色）
     if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor and (rec.acStyle ~= st or rec.acAura ~= aura) then
         D.afterCooldownWrites = D.afterCooldownWrites + 1
@@ -1897,6 +1969,7 @@ local function Signature(style, id, spell, w, h)
     return style.sig .. "|" .. tostring(id) .. "|" .. CSig(spell.borderColor) .. "|"
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
         .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha) .. "," .. tostring(spell.dimNoAura)
+        .. "|" .. tostring(spell.chargeSwipe) .. tostring(spell.chargeHideEdge) .. tostring(spell.chargeHideTimer)
         .. "|" .. tostring(spell.customIcon)
         .. "|" .. tostring(spell.colorDuration) .. "," .. CSig(spell.durationColor) .. "," .. CSig(spell.durationLowColor)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
@@ -2172,6 +2245,11 @@ function D.Apply(item, rec, barKey, w, h, ring)
         dimNoAura  = (spell.dimNoAura == true and not isBar and not rec.custom
                       and not ns.Viewers.AURA_KIND[rec.barKey]) or nil,
     }
+    -- 回充的長相：方形圖示的冷卻格才有（長條、增益類不適用；圓環在下面清掉）。三個都關 ＝ nil，引擎整段跳過
+    if not isBar and not ns.Viewers.AURA_KIND[rec.barKey]
+        and (spell.chargeSwipe or spell.chargeHideEdge or spell.chargeHideTimer) then
+        rec.style.charge = { swipe = spell.chargeSwipe, hideEdge = spell.chargeHideEdge, hideTimer = spell.chargeHideTimer }
+    end
     -- 倒數數字兩段的顏色（ns.Text.ApplyPhaseColor 讀）：長條與增益類、自訂框沒有「先倒增益」那一段 ⇒ 不給
     if not isBar and not rec.custom and not ns.Viewers.AURA_KIND[rec.barKey] then
         rec.style.cdColor, rec.style.durColor = D.PhaseColors(style, spell)
@@ -2204,6 +2282,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
         rec.style.swipe = { D.RingFill(spell.ringColor) }
         rec.style.durSwipe = nil
         rec.style.drawEdge = false
+        rec.style.charge = nil
     end
     if not rec.custom then itemOf[rec] = item end
 
@@ -2273,6 +2352,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
             local sw = rec.style.swipe
             cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
             cd:SetDrawEdge(false)
+            if not rec.custom then ApplyChargeLook(item, rec, cd) end   -- 圓環不做回充的長相：只把隱藏倒數的 alpha 還原
         end
         ns.Text.ApplyIcon(item, style, spell, rec)
         ns.Text.ApplyRing(item, style, spell, rec)            -- 倒數／層數錨到這一圈頂端的環帶、倒數開關
@@ -2310,6 +2390,8 @@ function D.Apply(item, rec, barKey, w, h, ring)
             local sw = ((rec.auraTime or rec.style.allAura) and rec.style.durSwipe) or { sr, sg, sb, sa }
             cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
+            -- 回充的長相：自訂框走自己的 .ChargeCooldown（Custom 的更新裡套）；暴雪 item 照現況重套（設定剛改）
+            if not rec.custom then ApplyChargeLook(item, rec, cd) end
         end
         -- 關掉「冷卻中去飽和」：當場還原一次，之後靠 SetDesaturated 後掛勾擋
         if spell.desaturate == false and icon and icon.SetDesaturated then
