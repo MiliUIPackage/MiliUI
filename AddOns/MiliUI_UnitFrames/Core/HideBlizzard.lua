@@ -138,6 +138,9 @@ function ns.HideBlizzardFrames()
     local playerUF = ns.frames.player
     if playerUF and playerUF.elements.castbar then
         Unreg(PlayerCastingBarFrame or CastingBarFrame)
+        -- 替身：覆蓋快捷列（載具、變身、寵物控制）出現時暴雪停用上面那條、改顯示這條，
+        -- 它 OnLoad 就自己以 "player" 註冊了全套施法事件
+        Unreg(OverlayPlayerCastingBarFrame)
         -- 只記帳，給公開 API HidesPlayerCastBar 回答（Api.lua）：別的插件要把暴雪施法條的
         -- 事件裝回去之前先問，不然會把我們藏起來的條又叫回來。單向，跟這支模組一樣
         ns.playerCastBarHidden = true

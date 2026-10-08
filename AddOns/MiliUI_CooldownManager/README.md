@@ -1763,6 +1763,9 @@ customRows[specID] = {
   所以不需要 /reload。走 `ns.Write`。**例外**：單位框架（MiliUI_UnitFrames）的玩家框施法條也在隱藏它時
   （問它的公開 API `MiliUI_UnitFrames.HidesPlayerCastBar()`），取消勾選**不裝回**、只清帳 —— 那邊的隱藏是單向的，
   裝回去等於把它藏的條叫回來。設定頁那個開關的說明列有寫。
+  **兩條都要解**：本體 `PlayerCastingBarFrame` 和替身 `OverlayPlayerCastingBarFrame` —— 覆蓋快捷列（載具、變身、寵物控制）
+  出現時暴雪停用本體、改顯示替身（畫在覆蓋快捷列上方），替身 OnLoad 就自己註冊了全套施法事件。只解本體的話，
+  祖阿曼箱子世界任務的神靈變身之類一出來，暴雪施法條就又出現。帳按框分開記（`blizzSaved[frame]`）。
 - **材質**：下拉多一項「暴雪施法條」（`texture = "blizzard"`，排在「純色」後面；只有施法條有，資源條與自訂格子的選單不加）：
   填充用遊戲內建施法條的圖集 `UI-CastingBar-Filling-Standard`（`SetStatusBarTexture` 收圖集名；`C_Texture.GetAtlasInfo` 查不到就退回純色、
   `SetStatusBarTexture` 失敗退回貼圖 `SetAtlas`）、**去飽和**，顏色照原本的上色流程（施法／引導／不可打斷／斷法就緒／蓄力都是對填充貼圖

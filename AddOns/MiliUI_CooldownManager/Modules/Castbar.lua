@@ -1107,9 +1107,13 @@ local BLIZZ_EVENTS = {
     "UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP",
     "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_SENT", "PLAYER_ENTERING_WORLD",
 }
-local blizzSaved          -- 解之前它註冊著的事件：{ { event, unit1, unit2 }, … }；nil ＝ 沒動過
+-- 框 → 解之前它註冊著的事件：{ { event, unit1, unit2 }, … }；沒有這個框的 key ＝ 沒動過
+local blizzSaved = {}
 
-local function BlizzBar() return _G.PlayerCastingBarFrame end
+-- 要解事件的暴雪施法條。除了本體之外還有一條替身：覆蓋快捷列（載具、變身、寵物控制）出現時，
+-- 暴雪會停用本體、改顯示 OverlayPlayerCastingBarFrame（畫在覆蓋快捷列上方）。它 OnLoad 就自己
+-- 以 "player" 註冊了全套施法事件，只解本體的話變身後施法條又跑出來
+local BLIZZ_BARS = { "PlayerCastingBarFrame", "OverlayPlayerCastingBarFrame" }
 
 -- 單位框架（MiliUI_UnitFrames）也把暴雪施法條的事件解掉了嗎？它的隱藏是單向的（沒有還原），
 -- 這時我們取消勾選若照原樣裝回，等於把它藏起來的條又叫回來 ⇒ 不裝回，只把帳清掉。
@@ -1122,44 +1126,59 @@ local function UnitFramesHidesBlizzard()
     return ok and hides == true
 end
 
+local function UnregisterBar(bf)
+    ns.Write(bf, function(frame)
+        if blizzSaved[frame] then return end
+        local saved = {}
+        for _, e in ipairs(BLIZZ_EVENTS) do
+            local ok, reg, u1, u2 = pcall(frame.IsEventRegistered, frame, e)
+            if ok and reg == true then saved[#saved + 1] = { e, u1, u2 } end
+        end
+        pcall(frame.UnregisterAllEvents, frame)
+        blizzSaved[frame] = saved
+    end, "cdm_castbar")
+end
+
+local function RestoreBar(bf)
+    ns.Write(bf, function(frame)
+        local saved = blizzSaved[frame]
+        if not saved then return end
+        blizzSaved[frame] = nil
+        if UnitFramesHidesBlizzard() then return end
+        for _, e in ipairs(saved) do
+            if type(e[2]) == "string" then
+                if type(e[3]) == "string" then
+                    pcall(frame.RegisterUnitEvent, frame, e[1], e[2], e[3])
+                else
+                    pcall(frame.RegisterUnitEvent, frame, e[1], e[2])
+                end
+            else
+                pcall(frame.RegisterEvent, frame, e[1])
+            end
+        end
+    end, "cdm_castbar")
+end
+
 function CB.ApplyBlizzard()
-    local bf = BlizzBar()
-    if not bf then return end
     local cfg = Cfg() or {}
     local want = cfg.enabled ~= false and cfg.hideBlizzard == true
-    if want and not blizzSaved then
-        ns.Write(bf, function(frame)
-            if blizzSaved then return end
-            local saved = {}
-            for _, e in ipairs(BLIZZ_EVENTS) do
-                local ok, reg, u1, u2 = pcall(frame.IsEventRegistered, frame, e)
-                if ok and reg == true then saved[#saved + 1] = { e, u1, u2 } end
-            end
-            pcall(frame.UnregisterAllEvents, frame)
-            blizzSaved = saved
-        end, "cdm_castbar")
-    elseif not want and blizzSaved then
-        ns.Write(bf, function(frame)
-            local saved = blizzSaved
-            if not saved then return end
-            blizzSaved = nil
-            if UnitFramesHidesBlizzard() then return end
-            for _, e in ipairs(saved) do
-                if type(e[2]) == "string" then
-                    if type(e[3]) == "string" then
-                        pcall(frame.RegisterUnitEvent, frame, e[1], e[2], e[3])
-                    else
-                        pcall(frame.RegisterUnitEvent, frame, e[1], e[2])
-                    end
-                else
-                    pcall(frame.RegisterEvent, frame, e[1])
-                end
-            end
-        end, "cdm_castbar")
+    for _, name in ipairs(BLIZZ_BARS) do
+        local bf = _G[name]
+        if bf and want and not blizzSaved[bf] then
+            UnregisterBar(bf)
+        elseif bf and not want and blizzSaved[bf] then
+            RestoreBar(bf)
+        end
     end
 end
 
-function CB.BlizzardHidden() return blizzSaved ~= nil end
+local function SavedCount()
+    local frames, events = 0, 0
+    for _, saved in pairs(blizzSaved) do frames, events = frames + 1, events + #saved end
+    return frames, events
+end
+
+function CB.BlizzardHidden() return next(blizzSaved) ~= nil end
 
 ------------------------------------------------------------
 -- 初始化（ns.StartEngine：Bars 之後）
@@ -1223,7 +1242,7 @@ function CB.DebugLines()
                 S.tStart and "有" or "無", S.total or 0, math.floor(S.lag or 0)
                     .. (S.lagSource == "measured" and "" or S.lagSource == "net" and "（GetNetStats）" or ""),
                 S.tickTimes and #S.tickTimes or 0, S.stagePoints and #S.stagePoints or 0,
-                (blizzSaved and ("是（" .. #blizzSaved .. " 個）") or "否")
+                (next(blizzSaved) and ("是（%d 條、%d 個）"):format(SavedCount()) or "否")
                     .. (UnitFramesHidesBlizzard() and "（單位框架也在隱藏）" or ""),
                 tostring(ns.Visibility and ns.Visibility.Current("castbar")))
     return out
