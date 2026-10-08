@@ -207,21 +207,26 @@ local function CreatePanel()
     local aboutText = aboutTab:CreateFontString(nil, "OVERLAY")
     aboutText:SetFontObject(W.fontNormal)
     aboutText:SetPoint("TOPLEFT", PREVIEW_W + 24, -40)
+    aboutText:SetWidth(PANEL_W - PREVIEW_W - 48)
     aboutText:SetJustifyH("LEFT")
     aboutText:SetSpacing(6)
     aboutText:SetText(table.concat({
         "|cff4DD2FF" .. L["MiliUI Tooltip"] .. "|r v" .. ns.VERSION,
         "",
-        L["Tooltip restyling rebuilt for 12.1."],
-        L["All decoration lives on our own overlay frame; taint containment is part of the architecture."],
+        L["A tooltip addon rebuilt from scratch for 12.1: a clean, tidy look, built around the new secret-value rules so it keeps working in raids and Mythic+."],
+        "",
+        L["|cffffd200Units|r  Class-colored border and health bar, guild, item level, Mythic+ score, their target, and which teammates are targeting them."],
+        L["|cffffd200Layout|r  Every line of the player and NPC tooltip can be arranged by dragging: reorder, combine onto one line, or hide."],
+        L["|cffffd200Items & spells|r  Quality-colored border, icon, expansion, and item / spell / quest IDs."],
+        L["|cffffd200Position|r  Follow the cursor or pin to a screen corner; optionally hide in combat or use a fixed spot over unit frames."],
+        L["|cffffd200Profiles|r  Per-character profiles, shareable as export / import strings."],
         "",
         L["Commands: |cffffd200/mtip|r opens the options, |cffffd200/mtip reset|r resets everything"],
         "",
         L["Author: Mili (MiliUI package)"],
         "",
         L["|cffffd200Credits|r"],
-        L["The look and feature set follow TinyTooltip by 55510696;"],
-        L["this is a from-scratch rewrite for the 12.1 secret-value era."],
+        L["MiliUI Tooltip is deeply inspired by |cffffffffTinyTooltip|r: its look and feature set are where this addon started. Many thanks to its author |cffffffff55510696|r. This is a from-scratch rewrite for 12.1, not a modified copy of TinyTooltip."],
     }, "\n"))
 
     ns.RegisterCallback("ShowOptionsTab", "aboutTab", function(id)
