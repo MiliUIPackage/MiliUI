@@ -973,3 +973,11 @@ L["To show only a few effects as rings, add a ring group in the left column, the
 -- 圓環條只收增益（2026-10-08）
 L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "고리 바에는 강화 효과만 넣을 수 있습니다. 기술 재사용 대기시간, 사용자 지정 주문과 아이템은 넣을 수 없습니다."
 L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "항목마다 같은 중심을 도는 고리 하나가 되고, 밝은 부분이 시간이 지나며 줄어듭니다. 고리 바에는 강화 효과만 넣을 수 있고, 반짝임과 단축키는 표시되지 않습니다."
+
+-- 回充的長相（2026-10-08）
+L["While recharging"] = "충전 중"
+L["Show cooldown swipe"] = "재사용 대기 회전 표시"
+L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."] = "충전이 남아 있고 다음 충전이 차오르는 동안 블리자드는 회전의 가장자리에 밝은 선만 그립니다. 켜면 일반 재사용 대기처럼 아이콘도 어둡게 덮습니다."
+L["Hide edge line"] = "가장자리 선 숨기기"
+L["Hide recharge countdown"] = "충전 카운트다운 숨기기"
+L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "충전이 남아 있을 때만 다음 충전까지의 초를 숨깁니다. 충전을 다 쓰면 재사용 대기 카운트다운은 평소대로 표시됩니다."

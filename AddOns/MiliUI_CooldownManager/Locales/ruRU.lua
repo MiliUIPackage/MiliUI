@@ -973,3 +973,11 @@ L["To show only a few effects as rings, add a ring group in the left column, the
 -- 圓環條只收增益（2026-10-08）
 L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "На панель колец можно добавить только баффы: восстановление способностей, свои заклинания и предметы туда не попадут."
 L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Каждый элемент становится кольцом вокруг общего центра, светлая часть сокращается со временем. Панель колец принимает только баффы и не показывает свечение и клавиши."
+
+-- 回充的長相（2026-10-08）
+L["While recharging"] = "Во время восстановления"
+L["Show cooldown swipe"] = "Показывать затемнение"
+L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."] = "Заклинание с зарядами, пока один ещё есть, а следующий восстанавливается: Blizzard рисует только яркую линию по краю затемнения. Включите, чтобы значок тоже затемнялся, как при обычном восстановлении."
+L["Hide edge line"] = "Скрывать линию края"
+L["Hide recharge countdown"] = "Скрывать отсчёт заряда"
+L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Скрывает секунды до следующего заряда, только пока у вас ещё есть заряд. Без зарядов отсчёт восстановления показывается как обычно."

@@ -973,3 +973,11 @@ L["To show only a few effects as rings, add a ring group in the left column, the
 -- 圓環條只收增益（2026-10-08）
 L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "Le barre ad anelli accettano solo benefici: tempi di recupero delle abilità, incantesimi e oggetti personalizzati non ci vanno."
 L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Ogni elemento diventa un anello attorno allo stesso centro e la parte accesa si accorcia col tempo. Le barre ad anelli accettano solo benefici e non mostrano bagliori né tasti."
+
+-- 回充的長相（2026-10-08）
+L["While recharging"] = "Durante la ricarica"
+L["Show cooldown swipe"] = "Mostra animazione di ricarica"
+L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."] = "Un incantesimo a cariche, finché ne resta una e la successiva si ricarica: Blizzard disegna solo una linea luminosa sul bordo dell'animazione. Attivalo per scurire anche l'icona, come un normale tempo di ricarica."
+L["Hide edge line"] = "Nascondi linea del bordo"
+L["Hide recharge countdown"] = "Nascondi conto alla rovescia"
+L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Nasconde i secondi alla prossima carica solo finché te ne resta una. Senza cariche, il conto alla rovescia del tempo di ricarica appare come sempre."

@@ -627,5 +627,87 @@ do
     D.ApplyGCDAlpha, D.ApplyItemAlpha = saveG, saveA
 end
 
+------------------------------------------------------------
+-- 回充的長相（D.Recharge／D.ApplyChargeLook）
+------------------------------------------------------------
+do
+    local function NewCD()
+        local fs = { alpha = 1 }
+        function fs:SetAlpha(a) self.alpha = a end
+        local cd = { swipe = false, edge = true, fs = fs, writes = 0 }
+        function cd:SetDrawSwipe(v) self.swipe = v; self.writes = self.writes + 1 end
+        function cd:SetDrawEdge(v) self.edge = v; self.writes = self.writes + 1 end
+        function cd:GetCountdownFontString() return self.fs end
+        return cd
+    end
+    local function Item(fromCharges)
+        local it = { wasSetFromCharges = fromCharges }
+        function it:HasVisualDataSource_Charges() return self.wasSetFromCharges end
+        return it
+    end
+    local ALL = { swipe = true, hideEdge = true, hideTimer = true }
+
+    -- 判斷「這次是回充」
+    eq("回充：暴雪旗標 true", D.Recharge(Item(true), {}), true)
+    eq("回充：旗標 false", D.Recharge(Item(false), {}), false)
+    eq("回充：光環優先（旗標同時 true）", D.Recharge(Item(true), { auraFlag = true }), false)
+    eq("回充：秘密的 getter 退回欄位", D.Recharge({ HasVisualDataSource_Charges = function() return Secret(true) end,
+        wasSetFromCharges = true }, {}), true)
+    eq("回充：蓋掉增益那一段看 fedCharge", D.Recharge(Item(false), { auraHidden = true, fedCharge = true }), true)
+    eq("回充：蓋掉增益那一段、餵的不是回充", D.Recharge(Item(true), { auraHidden = true }), false)
+
+    -- 三個都關：一個 setter 都不叫
+    local cd, rec = NewCD(), { style = {} }
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("全關：不寫", cd.writes, 0)
+
+    -- 全開＋回充
+    cd, rec = NewCD(), { style = { charge = ALL } }
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("全開：畫轉圈", cd.swipe, true)
+    eq("全開：不畫邊緣", cd.edge, false)
+    eq("全開：倒數 alpha 0", cd.fs.alpha, 0)
+
+    -- 不是回充（0 充能、走技能冷卻）：轉圈／邊緣交給暴雪，倒數 alpha 還原
+    cd.writes = 0
+    D.ApplyChargeLook(Item(false), rec, cd)
+    eq("非回充：不寫轉圈／邊緣", cd.writes, 0)
+    eq("非回充：倒數還原", cd.fs.alpha, 1)
+
+    -- 只開轉圈：邊緣照暴雪（畫），倒數不動
+    cd, rec = NewCD(), { style = { charge = { swipe = true } } }
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("只開轉圈：轉圈", cd.swipe, true)
+    eq("只開轉圈：邊緣照畫", cd.edge, true)
+    eq("只開轉圈：倒數不動", cd.fs.alpha, 1)
+
+    -- 隱藏的 drawEdge 設定是 false：開了轉圈也不把邊緣打開
+    cd, rec = NewCD(), { style = { charge = { swipe = true }, drawEdge = false } }
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("drawEdge false：邊緣不打開", cd.edge, false)
+
+    -- 設定剛關掉、還在回充：寫回暴雪的（不畫轉圈、畫邊緣、倒數顯示）
+    cd, rec = NewCD(), { style = { charge = ALL } }
+    D.ApplyChargeLook(Item(true), rec, cd)
+    rec.style = {}
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("關掉：轉圈寫回 false", cd.swipe, false)
+    eq("關掉：邊緣寫回 true", cd.edge, true)
+    eq("關掉：倒數還原", cd.fs.alpha, 1)
+    eq("關掉：記號清掉", rec.chargeLook, nil)
+    cd.writes = 0
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("關掉之後：不再寫", cd.writes, 0)
+
+    -- 圓環：不寫轉圈／邊緣，只還原倒數
+    cd, rec = NewCD(), { style = { charge = ALL } }
+    D.ApplyChargeLook(Item(true), rec, cd)
+    rec.ring, rec.style = true, { charge = nil, drawEdge = false }
+    cd.writes = 0
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("圓環：不寫轉圈／邊緣", cd.writes, 0)
+    eq("圓環：倒數還原", cd.fs.alpha, 1)
+end
+
 print(("CooldownState_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

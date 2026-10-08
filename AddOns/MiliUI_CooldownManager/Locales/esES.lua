@@ -973,3 +973,11 @@ L["To show only a few effects as rings, add a ring group in the left column, the
 -- 圓環條只收增益（2026-10-08）
 L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "Las barras de anillos solo admiten beneficios: los tiempos de reutilización de habilidades y los hechizos y objetos propios no caben."
 L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Cada elemento es un anillo alrededor del mismo centro y la parte iluminada se acorta con el tiempo. Las barras de anillos solo admiten beneficios y no muestran brillos ni atajos."
+
+-- 回充的長相（2026-10-08）
+L["While recharging"] = "Mientras se recarga"
+L["Show cooldown swipe"] = "Mostrar barrido"
+L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."] = "Un hechizo con cargas, mientras le queda una y la siguiente se recupera: Blizzard solo dibuja una línea brillante en el borde del barrido. Actívalo para oscurecer también el icono, como un tiempo de reutilización normal."
+L["Hide edge line"] = "Ocultar línea del borde"
+L["Hide recharge countdown"] = "Ocultar cuenta de recarga"
+L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Oculta los segundos hasta la siguiente carga solo mientras te quede una. Sin cargas, la cuenta del tiempo de reutilización se muestra como siempre."

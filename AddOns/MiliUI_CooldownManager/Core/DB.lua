@@ -541,6 +541,10 @@ function DB.BuildDefaults()
                           -- 舊存檔沒有這兩欄 ＝ 合併預設值補成關，行為不變、不遷移
                           pressFlash = false, pressFlashAlpha = 0.35,
                           hideGCDSwipe = false, desaturateOnCooldown = true,
+                          -- 充能技能回充中（還有充能、下一層在轉）的長相（Core/Decorate.lua 的「回充的長相」）。暴雪原本：
+                          -- 不畫暗色轉圈、畫邊緣亮線、顯示倒數。三個開關都是「改掉暴雪原本的」，**預設全關**
+                          -- （2026-10-08 使用者指定；舊存檔沒有這三欄 ＝ 合併預設補成關，行為不變、不遷移）
+                          chargeSwipe = false, chargeHideEdge = false, chargeHideTimer = false,
                           -- 暴雪的減益類型邊框（打在目標上的魔法／詛咒…減益會框一圈驅散色）：預設藏
                           hideDebuffBorder = true,
                           -- 冷卻狀態（核心／輔助、自訂法術／物品／飾品欄；增益類不適用）：
@@ -1190,6 +1194,10 @@ local SPELL_FALLBACK = {
     desaturate  = "icon.desaturateOnCooldown",
     -- 冷卻狀態：逐法術可以蓋模式；變暗的透明度逐法術沒有控件（吃條的值），欄位照樣登記
     cdState      = "icon.cdState",
+    -- 回充的長相（畫轉圈／不畫邊緣／隱藏倒數）：nil 跟隨條／true／false（Core/Decorate.lua 的 SpellStyle）
+    chargeSwipe     = "icon.chargeSwipe",
+    chargeHideEdge  = "icon.chargeHideEdge",
+    chargeHideTimer = "icon.chargeHideTimer",
     cdStateAlpha = "icon.cdStateAlpha",
     -- 增益持續時間那一段的換色（逐法術跟條層同一套五個欄位、同一套連動，Core/Decorate.lua 的 SpellStyle）：
     --   colorDuration      三態 nil 跟隨條／true 換色／false 不換色（引擎讀 SpellSetting 的布林）
@@ -1597,6 +1605,7 @@ end
 DB.OVERRIDE_GROUP = {
     borderColor = "icon", desaturate = "icon", cdState = "icon", cdStateAlpha = "icon", customIcon = "icon",
     showAuraTime = "icon", dimNoAura = "icon",
+    chargeSwipe = "icon", chargeHideEdge = "icon", chargeHideTimer = "icon",
     -- 沒有物品時隱藏／被動飾品不顯示：條層的開關在「圖示」節 ⇒ 同一組（條頁「清除圖示覆寫」一起清，回到條層的值）
     hideNoItem = "icon", hidePassiveTrinket = "icon",
     -- 以增益取代：決定格子放誰，不是外觀 ⇒ 自成一組（條頁「清除外觀覆寫」不會把它清掉；跟天賦條件同一個理由）

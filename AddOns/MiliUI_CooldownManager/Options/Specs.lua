@@ -807,7 +807,15 @@ function Specs.Themed(mode, key)
         NK(Note(L["Flashes when you press the key bound to this spell's action bar slot. Only key bindings count; clicking the action bar doesn't."], "icon")),
         NK(TS("icon", "slider", "icon.pressFlashAlpha", L["Flash opacity"],
             { min = 10, max = 80, step = 5, scale = 100,
-              disabled = function(info) return not ReadThemed(info, "icon.pressFlash") end })))
+              disabled = function(info) return not ReadThemed(info, "icon.pressFlash") end })),
+        -- 回充的長相（Core/Decorate.lua）：三個都是改掉暴雪原本的（不畫轉圈、畫邊緣、顯示倒數），預設全關。
+        -- 增益兩條與長條類的條用不到（同冷卻狀態效果的 CS）
+        CS(Nested(L["While recharging"], "icon")),
+        CS(TS("icon", "toggle", "icon.chargeSwipe", L["Show cooldown swipe"])),
+        CS(Note(L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."], "icon")),
+        CS(TS("icon", "toggle", "icon.chargeHideEdge", L["Hide edge line"])),
+        CS(TS("icon", "toggle", "icon.chargeHideTimer", L["Hide recharge countdown"])),
+        CS(Note(L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."], "icon")))
 
     -- 文字
     add({ type = "header", label = L["Text"], tab = "text" })

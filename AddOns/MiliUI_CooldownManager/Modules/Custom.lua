@@ -816,6 +816,32 @@ local function SpellCharges(rec, spellID)
     return info.currentCharges
 end
 
+-- 回充的長相（Core/Decorate.lua 那一節，同一包 rec.style.charge）：自訂法術的回充是另一顆 .ChargeCooldown（平常只畫邊緣、
+-- 不顯示倒數）。畫轉圈時主轉圈改不畫：0 充能時兩顆同時在轉（技能冷卻＝這一層的回充），疊兩層會更暗。
+-- 隱藏倒數不適用（這顆本來就不顯示）。值沒變不寫（每次更新都會經過）；rec.style 換了（設定改了）一律重寫
+local function ApplyChargeLook(rec, f)
+    local cc = f.ChargeCooldown
+    if not cc then return end
+    local st = rec.style
+    local c = rec.isCharge and st and st.charge or nil
+    local swipe = (c and c.swipe) and true or false
+    local edge = not (c and c.hideEdge)
+    if rec.ccSwipe == swipe and rec.ccEdge == edge and rec.ccStyle == st then return end
+    rec.ccSwipe, rec.ccEdge, rec.ccStyle = swipe, edge, st
+    if swipe then
+        -- 轉圈色跟主轉圈同一個；材質：Masque 套著時是它的，否則換純色方塊（跟主轉圈的 SquareSwipe 一樣）
+        local sw = st.swipe
+        if sw then cc:SetSwipeColor(sw[1], sw[2], sw[3], sw[4]) end
+        if not rec.msqSkinned and not rec.ccSquare and cc.SetSwipeTexture then
+            rec.ccSquare = true
+            pcall(cc.SetSwipeTexture, cc, WHITE, 1, 1, 1, 1)
+        end
+    end
+    cc:SetDrawSwipe(swipe)
+    cc:SetDrawEdge(edge)
+    if f.Cooldown then f.Cooldown:SetDrawSwipe(not swipe) end
+end
+
 local function UpdateSpell(rec)
     CU.updates = CU.updates + 1
     local f = rec.frame
@@ -870,6 +896,7 @@ local function UpdateSpell(rec)
         if f.ChargeCooldown then f.ChargeCooldown:Clear() end
         if fs then fs:SetText("") end
     end
+    ApplyChargeLook(rec, f)
 
     -- 長條：條身＋秒數。充能法術吃回充（有充能、沒轉滿時也在跑），其他吃技能冷卻；
     -- 轉好＝剩餘 0 ＝空條（列一直在，跟圖示一樣）。物件是引擎給的，每次更新照餵（不讀）

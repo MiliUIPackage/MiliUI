@@ -173,6 +173,10 @@ end
 -- 音效欄位與顯示在哪一類（class：「cooldown」冷卻類｜「aura」增益類）
 -- 暴雪的冷卻格（kind ＝ nil）另有增益出現／消失：暴雪開始／停止倒增益持續時間（Core/Sound.lua 的 OnAuraFlag），同一組欄位
 local function BlizzCooldownSound(kind, class) return kind == nil and class == "cooldown" end
+-- 隱藏回充倒數：只有暴雪的冷卻格（自訂法術的回充本來就不顯示倒數），而且不在長條類的條上（同 OnBars，那支定義在後面）
+local function ChargeTimerWhen(kind, class)
+    return kind == nil and class == "cooldown" and not (cur ~= nil and ns.Setting(cur.key, "kind") == "bars")
+end
 -- charge ＝ 整組（音效、語音播報、灰字）只在有充能時出現；note ＝ 下一列灰字（有語音播報列時排在它下面；noteCharge ＝ 灰字只在有充能時）
 local SOUNDS = {
     { field = "readySound", label = L["Ready sound"], class = "cooldown", noteCharge = true,
@@ -208,6 +212,11 @@ local TOGGLES = {
     { field = "fullGlow",         label = L["Glow at max charges"],    noAura = true, noBar = true, tab = "glow", charge = true,
       tip = L["Glows while a spell with charges has all of them back. Spells without charges never glow."] },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
+    -- 回充的長相（Core/Decorate.lua）：只在這招現在有充能時出現；長條類的條不適用。隱藏倒數只給暴雪的冷卻格
+    -- （自訂法術的回充本來就不顯示倒數，Modules/Custom.lua 的 ApplyChargeLook）
+    { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true },
+    { field = "chargeHideEdge",   label = L["Hide edge line"],         noAura = true, noBar = true, tab = "look", charge = true },
+    { field = "chargeHideTimer",  label = L["Hide recharge countdown"], when = ChargeTimerWhen, tab = "look", charge = true },
     -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
     { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look",
       tip = L["Dims the icon while it isn't counting down your buff or debuff. For example, a Warlock's damage-over-time spells on Essential Cooldowns: the icon dims while your current target doesn't have your debuff (or you have no target)."] },

@@ -973,3 +973,11 @@ L["To show only a few effects as rings, add a ring group in the left column, the
 -- 圓環條只收增益（2026-10-08）
 L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."] = "Ringleisten nehmen nur Stärkungen auf: Abklingzeiten von Fähigkeiten, eigene Zauber und Gegenstände passen nicht hinein."
 L["Each item becomes a ring around the same center, and the lit part shrinks as time runs out. Ring bars only take buffs, and don't draw glows or keybinds."] = "Jeder Eintrag wird ein Ring um dieselbe Mitte; der helle Teil schrumpft mit der Zeit. Ringleisten nehmen nur Stärkungen auf und zeigen kein Leuchten und keine Tastenbelegung."
+
+-- 回充的長相（2026-10-08）
+L["While recharging"] = "Während der Aufladung"
+L["Show cooldown swipe"] = "Abklingzeit-Wischer zeigen"
+L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."] = "Ein Zauber mit Aufladungen, solange noch eine übrig ist und die nächste zurückkommt: Blizzard zeichnet nur eine helle Linie am Rand des Wischers. Einschalten, um das Symbol wie bei einer normalen Abklingzeit auch abzudunkeln."
+L["Hide edge line"] = "Randlinie ausblenden"
+L["Hide recharge countdown"] = "Aufladungs-Countdown ausblenden"
+L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Blendet die Sekunden bis zur nächsten Aufladung nur aus, solange noch eine übrig ist. Ohne Aufladungen wird der Abklingzeit-Countdown wie gewohnt angezeigt."
