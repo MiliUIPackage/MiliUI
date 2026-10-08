@@ -53,6 +53,32 @@ local function SameUnit(a, b)
     return same == true
 end
 
+-- ============================================================
+-- 容器時間線  ->  /cell aura inspect 印出來
+--
+-- 卡住的光環很少見，而且 /reload 就清掉了，所以平常就記，發作時才有前因可看。
+-- 只記容器自己的生命週期：建置、換單位、顯示／隱藏、身分閘、重讀（彈跳）。
+-- 不記 UNIT_AURA —— 量太大，光環內容在秘密視窗裡也讀不到；容器的增量更新本來就會處理
+-- 移除，會卡幾乎都是「該重讀的時候沒重讀」，那正是這條線記的東西。
+-- 參數一律先 tostring，再擋秘密值：格式化秘密值會直接報錯。
+-- ============================================================
+local TRACE_MAX = 30
+local function TraceArg(v)
+    if issecretvalue(v) then return "(秘密)" end
+    return tostring(v)
+end
+local function Trace(h, fmt, ...)
+    if not h then return end
+    local n = select("#", ...)
+    local args = { ... }
+    for i = 1, n do args[i] = TraceArg(args[i]) end
+    local ok, text = pcall(string.format, fmt, unpack(args, 1, n))
+    local log = h._trace
+    if not log then log = {}; h._trace = log; h._traceHead = 0 end
+    h._traceHead = h._traceHead % TRACE_MAX + 1
+    log[h._traceHead] = date("%H:%M:%S") .. (InCombatLockdown() and " [戰]" or "") .. " " .. (ok and text or fmt)
+end
+
 -- How many single-spell effect slots one indicator may declare before it collapses back to
 -- a single shared slot. Each slot is an AuraButton on EVERY unit button, so this is a real
 -- per-frame cost, not a config nicety.
@@ -2092,9 +2118,11 @@ local function Build(handle, why)
         if AD._probe and AD._probe.CombatBuild(handle, why) then return end
         handle._pendingBuild = true
         if AD._defer then AD._defer(handle, why or "build") end
+        Trace(handle, "建置延到脫戰 why=%s", why or "build")
         return
     end
     handle._pendingBuild = nil
+    Trace(handle, "建置 why=%s unit=%s", why or "build", handle.unit)
 
     -- Tear down the previous native container (add-only topology -> recreate on change).
     -- ⚠ The AuraContainer carries Forbidden Aspects, so Hide()/SetParent() ON IT can be
@@ -2211,7 +2239,12 @@ local function Build(handle, why)
 
     -- diagnostics: what filters/cf this container actually built with
     handle._recordInfo = {}
+    -- 原始 filter 字串，給 inspect 拿去對照單位身上實際的光環
+    handle._recordFilters = {}
     for _, rec in ipairs(records) do
+        handle._recordFilters[#handle._recordFilters + 1] = {
+            key = rec.key, filter = rec.filter, cf = rec.candidateFilters ~= nil,
+        }
         local cfDesc = ""
         if rec.candidateFilters then
             local keys = {}
@@ -2795,6 +2828,7 @@ end
 function Handle:SetUnit(unit)
     if issecretvalue(unit) then return end
     if self.unit == unit then return end
+    Trace(self, "換單位 %s → %s", self.unit, unit)
     self.unit = unit
 
     -- Nothing built yet, disabled, or unbinding entirely: those are Build's paths (a nil
@@ -2807,6 +2841,7 @@ function Handle:SetUnit(unit)
     -- Refused: fall back to the old behaviour rather than leave the container rendering the
     -- PREVIOUS unit's auras, which is the one failure mode worse than the cost of a rebuild.
     if not pcall(function() self.container:SetUnit(unit) end) then
+        Trace(self, "容器拒絕換單位 → 重建")
         self:Rebuild("setunit-refused")
         return
     end
@@ -2839,6 +2874,12 @@ end
 -- touched here -- so it stays combat-safe.
 function Handle:_ApplyVisibility()
     local want = (self.shown ~= false) and not self._gateHidden and not self._cineLatched
+    if self._traceWant ~= want then
+        self._traceWant = want
+        Trace(self, "%s（指示器=%s 身分閘藏=%s 過場鎖=%s）", want and "顯示" or "隱藏",
+            self.shown ~= false and "開" or "關", self._gateHidden and "是" or "否",
+            self._cineLatched and "是" or "否")
+    end
     self.frame:SetShown(want)
     if self.container then pcall(function() self.container:SetShown(want) end) end
     -- a shell revealed by its own gate/latch/consumer: the button's OnShow never fires for that
@@ -2938,6 +2979,7 @@ function Handle:ReassertEnable()
     if not self.frame:IsVisible() then return end
     if self._enabledWhileVisible then return end
     self._enabledWhileVisible = true
+    Trace(self, "顯示後重新啟用＋彈跳")
     pcall(function() c:SetEnabled(true) end)
     -- partition kick -> force a fresh scan. Host first, for the same reason as GateRefresh:
     -- a Hide() on the container itself can be refused and the pcall would eat the refusal.
@@ -2969,6 +3011,7 @@ function Handle:GateRefresh()
         return
     end
     if not CombatGateOpen(self) then
+        Trace(self, "重讀：戰鬥中只能標記，脫戰補彈")
         self._pendingGateKick = true
         AD._defer(self, "gatekick")
         if type(c.UpdateAllAuras) == "function" then pcall(function() c:UpdateAllAuras() end) end
@@ -2984,6 +3027,8 @@ function Handle:GateRefresh()
     -- exactly this reason. The container bounce stays as a fallback for handles built before
     -- the host existed.
     local host = self.host
+    Trace(self, "重讀：彈跳%s%s", host and "宿主框" or "容器（無宿主，可能被拒）",
+        self.frame:IsVisible() and "" or "（框不可見，OnShow 不會觸發）")
     if host then
         if InCombatLockdown() then AD.stats.combatBounces = AD.stats.combatBounces + 1 end
         pcall(function() host:Hide(); host:Show() end)
@@ -3123,6 +3168,7 @@ function Handle:ApplyIdentityGate()
     end
 
     if recovered then
+        Trace(self, "身分閘恢復（assist／visible 回來）→ 重讀")
         -- ⚠ Un-latch BEFORE the bounce. Show() on a frame whose parent chain is hidden
         -- never fires OnShow, and OnShow is the entire mechanism of the bounce -- bouncing
         -- while still hidden would silently do nothing, which is the bug we are fixing.
@@ -3135,6 +3181,7 @@ function Handle:ApplyIdentityGate()
 end
 
 function Handle:Destroy()
+    Trace(self, "銷毀")
     self._destroyed = true -- Build/Rebuild must not resurrect it
     self._pendingBuild = nil
     AD._pending[self] = nil
@@ -3429,6 +3476,7 @@ do
                     -- is near-free here; a genuine recovery edge escalates to a full
                     -- bounce on its own regardless of the channel chosen below.
                     pcall(function() h:ApplyIdentityGate() end)
+                    Trace(h, "戰後補彈（%s）", AD.SETTLE_CHEAP and "只標髒" or "彈跳")
                     if AD.SETTLE_CHEAP then
                         local c = h.container
                         if c then pcall(function() c:UpdateAllAuras() end) end
@@ -3768,8 +3816,69 @@ end
 -- shows EVERY buff -- that is the difference between "filtered" and "everything".
 -- ============================================================
 
+-- Containers are bound to group tokens ("raid5"), never to "target"/"focus"/"mouseover":
+-- map an alias onto the group token of the same person, or nothing would match.
+local function ResolveInspectUnit(unitToken)
+    local bound = {}
+    for h in pairs(AD._instances or {}) do
+        if type(h.unit) == "string" and not h._destroyed then bound[h.unit] = true end
+    end
+    if bound[unitToken] then return unitToken end
+    for u in pairs(bound) do
+        if SameUnit(u, unitToken) then return u end
+    end
+    return unitToken
+end
+
+-- What is ACTUALLY on the unit, straight from C_UnitAuras -- the ground truth to hold the
+-- icons against. Only readable out of combat (in combat the fields come back secret and
+-- print as "(秘密)"). The filter string is evaluated, candidateFilters are not: there is no
+-- API for those, so this is an UPPER bound of what a row may show.
+local function ScanAuras(unit, filter)
+    local out = {}
+    if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then return out, "API 不存在" end
+    for i = 1, 40 do
+        local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, unit, i, filter)
+        if not ok then return out, "讀取被拒（" .. tostring(a) .. "）" end
+        if a == nil then break end
+        local function v(x) if issecretvalue(x) then return nil end return x end
+        local remain
+        local exp, dur = v(a.expirationTime), v(a.duration)
+        if exp and dur then remain = (exp > 0 and dur > 0) and math.max(0, exp - GetTime()) or -1 end
+        out[#out + 1] = {
+            name = v(a.name), spellId = v(a.spellId), dispel = v(a.dispelName),
+            icon = v(a.icon), remain = remain, secret = v(a.name) == nil,
+        }
+    end
+    return out
+end
+
+local function AuraLine(a)
+    if a.secret then return "(秘密，戰鬥中讀不到)" end
+    local r = a.remain == nil and "?" or (a.remain < 0 and "永久" or ("%.0f秒"):format(a.remain))
+    return ("%s(%s) 驅散=%s 剩=%s icon=%s"):format(tostring(a.name), tostring(a.spellId),
+        tostring(a.dispel or "無"), r, tostring(a.icon))
+end
+
 function AD.Inspect(unitToken)
     unitToken = unitToken or "player"
+    local asked = unitToken
+    unitToken = ResolveInspectUnit(unitToken)
+    local okName, uname = pcall(UnitName, unitToken)
+    if not okName or issecretvalue(uname) then uname = nil end
+    p(("=== inspect %s%s（%s）%s ==="):format(asked, asked ~= unitToken and (" → " .. unitToken) or "",
+        tostring(uname or "?"), InCombatLockdown() and " ⚠ 戰鬥中，光環內容大多讀不到，脫戰再打一次" or ""))
+
+    -- ground truth first: everything on the unit, buffs and debuffs
+    local truthIcons = {}
+    for _, f in ipairs({ "HARMFUL", "HELPFUL" }) do
+        local list, err = ScanAuras(unitToken, f)
+        p(("  實際%s %d 個%s"):format(f == "HARMFUL" and "減益" or "增益", #list, err and ("｜" .. err) or ""))
+        for _, a in ipairs(list) do
+            p("    · " .. AuraLine(a))
+            if a.icon then truthIcons[a.icon] = a end
+        end
+    end
     -- assist=false here is the whole answer to "why did my whitelist row fill up after I
     -- got on that boat"; assist=true means the fail-open came from somewhere else
     if AD._gateVehicleLog then p("最近一次載具轉場：" .. AD._gateVehicleLog) end
@@ -3798,6 +3907,75 @@ function AD.Inspect(unitToken)
             -- "HARMFUL|RAID" as "HARMFULAID", which reads like a broken filter string
             for _, ri in ipairs(h._recordInfo or {}) do p("    record:", (ri:gsub("|", "||"))) end
             if h._recordInfo and #h._recordInfo == 0 then p("    record: (none -- container shows nothing)") end
+
+            -- 卡住判定：畫面上亮著幾顆 vs 這些 filter 字串在單位身上實際對得到幾顆。
+            -- candidateFilters 只會再刪，不會加，所以「亮的 > 對得到的」就一定有殘影。
+            local c = h.container
+            local function q(fn, ...)
+                if not c or type(c[fn]) ~= "function" then return "?" end
+                local ok, a = pcall(c[fn], c, ...)
+                if not ok then return "拒" end
+                return TraceArg(a)
+            end
+            p(("    容器：unit=%s visible=%s enabled=%s｜框 visible=%s｜重讀閂=%s 待補彈=%s 待建=%s")
+                :format(q("GetUnit"), q("IsVisible"), q("IsEnabled"), tostring(h.frame:IsVisible()),
+                    tostring(h._enabledWhileVisible), tostring(h._pendingGateKick or false),
+                    tostring(h._pendingBuild or false)))
+            if c and q("GetUnit") ~= "?" and q("GetUnit") ~= "拒" and q("GetUnit") ~= "(秘密)"
+                and q("GetUnit") ~= tostring(h.unit) then
+                p(("    ⚠ 容器綁的單位（%s）跟 Cell 以為的（%s）不同 —— 畫的是別人的光環")
+                    :format(q("GetUnit"), tostring(h.unit)))
+            end
+            local lit, unknown, litIcons = 0, 0, {}
+            for _, b in ipairs(h.buttons or {}) do
+                -- IsVisible, not IsShown: a hidden row keeps its buttons "shown"
+                local okS, shown = pcall(b.IsVisible, b)
+                if not okS or issecretvalue(shown) then
+                    unknown = unknown + 1
+                elseif shown then
+                    lit = lit + 1
+                    local tex = b.dfIcon
+                    if tex then
+                        local okT, id = pcall(tex.GetTexture, tex)
+                        litIcons[#litIcons + 1] = (okT and not issecretvalue(id)) and id or "(秘密)"
+                    end
+                end
+            end
+            local expect, expectSecret, expectErr = 0, false, false
+            for _, rf in ipairs(h._recordFilters or {}) do
+                local list, err = ScanAuras(unitToken, rf.filter)
+                local names = {}
+                for _, a in ipairs(list) do
+                    if a.secret then expectSecret = true end
+                    names[#names + 1] = a.secret and "?" or tostring(a.name)
+                end
+                expect = expect + #list
+                if err then expectErr = true end
+                p(("    對得到 %s：%d 顆%s%s%s"):format(rf.key, #list, rf.cf and "（未計 cf，實際可能更少）" or "",
+                    #names > 0 and (" " .. table.concat(names, "、")) or "", err and ("｜" .. err) or ""))
+            end
+            local iconDesc = {}
+            for _, id in ipairs(litIcons) do
+                local a = truthIcons[id]
+                iconDesc[#iconDesc + 1] = a and (tostring(a.name) .. "(" .. tostring(a.spellId) .. ")")
+                    or (tostring(id) .. (id ~= "(秘密)" and "＝單位身上沒有這個圖示" or ""))
+            end
+            p(("    亮著 %d 顆%s%s"):format(lit, unknown > 0 and ("（另 %d 顆讀不到）"):format(unknown) or "",
+                #iconDesc > 0 and ("：" .. table.concat(iconDesc, "、")) or ""))
+            local stuck = not expectSecret and not expectErr and not InCombatLockdown() and lit > expect
+            if stuck then
+                p(("    ⚠⚠ 卡住：亮著 %d 顆，但 filter 對得到的只有 %d 顆 —— 多出來的是殘影。先別 reload，把整段貼出來；/cell aura gate 可以手動解")
+                    :format(lit, expect))
+            end
+            -- 時間線只印有東西亮著的列，不然一個按鈕十幾個容器會把聊天框洗掉
+            if h._trace and (lit > 0 or unknown > 0 or stuck) then
+                p("    時間線（舊→新）：")
+                local head = h._traceHead or 0
+                for i = 1, TRACE_MAX do
+                    local line = h._trace[(head + i - 1) % TRACE_MAX + 1]
+                    if line then p("      " .. line) end
+                end
+            end
             -- the fail-open state: "assist=false" IS the "why is my whitelist showing
             -- every buff" answer, and it is invisible from anywhere else
             if h._gateVulnerable or h._gateSourceRelative or h._gateCFDependent then
