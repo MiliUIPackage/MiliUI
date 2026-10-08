@@ -1086,6 +1086,8 @@ SLASH_CELL1 = "/cell"
 function SlashCmdList.CELL(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
     command = strlower(command or "")
+    -- fix from MiliUI: /cell aura forwards the untouched text -- spell names and links are case-sensitive
+    local rawRest = rest or ""
     rest = strlower(rest or "")
 
     if command == "options" or command == "opt" then
@@ -1097,6 +1099,10 @@ function SlashCmdList.CELL(msg, editbox)
     elseif command == "debug" then
         -- fix from MiliUI: 除錯主控台
         F.ToggleDebugConsole()
+
+    elseif command == "aura" then
+        -- fix from MiliUI: 光環容器除錯工具，/cab 的正式入口（/cab 保留當簡寫）
+        SlashCmdList["CELLAURACONTAINER"](rawRest)
 
     elseif command == "rescale" then
         CellDB["appearance"]["scale"] = P.GetRecommendedScale()
@@ -1194,6 +1200,7 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFFB5C5/cell healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
             "|cFFFFB5C5/cell rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
             "|cFFFFB5C5/cell debug|r: "..L["toggle the debug console"]..".\n"..
+            "|cFFFFB5C5/cell aura|r: "..L["aura display diagnostics (inspect, gate, test...)"]..".\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
