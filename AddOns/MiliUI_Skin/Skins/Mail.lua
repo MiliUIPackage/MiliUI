@@ -147,8 +147,15 @@
 -- | SendMailNameEditBox 那一層的無名 FontString（`MAIL_TO_LABEL`，:345） | SetTextColor(textDim)（GetRegions） |
 -- | SendMailSubjectEditBox 那一層的無名 FontString（`MAIL_SUBJECT_LABEL`，:433） | 同上 |
 -- | SendMailCostMoneyFrame 那一層的無名 FontString（`SEND_MAIL_COST`，:458） | 同上 |
+-- | SendMailName/SubjectEditBox **自己的輸入文字** | SetTextColor(text)（掃完標籤之後補回來，見下） |
 --
 -- 三條都是 XML 靜態文字、暴雪不重設顏色 ⇒ **零 hook**。
+--
+-- ⚠ **第十輪修正**：`EditBox:GetRegions()` 會把輸入框**自己的文字 FontString** 一起回傳
+--   （第七輪註解寫「掃不到」是錯的），所以 `RecolorRegions(textDim)` 連玩家打的收件人
+--   名字一起染灰，看起來像停用（實機擷圖：「無敵紅手-冰霜之刺」整串灰字）。
+--   兩個框掃完之後各補一次 `EditBox:SetTextColor(text)` —— EditBox 的 `SetTextColor`
+--   就是內容字本身（STYLE.md ③），標籤那條 FontString 不受影響。
 --
 -- | 物件 | 動作 |
 -- |---|---|
@@ -458,13 +465,19 @@ local function SkinSendMail()
     --   * `SendMailMoneyText`（:387，`SEND_MONEY`）有全域名字 ⇒ 直接指名。
     --   * 收件人（:345，`MAIL_TO_LABEL`）與主旨（:433，`MAIL_SUBJECT_LABEL`）是
     --     **EditBox 自己那一層的 FontString**，XML 沒給全域名字 ⇒ 只能
-    --     `E.RecolorRegions` 掃那一層（EditBox 自己的輸入文字不是 region，掃不到）。
+    --     `E.RecolorRegions` 掃那一層。
+    --     ⚠ 那一掃**會連輸入框自己的文字 FontString 一起染灰**（`EditBox:GetRegions()`
+    --     有把它回傳；第七輪以為掃不到，實機上收件人名字整串變灰、像停用）。
+    --     EditBox 的 `SetTextColor` 就是內容字本身（STYLE.md ③）⇒ 掃完立刻把內容拉回
+    --     `text`，標籤那條 FontString 不受影響。順序不能反：先掃再補。
     --   * 郵資（:458，`SEND_MAIL_COST`）同理，掛在 `SendMailCostMoneyFrame` 上。
     -- 全部是靜態文字：`SendMailFrame_Update` 只 `SetText` 內容欄位，不碰這三條的
     -- 顏色 ⇒ 設一次就撐得住，不必掛任何勾。
     E.TextColor(_G.SendMailMoneyText, T.textDim, "SendMailMoneyText")
     E.RecolorRegions(_G.SendMailNameEditBox, T.textDim, "SendMailNameEditBox")
+    E.TextColor(_G.SendMailNameEditBox, T.text, "SendMailNameEditBox")
     E.RecolorRegions(_G.SendMailSubjectEditBox, T.textDim, "SendMailSubjectEditBox")
+    E.TextColor(_G.SendMailSubjectEditBox, T.text, "SendMailSubjectEditBox")
     E.RecolorRegions(_G.SendMailCostMoneyFrame, T.textDim, "SendMailCostMoneyFrame")
 
     -- 附件區上下那兩條雕花分隔線：每條都是「一張具名左半 ＋ 一張**無名無 parentKey**
