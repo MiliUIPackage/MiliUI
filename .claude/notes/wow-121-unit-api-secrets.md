@@ -51,7 +51,7 @@ curl -sL https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/Ad
 
 ⚠ `SecretArguments = "AllowedWhenUntainted"` 幾乎每支都有，那**不是**「回傳是秘密值」的意思；
 它是說「只有未污染的程式可以傳秘密值進來」——**對插件等於不行**。
-反過來 `AllowedWhenTainted` 才是插件可以當傳遞者的那些函式（見 [[wow-121-secret-values]] 的「秘密值當貨物」）。
+反過來 `AllowedWhenTainted` 才是插件可以當傳遞者的那些函式（見 [[wow-121-secret-values]] 的「當傳遞者，不當讀取者」）。
 
 2026-09-08 為了 Cell 的隊伍目標上色查過，**沒有**任何 `SecretWhen*` 標記（回傳是明文，分支可以照寫）：
 `UnitSelectionType`、`UnitSelectionColor`、`UnitIsTapDenied`、`UnitPlayerControlled`、

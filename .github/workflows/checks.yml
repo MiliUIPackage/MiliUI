@@ -4,7 +4,7 @@ name: checks
 # 「發佈」等於 push，所以把關只能在 push 之前。遊戲裡沒有測試可跑，語法錯誤要到
 # 登入時才會炸，而且錯誤訊息常常指向不相干的地方（見 .claude/notes/wow-luac-global-scan.md）。
 #
-# 這四道檢查跟本機 `bash .claude/scripts/check-all.sh` 跑的是同一批腳本。
+# 這些檢查跟本機 `bash .claude/scripts/check-all.sh` 跑的是同一批腳本（notes 同步那道要 agent memory，CI 上沒有）。
 
 on:
   push:
@@ -60,3 +60,6 @@ jobs:
       # vendor 包最怕的就是「改了來源忘了同步」，所以這道一定要在 CI 上
       - name: 共用層 — MiliUIWidgets 有沒有漂移
         run: python3 .claude/scripts/sync-widgets.py --check
+
+      - name: Skin — 契約 lint
+        run: python3 .claude/scripts/check_skin.py

@@ -172,7 +172,7 @@ fmt:AddBreakpoint({ threshold = 1, step = 1,   rounding = down, min = 1, format 
 
 **DandersFrames v5.0 的重要 debuff 分類法**(`Features/Auras.lua` `BuildDirectDebuffFilters`):一類別=一個 AuraGroup,宣告順序=顯示優先權,群組間**不去重**,所以各 record 必須互斥。**Important-first 優先權**:boss/role 與 priority record **先認領、不做負向排除**,底下的 token record(cc/raid/dispel)再用 `candidateFilters` 的 `false` 旗標把它們減掉(避免同一顆顯示兩次)。修掉了「帶 RAID token 的 boss/priority 掉進沒樣式 raid 格」的 bug。SecretAuras.lua(filter 指紋辨識)在 v5 已刪除——有了 candidateFilters 就不用在 Lua 裡辨識光環身分。
 
-**AuraContainer 建立順序**:`CreateFrame(...)` → `SetUnit(unit)`(在 group 之前) → 逐一 `AddAuraGroup(...)` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。在地驗證來源:`Cell/RaidFrames/AuraDisplay.lua`、`Stuf/auracontainer.lua`,兩個都在這台機器上實跑。
+**AuraContainer 建立順序**:`CreateFrame(...)` → `SetUnit(unit)`(在 group 之前) → 逐一 `AddAuraGroup(...)` → `SetEnabled(true)` **最後**(它 gate 光環事件註冊)。在地驗證來源:`Cell/RaidFrames/AuraDisplay.lua`、`Stuf/auracontainer.lua`(Stuf 2026-08-17 已移除),兩個都曾在這台機器上實跑。
 
 > EUI 的 AuraKit 反過來(`FinishContainer` = group 全宣告完才 SetUnit + UpdateAllAuras),理由是
 > 「指定單位會重算事件註冊,而重算以容器已有 group 為前提」。**那是配合它自己的分階段建構器**
@@ -196,7 +196,7 @@ handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環�
 
 **⚠⚠ 換單位重掃:`UpdateAllAuras()` 從插件端沒有用。** 動態 token(target/focus/bossN)在框架
 保持顯示的情況下換人,容器不會自己重解析;而插件端呼叫 `UpdateAllAuras` **只設得到髒旗標,
-推不動私有端的處理器**(`Cell/RaidFrames/AuraDisplay.lua` 的 `GateRefresh` 實測結論)。真正跨得過
+推不動私有端的處理器**(`Cell/RaidFrames/AuraDisplay.lua` 的 `GateRefresh` 實測結論)。⚠ 2026-09-05 對照正式服原始碼的結論相反(可見時有效,見下方 09-05 節第 2 點),**要求的重測沒做、Cell 的 `SETTLE_CHEAP` 仍是 false**,程式仍以這條為準。真正跨得過
 分界的是 **`Hide()` → `Show()`**:intrinsic 的 OnShow 跑在安全端,會從那裡重掃一次。彈完順手
 重下 `SetEnabled(true)`。**戰鬥中不能彈**(受保護的 intrinsic 擋 Hide),先設髒旗標記下來,
 `PLAYER_REGEN_ENABLED` 再補彈。這條同時是「容器建立時框架還沒顯示 → SetEnabled 註冊不上 →
@@ -219,7 +219,7 @@ handler 掛失敗會讓**整個容器建立失敗**,對外只表現成「光環�
 
 固定偏移「半排寬度」不是解法:效果等同「從左到右 + 位置滑桿往左調」,沒有多任何能力。
 
-探針做成 `/cab layoutopts`(帶對照組,見上面那條大坑 —— 沒有對照組的 pcall 探測全是假訊號)。
+探針做成 `/cab layoutopts`(（2026-10-09 體檢）這個子指令已不在,現有 test／probe／inspect／gate／spell／stats／list／bounce／ghosts／overdraw／report)(帶對照組,見上面那條大坑 —— 沒有對照組的 pcall 探測全是假訊號)。
 另外**錯誤訊息會吐出 Blizzard 的檔案路徑**,那是定位原始碼最快的方法。
 
 ⚠ 這一整輪本來可以省下:上面「`options.layout` 的合法欄位」與「未知的鍵會被靜靜丟掉」

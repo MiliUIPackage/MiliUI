@@ -10,7 +10,7 @@ metadata:
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`），骨架照
 [[project-miliui-auraenhance]]：MiliUIWidgets vendor 一份、`Core/Init+Media+DB`、
-自製設定視窗、`/mquest`。NAMESPACE = `MiliUIQuest`（第十一份 copy）。
+自製設定視窗、`/mquest`。NAMESPACE = `MiliUIQuest`。
 
 **核心決定：不自己畫追蹤器。** 暴雪的 `ObjectiveTrackerFrame` 仍然是唯一的渲染引擎，
 我們只換外觀、加自己的框、決定什麼時候收起來。理由是追蹤器有一半的內容是從暴雪的
@@ -187,7 +187,7 @@ SCENARIO_CRITERIA_UPDATE/POI_UPDATE。在不在鑰石用 `GetInstanceInfo` 難�
 `IsChallengeModeActive` 打完就 false）。所有數字先過 `Num()`／`Bool()` 秘密閘，秘密就退化（敵軍字串原樣 SetText）。
 
 **每季要看**：+2／+3 比例 0.8／0.6、挑戰者的危機（詞綴 152）+90 秒的扣法（`PLUS_FRACTIONS`／`PERIL_*` 常數）。
-**刻意不做**：拉怪預估（MDT／戰鬥記錄，12.x 已死）、死亡名單（GUID 秘密）、EJ 首領名（開面板會污染，
+**刻意不做**：拉怪預估（MDT／戰鬥記錄，12.x 已死）、~~死亡名單（GUID 秘密）~~（2026-10-07 `f681b837a` 借 AdvancedMythicTracker 做了，`Modules/MythicPlus.lua` 的 `deathList`：UNIT_DIED GUID 對隊伍快照，見 [[project-miliui-mythicplus]]）、EJ 首領名（開面板會污染，
 criteria description 就是名字）、分段紀錄、自動放鑰石（套組已有）。
 **敵軍百分比**：`quantity` 已經是百分比、`quantityString` 才是絕對數量（帶假的 % 號），
 拿 `quantity / totalQuantity` 會得到「滿了顯示 14.58%」—— 2026-09-05 修掉，
@@ -368,7 +368,7 @@ CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊�
   —— 間距、置中、圓點位置都 OK；三個左緣（區段字首／框緣／圓點）各差約 2 的階梯是接受的，不要為了切齊去改。
   還沒看過的：換階段那一幀會不會跳、滑入動畫有沒有跟著、有進度條的場景有沒有一起動、長目標換行後右緣會不會出界、
   midnight-scenario 主題（紫框）套上之後的樣子。
-- `PAD_LEFT` / `PAD_RIGHT`（現在 -4 / +4）—— 追蹤器的區塊本來就從框緣往內縮，要看實際的縮排調。
+- `PAD_LEFT` / `PAD_RIGHT`（`Modules/Chrome.lua`，2026-10-09 是 -10 / +10）—— 追蹤器的區塊本來就從框緣往內縮，要看實際的縮排調。
 - 任務類型圖示擺 TOPRIGHT ＋ 壓掉 POI 按鈕：要確認 12.1.5 的 POI 按鈕真的在那個位置。
 - 背景高度的跨縮放算式（編輯模式可以單獨縮放追蹤器，所以座標一律換成螢幕像素再比較）。
 - ~~`ui-questtrackerbutton-secondary-collapse/expand`~~ —— 已驗證存在。

@@ -17,7 +17,7 @@ metadata:
 - 貼圖在 BACKGROUND 的最底 sublevel（-8 底、-7 邊、-5 標題帶…）⇒ 永遠在該框自己的內容之下，**沒有 frame level／strata 問題**（DIALOG strata 的彈窗、`useParentLevel` 的 Inset、toplevel 提層都不用管），顯示隱藏自動跟隨。
 - 子框只留給「必須畫在內容之上」的東西（物品格的品質方框、外框裝飾），level 設 `目標+N`。
 - ⚠ 例外：自動排版的框（ResizeLayoutFrame／Vertical／HorizontalLayoutFrame）會把 region 算進版面 ⇒ 底改建在它底下的非排版子框（彈窗的 `BG`、ESC 選單的 `Border`）。
-- 保護判斷不要用 `IsProtected()` 黑名單；用**模板特徵白名單**：只處理「確定認得的模板形狀」（例如同時有 Left/Middle/Right 三段的按鈕），secure 格子天然不符合就被跳過。統一守衛是 `IsForbidden()`。
+- 保護判斷：`IsProtected()` 回兩值，**只跳顯式保護、隱式照掛**（MiliUI_Skin 第五輪定案，`Core/Engine.lua` 照此做；原本寫「不要用 IsProtected 黑名單」已被推翻）；另外用**模板特徵白名單**：只處理「確定認得的模板形狀」（例如同時有 Left/Middle/Right 三段的按鈕），secure 格子天然不符合就被跳過。統一守衛是 `IsForbidden()`。
 
 ## 進度條
 

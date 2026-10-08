@@ -11,8 +11,7 @@ metadata:
 2026-09-30 做的**私人插件**，功能搬自 Cell 的團隊工具（`Utilities/Marks.lua`／`ReadyAndPull.lua`／
 `BattleRes.lua`），不依賴 Cell。使用者原話：「這給私人用沒有要發佈」。
 
-**不進版控**：`.gitignore` 有 `AddOns/FeiMiao_RaidCommander/`，原始碼**只存在本體 checkout 的
-`AddOns/FeiMiao_RaidCommander/`**（worktree 裡那份是暫時的）。
+**不進版控**：`.gitignore` 有 `AddOns/FeiMiao_RaidCommander/`，原始碼在 **`~/Projects/FeiMiao_RaidCommander/`**（`package.command` 複製過去的那份；（2026-10-09 體檢）本體 checkout 的 `AddOns/` 裡已經沒有這個資料夾，要裝進遊戲得手動複製回去）。
 **Why:** repo 是公開的、push＝發佈，而 Cell 的授權只准自用修改（見 [[project-cell-fork-license-decision]]）。
 **How to apply:** 改它就直接改本體那份、`/reload` 測；不要 commit、不要把它搬成 `MiliUI_*`。
 使用者哪天說要發佈，先提醒授權這件事。

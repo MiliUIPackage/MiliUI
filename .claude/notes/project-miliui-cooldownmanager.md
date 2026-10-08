@@ -1,6 +1,6 @@
 ---
 name: project-miliui-cooldownmanager
-description: 自製冷卻管理器 MiliUI_CooldownManager（2026-09-30 一夜做完 A～H 八階段、全部未實機驗證）——六條拍板、Ayije 授權一行不能搬、架構要點、實機驗證從哪開始、plan 位置
+description: 自製冷卻管理器 MiliUI_CooldownManager（2026-09-30 一夜做完 A～H 八階段，已上線 1.4.x、部分實機驗證）——六條拍板、Ayije 授權一行不能搬、架構要點、實機驗證從哪開始、plan 位置
 metadata:
   node_type: memory
   type: project
@@ -10,9 +10,9 @@ metadata:
 
 2026-09-30 使用者決定**自製 MiliUI_CooldownManager 取代 Ayije_CDM fork**（起因：Ayije 設定介面 UX 差，
 同一條的設定散在四五個分頁、群組複製不繼承、無說明無重設）。plan 在 `~/.claude/plans/miliui-cdm.md`，
-流程照 [[feedback-plan-opus-verify-workflow]]，分 A～G 七階段。
+流程照 [[feedback-plan-opus-verify-workflow]]，分 A～H 八階段。
 
-**六條拍板**：自製新插件（不重寫 Ayije_CDM_Options）／資源條與施法條留在 CDM／預覽即編輯器進第一版／
+**六條拍板**：自製新插件（不重寫 Ayije_CDM_Options）／資源條與施法條留在冷卻管理器插件內（不拆去 UnitFrames）／預覽即編輯器進第一版／
 **位置屬於設定檔，不跟暴雪 Edit Mode layout 走**（套組其他插件也都不跟）／不做遷移器、直接給套組預設值／
 兩列不同尺寸與固定格位都保留。
 
@@ -39,7 +39,7 @@ EllesmereUI 同樣只看做法。註解不點名（[[project-miliui-uf-comment-a
 
 ## 實作現況（2026-09-30 夜間，全部只在離線 stub 跑過，**未實機驗證**）
 
-八個階段各一個 Opus 子代理在 worktree 做、我逐階段讀 diff 驗收後 commit＋merge 進 master（push 未做）：
+八個階段各一個 Opus 子代理在 worktree 做、我逐階段讀 diff 驗收後 commit＋merge 進 master（已 push，tag 20261009 內）：
 A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果、F 資源條與施法條、G 套組接線、H 打磨（審查 9 條）。
 插件約 1.4 萬行（不含 vendor），離線測試八支（Layout／Catalog／DB／EditMode／Settings／Custom／Keybinds／Resources）。
 
@@ -53,17 +53,17 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
   （唯一例外：編輯模式 Selection 的 OnDragStart／OnDragStop 用 SetScript）、容器寫入走 `ns.Write`（戰鬥中
   碰保護鏈記帳）、髒標記三級。
 - 就緒發光靠**畫面外探針 Cooldown**：明文原封轉交 SetCooldown、被拒就餵 `GetSpellCooldownDuration` 的
-  duration 物件；掛探針的 OnCooldownDone。光環格（AuraContainer 固定前綴）不提供發光。
+  duration 物件；掛探針的 OnCooldownDone。光環格不提供發光（固定前綴 `AuraPrefix` 後來拿掉了，見下）。
   **GCD 閘走 `GetSpellCooldown` 的明文 `isOnGCD`／`isActive`**（零長度 duration 物件被 clearIfZero 清掉卻仍標武裝 ⇒
   GCD 結束暴雪 Clear 時整排亮，2026-10-01 修）；用掉（isOnGCD=false 且 isActive=true）就提早熄，回充不提早熄。
   觸發樣式裝了 Masque 改用它的方形循環圖（只借貼圖）。三項 2026-10-01 實機通過；設定頁有發光預覽樣本。
   預設樣式：觸發＝proc、就緒＝button（不遷移）。
 - 資源條點數型每格一顆 StatusBar `SetMinMaxValues(i-1,i)`＋`SetValue(秘密值)`；法力補回；吸收型不做。
 - 公開 API：`MiliUI_CooldownManager.IsReady／GetBarFrame／GetResourceColors／GetResourceConditions／
-  GetResourceBarFrame／RegisterCallback("ResourceStyleChanged")`；UnitFrames 資源色與 CrusadingStrikes 都改問它。
+  GetResourceBarFrame／RegisterCallback("ResourceStyleChanged")`；UnitFrames 資源色改問它；CrusadingStrikes 只用 `Anchor.MiliCDMLoaded()` 偵測有沒有載入，不呼叫這組 API。
 
 **How to apply（實機驗證從哪開始）：** README 的「第一次啟用」與「待實機驗證」清單（四十多條，
-`/mcdm debug`、`/mcdm aura`、`/mcdm release` 三個除錯指令）。Ayije 還開著時新插件只彈互斥視窗、什麼都不做。
+`/mcdm debug`、`/mcdm aura`、`/mcdm release` 三個除錯指令）。Ayije 還開著時新插件只彈互斥視窗（含「從 Ayije 匯入」鈕，`Core/Init.lua`）。
 第一戰開 `/console taintLog 2`。Ayije_CDM 資料夾這一輪沒刪。
 
 **錨定是「排開」不是照字面貼（2026-09-30）**：`anchor` 只說「跟著誰、在哪一邊」，實際貼在誰身上由
@@ -165,7 +165,7 @@ AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框�
 （曲線從 Custom.lua 搬來共用）；自己叫的 SetUseAuraDisplayTime／Clear 用 `overriding` 守衛擋掉自己的後掛勾。
 只做法術類，飾品（裝備欄項目）照暴雪顯示增益。最可能實機翻車：去飽和在冷卻轉好那一刻要等暴雪下一次刷新才還原（207）。
 
-**逐法術的持續時間換色跟主題頁同一套五欄位（2026-10-03，DB v4，未實機驗證）**：使用者要求「個別設定也都要可以獨立設置，
+**逐法術的持續時間換色跟主題頁同一套五欄位（2026-10-03，當時 DB v4；DB 版本現在以 `Core/DB.lua` 的 `ns.DB_VERSION` 為準，2026-10-09 是 v7：v5 低秒變色拆欄、v7「增益不在時」三態，見 README）**：使用者要求「個別設定也都要可以獨立設置，
 邏輯和關聯性和主題頁一樣」。逐法術覆寫 `colorDuration`（三態）＋`durationColor`／`durationLowColor`／`durationSwipeColor`（各自 nil 或色表），
 全部走 `SpellSetting` 退回條層；`Decorate.SpellStyle` 解成生效值、`PhaseColors(style, spell)`／`DurationColorOf(on, color)` 改簽章。
 面板：換色下拉（跟隨／換色／不換色）＋三列「自訂」勾選框＋色票（抄邊框顏色那列），停用連動＝顯示增益持續時間 → 換色 → 顏色。

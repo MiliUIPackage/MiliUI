@@ -18,7 +18,7 @@ Secret values landed in 12.0.0; 12.1.0 (TOC 120100) widens them a lot. Rules for
 偵測用 API：`issecretvalue(v)`、`canaccessvalue(v)`、`issecrettable(t)`、`canaccesstable(t)`、`hasanysecretvalues(...)`。
 
 Table 相關（12.1）：
-- 新增 `settablesecurity(table, Enum.TableSecurityOption)`，取代 12.0 的 `SetTableSecurityOption`（已移除）。Enum：`0 DisallowTaintedAccess` / `1 DisallowSecretKeys` / `2 SecretWrapContents`（wiki 沒寫說明，語意需上 PTR 實測）。
+- 新增 `settablesecurity(table, Enum.TableSecurityOption)`，取代 12.0 的 `SetTableSecurityOption`（已移除）。Enum：`0 DisallowTaintedAccess` / `1 DisallowSecretKeys` / `2 SecretWrapContents`（wiki 沒寫說明，語意至今未實測）。
 - 新增 `securecopy(value [, options])`：深拷貝，保留遞迴/共用參照，script object 以參照保留，拷貝結果帶當前執行的 taint。
 - untainted 程式把 secret 當 key 存進 table，那個 table 會被**永久**標記為 tainted 不可存取。
 
@@ -218,7 +218,7 @@ MiliUI_UnitFrames 的血條、能量條、預估條一開始就是這樣寫的�
 - **拋出點是 `Blizzard_SharedXMLBase/FrameUtil.lua` 的 `GetUnscaledFrameRect()`**
   （`frameLeft / scale`），`LayoutFrame.lua` 只出現在堆疊上。錯誤處理器如果比對
   訊息字串，只寫 `LayoutFrame.lua` 會整批漏接 —— `MiliUI/Fix/TooltipTaintFix.lua`
-  的過濾器 2026-08-27 因此補上 `FrameUtil.lua`。
+  的過濾器當時打算補上 `FrameUtil.lua`——（2026-10-09 體檢）**實際沒補**（檔內只過濾 `UIWidget` 與 `LayoutFrame.lua`，git 歷史也沒有），要補還是算了由使用者決定。
 - 污染來源印成 `*** ForceTaint_Strong ***` 表示是**引擎自己 forceinsecure**，
   不是某個插件。整條路徑都是暴雪程式碼時，插件端沒有東西可修，只能過濾錯誤 ——
   而且**不要去替換 `GetUnscaledFrameRect` 這種泛用函式**，那會讓所有 `Layout()`

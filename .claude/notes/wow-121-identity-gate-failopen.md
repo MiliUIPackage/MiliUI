@@ -43,6 +43,10 @@ Cell 因此有第三個旗標 `_gateCFDependent`（`RecordUsesCandidateFilters`�
 判斷「哪一列出問題」的現場依據：**紅圈＝HARMFUL、綠圈＝HELPFUL**，配 `/cab inspect <unit>`
 的身分閘行（有印 `cf依賴=` 與 `connected=`）。
 
+## ⚠ 2026-09-05 原始碼核對與這篇的機制有出入
+
+[[wow-121-aura-containers]] 09-05 節第 4 點：正式服 `CanApplyIdentityCandidateFilters` 是 `isHelpful and UnitIsPlayerControlledOrGroupMember(unit)`，**不看 `UnitCanAssist`**。這篇的實測（離線／不可見時整包 cf 不套用）跟它不互斥，但「assist 閘」是不是主機制還沒接起來；Cell `AuraDisplay.lua` 仍拿 `UnitCanAssist` 當訊號。改閘之前先把兩邊對清楚。
+
 ## ⚠ 這條**不能外推到所有 candidateFilters**（2026-08-28 實測否證）
 
 上面整篇講的都是 **`includeSpellIDs` / `excludeSpellIDs`**（以及離線那條「整包不套用」）。

@@ -20,7 +20,7 @@ metadata:
 都算在我們頭上。外層是迴圈的話更慘：染一次之後**同一輪剩下的每一個項目**都跟著壞，
 包含別的插件的框。所以真正的污染點永遠不在堆疊裡。
 
-## 三個已知入口（2026-08-30 在 MiliUI_UnitFrames 全部實測過）
+## 已知入口（八個；前七個 2026-08-30 起陸續在 MiliUI_UnitFrames 實測、第 8 個靜態推導）
 
 **1. `RegisterUnitWatch` 驅動的 `Show()`**
 
@@ -116,7 +116,7 @@ secure 動作一起染髒；右鍵選單不能 `HookScript("OnClick")`，走
 parent 是 UIParent）。症狀：戰鬥中 `MultiBar…Button:SetAttribute`／`ButtonContainer:SetShown`／
 `ClearAttribute` 被擋、`SetCooldown` 秘密值每 tick 炸，點名被點過選取框的那支插件
 （玩家回報點名 MiliUI_UnitFrames——九個孿生框鋪滿畫面，最容易被點到）。
-解法：`sel:SetScript("OnMouseDown", function() end)`，套組六處已全補。驗證法：進編輯模式點一下
+解法：`sel:SetScript("OnMouseDown", function() end)`，套組已全補（2026-10-09 是 8 處，含 Ayije_CDM_Options）。⚠ 例外：暴雪自己建的 Selection（例如 MCDM `EditMode/Frames.lua` 的 `WireViewer` 掛暴雪檢視器）**不中和**、只 HookScript——判準是「這顆 Selection 是誰建的、`self.parent` 是不是插件寫的」。驗證法：進編輯模式點一下
 選取框再離開，`/dump issecurevariable(MultiBarBottomRight, "isHighlighted")`。
 
 ⚠ 同一份回報附的 patch 把 `EditModeManagerFrame` 的 OnShow/OnHide 勾改成 `ns.Defer`——沒收，但**不是因為它有害**。
@@ -167,7 +167,7 @@ variable Y**」——要有被寫髒的**變數**被讀到才留紀錄。執行�
    ⚠ 但要在 bug **發作之後**掃，而且要掃「每個 key」不是挑欄位——變數污染是永久的，
    發作前掃永遠乾淨（8/30、9/07 12:49 兩次都被這樣騙）。掃的範圍要含**插件可能寫過的
    暴雪框**（微型按鈕、HelpTip 現役框、快捷列本體、UIParent），不只出事的那條路徑。
-   `_CDProbe` 的 `/cdprobe scan` 就是這個。
+   `_CDProbe` 的 `/cdprobe scan` 就是這個（該插件 2026-09-10 `79a6b450d` 已從套組移除、LegacyAddons 列為 REMOVED；做法照這段重寫即可）。
 3. **`ADDON_ACTION_BLOCKED` 事件帶插件名字**——引擎自己點名，比 taintLog 好用。
    `!BugGrabber` 對這兩個事件是註解掉的（BugGrabber.lua:507），BugSack 裡永遠看不到，
    要自己 `RegisterEvent` 接。同一條路徑再往下走的封鎖（SetShown／SetAttribute）

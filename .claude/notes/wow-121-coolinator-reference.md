@@ -10,7 +10,7 @@ metadata:
 
 Coolinator（plusmouse / TheMouseNest）是第一個原生為 12.1 寫的插件，它的寫法是 secret values 的正解範本。GitHub: https://github.com/TheMouseNest/Coolinator
 
-**⚠ 原始碼已不在本機**（2026-08-13 確認：`AddOns/Coolinator/` 只剩空目錄樹，一個檔案都沒有，從未進過 git）。要翻原始碼走 GitHub（用 `wow-ui-source-lookup` 技能同款 WebFetch 手法）。**本機還在、可直接翻的 12.1-ready 範本**：Cell（本地改版）、Plumber、MiliUI_Tooltip（自製，taint 圍堵範本），以及最小最好讀的 `BuffReminders/Display/AuraTracker.lua`。（TinyTooltip-Remake 2026-08-22、WarpDeplete 2026-09-05 已從套組移除，別再翻本機的。）
+**⚠ 原始碼已不在本機**（2026-08-13 確認：`AddOns/Coolinator/` 當時只剩空目錄樹、現在連目錄都沒有，從未進過 git）。要翻原始碼走 GitHub（用 `wow-ui-source-lookup` 技能同款 WebFetch 手法）。**本機還在、可直接翻的 12.1-ready 範本**：Cell（本地改版）、Plumber、MiliUI_Tooltip（自製，taint 圍堵範本），以及最小最好讀的 `BuffReminders/Display/AuraTracker.lua`。（TinyTooltip-Remake 2026-08-22、WarpDeplete 2026-09-05 已從套組移除，別再翻本機的。）
 
 核心原則：**secret 不要落進 Lua 變數，從 API 直接接到 widget**。
 
@@ -33,7 +33,7 @@ Coolinator（plusmouse / TheMouseNest）是第一個原生為 12.1 寫的插件�
 3. **真的必須讀數值時才擋**：`stagger:OnUpdate` 要算 `current/maxHealth` 做門檻比較，就明確 `if issecretvalue(current) then return end`。
 
 4. **時間一律用 Duration object，不算 `expirationTime - GetTime()`**：
-   `C_UnitAuras.GetAuraDuration(unit, auraInstanceID)` → `Cooldown:SetCooldownFromDurationObject(d)` 或 `statusBar:SetTimerDuration(d, nil, Enum.StatusBarTimerDirection.RemainingTime)`。
+   `C_UnitAuras.GetAuraDuration(unit, auraInstanceID)`（⚠ 光環受限時 `auraInstanceID` 是秘密值、這支 API 是 `AllowedWhenUntainted`，污染端行不通，見 [[wow-121-aura-containers]]）→ `Cooldown:SetCooldownFromDurationObject(d)` 或 `statusBar:SetTimerDuration(d, nil, Enum.StatusBarTimerDirection.RemainingTime)`。
    配套：secret boolean 用 `Cooldown:SetAlphaFromBoolean(...)`、`C_Spell.GetSpellCooldownDuration(id, true):IsZero()`；門檻變色用 `C_CurveUtil.CreateColorCurve()`。
 
 5. **光環圖示用 AuraContainer**（`Display/Utilities.lua:328`，以 `IsMidnightNext = select(4, GetBuildInfo()) >= 120100` 開關）：
@@ -43,6 +43,6 @@ Coolinator（plusmouse / TheMouseNest）是第一個原生為 12.1 寫的插件�
    -- 每個 widget 拿一個 slot
    helpful:AddAuraSlot(key, "HELPFUL|PLAYER", selfSettings)
    ```
-   換目標時呼叫 `harmful:UpdateAllAuras()`。已驗證的 AuraButton API 清單抄錄在 [[wow-121-aura-containers]]（抄自它的 `Display/AuraIconNext.lua`），不用回頭翻原始碼。
+   換目標時呼叫 `harmful:UpdateAllAuras()`（⚠ 這是抄 Coolinator 的寫法；插件端呼叫它到底推不推得動，見 [[wow-121-aura-containers]] 的三種說法，未定案）。已驗證的 AuraButton API 清單抄錄在 [[wow-121-aura-containers]]（抄自它的 `Display/AuraIconNext.lua`），不用回頭翻原始碼。
 
 相關：[[wow-121-secret-values]]、[[project-121-addon-migration]]

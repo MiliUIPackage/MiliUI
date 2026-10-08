@@ -120,6 +120,10 @@ TOC 標籤 `[焦點]` → `[專注]`。規則見 [[feedback-zhtw-blizzard-terms]
 待實機驗證：M+ 非首領時段 `/p` 是否真的放行、遭遇中的連送節流門檻、
 `UPDATE_MACROS` 在自己 EditMacro 之後有沒有重入（已用 `writing` 旗標擋）。
 
+## 專注目標施法條重要法術發光（2026-10-07，c4523720c）
+
+預設開啟，`Modules/CastBar.lua` 走 `ns.MiliUIGlow`（[[project-miliui-glow-vendor]]）。
+
 ## 每次設專注目標都宣告（2026-10-05）
 
 `db.bar.announceOnMark`（預設關），標記列喇叭**右鍵**切換、開著時角落掛「自動」；設定頁宣告區也有勾選。

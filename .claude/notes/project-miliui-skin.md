@@ -294,7 +294,7 @@ Inset `useParentLevel` 時 overlay level−1 壓不壓得住；GossipFrame 換�
 分頁選中／未選中文字位移 5px（暴雪 SetPoint 的，改不了）在平面皮上會不會跳；
 SetNormalFontObject 會不會觸發「吃掉最後一個字」；捲軸箭頭染灰後看不看得清；分頁相連那一邊的邊線。
 
-## 還沒做
+## 還沒做（⚠ （2026-10-09 體檢）範圍分級那段已過時：WorldMap／Settings／GameMenu／Popup（StaticPopup1～4）／ReadyCheck／LootRoll／BNToast／Communities 等 47 份 Skins 與 `ThirdParty/Mapster.lua` 都做了；本體 `Enhance/ChallengesUI_*`／`PartyKeystone` 已搬進 MiliUI_MythicPlus。**仍開著的待辦**：`Options/Roster.lua` 未登記 MiliUI_Skin、`MiliUI_Merchant` 匿名框未給全域名、`Core/Tokens.lua` 未升格共用層、第十二＋十三輪之後沒有實測紀錄）
 
 - `MiliUI/Options/Roster.lua` 插件總覽名冊沒登記這支（當時使用者正在改那個檔）。
 - 側邊欄分頁的選中底色、成就列／分類列／篩選下拉、Primitives 的 CheckBox/Row/Icon/StatusBar 零覆蓋。

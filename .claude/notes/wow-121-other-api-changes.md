@@ -33,6 +33,9 @@ Warcraft Wiki: https://warcraft.wiki.gg/wiki/Patch_12.1.0/API_changes （TOC `12
 
 ```lua
 local function IsCommRestricted()
+    -- ⚠ 這組「首領戰／計時中／戰場」三件組是舊閘；正解是 C_RestrictedActions.IsAddOnRestrictionActive
+    --   （ChallengeMode 整趟未完成鑰石都算、不只計時中），見 [[wow-12x-addon-restrictions]]。
+    --   2026-10-09 現況：MiliUI/Init.lua 的 ns.IsCommRestricted 與 Cell/Comm/Comm.lua 仍走舊閘、MiliUI_Focus 走新閘。
     if IsEncounterInProgress and IsEncounterInProgress() then return true end
     if C_MythicPlus and C_MythicPlus.IsRunActive and C_MythicPlus.IsRunActive() then return true end
     if C_PvP and C_PvP.IsActiveBattlefield and C_PvP.IsActiveBattlefield() then return true end

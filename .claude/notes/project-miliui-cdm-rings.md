@@ -1,12 +1,12 @@
 ---
 name: project-miliui-cdm-rings
-description: MCDM 圓環顯示（2026-10-08 進 master、未實機驗證、未 push）——改造暴雪 item 自己的 Cooldown 而不是自建；拍板與待驗證
+description: MCDM 圓環顯示（2026-10-08 進 master、已 push、未實機驗證）——改造暴雪 item 自己的 Cooldown 而不是自建；拍板與待驗證
 metadata:
   type: project
 ---
 
 2026-10-08 參考 tmp/YUI（YHUD 爆發圈，無授權檔 ⇒ 只借做法）做了 MiliUI_CooldownManager 的「圓環顯示樣式」，
-plan 在 `~/.claude/plans/miliui-cdm-rings.md`，Opus 實作、我驗收後 merge 進 master，**未 push、未實機驗證**（README 待驗證 398～409）。
+plan 在 `~/.claude/plans/miliui-cdm-rings.md`，Opus 實作、我驗收後 merge 進 master，已 push（tag 20261009 內），**未實機驗證**（README 待驗證 403～418；2026-10-09 把「增益不在時」區塊重複的 389～393 整段後移 5 之後的編號）。
 
 **核心做法**：我們沒有把暴雪 buff 格光環時間轉到自家 Cooldown 的路（秘密值），所以**直接改造已認領 item 自己的 Cooldown**：
 SetSwipeTexture(環形 PNG)＋SetReverse(false)＋關 bling（暴雪 Lua 不重設這三樣，設一次；Reattach 保險重套），

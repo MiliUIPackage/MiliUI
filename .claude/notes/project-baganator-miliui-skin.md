@@ -15,4 +15,4 @@ metadata:
 - Baganator 的 AGENTS.md／LICENSE 禁止 AI 拿它的 repo 當參考；使用者看過之後明確決定照做、責任自負。轉接層是原創的，沒有照抄。
 
 **Why:** 上游同步會把 TOC 那一行蓋掉，皮膚就靜默消失。
-**How to apply:** 同步 Baganator 之後要跑 check-all（`check_skin.py` 會警告缺轉接層）；套組版本要 ≥829 才有這款皮。相關：[[project-miliui-skin]]、[[project-local-addon-forks]]。
+**How to apply:** 同步 Baganator 之後要跑 check-all（`check_skin.py` 會警告缺轉接層）；Baganator 版本要 ≥829（`Baganator.toc` 的 `## Version`，不是套組版本）才有這款皮。相關：[[project-miliui-skin]]、[[project-local-addon-forks]]。

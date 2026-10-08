@@ -15,7 +15,7 @@ metadata:
 **1. 永遠不往 `CELL_VERSION` 廣播。**
 原版 Cell 從那個前綴收到訊息後只抓數字來比。我們的版本是 `rNNN_MiliUI`，已經**不在上游的釋出線上**（見 [[project-local-addon-forks]]：我們自己就是上游），廣播過去等於告訴每個用原版的隊友「有一個 CurseForge 上不存在的版本」，還把他們指去下載頁。
 
-**2. `CELL_VERSION` 的接收保持靜音**（`Comm/Comm.lua` 的 handler 裡那行 `F.Print` 維持註解掉）。
+**2. `CELL_VERSION` 的接收端已整個移除**（2026-08-17 `619dbb78a`；更早是保留 handler 但把 `F.Print` 註解掉）。
 理由不是「不想看到提示」，而是拿他們的 r 號跟我們的比只會一直誤報。
 
 **3. MiliUI 版本之間互相提醒（2026-08-17 新增）。**
@@ -23,7 +23,7 @@ metadata:
 - **完全獨立於 MiliUI 套組**——版本號直接讀 Cell 自己的 TOC metadata，不碰 `MiliUI` 全域，單獨拉出 Cell 也能運作。
 - ⚠ **讀 TOC 不要讀 `Cell.version`**：後者要等 `Core.lua` 的 `ADDON_LOADED` 才有值，而這段在檔案被解析時就執行，會讀到 nil 然後整個功能靜靜不安裝。
 - 進場／名單變動觸發，5 秒延遲 + 30 秒節流，走 `IsCommRestricted()`，整場 session 只提示一次。
-- 沿用既有的 `L["New version found (%s). Please visit %s to get the latest version."]`，11 個語系都有翻譯，不用新增字串。
+- 沿用既有的 `L["New version found (%s). Please visit %s to get the latest version."]`，語系大多有翻譯（11 檔中 10 檔），不用新增字串。
 - 下載網址：**https://addons.miliui.com/wow/cell**（不是 GitHub repo——玩家要的是插件本身）。
 
 ⚠ **`Cell.toc` 的 `## Version: rNNN_MiliUI` 現在同時是釋出訊號**，不再只是 Revise 遷移的閘。出貨時忘了 bump，提醒會安靜失效、沒有任何錯誤。**但 bump 是使用者自己做的動作，agent 不要主動加**——見 [[feedback-no-cell-version-bump]]。分隔符是**底線**（2026-08-17 從連字號改過來），不過所有解析都是 `string.match(v, "%d+")` 只抓數字，格式改動不影響相容。

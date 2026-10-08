@@ -69,5 +69,5 @@ metadata:
 ## 沒做的
 搜尋框（階段 2，要變暗＋跳頁；使用者從沒用過 Krowi 的）。塑形套裝／幻象類別。
 
-相關：[[project-miliui-widgets-vendor]]（第十六份 copy，NAMESPACE `MiliUIMerchant`）、
+相關：[[project-miliui-widgets-vendor]]（NAMESPACE `MiliUIMerchant`）、
 [[wow-121-addon-code-in-secure-stack]]、[[feedback-plan-opus-verify-workflow]]

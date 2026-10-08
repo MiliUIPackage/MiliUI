@@ -24,7 +24,7 @@ metadata:
    PlayerFrame 底下的 alt power bar(MonkStaggerBar 那類——PlayerFrame 一 reparent
    它們就變成不安全框的子物件,會丟「Auras cannot be accessed when secret while tainted」)。
 
-**診斷工具**:`Core/Init.lua` 有 `ADDON_ACTION_FORBIDDEN`/`BLOCKED` 攔截器,
+**診斷工具**:共用層 `Libs/MiliUIWidgets/Errors.lua` 有 `ADDON_ACTION_FORBIDDEN`/`BLOCKED` 攔截器(`Core/Init.lua` 只剩 `ns.Errors.Install`),
 會把函式名 + 當時在不在戰鬥印到聊天視窗並寫進 `ns.errors`(`/muf debug` 看得到)。
 `Core/Events.lua` 的 `Reg()` 會在註冊前留 `ns.trace` 麵包屑。
 

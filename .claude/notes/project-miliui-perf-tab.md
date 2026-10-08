@@ -9,8 +9,8 @@ metadata:
 ---
 
 `AddOns/MiliUI/Options/Tab_Perf.lua`（2026-08-26 新增，08-29 拆成子分頁）。設定視窗
-第三個分頁，`/miliui perf` 或 `/miliui cpu` 直接開。SV 存在 `MiliUI_DB.perf`
-（`metric` / `sort` / `desc` / `autoMem` / `page` / `lagWatch` / `lagMs`）。
+設定視窗的分頁之一（2026-10-09 排第四：插件總覽／便利功能／插件強化／效能監控／預設值匯入／關於），`/miliui perf` 或 `/miliui cpu` 直接開。SV 存在 `MiliUI_DB.perf`
+（`metric` / `sort` / `desc` / `page` / `lagWatch` / `lagMs` / `leak` / `census`；`autoMem`／`growth` 已清掉，見下）。取樣層 `Options/HeapTrack.lua`（08-29 記憶體走勢圖）這篇沒展開。
 
 版面（2026-08-29 定稿）：**CPU／記憶體兩個子分頁**（W.CreateButton + CreateButtonGroup，
 跟視窗頂端分頁同視覺）。設計判準：CPU 講時間、記憶體講空間，兩個主題沒有互相解釋的
@@ -107,7 +107,7 @@ SV 在 `MiliUI_DB.perf.leak`（`on` / `sessions[]`，最多 4 次登入、每次
 「每 5 秒自動測量」的 UpdateAddOnMemoryUsage 全堆掃描在這種堆上是數十 ms 級，
 打勾時聊天提醒一次＋工具提示橘字警告，帳會記在 MiliUI 頭上（判讀時要認得）。
 
-## 還沒實測
+## 還沒實測（2026-08-29 寫；09-26／27 已有實測結論，版面疊字類已過，剩「GetApplicationMetric 數量級」沒對）
 
 寫完當下沒進遊戲驗過，要看的是：欄位在不同 UI 縮放下有沒有疊到、表頭跟資料列
 對不對得齊、`GetApplicationMetric` 算出來的「佔遊戲％」數量級對不對

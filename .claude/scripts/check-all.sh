@@ -1,10 +1,9 @@
 #!/bin/bash
-# 提交前的四道檢查。CI 跑的是同一支（.github/workflows/checks.yml）。
+# 提交前的檢查（六道 ＋ 本機才有的 notes 同步）。CI 跑的是同一批腳本（.github/workflows/checks.yml）。
 #
 #   bash .claude/scripts/check-all.sh
 #
-# CLAUDE.md 的慣例寫著「改完用 luac -p 過一次語法，這裡沒有測試可跑」——
-# 這支就是把那句話變成一個指令，順便補上另外三道人眼看不出來的檢查。
+# 遊戲裡沒有測試可跑，這些都是「不報錯但會壞」的類型，所以收成一個指令。
 
 set -u
 

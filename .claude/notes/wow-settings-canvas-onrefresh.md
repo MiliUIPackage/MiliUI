@@ -34,7 +34,7 @@ settingsCanvas:Show()
 
 `OnShow` 保留當第二條路徑（canvas 原本隱藏時 `OnRefresh` 跑在框還沒真的上螢幕之前）。
 
-**2026-08-17 已全套過一遍**，repo 內所有自製 canvas 面板都是這個寫法：`MiliUI_BurstPotionHelper`（主面板＋藥水清單）、`MiliUI_BloodlustMusic`（main／music／bar／reminder）、`MiliUI_ChatBar`（main／general／channel）、`MiliUI/Settings.lua`（mainFrame／importFrame／enhanceCanvas／auraFrame／focusCanvas）。以後**新增 canvas 面板一律照這個模式**。
+**2026-08-17 已全套過一遍**（（2026-10-09 體檢）下面列的面板全不存在了：`MiliUI/Settings.lua` 08-23 拆掉、三支小插件改自製視窗，見 [[project-miliui-esc-menu-window-migration]]；現在還走 `RegisterCanvasLayout` 的只剩 `MiliUI/Options/Roster.lua` 與共用層 `Libs/MiliUIWidgets/BlizzOptions.lua`——而後者正是 `panel.OnRefresh = function() end`，頁面只有靜態按鈕所以無害，但別在那上面放要刷新的控件），當時 repo 內所有自製 canvas 面板都是這個寫法：`MiliUI_BurstPotionHelper`（主面板＋藥水清單）、`MiliUI_BloodlustMusic`（main／music／bar／reminder）、`MiliUI_ChatBar`（main／general／channel）、`MiliUI/Settings.lua`（mainFrame／importFrame／enhanceCanvas／auraFrame／focusCanvas）。以後**新增 canvas 面板一律照這個模式**。
 
 兩個容易寫錯的點：
 

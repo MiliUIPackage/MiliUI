@@ -12,7 +12,7 @@ metadata:
 `P.Scale(1)` 其實**小於 1** → 邊框畫 0.75、內容退 1.0,中間 0.25 沒人畫。
 
 **規則**:內縮量一律用 `Media.BorderInset()`(= `P.Scale(borderSize)`),跟 `ApplyBorder` 畫出來
-的厚度同一個值。已套:Health / Power / Castbar / Totems。
+的厚度同一個值。已套:Health / Power / Castbar / Totems(後來 Icons / Inspect / DispelHighlight 也走 `Media.BorderInset`)。
 
 **延伸(不是縫,是銳利度)**:1 版面單位在 Retina 上不是整數實體像素,細線會忽粗忽細。
 所有尺寸/位移都過 `ns.P.Scale`:`ApplyElementBase`、`ApplyFramePosition`(單位框本身沒對齊的話

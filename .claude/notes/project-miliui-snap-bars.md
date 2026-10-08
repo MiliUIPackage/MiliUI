@@ -11,7 +11,7 @@ metadata:
 2026-09-06 升到 **v3**：從「焦點標記列 × 爆發藥水列」擴到套組全部框體（資訊列、傷害統計視窗、
 小地圖＋底下資訊列、任務追蹤器、聊天列、標記列、藥水列），全部 **2 螢幕像素**內才吸。
 **唯一 source 在 `AddOns/MiliUI/Libs/MiliUISnap/MiliUISnap.lua`**（本體只放不載入，同 MiliUIGlow），
-`Libs/MiliUISnap.lua` vendor 複製在七支插件各一份，全域 `MiliUI_Snap` 先到先贏、版本高的蓋掉舊的
+`Libs/MiliUISnap.lua` vendor 複製在各消費者一份（以 `ls AddOns/*/Libs/MiliUISnap.lua` 為準，2026-10-09 是八支，含 MiliUI_CooldownManager；FeiMiao 在 repo 外另一份），全域 `MiliUI_Snap` 先到先贏、版本高的蓋掉舊的
 （`bars` 註冊表保留）。改本體那份再跑 `python3 .claude/scripts/sync-widgets.py`（它只同步**已經帶著**
 那個檔的插件；新消費者要先手動複製一次＋TOC 加 `Libs\MiliUISnap.lua`，放在 Metro.lua 後面）。
 

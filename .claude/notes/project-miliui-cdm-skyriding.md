@@ -10,7 +10,7 @@ metadata:
 
 2026-10-06 把第三方插件 Falcon（Yuyuli，**沒有授權檔 ⇒ 一行程式都沒搬**，只用遊戲事實）做進 MiliUI_CooldownManager，
 新面板 `skyriding`（`Modules/Skyriding.lua`、`Options/Tab_Skyriding.lua`），`AddOns/Falcon` 與 MiliUI Roster 那筆已刪。
-plan 在 `~/.claude/plans/miliui-cdm-skyriding.md`（含「Falcon 的坑與我們的做法」17 條）。已 merge 進 master，**未 push、未實機驗證**（README 待實機驗證 376～393）。
+plan 在 `~/.claude/plans/miliui-cdm-skyriding.md`（含「Falcon 的坑與我們的做法」17 條）。已 merge 進 master、已 push（tag 20261009 內），**未實機驗證**（README 待實機驗證 376～394；重複編號 2026-10-09 已修）。
 
 使用者拍板：
 - 位置給玩家選：**接力（預設，跟資源條輪流出現在同一位置）**／獨立擺放；另有「天空騎術時藏起冷卻管理器」（hideCdm，我定預設開）。

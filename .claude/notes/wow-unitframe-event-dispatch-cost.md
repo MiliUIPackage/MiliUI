@@ -35,7 +35,7 @@ if unit and (self.states.displayedUnit == unit or self.states.unit == unit) then
 | 類型 | 例子 | 為什麼 |
 |---|---|---|
 | 同一個事件在「不是我的單位」分支也有用 | `UNIT_THREAT_LIST_UPDATE`（威脅條讀的是別的單位的 payload） | scope 掉那個分支永遠收不到，功能靜靜凍住 |
-| 帶 unit 參數但不是 unit event | `PLAYER_FLAGS_CHANGED`、`READY_CHECK_CONFIRM`、`INCOMING_SUMMON_CHANGED` | `RegisterUnitEvent` 不會過濾它們（EUI 也把這兩個留成廣播，是獨立佐證） |
+| 帶 unit 參數但不是 unit event | `PLAYER_FLAGS_CHANGED`、`READY_CHECK_CONFIRM`（⚠ 2026-09-08 起 READY_CHECK 三事件的 arg1 是秘密字串、路由已拆掉，見 [[wow-121-unit-api-secrets]]）、`INCOMING_SUMMON_CHANGED` | `RegisterUnitEvent` 不會過濾它們（EUI 也把這兩個留成廣播，是獨立佐證） |
 | 純廣播 | `GROUP_ROSTER_UPDATE`、`RAID_TARGET_UPDATE`… | 本來就沒有 unit |
 
 ⚠ **在隱藏的按鈕上重新註冊會把事件復活。** secure header 也會對隱藏按鈕指派單位；

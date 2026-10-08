@@ -10,7 +10,7 @@ metadata:
 
 12.1 之後插件**讀不到光環內容**，所以「過濾」只剩一條路：把條件交給引擎，由 C 端決定
 哪些光環進容器。本機有三個出貨中的插件在用同一套詞彙（**Cell** `RaidFrames/AuraDisplay.lua`、
-**Platynator** `Display/Auras/AurasNext.lua`、**EUI** `EUI_UnitFrames_AuraContainers.lua`），
+**Platynator** `Display/Auras/AurasNext.lua`、某個第三方 UI 套組的 AuraContainers 檔，後者已不在本機），
 互相對照過的結果如下。
 
 ## 兩個機制
@@ -78,7 +78,7 @@ includeSpellIDs     excludeSpellIDs      maxDuration
   與 `HARMFUL|!IMPORTANT|...`（`AurasNext.lua:223-231`）。
 
 **在確認之前一律用 `isPriorityAura` 這個 candidate**（Cell 就是這樣，兩邊都不得罪）。
-要驗證的話 Cell 有現成的探針：`/cab test` 是六步二分，`AuraDisplay.lua:1595` 那張
+要驗證的話 Cell 有現成的探針：`/cab test` 是六步二分，`AuraDisplay.lua` 的 `/cab test` record 那張
 filter 測試表加一條 `HARMFUL|IMPORTANT` 就看得出來。
 
 **2026-09-22 旁證（傾向 EUI 對）**：暴雪熱修正的用詞「X is now an Important Aura」用在

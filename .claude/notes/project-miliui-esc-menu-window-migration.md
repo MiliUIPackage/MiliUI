@@ -17,7 +17,7 @@ metadata:
 
 ```
 Libs/MiliUIWidgets/{PixelPerfect,Env,Widgets,Controls}.lua   ← 見 [[project-miliui-widgets-vendor]]
-Libs/Callbacks.lua            ← 也是逐字複製，六支一模一樣
+Libs/Callbacks.lua            ← 也是逐字複製（2026-10-09 已 16 份；⚠ MiliUI_Minimap 那份多了 `ns.prof` 計數四行，已分家）
 Options/Panel.lua             ← 視窗骨架（分頁鈕兼拖曳把手＋戰鬥遮罩）
 Options/Tab_*.lua             ← 每個分頁自己註冊 ShowOptionsTab、懶初始化
 Options/Blizzard.lua          ← 暴雪「選項>插件」只剩一頁「開啟設定」按鈕

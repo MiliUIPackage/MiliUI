@@ -8,7 +8,7 @@ metadata:
   modified: 2026-09-14T06:29:37.047Z
 ---
 
-**2026-09-08 新建的獨立插件**（第十二支自製插件、MiliUIWidgets 的第十二個消費者，
+**2026-09-08 新建的獨立插件**（MiliUIWidgets 的消費者之一——序號別寫死，
 NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 
 參考來源是 **Profession Shop**（作者 TW-Ballxx，原始碼放在 `tmp/ProfessionShop/`，

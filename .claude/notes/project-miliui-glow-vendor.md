@@ -7,7 +7,7 @@ metadata:
 ---
 
 **自製插件要發光就複製 `AddOns/MiliUI/Libs/MiliUIGlow/` 整包過去，不要再 `LibStub("LibCustomGlow-1.0")`。**
-唯一 source 在 MiliUI 本體，包內 `README.md` 是完整契約。（2026-08-27 建立，第一個消費者是 Cell。）
+唯一 source 在 MiliUI 本體，包內 `README.md` 是完整契約。（2026-08-27 建立，第一個消費者是 Cell；2026-10-09 共四份 copy：MiliUI／Cell／MiliUI_CooldownManager／MiliUI_Focus，md5 全同。）
 
 跟 [[project-miliui-widgets-vendor]] 同一套 vendor 哲學，外加一個 **LibStub 專屬的理由**：
 

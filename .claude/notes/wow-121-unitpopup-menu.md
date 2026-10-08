@@ -81,7 +81,7 @@ false，讀對方本質的（`UnitIsOtherPlayersBattlePet`/`UnitIsOtherPlayersPe
 
 灰化走訪要**遞迴**——複製名稱藏在「其他選項」子選單裡，掃第一層碰不到。
 
-### 「密語」刻意不灰（使用者決定 2026-09-13）
+### ~~「密語」刻意不灰（使用者決定 2026-09-13）~~ ⚠ 已被 2026-09-16 推翻：兩份 `GreyBrokenItems` 都把 `WHISPER` 灰掉了（見上表），以下留作歷史
 
 重開選單裡的密語會用 tainted 執行跑 `SendTell` → `ActivateChat` 把 `LAST_ACTIVE_CHAT_EDIT_BOX`
 染成 Cell 的，**一路髒到 /reload**（後果見 [[wow-121-chat-reply-secret-taint]]：按 R 對秘密

@@ -44,7 +44,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [wow-121-secret-values.md](wow-121-secret-values.md) | tainted 程式對 secret 能做／不能做什麼；**當傳遞者，不當讀取者**、曲線可串接、上色走 `SetVertexColor` |
-| [wow-121-addon-code-in-secure-stack.md](wow-121-addon-code-in-secure-stack.md) | 自己的 Lua 跑在暴雪的 secure 堆疊裡、或在暴雪的框上寫了一個欄位，就會污染它 —— 七個實測入口（`RegisterUnitWatch` 的 `Show()`、按鍵同步派送的事件、`initializeFrame`、**HelpTip 的 `relativeRegion`**、動 UIParent、secure 按鈕 OnClick 前的 Lua／`clickbutton`）、延一幀／secure snippet／只讀不寫、**探針別用 `seterrorhandler`、bug 發作後才掃、reload 會清 taint.log** |
+| [wow-121-addon-code-in-secure-stack.md](wow-121-addon-code-in-secure-stack.md) | 自己的 Lua 跑在暴雪的 secure 堆疊裡、或在暴雪的框上寫了一個欄位，就會污染它 —— 八個入口（`RegisterUnitWatch` 的 `Show()`、按鍵同步派送的事件、`initializeFrame`、**HelpTip 的 `relativeRegion`**、動 UIParent、secure 按鈕 OnClick 前的 Lua／`clickbutton`、**選取框模板的 OnMouseDown**）、延一幀／secure snippet／只讀不寫、**探針別用 `seterrorhandler`、bug 發作後才掃、reload 會清 taint.log** |
 | [wow-121-unit-api-secrets.md](wow-121-unit-api-secrets.md) | 變 secret 的 Unit API 完整清單 |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | 「cannot be indexed with secret keys」的成因與寫法 |
 | [wow-121-aura-containers.md](wow-121-aura-containers.md) | 光環系統重寫：AuraContainer／AuraButton |
@@ -52,13 +52,14 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-percent-api-signature.md](wow-121-percent-api-signature.md) | `UnitHealthPercent` / `UnitPowerPercent` 的簽章（curve 在第 3／第 4 位）；**別把別的插件註解裡的參數名當權威** |
 | [wow-121-duration-objects.md](wow-121-duration-objects.md) | 秘密值倒數：**引擎給的 duration 物件可用、自己 `CreateDuration` 建的餵不進秘密值**；getter **取得可以、測試不行** |
 | [wow-121-absorb-shield-secret.md](wow-121-absorb-shield-secret.md) | 吸收盾／溢盾：`isClamped`、`SetAlphaFromBoolean`；**`UnitGetDetailedHealPrediction` 的 healer 參數不能傳 nil**；敵方的盾只能走 `UnitGetTotalAbsorbs` |
-| [wow-121-identity-gate-failopen.md](wow-121-identity-gate-failopen.md) | 身分閘 fail-open：白名單 buff 變成顯示全部、且只有 `/reload` 有效 |
+| [wow-121-identity-gate-failopen.md](wow-121-identity-gate-failopen.md) | 身分閘 fail-open：白名單 buff 變成顯示全部、且只有 `/reload` 有效；⚠ 09-05 原始碼核對說機制不是 `UnitCanAssist`，未定案 |
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、**開暴雪面板要走 secure 點擊轉發**、改名與移除 |
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | AddOnRestrictionType 六型別；**ChallengeMode 整趟鑰石都算**、聊天封鎖時連填聊天輸入框都被擋、狀態事件派送當下讀不到終值 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
-| [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | 密語回覆的死路：`SetAttribute`／`SendChatMessage` 只收未污染的秘密值；**別覆寫回覆路徑上的暴雪函式**、也別代填 `/w 名字 ` |
+| [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | **插件開聊天輸入框只能走超連結**（`|Hchannel:…|h` ＋ propagate 給 ChatFrameTemplate 框，2026-09-16 根治）；前半是密語回覆在秘密名字下的死路史，鏡射／`/r` 降級全是治標 |
 | [wow-121-unitpopup-menu.md](wow-121-unitpopup-menu.md) | 右鍵單位選單地雷圖：`togglemenu` 誤判、tainted 重開的代價、ClickBindings 閘、`CopyToClipboard` 是保護函式 |
-| [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 12.1 正解範本 —— **原始碼已不在本機**，要看去 GitHub |
+| [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 12.1 正解範本 —— **原始碼已不在本機**，要看去 GitHub；本機範本改看 Cell／Plumber／BuffReminders |
+| [wow-cdm-equipslot-stale-cache.md](wow-cdm-equipslot-stale-cache.md) | 冷卻管理器飾品格缺框＝暴雪 displayData 快取過期（API isKnown=true、快取 false 且不髒）；插件標不了髒，修法走自己畫 |
 
 ### 暴雪 UI 通則
 | 檔案 | 內容 |
@@ -101,6 +102,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口；**隱式保護沿錨點鏈遞迴傳** —— 排版鏈尾巴一顆 secure 鈕，前面整排都成保護框，要直接錨父框 |
 | [wow-hasrestrictions-mouse-apis.md](wow-hasrestrictions-mouse-apis.md) | `SetPassThroughButtons`／`SetPropagateMouseClicks`／`SetPropagateMouseMotion` 戰鬥中對**任何**框都封鎖（API 文件標 HasRestrictions，不是 IsProtectedFunction）；懶建的列池要在戰鬥外預建 |
 | [wow-chattynator-chat-window-frame.md](wow-chattynator-chat-window-frame.md) | 要吸附／對齊「聊天視窗」時 `ChatFrame1` 是錯的答案 —— 沒名字的那顆怎麼認 |
+| [wow-addon-texture-negative-fileid.md](wow-addon-texture-negative-fileid.md) | 插件貼圖的 `GetTexture`／`GetTextureFileID` 回負數（-5272 之類）、FilePath 讀不到；判「有沒有貼圖」要 `~= 0` |
 
 ### 字型
 | 檔案 | 內容 |
@@ -112,36 +114,36 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 ### 工作現況
 | 檔案 | 內容 |
 |---|---|
-| [project-local-addon-forks.md](project-local-addon-forks.md) | **動任何第三方插件前先看這張表** —— 哪幾支帶本地修改，上游更新會被洗掉 |
+| [project-local-addon-forks.md](project-local-addon-forks.md) | **動任何第三方插件前先看這張表** —— 哪幾支帶本地修改，上游更新會被洗掉（2026-10-09 全表重驗，MRT／BuffReminders 的修補已被洗掉） |
 | [project-miliui-widgets-vendor.md](project-miliui-widgets-vendor.md) | 共用設定介面 MiliUIWidgets：要做設定介面就複製這包，走 vendor 不走 LibStub |
 | [project-miliui-glow-vendor.md](project-miliui-glow-vendor.md) | 共用發光引擎 MiliUIGlow：取代 LibCustomGlow，LibStub 先到先贏所以自己的插件不能走它 |
 | [project-miliui-uf-visual-bounds.md](project-miliui-uf-visual-bounds.md) | 視覺框體不等於框架 —— 對齊基準是魔力條露出去那截 |
 | [project-121-addon-migration.md](project-121-addon-migration.md) | 12.1 各插件修了什麼、放棄了什麼 |
 | [project-cell-auracontainer-rewrite.md](project-cell-auracontainer-rewrite.md) | Cell 光環指示器改 AuraContainer：現況架構、通則教訓、待辦；重要減益的短時效／持續時間上限兩選項 |
 | [project-cell-fork-license-decision.md](project-cell-fork-license-decision.md) | Cell 沿用原名不另立：不自己重寫團隊框架、約 83% 仍是原版程式，原版授權禁止改名、修改限自用 |
-| [project-cell-unitbutton-local-ceiling.md](project-cell-unitbutton-local-ceiling.md) | Cell 貼著 Lua 兩個硬上限：UnitButton.lua 主 chunk 200 個 local、函式 60 upvalue；check-all 不掃 Cell，要自己數 |
+| [project-cell-unitbutton-local-ceiling.md](project-cell-unitbutton-local-ceiling.md) | Cell 貼著 Lua 兩個硬上限：UnitButton.lua 主 chunk 200 個 local（餘裕 43）、函式 60 upvalue；`check_cell.py` 已進 check-all／CI |
 | [wow-cell-fork-comm.md](wow-cell-fork-comm.md) | Cell 改版的 comm 處理 |
 | [wow-cell-neergy-fork.md](wow-cell-neergy-fork.md) | NeeRgY/Cell 平行 fork：可參考什麼、不要抄什麼；秘密光環指紋技巧 |
 | [project-miliui-release-version.md](project-miliui-release-version.md) | MiliUI 發佈版本號（TOC `## Version` 是 YYYYMMDD，版本廣播靠它） |
 | [project-miliui-uf-refresh-journal.md](project-miliui-uf-refresh-journal.md) | 單位框「換目標後名字停在上一個」的診斷（重畫時間線、看門狗只記不修）與 EUI 頭像引擎對照 |
 | [project-miliui-unit-frame.md](project-miliui-unit-frame.md) | MiliUI_UnitFrames：取代 Stuf 的自製頭像框架，架構／決策／待驗證 |
 | [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip：取代 TinyTooltip 的自製滑鼠提示，taint 接觸面清單／待驗證 |
-| [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | 顯示條件走「閘框」而不是 `RegisterStateDriver`：藏普通父層等於藏 secure 子框 |
+| [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | 顯示條件用兩層閘框（DB v19）：外層 `RegisterStateDriver` 戰鬥中照樣切、內層 Lua 只剩副本；能寫成巨集條件的一律放外層 |
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 頭像框架註解不點名第三方插件，但複製來的檔案與致謝要留出處 |
-| [project-miliui-options-label-width.md](project-miliui-options-label-width.md) | 設定表單左欄標籤 128px／13 字級一行：繁中約 9 字、歐語約 17 字，超過截成「…」；怎麼量、怎麼縮 |
+| [project-miliui-options-label-width.md](project-miliui-options-label-width.md) | 設定表單左欄標籤寬度（中韓 128／歐語 148）：過長自動換行、列高跟著長（不再截「…」）；四支 opt-in API、為什麼不能預設撐寬 |
 | [project-miliui-pixel-snapping.md](project-miliui-pixel-snapping.md) | 單位框像素對齊：邊框露縫的成因，內縮量必須走 `Media.BorderInset()` |
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪框的 taint 規則：Edit Mode 管的框只能解事件 |
 | [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動 bump Cell 的 `## Version` —— 那是釋出訊號，由使用者決定 |
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell 只支援正式服 —— 新程式不加經典版保護、plan 不寫「保留經典版路徑」 |
 | [feedback-ayije-cdm-sync-tag.md](feedback-ayije-cdm-sync-tag.md) | Ayije_CDM 出版本只走工作資料夾的 `package.command`（整合包 → 工作 repo，整合包只 commit toc ＋ tag，跟 UnitFrames 同一套）；別在整合包另做同步腳本 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | UI 視覺風格偏好：純色直角、深底白字、間距要緊；狀態只換明暗不換色 |
-| [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面守則：控件說明一律下一列 `type="text"` 灰色小字，不用 toggle 的 `hint`；含待遷移清單 |
 | [feedback-fix-root-cause-not-symptom.md](feedback-fix-root-cause-not-symptom.md) | 修 bug 要治本：不在錯誤路徑上加閘／重試／補寫，先問「插件為什麼要替暴雪做這件事」 |
 | [feedback-zhtw-blizzard-terms.md](feedback-zhtw-blizzard-terms.md) | zhTW 用暴雪官方詞彙：focus 是「專注目標」不是「焦點」，後者只留給輸入焦點 |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「寫 plan → Opus 子代理在 worktree 實作 → 驗收 → commit＋merge」；push 另等指示，遠端叫 `MiliUIPackage` |
 | [feedback-merge-worktree-branch.md](feedback-merge-worktree-branch.md) | worktree 分支 commit 完就 merge 進 master（遊戲只載入本體）；commit 與 merge 同一串指令、回報前查 `branch --no-merged master` 為空；不要 cherry-pick |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 的範圍／掛點／不碰清單照成熟同類實作，樣式套我們的；契約照舊，只有就位確認開白名單 |
-| [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面的控件說明一律下一列灰色小字，不用接在勾選框右邊的 hint；實作細節／推銷別支插件的句子不放 |
+| [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面的控件說明一律下一列 `type="text"` 灰色小字，不用接在勾選框右邊的 hint；實作細節／推銷別支插件的句子不放；灰字夾在兩列間或重複出現時改標籤後「?」hover |
+| [feedback-zh-countdown-wording.md](feedback-zh-countdown-wording.md) | 中文「倒數」不縮成「倒」：先倒數、才倒數冷卻；寫語系字串時就照這樣 |
 | [feedback-emphasis-note-yellow.md](feedback-emphasis-note-yellow.md) | 「黃字說明」＝共用層 `W.fontEmphasis`（1, 0.82, 0）；整列寬、放在底部灰字說明正上方 |
 | [project-miliui-hud-skin.md](project-miliui-hud-skin.md) | **HUD 皮的正式定義**：黑透明底＋1px 職業色邊＋白字＋直角；跟設定視窗皮的二選一判準與數值表 |
 | [project-miliui-button-variants.md](project-miliui-button-variants.md) | **按鈕上色規則（全套組遵守）**：primary（主動作）／normal 兩種長相、職業色公式、九條判準（主按鈕不疊發光／彩色字、做過的動作＝字改現況＋停用）、`W.CreateButton(…, "primary")`＋`W.PaintButton`；`accent`／`green` 是舊配色（遷移待辦） |
@@ -153,8 +155,9 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 |---|---|
 | [project-burst-helper.md](project-burst-helper.md) | MiliUI_BurstPotionHelper 爆發藥水 |
 | [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 傷害統計 MiliUI_DamageMeters —— C_DamageMeter 渲染器；七個刻意的架構決定、細線樣式、踩過的點 |
-| [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager 取代 Ayije_CDM fork —— 六條拍板、**Ayije 授權 All Rights Reserved 一行不能搬**、三方（Ayije／EllesmereUI／YUI）分析結論、plan 在 ~/.claude/plans/miliui-cdm.md |
+| [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（Ayije_CDM 仍出貨、兩支互斥並存）—— 六條拍板、**Ayije 授權 All Rights Reserved 一行不能搬**、三方分析結論、plan 在 ~/.claude/plans/miliui-cdm.md |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije）—— 報告在 ~/.claude/plans；效能 plan `miliui-cdm-perf.md`（E0～E3）、功能 plan `miliui-cdm-eui-features-2.md`（F1～F8）|
+| [project-miliui-cdm-rings.md](project-miliui-cdm-rings.md) | MCDM 圓環顯示（2026-10-08）—— 改造暴雪 item 自己的 Cooldown（環形 swipe）不自建；圓環只收增益、自訂光環格可畫成圓環；未實機驗證 |
 | [project-miliui-cdm-skyriding.md](project-miliui-cdm-skyriding.md) | 2026-10-06 Falcon 併入 MCDM 成為天空騎術面板（接力／獨立擺放、藏起 CDM、旋轉急衝長條、充能數字）、Falcon 從套組移除；拍板、驗收修掉的兩個錯、未實機驗證 |
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | 米利的專注目標助手 MiliUI_Focus —— 從套組拆出的獨立插件、一次性 SV 遷移、zhTW 正名 |
 | [project-feimiao-raidcommander.md](project-feimiao-raidcommander.md) | 肥喵的團隊指揮 FeiMiao_RaidCommander —— 私人插件、gitignore 不進版控（搬自 Cell 團隊工具）；四個元件的出現時機／磁吸／編輯模式拖曳、一律當保護框、待實機驗證清單 |
@@ -170,8 +173,8 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-skin.md](project-miliui-skin.md) | 米利的介面外觀 MiliUI_Skin —— 暴雪視窗換皮 PoC（對話／角色面板／成就）；**只重畫不重排**的契約、overlay 三陷阱、驗收時抓到的坑、待實機驗證清單 |
 | [project-baganator-miliui-skin.md](project-baganator-miliui-skin.md) | Baganator 的 MiliUI 皮 —— fork `miliui` 分支的轉接層＋`MiliUISkin_API`；**上游同步會弄掉 TOC 那一行** |
 | [wow-blizzard-window-skin-strategies.md](wow-blizzard-window-skin-strategies.md) | 暴雪原生視窗換皮的通用策略：底直接建成目標框的貼圖、進度條邊與文字同框交錯、池化列掛法、物品格方框、一律不碰的區域與原因 |
-| [project-miliui-snap-bars.md](project-miliui-snap-bars.md) | 套組各插件的框互相磁吸（MiliUISnap v3）：標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊 2px；vendor 複製、七支插件的接點 |
-| [project-miliui-auraenhance.md](project-miliui-auraenhance.md) | 米利的光環美化 MiliUI_AuraEnhance —— 兩條遷移來源、字型存路徑還是 LSM 名稱、鏡射圖示在 12.1 變紅問號 |
+| [project-miliui-snap-bars.md](project-miliui-snap-bars.md) | 套組各插件的框互相磁吸（MiliUISnap v4）：標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊、滑鼠淡出群組；vendor 複製（以 ls 為準） |
+| [project-miliui-auraenhance.md](project-miliui-auraenhance.md) | 米利的光環美化 MiliUI_AuraEnhance —— 兩條遷移來源、字型存路徑還是 LSM 名稱、圖示樣式三代演進（鏡射紅問號→Masque 退場→自製 1px） |
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | 快捷聊天列的磁吸與自適應寬度 —— 位置從 `SetUserPlaced` 收回自己存 |
 | [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 三支小插件改自製設定視窗（爆發藥水／嗜血音樂／快捷聊天列）；踩過的點 |
 | [project-miliui-font-pack.md](project-miliui-font-pack.md) | 套組字型改用思源黑體：基底配置、`~/MiliUI-Fonts` 典藏庫、雅黑授權問題 |
@@ -218,4 +221,4 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-cell-libgroupinfo-secret-guid.md](project-cell-libgroupinfo-secret-guid.md) | Cell LibGroupInfo 秘密 GUID |
 | [project-appearancetooltip-secret-rect.md](project-appearancetooltip-secret-rect.md) | AppearanceTooltip IsRectValid guard |
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
-| [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 對冷卻管理器（含增益長條圖示）套皮出現偏移方框 —— MiliUI/Fix 用它的 `_MasqueBlizzBarsSkinned` 印記讓它跳過 |
+| [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 對冷卻管理器套皮出現偏移方框 —— Fix 用它的 `_MasqueBlizzBarsSkinned` 印記讓它跳過（只管 Ayije；MCDM 走自己的 `Core/Compat.lua`） |

@@ -22,7 +22,7 @@ Stuf 三資料夾。（下面這條是移除前的舊定案，保留當歷史）
 （聖騎分段條做法推廣全職業）；單一帳號設定檔；圖騰樣式看設計稿再決定（A 膠囊列已實作為預設，
 B 整合條/C 冷卻環待選）。
 
-**架構**（計畫全文在 `~/.claude/plans/buzzing-stargazing-spring.md`）：
+**架構**（計畫檔已不在 `~/.claude/plans/`）：
 - Core：Secret（IsSecret/Desecret/ToBool）、DB（明確 nil-merge、boolean 全明寫、schemaVersion）、
   Colors（Stuf colormethods 20 種移植）、Cache（**唯一消毒層，cache 保證全明文**）、
   Events（事件→桶對照集中一處：health/power/powertype/identity/death/cast/metro）、
@@ -44,13 +44,13 @@ B 整合條/C 冷卻環待選）。
 - 座標：frame.x/y = CENTER 對 UIParent CENTER 偏移；元件 x/y = 相對框 TOPLEFT（Stuf 語意）。
 - 預設值逐鍵轉譯自 `MiliUI/Config/Stuf.lua`，邊框改 1px。
 
-**MiliUI 側增量修改**（Stuf 條目都保留）：`Enhance/Focuser.lua` 候選框架清單加 MiliUIUF_*；
+**MiliUI 側增量修改**（歷史：Stuf 已移除、Focuser 搬到 `MiliUI_Focus/Modules/Focuser.lua`、本體 `Settings.lua` 已拆掉；現行入口是 `Api.lua` 塞 `MiliUI_MenuEntries` ＋ Roster 的 `menuKey = "unitframes"`，`MiliUI_OpenUnitFrameSettings` 全域已無人呼叫）：`Enhance/Focuser.lua` 候選框架清單加 MiliUIUF_*；
 （`Fix/AyijeCDM_StufAnchor.lua` 已隨 Stuf 移除而不存在，2026-08-19 確認；現在只剩
 `Enhance/Focuser.lua` 引用 `MiliUIUF_*`）；`Settings.lua` 主頁加
 「開啟頭像框架設定」按鈕（呼叫全域 `MiliUI_OpenUnitFrameSettings()`）。
 
 **DB 遷移狀態**：2026-08-16 曾把開發期累積的 v2–v14 遷移全部清空、`DB_VERSION` 歸 1；
-之後又長出新的，**現況是 `DB_VERSION = 5`**（v2 單一設定→具名設定檔、v3 觀察按鈕樣式改名、
+之後又長出新的，**當時是 `DB_VERSION = 5`**（（2026-10-09 體檢）`Core/Init.lua` 已是 v19，v6～v19 的遷移看 `Core/DB.lua`，v19＝顯示條件，見 [[project-miliui-uf-visibility-gate]]；v2 單一設定→具名設定檔、v3 觀察按鈕樣式改名、
 v4 觀察按鈕預設改純放大鏡、v5 施法條配色對齊 Platynator）。
 `DB.Init` 有 downgrade clamp，`DB.EachElement(db, name, fn)` 是走訪工具。
 
@@ -169,7 +169,7 @@ EUI 的計算器設定：`SetMaximumHealthMode(Default)` + `SetDamageAbsorbClamp
 首次進遊戲實測就中了「裸迴圈 dispatch 放大器」：texts build 一個 error 炸斷整個 PLAYER_LOGIN
 spawn 迴圈 → 後續單位/小地圖鈕/圖騰全沒生。已在 Units spawn、BuildElements、Refresh 三處
 逐一 xpcall(geterrorhandler()) 隔離。暴雪原生框由 `Core/HideBlizzard.lua` 隱藏
-（照 Stuf DisableDefault：alpha 0＋搬出畫面＋解註冊；施法條/圖騰列依我方對應元件啟用才藏），
+（初版照 Stuf DisableDefault：alpha 0＋搬出畫面＋解註冊，現況是 reparent 進 `hiddenParent`＋`UnregisterAllEvents`、只有 TotemFrame 走 `SetAlpha(0)`，見下文「單向」那段；施法條/圖騰列依我方對應元件啟用才藏），
 只在登入跑一次，中途停用單位要 /reload 才還原暴雪框。
 
 **設定面板搜尋**（2026-08-18，F3，`Options/Search.lua`）：搜尋框在面板上緣外側、跟標題同一列。
@@ -209,7 +209,7 @@ HideBlizzard ⇒ 兩個框疊著。`DB.WouldReload(name)` 就是這道判斷，�
 `uf.db`（spawn 時存）→ Rebind 重指；預覽孿生 → 訂閱 `SettingsApplied` 自己重指；
 **`EditMode.lua:63` 的 `AttachSelection` 把 `fdb` 烘進 closure，而 `frame.editSelection`
 一旦建立就永不重建 → 換設定檔後拖曳寫進舊設定檔（2026-08-19 覆核發現，這張清單原本漏了它，
-尚未修）**；`Options/Tab_Unit.lua` 的 `panels` 快取把 udb 捕捉在 ctx 的 closure 裡 → 新事件
+已修：2026-08-24 `26b7411a0` 改成 `AttachSelection(frame, label, getFDB, …)` getter，見 EditMode.lua 檔頭）**；`Options/Tab_Unit.lua` 的 `panels` 快取把 udb 捕捉在 ctx 的 closure 裡 → 新事件
 `ProfileChanged` 全丟重建（它原本只在「文字條目數變了」時才丟）；
 Tab_General／Tab_Resource／Tab_Totem 與 Totems 的 `GetDB()` 都是現查 `ns.db`，安全。
 `DB.Activate(name)` 是「啟用一份設定檔」的唯一入口（補預設＋重指 `ns.db`＋記名字），

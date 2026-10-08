@@ -12,7 +12,7 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 
 ## 現況架構（2026-08-13 核對）
 
-兩個檔案，TOC 順序固定（`Cell.toc:42-43`）：
+兩個檔案，TOC 順序固定（`Cell.toc` 裡相鄰兩行，行號會漂）：
 - **`RaidFrames/AuraContainerCore.lua`**（`Cell.AuraContainerCore`，下稱 ACC）：共用層 —— capability probe（`IsSupported`/`Failure`，戰鬥中不 probe）、倒數 formatter（NumericRule 91/5401 三段，快取，規格見 [[wow-121-aura-containers]]）、flow layout、`BindDispelTexture`/`BindDispelText`/`GetDispelColorMap`（讀 `CellDB.debuffTypeColor`）、`ApplyFont`（包 `I.SetFont`）。
 - **`RaidFrames/AuraDisplay.lua`**（`Cell.AuraDisplay`，下稱 AD）：容器工廠與 handle 生命週期 —— `BuildRecords(opts)`、`StyleButton`（initializeFrame）、`Create/SetUnit/SetOptions/SetNum/SetEnabled/Rebuild/Destroy`。全 pcall 包、戰鬥中延到 `PLAYER_REGEN_ENABLED`。
 
@@ -384,7 +384,7 @@ Rebuild 已是既定合法路徑。若實測（`/console taintLog 2`，野外戰
 - **問不到就清掉**（受限情境＝戰鬥中，沒人會在戰鬥中喝水，而且我們也無法驗證）；
 - 另外掛 `PLAYER_REGEN_DISABLED` —— 開戰是唯一保證會收到的時機，UNIT_AURA 不是。
 
-⚠ 同一時間發現 `F.FindAuraByName` **從來沒有被實作過**，呼叫端寫成
+⚠ 同一時間發現 `F.FindAuraByName` **從來沒有被實作過**（2026-08-26 `4a33888df` 已補在 `Utils.lua`），呼叫端寫成
 `F.FindAuraByName and F.FindAuraByName(...)`，所以永遠是 nil ——
 StatusIcon 的靈魂石移除偵測等於一直沒在跑。**用 `and` 守衛一個不存在的函式，
 會讓「功能沒做」看起來像「功能有做」**，靜默到只能靠全域掃描或讀原始碼發現。
