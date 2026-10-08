@@ -4457,7 +4457,7 @@ SlashCmdList["CELLAURACONTAINER"] = function(msg)
     else
         p("supported =", tostring(AD.IsSupported()), "|", tostring(ACC.Failure() or "OK"))
         AD.Debug()
-        p("其他：/cab list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test | probe [anim｜build｜reloadbuild on|off]")
+        p("其他（/cell aura 或簡寫 /cab 都可以）：/cell aura list | stats | ghosts | report [n] | bounce on|off | inspect [unit] | overdraw [unit] | spell [id｜名稱｜連結]（旗標分析視窗） | gate | test | probe [anim｜build｜reloadbuild on|off]")
     end
 end
 
