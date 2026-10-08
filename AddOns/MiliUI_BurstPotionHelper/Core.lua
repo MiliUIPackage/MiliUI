@@ -541,12 +541,15 @@ f:SetScript("OnEvent", function(_, event, arg1)
         if ns.Bar_UpdateCooldowns then ns.Bar_UpdateCooldowns() end
     elseif event == "PLAYER_REGEN_DISABLED" then
         ns.inCombat = true
+        ns.UpdateBossSeen()
         if ns.Bar_UpdateSelection then ns.Bar_UpdateSelection() end
     elseif event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" or event == "ENCOUNTER_START"
         or event == "ENCOUNTER_END" then
+        ns.UpdateBossSeen()
         if ns.Bar_UpdateSelection then ns.Bar_UpdateSelection() end
     elseif event == "PLAYER_REGEN_ENABLED" then
         ns.inCombat = false
+        ns.UpdateBossSeen()
         if ns.Bar_UpdateSelection then ns.Bar_UpdateSelection() end
         -- Left combat: now safe to do everything we deferred.
         if ns.pendingRebuild then

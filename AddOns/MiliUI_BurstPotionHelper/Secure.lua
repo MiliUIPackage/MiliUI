@@ -46,22 +46,35 @@ end
 --   bossonly    true while "raid: boss fights only" applies (option on AND the
 --               current context is raid). Written out of combat only.
 --   state-boss  a macro-condition state driver, so Blizzard flips it from the
---               secure side even in combat: "open" out of combat (pre-pull
---               potions still work) or while any boss unit exists, else
---               "closed" (fighting trash).
+--               secure side even in combat: "nocombat" (pre-pull potions still
+--               work), "boss" while any boss unit exists, else "trash".
+--   seenboss    latched by GATE_APPLY on "boss", cleared on "nocombat": once a
+--               boss showed up in this combat the gate stays open until combat
+--               ends, so phases where the boss units vanish (intermissions,
+--               boss swaps) don't count as a trash fight. There's no secure
+--               "encounter in progress" signal: no macro conditional exists,
+--               and ENCOUNTER_START / IsEncounterInProgress are insecure-only,
+--               which can't write the gate in combat.
 -- GATE_APPLY points the use button at state-sel, or clears it when bossonly is
 -- on and the gate is closed. The selection itself is never touched, so the
 -- chosen potion comes back by itself the moment a boss is engaged.
 ----------------------------------------------------------------------
-local GATE_DRIVER = "[nocombat] open; "
-    .. "[@boss1,exists][@boss2,exists][@boss3,exists][@boss4,exists][@boss5,exists] open; "
-    .. "closed"
+local GATE_DRIVER = "[nocombat] nocombat; "
+    .. "[@boss1,exists][@boss2,exists][@boss3,exists][@boss4,exists][@boss5,exists] boss; "
+    .. "trash"
 
 local GATE_APPLY = [[
     local use = self:GetFrameRef("use")
     if not use then return end
+    local state = self:GetAttribute("state-boss")
+    if state == "boss" then
+        self:SetAttribute("seenboss", true)
+    elseif state == "nocombat" then
+        self:SetAttribute("seenboss", nil)
+    end
     local ref = self:GetAttribute("state-sel")
-    if self:GetAttribute("bossonly") and self:GetAttribute("state-boss") == "closed" then
+    if self:GetAttribute("bossonly") and state == "trash"
+        and not self:GetAttribute("seenboss") then
         ref = nil
     end
     if ref and ref ~= "" then
@@ -110,10 +123,21 @@ local function BossPresent()
     return false
 end
 
+-- Insecure copy of the gate's seenboss latch, for the dimming below. Called on
+-- combat start and every boss-unit / encounter event; cleared on combat end.
+function ns.UpdateBossSeen()
+    if not ns.inCombat then
+        ns.bossSeen = false
+    elseif BossPresent() then
+        ns.bossSeen = true
+    end
+end
+
 -- Visual mirror of the secure gate (the bar dims while paused). Insecure and
 -- event-driven; the real decision is made by the state driver above.
 function ns.IsGatePaused()
-    return ns.BossOnlyActive() and ns.inCombat and not BossPresent() or false
+    return ns.BossOnlyActive() and ns.inCombat and not ns.bossSeen
+        and not BossPresent() or false
 end
 
 -- Points the use button at the current selection (via the gate). Used for
