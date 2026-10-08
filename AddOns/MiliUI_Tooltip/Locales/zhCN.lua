@@ -53,11 +53,16 @@ L["About"] = "关于"
 L["Item"] = "物品"
 
 -- 关于
-L["All decoration lives on our own overlay frame; taint containment is part of the architecture."] = "所有装饰都画在自己的覆盖框上，taint 围堵是架构的一部分。"
 L["Commands: |cffffd200/mtip|r opens the options, |cffffd200/mtip reset|r resets everything"] = "命令：|cffffd200/mtip|r 打开设置，|cffffd200/mtip reset|r 重置全部"
 L["Author: Mili (MiliUI package)"] = "作者：米利（MiliUI 套组）"
 L["|cffffd200Credits|r"] = "|cffffd200致谢|r"
-L["this is a from-scratch rewrite for the 12.1 secret-value era."] = "本插件是为 12.1 秘密值时代从零重写的版本。"
+L["A tooltip addon rebuilt from scratch for 12.1: a clean, tidy look, built around the new secret-value rules so it keeps working in raids and Mythic+."] = "为 12.1 从零重写的鼠标提示插件：外观简洁利落，并以新版秘密值规则为前提打造，团队副本与史诗钥石里照样正常运作。"
+L["|cffffd200Units|r  Class-colored border and health bar, guild, item level, Mythic+ score, their target, and which teammates are targeting them."] = "|cffffd200单位|r  职业色边框与血条，显示公会、装备等级、史诗钥石评分、他的目标，以及哪些队友正把他当目标。"
+L["|cffffd200Layout|r  Every line of the player and NPC tooltip can be arranged by dragging: reorder, combine onto one line, or hide."] = "|cffffd200版面|r  玩家与 NPC 提示的每一行都能用拖拽排列：调整顺序、并成同一行，或直接隐藏。"
+L["|cffffd200Items & spells|r  Quality-colored border, icon, expansion, and item / spell / quest IDs."] = "|cffffd200物品与法术|r  按品质染色的边框、图标、所属资料片，以及物品／法术／任务 ID。"
+L["|cffffd200Position|r  Follow the cursor or pin to a screen corner; optionally hide in combat or use a fixed spot over unit frames."] = "|cffffd200位置|r  跟随鼠标或固定在屏幕角落；可选择战斗中隐藏，或滑过头像框时改用固定位置。"
+L["|cffffd200Profiles|r  Per-character profiles, shareable as export / import strings."] = "|cffffd200配置文件|r  每个角色可以有自己的配置文件，也能用字符串导出／导入分享给别人。"
+L["MiliUI Tooltip is deeply inspired by |cffffffffTinyTooltip|r: its look and feature set are where this addon started. Many thanks to its author |cffffffff55510696|r. This is a from-scratch rewrite for 12.1, not a modified copy of TinyTooltip."] = "米利的鼠标提示深受 |cffffffffTinyTooltip|r 启发，外观与功能都是从它出发的。由衷感谢原作者 |cffffffff55510696|r。本插件是为 12.1 从零重写的版本，并非 TinyTooltip 的修改版。"
 
 -- 样式标签页
 L["Scale and background"] = "缩放与背景"
@@ -208,11 +213,9 @@ L["Show teammates targeting them"] = "显示把他当目标的队友"
 L["Drop here to start a new line"] = "拖到这里新增一行"
 L["Hidden"] = "不显示"
 L["One strip per tooltip line. Drag a block to reorder it, move it to another line, or drop it below to start a new line; drop it on \"Hidden\" (or just click it) to toggle it off. Hold Alt or Ctrl over a unit to temporarily show everything."] = "一条就是提示里的一行。拖拽方块可以调整顺序、搬到别行，拖到最下面自成新的一行；拖进「不显示」（或直接点一下方块）就能开关。划过单位时按住 Alt 或 Ctrl 可临时显示全部。"
-L["Tooltip restyling rebuilt for 12.1."] = "为 12.1 重写的鼠标提示美化。"
 L["Version: %s"] = "版本：%s"
 L["Use /mtip to open options"] = "使用 /mtip 打开设置"
 L["Open options"] = "打开设置"
-L["The look and feature set follow TinyTooltip by 55510696;"] = "外观与功能设计承袭 55510696 的 TinyTooltip；"
 
 -- 設定檔分頁（Options/Tab_Share.lua）
 L["Profile"] = "配置"
