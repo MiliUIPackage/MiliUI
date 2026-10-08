@@ -112,6 +112,9 @@ local function BuildDefaults()
             textSize     = 16,
             objectiveSize = 18,
             barHeight    = 10,
+            -- 條的填充色（原本寫死；白色太淡看不清，玩家要求可改）
+            timerColor   = { r = 0.592, g = 0.592, b = 0.592 },   -- 979797
+            forcesColor  = { r = 0.733, g = 0.620, b = 0.133 },   -- BB9E22
         },
 
         automation = {

@@ -114,6 +114,9 @@ local function EnsureOverlay(btn)
     return ov
 end
 
+-- 新掛上的按鈕要立刻套一次，定義在下面
+local ApplyDurationStyle
+
 local function HookDuration(btn)
     if btn.isAuraAnchor then return end
     local dur = btn.Duration
@@ -149,6 +152,12 @@ local function HookDuration(btn)
     end)
 
     hookedDurations[dur] = true
+
+    -- ⚠ 不能等暴雪的 SetFontObject 來觸發：它只在部分語系（有定義
+    --   SMALLER_AURA_DURATION_FONT_MIN_THRESHOLD 的）每幀呼叫，其他語系的新按鈕
+    --   會一直停在樣板字型 —— 症狀是「別人剛刷的增益時間字比設定大，/reload 才好」
+    --   （新增益擴大了按鈕池，reload 時的 Apply 掃不到這顆）
+    if DUR and DUR.enabled then ApplyDurationStyle(btn) end
 end
 
 local function HookCount(btn)
@@ -189,9 +198,10 @@ end
 ------------------------------------------------------------
 -- 主動套用 / 還原（給初始化和設定變更用）
 ------------------------------------------------------------
-local function ApplyDurationStyle(btn)
+-- 不看 IsShown：池裡暫時藏著的按鈕下次被拿出來時，暴雪不一定會再 SetFontObject
+function ApplyDurationStyle(btn)
     local dur = btn.Duration
-    if not dur or not dur:IsShown() then return end
+    if not dur then return end
 
     overriding = true
 

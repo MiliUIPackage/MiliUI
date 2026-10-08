@@ -46,7 +46,8 @@ local TEXT_INSET = 2    -- 條上文字離條緣
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
--- 顏色是使用者挑的（要一眼看得出誰是誰），貼圖一律純色
+-- 顏色是使用者挑的（要一眼看得出誰是誰），貼圖一律純色。
+-- 計時條／敵軍條的填充色是設定值（mythicPlus.timerColor／forcesColor），這兩個是備援
 local C_TEXT      = { 1, 1, 1 }
 local C_DIM       = { 0.694, 0.694, 0.694 }   -- B1B1B1：鑰石詞綴
 local C_BAR       = { 0.592, 0.592, 0.592 }   -- 979797：計時條
@@ -174,6 +175,14 @@ local function NewBar(parent, fillColor)
 
     f.text = NewText(f, 16, C_TEXT, "RIGHT")
     return f
+end
+
+local function PaintFill(f, c, fallback)
+    if type(c) == "table" and c.r then
+        f.fill:SetStatusBarColor(c.r, c.g, c.b, 1)
+    else
+        f.fill:SetStatusBarColor(fallback[1], fallback[2], fallback[3], 1)
+    end
 end
 
 local function LayoutBarEdges(f)
@@ -312,6 +321,7 @@ function MP.Layout()
         b:SetPoint("TOPLEFT", panel, "TOPLEFT", PAD + xs[i], -barTop)
         b:SetSize(math.max(1, ws[i]), c.barHeight)
         LayoutBarEdges(b)
+        PaintFill(b, c.timerColor, C_BAR)
         SetFont(b.text, textH)
         b.text:ClearAllPoints()
         b.text:SetPoint("BOTTOMRIGHT", b, "TOPRIGHT", -TEXT_INSET, 1)
@@ -324,6 +334,7 @@ function MP.Layout()
     forcesBar:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PAD, -y)
     forcesBar:SetHeight(c.barHeight)
     LayoutBarEdges(forcesBar)
+    PaintFill(forcesBar, c.forcesColor, C_FORCES)
     SetFont(forcesBar.text, textH)
     forcesBar.text:ClearAllPoints()
     if side == "RIGHT" then

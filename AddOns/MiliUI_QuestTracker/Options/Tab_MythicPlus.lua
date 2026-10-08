@@ -33,7 +33,11 @@ local function BuildControls()
         { type = "slider", key = "textSize",      label = L["Text size"],      min = 8,  max = 24, step = 1 },
         { type = "slider", key = "objectiveSize", label = L["Boss list size"], min = 8,  max = 24, step = 1 },
         { type = "slider", key = "barHeight",     label = L["Bar height"],     min = 4,  max = 24, step = 1 },
-        { type = "text",   label = L["Font and outline follow the Appearance tab. Colours are fixed: white text, grey timer bars, gold forces bar, green for completed."] },
+        { type = "text",   label = L["Font and outline follow the Appearance tab."] },
+
+        { type = "header", label = L["Colors"] },
+        { type = "color",  key = "timerColor",  label = L["Timer bars"],  hasAlpha = false },
+        { type = "color",  key = "forcesColor", label = L["Enemy forces bar"], hasAlpha = false },
     }
 end
 
