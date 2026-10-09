@@ -10,6 +10,9 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 
 `master` 是唯一活著的分支 —— 正式服，玩家實際下載的版本。發佈＝push。
 
+**agent 在工作分支上做完的修改，要主動合進 master 並 push，不用先問** —— 使用者是拉 master
+進遊戲測試的，只推工作分支等於沒交件。合之前照常跑 `check-all.sh`。
+
 （`ptr-12.1` 在 2026-08-12 併回 master 之後就刪掉了；本機殘留的 `unitframes` 是
 單位框架還在獨立 repo 時期的舊分支，跟 master 不同 root，已無用途。
 下次改版要開工程分支再照 `ptr-<版本>` 的慣例開一條。）
