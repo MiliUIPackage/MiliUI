@@ -33,7 +33,7 @@ local function BuildDefaults()
             -- 誰放上去的才畫：暴雪的首領技能／自己的自訂時間軸／其他插件
             sources = { blizzard = true, mine = true, other = true },
 
-            -- 版面：直式橫式各一份（見檔頭）
+            -- 版面：直式／橫式／計時條各一份（見檔頭）
             --   length    軸長（px）
             --   window    軸的另一端代表幾秒後；更遠的事件先不畫，進範圍才滑進來
             --   flip      false＝「現在」在下面（直式）／左邊（橫式），事件往那邊走
@@ -45,6 +45,18 @@ local function BuildDefaults()
             horizontal = {
                 length = 420, window = 30, iconSize = 30, spacing = 2,
                 flip = false, textSide = "after", showName = false,
+            },
+
+            -- 計時條：長度＝條寬、圖示大小＝條高、flip＝由下往上排（最快到的在最下面）、
+            -- textSide 不用（名稱在條裡面）
+            bars = {
+                length = 220, window = 30, iconSize = 22, spacing = 2,
+                flip = false, textSide = "after", showName = true,
+            },
+            bar = {
+                texture = "default",
+                color   = Color(0.25, 0.55, 0.9, 1),
+                bgColor = Color(0, 0, 0, 0.5),
             },
 
             icon = {

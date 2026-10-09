@@ -38,6 +38,7 @@ Timeline\Events.lua
 Timeline\Identify.lua
 Timeline\Mock.lua
 Timeline\Display.lua
+Timeline\Bars.lua
 Timeline\BlizzardView.lua
 Timeline\Screen.lua
 
@@ -45,6 +46,8 @@ Plans\Plans.lua
 Plans\Abilities.lua
 Plans\Scheduler.lua
 Plans\Recorder.lua
+Plans\Share.lua
+Plans\Review.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／強調色。
 # ContextMenu 要在 Widgets 之後（它用 W.Accent / W.CloseOnEscape）

@@ -33,6 +33,7 @@ ns.Display = {}
 
 local Display = {}
 Display.__index = Display
+ns.Display.Mixin = Display      -- Bars.lua 往上加計時條畫法
 
 ------------------------------------------------------------
 -- 建立
@@ -162,6 +163,17 @@ end
 -- settings = db.display；layout = 那個方向的版面；orientation = "vertical"/"horizontal"
 function Display:Apply(settings, layout, orientation)
     self.settings, self.layout = settings, layout
+    -- 計時條是另一種畫法（Bars.lua），軸線、刻度、圖示框都不用
+    self.barsMode = orientation == "bars"
+    local axisShown = not self.barsMode
+    self.line:SetShown(axisShown)
+    self.now:SetShown(axisShown)
+    for i, t in ipairs(self.ticks) do t:SetShown(false); self.tickLabels[i]:SetShown(false) end
+    if self.barsMode then
+        for _, ef in ipairs(self.pool) do ef:Hide() end
+        return self:ApplyBars()
+    end
+    if self.barPool then for _, b in ipairs(self.barPool) do b:Hide() end end
     self.vertical = orientation ~= "horizontal"
     local size = layout.iconSize
     local length = layout.length
@@ -293,6 +305,10 @@ end
 
 -- 預覽用：框中心往四個方向各佔多少（含名稱與刻度數字的估計寬度），回傳 left, right, top, bottom
 function Display:GetBounds()
+    if self.barsMode then
+        local w, h = self.frame:GetSize()
+        return w / 2, w / 2, h / 2, h / 2
+    end
     local layout = self.layout
     local w, h = self.frame:GetSize()
     local l, r, t, b = w / 2, w / 2, h / 2, h / 2
@@ -327,12 +343,14 @@ function Display:SetRunning(on)
         f:SetScript("OnUpdate", nil)
         f:Hide()
         for _, ef in ipairs(self.pool) do ef:Hide() end
+        if self.barPool then for _, b in ipairs(self.barPool) do b:Hide() end end
     end
 end
 
 ------------------------------------------------------------
 -- 每幀
 ------------------------------------------------------------
+ns.Display.Helpers = {}
 local function ByRemaining(a, b)
     if a.rem ~= b.rem then return a.rem < b.rem end
     return tostring(a.key) < tostring(b.key)
@@ -366,6 +384,13 @@ local function SetEventBorderColor(ef, color)
     ef.edges[3]:SetVertexColor(color.r, color.g, color.b, 1)
     ef.edges[4]:SetVertexColor(color.r, color.g, color.b, 1)
 end
+
+ns.Display.Helpers.ByRemaining = ByRemaining
+ns.Display.Helpers.FormatRemaining = FormatRemaining
+ns.Display.Helpers.DisplayName = DisplayName
+ns.Display.Helpers.ApplyFont = ApplyFont
+ns.Display.Helpers.LayoutIcon = LayoutIcon
+ns.Display.Helpers.NewFont = NewFont
 
 function Display:Bind(ef, it)
     local s = self.settings
@@ -403,6 +428,7 @@ end
 
 function Display:Render()
     if not self.collect or not self.layout then return end
+    if self.barsMode then return self:RenderBars() end
     local items = self.items
     local n = self.collect(items, self.filter)
     if n > 1 then table.sort(items, ByRemaining) end

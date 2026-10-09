@@ -24,7 +24,8 @@ local MD = ns.MRTData
 local tab, planDD, diffDD, enabledCB, list, emptyText, statusText, recNote
 local btnRename, btnDelete, btnTest, btnStop, btnAdd, btnImport
 local showRecCB, showMRTCB, mrtDD
-local planPopup, renamePopup, deletePopup, importPopup
+local planPopup, renamePopup, deletePopup, importPopup, exportPopup, reviewPopup
+local btnExport, btnReview
 local head, editor, modeButtons, highlightMode
 local currentID
 
@@ -105,9 +106,8 @@ local function EntryValues(e)
     return v
 end
 
--- 多行貼上框：共用層的輸入彈窗只有單行欄位，這裡照它的遮罩／層級規則自己組一個
-local function CreateImportPopup(parent)
-    local W_, H_ = 560, 360
+-- 彈窗外殼：共用層的輸入彈窗只有單行欄位，這幾個（多行貼上、匯出、回顧）照它的遮罩／層級規則自己組
+local function PopupShell(name, parent, w, h, titleText)
     local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     mask:SetAllPoints(parent)
     mask:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -117,7 +117,7 @@ local function CreateImportPopup(parent)
     mask:SetBackdropColor(0.15, 0.15, 0.15, 0.7)
     mask:Hide()
 
-    local popup = W.CreateFrame("MiliUIBT_ImportPopup", parent, W_, H_)
+    local popup = W.CreateFrame(name, parent, w, h)
     W.CloseOnEscape(popup)
     popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetFrameLevel(410)
@@ -129,24 +129,51 @@ local function CreateImportPopup(parent)
     local title = popup:CreateFontString(nil, "OVERLAY")
     title:SetFontObject(W.fontTitle)
     title:SetPoint("TOP", 0, -12)
-    title:SetText(L["Paste reminders"])
+    title:SetText(titleText)
+    popup.title = title
 
     local hint = popup:CreateFontString(nil, "OVERLAY")
     hint:SetFontObject(W.fontSmall)
     hint:SetPoint("TOPLEFT", 14, -36)
-    hint:SetWidth(W_ - 28)
+    hint:SetWidth(w - 28)
     hint:SetJustifyH("LEFT")
     hint:SetSpacing(2)
-    hint:SetText(L["One reminder per line, MRT note style: {time:01:30} {spell:31821} text. Lines without {time:} are ignored. Times relative to a phase ({time:00:54,p2}) are not supported; turn off the dynamic timer when exporting from lorrgs."])
+    popup.hint = hint
+    return popup
+end
 
-    local box = W.CreateScrollEditBox(popup, W_ - 28, H_ - 130)
-    box:SetPoint("TOPLEFT", 14, -78)
+-- 貼上匯入：米利字串（!MBT1!）或 MRT 筆記行，自動判斷
+local function CreateImportPopup(parent)
+    local W_, H_ = 560, 380
+    local popup = PopupShell("MiliUIBT_ImportPopup", parent, W_, H_, L["Paste reminders"])
+    popup.hint:SetText(L["Paste a MiliUI Boss Timeline string (starts with !MBT1!), or MRT note lines, one reminder per line: {time:01:30} {spell:31821} text. Times relative to a phase ({time:00:54,p2}) are not supported; turn off the dynamic timer when exporting from lorrgs."])
+
+    local box = W.CreateScrollEditBox(popup, W_ - 28, H_ - 140)
+    box:SetPoint("TOPLEFT", 14, -88)
     popup.box = box
 
     local ok = W.CreateButton(popup, L["Import"], "green", 90, 22)
     ok:SetPoint("BOTTOMLEFT", 26, 12)
     ok:SetScript("OnClick", function()
-        local added, skipped, phased = Plans.ImportNote(currentID, box.editBox:GetText())
+        local text = box.editBox:GetText() or ""
+        if ns.Share.IsShareString(text) then
+            local payload, err = ns.Share.Decode(text)
+            if not payload then
+                ns.Print(err)
+                return
+            end
+            local added, skipped = ns.Share.Import(payload)
+            currentID = payload.id
+            ns.Print(L["Imported %d reminders into %s (%d were already there)."]:format(added, payload.name or tostring(payload.id), skipped))
+            popup:Hide()
+            ns.Fire("PlansChanged")
+            return
+        end
+        if not Plans.Get(currentID) then
+            ns.Print(L["Pick or add a boss first; MRT note lines don't say which boss they are for."])
+            return
+        end
+        local added, skipped, phased = Plans.ImportNote(currentID, text)
         ns.Print(L["Imported %d, skipped %d, phase-relative (not supported) %d."]:format(added, skipped, phased))
         popup:Hide()
         if added > 0 then ns.Fire("PlansChanged") end
@@ -159,6 +186,144 @@ local function CreateImportPopup(parent)
         box.editBox:SetText("")
         self:Show()
         box.editBox:SetFocus()
+    end
+
+    popup:Hide()
+    return popup
+end
+
+-- 匯出：兩種格式切換，複製框
+local function CreateExportPopup(parent)
+    local W_, H_ = 560, 320
+    local popup = PopupShell("MiliUIBT_ExportPopup", parent, W_, H_, L["Export"])
+    local format = "mbt"
+
+    local function Text()
+        if format == "note" then return ns.Share.ExportNote(currentID) end
+        return ns.Share.Export(currentID) or L["This game client can't create share strings."]
+    end
+
+    local bMBT = W.CreateButton(popup, L["MiliUI string"], "accent-hover", 90, 20)
+    local bNote = W.CreateButton(popup, L["MRT note lines"], "accent-hover", 90, 20)
+    W.FitButton(bMBT, 90, 20)
+    W.FitButton(bNote, 90, 20)
+    bMBT.id, bNote.id = "mbt", "note"
+    bMBT:SetPoint("TOPLEFT", 14, -34)
+    bNote:SetPoint("LEFT", bMBT, "RIGHT", 3, 0)
+    popup.hint:ClearAllPoints()
+    popup.hint:SetPoint("TOPLEFT", 14, -62)
+
+    local copy = W.CreateCopyBox(popup, W_ - 28, H_ - 150, Text, L["Select all"])
+    copy:SetPoint("TOPLEFT", 14, -96)
+
+    local function Show(id)
+        format = id
+        popup.hint:SetText(id == "note"
+            and L["MRT note lines: time, spell and text only. MRT, DreamForgeTools and other addons that read this format can use it."]
+            or L["Everything in this boss's custom timeline, including sounds, conditions and anchors. Paste it into Paste reminders on another character or for a friend."])
+        copy:Refresh()
+    end
+    local highlight = W.CreateButtonGroup({ bMBT, bNote }, Show)
+
+    local close = W.CreateButton(popup, L["Okay"], "normal", 90, 22)
+    close:SetPoint("BOTTOM", 0, 12)
+    close:SetScript("OnClick", function() popup:Hide() end)
+
+    function popup:Open()
+        self:Show()
+        highlight(format == "note" and bNote or bMBT)
+        Show(format)
+    end
+
+    popup:Hide()
+    return popup
+end
+
+-- 戰後回顧：錨點提示 上一場實際 vs 備援時間；一鍵套用、整份平移
+local function CreateReviewPopup(parent)
+    local W_, H_ = 600, 420
+    local popup = PopupShell("MiliUIBT_ReviewPopup", parent, W_, H_, L["Review last pull"])
+    popup.hint:SetText(L["Reminders that follow a boss cast are compared with when that cast actually happened in your last pull. Reminders with a fixed time have nothing to compare; use Shift all to move them."])
+
+    local list = W.CreateRowList(popup, W_ - 28, 220, 22, function(row)
+        row.name = row:CreateFontString(nil, "OVERLAY")
+        row.name:SetFontObject(W.fontNormal)
+        row.name:SetPoint("LEFT", 6, 0)
+        row.name:SetWidth(300)
+        row.name:SetJustifyH("LEFT")
+        row.name:SetWordWrap(false)
+        row.vals = row:CreateFontString(nil, "OVERLAY")
+        row.vals:SetFontObject(W.fontNormal)
+        row.vals:SetPoint("LEFT", 316, 0)
+        row.vals:SetWidth(W_ - 360)
+        row.vals:SetJustifyH("LEFT")
+    end)
+    list:SetPoint("TOPLEFT", 14, -84)
+
+    local summary = popup:CreateFontString(nil, "OVERLAY")
+    summary:SetFontObject(W.fontSmall)
+    summary:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -6)
+    summary:SetWidth(W_ - 28)
+    summary:SetJustifyH("LEFT")
+
+    local function Refresh_()
+        local rows = ns.Review.Rows(currentID)
+        local off = 0
+        list:Update(rows, function(row, r)
+            local _, text = Plans.Resolve(r.entry)
+            row.name:SetText(text)
+            if r.actual then
+                local d = r.delta
+                local color = math.abs(d) >= 2 and "|cffff6060" or "|cff9d9d9d"
+                row.vals:SetText(("%s → %s  %s%+.1f|r"):format(Plans.FormatTime(r.planned), Plans.FormatTime(r.actual), color, d))
+                if math.abs(d) >= 0.1 then off = off + 1 end
+            else
+                row.vals:SetText("|cff6f6f6f" .. Plans.FormatTime(r.planned) .. "  " .. L["(nothing to compare)"] .. "|r")
+            end
+        end)
+        summary:SetText(ns.db.recorded[currentID] and L["%d reminders differ from your last pull."]:format(off)
+            or L["No recorded pull for this boss yet."])
+    end
+
+    local apply = W.CreateButton(popup, L["Use last pull's times"], "primary", 150, 22)
+    W.FitButton(apply, 150, 22)
+    apply:SetPoint("BOTTOMLEFT", 14, 44)
+    apply:SetScript("OnClick", function()
+        local n = ns.Review.ApplyAnchored(currentID)
+        ns.Print(L["Updated %d reminders."]:format(n))
+        ns.Fire("PlansChanged")
+        Refresh_()
+    end)
+
+    local shiftLbl = popup:CreateFontString(nil, "OVERLAY")
+    shiftLbl:SetFontObject(W.fontNormal)
+    shiftLbl:SetPoint("LEFT", apply, "RIGHT", 24, 0)
+    shiftLbl:SetText(L["Shift all by"])
+    local shiftBox = W.CreateEditBox(popup, 50, 20)
+    shiftBox:SetPoint("LEFT", shiftLbl, "RIGHT", 8, 0)
+    local shiftUnit = popup:CreateFontString(nil, "OVERLAY")
+    shiftUnit:SetFontObject(W.fontSmall)
+    shiftUnit:SetPoint("LEFT", shiftBox, "RIGHT", 4, 0)
+    shiftUnit:SetText(L["seconds"])
+    local shiftBtn = W.CreateButton(popup, L["Apply"], "normal", 60, 22)
+    W.FitButton(shiftBtn, 60, 22)
+    shiftBtn:SetPoint("LEFT", shiftUnit, "RIGHT", 8, 0)
+    shiftBtn:SetScript("OnClick", function()
+        local d = tonumber(shiftBox:GetText())
+        if not d or d == 0 then return end
+        ns.Review.ShiftAll(currentID, d)
+        ns.Fire("PlansChanged")
+        Refresh_()
+    end)
+
+    local close = W.CreateButton(popup, L["Okay"], "normal", 90, 22)
+    close:SetPoint("BOTTOM", 0, 12)
+    close:SetScript("OnClick", function() popup:Hide() end)
+
+    function popup:Open()
+        shiftBox:SetText("")
+        self:Show()
+        Refresh_()
     end
 
     popup:Hide()
@@ -187,6 +352,8 @@ local function CreatePopups()
     end)
 
     importPopup = CreateImportPopup(parent)
+    exportPopup = CreateExportPopup(parent)
+    reviewPopup = CreateReviewPopup(parent)
 end
 
 ------------------------------------------------------------
@@ -369,9 +536,11 @@ local function Refresh()
 
     local plan = Plans.Get(currentID)
     local has = plan ~= nil
-    for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnTest, btnAdd, btnImport, showRecCB }) do
+    for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnTest, btnReview, btnAdd, btnExport, showRecCB }) do
         w:SetShown(has)
     end
+    -- 貼上匯入沒有首領也能用（米利字串自己帶著首領）：放到清單區頂端的位置
+    btnImport:SetShown(true)
     local mode = View().mode == "timeline" and "timeline" or "list"
     head:SetShown(has and mode == "list")
     list:SetShown(has and mode == "list")
@@ -429,6 +598,7 @@ local function Refresh()
         editor:SetPlan(currentID, {
             mrtVariant = View().mrt and hasMRT and MRTVariant(plan) or nil,
             recorded   = View().recorded,
+            review     = ns.Review.Rows(currentID),
         })
     else
         list:Update(Items(), UpdateRow)
@@ -520,9 +690,14 @@ local function Init()
     btnTest:SetScript("OnClick", function()
         ns.Scheduler.Test(currentID)
     end)
+    btnReview = W.CreateButton(tab, L["Review"], "normal", 70, 20)
+    W.FitButton(btnReview, 70, 20)
+    btnReview:SetPoint("LEFT", btnTest, "RIGHT", 6, 0)
+    btnReview:SetScript("OnClick", function() reviewPopup:Open() end)
+
     btnStop = W.CreateButton(tab, L["Stop"], "red", 60, 20)
     W.FitButton(btnStop, 60, 20)
-    btnStop:SetPoint("LEFT", btnTest, "RIGHT", 6, 0)
+    btnStop:SetPoint("LEFT", btnReview, "RIGHT", 6, 0)
     btnStop:SetScript("OnClick", function() ns.Scheduler.Stop() end)
 
     statusText = tab:CreateFontString(nil, "OVERLAY")
@@ -602,11 +777,16 @@ local function Init()
     btnImport:SetPoint("LEFT", btnAdd, "RIGHT", 6, 0)
     btnImport:SetScript("OnClick", function() importPopup:Open() end)
 
+    btnExport = W.CreateButton(tab, L["Export"], "normal", 60, 22)
+    W.FitButton(btnExport, 60, 22)
+    btnExport:SetPoint("LEFT", btnImport, "RIGHT", 6, 0)
+    btnExport:SetScript("OnClick", function() exportPopup:Open() end)
+
     showRecCB = W.CreateCheckButton(tab, L["Last pull"], function(checked)
         View().recorded = checked
         Refresh()
     end)
-    showRecCB:SetPoint("LEFT", btnImport, "RIGHT", 18, 0)
+    showRecCB:SetPoint("LEFT", btnExport, "RIGHT", 18, 0)
 
     showMRTCB = W.CreateCheckButton(tab, L["MRT timeline"], function(checked)
         View().mrt = checked

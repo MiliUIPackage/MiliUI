@@ -97,9 +97,23 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   點 MRT 的格子＝以此新增並錨在第 n 次；雙擊我的提示列空白＝在那秒新增；右鍵選單走共用層 `W.Menu`。
   ⚠ 標記用文字（[跟隨]／[音效]），不用 ⚓／♪／× 這類符號——中文字型不一定有字形。
 
+## 計時條、分享、戰後回顧（2026-10-09 第五批）
+
+- **計時條**（`Timeline/Bars.lua`，掛在 Display 上的第三種方向 `orientation = "bars"`）：版面存 `display.bars`
+  （length＝條寬、iconSize＝條高、flip＝最快到的在最下面），樣式共用＋`display.bar`（材質、顏色、底色）。
+  條身用明文剩餘秒數餵 StatusBar；技能顏色開著時條身用 `it.color`（pcall，可能是秘密值）。最多 8 條。
+- **分享**（`Plans/Share.lua`）：米利字串 `!MBT1!`＝`C_EncodingUtil.SerializeCBOR → CompressString → EncodeBase64`，
+  匯入反過來，**不用 loadstring**；匯入一律逐欄位清洗（型別、範圍、認得的職責與時機，認不得的丟）。
+  MRT 筆記行匯出是有損的互通格式。「貼上匯入」自動判斷兩種格式；米利字串自帶首領 ID，沒選首領也能貼。
+  不做即時同步（戰鬥中插件通訊被封鎖）。
+- **戰後回顧**（`Plans/Review.lua`）：只比「跟隨首領施放」的提示——上一場紀錄裡認得出來的技能照順序數第 n 次（3 秒合併），
+  加 offset ＝ 該在的時間，跟備援 t 比。一鍵改成上一場的、整份平移。打完一場差 2 秒以上的會在聊天框提醒一次。
+  時間軸編輯器在「我的提示」列畫空心橘框標出上一場實際的位置。
+
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
 
-0. 第四批：橫向捲動區裡的按鈕會不會吃掉滾輪（滾輪事件不一定往上傳到畫布）；SpeakText 在戰鬥中可用；拖曳在 UI 縮放 ≠ 1 時位移準不準。
+0. 第五批：C_EncodingUtil 的 CBOR 往返（巢狀表、布林）跟模擬一致；計時條的 StatusBar 材質路徑。
+   第四批：橫向捲動區裡的按鈕會不會吃掉滾輪（滾輪事件不一定往上傳到畫布）；SpeakText 在戰鬥中可用；拖曳在 UI 縮放 ≠ 1 時位移準不準。
    第三批：DBM_TimerBegin 的時長跟 ENCOUNTER_TIMELINE 事件的 duration 是否真的差 0.25 秒內（DBM 可能套過變異量）；
    SetEventSound 的 file 吃 LSM 路徑字串；戰鬥中 SetEventColor 是否允許（DBM 是開戰時呼叫的，應該可以）。
 

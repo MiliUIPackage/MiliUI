@@ -224,6 +224,7 @@ function PE.Create(parent, width, height, hooks)
         mark = Pool(function() return ed:NewMark() end),
         block = Pool(function() return ed:NewBlock() end),
         dot = Pool(function() return ed:NewDot() end),
+        ghost = Pool(function() return ed:NewGhost() end),
     }
 
     -- 我的提示列：雙擊空白處新增
@@ -317,6 +318,30 @@ function PE:NewDot()
                 text = (self.ev.src ~= "blizzard" or not self.ev.spell) and self.ev.text or nil })
         end
     end)
+    return b
+end
+
+-- 戰後回顧：錨點提示在上一場「實際該在」的位置（空心橘框），跟提示本身的位置一比就知道差多少
+function PE:NewGhost()
+    local b = CreateFrame("Frame", nil, self.canvas)
+    b:SetSize(MINE_H - 6, MINE_H - 6)
+    local px = P.Scale(1)
+    for i, pt in ipairs({ { "TOPLEFT", "TOPRIGHT", true }, { "BOTTOMLEFT", "BOTTOMRIGHT", true },
+                          { "TOPLEFT", "BOTTOMLEFT", false }, { "TOPRIGHT", "BOTTOMRIGHT", false } }) do
+        local t = Tex(b, "OVERLAY", 1, 0.5, 0, 0.9)
+        t:SetPoint(pt[1])
+        t:SetPoint(pt[2])
+        if pt[3] then t:SetHeight(px) else t:SetWidth(px) end
+        b["e" .. i] = t
+    end
+    b:EnableMouse(true)
+    b:SetScript("OnEnter", function(self)
+        ShowTip(self, {
+            L["Last pull: %s"]:format(Plans.FormatTime(self.row.actual)),
+            L["%+.1f seconds from this reminder"]:format(self.row.delta),
+        })
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return b
 end
 
@@ -579,6 +604,20 @@ function PE:Redraw()
         if not on then r, g, bl = 0.4, 0.4, 0.4 end
         b.bar:SetVertexColor(r, g, bl, 0.25)
         b.edge:SetVertexColor(r, g, bl, 1)
+    end
+    -- 戰後回顧的空心框
+    if opts.review then
+        local laneOf = {}
+        for _, item in ipairs(packed) do laneOf[item.entry] = item.lane end
+        for _, row in ipairs(opts.review) do
+            if row.actual and math.abs(row.delta) >= 0.5 and laneOf[row.entry] then
+                local g = self.pools.ghost:Get()
+                g.row = row
+                g:SetFrameLevel(self.mineHit:GetFrameLevel() + 1)
+                g:ClearAllPoints()
+                g:SetPoint("CENTER", self.canvas, "TOPLEFT", row.actual * pps, -(laneOf[row.entry] - 1) * MINE_H - MINE_H / 2)
+            end
+        end
     end
     y = y + mineH
 

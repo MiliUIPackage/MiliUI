@@ -74,3 +74,40 @@ function M.SoundItems()
     end
     return items
 end
+
+------------------------------------------------------------
+-- 計時條材質（照 MiliUI_CrusadingStrikes 的挑法：SharedMedia 的 normTex → DBM 的 → 白貼圖）
+------------------------------------------------------------
+local autoTexture
+local function AutoTexture()
+    if autoTexture then return autoTexture end
+    if C_AddOns.IsAddOnLoaded("SharedMedia") then
+        autoTexture = "Interface\\AddOns\\SharedMedia\\statusbar\\normTex"
+    elseif C_AddOns.IsAddOnLoaded("DBM-StatusBarTimers") then
+        autoTexture = "Interface\\AddOns\\DBM-StatusBarTimers\\textures\\default.blp"
+    else
+        autoTexture = M.WHITE8X8
+    end
+    return autoTexture
+end
+
+function M.BarTexture(name)
+    if not name or name == "default" then return AutoTexture() end
+    local lsm = LSM()
+    if lsm then
+        local path = lsm:Fetch("statusbar", name, true)
+        if path then return path end
+    end
+    return AutoTexture()
+end
+
+function M.TextureItems()
+    local items = { { text = ns.L["Default"], value = "default" } }
+    local lsm = LSM()
+    if lsm then
+        for _, name in ipairs(lsm:List("statusbar")) do
+            items[#items + 1] = { text = name, value = name }
+        end
+    end
+    return items
+end

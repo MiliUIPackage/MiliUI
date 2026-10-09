@@ -49,7 +49,8 @@ end
 local function UpdateLayoutHeader()
     if not layoutHeader then return end
     local o = ns.db.display.orientation
-    layoutHeader:SetText(o == "horizontal" and L["Layout — horizontal"] or L["Layout — vertical"])
+    layoutHeader:SetText(o == "horizontal" and L["Layout — horizontal"]
+        or o == "bars" and L["Layout — bars"] or L["Layout — vertical"])
 end
 
 local function Apply()
@@ -81,12 +82,20 @@ local CONTROLS = {
     LayoutSpec({ type = "slider", key = "spacing",  label = L["Minimum gap"],          min = 0,   max = 12,  step = 1 }),
     LayoutSpec({ type = "toggle", key = "flip",     label = L["Reverse direction"] }),
     { type = "text", label = L["Off: abilities move down (vertical) or to the left (horizontal)."] },
+    { type = "text", label = L["Bars: length is the bar width, icon size is the bar height, reverse puts the soonest bar at the bottom."] },
     LayoutSpec({ type = "dropdown", key = "textSide", label = L["Name side"], items = {
         { text = L["Right / below the icon"], value = "after" },
         { text = L["Left / above the icon"],  value = "before" },
     } }),
     LayoutSpec({ type = "toggle", key = "showName", label = L["Show ability name"] }),
     { type = "slider", sub = "display", key = "scale", label = L["Scale"], min = 0.5, max = 2, step = 0.05 },
+
+    { type = "header", label = L["Bars"] },
+    { type = "dropdown", sub = "display", sub2 = "bar", key = "texture", label = L["Texture"],
+      items = function() return ns.Media.TextureItems() end },
+    { type = "color", sub = "display", sub2 = "bar", key = "color",   label = L["Bar color"] },
+    { type = "color", sub = "display", sub2 = "bar", key = "bgColor", label = L["Background color"], hasAlpha = true },
+    { type = "text", label = L["Only used by the bars layout. With \"Use the ability's timeline color\" on, abilities that have a color use it instead."] },
 
     { type = "header", label = L["Icon"] },
     { type = "toggle", sub = "display", sub2 = "icon", key = "border",        label = L["Square border"] },
@@ -149,9 +158,10 @@ local function BuildPreview()
         tabs = {
             { id = "vertical",   label = L["Vertical"] },
             { id = "horizontal", label = L["Horizontal"] },
+            { id = "bars",       label = L["Bars"] },
         },
         selected = ns.db.display.orientation,
-        help = L["Vertical and horizontal each keep their own layout (length, time range, icon size, name side). Fonts, colors and borders are shared."],
+        help = L["Vertical, horizontal and bars each keep their own layout (length, time range, icon size, name side). Fonts, colors and borders are shared."],
         onSelect = function(id)
             ns.db.display.orientation = id
             ApplyAndRefresh()
