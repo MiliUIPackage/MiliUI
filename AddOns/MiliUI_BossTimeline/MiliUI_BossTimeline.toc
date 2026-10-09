@@ -1,0 +1,56 @@
+## Interface: 120100, 120105
+## Title: MiliUI Boss Timeline
+## Title-zhTW: |cffFF7F00[副本]|r 米利的首領時間軸
+## Title-zhCN: |cffFF7F00[副本]|r 米利的首领时间轴
+## Notes: Redraws Blizzard's boss timeline with your own text, outline, colors and square icons, vertical or horizontal. Shows which addon put each entry on the timeline, and lets you add your own reminders to any boss.|n|n|cffffd200Usage: |r/mbt opens settings.
+## Notes-zhTW: MiliUI Boss Timeline|n|n米利的首領時間軸。|n|n把暴雪內建的首領時間軸重新畫過：文字、描邊、顏色、方形圖示都能改，直式橫式都行。|n|n看得到每一條是誰放上時間軸的（暴雪、地瓜語音、自己…），也能幫任何首領加上自己的提示。|n|n|cffffd200使用方法: |r/mbt 開啟設定。
+## Notes-zhCN: MiliUI Boss Timeline|n|n米利的首领时间轴。|n|n把暴雪内置的首领时间轴重新画过：文字、描边、颜色、方形图标都能改，竖式横式都行。|n|n看得到每一条是谁放上时间轴的（暴雪、地瓜语音、自己…），也能给任何首领加上自己的提示。|n|n|cffffd200使用方法: |r/mbt 打开设置。
+## Category: Dungeons & Raids
+## Category-zhTW: 副本
+## Category-zhCN: 地下城和团队副本
+## Author: Mili
+## Version: 0.1.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\Spell_Holy_BorrowedTime
+## SavedVariables: MiliUI_BossTimeline_DB
+## AddonCompartmentFunc: MiliUIBossTimeline_OnAddonCompartmentClick
+
+# 無相依的共用層排最前面：Core／Timeline 在檔案層就會用到 ns.P / ns.Secret / ns.Errors / ns.Metro
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+Libs\Callbacks.lua
+Locales\Locale.lua
+Locales\zhTW.lua
+Locales\zhCN.lua
+
+Core\Init.lua
+Core\Media.lua
+Core\DB.lua
+
+# Owners 要在 Events 之前：Events 收到 ADDED 時要問「這條是誰加的」
+Timeline\Owners.lua
+Timeline\Events.lua
+Timeline\Mock.lua
+Timeline\Display.lua
+Timeline\BlizzardView.lua
+Timeline\Screen.lua
+
+Plans\Plans.lua
+Plans\Scheduler.lua
+Plans\Recorder.lua
+
+# 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／強調色。
+# ContextMenu 要在 Widgets 之後（它用 W.Accent / W.CloseOnEscape）
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+Options\Panel.lua
+Options\Tab_General.lua
+Options\Tab_Style.lua
+Options\Tab_Plans.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+Api.lua
