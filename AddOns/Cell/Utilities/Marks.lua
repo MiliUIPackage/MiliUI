@@ -155,6 +155,16 @@ for i = 1, 9 do
         worldMarkButtons[i].texture:SetColorTexture(markColors[i][1], markColors[i][2], markColors[i][3], 0.4)
         worldMarkButtons[i]:SetAttribute("type", "worldmarker")
         worldMarkButtons[i]:SetAttribute("marker", worldMarkIndices[i])
+
+        -- 12.1: IsRaidMarkerActive 回秘密布林，不能拿來 if；改用疊一層標記色邊框，
+        -- 交給 SetAlphaFromBoolean 決定亮不亮
+        local n = P.Scale(1)
+        local active = CreateFrame("Frame", nil, worldMarkButtons[i], "BackdropTemplate")
+        active:SetAllPoints(worldMarkButtons[i])
+        active:SetBackdrop({edgeFile = Cell.vars.whiteTexture, edgeSize = n})
+        active:SetBackdropBorderColor(markColors[i][1], markColors[i][2], markColors[i][3], 1)
+        active:SetAlpha(0)
+        worldMarkButtons[i].active = active
         -- worldMarkButtons[i]:SetAttribute("type", "macro")
         -- worldMarkButtons[i]:SetAttribute("macrotext", "/wm "..worldMarkIndices[i])
     end
@@ -175,11 +185,7 @@ local worldMarksTimer
 worldMarks:SetScript("OnShow", function()
     worldMarksTimer = C_Timer.NewTicker(0.5, function()
         for i = 1, 8 do
-            if IsRaidMarkerActive(worldMarkIndices[i]) then
-                worldMarkButtons[i]:SetBackdropBorderColor(markColors[i][1], markColors[i][2], markColors[i][3], 1)
-            else
-                worldMarkButtons[i]:SetBackdropBorderColor(0, 0, 0, 1)
-            end
+            worldMarkButtons[i].active:SetAlphaFromBoolean(IsRaidMarkerActive(worldMarkIndices[i]), 1, 0)
         end
     end)
 end)
@@ -364,6 +370,7 @@ local function UpdatePixelPerfect()
     for i = 1, 9 do
         markButtons[i]:UpdatePixelPerfect()
         worldMarkButtons[i]:UpdatePixelPerfect()
+        if worldMarkButtons[i].active then P.Reborder(worldMarkButtons[i].active, true) end
         P.Repoint(markButtons[i].texture)
         P.Repoint(worldMarkButtons[i].texture)
     end
