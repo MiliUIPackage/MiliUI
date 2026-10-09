@@ -45,12 +45,15 @@ function M.FontItems()
 end
 
 -- 描邊：存檔存的是 SetFont 的 flags 字串本身，"" = 不描邊
+-- 單色（MONOCHROME）＝關掉反鋸齒，像素字體要它才銳利
 function M.OutlineItems()
     local L = ns.L
     return {
         { text = L["None"],          value = "" },
         { text = L["Outline"],       value = "OUTLINE" },
         { text = L["Thick outline"], value = "THICKOUTLINE" },
+        { text = L["Monochrome outline"],       value = "MONOCHROME,OUTLINE" },
+        { text = L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
     }
 end
 

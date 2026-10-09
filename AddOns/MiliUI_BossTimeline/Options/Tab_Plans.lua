@@ -568,7 +568,16 @@ local function Refresh()
         mrtDD:SetSelectedValue(MRTVariant(plan))
     end
 
-    if running and running.test and running.id == currentID then
+    -- 立即測試：沒有會跑的提示就停用（不然按了什麼都不會發生）；正在測這份＝字改現況＋停用
+    local testingThis = running and running.test and running.id == currentID
+    btnTest.reason = ns.Scheduler.RunnableCount(plan) == 0
+        and (#plan.entries == 0 and L["Add a reminder first."]
+             or L["None of the reminders apply to you (disabled, or role/class conditions)."])
+        or nil
+    btnTest:SetText(testingThis and L["Testing"] or L["Test now"])
+    btnTest:SetEnabled(not testingThis and not btnTest.reason)
+
+    if testingThis then
         statusText:SetText("|cffffd200" .. L["Testing — watch the timeline on screen."] .. "|r")
     else
         statusText:SetText("")
@@ -695,6 +704,14 @@ local function Init()
     btnTest:SetScript("OnClick", function()
         ns.Scheduler.Test(currentID)
     end)
+    -- 停用的按鈕照樣收得到 OnEnter：告訴玩家為什麼按不了
+    btnTest:HookScript("OnEnter", function(self)
+        if not self.reason then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(self.reason, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    btnTest:HookScript("OnLeave", function() GameTooltip:Hide() end)
     btnReview = W.CreateButton(tab, L["Review"], "normal", 70, 20)
     W.FitButton(btnReview, 70, 20)
     btnReview:SetPoint("LEFT", btnTest, "RIGHT", 6, 0)
