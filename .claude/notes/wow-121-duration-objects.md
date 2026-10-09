@@ -1,6 +1,6 @@
 ---
 name: wow-121-duration-objects
-description: 12.1 秘密值倒數的通解 —— C_DurationUtil.CreateDuration + SetTimeFromStart 寫入，交給 StatusBar/Cooldown 由引擎驅動；絕不讀回
+description: 12.1 秘密值倒數的通解 —— C_DurationUtil.CreateDuration + SetTimeFromStart 寫入，交給 StatusBar/Cooldown 由引擎驅動；絕不讀回；**「剩 N 秒」的 Lua 訊號戰鬥中拿不到（2026-10-09 實測＋文件，六條路全封）**
 metadata: 
   node_type: memory
   type: reference
@@ -128,6 +128,26 @@ arm 不到時沒有數字。** 兩者不可兼得，別花時間找第三種。
 ⚠ 下面這段落後（2026-08-17 寫）：`GetAuraDuration` 吃 `auraInstanceID`，光環受限時那個 ID 是秘密值、而這支 API 是 `AllowedWhenUntainted`，污染端傳秘密 ID 直接 bad argument——以 [[wow-121-aura-containers]]「路線 B 幾乎被封死」為準；它引用的 Cell `Indicators/Base.lua` 兩支 `*_SetCooldownFromAura` 也是零呼叫點的死碼。原文：而 `C_UnitAuras.GetAuraDuration(unit, auraInstanceID)` 回的是**引擎給的** DurationObject
 （Cell/Indicators/Base.lua 用它 → `SetCooldownFromDurationObject`），所以**光環**類的
 秘密計時是可以自己畫的 —— 受限的是「沒有 duration 物件 API 的東西」，例如圖騰槽。
+
+## ⚠ 「剩 N 秒時通知我」戰鬥中做不到（2026-10-09）
+
+起因：玩家要 MCDM「冷卻剩幾秒時語音倒數」。插件唯一精確的時間訊號是探針 Cooldown 的
+`OnCooldownDone`——只在**結束那一刻**。要提早 N 秒，就得讓引擎替我們算「剩餘 − N」再回呼 Lua，
+這條管道暴雪全部封了：
+
+| 試過的路 | 結果 |
+|---|---|
+| 引擎的 duration `Copy()` ＋ `SetClock(手動時鐘＝GetTime()+N)` 餵 Cooldown（時鐘設一次／每幀重設兩種） | **實測沒效**：三顆（含對照）都在 30.01 秒轉好，Cooldown 不看 duration 的時鐘。脫戰明文都不提早 |
+| StatusBar `SetMinMaxValues(0,N)`＋`SetTimerDuration(剩餘)`，看 `OnValueChanged` 何時開始跳 | **實測**：計時驅動的值變化不觸發 OnValueChanged，一次都沒有 |
+| `EvaluateRemainingDuration(線性曲線 x−N)` 得到秘密的「剩餘 − N」，餵 `C_Timer.After` | 文件：After／NewTimer／NewTicker 都是 `AllowedWhenUntainted` |
+| 同上餵 Animation 的 `SetDuration`／`SetStartDelay`、群組 `SetAnimationSpeedMultiplier`，掛 OnFinished | 文件：全部 `AllowedWhenUntainted` |
+| duration 的 `SetTimeFromEnd`／`SetTimeSpan`／`Assign` 自己組一顆提早結束的 | 文件：`AllowedWhenUntainted`（跟 SetTimeFromStart 同一面牆） |
+| Cooldown `SetCountdownFormatter`／DurationTextBinding | 格式化在 C 端跑，沒有 Lua 回呼；FontString 沒有文字變更事件 |
+
+結論：**脫戰（明文）可以用 C_Timer 精確倒數；戰鬥中只剩「轉好那一刻」一個訊號**（就緒音效／語音已經在用）。
+寫死冷卻秒數表＋施法事件自己倒（DiGuaTimelineAudioHelper 的打斷／藥水做法）遇到急速、天賦、打中減冷卻就報錯數字，
+跟上面 Stuf 的假倒數同類，不要做。暴雪自己的警示系統有 `PandemicTime` 事件，但警示存在版面資料裡、
+`SetLayoutData` 是 AllowedWhenUntainted，插件加不進去。
 
 ## 別忘了 modRate
 
