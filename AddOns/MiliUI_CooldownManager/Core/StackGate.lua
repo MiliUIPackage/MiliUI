@@ -326,9 +326,11 @@ function SG.Config(barKey, id, aura, isBar)
     end
     if not n and not colors and not barN and not ticks then return nil end
     local op = n and SG.Op(ns.SpellSetting(barKey, id, "stackGlowOp")) or nil
+    -- 這一招的長條顏色（原色填充／層數當填充那一層照它畫）；不是色表 ＝ 跟隨條
+    local bc = isBar and ns.SpellSetting(barKey, id, "barColor") or nil
     return { glow = n, op = op, gates = n and SG.GateSpec(op, n) or nil,
         style = n and SG.GlowStyle(barKey, id) or nil, colors = colors,
-        stackBar = barN, ticks = ticks }
+        stackBar = barN, ticks = ticks, barColor = type(bc) == "table" and bc or nil }
 end
 
 -- 條身底下那一層（換色／層數當填充／刻度）要不要建
@@ -364,6 +366,7 @@ function SG.Signature(cfg, w, h, bar)
         for _, e in ipairs(cfg.colors) do parts[#parts + 1] = tostring(e.at) .. "=" .. CSig(e.color) end
     end
     if cfg.stackBar then parts[#parts + 1] = "bar=" .. tostring(cfg.stackBar) end
+    if cfg.barColor then parts[#parts + 1] = "fill=" .. CSig(cfg.barColor) end
     local t = cfg.ticks
     if t then
         local at = type(t.at) == "table" and table.concat(t.at, ",") or tostring(t.at)
@@ -517,9 +520,10 @@ local function PaintFill(tex, fill)
 end
 
 -- 長條的外觀（米利／暴雪樣式，Decorate 的「長條的暴雪樣式」）：填充色、填充材質、底。測試環境沒有 Decorate 時照米利樣式
-local function FillStyle(bar)
+local function FillStyle(bar, spellColor)
     local D = ns.Decorate
-    if D and D.BarFillStyle then return D.BarFillStyle(bar) end
+    if D and D.BarFillStyle then return D.BarFillStyle(bar, spellColor) end
+    if type(spellColor) == "table" then return { color = spellColor } end
     return type(bar) == "table" and bar or {}
 end
 local function BGColor(bar)
@@ -724,7 +728,7 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
     -- 層級：根框 lv、填充條 lv+1、第 k 段 lv+1+k、刻度 lv+2+MAX_COLORS（＝ 條身 − 1）
     local lv = math.max(1, bl - (SG.MAX_COLORS + 3))
     root:SetFrameLevel(lv)
-    local fillStyle = FillStyle(bar)
+    local fillStyle = FillStyle(bar, cfg.barColor)
     -- 底色：照條的底（暴雪的 BarBG 調成透明）。暴雪樣式＝暴雪的底圖集（錨在條身上、右下陰影照格高等比），
     -- 跟 Decorate.ApplyBarLook 同一支（D.PaintBarBG）
     local D = ns.Decorate

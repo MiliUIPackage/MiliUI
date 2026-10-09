@@ -1093,6 +1093,13 @@ do
     DB.SetOverride(777, "ringColor", { r = 0, g = 0, b = 1, a = 1 })
     eq("ringColor 覆寫優先", ns.SpellSetting("buffs", 777, "ringColor").b, 1)
     DB.SetOverride(777, "ringColor", nil)
+    -- 逐法術長條顏色：沒有條層路徑（條的填色分外觀兩欄），沒覆寫 ＝ false（跟隨條）
+    eq("SPELL_FALLBACK 沒有 barColor", DB.SPELL_FALLBACK.barColor, nil)
+    eq("覆寫分組 barColor ＝ icon", DB.OVERRIDE_GROUP.barColor, "icon")
+    eq("barColor 沒覆寫 ⇒ false", ns.SpellSetting("buffs", 777, "barColor"), false)
+    DB.SetOverride(777, "barColor", { r = 1, g = 0, b = 0, a = 1 })
+    eq("barColor 覆寫", ns.SpellSetting("buffs", 777, "barColor").r, 1)
+    DB.SetOverride(777, "barColor", nil)
     P3.bars.buffs.ring.fillColor = false
     P3.bars.buffs.layout.style = "icons"
 end

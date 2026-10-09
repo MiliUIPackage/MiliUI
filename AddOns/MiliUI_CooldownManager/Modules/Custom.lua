@@ -500,10 +500,11 @@ end
 
 -- 分段的外觀與幾何（簽章變了才重做）：len ＝ 條身長（明文，照排版算）。
 -- 長條的暴雪樣式（Decorate.BarLook）：兩條的填充換成暴雪的圖集、顏色是 blizzardColor（Decorate.BarFillTexture／BarFillStyle）
-local function ConfigureSeg(b, max, len, bar, vertical)
+-- spellColor ＝ 這一招的長條顏色（逐法術覆寫 barColor；不是色表 ＝ 跟隨條）
+local function ConfigureSeg(b, max, len, bar, vertical, spellColor)
     local seg = EnsureSeg(b)
     local D = ns.Decorate
-    local fillStyle = D.BarFillStyle and D.BarFillStyle(bar) or bar
+    local fillStyle = D.BarFillStyle and D.BarFillStyle(bar, spellColor) or bar
     local fc = fillStyle.color
     local sig = table.concat({ max, len, tostring(bar.texture), D.GradientSig and D.GradientSig(fillStyle.gradient) or "",
         D.BarLook and D.BarLook(bar) or "miliui",
@@ -606,7 +607,7 @@ local function SyncSeg(rec, f, known)
     local vertical = bar.vertical and true or false
     local SG = ns.StackGate
     local len = SG and SG.BodyWidth and SG.BodyWidth(rec.placeW, rec.placeH, bar.iconSide or "LEFT", bar.iconGap or 0, vertical) or 0
-    ConfigureSeg(b, n, len, bar, vertical)
+    ConfigureSeg(b, n, len, bar, vertical, ns.SpellSetting(barKey, rec.cooldownID, "barColor"))
     -- 自己的回充那一條（舊行為）調透明：ApplyBarLook 換材質時可能換回不透明，每次照設
     local fill = b.GetStatusBarTexture and b:GetStatusBarTexture()
     if fill then fill:SetAlpha(0) end
@@ -1467,7 +1468,11 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         local D0b = ns.Decorate
         st.blizz     = (D0b and D0b.BarLook and D0b.BarLook(bar) == "blizzard") and true or false
         st.btex      = st.blizz and D0b.BLIZZ_ATLAS.fill or ns.Media.Texture(bar.texture)
-        st.bfill     = RGBA(st.blizz and D0b.BarFillStyle(bar).color or bar.color, 0.4, 0.6, 0.9, 1)
+        -- 填充色：這一招的長條顏色（逐法術覆寫 barColor，單色、不套漸層）＞ 條的（D0b.BarFillStyle 解）
+        local bc = SS(barKey, id, "barColor")
+        local ownFill = type(bc) == "table"
+        st.bfill     = RGBA((D0b and D0b.BarFillStyle) and D0b.BarFillStyle(bar, bc).color or (ownFill and bc or bar.color),
+            0.4, 0.6, 0.9, 1)
         st.bbg       = st.blizz and { 1, 1, 1, 1 } or RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
         st.spark     = bar.spark and true or false
         -- 名字：「長條」節的名字 ⊕ 這一招的覆寫（Text.SpellText 的 "barName"：開關三態、字型、字級）
@@ -1497,7 +1502,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         -- 漸層（F8a）：顏色物件在這裡（容器建立之前）建好，initializeFrame 裡只查表。
         -- 反向填充時起點色跟著填充起點（Decorate.GradientFlip，同 PaintFill 的決定）⇒ 兩色對調、對調也進快取鍵
         local D = ns.Decorate
-        local cg = (not st.blizz) and D and D.CleanGradient and D.CleanGradient(bar.gradient)
+        local cg = (not st.blizz) and (not ownFill) and D and D.CleanGradient and D.CleanGradient(bar.gradient)
         if cg and CreateColor then
             local flip = D.GradientFlip and D.GradientFlip(bar) or false
             local gsig = cg.dir .. (flip and "~" or "") .. C(st.bfill) .. ">" .. C({ cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a })

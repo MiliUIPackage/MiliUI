@@ -1298,6 +1298,9 @@ local SPELL_CONST = {
     fullSpeak        = false,
     -- 自訂圖示：貼圖檔案編號（正整數）；false ＝ 用原本的圖示（Core/Decorate.lua 的 IconOverrideOf）
     customIcon       = false,
+    -- 長條的填充色（長條類的條才用；Core/Decorate.lua 的 BarFillStyle）：色表＝這一招的單色填充（蓋過條的單色／漸層／
+    -- 暴雪樣式的 blizzardColor）；false ＝ 跟隨條。沒有條層路徑：條的填色看外觀分兩欄（bar.color／bar.blizzardColor）
+    barColor         = false,
     -- 效果不在時變暗（只有逐法術、預設不勾；暴雪的冷卻格才有效，Core/Decorate.lua）：
     -- 圖示沒在倒增益／減益時間就變暗（變暗程度吃條的 cdStateAlpha）
     dimNoAura        = false,
@@ -1653,6 +1656,8 @@ DB.OVERRIDE_GROUP = {
     labelPoint = "label", labelX = "label", labelY = "label",
     -- 圓環顏色：外觀（逐法術小窗的「外觀」分頁），跟邊框顏色同一組
     ringColor = "icon",
+    -- 長條顏色：同上，外觀分頁
+    barColor = "icon",
 }
 
 -- 某個 id 的覆寫表（{ 欄位 = 值 }）。唯一的分流點：

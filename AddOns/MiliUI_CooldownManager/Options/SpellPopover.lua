@@ -58,6 +58,9 @@
 --   收不下的（技能冷卻、自訂法術／物品）「所在條」下拉不列圓環條（已經在那條上的照列），也不出圓環顏色，
 --   放在圓環條上時所在條下面一列灰字講原因。
 --
+-- 長條顏色（長條類的條才有；外觀分頁、圓環顏色下面）：勾「自訂」＋色票，寫 overrides[id].barColor；這一招的條改畫單色
+--   （蓋過條的顏色、漸層與暴雪樣式的填色）；沒自訂＝跟隨條。
+--
 -- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
 --   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
 --
@@ -1645,6 +1648,16 @@ local function Build()
     -- 圓環條只收增益：放得上去的（增益類、光環格）才有圓環顏色
     local function OnRings() return cur ~= nil and ns.DB.BarIsRings(cur.key) and ns.Catalog.RingAccepts(cur.id) end
     ColorOverrideRow(L["Ring color"], "ringColor", true, classFill, OnRings, function() return true end, true)
+    -- 長條顏色（長條類的條才有）：這一招的單色填充，蓋過條的顏色／漸層。沒自訂＝條的填色
+    -- （色票顯示條現在的填充色：米利樣式 bar.color、暴雪樣式 blizzardColor，代理表每次讀現算）
+    local barFill = setmetatable({}, { __index = function(_, k)
+        local bar = cur and ns.Setting(cur.key, "bar")
+        local c = ns.Decorate.BarFillStyle(bar).color
+        if type(c) ~= "table" then c = { r = 0.4, g = 0.6, b = 0.9, a = 1 } end
+        if k == "a" then return c.a or 1 end
+        return c[k]
+    end })
+    ColorOverrideRow(L["Bar color"], "barColor", true, barFill, OnBars, function() return true end, true)
 
     -- 灰字說明列（控件欄寬、下一列；跟上面幾段同一個做法）
     local function NoteRow(text, when)

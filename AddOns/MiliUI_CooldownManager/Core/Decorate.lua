@@ -210,6 +210,8 @@ local function SpellStyle(barKey, id, fresh)
         showAuraTime     = SS(barKey, id, "showAuraTime"),
         -- 圓環的填色（圓環條才用）：色表或 false（＝職業色）；沒覆寫退回條層 ring.fillColor
         ringColor        = SS(barKey, id, "ringColor"),
+        -- 長條的填充色（長條類的條才用）：色表或 false（＝跟隨條）；D.BarFillStyle 解
+        barColor         = SS(barKey, id, "barColor"),
     }
 end
 D.SpellStyle = SpellStyle                                           -- 測試用
@@ -1653,7 +1655,10 @@ end
 -- 填充上色要用的那張表（純函式，Tests/Extras_test.lua）：米利樣式就是 bar 本身（單色或漸層），
 -- 暴雪樣式是 { color = blizzardColor }（沒有漸層 ⇒ PaintFill 畫單色、把畫過的漸層洗掉）。
 -- 填充色的唯一來源：ApplyBarLook、無損刷新還原（Core/Glow.lua）、層數那一層（Core/StackGate.lua）、充能分段都問它
-function D.BarFillStyle(bar)
+-- spellColor ＝ 這一招的長條顏色（逐法術覆寫 barColor）：色表 ⇒ 一律單色（兩種外觀都是，條的漸層不套）；
+-- 不是色表（nil／false）＝ 跟隨條
+function D.BarFillStyle(bar, spellColor)
+    if type(spellColor) == "table" then return { color = spellColor } end
     bar = type(bar) == "table" and bar or {}
     if D.BarLook(bar) ~= "blizzard" then return bar end
     local c = type(bar.blizzardColor) == "table" and bar.blizzardColor or BLIZZ_COLOR
@@ -1921,14 +1926,15 @@ end
 -- h ＝ 格高（暴雪樣式的等比尺寸；直向不會是暴雪樣式，用不到）。兩種樣式每次都整套寫，切換不必重載：
 --   填充材質（SetStatusBarTexture 每次寫）、填充色（PaintFill：暴雪樣式沒有漸層 ⇒ 畫過的漸層洗掉）、
 --   底（D.PaintBarBG：錨點／圖集或白底／頂點色全寫）、火花（下面）
-local function ApplyBarLook(item, rec, style, bar, h)
+-- spellColor ＝ 這一招的長條顏色（SpellStyle 的 barColor；nil／false ＝ 跟隨條）
+local function ApplyBarLook(item, rec, style, bar, h, spellColor)
     local b = item.Bar
     if not b then return end
     local blizz = D.BarLook(bar) == "blizzard"
     if b.SetStatusBarTexture then
         b:SetStatusBarTexture(D.BarFillTexture(bar))
         local tex = b:GetStatusBarTexture()
-        if tex then D.PaintFill(tex, D.BarFillStyle(bar)) end
+        if tex then D.PaintFill(tex, D.BarFillStyle(bar, spellColor)) end
     end
     D.PaintBarBG(b.BarBG, b, bar, h)
     -- 火花（bar.spark）：暴雪條的 Pip 只調 alpha（顯示／隱藏照舊是暴雪自己管：倒數中才 Show），
@@ -2234,7 +2240,7 @@ local function Signature(style, id, spell, w, h)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
         .. "|" .. tostring(spell.textSig)
         .. "|" .. ((ns.Text and ns.Text.LabelSig) and ns.Text.LabelSig(spell.label) or "-")
-        .. "|" .. CSig(spell.ringColor)
+        .. "|" .. CSig(spell.ringColor) .. "," .. CSig(spell.barColor)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -2569,7 +2575,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
         rec.barGeometry = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
             reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(item, rec, rec.barGeometry)
-        ApplyBarLook(item, rec, style, bar, h)
+        ApplyBarLook(item, rec, style, bar, h, spell.barColor)
         -- 圖示的遮罩與外框圖：暴雪樣式裝回去、米利樣式拔掉。要交給 Masque 的話**先拔**（Masque 會加它自己的遮罩，
         -- 我們事後再拔會連它的一起拔），交不出去（戰鬥中、群組停用…）再照暴雪樣式裝回去；交出去了 ⇒ 圖示照 Masque，條身照暴雪樣式
         if blizz and not style.masque then
@@ -2750,7 +2756,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         local g = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
             reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(cell, nil, g)
-        ApplyBarLook(cell, nil, style, bar, h)
+        ApplyBarLook(cell, nil, style, bar, h, spell.barColor)
         -- 遮罩／外框圖（我們自己建的那份）：同真實格，要交給 Masque 先拿掉、交不出去再裝回去
         D.SetBlizzIconArt(cell, nil, blizz and not masque, h)
         local skinned = false

@@ -2397,6 +2397,12 @@ do
     eq("填充色：暴雪沒存色 ⇒ 原生橘", D.BarFillStyle({ look = "blizzard" }).color.g, 0.5)
     eq("填充色：直向＋暴雪 ⇒ 照米利", D.BarFillStyle({ look = "blizzard", vertical = true, color = mili.color }).color, mili.color)
     eq("填充色：nil ⇒ 空表", type(D.BarFillStyle(nil)), "table")
+    -- 這一招的長條顏色：色表 ⇒ 單色（米利、暴雪樣式都蓋過、漸層不帶）；false ＝ 跟隨條
+    local own = { r = 1, g = 0, b = 0, a = 1 }
+    eq("填充色：逐法術 ⇒ 那個色", D.BarFillStyle(mili, own).color, own)
+    eq("填充色：逐法術蓋過暴雪樣式", D.BarFillStyle(bz, own).color, own)
+    eq("填充色：逐法術不帶漸層", D.BarFillStyle({ color = mili.color, gradient = { color2 = own } }, own).gradient, nil)
+    eq("填充色：false ⇒ 跟隨條", D.BarFillStyle(mili, false), mili)
     ns.Media = ns.Media or {}
     local savedTex = ns.Media.Texture
     ns.Media.Texture = function(t) return "lsm:" .. tostring(t) end
