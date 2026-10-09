@@ -154,20 +154,28 @@ local CONTROLS = {
 -- 左半邊：直式｜橫式 分頁卡片 ＋ 預覽
 ------------------------------------------------------------
 local function BuildPreview()
+    -- 分頁鈕左邊掛「樣式」標籤：這排鈕是在選用哪一種，不是只切預覽
+    local styleLbl = tab:CreateFontString(nil, "OVERLAY")
+    styleLbl:SetFontObject(W.fontNormal)
+    styleLbl:SetText(L["Style"])
+    local inset = 6 + math.ceil(styleLbl:GetStringWidth()) + 10
+
     tabCard = W.CreateTabCard(tab, {
+        inset = inset,
         tabs = {
             { id = "vertical",   label = L["Vertical"] },
             { id = "horizontal", label = L["Horizontal"] },
             { id = "bars",       label = L["Bars"] },
         },
         selected = ns.db.display.orientation,
-        help = L["Vertical, horizontal and bars each keep their own layout (length, time range, icon size, name side). Fonts, colors and borders are shared."],
+        help = L["The one you pick is what the timeline on screen uses. Vertical, horizontal and bars each keep their own layout (length, time range, icon size, name side); fonts, colors and borders are shared."],
         onSelect = function(id)
             ns.db.display.orientation = id
             ApplyAndRefresh()
         end,
     })
     local stripH = tabCard:Place(LEFT_X, TOP_Y, LEFT_W)
+    styleLbl:SetPoint("LEFT", tabCard.strip, "TOPLEFT", -(inset - 6), -10)   -- 對齊第一排鈕（鈕高 20）的中線
     tabCard:SetCardHeight(CARD_H)
 
     -- 預覽區：卡片內縮 1px（邊框）＋ 剪裁，縮放後的時間軸不會畫出卡片

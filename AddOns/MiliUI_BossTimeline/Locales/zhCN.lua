@@ -281,7 +281,8 @@ L["This game client can't create share strings."] = "这个游戏版本无法产
 L["This game client can't read share strings."] = "这个游戏版本无法读取分享字符串。"
 L["Updated %d reminders."] = "已更新 %d 条。"
 L["Use last pull's times"] = "改用上一场的时间"
-L["Vertical, horizontal and bars each keep their own layout (length, time range, icon size, name side). Fonts, colors and borders are shared."] = "直式、横式、计时条各自记一份版面（长度、时间范围、图标大小、名称在哪一边）；字体、颜色、边框共用。"
+L["Style"] = "样式"
+L["The one you pick is what the timeline on screen uses. Vertical, horizontal and bars each keep their own layout (length, time range, icon size, name side); fonts, colors and borders are shared."] = "点哪个，画面上的时间轴就用哪个样式。直式、横式、计时条各自记一份版面（长度、时间范围、图标大小、名称在哪一边）；字体、颜色、边框共用。"
 L["seconds"] = "秒"
 
 -- 冒险指南选首领、预览播放、复原
