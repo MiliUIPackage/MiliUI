@@ -135,11 +135,25 @@ function Sch.Stop()
     ns.Fire("SchedulerChanged")
 end
 
+-- 這一條會不會跑：有秒數、條件（職責／職業／停用）也合
+local function Runnable(e)
+    return (e.t or 0) > 0 and ns.Plans.EntryApplies(e)
+end
+
+-- 這份時間軸有幾條會跑（設定頁拿來決定「立即測試」能不能按）
+function Sch.RunnableCount(plan)
+    local n = 0
+    for _, e in ipairs(plan and plan.entries or {}) do
+        if Runnable(e) then n = n + 1 end
+    end
+    return n
+end
+
 local function Run(encounterID, plan, test)
     Sch.Stop()
     running = { id = encounterID, test = test, start = GetTime() }
     for _, e in ipairs(plan.entries) do
-        if (e.t or 0) > 0 and ns.Plans.EntryApplies(e) then
+        if Runnable(e) then
             local icon, text = ns.Plans.Resolve(e)
             local job = {
                 entry = e, t = e.t, lead = math.max(1, e.lead or ns.Plans.DEFAULT_LEAD),
@@ -154,7 +168,7 @@ end
 
 function Sch.Test(encounterID)
     local plan = ns.Plans.Get(encounterID)
-    if not plan or #plan.entries == 0 then return false end
+    if Sch.RunnableCount(plan) == 0 then return false end
     Run(encounterID, plan, true)
     return true
 end
