@@ -2450,8 +2450,8 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
       戰鬥中照常、刻度線在填色之上文字之下。
     - **新列**：惡魔核心 264173、秘法齊射 1242974（上限 `GetSpellMaxCumulativeAuraApplications`，退 20／25）、
       **Frozen 1221389（目標身上你上的減益，容器 unit = target、`HARMFUL|PLAYER`，換目標叫 `UpdateAllAuras`）**、
-      火焰衝擊充能（點數型，`GetSpellCharges` 轉手）、狂暴 184362、1226662（懲戒，`HELPFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY`，
-      征戰聖擊 404542 才列）。驗：各列有值、Frozen 換目標會跟著換、戰鬥中照常、名字是對的中文。
+      火焰衝擊充能（點數型，`GetSpellCharges` 轉手）、狂暴 184362（1226662 那列 2026-10-09 拿掉：
+      中文名也是「征戰聖擊」，跟鏡射列重複）。驗：各列有值、Frozen 換目標會跟著換、戰鬥中照常、名字是對的中文。
     - **無視苦痛的剩餘時間細線**（`ipDuration` 預設開）：同一顆按鈕再交一條 `SetDurationBar`。驗：跟層數條同時運作、刷新時跟著回滿。兩段字不互相錨定、各自貼中線，字長不同時偏離正中一點屬預期。
     `layout` 的 elementWidth（小數）有沒有被接受；從右到左時 `SetFlowLayoutAnchorPoint("TOPRIGHT")`＋`SetFlowLayoutGrowthDirection(Left, Down)` 是否生效。
 60. 容器讓資源條／自訂格子面板變保護框：`IsProtected()` 是否真的往上傳到列與 root（`/mcdm debug` 的「延到脫戰」）；戰鬥中改設定、上限事件、換型態時零 ADDON_ACTION_BLOCKED；

@@ -283,11 +283,8 @@ local RESOURCES = {
                         auras = { 395296 }, passive = 395152 },
     ArcaneSoul      = { name = SpellName(451038, "Arcane Soul"), nameSpell = 451038, mode = "auraTimer",
                         auras = { 451038, 1223522 }, passive = 449619, heroTree = 39, gcdText = true },
-    -- 狂暴（狂怒戰 184362）；1226662 是懲戒點了征戰聖擊（404542）之後的增益，過濾字串照 YHUD
-    --（INCLUDE_NAME_PLATE_ONLY：這個光環只標給名條）
+    -- 狂暴（狂怒戰 184362）
     Enrage          = { name = SpellName(184362, "Enrage"), nameSpell = 184362, mode = "auraTimer", auras = { 184362 } },
-    RemoteStrike    = { name = SpellName(1226662, "Remote Strike"), nameSpell = 1226662, mode = "auraTimer",
-                        auras = { 1226662 }, passive = 404542, filter = "HELPFUL|PLAYER|INCLUDE_NAME_PLATE_ONLY" },
     -- 征戰聖擊（懲戒天賦 404542：普攻換成聖擊）：**鏡射**暴雪「追蹤的量條」裡那條（mode = "mirror"，見下面「征戰聖擊」一節）。
     --   這一列有自己的高度、填充方向與底色（crusadingHeight／crusadingFill／colors.CrusadingStrikes.backColor，
     --   預設值照德莫的征戰聖擊助手：高 4、已揮的時間左→右長出、黑底 60%），不印秒數（1.5 秒一刀，數字讀不完）
@@ -354,7 +351,7 @@ local SPEC_RESOURCES = {
     [71]  = { "Rage", "SweepingStrikes" },       [72]  = { "Rage", "WhirlwindStacks", "Enrage" },
     [73]  = { "Rage", "IgnorePain" },
     [65]  = { "HolyPower" },                     [66]  = { "HolyPower" },
-    [70]  = { "CrusadingStrikes", "HolyPower", "RemoteStrike" },   -- 征戰聖擊預設在聖能上方（同助手的預設位置）
+    [70]  = { "CrusadingStrikes", "HolyPower" },   -- 征戰聖擊預設在聖能上方（同助手的預設位置）
     [253] = { "Focus" },                         [254] = { "Focus" },
     [255] = { "Focus", "TipOfTheSpear" },
     [259] = { "Energy", "ComboPoints" },         [260] = { "Energy", "ComboPoints" },

@@ -1436,7 +1436,7 @@ end
 
 -- 征戰聖擊列（懲戒）：在聖能上方、預設顯示、自己的高度／填充／底色（預設照德莫的征戰聖擊助手）
 do
-    eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower", "RemoteStrike" })
+    eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower" })
     check("懲戒：征戰聖擊預設顯示", R.DefaultOn(70, "CrusadingStrikes") == true)
     check("征戰聖擊是鏡射列（條件規則不適用）", R.EngineDriven("CrusadingStrikes")
         and not R.SupportsConditions("CrusadingStrikes"))
