@@ -77,7 +77,7 @@ local function BuildDefaults()
             },
         },
 
-        -- 自訂時間軸：[encounterID] = { name, enabled, difficulty, entries = { { t, text, icon, spell, lead, enabled }, ... } }
+        -- 自訂時間軸：[encounterID] = { name, enabled, difficulty, mrtVariant, entries = { { t, text, icon, spell, lead, enabled }, ... } }
         --   t     開戰後第幾秒「發生」（不是出現在時間軸的時間）
         --   lead  提前幾秒放上時間軸（＝這一條在時間軸上倒數多久）
         --   icon  fileID（數字）；spell 有填就用法術圖示、text 空白就用法術名稱
@@ -87,6 +87,9 @@ local function BuildDefaults()
         -- [encounterID] = { name, difficulty, events = { { t, d, src, owner, text } } }
         --   暴雪的事件名稱與圖示在戰鬥中是秘密值，存不下來 —— 只記得「第幾秒有一個暴雪事件」
         recorded = {},
+
+        -- 自訂時間軸分頁要不要列出參考列（MRT 的整場時間軸、上一場的紀錄）
+        planView = { mrt = true, recorded = true },
 
         -- 最近一場首領戰（編輯器「新增首領」帶入用）
         lastEncounter = nil,

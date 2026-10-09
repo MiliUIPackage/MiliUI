@@ -1,6 +1,6 @@
 ---
 name: project-miliui-bosstimeline
-description: MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式、即時預覽）、標出每一條是哪個插件加的、自訂時間軸寫進暴雪時間軸；地瓜／DBM 怎麼碰時間軸的調查結論與待實機驗證清單
+description: MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式、即時預覽）、標出每一條是哪個插件加的、自訂時間軸寫進暴雪時間軸、編輯器讀 MRT 自帶整場時間軸＋貼上匯入 {time:} 提示行；地瓜／DBM／DFT 怎麼碰時間軸的調查結論與待實機驗證清單
 metadata:
   type: project
 ---
@@ -48,6 +48,20 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   自己的自訂時間軸拿得到回傳 ID，直接 `Events.MarkMine`。
 - **紀錄（Recorder）**：首領事件名稱是秘密值存不進 SV，只記「第幾秒、倒數多久」，編輯器顯示成鎖住的灰列，
   用途是「以此新增」對齊自己的提示。
+
+## 外部時間軸資料（2026-10-09 第二批）
+
+- **MRT 自帶整場首領時間軸**：`GMRT.Data.ReminderTimeline`（`MRT/Data.lua`，MRT 提醒的 Timeline 分頁在用）。
+  key＝encounterID（跟我們同一套）、`[spellID] = { 秒數 或 {秒數, c=施法} …, d=效果長 或 "p"(換階段觸發) }`、
+  `p = 換階段秒數 (n = 階段編號)`、`d = { 難度, 整場長, k = 鑰石層, name }`；`m = true` 表示底下多份紀錄。
+  難度是 MRT 自己的編號：2 普通／3 英雄／4 傳奇，8＝傳奇鑰石 → 對到 difficultyID 14/15/16/8（`MRTData.lua` 的 DIFF_TO_ID）。
+  全明文，戰鬥外 `C_Spell.GetSpellInfo` 拿名稱圖示；第一次可能還沒載，`RequestLoadSpellData` ＋ `SPELL_DATA_LOAD_RESULT` 重畫。
+  同一技能 3 秒內連發收成一列（「×N」），不然多段技能一隻首領幾百列。
+- **DBM 沒有可抽的時間軸**：首領模組是「這種時長的暴雪事件是哪個技能」的判斷程式（例：瓦什尼克普通難度 8 秒輪流判滴毒利牙／適應性感染），
+  不是資料。可用的是 `DBM_TimerBegin` 回呼（明文 msg／spellId／icon），之後可以拿來替戰鬥中的暴雪事件補名稱。
+- **DreamForgeTools 本體沒有時間軸**；附屬的 DFT Personal Tactics 收 MRT 筆記格式 `{time:00:04.0} - 文字`。
+  我們的「貼上匯入」收同一格式（`Plans.ImportNote`）；`{time:…,p2}` 階段起算的不支援、計數回報。
+  ⚠ 剝前後分隔符時全形「–—：」是多位元組，**不能塞進 Lua 的 [...] 字元集**（會剝掉中文字的尾位元組），要當字串一個一個剝。
 
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
 

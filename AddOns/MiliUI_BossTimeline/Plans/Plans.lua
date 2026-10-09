@@ -159,4 +159,76 @@ function Plans.Active(encounterID, difficultyID)
     return plan
 end
 
+------------------------------------------------------------
+-- 匯入 MRT 筆記／lorrgs 的提示行
+--
+-- 一行一條，時間寫在 {time:mm:ss} 裡（DreamForgeTools 的 Personal Tactics 收的也是這個格式）：
+--   {time:00:12} - {spell:31821} 光環精通
+--   {time:1:30.5}{spell:62618} 真言術：壁
+-- 規則：
+--   * {spell:N} 取第一個當法術（圖示與預設文字從它來）
+--   * 其他 {…}（團隊標記 {skull}／{rt1}、職業標籤）與色碼一律剝掉，剩下的字當提示文字
+--   * 時間後面帶階段的（{time:00:54.8,p2}，lorrgs 的「動態計時」）不支援 —— 那是「從第二階段
+--     開始算」，我們的自訂時間軸只認開戰後的絕對秒數；算成略過，回報給玩家
+--   * 同一秒、同文字、同法術的已經有了就不重複加
+-- 回傳 added, skipped, phased
+------------------------------------------------------------
+local function CleanText(text)
+    text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    text = text:gsub("{[^}]*}", " ")
+    -- ⚠ 全形破折號／冒號是多位元組字元，不能塞進 [...] 字元集（會把中文字的尾位元組一起剝掉），
+    --   所以 ASCII 的用字元集、多位元組的一個一個當字串剝，剝到兩端都不再變為止
+    local SEPS = { "–", "—", "：" }
+    local prev
+    repeat
+        prev = text
+        text = text:gsub("^[%s%-:|]+", ""):gsub("[%s%-|]+$", "")
+        for _, sep in ipairs(SEPS) do
+            if text:sub(1, #sep) == sep then text = text:sub(#sep + 1) end
+            if #text >= #sep and text:sub(-#sep) == sep then text = text:sub(1, -#sep - 1) end
+        end
+    until text == prev
+    text = text:gsub("%s%s+", " ")
+    return strtrim(text)
+end
+
+function Plans.ImportNote(id, note)
+    local plan = Plans.Get(id)
+    if not plan then return 0, 0, 0 end
+    local added, skipped, phased = 0, 0, 0
+    for line in tostring(note or ""):gmatch("[^\r\n]+") do
+        local timeText, extra = line:match("{[Tt][Ii][Mm][Ee]:([%d:%.]+)([^}]*)}")
+        if timeText then
+            local t = Plans.ParseTime(timeText)
+            if extra and strtrim(extra) ~= "" then
+                phased = phased + 1
+            elseif not t or t <= 0 then
+                skipped = skipped + 1
+            else
+                local spell = tonumber(line:match("{[Ss][Pp][Ee][Ll][Ll]:(%d+)}"))
+                local rest = line:gsub("{[Tt][Ii][Mm][Ee]:[^}]*}", "", 1)
+                local text = CleanText(rest)
+                if text == "" and not spell then
+                    skipped = skipped + 1
+                else
+                    local dup = false
+                    for _, e in ipairs(plan.entries) do
+                        if math.abs((e.t or 0) - t) < 0.05 and (e.text or "") == text and e.spell == spell then
+                            dup = true
+                            break
+                        end
+                    end
+                    if dup then
+                        skipped = skipped + 1
+                    else
+                        Plans.SaveEntry(id, { t = t, text = text, spell = spell, lead = DEFAULT_LEAD })
+                        added = added + 1
+                    end
+                end
+            end
+        end
+    end
+    return added, skipped, phased
+end
+
 Plans.DEFAULT_LEAD = DEFAULT_LEAD

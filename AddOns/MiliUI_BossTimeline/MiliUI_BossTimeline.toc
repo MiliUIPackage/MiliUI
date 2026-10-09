@@ -38,6 +38,7 @@ Timeline\BlizzardView.lua
 Timeline\Screen.lua
 
 Plans\Plans.lua
+Plans\MRTData.lua
 Plans\Scheduler.lua
 Plans\Recorder.lua
 
