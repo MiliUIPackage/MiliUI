@@ -34,6 +34,10 @@
 --
 -- 圓環顯示（條層 layout.style ＝ "rings"，見下面「圓環顯示」那一節）：暴雪 item 自己的 Cooldown 換成環形 swipe、
 -- 圖示收進我們的框、軌道畫在我們自己的子框上；不交給 Masque、不畫邊框與發光。還原路徑 D.RestoreRing。
+--
+-- 長條的外觀（bar.look：米利／暴雪，見「長條的暴雪樣式」那一節）：暴雪樣式把條畫成暴雪原生長條的長相
+-- （圖集填充／底／火花、圓角遮罩＋外框圖、細條身、不畫邊框——邊框只在無損刷新期間亮）。兩種樣式每次 Apply 都整套寫，
+-- 來回切換不必重載；外觀的生效值只問 D.BarLook，填充色只問 D.BarFillStyle。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -49,6 +53,12 @@ D.applyReattach = 0             -- 簽章命中而且剛重新取出 ⇒ 只補�
 
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 local ICON_OVERLAY_ATLAS = "UI-HUD-CoolDownManager-IconOverlay"
+-- 長條「暴雪樣式」（bar.look，見「長條的暴雪樣式」那一節）用的圖集：照 CooldownViewer.xml 的 CooldownViewerBuffBarItemTemplate
+local ICON_MASK_ATLAS = "UI-HUD-CoolDownManager-Mask"
+local BAR_FILL_ATLAS  = "UI-HUD-CoolDownManager-Bar"
+local BAR_BG_ATLAS    = "UI-HUD-CoolDownManager-Bar-BG"
+local BAR_PIP_ATLAS   = "UI-HUD-CoolDownManager-Bar-Pip"
+D.BLIZZ_ATLAS = { mask = ICON_MASK_ATLAS, overlay = ICON_OVERLAY_ATLAS, fill = BAR_FILL_ATLAS, bg = BAR_BG_ATLAS, pip = BAR_PIP_ATLAS }
 
 local generation = 0            -- 設定變了就 +1，進簽章
 -- 條層樣式的世代（前置鍵的第一欄）：InvalidateAll 時 +1。Resolve 的快取 resolved[barKey] 只靠 generation 作廢
@@ -313,33 +323,46 @@ end
 
 local LayoutBorder
 
--- Masque 在畫外框時，我們的邊框平常藏著（Apply 只記下排法：rec.msqEdge），
--- 無損刷新期間才照那個排法亮出來；粗細 0 的話至少 1，不然換色等於看不到。
--- 長條的條身那圈（border2）不歸 Masque，照常換色
-local function ShowHiddenBorder(rec, r, g, bl, a)
-    local e = rec.msqEdge
+-- 平常藏著、只有無損刷新期間才亮的邊框：Apply 只記下排法（{ region, size, token }），提醒時照那個排法亮出來；
+-- 粗細 0 的話至少 1，不然換色等於看不到。兩種情況：
+--   Masque 在畫外框（rec.msqSkinned）：圖示那圈的排法在 rec.msqEdge；長條的條身那圈（border2）不歸 Masque，照常換色
+--   長條的暴雪樣式（rec.hiddenEdges = { icon, bar }，見「長條的暴雪樣式」）：暴雪原生長條沒有邊框 ⇒ 兩圈平常都藏著
+--     （圖示交給 Masque 時圖示那圈照上一條、icon 欄位是 nil）
+local function ShowEdge(b, e, r, g, bl, a)
     if not e then return end
-    LayoutBorder(rec.border, e.region, math.max(1, e.size or 0), e.token, r, g, bl, a)
+    LayoutBorder(b, e.region, math.max(1, e.size or 0), e.token, r, g, bl, a)
 end
 
 function D.RecolorBorder(rec, c)
     if not (rec and type(c) == "table") then return end
     local r, g, bl, a = c.r or 1, c.g or 1, c.b or 1, c.a or 1
+    local he = rec.hiddenEdges
     if rec.msqSkinned then
-        ShowHiddenBorder(rec, r, g, bl, a)
+        ShowEdge(rec.border, rec.msqEdge, r, g, bl, a)
+    elseif he and he.icon then
+        ShowEdge(rec.border, he.icon, r, g, bl, a)
     else
         ColorBorder(rec.border, r, g, bl, a)
     end
-    ColorBorder(rec.border2, r, g, bl, a)
+    if he and he.bar then
+        ShowEdge(rec.border2, he.bar, r, g, bl, a)
+    else
+        ColorBorder(rec.border2, r, g, bl, a)
+    end
 end
 
--- 換回 Apply 當時的顏色（Masque 在畫時：藏回去）
+-- 換回 Apply 當時的顏色（平常藏著的那幾圈：藏回去）
 function D.RestoreBorder(rec)
-    if rec and rec.msqSkinned then LayoutBorder(rec.border, nil) end
-    local c = rec and rec.borderRGBA
+    if not rec then return end
+    local he = rec.hiddenEdges
+    local hid1 = rec.msqSkinned or (he and he.icon) and true or false
+    local hid2 = (he and he.bar) and true or false
+    if hid1 then LayoutBorder(rec.border, nil) end
+    if hid2 then LayoutBorder(rec.border2, nil) end
+    local c = rec.borderRGBA
     if not c then return end
-    if not rec.msqSkinned then ColorBorder(rec.border, c[1], c[2], c[3], c[4]) end
-    ColorBorder(rec.border2, c[1], c[2], c[3], c[4])
+    if not hid1 then ColorBorder(rec.border, c[1], c[2], c[3], c[4]) end
+    if not hid2 then ColorBorder(rec.border2, c[1], c[2], c[3], c[4]) end
 end
 
 function LayoutBorder(b, region, size, token, r, g, bl, a)
@@ -408,33 +431,67 @@ end
 D.RefillIcon = RefillIcon
 
 ------------------------------------------------------------
--- 暴雪自己的裝飾：圓角遮罩拔掉、外框圖熄 alpha（每框一次）
+-- 暴雪自己的裝飾：圓角遮罩拔掉、外框圖熄 alpha；長條的暴雪樣式再裝回去（D.SetBlizzIconArt）
 ------------------------------------------------------------
+-- 拔下來的遮罩記在**我們的弱鍵表**（貼圖 → { 遮罩… }），不寫暴雪框的欄位。只有**第一次**拔的那一批記下來：
+-- 那是模板原本的樣子（第一次 Apply 一定在交給 Masque 之前拔）；之後再拔到的（理論上沒有，萬一是 Masque 的）不記，
+-- 免得裝回去的時候把別人的遮罩也裝上
+local maskOf = setmetatable({}, { __mode = "k" })
 local function Unmask(tex)
     if not (tex and tex.GetNumMaskTextures and tex.RemoveMaskTexture) then return end
+    local keep = maskOf[tex] == nil and {} or nil
     for i = tex:GetNumMaskTextures(), 1, -1 do
         local m = tex:GetMaskTexture(i)
-        if m then tex:RemoveMaskTexture(m) end
+        if m then
+            tex:RemoveMaskTexture(m)
+            if keep then keep[#keep + 1] = m end
+        end
+    end
+    if keep then maskOf[tex] = keep end
+end
+
+-- 把記下的遮罩裝回去（已經在上面的不重加；記錄沒有 ⇒ 從沒拔過，本來就在）
+local function Remask(tex)
+    local list = tex and maskOf[tex]
+    if not (list and tex.AddMaskTexture) then return end
+    for _, m in ipairs(list) do
+        local on = false
+        if tex.GetNumMaskTextures then
+            for i = 1, tex:GetNumMaskTextures() do
+                if tex:GetMaskTexture(i) == m then on = true break end
+            end
+        end
+        if not on then tex:AddMaskTexture(m) end
     end
 end
 
-local function DimAtlasRegions(frame, atlas)
+-- alpha 0 ＝ 熄、1 ＝ 亮回來；ofs（{ x, y }，可省）＝ 順便照格子尺寸重錨（長條暴雪樣式的外框圖，D.BlizzBarMetrics 的 ovX／ovY）
+local function AtlasRegionsAlpha(frame, atlas, alpha, ofs)
     if not (frame and frame.GetRegions) then return end
     for _, region in ipairs({ frame:GetRegions() }) do
         if region.GetAtlas and region.GetObjectType and region:GetObjectType() == "Texture" then
             local a = Plain(region:GetAtlas())
-            if a == atlas then region:SetAlpha(0) end
+            if a == atlas then
+                region:SetAlpha(alpha)
+                if ofs then
+                    region:ClearAllPoints()
+                    region:SetPoint("TOPLEFT", frame, "TOPLEFT", -ofs[1], ofs[2])
+                    region:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", ofs[1], -ofs[2])
+                end
+            end
         end
     end
 end
+local function DimAtlasRegions(frame, atlas) AtlasRegionsAlpha(frame, atlas, 0) end
 
--- 只做一次（rec.stripped；轉圈材質另外記，見 SquareSwipe）。查證（2026-09-30，12.1.0.69933 的 Blizzard_CooldownViewer）：
+-- rec.stripped ＝「目前是拔掉的狀態」（nil／false ＝ 模板原樣或被 SetBlizzIconArt 裝回去了）；轉圈材質另外記，見 SquareSwipe。
+-- 查證（2026-09-30，12.1.0.69933 的 Blizzard_CooldownViewer）：
 -- 圓角遮罩（MaskTexture atlas UI-HUD-CoolDownManager-Mask）、外框圖、轉圈材質
 -- （SwipeTexture UI-HUD-CoolDownManager-Icon-Swipe）全部只在 CooldownViewer.xml 的模板裡宣告；
 -- CooldownViewer.lua／CooldownViewerItemData.lua 沒有任何 AddMaskTexture／SetSwipeTexture／SetAtlas，
 -- OnAcquireItemFrame 只設 viewer、縮放、計時／提示顯示、hideWhenInactive、編輯中；
 -- RefreshData／SetCooldownID 只換資料與轉圈「顏色」（SetSwipeColor，由 Decorate 的 SetCooldown 後掛勾重寫）；
--- 池子的 reset 只 Hide＋清錨點＋ResetCooldownData。⇒ 池化的框一次拔乾淨就一直乾淨，取出時不必重做。
+-- 池子的 reset 只 Hide＋清錨點＋ResetCooldownData。⇒ 池化的框拔乾淨（或裝回去）就一直是那樣，取出時不必重做。
 -- 暴雪哪天在 Lua 裡重加遮罩／換轉圈材質，改成在 Viewers.Track 清 rec.stripped。
 -- 例外：Masque 卸皮（RemoveButton）會把暴雪的外框圖（IconOverlay）還原 ⇒ 卸皮之後要重拔一次，見 ReleaseSkin
 local function StripBlizzard(item, rec, isBar)
@@ -449,6 +506,54 @@ local function StripBlizzard(item, rec, isBar)
         DimAtlasRegions(item, ICON_OVERLAY_ATLAS)
     end
 end
+
+-- 我們自己的長條框（自訂長條 Modules/Custom.lua 的 NewBarFrame、設定頁預覽 Options/Preview.lua 的 NewBarCell、
+-- 暴雪增益長條的占位 Core/Bars.lua 的 BarPlaceholder）沒有暴雪的遮罩／外框圖：暴雪樣式時在**它們自己的 Icon 框上**
+-- 懶建一顆遮罩＋一張外框圖（參照存在弱鍵表），米利樣式時遮罩拿掉、外框圖藏起來
+local ownArt = setmetatable({}, { __mode = "k" })     -- Icon 框 → { mask, ov, on }
+
+-- 長條圖示的暴雪遮罩與外框圖（冪等）：on ⇒ 裝回去（外框圖照 h 等比重錨）；off ⇒ 照 StripBlizzard 的拔法。
+-- 暴雪 item（rec 有、不是自訂框）動模板裡那兩樣；其他（rec nil 的預覽格／占位、rec.custom 的自訂框）走自己建的那份
+function D.SetBlizzIconArt(item, rec, on, h)
+    local iconFrame = item and item.Icon
+    local tex = iconFrame and iconFrame.Icon
+    if not tex then return end
+    local m = on and D.BlizzBarMetrics(h) or nil
+    if rec and not rec.custom then
+        if not on then return StripBlizzard(item, rec, true) end
+        Remask(tex)
+        AtlasRegionsAlpha(iconFrame, ICON_OVERLAY_ATLAS, 1, { m.ovX, m.ovY })
+        rec.stripped = false
+        return
+    end
+    local art = ownArt[iconFrame]
+    if not on then
+        if art and art.on then
+            if tex.RemoveMaskTexture then tex:RemoveMaskTexture(art.mask) end
+            art.ov:Hide()
+            art.on = false
+        end
+        return
+    end
+    if not art then
+        if not (iconFrame.CreateMaskTexture and iconFrame.CreateTexture) then return end
+        art = { mask = iconFrame:CreateMaskTexture(), ov = iconFrame:CreateTexture(nil, "OVERLAY", nil, -1) }
+        art.mask:SetAtlas(ICON_MASK_ATLAS)
+        art.mask:SetAllPoints(iconFrame)
+        art.ov:SetAtlas(ICON_OVERLAY_ATLAS)
+        ownArt[iconFrame] = art
+    end
+    art.ov:ClearAllPoints()
+    art.ov:SetPoint("TOPLEFT", iconFrame, "TOPLEFT", -m.ovX, m.ovY)
+    art.ov:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", m.ovX, -m.ovY)
+    art.ov:Show()
+    if not art.on then
+        if tex.AddMaskTexture then tex:AddMaskTexture(art.mask) end
+        art.on = true
+    end
+end
+D.OwnIconArt = function(iconFrame) return ownArt[iconFrame] end     -- 測試用
+D.MaskOf = function(tex) return maskOf[tex] end                     -- 測試用
 
 -- 暴雪的減益類型邊框（item.DebuffBorder；長條型可能在 item.Icon 底下）：有害光環才出現、框一圈驅散色，
 -- 跟我們的 1px 邊框疊在一起像兩層外框。暴雪只對它 Show／Hide、不碰 alpha ⇒ alpha 0 一直有效；
@@ -1505,6 +1610,104 @@ end
 ------------------------------------------------------------
 -- 長條的版面：圖示邊、條身、底色、材質
 ------------------------------------------------------------
+-- 長條的暴雪樣式（bar.look ＝ "blizzard"）：畫成暴雪冷卻管理器原生長條的長相。依據 Gethe/wow-ui-source
+-- Blizzard_CooldownViewer/CooldownViewer.xml 的 CooldownViewerBuffBarItemTemplate（item 220×30）：
+--   圖示 30×30 靠左、圓角遮罩 UI-HUD-CoolDownManager-Mask、外框圖 UI-HUD-CoolDownManager-IconOverlay（TOPLEFT -6,5／BOTTOMRIGHT 6,-5）
+--   條身高 19、垂直置中、LEFT 錨圖示 RIGHT +2；填充 UI-HUD-CoolDownManager-Bar 頂點色 (1, 0.5, 0.25)
+--   底 UI-HUD-CoolDownManager-Bar-BG（TOPLEFT -2,2／BOTTOMRIGHT 4,-7：右下凸出的那截是陰影）頂點色白
+--   火花 UI-HUD-CoolDownManager-Bar-Pip（useAtlasSize），CENTER 錨填充貼圖 RIGHT (0, -1)；沒有邊框
+-- 暴雪的 Lua（CooldownViewerBuffBarItemMixin）執行期不碰填充材質／顏色／BarBG，只寫值、Pip 的 Show、文字
+-- ⇒ 寫一次就留得住（同米利樣式）。我們的差別：尺寸照格高等比（D.BlizzBarMetrics）、圖示與條身的間距照 bar.iconGap、
+-- 填充色是 bar.blizzardColor（跟米利樣式的 bar.color 分開存，切回來藍色還在）、文字照我們的文字設定。
+-- 直向沒有暴雪樣式（底的圖集是橫的、陰影在右下）：存著也當米利畫（D.BarLook）。
+-- StatusBar:SetStatusBarTexture 收圖集名稱：暴雪自己的 UnitFrame.lua 就是 manaBar:SetStatusBarTexture(info.atlas)
+-- （API 文件的參數型別是 TextureAsset；2026-10-09 對過 live 分支），所以填充直接傳圖集名，不必先 SetTexture 再 SetAtlas。
+-- 一般貼圖（底、自己的火花、層數那一層的色塊）走 SetAtlas；換回米利樣式時 SetTexture(WHITE)＋SetTexCoord 全幅（圖集的
+-- 裁切座標不留下來）。
+local BLIZZ_H = 30
+local BLIZZ_COLOR = { r = 1, g = 0.5, b = 0.25, a = 1 }
+D.BLIZZ_COLOR = BLIZZ_COLOR
+
+-- 生效的外觀（純函式，Tests/Extras_test.lua）："blizzard" 只在存了暴雪樣式而且不是直向時
+function D.BarLook(bar)
+    if type(bar) == "table" and bar.look == "blizzard" and not bar.vertical then return "blizzard" end
+    return "miliui"
+end
+
+-- 以 30 高為基準的等比尺寸（純函式，Tests/Extras_test.lua）；像素對齊用 Layout.Snap
+--   thick 條身高；bgL／bgT／bgR／bgB 底相對條身四角的偏移（照 SetPoint 的正負：左 −、上 ＋、右 ＋、下 −）；
+--   ovX／ovY 外框圖往外凸的量；pipScale 火花對圖集原尺寸的倍率
+function D.BlizzBarMetrics(h)
+    h = tonumber(h) or BLIZZ_H
+    if h <= 0 then h = BLIZZ_H end
+    local k = h / BLIZZ_H
+    local Snap = ns.Layout and ns.Layout.Snap or function(v) return v end
+    return {
+        thick = Snap(h * 19 / BLIZZ_H),
+        bgL = -Snap(2 * k), bgT = Snap(2 * k), bgR = Snap(4 * k), bgB = -Snap(7 * k),
+        ovX = Snap(6 * k), ovY = Snap(5 * k),
+        pipScale = k,
+    }
+end
+
+-- 填充上色要用的那張表（純函式，Tests/Extras_test.lua）：米利樣式就是 bar 本身（單色或漸層），
+-- 暴雪樣式是 { color = blizzardColor }（沒有漸層 ⇒ PaintFill 畫單色、把畫過的漸層洗掉）。
+-- 填充色的唯一來源：ApplyBarLook、無損刷新還原（Core/Glow.lua）、層數那一層（Core/StackGate.lua）、充能分段都問它
+function D.BarFillStyle(bar)
+    bar = type(bar) == "table" and bar or {}
+    if D.BarLook(bar) ~= "blizzard" then return bar end
+    local c = type(bar.blizzardColor) == "table" and bar.blizzardColor or BLIZZ_COLOR
+    return { color = c }
+end
+
+-- 填充的材質：暴雪樣式回圖集名（StatusBar:SetStatusBarTexture 收），米利樣式回 LibSharedMedia 的路徑
+function D.BarFillTexture(bar)
+    if D.BarLook(bar) == "blizzard" then return BAR_FILL_ATLAS end
+    return ns.Media.Texture(type(bar) == "table" and bar.texture or nil)
+end
+
+-- 一般貼圖換成填充的材質（層數那一層的原色填充／色塊）：圖集要走 SetAtlas
+function D.SetFillTexture(tex, bar)
+    if not tex then return end
+    if D.BarLook(bar) == "blizzard" and tex.SetAtlas then
+        tex:SetAtlas(BAR_FILL_ATLAS)
+    else
+        tex:SetTexture(ns.Media.Texture(type(bar) == "table" and bar.texture or nil))
+        if tex.SetTexCoord then tex:SetTexCoord(0, 1, 0, 1) end
+    end
+end
+
+-- 底的頂點色：暴雪樣式白（圖集本身的顏色）、米利樣式 bar.bgColor
+function D.BarBGColor(bar)
+    if D.BarLook(bar) == "blizzard" then return 1, 1, 1, 1 end
+    return C4(type(bar) == "table" and bar.bgColor or nil, 0.1, 0.1, 0.1, 0.8)
+end
+
+-- 底（bg 貼圖排在條身 b 上）：暴雪樣式＝圖集＋等比偏移（h ＝ 格高），米利樣式＝白底貼滿條身＋bgColor
+function D.PaintBarBG(bg, b, bar, h)
+    if not (bg and b) then return end
+    bg:ClearAllPoints()
+    if D.BarLook(bar) == "blizzard" and bg.SetAtlas then
+        local m = D.BlizzBarMetrics(h)
+        bg:SetPoint("TOPLEFT", b, "TOPLEFT", m.bgL, m.bgT)
+        bg:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", m.bgR, m.bgB)
+        bg:SetAtlas(BAR_BG_ATLAS)
+    else
+        bg:SetAllPoints(b)
+        bg:SetTexture(WHITE)
+        if bg.SetTexCoord then bg:SetTexCoord(0, 1, 0, 1) end
+    end
+    bg:SetVertexColor(D.BarBGColor(bar))
+end
+
+-- 火花圖集的原尺寸（C_Texture.GetAtlasInfo；讀不到 ＝ nil，呼叫端不調尺寸）
+local function PipAtlasSize()
+    local CT = _G.C_Texture
+    local ok, info = pcall(function() return CT and CT.GetAtlasInfo and CT.GetAtlasInfo(BAR_PIP_ATLAS) end)
+    if ok and type(info) == "table" and tonumber(info.width) and tonumber(info.height) then
+        return info.width, info.height
+    end
+end
 -- 暴雪條的火花（Pip）：暴雪只在 OnLoad 錨一次（CENTER → 填充貼圖的 RIGHT, 0, -1），之後不再動。
 -- 直向時改錨填充的頂緣、轉 90 度；反向填充（bar.reverseFill）時移動的那一端在填充的左緣（直向＝底緣）；
 -- 回到橫向不反向時照暴雪原本的錨回去。動過的記在弱鍵表（不寫暴雪的欄位）
@@ -1551,8 +1754,26 @@ function D.AnchorFillPip(pip, fill, vertical, reverse)
     end
 end
 
--- g = { h, w, side, gap, vertical, reverse }：格子尺寸由排版給（不讀框）。
+-- 自己的火花換成暴雪樣式（圖集＋等比尺寸）時記在這裡（火花 → pipScale；米利樣式 ＝ nil）。只是我們的對照
+local blizzOwnPip = setmetatable({}, { __mode = "k" })
+-- 暴雪條的火花被我們照格高縮放過（米利樣式要 SetAtlas(…, true) 換回圖集原尺寸）
+local scaledPip = setmetatable({}, { __mode = "k" })
+
+-- 自己的火花錨到填充末端：照它現在的長相（ApplyBarLook 換的）——暴雪樣式是一顆圖集，CENTER 錨填充移動的那一端
+-- （同暴雪條的 (0, -1)，照格高等比）；米利樣式是 2px 亮線（D.AnchorFillPip）。
+-- Modules/Custom.lua 的充能分段把火花搬到進度條的填充末端時也走這支
+function D.AnchorOwnPip(pip, fill, vertical, reverse)
+    if not (pip and fill) then return end
+    local k = blizzOwnPip[pip]
+    if not k then return D.AnchorFillPip(pip, fill, vertical, reverse) end
+    local Snap = ns.Layout and ns.Layout.Snap or function(v) return v end
+    pip:ClearAllPoints()
+    pip:SetPoint("CENTER", fill, reverse and "LEFT" or "RIGHT", 0, -Snap(k))
+end
+
+-- g = { h, w, side, gap, vertical, reverse, look }：格子尺寸由排版給（不讀框）。
 -- 直向（F8c）：圖示 w×w（w ＝ 條的粗細），side 的 LEFT／RIGHT 當上／下；條身 SetOrientation("VERTICAL")
+-- look ＝ "blizzard"（D.BarLook 算好的生效值，直向不會是它）：條身改成垂直置中的細條，見「長條的暴雪樣式」
 -- 反向填充（bar.reverseFill）：SetReverseFill 只換填充起點（橫向從右、直向從上），值一個都不碰（可能是秘密值）；
 -- true／false 每次都寫，關掉時才回得去
 function D.ApplyBarGeometry(item, rec, g)
@@ -1580,6 +1801,23 @@ function D.ApplyBarGeometry(item, rec, g)
             icon:SetPoint("TOP", item, "TOP", 0, 0)
             b:SetPoint("TOPLEFT", icon, "BOTTOMLEFT", 0, -gap)
             b:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+        end
+    elseif g.look == "blizzard" then
+        -- 暴雪樣式（只有橫向）：圖示 h×h；條身高照 30:19 等比、垂直置中（錨 LEFT／RIGHT，高度自己給）
+        icon:SetSize(h, h)
+        b:SetHeight(D.BlizzBarMetrics(h).thick)
+        if g.side == "RIGHT" then
+            icon:SetPoint("RIGHT", item, "RIGHT", 0, 0)
+            b:SetPoint("LEFT", item, "LEFT", 0, 0)
+            b:SetPoint("RIGHT", icon, "LEFT", -gap, 0)
+        elseif g.side == "NONE" then
+            icon:SetPoint("LEFT", item, "LEFT", 0, 0)
+            b:SetPoint("LEFT", item, "LEFT", 0, 0)
+            b:SetPoint("RIGHT", item, "RIGHT", 0, 0)
+        else
+            icon:SetPoint("LEFT", item, "LEFT", 0, 0)
+            b:SetPoint("LEFT", icon, "RIGHT", gap, 0)
+            b:SetPoint("RIGHT", item, "RIGHT", 0, 0)
         end
     else
         icon:SetSize(h, h)
@@ -1680,35 +1918,56 @@ function D.PaintFill(tex, bar, solid)
     end
 end
 
-local function ApplyBarLook(item, rec, style, bar)
+-- h ＝ 格高（暴雪樣式的等比尺寸；直向不會是暴雪樣式，用不到）。兩種樣式每次都整套寫，切換不必重載：
+--   填充材質（SetStatusBarTexture 每次寫）、填充色（PaintFill：暴雪樣式沒有漸層 ⇒ 畫過的漸層洗掉）、
+--   底（D.PaintBarBG：錨點／圖集或白底／頂點色全寫）、火花（下面）
+local function ApplyBarLook(item, rec, style, bar, h)
     local b = item.Bar
     if not b then return end
+    local blizz = D.BarLook(bar) == "blizzard"
     if b.SetStatusBarTexture then
-        b:SetStatusBarTexture(ns.Media.Texture(bar.texture))
+        b:SetStatusBarTexture(D.BarFillTexture(bar))
         local tex = b:GetStatusBarTexture()
-        if tex then D.PaintFill(tex, bar) end
+        if tex then D.PaintFill(tex, D.BarFillStyle(bar)) end
     end
-    local bg = b.BarBG
-    if bg then
-        bg:ClearAllPoints()
-        bg:SetAllPoints(b)
-        bg:SetTexture(WHITE)
-        bg:SetVertexColor(C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8))
-    end
+    D.PaintBarBG(b.BarBG, b, bar, h)
     -- 火花（bar.spark）：暴雪條的 Pip 只調 alpha（顯示／隱藏照舊是暴雪自己管：倒數中才 Show），
     -- 設定頁預覽的假條是我們自己畫的那條線（ownPip，跟著填充末端走）
     local pip = b.Pip
     if pip then
+        local m = blizz and D.BlizzBarMetrics(h) or nil
+        local aw, ah = nil, nil
+        if blizz then aw, ah = PipAtlasSize() end
         if b.ownPip then
+            -- 長相：暴雪樣式＝火花圖集（等比；圖集尺寸讀不到時退成 2px 寬、條身高）、米利樣式＝2px 白線
+            if blizz and pip.SetAtlas then
+                pip:SetAtlas(BAR_PIP_ATLAS)
+                if aw then pip:SetSize(aw * m.pipScale, ah * m.pipScale) else pip:SetSize(2, m.thick) end
+                blizzOwnPip[pip] = m.pipScale
+            else
+                pip:SetTexture(WHITE)
+                if pip.SetTexCoord then pip:SetTexCoord(0, 1, 0, 1) end
+                blizzOwnPip[pip] = nil
+            end
             -- 充能分段（F8b）時跟著進度條的填充末端（b.pipAnchor，Modules/Custom.lua 設；只錨不讀）
-            -- 直向（F8c）是頂緣一條橫線；反向填充時換到另一端（D.AnchorFillPip）
+            -- 直向（F8c）是頂緣一條橫線；反向填充時換到另一端（D.AnchorOwnPip）
             local fill = b.pipAnchor or (b.GetStatusBarTexture and b:GetStatusBarTexture())
             pip:ClearAllPoints()
-            if fill then D.AnchorFillPip(pip, fill, bar.vertical, bar.reverseFill) end
+            if fill then D.AnchorOwnPip(pip, fill, bar.vertical, bar.reverseFill) end
+        elseif blizz then
+            -- 暴雪條的火花：本來就是這張圖集，只照格高等比縮（錨點是 OrientBlizzPip 管的）
+            if pip.SetAtlas then pip:SetAtlas(BAR_PIP_ATLAS, true) end
+            if aw then pip:SetSize(aw * m.pipScale, ah * m.pipScale) end
+            scaledPip[pip] = true
+        elseif scaledPip[pip] then
+            -- 從暴雪樣式切回來：圖集原尺寸（米利樣式以前就不動它的尺寸）
+            if pip.SetAtlas then pip:SetAtlas(BAR_PIP_ATLAS, true) end
+            scaledPip[pip] = nil
         end
         pip:SetAlpha(bar.spark and 1 or 0)
     end
 end
+D.ApplyBarLook = ApplyBarLook                                      -- 測試用
 
 ------------------------------------------------------------
 -- 觸發發光：接管之後才熄（見檔頭）
@@ -2228,7 +2487,8 @@ function D.Apply(item, rec, barKey, w, h, ring)
     rec.reacquired = nil              -- 下面整套重套，取出時被重設的一併蓋回去
 
     D.HookItem(item, rec)
-    StripBlizzard(item, rec, isBar)
+    -- 長條的遮罩／外框圖在下面長條那一段決定（暴雪樣式要裝回去）
+    if not isBar then StripBlizzard(item, rec, false) end
     DimDebuffBorder(item, style.hideDebuffBorder or ringOn)     -- 圓環：方形的減益框一律熄
 
     -- 後掛勾讀的快取（暴雪下一次刷新時再套一次）
@@ -2304,10 +2564,19 @@ function D.Apply(item, rec, barKey, w, h, ring)
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
+        local look = D.BarLook(bar)
+        local blizz = look == "blizzard"
         rec.barGeometry = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
-            reverse = bar.reverseFill and true or false }
+            reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(item, rec, rec.barGeometry)
-        ApplyBarLook(item, rec, style, bar)
+        ApplyBarLook(item, rec, style, bar, h)
+        -- 圖示的遮罩與外框圖：暴雪樣式裝回去、米利樣式拔掉。要交給 Masque 的話**先拔**（Masque 會加它自己的遮罩，
+        -- 我們事後再拔會連它的一起拔），交不出去（戰鬥中、群組停用…）再照暴雪樣式裝回去；交出去了 ⇒ 圖示照 Masque，條身照暴雪樣式
+        if blizz and not style.masque then
+            D.SetBlizzIconArt(item, rec, true, h)
+        else
+            StripBlizzard(item, rec, true)
+        end
         -- 長條交給 Masque 的是 item.Icon 那一層（整個 item 交出去的話皮會被拉成條的寬度）；
         -- 尺寸＝ApplyBarGeometry 剛設的 h×h
         local skinned = false
@@ -2319,28 +2588,37 @@ function D.Apply(item, rec, barKey, w, h, ring)
             ReleaseSkin(item, rec, true)
         end
         rec.msqSkinned = skinned
-        -- 邊框：圖示一圈、條身一圈（Masque 在畫時圖示那圈藏著、排法記給無損刷新；條身那圈照常）
+        if blizz and not skinned then D.SetBlizzIconArt(item, rec, true, h) end   -- 含卸皮之後（ReleaseSkin 重拔過）
+        -- 邊框：圖示一圈、條身一圈（Masque 在畫時圖示那圈藏著、排法記給無損刷新；條身那圈照常）。
+        -- 暴雪樣式：原生長條沒有邊框 ⇒ 兩圈都藏著，排法記在 rec.hiddenEdges，無損刷新期間才亮（D.RecolorBorder）
         rec.border = rec.border or MakeBorder(ov)
         rec.border2 = rec.border2 or MakeBorder(ov)
         local showIcon = rec.barGeometry.side ~= "NONE"
+        if blizz then
+            rec.hiddenEdges = {
+                icon = (not skinned) and { region = showIcon and item.Icon or nil, size = size, token = border.texture } or nil,
+                bar  = { region = item.Bar, size = size, token = border.texture },
+            }
+        else
+            rec.hiddenEdges = nil
+        end
         if skinned then
             rec.msqEdge = { region = showIcon and item.Icon or nil, size = size, token = border.texture }
             LayoutBorder(rec.border, nil)
-            LayoutBorder(rec.border2, item.Bar, size, border.texture, br, bg, bb, ba)
         else
             rec.msqEdge = nil
-            LayoutBorder(rec.border, showIcon and item.Icon or nil, size, border.texture, br, bg, bb, ba)
-            LayoutBorder(rec.border2, item.Bar, size, border.texture, br, bg, bb, ba)
+            LayoutBorder(rec.border, (showIcon and not blizz) and item.Icon or nil, size, border.texture, br, bg, bb, ba)
             local iconTex = item.Icon and item.Icon.Icon
             if iconTex and iconTex.SetTexCoord then
                 local z = style.zoom
                 iconTex:SetTexCoord(z, 1 - z, z, 1 - z)
             end
         end
+        LayoutBorder(rec.border2, (not blizz) and item.Bar or nil, size, border.texture, br, bg, bb, ba)
         ns.Text.ApplyBar(item, style, spell, bar, rec)
         ns.Text.ItemLabel(item, rec, nil)          -- 長條不畫自訂文字（長條本來就有名字）
     elseif ringOn then
-        rec.barGeometry = nil
+        rec.barGeometry, rec.hiddenEdges = nil, nil
         if rec.msqButton then ReleaseSkin(item, rec, false) end      -- 圓環條不進 Masque 群組（放在 ApplyRing 前：卸皮會換回它的轉圈材質）
         rec.msqSkinned, rec.msqEdge = false, nil
         rec.border = rec.border or MakeBorder(ov)
@@ -2358,7 +2636,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
         ns.Text.ApplyRing(item, style, spell, rec)            -- 倒數／層數錨到這一圈頂端的環帶、倒數開關
         ns.Text.ItemLabel(item, rec, nil)                     -- 自訂文字不畫（錨點是方形格的邊）
     else
-        rec.barGeometry = nil
+        rec.barGeometry, rec.hiddenEdges = nil, nil
         local icon, cd = item.Icon, item.Cooldown
         local skinned = false
         if style.masque and icon then
@@ -2467,27 +2745,32 @@ function D.ApplyPreview(cell, barKey, id, w, h)
 
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
+        local look = D.BarLook(bar)
+        local blizz = look == "blizzard"
         local g = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
-            reverse = bar.reverseFill and true or false }
+            reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(cell, nil, g)
-        ApplyBarLook(cell, nil, style, bar)
+        ApplyBarLook(cell, nil, style, bar, h)
+        -- 遮罩／外框圖（我們自己建的那份）：同真實格，要交給 Masque 先拿掉、交不出去再裝回去
+        D.SetBlizzIconArt(cell, nil, blizz and not masque, h)
         local skinned = false
         if masque and cell.Icon and cell.Icon.Icon then
             local isz = g.vertical and w or h
             skinned = masque.Sync(cell, cell.Icon, { Icon = cell.Icon.Icon }, masque.TypeFor(barKey), isz, isz)
         end
+        if blizz and not skinned then D.SetBlizzIconArt(cell, nil, true, h) end
         cell.msqSkinned, cell.barGeometry = skinned, g      -- 長條：發光／按鍵不跟形狀（同真實格）
         cell.border = cell.border or MakeBorder(ov)
         cell.border2 = cell.border2 or MakeBorder(ov)
+        -- 暴雪樣式：兩圈邊框都不畫（原生長條沒有邊框；預覽不演無損刷新）
         if skinned then
             LayoutBorder(cell.border, nil)
-            LayoutBorder(cell.border2, cell.Bar, size, border.texture, br, bg, bb, ba)
         else
-            LayoutBorder(cell.border, g.side ~= "NONE" and cell.Icon or nil, size, border.texture, br, bg, bb, ba)
-            LayoutBorder(cell.border2, cell.Bar, size, border.texture, br, bg, bb, ba)
+            LayoutBorder(cell.border, (g.side ~= "NONE" and not blizz) and cell.Icon or nil, size, border.texture, br, bg, bb, ba)
             local iconTex = cell.Icon and cell.Icon.Icon
             if iconTex then iconTex:SetTexCoord(z, 1 - z, z, 1 - z) end
         end
+        LayoutBorder(cell.border2, (not blizz) and cell.Bar or nil, size, border.texture, br, bg, bb, ba)
         ns.Text.ApplyBar(cell, style, spell, bar)
     else
         local icon = cell.Icon

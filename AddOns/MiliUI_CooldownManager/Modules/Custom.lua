@@ -92,6 +92,8 @@
 --   長條框（NewBarFrame）的形狀照設定頁預覽的長條格：.Icon（Frame；.Icon 貼圖、.Applications 層數／數量）、
 --   .Bar（StatusBar；.Name／.Duration／.BarBG／.Pip＋ownPip）⇒ Decorate.Apply 的長條分支原封套上
 --   （高、圖示邊、間距、材質、顏色、底色、火花、名字字型、層數）。名字我們自己寫（明文的法術／物品名）。
+--   長條的暴雪樣式（bar.look，Decorate 的「長條的暴雪樣式」）也是那一支畫的；光環長條（InitAuraBarButton）、
+--   光環長條的占位（UpdateBarPlaceholder）、充能分段（ConfigureSeg）自己照同一組圖集與等比尺寸（Decorate.BlizzBarMetrics）畫。
 --   條身：StatusBar:SetTimerDuration(duration 物件, nil, RemainingTime)，用掉時滿、轉好時空，值與上限不經 Lua。
 --     法術吃 GetSpellCooldownDuration（有充能時吃 GetSpellChargeDuration：回充中就在跑），物品／裝備欄吃
 --     明文時自己 arm 的那顆（已 arm 的不重 arm）。清掉：先餵一顆零長度物件，不行才 SetValue(0)（待實機驗證）。
@@ -454,6 +456,9 @@ end
 
 -- 自己畫的火花錨在填充移動的那一端（同 Decorate.AnchorFillPip；測試環境沒有 Decorate，這裡留一份）
 local function AnchorPip(pip, fill, vertical, reverse)
+    -- 自己的火花現在是暴雪樣式的那顆（Decorate.ApplyBarLook 換的）⇒ 照它的錨法（Decorate.AnchorOwnPip）
+    local D = ns.Decorate
+    if D and D.AnchorOwnPip then return D.AnchorOwnPip(pip, fill, vertical, reverse) end
     pip:ClearAllPoints()
     if vertical then
         local e = reverse and "BOTTOM" or "TOP"
@@ -493,18 +498,23 @@ local function EnsureSeg(b)
     return seg
 end
 
--- 分段的外觀與幾何（簽章變了才重做）：len ＝ 條身長（明文，照排版算）
+-- 分段的外觀與幾何（簽章變了才重做）：len ＝ 條身長（明文，照排版算）。
+-- 長條的暴雪樣式（Decorate.BarLook）：兩條的填充換成暴雪的圖集、顏色是 blizzardColor（Decorate.BarFillTexture／BarFillStyle）
 local function ConfigureSeg(b, max, len, bar, vertical)
     local seg = EnsureSeg(b)
-    local sig = table.concat({ max, len, tostring(bar.texture), ns.Decorate.GradientSig and ns.Decorate.GradientSig(bar.gradient) or "",
-        tostring(type(bar.color) == "table" and (bar.color.r or 0) .. "," .. (bar.color.g or 0) .. "," .. (bar.color.b or 0) .. "," .. (bar.color.a or 1)),
+    local D = ns.Decorate
+    local fillStyle = D.BarFillStyle and D.BarFillStyle(bar) or bar
+    local fc = fillStyle.color
+    local sig = table.concat({ max, len, tostring(bar.texture), D.GradientSig and D.GradientSig(fillStyle.gradient) or "",
+        D.BarLook and D.BarLook(bar) or "miliui",
+        tostring(type(fc) == "table" and (fc.r or 0) .. "," .. (fc.g or 0) .. "," .. (fc.b or 0) .. "," .. (fc.a or 1)),
         tostring(type(bar.chargeLineColor) == "table" and (bar.chargeLineColor.r or 0) .. "," .. (bar.chargeLineColor.g or 0)
             .. "," .. (bar.chargeLineColor.b or 0) .. "," .. (bar.chargeLineColor.a or 1)),
         tostring(vertical), tostring(bar.reverseFill and true or false), tostring(b:GetFrameLevel()) }, "|")
     if b.segOn and b.segSig == sig then return seg end
     b.segSig = sig
     local lv = b:GetFrameLevel() or 1
-    local tex = ns.Media.Texture(bar.texture)
+    local tex = D.BarFillTexture and D.BarFillTexture(bar) or ns.Media.Texture(bar.texture)
     local orient = vertical and "VERTICAL" or "HORIZONTAL"
     local reverse = bar.reverseFill and true or false
     for _, sb in ipairs({ seg.count, seg.prog }) do
@@ -512,7 +522,7 @@ local function ConfigureSeg(b, max, len, bar, vertical)
         if sb.SetOrientation then sb:SetOrientation(orient) end
         if sb.SetReverseFill then sb:SetReverseFill(reverse) end
         local ft = sb:GetStatusBarTexture()
-        if ft then ns.Decorate.PaintFill(ft, bar) end
+        if ft then D.PaintFill(ft, fillStyle) end
     end
     seg.countFill = seg.count:GetStatusBarTexture()
     seg.progFill = seg.prog:GetStatusBarTexture()
@@ -1452,9 +1462,13 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         st.bh        = tonumber(h) or tonumber(bar.height) or 20
         st.side      = side
         st.bgap      = ns.Layout.Snap(tonumber(bar.iconGap) or 0)
-        st.btex      = ns.Media.Texture(bar.texture)
-        st.bfill     = RGBA(bar.color, 0.4, 0.6, 0.9, 1)
-        st.bbg       = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
+        -- 暴雪樣式（Decorate.BarLook；直向不會是）：填充／底／火花換暴雪的圖集、細條身、圖示套圓角遮罩＋外框圖、不畫邊框；
+        -- 尺寸照格高等比（Decorate.BlizzBarMetrics），在這裡先算成純數字
+        local D0b = ns.Decorate
+        st.blizz     = (D0b and D0b.BarLook and D0b.BarLook(bar) == "blizzard") and true or false
+        st.btex      = st.blizz and D0b.BLIZZ_ATLAS.fill or ns.Media.Texture(bar.texture)
+        st.bfill     = RGBA(st.blizz and D0b.BarFillStyle(bar).color or bar.color, 0.4, 0.6, 0.9, 1)
+        st.bbg       = st.blizz and { 1, 1, 1, 1 } or RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
         st.spark     = bar.spark and true or false
         -- 名字：「長條」節的名字 ⊕ 這一招的覆寫（Text.SpellText 的 "barName"：開關三態、字型、字級）
         local nt = TX.SpellText(barKey, id, "barName")
@@ -1483,7 +1497,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         -- 漸層（F8a）：顏色物件在這裡（容器建立之前）建好，initializeFrame 裡只查表。
         -- 反向填充時起點色跟著填充起點（Decorate.GradientFlip，同 PaintFill 的決定）⇒ 兩色對調、對調也進快取鍵
         local D = ns.Decorate
-        local cg = D and D.CleanGradient and D.CleanGradient(bar.gradient)
+        local cg = (not st.blizz) and D and D.CleanGradient and D.CleanGradient(bar.gradient)
         if cg and CreateColor then
             local flip = D.GradientFlip and D.GradientFlip(bar) or false
             local gsig = cg.dir .. (flip and "~" or "") .. C(st.bfill) .. ">" .. C({ cg.color2.r, cg.color2.g, cg.color2.b, cg.color2.a })
@@ -1502,6 +1516,21 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
             C(st.timeColor), st.timePoint, st.timeX, st.timeY,
             tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name,
             tostring(st.vert), string.format("%.2f", st.isz), st.bgrad and st.bgrad.sig or "-", tostring(st.rev) }, ",")
+        if st.blizz then
+            -- 等比尺寸＋火花圖集原尺寸（initializeFrame 裡不呼叫 C_Texture）
+            local m = D0b.BlizzBarMetrics(st.bh)
+            st.bm = m
+            local CT = C_Texture
+            local ok, info = pcall(function() return CT and CT.GetAtlasInfo and CT.GetAtlasInfo(D0b.BLIZZ_ATLAS.pip) end)
+            if ok and type(info) == "table" and tonumber(info.width) and tonumber(info.height) then
+                st.pipW, st.pipH = info.width * m.pipScale, info.height * m.pipScale
+            else
+                st.pipW, st.pipH = 2, m.thick
+            end
+            st.pipY = ns.Layout.Snap(m.pipScale)
+            st.atlas = D0b.BLIZZ_ATLAS
+            barSig = barSig .. ",blizz," .. string.format("%.2f", m.thick)
+        end
     end
     -- 生效發光：開著而且知道格子尺寸才畫；關著時不進簽章（尺寸變了不必換容器）。
     -- 長條畫在圖示那一格（h×h；直向 w×w）；沒有圖示（NONE）時畫整格
@@ -1827,10 +1856,33 @@ local function InitAuraBarButton(btn, c, st, rec)
     local z = st.zoom
     icon:SetTexCoord(z, 1 - z, z, 1 - z)
     if side == "NONE" then icon:SetAlpha(0) end
+    local bm, atl = st.blizz and st.bm, st.atlas
+    if bm then
+        -- 暴雪樣式：圓角遮罩（新建的遮罩貼圖，按鈕上）
+        local mask = btn.CreateMaskTexture and btn:CreateMaskTexture()
+        if mask then
+            mask:SetAtlas(atl.mask)
+            mask:SetAllPoints(icon)
+            icon:AddMaskTexture(mask)
+        end
+    end
     btn:SetIcon(icon)
 
     local bar = CreateFrame("StatusBar", nil, btn)
-    if side == "NONE" then
+    if bm then
+        -- 暴雪樣式（只有橫向）：條身高照等比、垂直置中（同 Decorate.ApplyBarGeometry 的暴雪分支）
+        bar:SetHeight(bm.thick)
+        if side == "NONE" then
+            bar:SetPoint("LEFT", btn, "LEFT", 0, 0)
+            bar:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+        elseif side == "RIGHT" then
+            bar:SetPoint("LEFT", btn, "LEFT", 0, 0)
+            bar:SetPoint("RIGHT", btn, "RIGHT", -(H + gap), 0)
+        else
+            bar:SetPoint("LEFT", btn, "LEFT", H + gap, 0)
+            bar:SetPoint("RIGHT", btn, "RIGHT", 0, 0)
+        end
+    elseif side == "NONE" then
         bar:SetAllPoints(btn)
     elseif vert and side == "RIGHT" then
         bar:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
@@ -1861,15 +1913,29 @@ local function InitAuraBarButton(btn, c, st, rec)
         end
     end
     local bg = bar:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(bar)
-    bg:SetTexture(WHITE)
+    if bm then
+        -- 暴雪樣式的底：圖集、右下凸出的陰影（等比偏移）
+        bg:SetPoint("TOPLEFT", bar, "TOPLEFT", bm.bgL, bm.bgT)
+        bg:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", bm.bgR, bm.bgB)
+        bg:SetAtlas(atl.bg)
+    else
+        bg:SetAllPoints(bar)
+        bg:SetTexture(WHITE)
+    end
     bg:SetVertexColor(st.bbg[1], st.bbg[2], st.bbg[3], st.bbg[4])
     if st.spark and fill then
         local pip = bar:CreateTexture(nil, "OVERLAY")
-        pip:SetTexture(WHITE)
-        pip:SetVertexColor(1, 1, 1, 0.9)
-        if vert then pip:SetHeight(2) else pip:SetWidth(2) end
-        AnchorPip(pip, fill, vert, st.rev)
+        if bm then
+            -- 暴雪樣式的火花：圖集、CENTER 錨填充移動的那一端（同 Decorate.AnchorOwnPip）
+            pip:SetAtlas(atl.pip)
+            pip:SetSize(st.pipW, st.pipH)
+            pip:SetPoint("CENTER", fill, st.rev and "LEFT" or "RIGHT", 0, -st.pipY)
+        else
+            pip:SetTexture(WHITE)
+            pip:SetVertexColor(1, 1, 1, 0.9)
+            if vert then pip:SetHeight(2) else pip:SetWidth(2) end
+            AnchorPip(pip, fill, vert, st.rev)
+        end
     end
     -- 不自己 SetMinMaxValues／SetValue：剩餘時間由引擎寫（CustomAuraButtonDurationBarOptions：interpolation、direction）
     local opts = {}
@@ -1881,7 +1947,15 @@ local function InitAuraBarButton(btn, c, st, rec)
     ov:SetAllPoints(btn)
     ov:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
     local t = st.inset
-    if t > 0 then
+    if bm then
+        -- 暴雪樣式：不畫邊框，圖示疊暴雪的外框圖（ov 上、文字底下）
+        if side ~= "NONE" then
+            local art = ov:CreateTexture(nil, "OVERLAY", nil, -8)
+            art:SetAtlas(atl.overlay)
+            art:SetPoint("TOPLEFT", icon, "TOPLEFT", -bm.ovX, bm.ovY)
+            art:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", bm.ovX, -bm.ovY)
+        end
+    elseif t > 0 then
         if side ~= "NONE" then Edges(ov, icon, t, st.bcolor) end
         Edges(ov, bar, t, st.bcolor)
     end
@@ -2162,10 +2236,13 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     local outline = ns.Setting(barKey, "outline") or ""
     local tex, name = PlaceholderLook(rec)
     local z = tonumber(ns.Setting(barKey, "icon.zoom")) or 0
-    local bgc = RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
+    -- 暴雪樣式（Decorate.BarLook）：空條畫成暴雪的底（圖集＋右下陰影）、細條身垂直置中；圖示不套遮罩（占位是暗圖示，看不出圓角）
+    local D = ns.Decorate
+    local bm = (D and D.BarLook and D.BarLook(bar) == "blizzard") and D.BlizzBarMetrics(H) or nil
+    local bgc = bm and { 1, 1, 1, 1 } or RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
     local sig = table.concat({ side, string.format("%.2f,%.2f", H, gap), tostring(font), outline, tostring(tex), name, z,
         nameSize, timeSize, tostring(showName),
-        string.format("%.3f,%.3f,%.3f,%.3f", bgc[1], bgc[2], bgc[3], bgc[4]), tostring(vert) }, "|")
+        string.format("%.3f,%.3f,%.3f,%.3f", bgc[1], bgc[2], bgc[3], bgc[4]), tostring(vert), tostring(bm and bm.thick) }, "|")
     if hd.phSig == sig and hd.phBG and hd.phBG:IsShown() then return end
     hd.phSig = sig
     if not hd.phBG then
@@ -2177,7 +2254,14 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     ns.Write(hd, function(fr)
         local bgT, icon, fs = fr.phBG, fr.phIcon, fr.phName
         bgT:ClearAllPoints()
-        if vert and side == "RIGHT" then
+        if bm then
+            -- 條身（橫向）垂直置中、高 thick，底再照等比偏移往外凸
+            local inset = (H - bm.thick) / 2
+            local x1, x2 = 0, 0
+            if side == "RIGHT" then x2 = -(H + gap) elseif side ~= "NONE" then x1 = H + gap end
+            bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", x1 + bm.bgL, -inset + bm.bgT)
+            bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", x2 + bm.bgR, inset + bm.bgB)
+        elseif vert and side == "RIGHT" then
             bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", 0, 0)
             bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", 0, H + gap)
         elseif vert and side ~= "NONE" then
@@ -2192,7 +2276,12 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
             bgT:SetPoint("TOPLEFT", fr, "TOPLEFT", H + gap, 0)
             bgT:SetPoint("BOTTOMRIGHT", fr, "BOTTOMRIGHT", 0, 0)
         end
-        bgT:SetTexture(WHITE)
+        if bm then
+            bgT:SetAtlas(D.BLIZZ_ATLAS.bg)
+        else
+            bgT:SetTexture(WHITE)
+            bgT:SetTexCoord(0, 1, 0, 1)                 -- 從暴雪樣式換回來：圖集的裁切座標不留
+        end
         bgT:SetVertexColor(bgc[1], bgc[2], bgc[3], bgc[4])
         bgT:Show()
         icon:ClearAllPoints()

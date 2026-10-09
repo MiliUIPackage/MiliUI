@@ -44,6 +44,7 @@ local Specs = ns.Specs
 
 local LABEL_W = ns.WidgetsEnv.LABEL_W or 128
 local EmptyModeRow       -- 版面那一節的「增益不在時」列（定義在下面）
+local BarCfg, BlizzBarLook   -- 長條的外觀（bar.look）：這條的 bar 子表／生效的是不是暴雪樣式（定義在下面，GradientRows 前）
 local CursorRow          -- 錨定那一節的「跟著游標」列（定義在下面）
 local GlowSampleRow      -- 發光的預覽圖示（定義在下面）
 
@@ -631,6 +632,11 @@ local function MasqueOwns(info)
     return ns.Masque and ns.Masque.Desired(SkinKey(info)) == "masque" or false
 end
 
+-- 邊框那三列：交給 Masque、或長條的暴雪樣式（原生長條沒有邊框，只在無損刷新期間照這三格亮一圈）時停用
+local function BorderOff(info)
+    return MasqueOwns(info) or BlizzBarLook(info)
+end
+
 local reloadPopup, askedSig
 function Specs.CheckSkinReload()
     local Mq = ns.Masque
@@ -769,9 +775,9 @@ function Specs.Themed(mode, key)
     if bar then add(OverrideRow("icon"), FollowToggle("icon"),
         Note(L["While checked, this section uses the Theme page. Uncheck it to give this bar its own values."])) end
     add(SkinRows())
-    add(TS("icon", "dropdown", "border.texture", L["Border texture"], { items = BorderItems, disabled = MasqueOwns }),
-        TS("icon", "slider", "border.size", L["Border size"], { min = 0, max = 4, step = 1, disabled = MasqueOwns }),
-        TS("icon", "color", "border.color", L["Border color"], { disabled = MasqueOwns }),
+    add(TS("icon", "dropdown", "border.texture", L["Border texture"], { items = BorderItems, disabled = BorderOff }),
+        TS("icon", "slider", "border.size", L["Border size"], { min = 0, max = 4, step = 1, disabled = BorderOff }),
+        TS("icon", "color", "border.color", L["Border color"], { disabled = BorderOff }),
         TS("icon", "slider", "icon.zoom", L["Icon zoom"], { min = 0, max = 0.2, step = 0.01, disabled = MasqueOwns }),
         Note(L["Crops the icon edges; 0 shows the whole texture."], "icon"),
         TS("icon", "dropdown", "icon.aspect", L["Non-square icons"], { items = ASPECT_ITEMS, disabled = MasqueOwns,
@@ -1220,6 +1226,24 @@ function Specs.OverflowSig(key)
     return table.concat(parts, ",")
 end
 
+-- 長條的外觀（bar.look）：米利樣式／暴雪樣式
+local BAR_LOOK_ITEMS = {
+    { text = L["MiliUI style"],   value = "miliui" },
+    { text = L["Blizzard style"], value = "blizzard" },
+}
+-- 這條自己的 bar 子表（沒有 ＝ 空表，只讀）
+function BarCfg(info)
+    local b = info and ns.DB.ConfigTable(info.key)
+    return type(b) == "table" and type(b.bar) == "table" and b.bar or {}
+end
+-- 這條現在**生效**的是暴雪樣式（直向＋暴雪存著也算米利，見 Decorate.BarLook）。條頁以外（主題頁）一律 false
+function BlizzBarLook(info)
+    if not info or info.mode == "theme" then return false end
+    local b = info.key and ns.DB.ConfigTable(info.key)
+    if type(b) ~= "table" or b.kind ~= "bars" then return false end
+    return ns.Decorate.BarLook(b.bar) == "blizzard"
+end
+
 -- 漸層填充（bar.gradient，F8a）：勾選＋方向＋終點色＋灰字。關 ＝ false；勾下去給一組預設
 -- （方向橫、終點色＝條色往白混一半）。方向與終點色沒勾時停用、右鍵不重設（整組由勾選那列重設）
 local GRADIENT_DIR_ITEMS = {
@@ -1429,8 +1453,10 @@ function Specs.Layout(key)
         add(BS("slider", "bar.width", L["Width"], { min = 0, max = 600, step = 1 }))
         add(Note(L["0 matches the first row of Essential Cooldowns."]))
         add(BS("slider", "bar.height", L["Height"], { min = 6, max = 60, step = 1 }))
-        -- 直向（F8c）：整條轉 90 度；表單要換圖示位置的字與成長方向的選項 ⇒ 重建
-        add(BS("toggle", "bar.vertical", L["Vertical"], { refreshPage = true }))
+        -- 直向（F8c）：整條轉 90 度；表單要換圖示位置的字與成長方向的選項 ⇒ 重建。
+        -- 外觀＝暴雪樣式時停用（暴雪樣式只有橫向；原因寫在「外觀」下面那一句）——看的是生效值（BarLook），
+        -- 兩個都存著的舊值（直向＋暴雪）時直向這格照樣能關，不會兩格互鎖
+        add(BS("toggle", "bar.vertical", L["Vertical"], { refreshPage = true, disabled = BlizzBarLook }))
         add(Note(L["The bar stands upright and fills from the bottom; bars line up side by side. Width is the bar's length and height its thickness. Names aren't shown, and the time sits at the top of the bar."]))
         add(BS("toggle", "bar.reverseFill", L["Reverse fill"]))
         add(Note(L["Fills from the right instead of the left (from the top when vertical)."]))
@@ -1445,10 +1471,33 @@ function Specs.Layout(key)
             -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條；留空位＝它圖示的 Keep Buffs in Same Place
             add(EmptyModeRow(key, true))
         end
-        add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems }))
-        add(BS("color", "bar.color", L["Bar color"]))
-        add(BS("color", "bar.bgColor", L["Background color"]))
-        for _, row in ipairs(GradientRows(key)) do add(row) end
+        -- 外觀（米利／暴雪樣式，Core/Decorate.lua 的「長條的暴雪樣式」）：直向時停用（暴雪樣式只有橫向）。
+        -- 暴雪樣式時材質、底色、漸層停用；「條色」那一列改讀寫 bar.blizzardColor（兩個顏色分開存）
+        add(BS("dropdown", "bar.look", L["Appearance"], { items = BAR_LOOK_ITEMS, refreshPage = true,
+            get = function(info) return BarCfg(info).look == "blizzard" and "blizzard" or "miliui" end,
+            disabled = function(info) return BarCfg(info).vertical and true or false end }))
+        add(Note(L["Blizzard style only works on horizontal bars."]))
+        local blizzLook = ns.Decorate.BarLook(type(bar.bar) == "table" and bar.bar or nil) == "blizzard"
+        add(BS("dropdown", "bar.texture", L["Texture"], { items = TextureItems, disabled = BlizzBarLook }))
+        if blizzLook then
+            -- 舊的自訂群組沒有這一欄（預設值只在 NewBarTable）：第一次讀時補上預設的橘色，色票才有表可以就地改
+            add(BS("color", "bar.blizzardColor", L["Bar color"], {
+                get = function(info)
+                    local b = BarCfg(info)
+                    if b.look == "blizzard" and type(b.blizzardColor) ~= "table" then
+                        local d = ns.Decorate.BLIZZ_COLOR
+                        b.blizzardColor = { r = d.r, g = d.g, b = d.b, a = d.a }
+                    end
+                    return b.blizzardColor
+                end }))
+        else
+            add(BS("color", "bar.color", L["Bar color"]))
+        end
+        add(BS("color", "bar.bgColor", L["Background color"], { disabled = BlizzBarLook }))
+        for _, row in ipairs(GradientRows(key)) do
+            if blizzLook then row.disabled = BlizzBarLook end
+            add(row)
+        end
         add(BS("toggle", "bar.spark", L["Show spark"]))
         add(Note(L["A bright marker at the moving end of the bar."]))
     end

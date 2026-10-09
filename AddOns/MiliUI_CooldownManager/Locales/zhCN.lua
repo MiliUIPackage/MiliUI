@@ -757,6 +757,8 @@ L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "显示火花"
 L["A bright marker at the moving end of the bar."] = "在条身填充的末端画一道亮光。"
+L["Blizzard style"] = "暴雪样式"
+L["Blizzard style only works on horizontal bars."] = "暴雪样式只能用在横向的条上。"
 L["Custom icon"] = "自定义图标"
 L["Change"] = "更换"
 L["Clear"] = "清除"

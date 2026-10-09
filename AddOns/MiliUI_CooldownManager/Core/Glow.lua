@@ -1223,8 +1223,11 @@ function G.ApplyPandemic(owner, rec, barKey)
             rec.pandemicBar = false
             local b = owner and owner.Bar
             local tex = b and b.GetStatusBarTexture and b:GetStatusBarTexture()
-            -- 還原成條的單色或漸層（F8a；同 ApplyBarLook 的那支）
-            if tex then ns.Decorate.PaintFill(tex, barKey and ns.Setting(barKey, "bar") or nil) end
+            -- 還原成條現在的填充色（米利樣式的單色或漸層、暴雪樣式的 blizzardColor；同 ApplyBarLook 問的那支）
+            if tex then
+                local D = ns.Decorate
+                D.PaintFill(tex, D.BarFillStyle(barKey and ns.Setting(barKey, "bar") or nil))
+            end
             -- 層數換色那一層在條身底下、暴雪的填充要維持透明（Core/StackGate.lua）
             if ns.StackGate then ns.StackGate.Reconceal(owner, rec) end
         end

@@ -692,6 +692,50 @@ do
         bt.bar.reverseFill = nil
         CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
     end
+    -- 長條的暴雪樣式（Decorate.BarLook）：解進 st（圖集、blizzardColor、等比尺寸）、進簽章；新條細條身＋圖集＋遮罩＋外框圖、不畫邊框
+    do
+        local bt = DB.BarTable("buffbars")
+        bt.bar = bt.bar or {}
+        local D0 = ns.Decorate
+        local ATL = { mask = "M", overlay = "O", fill = "F", bg = "BG", pip = "P" }
+        D0.BLIZZ_ATLAS = ATL
+        D0.BarLook = function(b) return (type(b) == "table" and b.look == "blizzard" and not b.vertical) and "blizzard" or "miliui" end
+        D0.BarFillStyle = function(b) return { color = b.blizzardColor or { r = 1, g = 0.5, b = 0.25, a = 1 } } end
+        D0.BlizzBarMetrics = function(h)
+            local k = h / 30
+            return { thick = h * 19 / 30, bgL = -2 * k, bgT = 2 * k, bgR = 4 * k, bgB = -7 * k, ovX = 6 * k, ovY = 5 * k, pipScale = k }
+        end
+        local st0 = CU.AuraStyle(arec, "buffbars", 200, 30, "bars")
+        eq("暴雪樣式：沒存 ⇒ 不是", st0.blizz, false)
+        bt.bar.look = "blizzard"
+        local stB = CU.AuraStyle(arec, "buffbars", 200, 30, "bars")
+        eq("暴雪樣式：st.blizz", stB.blizz, true)
+        eq("暴雪樣式：填充是圖集名", stB.btex, "F")
+        eq("暴雪樣式：填充色＝原生橘", stB.bfill[2], 0.5)
+        eq("暴雪樣式：底頂點色白", stB.bbg[1], 1)
+        eq("暴雪樣式：沒有漸層", stB.bgrad, nil)
+        check("暴雪樣式：進簽章", stB.sig ~= st0.sig)
+        local bbtn = Obj("Frame")
+        local bgot = {}
+        function bbtn:SetIcon(icon) bgot.icon = icon end
+        function bbtn:SetDurationBar(bar) bgot.bar = bar end
+        function bbtn:SetDurationText() end
+        function bbtn:SetApplicationCount() end
+        function bbtn:CreateMaskTexture() bgot.mask = Obj("MaskTexture", self); return bgot.mask end
+        local sigB0 = arec.sig
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 30 }, "buffbars", 6)
+        check("暴雪樣式：換一顆容器", arec.sig ~= sigB0)
+        arec.lastError = nil
+        arec.container.slot.opts.initializeFrame(bbtn)
+        eq("暴雪樣式：initializeFrame 沒有錯誤", arec.lastError, nil)
+        eq("暴雪樣式：條身高 19", bgot.bar and bgot.bar.last_SetHeight and bgot.bar.last_SetHeight[1], 19)
+        eq("暴雪樣式：填充材質傳圖集名", bgot.bar and bgot.bar.last_SetStatusBarTexture and bgot.bar.last_SetStatusBarTexture[1], "F")
+        eq("暴雪樣式：遮罩是圖集", bgot.mask and bgot.mask.last_SetAtlas and bgot.mask.last_SetAtlas[1], "M")
+        eq("暴雪樣式：圖示套上遮罩", bgot.icon and bgot.icon.calls.AddMaskTexture, 1)
+        bt.bar.look = nil
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
+        D0.BLIZZ_ATLAS, D0.BarLook, D0.BarFillStyle, D0.BlizzBarMetrics = nil, nil, nil, nil
+    end
     -- 長條名字的逐法術覆寫（barShowName 三態／barNameFont／barNameSize）：解進 st、進簽章（換容器）；占位的名字跟著
     do
         local aid = arec.cooldownID

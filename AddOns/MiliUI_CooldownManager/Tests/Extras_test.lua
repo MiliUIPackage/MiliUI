@@ -25,6 +25,10 @@
 --  13. 長條漸層填充（F8a）：CleanGradient／GradientSig／PaintFill 的呼叫順序、預設值
 --  12. 挑選器「背包物品」（F6）：BagRows 的去重／有使用效果才列／依名字排序（沒名字的排後面依 ID）／數量／已加入；
 --      ScanBags（bag 0～4、秘密值與空格跳過）；PresetRows("bag") 接起來（加入後標已加入、make 的形狀）
+--  21. 長條的暴雪樣式（bar.look）：BarLook（直向一律米利）、BlizzBarMetrics（以 30 為基準等比）、BarFillStyle／BarFillTexture／
+--      BarBGColor、ApplyBarGeometry 的暴雪分支（細條身、垂直置中、三種圖示位置、間距照 iconGap）、ApplyBarLook 來回切換
+--      （填充材質、底的圖集／白底與 texcoord、自己的火花與暴雪火花的還原）、遮罩與外框圖（暴雪 item 拔下來記弱鍵表再裝回、
+--      自己的框懶建一份）、邊框平常藏著只在無損刷新亮（RecolorBorder／RestoreBorder）、預設值
 --  20. 長條名字的逐法術覆寫：登記、Text.SpellText 的 "barName"（三態開關 × 條層開關、字型／字級）、跟隨來源、簽章、
 --      Text.ApplyBar 讀合併值（直向不畫）、文字組清除
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
@@ -2355,6 +2359,228 @@ do
     DB.ResetOverrides(id)
     bar.showName, bar.nameSize, bar.nameFont, bar.vertical = saved.showName, saved.nameSize, saved.nameFont, saved.vertical
     D.InvalidateAll()
+end
+
+------------------------------------------------------------
+-- 21. 長條的暴雪樣式（bar.look）
+------------------------------------------------------------
+do
+    -- 生效值：只有「暴雪＋橫向」才是暴雪
+    eq("外觀：沒存 ⇒ 米利", D.BarLook({}), "miliui")
+    eq("外觀：nil ⇒ 米利", D.BarLook(nil), "miliui")
+    eq("外觀：暴雪", D.BarLook({ look = "blizzard" }), "blizzard")
+    eq("外觀：暴雪＋直向 ⇒ 米利", D.BarLook({ look = "blizzard", vertical = true }), "miliui")
+    eq("外觀：亂寫 ⇒ 米利", D.BarLook({ look = "x" }), "miliui")
+    local nb = DB.NewBarTable("bars", "x").bar
+    eq("預設值：外觀米利", nb.look, "miliui")
+    check("預設值：暴雪樣式的填充色＝原生橘", nb.blizzardColor.r == 1 and nb.blizzardColor.g == 0.5 and nb.blizzardColor.b == 0.25)
+
+    -- 等比尺寸（測試環境沒有 ns.P ⇒ Snap 不動值）
+    local m = D.BlizzBarMetrics(30)
+    eq("30 高：條身 19", m.thick, 19)
+    check("30 高：底的偏移照模板", m.bgL == -2 and m.bgT == 2 and m.bgR == 4 and m.bgB == -7)
+    check("30 高：外框圖 6／5", m.ovX == 6 and m.ovY == 5)
+    eq("30 高：火花倍率 1", m.pipScale, 1)
+    local m2 = D.BlizzBarMetrics(60)
+    eq("60 高：條身 38", m2.thick, 38)
+    check("60 高：偏移加倍", m2.bgB == -14 and m2.ovX == 12 and m2.pipScale == 2)
+    eq("壞值 ⇒ 當 30", D.BlizzBarMetrics(nil).thick, 19)
+    eq("0 ⇒ 當 30", D.BlizzBarMetrics(0).thick, 19)
+
+    -- 填充色表／材質／底色
+    local mili = { color = { r = 0.1, g = 0.2, b = 0.3, a = 1 }, gradient = { dir = "H", color2 = {} } }
+    eq("填充色：米利 ⇒ 條設定本身", D.BarFillStyle(mili), mili)
+    local bz = { look = "blizzard", color = mili.color, gradient = mili.gradient, blizzardColor = { r = 0.9, g = 0.8, b = 0.7, a = 1 } }
+    local fs = D.BarFillStyle(bz)
+    eq("填充色：暴雪 ⇒ blizzardColor", fs.color.r, 0.9)
+    eq("填充色：暴雪沒有漸層", fs.gradient, nil)
+    eq("填充色：暴雪沒存色 ⇒ 原生橘", D.BarFillStyle({ look = "blizzard" }).color.g, 0.5)
+    eq("填充色：直向＋暴雪 ⇒ 照米利", D.BarFillStyle({ look = "blizzard", vertical = true, color = mili.color }).color, mili.color)
+    eq("填充色：nil ⇒ 空表", type(D.BarFillStyle(nil)), "table")
+    ns.Media = ns.Media or {}
+    local savedTex = ns.Media.Texture
+    ns.Media.Texture = function(t) return "lsm:" .. tostring(t) end
+    eq("填充材質：暴雪 ⇒ 圖集名", D.BarFillTexture(bz), "UI-HUD-CoolDownManager-Bar")
+    eq("填充材質：米利 ⇒ LSM 路徑", D.BarFillTexture({ texture = "solid" }), "lsm:solid")
+    local r, g, b, a = D.BarBGColor(bz)
+    check("底色：暴雪 ⇒ 白", r == 1 and g == 1 and b == 1 and a == 1)
+    r, g, b, a = D.BarBGColor({ bgColor = { r = 0.2, g = 0.2, b = 0.2, a = 0.5 } })
+    check("底色：米利 ⇒ bgColor", r == 0.2 and a == 0.5)
+
+    -- 假的區塊：記錄錨點、材質、圖集、遮罩
+    local function R()
+        local o = { pts = {}, masks = {}, regions = {} }
+        function o:ClearAllPoints() self.pts = {} end
+        function o:SetPoint(...) self.pts[#self.pts + 1] = { ... } end
+        function o:SetAllPoints(t) self.pts = { { "ALL", t } } end
+        function o:SetSize(w, h) self.w, self.h = w, h end
+        function o:SetHeight(v) self.sh = v end
+        function o:SetWidth(v) self.sw = v end
+        function o:SetAlpha(v) self.alpha = v end
+        function o:IsShown() return true end
+        function o:Show() self.shown = true end
+        function o:Hide() self.shown = false end
+        function o:SetOrientation(v) self.orient = v end
+        function o:SetReverseFill(v) self.rev = v end
+        function o:SetRotation(v) self.rot = v end
+        function o:SetTexture(t) self.tex, self.atlas = t, nil end
+        function o:SetAtlas(at, useSize) self.atlas, self.tex, self.useSize = at, nil, useSize end
+        function o:GetAtlas() return self.atlas end
+        function o:SetTexCoord(...) self.tc = { ... } end
+        function o:SetVertexColor(r1, g1, b1, a1) self.vc = { r1, g1, b1, a1 } end
+        function o:GetObjectType() return "Texture" end
+        function o:GetNumMaskTextures() return #self.masks end
+        function o:GetMaskTexture(i) return self.masks[i] end
+        function o:AddMaskTexture(mk) self.masks[#self.masks + 1] = mk end
+        function o:RemoveMaskTexture(mk)
+            for i, v in ipairs(self.masks) do if v == mk then table.remove(self.masks, i) return end end
+        end
+        function o:GetRegions() return unpack(self.regions) end
+        function o:CreateMaskTexture() local t = R(); self.madeMask = t; return t end
+        function o:CreateTexture() local t = R(); self.madeTex = t; return t end
+        return o
+    end
+
+    -- 幾何：暴雪分支（細條身、垂直置中、LEFT／RIGHT 錨，高度自己給）
+    local item, icon, bar = R(), R(), R()
+    item.Icon, item.Bar = icon, bar
+    D.ApplyBarGeometry(item, nil, { h = 30, w = 220, side = "LEFT", gap = 3, look = "blizzard" })
+    eq("暴雪幾何：條身高 19", bar.sh, 19)
+    check("暴雪幾何：圖示 h×h", icon.w == 30 and icon.h == 30)
+    eq("暴雪幾何：條身左緣錨圖示右緣", bar.pts[1][1] .. bar.pts[1][3], "LEFTRIGHT")
+    eq("暴雪幾何：間距照 iconGap", bar.pts[1][4], 3)
+    eq("暴雪幾何：條身右緣錨 item", bar.pts[2][1] .. bar.pts[2][3], "RIGHTRIGHT")
+    D.ApplyBarGeometry(item, nil, { h = 30, w = 220, side = "RIGHT", gap = 3, look = "blizzard" })
+    eq("暴雪幾何 RIGHT：圖示靠右", icon.pts[1][1], "RIGHT")
+    eq("暴雪幾何 RIGHT：條身右緣錨圖示左緣、往左 gap", bar.pts[2][3] .. bar.pts[2][4], "LEFT-3")
+    D.ApplyBarGeometry(item, nil, { h = 30, w = 220, side = "NONE", gap = 3, look = "blizzard" })
+    check("暴雪幾何 NONE：條身左右貼 item", bar.pts[1][2] == item and bar.pts[2][2] == item)
+    eq("暴雪幾何 NONE：圖示熄", icon.alpha, 0)
+    D.ApplyBarGeometry(item, nil, { h = 30, w = 220, side = "LEFT", gap = 3 })
+    eq("切回米利：條身 TOPLEFT 錨（高度由錨點決定）", bar.pts[1][1], "TOPLEFT")
+    eq("切回米利：BOTTOMRIGHT 錨", bar.pts[2][1], "BOTTOMRIGHT")
+
+    -- 外觀：來回切換（自己的條＝ownPip）
+    local fill, bg, pip = R(), R(), R()
+    bar.BarBG, bar.Pip, bar.ownPip = bg, pip, true
+    local sbTex
+    function bar:SetStatusBarTexture(t) sbTex = t end
+    function bar:GetStatusBarTexture() return fill end
+    local savedCT = env.C_Texture
+    env.C_Texture = { GetAtlasInfo = function(at) if at == "UI-HUD-CoolDownManager-Bar-Pip" then return { width = 10, height = 24 } end end }
+    local cfg = { look = "blizzard", texture = "solid", color = { r = 0.1, g = 0.2, b = 0.3, a = 1 },
+                  blizzardColor = { r = 1, g = 0.5, b = 0.25, a = 1 }, bgColor = { r = 0.1, g = 0.1, b = 0.1, a = 0.8 }, spark = true }
+    D.ApplyBarLook(item, nil, {}, cfg, 60)
+    eq("暴雪外觀：填充傳圖集名", sbTex, "UI-HUD-CoolDownManager-Bar")
+    eq("暴雪外觀：填充色＝blizzardColor", fill.vc[2], 0.5)
+    eq("暴雪外觀：底換圖集", bg.atlas, "UI-HUD-CoolDownManager-Bar-BG")
+    eq("暴雪外觀：底頂點色白", bg.vc[4], 1)
+    check("暴雪外觀：底右下凸出（60 高 ⇒ 8, -14）", bg.pts[2][4] == 8 and bg.pts[2][5] == -14)
+    eq("暴雪外觀：自己的火花換圖集", pip.atlas, "UI-HUD-CoolDownManager-Bar-Pip")
+    check("暴雪外觀：火花照倍率縮（2×）", pip.w == 20 and pip.h == 48)
+    eq("暴雪外觀：火花 CENTER 錨填充右緣", pip.pts[1][1] .. pip.pts[1][3], "CENTERRIGHT")
+    eq("暴雪外觀：火花 alpha 照 spark", pip.alpha, 1)
+    cfg.reverseFill = true
+    D.ApplyBarLook(item, nil, {}, cfg, 60)
+    eq("暴雪外觀反向：火花錨填充左緣", pip.pts[1][3], "LEFT")
+    cfg.reverseFill = nil
+    cfg.look = "miliui"
+    D.ApplyBarLook(item, nil, {}, cfg, 60)
+    eq("切回米利：填充 LSM", sbTex, "lsm:solid")
+    eq("切回米利：填充色＝bar.color", fill.vc[1], 0.1)
+    eq("切回米利：底白底", bg.tex, "Interface\\BUTTONS\\WHITE8X8")
+    check("切回米利：底的 texcoord 全幅", bg.tc and bg.tc[1] == 0 and bg.tc[2] == 1)
+    eq("切回米利：底貼滿條身", bg.pts[1][1], "ALL")
+    eq("切回米利：底色＝bgColor", bg.vc[4], 0.8)
+    eq("切回米利：火花白線", pip.tex, "Interface\\BUTTONS\\WHITE8X8")
+    eq("切回米利：火花 2px", pip.sw, 2)
+    eq("切回米利：火花錨右上", pip.pts[1][3], "TOPRIGHT")
+    -- 自己的火花錨法跟著長相走（充能分段搬火花時走 AnchorOwnPip）
+    D.AnchorOwnPip(pip, fill, false, false)
+    eq("米利長相：AnchorOwnPip 是 2px 線", pip.pts[1][3], "TOPRIGHT")
+    -- 直向＋暴雪存著 ⇒ 照米利畫
+    cfg.look, cfg.vertical = "blizzard", true
+    D.ApplyBarLook(item, nil, {}, cfg, 60)
+    eq("直向＋暴雪：照米利", sbTex, "lsm:solid")
+    cfg.vertical = nil
+
+    -- 暴雪條自己的火花（非 ownPip）：只換尺寸，切回來 SetAtlas(…, true) 還原原尺寸
+    local bpip = R()
+    bar.Pip, bar.ownPip = bpip, nil
+    cfg.look = "blizzard"
+    D.ApplyBarLook(item, nil, {}, cfg, 15)
+    check("暴雪條的火花：縮成一半", bpip.w == 5 and bpip.h == 12)
+    cfg.look = "miliui"
+    bpip.useSize = nil
+    D.ApplyBarLook(item, nil, {}, cfg, 15)
+    eq("暴雪條的火花：切回來用圖集原尺寸", bpip.useSize, true)
+    bpip.useSize = "untouched"
+    D.ApplyBarLook(item, nil, {}, cfg, 15)
+    eq("暴雪條的火花：米利樣式沒縮過就不碰", bpip.useSize, "untouched")
+    env.C_Texture = savedCT
+
+    -- 遮罩與外框圖：暴雪 item（模板裡的遮罩拔下來記著、再裝回去；外框圖亮／熄＋等比重錨）
+    local bItem, bIconFrame, bIcon, mask, ov = R(), R(), R(), R(), R()
+    bIconFrame.Icon = bIcon
+    bItem.Icon = bIconFrame
+    bIcon.masks = { mask }
+    ov.atlas = "UI-HUD-CoolDownManager-IconOverlay"
+    bIconFrame.regions = { ov }
+    local rec = {}
+    D.SetBlizzIconArt(bItem, rec, false, 30)
+    eq("米利：遮罩拔掉", #bIcon.masks, 0)
+    eq("米利：外框圖熄", ov.alpha, 0)
+    eq("米利：rec.stripped", rec.stripped, true)
+    eq("拔下來的遮罩記著", D.MaskOf(bIcon)[1], mask)
+    D.SetBlizzIconArt(bItem, rec, true, 60)
+    eq("暴雪：遮罩裝回去", bIcon.masks[1], mask)
+    eq("暴雪：外框圖亮", ov.alpha, 1)
+    check("暴雪：外框圖等比重錨（60 ⇒ 12／10）", ov.pts[1][4] == -12 and ov.pts[1][5] == 10)
+    eq("暴雪：rec.stripped ＝ false", rec.stripped, false)
+    D.SetBlizzIconArt(bItem, rec, true, 60)
+    eq("暴雪：冪等（不重加）", #bIcon.masks, 1)
+    D.SetBlizzIconArt(bItem, rec, false, 60)
+    eq("再切米利：又拔掉", #bIcon.masks, 0)
+    eq("再切米利：記錄還是模板那一顆", #D.MaskOf(bIcon), 1)
+
+    -- 自己的框（rec nil／自訂框）：懶建一份
+    local oItem, oIconFrame, oIcon = R(), R(), R()
+    oIconFrame.Icon = oIcon
+    oItem.Icon = oIconFrame
+    D.SetBlizzIconArt(oItem, nil, false, 30)
+    eq("自己的框：米利樣式不建", D.OwnIconArt(oIconFrame), nil)
+    D.SetBlizzIconArt(oItem, nil, true, 30)
+    local art = D.OwnIconArt(oIconFrame)
+    check("自己的框：建了遮罩", art and art.mask and art.mask.atlas == "UI-HUD-CoolDownManager-Mask")
+    eq("自己的框：遮罩套上", oIcon.masks[1], art.mask)
+    eq("自己的框：外框圖", art.ov.atlas, "UI-HUD-CoolDownManager-IconOverlay")
+    eq("自己的框：外框圖顯示", art.ov.shown, true)
+    D.SetBlizzIconArt(oItem, { custom = true }, true, 30)
+    eq("自訂框也走自己的那份、冪等", #oIcon.masks, 1)
+    D.SetBlizzIconArt(oItem, nil, false, 30)
+    eq("自己的框切米利：遮罩拿掉", #oIcon.masks, 0)
+    eq("自己的框切米利：外框圖藏", art.ov.shown, false)
+    D.SetBlizzIconArt(oItem, nil, true, 30)
+    eq("自己的框再切暴雪：重用同一份", D.OwnIconArt(oIconFrame), art)
+
+    -- 邊框：暴雪樣式兩圈都藏著，只在無損刷新期間亮
+    local laid = {}
+    local savedLB = D.LayoutBorder
+    local brd1, brd2 = { tag = "b1" }, { tag = "b2" }
+    for i = 1, 4 do
+        brd1[i] = R(); brd2[i] = R()
+    end
+    local r2 = { border = brd1, border2 = brd2, borderRGBA = { 0, 0, 0, 1 },
+                 hiddenEdges = { icon = { region = "ICON", size = 0 }, bar = { region = "BAR", size = 2 } } }
+    ns.Media.BorderInset = ns.Media.BorderInset or function(sz) return sz end
+    ns.Media.Border = ns.Media.Border or function() return nil end
+    D.RecolorBorder(r2, { r = 1, g = 0, b = 0, a = 1 })
+    eq("無損刷新：圖示那圈亮（粗細 0 ⇒ 1）", brd1[1].sh, 1)
+    eq("無損刷新：條身那圈亮", brd2[1].sh, 2)
+    eq("無損刷新：提醒色", brd2[1].vc[1], 1)
+    D.RestoreBorder(r2)
+    check("還原：兩圈都藏回去", brd1[1].shown == false and brd2[1].shown == false)
+    ns.Media.Texture = savedTex
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))

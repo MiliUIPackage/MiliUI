@@ -757,6 +757,8 @@ L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "Показывать искру"
 L["A bright marker at the moving end of the bar."] = "Яркая черта на движущемся конце полосы."
+L["Blizzard style"] = "Стиль Blizzard"
+L["Blizzard style only works on horizontal bars."] = "Стиль Blizzard работает только с горизонтальными полосами."
 L["Custom icon"] = "Свой значок"
 L["Change"] = "Сменить"
 L["Clear"] = "Сбросить"

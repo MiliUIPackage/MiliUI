@@ -1423,6 +1423,48 @@ Interface 底下任一資料夾的 .ogg／.mp3，填 **Interface 之後**的相�
 - 小窗「文字」分頁：長條上的格（橫向）最上面一節「名字」——「顯示名字」勾選框（沒覆寫時勾選照條的值、灰字講跟隨誰；右鍵標籤回跟隨）、
   字型、字級（6～30）；接著的倒數那一節在長條上的格標題改「時間」、隱藏改「隱藏時間」（同一個 `hideCooldownText`）。
 
+### 長條：暴雪樣式（`Core/Decorate.lua`、`Core/StackGate.lua`、`Core/Glow.lua`、`Core/DB.lua`、`Modules/Custom.lua`、`Options/Specs.lua`，2026-10-09）
+
+長條類的條（增益長條＋長條群組）多一個「外觀：米利樣式／暴雪樣式」（`bar.look`），選暴雪時畫成暴雪冷卻管理器原生長條的長相。
+實作計畫在 `~/.claude/plans/miliui-cdm-blizzard-bar-look.md`。圖示類的條、圓環、資源條、施法條、天空騎術不動。
+
+- 依據：Gethe/wow-ui-source `Blizzard_CooldownViewer/CooldownViewer.xml` 的 `CooldownViewerBuffBarItemTemplate`（item 220×30）——
+  圖示 30×30＋圓角遮罩 `UI-HUD-CoolDownManager-Mask`＋外框圖 `UI-HUD-CoolDownManager-IconOverlay`（凸出 6／5）、條身高 19 垂直置中、
+  填充 `UI-HUD-CoolDownManager-Bar`（頂點色 1, 0.5, 0.25）、底 `UI-HUD-CoolDownManager-Bar-BG`（TOPLEFT −2,2／BOTTOMRIGHT 4,−7，右下凸出＝陰影）、
+  火花 `UI-HUD-CoolDownManager-Bar-Pip`（圖集原尺寸）、沒有邊框。暴雪的 Lua 執行期不碰填充材質／顏色／底，寫一次就留得住。
+- 尺寸以格高 30 為基準等比（`D.BlizzBarMetrics(h)` → thick／底的四個偏移／外框圖凸出量／火花倍率，像素對齊走 `Layout.Snap`）；
+  圖示與條身的間距照 `bar.iconGap`（不硬寫 2）；圖示位置左／右／無都照常。文字照我們的文字設定（不改成 NumberFontNormal）。
+- 欄位：`bar.look`（`"miliui"` 預設｜`"blizzard"`）、`bar.blizzardColor`（暴雪樣式的填充色，預設原生橘 1, 0.5, 0.25）。舊存檔沒有 ＝ 米利，
+  **不遷移、不 bump DB_VERSION**。兩個顏色分開存：切回米利時 `bar.color` 的藍色還在。
+- 生效值只問 `D.BarLook(bar)`：存了暴雪而且**不是直向**才是暴雪（底的圖集是橫的、陰影在右下）；直向＋暴雪存著照米利畫。
+  填充色只問 `D.BarFillStyle(bar)`（米利＝條設定本身的單色／漸層、暴雪＝`{ color = blizzardColor }`，沒有漸層）——
+  ApplyBarLook、無損刷新還原（`Core/Glow.lua`）、層數那一層（`Core/StackGate.lua`）、充能分段都走它。
+- `StatusBar:SetStatusBarTexture` 收圖集名（暴雪自己的 `UnitFrame.lua` 就是 `manaBar:SetStatusBarTexture(info.atlas)`；API 文件參數型別 `TextureAsset`）
+  ⇒ 填充直接傳圖集名（`D.BarFillTexture`）。一般貼圖（底、自己的火花、層數那一層的色塊）走 `SetAtlas`；換回米利時 `SetTexture(WHITE)`＋`SetTexCoord(0,1,0,1)`。
+- 來回切換不重載，每樣東西怎麼回去：
+  - 填充：`SetStatusBarTexture` 每次寫（圖集名／LSM 路徑），`PaintFill` 每次寫（暴雪沒漸層 ⇒ 畫過的漸層先洗成白→白）。
+  - 底：`D.PaintBarBG` 每次整套寫（清錨點 → 暴雪＝圖集＋等比偏移／米利＝貼滿條身＋白底＋全幅 texcoord → 頂點色）。
+  - 火花：自己的（ownPip）暴雪＝火花圖集、等比尺寸、CENTER 錨填充移動的那一端；米利＝`SetTexture(WHITE)`＋2px 線（`D.AnchorFillPip`）。
+    錨法照現在的長相（弱鍵表 `blizzOwnPip`、`D.AnchorOwnPip`；充能分段搬火花也走它）。暴雪條的 Pip 暴雪樣式時 `SetAtlas(…, true)` 後照倍率縮，
+    切回米利 `SetAtlas(…, true)` 回原尺寸（只對縮過的，弱鍵表 `scaledPip`）。
+  - 遮罩與外框圖：`D.SetBlizzIconArt(item, rec, on, h)`，冪等。暴雪 item 第一次拔下來的模板遮罩記在**我們的弱鍵表**（`maskOf[tex]`，不寫暴雪框欄位），
+    暴雪樣式時 `AddMaskTexture` 裝回去（已在就不重加）、外框圖 alpha 1＋等比重錨；米利時照 StripBlizzard 拔。`rec.stripped` 的語意改成「目前是拔掉的狀態」。
+    我們自己的框（自訂長條、設定頁預覽格、增益長條的占位）懶建一顆遮罩＋一張外框圖（弱鍵表 `ownArt`），米利時遮罩拿掉、外框圖藏。
+  - Masque 優先：這條的圖示交給 Masque 而且 Sync 成功 ⇒ 圖示照 Masque（交出去之前先拔，免得之後連 Masque 的遮罩一起拔），條身照暴雪樣式；
+    交不出去（戰鬥中、群組停用）再照暴雪樣式裝回去。外觀切換不影響 Masque 的登入快照。
+  - 邊框：暴雪樣式兩圈（圖示、條身）都不畫；排法記在 `rec.hiddenEdges = { icon, bar }`，無損刷新期間照那個排法亮（跟 Masque 的 `rec.msqEdge` 同一套，
+    `D.RecolorBorder`／`D.RestoreBorder`）。切回米利時 `rec.hiddenEdges = nil`、`LayoutBorder` 照常畫。
+  - 層數那一層（StackGate）：底走 `D.PaintBarBG`（暴雪的底圖集）、填充／色塊換圖集、填充色 blizzardColor；暴雪的 BarBG 調透明、還原時回白（不被寫成 bgColor）。
+    外觀與 blizzardColor 進層簽章 ⇒ 切換時整層重建。
+- 光環長條（`Custom.InitAuraBarButton`）：`st.blizz` 解進簽章（換容器），新條照同一組圖集與等比尺寸畫、圖示套遮罩、外框圖疊在 ov 上、不畫邊框。
+  光環長條的占位（`UpdateBarPlaceholder`）：空條畫成暴雪的底圖集＋細條身；占位的暗圖示**不套遮罩**（看不出圓角）。
+- 設定頁（版面分頁，「材質」前面）：「外觀」下拉（米利樣式／暴雪樣式，重建表單）＋灰字一句「暴雪樣式只能用在橫向的長條」。直向開著時「外觀」停用；
+  生效是暴雪時「垂直」停用（看生效值，舊存檔直向＋暴雪兩個都存著時「垂直」照樣能關，不互鎖）。暴雪時「材質」「底色」「漸層」三列停用、
+  「條色」那一列改讀寫 `bar.blizzardColor`（舊的自訂群組沒有這欄，第一次讀時補預設橘色）；圖示那一節的邊框材質／粗細／顏色在條頁上停用。
+  火花、反向填充、圖示位置／間距、充能分段照常。
+- 純函式測試：`Tests/Extras_test.lua` 第 21 節（BarLook、BlizzBarMetrics、BarFillStyle／BarFillTexture／BarBGColor、暴雪幾何、ApplyBarLook 來回切換、
+  遮罩與外框圖、邊框藏與亮）、`Tests/StackGate_test.lua`（外觀進簽章、層的底與填充、停放還原）、`Tests/Custom_test.lua`（光環長條的 st 與新條）。
+
 ### 圓環顯示（`Core/Layout.lua`、`Core/Decorate.lua`、`Core/Text.lua`、`Core/Bars.lua`、`Core/Glow.lua`、`Modules/Custom.lua`、`Options/Specs.lua`、`Options/Preview.lua`，2026-10-08）
 
 增益圖示列與自訂圖示群組多一個「顯示樣式：圖示／圓環」（`layout.style`）。圓環＝每格一圈同心圓、進度沿環走，亮的那段＝剩下的時間。
@@ -3231,6 +3273,20 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 422. 設定在回充中途改（開→關、關→開）當場換，不用等下一次施放；逐法術覆寫（小窗「外觀」分頁，只在有充能的技能出現）蓋過條層、右鍵清掉。
 423. 設成「增益持續中不顯示持續時間」的充能技能（蓋掉增益那一段）：回充時照樣吃這三個開關。
 424. 自訂法術（充能）：畫轉圈時 0 充能不會疊成兩層暗色；不畫邊緣生效；Masque 模式的條轉圈材質是 Masque 的。
+
+**長條的暴雪樣式（2026-10-09）**
+
+425. 增益長條切暴雪樣式（格高 30）：跟暴雪原生長條並排比對——圓角圖示＋外框圖、細條身垂直置中、橘色填充、底的右下陰影、火花位置；
+     格高 20／40 時等比縮放看起來對不對（外框圖凸出量、陰影、火花大小）。填充圖集在部分填充時是**裁切**不是擠壓（`SetStatusBarTexture` 收圖集名的假設）。
+426. 米利 ↔ 暴雪來回切幾次、不重載：填充材質與顏色、底（白底貼滿／圖集＋陰影）、火花（2px 線／圖集）、圓角遮罩、外框圖、邊框全部回得去；
+     暴雪 item 重新取出（buff 上下、換專精、編輯模式）之後遮罩與外框圖維持現在的樣式。
+427. 暴雪樣式下無損刷新：圖示與條身兩圈邊框亮出來（粗細 0 時 1px）、填充換提醒色；結束後邊框藏回去、填充回 blizzardColor。
+428. 暴雪樣式＋層數換色／層數當填充／刻度：暴雪的底圖集畫在條身底下、色塊用填充圖集、名字與時間在最上面；停放後暴雪的底是白（不是 bgColor 的灰）。
+429. Masque 模式的長條切暴雪：圖示照 Masque 皮（沒有兩層遮罩、沒有暴雪外框圖疊在皮上）、條身照暴雪；Masque 群組停用時圖示改成暴雪的圓角。
+430. 自訂法術／物品長條、長條群組裡的光環長條、充能分段（火花跟著回充那一段）在暴雪樣式下的長相；光環長條戰鬥中改外觀要脫戰才換。
+431. 設定頁：直向時「外觀」停用、暴雪時「垂直」「材質」「底色」「漸層」與邊框三列停用；「條色」在暴雪時改的是橘色那一份，切回米利藍色還在；
+     預覽格同步換長相。直向＋暴雪的舊存檔：照米利畫、「垂直」可以關。
+432. 戰鬥中進出、首領戰一次：零錯誤、`/console taintLog 2` 對暴雪增益長條零新條目（遮罩裝回去／外框圖重錨／Pip 的 SetAtlas 都是暴雪模板的貼圖）。
 
 **效能基準**
 

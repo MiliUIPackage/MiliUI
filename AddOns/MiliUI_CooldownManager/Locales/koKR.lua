@@ -757,6 +757,8 @@ L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank 
 -- 小項：火花、自訂圖示、語音播報、跟著游標
 L["Show spark"] = "불꽃 표시"
 L["A bright marker at the moving end of the bar."] = "바가 채워진 끝부분에 밝은 표시를 그립니다."
+L["Blizzard style"] = "블리자드 스타일"
+L["Blizzard style only works on horizontal bars."] = "블리자드 스타일은 가로 바에서만 쓸 수 있습니다."
 L["Custom icon"] = "사용자 아이콘"
 L["Change"] = "변경"
 L["Clear"] = "지우기"

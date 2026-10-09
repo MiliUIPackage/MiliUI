@@ -10,7 +10,8 @@
 -- 讀層數的順序（getter → auraInstanceID 退路 → 0）、生效狀態只在該看的時候看、
 -- 後掛勾的提早 return、停放與重新放格、長條換色把暴雪條調透明／還原、無損刷新後重調、
 -- 與生效發光互斥（Glow.SyncActive）、預覽走層數發光的樣式（Glow.PreviewActive）、
--- 比較子（F4：Op 清洗、GateSpec 五種 op、巢狀閘的父子鏈與錨點、每層都餵、永不成立整組藏）。
+-- 比較子（F4：Op 清洗、GateSpec 五種 op、巢狀閘的父子鏈與錨點、每層都餵、永不成立整組藏）、
+-- 長條的暴雪樣式（外觀與 blizzardColor 進簽章、底走 Decorate.PaintBarBG、圖集填充、停放還原成白底／blizzardColor）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -977,6 +978,69 @@ do
     eq("released ⇒ 不建", rec.stackCfg, nil)
     ns.released = nil
     overrides[60] = nil
+end
+
+------------------------------------------------------------
+-- 長條的暴雪樣式（bar.look，Decorate.BarLook）：外觀進層簽章；這一層的底／填充照外觀（Decorate 的那幾支）、
+-- 停放還原時暴雪的底回白（不被寫成 bgColor）
+------------------------------------------------------------
+do
+    local savedDeco = ns.Decorate
+    local function Look(bar) return (type(bar) == "table" and bar.look == "blizzard" and not bar.vertical) and "blizzard" or "miliui" end
+    local bgCalls, texCalls = {}, {}
+    ns.Decorate = {
+        BarLook = Look,
+        BarFillStyle = function(bar)
+            if Look(bar) == "blizzard" then return { color = bar.blizzardColor or { r = 1, g = 0.5, b = 0.25, a = 1 } } end
+            return bar
+        end,
+        BarBGColor = function(bar)
+            if Look(bar) == "blizzard" then return 1, 1, 1, 1 end
+            local c = bar.bgColor or {}
+            return c.r or 0.1, c.g or 0.1, c.b or 0.1, c.a or 0.8
+        end,
+        BarFillTexture = function(bar) return Look(bar) == "blizzard" and "ATLAS" or "tex:" .. tostring(bar.texture) end,
+        SetFillTexture = function(tex, bar) texCalls[#texCalls + 1] = { tex, Look(bar) } end,
+        PaintBarBG = function(bg, b, bar, h) bgCalls[#bgCalls + 1] = { bg, b, Look(bar), h } end,
+        PaintFill = function(tex, fill) local c = fill and fill.color or {}; tex:SetVertexColor(c.r, c.g, c.b, c.a) end,
+    }
+    local bz = { texture = "solid", color = { r = 0.4, g = 0.6, b = 0.9, a = 1 }, bgColor = { r = 0.1, g = 0.1, b = 0.1, a = 0.8 } }
+    local savedBar = settings.bar
+    settings.bar = bz
+    overrides[41] = { stackColors = { { at = 2, color = { r = 0, g = 1, b = 0, a = 1 } } } }
+    local c41 = SG.Config("buffbars", 41, true, true)
+    local sm = SG.Signature(c41, 220, 20, bz)
+    bz.look = "blizzard"
+    local sb = SG.Signature(c41, 220, 20, bz)
+    check("外觀進層簽章", sm ~= sb)
+    bz.blizzardColor = { r = 0.9, g = 0.1, b = 0.1, a = 1 }
+    check("暴雪樣式的填充色進層簽章", SG.Signature(c41, 220, 20, bz) ~= sb)
+    local it = Item({ bar = true, auraData = { applications = 3 }, active = true })
+    local rec = Rec(it, "buffbars", 41)
+    SG.Apply(it, rec, "buffbars", 220, 20, true)
+    local ui = rec.stackUI
+    local last = bgCalls[#bgCalls]
+    check("暴雪樣式：我們的底走 PaintBarBG（暴雪的底圖集、錨條身、格高）",
+        last and last[1] == ui.under.bg and last[2] == it.Bar and last[3] == "blizzard" and last[4] == 20)
+    check("暴雪樣式：原色填充換圖集", texCalls[#texCalls - 1][1] == ui.under.base and texCalls[#texCalls - 1][2] == "blizzard")
+    eq("暴雪樣式：原色填充＝blizzardColor", ui.under.base.color[1], 0.9)
+    eq("暴雪樣式：色塊也換圖集", texCalls[#texCalls][2], "blizzard")
+    eq("暴雪樣式：暴雪的底調透明", it.Bar.BarBG.color[4], 0)
+    G.OnParked(rec)
+    check("停放：暴雪的底還原成白（不是 bgColor）",
+        it.Bar.BarBG.color[1] == 1 and it.Bar.BarBG.color[2] == 1 and it.Bar.BarBG.color[4] == 1)
+    eq("停放：暴雪的填充還原成 blizzardColor", it.Bar.fill.color[1], 0.9)
+    bz.look = "miliui"
+    SG.Feed(it, rec)
+    SG.Apply(it, rec, "buffbars", 220, 20, true)
+    eq("切回米利：我們的底照米利", bgCalls[#bgCalls][3], "miliui")
+    G.OnParked(rec)
+    eq("切回米利：停放還原成 bgColor", it.Bar.BarBG.color[4], 0.8)
+    eq("切回米利：填充還原成 bar.color", it.Bar.fill.color[1], 0.4)
+    overrides[41] = nil
+    SG.Apply(it, rec, "buffbars", 220, 20, true)
+    settings.bar = savedBar
+    ns.Decorate = savedDeco
 end
 
 check("debug 行組得出來", type(SG.DebugLine()) == "string")

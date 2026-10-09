@@ -66,6 +66,9 @@
 --   不讀暴雪的；線錨在暴雪條身的左緣（那是我們 ApplyBarGeometry 錨的明文幾何）。貼圖池化。
 -- 三者（換色／層數當填充／刻度）任一成立 ⇒ 暴雪的填充與底色調透明、底色由我們畫。
 -- 疊法（由下往上，全在條身底下）：根框（底色、原色填充）→ 填充條 → 各段色塊 → 刻度框 → 暴雪條身。
+-- 長條的暴雪樣式（bar.look，Decorate 的「長條的暴雪樣式」）：這一層的填充／色塊換暴雪的圖集、填充色是 blizzardColor
+--   （Decorate.BarFillStyle），底畫成暴雪的底圖集（Decorate.PaintBarBG，右下陰影照格高等比）；還原時暴雪的底回白、
+--   不會被寫成 bgColor。外觀進層簽章，切換時整層重建。
 --
 -- ── 層數從哪來（2026-10-03 對過 Gethe/wow-ui-source live 分支 12.1.0 (69933) 的
 --    Blizzard_CooldownViewer/CooldownViewer.lua、CooldownViewerItemData.lua）──────────────
@@ -334,6 +337,12 @@ function SG.HasLayers(cfg)
 end
 
 -- 漸層的簽章片段（F8a；Decorate 沒載入的測試環境照自己的格式）
+-- 長條的外觀（米利／暴雪樣式，Decorate.BarLook）：進層簽章；測試環境沒有 Decorate 時當米利
+local function BarLook(bar)
+    local D = ns.Decorate
+    return D and D.BarLook and D.BarLook(bar) or "miliui"
+end
+
 local function GradSig(g)
     local D = ns.Decorate
     if D and D.GradientSig then return D.GradientSig(g) end
@@ -363,6 +372,7 @@ function SG.Signature(cfg, w, h, bar)
     if SG.HasLayers(cfg) then
         bar = type(bar) == "table" and bar or {}
         parts[#parts + 1] = tostring(bar.texture) .. "/" .. CSig(bar.color) .. "/" .. CSig(bar.bgColor)
+            .. "/" .. BarLook(bar) .. "/" .. CSig(bar.blizzardColor)
             .. "/" .. tostring(bar.iconSide) .. "/" .. tostring(bar.iconGap) .. "/" .. tostring(bar.spark)
             .. "/" .. GradSig(bar.gradient) .. "/" .. tostring(bar.vertical and true or false)
             .. "/" .. tostring(bar.reverseFill and true or false)
@@ -498,11 +508,34 @@ local function C4(c, dr, dg, db, da)
     return c.r or dr, c.g or dg, c.b or db, c.a or da
 end
 
--- 填充貼圖上色（單色或漸層，F8a）：同 Decorate.ApplyBarLook 的那支；測試環境沒有 Decorate 時退回單色
-local function PaintFill(tex, bar)
+-- 填充貼圖上色（單色或漸層，F8a）：同 Decorate.ApplyBarLook 的那支；測試環境沒有 Decorate 時退回單色。
+-- fill ＝ 填充色表（Decorate.BarFillStyle 解好的：米利樣式＝條設定本身、暴雪樣式＝{ color = blizzardColor }）
+local function PaintFill(tex, fill)
     local D = ns.Decorate
-    if D and D.PaintFill then return D.PaintFill(tex, bar) end
-    tex:SetVertexColor(C4(type(bar) == "table" and bar.color, 0.4, 0.6, 0.9, 1))
+    if D and D.PaintFill then return D.PaintFill(tex, fill) end
+    tex:SetVertexColor(C4(type(fill) == "table" and fill.color, 0.4, 0.6, 0.9, 1))
+end
+
+-- 長條的外觀（米利／暴雪樣式，Decorate 的「長條的暴雪樣式」）：填充色、填充材質、底。測試環境沒有 Decorate 時照米利樣式
+local function FillStyle(bar)
+    local D = ns.Decorate
+    if D and D.BarFillStyle then return D.BarFillStyle(bar) end
+    return type(bar) == "table" and bar or {}
+end
+local function BGColor(bar)
+    local D = ns.Decorate
+    if D and D.BarBGColor then return D.BarBGColor(bar) end
+    return C4(type(bar) == "table" and bar.bgColor, 0.1, 0.1, 0.1, 0.8)
+end
+local function FillTexture(bar)
+    local D = ns.Decorate
+    if D and D.BarFillTexture then return D.BarFillTexture(bar) end
+    return ns.Media.Texture(bar.texture)
+end
+local function SetFillTexture(tex, bar)
+    local D = ns.Decorate
+    if D and D.SetFillTexture then return D.SetFillTexture(tex, bar) end
+    tex:SetTexture(ns.Media.Texture(bar.texture))
 end
 
 local function Conceal(item, rec)
@@ -511,12 +544,12 @@ local function Conceal(item, rec)
     if not (ui and ui.under and bar) then return end
     local b, fill = BlizzBar(item)
     if not b then return end
-    local r, g, bl = C4(bar.color, 0.4, 0.6, 0.9, 1)
+    local r, g, bl = C4(bar.fill and bar.fill.color, 0.4, 0.6, 0.9, 1)
     if fill then fill:SetVertexColor(r, g, bl, 0) end
     local bg = b.BarBG
     if bg then
-        local br, bgg, bb = C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
-        bg:SetVertexColor(br, bgg, bb, 0)
+        local c = bar.bg or {}
+        bg:SetVertexColor(c[1] or 0.1, c[2] or 0.1, c[3] or 0.1, 0)
     end
     -- 層數當填充：暴雪的火花跟著時間走，跟層數那條對不上 ⇒ 一起調透明（同 ApplyBarLook 的 alpha 寫法）
     if bar.stackBar and b.Pip then b.Pip:SetAlpha(0) end
@@ -530,8 +563,9 @@ local function Restore(item, rec)
     local bar = ui.barStyle or {}
     local b, fill = BlizzBar(item)
     if not b then return end
-    if fill then PaintFill(fill, bar) end
-    if b.BarBG then b.BarBG:SetVertexColor(C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8)) end
+    if fill then PaintFill(fill, bar.fill) end
+    local c = bar.bg
+    if b.BarBG and c then b.BarBG:SetVertexColor(c[1], c[2], c[3], c[4]) end
     if bar.stackBar and b.Pip then b.Pip:SetAlpha(bar.spark and 1 or 0) end
 end
 
@@ -690,12 +724,18 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
     -- 層級：根框 lv、填充條 lv+1、第 k 段 lv+1+k、刻度 lv+2+MAX_COLORS（＝ 條身 − 1）
     local lv = math.max(1, bl - (SG.MAX_COLORS + 3))
     root:SetFrameLevel(lv)
-    local tex = ns.Media.Texture(bar.texture)
-    -- 底色：照條的底色（暴雪的 BarBG 調成透明）
-    root.bg:ClearAllPoints()
-    root.bg:SetAllPoints(b)
-    root.bg:SetTexture(SOLID)
-    root.bg:SetVertexColor(C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8))
+    local fillStyle = FillStyle(bar)
+    -- 底色：照條的底（暴雪的 BarBG 調成透明）。暴雪樣式＝暴雪的底圖集（錨在條身上、右下陰影照格高等比），
+    -- 跟 Decorate.ApplyBarLook 同一支（D.PaintBarBG）
+    local D = ns.Decorate
+    if D and D.PaintBarBG then
+        D.PaintBarBG(root.bg, b, bar, h)
+    else
+        root.bg:ClearAllPoints()
+        root.bg:SetAllPoints(b)
+        root.bg:SetTexture(SOLID)
+        root.bg:SetVertexColor(C4(bar.bgColor, 0.1, 0.1, 0.1, 0.8))
+    end
     -- 色塊錨在哪一張填充貼圖：層數當填充＝我們的填充條、否則＝暴雪的（時間）。兩者都只錨不讀
     local segAnchor = fill
     if cfg.stackBar then
@@ -709,12 +749,12 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         fb:ClearAllPoints()
         fb:SetAllPoints(b)
         fb:SetFrameLevel(lv + 1)
-        fb:SetStatusBarTexture(tex)
+        fb:SetStatusBarTexture(FillTexture(bar))      -- 暴雪樣式是圖集名（SetStatusBarTexture 收）
         -- 直向長條（F8c）：層數填充由下往上，跟暴雪條身同方向；反向填充也跟著（從右／從上）
         if fb.SetOrientation then fb:SetOrientation(bar.vertical and "VERTICAL" or "HORIZONTAL") end
         if fb.SetReverseFill then fb:SetReverseFill(bar.reverseFill and true or false) end
         local ft = fb:GetStatusBarTexture()
-        if ft then PaintFill(ft, bar) end
+        if ft then PaintFill(ft, fillStyle) end
         fb:SetMinMaxValues(0, cfg.stackBar)
         fb:Show()
         root.base:Hide()
@@ -724,8 +764,8 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         -- 原色填充：錨在暴雪的填充貼圖上（只錨不讀）
         root.base:ClearAllPoints()
         root.base:SetAllPoints(fill)
-        root.base:SetTexture(tex)
-        PaintFill(root.base, bar)
+        SetFillTexture(root.base, bar)
+        PaintFill(root.base, fillStyle)
         root.base:Show()
     end
     local colors = cfg.colors or {}
@@ -744,7 +784,7 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         seg.clip:SetFrameLevel(lv + 1 + k)
         seg.tex:ClearAllPoints()
         seg.tex:SetAllPoints(segAnchor)
-        seg.tex:SetTexture(tex)
+        SetFillTexture(seg.tex, bar)
         seg.tex:SetVertexColor(C4(e.color, 1, 1, 1, 1))
         seg.gate:Show()
         seg.clip:Show()
@@ -770,9 +810,9 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
     elseif ui.ticks then
         ui.ticks:Hide()
     end
-    -- vertical／reverseFill：還原時 PaintFill 要知道漸層兩色要不要對調（Decorate.GradientFlip）
-    ui.barStyle = { color = bar.color, bgColor = bar.bgColor, spark = bar.spark, gradient = bar.gradient,
-        vertical = bar.vertical, reverseFill = bar.reverseFill, stackBar = cfg.stackBar ~= nil }
+    -- 還原用：fill ＝ 填充色表（Decorate.BarFillStyle：米利樣式的單色／漸層——還原時要知道漸層兩色要不要對調
+    -- （vertical／reverseFill，Decorate.GradientFlip），所以存整張；暴雪樣式的 blizzardColor）、bg ＝ 底的頂點色
+    ui.barStyle = { fill = fillStyle, bg = { BGColor(bar) }, spark = bar.spark, stackBar = cfg.stackBar ~= nil }
     root:Show()
     Conceal(item, rec)
 end

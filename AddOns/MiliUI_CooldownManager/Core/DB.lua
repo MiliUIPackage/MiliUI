@@ -158,6 +158,10 @@ local function LongBar(o)
             chargeLineColor = rgba(0, 0, 0, 0.6),   -- 分段的分隔線顏色
             vertical  = false,              -- 整條直向（填充由下往上、圖示在上／下、條並排）
             reverseFill = false,            -- 反向填充：橫向從右往左、直向從上往下（只換起點，值不碰；舊存檔沒有 ＝ false）
+            -- 外觀（2026-10-09；舊存檔沒有 ＝ miliui，不遷移）："miliui" | "blizzard"（畫成暴雪原生長條的長相，只有橫向；
+            -- 生效值看 Decorate.BarLook）。暴雪樣式的填充色另外存（預設暴雪原生的橘色），切回米利時 color 還在
+            look      = "miliui",
+            blizzardColor = rgba(1, 0.5, 0.25, 1),
         },
     }
     b.kind = "bars"
