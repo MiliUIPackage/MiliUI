@@ -24,7 +24,8 @@ local MD = ns.MRTData
 local tab, planDD, diffDD, enabledCB, list, emptyText, statusText, recNote
 local btnRename, btnDelete, btnTest, btnStop, btnAdd, btnImport
 local showRecCB, showMRTCB, mrtDD
-local planPopup, renamePopup, entryPopup, deletePopup, importPopup
+local planPopup, renamePopup, deletePopup, importPopup
+local head, editor, modeButtons, highlightMode
 local currentID
 
 local ROW_H = 24
@@ -64,8 +65,10 @@ local function Items()
     if View().mrt then
         local v = MRTVariant(plan)
         if v then
+            local nth = {}
             for _, ev in ipairs(MD.Events(currentID, v)) do
-                items[#items + 1] = { kind = "mrt", ev = ev, t = ev.t }
+                nth[ev.spell] = (nth[ev.spell] or 0) + 1
+                items[#items + 1] = { kind = "mrt", ev = ev, t = ev.t, n = nth[ev.spell] }
             end
             for _, ph in ipairs(MD.Phases(currentID, v)) do
                 items[#items + 1] = { kind = "phase", phase = ph.phase, t = ph.t }
@@ -88,33 +91,18 @@ end
 ------------------------------------------------------------
 -- 彈窗
 ------------------------------------------------------------
-local function OpenEntryPopup(values, index)
-    entryPopup:Open(values, function(v)
-        local t = Plans.ParseTime(v.t)
-        if not t or t <= 0 then
-            ns.Print(L["Time must look like 1:30 or 90."])
-            return false
-        end
-        local lead = tonumber(v.lead)
-        Plans.SaveEntry(currentID, {
-            t     = t,
-            text  = v.text,
-            spell = tonumber(v.spell),
-            icon  = tonumber(v.icon),
-            lead  = lead and math.max(1, lead) or nil,
-        }, index)
+-- entry：要改的那一條（表的參考）。排序後 index 會變，所以存檔前才找它現在的位置
+local function OpenEntryPopup(values, entry)
+    ns.EntryEditor.Open(values, function(v)
+        Plans.SaveEntry(currentID, v, entry and Plans.IndexOf(currentID, entry))
         ns.Fire("PlansChanged")
-    end, index and L["Edit reminder"] or L["Add reminder"])
+    end, entry and L["Edit reminder"] or L["Add reminder"])
 end
 
 local function EntryValues(e)
-    return {
-        t     = Plans.FormatTime(e.t),
-        spell = e.spell or "",
-        text  = e.text or "",
-        lead  = e.lead or Plans.DEFAULT_LEAD,
-        icon  = e.icon or "",
-    }
+    local v = CopyTable(e)
+    if e.anchor then v.anchorName = MD.SpellInfo(e.anchor.spell) end
+    return v
 end
 
 -- 多行貼上框：共用層的輸入彈窗只有單行欄位，這裡照它的遮罩／層級規則自己組一個
@@ -190,14 +178,6 @@ local function CreatePopups()
         { key = "name", label = L["Name"] },
     })
 
-    entryPopup = W.CreateInputPopup(parent, 400, L["Add reminder"], {
-        { key = "t",     label = L["When (time into the fight)"], hint = L["1:30 or 90 both mean 90 seconds after the pull."] },
-        { key = "spell", label = L["Spell ID (optional)"], hint = L["Icon and name come from the spell."] },
-        { key = "text",  label = L["Text (blank = spell name)"] },
-        { key = "lead",  label = L["Seconds on the timeline before it happens"] },
-        { key = "icon",  label = L["Icon ID (optional, used without a spell)"] },
-    })
-
     deletePopup = W.CreateConfirmPopup(parent, 320, L["Delete this boss's custom timeline?"], function()
         if currentID then
             Plans.Delete(currentID)
@@ -236,7 +216,7 @@ local function BuildRow(row)
     row.edit:SetPoint("LEFT", row, "LEFT", COL.btn, 0)
     row.edit:SetScript("OnClick", function()
         local it = row.item
-        if it and it.kind == "entry" then OpenEntryPopup(EntryValues(it.entry), it.index) end
+        if it and it.kind == "entry" then OpenEntryPopup(EntryValues(it.entry), it.entry) end
     end)
 
     row.del = W.CreateButton(row, L["Delete"], "red", 44, 18)
@@ -257,13 +237,16 @@ local function BuildRow(row)
         local it = row.item
         if not it then return end
         if it.kind == "mrt" then
-            OpenEntryPopup({ t = Plans.FormatTime(it.ev.t), spell = it.ev.spell, lead = Plans.DEFAULT_LEAD })
+            -- 從 MRT 的某一次施放建立：預設錨在「這個技能第 n 次施放」上
+            OpenEntryPopup({
+                t = it.ev.t, spell = it.ev.spell,
+                anchor = { spell = it.ev.spell, n = it.n, offset = 0 }, anchorName = it.ev.name,
+            })
         elseif it.kind == "recorded" then
             OpenEntryPopup({
-                t     = Plans.FormatTime(it.ev.t),
-                spell = it.ev.spell or "",
-                text  = (it.ev.src ~= "blizzard" or not it.ev.spell) and it.ev.text or "",
-                lead  = Plans.DEFAULT_LEAD,
+                t     = it.ev.t,
+                spell = it.ev.spell,
+                text  = (it.ev.src ~= "blizzard" or not it.ev.spell) and it.ev.text or nil,
             })
         end
     end)
@@ -294,7 +277,11 @@ local function UpdateRow(row, it)
         row.time:SetText(Plans.FormatTime(e.t))
         row.icon:SetTexture(icon)
         row.icon:SetDesaturated(not on)
-        row.text:SetText(text)
+        local tags = ""
+        if e.anchor then tags = tags .. "  |cffffd100" .. L["[follows]"] .. "|r" end
+        if e.sound or e.tts then tags = tags .. " |cff9d9d9d" .. L["[sound]"] .. "|r" end
+        if e.roles or e.class then tags = tags .. " |cff9d9d9d" .. L["[only some]"] .. "|r" end
+        row.text:SetText(text .. tags)
         row.lead:SetText(("%ds"):format(e.lead or Plans.DEFAULT_LEAD))
         row.src:SetText("|cff55ff55" .. L["Mine"] .. "|r")
         SetRowColor(row, on and 1 or 0.5)
@@ -312,7 +299,7 @@ local function UpdateRow(row, it)
     elseif it.kind == "mrt" then
         local ev = it.ev
         local name = ev.name or (L["Spell"] .. " #" .. ev.spell)
-        if ev.count > 1 then name = name .. "  |cff9d9d9d×" .. ev.count .. "|r" end
+        if ev.count > 1 then name = name .. "  |cff9d9d9dx" .. ev.count .. "|r" end
         row.time:SetText(Plans.FormatTime(ev.t))
         row.icon:SetTexture(ev.icon or QUESTION_ICON)
         row.text:SetText(name)
@@ -382,8 +369,16 @@ local function Refresh()
 
     local plan = Plans.Get(currentID)
     local has = plan ~= nil
-    for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnTest, btnAdd, btnImport, list, showRecCB }) do
+    for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnTest, btnAdd, btnImport, showRecCB }) do
         w:SetShown(has)
+    end
+    local mode = View().mode == "timeline" and "timeline" or "list"
+    head:SetShown(has and mode == "list")
+    list:SetShown(has and mode == "list")
+    editor.frame:SetShown(has and mode == "timeline")
+    for _, b in ipairs(modeButtons) do
+        b:SetShown(has)
+        if b.id == mode then highlightMode(b) end
     end
     emptyText:SetShown(not has)
 
@@ -430,7 +425,14 @@ local function Refresh()
     end
     recNote:SetText(table.concat(notes, "  "))
 
-    list:Update(Items(), UpdateRow)
+    if mode == "timeline" then
+        editor:SetPlan(currentID, {
+            mrtVariant = View().mrt and hasMRT and MRTVariant(plan) or nil,
+            recorded   = View().recorded,
+        })
+    else
+        list:Update(Items(), UpdateRow)
+    end
 end
 
 local function Init()
@@ -528,7 +530,7 @@ local function Init()
     statusText:SetPoint("LEFT", btnStop, "RIGHT", 10, 0)
 
     -- 表頭
-    local head = CreateFrame("Frame", nil, tab)
+    head = CreateFrame("Frame", nil, tab)
     head:SetPoint("TOPLEFT", LIST_X, -114)
     P.Size(head, LIST_W, 18)
     local function Head(x, w, text, justify)
@@ -548,12 +550,51 @@ local function Init()
     list = W.CreateRowList(tab, LIST_W, 300, ROW_H, BuildRow)
     list:SetPoint("TOPLEFT", LIST_X, -134)
 
+    -- 時間軸檢視：跟「表頭＋清單」同一塊位置，二選一
+    editor = ns.PlanEditor.Create(tab, LIST_W, 320, {
+        onAdd  = function(values) OpenEntryPopup(values) end,
+        onEdit = function(entry) OpenEntryPopup(EntryValues(entry), entry) end,
+        onMove = function(entry, t)
+            Plans.MoveEntry(currentID, entry, t)
+            ns.Fire("PlansChanged")
+        end,
+        onMenu = function(entry, btn)
+            W.Menu.Show({
+                { text = L["Edit"], onClick = function() OpenEntryPopup(EntryValues(entry), entry) end },
+                { text = entry.enabled == false and L["Enable"] or L["Disable"], onClick = function()
+                    entry.enabled = entry.enabled == false and true or false
+                    ns.Fire("PlansChanged")
+                end },
+                { text = L["Delete"], onClick = function()
+                    local i = Plans.IndexOf(currentID, entry)
+                    if i then Plans.RemoveEntry(currentID, i) end
+                    ns.Fire("PlansChanged")
+                end },
+            }, btn)
+        end,
+    })
+    editor.frame:SetPoint("TOPLEFT", LIST_X, -114)
+
+    -- 清單｜時間軸 切換（右上角）
+    local bList = W.CreateButton(tab, L["List"], "accent-hover", 60, 20)
+    local bTime = W.CreateButton(tab, L["Timeline"], "accent-hover", 60, 20)
+    W.FitButton(bList, 60, 20)
+    W.FitButton(bTime, 60, 20)
+    bList.id, bTime.id = "list", "timeline"
+    bTime:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -16, -52)
+    bList:SetPoint("RIGHT", bTime, "LEFT", -3, 0)
+    modeButtons = { bList, bTime }
+    highlightMode = W.CreateButtonGroup(modeButtons, function(id)
+        View().mode = id
+        Refresh()
+    end)
+
     -- 底下：新增、貼上匯入、顯示哪些參考列
     btnAdd = W.CreateButton(tab, L["+ Add reminder"], "primary", 110, 22)
     W.FitButton(btnAdd, 110, 22)
     btnAdd:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -10)
     btnAdd:SetScript("OnClick", function()
-        OpenEntryPopup({ lead = Plans.DEFAULT_LEAD })
+        OpenEntryPopup({})
     end)
 
     btnImport = W.CreateButton(tab, L["Paste reminders"], "normal", 90, 22)

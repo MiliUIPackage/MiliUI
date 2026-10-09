@@ -55,6 +55,8 @@ Libs\MiliUIWidgets\Controls.lua
 Options\Panel.lua
 Options\Tab_General.lua
 Options\Tab_Style.lua
+Options\EntryEditor.lua
+Options\PlanEditor.lua
 Options\Tab_Plans.lua
 Options\Tab_Abilities.lua
 Libs\MiliUIWidgets\BlizzOptions.lua

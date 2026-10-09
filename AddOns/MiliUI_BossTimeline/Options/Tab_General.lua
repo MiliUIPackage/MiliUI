@@ -74,7 +74,7 @@ local function LiveLines()
     -- 本次登入看過哪些插件寫時間軸
     local seen = {}
     for addon, n in pairs(ns.Owners.Seen()) do
-        seen[#seen + 1] = ns.Owners.Label(addon) .. " ×" .. n
+        seen[#seen + 1] = ns.Owners.Label(addon) .. " x" .. n
     end
     table.sort(seen)
     lines[#lines + 1] = ""

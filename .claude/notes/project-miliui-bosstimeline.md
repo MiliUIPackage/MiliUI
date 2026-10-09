@@ -83,9 +83,24 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
      不同技能的候選差不到 0.75 秒就不猜。DBM 答案蓋過 MRT 猜測。
   用途：上一場紀錄記得住名稱（Recorder 收尾時從 rec.ident 抄）、一般分頁列得出名稱、「隱藏」技能（Events.Collect 濾 ident.spell）。
 
+## 提示的音效／條件／錨點＋拖拉式編輯器（2026-10-09 第四批）
+
+- **提示欄位**（`Plans.SaveEntry`）：`sound`（LSM）＋`soundWhen`（show／soon＝5 秒前／due）、`tts`（`C_VoiceChat.SpeakText(voiceID, text, rate, volume, overlap)`，
+  voiceID 走 `C_TTSSettings.GetVoiceOptionID(Enum.TtsVoiceType.Standard)`）、`roles`、`class`、`anchor = { spell, n, offset }`。
+  職責看自己的專精（`GetSpecializationRole`），**不用 UnitGroupRolesAssigned（秘密值）**；讀不到就照給。
+- **錨點**：Scheduler 一條一個 job；`Identify` 第一次認出某條時發 `TimelineIdentified`，Scheduler 依法術數第幾次（3 秒內連發算同一次，
+  跟 MRTData 合併規則一致），第 n 次就把錨在上面的提示改成「那次會發生的秒數＋offset」——已放上時間軸的 CancelScriptEvent 重放、計時器重排。
+  測試模式不動錨點。拖曳錨點提示時 offset 跟著平移。
+- **編輯視窗**（`Options/EntryEditor.lua`）：共用層輸入彈窗只有單行欄位，自己組（遮罩 400／視窗 410，同共用層規則）。
+- **時間軸編輯器**（`Options/PlanEditor.lua`）：左標籤欄固定、右畫布橫向捲（滾輪；Ctrl＋滾輪以游標為中心縮放；縮放滑桿）、整塊直向捲；
+  尺規在直向捲動外、共用橫向位移。我的提示畫成「出現(t−lead)→發生(t)」一條，重疊自動分子列；拖曳 0.5 秒吸附（Shift 不吸附）；
+  點 MRT 的格子＝以此新增並錨在第 n 次；雙擊我的提示列空白＝在那秒新增；右鍵選單走共用層 `W.Menu`。
+  ⚠ 標記用文字（[跟隨]／[音效]），不用 ⚓／♪／× 這類符號——中文字型不一定有字形。
+
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
 
-0. 第三批：DBM_TimerBegin 的時長跟 ENCOUNTER_TIMELINE 事件的 duration 是否真的差 0.25 秒內（DBM 可能套過變異量）；
+0. 第四批：橫向捲動區裡的按鈕會不會吃掉滾輪（滾輪事件不一定往上傳到畫布）；SpeakText 在戰鬥中可用；拖曳在 UI 縮放 ≠ 1 時位移準不準。
+   第三批：DBM_TimerBegin 的時長跟 ENCOUNTER_TIMELINE 事件的 duration 是否真的差 0.25 秒內（DBM 可能套過變異量）；
    SetEventSound 的 file 吃 LSM 路徑字串；戰鬥中 SetEventColor 是否允許（DBM 是開戰時呼叫的，應該可以）。
 
 1. ENCOUNTER_TIMELINE_EVENT_ADDED 是否在 `AddScriptEvent` 回傳前同步派送（兩種都有處理，但要看實際走哪條）。

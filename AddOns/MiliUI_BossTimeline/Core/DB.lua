@@ -98,7 +98,7 @@ local function BuildDefaults()
         abilityBosses = {},
 
         -- 自訂時間軸分頁要不要列出參考列（MRT 的整場時間軸、上一場的紀錄）
-        planView = { mrt = true, recorded = true },
+        planView = { mrt = true, recorded = true, mode = "timeline" },
 
         -- 最近一場首領戰（編輯器「新增首領」帶入用）
         lastEncounter = nil,

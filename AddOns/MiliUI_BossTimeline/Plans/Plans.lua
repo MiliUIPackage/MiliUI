@@ -128,7 +128,14 @@ local function SortEntries(plan)
     table.sort(plan.entries, function(a, b) return (a.t or 0) < (b.t or 0) end)
 end
 
--- values：{ t, text, spell, icon, lead }；index 有給就是改那一條
+-- values：{ t, text, spell, icon, lead, sound, soundWhen, tts, roles, class, anchor }
+-- index 有給就是改那一條。沒給的欄位（nil）就是清掉 —— 編輯器每次都整筆送過來
+--   sound      LSM 音效名稱；soundWhen = "show"（放上時間軸時）／"soon"（5 秒前）／"due"（到點，預設）
+--   tts        到 soundWhen 那一刻朗讀提示文字（文字轉語音）
+--   roles      { TANK = true, HEALER = true, DAMAGER = true } 只給這些職責；nil = 全部
+--   class      "PRIEST" 之類，只給這個職業；nil = 全部
+--   anchor     { spell, n, offset }：跟著這個首領技能的第 n 次施放走（Scheduler 戰鬥中認得出來時改時間），
+--              t 仍然是沒認出來時的備援秒數
 function Plans.SaveEntry(id, values, index)
     local plan = Plans.Get(id)
     if not plan then return end
@@ -137,13 +144,63 @@ function Plans.SaveEntry(id, values, index)
         e = { enabled = true }
         plan.entries[#plan.entries + 1] = e
     end
-    e.t     = values.t or 0
-    e.text  = values.text ~= "" and values.text or nil
-    e.spell = values.spell
-    e.icon  = values.icon
-    e.lead  = values.lead or DEFAULT_LEAD
+    e.t         = values.t or 0
+    e.text      = values.text ~= "" and values.text or nil
+    e.spell     = values.spell
+    e.icon      = values.icon
+    e.lead      = values.lead or DEFAULT_LEAD
+    e.sound     = values.sound ~= "" and values.sound or nil
+    e.soundWhen = values.soundWhen
+    e.tts       = values.tts or nil
+    e.roles     = (values.roles and next(values.roles)) and values.roles or nil
+    e.class     = values.class ~= "" and values.class or nil
+    e.anchor    = values.anchor
     SortEntries(plan)
     return e
+end
+
+-- 拖曳：只改時間（錨點的偏移跟著平移，讓「第 n 次施放後幾秒」維持玩家拖到的位置）
+function Plans.MoveEntry(id, entry, newT)
+    local plan = Plans.Get(id)
+    if not plan or not entry then return end
+    newT = math.max(0.1, math.floor(newT * 10 + 0.5) / 10)
+    if entry.anchor then
+        entry.anchor.offset = (entry.anchor.offset or 0) + (newT - (entry.t or 0))
+    end
+    entry.t = newT
+    SortEntries(plan)
+end
+
+function Plans.IndexOf(id, entry)
+    local plan = Plans.Get(id)
+    if not plan then return end
+    for i, e in ipairs(plan.entries) do
+        if e == entry then return i end
+    end
+end
+
+------------------------------------------------------------
+-- 條件：這一條給不給目前這隻角色
+-- 職責看自己的專精（player 讀專精不受 12.1 限制；UnitGroupRolesAssigned 是秘密值，不用）
+------------------------------------------------------------
+local function PlayerRole()
+    local getSpec = (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization) or GetSpecialization
+    local idx = getSpec and S.SafeCall(getSpec)
+    if not idx then return end
+    local getRole = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationRole) or GetSpecializationRole
+    return getRole and S.PlainText(S.SafeCall(getRole, idx))
+end
+Plans.PlayerRole = PlayerRole
+
+function Plans.EntryApplies(e)
+    if e.enabled == false then return false end
+    if e.class and e.class ~= ns.playerClass then return false end
+    if e.roles then
+        local role = PlayerRole()
+        -- 讀不到專精（剛登入）就照給：寧可多一條提示，也不要漏
+        if role and not e.roles[role] then return false end
+    end
+    return true
 end
 
 function Plans.RemoveEntry(id, index)

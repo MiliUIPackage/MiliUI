@@ -42,7 +42,10 @@ local function Assign(rec, ident)
     local cur = rec.ident
     -- DBM 的答案蓋過 MRT 的猜測；DBM 對 DBM 不重複蓋
     if cur and (cur.source == "dbm" or ident.source == "mrt") then return end
+    local first = cur == nil
     rec.ident = ident
+    -- 第一次認出來才通知錨點（Scheduler 照順序數第幾次施放，同一條不能數兩次）
+    if first then ns.Fire("TimelineIdentified", rec) end
     ns.Fire("TimelineChanged")
 end
 
