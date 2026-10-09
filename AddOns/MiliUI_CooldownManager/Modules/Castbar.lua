@@ -1126,9 +1126,24 @@ local function UnitFramesHidesBlizzard()
     return ok and hides == true
 end
 
+-- 已經解過的框被別人裝回去了嗎（任一施法事件又註冊著）
+local function Reregistered(frame)
+    for _, e in ipairs(BLIZZ_EVENTS) do
+        local ok, reg = pcall(frame.IsEventRegistered, frame, e)
+        if ok and reg == true then return true end
+    end
+    return false
+end
+
 local function UnregisterBar(bf)
     ns.Write(bf, function(frame)
-        if blizzSaved[frame] then return end
+        if blizzSaved[frame] then
+            -- 解過了但被別的插件裝回（NDui 等 oUF 系：玩家施法條關著時，PLAYER_LOGIN 生成框架走 oUF 的
+            -- Castbar Disable，把暴雪條的事件整套註冊回去；它比我們晚載入 ⇒ 重載後暴雪條又出現）：
+            -- 再解一次，帳照舊（還原時裝回的是我們第一次解之前的那一份）
+            if Reregistered(frame) then pcall(frame.UnregisterAllEvents, frame) end
+            return
+        end
         local saved = {}
         for _, e in ipairs(BLIZZ_EVENTS) do
             local ok, reg, u1, u2 = pcall(frame.IsEventRegistered, frame, e)
@@ -1164,7 +1179,7 @@ function CB.ApplyBlizzard()
     local want = cfg.enabled ~= false and cfg.hideBlizzard == true
     for _, name in ipairs(BLIZZ_BARS) do
         local bf = _G[name]
-        if bf and want and not blizzSaved[bf] then
+        if bf and want then
             UnregisterBar(bf)
         elseif bf and not want and blizzSaved[bf] then
             RestoreBar(bf)
@@ -1195,6 +1210,9 @@ function CB.Init()
     CB.Layout()
     RegisterEvents()
     CB.ApplyBlizzard()
+    -- 每次讀完畫面（延一幀：別的插件的 PLAYER_LOGIN／PLAYER_ENTERING_WORLD 都跑完了）再對一次帳：
+    -- 被別人裝回的事件再解掉（UnregisterBar 的「解過了但被裝回」）
+    ns.Events.Register("PLAYER_ENTERING_WORLD", "castbar_blizzard", function() ns.Defer(CB.ApplyBlizzard) end)
     HideBar()
     local function Later() ns.Defer(CB.RebuildTicks) end
     ns.Events.Register("PLAYER_TALENT_UPDATE", "castbar_ticks", Later)
