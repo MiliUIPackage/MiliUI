@@ -160,3 +160,4 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
 ## 下一步
 
 拖拉式時間軸編輯器（資料已是秒數，換畫法不用遷移）、條件（職責）、語音／音效、平滑的軸壓縮（遠端壓短）。
+- 冒險指南：`EJ_GetEncounterInfoByIndex(i, instID)` 要先 `EJ_SelectInstance(instID)` 才有資料（單傳 instID 回空，2026-10-09 實測），讀完切回原本選中的資料片／副本。

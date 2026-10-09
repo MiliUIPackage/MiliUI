@@ -25,7 +25,7 @@ local tab, planDD, diffDD, enabledCB, list, emptyText, statusText, recNote
 local btnRename, btnDelete, btnTest, btnStop, btnAdd, btnImport
 local showRecCB, showMRTCB, mrtDD
 local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup
-local btnExport, btnReview, btnPreview, btnUndo, keyCatcher
+local btnExport, btnReview, btnPreview, btnUndo, keyCatcher, diffLbl
 local head, editor, modeButtons, highlightMode
 local currentID
 
@@ -534,6 +534,7 @@ local function Refresh()
         w:SetShown(has)
     end
     btnUndo:SetAlpha(Plans.CanUndo(currentID) and 1 or 0.4)
+    diffLbl:SetShown(has)
     -- 貼上匯入沒有首領也能用（米利字串自己帶著首領）：放到清單區頂端的位置
     btnImport:SetShown(true)
     local mode = View().mode == "timeline" and "timeline" or "list"
@@ -667,7 +668,7 @@ local function Init()
     end)
     enabledCB:SetPoint("TOPLEFT", 18, -86)
 
-    local diffLbl = tab:CreateFontString(nil, "OVERLAY")
+    diffLbl = tab:CreateFontString(nil, "OVERLAY")
     diffLbl:SetFontObject(W.fontNormal)
     diffLbl:SetPoint("TOPLEFT", 150, -88)
     diffLbl:SetText(L["Difficulty"])
@@ -830,7 +831,7 @@ local function Init()
 
     emptyText = tab:CreateFontString(nil, "OVERLAY")
     emptyText:SetFontObject(W.fontNormal)
-    emptyText:SetPoint("TOPLEFT", 18, -90)
+    emptyText:SetPoint("TOPLEFT", 18, -120)
     emptyText:SetWidth(LIST_W - 20)
     emptyText:SetJustifyH("LEFT")
     emptyText:SetSpacing(4)
