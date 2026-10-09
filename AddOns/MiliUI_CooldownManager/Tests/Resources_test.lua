@@ -1693,5 +1693,47 @@ do
     check("out 重複用、清乾淨、壞 key 略過", w2 == out and Set(out) == 0)
     eq("keys 是 nil 不報錯", Set(R.WantedEvents(nil, "MONK")), 0)
 end
+-- 秘密值時的整條換色：規則展開成 Step 曲線的點（RC.CurvePoints）
+do
+    local base = { r = 0, g = 0.5, b = 1 }
+    local red = { r = 1, g = 0, b = 0 }
+    -- 漩渦 > 90（上限 100）：0 底色、0.9 底色（不含 90）、0.9⁺ 紅
+    local conds = { { check = { var = "powerValue", cmp = ">", value = 90 }, overrides = { color = red } } }
+    local pts = RC.CurvePoints(conds, 100, 262, base)
+    eq("> 90：三個點", #pts, 3)
+    eq("> 90：0 是底色", pts[1][2], 0)
+    eq("> 90：0.9 是底色（不含門檻）", pts[2][1] == 0.9 and pts[2][2], 0)
+    eq("> 90：0.9⁺ 是紅", pts[3][2], 1)
+    check("> 90：0.9⁺ 比 0.9 大一點", pts[3][1] > 0.9 and pts[3][1] < 0.901)
+    -- >= 90：門檻那一點就是紅
+    conds[1].check.cmp = ">="
+    pts = RC.CurvePoints(conds, 100, 262, base)
+    eq(">= 90：0.9 是紅", pts[2][2], 1)
+    -- 上限 150：門檻換成比例
+    pts = RC.CurvePoints(conds, 150, 262, base)
+    eq("上限 150：門檻 0.6", pts[2][1], 90 / 150)
+    -- powerValue 而上限不明 ⇒ 展不開
+    eq("上限不明 ⇒ nil", RC.CurvePoints(conds, nil, 262, base), nil)
+    -- 百分比不需要上限；< 30 低於門檻那一段
+    local c2 = { { check = { var = "powerPercent", cmp = "<", value = 30 }, overrides = { color = red } } }
+    pts = RC.CurvePoints(c2, nil, 262, base)
+    eq("< 30%：0 是紅", pts[1][2], 1)
+    eq("< 30%：0.3 是底色", pts[2][1] == 0.3 and pts[2][2], 0)
+    -- 專精不符 ⇒ 整條底色；第一條成立優先
+    local c3 = { { check = { op = "and", children = { { var = "spec", cmp = "==", value = 263 },
+        { var = "powerValue", cmp = ">=", value = 50 } } }, overrides = { color = red } } }
+    pts = RC.CurvePoints(c3, 100, 262, base)
+    local allBase = true
+    for _, p in ipairs(pts) do if p[2] ~= 0 then allBase = false end end
+    check("專精不符 ⇒ 全部底色", allBase)
+    -- 只有指定格的規則（target）／沒有規則 ⇒ nil
+    eq("只有 target 規則 ⇒ nil", RC.CurvePoints({ { target = 1, check = { var = "always" }, overrides = { color = red } } }, 100, 262, base), nil)
+    eq("沒規則 ⇒ nil", RC.CurvePoints({}, 100, 262, base), nil)
+    -- 已滿：1 那一點
+    pts = RC.CurvePoints({ { check = { var = "powerFull", value = true }, overrides = { color = red } } }, 100, 262, base)
+    eq("已滿：最後一點 x ＝ 1", pts[#pts][1], 1)
+    eq("已滿：1 是紅", pts[#pts][2], 1)
+    eq("已滿：0 是底色", pts[1][2], 0)
+end
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

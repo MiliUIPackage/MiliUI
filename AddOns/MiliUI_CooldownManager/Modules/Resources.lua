@@ -2129,6 +2129,41 @@ local function SetBigNumber(fs, v, cfg)
     R.SetNumberText(fs, v, nil, bigFmt)
 end
 
+-- 秘密值時的整條換色（條件規則展開成 Step 曲線，RC.CurvePoints）：曲線物件一列一顆、池化在列上；
+-- 設定世代（R.Apply 時 +1）、專精、明文上限、底色任一變了才重建點。上限讀不到明文時沿用上次讀到的。
+-- 回傳曲線（交給 UnitPowerPercent 的第 4 個參數）；展不開／API 不在回 nil（照底色）
+local condCurveGen = 0
+local condLastMax = {}
+local function CondCurve(row, conds, key, pm, cc)
+    local make = C_CurveUtil and C_CurveUtil.CreateColorCurve
+    if not (make and CreateColor and UnitPowerPercent) then return nil end
+    if pm then condLastMax[key] = pm else pm = condLastMax[key] end
+    local spec = CurrentSpecID()
+    local st = row.condCurve
+    if st and st.gen == condCurveGen and st.conds == conds and st.max == pm and st.spec == spec and st.base == cc
+        and st.key == key then
+        return st.ok and st.curve or nil
+    end
+    if not st then
+        local ok, c = pcall(make)
+        if not ok or not c then return nil end
+        local T = Enum and Enum.LuaCurveType
+        if T and T.Step then c:SetType(T.Step) end
+        st = { curve = c }
+        row.condCurve = st
+    end
+    st.gen, st.conds, st.max, st.spec, st.base, st.key = condCurveGen, conds, pm, spec, cc, key
+    st.ok = false
+    local pts = RC.CurvePoints(conds, pm, spec, cc)
+    if not pts then return nil end
+    local ok = pcall(function()
+        st.curve:ClearPoints()
+        for _, p in ipairs(pts) do st.curve:AddPoint(p[1], CreateColor(p[2], p[3], p[4], p[5])) end
+    end)
+    st.ok = ok
+    return ok and st.curve or nil
+end
+
 local function UpdateBarRow(row, cfg, def, key, cc, conds)
     local cur, max = GetValue(key)
     if def.stagger then
@@ -2145,10 +2180,17 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
         return
     end
     local pc = Plain(cur)
-    local barOv
+    local barOv, curveCol
     if conds and pc and pm then
         RC.FillState(condState, pc, pm, CurrentSpecID())
         barOv = RC.FirstMatch(conds, condState, nil)
+    elseif conds and def.power ~= nil and not def.stagger and not def.get then
+        -- 值是秘密值（12.1 戰鬥中的連續條）：Lua 不比較，整條的顏色規則交給曲線在 C 端挑（只換填充色）
+        local curve = CondCurve(row, conds, key, pm, cc)
+        if curve then
+            local ok, c = pcall(UnitPowerPercent, "player", def.power, false, curve)
+            if ok and c then curveCol = c end
+        end
     end
     local fc = (barOv and RC.ValidColor(barOv.color)) or cc
     -- 上限與目前值直接交給引擎（可能是秘密值）
@@ -2159,7 +2201,13 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
         row.bar:SetValue(0)
     end
     local t = row.bar:GetStatusBarTexture()
-    if t then t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1) end
+    if t then
+        if curveCol then
+            t:SetVertexColor(curveCol.r, curveCol.g, curveCol.b, tonumber(cfg.barAlpha) or 1)   -- 可能是秘密值：只交給引擎
+        else
+            t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1)
+        end
+    end
     PaintBarBG(row, cfg, barOv, fc)
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
@@ -3090,6 +3138,7 @@ end
 -- 設定頁改了值：重排＋結構（錨點、strata、開關）＋ alpha
 function R.Apply()
     R.InvalidateStyles()
+    condCurveGen = condCurveGen + 1          -- 條件規則改了：秘密值時的換色曲線重建（CondCurve）
     if not container then return end
     R.Invalidate()
     R.Update(true)
