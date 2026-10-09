@@ -17,7 +17,8 @@ local Plans = ns.Plans
 ns.EntryEditor = {}
 local EE = ns.EntryEditor
 
-local POP_W, POP_H = 470, 392
+local POP_W = 470
+local BTN_GAP, BTN_H, BTN_PAD = 16, 22, 12   -- 最後一段內容 → 按鈕的間距、按鈕高、按鈕到底邊
 local popup, f, current
 
 local function Label(parent, text, x, y, small)
@@ -64,7 +65,7 @@ local function Build()
     mask:SetBackdropColor(0.15, 0.15, 0.15, 0.7)
     mask:Hide()
 
-    popup = W.CreateFrame("MiliUIBT_EntryEditor", parent, POP_W, POP_H)
+    popup = W.CreateFrame("MiliUIBT_EntryEditor", parent, POP_W, 400)
     W.CloseOnEscape(popup)
     popup:SetFrameStrata("FULLSCREEN_DIALOG")
     popup:SetFrameLevel(410)
@@ -136,8 +137,8 @@ local function Build()
     Label(popup, L["Class"], 252, -256)
     f.class = W.CreateDropdown(popup, 150, ClassItems(), function() end)
     f.class:SetPoint("TOPLEFT", 296, -254)
-    local roleHint = Label(popup, L["No role ticked = everyone."], 14, -278, true)
-    roleHint:SetWidth(POP_W - 28)
+    f.roleHint = Label(popup, L["No role ticked = everyone."], 14, -278, true)
+    f.roleHint:SetWidth(POP_W - 28)
 
     -- 錨點：只有從 MRT 列建立（或原本就有錨點）的提示才顯示
     f.anchorHeader = Header(popup, L["Follow the boss"], -302)
@@ -230,6 +231,10 @@ function EE.Open(values, onAccept, title)
         f.anchor:SetChecked(values.anchorOn ~= false)
         SetBox(f.offset, a.offset or 0)
     end
+    -- 高度照最後一段說明的實際行數算：說明會依語系換行，寫死高度會壓到按鈕
+    local last = showAnchor and f.anchorHint or f.roleHint
+    local _, _, _, _, y = last:GetPoint(1)
+    popup:SetHeight(math.ceil(-y + last:GetStringHeight()) + BTN_GAP + BTN_H + BTN_PAD)
     popup:Show()
     f.t:SetFocus()
 end
