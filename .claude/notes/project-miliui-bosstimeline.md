@@ -124,9 +124,23 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   匯入、套用上一場這種一次改很多條的包在 `Plans.Batch` 只記一步。
   Ctrl＋Z：分頁上一個**轉發鍵盤**的框（`SetPropagateKeyboardInput(true)`，不擋任何快捷鍵），只在戰鬥外建；輸入框有焦點時不攔。
 
+## 次要體驗四項（2026-10-09 第七批）
+
+- **首次導覽**（`Options/Intro.lua`）：第一次打開設定視窗跳一張「想做什麼？」卡，四顆按鈕直接跳分頁；任何方式關掉都記 `seenIntro`。
+  關於分頁有「再看一次導覽」。一般分頁的「戰鬥中辨識」收進「進階設定」（`showAdvanced`）；共用層表單沒有局部顯示隱藏，
+  所以展開／收起是整頁重建（舊的 content Hide 掉）。
+- **顯示時機**：`display.visibility = "always"/"instance"`（`IsInInstance()`）、`display.oocAlpha`（戰鬥外透明度）。
+  ⚠ 戰鬥狀態自己記（PLAYER_REGEN_DISABLED 派送當下 InCombatLockdown() 還是 false）。預覽一律不受限、不透明。時間軸框本來就不吃滑鼠。
+- **未設定色塊**：首領技能分頁的色塊沒設時畫紅色斜線（`SetRotation(45°)`），滑過說明「沿用暴雪／DBM 的顏色」。
+- **其他插件的語音**：`hooksecurefunc("PlaySoundFile")`，首領戰中路徑在別的插件資料夾就記成上一場紀錄的一筆
+  （`voice = true`, owner＝資料夾，text＝「語音：檔名」）。地瓜的首領語音表讀不到，這是唯一看得到它哪一秒提醒的辦法。
+  排除：自己（Scheduler 播時設 `ns.playingOwnSound`）、DBM／BigWigs（每秒倒數會洗版）、SharedMedia 系（共用檔認不出是誰）、fileID 數字；
+  同檔 1 秒內只記一次。自訂時間軸分頁看到有語音就黃字提醒「你的音效可能會疊上去」。
+
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
 
-0. 第六批：EJ 函式在沒開過冒險指南時就有資料（Cell 是登入就讀，應該可以）；Ctrl＋Z 的轉發框不影響其他快捷鍵。
+0. 第七批：hooksecurefunc("PlaySoundFile") 在戰鬥中拿得到明文路徑（地瓜傳的是字串）；SetRotation 的斜線在 14px 色塊上看得清楚。
+   第六批：EJ 函式在沒開過冒險指南時就有資料（Cell 是登入就讀，應該可以）；Ctrl＋Z 的轉發框不影響其他快捷鍵。
    第五批：C_EncodingUtil 的 CBOR 往返（巢狀表、布林）跟模擬一致；計時條的 StatusBar 材質路徑。
    第四批：橫向捲動區裡的按鈕會不會吃掉滾輪（滾輪事件不一定往上傳到畫布）；SpeakText 在戰鬥中可用；拖曳在 UI 縮放 ≠ 1 時位移準不準。
    第三批：DBM_TimerBegin 的時長跟 ENCOUNTER_TIMELINE 事件的 duration 是否真的差 0.25 秒內（DBM 可能套過變異量）；

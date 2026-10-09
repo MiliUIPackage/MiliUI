@@ -23,6 +23,8 @@ local function BuildDefaults()
         optionsWindow = { x = 0, y = 0 },
         -- 設定視窗開著時，畫面上的時間軸也用假資料跑（看得到實際位置與大小、可以直接拖）
         previewOnScreen = true,
+        seenIntro = false,           -- 第一次開設定視窗的導覽看過了沒
+        showAdvanced = false,        -- 一般分頁的進階設定展開了沒
 
         display = {
             enabled      = true,     -- 用本插件的畫法
@@ -30,6 +32,9 @@ local function BuildDefaults()
             orientation  = "vertical",
             x = 320, y = 60,         -- 相對 UIParent CENTER 的偏移
             scale = 1,
+            -- 什麼時候顯示：always＝有東西就畫；instance＝只在副本裡（野外首領、世界任務不畫）
+            visibility = "always",
+            oocAlpha   = 1,          -- 戰鬥外的透明度（戰鬥中一律 1）
             -- 誰放上去的才畫：暴雪的首領技能／自己的自訂時間軸／其他插件
             sources = { blizzard = true, mine = true, other = true },
 

@@ -40,6 +40,38 @@ ns.RegisterCallback("TimelineEventAdded", "recorder", function(rec)
     session.list[#session.list + 1] = { entry = entry, rec = rec }
 end)
 
+------------------------------------------------------------
+-- 其他插件的語音提示（地瓜語音那種）：首領戰中 PlaySoundFile 的路徑在別的插件資料夾裡，
+-- 就記成「那個插件在第幾秒播了某個語音」。地瓜的首領語音表是它私有的、讀不到，
+-- 這是唯一看得到它在哪一秒提醒的辦法 —— 編輯器的「上一場」列就會出現，跟自己的提示疊不疊一目了然。
+--
+-- 只認路徑字串（fileID 數字認不出是誰的）；首領模組自己的倒數音（DBM／BigWigs 每秒一聲）不記，
+-- 同一個檔案 1 秒內重播只記一次。
+------------------------------------------------------------
+local SKIP_VOICE = { ["DBM-Core"] = true, BigWigs = true, BigWigs_Core = true, BigWigs_Plugins = true }
+-- 媒體庫（SharedMedia 系）的音效是誰都能播的共用檔，看路徑認不出是哪個插件在提醒
+local function IsMediaPack(addon)
+    return addon:match("^SharedMedia") or addon:match("^LibSharedMedia")
+end
+local lastVoice = {}
+
+hooksecurefunc("PlaySoundFile", function(file)
+    if not session or #session.list >= MAX_EVENTS or ns.playingOwnSound then return end
+    file = S.PlainText(file)
+    if not file then return end
+    local addon, name = file:match("[Aa][Dd][Dd][Oo][Nn][Ss][/\\]([^/\\]+)[/\\].-([^/\\]+)$")
+    if not addon or addon == ns.ADDON_NAME or SKIP_VOICE[addon] or addon:match("^DBM%-") or IsMediaPack(addon) then return end
+    local now = GetTime()
+    if lastVoice[file] and now - lastVoice[file] < 1 then return end
+    lastVoice[file] = now
+    name = name:gsub("%.%w+$", "")
+    session.list[#session.list + 1] = {
+        entry = { t = Round1(now - session.start), src = "other", owner = addon, voice = true,
+                  text = ns.L["Voice: %s"]:format(name) },
+        rec = { kind = "other", owner = addon },
+    }
+end)
+
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ENCOUNTER_START")
 frame:RegisterEvent("ENCOUNTER_END")
@@ -47,6 +79,7 @@ frame:SetScript("OnEvent", function(_, event, encounterID, encounterName, diffic
     if not ns.db then return end
     if event == "ENCOUNTER_START" then
         session = { id = encounterID, name = S.PlainText(encounterName), difficulty = difficultyID, start = GetTime(), list = {} }
+        wipe(lastVoice)
     elseif event == "ENCOUNTER_END" and session and session.id == encounterID then
         if #session.list > 0 then
             local events = {}

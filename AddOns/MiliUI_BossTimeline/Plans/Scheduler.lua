@@ -46,7 +46,11 @@ end
 
 function Sch.Alert(entry, text)
     local path = entry.sound and ns.Media.Sound(entry.sound)
-    if path then PlaySoundFile(path, "Master") end
+    if path then
+        ns.playingOwnSound = true      -- Recorder 的 PlaySoundFile 掛勾不要把自己的提示音記成別人的語音
+        PlaySoundFile(path, "Master")
+        ns.playingOwnSound = false
+    end
     if entry.tts then Speak(text) end
 end
 

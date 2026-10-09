@@ -95,7 +95,7 @@ local function BuildLive(parent, x, y, width)
     return 200, function() fs:SetText(LiveLines()) end
 end
 
-local CONTROLS = {
+local BASIC = {
     { type = "header", label = L["MiliUI Boss Timeline"] },
     { type = "toggle", sub = "display", key = "enabled", label = L["Draw the timeline with MiliUI"] },
     { type = "text", label = L["Off: Blizzard's timeline stays as it is. Custom timelines still run and still show which addon added what."] },
@@ -103,6 +103,14 @@ local CONTROLS = {
       requires = { sub = "display", key = "enabled" } },
     { type = "text", label = L["Only the picture is hidden. Blizzard's sounds, and other addons' timeline sounds such as DBM countdowns, keep working."] },
     { type = "toggle", key = "previewOnScreen", label = L["Preview on screen while this window is open"] },
+
+    { type = "header", label = L["When to show it"] },
+    { type = "dropdown", sub = "display", key = "visibility", label = L["Show"], items = {
+        { text = L["Whenever something is on the timeline"], value = "always" },
+        { text = L["Only in dungeons and raids"],           value = "instance" },
+    } },
+    { type = "slider", sub = "display", key = "oocAlpha", label = L["Opacity out of combat"], min = 0, max = 1, step = 0.05 },
+    { type = "text", label = L["The timeline never takes mouse clicks, so it won't get in the way of clicking the world behind it."] },
 
     { type = "header", label = L["Show entries from"] },
     { type = "toggle", sub = "display", sub2 = "sources", key = "blizzard", label = L["Blizzard (boss abilities)"] },
@@ -112,8 +120,11 @@ local CONTROLS = {
 
     { type = "header", label = L["On the timeline right now"] },
     { type = "custom", label = "", build = BuildLive },
-    { type = "text", label = L["Blizzard hides boss ability names from addons during combat. The ones listed by name were recognized through DBM or the MRT timeline (see below)."] },
+    { type = "text", label = L["Blizzard hides boss ability names from addons during combat. The ones listed by name were recognized through DBM or the MRT timeline (Advanced, below)."] },
+}
 
+-- 進階：平常用不到、預設收起來（展開狀態記在存檔）
+local ADVANCED = {
     { type = "header", label = L["Recognizing boss abilities in combat"] },
     { type = "toggle", sub = "identify", key = "dbm", label = L["Use DBM's recognition"] },
     { type = "text", label = L["When DBM recognizes a timeline entry, it announces the ability by name; this addon picks that up. Needs DBM with its boss modules."] },
@@ -122,12 +133,43 @@ local CONTROLS = {
     { type = "text", label = L["Recognized abilities are what make \"Hide on the timeline\" (Boss abilities tab) work, and let your last pull remember their names."] },
 }
 
+local content
+local Build
+
+-- 「進階設定」展開／收起：整頁重建（共用層的表單沒有局部顯示隱藏）
+local function BuildAdvancedToggle(parent, x, y)
+    local b = W.CreateButton(parent, ns.db.showAdvanced and L["Hide advanced settings"] or L["Show advanced settings"], "normal", 140, 20)
+    W.FitButton(b, 140, 20)
+    b:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+    b:SetScript("OnClick", function()
+        ns.db.showAdvanced = not ns.db.showAdvanced
+        Build()
+    end)
+    return 28
+end
+
+local function Controls()
+    local list = {}
+    for _, c in ipairs(BASIC) do list[#list + 1] = c end
+    list[#list + 1] = { type = "space", h = 6 }
+    list[#list + 1] = { type = "custom", label = "", build = BuildAdvancedToggle, h = 28 }
+    if ns.db.showAdvanced then
+        for _, c in ipairs(ADVANCED) do list[#list + 1] = c end
+    end
+    return list
+end
+
+Build = function()
+    if content then content:Hide() end
+    local ctx = ns.Options.MakeCtx(Apply)
+    content, refreshers = ns.Options.BuildScrollBody(scroll, Controls(), ctx)
+    RefreshAll()
+end
+
 local function Init()
     if tab then return end
     tab, scroll = ns.Options.MakeFormTab(L["General"])
-    local ctx = ns.Options.MakeCtx(Apply)
-    local _
-    _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)
+    Build()
 end
 
 local function StopTicker()

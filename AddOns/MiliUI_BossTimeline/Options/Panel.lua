@@ -170,6 +170,8 @@ local function CreatePanel()
     panel:SetScript("OnShow", function()
         SetCombatLocked(InCombatLockdown())
         ns.Screen.SetOptionsOpen(true)
+        -- 第一次打開：導覽卡（分頁還沒切好，晚一幀再開，才蓋在正確的分頁上）
+        if not ns.db.seenIntro then C_Timer.After(0, ns.Intro.Show) end
     end)
 
     -- 格線：拖畫面上的時間軸時對齊用
@@ -208,6 +210,11 @@ local function CreatePanel()
         "",
         L["Author: Mili (MiliUI package)"],
     }, "\n"))
+
+    local again = W.CreateButton(aboutTab, L["Show the intro again"], "normal", 140, 22)
+    W.FitButton(again, 140, 22)
+    again:SetPoint("TOPLEFT", aboutText, "BOTTOMLEFT", 0, -16)
+    again:SetScript("OnClick", function() ns.Intro.Show() end)
 
     ns.RegisterCallback("ShowOptionsTab", "aboutTab", function(id)
         aboutTab:SetShown(id == "about")

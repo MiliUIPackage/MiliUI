@@ -81,6 +81,27 @@ local function BuildRow(row)
     end)
     row.highlight:SetPoint("LEFT", row, "LEFT", COL.highlight + 8, 0)
 
+    -- 「未設定」要跟「設成深灰」分得出來：色塊上畫一條斜線（色票的「無」慣例），滑過說明
+    local function MarkUnset(swatch)
+        local slash = swatch:CreateTexture(nil, "OVERLAY")
+        slash:SetTexture("Interface\\Buttons\\WHITE8X8")
+        slash:SetVertexColor(0.85, 0.25, 0.25, 1)
+        slash:SetSize(18, P.Scale(1.5))
+        slash:SetPoint("CENTER")
+        slash:SetRotation(math.rad(45))
+        swatch.unset = slash
+        swatch:HookScript("OnEnter", function(self)
+            if not self.unset:IsShown() then return end
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(L["Not set"], 1, 1, 1)
+            GameTooltip:AddLine(L["Uses Blizzard's color, or DBM's if it set one. Click to pick your own."], 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        swatch:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    MarkUnset(row.color)
+    MarkUnset(row.highlight)
+
     row.sndHl = W.CreateDropdown(row, 130, soundItems, function(value)
         if Id() then
             A.Set(Id(), "soundHighlight", value ~= "" and value or nil)
@@ -121,6 +142,8 @@ local function UpdateRow(row, it)
     row.name:SetText(name .. extra)
     row.color:SetColor(cfg.color or UNSET)
     row.highlight:SetColor(cfg.highlight or UNSET)
+    row.color.unset:SetShown(cfg.color == nil)
+    row.highlight.unset:SetShown(cfg.highlight == nil)
     row.sndHl:SetSelectedValue(cfg.soundHighlight or "")
     row.sndCast:SetSelectedValue(cfg.soundCast or "")
     row.hide:SetChecked(cfg.hide and true or false)

@@ -22,6 +22,7 @@ local Screen = ns.Screen
 local holder, display, selection, hint
 local inEditMode = false
 local optionsOpen = false
+local inCombat = false      -- 自己記：PLAYER_REGEN_DISABLED 派送當下 InCombatLockdown() 還是 false
 
 local function DB() return ns.db.display end
 
@@ -152,9 +153,13 @@ local function UpdateState()
     if not holder then return end
     local d = DB()
     local preview = PreviewWanted()
-    local run = d.enabled and (ns.Events.HasAny() or preview)
+    -- 只在副本裡：野外的時間軸事件（世界首領、別的插件在外面加的條）不畫；預覽不受限
+    local allowed = d.visibility ~= "instance" or IsInInstance()
+    local run = d.enabled and ((ns.Events.HasAny() and allowed) or preview)
     display:SetRunning(run and true or false)
     holder:SetShown(run and true or false)
+    -- 戰鬥外淡一點（預覽時照常，不然調的時候看不清楚）
+    holder:SetAlpha((preview or inCombat) and 1 or (d.oocAlpha or 1))
 
     -- 選取框：編輯模式用模板的藍框；設定視窗開著時也給一個可抓的區域
     if run and preview then
@@ -223,6 +228,20 @@ end
 ns.RegisterCallback("Init", "screen", function()
     HookEditMode()
     Screen.Apply()
+end)
+
+-- 進出戰鬥、換區域 → 透明度與「只在副本裡」重算
+local stateFrame = CreateFrame("Frame")
+stateFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+stateFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+stateFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+stateFrame:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_REGEN_DISABLED" then
+        inCombat = true
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        inCombat = false
+    end
+    if ns.db then UpdateState() end
 end)
 
 -- 時間軸上有沒有東西變了 → 要不要畫

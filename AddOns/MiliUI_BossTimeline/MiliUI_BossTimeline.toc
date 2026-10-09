@@ -57,6 +57,7 @@ Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 Options\Panel.lua
+Options\Intro.lua
 Options\Tab_General.lua
 Options\Tab_Style.lua
 Options\BossPicker.lua

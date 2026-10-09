@@ -586,8 +586,17 @@ local function Refresh()
     if rec then
         notes[#notes + 1] = L["Locked rows are from your last pull (%s, %s)."]:format(
             Plans.DifficultyLabel(rec.difficulty), Plans.FormatTime(rec.duration or 0))
+        -- 別的插件（地瓜語音之類）在這隻首領也有語音提醒：提醒玩家自己的音效可能疊上去
+        local voices, owner = 0, nil
+        for _, ev in ipairs(rec.events) do
+            if ev.voice then voices, owner = voices + 1, ev.owner end
+        end
+        if voices > 0 then
+            table.insert(notes, 1, "|cffffd100" .. L["%s played %d voice cues on this boss last pull (see Last pull). Sounds on your reminders may overlap with them."]:format(
+                ns.Owners.Label(owner), voices) .. "|r")
+        end
     end
-    recNote:SetText(table.concat(notes, "  "))
+    recNote:SetText(table.concat(notes, "\n"))
 
     if mode == "timeline" then
         editor:SetPlan(currentID, {
@@ -817,6 +826,7 @@ local function Init()
     recNote:SetPoint("TOPLEFT", btnAdd, "BOTTOMLEFT", 0, -8)
     recNote:SetWidth(LIST_W)
     recNote:SetJustifyH("LEFT")
+    recNote:SetSpacing(2)
 
     emptyText = tab:CreateFontString(nil, "OVERLAY")
     emptyText:SetFontObject(W.fontNormal)
