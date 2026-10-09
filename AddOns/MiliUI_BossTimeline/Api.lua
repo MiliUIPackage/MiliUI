@@ -36,7 +36,9 @@ local function Report()
     local counts = { blizzard = 0, mine = 0, other = 0, editmode = 0 }
     for id, rec in ns.Events.Iterate() do
         counts[rec.kind] = (counts[rec.kind] or 0) + 1
-        if rec.kind == "other" or rec.kind == "mine" then
+        if rec.kind == "blizzard" and rec.ident then
+            print(("  #%d  %s  %s  (%s)"):format(id, L["Blizzard"], rec.ident.name, rec.ident.source))
+        elseif rec.kind == "other" or rec.kind == "mine" then
             local rem = S.PlainNumber(S.SafeCall(C_EncounterTimeline.GetEventTimeRemaining, id))
             local who = rec.kind == "mine" and L["My custom timeline"] or ns.Owners.Label(rec.owner)
             print(("  #%d  %s  %s  %s"):format(id, who, S.PlainText(rec.name) or "?",
@@ -45,7 +47,9 @@ local function Report()
     end
     print(("  %s %d   %s %d   %s %d"):format(L["Blizzard"], counts.blizzard,
         L["Mine"], counts.mine, L["Other addons"], counts.other))
-    print("  " .. L["Hiding Blizzard's timeline:"] .. " " .. (ns.BlizzardView.IsHiding() and L["yes"] or L["no"]))
+    print("  " .. L["Hiding Blizzard's timeline:"] .. " " .. (ns.BlizzardView.IsHiding() and L["yes"] or L["no"])
+        .. "   DBM: " .. (ns.Identify.DBMHooked() and L["yes"] or L["no"])
+        .. "   MRT: " .. (ns.MRTData.Available() and L["yes"] or L["no"]))
 
     if ns.errors and #ns.errors > 0 then
         print("  " .. L["Errors:"])

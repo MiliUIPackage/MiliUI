@@ -29,16 +29,20 @@ Core\Init.lua
 Core\Media.lua
 Core\DB.lua
 
+# MRTData 只靠 ns.Secret，排在最前面：Identify（戰鬥中認技能）與編輯器都用它
+Plans\MRTData.lua
+
 # Owners 要在 Events 之前：Events 收到 ADDED 時要問「這條是誰加的」
 Timeline\Owners.lua
 Timeline\Events.lua
+Timeline\Identify.lua
 Timeline\Mock.lua
 Timeline\Display.lua
 Timeline\BlizzardView.lua
 Timeline\Screen.lua
 
 Plans\Plans.lua
-Plans\MRTData.lua
+Plans\Abilities.lua
 Plans\Scheduler.lua
 Plans\Recorder.lua
 
@@ -52,6 +56,7 @@ Options\Panel.lua
 Options\Tab_General.lua
 Options\Tab_Style.lua
 Options\Tab_Plans.lua
+Options\Tab_Abilities.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

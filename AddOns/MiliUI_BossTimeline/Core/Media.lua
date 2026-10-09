@@ -53,3 +53,24 @@ function M.OutlineItems()
         { text = L["Thick outline"], value = "THICKOUTLINE" },
     }
 end
+
+------------------------------------------------------------
+-- 音效：LibSharedMedia 的 sound 清單（套組帶的 SharedMedia 會註冊一大批）
+-- 存檔存名稱；nil／"" = 不播
+------------------------------------------------------------
+function M.Sound(name)
+    if not name or name == "" then return end
+    local lsm = LSM()
+    if lsm then return lsm:Fetch("sound", name, true) end
+end
+
+function M.SoundItems()
+    local items = { { text = ns.L["None"], value = "" } }
+    local lsm = LSM()
+    if lsm then
+        for _, name in ipairs(lsm:List("sound")) do
+            if name ~= "None" then items[#items + 1] = { text = name, value = name } end
+        end
+    end
+    return items
+end

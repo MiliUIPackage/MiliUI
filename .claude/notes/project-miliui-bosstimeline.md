@@ -63,7 +63,30 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   我們的「貼上匯入」收同一格式（`Plans.ImportNote`）；`{time:…,p2}` 階段起算的不支援、計數回報。
   ⚠ 剝前後分隔符時全形「–—：」是多位元組，**不能塞進 Lua 的 [...] 字元集**（會剝掉中文字的尾位元組），要當字串一個一個剝。
 
+## 首領技能設定與戰鬥中辨識（2026-10-09 第三批）
+
+- **首領技能分頁**（`Plans/Abilities.lua`＋`Options/Tab_Abilities.lua`）：每個技能記錄（encounterEventID）設時間軸顏色、
+  快到顏色、快到音效、施放音效、隱藏。顏色音效走 `C_EncounterEvents.SetEventColor(id, 1/2, ColorMixin)`／
+  `SetEventSound(id, 2 快到 / 1 施放, {file, channel, volume})`——認的是技能記錄不是戰鬥中的事件，秘密值管不到。
+  `GetEventInfo(encounterEventID)` 沒有秘密標註（spellID／iconFileID 明文）。
+  ⚠ 記錄沒有「屬於哪隻首領」欄位、`GetEventList` 是全遊戲的；分組靠 MRT 這隻首領用到的法術對 spellID，
+  再把 ID 兩端之間夾著的也列進來（同一隻首領的記錄連號，DBM 瓦什尼克 754～775），標「MRT 沒統計到」。
+  MRT 沒資料就只能搜尋法術名稱。
+  ⚠ 跟 DBM 搶同一個設定：DBM 登入時與開戰時會設它認得的技能。我們登入 3 秒後、ENCOUNTER_START 0.5 秒後再套（後套的贏）；
+  清除某列會 SetEventColor(nil) ⇒ 連 DBM 的也清掉，直到它下次開戰重設。
+  第一次設顏色會自動打開外觀的「邊框使用技能在時間軸上的顏色」，不然自己的時間軸看不到。
+- **戰鬥中辨識**（`Timeline/Identify.lua`，結果在 `rec.ident = { name, spell, icon, source }`）：
+  1. DBM：`DBM:RegisterCallback("DBM_TimerBegin", f)`，f 收 `(event, id, msg, timer, icon, simpType, spellId, colorId, modId, keep, fade, name, …)`；
+     硬編碼模組的 TLStart 在 DBM 自己的 ADDED 處理器裡同步發這個回呼，用「同一幀（0.05s）＋時長差 0.25s 內」配對；兩種先後都接。
+     DBM 鏡射暴雪 API 的條不走 Timer:Start，名稱是秘密的 ⇒ PlainText 洗掉、不配。
+  2. MRT 對時：開戰後秒數＋剩餘秒數＝會發生的秒數，比對**同難度**那份 MRT 統計 3 秒內最近、還沒認領的一次；
+     不同技能的候選差不到 0.75 秒就不猜。DBM 答案蓋過 MRT 猜測。
+  用途：上一場紀錄記得住名稱（Recorder 收尾時從 rec.ident 抄）、一般分頁列得出名稱、「隱藏」技能（Events.Collect 濾 ident.spell）。
+
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
+
+0. 第三批：DBM_TimerBegin 的時長跟 ENCOUNTER_TIMELINE 事件的 duration 是否真的差 0.25 秒內（DBM 可能套過變異量）；
+   SetEventSound 的 file 吃 LSM 路徑字串；戰鬥中 SetEventColor 是否允許（DBM 是開戰時呼叫的，應該可以）。
 
 1. ENCOUNTER_TIMELINE_EVENT_ADDED 是否在 `AddScriptEvent` 回傳前同步派送（兩種都有處理，但要看實際走哪條）。
 2. `debugstack` 在 hooksecurefunc 的 post-hook 裡抓得到呼叫端插件路徑（格式 `Interface/AddOns/<資料夾>/`）。

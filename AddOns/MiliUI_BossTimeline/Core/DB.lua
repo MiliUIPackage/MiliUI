@@ -88,6 +88,15 @@ local function BuildDefaults()
         --   暴雪的事件名稱與圖示在戰鬥中是秘密值，存不下來 —— 只記得「第幾秒有一個暴雪事件」
         recorded = {},
 
+        -- 首領技能各自的設定（Plans/Abilities.lua）：
+        -- [encounterEventID] = { color, highlight, soundHighlight, soundCast, hide, spell }
+        abilities = {},
+
+        -- 戰鬥中認首領技能（Timeline/Identify.lua）：DBM 的回呼、MRT 對時間
+        identify = { dbm = true, mrt = true },
+        -- 首領技能分頁手動加過的首領：[encounterID] = 名稱
+        abilityBosses = {},
+
         -- 自訂時間軸分頁要不要列出參考列（MRT 的整場時間軸、上一場的紀錄）
         planView = { mrt = true, recorded = true },
 

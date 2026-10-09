@@ -4,7 +4,8 @@
 -- 每個事件記「開戰後第幾秒會發生」＝ 放上時間軸那一刻的經過秒數 ＋ 當時的剩餘秒數。
 --
 -- ⚠ 暴雪的首領事件名稱、圖示在戰鬥中是秘密值：**存不進 SavedVariables、也不能拿來比**。
---   所以首領事件只留下「第幾秒、倒數多久」，編輯器上顯示成鎖住的「暴雪事件」；
+--   所以首領事件只留下「第幾秒、倒數多久」，編輯器上顯示成鎖住的「暴雪事件」——
+--   除非 Identify.lua 認出了是哪個技能（DBM 回呼或 MRT 對時），那就連名稱一起記；
 --   其他插件加的（Script 來源）是明文，名稱與是哪個插件都記得住。
 --   自己的自訂時間軸不記（那本來就在編輯器裡）。
 --
@@ -52,8 +53,13 @@ frame:SetScript("OnEvent", function(_, event, encounterID, encounterName, diffic
             for _, item in ipairs(session.list) do
                 -- 自己的提示可能比 MarkMine 早一步進來（事件同步派送），收尾時以 rec 的最終歸屬為準
                 if item.rec.kind ~= "mine" then
-                    item.entry.owner = item.rec.owner
-                    events[#events + 1] = item.entry
+                    local e, rec = item.entry, item.rec
+                    e.owner = rec.owner
+                    -- 戰鬥中認出來的暴雪技能（DBM／MRT）：名稱與法術是明文，記得住
+                    if rec.ident then
+                        e.text, e.spell, e.icon, e.ident = rec.ident.name, rec.ident.spell, rec.ident.icon, rec.ident.source
+                    end
+                    events[#events + 1] = e
                 end
             end
             if #events > 0 then

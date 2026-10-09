@@ -260,9 +260,10 @@ local function BuildRow(row)
             OpenEntryPopup({ t = Plans.FormatTime(it.ev.t), spell = it.ev.spell, lead = Plans.DEFAULT_LEAD })
         elseif it.kind == "recorded" then
             OpenEntryPopup({
-                t    = Plans.FormatTime(it.ev.t),
-                text = it.ev.src ~= "blizzard" and it.ev.text or "",
-                lead = Plans.DEFAULT_LEAD,
+                t     = Plans.FormatTime(it.ev.t),
+                spell = it.ev.spell or "",
+                text  = (it.ev.src ~= "blizzard" or not it.ev.spell) and it.ev.text or "",
+                lead  = Plans.DEFAULT_LEAD,
             })
         end
     end)
@@ -326,7 +327,16 @@ local function UpdateRow(row, it)
         row.icon:SetTexture(LOCK_ICON)
         row.icon:SetTexCoord(0, 1, 0, 1)
         if ev.src == "blizzard" then
-            row.text:SetText(L["Blizzard ability (name hidden by the game)"])
+            if ev.text then
+                -- 戰鬥中認出來的（DBM／MRT）：有名稱就照常顯示，圖示換回技能的
+                row.text:SetText(ev.text .. (ev.ident == "mrt" and "  |cff9d9d9d" .. L["(guessed from MRT)"] .. "|r" or ""))
+                if ev.icon then
+                    row.icon:SetTexture(ev.icon)
+                    row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+                end
+            else
+                row.text:SetText(L["Blizzard ability (name hidden by the game)"])
+            end
             row.src:SetText("|cffff7f00" .. L["Last pull"] .. "|r")
         else
             row.text:SetText(ev.text or "?")

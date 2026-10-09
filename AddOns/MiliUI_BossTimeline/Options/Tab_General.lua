@@ -39,13 +39,21 @@ local function LiveLines()
         local kind = rec.kind
         if counts[kind] then
             counts[kind] = counts[kind] + 1
-            if kind ~= "blizzard" then
+            -- 暴雪的只有認得出來（DBM／MRT）的才有明文名稱可列
+            local name
+            if kind == "blizzard" then
+                name = rec.ident and (rec.ident.name .. "  |cff9d9d9d" .. (rec.ident.source == "dbm" and "DBM" or L["MRT guess"]) .. "|r")
+            else
+                name = S.PlainText(rec.name) or "?"
+            end
+            if name then
                 local rem = S.PlainNumber(S.SafeCall(C_EncounterTimeline.GetEventTimeRemaining, id))
-                local who = kind == "mine" and L["My custom timeline"] or ns.Owners.Label(rec.owner)
+                local who = kind == "mine" and L["My custom timeline"]
+                    or kind == "blizzard" and L["Blizzard"] or ns.Owners.Label(rec.owner)
                 rows[#rows + 1] = {
                     rem = rem or 0,
                     text = ("%s%s|r  %s  |cff9d9d9d%s|r"):format(KIND_COLOR[kind], who,
-                        S.PlainText(rec.name) or "?", rem and ("%.0fs"):format(rem) or ""),
+                        name, rem and ("%.0fs"):format(rem) or ""),
                 }
             end
         end
@@ -58,7 +66,7 @@ local function LiveLines()
         KIND_COLOR.mine, L["Mine"], counts.mine,
         KIND_COLOR.other, L["Other addons"], counts.other)
     if #rows == 0 then
-        lines[#lines + 1] = "|cff9d9d9d" .. L["No addon entries on the timeline right now."] .. "|r"
+        lines[#lines + 1] = "|cff9d9d9d" .. L["Nothing named on the timeline right now."] .. "|r"
     else
         for i = 1, math.min(#rows, 8) do lines[#lines + 1] = rows[i].text end
     end
@@ -104,7 +112,14 @@ local CONTROLS = {
 
     { type = "header", label = L["On the timeline right now"] },
     { type = "custom", label = "", build = BuildLive },
-    { type = "text", label = L["Blizzard hides boss ability names from addons during combat, so only their count is listed."] },
+    { type = "text", label = L["Blizzard hides boss ability names from addons during combat. The ones listed by name were recognized through DBM or the MRT timeline (see below)."] },
+
+    { type = "header", label = L["Recognizing boss abilities in combat"] },
+    { type = "toggle", sub = "identify", key = "dbm", label = L["Use DBM's recognition"] },
+    { type = "text", label = L["When DBM recognizes a timeline entry, it announces the ability by name; this addon picks that up. Needs DBM with its boss modules."] },
+    { type = "toggle", sub = "identify", key = "mrt", label = L["Guess from the MRT timeline"] },
+    { type = "text", label = L["Matches the time into the fight against MRT's statistics for the same difficulty. Skipped when two abilities are too close to tell apart. DBM's answer wins when both are available."] },
+    { type = "text", label = L["Recognized abilities are what make \"Hide on the timeline\" (Boss abilities tab) work, and let your last pull remember their names."] },
 }
 
 local function Init()

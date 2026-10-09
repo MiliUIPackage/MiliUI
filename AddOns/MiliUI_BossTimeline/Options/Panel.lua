@@ -31,6 +31,7 @@ local TABS = {
     { id = "general", label = L["General"] },
     { id = "style",   label = L["Appearance"] },
     { id = "plans",   label = L["Custom timelines"] },
+    { id = "abilities", label = L["Boss abilities"] },
     { id = "about",   label = L["About"] },
 }
 

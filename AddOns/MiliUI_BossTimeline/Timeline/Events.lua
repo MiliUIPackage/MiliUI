@@ -122,7 +122,9 @@ function E.Collect(out, filter)
         local state = rec.state
         local alive = state ~= STATE.Finished and state ~= STATE.Canceled
         local visibleTrack = rec.track ~= TRACK.Indeterminate
-        if alive and visibleTrack and rec.kind ~= "editmode" and (not filter or filter(rec.kind)) then
+        -- 認得出是哪個技能、而且玩家設了「在時間軸上隱藏」的不畫（Abilities.lua）
+        local hidden = rec.ident and ns.Abilities and ns.Abilities.IsHiddenSpell(rec.ident.spell)
+        if alive and visibleTrack and not hidden and rec.kind ~= "editmode" and (not filter or filter(rec.kind)) then
             local rem = S.PlainNumber(Safe(C_EncounterTimeline.GetEventTimeRemaining, id))
             if rem then
                 n = n + 1
