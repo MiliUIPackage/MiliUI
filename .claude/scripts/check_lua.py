@@ -30,7 +30,7 @@ ALLOWED_GLOBAL_WRITES = {
     # 套組本體與各插件的 SavedVariables（TOC 有宣告）
     "MiliUI_DB", "MiliUI_CharDB", "MiliUI_CastBarEnhanceDB",
     "MiliUI_AuraEnhance_DB", "MiliUI_AuraEnhanceDB",
-    "MiliUI_BloodlustMusic_DB", "MiliUI_BurstPotionHelperDB",
+    "MiliUI_BloodlustMusic_DB", "MiliUI_BossTimeline_DB", "MiliUI_BurstPotionHelperDB",
     "MiliUI_CharacterNotes_DB", "MiliUI_ChatBar_DB",
     "MiliUI_CooldownManager_DB",
     "MiliUI_CrusadingStrikes_DB",
