@@ -110,9 +110,24 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   加 offset ＝ 該在的時間，跟備援 t 比。一鍵改成上一場的、整份平移。打完一場差 2 秒以上的會在聊天框提醒一次。
   時間軸編輯器在「我的提示」列畫空心橘框標出上一場實際的位置。
 
+## 體驗強化：冒險指南選首領、預覽播放、復原（2026-10-09 第六批）
+
+- **選首領**（`Plans/Journal.lua`＋`Options/BossPicker.lua`）：資料片 → 副本（團隊在前）→ 首領，
+  `EJ_GetEncounterInfoByIndex(i, journalInstanceID)` 第 7 個回傳＝首領戰 ID（MRT/Functions.lua 同用法）。
+  ⚠ `EJ_GetInstanceByIndex` 吃「目前選中的資料片」，那是跟暴雪冒險指南視窗共用的狀態——**切完一定切回原本的**（WithTier）。
+  預設停在現在的副本：`C_EncounterJournal.GetInstanceForGameMap(GetInstanceInfo 第 8 個回傳)`。
+  `Journal.NameFor(id)` 第一次查不到才整個冒險指南掃一次、快取，給只剩 ID 的清單補名字。冒險指南沒收的首領可改手動輸入 ID。
+- **預覽播放**（`Options/PlanPreview.lua`）：假時鐘＋同一支 Display（外觀跟畫面上一致，三種版面都行），
+  1x／2x／4x、可拖進度條（拖的不補播）、播放中跨過提醒時機會真的播音效／朗讀；MRT 的首領技能當暴雪事件一起放；
+  跟隨提示放在 MRT 第 n 次＋偏移。不寫暴雪時間軸。「立即測試」保留（那是真的寫進去）。
+- **復原**：`Plans.Checkpoint`（每隻首領 20 步、只存在這次登入），SaveEntry／MoveEntry／RemoveEntry／SetEnabled／平移自動記；
+  匯入、套用上一場這種一次改很多條的包在 `Plans.Batch` 只記一步。
+  Ctrl＋Z：分頁上一個**轉發鍵盤**的框（`SetPropagateKeyboardInput(true)`，不擋任何快捷鍵），只在戰鬥外建；輸入框有焦點時不攔。
+
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
 
-0. 第五批：C_EncodingUtil 的 CBOR 往返（巢狀表、布林）跟模擬一致；計時條的 StatusBar 材質路徑。
+0. 第六批：EJ 函式在沒開過冒險指南時就有資料（Cell 是登入就讀，應該可以）；Ctrl＋Z 的轉發框不影響其他快捷鍵。
+   第五批：C_EncodingUtil 的 CBOR 往返（巢狀表、布林）跟模擬一致；計時條的 StatusBar 材質路徑。
    第四批：橫向捲動區裡的按鈕會不會吃掉滾輪（滾輪事件不一定往上傳到畫布）；SpeakText 在戰鬥中可用；拖曳在 UI 縮放 ≠ 1 時位移準不準。
    第三批：DBM_TimerBegin 的時長跟 ENCOUNTER_TIMELINE 事件的 duration 是否真的差 0.25 秒內（DBM 可能套過變異量）；
    SetEventSound 的 file 吃 LSM 路徑字串；戰鬥中 SetEventColor 是否允許（DBM 是開戰時呼叫的，應該可以）。

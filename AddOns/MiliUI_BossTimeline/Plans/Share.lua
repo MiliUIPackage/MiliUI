@@ -160,7 +160,12 @@ end
 
 -- 併進那隻首領的自訂時間軸（沒有就建）；同一秒同文字同法術的不重複加。回傳 added, skipped
 function Share.Import(payload)
-    local plan = Plans.Ensure(payload.id, payload.name)
+    Plans.Ensure(payload.id, payload.name)
+    return Plans.Batch(payload.id, function() return Share.ImportInto(payload) end)
+end
+
+function Share.ImportInto(payload)
+    local plan = Plans.Get(payload.id)
     if (plan.difficulty or 0) == 0 and payload.difficulty ~= 0 and #plan.entries == 0 then
         plan.difficulty = payload.difficulty
     end

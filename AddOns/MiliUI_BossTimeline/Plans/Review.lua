@@ -58,6 +58,11 @@ end
 
 -- 錨點提示的備援時間改成上一場的；回傳改了幾條
 function Review.ApplyAnchored(id)
+    if not Plans.Get(id) then return 0 end
+    return Plans.Batch(id, function() return Review.ApplyAnchoredNow(id) end)
+end
+
+function Review.ApplyAnchoredNow(id)
     local n = 0
     for _, row in ipairs(Review.Rows(id)) do
         if row.delta and math.abs(row.delta) >= 0.1 then
@@ -76,6 +81,7 @@ end
 function Review.ShiftAll(id, delta)
     local plan = Plans.Get(id)
     if not plan or not delta or delta == 0 then return 0 end
+    Plans.Checkpoint(id)
     for _, e in ipairs(plan.entries) do
         e.t = math.max(0.1, math.floor(((e.t or 0) + delta) * 10 + 0.5) / 10)
     end

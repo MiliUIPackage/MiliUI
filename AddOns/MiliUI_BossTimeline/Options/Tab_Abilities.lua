@@ -15,7 +15,7 @@ local L = ns.L
 local W, P = ns.W, ns.P
 local A = ns.Abilities
 
-local tab, bossDD, searchBox, list, note, emptyText, idPopup
+local tab, bossDD, searchBox, list, note, emptyText
 local currentID
 local searchText = ""
 
@@ -36,6 +36,7 @@ local function Bosses()
     if last and last.id then names[last.id] = names[last.id] or last.name end
     local items = {}
     for id, name in pairs(names) do
+        name = name or ns.Journal.NameFor(id)
         items[#items + 1] = { text = ("%s  |cff9d9d9d%d|r"):format(name or L["Boss"], id), value = id, sort = name or "" }
     end
     table.sort(items, function(a, b)
@@ -184,12 +185,6 @@ local function Init()
     local title = W.CreateSectionTitle(tab, L["Boss abilities"], ns.Options.PANEL_W - 32)
     title:SetPoint("TOPLEFT", 16, -14)
 
-    idPopup = W.CreateInputPopup(ns.Options.panel, 380, L["Add a boss"], {
-        { key = "id",   label = L["Encounter ID"],
-          hint = L["The ID from the boss fight itself, not the Adventure Guide. After one pull the last boss you fought is filled in for you."] },
-        { key = "name", label = L["Name"] },
-    })
-
     -- 第一排：首領、加首領、搜尋
     local lbl = tab:CreateFontString(nil, "OVERLAY")
     lbl:SetFontObject(W.fontNormal)
@@ -208,15 +203,11 @@ local function Init()
     W.FitButton(btnNew, 90, 20)
     btnNew:SetPoint("LEFT", bossDD, "RIGHT", 10, 0)
     btnNew:SetScript("OnClick", function()
-        local last = ns.db.lastEncounter
-        idPopup:Open({ id = last and last.id or "", name = last and last.name or "" }, function(v)
-            local id = tonumber(v.id)
-            if not id or id <= 0 then
-                ns.Print(L["Encounter ID must be a number."])
-                return false
-            end
-            ns.db.abilityBosses[id] = v.name ~= "" and v.name or ns.db.abilityBosses[id] or tostring(id)
+        ns.BossPicker.Open(function(id, name)
+            ns.db.abilityBosses[id] = name or ns.db.abilityBosses[id] or ns.Journal.NameFor(id) or tostring(id)
             currentID = id
+            searchText = ""
+            searchBox:SetText("")
             Refresh()
         end)
     end)

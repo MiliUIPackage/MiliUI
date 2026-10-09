@@ -24,8 +24,8 @@ local MD = ns.MRTData
 local tab, planDD, diffDD, enabledCB, list, emptyText, statusText, recNote
 local btnRename, btnDelete, btnTest, btnStop, btnAdd, btnImport
 local showRecCB, showMRTCB, mrtDD
-local planPopup, renamePopup, deletePopup, importPopup, exportPopup, reviewPopup
-local btnExport, btnReview
+local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup
+local btnExport, btnReview, btnPreview, btnUndo, keyCatcher
 local head, editor, modeButtons, highlightMode
 local currentID
 
@@ -333,12 +333,6 @@ end
 local function CreatePopups()
     local parent = ns.Options.panel
 
-    planPopup = W.CreateInputPopup(parent, 380, L["Add a boss"], {
-        { key = "id",   label = L["Encounter ID"],
-          hint = L["The ID from the boss fight itself, not the Adventure Guide. After one pull the last boss you fought is filled in for you."] },
-        { key = "name", label = L["Name"] },
-    })
-
     renamePopup = W.CreateInputPopup(parent, 340, L["Rename"], {
         { key = "name", label = L["Name"] },
     })
@@ -536,9 +530,10 @@ local function Refresh()
 
     local plan = Plans.Get(currentID)
     local has = plan ~= nil
-    for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnTest, btnReview, btnAdd, btnExport, showRecCB }) do
+    for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnPreview, btnTest, btnReview, btnAdd, btnExport, btnUndo, showRecCB }) do
         w:SetShown(has)
     end
+    btnUndo:SetAlpha(Plans.CanUndo(currentID) and 1 or 0.4)
     -- 貼上匯入沒有首領也能用（米利字串自己帶著首領）：放到清單區頂端的位置
     btnImport:SetShown(true)
     local mode = View().mode == "timeline" and "timeline" or "list"
@@ -628,16 +623,11 @@ local function Init()
     local btnNew = W.CreateButton(tab, L["Add a boss"], "primary", 90, 20)
     W.FitButton(btnNew, 90, 20)
     btnNew:SetPoint("LEFT", planDD, "RIGHT", 10, 0)
+    -- 從冒險指南挑（BossPicker）；冒險指南沒收的首領在選單裡可以改成手動輸入 ID
     btnNew:SetScript("OnClick", function()
-        local last = ns.db.lastEncounter
-        planPopup:Open({ id = last and last.id or "", name = last and last.name or "" }, function(v)
-            local id = tonumber(v.id)
-            if not id or id <= 0 then
-                ns.Print(L["Encounter ID must be a number."])
-                return false
-            end
+        ns.BossPicker.Open(function(id, name)
             local rec = ns.db.recorded[id]
-            Plans.Ensure(id, v.name ~= "" and v.name or (rec and rec.name) or nil)
+            Plans.Ensure(id, name or (rec and rec.name) or ns.Journal.NameFor(id))
             currentID = id
             ns.Fire("PlansChanged")
         end)
@@ -684,9 +674,14 @@ local function Init()
     end)
     diffDD:SetPoint("LEFT", diffLbl, "RIGHT", 10, 0)
 
+    btnPreview = W.CreateButton(tab, L["Preview"], "primary", 70, 20)
+    W.FitButton(btnPreview, 70, 20)
+    btnPreview:SetPoint("LEFT", diffDD, "RIGHT", 16, 0)
+    btnPreview:SetScript("OnClick", function() ns.PlanPreview.Open(currentID) end)
+
     btnTest = W.CreateButton(tab, L["Test now"], "normal", 80, 20)
     W.FitButton(btnTest, 80, 20)
-    btnTest:SetPoint("LEFT", diffDD, "RIGHT", 16, 0)
+    btnTest:SetPoint("LEFT", btnPreview, "RIGHT", 6, 0)
     btnTest:SetScript("OnClick", function()
         ns.Scheduler.Test(currentID)
     end)
@@ -737,7 +732,7 @@ local function Init()
             W.Menu.Show({
                 { text = L["Edit"], onClick = function() OpenEntryPopup(EntryValues(entry), entry) end },
                 { text = entry.enabled == false and L["Enable"] or L["Disable"], onClick = function()
-                    entry.enabled = entry.enabled == false and true or false
+                    Plans.SetEnabled(currentID, entry, entry.enabled == false)
                     ns.Fire("PlansChanged")
                 end },
                 { text = L["Delete"], onClick = function()
@@ -786,7 +781,21 @@ local function Init()
         View().recorded = checked
         Refresh()
     end)
-    showRecCB:SetPoint("LEFT", btnExport, "RIGHT", 18, 0)
+    -- 復原（也可以 Ctrl＋Z）：只記這次登入、每隻首領 20 步
+    btnUndo = W.CreateButton(tab, L["Undo"], "normal", 60, 22)
+    W.FitButton(btnUndo, 60, 22)
+    btnUndo:SetPoint("LEFT", btnExport, "RIGHT", 6, 0)
+    btnUndo:SetScript("OnClick", function()
+        if Plans.Undo(currentID) then ns.Fire("PlansChanged") end
+    end)
+    btnUndo:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(L["Undo the last change (Ctrl+Z)"], 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    btnUndo:HookScript("OnLeave", function() GameTooltip:Hide() end)
+
+    showRecCB:SetPoint("LEFT", btnUndo, "RIGHT", 18, 0)
 
     showMRTCB = W.CreateCheckButton(tab, L["MRT timeline"], function(checked)
         View().mrt = checked
@@ -836,6 +845,18 @@ ns.RegisterCallback("ShowOptionsTab", "plansTab", function(id)
         return
     end
     Init()
+    -- Ctrl＋Z：鍵盤框一律「轉發」（SetPropagateKeyboardInput(true)），不擋任何快捷鍵；
+    -- 那支 API 戰鬥中受限，所以只在戰鬥外建（.claude/notes/wow-keyboard-capture-blocks-bindings.md）
+    if not keyCatcher and not InCombatLockdown() then
+        keyCatcher = CreateFrame("Frame", nil, tab)
+        keyCatcher:EnableKeyboard(true)
+        keyCatcher:SetPropagateKeyboardInput(true)
+        keyCatcher:SetScript("OnKeyDown", function(_, key)
+            if key == "Z" and IsControlKeyDown() and not GetCurrentKeyBoardFocus() then
+                if Plans.Undo(currentID) then ns.Fire("PlansChanged") end
+            end
+        end)
+    end
     Refresh()
     tab:Show()
 end)

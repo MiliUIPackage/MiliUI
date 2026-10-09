@@ -124,6 +124,50 @@ function Plans.Delete(id)
     All()[id] = nil
 end
 
+------------------------------------------------------------
+-- 復原：每次改動前把整份 entries 拷一份進堆疊（每隻首領各一疊、最多 UNDO_MAX 步、只存在這次登入）
+-- 一個動作內改很多條（匯入、整份平移）包在 Plans.Batch 裡，只記一步
+------------------------------------------------------------
+local UNDO_MAX = 20
+local undoStacks = {}
+local batching = 0
+
+function Plans.Checkpoint(id)
+    if batching > 0 then return end
+    local plan = Plans.Get(id)
+    if not plan then return end
+    local st = undoStacks[id] or {}
+    st[#st + 1] = CopyTable(plan.entries)
+    if #st > UNDO_MAX then table.remove(st, 1) end
+    undoStacks[id] = st
+end
+
+function Plans.Batch(id, fn)
+    Plans.Checkpoint(id)
+    batching = batching + 1
+    local ok, a, b, c = pcall(fn)
+    batching = batching - 1
+    if not ok then error(a, 0) end
+    return a, b, c
+end
+
+function Plans.CanUndo(id)
+    local st = undoStacks[id]
+    return st ~= nil and #st > 0
+end
+
+function Plans.Undo(id)
+    local plan, st = Plans.Get(id), undoStacks[id]
+    if not plan or not st or #st == 0 then return false end
+    plan.entries = table.remove(st)
+    return true
+end
+
+function Plans.SetEnabled(id, entry, on)
+    Plans.Checkpoint(id)
+    entry.enabled = on and true or false
+end
+
 local function SortEntries(plan)
     table.sort(plan.entries, function(a, b) return (a.t or 0) < (b.t or 0) end)
 end
@@ -139,6 +183,7 @@ end
 function Plans.SaveEntry(id, values, index)
     local plan = Plans.Get(id)
     if not plan then return end
+    Plans.Checkpoint(id)
     local e = index and plan.entries[index]
     if not e then
         e = { enabled = true }
@@ -163,6 +208,7 @@ end
 function Plans.MoveEntry(id, entry, newT)
     local plan = Plans.Get(id)
     if not plan or not entry then return end
+    Plans.Checkpoint(id)
     newT = math.max(0.1, math.floor(newT * 10 + 0.5) / 10)
     if entry.anchor then
         entry.anchor.offset = (entry.anchor.offset or 0) + (newT - (entry.t or 0))
@@ -205,7 +251,10 @@ end
 
 function Plans.RemoveEntry(id, index)
     local plan = Plans.Get(id)
-    if plan and plan.entries[index] then table.remove(plan.entries, index) end
+    if plan and plan.entries[index] then
+        Plans.Checkpoint(id)
+        table.remove(plan.entries, index)
+    end
 end
 
 -- 這一場要不要跑、跑哪一份
@@ -249,7 +298,7 @@ local function CleanText(text)
     return strtrim(text)
 end
 
-function Plans.ImportNote(id, note)
+local function ImportNote(id, note)
     local plan = Plans.Get(id)
     if not plan then return 0, 0, 0 end
     local added, skipped, phased = 0, 0, 0
@@ -286,6 +335,11 @@ function Plans.ImportNote(id, note)
         end
     end
     return added, skipped, phased
+end
+
+function Plans.ImportNote(id, note)
+    if not Plans.Get(id) then return 0, 0, 0 end
+    return Plans.Batch(id, function() return ImportNote(id, note) end)
 end
 
 Plans.DEFAULT_LEAD = DEFAULT_LEAD
