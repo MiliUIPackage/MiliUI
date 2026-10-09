@@ -234,6 +234,12 @@ local function Init()
             Refresh()
         end)
     end)
+    -- 還沒有任何首領時，點下拉只會彈出一條空的選單 —— 直接當成「新增首領」
+    local ddClick = bossDD:GetScript("OnClick")
+    bossDD:SetScript("OnClick", function(self, ...)
+        if #(self.items or {}) == 0 then return btnNew:Click() end
+        return ddClick(self, ...)
+    end)
 
     local sLbl = tab:CreateFontString(nil, "OVERLAY")
     sLbl:SetFontObject(W.fontNormal)

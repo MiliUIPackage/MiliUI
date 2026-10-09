@@ -39,7 +39,7 @@ end
 
 local function SetBosses(instanceID)
     sel.instance = instanceID
-    local items = J.Encounters(instanceID)
+    local items = J.Encounters(instanceID, sel.tier)
     bossDD:SetItems(items)
     sel.boss = items[1] and items[1].value
     sel.bossName = items[1] and items[1].text

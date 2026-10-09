@@ -7,6 +7,9 @@
 --
 -- ⚠ EJ_GetInstanceByIndex 吃的是「目前選中的資料片」（EJ_SelectTier），那是跟暴雪冒險指南視窗
 --   共用的狀態：選完一定要切回原本的（Cell 的 RaidDebuffs 也是這樣做）。
+-- ⚠⚠ EJ_GetEncounterInfoByIndex 的第二個參數（副本 ID）**單獨傳沒有用**：沒先 EJ_SelectInstance
+--   選中那個副本，回傳是空的（2026-10-09 實測：首領下拉整個空白）。MRT／Cell 都是先 Select 再讀，
+--   照做，讀完把原本選中的副本切回去。
 -- 名稱一律明文（冒險指南的資料不是秘密值）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -60,17 +63,25 @@ function J.Instances(tier)
 end
 
 -- 這個副本的首領：{ { value = 首領戰 ID, text = 名稱 }, ... }
-function J.Encounters(journalInstanceID)
-    local out = {}
-    if not J.Available() or not journalInstanceID then return out end
-    for i = 1, 40 do
-        local name, _, _, _, _, _, dungeonEncounterID = EJ_GetEncounterInfoByIndex(i, journalInstanceID)
-        if not name then break end
-        if dungeonEncounterID then
-            out[#out + 1] = { value = dungeonEncounterID, text = name }
+-- tier：這個副本所在的資料片（選副本之前要先選對資料片，MRT 也是這個順序）
+function J.Encounters(journalInstanceID, tier)
+    if not J.Available() or not journalInstanceID or not EJ_SelectInstance then return {} end
+    local function Read()
+        local prevInst = EJ_GetCurrentInstance and S.SafeCall(EJ_GetCurrentInstance)
+        pcall(EJ_SelectInstance, journalInstanceID)
+        local out = {}
+        for i = 1, 40 do
+            local name, _, _, _, _, _, dungeonEncounterID = EJ_GetEncounterInfoByIndex(i, journalInstanceID)
+            if not name then break end
+            if dungeonEncounterID then
+                out[#out + 1] = { value = dungeonEncounterID, text = name }
+            end
         end
+        if prevInst and prevInst ~= 0 and prevInst ~= journalInstanceID then pcall(EJ_SelectInstance, prevInst) end
+        return out
     end
-    return out
+    if tier then return WithTier(tier, Read) or {} end
+    return Read()
 end
 
 -- 現在所在的副本（不在副本裡回 nil）
@@ -105,7 +116,7 @@ function J.NameFor(encounterID)
     names = names or {}
     for _, t in ipairs(J.Tiers()) do
         for _, inst in ipairs(J.Instances(t.value)) do
-            for _, enc in ipairs(J.Encounters(inst.value)) do
+            for _, enc in ipairs(J.Encounters(inst.value, t.value)) do
                 names[enc.value] = names[enc.value] or enc.text
             end
         end
