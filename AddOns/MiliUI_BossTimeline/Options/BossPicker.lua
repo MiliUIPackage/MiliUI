@@ -1,7 +1,8 @@
 ------------------------------------------------------------
 -- 選首領：資料片 → 副本 → 首領（冒險指南），自訂時間軸與首領技能兩個分頁共用
 --
---   BossPicker.Open(onPick)   onPick(encounterID, name)
+--   BossPicker.Open(onPick)   onPick(encounterID, name, journalEncounterID)
+--     journalEncounterID：冒險指南的首領 ID（頁面頭像用；手動輸入 ID 時是 nil）
 -- 預設停在「現在所在的副本」；不在副本裡就停在最新的資料片。
 -- 冒險指南沒收的（世界首領的活動版、測試用）走底下的「手動輸入 ID」。
 ------------------------------------------------------------
@@ -43,6 +44,7 @@ local function SetBosses(instanceID)
     bossDD:SetItems(items)
     sel.boss = items[1] and items[1].value
     sel.bossName = items[1] and items[1].text
+    sel.bossJournal = items[1] and items[1].journal
     bossDD:SetSelectedValue(sel.boss)
 end
 
@@ -96,7 +98,7 @@ local function Build()
     bossDD = W.CreateDropdown(popup, 280, {}, function(v)
         sel.boss = v
         for _, it in ipairs(bossDD.items or {}) do
-            if it.value == v then sel.bossName = it.text end
+            if it.value == v then sel.bossName, sel.bossJournal = it.text, it.journal end
         end
     end)
     bossDD:SetPoint("TOPLEFT", 110, -110)
@@ -135,7 +137,7 @@ local function Build()
     ok:SetScript("OnClick", function()
         if not sel.boss then return end
         popup:Hide()
-        if onPick then onPick(sel.boss, sel.bossName) end
+        if onPick then onPick(sel.boss, sel.bossName, sel.bossJournal) end
     end)
     local cancel = W.CreateButton(popup, L["Cancel"], "red", 80, 22)
     cancel:SetPoint("BOTTOMRIGHT", -26, 12)

@@ -27,6 +27,7 @@ local showRecCB, showMRTCB, mrtDD
 local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup
 local btnExport, btnReview, btnPreview, btnUndo, keyCatcher, diffLbl
 local head, editor, modeButtons, highlightMode
+local bossBox, bossModel, bossSkull
 local currentID
 
 local ROW_H = 24
@@ -519,6 +520,36 @@ local function VariantItems()
     return items
 end
 
+------------------------------------------------------------
+-- 首領頭像：左上角一格 3D 模型，只抓目前選的那隻
+--
+-- 找模型的成本在 Journal.BossArt（只看所在副本＋最新資料片，不整本掃）；找到就把
+-- displayInfo 存進時間軸（plan.display），之後切到這隻首領零成本。
+-- 同一個模型不重設：SetDisplayInfo 會重新串流、閃一下（.claude/notes/wow-playermodel-setunit-restreams.md）
+------------------------------------------------------------
+local BOSS_SIZE = 60
+
+local function UpdateBoss(plan)
+    if not bossBox then return end
+    bossBox:SetShown(plan ~= nil)
+    if not plan then return end
+    if not plan.display then
+        local display, journal = ns.Journal.BossArt(currentID, plan.journal)
+        if display then plan.display, plan.journal = display, journal end
+    end
+    local display = plan.display
+    if display == bossModel.display then return end
+    bossModel.display = display
+    bossModel:ClearModel()
+    if display and pcall(bossModel.SetDisplayInfo, bossModel, display) then
+        bossModel:SetAlpha(1)
+        bossSkull:Hide()
+    else
+        bossModel:SetAlpha(0)
+        bossSkull:Show()
+    end
+end
+
 local function Refresh()
     if not tab then return end
     local plans = Plans.List()
@@ -530,6 +561,7 @@ local function Refresh()
 
     local plan = Plans.Get(currentID)
     local has = plan ~= nil
+    UpdateBoss(plan)
     for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnPreview, btnTest, btnReview, btnAdd, btnExport, btnUndo, showRecCB }) do
         w:SetShown(has)
     end
@@ -627,13 +659,36 @@ local function Init()
 
     CreatePopups()
 
+    -- 首領頭像：跨第一、二排，控件從它右邊開始
+    bossBox = CreateFrame("Frame", nil, tab, "BackdropTemplate")
+    bossBox:SetSize(BOSS_SIZE, BOSS_SIZE)
+    bossBox:SetPoint("TOPLEFT", 16, -46)
+    W.Stylize(bossBox, { 0.05, 0.05, 0.05, 1 }, { W.Accent(1) })
+    bossModel = CreateFrame("PlayerModel", nil, bossBox)
+    bossModel:SetPoint("TOPLEFT", 1, -1)
+    bossModel:SetPoint("BOTTOMRIGHT", -1, 1)
+    -- 鏡頭要等模型載好才吃得進去；1＝特寫臉
+    bossModel:SetScript("OnModelLoaded", function(self)
+        pcall(self.SetPortraitZoom, self, 1)
+    end)
+    -- 隱藏時模型會被丟掉（切分頁、關視窗），再顯示要重套一次
+    bossModel:SetScript("OnShow", function(self)
+        if self.display then pcall(self.SetDisplayInfo, self, self.display) end
+    end)
+    bossSkull = bossBox:CreateTexture(nil, "ARTWORK")
+    bossSkull:SetSize(28, 28)
+    bossSkull:SetPoint("CENTER")
+    bossSkull:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
+    bossSkull:SetAlpha(0.5)
+    local ROW_X = 16 + BOSS_SIZE + 12
+
     -- 第一排：選首領、新增、改名、刪除
     local lbl = tab:CreateFontString(nil, "OVERLAY")
     lbl:SetFontObject(W.fontNormal)
-    lbl:SetPoint("TOPLEFT", 18, -56)
+    lbl:SetPoint("TOPLEFT", ROW_X, -56)
     lbl:SetText(L["Boss"])
 
-    planDD = W.CreateDropdown(tab, 260, {}, function(value)
+    planDD = W.CreateDropdown(tab, 220, {}, function(value)
         currentID = value
         Refresh()
     end)
@@ -644,9 +699,10 @@ local function Init()
     btnNew:SetPoint("LEFT", planDD, "RIGHT", 10, 0)
     -- 從冒險指南挑（BossPicker）；冒險指南沒收的首領在選單裡可以改成手動輸入 ID
     btnNew:SetScript("OnClick", function()
-        ns.BossPicker.Open(function(id, name)
+        ns.BossPicker.Open(function(id, name, journal)
             local rec = ns.db.recorded[id]
-            Plans.Ensure(id, name or (rec and rec.name) or ns.Journal.NameFor(id))
+            local plan = Plans.Ensure(id, name or (rec and rec.name) or ns.Journal.NameFor(id))
+            plan.journal = plan.journal or journal
             currentID = id
             ns.Fire("PlansChanged")
         end)
@@ -675,11 +731,11 @@ local function Init()
         local plan = Plans.Get(currentID)
         if plan then plan.enabled = checked end
     end)
-    enabledCB:SetPoint("TOPLEFT", 18, -86)
+    enabledCB:SetPoint("TOPLEFT", ROW_X, -86)
 
     diffLbl = tab:CreateFontString(nil, "OVERLAY")
     diffLbl:SetFontObject(W.fontNormal)
-    diffLbl:SetPoint("TOPLEFT", 150, -88)
+    diffLbl:SetPoint("TOPLEFT", ROW_X + 132, -88)
     diffLbl:SetText(L["Difficulty"])
     local diffItems = {}
     for _, d in ipairs(Plans.DIFFICULTIES) do diffItems[#diffItems + 1] = { text = L[d.label], value = d.value } end

@@ -106,19 +106,18 @@ end
 -- 首領戰 ID → 名稱（清單上只剩 ID 的時候補名字用）
 -- 整個冒險指南掃一次要切好幾個資料片，所以只在第一次查不到時掃、結果快取
 ------------------------------------------------------------
-local names, journalIDs, scanned
+local names, scanned
 
 function J.NameFor(encounterID)
     if not encounterID then return end
     if names and names[encounterID] then return names[encounterID] end
     if scanned or not J.Available() then return end
     scanned = true
-    names, journalIDs = names or {}, journalIDs or {}
+    names = names or {}
     for _, t in ipairs(J.Tiers()) do
         for _, inst in ipairs(J.Instances(t.value)) do
             for _, enc in ipairs(J.Encounters(inst.value, t.value)) do
                 names[enc.value] = names[enc.value] or enc.text
-                journalIDs[enc.value] = journalIDs[enc.value] or enc.journal
             end
         end
     end
@@ -126,25 +125,50 @@ function J.NameFor(encounterID)
 end
 
 ------------------------------------------------------------
--- 首領戰 ID → 冒險指南裡第一隻首領的模型（編輯視窗的頭像用）
--- 回傳 displayInfo（3D 模型）, iconImage（冒險指南清單上那張 2D 頭像）；查不到都是 nil
--- 首領戰 ID 跟冒險指南的首領 ID 是兩套，靠 NameFor 那次整本掃描順手記下來的對照
+-- 首領戰 ID → 冒險指南裡第一隻首領的模型（「自訂時間軸」頁的頭像）
+--
+-- ⚠ 不走 NameFor 那種整本掃描（切遍所有資料片，第一次會卡一下）。只找：
+--   1. 呼叫端已經知道的冒險指南首領 ID（新增首領時從選單記下來、或上次找到後存進時間軸）
+--   2. 現在所在的副本（一個副本，便宜）
+--   3. 最新資料片的副本（當季要打的幾乎都在這）
+-- 都找不到就算了（頭像退回骷髏），同一次登入不再重找。
+-- 回傳 displayInfo, journalEncounterID；查不到 nil
 ------------------------------------------------------------
-local bossArt = {}
+local art, missed = {}, {}
 
-function J.BossArt(encounterID)
-    if not encounterID or not EJ_GetCreatureInfo then return end
-    local hit = bossArt[encounterID]
-    if hit then return hit.display, hit.icon end
-    if not (journalIDs and journalIDs[encounterID]) then
-        if scanned then return end
-        J.NameFor(-1)      -- 不存在的 ID：只為了觸發那一次整本掃描
+local function FindIn(journalInstanceID, encounterID, tier)
+    for _, enc in ipairs(J.Encounters(journalInstanceID, tier)) do
+        if enc.value == encounterID then return enc.journal end
     end
-    local jEnc = journalIDs and journalIDs[encounterID]
-    if not jEnc then return end
-    local _, _, _, display, icon = S.SafeCall(EJ_GetCreatureInfo, 1, jEnc)
-    display = type(display) == "number" and display > 0 and display or nil
-    icon = type(icon) == "number" and icon > 0 and icon or nil
-    bossArt[encounterID] = { display = display, icon = icon }
-    return display, icon
+end
+
+local function FindJournalEncounter(encounterID)
+    local cur = J.CurrentInstance()
+    local hit = cur and FindIn(cur, encounterID)
+    if hit then return hit end
+    local newest = EJ_GetNumTiers and EJ_GetNumTiers()
+    if not newest or newest < 1 then return end
+    for _, inst in ipairs(J.Instances(newest)) do
+        hit = FindIn(inst.value, encounterID, newest)
+        if hit then return hit end
+    end
+end
+
+function J.BossArt(encounterID, journalEncounterID)
+    if not encounterID or not EJ_GetCreatureInfo or not J.Available() then return end
+    local hit = art[encounterID]
+    if hit then return hit.display, hit.journal end
+    if missed[encounterID] then return end
+    local jEnc = journalEncounterID or FindJournalEncounter(encounterID)
+    local display
+    if jEnc then
+        display = select(4, S.SafeCall(EJ_GetCreatureInfo, 1, jEnc))
+        display = type(display) == "number" and display > 0 and display or nil
+    end
+    if not display then
+        missed[encounterID] = true
+        return
+    end
+    art[encounterID] = { display = display, journal = jEnc }
+    return display, jEnc
 end
