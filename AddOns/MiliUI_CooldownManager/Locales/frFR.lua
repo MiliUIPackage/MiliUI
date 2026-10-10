@@ -1022,3 +1022,6 @@ L["Type the frame's global name. /fstack shows the name of the frame under the m
 L["Found."] = "Trouvé."
 L["Not found, using its own position for now."] = "Introuvable, position propre en attendant."
 L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "Elle peut aussi suivre le cadre du joueur, de la cible ou de la focalisation des cadres d'unité chargés, ou n'importe quel cadre par son nom. Un cadre de cible masqué faute de cible garde la position."
+L["Don't show (for other addons only)"] = "Ne pas afficher (pour d'autres addons)"
+L["Stays in Blizzard's Cooldown Manager tracking list. Not drawn here and takes no space; sounds still play."] = "Reste dans la liste de suivi du gestionnaire de temps de recharge de Blizzard. N'est pas dessiné ici et ne prend aucune place ; les sons sont toujours joués."
+L["Not shown: kept in Blizzard's tracking list only for other addons to read."] = "Non affiché : reste dans la liste de suivi de Blizzard, uniquement pour que d'autres addons le lisent."

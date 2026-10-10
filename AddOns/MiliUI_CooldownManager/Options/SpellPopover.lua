@@ -20,6 +20,8 @@
 --     沒有「隱藏此法術」（自訂項目是移除不是隱藏）。
 --   * 光環格與暴雪的增益（增益圖示／增益長條）多一列「增益不在時」下拉（逐法術覆寫 emptyMode：跟隨條／往前補／
 --     留空位／暗圖示）＋下一列灰字；條上有光環格或可點擊時「往前補」灰掉、灰字補原因；右鍵清。
+--   * 暴雪的增益（增益圖示／增益長條來源，Catalog.CanHide）一般分頁最上面一列「不顯示（只給其他插件讀取）」勾選框＋灰字
+--     （逐法術 hidden）；勾著時文字／外觀／發光／自訂文字分頁鈕停用、「增益不在時」停用（Pop.BuildHideRow／RefreshHideRow）。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
 --   * 專精層的多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
 --     DB.CopyCustomEntry（連同這一筆的覆寫）。職業層／戰隊層的不給（本來就每個專精都看得到）。
@@ -1251,6 +1253,62 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     BuildLabelTab(NoteRow, PointRow, Track)
 end
 
+-- 不顯示（只給其他插件讀取；逐法術 hidden，判準 Catalog.CanHide）：一般分頁最上面一列勾選框＋下一列灰字。
+-- 勾了之後只跟畫面有關的停用（Pop.HIDE_VISUAL_TABS 那幾個分頁鈕、一般分頁的「增益不在時」），音效分頁照常。
+-- 掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限（Build 只多叫一次 Pop.BuildHideRow，Pop 本來就抓著）
+Pop.HIDE_VISUAL_TABS = { text = true, look = true, glow = true, label = true }
+
+-- 這一格能不能勾（暴雪的增益兩條來源的 item；自訂項目 kind 不是 nil）
+function Pop.HideCapable(kind)
+    return kind == nil and cur ~= nil and ns.Catalog.CanHide(cur.key, cur.id)
+end
+
+-- 這一格現在是不是勾著「不顯示」
+function Pop.HideOnlyNow()
+    return cur ~= nil and frame ~= nil and Pop.HideCapable(frame.kind) and ns.Catalog.HiddenOnly(cur.key, cur.id) or false
+end
+
+function Pop.BuildHideRow()
+    buildTab = "general"
+    local r = NewRow(L["Don't show (for other addons only)"], Pop.HideCapable)
+    local cb = W.CreateCheckButton(r, nil, function(on)
+        if not cur then return end
+        -- 取消勾選 ＝ 清掉覆寫（SPELL_CONST 的 false），不存一筆 false：右鍵清與「還原此法術」同一個結果
+        ns.DB.SetOverride(cur.id, "hidden", on and true or nil)
+        Changed()
+    end)
+    cb:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+    frame.hideOnlyCB = cb
+    RightClickClears(r, nil, "hidden")
+    local nr = CreateFrame("Frame", nil, frame)
+    local tip = Note(nr)
+    tip:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
+    tip:SetWidth(ROW_W - CTRL_X)
+    tip:SetWordWrap(true)
+    tip:SetText(L["Stays in Blizzard's Cooldown Manager tracking list. Not drawn here and takes no space; sounds still play."])
+    local h = 2 + math.max(14, tip:GetStringHeight() or 0) + 6
+    nr:SetSize(ROW_W, h)
+    local entry = { frame = nr, h = h, when = Pop.HideCapable }
+    entry.remeasure = function()
+        local sh = tip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh) == "number" and sh or 0) + 6
+        nr:SetHeight(nh)
+        entry.h = nh
+    end
+    AddRow(entry)
+end
+
+-- Refresh 叫（Layout 之前）：勾選框回填；勾著時「增益不在時」停用（不放上條就沒有「不在時」可言）
+function Pop.RefreshHideRow()
+    if not (frame and cur) then return end
+    local on = Pop.HideOnlyNow()
+    frame.hideOnlyCB:SetChecked(on and true or false)
+    if frame.emptyModeDD then
+        frame.emptyModeDD:SetEnabled(not on)
+        frame.emptyModeDD:SetAlpha(on and 0.4 or 1)
+    end
+end
+
 local function Build()
     if frame then return end
     frame = W.CreateFrame(nil, ns.Options.panel, WIDTH, 200)
@@ -1346,6 +1404,7 @@ local function Build()
 
     -- 適用範圍（自訂項目才有；一般分頁最上面）：戰隊／這個職業／這個專精。切換走 Pop.SetScope（往窄搬先問）
     buildTab = "general"
+    Pop.BuildHideRow()
     local scr = NewRow(L["Scope"], IsCustom)
     local scdd = W.CreateDropdown(scr, ROW_W - CTRL_X, ns.Picker.ScopeItems(), function(value) Pop.SetScope(value) end)
     scdd:SetMaxWidth(ROW_W - CTRL_X)
@@ -2346,9 +2405,11 @@ Layout = function(kind, class)
     for _, row in ipairs(rows) do
         if row.tab ~= "all" and (not row.when or row.when(kind, class)) then has[row.tab] = true end
     end
-    if not has[curTab] then
+    -- 勾了「不顯示」：只跟畫面有關的分頁鈕停用（Pop.HIDE_VISUAL_TABS），停在那幾頁的回到第一個可用的
+    local off = Pop.HideOnlyNow() and Pop.HIDE_VISUAL_TABS or nil
+    if not has[curTab] or (off and off[curTab]) then
         for _, t in ipairs(TABS) do
-            if has[t.id] then curTab = t.id break end
+            if has[t.id] and not (off and off[t.id]) then curTab = t.id break end
         end
     end
     local list, sel = {}, nil
@@ -2357,6 +2418,9 @@ Layout = function(kind, class)
     for _, b in ipairs(frame.tabBtns) do
         b:SetShown(has[b.id] and true or false)
         if has[b.id] then list[#list + 1] = b end
+        local dis = off ~= nil and off[b.id] == true
+        b:SetEnabled(not dis)
+        b:SetAlpha(dis and 0.4 or 1)
         if b.id == curTab then sel = b end
     end
     if sel then frame.highlightTab(sel) end
@@ -2503,6 +2567,8 @@ function Pop.Refresh()
     frame.tipEntry.remeasure()
     -- 增益不在時：選項、選中值、灰字（換字之後重量，Layout 才排得對）
     if kind == "aura" or (kind == nil and class == "aura") then frame.RefreshEmptyMode() end
+    frame.kind = kind                   -- Pop.HideOnlyNow 看的是這一格的種類（Layout 也會寫同一個值）
+    Pop.RefreshHideRow()
     Layout(kind, class)
     -- 「跟隨『條名』」：面板開在哪一條就寫哪一條的名字（下面各下拉 SetSelectedValue 時會重寫顯示文字）
     for _, f in ipairs(followItems) do

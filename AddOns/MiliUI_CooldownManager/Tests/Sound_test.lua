@@ -325,6 +325,19 @@ applied(item); Flush()
 eq("沒設音效不響", #plays, n0)
 irec.cooldownID = 21
 
+-- 不顯示（只給其他插件讀取；逐法術 hidden）：item 停放著（沒認領、rec.parked）照樣響——掛勾在 item 上、不看放格
+DB.SetOverride(21, "hidden", true)
+irec.parked, irec.claimKey = true, nil
+state.now = 320
+n0 = #plays
+applied(item); Flush()
+eq("不顯示（停放中）：出現照響", #plays, n0 + 1)
+state.now = 325
+removed(item); Flush()
+eq("不顯示（停放中）：消失照響", #plays, n0 + 2)
+irec.parked = nil
+DB.SetOverride(21, "hidden", nil)
+
 -- 退路：沒有警示方法時掛 OnActiveStateChanged
 local old = {}
 local active = false
@@ -566,6 +579,15 @@ do
     S.RequestAuraSync(); Flush()
     eq("自訂 rec 不重複登", S.AuraCount(), base + 4)
     items[5] = nil
+
+    -- 不顯示（只給其他插件讀取）：停放中（沒認領）照登——列舉的是池子裡有身分的 item，不看放格
+    DB.SetOverride(701, "hidden", true)
+    items[1][2].parked, items[1][2].claimKey = true, nil
+    S.RequestAuraSync(); Flush()
+    eq("不顯示（停放中）：層數增加照登", S.AuraCount(), base + 4)
+    eq("不顯示（停放中）：51124 那一筆還在", Count(1, 51124), 1)
+    items[1][2].parked = nil
+    DB.SetOverride(701, "hidden", nil)
 
     DB.SetOverride(701, "stackSound", nil)
     DB.SetOverride(702, "stackSound", nil)

@@ -1022,3 +1022,6 @@ L["Type the frame's global name. /fstack shows the name of the frame under the m
 L["Found."] = "已找到。"
 L["Not found, using its own position for now."] = "找不到，暂时用自己的位置。"
 L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "也可以跟着当前加载的单位框体的玩家／目标／焦点框体，或指定名称的任何框体。目标框体没有目标时隐藏，位置照样不变。"
+L["Don't show (for other addons only)"] = "不显示（只给其他插件读取）"
+L["Stays in Blizzard's Cooldown Manager tracking list. Not drawn here and takes no space; sounds still play."] = "留在暴雪冷却管理器的追踪列表里，这里不画、也不占位置；音效照常。"
+L["Not shown: kept in Blizzard's tracking list only for other addons to read."] = "不显示：留在暴雪的追踪列表里，只给其他插件读取。"

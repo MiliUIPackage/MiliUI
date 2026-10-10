@@ -1022,3 +1022,6 @@ L["Type the frame's global name. /fstack shows the name of the frame under the m
 L["Found."] = "찾았습니다."
 L["Not found, using its own position for now."] = "찾을 수 없어 당분간 자체 위치를 사용합니다."
 L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "불러온 유닛 프레임의 플레이어·대상·주시 대상 창이나, 이름으로 지정한 아무 프레임을 따라갈 수도 있습니다. 대상이 없어 대상 창이 숨겨져도 위치는 그대로입니다."
+L["Don't show (for other addons only)"] = "표시 안 함 (다른 애드온 전용)"
+L["Stays in Blizzard's Cooldown Manager tracking list. Not drawn here and takes no space; sounds still play."] = "블리자드 재사용 대기시간 관리자의 추적 목록에는 남아 있습니다. 여기에는 그리지 않고 자리도 차지하지 않으며, 효과음은 그대로 재생됩니다."
+L["Not shown: kept in Blizzard's tracking list only for other addons to read."] = "표시 안 함: 다른 애드온이 읽을 수 있도록 블리자드 추적 목록에만 남겨 둡니다."

@@ -9,6 +9,7 @@
 
   scope-shared.png  戰隊：兩個並排的人像（前大後小），讀成「一群人」
   scope-class.png   職業：盾牌
+  hidden.png        不顯示（只給其他插件讀取）：眼睛劃一撇，畫在預覽格的**左上角**（右上角是範圍記號）
 
 畫法：8 倍超取樣後 LANCZOS 縮到 64px（WoW 的貼圖邊長要是 2 的次方）。
 """
@@ -68,6 +69,42 @@ def klass(path):
     print("wrote", path)
 
 
+# 眼睛＋斜線：直接在 8x8 的格子上畫，每格放大成 8x8 的實心方塊（64px）。
+# 超取樣＋LANCZOS 試過：杏仁形＋瞳孔＋斜線縮到 8px 糊成一片棋盤格，看不出是眼睛；
+# 對齊 8x8 格線的版本縮到 8px 是整格取樣，輪廓一格不糊。
+EYE = [
+    "........",
+    "..####..",
+    ".#....#.",
+    "#..##..#",
+    "#..##..#",
+    ".#....#.",
+    "..####..",
+    "........",
+]
+
+
+def hidden(path):
+    n = len(EYE)
+    on = [[ch == "#" for ch in row] for row in EYE]
+    for y in range(n):
+        for x in range(n):
+            if abs(x - y) == 1:
+                on[y][x] = False        # 斜線兩側各讓出一格縫，斜線才不會跟眼睛輪廓黏成一團
+    for i in range(n):
+        on[i][i] = True                 # 斜線：左上到右下、整條對角線（伸出眼睛外的兩端讀成「劃掉」）
+    cell = OUT // n
+    img = Image.new("RGBA", (OUT, OUT), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for y in range(n):
+        for x in range(n):
+            if on[y][x]:
+                d.rectangle([x * cell, y * cell, (x + 1) * cell - 1, (y + 1) * cell - 1], fill=WHITE)
+    img.save(path)
+    print("wrote", path)
+
+
 if __name__ == "__main__":
     shared("scope-shared.png")
     klass("scope-class.png")
+    hidden("hidden.png")

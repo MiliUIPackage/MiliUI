@@ -1480,6 +1480,23 @@ function C.RingAccepts(id)
     local aura = (ns.Viewers and ns.Viewers.AURA_KIND) or AURA_SOURCE
     return src ~= nil and aura[src] == true
 end
+
+-- 「不顯示（只給其他插件讀取）」（逐法術 hidden，2026-10-10）適用的格：暴雪增益圖示／增益長條**來源**的 item
+-- （搬進自訂群組的照樣算：看來源不看所在條，barKey 只是跟其他逐格判準同一個呼叫形狀）。
+-- 核心／輔助的冷卻格、自訂項目（光環格、自訂法術／物品／飾品欄）一律不適用。設定頁（小窗那一列、預覽記號）與引擎
+-- （Core/Bars.lua 的 Relayout／Occupancy）共用這一支
+function C.CanHide(barKey, id)
+    if type(id) ~= "number" or C.IsCustom(id) then return false end
+    local src = C.SourceOf(id)
+    local aura = (ns.Viewers and ns.Viewers.AURA_KIND) or AURA_SOURCE
+    return src ~= nil and aura[src] == true
+end
+
+-- 這一格現在是不是「不顯示」：適用（CanHide）而且逐法術勾了（只認明文 true；舊存檔沒這欄 ＝ false）
+function C.HiddenOnly(barKey, id)
+    return ns.SpellSetting(barKey, id, "hidden") == true and C.CanHide(barKey, id)
+end
+
 function C.ProxySlotOf(id)
     if type(id) ~= "number" then return nil end
     local info = C.Info(id)

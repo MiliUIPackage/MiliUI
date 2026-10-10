@@ -1329,6 +1329,9 @@ local SPELL_CONST = {
     -- 以增益取代時，頂著這一格的增益用這一招的增益持續時間樣式（colorDuration／三個顏色，跟這一招自己先倒增益那段同一套）；
     -- false ＝ 照增益原本的倒數樣式（不換色）
     replaceAuraStyle = true,
+    -- 不顯示（只給其他插件讀取）：暴雪的增益圖示／增益長條的 item 才有（判準 Catalog.CanHide）。true ＝ 這一格不放上條、
+    -- 不認領 ⇒ 跟收合的增益一樣被停放（畫面外、alpha 0），留在暴雪的追蹤清單裡給別的插件讀；音效照響（Core/Bars.lua 檔頭）
+    hidden           = false,
     -- 增益不在時（emptyMode："collapse"｜"blank"｜"dim"）：暴雪的增益圖示／增益長條與光環格的逐法術覆寫。
     -- 沒有常數預設：沒覆寫 ＝ 跟隨條層 layout.emptyMode（不走 SPELL_FALLBACK：條層值還要過「光環格／可點擊 ⇒ 收合
     -- 不成立」，判準在 Layout.BarEmptyMode／SpellEmptyMode，讀的人一律走 Bars.EmptyMode）。v7 之前是 placeholder（布林）
@@ -1673,6 +1676,8 @@ DB.OVERRIDE_GROUP = {
     talentCond = "talent",
     -- 增益不在時（v7 之前是 placeholder）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
     emptyMode = "slot", placeholder = "slot",
+    -- 不顯示（只給其他插件讀取）：同上，決定格子在不在畫面上，不是外觀
+    hidden = "slot",
     -- 自訂文字（M）：玩家逐格打的提醒字，條頁沒有對應的節（沒有條層值、也沒有「清除覆寫」鈕）；
     -- 自成一組 ⇒ 條頁任何一節的「清除覆寫」都不會把玩家打的字清掉（只有小窗右鍵各列、「還原此法術」清）
     labelText = "label", labelFont = "label", labelSize = "label", labelColor = "label",

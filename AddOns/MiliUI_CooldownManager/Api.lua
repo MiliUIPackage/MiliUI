@@ -283,6 +283,19 @@ local function Debug(silent)
                     and ("：|cffffd200%d 筆沒畫|r（圓環條只收增益：技能冷卻、自訂法術／物品／飾品欄冷卻放不上去）"):format(n) or ""))
             end
         end
+        -- 不顯示（只給其他插件讀取；逐法術 hidden）：這一輪停放的格，一行列完（沒有就不印）
+        do
+            local parts = {}
+            for _, key in ipairs(C.BarKeys and C.BarKeys() or {}) do
+                local ids = B.HiddenOnly and B.HiddenOnly(key)
+                if ids and #ids > 0 then
+                    local t = {}
+                    for i, id in ipairs(ids) do t[i] = tostring(id) end
+                    parts[#parts + 1] = ("%s %s"):format(key, table.concat(t, ","))
+                end
+            end
+            if #parts > 0 then p("  不顯示（只給其他插件讀取）停放：" .. table.concat(parts, "；")) end
+        end
         -- 格數上限＋溢出（Core/Overflow.lua）：成立的印去向與顆數；設了上限卻不成立的印原因
         do
             local O = ns.Overflow

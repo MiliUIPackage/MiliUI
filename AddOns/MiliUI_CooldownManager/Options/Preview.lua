@@ -33,6 +33,8 @@
 --   來源條：溢出去的那幾格畫暗（0.35）＋右下角「→」＋提示「溢出到：X」；照樣能拖（順序決定哪幾顆溢出）、中鍵移除
 --   接收條：溢來的格畫在尾端（「＋」前面）＋同樣的記號＋提示「來自：A」；外觀照這條。**不能拖**（順序屬於來源條，
 --          拖了跳彈窗，附「前往那條」）；中鍵移除對來源條生效（移除本來就不分條：hidden／整筆刪掉）
+-- 不顯示（只給其他插件讀取；逐法術 hidden，Catalog.HiddenOnly）：畫面上不放，預覽照樣列（點得到才取消得了），
+--   畫暗（同其他暗格 0.35）＋**左上角**一顆 10×10 的「眼睛劃一撇」（Media/hidden.png，同範圍記號的框；右上角是範圍記號）＋提示說明
 -- 圓環條（layout.style ＝ "rings"）：圓環格（NewRingCell：軌道貼圖＋環形 swipe 的 Cooldown＋圖示框）照 Layout.Compute 的同心幾何排，
 --   每一圈都跑假的十五秒循環；圓環條只收增益，技能冷卻與自訂法術／物品標暗＋提示寫原因（光環格照畫成一圈）；「＋」放在整組圓環右邊。格子是一層套一層的正方形 ⇒ 內圈的框層級高（滑鼠內圈優先）；
 --   拖曳的插入位置照「游標離圓心多遠」挑最近的那一圈（InsertionAt）。效果預覽列與發光樣本不畫（圓環條不畫發光）。
@@ -143,11 +145,14 @@ local SCOPE_MARK_TEX = {
     class  = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\scope-class.png",
 }
 local SCOPE_MARK = 10
+-- 不顯示（只給其他插件讀取）的記號：同一個框（黑底＋內縮 1px 的白色圖案），畫在左上角、染灰白
+local HIDDEN_MARK_TEX = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\hidden.png"
 
-local function NewScopeMark(ov, anchor)
+local function NewScopeMark(ov, anchor, corner)
+    corner = corner or "TOPRIGHT"
     local m = CreateFrame("Frame", nil, ov)
     m:SetSize(SCOPE_MARK, SCOPE_MARK)
-    m:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", 0, 0)
+    m:SetPoint(corner, anchor, corner, 0, 0)
     m:SetFrameLevel(ov:GetFrameLevel() + 2)
     local bg = m:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
@@ -171,6 +176,13 @@ local function PaintScopeMark(m, scope)
         m.icon:SetVertexColor(1, 1, 1, 1)
     end
     m:Show()
+end
+
+local function NewHiddenMark(ov, anchor)
+    local m = NewScopeMark(ov, anchor, "TOPLEFT")
+    m.icon:SetTexture(HIDDEN_MARK_TEX)
+    m.icon:SetVertexColor(0.85, 0.85, 0.85, 1)
+    return m
 end
 
 ------------------------------------------------------------
@@ -234,6 +246,7 @@ local function NewIconCell(canvas)
     om:Hide()
     c.ovMark = om
     c.scopeMark = NewScopeMark(ov, ov)
+    c.hiddenMark = NewHiddenMark(ov, ov)
     c.kind = "icons"
     c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
@@ -304,6 +317,7 @@ local function NewBarCell(canvas)
     ov:SetFrameLevel(c:GetFrameLevel() + 5)
     c.overlay = ov
     c.scopeMark = NewScopeMark(ov, icon)       -- 長條：記號在左邊圖示那一格的右上角
+    c.hiddenMark = NewHiddenMark(ov, icon)     -- 不顯示的記號：圖示那一格的左上角
     -- 層數字墊到邊框（ov）與發光之上：真實條是 Text.ApplyBar 把它換父層到 TextHolder（overlay ＋TEXT_LIFT），
     -- 預覽格沒有 rec 走不到那條路，這裡直接建一層同高度的框
     local th = CreateFrame("Frame", nil, c)
@@ -780,8 +794,11 @@ function Proto:Refresh()
         -- 圓環條只收增益（Core/Bars.lua 的 RingRefuses）：技能冷卻、自訂法術／物品畫面上不會有，預覽照樣列
         -- （點得到才移得走）、標暗、提示寫原因。光環格照畫成一圈
         c.ringSkip = (rings and not e.plus and not ns.Catalog.RingAccepts(e.id)) and true or false
+        -- 不顯示（只給其他插件讀取）：畫面上停放著，預覽照樣列、標暗、左上角記號（格子是池化的，一定要明確收）
+        c.hideOnly = (not e.plus and not e.hidden and ns.Catalog.HiddenOnly(key, e.id)) and true or false
+        if c.hiddenMark then c.hiddenMark:SetShown(c.hideOnly) end
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
-        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo or c.ringSkip) and 0.35
+        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo or c.ringSkip or c.hideOnly) and 0.35
             or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
@@ -973,6 +990,9 @@ local function ShowTip(c)
         GameTooltip:AddLine(L["None left in your bags, so it isn't shown on screen."], 1, 0.3, 0.3, true)
     elseif c.itemHidden == "passive" then
         GameTooltip:AddLine(L["The equipped item has no use effect, so it isn't shown on screen."], 1, 0.3, 0.3, true)
+    end
+    if c.hideOnly then
+        GameTooltip:AddLine(L["Not shown: kept in Blizzard's tracking list only for other addons to read."], 1, 0.82, 0, true)
     end
     if c.ringSkip then
         GameTooltip:AddLine(L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."], 1, 0.3, 0.3, true)

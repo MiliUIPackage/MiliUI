@@ -157,6 +157,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 傷害統計 MiliUI_DamageMeters —— C_DamageMeter 渲染器；七個刻意的架構決定、細線樣式、踩過的點 |
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（Ayije_CDM 仍出貨、兩支互斥並存）—— 六條拍板、**Ayije 授權 All Rights Reserved 一行不能搬**、三方分析結論、plan 在 ~/.claude/plans/miliui-cdm.md |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije）—— 報告在 ~/.claude/plans；效能 plan `miliui-cdm-perf.md`（E0～E3）、功能 plan `miliui-cdm-eui-features-2.md`（F1～F8）|
+| [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | 2026-10-10 對照 Halo 監控台後給 MCDM 加的四件事（光環格引擎補位／內建圖示形狀／施放後音效＋天賦條件／錨到單位框）；三家光環格佈局「混排／收合／保留功能」只能拿兩項；SpellPopover Build upvalue 與 Resources.lua 主 chunk local 都貼著上限 |
 | [project-miliui-cdm-rings.md](project-miliui-cdm-rings.md) | MCDM 圓環顯示（2026-10-08）—— 改造暴雪 item 自己的 Cooldown（環形 swipe）不自建；圓環只收增益、自訂光環格可畫成圓環；未實機驗證 |
 | [project-miliui-cdm-skyriding.md](project-miliui-cdm-skyriding.md) | 2026-10-06 Falcon 併入 MCDM 成為天空騎術面板（接力／獨立擺放、藏起 CDM、旋轉急衝長條、充能數字）、Falcon 從套組移除；拍板、驗收修掉的兩個錯、未實機驗證 |
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | 米利的專注目標助手 MiliUI_Focus —— 從套組拆出的獨立插件、一次性 SV 遷移、zhTW 正名 |

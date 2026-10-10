@@ -2560,6 +2560,119 @@ do
         CU.Sync()
     end
 
+    ------------------------------------------------------------
+    -- 18. 不顯示（只給其他插件讀取；逐法術 hidden，2026-10-10）：CanHide／HiddenOnly 的範圍、Relayout 不放不認領
+    --     （Flush 的停放掃描收走）、Occupancy 不佔、編輯模式照樣不放、被當成以增益取代的 B 時不換過去、取消勾選放回來
+    ------------------------------------------------------------
+    do
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+        eq("SPELL_CONST hidden ＝ false", DB.SPELL_CONST.hidden, false)
+        eq("覆寫分組 hidden ＝ slot（決定格子在不在，清外觀覆寫不清它）", DB.OVERRIDE_GROUP.hidden, "slot")
+        local ia = DB.AddCustom({ kind = "aura", spellID = 710, filter = "HELPFUL", bar = "buffs" })
+        local aid = "c:" .. ia
+        CU.Sync()
+        check("CanHide：增益圖示列的暴雪格", C.CanHide("buffs", 31))
+        check("CanHide：增益長條的暴雪格", C.CanHide("buffbars", 41))
+        check("CanHide：搬進自訂群組的照算（看來源不看所在條）", C.CanHide("mygroup", 32))
+        check("CanHide：核心／輔助不適用", not C.CanHide("essential", 11) and not C.CanHide("utility", 21))
+        check("CanHide：自訂項目（光環格）不適用", not C.CanHide("buffs", aid))
+        check("CanHide：不存在的 id", not C.CanHide("buffs", 999) and not C.CanHide("buffs", nil))
+        eq("HiddenOnly：舊存檔沒這欄 ⇒ false", C.HiddenOnly("buffs", 31), false)
+        DB.SetOverride(aid, "hidden", true)
+        eq("HiddenOnly：光環格存了也不算（不適用）", C.HiddenOnly("buffs", aid), false)
+        DB.SetOverride(11, "hidden", true)
+        eq("HiddenOnly：核心存了也不算", C.HiddenOnly("essential", 11), false)
+        DB.SetOverride(11, "hidden", nil)
+        DB.RemoveCustom(aid)
+        CU.Sync()
+        DB.SetOverride(31, "hidden", true)
+        eq("HiddenOnly：勾了", C.HiddenOnly("buffs", 31), true)
+
+        local savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedEM = ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.EditMode
+        ns.Diag = { Note = function() end }
+        ns.Style = { ApplyPanel = function() end }
+        ns.Viewers = { AURA_KIND = { buffs = true, buffbars = true }, frames = {}, EnsureScale = function() end,
+                       Get = function() return nil end }
+        ns.Decorate.ApplyItemAlpha = function() end
+        load("Core/Layout.lua")
+        load("Core/Bars.lua")
+        local B = ns.Bars
+
+        -- 每一輪換一組暴雪 item（直接叫 Relayout 不經 Flush，上一輪的認領不會放掉）
+        local item31, item32, item11, rec31, rec32
+        local index = {}
+        local function Fresh()
+            item31, item32, item11 = Obj("Frame"), Obj("Frame"), Obj("Frame")
+            rec31 = { barKey = "buffs", cooldownID = 31 }
+            rec32 = { barKey = "buffs", cooldownID = 32 }
+            ns.Viewers.frames[item31], ns.Viewers.frames[item32] = rec31, rec32
+            ns.Viewers.frames[item11] = { barKey = "essential", cooldownID = 11 }
+            index[31], index[32], index[11] = item31, item32, item11
+        end
+        Fresh()
+        local function Claimed(key)
+            local out = {}
+            B.ForEachClaimed(key, function(_, r) out[#out + 1] = r.cooldownID end)
+            table.sort(out)
+            return table.concat(out, ",")
+        end
+        B.Relayout("buffs", 2, index, 400)
+        eq("Relayout：勾了的不放 ⇒ 1 格", B.Count("buffs"), 1)
+        eq("Relayout：勾了的不認領（停放掃描會收走）", Claimed("buffs"), "32")
+        eq("Relayout：勾了的沒放格", rec31.claimKey, nil)
+        eq("Relayout：另一格補到第一格", item32.last_SetPoint and item32.last_SetPoint[4], 0)
+        local ho = B.HiddenOnly("buffs")
+        eq("/mcdm debug：記下停放的 31", ho and table.concat(ho, ","), "31")
+        local occ = B.Occupancy(index)
+        eq("Occupancy：不佔（不算溢出的顆數）", occ("buffs", 31), false)
+        eq("Occupancy：另一格照佔", occ("buffs", 32), true)
+
+        -- 增益不在時選了留空位／暗圖示也一樣不放（不畫占位）
+        DB.SetOverride(31, "emptyMode", "dim")
+        Fresh()
+        item31.shown = false
+        B.Relayout("buffs", 2, index, 401)
+        eq("暗圖示的設定也不放", B.Count("buffs"), 1)
+        item31.shown = true
+        DB.SetOverride(31, "emptyMode", nil)
+
+        -- 編輯模式：一樣不放（版面跟平常一致）
+        ns.EditMode = { active = true }
+        Fresh()
+        B.Relayout("buffs", 2, index, 402)
+        eq("編輯模式：照樣不放", B.Count("buffs"), 1)
+        ns.EditMode = savedEM
+
+        -- 以增益取代：31 被核心的 11 拿去當 B、而且生效中 ⇒ 勾了不顯示時不換過去（11 照放自己）
+        local function ActiveB()
+            Fresh()
+            function item31:IsActive() return true end
+            function item31:IsVisible() return true end
+        end
+        ActiveB()
+        DB.SetOverride(11, "replaceWith", 31)
+        eq("取代成立（設定面）", C.ReplaceTarget(11), 31)
+        B.Relayout("essential", 2, index, 403)
+        eq("隱藏的 B：不換過去", B.ReplacedBy(11), nil)
+        eq("隱藏的 B：核心放的是 11 自己", Claimed("essential"), "11")
+        DB.SetOverride(31, "hidden", nil)
+        ActiveB()
+        B.Relayout("essential", 2, index, 404)
+        eq("對照：沒勾 ⇒ 換成 31", B.ReplacedBy(11), 31)
+        DB.SetOverride(11, "replaceWith", nil)
+
+        -- 取消勾選：放回原位
+        Fresh()
+        B.Relayout("buffs", 2, index, 405)
+        eq("取消勾選：2 格", B.Count("buffs"), 2)
+        eq("取消勾選：31 放回增益圖示列", rec31.claimKey, "buffs")
+        eq("取消勾選：debug 清空", B.HiddenOnly("buffs"), nil)
+
+        ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag = savedB, savedLayout, savedStyle, savedViewers, savedDiag
+        ns.Decorate.ApplyItemAlpha = nil
+    end
+
     for i = #list, 1, -1 do list[i] = nil end
     CU.Sync()
     env.CreateFrame, env.UIParent, env.InCombatLockdown, ns.Events = savedCF, savedUI, savedICL, savedEv

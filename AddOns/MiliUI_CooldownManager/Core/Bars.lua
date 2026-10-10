@@ -72,6 +72,15 @@
 -- 暴雪排版後的同步放回（Reapply）才不會把 B 停走、把 A 放回來。B 生效／結束的訊號照舊走
 -- RequestSource("buffs")，Catalog.GroupTargets 把 A 所在的條算進去。
 --
+-- 不顯示（只給其他插件讀取；逐法術 hidden，判準 Catalog.HiddenOnly：暴雪增益圖示／增益長條來源的 item）：
+--   * 不進 entries、不認領 ⇒ Flush 結尾的停放掃描照「收合的增益」那條路停走（畫面外、alpha 0；不 Hide、不 SetParent、
+--     不寫暴雪欄位）。不佔位、不畫占位、不算溢出的顆數（Occupancy）。編輯模式也一樣（不然編輯模式的版面跟平常不同）
+--   * 被當成「以增益取代」的 B 時不換過去（A 照放自己）：玩家要它不出現在畫面上，換到 A 的格就違背了這一點
+--   * 音效照響：增益 item 的出現／消失是 item 自己的警示呼叫後掛勾（Core/Sound.lua 的 HookItem，掛在 item 上、不看放格），
+--     層數增加的 AddAuraSound 登記列舉的是檢視器池子裡有身分的 item（S.WantAuraSounds，也不看放格）⇒ 停放中照樣登記、照樣響。
+--     發光、層數門檻、冷卻狀態等畫面效果沒有（沒有放格就不會接上）
+--   * 這一輪停了哪幾格記在 state[key].hiddenOnly（/mcdm debug 印）
+--
 -- 天空騎術（面板 skyriding，Modules/Skyriding.lua）的接力模式（placement ＝ relay，預設）：跟資源條輪流出現在同一個位置。
 --   * 錨定不看自己存的 anchor／pos：貼資源條容器的固定邊（資源條的錨點，預設 BOTTOM；SR.RelayPlace）；資源條關掉或收合（enabled／StackSkip，
 --     不讀框的幾何）時改用資源條自己的錨定設定（同樣的 to／point／relPoint／x／y），資源條也沒錨定就用資源條的 pos。
@@ -745,6 +754,8 @@ function B.Occupancy(index)
         if not item then return ns.Catalog.ProxySlotOf(id) ~= nil and not Skipped(barKey, id) end
         local rec = ns.Viewers.frames[item]
         if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
+        -- 不顯示（只給其他插件讀取）：不放上條 ⇒ 不佔（跟 Relayout 同一支判準）
+        if ns.Catalog.HiddenOnly(barKey, id) then return false end
         if AuraPresent(item) then return true end
         -- 這一格生效的「增益不在時」不是收合 ⇒ 格子照留、照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
         local barMode, forced = BarMode(barKey)
@@ -1087,6 +1098,7 @@ local function Relayout(key, level, index, gen, s)
     -- 圓環條不可點擊（見檔頭）
     local clickable = not ring and ns.Clickable and ns.Clickable.Enabled(key) or false
     local ringSkipped = 0
+    local hiddenOnly = nil              -- 不顯示（只給其他插件讀取）：這一輪停放的 id（/mcdm debug）
     local barMode, forced = B.BarEmptyMode(key)
     local fixed = barMode ~= "collapse"
     -- 引擎補位（B.AuraFlow；只有光環格、條層收合）：光環格不各自放持有框，整條交給一顆 AuraContainer 排
@@ -1114,7 +1126,7 @@ local function Relayout(key, level, index, gen, s)
         if ringNo then
             -- 不進 entries、不認領 ⇒ 自訂框由 Custom.EndBar 收起來、暴雪的 item 照原本的停放／歸屬走
             ringSkipped = ringSkipped + 1
-        elseif bRec and ns.Catalog.ReplaceNow({
+        elseif bRec and not ns.Catalog.HiddenOnly(key, bID) and ns.Catalog.ReplaceNow({
                 item = true, free = not claimedBy[bItem], shown = AuraPresent(bItem) and SafeVisible(bItem),
                 active = ItemActive(bItem) }) then
             -- B 生效中：這一格放 B 的 item（樣式照這一條、發光／層數／音效照 B 自己的逐法術覆寫）。
@@ -1143,7 +1155,12 @@ local function Relayout(key, level, index, gen, s)
             local rec = ns.Viewers.frames[item]
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
             local mode = "item"
-            if aura then
+            if aura and ns.Catalog.HiddenOnly(key, id) then
+                -- 不顯示（見檔頭）：不放、不認領 ⇒ 停放掃描收走
+                mode = nil
+                hiddenOnly = hiddenOnly or {}
+                hiddenOnly[#hiddenOnly + 1] = id
+            elseif aura then
                 -- 不在時照這一格生效的「增益不在時」（逐法術 ＞ 條層；收合／留空位／暗圖示）
                 local present = AuraPresent(item)
                 local em, own
@@ -1178,6 +1195,7 @@ local function Relayout(key, level, index, gen, s)
         end
         st.ringSkipped = ringSkipped
     end
+    st.hiddenOnly = hiddenOnly
 
     local sizing = BarSize(key, bar)
     local rects, totalW, totalH, anchorPoint = ns.Layout.Compute(entries, sizing, bar.kind)
@@ -1718,6 +1736,12 @@ end
 function B.RingSkipped(key)
     local st = state[key]
     return st and st.ringSkipped or 0
+end
+
+-- 不顯示（只給其他插件讀取）：這條這一輪停放了哪幾格（{ id… } 或 nil；/mcdm debug）。回傳的表呼叫端不准改
+function B.HiddenOnly(key)
+    local st = state[key]
+    return st and st.hiddenOnly or nil
 end
 
 function B.Count(key)
