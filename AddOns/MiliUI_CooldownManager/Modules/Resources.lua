@@ -2143,18 +2143,19 @@ local function SetBigNumber(fs, v, cfg)
     R.SetNumberText(fs, v, nil, bigFmt)
 end
 
--- 秘密值時的整條換色（條件規則展開成 Step 曲線，RC.CurvePoints）：曲線物件一列一顆、池化在列上；
--- 設定世代（R.Apply 時 +1）、專精、明文上限、底色任一變了才重建點。上限讀不到明文時沿用上次讀到的。
--- 回傳曲線（交給 UnitPowerPercent 的第 4 個參數）；展不開／API 不在回 nil（照底色）
+-- 秘密值時的整條換色（條件規則展開成 Step 曲線，RC.CurvePointsBy）：一列最多三條曲線（填充、背景、數值文字），
+-- 曲線物件池化在列上（row.condCurves[slot]）；設定世代（R.Apply 時 +1）、專精、明文上限、這一條的簽章任一變了才重建點。
+-- 上限讀不到明文時沿用上次讀到的。回傳曲線（交給 UnitPowerPercent 的第 4 個參數）；展不開／API 不在回 nil（照平常畫）
 local condCurveGen = 0
 local condLastMax = {}
-local function CondCurve(row, conds, key, pm, cc)
+local function CondCurve(row, slot, conds, key, pm, sig, pick)
     local make = C_CurveUtil and C_CurveUtil.CreateColorCurve
     if not (make and CreateColor and UnitPowerPercent) then return nil end
     if pm then condLastMax[key] = pm else pm = condLastMax[key] end
     local spec = CurrentSpecID()
-    local st = row.condCurve
-    if st and st.gen == condCurveGen and st.conds == conds and st.max == pm and st.spec == spec and st.base == cc
+    row.condCurves = row.condCurves or {}
+    local st = row.condCurves[slot]
+    if st and st.gen == condCurveGen and st.conds == conds and st.max == pm and st.spec == spec and st.sig == sig
         and st.key == key then
         return st.ok and st.curve or nil
     end
@@ -2164,11 +2165,11 @@ local function CondCurve(row, conds, key, pm, cc)
         local T = Enum and Enum.LuaCurveType
         if T and T.Step then c:SetType(T.Step) end
         st = { curve = c }
-        row.condCurve = st
+        row.condCurves[slot] = st
     end
-    st.gen, st.conds, st.max, st.spec, st.base, st.key = condCurveGen, conds, pm, spec, cc, key
+    st.gen, st.conds, st.max, st.spec, st.sig, st.key = condCurveGen, conds, pm, spec, sig, key
     st.ok = false
-    local pts = RC.CurvePoints(conds, pm, spec, cc)
+    local pts = RC.CurvePointsBy(conds, pm, spec, pick)
     if not pts then return nil end
     local ok = pcall(function()
         st.curve:ClearPoints()
@@ -2176,6 +2177,44 @@ local function CondCurve(row, conds, key, pm, cc)
     end)
     st.ok = ok
     return ok and st.curve or nil
+end
+
+-- 曲線挑出來的顏色（可能是秘密值：只交給引擎）。以下幾支掛在 R 上不當 local：主 chunk 的 local 貼著 Lua 的 200 上限
+function R.CurveColor(def, curve)
+    if not curve then return nil end
+    local ok, c = pcall(UnitPowerPercent, "player", def.power, false, curve)
+    return ok and c or nil
+end
+
+-- 三條曲線各自的「每一點的顏色」：規則命中的覆寫 → 顏色（跟明文時 PaintBarBG／ApplyRowOverrides 同一套優先順序）
+function R.FillPick(cc)
+    return function(ov)
+        local c = (ov and RC.ValidColor(ov.color)) or cc
+        return { c.r, c.g, c.b, c.a or 1 }
+    end
+end
+function R.BgPick(cfg, cc)
+    local m = BgAlpha(cfg)
+    local custom = BgCustom(cfg)
+    return function(ov)
+        local bgc = ov and RC.ValidColor(ov.bgColor)
+        if bgc then return { bgc.r, bgc.g, bgc.b, (bgc.a or 0.8) * m } end
+        if custom then return { custom.r, custom.g, custom.b, 0.8 * m } end
+        local fc = (ov and RC.ValidColor(ov.color)) or cc
+        return { fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, 0.8 * m }
+    end
+end
+function R.TextPick(ov)
+    local tc = ov and RC.ValidColor(ov.tagColor)
+    if tc then return { tc.r, tc.g, tc.b, tc.a or 1 } end
+    return { 1, 1, 1, 1 }
+end
+
+-- 背景曲線的簽章：背景的玩家設定（不透明度、自訂底色）＋主色
+function R.BgSig(cfg, cc)
+    local custom = BgCustom(cfg)
+    return table.concat({ BgAlpha(cfg), custom and (custom.r .. "," .. custom.g .. "," .. custom.b) or "-",
+        cc.r, cc.g, cc.b, cc.a or 1 }, "|")
 end
 
 local function UpdateBarRow(row, cfg, def, key, cc, conds)
@@ -2194,16 +2233,21 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
         return
     end
     local pc = Plain(cur)
-    local barOv, curveCol
+    local barOv, curveCol, bgCol, textCol
     if conds and pc and pm then
         RC.FillState(condState, pc, pm, CurrentSpecID())
         barOv = RC.FirstMatch(conds, condState, nil)
     elseif conds and def.power ~= nil and not def.stagger and not def.get then
-        -- 值是秘密值（12.1 戰鬥中的連續條）：Lua 不比較，整條的顏色規則交給曲線在 C 端挑（只換填充色）
-        local curve = CondCurve(row, conds, key, pm, cc)
-        if curve then
-            local ok, c = pcall(UnitPowerPercent, "player", def.power, false, curve)
-            if ok and c then curveCol = c end
+        -- 值是秘密值（12.1 戰鬥中的連續條）：Lua 不比較，整條的顏色規則交給曲線在 C 端挑——
+        -- 填充色、背景色（規則的 bgColor，沒有就照自訂底色／主色 × 0.25 跟著填充走）、數值文字色（tagColor）各一條。
+        -- 透明度（overrides.alpha）秘密值時不套
+        local ccSig = table.concat({ cc.r, cc.g, cc.b, cc.a or 1 }, "|")
+        curveCol = R.CurveColor(def, CondCurve(row, "fill", conds, key, pm, ccSig, R.FillPick(cc)))
+        if RC.AnyOverride(conds, "bgColor") or (not BgCustom(cfg) and RC.AnyOverride(conds, "color")) then
+            bgCol = R.CurveColor(def, CondCurve(row, "bg", conds, key, pm, R.BgSig(cfg, cc), R.BgPick(cfg, cc)))
+        end
+        if cfg.showText and RC.AnyOverride(conds, "tagColor") then
+            textCol = R.CurveColor(def, CondCurve(row, "text", conds, key, pm, "", R.TextPick))
         end
     end
     local fc = (barOv and RC.ValidColor(barOv.color)) or cc
@@ -2224,6 +2268,12 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
     end
     PaintBarBG(row, cfg, barOv, fc)
     ApplyRowOverrides(row, barOv)
+    -- 秘密值時曲線挑出來的背景色／文字色（可能是秘密值：只交給引擎）。文字色寫了就記 condApplied，
+    -- 回到明文、規則不成立時 ClearRowOverrides 會還原成白字
+    if bgCol then pcall(row.barBG.SetVertexColor, row.barBG, bgCol.r, bgCol.g, bgCol.b, bgCol.a) end
+    if textCol and pcall(row.text.SetTextColor, row.text, textCol.r, textCol.g, textCol.b, textCol.a) then
+        row.condApplied = true
+    end
     if cfg.showText then
         -- 秘密值也照印（交給 C 端），不能先過 Plain：12.1 的法力永遠是秘密值，過了就永遠空白
         if type(cur) ~= "number" then
