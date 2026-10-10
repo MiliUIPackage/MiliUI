@@ -34,9 +34,6 @@ SlashCmdList.MILIUINOTE = function(msg)
     if msg == "config" or msg == "options" or msg == "設定" then
         ns.OpenOptions()
 
-    elseif msg == "dungeon" or msg == "instance" or msg == "副本" then
-        ns.Overlay.Toggle()
-
     elseif msg == "migrate" then
         local moved = ns.DB.ForceMigration()
         if moved == nil then
@@ -53,9 +50,6 @@ SlashCmdList.MILIUINOTE = function(msg)
 
     elseif msg == "debug" then
         ns.Print("v" .. ns.VERSION .. "  migration=" .. tostring(ns.db and ns.db.migration))
-        local jInst, name = ns.Journal.CurrentInstance()
-        print(("  instance=%s (%s)"):format(tostring(jInst), tostring(name)))
-        for _, line in ipairs(ns.Journal.DebugLines()) do print(line) end
         if #ns.errors == 0 then
             print("  " .. L["No errors recorded"])
         else

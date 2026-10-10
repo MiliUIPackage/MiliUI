@@ -4,13 +4,11 @@
 -- 一筆筆記 = { id, title, blocks = { ... }, time }
 -- 一個區塊 = { type = "text"/"checkbox"/"bullet"/"number", text, checked, indent }
 --
--- 三個存放處，結構一樣、入口不同：
+-- 兩個存放處，結構一樣、入口不同：
 --   帳號層（戰隊共用）   db.notes                       陣列，順序可拖曳
 --   分身層（角色專屬）   db.charNotes[charKey].notes    同上，另帶 meta
---   副本層（副本／首領） db.instanceNotes[instanceID]   一個副本一筆總覽 ＋ 每隻首領一筆
 --
--- 副本層刻意**一格一筆**（不是清單）：走進副本時要能毫不猶豫地決定「顯示哪一筆」，
--- 有清單就得再問玩家一次。
+-- 以前還有副本層（db.instanceNotes），功能已經拔掉；存檔裡留著的資料不讀也不刪。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -22,7 +20,6 @@ local Notes = ns.Notes
 ------------------------------------------------------------
 Notes.SCOPE_ACCOUNT = "account"
 Notes.SCOPE_CHAR    = "char"
-Notes.SCOPE_INSTANCE = "instance"
 
 Notes.TYPE_TEXT     = "text"
 Notes.TYPE_CHECKBOX = "checkbox"
@@ -176,7 +173,7 @@ function Notes.AccountList()
     return ns.db.notes
 end
 
--- scope + charKey → 陣列。副本層不走這裡（它不是清單）
+-- scope + charKey → 陣列
 function Notes.GetList(scope, charKey)
     if scope == Notes.SCOPE_CHAR then
         return Notes.CharList(charKey or ns.CurrentCharKey())
@@ -213,167 +210,7 @@ function Notes.SortedCharKeys()
 end
 
 ------------------------------------------------------------
--- 副本層
---
--- entry = {
---   meta  = { name, isRaid },
---   diffs = { [key] = { overview = note, bosses = { [encID] = note } } },
--- }
---
--- key 是 `"all"`（不分難度）或難度 ID（團本才用得到）。讀取時**該難度沒有就退回
--- all**，所以 all 的語意是「每個難度都適用的那一份」，而不是「還沒分類的那一份」。
--- 刻意不做「all ＋ 該難度疊在一起顯示」：疊起來之後編輯與分享都要回答
--- 「這一行是哪一份的」，而打副本時要的是一眼看到一份確定的內容。
-------------------------------------------------------------
-Notes.DIFF_ALL = "all"
-
-local function NormalizeDiffKey(key)
-    if key == nil or key == Notes.DIFF_ALL then return Notes.DIFF_ALL end
-    return tonumber(key) or Notes.DIFF_ALL
-end
-Notes.NormalizeDiffKey = NormalizeDiffKey
-
-function Notes.InstanceEntry(instanceID, create)
-    if type(instanceID) ~= "number" then return nil end
-    local db = ns.db
-    local e = db.instanceNotes[instanceID]
-    if type(e) ~= "table" then
-        if not create then return nil end
-        e = { meta = {}, diffs = {} }
-        db.instanceNotes[instanceID] = e
-    end
-    if type(e.meta) ~= "table" then e.meta = {} end
-    if type(e.diffs) ~= "table" then e.diffs = {} end
-
-    -- 更早的結構是「一個副本一組總覽＋首領」，沒有難度這一層。就地升成 diffs.all。
-    if e.overview ~= nil or type(e.bosses) == "table" then
-        local bucket = e.diffs[Notes.DIFF_ALL]
-        if type(bucket) ~= "table" then
-            bucket = { bosses = {} }
-            e.diffs[Notes.DIFF_ALL] = bucket
-        end
-        if type(bucket.bosses) ~= "table" then bucket.bosses = {} end
-        if e.overview ~= nil and bucket.overview == nil then bucket.overview = e.overview end
-        if type(e.bosses) == "table" then
-            for encID, note in pairs(e.bosses) do
-                if bucket.bosses[encID] == nil then bucket.bosses[encID] = note end
-            end
-        end
-        e.overview, e.bosses = nil, nil
-    end
-    return e
-end
-
-function Notes.Bucket(instanceID, diffKey, create)
-    local e = Notes.InstanceEntry(instanceID, create)
-    if not e then return nil end
-    diffKey = NormalizeDiffKey(diffKey)
-    local b = e.diffs[diffKey]
-    if type(b) ~= "table" then
-        if not create then return nil end
-        b = { bosses = {} }
-        e.diffs[diffKey] = b
-    end
-    if type(b.bosses) ~= "table" then b.bosses = {} end
-    return b
-end
-
-function Notes.GetInstanceNote(instanceID, encounterID, diffKey)
-    local b = Notes.Bucket(instanceID, diffKey, false)
-    if not b then return nil end
-    if encounterID then return b.bosses[encounterID] end
-    return b.overview
-end
-
--- 「現在該顯示哪一份」：指定難度寫過就用它，沒有就退回 all。
--- 回傳 note（可能是 nil）, 實際用到的難度 key
-function Notes.ResolveInstanceNote(instanceID, encounterID, diffKey)
-    diffKey = NormalizeDiffKey(diffKey)
-    if diffKey ~= Notes.DIFF_ALL then
-        local note = Notes.GetInstanceNote(instanceID, encounterID, diffKey)
-        if note and not Notes.IsEmpty(note) then return note, diffKey end
-    end
-    return Notes.GetInstanceNote(instanceID, encounterID, Notes.DIFF_ALL), Notes.DIFF_ALL
-end
-
--- 沒有就開一格（會順手把副本／首領名字記進 meta 與 title，之後就算冒險指南
--- 查不到也還顯示得出名字）
-function Notes.EnsureInstanceNote(instanceID, encounterID, diffKey, title, meta)
-    local e = Notes.InstanceEntry(instanceID, true)
-    if not e then return nil end
-    if type(meta) == "table" then
-        for k, v in pairs(meta) do e.meta[k] = v end
-    end
-    local b = Notes.Bucket(instanceID, diffKey, true)
-    if not b then return nil end
-
-    -- ⚠ 不要寫成 `encounterID and b.bosses[id] or b.overview` —— 那一格還沒建立時
-    --   `and` 這半邊是 nil，整條會**掉到總覽那一筆**。
-    local note
-    if encounterID then note = b.bosses[encounterID] else note = b.overview end
-    if not note then
-        note = Notes.New(title)
-        if encounterID then b.bosses[encounterID] = note else b.overview = note end
-    elseif title and title ~= "" then
-        note.title = title      -- 冒險指南的名字才是權威，語言換了要跟著換
-    end
-    Notes.EnsureBlocks(note)
-    return note
-end
-
-function Notes.SetInstanceNote(instanceID, encounterID, diffKey, note)
-    local b = Notes.Bucket(instanceID, diffKey, true)
-    if not b then return end
-    if encounterID then b.bosses[encounterID] = note else b.overview = note end
-end
-
-function Notes.DeleteInstanceNote(instanceID, encounterID, diffKey)
-    local b = Notes.Bucket(instanceID, diffKey, false)
-    if not b then return end
-    if encounterID then b.bosses[encounterID] = nil else b.overview = nil end
-
-    -- 空掉的難度收掉，整個副本都空了就把那格拿掉 —— 「只顯示寫過的」才不會留空殼
-    local e = ns.db.instanceNotes[instanceID]
-    if type(e) ~= "table" then return end
-    for key, bucket in pairs(e.diffs) do
-        if bucket.overview == nil and next(bucket.bosses) == nil then e.diffs[key] = nil end
-    end
-    if next(e.diffs) == nil then ns.db.instanceNotes[instanceID] = nil end
-end
-
--- 這個難度有沒有寫過東西（清單的小圓點用）
-function Notes.BucketHasNotes(instanceID, diffKey)
-    local b = Notes.Bucket(instanceID, diffKey, false)
-    if not b then return false end
-    if b.overview and not Notes.IsEmpty(b.overview) then return true end
-    for _, note in pairs(b.bosses) do
-        if not Notes.IsEmpty(note) then return true end
-    end
-    return false
-end
-
--- 這個副本任何一個難度有沒有寫過東西
-function Notes.InstanceHasNotes(instanceID)
-    local e = Notes.InstanceEntry(instanceID, false)
-    if not e then return false end
-    for key in pairs(e.diffs) do
-        if Notes.BucketHasNotes(instanceID, key) then return true end
-    end
-    return false
-end
-
--- 這個副本寫過哪些難度（給難度選單標小圓點）
-function Notes.WrittenDifficulties(instanceID)
-    local out = {}
-    local e = Notes.InstanceEntry(instanceID, false)
-    if not e then return out end
-    for key in pairs(e.diffs) do
-        if Notes.BucketHasNotes(instanceID, key) then out[key] = true end
-    end
-    return out
-end
-
-------------------------------------------------------------
+-- 序列化（分享用）------------------------------------------------------------
 -- 序列化（分享用）
 --
 -- 走插件通訊頻道，而那個頻道容不下 `|`、換行與 NUL；`~` 是我們自己的欄位分隔符。
@@ -397,10 +234,13 @@ end
 
 -- v2 的表頭多了一個「難度」欄位。v1 還讀得動（只有今天這批測試版會產生），
 -- 差別就是表頭 6 欄還是 7 欄、區塊從第幾欄開始。
+--
+-- 表頭的 kind／副本／首領／難度／context 是副本筆記時代留下的欄位。那個功能拔掉了，
+-- 但格式不動：還裝著舊版的人收發都要對得上。送出一律填 kind = "note"、其餘留空。
 local PROTOCOL   = "MNOTE2"
 local PROTOCOL_1 = "MNOTE1"
 
--- info = { kind = "note"/"instance"/"boss", instanceID, encounterID, diff, context }
+-- info = { kind = "note" }
 function Notes.Serialize(note, info)
     if type(note) ~= "table" then return nil end
     Notes.EnsureBlocks(note)
@@ -410,7 +250,7 @@ function Notes.Serialize(note, info)
         Esc(info.kind or "note"),
         Esc(info.instanceID or ""),
         Esc(info.encounterID or ""),
-        Esc(info.diff or Notes.DIFF_ALL),
+        Esc(info.diff or "all"),
         Esc(info.context or ""),
         Esc(note.title or ""),
     }
@@ -435,18 +275,8 @@ function Notes.Deserialize(str)
     else return nil end
     if #f < headLen then return nil end
 
-    local info = {
-        kind        = Unesc(f[2]),
-        instanceID  = tonumber(f[3]),
-        encounterID = tonumber(f[4]),
-    }
-    if headLen == 7 then
-        info.diff    = NormalizeDiffKey(Unesc(f[5]))
-        info.context = Unesc(f[6])
-    else
-        info.diff    = Notes.DIFF_ALL
-        info.context = Unesc(f[5])
-    end
+    -- 副本／首領那幾欄只讀不用：舊版送來的一律當一般筆記收（見 Share.SaveIncoming）
+    local info = { kind = Unesc(f[2]) }
 
     local note = {
         id     = Notes.GenerateID(),
@@ -478,31 +308,6 @@ end
 function Notes.InitDB()
     local db = ns.db
     SanitizeList(db.notes)
-
-    -- 副本層：格數不多（有寫過的副本才會存在），登入時清一次不貴。
-    -- InstanceEntry 順便把舊的「沒有難度那一層」結構就地升上來。
-    for id, e in pairs(db.instanceNotes) do
-        if type(e) ~= "table" or type(id) ~= "number" then
-            db.instanceNotes[id] = nil
-        else
-            Notes.InstanceEntry(id, false)
-            for key, bucket in pairs(e.diffs) do
-                if type(bucket) ~= "table" or not (key == Notes.DIFF_ALL or type(key) == "number") then
-                    e.diffs[key] = nil
-                else
-                    if type(bucket.bosses) ~= "table" then bucket.bosses = {} end
-                    if bucket.overview and not SanitizeNote(bucket.overview) then
-                        bucket.overview = nil
-                    end
-                    for encID, note in pairs(bucket.bosses) do
-                        if type(encID) ~= "number" or not SanitizeNote(note) then
-                            bucket.bosses[encID] = nil
-                        end
-                    end
-                end
-            end
-        end
-    end
 
     -- 當前角色 meta：每次登入刷新，下拉才顯示得出職業圖示與職業色
     local key, name, realm = ns.CurrentCharKey()

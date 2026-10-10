@@ -25,7 +25,6 @@ local function ShowMenu(anchor)
     W.Menu.Show({
         { text = L["MiliUI Character Notes"], isTitle = true },
         { text = L["Open the notebook"], onClick = function() ns.Window.Toggle() end },
-        { text = L["Dungeon note window"], onClick = function() ns.Overlay.Toggle() end },
         { isSeparator = true },
         { text = L["Settings"], onClick = function() ns.OpenOptions() end },
     }, anchor)

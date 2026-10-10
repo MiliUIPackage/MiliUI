@@ -1,9 +1,8 @@
 ------------------------------------------------------------
 -- 筆記本主視窗：分頁 ＋ 工具列 ＋ 清單
 --
--- 三個分頁共用同一個清單與同一組列（列會回收），差別只在餵給它的資料：
---   戰隊共用 / 角色專屬  一維陣列，可拖曳排序
---   副本                  副本 → （副本總覽 ＋ 各首領）的兩層樹，不可排序
+-- 兩個分頁（戰隊共用／角色專屬）共用同一個清單與同一組列（列會回收），
+-- 差別只在餵給它的陣列；都是一維、可拖曳排序。
 --
 -- 編輯是另一個視窗（UI/Editor.lua），依附在這個視窗右側。
 ------------------------------------------------------------
@@ -13,7 +12,7 @@ ns.Window = {}
 local Window = ns.Window
 
 local W, P, L = ns.W, ns.P, ns.L
-local Notes, Media, Journal = ns.Notes, ns.Media, ns.Journal
+local Notes, Media = ns.Notes, ns.Media
 
 local WINDOW_W, WINDOW_H = 380, 520
 local HEADER_H  = 24
@@ -24,34 +23,27 @@ local PAD       = 8
 
 local TAB_ACCOUNT  = Notes.SCOPE_ACCOUNT
 local TAB_CHAR     = Notes.SCOPE_CHAR
-local TAB_INSTANCE = Notes.SCOPE_INSTANCE
 
 ------------------------------------------------------------
 -- 狀態
 ------------------------------------------------------------
 local frame, listScroll, listContent, searchRow, searchBox, toolbar
 local tabButtons, highlightTab = {}, nil
-local addButton, charButton, filterButton, emptyLabel
+local addButton, charButton, emptyLabel
 local deletePopup, deleteTarget
 
 local currentTab     = TAB_ACCOUNT
 local selectedChar               -- 角色專屬分頁看的是哪個分身
 local filterText     = ""
-local selectedNoteID             -- 平面清單的選取
-local selectedInst               -- 副本分頁的選取 { instanceID, encounterID, diff }
-local expanded       = {}        -- [instanceID] = true
-local selectedDiff   = {}        -- [instanceID] = 難度 key（團本才用得到）
-local instScope      = "season"  -- season / all / noted
-local instType       = "all"     -- all / party / raid
-local catalogueReady = false
+local selectedNoteID
 
 local rows = {}
 local rowItems = {}
 local dragState, dragLine
 
--- 前向宣告：列的 OnClick 在這兩支之前就寫好了，不宣告的話它們會被當成全域
+-- 前向宣告：列的 OnClick 在它之前就寫好了，不宣告的話它會被當成全域
 -- （`luac -p` 抓不到，只有 `luac -l` 掃 _ENV 讀取才看得出來）
-local Refresh, ShowDiffMenu
+local Refresh
 
 ------------------------------------------------------------
 -- 小工具
@@ -84,7 +76,6 @@ end
 ------------------------------------------------------------
 local function OpenNote(note)
     selectedNoteID = note and note.id or nil
-    selectedInst = nil
     if not note then
         ns.Editor.Close()
         return
@@ -96,58 +87,14 @@ local function OpenNote(note)
     })
 end
 
-local function OpenInstanceNote(instanceID, encounterID, diffKey)
-    diffKey = Notes.NormalizeDiffKey(diffKey)
-    local instName = Journal.InstanceName(instanceID) or "?"
-    local title, context
-    if encounterID then
-        local bossName = Journal.EncounterName(instanceID, encounterID) or "?"
-        title   = bossName
-        context = instName .. " - " .. bossName
-    else
-        title   = instName
-        context = instName
-    end
-    -- 標題列要看得出這是哪個難度的那一份，不然兩份筆記長得一模一樣
-    local label = context
-    if diffKey ~= Notes.DIFF_ALL then
-        label = context .. " |cff808080[" .. Journal.DifficultyName(diffKey) .. "]|r"
-    end
-
-    local info = Journal.InstanceInfo(instanceID)
-    local note = Notes.EnsureInstanceNote(instanceID, encounterID, diffKey, title, {
-        name   = instName,
-        isRaid = info and info.isRaid,
-    })
-    Journal.StampDungeonID(note, instanceID, encounterID)
-
-    selectedNoteID = nil
-    selectedInst = { instanceID = instanceID, encounterID = encounterID, diff = diffKey }
-    ns.Editor.Open(note, {
-        label = label,
-        readonlyTitle = true,
-        plainBlocks   = true,
-        onEdited = function() ns.Sync.SchedulePush(instanceID) end,
-        share = {
-            kind        = encounterID and "boss" or "instance",
-            instanceID  = instanceID,
-            encounterID = encounterID,
-            diff        = diffKey,
-            context     = context,
-        },
-    })
-    ns.Fire("NotesChanged")
-end
-
 ------------------------------------------------------------
--- 清單資料：把三個分頁攤成同一種「列描述」
+-- 清單資料：攤成「列描述」
 ------------------------------------------------------------
 local function BuildFlatItems(out)
     local list = CurrentList()
     for i, note in ipairs(list) do
         if NoteMatches(note) then
             out[#out + 1] = {
-                kind     = "note",
                 note     = note,
                 index    = i,
                 label    = note.title ~= "" and note.title or L["Untitled"],
@@ -155,102 +102,6 @@ local function BuildFlatItems(out)
                 dot      = not Notes.IsEmpty(note),
             }
         end
-    end
-end
-
-local function InstancePasses(entry)
-    if instType == "party" and entry.isRaid then return false end
-    if instType == "raid" and not entry.isRaid then return false end
-    if instScope == "noted" then return Notes.InstanceHasNotes(entry.id) end
-    if instScope == "season" then
-        if Journal.SeasonInstances()[entry.id] then return true end
-        -- 有寫過筆記的舊副本一律留著，不然玩家會以為筆記不見了
-        return Notes.InstanceHasNotes(entry.id)
-    end
-    return true
-end
-
--- 這個副本目前看的是哪個難度（地城沒有難度這回事，一律 all）
-local function DiffFor(entry)
-    if not entry.isRaid then return Notes.DIFF_ALL end
-    return selectedDiff[entry.id] or Notes.DIFF_ALL
-end
-
-local function BuildInstanceItems(out)
-    local cat = Journal.Catalogue()
-    local curInst = Journal.CurrentInstance()
-
-    for _, entry in ipairs(cat.list) do
-      -- ⚠ 篩選條件要先過。下面那段為了「用首領名字搜尋」會去列舉首領清單，
-      --   而那是每個副本一次冒險指南查詢 —— 先過濾能把它從幾百次降到十幾次。
-      if InstancePasses(entry) then
-        local encounters = nil
-        local nameHit = Matches(entry.name)
-        local childHit = false
-
-        if filterText ~= "" and not nameHit then
-            encounters = Journal.Encounters(entry.id)
-            for _, e in ipairs(encounters) do
-                if Matches(e.name) then childHit = true break end
-            end
-        end
-
-        if nameHit or childHit then
-            -- 搜尋命中首領時強制展開，否則玩家看不到自己找的那一行
-            local isOpen = expanded[entry.id] or childHit
-            out[#out + 1] = {
-                kind       = "instance",
-                instanceID = entry.id,
-                label      = entry.name,
-                isRaid     = entry.isRaid,
-                expanded   = isOpen,
-                current    = entry.id == curInst,
-                dot        = Notes.InstanceHasNotes(entry.id),
-            }
-            if isOpen then
-                local diff = DiffFor(entry)
-                local function IsSelected(encID)
-                    return selectedInst ~= nil and selectedInst.instanceID == entry.id
-                       and selectedInst.encounterID == encID and selectedInst.diff == diff
-                end
-
-                -- 團本多一列難度切換。地城沒有這一列 —— 鑰石等級不影響打法筆記，
-                -- 多一列只是每個副本都要多讀一行
-                if entry.isRaid then
-                    out[#out + 1] = {
-                        kind       = "diff",
-                        instanceID = entry.id,
-                        diff       = diff,
-                        label      = L["Difficulty"] .. "：" .. Journal.DifficultyName(diff),
-                        dot        = Notes.BucketHasNotes(entry.id, diff),
-                    }
-                end
-
-                local overview = Notes.GetInstanceNote(entry.id, nil, diff)
-                out[#out + 1] = {
-                    kind       = "instanceNote",
-                    instanceID = entry.id,
-                    diff       = diff,
-                    label      = L["Dungeon overview"],
-                    dot        = overview ~= nil and not Notes.IsEmpty(overview),
-                    selected   = IsSelected(nil),
-                }
-                encounters = encounters or Journal.Encounters(entry.id)
-                for _, e in ipairs(encounters) do
-                    local note = Notes.GetInstanceNote(entry.id, e.id, diff)
-                    out[#out + 1] = {
-                        kind        = "instanceNote",
-                        instanceID  = entry.id,
-                        encounterID = e.id,
-                        diff        = diff,
-                        label       = e.name,
-                        dot         = note ~= nil and not Notes.IsEmpty(note),
-                        selected    = IsSelected(e.id),
-                    }
-                end
-            end
-        end
-      end
     end
 end
 
@@ -310,46 +161,8 @@ local function ShowNoteMenu(row)
     W.Menu.Show(items, row)
 end
 
-local function ShowInstanceNoteMenu(row)
-    local instanceID, encID = row._instanceID, row._encounterID
-    local diff = Notes.NormalizeDiffKey(row._diff)
-    local note = Notes.GetInstanceNote(instanceID, encID, diff)
-    local instName = Journal.InstanceName(instanceID) or "?"
-    local label = encID and (Journal.EncounterName(instanceID, encID) or "?") or instName
-    local title = label
-    if diff ~= Notes.DIFF_ALL then
-        title = label .. " |cff808080[" .. Journal.DifficultyName(diff) .. "]|r"
-    end
-    local items = { { text = title, isTitle = true } }
-
-    if note then
-        items[#items + 1] = { text = L["Share..."], onClick = function()
-            ns.Share.ShowShareMenu(row, note, {
-                kind        = encID and "boss" or "instance",
-                instanceID  = instanceID,
-                encounterID = encID,
-                diff        = diff,
-                context     = encID and (instName .. " - " .. label) or instName,
-            })
-        end }
-        items[#items + 1] = { isSeparator = true }
-        items[#items + 1] = { text = "|cffff5555" .. L["Delete"] .. "|r", onClick = function()
-            ConfirmDelete(label, function()
-                if ns.Editor.IsEditing(note) then ns.Editor.Close() end
-                Notes.DeleteInstanceNote(instanceID, encID, diff)
-                selectedInst = nil
-                Refresh()
-            end)
-        end }
-    else
-        items[#items + 1] = { text = "|cff808080" .. L["Nothing written here yet"] .. "|r",
-                              onClick = function() end }
-    end
-    W.Menu.Show(items, row)
-end
-
 ------------------------------------------------------------
--- 拖曳排序（只有平面清單）
+-- 拖曳排序
 ------------------------------------------------------------
 local function CancelDrag()
     dragState = nil
@@ -364,7 +177,7 @@ local function DragMonitor()
     if not dragState then return end
     local hovered, last
     for _, r in ipairs(rows) do
-        if r:IsShown() and r._kind == "note" then
+        if r:IsShown() then
             last = r
             if r:IsMouseOver() then hovered = r break end
         end
@@ -424,17 +237,12 @@ local function CreateRow()
     row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     row:RegisterForDrag("LeftButton")
 
-    row.arrow = row:CreateFontString(nil, "OVERLAY")
-    row.arrow:SetFontObject(W.fontSmall)
-    row.arrow:SetPoint("LEFT", 6, 0)
-    row.arrow:SetWidth(12)
-    row.arrow:SetJustifyH("CENTER")
-
     row.text = row:CreateFontString(nil, "OVERLAY")
     row.text:SetFontObject(Media.fontBody)
-    row.text:SetPoint("LEFT", 6, 0)
+    row.text:SetPoint("LEFT", 8, 0)
     row.text:SetPoint("RIGHT", -18, 0)
     row.text:SetJustifyH("LEFT")
+    row.text:SetTextColor(0.92, 0.92, 0.92)
     row.text:SetWordWrap(false)
 
     row.dot = row:CreateTexture(nil, "OVERLAY")
@@ -450,25 +258,12 @@ local function CreateRow()
     end)
 
     row:SetScript("OnClick", function(self, button)
-        if self._kind == "note" then
-            if button == "RightButton" then ShowNoteMenu(self) return end
-            OpenNote(self._note)
-            Refresh()
-        elseif self._kind == "instance" then
-            if button == "RightButton" then return end
-            expanded[self._instanceID] = not expanded[self._instanceID]
-            Refresh()
-        elseif self._kind == "diff" then
-            ShowDiffMenu(self)
-        elseif self._kind == "instanceNote" then
-            if button == "RightButton" then ShowInstanceNoteMenu(self) return end
-            OpenInstanceNote(self._instanceID, self._encounterID, self._diff)
-            Refresh()
-        end
+        if button == "RightButton" then ShowNoteMenu(self) return end
+        OpenNote(self._note)
+        Refresh()
     end)
 
     row:SetScript("OnDragStart", function(self)
-        if self._kind ~= "note" then return end
         if filterText ~= "" then return end        -- 篩選中的順序不是真實順序
         dragState = { sourceID = self._note.id, targetIndex = nil }
         self:SetAlpha(0.4)
@@ -497,48 +292,11 @@ local function CreateRow()
 end
 
 local function ConfigureRow(row, item)
-    row._kind        = item.kind
     row._note        = item.note
     row._index       = item.index
-    row._instanceID  = item.instanceID
-    row._encounterID = item.encounterID
-    row._diff        = item.diff
     row._selected    = item.selected == true
     row:SetAlpha(1)
-
-    -- ⚠ 每次都重下錨點：同一顆列會在三種縮排之間輪流被回收使用
-    row.text:ClearAllPoints()
-    row.text:SetPoint("RIGHT", -18, 0)
-
-    if item.kind == "instance" then
-        row.arrow:Show()
-        row.arrow:SetText(item.expanded and "-" or "+")
-        row.arrow:SetTextColor(W.Accent(1))
-        row.text:SetPoint("LEFT", 22, 0)
-        row.text:SetFontObject(Media.fontHead)
-        local prefix = item.current and ("|cff00ff00" .. L["Here"] .. "|r ") or ""
-        row.text:SetText(prefix .. (item.label or "?"))
-        row.text:SetTextColor(1, 1, 1)
-    elseif item.kind == "diff" then
-        -- 難度切換列：長得像下拉而不是像筆記（右邊一個小三角，字用弱一階的灰）
-        row.arrow:Hide()
-        row.text:SetFontObject(Media.fontBody)
-        row.text:SetPoint("LEFT", 30, 0)
-        row.text:SetText((item.label or "?") .. " |cff808080v|r")
-        row.text:SetTextColor(W.Accent(1))
-    else
-        row.arrow:Hide()
-        row.text:SetFontObject(Media.fontBody)
-        if item.kind == "instanceNote" then
-            row.text:SetPoint("LEFT", 30, 0)
-            row.text:SetTextColor(0.85, 0.85, 0.85)
-        else
-            row.text:SetPoint("LEFT", 8, 0)
-            row.text:SetTextColor(0.92, 0.92, 0.92)
-        end
-        row.text:SetText(item.label or "?")
-    end
-
+    row.text:SetText(item.label or "?")
     row.dot:SetShown(item.dot == true)
     StyleRow(row, row._selected)
 end
@@ -550,9 +308,7 @@ Refresh = function()
     if not frame then return end
 
     -- 工具列跟著分頁換
-    addButton:SetShown(currentTab ~= TAB_INSTANCE)
     charButton:SetShown(currentTab == TAB_CHAR)
-    filterButton:SetShown(currentTab == TAB_INSTANCE)
     addButton:ClearAllPoints()
     if currentTab == TAB_CHAR then
         addButton:SetPoint("LEFT", charButton, "RIGHT", 4, 0)
@@ -566,11 +322,7 @@ Refresh = function()
     end
 
     wipe(rowItems)
-    if currentTab == TAB_INSTANCE then
-        if catalogueReady then BuildInstanceItems(rowItems) end
-    else
-        BuildFlatItems(rowItems)
-    end
+    BuildFlatItems(rowItems)
 
     local y = 2
     for i, item in ipairs(rowItems) do
@@ -591,13 +343,9 @@ Refresh = function()
 
     -- 空狀態說明
     local msg
-    if currentTab == TAB_INSTANCE and not catalogueReady then
-        msg = L["Loading the dungeon list..."]
-    elseif #rowItems == 0 then
+    if #rowItems == 0 then
         if filterText ~= "" then
             msg = L["Nothing matches your search."]
-        elseif currentTab == TAB_INSTANCE then
-            msg = L["No dungeons match this filter."]
         else
             msg = L["No notes yet. Use New to write one."]
         end
@@ -609,22 +357,6 @@ end
 Window.Refresh = Refresh
 
 ------------------------------------------------------------
--- 副本清單的建立（很貴，只在第一次進副本分頁時做）
-------------------------------------------------------------
-local function EnsureCatalogue()
-    if catalogueReady then return end
-    Refresh()                       -- 先把「載入中」畫出來
-    C_Timer.After(0, function()
-        Journal.Catalogue()
-        catalogueReady = true
-        -- 開在目前所在的副本上，省得玩家自己找
-        local cur = Journal.CurrentInstance()
-        if cur then expanded[cur] = true end
-        Refresh()
-    end)
-end
-
-------------------------------------------------------------
 -- 分頁切換
 ------------------------------------------------------------
 local function SwitchTab(id)
@@ -632,7 +364,6 @@ local function SwitchTab(id)
     ns.Editor.Commit()
     currentTab = id
     selectedNoteID = nil
-    selectedInst = nil
     ns.Editor.Close()
     if searchBox then searchBox:SetText("") end
     filterText = ""
@@ -641,71 +372,7 @@ local function SwitchTab(id)
     ns.db.perChar[key] = ns.db.perChar[key] or {}
     ns.db.perChar[key].lastScope = id
 
-    if id == TAB_INSTANCE then EnsureCatalogue() end
     Refresh()
-end
-
-------------------------------------------------------------
--- 篩選選單（副本分頁）
-------------------------------------------------------------
-ShowDiffMenu = function(row)
-    local instanceID = row._instanceID
-    local written = Notes.WrittenDifficulties(instanceID)
-    local cur = selectedDiff[instanceID] or Notes.DIFF_ALL
-
-    local function Item(key)
-        return {
-            text = Journal.DifficultyName(key) .. (written[key] and " |cff808080*|r" or ""),
-            isActive = cur == key,
-            onClick = function()
-                ns.Editor.Close()
-                selectedDiff[instanceID] = key
-                selectedInst = nil
-                Refresh()
-            end,
-        }
-    end
-
-    local items = { { text = L["Difficulty"], isTitle = true }, Item(Notes.DIFF_ALL) }
-    items[#items + 1] = { isSeparator = true }
-    for _, d in ipairs(Journal.RaidDifficulties()) do
-        items[#items + 1] = Item(d.key)
-    end
-    W.Menu.Show(items, row)
-end
-
-local function ShowFilterMenu(anchor)
-    local items = {
-        { text = L["Show"], isTitle = true },
-        { text = L["This season"], isActive = instScope == "season",
-          onClick = function() instScope = "season" Refresh() end },
-        { text = L["All expansions"], isActive = instScope == "all",
-          onClick = function() instScope = "all" Refresh() end },
-        { text = L["Only ones I wrote in"], isActive = instScope == "noted",
-          onClick = function() instScope = "noted" Refresh() end },
-        { isSeparator = true },
-        { text = L["Type"], isTitle = true },
-        { text = L["Everything"], isActive = instType == "all",
-          onClick = function() instType = "all" Refresh() end },
-        { text = L["Dungeons"], isActive = instType == "party",
-          onClick = function() instType = "party" Refresh() end },
-        { text = L["Raids"], isActive = instType == "raid",
-          onClick = function() instType = "raid" Refresh() end },
-    }
-    local cur, _, instanceType, difficultyID = Journal.CurrentInstance()
-    if cur then
-        items[#items + 1] = { isSeparator = true }
-        items[#items + 1] = { text = L["Jump to where I am"], onClick = function()
-            expanded[cur] = true
-            instScope = "all"
-            -- 團本順便切到現在打的難度，省得玩家還要再點一次
-            if instanceType == "raid" and type(difficultyID) == "number" then
-                selectedDiff[cur] = difficultyID
-            end
-            Refresh()
-        end }
-    end
-    W.Menu.Show(items, anchor)
 end
 
 local function ShowCharMenu(anchor)
@@ -814,7 +481,6 @@ local function Build()
     local TABS = {
         { id = TAB_ACCOUNT,  label = L["Shared"] },
         { id = TAB_CHAR,     label = L["Character"] },
-        { id = TAB_INSTANCE, label = L["Instances"] },
     }
     local tabW = (WINDOW_W - PAD * 2 - 4 * (#TABS - 1)) / #TABS
     local prev
@@ -854,10 +520,6 @@ local function Build()
         Refresh()
     end)
 
-    filterButton = W.CreateButton(toolbar, L["Filter"], "normal", 70, TOOLBAR_H - 2)
-    filterButton:SetPoint("LEFT", toolbar, "LEFT", 4, 0)
-    filterButton:SetScript("OnClick", function(self) ShowFilterMenu(self) end)
-
     -- 搜尋：放大鏡當開關，搜尋條插在工具列與清單之間
     local searchToggle = W.CreateButton(toolbar, "", "normal", TOOLBAR_H - 2, TOOLBAR_H - 2)
     searchToggle:SetPoint("RIGHT", -4, 0)
@@ -866,24 +528,6 @@ local function Build()
     searchIcon:SetSize(14, 14)
     searchIcon:SetPoint("CENTER")
     searchIcon:SetVertexColor(0.9, 0.9, 0.9)
-
-    -- 「試試看」：把副本浮動視窗叫出來。放在搜尋左邊、跟著右緣走 ——
-    -- 它是驗證用的動作，不該跟左邊那排「新增／篩選」搶主要位置。
-    local tryBtn = W.CreateButton(toolbar, L["Try it"], "normal", 64, TOOLBAR_H - 2)
-    tryBtn:SetPoint("RIGHT", searchToggle, "LEFT", -4, 0)
-    tryBtn:SetScript("OnClick", function() ns.Overlay.Toggle() end)
-    tryBtn:SetScript("OnEnter", function(self)
-        self:SetBackdropColor(unpack(self._colors[2]))
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(L["Show the dungeon note window"])
-        GameTooltip:AddLine(L["Works anywhere, so you can try the layout out before a run."],
-            0.8, 0.8, 0.8, true)
-        GameTooltip:Show()
-    end)
-    tryBtn:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(unpack(self._colors[1]))
-        GameTooltip:Hide()
-    end)
 
     searchRow = CreateFrame("Frame", nil, frame)
     searchRow:SetHeight(P.Scale(TOOLBAR_H))
@@ -959,12 +603,12 @@ local function Build()
     -- 還原上次的分頁
     local saved = ns.db.perChar[ns.CurrentCharKey()]
     local startTab = saved and saved.lastScope
-    if startTab ~= TAB_CHAR and startTab ~= TAB_INSTANCE then startTab = TAB_ACCOUNT end
+    -- 拔掉的副本分頁存檔裡可能還留著 "instance"，一併退回戰隊共用
+    if startTab ~= TAB_CHAR then startTab = TAB_ACCOUNT end
     currentTab = startTab
     for _, b in ipairs(tabButtons) do
         if b.id == startTab then highlightTab(b) break end
     end
-    if startTab == TAB_INSTANCE then EnsureCatalogue() end
 end
 
 ------------------------------------------------------------
@@ -992,27 +636,6 @@ end
 
 function Window.IsShown()
     return frame and frame:IsShown()
-end
-
--- 副本浮動視窗的「編輯」按鈕：開主視窗、切到副本分頁、直接開那一筆
-function Window.EditInstanceNote(instanceID, encounterID, diffKey)
-    Window.Show()
-    if currentTab ~= TAB_INSTANCE then
-        currentTab = TAB_INSTANCE
-        for _, b in ipairs(tabButtons) do
-            if b.id == TAB_INSTANCE then highlightTab(b) break end
-        end
-        EnsureCatalogue()
-    end
-    expanded[instanceID] = true
-    diffKey = Notes.NormalizeDiffKey(diffKey)
-    selectedDiff[instanceID] = diffKey
-    -- 「本季」看不到的舊副本也要跳得過去（浮動視窗是從實際所在的副本叫過來的）
-    if instScope == "season" and not Journal.SeasonInstances()[instanceID] then
-        instScope = "all"
-    end
-    OpenInstanceNote(instanceID, encounterID, diffKey)
-    Refresh()
 end
 
 ns.RegisterCallback("NotesChanged", "window", function()

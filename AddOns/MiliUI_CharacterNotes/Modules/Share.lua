@@ -34,21 +34,17 @@ local NewToken  -- 前向宣告（Send 會用到，定義在後面）
 -- 標題裡的 `|` 會把連結切斷（那是控制字元），而且玩家自己打的色碼在連結裡也
 -- 不合法 —— 一律剝掉再截短。
 ------------------------------------------------------------
-local function LinkLabel(note, info)
+local function LinkLabel(note)
     local title = tostring(note.title or ""):gsub("|", "")
-    if info and info.context and info.context ~= "" then
-        local ctx = tostring(info.context):gsub("|", "")
-        title = ctx
-    end
     title = strtrim(title)
     if title == "" then title = L["Untitled"] end
     if #title > 60 then title = title:sub(1, 60) .. "..." end
     return title
 end
 
-local function BuildLink(token, note, info)
+local function BuildLink(token, note)
     return ns.PREFIX_COLOR .. "|Hgarrmission:" .. LINK_TAG .. "-" .. token .. "|h["
-        .. L["Note"] .. ": " .. LinkLabel(note, info) .. "]|h|r"
+        .. L["Note"] .. ": " .. LinkLabel(note) .. "]|h|r"
 end
 
 ------------------------------------------------------------
@@ -92,7 +88,7 @@ function Share.Send(note, info, channelKey, target)
     }
 
     -- 連結晚一點再貼：讓資料先到，對方一點就開得起來
-    local msg = BuildLink(token, note, info)
+    local msg = BuildLink(token, note)
     local chatType, whisperTo = ch.chat, target
     C_Timer.After(1.5, function()
         SendChatMessage(msg, chatType, nil, whisperTo)
@@ -178,53 +174,20 @@ end
 ------------------------------------------------------------
 -- 預覽視窗
 ------------------------------------------------------------
-local preview, previewViewer, previewTitle, previewFrom, previewTarget, confirmPopup
+local preview, previewViewer, previewTitle, previewFrom, previewTarget
 local previewData
-
-local function DescribeTarget(info)
-    if not info then return nil end
-    if info.kind ~= "boss" and info.kind ~= "instance" then return nil end
-
-    local instName = info.instanceID and ns.Journal.InstanceName(info.instanceID)
-    instName = instName or info.context or "?"
-
-    -- 難度也要講：對方存下去會落在那個難度的格子裡，不講的話他不知道自己收到的
-    -- 是「傳奇的那一份」還是「全難度通用的那一份」
-    local diff = Notes.NormalizeDiffKey(info.diff)
-    local tag = ""
-    if diff ~= Notes.DIFF_ALL then
-        tag = " |cff808080[" .. ns.Journal.DifficultyName(diff) .. "]|r"
-    end
-
-    if info.kind == "boss" then
-        local bossName = info.instanceID and info.encounterID
-            and ns.Journal.EncounterName(info.instanceID, info.encounterID)
-        return L["Boss note"] .. ": " .. instName .. " - "
-            .. (bossName or info.context or "?") .. tag
-    end
-    return L["Dungeon note"] .. ": " .. instName .. tag
-end
 
 local function SaveIncoming()
     local data = previewData
     if not data then return end
-    local info, note = data.info, data.note
+    local note = data.note
     note.id = Notes.GenerateID()
     note.time = time()
 
-    if info and (info.kind == "boss" or info.kind == "instance")
-       and type(info.instanceID) == "number" then
-        local encID = (info.kind == "boss") and info.encounterID or nil
-        local meta = { name = ns.Journal.InstanceName(info.instanceID) or info.context }
-        ns.Journal.StampDungeonID(note, info.instanceID, encID)
-        Notes.SetInstanceNote(info.instanceID, encID, Notes.NormalizeDiffKey(info.diff), note)
-        local e = Notes.InstanceEntry(info.instanceID, true)
-        if meta.name then e.meta.name = meta.name end
-        ns.Print(L["Saved to %s."]:format(DescribeTarget(info) or L["Dungeon note"]))
-    else
-        table.insert(Notes.AccountList(), 1, note)
-        ns.Print(L["Saved to your shared notes."])
-    end
+    -- 舊版送來的副本／首領筆記也一律存成戰隊共用的一般筆記：副本筆記這一層已經拔掉了，
+    -- 內容本身還是有用的，丟掉比較可惜
+    table.insert(Notes.AccountList(), 1, note)
+    ns.Print(L["Saved to your shared notes."])
 
     ns.Fire("NotesChanged")
     preview:Hide()
@@ -284,26 +247,7 @@ local function BuildPreview()
 
     local save = W.CreateButton(preview, L["Save"], "green", 110, 22)
     save:SetPoint("BOTTOMLEFT", 24, 12)
-    save:SetScript("OnClick", function()
-        local data = previewData
-        if not data then return end
-        -- 副本／首領那一格已經有東西的話先問一次：那是**覆蓋**，不是新增
-        local info = data.info
-        if info and type(info.instanceID) == "number" then
-            local encID = (info.kind == "boss") and info.encounterID or nil
-            local existing = Notes.GetInstanceNote(info.instanceID, encID,
-                                                   Notes.NormalizeDiffKey(info.diff))
-            if existing and not Notes.IsEmpty(existing) then
-                if not confirmPopup then
-                    confirmPopup = W.CreateConfirmPopup(preview, 320, "", function() SaveIncoming() end)
-                end
-                confirmPopup.text:SetText(L["You already have a note there. Overwrite it?"])
-                confirmPopup:Show()
-                return
-            end
-        end
-        SaveIncoming()
-    end)
+    save:SetScript("OnClick", SaveIncoming)
 
     local cancel = W.CreateButton(preview, L["Cancel"], "red", 110, 22)
     cancel:SetPoint("BOTTOMRIGHT", -24, 12)
@@ -322,8 +266,7 @@ function Share.OpenPreview(token)
     local who = ns.Comm.ShortName(data.sender) or "?"
     previewFrom:SetText(data.mine and L["Shared by you"] or L["Shared by %s"]:format(who))
     previewTitle:SetText(data.note.title or L["Untitled"])
-    local target = DescribeTarget(data.info)
-    previewTarget:SetText(target or L["Will be saved to your shared notes."])
+    previewTarget:SetText(L["Will be saved to your shared notes."])
     previewViewer:SetNote(data.note)
     preview:Show()
     preview:Raise()

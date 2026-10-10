@@ -3,7 +3,7 @@
 --
 -- 兩個消費者的需求不一樣，所以做成兩支工廠而不是一支加開關：
 --   CreateEditor  筆記本的編輯視窗——拖曳排序、轉換類型、縮排、自動長高
---   CreateViewer  副本浮動視窗與分享預覽——只讀，但勾選框照樣點得動
+--   CreateViewer  分享預覽——只讀
 --
 -- 兩支都吃 W.CreateScrollFrame 建出來的 scroll（有 .child 與 :SetContentHeight）。
 ------------------------------------------------------------
@@ -17,8 +17,6 @@ local Notes, Media = ns.Notes, ns.Media
 
 local ROW_MIN_H  = 24
 local INDENT_PX  = 20
-local TIME_W     = 40      -- 倒數欄的寬度（"-10:59" 塞得下）
-local TICK       = 0.5
 local HANDLE_W   = 14
 local PREFIX_W   = 22
 local ROW_GAP    = 2
@@ -193,29 +191,6 @@ function Blocks.CreateEditor(scroll, onChanged)
         end
     end
 
-    ------------------------------------------------------------
-    -- 把標記插到游標處
-    --
-    -- back 給了就把游標往回移那麼多字（成對標記插完要停在中間）。
-    -- 沒有任何一格有焦點時插到最後一格 —— 總比什麼都沒發生好。
-    ------------------------------------------------------------
-    function ed:InsertAtCursor(text, back)
-        local eb = self.focused
-        if not (eb and eb:IsVisible()) then
-            local last
-            for _, r in ipairs(self.rows) do
-                if r:IsShown() then last = r end
-            end
-            eb = last and last.editBox
-        end
-        if not eb then return end
-        if not eb:HasFocus() then eb:SetFocus() end
-        eb:Insert(text)
-        if back and back > 0 then
-            eb:SetCursorPosition(math.max(0, eb:GetCursorPosition() - back))
-        end
-    end
-
     function ed:DeleteBlock(index)
         if not self.note or not index then return end
         local blocks = self.note.blocks
@@ -337,7 +312,6 @@ function Blocks.CreateEditor(scroll, onChanged)
         eb:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
         -- 記住最後有焦點的那一格：標記工具列要知道插到哪裡去
-        eb:SetScript("OnEditFocusGained", function(self) ed.focused = self end)
 
         ------------------------------------------------------------
         -- 在最前面按 Backspace ＝ 併回上一個區塊（一般編輯器的行為）
@@ -561,13 +535,8 @@ end
 ------------------------------------------------------------
 -- 唯讀檢視
 --
--- 副本浮動視窗與分享預覽共用。勾選框仍然點得動（打副本時要能邊打邊打勾），
--- 但文字改不了——要改內容請開編輯視窗。
+-- 分享預覽用：文字改不了，勾選框也只是顯示狀態（interactive = false）。
 ------------------------------------------------------------
--- 所有活著的唯讀檢視。戰鬥計時換人時要一起更新，而數量最多兩個
--- （副本浮動視窗＋分享預覽），不值得為它做弱表。
-local viewers = {}
-
 function Blocks.CreateViewer(scroll, opts)
     opts = opts or {}
     local vw = {
@@ -575,7 +544,7 @@ function Blocks.CreateViewer(scroll, opts)
         container = scroll.child,
         rows      = {},
         note      = nil,
-        onChanged = opts.onChanged,   -- 勾選框被點時通知宿主（存檔／同步）
+        onChanged = opts.onChanged,   -- 勾選框被點時通知宿主
     }
 
     local function CreateRow()
@@ -607,13 +576,6 @@ function Blocks.CreateViewer(scroll, opts)
         row.num:SetJustifyH("LEFT")
         row.num:Hide()
 
-        -- 倒數欄：只有帶 {time:...} 的列才顯示
-        row.time = row:CreateFontString(nil, "OVERLAY")
-        row.time:SetFontObject(Media.fontBody)
-        row.time:SetJustifyH("RIGHT")
-        row.time:SetWidth(TIME_W - 6)
-        row.time:Hide()
-
         row.text = row:CreateFontString(nil, "OVERLAY")
         row.text:SetFontObject(Media.fontBody)
         row.text:SetJustifyH("LEFT")
@@ -629,8 +591,7 @@ function Blocks.CreateViewer(scroll, opts)
             if row:IsShown() then
                 local indent = row._indent or 0
                 local left = indent * INDENT_PX
-                local timeW = row._timeSec and TIME_W or 0
-                local textLeft = left + (row._gutter or 0) + timeW
+                local textLeft = left + (row._gutter or 0)
 
                 row.check:ClearAllPoints()
                 row.check:SetPoint("TOPLEFT", left, -1)
@@ -638,8 +599,6 @@ function Blocks.CreateViewer(scroll, opts)
                 row.bullet:SetPoint("TOPLEFT", left + 5, -8)
                 row.num:ClearAllPoints()
                 row.num:SetPoint("TOPLEFT", left, -2)
-                row.time:ClearAllPoints()
-                row.time:SetPoint("TOPLEFT", left + (row._gutter or 0), -2)
 
                 row.text:ClearAllPoints()
                 row.text:SetPoint("TOPLEFT", textLeft, -2)
@@ -647,7 +606,6 @@ function Blocks.CreateViewer(scroll, opts)
 
                 local h = math.max(ROW_MIN_H - 6, math.ceil(row.text:GetStringHeight()) + 4)
                 row:SetHeight(h)
-                row._top = y                    -- 上緣位置（follow scroll 用）
                 row:ClearAllPoints()
                 row:SetPoint("TOPLEFT", self.container, "TOPLEFT", 0, -y)
                 row:SetPoint("RIGHT", self.container, "RIGHT", 0, 0)
@@ -693,12 +651,7 @@ function Blocks.CreateViewer(scroll, opts)
                 row._gutter = 0
             end
 
-            -- 標記在**顯示**的時候才展開：存的永遠是玩家打的原文，
-            -- 這樣編輯器改回去、分享出去的都還是原樣
-            local display, seconds = ns.Tags.Render(b.text or "")
-            row._timeSec = seconds
-            row.time:SetShown(seconds ~= nil)
-            row.text:SetText(display)
+            row.text:SetText(b.text or "")
             if b.type == T_CHECKBOX and b.checked then
                 row.text:SetTextColor(0.5, 0.5, 0.5)
             else
@@ -707,87 +660,6 @@ function Blocks.CreateViewer(scroll, opts)
             row:Show()
         end
         self:Relayout()
-        self:UpdateTimes()
-        self:SyncTicker()
-    end
-
-    ------------------------------------------------------------
-    -- 倒數
-    --
-    -- 沒在計時就顯示筆記上寫的那個時間點（靜態），計時中才變成剩幾秒。
-    -- 顏色只有三階：還沒到＝一般、十秒內＝強調色、過去了＝暗。
-    ------------------------------------------------------------
-    function vw:UpdateTimes()
-        local elapsed = ns.Clock.Elapsed()
-        for _, row in ipairs(self.rows) do
-            local sec = row:IsShown() and row._timeSec
-            if sec then
-                if elapsed then
-                    local left = sec - elapsed
-                    local neg = left < 0
-                    local abs = math.abs(left)
-                    row.time:SetText(("%s%d:%02d"):format(neg and "-" or "",
-                        math.floor(abs / 60), math.floor(abs % 60)))
-                    if neg then
-                        row.time:SetTextColor(0.4, 0.4, 0.4)
-                    elseif left <= 10 then
-                        row.time:SetTextColor(W.Accent(1))
-                    else
-                        row.time:SetTextColor(0.75, 0.75, 0.75)
-                    end
-                else
-                    row.time:SetText(("%d:%02d"):format(math.floor(sec / 60), sec % 60))
-                    row.time:SetTextColor(0.55, 0.55, 0.55)
-                end
-            end
-        end
-        if opts.follow and elapsed then self:FollowScroll(elapsed) end
-    end
-
-    ------------------------------------------------------------
-    -- 跟著時間軸捲動：把「下一個還沒到的時間點」擺在視窗上緣附近，
-    -- 讓即將發生的事一直在畫面上（跟團隊筆記那類插件的行為一致）。
-    --
-    -- 只在計時中跑，而且玩家手動捲動後 5 秒內不搶方向盤 —— 不然玩家想往回看
-    -- 前面的段落，畫面會一直被拉回去。
-    ------------------------------------------------------------
-    function vw:FollowScroll(elapsed)
-        if self._grabbed and (GetTime() - self._grabbed) < 5 then return end
-        -- 找第一個時間點還在未來的列；全都過去了就用最後一個有時間的
-        local target
-        for _, row in ipairs(self.rows) do
-            if row:IsShown() and row._timeSec then
-                if row._timeSec >= elapsed then target = row break end
-                target = row
-            end
-        end
-        if not target or not target._top then return end
-        local margin = 8
-        local want = math.max(0, target._top - margin)
-        local maxScroll = math.max(0, self.container:GetHeight() - scroll:GetHeight())
-        want = math.min(want, maxScroll)
-        if math.abs((scroll:GetVerticalScroll() or 0) - want) > 1 then
-            self._suppressGrab = true       -- 這一次是程式捲的，不算玩家插手
-            scroll:SetVerticalScroll(want)
-            self._suppressGrab = false
-        end
-    end
-
-    -- 只有「看得見 ＋ 有倒數 ＋ 正在計時」三個條件都成立才跑 ticker
-    function vw:SyncTicker()
-        local want = false
-        if scroll:IsVisible() and ns.Clock.IsRunning() then
-            for _, row in ipairs(self.rows) do
-                if row:IsShown() and row._timeSec then want = true break end
-            end
-        end
-        if want and not self.ticker then
-            self.ticker = C_Timer.NewTicker(TICK, function() vw:UpdateTimes() end)
-        elseif not want and self.ticker then
-            self.ticker:Cancel()
-            self.ticker = nil
-            self:UpdateTimes()
-        end
     end
 
     function vw:SetNote(note)
@@ -795,36 +667,10 @@ function Blocks.CreateViewer(scroll, opts)
         self:Refresh()
     end
 
-    viewers[#viewers + 1] = vw
-
     scroll:SetScript("OnSizeChanged", function(self, w)
         vw.container:SetWidth(math.max(1, w))
         vw:Relayout()
     end)
 
-    -- 玩家自己捲動 → 暫停自動跟隨（程式自己捲的那次不算，見 _suppressGrab）
-    if opts.follow then
-        scroll:HookScript("OnVerticalScroll", function()
-            if not vw._suppressGrab then vw._grabbed = GetTime() end
-        end)
-    end
-
     return vw
 end
-
-------------------------------------------------------------
--- 戰鬥計時換人（開打、打完、開始／結束測試）→ 所有檢視重新評估要不要跑 ticker
-------------------------------------------------------------
-ns.RegisterCallback("ClockChanged", "blocks", function()
-    for _, vw in ipairs(viewers) do
-        vw:UpdateTimes()
-        vw:SyncTicker()
-    end
-end)
-
-------------------------------------------------------------
--- 分組名單改了 → 唯讀檢視要重畫（{p:主坦} 顯示的是解出來的名字）
-------------------------------------------------------------
-ns.RegisterCallback("RosterChanged", "blocks", function()
-    for _, vw in ipairs(viewers) do vw:Refresh() end
-end)

@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「一般」分頁：字型／小地圖 ＋ 副本浮動視窗的行為
+-- 「一般」分頁：字型／小地圖
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -22,32 +22,6 @@ local CONTROLS = {
     { type = "dropdown", key = "outline", label = L["Outline"], items = ns.Media.OUTLINE_ITEMS },
     { type = "toggle", sub = "minimap", key = "show", label = L["Minimap button"] },
     { type = "text", label = L["Show the notebook button on the minimap"] },
-
-    { type = "header", label = L["Dungeon and raid notes"] },
-    { type = "text", label = L["Notes bound to a dungeon or one of its bosses show up on their own in a small read-only window. Its checkboxes still work, and the box at the bottom appends a line to whatever note is on screen."] },
-    { type = "text", label = L["Dungeon and boss notes are account-wide: every character sees the same ones, because a route or a thing to watch out for does not change from character to character."] },
-    { type = "toggle", sub = "instance", key = "autoShow", label = L["Open on entering"] },
-    { type = "text", label = L["Show the window when I walk into a dungeon I have notes for"] },
-    { type = "toggle", sub = "instance", key = "autoBoss", label = L["Follow the boss"] },
-    { type = "text", label = L["Switch to that boss's note when the fight starts"] },
-    { type = "toggle", sub = "instance", key = "autoHide", label = L["Close on leaving"] },
-    { type = "text", label = L["Hide the window when I leave the instance"] },
-    { type = "toggle", sub = "instance", key = "onlyRaid", label = L["Raids only"] },
-    { type = "text", label = L["Do not open it automatically in 5-player dungeons"] },
-    { type = "toggle", sub = "instance", key = "quickAdd", label = L["Quick line box"] },
-    { type = "text", label = L["Keep the \"jot a line down\" box at the bottom"] },
-    { type = "toggle", sub = "instance", key = "locked", label = L["Locked"] },
-    { type = "text", label = L["Stop the window from being dragged or resized"] },
-    { type = "slider", sub = "instance", key = "alpha", label = L["Opacity"],
-      min = LIMITS.overlayAlpha[1], max = LIMITS.overlayAlpha[2], step = 1 },
-    { type = "slider", sub = "instance", key = "width", label = L["Width"],
-      min = LIMITS.overlayW[1], max = LIMITS.overlayW[2], step = 10 },
-    { type = "slider", sub = "instance", key = "height", label = L["Height"],
-      min = LIMITS.overlayH[1], max = LIMITS.overlayH[2], step = 10 },
-
-    { type = "header", label = L["Tags"] },
-    { type = "text", label = L["Tag body"] },
-    { type = "text", label = L["The combat timer starts on its own when a boss fight begins. Outside an instance, use the dungeon window's own menu to run a test timer instead."] },
 }
 
 local function Init()

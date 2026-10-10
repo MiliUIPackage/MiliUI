@@ -12,9 +12,6 @@ local DB = ns.DB
 -- 滑桿範圍：設定頁與正規化共用，改一處兩邊一起動
 DB.LIMITS = {
     fontSize     = { 9, 20 },
-    overlayW     = { 180, 640 },
-    overlayH     = { 120, 800 },
-    overlayAlpha = { 30, 100 },   -- 百分比（滑桿吃整數，存的也是整數）
 }
 
 local function BuildDefaults()
@@ -32,45 +29,26 @@ local function BuildDefaults()
                 angle = 220,      -- 度，預設左下
             },
 
-            -- 副本／首領筆記的浮動視窗
-            instance = {
-                autoShow  = true,   -- 走進副本自動顯示
-                autoBoss  = true,   -- 首領戰開打自動切到該首領的筆記
-                autoHide  = true,   -- 離開副本自動收起
-                onlyRaid  = false,  -- true = 只在團隊副本自動顯示
-                locked    = false,  -- 鎖定＝不能拖曳，也不吃滑鼠
-                quickAdd  = true,   -- 底部「快速記一行」輸入框
-                width     = 280,
-                height    = 240,
-                alpha     = 92,
-            },
-
             -- 分享（一次性快照）
             share = {
                 -- 誰分享的筆記我才收：group = 隊伍／團隊／公會，none = 都不收
                 accept   = "group",
                 -- true = 收到就直接開預覽視窗（預設要自己點聊天連結才開）
                 autoOpen = false,
-
-                -- 同步（持續推給隊伍）——見 Modules/Sync.lua
-                broadcast  = false,     -- 我要不要把副本筆記同步給隊伍
-                syncAccept = "group",   -- 收不收隊友同步的：group / none
             },
         },
 
-        -- 視窗位置：main / editorOffset / overlay
+        -- 視窗位置：main / editorOffset
         windows = {},
 
         -- 每個分身各自記得的東西（上次開在哪個分頁…）
         perChar = {},
 
-        -- 分組變數（時間軸用 {p:主坦} 這種變數寫，名單另外分配）
-        roster = { groups = {}, classOf = {} },
-
         -- 筆記本體
+        -- （副本筆記時代的 instanceNotes／roster 不再補預設，但舊存檔裡的不刪：
+        --   筆記沒有第二份備份）
         notes         = {},   -- 戰隊共用（帳號層）
         charNotes     = {},   -- [charKey] = { meta = {...}, notes = {...} }
-        instanceNotes = {},   -- [journalInstanceID] = { meta, overview, bosses }
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -240,18 +218,9 @@ local function Normalize(db)
         s.minimap.angle = def.settings.minimap.angle
     end
 
-    local inst = s.instance
-    inst.width  = Clamp(inst.width,  DB.LIMITS.overlayW,     def.settings.instance.width)
-    inst.height = Clamp(inst.height, DB.LIMITS.overlayH,     def.settings.instance.height)
-    inst.alpha  = Clamp(inst.alpha,  DB.LIMITS.overlayAlpha, def.settings.instance.alpha)
-
     if not ACCEPT_MODES[s.share.accept] then
         s.share.accept = def.settings.share.accept
     end
-    if not ACCEPT_MODES[s.share.syncAccept] then
-        s.share.syncAccept = def.settings.share.syncAccept
-    end
-    s.share.broadcast = s.share.broadcast == true
 end
 
 ------------------------------------------------------------
@@ -280,7 +249,6 @@ function DB.Init()
 
     ns.db = db
     ns.Notes.InitDB()      -- 清理筆記結構、更新本角色 meta
-    ns.Roster.EnsureDefaults()
     Normalize(db)
     db.schemaVersion = ns.DB_VERSION
     return db
@@ -293,8 +261,8 @@ end
 --   不是要清空自己寫的東西；而且筆記沒有第二份備份。
 --   保留 migration 印記——清掉的話下次登入又會從套組搬一次回來。
 ------------------------------------------------------------
--- 就地深層覆寫：**子表要留在原地**。模組把 db.settings.instance 這類子表抓成
--- upvalue（浮動視窗每次重畫都讀），整包換掉的話它們會繼續指著舊的那份。
+-- 就地深層覆寫：**子表要留在原地**。模組可能把 db.settings 底下的子表抓成
+-- upvalue，整包換掉的話它們會繼續指著舊的那份。
 local function ResetInto(dst, src)
     for k in pairs(dst) do
         if src[k] == nil then dst[k] = nil end

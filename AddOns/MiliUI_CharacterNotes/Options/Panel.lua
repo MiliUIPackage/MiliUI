@@ -26,7 +26,6 @@ local closeBtn
 
 local TABS = {
     { id = "general", label = L["General"] },
-    { id = "roster",  label = L["Groups"] },
     { id = "share",   label = L["Sharing"] },
     { id = "about",   label = L["About"] },
 }

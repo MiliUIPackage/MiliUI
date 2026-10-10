@@ -5,7 +5,7 @@
 -- 切塊／重組引擎 —— 那種重複正是這個套組最忌諱的（同一個 bug 要修兩次）。
 --
 -- 線路格式：`<TYPE>:<token>:<seq>:<total>:<piece>`
---   TYPE   純大寫字母，是訊息型別（OFFER / SYNC / SREQ…）
+--   TYPE   純大寫字母，是訊息型別（目前只有 OFFER）
 --   token  純英數，區分同時進行的多筆傳輸
 --   piece  一段 payload；切點永遠落在 UTF-8 字元邊界
 --
