@@ -68,6 +68,7 @@ local CONTROLS = {
 
     { type = "header", label = L["Important spells"] },
     { type = "toggle", key = "glowImportant", label = L["Glow when the focus casts an important spell"] },
+    { type = "toggle", key = "bangImportant", label = L["Add \"!\" before important spell names"] },
     { type = "text",   label = L["Blizzard decides which spells count as important."] },
     { type = "dropdown", key = "glowStyle", label = L["Glow style"], items = function() return {
           { text = L["Pixel lines (bar border)"],     value = "pixel" },

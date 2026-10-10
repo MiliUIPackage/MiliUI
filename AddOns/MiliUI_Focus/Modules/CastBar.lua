@@ -52,7 +52,7 @@ end
 ----------------------------------------------------------------------
 local playerClass = (UnitClassBase and UnitClassBase("player")) or select(2, UnitClass("player"))
 
-local barFrame, barStatusBar, barIcon, barSpark, nameText, timeText
+local barFrame, barStatusBar, barIcon, barSpark, nameText, bangText, timeText
 -- 範例條＋可拖曳：編輯模式或本插件設定視窗任一開著就算（isInEditMode＝兩者 OR）
 local isInEditMode = false
 local editModeOpen, settingsOpen = false, false
@@ -325,6 +325,23 @@ local function QueryImportant(spellID)
 end
 
 ----------------------------------------------------------------------
+-- 法術名稱：important＝明文或秘密布林，nil＝不標（打斷顯示、判斷不了時）
+-- name 可能是秘密字串：只串接、只交給 SetText，不比較
+----------------------------------------------------------------------
+local function SetName(name, important)
+    nameText:SetText(name)
+    if important == nil or not DB().bangImportant then
+        bangText:SetAlpha(0)
+        nameText:SetAlpha(1)
+        return
+    end
+    local c = DB().colorGlow
+    bangText:SetText(string.format("|cff%02x%02x%02x!|r ", c.r * 255, c.g * 255, c.b * 255) .. name)
+    bangText:SetAlphaFromBoolean(important, 1, 0)
+    nameText:SetAlphaFromBoolean(important, 0, 1)
+end
+
+----------------------------------------------------------------------
 -- 施法條建立（樣式：圖示在左 + 條 + 名稱疊左 / 時間疊右）
 ----------------------------------------------------------------------
 local GAP = 2
@@ -349,6 +366,7 @@ local function UpdateBarSize()
     if barFrame.iconBorder then barFrame.iconBorder:SetSize(h, h) end
     if barSpark then barSpark:SetSize(10, h * 2.2) end
     if nameText then nameText:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE") end
+    if bangText then bangText:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE") end
     if timeText then timeText:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE") end
 end
 
@@ -440,6 +458,16 @@ local function CreateBarFrame()
     nameText:SetWordWrap(false)
     nameText:SetTextColor(1, 1, 1)
 
+    -- 重要法術版的名字（前面加「!」），疊在同一個位置。是不是重要是秘密布林，
+    -- 不能在 Lua 挑要寫哪段字 —— 兩段都寫好，交給 SetAlphaFromBoolean 二選一
+    bangText = overlay:CreateFontString(nil, "OVERLAY")
+    bangText:SetFont(font, 14, "OUTLINE")
+    bangText:SetAllPoints(nameText)
+    bangText:SetJustifyH("LEFT")
+    bangText:SetWordWrap(false)
+    bangText:SetTextColor(1, 1, 1)
+    bangText:SetAlpha(0)
+
     -- 拖曳（編輯模式）
     barFrame:RegisterForDrag("LeftButton")
     barFrame:SetScript("OnDragStart", function(self)
@@ -496,7 +524,7 @@ local function ShowInterrupted(interrupterGUID)
     barStatusBar:SetMinMaxValues(0, 1)
     barStatusBar:SetValue(1)
     barStatusBar:SetStatusBarColor(INTERRUPTED_COLOR[1], INTERRUPTED_COLOR[2], INTERRUPTED_COLOR[3])
-    nameText:SetText(ns.L["Interrupted"])
+    SetName(ns.L["Interrupted"])
     timeText:SetText("")
 
     -- 斷法者名字 + 職業色（interrupterGUID 只做 ~= nil 檢查，秘密安全）
@@ -578,10 +606,10 @@ local function StartDisplay(castTbl, chanTbl)
     castNotInterruptible = notInt
     colorAccum           = 1        -- 強制首幀更新文字
     barIcon:SetTexture(texture)     -- 施法中必有圖示；勿用 texture or X（會對秘密值做真值判斷 → taint）
-    nameText:SetText(name)
     timeText:SetTextColor(1, 1, 1)  -- 打斷顯示會把右側文字染職業色，這裡還原
 
     local important = QueryImportant(spellID)
+    SetName(name, important)
     if important == nil then StopGlow() else ShowGlow(important) end
 
     if SecretsActive() then
@@ -696,7 +724,7 @@ local function UpdateEditModeState()
         barFrame.unlocked = true
         barFrame:EnableMouse(true)
         barIcon:SetTexture(132329)                 -- 範例圖示（隨便一個法術）
-        nameText:SetText(ns.L["Focus cast bar"])
+        SetName(ns.L["Focus cast bar"], true)     -- 範例條當重要法術，看得到驚嘆號
         timeText:SetText("0.9/1.5")
         barStatusBar:SetMinMaxValues(0, 1)
         barStatusBar:SetValue(0.6)
