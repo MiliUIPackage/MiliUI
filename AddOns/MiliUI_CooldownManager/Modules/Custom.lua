@@ -2568,7 +2568,8 @@ CU.UseFrame = UseFrame                -- 測試用
 ------------------------------------------------------------
 -- 飾品欄的增益疊層（rec.buffOverlay）
 --
--- 冷卻格（kind = "slot"；之後代畫暴雪缺框的裝備欄冷卻格也是這個 kind）上疊一顆增益按鈕：增益在就蓋住冷卻、
+-- 冷卻格（kind = "slot"；之後代畫暴雪缺框的裝備欄冷卻格也是這個 kind；自訂物品 kind = "item" 的藥水那類也疊，
+-- 認的增益走 Catalog.ItemOverlayIDs，2026-10-10）上疊一顆增益按鈕：增益在就蓋住冷卻、
 -- 掉了按鈕自己藏起來、露出底下的冷卻。疊層本身是一個**光環格形狀的子 rec**（kind = "aura"、filter = HELPFUL、
 -- overlayOf ＝ 冷卻格那一筆），持有框／容器池／簽章／戰鬥中延後全部走光環格那一套（UseFrame、EnsureContainer、
 -- OnRegen 的 pendingBuild／pendingKick），差別只有：
@@ -2616,6 +2617,9 @@ local function PlaceOverlay(rec, c, r, barKey, gen)
     local ids, idSig
     if rec.kind == "slot" and ns.Catalog and ns.Catalog.SlotOverlayIDs then
         ids, idSig = ns.Catalog.SlotOverlayIDs(barKey, rec.cooldownID, rec.slot)
+    elseif rec.kind == "item" and ns.Catalog and ns.Catalog.ItemOverlayIDs then
+        -- 自訂物品（藥水那類）：用掉之後的增益（Catalog.ItemUseBuffIDs，替代品合併），其餘照飾品欄
+        ids, idSig = ns.Catalog.ItemOverlayIDs(barKey, rec.cooldownID, rec.entry)
     end
     if not ids then return HideOverlay(rec) end
     local o = rec.buffOverlay
@@ -2822,8 +2826,8 @@ function CU.Place(rec, c, r, barKey, gen)
     if rec.kind == "spell" and rec.procActive == nil then CU.InitialOverlay(rec) end
     if ns.Glow then ns.Glow.Sync(f, rec, barKey) end
     if ns.Keybinds then ns.Keybinds.Apply(f, rec, barKey) end
-    -- 飾品欄：增益疊層（要不要疊、放到同一個矩形、換容器；見「飾品欄的增益疊層」）
-    if rec.kind == "slot" or rec.buffOverlay then PlaceOverlay(rec, c, r, barKey, gen) end
+    -- 飾品欄、自訂物品：增益疊層（要不要疊、放到同一個矩形、換容器；見「飾品欄的增益疊層」）
+    if rec.kind == "slot" or rec.kind == "item" or rec.buffOverlay then PlaceOverlay(rec, c, r, barKey, gen) end
     if newProxy then RecountLive() end
     return moved
 end

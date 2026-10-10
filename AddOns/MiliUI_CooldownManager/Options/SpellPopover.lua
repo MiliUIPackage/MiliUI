@@ -377,6 +377,16 @@ local function CurSlotNoBuff()
     local slot = CurSlot()
     return slot ~= nil and #ns.Catalog.SlotUseBuffIDs(slot) == 0
 end
+-- 自訂物品（藥水那類）用掉之後有可追蹤的增益：有的話跟飾品欄一樣出「增益持續時間」那幾列（Catalog.ItemUseBuffIDs）；
+-- 沒有的（治療藥水、治療石…）整段不出
+local function CurItemHasBuff()
+    if not cur then return false end
+    local e = ns.Catalog.CustomEntry(cur.id)
+    if not (type(e) == "table" and e.kind == "item" and e.itemID ~= nil) then return false end
+    local list = { e.itemID }
+    for _, a in ipairs(type(e.alts) == "table" and e.alts or {}) do list[#list + 1] = a end
+    return #ns.Catalog.ItemUseBuffIDs(list) > 0
+end
 -- 飾品欄增益那一格解不出增益的原因："empty"（那一格空著）｜"nobuff"（這件沒有、或存的第 N 個這件沒有）｜nil
 local function CurSlotBuffMissing()
     if not cur then return nil end
@@ -1586,10 +1596,12 @@ local function Build()
     followItems[#followItems].dd = csdd
     RightClickClears(csr, csh, "cdState")
 
-    -- 增益持續中顯示持續時間（暴雪的冷卻類、自訂飾品欄才有；其餘自訂項目沒有「先倒增益」那一段）。
+    -- 增益持續中顯示持續時間（暴雪的冷卻類、自訂飾品欄、有增益的自訂物品才有；其餘自訂項目沒有「先倒增益」那一段）。
     -- 「增益持續時間」分頁拆掉之後（H）：顯示與否、轉圈背景色留在外觀；換色開關與兩個字色搬到「文字」的倒數那一段
     local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
-    local DurationRows = function(kind, class) return BlizzCooldown(kind, class) or kind == "slot" end
+    local DurationRows = function(kind, class)
+        return BlizzCooldown(kind, class) or kind == "slot" or (kind == "item" and CurItemHasBuff())
+    end
     buildTab = "look"
     local atr, ath = NewRow(L["Show buff duration"], DurationRows)
     local atItems = {

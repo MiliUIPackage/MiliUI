@@ -769,6 +769,8 @@ end
 --   ns.Catalog.SlotBuffIndices(slot)         → { buffIndex… }（排序；解得出增益的那幾個）
 --   ns.Catalog.SlotUseBuffIDs(slot)          → { spellID… }, sig    冷卻格（使用效果）認的增益（暴雪 EquipSlotEssential 那一筆）
 --   ns.Catalog.SlotOverlayIDs(barKey, id, slot) → ids, sig ｜ nil   冷卻格要不要疊增益按鈕（Modules/Custom.lua）
+--   ns.Catalog.ItemUseBuffIDs(itemIDs)       → { spellID… }, sig    自訂物品（藥水那類）用掉之後身上的增益
+--   ns.Catalog.ItemOverlayIDs(barKey, id, e) → ids, sig ｜ nil   自訂物品的冷卻格要不要疊增益按鈕（同飾品欄）
 --   ns.Catalog.InvalidateSlotBuffs()         作廢快取（換裝、暴雪資料重載／熱修正、進場）
 --
 -- 來源：EquipSlotTracked 類別裡 equipSlot == slot 的那幾筆的 linkedSpellIDs（暴雪從現在裝的物品帶出來的增益，
@@ -840,6 +842,7 @@ end
 
 local equipScan = {}                -- 類別名 → 掃一次的結果（infos 形狀）；沒有 ＝ 要重掃
 local slotBuffCache = {}           -- "slot|buffIndex" → { ids, sig }
+local itemBuffCache = {}           -- 自訂物品的增益（C.ItemUseBuffIDs）："id,id,…" → { ids, sig }
 local NO_IDS = setmetatable({}, { __newindex = function() error("read-only") end })
 
 -- catName：EquipSlotTracked（增益那幾筆，預設）｜EquipSlotEssential（冷卻那一筆：暴雪「使用增益持續時間」認的增益）
@@ -906,6 +909,7 @@ C.slotBuffStale = false            -- 作廢過、還沒要求重排（Init 的 
 function C.InvalidateSlotBuffs()
     for k in pairs(equipScan) do equipScan[k] = nil end
     for k in pairs(slotBuffCache) do slotBuffCache[k] = nil end
+    for k in pairs(itemBuffCache) do itemBuffCache[k] = nil end
     C.slotBuffStale = true
 end
 
@@ -921,6 +925,77 @@ function C.SlotUseBuffIDs(slot)
     local ids, sig = C.SlotBuffIDsFrom(ScanEquipBuffs("EquipSlotEssential"), slot, nil, nil)
     if #ids == 0 then ids, sig = C.SlotBuffIDs(slot, 1) end
     if #ids > 0 then slotBuffCache[key] = { ids = ids, sig = sig } end
+    return ids, sig
+end
+
+-- 自訂物品（藥水、使用型物品）用掉之後身上的增益。一格可能有替代品（同一類藥水的幾階），全部合併去重：
+--   常用預設認得的組（Presets.ITEMS 裡含其中一件）：ITEM_NO_BUFF 的那幾組直接沒有（治療藥水、治療石、法力藥水）；
+--     有登記增益的（Presets.AURAS 同 key）放進來
+--   每一件的使用法術（C_Item.GetItemSpell 的第二個回傳值；藥水的增益多半就是它）
+-- 物品資料還沒載入時 GetItemSpell 回 nil：那一輪不寫快取，下一輪再問
+local function PresetOfItems(itemIDs)
+    local P = ns.Presets
+    if not (P and P.ITEMS) then return nil end
+    for _, def in ipairs(P.ITEMS) do
+        for _, a in ipairs(def.items or EMPTY) do
+            for _, b in ipairs(itemIDs) do
+                if a == b then return def end
+            end
+        end
+    end
+    return nil
+end
+
+function C.ItemUseBuffIDs(itemIDs)
+    if type(itemIDs) ~= "table" or itemIDs[1] == nil then return NO_IDS, "" end
+    local parts = {}
+    for i, id in ipairs(itemIDs) do parts[i] = tostring(id) end
+    local key = table.concat(parts, ",")
+    local hit = itemBuffCache[key]
+    if hit then return hit.ids, hit.sig end
+    local def = PresetOfItems(itemIDs)
+    local P = ns.Presets
+    if def and P.ITEM_NO_BUFF and P.ITEM_NO_BUFF[def.key] then
+        itemBuffCache[key] = { ids = NO_IDS, sig = "" }
+        return NO_IDS, ""
+    end
+    local ids, seen, complete = {}, {}, true
+    local function Add(id)
+        if type(id) == "number" and id > 0 and not seen[id] then
+            seen[id] = true
+            ids[#ids + 1] = id
+        end
+    end
+    if def then
+        for _, a in ipairs(P.AURAS or EMPTY) do
+            if a.key == def.key then
+                for _, id in ipairs(a.ids or EMPTY) do Add(id) end
+            end
+        end
+    end
+    local GetItemSpell = C_Item and C_Item.GetItemSpell
+    for _, itemID in ipairs(itemIDs) do
+        local ok, _, spellID = pcall(GetItemSpell or error, itemID)
+        spellID = ok and Plain(spellID) or nil
+        if type(spellID) == "number" then Add(spellID) else complete = false end
+    end
+    local sorted = {}
+    for i, id in ipairs(ids) do sorted[i] = id end
+    table.sort(sorted)
+    for i, id in ipairs(sorted) do sorted[i] = tostring(id) end
+    local sig = table.concat(sorted, ",")
+    if complete then itemBuffCache[key] = { ids = ids, sig = sig } end
+    return ids, sig
+end
+
+-- 自訂物品的冷卻格要不要疊增益按鈕：跟飾品欄同一個判準（條層／逐法術 showAuraTime 沒關、解得出增益）
+function C.ItemOverlayIDs(barKey, id, e)
+    if id == nil or type(e) ~= "table" or e.kind ~= "item" or e.itemID == nil then return nil end
+    if ns.SpellSetting and ns.SpellSetting(barKey, id, "showAuraTime") == false then return nil end
+    local list = { e.itemID }
+    for _, a in ipairs(type(e.alts) == "table" and e.alts or EMPTY) do list[#list + 1] = a end
+    local ids, sig = C.ItemUseBuffIDs(list)
+    if #ids == 0 then return nil end
     return ids, sig
 end
 
@@ -1184,6 +1259,7 @@ function C.BarHasAuraSlot(barKey)
             if ValidCustom(e) and e.bar == k then
                 if AuraShaped(e.kind) then return true end
                 if not ring and e.kind == "slot" and C.SlotOverlayIDs(k, it.id, e.slot) then return true end
+                if not ring and e.kind == "item" and C.ItemOverlayIDs(k, it.id, e) then return true end
             end
         end
         if not ring and AnyProxyCandidate() then
