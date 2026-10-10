@@ -1177,9 +1177,11 @@ function W.CreateColorPicker(parent, label, hasAlpha, onConfirm)
                 b:SetColor({ r = r, g = g, b = bl, a = a })
                 if onConfirm then onConfirm(r, g, bl, a) end
             end,
+            -- 暴雪按「確定」時不管 hasOpacity 一律叫 opacityFunc，而沒開透明度時它不重設滑桿，
+            -- GetColorAlpha 回的是上一個選色器（可能是別支插件）留下的值 ⇒ 沒開透明度就沿用原值
             opacityFunc = function()
                 local r, g, bl = ColorPickerFrame:GetColorRGB()
-                local a = ColorPickerFrame:GetColorAlpha()
+                local a = hasAlpha and ColorPickerFrame:GetColorAlpha() or c.a
                 b:SetColor({ r = r, g = g, b = bl, a = a })
                 if onConfirm then onConfirm(r, g, bl, a) end
             end,

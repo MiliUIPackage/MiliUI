@@ -632,6 +632,13 @@ local function C4(c, d)
     return c.r or d[1], c.g or d[2], c.b or d[3], c.a or 1
 end
 
+-- 設定頁不開透明度的顏色（前景色、文字色）：存檔裡的 a 不算數。舊版共用層選色器會把別的選色器殘留的
+-- 透明度寫進來，玩家看不到也改不掉
+local function C3(c, d)
+    local r, g, b = C4(c, d)
+    return r, g, b, 1
+end
+
 -- 各列前景色沒存時的退路（同 SkyridingDefaults）
 local DEFAULT_COLOR = {
     speed = { low = { 0.80, 0.80, 0.80 }, skim = { 0.95, 0.75, 0.25 }, thrill = { 0.35, 0.90, 0.45 } },
@@ -642,13 +649,13 @@ local DEFAULT_COLOR = {
 local DIM_D = { 0.15, 0.15, 0.15, 0.6 }
 
 local function RowColor(cfg, key)
-    return C4(SR.RowCfg(cfg, key).color, DEFAULT_COLOR[key])
+    return C3(SR.RowCfg(cfg, key).color, DEFAULT_COLOR[key])
 end
 
 local function SpeedColor(cfg)
     local colors = SR.RowCfg(cfg, "speed").colors
     colors = type(colors) == "table" and colors or {}
-    return C4(colors[speedState], DEFAULT_COLOR.speed[speedState] or DEFAULT_COLOR.speed.low)
+    return C3(colors[speedState], DEFAULT_COLOR.speed[speedState] or DEFAULT_COLOR.speed.low)
 end
 
 -- 活力格的前景色：「改用速度條的顏色」開著就跟速度條目前的狀態色
@@ -898,7 +905,7 @@ local function LayoutText(f, key, rcfg)
     local fs = f.text
     local font = ns.Media.ElementFont(t.font, ns.Setting(nil, "font"))
     ns.Media.SetPixelFont(fs, Clamp(t.size, 6, 40, 12), ns.Media.ThemeOutline(), font)
-    fs:SetTextColor(C4(t.color, { 1, 1, 1, 1 }))
+    fs:SetTextColor(C3(t.color, { 1, 1, 1, 1 }))
     local p = SR.TextPoint(t.anchor)
     fs:ClearAllPoints()
     fs:SetPoint(p, f.textHost, p, tonumber(t.x) or 0, tonumber(t.y) or 0)
@@ -1137,7 +1144,7 @@ local function DrawVigor(cfg, st, sw)
         local s = Plain(sw.cur)
         if type(s) == "number" and s > 0 then
             swTotal = plainCur + s
-            sr, sg, sb, sa = C4(SR.RowCfg(cfg, "vigor").secondWindColor, DEFAULT_COLOR.secondWind)
+            sr, sg, sb, sa = C3(SR.RowCfg(cfg, "vigor").secondWindColor, DEFAULT_COLOR.secondWind)
         end
     end
     FillCells(f, n, cur, r, g, b, a, swTotal, sr, sg, sb, sa)
