@@ -1743,5 +1743,37 @@ do
     eq("已滿：1 是紅", pts[#pts][2], 1)
     eq("已滿：0 是底色", pts[1][2], 0)
 end
+-- 秘密值時的背景色／文字色曲線（RC.CurvePointsBy、R.BgPick／R.TextPick、RC.AnyOverride）
+do
+    local base = { r = 0, g = 0.5, b = 1 }
+    local red, green = { r = 1, g = 0, b = 0 }, { r = 0, g = 1, b = 0, a = 0.5 }
+    local conds = { { check = { var = "powerValue", cmp = ">=", value = 90 },
+        overrides = { color = red, bgColor = green, tagColor = red } } }
+    -- 背景：規則 bgColor（alpha 乘 bgAlpha）＞ 主色 × 0.25
+    local pts = RC.CurvePointsBy(conds, 100, 262, R.BgPick({ bgAlpha = 0.5 }, base))
+    eq("背景：0 是主色 × 0.25", pts[1][4], 0.25)
+    eq("背景：0 的 alpha 0.8 × 0.5", pts[1][5], 0.4)
+    eq("背景：0.9 是規則的 bgColor", pts[2][3], 1)
+    eq("背景：規則 bgColor 的 alpha × bgAlpha", pts[2][5], 0.25)
+    -- 規則只換填充色：預設背景跟著填充走（紅 × 0.25）
+    local c2 = { { check = { var = "powerValue", cmp = ">=", value = 90 }, overrides = { color = red } } }
+    pts = RC.CurvePointsBy(c2, 100, 262, R.BgPick({}, base))
+    eq("背景跟著填充：0.9 是紅 × 0.25", pts[2][2], 0.25)
+    -- 自訂底色優先於「主色 × 0.25」
+    pts = RC.CurvePointsBy(c2, 100, 262, R.BgPick({ bgCustom = true, bgColor = { r = 0.1, g = 0.2, b = 0.3 } }, base))
+    eq("自訂底色：0.9 照自訂", pts[2][2], 0.1)
+    -- 文字：規則 tagColor ＞ 白
+    pts = RC.CurvePointsBy(conds, 100, 262, R.TextPick)
+    eq("文字：0 是白", pts[1][3], 1)
+    eq("文字：0.9 是紅（g 0）", pts[2][3], 0)
+    -- 填充照舊（RC.CurvePoints 是 CurvePointsBy 的包裝）
+    pts = RC.CurvePoints(conds, 100, 262, base)
+    eq("填充：0.9 是紅", pts[2][2], 1)
+    -- 有沒有人設這一項
+    check("AnyOverride：bgColor 有", RC.AnyOverride(conds, "bgColor"))
+    check("AnyOverride：c2 沒有 tagColor", not RC.AnyOverride(c2, "tagColor"))
+    check("AnyOverride：target 規則不算", not RC.AnyOverride({ { target = 1, overrides = { tagColor = red } } }, "tagColor"))
+    eq("pick 回 nil ⇒ 展不開", RC.CurvePointsBy(conds, 100, 262, function() return nil end), nil)
+end
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

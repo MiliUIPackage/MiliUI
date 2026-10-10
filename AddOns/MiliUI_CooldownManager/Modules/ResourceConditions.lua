@@ -194,14 +194,17 @@ end
 -- 12.1 戰鬥中連續條（漩渦、怒氣、能量…）的 UnitPower 是秘密值，Lua 不能比較 ⇒ 不在 Lua 求值，
 -- 改把「整條」的規則（target 沒設的）事先展開成一條 Step 曲線，交給 UnitPowerPercent(…, curve) 在 C 端挑顏色。
 -- 規則只看得到「值」：powerValue／powerPercent／powerFull 由 x（0～1）推得出來，spec 用建曲線時的專精，
--- pipRecharging 在連續條上恆為 false ⇒ 每一種檢查都展得開。只轉顏色（overrides.color）；
--- 底色、透明度、文字色這幾項秘密值時不套（呼叫端照常清掉）。
+-- pipRecharging 在連續條上恆為 false ⇒ 每一種檢查都展得開。
+-- 顏色類的覆寫都能這樣轉：填充色（overrides.color，RC.CurvePoints）、背景色與數值文字色（RC.CurvePointsBy 給 pick，
+-- 呼叫端各建一條曲線）。透明度（overrides.alpha）秘密值時不套：曲線挑出來的是秘密的顏色，要的是 row:SetAlpha 的數字。
 --
 -- 斷點：0、每個門檻的 t 與 t⁺（t 加一點點），powerFull 的 1。Step 取「最後一個 x ≤ 目前比例」的點，
 -- 每個點的顏色＝把那個點當成目前值、跑一次 FirstMatch（規則順序、第一條成立的優先，跟明文時一樣）。
 --   max ＝ 明文的上限（powerValue 的門檻要換成比例）；nil 而規則用到 powerValue ⇒ 回 nil（展不開）
 --   base ＝ 沒有規則成立時的顏色
 -- 回傳 { { x, r, g, b, a }, … }（x 由小到大、去重）；沒有整條規則或展不開回 nil
+-- RC.CurvePointsBy(conds, max, spec, pick)：同上，每個點的顏色交給 pick(ov)（ov ＝ 那一點成立的覆寫，沒有規則成立是 nil）
+-- 回 { r, g, b, a }（陣列）；回 nil ⇒ 整條展不開（回 nil）
 ------------------------------------------------------------
 local EPS = 1e-4
 
@@ -220,8 +223,8 @@ local function AddPoint(pts, x, v, p)
     pts[#pts + 1] = { x = x, v = v, p = p }
 end
 
-function RC.CurvePoints(conds, max, spec, base)
-    if type(conds) ~= "table" or not ValidColor(base) then return nil end
+function RC.CurvePointsBy(conds, max, spec, pick)
+    if type(conds) ~= "table" or type(pick) ~= "function" then return nil end
     if max ~= nil and (type(max) ~= "number" or max <= 0) then max = nil end
     local cand, any = {}, false
     AddPoint(cand, 0, 0, 0)
@@ -260,10 +263,31 @@ function RC.CurvePoints(conds, max, spec, base)
             state.powerFull = x >= 1
             state.spec = spec or 0
             state.pipRecharging = false
-            local ov = RC.FirstMatch(conds, state, nil)
-            local c = (ov and ValidColor(ov.color)) or base
-            pts[#pts + 1] = { x, c.r, c.g, c.b, c.a or 1 }
+            local c = pick(RC.FirstMatch(conds, state, nil))
+            if type(c) ~= "table" then return nil end
+            pts[#pts + 1] = { x, c[1], c[2], c[3], c[4] or 1 }
         end
     end
     return pts
+end
+
+-- 填充色：規則的 color ＞ base
+function RC.CurvePoints(conds, max, spec, base)
+    if not ValidColor(base) then return nil end
+    return RC.CurvePointsBy(conds, max, spec, function(ov)
+        local c = (ov and ValidColor(ov.color)) or base
+        return { c.r, c.g, c.b, c.a or 1 }
+    end)
+end
+
+-- 整條規則裡有沒有人設了這一項覆寫（沒有就不必為它建曲線）
+function RC.AnyOverride(conds, field)
+    if type(conds) ~= "table" then return false end
+    for i = 1, #conds do
+        local r = conds[i]
+        if type(r) == "table" and r.target == nil and type(r.overrides) == "table" and r.overrides[field] ~= nil then
+            return true
+        end
+    end
+    return false
 end
