@@ -38,8 +38,9 @@ end
 local function Note(label) return { type = "text", label = label } end
 
 local PLACEMENT_ITEMS = {
-    { text = L["Relay (resource bar's spot)"], value = "relay" },
-    { text = L["Standalone"],                  value = "standalone" },
+    { text = L["Relay (Essential Cooldowns' spot)"], value = "essential" },
+    { text = L["Relay (resource bar's spot)"],       value = "resources" },
+    { text = L["Standalone"],                        value = "standalone" },
 }
 
 local function ResetAll()
@@ -58,10 +59,10 @@ local function Controls()
     add({ type = "header", label = L["General"] })
     add(BS("toggle", "enabled", L["Show the skyriding bars"]))
     add(Note(L["Your speed, the %s cooldown and your %s while skyriding, one row each."]:format(Spell("surge"), Spell("vigor"))))
-    add(BS("dropdown", "placement", L["Position"], { items = PLACEMENT_ITEMS, refreshPage = true, level = "structure",
-        get = function() return Relay() and "relay" or "standalone" end,
+    add(BS("dropdown", "placement", L["Position"], { items = PLACEMENT_ITEMS, refreshPage = true, level = "structure", resetPaths = { "placement", "relayTo" },
+        get = function() return SR().PlacementValue(Cfg()) end,
         set = function(_, v) SR().SetPlacement(v) end }))
-    add(Note(L["Relay: shares the resource bar's spot and takes turns with it while skyriding. Drag the resource bar to move both. Standalone: its own position, drag it in Edit Mode."]))
+    add(Note(L["Relay: shares the spot of Essential Cooldowns or the resource bar and takes turns with it while skyriding. Drag that bar to move both. Standalone: its own position, drag it in Edit Mode."]))
     add(BS("toggle", "hideCdm", L["Hide the Cooldown Manager while skyriding"]))
     add(Note(L["Every other bar and panel fades out while these bars are showing. Edit Mode still shows everything."]))
     add(BS("toggle", "hideGroundedFull", L["Hide on the ground with full %s"]:format(Spell("vigor"))))
@@ -126,7 +127,7 @@ local function Signature()
     local cfg = Cfg() or {}
     local p = ns.profile
     return table.concat({
-        Relay() and "relay" or "standalone",
+        SR().PlacementValue(Cfg()),
         table.concat(SR() and SR().Order(cfg) or {}, ","),
         type(cfg.anchor) == "table" and "a" or "-",
         table.concat(p and p.barOrder or {}, ","),
@@ -149,7 +150,7 @@ function Tab.Build(parent, title)
 
     local function OnApply(spec)
         local cfg = Cfg() or {}
-        local placement = Relay() and "relay" or "standalone"
+        local placement = SR().PlacementValue(cfg)
         local hide = cfg.hideCdm ~= false
         local placementChanged = lastPlacement ~= nil and placement ~= lastPlacement
         local wide = placementChanged or (lastHide ~= nil and hide ~= lastHide)
@@ -178,7 +179,7 @@ function Tab.Build(parent, title)
         -- 發佈前的欄位搬家（見 Skyriding.Upgrade）：表單讀的是 rows／order
         if SR() then SR().Upgrade(cfg) end
         if lastPlacement == nil then
-            lastPlacement, lastHide = Relay() and "relay" or "standalone", cfg.hideCdm ~= false
+            lastPlacement, lastHide = SR().PlacementValue(cfg), cfg.hideCdm ~= false
         end
         local sig = Signature()
         local form = forms[sig]

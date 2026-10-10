@@ -121,8 +121,9 @@ local function FollowsKey(k, key)
     while cur and not seen[cur] do
         if cur == key then return true end
         seen[cur] = true
-        if cur == "skyriding" and B.SkyRelay and B.SkyRelay() then
-            cur = "resources"                     -- 接力中的天空騎術跟著資源條走
+        local relayTo = cur == "skyriding" and B.SkyRelayTo and B.SkyRelayTo()
+        if relayTo then
+            cur = relayTo                         -- 接力中的天空騎術跟著接力對象走
         else
             local a = ns.Layout.AnchorOf(cur, BarCfg)
             cur = (B.StackTarget and B.StackTarget(cur)) or (a and a.to) or nil
