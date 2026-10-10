@@ -9,6 +9,11 @@
 --     匯入反過來。不用 loadstring 解析別人貼來的東西 —— CBOR 解出來只會是資料。
 --   * MRT 筆記行 "{time:01:30}{spell:N} 文字"：有損（只有時間、法術、文字），MRT 筆記與其他吃
 --     {time:} 格式的插件讀得懂。匯入走 Plans.ImportNote。
+--   * 只匯入不匯出：DreamForgeTools 的 "DSR1!…" 方案字串與 NSRT 筆記（Plans/Convert.lua 轉成
+--     跟 Decode 一樣的 payload，再走 Share.Import／ImportInto／Overwrite）。
+--
+-- 條目的對象條件：roles／class／positions（近戰遠程）／groups（小隊 1～8）／players（名字），
+-- 匯出 v2 全部帶上，匯入時一律重新清洗。
 --
 -- 匯入預設是**新增一份設定檔**（預設不生效，免得一貼上就跟自己的疊起來響）；「併入目前的設定檔」
 -- 是選項（Share.ImportInto，同秒同法術同文字的不重複加）。
@@ -58,6 +63,42 @@ end
 
 local ROLES = { TANK = true, HEALER = true, DAMAGER = true }
 local WHEN = { show = true, soon = true, due = true }
+local POSITIONS = { melee = true, ranged = true }
+local MAX_PLAYERS = 40       -- 一條提示最多指定幾個人
+
+-- 對象條件（位置／小隊／玩家）：只收認得的值，其他丟掉；清完是空的就 nil
+local function CleanPositions(v)
+    if type(v) ~= "table" then return end
+    local out = {}
+    for p in pairs(POSITIONS) do
+        if v[p] then out[p] = true end
+    end
+    return next(out) and out or nil
+end
+
+local function CleanGroups(v)
+    if type(v) ~= "table" then return end
+    local out = {}
+    for g = 1, 8 do
+        if v[g] then out[g] = true end
+    end
+    return next(out) and out or nil
+end
+
+local function CleanPlayers(v)
+    if type(v) ~= "table" then return end
+    local out, n = {}, 0
+    for name, on in pairs(v) do
+        local bare = on and Plans.BareName(Str(name, 48))
+        if bare and not out[bare] then
+            out[bare] = true
+            n = n + 1
+            if n >= MAX_PLAYERS then break end
+        end
+    end
+    return next(out) and out or nil
+end
+Share.CleanPlayers = CleanPlayers
 
 local function CleanEntry(e)
     if type(e) ~= "table" then return end
@@ -74,7 +115,12 @@ local function CleanEntry(e)
         tts       = e.tts == true or nil,
         class     = Str(e.class, 20),
         enabled   = e.enabled ~= false,
+        positions = CleanPositions(e.positions),
+        groups    = CleanGroups(e.groups),
+        players   = CleanPlayers(e.players),
     }
+    local phase = Num(e.phase, 2, 20)
+    if phase then out.phase = math.floor(phase) end
     if type(e.roles) == "table" then
         local roles = {}
         for r in pairs(ROLES) do
@@ -199,14 +245,16 @@ function Share.Decode(text)
 end
 
 -- 新增一份設定檔到 payload 的首領（首領沒有就建）。預設不生效。回傳 added, skipped, profileID
+-- payload.source（"import"／"dft"）、payload.dftBoardId 有給就記在設定檔上（DreamForgeTools 再匯入同一份時認得出來）
 function Share.Import(payload)
     Plans.EnsureBoss(payload.id, payload.boss)
     local profile = Plans.AddProfile(payload.id, {
         name = payload.name or ns.L["Imported plan"],
         difficulties = payload.difficulties and CopyTable(payload.difficulties) or nil,
         active = false,
-        source = "import",
+        source = payload.source or "import",
         author = payload.author,
+        dftBoardId = payload.dftBoardId,
     })
     if not profile then return 0, 0 end
     local added, skipped = Plans.Batch(profile.id, function() return Share.ImportInto(profile.id, payload) end)
@@ -222,7 +270,8 @@ function Share.ImportInto(pid, payload)
     for _, e in ipairs(payload.entries) do
         local dup = false
         for _, x in ipairs(profile.entries) do
-            if Plans.SameEntry(x, e) then
+            -- 同秒同字但給不同人的不算重複（DreamForgeTools 的「坦克或第 1 隊」拆成兩條就是這樣）
+            if Plans.SameEntry(x, e) and Plans.SameAudience(x, e) then
                 dup = true
                 break
             end
@@ -237,4 +286,30 @@ function Share.ImportInto(pid, payload)
         end
     end
     return added, skipped
+end
+
+-- 覆蓋 pid 那份設定檔（DreamForgeTools 同一份方案再匯入、選「覆蓋」）：條目整份換掉，
+-- 名稱、難度、作者跟著新的；生效與否、MRT 變體照舊。包在 Plans.Batch 裡，條目可以 Ctrl+Z 一步回到覆蓋前
+-- （名稱與難度不在復原堆疊裡）。
+-- 回傳 added, skipped
+function Share.Overwrite(pid, payload)
+    local profile = Plans.Get(pid)
+    if not profile then return 0, 0 end
+    return Plans.Batch(pid, function()
+        profile.entries = {}
+        profile.name = payload.name or profile.name
+        profile.difficulties = payload.difficulties and CopyTable(payload.difficulties) or nil
+        profile.author = payload.author or profile.author
+        profile.source = payload.source or profile.source
+        return Share.ImportInto(pid, payload)
+    end)
+end
+
+-- 這隻首領底下有沒有同一份 DreamForgeTools 方案（boardId 相同）匯入過的設定檔
+function Share.FindDftProfile(encID, boardId)
+    local boss = boardId and Plans.Boss(encID)
+    if not boss then return end
+    for pid, p in pairs(boss.profiles) do
+        if p.dftBoardId == boardId then return pid end
+    end
 end

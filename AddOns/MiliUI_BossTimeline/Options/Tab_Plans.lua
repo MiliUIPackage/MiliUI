@@ -46,7 +46,7 @@ local btnPreview, btnTest, btnReview, btnStop, statusText
 local head, headCols, list, editor
 local btnAdd, btnImport, btnExport, btnUndo, recNote
 local emptyText, btnCreate, btnEmptyImport, noBossText
-local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup, idPopup
+local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup, idPopup, choicePopup
 local keyCatcher
 
 -- 目前選的：副本（冒險指南 ID 或 "other"）、首領戰 ID、難度、設定檔 ID
@@ -396,15 +396,16 @@ local function PopupShell(name, parent, w, h, titleText)
     return popup
 end
 
--- 貼上匯入：米利字串（!MBT1!）或 MRT 筆記行，自動判斷。
+-- 貼上匯入：米利字串（!MBT1!）、DreamForgeTools（DSR1!）、NSRT 筆記、MRT 筆記行，自動判斷。
 -- 預設新增一份設定檔（預設不生效）；可以改成併入目前的設定檔
 local function CreateImportPopup(parent)
-    local W_, H_ = 560, 400
+    local W_, H_ = 560, 440
     local popup = PopupShell("MiliUIBT_ImportPopup", parent, W_, H_, L["Paste reminders"])
-    popup.hint:SetText(L["Paste a MiliUI Boss Timeline string (starts with !MBT1!), or MRT note lines, one reminder per line: {time:01:30} {spell:31821} text. Times relative to a phase ({time:00:54,p2}) are not supported; turn off the dynamic timer when exporting from lorrgs."])
+    popup.hint:SetText(L["Paste any of these: a MiliUI Boss Timeline string (!MBT1!), a DreamForgeTools plan (DSR1!), an NSRT note (starts with EncounterID:), or MRT note lines like {time:01:30} {spell:31821} text. Times counted from a later phase ({time:00:54,p2}) are skipped; turn off the dynamic timer when exporting from lorrgs."])
 
-    local box = W.CreateScrollEditBox(popup, W_ - 28, H_ - 196)
-    box:SetPoint("TOPLEFT", 14, -88)
+    -- 說明列了四種格式、三四行長：貼上框接在說明下面，不寫死位置
+    local box = W.CreateScrollEditBox(popup, W_ - 28, 204)
+    box:SetPoint("TOPLEFT", popup.hint, "BOTTOMLEFT", 0, -10)
     popup.box = box
 
     -- 新增一份／併入目前那份
@@ -432,33 +433,85 @@ local function CreateImportPopup(parent)
 
     local function Done(pid)
         popup:Hide()
-        if pid then GoToProfile(pid) end
+        if pid then
+            GoToProfile(pid)
+            -- 匯入的字串不一定帶首領名稱（DreamForgeTools、NSRT 只有 ID）：側欄認得這隻首領就用冒險指南的名字
+            local row = FindRow(BossRows(sel.inst), sel.boss)
+            local boss = Plans.Boss(sel.boss)
+            if row and boss and (not boss.name or boss.name == tostring(sel.boss)) then
+                Plans.EnsureBoss(sel.boss, row.name, row.journal, sel.inst ~= OTHER and sel.inst or nil)
+            end
+        end
         ns.Fire("PlansChanged")
     end
 
-    local function ImportString(text)
-        local payload, err = ns.Share.Decode(text)
-        if not payload then
-            ns.Print(err)
-            return
+    -- 匯入結果的補充說明（DreamForgeTools／NSRT 才有 stats）
+    local function ReportStats(stats)
+        if not stats then return end
+        if stats.phased > 0 then
+            ns.Print(L["%d reminders are in phase 2 or later. Their times were worked out from the plan's phase timings; real phase changes drift from pull to pull."]:format(stats.phased))
         end
+        if stats.phaseSkipped > 0 then
+            ns.Print(L["%d lines count from a later phase (ph:2 or more) and were skipped: the note doesn't say when phases start."]:format(stats.phaseSkipped))
+        end
+        if stats.notMe then
+            ns.Print(L["Your character isn't in this plan (%d personal reminders skipped)."]:format(stats.personal))
+        end
+        if stats.skipped > 0 then
+            ns.Print(L["%d lines were skipped (before the pull, empty or unreadable)."]:format(stats.skipped))
+        end
+    end
+
+    local function AddNew(payload)
+        local added, _, pid = ns.Share.Import(payload)
+        local boss = Plans.Boss(payload.id)
+        local p = Plans.Get(pid)
+        ns.Print(L["Added the profile \"%s\" to %s with %d reminders. It is not active yet; tick Active to use it."]:format(
+            p and p.name or "", boss and boss.name or tostring(payload.id), added))
+        ReportStats(payload.stats)
+        Done(pid)
+    end
+
+    -- 米利字串、DreamForgeTools、NSRT 解出來的 payload 都走這裡
+    local function ImportPayload(payload)
         local cur = Profile()
         if mode == "merge" and cur then
             if Plans.BossOf(sel.pid) == payload.id then
                 local pid = sel.pid
                 local added, skipped = Plans.Batch(pid, function() return ns.Share.ImportInto(pid, payload) end)
                 ns.Print(L["Merged %d reminders into %s (%d were already there)."]:format(added, cur.name or "", skipped))
+                ReportStats(payload.stats)
                 Done(pid)
                 return
             end
             ns.Print(L["This string is for another boss, so it was added as a new profile instead."])
         end
-        local added, _, pid = ns.Share.Import(payload)
-        local boss = Plans.Boss(payload.id)
-        local p = Plans.Get(pid)
-        ns.Print(L["Added the profile \"%s\" to %s with %d reminders. It is not active yet; tick Active to use it."]:format(
-            p and p.name or "", boss and boss.name or tostring(payload.id), added))
-        Done(pid)
+        -- DreamForgeTools 同一份方案（boardId 相同）匯入過：問要覆蓋、另存一份、還是取消
+        local old = payload.dftBoardId and ns.Share.FindDftProfile(payload.id, payload.dftBoardId)
+        if old then
+            popup:Hide()
+            local p = Plans.Get(old)
+            choicePopup.text:SetText(L["You already imported this DreamForgeTools plan as \"%s\". Overwrite it, or keep both?"]:format(p and p.name or ""))
+            choicePopup.onOverwrite = function()
+                local added = ns.Share.Overwrite(old, payload)
+                ns.Print(L["Overwrote \"%s\" with %d reminders."]:format(payload.name or "", added))
+                ReportStats(payload.stats)
+                Done(old)
+            end
+            choicePopup.onNew = function() AddNew(payload) end
+            choicePopup:Show()
+            return
+        end
+        AddNew(payload)
+    end
+
+    local function ImportString(text, decode)
+        local payload, err = decode(text)
+        if not payload then
+            ns.Print(err)
+            return
+        end
+        ImportPayload(payload)
     end
 
     -- MRT 筆記行：沒有首領資訊，一律進目前選的首領
@@ -498,7 +551,11 @@ local function CreateImportPopup(parent)
     ok:SetScript("OnClick", function()
         local text = box.editBox:GetText() or ""
         if ns.Share.IsShareString(text) then
-            ImportString(text)
+            ImportString(text, ns.Share.Decode)
+        elseif ns.Convert.IsDSR(text) then
+            ImportString(text, ns.Convert.DecodeDSR)
+        elseif ns.Convert.IsNSRT(text) then
+            ImportString(text, ns.Convert.ParseNSRT)
         else
             ImportLines(text)
         end
@@ -680,6 +737,15 @@ local function CreatePopups()
         { key = "id",   label = L["Encounter ID"],
           hint = L["The ID from the boss fight itself, not the Adventure Guide. After one pull the last boss you fought is filled in for you."] },
         { key = "name", label = L["Name"] },
+    })
+
+    -- DreamForgeTools 同一份方案再匯入：覆蓋／另存一份／取消（文字與動作每次開之前填）
+    choicePopup = W.CreateChoicePopup(parent, 420, "", {
+        { text = L["Overwrite"], color = "primary",
+          onClick = function() if choicePopup.onOverwrite then choicePopup.onOverwrite() end end },
+        { text = L["Save as a new profile"], color = "normal",
+          onClick = function() if choicePopup.onNew then choicePopup.onNew() end end },
+        { text = L["Cancel"], color = "normal" },
     })
 
     importPopup = CreateImportPopup(parent)
@@ -868,7 +934,7 @@ local function UpdateRow(row, it)
         local tags = ""
         if e.anchor then tags = tags .. "  |cffffd100" .. L["[follows]"] .. "|r" end
         if e.sound or e.tts then tags = tags .. " |cff9d9d9d" .. L["[sound]"] .. "|r" end
-        if e.roles or e.class then tags = tags .. " |cff9d9d9d" .. L["[only some]"] .. "|r" end
+        if Plans.HasAudience(e) then tags = tags .. " |cff9d9d9d" .. L["[only some]"] .. "|r" end
         row.text:SetText(text .. tags)
         row.lead:SetText(("%ds"):format(e.lead or Plans.DEFAULT_LEAD))
         row.src:SetText("|cff55ff55" .. L["Mine"] .. "|r")

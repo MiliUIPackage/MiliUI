@@ -134,6 +134,27 @@ local function WhenText(v)
 end
 
 local ROLE_ORDER = { { "TANK", L["Tank"] }, { "HEALER", L["Healer"] }, { "DAMAGER", L["Damage"] } }
+local POSITION_ORDER = { { "melee", L["Melee"] }, { "ranged", L["Ranged"] } }
+
+-- 「玩家」欄：逗號（全形、頓號也收）或空白分隔 → { [名字] = true }；名字去掉「-伺服器」
+-- ⚠ 全形逗號／頓號是多位元組，不能放進 [...] 字元集，先當字串換成半形逗號
+local function ParsePlayers(text)
+    text = tostring(text or ""):gsub("，", ","):gsub("、", ",")
+    local out = {}
+    for part in text:gmatch("[^,%s]+") do
+        local name = Plans.BareName(part)
+        if name then out[name] = true end
+    end
+    return ns.Share.CleanPlayers(out)
+end
+
+local function PlayersText(set)
+    if not set then return "" end
+    local names = {}
+    for name in pairs(set) do names[#names + 1] = name end
+    table.sort(names)
+    return table.concat(names, ", ")
+end
 
 ------------------------------------------------------------
 -- 即時預覽：標題區那一塊跟著欄位變
@@ -181,6 +202,16 @@ local function UpdatePreview()
     if class and class ~= "" then
         who[#who + 1] = (_G.LOCALIZED_CLASS_NAMES_MALE or {})[class] or class
     end
+    for _, p in ipairs(POSITION_ORDER) do
+        if f.positions[p[1]]:GetChecked() then who[#who + 1] = p[2] end
+    end
+    local groups = {}
+    for g = 1, 8 do
+        if f.groups[g]:GetChecked() then groups[#groups + 1] = g end
+    end
+    if #groups > 0 then who[#who + 1] = L["Group %s"]:format(table.concat(groups, "/")) end
+    local players = PlayersText(ParsePlayers(f.players:GetText()))
+    if players ~= "" then who[#who + 1] = players end
     if #who > 0 then parts[#parts + 1] = L["Only %s"]:format(table.concat(who, "、")) end
     if current.anchor and f.anchor:GetChecked() then
         parts[#parts + 1] = L["Follows cast #%d"]:format(current.anchor.n)
@@ -342,7 +373,31 @@ local function BuildWho()
     f.class = W.CreateDropdown(r, 220, ClassItems(), UpdatePreview)
     f.class:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
 
-    NoteRow("who", L["No role ticked = everyone."], CTRL_X)
+    r = Row("who", L["Position"])
+    f.positions = {}
+    x = CTRL_X
+    for _, p in ipairs(POSITION_ORDER) do
+        local cb = W.CreateCheckButton(r, p[2], UpdatePreview)
+        cb:SetPoint("LEFT", r, "LEFT", x, 0)
+        f.positions[p[1]] = cb
+        x = x + 30 + math.ceil(cb.label:GetStringWidth())
+    end
+
+    -- 小隊 1～8：八個小勾選框排一列
+    r = Row("who", L["Group"])
+    f.groups = {}
+    x = CTRL_X
+    for g = 1, 8 do
+        local cb = W.CreateCheckButton(r, tostring(g), UpdatePreview)
+        cb:SetPoint("LEFT", r, "LEFT", x, 0)
+        f.groups[g] = cb
+        x = x + 18 + cb.labelGap + math.ceil(cb.label:GetStringWidth()) + 8   -- 八個要塞進 330px
+    end
+
+    r = Row("who", L["Players"])
+    f.players = Box(r, ROW_W - CTRL_X)
+
+    NoteRow("who", L["Nothing ticked in a row = no limit from that row; different rows must all match. Melee includes tanks. Players: names separated by commas, without the realm."], CTRL_X)
 end
 
 local function BuildAnchor()
@@ -378,6 +433,13 @@ local function Accept()
             offset = tonumber(f.offset:GetText()) or 0,
         }
     end
+    local positions, groups = {}, {}
+    for key, cb in pairs(f.positions) do
+        if cb:GetChecked() then positions[key] = true end
+    end
+    for g, cb in pairs(f.groups) do
+        if cb:GetChecked() then groups[g] = true end
+    end
     local values = {
         t         = t,
         lead      = lead and math.max(1, lead) or nil,
@@ -390,6 +452,10 @@ local function Accept()
         roles     = roles,
         class     = f.class:GetSelected() or "",
         anchor    = anchor,
+        positions = positions,
+        groups    = groups,
+        players   = ParsePlayers(f.players:GetText()),
+        phase     = current.phase,      -- 匯入時記下的階段，編輯視窗不改它，原樣帶回去
     }
     if current.onAccept and current.onAccept(values) == false then return end
     popup:Hide()
@@ -449,7 +515,7 @@ local function Build()
     for i, eb in ipairs(order) do
         eb:SetScript("OnTabPressed", function() (order[i + 1] or order[1]):SetFocus() end)
     end
-    for _, eb in ipairs({ f.t, f.spell, f.text, f.lead, f.icon, f.offset }) do
+    for _, eb in ipairs({ f.t, f.spell, f.text, f.lead, f.icon, f.offset, f.players }) do
         eb:SetScript("OnEnterPressed", function() eb:ClearFocus() end)
         eb:SetScript("OnTextChanged", UpdatePreview)
     end
@@ -473,7 +539,7 @@ end
 function EE.Open(values, onAccept, title, encounterID)
     if not popup then Build() end
     values = values or {}
-    current = { onAccept = onAccept, anchor = values.anchor }
+    current = { onAccept = onAccept, anchor = values.anchor, phase = values.phase }
     f.title:SetText(title or L["Add reminder"])
     ShowBoss(encounterID)
 
@@ -487,6 +553,9 @@ function EE.Open(values, onAccept, title, encounterID)
     f.tts:SetChecked(values.tts and true or false)
     for role, cb in pairs(f.roles) do cb:SetChecked(values.roles and values.roles[role] and true or false) end
     f.class:SetSelectedValue(values.class or "")
+    for key, cb in pairs(f.positions) do cb:SetChecked(values.positions and values.positions[key] and true or false) end
+    for g, cb in pairs(f.groups) do cb:SetChecked(values.groups and values.groups[g] and true or false) end
+    SetBox(f.players, PlayersText(values.players))
 
     local a = values.anchor
     local ids = {}
