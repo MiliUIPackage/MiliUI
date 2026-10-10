@@ -99,10 +99,24 @@ function E.Iterate()
     return pairs(records)
 end
 
--- 編輯模式的示範事件不算（進編輯模式時暴雪會放一組，那時候我們要畫的是自己的預覽）
-function E.HasAny()
+-- 這一筆畫不畫：Collect 跟 HasAny 共用同一個判斷
+-- ⚠ 以前 HasAny 只看「有沒有記錄」：已結束還沒被暴雪移除的、隱藏軌道的、來源被關掉的都算數，
+--   脫戰時畫面上就剩一條沒有圖示的空刻度。顯示與否跟畫什麼一定要同一套條件。
+local function Drawable(rec, filter)
+    local state = rec.state
+    if state == STATE.Finished or state == STATE.Canceled then return false end
+    if rec.track == TRACK.Indeterminate then return false end
+    -- 編輯模式的示範事件不算（進編輯模式時暴雪會放一組，那時候我們要畫的是自己的預覽）
+    if rec.kind == "editmode" then return false end
+    -- 認得出是哪個技能、而且玩家設了「在時間軸上隱藏」的不畫（Abilities.lua）
+    if rec.ident and ns.Abilities and ns.Abilities.IsHiddenSpell(rec.ident.spell) then return false end
+    return not filter or filter(rec.kind)
+end
+
+-- 有沒有要畫的事件（filter 同 Collect）
+function E.HasAny(filter)
     for _, rec in pairs(records) do
-        if rec.kind ~= "editmode" then return true end
+        if Drawable(rec, filter) then return true end
     end
     return false
 end
@@ -120,11 +134,7 @@ function E.Collect(out, filter)
     local n = 0
     for id, rec in pairs(records) do
         local state = rec.state
-        local alive = state ~= STATE.Finished and state ~= STATE.Canceled
-        local visibleTrack = rec.track ~= TRACK.Indeterminate
-        -- 認得出是哪個技能、而且玩家設了「在時間軸上隱藏」的不畫（Abilities.lua）
-        local hidden = rec.ident and ns.Abilities and ns.Abilities.IsHiddenSpell(rec.ident.spell)
-        if alive and visibleTrack and not hidden and rec.kind ~= "editmode" and (not filter or filter(rec.kind)) then
+        if Drawable(rec, filter) then
             local rem = S.PlainNumber(Safe(C_EncounterTimeline.GetEventTimeRemaining, id))
             if rem then
                 n = n + 1
@@ -176,7 +186,10 @@ local handlers = {
     end,
     ENCOUNTER_TIMELINE_EVENT_TRACK_CHANGED = function(id)
         local rec = records[id]
-        if rec then Refresh(rec) end
+        if rec then
+            Refresh(rec)
+            ns.Fire("TimelineChanged")      -- 換到隱藏軌道＝畫不畫跟著變
+        end
     end,
     ENCOUNTER_TIMELINE_EVENT_COLOR_CHANGED = function(id)
         local rec = records[id]
