@@ -1,6 +1,6 @@
 ---
 name: project-miliui-bosstimeline
-description: MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式、即時預覽）、標出每一條是哪個插件加的、自訂時間軸寫進暴雪時間軸、編輯器讀 MRT 自帶整場時間軸＋貼上匯入 {time:} 提示行；地瓜／DBM／DFT 怎麼碰時間軸的調查結論與待實機驗證清單
+description: MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式、即時預覽）、標出每一條是哪個插件加的、自訂時間軸寫進暴雪時間軸、編輯器讀 MRT 自帶整場時間軸＋貼上匯入（!MBT1!／DFT 的 DSR1!／NSRT 筆記／MRT {time:} 行）；首領→難度→設定檔的存檔結構；地瓜／DBM／DFT 怎麼碰時間軸的調查結論與待實機驗證清單
 metadata:
   type: project
 ---
@@ -59,8 +59,25 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   同一技能 3 秒內連發收成一列（「×N」），不然多段技能一隻首領幾百列。
 - **DBM 沒有可抽的時間軸**：首領模組是「這種時長的暴雪事件是哪個技能」的判斷程式（例：瓦什尼克普通難度 8 秒輪流判滴毒利牙／適應性感染），
   不是資料。可用的是 `DBM_TimerBegin` 回呼（明文 msg／spellId／icon），之後可以拿來替戰鬥中的暴雪事件補名稱。
-- **DreamForgeTools 本體沒有時間軸**；附屬的 DFT Personal Tactics 收 MRT 筆記格式 `{time:00:04.0} - 文字`。
-  我們的「貼上匯入」收同一格式（`Plans.ImportNote`）；`{time:…,p2}` 階段起算的不支援、計數回報。
+- **DreamForgeTools 有自己的時間軸**（Timeline＋TacticsCenter 模組：首領側欄 → 難度 → 方案卡片，可多份同時載入）。
+  它**不讀** MRT `{time:}` 行，吃的是兩種格式（2026-10-10 讀原始碼確認，修正舊印象）：
+  - `DSR1!`＋base64url（`A-Za-z0-9-_`、無補位）的 LibDeflate raw deflate 的 JSON envelope
+    `{ schemaVersion=2, boardId, encID, difficulty="M"/"H", name, version, updatedAt, exportedBy="addon", data }`；
+    `data` 有 `phases{phaseNumber,phaseTimer,…}`、`players{id,name,class,spec,role}`、
+    `playerAbilities{abilityId="class_spec_<法術>",playerId,time,phaseNumber}`、
+    `bossNotes{time,phaseNumber,text,target={ {type="all"/"role"/"position"/"group"/"class",value} }}`、
+    `playerNotes[playerId]={ {time,phaseNumber,text} }`。時間是**階段內秒數**，絕對秒數＝該階段 phaseTimer＋time。
+    target 是 **OR**（任一條合就給）。`exportedBy` 插件匯出固定寫 "addon"，不是人名。
+  - NSRT 筆記：表頭 `EncounterID:3176;Difficulty:Mythic;Name:…`，事件行 `time:12;ph:2;tag:healer;spellid:123;text:…`。
+  **我們怎麼轉**（`Plans/Convert.lua`，產出跟 `Share.Decode` 同形的 payload，再走 `Share.Import`／`ImportInto`／`Overwrite`）：
+  DSR1 只用 `C_EncodingUtil`（base64url→標準＋補 `=` → `DecodeBase64` → `DecompressString` 先試 Deflate 再試 Zlib → `DeserializeJSON`），
+  不帶 LibDeflate、不 loadstring；第 2 階段以後照 phaseTimer 換成絕對秒數、記 `entry.phase`（Scheduler 現在不讀）並回報會漂；
+  bossNotes 全收、OR 的 target 同類併一條（多個職責）、跨類拆成同秒同字的幾條（開戰合併時同秒同字只跑一次，兩邊都合也只響一次；
+  匯入去重因此要比對對象條件 `Plans.SameAudience`）；playerNotes／playerAbilities 只收名字（去伺服器）等於自己的那位，
+  找不到就回報略過幾條；難度 M→16、H→15；`source="dft"`、`dftBoardId`，同 boardId 再匯入問「覆蓋／存成新的一份／取消」。
+  NSRT 的 `ph>1` 沒有階段起點可換算 → 略過計數；tag 對到職責／位置／小隊／職業，其他當玩家名字寫進 `players` 條件。
+  ⚠ LibDeflate raw deflate 跟 `Enum.CompressionMethod.Deflate` 相不相容**待實機驗證**。
+- MRT 筆記格式 `{time:00:04.0} - 文字`：「貼上匯入」照收（`Plans.ImportNote`）；`{time:…,p2}` 階段起算的不支援、計數回報。
   ⚠ 剝前後分隔符時全形「–—：」是多位元組，**不能塞進 Lua 的 [...] 字元集**（會剝掉中文字的尾位元組），要當字串一個一個剝。
 
 ## 首領技能設定與戰鬥中辨識（2026-10-09 第三批）
@@ -137,7 +154,22 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   排除：自己（Scheduler 播時設 `ns.playingOwnSound`）、DBM／BigWigs（每秒倒數會洗版）、SharedMedia 系（共用檔認不出是誰）、fileID 數字；
   同檔 1 秒內只記一次。自訂時間軸分頁看到有語音就黃字提醒「你的音效可能會疊上去」。
 
+## 首領 → 難度 → 設定檔（2026-10-10，DB v2）
+
+- **存檔**：`db.bosses[encounterID] = { name, journal, display, instance, profiles = { [profileID] = profile } }`；
+  `profile = { id, name, difficulties = {[難度]=true}|nil（nil＝全部）, active, entries, mrtVariant, source = "local"/"import"/"dft",
+  author, dftBoardId, createdAt, updatedAt }`。profileID `"p<time>_<亂數>"` 全域唯一；條目操作與復原堆疊只吃 profileID。
+- **遷移**（`DB.Init` 的 `schemaVersion < 2` 閘）：舊 `db.plans[id]` 每隻首領一份「我的設定」，難度與生效照舊；舊表留在 `db.plansV1Backup`。
+- **開戰**：`Plans.Active(encID, difficultyID)` 合併所有生效且適用這個難度的設定檔；先濾 `EntryApplies` 再去重（同秒 0.05 內、同法術、同文字）。
+- **對象條件**（`Plans.EntryApplies`，不同類 AND、同類 OR）：`roles`、`class`、`positions={melee,ranged}`（近戰專精表同 DFT，
+  坦克算近戰，讀不到專精照給）、`groups={1..8}`（`UnitInRaid("player")`＋`GetRaidRosterInfo` 第 3 個回傳，不在團隊＝第 1 隊）、
+  `players={名字}`（兩邊去伺服器、ASCII 不分大小寫）。分享 v2 全帶、匯入 `CleanEntry` 重新清洗。
+- **分享 v2**：`{ v=2, id, boss, name＝設定檔名, author, difficulties, entries }`；v1 照吃。匯入預設新增一份（不生效）、可選併入目前那份。
+
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
+
+00. 2026-10-10：DSR1 字串用 C_EncodingUtil 解得開（Deflate／Zlib 哪個成功）、DeserializeJSON 對 DFT 的 JSON（巢狀陣列、playerNotes 物件）；
+    首領戰中 `UnitInRaid`／`GetRaidRosterInfo` 小隊號明文（筆記說是，但這支插件沒實測）；編輯視窗「只給」分頁八個小隊勾選框排得下。
 
 0. 第七批：hooksecurefunc("PlaySoundFile") 在戰鬥中拿得到明文路徑（地瓜傳的是字串）；SetRotation 的斜線在 14px 色塊上看得清楚。
    第六批：EJ 函式在沒開過冒險指南時就有資料（Cell 是登入就讀，應該可以）；Ctrl＋Z 的轉發框不影響其他快捷鍵。

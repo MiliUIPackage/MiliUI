@@ -368,6 +368,10 @@ Plans.SortEntries = SortEntries
 --   class      "PRIEST" 之類，只給這個職業；nil = 全部
 --   anchor     { spell, n, offset }：跟著這個首領技能的第 n 次施放走（Scheduler 戰鬥中認得出來時改時間），
 --              t 仍然是沒認出來時的備援秒數
+--   positions  { melee = true, ranged = true } 只給近戰／遠程（坦克算近戰）；nil = 全部
+--   groups     { [1..8] = true } 只給這幾個小隊；nil = 全部
+--   players    { ["名字"] = true } 只給這幾個人（不含伺服器）；nil = 全部
+--   phase      這一條原本寫在第幾階段（匯入 DreamForgeTools 時記下來，給未來的換階段偵測；現在 Scheduler 不讀）
 function Plans.SaveEntry(pid, values, index)
     local p = Plans.Get(pid)
     if not p then return end
@@ -388,6 +392,10 @@ function Plans.SaveEntry(pid, values, index)
     e.roles     = (values.roles and next(values.roles)) and values.roles or nil
     e.class     = values.class ~= "" and values.class or nil
     e.anchor    = values.anchor
+    e.positions = (values.positions and next(values.positions)) and values.positions or nil
+    e.groups    = (values.groups and next(values.groups)) and values.groups or nil
+    e.players   = (values.players and next(values.players)) and values.players or nil
+    e.phase     = values.phase
     SortEntries(p)
     return e
 end
@@ -433,15 +441,119 @@ local function PlayerRole()
 end
 Plans.PlayerRole = PlayerRole
 
+-- 近戰專精（跟 DreamForgeTools 的近戰判斷同一張表：神聖騎士、織霧武僧也算近戰 —— 他們本來就站近戰），
+-- 坦克一律算近戰（在 IsMelee 裡判斷，不列專精）
+local MELEE_SPECS = {
+    [71] = true, [72] = true,                   -- 武器、狂怒戰士
+    [65] = true, [70] = true,                   -- 神聖、懲戒聖騎士
+    [255] = true,                               -- 生存獵人
+    [259] = true, [260] = true, [261] = true,   -- 盜賊
+    [251] = true, [252] = true,                 -- 冰霜、穢邪死騎
+    [263] = true,                               -- 增強薩滿
+    [103] = true,                               -- 野性德魯伊
+    [269] = true, [270] = true,                 -- 御風、織霧武僧
+    [577] = true,                               -- 浩劫惡魔獵人
+}
+Plans.MELEE_SPECS = MELEE_SPECS
+
+-- true／false；讀不到專精就 nil（呼叫端照給）
+local function PlayerIsMelee()
+    if PlayerRole() == "TANK" then return true end
+    local getSpec = (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization) or GetSpecialization
+    local idx = getSpec and S.PlainNumber(S.SafeCall(getSpec))
+    if not idx then return end
+    local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo) or GetSpecializationInfo
+    local specID = getInfo and S.PlainNumber(S.SafeCall(getInfo, idx))
+    if not specID then return end
+    return MELEE_SPECS[specID] == true
+end
+Plans.PlayerIsMelee = PlayerIsMelee
+
+-- 自己在第幾小隊：UnitInRaid("player") 給團隊索引，GetRaidRosterInfo 的第三個回傳是小隊號
+-- （首領戰中兩個都是明文，見 .claude/notes/wow-121-unit-api-secrets.md）。不在團隊＝第 1 隊
+local function PlayerSubgroup()
+    local idx = UnitInRaid and S.PlainNumber(S.SafeCall(UnitInRaid, "player"))
+    if not idx or not GetRaidRosterInfo then return 1 end
+    local sub = S.PlainNumber(select(3, S.SafeCall(GetRaidRosterInfo, idx)))
+    return sub or 1
+end
+Plans.PlayerSubgroup = PlayerSubgroup
+
+-- 名字比對：去掉「-伺服器」、ASCII 不分大小寫（中文名字 lower 不會變）
+local function BareName(name)
+    if type(name) ~= "string" then return end
+    name = strtrim(name:match("^([^%-]+)") or name)
+    if name == "" then return end
+    return name
+end
+Plans.BareName = BareName
+
+local function NameKey(name)
+    name = BareName(name)
+    return name and name:lower()
+end
+
+local function IsMe(name)
+    local me = NameKey(S.PlainText(UnitName("player")))
+    return me ~= nil and NameKey(name) == me
+end
+Plans.IsMe = IsMe
+
+-- 條件之間是 AND（職責、職業、位置、小隊、玩家都要合），同一類裡是 OR（勾坦克＋治療＝兩種都給）。
+-- 讀不到的（專精還沒載）照給：寧可多一條提示，也不要漏。走查：
+--   positions={melee}       坦克／近戰專精 → 給；遠程專精 → 不給；專精讀不到 → 給
+--   groups={2,3}            第 2 或 3 隊 → 給；不在團隊（當第 1 隊）→ 不給
+--   players={"米利"}        自己叫米利（不管伺服器、ASCII 大小寫）→ 給；其他人 → 不給
+--   roles={HEALER} ＋ groups={1}   兩個都要合：第 1 隊的治療才給
 function Plans.EntryApplies(e)
     if e.enabled == false then return false end
     if e.class and e.class ~= ns.playerClass then return false end
     if e.roles then
         local role = PlayerRole()
-        -- 讀不到專精（剛登入）就照給：寧可多一條提示，也不要漏
         if role and not e.roles[role] then return false end
     end
+    if e.positions and next(e.positions) then
+        local melee = PlayerIsMelee()
+        if melee ~= nil and not e.positions[melee and "melee" or "ranged"] then return false end
+    end
+    if e.groups and next(e.groups) then
+        if not e.groups[PlayerSubgroup()] then return false end
+    end
+    if e.players and next(e.players) then
+        local hit = false
+        for name in pairs(e.players) do
+            if IsMe(name) then
+                hit = true
+                break
+            end
+        end
+        if not hit then return false end
+    end
     return true
+end
+
+-- 兩條的對象條件一樣嗎（匯入去重用：同秒同字但給不同人的，不算重複）
+local function SetKey(set)
+    if type(set) ~= "table" then return "" end
+    local keys = {}
+    for k, on in pairs(set) do
+        if on then keys[#keys + 1] = tostring(k):lower() end
+    end
+    table.sort(keys)
+    return table.concat(keys, ",")
+end
+
+function Plans.SameAudience(a, b)
+    return (a.class or "") == (b.class or "")
+        and SetKey(a.roles) == SetKey(b.roles)
+        and SetKey(a.positions) == SetKey(b.positions)
+        and SetKey(a.groups) == SetKey(b.groups)
+        and SetKey(a.players) == SetKey(b.players)
+end
+
+-- 有任何對象條件嗎（清單上標「只給部分人」用）
+function Plans.HasAudience(e)
+    return (e.roles or e.class or e.positions or e.groups or e.players) and true or false
 end
 
 function Plans.RemoveEntry(pid, index)
@@ -513,6 +625,7 @@ local function CleanText(text)
     text = text:gsub("%s%s+", " ")
     return strtrim(text)
 end
+Plans.CleanText = CleanText     -- DreamForgeTools／NSRT 匯入也用（Plans/Convert.lua）
 
 local function ImportNote(pid, note)
     local p = Plans.Get(pid)
