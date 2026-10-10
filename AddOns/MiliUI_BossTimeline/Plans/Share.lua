@@ -2,11 +2,16 @@
 -- 分享自訂時間軸：匯出成字串、貼上匯入
 --
 -- 兩種格式：
---   * 米利字串 "!MBT1!…"：整份計畫（含音效、條件、錨點）。
+--   * 米利字串 "!MBT1!…"：一份設定檔（含音效、條件、錨點）。前綴沿用 !MBT1!，版本看 payload.v：
+--       v1（舊）{ v, id, name＝首領名, difficulty＝單一難度（0＝全部）, entries }
+--       v2      { v, id, boss＝首領名, name＝設定檔名, author, difficulties = { [難度]=true }, entries }
 --     走暴雪內建的 C_EncodingUtil：SerializeCBOR → CompressString（Deflate）→ EncodeBase64，
 --     匯入反過來。不用 loadstring 解析別人貼來的東西 —— CBOR 解出來只會是資料。
---   * MRT 筆記行 "{time:01:30}{spell:N} 文字"：有損（只有時間、法術、文字），但 MRT、
---     DreamForgeTools 的 Personal Tactics、其他吃這個格式的插件都讀得懂。匯入走 Plans.ImportNote。
+--   * MRT 筆記行 "{time:01:30}{spell:N} 文字"：有損（只有時間、法術、文字），MRT 筆記與其他吃
+--     {time:} 格式的插件讀得懂。匯入走 Plans.ImportNote。
+--
+-- 匯入預設是**新增一份設定檔**（預設不生效，免得一貼上就跟自己的疊起來響）；「併入目前的設定檔」
+-- 是選項（Share.ImportInto，同秒同法術同文字的不重複加）。
 --
 -- 不做團隊即時同步：首領戰與傳奇鑰石中插件通訊被封鎖（.claude/notes/wow-12x-addon-restrictions.md），
 -- 戰鬥外同步價值也不高 —— 貼字串最實在。
@@ -89,16 +94,31 @@ end
 ------------------------------------------------------------
 -- 匯出
 ------------------------------------------------------------
-function Share.Export(id)
+-- 「角色-伺服器」：匯入的人看得到這份是誰的
+local function Author()
+    local name = UnitName("player")
+    local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+    if not name then return end
+    return (realm and realm ~= "") and (name .. "-" .. realm) or name
+end
+Share.Author = Author
+
+function Share.Export(pid)
     local E = Enc()
-    local plan = Plans.Get(id)
-    if not E or not plan then return end
+    local profile, encID = Plans.Get(pid), Plans.BossOf(pid)
+    if not E or not profile then return end
     local entries = {}
-    for _, e in ipairs(plan.entries) do
+    for _, e in ipairs(profile.entries) do
         local c = CleanEntry(e)
         if c then entries[#entries + 1] = c end
     end
-    local payload = { v = 1, id = id, name = plan.name, difficulty = plan.difficulty, entries = entries }
+    local boss = Plans.Boss(encID)
+    local payload = {
+        v = 2, id = encID, boss = boss and boss.name, name = profile.name,
+        author = profile.author or Author(),
+        difficulties = profile.difficulties and CopyTable(profile.difficulties) or nil,
+        entries = entries,
+    }
     local ok, out = pcall(function()
         return PREFIX .. E.EncodeBase64(E.CompressString(E.SerializeCBOR(payload)))
     end)
@@ -107,11 +127,11 @@ function Share.Export(id)
 end
 
 -- MRT 筆記行（有損）
-function Share.ExportNote(id)
-    local plan = Plans.Get(id)
-    if not plan then return "" end
+function Share.ExportNote(pid)
+    local profile = Plans.Get(pid)
+    if not profile then return "" end
     local lines = {}
-    for _, e in ipairs(plan.entries) do
+    for _, e in ipairs(profile.entries) do
         local t = e.t or 0
         local m = math.floor(t / 60)
         local sec = t - m * 60
@@ -130,7 +150,21 @@ function Share.IsShareString(text)
     return type(text) == "string" and strtrim(text):sub(1, #PREFIX) == PREFIX
 end
 
--- 回傳 payload（清洗過）或 nil, 錯誤訊息
+local function CleanDifficulties(v)
+    if type(v) ~= "table" then return end
+    local out, n = {}, 0
+    for key, on in pairs(v) do
+        local d = Num(key, 1, 1000)
+        if d and on == true and n < 20 then
+            out[math.floor(d)] = true
+            n = n + 1
+        end
+    end
+    return next(out) and out or nil
+end
+
+-- 回傳清洗過的 payload（v1／v2 都整理成 v2 的欄位），或 nil, 錯誤訊息：
+--   { id, boss, name（v1 是 nil）, author, difficulties, entries }
 function Share.Decode(text)
     local E = C_EncodingUtil
     if not (E and E.DecodeBase64 and E.DecompressString and E.DeserializeCBOR) then
@@ -144,12 +178,18 @@ function Share.Decode(text)
     if not ok or type(data) ~= "table" then return nil, ns.L["The string is damaged or incomplete."] end
     local id = Num(data.id, 1, 1e8)
     if not id or type(data.entries) ~= "table" then return nil, ns.L["The string is damaged or incomplete."] end
-    local out = {
-        id = math.floor(id),
-        name = Str(data.name, 60),
-        difficulty = Num(data.difficulty, 0, 1000) or 0,
-        entries = {},
-    }
+    local out = { id = math.floor(id), entries = {} }
+    if (Num(data.v) or 1) >= 2 then
+        out.boss = Str(data.boss, 60)
+        out.name = Str(data.name, 60)
+        out.author = Str(data.author, 60)
+        out.difficulties = CleanDifficulties(data.difficulties)
+    else
+        -- v1：name 是首領名、難度只有一個（0＝全部）
+        out.boss = Str(data.name, 60)
+        local d = Num(data.difficulty, 0, 1000) or 0
+        if d ~= 0 then out.difficulties = { [math.floor(d)] = true } end
+    end
     for i, e in ipairs(data.entries) do
         if i > MAX_ENTRIES then break end
         local c = CleanEntry(e)
@@ -158,22 +198,31 @@ function Share.Decode(text)
     return out
 end
 
--- 併進那隻首領的自訂時間軸（沒有就建）；同一秒同文字同法術的不重複加。回傳 added, skipped
+-- 新增一份設定檔到 payload 的首領（首領沒有就建）。預設不生效。回傳 added, skipped, profileID
 function Share.Import(payload)
-    Plans.Ensure(payload.id, payload.name)
-    return Plans.Batch(payload.id, function() return Share.ImportInto(payload) end)
+    Plans.EnsureBoss(payload.id, payload.boss)
+    local profile = Plans.AddProfile(payload.id, {
+        name = payload.name or ns.L["Imported plan"],
+        difficulties = payload.difficulties and CopyTable(payload.difficulties) or nil,
+        active = false,
+        source = "import",
+        author = payload.author,
+    })
+    if not profile then return 0, 0 end
+    local added, skipped = Plans.Batch(profile.id, function() return Share.ImportInto(profile.id, payload) end)
+    return added, skipped, profile.id
 end
 
-function Share.ImportInto(payload)
-    local plan = Plans.Get(payload.id)
-    if (plan.difficulty or 0) == 0 and payload.difficulty ~= 0 and #plan.entries == 0 then
-        plan.difficulty = payload.difficulty
-    end
+-- 併進 pid 那份設定檔；同一秒同文字同法術的不重複加。回傳 added, skipped
+-- （呼叫端自己決定要不要包 Plans.Batch：併入目前那份時要包，才能一步復原）
+function Share.ImportInto(pid, payload)
+    local profile = Plans.Get(pid)
+    if not profile then return 0, 0 end
     local added, skipped = 0, 0
     for _, e in ipairs(payload.entries) do
         local dup = false
-        for _, x in ipairs(plan.entries) do
-            if math.abs((x.t or 0) - e.t) < 0.05 and x.text == e.text and x.spell == e.spell then
+        for _, x in ipairs(profile.entries) do
+            if Plans.SameEntry(x, e) then
                 dup = true
                 break
             end
@@ -182,7 +231,7 @@ function Share.ImportInto(payload)
             skipped = skipped + 1
         else
             local enabled = e.enabled
-            local saved = Plans.SaveEntry(payload.id, e)
+            local saved = Plans.SaveEntry(pid, e)
             if saved then saved.enabled = enabled end
             added = added + 1
         end

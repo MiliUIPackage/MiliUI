@@ -88,7 +88,7 @@ end
 -- 建立
 ------------------------------------------------------------
 function PE.Create(parent, width, height, hooks)
-    local ed = { hooks = hooks or {}, pps = 5, scrollX = 0, planID = nil }
+    local ed = { hooks = hooks or {}, pps = 5, scrollX = 0, planID = nil, encID = nil }
     local root = CreateFrame("Frame", nil, parent)
     root:SetSize(width, height)
     ed.frame = root
@@ -104,6 +104,7 @@ function PE.Create(parent, width, height, hooks)
     ruler:SetPoint("TOPLEFT")
     ruler:SetSize(1, RULER_H)
     ed.ruler = ruler
+    ed.rulerClip = rulerClip
     Tex(rulerClip, "BACKGROUND", 0.12, 0.12, 0.12, 1):SetAllPoints()
 
     -- 直向捲動區：標籤欄＋畫布
@@ -419,6 +420,22 @@ function PE:NewBlock()
 end
 
 ------------------------------------------------------------
+-- 改寬度（自訂時間軸頁的側欄收合時，內容區變寬）：畫布、尺規、捲軸跟著變，捲動位置夾回範圍內
+------------------------------------------------------------
+function PE:SetWidth(width)
+    local canvasW = width - GUTTER - 14
+    if canvasW == self.canvasW then return end
+    self.canvasW = canvasW
+    self.frame:SetWidth(width)
+    self.rulerClip:SetWidth(canvasW)
+    self.body:SetWidth(width - 14)
+    self.clip:SetWidth(canvasW)
+    self.hbar:SetWidth(canvasW)
+    if self.planID then self:Redraw() end
+    self:SetScroll(self.scrollX)
+end
+
+------------------------------------------------------------
 -- 捲動與縮放
 ------------------------------------------------------------
 function PE:ContentWidth()
@@ -478,9 +495,11 @@ local function PackMine(entries, pps)
     return out, math.max(1, #lanesEnd)
 end
 
+-- planID：設定檔 ID（我的提示從這裡來）；opts.encounterID：首領戰 ID（MRT 與上一場紀錄照首領存）
 function PE:SetPlan(planID, opts)
     self.planID = planID
     self.opts = opts or {}
+    self.encID = self.opts.encounterID or Plans.BossOf(planID)
     self:Redraw()
     self:SetScroll(self.scrollX)
 end
@@ -500,7 +519,7 @@ function PE:Redraw()
     local length = 60
     if opts.mrtVariant then
         local bySpell, order = {}, {}
-        for _, ev in ipairs(MD.Events(self.planID, opts.mrtVariant)) do
+        for _, ev in ipairs(MD.Events(self.encID, opts.mrtVariant)) do
             if not bySpell[ev.spell] then
                 bySpell[ev.spell] = {}
                 order[#order + 1] = ev.spell
@@ -512,12 +531,12 @@ function PE:Redraw()
         for _, spell in ipairs(order) do
             mrtLanes[#mrtLanes + 1] = { spell = spell, events = bySpell[spell] }
         end
-        phases = MD.Phases(self.planID, opts.mrtVariant)
-        for _, v in ipairs(MD.Variants(self.planID)) do
+        phases = MD.Phases(self.encID, opts.mrtVariant)
+        for _, v in ipairs(MD.Variants(self.encID)) do
             if v.index == opts.mrtVariant and v.length then length = math.max(length, v.length) end
         end
     end
-    local rec = opts.recorded and ns.db.recorded[self.planID]
+    local rec = opts.recorded and self.encID and ns.db.recorded[self.encID]
     if rec then
         for _, ev in ipairs(rec.events) do length = math.max(length, ev.t) end
     end

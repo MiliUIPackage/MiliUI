@@ -29,7 +29,7 @@ local UNSET = { r = 0.22, g = 0.22, b = 0.22, a = 1 }
 ------------------------------------------------------------
 local function Bosses()
     local names = {}
-    for id, plan in pairs(ns.db.plans) do names[id] = plan.name end
+    for id, boss in pairs(ns.db.bosses) do names[id] = boss.name end
     for id, rec in pairs(ns.db.recorded) do names[id] = names[id] or rec.name end
     for id, name in pairs(ns.db.abilityBosses) do names[id] = names[id] or name end
     local last = ns.db.lastEncounter

@@ -94,11 +94,18 @@ local function BuildDefaults()
             },
         },
 
-        -- 自訂時間軸：[encounterID] = { name, enabled, difficulty, mrtVariant, entries = { { t, text, icon, spell, lead, enabled }, ... } }
+        -- 自訂時間軸：[encounterID] = 首領（結構見 Plans/Plans.lua 檔頭）
+        --   name       首領名稱（顯示用）
+        --   journal    冒險指南首領 ID（頭像用，選填）
+        --   display    模型 displayInfo（選填，找到一次就存）
+        --   instance   冒險指南副本 ID（側欄分組用，選填）
+        --   profiles = { [profileID] = { id, name, difficulties, active, entries, mrtVariant, source, author, createdAt, updatedAt } }
+        -- entries 每一條：{ t, lead, spell, icon, text, sound, soundWhen, tts, roles, class, anchor, enabled }
         --   t     開戰後第幾秒「發生」（不是出現在時間軸的時間）
         --   lead  提前幾秒放上時間軸（＝這一條在時間軸上倒數多久）
         --   icon  fileID（數字）；spell 有填就用法術圖示、text 空白就用法術名稱
-        plans = {},
+        -- ⚠ v1 是 plans[encounterID]（一隻首領一份），DB.Init 遷移成這個結構
+        bosses = {},
 
         -- 上一次打這隻首領時，時間軸上出現過什麼（給編輯器當唯讀參考）
         -- [encounterID] = { name, difficulty, events = { { t, d, src, owner, text } } }
@@ -114,10 +121,12 @@ local function BuildDefaults()
         -- 首領技能分頁手動加過的首領：[encounterID] = 名稱
         abilityBosses = {},
 
-        -- 自訂時間軸分頁要不要列出參考列（MRT 的整場時間軸、上一場的紀錄）
-        planView = { mrt = true, recorded = true, mode = "timeline" },
+        -- 自訂時間軸分頁：要不要列出參考列（MRT 的整場時間軸、上一場的紀錄）、側欄展開沒、上次看到哪
+        --   instance  側欄目前的副本（冒險指南副本 ID，或 "other"＝其他首領）
+        --   boss／difficulty／profile  上次看的首領戰 ID／難度分頁／設定檔 ID（都可能是 nil）
+        planView = { mrt = true, recorded = true, mode = "timeline", sidebar = true },
 
-        -- 最近一場首領戰（編輯器「新增首領」帶入用）
+        -- 最近一場首領戰（手動輸入首領戰 ID 時帶入用）
         lastEncounter = nil,
     }
 end
@@ -144,9 +153,72 @@ function DB.Init()
     end
     local db = MiliUI_BossTimeline_DB
     MergeDefaults(db, BuildDefaults())
+    -- 遷移要在 MergeDefaults 之後：新存檔的 schemaVersion 由預設值補成目前版本，不會誤跑；
+    -- 舊存檔的 schemaVersion 是舊值（MergeDefaults 只補 nil）
+    if (db.schemaVersion or 1) < 2 then DB.MigrateV2(db) end
     db.schemaVersion = ns.DB_VERSION
     ns.db = db
     return db
+end
+
+------------------------------------------------------------
+-- v1 → v2：plans[encounterID]（一隻首領一份時間軸，難度是它的欄位）→ bosses[encounterID].profiles
+--
+-- 每隻舊首領變成一份「我的設定」：生效狀態照舊（enabled）、難度照舊（0＝全部 → nil）。
+-- 舊表搬到 db.plansV1Backup 留一版當保險（下個版本可刪），db.plans 清掉。
+-- 冪等：已經有 plansV1Backup（遷移過）或沒有 plans 就什麼都不做；同一隻首領已經有
+-- 「從 v1 搬來」的設定檔也跳過，不會重複。
+------------------------------------------------------------
+function DB.MigrateV2(db)
+    local old = db.plans
+    if type(old) ~= "table" then
+        db.plans = nil
+        return
+    end
+    db.bosses = type(db.bosses) == "table" and db.bosses or {}
+    local now = time()
+    -- profileID 要全域唯一：同一秒建好幾份，只靠亂數可能撞
+    local used = {}
+    for _, boss in pairs(db.bosses) do
+        for pid in pairs(type(boss) == "table" and boss.profiles or {}) do used[pid] = true end
+    end
+    for encID, plan in pairs(old) do
+        if type(encID) == "number" and type(plan) == "table" then
+            local boss = db.bosses[encID]
+            if not boss then
+                boss = { name = plan.name, journal = plan.journal, display = plan.display, profiles = {} }
+                db.bosses[encID] = boss
+            end
+            boss.profiles = boss.profiles or {}
+            local done = false
+            for _, p in pairs(boss.profiles) do
+                if p.migratedV1 then done = true end
+            end
+            if not done then
+                local id
+                repeat
+                    id = "p" .. now .. "_" .. math.random(1000, 9999)
+                until not used[id]
+                used[id] = true
+                local diff = tonumber(plan.difficulty) or 0
+                boss.profiles[id] = {
+                    id           = id,
+                    name         = ns.L["My plan"],
+                    difficulties = diff ~= 0 and { [diff] = true } or nil,
+                    active       = plan.enabled ~= false,
+                    entries      = type(plan.entries) == "table" and CopyTable(plan.entries) or {},
+                    mrtVariant   = plan.mrtVariant,
+                    source       = "local",
+                    createdAt    = now,
+                    updatedAt    = now,
+                    migratedV1   = true,
+                }
+            end
+        end
+    end
+    -- 保險：下個版本可刪（連同這一行）。條目是複本，之後改設定檔不會動到備份
+    db.plansV1Backup = db.plansV1Backup or old
+    db.plans = nil
 end
 
 -- 目前方向的版面那一份

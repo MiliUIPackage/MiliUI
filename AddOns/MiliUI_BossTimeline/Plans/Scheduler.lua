@@ -11,9 +11,11 @@
 --     把 t 改成「那一次會發生的秒數 ＋ offset」，已經放上時間軸的撤掉重放、計時器重排。
 --     認不出來就照原本的 t 跑（備援）。換階段時間每場會漂，錨點就是為了跟著漂。
 -- 條件（職責／職業）不合的那條整條不跑（Plans.EntryApplies）。
+-- 開戰跑的是合併清單：這隻首領所有「生效中、適用這個難度」的設定檔（Plans.Active，重複的已經去掉）。
 -- 首領戰結束（ENCOUNTER_END）把還沒放的計時器取消、已經在時間軸上的撤掉。
 --
--- 測試：Scheduler.Test(id) 不必開戰就照同樣的節奏跑一遍（錨點不會動，因為沒有首領事件可認），
+-- 測試：Scheduler.Test(profileID) 不必開戰就把**這一份**設定檔照同樣的節奏跑一遍
+-- （不是合併後的；錨點不會動，因為沒有首領事件可認），
 -- Scheduler.Stop() 結束。
 ------------------------------------------------------------
 local _, ns = ...
@@ -28,7 +30,7 @@ local REPOST_MIN = 0.3    -- 錨點修正小於這個秒數就不動
 local COUNT_MERGE = 3     -- 同一技能幾秒內連發算同一次（跟 MRTData 的合併規則一樣）
 
 local jobs = {}           -- 這一場的 job
-local running             -- { id, test, start }
+local running             -- { id, test, start }：id 測試時是 profileID、開戰時是 encounterID
 local spellCount = {}     -- [spellID] = 認到第幾次
 local spellLast = {}      -- [spellID] = 上一次的秒數（合併連發用）
 
@@ -140,19 +142,20 @@ local function Runnable(e)
     return (e.t or 0) > 0 and ns.Plans.EntryApplies(e)
 end
 
--- 這份時間軸有幾條會跑（設定頁拿來決定「立即測試」能不能按）
-function Sch.RunnableCount(plan)
+-- 這份設定檔有幾條會跑（設定頁拿來決定「立即測試」能不能按）
+function Sch.RunnableCount(profile)
     local n = 0
-    for _, e in ipairs(plan and plan.entries or {}) do
+    for _, e in ipairs(profile and profile.entries or {}) do
         if Runnable(e) then n = n + 1 end
     end
     return n
 end
 
-local function Run(encounterID, plan, test)
+-- entries：要跑的條目清單（開戰＝合併後的、測試＝單一設定檔的）
+local function Run(id, entries, test)
     Sch.Stop()
-    running = { id = encounterID, test = test, start = GetTime() }
-    for _, e in ipairs(plan.entries) do
+    running = { id = id, test = test, start = GetTime() }
+    for _, e in ipairs(entries) do
         if Runnable(e) then
             local icon, text = ns.Plans.Resolve(e)
             local job = {
@@ -166,10 +169,10 @@ local function Run(encounterID, plan, test)
     ns.Fire("SchedulerChanged")
 end
 
-function Sch.Test(encounterID)
-    local plan = ns.Plans.Get(encounterID)
-    if Sch.RunnableCount(plan) == 0 then return false end
-    Run(encounterID, plan, true)
+function Sch.Test(pid)
+    local profile = ns.Plans.Get(pid)
+    if Sch.RunnableCount(profile) == 0 then return false end
+    Run(pid, profile.entries, true)
     return true
 end
 
@@ -214,9 +217,9 @@ frame:SetScript("OnEvent", function(_, event, encounterID, encounterName, diffic
     if not ns.db then return end
     if event == "ENCOUNTER_START" then
         ns.db.lastEncounter = { id = encounterID, name = S.PlainText(encounterName), difficulty = difficultyID }
-        local plan = ns.Plans.Active(encounterID, difficultyID)
-        if plan then
-            Run(encounterID, plan, false)
+        local entries = ns.Plans.Active(encounterID, difficultyID)
+        if entries then
+            Run(encounterID, entries, false)
         elseif running and running.test then
             Sch.Stop()     -- 測試跑到一半開戰了：收掉，免得跟真的混在一起
         end

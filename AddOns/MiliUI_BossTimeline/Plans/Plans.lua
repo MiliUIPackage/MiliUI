@@ -1,20 +1,30 @@
 ------------------------------------------------------------
--- 自訂時間軸的資料
+-- 自訂時間軸的資料：首領 → 設定檔 → 條目
 --
--- db.plans[encounterID] = {
---     name       = "首領名稱",           顯示用（玩家可改）
---     enabled    = true,
---     difficulty = 0,                    0 = 不分難度；其餘是 GetInstanceInfo 的 difficultyID
---     entries    = { { t, text, spell, icon, lead, enabled }, ... }   照 t 排好
---     journal    = 冒險指南的首領 ID（選填，頁面頭像用；新增首領時從選單記下、或找到模型時補上）
+-- db.bosses[encounterID] = {
+--     name       = "首領名稱",           顯示用
+--     journal    = 冒險指南的首領 ID（選填，頁面頭像用）
 --     display    = 首領模型的 displayInfo（選填，找到一次就存，之後不再查冒險指南）
+--     instance   = 冒險指南的副本 ID（選填，側欄分組用）
+--     profiles   = { [profileID] = profile, ... }
+-- }
+-- profile = {
+--     id, name,
+--     difficulties = { [difficultyID] = true } | nil    nil／空＝全部難度
+--     active       = true|false     開戰時要不要跑；同一隻首領可以同時生效好幾份（團長的＋自己的）
+--     entries      = { { t, text, spell, icon, lead, ... }, ... }   照 t 排好
+--     mrtVariant, source = "local"|"import", author, createdAt, updatedAt,
 -- }
 --   t      開戰後第幾秒「發生」
 --   lead   提前幾秒放上時間軸（在時間軸上倒數多久）
 --   spell  法術 ID（選填）：圖示與預設文字都從它來
 --   icon   圖示 fileID（選填）：沒填法術時用
 --
+-- 開戰時把「生效中、而且適用這個難度」的設定檔合併起來跑（Plans.Active）；
+-- 完全相同的條目（同秒、同法術、同文字）只跑一次 —— 團長的跟自己的重疊時不會響兩次。
+--
 -- encounterID 是 ENCOUNTER_START 給的那個數字（冒險指南的 journalEncounterID 不一樣，不要混）。
+-- profileID 全域唯一（"p<時間>_<亂數>"），條目操作與復原堆疊都只吃 profileID。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -26,8 +36,9 @@ local Plans = ns.Plans
 
 local DEFAULT_ICON = 134400     -- 問號
 local DEFAULT_LEAD = 8
+local DUP_EPS = 0.05            -- 同一秒的容許誤差（去重用）
 
--- 難度選單：0 = 全部；其餘是常見的 difficultyID
+-- 難度名稱（摘要、匯出、上一場紀錄的說明用）：0 = 全部
 Plans.DIFFICULTIES = {
     { value = 0,  label = "All difficulties" },
     { value = 14, label = "Normal raid" },
@@ -45,6 +56,30 @@ function Plans.DifficultyLabel(value)
         if d.value == (value or 0) then return L[d.label] end
     end
     return tostring(value)
+end
+
+-- 自訂時間軸頁的難度分頁：團隊副本一組、地城一組（短名稱，分頁鈕上用）
+Plans.RAID_DIFFICULTIES = {
+    { value = 17, label = "LFR" },
+    { value = 14, label = "Normal" },
+    { value = 15, label = "Heroic" },
+    { value = 16, label = "Mythic" },
+}
+Plans.DUNGEON_DIFFICULTIES = {
+    { value = 1,  label = "Normal" },
+    { value = 2,  label = "Heroic" },
+    { value = 23, label = "Mythic" },
+    { value = 8,  label = "Mythic Keystone" },
+}
+
+-- 短名稱：團隊與地城的「普通」同字，摘要裡兩組不會混在一起（一隻首領只屬於一種副本）
+function Plans.DifficultyShort(value)
+    for _, group in ipairs({ Plans.RAID_DIFFICULTIES, Plans.DUNGEON_DIFFICULTIES }) do
+        for _, d in ipairs(group) do
+            if d.value == value then return L[d.label] end
+        end
+    end
+    return Plans.DifficultyLabel(value)
 end
 
 ------------------------------------------------------------
@@ -90,62 +125,211 @@ function Plans.Resolve(entry)
 end
 
 ------------------------------------------------------------
--- 存取
+-- 首領
 ------------------------------------------------------------
-local function All()
-    return ns.db.plans
+local function AllBosses()
+    return ns.db.bosses
 end
 
-function Plans.Get(id)
-    return id and All()[id]
+function Plans.Boss(encounterID)
+    return encounterID and AllBosses()[encounterID]
 end
 
--- 依名稱排序的清單：{ { id =, plan = }, ... }
-function Plans.List()
+-- 沒有就建（空的設定檔表）；name／journal／instance 有給就補上（不蓋掉已有的 journal／instance）
+function Plans.EnsureBoss(encounterID, name, journal, instance)
+    if not encounterID then return end
+    local all = AllBosses()
+    local boss = all[encounterID]
+    if not boss then
+        boss = { name = name or tostring(encounterID), profiles = {} }
+        all[encounterID] = boss
+    elseif name and name ~= "" then
+        boss.name = name
+    end
+    boss.profiles = boss.profiles or {}
+    boss.journal = boss.journal or journal
+    boss.instance = boss.instance or instance
+    return boss
+end
+
+-- 存檔裡有紀錄的首領：{ { id =, boss = }, ... }，依名稱排序
+function Plans.Bosses()
     local out = {}
-    for id, plan in pairs(All()) do out[#out + 1] = { id = id, plan = plan } end
+    for id, boss in pairs(AllBosses()) do out[#out + 1] = { id = id, boss = boss } end
     table.sort(out, function(a, b)
-        local an, bn = a.plan.name or "", b.plan.name or ""
+        local an, bn = a.boss.name or "", b.boss.name or ""
         if an ~= bn then return an < bn end
         return a.id < b.id
     end)
     return out
 end
 
-function Plans.Ensure(id, name)
-    local all = All()
-    if not all[id] then
-        all[id] = { name = name or tostring(id), enabled = true, difficulty = 0, entries = {} }
-    elseif name and name ~= "" then
-        all[id].name = name
+-- 這隻首領有幾份設定檔、其中有沒有生效中的（側欄的數字與綠點）
+function Plans.BossSummary(encounterID)
+    local boss = Plans.Boss(encounterID)
+    local n, active = 0, false
+    if boss then
+        for _, p in pairs(boss.profiles) do
+            n = n + 1
+            if p.active then active = true end
+        end
     end
-    return all[id]
-end
-
-function Plans.Delete(id)
-    All()[id] = nil
+    return n, active
 end
 
 ------------------------------------------------------------
--- 復原：每次改動前把整份 entries 拷一份進堆疊（每隻首領各一疊、最多 UNDO_MAX 步、只存在這次登入）
+-- 設定檔
+------------------------------------------------------------
+-- profileID → encounterID 的索引；找不到（新建、刪除、遷移後）就整個重建，首領數量很少，便宜
+local ownerOf = {}
+
+local function RebuildIndex()
+    wipe(ownerOf)
+    for encID, boss in pairs(AllBosses()) do
+        for pid in pairs(boss.profiles or {}) do ownerOf[pid] = encID end
+    end
+end
+
+function Plans.BossOf(pid)
+    if not pid then return end
+    local enc = ownerOf[pid]
+    local boss = enc and AllBosses()[enc]
+    if boss and boss.profiles[pid] then return enc end
+    RebuildIndex()
+    return ownerOf[pid]
+end
+
+function Plans.Get(pid)
+    local enc = Plans.BossOf(pid)
+    return enc and AllBosses()[enc].profiles[pid]
+end
+
+function Plans.AppliesTo(profile, difficultyID)
+    if not profile then return false end
+    local set = profile.difficulties
+    if not set or not next(set) then return true end
+    return difficultyID ~= nil and set[difficultyID] == true
+end
+
+-- 這隻首領適用這個難度的設定檔（difficultyID 是 nil 就全部）：生效的在前，再依名稱
+function Plans.Profiles(encounterID, difficultyID)
+    local out = {}
+    local boss = Plans.Boss(encounterID)
+    if not boss then return out end
+    for _, p in pairs(boss.profiles) do
+        if difficultyID == nil or Plans.AppliesTo(p, difficultyID) then out[#out + 1] = p end
+    end
+    table.sort(out, function(a, b)
+        if (a.active and 1 or 0) ~= (b.active and 1 or 0) then return a.active == true end
+        local an, bn = a.name or "", b.name or ""
+        if an ~= bn then return an < bn end
+        return a.id < b.id
+    end)
+    return out
+end
+
+local function NewID()
+    local id
+    repeat
+        id = "p" .. time() .. "_" .. math.random(1000, 9999)
+    until not Plans.Get(id)
+    return id
+end
+Plans.NewID = NewID
+
+-- 直接把一份設定檔掛到首領底下（遷移與匯入共用）。回傳 profile
+function Plans.AddProfile(encounterID, profile)
+    local boss = Plans.EnsureBoss(encounterID)
+    if not boss then return end
+    profile.id = profile.id or NewID()
+    profile.entries = profile.entries or {}
+    profile.createdAt = profile.createdAt or time()
+    profile.updatedAt = profile.updatedAt or profile.createdAt
+    boss.profiles[profile.id] = profile
+    ownerOf[profile.id] = encounterID
+    return profile
+end
+
+-- 新建：只用在 difficultyID 這個難度（nil＝全部）、預設生效
+function Plans.NewProfile(encounterID, name, difficultyID)
+    return Plans.AddProfile(encounterID, {
+        name = (name and name ~= "") and name or L["My plan"],
+        difficulties = difficultyID and { [difficultyID] = true } or nil,
+        active = true,
+        source = "local",
+    })
+end
+
+-- 複製：同一隻首領、同樣的難度，預設不生效（不然一按複製，同樣的提示就變兩份在跑 —— 雖然會去重，
+-- 但之後改了其中一份就會疊起來響）
+function Plans.CopyProfile(pid)
+    local src, enc = Plans.Get(pid), Plans.BossOf(pid)
+    if not src then return end
+    local p = CopyTable(src)
+    p.id, p.createdAt, p.updatedAt = nil, nil, nil
+    p.name = L["%s (copy)"]:format(src.name or "")
+    p.active = false
+    return Plans.AddProfile(enc, p)
+end
+
+function Plans.RenameProfile(pid, name)
+    local p = Plans.Get(pid)
+    if not p or not name or name == "" then return end
+    p.name = name
+    p.updatedAt = time()
+end
+
+-- 刪掉最後一份時首領紀錄留著（頭像、副本歸屬還用得到），只是變成沒有設定檔
+local undoStacks = {}
+
+function Plans.DeleteProfile(pid)
+    local enc = Plans.BossOf(pid)
+    if not enc then return end
+    AllBosses()[enc].profiles[pid] = nil
+    ownerOf[pid] = nil
+    undoStacks[pid] = nil
+end
+
+function Plans.SetActive(pid, on)
+    local p = Plans.Get(pid)
+    if p then p.active = on and true or false end
+end
+
+-- set：{ [difficultyID] = true }；nil 或空表＝全部難度
+function Plans.SetDifficulties(pid, set)
+    local p = Plans.Get(pid)
+    if not p then return end
+    if set and next(set) then
+        local copy = {}
+        for d, on in pairs(set) do
+            if on then copy[d] = true end
+        end
+        p.difficulties = next(copy) and copy or nil
+    else
+        p.difficulties = nil
+    end
+end
+
+------------------------------------------------------------
+-- 復原：每次改動前把整份 entries 拷一份進堆疊（每份設定檔各一疊、最多 UNDO_MAX 步、只存在這次登入）
 -- 一個動作內改很多條（匯入、整份平移）包在 Plans.Batch 裡，只記一步
 ------------------------------------------------------------
 local UNDO_MAX = 20
-local undoStacks = {}
 local batching = 0
 
-function Plans.Checkpoint(id)
+function Plans.Checkpoint(pid)
+    local p = Plans.Get(pid)
+    if not p then return end
+    p.updatedAt = time()
     if batching > 0 then return end
-    local plan = Plans.Get(id)
-    if not plan then return end
-    local st = undoStacks[id] or {}
-    st[#st + 1] = CopyTable(plan.entries)
+    local st = undoStacks[pid] or {}
+    st[#st + 1] = CopyTable(p.entries)
     if #st > UNDO_MAX then table.remove(st, 1) end
-    undoStacks[id] = st
+    undoStacks[pid] = st
 end
 
-function Plans.Batch(id, fn)
-    Plans.Checkpoint(id)
+function Plans.Batch(pid, fn)
+    Plans.Checkpoint(pid)
     batching = batching + 1
     local ok, a, b, c = pcall(fn)
     batching = batching - 1
@@ -153,26 +337,28 @@ function Plans.Batch(id, fn)
     return a, b, c
 end
 
-function Plans.CanUndo(id)
-    local st = undoStacks[id]
+function Plans.CanUndo(pid)
+    local st = pid and undoStacks[pid]
     return st ~= nil and #st > 0
 end
 
-function Plans.Undo(id)
-    local plan, st = Plans.Get(id), undoStacks[id]
-    if not plan or not st or #st == 0 then return false end
-    plan.entries = table.remove(st)
+function Plans.Undo(pid)
+    local p, st = Plans.Get(pid), pid and undoStacks[pid]
+    if not p or not st or #st == 0 then return false end
+    p.entries = table.remove(st)
+    p.updatedAt = time()
     return true
 end
 
-function Plans.SetEnabled(id, entry, on)
-    Plans.Checkpoint(id)
+function Plans.SetEnabled(pid, entry, on)
+    Plans.Checkpoint(pid)
     entry.enabled = on and true or false
 end
 
-local function SortEntries(plan)
-    table.sort(plan.entries, function(a, b) return (a.t or 0) < (b.t or 0) end)
+local function SortEntries(p)
+    table.sort(p.entries, function(a, b) return (a.t or 0) < (b.t or 0) end)
 end
+Plans.SortEntries = SortEntries
 
 -- values：{ t, text, spell, icon, lead, sound, soundWhen, tts, roles, class, anchor }
 -- index 有給就是改那一條。沒給的欄位（nil）就是清掉 —— 編輯器每次都整筆送過來
@@ -182,14 +368,14 @@ end
 --   class      "PRIEST" 之類，只給這個職業；nil = 全部
 --   anchor     { spell, n, offset }：跟著這個首領技能的第 n 次施放走（Scheduler 戰鬥中認得出來時改時間），
 --              t 仍然是沒認出來時的備援秒數
-function Plans.SaveEntry(id, values, index)
-    local plan = Plans.Get(id)
-    if not plan then return end
-    Plans.Checkpoint(id)
-    local e = index and plan.entries[index]
+function Plans.SaveEntry(pid, values, index)
+    local p = Plans.Get(pid)
+    if not p then return end
+    Plans.Checkpoint(pid)
+    local e = index and p.entries[index]
     if not e then
         e = { enabled = true }
-        plan.entries[#plan.entries + 1] = e
+        p.entries[#p.entries + 1] = e
     end
     e.t         = values.t or 0
     e.text      = values.text ~= "" and values.text or nil
@@ -202,30 +388,37 @@ function Plans.SaveEntry(id, values, index)
     e.roles     = (values.roles and next(values.roles)) and values.roles or nil
     e.class     = values.class ~= "" and values.class or nil
     e.anchor    = values.anchor
-    SortEntries(plan)
+    SortEntries(p)
     return e
 end
 
 -- 拖曳：只改時間（錨點的偏移跟著平移，讓「第 n 次施放後幾秒」維持玩家拖到的位置）
-function Plans.MoveEntry(id, entry, newT)
-    local plan = Plans.Get(id)
-    if not plan or not entry then return end
-    Plans.Checkpoint(id)
+function Plans.MoveEntry(pid, entry, newT)
+    local p = Plans.Get(pid)
+    if not p or not entry then return end
+    Plans.Checkpoint(pid)
     newT = math.max(0.1, math.floor(newT * 10 + 0.5) / 10)
     if entry.anchor then
         entry.anchor.offset = (entry.anchor.offset or 0) + (newT - (entry.t or 0))
     end
     entry.t = newT
-    SortEntries(plan)
+    SortEntries(p)
 end
 
-function Plans.IndexOf(id, entry)
-    local plan = Plans.Get(id)
-    if not plan then return end
-    for i, e in ipairs(plan.entries) do
+function Plans.IndexOf(pid, entry)
+    local p = Plans.Get(pid)
+    if not p then return end
+    for i, e in ipairs(p.entries) do
         if e == entry then return i end
     end
 end
+
+-- 同秒（DUP_EPS 內）、同法術、同文字＝同一條（匯入去重、多份合併去重共用）
+local function SameEntry(a, b)
+    return math.abs((a.t or 0) - (b.t or 0)) < DUP_EPS
+        and (a.text or "") == (b.text or "") and a.spell == b.spell
+end
+Plans.SameEntry = SameEntry
 
 ------------------------------------------------------------
 -- 條件：這一條給不給目前這隻角色
@@ -251,26 +444,46 @@ function Plans.EntryApplies(e)
     return true
 end
 
-function Plans.RemoveEntry(id, index)
-    local plan = Plans.Get(id)
-    if plan and plan.entries[index] then
-        Plans.Checkpoint(id)
-        table.remove(plan.entries, index)
+function Plans.RemoveEntry(pid, index)
+    local p = Plans.Get(pid)
+    if p and p.entries[index] then
+        Plans.Checkpoint(pid)
+        table.remove(p.entries, index)
     end
 end
 
--- 這一場要不要跑、跑哪一份
+-- 這一場要跑的條目：所有「生效中、而且適用這個難度」的設定檔合併、照秒數排好；
+-- 完全相同的（SameEntry）只留第一條。沒有就 nil。
+-- 回傳的是原本的條目表（不是複本）：Scheduler 錨點修正改的是 job.t，不會動到條目本身
 function Plans.Active(encounterID, difficultyID)
-    local plan = Plans.Get(encounterID)
-    if not plan or not plan.enabled or #plan.entries == 0 then return end
-    if (plan.difficulty or 0) ~= 0 and plan.difficulty ~= difficultyID then return end
-    return plan
+    local boss = Plans.Boss(encounterID)
+    if not boss then return end
+    local out = {}
+    for _, p in ipairs(Plans.Profiles(encounterID, difficultyID)) do
+        if p.active then
+            for _, e in ipairs(p.entries) do
+                -- 先濾掉不會跑的（停用、職責／職業不合）再去重：不然 A 份停用或只給坦克的那條，
+                -- 會把 B 份給所有人的同一條當成重複吃掉
+                local dup = not Plans.EntryApplies(e)
+                for _, x in ipairs(out) do
+                    if SameEntry(x, e) then
+                        dup = true
+                        break
+                    end
+                end
+                if not dup then out[#out + 1] = e end
+            end
+        end
+    end
+    if #out == 0 then return end
+    table.sort(out, function(a, b) return (a.t or 0) < (b.t or 0) end)
+    return out
 end
 
 ------------------------------------------------------------
 -- 匯入 MRT 筆記／lorrgs 的提示行
 --
--- 一行一條，時間寫在 {time:mm:ss} 裡（DreamForgeTools 的 Personal Tactics 收的也是這個格式）：
+-- 一行一條，時間寫在 {time:mm:ss} 裡（MRT 筆記的計時格式）：
 --   {time:00:12} - {spell:31821} 光環精通
 --   {time:1:30.5}{spell:62618} 真言術：壁
 -- 規則：
@@ -279,6 +492,7 @@ end
 --   * 時間後面帶階段的（{time:00:54.8,p2}，lorrgs 的「動態計時」）不支援 —— 那是「從第二階段
 --     開始算」，我們的自訂時間軸只認開戰後的絕對秒數；算成略過，回報給玩家
 --   * 同一秒、同文字、同法術的已經有了就不重複加
+-- 筆記行沒有首領資訊：呼叫端決定進哪一份設定檔（目前選的首領，新增一份或併入目前那份）。
 -- 回傳 added, skipped, phased
 ------------------------------------------------------------
 local function CleanText(text)
@@ -300,9 +514,9 @@ local function CleanText(text)
     return strtrim(text)
 end
 
-local function ImportNote(id, note)
-    local plan = Plans.Get(id)
-    if not plan then return 0, 0, 0 end
+local function ImportNote(pid, note)
+    local p = Plans.Get(pid)
+    if not p then return 0, 0, 0 end
     local added, skipped, phased = 0, 0, 0
     for line in tostring(note or ""):gmatch("[^\r\n]+") do
         local timeText, extra = line:match("{[Tt][Ii][Mm][Ee]:([%d:%.]+)([^}]*)}")
@@ -319,9 +533,10 @@ local function ImportNote(id, note)
                 if text == "" and not spell then
                     skipped = skipped + 1
                 else
+                    local cand = { t = t, text = text ~= "" and text or nil, spell = spell }
                     local dup = false
-                    for _, e in ipairs(plan.entries) do
-                        if math.abs((e.t or 0) - t) < 0.05 and (e.text or "") == text and e.spell == spell then
+                    for _, e in ipairs(p.entries) do
+                        if SameEntry(e, cand) then
                             dup = true
                             break
                         end
@@ -329,7 +544,7 @@ local function ImportNote(id, note)
                     if dup then
                         skipped = skipped + 1
                     else
-                        Plans.SaveEntry(id, { t = t, text = text, spell = spell, lead = DEFAULT_LEAD })
+                        Plans.SaveEntry(pid, { t = t, text = text, spell = spell, lead = DEFAULT_LEAD })
                         added = added + 1
                     end
                 end
@@ -339,9 +554,14 @@ local function ImportNote(id, note)
     return added, skipped, phased
 end
 
-function Plans.ImportNote(id, note)
-    if not Plans.Get(id) then return 0, 0, 0 end
-    return Plans.Batch(id, function() return ImportNote(id, note) end)
+function Plans.ImportNote(pid, note)
+    if not Plans.Get(pid) then return 0, 0, 0 end
+    return Plans.Batch(pid, function() return ImportNote(pid, note) end)
+end
+
+-- 筆記裡有沒有任何一行 {time:}（匯入前先判斷，免得白建一份空的設定檔）
+function Plans.LooksLikeNote(note)
+    return tostring(note or ""):find("{[Tt][Ii][Mm][Ee]:") ~= nil
 end
 
 Plans.DEFAULT_LEAD = DEFAULT_LEAD
