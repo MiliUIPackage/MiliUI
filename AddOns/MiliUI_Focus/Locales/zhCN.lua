@@ -100,6 +100,7 @@ L["Glow when the focus casts an important spell"] = "焦点施放重要法术时
 L["Blizzard decides which spells count as important."] = "哪些法术算重要由暴雪判定。"
 L["Glow color"] = "发光颜色"
 L["Glow style"] = "发光样式"
+L["Add \"!\" before important spell names"] = "重要法术名称前加惊叹号"
 L["Pixel lines (bar border)"] = "像素跑线（条外框）"
 L["Autocast sparkles (bar border)"] = "自动施法闪点（条外框）"
 L["Proc glow (icon)"] = "触发发光（图标）"
