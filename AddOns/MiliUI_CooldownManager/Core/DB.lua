@@ -1305,6 +1305,16 @@ local SPELL_CONST = {
     gainSpeak        = false,
     loseSpeak        = false,
     fullSpeak        = false,
+    -- 施放後提醒（H3，Core/Sound.lua）：施放成功後 castDelay 秒（0～60，0 ＝ 當下）響 castSound／念 castSpeak（語意同上）；
+    -- castCountdown（0～5，0 ＝ 不倒數）＝ 到點前每秒念 N…1（castDelay ≥ castCountdown ＋ 1 才成立）。
+    -- 暴雪的冷卻格與自訂法術才有
+    castSound        = false,
+    castSpeak        = false,
+    castDelay        = 0,
+    castCountdown    = 0,
+    -- 音效的天賦條件（H3）：false ＝ 不限；{ id = 天賦法術 ID, need = true（有才響）|false（沒有才響）}。
+    -- 閘住這一格全部的音效與語音；跟決定格子在不在的 talentCond 是兩回事
+    soundTalent      = false,
     -- 自訂圖示：貼圖檔案編號（正整數）；false ＝ 用原本的圖示（Core/Decorate.lua 的 IconOverrideOf）
     customIcon       = false,
     -- 長條的填充色（長條類的條才用；Core/Decorate.lua 的 BarFillStyle）：色表＝這一招的單色填充（蓋過條的單色／漸層／
@@ -1655,6 +1665,8 @@ DB.OVERRIDE_GROUP = {
     readySound = "sound", gainSound = "sound", loseSound = "sound", fullSound = "sound", stackSound = "sound",
     -- 語音播報跟音效同一節（同一個觸發點、同一個總開關）
     readySpeak = "sound", gainSpeak = "sound", loseSpeak = "sound", fullSpeak = "sound",
+    -- 施放後提醒與音效的天賦條件（H3）：同一節（條頁「清除音效覆寫」一起清；天賦條件只閘音效，不決定格子在不在）
+    castSound = "sound", castSpeak = "sound", castDelay = "sound", castCountdown = "sound", soundTalent = "sound",
     -- 天賦條件（Core/Catalog.lua，{ spellID, mode }）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它
     talentCond = "talent",
     -- 增益不在時（v7 之前是 placeholder）：決定格子在不在，不是外觀；自成一組，清外觀覆寫不會清掉它

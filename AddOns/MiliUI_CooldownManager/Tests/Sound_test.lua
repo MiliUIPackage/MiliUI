@@ -7,7 +7,9 @@
 -- 合併抵消（純函式與實際掛勾路徑）、AddAuraSound 對帳（多的撤、少的登、戰鬥中與秘密光環時延後、
 -- 進場全部重登）、逐法術覆寫的讀寫與分組（Core/DB.lua 一起載）、主題預設值、LSM 回數字也能播、
 -- 層數增加音效（光環格與暴雪增益 item 的 ApplicationsIncreased、法術展開去重、節流 0.3 進簽章、item 換身分才重登）、
--- 充能滿音效（三態轉變、進表只記不響、監看表空時撤事件、換天賦出表；ns.Glow 用假的）。
+-- 充能滿音效（三態轉變、進表只記不響、監看表空時撤事件、換天賦出表；ns.Glow 用假的）、
+-- 施放後提醒（時間表、夾範圍、對格子、秘密 spellID、restart、取消時機、事件只在有設時註冊）、
+-- 音效的天賦條件（各觸發的閘、光環格對帳時排除、天賦變了重對帳）。
 -- 環境表做法同 DB_test.lua：這支本身不寫任何全域。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
@@ -78,11 +80,15 @@ env.hooksecurefunc = function(t, name, fn) hooks[#hooks + 1] = { t = t, name = n
 -- 下一幀：自己排隊，測試手動 Flush
 local deferred = {}
 local events = {}
+local eventUnits = {}
 local customRecs = {}
 local ns = {
     playerClass = "PALADIN",
     Events = {
-        Register = function(ev, key, fn) events[ev] = events[ev] or {}; events[ev][key] = fn end,
+        Register = function(ev, key, fn, unit)
+            events[ev] = events[ev] or {}; events[ev][key] = fn
+            eventUnits[ev] = unit
+        end,
         Unregister = function(ev, key) if events[ev] then events[ev][key] = nil end end,
     },
     Fire = function() end,
@@ -766,6 +772,300 @@ do
     eq("寬層：空覆寫整張拿掉", sv.profiles.Other.customShared[1].overrides, nil)
     eq("寬層：別的覆寫不動", sv.profiles.Other.customClass.MAGE[1].overrides and sv.profiles.Other.customClass.MAGE[1].overrides.procGlow, false)
     sv.profiles.Other = nil
+end
+
+------------------------------------------------------------
+-- 9. 施放後提醒（H3a／H3b）
+------------------------------------------------------------
+do
+    -- 純函式：夾範圍與時間表
+    eq("延遲：nil ＝ 0", Logic.CastDelay(nil), 0)
+    eq("延遲：false ＝ 0", Logic.CastDelay(false), 0)
+    eq("延遲：上限 60", Logic.CastDelay(99), 60)
+    eq("延遲：下限 0", Logic.CastDelay(-3), 0)
+    eq("延遲：四捨五入", Logic.CastDelay(4.6), 5)
+    eq("倒數上限：延遲 0 ⇒ 0", Logic.CountdownMax(0), 0)
+    eq("倒數上限：延遲 1 ⇒ 0", Logic.CountdownMax(1), 0)
+    eq("倒數上限：延遲 3 ⇒ 2", Logic.CountdownMax(3), 2)
+    eq("倒數上限：延遲 30 ⇒ 5", Logic.CountdownMax(30), 5)
+    eq("倒數：延遲不夠就夾", Logic.Countdown(5, 3), 2)
+    eq("倒數：false ＝ 0", Logic.Countdown(false, 10), 0)
+    eq("倒數：負數 ＝ 0", Logic.Countdown(-1, 10), 0)
+    eq("倒數：延遲夠照用", Logic.Countdown(3, 4), 3)
+    local st = Logic.CastSteps(10, 3)
+    eq("時間表：四筆", #st, 4)
+    eq("時間表：第一聲 7 秒念 3", st[1].at .. ":" .. st[1].n, "7:3")
+    eq("時間表：最後一聲在到點前 1 秒", st[3].at .. ":" .. st[3].n, "9:1")
+    eq("時間表：最後一筆是提醒本身", st[4].at, 10)
+    check("時間表：提醒本身沒有數字", st[4].n == nil)
+    st = Logic.CastSteps(0, 5)
+    eq("時間表：延遲 0 ⇒ 只有提醒、在當下", #st == 1 and st[1].at, 0)
+    st = Logic.CastSteps(2, 5)
+    eq("時間表：延遲 2 倒數夾成 1", #st, 2)
+    eq("CastSpellID：三個參數", Logic.CastSpellID("guid", 123), 123)
+    eq("CastSpellID：舊形狀兩個參數", Logic.CastSpellID(456, nil), 456)
+
+    -- 引擎：假的計時器、語音、法術索引
+    local timers = {}
+    env.C_Timer = { NewTimer = function(d, fn)
+        local t = { at = state.now + d, fn = fn }
+        function t:Cancel() t.cancelled = true end
+        timers[#timers + 1] = t
+        return t
+    end }
+    local function Live()
+        local n = 0
+        for _, t in ipairs(timers) do if not t.cancelled and not t.done then n = n + 1 end end
+        return n
+    end
+    -- 推進到 to：依時間順序觸發到點的計時器（觸發時排的新計時器也算）
+    local function Advance(to)
+        while true do
+            local best
+            for _, t in ipairs(timers) do
+                if not t.cancelled and not t.done and t.at <= to and (not best or t.at < best.at) then best = t end
+            end
+            if not best then break end
+            best.done = true
+            state.now = best.at
+            best.fn()
+        end
+        state.now = to
+    end
+    local spoken = {}
+    env.C_VoiceChat = { SpeakText = function(_, text) spoken[#spoken + 1] = text end }
+    env.C_TTSSettings = { GetVoiceOptionID = function() return 1 end }
+    local idx = {}
+    local origSI, origCatalog = ns.SpellIndex, ns.Catalog
+    ns.SpellIndex = { Lookup = function(sid) return idx[sid] or {} end }
+    local known = {}
+    ns.Catalog = { Info = function() return { name = "測試法術" } end,
+                   TalentKnown = function(tid) return known[tid] end }
+    local secretVal = {}
+    local origSecret = ns.IsSecret
+    ns.IsSecret = function(v) return v == secretVal end
+
+    local bRec = { cooldownID = 501, claimKey = "essential", barKey = "essential" }          -- 暴雪的冷卻格
+    local auraRec = { cooldownID = 502, claimKey = "buffs", barKey = "buffs" }               -- 暴雪的增益
+    local cRec = { custom = true, kind = "spell", cooldownID = "c:9", spellID = 777 }       -- 自訂法術
+    local iRec = { custom = true, kind = "item", cooldownID = "c:10" }                     -- 自訂物品
+    idx[100] = { { rec = bRec, key = "essential" } }                                         -- 基底
+    idx[101] = { { rec = bRec, key = "essential" } }                                         -- 覆寫法術（同一格）
+    idx[200] = { { rec = auraRec, key = "buffs" } }
+    idx[777] = { { rec = cRec, key = "mygroup" } }
+    idx[888] = { { rec = iRec, key = "mygroup" } }
+
+    check("適用：暴雪冷卻格", S.CastCapable(bRec))
+    check("適用：自訂法術", S.CastCapable(cRec))
+    check("不適用：暴雪增益", not S.CastCapable(auraRec))
+    check("不適用：自訂物品", not S.CastCapable(iRec))
+    eq("SPELL_CONST：castSound false", DB.SPELL_CONST.castSound, false)
+    eq("SPELL_CONST：castDelay 0", DB.SPELL_CONST.castDelay, 0)
+    eq("SPELL_CONST：soundTalent false", DB.SPELL_CONST.soundTalent, false)
+    eq("分組：castSound 在音效節", DB.OVERRIDE_GROUP.castSound, "sound")
+    eq("分組：soundTalent 在音效節", DB.OVERRIDE_GROUP.soundTalent, "sound")
+
+    -- 沒設 ⇒ 不聽事件
+    S.SyncCast()
+    check("沒設：不註冊施法事件", not (events.UNIT_SPELLCAST_SUCCEEDED and events.UNIT_SPELLCAST_SUCCEEDED.sound_cast))
+    check("沒設：CastListening 假", not S.CastListening())
+    -- 設了 ⇒ 註冊、綁 player
+    DB.SetOverride(501, "castSound", "Ding")
+    DB.SetOverride(501, "castDelay", 10)
+    DB.SetOverride(501, "castCountdown", 3)
+    S.SyncCast()
+    check("設了：註冊施法事件", events.UNIT_SPELLCAST_SUCCEEDED and events.UNIT_SPELLCAST_SUCCEEDED.sound_cast ~= nil)
+    eq("綁 player", eventUnits.UNIT_SPELLCAST_SUCCEEDED, "player")
+    -- 寬層自訂項目身上的設定也算
+    DB.SetOverride(501, "castSound", nil); DB.SetOverride(501, "castCountdown", nil); DB.SetOverride(501, "castDelay", nil)
+    p.customShared = { { kind = "spell", spellID = 1, uid = 1, overrides = { castSpeak = true } } }
+    S.SyncCast()
+    check("寬層的設定也會註冊", S.CastListening())
+    p.customShared = nil
+    S.SyncCast()
+    check("拿掉 ⇒ 撤事件", not S.CastListening())
+    DB.SetOverride(501, "castSound", "Ding")
+    DB.SetOverride(501, "castDelay", 10)
+    DB.SetOverride(501, "castCountdown", 3)
+    S.SyncCast()
+
+    state.now = 1000
+    local np = #plays
+    S.OnCast("player", "guid", 999)
+    eq("對不上的法術不排", S.CastPendingCount(), 0)
+    S.OnCast("player", "guid", secretVal)
+    eq("秘密 spellID 不排", S.CastPendingCount(), 0)
+    eq("秘密 spellID 記次數", S.castSecret, 1)
+    S.OnCast("player", "guid", 200)
+    eq("增益格不排", S.CastPendingCount(), 0)
+    S.OnCast("player", "guid", 101)
+    eq("覆寫法術對得上那一格", S.CastPendingCount(), 1)
+    eq("一次只排一顆計時器", Live(), 1)
+    Advance(1006.9)
+    eq("7 秒前不念", #spoken, 0)
+    Advance(1007)
+    eq("7 秒念 3", spoken[#spoken], "3")
+    eq("念完只排下一顆", Live(), 1)
+    Advance(1009)
+    eq("9 秒念 1", spoken[#spoken], "1")
+    eq("念了三聲", #spoken, 3)
+    eq("提醒前不響", #plays, np)
+    Advance(1010)
+    eq("10 秒響", #plays, np + 1)
+    eq("響的是設定的音效", plays[#plays].path, media.Ding)
+    eq("響完清掉", S.CastPendingCount(), 0)
+    eq("沒有殘留計時器", Live(), 0)
+
+    -- restart：同一格再施放
+    S.OnCast("player", "guid", 100)
+    Advance(1015)
+    S.OnCast("player", "guid", 100)
+    eq("再施放：還是一格", S.CastPendingCount(), 1)
+    eq("再施放：舊的取消、只剩一顆", Live(), 1)
+    np = #plays
+    Advance(1021)
+    eq("從第二次施放重算（舊的 1020 不響）", #plays, np)
+    Advance(1025)
+    eq("第二次施放後 10 秒響", #plays, np + 1)
+
+    -- 取消時機：讀取畫面、換專精、關總開關、拿掉設定
+    S.OnCast("player", "guid", 100)
+    FireEvent("LOADING_SCREEN_ENABLED")
+    eq("讀取畫面：取消", S.CastPendingCount(), 0)
+    eq("讀取畫面：計時器停了", Live(), 0)
+    FireEvent("LOADING_SCREEN_DISABLED")
+    state.now = 1100
+    S.OnCast("player", "guid", 100)
+    S.CancelAllCasts()                               -- SpecChanged／ProfileChanged 走這支
+    eq("全部取消", Live(), 0)
+    S.OnCast("player", "guid", 100)
+    p.theme.sound.enabled = false
+    S.SyncCast()
+    eq("總開關關掉：取消", S.CastPendingCount(), 0)
+    check("總開關關掉：撤事件", not S.CastListening())
+    p.theme.sound.enabled = true
+    S.SyncCast()
+    S.OnCast("player", "guid", 100)
+    DB.SetOverride(501, "castSound", nil); DB.SetOverride(501, "castCountdown", nil)
+    S.SyncCast()
+    eq("那一格拿掉設定：取消", S.CastPendingCount(), 0)
+
+    -- 延遲 0：施放當下（下一個計時器 tick）響；語音照設定念
+    DB.SetOverride(501, "castDelay", 0)
+    DB.SetOverride(501, "castSpeak", "好了")
+    S.SyncCast()
+    state.now = 1200
+    S.OnCast("player", "guid", 100)
+    Advance(1200)
+    eq("延遲 0：當下念", spoken[#spoken], "好了")
+    DB.SetOverride(501, "castSpeak", nil); DB.SetOverride(501, "castDelay", nil)
+
+    -- 自訂法術
+    DB.SetOverride("c:9", "castSound", "Bell")
+    DB.SetOverride("c:9", "castDelay", 2)
+    S.SyncCast()
+    state.now = 1300
+    np = #plays
+    S.OnCast("player", "guid", 777)
+    Advance(1302)
+    eq("自訂法術：2 秒後響", #plays, np + 1)
+    eq("自訂法術：響的是它的音效", plays[#plays].path, media.Bell)
+    DB.SetOverride("c:9", "castSound", nil); DB.SetOverride("c:9", "castDelay", nil)
+
+    ------------------------------------------------------------
+    -- 10. 音效的天賦條件（H3c）
+    ------------------------------------------------------------
+    eq("天賦條件：false ＝ 不限", Logic.TalentCond(false), nil)
+    eq("天賦條件：沒有 ID ＝ 不限", Logic.TalentCond({ need = true }), nil)
+    eq("天賦條件：need 不是布林 ＝ 不限", Logic.TalentCond({ id = 5, need = "x" }), nil)
+    eq("天賦條件：合法", Logic.TalentCond({ id = 5, need = false }), 5)
+    check("有才響：有 ⇒ 過", Logic.TalentPass({ id = 5, need = true }, true))
+    check("有才響：沒有 ⇒ 擋", not Logic.TalentPass({ id = 5, need = true }, false))
+    check("沒有才響：沒有 ⇒ 過", Logic.TalentPass({ id = 5, need = false }, false))
+    check("沒有才響：有 ⇒ 擋", not Logic.TalentPass({ id = 5, need = false }, true))
+    check("讀不到 ⇒ 過（fail-open）", Logic.TalentPass({ id = 5, need = true }, nil))
+
+    known[4242] = false
+    DB.SetOverride(501, "soundTalent", { id = 4242, need = true })
+    check("沒學 ⇒ TalentOK 假", not S.TalentOK(501))
+    check("沒設條件的格 ⇒ TalentOK 真", S.TalentOK(502))
+
+    -- 就緒
+    state.now = 1400
+    DB.SetOverride(501, "readySound", "Ding")
+    np = #plays
+    S.OnReady({ cooldownID = 501, claimKey = "essential" })
+    eq("天賦閘：就緒不響", #plays, np)
+    -- 施放後
+    DB.SetOverride(501, "castSound", "Ding")
+    S.SyncCast()
+    S.OnCast("player", "guid", 100)
+    eq("天賦閘：施放後不排", S.CastPendingCount(), 0)
+    -- 出現／消失（暴雪的冷卻格走同一個批次）
+    DB.SetOverride(501, "gainSound", "Ding")
+    local fr = { cooldownID = 501, barKey = "essential" }
+    S.OnAuraFlag(fr, false); S.OnAuraFlag(fr, true); Flush()
+    eq("天賦閘：出現不響", #plays, np)
+    -- 快取：觸發時只查快取 ⇒ 改了 API 回答不會馬上生效，要等天賦事件重算
+    known[4242] = true
+    check("快取：事件前還是舊的", not S.TalentOK(501))
+    FireEvent("TRAIT_CONFIG_UPDATED"); Flush()
+    check("快取：天賦事件後重算", S.TalentOK(501))
+    state.now = 1410
+    S.OnReady({ cooldownID = 501, claimKey = "essential" })
+    eq("學了 ⇒ 就緒響", #plays, np + 1)
+    S.OnCast("player", "guid", 100)
+    eq("學了 ⇒ 施放後排了", S.CastPendingCount(), 1)
+    S.CancelAllCasts()
+    -- 沒有才響
+    DB.SetOverride(501, "soundTalent", { id = 4242, need = false })
+    check("沒有才響：學了 ⇒ 擋", not S.TalentOK(501))
+    DB.SetOverride(501, "soundTalent", nil)
+    for _, f in ipairs({ "readySound", "castSound", "gainSound" }) do DB.SetOverride(501, f, nil) end
+    S.SyncCast()
+
+    -- 充能滿
+    do
+        local G = ns.Glow
+        local fullState = false
+        ns.Glow = { FullSpellOf = function() return 9 end, ReadFull = function() return true, fullState end }
+        DB.SetOverride(503, "fullSound", "Ding")
+        DB.SetOverride(503, "soundTalent", { id = 4243, need = true })
+        known[4243] = false
+        local fRec = { cooldownID = 503, claimKey = "essential" }
+        S.SyncFull(fRec, "essential", false)
+        fullState = true
+        np = #plays
+        state.now = 1500
+        S.OnChargesChanged()
+        eq("天賦閘：充能滿不響", #plays, np)
+        S.UnwatchFull(fRec)
+        DB.SetOverride(503, "fullSound", nil); DB.SetOverride(503, "soundTalent", nil)
+        ns.Glow = G
+    end
+
+    -- 光環格：對帳時排除；天賦變了重對帳
+    for k in pairs(customRecs) do customRecs[k] = nil end
+    customRecs.g = { kind = "aura", placedBar = "buffs", cooldownID = "c:20", spellID = 6000 }
+    DB.SetOverride("c:20", "gainSound", "Ding")
+    DB.SetOverride("c:20", "soundTalent", { id = 4244, need = true })
+    known[4244] = false
+    S.RequestAuraSync(); Flush()
+    eq("光環格：天賦不過不登記", S.AuraCount(), 0)
+    known[4244] = true
+    FireEvent("PLAYER_TALENT_UPDATE"); Flush(); Flush()
+    eq("光環格：學了天賦 ⇒ 重對帳登記", S.AuraCount(), 1)
+    known[4244] = false
+    FireEvent("SPELLS_CHANGED"); Flush(); Flush()
+    eq("光環格：忘了天賦 ⇒ 重對帳撤掉", S.AuraCount(), 0)
+    local before = nextID
+    FireEvent("SPELLS_CHANGED"); Flush(); Flush()
+    eq("天賦沒變：不重對帳", nextID, before)
+    DB.SetOverride("c:20", "gainSound", nil); DB.SetOverride("c:20", "soundTalent", nil)
+    customRecs.g = nil
+
+    ns.SpellIndex, ns.Catalog, ns.IsSecret = origSI, origCatalog, origSecret
+    env.C_Timer, env.C_VoiceChat, env.C_TTSSettings = nil, nil, nil
 end
 
 check("DebugLine 是字串", type(S.DebugLine()) == "string")

@@ -17,7 +17,9 @@
 --   ns.Sound.Speak(text, key, why)    語音播報（文字轉語音；跟音效同一個總開關、靜音與節流）
 --   ns.Sound.CanSpeak()               遊戲有沒有文字轉語音的 API（沒有 ⇒ 設定頁那幾列不顯示）
 --   ns.Sound.PreviewSpeak(text)       設定介面「試聽」
---   ns.Sound.Logic                    純函式（節流、讀取畫面靜音、合併抵消、登記對帳），
+--   ns.Sound.SyncCast()               施放後提醒的事件註冊與排程對帳（設定變了、換設定檔、換專精、進場叫）
+--   ns.Sound.TalentOK(id)             這一格的天賦條件（soundTalent）現在過不過（只查快取）
+--   ns.Sound.Logic                    純函式（節流、讀取畫面靜音、合併抵消、登記對帳、施放後提醒的時間表、天賦條件），
 --                                      Tests/Sound_test.lua 測的是這一包
 --
 -- 設定
@@ -27,6 +29,9 @@
 --   ….gainSound／loseSound                  增益類：出現／消失；暴雪的冷卻格：增益持續時間開始／結束（S.OnAuraFlag）
 --   ….stackSound                            增益類：每多一層（引擎播，AddAuraSound；沒有語音播報）
 --   ….readySpeak／fullSpeak／gainSpeak／loseSpeak   語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
+--   ….castSound／castSpeak                  施放後提醒：施放成功後 castDelay 秒響（音效／語音，語意同上）
+--   ….castDelay                             0～60 秒（0 ＝ 施放當下）；castCountdown 0～5（0 ＝ 不倒數），見「施放後提醒」
+--   ….soundTalent                           false ＝ 不限；{ id = 天賦法術 ID, need = true|false }，見「天賦條件」
 --   音效沒有條層的值，只有逐法術（DB.SPELL_CONST 給 false）。
 --   帳號層 customSounds = { { id, name, path }, … }   自訂語音（順序＝玩家排的順序）
 --   帳號層 customSoundNext                             下一個 id（不重用，刪掉的代號不會被別筆接走）
@@ -94,6 +99,32 @@
 --     列舉的是檢視器池子裡作用中、有身分的 item，**不看放沒放格**：增益不在時暗格會被停放、增益回來才放格，
 --     那常在戰鬥中，登記不了 ⇒ 登記要跟身分走，不能跟放格走（出現／消失的掛勾一樣不看放格）。
 --     item 換身分（Viewers 的 SetCooldownID／ClearCooldownID 後掛勾）時，前後任一個有設層數增加音效才重登。
+--
+-- ── 施放後提醒（castSound／castSpeak／castDelay／castCountdown）──────────────
+-- 「施放後 N 秒提醒我」：時間從**施放事件那一刻**自己用 C_Timer 算，不讀冷卻、不讀光環剩餘時間（12.1 戰鬥中是秘密值，
+-- 「剩 N 秒」這種訊號拿不到）⇒ 急速、減冷卻、光環被延長都不會讓它跟著動，它就是「施放後固定秒數」。
+--   * 觸發：UNIT_SPELLCAST_SUCCEEDED，RegisterUnitEvent 綁 player（C 層濾掉別人，也不必拿可能是秘密字串的 unit token
+--     比對）。**只有某一格設了才註冊**（S.SyncCast 掃目前專精的覆寫與寬層自訂項目的覆寫）。
+--   * spellID 是秘密值 ⇒ 那一次略過（不比較、不當 key；S.castSecret 記次數）。參數形狀照資源條的崩陷之星計數相容
+--     (unit, castGUID, spellID)／(unit, spellID) 兩種。
+--   * 對格子：查 ns.SpellIndex（認領中／放好的格：暴雪 item 收目錄的 spellID 與 overrideSpellID、自訂法術收 spellID 與
+--     overrideID）⇒ 覆寫法術／基底法術都對得上，跟冷卻事件同一張表。
+--   * 適用：暴雪的冷卻格（核心／輔助，增益兩條不算）與自訂法術。光環格、物品、裝備欄不做（物品的「施放」對不上法術 ID）。
+--   * 排程：每格一筆（key ＝ cooldownID），**一次只排下一個時間點**（倒數的每一聲、最後的提醒），到點再排下一個；
+--     同一格再施放 ⇒ 取消重排。不用 OnUpdate、不一次開 N 顆。
+--   * 倒數播報（castCountdown ＝ N）：到點前 N、N−1…1 秒各念一個數字（tostring(n)，TTS 照語系念），最後一聲在到點前 1 秒；
+--     只在 castDelay ≥ N＋1 時成立（Logic.Countdown 夾範圍，設定頁也夾）。數字不走節流（排程本身不會重複）。
+--   * 取消：讀取畫面、換專精、換設定檔、總開關關掉、那一格的設定拿掉（S.SyncCast）時全部／那一格取消。
+--   * 到點時照樣過總開關、讀取畫面靜音、節流（key "cast:<id>"）與天賦條件。
+--
+-- ── 天賦條件（soundTalent）────────────────────────────────────────────
+-- 閘住這一格的**全部**音效與語音（就緒、充能滿、出現、消失、層數增加、施放後）。
+--   * 判斷：Catalog.TalentKnown（C_SpellBook.IsSpellKnown 與 IsPlayerSpell 都問：天賦被動只有 IsPlayerSpell 準；
+--     跟格子的「天賦條件」同一支，兩個功能才不會對同一個天賦給出不同答案）。讀不到（秘密、API 不在）＝ 條件成立（fail-open）。
+--   * 快取：天賦 ID → 結果。TRAIT_CONFIG_UPDATED／PLAYER_TALENT_UPDATE／SPELLS_CHANGED／ACTIVE_TALENT_GROUP_CHANGED／
+--     換專精／進場時下一幀重算快取裡的每一個；觸發時只查快取（快取裡沒有的第一次才問 API）。
+--   * Lua 播的那幾種：觸發時過閘。光環格與增益 item 的層數增加是引擎播的（AddAuraSound）⇒ 在**對帳時**決定登不登記；
+--     重算快取時結果有變就重對帳一次。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -277,6 +308,67 @@ function Logic.SpeakText(v, spellName)
     return nil
 end
 
+-- 施放後提醒：延遲（整數秒 0～60；讀不懂 ＝ 0）
+Logic.CAST_DELAY_MAX = 60
+Logic.COUNTDOWN_MAX = 5
+function Logic.CastDelay(v)
+    v = tonumber(v)
+    if not v or v ~= v then return 0 end
+    v = math.floor(v + 0.5)
+    if v < 0 then return 0 end
+    if v > Logic.CAST_DELAY_MAX then return Logic.CAST_DELAY_MAX end
+    return v
+end
+
+-- 這個延遲最多能倒數幾聲（castDelay ≥ castCountdown ＋ 1）
+function Logic.CountdownMax(delay)
+    return math.max(0, math.min(Logic.COUNTDOWN_MAX, Logic.CastDelay(delay) - 1))
+end
+
+-- 倒數播報幾聲（false／nil／讀不懂 ＝ 0；夾在 0～CountdownMax(delay)）
+function Logic.Countdown(v, delay)
+    v = tonumber(v)
+    if not v or v ~= v then return 0 end
+    v = math.floor(v + 0.5)
+    local hi = Logic.CountdownMax(delay)
+    if v < 0 then return 0 end
+    if v > hi then return hi end
+    return v
+end
+
+-- 時間表（從施放那一刻算的秒數）：倒數的每一聲 { at, n }，最後一筆 { at = delay } 是提醒本身
+function Logic.CastSteps(delay, countdown)
+    delay = Logic.CastDelay(delay)
+    local n = Logic.Countdown(countdown, delay)
+    local out = {}
+    for k = n, 1, -1 do out[#out + 1] = { at = delay - k, n = k } end
+    out[#out + 1] = { at = delay }
+    return out
+end
+
+-- UNIT_SPELLCAST_SUCCEEDED 的 spellID：(unit, castGUID, spellID)／(unit, spellID) 兩種形狀
+function Logic.CastSpellID(a2, a3)
+    if type(a2) == "number" then return a2 end
+    return a3
+end
+
+-- 天賦條件：合法 ⇒ 天賦 ID, need；false／壞資料（沒有 ID、need 不是布林）⇒ nil（＝不限）
+function Logic.TalentCond(v)
+    if type(v) ~= "table" then return nil end
+    local id, need = v.id, v.need
+    if type(id) ~= "number" or id <= 0 or id ~= math.floor(id) then return nil end
+    if type(need) ~= "boolean" then return nil end
+    return id, need
+end
+
+-- known：true／false／nil（讀不到 ⇒ 條件成立，fail-open）
+function Logic.TalentPass(v, known)
+    local id, need = Logic.TalentCond(v)
+    if not id then return true end
+    if type(known) ~= "boolean" then return true end
+    return known == need
+end
+
 ------------------------------------------------------------
 -- 設定與播放
 ------------------------------------------------------------
@@ -364,7 +456,7 @@ end
 ------------------------------------------------------------
 -- 自訂語音清單（帳號層）
 ------------------------------------------------------------
-local SOUND_FIELDS = { "readySound", "fullSound", "gainSound", "loseSound", "stackSound" }
+local SOUND_FIELDS = { "readySound", "fullSound", "gainSound", "loseSound", "stackSound", "castSound" }
 
 local function Account() return MiliUI_CooldownManager_DB end
 
@@ -557,6 +649,60 @@ function S.PreviewSpeak(text)
 end
 
 ------------------------------------------------------------
+-- 天賦條件（soundTalent，見檔頭）
+------------------------------------------------------------
+local talentCache = {}     -- 天賦 ID → true／false／"?"（讀不到）
+local talentArmed = false
+S.talentCache = talentCache                           -- 測試用
+
+local function AskTalent(tid)
+    local C = ns.Catalog
+    local k = C and C.TalentKnown and C.TalentKnown(tid)
+    if type(k) ~= "boolean" then return "?" end
+    return k
+end
+
+local function TalentKnown(tid)
+    local v = talentCache[tid]
+    if v == nil then
+        v = AskTalent(tid)
+        talentCache[tid] = v
+    end
+    if v == "?" then return nil end
+    return v
+end
+
+-- 這一格的音效與語音現在能不能響（沒設條件 ＝ 能）
+function S.TalentOK(id)
+    if id == nil then return true end
+    local cond = ns.SpellSetting(nil, id, "soundTalent")
+    if not Logic.TalentCond(cond) then return true end
+    return Logic.TalentPass(cond, TalentKnown(cond.id))
+end
+
+-- 天賦可能變了：下一幀重算快取裡的每一個；有變 ⇒ 光環格的引擎音效重對帳（登不登記看天賦）
+local function RecheckTalents()
+    talentArmed = false
+    local changed = false
+    for tid, old in pairs(talentCache) do
+        local v = AskTalent(tid)
+        if v ~= old then
+            talentCache[tid] = v
+            changed = true
+        end
+    end
+    if changed then S.RequestAuraSync() end
+end
+S.RecheckTalents = RecheckTalents                     -- 測試用
+
+local function RequestTalentRecheck()
+    if talentArmed or next(talentCache) == nil then return end
+    talentArmed = true
+    ns.Defer(RecheckTalents)
+end
+S.RequestTalentRecheck = RequestTalentRecheck
+
+------------------------------------------------------------
 -- 就緒音效（Glow 叫）
 ------------------------------------------------------------
 function S.WantsReady(rec)
@@ -566,7 +712,7 @@ function S.WantsReady(rec)
 end
 
 function S.OnReady(rec)
-    if not rec or rec.cooldownID == nil then return end
+    if not rec or rec.cooldownID == nil or not S.TalentOK(rec.cooldownID) then return end
     local key = "ready:" .. tostring(rec.cooldownID)
     S.Play(S.NameOf(rec.claimKey, rec.cooldownID, "readySound"), key, "ready")
     S.Speak(S.SpeakTextOf(rec.claimKey, rec.cooldownID, "readySpeak"), key, "ready")
@@ -605,7 +751,7 @@ end
 
 -- 記下這一次讀到的狀態；明確的沒滿 → 明確的滿就響（讀不到 ＝ nil：下次要先看到明確的沒滿才算）
 local function Step(w, now)
-    if Logic.FullEdge(w.state, now) then
+    if Logic.FullEdge(w.state, now) and S.TalentOK(w.cid) then
         local key = "full:" .. tostring(w.cid)
         S.Play(S.NameOf(w.bar, w.cid, "fullSound"), key, "full")
         S.Speak(S.SpeakTextOf(w.bar, w.cid, "fullSpeak"), key, "full")
@@ -668,10 +814,12 @@ local function FlushBatch()
     batchArmed = false
     for _, e in ipairs(Logic.Drain(batch)) do
         local id = e.payload
-        local field = e.what == "gain" and "gainSound" or "loseSound"
-        local key = e.what .. ":" .. tostring(id)
-        S.Play(S.NameOf(nil, id, field), key, e.what)
-        S.Speak(S.SpeakTextOf(nil, id, e.what == "gain" and "gainSpeak" or "loseSpeak"), key, e.what)
+        if S.TalentOK(id) then
+            local field = e.what == "gain" and "gainSound" or "loseSound"
+            local key = e.what .. ":" .. tostring(id)
+            S.Play(S.NameOf(nil, id, field), key, e.what)
+            S.Speak(S.SpeakTextOf(nil, id, e.what == "gain" and "gainSpeak" or "loseSpeak"), key, e.what)
+        end
     end
 end
 
@@ -832,7 +980,9 @@ function S.WantAuraSounds()
             -- 照冷卻格那一筆的 cooldownID 讀 gainSound／loseSound／stackSound、認的法術是解出來的增益（AuraIDsOf 讀 auraIDs）
             local rec = r
             if r.kind ~= "aura" then rec = r.buffOverlay end
-            if rec and rec.kind == "aura" and rec.placedBar and rec.cooldownID and type(rec.spellID) == "number" then
+            -- 天賦條件不過：不登記（天賦變了 RecheckTalents 會重對帳）
+            if rec and rec.kind == "aura" and rec.placedBar and rec.cooldownID and type(rec.spellID) == "number"
+                and S.TalentOK(rec.cooldownID) then
                 -- 多法術的光環格（嗜血那種）：每個法術各登一筆（引擎只認單一 spellID）
                 local ids = (CU.AuraIDsOf and CU.AuraIDsOf(rec)) or { rec.spellID }
                 for field, f in pairs(FIELDS) do
@@ -852,6 +1002,7 @@ function S.WantAuraSounds()
                 local cid = rec.cooldownID
                 if cid == nil or rec.custom then return end
                 local path = S.Path(S.NameOf(nil, cid, "stackSound"))
+                if path ~= nil and not S.TalentOK(cid) then return end
                 if path == nil then return end
                 for _, sid in ipairs(BuffItemSpells(cid)) do
                     Want(want, increased, sid, path, channel, Logic.STACK_THROTTLE)
@@ -944,16 +1095,169 @@ function S.AuraCount()
 end
 
 ------------------------------------------------------------
+-- 施放後提醒（見檔頭）
+------------------------------------------------------------
+local pending = {}         -- cooldownID → { bar, start, steps, i, timer }
+local castOn = false
+S.castPending = pending                               -- 測試用
+S.castSecret = 0                                      -- 秘密 spellID 略過的次數（debug）
+S.castScheduled = 0
+
+-- 這一格能不能用施放後提醒：暴雪的冷卻格（增益兩條不算）與自訂法術
+local function CastCapable(rec)
+    if not rec or rec.cooldownID == nil then return false end
+    if rec.custom then return rec.kind == "spell" end
+    local V = ns.Viewers
+    return not (V and V.AURA_KIND and V.AURA_KIND[rec.barKey])
+end
+S.CastCapable = CastCapable                           -- 測試用
+
+-- 這一格設了施放後提醒（音效、語音或倒數任一個）
+function S.WantsCast(bar, id)
+    if id == nil then return false end
+    if S.NameOf(bar, id, "castSound") ~= nil or S.SpeakTextOf(bar, id, "castSpeak") ~= nil then return true end
+    return S.CanSpeak() and Logic.Countdown(ns.SpellSetting(bar, id, "castCountdown"),
+                                            ns.SpellSetting(bar, id, "castDelay")) > 0
+end
+
+local function CancelCast(id)
+    local p = pending[id]
+    if not p then return end
+    pending[id] = nil
+    if p.timer then p.timer:Cancel() end
+end
+
+function S.CancelAllCasts()
+    for id in pairs(pending) do CancelCast(id) end
+end
+
+local ArmCast
+
+local function FireCast(id, p)
+    if pending[id] ~= p then return end              -- 已取消／重排
+    local st = p.steps[p.i]
+    p.i = p.i + 1
+    p.timer = nil
+    if st and not ns.released and S.TalentOK(id) then
+        if st.n then
+            S.Speak(tostring(st.n), nil, "countdown")  -- 不走節流：排程本身不會重複
+        else
+            local key = "cast:" .. tostring(id)
+            S.Play(S.NameOf(p.bar, id, "castSound"), key, "cast")
+            S.Speak(S.SpeakTextOf(p.bar, id, "castSpeak"), key, "cast")
+        end
+    end
+    if p.steps[p.i] then ArmCast(id, p) else pending[id] = nil end
+end
+
+-- 只排下一個時間點（倒數的下一聲或提醒本身）
+ArmCast = function(id, p)
+    local st = p.steps[p.i]
+    local wait = math.max(0, p.start + st.at - Now())
+    p.timer = C_Timer.NewTimer(wait, function() FireCast(id, p) end)
+end
+
+local function ScheduleCast(id, bar, now)
+    CancelCast(id)                                    -- 同一格再施放：取消重排
+    local p = { bar = bar, start = now, i = 1,
+                steps = Logic.CastSteps(ns.SpellSetting(bar, id, "castDelay"), ns.SpellSetting(bar, id, "castCountdown")) }
+    if not S.CanSpeak() then
+        -- 沒有語音 API：倒數那幾聲拿掉，只留提醒本身
+        p.steps = { p.steps[#p.steps] }
+    end
+    pending[id] = p
+    S.castScheduled = S.castScheduled + 1
+    ArmCast(id, p)
+end
+
+local function OnCast(_, a2, a3)
+    if ns.released or not S.Enabled() then return end
+    local sid = Logic.CastSpellID(a2, a3)
+    if sid == nil then return end
+    if ns.IsSecret(sid) then                          -- 秘密：不比較、不當 key，這一次略過
+        S.castSecret = S.castSecret + 1
+        return
+    end
+    if type(sid) ~= "number" then return end
+    local SI = ns.SpellIndex
+    if not (SI and SI.Lookup) then return end
+    local now = Now()
+    for _, e in ipairs(SI.Lookup(sid)) do
+        local rec = e.rec
+        if CastCapable(rec) then
+            local id = rec.cooldownID
+            local bar = e.key or rec.claimKey
+            if S.WantsCast(bar, id) and S.TalentOK(id) then ScheduleCast(id, bar, now) end
+        end
+    end
+end
+S.OnCast = OnCast                                     -- 測試用
+
+-- 某一張覆寫表有沒有設施放後提醒（原始值，不看總開關與語音 API：只決定要不要聽事件）
+local function OverrideWantsCast(o)
+    if type(o) ~= "table" then return false end
+    if Logic.Name(o.castSound) then return true end
+    if o.castSpeak ~= nil and o.castSpeak ~= false then return true end
+    return Logic.Countdown(o.castCountdown, o.castDelay) > 0
+end
+
+-- 目前專精的覆寫＋寬層自訂項目身上的覆寫，有沒有任何一格設了
+local function AnyCastWanted()
+    local DB = ns.DB
+    local sp = DB and DB.SpecSpells and DB.SpecSpells(false)
+    local all = sp and type(sp.overrides) == "table" and sp.overrides
+    for _, o in pairs(all or {}) do
+        if OverrideWantsCast(o) then return true end
+    end
+    local found = false
+    if DB and DB.EachWideList then
+        DB.EachWideList(ns.profile, function(list)
+            for _, e in ipairs(list) do
+                if not found and type(e) == "table" and OverrideWantsCast(e.overrides) then found = true end
+            end
+        end)
+    end
+    return found
+end
+
+-- 事件註冊與排程對帳：設定變了（Options 的 FlushEngine）、換設定檔、換專精、進場
+function S.SyncCast()
+    local on = not ns.released and S.Enabled() and AnyCastWanted()
+    if on ~= castOn then
+        castOn = on
+        if on then ns.Events.Register("UNIT_SPELLCAST_SUCCEEDED", "sound_cast", OnCast, "player")
+        else ns.Events.Unregister("UNIT_SPELLCAST_SUCCEEDED", "sound_cast") end
+    end
+    if not on then
+        S.CancelAllCasts()
+        return
+    end
+    for id, p in pairs(pending) do
+        if not S.WantsCast(p.bar, id) then CancelCast(id) end
+    end
+end
+
+function S.CastListening() return castOn end
+
+function S.CastPendingCount()
+    local n = 0
+    for _ in pairs(pending) do n = n + 1 end
+    return n
+end
+
+------------------------------------------------------------
 -- 除錯
 ------------------------------------------------------------
 function S.DebugLine()
     local last = S.last
     local lastText = last and ("%s（%s，%.1f 秒前）"):format(tostring(last.name), tostring(last.why), Now() - last.t) or "無"
-    return ("  音效：%s  聲道 %s  光環格登記 %d 筆%s  增益掛勾 %s  播過 %d 次、念過 %d 次（語音 API %s）（擋掉 %d）  最近：%s%s")
+    return ("  音效：%s  聲道 %s  光環格登記 %d 筆%s  增益掛勾 %s  播過 %d 次、念過 %d 次（語音 API %s）（擋掉 %d）  最近：%s%s"
+            .. "\n  施放後提醒：%s  排過 %d 次、排程中 %d 格、略過秘密 %d 次")
         :format(S.Enabled() and "開" or "關", S.Channel(), S.AuraCount(),
                 S.auraPending and "（待登記）" or "", tostring(S.hookMode), S.played, S.spoken,
                 S.CanSpeak() and "有" or "沒有", S.skipped, lastText,
-                S.lastAuraError and ("  登記失敗 %d 次：%s"):format(S.auraErrors, S.lastAuraError) or "")
+                S.lastAuraError and ("  登記失敗 %d 次：%s"):format(S.auraErrors, S.lastAuraError) or "",
+                castOn and "聽施法事件" or "沒在聽", S.castScheduled, S.CastPendingCount(), S.castSecret)
 end
 
 ------------------------------------------------------------
@@ -970,9 +1274,26 @@ function S.Init()
         Logic.OnEnterWorld(mute, Now())
         syncArmed = true
         ns.Defer(SyncAuraSounds, true)
+        RequestTalentRecheck()
+        ns.Defer(S.SyncCast)
     end)
-    E.Register("LOADING_SCREEN_ENABLED", "sound", function() Logic.OnLoadingStart(mute) end)
+    -- 讀取畫面：施放後提醒全部取消（過圖之後還響只會嚇人）
+    E.Register("LOADING_SCREEN_ENABLED", "sound", function() Logic.OnLoadingStart(mute); S.CancelAllCasts() end)
     E.Register("LOADING_SCREEN_DISABLED", "sound", function() Logic.OnLoadingEnd(mute, Now()) end)
-    ns.RegisterCallback("ProfileChanged", "sound", function() S.RequestAuraSync() end)
-    ns.RegisterCallback("SpecChanged", "sound", function() S.RequestAuraSync() end)
+    -- 天賦條件的快取：天賦可能變了就下一幀重算
+    for _, ev in ipairs({ "TRAIT_CONFIG_UPDATED", "PLAYER_TALENT_UPDATE", "SPELLS_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED" }) do
+        E.Register(ev, "sound_talent", RequestTalentRecheck)
+    end
+    ns.RegisterCallback("ProfileChanged", "sound", function()
+        S.RequestAuraSync()
+        S.CancelAllCasts()
+        S.SyncCast()
+    end)
+    ns.RegisterCallback("SpecChanged", "sound", function()
+        S.RequestAuraSync()
+        S.CancelAllCasts()
+        RequestTalentRecheck()
+        S.SyncCast()
+    end)
+    S.SyncCast()
 end

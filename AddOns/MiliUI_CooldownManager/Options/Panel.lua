@@ -506,6 +506,8 @@ local function FlushEngine()
     if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
     -- 暴雪增益 item 的層數增加音效（AddAuraSound）不經過放格：設定變了自己對一次帳（光環格放格時本來就會叫）
     if ns.Sound and ns.Sound.RequestAuraSync then ns.Sound.RequestAuraSync() end
+    -- 施放後提醒：有格子設了才聽施法事件；設定拿掉的那格取消排程
+    if ns.Sound and ns.Sound.SyncCast then ns.Sound.SyncCast() end
 end
 
 function Options.ApplyEngine(level, now)

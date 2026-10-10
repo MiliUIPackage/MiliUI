@@ -36,6 +36,9 @@
 -- 每列一個下拉（第一項「無」＝清掉覆寫，
 -- 其餘是 LibSharedMedia 的音效名，開選單那一刻才列、依名稱排序；清單長時下拉自己會裁切＋滾輪捲）
 -- ＋「試聽」。一個音效都沒有時多一列灰字說明。
+-- H3：暴雪的冷卻格與自訂法術多一組「施放後音效」＋語音播報＋「施放後幾秒」＋「倒數播報」（要有語音 API）＋灰字；
+-- 所有格在音效分頁最後多「天賦條件」（soundTalent，閘這一格全部音效與語音）。建列與回填在 Pop.BuildCastRows／
+-- Pop.BuildSoundTalent／Pop.RefreshSoundExtras（拆出 Build：upvalue 上限）。
 --
 -- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
 -- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
@@ -146,7 +149,8 @@ local speaks = {}        -- { field, cb, box, listen }
 
 -- 音效欄位 → 同一個觸發的語音播報欄位
 -- （層數增加音效沒有：引擎播的，Lua 端沒有訊號 ⇒ 不出語音播報列）
-local SPEAK_OF = { readySound = "readySpeak", fullSound = "fullSpeak", gainSound = "gainSpeak", loseSound = "loseSpeak" }
+local SPEAK_OF = { readySound = "readySpeak", fullSound = "fullSpeak", gainSound = "gainSpeak", loseSound = "loseSpeak",
+                   castSound = "castSpeak" }
 
 -- 這招現在有沒有充能（maxCharges > 1）：充能滿音效、充能滿了發光那幾列只在有充能時出現。
 -- 法術照 Core/Glow.lua 的同一套解（G.FullSpellOfID）；解不出法術（物品、裝備欄、增益）＝沒有。
@@ -176,6 +180,8 @@ end
 -- 音效欄位與顯示在哪一類（class：「cooldown」冷卻類｜「aura」增益類）
 -- 暴雪的冷卻格（kind ＝ nil）另有增益出現／消失：暴雪開始／停止倒增益持續時間（Core/Sound.lua 的 OnAuraFlag），同一組欄位
 local function BlizzCooldownSound(kind, class) return kind == nil and class == "cooldown" end
+-- 施放後提醒（H3，Core/Sound.lua 的 CastCapable）：暴雪的冷卻格與自訂法術；光環格、物品、裝備欄不做
+local function CastWhen(kind, class) return class == "cooldown" and (kind == nil or kind == "spell") end
 -- 隱藏回充倒數：只有暴雪的冷卻格（自訂法術的回充本來就不顯示倒數），而且不在長條類的條上（同 OnBars，那支定義在後面）
 local function ChargeTimerWhen(kind, class)
     return kind == nil and class == "cooldown" and not (cur ~= nil and ns.Setting(cur.key, "kind") == "bars")
@@ -193,6 +199,8 @@ local SOUNDS = {
       help = L["Plays each time the buff gains a stack. The first stack counts as gained, not as a new stack, so a buff that stacks to 2 plays exactly when it reaches 2."] },
     { field = "gainSound",  label = L["Buff gained sound"], when = BlizzCooldownSound },
     { field = "loseSound",  label = L["Buff lost sound"],   when = BlizzCooldownSound },
+    -- 施放後提醒（H3）：延遲、倒數播報與說明接在這兩列後面（Pop.BuildCastRows）
+    { field = "castSound",  label = L["After-cast sound"],  when = CastWhen },
 }
 
 -- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益持續時間）
@@ -523,6 +531,172 @@ local function ExampleArgs()
 end
 
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
+
+------------------------------------------------------------
+-- 音效分頁的 H3 三件（Build 叫；拆成 Pop 上的函式：Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
+--   施放後提醒：音效列＋語音播報列走 SOUNDS 那一圈（castSound／castSpeak）；這裡接「施放後幾秒」「倒數播報」兩個數字框
+--     ＋下一列灰字。倒數播報要有語音 API；延遲不到倒數＋1 秒時倒數框停用、寫入時夾範圍（Sound.Logic.Countdown）。
+--   天賦條件（soundTalent）：所有格都有。下拉（不限／有這個天賦才響／沒有這個天賦才響）＋下一列 ID 框、圖示與名字
+--     （查不到紅字）＋灰字。ID 框有焦點時收 Shift 點天賦樹（同一般分頁的天賦條件：看不見的代理框當 Picker 的收件者）。
+--   每一列右鍵標籤清掉那一格。
+------------------------------------------------------------
+function Pop.BuildCastRows(NoteRow)
+    local Logic = ns.Sound.Logic
+    local ctl = {}
+    Pop.castCtl = ctl
+    local dr, dh = NewRow(L["Seconds after cast"], CastWhen)
+    local dnum
+    dnum = W.CreateNumberBox(dr, 40, 1, function(v)
+        if not cur then return end
+        local d = Logic.CastDelay(v)
+        if dnum:GetValue() ~= d then dnum:SetValue(d) end
+        ns.DB.SetOverride(cur.id, "castDelay", d)
+        -- 倒數跟著夾：延遲縮短到不夠倒數時，存著的倒數一起降
+        local c = ns.SpellOverride(cur.id, "castCountdown")
+        if c ~= nil and Logic.Countdown(c, d) ~= c then
+            ns.DB.SetOverride(cur.id, "castCountdown", Logic.Countdown(c, d))
+        end
+        Changed()
+    end)
+    dnum:SetPoint("LEFT", dr, "LEFT", CTRL_X, 0)
+    RightClickClears(dr, dh, "castDelay")
+    ctl.delay = dnum
+
+    local cr, ch = NewRow(L["Spoken countdown"], function(kind, class)
+        return CastWhen(kind, class) and ns.Sound.CanSpeak()
+    end, L["Reads the last seconds aloud before the after-cast alert, for example 3, 2, 1. The delay has to be at least one second longer than the countdown."])
+    local cnum
+    cnum = W.CreateNumberBox(cr, 40, 1, function(v)
+        if not cur then return end
+        local c = Logic.Countdown(v, ns.SpellSetting(cur.key, cur.id, "castDelay"))
+        if cnum:GetValue() ~= c then cnum:SetValue(c) end
+        ns.DB.SetOverride(cur.id, "castCountdown", c)
+        Changed()
+    end)
+    cnum:SetPoint("LEFT", cr, "LEFT", CTRL_X, 0)
+    RightClickClears(cr, ch, "castCountdown")
+    ctl.count, ctl.countRow = cnum, cr
+
+    NoteRow(L["Plays this many seconds after you cast the spell (0 plays right away); casting it again starts over. It counts from your cast, so haste and cooldown reductions don't move it."], CastWhen)
+end
+
+function Pop.BuildSoundTalent(NoteRow)
+    local ctl = {}
+    Pop.soundTalentCtl = ctl
+    local function Write(need, id)
+        if not cur then return end
+        local v = nil
+        if need ~= nil then v = { id = id, need = need } end
+        ns.DB.SetOverride(cur.id, "soundTalent", v)
+        Changed()
+    end
+    local r, h = NewRow(L["Talent condition"])
+    local items = {
+        { text = L["Any talents"],              value = "any" },
+        { text = L["Only with this talent"],    value = "have" },
+        { text = L["Only without this talent"], value = "lack" },
+    }
+    local dd = W.CreateDropdown(r, ROW_W - CTRL_X, items, function(value)
+        if not cur then return end
+        local o = Override("soundTalent")
+        local id = type(o) == "table" and o.id or nil
+        if value == "have" or value == "lack" then Write(value == "have", id) else Write(nil) end
+    end)
+    dd:SetMaxWidth(ROW_W - CTRL_X)
+    dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+    RightClickClears(r, h, "soundTalent")
+    ctl.dd = dd
+
+    -- ID 框＋圖示＋名字（下一列，沒有標籤，對齊控件欄）
+    local ir = NewRow(nil)
+    local box = W.CreateEditBox(ir, 70, 20)
+    box:SetPoint("LEFT", ir, "LEFT", CTRL_X, 0)
+    box:SetNumeric(true)
+    box:SetMaxLetters(10)
+    local icon = ir:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(16, 16)
+    icon:SetPoint("LEFT", box, "RIGHT", 6, 0)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    local name = ir:CreateFontString(nil, "OVERLAY")
+    name:SetFontObject(W.fontSmall)
+    name:SetPoint("LEFT", icon, "RIGHT", 4, 0)
+    name:SetPoint("RIGHT", ir, "RIGHT", 0, 0)
+    name:SetJustifyH("LEFT")
+    name:SetWordWrap(false)
+    ctl.box, ctl.icon, ctl.name = box, icon, name
+    -- 提交：沒選「有／沒有」時填了 ID ⇒ 當成「有這個天賦才響」；清空 ⇒ 留著選項、拿掉 ID（引擎當不限）
+    local function Commit()
+        if not cur then return end
+        local n = ns.Picker.ParseID(box:GetText())
+        local o = Override("soundTalent")
+        local need = type(o) == "table" and o.need
+        if type(need) ~= "boolean" then need = nil end
+        local old = type(o) == "table" and o.id or nil
+        if n == old and (n == nil or need ~= nil) then return end
+        if n and need == nil then need = true end
+        if need == nil then return end
+        Write(need, n)
+    end
+    box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    box:HookScript("OnEditFocusLost", Commit)
+    box:HookScript("OnTextChanged", function(_, userInput)
+        if not userInput and box.filling == nil then Commit() end
+    end)
+    -- Shift 點天賦：同一般分頁的天賦條件（ID 框有焦點才收，不吃掉玩家平常 Shift 點進聊天的連結）
+    local proxy = CreateFrame("Frame", nil, ir)
+    proxy:SetSize(1, 1)
+    proxy:SetPoint("TOPLEFT", ir, "TOPLEFT", 0, 0)
+    proxy:SetAlpha(0)
+    proxy.boxes = { id = box }
+    function proxy:IsShown() return self:IsVisible() and box:HasFocus() and true or false end
+    box:HookScript("OnEditFocusGained", function()
+        ns.Picker.WatchInput(proxy, "spell", L["That is an item link. Enter a spell ID here."])
+    end)
+
+    NoteRow(L["This spell's sounds and spoken alerts only play while you have (or don't have) this talent. Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree."])
+end
+
+-- Refresh 叫：施放後提醒的兩個數字框、音效的天賦條件
+function Pop.RefreshSoundExtras()
+    if not cur then return end
+    local key, id = cur.key, cur.id
+    local Logic = ns.Sound.Logic
+    local c = Pop.castCtl
+    if c then
+        local delay = Logic.CastDelay(ns.SpellSetting(key, id, "castDelay"))
+        c.delay:SetValue(delay)
+        c.count:SetValue(Logic.Countdown(ns.SpellSetting(key, id, "castCountdown"), delay))
+        local can = Logic.CountdownMax(delay) > 0
+        c.count:SetEnabled(can)
+        c.count:SetAlpha(can and 1 or 0.4)
+    end
+    local t = Pop.soundTalentCtl
+    if t then
+        local o = Override("soundTalent")
+        local need = type(o) == "table" and o.need
+        t.dd:SetSelectedValue(need == true and "have" or need == false and "lack" or "any")
+        local tid = type(o) == "table" and type(o.id) == "number" and o.id > 0 and o.id or nil
+        t.box.filling = true                     -- 回填不算 Shift 點擊（OnTextChanged 不提交）
+        t.box:SetText(tid and tostring(tid) or "")
+        t.box.filling = nil
+        t.box:SetCursorPosition(0)
+        local tn = tid and SpellNameOf(tid)
+        if tn then
+            t.name:SetText(tn)
+            t.name:SetTextColor(0.8, 0.8, 0.8)
+            t.icon:SetTexture(ns.Picker.LinkIcon("spell", tid) or 134400)
+            t.icon:Show()
+        else
+            t.name:SetText(tid and L["Spell not found"] or "")
+            t.name:SetTextColor(1, 0.3, 0.3)
+            t.icon:Hide()
+        end
+        -- 名字左邊沒有圖示時貼回輸入框
+        t.name:ClearAllPoints()
+        t.name:SetPoint("LEFT", tn and t.icon or t.box, "RIGHT", tn and 4 or 6, 0)
+        t.name:SetPoint("RIGHT", t.box:GetParent(), "RIGHT", 0, 0)
+    end
+end
 
 ------------------------------------------------------------
 -- 自訂文字（M）：增益圖示類的格（暴雪的增益圖示、圖示形的光環格與飾品欄增益）才有；長條不出現（長條本來就有名字）。
@@ -1993,6 +2167,9 @@ local function Build()
             NoteRow(t.note, t.noteCharge and ChargeWhen(SoundRowWhen) or SoundRowWhen)
         end
     end
+    -- 施放後提醒的延遲／倒數、音效的天賦條件（H3）
+    Pop.BuildCastRows(NoteRow)
+    Pop.BuildSoundTalent(NoteRow)
     -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
     local nsRow = CreateFrame("Frame", nil, frame)
     local nsTip = Note(nsRow)
@@ -2567,6 +2744,7 @@ function Pop.Refresh()
         r.dd:SetSelectedValue(v)
         r.listen:SetEnabled(v ~= false)
     end
+    Pop.RefreshSoundExtras()
     frame.restoreBtn:SetEnabled(ns.DB.HasOverrides(id))
 end
 
