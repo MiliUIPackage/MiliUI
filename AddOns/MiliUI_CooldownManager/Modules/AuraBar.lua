@@ -186,6 +186,17 @@ end
 --                 mode ＝ "stacks"（預設，層數）｜"time"（剩餘秒數）｜"stacksTime"（層數 (秒數)）｜"timeStacks"（秒數 (層數)）；
 --                 decimals ＝ 秒數低於這個值印一位小數 }
 ------------------------------------------------------------
+-- 文字的位移（text／count 的 off ＝ { x, y }，已換成 FontString 自己的單位；沒給 ＝ 置中不動）
+local function Off(t)
+    local o = type(t) == "table" and t.off
+    if type(o) ~= "table" then return 0, 0 end
+    return tonumber(o[1]) or 0, tonumber(o[2]) or 0
+end
+local function OffSig(t)
+    local x, y = Off(t)
+    return Fmt(x) .. "," .. Fmt(y)
+end
+
 function AB.Signature(spec)
     local ids = {}
     for _, id in ipairs(spec.spellIDs or {}) do ids[#ids + 1] = tostring(id) end
@@ -204,13 +215,14 @@ function AB.Signature(spec)
     end
     local tx = spec.kind == "duration" and spec.text
     if type(tx) == "table" then
-        parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.outline), tostring(tx.decimals) }, ":")
+        parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.outline), tostring(tx.decimals),
+            OffSig(tx) }, ":")
         if tx.gcd then parts[#parts + 1] = table.concat({ "gcd", Fmt(tx.gcd), tostring(tx.last) }, ":") end
     end
     local cn = spec.kind ~= "instances" and spec.count
     if type(cn) == "table" then
         parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.outline), tostring(cn.suffix),
-            tostring(cn.mode or "stacks"), tostring(cn.decimals) }, ":")
+            tostring(cn.mode or "stacks"), tostring(cn.decimals), OffSig(cn) }, ":")
     end
     local sp = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.strip
     if type(sp) == "table" then
@@ -272,7 +284,7 @@ local function InitTimerText(btn, bar, st)
     pcall(fs.SetIgnoreParentScale, fs, true)
     fs:SetTextColor(1, 1, 1, 1)
     fs:SetJustifyH("CENTER")
-    fs:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    fs:SetPoint("CENTER", btn, "CENTER", Off(tx))
     if not (st.formatter and pcall(btn.SetDurationText, btn, fs, { textFormatter = st.formatter })) then
         btn:SetDurationText(fs)
     end
@@ -315,10 +327,11 @@ local function InitCountText(btn, bar, cn, st)
     tf:SetAllPoints(btn)
     tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
     local mode = cn.mode or "stacks"
+    local ox, oy = Off(cn)
     if mode == "time" then
         local fs = TextFS(tf, cn)
         fs:SetJustifyH("CENTER")
-        fs:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        fs:SetPoint("CENTER", btn, "CENTER", ox, oy)
         BindDuration(btn, fs, st)
         return
     end
@@ -326,9 +339,9 @@ local function InitCountText(btn, bar, cn, st)
         local half = (tonumber(cn.size) or 10) * 0.15
         local left, right = TextFS(tf, cn), TextFS(tf, cn)
         left:SetJustifyH("RIGHT")
-        left:SetPoint("RIGHT", btn, "CENTER", -half, 0)
+        left:SetPoint("RIGHT", btn, "CENTER", -half + ox, oy)
         right:SetJustifyH("LEFT")
-        right:SetPoint("LEFT", btn, "CENTER", half, 0)
+        right:SetPoint("LEFT", btn, "CENTER", half + ox, oy)
         if mode == "stacksTime" then
             btn:SetApplicationCount(left, st.countFormatter and { formatter = st.countFormatter } or {})
             BindDuration(btn, right, st, "({})")
@@ -342,16 +355,16 @@ local function InitCountText(btn, bar, cn, st)
     local fs = TextFS(tf, cn)
     if off > 0 then
         fs:SetJustifyH("RIGHT")
-        fs:SetPoint("RIGHT", btn, "CENTER", off, 0)
+        fs:SetPoint("RIGHT", btn, "CENTER", off + ox, oy)
     else
         fs:SetJustifyH("CENTER")
-        fs:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        fs:SetPoint("CENTER", btn, "CENTER", ox, oy)
     end
     btn:SetApplicationCount(fs, (off <= 0 and st.countFormatter) and { formatter = st.countFormatter } or {})
     if off > 0 then
         local sx = TextFS(tf, cn)
         sx:SetJustifyH("LEFT")
-        sx:SetPoint("LEFT", btn, "CENTER", off, 0)
+        sx:SetPoint("LEFT", btn, "CENTER", off + ox, oy)
         sx:SetText(cn.suffix)
     end
 end

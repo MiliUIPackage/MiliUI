@@ -1140,6 +1140,16 @@ local function TextOutline(cfg)
 end
 R.TextOutline = TextOutline          -- 虛空化身那兩段字「跟隨這一列的數字」用（Modules/DevourerMeta.lua）
 
+-- 條上數字的位移（textOffset，所有列共用）換成 FontString 自己的單位：字型忽略父層縮放（SetPixelFont），
+-- 位移要乘上 UIParent 的縮放才是版面上的 N 點（同 DevourerMeta.Layout）
+function R.TextOffset(cfg)
+    local o = type(cfg) == "table" and cfg.textOffset
+    if type(o) ~= "table" then return 0, 0 end
+    local scale = UIParent:GetEffectiveScale()
+    if not scale or scale <= 0 then scale = 1 end
+    return (tonumber(o.x) or 0) * scale, (tonumber(o.y) or 0) * scale
+end
+
 local function LayoutRuneTimer(seg, on, cfg)
     if not on then
         if seg.timer then seg.timer:Hide() end
@@ -1156,6 +1166,8 @@ local function LayoutRuneTimer(seg, on, cfg)
         seg.timer = fs
     end
     ns.Media.SetPixelFont(seg.timer, tonumber(cfg.textSize) or 10, TextOutline(cfg), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    seg.timer:ClearAllPoints()
+    seg.timer:SetPoint("CENTER", seg, "CENTER", R.TextOffset(cfg))
     seg.timer:SetText("")
     seg.timerSec = nil
     seg.timer:Show()
@@ -1501,7 +1513,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
         count = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
-            outline = TextOutline(cfg),
+            outline = TextOutline(cfg), off = { R.TextOffset(cfg) },
             mode = R.AuraText(cfg, key),
             decimals = TIMER_DECIMALS_BELOW,
         }
@@ -1568,7 +1580,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
         text = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
-            outline = TextOutline(cfg),
+            outline = TextOutline(cfg), off = { R.TextOffset(cfg) },
             decimals = TIMER_DECIMALS_BELOW,
         }
     end
@@ -1582,7 +1594,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
             count = {
                 font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
                 size = (tonumber(cfg.textSize) or 10) * scale,
-                outline = TextOutline(cfg), mode = "stacks",
+                outline = TextOutline(cfg), mode = "stacks", off = { R.TextOffset(cfg) },
             }
         end
     end
@@ -1631,7 +1643,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
         count = {
             font = ns.Media.Font(ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font"))),
             size = (tonumber(cfg.textSize) or 10) * scale,
-            outline = TextOutline(cfg),
+            outline = TextOutline(cfg), off = { R.TextOffset(cfg) },
             suffix = "%",
         }
     end
@@ -1709,6 +1721,8 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     local showText = cfg.showText and true or false
     if def.fill == "rune" then showText = showText and R.RuneText(cfg) == "count" end
     ns.Media.SetPixelFont(row.text, tonumber(cfg.textSize) or 10, TextOutline(cfg), ns.Media.ElementFont(cfg.textFont, ns.Setting(nil, "font")))
+    row.text:ClearAllPoints()
+    row.text:SetPoint("CENTER", row.textFrame, "CENTER", R.TextOffset(cfg))
     row.text:SetText("")
 
     -- 這一列實際的畫法：容器沒好時 auraBar 退回 pip（明文層數）、auraTimer 退回空條

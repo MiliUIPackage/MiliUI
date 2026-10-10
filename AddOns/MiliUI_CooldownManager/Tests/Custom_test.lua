@@ -102,7 +102,7 @@ load("Core/Text.lua")               -- 逐法術文字樣式的合併（Text.Spe
 local RealText = ns.Text
 local function TextStub(t)
     t.SpellText, t.BarTimePlace, t.Color, t.EMPTY = RealText.SpellText, RealText.BarTimePlace, RealText.Color, RealText.EMPTY
-    t.BuffTiming = RealText.BuffTiming
+    t.BuffTiming, t.BarOffset = RealText.BuffTiming, RealText.BarOffset
     t.LabelStyle, t.LabelPlace, t.LabelSig = RealText.LabelStyle, RealText.LabelPlace, RealText.LabelSig
     return t
 end

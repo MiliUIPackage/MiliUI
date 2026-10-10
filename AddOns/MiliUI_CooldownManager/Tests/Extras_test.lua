@@ -1923,6 +1923,11 @@ do
     check("位置：只改偏移 ⇒ 疊在預設上", p == "RIGHT" and x == -2 and y == 1)
     p, x, y, j = T.BarTimePlace({ point = "LEFT", x = 3 }, false)
     check("位置：改了錨點 ⇒ 那個錨點＋偏移", p == "LEFT" and x == 3 and y == 0 and j == "LEFT")
+    p, x, y = T.BarTimePlace({ x = 2, y = 1 }, false, { x = 1, y = -1 })
+    check("位置：整條的秒數位移疊在逐法術偏移下面", p == "RIGHT" and x == -1 and y == 0)
+    p, x, y = T.BarTimePlace(nil, true, { x = 0, y = -2 })
+    check("位置：直向也吃整條的位移", p == "TOP" and x == 0 and y == -6)
+    check("BarOffset：沒存 ⇒ 0, 0", select(1, T.BarOffset(nil)) == 0 and select(2, T.BarOffset(nil)) == 0)
     -- 簽章
     local s1 = T.OverrideSig(id)
     check("OverrideSig：帶著覆寫", s1:find("cooldownTextDecimals=2", 1, true) ~= nil)

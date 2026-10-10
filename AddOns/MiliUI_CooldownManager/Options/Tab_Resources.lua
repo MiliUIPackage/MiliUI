@@ -941,6 +941,9 @@ local function Controls(cand, sub)
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of Essential Cooldowns."]),
         BS("slider", "rowSpacing", L["Row spacing"], { min = -1, max = 12, step = 1 }),
+        -- 條上數字的位移（所有資源列＋自訂格子共用）：字型的行高把下伸部留在底下，數字置中後看起來偏上
+        BS("numbers", nil, L["Text offset"], { sub = "textOffset", path = false,
+            resetPaths = { "textOffset.x", "textOffset.y" }, fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
         BS("slider", "segmentSpacing", L["Segment spacing"], { min = 0, max = 8, step = 1 }),
         Note(L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
