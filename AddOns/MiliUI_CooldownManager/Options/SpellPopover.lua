@@ -378,8 +378,8 @@ local function CurSlotNoBuff()
     return slot ~= nil and #ns.Catalog.SlotUseBuffIDs(slot) == 0
 end
 -- 自訂物品（藥水那類）用掉之後有可追蹤的增益：有的話跟飾品欄一樣出「增益持續時間」那幾列（Catalog.ItemUseBuffIDs）；
--- 沒有的（治療藥水、治療石…）整段不出
-local function CurItemHasBuff()
+-- 沒有的（治療藥水、治療石…）整段不出。掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限
+function Pop.CurItemHasBuff()
     if not cur then return false end
     local e = ns.Catalog.CustomEntry(cur.id)
     if not (type(e) == "table" and e.kind == "item" and e.itemID ~= nil) then return false end
@@ -1600,7 +1600,7 @@ local function Build()
     -- 「增益持續時間」分頁拆掉之後（H）：顯示與否、轉圈背景色留在外觀；換色開關與兩個字色搬到「文字」的倒數那一段
     local BlizzCooldown = function(kind, class) return kind == nil and class ~= "aura" end
     local DurationRows = function(kind, class)
-        return BlizzCooldown(kind, class) or kind == "slot" or (kind == "item" and CurItemHasBuff())
+        return BlizzCooldown(kind, class) or kind == "slot" or (kind == "item" and Pop.CurItemHasBuff())
     end
     buildTab = "look"
     local atr, ath = NewRow(L["Show buff duration"], DurationRows)
