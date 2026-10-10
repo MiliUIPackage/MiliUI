@@ -34,6 +34,8 @@
 -- 其他 item 收合也不會讓它的 x 變，戰鬥中不必動持有框。
 -- 「增益不在時」三態（收合／留空位／暗圖示；條層 layout.emptyMode ＋ 逐法術 emptyMode，判準 Layout.BarEmptyMode／
 -- SpellEmptyMode，條層生效值 B.BarEmptyMode、單格 B.EmptyMode）：光環格／可點擊的條上「收合」不成立（上面那個理由）。
+-- 例外：條上**只有**光環格（Catalog.BarAuraFlow）時收合照選，選了走引擎補位（B.AuraFlow）：持有框不各自放，
+-- 整條交給一顆 AuraContainer 的 flow layout（Modules/Custom.lua 的「引擎補位」），條容器照「全部都在」的尺寸、戰鬥中不動。
 --
 -- 代畫（Modules/Custom.lua 的 Custom.Proxy）：清單上有、暴雪沒給框的**裝備欄冷卻格**（Catalog.ProxySlotOf：
 -- 暴雪的 id、資料帶裝備欄位、來源是核心／輔助）改放我們的飾品欄框（一格 crec entry，跟自訂項目同一條路）。
@@ -582,18 +584,39 @@ local function AuraPresent(item)
 end
 B.AuraPresent = AuraPresent
 
--- 「增益不在時」的條層生效值（Layout.BarEmptyMode）：條上有光環格或可點擊 ⇒ forced（收合不成立）。
--- 回 mode, forced。Relayout、Occupancy、光環格的占位（Modules/Custom.lua）、設定頁共用
+-- 「增益不在時」的條層生效值（Layout.BarEmptyMode）：forced（收合不成立）＝ 條上有光環格而且走不了引擎補位
+-- （Catalog.BarAuraFlow 不成立：混排、圓環、溢出…），或可點擊。只有光環格的條（BarAuraFlow 成立）收合照選，
+-- 選了就走引擎補位（B.AuraFlow、Modules/Custom.lua 的「引擎補位」）。
+-- 回 mode, forced。Relayout、Occupancy、設定頁共用
 function B.BarEmptyMode(barKey)
     local bar = BarCfg(barKey)
     local layout = bar and type(bar.layout) == "table" and bar.layout or {}
-    local forced = (ns.Catalog.BarHasAuraSlot(barKey) or (ns.Clickable and ns.Clickable.Enabled(barKey))) and true or false
+    local C = ns.Catalog
+    local aura = C.BarHasAuraSlot(barKey) and not (C.BarAuraFlow and C.BarAuraFlow(barKey))
+    local forced = (aura or (ns.Clickable and ns.Clickable.Enabled(barKey))) and true or false
     return ns.Layout.BarEmptyMode(layout.emptyMode, forced, bar and bar.kind == "bars", layout.emptyStyle), forced
+end
+
+-- 這條現在走引擎補位嗎：只有光環格（BarAuraFlow 成立）而且條層生效的「增益不在時」是收合
+function B.AuraFlow(barKey)
+    local C = ns.Catalog
+    if not (C.BarAuraFlow and C.BarHasAuraSlot(barKey)) then return false end
+    if not C.BarAuraFlow(barKey) then return false end
+    return (B.BarEmptyMode(barKey)) == "collapse"
+end
+
+-- 逐法術那一列的 forced：條層 forced 之外，光環格的條**沒在補位**（條層選了留空位／暗圖示）時單格也不能收合
+-- （固定格位的持有框戰鬥中不能動）。補位中單格選收合＝跟著條，選留空位／暗圖示會讓整條退回固定格位（BarAuraFlow 的 "spell"）。
+-- 回 barMode, forced
+function B.SpellEmptyForced(barKey)
+    local barMode, forced = B.BarEmptyMode(barKey)
+    if not forced and barMode ~= "collapse" and ns.Catalog.BarHasAuraSlot(barKey) then forced = true end
+    return barMode, forced
 end
 
 -- 這一格生效的「增益不在時」（逐法術覆寫 emptyMode ＞ 條層）：回 mode, own（own ＝ 這一格自己設的）
 function B.EmptyMode(barKey, id)
-    local barMode, forced = B.BarEmptyMode(barKey)
+    local barMode, forced = B.SpellEmptyForced(barKey)
     return ns.Layout.SpellEmptyMode(ns.SpellSetting(barKey, id, "emptyMode"), barMode, forced)
 end
 
@@ -991,6 +1014,10 @@ local function Relayout(key, level, index, gen, s)
     local ringSkipped = 0
     local barMode, forced = B.BarEmptyMode(key)
     local fixed = barMode ~= "collapse"
+    -- 引擎補位（B.AuraFlow；只有光環格、條層收合）：光環格不各自放持有框，整條交給一顆 AuraContainer 排
+    -- （Custom.PlaceFlow）。收合成立而條上有光環格 ⇔ BarAuraFlow 成立（不成立時 forced 會擋掉收合）
+    local flow = (not ring) and (not forced) and barMode == "collapse" and ns.Catalog.BarHasAuraSlot(key) or false
+    local flowRecs = flow and {} or nil
     local entries = {}
     -- 沒有物品時隱藏／被動飾品不顯示：這一輪重記要聽的格（就地改寫，見 hideWatch）
     local hw = hideWatch[key]
@@ -1121,6 +1148,10 @@ local function Relayout(key, level, index, gen, s)
         local item, rec = e.item, e.rec
         if e.blank then
             -- 收掉、留空格（固定格位）：什麼都不放。原本放在這裡的自訂框沒被 Place ⇒ 下面的 Custom.EndBar 收起來
+        elseif e.crec and flowRecs and e.crec.kind == "aura" then
+            -- 引擎補位：記帳（音效、探針照做），持有框收起來；位置交給 Custom.PlaceFlow（下面，一條一次）
+            ns.Custom.Place(e.crec, c, r, key, gen, true)
+            flowRecs[#flowRecs + 1] = { rec = e.crec, r = r }
         elseif e.crec then
             -- 回 true ＝ 換了框／換了條／從收起來放回來（法術索引記的是框與條）
             if ns.Custom.Place(e.crec, c, r, key, gen) then B.claimsChanged = true end
@@ -1201,6 +1232,9 @@ local function Relayout(key, level, index, gen, s)
     if ns.Clickable then
         if clickable then ns.Clickable.EndBar(key, #entries) else ns.Clickable.Release(key) end
     end
+    -- 引擎補位：一條一顆 AuraContainer（每格一個 group）。條容器的尺寸照「全部都在」算（上面的 Compute），
+    -- 光環出現／消失時條本身不動；沒在補位的條，上一輪的補位持有框由 Custom.EndBar 收
+    if flowRecs then ns.Custom.PlaceFlow(key, c, flowRecs, ns.Layout.FlowParams(sizing, bar.kind), gen) end
     if ns.Custom then ns.Custom.EndBar(key, gen) end
 
     -- 認領序列：每格三欄（id、哪一顆框／哪一筆自訂、停放了沒），跟上一輪就地比較。
