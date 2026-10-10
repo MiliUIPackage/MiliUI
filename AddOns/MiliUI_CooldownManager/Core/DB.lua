@@ -548,6 +548,10 @@ function DB.BuildDefaults()
                           -- 按鍵鏡射（Core/Keybinds.lua）：按下這格的綁定鍵時亮一層白。長條類／增益圖示列不做。
                           -- 舊存檔沒有這兩欄 ＝ 合併預設值補成關，行為不變、不遷移
                           pressFlash = false, pressFlashAlpha = 0.35,
+                          -- 圖示形狀與陰影（Core/Shape.lua，米利樣式才有；Masque 模式由皮決定）：
+                          -- shape "square"（現狀）｜"rounded"｜"circle"；shadow 開關＋透明度。
+                          -- 舊存檔沒有這三欄 ＝ 合併預設值補成方形、無陰影，行為不變、不遷移
+                          shape = "square", shadow = false, shadowAlpha = 0.6,
                           hideGCDSwipe = false, desaturateOnCooldown = true,
                           -- 充能技能回充中（還有充能、下一層在轉）的長相（Core/Decorate.lua 的「回充的長相」）。暴雪原本：
                           -- 不畫暗色轉圈、畫邊緣亮線、顯示倒數。三個開關都是「改掉暴雪原本的」，**預設全關**

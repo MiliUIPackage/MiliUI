@@ -432,11 +432,35 @@ local function DropPressMask(holder, t)
     holder.pressMaskTex = pm.tex                          -- 遮罩貼圖刪不掉：留著下次重用
 end
 
+-- 內建圖示形狀（Core/Shape.lua；holder.iconShape，Decorate 的 ApplyShape 記的：米利樣式、非方形才有）：
+-- 同一張形狀遮罩、SetAllPoints overlay（overlay 跟格子同一個矩形）。依形狀快取，換形狀重建、切回方形拿掉
+local function SyncBuiltinMask(holder, t, parent, shape)
+    local SH = ns.Shape
+    local key = "builtin:" .. tostring(shape)
+    local pm = holder.pressMask
+    if pm and pm.key == key then return end
+    if pm then DropPressMask(holder, t) end
+    pm = { key = key, tex = holder.pressMaskTex, on = false }
+    holder.pressMask, holder.pressMaskTex = pm, nil
+    local path = SH and SH.MASK and SH.MASK[shape]
+    if not path then return end
+    pm.on = pcall(function()
+        local m = pm.tex or parent:CreateMaskTexture()
+        pm.tex = m
+        m:SetTexture(path, MASK_WRAP, MASK_WRAP)
+        m:ClearAllPoints()
+        m:SetAllPoints(parent)
+        m:Show()
+        t:AddMaskTexture(m)
+    end)
+end
+
 local function SyncPressMask(holder, t, parent)
-    if holder.msqSkinned ~= true or holder.barGeometry then
+    if holder.barGeometry or (holder.msqSkinned ~= true and not holder.iconShape) then
         if holder.pressMask then DropPressMask(holder, t) end
         return
     end
+    if holder.msqSkinned ~= true then return SyncBuiltinMask(holder, t, parent, holder.iconShape) end
     local M, MS = ns.Masque, ns.MasqueShape
     if not (M and MS and M.Available()) then return end
     -- 格子尺寸：發光記過的優先；沒有（設定頁預覽格沒跑過發光）就讀 overlay 自己的大小（我們的框，明文）
@@ -488,7 +512,7 @@ function K.PressTexture(holder, parent, alpha)
         holder.pressTexA = nil
     end
     -- Masque 皮的遮罩（見上）：沒交給 Masque 的格子第一個判斷就走
-    if holder.msqSkinned == true or holder.pressMask then SyncPressMask(holder, t, parent) end
+    if holder.msqSkinned == true or holder.pressMask or holder.iconShape then SyncPressMask(holder, t, parent) end
     alpha = tonumber(alpha) or 0.35
     if holder.pressTexA ~= alpha then
         t:SetVertexColor(1, 1, 1, alpha)

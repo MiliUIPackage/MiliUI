@@ -141,6 +141,12 @@ function D.Resolve(barKey, fresh)
         masque       = ns.Masque and ns.Masque.Mode(barKey) == "masque" or false,
     }
     if r.ring then r.masque = false end                  -- 圓環條不進 Masque 群組
+    -- 圖示形狀與陰影（Core/Shape.lua）：米利樣式、圖示類、不是圓環條才有；ishape nil ＝ 方形（現狀）、ishadow nil ＝ 沒有陰影
+    local SH = ns.Shape
+    if SH then
+        r.ishape, r.ishadow = SH.Resolve(S(barKey, "icon.shape"), S(barKey, "icon.shadow"), S(barKey, "icon.shadowAlpha"),
+            r.masque, r.kind, r.ring)
+    end
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom, tostring(r.crop),
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
@@ -150,6 +156,7 @@ function D.Resolve(barKey, fresh)
         type(r.bar) == "table" and TSig(r.bar) or "-",
         tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
         D.RingSig(r.ring),
+        SH and SH.Sig(r.ishape, r.ishadow) or "-",
     }, "|")
     if not fresh then resolved[barKey] = r end
     return r
@@ -321,6 +328,8 @@ local function ColorBorder(b, r, g, bl, a)
     if not b then return end
     for i = 1, 4 do b[i]:SetVertexColor(r, g, bl, a) end
     if b.edge then b.edge:SetBackdropBorderColor(r, g, bl, a) end
+    -- 圖示形狀不是方形時，邊框是襯底那張貼圖（Core/Shape.lua；D.ApplyShape 記在 b.shapeUnder）
+    if b.shapeUnder then b.shapeUnder:SetVertexColor(r, g, bl, a) end
 end
 
 local LayoutBorder
@@ -581,10 +590,98 @@ D.ReleaseSkin = ReleaseSkin           -- 測試用
 -- 圓角轉圈 → 方角（顏色參數不可省；實際色由 SetSwipeColor 決定）。
 -- 不併進 StripBlizzard 的「只做一次」：Masque 套皮會換成它的轉圈材質、群組停用時又換成空材質，
 -- 輪到我們畫的時候要再換回來 ⇒ holder.swipeSquare 記著現在是不是我們的
-local function SquareSwipe(cd, holder)
-    if holder.swipeSquare or not (cd and cd.SetSwipeTexture) then return end
-    holder.swipeSquare = true
-    pcall(cd.SetSwipeTexture, cd, WHITE, 1, 1, 1, 1)
+-- path（可省）：圖示形狀不是方形時換成形狀遮罩那張（Core/Shape.lua 的 SwipeTexture）；holder.swipeSquare 記的是現在換上去的那張
+local function SquareSwipe(cd, holder, path)
+    path = path or WHITE
+    if holder.swipeSquare == path or not (cd and cd.SetSwipeTexture) then return end
+    holder.swipeSquare = path
+    pcall(cd.SetSwipeTexture, cd, path, 1, 1, 1, 1)
+end
+
+------------------------------------------------------------
+-- 圖示形狀與陰影（Core/Shape.lua；米利樣式、圖示類的格才有，style.ishape／style.ishadow）
+--
+-- 套用點（全部走 ns.Shape.Paint，各自的狀態表存在我們的弱鍵表／自己的框上）：
+--   暴雪 item（核心／輔助／增益圖示，含搬進自訂群組的）  遮罩建在 item 本身（跟圖示同一個框）、襯底與陰影畫在 rec.shapeUnder
+--       （item 的子框、層級＝item − 1 ⇒ 在圖示底下）；遮罩掛圖示＋超出距離暗影＋GCD 閃光
+--   自訂法術／物品／飾品欄／代畫格（rec.custom，自己的框）  遮罩、襯底、陰影都在框本身（BACKGROUND −7／−8，圖示是 ARTWORK）
+--   占位（D.ApplyPlaceholder：暴雪增益與光環格的暗圖示）、設定頁預覽格（D.ApplyPreview）  同上，自己的框
+--   轉圈：SquareSwipe 換成形狀遮罩那張
+-- 光環格的按鈕在 Modules/Custom.lua 的 InitAuraButton 自己烘（形狀進 AuraStyle 簽章）；按鍵閃光在 Core/Keybinds.lua
+-- （看 holder.iconShape）；發光在 Core/Glow.lua（G.GlowShape：Masque 讀回的形狀 ＞ 內建）。
+-- 暴雪框不寫欄位：只呼叫 AddMaskTexture／RemoveMaskTexture、讀欄位走 rawget。
+------------------------------------------------------------
+-- 暴雪 item 上「蓋在圖示上的方形貼圖」：超出距離的暗影（OutOfRange）、GCD 閃光（CooldownFlash 底下的貼圖）。只讀
+local function BlizzOverIcon(item, out)
+    local oor = rawget(item, "OutOfRange")
+    if type(oor) == "table" and oor.AddMaskTexture then out[#out + 1] = oor end
+    local cf = rawget(item, "CooldownFlash")
+    if type(cf) == "table" and cf.GetRegions then
+        local ok, a, b, c, d = pcall(cf.GetRegions, cf)
+        if ok then
+            for _, r in ipairs({ a, b, c, d }) do
+                if type(r) == "table" and r.AddMaskTexture and r.GetObjectType and r:GetObjectType() == "Texture" then
+                    out[#out + 1] = r
+                end
+            end
+        end
+    end
+end
+
+-- 暴雪 item 的襯底框：item 的子框、層級比 item 低一層（框的層級決定先後，圖示是 item 自己的貼圖 ⇒ 這一框畫在它底下）
+local function ShapeUnder(item, rec)
+    local f = rec.shapeUnder
+    if not f then
+        f = CreateFrame("Frame", nil, item)
+        rec.shapeUnder = f
+    end
+    f:ClearAllPoints()
+    f:SetAllPoints(item)
+    local lvl = (item:GetFrameLevel() or 1) - 1
+    f:SetFrameLevel(lvl < 0 and 0 or lvl)
+    f:Show()
+    return f
+end
+
+-- holder：狀態存哪（rec／cell／ph）；frame：格子（圖示那一格的矩形）；tex：圖示貼圖；
+-- blizz：frame 是暴雪 item（遮罩建在 item 本身：跟圖示貼圖同一個框，文件上唯一確定成立的用法；只是呼叫 CreateMaskTexture、不寫欄位。襯底畫在 ShapeUnder）
+-- 回傳襯底有沒有在畫（有 ⇒ 呼叫端藏掉四條邊框；border.shapeUnder 記著，換色時一起換）
+local function ApplyShape(holder, frame, tex, blizz, maskHost, shape, shadow, size, color, w, h, border)
+    holder.iconShape = shape
+    local SH = ns.Shape
+    local art = holder.shapeArt
+    if not SH or (not shape and not shadow) then
+        if art and SH then SH.Clear(art) end
+        if holder.shapeUnder then holder.shapeUnder:Hide() end
+        if border then border.shapeUnder = nil end
+        return false
+    end
+    if not art then
+        art = {}
+        holder.shapeArt = art
+    end
+    local targets = { tex }
+    local host = frame
+    if blizz then
+        BlizzOverIcon(frame, targets)
+        host = ShapeUnder(frame, holder)
+    end
+    local drawing = SH.Paint(art, { maskHost = maskHost or frame, underHost = host, region = frame, targets = targets,
+        shape = shape, shadow = shadow, t = SH.UnderOutset(size), color = color, w = w, h = h })
+    if border then border.shapeUnder = drawing and art.under or nil end
+    return drawing
+end
+D.ApplyShape = ApplyShape                 -- 測試用
+
+-- 還給暴雪（Bars.ReleaseAll）：我們掛的遮罩、襯底、陰影全部拿掉，轉圈材質回方形（跟原本還給暴雪時一樣）
+function D.ClearShape(item, rec)
+    if not (item and rec) then return end
+    if rec.shapeArt or rec.iconShape then
+        ApplyShape(rec, item, item.Icon, true, nil, nil, nil, 0, nil, 0, 0, rec.border)
+    end
+    if type(rec.swipeSquare) == "string" and rec.swipeSquare ~= WHITE and not rec.ring then
+        SquareSwipe(item.Cooldown, rec)
+    end
 end
 
 ------------------------------------------------------------
@@ -2182,6 +2279,7 @@ function D.ApplyRingPlaceholder(ph, barKey, r)
     if ph.msqButton then ns.Masque.Release(ph) end
     ph.border = ph.border or MakeBorder(ph.frame)
     LayoutBorder(ph.border, nil)
+    if ph.shapeArt then ApplyShape(ph, ph.frame, ph.tex, false, nil, nil, nil, 0, nil, 0, 0, ph.border) end   -- 圓環不套形狀
     if ph.label and ns.Text and ns.Text.ApplyLabel then ns.Text.ApplyLabel(ph.label, ph.frame, nil) end
     ph.ring = true
     local tex = ph.tex
@@ -2283,11 +2381,21 @@ function D.ApplyPlaceholder(ph, barKey, id, w, h)
     elseif ph.msqButton then
         ns.Masque.Release(ph)
     end
+    -- 圖示形狀與陰影（同真實格；占位是自己的框，遮罩、襯底、陰影都建在 ph.frame 上，圖示 ph.tex 在 BACKGROUND 0）
+    local shape = (not skinned) and style.ishape or nil
+    local shadow = (not skinned) and style.ishadow or nil
+    if ph.tex and (shape or shadow or ph.shapeArt) then
+        ApplyShape(ph, ph.frame, ph.tex, false, nil, shape, shadow, tonumber(border.size) or 0, { br, bg, bb, ba }, w, h, ph.border)
+    end
     if skinned then
         LayoutBorder(ph.border, nil)
         return
     end
-    LayoutBorder(ph.border, ph.frame, tonumber(border.size) or 0, border.texture, br, bg, bb, ba)
+    if shape then
+        LayoutBorder(ph.border, nil)                 -- 邊框是襯底
+    else
+        LayoutBorder(ph.border, ph.frame, tonumber(border.size) or 0, border.texture, br, bg, bb, ba)
+    end
     if ph.tex then
         RefillIcon(ph.tex, ph.frame, ph)
         ph.tex:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
@@ -2568,6 +2676,11 @@ function D.Apply(item, rec, barKey, w, h, ring)
     -- 不是圓環了（條改回圖示、item 搬去別條）：先還原，下面照方形畫
     if rec.ring and not ringOn then D.RestoreRing(item, rec) end
 
+    -- 長條、圓環不套圖示形狀（Core/Shape.lua）：從圖示條搬過來的格把形狀拿掉（下面圖示那一段才照設定畫）
+    if (isBar or ringOn) and (rec.shapeArt or rec.iconShape) then
+        ApplyShape(rec, item, item.Icon, not rec.custom, nil, nil, nil, 0, nil, w, h, rec.border)
+    end
+
     if isBar then
         local bar = type(style.bar) == "table" and style.bar or {}
         local look = D.BarLook(bar)
@@ -2655,19 +2768,29 @@ function D.Apply(item, rec, barKey, w, h, ring)
         rec.msqSkinned = skinned
         rec.border = rec.border or MakeBorder(ov)
         if rec.border2 then LayoutBorder(rec.border2, nil) end
+        -- 圖示形狀與陰影（Core/Shape.lua）：交給 Masque 的格由皮決定（shape／shadow 當 nil ⇒ 我們的全部拿掉）
+        local shape = (not skinned) and style.ishape or nil
+        local shadow = (not skinned) and style.ishadow or nil
+        ApplyShape(rec, item, icon, not rec.custom, nil,
+            shape, shadow, size, rec.borderRGBA, w, h, rec.border)
         if skinned then
             rec.msqEdge = { region = item, size = size, token = border.texture }
             rec.swipeSquare = nil            -- 轉圈材質現在是 Masque 的
             LayoutBorder(rec.border, nil)
         else
             rec.msqEdge = nil
-            LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
+            -- 形狀不是方形：邊框是襯底（ApplyShape 畫的），四條細條收起來；粗細 0 時兩種都不畫
+            if shape then
+                LayoutBorder(rec.border, nil)
+            else
+                LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
+            end
             if icon and icon.SetTexCoord then
                 RefillIcon(icon, item, rec)
                 icon:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
             end
             RefillIcon(cd, item, rec)               -- 轉圈框 Masque 也同樣凍過尺寸
-            SquareSwipe(cd, rec)
+            SquareSwipe(cd, rec, ns.Shape and ns.Shape.SwipeTexture(shape) or nil)
         end
         -- 轉圈色一律是我們的（Masque 套皮時會寫它的色，所以在 Sync 之後寫）
         if cd then
@@ -2734,6 +2857,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
     if style.ring and cell.ringTrack and not isBar then
         sig = sig .. "|rg" .. tostring(cell.ringRank) .. "," .. tostring(cell.ringTex)
         if cell.decorated == sig then return end
+        if cell.shapeArt then ApplyShape(cell, cell, cell.Icon, false, nil, nil, nil, 0, nil, w, h, cell.border) end
         D.ApplyRingPreview(cell, style, spell)
         cell.decorated = sig
         return
@@ -2788,17 +2912,27 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         cell.msqSkinned = skinned
         cell.barGeometry = nil
         cell.border = cell.border or MakeBorder(ov)
+        -- 圖示形狀與陰影（同真實格；預覽格是自己的框）
+        local shape = (not skinned) and style.ishape or nil
+        local shadow = (not skinned) and style.ishadow or nil
+        if icon and (shape or shadow or cell.shapeArt) then
+            ApplyShape(cell, cell, icon, false, nil, shape, shadow, size, { br, bg, bb, ba }, w, h, cell.border)
+        end
         if skinned then
             cell.swipeSquare = nil
             LayoutBorder(cell.border, nil)
         else
-            LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
+            if shape then
+                LayoutBorder(cell.border, nil)       -- 邊框是襯底
+            else
+                LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
+            end
             if icon then
                 RefillIcon(icon, cell, cell)
                 icon:SetTexCoord(ns.Layout.IconTexCoord(z, w, h, style.crop))
             end
             RefillIcon(cell.Cooldown, cell, cell)
-            SquareSwipe(cell.Cooldown, cell)
+            SquareSwipe(cell.Cooldown, cell, ns.Shape and ns.Shape.SwipeTexture(shape) or nil)
         end
         if icon then
             -- 冷卻中的格才去飽和（增益沒有冷卻，不去飽和）
