@@ -75,9 +75,37 @@ local function Row(tab, label, h)
         fs:SetWidth(LABEL_W)
         fs:SetJustifyH("RIGHT")
         fs:SetText(label)
+        row.label = fs
     end
     rows[#rows + 1] = { frame = row, tab = tab, measure = function() return h or ROW_H end }
     return row
+end
+
+-- 標籤後面的「?」：說明會夾在兩列中間時改成滑過看（標籤往左讓出位置）
+local HELP_W = 14
+local function HelpMark(row, text)
+    row.label:SetPoint("RIGHT", row, "LEFT", LABEL_W - HELP_W - 4, 0)
+    local m = CreateFrame("Frame", nil, row, "BackdropTemplate")
+    m:SetSize(HELP_W, HELP_W)
+    m:SetPoint("RIGHT", row, "LEFT", LABEL_W, 0)
+    W.Stylize(m, { 0.1, 0.1, 0.1, 0.9 }, { 0.4, 0.4, 0.4, 1 })
+    local q = m:CreateFontString(nil, "OVERLAY")
+    q:SetFontObject(W.fontSmall)
+    q:SetPoint("CENTER")
+    q:SetText("?")
+    Gray(q)
+    m:EnableMouse(true)
+    m:SetScript("OnEnter", function(self)
+        q:SetTextColor(1, 1, 1)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(text, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    m:SetScript("OnLeave", function()
+        Gray(q)
+        GameTooltip:Hide()
+    end)
+    return m
 end
 
 -- 灰字說明列：整列寬、照實際行數長高
@@ -193,7 +221,10 @@ local function UpdatePreview()
     if sound and sound ~= "" then
         parts[#parts + 1] = L["%s (%s)"]:format(sound, WhenText(f.when:GetSelected() or "due"))
     end
-    if f.tts:GetChecked() then parts[#parts + 1] = L["Text to speech"] end
+    if f.tts:GetChecked() then
+        local said = strtrim(f.ttsText:GetText() or "")
+        parts[#parts + 1] = said ~= "" and L["Speak \"%s\""]:format(said) or L["Text to speech"]
+    end
     local who = {}
     for _, r in ipairs(ROLE_ORDER) do
         if f.roles[r[1]]:GetChecked() then who[#who + 1] = r[2] end
@@ -345,17 +376,33 @@ local function BuildSound()
     W.FitButton(test, 60, 20)
     test:SetPoint("LEFT", f.sound, "RIGHT", 8, 0)
     test:SetScript("OnClick", function()
-        local entry = { sound = f.sound:GetSelected(), tts = f.tts:GetChecked() }
-        ns.Scheduler.Alert(entry, f.chipText:GetText())
+        ns.Scheduler.Alert({ sound = f.sound:GetSelected() }, f.chipText:GetText())
     end)
 
     r = Row("sound", L["When"])
     f.when = W.CreateDropdown(r, 220, WHEN_ITEMS, UpdatePreview)
     f.when:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
 
-    r = Row("sound")
-    f.tts = W.CreateCheckButton(r, L["Read the text aloud (text to speech)"], UpdatePreview)
+    -- 語音播報：勾選＋要念的字（空白＝念提示文字）＋試聽，同 MiliUI_CooldownManager 的那一列
+    r = Row("sound", L["Speak"])
+    HelpMark(r, L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the reminder text."])
+    f.tts = W.CreateCheckButton(r, nil, UpdatePreview)
     f.tts:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+    local listen = W.CreateButton(r, L["Try it"], "normal", 60, 20)
+    W.FitButton(listen, 60, 20)
+    listen:SetPoint("RIGHT", r, "RIGHT", 0, 0)
+    f.ttsText = W.CreateEditBox(r, 80, 20)
+    f.ttsText:SetPoint("LEFT", f.tts, "RIGHT", 6, 0)
+    f.ttsText:SetPoint("RIGHT", listen, "LEFT", -6, 0)
+    f.ttsText:SetMaxLetters(100)
+    -- 打字就當作要念：不必先勾
+    f.ttsText:HookScript("OnTextChanged", function(self, userInput)
+        if userInput and strtrim(self:GetText() or "") ~= "" then f.tts:SetChecked(true) end
+    end)
+    listen:SetScript("OnClick", function()
+        local txt = strtrim(f.ttsText:GetText() or "")
+        ns.Scheduler.Alert({ tts = true }, txt ~= "" and txt or f.chipText:GetText())
+    end)
 end
 
 local function BuildWho()
@@ -449,6 +496,7 @@ local function Accept()
         sound     = f.sound:GetSelected() or "",
         soundWhen = f.when:GetSelected() or "due",
         tts       = f.tts:GetChecked() and true or nil,
+        ttsText   = f.tts:GetChecked() and strtrim(f.ttsText:GetText() or "") or nil,
         roles     = roles,
         class     = f.class:GetSelected() or "",
         anchor    = anchor,
@@ -515,9 +563,9 @@ local function Build()
     for i, eb in ipairs(order) do
         eb:SetScript("OnTabPressed", function() (order[i + 1] or order[1]):SetFocus() end)
     end
-    for _, eb in ipairs({ f.t, f.spell, f.text, f.lead, f.icon, f.offset, f.players }) do
+    for _, eb in ipairs({ f.t, f.spell, f.text, f.lead, f.icon, f.offset, f.players, f.ttsText }) do
         eb:SetScript("OnEnterPressed", function() eb:ClearFocus() end)
-        eb:SetScript("OnTextChanged", UpdatePreview)
+        eb:HookScript("OnTextChanged", UpdatePreview)   -- Hook：ttsText 先掛了「打字就勾」，SetScript 會蓋掉它
     end
     popup:Hide()
 end
@@ -551,6 +599,7 @@ function EE.Open(values, onAccept, title, encounterID)
     f.sound:SetSelectedValue(values.sound or "")
     f.when:SetSelectedValue(values.soundWhen or "due")
     f.tts:SetChecked(values.tts and true or false)
+    SetBox(f.ttsText, values.ttsText)
     for role, cb in pairs(f.roles) do cb:SetChecked(values.roles and values.roles[role] and true or false) end
     f.class:SetSelectedValue(values.class or "")
     for key, cb in pairs(f.positions) do cb:SetChecked(values.positions and values.positions[key] and true or false) end

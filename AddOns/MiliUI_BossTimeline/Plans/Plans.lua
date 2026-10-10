@@ -363,7 +363,8 @@ Plans.SortEntries = SortEntries
 -- values：{ t, text, spell, icon, lead, sound, soundWhen, tts, roles, class, anchor }
 -- index 有給就是改那一條。沒給的欄位（nil）就是清掉 —— 編輯器每次都整筆送過來
 --   sound      LSM 音效名稱；soundWhen = "show"（放上時間軸時）／"soon"（5 秒前）／"due"（到點，預設）
---   tts        到 soundWhen 那一刻朗讀提示文字（文字轉語音）
+--   tts        到 soundWhen 那一刻朗讀（文字轉語音）
+--   ttsText    要念的字（選填）：空白就念提示文字
 --   roles      { TANK = true, HEALER = true, DAMAGER = true } 只給這些職責；nil = 全部
 --   class      "PRIEST" 之類，只給這個職業；nil = 全部
 --   anchor     { spell, n, offset }：跟著這個首領技能的第 n 次施放走（Scheduler 戰鬥中認得出來時改時間），
@@ -389,6 +390,7 @@ function Plans.SaveEntry(pid, values, index)
     e.sound     = values.sound ~= "" and values.sound or nil
     e.soundWhen = values.soundWhen
     e.tts       = values.tts or nil
+    e.ttsText   = (values.tts and values.ttsText ~= "") and values.ttsText or nil
     e.roles     = (values.roles and next(values.roles)) and values.roles or nil
     e.class     = values.class ~= "" and values.class or nil
     e.anchor    = values.anchor
