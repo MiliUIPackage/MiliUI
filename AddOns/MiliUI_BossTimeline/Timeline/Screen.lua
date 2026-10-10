@@ -37,7 +37,7 @@ end
 
 -- 每幀決定資料來源：有真的就畫真的
 local function Collect(out, filter)
-    if ns.Events.HasAny() or not PreviewWanted() then
+    if ns.Events.HasAny(filter) or not PreviewWanted() then
         return ns.Events.Collect(out, filter)
     end
     return ns.Mock.Collect(out, filter)
@@ -155,7 +155,7 @@ local function UpdateState()
     local preview = PreviewWanted()
     -- 只在副本裡：野外的時間軸事件（世界首領、別的插件在外面加的條）不畫；預覽不受限
     local allowed = d.visibility ~= "instance" or IsInInstance()
-    local run = d.enabled and ((ns.Events.HasAny() and allowed) or preview)
+    local run = d.enabled and ((ns.Events.HasAny(Filter) and allowed) or preview)
     display:SetRunning(run and true or false)
     holder:SetShown(run and true or false)
     -- 戰鬥外淡一點（預覽時照常，不然調的時候看不清楚）
