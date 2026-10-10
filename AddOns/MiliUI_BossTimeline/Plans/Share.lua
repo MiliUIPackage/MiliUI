@@ -113,6 +113,7 @@ local function CleanEntry(e)
         sound     = Str(e.sound, 80),
         soundWhen = WHEN[e.soundWhen] and e.soundWhen or nil,
         tts       = e.tts == true or nil,
+        ttsText   = e.tts == true and Str(e.ttsText, 100) or nil,
         class     = Str(e.class, 20),
         enabled   = e.enabled ~= false,
         positions = CleanPositions(e.positions),

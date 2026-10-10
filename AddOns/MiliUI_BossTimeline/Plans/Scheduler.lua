@@ -53,7 +53,7 @@ function Sch.Alert(entry, text)
         PlaySoundFile(path, "Master")
         ns.playingOwnSound = false
     end
-    if entry.tts then Speak(text) end
+    if entry.tts then Speak(entry.ttsText or text) end
 end
 
 ------------------------------------------------------------
