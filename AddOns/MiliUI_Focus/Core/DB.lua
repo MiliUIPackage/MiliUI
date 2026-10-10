@@ -89,6 +89,7 @@ local function BuildDefaults()
             colorImmune = CopyTable(DEFAULT_COLORS.immune),
             -- 重要法術（暴雪 C_Spell.IsSpellImportant 判定）外框發光
             glowImportant = true,
+            glowStyle     = "pixel",   -- pixel／autocast／proc（見 Modules/CastBar.lua 的 ShowGlow）
             colorGlow     = CopyTable(DEFAULT_GLOW_COLOR),
             -- 12.1 起無法依斷法狀態挑音效（見 Modules/CastBar.lua 的 HandleSound），
             -- 只剩「開始唱法就播一次」
