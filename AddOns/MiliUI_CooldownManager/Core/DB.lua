@@ -150,6 +150,9 @@ local function LongBar(o)
             iconGap   = 1,
             showName  = true, nameSize = 16, nameFont = "INHERIT",   -- 字型 "INHERIT" ＝ 跟隨通用字型
             showTime  = true, timeSize = 16, timeFont = "INHERIT",
+            -- 名字／秒數的位移（整條共用；秒數的逐法術偏移疊在上面）。字型的行高把下伸部留在底下，數字與中文
+            -- 置中後看起來偏上，交給玩家微調（2026-10-10）
+            nameOffset = { x = 0, y = 0 }, timeOffset = { x = 0, y = 0 },
             showStacks = true,              -- 層數字級沒有自己的欄位：吃「層數」的字級（stackText.size；v6 拿掉 bar.stackSize）
             spark     = false,              -- 填充末端的火花（暴雪條的 Pip）；false ＝ 藏（舊行為）
             -- 2026-10-04 加的三組（F8；舊存檔沒有 ＝ false ＝ 舊行為，不遷移）
@@ -298,6 +301,8 @@ ResourcesDefaults = function()
         -- 條上的數值：預設開、14 號字、置中（使用者 2026-10-01 指定，不遷移）
         showText      = true,
         textSize      = 14,
+        -- 條上數字的位移（所有資源列＋自訂格子共用）：字型行高底下留了下伸部，數字置中後看起來偏上（2026-10-10）
+        textOffset    = { x = 0, y = 0 },
         runeText      = "countdown",       -- 死騎符文列的數字：countdown 每格秒數／count 中間顆數，showText 開著才有（見 Resources.lua 的 R.RuneText）
         runeQueued    = true,              -- 排隊中（還沒開始轉）的符文也算：印總等待秒數、填充照整段等待時間走（見 Resources.lua 的 R.RuneProgress）
         manaAbbrev    = CJK[GetLocale and GetLocale() or ""] and "wan" or "k",   -- none | k | wan

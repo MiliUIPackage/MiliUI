@@ -948,6 +948,13 @@ local base = { spellIDs = { 2, 1 }, max = 4, texture = "t", color = { r = 1, g =
 local sigA = AB.Signature(base)
 eq("簽章：法術順序不影響", AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }), sigA)
 check("簽章：換色就換", AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 0, g = 1, b = 0 }, alpha = 1 }) ~= sigA)
+do
+    local function Cnt(off) return AB.Signature({ kind = "applications", spellIDs = { 1 }, max = 4, texture = "t",
+        color = { r = 1, g = 0, b = 0 }, alpha = 1, count = { font = "f", size = 10, off = off } }) end
+    eq("簽章：文字沒位移 ＝ 位移 0", Cnt(nil), Cnt({ 0, 0 }))
+    check("簽章：文字 Y 位移換了就換容器", Cnt({ 0, -1 }) ~= Cnt({ 0, 0 }))
+    check("簽章：X、Y 分得開", Cnt({ 1, 0 }) ~= Cnt({ 0, 1 }))
+end
 check("簽章：上限進簽章", AB.Signature({ spellIDs = { 1, 2 }, max = 5, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1 }) ~= sigA)
 check("簽章：有光環才顯示（裝飾在子樹裡）進簽章", AB.Signature({ spellIDs = { 1, 2 }, max = 4, texture = "t", color = { r = 1, g = 0, b = 0 }, alpha = 1,
     inside = { W = 100, H = 8, n = 4, gap = 1, segW = 24, segments = true, dim = { 0, 0, 0, 1 }, px = 1 } }) ~= sigA)

@@ -553,7 +553,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
             local scale = UIParent:GetEffectiveScale()
             if not scale or scale <= 0 then scale = 1 end
             count = { font = ns.Media.Font(font), size = fontSize * scale, outline = outline,
-                      mode = Pips.TextMode(plan.entry), decimals = 0 }
+                      mode = Pips.TextMode(plan.entry), decimals = 0, off = { R.TextOffset(style) } }
         end
         row.engine = LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex, count)
         if row.engine then
@@ -613,7 +613,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
                     ns.Media.SetPixelFont(fs, fontSize, outline, font)
                     fs:SetTextColor(1, 1, 1, 1)
                     fs:ClearAllPoints()
-                    fs:SetPoint("CENTER", cell, "CENTER", 0, 0)
+                    fs:SetPoint("CENTER", cell, "CENTER", R.TextOffset(style))
                 end
                 if fmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
                 if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end

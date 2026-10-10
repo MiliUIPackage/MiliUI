@@ -1062,7 +1062,7 @@ local function StyleBarTimer(rec, f, barKey)
     ns.Text.SetFont(fs, tt.size or 12, style.outline, ns.Media.ElementFont(tt.font, style.font))
     fs:SetTextColor(ns.Text.Color(tt.color))
     -- 直向（F8c）：疊在條身內的頂端
-    local p, x, y, j = ns.Text.BarTimePlace(own, bar.vertical)
+    local p, x, y, j = ns.Text.BarTimePlace(own, bar.vertical, bar.timeOffset)
     ns.Text.Anchor(fs, f.Bar, p, x, y)
     if fs.SetJustifyH then fs:SetJustifyH(j) end
 end
@@ -1479,12 +1479,13 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         local nt = TX.SpellText(barKey, id, "barName")
         st.nameFont  = ns.Media.Font(ns.Media.ElementFont(nt.font, font))
         st.nameSize  = tonumber(nt.size) or 12
+        st.nameX, st.nameY = TX.BarOffset(bar.nameOffset)
         -- 秒數：「長條」節的秒數 ⊕ 這一招的覆寫（Text.SpellText 的 "barTime"；位置照 Text.BarTimePlace）
         local tt, _, tOwn = TX.SpellText(barKey, id, "barTime")
         st.timeFont  = ns.Media.Font(ns.Media.ElementFont(tt.font, font))
         st.timeSize  = tonumber(tt.size) or 12
         st.timeColor = RGBA(tt.color, 1, 1, 1, 1)
-        st.timePoint, st.timeX, st.timeY, st.timeJustify = TX.BarTimePlace(tOwn, bar.vertical)
+        st.timePoint, st.timeX, st.timeY, st.timeJustify = TX.BarTimePlace(tOwn, bar.vertical, bar.timeOffset)
         -- 層數字級：這一招自己改過的優先，其次條層「層數」的字級（同 Text.ApplyBar）
         st.barStack  = tonumber(stOwn.size) or tonumber(stT.size) or 12
         -- 長條的層數錨點＋往內縮的 1px（同 Text.ApplyBar／Text.BarStackInset；這裡先算好，initializeFrame 只查欄位）
@@ -1517,7 +1518,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
             st.bgrad = hit
         end
         barSig = table.concat({ "bars", string.format("%.2f,%.2f", st.bh, st.bgap), st.side, st.btex, C(st.bfill), C(st.bbg),
-            tostring(st.spark), st.nameFont, st.nameSize, st.timeFont, st.timeSize, st.barStack, st.stBarPoint,
+            tostring(st.spark), st.nameFont, st.nameSize, st.nameX, st.nameY, st.timeFont, st.timeSize, st.barStack, st.stBarPoint,
             C(st.timeColor), st.timePoint, st.timeX, st.timeY,
             tostring(st.showName), tostring(st.showTime), tostring(st.showStacks), st.name,
             tostring(st.vert), string.format("%.2f", st.isz), st.bgrad and st.bgrad.sig or "-", tostring(st.rev) }, ",")
@@ -1971,8 +1972,8 @@ local function InitAuraBarButton(btn, c, st, rec)
         fs:SetFont(st.nameFont, st.nameSize * s, st.outline)
         pcall(fs.SetIgnoreParentScale, fs, true)
         fs:SetTextColor(1, 1, 1, 1)
-        fs:SetPoint("LEFT", bar, "LEFT", 4 * s, 0)
-        fs:SetPoint("RIGHT", bar, "RIGHT", -(st.timeSize * 3) * s, 0)
+        fs:SetPoint("LEFT", bar, "LEFT", (4 + st.nameX) * s, st.nameY * s)
+        fs:SetPoint("RIGHT", bar, "RIGHT", (st.nameX - st.timeSize * 3) * s, st.nameY * s)
         fs:SetJustifyH("LEFT")
         pcall(fs.SetWordWrap, fs, false)
         fs:SetText(st.name)
@@ -2236,6 +2237,7 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     local nt = ns.Text.SpellText(barKey, rec.cooldownID, "barName")
     local tt = ns.Text.SpellText(barKey, rec.cooldownID, "barTime")
     local nameSize, timeSize = tonumber(nt.size) or 12, tonumber(tt.size) or 12
+    local nx, ny = ns.Text.BarOffset(bar.nameOffset)
     local showName = (nt.show and not vert) and true or false
     local font = ns.Media.ElementFont(nt.font, ns.Setting(barKey, "font"))
     local outline = ns.Setting(barKey, "outline") or ""
@@ -2246,7 +2248,7 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
     local bm = (D and D.BarLook and D.BarLook(bar) == "blizzard") and D.BlizzBarMetrics(H) or nil
     local bgc = bm and { 1, 1, 1, 1 } or RGBA(bar.bgColor, 0.1, 0.1, 0.1, 0.8)
     local sig = table.concat({ side, string.format("%.2f,%.2f", H, gap), tostring(font), outline, tostring(tex), name, z,
-        nameSize, timeSize, tostring(showName),
+        nameSize, timeSize, nx, ny, tostring(showName),
         string.format("%.3f,%.3f,%.3f,%.3f", bgc[1], bgc[2], bgc[3], bgc[4]), tostring(vert), tostring(bm and bm.thick) }, "|")
     if hd.phSig == sig and hd.phBG and hd.phBG:IsShown() then return end
     hd.phSig = sig
@@ -2303,8 +2305,8 @@ local function UpdateBarPlaceholder(rec, barKey, w, h)
         fs:SetTextColor(0.6, 0.6, 0.6, 1)
         local s = ns.Text.PixelScale()
         fs:ClearAllPoints()
-        fs:SetPoint("LEFT", bgT, "LEFT", 4 * s, 0)
-        fs:SetPoint("RIGHT", bgT, "RIGHT", -(timeSize * 3) * s, 0)
+        fs:SetPoint("LEFT", bgT, "LEFT", (4 + nx) * s, ny * s)
+        fs:SetPoint("RIGHT", bgT, "RIGHT", (nx - timeSize * 3) * s, ny * s)
         if fs.SetJustifyH then fs:SetJustifyH("LEFT") end
         fs:SetText(name)
         fs:SetShown(showName)

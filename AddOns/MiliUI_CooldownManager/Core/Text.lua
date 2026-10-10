@@ -453,9 +453,18 @@ end
 
 -- 長條秒數的位置：沒覆寫錨點 ＝ 長條的預設（橫向右緣內縮 4、直向頂端內縮 4）＋覆寫的偏移；
 -- 覆寫了錨點 ＝ 那個錨點＋覆寫的偏移（沒寫 0）。回傳 point, x, y, justifyH（偏移是縮放 1 的單位）
-function T.BarTimePlace(own, vertical)
+-- 整條共用的位移（長條節的 bar.timeOffset／bar.nameOffset = { x, y }；沒存 ＝ 0）
+local function BarOffset(o)
+    if type(o) ~= "table" then return 0, 0 end
+    return tonumber(o.x) or 0, tonumber(o.y) or 0
+end
+T.BarOffset = BarOffset
+
+-- base：整條的秒數位移（bar.timeOffset），逐法術的偏移疊在它上面
+function T.BarTimePlace(own, vertical, base)
     own = own or EMPTY
-    local ox, oy = tonumber(own.x) or 0, tonumber(own.y) or 0
+    local bx, by = BarOffset(base)
+    local ox, oy = (tonumber(own.x) or 0) + bx, (tonumber(own.y) or 0) + by
     local p = own.point
     if type(p) == "string" and p ~= "" then
         local j = p:find("RIGHT") and "RIGHT" or (p:find("LEFT") and "LEFT" or "CENTER")
@@ -570,9 +579,10 @@ function T.ApplyBar(item, style, spell, bar, rec)
             name:SetTextColor(1, 1, 1, 1)
             local s = PixelScale()
             name:ClearAllPoints()
-            name:SetPoint("LEFT", b, "LEFT", 4 * s, 0)
+            local nx, ny = BarOffset(bar.nameOffset)
+            name:SetPoint("LEFT", b, "LEFT", (4 + nx) * s, ny * s)
             -- 右緣留三個秒數字寬（這一格生效的秒數字級，跟光環長條同一個算法）
-            name:SetPoint("RIGHT", b, "RIGHT", -((tonumber(tt.size) or 12) * 3) * s, 0)
+            name:SetPoint("RIGHT", b, "RIGHT", (nx - (tonumber(tt.size) or 12) * 3) * s, ny * s)
             if name.SetJustifyH then name:SetJustifyH("LEFT") end
             -- 直向（F8c）：FontString 不能轉，名字不畫
             name:SetAlpha((nt.show and not bar.vertical) and 1 or 0)
@@ -582,7 +592,7 @@ function T.ApplyBar(item, style, spell, bar, rec)
             SetFont(dur, tt.size or 12, outline, ns.Media.ElementFont(tt.font, font))
             dur:SetTextColor(Color(tt.color))
             -- 直向：秒數疊在條身內的頂端（層數照舊在圖示右下）
-            local p, x, y, j = T.BarTimePlace(own, bar.vertical)
+            local p, x, y, j = T.BarTimePlace(own, bar.vertical, bar.timeOffset)
             Anchor(dur, b, p, x, y)
             if dur.SetJustifyH then dur:SetJustifyH(j) end
             dur:SetAlpha((bar.showTime and not spell.hideCooldownText) and 1 or 0)

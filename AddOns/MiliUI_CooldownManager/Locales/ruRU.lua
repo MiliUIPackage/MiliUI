@@ -535,6 +535,7 @@ L["Show the cast bar"] = "Показывать полосу заклинаний
 L["Show time"] = "Показывать время"
 L["Name offset"] = "Смещение названия"
 L["Time offset"] = "Смещение времени"
+L["Text offset"] = "Смещение текста"
 L["Smooth bar changes"] = "Плавное изменение полос"
 L["Stop preview"] = "Остановить просмотр"
 L["Takes Essential Cooldowns' current opacity, including its visibility conditions and fades."] = "Берёт текущую прозрачность основных восстановлений вместе с их условиями показа и затуханием."

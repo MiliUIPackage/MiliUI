@@ -702,8 +702,13 @@ local function BarTextRows()
         BS("toggle", "bar.showName", L["Show name"], { disabled = IsVertical }),
         nf,
         BS("slider", "bar.nameSize", L["Name size"], { min = 6, max = 30, step = 1, disabled = NoName }),
+        -- 名字／秒數的位移（整條共用；秒數的逐法術偏移疊在上面）：字型的行高把下伸部留在底下，置中後看起來偏上
+        BS("numbers", nil, L["Name offset"], { sub = "bar.nameOffset", path = false, disabled = NoName,
+            resetPaths = { "bar.nameOffset.x", "bar.nameOffset.y" }, fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
         FontBS("bar.timeFont", L["Time font"]),
         BS("slider", "bar.timeSize", L["Time size"], { min = 6, max = 30, step = 1 }),
+        BS("numbers", nil, L["Time offset"], { sub = "bar.timeOffset", path = false,
+            resetPaths = { "bar.timeOffset.x", "bar.timeOffset.y" }, fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
     }
 end
 
