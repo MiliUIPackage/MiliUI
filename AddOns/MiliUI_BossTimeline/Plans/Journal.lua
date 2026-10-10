@@ -103,6 +103,52 @@ function J.TierOf(journalInstanceID)
 end
 
 ------------------------------------------------------------
+-- 自訂時間軸頁的側欄：只讀「最新資料片」＋「現在所在的副本」，結果整個登入期間快取
+--
+-- ⚠ 不准走 NameFor 那種整本掃描（切遍所有資料片，會卡）。舊資料片的首領一律落在側欄的
+--   「其他首領」（存檔裡有、但不在這幾個副本裡的）。
+------------------------------------------------------------
+local sidebarInstances
+local encounterCache = {}
+
+-- { { value = journalInstanceID, text, isRaid, tier }, ... }：最新資料片的團隊副本在前、地城在後
+-- （現在所在的副本不在裡面時由呼叫端補，見 J.CurrentInstanceInfo）
+function J.SidebarInstances()
+    if sidebarInstances then return sidebarInstances end
+    local out = {}
+    if not J.Available() then return out end
+    local newest = EJ_GetNumTiers and EJ_GetNumTiers()
+    if newest and newest > 0 then
+        for _, inst in ipairs(J.Instances(newest)) do
+            out[#out + 1] = { value = inst.value, text = inst.text, isRaid = inst.isRaid, tier = newest }
+        end
+    end
+    -- 空的不快取：冒險指南資料還沒準備好時第一次可能是空的
+    if #out > 0 then sidebarInstances = out end
+    return out
+end
+
+-- 現在所在的副本（冒險指南 ID、名稱、是不是團隊副本）；不在副本裡或冒險指南沒收就 nil
+function J.CurrentInstanceInfo()
+    local id = J.CurrentInstance()
+    if not id then return end
+    local name = EJ_GetInstanceInfo and S.PlainText(S.SafeCall(EJ_GetInstanceInfo, id))
+    local _, instanceType, difficultyID = GetInstanceInfo()
+    return { value = id, text = name or tostring(id), isRaid = instanceType == "raid", difficulty = difficultyID }
+end
+
+-- 同 J.Encounters，但每個副本只讀一次（側欄每次重畫都要問）
+function J.EncountersCached(journalInstanceID, tier)
+    if not journalInstanceID then return {} end
+    local hit = encounterCache[journalInstanceID]
+    if hit then return hit end
+    local list = J.Encounters(journalInstanceID, tier)
+    -- 空的不快取：冒險指南資料還沒準備好時第一次可能是空的
+    if #list > 0 then encounterCache[journalInstanceID] = list end
+    return list
+end
+
+------------------------------------------------------------
 -- 首領戰 ID → 名稱（清單上只剩 ID 的時候補名字用）
 -- 整個冒險指南掃一次要切好幾個資料片，所以只在第一次查不到時掃、結果快取
 ------------------------------------------------------------

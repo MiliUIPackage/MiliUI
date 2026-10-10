@@ -466,8 +466,8 @@ end
 
 -- 只讀存檔裡的名字：不碰冒險指南（NameFor 第一次會整本掃，會卡）
 local function ShowBoss(encounterID)
-    local plan = encounterID and Plans.Get(encounterID)
-    f.boss:SetText(plan and plan.name or "")
+    local boss = encounterID and Plans.Boss(encounterID)
+    f.boss:SetText(boss and boss.name or "")
 end
 
 function EE.Open(values, onAccept, title, encounterID)

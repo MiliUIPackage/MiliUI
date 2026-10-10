@@ -1,18 +1,29 @@
 ------------------------------------------------------------
 -- 「自訂時間軸」分頁：替首領排自己的提示
 --
--- 一張表：每一列一條，照「開戰後第幾秒」排。幾種列混在一起照時間排：
+-- 導覽順序＝心智順序：副本 → 首領（左側欄，用選的）→ 難度（分頁卡片）→ 設定檔（下拉，可多份）
+--
+--   ┌側欄────────────┐┌內容──────────────────────────────────────────┐
+--   │[副本 ▼]        ││[頭像] 首領名稱                  [清單][時間軸]│
+--   │ 1. 首領A    2 ●││       ☑上一場 ☑MRT [變體▼]                    │
+--   │ 2. 首領B    1 ●││ [隨機][普通][英雄][傳奇]   ← 分頁卡片包住下面全部│
+--   │ …              ││ 設定檔 [▼] [新增][複製][改名][刪除]            │
+--   │                ││ ☑生效   也用在：□普通 ☑英雄 ☑傳奇              │
+--   │[輸入首領戰 ID] ││ [預覽播放][立即測試][戰後回顧]                 │
+--   │            [<<]││ 清單／時間軸編輯器                             │
+--   └────────────────┘│ [+新增提示][貼上匯入][匯出][復原]  說明灰字      │
+--
+-- 側欄只讀冒險指南的「最新資料片」＋「現在所在的副本」（Journal.SidebarInstances）；
+-- 存檔裡有、但不在這幾個副本裡的首領（手動 ID、舊資料片）落在「其他首領」。
+-- 一隻首領×難度可以有好幾份設定檔、可以同時生效（團長的＋自己的），開戰時合併、重複的只跑一次。
+--
+-- 清單檢視：每一列一條，照「開戰後第幾秒」排。幾種列混在一起照時間排：
 --   * 自己的提示（白字）—— 可以編輯、刪除
---   * MRT 時間軸（灰字、金色來源）—— 唯讀：MRT 自帶的整場首領技能統計，有名稱有圖示
---     （資料見 Plans/MRTData.lua）；換階段的那一秒另有一列分隔
---   * 上一場的紀錄（灰字、鎖頭）—— 唯讀：暴雪的首領技能、其他插件加的條。
---     暴雪的技能名稱戰鬥中是秘密值、存不下來，只看得到「這一秒有一個暴雪事件、倒數多久」
--- 唯讀列的用途是讓玩家把自己的提示對齊上去，所以每一列都有「以此新增」，
--- 會把那一秒（MRT 列連法術一起）帶進新增視窗。
+--   * MRT 時間軸（灰字、金色來源）—— 唯讀：MRT 自帶的整場首領技能統計（Plans/MRTData.lua）
+--   * 上一場的紀錄（灰字、鎖頭）—— 唯讀：暴雪的首領技能、其他插件加的條
+-- 唯讀列都有「以此新增」，會把那一秒（MRT 列連法術一起）帶進新增視窗。
 --
--- 另外可以整段貼上 MRT 筆記／lorrgs 的 {time:mm:ss} 提示行匯入（Plans.ImportNote）。
---
--- 拖拉式的時間軸編輯器是下一步（資料格式已經是秒數，換畫法不用遷移）。
+-- 內容區所有寬度都從「內容區寬」推算（側欄收合時撐滿），不要寫死。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -20,24 +31,47 @@ local L = ns.L
 local W, P = ns.W, ns.P
 local Plans = ns.Plans
 local MD = ns.MRTData
+local J = ns.Journal
 
-local tab, planDD, diffDD, enabledCB, list, emptyText, statusText, recNote
-local btnRename, btnDelete, btnTest, btnStop, btnAdd, btnImport
+local tab
+-- 側欄
+local instDD, bossList, btnManual, btnCollapse, sideEmpty
+-- 內容：標題列
+local bossBox, bossModel, bossSkull, bossName, bossSub, modeButtons, highlightMode
 local showRecCB, showMRTCB, mrtDD
-local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup
-local btnExport, btnReview, btnPreview, btnUndo, keyCatcher, diffLbl
-local head, editor, modeButtons, highlightMode
-local bossBox, bossModel, bossSkull
-local currentID
+-- 內容：卡片
+local diffTabs, profLbl, profDD, btnNew, btnCopy, btnRename, btnDelete
+local activeCB, alsoLbl, alsoCBs, activeNote
+local btnPreview, btnTest, btnReview, btnStop, statusText
+local head, headCols, list, editor
+local btnAdd, btnImport, btnExport, btnUndo, recNote
+local emptyText, btnCreate, btnEmptyImport, noBossText
+local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup, idPopup
+local keyCatcher
 
+-- 目前選的：副本（冒險指南 ID 或 "other"）、首領戰 ID、難度、設定檔 ID
+local sel = {}
+local chosen = false          -- 這次登入選過預設了沒（第一次打開照「所在副本 → 上次看的 → 最新團隊副本」挑）
+
+local OTHER = "other"
 local ROW_H = 24
-local LIST_X, LIST_W = 16, 748
-
--- 欄位 x（列內座標）
-local COL = { time = 8, icon = 70, text = 94, lead = 470, src = 530, btn = 652 }
+local BOSS_ROW_H = 22
+local TOP = -46
+local SIDE_X, SIDE_W = 16, 170
+local SIDE_GAP = 10
+local COLLAPSED_W = 20 + 8    -- 收起來時只剩展開鈕那一條
+local RIGHT_PAD = 16
+local CARD_BOTTOM = -512
+local BOTTOM_ROW_Y = -440     -- 底下一排按鈕
+local NOTE_Y = -468           -- 最底下的說明灰字
+local AVATAR = 40
+local GREEN = { 0.3, 0.9, 0.3 }
 
 local LOCK_ICON = "Interface\\PetBattles\\PetBattle-LockIcon"
 local QUESTION_ICON = 134400
+-- 設定檔下拉裡的「生效中」勾：中文字型沒有 ✓，用貼圖跳脫字串；沒勾的列用同一張貼圖的透明角落佔同寬，文字才對齊
+local CHECK_MARK = "|TInterface\\Buttons\\UI-CheckBox-Check:16:16:0:0:32:32:2:30:2:30|t"
+local CHECK_BLANK = "|TInterface\\Buttons\\UI-CheckBox-Check:16:16:0:0:32:32:0:1:0:1|t"
 
 -- 同一秒的排序：自己的 → 換階段 → MRT → 上一場紀錄（玩家的眼睛先找自己的）
 local KIND_ORDER = { entry = 1, phase = 2, mrt = 3, recorded = 4 }
@@ -46,38 +80,255 @@ local function View()
     return ns.db.planView
 end
 
+local function Profile()
+    return Plans.Get(sel.pid)
+end
+
+------------------------------------------------------------
+-- 版面：內容區的左緣與寬度（側欄展開／收合）
+------------------------------------------------------------
+local function ContentX()
+    if View().sidebar then return SIDE_X + SIDE_W + SIDE_GAP end
+    return SIDE_X + COLLAPSED_W
+end
+
+local function ContentW()
+    return ns.Options.PANEL_W - RIGHT_PAD - ContentX()
+end
+
+------------------------------------------------------------
+-- 側欄資料：副本清單、每個副本的首領、其他首領
+------------------------------------------------------------
+local instances, instanceById = {}, {}
+
+local function RebuildInstances()
+    wipe(instances)
+    wipe(instanceById)
+    for _, inst in ipairs(J.SidebarInstances()) do
+        instances[#instances + 1] = inst
+    end
+    local cur = J.CurrentInstanceInfo()
+    local present = false
+    for _, inst in ipairs(instances) do
+        if inst.value == (cur and cur.value) then present = true end
+    end
+    if cur and not present then table.insert(instances, 1, cur) end
+    for _, inst in ipairs(instances) do instanceById[inst.value] = inst end
+    return cur
+end
+
+-- 側欄這幾個副本的首領 → 副本（只有「其他首領」、匯入後跳轉、手動輸入 ID 時才需要；
+-- 只讀最新資料片＋所在副本，結果在 Journal 那邊快取）
+local function InstanceOf(encID)
+    local boss = Plans.Boss(encID)
+    if boss and boss.instance and instanceById[boss.instance] then return boss.instance end
+    for _, inst in ipairs(instances) do
+        for _, enc in ipairs(J.EncountersCached(inst.value, inst.tier)) do
+            if enc.value == encID then
+                if boss then boss.instance = inst.value end
+                return inst.value
+            end
+        end
+    end
+    return OTHER
+end
+
+-- 一個副本的首領列：{ { id, name, journal, num }, ... }
+local function BossRows(instID)
+    local rows = {}
+    if instID == OTHER then
+        for _, b in ipairs(Plans.Bosses()) do
+            if InstanceOf(b.id) == OTHER then
+                rows[#rows + 1] = { id = b.id, name = b.boss.name or tostring(b.id), journal = b.boss.journal }
+            end
+        end
+        return rows
+    end
+    local inst = instanceById[instID]
+    if not inst then return rows end
+    for i, enc in ipairs(J.EncountersCached(inst.value, inst.tier)) do
+        rows[#rows + 1] = { id = enc.value, name = enc.text, journal = enc.journal, num = i }
+    end
+    return rows
+end
+
+local function FindRow(rows, encID)
+    for _, r in ipairs(rows) do
+        if r.id == encID then return r end
+    end
+end
+
+------------------------------------------------------------
+-- 難度：副本類型決定分頁那一組
+------------------------------------------------------------
+local function IsRaidBoss(encID)
+    local inst = instanceById[sel.inst]
+    if inst then return inst.isRaid ~= false end
+    -- 其他首領：看它的設定檔用在哪些難度；全是地城難度才當地城（手動 ID 的首領預設團隊那組）
+    local raidSet, dungeonSet = {}, {}
+    for _, d in ipairs(Plans.RAID_DIFFICULTIES) do raidSet[d.value] = true end
+    for _, d in ipairs(Plans.DUNGEON_DIFFICULTIES) do dungeonSet[d.value] = true end
+    local raid, dungeon = false, false
+    for _, p in ipairs(Plans.Profiles(encID)) do
+        for d in pairs(p.difficulties or {}) do
+            if raidSet[d] then raid = true end
+            if dungeonSet[d] then dungeon = true end
+        end
+    end
+    return not (dungeon and not raid)
+end
+
+local function DiffGroup()
+    return (sel.boss and not IsRaidBoss(sel.boss)) and Plans.DUNGEON_DIFFICULTIES or Plans.RAID_DIFFICULTIES
+end
+
+local function InGroup(group, d)
+    for _, x in ipairs(group) do
+        if x.value == d then return true end
+    end
+    return false
+end
+
+-- 預設難度：上次看的 → 現在所在副本的難度 → 英雄
+local function DefaultDiff(group)
+    if InGroup(group, View().difficulty) then return View().difficulty end
+    local _, instanceType, d = GetInstanceInfo()
+    if instanceType ~= "none" and InGroup(group, d) then return d end
+    for _, x in ipairs(group) do
+        if x.value == 15 or x.value == 2 then return x.value end     -- 英雄
+    end
+    return group[1] and group[1].value
+end
+
+-- 設定檔摘要用的難度列表：「英雄、傳奇」／「全部難度」
+local function DiffListText(p)
+    if not p.difficulties or not next(p.difficulties) then return L["All difficulties"] end
+    local parts, seen = {}, {}
+    for _, group in ipairs({ DiffGroup(), Plans.RAID_DIFFICULTIES, Plans.DUNGEON_DIFFICULTIES }) do
+        for _, d in ipairs(group) do
+            if p.difficulties[d.value] and not seen[d.value] then
+                seen[d.value] = true
+                parts[#parts + 1] = L[d.label]
+            end
+        end
+    end
+    for d in pairs(p.difficulties) do
+        if not seen[d] then parts[#parts + 1] = Plans.DifficultyLabel(d) end
+    end
+    return table.concat(parts, L[", "])
+end
+
+------------------------------------------------------------
+-- 選擇：每一層變了就把下一層夾回合法值，並記進 planView
+------------------------------------------------------------
+local function Remember()
+    local v = View()
+    v.instance, v.boss, v.difficulty, v.profile = sel.inst, sel.boss, sel.diff, sel.pid
+end
+
+local function FixProfile()
+    local list_ = (sel.boss and sel.diff) and Plans.Profiles(sel.boss, sel.diff) or {}
+    local keep
+    for _, p in ipairs(list_) do
+        if p.id == sel.pid then keep = p.id end
+    end
+    if not keep then
+        for _, p in ipairs(list_) do
+            if p.id == View().profile then keep = p.id end
+        end
+    end
+    sel.pid = keep or (list_[1] and list_[1].id) or nil
+end
+
+local function FixDiff()
+    local group = DiffGroup()
+    if not InGroup(group, sel.diff) then sel.diff = DefaultDiff(group) end
+    FixProfile()
+end
+
+local function FixBoss()
+    local rows = BossRows(sel.inst)
+    if not FindRow(rows, sel.boss) then
+        local remembered = View().boss
+        sel.boss = FindRow(rows, remembered) and remembered or (rows[1] and rows[1].id) or nil
+    end
+    FixDiff()
+    return rows
+end
+
+-- 第一次打開：所在副本 → 上次看的 → 最新資料片第一個團隊副本 → 第一個副本 → 其他首領
+local function ChooseDefaults(cur)
+    chosen = true
+    local v = View()
+    if cur then
+        sel.inst = cur.value
+    elseif v.instance == OTHER or instanceById[v.instance] then
+        sel.inst = v.instance
+    else
+        for _, inst in ipairs(instances) do
+            if inst.isRaid then
+                sel.inst = inst.value
+                break
+            end
+        end
+        sel.inst = sel.inst or (instances[1] and instances[1].value) or OTHER
+    end
+    sel.boss, sel.diff, sel.pid = v.boss, nil, v.profile
+end
+
+-- 跳到某一份設定檔（匯入後）：首領所在的副本、一個它適用的難度分頁
+local function GoToProfile(pid)
+    local encID = Plans.BossOf(pid)
+    local p = Plans.Get(pid)
+    if not encID or not p then return end
+    sel.inst = InstanceOf(encID)
+    sel.boss = encID
+    local group = DiffGroup()
+    if not (InGroup(group, sel.diff) and Plans.AppliesTo(p, sel.diff)) then
+        sel.diff = nil
+        for _, d in ipairs(group) do
+            if Plans.AppliesTo(p, d.value) then
+                sel.diff = d.value
+                break
+            end
+        end
+        sel.diff = sel.diff or DefaultDiff(group)
+    end
+    sel.pid = pid
+end
+
 ------------------------------------------------------------
 -- 清單資料
 ------------------------------------------------------------
-local function MRTVariant(plan)
-    if not currentID or not MD.Has(currentID) then return end
-    local idx = plan and plan.mrtVariant
-    local variants = MD.Variants(currentID)
+local function MRTVariant(profile)
+    if not sel.boss or not MD.Has(sel.boss) then return end
+    local idx = profile and profile.mrtVariant
+    local variants = MD.Variants(sel.boss)
     if idx and variants[idx] then return idx end
-    return MD.DefaultVariant(currentID, plan and plan.difficulty)
+    return MD.DefaultVariant(sel.boss, sel.diff)
 end
 
 local function Items()
     local items = {}
-    local plan = Plans.Get(currentID)
-    if not plan then return items end
-    for i, e in ipairs(plan.entries) do
+    local profile = Profile()
+    if not profile then return items end
+    for i, e in ipairs(profile.entries) do
         items[#items + 1] = { kind = "entry", index = i, entry = e, t = e.t or 0 }
     end
     if View().mrt then
-        local v = MRTVariant(plan)
+        local v = MRTVariant(profile)
         if v then
             local nth = {}
-            for _, ev in ipairs(MD.Events(currentID, v)) do
+            for _, ev in ipairs(MD.Events(sel.boss, v)) do
                 nth[ev.spell] = (nth[ev.spell] or 0) + 1
                 items[#items + 1] = { kind = "mrt", ev = ev, t = ev.t, n = nth[ev.spell] }
             end
-            for _, ph in ipairs(MD.Phases(currentID, v)) do
+            for _, ph in ipairs(MD.Phases(sel.boss, v)) do
                 items[#items + 1] = { kind = "phase", phase = ph.phase, t = ph.t }
             end
         end
     end
-    local rec = View().recorded and ns.db.recorded[currentID]
+    local rec = View().recorded and ns.db.recorded[sel.boss]
     if rec then
         for _, ev in ipairs(rec.events) do
             items[#items + 1] = { kind = "recorded", ev = ev, t = ev.t or 0 }
@@ -95,10 +346,12 @@ end
 ------------------------------------------------------------
 -- entry：要改的那一條（表的參考）。排序後 index 會變，所以存檔前才找它現在的位置
 local function OpenEntryPopup(values, entry)
+    local pid = sel.pid
+    if not Plans.Get(pid) then return end
     ns.EntryEditor.Open(values, function(v)
-        Plans.SaveEntry(currentID, v, entry and Plans.IndexOf(currentID, entry))
+        Plans.SaveEntry(pid, v, entry and Plans.IndexOf(pid, entry))
         ns.Fire("PlansChanged")
-    end, entry and L["Edit reminder"] or L["Add reminder"], currentID)
+    end, entry and L["Edit reminder"] or L["Add reminder"], sel.boss)
 end
 
 local function EntryValues(e)
@@ -143,48 +396,123 @@ local function PopupShell(name, parent, w, h, titleText)
     return popup
 end
 
--- 貼上匯入：米利字串（!MBT1!）或 MRT 筆記行，自動判斷
+-- 貼上匯入：米利字串（!MBT1!）或 MRT 筆記行，自動判斷。
+-- 預設新增一份設定檔（預設不生效）；可以改成併入目前的設定檔
 local function CreateImportPopup(parent)
-    local W_, H_ = 560, 380
+    local W_, H_ = 560, 400
     local popup = PopupShell("MiliUIBT_ImportPopup", parent, W_, H_, L["Paste reminders"])
     popup.hint:SetText(L["Paste a MiliUI Boss Timeline string (starts with !MBT1!), or MRT note lines, one reminder per line: {time:01:30} {spell:31821} text. Times relative to a phase ({time:00:54,p2}) are not supported; turn off the dynamic timer when exporting from lorrgs."])
 
-    local box = W.CreateScrollEditBox(popup, W_ - 28, H_ - 140)
+    local box = W.CreateScrollEditBox(popup, W_ - 28, H_ - 196)
     box:SetPoint("TOPLEFT", 14, -88)
     popup.box = box
 
-    local ok = W.CreateButton(popup, L["Import"], "green", 90, 22)
+    -- 新增一份／併入目前那份
+    local mode = "new"
+    local bNew = W.CreateButton(popup, L["Add as a new profile"], "accent-hover", 120, 20)
+    local bMerge = W.CreateButton(popup, L["Merge into the current profile"], "accent-hover", 120, 20)
+    W.FitButton(bNew, 120, 20)
+    W.FitButton(bMerge, 120, 20)
+    bNew.id, bMerge.id = "new", "merge"
+    bNew:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -10)
+    bMerge:SetPoint("LEFT", bNew, "RIGHT", 3, 0)
+    local modeNote = popup:CreateFontString(nil, "OVERLAY")
+    modeNote:SetFontObject(W.fontSmall)
+    modeNote:SetTextColor(0.6, 0.6, 0.6)
+    modeNote:SetPoint("TOPLEFT", bNew, "BOTTOMLEFT", 0, -6)
+    modeNote:SetWidth(W_ - 28)
+    modeNote:SetJustifyH("LEFT")
+    local function SetMode(id)
+        mode = id
+        modeNote:SetText(id == "merge"
+            and L["Adds the reminders to the profile you are looking at; ones already there are skipped."]
+            or L["A new profile is added and left inactive, so it won't stack with yours until you tick Active."])
+    end
+    local highlight = W.CreateButtonGroup({ bNew, bMerge }, SetMode)
+
+    local function Done(pid)
+        popup:Hide()
+        if pid then GoToProfile(pid) end
+        ns.Fire("PlansChanged")
+    end
+
+    local function ImportString(text)
+        local payload, err = ns.Share.Decode(text)
+        if not payload then
+            ns.Print(err)
+            return
+        end
+        local cur = Profile()
+        if mode == "merge" and cur then
+            if Plans.BossOf(sel.pid) == payload.id then
+                local pid = sel.pid
+                local added, skipped = Plans.Batch(pid, function() return ns.Share.ImportInto(pid, payload) end)
+                ns.Print(L["Merged %d reminders into %s (%d were already there)."]:format(added, cur.name or "", skipped))
+                Done(pid)
+                return
+            end
+            ns.Print(L["This string is for another boss, so it was added as a new profile instead."])
+        end
+        local added, _, pid = ns.Share.Import(payload)
+        local boss = Plans.Boss(payload.id)
+        local p = Plans.Get(pid)
+        ns.Print(L["Added the profile \"%s\" to %s with %d reminders. It is not active yet; tick Active to use it."]:format(
+            p and p.name or "", boss and boss.name or tostring(payload.id), added))
+        Done(pid)
+    end
+
+    -- MRT 筆記行：沒有首領資訊，一律進目前選的首領
+    local function ImportLines(text)
+        if not sel.boss then
+            ns.Print(L["Pick a boss on the left first; MRT note lines don't say which boss they are for."])
+            return
+        end
+        if not Plans.LooksLikeNote(text) then
+            ns.Print(L["Nothing to import: no {time:} lines found."])
+            return
+        end
+        local pid, created = sel.pid, false
+        if mode ~= "merge" or not Profile() then
+            local row = FindRow(BossRows(sel.inst), sel.boss)
+            Plans.EnsureBoss(sel.boss, row and row.name, row and row.journal, sel.inst ~= OTHER and sel.inst or nil)
+            local p = Plans.NewProfile(sel.boss, L["Imported plan"], sel.diff)
+            p.active, p.source = false, "import"
+            pid, created = p.id, true
+        end
+        local added, skipped, phased = Plans.ImportNote(pid, text)
+        ns.Print(L["Imported %d, skipped %d, phase-relative (not supported) %d."]:format(added, skipped, phased))
+        if created then
+            if added == 0 then
+                Plans.DeleteProfile(pid)      -- 什麼都沒匯進來就不留一份空的
+                pid = nil
+            else
+                ns.Print(L["The new profile is not active yet; tick Active to use it."])
+            end
+        end
+        Done(pid)
+    end
+
+    local ok = W.CreateButton(popup, L["Import"], "primary", 90, 22)
+    W.FitButton(ok, 90, 22)
     ok:SetPoint("BOTTOMLEFT", 26, 12)
     ok:SetScript("OnClick", function()
         local text = box.editBox:GetText() or ""
         if ns.Share.IsShareString(text) then
-            local payload, err = ns.Share.Decode(text)
-            if not payload then
-                ns.Print(err)
-                return
-            end
-            local added, skipped = ns.Share.Import(payload)
-            currentID = payload.id
-            ns.Print(L["Imported %d reminders into %s (%d were already there)."]:format(added, payload.name or tostring(payload.id), skipped))
-            popup:Hide()
-            ns.Fire("PlansChanged")
-            return
+            ImportString(text)
+        else
+            ImportLines(text)
         end
-        if not Plans.Get(currentID) then
-            ns.Print(L["Pick or add a boss first; MRT note lines don't say which boss they are for."])
-            return
-        end
-        local added, skipped, phased = Plans.ImportNote(currentID, text)
-        ns.Print(L["Imported %d, skipped %d, phase-relative (not supported) %d."]:format(added, skipped, phased))
-        popup:Hide()
-        if added > 0 then ns.Fire("PlansChanged") end
     end)
-    local cancel = W.CreateButton(popup, L["Cancel"], "red", 90, 22)
+    local cancel = W.CreateButton(popup, L["Cancel"], "normal", 90, 22)
     cancel:SetPoint("BOTTOMRIGHT", -26, 12)
     cancel:SetScript("OnClick", function() popup:Hide() end)
 
     function popup:Open()
         box.editBox:SetText("")
+        -- 沒有目前的設定檔就沒有東西可以併入
+        bMerge:SetShown(Profile() ~= nil)
+        highlight(bNew)
+        SetMode("new")
         self:Show()
         box.editBox:SetFocus()
     end
@@ -200,8 +528,8 @@ local function CreateExportPopup(parent)
     local format = "mbt"
 
     local function Text()
-        if format == "note" then return ns.Share.ExportNote(currentID) end
-        return ns.Share.Export(currentID) or L["This game client can't create share strings."]
+        if format == "note" then return ns.Share.ExportNote(sel.pid) end
+        return ns.Share.Export(sel.pid) or L["This game client can't create share strings."]
     end
 
     local bMBT = W.CreateButton(popup, L["MiliUI string"], "accent-hover", 90, 20)
@@ -220,8 +548,8 @@ local function CreateExportPopup(parent)
     local function Show(id)
         format = id
         popup.hint:SetText(id == "note"
-            and L["MRT note lines: time, spell and text only. MRT, DreamForgeTools and other addons that read this format can use it."]
-            or L["Everything in this boss's custom timeline, including sounds, conditions and anchors. Paste it into Paste reminders on another character or for a friend."])
+            and L["MRT note lines: time, spell and text only. MRT notes and other addons that read {time:} lines can use it."]
+            or L["Everything in this profile, including sounds, conditions and anchors. Paste it into Paste reminders on another character or for a friend; it arrives as a new profile."])
         copy:Refresh()
     end
     local highlight = W.CreateButtonGroup({ bMBT, bNote }, Show)
@@ -240,13 +568,13 @@ local function CreateExportPopup(parent)
     return popup
 end
 
--- 戰後回顧：錨點提示 上一場實際 vs 備援時間；一鍵套用、整份平移
+-- 戰後回顧：錨點提示 上一場實際 vs 備援時間；一鍵套用、整份平移（都只動目前這份設定檔）
 local function CreateReviewPopup(parent)
     local W_, H_ = 600, 420
     local popup = PopupShell("MiliUIBT_ReviewPopup", parent, W_, H_, L["Review last pull"])
     popup.hint:SetText(L["Reminders that follow a boss cast are compared with when that cast actually happened in your last pull. Reminders with a fixed time have nothing to compare; use Shift all to move them."])
 
-    local list = W.CreateRowList(popup, W_ - 28, 220, 22, function(row)
+    local rlist = W.CreateRowList(popup, W_ - 28, 220, 22, function(row)
         row.name = row:CreateFontString(nil, "OVERLAY")
         row.name:SetFontObject(W.fontNormal)
         row.name:SetPoint("LEFT", 6, 0)
@@ -259,18 +587,18 @@ local function CreateReviewPopup(parent)
         row.vals:SetWidth(W_ - 360)
         row.vals:SetJustifyH("LEFT")
     end)
-    list:SetPoint("TOPLEFT", 14, -84)
+    rlist:SetPoint("TOPLEFT", 14, -84)
 
     local summary = popup:CreateFontString(nil, "OVERLAY")
     summary:SetFontObject(W.fontSmall)
-    summary:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -6)
+    summary:SetPoint("TOPLEFT", rlist, "BOTTOMLEFT", 0, -6)
     summary:SetWidth(W_ - 28)
     summary:SetJustifyH("LEFT")
 
     local function Refresh_()
-        local rows = ns.Review.Rows(currentID)
+        local rows = ns.Review.Rows(sel.pid)
         local off = 0
-        list:Update(rows, function(row, r)
+        rlist:Update(rows, function(row, r)
             local _, text = Plans.Resolve(r.entry)
             row.name:SetText(text)
             if r.actual then
@@ -282,7 +610,7 @@ local function CreateReviewPopup(parent)
                 row.vals:SetText("|cff6f6f6f" .. Plans.FormatTime(r.planned) .. "  " .. L["(nothing to compare)"] .. "|r")
             end
         end)
-        summary:SetText(ns.db.recorded[currentID] and L["%d reminders differ from your last pull."]:format(off)
+        summary:SetText((sel.boss and ns.db.recorded[sel.boss]) and L["%d reminders differ from your last pull."]:format(off)
             or L["No recorded pull for this boss yet."])
     end
 
@@ -290,7 +618,7 @@ local function CreateReviewPopup(parent)
     W.FitButton(apply, 150, 22)
     apply:SetPoint("BOTTOMLEFT", 14, 44)
     apply:SetScript("OnClick", function()
-        local n = ns.Review.ApplyAnchored(currentID)
+        local n = ns.Review.ApplyAnchored(sel.pid)
         ns.Print(L["Updated %d reminders."]:format(n))
         ns.Fire("PlansChanged")
         Refresh_()
@@ -312,7 +640,7 @@ local function CreateReviewPopup(parent)
     shiftBtn:SetScript("OnClick", function()
         local d = tonumber(shiftBox:GetText())
         if not d or d == 0 then return end
-        ns.Review.ShiftAll(currentID, d)
+        ns.Review.ShiftAll(sel.pid, d)
         ns.Fire("PlansChanged")
         Refresh_()
     end)
@@ -334,17 +662,25 @@ end
 local function CreatePopups()
     local parent = ns.Options.panel
 
+    -- 改名與新增共用（標題每次開都給）
     renamePopup = W.CreateInputPopup(parent, 340, L["Rename"], {
         { key = "name", label = L["Name"] },
     })
 
-    deletePopup = W.CreateConfirmPopup(parent, 320, L["Delete this boss's custom timeline?"], function()
-        if currentID then
-            Plans.Delete(currentID)
-            currentID = nil
+    deletePopup = W.CreateConfirmPopup(parent, 320, L["Delete this profile?"], function()
+        if Plans.Get(sel.pid) then
+            Plans.DeleteProfile(sel.pid)
+            sel.pid = nil
             ns.Fire("PlansChanged")
         end
     end)
+
+    -- 手動輸入首領戰 ID（冒險指南沒收的首領：世界首領的活動版、測試用、舊資料片）
+    idPopup = W.CreateInputPopup(parent, 380, L["Enter an encounter ID"], {
+        { key = "id",   label = L["Encounter ID"],
+          hint = L["The ID from the boss fight itself, not the Adventure Guide. After one pull the last boss you fought is filled in for you."] },
+        { key = "name", label = L["Name"] },
+    })
 
     importPopup = CreateImportPopup(parent)
     exportPopup = CreateExportPopup(parent)
@@ -352,30 +688,120 @@ local function CreatePopups()
 end
 
 ------------------------------------------------------------
--- 清單列
+-- 側欄的首領列
+--
+-- 選中＝整列亮底＋左緣一條職業色（顏色以外的第二個訊號）＋白字；其他列灰白字、滑過微亮。
+-- 右邊灰色數字＝設定檔數、綠點＝有生效中的（綠是唯一的例外色：它講的是「開戰會跑」，跟選取無關）。
 ------------------------------------------------------------
-local function Font(row, x, w, justify)
-    local fs = row:CreateFontString(nil, "OVERLAY")
+local function BuildBossRow(row)
+    local b = CreateFrame("Button", nil, row)
+    b:SetAllPoints()
+    row.btn = b
+    row.bg = b:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.bg:SetAllPoints()
+    row.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
+    row.bg:Hide()
+    row.bar = b:CreateTexture(nil, "ARTWORK")
+    row.bar:SetPoint("TOPLEFT")
+    row.bar:SetPoint("BOTTOMLEFT")
+    row.bar:SetWidth(P.Scale(2))
+    row.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
+    row.bar:SetVertexColor(W.Accent(1))
+    row.bar:Hide()
+    row.dot = b:CreateTexture(nil, "ARTWORK")
+    row.dot:SetSize(6, 6)
+    row.dot:SetPoint("RIGHT", -4, 0)
+    row.dot:SetTexture("Interface\\Buttons\\WHITE8X8")
+    row.dot:SetVertexColor(GREEN[1], GREEN[2], GREEN[3], 1)
+    row.count = b:CreateFontString(nil, "OVERLAY")
+    row.count:SetFontObject(W.fontSmall)
+    row.count:SetPoint("RIGHT", -14, 0)
+    row.count:SetTextColor(0.6, 0.6, 0.6)
+    row.text = b:CreateFontString(nil, "OVERLAY")
+    row.text:SetFontObject(W.fontNormal)
+    row.text:SetPoint("LEFT", 8, 0)
+    row.text:SetPoint("RIGHT", -30, 0)
+    row.text:SetJustifyH("LEFT")
+    row.text:SetWordWrap(false)
+
+    local function Paint(hover)
+        local on = row.item and row.item.id == sel.boss
+        if on then
+            row.bg:SetVertexColor(W.Accent(0.35))
+            row.bg:Show()
+        elseif hover then
+            row.bg:SetVertexColor(1, 1, 1, 0.06)
+            row.bg:Show()
+        else
+            row.bg:Hide()
+        end
+        row.bar:SetShown(on)
+        local c = on and 1 or 0.8
+        row.text:SetTextColor(c, c, c)
+    end
+    row.Paint = Paint
+    b:SetScript("OnEnter", function() Paint(true) end)
+    b:SetScript("OnLeave", function() Paint(false) end)
+    b:SetScript("OnClick", function()
+        local it = row.item
+        if not it or it.id == sel.boss then return end
+        sel.boss = it.id
+        sel.pid = nil
+        FixDiff()
+        Remember()
+        ns.Fire("PlansChanged")
+    end)
+end
+
+local function UpdateBossRow(row, it)
+    row.item = it
+    row.text:SetText(it.num and ("%d. %s"):format(it.num, it.name) or it.name)
+    local n, active = Plans.BossSummary(it.id)
+    row.count:SetText(n > 0 and n or "")
+    row.dot:SetShown(active)
+    row.Paint(row.btn:IsMouseOver())
+end
+
+------------------------------------------------------------
+-- 清單列（清單檢視）
+--
+-- 欄位：時間、圖示、文字（撐滿）、提前、來源、按鈕。右邊四欄錨在列的右緣，寬度變了文字欄自己伸縮
+------------------------------------------------------------
+local COL = { time = 8, icon = 70, text = 94 }
+local RCOL = { btn = 96, src = 218, lead = 278 }      -- 離列右緣多遠（各欄的左緣）
+
+local function Font(parent, justify)
+    local fs = parent:CreateFontString(nil, "OVERLAY")
     fs:SetFontObject(W.fontNormal)
-    fs:SetPoint("LEFT", row, "LEFT", x, 0)
-    fs:SetWidth(w)
     fs:SetJustifyH(justify or "LEFT")
     fs:SetWordWrap(false)
     return fs
 end
 
+local function PlaceCols(parent, f)
+    f.time:SetPoint("LEFT", parent, "LEFT", COL.time, 0)
+    f.time:SetWidth(58)
+    f.lead:SetPoint("LEFT", parent, "RIGHT", -RCOL.lead, 0)
+    f.lead:SetWidth(52)
+    f.src:SetPoint("LEFT", parent, "RIGHT", -RCOL.src, 0)
+    f.src:SetWidth(RCOL.src - RCOL.btn - 8)
+    f.text:SetPoint("LEFT", parent, "LEFT", COL.text, 0)
+    f.text:SetPoint("RIGHT", parent, "RIGHT", -RCOL.lead - 8, 0)
+end
+
 local function BuildRow(row)
-    row.time = Font(row, COL.time, 58, "RIGHT")
+    row.time = Font(row, "RIGHT")
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(18, 18)
     row.icon:SetPoint("LEFT", row, "LEFT", COL.icon, 0)
-    row.text = Font(row, COL.text, COL.lead - COL.text - 8)
-    row.lead = Font(row, COL.lead, 52, "RIGHT")
-    row.src  = Font(row, COL.src, COL.btn - COL.src - 8)
+    row.text = Font(row)
+    row.lead = Font(row, "RIGHT")
+    row.src  = Font(row)
     row.src:SetFontObject(W.fontSmall)
+    PlaceCols(row, row)
 
     row.edit = W.CreateButton(row, L["Edit"], "normal", 44, 18)
-    row.edit:SetPoint("LEFT", row, "LEFT", COL.btn, 0)
+    row.edit:SetPoint("LEFT", row, "RIGHT", -RCOL.btn, 0)
     row.edit:SetScript("OnClick", function()
         local it = row.item
         if it and it.kind == "entry" then OpenEntryPopup(EntryValues(it.entry), it.entry) end
@@ -386,7 +812,7 @@ local function BuildRow(row)
     row.del:SetScript("OnClick", function()
         local it = row.item
         if it and it.kind == "entry" then
-            Plans.RemoveEntry(currentID, it.index)
+            Plans.RemoveEntry(sel.pid, it.index)
             ns.Fire("PlansChanged")
         end
     end)
@@ -394,7 +820,7 @@ local function BuildRow(row)
     -- 唯讀列：以這一秒新增一條自己的提示
     row.copy = W.CreateButton(row, L["Add at this time"], "normal", 92, 18)
     W.FitButton(row.copy, 92, 18)
-    row.copy:SetPoint("LEFT", row, "LEFT", COL.btn, 0)
+    row.copy:SetPoint("LEFT", row, "RIGHT", -RCOL.btn, 0)
     row.copy:SetScript("OnClick", function()
         local it = row.item
         if not it then return end
@@ -498,19 +924,32 @@ local function UpdateRow(row, it)
 end
 
 ------------------------------------------------------------
--- 重畫整頁
+-- 下拉項目
 ------------------------------------------------------------
-local function PlanItems()
+local function InstanceItems()
     local items = {}
-    for _, p in ipairs(Plans.List()) do
-        items[#items + 1] = { text = ("%s  |cff9d9d9d%d|r"):format(p.plan.name or "?", p.id), value = p.id }
+    for _, inst in ipairs(instances) do
+        items[#items + 1] = { text = inst.text, value = inst.value }
+    end
+    items[#items + 1] = { text = L["Other bosses"], value = OTHER }
+    return items
+end
+
+-- 「✓ 名稱  (英雄、傳奇) · 作者」：生效中的打勾，沒生效的前面留同寬空白
+local function ProfileItems()
+    local items = {}
+    for _, p in ipairs(Plans.Profiles(sel.boss, sel.diff)) do
+        local text = (p.active and CHECK_MARK or CHECK_BLANK) .. " " .. (p.name or "?")
+            .. "  |cff9d9d9d(" .. DiffListText(p) .. ")"
+            .. (p.author and (" · " .. p.author) or "") .. "|r"
+        items[#items + 1] = { text = text, value = p.id }
     end
     return items
 end
 
 local function VariantItems()
     local items = {}
-    for _, v in ipairs(MD.Variants(currentID)) do
+    for _, v in ipairs(MD.Variants(sel.boss)) do
         local label = v.difficulty and Plans.DifficultyLabel(v.difficulty) or ("#" .. v.index)
         if v.keystone then label = label .. " +" .. v.keystone end
         if v.length then label = label .. "  " .. Plans.FormatTime(math.floor(v.length)) end
@@ -521,25 +960,26 @@ local function VariantItems()
 end
 
 ------------------------------------------------------------
--- 首領頭像：左上角一格 3D 模型，只抓目前選的那隻
+-- 首領頭像：標題列左邊一格 3D 模型，只抓目前選的那隻
 --
--- 找模型的成本在 Journal.BossArt（只看所在副本＋最新資料片，不整本掃）；找到就把
--- displayInfo 存進時間軸（plan.display），之後切到這隻首領零成本。
+-- 找模型的成本在 Journal.BossArt（側欄給了冒險指南首領 ID 就直接查；沒有才看所在副本＋最新資料片，
+-- 不整本掃）；找到就存進首領紀錄（bosses[id].display／journal），之後切到這隻首領零成本。
+-- 還沒有紀錄的首領（沒建過設定檔）不為了頭像建紀錄，Journal 那邊本來就有快取。
 -- 同一個模型不重設：SetDisplayInfo 會重新串流、閃一下（.claude/notes/wow-playermodel-setunit-restreams.md）
 ------------------------------------------------------------
-local BOSS_SIZE = 60
-
-local function UpdateBoss(plan)
+local function UpdateBoss(encID, journal)
     if not bossBox then return end
-    bossBox:SetShown(plan ~= nil)
-    if not plan then return end
-    if not plan.display then
-        local display, journal = ns.Journal.BossArt(currentID, plan.journal)
-        if display then plan.display, plan.journal = display, journal end
+    bossBox:SetShown(encID ~= nil)
+    if not encID then return end
+    local boss = Plans.Boss(encID)
+    local display = boss and boss.display
+    if not display then
+        local jEnc
+        display, jEnc = J.BossArt(encID, journal or (boss and boss.journal))
+        if display and boss then boss.display, boss.journal = display, boss.journal or jEnc end
     end
-    local display = plan.display
-    if display == bossModel.display then return end
-    bossModel.display = display
+    if display == bossModel.display and bossModel.encID == encID then return end
+    bossModel.display, bossModel.encID = display, encID
     bossModel:ClearModel()
     if display and pcall(bossModel.SetDisplayInfo, bossModel, display) then
         bossModel:SetAlpha(1)
@@ -550,25 +990,129 @@ local function UpdateBoss(plan)
     end
 end
 
+------------------------------------------------------------
+-- 版面（Init 與收合側欄時跑）：內容區的東西全部從 ContentX／ContentW 推算
+------------------------------------------------------------
+local function Layout()
+    local open = View().sidebar
+    local cx, cw = ContentX(), ContentW()
+    local lw = cw - 20                      -- 卡片內距左右各 10
+
+    instDD:SetShown(open)
+    bossList:SetShown(open)
+    btnManual:SetShown(open)
+    btnCollapse:ClearAllPoints()
+    if open then
+        btnCollapse:SetPoint("BOTTOMLEFT", tab, "TOPLEFT", SIDE_X + SIDE_W - 22, CARD_BOTTOM)
+        btnCollapse:SetText("<<")
+    else
+        btnCollapse:SetPoint("BOTTOMLEFT", tab, "TOPLEFT", SIDE_X, CARD_BOTTOM)
+        btnCollapse:SetText(">>")
+    end
+
+    bossBox:ClearAllPoints()
+    bossBox:SetPoint("TOPLEFT", tab, "TOPLEFT", cx, TOP)
+    noBossText:ClearAllPoints()
+    noBossText:SetPoint("TOPLEFT", tab, "TOPLEFT", cx + 2, TOP - 4)
+    noBossText:SetWidth(cw - 4)
+
+    local stripH = diffTabs:Place(cx, TOP - AVATAR - 10, cw)
+    diffTabs:SetBottom(CARD_BOTTOM)
+    local ct = TOP - AVATAR - 10 - stripH      -- 卡片上緣
+    local x = cx + 10
+
+    profLbl:ClearAllPoints()
+    profLbl:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 12)
+    activeCB:ClearAllPoints()
+    activeCB:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 36)
+    activeNote:ClearAllPoints()
+    activeNote:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 60)
+    activeNote:SetWidth(lw)
+    btnPreview:ClearAllPoints()
+    btnPreview:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 80)
+
+    local edTop = ct - 108
+    local edH = edTop - BOTTOM_ROW_Y - 8
+    head:ClearAllPoints()
+    head:SetPoint("TOPLEFT", tab, "TOPLEFT", x, edTop)
+    P.Size(head, lw - 20, 18)
+    list:ClearAllPoints()
+    list:SetPoint("TOPLEFT", tab, "TOPLEFT", x, edTop - 20)
+    P.Size(list, lw, edH - 20)
+    editor:SetWidth(lw)
+    editor.frame:SetHeight(edH)
+    editor.frame:ClearAllPoints()
+    editor.frame:SetPoint("TOPLEFT", tab, "TOPLEFT", x, edTop)
+
+    btnAdd:ClearAllPoints()
+    btnAdd:SetPoint("TOPLEFT", tab, "TOPLEFT", x, BOTTOM_ROW_Y)
+    recNote:ClearAllPoints()
+    recNote:SetPoint("TOPLEFT", tab, "TOPLEFT", x, NOTE_Y)
+    recNote:SetWidth(lw)
+
+    emptyText:ClearAllPoints()
+    emptyText:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 14)
+    emptyText:SetWidth(lw)
+    btnCreate:ClearAllPoints()
+    btnCreate:SetPoint("TOPLEFT", emptyText, "BOTTOMLEFT", 0, -12)
+end
+
+------------------------------------------------------------
+-- 重畫整頁
+------------------------------------------------------------
+local profileWidgets
+
 local function Refresh()
     if not tab then return end
-    local plans = Plans.List()
-    if not Plans.Get(currentID) then
-        currentID = plans[1] and plans[1].id or nil
+    local cur = RebuildInstances()
+    if not chosen then ChooseDefaults(cur) end
+    -- 離開副本之後「所在副本」那一筆就不在清單裡了
+    if sel.inst ~= OTHER and not instanceById[sel.inst] then
+        sel.inst = instances[1] and instances[1].value or OTHER
     end
-    planDD:SetItems(PlanItems())
-    planDD:SetSelectedValue(currentID)
+    local rows = FixBoss()
+    Remember()
 
-    local plan = Plans.Get(currentID)
-    local has = plan ~= nil
-    UpdateBoss(plan)
-    for _, w in ipairs({ planDD, diffDD, enabledCB, btnRename, btnDelete, btnPreview, btnTest, btnReview, btnAdd, btnExport, btnUndo, showRecCB }) do
-        w:SetShown(has)
+    -- 側欄
+    instDD:SetItems(InstanceItems())
+    instDD:SetSelectedValue(sel.inst)
+    bossList:Update(rows, UpdateBossRow)
+    sideEmpty:SetShown(View().sidebar and #rows == 0)
+    sideEmpty:SetText(sel.inst == OTHER and L["Bosses you entered by ID, or from older expansions, show up here."]
+        or L["The Adventure Guide has no bosses for this instance yet."])
+
+    -- 標題列
+    local row = FindRow(rows, sel.boss)
+    local boss = Plans.Boss(sel.boss)
+    local hasBoss = sel.boss ~= nil
+    UpdateBoss(sel.boss, row and row.journal)
+    bossName:SetShown(hasBoss)
+    bossSub:SetShown(hasBoss)
+    if hasBoss then
+        bossName:SetText((row and row.name) or (boss and boss.name) or tostring(sel.boss))
+        local inst = instanceById[sel.inst]
+        bossSub:SetText(((inst and inst.text) and (inst.text .. "  ") or "") .. "|cff6f6f6fID " .. sel.boss .. "|r")
     end
-    btnUndo:SetAlpha(Plans.CanUndo(currentID) and 1 or 0.4)
-    diffLbl:SetShown(has)
-    -- 貼上匯入沒有首領也能用（米利字串自己帶著首領）：放到清單區頂端的位置
-    btnImport:SetShown(true)
+    noBossText:SetShown(not hasBoss)
+    noBossText:SetText(View().sidebar and L["Pick a boss on the left."] or L["Pick a boss: open the list with >> on the left."])
+
+    -- 難度分頁
+    diffTabs:SetShown(hasBoss)
+    if hasBoss then
+        local ids = {}
+        for _, d in ipairs(DiffGroup()) do ids[#ids + 1] = d.value end
+        local h = diffTabs:SetTabs(ids)
+        diffTabs:Select(sel.diff)
+        if diffTabs.lastH ~= h then
+            diffTabs.lastH = h
+            Layout()
+        end
+    end
+
+    local profile = Profile()
+    local has = profile ~= nil
+    for _, w in ipairs(profileWidgets) do w:SetShown(has) end
+    for _, cb in ipairs(alsoCBs) do cb:SetShown(false) end
     local mode = View().mode == "timeline" and "timeline" or "list"
     head:SetShown(has and mode == "list")
     list:SetShown(has and mode == "list")
@@ -577,12 +1121,23 @@ local function Refresh()
         b:SetShown(has)
         if b.id == mode then highlightMode(b) end
     end
-    emptyText:SetShown(not has)
+
+    -- 空狀態：選了首領、這個難度沒有設定檔
+    emptyText:SetShown(hasBoss and not has)
+    btnCreate:SetShown(hasBoss and not has)
+    btnEmptyImport:SetShown(hasBoss and not has)
+    if hasBoss and not has then
+        local total = Plans.BossSummary(sel.boss)
+        emptyText:SetText(total > 0
+            and L["None of this boss's profiles are used on %s. Create one, or tick it under Also for on another difficulty's profile."]:format(Plans.DifficultyShort(sel.diff))
+            or L["No profile for this boss yet. Create one for %s, or paste one from someone else."]:format(Plans.DifficultyShort(sel.diff)))
+    end
 
     local running = ns.Scheduler.Running()
-    btnStop:SetShown(running and running.test and true or false)
+    btnStop:SetShown(has and running and running.test and true or false)
 
-    local hasMRT = has and MD.Has(currentID)
+    local hasMRT = has and MD.Has(sel.boss)
+    showRecCB:SetShown(has)
     showMRTCB:SetShown(hasMRT)
     mrtDD:SetShown(hasMRT and View().mrt)
 
@@ -591,19 +1146,45 @@ local function Refresh()
         recNote:SetText("")
         return
     end
-    enabledCB:SetChecked(plan.enabled ~= false)
-    diffDD:SetSelectedValue(plan.difficulty or 0)
+
+    profDD:SetItems(ProfileItems())
+    profDD:SetSelectedValue(sel.pid)
+    activeCB:SetChecked(profile.active == true)
+    btnUndo:SetAlpha(Plans.CanUndo(sel.pid) and 1 or 0.4)
+
+    -- 也用在：每個難度一個勾；目前分頁那個一定勾著、不能拿掉（拿掉就從眼前消失了）
+    local prev
+    for i, d in ipairs(DiffGroup()) do
+        local cb = alsoCBs[i]
+        cb.diff = d.value
+        cb.label:SetText(L[d.label])
+        cb:SetHitRectInsets(0, -(cb.label:GetStringWidth() + 8), 0, 0)
+        cb:SetChecked(Plans.AppliesTo(profile, d.value))
+        local locked = d.value == sel.diff
+        cb:SetEnabled(not locked)
+        local c = locked and 0.5 or 1
+        cb.label:SetTextColor(c, c, c)
+        cb:ClearAllPoints()
+        if prev then
+            cb:SetPoint("LEFT", prev.label, "RIGHT", 12, 0)
+        else
+            cb:SetPoint("LEFT", alsoLbl, "RIGHT", 8, 0)
+        end
+        cb:Show()
+        prev = cb
+    end
+
     showRecCB:SetChecked(View().recorded)
     showMRTCB:SetChecked(View().mrt)
     if hasMRT then
         mrtDD:SetItems(VariantItems())
-        mrtDD:SetSelectedValue(MRTVariant(plan))
+        mrtDD:SetSelectedValue(MRTVariant(profile))
     end
 
     -- 立即測試：沒有會跑的提示就停用（不然按了什麼都不會發生）；正在測這份＝字改現況＋停用
-    local testingThis = running and running.test and running.id == currentID
-    btnTest.reason = ns.Scheduler.RunnableCount(plan) == 0
-        and (#plan.entries == 0 and L["Add a reminder first."]
+    local testingThis = running and running.test and running.id == sel.pid
+    btnTest.reason = ns.Scheduler.RunnableCount(profile) == 0
+        and (#profile.entries == 0 and L["Add a reminder first."]
              or L["None of the reminders apply to you (disabled, or role/class conditions)."])
         or nil
     btnTest:SetText(testingThis and L["Testing"] or L["Test now"])
@@ -624,7 +1205,7 @@ local function Refresh()
     else
         notes[#notes + 1] = L["Install or enable MRT to see the whole fight's boss abilities here."]
     end
-    local rec = ns.db.recorded[currentID]
+    local rec = ns.db.recorded[sel.boss]
     if rec then
         notes[#notes + 1] = L["Locked rows are from your last pull (%s, %s)."]:format(
             Plans.DifficultyLabel(rec.difficulty), Plans.FormatTime(rec.duration or 0))
@@ -641,28 +1222,88 @@ local function Refresh()
     recNote:SetText(table.concat(notes, "\n"))
 
     if mode == "timeline" then
-        editor:SetPlan(currentID, {
-            mrtVariant = View().mrt and hasMRT and MRTVariant(plan) or nil,
-            recorded   = View().recorded,
-            review     = ns.Review.Rows(currentID),
+        editor:SetPlan(sel.pid, {
+            encounterID = sel.boss,
+            mrtVariant  = View().mrt and hasMRT and MRTVariant(profile) or nil,
+            recorded    = View().recorded,
+            review      = ns.Review.Rows(sel.pid),
         })
     else
         list:Update(Items(), UpdateRow)
     end
 end
 
-local function Init()
-    if tab then return end
-    tab = ns.Options.NewTabFrame()
-    local title = W.CreateSectionTitle(tab, L["Custom timelines"], ns.Options.PANEL_W - 32)
-    title:SetPoint("TOPLEFT", 16, -14)
+-- 建一份設定檔要先有首領紀錄：名稱、冒險指南 ID、副本從側欄那一列帶
+local function EnsureSelectedBoss()
+    local row = FindRow(BossRows(sel.inst), sel.boss)
+    return Plans.EnsureBoss(sel.boss, row and row.name, row and row.journal, sel.inst ~= OTHER and sel.inst or nil)
+end
 
-    CreatePopups()
+local function SelectNewProfile(p)
+    if not p then return end
+    sel.pid = p.id
+    Remember()
+    ns.Fire("PlansChanged")
+end
 
-    -- 首領頭像：跨第一、二排，控件從它右邊開始
+local function BuildSidebar()
+    --------------------------------------------------------
+    -- 側欄
+    --------------------------------------------------------
+    instDD = W.CreateDropdown(tab, SIDE_W, {}, function(value)
+        if value == sel.inst then return end
+        sel.inst = value
+        sel.boss, sel.pid = nil, nil
+        Refresh()
+    end)
+    instDD:SetPoint("TOPLEFT", tab, "TOPLEFT", SIDE_X, TOP)
+
+    bossList = W.CreateRowList(tab, SIDE_W, (TOP - 26) - (CARD_BOTTOM + 30), BOSS_ROW_H, BuildBossRow)
+    bossList:SetPoint("TOPLEFT", tab, "TOPLEFT", SIDE_X, TOP - 26)
+
+    sideEmpty = tab:CreateFontString(nil, "OVERLAY")
+    sideEmpty:SetFontObject(W.fontSmall)
+    sideEmpty:SetTextColor(0.6, 0.6, 0.6)
+    sideEmpty:SetPoint("TOPLEFT", bossList, "TOPLEFT", 4, -4)
+    sideEmpty:SetWidth(SIDE_W - 8)
+    sideEmpty:SetJustifyH("LEFT")
+
+    btnManual = W.CreateButton(tab, L["Enter an encounter ID"], "normal", SIDE_W - 26, 22)
+    btnManual:SetPoint("BOTTOMLEFT", tab, "TOPLEFT", SIDE_X, CARD_BOTTOM)
+    btnManual:SetScript("OnClick", function()
+        local last = ns.db.lastEncounter
+        idPopup:Open({ id = last and last.id or "", name = last and last.name or "" }, function(v)
+            local id = tonumber(v.id)
+            if not id or id <= 0 then
+                ns.Print(L["Encounter ID must be a number."])
+                return false
+            end
+            id = math.floor(id)
+            -- 名字：自己填的 → 上一場紀錄 → ID（不查冒險指南整本，會卡）
+            local rec = ns.db.recorded[id]
+            local name = v.name ~= "" and v.name or (Plans.Boss(id) and Plans.Boss(id).name) or (rec and rec.name) or tostring(id)
+            Plans.EnsureBoss(id, name)
+            sel.inst = InstanceOf(id)
+            sel.boss, sel.pid = id, nil
+            ns.Fire("PlansChanged")
+        end, L["Enter an encounter ID"])
+    end)
+
+    btnCollapse = W.CreateButton(tab, "<<", "normal", 22, 22)
+    btnCollapse:SetScript("OnClick", function()
+        View().sidebar = not View().sidebar
+        Layout()
+        Refresh()
+    end)
+
+end
+
+local function BuildHeader()
+    --------------------------------------------------------
+    -- 標題列：頭像、首領名稱、清單｜時間軸、參考列
+    --------------------------------------------------------
     bossBox = CreateFrame("Frame", nil, tab, "BackdropTemplate")
-    bossBox:SetSize(BOSS_SIZE, BOSS_SIZE)
-    bossBox:SetPoint("TOPLEFT", 16, -46)
+    bossBox:SetSize(AVATAR, AVATAR)
     W.Stylize(bossBox, { 0.05, 0.05, 0.05, 1 }, { W.Accent(1) })
     bossModel = CreateFrame("PlayerModel", nil, bossBox)
     bossModel:SetPoint("TOPLEFT", 1, -1)
@@ -676,89 +1317,196 @@ local function Init()
         if self.display then pcall(self.SetDisplayInfo, self, self.display) end
     end)
     bossSkull = bossBox:CreateTexture(nil, "ARTWORK")
-    bossSkull:SetSize(28, 28)
+    bossSkull:SetSize(22, 22)
     bossSkull:SetPoint("CENTER")
     bossSkull:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
     bossSkull:SetAlpha(0.5)
-    local ROW_X = 16 + BOSS_SIZE + 12
 
-    -- 第一排：選首領、新增、改名、刪除
-    local lbl = tab:CreateFontString(nil, "OVERLAY")
-    lbl:SetFontObject(W.fontNormal)
-    lbl:SetPoint("TOPLEFT", ROW_X, -56)
-    lbl:SetText(L["Boss"])
+    bossName = tab:CreateFontString(nil, "OVERLAY")
+    bossName:SetFontObject(W.fontTitle)
+    bossName:SetPoint("TOPLEFT", bossBox, "TOPRIGHT", 10, -2)
+    bossName:SetPoint("RIGHT", tab, "RIGHT", -150, 0)
+    bossName:SetJustifyH("LEFT")
+    bossName:SetWordWrap(false)
 
-    planDD = W.CreateDropdown(tab, 220, {}, function(value)
-        currentID = value
+    bossSub = tab:CreateFontString(nil, "OVERLAY")
+    bossSub:SetFontObject(W.fontSmall)
+    bossSub:SetTextColor(0.6, 0.6, 0.6)
+    bossSub:SetPoint("BOTTOMLEFT", bossBox, "BOTTOMRIGHT", 10, 2)
+    bossSub:SetJustifyH("LEFT")
+
+    noBossText = tab:CreateFontString(nil, "OVERLAY")
+    noBossText:SetFontObject(W.fontNormal)
+    noBossText:SetJustifyH("LEFT")
+
+    -- 清單｜時間軸 切換（右上角）
+    local bList = W.CreateButton(tab, L["List"], "accent-hover", 60, 20)
+    local bTime = W.CreateButton(tab, L["Timeline"], "accent-hover", 60, 20)
+    W.FitButton(bList, 60, 20)
+    W.FitButton(bTime, 60, 20)
+    bList.id, bTime.id = "list", "timeline"
+    bTime:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -RIGHT_PAD, TOP)
+    bList:SetPoint("RIGHT", bTime, "LEFT", -3, 0)
+    modeButtons = { bList, bTime }
+    highlightMode = W.CreateButtonGroup(modeButtons, function(id)
+        View().mode = id
         Refresh()
     end)
-    planDD:SetPoint("LEFT", lbl, "RIGHT", 10, 0)
 
-    local btnNew = W.CreateButton(tab, L["Add a boss"], "primary", 90, 20)
-    W.FitButton(btnNew, 90, 20)
-    btnNew:SetPoint("LEFT", planDD, "RIGHT", 10, 0)
-    -- 從冒險指南挑（BossPicker）；冒險指南沒收的首領在選單裡可以改成手動輸入 ID
-    btnNew:SetScript("OnClick", function()
-        ns.BossPicker.Open(function(id, name, journal)
-            local rec = ns.db.recorded[id]
-            local plan = Plans.Ensure(id, name or (rec and rec.name) or ns.Journal.NameFor(id))
-            plan.journal = plan.journal or journal
-            currentID = id
-            ns.Fire("PlansChanged")
-        end)
-    end)
-
-    btnRename = W.CreateButton(tab, L["Rename"], "normal", 70, 20)
-    W.FitButton(btnRename, 70, 20)
-    btnRename:SetPoint("LEFT", btnNew, "RIGHT", 6, 0)
-    btnRename:SetScript("OnClick", function()
-        local plan = Plans.Get(currentID)
-        if not plan then return end
-        renamePopup:Open({ name = plan.name }, function(v)
-            if v.name == "" then return false end
-            plan.name = v.name
-            ns.Fire("PlansChanged")
-        end)
-    end)
-
-    btnDelete = W.CreateButton(tab, L["Delete"], "red", 70, 20)
-    W.FitButton(btnDelete, 70, 20)
-    btnDelete:SetPoint("LEFT", btnRename, "RIGHT", 6, 0)
-    btnDelete:SetScript("OnClick", function() deletePopup:Show() end)
-
-    -- 第二排：啟用、難度、測試
-    enabledCB = W.CreateCheckButton(tab, L["Enabled"], function(checked)
-        local plan = Plans.Get(currentID)
-        if plan then plan.enabled = checked end
-    end)
-    enabledCB:SetPoint("TOPLEFT", ROW_X, -86)
-
-    diffLbl = tab:CreateFontString(nil, "OVERLAY")
-    diffLbl:SetFontObject(W.fontNormal)
-    diffLbl:SetPoint("TOPLEFT", ROW_X + 132, -88)
-    diffLbl:SetText(L["Difficulty"])
-    local diffItems = {}
-    for _, d in ipairs(Plans.DIFFICULTIES) do diffItems[#diffItems + 1] = { text = L[d.label], value = d.value } end
-    diffDD = W.CreateDropdown(tab, 160, diffItems, function(value)
-        local plan = Plans.Get(currentID)
-        if plan then
-            plan.difficulty = value
-            plan.mrtVariant = nil     -- 換難度就讓 MRT 那份跟著重挑
+    -- 參考列（看的是這隻首領，跟設定檔無關）：右上第二排，靠右
+    mrtDD = W.CreateDropdown(tab, 150, {}, function(value)
+        local p = Profile()
+        if p then
+            p.mrtVariant = value
             Refresh()
         end
     end)
-    diffDD:SetPoint("LEFT", diffLbl, "RIGHT", 10, 0)
+    mrtDD:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -RIGHT_PAD, TOP - 24)
+    showMRTCB = W.CreateCheckButton(tab, L["MRT timeline"], function(checked)
+        View().mrt = checked
+        Refresh()
+    end)
+    showMRTCB:SetPoint("RIGHT", mrtDD, "LEFT", -(showMRTCB.labelGap + showMRTCB.label:GetStringWidth() + 10), 0)
+    showRecCB = W.CreateCheckButton(tab, L["Last pull"], function(checked)
+        View().recorded = checked
+        Refresh()
+    end)
+    showRecCB:SetPoint("RIGHT", showMRTCB, "LEFT", -(showRecCB.labelGap + showRecCB.label:GetStringWidth() + 14), 0)
 
+    --------------------------------------------------------
+    -- 難度分頁卡片：卡片包住下面全部
+    --------------------------------------------------------
+    local tabDefs, seenTab = {}, {}
+    for _, group in ipairs({ Plans.RAID_DIFFICULTIES, Plans.DUNGEON_DIFFICULTIES }) do
+        for _, d in ipairs(group) do
+            if not seenTab[d.value] then
+                seenTab[d.value] = true
+                tabDefs[#tabDefs + 1] = { id = d.value, label = L[d.label] }
+            end
+        end
+    end
+    diffTabs = W.CreateTabCard(tab, {
+        tabs = tabDefs,
+        onSelect = function(id)
+            sel.diff = id
+            FixProfile()
+            Remember()
+            Refresh()
+        end,
+    })
+
+end
+
+local function BuildCard()
+    --------------------------------------------------------
+    -- 卡片第一排：設定檔下拉、新增、複製、改名、刪除
+    --------------------------------------------------------
+    profLbl = tab:CreateFontString(nil, "OVERLAY")
+    profLbl:SetFontObject(W.fontNormal)
+    profLbl:SetText(L["Profile"])
+
+    profDD = W.CreateDropdown(tab, 220, {}, function(value)
+        sel.pid = value
+        Remember()
+        Refresh()
+    end)
+    profDD:SetPoint("LEFT", profLbl, "RIGHT", 8, 0)
+
+    btnNew = W.CreateButton(tab, L["New"], "normal", 50, 20)
+    W.FitButton(btnNew, 50, 20)
+    btnNew:SetPoint("LEFT", profDD, "RIGHT", 8, 0)
+    btnNew:SetScript("OnClick", function()
+        if not sel.boss then return end
+        renamePopup:Open({ name = L["My plan"] }, function(v)
+            if v.name == "" then return false end
+            EnsureSelectedBoss()
+            SelectNewProfile(Plans.NewProfile(sel.boss, v.name, sel.diff))
+        end, L["New profile"])
+    end)
+
+    btnCopy = W.CreateButton(tab, L["Copy"], "normal", 50, 20)
+    W.FitButton(btnCopy, 50, 20)
+    btnCopy:SetPoint("LEFT", btnNew, "RIGHT", 4, 0)
+    btnCopy:SetScript("OnClick", function()
+        SelectNewProfile(Plans.CopyProfile(sel.pid))
+    end)
+
+    btnRename = W.CreateButton(tab, L["Rename"], "normal", 50, 20)
+    W.FitButton(btnRename, 50, 20)
+    btnRename:SetPoint("LEFT", btnCopy, "RIGHT", 4, 0)
+    btnRename:SetScript("OnClick", function()
+        local p = Profile()
+        if not p then return end
+        local pid = p.id
+        renamePopup:Open({ name = p.name }, function(v)
+            if v.name == "" then return false end
+            Plans.RenameProfile(pid, v.name)
+            ns.Fire("PlansChanged")
+        end, L["Rename"])
+    end)
+
+    btnDelete = W.CreateButton(tab, L["Delete"], "red", 50, 20)
+    W.FitButton(btnDelete, 50, 20)
+    btnDelete:SetPoint("LEFT", btnRename, "RIGHT", 4, 0)
+    btnDelete:SetScript("OnClick", function() deletePopup:Show() end)
+
+    --------------------------------------------------------
+    -- 卡片第二排：生效、也用在（＋說明灰字）
+    --------------------------------------------------------
+    activeCB = W.CreateCheckButton(tab, L["Active"], function(checked)
+        if sel.pid then
+            Plans.SetActive(sel.pid, checked)
+            ns.Fire("PlansChanged")
+        end
+    end)
+
+    alsoLbl = tab:CreateFontString(nil, "OVERLAY")
+    alsoLbl:SetFontObject(W.fontNormal)
+    alsoLbl:SetPoint("LEFT", activeCB.label, "RIGHT", 28, 0)
+    alsoLbl:SetText(L["Also for:"])
+
+    -- 全勾＝全部難度（nil）；目前分頁那個是勾著且停用的，所以這裡只會改到別的難度
+    alsoCBs = {}
+    for i = 1, 4 do
+        local cb
+        cb = W.CreateCheckButton(tab, "", function(checked)
+            local p = Profile()
+            if not p or not cb.diff then return end
+            local group = DiffGroup()
+            local set = {}
+            for _, d in ipairs(group) do
+                if Plans.AppliesTo(p, d.value) then set[d.value] = true end
+            end
+            set[cb.diff] = checked or nil
+            set[sel.diff] = true
+            local all = true
+            for _, d in ipairs(group) do
+                if not set[d.value] then all = false end
+            end
+            Plans.SetDifficulties(sel.pid, not all and set or nil)
+            ns.Fire("PlansChanged")
+        end)
+        alsoCBs[i] = cb
+    end
+
+    activeNote = tab:CreateFontString(nil, "OVERLAY")
+    activeNote:SetFontObject(W.fontSmall)
+    activeNote:SetTextColor(0.6, 0.6, 0.6)
+    activeNote:SetJustifyH("LEFT")
+    activeNote:SetText(L["Ticked profiles run when the pull starts. Several can be active for one boss; identical reminders only run once."])
+
+    --------------------------------------------------------
+    -- 卡片第三排：預覽播放、立即測試、戰後回顧、停止
+    --------------------------------------------------------
     btnPreview = W.CreateButton(tab, L["Preview"], "primary", 70, 20)
     W.FitButton(btnPreview, 70, 20)
-    btnPreview:SetPoint("LEFT", diffDD, "RIGHT", 16, 0)
-    btnPreview:SetScript("OnClick", function() ns.PlanPreview.Open(currentID) end)
+    btnPreview:SetScript("OnClick", function() ns.PlanPreview.Open(sel.pid, sel.diff) end)
 
     btnTest = W.CreateButton(tab, L["Test now"], "normal", 80, 20)
     W.FitButton(btnTest, 80, 20)
     btnTest:SetPoint("LEFT", btnPreview, "RIGHT", 6, 0)
     btnTest:SetScript("OnClick", function()
-        ns.Scheduler.Test(currentID)
+        ns.Scheduler.Test(sel.pid)
     end)
     -- 停用的按鈕照樣收得到 OnEnter：告訴玩家為什麼按不了
     btnTest:HookScript("OnEnter", function(self)
@@ -782,70 +1530,58 @@ local function Init()
     statusText:SetFontObject(W.fontSmall)
     statusText:SetPoint("LEFT", btnStop, "RIGHT", 10, 0)
 
-    -- 表頭
+end
+
+local function BuildBottom()
+    --------------------------------------------------------
+    -- 清單／時間軸
+    --------------------------------------------------------
     head = CreateFrame("Frame", nil, tab)
-    head:SetPoint("TOPLEFT", LIST_X, -114)
-    P.Size(head, LIST_W, 18)
-    local function Head(x, w, text, justify)
-        local fs = head:CreateFontString(nil, "OVERLAY")
+    headCols = {}
+    local function Head(key, text, justify)
+        local fs = Font(head, justify)
         fs:SetFontObject(W.fontSmall)
         fs:SetTextColor(W.Accent(1))
-        fs:SetPoint("LEFT", head, "LEFT", x, 0)
-        fs:SetWidth(w)
-        fs:SetJustifyH(justify or "LEFT")
         fs:SetText(text)
+        headCols[key] = fs
     end
-    Head(COL.time, 58, L["Time"], "RIGHT")
-    Head(COL.text, 200, L["Reminder"])
-    Head(COL.lead, 52, L["On timeline"], "RIGHT")
-    Head(COL.src, 110, L["From"])
+    Head("time", L["Time"], "RIGHT")
+    Head("text", L["Reminder"])
+    Head("lead", L["On timeline"], "RIGHT")
+    Head("src", L["From"])
+    PlaceCols(head, headCols)
 
-    list = W.CreateRowList(tab, LIST_W, 300, ROW_H, BuildRow)
-    list:SetPoint("TOPLEFT", LIST_X, -134)
+    list = W.CreateRowList(tab, 400, 200, ROW_H, BuildRow)
 
     -- 時間軸檢視：跟「表頭＋清單」同一塊位置，二選一
-    editor = ns.PlanEditor.Create(tab, LIST_W, 320, {
+    editor = ns.PlanEditor.Create(tab, 400, 200, {
         onAdd  = function(values) OpenEntryPopup(values) end,
         onEdit = function(entry) OpenEntryPopup(EntryValues(entry), entry) end,
         onMove = function(entry, t)
-            Plans.MoveEntry(currentID, entry, t)
+            Plans.MoveEntry(sel.pid, entry, t)
             ns.Fire("PlansChanged")
         end,
         onMenu = function(entry, btn)
             W.Menu.Show({
                 { text = L["Edit"], onClick = function() OpenEntryPopup(EntryValues(entry), entry) end },
                 { text = entry.enabled == false and L["Enable"] or L["Disable"], onClick = function()
-                    Plans.SetEnabled(currentID, entry, entry.enabled == false)
+                    Plans.SetEnabled(sel.pid, entry, entry.enabled == false)
                     ns.Fire("PlansChanged")
                 end },
                 { text = L["Delete"], onClick = function()
-                    local i = Plans.IndexOf(currentID, entry)
-                    if i then Plans.RemoveEntry(currentID, i) end
+                    local i = Plans.IndexOf(sel.pid, entry)
+                    if i then Plans.RemoveEntry(sel.pid, i) end
                     ns.Fire("PlansChanged")
                 end },
             }, btn)
         end,
     })
-    editor.frame:SetPoint("TOPLEFT", LIST_X, -114)
 
-    -- 清單｜時間軸 切換（右上角）
-    local bList = W.CreateButton(tab, L["List"], "accent-hover", 60, 20)
-    local bTime = W.CreateButton(tab, L["Timeline"], "accent-hover", 60, 20)
-    W.FitButton(bList, 60, 20)
-    W.FitButton(bTime, 60, 20)
-    bList.id, bTime.id = "list", "timeline"
-    bTime:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -16, -52)
-    bList:SetPoint("RIGHT", bTime, "LEFT", -3, 0)
-    modeButtons = { bList, bTime }
-    highlightMode = W.CreateButtonGroup(modeButtons, function(id)
-        View().mode = id
-        Refresh()
-    end)
-
-    -- 底下：新增、貼上匯入、顯示哪些參考列
+    --------------------------------------------------------
+    -- 底下：新增、貼上匯入、匯出、復原
+    --------------------------------------------------------
     btnAdd = W.CreateButton(tab, L["+ Add reminder"], "primary", 110, 22)
     W.FitButton(btnAdd, 110, 22)
-    btnAdd:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -10)
     btnAdd:SetScript("OnClick", function()
         OpenEntryPopup({})
     end)
@@ -860,16 +1596,12 @@ local function Init()
     btnExport:SetPoint("LEFT", btnImport, "RIGHT", 6, 0)
     btnExport:SetScript("OnClick", function() exportPopup:Open() end)
 
-    showRecCB = W.CreateCheckButton(tab, L["Last pull"], function(checked)
-        View().recorded = checked
-        Refresh()
-    end)
-    -- 復原（也可以 Ctrl＋Z）：只記這次登入、每隻首領 20 步
+    -- 復原（也可以 Ctrl＋Z）：只記這次登入、每份設定檔 20 步
     btnUndo = W.CreateButton(tab, L["Undo"], "normal", 60, 22)
     W.FitButton(btnUndo, 60, 22)
     btnUndo:SetPoint("LEFT", btnExport, "RIGHT", 6, 0)
     btnUndo:SetScript("OnClick", function()
-        if Plans.Undo(currentID) then ns.Fire("PlansChanged") end
+        if Plans.Undo(sel.pid) then ns.Fire("PlansChanged") end
     end)
     btnUndo:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -878,37 +1610,54 @@ local function Init()
     end)
     btnUndo:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
-    showRecCB:SetPoint("LEFT", btnUndo, "RIGHT", 18, 0)
-
-    showMRTCB = W.CreateCheckButton(tab, L["MRT timeline"], function(checked)
-        View().mrt = checked
-        Refresh()
-    end)
-    showMRTCB:SetPoint("LEFT", showRecCB.label, "RIGHT", 16, 0)
-
-    mrtDD = W.CreateDropdown(tab, 170, {}, function(value)
-        local plan = Plans.Get(currentID)
-        if plan then
-            plan.mrtVariant = value
-            Refresh()
-        end
-    end)
-    mrtDD:SetPoint("LEFT", showMRTCB.label, "RIGHT", 10, 0)
-
     recNote = tab:CreateFontString(nil, "OVERLAY")
     recNote:SetFontObject(W.fontSmall)
-    recNote:SetPoint("TOPLEFT", btnAdd, "BOTTOMLEFT", 0, -8)
-    recNote:SetWidth(LIST_W)
     recNote:SetJustifyH("LEFT")
     recNote:SetSpacing(2)
 
+    --------------------------------------------------------
+    -- 空狀態：這個難度還沒有設定檔
+    --------------------------------------------------------
     emptyText = tab:CreateFontString(nil, "OVERLAY")
     emptyText:SetFontObject(W.fontNormal)
-    emptyText:SetPoint("TOPLEFT", 18, -120)
-    emptyText:SetWidth(LIST_W - 20)
     emptyText:SetJustifyH("LEFT")
     emptyText:SetSpacing(4)
-    emptyText:SetText(L["No custom timelines yet. Press \"Add a boss\" — after you have pulled a boss once, it is filled in for you."])
+
+    btnCreate = W.CreateButton(tab, L["Create a profile"], "primary", 110, 22)
+    W.FitButton(btnCreate, 110, 22)
+    btnCreate:SetScript("OnClick", function()
+        if not sel.boss then return end
+        EnsureSelectedBoss()
+        SelectNewProfile(Plans.NewProfile(sel.boss, L["My plan"], sel.diff))
+    end)
+    btnEmptyImport = W.CreateButton(tab, L["Paste reminders"], "normal", 90, 22)
+    W.FitButton(btnEmptyImport, 90, 22)
+    btnEmptyImport:SetPoint("LEFT", btnCreate, "RIGHT", 6, 0)
+    btnEmptyImport:SetScript("OnClick", function() importPopup:Open() end)
+
+    -- 有設定檔才顯示的（也用在的勾另外管：數量跟著難度那一組）
+    profileWidgets = {
+        profLbl, profDD, btnNew, btnCopy, btnRename, btnDelete,
+        activeCB, alsoLbl, activeNote,
+        btnPreview, btnTest, btnReview, statusText,
+        btnAdd, btnImport, btnExport, btnUndo, recNote,
+    }
+end
+
+local function Init()
+    if tab then return end
+    tab = ns.Options.NewTabFrame()
+    local title = W.CreateSectionTitle(tab, L["Custom timelines"], ns.Options.PANEL_W - 32)
+    title:SetPoint("TOPLEFT", 16, -14)
+
+    CreatePopups()
+    -- 拆成幾段：一個函式引用的 file-scope local 不能超過 60 個（Lua 5.1 upvalue 上限）
+    BuildSidebar()
+    BuildHeader()
+    BuildCard()
+    BuildBottom()
+
+    Layout()
 
     -- MRT 列的法術名稱第一次可能還沒從伺服器載下來：載到了重畫一次（合併成一次，不要每個法術重畫）
     local pending
@@ -937,7 +1686,7 @@ ns.RegisterCallback("ShowOptionsTab", "plansTab", function(id)
         keyCatcher:SetPropagateKeyboardInput(true)
         keyCatcher:SetScript("OnKeyDown", function(_, key)
             if key == "Z" and IsControlKeyDown() and not GetCurrentKeyBoardFocus() then
-                if Plans.Undo(currentID) then ns.Fire("PlansChanged") end
+                if Plans.Undo(sel.pid) then ns.Fire("PlansChanged") end
             end
         end)
     end
@@ -945,6 +1694,10 @@ ns.RegisterCallback("ShowOptionsTab", "plansTab", function(id)
     tab:Show()
 end)
 
-ns.RegisterCallback("PlansChanged", "plansTab", Refresh)
-ns.RegisterCallback("RecordedChanged", "plansTab", Refresh)
-ns.RegisterCallback("SchedulerChanged", "plansTab", Refresh)
+-- 分頁沒開著就不重畫（打完一場、測試結束都會發事件；重畫會碰冒險指南，沒人看就不必）
+local function RefreshIfShown()
+    if tab and tab:IsVisible() then Refresh() end
+end
+ns.RegisterCallback("PlansChanged", "plansTab", RefreshIfShown)
+ns.RegisterCallback("RecordedChanged", "plansTab", RefreshIfShown)
+ns.RegisterCallback("SchedulerChanged", "plansTab", RefreshIfShown)

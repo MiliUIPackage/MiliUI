@@ -25,7 +25,8 @@ local SOON = 5
 
 local popup, clip, display, timeLabel, slider, playBtn, speedButtons, highlightSpeed
 local cbSound, cbMRT, cbMine
-local state = { t = 0, playing = false, speed = 1, length = 60, id = nil, sound = true, mrt = true, onlyMine = true }
+-- id＝設定檔 ID；enc＝它的首領戰 ID（MRT 資料照首領存）；diff＝開預覽時看的難度分頁（MRT 預設挑哪一份）
+local state = { t = 0, playing = false, speed = 1, length = 60, id = nil, enc = nil, diff = nil, sound = true, mrt = true, onlyMine = true }
 local entries, bossEvents = {}, {}
 
 ------------------------------------------------------------
@@ -37,11 +38,11 @@ local function Rebuild()
     local plan = Plans.Get(state.id)
     if not plan then return end
     local variant = plan.mrtVariant
-    if not variant and MD.Has(state.id) then variant = MD.DefaultVariant(state.id, plan.difficulty) end
+    if not variant and MD.Has(state.enc) then variant = MD.DefaultVariant(state.enc, state.diff) end
     local nth = {}           -- [spell] = { 第 n 次的秒數 }
     local length = 60
     if variant then
-        for i, ev in ipairs(MD.Events(state.id, variant)) do
+        for i, ev in ipairs(MD.Events(state.enc, variant)) do
             local list = nth[ev.spell] or {}
             list[#list + 1] = ev.t
             nth[ev.spell] = list
@@ -290,15 +291,20 @@ function PV.Seek(t)
     SetTime(t, false)
 end
 
-function PV.Open(encounterID)
-    if not Plans.Get(encounterID) then return end
+-- pid：設定檔 ID；difficultyID：目前的難度分頁（選填）
+function PV.Open(pid, difficultyID)
+    local profile = Plans.Get(pid)
+    if not profile then return end
     if not popup then Build() end
-    state.id = encounterID
+    state.id = pid
+    state.enc = Plans.BossOf(pid)
+    state.diff = difficultyID
     state.playing = false
-    popup.title:SetText(L["Preview: %s"]:format(Plans.Get(encounterID).name or tostring(encounterID)))
+    local boss = Plans.Boss(state.enc)
+    popup.title:SetText(L["Preview: %s"]:format(((boss and boss.name) or tostring(state.enc)) .. " · " .. (profile.name or "")))
     cbSound:SetChecked(state.sound)
     cbMRT:SetChecked(state.mrt)
-    cbMRT:SetShown(MD.Has(encounterID))
+    cbMRT:SetShown(MD.Has(state.enc))
     cbMine:SetChecked(state.onlyMine)
     for _, b in ipairs(speedButtons) do
         if b.id == state.speed then highlightSpeed(b) end
