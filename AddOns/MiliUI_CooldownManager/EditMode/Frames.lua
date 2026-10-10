@@ -155,7 +155,7 @@ local function HintText(bar)
     return nil
 end
 
--- 接力中的天空騎術（跟著資源條，沒有自己的覆蓋層）
+-- 接力中的天空騎術（跟著接力對象，沒有自己的覆蓋層）
 local function SkyRelay()
     local B = ns.Bars
     return B and B.SkyRelay and B.SkyRelay() or false
@@ -165,7 +165,7 @@ EM.SkyRelayHidden = function(key) return key == "skyriding" and SkyRelay() end
 local function UpdateTexts(key, bar)
     local ov = EM.overlay[key]
     local label = EM.BarLabel(key)
-    if key == "resources" and SkyRelay() then
+    if ns.Bars and ns.Bars.SkyRelayTo and key == ns.Bars.SkyRelayTo() then
         local sky = BarCfg("skyriding")
         if sky and sky.enabled ~= false then label = L["%s + %s"]:format(label, EM.BarLabel("skyriding")) end
     end

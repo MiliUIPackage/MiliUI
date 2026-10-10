@@ -81,7 +81,8 @@
 --     發光、層數門檻、冷卻狀態等畫面效果沒有（沒有放格就不會接上）
 --   * 這一輪停了哪幾格記在 state[key].hiddenOnly（/mcdm debug 印）
 --
--- 天空騎術（面板 skyriding，Modules/Skyriding.lua）的接力模式（placement ＝ relay，預設）：跟資源條輪流出現在同一個位置。
+-- 天空騎術（面板 skyriding，Modules/Skyriding.lua）的接力模式（placement ＝ relay，預設）：跟接力對象（relayTo：核心技能〔預設〕
+-- 或資源條；下面寫「資源條」的地方換成接力對象都成立）輪流出現在同一個位置。
 --   * 錨定不看自己存的 anchor／pos：貼資源條容器的固定邊（資源條的錨點，預設 BOTTOM；SR.RelayPlace）；資源條關掉或收合（enabled／StackSkip，
 --     不讀框的幾何）時改用資源條自己的錨定設定（同樣的 to／point／relPoint／x／y），資源條也沒錨定就用資源條的 pos。
 --   * 不參與排開：不進 StackKeys、AnchorCfg 把它當不存在（別人不能把它當排開目標，錨在它身上的改用自己的 pos）。
@@ -217,6 +218,12 @@ local function SkyRelay()
     return SR and SR.RelayMode and SR.RelayMode() or false
 end
 B.SkyRelay = SkyRelay
+-- 接力中的對象（resources｜essential；不是接力回 nil）
+local function SkyRelayTo()
+    local SR = ns.Skyriding
+    return SR and SR.RelayTo and SR.RelayTo() or nil
+end
+B.SkyRelayTo = SkyRelayTo
 
 -- 外部目標（單位框、具名框；Core/Anchor.lua）：解析得到 ⇒ 一張空的設定表（沒有自己的 anchor、算開著），
 -- 所以排開把它當堆疊的根（同一個外部目標、同一邊的照 STACK_RANK 往外排）；解析不到 ⇒ 不存在，
@@ -363,12 +370,13 @@ local function PlaceContainer(f, key, bar, st)
         return
     end
     local snap = ns.Layout.Snap
-    if key == SKY and SkyRelay() then
-        -- 接力：跟資源條同一個位置（規則見檔頭與 Modules/Skyriding.lua 的 SR.RelayPlace）
+    local relayTo = key == SKY and SkyRelayTo()
+    if relayTo then
+        -- 接力：跟接力對象同一個位置（規則見檔頭與 Modules/Skyriding.lua 的 SR.RelayPlace）
         f:ClearAllPoints()
-        local res = AnchorCfg("resources")
-        local usable = res ~= nil and res.enabled ~= false and not StackSkip("resources")
-        local kind, t = ns.Skyriding.RelayPlace(res, usable, B.AnchorPoint("resources"))
+        local res = AnchorCfg(relayTo)
+        local usable = res ~= nil and res.enabled ~= false and not StackSkip(relayTo)
+        local kind, t = ns.Skyriding.RelayPlace(res, usable, B.AnchorPoint(relayTo), relayTo)
         if kind == "anchor" and AnchorCfg(t.to) then
             if IsExternal(t.to) then
                 -- 資源條錨在外部框上：跟著同一個外部框（失敗就落到下面資源條自己的位置）
@@ -447,8 +455,8 @@ local function ApplyOne(key)
             if ns.EditMode and ns.EditMode.ApplyBarNow then ns.EditMode.ApplyBarNow(key) end
         end, "shown")
         if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
-        -- 資源條關掉：接力中的天空騎術改用資源條自己的錨定（見下面 Show 那條路的同一段）
-        if key == "resources" and containers[SKY] and SkyRelay() then ApplyOne(SKY) end
+        -- 接力對象關掉：接力中的天空騎術改用它自己的錨定（見下面 Show 那條路的同一段）
+        if key ~= SKY and key == SkyRelayTo() and containers[SKY] then ApplyOne(SKY) end
         return
     end
     local anchorPoint = st.anchorPoint or "CENTER"
@@ -462,8 +470,8 @@ local function ApplyOne(key)
     st.appliedAnchor = anchorPoint
     -- 跟著游標：結構一變（開關、可點擊、光環格、刪條）重判要不要掛 OnUpdate
     if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
-    -- 資源條的結構變了（開關、位置）：接力中的天空騎術跟著重貼（沒有人錨在它身上，直接貼不會成環）
-    if key == "resources" and containers[SKY] and SkyRelay() then ApplyOne(SKY) end
+    -- 接力對象的結構變了（開關、位置）：接力中的天空騎術跟著重貼（沒有人錨在它身上，直接貼不會成環）
+    if key ~= SKY and key == SkyRelayTo() and containers[SKY] then ApplyOne(SKY) end
 end
 
 -- 尺寸變了以後：補正量不一樣了就照同一組錨點重貼（不重算排開 ⇒ 不會撞上錨定循環）

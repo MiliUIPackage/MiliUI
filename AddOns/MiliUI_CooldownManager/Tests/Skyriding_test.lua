@@ -136,6 +136,7 @@ local sd = d.skyriding
 check("預設值：有 skyriding 表", type(sd) == "table")
 eq("預設：開", sd.enabled, true)
 eq("預設：接力", sd.placement, "relay")
+eq("預設：接力核心技能", sd.relayTo, "essential")
 eq("預設：藏起冷卻管理器", sd.hideCdm, true)
 eq("預設：不錨定", sd.anchor, false)
 eq("預設：寬 0", sd.width, 0)
@@ -498,6 +499,21 @@ do
     eq("資源條錨在天空騎術上（成環）：退回 pos", kind, "pos")
     kind, t = SR.RelayPlace(nil, false)
     check("資源條沒有設定表：pos 預設 CENTER", kind == "pos" and t.point == "CENTER")
+
+    -- 接力對象＝核心技能：貼核心技能的固定邊；關掉時用核心技能自己的錨定，錨回核心技能自己的不算
+    local ess = { anchor = false, pos = { point = "TOP", x = 0, y = -202 } }
+    kind, t = SR.RelayPlace(ess, true, "TOP", "essential")
+    check("核心技能正常：TOP 對 TOP 貼核心技能", kind == "anchor" and t.to == "essential" and t.point == "TOP" and t.relPoint == "TOP")
+    kind, t = SR.RelayPlace(ess, false, "TOP", "essential")
+    check("核心技能沒錨定：核心技能的 pos", kind == "pos" and t.point == "TOP" and t.y == -202)
+    ess.anchor = { to = "essential", point = "TOP", relPoint = "BOTTOM" }
+    eq("核心技能錨在自己身上：退回 pos", (SR.RelayPlace(ess, false, "TOP", "essential")), "pos")
+    -- 接力對象與位置下拉的值
+    eq("沒存 relayTo：核心技能", SR.RelayTarget({}), "essential")
+    eq("relayTo＝resources", SR.RelayTarget({ relayTo = "resources" }), "resources")
+    eq("不認得的值：核心技能", SR.RelayTarget({ relayTo = "buffs" }), "essential")
+    eq("下拉值：接力＋資源條", SR.PlacementValue({ placement = "relay", relayTo = "resources" }), "resources")
+    eq("下拉值：獨立擺放", SR.PlacementValue({ placement = "standalone", relayTo = "resources" }), "standalone")
 end
 
 ------------------------------------------------------------
@@ -506,6 +522,7 @@ end
 do
     ns.profile = DB.BuildDefaults().profile
     local p = ns.profile
+    p.skyriding.relayTo = "resources"        -- 這一節大多測接力資源條；核心技能在最後
     ns.Layout.Snap = ns.Layout.Snap or function(v) return v end
     Load("Core/Bars.lua")
     local B = ns.Bars
@@ -581,6 +598,18 @@ do
     B.SkyPlacementChanged()
     pt = Pt(sky)
     check("切回接力：貼回資源條", pt[2] == res and pt[1] == "BOTTOM")
+
+    -- 接力對象換成核心技能：貼核心技能的固定邊、資源條照舊排開（天空騎術仍不在疊裡）
+    p.skyriding.relayTo = "essential"
+    B.SkyPlacementChanged()
+    pt = Pt(sky)
+    eq("接力核心技能：B.SkyRelayTo", B.SkyRelayTo(), "essential")
+    check("接力核心技能：貼核心技能", pt[2] == ess and pt[1] == pt[3], tostring(pt[1]) .. "/" .. tostring(pt[3]))
+    eq("接力核心技能：施法條照舊貼資源條外面", B.StackTarget("castbar"), "resources")
+    eq("接力核心技能：自己沒有排開目標", B.StackTarget("skyriding"), nil)
+    p.skyriding.relayTo = "resources"
+    B.SkyPlacementChanged()
+    check("換回資源條：貼回資源條", Pt(sky)[2] == res)
 end
 
 ------------------------------------------------------------

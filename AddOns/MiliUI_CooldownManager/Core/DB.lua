@@ -467,7 +467,8 @@ end
 SkyridingDefaults = function()
     return {
         enabled          = true,
-        placement        = "relay",        -- relay（接力：佔用資源條的位置）| standalone（獨立擺放）
+        placement        = "relay",        -- relay（接力：佔用 relayTo 那條的位置）| standalone（獨立擺放）
+        relayTo          = "essential",    -- 接力對象：essential（核心技能，使用者 2026-10-11 指定預設）| resources（資源條）
         hideCdm          = true,           -- 面板顯示中時，其餘的條與面板 alpha 0（編輯模式中不套用）
         pos              = { point = "CENTER", x = 0, y = -180 },   -- standalone 用
         anchor           = false,          -- standalone 可以在編輯模式錨到別條
