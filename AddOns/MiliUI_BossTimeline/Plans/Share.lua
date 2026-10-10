@@ -2,7 +2,7 @@
 -- 分享自訂時間軸：匯出成字串、貼上匯入
 --
 -- 兩種格式：
---   * 米利字串 "!MBT1!…"：一份設定檔（含音效、條件、錨點）。前綴沿用 !MBT1!，版本看 payload.v：
+--   * 米利字串 "!MBT1!…"：一份設定檔（含音效、條件、錨點；「每一次」的錨點 { spell, every, offset } 也帶）。前綴沿用 !MBT1!，版本看 payload.v：
 --       v1（舊）{ v, id, name＝首領名, difficulty＝單一難度（0＝全部）, entries }
 --       v2      { v, id, boss＝首領名, name＝設定檔名, author, difficulties = { [難度]=true }, entries }
 --     走暴雪內建的 C_EncodingUtil：SerializeCBOR → CompressString（Deflate）→ EncodeBase64，
@@ -100,12 +100,29 @@ local function CleanPlayers(v)
 end
 Share.CleanPlayers = CleanPlayers
 
+-- 錨點：{ spell, n, offset }（第 n 次）或 { spell, every = true, offset }（每一次）；認不得就 nil
+local function CleanAnchor(a)
+    if type(a) ~= "table" then return end
+    local spell = Num(a.spell, 1, 1e8)
+    if not spell then return end
+    local offset = Num(a.offset, -600, 600) or 0
+    if a.every == true then
+        return { spell = spell, every = true, offset = offset }
+    end
+    local n = Num(a.n, 1, 500)
+    if n then return { spell = spell, n = math.floor(n), offset = offset } end
+end
+
 local function CleanEntry(e)
     if type(e) ~= "table" then return end
-    local t = Num(e.t, 0.1, 3600)
-    if not t then return end
+    local anchor = CleanAnchor(e.anchor)
+    local every = anchor and anchor.every
+    -- 「每一次」的提示不用秒數；其他的一定要有
+    local t = (not every) and Num(e.t, 0.1, 3600) or nil
+    if not every and not t then return end
     local out = {
         t         = t,
+        anchor    = anchor,
         text      = Str(e.text),
         spell     = Num(e.spell, 1, 1e8),
         icon      = Num(e.icon, 1, 1e8),
@@ -128,12 +145,6 @@ local function CleanEntry(e)
             if e.roles[r] then roles[r] = true end
         end
         if next(roles) then out.roles = roles end
-    end
-    if type(e.anchor) == "table" then
-        local spell, n = Num(e.anchor.spell, 1, 1e8), Num(e.anchor.n, 1, 500)
-        if spell and n then
-            out.anchor = { spell = spell, n = math.floor(n), offset = Num(e.anchor.offset, -600, 600) or 0 }
-        end
     end
     return out
 end
@@ -173,19 +184,22 @@ function Share.Export(pid)
     ns.ReportError(out)
 end
 
--- MRT 筆記行（有損）
+-- MRT 筆記行（有損）。「每一次」的提示沒有秒數、筆記表示不了 ⇒ 略過
+-- （匯出視窗另外講有幾條沒放進來：Plans.CountEvery）
 function Share.ExportNote(pid)
     local profile = Plans.Get(pid)
     if not profile then return "" end
     local lines = {}
     for _, e in ipairs(profile.entries) do
-        local t = e.t or 0
-        local m = math.floor(t / 60)
-        local sec = t - m * 60
-        local line = ("{time:%02d:%04.1f}"):format(m, sec)
-        if e.spell then line = line .. ("{spell:%d}"):format(e.spell) end
-        if e.text then line = line .. " " .. e.text end
-        lines[#lines + 1] = line
+        if not Plans.IsEvery(e) then
+            local t = e.t or 0
+            local m = math.floor(t / 60)
+            local sec = t - m * 60
+            local line = ("{time:%02d:%04.1f}"):format(m, sec)
+            if e.spell then line = line .. ("{spell:%d}"):format(e.spell) end
+            if e.text then line = line .. " " .. e.text end
+            lines[#lines + 1] = line
+        end
     end
     return table.concat(lines, "\n")
 end

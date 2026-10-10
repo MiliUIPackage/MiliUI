@@ -13,14 +13,15 @@
 --   └────────────────────────────────────────────┘
 --
 -- 卡片高度取所有分頁裡最高的那個：切分頁時視窗不跳、按鈕不跑。
--- 「跟著首領」只有從 MRT 列建立（或原本就有錨點）的提示才有。
+-- 「跟著首領」分頁一律有：綁定首領技能（法術 ID 預設＝「基本」的法術 ID）＋「第 N 次」／「每一次」＋偏移。
+--   第 N 次：時間仍要填（認不出來時的備援）；每一次：不用時間，「基本」的時間欄停用。
 --
 -- 首領 3D 模型不放這裡：放在「自訂時間軸」頁本身（Tab_Plans），這裡只寫首領名稱。
 --
 -- 遮罩／層級照共用層輸入彈窗的規則：遮罩 400、視窗 410（戰鬥遮罩 500 之下，不 Raise）。
 --
 --   EntryEditor.Open(values, onAccept, title, encounterID)
---     values：Plans.SaveEntry 的欄位（t 用數字），外加 anchorName（錨點技能的名稱，顯示用）
+--     values：Plans.SaveEntry 的欄位（t 用數字；「每一次」的沒有 t），外加 anchorName（錨點技能的名稱，顯示用）
 --     onAccept(values)：回傳 false＝不合法、視窗不關
 --     encounterID：這份時間軸的首領戰 ID（標題旁的首領名稱用；nil 就不顯示）
 ------------------------------------------------------------
@@ -193,8 +194,50 @@ local function SpellName(id)
     if ok and type(name) == "string" and name ~= "" then return name end
 end
 
+-- 錨點分頁的狀態：綁定的法術（空白＝用「基本」的法術 ID）、模式
+local function AnchorSpell()
+    return tonumber(f.anchorSpell:GetText()) or tonumber(f.spell:GetText())
+end
+
+local function AnchorName(spell)
+    if not spell then return end
+    if current.anchor and current.anchor.spell == spell and current.anchorName then return current.anchorName end
+    return SpellName(spell)
+end
+
+local function IsEveryMode()
+    return f.anchor:GetChecked() and current.mode == "every"
+end
+
+-- 錨點沒勾＝下面的控件變暗停用；每一次模式＝「基本」的時間欄停用
+local function SyncAnchor()
+    local on = f.anchor:GetChecked() and true or false
+    for _, w in ipairs({ f.anchorSpell, f.anchorN, f.offset, f.modeN, f.modeEvery }) do
+        w:SetEnabled(on)
+        w:SetAlpha(on and 1 or 0.5)
+    end
+    f.anchorN:SetEnabled(on and current.mode == "n")
+    f.anchorN:SetAlpha((on and current.mode == "n") and 1 or 0.5)
+
+    -- 法術欄留白＝用「基本」的法術 ID：旁邊寫出是哪一個
+    local own = tonumber(f.anchorSpell:GetText())
+    local spell = AnchorSpell()
+    if spell then
+        local name = AnchorName(spell) or ("|cffff6666" .. L["Unknown spell"] .. "|r")
+        f.anchorName:SetText(own and name or L["%s (from Basics)"]:format(name .. " #" .. spell))
+    else
+        f.anchorName:SetText(L["Uses the spell ID from Basics"])
+    end
+
+    local every = IsEveryMode()
+    f.t:SetEnabled(not every)
+    f.t:SetAlpha(every and 0.5 or 1)
+    f.tHint:SetText(every and L["Not needed for every cast"] or L["1:30 or 90 = 90 seconds after the pull"])
+end
+
 local function UpdatePreview()
     if not popup or not current then return end
+    SyncAnchor()
     local spell = tonumber(f.spell:GetText())
     local text = strtrim(f.text:GetText() or "")
     local icon, shown = Plans.Resolve({
@@ -213,8 +256,13 @@ local function UpdatePreview()
 
     -- 摘要：只列有設定的東西
     local parts = {}
-    local t = Plans.ParseTime(f.t:GetText())
-    parts[#parts + 1] = L["Pull + %s"]:format(t and Plans.FormatTime(t) or "?")
+    if IsEveryMode() then
+        local a = AnchorSpell()
+        parts[#parts + 1] = L["Every cast of %s"]:format(AnchorName(a) or (a and ("#" .. a)) or "?")
+    else
+        local t = Plans.ParseTime(f.t:GetText())
+        parts[#parts + 1] = L["Pull + %s"]:format(t and Plans.FormatTime(t) or "?")
+    end
     local lead = tonumber(f.lead:GetText()) or Plans.DEFAULT_LEAD
     parts[#parts + 1] = L["shows %d s early"]:format(math.max(1, lead))
     local sound = f.sound:GetSelected()
@@ -244,8 +292,8 @@ local function UpdatePreview()
     local players = PlayersText(ParsePlayers(f.players:GetText()))
     if players ~= "" then who[#who + 1] = players end
     if #who > 0 then parts[#parts + 1] = L["Only %s"]:format(table.concat(who, "、")) end
-    if current.anchor and f.anchor:GetChecked() then
-        parts[#parts + 1] = L["Follows cast #%d"]:format(current.anchor.n)
+    if f.anchor:GetChecked() and current.mode == "n" then
+        parts[#parts + 1] = L["Follows cast #%d"]:format(math.max(1, math.floor(tonumber(f.anchorN:GetText()) or 1)))
     end
     f.chipSummary:SetText(table.concat(parts, SEP))
 end
@@ -282,9 +330,7 @@ local function Relayout()
     -- 卡片高＝所有看得到的分頁裡最高的那個
     local cardH = 0
     for _, t in ipairs(TABS) do
-        if t.id ~= "anchor" or current.anchor then
-            cardH = math.max(cardH, StackTab(t.id, false))
-        end
+        cardH = math.max(cardH, StackTab(t.id, false))
     end
     StackTab(curTab, true)
     tabCard:SetCardHeight(cardH)
@@ -342,7 +388,7 @@ end
 local function BuildBasic()
     local r = Row("basic", L["Time"])
     f.t = Box(r, 80)
-    After(r, f.t, L["1:30 or 90 = 90 seconds after the pull"])
+    f.tHint = After(r, f.t, L["1:30 or 90 = 90 seconds after the pull"])
 
     r = Row("basic", L["Spell ID"])
     f.spell = Box(r, 100)
@@ -447,38 +493,79 @@ local function BuildWho()
     NoteRow("who", L["Nothing ticked in a row = no limit from that row; different rows must all match. Melee includes tanks. Players: names separated by commas, without the realm."], CTRL_X)
 end
 
+-- 模式：「第 N 次」／「每一次」兩個勾選框當單選用（點已選的那個不會取消）
+local function SetMode(mode)
+    current.mode = mode
+    f.modeN:SetChecked(mode == "n")
+    f.modeEvery:SetChecked(mode == "every")
+    UpdatePreview()
+end
+
 local function BuildAnchor()
     local r = Row("anchor")
-    f.anchor = W.CreateCheckButton(r, "", UpdatePreview)
+    f.anchor = W.CreateCheckButton(r, L["Follow a boss ability"], UpdatePreview)
     f.anchor:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+
+    r = Row("anchor", L["Spell ID"])
+    f.anchorSpell = Box(r, 100)
+    f.anchorName = After(r, f.anchorSpell, "")
+    f.anchorName:SetPoint("RIGHT", r, "RIGHT", 0, 0)
+    f.anchorName:SetWordWrap(false)
+
+    r = Row("anchor", L["Which cast"])
+    f.modeN = W.CreateCheckButton(r, L["Cast #"], function() SetMode("n") end)
+    f.modeN:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
+    f.anchorN = Box(r, 40, CTRL_X + 30 + math.ceil(f.modeN.label:GetStringWidth()))
+    f.modeEvery = W.CreateCheckButton(r, L["Every cast"], function() SetMode("every") end)
+    f.modeEvery:SetPoint("LEFT", f.anchorN, "RIGHT", 16, 0)
 
     r = Row("anchor", L["Offset"])
     f.offset = Box(r, 50)
-    After(r, f.offset, L["seconds"])
+    After(r, f.offset, L["seconds (negative = earlier)"])
 
-    NoteRow("anchor", L["When this ability is recognized in combat (DBM or MRT), the reminder moves with its real cast. Otherwise the time above is used."], CTRL_X)
+    NoteRow("anchor", L["When this ability is recognized in combat (DBM or MRT), the reminder moves with its real cast. Otherwise the time above is used."]
+        .. " " .. L["Every cast: no time needed; the reminder appears each time the ability is recognized in combat, and never if it isn't."], CTRL_X)
 end
 
 local function Accept()
-    local t = Plans.ParseTime(f.t:GetText())
-    if not t or t <= 0 then
-        ns.Print(L["Time must look like 1:30 or 90."])
-        SelectTab("basic")
-        f.t:SetFocus()
-        return
+    local anchor
+    if f.anchor:GetChecked() then
+        local spell = AnchorSpell()
+        if not spell or spell <= 0 then
+            ns.Print(L["Enter the spell ID of the boss ability to follow."])
+            SelectTab("anchor")
+            f.anchorSpell:SetFocus()
+            return
+        end
+        local offset = math.max(-600, math.min(600, tonumber(f.offset:GetText()) or 0))
+        if current.mode == "every" then
+            anchor = { spell = spell, every = true, offset = offset }
+        else
+            local n = tonumber(f.anchorN:GetText())
+            if not n or n < 1 then
+                ns.Print(L["Cast # must be 1 or more."])
+                SelectTab("anchor")
+                f.anchorN:SetFocus()
+                return
+            end
+            anchor = { spell = spell, n = math.floor(n), offset = offset }
+        end
+    end
+    -- 「每一次」不用時間；其他的一定要有
+    local t
+    if not (anchor and anchor.every) then
+        t = Plans.ParseTime(f.t:GetText())
+        if not t or t <= 0 then
+            ns.Print(L["Time must look like 1:30 or 90."])
+            SelectTab("basic")
+            f.t:SetFocus()
+            return
+        end
     end
     local lead = tonumber(f.lead:GetText())
     local roles = {}
     for role, cb in pairs(f.roles) do
         if cb:GetChecked() then roles[role] = true end
-    end
-    local anchor
-    if current.anchor and f.anchor:GetChecked() then
-        anchor = {
-            spell  = current.anchor.spell,
-            n      = current.anchor.n,
-            offset = tonumber(f.offset:GetText()) or 0,
-        }
     end
     local positions, groups = {}, {}
     for key, cb in pairs(f.positions) do
@@ -563,7 +650,7 @@ local function Build()
     for i, eb in ipairs(order) do
         eb:SetScript("OnTabPressed", function() (order[i + 1] or order[1]):SetFocus() end)
     end
-    for _, eb in ipairs({ f.t, f.spell, f.text, f.lead, f.icon, f.offset, f.players, f.ttsText }) do
+    for _, eb in ipairs({ f.t, f.spell, f.text, f.lead, f.icon, f.offset, f.players, f.ttsText, f.anchorSpell, f.anchorN }) do
         eb:SetScript("OnEnterPressed", function() eb:ClearFocus() end)
         eb:HookScript("OnTextChanged", UpdatePreview)   -- Hook：ttsText 先掛了「打字就勾」，SetScript 會蓋掉它
     end
@@ -587,7 +674,7 @@ end
 function EE.Open(values, onAccept, title, encounterID)
     if not popup then Build() end
     values = values or {}
-    current = { onAccept = onAccept, anchor = values.anchor, phase = values.phase }
+    current = { onAccept = onAccept, anchor = values.anchor, anchorName = values.anchorName, phase = values.phase }
     f.title:SetText(title or L["Add reminder"])
     ShowBoss(encounterID)
 
@@ -606,21 +693,19 @@ function EE.Open(values, onAccept, title, encounterID)
     for g, cb in pairs(f.groups) do cb:SetChecked(values.groups and values.groups[g] and true or false) end
     SetBox(f.players, PlayersText(values.players))
 
+    -- 錨點：沒有的話法術欄留白（＝用「基本」的法術 ID）、模式預設「每一次」（不用填時間，最常用）
     local a = values.anchor
-    local ids = {}
-    for _, t in ipairs(TABS) do
-        if t.id ~= "anchor" or a then ids[#ids + 1] = t.id end
-    end
-    tabCard:SetTabs(ids)
-    if a then
-        local name = values.anchorName or (L["Spell"] .. " #" .. a.spell)
-        f.anchor.label:SetText(L["Follow cast #%d of %s"]:format(a.n, name))
-        f.anchor:SetChecked(values.anchorOn ~= false)
-        SetBox(f.offset, a.offset or 0)
-    end
+    f.anchor:SetChecked(a ~= nil and values.anchorOn ~= false)
+    SetBox(f.anchorSpell, a and a.spell)
+    SetBox(f.anchorN, a and a.n or 1)
+    SetBox(f.offset, a and a.offset or 0)
+    current.mode = (a and not a.every) and "n" or "every"
+    f.modeN:SetChecked(current.mode == "n")
+    f.modeEvery:SetChecked(current.mode == "every")
 
     UpdatePreview()
     SelectTab("basic")
     popup:Show()
-    f.t:SetFocus()
+    -- 「每一次」的時間欄是停用的：游標放法術欄
+    if IsEveryMode() then f.spell:SetFocus() else f.t:SetFocus() end
 end

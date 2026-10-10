@@ -12,7 +12,7 @@
 --     id, name,
 --     difficulties = { [difficultyID] = true } | nil    nil／空＝全部難度
 --     active       = true|false     開戰時要不要跑；同一隻首領可以同時生效好幾份（團長的＋自己的）
---     entries      = { { t, text, spell, icon, lead, ... }, ... }   照 t 排好
+--     entries      = { { t, text, spell, icon, lead, ... }, ... }   照 t 排好（「每一次」的沒有 t，排最前面）
 --     mrtVariant, source = "local"|"import", author, createdAt, updatedAt,
 -- }
 --   t      開戰後第幾秒「發生」
@@ -355,8 +355,36 @@ function Plans.SetEnabled(pid, entry, on)
     entry.enabled = on and true or false
 end
 
+-- 「每一次施放」的提示：anchor = { spell, every = true, offset }，沒有 t（戰鬥中每認出一次就放一條）
+local function IsEvery(e)
+    return type(e) == "table" and type(e.anchor) == "table" and e.anchor.every == true
+end
+Plans.IsEvery = IsEvery
+
+-- 這份設定檔有幾條「每一次」的提示（匯出 MRT 筆記、測試鈕、時間軸編輯器的說明用）
+function Plans.CountEvery(profile)
+    local n = 0
+    for _, e in ipairs(profile and profile.entries or {}) do
+        if IsEvery(e) then n = n + 1 end
+    end
+    return n
+end
+
+-- 排序：「每一次」的排最前面（它們之間照偏移、再照法術），其他照秒數
+local function EntryLess(a, b)
+    local ea, eb = IsEvery(a), IsEvery(b)
+    if ea ~= eb then return ea end
+    if ea then
+        local oa, ob = a.anchor.offset or 0, b.anchor.offset or 0
+        if oa ~= ob then return oa < ob end
+        return (a.anchor.spell or 0) < (b.anchor.spell or 0)
+    end
+    return (a.t or 0) < (b.t or 0)
+end
+Plans.EntryLess = EntryLess
+
 local function SortEntries(p)
-    table.sort(p.entries, function(a, b) return (a.t or 0) < (b.t or 0) end)
+    table.sort(p.entries, EntryLess)
 end
 Plans.SortEntries = SortEntries
 
@@ -369,6 +397,8 @@ Plans.SortEntries = SortEntries
 --   class      "PRIEST" 之類，只給這個職業；nil = 全部
 --   anchor     { spell, n, offset }：跟著這個首領技能的第 n 次施放走（Scheduler 戰鬥中認得出來時改時間），
 --              t 仍然是沒認出來時的備援秒數
+--              { spell, every = true, offset }：這個技能「每一次」施放都提醒一次（t 不存、n 不存；
+--              認不出來就不會出現）
 --   positions  { melee = true, ranged = true } 只給近戰／遠程（坦克算近戰）；nil = 全部
 --   groups     { [1..8] = true } 只給這幾個小隊；nil = 全部
 --   players    { ["名字"] = true } 只給這幾個人（不含伺服器）；nil = 全部
@@ -382,7 +412,8 @@ function Plans.SaveEntry(pid, values, index)
         e = { enabled = true }
         p.entries[#p.entries + 1] = e
     end
-    e.t         = values.t or 0
+    local every = IsEvery(values)
+    e.t         = (not every) and (values.t or 0) or nil
     e.text      = values.text ~= "" and values.text or nil
     e.spell     = values.spell
     e.icon      = values.icon
@@ -393,7 +424,11 @@ function Plans.SaveEntry(pid, values, index)
     e.ttsText   = (values.tts and values.ttsText ~= "") and values.ttsText or nil
     e.roles     = (values.roles and next(values.roles)) and values.roles or nil
     e.class     = values.class ~= "" and values.class or nil
-    e.anchor    = values.anchor
+    if every then
+        e.anchor = { spell = values.anchor.spell, every = true, offset = values.anchor.offset or 0 }
+    else
+        e.anchor = values.anchor
+    end
     e.positions = (values.positions and next(values.positions)) and values.positions or nil
     e.groups    = (values.groups and next(values.groups)) and values.groups or nil
     e.players   = (values.players and next(values.players)) and values.players or nil
@@ -403,10 +438,18 @@ function Plans.SaveEntry(pid, values, index)
 end
 
 -- 拖曳：只改時間（錨點的偏移跟著平移，讓「第 n 次施放後幾秒」維持玩家拖到的位置）
-function Plans.MoveEntry(pid, entry, newT)
+-- 「每一次」的提示沒有 t：fromT 是被拖的那一個重複標記原本的秒數，只把差值加進偏移
+function Plans.MoveEntry(pid, entry, newT, fromT)
     local p = Plans.Get(pid)
     if not p or not entry then return end
     Plans.Checkpoint(pid)
+    if IsEvery(entry) then
+        local delta = math.floor((newT - (fromT or newT)) * 10 + 0.5) / 10
+        local offset = math.floor(((entry.anchor.offset or 0) + delta) * 10 + 0.5) / 10
+        entry.anchor.offset = math.max(-600, math.min(600, offset))
+        SortEntries(p)
+        return
+    end
     newT = math.max(0.1, math.floor(newT * 10 + 0.5) / 10)
     if entry.anchor then
         entry.anchor.offset = (entry.anchor.offset or 0) + (newT - (entry.t or 0))
@@ -424,9 +467,16 @@ function Plans.IndexOf(pid, entry)
 end
 
 -- 同秒（DUP_EPS 內）、同法術、同文字＝同一條（匯入去重、多份合併去重共用）
+-- 「每一次」的提示沒有秒數：改比綁定的技能與偏移（偏移就是它的「秒數」）；跟一般提示永遠不同
 local function SameEntry(a, b)
+    local ea, eb = IsEvery(a), IsEvery(b)
+    if ea ~= eb then return false end
+    if (a.text or "") ~= (b.text or "") or a.spell ~= b.spell then return false end
+    if ea then
+        return a.anchor.spell == b.anchor.spell
+            and math.abs((a.anchor.offset or 0) - (b.anchor.offset or 0)) < DUP_EPS
+    end
     return math.abs((a.t or 0) - (b.t or 0)) < DUP_EPS
-        and (a.text or "") == (b.text or "") and a.spell == b.spell
 end
 Plans.SameEntry = SameEntry
 
@@ -590,7 +640,7 @@ function Plans.Active(encounterID, difficultyID)
         end
     end
     if #out == 0 then return end
-    table.sort(out, function(a, b) return (a.t or 0) < (b.t or 0) end)
+    table.sort(out, EntryLess)
     return out
 end
 
