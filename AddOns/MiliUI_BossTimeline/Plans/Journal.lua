@@ -71,10 +71,10 @@ function J.Encounters(journalInstanceID, tier)
         pcall(EJ_SelectInstance, journalInstanceID)
         local out = {}
         for i = 1, 40 do
-            local name, _, _, _, _, _, dungeonEncounterID = EJ_GetEncounterInfoByIndex(i, journalInstanceID)
+            local name, _, journalEncounterID, _, _, _, dungeonEncounterID = EJ_GetEncounterInfoByIndex(i, journalInstanceID)
             if not name then break end
             if dungeonEncounterID then
-                out[#out + 1] = { value = dungeonEncounterID, text = name }
+                out[#out + 1] = { value = dungeonEncounterID, text = name, journal = journalEncounterID }
             end
         end
         if prevInst and prevInst ~= 0 and prevInst ~= journalInstanceID then pcall(EJ_SelectInstance, prevInst) end
@@ -106,20 +106,45 @@ end
 -- 首領戰 ID → 名稱（清單上只剩 ID 的時候補名字用）
 -- 整個冒險指南掃一次要切好幾個資料片，所以只在第一次查不到時掃、結果快取
 ------------------------------------------------------------
-local names, scanned
+local names, journalIDs, scanned
 
 function J.NameFor(encounterID)
     if not encounterID then return end
     if names and names[encounterID] then return names[encounterID] end
     if scanned or not J.Available() then return end
     scanned = true
-    names = names or {}
+    names, journalIDs = names or {}, journalIDs or {}
     for _, t in ipairs(J.Tiers()) do
         for _, inst in ipairs(J.Instances(t.value)) do
             for _, enc in ipairs(J.Encounters(inst.value, t.value)) do
                 names[enc.value] = names[enc.value] or enc.text
+                journalIDs[enc.value] = journalIDs[enc.value] or enc.journal
             end
         end
     end
     return names[encounterID]
+end
+
+------------------------------------------------------------
+-- 首領戰 ID → 冒險指南裡第一隻首領的模型（編輯視窗的頭像用）
+-- 回傳 displayInfo（3D 模型）, iconImage（冒險指南清單上那張 2D 頭像）；查不到都是 nil
+-- 首領戰 ID 跟冒險指南的首領 ID 是兩套，靠 NameFor 那次整本掃描順手記下來的對照
+------------------------------------------------------------
+local bossArt = {}
+
+function J.BossArt(encounterID)
+    if not encounterID or not EJ_GetCreatureInfo then return end
+    local hit = bossArt[encounterID]
+    if hit then return hit.display, hit.icon end
+    if not (journalIDs and journalIDs[encounterID]) then
+        if scanned then return end
+        J.NameFor(-1)      -- 不存在的 ID：只為了觸發那一次整本掃描
+    end
+    local jEnc = journalIDs and journalIDs[encounterID]
+    if not jEnc then return end
+    local _, _, _, display, icon = S.SafeCall(EJ_GetCreatureInfo, 1, jEnc)
+    display = type(display) == "number" and display > 0 and display or nil
+    icon = type(icon) == "number" and icon > 0 and icon or nil
+    bossArt[encounterID] = { display = display, icon = icon }
+    return display, icon
 end

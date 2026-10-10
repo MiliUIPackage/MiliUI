@@ -97,7 +97,7 @@ local function OpenEntryPopup(values, entry)
     ns.EntryEditor.Open(values, function(v)
         Plans.SaveEntry(currentID, v, entry and Plans.IndexOf(currentID, entry))
         ns.Fire("PlansChanged")
-    end, entry and L["Edit reminder"] or L["Add reminder"])
+    end, entry and L["Edit reminder"] or L["Add reminder"], currentID)
 end
 
 local function EntryValues(e)
