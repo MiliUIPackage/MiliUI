@@ -940,7 +940,7 @@ local function Controls(cand, sub)
         { type = "header", label = L["Layout"] },
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of Essential Cooldowns."]),
-        BS("slider", "rowSpacing", L["Row spacing"], { min = 0, max = 12, step = 1 }),
+        BS("slider", "rowSpacing", L["Row spacing"], { min = -1, max = 12, step = 1 }),
         BS("slider", "segmentSpacing", L["Segment spacing"], { min = 0, max = 8, step = 1 }),
         Note(L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),

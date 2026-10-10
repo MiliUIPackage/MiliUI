@@ -752,7 +752,7 @@ end
 local RES_SHARED = {
     height     = { to = "rowHeight",  ok = function(v) return Num(v) and v > 0 and v end },
     width      = { to = "width",      ok = function(v) return Num(v) and v >= 0 and v end },
-    barSpacing = { to = "rowSpacing", ok = function(v) return Num(v) and v >= 0 and v end },
+    barSpacing = { to = "rowSpacing", ok = function(v) return Num(v) and v >= -1 and v end },
     barTexture = { to = "texture",    ok = function(v) return Texture(v) end },
     tagEnabled = { to = "showText",   ok = function(v) if type(v) == "boolean" then return v end end },
     tagFontSize = { to = "textSize",  ok = function(v) return Num(v) and v > 0 and v end },
