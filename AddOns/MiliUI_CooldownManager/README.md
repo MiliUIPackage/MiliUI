@@ -69,6 +69,7 @@
 | `Core/Catalog.lua` | cooldownID → 法術資料；四條檢視器各自的有序清單。玩家在暴雪面板排的順序自己解 `C_CooldownViewer.GetLayoutData()`（不問暴雪的 DataProvider，那會寫它的快取欄位）；解不開就無感退回類別集合順序。`Bar(key)` 回套好本專精 `order`／`groupOf`／`hidden`、再套格數上限＋溢出的清單（`BarBase(key)` 是不套溢出的那一層）。暴雪設定面板開著時 `IsPaused()`；`CheckFresh` 輪詢版面字串最多每秒一次，**戰鬥中不輪詢**（面板鎖著、專精換不了；標髒的事件路徑照做） |
 | `Core/Overflow.lua` | 純函式：格數上限＋溢出到別條的成立條件與截法（`Target`／`Resolve`／`Receivers`），見「格數上限＋溢出到別條」 |
 | `Core/Layout.lua` | 純函式 `Compute(items, layout, kind)` → 每格 (x, y, w, h)、容器寬高、容器錨點；`AnchorOf`／`AnchorSide`／`StackTarget` ＝ 錨定的排開（跟著同一條同一邊的往外排，見「錨定的排開」）。不碰任何 WoW API，離線可測 |
+| `Core/Anchor.lua` | 錨到外部的框（單位框、具名框）：`anchor.to` 的 `"unit:*"`／`"frame:<名字>"` 解析成框（提供者表、快取、`ADDON_LOADED`／`PLAYER_ENTERING_WORLD` 作廢重算）、解析不到時的備用位置，見「錨到單位框與具名框」 |
 | `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1。取出（`Track`）**不清樣式簽章**，只標 `rec.reacquired`（`CHEAP_REACQUIRE`，見「進場、換專精」） |
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上；實際貼在誰身上由排開決定，一條變了整疊兩段式重貼）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上；`ReleaseAll` 全部還給暴雪 |
 | `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；目錄變了當場重建，`Bars` 排版結尾只在認領變了（`Bars.claimsChanged`）或 `SI.dirty`（目錄重建、收養、自訂法術換覆寫）時重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`／`ClassifyGCD`；讀不懂一律全掃）。**`SPELL_UPDATE_COOLDOWN` 唯一的處理器**在這裡：分類一次、合併、延一幀交給消費者（`SI.Subscribe`：Decorate、Custom），全部消費者都沒事做（`wants`）時連分類都不做，見「冷卻狀態效果」 |
@@ -1714,6 +1715,48 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 過渡狀態撞上「甲還貼著乙、乙卻要改貼甲」，`SetPoint` 當場報錯。戰鬥中整疊記帳到脫戰。關掉的面板照字面貼在它的
 目標上（不佔位，但容器身上不留舊錨）。編輯模式一開始拖曳就 `B.Restack()`：被拖的那條脫離之後，疊在它外面的補位。
 `/mcdm debug` 的「跟隨」欄在兩者不同時寫成「essential（貼 resources）」。
+
+### 錨到單位框與具名框（`Core/Anchor.lua`、`Core/Bars.lua`、`Options/Specs.lua`、`EditMode/Frames.lua`，2026-10-10，H4）
+
+`anchor.to` 除了條／面板的 key，多兩種值（**存檔內容，之後不能改名**）：
+
+| 值 | 解析成 |
+|---|---|
+| `"unit:player"`／`"unit:target"`／`"unit:focus"` | 提供者表依序第一個存在的：本套組單位框 `MiliUIUF_Player`／`_Target`／`_Focus` → `ElvUF_Player`／`_Target`／`_Focus` → 暴雪 `PlayerFrame`／`TargetFrame`／`FocusFrame`（`A.UNIT_PROVIDERS`，一行一支） |
+| `"frame:<全域框名>"` | `_G[名字]`；`"frame:"`（還沒填名字）當作解析不到 |
+
+- **「框存在」只看 `_G[name]` 是可以當錨點的物件**：`GetObjectType` 讀得到字串、有 `GetPoint`（字型物件也在 `_G`、也有
+  `GetObjectType`，但錨不上去）、不是 forbidden。**不讀它的位置、大小、可見度**：目標框架沒有目標時被 `RegisterUnitWatch`
+  藏起來，藏著的框照樣有矩形、照樣錨得上，條不跳也不消失。
+- 結果有快取；`ADDON_LOADED`、`PLAYER_ENTERING_WORLD` 時作廢重算（單位框插件比我們晚載入），有外部目標的解析結果變了才
+  `RequestAll("structure")`（戰鬥中照舊記帳到脫戰）。
+- **解析不到時照 `anchor.fallback = { point, x, y }`（沒有就 `pos`）貼 UIParent**。fallback 是「第一次選外部目標」那一刻
+  畫面上的位置（`EditMode.ReadPos`，讀不到才用存著的 `pos`）；在外部目標之間切換不重記，改回條或「無」時丟掉。
+- 我們自己的條容器（`MiliUICDM_Bar_*`）不收：要跟著自己的條請選條本身（才會排開、才擋得了環）。
+  `DB.AnchorWouldCycle` 只管條的 key，外部目標直接回 false。外部框反過來錨在我們身上（或錨點受限）時 `SetPoint` 會拋錯：
+  `Bars` 用 `pcall` 包住，失敗就退回 fallback、`B.AnchorFailed(key)` 記下來給設定頁黃字。
+- **排開**：外部目標在 `Bars` 的 `AnchorCfg` 裡是一張空的設定表（解析得到時）——沒有自己的 anchor、算開著，
+  所以 `Layout.StackTarget` 把它當堆疊的根：同一個外部目標、同一邊的照 `STACK_RANK` 往外排（`Core/Layout.lua` 不用改）。
+  解析不到時當它不存在。
+- **半像素補正對外部框不做**（不讀外部框的尺寸）；`HalfPixelFix` 另外加了秘密值保護：錨定鏈接到外部框、尺寸讀回秘密值時回 0。
+  編輯模式覆蓋層與 MiliUISnap 的啟用判斷讀容器寬高的地方也一起擋秘密值（`EditMode/Frames.lua`）。
+- **編輯模式**：拖曳照舊「拖了就脫離錨定」（覆蓋層的黃字寫「拖曳會解除跟隨「目標框架」」，解析不到時不寫）；方向鍵照舊改錨定偏移。
+- **面板**（資源條、自訂格子、施法條、下一招圖示、天空騎術獨立擺放）走同一套 `Specs.Anchor`／`PlaceContainer`，一樣可以選外部目標。
+  接力中的天空騎術：資源條關掉／收合時照資源條自己的錨定，資源條錨在外部框上就跟著同一個外部框。
+
+**保護會不會傳過來（查證，2026-10-10）**：不會。保護是從保護框往「它的父層」與「**它錨著的框**」傳，不是往「錨著它的框」傳——
+warcraft.wiki.gg〈Secure Execution and Tainting〉："Control restrictions on protected frames are also applied to their parents
+and any frames they are anchored to"；〈API ScriptRegion:IsProtected〉："Anchoring or parenting a protected frame to another frame makes
+that frame implicitly protected as well"（被錨的是保護框、「那個框」是它的錨點目標，跟父層的例子同一個方向）。memory
+`wow-combat-drag-release` 的實測也是這個方向（secure 鈕錨在誰身上，誰就中鏢；子框不繼承）。所以條容器錨**到** secure 單位按鈕上
+**不會**讓容器變成保護框，戰鬥中照常動，設定頁不另寫說明。容器的寫入本來就全走 `ns.Write`，萬一判斷錯了也只是記帳到脫戰。
+反方向要留意：條上**有光環格或勾了可點擊**（容器本身就是保護框）時去錨一個**不是保護框**的外部框，那個框戰鬥中會被連坐成保護框
+（別的插件戰鬥中動它會被擋）——錨暴雪或單位框插件的 secure 單位框沒有這個問題。
+
+設定頁：錨定目標下拉＝現有的條＋分隔線（選了不寫入）＋「玩家框架／目標框架／專注目標框架」＋「指定框架名稱」。
+選了指定框架名稱多一列輸入框：輸入時即時驗證（找不到、是本插件自己的條、不是框架 ⇒ 紅字，不寫入），Enter 或離開輸入框時通過才寫。
+解析不到（或 `SetPoint` 被擋）時下拉底下一行黃字「找不到，暫時用自己的位置」；這個狀態進表單簽章（`Specs.AnchorGraphSig`）。
+限制：MiliUI_UnitFrames 在遊戲中途把某個單位框關掉時框還在（frame 刪不掉），條會繼續錨在那個藏起來的框上，`/reload` 後才改錨下一家。
 
 ### 資源條（`Modules/Resources.lua`）
 
@@ -3489,6 +3532,22 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 472. 天賦條件套在光環格的出現／消失／層數增加音效：脫戰切天賦後引擎登記跟著加減（`/mcdm debug` 的光環格登記筆數）。
 473. 天賦條件的 ID 框：輸入後顯示天賦名稱與圖示、查不到紅字；Shift 點天賦樹填得進來、不會吃掉平常 Shift 點進聊天的連結。
 474. 被動天賦（沒有按鈕的那種）判斷正確（`IsPlayerSpell` 那一半）。
+
+**錨到單位框與具名框（2026-10-10，H4）**
+
+475. 錨在 MiliUI_UnitFrames 玩家框架下方：單位框在它自己的設定裡移動時條跟著動。
+476. 錨在目標框架上：沒有目標（框被藏起來）時條的位置不跳、不消失；換目標、清目標時不閃。
+477. 關掉 MiliUI_UnitFrames（`/reload`）後自動改錨暴雪的 `PlayerFrame`／`TargetFrame`／`FocusFrame`；再開回來改回本套組的。
+478. 有另一套單位框插件提供 `ElvUF_Player` 等框時改錨它們；那套的單位框關掉時退到暴雪的。
+479. 指定一個不存在的框名：輸入框紅字、不寫入；改用一個之後才建的框（晚載入的插件）：讀取畫面後自動錨上。
+480. 解析不到時退回 fallback（第一次選外部目標時畫面上的位置），黃字出現；解析得到後黃字消失（重開設定頁）。
+481. 戰鬥中換目標、專注目標不報錯；**條容器錨在 secure 單位框上戰鬥中仍可重排**（`/run print(MiliUICDM_Bar_essential:IsProtected())`
+     在沒有光環格、沒勾可點擊的條上是 false——保護傳遞方向的實機確認）。
+482. 兩條（例如資源條與施法條）都錨在玩家框架下方：照排開往外疊，不重疊。
+483. 編輯模式：錨在外部框的條覆蓋層有「拖曳會解除跟隨「玩家框架」」，拖了脫離；方向鍵改偏移。
+484. 指定一個錨在我們條上的框（例如別的插件的框錨在核心技能上）：不報錯、退回 fallback、黃字出現。
+485. 面板（資源條、施法條、天空騎術獨立擺放）錨外部目標；接力中的天空騎術在資源條關掉時跟著資源條的外部目標。
+486. `/console taintLog 2` 一場首領戰零新條目。
 
 **效能基準**
 

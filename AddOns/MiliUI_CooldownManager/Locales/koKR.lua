@@ -1007,3 +1007,17 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "가장자리 선 숨기기"
 L["Hide recharge countdown"] = "충전 카운트다운 숨기기"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "충전이 남아 있을 때만 다음 충전까지의 초를 숨깁니다. 충전을 다 쓰면 재사용 대기 카운트다운은 평소대로 표시됩니다."
+
+-- 錨到單位框與具名框（H4，2026-10-10）
+L["Player frame"] = "플레이어 창"
+L["Target frame"] = "대상 창"
+L["Focus frame"] = "주시 대상 창"
+L["Frame by name"] = "프레임 이름으로 지정"
+L["Frame name"] = "프레임 이름"
+L["No frame has this name right now."] = "지금 이 이름의 프레임이 없습니다."
+L["That's one of this addon's bars: pick it from the list above instead."] = "이 애드온의 바입니다. 위 목록에서 그 바를 선택하세요."
+L["That name isn't a frame."] = "이 이름은 프레임이 아닙니다."
+L["Type the frame's global name. /fstack shows the name of the frame under the mouse."] = "프레임의 전역 이름을 입력하세요. /fstack으로 마우스 아래 프레임의 이름을 볼 수 있습니다."
+L["Found."] = "찾았습니다."
+L["Not found, using its own position for now."] = "찾을 수 없어 당분간 자체 위치를 사용합니다."
+L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "불러온 유닛 프레임의 플레이어·대상·주시 대상 창이나, 이름으로 지정한 아무 프레임을 따라갈 수도 있습니다. 대상이 없어 대상 창이 숨겨져도 위치는 그대로입니다."

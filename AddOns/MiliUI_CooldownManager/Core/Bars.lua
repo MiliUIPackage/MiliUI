@@ -186,6 +186,12 @@ local function EnsureContainer(key)
     return c
 end
 
+-- 錨在外部框上、但 SetPoint 被擋而退回備用位置的條：回那個外部目標字串（設定頁的黃字看這個）
+function B.AnchorFailed(key)
+    local st = state[key]
+    return st and st.extFailed or nil
+end
+
 -- 容器目前用的錨點（版面算出來的那一邊；編輯模式放手時照它換算回 pos）
 function B.AnchorPoint(key)
     local st = state[key]
@@ -203,7 +209,19 @@ local function SkyRelay()
 end
 B.SkyRelay = SkyRelay
 
+-- 外部目標（單位框、具名框；Core/Anchor.lua）：解析得到 ⇒ 一張空的設定表（沒有自己的 anchor、算開著），
+-- 所以排開把它當堆疊的根（同一個外部目標、同一邊的照 STACK_RANK 往外排）；解析不到 ⇒ 不存在，
+-- 錨在它身上的條照 anchor.fallback（沒有就 pos）貼 UIParent（PlaceContainer）
+local EXT_CFG = {}
+local function IsExternal(key)
+    return ns.Anchor ~= nil and ns.Anchor.IsExternal(key)
+end
+B.IsExternal = IsExternal
+
 local function AnchorCfg(key)
+    if IsExternal(key) then
+        return ns.Anchor.Resolve(key) and EXT_CFG or nil
+    end
     if ns.Cursor and ns.Cursor.Configured(key) then return nil end
     -- 接力中的天空騎術不是任何人的錨定／排開目標
     if key == SKY and SkyRelay() then return nil end
@@ -285,6 +303,10 @@ local function HalfPixelFix(f, point, rel, relPoint)
     if not (px and px > 0 and rel and rel.GetSize) then return 0, 0 end
     local w, h = f:GetSize()
     local rw, rh = rel:GetSize()
+    -- 錨定鏈上接了外部框（錨點資料可能是秘密）：尺寸讀回秘密值就不補
+    local sec = ns.IsSecret
+    if sec and (sec(w) or sec(h) or sec(rw) or sec(rh)) then return 0, 0 end
+    if type(w) ~= "number" or type(h) ~= "number" or type(rw) ~= "number" or type(rh) ~= "number" then return 0, 0 end
     local fx = (PixelCount(rw, px) * HFactor(relPoint) - PixelCount(w, px) * HFactor(point)) % 1
     local fy = (PixelCount(rh, px) * VFactor(relPoint) - PixelCount(h, px) * VFactor(point)) % 1
     return (fx ~= 0) and px / 2 or 0, (fy ~= 0) and px / 2 or 0
@@ -295,7 +317,31 @@ local function SetPlace(f, st, point, rel, relPoint, x, y)
     local dx, dy = HalfPixelFix(f, point, rel, relPoint)
     st.place = { point, rel, relPoint, x, y }
     st.placeFix = dx .. "," .. dy
+    st.placeExt = nil
     f:SetPoint(point, rel, relPoint, x + dx, y + dy)
+end
+
+-- 貼到外部框上：不讀外部框的尺寸（不做半像素補正），SetPoint 用 pcall 包住——
+-- 那個框若是錨在我們身上（「錨在依賴自己的框上」）或錨點受限，SetPoint 會拋錯，這時回 false 讓呼叫端退回 fallback
+local function SetPlaceExt(f, st, point, rel, relPoint, x, y)
+    local ok = pcall(f.SetPoint, f, point, rel, relPoint, x, y)
+    if not ok then
+        f:ClearAllPoints()
+        st.place, st.placeFix, st.placeExt = nil, nil, nil
+        return false
+    end
+    st.place = { point, rel, relPoint, x, y }
+    st.placeFix = "0,0"
+    st.placeExt = true
+    return true
+end
+
+-- 解析不到（或 SetPoint 失敗）的外部錨定：照 anchor.fallback（沒有就 pos）貼 UIParent
+local function PlaceFallback(f, key, bar, st)
+    local point, x, y = ns.Anchor.Fallback(bar)
+    local snap = ns.Layout.Snap
+    st.stackTo = nil
+    SetPlace(f, st, st.anchorPoint or "CENTER", UIParent, point, snap(x), snap(y))
 end
 
 -- 容器貼到位置（錨在別條上優先、否則 pos）；已經在 ns.Write 裡
@@ -315,10 +361,19 @@ local function PlaceContainer(f, key, bar, st)
         local usable = res ~= nil and res.enabled ~= false and not StackSkip("resources")
         local kind, t = ns.Skyriding.RelayPlace(res, usable, B.AnchorPoint("resources"))
         if kind == "anchor" and AnchorCfg(t.to) then
-            EnsureContainer(t.to)
-            SetPlace(f, st, t.point, containers[t.to], t.relPoint, snap(t.x), snap(t.y))
-            st.stackTo = t.to
-            return
+            if IsExternal(t.to) then
+                -- 資源條錨在外部框上：跟著同一個外部框（失敗就落到下面資源條自己的位置）
+                if SetPlaceExt(f, st, t.point, ns.Anchor.Resolve(t.to), t.relPoint, snap(t.x), snap(t.y)) then
+                    st.stackTo = t.to
+                    return
+                end
+                kind = "ext-failed"
+            else
+                EnsureContainer(t.to)
+                SetPlace(f, st, t.point, containers[t.to], t.relPoint, snap(t.x), snap(t.y))
+                st.stackTo = t.to
+                return
+            end
         end
         -- 沒有可錨的目標：資源條自己的 pos，貼在資源條的錨點那一邊
         if kind ~= "pos" then
@@ -334,12 +389,32 @@ local function PlaceContainer(f, key, bar, st)
     if a then
         -- 貼在「排開」算出來的那一條上（同一邊已經有別人就貼在它外面），邊與偏移照自己的設定
         local to = StackTarget(key) or a.to
-        EnsureContainer(to)
         local y = snap(tonumber(a.y) or 0)
         if st.collapsed and VerticalAnchor(a) then y = 0 end
+        if IsExternal(to) then
+            -- 外部框（單位框、具名框）是這一疊的根
+            if SetPlaceExt(f, st, a.point or "TOP", ns.Anchor.Resolve(to), a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), y) then
+                st.stackTo = to
+                st.extFailed = nil
+            else
+                -- SetPoint 被擋（那個框錨在我們身上、錨點受限）：退回備用位置。stackTo 照記排開的結果，
+                -- 不然 StackChanged 每輪都當它「變了」重套一次
+                st.extFailed = to
+                PlaceFallback(f, key, bar, st)
+                st.stackTo = to
+            end
+            return
+        end
+        st.extFailed = nil
+        EnsureContainer(to)
         SetPlace(f, st, a.point or "TOP", containers[to], a.relPoint or "BOTTOM", snap(tonumber(a.x) or 0), y)
         st.stackTo = to
+    elseif type(bar.anchor) == "table" and IsExternal(bar.anchor.to) then
+        -- 外部目標解析不到（單位框插件沒載入、框名打錯）：自己的備用位置
+        st.extFailed = nil
+        PlaceFallback(f, key, bar, st)
     else
+        st.extFailed = nil
         st.stackTo = nil
         local pos = type(bar.pos) == "table" and bar.pos or {}
         -- 容器用版面算出來的錨點（圖示增減時那一邊不動），貼在 UIParent 的 pos.point 上
@@ -385,7 +460,7 @@ end
 -- 尺寸變了以後：補正量不一樣了就照同一組錨點重貼（不重算排開 ⇒ 不會撞上錨定循環）
 local function RefixOne(k)
     local c, st = containers[k], state[k]
-    if not (c and st and st.place) or k == ns.dragging then return end
+    if not (c and st and st.place) or st.placeExt or k == ns.dragging then return end
     local p = st.place
     local dx, dy = HalfPixelFix(c, p[1], p[2], p[3])
     if st.placeFix == dx .. "," .. dy then return end

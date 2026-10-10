@@ -1007,3 +1007,17 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Nascondi linea del bordo"
 L["Hide recharge countdown"] = "Nascondi conto alla rovescia"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Nasconde i secondi alla prossima carica solo finché te ne resta una. Senza cariche, il conto alla rovescia del tempo di ricarica appare come sempre."
+
+-- 錨到單位框與具名框（H4，2026-10-10）
+L["Player frame"] = "Riquadro del giocatore"
+L["Target frame"] = "Riquadro del bersaglio"
+L["Focus frame"] = "Riquadro del focus"
+L["Frame by name"] = "Riquadro per nome"
+L["Frame name"] = "Nome del riquadro"
+L["No frame has this name right now."] = "Al momento nessun riquadro ha questo nome."
+L["That's one of this addon's bars: pick it from the list above instead."] = "È una barra di questo addon: sceglila nell'elenco qui sopra."
+L["That name isn't a frame."] = "Questo nome non è un riquadro."
+L["Type the frame's global name. /fstack shows the name of the frame under the mouse."] = "Scrivi il nome globale del riquadro. /fstack mostra il nome del riquadro sotto il mouse."
+L["Found."] = "Trovato."
+L["Not found, using its own position for now."] = "Non trovato, per ora usa la sua posizione."
+L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "Può anche seguire il riquadro del giocatore, del bersaglio o del focus dei riquadri unità caricati, o qualsiasi riquadro per nome. Un riquadro del bersaglio nascosto per mancanza di bersaglio mantiene la posizione."

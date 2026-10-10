@@ -1007,3 +1007,17 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Ocultar línea del borde"
 L["Hide recharge countdown"] = "Ocultar cuenta de recarga"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Oculta los segundos hasta la siguiente carga solo mientras te quede una. Sin cargas, la cuenta del tiempo de reutilización se muestra como siempre."
+
+-- 錨到單位框與具名框（H4，2026-10-10）
+L["Player frame"] = "Marco del jugador"
+L["Target frame"] = "Marco del objetivo"
+L["Focus frame"] = "Marco de foco"
+L["Frame by name"] = "Marco por nombre"
+L["Frame name"] = "Nombre del marco"
+L["No frame has this name right now."] = "Ahora mismo no hay ningún marco con este nombre."
+L["That's one of this addon's bars: pick it from the list above instead."] = "Es una barra de este addon: elígela en la lista de arriba."
+L["That name isn't a frame."] = "Ese nombre no es un marco."
+L["Type the frame's global name. /fstack shows the name of the frame under the mouse."] = "Escribe el nombre global del marco. /fstack muestra el nombre del marco bajo el ratón."
+L["Found."] = "Encontrado."
+L["Not found, using its own position for now."] = "No encontrado, usa su propia posición por ahora."
+L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "También puede seguir el marco del jugador, del objetivo o de foco de los marcos de unidad cargados, o cualquier marco por su nombre. Un marco de objetivo oculto por no tener objetivo mantiene la posición."

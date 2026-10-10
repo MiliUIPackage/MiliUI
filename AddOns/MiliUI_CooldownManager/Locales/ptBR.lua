@@ -1007,3 +1007,17 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Ocultar linha da borda"
 L["Hide recharge countdown"] = "Ocultar contagem da recarga"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Oculta os segundos até a próxima carga só enquanto ainda resta uma. Sem cargas, a contagem da recarga aparece normalmente."
+
+-- 錨到單位框與具名框（H4，2026-10-10）
+L["Player frame"] = "Quadro do jogador"
+L["Target frame"] = "Quadro do alvo"
+L["Focus frame"] = "Quadro do foco"
+L["Frame by name"] = "Quadro por nome"
+L["Frame name"] = "Nome do quadro"
+L["No frame has this name right now."] = "No momento não há quadro com esse nome."
+L["That's one of this addon's bars: pick it from the list above instead."] = "É uma barra deste addon: escolha-a na lista acima."
+L["That name isn't a frame."] = "Esse nome não é um quadro."
+L["Type the frame's global name. /fstack shows the name of the frame under the mouse."] = "Digite o nome global do quadro. /fstack mostra o nome do quadro sob o mouse."
+L["Found."] = "Encontrado."
+L["Not found, using its own position for now."] = "Não encontrado, usando a posição própria por enquanto."
+L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "Também pode seguir o quadro do jogador, do alvo ou do foco dos quadros de unidade carregados, ou qualquer quadro pelo nome. Um quadro de alvo oculto por falta de alvo mantém a posição."

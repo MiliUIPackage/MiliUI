@@ -1007,3 +1007,17 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "不畫邊緣亮線"
 L["Hide recharge countdown"] = "隱藏回充倒數"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "只在還有充能時隱藏下一層的倒數；充能用完時，冷卻倒數照常顯示。"
+
+-- 錨到單位框與具名框（H4，2026-10-10）
+L["Player frame"] = "玩家框架"
+L["Target frame"] = "目標框架"
+L["Focus frame"] = "專注目標框架"
+L["Frame by name"] = "指定框架名稱"
+L["Frame name"] = "框架名稱"
+L["No frame has this name right now."] = "目前沒有這個名稱的框架。"
+L["That's one of this addon's bars: pick it from the list above instead."] = "這是本插件自己的條：請直接在上面的清單選那一條。"
+L["That name isn't a frame."] = "這個名稱不是框架。"
+L["Type the frame's global name. /fstack shows the name of the frame under the mouse."] = "輸入框架的全域名稱。/fstack 可以看到滑鼠底下框架的名稱。"
+L["Found."] = "已找到。"
+L["Not found, using its own position for now."] = "找不到，暫時用自己的位置。"
+L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "也可以跟著目前載入的單位框架的玩家／目標／專注目標框架，或指定名稱的任何框架。目標框架沒有目標時藏起來，位置照樣不變。"

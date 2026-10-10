@@ -129,7 +129,10 @@ end
 function EM.LayoutOverlay(key)
     local c, ov, bar = ns.Bars.Get(key), EM.overlay[key], BarCfg(key)
     if not (c and ov and bar) then return end
-    local cw, ch = c:GetWidth() or 1, c:GetHeight() or 1
+    -- 錨定鏈接到外部框時尺寸可能讀回秘密值：讀不到就當 1（覆蓋層照最小尺寸）
+    local cw, ch = c:GetWidth(), c:GetHeight()
+    if type(cw) ~= "number" or (ns.IsSecret and ns.IsSecret(cw)) then cw = 1 end
+    if type(ch) ~= "number" or (ns.IsSecret and ns.IsSecret(ch)) then ch = 1 end
     local w, h = EM.MinSize(key, bar)
     if cw > w then w = cw end
     if ch > h then h = ch end
@@ -144,6 +147,10 @@ local function HintText(bar)
     local a = type(bar.anchor) == "table" and bar.anchor
     if a and type(a.to) == "string" and BarCfg(a.to) then
         return L["Dragging stops it following %s"]:format(EM.BarLabel(a.to))
+    end
+    -- 錨在單位框／具名框上（Core/Anchor.lua）：解析得到才算「跟著」
+    if a and ns.Anchor and ns.Anchor.IsExternal(a.to) and ns.Anchor.Resolve(a.to) then
+        return L["Dragging stops it following %s"]:format(ns.Anchor.Label(a.to))
     end
     return nil
 end
@@ -290,7 +297,11 @@ function EM.OnContainer(key, c)
         S.Register(SNAP_PREFIX .. key, c, {
             label   = EM.BarLabel(key),
             group   = "cdm",
-            enabled = function() return BarCfg(key) ~= nil and (c:GetWidth() or 0) > 1 end,
+            enabled = function()
+                if BarCfg(key) == nil then return false end
+                local w = c:GetWidth()
+                return type(w) == "number" and not (ns.IsSecret and ns.IsSecret(w)) and w > 1
+            end,
         })
     end
 end

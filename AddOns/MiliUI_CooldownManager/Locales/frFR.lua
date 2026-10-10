@@ -1007,3 +1007,17 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Masquer la ligne de bord"
 L["Hide recharge countdown"] = "Masquer le décompte de recharge"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Masque les secondes avant la prochaine charge uniquement tant qu'il vous en reste une. Sans charge, le décompte du temps de recharge s'affiche normalement."
+
+-- 錨到單位框與具名框（H4，2026-10-10）
+L["Player frame"] = "Cadre du joueur"
+L["Target frame"] = "Cadre de la cible"
+L["Focus frame"] = "Cadre de la focalisation"
+L["Frame by name"] = "Cadre par nom"
+L["Frame name"] = "Nom du cadre"
+L["No frame has this name right now."] = "Aucun cadre ne porte ce nom pour l'instant."
+L["That's one of this addon's bars: pick it from the list above instead."] = "C'est une barre de cet addon : choisissez-la dans la liste ci-dessus."
+L["That name isn't a frame."] = "Ce nom n'est pas un cadre."
+L["Type the frame's global name. /fstack shows the name of the frame under the mouse."] = "Saisissez le nom global du cadre. /fstack affiche le nom du cadre sous la souris."
+L["Found."] = "Trouvé."
+L["Not found, using its own position for now."] = "Introuvable, position propre en attendant."
+L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "Elle peut aussi suivre le cadre du joueur, de la cible ou de la focalisation des cadres d'unité chargés, ou n'importe quel cadre par son nom. Un cadre de cible masqué faute de cible garde la position."

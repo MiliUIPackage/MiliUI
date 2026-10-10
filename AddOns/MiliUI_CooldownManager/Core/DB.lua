@@ -1587,7 +1587,9 @@ function DB.DeleteBar(key)
 end
 
 -- 錨定成環：key 錨到 to 之後，沿著 to 的錨定鏈會不會走回 key
+-- 外部目標（Core/Anchor.lua：單位框、具名框）不會錨回我們，不算環
 function DB.AnchorWouldCycle(key, to)
+    if ns.Anchor and ns.Anchor.IsExternal(to) then return false end
     local seen, cur = { [key] = true }, to
     while cur do
         if seen[cur] then return true end

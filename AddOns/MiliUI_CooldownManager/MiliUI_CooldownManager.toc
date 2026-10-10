@@ -49,6 +49,7 @@ Core\Overflow.lua
 Core\Catalog.lua
 Core\Presets.lua
 Core\Layout.lua
+Core\Anchor.lua
 Core\Viewers.lua
 Core\SpellIndex.lua
 Core\Text.lua

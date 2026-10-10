@@ -1007,3 +1007,17 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Randlinie ausblenden"
 L["Hide recharge countdown"] = "Aufladungs-Countdown ausblenden"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Blendet die Sekunden bis zur nächsten Aufladung nur aus, solange noch eine übrig ist. Ohne Aufladungen wird der Abklingzeit-Countdown wie gewohnt angezeigt."
+
+-- 錨到單位框與具名框（H4，2026-10-10）
+L["Player frame"] = "Spielerrahmen"
+L["Target frame"] = "Zielrahmen"
+L["Focus frame"] = "Fokusrahmen"
+L["Frame by name"] = "Rahmen nach Name"
+L["Frame name"] = "Rahmenname"
+L["No frame has this name right now."] = "Gerade gibt es keinen Rahmen mit diesem Namen."
+L["That's one of this addon's bars: pick it from the list above instead."] = "Das ist eine Leiste dieses Addons: Wähle sie oben in der Liste."
+L["That name isn't a frame."] = "Dieser Name ist kein Rahmen."
+L["Type the frame's global name. /fstack shows the name of the frame under the mouse."] = "Gib den globalen Namen des Rahmens ein. /fstack zeigt den Namen des Rahmens unter der Maus."
+L["Found."] = "Gefunden."
+L["Not found, using its own position for now."] = "Nicht gefunden, vorerst eigene Position."
+L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."] = "Sie kann auch dem Spieler-, Ziel- oder Fokusrahmen der geladenen Einheitenrahmen folgen oder einem beliebigen Rahmen nach Name. Ist der Zielrahmen ohne Ziel ausgeblendet, bleibt die Position erhalten."

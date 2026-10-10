@@ -1600,6 +1600,7 @@ end
 -- 錨定
 ------------------------------------------------------------
 -- 候選：左欄的條（barOrder）＋ 面板（資源條、自訂格子、施法條；它們不在 barOrder 裡）
+local ANCHOR_SEP = "__sep"
 local function AnchorItems(key)
     local items = { { text = L["None (own position)"], value = "none" } }
     local p = ns.profile
@@ -1615,7 +1616,107 @@ local function AnchorItems(key)
             items[#items + 1] = { text = ns.Options.PageTitle(other) or ns.Options.BarTitle(other), value = other }
         end
     end
+    -- 外部目標（Core/Anchor.lua）：分隔線＋三個單位框＋指定框架名稱。分隔線選了不寫入（set 擋掉）。
+    -- 分隔線用 ASCII 減號：歐語字型不一定有全形橫線
+    local A = ns.Anchor
+    if A then
+        items[#items + 1] = { text = "|cff555555" .. string.rep("-", 24) .. "|r", value = ANCHOR_SEP }
+        for _, u in ipairs(A.UNITS) do
+            local to = "unit:" .. u
+            items[#items + 1] = { text = A.Label(to), value = to }
+        end
+        items[#items + 1] = { text = L["Frame by name"], value = "frame:" }
+    end
     return items
+end
+
+-- 指定框架名稱的輸入列：輸入時即時驗證（找不到／是本插件自己的條／不是框架 ⇒ 紅字，不寫入），
+-- 按 Enter 或離開輸入框時通過驗證才寫進 anchor.to ＝ "frame:<名字>"
+local function FrameNameRow(key, disabled)
+    local REASON = {
+        missing  = L["No frame has this name right now."],
+        own      = L["That's one of this addon's bars: pick it from the list above instead."],
+        notframe = L["That name isn't a frame."],
+    }
+    local HINT = L["Type the frame's global name. /fstack shows the name of the frame under the mouse."]
+    local FOUND = L["Found."]
+    local function Cur()
+        local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
+        local kind, name = ns.Anchor.Parse(type(a) == "table" and a.to or nil)
+        return kind == "frame" and name or ""
+    end
+    return { type = "custom", label = L["Frame name"], noReset = true, disabled = disabled, h = 26,
+             build = function(parent, x, y, width, ctx)
+        local eb = W.CreateEditBox(parent, math.min(width, 220), 20)
+        eb:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 30)
+        fs:SetWidth(width)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(true)
+        local tallest = 14
+        for _, t in ipairs({ HINT, FOUND, REASON.missing, REASON.own, REASON.notframe }) do
+            fs:SetText(t)
+            tallest = math.max(tallest, fs:GetStringHeight() or 14)
+        end
+        local function Show(name)
+            local ok, why = ns.Anchor.CheckName(name)
+            if ok then
+                fs:SetText(FOUND)
+                fs:SetTextColor(0.65, 0.65, 0.65)
+            elseif why == "empty" then
+                fs:SetText(HINT)
+                fs:SetTextColor(0.65, 0.65, 0.65)
+            else
+                fs:SetText(REASON[why] or REASON.missing)
+                fs:SetTextColor(1, 0.3, 0.3)
+            end
+        end
+        local function Commit(self)
+            local name = (self:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")
+            if name == Cur() then return end
+            if not ns.Anchor.CheckName(name) then Show(name) return end
+            local b = ns.DB.ConfigTable(key)
+            if not (b and type(b.anchor) == "table") then return end
+            b.anchor.to = "frame:" .. name
+            ns.Anchor.Invalidate()
+            ctx.lastSpec = { level = "structure", refreshPage = true }
+            ctx.apply()
+        end
+        eb:SetScript("OnTextChanged", function(self, user) if user then Show(self:GetText()) end end)
+        eb:SetScript("OnEnterPressed", function(self) Commit(self); self:ClearFocus() end)
+        eb:HookScript("OnEditFocusLost", Commit)
+        return 30 + tallest + 8, function()
+            local cur = Cur()
+            eb:SetText(cur)
+            eb:SetCursorPosition(0)
+            Show(cur)
+        end
+    end }
+end
+
+-- 黃字（W.fontEmphasis）一句：外部目標解析不到時，放在錨定目標下拉底下
+local function EmphasisNote(text)
+    return { type = "custom", noReset = true, h = 22, build = function(parent, x, y, width)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontEmphasis)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+        fs:SetWidth(width)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(true)
+        fs:SetText(text)
+        return math.max(22, (fs:GetStringHeight() or 14) + 10)
+    end }
+end
+
+-- 這條錨在外部目標上、但現在用的是自己的備用位置（解析不到，或 SetPoint 被擋）
+local function ExternalUnresolved(key)
+    local A = ns.Anchor
+    if not A then return false end
+    local bar = ns.DB.ConfigTable(key)
+    if A.Unresolved(bar) then return true end
+    return (ns.Bars and ns.Bars.AnchorFailed and ns.Bars.AnchorFailed(key)) and true or false
 end
 
 local function EdgeOf(a)
@@ -1659,9 +1760,13 @@ function Specs.Anchor(key, opts)
         items = AnchorItems(key), refreshPage = true, level = "structure",
         get = function()
             local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
-            return type(a) == "table" and a.to or "none"
+            local to = type(a) == "table" and a.to or "none"
+            -- 具名框一律顯示成「指定框架名稱」，名字在下一列的輸入框
+            if type(to) == "string" and to:sub(1, 6) == "frame:" then return "frame:" end
+            return to
         end,
         set = function(_, v)
+            if v == ANCHOR_SEP then return end
             local b = ns.DB.ConfigTable(key)
             if not b then return end
             if v == "none" then
@@ -1670,13 +1775,35 @@ function Specs.Anchor(key, opts)
                 if pos then b.pos = pos end
                 b.anchor = false
             else
-                local a = type(b.anchor) == "table" and b.anchor
-                    or { point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }
+                local old = type(b.anchor) == "table" and b.anchor or nil
+                local a = old or { point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }
+                local A = ns.Anchor
+                if A and A.IsExternal(v) then
+                    -- 第一次選外部目標：記下現在畫面上的位置，目標解析不到時退回這裡（Core/Anchor.lua 的 A.Fallback）
+                    if not (old and A.IsExternal(old.to)) then
+                        local pos = ns.EditMode and ns.EditMode.ReadPos and ns.EditMode.ReadPos(key)
+                            or (type(b.pos) == "table" and b.pos) or nil
+                        if pos then
+                            a.fallback = { point = pos.point or "CENTER", x = tonumber(pos.x) or 0, y = tonumber(pos.y) or 0 }
+                        end
+                    end
+                    -- 已經是某個具名框時再選一次「指定框架名稱」：名字留著
+                    if v == "frame:" and old and type(old.to) == "string" and old.to:sub(1, 6) == "frame:" then v = old.to end
+                else
+                    a.fallback = nil
+                end
                 a.to = v
                 b.anchor = a
             end
         end,
     })
+    local curTo = type(bar.anchor) == "table" and bar.anchor.to or nil
+    if type(curTo) == "string" and curTo:sub(1, 6) == "frame:" then
+        list[#list + 1] = FrameNameRow(key, cursorCapable and CursorOn or nil)
+    end
+    if ExternalUnresolved(key) then
+        list[#list + 1] = EmphasisNote(L["Not found, using its own position for now."])
+    end
     if anchored then
         list[#list + 1] = AS("dropdown", "anchor.point", L["Side"], {
             items = EDGE_ITEMS, level = "structure", resetPaths = { "anchor.point", "anchor.relPoint" },
@@ -1702,6 +1829,7 @@ function Specs.Anchor(key, opts)
     list[#list + 1] = Note(L["Hover a bar and press the arrow keys to nudge it by 1 (Shift: 10)."])
     list[#list + 1] = Note(L["A bar that follows another moves with it. Dragging it in Edit Mode stops the following."])
     list[#list + 1] = Note(L["Elements that follow the same side of the same bar stack outward instead of overlapping."])
+    list[#list + 1] = Note(L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."])
     return list
 end
 
@@ -1719,7 +1847,11 @@ function Specs.AnchorGraphSig()
     for _, k in ipairs(keys) do
         local t = ns.DB.ConfigTable(k)
         local a = t and t.anchor
-        if type(a) == "table" and type(a.to) == "string" then parts[#parts + 1] = k .. ">" .. a.to end
+        if type(a) == "table" and type(a.to) == "string" then
+            parts[#parts + 1] = k .. ">" .. a.to
+            -- 外部目標解析不到：表單多一列黃字
+            if ExternalUnresolved(k) then parts[#parts + 1] = k .. "!" end
+        end
         -- 跟著游標的條不是錨定候選：開關一變，別條的候選清單就過期
         if ns.Cursor and ns.Cursor.Configured(k) then parts[#parts + 1] = k .. "~" end
     end
