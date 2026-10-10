@@ -1232,6 +1232,29 @@ do
     eqList("秘密值的增益 ID 不收 ⇒ 第 2 個空、不退使用效果", (C.SlotBuffIDs(13, 2)), {})
     env.canaccessvalue = function() return true end
 
+    -- 自訂物品（藥水那類）的增益：常用預設認得的組照 AURAS 同 key＋使用法術；ITEM_NO_BUFF 的組沒有；其餘照使用法術
+    local savedPresets = ns.Presets
+    ns.Presets = {
+        ITEMS = { { key = "dps", items = { 900001, 900002 } }, { key = "heal", items = { 900010 } } },
+        AURAS = { { key = "dps", ids = { 1236616 } } },
+        ITEM_NO_BUFF = { heal = true },
+    }
+    itemSpell[900001], itemSpell[900002], itemSpell[900010], itemSpell[900020] = 5001, 5001, 5010, 5020
+    C.InvalidateSlotBuffs()
+    eqList("ItemUseBuffIDs：預設組 ⇒ 登記的增益＋使用法術（去重）", (C.ItemUseBuffIDs({ 900001, 900002 })), { 1236616, 5001 })
+    eq("ItemUseBuffIDs：簽章照數字排序", select(2, C.ItemUseBuffIDs({ 900001, 900002 })), "5001,1236616")
+    eqList("ItemUseBuffIDs：替代品也認得那一組", (C.ItemUseBuffIDs({ 900002 })), { 1236616, 5001 })
+    eqList("ItemUseBuffIDs：沒有增益的組 ⇒ 空", (C.ItemUseBuffIDs({ 900010 })), {})
+    eqList("ItemUseBuffIDs：不在預設裡 ⇒ 使用法術", (C.ItemUseBuffIDs({ 900020 })), { 5020 })
+    eqList("ItemUseBuffIDs：物品資料沒載入 ⇒ 空（不快取）", (C.ItemUseBuffIDs({ 900030 })), {})
+    itemSpell[900030] = 5030
+    eqList("ItemUseBuffIDs：載入後再問就有", (C.ItemUseBuffIDs({ 900030 })), { 5030 })
+    eq("ItemOverlayIDs：不是物品 ⇒ nil", C.ItemOverlayIDs("essential", "c:1", { kind = "spell", spellID = 1 }), nil)
+    eqList("ItemOverlayIDs：主＋替代合併", (C.ItemOverlayIDs("essential", "c:1", { kind = "item", itemID = 900001, alts = { 900002 } })),
+        { 1236616, 5001 })
+    eq("ItemOverlayIDs：治療那組 ⇒ nil（不疊、不強制固定格位）", C.ItemOverlayIDs("essential", "c:1", { kind = "item", itemID = 900010 }), nil)
+    ns.Presets = savedPresets
+
     sets[8] = {}
     infos[801], infos[802], infos[803] = nil, nil, nil
     env.GetInventoryItemID, env.C_Item = savedInv, savedItem

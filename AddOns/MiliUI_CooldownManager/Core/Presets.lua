@@ -87,6 +87,9 @@ P.ITEMS = {
     { key = "rampantAbandon",  items = { 245910, 245911, 241292, 241293 } },
     { key = "liquidLuster",    items = { 274763, 274764, 271886, 271887 } },
 }
+-- 喝了身上不會有可追蹤增益的那幾組（治療／法力是立即回復）：藥水格不疊增益按鈕（Core/Catalog.lua 的 ItemUseBuffIDs）。
+-- 其餘組照 AURAS 同 key 的增益 ID＋物品的使用法術（C_Item.GetItemSpell）
+P.ITEM_NO_BUFF = { healthPotion = true, healthstone = true, manaPotion = true }
 
 ------------------------------------------------------------
 -- 團隊增益：一組＝一格光環格（增益），ids 全部進 includeSpellIDs，引擎畫真實的增益與剩餘時間。
