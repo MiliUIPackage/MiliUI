@@ -5,6 +5,7 @@
 --   ns.Custom.Get(id)                      "c:i"／"k:uid"／"w:uid" → rec（Bars 當一格 entry 用）
 --   ns.Custom.Place(rec, container, r, barKey, gen)   放進格子（光環格的持有框走 ns.Write）
 --   ns.Custom.EndBar(barKey, gen)          這條這一輪沒放到的框收起來
+--   ns.Custom.PlaceFlow(barKey, c, list, fp, gen)  只有光環格的條走引擎補位（Place 帶 flow 旗標之後叫），見「引擎補位」那一節
 --   ns.Custom.Records() / ForEachPlaced(fn) / Counts()
 --   飾品欄（kind = "slot"）的冷卻格上另疊一顆增益按鈕（rec.buffOverlay），見「飾品欄的增益疊層」那一節
 --   ns.Custom.Proxy(cooldownID, slot, barKey)  暴雪沒給框的裝備欄冷卻格由我們代畫（飾品欄形狀），見「代畫」那一節
@@ -24,6 +25,8 @@
 --   * AuraContainer 是受保護的 intrinsic ⇒ 持有框、它所在的條容器（保護沿父層／錨點鏈往上傳）
 --     戰鬥中都不能 SetPoint／SetSize／Show／Hide ⇒ 一律走 ns.Write（戰鬥中記帳、脫戰補做）。
 --     條的固定格位因此被強制打開，戰鬥中位置不會變。
+--     例外：條上**只有**光環格（Catalog.BarAuraFlow）而且條層選收合 ⇒ 走「引擎補位」：每格的持有框收起來，
+--     整條一顆 AuraContainer（每格一個 group），不在的光環不佔位、由暴雪的 flow layout 往前補（見那一節）。
 --   * 按鈕的樣式只能在 initializeFrame 裡烘（之後 AuraButton 就 forbidden）⇒ 影響外觀的設定
 --     全進**簽章**，簽章變了換一顆容器；容器依簽章池化在持有框上（frame 刪不掉，舊的 Hide 留著）。
 --   * initializeFrame 跑在暴雪 CreateFrame 的 securecallfunction 裡：整段 xpcall 隔離、
@@ -118,6 +121,7 @@ local byId = {}             -- 自訂項目 id → rec（Sync 重建）
 local proxies = {}          -- 暴雪的 cooldownID → 代畫的 rec（也在 records 裡，key "proxy:<id>"；見「代畫」）
 local pendingBuild = {}     -- rec → true（戰鬥中要換容器）
 local pendingKick = {}      -- rec → true（戰鬥中要補踢）
+local flows = {}            -- 條 key → 引擎補位的那一份（見「引擎補位」）
 CU.lastError = nil
 CU.builds = 0
 -- /mcdm perf：UpdateSpell 跑幾次／只重算顏色幾次（SPELL_UPDATE_USABLE 的 colorDirty 路徑）
@@ -1711,14 +1715,25 @@ local function BakeNormal(btn, n)
     CU.normalsBaked = (CU.normalsBaked or 0) + 1      -- 測試用
 end
 
+-- 按鈕放哪：slot（固定格位）的按鈕不參與 flow layout ⇒ 鋪滿容器；引擎補位（st.cell，見「引擎補位」）的按鈕由
+-- flow layout 錨定（暴雪只 SetPoint、不設大小）⇒ 這裡只給大小（尺寸來自設定，不從按鈕讀）
+local function Seat(btn, c, st)
+    pcall(function()
+        local cell = st.cell
+        if cell then
+            btn:SetSize(cell[1], cell[2])
+        else
+            btn:ClearAllPoints()
+            btn:SetAllPoints(c)
+        end
+    end)
+end
+
 -- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。不 CreateColor、不掛 script、顏色純數字
 local function InitAuraButton(btn, c, st, rec)
     pcall(btn.SetMouseClickEnabled, btn, false)
     pcall(btn.SetMouseMotionEnabled, btn, true)          -- 讓暴雪自己的光環提示照常出現
-    pcall(function()
-        btn:ClearAllPoints()
-        btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout
-    end)
+    Seat(btn, c, st)
 
     -- Masque：圖示放 BACKGROUND（皮外框在它上面；Masque 的 Icon 也是這一層）
     local m = st.msq
@@ -1846,10 +1861,7 @@ end
 local function InitAuraBarButton(btn, c, st, rec)
     pcall(btn.SetMouseClickEnabled, btn, false)
     pcall(btn.SetMouseMotionEnabled, btn, true)          -- 讓暴雪自己的光環提示照常出現
-    pcall(function()
-        btn:ClearAllPoints()
-        btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout
-    end)
+    Seat(btn, c, st)
     local H, gap, side, s = st.isz or st.bh, st.bgap, st.side, st.scale
     local vert = st.vert
 
@@ -2495,6 +2507,222 @@ local function UpdatePlaceholder(rec, c, r, barKey)
 end
 
 ------------------------------------------------------------
+-- 引擎補位（只有光環格的條：Catalog.BarAuraFlow 成立、條層「增益不在時」收合 ⇒ Bars.AuraFlow）
+--
+-- 一條一份 flows[條] = { key, holder, containers = { 簽章 → 容器 }, container, sig, recs, fp, gen, active, pending… }：
+--   * **補位持有框**：普通 Frame、parent 條容器、SetAllPoints(條容器)、層級 c＋2；寫入一律走 ns.Write（底下掛著
+--     AuraContainer ⇒ 保護框）。條上每一格自己的持有框收起來（CU.Place 的 flow 分支），不畫占位。
+--   * 條容器的尺寸照「全部都在」算（Bars 的 Layout.Compute 本來就這樣）⇒ 錨點、排開、別條貼在它身上都不會因為
+--     光環出現／消失而動；戰鬥中 Lua 不下任何 SetPoint、不讀任何秘密值。
+--   * **一顆 AuraContainer**（CustomAuraContainerTemplate）：SetUnit("player") → 逐格 AddAuraGroup → flow 參數 → SetEnabled(true)。
+--     每格一個 group：key "g<順序>"、filter 照那格、maxFrameCount ＝ 1、candidateFilters.includeSpellIDs ＝ 那格認的法術、
+--     initializeFrame 用**那一格自己的** AuraStyle（樣式、發光、Masque 探針讀回的形狀全部照舊烘）＋ st.cell（按鈕大小，Seat）。
+--     group 的 layout：layoutIndex ＝ 順序、elementWidth／Height ＝ 格子、**elementSpacing ＝ 條的間距、groupSpacing ＝ 0**、
+--     lineSpacing ＝ groupLineSpacing ＝ 條的間距。暴雪的 AnchorUtil.ApplyFlowLayout：每放一個元素游標前進「元素＋elementSpacing」，
+--     下一個 group 開始時（groupSpacing > 0 才）再加 groupSpacing ⇒ 兩個都給條的間距會變成兩倍；而且 groupSpacing 只在
+--     > 0 時生效。所以格與格的間距由 elementSpacing 帶（maxFrameCount ＝ 1 也一樣），groupSpacing 留 0。
+--     自然換列用的是那個 group 的 lineSpacing；groupLineSpacing 只在 forceNewLine 或 groupSpacing 擠到換列時用（照樣給齊）。
+--   * 容器層 flow（Layout.FlowParams）：主軸、起點角、生長方向、每列的像素預算。**對齊交給容器自己的錨點**：暴雪排完會把
+--     容器的大小設成內容大小（OnLayoutComplete → SetSize(secretwrap(…))），容器用 fp.point 錨在補位持有框的同一個點
+--     ⇒ 置中的條（point ＝ TOP／BOTTOM）內容置中、靠右的貼右。容器的大小是秘密值：**我們不讀、也沒有任何框錨在容器上**。
+--     每個 setter 各自 pcall、結果記在 fl.applied（/mcdm aura 看）。
+--   * 簽章 ＝ Layout.FlowSig(fp) ＋ 每一格的 AuraStyle 簽章（順序就是串接的順序）：換專精、增刪格子、改順序、改樣式、改尺寸／間距／
+--     每列上限都是簽章變更 ⇒ 從池子拿或建一顆新的（frame 刪不掉，舊的 Hide 留池）。**戰鬥中只記旗標，脫戰建**（CU.OnRegen）。
+--   * 補位持有框 OnShow（ns.Defer）補踢：戰鬥外 Hide→Show→SetEnabled(true)，戰鬥中記旗標。
+--   * 音效（AddAuraSound）跟框無關：rec.placedBar 照設 ⇒ Core/Sound.lua 照樣登記同一批法術。
+--   * 一個法術都認不到的格（飾品欄增益解不出來）不建 group（簽章記 "-"）。
+--   * 補位靠的是暴雪那一頭：不在的光環 ⇒ 那個 group 沒有元素 ⇒ ApplyFlowLayout 整個跳過它（不佔位、不加間距）。
+--   * ⚠ 成本：AddAuraGroup 一律先建一批按鈕（CustomAuraContainerConstants.FrameCreationBatchSize ＝ 10，跟 maxFrameCount
+--     無關；AddAuraSlot 只建 1 顆），每顆都跑一次 initializeFrame ⇒ 一顆補位容器 ≈ 格數 × 10 顆按鈕，換簽章再一批
+--     （frame 刪不掉，靠簽章池重用）。所以簽章只放會影響按鈕外觀與排法的東西。
+--   * 這一輪沒在補位的條（不再成立、條被刪）：補位持有框收起來（CU.EndBar／EndFlush），容器留在池裡。
+------------------------------------------------------------
+local function FlowEnums()
+    local AU = _G.AnchorUtil
+    local ax = AU and AU.FlowLayoutAxis or { Horizontal = 0, Vertical = 1 }
+    local dir = AU and AU.FlowDirection or { Left = -1, Right = 1, Up = 1, Down = -1 }
+    return ax, dir
+end
+
+-- 容器層的 flow 參數：每個 setter 各自 pcall（一支斷言失敗不能讓後面的都沒套），回傳 { setter → "ok"｜錯誤字串｜"missing" }
+local function ApplyFlowLayout(c, fp)
+    local ax, dir = FlowEnums()
+    local res = {}
+    local function Do(name, ...)
+        local fn = c[name]
+        if not fn then res[name] = "missing" return end
+        local ok, err = pcall(fn, c, ...)
+        res[name] = ok and "ok" or tostring(err)
+    end
+    Do("SetFlowLayoutAxis", fp.axis == "V" and ax.Vertical or ax.Horizontal)
+    Do("SetFlowLayoutAnchorPoint", fp.flowPoint)
+    Do("SetFlowLayoutGrowthDirection", fp.hDir == "LEFT" and dir.Left or dir.Right, fp.vDir == "UP" and dir.Up or dir.Down)
+    Do("SetFlowLayoutPadding", 0, 0, 0, 0)
+    Do("SetFlowLayoutMaximumLineSize", fp.lineSize)          -- nil ＝ 不換列（暴雪收 nil 當 math.huge）
+    return res
+end
+CU.ApplyFlowLayout = ApplyFlowLayout  -- 測試用
+
+-- group 的 layout 選項（純函式；欄位名照暴雪 ValidateAuraGroupLayoutOptions，未知的鍵會被靜靜丟掉）
+function CU.FlowGroupLayout(i, fp)
+    return {
+        layoutIndex = i,
+        elementWidth = fp.w, elementHeight = fp.h,
+        elementSpacing = fp.spacing, lineSpacing = fp.spacing,
+        groupSpacing = 0, groupLineSpacing = fp.spacing,
+    }
+end
+
+-- 每一格的樣式（AuraStyle，格子尺寸 fp.w × fp.h）與整條的簽章
+local function FlowGroups(fl)
+    local fp = fl.fp
+    local groups, parts = {}, { ns.Layout.FlowSig(fp) }
+    for _, rec in ipairs(fl.recs or {}) do
+        local st = AuraStyle(rec, fl.key, fp.w, fp.h, rec.shape, nil)
+        if #st.ids > 0 then
+            st.cell = { fp.w, fp.h }
+            groups[#groups + 1] = { rec = rec, st = st }
+            parts[#parts + 1] = st.sig
+        else
+            parts[#parts + 1] = "-"
+        end
+    end
+    return groups, table.concat(parts, "||")
+end
+CU.FlowGroups = FlowGroups            -- 測試用
+
+local function BuildFlowContainer(fl, groups)
+    local h, fp = fl.holder, fl.fp
+    local c = CreateFrame("AuraContainer", nil, h, "CustomAuraContainerTemplate")
+    -- 單點錨：容器排完會自己設大小（內容大小），對齊靠這個點（見上）
+    c:SetPoint(fp.point, h, fp.point, 0, 0)
+    c:SetFrameLevel((h:GetFrameLevel() or 1) + 1)
+    -- 建立順序：SetUnit 在 group 之前、SetEnabled 最後
+    c:SetUnit("player")
+    for i, g in ipairs(groups) do
+        local rec, st = g.rec, g.st
+        Warm(st)
+        local include = {}
+        for _, id in ipairs(st.ids) do include[id] = true end
+        local init = (st.shape == "bars") and InitAuraBarButton or InitAuraButton
+        local handler = function(err)
+            rec.lastError = tostring(err)
+            if ns.ReportError then ns.ReportError(err) end
+        end
+        c:AddAuraGroup("g" .. i, rec.filter, {
+            maxFrameCount = 1,
+            candidateFilters = { includeSpellIDs = include },
+            initializeFrame = function(btn)
+                xpcall(init, handler, btn, nil, st, rec)
+            end,
+            layout = CU.FlowGroupLayout(i, fp),
+        })
+    end
+    fl.applied = ApplyFlowLayout(c, fp)
+    -- ⚠ 不對容器掛任何 script（forbidden intrinsic）；重新可見的補踢掛在補位持有框上
+    if c.SetEnabled then pcall(c.SetEnabled, c, true) end
+    return c
+end
+
+local function ArmRegen()
+    ns.Events.Register("PLAYER_REGEN_ENABLED", "custom", CU.OnRegen)
+end
+
+-- 簽章對上容器：同簽章不動；換了就從池子拿（沒有才建）。戰鬥中只記旗標
+local function EnsureFlowContainer(fl)
+    local groups, sig = FlowGroups(fl)
+    fl.wantSig = sig
+    if fl.sig == sig and (fl.container or #groups == 0) then return end
+    if InCombatLockdown() then
+        fl.pending = true
+        ArmRegen()
+        return
+    end
+    fl.pending = nil
+    local old = fl.container
+    local c = nil
+    if #groups > 0 then
+        c = fl.containers[sig]
+        if c then
+            pcall(c.Show, c)
+            Kick(c)
+        else
+            local ok, built = pcall(BuildFlowContainer, fl, groups)
+            if not ok or not built then
+                fl.lastError = tostring(built)
+                CU.lastError = fl.lastError
+                if ns.ReportError then ns.ReportError(built) end
+                return
+            end
+            c = built
+            fl.containers[sig] = c
+            CU.builds = CU.builds + 1
+            fl.builds = (fl.builds or 0) + 1
+        end
+    end
+    if old and old ~= c then pcall(old.Hide, old) end
+    fl.container, fl.sig = c, sig
+end
+
+local function OnFlowHolderShow(fl)
+    local c = fl.container
+    if not (c and fl.active) then return end
+    if InCombatLockdown() then
+        fl.pendingKick = true
+        ArmRegen()
+    else
+        fl.pendingKick = nil
+        Kick(c)
+    end
+end
+
+local function NewFlow(barKey)
+    local h = CreateFrame("Frame", nil, UIParent)
+    h:SetSize(1, 1)
+    h:Hide()
+    h:EnableMouse(false)
+    local fl = { key = barKey, holder = h, containers = {} }
+    -- 掛勾裡只記帳，工作丟到下一幀（同光環格的持有框）
+    h:HookScript("OnShow", function() ns.Defer(OnFlowHolderShow, fl) end)
+    return fl
+end
+
+-- Bars.Relayout 叫（這條在補位、格子都 CU.Place(…, true) 過之後）：list ＝ { { rec, r }… }（清單順序）、fp ＝ Layout.FlowParams
+function CU.PlaceFlow(barKey, c, list, fp, gen)
+    local fl = flows[barKey]
+    if not fl then
+        fl = NewFlow(barKey)
+        flows[barKey] = fl
+    end
+    local recs = {}
+    for i, it in ipairs(list or {}) do recs[i] = it.rec end
+    fl.recs, fl.fp, fl.gen, fl.active, fl.c = recs, fp, gen, true, c
+    local lvl = (c:GetFrameLevel() or 1) + 2
+    local psig = tostring(c) .. "|" .. lvl
+    if fl.posSig ~= psig then
+        fl.posSig = psig
+        ns.Write(fl.holder, function(fr)
+            if fr:GetParent() ~= c then fr:SetParent(c) end
+            fr:SetFrameLevel(lvl)
+            fr:ClearAllPoints()
+            fr:SetAllPoints(c)
+            fr:Show()
+        end, "place")
+    end
+    EnsureFlowContainer(fl)
+end
+
+-- 收起來（這條不再補位、條被刪）：補位持有框 Hide 走 ns.Write；容器留在池裡
+local function HideFlow(fl)
+    if not fl.active then return end
+    fl.active, fl.posSig, fl.pending, fl.pendingKick = false, nil, nil, nil
+    ns.Write(fl.holder, function(fr) fr:Hide() end, "place")
+end
+
+function CU.Flows() return flows end
+function CU.FlowOf(barKey) return flows[barKey] end
+
+------------------------------------------------------------
 -- 同步：目前專精的清單 ↔ 框
 ------------------------------------------------------------
 local function New(e)
@@ -2652,7 +2880,7 @@ CU.PlaceOverlay = PlaceOverlay        -- 測試用
 
 local function HideRec(rec)
     if not rec.placedBar and not rec.placedSig then return end
-    rec.placedBar, rec.placedSig, rec.claimKey = nil, nil, nil
+    rec.placedBar, rec.placedSig, rec.claimKey, rec.flowBar = nil, nil, nil, nil
     rec.hidden = true
     -- 法術索引收放好的自訂法術（光環格不收）：收起來 ⇒ 下一輪排版結尾重建（Core/Bars.lua 的 claimsChanged）
     if rec.kind ~= "aura" and ns.Bars then ns.Bars.claimsChanged = true end
@@ -2746,13 +2974,29 @@ function CU.Proxies() return proxies end
 --   回傳 true ＝ 這一格對法術索引的貢獻可能變了（換了框、換了條、從收起來放回來；位置變了也算，寧多勿漏）：
 --   Bars 收到就設 claimsChanged。光環格不進索引，一律回 false
 ------------------------------------------------------------
-function CU.Place(rec, c, r, barKey, gen)
+function CU.Place(rec, c, r, barKey, gen, flow)
     -- 代畫格從收起來放上條：冷卻／數量事件要開始聽（RecountLive 看 placedBar，放好之後才算）
     local newProxy = rec.proxy and not rec.placedBar
     -- 框照這條的 kind 取（圖示類 → 圖示框／持有框，長條類 → 長條框／長條持有框）
     local f = UseFrame(rec, ShapeOf(barKey))
     rec.placedBar, rec.placedGen, rec.claimKey, rec.hidden = barKey, gen, barKey, false
     rec.placeW, rec.placeH = r.w, r.h            -- 脫戰補建容器時用（長條的圖示大小、發光尺寸）
+    if rec.kind == "aura" and flow then
+        -- 引擎補位（見「引擎補位」）：這一格自己的持有框收起來（走 ns.Write：可能是保護框）、不畫占位、不建自己的容器；
+        -- 按鈕由這條的補位容器建。記帳照舊（placedBar ⇒ 音效登記、EndBar 不收）；Masque 的探針照做（形狀要烘進按鈕）
+        rec.placeRing, rec.flowBar = nil, barKey
+        pendingBuild[rec], pendingKick[rec] = nil, nil
+        if rec.slotBuff then rec.spellID = CU.AuraIDsOf(rec)[1] end
+        if rec.placedSig ~= "flow" then
+            rec.placedSig = "flow"
+            ns.Write(f, function(fr) fr:Hide() end, "place")
+        end
+        if f.ph then f.ph.frame:Hide() end
+        SyncSkinLayer(rec, c, r, barKey)
+        if ns.Sound then ns.Sound.RequestAuraSync() end
+        return false
+    end
+    rec.flowBar = nil
     if rec.kind == "aura" then
         -- 圓環條上的格（rect 帶 ring／tex，只有 Layout 的同心圓幾何會給）：圈數與貼圖記下來（簽章、占位、脫戰補建都讀）
         if r.ring and r.tex then
@@ -2831,6 +3075,9 @@ function CU.EndBar(barKey, gen)
     for _, rec in pairs(records) do
         if rec.placedBar == barKey and rec.placedGen ~= gen then HideRec(rec) end
     end
+    -- 引擎補位：這一輪沒補位（PlaceFlow 沒叫到 ⇒ gen 舊的）就收起來
+    local fl = flows[barKey]
+    if fl and fl.active and fl.gen ~= gen then HideFlow(fl) end
 end
 
 -- 條不存在了（或這筆被刪了）：上面那條也收不到，這裡補收。長條類的條照收自訂項目（框依條的 kind 換）
@@ -2840,6 +3087,9 @@ function CU.EndFlush()
     for _, rec in pairs(records) do
         local b = rec.placedBar and bars[rec.placedBar]
         if rec.placedBar and (type(b) ~= "table" or not rec.cooldownID) then HideRec(rec) end
+    end
+    for key, fl in pairs(flows) do
+        if fl.active and type(bars[key]) ~= "table" then HideFlow(fl) end
     end
 end
 
@@ -2881,7 +3131,7 @@ function CU.OnRegen()
     ns.Events.Unregister("PLAYER_REGEN_ENABLED", "custom")
     for rec in pairs(pendingBuild) do
         pendingBuild[rec] = nil
-        if rec.placedBar then
+        if rec.placedBar and not rec.flowBar then
             -- 尺寸照最後一次放格的（長條的圖示大小、發光尺寸在簽章裡；沒給的話簽章對不上、下一輪又換一顆）
             local ok, err = xpcall(EnsureContainer, ns.ReportError, rec, rec.placedBar, rec.placeW, rec.placeH)
             if not ok then CU.lastError = err end
@@ -2889,7 +3139,21 @@ function CU.OnRegen()
     end
     for rec in pairs(pendingKick) do
         pendingKick[rec] = nil
-        if rec.container and rec.placedBar then Kick(rec.container) end
+        if rec.container and rec.placedBar and not rec.flowBar then Kick(rec.container) end
+    end
+    -- 引擎補位：戰鬥中記下的換容器／補踢（還在補位的才做；格子、樣式照最後一次 PlaceFlow 的）
+    for _, fl in pairs(flows) do
+        if fl.pending then
+            fl.pending = nil
+            if fl.active then
+                local ok, err = xpcall(EnsureFlowContainer, ns.ReportError, fl)
+                if not ok then CU.lastError = err end
+            end
+        end
+        if fl.pendingKick then
+            fl.pendingKick = nil
+            if fl.active and fl.container then Kick(fl.container) end
+        end
     end
 end
 
@@ -2919,6 +3183,12 @@ function CU.Counts()
             end
         end
     end
+    -- 引擎補位：補位中的條、容器池
+    n.flows = 0
+    for _, fl in pairs(flows) do
+        if fl.active then n.flows = n.flows + 1 end
+        for _ in pairs(fl.containers) do n.containers = n.containers + 1 end
+    end
     return n
 end
 
@@ -2926,6 +3196,10 @@ function CU.PendingCounts()
     local b, k = 0, 0
     for _ in pairs(pendingBuild) do b = b + 1 end
     for _ in pairs(pendingKick) do k = k + 1 end
+    for _, fl in pairs(flows) do
+        if fl.pending then b = b + 1 end
+        if fl.pendingKick then k = k + 1 end
+    end
     return b, k
 end
 

@@ -356,6 +356,83 @@ function Layout.Compute(items, layout, kind)
     return rects, totalW, totalH, anchorPoint
 end
 
+------------------------------------------------------------
+-- 引擎補位的 flow 參數（只有光環格的條，Modules/Custom.lua 的「引擎補位」；純函式）
+--
+--   fp = Layout.FlowParams(layout, kind)     layout ＝ 跟 Compute 同一張（Bars 的 BarSize 解好的）
+--   fp = { axis = "H"|"V", point, flowPoint, hDir = "RIGHT"|"LEFT", vDir = "DOWN"|"UP",
+--          w, h, spacing, perLine, lineSize }
+--
+-- 做法：容器（AuraContainer）排完會把自己的大小設成內容的大小（暴雪 FlowLayout 的 OnLayoutComplete），
+-- 所以**對齊交給容器自己的錨點**：容器用 point 錨在補位持有框（＝條容器的矩形）的同一個點，
+-- 容器裡的元素一律從 flowPoint 那個角開始、往 hDir／vDir 長。
+--   * 橫排（圖示、橫向長條）：axis H，flowPoint ＝ TOPLEFT／BOTTOMLEFT（縱向 DOWN／UP），往右長、往下／上換列；
+--     point ＝ Compute 的 anchorPoint（CENTER_DOWN → TOP：容器的頂邊中點貼條的頂邊中點 ⇒ 整排置中）。
+--     列內順序跟 Compute 一樣由左到右。⚠ 多列時每一列在容器裡都靠左（引擎沒有逐列對齊）：
+--     置中／靠右的條只有「最寬那列」對得準，最後一列不足時靠左（Compute 是每列各自置中／靠右）。
+--   * 直排（直向圖示、直向長條）：axis V，point ＝ flowPoint ＝ Compute 的 anchorPoint（起點那個角），
+--     往伸展方向（DOWN／UP）排、往換列方向（RIGHT／LEFT）開下一列——跟 ComputeColumns 一致。
+--   * 長條一列一條：perLine ＝ 1。
+--   * lineSize ＝ 主軸上的**像素預算**（暴雪 FlowLayout 拿累積的元素尺寸跟它比，不是顆數）：
+--     perLine × 主軸尺寸 ＋ (perLine − 1) × 間距 ＋ 半格容忍（浮點誤差不讓第 perLine 顆被擠到下一列；
+--     第 perLine＋1 顆需要再多一整格加間距，半格擋得住）。沒設每列上限 ⇒ perLine／lineSize 都是 nil（不換列）。
+--   * 尺寸、間距照 Compute 對齊（Snap、間距不小於 0）。第二列尺寸不進來（BarAuraFlow 的 "row2" 擋掉）。
+------------------------------------------------------------
+function Layout.FlowParams(layout, kind)
+    layout = type(layout) == "table" and layout or {}
+    local w, h = Dim(layout.size, 36, 36)
+    w, h = Snap(w), Snap(h)
+    local spacing = Snap(max(0, tonumber(layout.spacing) or 0))
+    local fp = { w = w, h = h, spacing = spacing }
+    local colGrow, colWrap
+    if kind == "bars" then
+        if layout.vertical then colGrow, colWrap = Layout.VerticalBarGrow(layout.grow) end
+    else
+        colGrow, colWrap = Layout.ParseColumn(layout.grow)
+    end
+    local per
+    if kind == "bars" then
+        per = 1
+    elseif tonumber(layout.maxPerRow) then
+        per = floor(tonumber(layout.maxPerRow))
+        if per < 1 then per = 1 end
+    end
+    local main
+    if colGrow then
+        fp.axis = "V"
+        fp.point = ((colGrow == "UP") and "BOTTOM" or "TOP") .. ((colWrap == "LEFT") and "RIGHT" or "LEFT")
+        fp.flowPoint = fp.point
+        fp.hDir = (colWrap == "LEFT") and "LEFT" or "RIGHT"
+        fp.vDir = (colGrow == "UP") and "UP" or "DOWN"
+        main = h
+    else
+        local hAlign, vDir = Layout.ParseGrow(layout.grow)
+        if kind == "bars" then
+            local g = Layout.ParseColumn(layout.grow)
+            if g then vDir = g end
+        end
+        fp.axis = "H"
+        fp.point = Layout.AnchorPoint(hAlign, vDir, kind)
+        fp.flowPoint = ((vDir == "UP") and "BOTTOM" or "TOP") .. "LEFT"
+        fp.hDir = "RIGHT"
+        fp.vDir = vDir
+        main = w
+    end
+    if per then
+        fp.perLine = per
+        fp.lineSize = per * main + (per - 1) * spacing + main / 2
+    end
+    return fp
+end
+
+-- flow 參數的簽章（換了就換一顆容器；Modules/Custom.lua 的引擎補位串進容器簽章）
+function Layout.FlowSig(fp)
+    fp = type(fp) == "table" and fp or {}
+    return table.concat({ tostring(fp.axis), tostring(fp.point), tostring(fp.flowPoint), tostring(fp.hDir), tostring(fp.vDir),
+        string.format("%.2f,%.2f,%.2f", tonumber(fp.w) or 0, tonumber(fp.h) or 0, tonumber(fp.spacing) or 0),
+        tostring(fp.perLine), fp.lineSize and string.format("%.2f", fp.lineSize) or "-" }, ",")
+end
+
 -- 圖示的 texcoord：zoom 先四邊各切 z；crop（非正方形「裁切」）再把長邊多的那段兩頭對半切掉，
 -- 圖案維持正方形比例不被拉扁。crop 關（「拉伸」）或正方形 ⇒ 照舊四邊各切 z
 function Layout.IconTexCoord(z, w, h, crop)

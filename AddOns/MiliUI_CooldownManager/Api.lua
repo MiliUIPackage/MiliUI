@@ -604,6 +604,25 @@ local function AuraDebug()
             MasqueLines(p, o)
         end
     end
+    -- 引擎補位（只有光環格的條）：一條一顆容器、每格一個 group；flow 參數的 setter 各自的結果
+    for key, fl in pairs(CU.Flows and CU.Flows() or {}) do
+        n = n + 1
+        local nc = 0
+        for _ in pairs(fl.containers or {}) do nc = nc + 1 end
+        local fp = fl.fp or {}
+        p(("%s[引擎補位]|r 條=%s  %s  格 %d  容器 %d 顆（建過 %d 次）  待建=%s  待補踢=%s"):format(ns.PREFIX_COLOR, tostring(key),
+            fl.active and "補位中" or "|cffaaaaaa沒在補位|r", #(fl.recs or {}), nc, fl.builds or 0,
+            tostring(fl.pending == true), tostring(fl.pendingKick == true)))
+        p(("  持有框 IsProtected=%s  容器 IsProtected=%s"):format(Prot(fl.holder), Prot(fl.container)))
+        p(("  flow：軸 %s  容器錨 %s  起點 %s  往 %s／%s  格 %sx%s  間距 %s  每列 %s（預算 %s）"):format(tostring(fp.axis),
+            tostring(fp.point), tostring(fp.flowPoint), tostring(fp.hDir), tostring(fp.vDir), tostring(fp.w), tostring(fp.h),
+            tostring(fp.spacing), tostring(fp.perLine or "不限"), tostring(fp.lineSize or "-")))
+        local parts = {}
+        for name, r in pairs(fl.applied or {}) do parts[#parts + 1] = name:gsub("^SetFlowLayout", "") .. "=" .. tostring(r) end
+        table.sort(parts)
+        if #parts > 0 then p("  setter：" .. table.concat(parts, "  ")) end
+        if fl.lastError then p("  |cffff5555最近錯誤：" .. tostring(fl.lastError) .. "|r") end
+    end
     p(("  烘過的遮罩 %d 張、皮外框 %d 張"):format(CU.masksBaked or 0, CU.normalsBaked or 0))
     if n == 0 then p(ns.PREFIX_COLOR .. "[光環格]|r 這個專精沒有光環格") end
     p("  容器層待補寫入（戰鬥記帳）：" .. tostring(ns.PendingWrites()))

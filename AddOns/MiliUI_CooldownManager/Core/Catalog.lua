@@ -1204,6 +1204,45 @@ function C.BarHasAuraSlot(barKey)
     return false
 end
 
+-- 只有光環格的條能不能走引擎補位（Modules/Custom.lua 的「引擎補位」：一顆 AuraContainer、每格一個 group，
+-- 不在的光環不佔位、後面的往前補）→ ok, why。全部成立才 ok；不成立時 why 是設定頁顯示原因用的代號：
+--   "rings"      圓環條（同心圓的圈數就是位置，補不了）
+--   "mixed"      條上不只光環格（暴雪的 item、自訂法術／物品、飾品欄冷卻、代畫格）——它們跟光環格混排時
+--                光環格戰鬥中不能動，收合不成立（判斷用 BarBase、不套溢出，理由同 BarHasAuraSlot）
+--   "clickable"  勾了可點擊（secure 鈕一格一顆、戰鬥中不能動）
+--   "overflow"   這條是溢出的來源或接收條（截斷照清單計數，跟引擎補位疊在一起語意說不清）
+--   "spell"      某一格自己設了留空位／暗圖示（那一格要佔位，引擎補位做不到）
+--   "row2"       開了第二列尺寸（引擎的元素尺寸一個 group 一組，跨行換尺寸對不上）
+-- 條上沒有任何格、或條不存在 ⇒ false, "mixed"（沒有東西可補，設定頁也不會問）。
+-- ok 不代表正在補位：條層「增益不在時」要是收合（Bars.AuraFlow）
+function C.BarAuraFlow(barKey)
+    local b = C.BarCfgOf(barKey)          -- 定義在下面「格數上限＋溢出」那一節（執行時才取）
+    if not b then return false, "mixed" end
+    if ns.DB.BarIsRings and ns.DB.BarIsRings(barKey) then return false, "rings" end
+    local ids = C.BarBase(barKey)
+    if #ids == 0 then return false, "mixed" end
+    for _, id in ipairs(ids) do
+        if not C.IsAuraSlot(id) then return false, "mixed" end
+    end
+    if ns.DB.BarClickable and ns.DB.BarClickable(barKey) then return false, "clickable" end
+    local ov = C.OverflowPairs()
+    if ov then
+        for _, pr in ipairs(ov) do
+            if pr.src == barKey or pr.dst == barKey then return false, "overflow" end
+        end
+    end
+    if ns.SpellSetting then
+        for _, id in ipairs(ids) do
+            local m = ns.SpellSetting(barKey, id, "emptyMode")
+            if m == "blank" or m == "dim" then return false, "spell" end
+        end
+    end
+    if b.kind ~= "bars" and type(b.layout) == "table" and type(b.layout.row2Size) == "table" then
+        return false, "row2"
+    end
+    return true, nil
+end
+
 local function Try(fn, ...)
     if not fn then return nil end
     local ok, a, b, c, d, e = pcall(fn, ...)

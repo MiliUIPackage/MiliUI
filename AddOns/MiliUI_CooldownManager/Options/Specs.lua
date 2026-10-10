@@ -158,11 +158,29 @@ function Specs.EmptyModeDesc(mode, isBars)
         or L["While a buff is missing, a dimmed icon holds its slot, so the others don't shift."]
 end
 
--- 「往前補」不能選的原因（條上有光環格優先；兩者都成立時講光環格那句）；nil ＝ 能選
+-- 「往前補」不能選的原因；nil ＝ 能選。
+-- 條上有光環格：只有光環格的條（Catalog.BarAuraFlow 成立）收合照選、走引擎補位；不成立時照 why 講原因
+-- （混排沿用原本那句）。可點擊另一句。forSpell（逐法術那一列，Bars.SpellEmptyForced）：條本身能收合、但條層沒選收合時
+-- 單格也不能收合（光環格只有整條補位一種收法）
 Specs.EMPTY_FORCED = L["This bar has aura slots or trinkets showing their buff. They can't move during combat, so slots can't close up."]
 Specs.EMPTY_FORCED_CLICK = L["This bar is clickable. The click targets can't move during combat, so slots can't close up."]
-function Specs.EmptyModeForcedText(key)
-    if ns.Catalog.BarHasAuraSlot(key) then return Specs.EMPTY_FORCED end
+Specs.EMPTY_FORCED_WHY = {
+    mixed     = Specs.EMPTY_FORCED,
+    rings     = L["Aura slots on a ring bar keep their ring, so slots can't close up."],
+    clickable = Specs.EMPTY_FORCED_CLICK,
+    overflow  = L["This bar has aura slots and sends or receives overflow icons, so slots can't close up."],
+    spell     = L["An aura slot on this bar is set to leave its slot empty or show a dimmed icon, so slots can't close up."],
+    row2      = L["This bar has aura slots and a different second-row size, so slots can't close up."],
+}
+Specs.EMPTY_FORCED_BAR = L["Aura slots only move over when the whole bar is set to “Hide, others move over”."]
+function Specs.EmptyModeForcedText(key, forSpell)
+    local C = ns.Catalog
+    if C.BarHasAuraSlot(key) then
+        local ok, why = C.BarAuraFlow(key)
+        if not ok then return Specs.EMPTY_FORCED_WHY[why] or Specs.EMPTY_FORCED end
+        if forSpell then return Specs.EMPTY_FORCED_BAR end
+        return nil
+    end
     if ns.DB.BarClickable(key) then return Specs.EMPTY_FORCED_CLICK end
     return nil
 end
@@ -975,7 +993,7 @@ end
 
 ------------------------------------------------------------
 -- 增益不在時（條層 layout.emptyMode）：三態下拉＋下一列灰字。收合／留空位／暗圖示（長條類：空長條）。
--- 條上有光環格或可點擊（Bars.BarEmptyMode 的 forced）：「往前補」那一項灰掉（選了不寫）、顯示的是退回後的生效值，
+-- 條上有光環格（走不了引擎補位）或可點擊（Bars.BarEmptyMode 的 forced）：「往前補」那一項灰掉（選了不寫）、顯示的是退回後的生效值，
 -- 灰字換成原因（黃字）；存的值不動，條件解除就回來。下拉自己建（表單引擎的下拉清單建表時就定了、也沒有停用項），
 -- 高度取所有說法裡最高的（列高在建表單時就定了）。
 ------------------------------------------------------------
@@ -1011,8 +1029,10 @@ function EmptyModeRow(key, isBars)
         fs:SetJustifyH("LEFT")
         fs:SetWordWrap(true)
         local tallest = 14
-        for _, t in ipairs({ FORCED, FORCED_CLICK, Specs.EmptyModeDesc("collapse"), Specs.EmptyModeDesc("blank"),
-                Specs.EmptyModeDesc("dim", isBars) }) do
+        local texts = { FORCED, FORCED_CLICK, Specs.EmptyModeDesc("collapse"), Specs.EmptyModeDesc("blank"),
+            Specs.EmptyModeDesc("dim", isBars) }
+        for _, t in pairs(Specs.EMPTY_FORCED_WHY) do texts[#texts + 1] = t end
+        for _, t in ipairs(texts) do
             fs:SetText(t)
             tallest = math.max(tallest, fs:GetStringHeight() or 14)
         end

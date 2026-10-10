@@ -2050,7 +2050,7 @@ local function Build()
     frame.RefreshEmptyMode = function()
         local key = cur.key
         local isBars = ns.Setting(key, "kind") == "bars"
-        local barMode, forced = ns.Bars.BarEmptyMode(key)
+        local barMode, forced = ns.Bars.SpellEmptyForced(key)
         local items = ns.Specs.EmptyModeItems(isBars)
         local barText
         for _, it in ipairs(items) do
@@ -2061,7 +2061,7 @@ local function Build()
         emdd:SetItems(items)
         local mode, own = ns.Layout.SpellEmptyMode(Override("emptyMode"), barMode, forced)
         emdd:SetSelectedValue(own and mode or false)
-        local reason = forced and ns.Specs.EmptyModeForcedText(key) or nil
+        local reason = forced and ns.Specs.EmptyModeForcedText(key, true) or nil
         local desc = ns.Specs.EmptyModeDesc(mode, isBars)
         phTip:SetText(reason and (desc .. " " .. reason) or desc)
         phEntry.remeasure()
