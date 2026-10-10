@@ -2,10 +2,9 @@
 -- 一條自訂提示的編輯視窗（清單與時間軸編輯器共用）
 --
 --   ┌────────────────────────────────────────────┐
---   │ ┌──────┐ 新增提示                       [×] │
---   │ │首領  │ 『纏魂者』尼札利                    │
---   │ │3D模型│ ┌[圖]纏魂點燃─────────────────────┐ │  ← 即時預覽：圖示＋文字＋一行摘要
---   │ └──────┘ └開戰 0:03 · 提前 8 秒 · 音效…────┘ │    （其他分頁改了什麼，在這裡一眼看完）
+--   │ 新增提示  『纏魂者』尼札利                [×] │
+--   │ ┌[圖]纏魂點燃────────────────────────────┐   │  ← 即時預覽：圖示＋文字＋一行摘要
+--   │ └開戰 0:03 · 提前 8 秒 · 音效…───────────┘   │    （其他分頁改了什麼，在這裡一眼看完）
 --   │ [基本][顯示][音效][對象][跟著首領]           │
 --   │ ┌──────────────────────────────────────────┐ │
 --   │ │  一個分頁的欄位                           │ │  ← 第一眼只有「基本」：時間、法術、文字
@@ -16,16 +15,14 @@
 -- 卡片高度取所有分頁裡最高的那個：切分頁時視窗不跳、按鈕不跑。
 -- 「跟著首領」只有從 MRT 列建立（或原本就有錨點）的提示才有。
 --
--- 首領模型走冒險指南（Journal.BossArt）；查不到就放骷髏圖示。
--- ⚠ 3D 模型不吃 strata（.claude/notes/wow-3d-model-ignores-strata.md），所以放在最上面的標題區，
---   下拉選單都在它下方展開，蓋不到。
+-- 首領 3D 模型不放這裡：放在「自訂時間軸」頁本身（Tab_Plans），這裡只寫首領名稱。
 --
 -- 遮罩／層級照共用層輸入彈窗的規則：遮罩 400、視窗 410（戰鬥遮罩 500 之下，不 Raise）。
 --
 --   EntryEditor.Open(values, onAccept, title, encounterID)
 --     values：Plans.SaveEntry 的欄位（t 用數字），外加 anchorName（錨點技能的名稱，顯示用）
 --     onAccept(values)：回傳 false＝不合法、視窗不關
---     encounterID：這份時間軸的首領戰 ID（頭像與首領名稱用；nil 就不顯示）
+--     encounterID：這份時間軸的首領戰 ID（標題旁的首領名稱用；nil 就不顯示）
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -38,7 +35,7 @@ local EE = ns.EntryEditor
 
 local POP_W   = 480
 local PAD     = 14
-local MODEL   = 84                       -- 首領頭像邊長（標題區高度也是它）
+local HEAD_H  = 30 + 44                  -- 標題列＋預覽塊
 local CARD_X  = PAD
 local CARD_W  = POP_W - PAD * 2
 local IN_PAD  = 12                       -- 卡片內距
@@ -47,7 +44,6 @@ local LABEL_W = 88
 local CTRL_X  = LABEL_W + 10
 local ROW_H   = 28
 local FOOT_H  = 22 + 12 + 14             -- 按鈕高＋按鈕到底邊＋卡片到按鈕
-local SKULL   = "Interface\\TargetingFrame\\UI-TargetingFrame-Skull"
 local SEP     = "  ·  "
 
 local popup, f, current, tabCard, cardTop
@@ -243,25 +239,6 @@ end
 -- 建立
 ------------------------------------------------------------
 local function BuildHeader()
-    -- 首領頭像：深底＋1px 邊，模型或骷髏
-    local box = CreateFrame("Frame", nil, popup, "BackdropTemplate")
-    box:SetSize(MODEL, MODEL)
-    box:SetPoint("TOPLEFT", PAD, -PAD)
-    W.Stylize(box, { 0.05, 0.05, 0.05, 1 }, { 0, 0, 0, 1 })
-    f.model = CreateFrame("PlayerModel", nil, box)
-    f.model:SetPoint("TOPLEFT", 1, -1)
-    f.model:SetPoint("BOTTOMRIGHT", -1, 1)
-    -- 鏡頭要等模型載好才吃得進去
-    f.model:SetScript("OnModelLoaded", function(self)
-        pcall(self.SetPortraitZoom, self, 0.85)
-        pcall(self.SetRotation, self, math.rad(-12))
-    end)
-    f.skull = box:CreateTexture(nil, "ARTWORK")
-    f.skull:SetSize(32, 32)
-    f.skull:SetPoint("CENTER")
-    f.skull:SetTexture(SKULL)
-    f.skull:SetAlpha(0.5)
-
     local close = W.CreateButton(popup, "", "red", 18, 18)
     close:SetPoint("TOPRIGHT", -6, -6)
     local x = close:CreateTexture(nil, "OVERLAY")
@@ -270,18 +247,17 @@ local function BuildHeader()
     x:SetPoint("CENTER")
     close:SetScript("OnClick", function() popup:Hide() end)
 
-    local textX = PAD + MODEL + 12
     f.title = popup:CreateFontString(nil, "OVERLAY")
     f.title:SetFontObject(W.fontTitle)
-    f.title:SetPoint("TOPLEFT", textX, -PAD - 1)
+    f.title:SetPoint("TOPLEFT", PAD, -PAD)
     f.boss = Small(popup)
-    f.boss:SetPoint("TOPLEFT", textX, -PAD - 22)
-    f.boss:SetPoint("RIGHT", popup, "RIGHT", -PAD, 0)
+    f.boss:SetPoint("BOTTOMLEFT", f.title, "BOTTOMRIGHT", 10, 1)
+    f.boss:SetPoint("RIGHT", popup, "RIGHT", -PAD - 24, 0)
     f.boss:SetWordWrap(false)
 
     -- 預覽塊：看起來就是時間軸上那一條提示
     local chip = CreateFrame("Frame", nil, popup, "BackdropTemplate")
-    chip:SetPoint("BOTTOMLEFT", box, "BOTTOMRIGHT", 12, 0)
+    chip:SetPoint("TOPLEFT", PAD, -PAD - 30)
     chip:SetPoint("RIGHT", popup, "RIGHT", -PAD, 0)
     chip:SetHeight(44)
     W.Stylize(chip, W.CARD_FILL, { W.Accent(1) })
@@ -440,7 +416,6 @@ local function Build()
     popup:SetScript("OnHide", function()
         mask:Hide()
         W.CloseDropdowns()
-        f.model:ClearModel()
     end)
 
     f = {}
@@ -451,8 +426,8 @@ local function Build()
         selected = curTab,
         onSelect = SelectTab,
     })
-    local stripH = tabCard:Place(CARD_X, -PAD - MODEL - 12, CARD_W)
-    cardTop = -PAD - MODEL - 12 - stripH
+    local stripH = tabCard:Place(CARD_X, -PAD - HEAD_H - 12, CARD_W)
+    cardTop = -PAD - HEAD_H - 12 - stripH
 
     BuildBasic()
     BuildDisplay()
@@ -489,19 +464,10 @@ local function SetBox(eb, v)
     eb:SetCursorPosition(0)
 end
 
+-- 只讀存檔裡的名字：不碰冒險指南（NameFor 第一次會整本掃，會卡）
 local function ShowBoss(encounterID)
     local plan = encounterID and Plans.Get(encounterID)
-    local name = plan and plan.name or (encounterID and ns.Journal.NameFor(encounterID))
-    f.boss:SetText(name or "")
-    local display = encounterID and ns.Journal.BossArt(encounterID)
-    f.model:ClearModel()
-    if display and pcall(f.model.SetDisplayInfo, f.model, display) then
-        f.model:Show()
-        f.skull:Hide()
-    else
-        f.model:Hide()
-        f.skull:Show()
-    end
+    f.boss:SetText(plan and plan.name or "")
 end
 
 function EE.Open(values, onAccept, title, encounterID)

@@ -6,6 +6,8 @@
 --     enabled    = true,
 --     difficulty = 0,                    0 = 不分難度；其餘是 GetInstanceInfo 的 difficultyID
 --     entries    = { { t, text, spell, icon, lead, enabled }, ... }   照 t 排好
+--     journal    = 冒險指南的首領 ID（選填，頁面頭像用；新增首領時從選單記下、或找到模型時補上）
+--     display    = 首領模型的 displayInfo（選填，找到一次就存，之後不再查冒險指南）
 -- }
 --   t      開戰後第幾秒「發生」
 --   lead   提前幾秒放上時間軸（在時間軸上倒數多久）
