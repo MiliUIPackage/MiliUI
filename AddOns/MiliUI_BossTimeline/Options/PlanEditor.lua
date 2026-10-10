@@ -13,6 +13,8 @@
 --
 -- 操作：
 --   拖我的提示     改時間（0.5 秒吸附；按住 Shift 不吸附）。錨在首領技能上的，偏移跟著改
+--   「每一次」的提示：沒有秒數，畫成 MRT 列裡那個技能每一次施放＋偏移的一排淡一點的重複標記；
+--                  拖任何一個＝改偏移（整排一起動）。沒有 MRT 資料就不畫（設定頁的說明列會講）
 --   點我的提示     開編輯視窗；右鍵：編輯／停用／刪除
 --   點 MRT 的格子  以這一次施放新增，並錨在「這個技能第 N 次施放」上
 --   雙擊我的提示列的空白處   在那一秒新增
@@ -371,12 +373,24 @@ function PE:NewBlock()
         if not moved then return end
         local newT = self.dragT
         if not IsShiftKeyDown() then newT = math.floor(newT / SNAP + 0.5) * SNAP end
-        if ed.hooks.onMove then ed.hooks.onMove(self.entry, newT) end
+        if ed.hooks.onMove then ed.hooks.onMove(self.entry, newT, self.t) end
+    end
+
+    -- 「每一次」的重複標記：拖其中一個，同一條的其他幾個跟著平移同樣的秒數
+    local function MoveSiblings(self, shift)
+        local pool = ed.pools.block
+        for i = 1, pool.used do
+            local o = pool.items[i]
+            if o ~= self and o.entry == self.entry then
+                o:ClearAllPoints()
+                o:SetPoint("TOPRIGHT", ed.canvas, "TOPLEFT", (o.t + shift) * ed.pps, o.y)
+            end
+        end
     end
 
     b:SetScript("OnMouseDown", function(self, button)
         if button ~= "LeftButton" then return end
-        self.downX, self.moved, self.dragT = CursorX(), false, self.entry.t
+        self.downX, self.moved, self.dragT = CursorX(), false, self.t
         self:SetScript("OnUpdate", function(s)
             if not IsMouseButtonDown("LeftButton") then
                 Finish(s, s.moved)
@@ -385,10 +399,11 @@ function PE:NewBlock()
             local dx = CursorX() - s.downX
             if not s.moved and math.abs(dx) < DRAG_PX then return end
             s.moved = true
-            s.dragT = math.max(0.1, s.entry.t + dx / ed.pps)
+            s.dragT = math.max(0.1, s.t + dx / ed.pps)
             local shown = IsShiftKeyDown() and s.dragT or math.floor(s.dragT / SNAP + 0.5) * SNAP
             s:ClearAllPoints()
             s:SetPoint("TOPRIGHT", ed.canvas, "TOPLEFT", shown * ed.pps, s.y)
+            if s.rep then MoveSiblings(s, shown - s.t) end
             GameTooltip:SetOwner(s, "ANCHOR_TOP")
             GameTooltip:SetText(Plans.FormatTime(shown), 1, 1, 1)
             GameTooltip:Show()
@@ -410,8 +425,14 @@ function PE:NewBlock()
         if self.moved then return end
         local e = self.entry
         local _, text = Plans.Resolve(e)
-        local lines = { text, ("%s  %s"):format(Plans.FormatTime(e.t), L["shows %ds before"]:format(e.lead or Plans.DEFAULT_LEAD)) }
-        if e.anchor then lines[#lines + 1] = L["Follows a boss cast"] end
+        local lines = { text, ("%s  %s"):format(Plans.FormatTime(self.t), L["shows %ds before"]:format(e.lead or Plans.DEFAULT_LEAD)) }
+        if self.rep then
+            local a = e.anchor
+            lines[#lines + 1] = L["Every cast of %s"]:format(MD.SpellInfo(a.spell) or ("#" .. a.spell))
+                .. ((a.offset or 0) ~= 0 and (" %+gs"):format(a.offset) or "")
+        elseif e.anchor then
+            lines[#lines + 1] = L["Follows a boss cast"]
+        end
         lines[#lines + 1] = L["Drag to move (Shift: no snapping) · Click to edit · Right-click for more"]
         ShowTip(self, lines)
     end)
@@ -475,24 +496,42 @@ end
 ------------------------------------------------------------
 -- 資料 → 畫面
 ------------------------------------------------------------
--- 我的提示排子列：區間 [t − lead, t] 加上右端圖示文字的估計寬，重疊就往下一列
-local LABEL_ALLOW = 110
-local function PackMine(entries, pps)
-    local lanesEnd = {}
+-- 我的提示攤成要畫的項目：{ entry, t, rep }。一般提示一個；「每一次」的照 casts[spell]（MRT 列裡
+-- 那個技能每一次施放的秒數）各一個、rep = true；沒有 MRT 資料就沒有。照秒數排好（PackMine 要）
+local function MineItems(entries, casts)
     local out = {}
     for _, e in ipairs(entries) do
-        local lead = e.lead or Plans.DEFAULT_LEAD
-        local x1 = (e.t - lead) * pps
-        local x2 = e.t * pps + LABEL_ALLOW
+        if Plans.IsEvery(e) then
+            local a = e.anchor
+            for _, at in ipairs(casts[a.spell] or {}) do
+                local t = at + (a.offset or 0)
+                if t > 0 then out[#out + 1] = { entry = e, t = t, rep = true } end
+            end
+        else
+            out[#out + 1] = { entry = e, t = e.t or 0 }
+        end
+    end
+    table.sort(out, function(a, b) return a.t < b.t end)
+    return out
+end
+
+-- 我的提示排子列：區間 [t − lead, t] 加上右端圖示文字的估計寬，重疊就往下一列
+local LABEL_ALLOW = 110
+local function PackMine(items, pps)
+    local lanesEnd = {}
+    for _, item in ipairs(items) do
+        local lead = item.entry.lead or Plans.DEFAULT_LEAD
+        local x1 = (item.t - lead) * pps
+        local x2 = item.t * pps + LABEL_ALLOW
         local lane
         for i, endX in ipairs(lanesEnd) do
             if x1 >= endX + 4 then lane = i break end
         end
         if not lane then lane = #lanesEnd + 1 end
         lanesEnd[lane] = x2
-        out[#out + 1] = { entry = e, lane = lane }
+        item.lane = lane
     end
-    return out, math.max(1, #lanesEnd)
+    return items, math.max(1, #lanesEnd)
 end
 
 -- planID：設定檔 ID（我的提示從這裡來）；opts.encounterID：首領戰 ID（MRT 與上一場紀錄照首領存）
@@ -516,6 +555,7 @@ function PE:Redraw()
 
     -- MRT：照技能分列（列的順序＝第一次施放的先後）
     local mrtLanes, phases = {}, {}
+    local casts = {}         -- [spell] = { 每一次施放的秒數 }（「每一次」的提示畫在這些位置）
     local length = 60
     if opts.mrtVariant then
         local bySpell, order = {}, {}
@@ -526,6 +566,9 @@ function PE:Redraw()
             end
             local list = bySpell[ev.spell]
             list[#list + 1] = ev
+            local c = casts[ev.spell] or {}
+            c[#c + 1] = ev.t
+            casts[ev.spell] = c
             length = math.max(length, ev.t)
         end
         for _, spell in ipairs(order) do
@@ -540,11 +583,12 @@ function PE:Redraw()
     if rec then
         for _, ev in ipairs(rec.events) do length = math.max(length, ev.t) end
     end
-    for _, e in ipairs(plan.entries) do length = math.max(length, e.t or 0) end
+    local items = MineItems(plan.entries, casts)
+    for _, item in ipairs(items) do length = math.max(length, item.t) end
     self.length = length + PAD_END
 
     local contentW = self:ContentWidth()
-    local packed, mineLanes = PackMine(plan.entries, pps)
+    local packed, mineLanes = PackMine(items, pps)
     local mineH = mineLanes * MINE_H
     local totalH = mineH + #mrtLanes * LANE_H + (rec and LANE_H or 0) + 4
     self.canvas:SetSize(contentW, totalH)
@@ -604,11 +648,12 @@ function PE:Redraw()
         local e = item.entry
         local b = self.pools.block:Get()
         local lead = e.lead or Plans.DEFAULT_LEAD
-        b.entry = e
+        b.entry, b.t, b.rep = e, item.t, item.rep
         b.y = -(item.lane - 1) * MINE_H - 2
         b:SetFrameLevel(self.mineHit:GetFrameLevel() + 2)
+        b:SetAlpha(item.rep and 0.6 or 1)       -- 重複標記淡一點：一眼分得出「這是同一條在每一次施放」
         b:ClearAllPoints()
-        b:SetPoint("TOPRIGHT", self.canvas, "TOPLEFT", e.t * pps, b.y)
+        b:SetPoint("TOPRIGHT", self.canvas, "TOPLEFT", item.t * pps, b.y)
         b:SetWidth(math.max(4, lead * pps))
         local icon, text = Plans.Resolve(e)
         b.icon:SetTexture(icon)
@@ -616,7 +661,7 @@ function PE:Redraw()
         b.icon:SetDesaturated(not on)
         local tags = ""
         -- 標記用文字不用符號：中文字型不一定有 ⚓／♪ 的字形（會變方框）
-        if e.anchor then tags = tags .. " |cffffd100" .. L["[follows]"] .. "|r" end
+        if e.anchor then tags = tags .. " |cffffd100" .. (item.rep and L["[every]"] or L["[follows]"]) .. "|r" end
         if e.sound or e.tts then tags = tags .. " |cff9d9d9d" .. L["[sound]"] .. "|r" end
         b.text:SetText((on and "" or "|cff808080") .. text .. (on and "" or "|r") .. tags)
         local r, g, bl = 0.33, 0.8, 0.33
@@ -627,7 +672,9 @@ function PE:Redraw()
     -- 戰後回顧的空心框
     if opts.review then
         local laneOf = {}
-        for _, item in ipairs(packed) do laneOf[item.entry] = item.lane end
+        for _, item in ipairs(packed) do
+            if not item.rep then laneOf[item.entry] = item.lane end
+        end
         for _, row in ipairs(opts.review) do
             if row.actual and math.abs(row.delta) >= 0.5 and laneOf[row.entry] then
                 local g = self.pools.ghost:Get()

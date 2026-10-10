@@ -313,7 +313,9 @@ local function Items()
     local profile = Profile()
     if not profile then return items end
     for i, e in ipairs(profile.entries) do
-        items[#items + 1] = { kind = "entry", index = i, entry = e, t = e.t or 0 }
+        -- 「每一次」的沒有秒數：排在最前面（-1 秒；它們之間照 entries 本來的順序）
+        local every = Plans.IsEvery(e)
+        items[#items + 1] = { kind = "entry", index = i, entry = e, t = every and -1 or (e.t or 0), every = every }
     end
     if View().mrt then
         local v = MRTVariant(profile)
@@ -336,7 +338,8 @@ local function Items()
     end
     table.sort(items, function(a, b)
         if a.t ~= b.t then return a.t < b.t end
-        return KIND_ORDER[a.kind] < KIND_ORDER[b.kind]
+        if a.kind ~= b.kind then return KIND_ORDER[a.kind] < KIND_ORDER[b.kind] end
+        return (a.index or 0) < (b.index or 0)
     end)
     return items
 end
@@ -604,9 +607,15 @@ local function CreateExportPopup(parent)
 
     local function Show(id)
         format = id
-        popup.hint:SetText(id == "note"
+        local hint = id == "note"
             and L["MRT note lines: time, spell and text only. MRT notes and other addons that read {time:} lines can use it."]
-            or L["Everything in this profile, including sounds, conditions and anchors. Paste it into Paste reminders on another character or for a friend; it arrives as a new profile."])
+            or L["Everything in this profile, including sounds, conditions and anchors. Paste it into Paste reminders on another character or for a friend; it arrives as a new profile."]
+        -- MRT 筆記只有秒數：「每一次」的提示放不進去，講一聲有幾條
+        local every = id == "note" and Plans.CountEvery(Plans.Get(sel.pid)) or 0
+        if every > 0 then
+            hint = hint .. "\n" .. L["%d \"every cast\" reminders are not in the MRT note lines (they have no time)."]:format(every)
+        end
+        popup.hint:SetText(hint)
         copy:Refresh()
     end
     local highlight = W.CreateButtonGroup({ bMBT, bNote }, Show)
@@ -928,11 +937,19 @@ local function UpdateRow(row, it)
         local e = it.entry
         local icon, text = Plans.Resolve(e)
         local on = e.enabled ~= false
-        row.time:SetText(Plans.FormatTime(e.t))
+        row.time:SetText(it.every and L["Every"] or Plans.FormatTime(e.t))
         row.icon:SetTexture(icon)
         row.icon:SetDesaturated(not on)
         local tags = ""
-        if e.anchor then tags = tags .. "  |cffffd100" .. L["[follows]"] .. "|r" end
+        if it.every then
+            -- 「每一次」：寫出綁的是哪個技能、偏移多少
+            local a = e.anchor
+            local name = MD.SpellInfo(a.spell) or ("#" .. a.spell)
+            local off = (a.offset or 0) ~= 0 and (" %+gs"):format(a.offset) or ""
+            tags = tags .. "  |cffffd100" .. L["[every %s]"]:format(name .. off) .. "|r"
+        elseif e.anchor then
+            tags = tags .. "  |cffffd100" .. L["[follows]"] .. "|r"
+        end
         if e.sound or e.tts then tags = tags .. " |cff9d9d9d" .. L["[sound]"] .. "|r" end
         if Plans.HasAudience(e) then tags = tags .. " |cff9d9d9d" .. L["[only some]"] .. "|r" end
         row.text:SetText(text .. tags)
@@ -1249,8 +1266,10 @@ local function Refresh()
 
     -- 立即測試：沒有會跑的提示就停用（不然按了什麼都不會發生）；正在測這份＝字改現況＋停用
     local testingThis = running and running.test and running.id == sel.pid
+    local everyN = Plans.CountEvery(profile)
     btnTest.reason = ns.Scheduler.RunnableCount(profile) == 0
         and (#profile.entries == 0 and L["Add a reminder first."]
+             or everyN == #profile.entries and L["\"Every cast\" reminders only appear when the ability is recognized in combat, so they can't be tested."]
              or L["None of the reminders apply to you (disabled, or role/class conditions)."])
         or nil
     btnTest:SetText(testingThis and L["Testing"] or L["Test now"])
@@ -1285,12 +1304,17 @@ local function Refresh()
                 ns.Owners.Label(owner), voices) .. "|r")
         end
     end
+    -- 時間軸檢視沒有 MRT 列就畫不出「每一次」的重複標記：講一聲去清單看
+    local edVariant = View().mrt and hasMRT and MRTVariant(profile) or nil
+    if mode == "timeline" and not edVariant and everyN > 0 then
+        notes[#notes + 1] = L["%d \"every cast\" reminders are shown in the list view."]:format(everyN)
+    end
     recNote:SetText(table.concat(notes, "\n"))
 
     if mode == "timeline" then
         editor:SetPlan(sel.pid, {
             encounterID = sel.boss,
-            mrtVariant  = View().mrt and hasMRT and MRTVariant(profile) or nil,
+            mrtVariant  = edVariant,
             recorded    = View().recorded,
             review      = ns.Review.Rows(sel.pid),
         })
@@ -1623,8 +1647,8 @@ local function BuildBottom()
     editor = ns.PlanEditor.Create(tab, 400, 200, {
         onAdd  = function(values) OpenEntryPopup(values) end,
         onEdit = function(entry) OpenEntryPopup(EntryValues(entry), entry) end,
-        onMove = function(entry, t)
-            Plans.MoveEntry(sel.pid, entry, t)
+        onMove = function(entry, t, fromT)
+            Plans.MoveEntry(sel.pid, entry, t, fromT)
             ns.Fire("PlansChanged")
         end,
         onMenu = function(entry, btn)

@@ -7,6 +7,7 @@
 --   * 自己的提示照實際規則出現（提前 lead 秒上軸）；MRT 的首領技能一起放（暴雪的顏色），看得出對不對得上
 --   * 播放中到點會真的播音效、朗讀（可以關）；拖進度條不會補播跳過的
 --   * 跟隨首領的提示：有 MRT 資料就放在「第 n 次施放＋偏移」的位置（＝戰鬥中認出來時會在的地方）
+--   * 「每一次」的提示：有 MRT 資料就在那個技能每一次施放＋偏移各放一條；沒有 MRT 資料就不出現
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -50,17 +51,27 @@ local function Rebuild()
             length = math.max(length, ev.t)
         end
     end
+    local function Add(key, e, due)
+        local icon, text = Plans.Resolve(e)
+        entries[#entries + 1] = {
+            key = key, entry = e, due = due, lead = math.max(1, e.lead or Plans.DEFAULT_LEAD),
+            icon = icon, text = text,
+        }
+        length = math.max(length, due)
+    end
     for i, e in ipairs(plan.entries) do
         if e.enabled ~= false and (not state.onlyMine or Plans.EntryApplies(e)) then
-            local due = e.t or 0
             local a = e.anchor
-            if a and nth[a.spell] and nth[a.spell][a.n] then due = nth[a.spell][a.n] + (a.offset or 0) end
-            local icon, text = Plans.Resolve(e)
-            entries[#entries + 1] = {
-                key = "pve" .. i, entry = e, due = due, lead = math.max(1, e.lead or Plans.DEFAULT_LEAD),
-                icon = icon, text = text,
-            }
-            length = math.max(length, due)
+            if Plans.IsEvery(e) then
+                for k, at in ipairs(nth[a.spell] or {}) do
+                    local due = at + (a.offset or 0)
+                    if due > 0 then Add("pve" .. i .. "_" .. k, e, due) end
+                end
+            else
+                local due = e.t or 0
+                if a and nth[a.spell] and nth[a.spell][a.n] then due = nth[a.spell][a.n] + (a.offset or 0) end
+                Add("pve" .. i, e, due)
+            end
         end
     end
     state.length = length + 10

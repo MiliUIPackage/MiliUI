@@ -10,6 +10,10 @@
 --   * 錨點（entry.anchor = { spell, n, offset }）：戰鬥中 Identify 認出這個技能的第 n 次施放時，
 --     把 t 改成「那一次會發生的秒數 ＋ offset」，已經放上時間軸的撤掉重放、計時器重排。
 --     認不出來就照原本的 t 跑（備援）。換階段時間每場會漂，錨點就是為了跟著漂。
+--   * 「每一次」（entry.anchor = { spell, every = true, offset }，沒有 t）：開戰時不排程，只登記成範本；
+--     Identify 每認出這個技能的新一次施放（連發合併後），就照範本建一個動態 job（t＝那一次的秒數＋offset），
+--     走同一個 Schedule。同一次施放不重複建（範本 × 第 n 次 當 key）。動態 job 跟一般 job 放在同一張表，
+--     Stop／ENCOUNTER_END 一起收掉。認不出來就不會出現；測試時沒有首領事件可認，所以測試不跑它們。
 -- 條件（職責／職業）不合的那條整條不跑（Plans.EntryApplies）。
 -- 開戰跑的是合併清單：這隻首領所有「生效中、適用這個難度」的設定檔（Plans.Active，重複的已經去掉）。
 -- 首領戰結束（ENCOUNTER_END）把還沒放的計時器取消、已經在時間軸上的撤掉。
@@ -33,6 +37,8 @@ local jobs = {}           -- 這一場的 job
 local running             -- { id, test, start }：id 測試時是 profileID、開戰時是 encounterID
 local spellCount = {}     -- [spellID] = 認到第幾次
 local spellLast = {}      -- [spellID] = 上一次的秒數（合併連發用）
+local templates = {}      -- 「每一次」的條目（開戰時登記，認出施放才建 job）
+local made = {}           -- [範本 entry] = { [n] = true }：這一次施放已經建過 job
 
 ------------------------------------------------------------
 -- 音效與朗讀
@@ -133,16 +139,18 @@ function Sch.Stop()
     wipe(jobs)
     wipe(spellCount)
     wipe(spellLast)
+    wipe(templates)
+    wipe(made)
     running = nil
     ns.Fire("SchedulerChanged")
 end
 
--- 這一條會不會跑：有秒數、條件（職責／職業／停用）也合
+-- 這一條會不會照秒數跑：有秒數、條件（職責／職業／停用）也合。「每一次」的不算（沒有秒數，認出施放才建）
 local function Runnable(e)
-    return (e.t or 0) > 0 and ns.Plans.EntryApplies(e)
+    return not ns.Plans.IsEvery(e) and (e.t or 0) > 0 and ns.Plans.EntryApplies(e)
 end
 
--- 這份設定檔有幾條會跑（設定頁拿來決定「立即測試」能不能按）
+-- 這份設定檔有幾條會照秒數跑（設定頁拿來決定「立即測試」能不能按；「每一次」的測試認不到技能，不算）
 function Sch.RunnableCount(profile)
     local n = 0
     for _, e in ipairs(profile and profile.entries or {}) do
@@ -151,19 +159,27 @@ function Sch.RunnableCount(profile)
     return n
 end
 
+-- 建一個 job 並排程（開戰的固定秒數、「每一次」認出施放時的動態 job 共用）
+local function AddJob(e, t)
+    local icon, text = ns.Plans.Resolve(e)
+    local job = {
+        entry = e, t = t, lead = math.max(1, e.lead or ns.Plans.DEFAULT_LEAD),
+        icon = icon, text = text, spell = e.spell, timers = {},
+    }
+    jobs[#jobs + 1] = job
+    Schedule(job)
+    return job
+end
+
 -- entries：要跑的條目清單（開戰＝合併後的、測試＝單一設定檔的）
 local function Run(id, entries, test)
     Sch.Stop()
     running = { id = id, test = test, start = GetTime() }
     for _, e in ipairs(entries) do
         if Runnable(e) then
-            local icon, text = ns.Plans.Resolve(e)
-            local job = {
-                entry = e, t = e.t, lead = math.max(1, e.lead or ns.Plans.DEFAULT_LEAD),
-                icon = icon, text = text, spell = e.spell, timers = {},
-            }
-            jobs[#jobs + 1] = job
-            Schedule(job)
+            AddJob(e, e.t)
+        elseif not test and ns.Plans.IsEvery(e) and ns.Plans.EntryApplies(e) then
+            templates[#templates + 1] = e
         end
     end
     ns.Fire("SchedulerChanged")
@@ -197,11 +213,24 @@ ns.RegisterCallback("TimelineIdentified", "scheduler", function(rec)
 
     for _, job in ipairs(jobs) do
         local a = job.entry.anchor
-        if a and a.spell == spell and a.n == n then
+        if a and not a.every and a.spell == spell and a.n == n then
             local newT = due + (a.offset or 0)
             if math.abs(newT - job.t) >= REPOST_MIN then
                 job.t = newT
                 Schedule(job)
+            end
+        end
+    end
+
+    -- 「每一次」：這一次施放照範本各建一個 job（上面那圈跑完才加，不會被當成第 n 次的錨點再改一次）
+    for _, e in ipairs(templates) do
+        local a = e.anchor
+        if a.spell == spell then
+            local done = made[e] or {}
+            made[e] = done
+            if not done[n] then
+                done[n] = true
+                AddJob(e, due + (a.offset or 0))
             end
         end
     end
