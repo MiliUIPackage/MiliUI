@@ -816,6 +816,68 @@ do
         CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 62)
         eq("清掉 ⇒ 拿回原本那顆容器（池化）", arec.container, c0)
     end
+    -- 圖示形狀與陰影（H2，Core/Shape.lua）：條層生效值（Decorate.Resolve 的 ishape／ishadow）解進 st、進簽章 ⇒ 換容器；
+    -- initializeFrame 烘形狀遮罩、轉圈換遮罩那張、邊框改襯底、陰影；長條不解、疊層不畫陰影、方形無陰影＝簽章不變
+    do
+        local savedShape, savedDeco2 = ns.Shape, ns.Decorate
+        load("Core/Shape.lua")
+        local SH = ns.Shape
+        ns.Media.BorderInset = function(v) return v end
+        local want = { ishape = nil, ishadow = nil }
+        ns.Decorate = setmetatable({ Resolve = function()
+            return { bar = { showTime = true, timeSize = 14 }, font = "DEFAULT", outline = "", ishape = want.ishape, ishadow = want.ishadow }
+        end }, { __index = savedDeco2 })
+        local st0 = CU.AuraStyle(arec, "essential", 36, 36, "icons")
+        eq("形狀：方形無陰影 ⇒ 不解", st0.maskPath, nil)
+        check("形狀：方形無陰影 ⇒ 簽章只多一個「-」", st0.sig:sub(-2) == "|-")
+        want.ishape, want.ishadow = "circle", 0.6
+        local st1 = CU.AuraStyle(arec, "essential", 36, 36, "icons")
+        eq("形狀：遮罩路徑", st1.maskPath, SH.MASK.circle)
+        eq("形狀：陰影路徑照形狀", st1.shadowPath, SH.SHADOW.circle)
+        check("形狀：進簽章", st1.sig ~= st0.sig and st1.sig:find("shp:circle/0.60", 1, true) ~= nil)
+        eq("形狀：長條不解", CU.AuraStyle(arec, "buffbars", 200, 20, "bars").maskPath, nil)
+        want.ishape = "rounded"
+        check("形狀：換形狀簽章變", CU.AuraStyle(arec, "essential", 36, 36, "icons").sig ~= st1.sig)
+        want.ishape = "circle"
+        local c0 = arec.container
+        CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 63)
+        check("形狀：換容器", arec.container ~= c0)
+        local sbtn = Obj("Frame")
+        function sbtn:SetIcon() end
+        function sbtn:SetDurationText() end
+        function sbtn:SetApplicationCount() end
+        local masks = {}
+        function sbtn:CreateMaskTexture() local m = Obj("MaskTexture", self); masks[#masks + 1] = m; return m end
+        local texs = {}
+        function sbtn:CreateTexture(_, layer, _, sub)
+            local t = Obj("Texture", self); t.layer, t.sub = layer, sub; texs[#texs + 1] = t; return t
+        end
+        CU.shapesBaked, arec.lastError = 0, nil
+        arec.container.slot.opts.initializeFrame(sbtn)
+        eq("形狀 initializeFrame：沒有錯誤", arec.lastError, nil)
+        eq("形狀：烘了圖示遮罩", CU.shapesBaked, 1)
+        eq("形狀：遮罩貼圖", masks[1] and masks[1].last_SetTexture and masks[1].last_SetTexture[1], SH.MASK.circle)
+        local under, shadow, edges = nil, nil, 0
+        for _, t in ipairs(texs) do
+            if t.layer == "BACKGROUND" and t.sub == -7 then under = t end
+            if t.layer == "BACKGROUND" and t.sub == -8 then shadow = t end
+        end
+        check("形狀：襯底在圖示底下（BACKGROUND −7）、套遮罩", under and under.last_AddMaskTexture ~= nil)
+        check("形狀：陰影（BACKGROUND −8）、黑色＋透明度", shadow and shadow.last_SetVertexColor
+            and shadow.last_SetVertexColor[1] == 0 and shadow.last_SetVertexColor[4] == 0.6)
+        -- 四條細邊（ov 上的 OVERLAY 7）不畫：sbtn 上的貼圖只有圖示、襯底、陰影
+        for _, t in ipairs(texs) do if t.layer == "OVERLAY" then edges = edges + 1 end end
+        eq("形狀：四條細邊不畫（按鈕本體沒有 OVERLAY 貼圖）", edges, 0)
+        -- 疊層：不畫陰影
+        arec.overlayOf = true
+        eq("形狀：疊層不畫陰影", CU.AuraStyle(arec, "essential", 36, 36, "icons").shadowPath, nil)
+        arec.overlayOf = nil
+        want.ishape, want.ishadow = nil, nil
+        CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 64)
+        eq("形狀：切回方形 ⇒ 拿回原本那顆容器", arec.container, c0)
+        ns.Shape, ns.Decorate = savedShape, savedDeco2
+        ns.Media.BorderInset = nil
+    end
     CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 7)
     eq("光環搬回長條：同一顆持有框", arec.frame, barHolder)
     eq("光環搬回長條：同簽章拿回同一個容器（不重建）", arec.container, c)

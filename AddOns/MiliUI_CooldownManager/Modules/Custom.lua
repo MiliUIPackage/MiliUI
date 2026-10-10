@@ -1455,6 +1455,24 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         ringSig = table.concat({ "rings", rg.rank, rg.tex, rg.thick, C(rg.track), C(rg.fill), tostring(rg.showIcon), rg.iconSize,
             string.format("%.2f,%.2f,%.2f", rg.y, rg.cdX, rg.extraX), rg.cdPoint }, ",")
     end
+    -- 圖示形狀與陰影（Core/Shape.lua；條層生效值＝Decorate.Resolve 的 ishape／ishadow）：米利樣式、圖示類、不是圓環才有，
+    -- 這一格交給 Masque（hd.msqOn）時由皮決定。疊層（rec.overlayOf）不畫陰影：底下的冷卻格自己有一張。
+    -- 遮罩路徑、陰影外擴全部先算成純值（initializeFrame 裡只查表）、進簽章 ⇒ 換形狀換一顆容器
+    local shapeSig = "-"
+    do
+        local hdS = rec.frame
+        local SH = ns.Shape
+        if SH and shape ~= "bars" and not ringOn and not (hdS and hdS.msqOn) and D0 and D0.Resolve then
+            local r0 = D0.Resolve(barKey)
+            local ish, ishd = r0.ishape, r0.ishadow
+            if rec.overlayOf then ishd = nil end
+            st.ishape, st.shadow = ish, ishd
+            st.maskPath = ish and SH.MASK[ish] or nil
+            st.shadowPath = ishd and SH.SHADOW[ish or "square"] or nil
+            st.cellW, st.cellH = tonumber(w) or 0, tonumber(h) or 0
+            if ish or ishd then shapeSig = "shp:" .. SH.Sig(ish, ishd) end     -- 方形無陰影 ＝ "-"（跟沒有這個功能時同一個簽章）
+        end
+    end
     -- 長條：圖示一邊留 h×h、其餘是條身（照 Decorate.ApplyBarGeometry）；字型、顏色、開關全部解成純數字
     local barSig
     if shape == "bars" then
@@ -1568,6 +1586,10 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         if hd0 and hd0.msqOn and shape ~= "bars" and ns.Glow and ns.Glow.SkinShape then
             local gshape = ns.Glow.SkinShape(hd0.msqFrame, barKey)
             if gshape then gl.type, gl.art = ns.Glow.ShapedStyle(gl.type, gshape) end
+        elseif st.ishape and ns.Glow and ns.Glow.BuiltinShape then
+            -- 內建圖示形狀（米利樣式）：圓形走同一條（Masque 有載入才拿得到形狀的貼圖，沒裝照舊方形）
+            local gshape = ns.Glow.BuiltinShape(st.ishape)
+            if gshape then gl.type, gl.art = ns.Glow.ShapedStyle(gl.type, gshape) end
         end
         glowSig = table.concat({ gl.type, C(gl.color), gl.lines, gl.thickness, gl.frequency,
             string.format("%.2f,%.2f", w, h), gl.art and gl.art.sig or "-" }, ",")
@@ -1628,7 +1650,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         ovSig, msqSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, string.format("%.4f,%.4f,%.4f,%.4f", st.tc[1], st.tc[2], st.tc[3], st.tc[4]), st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
-        st.stPoint, st.stX, st.stY, glowSig, labelSig,
+        st.stPoint, st.stX, st.stY, glowSig, labelSig, shapeSig,
     }, "|")
     if barSig then st.sig = st.sig .. "|" .. barSig end
     if ringOn then st.sig = st.sig .. "|" .. ringSig end
@@ -1652,6 +1674,11 @@ local function Warm(st)
     local P = Enum and Enum.DurationTextBindingProperty
     st.remainingProp = P and P.RemainingDuration or 0
     st.inset = (st.bsize > 0) and ns.P.Scale(st.bsize) or 0
+    -- 陰影外擴（Core/Shape.lua 的 ShadowOutset）：形狀不是方形而且有畫襯底時，外擴從襯底那一圈算起
+    if st.shadow and ns.Shape then
+        local t = (st.ishape and not st.noEdge) and st.inset or 0
+        st.shadowX, st.shadowY = ns.Shape.ShadowOutset(st.cellW, st.cellH, t)
+    end
 end
 
 -- 生效發光（只能從 initializeFrame 呼叫）：按鈕底下自己的子框，圍住 anchor；尺寸用 gl 給的、不讀
@@ -1698,6 +1725,37 @@ local function BakeMask(btn, icon, mk)
     t:SetPoint("CENTER", btn, "CENTER", mk.x, mk.y)
     icon:AddMaskTexture(t)
     CU.masksBaked = (CU.masksBaked or 0) + 1          -- 測試用
+end
+
+-- 內建圖示形狀（只能從 initializeFrame 呼叫，外面包 pcall）：按鈕上一張形狀遮罩、鋪滿按鈕、掛到圖示上
+local function BakeShapeMask(btn, icon, path)
+    local t = btn:CreateMaskTexture()
+    t:SetTexture(path, MASK_WRAP, MASK_WRAP)
+    t:SetAllPoints(btn)
+    icon:AddMaskTexture(t)
+    CU.shapesBaked = (CU.shapesBaked or 0) + 1        -- 測試用
+end
+
+-- 邊框襯底（同 Core/Shape.lua 的畫法）：邊框色的純色貼圖套同一個形狀、每邊大 t、在圖示（ARTWORK）底下
+local function BakeUnder(btn, path, t, bc)
+    local u = btn:CreateTexture(nil, "BACKGROUND", nil, -7)
+    u:SetTexture(WHITE)
+    u:SetVertexColor(bc[1], bc[2], bc[3], bc[4])
+    u:SetPoint("TOPLEFT", btn, "TOPLEFT", -t, t)
+    u:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", t, -t)
+    local m = btn:CreateMaskTexture()
+    m:SetTexture(path, MASK_WRAP, MASK_WRAP)
+    m:SetAllPoints(u)
+    u:AddMaskTexture(m)
+end
+
+-- 陰影（同 Core/Shape.lua）：襯底更底下、四邊外擴（AuraStyle／Warm 先算好的純數字）
+local function BakeShadow(btn, st)
+    local s = btn:CreateTexture(nil, "BACKGROUND", nil, -8)
+    s:SetTexture(st.shadowPath)
+    s:SetVertexColor(0, 0, 0, st.shadow)
+    s:SetPoint("TOPLEFT", btn, "TOPLEFT", -st.shadowX, st.shadowY)
+    s:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", st.shadowX, -st.shadowY)
 end
 
 -- 皮外框（只能從 initializeFrame 呼叫，外面包 pcall）：照讀回來的 Normal 外觀在按鈕本體上畫一張新貼圖。顏色純數字
@@ -1748,8 +1806,10 @@ local function InitAuraButton(btn, c, st, rec)
     else
         icon:SetAllPoints(btn)
         icon:SetTexCoord(st.tc[1], st.tc[2], st.tc[3], st.tc[4])
+        if st.maskPath then pcall(BakeShapeMask, btn, icon, st.maskPath) end
     end
     btn:SetIcon(icon)
+    if st.shadowPath and st.shadowX then pcall(BakeShadow, btn, st) end
 
     local cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
     -- 轉圈：Cooldown 框吃不了遮罩 ⇒ 照 Masque 自己的做法，轉圈材質換成遮罩那張圖（白色＋alpha 的形狀）、
@@ -1762,7 +1822,7 @@ local function InitAuraButton(btn, c, st, rec)
     else
         cd:SetAllPoints(btn)
     end
-    cd:SetSwipeTexture((mk and mk.file) or WHITE)
+    cd:SetSwipeTexture((mk and mk.file) or st.maskPath or WHITE)    -- 內建形狀：轉圈換成形狀遮罩那張
     cd:SetSwipeColor(st.swipe[1], st.swipe[2], st.swipe[3], st.swipe[4])
     cd:SetHideCountdownNumbers(true)
     cd:SetDrawEdge(false)
@@ -1777,7 +1837,9 @@ local function InitAuraButton(btn, c, st, rec)
     if st.normal then pcall(BakeNormal, btn, st.normal) end
 
     local t = st.inset
-    if t > 0 and not st.noEdge then              -- Masque：外框是皮的（上面那張，或疊層底下冷卻格自己的）
+    if t > 0 and not st.noEdge and st.maskPath then
+        pcall(BakeUnder, btn, st.maskPath, t, st.bcolor)  -- 內建形狀：邊框是襯底
+    elseif t > 0 and not st.noEdge then          -- Masque：外框是皮的（上面那張，或疊層底下冷卻格自己的）
         local bc = st.bcolor
         local function Edge()
             local e = ov:CreateTexture(nil, "OVERLAY", nil, 7)

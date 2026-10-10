@@ -494,7 +494,9 @@ local function PaintGlow(rec)
     local cfg, ui = rec.stackCfg, rec.stackUI
     if not (cfg and cfg.gates and ui and ui.glow) or rec.stackGlowOn then return end
     if not (ns.Glow and ns.Glow.PaintOn) then return end
-    rec.stackGlowOn = ns.Glow.PaintOn(ui.glow.host, cfg.style or {}, "active", "stack", false)
+    -- 圖示形狀（Masque 讀回的皮 ＞ 內建設定，Glow.GlowShape）：圓形時發光跟著形狀，同生效發光
+    local shape = ns.Glow.GlowShape and ns.Glow.GlowShape(rec, rec.claimKey) or nil
+    rec.stackGlowOn = ns.Glow.PaintOn(ui.glow.host, cfg.style or {}, "active", "stack", false, shape)
 end
 
 -- 暴雪條的填充與底色：換色那一層在條身底下，暴雪的要調成全透明（只動 alpha，色照設定）
@@ -938,6 +940,8 @@ function SG.Apply(item, rec, barKey, w, h, isBar)
     local bar = ns.Setting(barKey, "bar")
     bar = type(bar) == "table" and bar or {}
     local sig = SG.Signature(cfg, w, h, bar)
+    -- 發光的形狀進簽章（換形狀、換皮 ⇒ 重畫）
+    if sig and ns.Glow and ns.Glow.GlowShape then sig = sig .. "|shape=" .. tostring(ns.Glow.GlowShape(rec, barKey)) end
     rec.stackCfg, rec.stackID = cfg, rec.cooldownID
     itemOf[rec] = item
     if rec.stackSig == sig and not rec.stackOff then

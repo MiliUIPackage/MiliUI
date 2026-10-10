@@ -48,6 +48,7 @@
 | `Core/Presets.lua` | 挑選器「常用預設」的資料（種族技能、防禦技能、藥水與治療石、團隊增益）＋純函式，**每季要對一次**，見「常用預設＋複製到其他專精」 |
 | `Core/MasqueShape.lua` | 從我們交給 Masque 的框讀回皮套上的形狀（圖示矩形、遮罩、皮外框），光環格與按鍵鏡射的閃光共用 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
+| `Core/Shape.lua` | 內建圖示形狀（方／圓角／圓）＋陰影：遮罩、邊框襯底、陰影的畫法與幾何（見「圖示形狀與陰影」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Modules/Skyriding.lua`、`Options/Tab_Skyriding.lua`、`Options/SkyridingSettings.lua` | 天空騎術的四列（速度條、旋轉急衝、活力、重新振作）＋旋轉急衝圖示（面板 `skyriding`；接力／獨立擺放、藏起冷卻管理器、每列一個設定視窗），見「天空騎術」 |
@@ -1051,6 +1052,52 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   （見 `Core/Masque.lua` 檔頭，與 `Core/Compat.lua` 的印記並列）。MasqueBlizzBars 照舊被印記請走，不會重複套。
 - 玩家在 Masque 裡停用我們的群組：Masque 自己把按鈕還成預設皮；我們的回呼把邊框、縮放、方角轉圈畫回來並提示 /reload
   （Masque 預設皮的外框圖與圖示尺寸收不乾淨；重載後群組停用＝不套皮，畫面是乾淨的米利樣式）。重新啟用時 Masque 重套、我們收邊框。
+
+### 圖示形狀與陰影（`Core/Shape.lua`、`Core/Decorate.lua`、`Modules/Custom.lua`、`Core/Glow.lua`、`Core/Keybinds.lua`、`Core/StackGate.lua`、`Options/Specs.lua`，2026-10-10，H2）
+
+米利樣式下就有的圓角／圓形圖示與陰影，不必裝 Masque。
+
+- **資料**：主題 `icon.shape`（`"square"` 預設＝完全現狀｜`"rounded"`｜`"circle"`）、`icon.shadow = false`、`icon.shadowAlpha = 0.6`
+  （開關＋透明度兩欄，同按鍵鏡射 `pressFlash`／`pressFlashAlpha` 的寫法）。走 `follow.icon` 繼承到條，**沒有逐法術**（形狀是條層的事）。
+  舊存檔沒有這三欄＝合併預設補成方形、無陰影，不遷移、`DB_VERSION` 不動。生效值在 `Decorate.Resolve` 解成 `r.ishape`（nil＝方形）／
+  `r.ishadow`（nil＝關），Masque 模式、長條類、圓環條一律 nil（`Shape.Resolve`），進條層簽章。
+- **貼圖**：`Media/shape-rounded.png`、`shape-circle.png`（128×128 白＋抗鋸齒 alpha 的遮罩，圓角半徑＝邊長 18%）、
+  `shadow-square／rounded／circle.png`（高斯模糊陰影，四邊各外擴邊長的 25%：`SH.SHADOW_PAD`）。全部是
+  `.claude/skills/miliui-cdm-shape-masks/scripts/shapes.py` 畫的，不要手改 PNG。
+- **畫法**（`Shape.Paint`，冪等）：
+  - 圖示：一張 MaskTexture（形狀遮罩、`SetAllPoints` 格子）掛到圖示貼圖上。
+  - 轉圈：`Cooldown:SetSwipeTexture(同一張遮罩)`（`SquareSwipe` 多一個路徑參數，`holder.swipeSquare` 記現在是哪張）。
+  - 邊框：方形完全不動（四條細條）；圓角／圓改畫**襯底**——邊框色的純色貼圖套同一個形狀的遮罩、每邊比圖示大 `Media.BorderInset(粗細)`、
+    層級在圖示底下，露出來的一圈就是邊框；四條細條收起來。無損刷新換色（`ColorBorder`）一併換襯底色（`border.shapeUnder`）。粗細 0＝不畫。
+  - 陰影：襯底更底下一張陰影圖，黑色＋設定的透明度；外擴從「圖示＋襯底」那一圈算（`Shape.ShadowOutset`）。方形也能開陰影。
+- **套用點**：
+  | 誰 | 遮罩建在哪 | 襯底／陰影畫在哪 | 掛遮罩的貼圖 |
+  |---|---|---|---|
+  | 暴雪 item（核心／輔助／增益圖示，含搬進自訂群組、以增益取代） | item 本身（跟圖示同一個框） | `rec.shapeUnder`（item 的子框、層級＝item−1） | 圖示、超出距離暗影 `OutOfRange`、GCD 閃光 `CooldownFlash` 底下的貼圖 |
+  | 自訂法術／物品／飾品欄／代畫格（`rec.custom`） | 框本身 | 框本身（BACKGROUND −7／−8，圖示是 ARTWORK） | 圖示 |
+  | 固定格位的占位（`Core/Bars.lua` 的暴雪增益占位、光環格的占位：都走 `Decorate.ApplyPlaceholder`） | 占位框 | 占位框 | 占位圖示 |
+  | 設定頁預覽格（`Decorate.ApplyPreview`） | 預覽格 | 預覽格 | 預覽圖示 |
+  | 光環格按鈕（固定格位與引擎補位都是 `InitAuraButton`；飾品欄增益、藥水／飾品冷卻格的增益疊層） | 按鈕（initializeFrame 裡烘） | 按鈕（BACKGROUND −7／−8） | 圖示；轉圈換遮罩 |
+  | 按鍵鏡射的閃光（`Keybinds.PressTexture`，看 `holder.iconShape`） | overlay | — | 閃光 |
+  | 發光（觸發／就緒／生效／充能滿、層數門檻發光、光環格的生效發光、預覽樣本） | — | — | 走 Masque 圓形皮那條（`Glow.GlowShape`：Masque 讀回的皮 ＞ 內建設定） |
+  - 增益疊層不畫陰影（底下的冷卻格自己有一張）。形狀與陰影進光環格的 `AuraStyle` 簽章：改了換一顆容器（戰鬥中記旗標、脫戰建）；
+    方形無陰影時簽章跟沒有這個功能時一樣（池子裡的舊容器照拿）。
+  - **還原**：切回方形／關陰影＝`Shape.Paint` 把自己掛的那一張遮罩拿掉、襯底與陰影藏起來、轉圈換回 `WHITE8X8`、四條細條畫回來。
+    跟「拔掉暴雪的圓角遮罩」那套（`Unmask`／`Remask`／`maskOf`）完全分開：只動自己那張，暴雪的不重複裝也不漏裝；
+    別人（Masque 卸皮後的重拔）把我們的拔掉了，下一次套用照 `GetMaskTexture` 確認、補回去。
+    換成長條／圓環條、交給 Masque、還給暴雪（`Bars.ReleaseAll` → `Decorate.ClearShape`）都拿掉。
+- **設定頁**：主題頁與條頁「圖示」節，「非正方形圖示」下面：「圖示形狀」下拉、「圖示陰影」勾選、「陰影透明度」滑桿（10%～100%，沒開時停用）、
+  下一列灰字；圖示外觀選 Masque 時三列停用、那一列換成黃字「形狀與陰影由皮決定」。長條類的條頁不出現。
+- **契約**：暴雪框一個欄位都不寫；只對它的貼圖呼叫 `AddMaskTexture`／`RemoveMaskTexture`、對它的 Cooldown 呼叫 `SetSwipeTexture`，
+  欄位只 `rawget` 讀。遮罩／襯底／陰影物件都在我們的框上、狀態存弱鍵表 `rec`（`rec.shapeArt`）。
+- ⚠ **已知限制**：
+  - 圖示不是正方形（`icon.aspect`、長寬不同的格子）時遮罩被拉伸：圓角變橢圓角、圓變橢圓。
+  - **發光**：圓角當方形（半徑小，方形的發光貼著看不出差）；圓形要 Masque 有載入才拿得到圓形的發光圖（它的公開 API），**沒裝 Masque 時圓形格的發光照舊方形**。
+  - 冷卻轉圈的**邊緣亮線**（`drawEdge`、充能回充的那條）不吃遮罩，在圓形的四個角可能畫出圓外。
+  - 暴雪的減益類型邊框（設成不隱藏時）、bling 不套形狀。
+  - 襯底在圖示外面（方形的邊框在圖示裡面），所以圓角／圓的格子看起來每邊大了邊框粗細，間距 0 時相鄰的襯底會疊在一起。
+  - 跟計畫不同：計畫寫「形狀來源抽成一支（Masque 讀回 ＞ 內建）」，照做在 `Glow.GlowShape`；內建形狀從格子上記的 `holder.iconShape` 讀，
+    光環格按鈕從條層生效值讀（AuraStyle 裡沒有 rec 可記）。陰影存成開關＋透明度兩欄。
 
 ### 音效（`Core/Sound.lua`）
 
@@ -3376,6 +3423,23 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 449. 出現／消失／層數增加音效在補位模式下照響（登記的法術跟固定格位時一樣）。
 450. 光環剛建好時就在身上（例如登入時已有增益）：補位容器第一次顯示就排好；持有框 Hide→Show 補踢之後不會重複或缺格。
 451. `/console taintLog 2` 一場首領戰零新條目；按鈕數量（每格 10 顆的預建批次）沒有造成明顯的記憶體上升（`/mcdm perf`）。
+
+**圖示形狀與陰影（2026-10-10，H2）**
+
+452. 三種形狀 × 暴雪核心／輔助／增益圖示 item：圖示、轉圈、邊框（襯底）跟著形狀；超出距離的暗影、GCD 閃光不露方角。
+     遮罩物件建在暴雪 item 本身（跟圖示同一個框）：確認圖示真的被裁成形狀、`/console taintLog 2` 對暴雪 item 零新條目。
+453. 自訂法術／物品／飾品欄／代畫格、固定格位的占位（暴雪增益與光環格）、設定頁預覽：三種形狀都對、預覽即時換。
+454. 光環格（固定格位與引擎補位）、飾品欄增益、藥水／飾品冷卻格的增益疊層：按鈕的圖示、轉圈、襯底、陰影；改形狀後脫戰換容器、戰鬥中改不報錯。
+455. 邊框粗細 1／2 在 UI 縮放 0.64 與 1.0 下：襯底一圈粗細均勻、跟圖示之間沒有露縫；粗細 0 時沒有邊框。
+456. 陰影：四種透明度看起來對；陰影沒有被別的格蓋掉一半（相鄰格的陰影疊在一起是預期）；方形開陰影時邊框照舊。
+457. 按鍵閃光、層數門檻發光、生效／觸發發光：圓形時（裝了 Masque）跟著圓；沒裝 Masque 時發光是方的（已知限制），按鍵閃光照樣是圓的。
+458. 無損刷新的提醒色：圓角／圓的襯底換色、刷新結束換回原色。
+459. 切回方形完全恢復原樣：遮罩拿掉、轉圈回方角、四條細邊回來、陰影消失；暴雪的圓角遮罩不會被裝回來（`/reload` 前後一樣）。
+     來回切幾次後 `/mcdm debug` 沒有異常。
+460. 圖示外觀選 Masque：形狀三列停用、說明換黃字；重載後畫面完全照皮（沒有我們的遮罩、襯底、陰影）。
+461. 非正方形格子（例如 40×30）：圓角變橢圓角、圓變橢圓（確認能不能接受）。
+462. `/mcdm release` 還給暴雪：暴雪 item 上沒留下我們的遮罩與襯底。
+463. `/console taintLog 2` 一場首領戰零新條目。
 
 **效能基準**
 

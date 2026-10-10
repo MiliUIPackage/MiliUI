@@ -1590,6 +1590,8 @@ function B.ReleaseAll(reason)
         if rec.overlay then pcall(rec.overlay.Hide, rec.overlay) end
         -- 圓環：swipe 貼圖、reverse、圖示、軌道還原（Core/Decorate.lua 的 RestoreRing）
         if rec.ring and ns.Decorate and ns.Decorate.RestoreRing then pcall(ns.Decorate.RestoreRing, item, rec) end
+        -- 圖示形狀與陰影（Core/Shape.lua）：我們掛的遮罩、襯底、陰影拿掉，轉圈材質回方形
+        if ns.Decorate and ns.Decorate.ClearShape then pcall(ns.Decorate.ClearShape, item, rec) end
         local alert = item.SpellActivationAlert
         if alert and alert.SetAlpha then pcall(alert.SetAlpha, alert, 1) end
         pcall(item.SetAlpha, item, 1)

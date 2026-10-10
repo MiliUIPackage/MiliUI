@@ -126,6 +126,13 @@ local ASPECT_ITEMS = {
     { text = L["Stretch to fit"],           value = "stretch" },
 }
 
+-- 圖示形狀（icon.shape，Core/Shape.lua）：米利樣式才有，Masque 模式由皮決定
+local SHAPE_ITEMS = {
+    { text = L["Square"],  value = "square" },
+    { text = L["Rounded"], value = "rounded" },
+    { text = L["Circle"],  value = "circle" },
+}
+
 local SIDE_ITEMS = {
     { text = L["Left"],  value = "LEFT" },
     { text = L["Right"], value = "RIGHT" },
@@ -684,6 +691,32 @@ local function MasqueOptionsRow()
     end }
 end
 
+-- 圖示形狀與陰影的說明列：平常是灰字；圖示外觀選 Masque 時換成黃字（形狀與陰影交給皮，上面三列停用）。
+-- 寫法同 CursorRow（表單引擎的灰字列不會換字），高度取兩種說法裡最高的
+local function ShapeNoteRow()
+    local NORMAL = L["Rounded and circle also shape the border, the cooldown swipe and the key press flash. Non-square icons stretch the shape. Bars and rings stay square."]
+    local MSQ = L["With Masque as the icon style, the skin decides the shape and shadow."]
+    return { type = "custom", section = "icon", noReset = true, h = 26, build = function(parent, x, y, width, ctx)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+        fs:SetWidth(width)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(true)
+        local tallest = 14
+        for _, t in ipairs({ NORMAL, MSQ }) do
+            fs:SetText(t)
+            tallest = math.max(tallest, fs:GetStringHeight() or 14)
+        end
+        local function Refresh()
+            local msq = MasqueOwns(ctx.info)
+            fs:SetFontObject(msq and W.fontEmphasis or W.fontSmall)
+            fs:SetText(msq and MSQ or NORMAL)
+        end
+        return math.max(26, tallest + 10), Refresh
+    end }
+end
+
 local function SkinRows()
     local available = ns.Masque and ns.Masque.Available()
     local rows = {
@@ -805,6 +838,13 @@ function Specs.Themed(mode, key)
         Note(L["Crops the icon edges; 0 shows the whole texture."], "icon"),
         TS("icon", "dropdown", "icon.aspect", L["Non-square icons"], { items = ASPECT_ITEMS, disabled = MasqueOwns,
             get = function(info) return ReadThemed(info, "icon.aspect") or "crop" end }),
+        -- 圖示形狀與陰影（Core/Shape.lua）：長條類的條不套（NB）；Masque 模式由皮決定 ⇒ 三列停用、說明換黃字
+        NB(TS("icon", "dropdown", "icon.shape", L["Icon shape"], { items = SHAPE_ITEMS, disabled = MasqueOwns,
+            get = function(info) return ns.Shape.Normalize(ReadThemed(info, "icon.shape")) end })),
+        NB(TS("icon", "toggle", "icon.shadow", L["Icon shadow"], { disabled = MasqueOwns })),
+        NB(TS("icon", "slider", "icon.shadowAlpha", L["Shadow opacity"], { min = 10, max = 100, step = 5, scale = 100,
+            disabled = function(info) return MasqueOwns(info) or not ReadThemed(info, "icon.shadow") end })),
+        NB(ShapeNoteRow()),
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
         CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"])),
         CD(TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"])),

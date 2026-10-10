@@ -300,10 +300,23 @@ local function SkinShape(frame, barKey)
 end
 G.SkinShape = SkinShape
 
--- 格子（rec）的發光形狀：圖示類、交給了 Masque 的才問
+-- 內建圖示形狀（Core/Shape.lua，米利樣式）走同一條：圓形 ⇒ "Circle"、圓角當方形（圓角的半徑小，方形的發光貼著看不出差）。
+-- 形狀的貼圖是 Masque 公開 API 給的 ⇒ **沒裝 Masque 時拿不到，照舊方形**（不另做一套圓形發光圖）。
+-- 只在 Masque 有載入時才回形狀：沒裝的話回 nil，發光簽章跟現狀一模一樣。
+-- shape：內建形狀（"rounded"／"circle"／nil）。格子上的是 Decorate 套形狀時記的 holder.iconShape（真實格與預覽格都有）；
+-- 光環按鈕（Modules/Custom.lua 的 AuraStyle）傳條層的生效值
+local function BuiltinShape(shape)
+    local M, SH = ns.Masque, ns.Shape
+    if not (shape and M and M.Available() and SH) then return nil end
+    return SH.GlowShape(shape)
+end
+G.BuiltinShape = BuiltinShape
+
+-- 格子（rec）的發光形狀：圖示類才問。來源的優先順序：交給了 Masque ⇒ 皮讀回的形狀；否則內建設定
 local function GlowShape(rec, barKey)
-    if not (rec and rec.msqSkinned == true) or rec.barGeometry then return nil end
-    return SkinShape(rec.msqButton, barKey or rec.claimKey or rec.placedBar)
+    if not rec or rec.barGeometry or rec.ring then return nil end
+    if rec.msqSkinned == true then return SkinShape(rec.msqButton, barKey or rec.claimKey or rec.placedBar) end
+    return BuiltinShape(rec.iconShape)
 end
 G.GlowShape = GlowShape
 
