@@ -355,6 +355,34 @@ local function ColorOverrideRow(key, index, field)
     end
 end
 
+-- 說明問號：控件後面一個小「?」，滑過才顯示（同一段說明每條規則都會重複，不放成下一列灰字；樣式同逐法術小窗的 HelpMark）
+local HELP_W = 14
+local function HelpMark(parent, text)
+    local m = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    m:SetSize(HELP_W, HELP_W)
+    W.Stylize(m, { 0.1, 0.1, 0.1, 0.9 }, { 0.4, 0.4, 0.4, 1 })
+    local q = m:CreateFontString(nil, "OVERLAY")
+    q:SetFontObject(W.fontSmall)
+    q:SetPoint("CENTER", m, "CENTER", 0, 0)
+    q:SetText("?")
+    q:SetTextColor(0.6, 0.6, 0.6)
+    m:EnableMouse(true)
+    m:SetScript("OnEnter", function(self)
+        q:SetTextColor(1, 1, 1)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(text, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    m:SetScript("OnLeave", function()
+        q:SetTextColor(0.6, 0.6, 0.6)
+        GameTooltip:Hide()
+    end)
+    return m
+end
+
+-- 透明度：連續條（漩渦、怒氣、能量…）戰鬥中數值是秘密值，規則改走色曲線（Modules/Resources.lua 的 CondCurve）——
+-- 顏色三項照換、透明度換不了（曲線挑出來的是秘密的顏色，要的是 SetAlpha 的數字）⇒ 控件後面的「?」寫給玩家看。
+-- 點數型的值是明文，照常生效、不掛問號
 local function AlphaOverrideRow(key, index)
     return function(parent, x, y, width, ctx)
         local cy = y - ROW_H_TALL / 2
@@ -377,6 +405,10 @@ local function AlphaOverrideRow(key, index)
             end
         end)
         slider:SetPoint("LEFT", parent, "TOPLEFT", x + 26, cy)
+        if not IsPip(key) then
+            local help = HelpMark(parent, L["In combat this bar's value is hidden from addons, so opacity only follows the rule out of combat. Bar, background and value text colors still change in combat."])
+            help:SetPoint("LEFT", parent, "TOPLEFT", x + 26 + 200 + 10, cy)
+        end
         local function Refresh()
             local ov = Overrides(key, index)
             local a = ov and ov.alpha

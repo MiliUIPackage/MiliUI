@@ -1822,7 +1822,7 @@ that frame implicitly protected as well"（被錨的是保護框、「那個框�
   秘密值下整段不求值（照主色）、數值文字不印、充能格照常（充能索引是另一支 API）。
   例外：**連續條**（漩渦、怒氣、能量…）秘密值時，「整條」的規則事先展開成 Step 色曲線交給 `UnitPowerPercent(…, 曲線)` 在 C 端挑色
   （`RC.CurvePointsBy`）：填充色、背景色（規則 `bgColor` ＞ 自訂底色 ＞ 填充色 × 0.25，alpha 乘背景不透明度，建曲線時算進去）、
-  數值文字色（`tagColor`）各一條，沒人設那一項就不建。透明度（`alpha`）秘密值時不套。挑出來的顏色只交給 `SetVertexColor`／`SetTextColor`。
+  數值文字色（`tagColor`）各一條，沒人設那一項就不建。透明度（`alpha`）秘密值時不套（條件編輯器的透明度列後面有「?」寫給玩家，點數型不掛）。挑出來的顏色只交給 `SetVertexColor`／`SetTextColor`。
   預設規則（聖能 ≥5／≥3、氣旋武器 ≥10／≥9 換色）是 `Core/DB.lua` 的 `Atomic` 表：設定檔**沒有** `conditions` 才整張給
   （新設定檔、恢復預設），已經有的（含空表）一個字都不合併——否則預設規則的欄位會併進玩家自己的規則，刪光也會被補回來。
   Ayije 匯入照樣蓋過預設（匯入記自己寫過哪些資源，不看 `conditions[key]` 是不是 nil）。
