@@ -2418,7 +2418,13 @@ local function ShowTip(ov)
     -- 整條被顯示條件藏起來（例如「只在戰鬥中」的脫戰時）：條是 SetAlpha(0) 不是 Hide，overlay 照樣收得到滑鼠 ⇒
     -- 要自己擋。淡出（alpha > 0）照舊顯示；編輯模式 Visibility 回全亮，不受影響
     if rec.claimKey and CurrentBarAlpha(rec.claimKey) <= 0 then return end
-    GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
+    -- 定位走預設錨點（跟暴雪 item 自己的 OnEnter 一樣：CooldownViewerItemDataMixin:SetTooltipAnchor）：
+    -- 提示插件（MiliUI_Tooltip 等）掛在 GameTooltip_SetDefaultAnchor 上改位置，寫死 ANCHOR_RIGHT 會繞過它們
+    if GameTooltip_SetDefaultAnchor then
+        GameTooltip_SetDefaultAnchor(GameTooltip, ov)
+    else
+        GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
+    end
     local shown = false
     if rec.custom then
         if rec.kind == "slot" and rec.slot then
