@@ -159,9 +159,11 @@ local function CreatePanel()
 
     panel:SetScript("OnHide", function()
         W.CloseDropdowns()
+        ns.CastBar.SetSettingsOpen(false)
     end)
     panel:SetScript("OnShow", function()
         SetCombatLocked(InCombatLockdown())
+        ns.CastBar.SetSettingsOpen(true)   -- 施法條顯示範例、可直接拖
     end)
 
     -- 右上角「格線: ON／OFF」（共用層，滑過調間距）：開著設定視窗拖框時對齊用。

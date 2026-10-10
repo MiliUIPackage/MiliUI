@@ -53,7 +53,9 @@ end
 local playerClass = (UnitClassBase and UnitClassBase("player")) or select(2, UnitClass("player"))
 
 local barFrame, barStatusBar, barIcon, barSpark, nameText, timeText
+-- 範例條＋可拖曳：編輯模式或本插件設定視窗任一開著就算（isInEditMode＝兩者 OR）
 local isInEditMode = false
+local editModeOpen, settingsOpen = false, false
 local HideBar   -- forward declaration（供 ticker / OnUpdate 引用）
 
 -- 打斷顯示：凍結條的顏色與斷法者名字停留秒數
@@ -249,25 +251,68 @@ end
 local LCG = ns.MiliUIGlow
 local IsSpellImportant = C_Spell and C_Spell.IsSpellImportant
 
-local function StopGlow()
-    if barFrame then LCG.PixelGlow_Stop(barFrame) end
+-- 樣式：pixel＝條外框跑線、autocast＝條外框閃點、proc＝圖示上的暴雪觸發發光。
+-- 發光一律掛在自己的宿主框（glowHosts）上，秘密布林只餵給宿主的 SetAlphaFromBoolean：
+-- 發光引擎內部會自己 SetAlpha（動畫），掛在宿主上才不會互相蓋掉。
+local GLOW_STYLES = { pixel = true, autocast = true, proc = true }
+local glowHosts = {}       -- [style] = frame
+local glowShownStyle       -- 目前亮著的是哪一種（換樣式時要拆舊的）
+
+local function GlowStyle()
+    local st = DB().glowStyle
+    return GLOW_STYLES[st] and st or "pixel"
 end
 
--- important：明文或秘密布林；nil＝不問直接亮（編輯模式範例）
+local function GlowHost(style)
+    local host = glowHosts[style]
+    if host then return host end
+    local target = (style == "proc") and barFrame.iconBorder or barFrame
+    host = CreateFrame("Frame", nil, target)
+    host:SetAllPoints(target)
+    host:SetFrameLevel(barFrame:GetFrameLevel() + 20)   -- 壓過條、文字疊層
+    glowHosts[style] = host
+    return host
+end
+
+local function StopGlow()
+    if not barFrame or not glowShownStyle then return end
+    local host = glowHosts[glowShownStyle]
+    if glowShownStyle == "pixel" then
+        LCG.PixelGlow_Stop(host)
+    elseif glowShownStyle == "autocast" then
+        LCG.AutoCastGlow_Stop(host)
+    else
+        LCG.ProcGlow_Stop(host)
+    end
+    glowShownStyle = nil
+end
+
+-- important：明文或秘密布林；nil＝不問直接亮（編輯模式／設定視窗的範例）
 local function ShowGlow(important)
     local db = DB()
     if not db.glowImportant then StopGlow(); return end
-    local glow = barFrame._PixelGlow
-    if not glow then
+    local style = GlowStyle()
+    if glowShownStyle ~= style then
+        StopGlow()
+        local host = GlowHost(style)
         local c = db.colorGlow
-        -- border=false：條本身已經有 1px 黑邊，不要引擎再墊一圈底
-        LCG.PixelGlow_Start(barFrame, { c.r, c.g, c.b, 1 }, nil, nil, nil, nil, nil, nil, false)
-        glow = barFrame._PixelGlow
+        local color = { c.r, c.g, c.b, 1 }
+        if style == "pixel" then
+            -- 2px、往外推 1px：蓋住條本身的 1px 黑邊再多出去 1px，1px 貼在黑邊上看不太出來。
+            -- border=false：條自己有底，不要引擎再墊一圈
+            LCG.PixelGlow_Start(host, color, 8, 0.25, nil, 2, 1, 1, false)
+        elseif style == "autocast" then
+            LCG.AutoCastGlow_Start(host, color, 6, 0.125, 1.2, 1, 1)
+        else
+            LCG.ProcGlow_Start(host, { color = color })
+        end
+        glowShownStyle = style
     end
+    local host = glowHosts[style]
     if important == nil then
-        glow:SetAlpha(1)
+        host:SetAlpha(1)
     else
-        glow:SetAlphaFromBoolean(important, 1, 0)
+        host:SetAlphaFromBoolean(important, 1, 0)
     end
 end
 
@@ -504,6 +549,7 @@ end
 -- 開始顯示專注目標施法條（不放音效）。castTbl/chanTbl 可由呼叫端預讀後傳入，避免重複讀取。
 local function StartDisplay(castTbl, chanTbl)
     if not DB().monitor then return end
+    if isInEditMode then return end   -- 範例條顯示中不蓋掉；離開時 RefreshFromFocus 會接回
 
     -- 用 == nil 偵測（秘密安全）；用「明文 isCast」旗標挑欄位，避免對秘密值分支
     castTbl = castTbl or { UnitCastingInfo("focus") }
@@ -639,6 +685,8 @@ end
 ----------------------------------------------------------------------
 local function UpdateEditModeState()
     if not ns.db then return end
+    local wasPreview = isInEditMode
+    isInEditMode = editModeOpen or settingsOpen
     CreateBarFrame()
     if isInEditMode and DB().monitor then
         -- 進入編輯模式：停掉施法中的每幀回呼/ticker，顯示靜態範例
@@ -668,6 +716,8 @@ local function UpdateEditModeState()
             StopGlow()
             barFrame:Hide()
         end
+        -- 剛離開範例：專注目標若正在施法，接回真正的讀條
+        if wasPreview then RefreshFromFocus() end
     end
 end
 
@@ -676,9 +726,9 @@ local function HookEditMode()
     if editModeHooked then return end
     if not EditModeManagerFrame then return end
     editModeHooked = true
-    EditModeManagerFrame:HookScript("OnShow", function() isInEditMode = true;  UpdateEditModeState() end)
-    EditModeManagerFrame:HookScript("OnHide", function() isInEditMode = false; UpdateEditModeState() end)
-    if EditModeManagerFrame:IsShown() then isInEditMode = true; UpdateEditModeState() end
+    EditModeManagerFrame:HookScript("OnShow", function() editModeOpen = true;  UpdateEditModeState() end)
+    EditModeManagerFrame:HookScript("OnHide", function() editModeOpen = false; UpdateEditModeState() end)
+    if EditModeManagerFrame:IsShown() then editModeOpen = true; UpdateEditModeState() end
 end
 
 HookEditMode()  -- Tier 1
@@ -699,6 +749,12 @@ function CastBar.Apply()
     UpdateBarSize()
     UpdateEditModeState()
     RefreshFromFocus()
+end
+
+-- 設定視窗開／關：跟編輯模式一樣顯示範例條讓玩家拖
+function CastBar.SetSettingsOpen(open)
+    settingsOpen = open and true or false
+    UpdateEditModeState()
 end
 
 function CastBar.PreviewSound()

@@ -69,6 +69,11 @@ local CONTROLS = {
     { type = "header", label = L["Important spells"] },
     { type = "toggle", key = "glowImportant", label = L["Glow when the focus casts an important spell"] },
     { type = "text",   label = L["Blizzard decides which spells count as important."] },
+    { type = "dropdown", key = "glowStyle", label = L["Glow style"], items = function() return {
+          { text = L["Pixel lines (bar border)"],     value = "pixel" },
+          { text = L["Autocast sparkles (bar border)"], value = "autocast" },
+          { text = L["Proc glow (icon)"],             value = "proc" },
+      } end },
     { type = "color",  key = "colorGlow", label = L["Glow color"], hasAlpha = false },
 
     { type = "header", label = L["Cast sound"] },
