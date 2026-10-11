@@ -608,3 +608,7 @@ L["Minimap button hidden. Type /mbt minimap to bring it back."] = "已隐藏小�
 L["Left-click"] = "左键"
 L["Toggle options"] = "开启／关闭设置"
 L["Drag: move around the minimap"] = "拖拽：沿小地图边缘移动"
+
+-- 列表视图分段（2026-10-11）
+L["Reference"] = "参考"
+L["None yet. Use + Add reminder below, or Add at this time on a row under Reference."] = "还没有。按下面的“＋ 新增提示”，或在“参考”的某一行按“以此新增”。"

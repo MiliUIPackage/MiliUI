@@ -330,39 +330,54 @@ local function MRTVariant(profile)
     return MD.DefaultVariant(sel.boss, sel.diff)
 end
 
+-- 清單分兩段：上面「我的提示」只有自己的（要找、要改的都在這裡，像時間軸檢視的第一列）；
+-- 下面「參考」是 MRT／上一場（唯讀，拿來「以此新增」）。兩段各自照秒數排，中間一列標題隔開。
+-- 不把自己的混進參考列裡：參考列動輒上百筆，自己的三五條會被淹掉（2026-10-11 使用者要求）
 local function Items()
     local items = {}
     local profile = Profile()
     if not profile then return items end
+    local mine = {}
     for i, e in ipairs(profile.entries) do
         -- 「每一次」的沒有秒數：排在最前面（-1 秒；它們之間照 entries 本來的順序）
         local every = Plans.IsEvery(e)
-        items[#items + 1] = { kind = "entry", index = i, entry = e, t = every and -1 or (e.t or 0), every = every }
+        mine[#mine + 1] = { kind = "entry", index = i, entry = e, t = every and -1 or (e.t or 0), every = every }
     end
+    table.sort(mine, function(a, b)
+        if a.t ~= b.t then return a.t < b.t end
+        return a.index < b.index
+    end)
+    items[#items + 1] = { kind = "head", text = L["My reminders"] .. "  |cff9d9d9d" .. #mine .. "|r",
+                          hint = #mine == 0 and L["None yet. Use + Add reminder below, or Add at this time on a row under Reference."] or nil }
+    for _, it in ipairs(mine) do items[#items + 1] = it end
+
+    local ref = {}
     if View().mrt then
         local v = MRTVariant(profile)
         if v then
             local nth = {}
             for _, ev in ipairs(MD.Events(sel.boss, v)) do
                 nth[ev.spell] = (nth[ev.spell] or 0) + 1
-                items[#items + 1] = { kind = "mrt", ev = ev, t = ev.t, n = nth[ev.spell] }
+                ref[#ref + 1] = { kind = "mrt", ev = ev, t = ev.t, n = nth[ev.spell] }
             end
             for _, ph in ipairs(MD.Phases(sel.boss, v)) do
-                items[#items + 1] = { kind = "phase", phase = ph.phase, t = ph.t }
+                ref[#ref + 1] = { kind = "phase", phase = ph.phase, t = ph.t }
             end
         end
     end
     local rec = View().recorded and ns.db.recorded[sel.boss]
     if rec then
         for _, ev in ipairs(rec.events) do
-            items[#items + 1] = { kind = "recorded", ev = ev, t = ev.t or 0 }
+            ref[#ref + 1] = { kind = "recorded", ev = ev, t = ev.t or 0 }
         end
     end
-    table.sort(items, function(a, b)
+    if #ref == 0 then return items end
+    table.sort(ref, function(a, b)
         if a.t ~= b.t then return a.t < b.t end
-        if a.kind ~= b.kind then return KIND_ORDER[a.kind] < KIND_ORDER[b.kind] end
-        return (a.index or 0) < (b.index or 0)
+        return KIND_ORDER[a.kind] < KIND_ORDER[b.kind]
     end)
+    items[#items + 1] = { kind = "head", text = L["Reference"] .. "  |cff9d9d9d" .. #ref .. "|r" }
+    for _, it in ipairs(ref) do items[#items + 1] = it end
     return items
 end
 
@@ -897,6 +912,22 @@ local function BuildRow(row)
     row.src:SetFontObject(W.fontSmall)
     PlaceCols(row, row)
 
+    -- 段落標題列（我的提示／參考）：accent 字＋髮絲線，同技能清單的分組列
+    row.head = Font(row)
+    row.head:SetPoint("LEFT", row, "LEFT", 6, -2)
+    row.head:SetTextColor(W.Accent(1))
+    row.headHint = Font(row)
+    row.headHint:SetFontObject(W.fontSmall)
+    row.headHint:SetTextColor(0.6, 0.6, 0.6)
+    row.headHint:SetPoint("LEFT", row.head, "RIGHT", 10, 0)
+    row.headHint:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+    row.headLine = row:CreateTexture(nil, "ARTWORK")
+    row.headLine:SetTexture("Interface\\Buttons\\WHITE8X8")
+    row.headLine:SetVertexColor(W.Accent(0.35))
+    row.headLine:SetHeight(P.Scale(1))
+    row.headLine:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 6, 1)
+    row.headLine:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -6, 1)
+
     row.edit = W.CreateButton(row, L["Edit"], "normal", 44, 18)
     row.edit:SetPoint("LEFT", row, "RIGHT", -RCOL.btn, 0)
     row.edit:SetScript("OnClick", function()
@@ -955,6 +986,18 @@ local function UpdateRow(row, it)
     row.item = it
     row.icon:SetDesaturated(false)
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    local isHead = it.kind == "head"
+    row.head:SetShown(isHead)
+    row.headLine:SetShown(isHead)
+    row.headHint:SetShown(isHead and it.hint ~= nil)
+    for _, w in ipairs({ row.time, row.icon, row.text, row.lead, row.src }) do w:SetShown(not isHead) end
+    if isHead then
+        row.stripe:Hide()
+        row.head:SetText(it.text)
+        row.headHint:SetText(it.hint or "")
+        ShowButtons(row, false, false)
+        return
+    end
     if it.kind == "entry" then
         local e = it.entry
         local icon, text = Plans.Resolve(e)
