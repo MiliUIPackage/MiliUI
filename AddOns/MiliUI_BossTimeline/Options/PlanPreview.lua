@@ -5,7 +5,10 @@
 --   * 左邊一塊預覽，用的是畫面上那條時間軸的同一支 Display、同一份外觀（直式／橫式／計時條）
 --   * 右邊播放控制：播放／暫停、從頭、1x／2x／4x、可以拖的進度條
 --   * 自己的提示照實際規則出現（提前 lead 秒上軸）；MRT 的首領技能一起放（暴雪的顏色），看得出對不對得上
---   * 播放中到點會真的播音效、朗讀（可以關）；拖進度條不會補播跳過的
+--   * 播放中到點會真的播音效、朗讀、跳首領警告（可以關）；拖進度條不會補播跳過的。
+--     首領警告畫在畫面上暴雪首領警告的位置（彈窗外面），那就是戰鬥中會出現的地方
+--   * MRT 的首領技能有設語音（Abilities.TTSFor）的，也照「快到（5 秒前）／施放」念出來
+--   * 「不上時間軸」的提示不畫在預覽的時間軸上，只在提醒時機響
 --   * 跟隨首領的提示：有 MRT 資料就放在「第 n 次施放＋偏移」的位置（＝戰鬥中認出來時會在的地方）
 --   * 「每一次」的提示：有 MRT 資料就在那個技能每一次施放＋偏移各放一條；沒有 MRT 資料就不出現
 ------------------------------------------------------------
@@ -47,7 +50,7 @@ local function Rebuild()
             local list = nth[ev.spell] or {}
             list[#list + 1] = ev.t
             nth[ev.spell] = list
-            bossEvents[#bossEvents + 1] = { key = "pvb" .. i, due = ev.t, name = ev.name, icon = ev.icon }
+            bossEvents[#bossEvents + 1] = { key = "pvb" .. i, due = ev.t, name = ev.name, icon = ev.icon, spell = ev.spell }
             length = math.max(length, ev.t)
         end
     end
@@ -94,7 +97,7 @@ local function Collect(out, filter)
     local n = 0
     for _, x in ipairs(entries) do
         local rem = x.due - T
-        if T >= x.due - x.lead and rem > -1 and (not filter or filter("mine")) then
+        if not x.entry.noTimeline and T >= x.due - x.lead and rem > -1 and (not filter or filter("mine")) then
             n = n + 1
             local it = Item(n)
             it.key, it.id, it.kind, it.owner = x.key, nil, "mine", nil
@@ -143,8 +146,22 @@ local function SetTime(t, fromPlay)
     if fromPlay and state.sound then
         for _, x in ipairs(entries) do
             local at = AlertAt(x)
-            if prev < at and at <= state.t and (x.entry.sound or x.entry.tts) then
-                ns.Scheduler.Alert(x.entry, x.text)
+            if prev < at and at <= state.t and (x.entry.sound or x.entry.tts or x.entry.warn) then
+                ns.Scheduler.Alert(x.entry, x.text, x.icon)
+            end
+        end
+        -- 首領技能的語音：快到（5 秒前）念 soon、施放那一刻念 cast；MRT 的首領技能有放出來才念
+        local TTSFor = state.mrt and ns.Abilities and ns.Abilities.TTSFor
+        if TTSFor then
+            for _, x in ipairs(bossEvents) do
+                local soonAt = x.due - SOON
+                local crossSoon = prev < soonAt and soonAt <= state.t
+                local crossDue = prev < x.due and x.due <= state.t
+                if x.spell and (crossSoon or crossDue) then
+                    local soon, cast = TTSFor(x.spell)
+                    if crossSoon and soon then ns.Scheduler.Speak(soon) end
+                    if crossDue and cast then ns.Scheduler.Speak(cast) end
+                end
             end
         end
     end
@@ -284,7 +301,8 @@ local function Build()
     note:SetWidth(POP_W - x - 20)
     note:SetJustifyH("LEFT")
     note:SetSpacing(3)
-    note:SetText(L["This only plays inside this window; nothing is written to Blizzard's timeline. Reminders that follow a boss cast sit where MRT says that cast happens. The look matches the Appearance tab."])
+    note:SetText(L["This only plays inside this window; nothing is written to Blizzard's timeline. Reminders that follow a boss cast sit where MRT says that cast happens. The look matches the Appearance tab."]
+        .. "\n" .. L["Boss warnings appear on screen where Blizzard's boss warnings do, outside this window."])
 
     local close = W.CreateButton(popup, L["Okay"], "normal", 90, 22)
     close:SetPoint("BOTTOMRIGHT", -20, 12)

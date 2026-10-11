@@ -1,5 +1,8 @@
 ------------------------------------------------------------
--- 「一般」分頁：開關、要畫哪些來源、時間軸上現在有什麼
+-- 「一般」分頁：開關、要畫哪些來源、首領警告、語音播報、時間軸上現在有什麼
+--
+-- 首領警告與語音播報放在這裡而不是每條提示的編輯視窗：那是「長相／聲音」的全域設定
+-- （警告畫在哪、用哪個語音念），每條提示只決定要不要用、用哪個等級、念什麼字。
 --
 -- 「現在有什麼」那一段是這支插件第二個用途的入口：看得到誰在往暴雪的時間軸寫東西。
 -- 暴雪的首領技能名稱戰鬥中是秘密值，這裡不顯示（只算條數）；
@@ -95,6 +98,48 @@ local function BuildLive(parent, x, y, width)
     return 200, function() fs:SetText(LiveLines()) end
 end
 
+-- 首領警告：三顆「試看看」（normal 鈕：示範動作，不是這一頁的主動作）
+local function BuildWarningTry(parent, x, y)
+    local prev
+    for sev, label in ipairs({ L["Try minor"], L["Try medium"], L["Try critical"] }) do
+        local b = W.CreateButton(parent, label, "normal", 80, 20)
+        W.FitButton(b, 80, 20)
+        if prev then
+            b:SetPoint("LEFT", prev, "RIGHT", 6, 0)
+        else
+            b:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+        end
+        b:SetScript("OnClick", function() ns.Warnings.Preview(sev - 1) end)
+        prev = b
+    end
+    return 28
+end
+
+-- 語音播報：試聽鈕
+local function BuildVoiceTest(parent, x, y)
+    local b = W.CreateButton(parent, L["Test voice"], "normal", 80, 20)
+    W.FitButton(b, 80, 20)
+    b:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 4)
+    b:SetScript("OnClick", function() ns.Scheduler.Speak(L["Sample reminder"]) end)
+    return 28
+end
+
+-- 語音清單：開分頁那一刻才問（系統語音包可能後來才裝）；「遊戲預設」存成 nil（見 Build 的 nilAs）
+local function VoiceItems()
+    local items = { { text = L["Game default"], value = "" } }
+    if C_VoiceChat and C_VoiceChat.GetTtsVoices then
+        local ok, voices = pcall(C_VoiceChat.GetTtsVoices)
+        if ok and type(voices) == "table" then
+            for _, v in ipairs(voices) do
+                if type(v) == "table" and v.voiceID then
+                    items[#items + 1] = { text = v.name or ("#" .. v.voiceID), value = v.voiceID }
+                end
+            end
+        end
+    end
+    return items
+end
+
 local BASIC = {
     { type = "header", label = L["MiliUI Boss Timeline"] },
     { type = "toggle", sub = "display", key = "enabled", label = L["Draw the timeline with MiliUI"] },
@@ -111,6 +156,20 @@ local BASIC = {
     } },
     { type = "slider", sub = "display", key = "oocAlpha", label = L["Opacity out of combat"], min = 0, max = 1, step = 0.05 },
     { type = "text", label = L["The timeline never takes mouse clicks, so it won't get in the way of clicking the world behind it."] },
+
+    { type = "header", label = L["Boss warnings"] },
+    { type = "toggle", sub = "warnings", key = "enabled", label = L["Show my reminders as boss warnings"] },
+    { type = "text", label = L["Reminders that have a warning level show in the same place and style as Blizzard's boss warnings (Edit Mode → Boss Warnings moves them). Only reminders you gave a level use this."] },
+    { type = "toggle", sub = "warnings", key = "blizzardSound", label = L["Also play Blizzard's warning sound"],
+      requires = { sub = "warnings", key = "enabled" } },
+    { type = "custom", label = "", build = BuildWarningTry, h = 28 },
+
+    { type = "header", label = L["Spoken reminders"] },
+    { type = "dropdown", sub = "tts", key = "voice", label = L["Voice"], items = VoiceItems, nilAs = "" },
+    { type = "slider", sub = "tts", key = "rate", label = L["Speech rate"], min = -10, max = 10, step = 1 },
+    { type = "slider", sub = "tts", key = "volume", label = L["Volume"], min = 0, max = 100, step = 5 },
+    { type = "custom", label = "", build = BuildVoiceTest, h = 28 },
+    { type = "text", label = L["Used by every reminder that speaks. Each reminder can still have its own words."] },
 
     { type = "header", label = L["Show entries from"] },
     { type = "toggle", sub = "display", sub2 = "sources", key = "blizzard", label = L["Blizzard (boss abilities)"] },
@@ -162,6 +221,18 @@ end
 Build = function()
     if content then content:Hide() end
     local ctx = ns.Options.MakeCtx(Apply)
+    -- spec.nilAs：存檔裡 nil 的值在表單上當成什麼（語音下拉的「遊戲預設」＝""）；選回它就存回 nil。
+    -- 共用層的下拉值原樣存，nil 對不到任何選項會顯示空白，所以在這一頁的 ctx 外面包一層
+    local get, set = ctx.get, ctx.set
+    ctx.get = function(spec)
+        local v = get(spec)
+        if v == nil and spec.nilAs ~= nil then return spec.nilAs end
+        return v
+    end
+    ctx.set = function(spec, v)
+        if spec.nilAs ~= nil and v == spec.nilAs then v = nil end
+        set(spec, v)
+    end
     content, refreshers = ns.Options.BuildScrollBody(scroll, Controls(), ctx)
     RefreshAll()
 end

@@ -6,7 +6,9 @@
 --
 -- 每一條是一個 job：
 --   * 在「t − lead」秒時放上時間軸、倒數 lead 秒；t 比 lead 小就開戰當下放、倒數剩下的秒數
---   * 音效／朗讀在 soundWhen 那一刻：show＝放上時間軸時、soon＝t − 5、due＝t（預設）
+--   * 音效／朗讀／首領警告在 soundWhen（「提醒時機」，三樣共用）那一刻：show＝放上時間軸時、soon＝t − 5、due＝t（預設）
+--   * entry.noTimeline：不放上暴雪時間軸，只做上面那三樣；「放上時間軸時」照樣是 t − lead 那一刻
+--   * 首領警告（entry.warn）畫在自己的框上（Timeline/Warnings.lua），不經過暴雪
 --   * 錨點（entry.anchor = { spell, n, offset }）：戰鬥中 Identify 認出這個技能的第 n 次施放時，
 --     把 t 改成「那一次會發生的秒數 ＋ offset」，已經放上時間軸的撤掉重放、計時器重排。
 --     認不出來就照原本的 t 跑（備援）。換階段時間每場會漂，錨點就是為了跟著漂。
@@ -41,25 +43,52 @@ local templates = {}      -- 「每一次」的條目（開戰時登記，認出
 local made = {}           -- [範本 entry] = { [n] = true }：這一次施放已經建過 job
 
 ------------------------------------------------------------
--- 音效與朗讀
+-- 音效、朗讀、首領警告
 ------------------------------------------------------------
-local ttsVoice
-local function Speak(text)
-    if not (C_VoiceChat and C_VoiceChat.SpeakText) or not text or text == "" then return end
-    if not ttsVoice and C_TTSSettings and C_TTSSettings.GetVoiceOptionID then
-        ttsVoice = S.SafeCall(C_TTSSettings.GetVoiceOptionID, Enum.TtsVoiceType and Enum.TtsVoiceType.Standard or 0)
+-- 朗讀：語音／語速／音量走 db.tts（全域一組）。
+-- C_VoiceChat.SpeakText(voiceID, text, rate, volume, overlap) 是 12.x 的簽章（MRT 的 isMN 分支、
+-- MiliUI_CooldownManager/Core/Sound.lua 同寫法；舊版中間多一個 destination，12.x 已拿掉）。
+-- 玩家選的語音可能已經不在（換了系統語音包）：SpeakText 報錯就換遊戲預設再念一次。
+local function DefaultVoice()
+    if C_TTSSettings and C_TTSSettings.GetVoiceOptionID then
+        local v = S.PlainNumber(S.SafeCall(C_TTSSettings.GetVoiceOptionID, Enum.TtsVoiceType and Enum.TtsVoiceType.Standard or 0))
+        if v then return v end
     end
-    pcall(C_VoiceChat.SpeakText, ttsVoice or 0, text, 0, 100, true)
+    return 0
 end
 
-function Sch.Alert(entry, text)
+function Sch.Speak(text)
+    if not (C_VoiceChat and C_VoiceChat.SpeakText) or type(text) ~= "string" or text == "" then return end
+    local cfg = ns.db and ns.db.tts or {}
+    local rate = math.max(-10, math.min(10, tonumber(cfg.rate) or 0))
+    local volume = math.max(0, math.min(100, tonumber(cfg.volume) or 100))
+    local voice = tonumber(cfg.voice)     -- "" ＝ 遊戲預設（下拉的值原樣存進來時）
+    if voice then
+        if pcall(C_VoiceChat.SpeakText, voice, text, rate, volume, true) then return end
+    end
+    pcall(C_VoiceChat.SpeakText, DefaultVoice(), text, rate, volume, true)
+end
+
+-- icon：首領警告兩側的圖示（選填；job 的圖示）
+function Sch.Alert(entry, text, icon)
     local path = entry.sound and ns.Media.Sound(entry.sound)
     if path then
         ns.playingOwnSound = true      -- Recorder 的 PlaySoundFile 掛勾不要把自己的提示音記成別人的語音
         PlaySoundFile(path, "Master")
         ns.playingOwnSound = false
     end
-    if entry.tts then Speak(entry.ttsText or text) end
+    if entry.tts then Sch.Speak(entry.ttsText or text) end
+    if entry.warn and ns.Warnings then
+        if icon == nil then icon = select(1, ns.Plans.Resolve(entry)) end
+        ns.Warnings.Show({
+            text     = text,
+            icon     = icon,
+            severity = entry.warn,
+            duration = entry.warnDur or 3,
+            -- 這條自己選了音效就不再疊暴雪的警告音
+            sound    = ns.db.warnings.blizzardSound and not path,
+        })
+    end
 end
 
 ------------------------------------------------------------
@@ -111,7 +140,15 @@ local function Schedule(job)
     if untilDue <= 0 then return end
     local e = job.entry
 
-    if job.eventID then
+    if e.noTimeline then
+        -- 不上時間軸：「放上時間軸時」照樣是 t − lead 那一刻（已經過了就不補）
+        if e.soundWhen == "show" and untilDue - job.lead >= 0 and not job.shown then
+            After(job, untilDue - job.lead, function()
+                job.shown = true
+                Sch.Alert(e, job.text, job.icon)
+            end)
+        end
+    elseif job.eventID then
         -- 已經在時間軸上（錨點修正）：撤掉重放成正確的剩餘秒數
         Unpost(job)
         Post(job, untilDue)
@@ -119,15 +156,15 @@ local function Schedule(job)
         local showIn = untilDue - job.lead
         After(job, showIn, function()
             Post(job, math.min(job.lead, job.t - (GetTime() - running.start)))
-            if e.soundWhen == "show" then Sch.Alert(e, job.text) end
+            if e.soundWhen == "show" then Sch.Alert(e, job.text, job.icon) end
         end)
     end
 
     local when = e.soundWhen or "due"
     if when == "soon" then
-        After(job, untilDue - SOON, function() Sch.Alert(e, job.text) end)
+        After(job, untilDue - SOON, function() Sch.Alert(e, job.text, job.icon) end)
     elseif when == "due" then
-        After(job, untilDue, function() Sch.Alert(e, job.text) end)
+        After(job, untilDue, function() Sch.Alert(e, job.text, job.icon) end)
     end
 end
 
@@ -200,6 +237,11 @@ end
 -- 錨點：Identify 認出首領技能 → 算第幾次 → 修正掛在它上面的提示
 ------------------------------------------------------------
 ns.RegisterCallback("TimelineIdentified", "scheduler", function(rec)
+    -- 首領技能的語音（Plans/Abilities.lua）：跟有沒有生效中的提示設定檔無關，所以排在下面的提前返回之前
+    if ns.Abilities and ns.Abilities.OnIdentified and rec.ident and rec.ident.spell then
+        local rem0 = S.PlainNumber(S.SafeCall(C_EncounterTimeline.GetEventTimeRemaining, rec.id)) or rec.duration
+        if rem0 then ns.Abilities.OnIdentified(rec.ident.spell, rem0) end
+    end
     if not running or running.test or not rec.ident or not rec.ident.spell then return end
     local spell = rec.ident.spell
     local rem = S.PlainNumber(S.SafeCall(C_EncounterTimeline.GetEventTimeRemaining, rec.id)) or rec.duration

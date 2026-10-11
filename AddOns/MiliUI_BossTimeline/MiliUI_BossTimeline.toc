@@ -41,6 +41,7 @@ Timeline\Display.lua
 Timeline\Bars.lua
 Timeline\BlizzardView.lua
 Timeline\Screen.lua
+Timeline\Warnings.lua
 
 Plans\Plans.lua
 Plans\Journal.lua
@@ -66,6 +67,7 @@ Options\BossPicker.lua
 Options\EntryEditor.lua
 Options\PlanPreview.lua
 Options\PlanEditor.lua
+Options\AbilityPopover.lua
 Options\AbilitiesView.lua
 Options\Tab_Plans.lua
 Options\JournalReport.lua

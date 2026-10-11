@@ -100,7 +100,8 @@ local function BuildDefaults()
         --   display    模型 displayInfo（選填，找到一次就存）
         --   instance   冒險指南副本 ID（側欄分組用，選填）
         --   profiles = { [profileID] = { id, name, difficulties, active, entries, mrtVariant, source, author, createdAt, updatedAt } }
-        -- entries 每一條：{ t, lead, spell, icon, text, sound, soundWhen, tts, roles, class, anchor, enabled }
+        -- entries 每一條：{ t, lead, spell, icon, text, sound, soundWhen, tts, warn, warnDur, noTimeline, roles, class, anchor, enabled }
+        --   （全部欄位的意思見 Plans/Plans.lua 的 SaveEntry）
         --   t     開戰後第幾秒「發生」（不是出現在時間軸的時間）
         --   lead  提前幾秒放上時間軸（＝這一條在時間軸上倒數多久）
         --   icon  fileID（數字）；spell 有填就用法術圖示、text 空白就用法術名稱
@@ -115,6 +116,20 @@ local function BuildDefaults()
         -- 首領技能各自的設定（Plans/Abilities.lua）：
         -- [encounterEventID] = { color, highlight, soundHighlight, soundCast, hide, spell }
         abilities = {},
+
+        -- 語音播報（Scheduler.Speak；提示的朗讀與首領技能的語音都走這一組）
+        --   voice   C_VoiceChat.GetTtsVoices() 的 voiceID；nil／""＝遊戲預設
+        --           （C_TTSSettings.GetVoiceOptionID(Enum.TtsVoiceType.Standard)）。
+        --           設定頁的下拉把「遊戲預設」存成 nil；"" 是保險（下拉的值原樣存進來時）
+        --   rate    語速 -10～10（0＝正常）
+        --   volume  音量 0～100
+        -- 全域一組而不是每條提示各設：語音是「聽得習慣」的東西，一場裡換來換去反而聽不出是誰在講
+        tts = { voice = nil, rate = 0, volume = 100 },
+
+        -- 自訂首領警告（Timeline/Warnings.lua）：提示設了警告等級（entry.warn）才會用
+        --   enabled        總開關；關掉時有等級的提示也不顯示警告（音效、朗讀照舊）
+        --   blizzardSound  顯示時連暴雪該嚴重度的警告音一起播（那條提示自己選了音效就不播，免得疊兩聲）
+        warnings = { enabled = true, blizzardSound = true },
 
         -- 戰鬥中認首領技能（Timeline/Identify.lua）：DBM 的回呼、MRT 對時間
         identify = { dbm = true, mrt = true },

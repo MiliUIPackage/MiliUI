@@ -388,10 +388,16 @@ local function SortEntries(p)
 end
 Plans.SortEntries = SortEntries
 
--- values：{ t, text, spell, icon, lead, sound, soundWhen, tts, roles, class, anchor }
+-- values：{ t, text, spell, icon, lead, sound, soundWhen, tts, warn, warnDur, noTimeline, roles, class, anchor, phase, phaseOffset }
 -- index 有給就是改那一條。沒給的欄位（nil）就是清掉 —— 編輯器每次都整筆送過來
---   sound      LSM 音效名稱；soundWhen = "show"（放上時間軸時）／"soon"（5 秒前）／"due"（到點，預設）
---   tts        到 soundWhen 那一刻朗讀（文字轉語音）
+--   sound      LSM 音效名稱
+--   soundWhen  「提醒時機」：音效、朗讀、首領警告三樣**共用這一個時機**（一條提示只有一個「提醒的那一刻」，
+--              分開設只會讓玩家搞不清哪個先響）。"show"（放上時間軸時）／"soon"（5 秒前）／"due"（到點，預設）
+--   tts        到 soundWhen 那一刻朗讀（文字轉語音；語音／語速／音量走 db.tts 全域設定）
+--   warn       0 輕微／1 中等／2 重大：到 soundWhen 那一刻用自己畫的「首領警告」框顯示（Timeline/Warnings.lua，
+--              位置與長相仿暴雪的首領警告）；nil＝不顯示
+--   warnDur    首領警告停留幾秒（1～10）；warn 有設、沒給就 3
+--   noTimeline true＝不放上暴雪時間軸，只做音效／朗讀／首領警告（lead 照存，切回來時還在）
 --   ttsText    要念的字（選填）：空白就念提示文字
 --   roles      { TANK = true, HEALER = true, DAMAGER = true } 只給這些職責；nil = 全部
 --   class      "PRIEST" 之類，只給這個職業；nil = 全部
@@ -403,6 +409,8 @@ Plans.SortEntries = SortEntries
 --   groups     { [1..8] = true } 只給這幾個小隊；nil = 全部
 --   players    { ["名字"] = true } 只給這幾個人（不含伺服器）；nil = 全部
 --   phase      這一條原本寫在第幾階段（匯入 DreamForgeTools 時記下來，給未來的換階段偵測；現在 Scheduler 不讀）
+--   phaseOffset  階段起點後幾秒（可負）：phase 的搭檔。編輯器用「MRT 的階段起點＋phaseOffset」算出 t、
+--              兩個都存，下次開啟才回得到「照階段」的輸入方式。Scheduler 一樣只吃 t
 function Plans.SaveEntry(pid, values, index)
     local p = Plans.Get(pid)
     if not p then return end
@@ -422,6 +430,10 @@ function Plans.SaveEntry(pid, values, index)
     e.soundWhen = values.soundWhen
     e.tts       = values.tts or nil
     e.ttsText   = (values.tts and values.ttsText ~= "") and values.ttsText or nil
+    local warn = tonumber(values.warn)
+    e.warn       = warn and math.max(0, math.min(2, math.floor(warn))) or nil
+    e.warnDur    = e.warn and math.max(1, math.min(10, tonumber(values.warnDur) or 3)) or nil
+    e.noTimeline = values.noTimeline == true or nil
     e.roles     = (values.roles and next(values.roles)) and values.roles or nil
     e.class     = values.class ~= "" and values.class or nil
     if every then
@@ -433,6 +445,7 @@ function Plans.SaveEntry(pid, values, index)
     e.groups    = (values.groups and next(values.groups)) and values.groups or nil
     e.players   = (values.players and next(values.players)) and values.players or nil
     e.phase     = values.phase
+    e.phaseOffset = tonumber(values.phaseOffset)
     SortEntries(p)
     return e
 end

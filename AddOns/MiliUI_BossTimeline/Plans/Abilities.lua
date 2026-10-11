@@ -185,7 +185,19 @@ local function ApplyOne(eventID, cfg)
 end
 
 local function IsEmpty(cfg)
-    return not (cfg.color or cfg.highlight or cfg.soundHighlight or cfg.soundCast or cfg.hide)
+    return not (cfg.color or cfg.highlight or cfg.soundHighlight or cfg.soundCast or cfg.hide
+        or cfg.ttsSoon or cfg.ttsCast)
+end
+
+-- 這個技能設了什麼（清單列的摘要標籤用）：{ color, sound, tts, hide } 布林
+function A.Summary(cfg)
+    if not cfg then return nil end
+    return {
+        color = (cfg.color or cfg.highlight) and true or false,
+        sound = (cfg.soundHighlight or cfg.soundCast) and true or false,
+        tts   = (cfg.ttsSoon or cfg.ttsCast) and true or false,
+        hide  = cfg.hide and true or false,
+    }
 end
 
 function A.ApplyAll()
@@ -194,7 +206,9 @@ function A.ApplyAll()
     A.RebuildHidden()
 end
 
--- field = "color" / "highlight" / "soundHighlight" / "soundCast" / "hide"；value = nil 表示清掉
+-- field = "color" / "highlight" / "soundHighlight" / "soundCast" / "hide" / "ttsSoon" / "ttsCast"；value = nil 表示清掉
+--   ttsSoon／ttsCast：快到時（約 5 秒前）／施放時要念的字。暴雪的 SetEventSound 只收音效檔，
+--   念字得靠戰鬥中認出這條是哪個技能（Identify），跟「隱藏」同一個限制
 function A.Set(eventID, field, value)
     local all = Config()
     local cfg = all[eventID] or {}
@@ -240,6 +254,38 @@ end
 
 function A.IsHiddenSpell(spell)
     return spell ~= nil and hiddenSpells[spell] == true
+end
+
+------------------------------------------------------------
+-- 技能的語音播報：Identify 認出某條事件是哪個技能時，照剩餘秒數排「快到時」「施放時」兩句
+--
+-- 設定是照記錄 ID 存的，一個法術可能對到好幾筆記錄（各難度各一筆）：照法術找，任一筆有設就用
+-- （同一個法術各難度多半要念同樣的字；分難度的提示交給【我的提示】）。
+-- 同一場、同一次施放只念一次（Scheduler 已把連發合併、第一次認出才通知，這裡不必再去重）。
+------------------------------------------------------------
+local SOON = 5
+
+-- 回傳 soonText, castText（都可能是 nil）
+function A.TTSFor(spell)
+    if not spell or not ns.db then return end
+    local soon, cast
+    for _, cfg in pairs(Config()) do
+        if cfg.spell == spell then
+            soon = soon or cfg.ttsSoon
+            cast = cast or cfg.ttsCast
+        end
+    end
+    return soon, cast
+end
+
+-- Scheduler 在 TimelineIdentified 時呼叫（不管有沒有設定檔在跑）：rem＝還剩幾秒施放（明文）
+function A.OnIdentified(spell, rem)
+    local soon, cast = A.TTSFor(spell)
+    if not soon and not cast then return end
+    local Speak = ns.Scheduler and ns.Scheduler.Speak
+    if not Speak or type(rem) ~= "number" then return end
+    if soon and rem - SOON > 0 then C_Timer.After(rem - SOON, function() Speak(soon) end) end
+    if cast and rem > 0 then C_Timer.After(rem, function() Speak(cast) end) end
 end
 
 ------------------------------------------------------------

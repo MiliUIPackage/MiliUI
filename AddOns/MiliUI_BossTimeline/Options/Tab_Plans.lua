@@ -1,23 +1,27 @@
 ------------------------------------------------------------
 -- 「首領」分頁：選一隻首領 → 看到它的技能 → 每個技能可以「改樣子」或「加提醒」
 --
--- 標題列右邊兩個區塊切換（View().section）：
---   【技能】    這隻首領的技能清單（冒險指南分組）：顏色、音效、隱藏、＋提醒 —— Options/AbilitiesView.lua
---   【我的提醒】自己排的提示（下面這張圖）
+-- 首領名稱底下兩個區塊切換（View().section），放在難度分頁上面 —— 玩家先決定「要做什麼」，再挑難度：
+--   【技能】    這隻首領的技能清單（冒險指南分組）：設定小窗（顏色、音效、語音、隱藏）、加提示 —— Options/AbilitiesView.lua
+--   【我的提示】自己排的提示（下面這張圖）
 -- 2026-10-11 從「自訂時間軸」「首領技能」兩個分頁合併：兩邊都要先選首領、內容都繞著首領技能，
 -- 玩家分不出差別。合併後首領只在側欄選一次，難度卡片兩個區塊共用（技能區塊拿它來濾冒險指南的技能）。
+-- 同日第二版：區塊切換從標題列右上搬到難度上方（右上角看不到）、清單／時間軸與參考列搬進難度卡片
+-- （它們都是「這個難度的這份設定檔」的檢視方式，放在卡片外像另一層）、設定檔的複製／改名／匯出／刪除
+-- 收進「更多」選單（一排七顆鈕沒有主次）。
 --
--- 導覽順序＝心智順序：副本 → 首領（左側欄，用選的）→ 難度（分頁卡片）→ 設定檔（下拉，可多份）
+-- 導覽順序＝心智順序：副本 → 首領（左側欄，用選的）→ 區塊 → 難度（分頁卡片）→ 設定檔（下拉，可多份）
 --
 --   ┌側欄────────────┐┌內容──────────────────────────────────────────┐
---   │[副本 ▼]        ││[頭像] 首領名稱                  [清單][時間軸]│
---   │ 1. 首領A    2 ●││       ☑上一場 ☑MRT [變體▼]                    │
+--   │[副本 ▼]        ││[頭像] 首領名稱                               │
+--   │ 1. 首領A    2 ●││ [技能][我的提示]  灰字：這一區在做什麼          │
 --   │ 2. 首領B    1 ●││ [隨機][普通][英雄][傳奇]   ← 分頁卡片包住下面全部│
---   │ …              ││ 設定檔 [▼] [新增][複製][改名][刪除]            │
---   │                ││ ☑生效   也用在：□普通 ☑英雄 ☑傳奇              │
---   │[輸入首領戰 ID] ││ [預覽播放][立即測試][戰後回顧]                 │
+--   │ …              ││ 設定檔 [▼] [新增][貼上匯入][更多▾]             │
+--   │                ││ ☑生效   也用在：□普通 ☑英雄 ☑傳奇  [清單][時間軸]│
+--   │[輸入首領戰 ID] ││ 參考：☑MRT 時間軸 [變體▼] ☑上一場紀錄          │
 --   │            [<<]││ 清單／時間軸編輯器                             │
---   └────────────────┘│ [+新增提示][貼上匯入][匯出][復原]  說明灰字      │
+--   └────────────────┘│ [+新增提示][預覽播放][立即測試][戰後回顧] [復原]│
+--                     │ 說明灰字                                       │
 --
 -- 側欄只讀冒險指南的「最新資料片」＋「現在所在的副本」（Journal.SidebarInstances）；
 -- 存檔裡有、但不在這幾個副本裡的首領（手動 ID、舊資料片）落在「其他首領」。
@@ -46,11 +50,11 @@ local instDD, bossList, btnManual, btnCollapse, sideEmpty
 local bossBox, bossModel, bossSkull, bossName, bossSub, modeButtons, highlightMode
 local showRecCB, showMRTCB, mrtDD
 -- 內容：卡片
-local diffTabs, profLbl, profDD, btnNew, btnCopy, btnRename, btnDelete
-local activeCB, alsoLbl, alsoCBs, activeNote
+local diffTabs, profLbl, profDD, btnNew, btnMore, sectionHint, refLbl
+local activeCB, alsoLbl, alsoCBs
 local btnPreview, btnTest, btnReview, btnStop, statusText
 local head, headCols, list, editor
-local btnAdd, btnImport, btnExport, btnUndo, recNote
+local btnAdd, btnImport, btnUndo, recNote
 local emptyText, btnCreate, btnEmptyImport, noBossText
 local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup, idPopup, choicePopup
 local keyCatcher
@@ -65,6 +69,8 @@ local OTHER = "other"
 local ROW_H = 24
 local BOSS_ROW_H = 22
 local TOP = -46
+local SECTION_Y = -96         -- 區塊切換那一排
+local DIFF_Y = -126           -- 難度分頁鈕列
 local SIDE_X, SIDE_W = 16, 170
 local SIDE_GAP = 10
 local COLLAPSED_W = 20 + 8    -- 收起來時只剩展開鈕那一條
@@ -370,7 +376,7 @@ local function OpenEntryPopup(values, entry)
     ns.EntryEditor.Open(values, function(v)
         Plans.SaveEntry(pid, v, entry and Plans.IndexOf(pid, entry))
         ns.Fire("PlansChanged")
-    end, entry and L["Edit reminder"] or L["Add reminder"], sel.boss)
+    end, entry and L["Edit reminder"] or L["Add reminder"], sel.boss, { mrtVariant = MRTVariant(Profile()) })
 end
 
 local function EntryValues(e)
@@ -1115,22 +1121,30 @@ local function Layout()
     noBossText:SetPoint("TOPLEFT", tab, "TOPLEFT", cx + 2, TOP - 4)
     noBossText:SetWidth(cw - 4)
 
-    local stripH = diffTabs:Place(cx, TOP - AVATAR - 10, cw)
-    diffTabs:SetBottom(CARD_BOTTOM)
-    local ct = TOP - AVATAR - 10 - stripH      -- 卡片上緣
-    local x = cx + 10
+    -- 區塊切換：首領名稱底下、難度上面
+    ui.bAbil:ClearAllPoints()
+    ui.bAbil:SetPoint("TOPLEFT", tab, "TOPLEFT", cx, SECTION_Y)
+    sectionHint:ClearAllPoints()
+    sectionHint:SetPoint("LEFT", ui.bRem, "RIGHT", 10, 0)
+    sectionHint:SetPoint("RIGHT", tab, "RIGHT", -RIGHT_PAD, 0)
 
+    local stripH = diffTabs:Place(cx, DIFF_Y, cw)
+    diffTabs:SetBottom(CARD_BOTTOM)
+    local ct = DIFF_Y - stripH                 -- 卡片上緣
+    local x = cx + 10
+    local right = cx + cw - 10                 -- 卡片內容的右緣
+
+    -- 卡片第一排：設定檔；第二排：生效＋也用在（左）、清單｜時間軸（右）；第三排：參考列
     profLbl:ClearAllPoints()
     profLbl:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 12)
     activeCB:ClearAllPoints()
-    activeCB:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 36)
-    activeNote:ClearAllPoints()
-    activeNote:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 60)
-    activeNote:SetWidth(lw)
-    btnPreview:ClearAllPoints()
-    btnPreview:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 80)
+    activeCB:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 38)
+    modeButtons[2]:ClearAllPoints()
+    modeButtons[2]:SetPoint("TOPRIGHT", tab, "TOPLEFT", right, ct - 36)
+    refLbl:ClearAllPoints()
+    refLbl:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 64)
 
-    local edTop = ct - 108
+    local edTop = ct - 86
     local edH = edTop - BOTTOM_ROW_Y - 8
     head:ClearAllPoints()
     head:SetPoint("TOPLEFT", tab, "TOPLEFT", x, edTop)
@@ -1145,6 +1159,8 @@ local function Layout()
 
     btnAdd:ClearAllPoints()
     btnAdd:SetPoint("TOPLEFT", tab, "TOPLEFT", x, BOTTOM_ROW_Y)
+    btnUndo:ClearAllPoints()
+    btnUndo:SetPoint("TOPRIGHT", tab, "TOPLEFT", right, BOTTOM_ROW_Y)
     recNote:ClearAllPoints()
     recNote:SetPoint("TOPLEFT", tab, "TOPLEFT", x, NOTE_Y)
     recNote:SetWidth(lw)
@@ -1213,6 +1229,11 @@ local function Refresh()
     -- 【技能】區塊：難度卡片裡只放技能清單，提醒那一套全部收起來
     local abilities = View().section ~= "reminders"
     ui.highlightSection(abilities and ui.bAbil or ui.bRem)
+    ui.bAbil:SetShown(hasBoss)
+    ui.bRem:SetShown(hasBoss)
+    sectionHint:SetShown(hasBoss)
+    sectionHint:SetText(abilities and L["How this boss's abilities look and sound on the timeline."]
+        or L["Your own reminders for this fight: on the timeline, as a boss warning, a sound or speech."])
     ui.abil.frame:SetShown(hasBoss and abilities)
     if abilities then
         ui.HideReminders()
@@ -1248,9 +1269,25 @@ local function Refresh()
     btnStop:SetShown(has and running and running.test and true or false)
 
     local hasMRT = has and MD.Has(sel.boss)
+    refLbl:SetShown(has)
     showRecCB:SetShown(has)
     showMRTCB:SetShown(hasMRT)
     mrtDD:SetShown(hasMRT and View().mrt)
+    -- 參考列：MRT 的勾在前、變體下拉接著、上一場紀錄最後（都有才排得順）
+    showMRTCB:ClearAllPoints()
+    showRecCB:ClearAllPoints()
+    if hasMRT then
+        showMRTCB:SetPoint("LEFT", refLbl, "RIGHT", 8, 0)
+        if View().mrt then
+            mrtDD:ClearAllPoints()
+            mrtDD:SetPoint("LEFT", showMRTCB.label, "RIGHT", 8, 0)
+            showRecCB:SetPoint("LEFT", mrtDD, "RIGHT", 14, 0)
+        else
+            showRecCB:SetPoint("LEFT", showMRTCB.label, "RIGHT", 14, 0)
+        end
+    else
+        showRecCB:SetPoint("LEFT", refLbl, "RIGHT", 8, 0)
+    end
 
     if not has then
         statusText:SetText("")
@@ -1373,7 +1410,7 @@ function ui.HideReminders()
     for _, cb in ipairs(alsoCBs) do cb:Hide() end
     for _, b in ipairs(modeButtons) do b:Hide() end
     for _, w in ipairs({ head, list, editor.frame, emptyText, btnCreate, btnEmptyImport, btnStop,
-                         showRecCB, showMRTCB, mrtDD }) do
+                         refLbl, showRecCB, showMRTCB, mrtDD }) do
         w:Hide()
     end
 end
@@ -1497,7 +1534,7 @@ local function BuildHeader()
     bossName = tab:CreateFontString(nil, "OVERLAY")
     bossName:SetFontObject(W.fontTitle)
     bossName:SetPoint("TOPLEFT", bossBox, "TOPRIGHT", 10, -2)
-    bossName:SetPoint("RIGHT", tab, "RIGHT", -150, 0)
+    bossName:SetPoint("RIGHT", tab, "RIGHT", -RIGHT_PAD, 0)
     bossName:SetJustifyH("LEFT")
     bossName:SetWordWrap(false)
 
@@ -1511,13 +1548,12 @@ local function BuildHeader()
     noBossText:SetFontObject(W.fontNormal)
     noBossText:SetJustifyH("LEFT")
 
-    -- 清單｜時間軸 切換（右上角）
+    -- 清單｜時間軸 切換（卡片第二排右邊，Layout 定位；bTime 是錨點，bList 接在它左邊）
     local bList = W.CreateButton(tab, L["List"], "accent-hover", 60, 20)
     local bTime = W.CreateButton(tab, L["Timeline"], "accent-hover", 60, 20)
     W.FitButton(bList, 60, 20)
     W.FitButton(bTime, 60, 20)
     bList.id, bTime.id = "list", "timeline"
-    bTime:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -RIGHT_PAD, TOP)
     bList:SetPoint("RIGHT", bTime, "LEFT", -3, 0)
     modeButtons = { bList, bTime }
     highlightMode = W.CreateButtonGroup(modeButtons, function(id)
@@ -1525,7 +1561,10 @@ local function BuildHeader()
         Refresh()
     end)
 
-    -- 參考列（看的是這隻首領，跟設定檔無關）：右上第二排，靠右
+    -- 參考列（看的是這隻首領，跟設定檔無關）：卡片第三排，Refresh 依有無 MRT 排順序
+    refLbl = tab:CreateFontString(nil, "OVERLAY")
+    refLbl:SetFontObject(W.fontNormal)
+    refLbl:SetText(L["Reference:"])
     mrtDD = W.CreateDropdown(tab, 150, {}, function(value)
         local p = Profile()
         if p then
@@ -1533,17 +1572,24 @@ local function BuildHeader()
             Refresh()
         end
     end)
-    mrtDD:SetPoint("TOPRIGHT", tab, "TOPRIGHT", -RIGHT_PAD, TOP - 24)
     showMRTCB = W.CreateCheckButton(tab, L["MRT timeline"], function(checked)
         View().mrt = checked
         Refresh()
     end)
-    showMRTCB:SetPoint("RIGHT", mrtDD, "LEFT", -(showMRTCB.labelGap + showMRTCB.label:GetStringWidth() + 10), 0)
     showRecCB = W.CreateCheckButton(tab, L["Last pull"], function(checked)
         View().recorded = checked
         Refresh()
     end)
-    showRecCB:SetPoint("RIGHT", showMRTCB, "LEFT", -(showRecCB.labelGap + showRecCB.label:GetStringWidth() + 14), 0)
+    local function RefTip(frame, body)
+        frame:HookScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(body, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        frame:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    RefTip(showMRTCB, L["Read-only rows: when MRT's statistics say each boss ability happens. Click one to add a reminder that follows it."])
+    RefTip(showRecCB, L["Read-only rows: what was on the timeline in your last pull of this boss."])
 
     --------------------------------------------------------
     -- 難度分頁卡片：卡片包住下面全部
@@ -1596,34 +1642,35 @@ local function BuildCard()
         end, L["New profile"])
     end)
 
-    btnCopy = W.CreateButton(tab, L["Copy"], "normal", 50, 20)
-    W.FitButton(btnCopy, 50, 20)
-    btnCopy:SetPoint("LEFT", btnNew, "RIGHT", 4, 0)
-    btnCopy:SetScript("OnClick", function()
-        SelectNewProfile(Plans.CopyProfile(sel.pid))
-    end)
+    btnImport = W.CreateButton(tab, L["Paste reminders"], "normal", 70, 20)
+    W.FitButton(btnImport, 70, 20)
+    btnImport:SetPoint("LEFT", btnNew, "RIGHT", 4, 0)
+    btnImport:SetScript("OnClick", function() importPopup:Open() end)
 
-    btnRename = W.CreateButton(tab, L["Rename"], "normal", 50, 20)
-    W.FitButton(btnRename, 50, 20)
-    btnRename:SetPoint("LEFT", btnCopy, "RIGHT", 4, 0)
-    btnRename:SetScript("OnClick", function()
+    -- 複製／改名／匯出／刪除：不常按，收進選單（一排七顆鈕沒有主次，玩家不知道先看哪顆）
+    btnMore = W.CreateButton(tab, L["More"], "normal", 50, 20)
+    W.FitButton(btnMore, 50, 20)
+    btnMore:SetPoint("LEFT", btnImport, "RIGHT", 4, 0)
+    btnMore:SetScript("OnClick", function(self)
         local p = Profile()
         if not p then return end
         local pid = p.id
-        renamePopup:Open({ name = p.name }, function(v)
-            if v.name == "" then return false end
-            Plans.RenameProfile(pid, v.name)
-            ns.Fire("PlansChanged")
-        end, L["Rename"])
+        W.Menu.Show({
+            { text = L["Copy"], onClick = function() SelectNewProfile(Plans.CopyProfile(pid)) end },
+            { text = L["Rename"], onClick = function()
+                renamePopup:Open({ name = p.name }, function(v)
+                    if v.name == "" then return false end
+                    Plans.RenameProfile(pid, v.name)
+                    ns.Fire("PlansChanged")
+                end, L["Rename"])
+            end },
+            { text = L["Export"], onClick = function() exportPopup:Open() end },
+            { text = L["Delete"], onClick = function() deletePopup:Show() end },
+        }, self)
     end)
 
-    btnDelete = W.CreateButton(tab, L["Delete"], "red", 50, 20)
-    W.FitButton(btnDelete, 50, 20)
-    btnDelete:SetPoint("LEFT", btnRename, "RIGHT", 4, 0)
-    btnDelete:SetScript("OnClick", function() deletePopup:Show() end)
-
     --------------------------------------------------------
-    -- 卡片第二排：生效、也用在（＋說明灰字）
+    -- 卡片第二排：生效、也用在（說明放滑過：這兩個每次都看得到，灰字會把卡片撐長）
     --------------------------------------------------------
     activeCB = W.CreateCheckButton(tab, L["Active"], function(checked)
         if sel.pid then
@@ -1631,6 +1678,15 @@ local function BuildCard()
             ns.Fire("PlansChanged")
         end
     end)
+    local function CardTip(frame, body)
+        frame:HookScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(body, 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        frame:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    CardTip(activeCB, L["Ticked profiles run when the pull starts. Several can be active for one boss; identical reminders only run once."])
 
     alsoLbl = tab:CreateFontString(nil, "OVERLAY")
     alsoLbl:SetFontObject(W.fontNormal)
@@ -1661,21 +1717,16 @@ local function BuildCard()
         alsoCBs[i] = cb
     end
 
-    activeNote = tab:CreateFontString(nil, "OVERLAY")
-    activeNote:SetFontObject(W.fontSmall)
-    activeNote:SetTextColor(0.6, 0.6, 0.6)
-    activeNote:SetJustifyH("LEFT")
-    activeNote:SetText(L["Ticked profiles run when the pull starts. Several can be active for one boss; identical reminders only run once."])
-
     --------------------------------------------------------
-    -- 卡片第三排：預覽播放、立即測試、戰後回顧、停止
+    -- 底排右半：預覽播放、立即測試、戰後回顧、停止（接在「＋ 新增提示」後面，BuildBottom 錨）
     --------------------------------------------------------
-    btnPreview = W.CreateButton(tab, L["Preview"], "primary", 70, 20)
-    W.FitButton(btnPreview, 70, 20)
+    btnPreview = W.CreateButton(tab, L["Preview"], "normal", 70, 22)
+    W.FitButton(btnPreview, 70, 22)
     btnPreview:SetScript("OnClick", function() ns.PlanPreview.Open(sel.pid, sel.diff) end)
+    CardTip(btnPreview, L["Plays the whole profile with a fake clock inside this window: sounds, speech and boss warnings included. Nothing is written to Blizzard's timeline."])
 
-    btnTest = W.CreateButton(tab, L["Test now"], "normal", 80, 20)
-    W.FitButton(btnTest, 80, 20)
+    btnTest = W.CreateButton(tab, L["Test now"], "normal", 80, 22)
+    W.FitButton(btnTest, 80, 22)
     btnTest:SetPoint("LEFT", btnPreview, "RIGHT", 6, 0)
     btnTest:SetScript("OnClick", function()
         ns.Scheduler.Test(sel.pid)
@@ -1688,13 +1739,14 @@ local function BuildCard()
         GameTooltip:Show()
     end)
     btnTest:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    btnReview = W.CreateButton(tab, L["Review"], "normal", 70, 20)
-    W.FitButton(btnReview, 70, 20)
+    btnReview = W.CreateButton(tab, L["Review"], "normal", 70, 22)
+    W.FitButton(btnReview, 70, 22)
     btnReview:SetPoint("LEFT", btnTest, "RIGHT", 6, 0)
     btnReview:SetScript("OnClick", function() reviewPopup:Open() end)
+    CardTip(btnReview, L["Compares reminders that follow a boss cast with when that cast really happened in your last pull."])
 
-    btnStop = W.CreateButton(tab, L["Stop"], "red", 60, 20)
-    W.FitButton(btnStop, 60, 20)
+    btnStop = W.CreateButton(tab, L["Stop"], "red", 60, 22)
+    W.FitButton(btnStop, 60, 22)
     btnStop:SetPoint("LEFT", btnReview, "RIGHT", 6, 0)
     btnStop:SetScript("OnClick", function() ns.Scheduler.Stop() end)
 
@@ -1757,21 +1809,11 @@ local function BuildBottom()
     btnAdd:SetScript("OnClick", function()
         OpenEntryPopup({})
     end)
+    btnPreview:SetPoint("LEFT", btnAdd, "RIGHT", 10, 0)
 
-    btnImport = W.CreateButton(tab, L["Paste reminders"], "normal", 90, 22)
-    W.FitButton(btnImport, 90, 22)
-    btnImport:SetPoint("LEFT", btnAdd, "RIGHT", 6, 0)
-    btnImport:SetScript("OnClick", function() importPopup:Open() end)
-
-    btnExport = W.CreateButton(tab, L["Export"], "normal", 60, 22)
-    W.FitButton(btnExport, 60, 22)
-    btnExport:SetPoint("LEFT", btnImport, "RIGHT", 6, 0)
-    btnExport:SetScript("OnClick", function() exportPopup:Open() end)
-
-    -- 復原（也可以 Ctrl＋Z）：只記這次登入、每份設定檔 20 步
+    -- 復原（也可以 Ctrl＋Z）：只記這次登入、每份設定檔 20 步；靠右（Layout 錨）
     btnUndo = W.CreateButton(tab, L["Undo"], "normal", 60, 22)
     W.FitButton(btnUndo, 60, 22)
-    btnUndo:SetPoint("LEFT", btnExport, "RIGHT", 6, 0)
     btnUndo:SetScript("OnClick", function()
         if Plans.Undo(sel.pid) then ns.Fire("PlansChanged") end
     end)
@@ -1809,10 +1851,10 @@ local function BuildBottom()
 
     -- 有設定檔才顯示的（也用在的勾另外管：數量跟著難度那一組）
     profileWidgets = {
-        profLbl, profDD, btnNew, btnCopy, btnRename, btnDelete,
-        activeCB, alsoLbl, activeNote,
+        profLbl, profDD, btnNew, btnImport, btnMore,
+        activeCB, alsoLbl,
         btnPreview, btnTest, btnReview, statusText,
-        btnAdd, btnImport, btnExport, btnUndo, recNote,
+        btnAdd, btnUndo, recNote,
     }
 end
 
@@ -1822,26 +1864,19 @@ local function Init()
     local title = W.CreateSectionTitle(tab, L["Bosses"], ns.Options.PANEL_W - 32)
     title:SetPoint("TOPLEFT", 16, -14)
 
-    -- 【技能】【我的提醒】：標題列右邊（標題那一排本來就空著，不擠到下面的版面）
-    ui.bAbil = W.CreateButton(tab, L["Abilities"], "accent-hover", 80, 20)
-    ui.bRem = W.CreateButton(tab, L["My reminders"], "accent-hover", 80, 20)
-    W.FitButton(ui.bAbil, 80, 20)
-    W.FitButton(ui.bRem, 80, 20)
+    -- 【技能】【我的提示】：首領名稱底下、難度上面（Layout 定位），右邊一句灰字講這一區在做什麼
+    ui.bAbil = W.CreateButton(tab, L["Abilities"], "accent-hover", 90, 22)
+    ui.bRem = W.CreateButton(tab, L["My reminders"], "accent-hover", 90, 22)
+    W.FitButton(ui.bAbil, 90, 22)
+    W.FitButton(ui.bRem, 90, 22)
     ui.bAbil.id, ui.bRem.id = "abilities", "reminders"
-    ui.bRem:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 4)
-    ui.bAbil:SetPoint("RIGHT", ui.bRem, "LEFT", -3, 0)
+    ui.bRem:SetPoint("LEFT", ui.bAbil, "RIGHT", 3, 0)
     ui.highlightSection = W.CreateButtonGroup({ ui.bAbil, ui.bRem }, ui.SetSection)
-    local function SectionTip(b, body)
-        b:HookScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(self:GetText(), 1, 1, 1)
-            GameTooltip:AddLine(body, 0.8, 0.8, 0.8, true)
-            GameTooltip:Show()
-        end)
-        b:HookScript("OnLeave", function() GameTooltip:Hide() end)
-    end
-    SectionTip(ui.bAbil, L["Change how this boss's abilities look and sound on the timeline, or hide them."])
-    SectionTip(ui.bRem, L["Add your own reminders to this boss's fight: at a time, or following an ability."])
+    sectionHint = tab:CreateFontString(nil, "OVERLAY")
+    sectionHint:SetFontObject(W.fontSmall)
+    sectionHint:SetTextColor(0.6, 0.6, 0.6)
+    sectionHint:SetJustifyH("LEFT")
+    sectionHint:SetWordWrap(false)
 
     ui.abil = ns.AbilitiesView.Create(tab, { onAddReminder = ui.AddReminderFor })
 

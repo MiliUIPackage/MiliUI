@@ -139,6 +139,14 @@ local function CleanEntry(e)
     }
     local phase = Num(e.phase, 2, 20)
     if phase then out.phase = math.floor(phase) end
+    out.phaseOffset = Num(e.phaseOffset, -600, 600)
+    -- 首領警告：嚴重度 0～2、停留 1～10 秒（超出範圍就當沒給，Scheduler 用 3 秒）
+    local warn = Num(e.warn, 0, 2)
+    if warn then
+        out.warn = math.floor(warn)
+        out.warnDur = Num(e.warnDur, 1, 10)
+    end
+    out.noTimeline = e.noTimeline == true or nil   -- 不放上暴雪時間軸，只做音效／朗讀／警告
     if type(e.roles) == "table" then
         local roles = {}
         for r in pairs(ROLES) do

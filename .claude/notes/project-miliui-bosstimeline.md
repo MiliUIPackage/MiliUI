@@ -235,3 +235,31 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
 
 拖拉式時間軸編輯器（資料已是秒數，換畫法不用遷移）、條件（職責）、語音／音效、平滑的軸壓縮（遠端壓短）。
 - 冒險指南：`EJ_GetEncounterInfoByIndex(i, instID)` 要先 `EJ_SelectInstance(instID)` 才有資料（單傳 instID 回空，2026-10-09 實測），讀完切回原本選中的資料片／副本。
+
+## 設定頁 UX 改版（2026-10-11 第二輪：使用者四點回報）
+
+使用者看圖回報：區塊切換藏在右上角、技能列一排沒標籤的勾與色塊看不懂、清單／時間軸與參考列掛在卡片外像另一層，
+整體「選項多到我都混淆」。目標是玩家一眼知道「改這個會出現什麼」。改法：
+- **「首領」頁**：區塊切換【技能】【我的提示】搬到首領名稱底下、難度分頁上方，右邊一句灰字講這一區在做什麼；
+  清單｜時間軸、參考列（MRT 時間軸／變體／上一場紀錄）搬進難度卡片；設定檔列只剩「新增／貼上匯入／更多▾（複製、改名、匯出、刪除）」；
+  預覽播放／立即測試／戰後回顧跟「＋ 新增提示」同一排；生效／也用在的說明改滑過。
+- **技能清單**（`AbilitiesView.lua`）：一列＝圖示＋名稱＋「已設定」摘要（色塊、音效、語音、隱藏）＋【設定】【加提示】。
+  設定本身在新的 **`Options/AbilityPopover.lua`**（有標籤、分「在時間軸上／快到時／施放時」三段，改了就存）。
+  技能多了 `ttsSoon`／`ttsCast`（`A.TTSFor(spell)`、`A.OnIdentified(spell, rem)`）：暴雪 SetEventSound 只收音效檔，
+  念字靠 Identify 認出技能後 C_Timer 排程，跟「隱藏」同一個限制。
+- **提示編輯視窗**（`EntryEditor.lua`）：五個分頁 → 一頁三段「何時／內容／怎麼提醒」＋收起來的「只給誰」。
+  何時三選一：開戰後秒數／跟著技能（第 n 次＋備援時間自動從 MRT 帶、每一次）／第 n 階段開始後幾秒
+  （階段起點＝MRT 統計，存成 t＋`phase`＋`phaseOffset`，Scheduler 只讀 t）。
+  怎麼提醒：時機（音效／語音／警告共用 `soundWhen`）、放上時間軸（`noTimeline`）、首領警告（`warn` 0/1/2＋`warnDur`）、音效、語音。
+  視窗比面板高，改成置中在 UIParent。
+- **自製首領警告**（`Timeline/Warnings.lua`）：暴雪 `C_EncounterWarnings` 沒有讓插件塞警告的 API（只有 Get/Set 設定、PlaySound、GetColorForSeverity），
+  叫暴雪框的 `ShowWarning` ＝在暴雪框寫欄位（戰鬥中它要畫秘密名稱，會炸）。所以自己畫三個框錨在
+  `CriticalEncounterWarnings`／`MediumEncounterWarnings`／`MinorEncounterWarnings` 的中心（只讀位置），字型物件照暴雪
+  （Huge2／Huge1／Large2 Slug）、字寬上限 490/440/390 超過就 SetTextScale 縮，顏色 GetColorForSeverity，左右方形圖示；
+  編輯模式的大小／透明度／圖示大小每次 Show 重讀。量字寬用獨立量尺字串（錨定鏈可能帶秘密面向）。
+- **語音播報全域設定** `db.tts = { voice, rate, volume }`（一般分頁；`Sch.Speak(text)`，`SpeakText(voiceID, text, rate, volume, true)` 五參數是 12.x 簽章，
+  選的語音念失敗退回 `C_TTSSettings.GetVoiceOptionID(Standard)`）；`db.warnings = { enabled, blizzardSound }`。
+- **DreamForgeTools 的 UX 對照**（tmp/DreamForgeTools 讀原始碼）：它也沒寫暴雪警告，全走自家 Notify 引擎；值得借的是
+  「內容／送達方式分開」「對象用晶片勾選」「一句白話摘要」「點時間軸直接新增」「＋再加一條」；我們沒抄它的多視窗結構。
+- ⚠ 全部**未實機驗證**：三個暴雪警告框的全域名稱與錨點、Slug 字型在 zhTW 客戶端存不存在、GetColorForSeverity 回傳物件能不能 GetRGB、
+  SpeakText 五參數、編輯視窗 600px 高在 UI 縮放下的樣子、技能設定小窗的輸入框失焦存檔。
