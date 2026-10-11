@@ -15,11 +15,12 @@
 -- 直接對上的記錄 ID 會分群（同一隻首領的記錄通常連號）：最大那群當這隻首領的範圍，
 -- 其他群多半是共用法術（狂怒之類）對到別隻首領，標「遠處」。名稱對上只收範圍附近的。
 --
--- 另外拿 MRT 的分組（A.ForEncounter）當對照組，比較兩邊各自找到哪些記錄；
+-- 另外拿 MRT 的分組（A.FromMRT）當對照組，比較兩邊各自找到哪些記錄；
 -- 並檢查冒險指南的角色／效果標記跟記錄的 icons 位元是否一致（兩邊是同一組概念）。
 ------------------------------------------------------------
 local _, ns = ...
 
+local L = ns.L
 local A = ns.Abilities
 local MD = ns.MRTData
 
@@ -297,7 +298,7 @@ function JA.Compare(encounterID, idx)
     end
 
     -- 4. MRT 對照組
-    local mrtList, viaMRT = A.ForEncounter(encounterID)
+    local mrtList, viaMRT = A.FromMRT(encounterID)
     res.mrt = { available = MD.Available(), has = viaMRT and #mrtList > 0, list = mrtList }
     st.mrtMatch, st.mrtGuess = 0, 0
     local mrtLo, mrtHi
@@ -383,3 +384,132 @@ function JA.Edges(res)
 end
 
 JA.SortedKeys = SortedKeys
+
+------------------------------------------------------------
+-- 「首領技能」分頁的清單（A.ForEncounter 轉來這裡）
+--
+-- 依 2026-10-11 /mbt ej tier 實測（43 隻首領）定的規則：
+--   * 段落 spellID ＝ 記錄 spellID 的**全收**，不管 ID 離多遠 —— 「遠處」的實測幾乎都是同一隻
+--     （傳奇限定、後補的技能排在很後面，MRT 也對得上），真正的共用法術一隻都沒踩到。
+--   * 同名不同 ID 的只收「離任一筆同 ID 記錄 NEAR_MARGIN 筆以內」的：名稱全遊戲重複很多（吞噬…）。
+--   * 照冒險指南的順序排，用沒有法術的標題段落（階段、小怪、多首領戰的各隻）當分組。
+--   * MRT 對上、冒險指南沒有的補在「其他」組；最後補小縫（A.Gaps）。
+-- 回傳 items, src：items 是 { header = 文字 } 或 { info, how = "journal"/"name"/"mrt"/"guess", tags }；
+-- src = { journal = 冒險指南有段落, mrt = MRT 有這隻 }（清單空的時候分頁拿來決定提示哪一句）
+------------------------------------------------------------
+local sectionCache = {}
+
+local function CachedSections(encounterID)
+    local hit = sectionCache[encounterID]
+    if hit == nil then
+        -- 失敗也快取：每次重畫都去切冒險指南的副本／難度沒有意義
+        hit = ns.Journal.Sections(encounterID) or false
+        sectionCache[encounterID] = hit
+    end
+    return hit or nil
+end
+
+-- 段落的分組：往上找沒有法術的標題段落（階段、小怪、首領名），由外到內串起來
+local function GroupLabel(sec, byID)
+    local titles = {}
+    local p = sec.parent and byID[sec.parent]
+    while p do
+        if not p.spell and not p.overview and p.title ~= "" then table.insert(titles, 1, p.title) end
+        p = p.parent and byID[p.parent]
+    end
+    return #titles > 0 and table.concat(titles, " › ") or nil
+end
+
+-- 段落上的難度標記（英雄／傳奇）照遊戲的字串顯示
+local DIFF_FLAGS = { [3] = true, [12] = true }
+local function Tags(sec)
+    local out = {}
+    for _, f in ipairs(sec.flags or {}) do
+        if DIFF_FLAGS[f] then out[#out + 1] = JA.FlagName(f) end
+    end
+    return #out > 0 and table.concat(out, " ") or nil
+end
+
+function JA.ForEncounter(encounterID)
+    local src = { journal = false, mrt = false }
+    if not A.Available() or not encounterID then return {}, src end
+    local idx = JA.BuildIndex()
+    local journal = CachedSections(encounterID)
+
+    local groups, groupOf = {}, {}
+    local taken = {}
+    local function Take(id, label, how, sec)
+        if taken[id] or not idx.info[id] then return end
+        taken[id] = true
+        local key = label or ""
+        local g = groupOf[key]
+        if not g then
+            g = { label = label, items = {} }
+            groupOf[key] = g
+            groups[#groups + 1] = g
+        end
+        g.items[#g.items + 1] = { info = idx.info[id], how = how, tags = sec and Tags(sec) }
+    end
+
+    if journal then
+        src.journal = true
+        local byID = {}
+        for _, sec in ipairs(journal.sections) do byID[sec.id] = sec end
+        -- 第一輪：同 ID 的全收（名稱比對要用它們當「附近」的基準）
+        local exact = {}
+        for _, sec in ipairs(journal.sections) do
+            if not sec.overview and sec.spell then
+                for _, id in ipairs(idx.bySpell[sec.spell] or {}) do exact[id] = true end
+            end
+        end
+        local exactList = SortedKeys(exact)
+        local function Near(id)
+            for _, e in ipairs(exactList) do
+                if math.abs(id - e) <= NEAR_MARGIN then return true end
+            end
+            return false
+        end
+        -- 第二輪：照冒險指南的順序放進各組
+        for _, sec in ipairs(journal.sections) do
+            if not sec.overview then
+                local label = GroupLabel(sec, byID)
+                local ids = {}
+                for _, id in ipairs(sec.spell and idx.bySpell[sec.spell] or {}) do ids[#ids + 1] = id end
+                table.sort(ids)
+                for _, id in ipairs(ids) do Take(id, label, "journal", sec) end
+                local names = {}
+                if sec.spell then names[#names + 1] = Lower(MD.SpellInfo(sec.spell)) end
+                names[#names + 1] = Lower(sec.title)
+                for _, n in ipairs(names) do
+                    local cands = {}
+                    for _, id in ipairs(idx.byName[n] or {}) do cands[#cands + 1] = id end
+                    table.sort(cands)
+                    for _, id in ipairs(cands) do
+                        if Near(id) then Take(id, label, "name", sec) end
+                    end
+                end
+            end
+        end
+    end
+
+    local mrtList, viaMRT = A.FromMRT(encounterID)
+    src.mrt = viaMRT
+    for _, item in ipairs(mrtList) do
+        if not item.guessed then Take(item.info.id, L["Other abilities (from MRT)"], "mrt") end
+    end
+
+    for _, id in ipairs(A.Gaps(taken)) do
+        Take(id, L["Probably this boss too (between its records)"], "guess")
+    end
+
+    -- 攤平：只有一組（而且沒有標題）就不印分組列；沒標題的那組在有其他組時用首領名當標題
+    local out = {}
+    local onlyRoot = #groups == 1 and groups[1].label == nil
+    for _, g in ipairs(groups) do
+        if not onlyRoot then
+            out[#out + 1] = { header = g.label or (journal and journal.info.name) or L["Boss"] }
+        end
+        for _, it in ipairs(g.items) do out[#out + 1] = it end
+    end
+    return out, src
+end

@@ -480,3 +480,10 @@ L["MRT has these, outside the journal's range"] = "MRT 有、但在冒險指南�
 L["Flag mismatches (* above)"] = "標記不一致（上面的 *）"
 L["journal only"] = "只有冒險指南有"
 L["record only"] = "只有記錄有"
+
+-- 首領技能清單的來源（冒險指南分組為主、MRT 補）
+L["Other abilities (from MRT)"] = "其他技能（來自 MRT）"
+L["Probably this boss too (between its records)"] = "可能也是這隻的（夾在它的記錄之間）"
+L["(guessed)"] = "（推測）"
+L["Neither the Adventure Guide nor MRT lists this boss's abilities. Search by spell name above instead."] = "冒險指南和 MRT 都沒有這隻首領的技能，請用上面的搜尋找法術名稱。"
+L["Abilities come from the Adventure Guide and are grouped the same way; MRT's timeline adds the ones the guide doesn't list. \"(guessed)\" rows sit between this boss's own records."] = "技能清單來自冒險指南、分組也照冒險指南；冒險指南沒列到的由 MRT 時間軸補上。標「（推測）」的是夾在這隻首領記錄之間的。"

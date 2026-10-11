@@ -11,10 +11,9 @@
 -- 認的是「技能記錄」本身（encounterEventID），不是戰鬥中那一條事件，所以**秘密值管不到**：
 -- 戰鬥外設好，暴雪自己在戰鬥中照著上色、播音。
 --
--- encounterEventID 沒有「屬於哪隻首領」的欄位（GetEventList 是全遊戲的清單）。分組靠 MRT：
--- MRT 時間軸裡這隻首領用到的法術 → 找出 spellID 對得上的事件記錄；記錄 ID 同一隻首領通常是連號的
--- （DBM 瓦什尼克 754～775），所以兩端之間夾著的記錄也一起列（MRT 沒統計到的技能）。
--- MRT 沒有這隻首領就只能搜尋法術名稱（Tab_Abilities）。
+-- encounterEventID 沒有「屬於哪隻首領」的欄位（GetEventList 是全遊戲的清單）。分組主要靠冒險指南的
+-- 技能段落（spellID／名稱對上，見 JournalAbilities.lua），MRT 時間軸對上的補進來，最後補小縫（A.Gaps）。
+-- 兩邊都沒有就只能搜尋法術名稱（Tab_Abilities）。
 --
 -- ⚠ 跟 DBM 搶同一個設定：DBM 會在登入時與開戰時替它認得的技能設顏色與倒數音。
 --   我們只碰玩家自己設過的技能，並且在登入後與開戰後稍等一下再套一次（後套的贏）。
@@ -84,8 +83,35 @@ local function AllEventIDs()
 end
 A.AllEventIDs = AllEventIDs
 
--- 這隻首領的技能記錄（照 ID 排）。回傳 list, viaMRT
-function A.ForEncounter(encounterID)
+-- 小縫補齊：兩筆已知記錄之間只差 GAP_FILL 筆以內，中間那幾筆也算這隻首領的（標 guessed）。
+-- ⚠ 不要再補整段 lo～hi：團本各首領的記錄 ID 是交錯的（後補的技能、傳奇限定的排在很後面），
+--   2026-10-11 /mbt ej tier 實測整段補齊在妮莉莎補出 499 筆、烏拉特克 150 筆，幾乎全是別隻的。
+--   小縫（≤3 筆）實測多半是同一隻的變身／同名不同 ID 的技能。
+A.GAP_FILL = 3
+
+-- known = { [記錄ID] = true } → 縫裡的記錄 ID 清單（照 ID 排）
+function A.Gaps(known)
+    local sorted = {}
+    for id in pairs(known) do sorted[#sorted + 1] = id end
+    table.sort(sorted)
+    local all, pos = AllEventIDs(), {}
+    for i, id in ipairs(all) do pos[id] = i end
+    local out = {}
+    for i = 2, #sorted do
+        local a, b = pos[sorted[i - 1]], pos[sorted[i]]
+        if a and b and b - a > 1 and b - a - 1 <= A.GAP_FILL then
+            for j = a + 1, b - 1 do
+                if not known[all[j]] then out[#out + 1] = all[j] end
+            end
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+-- MRT 的分組：MRT 時間軸裡這隻首領用到的法術 → spellID 對得上的記錄，再補小縫。
+-- 回傳 list（照 ID 排，{ info, guessed }）, viaMRT（MRT 有這隻首領）
+function A.FromMRT(encounterID)
     if not A.Available() then return {}, false end
     local spells = {}
     local any = false
@@ -97,28 +123,26 @@ function A.ForEncounter(encounterID)
     end
     if not any then return {}, false end
 
-    local matched, lo, hi = {}, nil, nil
+    local matched = {}
     for _, id in ipairs(AllEventIDs()) do
         local info = A.Info(id)
-        if info and info.spell and spells[info.spell] then
-            matched[id] = true
-            lo = (not lo or id < lo) and id or lo
-            hi = (not hi or id > hi) and id or hi
-        end
+        if info and info.spell and spells[info.spell] then matched[id] = true end
     end
     local out = {}
-    if lo then
-        for _, id in ipairs(AllEventIDs()) do
-            if matched[id] or (id > lo and id < hi) then
-                local info = A.Info(id)
-                if info then
-                    out[#out + 1] = { info = info, guessed = not matched[id] }
-                end
-            end
-        end
+    for id in pairs(matched) do
+        out[#out + 1] = { info = A.Info(id) }
+    end
+    for _, id in ipairs(A.Gaps(matched)) do
+        local info = A.Info(id)
+        if info then out[#out + 1] = { info = info, guessed = true } end
     end
     table.sort(out, function(a, b) return a.info.id < b.info.id end)
     return out, true
+end
+
+-- 「首領技能」分頁的清單：冒險指南分組為主、MRT 補（JournalAbilities.lua）
+function A.ForEncounter(encounterID)
+    return ns.JournalAbilities.ForEncounter(encounterID)
 end
 
 -- 依法術名稱搜尋（MRT 沒資料時用）。最多 maxN 筆

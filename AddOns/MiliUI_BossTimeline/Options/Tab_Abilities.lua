@@ -129,16 +129,44 @@ local function BuildRow(row)
     row.clear:SetScript("OnClick", function()
         if Id() then A.Clear(Id()) end
     end)
+
+    -- 分組標題列（冒險指南的階段／小怪／多首領戰的各隻）：跟技能列共用同一個列池，
+    -- 是標題時把技能列的控件全部藏起來
+    row.controls = { row.icon, row.name, row.color, row.highlight, row.sndHl, row.sndCast, row.hide, row.clear }
+    row.header = row:CreateFontString(nil, "OVERLAY")
+    row.header:SetFontObject(W.fontNormal)
+    row.header:SetPoint("LEFT", row, "LEFT", COL.icon, -2)
+    row.header:SetPoint("RIGHT", row, "RIGHT", -6, -2)
+    row.header:SetJustifyH("LEFT")
+    row.header:SetWordWrap(false)
+    row.header:SetTextColor(W.Accent(1))
+    row.headerLine = row:CreateTexture(nil, "ARTWORK")
+    row.headerLine:SetTexture("Interface\\Buttons\\WHITE8X8")
+    row.headerLine:SetVertexColor(W.Accent(0.35))
+    row.headerLine:SetHeight(P.Scale(1))
+    row.headerLine:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", COL.icon, 1)
+    row.headerLine:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -6, 1)
 end
 
 local function UpdateRow(row, it)
+    local isHeader = it.header ~= nil
+    row.header:SetShown(isHeader)
+    row.headerLine:SetShown(isHeader)
+    for _, c in ipairs(row.controls) do c:SetShown(not isHeader) end
+    if isHeader then
+        row.item = nil
+        row.stripe:Hide()
+        row.header:SetText(it.header)
+        return
+    end
     row.item = it
     local info = it.info
     local cfg = A.Get(info.id) or {}
     row.icon:SetTexture(info.icon or 134400)
     local name = info.name or (L["Spell"] .. " #" .. tostring(info.spell))
     local extra = "  |cff6f6f6f#" .. info.id .. "|r"
-    if it.guessed then extra = extra .. " |cff9d9d9d" .. L["(not in MRT)"] .. "|r" end
+    if it.tags then extra = extra .. "  |cff9d9d9d" .. it.tags .. "|r" end
+    if it.how == "guess" or it.guessed then extra = extra .. " |cff9d9d9d" .. L["(guessed)"] .. "|r" end
     row.name:SetText(name .. extra)
     row.color:SetColor(cfg.color or UNSET)
     row.highlight:SetColor(cfg.highlight or UNSET)
@@ -170,12 +198,11 @@ local function Refresh()
         return
     end
 
-    local items, viaMRT
+    local items, src
     if searchText ~= "" then
         items = A.Search(searchText, 80)
-        viaMRT = true
     elseif currentID then
-        items, viaMRT = A.ForEncounter(currentID)
+        items, src = A.ForEncounter(currentID)
     else
         items = {}
     end
@@ -186,10 +213,8 @@ local function Refresh()
             emptyText:SetText(L["No boss ability matches that name."])
         elseif not currentID then
             emptyText:SetText(L["Pick a boss above, or add one by its encounter ID."])
-        elseif not ns.MRTData.Available() then
-            emptyText:SetText(L["Listing a boss's abilities needs MRT's timeline data. Install or enable MRT, or search by spell name above."])
-        elseif not viaMRT then
-            emptyText:SetText(L["MRT has no timeline for this boss. Search by spell name above instead."])
+        elseif src and not src.journal and not src.mrt then
+            emptyText:SetText(L["Neither the Adventure Guide nor MRT lists this boss's abilities. Search by spell name above instead."])
         else
             emptyText:SetText(L["No boss ability records found for this boss."])
         end
@@ -296,6 +321,7 @@ local function Init()
     note:SetJustifyH("LEFT")
     note:SetSpacing(3)
     note:SetText(table.concat({
+        L["Abilities come from the Adventure Guide and are grouped the same way; MRT's timeline adds the ones the guide doesn't list. \"(guessed)\" rows sit between this boss's own records."],
         L["Colors and sounds go through Blizzard's own boss ability settings: Blizzard's timeline, this addon's timeline (Appearance → Use the ability's timeline color) and DBM all see them. \"Soon\" is about 5 seconds before."],
         L["DBM sets colors and countdown sounds for the abilities it knows; yours are applied after it, so yours win. Clearing a row also clears DBM's setting until its next pull."],
         L["Hide only works on abilities recognized in combat (General → Recognizing boss abilities in combat)."],
