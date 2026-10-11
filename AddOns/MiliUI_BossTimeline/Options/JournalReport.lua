@@ -344,12 +344,12 @@ local function Build(arg)
 
     local id = tonumber(arg)
     if not id then
-        id = ns.AbilitiesTabBoss and ns.AbilitiesTabBoss()
+        id = ns.SelectedBoss and ns.SelectedBoss()
         local last = ns.db.lastEncounter
         id = id or (last and last.id)
     end
     if not id then
-        return L["Pick a boss on the Boss abilities tab first, or type /mbt ej <encounter ID>."], 0
+        return L["Pick a boss on the Bosses tab first, or type /mbt ej <encounter ID>."], 0
     end
     Legend(out)
     out[#out + 1] = ""

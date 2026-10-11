@@ -394,6 +394,7 @@ JA.SortedKeys = SortedKeys
 --   * 同名不同 ID 的只收「離任一筆同 ID 記錄 NEAR_MARGIN 筆以內」的：名稱全遊戲重複很多（吞噬…）。
 --   * 照冒險指南的順序排，用沒有法術的標題段落（階段、小怪、多首領戰的各隻）當分組。
 --   * MRT 對上、冒險指南沒有的補在「其他」組；最後補小縫（A.Gaps）。
+-- difficultyID：首領頁選的難度，只列冒險指南在這個難度有寫的技能（nil＝不濾）。
 -- 回傳 items, src：items 是 { header = 文字 } 或 { info, how = "journal"/"name"/"mrt"/"guess", tags }；
 -- src = { journal = 冒險指南有段落, mrt = MRT 有這隻 }（清單空的時候分頁拿來決定提示哪一句）
 ------------------------------------------------------------
@@ -430,7 +431,10 @@ local function Tags(sec)
     return #out > 0 and table.concat(out, " ") or nil
 end
 
-function JA.ForEncounter(encounterID)
+-- 首領頁選的難度 → 冒險指南的難度（鑰石沒有自己的一份，看傳奇）
+local DIFF_ALIAS = { [8] = 23 }
+
+function JA.ForEncounter(encounterID, difficultyID)
     local src = { journal = false, mrt = false }
     if not A.Available() or not encounterID then return {}, src end
     local idx = JA.BuildIndex()
@@ -438,6 +442,7 @@ function JA.ForEncounter(encounterID)
 
     local groups, groupOf = {}, {}
     local taken = {}
+    local visible = {}       -- [記錄ID] = { [難度] = true }：任一個對到它的段落在這個難度看得到
     local function Take(id, label, how, sec)
         if taken[id] or not idx.info[id] then return end
         taken[id] = true
@@ -469,6 +474,13 @@ function JA.ForEncounter(encounterID)
             end
             return false
         end
+        local function See(id, sec)
+            local v = visible[id] or {}
+            visible[id] = v
+            for _, d in ipairs(journal.diffs) do
+                if not sec.hidden[d] then v[d] = true end
+            end
+        end
         -- 第二輪：照冒險指南的順序放進各組
         for _, sec in ipairs(journal.sections) do
             if not sec.overview then
@@ -476,7 +488,10 @@ function JA.ForEncounter(encounterID)
                 local ids = {}
                 for _, id in ipairs(sec.spell and idx.bySpell[sec.spell] or {}) do ids[#ids + 1] = id end
                 table.sort(ids)
-                for _, id in ipairs(ids) do Take(id, label, "journal", sec) end
+                for _, id in ipairs(ids) do
+                    See(id, sec)
+                    Take(id, label, "journal", sec)
+                end
                 local names = {}
                 if sec.spell then names[#names + 1] = Lower(MD.SpellInfo(sec.spell)) end
                 names[#names + 1] = Lower(sec.title)
@@ -485,7 +500,10 @@ function JA.ForEncounter(encounterID)
                     for _, id in ipairs(idx.byName[n] or {}) do cands[#cands + 1] = id end
                     table.sort(cands)
                     for _, id in ipairs(cands) do
-                        if Near(id) then Take(id, label, "name", sec) end
+                        if Near(id) then
+                            See(id, sec)
+                            Take(id, label, "name", sec)
+                        end
                     end
                 end
             end
@@ -502,10 +520,30 @@ function JA.ForEncounter(encounterID)
         Take(id, L["Probably this boss too (between its records)"], "guess")
     end
 
-    -- 攤平：只有一組（而且沒有標題）就不印分組列；沒標題的那組在有其他組時用首領名當標題
-    local out = {}
-    local onlyRoot = #groups == 1 and groups[1].label == nil
+    -- 難度：只留冒險指南在這個難度有寫的（MRT／推測的沒有難度資訊，照列）。
+    -- 冒險指南沒檢查過這個難度（例如地城沒有隨機）就不濾
+    local d = difficultyID and (DIFF_ALIAS[difficultyID] or difficultyID)
+    local checked = false
+    for _, x in ipairs(journal and journal.diffs or {}) do
+        if x == d then checked = true end
+    end
+    local function Keep(it)
+        local v = checked and visible[it.info.id]
+        return not v or v[d] == true
+    end
+
+    -- 攤平：只有一組（而且沒有標題）就不印分組列；沒標題的那組在有其他組時用首領名當標題；濾完空掉的組整組不印
+    local kept = {}
     for _, g in ipairs(groups) do
+        local items = {}
+        for _, it in ipairs(g.items) do
+            if Keep(it) then items[#items + 1] = it end
+        end
+        if #items > 0 then kept[#kept + 1] = { label = g.label, items = items } end
+    end
+    local out = {}
+    local onlyRoot = #kept == 1 and kept[1].label == nil
+    for _, g in ipairs(kept) do
         if not onlyRoot then
             out[#out + 1] = { header = g.label or (journal and journal.info.name) or L["Boss"] }
         end

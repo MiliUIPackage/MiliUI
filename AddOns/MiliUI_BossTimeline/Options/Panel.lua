@@ -30,8 +30,7 @@ local currentTab
 local TABS = {
     { id = "general", label = L["General"] },
     { id = "style",   label = L["Appearance"] },
-    { id = "plans",   label = L["Custom timelines"] },
-    { id = "abilities", label = L["Boss abilities"] },
+    { id = "plans",   label = L["Bosses"] },
     { id = "about",   label = L["About"] },
 }
 
@@ -235,6 +234,11 @@ function Options.Open(tabId)
     ApplyPosition()
     panel:Show()
     panel:Raise()
+    -- 「首領」頁的兩個區塊可以直接指定（導覽卡用）：abilities／reminders → plans 分頁
+    if tabId == "abilities" or tabId == "reminders" then
+        ns.db.planView.section = tabId
+        tabId = "plans"
+    end
     tabId = tabId or currentTab or "general"
     for _, b in ipairs(tabButtons) do
         if b.id == tabId then

@@ -66,8 +66,8 @@ Options\BossPicker.lua
 Options\EntryEditor.lua
 Options\PlanPreview.lua
 Options\PlanEditor.lua
+Options\AbilitiesView.lua
 Options\Tab_Plans.lua
-Options\Tab_Abilities.lua
 Options\JournalReport.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua

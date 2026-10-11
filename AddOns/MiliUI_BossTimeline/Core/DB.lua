@@ -124,7 +124,7 @@ local function BuildDefaults()
         -- 自訂時間軸分頁：要不要列出參考列（MRT 的整場時間軸、上一場的紀錄）、側欄展開沒、上次看到哪
         --   instance  側欄目前的副本（冒險指南副本 ID，或 "other"＝其他首領）
         --   boss／difficulty／profile  上次看的首領戰 ID／難度分頁／設定檔 ID（都可能是 nil）
-        planView = { mrt = true, recorded = true, mode = "timeline", sidebar = true },
+        planView = { mrt = true, recorded = true, mode = "timeline", sidebar = true, section = "abilities" },
 
         -- 最近一場首領戰（手動輸入首領戰 ID 時帶入用）
         lastEncounter = nil,

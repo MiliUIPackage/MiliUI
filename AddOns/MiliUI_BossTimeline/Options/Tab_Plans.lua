@@ -1,5 +1,11 @@
 ------------------------------------------------------------
--- 「自訂時間軸」分頁：替首領排自己的提示
+-- 「首領」分頁：選一隻首領 → 看到它的技能 → 每個技能可以「改樣子」或「加提醒」
+--
+-- 標題列右邊兩個區塊切換（View().section）：
+--   【技能】    這隻首領的技能清單（冒險指南分組）：顏色、音效、隱藏、＋提醒 —— Options/AbilitiesView.lua
+--   【我的提醒】自己排的提示（下面這張圖）
+-- 2026-10-11 從「自訂時間軸」「首領技能」兩個分頁合併：兩邊都要先選首領、內容都繞著首領技能，
+-- 玩家分不出差別。合併後首領只在側欄選一次，難度卡片兩個區塊共用（技能區塊拿它來濾冒險指南的技能）。
 --
 -- 導覽順序＝心智順序：副本 → 首領（左側欄，用選的）→ 難度（分頁卡片）→ 設定檔（下拉，可多份）
 --
@@ -48,6 +54,8 @@ local btnAdd, btnImport, btnExport, btnUndo, recNote
 local emptyText, btnCreate, btnEmptyImport, noBossText
 local renamePopup, deletePopup, importPopup, exportPopup, reviewPopup, idPopup, choicePopup
 local keyCatcher
+-- 【技能】／【我的提醒】區塊切換與技能清單（收在一張表：Refresh 的 upvalue 已經很多了，見 Init 的註解）
+local ui = {}
 
 -- 目前選的：副本（冒險指南 ID 或 "other"）、首領戰 ID、難度、設定檔 ID
 local sel = {}
@@ -137,9 +145,17 @@ end
 local function BossRows(instID)
     local rows = {}
     if instID == OTHER then
+        local seen = {}
         for _, b in ipairs(Plans.Bosses()) do
             if InstanceOf(b.id) == OTHER then
+                seen[b.id] = true
                 rows[#rows + 1] = { id = b.id, name = b.boss.name or tostring(b.id), journal = b.boss.journal }
+            end
+        end
+        -- 舊版「首領技能」分頁手動加過的首領
+        for id, name in pairs(ns.db.abilityBosses or {}) do
+            if not seen[id] and InstanceOf(id) == OTHER then
+                rows[#rows + 1] = { id = id, name = name or tostring(id) }
             end
         end
         return rows
@@ -1133,6 +1149,8 @@ local function Layout()
     recNote:SetPoint("TOPLEFT", tab, "TOPLEFT", x, NOTE_Y)
     recNote:SetWidth(lw)
 
+    ui.abil:Place(x, ct - 10, lw, (ct - 10) - (CARD_BOTTOM + 10))
+
     emptyText:ClearAllPoints()
     emptyText:SetPoint("TOPLEFT", tab, "TOPLEFT", x, ct - 14)
     emptyText:SetWidth(lw)
@@ -1190,6 +1208,16 @@ local function Refresh()
             diffTabs.lastH = h
             Layout()
         end
+    end
+
+    -- 【技能】區塊：難度卡片裡只放技能清單，提醒那一套全部收起來
+    local abilities = View().section ~= "reminders"
+    ui.highlightSection(abilities and ui.bAbil or ui.bRem)
+    ui.abil.frame:SetShown(hasBoss and abilities)
+    if abilities then
+        ui.HideReminders()
+        if hasBoss then ui.abil:Set(sel.boss, sel.diff) end
+        return
     end
 
     local profile = Profile()
@@ -1334,6 +1362,60 @@ local function SelectNewProfile(p)
     sel.pid = p.id
     Remember()
     ns.Fire("PlansChanged")
+end
+
+------------------------------------------------------------
+-- 【技能】↔【我的提醒】
+------------------------------------------------------------
+-- 【技能】區塊時，提醒那一套（設定檔列、清單／時間軸、底下按鈕、參考列）全部收起來
+function ui.HideReminders()
+    for _, w in ipairs(profileWidgets) do w:Hide() end
+    for _, cb in ipairs(alsoCBs) do cb:Hide() end
+    for _, b in ipairs(modeButtons) do b:Hide() end
+    for _, w in ipairs({ head, list, editor.frame, emptyText, btnCreate, btnEmptyImport, btnStop,
+                         showRecCB, showMRTCB, mrtDD }) do
+        w:Hide()
+    end
+end
+
+function ui.SetSection(id)
+    View().section = id
+    Refresh()
+end
+
+-- MRT 統計裡這個技能第一次施放的秒數（給「＋提醒」當備援時間）
+local function FirstCast(spell)
+    local v = MRTVariant(Profile())
+    if not v then return end
+    for _, ev in ipairs(MD.Events(sel.boss, v)) do
+        if ev.spell == spell then return ev.t end
+    end
+end
+
+-- 技能列的「＋」：切到【我的提醒】，這個難度還沒有設定檔就建一份，開新增視窗並綁好這個技能。
+-- MRT 有它的施放時間 ⇒ 錨在第 1 次（時間＝第一次施放，當備援）；沒有 ⇒「每一次」（不用時間）
+function ui.AddReminderFor(info)
+    if not sel.boss or not info or not info.spell then return end
+    View().section = "reminders"
+    if not Profile() then
+        EnsureSelectedBoss()
+        local p = Plans.NewProfile(sel.boss, L["My plan"], sel.diff)
+        if p then
+            sel.pid = p.id
+            Remember()
+        end
+    end
+    ns.Fire("PlansChanged")
+    if not Profile() then return end
+    local values = { spell = info.spell, anchorName = info.name }
+    local t = FirstCast(info.spell)
+    if t then
+        values.t = t
+        values.anchor = { spell = info.spell, n = 1, offset = 0 }
+    else
+        values.anchor = { spell = info.spell, every = true, offset = 0 }
+    end
+    OpenEntryPopup(values)
 end
 
 local function BuildSidebar()
@@ -1737,8 +1819,31 @@ end
 local function Init()
     if tab then return end
     tab = ns.Options.NewTabFrame()
-    local title = W.CreateSectionTitle(tab, L["Custom timelines"], ns.Options.PANEL_W - 32)
+    local title = W.CreateSectionTitle(tab, L["Bosses"], ns.Options.PANEL_W - 32)
     title:SetPoint("TOPLEFT", 16, -14)
+
+    -- 【技能】【我的提醒】：標題列右邊（標題那一排本來就空著，不擠到下面的版面）
+    ui.bAbil = W.CreateButton(tab, L["Abilities"], "accent-hover", 80, 20)
+    ui.bRem = W.CreateButton(tab, L["My reminders"], "accent-hover", 80, 20)
+    W.FitButton(ui.bAbil, 80, 20)
+    W.FitButton(ui.bRem, 80, 20)
+    ui.bAbil.id, ui.bRem.id = "abilities", "reminders"
+    ui.bRem:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 4)
+    ui.bAbil:SetPoint("RIGHT", ui.bRem, "LEFT", -3, 0)
+    ui.highlightSection = W.CreateButtonGroup({ ui.bAbil, ui.bRem }, ui.SetSection)
+    local function SectionTip(b, body)
+        b:HookScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(self:GetText(), 1, 1, 1)
+            GameTooltip:AddLine(body, 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        b:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    SectionTip(ui.bAbil, L["Change how this boss's abilities look and sound on the timeline, or hide them."])
+    SectionTip(ui.bRem, L["Add your own reminders to this boss's fight: at a time, or following an ability."])
+
+    ui.abil = ns.AbilitiesView.Create(tab, { onAddReminder = ui.AddReminderFor })
 
     CreatePopups()
     -- 拆成幾段：一個函式引用的 file-scope local 不能超過 60 個（Lua 5.1 upvalue 上限）
@@ -1783,6 +1888,11 @@ ns.RegisterCallback("ShowOptionsTab", "plansTab", function(id)
     Refresh()
     tab:Show()
 end)
+
+-- /mbt ej 沒給首領時用這裡選中的那隻（Options/JournalReport.lua）
+function ns.SelectedBoss()
+    return sel.boss
+end
 
 -- 分頁沒開著就不重畫（打完一場、測試結束都會發事件；重畫會碰冒險指南，沒人看就不必）
 local function RefreshIfShown()

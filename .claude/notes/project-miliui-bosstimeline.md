@@ -82,7 +82,7 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
 
 ## 首領技能設定與戰鬥中辨識（2026-10-09 第三批）
 
-- **首領技能分頁**（`Plans/Abilities.lua`＋`Options/Tab_Abilities.lua`）：每個技能記錄（encounterEventID）設時間軸顏色、
+- **首領技能**（`Plans/Abilities.lua`＋`Options/AbilitiesView.lua`，2026-10-11 起是「首領」頁的【技能】區塊）：每個技能記錄（encounterEventID）設時間軸顏色、
   快到顏色、快到音效、施放音效、隱藏。顏色音效走 `C_EncounterEvents.SetEventColor(id, 1/2, ColorMixin)`／
   `SetEventSound(id, 2 快到 / 1 施放, {file, channel, volume})`——認的是技能記錄不是戰鬥中的事件，秘密值管不到。
   `GetEventInfo(encounterEventID)` 沒有秘密標註（spellID／iconFileID 明文）。
@@ -191,6 +191,22 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
 - **分頁現況**（`JA.ForEncounter`，`A.ForEncounter` 轉過去）：同 ID 全收 → 同名限離同 ID 記錄 ±10 筆 → MRT 同 ID 補「其他」組 →
   小縫標「推測」。照冒險指南順序、以沒有法術的標題段落（階段／小怪／多首領戰各隻）分組；段落有英雄／傳奇標記就顯示。
   段落樹每隻首領一次登入只讀一次（`sectionCache`，失敗也快取）。報告的 MRT 對照組改用 `A.FromMRT`。
+
+## 「首領」頁：【技能】＋【我的提示】合併（2026-10-11）
+
+使用者回報「自訂時間軸」「首領技能」兩個分頁分不出差別（都要先選首領、內容都繞著首領技能）。
+合併成一個「首領」分頁（id 仍是 `plans`，`Tab_Plans.lua`），心智模型：**選首領 → 看技能 → 每個技能「改樣子」或「加提示」**。
+- 標題列右邊【技能】【我的提示】切換（`planView.section`，預設 abilities）。首領只在側欄選一次，難度卡片兩區共用。
+- 【技能】＝`Options/AbilitiesView.lua`（可嵌入元件，寬度跟卡片走：右側控件錨列右緣、名稱欄吃剩下的）。
+  難度卡片拿來濾冒險指南的技能（`JA.ForEncounter(enc, diff)`，鑰石 8 → 傳奇 23；冒險指南沒檢查過的難度不濾）。
+  技能設定**不分難度、不分設定檔**（使用者同意的建議：同技能各難度多半要同樣的顏色；分難度的提醒交給【我的提示】），
+  區塊頂端一句話講明。欄名「顏色／快到／隱藏」有滑過說明。
+- 技能列「+」：切到【我的提示】、這個難度沒設定檔就自動建一份，開新增視窗並綁好技能 ——
+  MRT 有施放時間 ⇒ 錨第 1 次（時間＝第一次施放當備援）；沒有 ⇒「每一次」。
+- 「新增首領」拿掉：側欄就是冒險指南的首領清單；舊版手動加的首領（`db.abilityBosses`）落在「其他首領」。
+- `Options.Open("abilities"|"reminders")` 會轉成 plans 分頁並切到那個區塊（導覽卡用）。
+- 冒險指南段落：開設定、選到那隻首領時才讀，一次登入一次（不存 SavedVariables：熱修會改內容，讀一次也不貴）。
+- 還沒做：時間軸編輯器點 MRT 技能格子 ⇒ 直接改那個技能的顏色／音效（反向連結）。
 
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
 

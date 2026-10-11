@@ -130,7 +130,7 @@ local ADVANCED = {
     { type = "text", label = L["When DBM recognizes a timeline entry, it announces the ability by name; this addon picks that up. Needs DBM with its boss modules."] },
     { type = "toggle", sub = "identify", key = "mrt", label = L["Guess from the MRT timeline"] },
     { type = "text", label = L["Matches the time into the fight against MRT's statistics for the same difficulty. Skipped when two abilities are too close to tell apart. DBM's answer wins when both are available."] },
-    { type = "text", label = L["Recognized abilities are what make \"Hide on the timeline\" (Boss abilities tab) work, and let your last pull remember their names."] },
+    { type = "text", label = L["Recognized abilities are what make \"Hide\" (Bosses → Abilities) work, and let your last pull remember their names."] },
 }
 
 local content

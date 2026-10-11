@@ -17,8 +17,8 @@ local popup
 
 local ITEMS = {
     { tab = "style",     title = "Change how it looks",            body = "Text, outline, colors, square icons; vertical, horizontal or bars. The preview updates as you go." },
-    { tab = "plans",     title = "Add your own reminders to a boss", body = "Pick an instance and a boss on the left, keep separate profiles per difficulty, drag reminders on the timeline and preview them right here." },
-    { tab = "abilities", title = "Color or sound a boss ability",    body = "Give an ability its own color, a sound when it's about to happen, or hide it." },
+    { tab = "abilities", title = "Color or sound a boss ability",    body = "Bosses → Abilities: every ability of the boss, grouped like the Adventure Guide. Give one its own color, a sound when it's about to happen, or hide it." },
+    { tab = "reminders", title = "Add your own reminders to a boss", body = "Bosses → My reminders: keep separate profiles per difficulty, drag reminders on the timeline and preview them right here. The + on an ability starts one that follows it." },
     { tab = "general",   title = "See who is writing to the timeline", body = "Blizzard, your custom timelines, and other addons such as DiGua Voice." },
 }
 

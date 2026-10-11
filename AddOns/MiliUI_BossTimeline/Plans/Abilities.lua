@@ -13,7 +13,7 @@
 --
 -- encounterEventID 沒有「屬於哪隻首領」的欄位（GetEventList 是全遊戲的清單）。分組主要靠冒險指南的
 -- 技能段落（spellID／名稱對上，見 JournalAbilities.lua），MRT 時間軸對上的補進來，最後補小縫（A.Gaps）。
--- 兩邊都沒有就只能搜尋法術名稱（Tab_Abilities）。
+-- 兩邊都沒有就只能搜尋法術名稱（Options/AbilitiesView.lua）。
 --
 -- ⚠ 跟 DBM 搶同一個設定：DBM 會在登入時與開戰時替它認得的技能設顏色與倒數音。
 --   我們只碰玩家自己設過的技能，並且在登入後與開戰後稍等一下再套一次（後套的贏）。
@@ -141,8 +141,8 @@ function A.FromMRT(encounterID)
 end
 
 -- 「首領技能」分頁的清單：冒險指南分組為主、MRT 補（JournalAbilities.lua）
-function A.ForEncounter(encounterID)
-    return ns.JournalAbilities.ForEncounter(encounterID)
+function A.ForEncounter(encounterID, difficultyID)
+    return ns.JournalAbilities.ForEncounter(encounterID, difficultyID)
 end
 
 -- 依法術名稱搜尋（MRT 沒資料時用）。最多 maxN 筆
