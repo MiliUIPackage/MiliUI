@@ -166,25 +166,6 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（`ch
   `players={名字}`（兩邊去伺服器、ASCII 不分大小寫）。分享 v2 全帶、匯入 `CleanEntry` 重新清洗。
 - **分享 v2**：`{ v=2, id, boss, name＝設定檔名, author, difficulties, entries }`；v1 照吃。匯入預設新增一份（不生效）、可選併入目前那份。
 
-## 冒險指南段落 ↔ 技能記錄比對（2026-10-11，驗證中）
-
-想讓「首領技能」分頁不靠 MRT 分組：冒險指南的段落樹本身就是「首領 → 技能」，還有階段／小怪分組與角色標記。
-先做驗證工具 `/mbt ej`（`/mbt ej <首領戰ID>`、`/mbt ej here`、`/mbt ej tier`），**還沒改分頁的資料來源**。
-- 段落樹：`J.Sections`（`Plans/Journal.lua`）。`EJ_GetEncounterInfo(jEnc)` 第 4 個回傳＝第一段，`C_EncounterJournal.GetSectionInfo`
-  的 firstChildSectionID／siblingSectionID 走完；最上層開頭 headerType 3＝概覽（坦／補／輸出摘要），收但不參與分群。
-  `filteredByDifficulty` 跟著冒險指南選中的難度 ⇒ 每個難度 `EJ_SetDifficulty` 切一次記下來，讀完切回；冒險指南視窗開著就不切。
-  `J.Locate(首領戰ID)` 找冒險指南位置：所在副本 → 每個資料片整本掃（只有玩家叫的檢查會走到，結果快取）。
-- 比對：`Plans/JournalAbilities.lua`。三層：同 spellID ／ 同名（段落法術名或標題 ＝ 記錄法術名，限範圍 ±10 筆內）／對不上。
-  同 spellID 的記錄連號分群（相差 ≤12），**按落在群裡的不同法術數排**取最大群當這隻首領的範圍 ——
-  按筆數排會被狂怒這種共用法術（一個 spellID 對到每隻首領各一筆）拉走（本機模擬踩到過）。
-- 標記交叉檢查：`GetSectionIconFlags` 回 0 起算索引（＝`Enum.JournalEncounterIconFlags` 的位元位置：0 坦 1 輸出 2 補 3 英雄 4 致命
-  5 重要 6 可斷 7 魔法 8 詛咒 9 毒 10 疾病 11 狂怒 12 傳奇 13 流血）；記錄的 `EncounterEventInfo.icons` 是 `Enum.EncounterEventIconmask`
-  （1 致命 2 狂怒 4 流血 8 魔法 16 疾病 32 詛咒 64 毒 128 坦 256 補 512 輸出）。對照表 `JA.FLAG_TO_ICON`；英雄／重要／可斷／傳奇沒有對應不比。
-  `EncounterEventInfo` 另有 `enabled`、`severity`（0 低 1 中 2 高），`A.Info` 已一併收。
-- 報告視窗可全選複製；法術名稱沒載到會自動 1.5 秒後重跑一次。結論門檻：範圍涵蓋 ≥90% 可單獨用、≥60% 部分可用。
-- **待實機**：同 spellID 的比率（冒險指南常用說明用法術）、範圍涵蓋率、標記一致率；`EJ_SelectEncounter` 是否必要；
-  切難度會不會讓冒險指南 UI 狀態亂掉。有結果再決定分頁要不要改成冒險指南優先、MRT 補。
-
 ## 待實機驗證（骨架只在 Lua 模擬環境跑過，見下）
 
 00. 2026-10-10：DSR1 字串用 C_EncodingUtil 解得開（Deflate／Zlib 哪個成功）、DeserializeJSON 對 DFT 的 JSON（巢狀陣列、playerNotes 物件）；
