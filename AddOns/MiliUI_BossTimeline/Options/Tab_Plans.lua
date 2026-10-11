@@ -70,7 +70,7 @@ local ROW_H = 24
 local BOSS_ROW_H = 22
 local TOP = -46
 local SECTION_Y = -96         -- 區塊切換那一排
-local DIFF_Y = -126           -- 難度分頁鈕列
+local SECTION_H = 22          -- 區塊切換鈕高；旁邊的灰字換行時整排跟著長，難度分頁往下推（Layout 算）
 local SIDE_X, SIDE_W = 16, 170
 local SIDE_GAP = 10
 local COLLAPSED_W = 20 + 8    -- 收起來時只剩展開鈕那一條
@@ -1121,16 +1121,26 @@ local function Layout()
     noBossText:SetPoint("TOPLEFT", tab, "TOPLEFT", cx + 2, TOP - 4)
     noBossText:SetWidth(cw - 4)
 
-    -- 區塊切換：首領名稱底下、難度上面
+    -- 區塊切換：首領名稱底下、難度上面。旁邊的灰字照寬度換行（各語系長度差很多），
+    -- 這一排的高度取兩段說明裡最高的，難度分頁鈕列跟著往下 —— 兩段都量，切換區塊時版面才不會跳
     ui.bAbil:ClearAllPoints()
     ui.bAbil:SetPoint("TOPLEFT", tab, "TOPLEFT", cx, SECTION_Y)
     sectionHint:ClearAllPoints()
-    sectionHint:SetPoint("LEFT", ui.bRem, "RIGHT", 10, 0)
-    sectionHint:SetPoint("RIGHT", tab, "RIGHT", -RIGHT_PAD, 0)
+    sectionHint:SetPoint("TOPLEFT", ui.bRem, "TOPRIGHT", 10, -3)
+    sectionHint:SetWidth(math.max(60, cw - (ui.bAbil:GetWidth() + 3 + ui.bRem:GetWidth() + 10)))
+    local hintH = 0
+    local keep = sectionHint:GetText()
+    for _, text in ipairs({ L["How this boss's abilities look and sound on the timeline."],
+                            L["Your own reminders for this fight: on the timeline, as a boss warning, a sound or speech."] }) do
+        sectionHint:SetText(text)
+        hintH = math.max(hintH, math.ceil(sectionHint:GetStringHeight()) + 6)
+    end
+    sectionHint:SetText(keep or "")
+    local diffY = SECTION_Y - math.max(SECTION_H, hintH) - 8
 
-    local stripH = diffTabs:Place(cx, DIFF_Y, cw)
+    local stripH = diffTabs:Place(cx, diffY, cw)
     diffTabs:SetBottom(CARD_BOTTOM)
-    local ct = DIFF_Y - stripH                 -- 卡片上緣
+    local ct = diffY - stripH                  -- 卡片上緣
     local x = cx + 10
     local right = cx + cw - 10                 -- 卡片內容的右緣
 
@@ -1876,7 +1886,9 @@ local function Init()
     sectionHint:SetFontObject(W.fontSmall)
     sectionHint:SetTextColor(0.6, 0.6, 0.6)
     sectionHint:SetJustifyH("LEFT")
-    sectionHint:SetWordWrap(false)
+    sectionHint:SetJustifyV("TOP")
+    sectionHint:SetWordWrap(true)
+    sectionHint:SetSpacing(2)
 
     ui.abil = ns.AbilitiesView.Create(tab, { onAddReminder = ui.AddReminderFor })
 
