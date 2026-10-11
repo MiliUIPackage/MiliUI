@@ -66,6 +66,10 @@ function A.Info(eventID)
         spell = spell,
         name  = name,
         icon  = S.PlainNumber(info.iconFileID) or icon,
+        -- 下面三個只有 /mbt ej 的比對報告在看（JournalAbilities.lua）
+        enabled  = S.ToBool(info.enabled),
+        severity = S.PlainNumber(info.severity),
+        icons    = S.PlainNumber(info.icons),
     }
     if name then infoCache[eventID] = c end     -- 名稱還沒載到就先不快取
     return c
@@ -78,6 +82,7 @@ local function AllEventIDs()
     allIDs = type(list) == "table" and list or {}
     return allIDs
 end
+A.AllEventIDs = AllEventIDs
 
 -- 這隻首領的技能記錄（照 ID 排）。回傳 list, viaMRT
 function A.ForEncounter(encounterID)

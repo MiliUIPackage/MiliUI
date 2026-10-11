@@ -69,6 +69,8 @@ SlashCmdList.MILIUIBT = function(msg)
         Report()
     elseif msg == "stop" then
         ns.Scheduler.Stop()
+    elseif msg == "ej" or msg:match("^ej%s") then
+        ns.JournalReport.Open(strtrim(msg:sub(3)))
     else
         ns.OpenOptions()
     end

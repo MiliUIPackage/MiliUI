@@ -45,6 +45,7 @@ Timeline\Screen.lua
 Plans\Plans.lua
 Plans\Journal.lua
 Plans\Abilities.lua
+Plans\JournalAbilities.lua
 Plans\Scheduler.lua
 Plans\Recorder.lua
 Plans\Share.lua
@@ -67,6 +68,7 @@ Options\PlanPreview.lua
 Options\PlanEditor.lua
 Options\Tab_Plans.lua
 Options\Tab_Abilities.lua
+Options\JournalReport.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Api.lua

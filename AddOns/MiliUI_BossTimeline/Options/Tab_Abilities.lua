@@ -302,6 +302,11 @@ local function Init()
     }, "\n"))
 end
 
+-- /mbt ej 沒給首領時用這裡選中的那隻（Options/JournalReport.lua）
+function ns.AbilitiesTabBoss()
+    return currentID
+end
+
 ns.RegisterCallback("ShowOptionsTab", "abilitiesTab", function(id)
     if id ~= "abilities" then
         if tab then tab:Hide() end
