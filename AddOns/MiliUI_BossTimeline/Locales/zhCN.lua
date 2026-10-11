@@ -599,3 +599,12 @@ L["Pick a phase; MRT needs phase times for this boss."] = "请选一个阶段；
 -- 引导卡
 L["Bosses → Abilities: every ability of the boss, grouped like the Adventure Guide. Open its settings to give it a color, a sound or speech, or hide it."] = "首领 → 技能：这只首领的所有技能，分组跟冒险指南一样。打开设置可以换颜色、加音效或语音，或把它藏起来。"
 L["Bosses → My reminders: at a time, following an ability or in a phase; shown on the timeline, as a boss warning, a sound or speech. Preview it right here."] = "首领 → 我的提示：指定秒数、跟着技能或某个阶段；放上时间轴、显示成首领警告、播音效或念出来。可以直接在这里预览。"
+
+-- 小地图按钮（2026-10-11）
+L["Show minimap button"] = "显示小地图按钮"
+L["Hidden? Type /mbt minimap to bring it back."] = "关掉之后要叫回来，输入 /mbt minimap。"
+L["Minimap button shown."] = "已显示小地图按钮。"
+L["Minimap button hidden. Type /mbt minimap to bring it back."] = "已隐藏小地图按钮，输入 /mbt minimap 可以叫回来。"
+L["Left-click"] = "左键"
+L["Toggle options"] = "开启／关闭设置"
+L["Drag: move around the minimap"] = "拖拽：沿小地图边缘移动"

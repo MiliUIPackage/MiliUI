@@ -29,6 +29,7 @@ end
 
 local function Apply()
     ns.Screen.Apply()
+    if ns.Minimap then ns.Minimap.Apply() end
     RefreshAll()
 end
 
@@ -148,6 +149,8 @@ local BASIC = {
       requires = { sub = "display", key = "enabled" } },
     { type = "text", label = L["Only the picture is hidden. Blizzard's sounds, and other addons' timeline sounds such as DBM countdowns, keep working."] },
     { type = "toggle", key = "previewOnScreen", label = L["Preview on screen while this window is open"] },
+    { type = "toggle", sub = "minimap", key = "show", label = L["Show minimap button"] },
+    { type = "text", label = L["Hidden? Type /mbt minimap to bring it back."] },
 
     { type = "header", label = L["When to show it"] },
     { type = "dropdown", sub = "display", key = "visibility", label = L["Show"], items = {

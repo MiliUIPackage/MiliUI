@@ -21,6 +21,8 @@ local function BuildDefaults()
     return {
         schemaVersion = ns.DB_VERSION,
         optionsWindow = { x = 0, y = 0 },
+        -- 小地圖按鈕（Options/Minimap.lua）：show 開關、angle 在小地圖圈上的角度
+        minimap = { show = true, angle = 215 },
         -- 設定視窗開著時，畫面上的時間軸也用假資料跑（看得到實際位置與大小、可以直接拖）
         previewOnScreen = true,
         seenIntro = false,           -- 第一次開設定視窗的導覽看過了沒

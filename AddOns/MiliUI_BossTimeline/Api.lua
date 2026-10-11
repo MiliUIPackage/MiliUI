@@ -69,6 +69,9 @@ SlashCmdList.MILIUIBT = function(msg)
         Report()
     elseif msg == "stop" then
         ns.Scheduler.Stop()
+    elseif msg == "minimap" then
+        ns.Minimap.SetShown(not (ns.db.minimap and ns.db.minimap.show))
+        ns.Print(ns.db.minimap.show and L["Minimap button shown."] or L["Minimap button hidden. Type /mbt minimap to bring it back."])
     elseif msg == "ej" or msg:match("^ej%s") then
         ns.JournalReport.Open(strtrim(msg:sub(3)))
     else
