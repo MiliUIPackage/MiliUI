@@ -862,7 +862,13 @@ function ns.SpawnUnitFrame(unit)
         if self.highlightOn and self.highlight then self.highlight:Show() end
         if not ns.db.global.showTooltip then return end
         if ns.db.global.tooltipHideInCombat and InCombatLockdown() then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        -- 定位走預設錨點（跟暴雪單位框的 UnitFrame_UpdateTooltip 一樣）：提示插件（MiliUI_Tooltip 等）
+        -- 掛在 GameTooltip_SetDefaultAnchor 上改位置，寫死 ANCHOR_RIGHT 會繞過它們的錨點設定
+        if GameTooltip_SetDefaultAnchor then
+            GameTooltip_SetDefaultAnchor(GameTooltip, self)
+        else
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        end
         if not GameTooltip:SetUnit(self.unit) then
             GameTooltip:Hide()
         end
