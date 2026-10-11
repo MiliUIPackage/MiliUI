@@ -18,8 +18,8 @@
 -- 設定跟著設定檔走，不分專精（profile.skyriding，Core/DB.lua 的 SkyridingDefaults）。
 --
 -- 位置兩種（placement）：
---   relay       接力：跟資源條輪流出現在同一個位置（貼資源條的固定邊）。錨定由 Core/Bars.lua 決定（SR.RelayPlace），
---               不參與排開、不給自己的編輯模式覆蓋層、不能拖（拖資源條就一起走）
+--   relay       接力：跟接力對象（relayTo：核心技能〔預設〕或資源條）輪流出現在同一個位置（貼它的固定邊）。
+--               錨定由 Core/Bars.lua 決定（SR.RelayPlace），不參與排開、不給自己的編輯模式覆蓋層、不能拖（拖接力對象就一起走）
 --   standalone  一般的面板：自己的 pos／anchor、可以拖、參與排開
 -- hideCdm：面板顯示中時，其餘的條與面板 alpha 0（Core/Visibility.lua 的 Snapshot.skyridingHideCdm）。
 --
@@ -194,6 +194,18 @@ function SR.RelayMode()
     return SR.IsRelay(Cfg())
 end
 
+-- 接力對象：resources 才是資源條，其餘（沒存、不認得）都當核心技能
+function SR.RelayTarget(cfg)
+    return type(cfg) == "table" and cfg.relayTo == "resources" and "resources" or "essential"
+end
+
+-- 現在接力中的對象（不是接力模式回 nil）
+function SR.RelayTo()
+    local cfg = Cfg()
+    if not SR.IsRelay(cfg) then return nil end
+    return SR.RelayTarget(cfg)
+end
+
 -- st：{ blocked, powerBarID, bonusIndex, bonusOffset, canGlide, isGliding, charges, maxCharges }
 -- 值可能是 nil（讀不到）或秘密值，一律當不成立
 function SR.Riding(st)
@@ -341,20 +353,21 @@ function SR.SurgeOnCooldown(duration)
     return duration > 2
 end
 
--- 接力的錨定（Core/Bars.lua 的 PlaceContainer 叫）。resCfg：資源條的設定表；
--- usable：資源條開著而且沒收合（Bars 用 enabled 與 StackSkip 判斷，不讀框的幾何）；
--- edge：資源條容器的錨點（B.AnchorPoint("resources")，預設 BOTTOM：貼在核心技能上方、往上長）。
+-- 接力的錨定（Core/Bars.lua 的 PlaceContainer 叫）。resCfg：接力對象（target，省略＝resources）的設定表；
+-- usable：它開著而且沒收合（Bars 用 enabled 與 StackSkip 判斷，不讀框的幾何）；
+-- edge：它容器的錨點（B.AnchorPoint(target)；資源條預設 BOTTOM：貼在核心技能上方、往上長；核心技能往下長是 TOP）。
 -- 兩個框**貼同一個固定邊**：天空騎術比資源條高時往資源條長的方向多出去，不會反過來蓋到核心技能
 --（TOP 對 TOP 的話，資源條在核心技能上方時多出來的那截會往下壓到核心技能）。
 -- 回傳 "anchor", { to, point, relPoint, x, y } 或 "pos", 資源條的 pos（貼在資源條自己的錨點那一邊）
-function SR.RelayPlace(resCfg, usable, edge)
+function SR.RelayPlace(resCfg, usable, edge, target)
+    target = target or "resources"
     if usable then
         edge = type(edge) == "string" and edge or "BOTTOM"
-        return "anchor", { to = "resources", point = edge, relPoint = edge, x = 0, y = 0 }
+        return "anchor", { to = target, point = edge, relPoint = edge, x = 0, y = 0 }
     end
     resCfg = type(resCfg) == "table" and resCfg or {}
     local a = resCfg.anchor
-    if type(a) == "table" and type(a.to) == "string" and a.to ~= KEY and a.to ~= "resources" then
+    if type(a) == "table" and type(a.to) == "string" and a.to ~= KEY and a.to ~= target then
         return "anchor", { to = a.to, point = a.point or "TOP", relPoint = a.relPoint or "BOTTOM",
                            x = tonumber(a.x) or 0, y = tonumber(a.y) or 0 }
     end
@@ -1545,18 +1558,26 @@ function SR.Apply()
     if ns.Visibility then ns.Visibility.Later() end
 end
 
--- 接力 ↔ 獨立擺放：切到獨立擺放時把目前的螢幕位置存成 pos（留在原地，不跳回預設位置）
+-- 位置下拉的值：essential／resources（接力＋對象）｜standalone
+function SR.PlacementValue(cfg)
+    if not SR.IsRelay(cfg) then return "standalone" end
+    return SR.RelayTarget(cfg)
+end
+
+-- 接力 ↔ 獨立擺放、換接力對象：切到獨立擺放時把目前的螢幕位置存成 pos（留在原地，不跳回預設位置）
 function SR.SetPlacement(v)
     local cfg = Cfg()
     if not cfg then return end
-    v = v == "standalone" and "standalone" or "relay"
-    if (cfg.placement or "relay") == v then return end
     if v == "standalone" then
+        if not SR.IsRelay(cfg) then return end
         local pos = ns.EditMode and ns.EditMode.ReadPos and ns.EditMode.ReadPos(KEY)
         if pos then cfg.pos = pos end
         cfg.anchor = false
+        cfg.placement = "standalone"
+        return
     end
-    cfg.placement = v
+    cfg.placement = "relay"
+    cfg.relayTo = v == "resources" and "resources" or "essential"
 end
 
 local function MinSize()
@@ -1611,7 +1632,7 @@ function SR.DebugLine()
     local st = ReadState()
     local swCur, swMax = ReadCharges(SECOND_WIND)
     return ("  天空騎術：%s  %s  藏冷卻管理器 %s  騎術中 %s  顯示 %s  滑翔 %s  活力 %s/%s  重新振作 %s/%s  列 %s  競速 %s  最高速 %s  狀態 %s  速度掛勾 %s  秒數 ticker %s  alpha %s%s")
-        :format(SR.Enabled(cfg) and "開" or "關", SR.IsRelay(cfg) and "接力" or "獨立",
+        :format(SR.Enabled(cfg) and "開" or "關", SR.IsRelay(cfg) and ("接力:" .. SR.RelayTarget(cfg)) or "獨立",
                 tostring(cfg.hideCdm ~= false), tostring(riding), tostring(active),
                 tostring(st.isGliding), tostring(st.charges), tostring(st.maxCharges),
                 tostring(swCur), tostring(swMax), table.concat(SR.Geometry(cfg).list, ","), tostring(racing),

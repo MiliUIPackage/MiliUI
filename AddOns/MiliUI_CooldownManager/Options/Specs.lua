@@ -1830,6 +1830,10 @@ function Specs.Anchor(key, opts)
     list[#list + 1] = Note(L["A bar that follows another moves with it. Dragging it in Edit Mode stops the following."])
     list[#list + 1] = Note(L["Elements that follow the same side of the same bar stack outward instead of overlapping."])
     list[#list + 1] = Note(L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."])
+    -- 天空騎術接力的對象：這個位置在天空騎術時由那個面板接手（只放灰字，不放按鈕；切換在天空騎術頁）
+    if not opts.other and ns.Bars and ns.Bars.SkyRelayTo and ns.Bars.SkyRelayTo() == key then
+        list[#list + 1] = Note(L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."])
+    end
     return list
 end
 
@@ -1843,7 +1847,8 @@ function Specs.AnchorGraphSig()
     for _, k in ipairs(ns.DB.PANEL_ORDER) do keys[#keys + 1] = k end
     table.sort(keys)
     -- 天空騎術接力／獨立擺放一切換，它在不在錨定候選裡就跟著變
-    if ns.Bars and ns.Bars.SkyRelay and ns.Bars.SkyRelay() then parts[#parts + 1] = "sky:relay" end
+    local relayTo = ns.Bars and ns.Bars.SkyRelayTo and ns.Bars.SkyRelayTo()
+    if relayTo then parts[#parts + 1] = "sky:relay:" .. relayTo end
     for _, k in ipairs(keys) do
         local t = ns.DB.ConfigTable(k)
         local a = t and t.anchor

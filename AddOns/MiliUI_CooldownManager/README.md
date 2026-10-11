@@ -2102,7 +2102,11 @@ customRows[specID] = {
 - **藏起冷卻管理器**（`hideCdm`，預設開）：`Snapshot.skyridingHideCdm`（面板顯示中＋開著）成立時，`Vis.Alpha`（每一條，含自訂群組）
   與天空騎術以外的每個面板（`PanelAlpha`）都回 0。加在既有限制的前面，**不寫進每條的 `visibility` 表、不改存檔**；編輯模式中不套用。
   快照讀 `SR.Shown()`（上次 `SR.Refresh` 判斷的結果，不重讀 API、不拿 GetTime 當快取鍵）；狀態一變（`SR.Refresh` 發現換了）叫 `Vis.Later()` 整套重套。
-- **接力**（`placement = "relay"`，預設）：跟資源條輪流出現在同一個位置。
+- **接力**（`placement = "relay"`，預設）：跟接力對象輪流出現在同一個位置。接力對象 `relayTo`：`essential`（核心技能，預設；2026-10-11 應玩家要求，
+  天空騎術時冷卻管理器本來就藏起來，直接佔核心技能那塊）｜`resources`（資源條，原本的行為）。`SR.RelayTarget` 清洗（不認得＝essential）、`SR.RelayTo()`（不是接力回 nil）；
+  設定頁「位置」下拉三選一（`SR.PlacementValue`／`SR.SetPlacement`：essential｜resources｜standalone），右鍵重設連 `relayTo` 一起清。
+  下面寫「資源條」的地方換成接力對象都成立（`B.SkyRelayTo`、`EditMode` 的 `FollowsKey`／覆蓋層條名、`Specs.Anchor` 的灰字都看對象）。
+  ⚠ 接力核心技能而「藏起冷卻管理器」關著時，面板會疊在核心技能上（設計如此，跟接力資源條同理）。
   - 錨定（`Core/Bars.lua` 的 `PlaceContainer`、決定在 `SR.RelayPlace`）：容器貼資源條容器的**固定邊**（資源條的錨點 `B.AnchorPoint("resources")`，預設 `BOTTOM` 對 `BOTTOM`，(0, 0)），忽略自己存的 `anchor`／`pos`。
     比資源條高時往資源條長的方向多出去（TOP 對 TOP 的話多出來的那截會往下壓到核心技能）。
     資源條關掉或收合（`enabled`／`StackSkip`，不讀框的幾何）⇒ 改用資源條自己的錨定設定（同樣的 to／point／relPoint／x／y）；
@@ -2110,7 +2114,7 @@ customRows[specID] = {
   - **不參與排開**：不進 `StackKeys`；`AnchorCfg` 把它當不存在（不能當別人的排開／錨定目標，錨在它身上的改用自己的 pos）；錨定候選不列它。
   - 編輯模式：沒有自己的覆蓋層、選取框、點擊層，不能拖、不能方向鍵微調（`EM.SkyRelayHidden`）；資源條覆蓋層的條名寫成「資源條＋天空騎術」。
     拖資源條時對齊目標不算它（`FollowsKey` 把它當跟著資源條走）。編輯模式中兩者的預覽疊在同一個位置。
-  - 資源條頁「錨定」節下面一行灰字說明這個位置會被接手。
+  - 接力對象那一頁「錨定」節最後一行灰字說明這個位置會被接手（`Specs.Anchor`）。
 - **獨立擺放**（`standalone`）：一般的面板（自己的 `pos`／`anchor`、可拖、磁吸、可錨到別條、參與排開；`STACK_RANK` 1.5，緊貼資源條外面）。
   錨定候選排最後。從接力切過來時 `SR.SetPlacement` 用 `EditMode.ReadPos` 把目前的螢幕位置存成 `pos`（留在原地）。
   兩種模式互切走 `Bars.SkyPlacementChanged`：先拆掉天空騎術與貼在它身上的條，那些條先照新規則貼、天空騎術最後貼，再整疊結構級重排。
