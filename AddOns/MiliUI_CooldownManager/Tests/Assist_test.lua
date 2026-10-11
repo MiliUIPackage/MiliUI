@@ -53,6 +53,7 @@ env.UnitClass = function() return "聖騎士", "PALADIN", 2 end
 env.GetLocale = function() return "zhTW" end
 local combatLock = false
 env.InCombatLockdown = function() return combatLock end
+env.GetTime = function() return 0 end
 env.CreateFrame = function()
     local f = { level = 1 }
     function f:RegisterEvent() end

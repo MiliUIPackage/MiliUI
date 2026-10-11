@@ -136,6 +136,22 @@ local function Plain(v)
     return v
 end
 
+-- 發光追蹤（/mcdm glow 印）：觸發／就緒的狀態「轉換」記一行，只在記憶體（最近 TRACE_MAX 行）。
+-- 每格跟自己上一行一樣就不記（暴雪每次 RefreshData 都 HideAlert，被擋下來的那一行會洗版）。
+-- rec 為 nil ＝ 全域的（事件 id 是秘密值被略過之類）
+local TRACE_MAX = 80
+local trace = {}
+local function Trace(rec, text)
+    if rec then
+        if rec.traceLast == text then return end
+        rec.traceLast = text
+    end
+    local who = "—"
+    if rec then who = ("%s #%s"):format(tostring(rec.claimKey or rec.barKey or "?"), tostring(rec.cooldownID)) end
+    trace[#trace + 1] = ("%.1f %s %s"):format(GetTime(), who, text)
+    if #trace > TRACE_MAX then table.remove(trace, 1) end
+end
+
 ------------------------------------------------------------
 -- 設定
 ------------------------------------------------------------
@@ -735,7 +751,10 @@ function G.AfterApply(owner, rec, barKey, w, h)
         local mgr = _G.ActionButtonSpellAlertManager
         if mgr and mgr.HasAlert then
             local ok, has = pcall(mgr.HasAlert, mgr, owner)
-            if ok then rec.procActive = Plain(has) and true or false end
+            if ok then
+                rec.procActive = Plain(has) and true or false
+                if rec.procActive then Trace(rec, "觸發開（第一次看到時暴雪已在發光 HasAlert）") end
+            end
         end
     end
     G.Sync(owner, rec, barKey)
@@ -766,6 +785,7 @@ end
 local function OnShowAlert(_, frame)
     local rec = frame and ns.Viewers.frames[frame]
     if not rec then return end
+    if rec.procActive ~= true then Trace(rec, "觸發開（暴雪 ShowAlert）") end
     rec.procActive = true
     G.SyncProc(frame, rec)
 end
@@ -786,7 +806,11 @@ local function OnHideAlert(_, frame)
     local rec = frame and ns.Viewers.frames[frame]
     if not rec then return end
     -- 暴雪每次 RefreshData 都 RefreshOverlayGlow：減益鎖住 GetSpellID 時拿減益的 id 去問 ⇒ 誤判熄掉（見 OnOverlayEvent）
-    if StillOverlayed(rec) then return end
+    if StillOverlayed(rec) then
+        if rec.procActive then Trace(rec, ("暴雪 HideAlert 被擋（IsSpellOverlayed(%s) 明文 true）"):format(tostring(rec.procEventID))) end
+        return
+    end
+    if rec.procActive then Trace(rec, "觸發關（暴雪 HideAlert）") end
     rec.procActive = false
     G.SyncProc(frame, rec)
 end
@@ -815,8 +839,12 @@ local function CellMatches(rec, id)
 end
 
 local function OnOverlayEvent(show, id)
+    local raw = id
     id = Plain(id)
-    if type(id) ~= "number" or ns.released then return end
+    if type(id) ~= "number" or ns.released then
+        if raw ~= nil and id == nil then Trace(nil, (show and "OVERLAY_GLOW_SHOW" or "OVERLAY_GLOW_HIDE") .. " 的 spellID 是秘密值，略過") end
+        return
+    end
     local aura = ns.Viewers.AURA_KIND
     ns.Viewers.EnumerateItems(function(item, rec)
         if rec.custom or rec.cooldownID == nil or (aura and aura[rec.barKey]) then return end
@@ -824,12 +852,14 @@ local function OnOverlayEvent(show, id)
         if show then
             rec.procEventID = id
             if rec.procActive ~= true then
+                Trace(rec, ("觸發開（事件 SHOW %d）"):format(id))
                 rec.procActive = true
                 G.SyncProc(item, rec)
             end
         else
             rec.procEventID = nil
             if rec.procActive ~= false then
+                Trace(rec, ("觸發關（事件 HIDE %d）"):format(id))
                 rec.procActive = false
                 G.SyncProc(item, rec)
             end
@@ -924,6 +954,7 @@ local function Light(rec, barKey)
         C_Timer.After(0.1, function() G.ApplyReadyState(rec) end)
         return
     end
+    Trace(rec, ("就緒亮（%s，武裝時 %s）"):format(mode, tostring(rec.probeArmInfo or "?")))
     Start(rec, "ready", barKey)
     local token = (rec.readyToken or 0) + 1
     rec.readyToken = token
@@ -932,7 +963,10 @@ local function Light(rec, barKey)
     local dur = tonumber(ns.Setting(barKey, "glow.ready.duration")) or 3
     if dur <= 0 then dur = 3 end
     C_Timer.After(dur, function()
-        if rec.readyToken == token then Stop(rec, "ready") end
+        if rec.readyToken == token then
+            rec.traceLast = nil
+            Stop(rec, "ready")
+        end
     end)
 end
 
@@ -1082,6 +1116,7 @@ function G.ApplyReadyState(rec, owner)
         end
         return
     end
+    Trace(rec, "就緒時一直亮：" .. (kind == "secret" and "秘密分支（發光常開、alpha 交給引擎）" or "判不出來（alpha 0）"))
     Start(rec, "ready", barKey)
     local h = rec.glowHosts and rec.glowHosts.ready
     if not h then return end
@@ -1110,6 +1145,7 @@ local function Probe(rec)
         rec.probeArmed = false
         -- 武裝之後 item 換了身分（暴雪回收框給別的法術）：那個計時不是這個法術的
         if rec.probeID ~= rec.cooldownID then return end
+        Trace(rec, "就緒：探針到期")
         Fire(rec)
     end))
     rec.probe = p
@@ -1154,6 +1190,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     if d ~= nil and (type(d) ~= "number" or d <= GCD_MAX) then return end
     local spellID = SpellOf(rec)
     local charges = FromCharges(item)
+    local armInfo = charges and "回充" or (spellID and "旗標讀不到" or "無法術")   -- 武裝成功才記（/mcdm glow 印）
     -- 戰鬥中 duration 是秘密值、上面那道 GCD 閘形同虛設：暴雪每次 GCD 都對**每一格**
     -- SetCooldown（RefreshCooldownOnly），沒在冷卻的法術也一樣。改問引擎的明文旗標
     -- （isActive／isOnGCD 不是秘密值）：只是 GCD、或根本沒在冷卻 ⇒ 這次不是「要等它轉好」
@@ -1161,6 +1198,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
         local okInfo, info = pcall(C_Spell.GetSpellCooldown, spellID)
         if okInfo and type(info) == "table" then
             local gcd, active = Plain(info.isOnGCD), Plain(info.isActive)
+            armInfo = ("isOnGCD=%s isActive=%s"):format(tostring(gcd), tostring(active))
             if gcd == true or active == false then return end
             -- 明文確認進了新的冷卻（技能用掉了）⇒ 還亮著的就緒發光收掉
             if gcd == false and active == true then G.CooldownStarted(rec) end
@@ -1170,6 +1208,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     if not p then return end
     local ok = pcall(p.SetCooldown, p, start, duration, modRate or 1)
     if not ok then
+        armInfo = armInfo .. " duration物件"
         -- 參數是秘密值：污染端轉交被拒 ⇒ 改拿引擎給的 duration 物件
         if not spellID then return end
         local api = charges and C_Spell.GetSpellChargeDuration
@@ -1180,6 +1219,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
         if not ok then return end
     end
     rec.probeArmed, rec.probeID, rec.probeCharges = true, rec.cooldownID, charges
+    rec.probeArmInfo = armInfo
 end
 
 -- 暴雪清掉冷卻（到期那一刻它自己清、或冷卻被重置）而探針還武裝著 ⇒ 就是轉好了
@@ -1192,6 +1232,7 @@ function G.OnItemClear(item, rec)
     rec.probeArmed = false
     if rec.probe then pcall(rec.probe.Clear, rec.probe) end
     if rec.probeID ~= rec.cooldownID then return end
+    Trace(rec, "就緒：暴雪 Clear 時探針還武裝著，當轉好")
     Fire(rec)
 end
 
@@ -1207,7 +1248,9 @@ function G.ArmProbe(rec, dur)
     end
     local p = Probe(rec)
     if not p then return end
-    if pcall(p.SetCooldownFromDurationObject, p, dur, true) then rec.probeArmed, rec.probeID = true, rec.cooldownID end
+    if pcall(p.SetCooldownFromDurationObject, p, dur, true) then
+        rec.probeArmed, rec.probeID, rec.probeArmInfo = true, rec.cooldownID, "自訂 duration物件"
+    end
 end
 
 ------------------------------------------------------------
@@ -1317,6 +1360,98 @@ function G.Counts()
         for _, rec in pairs(ns.Custom.Records()) do Count(rec) end
     end
     return proc, ready, pandemic, active, assist
+end
+
+-- /mcdm glow：每格的發光現況＋最近的狀態轉換（Api.lua 印、存檔）。all ＝ 連沒在亮的格子也印。
+-- 值的寫法：秘密值印「秘」、nil 印「—」，其餘 tostring
+local function Show(v)
+    if v == nil then return "—" end
+    if ns.IsSecret(v) then return "秘" end
+    local can = _G.canaccessvalue
+    if can and not can(v) then return "秘" end
+    return tostring(v)
+end
+
+local function Call(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local ok, v = pcall(fn, ...)
+    if ok then return v end
+    return nil
+end
+
+local function Overlayed(id)
+    local api = C_SpellActivationOverlay and C_SpellActivationOverlay.IsSpellOverlayed
+    if type(id) ~= "number" then return "—" end
+    return id .. "=" .. Show(Call(api, id))
+end
+
+local function GlowLine(item, rec)
+    local barKey = rec.claimKey or rec.placedBar
+    local info = not rec.custom and ns.Catalog and ns.Catalog.Info(rec.cooldownID)
+    local spellID = rec.custom and rec.spellID or (info and info.spellID)
+    local override = info and info.overrideSpellID
+    local live = type(spellID) == "number" and C_SpellBook and Plain(Call(C_SpellBook.FindSpellOverrideByID, spellID)) or nil
+    local name = type(spellID) == "number" and C_Spell.GetSpellName and Plain(Call(C_Spell.GetSpellName, spellID)) or "?"
+    local lit = {}
+    for _, which in ipairs({ "proc", "ready", "active", "full", "assist" }) do
+        if rec.glowOn and rec.glowOn[which] then lit[#lit + 1] = which .. ":" .. tostring(rec.glowOn[which]) end
+    end
+    local has = "—"
+    local mgr = _G.ActionButtonSpellAlertManager
+    if item and mgr and mgr.HasAlert then has = Show(Call(mgr.HasAlert, mgr, item)) end
+    local alertA = item and item.SpellActivationAlert and Show(Call(item.SpellActivationAlert.GetAlpha, item.SpellActivationAlert)) or "—"
+    local cdInfo = "—"
+    local sid = live or override or spellID
+    if type(sid) == "number" then
+        local ci = Call(C_Spell.GetSpellCooldown, sid)
+        if type(ci) == "table" then cdInfo = ("isOnGCD=%s isActive=%s"):format(Show(ci.isOnGCD), Show(ci.isActive)) end
+    end
+    local lines = {}
+    lines[1] = ("  %s %s(%s／覆蓋 %s／當下 %s) #%s%s%s 亮著=%s"):format(tostring(barKey or "—"), tostring(name),
+        Show(spellID), Show(override), Show(live), tostring(rec.cooldownID),
+        rec.parked and " 停放" or "", rec.hidden and " 隱藏" or "",
+        #lit > 0 and table.concat(lit, ",") or "無")
+    lines[2] = ("     觸發：procActive=%s 事件id=%s 暴雪HasAlert=%s 暴雪發光alpha=%s 設定=%s"):format(
+        Show(rec.procActive), Show(rec.procEventID), has, alertA, barKey and tostring(Wanted(rec, barKey, "proc")) or "—")
+    lines[3] = ("     快捷列發光 IsSpellOverlayed：%s %s %s 事件 %s"):format(Overlayed(spellID),
+        override ~= spellID and Overlayed(override) or "", live ~= spellID and live ~= override and Overlayed(live) or "",
+        Overlayed(rec.procEventID))
+    lines[4] = ("     就緒：設定=%s 模式=%s 探針武裝=%s（%s）一直亮=%s 等資源=%s 冷卻 %s"):format(
+        barKey and tostring(Wanted(rec, barKey, "ready")) or "—", barKey and ReadyMode(barKey, rec) or "—",
+        Show(rec.probeArmed), tostring(rec.probeArmInfo or "—"), Show(rec.readyWhile), Show(rec.readyPending), cdInfo)
+    return lines
+end
+
+function G.DebugLines(all)
+    local out = {}
+    out[#out + 1] = ("  掛勾=%s 戰鬥中=%s 首領戰=%s 已還給暴雪=%s"):format(tostring(G.hooked),
+        tostring(InCombatLockdown() and true or false),
+        Show(Call(_G.IsEncounterInProgress)), tostring(ns.released or false))
+    local n, shown = 0, 0
+    local function Visit(item, rec)
+        n = n + 1
+        local on = rec.glowOn and next(rec.glowOn)
+        if not (all or on or rec.procActive or rec.procEventID or rec.readyWhile or rec.readyPending) then return end
+        shown = shown + 1
+        for _, line in ipairs(GlowLine(item, rec)) do out[#out + 1] = line end
+    end
+    if ns.Viewers and ns.Viewers.EnumerateItems then
+        ns.Viewers.EnumerateItems(function(item, rec)
+            local aura = ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]
+            if all and aura then return end            -- 增益格只有生效發光，all 也不印（太長）；在亮的照樣印
+            Visit(item, rec)
+        end)
+    end
+    if ns.Custom and ns.Custom.Records then
+        for _, rec in pairs(ns.Custom.Records()) do
+            if rec.kind == "spell" then Visit(nil, rec) end
+        end
+    end
+    out[#out + 1] = ("  （共 %d 格，印了 %d 格%s）"):format(n, shown, all and "" or "；/mcdm glow all 印全部冷卻格")
+    out[#out + 1] = ("  最近的狀態轉換（舊→新，GetTime 現在 %.1f）："):format(GetTime())
+    if #trace == 0 then out[#out + 1] = "    （無）" end
+    for i = 1, #trace do out[#out + 1] = "    " .. trace[i] end
+    return out
 end
 
 ------------------------------------------------------------

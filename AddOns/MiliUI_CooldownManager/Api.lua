@@ -857,6 +857,24 @@ ns.Events.Register("PLAYER_REGEN_ENABLED", "perf", function()
     print(ns.PREFIX_COLOR .. "[米利冷卻 perf]|r " .. ns.PerfSummary(PerfCounters(combatBase), GetTime() - since))
 end)
 
+-- /mcdm glow：觸發／就緒發光的逐格現況＋最近的狀態轉換（玩家回報「沒觸發也一直亮」時請他在亮著的當下打）
+local function GlowDebug(all)
+    local tag = ns.PREFIX_COLOR .. "[米利冷卻 glow]|r "
+    if not (ns.Glow and ns.Glow.DebugLines) then print(tag .. "引擎沒有載入") return end
+    local dump = { "v" .. tostring(ns.VERSION) .. " specID=" .. tostring(ns.specID) }
+    print(tag .. dump[1])
+    local ok, lines = xpcall(ns.Glow.DebugLines, ns.ReportError, all)
+    if not ok then return end
+    for _, line in ipairs(lines) do
+        print(line)
+        dump[#dump + 1] = line
+    end
+    if ns.Diag and ns.Diag.SaveGlow then
+        ns.Diag.SaveGlow(dump)
+        print("  |cffaaaaaa（這份輸出已存檔；/reload 或登出後寫進 SavedVariables 的 diag.glow）|r")
+    end
+end
+
 SLASH_MILIUICDM1 = "/mcdm"
 SLASH_MILIUICDM2 = "/miliuicdm"
 SlashCmdList.MILIUICDM = function(msg)
@@ -869,6 +887,8 @@ SlashCmdList.MILIUICDM = function(msg)
         Debug()
         -- 設定視窗多一個「除錯」分頁（這次登入期間一直在），直接切過去：玩家全選複製就能貼給作者
         if ns.ready and ns.Options and ns.Options.ShowDebugTab then ns.Options.ShowDebugTab() end
+    elseif msg == "glow" or msg == "glow all" then
+        GlowDebug(msg == "glow all")
     elseif msg == "aura" then
         AuraDebug()
     elseif msg == "perf" or msg:match("^perf%s") then
