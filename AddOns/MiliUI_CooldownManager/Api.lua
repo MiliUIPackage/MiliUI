@@ -519,7 +519,10 @@ end
 ns.Debug = Debug
 
 -- 設定視窗除錯分頁的全文：debug 輸出＋完整的診斷記錄（聊天框只印最近幾行）。玩家整段複製貼給作者
+-- （/mcdm glow 打開的那次改放發光診斷，ns.debugView）
 function ns.DebugText()
+    -- /mcdm glow 開的：換成發光診斷的全文（GlowLines 定義在下面，執行時才查）
+    if ns.debugView == "glow" and ns.GlowLines then return table.concat(ns.GlowLines(ns.debugGlowAll), "\n") end
     local lines = Debug(true)
     if ns.Diag and ns.Diag.Count and ns.Diag.Count() > 0 then
         lines[#lines + 1] = ""
@@ -857,23 +860,23 @@ ns.Events.Register("PLAYER_REGEN_ENABLED", "perf", function()
     print(ns.PREFIX_COLOR .. "[米利冷卻 perf]|r " .. ns.PerfSummary(PerfCounters(combatBase), GetTime() - since))
 end)
 
--- /mcdm glow：觸發／就緒發光的逐格現況＋最近的狀態轉換（玩家回報「沒觸發也一直亮」時請他在亮著的當下打）
-local function GlowDebug(all)
-    local tag = ns.PREFIX_COLOR .. "[米利冷卻 glow]|r "
-    if not (ns.Glow and ns.Glow.DebugLines) then print(tag .. "引擎沒有載入") return end
-    local dump = { "v" .. tostring(ns.VERSION) .. " specID=" .. tostring(ns.specID) }
-    print(tag .. dump[1])
+-- /mcdm glow：觸發／就緒發光的逐格現況＋最近的狀態轉換（玩家回報「沒觸發也一直亮」時請他在亮著的當下打）。
+-- 聊天框只印一行提示；全文放設定視窗的除錯分頁（ns.debugView ＝ "glow"，ns.DebugText 看它），玩家全選複製貼給作者。
+-- 每產生一次就存進 diag.glow（除錯分頁按「重新整理」＝重抓一次現況）
+local function GlowLines(all)
+    local dump = { "[米利冷卻 glow] v" .. tostring(ns.VERSION) .. " specID=" .. tostring(ns.specID) }
+    if not (ns.Glow and ns.Glow.DebugLines) then
+        dump[#dump + 1] = "  引擎沒有載入"
+        return dump
+    end
     local ok, lines = xpcall(ns.Glow.DebugLines, ns.ReportError, all)
-    if not ok then return end
-    for _, line in ipairs(lines) do
-        print(line)
-        dump[#dump + 1] = line
+    if ok then
+        for _, line in ipairs(lines) do dump[#dump + 1] = line end
     end
-    if ns.Diag and ns.Diag.SaveGlow then
-        ns.Diag.SaveGlow(dump)
-        print("  |cffaaaaaa（這份輸出已存檔；/reload 或登出後寫進 SavedVariables 的 diag.glow）|r")
-    end
+    if ns.Diag and ns.Diag.SaveGlow then ns.Diag.SaveGlow(dump) end
+    return dump
 end
+ns.GlowLines = GlowLines
 
 SLASH_MILIUICDM1 = "/mcdm"
 SLASH_MILIUICDM2 = "/miliuicdm"
@@ -884,11 +887,18 @@ SlashCmdList.MILIUICDM = function(msg)
         ns.SetMinimapButtonShown(shown)
         ns.Print(shown and L["Minimap button shown."] or L["Minimap button hidden. Type /mcdm minimap to bring it back."])
     elseif msg == "debug" then
+        ns.debugView = nil
         Debug()
         -- 設定視窗多一個「除錯」分頁（這次登入期間一直在），直接切過去：玩家全選複製就能貼給作者
         if ns.ready and ns.Options and ns.Options.ShowDebugTab then ns.Options.ShowDebugTab() end
     elseif msg == "glow" or msg == "glow all" then
-        GlowDebug(msg == "glow all")
+        ns.debugView, ns.debugGlowAll = "glow", msg == "glow all"
+        if ns.ready and ns.Options and ns.Options.ShowDebugTab then
+            print(ns.PREFIX_COLOR .. "[米利冷卻 glow]|r 已開設定視窗的「除錯」分頁：按「全選」、Ctrl+C 複製貼給作者")
+            ns.Options.ShowDebugTab()
+        else
+            for _, line in ipairs(GlowLines(ns.debugGlowAll)) do print(line) end
+        end
     elseif msg == "aura" then
         AuraDebug()
     elseif msg == "perf" or msg:match("^perf%s") then
