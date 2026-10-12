@@ -226,8 +226,11 @@ end
 
 Options.RegisterPage(KEY, Options.PageTitle(KEY), Tab.Build)
 
-ns.RegisterCallback("BarMoved", "tab_castbar", function(key)
+-- 編輯模式拖完（拖了就脫離錨定）、錨定視窗改了值：錨定那一節重讀
+local function RefreshMoved(key)
     if key ~= KEY then return end
     local page = Options.GetPage(KEY)
     if page and page:IsVisible() and page.RefreshForm then ns.Defer(function() page:RefreshForm() end) end
-end)
+end
+ns.RegisterCallback("BarMoved", "tab_castbar", RefreshMoved)
+ns.RegisterCallback("AnchorChanged", "tab_castbar", RefreshMoved)

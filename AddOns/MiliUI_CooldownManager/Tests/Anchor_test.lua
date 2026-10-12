@@ -3,7 +3,7 @@
 --
 --   lua  AddOns/MiliUI_CooldownManager/Tests/Anchor_test.lua
 --
--- 覆蓋：存檔字串的形狀（Parse／IsExternal）、提供者順序、快取與作廢、自己的條容器名被擋、
+-- 覆蓋：存檔字串的形狀（Parse／IsExternal）、提供者順序（六個單位 × 四家）、Provider、快取與作廢、自己的條容器名被擋、
 -- CheckName 的四種原因、forbidden／字型物件不算框、Fallback 路徑、Recheck 的變動偵測；
 -- DB.AnchorWouldCycle 對外部目標；Bars：外部目標當堆疊根（同一個目標同一邊照 STACK_RANK 往外排）、
 -- 解析不到時照 fallback（沒有就 pos）貼 UIParent、SetPoint 被擋時退回 fallback、不做半像素補正、
@@ -132,7 +132,13 @@ check("nil 不是外部", not A.IsExternal(nil))
 do
     local k, u = A.Parse("unit:target")
     check("Parse unit:target", k == "unit" and u == "target")
-    k = A.Parse("unit:pet")
+    k, u = A.Parse("unit:pet")
+    check("Parse unit:pet", k == "unit" and u == "pet")
+    k, u = A.Parse("unit:targettarget")
+    check("Parse unit:targettarget", k == "unit" and u == "targettarget")
+    k, u = A.Parse("unit:focustarget")
+    check("Parse unit:focustarget", k == "unit" and u == "focustarget")
+    k = A.Parse("unit:boss1")
     eq("Parse 不認得的單位 ＝ nil", k, nil)
     local _, n = A.Parse("frame:  Foo  ")
     eq("Parse frame 名字去頭尾空白", n, "Foo")
@@ -140,9 +146,31 @@ do
     eq("Parse frame 空名", n, "")
 end
 eq("提供者：玩家第一個是本套組", A.UNIT_PROVIDERS.player[1], "MiliUIUF_Player")
-eq("提供者：玩家第二個", A.UNIT_PROVIDERS.player[2], "ElvUF_Player")
-eq("提供者：玩家最後是暴雪", A.UNIT_PROVIDERS.player[3], "PlayerFrame")
-eq("提供者：專注目標最後是暴雪", A.UNIT_PROVIDERS.focus[3], "FocusFrame")
+eq("提供者：玩家第二個", A.UNIT_PROVIDERS.player[2], "EllesmereUIUnitFrames_Player")
+eq("提供者：玩家第三個", A.UNIT_PROVIDERS.player[3], "ElvUF_Player")
+eq("提供者：玩家最後是暴雪", A.UNIT_PROVIDERS.player[4], "PlayerFrame")
+eq("提供者：專注目標最後是暴雪", A.UNIT_PROVIDERS.focus[4], "FocusFrame")
+eq("下拉：六個單位", #A.UNITS, 6)
+do
+    local want = { "player", "target", "focus", "pet", "targettarget", "focustarget" }
+    for i, u in ipairs(want) do eq("下拉順序 " .. i, A.UNITS[i], u) end
+    -- 六個單位 × 四家：Candidates 照「本套組 → 第二家 → 第三家 → 暴雪」的順序
+    local expect = {
+        player       = { "MiliUIUF_Player", "EllesmereUIUnitFrames_Player", "ElvUF_Player", "PlayerFrame" },
+        target       = { "MiliUIUF_Target", "EllesmereUIUnitFrames_Target", "ElvUF_Target", "TargetFrame" },
+        focus        = { "MiliUIUF_Focus", "EllesmereUIUnitFrames_Focus", "ElvUF_Focus", "FocusFrame" },
+        pet          = { "MiliUIUF_Pet", "EllesmereUIUnitFrames_Pet", "ElvUF_Pet", "PetFrame" },
+        targettarget = { "MiliUIUF_TargetTarget", "EllesmereUIUnitFrames_TargetTarget", "ElvUF_TargetTarget", "TargetFrameToT" },
+        focustarget  = { "MiliUIUF_FocusTarget", "EllesmereUIUnitFrames_FocusTarget", "ElvUF_FocusTarget", "FocusFrameToT" },
+    }
+    for u, names in pairs(expect) do
+        local c = A.Candidates("unit:" .. u)
+        eq("Candidates " .. u .. " 筆數", #c, 4)
+        for i, n in ipairs(names) do eq("Candidates " .. u .. " #" .. i, c[i], n) end
+        local fams = { "MiliUI", "EllesmereUI", "ElvUI", "Blizzard" }
+        for i, n in ipairs(names) do eq("FRAME_PROVIDER " .. n, A.FRAME_PROVIDER[n], fams[i]) end
+    end
+end
 
 ------------------------------------------------------------
 -- 2. 解析順序、快取、作廢
@@ -185,6 +213,28 @@ do
     eq("空名解析不到", (A.Resolve("frame:")), nil)
     G.WeakFrame = ExtFrame("WeakFrame")
     check("一般具名框", A.Resolve("frame:WeakFrame") == G.WeakFrame)
+
+    -- Provider：解析到的框是哪一家
+    eq("Provider：玩家（本套組關掉、第三家在）", A.Provider("unit:player"), "ElvUI")
+    eq("Provider：目標＝暴雪", A.Provider("unit:target"), "Blizzard")
+    eq("Provider：解析不到 ＝ nil", A.Provider("unit:pet"), nil)
+    eq("Provider：不認得的具名框 ＝ nil", A.Provider("frame:WeakFrame"), nil)
+    G.EllesmereUIUnitFrames_Pet = ExtFrame("EllesmereUIUnitFrames_Pet")
+    G.PetFrame = ExtFrame("PetFrame")
+    A.Invalidate()
+    eq("Provider：寵物＝第二家（暴雪也在，排後面）", A.Provider("unit:pet"), "EllesmereUI")
+    G.MiliUIUF_Pet = ExtFrame("MiliUIUF_Pet")
+    A.Invalidate()
+    eq("Provider：寵物＝本套組", A.Provider("unit:pet"), "MiliUI")
+    G.TargetFrameToT = ExtFrame("TargetFrameToT")
+    G.FocusFrameToT = ExtFrame("FocusFrameToT")
+    A.Invalidate()
+    local f, n = A.Resolve("unit:targettarget")
+    check("目標的目標：只有暴雪的 TargetFrameToT", f == G.TargetFrameToT and n == "TargetFrameToT")
+    f, n = A.Resolve("unit:focustarget")
+    check("專注目標的目標：只有暴雪的 FocusFrameToT", f == G.FocusFrameToT and n == "FocusFrameToT")
+    G.MiliUIUF_Pet, G.EllesmereUIUnitFrames_Pet = nil, nil
+    A.Invalidate()
 end
 
 ------------------------------------------------------------
@@ -222,6 +272,10 @@ do
     check("Unresolved：沒有錨定", not A.Unresolved({ anchor = false }))
     eq("Label：玩家", A.Label("unit:player"), "Player frame")
     eq("Label：專注目標", A.Label("unit:focus"), "Focus frame")
+    eq("Label：寵物", A.Label("unit:pet"), "Pet frame")
+    eq("Label：目標的目標", A.Label("unit:targettarget"), "Target of target frame")
+    eq("Label：專注目標的目標", A.Label("unit:focustarget"), "Focus target frame")
+    for _, u in ipairs(A.UNITS) do check("Label 不是 nil：" .. u, A.Label("unit:" .. u) ~= nil) end
     eq("Label：框名", A.Label("frame:WeakFrame"), "WeakFrame")
     eq("Label：空名", A.Label("frame:"), "Frame by name")
 end

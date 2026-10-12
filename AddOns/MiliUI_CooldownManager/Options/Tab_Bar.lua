@@ -195,11 +195,14 @@ for _, key in ipairs({ "essential", "utility", "buffs", "buffbars" }) do
     Options.RegisterPage(key, Options.PageTitle(key), TabBar.Build)
 end
 
--- 編輯模式拖完：錨定那一節可能變了（拖了就脫離錨定）
-ns.RegisterCallback("BarMoved", "tabbar", function(key)
+-- 編輯模式拖完：錨定那一節可能變了（拖了就脫離錨定）。錨定視窗改了值（AnchorChanged）同一招：摘要列重讀、
+-- 形狀變了（有／無錨定、錨定圖）換表單
+local function RefreshMoved(key)
     local page = Options.GetPage(key)
     if page and page:IsVisible() and page.RefreshForm then page:RefreshForm() end
-end)
+end
+ns.RegisterCallback("BarMoved", "tabbar", RefreshMoved)
+ns.RegisterCallback("AnchorChanged", "tabbar", RefreshMoved)
 -- 暴雪那邊的清單變了（面板關掉、換天賦）：看得到的預覽重畫
 ns.RegisterCallback("CatalogChanged", "tabbar", function() ns.Preview.RefreshAll() end)
 ns.RegisterCallback("CatalogResumed", "tabbar", function() ns.Preview.RefreshAll() end)

@@ -55,7 +55,8 @@
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Modules/Skyriding.lua`、`Options/Tab_Skyriding.lua`、`Options/SkyridingSettings.lua` | 天空騎術的四列（速度條、旋轉急衝、活力、重新振作）＋旋轉急衝圖示（面板 `skyriding`；接力／獨立擺放、藏起冷卻管理器、每列一個設定視窗），見「天空騎術」 |
-| `Options/SettingsWindow.lua` | 「一列一個設定小視窗」的共用殼（資源條每種資源的設定、天空騎術每一列的設定共用）：框、標題、捲動、貼在設定視窗旁、表單照形狀快取 |
+| `Options/SettingsWindow.lua` | 「一列一個設定小視窗」的共用殼（資源條每種資源的設定、天空騎術每一列的設定、錨定視窗共用）：框、標題、捲動、貼在設定視窗旁、表單照形狀快取；`configKey` 省略＝每一列自己的 key（錨定視窗） |
+| `Options/AnchorWindow.lua` | 錨定視窗（每條／每個面板「錨定」列的「設定」鈕開的）：跟著哪條走、目前接到哪一家、雙九宮格（目標的點＋這條的點）、偏移，見「錨到單位框與具名框」 |
 | `EditMode/` | 編輯模式整合：`Geometry.lua`（純函式：放手位置換算回 pos、格線吸附、條對齊）、`Frames.lua`（覆蓋層、選取框、暴雪 Selection 接線）、`EditMode.lua`（拖曳、進出訊號、暴雪設定對話框） |
 | `Api.lua` | slash（含 `/mcdm debug`、`/mcdm aura`、`/mcdm glow`、`/mcdm release`、`/mcdm perf`）、插件選單、公開 API `MiliUI_CooldownManager`（見「公開 API」） |
 | `Tests/` | 離線測試，不進 TOC：`DB_test.lua`、`Layout_test.lua`、`Catalog_test.lua`、`EditMode_test.lua`、`Settings_test.lua`（設定介面的寫入路徑與匯出匯入）、`AuraFlow_test.lua`（只有光環格的條的引擎補位：成立條件六項、forced 新定義、flow 參數與每列的像素預算（照暴雪的換列判準模擬）、group 參數表、簽章與池化、戰鬥中延後、補踢、Relayout 交給 PlaceFlow）、`Custom_test.lua`（自訂項目的新增／刪除挪 id／清單排序（光環格照 order 排；含長條類的條）、依條的 kind 取框（圖示框／長條框／光環持有框各一顆、搬條換框）、長條框的形狀、清條的兩條路、光環長條的 initializeFrame、EndFlush 不收長條、光環格的 Masque（獨立占位框、探針的錨點與 regions、讀回形狀與皮外框進簽章、烘遮罩與外框、外框讀不到退米利邊、讀不到形狀退方形、疊層照冷卻格的皮）、`SPELL_UPDATE_USABLE` 只重算顏色、事件動態註冊的集合）、`Keybinds_test.lua`（按鍵縮寫、動作條格 → 綁定指令；按鍵鏡射：綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、按下／放開的狀態機、2 秒保險、載具與寵物對戰、閃光跟著 Masque 皮的遮罩）、`Resources_test.lua`（條件規則求值、資源清單依專精、法力縮寫、面板的 DB 與顯示條件（含自訂格子的面板與「核心 → 自訂格子 → 輔助」的預設錨定）、施法條的時間文字／截字／刻度查表、自訂格子的清單／規劃／容器高度／顯示時機／閘門算式、補齊的職業資源與 AuraBar 的幾何與簽章、列的順序（`ApplyOrder`／`MergeOrder`）、血量列與門檻曲線的點、施法條的暴雪材質、光環／生命事件依列註冊的集合）、`Clickable_test.lua`（可點擊群組：動作判定、簽章去重、收鈕、戰鬥中不建鈕）、`Sound_test.lua`（音效的節流、讀取畫面靜音、「消失又出現」合併抵消、AddAuraSound 對帳（含層數增加：暴雪增益 item 的法術展開、節流進簽章）、充能滿音效的三態轉變與監看表、音效覆寫的讀寫與分組、自訂語音的路徑正規化／增刪改排序／刪除時清掉各設定檔的引用）、`Masque_test.lua`（圖示外觀：設定值的繼承、沒裝 Masque 退回米利、登入快照與重載判斷、交格子／重套皮／戰鬥中補做；皮的形狀與公開 API 的貼圖查詢；發光跟著形狀：沒裝不問形狀、米利模式／方形皮照舊、圓形／六角形皮 × 四種樣式、換皮停乾淨、池化閃光框換回暴雪貼圖、API 讀不到退方形）、`CooldownState_test.lua`（冷卻狀態效果：模式×狀態 → 兩個 alpha、預覽格的 alpha、「真的在冷卻」的判斷順序、ApplyItemAlpha 的明文／秘密／判不出來／編輯模式、自訂框的 ApplyState；法術索引的建表、事件參數分類、同一幀合併、精準重算只跑命中的格；冷卻事件的單一處理器與消費者派送、沒事做不排批次、GCD 開始的精準分類、`cdWork` 的維護）、`Presets_test.lua`（常用預設：過濾、自訂項目的形狀與陣營換主 ID、表的健全性）、`StackGate_test.lua`（層數門檻：閘的算式、外擴量、門檻與換色清單的清洗、設定組合與簽章、假框餵秘密 sentinel 原樣轉交、讀層數的順序與退路、生效狀態只在該看時看、沒設定的格掛勾立刻走、停放與重新放格、長條換色的疊層與暴雪條透明／還原、無損刷新後重調、跟生效發光互斥、預覽走層數樣式）、`Assist_test.lua`（戰鬥輔助：預設值與面板登記、下一招圖示的顯示條件、該不該輪詢、API 回傳的清洗、要亮的格、輪詢與醒目標示的流程（假 ticker／API／索引／Glow）、Glow 的第四種發光、就緒時一直亮的明文／秘密分支、無損刷新掛勾的無事路徑、圖示尺寸）、`Extras_test.lua`（小項：自訂法術的距離／可用上色、自訂圖示的判讀與暴雪 item 的貼圖掛勾、跟著游標的資格／排開／OnUpdate 開關、語音播報要念的字與觸發、長條火花的預設與簽章、增益持續時間換色的三態×條層開關、兩段顏色、`SetUseAuraDisplayTime` 後掛勾與換色、增益持續中不顯示持續時間的三態×條層開關、蓋掉的順序（餵物件／探針／去飽和／充能三種狀態／裝備欄與秘密旗標不蓋）、設定切換）、`Visibility_test.lua`（條的顯示條件：`Vis.Evaluate` 的時機 OR／限制優先與淡出、有敵對目標／飛行騎乘時隱藏／在房屋裡隱藏／休息中隱藏／載具中隱藏的成立與組合（載具中隱藏跟騎乘時隱藏的差別）、五個判斷的秘密值與 API 不在、快照形狀、事件只在客戶端認得時註冊、`PLAYER_UPDATE_RESTING`）、`Overflow_test.lua`（格數上限＋溢出：成立條件、截斷位置、接收條順序、兩條溢到同一條、自訂項目與占位計數、佔位判斷（含逐法術占位）、Receivers／Pairs）、`Skyriding_test.lua`（天空騎術：預設值與面板登記、顯示判斷（秘密值／讀不到／德比賽跑／地面上充能全滿／專用動作條／舊插件還載著）、四列照 order 的版面、order 清洗與上下移、活力／重新振作格數、活力底層與文字來源、旋轉急衝秒數與圖示設定、發佈前的欄位搬家（`SR.Upgrade`：每個舊欄位的對應、圖示一律關、冪等）、速度換算／地區最高速度／平滑／換色狀態、旋轉急衝的顯示時機、接力的錨定決定與 Bars 的實際錨點（資源條正常／關掉／收合／沒錨定）、接力不參與排開、獨立擺放照常排開、hideCdm 對條與面板 alpha 的影響）、`Import_test.lua`（從 `Ayije_CDM` 匯入：四條檢視器的位置換算、尺寸與文字、淡出、發光、資源條與條件規則、施法條、自訂群組與跨專精 pending、光環格、覆寫、報告、取名；夾具是使用者存檔去掉角色名的縮小版），用 `lua AddOns/MiliUI_CooldownManager/Tests/<名字>` 直接跑 |
@@ -1250,7 +1251,7 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
   已經錨著它的條改用自己的位置；錨定下拉的候選也剔掉它（`Specs.AnchorGraphSig` 帶著它，開關一變別條的候選跟著重算）。
   判準是 `Cursor.Configured`（跟編輯模式無關），進出編輯模式時別條的排開不會變。
 - 設定頁錨定節（自訂圖示群組才有）：勾選「跟著滑鼠游標」＋下一列灰字（條件不成立時勾選框停用、灰字換成原因，寫法同固定格位那一列）、
-  「離游標的位移 X／Y」（沒開時停用）；開著時「跟著哪條走」「邊」「偏移／位置」那幾列停用（值不動）。
+  「離游標的位移 X／Y」（沒開時停用）；開著時「錨定」摘要列（「設定」鈕 Disable、這條的錨定視窗開著就收掉）與「位置」停用（值不動）。
 - `/mcdm debug` 有設定時多一行：`跟著游標：<條>（跟著／看不到，停／存檔位置）  OnUpdate 掛著／卸了  跑了 N 幀  保護框擋下 N 次`。
 - ⚠ 已知限制：位移設成讓圖示蓋在游標正下方（例如 0／0）時，圖示的提示層會擋住游標底下的東西（滑過單位的提示出不來）；預設的 20／-20 不會。
   錨著它的條改用自己的位置——那個位置可能是很久以前存的。
@@ -1732,7 +1733,7 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 | `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`、`assistIcon`、`skyriding`；順序＝顯示條件套用與錨定候選的順序，天空騎術排最後）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
 | `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
 | `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
-| `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：spec 的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
+| `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：「位置」列的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定視窗（`Options/AnchorWindow.lua`）的 spec 一律 `"bar@<key>"`；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
 | `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`、`Options.HostPage("assistIcon") == "assist"`（`ShowPage`／`FocusBar` 照它轉，點擊層點了開那一頁）、`Options.PageTitle("pips")` 回「自訂格子」、`PageTitle("assistIcon")` 回「下一招圖示」（覆蓋層條名、錨定候選、點擊層提示） |
 
 容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、自訂格子 `TOP`（預設錨在
@@ -1752,7 +1753,9 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 - 目標關掉了、而且它自己也掛在同一邊 ⇒ 當它不存在，接到它的上一層（資源條關掉，施法條貼回核心）。
 - 目標掛在**相反**那一邊（輔助「在自訂格子下方」，而自訂格子在核心「上方」）⇒ 那個位置一定壓到東西，
   改排到上一層的那一邊去（輔助排到核心下方）。
-- 四個邊以外的錨定（置中對置中之類）不參與，照字面貼。
+- 只有「上對下、左對右」相對的組合參與（`Layout.AnchorSide`：point 開頭 TOP、relPoint 開頭 BOTTOM 就算下方，
+  所以 `TOPLEFT→BOTTOMLEFT` 也算下方、照樣排開；左右看結尾 LEFT／RIGHT）。其他組合（`CENTER→CENTER`、`LEFT→LEFT`、
+  `TOP→TOP`…）照字面貼、不排開——錨定視窗的雙九宮格可以選任意組合，視窗底下灰字講明這一點。
 
 `Core/Bars.lua`：`PlaceContainer` 貼在 `StackTarget` 回的那條上，記在 `state[key].stackTo`。任何一條重套結構時
 先找出「該貼的跟現在貼的不一樣」的其他條，**兩段式**重貼（先全部 `ClearAllPoints`、再各自 `SetPoint`）：逐條直接貼會在
@@ -1766,8 +1769,22 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 
 | 值 | 解析成 |
 |---|---|
-| `"unit:player"`／`"unit:target"`／`"unit:focus"` | 提供者表依序第一個存在的：本套組單位框 `MiliUIUF_Player`／`_Target`／`_Focus` → `ElvUF_Player`／`_Target`／`_Focus` → 暴雪 `PlayerFrame`／`TargetFrame`／`FocusFrame`（`A.UNIT_PROVIDERS`，一行一支） |
+| `"unit:player"`／`"unit:target"`／`"unit:focus"`／`"unit:pet"`／`"unit:targettarget"`／`"unit:focustarget"` | 提供者表依序第一個存在的（見下表；`A.PROVIDERS` 一行一家，展開成 `A.UNIT_PROVIDERS[unit]`＝依序要試的框名、`A.FRAME_PROVIDER[框名]`＝家名） |
 | `"frame:<全域框名>"` | `_G[名字]`；`"frame:"`（還沒填名字）當作解析不到 |
+
+提供者（2026-10-12 補齊六個單位四家，順序＝本套組 → EllesmereUI → ElvUI → 暴雪，第一個存在的贏；後三個 unit key 是新的存檔內容）：
+
+| 單位 key | MiliUI_UnitFrames | EllesmereUI | ElvUI | 暴雪 |
+|---|---|---|---|---|
+| `player` | `MiliUIUF_Player` | `EllesmereUIUnitFrames_Player` | `ElvUF_Player` | `PlayerFrame` |
+| `target` | `MiliUIUF_Target` | `EllesmereUIUnitFrames_Target` | `ElvUF_Target` | `TargetFrame` |
+| `focus` | `MiliUIUF_Focus` | `EllesmereUIUnitFrames_Focus` | `ElvUF_Focus` | `FocusFrame` |
+| `pet` | `MiliUIUF_Pet` | `EllesmereUIUnitFrames_Pet` | `ElvUF_Pet` | `PetFrame` |
+| `targettarget` | `MiliUIUF_TargetTarget` | `EllesmereUIUnitFrames_TargetTarget` | `ElvUF_TargetTarget` | `TargetFrameToT` |
+| `focustarget` | `MiliUIUF_FocusTarget` | `EllesmereUIUnitFrames_FocusTarget` | `ElvUF_FocusTarget` | `FocusFrameToT` |
+
+只抄框名字串（資料），沒有搬任何一行程式。`A.Provider(to)` → 解析到的框是哪一家（`"MiliUI"`／`"EllesmereUI"`／`"ElvUI"`／`"Blizzard"`，
+解析不到回 nil），錨定視窗的灰字「目前接到：ElvUI（ElvUF_Player）」用；家名是提供者表的資料，不從框名前綴猜。
 
 - **「框存在」只看 `_G[name]` 是可以當錨點的物件**：`GetObjectType` 讀得到字串、有 `GetPoint`（字型物件也在 `_G`、也有
   `GetObjectType`，但錨不上去）、不是 forbidden。**不讀它的位置、大小、可見度**：目標框架沒有目標時被 `RegisterUnitWatch`
@@ -1797,9 +1814,30 @@ that frame implicitly protected as well"（被錨的是保護框、「那個框�
 反方向要留意：條上**有光環格或勾了可點擊**（容器本身就是保護框）時去錨一個**不是保護框**的外部框，那個框戰鬥中會被連坐成保護框
 （別的插件戰鬥中動它會被擋）——錨暴雪或單位框插件的 secure 單位框沒有這個問題。
 
-設定頁：錨定目標下拉＝現有的條＋分隔線（選了不寫入）＋「玩家框架／目標框架／專注目標框架」＋「指定框架名稱」。
-選了指定框架名稱多一列輸入框：輸入時即時驗證（找不到、是本插件自己的條、不是框架 ⇒ 紅字，不寫入），Enter 或離開輸入框時通過才寫。
-解析不到（或 `SetPoint` 被擋）時下拉底下一行黃字「找不到，暫時用自己的位置」；這個狀態進表單簽章（`Specs.AnchorGraphSig`）。
+設定頁（2026-10-12 起是「錨定視窗」，`Options/AnchorWindow.lua`）：每條／每個面板的「錨定」小節只剩一列摘要＋一顆「設定」鈕
+（摘要「核心技能，上緣中點 → 下緣中點」／「自己的位置」，目標解析不到時後面接黃字「（找不到）」；按鈕跟資源條頁每一列那顆同字同尺寸）
+＋沒錨定時的「位置 X／Y」＋原本四行灰字。四條內建檢視器、自訂群組、資源條、自訂格子、施法條、下一招圖示、天空騎術獨立擺放
+全部走 `Specs.Anchor`，所以入口只有這一個。按鈕開的視窗（殼是 `Options/SettingsWindow.lua`，寬 460、一次只開一個、
+開著時換別條就換內容，切專精／換設定檔／關設定視窗跟著關），由上到下：
+
+- **跟著哪條走**：現有的條＋分隔線（選了不寫入）＋六個單位框＋「指定框架名稱」。寫入規則只有一份（`Specs.AnchorTargetSpec`）：
+  選「無」把畫面上的位置換算成 `pos`、第一次選外部目標記 `fallback`、已經是具名框時再選一次名字留著。
+- 選了指定框架名稱多一列輸入框：輸入時即時驗證（找不到、是本插件自己的條、不是框架 ⇒ 紅字，不寫入），Enter 或離開輸入框時通過才寫。
+- 單位框解析得到時一行灰字「目前接到：家名（框名）」（`A.Provider`）；解析不到（或 `SetPoint` 被擋）時黃字「找不到，暫時用自己的位置」；
+  這個狀態進表單簽章（`Specs.AnchorGraphSig`）。
+- **雙九宮格**（標籤「錨點」）：**主九宮格＝目標的點（`anchor.relPoint`）**，格子 20px；**次九宮格＝這條的點（`anchor.point`）**，格子 10px、
+  底色亮一階、外面一圈 1px 淺灰邊、層級比主格高。次格用遊戲裡貼條的**同一句** `sub:SetPoint(point, main, relPoint, 0, 0)` 擺：
+  `TOP→BOTTOM` 在主格正下方外面、`BOTTOMLEFT→TOPRIGHT` 在右上角外面、`TOP→TOP` 在主格裡面靠上、`CENTER→CENTER` 疊在正中央——
+  次格跑到哪裡就是條實際貼在哪裡的縮影。holder 固定 132×132（主格 64 置中、次格最遠外凸 34），列高不隨選擇變。
+  上方一行圖例「■ 目標的點　■ 這條的點」（長譯文放不下就換第二列），底下一行灰字即時寫結果「這條的上緣中點 貼在 核心技能 的下緣中點」。
+  點主格寫 `relPoint`、點次格寫 `point`（`level = "structure"`）。右鍵「錨點」標籤重設 point／relPoint：回這條預設表的錨點，
+  預設沒有錨定的（自訂群組…）回 `TOP`／`BOTTOM`（`ResetSpec` 多認 `spec.fallbacks[path]`）。
+- **偏移** X／Y；兩行灰字：同邊排開、「只有上下、左右相對的組合會排開；其他組合照選的位置貼」。
+
+視窗改了值：`Options.ApplyEngine("structure")`＋（延一幀）`ns.Fire("AnchorChanged", key)`，各頁檔尾在 `BarMoved` 旁邊登記同一個
+重讀（摘要列跟著換）；反過來 `BarMoved`（編輯模式拖了就脫離錨定）、`AnchorTargetsChanged`、`BarsListChanged` 時視窗開著就 `Refresh()`
+（形狀變了殼自己換表單；條被刪了就關）。跟著游標開著時摘要列停用、按鈕 Disable、這條的視窗開著就收掉。
+舊的「邊」下拉（四個固定搭配）拿掉了，語系檔裡的舊條目照規矩留著。
 限制：MiliUI_UnitFrames 在遊戲中途把某個單位框關掉時框還在（frame 刪不掉），條會繼續錨在那個藏起來的框上，`/reload` 後才改錨下一家。
 
 ### 資源條（`Modules/Resources.lua`）
@@ -2094,7 +2132,7 @@ customRows[specID] = {
     點標題列摺疊）、顏色＋層數上限、高、顯示時機、數字（開關／大小／字型／描邊）；「＋ 新增格子」→ 選「法術充能／光環層數」（兩顆按鈕滑過有
     GameTooltip：標題＋白字說明與舉例；`CreateChoicePopup` 不回傳按鈕，照按鈕字從彈窗子框認回來掛 OnEnter／OnLeave，彈窗 OnHide 一起收提示）
     → 輸入 ID（層數多一欄上限）→ 驗證：`C_Spell.GetSpellInfo`、充能要 `GetSpellCharges` 不是 nil、同專精不收重複，錯誤寫在彈窗裡的灰字列；
-    底下小節「位置與錨定」＝ `Specs.Anchor("pips", { other = true })`（跟著哪條走／邊／偏移，寫進 `profile.pips`）＋「跟核心技能一起淡出」＋
+    底下小節「位置與錨定」＝ `Specs.Anchor("pips", { other = true })`（摘要＋「設定」鈕開錨定視窗，寫進 `profile.pips`）＋「跟核心技能一起淡出」＋
     自訂格子自己的載入條件。
   套用時 `Resources.Apply()` 與 `Pips.Apply()` 都叫（自訂格子沿用全域外觀）。
 - **施法條**：顯示、隱藏暴雪施法條、版面（材質多一項「暴雪施法條」）、顏色（含蓄力四階、斷法就緒）、圖示、文字（名稱最多字數、時間格式）、
@@ -3635,6 +3673,22 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      「冷卻中去飽和」關掉的格：用完充能也不灰。增益條（以增益取代）那一格不受影響。
 497. 奧法：秘法齊射 25 格的列，資源條寬設 200／201／跟核心技能同寬各試一次：24 條分隔每條都是 1px、一樣粗，中間沒有特別粗的那條；
      格距 0 時每條邊也一樣粗；格距 2 以上頭一格不比別格明顯寬。氣旋武器／聖能等點數型與鐵鬃／橫掃攻擊的層數列照舊。
+
+**錨定視窗（雙九宮格）與六種單位框（2026-10-12）**
+
+498. 六個單位各選一次：MiliUI_UnitFrames 開著時接本套組的框；關掉 `/reload` 後接暴雪的 `PlayerFrame`／`TargetFrame`／`FocusFrame`／
+     `PetFrame`／`TargetFrameToT`／`FocusFrameToT`；視窗灰字「目前接到」的家名與框名對得上（有 ElvUI 或 EllesmereUI 的單位框時接它們）。
+499. 雙九宮格：`TOP→BOTTOM`、`BOTTOMLEFT→TOPRIGHT`、`CENTER→CENTER`、`LEFT→LEFT` 四組，遊戲裡條的位置跟視窗裡次九宮格的位置一致；
+     結果灰字與主表單摘要列寫的點名對得上。
+500. 兩條都選核心技能、同樣 `TOP→BOTTOM` 時照舊排開；一條改 `TOPLEFT→BOTTOMLEFT` 仍算下方、照舊排開；一條改 `CENTER→CENTER` 不排開、疊在中央。
+501. 視窗開著時在編輯模式拖那條：視窗內容變成「自己的位置」、九宮格列消失；主表單摘要同步。
+502. 視窗開著切專精／換設定檔／關設定視窗：視窗跟著關。
+503. 九語系的「設定」按鈕與摘要一列在 128／148 標籤寬下不溢出（摘要太長截在按鈕前面）；視窗內兩行標題圖例在 deDE／ruRU 不換到第三行；
+     視窗寬 460 時「跟著哪條走」下拉不超出右緣。
+504. 右鍵「錨點」標籤重設 ⇒ 自訂群組回 `TOP`／`BOTTOM`、次九宮格跳回正下方；內建的條回它自己的預設（例如增益圖示回 `BOTTOM`／`TOP`）。
+505. 資源條頁「自訂格子」分頁的「設定」鈕開得了視窗（`pips`），改值後自訂格子跟著動、那一頁的摘要同步。
+506. 自訂圖示群組勾「跟著滑鼠游標」：摘要列蓋暗、「設定」鈕停用；這條的錨定視窗開著時當場收掉。
+507. 次九宮格疊在主格上時（例如 `TOPLEFT→TOP`），被蓋住的主格從露出的那一角或格縫點得到。
 
 **效能基準**
 

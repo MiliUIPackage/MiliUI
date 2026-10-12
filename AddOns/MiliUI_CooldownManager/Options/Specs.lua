@@ -4,7 +4,7 @@
 --   Specs.Themed(mode, key)       淡出（版面分頁）＋圖示／文字／效果／音效四節（mode = "bar" | "theme"；key ＝ 哪一條，長條沒有按鍵文字那一節）
 --   Specs.Layout(key)             版面（條頁）
 --   Specs.Visibility()            顯示條件（條頁）
---   Specs.Anchor(key)             錨定（條頁）
+--   Specs.Anchor(key)             錨定（條頁）：摘要＋「設定」鈕，內容在錨定視窗（Options/AnchorWindow.lua）
 --   Specs.MakeCtx(info, onApply)  info = { mode, key }；onApply(spec) 在值寫進去之後叫
 --   Specs.BuildForm(parent, controls, ctx, width) → form（content／height／Refresh）
 --   Specs.SplitTabs(controls) ／ Specs.CreateTabStrip(...)  主題頁與條頁的分頁（檔尾，J）
@@ -22,6 +22,7 @@
 --   refreshPage  寫完要重建表單（有列會出現／消失）
 --   level    真實條的重排等級（預設 layout；錨定是 structure）
 --   resetPaths  右鍵「重設為預設」要清哪些 path（預設就是 path）
+--   fallback／fallbacks  重設時預設表沒有值的退路（fallbacks[path] 先、fallback 後）
 --   disabled function(info) → 真 ＝ 這一列停用：蓋一層暗色遮罩（擋點擊與右鍵重設，值不動）。
 --            表單引擎（共用層）沒有停用狀態，遮罩是 BuildForm 自己畫的；每次套用後重判
 --   reloadCheck  寫完（含右鍵重設）檢查圖示外觀要不要重載（Specs.CheckSkinReload）
@@ -217,20 +218,6 @@ local OUTLINE_ITEMS = {
     { text = L["Monochrome thick outline"], value = "MONOCHROME,THICKOUTLINE" },
 }
 Specs.OUTLINE_ITEMS = OUTLINE_ITEMS       -- 自訂格子每一列的數字描邊（Options/Tab_Resources.lua）也用這張
-
--- 錨定的「邊」：本條貼在目標的哪一邊
-local EDGE_ITEMS = {
-    { text = L["Below it"],       value = "BELOW" },
-    { text = L["Above it"],       value = "ABOVE" },
-    { text = L["To its left"],    value = "LEFTOF" },
-    { text = L["To its right"],   value = "RIGHTOF" },
-}
-local EDGE_POINTS = {
-    BELOW   = { "TOP", "BOTTOM" },
-    ABOVE   = { "BOTTOM", "TOP" },
-    LEFTOF  = { "RIGHT", "LEFT" },
-    RIGHTOF = { "LEFT", "RIGHT" },
-}
 
 local function MediaItems(first, kind)
     return function()
@@ -1598,6 +1585,16 @@ end
 
 ------------------------------------------------------------
 -- 錨定
+--
+-- 表單裡只放一列摘要（「核心技能，上緣中點 → 下緣中點」／「自己的位置」）＋「設定」鈕；跟著誰、雙九宮格、偏移都在
+-- 錨定視窗（Options/AnchorWindow.lua）。這裡出借給視窗的零件（只有一份）：
+--   Specs.AnchorTargetSpec(key, root, disabled)  「跟著哪條走」下拉（候選＋寫入規則）
+--   Specs.FrameNameRow(key, disabled)            指定框架名稱的輸入列
+--   Specs.EmphasisNote(text)                     黃字一句
+--   Specs.ExternalUnresolved(key)                錨在外部目標上、但現在用的是自己的備用位置
+--   Specs.AnchorTargetLabel(to)                  錨定目標的顯示名（條／面板的頁名、單位框、框名）
+--   Specs.ANCHOR_POINT_TEXT[point]               錨點在「錨定」語境的名字（上緣中點、左上角…）
+--   Specs.AnchorCursorGate(key)                  跟著游標開著時錨定停用的判斷（不能跟游標的條回 nil）
 ------------------------------------------------------------
 -- 候選：左欄的條（barOrder）＋ 面板（資源條、自訂格子、施法條；它們不在 barOrder 裡）
 local ANCHOR_SEP = "__sep"
@@ -1616,7 +1613,7 @@ local function AnchorItems(key)
             items[#items + 1] = { text = ns.Options.PageTitle(other) or ns.Options.BarTitle(other), value = other }
         end
     end
-    -- 外部目標（Core/Anchor.lua）：分隔線＋三個單位框＋指定框架名稱。分隔線選了不寫入（set 擋掉）。
+    -- 外部目標（Core/Anchor.lua）：分隔線＋六個單位框（A.UNITS）＋指定框架名稱。分隔線選了不寫入（set 擋掉）。
     -- 分隔線用 ASCII 減號：歐語字型不一定有全形橫線
     local A = ns.Anchor
     if A then
@@ -1719,45 +1716,46 @@ local function ExternalUnresolved(key)
     return (ns.Bars and ns.Bars.AnchorFailed and ns.Bars.AnchorFailed(key)) and true or false
 end
 
-local function EdgeOf(a)
-    for id, pts in pairs(EDGE_POINTS) do
-        if a.point == pts[1] and a.relPoint == pts[2] then return id end
-    end
-    return "BELOW"
+Specs.FrameNameRow, Specs.EmphasisNote, Specs.ExternalUnresolved = FrameNameRow, EmphasisNote, ExternalUnresolved
+
+-- 錨點在「錨定」語境的名字：九宮格選的是「這條的哪一點貼在目標的哪一點」，用「上緣中點」「左上角」比單字「上」「左上」清楚
+local ANCHOR_POINT_TEXT = {
+    TOPLEFT     = L["top-left corner"],
+    TOP         = L["top edge"],
+    TOPRIGHT    = L["top-right corner"],
+    LEFT        = L["left edge"],
+    CENTER      = L["center"],
+    RIGHT       = L["right edge"],
+    BOTTOMLEFT  = L["bottom-left corner"],
+    BOTTOM      = L["bottom edge"],
+    BOTTOMRIGHT = L["bottom-right corner"],
+}
+Specs.ANCHOR_POINT_TEXT = ANCHOR_POINT_TEXT
+-- 新錨定（第一次選目標）的預設，也是舊存檔沒寫 point／relPoint 時的讀法：這條的上緣貼目標的下緣
+Specs.ANCHOR_DEFAULT_POINT, Specs.ANCHOR_DEFAULT_REL = "TOP", "BOTTOM"
+
+-- 錨定目標的顯示名：條／面板走頁名，單位框／具名框走 Anchor.Label
+function Specs.AnchorTargetLabel(to)
+    if type(to) ~= "string" then return "" end
+    local A = ns.Anchor
+    if A and A.IsExternal(to) then return A.Label(to) end
+    return ns.Options.PageTitle(to) or ns.Options.BarTitle(to) or to
 end
 
--- opts（可省）：
---   other   true ＝ key 不是這張表單自己的條（資源條頁上的自訂格子）：讀寫走 root "bar@<key>"
---   header  小節標題（預設「錨定」）；nested ＝ 畫成小標題
-function Specs.Anchor(key, opts)
-    opts = opts or {}
-    local bar = ns.DB.ConfigTable(key) or {}
-    local anchored = type(bar.anchor) == "table"
-    local root = opts.other and ("bar@" .. key) or "bar"
-    -- 跟著游標開著（而且條件成立）時錨定／位置那幾列停用（值不動，關掉就回來）
-    local cursorCapable = not opts.other and bar.kind == "icons" and bar.source == "custom"
-    local function CursorOn() return ns.Cursor and ns.Cursor.Configured(key) or false end
-    local function AS(kind, path, label, extra)
-        local s = BS(kind, path, label, extra)
-        s.root = root
-        if cursorCapable then s.disabled = CursorOn end
-        return s
-    end
-    local list = {
-        -- 分頁：條頁的錨定跟版面同一頁（Specs.SplitTabs）；沒分頁的頁（施法條、資源條…）不看這欄
-        { type = "header", label = opts.header or L["Anchoring"], nested = opts.nested or nil,
-          tab = not opts.nested and "layout" or nil },
-    }
-    -- 自訂的圖示群組：跟著游標（勾選＋原因字）、離游標的位移
-    if cursorCapable then
-        list[#list + 1] = CursorRow(key)
-        list[#list + 1] = BS("numbers", nil, L["Offset from the pointer"], { sub = "cursor", path = false,
-            resetPaths = { "cursor.x", "cursor.y" }, fallback = 0,
-            disabled = function() return not CursorOn() end,
-            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
-    end
-    list[#list + 1] = AS("dropdown", "anchor", L["Follow bar"], {
-        items = AnchorItems(key), refreshPage = true, level = "structure",
+-- 跟著游標（自訂圖示群組才有）開著時，錨定／位置那幾列停用（值不動，關掉就回來）。不能跟游標的條回 nil
+function Specs.AnchorCursorGate(key)
+    local bar = ns.DB.BarTable(key)
+    if not (bar and bar.kind == "icons" and bar.source == "custom") then return nil end
+    return function() return ns.Cursor and ns.Cursor.Configured(key) or false end
+end
+
+-- 「跟著哪條走」下拉：候選（AnchorItems）＋寫入規則**只有這一份**（錨定視窗用）。
+--   「無」＝把畫面上的位置換算成 pos、放開錨定的當下不跳；第一次選外部目標記 fallback；
+--   已經是某個具名框時再選一次「指定框架名稱」名字留著；分隔線不寫入。
+-- root：讀寫哪一條（錨定視窗一律 "bar@<key>"）；disabled：Specs 的停用機制（跟著游標時）
+function Specs.AnchorTargetSpec(key, root, disabled)
+    return { type = "dropdown", root = root, path = "anchor", key = "anchor", label = L["Follow bar"],
+             items = AnchorItems(key), refreshPage = true, level = "structure", disabled = disabled,
         get = function()
             local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
             local to = type(a) == "table" and a.to or "none"
@@ -1776,7 +1774,7 @@ function Specs.Anchor(key, opts)
                 b.anchor = false
             else
                 local old = type(b.anchor) == "table" and b.anchor or nil
-                local a = old or { point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }
+                local a = old or { point = Specs.ANCHOR_DEFAULT_POINT, relPoint = Specs.ANCHOR_DEFAULT_REL, x = 0, y = -1 }
                 local A = ns.Anchor
                 if A and A.IsExternal(v) then
                     -- 第一次選外部目標：記下現在畫面上的位置，目標解析不到時退回這裡（Core/Anchor.lua 的 A.Fallback）
@@ -1796,40 +1794,98 @@ function Specs.Anchor(key, opts)
                 b.anchor = a
             end
         end,
-    })
-    local curTo = type(bar.anchor) == "table" and bar.anchor.to or nil
-    if type(curTo) == "string" and curTo:sub(1, 6) == "frame:" then
-        list[#list + 1] = FrameNameRow(key, cursorCapable and CursorOn or nil)
-    end
+    }
+end
+
+-- 摘要一行：沒錨定「自己的位置」；有錨定「<目標>，<這條的點> → <目標的點>」，目標解析不到時後面接黃字「（找不到）」
+local function AnchorSummary(key)
+    local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
+    if type(a) ~= "table" then return L["Own position"] end
+    local mine = ANCHOR_POINT_TEXT[a.point or Specs.ANCHOR_DEFAULT_POINT] or tostring(a.point)
+    local theirs = ANCHOR_POINT_TEXT[a.relPoint or Specs.ANCHOR_DEFAULT_REL] or tostring(a.relPoint)
+    local text = L["%s, %s → %s"]:format(Specs.AnchorTargetLabel(a.to), mine, theirs)
     if ExternalUnresolved(key) then
-        list[#list + 1] = EmphasisNote(L["Not found, using its own position for now."])
+        local c = W.EMPHASIS_COLOR
+        text = text .. (" |cff%02x%02x%02x"):format(math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5)) .. L["(not found)"] .. "|r"
     end
-    if anchored then
-        list[#list + 1] = AS("dropdown", "anchor.point", L["Side"], {
-            items = EDGE_ITEMS, level = "structure", resetPaths = { "anchor.point", "anchor.relPoint" },
-            get = function()
-                local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
-                return type(a) == "table" and EdgeOf(a) or "BELOW"
-            end,
-            set = function(_, v)
-                local a = ns.DB.GetPath(ns.DB.ConfigTable(key), "anchor")
-                local pts = EDGE_POINTS[v]
-                if type(a) == "table" and pts then a.point, a.relPoint = pts[1], pts[2] end
-            end,
-        })
-        list[#list + 1] = AS("numbers", nil, L["Offset"], { sub = "anchor", path = false, level = "structure",
-            resetPaths = { "anchor.x", "anchor.y" }, fallback = 0,
+    return text
+end
+Specs.AnchorSummary = AnchorSummary
+
+-- 摘要列：左邊灰字摘要、緊接著一顆「設定」鈕（跟資源條頁每一列那顆同字同尺寸）開錨定視窗。
+-- 跟著游標時整列蓋停用遮罩（Specs 的 disabled 機制）、按鈕 Disable；這條的錨定視窗開著就收掉
+local SUMMARY_H = 26
+local function AnchorSummaryRow(key, gate)
+    local btn
+    local spec = { type = "custom", label = L["Anchoring"], h = SUMMARY_H, noReset = true }
+    if gate then
+        -- 表單每次套用後都重判停用（BuildForm 的 gates）：按鈕狀態與視窗一起跟著
+        spec.disabled = function(info)
+            local off = gate(info) and true or false
+            if btn then btn:SetEnabled(not off) end
+            if off and ns.AnchorWindow and ns.AnchorWindow.Current() == key then ns.AnchorWindow.Close() end
+            return off
+        end
+    end
+    spec.build = function(parent, x, y, width)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(false)
+        fs:SetPoint("LEFT", parent, "TOPLEFT", x, y - SUMMARY_H / 2)
+        local b = W.CreateButton(parent, L["Settings"], "normal", 70, 20)
+        local bw = W.FitButton(b, 70, 20)
+        b:SetPoint("LEFT", fs, "RIGHT", 10, 0)
+        b:SetScript("OnClick", function() if ns.AnchorWindow then ns.AnchorWindow.Open(key) end end)
+        btn = b
+        -- 摘要太長（歐語＋長框名）就截在按鈕前面，按鈕永遠在控件欄裡
+        local maxW = math.max(40, width - bw - 10)
+        return SUMMARY_H, function()
+            fs:SetText(AnchorSummary(key))
+            local w = fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth() or fs:GetStringWidth() or 0
+            fs:SetWidth(math.min(math.ceil(w) + 1, maxW))
+            if gate then b:SetEnabled(not gate()) end
+        end
+    end
+    return spec
+end
+
+-- opts（可省）：
+--   other   true ＝ key 不是這張表單自己的條（資源條頁上的自訂格子）：讀寫走 root "bar@<key>"
+--   header  小節標題（預設「錨定」）；nested ＝ 畫成小標題
+-- 錨定視窗的讀寫一律 root "bar@<key>"，所以 other 只影響這裡「位置」那一列
+function Specs.Anchor(key, opts)
+    opts = opts or {}
+    local bar = ns.DB.ConfigTable(key) or {}
+    local anchored = type(bar.anchor) == "table"
+    local root = opts.other and ("bar@" .. key) or "bar"
+    -- 跟著游標開著（而且條件成立）時錨定／位置那幾列停用（值不動，關掉就回來）
+    local gate = (not opts.other) and Specs.AnchorCursorGate(key) or nil
+    local list = {
+        -- 分頁：條頁的錨定跟版面同一頁（Specs.SplitTabs）；沒分頁的頁（施法條、資源條…）不看這欄
+        { type = "header", label = opts.header or L["Anchoring"], nested = opts.nested or nil,
+          tab = not opts.nested and "layout" or nil },
+    }
+    -- 自訂的圖示群組：跟著游標（勾選＋原因字）、離游標的位移
+    if gate then
+        list[#list + 1] = CursorRow(key)
+        list[#list + 1] = BS("numbers", nil, L["Offset from the pointer"], { sub = "cursor", path = false,
+            resetPaths = { "cursor.x", "cursor.y" }, fallback = 0,
+            disabled = function() return not gate() end,
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
-    else
+    end
+    -- 跟著誰、哪一點貼哪一點、偏移：都在錨定視窗（Options/AnchorWindow.lua），這裡只留摘要＋開窗鈕
+    list[#list + 1] = AnchorSummaryRow(key, gate)
+    if not anchored then
         -- 自己的位置：pos 的偏移（相對畫面上 pos.point 那一點；拖曳／方向鍵改的就是它）
-        list[#list + 1] = AS("numbers", nil, L["Position"], { sub = "pos", path = false, level = "structure",
-            resetPaths = { "pos" },
+        list[#list + 1] = BS("numbers", nil, L["Position"], { root = root, sub = "pos", path = false, level = "structure",
+            resetPaths = { "pos" }, disabled = gate,
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })
     end
     list[#list + 1] = Note(L["Hover a bar and press the arrow keys to nudge it by 1 (Shift: 10)."])
     list[#list + 1] = Note(L["A bar that follows another moves with it. Dragging it in Edit Mode stops the following."])
     list[#list + 1] = Note(L["Elements that follow the same side of the same bar stack outward instead of overlapping."])
-    list[#list + 1] = Note(L["It can also follow the player, target or focus frame of whichever unit frames are loaded, or any frame by name. A target frame hidden for lack of a target still holds the position."])
+    list[#list + 1] = Note(L["It can also follow the player, target, focus, pet or target-of-target frame of whichever unit frames are loaded, or any frame by name. A frame hidden for lack of a unit still holds the position."])
     -- 天空騎術接力的對象：這個位置在天空騎術時由那個面板接手（只放灰字，不放按鈕；切換在天空騎術頁）
     if not opts.other and ns.Bars and ns.Bars.SkyRelayTo and ns.Bars.SkyRelayTo() == key then
         list[#list + 1] = Note(L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."])
@@ -1900,6 +1956,8 @@ local function ResetSpec(ctx, spec)
         else
             local target = TargetOf(spec) or info.key
             local v = ns.DB.DefaultFor("bar", target, path)
+            -- fallbacks：每個 path 各自的退路（錨點九宮格一次重設 point／relPoint 兩個不同的值）
+            if v == nil and spec.fallbacks then v = spec.fallbacks[path] end
             if v == nil then v = spec.fallback end
             ns.DB.SetPath(ns.DB.ConfigTable(target), path, v)
         end

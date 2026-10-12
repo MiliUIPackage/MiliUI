@@ -94,6 +94,7 @@ Options\ResourceConditions.lua
 Options\HealthThresholds.lua
 Options\MetaRules.lua
 Options\SettingsWindow.lua
+Options\AnchorWindow.lua
 Options\ResourceSettings.lua
 Options\StackColors.lua
 Options\CustomSounds.lua

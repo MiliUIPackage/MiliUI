@@ -1,10 +1,12 @@
 ------------------------------------------------------------
 -- 「一列一個設定小視窗」的共用殼（資源條每種資源的設定 Options/ResourceSettings.lua、天空騎術每一列的設定
--- Options/SkyridingSettings.lua 共用）
+-- Options/SkyridingSettings.lua、每條／每個面板的錨定 Options/AnchorWindow.lua 共用）
 --
 --   local win = ns.SettingsWindow.New({
 --       id        = "resourcesettings",          -- 回呼登記的名字（要唯一）
---       configKey = "resources",                 -- 表單讀寫哪張設定表（Specs.MakeCtx 的 key）
+--       configKey = "resources",                 -- 表單讀寫哪張設定表（Specs.MakeCtx 的 key）；
+--                                                --   省略＝每一列自己的 key（錨定視窗：一個視窗輪流開各條，
+--                                                --   表單照形狀快取、形狀簽章裡帶 key，所以一張表單只屬於一條）
 --       width     = 540, maxH = 560,
 --       controls  = function(key) → specs,       -- 這一列的表單
 --       signature = function(key) → string,      -- 表單的「形狀」：一樣就重用（frame 刪不掉）
@@ -143,7 +145,7 @@ function Win:ShowForm(reset)
     local form = self.forms[sig]
     if not form then
         local ctx
-        ctx = ns.Specs.MakeCtx({ mode = "panel", key = opts.configKey }, function(spec) self:Applied(spec) end)
+        ctx = ns.Specs.MakeCtx({ mode = "panel", key = opts.configKey or key }, function(spec) self:Applied(spec) end)
         local specs = opts.controls(key)
         if opts.prepare then specs = opts.prepare(key, specs, ctx) or specs end
         form = ns.Specs.BuildForm(self.scroll.child, specs, ctx, self.formW)

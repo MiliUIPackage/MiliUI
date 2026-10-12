@@ -1129,7 +1129,7 @@ end
 
 Options.RegisterPage(KEY, Options.PageTitle(KEY), Tab.Build)
 
--- 專精／天賦換了、編輯模式拖完（拖了就脫離錨定）：開著的這一頁照新的形狀重讀
+-- 專精／天賦換了、編輯模式拖完（拖了就脫離錨定）、錨定視窗改了值：開著的這一頁照新的形狀重讀
 local function Reread()
     local page = Options.GetPage(KEY)
     if page and page:IsVisible() and page.RefreshForm then
@@ -1138,3 +1138,5 @@ local function Reread()
 end
 ns.RegisterCallback("SpecChanged", "tab_resources", Reread)
 ns.RegisterCallback("BarMoved", "tab_resources", function(key) if key == KEY or key == PIPS then Reread() end end)
+-- 錨定視窗改了資源條或自訂格子的錨定：摘要列重讀
+ns.RegisterCallback("AnchorChanged", "tab_resources", function(key) if key == KEY or key == PIPS then Reread() end end)

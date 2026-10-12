@@ -2,7 +2,8 @@
 -- 錨到外部的框：單位框與具名框（H4）
 --
 -- anchor.to 除了條／面板的 key，多兩種值（⚠ **存檔內容，之後不能改名**）：
---   "unit:player"｜"unit:target"｜"unit:focus"   現在載入的那支單位框（提供者表依序找第一個存在的）
+--   "unit:player"｜"unit:target"｜"unit:focus"｜"unit:pet"｜"unit:targettarget"｜"unit:focustarget"
+--                                              現在載入的那支單位框（提供者表依序找第一個存在的）
 --   "frame:<全域框名>"                          任意具名框（"frame:" 後面空白＝還沒填名字，當作解析不到）
 -- anchor.fallback = { point, x, y }：第一次選外部目標時記下的「自己在畫面上的位置」（同 pos 的語意）。
 -- **解析不到時照 fallback（沒有就照 pos）貼 UIParent**——不是沒有錨點、不會消失。
@@ -15,7 +16,10 @@
 --   A.Invalidate()            快取作廢（ADDON_LOADED／PLAYER_ENTERING_WORLD：單位框插件可能比我們晚載入）
 --   A.Fallback(bar)           → point, x, y：解析不到時要貼的位置（fallback ＞ pos ＞ CENTER 0,0）
 --   A.Unresolved(bar)         這條的 anchor.to 是外部目標、而且現在解析不到
---   A.Label(to)               顯示用的名字（玩家框架／目標框架／專注目標框架／框名）
+--   A.Label(to)               顯示用的名字（玩家框架／目標框架／專注目標框架／寵物框架／目標的目標框架／
+--                             專注目標的目標框架／框名）
+--   A.Provider(to)            解析到的框屬於哪一家（A.PROVIDERS 那一行的 name），查不到回 nil；
+--                             錨定視窗的灰字「目前接到：家名（框名）」用。家名是提供者表的資料，不從框名前綴猜
 --
 -- 「框存在」只看 _G[name] 是不是一個可以當錨點的物件（GetObjectType 讀得到、有 GetPoint 這類區域方法、
 -- 不是 forbidden）。**不讀它的位置、大小、可見度**：單位框沒有目標時被 RegisterUnitWatch 藏起來，
@@ -34,14 +38,40 @@ local _, ns = ...
 ns.Anchor = ns.Anchor or {}
 local A = ns.Anchor
 
--- 單位框提供者：一行一支，依序試，第一個存在的贏。名字是各家單位框的全域框名（資料，不是程式）
-A.UNIT_PROVIDERS = {
-    player = { "MiliUIUF_Player", "ElvUF_Player", "PlayerFrame" },
-    target = { "MiliUIUF_Target", "ElvUF_Target", "TargetFrame" },
-    focus  = { "MiliUIUF_Focus",  "ElvUF_Focus",  "FocusFrame" },
+-- 單位框提供者：一行一家，依序試（本套組 → 其他單位框插件 → 暴雪），第一個存在的贏。
+-- 名字是各家單位框的全域框名（資料，不是程式）；**unit 的 key（player…）是存檔內容，不能改名**
+A.PROVIDERS = {
+    { name = "MiliUI", frames = {
+        player = "MiliUIUF_Player", target = "MiliUIUF_Target", focus = "MiliUIUF_Focus",
+        pet = "MiliUIUF_Pet", targettarget = "MiliUIUF_TargetTarget", focustarget = "MiliUIUF_FocusTarget" } },
+    { name = "EllesmereUI", frames = {
+        player = "EllesmereUIUnitFrames_Player", target = "EllesmereUIUnitFrames_Target",
+        focus = "EllesmereUIUnitFrames_Focus", pet = "EllesmereUIUnitFrames_Pet",
+        targettarget = "EllesmereUIUnitFrames_TargetTarget", focustarget = "EllesmereUIUnitFrames_FocusTarget" } },
+    { name = "ElvUI", frames = {
+        player = "ElvUF_Player", target = "ElvUF_Target", focus = "ElvUF_Focus",
+        pet = "ElvUF_Pet", targettarget = "ElvUF_TargetTarget", focustarget = "ElvUF_FocusTarget" } },
+    { name = "Blizzard", frames = {
+        player = "PlayerFrame", target = "TargetFrame", focus = "FocusFrame",
+        pet = "PetFrame", targettarget = "TargetFrameToT", focustarget = "FocusFrameToT" } },
 }
 -- 設定頁下拉的順序
-A.UNITS = { "player", "target", "focus" }
+A.UNITS = { "player", "target", "focus", "pet", "targettarget", "focustarget" }
+
+-- 從提供者表展開：unit → 依序要試的框名；框名 → 家名
+A.UNIT_PROVIDERS = {}
+A.FRAME_PROVIDER = {}
+for _, u in ipairs(A.UNITS) do
+    local list = {}
+    for _, prov in ipairs(A.PROVIDERS) do
+        local name = prov.frames[u]
+        if name then
+            list[#list + 1] = name
+            A.FRAME_PROVIDER[name] = prov.name
+        end
+    end
+    A.UNIT_PROVIDERS[u] = list
+end
 
 A.OWN_PREFIX = "MiliUICDM_Bar_"
 
@@ -144,6 +174,9 @@ function A.Label(to)
     if kind == "unit" then
         if arg == "player" then return L["Player frame"] end
         if arg == "target" then return L["Target frame"] end
+        if arg == "pet" then return L["Pet frame"] end
+        if arg == "targettarget" then return L["Target of target frame"] end
+        if arg == "focustarget" then return L["Focus target frame"] end
         return L["Focus frame"]
     end
     if kind == "frame" then
@@ -151,6 +184,13 @@ function A.Label(to)
         return L["Frame by name"]
     end
     return tostring(to)
+end
+
+-- 解析到的框是哪一家的（單位框才有；具名框剛好填了某家的框名也照表回）。解析不到回 nil
+function A.Provider(to)
+    local _, name = A.Resolve(to)
+    if not name then return nil end
+    return A.FRAME_PROVIDER[name]
 end
 
 -- 解析不到時的位置：anchor.fallback ＞ pos ＞ 畫面中央
