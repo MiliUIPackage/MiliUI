@@ -32,7 +32,8 @@
 --   * 「有光環才顯示」的列：裝飾也建在按鈕子樹裡（按鈕只在有光環時顯示 ⇒ 整列跟著出現），
 --     裝飾的幾何進簽章
 -- 整列寬的填色跨過格距：第 k 層的填色終點落在第 k 個格距裡（W·k/n 與格子邊界差 gap·(1-k/n) < gap），
--- 所以分隔（跟黑邊同色）剛好蓋住，看起來還是一格一格的。
+-- 所以分隔（不透明的暗底色，兩側是格子自己的 1px 邊）剛好蓋住，看起來還是一格一格的。格距沒辦法像點數型那樣
+-- 透出世界（填色連續、底下一定有色）；要真的透明得在 initializeFrame 給填色貼圖掛 REPEAT 遮罩，沒驗證過先不做。
 --
 -- 12.1 的硬規矩（跟 Modules/Custom.lua 的光環格同一套）：
 --   * 容器是受保護的 intrinsic：它所在的列、面板容器（保護沿父層／錨點鏈往上傳）戰鬥中都不能
@@ -188,8 +189,12 @@ local function LayoutDecor(d, anchor, geom)
     for _, s in pairs(g.gaps) do
         ns2 = ns2 + 1
         local t = Tex(d.seps, ns2, d.overlay, "OVERLAY")
-        -- 分隔要蓋住跨過格距的填色：跟邊框同色；沒有邊框時照舊用黑
-        if px > 0 then t:SetVertexColor(er, eg, eb, ea) else t:SetVertexColor(0, 0, 0, 1) end
+        -- 分隔要蓋住跨過格距的填色（引擎的填色是整列寬連續的，格距底下一定有填色，沒辦法像點數型那樣透出世界）：
+        -- 畫成格子的暗底色、不透明（alpha 1：底下 1～k 格的填色都會穿過格距，用暗底的半透明會透出紫色），
+        -- 看起來是格與格之間露出底，兩側各有 1px 黑邊——跟點數型「邊＋格距＋邊」同一個長相。以前跟黑邊同色，
+        -- 格距 2 就是一條 4px 實心黑（2026-10-12 秘法齊射 25 格「分隔比點數型粗很多」回報）
+        t:SetTexture(SOLID)
+        t:SetVertexColor(dim[1], dim[2], dim[3], 1)
         Place(t, s.x, s.w, 0, H)
     end
     for i = nb + 1, #d.bgs do d.bgs[i]:Hide() end
