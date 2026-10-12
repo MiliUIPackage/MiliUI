@@ -663,6 +663,7 @@ end
 -- 列的順序（resources.order：資源 key 的陣列，整份設定檔共用、不分專精）
 --
 -- 在 order 裡的照它的位置；不在的維持原本（專精清單）的相對順序、排在所有排過的後面。
+-- 寫回時別的專精才有的 key 錨在原本的鄰居後面（R.MergeOrder），兩個專精各排各的、共有列不互相洗掉。
 -- 不分專精 ⇒ 兩個專精共有的 key（法力、血量…）在一邊調了另一邊也跟著；只差在各自有哪幾列。
 ------------------------------------------------------------
 -- 純函式：回傳排好的新表（list 不動）。穩定：同樣沒排過的照原順序；order 裡重複的 key 只認第一次
@@ -691,7 +692,9 @@ function R.ApplyOrder(list, order)
 end
 
 -- 純函式：設定頁上下移之後要存的 order。cand ＝ 這個專精排好的完整清單（照它排），
--- 舊 order 裡不在 cand 的 key（別的專精排過的）依原相對位置接在後面
+-- 舊 order 裡不在 cand 的 key（別的專精才有的）**錨在它在舊 order 裡的前一個 key 後面**（沒有前一個就排最前）。
+-- 不能一律接到最後：懲戒排「聖能、征戰、血量」、神聖排「聖能、法力、血量」，接到最後會變成
+-- 「聖能、法力、血量、征戰」，切回懲戒就成了「聖能、血量、征戰」（血量是兩邊共有的才會露餡）
 function R.MergeOrder(old, cand)
     local out, seen = {}, {}
     for _, key in ipairs(type(cand) == "table" and cand or {}) do
@@ -700,10 +703,20 @@ function R.MergeOrder(old, cand)
             seen[key] = true
         end
     end
+    local prev
     for _, key in ipairs(type(old) == "table" and old or {}) do
-        if type(key) == "string" and not seen[key] then
-            out[#out + 1] = key
-            seen[key] = true
+        if type(key) == "string" then
+            if not seen[key] then
+                local at = 1
+                if prev then
+                    for i = 1, #out do
+                        if out[i] == prev then at = i + 1; break end
+                    end
+                end
+                table.insert(out, at, key)
+                seen[key] = true
+            end
+            prev = key
         end
     end
     return out

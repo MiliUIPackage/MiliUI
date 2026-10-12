@@ -1206,10 +1206,19 @@ do
     local out = R.ApplyOrder(src, { "B" })
     check("排序：回新表、原表不動", out ~= src and list(src) == "A,B")
     eqList("排序：清單是空的", R.ApplyOrder({}, { "A" }), {})
-    -- 寫回：這個專精的完整順序在前、舊的別專精 key 照原相對位置接在後面
+    -- 寫回：這個專精的完整順序照排、舊的別專精 key 錨在它原本前一個 key 後面
     eqList("寫回：沒有舊的", R.MergeOrder(nil, { "B", "A" }), { "B", "A" })
-    eqList("寫回：保留別的專精的 key", R.MergeOrder({ "X", "A", "Y", "B" }, { "B", "A" }), { "B", "A", "X", "Y" })
-    eqList("寫回：壞資料跳過", R.MergeOrder({ 3, "X", false }, { "A" }), { "A", "X" })
+    eqList("寫回：保留別的專精的 key", R.MergeOrder({ "X", "A", "Y", "B" }, { "B", "A" }), { "X", "B", "A", "Y" })
+    eqList("寫回：壞資料跳過", R.MergeOrder({ 3, "X", false }, { "A" }), { "X", "A" })
+    -- 兩個專精共有中間那列（血量）：各自排好、切來切去都不亂
+    local o = R.MergeOrder(nil, { "HolyPower", "CrusadingStrikes", "Health" })          -- 懲戒
+    o = R.MergeOrder(o, { "HolyPower", "Mana", "Health" })                              -- 神聖：法力移到血量上面
+    eqList("共有列：神聖記得", R.ApplyOrder({ "HolyPower", "Mana", "Health" }, o), { "HolyPower", "Mana", "Health" })
+    eqList("共有列：懲戒不被神聖洗掉", R.ApplyOrder({ "CrusadingStrikes", "HolyPower", "Health" }, o),
+        { "HolyPower", "CrusadingStrikes", "Health" })
+    o = R.MergeOrder(o, { "Mana", "HolyPower", "Health" })                              -- 神聖改排
+    eqList("共有列：神聖改排後懲戒照舊", R.ApplyOrder({ "CrusadingStrikes", "HolyPower", "Health" }, o),
+        { "HolyPower", "CrusadingStrikes", "Health" })
     -- 往返：寫回之後再排一次，跟玩家看到的一樣
     local merged = R.MergeOrder({ "Energy", "Rage" }, { "Mana", "HolyPower", "Health" })
     eqList("往返：排出來跟寫回的一樣", R.ApplyOrder({ "HolyPower", "Mana", "Health" }, merged), { "Mana", "HolyPower", "Health" })
