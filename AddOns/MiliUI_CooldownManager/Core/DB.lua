@@ -40,7 +40,7 @@ DB.DEFAULT_PROFILE = "Default"
 --   DB.overrideGen  逐法術覆寫、專精表（spells[spec] 的 order／groupOf／hidden／overrides）、自訂項目有任何寫入就 +1
 --                   讀的人：Catalog.Replacements 的 memo、Decorate.Apply 的前置鍵（SpellStyle 讀覆寫；IconOverrideOf
 --                   也看「這個 id 是不是光環格」＝自訂清單，所以自訂項目的寫入一併 +1）
---   DB.customGen    自訂項目（三層清單、一筆的欄位）有任何寫入就 +1
+--   DB.customGen    自訂項目（四層清單、一筆的欄位）有任何寫入就 +1
 --                   讀的人：EffectiveCustom 的 memo、Catalog.CustomInfo 的 memo
 -- 作廢點一律放在**寫入的出口**：SpecSpells／CustomList／ScopeList／OverrideTable 的 create=true（＝呼叫端要寫）、
 -- SetOverride／DropOverrideTable／ClearOverrides、增刪搬複製自訂項目、DeleteBar、Activate（換設定檔）、
@@ -627,8 +627,8 @@ function DB.BuildDefaults()
             },
             barOrder = { "essential", "utility", "buffs", "buffbars" },   -- 左欄順序，自訂群組接在後面
             spells   = {},                  -- [specID] = { order, groupOf, hidden, overrides, custom }
-            -- 自訂項目的寬層（customShared 戰隊層／customClass[classFile] 職業層／customNextUID）刻意**不放預設值**：
-            -- 沒有這兩張表 ＝ 只有專精層（舊存檔照舊），第一次加進去時才建（DB.ScopeList）
+            -- 自訂項目的寬層（customShared 戰隊層／customClass[classFile] 職業層／customChar[charKey] 角色層／
+            -- customNextUID）刻意**不放預設值**：沒有這幾張表 ＝ 只有專精層（舊存檔照舊），第一次加進去時才建（DB.ScopeList）
             resources = ResourcesDefaults(),
             pips      = PipsDefaults(),
             castbar   = CastbarDefaults(),
@@ -1378,7 +1378,7 @@ DB.SPELL_FALLBACK, DB.SPELL_CONST = SPELL_FALLBACK, SPELL_CONST
 -- "w:<uid>"（戰隊層），見下面「自訂項目」。
 -- ⚠ 它會拿來當 table key ⇒ 只能是從 C_CooldownViewer 讀到的明文，**不准是秘密值**。
 -- specID 省略 ＝ 目前的專精。
--- 覆寫存在哪：暴雪的項目與專精層的自訂項目在 spells[specID].overrides[id]；職業層／戰隊層的自訂項目
+-- 覆寫存在哪：暴雪的項目與專精層的自訂項目在 spells[specID].overrides[id]；寬層（戰隊／職業／角色）的自訂項目
 -- **跟著那一筆走**（entry.overrides），所有看得到它的專精讀同一份（DB.OverrideTable 是唯一分流點）。
 -- 只讀覆寫本身（沒覆寫 ＝ nil，不退回條層）：要分得出「跟隨」與「覆寫成跟條一樣的值」的地方用
 function ns.SpellOverride(cooldownID, key, specID)
@@ -1582,7 +1582,7 @@ function DB.DeleteBar(key)
             if type(spec.order) == "table" then spec.order[key] = nil end
         end
     end
-    -- 自訂項目沒有「原本的暴雪那條」可以回去：光環格（含飾品欄增益）回增益圖示、法術／物品回核心技能（三層都是）
+    -- 自訂項目沒有「原本的暴雪那條」可以回去：光環格（含飾品欄增益）回增益圖示、法術／物品回核心技能（四層都是）
     local function Rehome(list)
         for _, e in ipairs(list) do
             if type(e) == "table" and e.bar == key then
@@ -1717,15 +1717,14 @@ DB.OVERRIDE_GROUP = {
 }
 
 -- 某個 id 的覆寫表（{ 欄位 = 值 }）。唯一的分流點：
---   職業層／戰隊層的自訂項目（"k:"／"w:"）→ 那一筆自己身上的 entry.overrides
+--   戰隊層／職業層／角色層的自訂項目（"w:"／"k:"／"p:"）→ 那一筆自己身上的 entry.overrides
 --   其餘（暴雪的數字 id、專精層的 "c:"）→ spells[specID].overrides[id]
 -- create ＝ 沒有就建（那一筆不存在時照樣回 nil），也是「呼叫端要寫」的宣告 ⇒ DB.overrideGen 的作廢點。
 -- 只回表（2026-10-04 之前第二個回傳值是「拿掉這張表」的閉包：每次讀覆寫都配置一個，SpellStyle 一次讀十幾個）；
 -- 整張拿掉改叫 DB.DropOverrideTable。
 function DB.OverrideTable(cooldownID, create, specID)
     if cooldownID == nil then return nil end
-    local scope = DB.ParseCustomID(cooldownID)
-    if scope == "class" or scope == "shared" then
+    if DB.IsWideScope(DB.ParseCustomID(cooldownID)) then
         local e = DB.CustomEntry(cooldownID)
         if type(e) ~= "table" then return nil end
         if create then DB.TouchOverrides() end
@@ -1750,8 +1749,7 @@ end
 -- 某個 id 的覆寫表整張拿掉（OverrideTable 的分流照抄：寬層的自訂項目拿掉那一筆身上的，其餘拿掉專精表裡的）
 function DB.DropOverrideTable(cooldownID, specID)
     if cooldownID == nil then return end
-    local scope = DB.ParseCustomID(cooldownID)
-    if scope == "class" or scope == "shared" then
+    if DB.IsWideScope(DB.ParseCustomID(cooldownID)) then
         local e = DB.CustomEntry(cooldownID)
         if type(e) == "table" and e.overrides ~= nil then
             e.overrides = nil
@@ -1774,8 +1772,7 @@ function DB.SetOverride(cooldownID, field, v)
     if not o then
         -- 清一個本來就沒有的覆寫 ＝ 成功（那一筆不存在時照舊回 false）
         if v ~= nil then return false end
-        local scope = DB.ParseCustomID(cooldownID)
-        if scope == "class" or scope == "shared" then return DB.CustomEntry(cooldownID) ~= nil end
+        if DB.IsWideScope(DB.ParseCustomID(cooldownID)) then return DB.CustomEntry(cooldownID) ~= nil end
         local sp = DB.SpecSpells(false)
         return sp ~= nil and type(sp.overrides) == "table"
     end
@@ -1842,29 +1839,37 @@ end
 -- 在順序、隱藏、覆寫裡的 id 是 "c:<index>"。index 是陣列位置，所以**刪掉中間一筆時
 -- 後面的 id 全部要往前挪**（DB.RemoveCustom 負責，不然第 3 筆的覆寫會跑到原本的第 4 筆上）。
 --
--- ── 三層範圍（2026-10-03）：戰隊 ＞ 職業 ＞ 專精，窄的蓋寬的 ─────────────────────
+-- ── 四層範圍（2026-10-03 三層、2026-10-12 加角色層）：戰隊 ＞ 職業 ＞ 角色 ＞ 專精，窄的蓋寬的 ──────
 --   profile.customShared            戰隊層：用這份設定檔的每個角色、每個專精都看得到
 --   profile.customClass[classFile]  職業層：這個職業的所有專精
---   spells[specID].custom           專精層（上面那張，不動）
---   兩張新表的一筆跟專精層同形狀，另外多：
---     uid          穩定編號（設定檔層的流水號 profile.customNextUID，兩層共用一個號碼空間）；
---                  id 是 "k:<uid>"（職業）／"w:<uid>"（戰隊），刪掉別筆也不會變（不用挪位）
+--   profile.customChar[charKey]     角色層：這個角色（DB.CharKey()，「名字 - 伺服器」）的所有專精
+--   spells[specID].custom           專精層（上面那張，不動；仍是最窄：玩家對單一專精的選擇）
+--   三張寬層表（戰隊／職業／角色）的一筆跟專精層同形狀，另外多：
+--     uid          穩定編號（設定檔層的流水號 profile.customNextUID，三個寬層共用一個號碼空間）；
+--                  id 是 "w:<uid>"（戰隊）／"k:<uid>"（職業）／"p:<uid>"（角色），刪掉別筆也不會變（不用挪位）
 --     overrides    這一筆的逐法術覆寫（跟著項目走；所有看得到它的專精讀同一份）
 --     hideUnknown  這個角色用不到（法術沒學）時整格不列；nil／true ＝ 不列（預設），false ＝ 照舊畫問號格
---   順序、隱藏、群組仍存在專精層（spells[specID].order[bar] 可以放 "k:3"／"w:7"）。
+--   順序、隱藏、群組仍存在專精層（spells[specID].order[bar] 可以放 "k:3"／"w:7"／"p:9"）。
+--   ⚠ 專精表是同設定檔、同專精的角色共用的 ⇒ 別隻角色的 "p:<uid>" 會留在順序表裡；這隻角色的角色層沒有那個 uid
+--     ＝ 對這隻角色不存在（生效清單裡沒有，排版照常略過）。號碼空間共用，所以不會撞到這隻角色自己的。
 --   種類多一個 "racial"（種族技能）：沒有 spellID，照這個角色的種族解析成學會的那一個（Presets.ResolveRacial）；
 --   解不到 ＝ 當成沒學（不列）。
 --   **窄的蓋寬的**：同一個身分（同種類＋同主 ID，光環還要同 filter）在多層都有時只有最窄的那層生效，
 --   寬的那筆對這個專精當不存在（DB.ResolveScopes，純函式）。
---   舊存檔沒有這兩張表 ＝ 只有專精層，行為跟以前一樣（不遷移、DB_VERSION 不動）。
+--   舊存檔沒有這幾張表 ＝ 只有專精層，行為跟以前一樣（不遷移、DB_VERSION 不動）。
 ------------------------------------------------------------
 DB.CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true, racial = true }
 
 -- 範圍：越大越窄（窄的蓋寬的）
-DB.SCOPE_RANK = { shared = 1, class = 2, spec = 3 }
-DB.SCOPE_ORDER = { "shared", "class", "spec" }
-local SCOPE_PREFIX = { spec = "c", class = "k", shared = "w" }
-local PREFIX_SCOPE = { c = "spec", k = "class", w = "shared" }
+DB.SCOPE_RANK = { shared = 1, class = 2, char = 3, spec = 4 }
+DB.SCOPE_ORDER = { "shared", "class", "char", "spec" }
+local SCOPE_PREFIX = { spec = "c", class = "k", shared = "w", char = "p" }
+local PREFIX_SCOPE = { c = "spec", k = "class", w = "shared", p = "char" }
+
+-- 寬層（戰隊／職業／角色）：uid 編號、覆寫跟著那一筆走、沒學的法術預設不列。專精層與不認得的範圍回 false
+function DB.IsWideScope(scope)
+    return scope ~= nil and scope ~= "spec" and DB.SCOPE_RANK[scope] ~= nil
+end
 
 function DB.CustomID(i) return "c:" .. tostring(i) end
 
@@ -1876,7 +1881,7 @@ function DB.ScopedCustomID(scope, key)
 end
 
 -- **解析自訂項目 id 的唯一出口**：
---   "c:3" → "spec", 3（陣列位置）｜"k:5" → "class", 5（uid）｜"w:7" → "shared", 7（uid）
+--   "c:3" → "spec", 3（陣列位置）｜"k:5" → "class", 5（uid）｜"w:7" → "shared", 7（uid）｜"p:9" → "char", 9（uid）
 --   不是自訂項目的 id（數字 cooldownID、格式不對）→ nil
 function DB.ParseCustomID(id)
     if type(id) ~= "string" then return nil end
@@ -1886,7 +1891,7 @@ function DB.ParseCustomID(id)
     return scope, tonumber(n)
 end
 
--- "c:3" → 3；不是專精層自訂項目的 id 回 nil（"k:"／"w:" 也是 nil：它們沒有陣列位置）
+-- "c:3" → 3；不是專精層自訂項目的 id 回 nil（"k:"／"w:"／"p:" 也是 nil：它們沒有陣列位置）
 function DB.CustomIndex(id)
     local scope, n = DB.ParseCustomID(id)
     if scope == "spec" then return n end
@@ -1897,7 +1902,16 @@ local function PositiveInt(v)
     return type(v) == "number" and v > 0 and v == math.floor(v)
 end
 
--- 某一層的清單（"spec" ＝ 這個專精的 custom；"class" ＝ 這個角色職業的；"shared" ＝ 戰隊層）
+-- 角色層的 key：DB.CharKey()（「名字 - 伺服器」）；名字還讀不到（太早、離線測試沒有 UnitName）⇒ nil，
+-- 不能落到 "? - ?" 那一格（每隻讀不到名字的角色會共用它）
+local function CharScopeKey()
+    if type(UnitName) ~= "function" or type(GetRealmName) ~= "function" then return nil end
+    local name, realm = UnitName("player"), GetRealmName()
+    if type(name) ~= "string" or name == "" or type(realm) ~= "string" or realm == "" then return nil end
+    return CharKey()
+end
+
+-- 某一層的清單（"spec" ＝ 這個專精的 custom；"class" ＝ 這個角色職業的；"char" ＝ 這個角色的；"shared" ＝ 戰隊層）
 -- create ＝ 呼叫端要寫 ⇒ DB.customGen 的作廢點（"spec" 走 CustomList，同一個規矩）
 function DB.ScopeList(scope, create, specID)
     if scope == "spec" then return DB.CustomList(create, specID) end
@@ -1924,6 +1938,20 @@ function DB.ScopeList(scope, create, specID)
             p.customClass[cls] = list
         end
         return list
+    elseif scope == "char" then
+        local key = CharScopeKey()
+        if not key then return nil end
+        if type(p.customChar) ~= "table" then
+            if not create then return nil end
+            p.customChar = {}
+        end
+        local list = p.customChar[key]
+        if type(list) ~= "table" then
+            if not create then return nil end
+            list = {}
+            p.customChar[key] = list
+        end
+        return list
     end
     return nil
 end
@@ -1936,13 +1964,16 @@ local function FindUID(list, uid)
     return nil
 end
 
--- 每一張寬層清單（戰隊層＋所有職業的）：fn(list)
+-- 每一張寬層清單（戰隊層＋所有職業的＋所有角色的）：fn(list)。
+-- 角色層也要掃全部角色：NextCustomUID 靠它找最大的 uid（別隻角色的號碼不能撞），覆寫遷移、刪條改家也要顧到
 local function EachWideList(p, fn)
     if type(p) ~= "table" then return end
     if type(p.customShared) == "table" then fn(p.customShared) end
-    if type(p.customClass) == "table" then
-        for _, list in pairs(p.customClass) do
-            if type(list) == "table" then fn(list) end
+    for _, field in ipairs({ "customClass", "customChar" }) do
+        if type(p[field]) == "table" then
+            for _, list in pairs(p[field]) do
+                if type(list) == "table" then fn(list) end
+            end
         end
     end
 end
@@ -1987,7 +2018,7 @@ end
 --   opts.racial()        → 這個角色學會的種族技能 spellID（解不到 nil）
 --   opts.isKnown(id)     → 學了沒（false ＝ 沒學；nil／true ＝ 學了或讀不到）
 -- 種族技能 ⇒ 換成一筆唯讀的法術「視圖」（metatable 讀原本那筆：bar、placeholder、overrides 都是原本的）；
--- 寬層（職業／戰隊）的法術沒學而且 hideUnknown 沒關 ⇒ nil（整格不列）。回 nil ＝ 這個專精當它不存在。
+-- 寬層（戰隊／職業／角色）的法術沒學而且 hideUnknown 沒關 ⇒ nil（整格不列）。回 nil ＝ 這個專精當它不存在。
 function DB.CustomView(raw, scope, opts)
     if type(raw) ~= "table" then return raw end
     opts = opts or {}
@@ -2003,11 +2034,11 @@ function DB.CustomView(raw, scope, opts)
     return view
 end
 
--- 三層合併（純函式）：sharedList／classList／specList 是三層的原始清單，resolve(raw, scope) → 視圖或 nil
--- （省略 ＝ 原樣）。回傳 { { id, key, entry, raw, scope }, … }，戰隊 → 職業 → 專精的順序接；
+-- 四層合併（純函式）：sharedList／classList／charList／specList 是四層的原始清單，resolve(raw, scope) → 視圖或 nil
+-- （省略 ＝ 原樣）。回傳 { { id, key, entry, raw, scope }, … }，戰隊 → 職業 → 角色 → 專精的順序接；
 -- 同一個身分只留最窄那層的（同一層的重複照留，匯入帶進來的重複項由 Custom.Sync 自己分 key）。
 -- 寬層沒有 uid 的壞資料跳過（沒有 id 可以放進順序表）。
-function DB.ResolveScopes(sharedList, classList, specList, resolve)
+function DB.ResolveScopes(sharedList, classList, charList, specList, resolve)
     local items = {}
     local function Take(list, scope)
         if type(list) ~= "table" then return end
@@ -2029,6 +2060,7 @@ function DB.ResolveScopes(sharedList, classList, specList, resolve)
     end
     Take(sharedList, "shared")
     Take(classList, "class")
+    Take(charList, "char")
     Take(specList, "spec")
     local RANK = DB.SCOPE_RANK
     local narrow = {}
@@ -2089,7 +2121,7 @@ end
 local RUNTIME_OPTS = { isKnown = RuntimeKnown, racial = RuntimeRacial }
 local function RuntimeView(raw, scope) return DB.CustomView(raw, scope, RUNTIME_OPTS) end
 
--- 這個專精實際生效的自訂項目（三層合併、窄蓋寬、種族技能解析、用不到的不列）。
+-- 這個專精實際生效的自訂項目（四層合併、窄蓋寬、種族技能解析、用不到的不列）。
 -- Catalog／Custom.Sync／設定頁都吃這支；一輪排版會被叫很多次（每條的 Catalog.Bar、BarHasAuraSlot、CustomEntry…）。
 -- memo（效能修整 E2）：DB.customGen、GetTime() 戳記、專精、設定檔四樣都相同才回上一次的表。
 --   * customGen 是寫入出口的作廢點（見檔頭「寫入世代」）⇒ 同一幀寫完立刻讀也拿得到新的
@@ -2107,7 +2139,7 @@ function DB.EffectiveCustom(specID)
         return m.list
     end
     local list = DB.ResolveScopes(DB.ScopeList("shared", false), DB.ScopeList("class", false),
-        DB.CustomList(false, specID), RuntimeView)
+        DB.ScopeList("char", false), DB.CustomList(false, specID), RuntimeView)
     m.gen, m.at, m.spec, m.profile, m.list = DB.customGen, now, spec, p, list
     return list
 end
@@ -2218,7 +2250,7 @@ function DB.AddCustom(entry)
     return #list
 end
 
--- 新增到某一層，回傳 id（"c:<i>"／"k:<uid>"／"w:<uid>"；失敗 nil）。寬層的那一筆配 uid、hideUnknown 預設開
+-- 新增到某一層，回傳 id（"c:<i>"／"k:<uid>"／"p:<uid>"／"w:<uid>"；失敗 nil）。寬層的那一筆配 uid、hideUnknown 預設開
 function DB.AddCustomTo(scope, entry)
     if scope == nil or scope == "spec" then
         local i = DB.AddCustom(entry)
@@ -2292,7 +2324,7 @@ end
 
 function DB.RemoveCustom(id, specID)
     local scope, key = DB.ParseCustomID(id)
-    if scope == "class" or scope == "shared" then
+    if DB.IsWideScope(scope) then
         -- 寬層：uid 穩定，不用挪位；所有專精的順序／隱藏／群組裡的這個 id 一起清掉（覆寫跟著那一筆走了）
         local list = DB.ScopeList(scope, false)
         local _, pos = FindUID(list, key)
@@ -2554,14 +2586,18 @@ function DB.DecodeProfileString(text)
             if type(bar) ~= "table" then return nil, "shape" end
         end
     end
-    -- 自訂項目的寬層（戰隊／職業）：形狀不對的直接丟掉（不擋整份匯入；舊版的字串本來就沒有這兩張表）
+    -- 自訂項目的寬層（戰隊／職業／角色）：形狀不對的直接丟掉（不擋整份匯入；舊版的字串本來就沒有這幾張表）。
+    -- 角色層照 key（「名字 - 伺服器」）原樣帶：同名同伺服器的角色匯入後看得到，別人的角色就是用不到的幾筆
     if profile.customShared ~= nil and type(profile.customShared) ~= "table" then profile.customShared = nil end
-    if profile.customClass ~= nil then
-        if type(profile.customClass) ~= "table" then
-            profile.customClass = nil
-        else
-            for cls, list in pairs(profile.customClass) do
-                if type(cls) ~= "string" or type(list) ~= "table" then profile.customClass[cls] = nil end
+    for _, field in ipairs({ "customClass", "customChar" }) do
+        local t = profile[field]
+        if t ~= nil then
+            if type(t) ~= "table" then
+                profile[field] = nil
+            else
+                for k, list in pairs(t) do
+                    if type(k) ~= "string" or type(list) ~= "table" then t[k] = nil end
+                end
             end
         end
     end

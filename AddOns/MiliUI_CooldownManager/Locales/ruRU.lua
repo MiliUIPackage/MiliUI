@@ -848,7 +848,7 @@ L["Show if not learned"] = "Если не изучен"
 L["Spell not found"] = "Заклинание не найдено"
 L["Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree. Shows or hides automatically when you change talents."] = "Введите ID заклинания таланта или щёлкните по полю, а затем Shift-щелчок по таланту в дереве. Показывается или скрывается само при смене талантов."
 L["Talent condition not met, so it isn't shown on screen."] = "Условие таланта не выполнено — на экране не показывается."
--- 自訂項目的三層範圍（戰隊／職業／專精）
+-- 自訂項目的範圍（戰隊／職業／角色／專精）
 L["Warband (all characters)"] = "Отряд (все персонажи)"
 L["This class"] = "Этот класс"
 L["This specialization"] = "Эта специализация"
@@ -868,6 +868,13 @@ L["Settings here apply to this one for every character and specialization using 
 L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."] = "Эти настройки общие для всех специализаций этого класса. ПКМ по строке — снова как у панели."
 L["Only this specialization will keep it. Your other specializations and other characters stop showing it."] = "Оно останется только в этой специализации. Другие ваши специализации и персонажи перестанут его показывать."
 L["Only this class will keep it. Characters of other classes stop showing it."] = "Оно останется только у этого класса. Персонажи других классов перестанут его показывать."
+-- 角色層（2026-10-12）
+L["This character"] = "Этот персонаж"
+L["Every specialization of this character sees it. Other characters don't."] = "Видно во всех специализациях этого персонажа. Другим персонажам — нет."
+L["Remove it from every specialization of this character?"] = "Удалить из всех специализаций этого персонажа?"
+L["Settings here are for this character only, shared by all its specializations. Right-click a row to follow the bar again."] = "Эти настройки только для этого персонажа, общие для всех его специализаций. ПКМ по строке — снова следовать панели."
+L["Only this specialization will keep it. Your other specializations stop showing it, and other characters using this profile see it in this specialization."] = "Останется только в этой специализации. Другие ваши специализации перестанут его показывать, а другие персонажи с этим профилем увидят его в этой специализации."
+L["Only this character will keep it. Other characters stop showing it."] = "Останется только у этого персонажа. Другие персонажи перестанут его показывать."
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "«%s» показывает только то, что туда отправил менеджер восстановления Blizzard."
 L["Spells from a bar list can only go into bar groups."] = "Заклинания из списка полос можно перенести только в группы полос."
 L["Spells from an icon list can only go into icon groups."] = "Заклинания из списка значков можно перенести только в группы значков."

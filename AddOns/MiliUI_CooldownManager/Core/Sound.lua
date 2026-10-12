@@ -555,7 +555,7 @@ function S.CustomRemove(index)
                 if type(o) == "table" and Clean(o) then all[id] = nil end
             end
         end
-        -- 職業層／戰隊層的自訂項目：覆寫跟著那一筆走（Core/DB.lua）
+        -- 寬層（戰隊／職業／角色）的自訂項目：覆寫跟著那一筆走（Core/DB.lua）
         if ns.DB and ns.DB.EachWideList then
             ns.DB.EachWideList(profile, function(list)
                 for _, ce in ipairs(list) do

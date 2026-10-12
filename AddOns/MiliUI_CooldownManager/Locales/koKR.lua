@@ -848,7 +848,7 @@ L["Show if not learned"] = "안 배웠을 때 표시"
 L["Spell not found"] = "주문을 찾을 수 없음"
 L["Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree. Shows or hides automatically when you change talents."] = "특성의 주문 ID를 입력하거나, 입력란을 누른 뒤 특성 트리에서 Shift+클릭하세요. 특성을 바꾸면 자동으로 표시되거나 숨겨집니다."
 L["Talent condition not met, so it isn't shown on screen."] = "특성 조건이 맞지 않아 화면에 표시되지 않습니다."
--- 自訂項目的三層範圍（戰隊／職業／專精）
+-- 自訂項目的範圍（戰隊／職業／角色／專精）
 L["Warband (all characters)"] = "전투부대 (모든 캐릭터)"
 L["This class"] = "이 직업"
 L["This specialization"] = "이 전문화"
@@ -868,6 +868,13 @@ L["Settings here apply to this one for every character and specialization using 
 L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."] = "여기 설정은 이 직업의 모든 전문화가 함께 씁니다. 줄을 오른쪽 클릭하면 다시 바 설정을 따릅니다."
 L["Only this specialization will keep it. Your other specializations and other characters stop showing it."] = "이 전문화에만 남습니다. 다른 전문화와 다른 캐릭터에서는 더 이상 표시되지 않습니다."
 L["Only this class will keep it. Characters of other classes stop showing it."] = "이 직업에만 남습니다. 다른 직업의 캐릭터에서는 더 이상 표시되지 않습니다."
+-- 角色層（2026-10-12）
+L["This character"] = "이 캐릭터"
+L["Every specialization of this character sees it. Other characters don't."] = "이 캐릭터의 모든 전문화에 표시됩니다. 다른 캐릭터에는 표시되지 않습니다."
+L["Remove it from every specialization of this character?"] = "제거할까요? 이 캐릭터의 모든 전문화에서 함께 사라집니다."
+L["Settings here are for this character only, shared by all its specializations. Right-click a row to follow the bar again."] = "여기 설정은 이 캐릭터 전용이며 모든 전문화가 함께 씁니다. 줄을 오른쪽 클릭하면 다시 바 설정을 따릅니다."
+L["Only this specialization will keep it. Your other specializations stop showing it, and other characters using this profile see it in this specialization."] = "이 전문화에만 남습니다. 다른 전문화에는 더 이상 표시되지 않고, 이 프로필을 쓰는 다른 캐릭터는 이 전문화에서 보게 됩니다."
+L["Only this character will keep it. Other characters stop showing it."] = "이 캐릭터에만 남습니다. 다른 캐릭터에는 더 이상 표시되지 않습니다."
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s에는 블리자드 재사용 대기시간 관리자가 배정한 것만 표시됩니다."
 L["Spells from a bar list can only go into bar groups."] = "바 목록의 주문은 바 그룹에만 넣을 수 있습니다."
 L["Spells from an icon list can only go into icon groups."] = "아이콘 목록의 주문은 아이콘 그룹에만 넣을 수 있습니다."

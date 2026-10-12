@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 自訂項目：光環格、自訂法術冷卻、自訂物品冷卻
 --
---   ns.Custom.Sync()                       Bars 每輪排版前叫：照目前專精生效的自訂項目（三層合併）對上框
+--   ns.Custom.Sync()                       Bars 每輪排版前叫：照目前專精生效的自訂項目（四層合併）對上框
 --   ns.Custom.Get(id)                      "c:i"／"k:uid"／"w:uid" → rec（Bars 當一格 entry 用）
 --   ns.Custom.Place(rec, container, r, barKey, gen)   放進格子（光環格的持有框走 ns.Write）
 --   ns.Custom.EndBar(barKey, gen)          這條這一輪沒放到的框收起來
@@ -13,7 +13,7 @@
 --   飾品欄增益（存檔 kind = "slotbuff"）在這裡就是光環格：rec.kind = "aura"、rec.slotBuff = { slot, buff }，
 --   認的法術照現在裝的飾品解（Catalog.SlotBuffIDs，經 CU.AuraIDsOf），見「飾品欄增益」那一節
 --
--- 資料在三層（Core/DB.lua：戰隊 customShared "w:<uid>"、職業 customClass "k:<uid>"、專精 spells[specID].custom
+-- 資料在四層（Core/DB.lua：戰隊 customShared "w:<uid>"、職業 customClass "k:<uid>"、角色 customChar "p:<uid>"、專精 spells[specID].custom
 -- "c:<index>"），這裡只吃合併後的生效清單（DB.EffectiveCustom）；框依「身分」池化
 -- （光環：spellID＋filter；法術：spellID；物品：itemID），換專精換回來拿同一顆，不重建。
 -- 種族技能（kind = "racial"）在生效清單裡已經解析成這個角色的那個法術，這裡當普通的自訂法術。
@@ -3089,7 +3089,7 @@ local function HideRec(rec)
 end
 
 function CU.Sync()
-    -- 三層合併後的生效清單（Core/DB.lua 的 EffectiveCustom：戰隊／職業／專精，窄蓋寬；種族技能是解析後的視圖）。
+    -- 四層合併後的生效清單（Core/DB.lua 的 EffectiveCustom：戰隊／職業／角色／專精，窄蓋寬；種族技能是解析後的視圖）。
     -- 框照身分池化：同一個法術從專精層搬到戰隊層（id 換了）拿的還是同一顆框
     local list = ns.DB.EffectiveCustom()
     local seen = {}

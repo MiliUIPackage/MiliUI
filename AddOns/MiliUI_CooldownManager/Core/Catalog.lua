@@ -12,7 +12,7 @@
 --   ns.Catalog.HideReason(barKey, id) 沒有物品時隱藏／被動飾品不顯示 ⇒ "noItem"｜"passive"（只讀判準；讓位在 Core/Bars.lua）
 --   ns.Catalog.Replacements()  以增益取代：byA（A → B）、byB（B → A）；B 不進任何一條的清單（見那一節）
 --
--- 自訂項目（三層：戰隊 "w:<uid>"／職業 "k:<uid>"／專精 "c:<index>"，合併規則在 Core/DB.lua 的
+-- 自訂項目（四層：戰隊 "w:<uid>"／職業 "k:<uid>"／角色 "p:<uid>"／專精 "c:<index>"，合併規則在 Core/DB.lua 的
 -- EffectiveCustom）也從這裡進清單：Bar(key) 把生效清單裡 bar == key 的排進去，順序跟其他格一樣走 order 表
 -- （光環格也是，可以放在任意位置；條上有光環格時 Bars 會強制固定格位，位置本來就不動）。
 -- Info(id) 回同一個形狀的表（多 custom／kind／itemID／filter／scope）。
@@ -403,10 +403,10 @@ C.TalentKnown = TalentKnown
 -- 這一格的條件（目前專精的覆寫；SpellsTable 定義在下面，用前置宣告）
 local SpellsTable
 local function TalentCondOf(sp, id)
-    -- 職業層／戰隊層的自訂項目：覆寫跟著那一筆走（Core/DB.lua 的 OverrideTable）
+    -- 寬層（戰隊／職業／角色）的自訂項目：覆寫跟著那一筆走（Core/DB.lua 的 OverrideTable）
     local DB = ns.DB
     local scope = DB and DB.ParseCustomID and DB.ParseCustomID(id)
-    if scope == "class" or scope == "shared" then
+    if scope and DB.IsWideScope(scope) then
         local o = DB.OverrideTable(id, false)
         return type(o) == "table" and o.talentCond or nil
     end
@@ -1230,14 +1230,14 @@ SpellsTable = function()
     return type(sp) == "table" and sp or nil
 end
 
--- 這個專精實際生效的自訂項目（三層合併、窄蓋寬，Core/DB.lua 的 EffectiveCustom）：{ { id, key, entry, raw, scope }, … }
+-- 這個專精實際生效的自訂項目（四層合併、窄蓋寬，Core/DB.lua 的 EffectiveCustom）：{ { id, key, entry, raw, scope }, … }
 local function Effective()
     local DB = ns.DB
     if DB and DB.EffectiveCustom then return DB.EffectiveCustom() end
     return EMPTY
 end
 
--- id 解析一律走 DB.ParseCustomID（"c:"／"k:"／"w:"）
+-- id 解析一律走 DB.ParseCustomID（"c:"／"k:"／"p:"／"w:"）
 local function Parse(id)
     local DB = ns.DB
     if DB and DB.ParseCustomID then return DB.ParseCustomID(id) end
@@ -1442,7 +1442,7 @@ BuildCustomInfo = function(id)
     local info = {
         cooldownID = id, custom = true, index = i, kind = e.kind, bar = e.bar,
         spellID = e.spellID, itemID = e.itemID, filter = e.filter, slot = e.slot, isKnown = true,
-        -- 範圍（"shared"｜"class"｜"spec"）；種族技能那一筆（解析成這個角色的那一個）多 racial
+        -- 範圍（"shared"｜"class"｜"char"｜"spec"）；種族技能那一筆（解析成這個角色的那一個）多 racial
         scope = scope, racial = e.racial and true or nil,
     }
     if e.kind == "slotbuff" then
@@ -1917,8 +1917,8 @@ function C.BarBase(barKey, withHidden)
         end
     end
 
-    -- 自訂項目（圖示類、長條類的條都收：放在長條上時 Modules/Custom.lua 換成長條框）。三層合併後的
-    -- 生效清單（戰隊 → 職業 → 專精；被窄層蓋掉的、這個角色用不到的不在裡面）。
+    -- 自訂項目（圖示類、長條類的條都收：放在長條上時 Modules/Custom.lua 換成長條框）。四層合併後的
+    -- 生效清單（戰隊 → 職業 → 角色 → 專精；被窄層蓋掉的、這個角色用不到的不在裡面）。
     -- hidden 對它無效：自己加的項目「移除」就是整筆刪掉，沒有「藏著」這種狀態
     for _, it in ipairs(Effective()) do
         local e = it.entry

@@ -724,16 +724,16 @@ do
         { kind = "aura", spellID = 2825, filter = "HARMFUL", bar = "buffs" }, -- filter 不同：不蓋
         { kind = "spell", spellID = 1, bar = "essential" },
     }
-    local r = DB.ResolveScopes(shared, class, spec)
+    local r = DB.ResolveScopes(shared, class, nil, spec)
     eq("窄蓋寬：生效清單（戰隊 → 職業 → 專精）", ids(r), "w:3,w:4,k:5,k:6,c:1,c:2,c:3")
-    eq("被蓋掉的那筆不在（物品）", ids(DB.ResolveScopes(shared, nil, { spec[1] })), "w:2,w:3,w:4,c:1")
-    eq("只有專精層 ＝ 舊行為", ids(DB.ResolveScopes(nil, nil, spec)), "c:1,c:2,c:3")
+    eq("被蓋掉的那筆不在（物品）", ids(DB.ResolveScopes(shared, nil, nil, { spec[1] })), "w:2,w:3,w:4,c:1")
+    eq("只有專精層 ＝ 舊行為", ids(DB.ResolveScopes(nil, nil, nil, spec)), "c:1,c:2,c:3")
     eq("每一項帶範圍與原始資料", r[1].scope .. "/" .. tostring(r[1].raw == shared[3]) .. "/" .. tostring(r[1].key), "shared/true/3")
     eq("職業蓋戰隊（法術）：職業層那筆在", r[3].entry.bar, "utility")
-    local dup = DB.ResolveScopes(nil, nil, { { kind = "spell", spellID = 1 }, { kind = "spell", spellID = 1 } })
+    local dup = DB.ResolveScopes(nil, nil, nil, { { kind = "spell", spellID = 1 }, { kind = "spell", spellID = 1 } })
     eq("同一層的重複照留（Custom.Sync 自己分 key）", ids(dup), "c:1,c:2")
-    eq("壞資料（不是表）在專精層照留（Catalog 自己濾）", ids(DB.ResolveScopes(nil, nil, { "x" })), "c:1")
-    local dropped = DB.ResolveScopes(shared, nil, nil, function(raw) if raw.kind == "item" then return nil end return raw end)
+    eq("壞資料（不是表）在專精層照留（Catalog 自己濾）", ids(DB.ResolveScopes(nil, nil, nil, { "x" })), "c:1")
+    local dropped = DB.ResolveScopes(shared, nil, nil, nil, function(raw) if raw.kind == "item" then return nil end return raw end)
     eq("resolve 回 nil ＝ 不列", ids(dropped), "w:2,w:3,w:4")
 
     -- CustomView：種族技能、寬層沒學就不列
@@ -757,7 +757,7 @@ do
     eq("身分：種族技能的視圖 ＝ 那個法術", DB.CustomIdentity(v), "spell:20594")
     eq("身分：光環分 filter", DB.CustomIdentity({ kind = "aura", spellID = 5 }), "aura:5:HELPFUL")
     -- 種族技能在戰隊層、專精層有同一個法術 ⇒ 專精層的蓋掉它
-    local rr = DB.ResolveScopes({ racial }, nil, { { kind = "spell", spellID = 20594 } },
+    local rr = DB.ResolveScopes({ racial }, nil, nil, { { kind = "spell", spellID = 20594 } },
         function(raw, scope) return DB.CustomView(raw, scope, opts) end)
     eq("種族技能被專精層的同一個法術蓋掉", ids(rr), "c:1")
 
@@ -885,7 +885,142 @@ do
 
     P.customShared, P.customClass, P.customNextUID = nil, nil, nil
     P.spells[cur], P.spells[other] = nil, nil
-    eq("DB_VERSION 沒動（P8 不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
+    eq("DB_VERSION 沒動（P8 與角色層都不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
+end
+
+------------------------------------------------------------
+-- 15b. 第四層「這個角色」（2026-10-12）：customChar[charKey]、id "p:<uid>"、戰隊 ＜ 職業 ＜ 角色 ＜ 專精；
+--      uid 跟另外兩個寬層共用號碼空間、換角色看不到、覆寫跟著那一筆、搬範圍、刪除、名字讀不到不落 "? - ?"、設定檔複製帶過去
+------------------------------------------------------------
+do
+    local P = ns.profile
+    local cur = ns.specID
+    local other = cur + 1
+    local me = state.player .. " - " .. state.realm
+    local function ids(list) local o = {} for i, it in ipairs(list) do o[i] = it.id end return table.concat(o, ",") end
+
+    -- id 與排序
+    local sc, kc = DB.ParseCustomID("p:9")
+    check("Parse p: ⇒ 角色層", sc == "char" and kc == 9)
+    eq("ScopedCustomID 角色", DB.ScopedCustomID("char", 9), "p:9")
+    eq("CustomIndex 角色層 ⇒ nil", DB.CustomIndex("p:9"), nil)
+    eq("SCOPE_ORDER：寬 → 窄", table.concat(DB.SCOPE_ORDER, ","), "shared,class,char,spec")
+    check("SCOPE_RANK：職業 ＜ 角色 ＜ 專精", DB.SCOPE_RANK.class < DB.SCOPE_RANK.char and DB.SCOPE_RANK.char < DB.SCOPE_RANK.spec)
+    check("IsWideScope：戰隊／職業／角色是、專精與不認得的不是",
+        DB.IsWideScope("shared") and DB.IsWideScope("class") and DB.IsWideScope("char")
+        and not DB.IsWideScope("spec") and not DB.IsWideScope("guild") and not DB.IsWideScope(nil))
+
+    -- ResolveScopes：角色蓋職業與戰隊、專精蓋角色
+    local r = DB.ResolveScopes(
+        { { kind = "spell", spellID = 1, uid = 1 }, { kind = "item", itemID = 2, uid = 2 } },
+        { { kind = "spell", spellID = 1, uid = 3 }, { kind = "spell", spellID = 4, uid = 4 } },
+        { { kind = "spell", spellID = 1, uid = 5 }, { kind = "spell", spellID = 4, uid = 6 }, { kind = "spell", spellID = 7, uid = 7 } },
+        { { kind = "spell", spellID = 7 } })
+    eq("四層合併：戰隊 → 職業 → 角色 → 專精、窄蓋寬", ids(r), "w:2,p:5,p:6,c:1")
+    eq("角色層那一項帶範圍", r[2].scope, "char")
+    eq("角色層沒 uid 的壞資料跳過", ids(DB.ResolveScopes(nil, nil, { { kind = "spell", spellID = 1 } }, nil)), "")
+    -- 寬層照寬層辦：沒學的法術預設不列
+    local opts = { isKnown = function() return false end }
+    eq("角色層沒學 ⇒ 不列", DB.CustomView({ kind = "spell", spellID = 1, uid = 1 }, "char", opts), nil)
+    check("角色層 hideUnknown = false ⇒ 照列",
+        DB.CustomView({ kind = "spell", spellID = 1, uid = 1, hideUnknown = false }, "char", opts) ~= nil)
+
+    -- AddCustomTo：uid 跟另外兩層共用、存在這隻角色底下
+    P.spells = P.spells or {}
+    P.spells[cur], P.spells[other] = nil, nil
+    P.customShared, P.customClass, P.customChar, P.customNextUID = nil, nil, nil, nil
+    local w = DB.AddCustomTo("shared", { kind = "item", itemID = 5512, bar = "essential" })
+    local k = DB.AddCustomTo("class", { kind = "spell", spellID = 642, bar = "essential" })
+    local pc = DB.AddCustomTo("char", { kind = "spell", spellID = 31884, bar = "essential" })
+    local c = DB.AddCustomTo("spec", { kind = "spell", spellID = 100, bar = "essential" })
+    eq("AddCustomTo 角色 ⇒ p:3（三個寬層共用號碼）", pc, "p:3")
+    eq("角色層存在這隻角色底下", P.customChar[me] and P.customChar[me][1].spellID, 31884)
+    eq("角色層的一筆 hideUnknown 預設開", P.customChar[me][1].hideUnknown, true)
+    eq("合併順序：戰隊 → 職業 → 角色 → 專精", ids(DB.EffectiveCustom()), table.concat({ w, k, pc, c }, ","))
+    eq("CustomEntry 角色層：範圍", select(3, DB.CustomEntry("p:3")), "char")
+    eq("FindInScope：角色層有", DB.FindInScope("char", { kind = "spell", spellID = 31884 }), 1)
+    -- 別的專精：角色層照樣看得到
+    ns.specID = other
+    eq("別的專精：角色層照樣在", ids(DB.EffectiveCustom()), "w:1,k:2,p:3")
+    ns.specID = cur
+
+    -- 覆寫跟著那一筆走
+    DB.SetOverride("p:3", "readySound", "Ding")
+    eq("角色層覆寫存在那一筆身上", P.customChar[me][1].overrides.readySound, "Ding")
+    check("不寫進專精表", not (P.spells[cur].overrides and P.spells[cur].overrides["p:3"]))
+    DB.SetOverride("p:3", "readySound", nil)
+    eq("清到空 ⇒ 整張拿掉", P.customChar[me][1].overrides, nil)
+    check("SetOverride 清不存在的覆寫 ⇒ 成功", DB.SetOverride("p:3", "procGlow", nil))
+
+    -- 換角色：看不到前一隻的角色層；新的一筆的 uid 不撞前一隻的
+    state.player = "小明"
+    eq("別的角色：角色層不列", ids(DB.EffectiveCustom()), "w:1,k:2,c:1")
+    eq("別的角色：CustomEntry 角色層 ＝ nil", DB.CustomEntry("p:3"), nil)
+    eq("別的角色：角色層的清單 ＝ nil", DB.ScopeList("char", false), nil)
+    local pOther = DB.AddCustomTo("char", { kind = "spell", spellID = 31884, bar = "utility" })
+    eq("別的角色加同一個法術 ⇒ 新 uid（不撞號）", pOther, "p:4")
+    eq("兩隻角色各自一份", P.customChar["小明 - 世界之樹"][1].bar .. "/" .. P.customChar[me][1].bar, "utility/essential")
+    check("RemoveCustom 別隻角色看不到的 id ⇒ false", not DB.RemoveCustom("p:3"))
+    state.player = "米利"
+    eq("換回來：自己那筆還在", DB.CustomEntry("p:3") and DB.CustomEntry("p:3").bar, "essential")
+
+    -- 名字讀不到（太早、離線）⇒ 角色層不存在、不能寫，不會落到 "? - ?"
+    state.player = nil
+    eq("名字讀不到 ⇒ 角色層清單 nil", DB.ScopeList("char", true), nil)
+    eq("名字讀不到 ⇒ AddCustomTo 角色 nil", DB.AddCustomTo("char", { kind = "spell", spellID = 9, bar = "essential" }), nil)
+    check("沒建出 \"? - ?\"", P.customChar["? - ?"] == nil)
+    state.player = "米利"
+
+    -- 搬範圍：職業 → 角色（往窄）、角色 → 戰隊（往寬）、角色 → 專精
+    local sp = DB.SpecSpells(true)
+    sp.order.essential = { "k:2", "p:3" }
+    DB.SetOverride("k:2", "procGlow", false)
+    local n1 = DB.MoveCustomScope("k:2", "char")
+    eq("職業 → 角色：新 id", n1, "p:5")
+    eq("覆寫跟著到角色層", ns.SpellOverride(n1, "procGlow"), false)
+    eq("職業層那筆沒了", #P.customClass.PALADIN, 0)
+    eq("順序裡換新 id", sp.order.essential[1], "p:5")
+    local n2 = DB.MoveCustomScope("p:3", "shared")
+    eq("角色 → 戰隊：新 id", n2, "w:6")
+    eq("角色層剩一筆", #P.customChar[me], 1)
+    local n3 = DB.MoveCustomScope(n1, "spec")
+    eq("角色 → 專精：追加到專精層尾端", n3, "c:2")
+    eq("覆寫搬進專精表", sp.overrides[n3] and sp.overrides[n3].procGlow, false)
+    eq("角色層空了", #P.customChar[me], 0)
+    -- 目標層已經有 ⇒ exists
+    DB.AddCustomTo("char", { kind = "spell", spellID = 100, bar = "essential" })
+    local nx, why = DB.MoveCustomScope("c:1", "char")
+    check("角色層已有 ⇒ nil, exists", nx == nil and why == "exists")
+
+    -- RemoveCustom（角色層）：所有專精的順序清掉
+    local pid = DB.FindEffective({ kind = "spell", spellID = 100 })
+    eq("專精蓋角色：生效的是專精層那筆", pid, "c:1")
+    P.spells[other] = { order = { essential = { "p:7", 21 } }, hidden = {}, groupOf = {}, overrides = {} }
+    check("RemoveCustom p:7", DB.RemoveCustom("p:7"))
+    eq("別的專精的順序清掉", table.concat(P.spells[other].order.essential, ","), "21")
+    eq("CopyCustomEntry 角色層 ⇒ false", DB.CopyCustomEntry("p:4", other), false)
+
+    -- 流水號：落後時要掃到所有角色的 uid（小明那筆改成 40，比其他層都大）
+    P.customNextUID = 1
+    P.customChar["小明 - 世界之樹"][1].uid = 40
+    eq("流水號落後 ⇒ 接在所有角色裡最大的後面", DB.NextCustomUID(), 41)
+
+    -- DeleteBar：角色層那筆回家
+    local g = DB.CreateBar("icons", "角色層群組")
+    local pg = DB.AddCustomTo("char", { kind = "aura", spellID = 2825, filter = "HELPFUL", bar = g })
+    DB.DeleteBar(g)
+    eq("刪群組：角色層的光環格回增益圖示", DB.CustomEntry(pg).bar, "buffs")
+
+    -- 設定檔複製：角色層整張帶過去、兩份不共用子表
+    check("複製設定檔", DB.CopyProfile(ns.profileName, "角色層複製"))
+    local copy = DB.GetProfile("角色層複製")
+    check("複製：角色層帶過去", copy and type(copy.customChar) == "table" and type(copy.customChar[me]) == "table"
+        and #copy.customChar[me] == #P.customChar[me])
+    check("複製：不共用子表", copy.customChar ~= P.customChar)
+    DB.DeleteProfile("角色層複製")
+
+    P.customShared, P.customClass, P.customChar, P.customNextUID = nil, nil, nil, nil
+    P.spells[cur], P.spells[other] = nil, nil
 end
 
 ------------------------------------------------------------

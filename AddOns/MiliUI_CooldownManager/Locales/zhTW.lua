@@ -848,7 +848,7 @@ L["Show if not learned"] = "沒學才顯示"
 L["Spell not found"] = "找不到這個法術"
 L["Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree. Shows or hides automatically when you change talents."] = "輸入天賦的法術 ID，也可以點一下輸入框，再按住 Shift 點天賦樹上的圖示。換天賦時自動顯示或隱藏。"
 L["Talent condition not met, so it isn't shown on screen."] = "天賦條件不成立，畫面上不顯示。"
--- 自訂項目的三層範圍（戰隊／職業／專精）
+-- 自訂項目的範圍（戰隊／職業／角色／專精）
 L["Warband (all characters)"] = "戰隊（所有角色）"
 L["This class"] = "這個職業"
 L["This specialization"] = "這個專精"
@@ -868,6 +868,13 @@ L["Settings here apply to this one for every character and specialization using 
 L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."] = "這裡的設定是這個職業的所有專精共用的同一份。在某一列按右鍵就回到跟隨條。"
 L["Only this specialization will keep it. Your other specializations and other characters stop showing it."] = "只有這個專精會留著它，你的其他專精與其他角色都不再顯示。"
 L["Only this class will keep it. Characters of other classes stop showing it."] = "只有這個職業會留著它，其他職業的角色都不再顯示。"
+-- 角色層（2026-10-12）
+L["This character"] = "這個角色"
+L["Every specialization of this character sees it. Other characters don't."] = "這個角色的所有專精都看得到，其他角色看不到。"
+L["Remove it from every specialization of this character?"] = "要移除嗎？這個角色的所有專精都會一起拿掉。"
+L["Settings here are for this character only, shared by all its specializations. Right-click a row to follow the bar again."] = "這裡的設定只給這個角色用，每個專精共用同一份。在某一列按右鍵就回到跟隨條。"
+L["Only this specialization will keep it. Your other specializations stop showing it, and other characters using this profile see it in this specialization."] = "只有這個專精會留著它，你的其他專精不再顯示；用這份設定檔的其他角色在這個專精也會看到。"
+L["Only this character will keep it. Other characters stop showing it."] = "只有這個角色會保留，其他角色看不到。"
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "「%s」只顯示暴雪冷卻管理器分給它的法術。"
 L["Spells from a bar list can only go into bar groups."] = "長條清單的法術只能拉進長條群組。"
 L["Spells from an icon list can only go into icon groups."] = "圖示清單的法術只能拉進圖示群組。"

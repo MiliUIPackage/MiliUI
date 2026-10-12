@@ -848,7 +848,7 @@ L["Show if not learned"] = "Se non appreso"
 L["Spell not found"] = "Incantesimo non trovato"
 L["Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree. Shows or hides automatically when you change talents."] = "Inserisci l'ID incantesimo del talento, oppure clicca nella casella e Maiusc-clic sul talento nell'albero. Si mostra o nasconde da solo quando cambi talenti."
 L["Talent condition not met, so it isn't shown on screen."] = "Condizione talento non soddisfatta: non viene mostrato."
--- 自訂項目的三層範圍（戰隊／職業／專精）
+-- 自訂項目的範圍（戰隊／職業／角色／專精）
 L["Warband (all characters)"] = "Brigata (tutti i personaggi)"
 L["This class"] = "Questa classe"
 L["This specialization"] = "Questa specializzazione"
@@ -868,6 +868,13 @@ L["Settings here apply to this one for every character and specialization using 
 L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."] = "Queste impostazioni valgono per tutte le specializzazioni di questa classe. Clic destro su una riga per seguire di nuovo la barra."
 L["Only this specialization will keep it. Your other specializations and other characters stop showing it."] = "Solo questa specializzazione lo mantiene. Le tue altre specializzazioni e gli altri personaggi smettono di mostrarlo."
 L["Only this class will keep it. Characters of other classes stop showing it."] = "Solo questa classe lo mantiene. I personaggi delle altre classi smettono di mostrarlo."
+-- 角色層（2026-10-12）
+L["This character"] = "Questo personaggio"
+L["Every specialization of this character sees it. Other characters don't."] = "Lo vedono tutte le specializzazioni di questo personaggio. Gli altri personaggi no."
+L["Remove it from every specialization of this character?"] = "Rimuoverlo da tutte le specializzazioni di questo personaggio?"
+L["Settings here are for this character only, shared by all its specializations. Right-click a row to follow the bar again."] = "Queste impostazioni valgono solo per questo personaggio, condivise da tutte le sue specializzazioni. Clic destro su una riga per seguire di nuovo la barra."
+L["Only this specialization will keep it. Your other specializations stop showing it, and other characters using this profile see it in this specialization."] = "Solo questa specializzazione lo terrà. Le tue altre specializzazioni smettono di mostrarlo, e gli altri personaggi che usano questo profilo lo vedranno in questa specializzazione."
+L["Only this character will keep it. Other characters stop showing it."] = "Solo questo personaggio lo terrà. Gli altri personaggi smettono di mostrarlo."
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s mostra solo ciò che il gestore dei tempi di recupero di Blizzard vi assegna."
 L["Spells from a bar list can only go into bar groups."] = "Gli incantesimi di un elenco a barre possono andare solo in gruppi a barre."
 L["Spells from an icon list can only go into icon groups."] = "Gli incantesimi di un elenco a icone possono andare solo in gruppi a icone."

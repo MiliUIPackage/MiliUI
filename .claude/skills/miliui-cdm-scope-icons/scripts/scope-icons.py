@@ -9,6 +9,7 @@
 
   scope-shared.png  戰隊：兩個並排的人像（前大後小），讀成「一群人」
   scope-class.png   職業：盾牌
+  scope-char.png    角色：單一人像（戰隊那張的前景人像單獨放大置中），讀成「就這一個人」
   hidden.png        不顯示（只給其他插件讀取）：眼睛劃一撇，畫在預覽格的**左上角**（右上角是範圍記號）
 
 畫法：8 倍超取樣後 LANCZOS 縮到 64px（WoW 的貼圖邊長要是 2 的次方）。
@@ -69,6 +70,15 @@ def klass(path):
     print("wrote", path)
 
 
+def char(path):
+    img = canvas()
+    d = ImageDraw.Draw(img)
+    # 單一人像，比戰隊的前景人像大一號、置中、肩膀貼底：8px 下跟「兩個人」差在輪廓寬度與有沒有右上那顆頭
+    bust(d, S // 2, int(0.06 * S), 1.25, WHITE)
+    img.resize((OUT, OUT), Image.LANCZOS).save(path)
+    print("wrote", path)
+
+
 # 眼睛＋斜線：直接在 8x8 的格子上畫，每格放大成 8x8 的實心方塊（64px）。
 # 超取樣＋LANCZOS 試過：杏仁形＋瞳孔＋斜線縮到 8px 糊成一片棋盤格，看不出是眼睛；
 # 對齊 8x8 格線的版本縮到 8px 是整格取樣，輪廓一格不糊。
@@ -107,4 +117,5 @@ def hidden(path):
 if __name__ == "__main__":
     shared("scope-shared.png")
     klass("scope-class.png")
+    char("scope-char.png")
     hidden("hidden.png")

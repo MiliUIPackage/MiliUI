@@ -413,9 +413,9 @@ local function Debug(silent)
         end
         if total > 0 then p(("  光環格容器 IsProtected：%d／%d（細節 /mcdm aura）"):format(prot, total)) end
     end
-    -- 自訂項目每筆的範圍（戰隊／職業／專精；窄蓋寬之後生效的那幾筆）＋寬層裡這個角色看不到的筆數
+    -- 自訂項目每筆的範圍（戰隊／職業／角色／專精；窄蓋寬之後生效的那幾筆）＋寬層裡這個角色看不到的筆數
     if ns.DB and ns.DB.EffectiveCustom then
-        local SCOPE_TEXT = { shared = "戰隊", class = "職業", spec = "專精" }
+        local SCOPE_TEXT = { shared = "戰隊", class = "職業", char = "角色", spec = "專精" }
         local items = ns.DB.EffectiveCustom()
         local shown = {}
         for _, it in ipairs(items) do
@@ -429,13 +429,13 @@ local function Debug(silent)
             shown[it.raw] = true
         end
         local hiddenWide = 0
-        for _, scope in ipairs({ "shared", "class" }) do
+        for _, scope in ipairs({ "shared", "class", "char" }) do
             for _, raw in ipairs(ns.DB.ScopeList(scope, false) or {}) do
                 if not shown[raw] then hiddenWide = hiddenWide + 1 end
             end
         end
         if hiddenWide > 0 then
-            p(("    寬層（戰隊／職業）這裡不列的 %d 筆（被專精／職業層蓋掉、沒學、種族技能解不到）"):format(hiddenWide))
+            p(("    寬層（戰隊／職業／角色）這裡不列的 %d 筆（被比較窄的層蓋掉、沒學、種族技能解不到）"):format(hiddenWide))
         end
     end
     if G and G.Counts then

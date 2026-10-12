@@ -280,13 +280,15 @@ eq("摘要：有名字的用名字、沒有的用 key", table.concat(c2, ","), "
 eq("摘要：只算帶了的檢視器", #b2, 1)
 
 ------------------------------------------------------------
--- 8. 自訂項目的寬層（戰隊／職業）跟著字串走；形狀不對的丟掉、不擋整份
+-- 8. 自訂項目的寬層（戰隊／職業／角色）跟著字串走；形狀不對的丟掉、不擋整份
 ------------------------------------------------------------
 do
     local P = ns.profile
     P.customShared = { { kind = "item", itemID = 5512, bar = "essential", uid = 1, hideUnknown = true,
                          overrides = { readySound = "Ding" } } }
     P.customClass = { PALADIN = { { kind = "spell", spellID = 642, bar = "essential", uid = 2, hideUnknown = true } } }
+    P.customChar = { ["米利 - 世界之樹"] = { { kind = "spell", spellID = 31884, bar = "essential", uid = 4, hideUnknown = true,
+                                             overrides = { procGlow = false } } } }
     P.customNextUID = 3
     local s2 = DB.EncodeProfile()
     local d2 = DB.DecodeProfileString(s2)
@@ -294,18 +296,24 @@ do
     eq("匯出再匯入：戰隊層的覆寫跟著那一筆", d2 and d2.profile.customShared[1].overrides.readySound, "Ding")
     eq("匯出再匯入：職業層還在", d2 and d2.profile.customClass.PALADIN[1].spellID, 642)
     eq("匯出再匯入：流水號還在", d2 and d2.profile.customNextUID, 3)
+    eq("匯出再匯入：角色層照角色 key 帶著", d2 and d2.profile.customChar["米利 - 世界之樹"][1].spellID, 31884)
+    eq("匯出再匯入：角色層的覆寫跟著那一筆", d2 and d2.profile.customChar["米利 - 世界之樹"][1].overrides.procGlow, false)
     reg.wide1 = { schemaVersion = 1, profile = { customShared = "x", customClass = { PALADIN = 5, MAGE = {} },
+                                                 customChar = { ["甲 - 乙"] = "x", ["丙 - 丁"] = {} },
                                                  customNextUID = "7" } }
     local d3, why3 = DB.DecodeProfileString(DB.WIRE_PREFIX .. "Bzwide1")
     check("寬層形狀不對不擋整份", d3 ~= nil, why3)
     eq("戰隊層不是表 ⇒ 丟掉", d3 and d3.profile.customShared, nil)
     eq("職業層裡不是表的那個職業 ⇒ 丟掉", d3 and d3.profile.customClass.PALADIN, nil)
     check("職業層裡正常的留著", d3 and type(d3.profile.customClass.MAGE) == "table")
+    eq("角色層裡不是表的那隻角色 ⇒ 丟掉", d3 and d3.profile.customChar["甲 - 乙"], nil)
+    check("角色層裡正常的留著", d3 and type(d3.profile.customChar["丙 - 丁"]) == "table")
     eq("流水號不是數字 ⇒ 丟掉", d3 and d3.profile.customNextUID, nil)
-    reg.wide2 = { schemaVersion = 1, profile = { customClass = 9 } }
+    reg.wide2 = { schemaVersion = 1, profile = { customClass = 9, customChar = true } }
     local d4 = DB.DecodeProfileString(DB.WIRE_PREFIX .. "Bzwide2")
     eq("職業層整張不是表 ⇒ 丟掉", d4 and d4.profile.customClass, nil)
-    P.customShared, P.customClass, P.customNextUID = nil, nil, nil
+    eq("角色層整張不是表 ⇒ 丟掉", d4 and d4.profile.customChar, nil)
+    P.customShared, P.customClass, P.customChar, P.customNextUID = nil, nil, nil, nil
 end
 
 ------------------------------------------------------------

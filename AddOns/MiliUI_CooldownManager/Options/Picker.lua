@@ -129,16 +129,18 @@ end
 Picker.SpellLearnable = SpellLearnable
 
 ------------------------------------------------------------
--- 適用範圍（自訂項目的三層，Core/DB.lua）：文字、說明、下拉列
+-- 適用範圍（自訂項目的四層，Core/DB.lua）：文字、說明、下拉列
 ------------------------------------------------------------
 local SCOPE_LABEL = {
     shared = function() return L["Warband (all characters)"] end,
     class  = function() return L["This class"] end,
+    char   = function() return L["This character"] end,
     spec   = function() return L["This specialization"] end,
 }
 local SCOPE_DESC = {
     shared = function() return L["Every character and specialization using this profile sees it. Its settings exist only once."] end,
     class  = function() return L["Every specialization of this class sees it."] end,
+    char   = function() return L["Every specialization of this character sees it. Other characters don't."] end,
     spec   = function() return L["Only this specialization."] end,
 }
 

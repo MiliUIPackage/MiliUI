@@ -22,10 +22,11 @@
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
 -- 光環格（自訂項目 kind = "aura"）跟其他格一樣：可以拖到條上任意位置（同一張 order 表）、拖到左欄群組，
 -- 中鍵＝整筆移除，左鍵照樣開逐法術面板。
--- 自訂項目（"c:<index>"／"k:<uid>"／"w:<uid>"）拖到左欄＝改它的 bar（任何一條都收，含四條檢視器與長條類的條）；
--- 職業層／戰隊層的那一筆只有一份，改 bar 等於每個看得到它的專精都跟著搬。
--- 範圍記號：職業層／戰隊層的自訂項目右上角一個 10×10 的小記號（Media/scope-class.png 盾牌、scope-shared.png
--- 兩個人像，Pillow 腳本產生），黑底、職業層染職業色、戰隊層白；滑過提示寫範圍。專精層不畫。
+-- 自訂項目（"c:<index>"／"k:<uid>"／"p:<uid>"／"w:<uid>"）拖到左欄＝改它的 bar（任何一條都收，含四條檢視器與長條類的條）；
+-- 寬層（戰隊／職業／角色）的那一筆只有一份，改 bar 等於每個看得到它的專精都跟著搬。
+-- 範圍記號：寬層的自訂項目右上角一個 10×10 的小記號（Media/scope-class.png 盾牌、scope-shared.png
+-- 兩個人像、scope-char.png 單一人像，Pillow 腳本產生），黑底、職業層染職業色、戰隊層與角色層白；
+-- 滑過提示寫範圍。專精層不畫。
 -- 長條格的自訂項目：名字＝法術／物品名、跑同一個十五秒假條；沒學會的自訂法術圖示灰掉。
 -- 以增益取代（overrides[id].replaceWith）：那一格右下角畫一個 12×12、1px 黑邊的增益圖示當記號；
 -- 被拿去取代的增益不在任何一條的清單上（Catalog.Bar 拿掉了），預覽自然不列（跟真實條一致）。
@@ -138,11 +139,12 @@ local function SetupFont(fs, size)
 end
 
 ------------------------------------------------------------
--- 範圍記號（職業層／戰隊層的自訂項目）：右上角 10×10，黑底＋圖案（Pillow 腳本畫的白色圖案，染色用 SetVertexColor）
+-- 範圍記號（寬層的自訂項目：戰隊／職業／角色）：右上角 10×10，黑底＋圖案（Pillow 腳本畫的白色圖案，染色用 SetVertexColor）
 ------------------------------------------------------------
 local SCOPE_MARK_TEX = {
     shared = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\scope-shared.png",
     class  = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\scope-class.png",
+    char   = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\scope-char.png",
 }
 local SCOPE_MARK = 10
 -- 不顯示（只給其他插件讀取）的記號：同一個框（黑底＋內縮 1px 的白色圖案），畫在左上角、染灰白
@@ -164,7 +166,7 @@ local function NewScopeMark(ov, anchor, corner)
     return m
 end
 
--- scope ＝ "shared"｜"class" 才畫；其餘收起來（格子是池化的，一定要明確收）
+-- scope ＝ "shared"｜"class"｜"char" 才畫；其餘收起來（格子是池化的，一定要明確收）
 local function PaintScopeMark(m, scope)
     if not m then return end
     local tex = SCOPE_MARK_TEX[scope]
@@ -474,7 +476,7 @@ function Preview.Confirm(text, onAccept)
 end
 
 -- 移除自訂項目（玩家自己用「＋」加的）：整筆刪掉，它的逐法術設定一起走。
--- 職業層／戰隊層的一筆：刪掉＝看得到它的每個專精（戰隊層：每個角色）都沒了 ⇒ 先問（專精層照舊不問）
+-- 寬層（戰隊／職業／角色）的一筆：刪掉＝看得到它的每個專精（戰隊層：每個角色）都沒了 ⇒ 先問（專精層照舊不問）
 function Preview.RemoveCustom(key, id)
     if not ns.Catalog.IsCustom(id) then return false end
     if ns.SpellPopover and ns.SpellPopover.Close then ns.SpellPopover.Close() end
@@ -487,9 +489,11 @@ function Preview.RemoveCustom(key, id)
         return true
     end
     local scope = ns.DB.ParseCustomID(id)
-    if scope == "class" or scope == "shared" then
+    if ns.DB.IsWideScope(scope) then
         Preview.Confirm(scope == "shared"
             and L["Remove it for every character and specialization using this profile?"]
+            or scope == "char"
+            and L["Remove it from every specialization of this character?"]
             or L["Remove it from every specialization of this class?"], Do)
         return true
     end
@@ -1085,7 +1089,7 @@ local function ShowTip(c)
         -- 光環格：只講它什麼時候出現；位置跟其他格一樣可以拖
         GameTooltip:AddLine(L["Aura slot: only appears while the aura is up."], 1, 0.82, 0, true)
     end
-    -- 自訂項目的適用範圍（職業層／戰隊層右上角有記號，這裡寫明）
+    -- 自訂項目的適用範圍（寬層：戰隊／職業／角色右上角有記號，這裡寫明）
     if c.custom and c.scope then
         GameTooltip:AddLine(L["Scope: %s"]:format(ns.Picker.ScopeText(c.scope)), 0.8, 0.8, 0.8)
     end

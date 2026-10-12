@@ -848,7 +848,7 @@ L["Show if not learned"] = "Wenn nicht erlernt"
 L["Spell not found"] = "Zauber nicht gefunden"
 L["Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree. Shows or hides automatically when you change talents."] = "Gib die Zauber-ID des Talents ein, oder klicke ins Feld und dann mit Umschalt-Klick auf das Talent im Talentbaum. Wird beim Talentwechsel automatisch ein- oder ausgeblendet."
 L["Talent condition not met, so it isn't shown on screen."] = "Talentbedingung nicht erfüllt, wird nicht angezeigt."
--- 自訂項目的三層範圍（戰隊／職業／專精）
+-- 自訂項目的範圍（戰隊／職業／角色／專精）
 L["Warband (all characters)"] = "Kriegsmeute (alle Charaktere)"
 L["This class"] = "Diese Klasse"
 L["This specialization"] = "Diese Spezialisierung"
@@ -868,6 +868,13 @@ L["Settings here apply to this one for every character and specialization using 
 L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."] = "Diese Einstellungen gelten für jede Spezialisierung dieser Klasse. Rechtsklick auf eine Zeile folgt wieder der Leiste."
 L["Only this specialization will keep it. Your other specializations and other characters stop showing it."] = "Nur diese Spezialisierung behält es. Deine anderen Spezialisierungen und Charaktere zeigen es nicht mehr."
 L["Only this class will keep it. Characters of other classes stop showing it."] = "Nur diese Klasse behält es. Charaktere anderer Klassen zeigen es nicht mehr."
+-- 角色層（2026-10-12）
+L["This character"] = "Dieser Charakter"
+L["Every specialization of this character sees it. Other characters don't."] = "Jede Spezialisierung dieses Charakters sieht es. Andere Charaktere nicht."
+L["Remove it from every specialization of this character?"] = "Aus jeder Spezialisierung dieses Charakters entfernen?"
+L["Settings here are for this character only, shared by all its specializations. Right-click a row to follow the bar again."] = "Diese Einstellungen gelten nur für diesen Charakter, gemeinsam für alle seine Spezialisierungen. Rechtsklick auf eine Zeile folgt wieder der Leiste."
+L["Only this specialization will keep it. Your other specializations stop showing it, and other characters using this profile see it in this specialization."] = "Nur diese Spezialisierung behält es. Deine anderen Spezialisierungen zeigen es nicht mehr, und andere Charaktere mit diesem Profil sehen es in dieser Spezialisierung."
+L["Only this character will keep it. Other characters stop showing it."] = "Nur dieser Charakter behält es. Andere Charaktere zeigen es nicht mehr."
 L["%s only shows what Blizzard's Cooldown Manager puts on it."] = "%s zeigt nur, was der Abklingzeitmanager von Blizzard dort einordnet."
 L["Spells from a bar list can only go into bar groups."] = "Zauber aus einer Leistenliste können nur in Leistengruppen."
 L["Spells from an icon list can only go into icon groups."] = "Zauber aus einer Symbolliste können nur in Symbolgruppen."

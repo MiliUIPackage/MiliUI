@@ -4,14 +4,14 @@
 --   ns.SpellPopover.Open(key, cooldownID, cell)
 --
 -- 暴雪的法術本來就屬於專精，改了就是「這個專精的這個法術」（spells[specID].overrides[id]），沒有範圍可選；
--- 職業層／戰隊層的自訂項目改的是那一筆自己身上的覆寫（看得到它的每個專精同一份，見下面「自訂項目」）。三態：覆寫沒設的欄位顯示條層的值、旁邊灰字「（跟隨條）」；
+-- 寬層（戰隊／職業／角色）的自訂項目改的是那一筆自己身上的覆寫（看得到它的每個專精同一份，見下面「自訂項目」）。三態：覆寫沒設的欄位顯示條層的值、旁邊灰字「（跟隨條）」；
 -- 點了就寫成覆寫（「（已覆寫，右鍵還原）」），右鍵那一列清掉那一格。
 -- 「所在條」改的是 groupOf：原本的檢視器（＝清掉）或同類型的任一自訂群組。
 --
 -- 自訂項目（id "c:<index>"／"k:<uid>"／"w:<uid>"）：
 --   * 「適用範圍」（一般分頁最上面）：戰隊／這個職業／這個專精，下一列灰字說明；切換走 DB.MoveCustomScope
---     （連覆寫一起搬、配新 id），往窄搬先問（其他專精／角色會看不到）。職業層／戰隊層的法術多一列
---     「未學會時不顯示」（hideUnknown，存在那一筆上）。職業層／戰隊層的覆寫存在那一筆身上（DB.OverrideTable），
+--     （連覆寫一起搬、配新 id），往窄搬先問（其他專精／角色會看不到；角色 → 專精的字另外寫）。寬層（戰隊／職業／角色）的法術多一列
+--     「未學會時不顯示」（hideUnknown，存在那一筆上）。寬層（戰隊／職業／角色）的覆寫存在那一筆身上（DB.OverrideTable），
 --     底部說明照範圍換字。
 --   * 「所在條」改的是它自己的 bar（任何一條，圖示類、長條類都收）。
 --   * 放在長條類的條上的冷卻類（法術／物品／裝備欄）：觸發／就緒發光與冷卻狀態那幾列藏起來（長條不畫發光、
@@ -24,8 +24,8 @@
 --     （逐法術 hidden）；勾著時文字／外觀／發光／自訂文字分頁鈕停用、「增益不在時」停用（Pop.BuildHideRow／RefreshHideRow）。
 --   * 「移除」是整筆刪掉（後面的 id 由 DB.RemoveCustom 往前挪）；暴雪清單上的法術的「移除」是記進 hidden。
 --   * 專精層的多一顆「複製到其他專精」：小彈窗每個其他專精一個勾選框（已有的勾著並停用），確定後逐個
---     DB.CopyCustomEntry（連同這一筆的覆寫）。職業層／戰隊層的不給（本來就每個專精都看得到）。
---   * 職業層／戰隊層的「從這條移除」＝整筆刪掉、每個專精都沒了 ⇒ 先問（Preview.RemoveCustom）。
+--     DB.CopyCustomEntry（連同這一筆的覆寫）。寬層（戰隊／職業／角色）的不給（本來就每個專精都看得到）。
+--   * 寬層（戰隊／職業／角色）的「從這條移除」＝整筆刪掉、每個專精都沒了 ⇒ 先問（Preview.RemoveCustom）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
 -- 分頁（玩家回報 2026-10-03 列太長；2026-10-05 H 改成五頁）：一般（所在條、以增益取代、天賦條件、占位）／
 -- 文字（長條的名字、倒數、充能、層數、按鍵文字的字型／字級／顏色／位置與隱藏；增益那一段的換色與兩個字色）／外觀（邊框、圖示、
@@ -272,7 +272,7 @@ end
 local function FollowText() return L["Follow “%s”"]:format(BarName()) end
 local followItems = {}   -- 第一項是「跟隨『條名』」的下拉的 items 表：Refresh 時改字
 
--- 覆寫本身（沒覆寫 nil）；職業層／戰隊層的自訂項目讀那一筆身上的（ns.SpellOverride 分流）
+-- 覆寫本身（沒覆寫 nil）；寬層（戰隊／職業／角色）的自訂項目讀那一筆身上的（ns.SpellOverride 分流）
 local function Override(field)
     if not cur then return nil end
     return ns.SpellOverride(cur.id, field)
@@ -1490,10 +1490,10 @@ local function Build()
     AddRow(sdEntry)
     frame.scopeTip, frame.scopeTipEntry = sdTip, sdEntry
 
-    -- 未學會時不顯示（職業層／戰隊層的法術；存在那一筆上）＋下一列灰字
+    -- 未學會時不顯示（寬層：戰隊／職業／角色的法術；存在那一筆上）＋下一列灰字
     local function WideSpell(kind)
         local sc = CurScope()
-        return kind == "spell" and (sc == "class" or sc == "shared")
+        return kind == "spell" and ns.DB.IsWideScope(sc)
     end
     local hur = NewRow(L["Hide when not learned"], WideSpell)
     local hucb = W.CreateCheckButton(hur, nil, function(on)
@@ -2658,6 +2658,8 @@ function Pop.Refresh()
         and L["Settings here apply to this one for every character and specialization using this profile. Right-click a row to follow the bar again."]
         or scope == "class"
         and L["Settings here apply to this one in every specialization of this class. Right-click a row to follow the bar again."]
+        or scope == "char"
+        and L["Settings here are for this character only, shared by all its specializations. Right-click a row to follow the bar again."]
         or L["Settings here apply to this spell in your current specialization. Right-click a row to follow the bar again."])
     frame.tipEntry.remeasure()
     -- 增益不在時：選項、選中值、灰字（換字之後重量，Layout 才排得對）
@@ -2948,8 +2950,21 @@ function Pop.ReplaceItems(a)
     return items
 end
 
--- 換適用範圍（自訂項目）：連覆寫一起搬到那一層、配新 id（DB.MoveCustomScope）。往窄搬（戰隊 → 職業／專精、
--- 職業 → 專精）先問：其他專精（與其他角色）會看不到。目標那一層已經有同一個 ⇒ 說明、不動
+-- 換適用範圍（自訂項目）：連覆寫一起搬到那一層、配新 id（DB.MoveCustomScope）。往窄搬（戰隊 → 職業／角色／專精、
+-- 職業 → 角色／專精、角色 → 專精）先問：其他專精（與其他角色）會看不到。目標那一層已經有同一個 ⇒ 說明、不動。
+-- 角色 → 專精的字不一樣：專精層存在設定檔裡，同設定檔、同專精的**其他角色反而會看到**（往「窄」只是排序上的窄）
+-- 往窄搬的確認字（old → newScope，newScope 比 old 窄）
+function Pop.NarrowScopeText(old, newScope)
+    if newScope == "spec" then
+        if old == "char" then
+            return L["Only this specialization will keep it. Your other specializations stop showing it, and other characters using this profile see it in this specialization."]
+        end
+        return L["Only this specialization will keep it. Your other specializations and other characters stop showing it."]
+    end
+    if newScope == "char" then return L["Only this character will keep it. Other characters stop showing it."] end
+    return L["Only this class will keep it. Characters of other classes stop showing it."]
+end
+
 function Pop.SetScope(newScope)
     if not cur then return end
     local id = cur.id
@@ -2972,9 +2987,7 @@ function Pop.SetScope(newScope)
     end
     if (RANK[newScope] or 0) > (RANK[old] or 0) then
         frame.scopeDD:SetSelectedValue(old)          -- 確定之前不改顯示（取消就維持原狀）
-        ns.Preview.Confirm(newScope == "spec"
-            and L["Only this specialization will keep it. Your other specializations and other characters stop showing it."]
-            or L["Only this class will keep it. Characters of other classes stop showing it."], Do)
+        ns.Preview.Confirm(Pop.NarrowScopeText(old, newScope), Do)
     else
         Do()
     end
