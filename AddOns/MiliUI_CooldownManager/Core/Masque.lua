@@ -201,6 +201,15 @@ local function PlainWidth(frame)
     return w
 end
 
+-- Masque 套皮（AddButton／ReSkin）會拿圖示的 GetAlpha() 跟 0 比、判這一格是不是空的（Core/Regions/Icon.lua 的 IsEmptyType）。
+-- 冷卻狀態淡出在 item 上 SetAlphaFromBoolean 之後，alpha 這個面向沿父子鏈變秘密 ⇒ 圖示讀回來是秘密數字，它一比就炸。
+-- 讀到秘密就先不交：size 不記、下一次排版再試（狀態 alpha 回到明文時 item:SetAlpha 會把秘密面向清掉）
+local function PlainAlpha(region)
+    if not (region and region.GetAlpha) then return true end
+    local ok, a = pcall(region.GetAlpha, region)
+    return ok and not ns.IsSecret(a)
+end
+
 function M.IsSkinned(holder)
     return holder ~= nil and holder.msqButton ~= nil and holder.msqSize ~= nil and M.Active()
 end
@@ -223,6 +232,7 @@ function M.Sync(holder, button, regions, btype, w, h, onLate)
     local size = tostring(w) .. "x" .. tostring(h)
     if holder.msqButton == button and holder.msqSize == size then return M.Active() end
     if not PlainWidth(button) then return M.IsSkinned(holder) end
+    if not PlainAlpha(regions and regions.Icon) then return M.IsSkinned(holder) end
 
     local queued = false
     local done = ns.Write(button, function(f)
