@@ -69,6 +69,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-cooldownviewer-charge-cache-stale.md](wow-cooldownviewer-charge-cache-stale.md) | 暴雪冷卻管理器的充能只在 RefreshData 重讀、GCD 輕量路徑用舊快取、不聽 SPELL_UPDATE_CHARGES ⇒ 最後一層用掉「有時候」不去飽和；去飽和自己照不含 GCD 的 duration 物件算、0 充能看 isActive 且非 isOnGCD |
 | [wow-cooldownviewer-target-aura-locks-icon.md](wow-cooldownviewer-target-aura-locks-icon.md) | 冷卻格在目標身上有對應減益時圖示鎖成減益圖、不吃覆蓋法術（心臟打擊→吸血鬼打擊）；暴雪內建，關掉增益時間的格由 ApplyHiddenIcon 改回法術圖示 |
 | [wow-uiparent-inset-dock.md](wow-uiparent-inset-dock.md) | 動 UIParent 錨點做停靠列：整個介面讓位、關掉即還原；中央錨的東西移半條 |
+| [wow-login-screen-size-not-final.md](wow-login-screen-size-not-final.md) | 登入時 UIParent 尺寸還不是最終值：別照螢幕尺寸夾座標寫回存檔；留 SetClampedToScreen ＋ 叫回預設 |
 | [wow-icon-row-anchor-facing-edge.md](wow-icon-row-anchor-facing-edge.md) | 圖示排的錨點要選面向框架的那一邊，否則顆數一變間距就跑掉 |
 | [wow-setpoint-nil-relativeto.md](wow-setpoint-nil-relativeto.md) | `SetPoint` 的 relativeTo 傳 nil 會靜默退成父層；`GetStatusBarTexture()` 在設材質前回 nil |
 | [wow-setscale-offset-units.md](wow-setscale-offset-units.md) | `SetScale` 之後位移量也被縮放：框放大順便跑位／拖曳加速的成因 |
