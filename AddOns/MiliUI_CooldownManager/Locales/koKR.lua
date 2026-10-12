@@ -653,6 +653,7 @@ L["Custom groups: %d (%d finish setting up the first time you play that speciali
 L["Not imported (no equivalent here): %s."] = "가져오지 않음(이 애드온에 해당 기능 없음): %s."
 L["%d appearance details"] = "외형 세부 설정 %d개"
 L["Trinkets, defensives and racials can be tracked with a custom group and a custom ID."] = "장신구, 방어 기술, 종족 특성은 사용자 지정 그룹과 사용자 지정 ID로 추적할 수 있습니다."
+L["Profile bindings for %d other character(s) were carried over as well."] = "다른 캐릭터 %d명의 프로필 지정도 함께 옮겨 왔습니다."
 L["Settings that were never changed in %s use this addon's defaults."] = "%s에서 한 번도 바꾸지 않은 설정은 이 애드온의 기본값을 사용합니다."
 L["Rotation assist"] = "전투 보조"
 L["Press overlay"] = "누름 오버레이"

@@ -690,11 +690,93 @@ plan = Import.PlanNames({ "A", "B" }, {}, { A = "X", B = "X" }, fmt)
 eq("兩個原名指到同一份 ⇒ 只給第一個", plan.A .. "|" .. plan.B, "X|Ayije：B")
 
 ------------------------------------------------------------
+-- 6b. 設定檔綁定：所有角色一次搬、不覆蓋已有的、目前這隻一律寫
+------------------------------------------------------------
+do
+    local mapping = { Default = "Ayije：Default", ["治療"] = "Ayije：治療" }
+    local srcKeys = {
+        ["角色甲 - 伺服器"] = "Default",
+        ["角色乙 - 伺服器"] = "治療",
+        ["角色丙 - 伺服器"] = "Default",
+    }
+    local keys, specs, carried = Import.PlanBindings(srcKeys, nil, mapping, {}, {}, "角色甲 - 伺服器", "Ayije：Default")
+    eq("綁定：兩隻其他角色都搬", carried, 2)
+    eq("綁定：乙對到新名", keys["角色乙 - 伺服器"], "Ayije：治療")
+    eq("綁定：丙對到新名", keys["角色丙 - 伺服器"], "Ayije：Default")
+    eq("綁定：目前這隻寫 main", keys["角色甲 - 伺服器"], "Ayije：Default")
+    check("綁定：沒有 specProfiles 就不寫", next(specs) == nil)
+
+    -- 轉換失敗的那份（mapping 缺）⇒ 跳過、不退回 Default
+    srcKeys["角色丁 - 伺服器"] = "壞掉的"
+    keys, specs, carried = Import.PlanBindings(srcKeys, nil, mapping, {}, {}, "角色甲 - 伺服器", "Ayije：Default")
+    eq("綁定：對不到的跳過", keys["角色丁 - 伺服器"], nil)
+    eq("綁定：對不到的不算", carried, 2)
+
+    -- 本插件已有綁定 ⇒ 不動、不算；目前這隻即使已有也照寫
+    keys, specs, carried = Import.PlanBindings(srcKeys, nil, mapping,
+        { ["角色乙 - 伺服器"] = "我自己的", ["角色甲 - 伺服器"] = "舊的" }, {}, "角色甲 - 伺服器", "Ayije：Default")
+    eq("綁定：已有的不覆蓋", keys["角色乙 - 伺服器"], nil)
+    eq("綁定：已有的不算進 carried", carried, 1)
+    eq("綁定：目前這隻一律寫 main", keys["角色甲 - 伺服器"], "Ayije：Default")
+
+    -- specProfiles：enabled 只認 true、對不到的那格不寫、本插件已有的不碰
+    local srcSpecs = {
+        ["角色甲 - 伺服器"] = { enabled = true, "Default", "壞掉的", "治療" },
+        ["角色乙 - 伺服器"] = { enabled = 1, "治療" },
+        ["角色丙 - 伺服器"] = { enabled = true, "Default" },
+        ["角色戊 - 伺服器"] = { enabled = true, nil, "治療" },
+    }
+    keys, specs, carried = Import.PlanBindings(srcKeys, srcSpecs, mapping,
+        { ["角色甲 - 伺服器"] = "舊的" },
+        { ["角色甲 - 伺服器"] = { enabled = false }, ["角色丙 - 伺服器"] = { enabled = false, "X" } },
+        "角色甲 - 伺服器", "Ayije：Default")
+    local a = specs["角色甲 - 伺服器"]
+    check("專精：目前這隻照寫", type(a) == "table" and a.enabled == true)
+    eq("專精：第 1 格對到", a and a[1], "Ayije：Default")
+    eq("專精：對不到的格不寫", a and a[2], nil)
+    eq("專精：第 3 格對到", a and a[3], "Ayije：治療")
+    local b = specs["角色乙 - 伺服器"]
+    eq("專精：enabled 不是 true ⇒ false", b and b.enabled, false)
+    eq("專精：乙第 1 格", b and b[1], "Ayije：治療")
+    eq("專精：本插件已有的不碰", specs["角色丙 - 伺服器"], nil)
+    local e = specs["角色戊 - 伺服器"]
+    eq("專精：只有專精設定、沒有 profileKeys 的也收", e and e[2], "Ayije：治療")
+    eq("專精：空格不寫", e and e[1], nil)
+    eq("專精不影響 carried", carried, 2)
+
+    -- 已在用本插件（profileKeys 有值）但 specProfiles 還沒建 ⇒ 對方的依專精切換也不寫
+    keys, specs = Import.PlanBindings(srcKeys, srcSpecs, mapping,
+        { ["角色乙 - 伺服器"] = "我自己的" }, {}, "角色甲 - 伺服器", "Ayije：Default")
+    eq("專精：已有 profileKeys 的不寫", specs["角色乙 - 伺服器"], nil)
+
+    -- 壞形狀：不崩、不寫
+    local ok, k2, s2, c2 = pcall(Import.PlanBindings,
+        { [1] = "Default", ["角色己 - 伺服器"] = 42, ["角色庚 - 伺服器"] = { "Default" } },
+        { [2] = { enabled = true, "Default" }, ["角色己 - 伺服器"] = "Default", ["角色庚 - 伺服器"] = { enabled = true, 7, {} } },
+        mapping, "壞", nil, "角色甲 - 伺服器", "Ayije：Default")
+    check("壞形狀不崩", ok, k2)
+    eq("壞形狀：非字串鍵不寫", k2 and k2[1], nil)
+    eq("壞形狀：非字串名不寫", k2 and k2["角色己 - 伺服器"], nil)
+    eq("壞形狀：表當名字不寫", k2 and k2["角色庚 - 伺服器"], nil)
+    eq("壞形狀：只寫了目前這隻", c2, 0)
+    eq("壞形狀：專精非字串鍵不寫", s2 and s2[2], nil)
+    eq("壞形狀：專精不是表不寫", s2 and s2["角色己 - 伺服器"], nil)
+    local g = s2 and s2["角色庚 - 伺服器"]
+    check("壞形狀：專精非字串名不收", type(g) == "table" and g[1] == nil and g[2] == nil)
+    ok = pcall(Import.PlanBindings, nil, nil, nil, nil, nil, nil, nil)
+    check("全 nil 不崩", ok)
+end
+
+------------------------------------------------------------
 -- 7. 摘要文字
 ------------------------------------------------------------
 local lines = Import.SummaryLines({ profiles = 2, groups = 3, groupsPending = 2, auras = 1, overrides = 4,
                                     cats = { "trinkets", "assist" }, other = 5 }, "Ayije：Default")
 eq("摘要行數（含飾品提示）", #lines, 5)
+eq("carried 是 0 不多印", #Import.SummaryLines({ profiles = 1, carried = 0 }, "X"), 3)
+local cl = Import.SummaryLines({ profiles = 1, carried = 2 }, "X")
+eq("carried > 0 多印一行", #cl, 4)
+check("carried 那行有隻數", cl[3]:find("other character", 1, true) ~= nil, cl[3])
 check("摘要第一行有設定檔名", lines[1]:find("Ayije：Default", 1, true) ~= nil)
 do
     -- 對方勾了「用暴雪的施法條圖」⇒ 我們的「暴雪施法條」；沒勾照它的材質名
