@@ -498,7 +498,10 @@ L["Rules are checked from the top down and the first one that matches wins. Char
 L["Rune state"] = "룬 상태"
 L["Segment %d"] = "%d번째 칸"
 L["Segment spacing"] = "칸 간격"
-L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."] = "칸 간격은 점 형태 자원(신성한 힘, 연계 점수 등)에만 적용됩니다."
+L["Layout values here override the resource bar's shared layout; right-click a label to go back to the shared value."] = "여기의 배치 값은 자원 바의 공용 배치보다 우선합니다. 라벨을 우클릭하면 공용 값으로 돌아갑니다."
+L["0 = same width as the resource bar. A narrower row is centered under the others."] = "0 = 자원 바와 같은 너비. 더 좁은 줄은 다른 줄 아래 가운데 정렬됩니다."
+L["Spacing between this row and the one above it; the first row ignores it."] = "이 줄과 위 줄 사이의 간격이며, 첫 줄에는 적용되지 않습니다."
+L["Segment spacing applies to segmented rows: point-style resources (Holy Power, combo points) and stack rows (Ironfur, Arcane Salvo)."] = "분할 간격은 분할된 줄에만 적용됩니다: 점수형 자원(신성한 힘, 연계 점수)과 중첩 줄(무쇠가죽, 비전 일제사격)."
 L["Show for this specialization"] = "이 전문화에서 표시"
 L["Show resource bars"] = "자원 바 표시"
 L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."] = "일부 연계 점수는 충전 상태가 됩니다 (도적과 야성 드루이드의 특성). 어두운 색은 아직 채우지 않은 충전 지점입니다."
@@ -817,7 +820,7 @@ L["Appearance (default for every resource)"] = "외형 (모든 자원의 기본�
 L["Each resource can use a different look in its own settings."] = "자원마다 각자의 설정에서 다른 외형을 쓸 수 있습니다."
 L["Number format"] = "숫자 형식"
 L["One number format is shared by mana, health and the other large numbers."] = "마나, 생명력 등 큰 숫자는 모두 같은 숫자 형식을 씁니다."
-L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "높이, 외형, 색상, 조건 규칙은 자원마다 따로 정합니다. 그 줄의 \"설정…\"을 누르세요."
+L["Height, layout, look, colors and condition rules are set per resource: click Settings on its row."] = "높이, 배치, 모양, 색상과 조건 규칙은 자원마다 따로 설정합니다: 해당 줄의 설정을 누르세요."
 
 -- 自訂語音（Options/CustomSounds.lua）
 L["Custom sounds"] = "사용자 음성"

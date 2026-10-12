@@ -1356,19 +1356,45 @@ local styleProxies = {}          -- [key] = { cfg, own, proxy }
 
 local function ProxyWrite() error("MiliUI_CooldownManager: resource style proxy is read-only", 2) end
 
--- 不看 follow 的欄位：「長條上顯示數值」在設定視窗的「版面」節，每一列各自存、沒存＝照全域（使用者 2026-10-03 指定）
-local INDEPENDENT = { showText = true }
+-- 不看 follow 的欄位（設定視窗的「版面」節，每一列各自存、沒存＝照全域；使用者 2026-10-03 指定顯示數值、2026-10-12 指定整個版面）：
+--   showText、segmentSpacing、fillDirection 是純量，textOffset 是 { x, y }——**逐欄位**退回全域（只存了 x 時 y 照全域），
+--   代理表回一張合併過的表（每個 key 一張快取、每次讀都重填）。寬與列距不經代理表（Relayout 在列層讀：R.KeyWidth／R.KeyRowSpacing）
+local INDEPENDENT = { showText = true, segmentSpacing = true, fillDirection = true, textOffset = true }
 R.INDEPENDENT_FIELDS = INDEPENDENT
+
+do  -- 主 chunk 貼著 200 個 local 的上限：這一段的幫手收在區塊裡
+local function HasIndependent(own)
+    for k in pairs(INDEPENDENT) do
+        if own[k] ~= nil then return true end
+    end
+    return false
+end
+
+local mergedOffsets = {}         -- [key] = { x, y }（代理表 textOffset 的合併結果，重用）
+
+local function MergedOffset(key, own, cfg)
+    local o, g = own.textOffset, cfg.textOffset
+    if type(o) ~= "table" then return g end
+    if type(g) ~= "table" then g = nil end
+    local m = mergedOffsets[key]
+    if not m then m = {}; mergedOffsets[key] = m end
+    local x, y = o.x, o.y
+    if x == nil and g then x = g.x end
+    if y == nil and g then y = g.y end
+    m.x, m.y = x, y
+    return m
+end
 
 function R.StyleFor(cfg, key)
     local own = OwnStyle(cfg, key)
     if not own then return cfg end
     local follow = own.follow ~= false
-    if follow and own.showText == nil then return cfg end
+    if follow and not HasIndependent(own) then return cfg end
     local hit = styleProxies[key]
     if hit and hit.cfg == cfg and hit.own == own then return hit.proxy end
     local proxy = setmetatable({}, {
         __index = function(_, k)
+            if k == "textOffset" then return MergedOffset(key, own, cfg) end
             if INDEPENDENT[k] or (STYLE_FIELDS[k] and own.follow == false) then
                 local v = own[k]
                 if v ~= nil then return v end
@@ -1379,6 +1405,23 @@ function R.StyleFor(cfg, key)
     })
     styleProxies[key] = { cfg = cfg, own = own, proxy = proxy }
     return proxy
+end
+end
+
+-- 這一列自己的寬（實體像素；style[key].width > 0 才算，0／沒存 ＝ 跟資源條 ⇒ nil）
+function R.KeyWidth(cfg, key)
+    local own = OwnStyle(cfg, key)
+    local w = own and tonumber(own.width)
+    if w and w > 0 then return w end
+    return nil
+end
+
+-- 這一列與上一列的間距（style[key].rowSpacing，沒存 ＝ 資源條的列距）
+function R.KeyRowSpacing(cfg, key)
+    local own = OwnStyle(cfg, key)
+    local v = own and tonumber(own.rowSpacing)
+    if v ~= nil then return v end
+    return tonumber(type(cfg) == "table" and cfg.rowSpacing) or 1
 end
 
 function R.InvalidateStyles()
@@ -2836,11 +2879,15 @@ local function DeferRelayout()
     ns.Events.Register("PLAYER_REGEN_ENABLED", "resources_relayout", OnRegenRelayout)
 end
 
+-- W ＝ 資源條的寬（實體像素）。每一列可以有自己的寬（R.KeyWidth）與跟上一列的間距（R.KeyRowSpacing）：
+-- 面板寬＝最寬的那一列，窄的列置中（位移貼整數像素）；列從面板頂端用累計的 y 擺，不互相鏈結
 local function Relayout(cfg, list, W)
-    local total = 0
-    local gap = ns.P.Scale(tonumber(cfg.rowSpacing) or 1)
-    W = ns.P.Scale(W)
-    local prev
+    local panelPx = W
+    for _, key in ipairs(list) do
+        local w = R.KeyWidth(cfg, key)
+        if w and w > panelPx then panelPx = w end
+    end
+    local y = 0
     healthShown = false
     local metaShown = false
     local DM = ns.DevourerMeta
@@ -2856,18 +2903,16 @@ local function Relayout(cfg, list, W)
             healthShown = true
             PrepareHealthCurve(cfg)
         end
+        if i > 1 then y = y + ns.P.Scale(R.KeyRowSpacing(cfg, key)) end
+        local rowPx = R.KeyWidth(cfg, key) or W
+        local xPx = math.floor((panelPx - rowPx) / 2 + 0.5)
         row:ClearAllPoints()
-        if prev then
-            row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
-        else
-            row:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
-        end
-        prev = row
+        row:SetPoint("TOPLEFT", root, "TOPLEFT", ns.P.Scale(xPx), -y)
         row:Show()
         local H = ns.P.Scale(R.KeyRowHeight(cfg, key))
-        total = total + H
-        -- 外觀：這一列自己的（不跟資源條時是代理表，見 R.StyleFor）；高度、列距、錨定照全域
-        LayoutRow(row, key, R.StyleFor(cfg, key), row.numSeg, W, H)
+        y = y + H
+        -- 外觀與版面：這一列自己的（代理表，見 R.StyleFor）；錨定照全域
+        LayoutRow(row, key, R.StyleFor(cfg, key), row.numSeg, ns.P.Scale(rowPx), H)
         if row.ab and ns.AuraBar then ns.AuraBar.KickPending(row.ab) end
         -- 噬靈魂碎片列上的虛空化身計時／崩陷之星計數（池化的列換成別的資源就收起來）
         if DM and RESOURCES[key] and RESOURCES[key].meta then
@@ -2888,8 +2933,7 @@ local function Relayout(cfg, list, W)
     shownCount = #list
     R.SetMirrorDriver(rows, shownCount, cfg)
     SyncUnitEvents()
-    local n = #list
-    ns.Bars.SetPanelSize("resources", W, n > 0 and (total + (n - 1) * gap) or 1)
+    ns.Bars.SetPanelSize("resources", ns.P.Scale(panelPx), #list > 0 and y or 1)
 end
 
 -- force：重排（清單、格數、尺寸設定、寬度都可能變了）。不給 ＝ 只重畫值（能量事件走這條，

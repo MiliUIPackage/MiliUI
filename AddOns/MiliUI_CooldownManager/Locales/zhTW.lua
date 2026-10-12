@@ -498,7 +498,10 @@ L["Rules are checked from the top down and the first one that matches wins. Char
 L["Rune state"] = "符文狀態"
 L["Segment %d"] = "第 %d 格"
 L["Segment spacing"] = "分段間距"
-L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."] = "分段間距只影響點數型（聖能、連擊點那種一格一格的）。"
+L["Layout values here override the resource bar's shared layout; right-click a label to go back to the shared value."] = "這裡的版面設定優先於資源條頁的共用版面；標籤上按右鍵可以回到共用值。"
+L["0 = same width as the resource bar. A narrower row is centered under the others."] = "0 ＝ 跟資源條同寬。比別列窄的列置中。"
+L["Spacing between this row and the one above it; the first row ignores it."] = "這一列與上一列的間距；第一列不適用。"
+L["Segment spacing applies to segmented rows: point-style resources (Holy Power, combo points) and stack rows (Ironfur, Arcane Salvo)."] = "分段間距只作用在分段的列：點數型（聖能、連擊點）與層數列（鐵鬃、秘法齊射）。"
 L["Show for this specialization"] = "這個專精要顯示哪些"
 L["Show resource bars"] = "顯示資源條"
 L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."] = "有些連擊點數會變成充能點（盜賊的「超級充能器」、野性德魯伊的「滿溢之力」）。暗色是「已經是充能點、但還沒打滿」的那幾格。"
@@ -817,7 +820,7 @@ L["Appearance (default for every resource)"] = "外觀（所有資源的預設�
 L["Each resource can use a different look in its own settings."] = "每種資源可以在自己的設定裡改用不一樣的外觀。"
 L["Number format"] = "數字格式"
 L["One number format is shared by mana, health and the other large numbers."] = "法力、生命力與其他大數字共用同一種數字格式。"
-L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "高度、外觀、顏色與條件規則是每種資源各自設定的：點那一列的「設定」。"
+L["Height, layout, look, colors and condition rules are set per resource: click Settings on its row."] = "高度、版面、外觀、顏色與條件規則是每種資源各自設定的：點那一列的「設定」。"
 
 -- 自訂語音（Options/CustomSounds.lua）
 L["Custom sounds"] = "自訂語音"

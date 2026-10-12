@@ -532,18 +532,76 @@ local function AppendMeta(add, key)
     AppendMetaTab(add, key, "stars")
 end
 
+------------------------------------------------------------
+-- 版面（style[key] 裡不看「跟隨」的欄位：這一列自己存的最優先，沒存＝資源條頁的全域值；右鍵重設＝清掉＝回全域）
+-- 寬、列距、文字偏移、分段間距（只有分段的列）、填充方向（征戰聖擊有自己的）、顯示數字。使用者 2026-10-12 指定。
+------------------------------------------------------------
+local FILL_ITEMS = {
+    { text = L["Left to right"], value = "ltr" },
+    { text = L["Right to left"], value = "rtl" },
+}
+
+local function IndGet(key, field)
+    local own = OwnStyle(key)
+    local v = own and own[field]
+    if v ~= nil then return v end
+    local c = Cfg()
+    return c and c[field]
+end
+
+-- 文字偏移逐欄位退回全域（引擎的代理表同一個規則）
+local function IndOffset(key, axis)
+    local own = OwnStyle(key)
+    local o = own and own.textOffset
+    local v = type(o) == "table" and tonumber(o[axis])
+    if v ~= nil then return v end
+    local c = Cfg()
+    local g = c and c.textOffset
+    return type(g) == "table" and tonumber(g[axis]) or 0
+end
+
+local function IS(kind, key, field, label, extra)
+    local s = BS(kind, "style." .. key .. "." .. field, label, extra)
+    if not s.get then s.get = function() return IndGet(key, field) end end
+    return s
+end
+
+local function Segmented(info)
+    return info.mode == "pip" or (info.mode == "auraBar" and not info.instances)
+end
+
 local function Controls(key)
     local R = ns.Resources
     local info = R.Info(key) or {}
     local list = {}
     local function add(s) list[#list + 1] = s end
     add({ type = "header", label = L["Layout"] })
+    add(Note(L["Layout values here override the resource bar's shared layout; right-click a label to go back to the shared value."]))
     add(BS("slider", "heights." .. key, L["Height"], {
         min = R.HEIGHT_MIN, max = R.HEIGHT_MAX, step = 1,
         get = function() return R.KeyRowHeight(Cfg(), key) end,
         set = function(_, v) R.SetKeyHeight(Cfg(), key, v) end,
     }))
     add(Note(L["Height is per resource and shared by every specialization too."]))
+    add(IS("slider", key, "width", L["Width"], { min = 0, max = 600, step = 1 }))
+    add(Note(L["0 = same width as the resource bar. A narrower row is centered under the others."]))
+    add(IS("slider", key, "rowSpacing", L["Row spacing"], { min = -1, max = 12, step = 1 }))
+    add(Note(L["Spacing between this row and the one above it; the first row ignores it."]))
+    if not info.noText and not info.castTimers then
+        local sub = "style." .. key .. ".textOffset"
+        add(BS("numbers", nil, L["Text offset"], { sub = sub, path = false,
+            resetPaths = { sub .. ".x", sub .. ".y" },
+            fields = {
+                { key = "x", label = "X", get = function() return IndOffset(key, "x") end },
+                { key = "y", label = "Y", get = function() return IndOffset(key, "y") end },
+            } }))
+    end
+    if Segmented(info) then
+        add(IS("slider", key, "segmentSpacing", L["Segment spacing"], { min = 0, max = 8, step = 1 }))
+    end
+    if not info.crusading then
+        add(IS("dropdown", key, "fillDirection", L["Fill direction"], { items = FILL_ITEMS }))
+    end
     -- 「顯示數字」是這一列獨立的設定（使用者 2026-10-03 指定，資源條頁沒有統一的開關）：存在 style.<key>.showText；
     -- 沒存過時沿用舊的全域欄位 resources.showText（舊存檔的值，預設開），所以不給右鍵重設；字型、字級仍在外觀那一節跟著「跟隨」走
     -- 鐵鬃（castTimers）的文字是「文字」一節的兩個勾選，不走這個開關

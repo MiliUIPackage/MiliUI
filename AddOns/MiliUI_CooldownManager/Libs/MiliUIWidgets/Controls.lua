@@ -256,8 +256,10 @@ function Controls.Build(parent, controls, ctx, startX, startY, width)
                 -- ⚠ root 一定要一起帶過去：ctx 靠它決定寫進 udb / udb.frame / udb.elements。
                 -- 漏掉的話「位置」「尺寸」那兩條（唯二帶 root="frame" 的 spec）會 fall-through
                 -- 到 elements ⇒ 四個數字框永遠顯示 0、改不動框，還在 elements 裡塞孤兒鍵。
+                -- 欄位自己的 get／set（有給就優先，跟單一控件的 spec.get／spec.set 同一個約定）：
+                -- 逐列的文字偏移要顯示「沒存就退回全域」的值，光靠 path 讀不到
                 local sub = { root = spec.root, sub = spec.sub, sub2 = spec.sub2,
-                              index = spec.index, key = field.key }
+                              index = spec.index, key = field.key, get = field.get, set = field.set }
                 local tag = parent:CreateFontString(nil, "OVERLAY")
                 tag:SetFontObject(W.fontSmall)
                 tag:SetTextColor(0.6, 0.6, 0.6)

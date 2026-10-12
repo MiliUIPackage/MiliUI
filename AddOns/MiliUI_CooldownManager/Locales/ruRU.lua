@@ -498,7 +498,10 @@ L["Rules are checked from the top down and the first one that matches wins. Char
 L["Rune state"] = "Состояние руны"
 L["Segment %d"] = "Сегмент %d"
 L["Segment spacing"] = "Расстояние между сегментами"
-L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."] = "Расстояние между сегментами влияет только на ресурсы в виде очков (энергия света, серии приемов и т. п.)."
+L["Layout values here override the resource bar's shared layout; right-click a label to go back to the shared value."] = "Значения компоновки здесь имеют приоритет над общей компоновкой панели ресурсов; щелчок правой кнопкой по подписи возвращает общее значение."
+L["0 = same width as the resource bar. A narrower row is centered under the others."] = "0 = та же ширина, что у панели ресурсов. Более узкая строка центрируется под остальными."
+L["Spacing between this row and the one above it; the first row ignores it."] = "Расстояние между этой строкой и строкой выше; для первой строки не действует."
+L["Segment spacing applies to segmented rows: point-style resources (Holy Power, combo points) and stack rows (Ironfur, Arcane Salvo)."] = "Интервал сегментов действует для сегментированных строк: ресурсов-очков (Сила Света, очки серии приёмов) и строк стаков (Железная шкура, Чародейский залп)."
 L["Show for this specialization"] = "Показывать для этой специализации"
 L["Show resource bars"] = "Показывать полосы ресурсов"
 L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."] = "Некоторые серии ударов становятся заряженными (таланты разбойника и друида-хищника). Тёмный оттенок отмечает заряженную ячейку, которую вы ещё не заполнили."
@@ -817,7 +820,7 @@ L["Appearance (default for every resource)"] = "Внешний вид (по ум
 L["Each resource can use a different look in its own settings."] = "Каждому ресурсу можно задать свой вид в его настройках."
 L["Number format"] = "Формат чисел"
 L["One number format is shared by mana, health and the other large numbers."] = "Мана, здоровье и другие большие числа используют один формат."
-L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "Высота, вид, цвета и правила условий задаются для каждого ресурса: нажмите «Настройки» в его строке."
+L["Height, layout, look, colors and condition rules are set per resource: click Settings on its row."] = "Высота, компоновка, вид, цвета и правила условий задаются для каждого ресурса отдельно: нажмите «Настройки» в его строке."
 
 -- 自訂語音（Options/CustomSounds.lua）
 L["Custom sounds"] = "Свои звуки"

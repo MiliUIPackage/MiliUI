@@ -1723,6 +1723,41 @@ do
     eq("自己存的 false 不會退回全域", px.showText, false)
     eq("自己的字級", px.textSize, 9)
     eq("沒存的外觀欄位退回全域", px.barAlpha, 1)
+
+    -- 版面欄位逐列另設（不看「跟隨」；2026-10-12）：分段間距／填充方向是純量，文字偏移逐欄位退回全域；寬與列距在列層讀
+    do
+        local c2 = { rowSpacing = 1, width = 0, textOffset = { x = 0, y = 2 }, segmentSpacing = 0, fillDirection = "ltr",
+                     texture = "g", barAlpha = 1, style = {} }
+        for _, f in ipairs({ "showText", "segmentSpacing", "fillDirection", "textOffset" }) do
+            check("版面欄位在 INDEPENDENT：" .. f, R.INDEPENDENT_FIELDS[f] == true)
+        end
+        c2.style.HolyPower = { segmentSpacing = 3 }
+        local p2 = R.StyleFor(c2, "HolyPower")
+        check("跟著但存了分段間距：代理表", p2 ~= c2)
+        eq("分段間距用自己的", p2.segmentSpacing, 3)
+        eq("填充方向沒存退回全域", p2.fillDirection, "ltr")
+        eq("文字偏移沒存 ⇒ 全域那張", p2.textOffset, c2.textOffset)
+        eq("外觀照跟全域", p2.texture, "g")
+        c2.style.HolyPower = { textOffset = { x = 5 }, fillDirection = "rtl" }
+        p2 = R.StyleFor(c2, "HolyPower")
+        eq("文字偏移：只存 x ⇒ x 自己的", p2.textOffset.x, 5)
+        eq("文字偏移：只存 x ⇒ y 退回全域", p2.textOffset.y, 2)
+        eq("填充方向用自己的", p2.fillDirection, "rtl")
+        c2.textOffset.y = 7
+        eq("文字偏移：全域改了當場跟著（每次讀都重填）", p2.textOffset.y, 7)
+        c2.style.HolyPower.textOffset.y = -1
+        eq("文字偏移：自己的 y 存了就用", p2.textOffset.y, -1)
+        c2.style.HolyPower = { width = 0, rowSpacing = 0 }
+        eq("寬 0 ＝ 跟資源條 ⇒ nil", R.KeyWidth(c2, "HolyPower"), nil)
+        eq("列距存了 0 就是 0", R.KeyRowSpacing(c2, "HolyPower"), 0)
+        c2.style.HolyPower = { width = 150, rowSpacing = -1 }
+        eq("自己的寬", R.KeyWidth(c2, "HolyPower"), 150)
+        eq("自己的列距", R.KeyRowSpacing(c2, "HolyPower"), -1)
+        eq("沒有自己的表：寬 nil", R.KeyWidth(c2, "Chi"), nil)
+        eq("沒有自己的表：列距照全域", R.KeyRowSpacing(c2, "Chi"), 1)
+        c2.style.HolyPower = { width = 150 }
+        check("只存了寬（不經代理表的欄位）：仍回原表", R.StyleFor(c2, "HolyPower") == c2)
+    end
     eq("沒存的外觀欄位退回全域（布林）", px.smooth, true)
     eq("非外觀欄位照讀原表（style 裡同名的不算）", px.manaAbbrev, "wan")
     eq("非外觀欄位：colors 是原表那張", px.colors, cfg.colors)

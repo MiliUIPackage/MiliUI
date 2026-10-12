@@ -498,7 +498,10 @@ L["Rules are checked from the top down and the first one that matches wins. Char
 L["Rune state"] = "Estado da runa"
 L["Segment %d"] = "Segmento %d"
 L["Segment spacing"] = "Espaço entre segmentos"
-L["Segment spacing only affects point-style resources (Holy Power, combo points and the like)."] = "O espaço entre segmentos só afeta recursos em pontos (Poder Sagrado, pontos de combo e afins)."
+L["Layout values here override the resource bar's shared layout; right-click a label to go back to the shared value."] = "Os valores de layout aqui substituem o layout compartilhado da barra de recursos; clique com o botão direito em um rótulo para voltar ao valor compartilhado."
+L["0 = same width as the resource bar. A narrower row is centered under the others."] = "0 = mesma largura da barra de recursos. Uma linha mais estreita fica centralizada sob as outras."
+L["Spacing between this row and the one above it; the first row ignores it."] = "Espaço entre esta linha e a de cima; a primeira linha o ignora."
+L["Segment spacing applies to segmented rows: point-style resources (Holy Power, combo points) and stack rows (Ironfur, Arcane Salvo)."] = "O espaçamento de segmentos vale para linhas segmentadas: recursos por pontos (Poder Sagrado, pontos de combo) e linhas de acúmulos (Pelo de Ferro, Salva Arcana)."
 L["Show for this specialization"] = "Mostrar nesta especialização"
 L["Show resource bars"] = "Mostrar as barras de recurso"
 L["Some combo points become charged (the Rogue's Supercharger, the Feral druid's Overflowing Power). The dim shade marks a charged point you haven't filled yet."] = "Alguns pontos de combo ficam carregados (talentos de ladino e de druida Feral). O tom escuro marca um ponto carregado que você ainda não preencheu."
@@ -817,7 +820,7 @@ L["Appearance (default for every resource)"] = "Aparência (padrão para todos o
 L["Each resource can use a different look in its own settings."] = "Cada recurso pode usar outra aparência nos próprios ajustes."
 L["Number format"] = "Formato dos números"
 L["One number format is shared by mana, health and the other large numbers."] = "Mana, vida e os demais números grandes compartilham o mesmo formato."
-L["Height, look, colors and condition rules are set per resource: click Settings on its row."] = "Altura, aparência, cores e regras de condição são por recurso: clique em \"Ajustes…\" na linha dele."
+L["Height, layout, look, colors and condition rules are set per resource: click Settings on its row."] = "Altura, layout, aparência, cores e regras de condição são definidas por recurso: clique em Configurações na linha dele."
 
 -- 自訂語音（Options/CustomSounds.lua）
 L["Custom sounds"] = "Sons personalizados"
