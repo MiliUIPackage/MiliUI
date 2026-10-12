@@ -565,6 +565,8 @@ local function Look(style, plan, g)
     }
 end
 
+CB.Look = Look                        -- 設定頁的即時預覽用同一套外觀（Options/CustomBars.lua 的 PreviewRow）
+
 local function PlaceText(fs, parent, point, look)
     fs:ClearAllPoints()
     fs:SetJustifyH(point)
