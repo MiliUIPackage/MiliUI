@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-01T04:45:51.425Z
+  modified: 2026-10-12T03:17:58.323Z
 ---
 
 2026-09-30 使用者決定**自製 MiliUI_CooldownManager 取代 Ayije_CDM fork**（起因：Ayije 設定介面 UX 差，
@@ -106,6 +106,12 @@ A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果�
 彈窗多一顆主按鈕「從 %s 匯入」→ 讀 `Ayije_CDMDB`、每份 profile 轉成「Ayije：<名>」新設定檔、寫進我們的 SV（DB.Init 前直接寫）、
 停用它、重載；設定檔頁只放「啟用它並重載」。spellID→cooldownID 只換得了目前專精，其他專精存 `profile.pendingImport[specID]`，
 目錄建好時 `ResolvePending` 補。對方存檔只存跟它預設不同的鍵 ⇒ **沒出現的鍵不動**。計畫在 `~/.claude/plans/miliui-cdm-import-ayije.md`。
+**互斥停用與匯入是全帳號的（2026-10-12 修，未實機驗證，README 驗證清單 98）**：玩家回報「切換角色設定會跑掉」，根因是
+`DisableAddOns` 只停目前這隻角色（傳 GUID），換角色彈窗再跳、第二次「重新匯入」把上一隻調好的「Ayije：…」整份覆寫回對方版本。
+改成 `DisableAddOn(name)` 不帶角色（＝所有角色，**這個語意還沒實機驗證**；保險留著：目前這隻沒關掉再補 GUID 那次），
+匯入時 `Import.PlanBindings` 把對方 `profileKeys`／`specProfiles` 裡**每隻角色**的綁定一次搬過來（本插件已有 profileKeys 或
+specProfiles 的角色不覆蓋、對方轉換失敗的不退回 Default）。「重新匯入會覆寫」沒動——那是症狀不是根因。
+**How to apply:** 任何「停用某支插件」的流程都走 `DisableAddOns`、當帳號層決定；設定檔頁「啟用它並重載」仍只開目前這隻（未改）。
 
 **自訂圖示群組「可點擊」（2026-10-01，未實機驗證）**：`Core/Clickable.lua`，每格上面蓋一顆透明的
 `SecureActionButtonTemplate` 鈕（parent／錨點都是容器、層級容器 +40、只掛 OnEnter／OnLeave 轉給 Decorate 的提示）。
