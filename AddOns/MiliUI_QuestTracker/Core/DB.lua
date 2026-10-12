@@ -25,9 +25,10 @@ local function BuildDefaults()
         -- 位置。編輯模式本來就管著追蹤器的位置，但拖一次太麻煩，所以只要玩家
         -- 用搬家遮罩拖過一次，之後就由我們接管：`set` 之後每次載入／版面套用
         -- 都把它貼回這裡記的座標。右鍵遮罩＝清掉，位置交還給編輯模式。
-        -- 座標是 TOPLEFT 相對 UIParent TOPLEFT 的位移（y 為負），跟
-        -- MiliUI_DamageMeters 的視窗同一套 —— 追蹤器的內容往下長，
-        -- 用 CENTER 位移的話內容一多整條就會自己往上飄。
+        -- 座標是 point（TOPLEFT／TOPRIGHT，離得近的那一邊）相對 UIParent 同一角的
+        -- 位移（y 為負）—— 追蹤器的內容往下長，用 CENTER 位移的話內容一多整條就會
+        -- 自己往上飄；水平貼近邊，UIParent 寬度變了才不會被往左頂。point 是 nil
+        -- ＝舊格式（一律距左緣），Modules/Position.lua 套用時就地換掉。
         position = { set = false, x = 0, y = 0 },
 
         -- 玩家自己按標題列摺起來的狀態。存檔的理由：摺疊是一個明確的意圖

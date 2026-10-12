@@ -11,8 +11,11 @@
 --   * 編輯模式開著的時候不貼，讓玩家還是能用原生的拖曳
 --   * 右鍵遮罩＝放手，把位置整個交還給編輯模式
 --
--- 錨點用 TOPLEFT 相對 UIParent TOPLEFT：追蹤器的內容往下長，用 CENTER 位移
--- 的話任務一多整條就會自己往上飄。
+-- 垂直錨上緣：追蹤器的內容往下長，用 CENTER 位移的話任務一多整條就會自己往上飄。
+-- 水平錨**離得近的那一邊**（point = "TOPLEFT"／"TOPRIGHT"，相對 UIParent 同一角）：
+-- 早期一律存「距左緣 x」，追蹤器靠右放時，只要 UIParent 變寬（UI 縮放、解析度、
+-- 視窗大小不同的角色）右邊就多出一截，看起來是被往左頂（2026-10-12 存檔實證：
+-- 同一組 x=1773，各角色量到的右緣距離從 -5 到 -101）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -34,6 +37,30 @@ local function CaptureOriginal(otf)
     end
 end
 
+-- UIParent 的四邊換算成追蹤器自己的座標單位（編輯模式可以單獨縮放追蹤器；
+-- SetPoint 的位移與 GetLeft 的值都是追蹤器自己的單位，見 wow-setscale-offset-units）
+local function ParentRect(otf)
+    local pl, pr, pt = UIParent:GetLeft(), UIParent:GetRight(), UIParent:GetTop()
+    if not (pl and pr and pt) then return nil end
+    local k = (UIParent:GetEffectiveScale() or 1) / (otf:GetEffectiveScale() or 1)
+    return pl * k, pr * k, pt * k
+end
+
+-- 量現在的位置，存成離得近那一邊的位移
+local function Save(otf, c)
+    local left, right, top = otf:GetLeft(), otf:GetRight(), otf:GetTop()
+    local pl, pr, pt = ParentRect(otf)
+    if not (left and right and top and pl) then return false end
+    c.set = true
+    if (left + right) / 2 > (pl + pr) / 2 then
+        c.point, c.x = "TOPRIGHT", right - pr
+    else
+        c.point, c.x = "TOPLEFT", left - pl
+    end
+    c.y = top - pt
+    return true
+end
+
 local function EditModeOpen()
     local emm = _G.EditModeManagerFrame
     return emm and emm:IsShown()
@@ -53,10 +80,12 @@ function Pos.Apply()
     if EditModeOpen() then return end
 
     CaptureOriginal(otf)
-    local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
-    if not (pl and pt) then return end
+    local point = c.point == "TOPRIGHT" and "TOPRIGHT" or "TOPLEFT"
     otf:ClearAllPoints()
-    otf:SetPoint("TOPLEFT", UIParent, "TOPLEFT", c.x, c.y)
+    otf:SetPoint(point, UIParent, point, c.x, c.y)
+    -- 舊格式（沒有 point，一律距左緣）就地換成貼近邊：這一刻的位置照舊，
+    -- 之後換了寬度的角色才不會再被往左頂
+    if not c.point then Save(otf, c) end
 end
 
 function Pos.IsOverridden()
@@ -70,7 +99,7 @@ end
 function Pos.Reset()
     local c = Cfg()
     if not c then return end
-    c.set, c.x, c.y = false, 0, 0
+    c.set, c.point, c.x, c.y = false, nil, 0, 0
 
     local otf = T.OTF()
     if not otf or not T.CanReposition() then return end
@@ -103,15 +132,7 @@ local function EndDrag()
 
     local otf = T.OTF()
     local c = Cfg()
-    if otf and c then
-        local left, top = otf:GetLeft(), otf:GetTop()
-        local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
-        if left and top and pl and pt then
-            c.set = true
-            c.x = left - pl
-            c.y = top - pt
-        end
-    end
+    if otf and c then Save(otf, c) end
     ns.Fire("PositionChanged")
 end
 Pos.EndDrag = EndDrag
@@ -128,11 +149,11 @@ local function DragTick()
     local otf = T.OTF()
     if not otf then EndDrag(); return end
 
-    local scale = UIParent:GetEffectiveScale()
+    local scale = otf:GetEffectiveScale()
     local cx, cy = GetCursorPosition()
     local dx, dy = cx / scale - d.cx, cy / scale - d.cy
-    local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
-    if not (pl and pt) then return end
+    local pl, _, pt = ParentRect(otf)
+    if not pl then return end
     otf:ClearAllPoints()
     otf:SetPoint("TOPLEFT", UIParent, "TOPLEFT", (d.left + dx) - pl, (d.top + dy) - pt)
 end
@@ -144,7 +165,7 @@ function Pos.BeginDrag()
     if not (left and top) then return end
     CaptureOriginal(otf)
 
-    local scale = UIParent:GetEffectiveScale()
+    local scale = otf:GetEffectiveScale()
     local cx, cy = GetCursorPosition()
     dragState = { cx = cx / scale, cy = cy / scale, left = left, top = top }
 
