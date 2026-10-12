@@ -653,6 +653,7 @@ L["Custom groups: %d (%d finish setting up the first time you play that speciali
 L["Not imported (no equivalent here): %s."] = "沒有匯入（本插件沒有對應的功能）：%s。"
 L["%d appearance details"] = "%d 項外觀細節"
 L["Trinkets, defensives and racials can be tracked with a custom group and a custom ID."] = "飾品、防禦技能與種族技能可以用自訂群組加上自訂 ID 來監控。"
+L["Profile bindings for %d other character(s) were carried over as well."] = "另外 %d 隻角色的設定檔綁定也一併搬過來了。"
 L["Settings that were never changed in %s use this addon's defaults."] = "在 %s 裡從沒改過的設定，一律用本插件的預設值。"
 L["Rotation assist"] = "輸出循環輔助"
 L["Press overlay"] = "按壓覆蓋層"

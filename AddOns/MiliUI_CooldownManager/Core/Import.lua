@@ -12,6 +12,8 @@
 --       資源條「哪幾個專精顯示這一列」要知道每個專精的候選資源：借 Modules/Resources.lua 的純函式
 --       （R.SpecCandidates／R.SetRow；匯入在登入後才跑，那時已經載好）。
 --   ns.Import.PlanNames(names, existing, previous, fmt) → { [原名] = 新名 }   純函式：取名
+--   ns.Import.PlanBindings(srcKeys, srcSpecs, mapping, existingKeys, existingSpecs, charKey, main)
+--                                  → keys, specs, carried   純函式：所有角色的設定檔綁定
 --   ns.Import.ApplyPending(profile, specID, resolve)     → 換好幾筆, 還剩幾筆   純函式
 --   ns.Import.BuildResolver(records)                     → resolve              純函式
 --   ns.Import.FromAyije()          互斥彈窗的「匯入」鈕（讀 Ayije_CDMDB、寫 SV、停用它、重載）
@@ -1753,6 +1755,60 @@ function Import.PlanNames(names, existing, previous, fmt, reserved)
 end
 
 ------------------------------------------------------------
+-- 設定檔綁定（純函式）：對方存檔裡**每隻角色**的綁定一次搬過來
+--
+-- 停用是全帳號的（Core/Init.lua DisableAddOns），匯入完之後其他角色不會再看到互斥彈窗；
+-- 只搬目前這隻的話，分身登入會落在 Default，玩家得一隻一隻重選。
+--
+-- srcKeys       對方的 profileKeys（角色 → 設定檔名）
+-- srcSpecs      對方的 specProfiles（角色 → { enabled, [1..5] = 設定檔名 }）
+-- mapping       這次匯入的對照（原名 → 新名）；對不到的＝那份轉換失敗，綁定跳過、不退回 Default
+-- existingKeys  本插件現有的 profileKeys；其他角色已有綁定就不動（那隻已經在用本插件、自己選過了）
+-- existingSpecs 本插件現有的 specProfiles；同上（existingKeys 有值的角色也不寫，見下面）
+-- charKey/main  目前這隻角色與它要用的設定檔：一律寫（即使已有綁定，這是玩家剛按的匯入）
+--
+-- 回傳要逐鍵寫進 SV 的兩張表，以及其他角色裡實際搬了 profileKeys 的隻數。
+------------------------------------------------------------
+local function PlanSpecs(specMap, mapping)
+    if type(specMap) ~= "table" then return nil end
+    local m = { enabled = specMap.enabled == true }
+    for i = 1, 5 do
+        local n = specMap[i]
+        if type(n) == "string" and mapping[n] then m[i] = mapping[n] end
+    end
+    return m
+end
+
+function Import.PlanBindings(srcKeys, srcSpecs, mapping, existingKeys, existingSpecs, charKey, main)
+    srcKeys = type(srcKeys) == "table" and srcKeys or {}
+    srcSpecs = type(srcSpecs) == "table" and srcSpecs or {}
+    mapping = type(mapping) == "table" and mapping or {}
+    existingKeys = type(existingKeys) == "table" and existingKeys or {}
+    existingSpecs = type(existingSpecs) == "table" and existingSpecs or {}
+
+    local keys, specs, carried = {}, {}, 0
+    if type(charKey) == "string" then
+        keys[charKey] = main
+        specs[charKey] = PlanSpecs(srcSpecs[charKey], mapping)
+    end
+    for k, n in pairs(srcKeys) do
+        if type(k) == "string" and k ~= charKey and type(n) == "string"
+            and mapping[n] and existingKeys[k] == nil then
+            keys[k] = mapping[n]
+            carried = carried + 1
+        end
+    end
+    -- 依專精切換也一樣不覆蓋；本插件的 specProfiles 是第一次設定時才建，已經在用本插件的角色
+    -- （profileKeys 有值）可能還沒有這一格，所以兩張表都要看 —— 不然對方的「依專精切換」會蓋掉玩家自己選的設定檔
+    for k, specMap in pairs(srcSpecs) do
+        if type(k) == "string" and k ~= charKey and existingSpecs[k] == nil and existingKeys[k] == nil then
+            specs[k] = PlanSpecs(specMap, mapping)
+        end
+    end
+    return keys, specs, carried
+end
+
+------------------------------------------------------------
 -- 以下是遊戲裡才跑的部分
 ------------------------------------------------------------
 local function Plain(v)
@@ -1926,6 +1982,9 @@ function Import.SummaryLines(s, main)
     if hasTrackers then
         lines[#lines + 1] = L["Trinkets, defensives and racials can be tracked with a custom group and a custom ID."]
     end
+    if (s.carried or 0) > 0 then
+        lines[#lines + 1] = L["Profile bindings for %d other character(s) were carried over as well."]:format(s.carried)
+    end
     lines[#lines + 1] = L["Settings that were never changed in %s use this addon's defaults."]:format(Import.SOURCE_ADDON)
     return lines
 end
@@ -1987,22 +2046,17 @@ function Import.FromAyije()
     local keys = type(src.profileKeys) == "table" and src.profileKeys or {}
     local global = type(src.global) == "table" and src.global or {}
     local main = mapping[keys[charKey]] or mapping[global.defaultProfile] or mapping.Default or mapping[names[1]]
-    sv.profileKeys[charKey] = main
+    local newKeys, newSpecs, carried = Import.PlanBindings(keys, src.specProfiles, mapping,
+        sv.profileKeys, sv.specProfiles, charKey, main)
+    for k, v in pairs(newKeys) do sv.profileKeys[k] = v end
+    for k, v in pairs(newSpecs) do sv.specProfiles[k] = v end
     sv.charClasses[charKey] = ns.playerClass
-    local specMap = type(src.specProfiles) == "table" and src.specProfiles[charKey]
-    if type(specMap) == "table" then
-        local m = { enabled = specMap.enabled == true }
-        for i = 1, 5 do
-            local n = specMap[i]
-            if type(n) == "string" and mapping[n] then m[i] = mapping[n] end
-        end
-        sv.specProfiles[charKey] = m
-    end
 
     local summary = Summarize(reports, count)
+    summary.carried = carried
     sv.importedFromAyije = {
         at = time and time() or 0, char = charKey, profiles = mapping, main = main,
-        summary = summary, announce = true,
+        summary = summary, announce = true, carried = carried,
     }
     for _, line in ipairs(Import.SummaryLines(summary, main)) do ns.Print(line) end
     if ns.DisableAndReload then ns.DisableAndReload(Import.SOURCE_FOLDERS) end

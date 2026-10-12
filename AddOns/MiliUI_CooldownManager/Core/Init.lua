@@ -264,14 +264,19 @@ local function AddOnCharacter()
 end
 ns.AddOnCharacter = AddOnCharacter
 
+-- 停用一律是**全帳號**（DisableAddOn 不帶 character ＝ 所有角色）。三個呼叫端都是帳號層的決定：
+-- 互斥彈窗的二選一（改用本插件 → 停對方；保留對方 → 停本插件）、登入時停掉已從套組移除的
+-- 舊天空騎術插件。以前只停目前這隻角色，結果每換一隻角色彈窗都再跳一次，第二次起的第一顆
+-- 按鈕是「重新匯入」，一按就把上一隻調好的匯入設定檔覆寫回 Ayije 的版本。
+-- 保險照留：全帳號呼叫後確認目前這隻真的關了，還沒關就再補一次帶 GUID 的角色層級停用
+-- —— 這裡沒生效的代價是重載後又偵測到衝突、彈窗無限循環。
 local function DisableAddOns(folders)
     local who = AddOnCharacter()
     for _, name in ipairs(folders) do
-        pcall(C_AddOns.DisableAddOn, name, who)
-        -- 角色層級沒關掉就退回全部角色停用：這裡沒生效的代價是重載後彈窗再跳一次，沒完沒了
+        pcall(C_AddOns.DisableAddOn, name)
         local ok, state = pcall(C_AddOns.GetAddOnEnableState, name, who)
         if ok and type(state) == "number" and state > 0 then
-            pcall(C_AddOns.DisableAddOn, name)
+            pcall(C_AddOns.DisableAddOn, name, who)
         end
     end
 end

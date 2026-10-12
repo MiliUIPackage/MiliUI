@@ -653,6 +653,7 @@ L["Custom groups: %d (%d finish setting up the first time you play that speciali
 L["Not imported (no equivalent here): %s."] = "Non importato (nessun equivalente qui): %s."
 L["%d appearance details"] = "%d dettagli di aspetto"
 L["Trinkets, defensives and racials can be tracked with a custom group and a custom ID."] = "Monili, difensivi e abilità razziali si possono tracciare con un gruppo personalizzato e un ID personalizzato."
+L["Profile bindings for %d other character(s) were carried over as well."] = "Sono state trasferite anche le associazioni dei profili di altri %d personaggi."
 L["Settings that were never changed in %s use this addon's defaults."] = "Le impostazioni mai modificate in %s usano i valori predefiniti di questo addon."
 L["Rotation assist"] = "Assistente di rotazione"
 L["Press overlay"] = "Evidenziazione pressione"
