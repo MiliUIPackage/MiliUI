@@ -513,9 +513,12 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
         bgTex = ns.Resources.BgTexture(style),
     }
     local inside = plan.showWhen == "active"
+    -- 透明格距：格距 > 0 時填色貼圖掛遮罩把格距挖掉（AuraBar.MaskPlan），裝飾就不畫分隔
+    local mask = gap > 0 and { period = geom.segW + gap, gap = gap, pixel = ns.P.Scale(1) } or nil
+    geom.mask = mask ~= nil
     local status = ns.AuraBar.Apply(row.ab, {
         spellIDs = { plan.spellID }, max = n, texture = tex, color = { r = r, g = g, b = b }, alpha = alpha,
-        reversed = reversed, inside = inside and geom or nil,
+        reversed = reversed, inside = inside and geom or nil, mask = mask,
         count = count,          -- 層數文字（引擎寫；樣式進簽章，改了換容器、戰鬥中等脫戰）
     })
     row.engineStatus = status

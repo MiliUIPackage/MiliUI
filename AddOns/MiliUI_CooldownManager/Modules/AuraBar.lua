@@ -32,8 +32,8 @@
 --   * 「有光環才顯示」的列：裝飾也建在按鈕子樹裡（按鈕只在有光環時顯示 ⇒ 整列跟著出現），
 --     裝飾的幾何進簽章
 -- 整列寬的填色跨過格距：第 k 層的填色終點落在第 k 個格距裡（W·k/n 與格子邊界差 gap·(1-k/n) < gap），
--- 所以分隔（不透明的暗底色，兩側是格子自己的 1px 邊）剛好蓋住，看起來還是一格一格的。格距沒辦法像點數型那樣
--- 透出世界（填色連續、底下一定有色）；要真的透明得在 initializeFrame 給填色貼圖掛 REPEAT 遮罩，沒驗證過先不做。
+-- 格距 > 0 時填色貼圖在 initializeFrame 掛 REPEAT 遮罩把格距挖掉（AB.MaskPlan），格距跟點數型一樣透出世界、
+-- 裝飾不畫分隔；掛不上遮罩（引擎不支援）才畫不透明的暗底色分隔把它蓋住。
 --
 -- 12.1 的硬規矩（跟 Modules/Custom.lua 的光環格同一套）：
 --   * 容器是受保護的 intrinsic：它所在的列、面板容器（保護沿父層／錨點鏈往上傳）戰鬥中都不能
@@ -113,6 +113,43 @@ function AB.Geometry(W, n, gap, segW, pixel)
     return out
 end
 
+------------------------------------------------------------
+-- 分段的透明格距：填色貼圖的遮罩（applications 專用）
+--
+-- 引擎的填色是整列寬連續的一條 StatusBar，格距底下一定有填色；要讓格距像點數型那樣透出世界，只能在
+-- initializeFrame 給填色貼圖掛 MaskTexture 把格距挖掉。一張遮罩只有一個矩形，24 個格距用 REPEAT：遮罩寬＝一格的
+-- 節距（格寬＋格距）、貼圖「左邊不透明、右端一截透明」橫向 REPEAT，矩形外照樣重複 ⇒ 每個節距挖掉同一截。
+-- 透明那截佔節距的比例是貼圖的屬性（SetTexCoord 改不了：窗口縮放連週期一起縮），所以 Media/segmask-<den>.png
+-- 一家子是 1/den；比例落在 1/den 與 2/den 之間時再疊一張同圖左移 s 的遮罩，兩張透明區的聯集剛好是要的寬。
+-- 挖的寬度比格距多 1 實體像素（兩側各半）：格距的黑邊貼像素、遮罩節距是浮點，誤差藏在邊底下。
+-- 跨框遮罩沒有文件依據（Core/Shape.lua 同一條），遮罩建在按鈕上 ⇒ 幾何進簽章，列寬／格距變了換容器。
+-- 貼圖由 .claude/skills/miliui-cdm-segment-masks 的腳本產生，den 清單兩邊要一致。
+-- （2026-10-12 秘法齊射 25 格回報：格距 2 時分隔是 4px 實心黑，點數型同設定是「邊＋透出世界＋邊」）
+------------------------------------------------------------
+local MASK_DENS = { 2, 4, 8, 16, 32, 64, 128 }
+local MASK_FILE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\segmask-%d.png"
+AB.MASK_DENS = MASK_DENS
+function AB.MaskFile(den) return MASK_FILE:format(den) end
+
+-- period ＝ 節距（格寬＋格距）、gapW ＝ 要挖的寬（格距＋1 實體像素）、pixel ＝ 1 實體像素（兩側各放半個）
+-- → { { den, x, w }, … }：x ＝ 遮罩左緣相對條左緣（填充反向時相對右緣、往外為正）、w ＝ 遮罩寬＝節距。
+-- 第一張的透明段貼在節距尾端、第二張（需要時）左移 s。挖不了（比例 ≥ 1、節距 0）⇒ nil。
+-- 比例比 1/最大 den 還小（節距很長、格距 1px）：單張、挖得比要的寬一點（< 節距/128）
+function AB.MaskPlan(period, gapW, pixel)
+    period, gapW = tonumber(period) or 0, tonumber(gapW) or 0
+    if period <= 0 or gapW <= 0 or gapW >= period then return nil end
+    local r = gapW / period
+    local den = MASK_DENS[#MASK_DENS]
+    for _, d in ipairs(MASK_DENS) do
+        if 1 / d <= r then den = d; break end
+    end
+    local half = (tonumber(pixel) or 0) / 2
+    local plan = { { den = den, x = half, w = period } }
+    local s = (r - 1 / den) * period
+    if s > 1e-6 then plan[2] = { den = den, x = half - s, w = period } end
+    return plan
+end
+
 -- 在 parent 上建一組裝飾貼圖（暗底 BACKGROUND、黑邊與分隔在 overlay 子框上）。
 -- anchor：幾何的基準框（列本身或按鈕）
 local function NewDecor(parent)
@@ -186,16 +223,17 @@ local function LayoutDecor(d, anchor, geom)
             end
         end
     end
-    for _, s in pairs(g.gaps) do
-        ns2 = ns2 + 1
-        local t = Tex(d.seps, ns2, d.overlay, "OVERLAY")
-        -- 分隔要蓋住跨過格距的填色（引擎的填色是整列寬連續的，格距底下一定有填色，沒辦法像點數型那樣透出世界）：
-        -- 畫成格子的暗底色、不透明（alpha 1：底下 1～k 格的填色都會穿過格距，用暗底的半透明會透出紫色），
-        -- 看起來是格與格之間露出底，兩側各有 1px 黑邊——跟點數型「邊＋格距＋邊」同一個長相。以前跟黑邊同色，
-        -- 格距 2 就是一條 4px 實心黑（2026-10-12 秘法齊射 25 格「分隔比點數型粗很多」回報）
-        t:SetTexture(SOLID)
-        t:SetVertexColor(dim[1], dim[2], dim[3], 1)
-        Place(t, s.x, s.w, 0, H)
+    -- 分隔：格距有遮罩（geom.mask，填色在格距被挖掉）就不畫，格距像點數型一樣透出世界。
+    -- 沒遮罩（引擎不支援、舊呼叫）時分隔要蓋住跨過格距的填色：畫成格子的暗底色、不透明（alpha 1：底下 1～k 格
+    -- 的填色都會穿過格距，半透明會透出紫色），兩側各有 1px 黑邊
+    if not geom.mask then
+        for _, s in pairs(g.gaps) do
+            ns2 = ns2 + 1
+            local t = Tex(d.seps, ns2, d.overlay, "OVERLAY")
+            t:SetTexture(SOLID)
+            t:SetVertexColor(dim[1], dim[2], dim[3], 1)
+            Place(t, s.x, s.w, 0, H)
+        end
     end
     for i = nb + 1, #d.bgs do d.bgs[i]:Hide() end
     for i = ne + 1, #d.edges do d.edges[i]:Hide() end
@@ -279,6 +317,10 @@ function AB.Signature(spec)
     local sp = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.strip
     if type(sp) == "table" then
         parts[#parts + 1] = table.concat({ "strip", Fmt(sp.h), Fmt(sp.r), Fmt(sp.g), Fmt(sp.b), Fmt(sp.a) }, ":")
+    end
+    local mk = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.mask
+    if type(mk) == "table" then
+        parts[#parts + 1] = table.concat({ "mask", Fmt(mk.period), Fmt(mk.gap), Fmt(mk.pixel) }, ":")
     end
     local g = spec.inside
     if g then
@@ -478,6 +520,29 @@ local function InitButton(btn, c, st, h, sig)
         local opts = { maxApplications = st.max }
         if st.interp then opts.interpolation = st.interp end
         btn:SetApplicationBar(bar, opts)
+        -- 透明格距：填色貼圖掛 REPEAT 遮罩（擺法 st.mask ＝ AB.MaskPlan 算好的表）。失敗只記錯、條照常
+        if st.mask and bar.GetStatusBarTexture and btn.CreateMaskTexture then
+            local ok, err = pcall(function()
+                local ft = bar:GetStatusBarTexture()
+                if not (ft and ft.AddMaskTexture) then return end
+                for _, m in ipairs(st.mask) do
+                    local mask = btn:CreateMaskTexture()
+                    mask:SetTexture(AB.MaskFile(m.den), "REPEAT", "CLAMPTOWHITE")
+                    if st.reversed then
+                        -- 從右往左填：圖左右翻、從條右緣往外 x 起算
+                        mask:SetTexCoord(1, 0, 0, 1)
+                        mask:SetPoint("TOPRIGHT", bar, "TOPRIGHT", m.x, 0)
+                        mask:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", m.x, 0)
+                    else
+                        mask:SetPoint("TOPLEFT", bar, "TOPLEFT", m.x, 0)
+                        mask:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", m.x, 0)
+                    end
+                    mask:SetWidth(m.w)
+                    ft:AddMaskTexture(mask)
+                end
+            end)
+            if not ok then AB.lastError = tostring(err) end
+        end
         -- 剩餘時間細條（無視苦痛）：同一顆按鈕再交一條 SetDurationBar，引擎用光環自己的持續時間（含延長）
         local sp = st.strip
         if sp and btn.SetDurationBar then
@@ -582,6 +647,9 @@ function AB.Apply(h, spec)
             alpha = tonumber(spec.alpha) or 1, reversed = spec.reversed and true or false,
             inside = spec.inside, kind = spec.kind, cell = spec.cell,
             strip = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.strip) == "table") and spec.strip or nil,
+            -- 透明格距：遮罩的擺法在這裡算好（initializeFrame 只照表建）
+            mask = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.mask) == "table")
+                and AB.MaskPlan(spec.mask.period, (tonumber(spec.mask.gap) or 0) + (tonumber(spec.mask.pixel) or 0), spec.mask.pixel) or nil,
             text = (spec.kind == "duration" and type(spec.text) == "table") and spec.text or nil,
             count = (spec.kind ~= "instances" and type(spec.count) == "table"
                 and (spec.kind ~= "duration" or (spec.count.mode or "stacks") == "stacks")) and spec.count or nil,

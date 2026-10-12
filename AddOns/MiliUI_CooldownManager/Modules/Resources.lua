@@ -1519,6 +1519,9 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
         segments = true, dim = R.DimArray(cfg), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
         instances = def.instances and true or nil,     -- 一顆光環一格：裝飾跟引擎的等分排版對齊、不貼像素（AuraBar.LayoutDecor）
     }
+    -- 透明格距：格距 > 0 時填色貼圖掛遮罩把格距挖掉（AuraBar.MaskPlan），裝飾就不畫分隔
+    local mask = (not def.instances and gap > 0) and { period = geom.segW + gap, gap = gap, pixel = ns.P.Scale(1) } or nil
+    geom.mask = mask ~= nil
     local cc = ResolveColor(cfg, key, "color")
     local count
     if cfg.showText and not def.instances then
@@ -1537,7 +1540,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
         kind = def.instances and "instances" or "applications",
         spellIDs = def.auras, max = numSeg, texture = tex, color = cc, alpha = tonumber(cfg.barAlpha) or 1,
         reversed = reversed, cell = def.instances and geom or nil, count = count,
-        unit = def.unit, filter = def.filter,
+        unit = def.unit, filter = def.filter, mask = mask,
     })
     row.engineStatus = status
     if status ~= "ready" then

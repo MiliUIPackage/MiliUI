@@ -867,6 +867,55 @@ do
     eq("退化：右緣 W", gd.cells[25].x + gd.cells[25].w, 20)
 end
 do
+    -- 透明格距的遮罩擺法（AB.MaskPlan）：節距 period、要挖 gapW（格距＋1px）。第一張透明段貼節距尾端（左緣 ＝ 半像素）、
+    -- 比例落在 1/den～2/den 之間時第二張左移 s；兩張透明區的聯集 ＝ [period − gapW + ½px, period + ½px]
+    local function union(plan, period)
+        local f = 1 / plan[1].den
+        local lo, hi = math.huge, -math.huge
+        for _, m in ipairs(plan) do
+            lo = math.min(lo, m.x + period * (1 - f))
+            hi = math.max(hi, m.x + period)
+        end
+        return lo, hi
+    end
+    for _, c in ipairs({ { 8, 3, 1 }, { 8.04, 3, 1 }, { 13.36, 3, 1 }, { 50, 2, 1 }, { 80, 2, 1 }, { 20, 5, 1 }, { 12, 2, 0.5 }, { 200, 2, 1 } }) do
+        local period, gapW, px = c[1], c[2], c[3]
+        local plan = AB.MaskPlan(period, gapW, px)
+        local tag = ("遮罩 %s/%s px=%s"):format(period, gapW, px)
+        check(tag .. "：有擺法", plan ~= nil)
+        check(tag .. "：最多兩張", #plan <= 2)
+        local lo, hi = union(plan, period)
+        check(tag .. "：右端在節距尾＋半像素", math.abs(hi - (period + px / 2)) < 1e-9, hi)
+        local want = period - gapW + px / 2
+        if 1 / plan[1].den <= gapW / period then
+            check(tag .. "：挖的寬剛好", math.abs(lo - want) < 1e-9, lo .. " vs " .. want)
+        else
+            check(tag .. "：比例比 1/128 小 ⇒ 挖得寬一點（< 節距/128）", lo <= want + 1e-9 and want - lo < period / 128 + 1e-9, lo .. " vs " .. want)
+        end
+        for _, m in ipairs(plan) do
+            check(tag .. "：遮罩寬＝節距", m.w == period)
+            check(tag .. "：den 在清單裡", AB.MaskFile(m.den):match("segmask%-" .. m.den .. "%.png") ~= nil)
+        end
+    end
+    eq("遮罩：比例剛好 1/den ⇒ 一張", #AB.MaskPlan(16, 2, 0), 1)
+    eq("遮罩：比例剛好 1/den 選那階", AB.MaskPlan(16, 2, 0)[1].den, 8)
+    eq("遮罩：格距 ≥ 節距 ⇒ nil", AB.MaskPlan(8, 8, 1), nil)
+    eq("遮罩：節距 0 ⇒ nil", AB.MaskPlan(0, 1, 1), nil)
+    eq("遮罩：沒格距 ⇒ nil", AB.MaskPlan(8, 0, 1), nil)
+    -- 簽章：遮罩幾何進簽章（列寬／格距變了換容器）；instances 型不收
+    local base = { spellIDs = { 1 }, max = 25, color = { r = 1, g = 1, b = 1 } }
+    local a = AB.Signature(base)
+    base.mask = { period = 8, gap = 1, pixel = 1 }
+    local b = AB.Signature(base)
+    check("簽章：有遮罩不同", a ~= b)
+    base.mask.gap = 2
+    check("簽章：格距變了不同", AB.Signature(base) ~= b)
+    base.kind = "instances"
+    local i1 = AB.Signature(base)
+    base.mask = nil
+    eq("簽章：instances 不收遮罩", AB.Signature(base), i1)
+end
+do
     -- 一格一框的分段：格距 0 ⇒ 相鄰兩格重疊 1px 共用一條邊，總寬不變
     local savedP = ns.P
     ns.P = { Scale = function(v) return v end }      -- 1 單位 ＝ 1 實體像素
