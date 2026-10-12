@@ -178,5 +178,17 @@ do
     check("每次回新表", P.RacialEntry("essential") ~= e)
 end
 
+------------------------------------------------------------
+-- 預覽格角標：IsRacial／IsDefensive（整張表攤平）
+------------------------------------------------------------
+check("種族：主要的", P.IsRacial(20594))
+check("種族：第二個種族技能也認（地精火箭彈幕）", P.IsRacial(69041))
+check("種族：防禦技能不算", not P.IsRacial(642))
+check("種族：nil ⇒ false", P.IsRacial(nil) == false)
+check("防禦：聖盾術", P.IsDefensive(642))
+check("防禦：深寒凝冰（天賦取代寒冰屏障）", P.IsDefensive(414658))
+check("防禦：種族技能不算", not P.IsDefensive(20594))
+check("防禦：nil ⇒ false", P.IsDefensive(nil) == false)
+
 print(("Presets_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

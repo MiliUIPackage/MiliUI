@@ -186,6 +186,76 @@ local function NewHiddenMark(ov, anchor)
 end
 
 ------------------------------------------------------------
+-- 類別角標（只畫在預覽格，真實條不畫）：底部一條黑底白字「飾品／裝備／種族／防禦／光環」，一眼看出這格是什麼。
+-- 掛在格子本身（不是 ov）、層級夾在轉圈與 ov 之間：倒數／充能字、取代記號、邊框都蓋在它上面。
+-- 只有圖示格畫；圓環格只收增益、長條格有名字，都不畫。
+--   飾品／裝備：暴雪的裝備欄項目（equipSlot）、自訂的裝備欄位／飾品欄增益（slot）；13／14 欄叫飾品，其餘叫裝備
+--   種族：種族技能那一筆（racial）或在 Presets.RACIALS 裡
+--   防禦：在 Presets.DEFENSIVES 裡，或暴雪標了 BIG_DEFENSIVE（C_UnitAuras.AuraIsBigDefensive；只當補充，暴雪會漏標）
+--   光環：自訂光環格，放在增益類以外的條上才標（增益條上每格都是光環，標了只是雜訊）
+------------------------------------------------------------
+local TAG_H = 12
+local TRINKET_SLOT = { [13] = true, [14] = true }
+
+local function NewTag(c)
+    local t = CreateFrame("Frame", nil, c)
+    t:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 0, 0)
+    t:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 0, 0)
+    t:SetHeight(TAG_H)
+    t:SetFrameLevel(c:GetFrameLevel() + 4)
+    local bg = t:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0, 0, 0, 0.75)
+    t.text = t:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(t.text, 10)
+    t.text:SetPoint("CENTER", t, "CENTER", 0, 0)
+    t.text:SetTextColor(1, 1, 1, 1)
+    t.text:SetWordWrap(false)
+    t:Hide()
+    return t
+end
+
+-- BIG_DEFENSIVE 旗標：明文 spellID 隨時能問（不受秘密限制），每個 ID 問一次就記住
+local bigDefMemo = {}
+local function BigDefensive(spellID)
+    if type(spellID) ~= "number" then return false end
+    local v = bigDefMemo[spellID]
+    if v == nil then
+        local fn = C_UnitAuras and C_UnitAuras.AuraIsBigDefensive
+        local ok, r = false, nil
+        if fn then ok, r = pcall(fn, spellID) end
+        v = (ok and ns.Catalog.Plain(r) == true) and true or false
+        bigDefMemo[spellID] = v
+    end
+    return v
+end
+
+local function TagOf(key, info)
+    if not info then return nil end
+    local slot = info.equipSlot or info.slot
+    if type(slot) == "number" then
+        return TRINKET_SLOT[slot] and L["Trinket"] or L["Gear"]
+    end
+    local PR = ns.Presets
+    local sid, oid = info.spellID, info.overrideSpellID
+    if info.racial or PR.IsRacial(sid) or PR.IsRacial(oid) then return L["Racial"] end
+    if PR.IsDefensive(sid) or PR.IsDefensive(oid) or BigDefensive(sid) or BigDefensive(oid) then
+        return L["Def"]
+    end
+    if info.custom and info.kind == "aura" and not AURA_SRC[key] then return L["Aura"] end
+    return nil
+end
+
+local function PaintTag(c, key, info)
+    local t = c.tag
+    if not t then return end
+    local text = c.kind == "icons" and TagOf(key, info) or nil
+    if not text then t:Hide() return end
+    t.text:SetText(text)
+    t:Show()
+end
+
+------------------------------------------------------------
 -- 格子
 ------------------------------------------------------------
 local function NewIconCell(canvas)
@@ -247,6 +317,7 @@ local function NewIconCell(canvas)
     c.ovMark = om
     c.scopeMark = NewScopeMark(ov, ov)
     c.hiddenMark = NewHiddenMark(ov, ov)
+    c.tag = NewTag(c)
     c.kind = "icons"
     c.isPlus, c.hiddenItem, c.dragging = false, false, false
     return c
@@ -837,6 +908,7 @@ function Proto:Fill(c, e, i, r, now)
         c.scope = false
     end
     PaintScopeMark(c.scopeMark, c.scope)
+    PaintTag(c, key, info)
     -- 核心／輔助技能（暴雪那兩條）不畫假冷卻：轉圈、倒數、去飽和一律不上，看起來就是就緒的樣子（使用者 2026-10-03）
     c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NoFakeCD(key)
     -- 圓環：每一圈都跑假循環（圓環條的長相就是那一圈在走），效果預覽不演示
