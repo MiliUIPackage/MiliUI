@@ -197,13 +197,12 @@ function Move.ApplyPosition(W)
     if type(wdb.x) ~= "number" or type(wdb.y) ~= "number" then
         PlaceInitial(W)
     end
-    -- 夾回畫面內：換解析度或把視窗拖出去之後至少還抓得到標題列
-    local pw, ph = UIParent:GetWidth(), UIParent:GetHeight()
-    if wdb.x < -(wdb.width or 300) + 40 then wdb.x = 0 end
-    if wdb.x > pw - 40 then wdb.x = pw - 40 end
-    if wdb.y > 0 then wdb.y = 0 end
-    if wdb.y < -ph + 20 then wdb.y = -ph + 20 end
-
+    -- ⚠ 這裡**不夾邊、不改 wdb**。留在畫面內是 frame:SetClampedToScreen(true) 的事，
+    --   引擎夾的是畫出來的位置，存檔不動。以前這裡照 UIParent 尺寸把 x/y 夾回來
+    --   並寫回 wdb —— 但 PLAYER_LOGIN 當下 UIParent 的縮放可能還不是最終值
+    --   （玩家另外 SetScale UIParent 的話，那時拿到的是 uiScale CVar 算出來的縮小版），
+    --   右下角的座標兩軸都「超界」，被夾到假的畫面邊上還存進 SV：每次登入視窗都跑
+    --   去同一個怪位置，左上半邊的座標卻沒事（2026-10-12 玩家回報，/mdm debug 定案）。
     frame:ClearAllPoints()
     frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", wdb.x, wdb.y)
     frame:SetUserPlaced(false)
