@@ -3,7 +3,7 @@
 --
 --   lua  AddOns/MiliUI_CooldownManager/Tests/Anchor_test.lua
 --
--- 覆蓋：存檔字串的形狀（Parse／IsExternal）、提供者順序（六個單位 × 四家）、Provider、快取與作廢、自己的條容器名被擋、
+-- 覆蓋：存檔字串的形狀（Parse／IsExternal）、提供者順序（六個單位 × 五家）、Provider、快取與作廢、自己的條容器名被擋、
 -- CheckName 的四種原因、forbidden／字型物件不算框、Fallback 路徑、Recheck 的變動偵測；
 -- DB.AnchorWouldCycle 對外部目標；Bars：外部目標當堆疊根（同一個目標同一邊照 STACK_RANK 往外排）、
 -- 解析不到時照 fallback（沒有就 pos）貼 UIParent、SetPoint 被擋時退回 fallback、不做半像素補正、
@@ -148,26 +148,27 @@ end
 eq("提供者：玩家第一個是本套組", A.UNIT_PROVIDERS.player[1], "MiliUIUF_Player")
 eq("提供者：玩家第二個", A.UNIT_PROVIDERS.player[2], "EllesmereUIUnitFrames_Player")
 eq("提供者：玩家第三個", A.UNIT_PROVIDERS.player[3], "ElvUF_Player")
-eq("提供者：玩家最後是暴雪", A.UNIT_PROVIDERS.player[4], "PlayerFrame")
-eq("提供者：專注目標最後是暴雪", A.UNIT_PROVIDERS.focus[4], "FocusFrame")
+eq("提供者：玩家第四個是 MSUF", A.UNIT_PROVIDERS.player[4], "MSUF_player")
+eq("提供者：玩家最後是暴雪", A.UNIT_PROVIDERS.player[5], "PlayerFrame")
+eq("提供者：專注目標最後是暴雪", A.UNIT_PROVIDERS.focus[5], "FocusFrame")
 eq("下拉：六個單位", #A.UNITS, 6)
 do
     local want = { "player", "target", "focus", "pet", "targettarget", "focustarget" }
     for i, u in ipairs(want) do eq("下拉順序 " .. i, A.UNITS[i], u) end
-    -- 六個單位 × 四家：Candidates 照「本套組 → 第二家 → 第三家 → 暴雪」的順序
+    -- 六個單位 × 五家：Candidates 照「本套組 → EllesmereUI → ElvUI → MSUF → 暴雪」的順序
     local expect = {
-        player       = { "MiliUIUF_Player", "EllesmereUIUnitFrames_Player", "ElvUF_Player", "PlayerFrame" },
-        target       = { "MiliUIUF_Target", "EllesmereUIUnitFrames_Target", "ElvUF_Target", "TargetFrame" },
-        focus        = { "MiliUIUF_Focus", "EllesmereUIUnitFrames_Focus", "ElvUF_Focus", "FocusFrame" },
-        pet          = { "MiliUIUF_Pet", "EllesmereUIUnitFrames_Pet", "ElvUF_Pet", "PetFrame" },
-        targettarget = { "MiliUIUF_TargetTarget", "EllesmereUIUnitFrames_TargetTarget", "ElvUF_TargetTarget", "TargetFrameToT" },
-        focustarget  = { "MiliUIUF_FocusTarget", "EllesmereUIUnitFrames_FocusTarget", "ElvUF_FocusTarget", "FocusFrameToT" },
+        player       = { "MiliUIUF_Player", "EllesmereUIUnitFrames_Player", "ElvUF_Player", "MSUF_player", "PlayerFrame" },
+        target       = { "MiliUIUF_Target", "EllesmereUIUnitFrames_Target", "ElvUF_Target", "MSUF_target", "TargetFrame" },
+        focus        = { "MiliUIUF_Focus", "EllesmereUIUnitFrames_Focus", "ElvUF_Focus", "MSUF_focus", "FocusFrame" },
+        pet          = { "MiliUIUF_Pet", "EllesmereUIUnitFrames_Pet", "ElvUF_Pet", "MSUF_pet", "PetFrame" },
+        targettarget = { "MiliUIUF_TargetTarget", "EllesmereUIUnitFrames_TargetTarget", "ElvUF_TargetTarget", "MSUF_targettarget", "TargetFrameToT" },
+        focustarget  = { "MiliUIUF_FocusTarget", "EllesmereUIUnitFrames_FocusTarget", "ElvUF_FocusTarget", "MSUF_focustarget", "FocusFrameToT" },
     }
     for u, names in pairs(expect) do
         local c = A.Candidates("unit:" .. u)
-        eq("Candidates " .. u .. " 筆數", #c, 4)
+        eq("Candidates " .. u .. " 筆數", #c, 5)
         for i, n in ipairs(names) do eq("Candidates " .. u .. " #" .. i, c[i], n) end
-        local fams = { "MiliUI", "EllesmereUI", "ElvUI", "Blizzard" }
+        local fams = { "MiliUI", "EllesmereUI", "ElvUI", "MSUF", "Blizzard" }
         for i, n in ipairs(names) do eq("FRAME_PROVIDER " .. n, A.FRAME_PROVIDER[n], fams[i]) end
     end
 end
@@ -234,6 +235,10 @@ do
     f, n = A.Resolve("unit:focustarget")
     check("專注目標的目標：只有暴雪的 FocusFrameToT", f == G.FocusFrameToT and n == "FocusFrameToT")
     G.MiliUIUF_Pet, G.EllesmereUIUnitFrames_Pet = nil, nil
+    G.MSUF_pet = ExtFrame("MSUF_pet")
+    A.Invalidate()
+    eq("Provider：寵物＝MSUF（暴雪也在，排後面）", A.Provider("unit:pet"), "MSUF")
+    G.MSUF_pet = nil
     A.Invalidate()
 end
 

@@ -18,7 +18,7 @@
 --   A.Unresolved(bar)         這條的 anchor.to 是外部目標、而且現在解析不到
 --   A.Label(to)               顯示用的名字（玩家框架／目標框架／專注目標框架／寵物框架／目標的目標框架／
 --                             專注目標的目標框架／框名）
---   A.Provider(to)            解析到的框屬於哪一家（A.PROVIDERS 那一行的 name），查不到回 nil；
+--   A.Provider(to)            解析到的框屬於哪一家（MiliUI／EllesmereUI／ElvUI／MSUF／Blizzard）（A.PROVIDERS 那一行的 name），查不到回 nil；
 --                             錨定視窗的灰字「目前接到：家名（框名）」用。家名是提供者表的資料，不從框名前綴猜
 --
 -- 「框存在」只看 _G[name] 是不是一個可以當錨點的物件（GetObjectType 讀得到、有 GetPoint 這類區域方法、
@@ -38,7 +38,7 @@ local _, ns = ...
 ns.Anchor = ns.Anchor or {}
 local A = ns.Anchor
 
--- 單位框提供者：一行一家，依序試（本套組 → 其他單位框插件 → 暴雪），第一個存在的贏。
+-- 單位框提供者：一行一家，依序試（本套組 → 其他單位框插件（EllesmereUI、ElvUI、MSUF）→ 暴雪），第一個存在的贏。
 -- 名字是各家單位框的全域框名（資料，不是程式）；**unit 的 key（player…）是存檔內容，不能改名**
 A.PROVIDERS = {
     { name = "MiliUI", frames = {
@@ -51,6 +51,10 @@ A.PROVIDERS = {
     { name = "ElvUI", frames = {
         player = "ElvUF_Player", target = "ElvUF_Target", focus = "ElvUF_Focus",
         pet = "ElvUF_Pet", targettarget = "ElvUF_TargetTarget", focustarget = "ElvUF_FocusTarget" } },
+    -- 框名＝它 TOC 的 X-MSUF-UnitFrames-Prefix（MSUF）＋ "_" ＋ 小寫 unit
+    { name = "MSUF", frames = {
+        player = "MSUF_player", target = "MSUF_target", focus = "MSUF_focus",
+        pet = "MSUF_pet", targettarget = "MSUF_targettarget", focustarget = "MSUF_focustarget" } },
     { name = "Blizzard", frames = {
         player = "PlayerFrame", target = "TargetFrame", focus = "FocusFrame",
         pet = "PetFrame", targettarget = "TargetFrameToT", focustarget = "FocusFrameToT" } },

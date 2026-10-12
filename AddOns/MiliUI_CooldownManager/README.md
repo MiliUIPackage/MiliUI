@@ -1794,18 +1794,18 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 | `"unit:player"`／`"unit:target"`／`"unit:focus"`／`"unit:pet"`／`"unit:targettarget"`／`"unit:focustarget"` | 提供者表依序第一個存在的（見下表；`A.PROVIDERS` 一行一家，展開成 `A.UNIT_PROVIDERS[unit]`＝依序要試的框名、`A.FRAME_PROVIDER[框名]`＝家名） |
 | `"frame:<全域框名>"` | `_G[名字]`；`"frame:"`（還沒填名字）當作解析不到 |
 
-提供者（2026-10-12 補齊六個單位四家，順序＝本套組 → EllesmereUI → ElvUI → 暴雪，第一個存在的贏；後三個 unit key 是新的存檔內容）：
+提供者（2026-10-12 補齊六個單位，順序＝本套組 → EllesmereUI → ElvUI → MSUF（Midnight Simple Unit Frames）→ 暴雪，第一個存在的贏；後三個 unit key 是新的存檔內容）：
 
-| 單位 key | MiliUI_UnitFrames | EllesmereUI | ElvUI | 暴雪 |
-|---|---|---|---|---|
-| `player` | `MiliUIUF_Player` | `EllesmereUIUnitFrames_Player` | `ElvUF_Player` | `PlayerFrame` |
-| `target` | `MiliUIUF_Target` | `EllesmereUIUnitFrames_Target` | `ElvUF_Target` | `TargetFrame` |
-| `focus` | `MiliUIUF_Focus` | `EllesmereUIUnitFrames_Focus` | `ElvUF_Focus` | `FocusFrame` |
-| `pet` | `MiliUIUF_Pet` | `EllesmereUIUnitFrames_Pet` | `ElvUF_Pet` | `PetFrame` |
-| `targettarget` | `MiliUIUF_TargetTarget` | `EllesmereUIUnitFrames_TargetTarget` | `ElvUF_TargetTarget` | `TargetFrameToT` |
-| `focustarget` | `MiliUIUF_FocusTarget` | `EllesmereUIUnitFrames_FocusTarget` | `ElvUF_FocusTarget` | `FocusFrameToT` |
+| 單位 key | MiliUI_UnitFrames | EllesmereUI | ElvUI | MSUF | 暴雪 |
+|---|---|---|---|---|---|
+| `player` | `MiliUIUF_Player` | `EllesmereUIUnitFrames_Player` | `ElvUF_Player` | `MSUF_player` | `PlayerFrame` |
+| `target` | `MiliUIUF_Target` | `EllesmereUIUnitFrames_Target` | `ElvUF_Target` | `MSUF_target` | `TargetFrame` |
+| `focus` | `MiliUIUF_Focus` | `EllesmereUIUnitFrames_Focus` | `ElvUF_Focus` | `MSUF_focus` | `FocusFrame` |
+| `pet` | `MiliUIUF_Pet` | `EllesmereUIUnitFrames_Pet` | `ElvUF_Pet` | `MSUF_pet` | `PetFrame` |
+| `targettarget` | `MiliUIUF_TargetTarget` | `EllesmereUIUnitFrames_TargetTarget` | `ElvUF_TargetTarget` | `MSUF_targettarget` | `TargetFrameToT` |
+| `focustarget` | `MiliUIUF_FocusTarget` | `EllesmereUIUnitFrames_FocusTarget` | `ElvUF_FocusTarget` | `MSUF_focustarget` | `FocusFrameToT` |
 
-只抄框名字串（資料），沒有搬任何一行程式。`A.Provider(to)` → 解析到的框是哪一家（`"MiliUI"`／`"EllesmereUI"`／`"ElvUI"`／`"Blizzard"`，
+只抄框名字串（資料），沒有搬任何一行程式。MSUF 的框名是它 TOC 的 `X-MSUF-UnitFrames-Prefix`（`MSUF`）＋ `_` ＋ 小寫 unit（v6.21 確認）；它把前綴做成可設定，前綴被改掉就認不到、退回暴雪的框。`A.Provider(to)` → 解析到的框是哪一家（`"MiliUI"`／`"EllesmereUI"`／`"ElvUI"`／`"MSUF"`／`"Blizzard"`，
 解析不到回 nil），錨定視窗的灰字「目前接到：ElvUI（ElvUF_Player）」用；家名是提供者表的資料，不從框名前綴猜。
 
 - **「框存在」只看 `_G[name]` 是可以當錨點的物件**：`GetObjectType` 讀得到字串、有 `GetPoint`（字型物件也在 `_G`、也有
@@ -3701,7 +3701,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 **錨定視窗（雙九宮格）與六種單位框（2026-10-12）**
 
 498. 六個單位各選一次：MiliUI_UnitFrames 開著時接本套組的框；關掉 `/reload` 後接暴雪的 `PlayerFrame`／`TargetFrame`／`FocusFrame`／
-     `PetFrame`／`TargetFrameToT`／`FocusFrameToT`；視窗灰字「目前接到」的家名與框名對得上（有 ElvUI 或 EllesmereUI 的單位框時接它們）。
+     `PetFrame`／`TargetFrameToT`／`FocusFrameToT`；視窗灰字「目前接到」的家名與框名對得上（有 ElvUI、EllesmereUI 或 MSUF 的單位框時接它們；MSUF 六個單位都要試，框名是小寫 `MSUF_targettarget` 這種）。
 499. 雙九宮格：`TOP→BOTTOM`、`BOTTOMLEFT→TOPRIGHT`、`CENTER→CENTER`、`LEFT→LEFT` 四組，遊戲裡條的位置跟視窗裡次九宮格的位置一致；
      結果灰字與主表單摘要列寫的點名對得上。
 500. 兩條都選核心技能、同樣 `TOP→BOTTOM` 時照舊排開；一條改 `TOPLEFT→BOTTOMLEFT` 仍算下方、照舊排開；一條改 `CENTER→CENTER` 不排開、疊在中央。
