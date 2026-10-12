@@ -945,7 +945,7 @@ local function Controls(cand, sub)
         BS("numbers", nil, L["Text offset"], { sub = "textOffset", path = false,
             resetPaths = { "textOffset.x", "textOffset.y" }, fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
         BS("slider", "segmentSpacing", L["Segment spacing"], { min = 0, max = 8, step = 1 }),
-        Note(L["Segment spacing applies to segmented rows: point-style resources (Holy Power, combo points) and stack rows (Ironfur, Arcane Salvo)."]),
+        Note(L["Segment spacing applies to segmented rows: point-style resources (Holy Power, combo points) and stack rows (Whirlwind, Arcane Salvo)."]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
         Note(L["Right to left also lights point-style resources from the right: the first point is the rightmost segment."]),
         -- 外觀（預設）：每種資源可以在自己的設定視窗裡改用自己的外觀（resources.style[key]）

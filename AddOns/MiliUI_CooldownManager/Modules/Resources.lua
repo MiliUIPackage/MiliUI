@@ -1356,18 +1356,27 @@ local styleProxies = {}          -- [key] = { cfg, own, proxy }
 
 local function ProxyWrite() error("MiliUI_CooldownManager: resource style proxy is read-only", 2) end
 
--- 不看 follow 的欄位（設定視窗的「版面」節，每一列各自存、沒存＝照全域；使用者 2026-10-03 指定顯示數值、2026-10-12 指定整個版面）：
---   showText、segmentSpacing、fillDirection 是純量，textOffset 是 { x, y }——**逐欄位**退回全域（只存了 x 時 y 照全域），
---   代理表回一張合併過的表（每個 key 一張快取、每次讀都重填）。寬與列距不經代理表（Relayout 在列層讀：R.KeyWidth／R.KeyRowSpacing）
-local INDEPENDENT = { showText = true, segmentSpacing = true, fillDirection = true, textOffset = true }
+-- 不看 follow 的欄位：「長條上顯示數值」每一列各自存、沒存＝照全域（使用者 2026-10-03 指定）
+local INDEPENDENT = { showText = true }
 R.INDEPENDENT_FIELDS = INDEPENDENT
 
+-- 版面（設定視窗「版面」節，使用者 2026-10-12 指定「跟外觀同一套：跟隨資源條的版面」）：style[key].followLayout 沒存＝跟
+-- ⇒ 這幾欄一律讀全域、自己存的值留著不讀；followLayout == false 才讀自己的，沒存的退回全域。
+--   segmentSpacing、fillDirection 是純量；textOffset 是 { x, y }——**逐欄位**退回全域（只存了 x 時 y 照全域），
+--   代理表回一張合併過的表（每個 key 一張快取、每次讀都重填）。寬與列距不經代理表（Relayout 在列層讀：R.KeyWidth／R.KeyRowSpacing）
+local LAYOUT_FIELDS = { segmentSpacing = true, fillDirection = true, textOffset = true, width = true, rowSpacing = true }
+R.LAYOUT_FIELDS = LAYOUT_FIELDS
+
+-- 這一列的版面跟不跟資源條（判準是 followLayout ~= false）
+function R.LayoutFollows(cfg, key)
+    local own = OwnStyle(cfg, key)
+    return not (own and own.followLayout == false)
+end
+
 do  -- 主 chunk 貼著 200 個 local 的上限：這一段的幫手收在區塊裡
-local function HasIndependent(own)
-    for k in pairs(INDEPENDENT) do
-        if own[k] ~= nil then return true end
-    end
-    return false
+-- 要不要代理表：顯示數值存了、外觀不跟、版面不跟（跟著時自己存的版面值一律不讀 ⇒ 原表就對）
+local function NeedsProxy(own)
+    return own.showText ~= nil or own.follow == false or own.followLayout == false
 end
 
 local mergedOffsets = {}         -- [key] = { x, y }（代理表 textOffset 的合併結果，重用）
@@ -1388,14 +1397,17 @@ end
 function R.StyleFor(cfg, key)
     local own = OwnStyle(cfg, key)
     if not own then return cfg end
-    local follow = own.follow ~= false
-    if follow and not HasIndependent(own) then return cfg end
+    if not NeedsProxy(own) then return cfg end
     local hit = styleProxies[key]
     if hit and hit.cfg == cfg and hit.own == own then return hit.proxy end
     local proxy = setmetatable({}, {
         __index = function(_, k)
-            if k == "textOffset" then return MergedOffset(key, own, cfg) end
-            if INDEPENDENT[k] or (STYLE_FIELDS[k] and own.follow == false) then
+            local layoutOwn = own.followLayout == false
+            if k == "textOffset" then
+                if layoutOwn then return MergedOffset(key, own, cfg) end
+                return cfg.textOffset
+            end
+            if INDEPENDENT[k] or (STYLE_FIELDS[k] and own.follow == false) or (LAYOUT_FIELDS[k] and layoutOwn) then
                 local v = own[k]
                 if v ~= nil then return v end
             end
@@ -1408,19 +1420,22 @@ function R.StyleFor(cfg, key)
 end
 end
 
--- 這一列自己的寬（實體像素；style[key].width > 0 才算，0／沒存 ＝ 跟資源條 ⇒ nil）
+-- 這一列自己的寬（實體像素；版面不跟、而且 style[key].width > 0 才算；0／沒存／跟著 ＝ 跟資源條 ⇒ nil）
 function R.KeyWidth(cfg, key)
     local own = OwnStyle(cfg, key)
-    local w = own and tonumber(own.width)
+    if not (own and own.followLayout == false) then return nil end
+    local w = tonumber(own.width)
     if w and w > 0 then return w end
     return nil
 end
 
--- 這一列與上一列的間距（style[key].rowSpacing，沒存 ＝ 資源條的列距）
+-- 這一列與上一列的間距（版面不跟時讀 style[key].rowSpacing，沒存／跟著 ＝ 資源條的列距）
 function R.KeyRowSpacing(cfg, key)
     local own = OwnStyle(cfg, key)
-    local v = own and tonumber(own.rowSpacing)
-    if v ~= nil then return v end
+    if own and own.followLayout == false then
+        local v = tonumber(own.rowSpacing)
+        if v ~= nil then return v end
+    end
     return tonumber(type(cfg) == "table" and cfg.rowSpacing) or 1
 end
 
