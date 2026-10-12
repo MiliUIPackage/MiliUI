@@ -5,6 +5,8 @@
 --   ns.Presets.DEFENSIVES  [職業 token] = { spellID, … }        整個職業一張，顯示時用「學了沒」過濾
 --   ns.Presets.ITEMS       { { key, items = { 主, 替代, … } }, … } 一組一列；自訂物品帶 alts
 --   ns.Presets.AURAS       { { key, ids = { … }, lead }, … }      一組一列；光環格帶多個法術
+--   ns.Presets.CONTROLS    [職業 token] = { spellID, … }        斷法與控場，同 DEFENSIVES（整個職業一張，濾學了的）
+--   ns.Presets.SELF_AURAS  { { key, ids, spec }, … }             個人增益（專精技能、賽季效果、套裝效果）；spec 有寫＝只給那個專精
 --
 --   Presets.Racials(raceFile, isKnown) / Presets.Defensives(classFile, isKnown)
 --        → 過濾後的 spellID 清單（isKnown 由呼叫端注入）
@@ -13,7 +15,9 @@
 --   Presets.RacialEntry(barKey)                → 動態的種族技能那一筆（kind = "racial"，不帶 ID）
 --   Presets.ResolveRacial(raceFile, isKnown)   → 這個種族學了的那個種族技能 ID（解不到 nil）
 --   Presets.AuraIDs(def)   這一組的全部法術（「這個專精已經加過了沒」用）
---   Presets.IsRacial(id) / IsDefensive(id)     → 在不在種族／防禦表裡（不分種族職業；預覽格的角標用）
+--   Presets.Controls(classFile, isKnown)       → 同 Defensives
+--   Presets.SelfAuras(specID)                  → 這個專精看得到的個人增益（沒寫 spec 的＋spec 對得上的）
+--   Presets.IsRacial(id) / IsDefensive(id) / IsControl(id)  → 在不在那張表裡（不分種族職業；預覽格的角標用）
 --
 -- 名稱與圖示**不寫在這裡**，執行時問 C_Spell／C_Item（官方譯名、換季也跟著變）。
 -- ⚠ 這幾張表每季／每次改版要對一次：藥水的物品與增益 ID 每季換一批；種族、防禦技能、
@@ -78,6 +82,25 @@ P.DEFENSIVES = {
 }
 
 ------------------------------------------------------------
+-- 斷法與控場（同防禦技能：職業的、各專精的攤平在一張，學不到的濾掉）
+------------------------------------------------------------
+P.CONTROLS = {
+    DEATHKNIGHT = { 47528, 49576, 207167, 221562, 108199 },
+    DEMONHUNTER = { 183752, 179057, 202137, 211881, 217832 },
+    DRUID       = { 78675, 106839, 132469 },
+    EVOKER      = { 351338, 358385 },
+    HUNTER      = { 147362, 187707, 19577, 109248, 187650, 213691 },
+    MAGE        = { 2139, 31661, 113724, 157980 },
+    MONK        = { 116705, 115078, 116844, 119381 },
+    PALADIN     = { 96231, 853, 20066, 115750 },
+    PRIEST      = { 15487, 8122, 64044, 88625 },
+    ROGUE       = { 1766, 408, 2094 },
+    SHAMAN      = { 57994, 51490, 51514, 192058 },
+    WARLOCK     = { 89766, 5484, 30283 },
+    WARRIOR     = { 6552, 386071, 5246, 46968, 107570 },
+}
+
+------------------------------------------------------------
 -- 藥水與治療石：一組＝一格自訂物品，items[1] 是主（身分），其餘是替代品。
 -- 格子每次照順序挑第一個包包裡有的（Modules/Custom.lua 的 PickItem）；短效的排前面先用掉。
 ------------------------------------------------------------
@@ -118,6 +141,31 @@ P.AURAS = {
     { key = "zealotry",        ids = { 1238443 } },
     { key = "alluringNostrum", ids = { 1295015 } },
     { key = "invisibility",    ids = { 1236551 } },                        -- 虛空籠罩
+}
+
+------------------------------------------------------------
+-- 個人增益：一組＝一格光環格（增益），跟團隊增益同一個形狀，多一個 spec（專精 ID；沒寫＝每個專精都列）。
+-- ⚠ 賽季效果與套裝效果的 ID 照 YUI_Halo 的表收（它自己標「候選」），wowhead 只對得到名字，
+--   掛在身上的增益是不是同一個 ID 還沒實機驗證（README「常用預設」）；套裝每季換一批
+------------------------------------------------------------
+P.SELF_AURAS = {
+    { key = "dawnlight",        ids = { 431522 },  spec = 70 },     -- 黎明之光（懲戒：自己身上那層，不是目標的效果）
+    { key = "windAwoken",       ids = { 1263318 } },                -- 賽季效果：風之甦醒
+    { key = "alnscornedEssence", ids = { 1266687 } },               -- 賽季效果：Alnscorned Essence
+    -- 套裝效果
+    { key = "tierBloodDebt",    ids = { 1310372 }, spec = 250 },
+    { key = "tierRelentless",   ids = { 1300369 }, spec = 250 },
+    { key = "tierFreezing",     ids = { 1297365 }, spec = 251 },
+    { key = "tierAkilzon",      ids = { 1301768 }, spec = 102 },
+    { key = "tierHalazzi",      ids = { 1301600 }, spec = 103 },
+    { key = "tierMagnified",    ids = { 1297728 }, spec = 1473 },
+    { key = "tierCobraFang",    ids = { 1299389 }, spec = 253 },
+    { key = "tierCumulative",   ids = { 1296930 }, spec = 62 },
+    { key = "tierRefreezing",   ids = { 1310248 }, spec = 64 },
+    { key = "tierFlowing",      ids = { 1300219 }, spec = 262 },
+    { key = "tierOvercharge",   ids = { 1300222 }, spec = 262 },
+    { key = "tierShortCircuit", ids = { 1299991 }, spec = 263 },
+    { key = "tierWindingUp",    ids = { 1300670 }, spec = 71 },
 }
 
 ------------------------------------------------------------
@@ -177,6 +225,25 @@ end
 function P.IsDefensive(spellID)
     defensiveSet = defensiveSet or SetOf(P.DEFENSIVES)
     return spellID ~= nil and defensiveSet[spellID] == true
+end
+
+local controlSet
+function P.IsControl(spellID)
+    controlSet = controlSet or SetOf(P.CONTROLS)
+    return spellID ~= nil and controlSet[spellID] == true
+end
+
+function P.Controls(classFile, isKnown)
+    if type(classFile) ~= "string" then return {} end
+    return Filter(P.CONTROLS[classFile], isKnown)
+end
+
+function P.SelfAuras(specID)
+    local out = {}
+    for _, def in ipairs(P.SELF_AURAS) do
+        if def.spec == nil or def.spec == specID then out[#out + 1] = def end
+    end
+    return out
 end
 
 function P.SpellEntry(spellID, barKey)

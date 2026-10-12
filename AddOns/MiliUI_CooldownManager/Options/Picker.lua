@@ -468,8 +468,9 @@ local function Build()
     sections.presetNote = Text(frame, true)
     sections.presetNote:SetText(L["Pick from ready-made lists instead of typing IDs."])
     sections.presetBtns = {}
-    for _, def in ipairs({ { "racials", L["Racials"] }, { "defensives", L["Defensives"] },
-                           { "items", L["Potions & healthstones"] }, { "auras", L["Group buffs"] } }) do
+    for _, def in ipairs({ { "racials", L["Racials"] }, { "defensives", L["Defensives"] }, { "controls", L["Interrupts & CC"] },
+                           { "items", L["Potions & healthstones"] }, { "auras", L["Group buffs"] },
+                           { "selfAuras", L["Personal buffs"] } }) do
         local kind = def[1]
         local b = W.CreateButton(frame, def[2], "normal", 80, 22)
         W.FitButton(b, 80, 22)
@@ -1150,7 +1151,7 @@ function Picker.WantsSlotBuff(key)
 end
 
 -- 圓環條上留哪幾顆鈕（只收增益）：常用預設的「團隊增益」、自訂 ID 的「光環」與裝備欄那顆（圓環條上是「飾品欄增益」）
-local RING_BUTTONS = { auras = true, aura = true, slot = true }
+local RING_BUTTONS = { auras = true, selfAuras = true, aura = true, slot = true }
 function Picker.RingButton(kind) return RING_BUTTONS[kind] == true end
 
 function Picker.SlotBuffRows(slots, indicesOf, added)
@@ -1393,12 +1394,15 @@ local PRESET_TITLES = {
     racials    = function() return L["Each character tracks its own race's ability, so one entry covers all your characters. Click it to add."] end,
     defensives = function() return L["Your class's defensive abilities that you currently know. Click one to track its cooldown."] end,
     items      = function() return L["Potions and healthstones. Each one shows whichever version you have in your bags. Click one to track it."] end,
+    controls   = function() return L["Your class's interrupts and crowd control that you currently know. Click one to track its cooldown."] end,
     auras      = function() return L["Bloodlust and the like, Time Spiral and potion buffs on you, whoever cast them. Click one to add an aura slot."] end,
+    selfAuras  = function() return L["Buffs from your own abilities, seasonal effects and tier sets, for this specialization. Click one to add an aura slot."] end,
     bag        = function() return L["Items in your bags that have a use effect (toys too). Click one to track its cooldown."] end,
 }
 
 -- 每一種的預設範圍（使用者 2026-10-03 定案；背包物品 2026-10-04，F6）
-local PRESET_SCOPE = { racials = "shared", defensives = "class", items = "shared", auras = "shared", bag = "shared" }
+local PRESET_SCOPE = { racials = "shared", defensives = "class", controls = "class", items = "shared", auras = "shared",
+                       selfAuras = "spec", bag = "shared" }
 
 
 local function SpellRow(id, scope)
@@ -1513,6 +1517,8 @@ function Picker.PresetRows(kind, key, scope)
         end
     elseif kind == "defensives" then
         for _, id in ipairs(PR.Defensives(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id, scope) end
+    elseif kind == "controls" then
+        for _, id in ipairs(PR.Controls(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id, scope) end
     elseif kind == "items" then
         for _, def in ipairs(PR.ITEMS) do
             -- 圖示與名字用包包裡有的那件（都沒有就用主的）
@@ -1527,9 +1533,9 @@ function Picker.PresetRows(kind, key, scope)
                 make = function(k) return PR.ItemEntry(def, k) end,
             }
         end
-    elseif kind == "auras" then
+    elseif kind == "auras" or kind == "selfAuras" then
         local faction = PlainValue(UnitFactionGroup, "player")
-        for _, def in ipairs(PR.AURAS) do
+        for _, def in ipairs(kind == "auras" and PR.AURAS or PR.SelfAuras(ns.specID)) do
             local e = PR.AuraEntry(def, key, faction)
             -- 判「已加入」看整組任何一個 ID（換陣營的角色共用設定檔時主 ID 不同）
             local added = false
