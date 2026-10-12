@@ -102,6 +102,7 @@ Options\StackColors.lua
 Options\CustomSounds.lua
 Options\Tab_Resources.lua
 Options\CustomBars.lua
+Options\ResourcePreview.lua
 Options\Tab_Castbar.lua
 Options\Tab_Assist.lua
 Options\SkyridingSettings.lua

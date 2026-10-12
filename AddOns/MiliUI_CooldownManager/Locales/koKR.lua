@@ -1107,3 +1107,4 @@ L["The game plays these itself. They're registered outside combat and outside in
 L["Plays when the cooldown finishes; for a spell with charges, each time a charge comes back."] = "재사용 대기시간이 끝나면 울립니다. 충전형 주문은 충전이 하나 돌아올 때마다 울립니다."
 L["Only edge-to-opposite-edge pairs (top/bottom, left/right) stack; other pairs are placed exactly as chosen."] = "위/아래, 왼쪽/오른쪽처럼 마주 보는 조합만 바깥쪽으로 쌓이고, 다른 조합은 고른 위치 그대로 붙습니다."
 L["It can also follow the player, target, focus, pet or target-of-target frame of whichever unit frames are loaded, or any frame by name. A frame hidden for lack of a unit still holds the position."] = "불러온 유닛 프레임의 플레이어·대상·주시 대상·소환수·대상의 대상 창이나, 이름으로 지정한 아무 프레임을 따라갈 수도 있습니다. 유닛이 없어 숨겨진 창도 위치는 그대로입니다."
+L["Nothing to show right now: the spells on this list aren't learned."] = "지금은 표시할 줄이 없습니다. 목록의 주문을 아직 배우지 않았습니다."

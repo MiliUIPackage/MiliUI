@@ -14,6 +14,9 @@
 -- 多一小節「位置與錨定」（Specs.Anchor("pips", { other = true })，讀寫 profile.pips）、
 -- 「跟核心技能一起淡出」與自訂格子自己的載入條件（profile.pips.loadConditions）。
 --
+-- 「自訂格子」「自訂列」兩個分頁在捲動區上面多一個固定的預覽框（Options/ResourcePreview.lua）：照遊戲裡的順序與
+-- 堆疊方向畫這個專精整組的列，任何改值（OnApply 每次都叫）、換表單（RefreshForm）都重畫。職業資源分頁不出。
+--
 -- 「自訂列」分頁（計時條：自身增益／目標減益／法術冷卻）的表單在 Options/CustomBars.lua，卡片、拖曳排序、
 -- 選種類彈窗的提示借這裡的（Tab.CardHeader 等，src 參數決定讀寫哪一份清單）。
 --
@@ -1080,19 +1083,26 @@ function Tab.Build(parent, title)
         subButtons[i] = b
     end
 
+    -- 自訂格子／自訂列分頁的預覽框（Options/ResourcePreview.lua）：固定在捲動區外面、標題線下方，
+    -- 高度隨內容變，表單錨在它下緣、跟著移
+    local preview = ns.ResPreview.Create(page, Options.PAGE_W)
+    preview.frame:SetPoint("TOPLEFT", page, "TOPLEFT", pad, y)
+    page.preview = preview
+
     local holder = CreateFrame("Frame", nil, page)
     holder:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -8, 10)
-    -- 職業資源分頁上面有一行說明；自訂格子分頁的說明在表單裡，表單直接貼標題線
+    -- 職業資源分頁上面有一行說明（沒有預覽框）；另外兩個分頁的說明在表單裡，表單貼在預覽框下面
     local function PlaceHolder()
         holder:ClearAllPoints()
         holder:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -8, 10)
         if currentSub ~= "class" then
             note:Hide()
-            holder:SetPoint("TOPLEFT", page, "TOPLEFT", pad, y)
+            holder:SetPoint("TOPLEFT", preview.frame, "BOTTOMLEFT", 0, -8)
         else
             note:Show()
             holder:SetPoint("TOPLEFT", note, "BOTTOMLEFT", -2, -6)
         end
+        preview:SetMode(currentSub)
     end
     PlaceHolder()
     local scroll = W.CreateScrollFrame(holder)
@@ -1110,6 +1120,9 @@ function Tab.Build(parent, title)
         if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
         if ns.Fire then ns.Fire("BarsListChanged") end
+        -- 預覽框每次都重畫（不管簽章變沒變：一般改值不會換表單）。拖曳排序、增刪、摺疊、開關、資源條的寬／材質／
+        -- 邊框／列距都走這裡
+        preview:Refresh()
         -- 形狀可能變了（自訂格子增刪、錨定開關、開關列）：延一幀再比對，不在按鈕的處理器裡換表單。
         -- 每種資源的設定視窗開著的話一起重讀（跟著全域外觀時顯示的是這一頁的值）
         ns.Defer(function()
@@ -1141,6 +1154,8 @@ function Tab.Build(parent, title)
             scroll:SetVerticalScroll(math.min(keep, maxScroll))
         end
         form:Refresh()
+        -- 換專精（Reread）、切分頁（SetSub）、頁面重新顯示（OnShowPage → SetSub）都走這裡
+        preview:Refresh()
     end
 
     local highlightSub
@@ -1185,3 +1200,10 @@ local OWN = { [KEY] = true, [PIPS] = true, custombars = true }
 ns.RegisterCallback("BarMoved", "tab_resources", function(key) if OWN[key] then Reread() end end)
 -- 錨定視窗改了資源條、自訂格子或自訂列的錨定：摘要列重讀
 ns.RegisterCallback("AnchorChanged", "tab_resources", function(key) if OWN[key] then Reread() end end)
+-- 寬 0（跟核心技能第一列）時，第一列寬變了預覽框要跟著改寬；換設定檔整份值都換了
+local function RefreshPreview()
+    local page = Options.GetPage(KEY)
+    if page and page:IsVisible() and page.preview then page.preview:Refresh() end
+end
+ns.RegisterCallback("FirstRowWidthChanged", "tab_resources", RefreshPreview)
+ns.RegisterCallback("ProfileChanged", "tab_resources", RefreshPreview)

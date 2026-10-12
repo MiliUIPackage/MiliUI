@@ -502,6 +502,7 @@ local function RowText(plan, style)
     local flags = (outline == "INHERIT") and ns.Media.ThemeOutline() or ns.Media.Outline(outline)
     return show, size, token, flags
 end
+Pips.RowText = RowText                -- 設定頁的預覽框（Options/ResourcePreview.lua）用同一支
 
 local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, reversed, tex, count)
     if not ns.AuraBar then return false end

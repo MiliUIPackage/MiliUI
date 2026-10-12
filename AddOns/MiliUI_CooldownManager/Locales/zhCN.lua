@@ -1107,3 +1107,4 @@ L["The game plays these itself. They're registered outside combat and outside in
 L["Plays when the cooldown finishes; for a spell with charges, each time a charge comes back."] = "冷却结束时响；有充能的法术每回来一次充能就响一次。"
 L["Only edge-to-opposite-edge pairs (top/bottom, left/right) stack; other pairs are placed exactly as chosen."] = "只有上下、左右相对的组合会排开；其他组合照选的位置贴。"
 L["It can also follow the player, target, focus, pet or target-of-target frame of whichever unit frames are loaded, or any frame by name. A frame hidden for lack of a unit still holds the position."] = "也可以跟着当前加载的单位框体的玩家／目标／焦点／宠物／目标的目标框体，或指定名称的任何框体。单位不在而隐藏的框体，位置照样不变。"
+L["Nothing to show right now: the spells on this list aren't learned."] = "目前没有可显示的条：列表上的法术尚未学会。"

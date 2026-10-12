@@ -14,6 +14,8 @@
 --   7. 光環類交給 AuraBar 的 spec（unit／filter、秒數位置與低秒變色、層數不給格式器、「只在生效時顯示」把
 --      暗底、名字、圖示建進按鈕子樹）與簽章（影響外觀的設定一變就換容器、同設定同簽章）
 --   8. 音效登記（CB.SoundWantsOf）
+--   9. 設定頁預覽框的假動畫（Options/ResourcePreview.lua 的純函式：各列倒數長度與錯開、秒數格式、自訂列／充能列／層數列的循環、
+--      層數列的文字模式）
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -331,6 +333,46 @@ check("音效：增益出現／消失 unit player", wants[1].what == "gain" and 
     and wants[2].what == "lose" and wants[2].name == "Num")
 check("音效：目標減益 unit target", wants[3].unit == "target" and wants[3].spellID == 20 and wants[3].name == "Bell")
 eq("音效：沒有規劃 ⇒ 空", #CB.SoundWantsOf(nil), 0)
+
+------------------------------------------------------------
+-- 9. 設定頁預覽框的假動畫（Options/ResourcePreview.lua）
+------------------------------------------------------------
+Load("Options/ResourcePreview.lua")
+local RP = ns.ResPreview
+local runs, distinct = {}, 0
+for i = 1, 7 do
+    local r = RP.BarRun(i)
+    check("預覽：倒數長度 8～14 秒 #" .. i, r >= 8 and r <= 14, r)
+    if not runs[r] then runs[r] = true; distinct = distinct + 1 end
+end
+eq("預覽：前七列倒數長度都不一樣", distinct, 7)
+check("預覽：起點錯開", RP.Phase(1) == 0 and RP.Phase(2) > 0 and RP.Phase(3) > RP.Phase(2))
+check("預覽：回充 6～10 秒", RP.Recharge(1) == 6 and RP.Recharge(3) == 10 and RP.Recharge(4) == 7)
+eq("預覽：秒數 門檻以上進位", RP.TimeText(4.2, 3), "5")
+eq("預覽：秒數 門檻以下一位小數捨去", RP.TimeText(2.97, 3), "2.9")
+eq("預覽：秒數 門檻 0 不印小數", RP.TimeText(0.4, 0), "1")
+local a1, r1 = RP.BarState(3, 10)
+check("預覽：自訂列 3 秒時生效、剩 7", a1 == true and r1 == 7)
+local a2 = RP.BarState(11, 10)
+check("預覽：自訂列 倒完停的那段不生效", a2 == false)
+local a3, r3 = RP.BarState(12.5, 10)
+check("預覽：自訂列 循環回到開頭", a3 == true and math.abs(r3 - 9.5) < 1e-9)
+local c1, p1 = RP.ChargeState(1, 3, 8)
+check("預覽：充能 開頭是滿的、沒在回充", c1 == 3 and p1 == nil)
+local c2, p2, rem2 = RP.ChargeState(6, 3, 8)
+check("預覽：充能 用掉一格、下一格回充一半", c2 == 2 and p2 == 0.5 and rem2 == 4)
+local c3 = RP.ChargeState(10.5, 3, 8)
+eq("預覽：充能 回充完又滿", c3, 3)
+local s0 = RP.StackState(0.5, 4)
+eq("預覽：層數 開頭 0 層（沒有光環）", s0, 0)
+local s2, rem = RP.StackState(2.25, 4)
+check("預覽：層數 每秒加一層、光環時間跟著刷新", s2 == 2 and rem == 9.75)
+eq("預覽：層數 到頂停住", (RP.StackState(6.5, 4)), 4)
+eq("預覽：層數 停完歸零", (RP.StackState(7.2, 4)), 0)
+eq("預覽：層數文字 stacks", RP.StackText("stacks", 3, 4.2), "3")
+eq("預覽：層數文字 time", RP.StackText("time", 3, 4.2), "5")
+eq("預覽：層數文字 stacksTime", RP.StackText("stacksTime", 3, 4.2), "3 (5)")
+eq("預覽：層數文字 timeStacks", RP.StackText("timeStacks", 3, 4.2), "5 (3)")
 
 print(("CustomBars_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

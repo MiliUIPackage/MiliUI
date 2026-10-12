@@ -281,7 +281,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Options/SpellPopover.lua` | 逐法術面板（自訂項目多「適用範圍」與「未學會時不顯示」） |
 | `Options/Tab_Theme.lua` | 全域主題（跟條頁同一支 builder） |
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
-| `Options/Tab_Resources.lua`、`Options/ResourceSettings.lua`、`Options/ResourceConditions.lua`、`Options/HealthThresholds.lua` | 資源條頁、每種資源自己的設定視窗（頁上每列「設定…」開的）、視窗裡的條件規則編輯器、血量門檻彈窗 |
+| `Options/Tab_Resources.lua`、`Options/ResourceSettings.lua`、`Options/ResourceConditions.lua`、`Options/HealthThresholds.lua`、`Options/ResourcePreview.lua` | 資源條頁、每種資源自己的設定視窗（頁上每列「設定…」開的）、視窗裡的條件規則編輯器、血量門檻彈窗、自訂格子／自訂列分頁上方的預覽框 |
 | `Options/Tab_Castbar.lua` | 施法條頁（頁首「預覽」） |
 | `Options/Tab_Assist.lua` | 戰鬥助手頁：下一招醒目標示（主題層）＋下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Options/ClickLayer.lua` | 視窗開著時畫面上每條蓋一層透明點擊層，點了切到那條的頁面並閃職業色邊 |
@@ -2111,6 +2111,7 @@ customRows[specID] = {
 - `/mcdm debug`：自訂格子自己一段（開關、清單幾筆、顯示幾列、容器高、錨定或位置、alpha、事件），清單每一筆一行（沒建列寫原因）；
   資源條那段不再印自訂格子。
 - 列另外池化（格子懶建；層數列多一顆持有框，容器依簽章池化在上面），`GetResourceBarFrame` 只找資源列。
+- **設定頁的預覽框**（2026-10-13，`Options/ResourcePreview.lua`，同自訂列那一份框，見「自訂列」的預覽框）：照 `Pips.PlanCustomRows(style, specID, Pips.gameProbe)` 畫這個專精整組的列，**一律從上往下排**（引擎 `Relayout` 不看錨定，第一列貼面板上緣）。充能列照 `LayoutCustomRow`：`R.SegCell` 切格、每格四條邊 `R.Edges`／`PaintEdges`、暗底 `R.DimColor`、填色、這一列顏色的暗版回充條、置中秒數（`R.TextOffset`）；層數列照 `LayoutStackEngine`：`AuraBar.RowDecor` 畫暗底與邊框、填色畫在 `AuraBar.Geometry` 的格子上（等於引擎整條填色挖掉格距）、文字照 `Pips.TextMode`。顏色 `Pips.CustomColor`、數字樣式 `Pips.RowText`（為了預覽公開）。格數＝`numSeg`（充能上限讀得到明文就用、讀不到退存檔、再退 2）。假動畫：充能列滿 2 秒 → 用掉一格 → 下一格平滑長回來（6～10 秒，數字開著印回充秒數）→ 滿；層數列 0 → 上限每秒加一層、到頂停 2 秒 → 歸零（光環剩餘時間每加一層刷新為 10 秒）。顯示時機：充能列走 `Pips.ChargeAlpha`（滿的那段在「只在回充中」時透明；「回充中或戰鬥中」看 `InCombatLockdown`），層數列「只在有光環時」在 0 層那段整列透明——跟遊戲一樣藏起來但照樣佔位。
 
 ### 自訂列（`Modules/CustomBars.lua`、`Options/CustomBars.lua`，面板 `custombars`，2026-10-13）
 
@@ -2184,7 +2185,7 @@ customBars[specID] = {
 
 **名字顯示時機**（2026-10-13，`entry.name.when`：`"active"`（沒存＝預設）｜`"always"`）：預設名字只在生效時出現——光環列在光環在時、冷卻列在冷卻中。光環列的名字因此建在引擎按鈕子樹裡（`CB.AuraSpec` 的 `label` 只帶名字、圖示照舊畫在列上；按鈕只在光環存在時顯示，Lua 不讀）；冷卻列的名字在 `row.textFrame` 上，透明度跟整列同一個判準（明文旗標 → SetAlpha，讀不到 → `duration:IsZero()` 餵 SetAlphaFromBoolean）。整列設成「只在生效時顯示」時這個選項停用（本來就整列一起藏）。
 
-**即時預覽**（2026-10-13，`Options/CustomBars.lua` 的 `PreviewRow`）：每張卡片展開後第一列。外觀照引擎同一套（`CB.Look`／`CB.Geometry`），寬度照實際條寬（放不下縮到控件欄寬）；值是假的，倒 10 秒、停 2 秒循環，小數門檻、低時間變色、「只在生效時顯示」（停的那段整條藏起來）／一直顯示（空條）都看得到。邊框是邊框色墊底＋內縮，不是引擎的 RowDecor。
+**預覽框**（2026-10-13，`Options/ResourcePreview.lua`；取代第一版卡片裡的 `PreviewRow`——改下面的選項不會跟著變、捲下去就看不到）：資源條頁「自訂格子」「自訂列」兩個分頁在捲動區**外面**、標題線下方有一個固定的預覽框（照圖示條頁：`W.Stylize` 深底黑邊、寬 `PAGE_W`、沒有標題），表單錨在它下緣；職業資源分頁不出、版面照舊。畫這個專精**整組**會建的列，順序照 `CB.Plan`、方向照 `CB.Grow(custombars.anchor)`（預設往上長：清單第一列在最下面、離資源條最近；錨到下方就第一列在上、往下長），列距與寬照資源條（`rowSpacing`、`R.Width(style, "custombars")`，放不下縮到框內寬）。每一列：`CB.Geometry`＋`CB.Look`＋條身的暗底與邊框走 `AuraBar.RowDecor`（引擎一直顯示的列同一支），名字／秒數／層數位置、名字顯示時機、只在生效時顯示（停的那段整列透明、照樣佔位）、反向、小數門檻、低時間變色都看得到。假倒數每列 8～14 秒（`RP.BarRun`）、停 2 秒，起點錯開（`RP.Phase`）。高度＝上下內距 8＋各列高＋列距，最高 150（超過裁掉離錨點最遠的列）；整組關著照畫、0.35 透明；沒有任何一列時縮成一行灰字（框照樣在，跟圖示條頁一致、加第一列時表單不跳），清單有東西但全部沒學會時另一句灰字。**刷新**：`Tab_Resources` 的 `OnApply` 每次都 `preview:Refresh()`（不看簽章：拖曳排序、增刪、摺疊、開關、每列設定、資源條的寬／材質／邊框／列距全走這裡）、`page:RefreshForm` 結尾也叫（換專精 `Reread`、切分頁 `SetSub`、頁面重新顯示 `OnShowPage`），另外聽 `FirstRowWidthChanged`（寬 0 跟核心技能）與 `ProfileChanged`。列框池化（兩種列各一池、版面原地重排）；框藏起來或沒有列時不掛 OnUpdate。不碰秘密值、不碰引擎容器。
 
 ### 施法條（`Modules/Castbar.lua`）
 
@@ -3902,8 +3903,9 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 538. 外觀：寬 0 跟核心技能第一列同寬；材質、背景（材質／透明度／自訂底色）、填充透明度、邊框粗細與顏色、列距都跟資源條頁的設定；圖示左／右／無（圖示框色＝邊框色）；名字過長截成「…」不壓到秒數；反向填充往右縮；字型與描邊跟資源條。
 539. 錨到下方（改錨核心技能下方等 TOP→BOTTOM 的組合）：第一列貼錨點、往下長；錨回上方往上長（錨定改了即時換方向）。編輯模式拖曳、覆蓋層條名「自訂列」、點擊層點了開資源條頁的「自訂列」分頁。
 540. 設定頁九語系：卡片設定列的標籤（「時間快到時變色」「變色秒數」…）歐語換行不壓到控件；選種類彈窗三顆按鈕的長譯文（deDE／ruRU）放得下。
-541. 自訂列卡片的即時預覽：跟實際的條比，填色／材質／底色／邊框／圖示／字型大小與位置一致；改設定立刻反映；倒數的小數與低時間變色、「只在生效時顯示」的消失時段都看得到；卡片摺起來或關設定頁後不再跑 OnUpdate。
+541. 自訂列的預覽框（資源條頁「自訂列」分頁上方、捲動區外面）：表單捲到底照樣看得到；列的順序與往上／往下長跟遊戲裡一致（錨到核心技能下方時反過來）；每一列的填色／材質／底色／邊框／圖示／字型大小與位置跟實際的條一致；任何一個選項改了、拖曳排序、新增／刪除、換專精、改資源條的寬／材質／邊框／列距，預覽立刻跟著變；各列倒數長度不同、不同步；切到職業資源分頁時框消失、表單貼回說明下方；沒有列時是一行灰字；關設定頁後不再跑 OnUpdate。
 542. 自訂列的名字顯示時機（預設只在生效時）：一直顯示的光環列，光環不在時空條上沒有名字、光環出現時名字出現；冷卻列冷卻好了名字消失、按下去出現（只是 GCD 不出現）；選「一直顯示」時名字常駐。
+543. 自訂格子的預覽框（「自訂格子」分頁上方）：列序由上往下跟遊戲一致；格數＝充能上限（天賦改了跟著變）／層數上限；格距、邊框、材質、填充方向、填充透明度、寬、各列高與顏色跟實際的格子一致；充能列用掉一格後下一格平滑長回來並印秒數（數字關掉時不印），層數列逐秒加層、文字照「條上顯示的數字」；「只在回充中／只在有光環時」在滿／0 層那段藏起來但位置保留；改任何設定立刻反映。
 
 **效能基準**
 
