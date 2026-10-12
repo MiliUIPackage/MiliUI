@@ -10,6 +10,10 @@
 --   * 沒拖過就完全不介入（`position.set` 是 false ⇒ 這支等於不存在）
 --   * 編輯模式開著的時候不貼，讓玩家還是能用原生的拖曳
 --   * 右鍵遮罩＝放手，把位置整個交還給編輯模式
+--   * 玩家在編輯模式裡拖過（或換了一套追蹤器位置不同的版面）＝自動放手。
+--     接管時記下編輯模式那份錨點的指紋，之後指紋變了就是編輯模式有了新主意，
+--     我們不再貼。沒有這條的話，用編輯模式拖的人每次離開編輯模式／重載都會被
+--     貼回很久以前用遮罩拖過的舊座標（2026-10-12 回報「還是跑掉」）
 --
 -- ⚠ 預設位置的追蹤器還被右側容器（RightManagedFrameContainer）列管著：它是容器的
 -- 小孩，容器每次 Layout（首領框／競技場框出現、UIParent 重新顯示、追蹤器自己 OnShow
@@ -58,6 +62,7 @@ local function Save(otf, c)
     local pl, pr, pt = ParentRect(otf)
     if not (left and right and top and pl) then return false end
     c.set = true
+    c.editModeSig = EditModeSig(otf)
     if (left + right) / 2 > (pl + pr) / 2 then
         c.point, c.x = "TOPRIGHT", right - pr
     else
@@ -65,6 +70,19 @@ local function Save(otf, c)
     end
     c.y = top - pt
     return true
+end
+
+-- 編輯模式記的追蹤器位置（唯讀暴雪欄位，不寫）。沒初始化完回 nil
+local function EditModeSig(otf)
+    local info = otf.systemInfo
+    local a = info and info.anchorInfo
+    if not a then return nil end
+    return table.concat({
+        info.isInDefaultPosition and "default" or "custom",
+        tostring(a.point), tostring(a.relativeTo), tostring(a.relativePoint),
+        string.format("%.1f", tonumber(a.offsetX) or 0),
+        string.format("%.1f", tonumber(a.offsetY) or 0),
+    }, "|")
 end
 
 local function EditModeOpen()
@@ -84,6 +102,20 @@ function Pos.Apply()
     if not T.CanReposition() then return end
     -- 編輯模式開著就讓開：玩家這時候可能正在用原生方式拖，兩邊搶會變成拖不動
     if EditModeOpen() then return end
+
+    -- 編輯模式那份位置換過了 ⇒ 玩家用編輯模式拖過，放手。
+    -- 舊存檔沒有指紋：編輯模式已經有自訂位置就聽它的，還在預設位置才補記指紋繼續接管
+    local sig = EditModeSig(otf)
+    if sig then
+        local stale = c.editModeSig and c.editModeSig ~= sig
+        local legacyCustom = not c.editModeSig and sig:find("^custom")
+        if stale or legacyCustom then
+            c.set, c.point, c.x, c.y, c.editModeSig = false, nil, 0, 0, nil
+            ns.Fire("PositionChanged")
+            return
+        end
+        c.editModeSig = sig
+    end
 
     CaptureOriginal(otf)
     -- 摺著的時候 parent 是隱藏容器，那是 Tracker.lua 的；只把它從右側容器手上拿走
@@ -108,7 +140,7 @@ end
 function Pos.Reset()
     local c = Cfg()
     if not c then return end
-    c.set, c.point, c.x, c.y = false, nil, 0, 0
+    c.set, c.point, c.x, c.y, c.editModeSig = false, nil, 0, 0, nil
 
     local otf = T.OTF()
     if not otf or not T.CanReposition() then return end
