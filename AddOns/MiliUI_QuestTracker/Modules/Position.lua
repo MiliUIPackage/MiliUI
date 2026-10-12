@@ -11,11 +11,17 @@
 --   * 編輯模式開著的時候不貼，讓玩家還是能用原生的拖曳
 --   * 右鍵遮罩＝放手，把位置整個交還給編輯模式
 --
+-- ⚠ 預設位置的追蹤器還被右側容器（RightManagedFrameContainer）列管著：它是容器的
+-- 小孩，容器每次 Layout（首領框／競技場框出現、UIParent 重新顯示、追蹤器自己 OnShow
+-- 觸發的 UpdateFrame）都會把小孩重新錨回容器裡 —— 容器又錨在右側快捷列左邊，
+-- 所以玩家看到的是「位置一直跑掉、被往左頂一排快捷列寬」（2026-10-12）。
+-- 只貼 SetPoint 擋不住，要把 parent 換成 UIParent 讓容器的 Layout 不再碰它；
+-- 暴雪的 UpdateFrame 會再 SetParent 回去，掛 SetParent 下一幀再搬一次。
+--
 -- 垂直錨上緣：追蹤器的內容往下長，用 CENTER 位移的話任務一多整條就會自己往上飄。
 -- 水平錨**離得近的那一邊**（point = "TOPLEFT"／"TOPRIGHT"，相對 UIParent 同一角）：
--- 早期一律存「距左緣 x」，追蹤器靠右放時，只要 UIParent 變寬（UI 縮放、解析度、
--- 視窗大小不同的角色）右邊就多出一截，看起來是被往左頂（2026-10-12 存檔實證：
--- 同一組 x=1773，各角色量到的右緣距離從 -5 到 -101）。
+-- 早期一律存「距左緣 x」，追蹤器靠右放時 UIParent 寬度一變（UI 縮放、視窗大小）
+-- 右邊就多出一截。編輯模式自己也是存貼近邊。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -80,6 +86,9 @@ function Pos.Apply()
     if EditModeOpen() then return end
 
     CaptureOriginal(otf)
+    -- 摺著的時候 parent 是隱藏容器，那是 Tracker.lua 的；只把它從右側容器手上拿走
+    local container = _G.GetRightManagedFrameContainer and GetRightManagedFrameContainer()
+    if container and otf:GetParent() == container then otf:SetParent(UIParent) end
     local point = c.point == "TOPRIGHT" and "TOPRIGHT" or "TOPLEFT"
     otf:ClearAllPoints()
     otf:SetPoint(point, UIParent, point, c.x, c.y)
@@ -107,6 +116,11 @@ function Pos.Reset()
     -- 所以要自己貼回抄下來的那組。抄不到（例如一載入就重設）就只能等重載，
     -- 編輯模式在載入時會自己套用
     if originalPoints and #originalPoints > 0 then
+        -- Apply 把它從右側容器搬出來過；原本錨在容器上就放回去，容器下次 Layout 會接手
+        local container = _G.GetRightManagedFrameContainer and GetRightManagedFrameContainer()
+        if container and originalPoints[1][2] == container and otf:GetParent() == UIParent then
+            otf:SetParent(container)
+        end
         otf:ClearAllPoints()
         for _, pt in ipairs(originalPoints) do
             otf:SetPoint(unpack(pt))
@@ -188,6 +202,17 @@ ns.RegisterCallback("Init", "position", function()
     -- 它自己放手時也對齊別人。沒拖過（position.set 為 false）一樣可以當目標。
     if ns.Snap and T.OTF() then ns.Snap.Register("questTracker", T.OTF()) end
     Pos.Apply()
+
+    -- 右側容器把追蹤器收回去的那一刻（ManagedFrameContainerMixin:UpdateFrame）。
+    -- 不在 hook 裡直接動：暴雪的 UpdateFrame 接著還要 Layout，當場搬會重入它
+    local container = _G.GetRightManagedFrameContainer and GetRightManagedFrameContainer()
+    if container and T.OTF() then
+        hooksecurefunc(T.OTF(), "SetParent", function(_, parent)
+            if parent == container and Pos.IsOverridden() then
+                T.Defer("positionReclaim", Pos.Apply)
+            end
+        end)
+    end
 
     local evt = CreateFrame("Frame")
     for _, e in ipairs({

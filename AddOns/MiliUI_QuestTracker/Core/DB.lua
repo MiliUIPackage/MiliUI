@@ -27,7 +27,7 @@ local function BuildDefaults()
         -- 都把它貼回這裡記的座標。右鍵遮罩＝清掉，位置交還給編輯模式。
         -- 座標是 point（TOPLEFT／TOPRIGHT，離得近的那一邊）相對 UIParent 同一角的
         -- 位移（y 為負）—— 追蹤器的內容往下長，用 CENTER 位移的話內容一多整條就會
-        -- 自己往上飄；水平貼近邊，UIParent 寬度變了才不會被往左頂。point 是 nil
+        -- 自己往上飄；水平貼近邊，UIParent 寬度變了位置才不會漂。point 是 nil
         -- ＝舊格式（一律距左緣），Modules/Position.lua 套用時就地換掉。
         position = { set = false, x = 0, y = 0 },
 

@@ -161,7 +161,7 @@ SetParent 把它抽離版面之後，位置解到**螢幕最頂端**、高度變
 
 座標存 **上緣＋離得近的那一邊**（`position.point` = TOPLEFT／TOPRIGHT 相對 UIParent 同一角，y 為負），不是編輯模式技能推薦的 CENTER 位移：
 追蹤器的內容往下長，用 CENTER 的話任務一多整條就自己往上飄。
-⚠ 2026-10-12 前一律存「距左緣」⇒ 玩家回報「位置一直跑掉、被往左頂」：存檔同一組 x=1773，各角色 barSnapshot 的右緣從 −5 到 −101——**UIParent 寬度因角色而異**（UI 縮放／視窗大小），靠右的框存左緣距離就會漂。舊格式（point 為 nil）在 `Pos.Apply` 時就地換算；換算也順手修了混用 UIParent／追蹤器座標單位的問題。
+⚠ **「位置一直跑掉、被往左頂」的根因（2026-10-12）**：預設位置的追蹤器是 RightManagedFrameContainer 的**小孩**、還在它的 showingFrames 裡；容器每次 Layout（別的右側框 UpdateFrame、UIParent 重新顯示、追蹤器 OnShow → AddManagedFrame → UpdateFrame 的 ClearAllPoints＋SetParent(容器)）都把它錨回容器——容器錨在右側快捷列左邊，所以偏一排快捷列寬（存檔的右緣 −5／−101 就是無／有右側快捷列的預設位置）。修法：`Pos.Apply` 把 parent 從容器換成 UIParent（容器的 Layout 就不碰它），掛 OTF 的 SetParent，暴雪收回容器時下一幀再搬（hook 裡當場動會重入 UpdateFrame）。高度照 UpdateHeight 的預設路徑＝UIParent 高＋offsetY，到螢幕底。**第一輪我誤判成「UIParent 寬度因角色而異」**，順手改成存貼近邊（`position.point`，舊格式在 Apply 時就地換算）——那也沒錯但不是原因；換算時位置已被頂歪的話要重拖一次。待實機驗證。
 事件觸發後**貼兩次**（0.1s ＋ 0.6s）：編輯模式套用版面的時機不保證在我們之前。
 
 ⚠ 遮罩會吃滑鼠，所以編輯模式一開就要讓開，否則玩家在編輯模式裡拖不動追蹤器。
