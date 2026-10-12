@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-12T03:17:58.323Z
+  modified: 2026-10-12T03:59:28.650Z
 ---
 
 2026-09-30 使用者決定**自製 MiliUI_CooldownManager 取代 Ayije_CDM fork**（起因：Ayije 設定介面 UX 差，
@@ -200,6 +200,7 @@ IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄�
   **P8** 自訂項目三層範圍 戰隊 `w:<uid>`／職業 `k:<uid>`／專精 `c:<index>`，窄的蓋寬的（`DB.ResolveScopes`），覆寫跟著寬層那一筆走（`DB.OverrideTable` 分流），
   種族技能是動態 `kind="racial"`，預覽記號 PNG 由 `miliui-cdm-scope-icons` 技能產生。使用者定案不做角色專屬層（之後用排除開關）、不做 EUI 式同步。
 - 2026-10-04：**冷卻管理器資料的 `charges` 只是「可以有充能」**（天賦給第二次的技能沒點也是 true）；凡是照它選 `GetSpellChargeDuration` 的地方要過 `Decorate.IsChargeSpell`（`maxCharges > 1`），否則單次技能的回充永遠是零 ⇒ 隱藏 GCD 轉圈把冷卻框一直藏著。`/mcdm debug` 之後設定視窗有「除錯」分頁可全選複製，玩家回報先叫他「按技能 → 冷卻中打 /mcdm debug → 全選貼回來」。
+- 2026-10-12：**充能技能的去飽和不靠暴雪**（[[wow-cooldownviewer-charge-cache-stale]]）：`ChargeState` 判「0 充能」看 `GetSpellCooldown` 的 `isActive` 且非 `isOnGCD`（明文），不讀 `currentCharges`（戰鬥中秘密值 ⇒ 以前 0 充能也走回充那條、去飽和物件 nil）；去飽和一律照 `GetSpellCooldownDuration(id, true)`；`SetDesaturated` 後掛勾對充能技能（沒倒光環時間）重算、`SPELL_UPDATE_CHARGES` 延一幀整批對一次。**未實機驗證（README 495～496）**。同日分段資源條的裝飾改貼實體像素（`AB.Geometry` 的 `pixel`；等分時中段分隔卡半像素糊成 2px，秘法齊射 25 格回報）、instances 型不貼；README 497 待驗。
 
 **冷卻格的增益旗標只在「沒到期」才寫（2026-10-04 實機）**：`SetUseAuraDisplayTime` 後掛勾是「暴雪正在倒增益時間」的唯一訊號，
 但暴雪 `RefreshSpellCooldownInfo` 到期那條（光環掉了、技能又沒冷卻，例：痛苦詛咒）只叫 `CooldownFrame_Clear`、**不寫 false**
