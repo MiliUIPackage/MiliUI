@@ -71,6 +71,7 @@ Modules\ResourceConditions.lua
 Modules\DevourerMeta.lua
 Modules\AuraBar.lua
 Modules\CastStacks.lua
+Modules\EchoWindow.lua
 Modules\Resources.lua
 Modules\Pips.lua
 Modules\Interrupt.lua

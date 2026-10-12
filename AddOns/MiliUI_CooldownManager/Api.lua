@@ -901,6 +901,11 @@ SlashCmdList.MILIUICDM = function(msg)
         end
     elseif msg == "aura" then
         AuraDebug()
+    elseif msg == "echo" then
+        -- 事件視窗（沸點）的探針：觸發參數戰鬥中是不是明文（Modules/EchoWindow.lua）
+        if ns.EchoWindow and ns.EchoWindow.ProbeReport then
+            for _, line in ipairs(ns.EchoWindow.ProbeReport()) do print(line) end
+        end
     elseif msg == "perf" or msg:match("^perf%s") then
         Perf(msg:match("^perf%s+(%S+)"))
     elseif msg == "release" then
