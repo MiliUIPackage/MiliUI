@@ -154,11 +154,14 @@ local function Normalize(db)
     local sec = math.floor(tonumber(k.countdown) or 5)
     k.countdown = math.min(math.max(sec, 3), 30)
 
+    -- 面板位置只檢查型別與方向，**不照螢幕尺寸夾**：登入當下 UIParent 的縮放可能
+    -- 還不是最終值（玩家另外 SetScale UIParent 時，GetScreenWidth 是 uiScale CVar
+    -- 算出來的縮小版），擺在邊上的面板會被誤判成畫面外、每次登入都歸中央
+    -- （傷害統計 2026-10-12 踩過同一個坑）。飄出畫面交給 SetClampedToScreen，
+    -- 真的找不到還有右鍵／設定頁的「回到預設位置」。
     local p = db.panel.point
-    local maxX = (GetScreenWidth() or 1920) / 2
-    local maxY = GetScreenHeight() or 1080
-    if type(p.x) ~= "number" or math.abs(p.x) > maxX then p.x = 0 end
-    if type(p.y) ~= "number" or p.y > 0 or p.y < -maxY then p.y = DB.PANEL_DEFAULT_Y end
+    if type(p.x) ~= "number" then p.x = 0 end
+    if type(p.y) ~= "number" or p.y > 0 then p.y = DB.PANEL_DEFAULT_Y end
 end
 
 ------------------------------------------------------------

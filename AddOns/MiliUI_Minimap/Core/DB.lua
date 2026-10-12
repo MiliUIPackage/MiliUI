@@ -168,14 +168,15 @@ function DB.Init()
     db.dbVersion = db.dbVersion or ns.DB_VERSION
     MergeDefaults(db, DEFAULTS)
 
-    -- 位置的健全性檢查：存檔可能是在別的解析度存的，或被手動編輯過。
-    -- 飄到畫面外的視窗玩家救不回來（設定頁裡看不到它），所以夾一次。
-    local halfW = (GetScreenWidth() or 1920)
-    local halfH = (GetScreenHeight() or 1080)
-    if type(db.x) ~= "number" or math.abs(db.x) > halfW then db.x = DEFAULTS.x end
-    if type(db.y) ~= "number" or math.abs(db.y) > halfH then db.y = DEFAULTS.y end
-    if type(db.infoBarX) ~= "number" or math.abs(db.infoBarX) > halfW then db.infoBarX = DEFAULTS.infoBarX end
-    if type(db.infoBarY) ~= "number" or math.abs(db.infoBarY) > halfH then db.infoBarY = DEFAULTS.infoBarY end
+    -- 位置只檢查型別（手動編輯壞掉的），**不照螢幕尺寸夾**：登入當下 UIParent 的縮放
+    -- 可能還不是最終值（玩家另外 SetScale UIParent 時，這時 GetScreenWidth 是
+    -- uiScale CVar 算出來的縮小版），正常的座標會被誤判成畫面外、每次登入都打回預設
+    -- （傷害統計 2026-10-12 踩過同一個坑）。飄出畫面交給 SetClampedToScreen，
+    -- 真的找不到還有右鍵叫回右上角。
+    if type(db.x) ~= "number" then db.x = DEFAULTS.x end
+    if type(db.y) ~= "number" then db.y = DEFAULTS.y end
+    if type(db.infoBarX) ~= "number" then db.infoBarX = DEFAULTS.infoBarX end
+    if type(db.infoBarY) ~= "number" then db.infoBarY = DEFAULTS.infoBarY end
 
     -- 尺寸也夾一次：存檔可能是舊版本存的、或被手動編輯過，而 Skin.Apply 不會
     -- 再檢查一次（拉把手才夾）。100 / 400 要跟 Map/Skin.lua 的 MIN_SIZE / MAX_SIZE 一致。
