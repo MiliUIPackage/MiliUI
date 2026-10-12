@@ -208,8 +208,16 @@ local SOUNDS = {
     { field = "castSound",  label = L["After-cast sound"],  when = CastWhen },
 }
 
--- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益持續時間）
-local function ActiveGlowWhen(kind, class) return class == "aura" or kind == nil end
+-- 生效期間發光：增益類（暴雪的增益、光環格）與暴雪的冷卻格（kind ＝ nil，生效＝暴雪正在倒增益持續時間），
+-- 加上飾品欄、有增益的自訂物品：發光畫在增益疊層（rec.buffOverlay）底下，開關照冷卻格那一筆（Modules/Custom.lua 的 AuraStyle）
+local function ActiveGlowWhen(kind, class)
+    if kind == "slot" then return true end
+    if kind == "item" then return Pop.CurItemHasBuff() end
+    return class == "aura" or kind == nil
+end
+-- 觸發發光只有法術會有（SPELL_ACTIVATION_OVERLAY_GLOW_SHOW）：飾品欄、自訂物品永遠不會亮。
+-- 掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限
+function Pop.NoProc(kind) return kind ~= "slot" and kind ~= "item" end
 
 -- 沒有物品時隱藏：只有自訂物品；被動飾品不顯示：自訂飾品欄與暴雪的裝備欄冷卻格（暴雪沒給框時由米利代畫的那種）
 local function HideNoItemWhen(kind) return kind == "item" end
@@ -222,7 +230,7 @@ local function HidePassiveWhen(kind)
 end
 
 local TOGGLES = {
-    { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, tab = "glow" },
+    { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, noItem = true, tab = "glow" },
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
     { field = "activeGlow",       label = L["Glow during buff"],      when = ActiveGlowWhen, tab = "glow" },
     { field = "fullGlow",         label = L["Glow at max charges"],    noAura = true, noBar = true, tab = "glow", charge = true,
@@ -1748,6 +1756,10 @@ local function Build()
     for _, t in ipairs(TOGGLES) do
         local when = t.when
         if t.noAura then when = t.noBar and NotAuraNotBar or NotAura end
+        if t.noItem then
+            local base = when
+            when = function(kind, class) return base(kind, class) and Pop.NoProc(kind) end
+        end
         if t.charge then when = ChargeWhen(when) end          -- 只在這招現在有充能時（連同下一列灰字）
         buildTab = t.tab
         local tr, th = NewRow(t.label, when)
@@ -1785,9 +1797,9 @@ local function Build()
         if t.field == "activeGlow" then
             frame.activeRow = tr
             -- 脫戰也亮（預設勾）：取消 ＝ 只在戰鬥中亮。只存 false（勾回去就清掉覆寫）。
-            -- 自訂光環格不給：發光烘在受保護的按鈕裡，戰鬥中切不了
+            -- 自訂光環格、飾品欄／物品的增益疊層不給：發光烘在受保護的按鈕裡，戰鬥中切不了
             local or_, oh = NewRow(L["Out of combat too"], function(kind, class)
-                return ActiveGlowWhen(kind, class) and kind ~= "aura"
+                return ActiveGlowWhen(kind, class) and kind ~= "aura" and Pop.NoProc(kind)
             end)
             local occb = W.CreateCheckButton(or_, nil, function(on)
                 if not cur then return end
