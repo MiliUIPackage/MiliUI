@@ -728,5 +728,89 @@ do
     eq("圓環 Snap 0.5：基準直徑對齊", r[1].w, 40.5)
 end
 
+------------------------------------------------------------
+-- 自訂列（custombars，2026-10-13）：預設錨在資源條上方，施法條（跟核心技能上方）自動排到它外面；
+-- 資源條關掉／收合時自訂列往內補、施法條跟著補；自訂列收合時施法條貼回資源條。
+-- 排名同 Core/Bars.lua 的 STACK_RANK（自訂列 1.2：資源條之後、天空騎術與施法條之前）
+------------------------------------------------------------
+do
+    local ABOVE = function(to) return { to = to, point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 } end
+    local BELOW = function(to) return { to = to, point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 } end
+    local RANK = { resources = 1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, buffs = 5,
+                   buffbars = 6, essential = 7 }
+    local function rank(k) return RANK[k] or 100 end
+    local cfg = {
+        essential  = { anchor = false },
+        resources  = { enabled = true, anchor = ABOVE("essential") },
+        custombars = { enabled = true, anchor = ABOVE("resources") },
+        castbar    = { enabled = true, anchor = ABOVE("essential") },
+        skyriding  = { enabled = false, anchor = ABOVE("essential") },
+        pips       = { enabled = true, anchor = BELOW("essential") },
+        utility    = { anchor = BELOW("essential") },
+    }
+    local keys = {}
+    for k in pairs(cfg) do keys[#keys + 1] = k end
+    table.sort(keys)
+    local collapsed = {}
+    local function cfgOf(k) return cfg[k] end
+    local function skip(k) return collapsed[k] == true end
+    local function T(k) return Lay.StackTarget(k, cfgOf, keys, rank, skip) end
+
+    eq("自訂列預設：貼資源條", T("custombars"), "resources")
+    eq("自訂列預設：施法條排到自訂列外面", T("castbar"), "custombars")
+    eq("自訂列預設：資源條照舊貼核心", T("resources"), "essential")
+    eq("自訂列預設：下方那一疊不受影響", T("utility"), "pips")
+
+    collapsed.custombars = true
+    eq("自訂列收合：施法條貼回資源條", T("castbar"), "resources")
+    eq("自訂列收合：自己照字面貼資源條", T("custombars"), "resources")
+    collapsed.custombars = nil
+
+    cfg.resources.enabled = false
+    eq("資源條關掉：自訂列往內補到核心", T("custombars"), "essential")
+    eq("資源條關掉：施法條跟著補、貼自訂列", T("castbar"), "custombars")
+    collapsed.custombars = true
+    eq("資源條關掉＋自訂列收合：施法條貼核心", T("castbar"), "essential")
+    collapsed.custombars = nil
+    cfg.resources.enabled = true
+
+    collapsed.resources = true
+    eq("資源條收合：自訂列往內補到核心", T("custombars"), "essential")
+    eq("資源條收合：施法條貼自訂列", T("castbar"), "custombars")
+    collapsed.resources = nil
+
+    -- 玩家把自訂列改錨核心技能上方：排名 1.2 ⇒ 資源條之後、施法條之前，結果跟預設一樣
+    cfg.custombars.anchor = ABOVE("essential")
+    eq("自訂列改錨核心：貼在資源條外面", T("custombars"), "resources")
+    eq("自訂列改錨核心：施法條仍在自訂列外面", T("castbar"), "custombars")
+    cfg.custombars.anchor = ABOVE("resources")
+
+    -- 天空騎術獨立擺放（1.5）：排在自訂列外面、施法條裡面
+    cfg.skyriding.enabled = true
+    eq("天空騎術獨立：貼自訂列外面", T("skyriding"), "custombars")
+    eq("天空騎術獨立：施法條貼天空騎術", T("castbar"), "skyriding")
+    collapsed.custombars = true
+    eq("天空騎術獨立＋自訂列收合：天空騎術貼資源條（跟沒有自訂列時一樣）", T("skyriding"), "resources")
+    collapsed.custombars = nil
+    cfg.resources.enabled = false
+    eq("天空騎術獨立＋資源條關掉：自訂列貼核心", T("custombars"), "essential")
+    eq("天空騎術獨立＋資源條關掉：天空騎術貼自訂列", T("skyriding"), "custombars")
+    cfg.resources.enabled = true
+    cfg.skyriding.enabled = false
+
+    -- 自訂列關掉：不佔位
+    cfg.custombars.enabled = false
+    eq("自訂列關掉：施法條貼資源條", T("castbar"), "resources")
+    cfg.custombars.enabled = true
+
+    -- 自訂列改錨資源條下方（資源條本身在核心上方，它下方就是核心）⇒ 照通則改排到核心的下方那一疊，
+    -- 排名 1.2 ⇒ 貼核心、自訂格子排到它外面；施法條回到資源條外面
+    cfg.custombars.anchor = BELOW("resources")
+    eq("自訂列錨資源條下方：改排到核心下方", T("custombars"), "essential")
+    eq("自訂列錨資源條下方：自訂格子排到它外面", T("pips"), "custombars")
+    eq("自訂列錨資源條下方：施法條回到資源條外面", T("castbar"), "resources")
+    cfg.custombars.anchor = ABOVE("resources")
+end
+
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

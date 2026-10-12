@@ -87,6 +87,9 @@
 --   * 設定變了：對帳（Logic.Diff），多的撤、少的登，同樣的不動。
 --   * 音效路徑是登記當下烘死的，總開關／聲道變了也是換一筆登記。
 --   * 節流、讀取畫面靜音只管我們自己 PlaySoundFile 的那兩種；光環格由引擎播，只能給 throttleSeconds。
+--   * 自訂列（Modules/CustomBars.lua，資源條頁）的光環類也走這裡（CB.SoundWants）：自身增益 unitToken player、
+--     目標身上自己上的減益 unitToken target（簽章多帶 unit）。冷卻類的「冷卻好了」是那一列秒數 Cooldown 的
+--     OnCooldownDone ＋ S.Play（同就緒音效的出口），不經這張表。
 --
 -- ── 層數增加音效 ───────────────────────────────────────────────────────
 -- 一樣走 AddAuraSound（ApplicationsIncreased）：Lua 端不碰層數（秘密值）。每多一層響一次，0→1 算「出現」不算增加
@@ -284,10 +287,13 @@ function Logic.DefaultName(rel)
     return (file:gsub("%.[^.]+$", ""))
 end
 
--- 一筆登記的簽章（路徑可能是字串或檔案編號；節流值也進簽章，改了要換一筆）
-function Logic.Sig(trigger, spellID, path, channel, throttle)
-    return table.concat({ tostring(trigger), tostring(spellID), type(path), tostring(path), tostring(channel),
-                          tostring(throttle or Logic.THROTTLE) }, "|")
+-- 一筆登記的簽章（路徑可能是字串或檔案編號；節流值也進簽章，改了要換一筆）。
+-- unit 不是 player 的（自訂列的目標減益）才接在後面：舊的登記簽章一個字都不變
+function Logic.Sig(trigger, spellID, path, channel, throttle, unit)
+    local s = table.concat({ tostring(trigger), tostring(spellID), type(path), tostring(path), tostring(channel),
+                             tostring(throttle or Logic.THROTTLE) }, "|")
+    if unit and unit ~= "player" then s = s .. "|" .. tostring(unit) end
+    return s
 end
 
 -- 充能滿音效的轉變（純函式）：before／now ＝ true 滿／false 沒滿／nil 讀不到。只有明確的沒滿 → 明確的滿才響
@@ -958,9 +964,9 @@ local function BuffItemSpells(cooldownID)
 end
 S.BuffItemSpells = BuffItemSpells                    -- 測試用
 
-local function Want(want, trig, sid, path, channel, throttle)
-    local sig = Logic.Sig(trig, sid, path, channel, throttle)
-    want[sig] = { trigger = trig, spellID = sid, path = path, channel = channel, throttle = throttle }
+local function Want(want, trig, sid, path, channel, throttle, unit)
+    local sig = Logic.Sig(trig, sid, path, channel, throttle, unit)
+    want[sig] = { trigger = trig, spellID = sid, path = path, channel = channel, throttle = throttle, unit = unit }
 end
 
 function S.WantAuraSounds()
@@ -994,6 +1000,16 @@ function S.WantAuraSounds()
             end
         end
     end
+    -- 自訂列（Modules/CustomBars.lua）的光環類：出現／消失，畫面上有建列的才登記；目標減益的 unit 是 target
+    local CB = ns.CustomBars
+    if CB and CB.SoundWants then
+        for _, w in ipairs(CB.SoundWants()) do
+            local path = S.Path(w.name)
+            if path ~= nil then
+                Want(want, w.what == "lose" and removed or added, w.spellID, path, channel, Logic.THROTTLE, w.unit)
+            end
+        end
+    end
     -- 暴雪的增益 item：只有層數增加音效走這裡（出現／消失是 Lua 掛勾）。池子裡作用中、有身分的都算，不看放格（見檔頭）
     local V = ns.Viewers
     if not ns.released and V and V.EnumerateItems and V.AURA_KIND then
@@ -1023,7 +1039,7 @@ end
 
 local function Register(spec)
     local U = API()
-    local info = { unitToken = "player", spellID = spec.spellID, outputChannel = spec.channel,
+    local info = { unitToken = spec.unit or "player", spellID = spec.spellID, outputChannel = spec.channel,
                    throttleSeconds = spec.throttle or Logic.THROTTLE }
     if type(spec.path) == "number" then info.soundFileID = spec.path else info.soundFileName = spec.path end
     local ok, id = pcall(U.AddAuraSound, spec.trigger, info)

@@ -57,6 +57,7 @@ end
 
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 local ResourcesDefaults, PipsDefaults, CastbarDefaults, AssistIconDefaults, SkyridingDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
+local CustomBarsDefaults                                                                         -- 同上（自訂列）
 
 -- 「整張表當一個值」的預設：設定檔裡**沒有這個鍵**才整張給，已經有（含空表）就一個字都不合併。
 -- 給內容是使用者自己的清單、但預設不是空的那種表用（資源條的上色規則）：逐元素合併會把預設規則的
@@ -360,6 +361,9 @@ ResourcesDefaults = function()
         -- 自訂格子：[specID] = { { kind = "charges"|"stacks", spellID, max, color, showTime, showWhen, enabled }, … }
         -- 開放式、預設空。畫在自己的面板（profile.pips、Modules/Pips.lua），樣式沿用這張表
         customRows    = {},
+        -- 自訂列（計時條）：[specID] = { { kind = "buff"|"debuff"|"cooldown", spellID, height, … }, … }
+        -- 開放式、預設空。畫在自己的面板（profile.custombars、Modules/CustomBars.lua），寬／材質／邊框／列距沿用這張表
+        customBars    = {},
         colors        = colors,
         -- 載入條件：任一成立就整條藏（alpha 0）
         loadConditions = { hideMounted = false, onlyCombat = false },
@@ -380,6 +384,20 @@ PipsDefaults = function()
         -- 跟核心技能條一起淡（同資源條）
         fadeWithEssential = true,
         -- 載入條件：任一成立就整個面板藏（alpha 0），同資源條；兩邊各自一份
+        loadConditions = { hideMounted = false, onlyCombat = false },
+        strata        = "MEDIUM",
+    }
+end
+
+-- 自訂列的面板：同自訂格子，只有位置／錨定／開關／淡出是自己的（清單與樣式在 profile.resources）
+CustomBarsDefaults = function()
+    return {
+        enabled       = true,
+        pos           = { point = "CENTER", x = 0, y = -150 },
+        -- 預設貼在資源條上緣、往上長（使用者 2026-10-13 指定）。施法條跟的是核心技能上方，排開時
+        -- 自動排到自訂列外面（資源條 → 自訂列 → 施法條）；沒有任何一列時收合、施法條貼回資源條
+        anchor        = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
+        fadeWithEssential = true,
         loadConditions = { hideMounted = false, onlyCombat = false },
         strata        = "MEDIUM",
     }
@@ -631,6 +649,7 @@ function DB.BuildDefaults()
             -- customNextUID）刻意**不放預設值**：沒有這幾張表 ＝ 只有專精層（舊存檔照舊），第一次加進去時才建（DB.ScopeList）
             resources = ResourcesDefaults(),
             pips      = PipsDefaults(),
+            custombars = CustomBarsDefaults(),
             castbar   = CastbarDefaults(),
             assistIcon = AssistIconDefaults(),
             skyriding = SkyridingDefaults(),
@@ -1502,11 +1521,11 @@ end
 -- 「面板」：資源條、自訂格子、施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
 -- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套（天空騎術的接力模式例外，見 Core/Bars.lua）。
 -- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
-local PANEL_KEYS = { resources = true, pips = true, castbar = true, assistIcon = true, skyriding = true }
+local PANEL_KEYS = { resources = true, pips = true, custombars = true, castbar = true, assistIcon = true, skyriding = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS
--- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排最後）
-DB.PANEL_ORDER = { "resources", "pips", "castbar", "assistIcon", "skyriding" }
+-- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排最後；自訂列 2026-10-13 加在自訂格子後面）
+DB.PANEL_ORDER = { "resources", "pips", "custombars", "castbar", "assistIcon", "skyriding" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 條或面板的設定表（錨定、位置、編輯模式、設定頁的 root "bar" 一律走這支）

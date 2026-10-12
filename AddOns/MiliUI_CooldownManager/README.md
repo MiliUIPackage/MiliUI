@@ -1783,7 +1783,7 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 
 ## 資源條與施法條
 
-五者都是**面板**：資源條、自訂格子（`pips`）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）、天空騎術（`skyriding`，見「天空騎術」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
+六者都是**面板**：資源條、自訂格子（`pips`）、自訂列（`custombars`，2026-10-13，見「自訂列」）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）、天空騎術（`skyriding`，見「天空騎術」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
 `profile.resources`／`profile.pips`／`profile.castbar`／`profile.assistIcon`，資源條與施法條在左欄有自己的頁（自訂格子的設定在資源條頁、
 下一招圖示在戰鬥助手頁）；
 但**錨定語意跟條一模一樣**（`pos = { point, x, y }`、`anchor = false | { to, point, relPoint, x, y }`），
@@ -1800,7 +1800,7 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、自訂格子 `TOP`（預設錨在
 核心技能下緣、往下長）、施法條與下一招圖示 `CENTER`。寬 0 ＝ 錨定的圖示群組第一列寬，沒錨在圖示條上就是核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`；天空騎術一律核心技能）。
 
-預設的上下疊法（使用者 2026-09-30 指定；增益圖示 2026-10-01 加入）：增益圖示 → 施法條 → 資源條 → **核心技能 → 自訂格子 → 輔助技能**。
+預設的上下疊法（使用者 2026-09-30 指定；增益圖示 2026-10-01 加入；自訂列 2026-10-13 加入，沒有列時收合不佔位）：增益圖示 → 施法條 → 自訂列 → 資源條 → **核心技能 → 自訂格子 → 輔助技能**。
 五個的 `anchor.to` 全部是 `essential`（資源條、施法條、增益圖示在上方；自訂格子、輔助技能在下方），先後由排開決定。
 
 ### 錨定的排開（`Core/Layout.lua` 的 `StackTarget`）
@@ -1808,7 +1808,7 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 設定裡的錨定是「跟著誰、在它哪一邊」。照字面各自貼上去的話，兩個東西都選「核心技能上方」就疊在一起，
 所以**實際貼在誰身上是算出來的**：
 
-- 跟著同一個目標、同一邊的算一疊，照固定順序往外排：資源條 → 自訂格子 → 輔助技能 → 施法條 → 增益圖示 →
+- 跟著同一個目標、同一邊的算一疊，照固定順序往外排：資源條 → 自訂列 → 天空騎術（獨立擺放）→ 自訂格子 → 輔助技能 → 施法條 → 增益圖示 →
   增益長條 → 自訂群組（照左欄順序）→ 下一招圖示（預設不錨定；錨了就排最外圈）。後面那個貼在前面那個的外緣，邊與偏移照自己的設定。
 - 前面那個自己身上同一邊還掛著東西（有人指名跟著它）⇒ 貼在那一串的最外面。
 - 目標關掉了、而且它自己也掛在同一邊 ⇒ 當它不存在，接到它的上一層（資源條關掉，施法條貼回核心）。
@@ -2112,6 +2112,76 @@ customRows[specID] = {
   資源條那段不再印自訂格子。
 - 列另外池化（格子懶建；層數列多一顆持有框，容器依簽章池化在上面），`GetResourceBarFrame` 只找資源列。
 
+### 自訂列（`Modules/CustomBars.lua`、`Options/CustomBars.lua`，面板 `custombars`，2026-10-13）
+
+玩家自己加的**計時條**，一條一列：自身增益的剩餘時間、目標身上你上的減益、法術冷卻。自己的面板（容器 `MiliUICDM_Bar_custombars`），
+設定在資源條頁第三個分頁「自訂列」（zhTW「自訂列」、zhCN「自定义条」）。分工照自訂格子：
+
+| 東西 | 存在哪 | 說明 |
+|---|---|---|
+| 清單 | `profile.resources.customBars[specID]` | 每個專精一份（形狀見下） |
+| 樣式 | `profile.resources` | 寬（0 ＝ 核心技能第一列，`R.Width(style, "custombars")`）、材質、背景材質／透明度／自訂底色、填充透明度、邊框粗細／顏色、列距、字型、描邊**沿用資源條**，不另開一組 |
+| 位置 | `profile.custombars` | `{ enabled = true, pos = { point = "CENTER", x = 0, y = -150 }, anchor = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 }, fadeWithEssential = true, loadConditions = { hideMounted = false, onlyCombat = false }, strata = "MEDIUM" }` |
+
+```lua
+customBars[specID] = {
+    { kind = "buff" | "debuff" | "cooldown", spellID = n, enabled = true,
+      height,                         -- 沒存 ＝ 16（4～40）
+      classColor, color,              -- classColor 沒存 ＝ 職業色；false ＝ 用 color
+      icon = "left" | "right" | "none",
+      name = { show, point }, time = { show, point, decimals }, stacks = { show, point },   -- point ＝ LEFT／CENTER／RIGHT
+      low = { on, below, color },     -- 低時間文字變色
+      textSize,                       -- 0／沒存 ＝ 照列高
+      showWhen = "always" | "active", reverse,
+      gainSound, loseSound,           -- 光環類（LSM 音效名或自訂語音代號）
+      readySound,                     -- 冷卻類
+      collapsed },                    -- 設定頁卡片摺疊
+}
+```
+生效值一律走純函式 `CB.Style(entry)`（壞資料退預設、數字夾範圍；`Tests/CustomBars_test.lua`）。
+
+- **面板 key `custombars`**（存檔內容，別的條的 `anchor.to` 會指向它，不要改名）：`DB.PANEL_KEYS`、`DB.PANEL_ORDER`（排在自訂格子後面、施法條前面）、
+  `Options.HostPage("custombars") == "resources"`、`PageTitle` 回「自訂列」，`Tab_Resources` 的 `SetSub("custombars")`（點擊層、編輯模式的「設定」都轉到這個分頁）。
+- **排開**：預設錨在資源條上方；施法條（錨在核心技能上方、排名 4）的設定**一個都沒改**，靠排開自動排到自訂列外面。`Core/Bars.lua` 的
+  `STACK_RANK.custombars = 1.2`：錨在資源條上時用不到排名（資源條身上掛著東西 ⇒ 施法條貼那一串的最外面）；資源條關掉／收合時自訂列接到核心技能
+  上方、跟施法條同一疊，這時才看排名——1.2 排在資源條（1）的位置之後、**天空騎術（1.5）**與施法條之前：自訂列是戰鬥資訊、跟資源條是一組，
+  天空騎術獨立擺放時照舊在這一組外面，自訂列收合時大家的相對位置跟沒有這個面板時一模一樣。玩家把它改錨核心技能上方，結果跟預設一樣。
+  `Tests/Layout_test.lua` 的「自訂列」那一段驗：預設、收合、資源條關掉／收合、改錨核心、天空騎術獨立、關掉、改錨資源條下方。
+- **收合**：`collapsible = true`，沒有任何一列（清單空、全部沒學會、整組關掉）⇒ 收合、不佔位，施法條貼回資源條（同自訂格子的收合規則：框留 1 高、排開時跳過）。
+- **排版**：一條一列，從錨點往外長——`CB.Grow(anchor)`：錨在別人下方（TOP→BOTTOM）往下長，其他往上長（容器錨點 `BOTTOM`，列數增減時下緣不動）。
+  列之間是資源條的列距（-1 ＝ 共用一條邊）。**一律佔位**：「只在生效時顯示」的列沒生效時格子照留，面板高度只看有幾列（12.1 讀不到按鈕顯不顯示）。不做引擎補位。
+  一列的橫向：圖示是邊長＝列高的正方形（框色＝邊框色、圖示內縮邊框粗細），跟條身隔 1 實體像素（`CB.Geometry`）。名字最多佔條寬 62%（另一邊有秒數／層數時，`CB.NameWidth`），過長截斷。
+
+**三種列的機制與秘密值處理**（光環在不在、剩餘時間、層數、冷卻剩餘，Lua 一個值都不讀不比較）：
+
+| 種類 | 怎麼畫 |
+|---|---|
+| 自身增益（`buff`） | 一顆單格 AuraContainer（`Modules/AuraBar.lua` 的 `kind = "duration"`）：`SetUnit("player")`、`AddAuraSlot(…, "HELPFUL", { candidateFilters = { includeSpellIDs } })`。initializeFrame 裡把條身交給 `SetDurationBar(bar, { direction = RemainingTime, interpolation = Immediate })`（引擎用光環自己的持續時間往下縮）、秒數 FontString 交給 `SetDurationText(fs, { textFormatter, textColor })`、層數交給 `SetApplicationCount(fs, {})`（**不給格式器**：一般增益沒有層數，給 "%d" 會印 0；引擎預設 0／1 層不印）。滑鼠在 initializeFrame 裡關掉。 |
+| 目標減益（`debuff`） | 同上，`SetUnit("target")`、filter `"HARMFUL|PLAYER"`。容器只聽 UNIT_AURA，**換目標不會自己重掃** ⇒ `PLAYER_TARGET_CHANGED`（有這種列才註冊）下一幀對每一顆叫 `AuraBar.Refresh`（`UpdateAllAuras`，暴雪 inbound 介面上開放給外部事件用的那支；資源條的 Frozen 列同一招）。 |
+| 法術冷卻（`cooldown`） | 有充能（`GetSpellCharges` 的 `maxCharges > 1`，明文才算、讀不到用上次的）⇒ `C_Spell.GetSpellChargeDuration`；否則 `C_Spell.GetSpellCooldownDuration(id, true)`（ignoreGCD）。物件交給 `StatusBar:SetTimerDuration(obj, Immediate, RemainingTime)`＋一顆不畫扇形／邊緣／閃光的 Cooldown（`SetCooldownFromDurationObject(obj, true)`）印秒數。**只在 `SPELL_UPDATE_COOLDOWN`／`SPELL_UPDATE_CHARGES` 時重取物件**（有冷卻列才註冊）。沒學會的法術不建列。 |
+
+- **GCD**：物件本身不含 GCD（ignoreGCD），再加一道明文閘——`GetSpellCooldown` 的 `isOnGCD == true` 或 `isActive == false`（兩個旗標戰鬥中是明文）⇒ 當作沒在冷卻，
+  餵零長度物件清空條身（同自訂長條的 `ClearBar`，`CB.clearPath` 記走了哪條）。充能看 `GetSpellCharges` 的 `isActive`（NeverSecret）。旗標讀不到就照樣把物件交出去（`CB.CooldownState`／`CB.ChargeState`）。
+- **AuraContainer 的規矩**（跟資源條的 auraTimer 同一套，全在 `Modules/AuraBar.lua`）：戰鬥中不建（記帳、`PLAYER_REGEN_ENABLED` 補）；樣式只在 initializeFrame 裡烘 ⇒
+  影響外觀的設定（顏色、材質、透明度、反向、文字的字型／字級／位置／小數門檻／低秒變色、層數位置、顯示方式、名字與圖示）全進 `AuraBar.Signature`，換簽章換一顆容器、依簽章池化在列的持有框上；
+  容器有錨點（持有框 `SetAllPoints` 條身）、持有框 Shown 才會跑；不在暴雪框上寫欄位。容器讓列與面板變保護框 ⇒ 戰鬥中不重排（記旗標、脫戰補），冷卻列的值照常更新。
+- **AuraBar 為這個加的欄位**（舊呼叫端不帶 ⇒ 簽章一個字都不變，離線測過）：`text.point／pad`（秒數靠左／右）、`text.low`（低秒變色：`AB.LowCurve` 建 Step 色彩曲線，交給 `SetDurationText` 的 `textColor`，
+  x ＝ 剩餘秒數只在引擎裡）、`count.point／pad／plain`（層數位置、不給格式器）、`label`（「只在生效時顯示」的名字與圖示：純字串／純檔案編號，initializeFrame 裡 SetText／SetTexture，圖示貼在按鈕外側）。
+- **顯示方式**：「一直顯示」＝暗底、邊框（`AuraBar.RowDecor`）、圖示、名字畫在列上，生效時引擎在上面畫填色與秒數；「只在生效時顯示」＝光環類整組建在按鈕子樹裡（`spec.inside`＋`spec.label`），
+  按鈕只在有光環時顯示；冷卻類照明文旗標 `SetAlpha`，旗標讀不到時把 `duration:IsZero()`（秘密布林，取得可以、測試不行）餵 `SetAlphaFromBoolean`。
+- **低時間文字變色**：光環類＝色彩曲線（同光環格，這條路在用）；冷卻類＝`Text.CountdownFormatter` 的格式字串包 `|c` 色碼（同冷卻格的低秒變色，Cooldown 吃不吃色碼待實機驗證 533）。
+  只變文字，不變條身。
+- **音效**：光環類的出現／消失走 `C_UnitAuras.AddAuraSound`（`CB.SoundWants` → `Core/Sound.lua` 的 `WantAuraSounds`；目標減益的 unitToken 是 target，
+  `Logic.Sig` 多帶 unit——player 時簽章跟舊的一樣）；登記是 HasRestrictions，戰鬥中／秘密光環情境延到脫戰或出副本（既有機制）。冷卻類的「冷卻好了」＝秒數那顆 Cooldown 的 `OnCooldownDone`
+  → `S.Play`（總開關、聲道、讀取畫面靜音、節流 key `cbar:<spellID>`）；script 裡比對列現在的法術（身分閘），列換了內容後舊倒數到期不響。GCD 已經被清掉，不會觸發。
+- **設定頁**（`Options/CustomBars.lua`）：照自訂格子——最上面整組開關＋說明、目前專精的清單（卡片是 `Tab_Resources` 的同一支 `CustomCardHeader`，多一個 `src` 參數決定讀寫哪一份清單；
+  拖曳排序、摺疊、刪除先問）、每張卡底下的設定列（高、職業色／填充顏色、圖示、名字＋位置、時間＋位置＋小數門檻、層數＋位置（光環類）、文字大小、時間快到時變色＋秒數＋顏色、
+  顯示時機、反向填充、音效＋試聽）；說明一律下一列灰字；「＋ 新增計時條」→ `W.CreateChoicePopup` 三顆種類鈕（滑過有說明，`Tab.AttachKindTips`）→ 輸入 ID → `CustomBarsUI.Validate`；
+  底下「位置與錨定」（`Specs.Anchor("custombars", { other = true })`）、跟核心技能一起淡出、自己的載入條件。資源條頁的「恢復預設」連 `profile.custombars` 一起清。
+- **顯示條件**：`custombars.enabled = false` → alpha 0；`loadConditions`、`fadeWithEssential` 同自訂格子（各管各的，`Core/Visibility.lua`）。
+- `/mcdm debug`：自訂列自己一段（開關、清單幾筆、顯示幾列、高、錨定與長的方向、收合、alpha、事件），每一筆一行（光環類：容器狀態／交條＋`AuraBar.DebugLines`；冷卻類：狀態、充能、武裝、清空走哪條；沒建列寫原因）。
+- **不在第一版**：施放後固定秒數計時、物品／飾品冷卻、引擎補位、複製到其他專精。
+
 ### 施法條（`Modules/Castbar.lua`）
 
 從單位框架的施法條改來，單位固定 `player`（載具期間開唱事件 player／vehicle 兩個 token 都認）。12.1 鐵律照舊：
@@ -2165,7 +2235,7 @@ customRows[specID] = {
 
 ### 設定頁
 
-- **資源條**（2026-10-03 P6 起的版面）：上面兩顆分頁鈕「職業資源／自訂格子」。
+- **資源條**（2026-10-03 P6 起的版面）：上面三顆分頁鈕「職業資源／自訂格子／自訂列」（自訂列 2026-10-13 加，內容見「自訂列」一節）。
   - **職業資源**：顯示 → **這個專精要顯示哪些**（新資源自動列出；每列勾選框＋上移／下移＋「設定…」；勾選存在目前專精底下
     `rows[specID][key]`）→ 版面（寬、列距（-1～12；-1 ＝ 相鄰兩列共用 1px 邊）、文字偏移、格距、填充方向）→ **外觀（所有資源的預設）**（材質、背景材質、填充透明度、平滑、
     數值文字、字型、字級；說明列「每種資源可以在自己的設定裡改用不一樣的外觀」）→ 載入條件 → 錨定（資源條自己的）→
@@ -3812,6 +3882,22 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 525. 角色層的法術沒學（換到沒那招的專精）自動不列；「未學會時不顯示」列出現、關掉之後改畫問號格。
 526. 設定檔複製（設定檔頁「複製」）：新的一份切過去，角色層的格子照樣在；匯出字串再匯入成新的一份也在。舊版字串（沒有 `customChar`）匯入照舊。
 527. 九語系的範圍下拉與確認窗：deDE／ruRU 的長句換行正確、不壓到按鈕。
+
+**自訂列（計時條，`Modules/CustomBars.lua`，2026-10-13）**
+
+528. 新增流程：資源條頁第三個分頁「自訂列」→「＋ 新增計時條」→ 三顆種類鈕滑過有說明 → 輸入法術 ID（Shift＋點法術書／天賦帶入）→ 重複、查無法術寫在彈窗灰字；加完卡片出現在清單，拖標題列排序、點標題列摺疊、刪除先問。
+529. 排開：預設錨在資源條上方，有列時施法條自動排到自訂列外面（`/mcdm debug` 的「跟隨」寫「essential（貼 custombars）」）；沒有任何一列時面板收合、施法條貼回資源條；資源條關掉時自訂列貼核心技能、施法條貼自訂列；天空騎術獨立擺放時排在自訂列外面。施法條的設定沒有動過。
+530. 自身增益：條隨剩餘時間往下縮、秒數低於門檻出一位小數、增益不在時「一直顯示」畫空條（暗底＋邊框＋圖示＋名字）、「只在生效時顯示」整列（含圖示與名字）跟著增益出現消失、佔位不跳。首領戰／M+ 裡照常。
+531. 目標身上你的減益：換目標時條跟著換（`PLAYER_TARGET_CHANGED` → `UpdateAllAuras`）；別人上的同一個減益不算（`HARMFUL|PLAYER`）；**敵對目標上 `includeSpellIDs` 有沒有真的被套用**（身分閘的原始碼只講友方增益，套不上的話會變成「你在目標上的任何一個減益」都佔這一格——拿一個你會上兩種減益的目標驗）；沒有目標時空條。
+532. 層數：增益疊兩層以上印層數、1 層與不會疊的增益不印字（層數不給格式器時引擎 0／1 層不印——**這是推論，沒實測過**；如果 1 層也印出「1」或印 0，就改成給 "%d" 格式器但只開給會疊層的列）。位置左／中／右。
+533. 低時間文字變色：光環類走 `SetDurationText` 的 `textColor` 色彩曲線（光環格同一條路，已在用）；**冷卻類走 Cooldown 的 `SetCountdownFormatter` 格式字串包 `|c` 色碼**——同 `Core/Text.lua` 那條待驗證，冷卻倒數吃不吃色碼沒實測過，不吃的話冷卻列的變色要拿掉、設定頁那三列對冷卻列藏起來。
+534. 法術冷卻：條隨冷卻往下縮、按其他技能（GCD）時條不閃一下（`ignoreGCD` 的物件＋`isOnGCD` 明文閘）；有充能的法術顯示下一次充能、充能全滿時空條；冷卻被重置（觸發）時條清空——**零長度物件能不能清空條身**沿用自訂長條那條待驗證（`/mcdm debug` 的「清空走 zero／value」）。
+535. 冷卻好了音效：冷卻轉好那一刻響一次（秒數那顆 Cooldown 的 `OnCooldownDone`）；只按到 GCD 不響；充能法術每回一層響一次；冷卻被重置（清空）時不會誤響也不會響（預期不響，玩家要的話再說）。
+536. 光環類的出現／消失音效：`AddAuraSound` 登記 unitToken＝player（增益）／**target（目標減益——引擎收不收 target 沒實測過）**；戰鬥中、副本裡改的設定脫戰／出副本才登記（設定頁灰字講明）。
+537. 戰鬥中新增光環列：先畫空條、脫戰後容器建好；戰鬥中改設定零 ADDON_ACTION_BLOCKED（面板有光環列時是保護框，重排延到脫戰，`/mcdm debug` 的「戰鬥中，重排延到脫戰」）。冷卻列的值戰鬥中照常更新。
+538. 外觀：寬 0 跟核心技能第一列同寬；材質、背景（材質／透明度／自訂底色）、填充透明度、邊框粗細與顏色、列距都跟資源條頁的設定；圖示左／右／無（圖示框色＝邊框色）；名字過長截成「…」不壓到秒數；反向填充往右縮；字型與描邊跟資源條。
+539. 錨到下方（改錨核心技能下方等 TOP→BOTTOM 的組合）：第一列貼錨點、往下長；錨回上方往上長（錨定改了即時換方向）。編輯模式拖曳、覆蓋層條名「自訂列」、點擊層點了開資源條頁的「自訂列」分頁。
+540. 設定頁九語系：卡片設定列的標籤（「時間快到時變色」「變色秒數」…）歐語換行不壓到控件；選種類彈窗三顆按鈕的長譯文（deDE／ruRU）放得下。
 
 **效能基準**
 

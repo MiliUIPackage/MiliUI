@@ -36,6 +36,7 @@
 --           fadeWithEssential 開著時取核心技能條現在的 alpha（它的顯示條件與淡出一起帶過來）
 --   自訂格子  enabled ＝ false → 0；載入條件與 fadeWithEssential 同資源條，但讀的是 profile.pips
 --             自己的那一份（資源條的不帶過來）
+--   自訂列  同自訂格子，讀 profile.custombars
 --   施法條  enabled ＝ false → 0；hideWhenNotCasting 且沒在施法（ns.Castbar.IsActive）→ 0
 --   下一招圖示  enabled ＝ false → 0；onlyCombat 且不在戰鬥 → 0；戰鬥輔助沒有建議（ns.Assist.Current）→ 0
 --   天空騎術  enabled ＝ false → 0；Snapshot.skyridingPanel（ns.Skyriding.Shown ＝ 上次 Active 的結果：在天空騎術、不在德比賽跑、
@@ -229,8 +230,8 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting, suggestion)
             return a
         end
         return 1
-    elseif key == "pips" then
-        -- 載入條件是自訂格子自己的那一份（profile.pips.loadConditions），資源條的不帶過來
+    elseif key == "pips" or key == "custombars" then
+        -- 載入條件是自訂格子／自訂列自己的那一份（profile.pips／custombars.loadConditions），資源條的不帶過來
         local lc = type(cfg.loadConditions) == "table" and cfg.loadConditions or {}
         if lc.hideMounted and s.mounted then return 0 end
         if lc.onlyCombat and not s.combat then return 0 end
@@ -266,7 +267,7 @@ function Vis.PanelAlpha(key, s, essAlpha)
     s = s or Snapshot()
     if key ~= "skyriding" and s.skyridingHideCdm then return 0 end
     local ess = 1
-    if (key == "resources" or key == "pips") and cfg.fadeWithEssential ~= false then
+    if (key == "resources" or key == "pips" or key == "custombars") and cfg.fadeWithEssential ~= false then
         ess = essAlpha or current.essential
         if ess == nil then ess = Vis.Alpha("essential", s) end
     end

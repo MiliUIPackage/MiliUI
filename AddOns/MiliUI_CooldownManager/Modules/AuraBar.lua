@@ -23,6 +23,11 @@
 -- 秒數可以換成「剩幾個 GCD」（text.gcd）：數字格式器每 GCD 一段（Core/Text.lua 的 GcdFormatter），
 -- GCD 長度進簽章。
 --
+-- 自訂列（Modules/CustomBars.lua）也走 duration：秒數可以靠左／靠右（text.point／pad）、低秒變色交給
+-- SetDurationText 的 textColor 色彩曲線（text.low；曲線在容器建立前先建好）、層數靠左／右（count.point）、
+-- 層數不給格式器（count.plain：一般增益沒有層數，給 "%d" 會印 0）；「只在生效時顯示」的列連名字與圖示都建在
+-- 按鈕子樹裡（spec.label：純字串／純檔案編號，initializeFrame 裡 SetText／SetTexture 不讀任何值）。
+--
 -- applications 也可以帶層數文字（spec.count）：FontString 交給 SetApplicationCount(fs, {})，
 -- **不給格式器**（引擎拿格式器處理秘密層數會整顆容器壞掉），要接單位（例如「%」）另建一顆固定字的
 -- FontString 貼在旁邊（無視苦痛的百分比條）。兩顆都錨在按鈕中線上，不互相錨定（層數那顆的字是秘密值）。
@@ -269,12 +274,17 @@ end
 --          color = { r, g, b }, alpha, reversed,
 --          inside = geom | nil（「有光環才顯示」：裝飾建在按鈕子樹裡），
 --          cell = geom（instances 必填：一格的大小與格距，進簽章），
---          text = { font = 路徑, size = 實體像素字級, outline = 描邊旗標, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字 }
+--          text = { font = 路徑, size = 實體像素字級, outline = 描邊旗標, decimals = 小數門檻, gcd = GCD 秒數 | nil, last = 最後一個 GCD 的字,
+--                   point = "LEFT"|"CENTER"|"RIGHT"（沒給 ＝ 置中）, pad = 靠邊時離邊的距離（實體像素）,
+--                   low = { below, r, g, b, a } | nil（剩餘秒數低於 below 換色：SetDurationText 的 textColor 曲線） }
 --                 | nil（duration 專用：秒數文字，進簽章），
+--          label = { name, font, size, outline, point, pad, w, off, icon, side, isize, gap, border, edge } | nil
+--                 （duration 專用、跟 inside 一起用：名字與圖示建在按鈕子樹裡，進簽章），
 --          strip = { h, r, g, b, a } | nil（applications 專用：條底部一條細的「光環剩餘時間」，SetDurationBar，進簽章）,
 --          count = { font, size, outline, suffix, mode, decimals } | nil（applications 專用：文字，進簽章）
 --                 mode ＝ "stacks"（預設，層數）｜"time"（剩餘秒數）｜"stacksTime"（層數 (秒數)）｜"timeStacks"（秒數 (層數)）；
---                 decimals ＝ 秒數低於這個值印一位小數 }
+--                 decimals ＝ 秒數低於這個值印一位小數；point／pad ＝ 層數靠哪一邊（只有 stacks、沒有單位時）；
+--                 plain ＝ 層數不給格式器（引擎 0／1 層不印字） }
 ------------------------------------------------------------
 -- 文字的位移（text／count 的 off ＝ { x, y }，已換成 FontString 自己的單位；沒給 ＝ 置中不動）
 local function Off(t)
@@ -307,12 +317,20 @@ function AB.Signature(spec)
     if type(tx) == "table" then
         parts[#parts + 1] = table.concat({ "txt", tostring(tx.font), Fmt(tx.size), tostring(tx.outline), tostring(tx.decimals),
             OffSig(tx) }, ":")
+        if tx.point or tx.pad then parts[#parts + 1] = "tp:" .. tostring(tx.point) .. ":" .. Fmt(tx.pad) end
+        local lo = tx.low
+        if type(lo) == "table" then
+            parts[#parts + 1] = table.concat({ "low", Fmt(lo.below), Fmt(lo.r), Fmt(lo.g), Fmt(lo.b), Fmt(lo.a or 1) }, ":")
+        end
         if tx.gcd then parts[#parts + 1] = table.concat({ "gcd", Fmt(tx.gcd), tostring(tx.last) }, ":") end
     end
     local cn = spec.kind ~= "instances" and spec.count
     if type(cn) == "table" then
         parts[#parts + 1] = table.concat({ "cnt", tostring(cn.font), Fmt(cn.size), tostring(cn.outline), tostring(cn.suffix),
             tostring(cn.mode or "stacks"), tostring(cn.decimals), OffSig(cn) }, ":")
+        if cn.point or cn.plain then
+            parts[#parts + 1] = "cp:" .. tostring(cn.point) .. ":" .. Fmt(cn.pad) .. ":" .. tostring(cn.plain and true or false)
+        end
     end
     local sp = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.strip
     if type(sp) == "table" then
@@ -321,6 +339,13 @@ function AB.Signature(spec)
     local mk = spec.kind ~= "instances" and spec.kind ~= "duration" and spec.mask
     if type(mk) == "table" then
         parts[#parts + 1] = table.concat({ "mask", Fmt(mk.period), Fmt(mk.gap), Fmt(mk.pixel) }, ":")
+    end
+    local lb = spec.kind == "duration" and spec.label
+    if type(lb) == "table" then
+        local e = lb.edge or {}
+        parts[#parts + 1] = table.concat({ "lbl", tostring(lb.name), tostring(lb.font), Fmt(lb.size), tostring(lb.outline),
+            tostring(lb.point), Fmt(lb.pad), Fmt(lb.w), OffSig(lb), tostring(lb.icon), tostring(lb.side), Fmt(lb.isize),
+            Fmt(lb.gap), Fmt(lb.border), Fmt(e[1]), Fmt(e[2]), Fmt(e[3]), Fmt(e[4] or 1) }, ":")
     end
     local g = spec.inside
     if g then
@@ -331,6 +356,40 @@ function AB.Signature(spec)
             tostring(g.bgTex), Fmt(edge[1]), Fmt(edge[2]), Fmt(edge[3]), Fmt(edge[4] or 1) }, ":")
     end
     return table.concat(parts, "|")
+end
+
+-- 靠邊的文字離邊多遠（LEFT 往右、RIGHT 往左、置中不動）
+function AB.PadX(point, pad)
+    pad = tonumber(pad) or 0
+    if point == "LEFT" then return pad elseif point == "RIGHT" then return -pad end
+    return 0
+end
+
+-- 剩餘秒數低於 below 的文字顏色：Step 色彩曲線（x ＝ 剩餘秒數；之前低色、之後白）。依參數快取，
+-- 同一組共用一顆；建不起來（API 不在）回 nil ＝ 不變色。x 只在引擎裡，Lua 不 Evaluate
+local lowCurves = {}
+function AB.LowCurve(below, r, g, b, a)
+    below = tonumber(below) or 0
+    if below <= 0 then return nil end
+    local key = table.concat({ Fmt(below), Fmt(r), Fmt(g), Fmt(b), Fmt(a or 1) }, "|")
+    local hit = lowCurves[key]
+    if hit ~= nil then return hit or nil end
+    lowCurves[key] = false
+    local CU = C_CurveUtil
+    if not (CU and CU.CreateColorCurve and CreateColor) then return nil end
+    local ok, curve = pcall(CU.CreateColorCurve)
+    if not ok or not curve then return nil end
+    local added = pcall(function()
+        local low = CreateColor(tonumber(r) or 1, tonumber(g) or 0.3, tonumber(b) or 0.3, tonumber(a) or 1)
+        local white = CreateColor(1, 1, 1, 1)
+        curve:AddPoint(0, low)
+        curve:AddPoint(below, low)
+        curve:AddPoint(below + 0.01, white)
+        curve:AddPoint(below + 86400, white)
+    end)
+    if not added then return nil end
+    lowCurves[key] = curve
+    return curve
 end
 
 ------------------------------------------------------------
@@ -377,10 +436,57 @@ local function InitTimerText(btn, bar, st)
     fs:SetFont(tx.font, tx.size, tx.outline or "OUTLINE")
     pcall(fs.SetIgnoreParentScale, fs, true)
     fs:SetTextColor(1, 1, 1, 1)
-    fs:SetJustifyH("CENTER")
-    fs:SetPoint("CENTER", btn, "CENTER", Off(tx))
+    local pt = tx.point or "CENTER"
+    local ox, oy = Off(tx)
+    fs:SetJustifyH(pt)
+    fs:SetPoint(pt, btn, pt, ox + AB.PadX(pt, tx.pad), oy)
+    -- 低秒變色：色彩曲線交給引擎（x ＝ 剩餘秒數，Lua 不讀）；不收就退回只有格式器
+    if st.curve and st.remainingProp then
+        local opts = { textColor = { curve = st.curve, property = st.remainingProp } }
+        if st.formatter then opts.textFormatter = st.formatter end
+        if pcall(btn.SetDurationText, btn, fs, opts) then return end
+    end
     if not (st.formatter and pcall(btn.SetDurationText, btn, fs, { textFormatter = st.formatter })) then
         btn:SetDurationText(fs)
+    end
+end
+
+-- 名字與圖示（duration 的 label，只在「只在生效時顯示」的列）：內容是建立當下的純字串／純檔案編號，
+-- 之後不改。圖示貼在按鈕外側（條身就是按鈕，圖示在它左邊或右邊），框色＝邊框色、圖示內縮邊框粗細
+local function InitLabel(btn, bar, st)
+    local lb = st.label
+    if lb.name then
+        local tf = CreateFrame("Frame", nil, btn)
+        tf:SetAllPoints(btn)
+        tf:SetFrameLevel((bar:GetFrameLevel() or 1) + 10)
+        local fs = tf:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(lb.font, lb.size, lb.outline or "OUTLINE")
+        pcall(fs.SetIgnoreParentScale, fs, true)
+        fs:SetTextColor(1, 1, 1, 1)
+        local pt = lb.point or "LEFT"
+        local ox, oy = Off(lb)
+        fs:SetJustifyH(pt)
+        fs:SetWordWrap(false)
+        if (tonumber(lb.w) or 0) > 0 then fs:SetWidth(lb.w) end
+        fs:SetPoint(pt, btn, pt, ox + AB.PadX(pt, lb.pad), oy)
+        fs:SetText(lb.name)
+    end
+    if lb.icon and (lb.side == "left" or lb.side == "right") then
+        local size, gap, b = tonumber(lb.isize) or 1, tonumber(lb.gap) or 0, tonumber(lb.border) or 0
+        local e = lb.edge or {}
+        local frame = btn:CreateTexture(nil, "BACKGROUND")
+        frame:SetColorTexture(e[1] or 0, e[2] or 0, e[3] or 0, e[4] or 1)
+        frame:SetSize(size, size)
+        if lb.side == "left" then
+            frame:SetPoint("TOPRIGHT", btn, "TOPLEFT", -gap, 0)
+        else
+            frame:SetPoint("TOPLEFT", btn, "TOPRIGHT", gap, 0)
+        end
+        local ic = btn:CreateTexture(nil, "ARTWORK")
+        ic:SetTexture(lb.icon)
+        ic:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        ic:SetPoint("TOPLEFT", frame, "TOPLEFT", b, -b)
+        ic:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -b, b)
     end
 end
 
@@ -445,7 +551,16 @@ local function InitCountText(btn, bar, cn, st)
         end
         return
     end
-    local off = (cn.suffix and cn.suffix ~= "") and (tonumber(cn.size) or 10) * 0.3 or 0
+    local hasSuffix = cn.suffix and cn.suffix ~= ""
+    if cn.point and not hasSuffix then
+        -- 靠邊的層數（自訂列）：自己一個點，不跟單位那顆並排
+        local fs = TextFS(tf, cn)
+        fs:SetJustifyH(cn.point)
+        fs:SetPoint(cn.point, btn, cn.point, ox + AB.PadX(cn.point, cn.pad), oy)
+        btn:SetApplicationCount(fs, st.countFormatter and { formatter = st.countFormatter } or {})
+        return
+    end
+    local off = hasSuffix and (tonumber(cn.size) or 10) * 0.3 or 0
     local fs = TextFS(tf, cn)
     if off > 0 then
         fs:SetJustifyH("RIGHT")
@@ -512,6 +627,10 @@ local function InitButton(btn, c, st, h, sig)
         -- 時間條上也可以印層數（鐵鬃：條身是剩餘時間、中間是層數），只收 stacks 型
         if st.count and btn.SetApplicationCount then
             local ok, err = pcall(InitCountText, btn, bar, st.count, st)
+            if not ok then AB.lastError = tostring(err) end
+        end
+        if st.label then
+            local ok, err = pcall(InitLabel, btn, bar, st)
             if not ok then AB.lastError = tostring(err) end
         end
     else
@@ -651,6 +770,7 @@ function AB.Apply(h, spec)
             mask = (spec.kind ~= "instances" and spec.kind ~= "duration" and type(spec.mask) == "table")
                 and AB.MaskPlan(spec.mask.period, (tonumber(spec.mask.gap) or 0) + (tonumber(spec.mask.pixel) or 0), spec.mask.pixel) or nil,
             text = (spec.kind == "duration" and type(spec.text) == "table") and spec.text or nil,
+            label = (spec.kind == "duration" and type(spec.label) == "table") and spec.label or nil,
             count = (spec.kind ~= "instances" and type(spec.count) == "table"
                 and (spec.kind ~= "duration" or (spec.count.mode or "stacks") == "stacks")) and spec.count or nil,
             interp = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil,
@@ -666,6 +786,13 @@ function AB.Apply(h, spec)
                 st.formatter = ns.Text.PlainFormatter(st.text.decimals)
             end
         end
+        -- 低秒變色的色彩曲線（同上：initializeFrame 裡不建物件）
+        if st.text and type(st.text.low) == "table" then
+            local lo = st.text.low
+            st.curve = AB.LowCurve(lo.below, lo.r, lo.g, lo.b, lo.a)
+            local P = Enum and Enum.DurationTextBindingProperty
+            st.remainingProp = P and P.RemainingDuration or nil
+        end
         -- 層數列的文字要秒數時：秒數格式器、「秒數 (層數)」的層數括號格式器，同樣先建好
         -- 層數格式器：1 層也印（不給格式器時引擎 1 層不印）；有單位的（無視苦痛「%」）不給
         local cn = st.count
@@ -674,7 +801,7 @@ function AB.Apply(h, spec)
             if mode ~= "stacks" and ns.Text.PlainFormatter then
                 st.formatter = ns.Text.PlainFormatter(cn.decimals)
             end
-            if ns.Text.CountFormatter and not (cn.suffix and cn.suffix ~= "") and mode ~= "time" then
+            if ns.Text.CountFormatter and not cn.plain and not (cn.suffix and cn.suffix ~= "") and mode ~= "time" then
                 st.countFormatter = ns.Text.CountFormatter(mode == "timeStacks" and "(%d)" or "%d")
             end
         end

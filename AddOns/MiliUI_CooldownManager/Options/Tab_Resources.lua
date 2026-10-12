@@ -14,6 +14,9 @@
 -- 多一小節「位置與錨定」（Specs.Anchor("pips", { other = true })，讀寫 profile.pips）、
 -- 「跟核心技能一起淡出」與自訂格子自己的載入條件（profile.pips.loadConditions）。
 --
+-- 「自訂列」分頁（計時條：自身增益／目標減益／法術冷卻）的表單在 Options/CustomBars.lua，卡片、拖曳排序、
+-- 選種類彈窗的提示借這裡的（Tab.CardHeader 等，src 參數決定讀寫哪一份清單）。
+--
 -- 「這個專精要顯示哪些」一列一個資源：勾選框（resources.rows[specID][key]，分專精）＋上移／下移
 -- （resources.order，不分專精；移一下就把目前候選的完整順序寫回去，見 Modules/Resources.lua 的 R.MergeOrder）。
 -- 每列右邊一顆「設定…」開那種資源的設定視窗（一次一個，開另一列就換內容）。
@@ -52,13 +55,13 @@ local FILL_ITEMS = {
     { text = L["Right to left"], value = "rtl" },
 }
 
--- 重設整張 profile.resources 與 profile.pips（自訂格子的位置／錨定也在這一頁）。
--- 原地清空再灌：引擎抓著的是這兩張表的參照
+-- 重設整張 profile.resources、profile.pips 與 profile.custombars（自訂格子、自訂列的位置／錨定也在這一頁）。
+-- 原地清空再灌：引擎抓著的是這幾張表的參照
 local function ResetAll()
     local p = ns.profile
     if not p then return end
     local d = ns.DB.BuildDefaults().profile
-    for _, key in ipairs({ KEY, PIPS }) do
+    for _, key in ipairs({ KEY, PIPS, "custombars" }) do
         local cfg = ns.DB.ConfigTable(key)
         if cfg then
             for k in pairs(cfg) do cfg[k] = nil end
@@ -266,10 +269,11 @@ local KIND_TIPS = {
     { title = L["Aura stacks"], body = L["A buff on you that stacks, one segment per stack; all empty while you don't have it, with no recharge timer. The game fills it in itself, so it stays right in boss fights and Mythic+. For example, the Death Knight's Bone Shield. Enter the aura's spell ID and the max stacks."] },
 }
 
--- CreateChoicePopup 不回傳按鈕（共用層不改）：建完照按鈕字從彈窗的子框認回來，掛 OnEnter／OnLeave
-local function AttachKindTips(popup)
+-- CreateChoicePopup 不回傳按鈕（共用層不改）：建完照按鈕字從彈窗的子框認回來，掛 OnEnter／OnLeave。
+-- tips 可省（＝自訂格子那兩顆）；自訂列的選種類彈窗（Options/CustomBars.lua）借同一支
+local function AttachKindTips(popup, tips)
     local byText = {}
-    for _, tip in ipairs(KIND_TIPS) do byText[tip.title] = tip end
+    for _, tip in ipairs(tips or KIND_TIPS) do byText[tip.title] = tip end
     local n = 0
     for _, child in ipairs({ popup:GetChildren() }) do
         local tip = type(child) == "table" and type(child.GetText) == "function" and byText[child:GetText()]
@@ -415,7 +419,7 @@ local function StopDrag(commit)
     d.header:SetAlpha(1)
     local to = d.target
     if not (commit and to) or to == d.from or to == d.from + 1 then return end
-    local list = CustomList()
+    local list = d.src.list()
     if not (list and list[d.from]) then return end
     local e = table.remove(list, d.from)
     if to > d.from then to = to - 1 end
@@ -423,8 +427,8 @@ local function StopDrag(commit)
     Changed(d.ctx)
 end
 
-local function StartDrag(header, i, content, ctx)
-    local e = CustomEntry(i)
+local function StartDrag(header, i, content, ctx, src)
+    local e = src.entry(i)
     if not e then return end
     local cards = Cards(content)
     if not cards.line then
@@ -433,7 +437,7 @@ local function StartDrag(header, i, content, ctx)
         line:Hide()
         cards.line = line
     end
-    drag = { from = i, content = content, ctx = ctx, header = header }
+    drag = { from = i, content = content, ctx = ctx, header = header, src = src }
     header:SetAlpha(0.45)
     local g = EnsureGhost()
     g.icon:SetTexture(SpellIcon(e.spellID))
@@ -445,8 +449,10 @@ local function StartDrag(header, i, content, ctx)
     DragUpdate()
 end
 
--- 標題列：滿版（從表單左緣畫到右緣，蓋過標籤欄）
-local function CustomCardHeader(i)
+-- 標題列：滿版（從表單左緣畫到右緣，蓋過標籤欄）。
+-- src：這張卡讀寫哪一份清單（自訂格子、自訂列各一份；Options/CustomBars.lua 借同一支）
+--   { list() → 清單, entry(i) → 第 i 筆, remove(i) → 刪了沒, meta(e) → 灰字, color(e) → r, g, b, confirm ＝ 刪除確認字 }
+local function CustomCardHeader(i, src)
     return function(parent, x, y, width, ctx)
         local left = x - LABEL_W - CTRL_GAP
         local fullW = width + LABEL_W + CTRL_GAP
@@ -511,8 +517,8 @@ local function CustomCardHeader(i)
         local confirm
         del:SetScript("OnClick", function()
             if not confirm then
-                confirm = W.CreateConfirmPopup(Options.panel, 320, L["Remove this custom row?"], function()
-                    if ns.Pips.RemoveCustomRow(Cfg(), ns.specID, i) then Changed(ctx) end
+                confirm = W.CreateConfirmPopup(Options.panel, 320, src.confirm, function()
+                    if src.remove(i) then Changed(ctx) end
                 end)
             end
             confirm:Show()
@@ -533,7 +539,7 @@ local function CustomCardHeader(i)
         end)
         h:SetScript("OnClick", function(self)
             if self.dragging or self.justDragged then return end
-            local e = CustomEntry(i)
+            local e = src.entry(i)
             if not e then return end
             e.collapsed = (not e.collapsed) or nil
             Changed(ctx)
@@ -541,7 +547,7 @@ local function CustomCardHeader(i)
         h:SetScript("OnDragStart", function(self)
             self.dragging = true
             GameTooltip:Hide()
-            StartDrag(self, i, parent, ctx)
+            StartDrag(self, i, parent, ctx, src)
         end)
         h:SetScript("OnDragStop", function(self)
             self.dragging = false
@@ -554,13 +560,12 @@ local function CustomCardHeader(i)
         end)
 
         local function Refresh()
-            local e = CustomEntry(i)
+            local e = src.entry(i)
             if not e then return end
             icon:SetTexture(SpellIcon(e.spellID))
             name:SetText(SpellLabel(e.spellID))
-            meta:SetText(((e.kind == "charges") and L["Charges"] or L["Stacks"]) .. "  ·  "
-                .. L["Spell ID"] .. " " .. tostring(e.spellID))
-            local r, g, b = ns.Pips.CustomColor(e)
+            meta:SetText(src.meta(e))
+            local r, g, b = src.color(e)
             strip:SetColorTexture(r, g, b, 1)
             arrow:SetRotation(e.collapsed and 0 or math.rad(-90))
         end
@@ -568,6 +573,18 @@ local function CustomCardHeader(i)
         return CARD_H, Refresh
     end
 end
+
+-- 自訂格子那一份
+local PIPS_SRC = {
+    list    = function() return CustomList() end,
+    entry   = CustomEntry,
+    remove  = function(i) return ns.Pips.RemoveCustomRow(Cfg(), ns.specID, i) end,
+    meta    = function(e)
+        return ((e.kind == "charges") and L["Charges"] or L["Stacks"]) .. "  ·  " .. L["Spell ID"] .. " " .. tostring(e.spellID)
+    end,
+    color   = function(e) return ns.Pips.CustomColor(e) end,
+    confirm = L["Remove this custom row?"],
+}
 
 -- 最後一張卡的下緣（插入線放到最後面時畫在這裡）
 local function CardsEnd(parent, x, y)
@@ -783,7 +800,7 @@ local function AppendCustomRows(list)
         if type(e) == "table" and ns.Pips.CUSTOM_KINDS[e.kind] and type(e.spellID) == "number" then
             add({ type = "space", h = shown > 0 and CARD_GAP or 4 })
             shown = shown + 1
-            add({ type = "custom", h = CARD_H, noReset = true, build = CustomCardHeader(i) })
+            add({ type = "custom", h = CARD_H, noReset = true, build = CustomCardHeader(i, PIPS_SRC) })
             if not e.collapsed then
                 add({ type = "space", h = 4 })
                 add({ type = "custom", label = "", h = CUSTOM_ROW_H, noReset = true, build = CustomOptionsRow(i, e.kind) })
@@ -811,6 +828,22 @@ local function AppendCustomRows(list)
     end })
     AppendPipsPlacement(list)
 end
+
+-- 出借給「自訂列」分頁（Options/CustomBars.lua）：卡片、拖曳排序、選種類彈窗的提示、表單小工具，
+-- 長相與手感跟自訂格子一模一樣，不另抄一份
+Tab.CardHeader   = CustomCardHeader
+Tab.CardsEnd     = CardsEnd
+Tab.CARD_H       = CARD_H
+Tab.CARD_GAP     = CARD_GAP
+Tab.ROW_H        = CUSTOM_ROW_H
+Tab.Changed      = Changed
+Tab.Touched      = Touched
+Tab.BS           = BS
+Tab.Note         = Note
+Tab.SpellLabel   = SpellLabel
+Tab.SpellIcon    = SpellIcon
+Tab.OutlineItems = OutlineItems
+Tab.AttachKindTips = AttachKindTips
 
 -- 表單簽章的一段：整份清單（種類＋法術＋摺疊）。標籤是建表單當下的法術名，所以清單內容一變就換一份
 local function CustomSignature()
@@ -920,6 +953,11 @@ local function Controls(cand, sub)
         AppendCustomRows(only)
         return only
     end
+    if sub == "custombars" then
+        local only = {}
+        ns.CustomBarsUI.Append(only)
+        return only
+    end
     local list = {
         BS("toggle", "enabled", L["Show resource bars"], { level = "structure" }),
         Note(L["Which resources appear follows your specialization and switches automatically. Specs that cast with mana get a mana row at the bottom."]),
@@ -991,7 +1029,8 @@ end
 ------------------------------------------------------------
 -- 頁面
 ------------------------------------------------------------
-local currentSub = "class"        -- "class"（職業資源）| "pips"（自訂格子）
+local currentSub = "class"        -- "class"（職業資源）| "pips"（自訂格子）| "custombars"（自訂列）
+local SUBS = { class = true, pips = true, custombars = true }
 
 local function Signature()
     local cand, specID = ns.Resources.Candidates()
@@ -1001,8 +1040,10 @@ local function Signature()
         currentSub,
         tostring(specID), table.concat(cand, ","),
         CustomSignature(),
+        ns.CustomBarsUI and ns.CustomBarsUI.Signature() or "",
         type(cfg.anchor) == "table" and "a" or "-",
         type(ns.DB.GetPath(ns.DB.ConfigTable(PIPS), "anchor")) == "table" and "pa" or "-",
+        type(ns.DB.GetPath(ns.DB.ConfigTable("custombars"), "anchor")) == "table" and "ca" or "-",
         table.concat(p and p.barOrder or {}, ","),
         ns.Specs.AnchorGraphSig(),
     }, "|")
@@ -1025,7 +1066,8 @@ function Tab.Build(parent, title)
     -- 兩個分頁：職業資源／自訂格子。分頁鈕放在頁標題右邊、同一列
     local subButtons = {}
     local prevBtn
-    for i, def in ipairs({ { id = "class", label = L["Class Resources"] }, { id = "pips", label = L["Custom segments"] } }) do
+    for i, def in ipairs({ { id = "class", label = L["Class Resources"] }, { id = "pips", label = L["Custom segments"] },
+                           { id = "custombars", label = L["Custom bars"] } }) do
         local b = W.CreateButton(page, def.label, "accent-hover", 80, 20)
         W.FitButton(b, 80, 20)
         b.id = def.id
@@ -1044,7 +1086,7 @@ function Tab.Build(parent, title)
     local function PlaceHolder()
         holder:ClearAllPoints()
         holder:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -8, 10)
-        if currentSub == "pips" then
+        if currentSub ~= "class" then
             note:Hide()
             holder:SetPoint("TOPLEFT", page, "TOPLEFT", pad, y)
         else
@@ -1062,6 +1104,8 @@ function Tab.Build(parent, title)
         ns.Resources.Apply()
         -- 自訂格子：清單、樣式（列高、格距…）與它自己的位置／錨定都在這一頁
         if ns.Pips then ns.Pips.Apply() end
+        -- 自訂列：清單與每列設定、它的位置／錨定，也吃這一頁的寬／材質／邊框／列距
+        if ns.CustomBars then ns.CustomBars.Apply() end
         -- 外觀、恢復預設（顏色可能一起變）：跟隨我們顏色的插件重畫，合併節流
         if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
@@ -1101,7 +1145,7 @@ function Tab.Build(parent, title)
 
     local highlightSub
     function page:SetSub(sub)
-        if sub ~= "pips" then sub = "class" end
+        if not SUBS[sub] then sub = "class" end
         local changed = currentSub ~= sub
         currentSub = sub
         PlaceHolder()
@@ -1137,6 +1181,7 @@ local function Reread()
     end
 end
 ns.RegisterCallback("SpecChanged", "tab_resources", Reread)
-ns.RegisterCallback("BarMoved", "tab_resources", function(key) if key == KEY or key == PIPS then Reread() end end)
--- 錨定視窗改了資源條或自訂格子的錨定：摘要列重讀
-ns.RegisterCallback("AnchorChanged", "tab_resources", function(key) if key == KEY or key == PIPS then Reread() end end)
+local OWN = { [KEY] = true, [PIPS] = true, custombars = true }
+ns.RegisterCallback("BarMoved", "tab_resources", function(key) if OWN[key] then Reread() end end)
+-- 錨定視窗改了資源條、自訂格子或自訂列的錨定：摘要列重讀
+ns.RegisterCallback("AnchorChanged", "tab_resources", function(key) if OWN[key] then Reread() end end)

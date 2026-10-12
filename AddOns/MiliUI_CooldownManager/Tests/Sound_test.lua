@@ -437,6 +437,31 @@ FireEvent("PLAYER_ENTERING_WORLD"); Flush()
 eq("進場全部重登（筆數不變）", S.AuraCount(), 1)
 eq("進場撤掉舊的再登新的", nextID, 4)
 
+-- 自訂列（Modules/CustomBars.lua）的光環類：CB.SoundWants 給的每一筆各登一筆，目標減益的 unitToken 是 target
+do
+    local saved = ns.CustomBars
+    ns.CustomBars = { SoundWants = function()
+        return { { what = "gain", spellID = 777, name = "Ding", unit = "player" },
+                 { what = "lose", spellID = 888, name = "Ding", unit = "target" } }
+    end }
+    S.RequestAuraSync(); Flush()
+    local found = {}
+    for _, r in pairs(registered) do found[r.info.spellID] = r end
+    eq("自訂列：增益出現登 Added", found[777] and found[777].trigger, 0)
+    eq("自訂列：增益 unitToken player", found[777] and found[777].info.unitToken, "player")
+    eq("自訂列：目標減益消失登 Removed", found[888] and found[888].trigger, 2)
+    eq("自訂列：目標減益 unitToken target", found[888] and found[888].info.unitToken, "target")
+    ns.CustomBars = saved
+    S.RequestAuraSync(); Flush()
+    check("自訂列拿掉：那兩筆撤掉", not next((function()
+        local t = {}
+        for _, r in pairs(registered) do if r.info.spellID == 777 or r.info.spellID == 888 then t[1] = r end end
+        return t
+    end)()))
+end
+check("簽章：unit 是 player（或沒給）時跟舊的一模一樣", Logic.Sig(0, 5, "x", "Master", 1.5, "player") == Logic.Sig(0, 5, "x", "Master", 1.5))
+check("簽章：target 跟 player 分開", Logic.Sig(0, 5, "x", "Master", 1.5, "target") ~= Logic.Sig(0, 5, "x", "Master", 1.5))
+
 customRecs.a.placedBar = nil
 S.RequestAuraSync(); Flush()
 eq("收起來的光環格撤掉", S.AuraCount(), 0)

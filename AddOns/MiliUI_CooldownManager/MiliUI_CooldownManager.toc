@@ -74,6 +74,7 @@ Modules\CastStacks.lua
 Modules\EchoWindow.lua
 Modules\Resources.lua
 Modules\Pips.lua
+Modules\CustomBars.lua
 Modules\Interrupt.lua
 Modules\Castbar.lua
 Modules\AssistIcon.lua
@@ -100,6 +101,7 @@ Options\ResourceSettings.lua
 Options\StackColors.lua
 Options\CustomSounds.lua
 Options\Tab_Resources.lua
+Options\CustomBars.lua
 Options\Tab_Castbar.lua
 Options\Tab_Assist.lua
 Options\SkyridingSettings.lua

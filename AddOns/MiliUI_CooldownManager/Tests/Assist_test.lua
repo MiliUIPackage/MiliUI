@@ -160,7 +160,7 @@ check("圖示預設：44、只在戰鬥中、按鍵、GCD、MEDIUM", ai.size == 
     and ai.showGCD == true and ai.strata == "MEDIUM")
 check("PANEL_KEYS 有 assistIcon", DB.PANEL_KEYS.assistIcon == true and ns.PANEL_KEYS.assistIcon == true)
 check("IsPanel(assistIcon)", DB.IsPanel("assistIcon"))
-eq("PANEL_ORDER：前三個不變、下一招圖示接在後面（天空騎術在它之後）", table.concat(DB.PANEL_ORDER, ","), "resources,pips,castbar,assistIcon,skyriding")
+eq("PANEL_ORDER：下一招圖示接在施法條後面（天空騎術在它之後；自訂列 2026-10-13 插在自訂格子後面）", table.concat(DB.PANEL_ORDER, ","), "resources,pips,custombars,castbar,assistIcon,skyriding")
 
 ns.profile = DB.BuildDefaults().profile
 local p = ns.profile

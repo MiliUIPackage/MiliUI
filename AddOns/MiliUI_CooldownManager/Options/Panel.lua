@@ -70,6 +70,7 @@ end
 -- 自訂格子（pips）的設定在資源條頁；下一招圖示（assistIcon）在戰鬥輔助頁（Options/Tab_Assist.lua）
 local SUBPANELS = {
     pips       = { host = "resources", title = L["Custom segments"] },
+    custombars = { host = "resources", title = L["Custom bars"] },
     assistIcon = { host = "assist",    title = L["Next cast icon"] },
 }
 

@@ -317,6 +317,9 @@ do
     local B = ns.Bars
     B.RegisterPanel("resources", { anchorPoint = "BOTTOM" })
     B.RegisterPanel("castbar", { anchorPoint = "CENTER" })
+    -- 自訂列（預設錨在資源條上方）：沒有任何一列時收合、不佔位（遊戲裡就是這樣），這一節不測它
+    B.RegisterPanel("custombars", { anchorPoint = "BOTTOM", collapsible = true })
+    B.SetPanelSize("custombars", 100, 0)
     local res, cast = B.Get("resources"), B.Get("castbar")
     local function Pt(f) return f.points[#f.points] or {} end
     -- 貼 UIParent 時照舊有半像素補正（最多半個像素）

@@ -251,9 +251,13 @@ end
 
 -- 排開：跟著同一個目標、同一邊的照這個順序往外排（小的靠近目標），規則在 Core/Layout.lua。
 -- 自訂群組排在內建的後面，彼此照左欄順序；下一招圖示排在所有東西的最後面（最外圈）。
--- 天空騎術（只有獨立擺放時參與排開）緊貼在資源條外面
-local STACK_RANK = { resources = 1, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6, essential = 7,
-                     assistIcon = 900 }
+-- 天空騎術（只有獨立擺放時參與排開）緊貼在資源條外面。
+-- 自訂列（custombars）1.2：預設錨在資源條上方，資源條開著時本來就貼它、施法條排到它外面；這個值只在「同一個目標
+-- 同一邊」時才用得上——資源條關掉（自訂列接到核心技能上方）或玩家把自訂列改錨核心技能時，要排在資源條的位置之後、
+-- 天空騎術（1.5）與施法條（4）之前：自訂列是戰鬥資訊、跟資源條是一組，天空騎術獨立擺放時照舊在這一組的外面，
+-- 自訂列收合時大家的相對位置跟沒有這個面板時一模一樣
+local STACK_RANK = { resources = 1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6,
+                     essential = 7, assistIcon = 900 }
 local function StackRank(key)
     if STACK_RANK[key] then return STACK_RANK[key] end
     local p = Profile()

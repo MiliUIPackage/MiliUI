@@ -529,6 +529,10 @@ do
     B.RegisterPanel("resources", { anchorPoint = "BOTTOM", collapsible = true })
     B.RegisterPanel("castbar", { anchorPoint = "CENTER" })
     B.RegisterPanel("skyriding", { anchorPoint = "TOP" })
+    -- 自訂列（2026-10-13，預設錨在資源條上方）：沒有任何一列時收合、不佔位（遊戲裡就是這樣），
+    -- 這一節測的是資源條／施法條／天空騎術之間的關係，自訂列展開的情況在 Layout_test
+    B.RegisterPanel("custombars", { anchorPoint = "BOTTOM", collapsible = true })
+    B.SetPanelSize("custombars", 100, 0)
     local sky, res, ess = B.Get("skyriding"), B.Get("resources"), B.Get("essential")
     local function Pt(f) return f.points[#f.points] or {} end
     -- 半像素補正（Bars 的 HalfPixelFix）最多加半個像素
