@@ -68,6 +68,8 @@ bar:SetValue(secretHealth, Enum.StatusBarInterpolation.ExponentialEaseOut)
 - `Enum.EditModeUnitFrameSetting.IconSize` 拆成 `BuffIconSize` / `DebuffIconSize`。
 - 新增 `C_Discord` 命名空間與一堆 Discord 事件、`CHAT_MSG_*` 多了 `discordInfo` 參數。
 - `SPELL_UPDATE_COOLDOWN` 多了 `itemID` 參數。
+  **參數戰鬥中是明文**（2026-10-12 鮮血死騎實測：隱藏法術 1265982 沸點 `spellID` 明文、`baseSpellID=nil`、整場秘密參數 0 次）——
+  可以拿來偵測「沒有光環的觸發」（MCDM `Modules/EchoWindow.lua`，照 YUI_Halo 的做法）。
 
 ## 戰鬥紀錄:插件不能註冊 COMBAT_LOG_EVENT_UNFILTERED
 
