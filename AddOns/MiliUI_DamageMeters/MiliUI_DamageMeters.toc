@@ -44,6 +44,7 @@ Meter\Home.lua
 Meter\Builtin.lua
 Meter\Move.lua
 Meter\Manager.lua
+Meter\Debug.lua
 Meter\Publish.lua
 Meter\AutoReset.lua
 
@@ -64,6 +65,7 @@ Options\Tab_Window.lua
 Options\Tab_Each.lua
 Options\Tab_Share.lua
 Options\Tab_About.lua
+Options\Tab_Debug.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 

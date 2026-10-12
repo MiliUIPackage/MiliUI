@@ -26,7 +26,7 @@ local function Init()
         "",
         L["Left-click a bar to break it down by spell. Right-click anywhere on a window for its menu. Drag the title bar to move it, or move it in Edit Mode."],
         "",
-        L["Commands: |cffffd200/mdm|r opens the options, |cffffd200/mdm reset|r clears the recorded segments, |cffffd200/mdm debug|r reports recent errors"],
+        L["Commands: |cffffd200/mdm|r opens the options, |cffffd200/mdm reset|r clears the recorded segments, |cffffd200/mdm debug|r opens the debug report"],
         "",
         L["Author: Mili (MiliUI package)"],
     }, "\n"))

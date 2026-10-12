@@ -39,15 +39,24 @@ SlashCmdList.MILIUIDAMAGEMETERS = function(msg)
         ns.DB.ResetAll()
 
     elseif msg == "debug" then
+        -- 聊天框只印一行摘要；全文（存檔座標、實際錨點、UIParent、內建統計視窗、
+        -- 磁吸註冊表、錯誤）放設定視窗的「除錯」分頁，玩家全選複製貼給作者。
         ns.Print("v" .. ns.VERSION
             .. "  api=" .. tostring(ns.HAS_API)
             .. "  windows=" .. tostring(ns.Windows and ns.Windows.Count() or 0)
-            .. "  combat=" .. tostring(ns.Combat and ns.Combat.IsInCombat()))
-        if #ns.errors == 0 then
-            print("  " .. L["No errors recorded"])
+            .. "  combat=" .. tostring(ns.Combat and ns.Combat.IsInCombat())
+            .. "  errors=" .. tostring(#ns.errors))
+        if ns.db and ns.Options and ns.Options.ShowDebugTab then
+            print("  " .. L["Opened the Debug tab in the options window: click Select all, Ctrl+C, and paste it to the author."])
+            ns.Options.ShowDebugTab()
         else
-            for i, err in ipairs(ns.errors) do
-                print(("  %d. %s"):format(i, err))
+            -- 沒有設定視窗（客戶端沒有 API、或還沒初始化）：退回聊天框
+            if #ns.errors == 0 then
+                print("  " .. L["No errors recorded"])
+            else
+                for i, err in ipairs(ns.errors) do
+                    print(("  %d. %s"):format(i, err))
+                end
             end
         end
 

@@ -255,8 +255,8 @@ L["Blizzard's own C_DamageMeter API does the aggregation, so this addon never to
     "加總由暴雪自己的 C_DamageMeter 完成，所以這支插件完全不碰戰鬥記錄。它的成本只跟畫面上看得到幾列有關，跟團隊人數或戰鬥激烈程度無關。"
 L["Left-click a bar to break it down by spell. Right-click anywhere on a window for its menu. Drag the title bar to move it, or move it in Edit Mode."] =
     "左鍵點一條長條可以展開法術明細。在視窗任何地方按右鍵開選單。拖標題列可以移動，也可以在編輯模式裡搬。"
-L["Commands: |cffffd200/mdm|r opens the options, |cffffd200/mdm reset|r clears the recorded segments, |cffffd200/mdm debug|r reports recent errors"] =
-    "指令：|cffffd200/mdm|r 開啟設定，|cffffd200/mdm reset|r 清除已記錄的分段，|cffffd200/mdm debug|r 印出最近的錯誤"
+L["Commands: |cffffd200/mdm|r opens the options, |cffffd200/mdm reset|r clears the recorded segments, |cffffd200/mdm debug|r opens the debug report"] =
+    "指令：|cffffd200/mdm|r 開啟設定，|cffffd200/mdm reset|r 清除已記錄的分段，|cffffd200/mdm debug|r 開啟除錯報告"
 L["Author: Mili (MiliUI package)"] = "作者：Mili（米利UI套組）"
 
 -- 訊息
@@ -315,3 +315,10 @@ L["Reset"] = "重置"
 L["Restore all defaults and reload"] = "全部恢復預設並重載"
 L["Restore this profile (style, windows, positions) to its defaults and reload the UI?"] = "把目前這份設定檔（外觀＋每個視窗＋位置）恢復成預設值並重新載入介面？"
 L["Only this profile is reset; the other profiles are left alone. This is settings only — clearing the recorded segments is \"Reset all segments\" on the General tab."] = "只會重置目前這份設定檔，其他設定檔不動。這裡重置的是設定；要清掉記錄的戰鬥分段請用「一般」分頁的「重置所有分段」。"
+
+-- 除錯分頁（Options/Tab_Debug.lua、Meter/Debug.lua）
+L["Debug"] = "除錯"
+L["Select all"] = "全選"
+L["Refresh"] = "重新產生"
+L["Click Select all, press Ctrl+C to copy, then paste it to the author."] = "按「全選」、再按 Ctrl+C 複製，貼給作者就可以了。"
+L["Opened the Debug tab in the options window: click Select all, Ctrl+C, and paste it to the author."] = "已開啟設定視窗的「除錯」分頁：按「全選」、Ctrl+C 複製，貼給作者。"

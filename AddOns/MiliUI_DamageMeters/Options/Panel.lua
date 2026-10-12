@@ -32,7 +32,9 @@ local TABS = {
     { id = "each",    label = L["Per window"] },
     { id = "share",   label = L["Profile"] },
     { id = "about",   label = L["About"] },
+    { id = "debug",   label = L["Debug"], hidden = true },   -- /mdm debug 之後才出現（Options/Tab_Debug.lua）
 }
+local debugTabOn = false
 
 function Options.NewTabFrame()
     local tab = CreateFrame("Frame", nil, Options.panel)
@@ -64,6 +66,7 @@ function Options.BuildScrollBody(scroll, controls, ctx, width)
 end
 
 Options.FORM_W = FORM_W
+Options.PANEL_W, Options.PANEL_H = PANEL_W, PANEL_H
 
 local function SavePosition()
     local cx, cy = UIParent:GetCenter()
@@ -157,6 +160,7 @@ local function CreatePanel()
             b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
         end
         W.MakeDragHandle(b, panel, SavePosition)
+        if tab.hidden then b:SetShown(debugTabOn) end
         prev = b
         tabButtons[i] = b
     end
@@ -206,4 +210,14 @@ function Options.Open(tabId)
         if b.id == tabId then highlightTab(b); break end
     end
     ShowTab(tabId)
+end
+
+-- /mdm debug：「除錯」分頁鈕現身（這次登入期間一直在）並切過去
+function Options.ShowDebugTab()
+    debugTabOn = true
+    CreatePanel()
+    for _, b in ipairs(tabButtons) do
+        if b.id == "debug" then b:Show() end
+    end
+    Options.Open("debug")
 end
