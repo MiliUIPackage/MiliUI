@@ -416,6 +416,11 @@ end
 -- 錨在面板頂端而不是那一列：換列時提示不會上下跳，標題已經點名是哪隻角色。
 -- 預設開在面板右邊，右邊塞不下翻左邊，翻完還出界才平移（跟寶庫提示同一套）。
 -- 字串池化：組數與首領數每隻角色都不同，frame／FontString 刪不掉，一律重用。
+--
+-- 底下再疊一張**M+ 提示**（本週場次清單），跟團本提示同寬、同時開關：滑過一列
+-- 就看完「這隻本週打了什麼」，不用再去找寶庫欄。兩張分開畫是因為各有各的記錄
+-- 時間（團本鎖定 vs. 寶庫快照）；定位時當成一疊整體推回畫面，不會疊到彼此。
+-- 寶庫提示裡的同一份清單保留——滑到寶庫欄時列收到 OnLeave，這兩張會收掉。
 ------------------------------------------------------------
 local RT = {
     PAD       = 10,
@@ -432,26 +437,38 @@ local RT = {
     BOSS_SZ   = 11,
 }
 
-local raidTip, raidTipRow
+local STACK_GAP = 4      -- 團本提示與 M+ 提示之間
+
+local raidTip, mplusTip, raidTipRow
 
 local function Hex(r, g, b)
     return string.format("%02x%02x%02x",
         math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
 end
 
-local function BuildRaidTip()
-    if raidTip then return raidTip end
-    local f = CreateFrame("Frame", "MiliUIInfoBar_WarbandRaidTip", UIParent, "BackdropTemplate")
+local function BuildPooledTip(name)
+    local f = CreateFrame("Frame", name, UIParent, "BackdropTemplate")
     f:SetFrameStrata("TOOLTIP")
     f:SetSize(RT.COL_MIN * 2, 100)
     ApplyTipSkin(f)
     f:Hide()
     f.pool, f.used = {}, 0
+    return f
+end
+
+local function BuildRaidTip()
+    if raidTip then return raidTip end
+    local f = BuildPooledTip("MiliUIInfoBar_WarbandRaidTip")
     -- 量首領名寬用的（不顯示）
     f.measure = MakeText(f, RT.BOSS_SZ)
     f.measure:Hide()
     raidTip = f
     return f
+end
+
+local function BuildMplusTip()
+    if not mplusTip then mplusTip = BuildPooledTip("MiliUIInfoBar_WarbandMplusTip") end
+    return mplusTip
 end
 
 local function AcquireText(f, size, color)
@@ -472,7 +489,49 @@ end
 
 local function HideRaidTip()
     if raidTip then raidTip:Hide() end
+    if mplusTip then mplusTip:Hide() end
     raidTipRow = nil
+end
+
+-- M+ 提示的內容：標題「本週 M+ 紀錄 (x/8)」＋場次清單＋記錄時間。
+-- 回傳內容寬與高（不含左右內距）；沒有寶庫資料就回 nil＝不開這張。
+-- 場次數的規則跟寶庫提示同一套（寶庫進度為準，M0 有進度但沒有清單行）。
+local function FillMplusTip(data)
+    local vault = data and data.vault
+    if not vault then return nil end
+    local f = BuildMplusTip()
+    f.used = 0
+    local P = RT.PAD
+    local runs = vault.mplusRuns
+    local nRuns = runs and #runs or 0
+    local count = math.min(VaultMythicProgress(vault), Warband.MPLUS_MAX_RUNS)
+    if count == 0 then count = nRuns end
+
+    local title = AcquireText(f, TITLE_SZ, GOLD)
+    title:SetText(L["WARBAND_RUNS_HEADER"]:format(count, Warband.MPLUS_MAX_RUNS))
+    title:SetPoint("TOPLEFT", P, -P)
+    local contentW = title:GetStringWidth()
+    local y = P + RT.TITLE_H
+
+    for i = 1, nRuns do
+        local line = AcquireText(f, FONT_SZ, TEXT_MAIN)
+        line:SetText(FormatRunLine(runs[i]))
+        line:SetPoint("TOPLEFT", P, -y)
+        contentW = math.max(contentW, line:GetStringWidth())
+        y = y + TT.RUN_LINE_H
+    end
+
+    if vault.timestamp then
+        y = y + RT.SPACE
+        local snap = AcquireText(f, 11, TEXT_DIM)
+        snap:SetText(L["WARBAND_SNAPSHOT"]:format(date("%m/%d %H:%M", vault.timestamp)))
+        snap:SetPoint("TOPLEFT", P, -y)
+        contentW = math.max(contentW, snap:GetStringWidth())
+        y = y + RT.FOOTER_H
+    end
+
+    for i = f.used + 1, #f.pool do f.pool[i]:Hide() end
+    return contentW, y + P
 end
 
 local function ShowRaidTip(row)
@@ -578,9 +637,17 @@ local function ShowRaidTip(row)
     end
 
     for i = f.used + 1, #f.pool do f.pool[i]:Hide() end
-    f:SetSize(P * 2 + math.ceil(contentW), y + P)
 
-    -- 定位：預設開在面板右邊，右緣塞不下就翻到左邊，翻完還出界才平移
+    -- 兩張同寬（取大者），上下對齊才讀得出是同一疊
+    local mW, mH = FillMplusTip(data)
+    local width = P * 2 + math.ceil(math.max(contentW, mW or 0))
+    local raidH = y + P
+    f:SetSize(width, raidH)
+
+    -- 定位：預設開在面板右邊，右緣塞不下就翻到左邊，翻完還出界才平移。
+    -- 平移時把 M+ 提示算進高度（暫時撐高團本提示再推回），整疊一起往上推，
+    -- 不然底部出界時只有 M+ 那張被推上去、蓋住團本提示。錨點是 TOP 系，
+    -- 推完把高度改回來不會動到位置。
     f:Show()
     local pts = { "TOPLEFT", frame, "TOPRIGHT", 6, 0 }
     f:ClearAllPoints()
@@ -589,7 +656,18 @@ local function ShowRaidTip(row)
     if rgt and pr and rgt > pr - W.SCREEN_PAD then
         pts = { "TOPRIGHT", frame, "TOPLEFT", -6, 0 }
     end
+    if mW then f:SetHeight(raidH + STACK_GAP + mH) end
     W.PlaceClamped(f, pts)
+    f:SetHeight(raidH)
+
+    if mW then
+        mplusTip:SetSize(width, mH)
+        mplusTip:ClearAllPoints()
+        mplusTip:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, -STACK_GAP)
+        mplusTip:Show()
+    elseif mplusTip then
+        mplusTip:Hide()
+    end
 end
 
 ------------------------------------------------------------
