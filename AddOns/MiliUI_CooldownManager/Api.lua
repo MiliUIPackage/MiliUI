@@ -389,8 +389,9 @@ local function Debug(silent)
     if CU and CU.Counts then
         local n = CU.Counts()
         local pb, pk = CU.PendingCounts()
-        p(("  自訂項目：光環格 %d  法術 %d  物品 %d  飾品欄 %d  代畫 %d（增益疊層 %d）（放好的框 %d、光環容器 %d 顆、建過 %d 次）  待建 %d  待補踢 %d")
-            :format(n.aura, n.spell, n.item, n.slot or 0, n.proxy or 0, n.overlays or 0, n.placed, n.containers, CU.builds, pb, pk))
+        p(("  自訂項目：光環格 %d  法術 %d  物品 %d  飾品欄 %d  代畫 %d（增益疊層 %d、觸發疊層 %d）（放好的框 %d、光環容器 %d 顆、建過 %d 次）  待建 %d  待補踢 %d")
+            :format(n.aura, n.spell, n.item, n.slot or 0, n.proxy or 0, n.overlays or 0, n.procOverlays or 0, n.placed, n.containers,
+                CU.builds, pb, pk))
         if CU.SegDebugLine then p(CU.SegDebugLine()) end
         -- 代畫（暴雪沒給框的裝備欄冷卻格，Core/Bars.lua）：哪條、哪個 id、槽、有沒有疊增益、疊層容器的簽章
         local px = B and B.Proxied and B.Proxied() or {}
@@ -618,6 +619,14 @@ local function AuraDebug()
             p(("%s[增益疊層]|r %s  條=%s  按鈕初始化 %d 次"):format(ns.PREFIX_COLOR, key, tostring(o.placedBar), o.inits or 0))
             if o.lastError then p("  |cffff5555最近錯誤：" .. tostring(o.lastError) .. "|r") end
             MasqueLines(p, o)
+        end
+        -- 觸發發光疊層（飾品欄：觸發增益在身上時發光）：認的增益、容器簽章
+        local po = rec.kind ~= "aura" and rec.procOverlay
+        if po and po.placedBar then
+            n = n + 1
+            p(("%s[觸發疊層]|r %s  條=%s  增益=%s  容器=%s  按鈕初始化 %d 次"):format(ns.PREFIX_COLOR, key, tostring(po.placedBar),
+                tostring(po.idSig), tostring(po.sig or "未建"), po.inits or 0))
+            if po.lastError then p("  |cffff5555最近錯誤：" .. tostring(po.lastError) .. "|r") end
         end
     end
     -- 引擎補位（只有光環格的條）：一條一顆容器、每格一個 group；flow 參數的 setter 各自的結果

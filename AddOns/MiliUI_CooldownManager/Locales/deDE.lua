@@ -86,6 +86,8 @@ L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button in
 L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."] = "Erscheint nur, solange die Stärkung des Schmuckstücks aktiv ist. Wähle die Stärkung: jede bekommt einen eigenen Platz."
 L["%s (added)"] = "%s (hinzugefügt)"
 L["This trinket has no buff to track."] = "Dieses Schmuckstück hat keine Stärkung, die sich verfolgen lässt."
+L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."] = "Leuchtet, solange eine der ausgelösten Stärkungen dieses Schmuckstücks auf Euch wirkt. Auslöser, die Blizzard nicht auflistet, lassen sich nicht erkennen; verfolgt sie stattdessen über „%s“ → „%s“ mit der Zauber-ID der Stärkung."
+L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."] = "Dieses Schmuckstück hat keinen ausgelösten Effekt, der sich verfolgen lässt. Ihr könnt die Stärkung stattdessen über „%s“ → „%s“ mit ihrer Zauber-ID verfolgen."
 L["Nothing is equipped in this slot."] = "In diesem Platz ist nichts angelegt."
 L["What's equipped in this slot has no buff to track."] = "Was in diesem Platz angelegt ist, hat keine Stärkung, die sich verfolgen lässt."
 L["Buff %d"] = "Stärkung %d"

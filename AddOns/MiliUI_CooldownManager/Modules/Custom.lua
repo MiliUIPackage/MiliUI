@@ -7,7 +7,8 @@
 --   ns.Custom.EndBar(barKey, gen)          這條這一輪沒放到的框收起來
 --   ns.Custom.PlaceFlow(barKey, c, list, fp, gen)  只有光環格的條走引擎補位（Place 帶 flow 旗標之後叫），見「引擎補位」那一節
 --   ns.Custom.Records() / ForEachPlaced(fn) / Counts()
---   飾品欄（kind = "slot"）的冷卻格上另疊一顆增益按鈕（rec.buffOverlay），見「飾品欄的增益疊層」那一節
+--   飾品欄（kind = "slot"）的冷卻格上另疊一顆增益按鈕（rec.buffOverlay），見「飾品欄的增益疊層」那一節；
+--   觸發發光開著時再疊一顆只畫發光的按鈕（rec.procOverlay），見「飾品欄的觸發發光疊層」那一節
 --   ns.Custom.Proxy(cooldownID, slot, barKey)  暴雪沒給框的裝備欄冷卻格由我們代畫（飾品欄形狀），見「代畫」那一節
 --   飾品欄增益（存檔 kind = "slotbuff"）在這裡就是光環格：rec.kind = "aura"、rec.slotBuff = { slot, buff }，
 --   認的法術照現在裝的飾品解（Catalog.SlotBuffIDs，經 CU.AuraIDsOf），見「飾品欄增益」那一節
@@ -1392,6 +1393,8 @@ local GLOW_TYPES = { pixel = true, autocast = true, button = true, proc = true }
 --       給了而且這條真的是圓環條（Decorate.RingStyle）⇒ st.shape ＝ "rings"，見「光環格畫成圓環」那一節
 local gradCache = {}        -- 光環長條的漸層顏色物件（F8a）：依「方向＋兩色」快取，換容器時不重配
 local function AuraStyle(rec, barKey, w, h, shape, ring)
+    -- 飾品欄的觸發發光疊層：只畫發光、樣式讀 glow.proc（CU.ProcStyle，見「飾品欄的觸發發光疊層」）
+    if rec.procOf then return CU.ProcStyle(rec, barKey, w, h) end
     local S, SS, id = ns.Setting, ns.SpellSetting, rec.cooldownID
     local border = S(barKey, "border") or {}
     -- 文字：條層 ⊕ 這一招的文字覆寫（Text.SpellText；疊層照冷卻格那一筆的 id）。值全部解進 st、進簽章
@@ -1660,6 +1663,7 @@ CU.AuraStyle = AuraStyle              -- 測試用
 
 -- 物件（formatter、曲線、列舉值）在容器建立前先解好：initializeFrame 裡一次 CreateColor 都不做
 local function Warm(st)
+    if st.procOnly then return end                  -- 觸發發光疊層：沒有倒數、邊框、陰影，發光的值 ProcStyle 已經解好
     if st.shape == "bars" then
         -- 長條的秒數：整數（跟暴雪的長條一致），不做低秒變色
         st.formatter = ns.Text.PlainFormatter(0)
@@ -1686,7 +1690,7 @@ local function AttachGlow(btn, anchor, gl, level, rec)
     local LCG = ns.MiliUIGlow
     if not (gl and LCG and LCG.PixelGlow_Attach) then return end
     local f = CreateFrame("Frame", nil, btn)
-    f:SetFrameLevel(level)
+    if level then f:SetFrameLevel(level) end        -- nil ＝ 子框預設（按鈕＋1）
     local gw, gh = gl.w, gl.h
     if gl.type == "button" or gl.type == "proc" then
         -- 這兩種畫成格子的 1.4 倍（跟 Start 系列一樣）
@@ -2177,7 +2181,8 @@ local function BuildContainer(rec, st)
     end
     local include = {}
     for _, id in ipairs(st.ids or { rec.spellID }) do include[id] = true end
-    local init = (st.shape == "bars") and InitAuraBarButton or (st.shape == "rings") and InitAuraRingButton or InitAuraButton
+    local init = st.procOnly and CU.InitProcButton
+        or (st.shape == "bars") and InitAuraBarButton or (st.shape == "rings") and InitAuraRingButton or InitAuraButton
     c:AddAuraSlot("slot", rec.filter, {
         candidateFilters = { includeSpellIDs = include },
         initializeFrame = function(btn)
@@ -2878,6 +2883,8 @@ CU.UseFrame = UseFrame                -- 測試用
 --           → ＋12 Decorate 的 overlay（邊框、按鍵文字、提示；發光宿主 ＋13～＋15）
 --           疊層持有框 ＋4 → 容器 ＋5 → 按鈕 ＋6 → 按鈕的 Cooldown ＋7 → 按鈕裡的 ov（邊框、倒數、層數）＋9 → 生效發光 ＋10
 --           ⇒ 蓋過冷卻格的轉圈與數字、在 overlay 底下：按鍵文字與邊框在增益按鈕上面看得到。
+--           觸發發光疊層（rec.procOverlay，下一節）持有框 ＋8 → 容器 ＋9 → 按鈕 ＋10（全透明）→ 觸發發光 ＋11
+--           ⇒ 增益疊層蓋住冷卻格時發光照樣在最上面、仍在 overlay（＋12）底下。只有圖示類（長條不畫發光）
 --   長條框  冷卻格 ＋2 → 條身 ＋3 → 秒數 ＋4 → 充能分段到 ＋7；Decorate 的 overlay 至少 530
 --           疊層持有框 ＋8（按鈕裡的 ov 是條身＋10，仍遠低於 530）
 -- （按鈕的層級是暴雪建按鈕時的預設：父層＋1；initializeFrame 裡不讀不改）
@@ -2946,6 +2953,120 @@ local function PlaceOverlay(rec, c, r, barKey, gen)
 end
 CU.PlaceOverlay = PlaceOverlay        -- 測試用
 
+------------------------------------------------------------
+-- 飾品欄的觸發發光疊層（rec.procOverlay）
+--
+-- 飾品沒有 SPELL_ACTIVATION_OVERLAY_GLOW_SHOW（自訂法術的 OnOverlay 只認 kind "spell"），玩家心中的「飾品觸發」＝
+-- 身上多一個增益。所以飾品欄的「觸發發光」（同一個 procGlow 開關：條層 glow.proc ＋逐法術覆寫，使用者拍板不另開選項）
+-- 意思變成「這件飾品的觸發增益在身上時發光」：冷卻格（kind = "slot"，含代畫格）上再疊一顆光環格形狀的子 rec
+-- （kind = "aura"、filter = HELPFUL、overlayOf／procOf ＝ 冷卻格那一筆），持有框／容器池／簽章／戰鬥中延後全部
+-- 走增益疊層那一套（UseFrame、EnsureContainer、OnRegen 的 pendingBuild／pendingKick）。插件端一樣**零讀取**：
+-- 增益在不在全交給引擎（includeSpellIDs），按鈕只在增益存在時顯示 ⇒ 烘在按鈕底下的發光跟著出現／消失。差別：
+--   * 認的法術 ＝ Catalog.SlotProcOverlayIDs（全部增益扣掉使用效果那幾個；純被動飾品全部都是觸發）。
+--     兩個以上的觸發增益放進**同一個** AddAuraSlot 的 includeSpellIDs：任一個在就亮，同時在也只有一顆按鈕一圈發光。
+--   * **只畫發光**：按鈕全透明（圖示照給引擎寫、子框 alpha 0；不建 Cooldown、倒數、層數、邊框、陰影、占位、自訂文字），
+--     只有 AttachGlow。樣式讀條層 glow.proc（type／color／lines／thickness／frequency），形狀跟冷卻格自己的發光一樣
+--     （Glow.GlowShape：交給 Masque ⇒ 皮的形狀；否則內建圖示形狀）。全部進簽章（CU.ProcStyle）。
+--   * 層級：見上一節的層級表（＋8，在增益疊層之上、overlay 之下）。只有圖示類：長條類、圓環條不疊（SlotProcOverlayIDs 擋）。
+--   * 滑鼠：持有框 EnableMouse(false)（NewHolder），按鈕在 initializeFrame 裡 SetMouseClickEnabled／SetMouseMotionEnabled
+--     都關（比增益疊層更嚴：增益疊層要給光環提示，這顆不給）⇒ 底下冷卻格的提示與點擊照常。initializeFrame 只在戰鬥外跑
+--     （容器戰鬥中不建），不碰戰鬥中被封鎖的 SetPropagateMouse* 系列。
+--   * 不登記音效（Core/Sound.lua 只認 rec.buffOverlay）。收起來／停放跟著冷卻格（HideRec）。
+-- 要不要疊：Catalog.SlotProcOverlayIDs ——跟 BarHasAuraSlot 同一個判準 ⇒ 有疊層的條固定格位一定被強制打開。
+------------------------------------------------------------
+CU.PROC_LIFT = 8                      -- 觸發發光疊層的持有框比條容器高幾層（見上一節的層級表）
+
+function CU.HideProcOverlay(rec)
+    local o = rec.procOverlay
+    if not o or not (o.placedBar or o.placedSig) then return end
+    o.placedBar, o.placedSig, o.hidden = nil, nil, true
+    if o.frame then ns.Write(o.frame, function(fr) fr:Hide() end, "place") end
+end
+
+function CU.PlaceProcOverlay(rec, c, r, barKey, gen)
+    local ids, idSig
+    if rec.kind == "slot" and ns.Catalog and ns.Catalog.SlotProcOverlayIDs then
+        ids, idSig = ns.Catalog.SlotProcOverlayIDs(barKey, rec.cooldownID, rec.slot)
+    end
+    if not ids or ShapeOf(barKey) ~= "icons" then return CU.HideProcOverlay(rec) end
+    local o = rec.procOverlay
+    if not o then
+        o = NewOverlay(rec)
+        o.procOf = rec
+        rec.procOverlay = o
+    end
+    o.cooldownID, o.slot, o.bar = rec.cooldownID, rec.slot, rec.bar
+    o.auraIDs, o.idSig, o.spellID = ids, idSig, ids[1]
+    local h = UseFrame(o, "icons")
+    o.holder = h
+    o.placedBar, o.placedGen, o.claimKey, o.hidden = barKey, gen, barKey, false
+    o.placeW, o.placeH = r.w, r.h
+    local lvl = (c:GetFrameLevel() or 1) + CU.PROC_LIFT
+    local sig = table.concat({ tostring(c), r.x, r.y, r.w, r.h, lvl }, "|")
+    if o.placedSig ~= sig then
+        o.placedSig = sig
+        local x, y, w, hh = r.x, r.y, r.w, r.h
+        ns.Write(h, function(fr)
+            if fr:GetParent() ~= c then fr:SetParent(c) end
+            fr:SetFrameLevel(lvl)
+            fr:ClearAllPoints()
+            fr:SetPoint("TOPLEFT", c, "TOPLEFT", x, -y)      -- ⚠ 錨容器，不錨冷卻格（保護會沿錨點鏈傳過去）
+            fr:SetSize(w, hh)
+            fr:Show()
+        end, "place")
+    end
+    EnsureContainer(o, barKey, r.w, r.h)
+end
+
+-- 觸發發光疊層的樣式（AuraStyle 開頭分過來）：只有發光，值全部解成純數字、進簽章
+function CU.ProcStyle(rec, barKey, w, h)
+    local g = ns.Setting(barKey, "glow.proc")
+    g = type(g) == "table" and g or {}
+    w, h = tonumber(w) or 0, tonumber(h) or 0
+    local st = { procOnly = true, ids = CU.AuraIDsOf(rec) }
+    local glowSig = "-"
+    if w > 0 and h > 0 then
+        local gl = {
+            type      = GLOW_TYPES[g.type] and g.type or "proc",
+            color     = RGBA(g.color, 1, 0.85, 0, 1),
+            lines     = tonumber(g.lines) or 8,
+            thickness = tonumber(g.thickness) or 2,
+            frequency = tonumber(g.frequency) or 0.2,
+            w = w, h = h,
+        }
+        -- 形狀跟冷卻格自己的發光一樣（Masque 皮／內建圖示形狀；方形 ＝ nil）
+        local G = ns.Glow
+        local gshape = (G and G.GlowShape and rec.procOf) and G.GlowShape(rec.procOf, barKey) or nil
+        if gshape and G.ShapedStyle then gl.type, gl.art = G.ShapedStyle(gl.type, gshape) end
+        st.glow = gl
+        glowSig = table.concat({ gl.type, string.format("%.3f,%.3f,%.3f,%.3f", gl.color[1], gl.color[2], gl.color[3], gl.color[4]),
+            gl.lines, gl.thickness, gl.frequency, string.format("%.2f,%.2f", w, h), gl.art and gl.art.sig or "-" }, ",")
+    end
+    st.sig = table.concat({ "proc", rec.filter, CU.AuraIDSig(st.ids), glowSig }, "|")
+    return st
+end
+
+-- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）：全透明的按鈕＋發光。不吃滑鼠（提示與點擊留給底下的冷卻格）
+function CU.InitProcButton(btn, c, st, rec)
+    pcall(btn.SetMouseClickEnabled, btn, false)
+    pcall(btn.SetMouseMotionEnabled, btn, false)
+    pcall(function()
+        btn:ClearAllPoints()
+        btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout
+    end)
+    -- 圖示：引擎要寫，一定要給；子框 alpha 0（引擎哪天對圖示 SetAlpha 也露不出來，同圓環的做法）
+    local iconF = CreateFrame("Frame", nil, btn)
+    iconF:SetAllPoints(btn)
+    iconF:SetAlpha(0)
+    local icon = iconF:CreateTexture(nil, "ARTWORK")
+    icon:SetAllPoints(btn)
+    btn:SetIcon(icon)
+    -- 發光：按鈕的子框（層級用預設的按鈕＋1，見層級表）
+    AttachGlow(btn, btn, st.glow, nil, rec)
+    rec.inits = (rec.inits or 0) + 1
+    rec.procInits = (rec.procInits or 0) + 1          -- 測試用
+end
+
 local function HideRec(rec)
     if not rec.placedBar and not rec.placedSig then return end
     rec.placedBar, rec.placedSig, rec.claimKey, rec.flowBar = nil, nil, nil, nil
@@ -2962,6 +3083,7 @@ local function HideRec(rec)
         CU.DropRange(rec)
         if ns.Glow then ns.Glow.OnParked(rec) end
         HideOverlay(rec)                                       -- 飾品欄的增益疊層跟著收
+        CU.HideProcOverlay(rec)                                -- 觸發發光疊層也是
     end
     if rec.proxy then RecountLive() end                        -- 代畫格收起來：冷卻事件可能不必再聽
 end
@@ -3134,6 +3256,8 @@ function CU.Place(rec, c, r, barKey, gen, flow)
     if ns.Keybinds then ns.Keybinds.Apply(f, rec, barKey) end
     -- 飾品欄、自訂物品：增益疊層（要不要疊、放到同一個矩形、換容器；見「飾品欄的增益疊層」）
     if rec.kind == "slot" or rec.kind == "item" or rec.buffOverlay then PlaceOverlay(rec, c, r, barKey, gen) end
+    -- 飾品欄：觸發發光疊層（在增益疊層之上；見「飾品欄的觸發發光疊層」）
+    if rec.kind == "slot" or rec.procOverlay then CU.PlaceProcOverlay(rec, c, r, barKey, gen) end
     if newProxy then RecountLive() end
     return moved
 end
@@ -3230,7 +3354,7 @@ end
 ------------------------------------------------------------
 function CU.Counts()
     local n = { aura = 0, spell = 0, item = 0, slot = 0, placed = 0, containers = 0, barFrames = 0, overlays = 0,
-                proxy = 0 }
+                procOverlays = 0, proxy = 0 }
     for _, rec in pairs(records) do
         -- 代畫格另算（不是玩家加的飾品欄）：放在條上的才算一顆
         if rec.proxy then
@@ -3247,6 +3371,14 @@ function CU.Counts()
         if o then
             if o.placedBar then n.overlays = n.overlays + 1 end
             for _, f in pairs(o.frames or {}) do
+                for _ in pairs(f.containers or {}) do n.containers = n.containers + 1 end
+            end
+        end
+        -- 觸發發光疊層：同上
+        local po = rec.procOverlay
+        if po then
+            if po.placedBar then n.procOverlays = n.procOverlays + 1 end
+            for _, f in pairs(po.frames or {}) do
                 for _ in pairs(f.containers or {}) do n.containers = n.containers + 1 end
             end
         end

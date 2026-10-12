@@ -86,6 +86,8 @@ L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button in
 L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."] = "Solo aparece mientras el beneficio del abalorio está activo. Elige el beneficio: cada uno tiene su propio hueco."
 L["%s (added)"] = "%s (añadido)"
 L["This trinket has no buff to track."] = "Este abalorio no tiene ningún beneficio que seguir."
+L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."] = "Brilla mientras tengas uno de los beneficios activados de este abalorio. Las activaciones que Blizzard no registra no se detectan; síguelas con «%s» → «%s» y el ID de hechizo del beneficio."
+L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."] = "Este abalorio no tiene ningún efecto activado que seguir. Puedes seguir el beneficio con «%s» → «%s» y su ID de hechizo."
 L["Nothing is equipped in this slot."] = "No hay nada equipado en esta ranura."
 L["What's equipped in this slot has no buff to track."] = "Lo que llevas equipado en esta ranura no tiene ningún beneficio que seguir."
 L["Buff %d"] = "Beneficio %d"

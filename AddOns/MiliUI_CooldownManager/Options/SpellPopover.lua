@@ -215,7 +215,7 @@ local function ActiveGlowWhen(kind, class)
     if kind == "item" then return Pop.CurItemHasBuff() end
     return class == "aura" or kind == nil
 end
--- 觸發發光只有法術會有（SPELL_ACTIVATION_OVERLAY_GLOW_SHOW）：飾品欄、自訂物品永遠不會亮。
+-- 飾品欄、自訂物品的增益發光烘在受保護的按鈕裡（增益疊層），戰鬥中切不了 ⇒ 「脫戰也亮」那一列不給。
 -- 掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限
 function Pop.NoProc(kind) return kind ~= "slot" and kind ~= "item" end
 
@@ -230,7 +230,14 @@ local function HidePassiveWhen(kind)
 end
 
 local TOGGLES = {
-    { field = "procGlow",         label = L["Proc glow"],              noAura = true, noBar = true, noItem = true, tab = "glow" },
+    -- 觸發發光：法術的觸發（SPELL_ACTIVATION_OVERLAY_GLOW_SHOW）；飾品欄（含代畫格）＝觸發增益在身上時亮（Modules/Custom.lua 的
+    -- 觸發發光疊層），下一列灰字只對飾品欄出現；自訂物品、暴雪自己畫的裝備欄格永遠不會亮 ⇒ 不出（Pop.ProcWhen）
+    { field = "procGlow",         label = L["Proc glow"],              tab = "glow",
+      when = function(kind, class) return Pop.ProcWhen(kind, class) end,
+      -- 退路寫明：暴雪沒登記的觸發玩家補不進暴雪的冷卻管理器，只能用我們的光環格（挑選器「自訂 ID」→「光環」，字串照那兩顆的語系）
+      tip = L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."]
+          :format(L["Custom ID"], L["Aura"]),
+      tipWhen = function(kind, class) return Pop.SlotProcTipWhen(kind, class) end },
     { field = "readyGlow",        label = L["Ready glow"],             noAura = true, noBar = true, tab = "glow" },
     { field = "activeGlow",       label = L["Glow during buff"],      when = ActiveGlowWhen, tab = "glow" },
     { field = "fullGlow",         label = L["Glow at max charges"],    noAura = true, noBar = true, tab = "glow", charge = true,
@@ -393,6 +400,26 @@ local function CurSlot()
     if type(cur.id) == "number" and ns.Bars and ns.Bars.IsProxied then return ns.Bars.IsProxied(cur.key, cur.id) end
     return nil
 end
+-- 觸發發光那一列（TOGGLES 的 procGlow）：有冷卻的、不在長條上（同就緒發光），再扣掉兩種永遠不會亮的——
+-- 自訂物品（沒有觸發事件、也不疊觸發增益）、暴雪自己畫的裝備欄格（kind nil、有 equipSlot、這一輪不是代畫：
+-- 觸發事件不會為飾品派送，觸發發光疊層只疊在我們畫的飾品欄格上）。掛在 Pop 上（Build 的 upvalue 上限）
+function Pop.NativeEquip(kind)
+    if kind ~= nil or not cur or type(cur.id) ~= "number" then return false end
+    local info = ns.Catalog.Info(cur.id)
+    if not (info and type(info.equipSlot) == "number") then return false end
+    return not (ns.Bars and ns.Bars.IsProxied and ns.Bars.IsProxied(cur.key, cur.id))
+end
+function Pop.ProcWhen(kind, class)
+    return NotAuraNotBar(kind, class) and kind ~= "item" and not Pop.NativeEquip(kind)
+end
+-- 飾品欄（含代畫格）：那一格裝著東西時，解得出觸發增益 ⇒ 灰字說明；解不出 ⇒ 黃字原因（Catalog.SlotProcIDs）
+function Pop.SlotProcState()
+    local slot = CurSlot()
+    if not (slot and ns.Catalog.SlotItemID(slot)) then return nil end
+    return #ns.Catalog.SlotProcIDs(slot) > 0 and "proc" or "none"
+end
+function Pop.SlotProcTipWhen(kind, class) return Pop.ProcWhen(kind, class) and Pop.SlotProcState() == "proc" end
+function Pop.SlotNoProcWhen(kind, class) return Pop.ProcWhen(kind, class) and Pop.SlotProcState() == "none" end
 -- 那一格解不出增益（疊不了增益按鈕）：增益持續時間那一段停用、黃字寫原因
 local function CurSlotNoBuff()
     local slot = CurSlot()
@@ -1756,10 +1783,6 @@ local function Build()
     for _, t in ipairs(TOGGLES) do
         local when = t.when
         if t.noAura then when = t.noBar and NotAuraNotBar or NotAura end
-        if t.noItem then
-            local base = when
-            when = function(kind, class) return base(kind, class) and Pop.NoProc(kind) end
-        end
         if t.charge then when = ChargeWhen(when) end          -- 只在這招現在有充能時（連同下一列灰字）
         buildTab = t.tab
         local tr, th = NewRow(t.label, when)
@@ -1785,7 +1808,7 @@ local function Build()
             tipFs:SetText(t.tip)
             local tipH = 2 + math.max(14, tipFs:GetStringHeight() or 0) + 6
             tipRow:SetSize(ROW_W, tipH)
-            local tipEntry = { frame = tipRow, h = tipH, when = when }
+            local tipEntry = { frame = tipRow, h = tipH, when = t.tipWhen or when }
             tipEntry.remeasure = function()
                 local sh2 = tipFs:GetStringHeight()
                 local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
@@ -2365,6 +2388,9 @@ local function Build()
         EmphasisRow(L["What's equipped in this slot has no buff to track."],
             function(kind, class) return DurationRows(kind, class) and CurSlotNoBuff() end, tab)
     end
+    -- 飾品欄的觸發發光解不出觸發增益：原因（發光分頁）
+    EmphasisRow(L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."]
+        :format(L["Custom ID"], L["Aura"]), Pop.SlotNoProcWhen, "glow")
     -- 飾品欄增益解不出增益：問號格的原因（一般分頁）
     EmphasisRow(L["This trinket has no buff to track."],
         function(kind) return kind == "aura" and CurSlotBuffMissing() == "nobuff" end, "general")

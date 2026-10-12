@@ -86,6 +86,8 @@ L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button in
 L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."] = "只在飾品的增益生效時出現。選要追蹤哪一個增益，每個增益各佔一格。"
 L["%s (added)"] = "%s（已加入）"
 L["This trinket has no buff to track."] = "這件飾品沒有可追蹤的增益。"
+L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."] = "這件飾品的觸發增益在身上時發光。暴雪沒登記的觸發偵測不到，可以改用「%s」→「%s」輸入增益的法術 ID 追蹤。"
+L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."] = "這件飾品沒有可追蹤的觸發效果。可以改用「%s」→「%s」輸入增益的法術 ID 追蹤。"
 L["Nothing is equipped in this slot."] = "這一格沒有裝東西。"
 L["What's equipped in this slot has no buff to track."] = "這一格現在裝的東西沒有可追蹤的增益。"
 L["Buff %d"] = "增益 %d"

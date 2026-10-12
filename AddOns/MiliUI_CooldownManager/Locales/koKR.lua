@@ -86,6 +86,8 @@ L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button in
 L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."] = "장신구의 강화 효과가 활성화된 동안에만 표시됩니다. 추적할 강화 효과를 고르세요. 효과마다 칸을 하나씩 차지합니다."
 L["%s (added)"] = "%s (추가됨)"
 L["This trinket has no buff to track."] = "이 장신구에는 추적할 강화 효과가 없습니다."
+L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."] = "이 장신구의 발동 강화 효과가 걸려 있는 동안 빛납니다. 블리자드가 등록하지 않은 발동은 감지할 수 없으니 '%s' → '%s'에 강화 효과의 주문 ID를 입력해 추적하세요."
+L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."] = "이 장신구에는 추적할 발동 효과가 없습니다. '%s' → '%s'에 강화 효과의 주문 ID를 입력해 추적할 수 있습니다."
 L["Nothing is equipped in this slot."] = "이 칸에 착용한 장비가 없습니다."
 L["What's equipped in this slot has no buff to track."] = "이 칸에 착용한 장비에는 추적할 강화 효과가 없습니다."
 L["Buff %d"] = "강화 효과 %d"

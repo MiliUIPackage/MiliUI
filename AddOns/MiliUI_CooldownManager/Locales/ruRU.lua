@@ -86,6 +86,8 @@ L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button in
 L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."] = "Появляется, только пока действует бафф аксессуара. Выберите бафф: у каждого своя ячейка."
 L["%s (added)"] = "%s (добавлено)"
 L["This trinket has no buff to track."] = "У этого аксессуара нет баффа для отслеживания."
+L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."] = "Светится, пока на вас действует один из баффов, срабатывающих от этого аксессуара. Срабатывания, которых нет в списке Blizzard, не отслеживаются; добавьте их через «%s» → «%s» по ID заклинания баффа."
+L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."] = "У этого аксессуара нет срабатывающего эффекта для отслеживания. Бафф можно отслеживать через «%s» → «%s» по его ID заклинания."
 L["Nothing is equipped in this slot."] = "В этой ячейке ничего не надето."
 L["What's equipped in this slot has no buff to track."] = "У того, что надето в этой ячейке, нет баффа для отслеживания."
 L["Buff %d"] = "Бафф %d"

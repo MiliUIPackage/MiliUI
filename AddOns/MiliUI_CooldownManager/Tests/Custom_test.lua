@@ -1525,6 +1525,90 @@ do
     CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 5)
     eq("打開回來 ⇒ 持有框顯示", h.shown, true)
 
+    -- 觸發發光疊層（rec.procOverlay）：觸發發光（條層 glow.proc 預設開）＋解得出觸發增益（全部 − 使用效果）⇒ 疊一顆只畫發光的按鈕
+    do
+        eq("物品資料沒到 ⇒ 不疊觸發（不猜）", rec.procOverlay, nil)
+        local savedCached = env.C_Item.IsItemDataCachedByID
+        env.C_Item.IsItemDataCachedByID = function() return true end
+        C.InvalidateSlotBuffs()
+        eqList("SlotProcOverlayIDs：扣掉使用效果 ⇒ 第 2 個", (C.SlotProcOverlayIDs("essential", sid, 13)), { 1305376 })
+        CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 7)
+        local po = rec.procOverlay
+        check("觸發疊層：子 rec（光環格形狀、procOf）", po and po.kind == "aura" and po.filter == "HELPFUL" and po.procOf == rec)
+        check("觸發疊層：跟增益疊層是兩顆", po and po ~= rec.buffOverlay and po.frame ~= rec.buffOverlay.frame)
+        local ph = po and po.frame
+        eq("觸發疊層：持有框 parent ＝ 條容器", ph and ph:GetParent(), cont)
+        eq("觸發疊層：錨條容器（不是冷卻格）", ph and ph.last_SetPoint and ph.last_SetPoint[2], cont)
+        eq("觸發疊層：容器＋8", ph and ph:GetFrameLevel(), 18)
+        check("觸發疊層：在增益疊層的生效發光（＋10）之上的按鈕、overlay（冷卻格＋10）之下",
+            ph and ph:GetFrameLevel() > h:GetFrameLevel() and ph:GetFrameLevel() + 3 < rec.frame:GetFrameLevel() + 10)
+        local pc = po and po.container
+        local pinc = pc and pc.slot.opts.candidateFilters.includeSpellIDs or {}
+        check("觸發疊層：includeSpellIDs ＝ 觸發（不含使用效果）", pinc[1305376] and not pinc[1297761])
+        check("觸發疊層：簽章帶 proc 記號與增益", po.sig and po.sig:find("^proc") and po.sig:find("1305376", 1, true))
+        eq("Counts：觸發疊層一顆", CU.Counts().procOverlays, 1)
+        -- 樣式：只有發光、讀 glow.proc
+        local stP = CU.AuraStyle(po, "essential", 36, 36, "icons")
+        check("觸發疊層：procOnly、有發光", stP.procOnly and stP.glow ~= nil)
+        eq("觸發疊層：發光樣式＝glow.proc 的 type", stP.glow.type, ns.Setting("essential", "glow.proc.type"))
+        eq("觸發疊層：不建倒數／層數設定", stP.cdFont, nil)
+        -- initializeFrame：全透明、不吃滑鼠、只有發光
+        local attachedType
+        local savedLCG = ns.MiliUIGlow
+        local function Att(kind) return function() attachedType = kind end end
+        ns.MiliUIGlow = { PixelGlow_Attach = Att("pixel"), AutoCastGlow_Attach = Att("autocast"),
+                          ButtonGlow_Attach = Att("button"), ProcGlow_Attach = Att("proc") }
+        local pb = Obj("Frame", pc)
+        local pgot = {}
+        function pb:SetIcon(t) pgot.icon = t end
+        function pb:SetDurationCooldown(cd) pgot.cd = cd end
+        function pb:SetDurationText(fs) pgot.text = fs end
+        function pb:SetApplicationCount(fs) pgot.count = fs end
+        function pb:SetMouseClickEnabled(v) pgot.click = v end
+        function pb:SetMouseMotionEnabled(v) pgot.motion = v end
+        po.lastError = nil
+        pc.slot.opts.initializeFrame(pb)
+        eq("觸發按鈕：沒有錯誤", po.lastError, nil)
+        check("觸發按鈕：圖示照給引擎、但看不見", pgot.icon and pgot.icon.parent and pgot.icon.parent.alpha == 0)
+        check("觸發按鈕：不建轉圈／倒數／層數", pgot.cd == nil and pgot.text == nil and pgot.count == nil)
+        check("觸發按鈕：不吃滑鼠（點擊、滑過都關）", pgot.click == false and pgot.motion == false)
+        eq("觸發按鈕：發光照 glow.proc 的樣式", attachedType, ns.Setting("essential", "glow.proc.type"))
+        eq("觸發按鈕：初始化一次", po.procInits, 1)
+        ns.MiliUIGlow = savedLCG
+        -- 發光顏色進簽章
+        local sigP = po.sig
+        local savedSetting = ns.Setting
+        ns.Setting = function(k, path, ...)
+            if path == "glow.proc" then return { type = "proc", color = { r = 0, g = 1, b = 1, a = 1 } } end
+            return savedSetting(k, path, ...)
+        end
+        CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 8)
+        check("發光顏色改了 ⇒ 簽章變、換容器", po.sig ~= sigP and po.container ~= pc)
+        ns.Setting = savedSetting
+        -- 增益疊層關掉（showAuraTime false）：觸發疊層照樣讓條固定格位
+        DB.SpecSpells(true).overrides[sid] = { showAuraTime = false }
+        check("只剩觸發疊層 ⇒ BarHasAuraSlot 仍成立", C.BarHasAuraSlot("essential"))
+        -- 逐法術關觸發發光 ⇒ 不疊、持有框收起來、條不再因它固定
+        DB.SpecSpells(true).overrides[sid] = { showAuraTime = false, procGlow = false }
+        eq("procGlow 關 ⇒ SlotProcOverlayIDs nil", C.SlotProcOverlayIDs("essential", sid, 13), nil)
+        check("兩個疊層都不疊 ⇒ BarHasAuraSlot 不成立", not C.BarHasAuraSlot("essential"))
+        CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 9)
+        eq("procGlow 關 ⇒ 持有框收起來", ph.shown, false)
+        eq("procGlow 關 ⇒ placedBar 清掉", po.placedBar, nil)
+        DB.SpecSpells(true).overrides[sid] = nil
+        CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 10)
+        eq("打開回來 ⇒ 觸發疊層顯示", ph.shown, true)
+        -- 冷卻格收起來（這一輪沒放到 ⇒ EndBar）⇒ 觸發疊層一起收；再放回來照疊
+        CU.EndBar("essential", 99)
+        check("冷卻格收起來 ⇒ 觸發疊層一起收", po.placedBar == nil and ph.shown == false)
+        CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 100)
+        eq("放回來 ⇒ 觸發疊層照疊", po.placedBar, "essential")
+        env.C_Item.IsItemDataCachedByID = savedCached
+        C.InvalidateSlotBuffs()
+        CU.Place(rec, cont, { x = 40, y = 0, w = 36, h = 36 }, "essential", 11)
+        eq("資料讀不到 ⇒ 觸發疊層收起來", po.placedBar, nil)
+    end
+
     -- 解不出增益（換成沒有使用效果的飾品）⇒ 不疊
     equipped[13] = 290000
     linked[801], linked[802] = nil, nil                -- 暴雪那邊跟著物品換：沒有增益項目

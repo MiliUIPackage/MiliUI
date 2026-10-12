@@ -86,6 +86,8 @@ L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button in
 L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."] = "N'apparaît que pendant que l'amélioration du bijou est active. Choisissez l'amélioration : chacune a son propre emplacement."
 L["%s (added)"] = "%s (ajouté)"
 L["This trinket has no buff to track."] = "Ce bijou n'a aucune amélioration à suivre."
+L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."] = "Brille tant que l'une des améliorations déclenchées de ce bijou est sur vous. Les déclenchements que Blizzard ne répertorie pas ne sont pas détectés ; suivez-les avec « %s » → « %s » et l'ID du sort de l'amélioration."
+L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."] = "Ce bijou n'a aucun effet déclenché à suivre. Vous pouvez suivre l'amélioration avec « %s » → « %s » et son ID de sort."
 L["Nothing is equipped in this slot."] = "Rien n'est équipé dans cet emplacement."
 L["What's equipped in this slot has no buff to track."] = "Ce qui est équipé dans cet emplacement n'a aucune amélioration à suivre."
 L["Buff %d"] = "Amélioration %d"

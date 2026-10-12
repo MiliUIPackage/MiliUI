@@ -86,6 +86,8 @@ L["Blizzard's trinket tracking is unreliable. Use the \"Trinket buff\" button in
 L["Shows up only while the trinket's buff is active. Pick which buff: each one gets its own slot."] = "Só aparece enquanto o bônus do berloque estiver ativo. Escolha o bônus: cada um ocupa seu próprio espaço."
 L["%s (added)"] = "%s (adicionado)"
 L["This trinket has no buff to track."] = "Este berloque não tem bônus para rastrear."
+L["Glows while one of this trinket's proc buffs is on you. Procs Blizzard doesn't list can't be detected; track those with %s → %s and the buff's spell ID."] = "Brilha enquanto um dos bônus ativados deste berloque estiver em você. Ativações que a Blizzard não registra não são detectadas; rastreie-as com \"%s\" → \"%s\" e o ID do feitiço do bônus."
+L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."] = "Este berloque não tem efeito ativado para rastrear. Você pode rastrear o bônus com \"%s\" → \"%s\" e o ID do feitiço dele."
 L["Nothing is equipped in this slot."] = "Não há nada equipado neste slot."
 L["What's equipped in this slot has no buff to track."] = "O que está equipado neste slot não tem bônus para rastrear."
 L["Buff %d"] = "Bônus %d"

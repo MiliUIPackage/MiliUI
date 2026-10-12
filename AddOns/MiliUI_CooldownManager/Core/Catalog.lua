@@ -769,6 +769,8 @@ end
 --   ns.Catalog.SlotBuffIndices(slot)         → { buffIndex… }（排序；解得出增益的那幾個）
 --   ns.Catalog.SlotUseBuffIDs(slot)          → { spellID… }, sig    冷卻格（使用效果）認的增益（暴雪 EquipSlotEssential 那一筆）
 --   ns.Catalog.SlotOverlayIDs(barKey, id, slot) → ids, sig ｜ nil   冷卻格要不要疊增益按鈕（Modules/Custom.lua）
+--   ns.Catalog.SlotProcIDs(slot)             → { spellID… }, sig    這件飾品的觸發增益（全部增益扣掉使用效果那幾個）
+--   ns.Catalog.SlotProcOverlayIDs(barKey, id, slot) → ids, sig ｜ nil   冷卻格要不要疊觸發發光（Modules/Custom.lua）
 --   ns.Catalog.ItemUseBuffIDs(itemIDs)       → { spellID… }, sig    自訂物品（藥水那類）用掉之後身上的增益
 --   ns.Catalog.ItemOverlayIDs(barKey, id, e) → ids, sig ｜ nil   自訂物品的冷卻格要不要疊增益按鈕（同飾品欄）
 --   ns.Catalog.InvalidateSlotBuffs()         作廢快取（換裝、暴雪資料重載／熱修正、進場）
@@ -928,6 +930,62 @@ function C.SlotUseBuffIDs(slot)
     return ids, sig
 end
 
+-- 觸發增益（玩家說的「飾品觸發」＝身上多一個增益）：這一格全部的增益（每個 buffSlot 都收）扣掉使用效果那幾個
+-- （SlotUseBuffIDs，增益疊層已經在倒數）。⚠ SlotUseBuffIDs 在「沒有使用效果」時會退回第 1 個增益——純被動飾品的
+-- 第 1 個增益就是觸發，照扣會整個扣光 ⇒ 先判「有沒有使用效果」，判準跟「被動飾品不顯示」同一個（C.PassiveOf：
+-- 物品資料載入了而且 C_Item.GetItemSpell 沒有使用效果法術 ＝ 被動）：
+--   hasUse == true   全部 − 使用效果那幾個
+--   hasUse == false  全部（純被動：每一個增益都是觸發）
+--   hasUse == nil    判不出來（物品資料還沒到）⇒ 空、不快取（寧可這一輪不亮，也不要把使用效果當觸發）
+-- 兩個以上的觸發增益（buffSlot 2、3…）全部收進同一張表：Modules/Custom.lua 放進同一個 AddAuraSlot 的
+-- includeSpellIDs ⇒ 任一個在身上就亮、同時在也只有一顆按鈕一圈發光。
+-- 純函式（離線可測）：all ＝ SlotBuffIDs(slot) 的結果（順序照 buffSlot）、use ＝ SlotUseBuffIDs(slot) 的結果
+function C.SlotProcIDsFrom(all, use, hasUse)
+    local out = {}
+    if hasUse == nil then return out, "" end
+    local drop = {}
+    if hasUse then
+        for _, id in ipairs(type(use) == "table" and use or EMPTY) do drop[id] = true end
+    end
+    for _, id in ipairs(type(all) == "table" and all or EMPTY) do
+        if PositiveInt(id) and not drop[id] then
+            drop[id] = true                                  -- 順手去重
+            out[#out + 1] = id
+        end
+    end
+    return out, IDSig(out)
+end
+
+-- 那一格的物品有沒有使用效果：true／false／nil（資料還沒到，順手要一次——到了 GET_ITEM_INFO_RECEIVED 會重排）
+local function SlotHasUse(slot)
+    local itemID = C.SlotItemID(slot)
+    if not itemID then return nil end
+    local I = C_Item
+    local ok, cached = false, nil
+    if I and I.IsItemDataCachedByID then ok, cached = pcall(I.IsItemDataCachedByID, itemID) end
+    if ok then cached = Plain(cached) else cached = nil end      -- ⚠ 不能寫 ok and Plain(x) or nil：false 會變 nil
+    if cached ~= true then
+        if cached == false and I and I.RequestLoadItemDataByID then pcall(I.RequestLoadItemDataByID, itemID) end
+        return nil
+    end
+    return SlotItemSpell(itemID) ~= nil
+end
+
+function C.SlotProcIDs(slot)
+    if not CUSTOM_SLOTS[slot] then return NO_IDS, "" end
+    local key = slot .. "|proc"
+    local hit = slotBuffCache[key]
+    if hit then return hit.ids, hit.sig end
+    if not C.SlotItemID(slot) then return NO_IDS, "" end
+    local hasUse = SlotHasUse(slot)
+    if hasUse == nil then return NO_IDS, "" end
+    local all = C.SlotBuffIDs(slot)
+    local ids, sig = C.SlotProcIDsFrom(all, hasUse and C.SlotUseBuffIDs(slot) or nil, hasUse)
+    -- 解不出全部增益時不快取（剛登入暴雪資料還沒到）；解得出、只是扣完是空的（只有使用效果的飾品）照快取
+    if #all > 0 then slotBuffCache[key] = { ids = ids, sig = sig } end
+    return ids, sig
+end
+
 -- 自訂物品（藥水、使用型物品）用掉之後身上的增益。一格可能有替代品（同一類藥水的幾階），全部合併去重：
 --   常用預設認得的組（Presets.ITEMS 裡含其中一件）：ITEM_NO_BUFF 的那幾組直接沒有（治療藥水、治療石、法力藥水）；
 --     有登記增益的（Presets.AURAS 同 key）放進來
@@ -1005,6 +1063,19 @@ function C.SlotOverlayIDs(barKey, id, slot)
     if id == nil or not CUSTOM_SLOTS[slot] then return nil end
     if ns.SpellSetting and ns.SpellSetting(barKey, id, "showAuraTime") == false then return nil end
     local ids, sig = C.SlotUseBuffIDs(slot)
+    if #ids == 0 then return nil end
+    return ids, sig
+end
+
+-- 飾品欄冷卻格要不要疊觸發發光（Modules/Custom.lua 的「飾品欄的觸發發光疊層」）：逐法術的觸發發光（procGlow，
+-- 沒覆寫退條層 glow.proc.enabled）開著、不是長條類的條（長條不畫發光）也不是圓環條（飾品欄冷卻上不了圓環條）、
+-- 而且解得出觸發增益 ⇒ ids, sig。跟 BarHasAuraSlot 同一個判準
+function C.SlotProcOverlayIDs(barKey, id, slot)
+    if id == nil or not CUSTOM_SLOTS[slot] then return nil end
+    if not (ns.SpellSetting and ns.SpellSetting(barKey, id, "procGlow")) then return nil end
+    if ns.Setting and ns.Setting(barKey, "kind") == "bars" then return nil end
+    if ns.DB and ns.DB.BarIsRings and ns.DB.BarIsRings(barKey) then return nil end
+    local ids, sig = C.SlotProcIDs(slot)
     if #ids == 0 then return nil end
     return ids, sig
 end
@@ -1228,7 +1299,7 @@ function C.IsAuraSlot(id)
 end
 
 -- 這條上有沒有保護框（有的話固定格位被強制打開）：光環格（含飾品欄增益），**或**會疊增益按鈕的飾品欄（C.SlotOverlayIDs；
--- 疊層的持有框跟光環格一樣是條容器底下的保護框）。名字沿用，設定頁的黃字原因同一句。
+-- 疊層的持有框跟光環格一樣是條容器底下的保護框）、會疊觸發發光的飾品欄（C.SlotProcOverlayIDs，同理）。名字沿用，設定頁的黃字原因同一句。
 -- 暴雪的裝備欄冷卻格（C.ProxySlotOf 成立的）也算：暴雪沒給框時由我們代畫（Core/Bars.lua），代畫格就是飾品欄、
 -- 一樣會疊增益。**不管這一輪暴雪有沒有給框**（保守：給框時固定格位多開不會壞；跟著框的有無翻來翻去反而會在
 -- 戰鬥中改格位）。清單用 BarBase（不套溢出）：BarHasAuraSlot ← Bars.Occupancy ← Overflow 的佔位判斷，
@@ -1258,14 +1329,15 @@ function C.BarHasAuraSlot(barKey)
             local e = it.entry
             if ValidCustom(e) and e.bar == k then
                 if AuraShaped(e.kind) then return true end
-                if not ring and e.kind == "slot" and C.SlotOverlayIDs(k, it.id, e.slot) then return true end
+                if not ring and e.kind == "slot" and (C.SlotOverlayIDs(k, it.id, e.slot)
+                    or C.SlotProcOverlayIDs(k, it.id, e.slot)) then return true end
                 if not ring and e.kind == "item" and C.ItemOverlayIDs(k, it.id, e) then return true end
             end
         end
         if not ring and AnyProxyCandidate() then
             for _, id in ipairs((C.BarBase(k))) do
                 local slot = C.ProxySlotOf(id)
-                if slot and C.SlotOverlayIDs(k, id, slot) then return true end
+                if slot and (C.SlotOverlayIDs(k, id, slot) or C.SlotProcOverlayIDs(k, id, slot)) then return true end
             end
         end
         return false

@@ -1232,6 +1232,70 @@ do
     eqList("秘密值的增益 ID 不收 ⇒ 第 2 個空、不退使用效果", (C.SlotBuffIDs(13, 2)), {})
     env.canaccessvalue = function() return true end
 
+    -- 觸發增益（SlotProcIDs）：全部增益扣掉使用效果那幾個；沒有使用效果（純被動）一個都不扣；判不出來 ⇒ 空
+    eqList("SlotProcIDsFrom：使用效果＋兩個觸發 ⇒ 兩個觸發", (C.SlotProcIDsFrom({ 11, 22, 33 }, { 11 }, true)), { 22, 33 })
+    eq("SlotProcIDsFrom：簽章", select(2, C.SlotProcIDsFrom({ 11, 33, 22 }, { 11 }, true)), "22,33")
+    eqList("SlotProcIDsFrom：純被動兩個觸發 ⇒ 都不扣（use 退回的第 1 個也不扣）",
+        (C.SlotProcIDsFrom({ 22, 33 }, { 22 }, false)), { 22, 33 })
+    eqList("SlotProcIDsFrom：只有使用效果 ⇒ 空", (C.SlotProcIDsFrom({ 11 }, { 11 }, true)), {})
+    eqList("SlotProcIDsFrom：判不出來 ⇒ 空", (C.SlotProcIDsFrom({ 11, 22 }, { 11 }, nil)), {})
+    eqList("SlotProcIDsFrom：去重、壞值不收", (C.SlotProcIDsFrom({ 22, 22, 0, "x", 33 }, nil, true)), { 22, 33 })
+    do
+        -- 整合：槽 13 有使用效果（270175 → 1297761），暴雪冷卻那一筆認 1500000；增益 buffSlot 1／2／3
+        -- 槽 14 純被動（290000 沒有使用法術），兩個觸發（buffSlot 1、2）
+        local s8, s7, s7i = sets[8], sets[7], infos[7901]
+        local i803 = infos[803]
+        def(804, 8, { equipSlot = 13, buffSlot = 3, linkedSpellIDs = { 1700000 } })
+        def(803, 8, { equipSlot = 14, buffSlot = 1, linkedSpellIDs = { 1800000 } })
+        def(805, 8, { equipSlot = 14, buffSlot = 2, linkedSpellIDs = { 1900000 } })
+        sets[8] = { 801, 802, 803, 804, 805 }
+        def(7901, 7, { equipSlot = 13, linkedSpellIDs = { 1500000 } })
+        sets[7] = { 7901 }
+        local savedEq14 = equipped[14]
+        equipped[14] = 290000
+        local cachedOf = { [270175] = true, [290000] = true }
+        local loads = 0
+        env.C_Item.IsItemDataCachedByID = function(id) return cachedOf[id] end
+        env.C_Item.RequestLoadItemDataByID = function() loads = loads + 1 end
+        C.InvalidateSlotBuffs()
+        eqList("SlotProcIDs：使用效果＋兩個觸發（buffSlot 2、3）⇒ 兩個觸發", (C.SlotProcIDs(13)), { 1305376, 1700000 })
+        eqList("SlotProcIDs：純被動兩個觸發 ⇒ 兩個都收", (C.SlotProcIDs(14)), { 1800000, 1900000 })
+        eqList("SlotProcIDs：不收的欄位 ⇒ 空", (C.SlotProcIDs(4)), {})
+        -- 物品資料還沒到：不猜、不快取，要一次資料
+        cachedOf[290000] = false
+        C.InvalidateSlotBuffs()
+        eqList("SlotProcIDs：資料沒到 ⇒ 空", (C.SlotProcIDs(14)), {})
+        check("SlotProcIDs：資料沒到 ⇒ 要一次", loads >= 1)
+        cachedOf[290000] = true
+        eqList("SlotProcIDs：資料到了（沒快取空結果）", (C.SlotProcIDs(14)), { 1800000, 1900000 })
+        -- 快取：作廢前不變、作廢後換新
+        infos[805].linkedSpellIDs = { 1950000 }
+        eqList("SlotProcIDs：作廢前是快取", (C.SlotProcIDs(14)), { 1800000, 1900000 })
+        C.InvalidateSlotBuffs()
+        eqList("SlotProcIDs：作廢後換新", (C.SlotProcIDs(14)), { 1800000, 1950000 })
+        -- 判準：逐法術 procGlow、長條／圓環條不疊
+        local savedSS, savedS, savedDB = ns.SpellSetting, ns.Setting, ns.DB
+        local proc, kind, rings = true, "icons", false
+        ns.SpellSetting = function(_, _, k) if k == "procGlow" then return proc end end
+        ns.Setting = function(_, k) if k == "kind" then return kind end end
+        ns.DB = setmetatable({ BarIsRings = function() return rings end }, { __index = savedDB })
+        eqList("SlotProcOverlayIDs：開著 ⇒ 觸發增益", (C.SlotProcOverlayIDs("essential", "c:1", 13)), { 1305376, 1700000 })
+        proc = false
+        eq("SlotProcOverlayIDs：procGlow 關 ⇒ nil", C.SlotProcOverlayIDs("essential", "c:1", 13), nil)
+        proc, kind = true, "bars"
+        eq("SlotProcOverlayIDs：長條類 ⇒ nil", C.SlotProcOverlayIDs("essential", "c:1", 13), nil)
+        kind, rings = "icons", true
+        eq("SlotProcOverlayIDs：圓環條 ⇒ nil", C.SlotProcOverlayIDs("essential", "c:1", 13), nil)
+        rings = false
+        eq("SlotProcOverlayIDs：id nil ⇒ nil", C.SlotProcOverlayIDs("essential", nil, 13), nil)
+        ns.SpellSetting, ns.Setting, ns.DB = savedSS, savedS, savedDB
+        env.C_Item.IsItemDataCachedByID, env.C_Item.RequestLoadItemDataByID = nil, nil
+        sets[8], sets[7], infos[7901], infos[803] = s8, s7, s7i, i803
+        infos[804], infos[805] = nil, nil
+        equipped[14] = savedEq14
+        C.InvalidateSlotBuffs()
+    end
+
     -- 自訂物品（藥水那類）的增益：常用預設認得的組照 AURAS 同 key＋使用法術；ITEM_NO_BUFF 的組沒有；其餘照使用法術
     local savedPresets = ns.Presets
     ns.Presets = {
