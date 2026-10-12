@@ -1236,8 +1236,11 @@ end
 -- 點數型的數字。光環／技能次數型（氣漩武器、長矛之尖、靈魂碎片）沒累積時就不畫，
 -- 空著比一顆「0」乾淨；標準職業點數（聖能、連擊點那種）照常顯示 0。
 -- fracValue（含小數的顆數）只有毀滅術碎片讀得到明文時才帶：印一位小數（例 3.7）
+-- ⚠ 顯示條件要跟 LayoutRow 給字型那段一致：預覽的符文列不走符文分支、會落到這裡，
+-- 選「每格秒數」時中間那行沒給字型，照 showText 印就是「Font not set」
 local function SetPipText(row, def, edb, n, fracValue)
     if not edb.showText then return end
+    if def.fill == "rune" and RuneText(edb) ~= "count" then return end
     if (def.aura or def.cast) and n <= 0 then
         row.text:SetText("")
         return
