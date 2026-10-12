@@ -235,6 +235,7 @@ L["Style"] = "스타일"
 L["Ready glow"] = "준비 발광"
 L["Pandemic border color"] = "판데믹 테두리 색상"
 L["Show keybind text"] = "단축키 글자 표시"
+L["Shows the key bound to this spell's action bar slot on the icon, such as 1, Q or S-E."] = "이 주문이 놓인 행동 단축바 칸에 지정된 키를 아이콘에 표시합니다(예: 1, Q, S-E)."
 L["Fade the bar"] = "흐리게 표시"
 L["Faded opacity"] = "흐려진 후 불투명도"
 L["0 hides it completely."] = "0이면 완전히 숨깁니다."
@@ -748,7 +749,7 @@ L["Glows on the spell the Combat Assistant suggests casting next, wherever it si
 L["Show the next cast icon"] = "다음 시전 아이콘 표시"
 L["A separate icon showing the suggested spell, its keybind and the global cooldown. Display only, it can't be clicked. Drag it in Edit Mode."] = "추천 주문과 단축키, 전역 재사용 대기시간을 보여 주는 별도 아이콘입니다. 표시 전용이라 클릭할 수 없으며, 편집 모드에서 끌어 옮깁니다."
 L["Show the global cooldown"] = "전역 재사용 대기시간 표시"
-L["Border, zoom and keybind text follow the theme's icon settings."] = "테두리, 확대, 단축키 문자는 테마의 아이콘 설정을 따릅니다."
+L["Border and zoom follow the theme's icon settings, keybind text its text settings."] = "테두리와 확대는 테마의 아이콘 설정을, 단축키 글자는 글자 설정을 따릅니다."
 L["Restore the Combat Assistant settings to their defaults?"] = "전투 보조 설정을 기본값으로 되돌리시겠습니까?"
 
 -- 常用預設＋複製到其他專精
@@ -915,7 +916,7 @@ L["None left in your bags, so it isn't shown on screen."] = "가방에 남은 �
 L["The equipped item has no use effect, so it isn't shown on screen."] = "장착한 아이템에 사용 효과가 없어 화면에 표시되지 않습니다."
 L["Hide charges"] = "충전 숨기기"
 L["Hide keybind text"] = "단축키 글자 숨기기"
-L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."] = "이 바는 단축키 글자가 꺼져 있어서, 켜야 이 설정이 보입니다(효과, 단축키 글자)."
+L["Keybind text is turned off for this bar, so these only show once it's on (Text, Keybind text)."] = "이 바는 단축키 글자가 꺼져 있어서, 켜야 이 설정이 보입니다(글자, 단축키 글자)."
 L["Custom text"] = "사용자 문구"
 L["A short note on this icon, for example what the buff is. Leave it blank to show nothing."] = "이 아이콘에 표시할 짧은 메모입니다(예: 어떤 강화 효과인지). 비워 두면 표시하지 않습니다."
 -- 噬滅：虛空化身計時＋崩陷之星計數（靈魂碎片設定視窗、門檻規則彈窗）

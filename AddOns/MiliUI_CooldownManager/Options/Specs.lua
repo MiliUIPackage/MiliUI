@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 設定表單的規格與接線（條頁與主題頁共用）
 --
---   Specs.Themed(mode, key)       淡出（版面分頁）＋圖示／文字／效果／音效四節（mode = "bar" | "theme"；key ＝ 哪一條，長條沒有按鍵文字那一節）
+--   Specs.Themed(mode, key)       淡出（版面分頁）＋圖示／文字／效果／音效四節（mode = "bar" | "theme"；key ＝ 哪一條，長條沒有快捷鍵文字那一節）
 --   Specs.Layout(key)             版面（條頁）
 --   Specs.Visibility()            顯示條件（條頁）
 --   Specs.Anchor(key)             錨定（條頁）：摘要＋「設定」鈕，內容在錨定視窗（Options/AnchorWindow.lua）
@@ -941,11 +941,24 @@ function Specs.Themed(mode, key)
             K(StackBarPoint()),
             K(StackOffset()))
     end
+    -- 快捷鍵文字（v8 起歸文字，使用者 2026-10-12 從效果搬來）：長條與增益圖示列沒有這一節，引擎也不畫
+    -- （Core/Keybinds.lua 的 NoKeybind）。長條類的條本來就沒有 ⇒ 不會夾在下面的長條文字前面
+    if not (bar and key and ns.Keybinds.NoKeybind(key)) then
+        add(Nested(L["Keybind text"], "text"),
+            TS("text", "toggle", "keybind.enabled", L["Show keybind text"]),
+            Note(L["Shows the key bound to this spell's action bar slot on the icon, such as 1, Q or S-E."], "text"),
+            FontTS("text", "keybind.font"),
+            TS("text", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
+            PointGridTS("text", "keybind.point", L["Anchor"], "TOPRIGHT"),
+            TS("text", "numbers", nil, L["Offset"], { sub = "keybind", path = false,
+                resetPaths = { "keybind.x", "keybind.y" },
+                fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
+    end
     -- 長條文字排在文字這一節的**最後**：跟隨遮罩蓋的是 section 第一列到最後一列的整塊矩形，
     -- 這幾列是條自己的欄位（不跟主題），夾在中間會跟著被蓋住
     if barsKind and bar then add(unpack(BarTextRows())) end
 
-    -- 效果（發光、無損刷新、按鍵文字）
+    -- 效果（發光、無損刷新）
     add({ type = "header", label = L["Effects"], tab = "glow" })
     if bar then add(OverrideRow("glow"), FollowToggle("glow")) end
     if not auraBar then
@@ -997,17 +1010,6 @@ function Specs.Themed(mode, key)
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
         TS("glow", "color", "pandemic.color", L["Pandemic border color"]),
         TS("glow", "toggle", "pandemic.bars", L["Color bars too"]))
-    -- 按鍵文字：長條與增益圖示列沒有這一節，引擎也不畫（Core/Keybinds.lua 的 NoKeybind）
-    if not (bar and key and ns.Keybinds.NoKeybind(key)) then
-        add(Nested(L["Keybind text"], "glow"),
-            TS("glow", "toggle", "keybind.enabled", L["Show keybind text"]),
-            FontTS("glow", "keybind.font"),
-            TS("glow", "slider", "keybind.size", L["Font size"], { min = 6, max = 24, step = 1 }),
-            PointGridTS("glow", "keybind.point", L["Anchor"], "TOPRIGHT"),
-            TS("glow", "numbers", nil, L["Offset"], { sub = "keybind", path = false,
-                resetPaths = { "keybind.x", "keybind.y" },
-                fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
-    end
     -- 音效：響什麼是逐法術設定（預覽裡點圖示）；主題頁放總開關與聲道，條頁只有覆寫數＋清除。
     -- 不掛 section：音效不走「跟隨全域主題」，條頁不蓋遮罩
     add({ type = "header", label = L["Sounds"], tab = "sound" })

@@ -235,6 +235,7 @@ L["Style"] = "Stil"
 L["Ready glow"] = "Bereit-Leuchten"
 L["Pandemic border color"] = "Pandemie-Rahmenfarbe"
 L["Show keybind text"] = "Tastenbelegung anzeigen"
+L["Shows the key bound to this spell's action bar slot on the icon, such as 1, Q or S-E."] = "Zeigt auf dem Symbol die Taste, die dem Aktionsleistenplatz dieses Zaubers zugewiesen ist, z. B. 1, Q oder S-E."
 L["Fade the bar"] = "Leiste ausblenden"
 L["Faded opacity"] = "Deckkraft beim Ausblenden"
 L["0 hides it completely."] = "0 blendet sie ganz aus."
@@ -748,7 +749,7 @@ L["Glows on the spell the Combat Assistant suggests casting next, wherever it si
 L["Show the next cast icon"] = "Symbol für nächsten Zauber zeigen"
 L["A separate icon showing the suggested spell, its keybind and the global cooldown. Display only, it can't be clicked. Drag it in Edit Mode."] = "Ein eigenes Symbol mit dem vorgeschlagenen Zauber, seiner Tastenbelegung und der globalen Abklingzeit. Nur zur Anzeige, nicht anklickbar. Im Bearbeitungsmodus verschieben."
 L["Show the global cooldown"] = "Globale Abklingzeit zeigen"
-L["Border, zoom and keybind text follow the theme's icon settings."] = "Rand, Zoom und Tastenbelegungstext folgen den Symboleinstellungen des Themas."
+L["Border and zoom follow the theme's icon settings, keybind text its text settings."] = "Rand und Zoom folgen den Symboleinstellungen des Themas, der Tastenbelegungstext den Texteinstellungen."
 L["Restore the Combat Assistant settings to their defaults?"] = "Die Einstellungen des Kampfassistenten auf die Standardwerte zurücksetzen?"
 
 -- 常用預設＋複製到其他專精
@@ -915,7 +916,7 @@ L["None left in your bags, so it isn't shown on screen."] = "Keiner mehr in den 
 L["The equipped item has no use effect, so it isn't shown on screen."] = "Der angelegte Gegenstand hat keinen Benutzen-Effekt, wird daher nicht angezeigt."
 L["Hide charges"] = "Aufladungen ausblenden"
 L["Hide keybind text"] = "Tastenbelegung ausblenden"
-L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."] = "Die Tastenbelegung ist für diese Leiste ausgeschaltet. Diese Einstellungen wirken erst, wenn sie eingeschaltet ist (Effekte, Tastenbelegung)."
+L["Keybind text is turned off for this bar, so these only show once it's on (Text, Keybind text)."] = "Die Tastenbelegung ist für diese Leiste ausgeschaltet. Diese Einstellungen wirken erst, wenn sie eingeschaltet ist (Text, Tastenbelegung)."
 L["Custom text"] = "Eigener Text"
 L["A short note on this icon, for example what the buff is. Leave it blank to show nothing."] = "Eine kurze Notiz auf diesem Symbol, zum Beispiel, welche Stärkung es ist. Leer lassen, um nichts anzuzeigen."
 -- 噬滅：虛空化身計時＋崩陷之星計數（靈魂碎片設定視窗、門檻規則彈窗）

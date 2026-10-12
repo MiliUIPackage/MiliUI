@@ -235,6 +235,7 @@ L["Style"] = "Estilo"
 L["Ready glow"] = "Brillo de disponible"
 L["Pandemic border color"] = "Color del borde de pandemia"
 L["Show keybind text"] = "Mostrar atajo"
+L["Shows the key bound to this spell's action bar slot on the icon, such as 1, Q or S-E."] = "Muestra en el icono la tecla asignada a la casilla de la barra de acción de este hechizo, como 1, Q o S-E."
 L["Fade the bar"] = "Atenuar la barra"
 L["Faded opacity"] = "Opacidad al atenuar"
 L["0 hides it completely."] = "0 la oculta por completo."
@@ -748,7 +749,7 @@ L["Glows on the spell the Combat Assistant suggests casting next, wherever it si
 L["Show the next cast icon"] = "Mostrar el icono del siguiente hechizo"
 L["A separate icon showing the suggested spell, its keybind and the global cooldown. Display only, it can't be clicked. Drag it in Edit Mode."] = "Un icono aparte con el hechizo sugerido, su atajo y el tiempo de reutilización global. Solo se muestra, no se puede pulsar. Muévelo en el modo de edición."
 L["Show the global cooldown"] = "Mostrar el tiempo de reutilización global"
-L["Border, zoom and keybind text follow the theme's icon settings."] = "El borde, el zoom y el texto del atajo siguen los ajustes de icono del tema."
+L["Border and zoom follow the theme's icon settings, keybind text its text settings."] = "El borde y el zoom siguen los ajustes de icono del tema; el atajo, los de texto."
 L["Restore the Combat Assistant settings to their defaults?"] = "¿Restablecer los ajustes del ayudante de combate a sus valores predeterminados?"
 
 -- 常用預設＋複製到其他專精
@@ -915,7 +916,7 @@ L["None left in your bags, so it isn't shown on screen."] = "No te queda ninguno
 L["The equipped item has no use effect, so it isn't shown on screen."] = "El objeto equipado no tiene efecto de uso, así que no se muestra en pantalla."
 L["Hide charges"] = "Ocultar cargas"
 L["Hide keybind text"] = "Ocultar atajo"
-L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."] = "El atajo de teclado está desactivado en esta barra; estos ajustes solo se ven cuando se activa (Efectos, Atajo de teclado)."
+L["Keybind text is turned off for this bar, so these only show once it's on (Text, Keybind text)."] = "El atajo de teclado está desactivado en esta barra; estos ajustes solo se ven cuando se activa (Texto, Atajo de teclado)."
 L["Custom text"] = "Texto propio"
 L["A short note on this icon, for example what the buff is. Leave it blank to show nothing."] = "Una nota corta sobre este icono, por ejemplo qué beneficio es. Déjalo en blanco para no mostrar nada."
 -- 噬滅：虛空化身計時＋崩陷之星計數（靈魂碎片設定視窗、門檻規則彈窗）

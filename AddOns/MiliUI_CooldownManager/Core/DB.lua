@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 7
+ns.DB_VERSION = 8
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -853,6 +853,32 @@ local MIGRATIONS = {
             end
         end
     end,
+    -- v8（2026-10-12）：快捷鍵文字（keybind）從「效果」搬到「文字」：條上存的位置 glow.keybind → text.keybind，
+    -- 跟隨開關從 follow.glow 改看 follow.text。畫面不變地搬：
+    --   效果沒跟隨（以前生效的是條自己的值）→ 搬到 text.keybind；文字還跟隨著 ⇒ 改成不跟隨（同 v6 的做法，
+    --     條沒存值的格子照樣退回主題，所以其他文字不變）
+    --   效果跟隨著（以前生效的是主題）→ 條上那份本來就沒在用；文字沒跟隨的話不能搬過去（會變成生效），直接丟掉
+    -- text.keybind 已經有的格子不蓋 ⇒ 重跑不會再改
+    [8] = function(profile)
+        if type(profile.bars) ~= "table" then return end
+        for _, bar in pairs(profile.bars) do
+            local glow = type(bar) == "table" and bar.glow
+            local old = type(glow) == "table" and glow.keybind
+            if type(old) == "table" then
+                local follow = type(bar.follow) == "table" and bar.follow or {}
+                if follow.glow == false and next(old) ~= nil then
+                    if type(bar.follow) ~= "table" then bar.follow = {} end
+                    bar.follow.text = false
+                    if type(bar.text) ~= "table" then bar.text = {} end
+                    if type(bar.text.keybind) ~= "table" then bar.text.keybind = {} end
+                    for k, v in pairs(old) do
+                        if bar.text.keybind[k] == nil then bar.text.keybind[k] = v end
+                    end
+                end
+                glow.keybind = nil
+            end
+        end
+    end,
 }
 DB.MIGRATIONS = MIGRATIONS
 
@@ -1121,12 +1147,12 @@ end
 --
 --   第一段           跟著 follow 的哪一項   條自己存在
 --   font／outline     text                  bars[k].text.<path>
---   cooldownText／chargeText／stackText
+--   cooldownText／chargeText／stackText／keybind
 --                     text                  bars[k].text.<path>
 --   border            icon                  bars[k].icon.<path>
 --   icon              icon                  bars[k].<path>（icon.zoom → bars[k].icon.zoom）
 --   glow              glow                  bars[k].<path>
---   pandemic／keybind glow                  bars[k].glow.<path>
+--   pandemic          glow                  bars[k].glow.<path>
 --   fade              fade                  bars[k].<path>
 --   其他（layout、pos、anchor、visibility、bar、kind…）
 --                     不繼承                 bars[k].<path>
@@ -1146,7 +1172,8 @@ local THEMED = {
     icon         = { follow = "icon" },
     glow         = { follow = "glow" },
     pandemic     = { follow = "glow", sub = "glow" },
-    keybind      = { follow = "glow", sub = "glow" },
+    -- 快捷鍵文字：v8 起歸「文字」（設定頁也從效果分頁搬到文字分頁，使用者 2026-10-12；舊存檔 MIGRATIONS[8]）
+    keybind      = { follow = "text", sub = "text" },
     fade         = { follow = "fade" },
 }
 DB.THEMED = THEMED

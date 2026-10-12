@@ -110,6 +110,9 @@ local SUB_CARD_OUT, SUB_CARD_TOP = 6, 3      -- 子分頁卡片（L）：左右�
 local TOP_Y   = -PAD - 32 - 12
 
 local frame, cur
+-- 內容捲動（使用者 2026-10-12：太長超出螢幕）：標題、分頁鈕固定在 frame 上，各列建在 body（捲動區的子框）上，
+-- 超過螢幕高度才出捲動；捲動提示照側欄那一條細線（Options/Sidebar.lua 的 UpdateThumb）
+local body, scroll, thumb
 local rows = {}          -- 依顯示順序：{ frame, h, when = function(kind, class) → bool, tab }
 
 -- 分頁：每一列建的時候記下當時的 buildTab；"all" 是每頁都有的（底部說明與按鈕）。
@@ -312,7 +315,7 @@ local function HelpMark(r, text)
 end
 
 local function NewRow(label, when, help)
-    local r = CreateFrame("Frame", nil, frame)
+    local r = CreateFrame("Frame", nil, body)
     local h = ROW_H
     local labelW = help and (LABEL_W - HELP_W - 4) or LABEL_W
     if label then
@@ -917,7 +920,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
 
     -- 小節標題（同條頁的 nested 標題：accent 小字、右緣對齊標籤欄）
     local function HeaderRow(text, when)
-        local hr = CreateFrame("Frame", nil, frame)
+        local hr = CreateFrame("Frame", nil, body)
         local fs = W.CreateGroupLabel(hr, text)
         fs:SetPoint("BOTTOMRIGHT", hr, "BOTTOMLEFT", LABEL_W, 4)
         fs:SetJustifyH("RIGHT")
@@ -1126,7 +1129,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     local cardLabels = {}
     local function SubCard(group, tabs, help, labels, gap, when)
         for _, k in ipairs(labels) do cardLabels[#cardLabels + 1] = k end
-        local tc = W.CreateTabCard(frame, {
+        local tc = W.CreateTabCard(body, {
             tabs = tabs,
             help = help,
             selected = curSub[group],
@@ -1247,7 +1250,7 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     SizeRow(L["Font size"], "keybind", "size", "keybindSize", 6, 24, KeyRows)
     PointRow("keybindPoint", KeyRows, "keybind", "TOPRIGHT")
     OffsetRow("keybind", "keybindX", "keybindY", KeyRows)
-    NoteRow(L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."], KeyOff)
+    NoteRow(L["Keybind text is turned off for this bar, so these only show once it's on (Text, Keybind text)."], KeyOff)
 
     -- 自訂文字分頁（M）：借這裡的九宮格與標籤變暗；從這裡叫（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
     BuildLabelTab(NoteRow, PointRow, Track)
@@ -1280,7 +1283,7 @@ function Pop.BuildHideRow()
     cb:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
     frame.hideOnlyCB = cb
     RightClickClears(r, nil, "hidden")
-    local nr = CreateFrame("Frame", nil, frame)
+    local nr = CreateFrame("Frame", nil, body)
     local tip = Note(nr)
     tip:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
     tip:SetWidth(ROW_W - CTRL_X)
@@ -1309,6 +1312,26 @@ function Pop.RefreshHideRow()
     end
 end
 
+-- 捲動區（Build 的 upvalue 貼著 Lua 5.1 的 60 上限 ⇒ 另一支建；Build 裡的列一律掛 frame.body）
+function Pop.BuildScroll()
+    scroll = CreateFrame("ScrollFrame", nil, frame)
+    scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 1)
+    body = CreateFrame("Frame", nil, scroll)
+    body:SetSize(WIDTH, 1)
+    scroll:SetScrollChild(body)
+    thumb = frame:CreateTexture(nil, "OVERLAY")
+    thumb:SetTexture("Interface\\Buttons\\WHITE8X8")
+    thumb:SetVertexColor(W.Accent(0.6))
+    thumb:SetWidth(P.Scale(2))
+    thumb:Hide()
+    scroll:SetScript("OnSizeChanged", function(self) Pop.ScrollTo(self:GetVerticalScroll() or 0) end)
+    scroll:EnableMouseWheel(true)
+    scroll:SetScript("OnMouseWheel", function(self, delta)
+        Pop.ScrollTo((self:GetVerticalScroll() or 0) - delta * 40)
+    end)
+    frame.body, frame.scroll = body, scroll
+end
+
 local function Build()
     if frame then return end
     frame = W.CreateFrame(nil, ns.Options.panel, WIDTH, 200)
@@ -1318,9 +1341,11 @@ local function Build()
     frame:Hide()
     W.CloseOnEscape(frame)
 
+    Pop.BuildScroll()
+
     -- 強調說明（黃字，共用層的 W.fontEmphasis）：整列寬、排在底部灰字說明的正上方（使用者 2026-10-03 指定）
     local function EmphasisRow(text, when, tab)
-        local nr = CreateFrame("Frame", nil, frame)
+        local nr = CreateFrame("Frame", nil, frame.body)
         local fs = nr:CreateFontString(nil, "OVERLAY")
         fs:SetFontObject(W.fontEmphasis)
         fs:SetJustifyH("LEFT")
@@ -1398,6 +1423,7 @@ local function Build()
     frame.tabBar = CreateFrame("Frame", nil, frame)
     frame.tabBar:SetSize(ROW_W, 20)
     frame.highlightTab = W.CreateButtonGroup(frame.tabBtns, function(id)
+        if id ~= curTab then frame.scroll:SetVerticalScroll(0) end
         curTab = id
         if cur then Layout(frame.kind, frame.soundClass) end
     end)
@@ -1411,7 +1437,7 @@ local function Build()
     scdd:SetPoint("LEFT", scr, "LEFT", CTRL_X, 0)
     frame.scopeDD = scdd
     -- 說明（下一列灰字，照目前的範圍換字）
-    local sdRow = CreateFrame("Frame", nil, frame)
+    local sdRow = CreateFrame("Frame", nil, frame.body)
     local sdTip = Note(sdRow)
     sdTip:SetPoint("TOPLEFT", sdRow, "TOPLEFT", CTRL_X, -2)
     sdTip:SetWidth(ROW_W - CTRL_X)
@@ -1446,7 +1472,7 @@ local function Build()
     end)
     hucb:SetPoint("LEFT", hur, "LEFT", CTRL_X, 0)
     frame.hideUnknownCB = hucb
-    local huRow = CreateFrame("Frame", nil, frame)
+    local huRow = CreateFrame("Frame", nil, frame.body)
     local huTip = Note(huRow)
     huTip:SetPoint("TOPLEFT", huRow, "TOPLEFT", CTRL_X, -2)
     huTip:SetWidth(ROW_W - CTRL_X)
@@ -1481,7 +1507,7 @@ local function Build()
         local function RingRefused()
             return cur ~= nil and ns.DB.BarIsRings(cur.key) and not ns.Catalog.RingAccepts(cur.id)
         end
-        local rrRow = CreateFrame("Frame", nil, frame)
+        local rrRow = CreateFrame("Frame", nil, frame.body)
         local rrTip = Note(rrRow)
         rrTip:SetPoint("TOPLEFT", rrRow, "TOPLEFT", CTRL_X, -2)
         rrTip:SetWidth(ROW_W - CTRL_X)
@@ -1537,7 +1563,7 @@ local function Build()
         end
     end)
     -- 說明（下一列灰字）
-    local rnRow = CreateFrame("Frame", nil, frame)
+    local rnRow = CreateFrame("Frame", nil, frame.body)
     local rnTip = Note(rnRow)
     rnTip:SetPoint("TOPLEFT", rnRow, "TOPLEFT", CTRL_X, -2)
     rnTip:SetWidth(ROW_W - CTRL_X)
@@ -1569,7 +1595,7 @@ local function Build()
     ascb:SetPoint("LEFT", asr, "LEFT", CTRL_X, 0)
     frame.replaceStyle, frame.replaceStyleRow = ascb, asr
     RightClickClears(asr, ash, "replaceAuraStyle")
-    local asnRow = CreateFrame("Frame", nil, frame)
+    local asnRow = CreateFrame("Frame", nil, frame.body)
     local asnTip = Note(asnRow)
     asnTip:SetPoint("TOPLEFT", asnRow, "TOPLEFT", CTRL_X, -2)
     asnTip:SetWidth(ROW_W - CTRL_X)
@@ -1660,7 +1686,7 @@ local function Build()
     end)
 
     -- 說明（下一列灰字）
-    local tnRow = CreateFrame("Frame", nil, frame)
+    local tnRow = CreateFrame("Frame", nil, frame.body)
     local tnTip = Note(tnRow)
     tnTip:SetPoint("TOPLEFT", tnRow, "TOPLEFT", CTRL_X, -2)
     tnTip:SetWidth(ROW_W - CTRL_X)
@@ -1739,7 +1765,7 @@ local function Build()
         RightClickClears(tr, th, t.field)
         if t.tip then
             -- 說明放下一列灰字（不接在勾選框右邊）
-            local tipRow = CreateFrame("Frame", nil, frame)
+            local tipRow = CreateFrame("Frame", nil, frame.body)
             local tipFs = Note(tipRow)
             tipFs:SetPoint("TOPLEFT", tipRow, "TOPLEFT", CTRL_X, -2)
             tipFs:SetWidth(ROW_W - CTRL_X)
@@ -1906,7 +1932,7 @@ local function Build()
 
     -- 灰字說明列（控件欄寬、下一列；跟上面幾段同一個做法）
     local function NoteRow(text, when)
-        local nr = CreateFrame("Frame", nil, frame)
+        local nr = CreateFrame("Frame", nil, frame.body)
         local tip = Note(nr)
         tip:SetPoint("TOPLEFT", nr, "TOPLEFT", CTRL_X, -2)
         tip:SetWidth(ROW_W - CTRL_X)
@@ -2000,7 +2026,7 @@ local function Build()
     end)
     -- 「< 1」永遠不成立：數字框標紅（Refresh）＋這一列灰字（只在那個組合出現）
     frame.stackNumColor = { num:GetTextColor() }
-    local nvRow = CreateFrame("Frame", nil, frame)
+    local nvRow = CreateFrame("Frame", nil, frame.body)
     local nvTip = Note(nvRow)
     nvTip:SetPoint("TOPLEFT", nvRow, "TOPLEFT", CTRL_X, -2)
     nvTip:SetWidth(ROW_W - CTRL_X)
@@ -2026,7 +2052,7 @@ local function Build()
     sdd:SetPoint("LEFT", str, "LEFT", CTRL_X, 0)
     frame.stackTypeDD = sdd
     -- 說明（下一列灰字）
-    local snRow = CreateFrame("Frame", nil, frame)
+    local snRow = CreateFrame("Frame", nil, frame.body)
     local snTip = Note(snRow)
     snTip:SetPoint("TOPLEFT", snRow, "TOPLEFT", CTRL_X, -2)
     snTip:SetWidth(ROW_W - CTRL_X)
@@ -2230,7 +2256,7 @@ local function Build()
     Pop.BuildCastRows(NoteRow)
     Pop.BuildSoundTalent(NoteRow)
     -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
-    local nsRow = CreateFrame("Frame", nil, frame)
+    local nsRow = CreateFrame("Frame", nil, frame.body)
     local nsTip = Note(nsRow)
     nsTip:SetPoint("TOPLEFT", nsRow, "TOPLEFT", CTRL_X, -2)
     nsTip:SetWidth(ROW_W - CTRL_X)
@@ -2277,7 +2303,7 @@ local function Build()
             end
         end)
     end
-    local phRow = CreateFrame("Frame", nil, frame)
+    local phRow = CreateFrame("Frame", nil, frame.body)
     local phTip = Note(phRow)
     phTip:SetPoint("TOPLEFT", phRow, "TOPLEFT", CTRL_X, -2)
     phTip:SetWidth(ROW_W - CTRL_X)
@@ -2333,7 +2359,7 @@ local function Build()
         BlizzCooldownSound, "sound")
 
     -- 說明
-    local tipRow = CreateFrame("Frame", nil, frame)
+    local tipRow = CreateFrame("Frame", nil, frame.body)
     local tip = Note(tipRow)
     tip:SetPoint("TOPLEFT", tipRow, "TOPLEFT", 0, -4)
     tip:SetWidth(ROW_W)
@@ -2353,7 +2379,7 @@ local function Build()
     frame.tipFS, frame.tipEntry = tip, tipEntry
 
     -- 按鈕：移除（從這條拿掉；見 Preview.Remove）／還原設定
-    local btnRow = CreateFrame("Frame", nil, frame)
+    local btnRow = CreateFrame("Frame", nil, frame.body)
     btnRow:SetSize(ROW_W, 22)
     local remove = W.CreateButton(btnRow, L["Remove from this bar"], "normal", 130, 22)
     W.FitButton(remove, 130, 22)
@@ -2428,7 +2454,12 @@ Layout = function(kind, class)
     frame.tabBar:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, TOP_Y)
     local _, tbh = W.FlowLayout(frame.tabBar, list, ROW_W, 4, 4, 20)
     frame.tabBar:SetHeight(tbh)
-    local y = TOP_Y - tbh - 10
+    -- 標題與分頁鈕以下是捲動區：列的 y 從捲動區頂端（body 的 0）起算
+    local headH = -(TOP_Y - tbh - 10)
+    scroll:ClearAllPoints()
+    scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -headH)
+    scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 1)
+    local y = 0
     -- 子分頁的卡片（L）：鈕列出現就開，碰到第一個不屬於那一組子分頁的列（或排完）就收底
     local card, cardGroup
     local function CloseCard()
@@ -2456,7 +2487,7 @@ Layout = function(kind, class)
             y = y - row.h
         elseif show then
             row.frame:ClearAllPoints()
-            row.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, y)
+            row.frame:SetPoint("TOPLEFT", body, "TOPLEFT", PAD, y)
             if row.buttons then
                 -- 專精層的自訂項目才有（暴雪的法術本來就逐專精由暴雪管；寬層本來就每個專精都看得到）
                 frame.copyBtn:SetShown(kind ~= nil and CurScope() == "spec")
@@ -2469,7 +2500,30 @@ Layout = function(kind, class)
         end
     end
     CloseCard()
-    P.Height(frame, -y + PAD)
+    local contentH = -y + PAD
+    body:SetHeight(contentH)
+    -- 視窗最高到螢幕高度扣邊（換成 frame 自己的座標：設定視窗可能有縮放）
+    local maxH = math.huge
+    local us, fs = UIParent:GetEffectiveScale(), frame:GetEffectiveScale()
+    if us and fs and fs > 0 then maxH = UIParent:GetHeight() * us / fs - 40 end
+    P.Height(frame, math.min(headH + contentH, math.max(headH + 120, maxH)))
+    Pop.ScrollTo(scroll:GetVerticalScroll() or 0)
+end
+
+-- 捲到 v（夾在範圍內）並更新右緣的細線；內容放得下時歸零、細線收掉
+function Pop.ScrollTo(v)
+    if not (scroll and body) then return end
+    local viewH = scroll:GetHeight() or 0
+    local contentH = body:GetHeight() or 0
+    local range = math.max(0, contentH - viewH)
+    v = math.min(range, math.max(0, v or 0))
+    scroll:SetVerticalScroll(v)
+    if viewH <= 0 or range <= 1 then thumb:Hide() return end
+    local h = math.max(20, viewH * viewH / contentH)
+    thumb:SetHeight(h)
+    thumb:ClearAllPoints()
+    thumb:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", -3, -((viewH - h) * (v / range)))
+    thumb:Show()
 end
 
 -- 所在條：原本的檢視器 ＋ 同類型的自訂群組；自訂項目是任何一條（圖示類、長條類都收）。
@@ -2889,7 +2943,9 @@ function Pop.Open(key, id, cell)
     if id == nil then return end
     Build()
     if ns.Picker and ns.Picker.IsShown() then ns.Picker.Close() end
+    local same = cur and cur.key == key and cur.id == id
     cur = { key = key, id = id }
+    if not same then scroll:SetVerticalScroll(0) end
     Pop.Refresh()
     frame:Show()
     local pts = { "TOPLEFT", cell, "TOPRIGHT", 6, 0 }

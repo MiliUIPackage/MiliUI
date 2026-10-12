@@ -80,7 +80,7 @@ local function Controls()
     add(BS("toggle", "onlyCombat", L["Only in combat"]))
     add(BS("toggle", "showKeybind", L["Show keybind text"]))
     add(BS("toggle", "showGCD", L["Show the global cooldown"]))
-    add(Note(L["Border, zoom and keybind text follow the theme's icon settings."]))
+    add(Note(L["Border and zoom follow the theme's icon settings, keybind text its text settings."]))
     for _, s in ipairs(ns.Specs.Anchor(KEY)) do add(s) end
 
     add({ type = "header", label = L["Reset"] })

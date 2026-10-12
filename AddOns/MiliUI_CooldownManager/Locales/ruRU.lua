@@ -235,6 +235,7 @@ L["Style"] = "Стиль"
 L["Ready glow"] = "Свечение готовности"
 L["Pandemic border color"] = "Цвет рамки пандемии"
 L["Show keybind text"] = "Показывать клавишу"
+L["Shows the key bound to this spell's action bar slot on the icon, such as 1, Q or S-E."] = "Показывает на значке клавишу, назначенную ячейке панели команд с этим заклинанием, например 1, Q или S-E."
 L["Fade the bar"] = "Затемнять полосу"
 L["Faded opacity"] = "Прозрачность при затемнении"
 L["0 hides it completely."] = "0 скрывает её полностью."
@@ -748,7 +749,7 @@ L["Glows on the spell the Combat Assistant suggests casting next, wherever it si
 L["Show the next cast icon"] = "Показывать значок следующего заклинания"
 L["A separate icon showing the suggested spell, its keybind and the global cooldown. Display only, it can't be clicked. Drag it in Edit Mode."] = "Отдельный значок с рекомендуемым заклинанием, его клавишей и глобальным восстановлением. Только для показа, нажать нельзя. Перемещается в режиме редактирования."
 L["Show the global cooldown"] = "Показывать глобальное восстановление"
-L["Border, zoom and keybind text follow the theme's icon settings."] = "Рамка, увеличение и текст клавиши следуют настройкам значков темы."
+L["Border and zoom follow the theme's icon settings, keybind text its text settings."] = "Рамка и масштаб берутся из настроек значков темы, текст клавиш — из настроек текста."
 L["Restore the Combat Assistant settings to their defaults?"] = "Сбросить настройки боевого помощника на значения по умолчанию?"
 
 -- 常用預設＋複製到其他專精
@@ -915,7 +916,7 @@ L["None left in your bags, so it isn't shown on screen."] = "В сумках н�
 L["The equipped item has no use effect, so it isn't shown on screen."] = "У надетого предмета нет эффекта при использовании — на экране не показывается."
 L["Hide charges"] = "Скрыть заряды"
 L["Hide keybind text"] = "Скрыть клавишу"
-L["Keybind text is turned off for this bar, so these only show once it's on (Effects, Keybind text)."] = "Текст клавиш на этой панели выключен: эти настройки заработают, когда он включён (Эффекты, Текст клавиш)."
+L["Keybind text is turned off for this bar, so these only show once it's on (Text, Keybind text)."] = "Текст клавиш на этой панели выключен: эти настройки заработают, когда он включён (Текст, Текст клавиш)."
 L["Custom text"] = "Свой текст"
 L["A short note on this icon, for example what the buff is. Leave it blank to show nothing."] = "Короткая заметка на этом значке, например, что это за бафф. Оставьте пустым, чтобы ничего не показывать."
 -- 噬滅：虛空化身計時＋崩陷之星計數（靈魂碎片設定視窗、門檻規則彈窗）

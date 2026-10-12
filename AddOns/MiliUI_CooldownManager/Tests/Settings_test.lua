@@ -90,7 +90,7 @@ eq("StoragePath 文字", DB.BarStoragePath("cooldownText.size"), "text.cooldownT
 eq("StoragePath 邊框", DB.BarStoragePath("border.color"), "icon.border.color")
 eq("StoragePath 圖示（沒有 sub）", DB.BarStoragePath("icon.zoom"), "icon.zoom")
 eq("StoragePath 發光", DB.BarStoragePath("glow.proc.type"), "glow.proc.type")
-eq("StoragePath 按鍵文字", DB.BarStoragePath("keybind.enabled"), "glow.keybind.enabled")
+eq("StoragePath 按鍵文字", DB.BarStoragePath("keybind.enabled"), "text.keybind.enabled")
 eq("StoragePath 淡出", DB.BarStoragePath("fade.mounted"), "fade.mounted")
 eq("StoragePath 條自己的欄位不變", DB.BarStoragePath("layout.spacing"), "layout.spacing")
 eq("主題有 keybind 預設", S("theme", "keybind.enabled"), true)

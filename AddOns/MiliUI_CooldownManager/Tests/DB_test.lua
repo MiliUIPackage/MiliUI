@@ -99,7 +99,7 @@ DB.Init()
 local sv = env.MiliUI_CooldownManager_DB
 check("SV 建立", type(sv) == "table")
 eq("schemaVersion", sv.schemaVersion, ns.DB_VERSION)
-eq("DB_VERSION", ns.DB_VERSION, 7)
+eq("DB_VERSION", ns.DB_VERSION, 8)
 check("MIGRATIONS 有版本 3", type(DB.MIGRATIONS[3]) == "function")
 check("MIGRATIONS 有版本 4", type(DB.MIGRATIONS[4]) == "function")
 check("MIGRATIONS 有版本 1", type(DB.MIGRATIONS[1]) == "function")
@@ -325,6 +325,7 @@ local real4 = DB.MIGRATIONS[4]
 local real5 = DB.MIGRATIONS[5]
 local real6 = DB.MIGRATIONS[6]
 local real7 = DB.MIGRATIONS[7]
+local real8 = DB.MIGRATIONS[8]
 DB.MIGRATIONS[1] = function() calls = calls + 1 end
 DB.MIGRATIONS[2] = function() end
 DB.MIGRATIONS[3] = function() end
@@ -332,6 +333,7 @@ DB.MIGRATIONS[4] = function() end
 DB.MIGRATIONS[5] = function() end
 DB.MIGRATIONS[6] = function() end
 DB.MIGRATIONS[7] = function() end
+DB.MIGRATIONS[8] = function() end
 DB.MigrateProfile({}, 0)
 eq("從 0 補到最新：v1 跑一次", calls, 1)
 DB.MigrateProfile({}, 1)
@@ -345,10 +347,10 @@ eq("舊 SV：每份設定檔各跑一次", calls, 1)
 eq("舊 SV：版本推到目前", sv.schemaVersion, ns.DB_VERSION)
 
 calls = 0
-sv.schemaVersion = 8
+sv.schemaVersion = 9
 DB.Init()
 eq("較新的 SV：版本壓回目前", sv.schemaVersion, ns.DB_VERSION)
-eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, 8)
+eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, 9)
 eq("較新的 SV：不跑遷移", calls, 0)
 DB.MIGRATIONS[1] = real
 DB.MIGRATIONS[2] = real2
@@ -357,6 +359,28 @@ DB.MIGRATIONS[4] = real4
 DB.MIGRATIONS[5] = real5
 DB.MIGRATIONS[6] = real6
 DB.MIGRATIONS[7] = real7
+DB.MIGRATIONS[8] = real8
+
+-- v8：快捷鍵文字從效果搬到文字（glow.keybind → text.keybind，跟隨看 follow.text）
+do
+    local p = { bars = {
+        a = { follow = { glow = false }, glow = { keybind = { size = 14, point = "CENTER" } } },
+        b = { follow = { glow = true, text = false }, glow = { keybind = { size = 20 } } },
+        c = { follow = { glow = false, text = false }, glow = { keybind = { size = 16 } }, text = { keybind = { size = 9 } } },
+        d = { follow = {} },
+    } }
+    DB.MIGRATIONS[8](p)
+    eq("v8 效果沒跟隨：搬到文字", p.bars.a.text.keybind.size, 14)
+    eq("v8 效果沒跟隨：錨點也搬", p.bars.a.text.keybind.point, "CENTER")
+    eq("v8 效果沒跟隨：文字改不跟隨", p.bars.a.follow.text, false)
+    eq("v8 舊位置清掉", p.bars.a.glow.keybind, nil)
+    eq("v8 效果跟隨著：條上那份丟掉不搬", p.bars.b.text, nil)
+    eq("v8 效果跟隨著：舊位置清掉", p.bars.b.glow.keybind, nil)
+    eq("v8 文字已有的格子不蓋", p.bars.c.text.keybind.size, 9)
+    eq("v8 沒資料的條不動", p.bars.d.text, nil)
+    DB.MIGRATIONS[8](p)
+    eq("v8 重跑不變", p.bars.a.text.keybind.size, 14)
+end
 
 -- v6：長條的 bar.stackSize 拿掉；跟生效字級一樣就刪，不一樣就搬到條自己的層數字級＋不跟隨全域文字
 do
@@ -511,7 +535,7 @@ do
     DB.Init()
     eq("舊存檔補上 none", ns.profile.theme.icon.cdState, "none")
     eq("舊存檔補上 0.4", ns.profile.theme.icon.cdStateAlpha, 0.4)
-    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
+    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
 end
 
 ------------------------------------------------------------
@@ -613,7 +637,7 @@ do
     eq("清 stack 那一組", SS2("buffs", 5555, "stackGlow"), false)
     eq("清 stack 那一組不動生效發光", SS2("buffs", 5555, "activeGlow"), true)
     DB.SetOverride(5555, "activeGlow", nil)
-    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
+    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
 end
 
 ------------------------------------------------------------
@@ -653,7 +677,7 @@ do
     eq("清 icon 那一組 ⇒ 還在", SS2("essential", 7777, "replaceWith"), 8888)
     DB.ClearOverrides({ 7777 }, "replace")
     eq("清 replace 那一組 ⇒ 不取代", SS2("essential", 7777, "replaceWith"), false)
-    eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移、5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
+    eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移、5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
 end
 
 ------------------------------------------------------------
@@ -861,7 +885,7 @@ do
 
     P.customShared, P.customClass, P.customNextUID = nil, nil, nil
     P.spells[cur], P.spells[other] = nil, nil
-    eq("DB_VERSION 沒動（P8 不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時）", ns.DB_VERSION, 7)
+    eq("DB_VERSION 沒動（P8 不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
 end
 
 ------------------------------------------------------------
@@ -1052,7 +1076,7 @@ do
     eq("圓環：DefaultFor 自訂群組的環寬", DB.DefaultFor("bar", "nope", "ring.thickness"), 8)
     eq("圓環：DefaultFor 自訂群組的顯示樣式", DB.DefaultFor("bar", "nope", "layout.style"), "icons")
     eq("圓環：DefaultFor 內建條的方向", DB.DefaultFor("bar", "buffs", "ring.direction"), "outward")
-    eq("圓環：純新增欄位，不升 DB_VERSION", ns.DB_VERSION, 7)
+    eq("圓環：純新增欄位，不升 DB_VERSION", ns.DB_VERSION, 8)
     -- 舊存檔（沒有 style／ring）：合併補預設；玩家自己存的不蓋
     local old = DB.BuildDefaults().profile
     old.bars.buffs.layout.style = nil
