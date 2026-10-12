@@ -854,8 +854,19 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **去飽和**（冷卻中去飽和開著時，蓋掉的那一格也要灰）：暴雪增益期間寫 `SetDesaturated(false)`。蓋的時候、以及
   `SetDesaturated` 後掛勾看到 `rec.auraHidden` 時（傳進來的值不比較），`dur:EvaluateRemainingDuration(階梯曲線)` →
   `Icon:SetDesaturation(v)`（秘密值由引擎求值；pcall；包 `desatGuard`）。曲線是 `Decorate.DesatCurve()`（從 `Modules/Custom.lua` 搬來，
-  兩邊共用一顆）。沒有冷卻物件、有充能在回充（暴雪那時也不去飽和）、曲線建不出來、求值失敗 ⇒ 不動、不報錯。
+  兩邊共用一顆）。沒有冷卻物件、曲線建不出來、求值失敗 ⇒ 不動、不報錯。物件一律是「不含 GCD 的技能冷卻」
+  （`GetSpellCooldownDuration(id, true)`），不跟著回充那條走：有充能時引擎給零（＝不去飽和，暴雪回充時也不去飽和）、0 充能才有長度
+  （2026-10-12 以前回充那條把物件設成 nil，充能數戰鬥中是秘密值 ⇒ 0 充能也被當回充、永遠不去飽和）。「還有充能／0 充能」改看
+  `GetSpellCooldown` 的明文旗標（`isActive` 且不是 `isOnGCD` ＝ 0 充能），不讀 `currentCharges`；滿不滿看 `GetSpellCharges.isActive`。
   ⚠ 這是全功能最可能實機翻車的一段（`EvaluateRemainingDuration` 是求值當下的值，冷卻轉好那一刻靠暴雪的刷新再算一次）。
+- **充能技能的去飽和——暴雪的充能快取過期（2026-10-12）**：Blizzard_CooldownViewer 只在 `RefreshData`（這一格自己的
+  `SPELL_UPDATE_COOLDOWN`）重讀 `GetSpellCharges` 存進 `cachedSpellChargeInfo`；別的技能的 GCD 走輕量路徑 `RefreshCooldownOnly`，拿的是舊快取；
+  而且檢視器根本不聽 `SPELL_UPDATE_CHARGES`。最後一層用掉時事件若早於充能數更新，快取就卡在「還有 1 層在回充」⇒ 之後每次 GCD 都重寫
+  `SetDesaturated(false)`（回充不去飽和），整段冷卻圖示都是彩色的（懲戒騎兩層充能的審判／憤怒之鎚回報，「有時候」＝看事件順序）。
+  快取在暴雪的欄位上，不能寫、也不能替它 RefreshData（污染）⇒ `SetDesaturated` 後掛勾對**充能技能、暴雪沒在倒光環時間**的格照引擎的
+  「不含 GCD 的技能冷卻」重算（`Decorate.ChargeDesatTarget`／`ChargeDesat`，正好等於暴雪對這種格的規則 `cooldownDesaturated ＝ isOnActualCooldown`），
+  `SPELL_UPDATE_CHARGES` 延一幀整批對一次（蓋掉增益那一段的格走 `ApplyHiddenDesat`）。非充能技能照暴雪的（沒有快取可過期）；
+  倒光環時間的格不碰（倒自身增益時暴雪規定不去飽和，單位我們判不出來）。充能數字、轉圈／邊緣仍是暴雪的快取（數字可能顯示舊值到下一次 RefreshData）。
 - **設定切換**：簽章多了 `showAuraTime`，改了就重新裝飾；`Decorate.Apply` 末尾 `SyncAuraHide` 照暴雪最後一次的旗標重判：
   增益中改成不顯示 ⇒ 當場蓋（`/reload` 時增益還在也一樣：掛上時先問 getter）；改回顯示 ⇒ 不做事，等暴雪下一次刷新餵回增益
   （不另加計時器；這之前數字照原色，不會黃字倒冷卻）。
@@ -1812,7 +1823,7 @@ that frame implicitly protected as well"（被錨的是保護框、「那個框�
 | pip（精華回充） | 喚能師的精華（`fill = "essence"`） | 明文且未滿時下一格（第 cur+1 格）畫回充進度：`SetValue(cur + 進度)`、那一格主色 × 0.55。進度來源 `UnitPartialPower("player", Essence)`（0～1000，明文且 > 0 才用）；拿不到 ⇒ `GetPowerRegenForPowerType(Essence)`（每秒幾顆，明文才收、記住上次的）×「這一輪回充開始到現在的秒數」（精華變多或從滿的掉下來時重算起點，`R.EssenceFrac` 純函式）；兩者都沒有就不畫。跟符文共用 0.1 秒 ticker（有格子在回充才跑，滿了就停）。數值文字照印整數 |
 | pip（摺疊） | 氣漩武器（`def.foldable`、`maelstromFold`，**預設關**） | 10 層摺成 5 格：每格疊兩顆 StatusBar，底層 `(i-1, i)`、上層 `(i+4, i+5)`（`R.FoldRange`）同樣 `SetValue(層數)`；上層也錨在列上、層級高一階、自帶 1px 黑邊、沒有暗底，顏色是 `colors.MaelstromWeapon.overflowColor`（預設金黃）。條件規則：整條的覆寫（暗底、透明度、文字色）照舊，逐格顏色只套底層（格子序號 1～5）。預設關是因為使用者調好的 ≥9／≥10 兩段換色是照 10 格寫的 |
 | pip（符文） | 符文 | **先排序再畫**：轉好的靠左（照編號）、在轉的依剩餘時間往右排（`R.RuneOrder`）；在轉的格子 `SetValue((now−start)/duration)` 填進度、同色暗一階，排隊中（start 在未來）進度 0。數字由 `showText` 總開關＋`runeText` 二選一：`countdown`（預設，在轉的格子印剩餘秒數、無條件進位）／`count`（中間印轉好的顆數），兩者不並列。有符文在轉時開 0.1 秒 ticker 只重畫符文列，全部轉好就停。start／duration／ready 讀不到明文 ⇒ 不填不印、排最後 |
-| auraBar | **旋風斬**（狂怒，4 層）、**橫掃攻擊**（武器，12 層，點了 1261049 是 18）、**鐵鬃**（守護熊形態，5 格） | **引擎寫**（`Modules/AuraBar.lua`）：這幾個增益連戰鬥外 `GetPlayerAuraBySpellID` 都可能回 nil。旋風斬／橫掃攻擊／鐵鬃：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給按鈕的 `SetApplicationBar(bar, { maxApplications })`，引擎每次套用寫 `SetMinMaxValues(0, max)`＋`SetValue(層數)`（光環消失寫 0）。`showText` 開著時文字也交給引擎、內容逐資源選（`R.AuraText`：層數／秒數／兩者，見待驗證第 59 條）。鐵鬃原本當成「每施放一次一顆獨立光環」走 `AddAuraGroup`＋`SetDurationBar`，2026-10-08 實測是**一顆光環疊層數**（施放一次層數 1），改回 applications 型；instances 型留在 `Modules/AuraBar.lua` 沒有使用者（group 的流式排版只定位不設尺寸，按鈕尺寸要在 initializeFrame 裡自己給，否則 0x0）。格子外觀（暗底、黑邊、分隔）是列上另外畫的裝飾；整列寬的填色第 k 層終點落在第 k 個格距裡，被分隔蓋住。條件規則與數值文字不適用（Lua 沒有值），設定頁寫明 |
+| auraBar | **旋風斬**（狂怒，4 層）、**橫掃攻擊**（武器，12 層，點了 1261049 是 18）、**鐵鬃**（守護熊形態，5 格） | **引擎寫**（`Modules/AuraBar.lua`）：這幾個增益連戰鬥外 `GetPlayerAuraBySpellID` 都可能回 nil。旋風斬／橫掃攻擊／鐵鬃：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給按鈕的 `SetApplicationBar(bar, { maxApplications })`，引擎每次套用寫 `SetMinMaxValues(0, max)`＋`SetValue(層數)`（光環消失寫 0）。`showText` 開著時文字也交給引擎、內容逐資源選（`R.AuraText`：層數／秒數／兩者，見待驗證第 59 條）。鐵鬃原本當成「每施放一次一顆獨立光環」走 `AddAuraGroup`＋`SetDurationBar`，2026-10-08 實測是**一顆光環疊層數**（施放一次層數 1），改回 applications 型；instances 型留在 `Modules/AuraBar.lua` 沒有使用者（group 的流式排版只定位不設尺寸，按鈕尺寸要在 initializeFrame 裡自己給，否則 0x0）。格子外觀（暗底、黑邊、分隔）是列上另外畫的裝飾；整列寬的填色第 k 層終點落在第 k 個格距裡，被分隔蓋住。裝飾的格界**貼實體像素**（`AB.Geometry` 的 `pixel`，格距 ≥2 時在能蓋住終點的整數裡挑最接近等分的）：等分時 W＋格距不是格數的倍數，分隔的小數部位從左到右線性累積、中段那條卡在半像素糊成 2px（2026-10-12 秘法齊射 25 格「中間那條黑線特別粗」）；一顆光環一格的 instances 型不貼（要跟引擎的等分排版對齊）。條件規則與數值文字不適用（Lua 沒有值），設定頁寫明 |
 | auraTimer | **黯黑力量**（增輝喚能師，增益 395296、天賦閘 395152）、**秘法靈魂**（秘法法師，增益 451038＋1223522、天賦閘「歐爾的記憶」449619 或英雄樹 39 Sunfury） | **光環剩餘時間條，引擎寫**（`Modules/AuraBar.lua` 的 `kind = "duration"`）：一顆單格 AuraContainer（`AddAuraSlot`＋`includeSpellIDs`、player、HELPFUL），`initializeFrame` 裡把整列寬的 StatusBar 交給 `SetDurationBar(bar, { direction = RemainingTime, interpolation = Immediate })`：光環在身上時由引擎往下縮（上限＝光環自己的持續時間，含黯黑力量的延長，Lua 不必知道秒數）、光環不在時按鈕藏起來，看到的是列上畫的空條（暗底＝主色 × 0.25、1px 黑邊）。`showText` 開著時另建一個 FontString 交給 `SetDurationText`（formatter `Text.PlainFormatter(5)` 在容器建立前先建好：剩 5 秒起一位小數），字型／字級進簽章。秘法靈魂多一個 `arcaneSoulText = "gcd"`（剩幾個 GCD）：建容器前用明文算 GCD 長度（`R.ReadGcd`：`C_Spell.GetSpellCooldown(61304)` 正在 GCD 的 duration；不在 GCD 或讀不到 ⇒ 1.5 ／（1 ＋ 加速 ／ 100）；再讀不到用上次的、沒有就 1.5；夾 0.75～1.5、四捨五入到 0.05 秒），`Text.GcdFormatter(g, "最後")` 建一顆 NumericRuleFormatter：門檻 0 印「最後」（這一段沒有數字格式符）、門檻 g 印 `%d`（元件 `div = g`、`step 1` 往上取 ⇒ ceil(剩餘 ／ g)）。GCD 長度進簽章，`UNIT_SPELL_HASTE`（法師）上重算、變了才重排（戰鬥中照舊記旗標、脫戰補）。容器沒好（戰鬥中、建失敗）時先畫空條（`timerIdle`）。條件規則不適用；`GetValue` 對這種列固定回 0, 0（不讀光環） |
 
 - **跟單位框架不同的兩件事**：那邊不做法力（單位框有自己的能量條）、也剔掉「單位框能量條已經在畫的主資源」；
@@ -3615,6 +3626,15 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 
 494. 裝 MiliUI_Tooltip、設「戰鬥中固定右下」：冷卻格（暴雪 item 與自訂法術／物品）的提示戰鬥中出現在右下錨點；脫戰照提示插件的設定。
      沒裝提示插件：提示出現在遊戲預設位置（畫面右下），跟暴雪原生冷卻管理器一樣（以前寫死在圖示右邊）。光環格的提示是引擎按鈕自己的，不在此列。
+
+**充能技能的去飽和與分段資源條的分隔（2026-10-12）**
+
+495. 懲戒騎（審判、憤怒之鎚點了兩層充能）：戰鬥中連用兩次把充能用完，圖示當場去飽和、整段回充都是灰的；回到 1 層那一刻恢復彩色。
+     連打十幾輪都不出現「用完還是彩色」。核心技能格「增益持續中不顯示持續時間」開著（審判目標身上有減益）與關著都要試。
+496. 同一招還有 1 層在回充：圖示不去飽和、只畫邊緣（跟暴雪原生一樣）；0 充能畫轉圈（戰鬥中也是，充能數是秘密值時改看旗標）。
+     「冷卻中去飽和」關掉的格：用完充能也不灰。增益條（以增益取代）那一格不受影響。
+497. 奧法：秘法齊射 25 格的列，資源條寬設 200／201／跟核心技能同寬各試一次：24 條分隔每條都是 1px、一樣粗，中間沒有特別粗的那條；
+     格距 0 時每條邊也一樣粗；格距 2 以上頭一格不比別格明顯寬。氣旋武器／聖能等點數型與鐵鬃／橫掃攻擊的層數列照舊。
 
 **效能基準**
 

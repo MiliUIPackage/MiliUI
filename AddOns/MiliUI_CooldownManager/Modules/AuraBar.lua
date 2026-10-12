@@ -61,10 +61,48 @@ local function Fmt(v) return string.format("%.3f", tonumber(v) or 0) end
 -- 裝飾（格子外觀）：純函式算幾何，離線測得到
 ------------------------------------------------------------
 -- 回傳 { cells = { { x, w }, … }, gaps = { { x, w }, … } }（x 從左緣量；reversed 時由呼叫端鏡像）
-function AB.Geometry(W, n, gap, segW)
+--
+-- pixel（1 實體像素的 UI 單位，ns.P.Scale(1)）給了就貼實體像素：
+--   * 第 k 格的右界貼著引擎的填色終點 W·k/n：有格距時右界只能落在 [終點−gp, 終點] 的整數裡（分隔那 gp 個像素
+--     要蓋住終點），這個範圍裡挑最接近等分格界 k·segW+(k−1)·gp 的那個（格距 ≥2 時才有得挑，格寬才不會頭一格多出
+--     一截）；格距 0 取 ceil（終點落在這格右邊那條 1px 邊裡）。分隔／邊一定蓋得住填色的尾巴、不留半像素的亮縫
+--   * 分隔一律整數個像素寬、落在整數像素上；格寬最多差 1px、最後一格右緣剛好 W（格寬不到 gp+1 像素的
+--     退化情況只保證不出錯、不重疊）
+--   不給（離線測試、舊呼叫）＝ 等分的浮點幾何。等分時分隔的 x 是 (i-1)·(W+gap)/n：
+--   W+gap 不是 n 的倍數時每條分隔的小數部位從左到右線性累積，中段那幾條剛好卡在半像素上、糊成兩個像素
+--   （秘法齊射 25 格：玩家回報「中間那條黑線比別的粗很多」，2026-10-12）
+function AB.Geometry(W, n, gap, segW, pixel)
     local out = { cells = {}, gaps = {} }
     n = math.max(1, math.floor(tonumber(n) or 1))
     gap = tonumber(gap) or 0
+    pixel = tonumber(pixel)
+    if pixel and pixel > 0 then
+        local Wp = math.floor(W / pixel + 0.5)
+        local gp = math.floor(gap / pixel + 0.5)
+        if gp < 0 then gp = 0 end
+        local segW = (Wp - gp * (n - 1)) / n           -- 等分的格寬（像素，浮點）
+        local left = 0
+        for i = 1, n do
+            local right
+            if i == n then
+                right = Wp
+            else
+                local f = Wp * i / n                    -- 引擎的填色終點（第 i 層）
+                if gp > 0 then
+                    local lo, hi = math.ceil(f - gp), math.floor(f)
+                    right = math.floor(i * segW + (i - 1) * gp + 0.5)
+                    if right < lo then right = lo elseif right > hi then right = hi end
+                else
+                    right = math.ceil(f)
+                end
+                if right < left then right = left end
+            end
+            out.cells[i] = { x = left * pixel, w = (right - left) * pixel }
+            if i < n and gp > 0 then out.gaps[i] = { x = right * pixel, w = gp * pixel } end
+            left = right + gp
+        end
+        return out
+    end
     if not segW then segW = (W - gap * (n - 1)) / n end
     for i = 1, n do
         local x = (i - 1) * (segW + gap)
@@ -96,9 +134,18 @@ end
 
 -- geom = { W, H, n, gap, segW, reversed, segments, dim = { r, g, b, a }, px（邊框粗細，UI 單位；0 ＝ 不畫邊框；沒給 ＝ 1）,
 --          edge = { r, g, b, a }（邊框與分隔的顏色；沒給 ＝ 不透明黑）, bgTex（暗底的材質，nil ＝ 純色） }
+-- 1 實體像素的 UI 單位（分段幾何貼像素用）；讀不到 ⇒ nil（等分的浮點幾何）
+local function PixelUnit()
+    local P = ns.P
+    local v = P and P.Scale and P.Scale(1)
+    return (type(v) == "number" and v > 0) and v or nil
+end
+
 local function LayoutDecor(d, anchor, geom)
+    -- 分段貼實體像素（AB.Geometry 的 pixel）。一顆光環一格（instances）不貼：那些格是引擎的流式排版照 segW 等分放的，
+    -- 裝飾要跟它對齊
     local g = AB.Geometry(geom.W, geom.segments and geom.n or 1, geom.segments and geom.gap or 0,
-        geom.segments and geom.segW or geom.W)
+        geom.segments and geom.segW or geom.W, (geom.segments and not geom.instances) and PixelUnit() or nil)
     local px = tonumber(geom.px) or 1
     local H = geom.H
     local dim = geom.dim

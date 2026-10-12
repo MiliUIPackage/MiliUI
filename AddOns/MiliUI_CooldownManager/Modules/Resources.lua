@@ -1503,6 +1503,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     local geom = {
         W = W, H = H, n = numSeg, gap = gap, segW = (W - gap * (numSeg - 1)) / numSeg, reversed = reversed,
         segments = true, dim = R.DimArray(cfg), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
+        instances = def.instances and true or nil,     -- 一顆光環一格：裝飾跟引擎的等分排版對齊、不貼像素（AuraBar.LayoutDecor）
     }
     local cc = ResolveColor(cfg, key, "color")
     local count

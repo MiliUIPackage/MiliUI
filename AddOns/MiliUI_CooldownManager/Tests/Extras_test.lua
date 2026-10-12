@@ -1116,10 +1116,13 @@ do
     eq("下一次只 Clear ⇒ 歸零", rec.auraFlag, false)
     onFlag(cd, true)                     -- 回到「增益中＋藏」讓下面的充能測試照舊
 
-    -- 充能
+    -- 充能：「還有充能／0 充能」看 GetSpellCooldown 的明文旗標（isActive 且不是 GCD ＝ 0 充能），充能數不讀
+    -- （戰鬥中是秘密值）；去飽和一律看「不含 GCD 的技能冷卻」那顆物件（有充能時引擎給零）
     local realInfo = C.Info
     C.Info = function(id) return { spellID = id * 100, charges = true } end
-    chargeInfo = { currentCharges = 1, maxCharges = 2 }
+    cdInfo = { isActive = false, isOnGCD = false }                  -- 技能本身沒在冷卻 ＝ 還有充能
+    chargeInfo = { currentCharges = Secret(), maxCharges = 2, isActive = true }   -- 回充在跑
+    curDur.EvaluateRemainingDuration = function() return 0 end     -- 有充能時不含 GCD 的技能冷卻是零
     calls = {}
     n = #glow.armed
     onSet(cd, 100, 20, 1)
@@ -1127,20 +1130,42 @@ do
     eq("充能：不畫轉圈", last("SetDrawSwipe") and last("SetDrawSwipe")[2], false)
     eq("充能：畫邊緣", last("SetDrawEdge") and last("SetDrawEdge")[2], true)
     eq("充能回充中 ⇒ 武裝", glow.armed[#glow.armed], chargeDur)
-    eq("充能：有充能在回充時不去飽和", count("SetDesaturation"), 0)
-    chargeInfo = { currentCharges = 2, maxCharges = 2 }
+    eq("充能：去飽和照技能冷卻那顆物件（有充能 ⇒ 0）", last("SetDesaturation") and last("SetDesaturation")[2], 0)
+    eq("充能：去飽和的物件是不含 GCD 的技能冷卻", rec.auraDur, curDur)
+    chargeInfo = { currentCharges = Secret(), maxCharges = 2, isActive = false }  -- 回充沒在跑 ＝ 滿了
     n = #glow.armed
     onSet(cd, 100, 20, 1)
     eq("充能滿了 ⇒ 不武裝", #glow.armed, n)
-    chargeInfo = { currentCharges = 0, maxCharges = 2 }
+    cdInfo = { isActive = true, isOnGCD = false }                   -- 技能本身在真的冷卻 ＝ 0 充能
+    chargeInfo = { currentCharges = Secret(), maxCharges = Secret(), isActive = true }
+    curDur.EvaluateRemainingDuration = function() return 1 end
     calls = {}
     onSet(cd, 100, 20, 1)
     eq("0 充能 ⇒ 改餵技能冷卻", last("FromDur") and last("FromDur")[2], curDur)
     eq("0 充能 ⇒ 畫轉圈", last("SetDrawSwipe") and last("SetDrawSwipe")[2], true)
+    eq("0 充能 ⇒ 去飽和", last("SetDesaturation") and last("SetDesaturation")[2], 1)
+    cdInfo = { isActive = true, isOnGCD = true }                    -- 只是 GCD ＝ 還有充能
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("GCD 中還有充能 ⇒ 走回充那條", last("FromDur") and last("FromDur")[2], chargeDur)
+    -- 旗標讀不到：退回比充能數（明文）
+    cdInfo = { isActive = Secret(), isOnGCD = Secret() }
+    chargeInfo = { currentCharges = 0, maxCharges = 2 }
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("旗標秘密、充能數 0 ⇒ 改餵技能冷卻", last("FromDur") and last("FromDur")[2], curDur)
+    chargeInfo = { currentCharges = 1, maxCharges = 2 }
+    calls = {}
+    onSet(cd, 100, 20, 1)
+    eq("旗標秘密、充能數 1 ⇒ 走回充那條", last("FromDur") and last("FromDur")[2], chargeDur)
+    -- 全部讀不到 ⇒ 走回充那條、去飽和照樣算（物件另拿）
     chargeInfo = { currentCharges = Secret(), maxCharges = Secret() }
     calls = {}
     check("充能數秘密不報錯", pcall(onSet, cd, 100, 20, 1))
-    eq("充能數讀不到 ⇒ 走回充那條", last("FromDur") and last("FromDur")[2], chargeDur)
+    eq("旗標與充能數都讀不到 ⇒ 走回充那條", last("FromDur") and last("FromDur")[2], chargeDur)
+    eq("都讀不到 ⇒ 去飽和的物件照樣是技能冷卻", rec.auraDur, curDur)
+    eq("都讀不到 ⇒ 去飽和照樣算", last("SetDesaturation") and last("SetDesaturation")[2], 1)
+    cdInfo = { isActive = true, isOnGCD = false }
 
     -- 暴雪標了「可以有充能」、實際只有一次（武器戰法術反射沒點第二次充能的天賦）：
     -- 回充永遠是零，問它就什麼都畫不出來 ⇒ 照一般技能餵冷卻（2026-10-04 回報）
@@ -1163,6 +1188,86 @@ do
     eq("IsChargeSpell 旗標 false ⇒ 不問", D.IsChargeSpell(r1, 6, false), false)
     chargeInfo = { currentCharges = 2, maxCharges = 2 }
     eq("IsChargeSpell 明文 2", D.IsChargeSpell(r1, 6, true), true)
+
+    -- 充能技能、沒在倒光環時間的格：暴雪的充能快取過期時每次 GCD 都寫 SetDesaturated(false) ⇒ 後掛勾照引擎的
+    -- 「不含 GCD 的技能冷卻」重算；SPELL_UPDATE_CHARGES 延一幀對一次
+    do
+        local icon2 = {
+            GetObjectType = function() return "Texture" end,
+            SetDesaturated = function(_, v) log("SetDesaturated2", v) end,
+            SetDesaturation = function(_, v) log("SetDesaturation2", v) end,
+        }
+        local cd2 = { SetCooldown = function() end, Clear = function() end, GetCountdownFontString = function() return fs end }
+        local item2 = { Cooldown = cd2, Icon = icon2 }
+        local rec2 = { barKey = "essential", cooldownID = 12, claimKey = "essential", auraFlag = false,
+                       style = { cdColor = { 1, 1, 1, 1 } } }
+        ns.Viewers.frames[item2] = rec2
+        local h1 = #hooks
+        D.HookItem(item2, rec2)
+        local onDesat2
+        for i = h1 + 1, #hooks do
+            if hooks[i].t == icon2 and hooks[i].name == "SetDesaturated" then onDesat2 = hooks[i].fn end
+        end
+        check("第二格掛了 SetDesaturated 後掛勾", onDesat2 ~= nil)
+        chargeInfo = { currentCharges = Secret(), maxCharges = 2, isActive = true }
+        eq("充能技能、沒倒光環 ⇒ 要重算", D.ChargeDesatTarget(rec2), 1200)
+        curDur.EvaluateRemainingDuration = function() return 1 end
+        calls = {}
+        onDesat2(icon2, false)                       -- 暴雪（舊快取：還有 1 層在回充）寫 false
+        eq("暴雪寫 false ⇒ 照引擎重算成 1", last("SetDesaturation2") and last("SetDesaturation2")[2], 1)
+        calls = {}
+        check("傳進來的值是秘密也不報錯", pcall(onDesat2, icon2, Secret()))
+        eq("秘密值照樣重算", count("SetDesaturation2"), 1)
+        -- 引擎說零（還有充能）⇒ 0
+        curDur.EvaluateRemainingDuration = function() return 0 end
+        calls = {}
+        onDesat2(icon2, true)
+        eq("引擎說沒在冷卻 ⇒ 0", last("SetDesaturation2") and last("SetDesaturation2")[2], 0)
+        curDur.EvaluateRemainingDuration = function() return 1 end
+        -- 不碰的情況
+        rec2.auraFlag = true
+        eq("暴雪在倒光環時間 ⇒ 不重算", D.ChargeDesatTarget(rec2), nil)
+        calls = {}
+        onDesat2(icon2, false)
+        eq("倒光環時間：暴雪的值不動", count("SetDesaturation2"), 0)
+        rec2.auraFlag = false
+        chargeInfo = { currentCharges = 1, maxCharges = 1 }
+        eq("不是充能技能 ⇒ 不重算", D.ChargeDesatTarget(rec2), nil)
+        calls = {}
+        onDesat2(icon2, false)
+        eq("非充能：暴雪的值不動", count("SetDesaturation2"), 0)
+        chargeInfo = { currentCharges = Secret(), maxCharges = 2, isActive = true }
+        rec2.parked = true
+        eq("停放中 ⇒ 不重算", D.ChargeDesatTarget(rec2), nil)
+        rec2.parked = nil
+        rec2.barKey = "buffs"
+        eq("增益條 ⇒ 不重算", D.ChargeDesatTarget(rec2), nil)
+        rec2.barKey = "essential"
+        rec2.style.desaturate = false
+        eq("關掉冷卻中去飽和 ⇒ 不重算", D.ChargeDesatTarget(rec2), nil)
+        calls = {}
+        onDesat2(icon2, true)
+        eq("關掉去飽和：照舊壓回 false", last("SetDesaturated2") and last("SetDesaturated2")[2], false)
+        eq("關掉去飽和：不求值", count("SetDesaturation2"), 0)
+        rec2.style.desaturate = nil
+        -- SPELL_UPDATE_CHARGES：延一幀、整批對一次（第二格走充能重算；第一格蓋掉增益那一段 ⇒ ApplyHiddenDesat）
+        local onCharges = events.SPELL_UPDATE_CHARGES and events.SPELL_UPDATE_CHARGES.decorate_desat
+        check("登記了 SPELL_UPDATE_CHARGES", onCharges ~= nil)
+        deferred = {}
+        calls = {}
+        onCharges()
+        onCharges()
+        eq("同一幀只排一次", #deferred, 1)
+        eq("事件當下不動", count("SetDesaturation2"), 0)
+        Flush()
+        eq("延一幀：充能格照引擎重算", last("SetDesaturation2") and last("SetDesaturation2")[2], 1)
+        eq("延一幀：蓋掉增益那一段的格也對一次", count("SetDesaturation"), 1)
+        calls = {}
+        onCharges()
+        Flush()
+        eq("排過的放掉後可以再排", count("SetDesaturation2"), 1)
+        ns.Viewers.frames[item2] = nil
+    end
 
     -- 隱藏 GCD 轉圈：只有一次的「充能旗標」技能要問技能冷卻，不能問回充（回充永遠是零 ⇒ 冷卻框一直藏著）
     do

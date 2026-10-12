@@ -809,6 +809,64 @@ eq("幾何：3 個分隔", #g.gaps, 3)
 eq("幾何：分隔在格子右邊", g.gaps[1].x, 23.5)
 eq("幾何：格距 0 沒有分隔", #AB.Geometry(100, 4, 0).gaps, 0)
 do
+    -- 貼實體像素（第 5 個參數 pixel ＝ 1 實體像素的 UI 單位）：每格的 x／寬都是整數像素、第 k 格的右界貼著引擎的
+    -- 填色終點 W·k/n（有格距：終點落在分隔裡；格距 0：落在右邊那條 1px 邊裡）、格寬最多差 1、左緣 0、右緣剛好 W
+    local function snapped(W, n, gap, pixel)
+        local g = AB.Geometry(W, n, gap, nil, pixel)
+        local ok, detail = true, nil
+        local minW, maxW = math.huge, 0
+        local Wp = W / pixel
+        local function int(v) return math.abs(v - math.floor(v + 0.5)) < 1e-9 end
+        for i, c in ipairs(g.cells) do
+            local x, w = c.x / pixel, c.w / pixel
+            if not (int(x) and int(w)) then ok, detail = false, "非整數像素 " .. i end
+            minW, maxW = math.min(minW, w), math.max(maxW, w)
+            if i < n then
+                local f = Wp * i / n                 -- 引擎的填色終點（第 i 層）
+                local right = x + w
+                local s = g.gaps[i]
+                if s then
+                    local sx, sw = s.x / pixel, s.w / pixel
+                    if math.abs(sx - right) > 1e-9 then ok, detail = false, "分隔沒貼在格子右邊 " .. i end
+                    if f < sx - 1e-9 or f > sx + sw + 1e-9 then ok, detail = false, "填色終點不在分隔裡 " .. i end
+                else
+                    if f < right - 1 - 1e-9 or f > right + 1e-9 then ok, detail = false, "填色終點不在右邊那條邊裡 " .. i end
+                    if math.abs(g.cells[i + 1].x / pixel - right) > 1e-9 then ok, detail = false, "格距 0 沒共用邊 " .. i end
+                end
+            end
+        end
+        local lastc = g.cells[n]
+        return ok, detail, (lastc.x + lastc.w) / pixel, maxW - minW, g.cells[1].x
+    end
+    for _, c in ipairs({ { 200, 25, 1, 1 }, { 201, 25, 1, 1 }, { 201, 25, 0, 1 }, { 334, 25, 0, 1 }, { 335, 6, 0, 1 },
+                         { 100, 4, 2, 1 }, { 100, 4, 3, 1 }, { 333, 10, 4, 1 }, { 180, 7, 1, 0.5 }, { 120.6, 25, 0.6, 0.6 },
+                         { 99, 25, 1, 1 }, { 150, 5, 2, 0.75 } }) do
+        local tag = ("貼像素 %s/%d 格距 %s px=%s"):format(c[1], c[2], c[3], c[4])
+        local ok, detail, right, spread, left = snapped(c[1], c[2], c[3], c[4])
+        check(tag .. "：整數像素、分隔蓋住填色終點", ok, detail)
+        eq(tag .. "：左緣 0", left, 0)
+        check(tag .. "：右緣剛好 W", math.abs(right - c[1] / c[4]) < 1e-9, right)
+        check(tag .. "：格寬最多差 1px", spread <= 1 + 1e-9, spread)
+    end
+    -- 玩家回報那一幕（秘法齊射 25 格）：W+gap ＝ 25·8+1 時等分的分隔小數部位從左到右線性累積，中段那條剛好卡在
+    -- 半像素上（糊成 2px，「中間那條黑線比別的粗很多」）；貼像素後每條都在整數像素、1px 寬
+    local g = AB.Geometry(200, 25, 1)
+    local frac = g.gaps[12].x % 1
+    check("等分：200px 25 格的第 12 條分隔卡在半像素（成因）", math.abs(frac - 0.5) < 0.05, frac)
+    local gs = AB.Geometry(200, 25, 1, nil, 1)
+    local allInt = true
+    for i = 1, 24 do if gs.gaps[i].x % 1 ~= 0 or gs.gaps[i].w ~= 1 then allInt = false end end
+    check("貼像素：24 條分隔都在整數像素、1px 寬", allInt)
+    eq("不給 pixel ＝ 舊的等分幾何", AB.Geometry(100, 4, 2, nil, nil).cells[1].w, 23.5)
+    -- 退化（格寬不到 gp+1 像素）：不出錯、格子不重疊、右緣仍是 W
+    local ok, gd = pcall(AB.Geometry, 20, 25, 1, nil, 1)
+    check("退化：不出錯", ok)
+    local mono = true
+    for i = 2, 25 do if gd.cells[i].x < gd.cells[i - 1].x + gd.cells[i - 1].w then mono = false end end
+    check("退化：格子不重疊", mono)
+    eq("退化：右緣 W", gd.cells[25].x + gd.cells[25].w, 20)
+end
+do
     -- 一格一框的分段：格距 0 ⇒ 相鄰兩格重疊 1px 共用一條邊，總寬不變
     local savedP = ns.P
     ns.P = { Scale = function(v) return v end }      -- 1 單位 ＝ 1 實體像素

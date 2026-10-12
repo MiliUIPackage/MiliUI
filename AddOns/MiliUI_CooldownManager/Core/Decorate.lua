@@ -791,13 +791,24 @@ end
 D.HideTarget = HideTarget                                           -- 測試用
 
 -- 充能法術這一刻：走回充那條（還有充能、只畫邊緣）？回充有沒有在跑（full ＝ 明文確認滿了）？
--- 讀不到（秘密值）⇒ 走回充那條、當作在跑（暴雪有充能時也是這樣畫）
+-- 「0 充能」不讀 currentCharges（戰鬥中是秘密值）：0 充能 ⇔ 技能本身在真的冷卻 ⇔ GetSpellCooldown 的
+-- isActive 且不是 isOnGCD（兩個旗標戰鬥中是明文，README 2026-10-01 實機）。還有充能時滿不滿看回充有沒有在跑
+-- （GetSpellCharges 的 isActive，明文；Glow.ReadFull 同一招）。旗標讀不到才退回比充能數；連數都讀不到 ⇒
+-- 走回充那條、當作在跑（暴雪有充能時也是這樣畫）。以前只比充能數：戰鬥中一律秘密 ⇒ 0 充能也走回充那條
+-- （只畫邊緣、去飽和沒有物件可算），2026-10-12 玩家回報「兩層充能的審判用完不去飽和」的其中一條路
 local function ChargeState(id)
+    local cd = C_Spell and C_Spell.GetSpellCooldown and TryDur(C_Spell.GetSpellCooldown, id)
+    local active, gcd
+    if type(cd) == "table" then active, gcd = Plain(cd.isActive), Plain(cd.isOnGCD) end
+    if active == true and gcd == false then return false, false end   -- 0 充能：暴雪畫技能冷卻（轉圈）
     local info = C_Spell and C_Spell.GetSpellCharges and TryDur(C_Spell.GetSpellCharges, id)
     if type(info) ~= "table" then return true, false end
+    local flags = type(active) == "boolean" and type(gcd) == "boolean"
+    local run = Plain(info.isActive)
+    if flags and type(run) == "boolean" then return true, not run end
     local cur, max = Plain(info.currentCharges), Plain(info.maxCharges)
     if type(cur) ~= "number" then return true, false end
-    if cur <= 0 then return false, false end             -- 0 充能：暴雪畫技能冷卻（轉圈）
+    if not flags and cur <= 0 then return false, false end
     return true, type(max) == "number" and cur >= max
 end
 
@@ -814,12 +825,9 @@ local function ShouldArm(rec, id, chargePath, full)
     return true
 end
 
--- 蓋掉的格的去飽和：dur 由引擎求值（秘密值也行）。沒有 dur ／曲線建不出來／求值失敗 ⇒ 不動
-local function ApplyHiddenDesat(item, rec)
-    local dur = rec.auraDur
-    local icon = item.Icon
+-- 照 duration 物件算去飽和（引擎求值，秘密值也行）：剩餘 > 0 ⇒ 1、0 ⇒ 0。沒有 dur／曲線建不出來／求值失敗 ⇒ 不動
+local function EvalDesat(icon, dur)
     if not (dur and dur.EvaluateRemainingDuration and icon and icon.SetDesaturation) then return end
-    if rec.style and rec.style.desaturate == false then return end
     local curve = D.DesatCurve()
     if not curve then return end
     local ok, v = pcall(dur.EvaluateRemainingDuration, dur, curve)
@@ -828,6 +836,73 @@ local function ApplyHiddenDesat(item, rec)
     desatGuard = true
     pcall(icon.SetDesaturation, icon, v)
     desatGuard = false
+end
+
+-- 蓋掉的格的去飽和：rec.auraDur（FeedRealCooldown 記的「不含 GCD 的技能冷卻」物件）
+local function ApplyHiddenDesat(item, rec)
+    if rec.style and rec.style.desaturate == false then return end
+    EvalDesat(item.Icon, rec.auraDur)
+end
+
+------------------------------------------------------------
+-- 充能技能：暴雪的充能快取過期時，去飽和改由引擎判
+--
+-- Blizzard_CooldownViewer 只在 RefreshData（這一格自己的 SPELL_UPDATE_COOLDOWN）才重讀 GetSpellCharges 存進
+-- cachedSpellChargeInfo；別的技能的 GCD 走輕量路徑 RefreshCooldownOnly，拿的是舊快取；而且檢視器根本不聽
+-- SPELL_UPDATE_CHARGES。最後一層用掉時事件若早於充能數更新，快取就卡在「還有 1 層在回充」⇒ 之後每次 GCD
+-- 都重寫 SetDesaturated(false)（回充不去飽和），整段冷卻圖示都是彩色的、下一次 RefreshData 才醒
+--（2026-10-12 懲戒騎兩層充能的審判／憤怒之鎚回報，「有時候」＝看事件順序）。
+-- 快取在暴雪的欄位上：不能寫、也不能替它 RefreshData（污染）⇒ 去飽和自己照引擎的物件算：
+-- 「不含 GCD 的技能冷卻」有充能時是零、0 充能才有長度，正好等於暴雪對沒在倒光環時間的格的規則
+--（cooldownDesaturated ＝ isOnActualCooldown）。範圍：
+--   * 只做充能技能（非充能的格沒有快取可過期，照暴雪的）
+--   * 暴雪正在倒光環時間的格不碰（倒自身增益時暴雪規定不去飽和，單位我們判不出來）；蓋掉增益那一段的格
+--     走 ApplyHiddenDesat（同一顆物件）
+--   * 時機：SetDesaturated 後掛勾（暴雪每次刷新寫的那一次，傳進來的值不看）＋ SPELL_UPDATE_CHARGES 延一幀
+--     （用掉一層／回滿一層當場對一次，不等下一次 GCD）
+------------------------------------------------------------
+-- 這一格要不要走充能的重算 → spellID；不要 ⇒ nil
+local function ChargeDesatTarget(rec)
+    if not rec or rec.custom or rec.auraHidden or rec.auraFlag == true then return nil end
+    local st = rec.style
+    if not (st and rec.claimKey) or rec.parked or st.desaturate == false then return nil end
+    local aura = ns.Viewers.AURA_KIND
+    if aura and aura[rec.barKey] then return nil end
+    local id, charges = HideTarget(rec)
+    if not (id and charges) then return nil end
+    return id
+end
+D.ChargeDesatTarget = ChargeDesatTarget                            -- 測試用
+
+local function ChargeDesat(item, rec, id)
+    if not (C_Spell and C_Spell.GetSpellCooldownDuration) then return end
+    EvalDesat(item.Icon, TryDur(C_Spell.GetSpellCooldownDuration, id, true))
+end
+
+local chargeArmed = false
+local function RefreshChargeDesat()
+    chargeArmed = false
+    if ns.released then return end
+    for item, rec in pairs(ns.Viewers.frames) do
+        local id = ChargeDesatTarget(rec)
+        if id then
+            ChargeDesat(item, rec, id)
+        elseif rec.auraHidden and not rec.custom then
+            ApplyHiddenDesat(item, rec)
+        end
+    end
+end
+D.RefreshChargeDesat = RefreshChargeDesat                          -- 測試用
+
+local function OnChargesChanged()
+    if chargeArmed or ns.released then return end
+    chargeArmed = true
+    ns.Defer(RefreshChargeDesat)
+end
+D.OnChargesChanged = OnChargesChanged                              -- 測試用
+
+if ns.Events and ns.Events.Register then
+    ns.Events.Register("SPELL_UPDATE_CHARGES", "decorate_desat", OnChargesChanged)
 end
 
 -- 把這格的 Cooldown 改餵技能自己的冷卻（呼叫端確認過 rec.auraHidden）
@@ -869,8 +944,13 @@ local function FeedRealCooldown(item, rec, cd)
     end
     overriding = false
     rec.fedCharge = (fed and edgeOnly) and true or nil   -- 回充的長相（ChargeLook）：這次餵的是回充
-    -- 去飽和只跟技能冷卻那條（有充能在回充時暴雪也不去飽和）
-    rec.auraDur = (dur and not edgeOnly) and dur or nil
+    -- 去飽和一律看「不含 GCD 的技能冷卻」這顆物件：有充能時引擎給零（＝不去飽和，暴雪回充時也不去飽和）、
+    -- 0 充能才有長度。不跟著 chargePath 走——以前回充那條把物件設成 nil，充能數秘密時 0 充能也被當回充 ⇒ 永遠不去飽和
+    if edgeOnly or not dur then
+        rec.auraDur = C_Spell and TryDur(C_Spell.GetSpellCooldownDuration, id, true) or nil
+    else
+        rec.auraDur = dur
+    end
     ApplyHiddenDesat(item, rec)
     if dur and ns.Glow and ns.Glow.ArmProbe and ShouldArm(rec, id, chargePath, full) then
         ns.Glow.ArmProbe(rec, dur)
@@ -1461,9 +1541,13 @@ local function OnSetDesaturated(icon, desaturated)
         ApplyHiddenDesat(item, rec)
         return
     end
-    -- 只管裝備欄項目（先判這個：法術類的格子到這裡就走了，不碰傳進來的值）
+    -- 法術類：只有充能技能要重算（暴雪的充能快取過期，見 ChargeDesatTarget）；其餘不碰傳進來的值
     local info = ns.Catalog.Info(rec.cooldownID)
-    if not (info and type(info.equipSlot) == "number") then return end
+    if not (info and type(info.equipSlot) == "number") then
+        local id = ChargeDesatTarget(rec)
+        if id then ChargeDesat(item, rec, id) end
+        return
+    end
     -- 暴雪剛把它設成去飽和：重判一次，只是 GCD 的話還原。
     -- ⚠ 傳進來的值戰鬥中是秘密布林，**不能拿來比較**（比了就拋錯）；讀不到就當作「可能是去飽和」照樣重判
     if not ns.IsSecret(desaturated) and desaturated == false then return end
