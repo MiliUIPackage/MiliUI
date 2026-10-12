@@ -706,6 +706,20 @@ function B.SpellEmptyForced(barKey)
     return barMode, forced
 end
 
+-- 暴雪的飾品增益格（EquipSlotTracked：資料帶裝備欄位）跟隨條的暗圖示時只留空位、不畫暗圖示：
+-- 被動飾品的增益格平常整格收著，條一被光環格／可點擊逼成固定格位（條層存的是收合）就冒出一顆暗的飾品圖示
+-- （玩家 2026-10-05 回報）。條層自己選了暗圖示、或這一格自己選了暗圖示的照舊畫（玩家 2026-10-12 回報：
+-- 選了暗圖示佔位卻沒畫）。Relayout 放格與設定面板的「跟隨條」顯示共用
+function B.EquipFollowMode(barKey, id, mode, own)
+    if mode ~= "dim" or own then return mode end
+    local bar = BarCfg(barKey)
+    local layout = bar and type(bar.layout) == "table" and bar.layout or {}
+    if layout.emptyMode == "dim" then return mode end
+    local inf = ns.Catalog.Info(id)
+    if inf and type(inf.equipSlot) == "number" then return "blank" end
+    return mode
+end
+
 -- 這一格生效的「增益不在時」（逐法術覆寫 emptyMode ＞ 條層）：回 mode, own（own ＝ 這一格自己設的）
 function B.EmptyMode(barKey, id)
     local barMode, forced = B.SpellEmptyForced(barKey)
@@ -1174,13 +1188,7 @@ local function Relayout(key, level, index, gen, s)
                 local em, own
                 if not present then
                     em, own = ns.Layout.SpellEmptyMode(ns.SpellSetting(key, id, "emptyMode"), barMode, forced)
-                    -- 暴雪的飾品增益格（EquipSlotTracked：資料帶裝備欄位）跟隨條的暗圖示時只留空位、不畫暗圖示
-                    --（被動飾品的增益格平常整格收著，條一被光環格／可點擊逼成固定格位就冒出一顆暗的飾品圖示；
-                    -- 玩家 2026-10-05 回報）。逐法術自己選了暗圖示的照舊畫
-                    if em == "dim" and not own then
-                        local inf = ns.Catalog.Info(id)
-                        if inf and type(inf.equipSlot) == "number" then em = "blank" end
-                    end
+                    em = B.EquipFollowMode(key, id, em, own)       -- 飾品增益格被逼出來的暗圖示只留空位
                 end
                 mode = ns.Layout.AuraSlot(present, em)
             end

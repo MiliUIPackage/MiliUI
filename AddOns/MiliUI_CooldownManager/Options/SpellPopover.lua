@@ -2338,15 +2338,18 @@ local function Build()
         local isBars = ns.Setting(key, "kind") == "bars"
         local barMode, forced = ns.Bars.SpellEmptyForced(key)
         local items = ns.Specs.EmptyModeItems(isBars)
+        -- 跟隨條那一項寫這一格實際的結果（飾品增益格被逼出來的暗圖示只留空位，Bars.EquipFollowMode）
+        local followMode = ns.Bars.EquipFollowMode(key, cur.id, barMode, false)
         local barText
         for _, it in ipairs(items) do
-            if it.value == barMode then barText = it.text end
+            if it.value == followMode then barText = it.text end
         end
         if forced then items[1] = { text = "|cff808080" .. items[1].text .. "|r", value = EMPTY_LOCKED } end
         table.insert(items, 1, { text = L["%s (%s)"]:format(FollowText(), barText or ""), value = false })
         emdd:SetItems(items)
         local mode, own = ns.Layout.SpellEmptyMode(Override("emptyMode"), barMode, forced)
         emdd:SetSelectedValue(own and mode or false)
+        if not own then mode = followMode end
         local reason = forced and ns.Specs.EmptyModeForcedText(key, true) or nil
         local desc = ns.Specs.EmptyModeDesc(mode, isBars)
         phTip:SetText(reason and (desc .. " " .. reason) or desc)
