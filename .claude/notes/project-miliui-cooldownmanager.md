@@ -207,3 +207,9 @@ IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄�
 ⇒ `rec.auraFlag` 卡在 true（症狀：效果不在時變暗勾了，DoT 掉了／換目標還是亮）。解法在 Decorate：setter 記 `rec.auraFlagPending`，
 SetCooldown 後掛勾消掉，Clear 後掛勾看不到這一筆 ⇒ 當 false（`SetAuraFlag` 共用連帶：音效、生效發光、變暗）。
 **How to apply:** 任何吃 auraFlag 的新功能都走 `SetAuraFlag`，不要只掛 setter。逐法術「效果不在時變暗」（`dimNoAura`）就是靠這個。
+- 2026-10-12：**錨定改成「錨定視窗」**（`Options/AnchorWindow.lua`，殼是 SettingsWindow、`configKey` 可省略＝每列自己的 key）：表單只剩摘要列＋「設定」鈕；
+  視窗內＝跟著哪條走下拉（寫入規則只有 `Specs.AnchorTargetSpec` 一份）→「目前接到：家名（框名）」灰字（`Anchor.Provider`）→**雙九宮格**
+  （主格＝目標的點 relPoint、次格＝這條的點 point，次格用遊戲裡同一句 `SetPoint(point, main, relPoint)` 擺、holder 固定 132）→偏移。
+  「邊」四選一下拉拿掉、`Layout.AnchorSide` 排開規則不變（任意組合可選，只有上下／左右相對的排開）。單位框候選六個單位 × 四家
+  （MiliUI → EllesmereUI → ElvUI → 暴雪；新 unit key `pet`／`targettarget`／`focustarget` 是存檔內容）。plan `~/.claude/plans/miliui-cdm-anchor-picker.md`，
+  **未實機驗證（README 498～507）**；最可能翻車：次格疊住主格的格子點不到（507）、歐語圖例換第三行（503）。
