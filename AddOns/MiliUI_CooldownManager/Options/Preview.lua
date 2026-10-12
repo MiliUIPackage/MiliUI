@@ -192,6 +192,7 @@ end
 --   飾品／裝備：暴雪的裝備欄項目（equipSlot）、自訂的裝備欄位／飾品欄增益（slot）；13／14 欄叫飾品，其餘叫裝備
 --   種族：種族技能那一筆（racial）或在 Presets.RACIALS 裡
 --   防禦：在 Presets.DEFENSIVES 裡，或暴雪標了 BIG_DEFENSIVE（C_UnitAuras.AuraIsBigDefensive；只當補充，暴雪會漏標）
+--   斷控：在 Presets.CONTROLS 裡（不拿 C_Spell.IsSpellCrowdControl 補：緩速之類也算進去，太雜）
 --   光環：自訂光環格，放在增益類以外的條上才標（增益條上每格都是光環，標了只是雜訊）
 ------------------------------------------------------------
 local TAG_H = 12
@@ -242,6 +243,7 @@ local function TagOf(key, info)
     if PR.IsDefensive(sid) or PR.IsDefensive(oid) or BigDefensive(sid) or BigDefensive(oid) then
         return L["Def"]
     end
+    if PR.IsControl(sid) or PR.IsControl(oid) then return L["CC"] end
     if info.custom and info.kind == "aura" and not AURA_SRC[key] then return L["Aura"] end
     return nil
 end

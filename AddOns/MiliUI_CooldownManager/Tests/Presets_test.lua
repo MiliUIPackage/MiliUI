@@ -190,5 +190,35 @@ check("防禦：深寒凝冰（天賦取代寒冰屏障）", P.IsDefensive(41465
 check("防禦：種族技能不算", not P.IsDefensive(20594))
 check("防禦：nil ⇒ false", P.IsDefensive(nil) == false)
 
+------------------------------------------------------------
+-- 斷法與控場、個人增益
+------------------------------------------------------------
+check("斷控：踢", P.IsControl(1766))
+check("斷控：防禦技能不算", not P.IsControl(642))
+eq("斷控：只留學了的", list(P.Controls("ROGUE", function(id) return id ~= 2094 end)), "1766,408")
+do
+    local n, seen = 0, {}
+    for class, ids in pairs(P.CONTROLS) do
+        n = n + 1
+        check("斷控職業 token 全大寫", class == class:upper())
+        CheckList("斷控 " .. class, ids, {})
+    end
+    eq("斷控：十三個職業都有", n, 13)
+    local keys = {}
+    for _, d in ipairs(P.SELF_AURAS) do
+        check("個人增益 key 不重複 " .. tostring(d.key), not keys[d.key])
+        keys[d.key] = true
+        CheckList("個人增益 " .. tostring(d.key), d.ids, seen)
+        check("個人增益 spec 是正整數或沒寫", d.spec == nil or PositiveInt(d.spec))
+    end
+end
+do
+    local function has(list, key) for _, d in ipairs(list) do if d.key == key then return true end end return false end
+    check("個人增益：懲戒有黎明之光", has(P.SelfAuras(70), "dawnlight"))
+    check("個人增益：防騎沒有黎明之光", not has(P.SelfAuras(66), "dawnlight"))
+    check("個人增益：沒寫 spec 的每個專精都有", has(P.SelfAuras(66), "windAwoken"))
+    check("個人增益：專精讀不到 ⇒ 只剩沒寫 spec 的", not has(P.SelfAuras(nil), "tierWindingUp") and has(P.SelfAuras(nil), "windAwoken"))
+end
+
 print(("Presets_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
