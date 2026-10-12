@@ -13,6 +13,7 @@
 --   Presets.RacialEntry(barKey)                → 動態的種族技能那一筆（kind = "racial"，不帶 ID）
 --   Presets.ResolveRacial(raceFile, isKnown)   → 這個種族學了的那個種族技能 ID（解不到 nil）
 --   Presets.AuraIDs(def)   這一組的全部法術（「這個專精已經加過了沒」用）
+--   Presets.IsRacial(id) / IsDefensive(id)     → 在不在種族／防禦表裡（不分種族職業；預覽格的角標用）
 --
 -- 名稱與圖示**不寫在這裡**，執行時問 C_Spell／C_Item（官方譯名、換季也跟著變）。
 -- ⚠ 這幾張表每季／每次改版要對一次：藥水的物品與增益 ID 每季換一批；種族、防禦技能、
@@ -25,16 +26,18 @@ local P = ns.Presets
 
 ------------------------------------------------------------
 -- 種族技能（主動的那幾個；同一個種族技能依職業有多個 ID 的全部列上，顯示時只留學了的）
+-- 每個種族的「第二個種族技能」（地精火箭彈幕、不死族食屍、狐狐人紮營／回營地、半龍人翱翔）排在尾巴：
+-- ResolveRacial 照順序挑第一個學了的，主要那個人人都會，所以挑不到它們；收進來是給 IsRacial（預覽格的「種族」角標）認的
 ------------------------------------------------------------
 P.RACIALS = {
     BloodElf           = { 25046, 28730, 50613, 69179, 80483, 129597, 155145, 202719, 232633 },
     DarkIronDwarf      = { 265221 },
-    Dracthyr           = { 357214, 368970 },
+    Dracthyr           = { 357214, 368970, 369536 },
     Draenei            = { 28880, 59542, 59543, 59544, 59545, 59547, 59548, 121093, 370626, 416250 },
     Dwarf              = { 20594 },
     EarthenDwarf       = { 436344 },
     Gnome              = { 20589 },
-    Goblin             = { 69070 },
+    Goblin             = { 69070, 69041 },
     Haranir            = { 1237885 },
     HighmountainTauren = { 255654 },
     Human              = { 59752 },
@@ -46,11 +49,11 @@ P.RACIALS = {
     Nightborne         = { 260364 },
     Orc                = { 20572, 33697, 33702 },
     Pandaren           = { 107079 },
-    Scourge            = { 7744 },
+    Scourge            = { 7744, 20577 },
     Tauren             = { 20549 },
     Troll              = { 26297 },
     VoidElf            = { 256948 },
-    Vulpera            = { 312411 },
+    Vulpera            = { 312411, 312370, 312372 },
     Worgen             = { 68992 },
     ZandalariTroll     = { 291944 },
 }
@@ -64,7 +67,7 @@ P.DEFENSIVES = {
     DRUID       = { 22812, 61336, 102342 },
     EVOKER      = { 363916 },
     HUNTER      = { 109304, 186265, 264735 },
-    MAGE        = { 11426, 45438, 235313, 235450, 342245 },
+    MAGE        = { 11426, 45438, 235313, 235450, 342245, 414658 },     -- 414658 深寒凝冰（天賦取代寒冰屏障）
     MONK        = { 115203 },
     PALADIN     = { 498, 642, 31850, 86659 },
     PRIEST      = { 586, 19236, 47585 },
@@ -86,6 +89,9 @@ P.ITEMS = {
     { key = "recklessness",    items = { 245902, 245903, 241288, 241289 } },
     { key = "rampantAbandon",  items = { 245910, 245911, 241292, 241293 } },
     { key = "liquidLuster",    items = { 274763, 274764, 271886, 271887 } },
+    { key = "zealotry",        items = { 245900, 245901, 241296, 241297 } },   -- 狂熱藥水
+    { key = "alluringNostrum", items = { 274765, 274766, 271889, 271890 } },   -- 誘人靈藥
+    { key = "invisibility",    items = { 241302, 241303 } },                   -- 虛空遮蔽酊劑（隱形）
 }
 -- 喝了身上不會有可追蹤增益的那幾組（治療／法力是立即回復）：藥水格不疊增益按鈕（Core/Catalog.lua 的 ItemUseBuffIDs）。
 -- 其餘組照 AURAS 同 key 的增益 ID＋物品的使用法術（C_Item.GetItemSpell）
@@ -108,6 +114,10 @@ P.AURAS = {
     { key = "lightsPotential", ids = { 1236616 } },
     { key = "recklessness",    ids = { 1236994 } },
     { key = "liquidLuster",    ids = { 1295132 } },
+    { key = "rampantAbandon",  ids = { 1236998 } },
+    { key = "zealotry",        ids = { 1238443 } },
+    { key = "alluringNostrum", ids = { 1295015 } },
+    { key = "invisibility",    ids = { 1236551 } },                        -- 虛空籠罩
 }
 
 ------------------------------------------------------------
@@ -147,6 +157,26 @@ end
 function P.Defensives(classFile, isKnown)
     if type(classFile) ~= "string" then return {} end
     return Filter(P.DEFENSIVES[classFile], isKnown)
+end
+
+-- 預覽格的角標（Options/Preview.lua）：這個法術在不在種族／防禦表裡（整張表攤平，不分種族職業；第一次問才建）
+local racialSet, defensiveSet
+local function SetOf(byKey)
+    local set = {}
+    for _, ids in pairs(byKey) do
+        for _, id in ipairs(ids) do set[id] = true end
+    end
+    return set
+end
+
+function P.IsRacial(spellID)
+    racialSet = racialSet or SetOf(P.RACIALS)
+    return spellID ~= nil and racialSet[spellID] == true
+end
+
+function P.IsDefensive(spellID)
+    defensiveSet = defensiveSet or SetOf(P.DEFENSIVES)
+    return spellID ~= nil and defensiveSet[spellID] == true
 end
 
 function P.SpellEntry(spellID, barKey)
