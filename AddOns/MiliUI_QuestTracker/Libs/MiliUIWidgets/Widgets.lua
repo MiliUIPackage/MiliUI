@@ -1760,25 +1760,47 @@ function W.CreateChoicePopup(parent, width, text, choices)
     fs:SetText(text)
     popup.text = fs
 
+    local n = #choices
+    local gap, edge = 6, 12
+    local buttons = {}
+    -- 按鈕等寬平分；最長那顆的字放不下就整個視窗撐寬（width 只是最小值）——譯名長短每個語系不同，
+    -- 呼叫端寫死的寬度在歐語／中文長選項上會讓字溢出按鈕、疊到隔壁。按鈕的字不夾寬（CreateButton），量得準
+    local function Layout()
+        local bw = math.floor((width - edge * 2 - gap * (n - 1)) / n)
+        for _, b in ipairs(buttons) do
+            local bfs = b:GetFontString()
+            local need = bfs and math.ceil(bfs:GetStringWidth() or 0) + W.BTN_TEXT_PAD or 0
+            if need > bw then bw = need end
+        end
+        local total = edge * 2 + gap * (n - 1) + bw * n
+        P.Width(popup, math.max(width, total))
+        fs:SetWidth(math.max(width, total) - 24)
+        for i, b in ipairs(buttons) do
+            P.Size(b, bw, 22)
+            b:ClearAllPoints()
+            b:SetPoint("BOTTOMLEFT", edge + (i - 1) * (bw + gap), 12)
+        end
+    end
+
     -- 高度貼著字長：上緣 12＋字高＋字與按鈕間距 14＋按鈕 22＋下緣 12（固定 96 的話一行字中間空一大塊）
+    -- 寬度也在顯示時重量一次：建立當下字型可能還沒就緒、字寬量成 0
     popup:SetScript("OnShow", function(self)
         mask:Show()
+        Layout()
         local textH = fs:GetStringHeight() or 0
         if textH > 0 then P.Height(self, 12 + textH + 14 + 22 + 12) end
     end)
     popup:SetScript("OnHide", function() mask:Hide() end)
 
-    local n = #choices
-    local gap, edge = 6, 12
-    local bw = math.floor((width - edge * 2 - gap * (n - 1)) / n)
     for i, c in ipairs(choices) do
-        local b = W.CreateButton(popup, c.text, c.color or "accent", bw, 22)
-        b:SetPoint("BOTTOMLEFT", edge + (i - 1) * (bw + gap), 12)
+        local b = W.CreateButton(popup, c.text, c.color or "accent", 1, 22)
         b:SetScript("OnClick", function()
             popup:Hide()
             if c.onClick then c.onClick() end
         end)
+        buttons[i] = b
     end
+    Layout()
 
     -- 建完先關掉，理由同 CreateConfirmPopup 結尾那段註解
     popup:Hide()
