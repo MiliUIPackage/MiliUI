@@ -19,7 +19,7 @@ cd "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI_CooldownMan
 
 ## 格式（跟 Lua 那邊的常數綁在一起）
 
-- 20 張、每張 256×256，純白、只有透明度有內容。遊戲裡同一張圖兩種用途：
+- 20 張、每張 512×512（內圈直徑上限 600，`Options/Specs.lua` 的 Inner ring diameter 滑桿），純白、只有透明度有內容。遊戲裡同一張圖兩種用途：
   軌道（我們自己框上的貼圖，`SetVertexColor` 染軌道色）與進度（暴雪 Cooldown 的 `SetSwipeTexture`，`SetSwipeColor` 染填色）。
 - 第 j 張的**環寬比例**（環寬 ÷ 直徑）＝ `0.02 × 15 ^ ((j − 1) / 19)`，0.02 到 0.30 的等比級數。
   `Core/Layout.lua` 的 `RING_STEPS`／`RING_MIN`／`RING_MAX` 是同一組數，**改一邊另一邊一起改**；
@@ -37,5 +37,5 @@ cd "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI_CooldownMan
 
 ## 畫法要點
 
-- 外緣半徑留半個像素（127.5）：外緣剛好貼齊貼圖邊的話，雙線性取樣在邊上會被切平。
+- 外緣半徑留半個像素（255.5）：外緣剛好貼齊貼圖邊的話，雙線性取樣在邊上會被切平。
 - 4 倍超取樣、LANCZOS 縮回；透明的地方 RGB 也是白（濾波時邊緣不會滲出黑邊）。

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """冷卻管理器「圓環顯示」的環形貼圖。
 
-輸出 ring-01.png ～ ring-20.png：256×256，純白、只有透明度有內容的抗鋸齒圓環。
+輸出 ring-01.png ～ ring-20.png：512×512，純白、只有透明度有內容的抗鋸齒圓環。
 遊戲裡同一張圖當兩種用途：
   * 軌道（深色底環）：我們自己框上的貼圖，SetVertexColor 染軌道色
   * 進度：暴雪 Cooldown 的 SetSwipeTexture，SetSwipeColor 染填色
@@ -12,7 +12,7 @@ SetSwipeTexture 會把貼圖拉滿整個 Cooldown ⇒ 環的粗細跟直徑成�
 等比級數（細環與粗環的相對誤差一樣大）。
 ⚠ 這組常數跟 Core/Layout.lua 的 RING_STEPS／RING_MIN／RING_MAX 綁在一起，改一邊另一邊一起改。
 
-外緣半徑留半個像素（127.5）：外緣剛好貼齊貼圖邊的話，雙線性取樣在邊上會被切平。
+外緣半徑留半個像素（255.5）：外緣剛好貼齊貼圖邊的話，雙線性取樣在邊上會被切平。
 4 倍超取樣、畫完 LANCZOS 縮回來；沒有亂數，同一份腳本跑出來的圖一模一樣（git 才會乾淨）。
 
 跑法：cd 到 AddOns/MiliUI_CooldownManager/Media 再執行（用相對檔名存檔）。
@@ -21,7 +21,8 @@ from PIL import Image, ImageDraw
 
 STEPS = 20
 RATIO_MIN, RATIO_MAX = 0.02, 0.30
-SIZE = 256                    # 輸出邊長（遊戲裡會被拉到圈的直徑；最大的圈也不過一兩百像素）
+SIZE = 512                    # 輸出邊長（遊戲裡會被拉到圈的直徑；內圈直徑上限 600、外圈可到七八百像素，
+                              # 256 拉上去邊緣會糊，2026-10-13 從 256 提高）
 SS = 4                        # 超取樣倍率
 EDGE = 0.5                    # 外緣離貼圖邊的距離（輸出像素）
 

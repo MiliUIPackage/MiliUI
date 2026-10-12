@@ -1396,7 +1396,7 @@ local function RingRows(key, add)
     local function IconOff(info)
         return not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "ring.showIcon")
     end
-    add(BS("slider", "layout.size.w", L["Inner ring diameter"], { min = 16, max = 200, step = 1 }))
+    add(BS("slider", "layout.size.w", L["Inner ring diameter"], { min = 16, max = 600, step = 1 }))
     add(BS("slider", "ring.thickness", L["Ring width"], { min = T.min, max = T.max, step = 1 }))
     add(BS("slider", "ring.gap", L["Ring gap"], { min = G.min, max = G.max, step = 1 }))
     add(BS("dropdown", "ring.direction", L["Ring direction"], { items = RING_DIR_ITEMS }))
