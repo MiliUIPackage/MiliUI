@@ -209,7 +209,7 @@ eq("簽章：三條規則", RC.Signature({ conditions = { X = { rule, { target =
 ------------------------------------------------------------
 -- 2. 資源清單依專精
 ------------------------------------------------------------
-ns.Bars = { FirstRowWidth = function() return 0 end }
+ns.Bars = { FirstRowWidth = function() return 0 end, AutoWidth = function() return 0 end }
 Load("Modules/Resources.lua")
 local R = ns.Resources
 Load("Modules/Pips.lua")

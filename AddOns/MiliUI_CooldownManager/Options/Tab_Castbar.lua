@@ -67,7 +67,7 @@ local function Controls()
         Note(L["Only stops Blizzard's bar from listening to your casts; unchecking brings it right back, unless the unit frames are hiding it too."]),
         { type = "header", label = L["Layout"] },
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
-        Note(L["0 matches the first row of Essential Cooldowns (icon included)."]),
+        Note(L["0 matches the first row of the icon group it follows; otherwise Essential Cooldowns (icon included)."]),
         BS("slider", "height", L["Height"], { min = 6, max = 60, step = 1 }),
         BS("dropdown", "texture", L["Texture"], { items = TextureItems }),
         Note(L["Blizzard cast bar: the gradient look of the game's own cast bar, tinted with the colors below."]),

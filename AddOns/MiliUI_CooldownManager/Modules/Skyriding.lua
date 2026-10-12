@@ -886,7 +886,7 @@ end
 ------------------------------------------------------------
 local function Width(cfg)
     local R = ns.Resources
-    if R and R.Width then return R.Width(cfg) end
+    if R and R.Width then return R.Width(cfg, false) end   -- 接力時錨點不在存檔裡：寬 0 一律跟核心技能
     local w = tonumber(cfg.width) or 0
     return w > 0 and w or 200
 end

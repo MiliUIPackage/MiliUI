@@ -791,14 +791,14 @@ function Pips.Update(force)
         SyncEvents()
         laidOut = false
         -- 關著也收合：跟著這裡的輔助技能改貼核心下方
-        ns.Bars.SetPanelSize(KEY, ns.P.Scale(R.Width(style)), 0)
+        ns.Bars.SetPanelSize(KEY, ns.P.Scale(R.Width(style, KEY)), 0)
         return
     end
     if force or not laidOut then
         if MustDefer() then
             DeferRelayout()
         else
-            Relayout(style, R.Width(style))
+            Relayout(style, R.Width(style, KEY))
             laidOut = true
         end
     end
@@ -887,7 +887,7 @@ end
 ------------------------------------------------------------
 local function MinSize()
     local style = StyleCfg() or {}
-    return R.Width(style), Pips.CUSTOM_DEFAULT_HEIGHT
+    return R.Width(style, KEY), Pips.CUSTOM_DEFAULT_HEIGHT
 end
 
 function Pips.Init()

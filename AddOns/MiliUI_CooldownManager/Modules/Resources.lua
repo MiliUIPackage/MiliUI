@@ -1285,11 +1285,12 @@ end
 ------------------------------------------------------------
 -- 版面
 ------------------------------------------------------------
-function R.Width(cfg)
+-- panelKey：寬 0 跟著哪個面板的錨定目標（nil ＝ 資源條；分段資源條傳自己的 key；false ＝ 一律核心技能）
+function R.Width(cfg, panelKey)
     cfg = cfg or Cfg() or {}
     local w = tonumber(cfg.width) or 0
     if w <= 0 then
-        w = ns.Bars and ns.Bars.FirstRowWidth and ns.Bars.FirstRowWidth("essential") or 0
+        w = ns.Bars and ns.Bars.AutoWidth and ns.Bars.AutoWidth(panelKey == nil and "resources" or panelKey or nil) or 0
         if w <= 0 then w = 200 end
     end
     return w

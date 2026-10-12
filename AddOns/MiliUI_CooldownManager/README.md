@@ -1731,13 +1731,13 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 | 位置 | 內容 |
 |---|---|
 | `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`、`assistIcon`、`skyriding`；順序＝顯示條件套用與錨定候選的順序，天空騎術排最後）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
-| `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth("essential")`，核心技能第一列寬度變了廣播 `FirstRowWidthChanged`。排程對面板只做結構級，內容交給模組的 `relayout` |
+| `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth(key)` 記每條圖示條的第一列寬，變了廣播 `FirstRowWidthChanged(key, w)`；`B.AutoWidth(panelKey)` ＝ 面板寬 0 的實際寬（錨在圖示條上跟那條，否則核心技能）。排程對面板只做結構級，內容交給模組的 `relayout` |
 | `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
 | `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：「位置」列的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定視窗（`Options/AnchorWindow.lua`）的 spec 一律 `"bar@<key>"`；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
 | `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`、`Options.HostPage("assistIcon") == "assist"`（`ShowPage`／`FocusBar` 照它轉，點擊層點了開那一頁）、`Options.PageTitle("pips")` 回「自訂格子」、`PageTitle("assistIcon")` 回「下一招圖示」（覆蓋層條名、錨定候選、點擊層提示） |
 
 容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、自訂格子 `TOP`（預設錨在
-核心技能下緣、往下長）、施法條與下一招圖示 `CENTER`。寬 0 ＝ 核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`）。
+核心技能下緣、往下長）、施法條與下一招圖示 `CENTER`。寬 0 ＝ 錨定的圖示群組第一列寬，沒錨在圖示條上就是核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`；天空騎術一律核心技能）。
 
 預設的上下疊法（使用者 2026-09-30 指定；增益圖示 2026-10-01 加入）：增益圖示 → 施法條 → 資源條 → **核心技能 → 自訂格子 → 輔助技能**。
 五個的 `anchor.to` 全部是 `essential`（資源條、施法條、增益圖示在上方；自訂格子、輔助技能在下方），先後由排開決定。

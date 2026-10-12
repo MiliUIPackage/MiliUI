@@ -1207,19 +1207,21 @@ local function Relayout(key, level, index, gen, s)
 
     local sizing = BarSize(key, bar)
     local rects, totalW, totalH, anchorPoint = ns.Layout.Compute(entries, sizing, bar.kind)
-    if key == "essential" then
-        local old = firstRowW.essential
-        firstRowW.essential = ns.Layout.FirstRowWidth(#entries, sizing)
-        if old ~= firstRowW.essential then
+    -- 圖示條都記第一列寬：面板（資源條、施法條）錨在哪條圖示條上，寬 0 就跟那條同寬（B.AutoWidth）
+    if bar.kind ~= "bars" then
+        local old = firstRowW[key]
+        firstRowW[key] = ns.Layout.FirstRowWidth(#entries, sizing)
+        if old ~= firstRowW[key] then
             -- 寬 0 的長條跟著核心技能第一列走
-            for k in pairs(containers) do
-                local b = BarCfg(k)
-                if b and b.kind == "bars" and type(b.bar) == "table" and (tonumber(b.bar.width) or 0) <= 0 then
-                    B.Request(k, "layout")
+            if key == "essential" then
+                for k in pairs(containers) do
+                    local b = BarCfg(k)
+                    if b and b.kind == "bars" and type(b.bar) == "table" and (tonumber(b.bar.width) or 0) <= 0 then
+                        B.Request(k, "layout")
+                    end
                 end
             end
-            -- 面板（資源條、施法條）的寬 0 也是這個語意
-            if ns.Fire then ns.Fire("FirstRowWidthChanged", "essential", firstRowW.essential) end
+            if ns.Fire then ns.Fire("FirstRowWidthChanged", key, firstRowW[key]) end
         end
     end
 
@@ -1757,9 +1759,20 @@ function B.Count(key)
     return st and st.count or 0
 end
 
--- 某條第一列的寬（目前只有核心技能有記）；還沒排過回 0
+-- 某條圖示條第一列的寬；還沒排過、長條類回 0
 function B.FirstRowWidth(key)
     return firstRowW[key or "essential"] or 0
+end
+
+-- 面板「寬 0」的實際寬：錨在某條圖示條上（不論哪一邊）＝ 那條第一列寬；
+-- 沒錨定、錨在長條／面板／外部框、或那條是空的 ＝ 核心技能第一列寬。還沒排過回 0
+function B.AutoWidth(panelKey)
+    local cfg = panelKey and ns.DB and ns.DB.ConfigTable(panelKey)
+    local a = type(cfg) == "table" and cfg.anchor
+    local to = type(a) == "table" and a.to
+    local w = type(to) == "string" and firstRowW[to] or 0
+    if w > 0 then return w end
+    return firstRowW.essential or 0
 end
 
 ------------------------------------------------------------

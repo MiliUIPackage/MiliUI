@@ -228,7 +228,7 @@ CB.state = S
 local function Width(cfg)
     local w = tonumber(cfg.width) or 0
     if w <= 0 then
-        w = ns.Bars and ns.Bars.FirstRowWidth and ns.Bars.FirstRowWidth("essential") or 0
+        w = ns.Bars and ns.Bars.AutoWidth and ns.Bars.AutoWidth("castbar") or 0
         if w <= 0 then w = 200 end
     end
     return w

@@ -939,7 +939,7 @@ local function Controls(cand, sub)
     for _, s in ipairs({
         { type = "header", label = L["Layout"] },
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
-        Note(L["0 matches the first row of Essential Cooldowns."]),
+        Note(L["0 matches the first row of the icon group it follows; otherwise Essential Cooldowns."]),
         BS("slider", "rowSpacing", L["Row spacing"], { min = -1, max = 12, step = 1 }),
         -- 條上數字的位移（所有資源列＋自訂格子共用）：字型的行高把下伸部留在底下，數字置中後看起來偏上
         BS("numbers", nil, L["Text offset"], { sub = "textOffset", path = false,
