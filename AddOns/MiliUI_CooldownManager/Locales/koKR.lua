@@ -1091,6 +1091,7 @@ L["A bar that shrinks with the time left on a debuff you put on your current tar
 L["A bar that shrinks with a spell's cooldown, with the seconds left. The global cooldown doesn't count. For a spell with charges it shows the next charge coming back. Enter the spell ID."] = "주문 재사용 대기시간에 맞춰 줄어드는 바로, 남은 초를 표시합니다. 전역 재사용 대기시간은 포함하지 않습니다. 충전형 주문은 다음 충전이 돌아오는 시간을 보여 줍니다. 주문 ID를 입력하세요."
 L["Remove this custom bar?"] = "이 사용자 지정 바를 삭제할까요?"
 L["Name position"] = "이름 위치"
+L["When to show the name"] = "이름 표시 시점"
 L["Time position"] = "시간 위치"
 L["Stacks position"] = "중첩 위치"
 L["Stacks only show from 2 up; a buff that doesn't stack shows nothing here."] = "중첩은 2 이상일 때만 표시됩니다. 중첩되지 않는 효과는 아무것도 표시하지 않습니다."

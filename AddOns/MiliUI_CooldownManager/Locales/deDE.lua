@@ -1091,6 +1091,7 @@ L["A bar that shrinks with the time left on a debuff you put on your current tar
 L["A bar that shrinks with a spell's cooldown, with the seconds left. The global cooldown doesn't count. For a spell with charges it shows the next charge coming back. Enter the spell ID."] = "Eine Leiste, die mit der Abklingzeit eines Zaubers schrumpft, mit den verbleibenden Sekunden. Die globale Abklingzeit zählt nicht. Bei Zaubern mit Aufladungen zeigt sie die nächste Aufladung. Gib die Zauber-ID ein."
 L["Remove this custom bar?"] = "Diese eigene Leiste entfernen?"
 L["Name position"] = "Namensposition"
+L["When to show the name"] = "Name sichtbar"
 L["Time position"] = "Zeitposition"
 L["Stacks position"] = "Stapelposition"
 L["Stacks only show from 2 up; a buff that doesn't stack shows nothing here."] = "Stapel erscheinen erst ab 2; ein Effekt ohne Stapel zeigt hier nichts."

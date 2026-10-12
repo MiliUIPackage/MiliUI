@@ -1091,6 +1091,7 @@ L["A bar that shrinks with the time left on a debuff you put on your current tar
 L["A bar that shrinks with a spell's cooldown, with the seconds left. The global cooldown doesn't count. For a spell with charges it shows the next charge coming back. Enter the spell ID."] = "隨法術冷卻縮短的計時條，附剩餘秒數。公共冷卻不算。有充能的法術顯示下一次充能回來的時間。輸入法術 ID。"
 L["Remove this custom bar?"] = "要刪除這一條自訂列嗎？"
 L["Name position"] = "名字位置"
+L["When to show the name"] = "名字顯示時機"
 L["Time position"] = "時間位置"
 L["Stacks position"] = "層數位置"
 L["Stacks only show from 2 up; a buff that doesn't stack shows nothing here."] = "層數 2 層以上才會顯示；不會疊層的增益這裡不印字。"

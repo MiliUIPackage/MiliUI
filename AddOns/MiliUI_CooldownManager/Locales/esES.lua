@@ -1091,6 +1091,7 @@ L["A bar that shrinks with the time left on a debuff you put on your current tar
 L["A bar that shrinks with a spell's cooldown, with the seconds left. The global cooldown doesn't count. For a spell with charges it shows the next charge coming back. Enter the spell ID."] = "Una barra que se acorta con la reutilización de un hechizo, con los segundos restantes. El tiempo de reutilización global no cuenta. En hechizos con cargas muestra la siguiente carga. Escribe el ID del hechizo."
 L["Remove this custom bar?"] = "¿Eliminar esta barra personalizada?"
 L["Name position"] = "Posición del nombre"
+L["When to show the name"] = "Nombre visible"
 L["Time position"] = "Posición del tiempo"
 L["Stacks position"] = "Posición de acumulaciones"
 L["Stacks only show from 2 up; a buff that doesn't stack shows nothing here."] = "Las acumulaciones solo se ven desde 2; un efecto que no se acumula no muestra nada aquí."

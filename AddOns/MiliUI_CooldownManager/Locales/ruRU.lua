@@ -1091,6 +1091,7 @@ L["A bar that shrinks with the time left on a debuff you put on your current tar
 L["A bar that shrinks with a spell's cooldown, with the seconds left. The global cooldown doesn't count. For a spell with charges it shows the next charge coming back. Enter the spell ID."] = "Полоса укорачивается вместе с восстановлением заклинания и показывает секунды. Общее время восстановления не учитывается. Для заклинаний с зарядами показывает следующий заряд. Введите ID заклинания."
 L["Remove this custom bar?"] = "Удалить эту свою полосу?"
 L["Name position"] = "Положение названия"
+L["When to show the name"] = "Когда видно название"
 L["Time position"] = "Положение времени"
 L["Stacks position"] = "Положение стаков"
 L["Stacks only show from 2 up; a buff that doesn't stack shows nothing here."] = "Стаки видны только от 2; эффект без стаков здесь ничего не показывает."

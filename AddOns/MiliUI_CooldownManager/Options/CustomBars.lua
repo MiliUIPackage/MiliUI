@@ -149,6 +149,10 @@ local ICON_ITEMS = {
     { text = L["Right"], value = "right" },
     { text = L["None"], value = "none" },
 }
+local NAME_WHEN_ITEMS = {
+    { text = L["Only while active"], value = "active" },
+    { text = L["Always"], value = "always" },
+}
 local SHOW_ITEMS = {
     { text = L["Always (empty bar while inactive)"], value = "always" },
     { text = L["Only while active"], value = "active" },
@@ -269,6 +273,7 @@ local function PreviewRow(i)
                 time:Hide()
             end
             stacks:SetShown(st.stacksShow and active)
+            name:SetShown(st.nameShow and (active or st.nameWhen == "always"))
         end
 
         local function Refresh()
@@ -405,6 +410,12 @@ local function AppendEntrySpecs(add, i, kind)
         function() return StyleOf(i).namePoint end,
         function(_, v) local t = Sub(i, "name", true); if t then t.point = (v ~= "LEFT") and v or nil end end,
         { items = POINT_ITEMS, disabled = off("nameShow") }))
+    -- 名字什麼時候出現（預設生效時）；整列本來就只在生效時顯示的話這一列沒意義 ⇒ 停用
+    add(S("dropdown", "nameWhen", i, L["When to show the name"],
+        function() return StyleOf(i).nameWhen end,
+        function(_, v) local t = Sub(i, "name", true); if t then t.when = (v == "always") and v or nil end end,
+        { items = NAME_WHEN_ITEMS,
+          disabled = function() local st = StyleOf(i); return not st.nameShow or st.showWhen == "active" end }))
 
     -- 剩餘時間
     add(SubToggle(i, "time", "show", "timeShow", L["Show time"], true))

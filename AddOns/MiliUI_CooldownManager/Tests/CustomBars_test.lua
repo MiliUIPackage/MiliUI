@@ -267,7 +267,16 @@ check("增益：player／HELPFUL／duration", buff.unit == "player" and buff.fil
 check("秒數：靠右、小數門檻、沒有低秒變色", buff.text and buff.text.point == "RIGHT" and buff.text.decimals == CB.DECIMALS_DEFAULT
     and buff.text.low == nil)
 check("層數：置中、不給格式器", buff.count and buff.count.point == "CENTER" and buff.count.plain == true and buff.count.mode == "stacks")
-check("一直顯示：沒有 inside、沒有 label（列上畫）", buff.inside == nil and buff.label == nil)
+check("一直顯示：沒有 inside（暗底、邊框畫在列上）", buff.inside == nil)
+check("名字預設只在生效時：label 只有名字、沒有圖示（圖示照舊畫在列上）", buff.label ~= nil and buff.label.name == "復仇之怒"
+    and buff.label.icon == nil and buff.label.point == "LEFT")
+eq("名字預設：只在生效時", CB.Style({ kind = "buff", spellID = 1 }).nameWhen, "active")
+eq("冷卻列也一樣預設只在生效時", CB.Style({ kind = "cooldown", spellID = 1 }).nameWhen, "active")
+local always = CB.AuraSpec(Plan1({ kind = "buff", spellID = 31884, name = { when = "always" } }), look, G)
+check("名字選一直顯示：沒有 label（名字畫在列上）", always.inside == nil and always.label == nil)
+local noName = CB.AuraSpec(Plan1({ kind = "buff", spellID = 31884, name = { show = false } }), look, G)
+check("名字關掉：沒有 label", noName.label == nil)
+eq("壞值退回只在生效時", CB.Style({ kind = "buff", spellID = 1, name = { when = "bogus" } }).nameWhen, "active")
 local debuff = CB.AuraSpec(Plan1({ kind = "debuff", spellID = 1, low = { on = true, below = 4, color = { r = 0, g = 1, b = 0 } },
     stacks = { show = false }, time = { show = true, point = "LEFT" }, showWhen = "active", icon = "right" }), look, G)
 check("目標減益：target／HARMFUL|PLAYER", debuff.unit == "target" and debuff.filter == "HARMFUL|PLAYER")

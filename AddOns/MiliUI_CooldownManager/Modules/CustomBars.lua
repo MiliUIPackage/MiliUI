@@ -180,6 +180,8 @@ function CB.Style(entry)
     local n = type(e.name) == "table" and e.name or {}
     s.nameShow = n.show ~= false
     s.namePoint = POINT_OK[n.point] and n.point or "LEFT"
+    -- 名字什麼時候出現：生效時（光環在、或冷卻中；預設）｜一直顯示
+    s.nameWhen = (n.when == "always") and "always" or "active"
     local t = type(e.time) == "table" and e.time or {}
     s.timeShow = t.show ~= false
     s.timePoint = POINT_OK[t.point] and t.point or "RIGHT"
@@ -337,6 +339,11 @@ function CB.AuraSpec(plan, look, g)
     if st.stacksShow then
         spec.count = { font = look.font, size = look.sizePx, outline = look.outline, mode = "stacks", plain = true,
                        point = st.stacksPoint, pad = look.padPx, off = off }
+    end
+    if st.showWhen ~= "active" and st.nameShow and st.nameWhen == "active" then
+        -- 一直顯示的列、名字只在光環在時出現：名字單獨建在按鈕子樹裡（按鈕只在光環存在時顯示），圖示照舊畫在列上
+        spec.label = { name = look.name, font = look.font, size = look.sizePx, outline = look.outline,
+                       point = st.namePoint, pad = look.padPx, w = look.nameWpx, off = off }
     end
     if st.showWhen == "active" then
         -- 只在生效時顯示：暗底、邊框、名字、圖示全建在按鈕子樹裡
@@ -595,7 +602,8 @@ local function LayoutRowParts(row, plan, look, g, inside)
         row.iconFrame:Hide()
         row.icon:Hide()
     end
-    if st.nameShow and not inside then
+    -- 光環列的名字設成只在生效時出現 ⇒ 建在按鈕子樹裡（CB.AuraSpec 的 label），列上不畫
+    if st.nameShow and not inside and not (plan.aura and st.nameWhen == "active") then
         ns.Media.SetPixelFont(row.name, look.size, look.outline, look.token)
         row.name:SetTextColor(1, 1, 1, 1)
         row.name:SetWidth(look.nameWpx)
@@ -725,19 +733,25 @@ local function UpdateCooldown(row)
             row.cdArmed = true
         end
     end
-    local a = CB.CooldownAlpha(plan.st.showWhen, state)
-    if a then
-        row:SetAlpha(a)
-        return
+    -- 整列（只在生效時顯示）與名字（只在冷卻中出現，名字在 textFrame 上）各自一個透明度，判準相同
+    local st = plan.st
+    local zero, zeroRead
+    local function Apply(frame, showWhen)
+        local a = CB.CooldownAlpha(showWhen, state)
+        if a then frame:SetAlpha(a) return end
+        -- 讀不到旗標：duration:IsZero() 是秘密布林，取得可以、測試不行 ⇒ 直接餵 SetAlphaFromBoolean
+        if not zeroRead then
+            zeroRead = true
+            if dur and dur.IsZero then
+                local ok, z = pcall(dur.IsZero, dur)
+                if ok then zero = z end
+            end
+        end
+        if (ns.IsSecret(zero) or zero ~= nil) and frame.SetAlphaFromBoolean and pcall(frame.SetAlphaFromBoolean, frame, zero, 0, 1) then return end
+        frame:SetAlpha(1)          -- 什麼都讀不到：寧可顯示
     end
-    -- 讀不到旗標：duration:IsZero() 是秘密布林，取得可以、測試不行 ⇒ 直接餵 SetAlphaFromBoolean
-    local zero
-    if dur and dur.IsZero then
-        local ok, z = pcall(dur.IsZero, dur)
-        if ok then zero = z end
-    end
-    if (ns.IsSecret(zero) or zero ~= nil) and row.SetAlphaFromBoolean and pcall(row.SetAlphaFromBoolean, row, zero, 0, 1) then return end
-    row:SetAlpha(1)                -- 什麼都讀不到：寧可顯示
+    Apply(row, st.showWhen)
+    if row.textFrame then Apply(row.textFrame, st.nameWhen == "active" and "active" or "always") end
 end
 
 local function UpdateRows()
