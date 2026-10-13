@@ -71,3 +71,7 @@ metadata:
 
 相關：[[project-miliui-widgets-vendor]]（NAMESPACE `MiliUIMerchant`）、
 [[wow-121-addon-code-in-secure-stack]]、[[feedback-plan-opus-verify-workflow]]
+
+## 2026-10-13 拍賣場延伸（未實機驗證）
+`Modules/AuctionHouse.lua`：瀏覽清單 `BrowseResultsFrame.ItemList.ScrollBox` 的 `Update` post-hook，每次 ForEachFrame 全部重判（列是池化的）；購買頁 `ItemDisplay:SetItemInternal` post-hook。戰寵照 `itemKey.battlePetSpeciesID` 判（`Collected.IsSpecies`）。
+Dim 改成 `Dim.NewMarker(size, offX, offY)` 標記器，商人與拍賣場各一個實例；**只還原自己變暗過的框**。`Collected.Init`／`AuctionHouse.Init` 移到衝突閘前面：別人擴充商人視窗時只讓出商人那半。開關 `dim.auctionHouse`。Auctionator 自己畫的列不碰。

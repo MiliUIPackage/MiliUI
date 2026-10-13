@@ -170,6 +170,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-bosstimeline.md](project-miliui-bosstimeline.md) | 米利的首領時間軸 MiliUI_BossTimeline —— 重畫暴雪時間軸（直橫＋即時預覽）、插件歸屬（AddScriptEvent 掛勾＋debugstack）、自訂時間軸；地瓜寫入／DBM 只讀的調查結論、秘密值欄位表、待實機驗證清單 |
 | [project-miliui-minimap.md](project-miliui-minimap.md) | 米利的小地圖 MiliUI_Minimap —— 方形小地圖＋公會／好友資訊列；接管暴雪小地圖的四條規則、方形遮罩的滑鼠死角 |
 | [project-miliui-infobar.md](project-miliui-infobar.md) | 米利的資訊列 MiliUI_InfoBar —— 取代微型選單；secure 點擊轉發（`/click` 巨集、右鍵走 WrapScript）、暴雪列 hider、**教學提示改鏡射不改錨（快捷列 SetCooldown 秘密值的根）**、UIParent 內縮走 secure snippet、選取框模板的 OnMouseDown 地雷 |
+| [project-miliui-debug-mode.md](project-miliui-debug-mode.md) | 本體除錯模式（只留本體與 BugSack、一鍵還原）＋好友名單職業色 |
 | [project-miliui-perf-tab.md](project-miliui-perf-tab.md) | 設定視窗的「效能監控」分頁 —— 插件 CPU／記憶體儀表板；成本紀律、戰鬥遮罩例外、待驗證清單 |
 | [project-miliui-questtracker.md](project-miliui-questtracker.md) | 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；**六條 taint 規矩**、摺疊走 `IsProtected()` 分流、Leatrix 衝突偵測、待驗證清單 |
 | [project-miliui-characternotes.md](project-miliui-characternotes.md) | 米利的角色筆記 MiliUI_CharacterNotes —— 從套組拆出的獨立插件；副本／首領筆記（難度分層、本季名單）、聊天連結分享 |

@@ -483,3 +483,6 @@ MiliUISnap 的註冊 key `"infoBar"` —— 那些是**存檔內容**，改名�
       （alpha 不影響點擊），預設位置又剛好跟我們重疊在右上角 —— 若拖不動就是它攔走了，
       解法候選是拖曳遮罩在編輯模式期間提 strata，或對 cluster 的 Selection 收滑鼠
       （後者要先確認不會污染）。**開 `/framestack` 看是誰吃到點擊，不要靜態猜。**
+
+## 2026-10-13 副本難度文字（未實機驗證）
+`Map/Difficulty.lua`：左下角坐在下資訊帶上緣的一小塊白字（「英雄 5人」「M+12」「探究 8」），開啟時暴雪旗子 reparent 到 `ns.hiddenParent`（在 `LayoutBlizzardButtons`，沿用 Skin.Apply 的戰鬥閘），關掉走原本 Anchor 搬回。難度對照表在檔頭，沒列到的退回暴雪在地化名稱。刻意白字不按難度上色（理由在 Paint 註解）。開關 `difficultyText` 預設開。
