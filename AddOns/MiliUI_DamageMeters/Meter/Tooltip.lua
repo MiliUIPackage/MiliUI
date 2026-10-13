@@ -39,16 +39,12 @@ local function Ensure()
     f:Hide()
     _frame = f
 
-    f.subtitle = f:CreateFontString(nil, "OVERLAY")
-    f.subtitle:SetPoint("TOPRIGHT", f, "TOPRIGHT", -PAD - 2, -PAD - 2)
-    f.subtitle:SetJustifyH("RIGHT")
-    f.subtitle:SetTextColor(0.6, 0.6, 0.6)
-
-    -- 標題＝頭像卡片（大圖示＋名字＋專精職業裝等），右緣讓給統計類型
+    -- 標題＝頭像卡片（大圖示＋名字＋專精職業裝等），統計類型放卡片右側第一行
     f.card = Card.Create(f)
     f.card:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, -PAD)
-    f.card:SetPoint("TOPRIGHT", f, "TOPRIGHT", -PAD, -PAD)
-    Card.ClipRight(f.card, f.subtitle)
+    f.card:SetPoint("TOPRIGHT", f, "TOPRIGHT", -PAD - 2, -PAD)
+    f.subtitle = f.card.right1
+    f.subtitle:SetTextColor(0.6, 0.6, 0.6)
 
     _bars = {}
 end

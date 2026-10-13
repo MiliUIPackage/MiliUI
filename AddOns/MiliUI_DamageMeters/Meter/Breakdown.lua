@@ -156,7 +156,10 @@ local function EnsureFrame(W)
     local O = ns.Window.Orient(W)
     f:SetPoint(O.topL, W.header, O.botL, 0, 0)
     f:SetPoint(O.botR, frame, O.botR, 0, 0)
-    f:SetFrameLevel(frame:GetFrameLevel() + 30)
+    -- +45：主清單的列與「釘住自己」列（文字層約 +14）要整片蓋住。實機看過 +30 時
+    -- 第一名那列的字從標題列底下透出來（原因未查明，可能是拖曳／磁吸後層級被重排）。
+    -- 上限是視窗邊框的 +50，再高就把邊框蓋掉了。
+    f:SetFrameLevel(frame:GetFrameLevel() + 45)
     f:EnableMouse(true)
     f:Hide()
     W.srcFrame = f
@@ -181,15 +184,12 @@ local function EnsureFrame(W)
     W.srcCard:SetPoint("LEFT", top, "LEFT", 4, 0)
     W.srcCard:SetPoint("RIGHT", top, "RIGHT", -4, 0)
     W.srcTitle = W.srcCard.name
-    W.srcHint = top:CreateFontString(nil, "OVERLAY")
-    W.srcHint:SetPoint("RIGHT", top, "RIGHT", -6, 0)
-    W.srcHint:SetTextColor(0.6, 0.6, 0.6)
-    -- 這個人的總量（右邊、緊鄰返回提示）。聚合數字放標題列，不要塞進每一列 ——
-    -- 一列擠四個數字誰也看不懂
-    W.srcTotal = top:CreateFontString(nil, "OVERLAY")
-    W.srcTotal:SetPoint("RIGHT", W.srcHint, "LEFT", -8, 0)
+    -- 這個人的總量：卡片右側第一行（跟名字同一行）。聚合數字放標題列，不要塞進每一列 ——
+    -- 一列擠四個數字誰也看不懂。返回提示放第二行（跟專精職業同一行）。
+    W.srcTotal = W.srcCard.right1
     W.srcTotal:SetTextColor(0.88, 0.88, 0.88)
-    Card.ClipRight(W.srcCard, W.srcTotal)
+    W.srcHint = W.srcCard.right2
+    W.srcHint:SetTextColor(0.6, 0.6, 0.6)
     -- 先給字型再 SetText：沒有字型物件的 FontString 一寫字就丟錯
     local st = ns.DB.Style()
     Win.SetFont(W.srcTitle, st.leftFontSize or 11)

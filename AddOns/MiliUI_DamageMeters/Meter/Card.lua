@@ -7,8 +7,9 @@
 -- 圖示跟長條用同一個樣式設定（米利／專精／職業／無），高度＝兩行字。
 -- 裝等第一次沒有就排觀察，回來時卡片自己重填（IL.Listen）。
 --
--- 兩個宿主的右側各有自己的東西（預覽是統計類型、展開頁是總量＋返回提示），
--- 所以名字與第二行的右緣交給呼叫端錨：Card.ClipRight(card, region)。
+-- 右側兩格 card.right1／card.right2 各跟一行對齊，由宿主填（預覽：統計類型；
+-- 展開頁：總量／返回提示）。名字只讓位給 right1、第二行只讓位給 right2 ——
+-- 早期右側只有一格、兩行都讓位給它時，展開頁的總量很長，名字與專精被擠成「米利丹…」。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -37,17 +38,19 @@ function Card.Create(parent)
     card.sub:SetWordWrap(false)
     card.sub:SetTextColor(0.62, 0.62, 0.62)
 
+    card.right1 = card:CreateFontString(nil, "OVERLAY")
+    card.right1:SetJustifyH("RIGHT")
+    card.right1:SetWordWrap(false)
+    card.right2 = card:CreateFontString(nil, "OVERLAY")
+    card.right2:SetJustifyH("RIGHT")
+    card.right2:SetWordWrap(false)
+
     IL.Listen(card, function(guid)
         if card._guid == guid and card:IsVisible() and card._src then
             Card.Fill(card, card._src)
         end
     end)
     return card
-end
-
--- 名字與第二行的右緣錨到 region 的左緣（region 為 nil ＝ 卡片右緣）
-function Card.ClipRight(card, region, gap)
-    card._clip, card._clipGap = region, gap or 8
 end
 
 -- 依字級排版，回傳卡片高度
@@ -64,24 +67,22 @@ function Card.Layout(card)
     return h
 end
 
+local RIGHT_GAP = 8
+
 local function Anchor(card, hasIcon)
     local left = hasIcon and (card._size + ICON_GAP) or 0
-    local clip, gap = card._clip, card._clipGap or 8
     local nameH = select(2, card.name:GetFont()) or 0
     local subH = select(2, card.sub:GetFont()) or 0
-    -- 兩行字整組在圖示高度內垂直置中
+    -- 兩行字整組在圖示高度內垂直置中；右側兩格各自用同一個 y，對齊所在的那一行
     local top = math.max(0, (card._size - nameH - subH - LINE_GAP) / 2)
-    card.name:ClearAllPoints()
-    card.sub:ClearAllPoints()
+    local top2 = top + nameH + LINE_GAP
+    for _, fs in ipairs({ card.name, card.sub, card.right1, card.right2 }) do fs:ClearAllPoints() end
+    card.right1:SetPoint("TOPRIGHT", card, "TOPRIGHT", 0, -top)
+    card.right2:SetPoint("TOPRIGHT", card, "TOPRIGHT", 0, -top2)
     card.name:SetPoint("TOPLEFT", card, "TOPLEFT", left, -top)
-    card.sub:SetPoint("TOPLEFT", card.name, "BOTTOMLEFT", 0, -LINE_GAP)
-    if clip then
-        card.name:SetPoint("RIGHT", clip, "LEFT", -gap, 0)
-        card.sub:SetPoint("RIGHT", clip, "LEFT", -gap, 0)
-    else
-        card.name:SetPoint("RIGHT", card, "RIGHT", 0, 0)
-        card.sub:SetPoint("RIGHT", card, "RIGHT", 0, 0)
-    end
+    card.name:SetPoint("RIGHT", card.right1, "LEFT", -RIGHT_GAP, 0)
+    card.sub:SetPoint("TOPLEFT", card, "TOPLEFT", left, -top2)
+    card.sub:SetPoint("RIGHT", card.right2, "LEFT", -RIGHT_GAP, 0)
 end
 
 -- src = { name, classFilename, specIconID, guid, isOwn }
