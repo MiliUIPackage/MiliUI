@@ -26,6 +26,8 @@ local function BuildControls()
         { type = "toggle", key = "battleground", label = L["In battlegrounds"] },
         { type = "toggle", key = "combat",       label = L["Whenever you are in combat"] },
         { type = "toggle", key = "mythicPlus",   label = L["During a Mythic+ run"] },
+        { type = "toggle", key = "vehicle",      label = L["While controlling a vehicle"] },
+        { type = "text",   label = L["Only vehicles that replace your action bar count — sitting on someone's passenger seat does not."] },
 
         { type = "header", label = L["While folded"] },
         { type = "text",   label = L["Unfolding by hand during an automatic fold only lasts for that fight — the next one folds it again."] },

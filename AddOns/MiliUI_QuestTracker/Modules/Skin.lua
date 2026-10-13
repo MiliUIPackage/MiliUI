@@ -389,19 +389,190 @@ local function ApplyTitleColor(block)
 end
 
 ------------------------------------------------------------
--- 目標行
+-- 目標進度：依完成度上色＋行尾百分比
+--
+-- 進度從**行文字**解析（"3/8 擊殺狼"、"擊殺狼：3/8"），不問 C_QuestLog.GetQuestObjectives：
+--   * 追蹤器裡不只任務 —— 成就、額外目標、專業配方、場景的行都是同一種行，只有文字是共通的
+--   * 行的 objectiveKey 只有一般任務才對得上目標序號，別的子追蹤器各有各的鍵
+--   * 美化路徑上不現查 C_QuestLog（見上面「任務類型」的理由）
+-- 沒有 x/y 的行（「回報給…」「可交付」）、帶進度條的行、文字是秘密值的行一律不動。
+--
+-- 「完成」照暴雪的判定，不是自己比 cur >= req：暴雪對完成的目標是用 Complete 色系
+-- 呼叫 SetStringText（行上的 colorStyle 欄位，**只讀**），動畫狀態也會走 Completing／Completed。
+--
+-- 上色時機（對過 Blizzard_ObjectiveTrackerBlock.lua）：
+--   * SetStringText 只在色系換掉時才 SetTextColor ⇒ 色系沒變的排版不會蓋掉我們的顏色；
+--     換了（目標完成）就在同一輪的 AddBlock post-hook 裡補回來，同一幀、不閃
+--   * 滑過區塊標題時 UpdateHighlight 把每行換成 colorStyle.reverse（一般→白、離開→0.8）。
+--     我們在標題鈕的 OnEnter／OnLeave post-hook 補色（HookBlock），也是同一幀。
+--     hover 的回饋保留成「同一個顏色提亮」（狀態只換明暗不換色）
+--
+-- 百分比是 SetText 接在暴雪原文後面，不是另貼一個 FontString：
+--   * 暴雪的行高是在它自己 SetText(原文) 之後當場量的（SetStringText：SetHeight(0)→SetText→GetHeight），
+--     下一次排版也是先寫回原文再量 ⇒ 量到的永遠是原文，不是我們的字
+--   * 唯一的風險是我們接上去之後多換一行／被截斷，行高就小於實際文字 —— 所以接上去之後
+--     比一次行數與截斷，變了就退回原文、這一行不加。代價：擺不下的行沒有百分比
+--   * 另貼 FontString 的路線要知道「最後一個字在哪」，換行之後量不到，只能疊在行尾右緣蓋字
+-- 原文記在弱鍵表（fs → 原文／我們顯示的字），讀到的字不是我們上次寫的 ⇒ 暴雪剛寫過新原文。
 ------------------------------------------------------------
-local function SkinLine(line)
+-- 紅 → 黃 → 綠。滿了但暴雪還沒判完成時停在綠；判完成之後換「已完成」色（外觀分頁那一個）
+local PROGRESS_STOPS = {
+    { 0.0, 1.00, 0.36, 0.36 },
+    { 0.5, 1.00, 0.82, 0.30 },
+    { 1.0, 0.62, 0.92, 0.36 },
+}
+local HOVER_LIFT = 0.35   -- 滑過時往白色插值的比例
+
+local function ProgressRGB(p)
+    for i = 2, #PROGRESS_STOPS do
+        local hi = PROGRESS_STOPS[i]
+        if p <= hi[1] then
+            local lo = PROGRESS_STOPS[i - 1]
+            local t = (p - lo[1]) / (hi[1] - lo[1])
+            return lo[2] + (hi[2] - lo[2]) * t,
+                   lo[3] + (hi[3] - lo[3]) * t,
+                   lo[4] + (hi[4] - lo[4]) * t
+        end
+    end
+    local last = PROGRESS_STOPS[#PROGRESS_STOPS]
+    return last[2], last[3], last[4]
+end
+
+-- 全形數字與「／」先換成半形再比對（Lua 的字元類別吃不下多位元組字元）。
+-- 貼圖／atlas 跳脫碼先拿掉：裡面的路徑與尺寸可能湊出 "數字/數字"
+local function ParseProgress(text)
+    local s = text:gsub("|T.-|t", ""):gsub("|A.-|a", "")
+    s = s:gsub("\239\188\143", "/")                       -- ／ U+FF0F
+    s = s:gsub("\239\188([\144-\153])", function(c)       -- ０-９ U+FF10-FF19
+        return string.char(c:byte() - 96)
+    end)
+    local a, b = s:match("(%d[%d,]*)%s*/%s*(%d[%d,]*)")
+    if not a then return end
+    local cur, req = tonumber((a:gsub(",", ""))), tonumber((b:gsub(",", "")))
+    if not (cur and req) or req <= 0 then return end
+    return cur, req, s:find("%", 1, true) ~= nil
+end
+
+local function IsLineComplete(line)
+    local colors = _G.OBJECTIVE_TRACKER_COLOR
+    local style = line.Text and line.Text.colorStyle
+    -- 滑過時暴雪存的是反向色系（SetStringText 的 useHighlight 分支），兩個都要認
+    local done = colors and colors.Complete
+    if done and style ~= nil and (style == done or style == done.reverse) then return true end
+    local S = _G.ObjectiveTrackerAnimLineState
+    local st = line.state
+    return S ~= nil and st ~= nil and (st == S.Completing or st == S.Completed)
+end
+
+local lineText = T.Flags()   -- fs → { raw = 暴雪原文, shown = 我們寫上去的字 }
+
+-- 暴雪的原文。秘密值回 nil
+local function RawText(fs)
+    local cur = fs:GetText()
+    if ns.Secret.IsSecret(cur) or type(cur) ~= "string" then
+        lineText[fs] = nil
+        return nil
+    end
+    local st = lineText[fs]
+    if st then
+        if cur == st.shown then return st.raw end
+        lineText[fs] = nil   -- 暴雪寫過新的原文了
+    end
+    return cur
+end
+
+-- suffix 為 nil ＝ 還原成原文
+local function SetSuffix(fs, raw, suffix)
+    local st = lineText[fs]
+    if not suffix then
+        if st and fs:GetText() == st.shown then fs:SetText(raw) end
+        lineText[fs] = nil
+        return
+    end
+    local want = raw .. suffix
+    if st and st.shown == want and fs:GetText() == want then return end
+    if fs:GetText() ~= raw then fs:SetText(raw) end
+    local lines0, cut0 = fs:GetNumLines(), fs:IsTruncated()
+    fs:SetText(want)
+    if fs:GetNumLines() > lines0 or (fs:IsTruncated() and not cut0) then
+        -- 擺不下：會多佔一行（暴雪量的行高不夠）或被截成「…」，這一行不加
+        fs:SetText(raw)
+        lineText[fs] = nil
+        return
+    end
+    lineText[fs] = { raw = raw, shown = want }
+end
+
+-- 這一行的進度（cur, req, 原文已有 %），不算的行回 nil
+local function LineProgress(line)
+    local fs = line.Text
+    if not fs or line.progressBar then return end
+    local raw = RawText(fs)
+    if not raw then return end
+    return raw, ParseProgress(raw)
+end
+
+local function Lift(r, g, b, hovered)
+    if not hovered then return r, g, b end
+    return r + (1 - r) * HOVER_LIFT, g + (1 - g) * HOVER_LIFT, b + (1 - b) * HOVER_LIFT
+end
+
+-- 只上色。滑過／離開的 post-hook 走這條（字型與文字不用重來）
+local function ColorLine(line, hovered)
     if not line then return end
     local a = Cfg()
+    local base = a.objectiveColor
+    local r, g, b = base.r, base.g, base.b
     if line.Text then
-        StyleFS(line.Text, "objective")
-        line.Text:SetTextColor(a.objectiveColor.r, a.objectiveColor.g, a.objectiveColor.b)
+        local tr, tg, tb = r, g, b
+        if a.progressColor then
+            local _, cur, req = LineProgress(line)
+            if cur then
+                if IsLineComplete(line) then
+                    local c = a.completedColor
+                    tr, tg, tb = c.r, c.g, c.b
+                else
+                    tr, tg, tb = ProgressRGB(math.max(0, math.min(1, cur / req)))
+                end
+            end
+        end
+        line.Text:SetTextColor(Lift(tr, tg, tb, hovered))
     end
     if line.Dash then
-        StyleFS(line.Dash, "objective")
-        line.Dash:SetTextColor(a.objectiveColor.r, a.objectiveColor.g, a.objectiveColor.b)
+        line.Dash:SetTextColor(Lift(r, g, b, hovered))
     end
+end
+
+local function ApplyPercent(line)
+    local fs = line.Text
+    if not fs then return end
+    local raw, cur, req, hasPercent = LineProgress(line)
+    if not raw then return end
+    -- 0/1 這種二元目標加百分比沒有資訊量；原文已經帶 % 的（場景的敵軍進度之類）不重複
+    local suffix
+    if Cfg().progressPercent and cur and req > 1 and not hasPercent then
+        suffix = (" (%d%%)"):format(math.floor(math.min(cur, req) / req * 100))
+    end
+    SetSuffix(fs, raw, suffix)
+end
+
+------------------------------------------------------------
+-- 目標行
+------------------------------------------------------------
+local function SkinLine(line, hovered)
+    if not line then return end
+    if line.Text then StyleFS(line.Text, "objective") end
+    if line.Dash then StyleFS(line.Dash, "objective") end
+    -- 字型先套：擺不擺得下百分比要用最後的字型量
+    ApplyPercent(line)
+    ColorLine(line, hovered)
+end
+
+-- 區塊的行：hover 狀態讀暴雪自己的 isHighlighted（只讀）—— 滑鼠停在標題上時
+-- 剛好排版的話，SetStringText 會給反向色，這裡要跟著維持提亮
+local function SkinBlockLines(block)
+    local hovered = block.isHighlighted and true or false
+    T.EachLine(block, function(line) SkinLine(line, hovered) end)
 end
 
 ------------------------------------------------------------
@@ -475,9 +646,15 @@ end
 local function HookBlock(block)
     if hookedBlock[block] then return end
     hookedBlock[block] = true
-    -- 暴雪滑過區塊時會把標題壓暗當作 hover 回饋，那會蓋掉我們選的顏色。
-    -- post-hook 之後補回來（HookScript 不是 SetScript，暴雪自己的處理器照跑）
-    local function reassert() ApplyTitleColor(block) end
+    -- 暴雪滑過區塊時會把標題壓暗當作 hover 回饋，那會蓋掉我們選的顏色；
+    -- 目標行也一樣（UpdateHighlight 換成反向色：一般→白、離開時→0.8，不是我們的色）。
+    -- post-hook 之後補回來（HookScript 不是 SetScript，暴雪自己的處理器照跑），
+    -- 同一個處理器裡、同一幀，不會閃。行的 hover 回饋保留成提亮（讀暴雪的 isHighlighted）
+    local function reassert()
+        ApplyTitleColor(block)
+        local hovered = block.isHighlighted and true or false
+        T.EachLine(block, function(line) ColorLine(line, hovered) end)
+    end
     if block.HookScript then
         block:HookScript("OnEnter", reassert)
         block:HookScript("OnLeave", reassert)
@@ -518,7 +695,7 @@ local function SkinBlock(block)
     if skinnedBlock[block] then
         ApplyTypeIcon(block)
         ApplyTitleColor(block)
-        T.EachLine(block, SkinLine)
+        SkinBlockLines(block)
         return
     end
 
@@ -554,7 +731,7 @@ local function SkinBlock(block)
 
     ApplyTypeIcon(block)
     ApplyTitleColor(block)
-    T.EachLine(block, SkinLine)
+    SkinBlockLines(block)
     ProcessChildren(block, 0)
 
     skinnedBlock[block] = true

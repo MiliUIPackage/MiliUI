@@ -452,6 +452,10 @@ local function SecOurs(add, ctx)
         tostring(T.CanReposition()))
     -- 暴雪在我們摺著的時候把 parent 拿回去的次數（編輯模式套用版面就會），見 Core/Tracker.lua
     add("parentReclaimed=%d last=%s", st.reclaimCount or 0, Ago(st.reclaimLast))
+    -- 自動摺疊的現況：「開關/成立」，對得出是哪一條把清單收起來的（Modules/Visibility.lua）
+    if ns.Visibility and ns.Visibility.DiagLines then
+        for _, line in ipairs(ns.Visibility.DiagLines()) do add("%s", line) end
+    end
     -- 「要藏」卻三條路都沒落地 ＝ 標題列說摺著、清單卻開著。收斂是下一幀的事，
     -- 所以這行出現在報告裡就代表沒收斂到
     local otf = T.OTF()
@@ -504,7 +508,8 @@ end
 --   state      暴雪的動畫狀態（目標完成那行走 Completing → Completed）
 --   c          文字顏色。暴雪的一般色 0.80、完成色 0.60（SetStringText 只在色系換掉時
 --              才重設），我們的目標行預設 0.72 —— 完成那行印 0.60 就是那之後 SkinLine
---              沒再跑過
+--              沒再跑過。⚠ 開了「進度上色」之後帶 x/y 的行本來就是彩色（紅→黃→綠／已完成色），
+--              只有沒數字的行還該是 objectiveColor
 -- 另外列「顯示中、卻不在 usedLines 裡」的行：SkinLine 只走 usedLines，那之外的行
 -- 我們永遠套不到。
 --
@@ -616,6 +621,8 @@ local function SecLines(add, ctx)
     add("want objective=%s title=%s outline=%s font=%s | Blizzard ObjectiveTrackerLineFont=%s",
         Str(a.objectiveSize), Str(a.titleSize), (want.outline ~= "" and want.outline or "none"), want.file or "keep",
         (base and base.GetFont) and FontDesc(base) or "nil")
+    -- 行上的 c= 跟文字要對著這兩個開關讀（上色會讓帶 x/y 的行變彩色、百分比會接在行尾）
+    add("progressColor=%s progressPercent=%s", tostring(a.progressColor), tostring(a.progressPercent))
 
     local Role = ns.Skin and ns.Skin.FontRole or function() return nil end
     local StateEnum = _G.ObjectiveTrackerAnimLineState
