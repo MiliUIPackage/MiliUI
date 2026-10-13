@@ -377,7 +377,7 @@ R.SPEC_RESOURCES = SPEC_RESOURCES
 -- 用法力施法的專精：底部多一列法力條
 local MANA_SPECS = {
     [62] = true, [63] = true, [64] = true,             -- 法師
-    [65] = true,                                       -- 神聖聖騎
+    [65] = true, [66] = true, [70] = true,             -- 聖騎（防騎、懲戒預設不顯示，見 DEFAULT_OFF）
     [256] = true, [257] = true, [258] = true,          -- 牧師（暗牧：狂亂值之外還是要看法力）
     [262] = true, [263] = true, [264] = true,          -- 薩滿
     [265] = true, [266] = true, [267] = true,          -- 術士
@@ -396,6 +396,7 @@ local DEFAULT_OFF = {
     [262] = MANA_OFF, [263] = MANA_OFF,                -- 元素、增強
     [265] = MANA_OFF, [266] = MANA_OFF, [267] = MANA_OFF, -- 術士
     [102] = MANA_OFF,                                  -- 平衡
+    [66] = MANA_OFF, [70] = MANA_OFF,                  -- 防騎、懲戒（玩家要勾得到法力，2026-10-13）
     [1467] = MANA_OFF, [1473] = MANA_OFF,              -- 湮滅、強化
 }
 -- 每個專精都預設不顯示的：血量（單位框架本來就有血條，這裡是給想看的人勾起來的）

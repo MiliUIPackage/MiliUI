@@ -215,7 +215,8 @@ local R = ns.Resources
 Load("Modules/Pips.lua")
 local PI = ns.Pips
 
-eqList("防騎：聖能", R.RawList("PALADIN", 66, nil), { "HolyPower" })
+eqList("防騎：聖能＋法力", R.RawList("PALADIN", 66, nil), { "HolyPower", "Mana" })
+check("防騎／懲戒：法力預設不顯示", R.DefaultOn(66, "Mana") == false and R.DefaultOn(70, "Mana") == false)
 eqList("神聖聖騎：聖能＋法力（法力排最下面）", R.RawList("PALADIN", 65, nil), { "HolyPower", "Mana" })
 eqList("暗牧：狂亂值＋法力", R.RawList("PRIEST", 258, nil), { "Insanity", "Mana" })
 eqList("戒律：只有法力", R.RawList("PRIEST", 256, nil), { "Mana" })
@@ -1543,7 +1544,7 @@ do
     eq("遷移：魔怒關 ⇒ 三個惡魔獵人專精", (rows[577] and rows[577].Fury == false and rows[581].Fury == false and rows[1480].Fury == false) and "ok", "ok")
     eq("遷移：血量關＝預設 ⇒ 不寫", rows[71], nil)
     check("遷移：平面的布林鍵拿掉、其他壞資料不碰", rows.Mana == nil and rows.Fury == nil and rows.Health == nil and rows.HolyPower == nil and rows.Junk == 5)
-    eq("遷移：寫了幾筆（法力 9 個輸出專精＋魔怒 3）", n, 12)
+    eq("遷移：寫了幾筆（法力 11 個輸出專精＋魔怒 3）", n, 14)
     eq("遷移：再跑一次不變", R.MigrateFlatRows(rows), 0)
     local mixed = { [258] = { Mana = false }, Mana = true }
     R.MigrateFlatRows(mixed)
@@ -1560,7 +1561,7 @@ end
 
 -- 征戰聖擊列（懲戒）：在聖能上方、預設顯示、自己的高度／填充／底色（預設照德莫的征戰聖擊助手）
 do
-    eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower" })
+    eqList("懲戒：征戰聖擊＋聖能", R.RawList("PALADIN", 70, nil), { "CrusadingStrikes", "HolyPower", "Mana" })
     check("懲戒：征戰聖擊預設顯示", R.DefaultOn(70, "CrusadingStrikes") == true)
     check("征戰聖擊是鏡射列（條件規則不適用）", R.EngineDriven("CrusadingStrikes")
         and not R.SupportsConditions("CrusadingStrikes"))
