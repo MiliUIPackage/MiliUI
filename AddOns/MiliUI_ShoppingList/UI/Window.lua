@@ -329,13 +329,13 @@ local function SectionRow(parent, text)
 
     local shadow = f:CreateTexture(nil, "ARTWORK", nil, -1)
     shadow:SetColorTexture(0, 0, 0, 1)
-    shadow:SetHeight(P.Scale(1))
+    shadow:SetHeight(P.Pixel(1))
     shadow:SetPoint("BOTTOMLEFT", 1, -1)
     shadow:SetPoint("BOTTOMRIGHT", 1, -1)
 
     local line = f:CreateTexture(nil, "ARTWORK")
     line:SetColorTexture(W.Accent(0.7))
-    line:SetHeight(P.Scale(1))
+    line:SetHeight(P.Pixel(1))
     line:SetPoint("BOTTOMLEFT", 0, 0)
     line:SetPoint("BOTTOMRIGHT", 0, 0)
     return f

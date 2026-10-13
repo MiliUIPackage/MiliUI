@@ -98,7 +98,7 @@ local function ApplyHeaderLine(header)
         headerLine[header] = tex
     end
     tex:ClearAllPoints()
-    tex:SetPoint("TOPLEFT",  header, "BOTTOMLEFT",  P.Scale(2), 0)
+    tex:SetPoint("TOPLEFT",  header, "BOTTOMLEFT",  P.Pixel(2), 0)
     tex:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
     local scale = header:GetEffectiveScale() or 1
     tex:SetHeight(P.GetPixelPerfectScale() / (scale > 0 and scale or 1))
@@ -781,7 +781,7 @@ local function AlignStageArt()
     -- rect 還沒解出來（剛顯示的那一幀）就等下一輪
     if not (headerLeft and headerWidth and blockLeft and bgWidth and bgBaseX) then return end
     -- 底線是從 header 左緣 +2 畫到右緣（見 ApplyHeaderLine）
-    local lineCenter = headerLeft + (P.Scale(2) + headerWidth) / 2
+    local lineCenter = headerLeft + (P.Pixel(2) + headerWidth) / 2
     local dx = (lineCenter - bgWidth / 2 - blockLeft) - bgBaseX
     local dy = -STAGE_GAP_Y
     T.NudgeRegion(bg, dx, dy)

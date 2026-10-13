@@ -177,7 +177,7 @@ S.TIP_BG = 0.133
 
 function S.ApplyTooltipPanel(frame)
     if not frame then return end
-    local px = ns.P and ns.P.Scale(1) or 1
+    local px = ns.P and ns.P.Pixel(1) or 1
     frame:SetBackdrop({
         bgFile   = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
@@ -200,12 +200,12 @@ S.HUD = {
 }
 
 -- 套用 HUD 皮到一個框。`opaque` = 用實心底（標題列、需要跟內容區分開的橫條）。
--- ⚠ 邊寬走 P.Scale(1) 而不是寫死 1：UI 縮放不是 1 的時候寫死會畫出 1.3 個實體
+-- ⚠ 邊寬走 P.Pixel(1) 而不是寫死 1：UI 縮放不是 1 的時候寫死會畫出 1.3 個實體
 --   像素，那條邊會有一側糊掉，而且四條邊糊的方向還不一樣
 --   （見 .claude/notes/project-miliui-pixel-snapping.md）。
 function S.ApplyHUD(frame, opaque)
     if not frame then return end
-    local px = ns.P and ns.P.Scale(1) or 1
+    local px = ns.P and ns.P.Pixel(1) or 1
     frame:SetBackdrop({
         bgFile   = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",

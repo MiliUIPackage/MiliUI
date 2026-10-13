@@ -472,7 +472,7 @@ function ns.CreateTile(name, opts)
     edges[2]:SetPoint("BOTTOMLEFT"); edges[2]:SetPoint("BOTTOMRIGHT")
     edges[3]:SetPoint("TOPLEFT");    edges[3]:SetPoint("BOTTOMLEFT")
     edges[4]:SetPoint("TOPRIGHT");   edges[4]:SetPoint("BOTTOMRIGHT")
-    local px = P.Scale(1)
+    local px = P.Pixel(1)
     edges[1]:SetHeight(px); edges[2]:SetHeight(px)
     edges[3]:SetWidth(px);  edges[4]:SetWidth(px)
     tile.edges = edges
@@ -700,7 +700,7 @@ local function Layout()
             startX = barW - total
         end
         if startX < 0 then startX = 0 end
-        local px = P.Scale(1)
+        local px = P.Pixel(1)
         startX = math.floor(startX / px + 0.5) * px
     end
 
@@ -1068,7 +1068,7 @@ local function EnsureEditSelection()
         }
     else
         sel = CreateFrame("Frame", nil, bar, "BackdropTemplate")
-        sel:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Scale(1) })
+        sel:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
         sel:SetBackdropColor(0.25, 0.6, 1, 0.15)
         sel:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
         sel:EnableMouse(true)
@@ -1099,7 +1099,7 @@ local function EnsureSettingsOverlay()
     o:SetFrameLevel(bar:GetFrameLevel() + 50)
     o:EnableMouse(true)
     o:RegisterForDrag("LeftButton")
-    o:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Scale(1) })
+    o:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
     local r, g, b = ns.W.Accent(1)
     o:SetBackdropColor(r, g, b, 0.18)
     o:SetBackdropBorderColor(r, g, b, 0.9)
@@ -1266,7 +1266,7 @@ local function EnsureBar()
     bar.edges[2]:SetPoint("BOTTOMLEFT"); bar.edges[2]:SetPoint("BOTTOMRIGHT")
     bar.edges[3]:SetPoint("TOPLEFT");    bar.edges[3]:SetPoint("BOTTOMLEFT")
     bar.edges[4]:SetPoint("TOPRIGHT");   bar.edges[4]:SetPoint("BOTTOMRIGHT")
-    local px = P.Scale(1)
+    local px = P.Pixel(1)
     bar.edges[1]:SetHeight(px); bar.edges[2]:SetHeight(px)
     bar.edges[3]:SetWidth(px);  bar.edges[4]:SetWidth(px)
 

@@ -95,7 +95,7 @@ function Rows.CreateHeader(parent, width)
 
     local line = header:CreateTexture(nil, "ARTWORK")
     line:SetColorTexture(W.Accent(0.5))
-    line:SetHeight(P.Scale(1))
+    line:SetHeight(P.Pixel(1))
     line:SetPoint("BOTTOMLEFT", 0, 0)
     line:SetPoint("BOTTOMRIGHT", 0, 0)
 

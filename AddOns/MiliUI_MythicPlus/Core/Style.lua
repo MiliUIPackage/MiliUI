@@ -13,7 +13,7 @@
 --   玩家可能只裝它一支，跨插件讀設定會在對方缺席時退回一個不一樣的顏色 ——
 --   而「同一個套組的兩個面板長得不一樣」正是要避免的事。改的時候各處一起改。
 --
--- ⚠ 邊寬走 P.Scale(1) 而不是寫死 1：UI 縮放不是 1 的時候寫死會畫出 1.3 個實體
+-- ⚠ 邊寬走 P.Pixel(1) 而不是寫死 1：UI 縮放不是 1 的時候寫死會畫出 1.3 個實體
 --   像素，那條邊會有一側糊掉，而且四條邊糊的方向還不一樣。
 ------------------------------------------------------------
 local _, ns = ...
@@ -50,7 +50,7 @@ end
 function S.ApplyPanel(frame)
     if not frame then return end
     if not frame.SetBackdrop then Mixin(frame, BackdropTemplateMixin) end
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Scale(1) })
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
     frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
     frame:SetBackdropBorderColor(S.Accent())
     return frame
@@ -80,7 +80,7 @@ function S.NewHairline(parent)
     local t = parent:CreateTexture(nil, "ARTWORK")
     t:SetTexture(WHITE)
     t:SetVertexColor(unpack(S.HAIRLINE))
-    t:SetHeight(P.Scale(1))
+    t:SetHeight(P.Pixel(1))
     return t
 end
 

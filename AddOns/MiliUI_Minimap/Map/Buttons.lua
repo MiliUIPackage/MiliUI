@@ -710,7 +710,7 @@ function Buttons.BuildIcon(btn, size)
         end
     end
     local d = math.max(1, P.Scale(math.floor(size / 6)))
-    local gap = math.max(1, P.Scale(1))
+    local gap = math.max(1, P.Pixel(1))
     local span = d * 3 + gap * 2
     local x0 = (size - span) / 2
     for i = 1, 9 do

@@ -109,7 +109,7 @@ end
 
 -- 邊框四條：畫在圖示**裡面**（圖示內縮一條邊的寬度），方框的外緣就是框的外緣
 local function LayoutIcon(f, size, conf)
-    local px = conf.border and P.Scale(1) or 0
+    local px = conf.border and P.Pixel(1) or 0
     f:SetSize(size, size)
     f.icon:ClearAllPoints()
     f.icon:SetPoint("TOPLEFT", px, -px)
@@ -247,7 +247,7 @@ function Display:LayoutTicks()
     local half = layout.iconSize / 2
     local window, length = layout.window, layout.length
     local count = (tr.show and tr.ticks) and math.floor(window / TICK_STEP) or 0
-    local th = P.Scale(1)
+    local th = P.Pixel(1)
     local tickLen = math.floor(layout.iconSize * 0.35 + 0.5)
     local labelAfter = layout.textSide == "before"   -- 刻度數字放在名稱的另一邊
     local c = tr.color

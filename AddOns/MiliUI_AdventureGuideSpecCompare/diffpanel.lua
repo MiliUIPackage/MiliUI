@@ -183,7 +183,7 @@ local function BuildSpecHeader(f)
         f.accentBar:SetColorTexture(ns.W.Accent(1))
         f.accentBar:SetPoint("TOPLEFT")
         f.accentBar:SetPoint("BOTTOMLEFT")
-        f.accentBar:SetWidth(ns.P.Scale(2))
+        f.accentBar:SetWidth(ns.P.Pixel(2))
         f.accentBar:Hide()
 
         f.title = f:CreateFontString(nil, "OVERLAY")
@@ -206,7 +206,7 @@ local function BuildSubHeader(f)
     end
     f.label:SetPoint("LEFT", 4, 0)
     f.line = f:CreateTexture(nil, "ARTWORK")
-    f.line:SetHeight(MILI and ns.P.Scale(1) or 1)
+    f.line:SetHeight(MILI and ns.P.Pixel(1) or 1)
     f.line:SetPoint("LEFT", f.label, "RIGHT", 6, 0)
     f.line:SetPoint("RIGHT", -4, 0)
     if MILI then
@@ -353,8 +353,8 @@ local function BuildChromeMili()
     -- 標題列：比面板暗一階，畫在 1px 邊框內側
     local bar = panel:CreateTexture(nil, "BACKGROUND", nil, 1)
     bar:SetColorTexture(unpack(MC.titleFill))
-    bar:SetPoint("TOPLEFT", P.Scale(1), -P.Scale(1))
-    bar:SetPoint("TOPRIGHT", -P.Scale(1), -P.Scale(1))
+    bar:SetPoint("TOPLEFT", P.Pixel(1), -P.Pixel(1))
+    bar:SetPoint("TOPRIGHT", -P.Pixel(1), -P.Pixel(1))
     bar:SetHeight(MILI_TITLE_H)
     panel.titleBar = bar
 
@@ -369,7 +369,7 @@ local function BuildChromeMili()
     -- 關閉鈕：red（button-variants 判準 7：關閉鈕 ×），× 用兩條線自己畫
     local close = W.CreateButton(panel, "", "red", 16, 16)
     close:SetPoint("RIGHT", bar, "RIGHT", -3, 0)
-    local th = P.Scale(1)
+    local th = P.Pixel(1)
     for i = 1, 2 do
         local ln = close:CreateLine(nil, "OVERLAY")
         ln:SetColorTexture(1, 1, 1, 1)

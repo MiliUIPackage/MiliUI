@@ -196,7 +196,7 @@ local function SetMaxHealthLoss(f, pct)
         local w = f.innerW or 0
         lost = ns.P.Scale(w * pct)
         -- 至少留 1px 給血條：clip 寬度歸零的話錨點會退化
-        local keep = ns.P.Scale(1)
+        local keep = ns.P.Pixel(1)
         if lost > w - keep then lost = w - keep end
         if lost < 0 then lost = 0 end
     end
@@ -380,7 +380,7 @@ local function Build(uf, edb)
             m.divider:SetPoint("TOPLEFT", m, "TOPLEFT", 0, 0)
             m.divider:SetPoint("BOTTOMLEFT", m, "BOTTOMLEFT", 0, 0)
         end
-        m.divider:SetWidth(ns.P.Scale(1))
+        m.divider:SetWidth(ns.P.Pixel(1))
         local c = edb.maxHealthLossColor or { r = 0.4, g = 0.05, b = 0.05, a = 1 }
         m.fill:SetVertexColor(c.r, c.g, c.b, c.a or 1)
         local dc = MAX_LOSS_DIVIDER_COLOR

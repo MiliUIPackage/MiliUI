@@ -119,7 +119,7 @@ end
 -- 0.133 不透明底 ＋ 1px 職業色硬邊 ＋ 白字 ＋ 直角。它是「彈出來給人讀內容」的
 -- 表面，底色承載的是「讓字讀得出來」，所以不能透。
 function HP.ApplyTipSkin(f)
-    f:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Scale(1) })
+    f:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
     f:SetBackdropColor(HP.TIP_BG, HP.TIP_BG, HP.TIP_BG, 1)
     f:SetBackdropBorderColor(W.Accent(1))
 end

@@ -85,7 +85,7 @@ function Blocks.CreateEditor(scroll, onChanged)
 
     local dragLine = ed.container:CreateTexture(nil, "OVERLAY")
     dragLine:SetColorTexture(W.Accent(1))
-    dragLine:SetHeight(P.Scale(2))
+    dragLine:SetHeight(P.Pixel(2))
     dragLine:Hide()
     local dragState
 

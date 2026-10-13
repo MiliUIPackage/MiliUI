@@ -182,12 +182,12 @@ function M.ApplyBorder(frame, borderColor, borderSize)
 end
 
 -- 邊框實際佔掉的厚度（版面單位）。
--- ⚠ 內容內縮一定要用這個、不能直接用 borderSize：backdrop 的 edgeSize 走 P.Scale
--- （把 N 個實體像素換算回版面單位），在 Retina／UI 縮放 > 1 的機器上 P.Scale(1) < 1，
+-- ⚠ 內容內縮一定要用這個、不能直接用 borderSize：backdrop 的 edgeSize 走 P.Pixel
+-- （把 N 個實體像素換算回版面單位），在 Retina／UI 縮放 > 1 的機器上 P.Pixel(1) < 1，
 -- 內容卻內縮整整 1 → 邊框內緣和內容外緣對不上，中間露出一圈次像素縫（實測：Mac 上
 -- 血條四周有一條若隱若現的細縫）。兩邊都用這個值就永遠貼齊。
 function M.BorderInset(borderSize)
     local size = borderSize or (ns.db and ns.db.global.borderSize) or 1
     if size <= 0 then return 0 end
-    return ns.P.Scale(size)
+    return ns.P.Pixel(size)
 end

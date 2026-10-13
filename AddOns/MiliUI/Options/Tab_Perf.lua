@@ -438,7 +438,7 @@ local function SetBar(track, value, max)
     local frac = value / max
     if frac > 1 then frac = 1 end
     -- 下限一個實體像素：真的有量到就該看得見一條，否則「0」跟「非常小」長得一模一樣
-    track.fill:SetWidth(math.max(P.Scale(1), track.maxW * frac))
+    track.fill:SetWidth(math.max(P.Pixel(1), track.maxW * frac))
     track.fill:Show()
 end
 
@@ -572,7 +572,7 @@ function RefreshMemPanel()
     for _, kb in pairs(memKB) do addonKB = addonKB + kb end
     local frac = totalKB > 0 and math.min(addonKB / totalKB, 1) or 0
     local track = mem.comp
-    track.fill:SetWidth(math.max(P.Scale(1), track:GetWidth() * frac))
+    track.fill:SetWidth(math.max(P.Pixel(1), track:GetWidth() * frac))
     track.fill:Show()
 
     mem.foot:SetText(("|cff999999插件 %s MB（%.0f%%）｜暴雪與未歸戶 %s MB|r"):format(
@@ -981,7 +981,7 @@ local function RefreshGraph()
         col:ClearAllPoints()
         col:SetPoint("BOTTOMLEFT", graph.plot, "BOTTOMLEFT", (i - 1) * colW, 0)
         -- 寬度多給半格把相鄰兩根之間的縫填掉：colW 幾乎不會是整數像素
-        col:SetSize(math.max(1, colW + 0.5), math.max(P.Scale(1), plotH * frac))
+        col:SetSize(math.max(1, colW + 0.5), math.max(P.Pixel(1), plotH * frac))
         col:Show()
     end
     for i = n + 1, #graph.cols do graph.cols[i]:Hide() end
@@ -1292,7 +1292,7 @@ local function Init()
     headLine:SetColorTexture(W.Accent(0.3))
     headLine:SetPoint("BOTTOMLEFT", 0, -3)
     headLine:SetPoint("BOTTOMRIGHT", 0, -3)
-    headLine:SetHeight(P.Scale(1))
+    headLine:SetHeight(P.Pixel(1))
 
     list = W.CreateRowList(cpuPage, 1, 1, ROW_H, BuildRow)
     list:SetPoint("TOPLEFT", SIDE, CPU_LIST_TOP)
@@ -1425,7 +1425,7 @@ local function Init()
     memHeadLine:SetColorTexture(W.Accent(0.3))
     memHeadLine:SetPoint("BOTTOMLEFT", 0, -3)
     memHeadLine:SetPoint("BOTTOMRIGHT", 0, -3)
-    memHeadLine:SetHeight(P.Scale(1))
+    memHeadLine:SetHeight(P.Pixel(1))
 
     memList = W.CreateRowList(ramPage, 1, 1, ROW_H, BuildMemRow)
     memList:SetPoint("TOPLEFT", SIDE, RAM_LIST_TOP)

@@ -212,7 +212,7 @@ local function Hairline(parent, x, y, width)
     t:SetVertexColor(1, 1, 1, 0.12)
     t:SetPoint("TOPLEFT", parent, "TOPLEFT", 6, y)
     t:SetPoint("TOPRIGHT", parent, "TOPLEFT", x + width, y)
-    t:SetHeight(ns.P.Scale(1))
+    t:SetHeight(ns.P.Pixel(1))
     return t
 end
 

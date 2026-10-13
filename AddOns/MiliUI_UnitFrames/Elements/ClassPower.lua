@@ -934,7 +934,7 @@ local function LayoutRow(row, key, edb, numSeg)
 
     -- 每格的左右邊界在整數實體像素上各自四捨五入，零頭平均分到各格，最後一格的右緣一定落在總寬上。
     -- ⚠ 不能「格寬先對齊像素、再一格接一格串」：每格的捨入誤差會累積，整列比同寬的長條多出幾 px
-    local px = ns.P.Scale(1)
+    local px = ns.P.Pixel(1)
     if not px or px <= 0 then px = 1 end
     local gp = math.max(0, math.floor((edb.spacing or 1) + 0.5))
     local span = math.floor(totalW / px + 0.5) + gp

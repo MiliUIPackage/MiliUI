@@ -35,7 +35,7 @@ local function Edges(f)
 end
 
 local function LayoutEdges(e, f, on)
-    local px = P.Scale(1)
+    local px = P.Pixel(1)
     for i = 1, 4 do
         e[i]:ClearAllPoints()
         e[i]:SetShown(on)
@@ -76,7 +76,7 @@ function Display:StyleBar(b)
     ic:SetPoint("LEFT", b, "LEFT", 0, 0)
     H.LayoutIcon(ic, h, s.icon)
     b.bar:ClearAllPoints()
-    b.bar:SetPoint("TOPLEFT", ic, "TOPRIGHT", P.Scale(1), 0)
+    b.bar:SetPoint("TOPLEFT", ic, "TOPRIGHT", P.Pixel(1), 0)
     b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
     b.bar:SetStatusBarTexture(ns.Media.BarTexture(s.bar.texture))
     local c, bg = s.bar.color, s.bar.bgColor

@@ -217,7 +217,7 @@ local function Paint()
 
     chip:ClearAllPoints()
     -- 外框 1px 內側、緊貼下資訊帶的上緣
-    chip:SetPoint("BOTTOMLEFT", ns.holder, "BOTTOMLEFT", P.Scale(1), P.Scale(1) + barH)
+    chip:SetPoint("BOTTOMLEFT", ns.holder, "BOTTOMLEFT", P.Pixel(1), P.Pixel(1) + barH)
     chip:SetHeight(barH)
 
     -- 底色跟上下兩條完全一樣（整體底色 alpha +0.1，理由見 Skin.Apply）

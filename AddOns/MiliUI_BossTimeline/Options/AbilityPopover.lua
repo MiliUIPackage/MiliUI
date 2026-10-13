@@ -89,7 +89,7 @@ local function Header(text)
     local line = row:CreateTexture(nil, "ARTWORK")
     line:SetTexture("Interface\\Buttons\\WHITE8X8")
     line:SetVertexColor(W.Accent(0.35))
-    line:SetHeight(ns.P.Scale(1))
+    line:SetHeight(ns.P.Pixel(1))
     line:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
     line:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
     return row

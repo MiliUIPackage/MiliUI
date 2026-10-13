@@ -703,7 +703,7 @@ local function Build(uf, edb)
 
         f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
         f.icon = f.iconFrame:CreateTexture(nil, "ARTWORK")
-        local ib = ns.P.Scale(1)      -- 對齊 iconFrame backdrop 的 edgeSize
+        local ib = ns.P.Pixel(1)      -- 對齊 iconFrame backdrop 的 edgeSize
         f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", ib, -ib)
         f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -ib, ib)
         f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -856,7 +856,7 @@ local function Build(uf, edb)
     f.iconFrame:SetFrameLevel(lvl + 2)
     -- 黑底＋1px 黑框（跟 FocuserCastBar 一樣，圖示有透明區也不會透出條的填充）
     f.iconFrame:SetBackdrop({ bgFile = Media.WHITE8X8, edgeFile = Media.WHITE8X8,
-                              edgeSize = ns.P.Scale(1) })
+                              edgeSize = ns.P.Pixel(1) })
     f.iconFrame:SetBackdropColor(0, 0, 0, 1)
     f.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
 

@@ -993,7 +993,7 @@ local function Init()
     sep:SetVertexColor(0, 0, 0, 1)
     sep:SetPoint("TOPLEFT", 128, -10)
     sep:SetPoint("BOTTOMLEFT", 128, 10)
-    sep:SetWidth(ns.P.Scale(1))
+    sep:SetWidth(ns.P.Pixel(1))
 
     -- 右上：元件切換列
     local chipRow = CreateFrame("Frame", nil, tab)
@@ -1022,7 +1022,7 @@ local function Init()
     chipLine:SetVertexColor(1, 1, 1, 0.08)
     chipLine:SetPoint("TOPLEFT", chipRow, "BOTTOMLEFT", 0, -6)
     chipLine:SetPoint("TOPRIGHT", chipRow, "BOTTOMRIGHT", 0, -6)
-    chipLine:SetHeight(ns.P.Scale(1))
+    chipLine:SetHeight(ns.P.Pixel(1))
 
     -- 右下：表單卷軸
     local scrollHolder = CreateFrame("Frame", nil, tab)

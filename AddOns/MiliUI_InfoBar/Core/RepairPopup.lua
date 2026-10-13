@@ -125,7 +125,7 @@ local function GetButton(kind, index)
     edges[2]:SetPoint("BOTTOMLEFT"); edges[2]:SetPoint("BOTTOMRIGHT")
     edges[3]:SetPoint("TOPLEFT");    edges[3]:SetPoint("BOTTOMLEFT")
     edges[4]:SetPoint("TOPRIGHT");   edges[4]:SetPoint("BOTTOMRIGHT")
-    local px = P.Scale(1)
+    local px = P.Pixel(1)
     edges[1]:SetHeight(px); edges[2]:SetHeight(px)
     edges[3]:SetWidth(px);  edges[4]:SetWidth(px)
     for _, e in ipairs(edges) do e:SetVertexColor(EDGE_IDLE, EDGE_IDLE, EDGE_IDLE, 1) end

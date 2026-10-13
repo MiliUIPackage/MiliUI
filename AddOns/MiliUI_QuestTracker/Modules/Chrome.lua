@@ -101,8 +101,8 @@ local function CreateChip(parent, text, shortText, getFn, setFn)
     end
     box.fill = box:CreateTexture(nil, "ARTWORK")
     box.fill:SetTexture("Interface\\Buttons\\WHITE8X8")
-    box.fill:SetPoint("TOPLEFT", box, "TOPLEFT", P.Scale(2), -P.Scale(2))
-    box.fill:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -P.Scale(2), P.Scale(2))
+    box.fill:SetPoint("TOPLEFT", box, "TOPLEFT", P.Pixel(2), -P.Pixel(2))
+    box.fill:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -P.Pixel(2), P.Pixel(2))
 
     chip.label = chip:CreateFontString(nil, "OVERLAY")
     chip.label:SetPoint("LEFT", box, "RIGHT", P.Scale(4), 0)
@@ -459,7 +459,7 @@ function Chrome.Layout()
     if lowest and topY then
         -- 螢幕像素 → 背景自己的座標系
         local h = (topY - lowest) / (bg:GetEffectiveScale() or 1) + BG_BOTTOM_PAD
-        bg:SetHeight(math.max(P.Scale(1), h))
+        bg:SetHeight(math.max(P.Pixel(1), h))
         bg._lastHeight = h
     elseif bg._lastHeight then
         bg:SetHeight(bg._lastHeight)
@@ -662,7 +662,7 @@ local function EnsureMoveOverlay()
     o:SetBackdrop({
         bgFile   = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = P.Scale(1),
+        edgeSize = P.Pixel(1),
     })
 
     -- 遮罩上的字**一律描邊**，不跟著設定走：它壓在會動的遊戲畫面上，

@@ -81,7 +81,7 @@ function Bar.ApplySettings(tip)
     -- 血條是離框體 4px 的獨立條（使用者定案）。黑框畫在條的外緣，所以條本身
     -- 要往內縮 1px（bw），讓**黑框的外緣**貼齊框體外緣——條貼齊的話黑框會凸出去
     local gap = P.Scale(4)
-    local bw = P.Scale(1)
+    local bw = P.Pixel(1)
     bar:ClearAllPoints()
     if sb.position == "top" then
         bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", bw, gap)

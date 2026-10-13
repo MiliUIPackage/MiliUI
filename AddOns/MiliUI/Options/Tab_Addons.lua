@@ -487,7 +487,7 @@ local function BuildRow(row)
     row.groupLine:SetColorTexture(W.Accent(0.35))
     row.groupLine:SetPoint("LEFT", row.groupFS, "RIGHT", 8, -1)
     row.groupLine:SetPoint("RIGHT", row, "RIGHT", -8, 0)
-    row.groupLine:SetHeight(P.Scale(1))
+    row.groupLine:SetHeight(P.Pixel(1))
 
     -- 插件列的元素。⚠ 列會回收：onChange 一律讀 row.entryKey，不抓資料進 closure
     row.cb = W.CreateCheckButton(row, nil, function(checked)

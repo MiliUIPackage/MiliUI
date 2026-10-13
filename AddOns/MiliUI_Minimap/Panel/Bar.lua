@@ -666,7 +666,7 @@ local function LayoutSlots(db, barW, barH)
             -- 最左邊那格前面不畫線（那裡是外框）
             seps[i]:ClearAllPoints()
             seps[i]:SetPoint("LEFT", bar, "LEFT", x, 0)
-            seps[i]:SetWidth(P.Scale(1))
+            seps[i]:SetWidth(P.Pixel(1))
             seps[i]:SetShown(not first)
             x = x + w
             first = false

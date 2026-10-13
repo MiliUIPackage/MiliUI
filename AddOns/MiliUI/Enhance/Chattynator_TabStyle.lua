@@ -124,7 +124,7 @@ local function EnsureTextures(tab)
     tab._miliTabBG = bg
 
     -- 只有上、左、右三條 —— 底邊留空，標籤才會跟下面的聊天區連成一片
-    local px = P.Scale(1)
+    local px = P.Pixel(1)
     local edges = {}
     for i = 1, 3 do
         local e = tab:CreateTexture(nil, "BORDER")

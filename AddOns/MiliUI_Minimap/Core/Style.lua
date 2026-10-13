@@ -113,7 +113,7 @@ end
 --   刪不掉，每呼叫一次就新建一層等於永久洩漏（見 wow-frame-lifecycle-costs）。
 --   這裡全部走 SetBackdrop 沒有 CreateTexture，天然冪等。
 --
--- ⚠ 邊寬走 `P.Scale(1)` 而不是寫死 1。UI 縮放不是 1 的時候寫死 1 會畫出
+-- ⚠ 邊寬走 `P.Pixel(1)` 而不是寫死 1。UI 縮放不是 1 的時候寫死 1 會畫出
 --   1.3 個實體像素 —— 那條邊會有一側糊掉，而且四條邊糊的方向還不一樣
 --   （見 project-miliui-pixel-snapping）。
 ------------------------------------------------------------
@@ -122,7 +122,7 @@ function S.ApplyPanel(frame, opaque)
     if not frame.SetBackdrop then
         Mixin(frame, BackdropTemplateMixin)
     end
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Scale(1) })
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
     local r, g, b, a = S.BackdropColor()
     frame:SetBackdropColor(r, g, b, opaque and S.BG_A_SOLID or a)
     frame:SetBackdropBorderColor(S.BorderColor())
@@ -168,7 +168,7 @@ S.TIP_BG = 0.133
 
 function S.ApplyTooltipSkin(frame)
     if not frame then return end
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Scale(1) })
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
     frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
     frame:SetBackdropBorderColor(S.BorderColor())
     frame._miliTip = true
@@ -195,7 +195,7 @@ function S.CreateBorder(parent, anchorTo)
     local host = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     host:EnableMouse(false)
     host:SetAllPoints(anchorTo or parent)
-    host:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Scale(1) })
+    host:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Pixel(1) })
     host:SetBackdropBorderColor(S.BorderColor())
     host._miliHUDBorder = true
     return host
@@ -203,7 +203,7 @@ end
 
 function S.RefreshBorder(host)
     if not host or not host._miliHUDBorder then return end
-    host:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Scale(1) })
+    host:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Pixel(1) })
     host:SetBackdropBorderColor(S.BorderColor())
 end
 

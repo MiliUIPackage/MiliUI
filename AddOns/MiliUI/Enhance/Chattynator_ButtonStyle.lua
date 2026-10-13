@@ -180,7 +180,7 @@ local function EnsureEdges(button)
     end
 
     -- 每次重套都重算，UI 縮放改過也跟著對齊
-    local px = P.Scale(1)
+    local px = P.Pixel(1)
     edges[1]:SetHeight(px)
     edges[2]:SetHeight(px)
     edges[3]:SetWidth(px)
