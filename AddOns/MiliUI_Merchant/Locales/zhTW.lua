@@ -22,6 +22,32 @@ L["Rows"] = "列數"
 L["Columns"] = "欄數"
 L["Blizzard's own window is 5 rows by 2 columns. Every slot is still drawn by the game, so tooltips and other add-ons keep working on the extra ones."] = "暴雪原本的視窗是 5 列 2 欄。每一格仍然由遊戲本身繪製，所以多出來的格子上工具提示與其他插件都照常運作。"
 
+-- 一般：批量購買
+L["Bulk buy"] = "批量購買"
+L["Buy more than one stack at a time"] = "一次買超過一組"
+L["Shift-click an item as usual. When your gold and bags allow more than one stack, a quantity window replaces the game's own and buys in batches, waiting for each batch to go through. Only items priced in gold; out of combat only."] = "照平常一樣 Shift 點商品。金幣和背包空間夠買超過一組時，會換成自己的數量視窗，分批購買、每批確認成交才買下一批。只支援用金幣購買的商品，戰鬥中不接手。"
+
+-- 批量購買視窗
+L["Quantity"] = "數量"
+L["Max"] = "最多"
+L["Total"] = "總價"
+L["Buy"] = "購買"
+L["Stop"] = "停止"
+L["Close"] = "關閉"
+L["Done"] = "完成"
+L["Up to %d (bags and gold)"] = "最多 %d 個（依背包與金幣）"
+L["Sold in bundles of %d"] = "每份 %d 個"
+L["%d in bags"] = "背包已有 %d"
+L["Bought %d / %d"] = "已購買 %d / %d"
+L["Bought %d"] = "購買完成：%d 個"
+L["Stopped after %d"] = "已停止：買了 %d 個"
+L["Stopped: "] = "已停止："
+L["Purchase failed, stopped"] = "購買失敗，已停止"
+L["Merchant closed, stopped"] = "商人視窗已關閉，已停止"
+L["The item changed, stopped"] = "商品有變動，已停止"
+L["Not enough gold or bag space, stopped"] = "金幣或背包空間不足，已停止"
+L["No confirmation from the server, stopped"] = "伺服器沒有回應成交，已停止"
+
 -- 一般：已收藏
 L["Already collected"] = "已收藏"
 L["Dim them"] = "變暗顯示"

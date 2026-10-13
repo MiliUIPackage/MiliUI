@@ -28,6 +28,9 @@ local function BuildDefaults()
         rows = 5,
         cols = 4,
 
+        -- Shift 點商品、想買的量超過一組時換成批量購買視窗（Modules/BulkBuy.lua）
+        bulkBuy = true,
+
         dim = {
             enabled = true,
 

@@ -78,6 +78,7 @@ boot:SetScript("OnEvent", function(self)
     ns.Collected.Init()
     ns.Grid.Init()
     ns.Dim.Init()
+    ns.BulkBuy.Init()
 end)
 
 _G.MiliUIMerchant = ns

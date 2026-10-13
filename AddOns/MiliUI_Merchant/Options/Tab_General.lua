@@ -23,6 +23,10 @@ local function BuildSpecs()
           min = ns.DB.LIMITS.cols[1], max = ns.DB.LIMITS.cols[2], step = 1 },
         { type = "text", label = L["Blizzard's own window is 5 rows by 2 columns. Every slot is still drawn by the game, so tooltips and other add-ons keep working on the extra ones."] },
 
+        { type = "header", label = L["Bulk buy"] },
+        { type = "toggle", key = "bulkBuy", label = L["Buy more than one stack at a time"] },
+        { type = "text", label = L["Shift-click an item as usual. When your gold and bags allow more than one stack, a quantity window replaces the game's own and buys in batches, waiting for each batch to go through. Only items priced in gold; out of combat only."] },
+
         { type = "header", label = L["Already collected"] },
         { type = "toggle", sub = "dim", key = "enabled", label = L["Dim them"] },
         { type = "text", label = L["Fade the slot and tick the icon instead of removing it, so every slot keeps the number the game gave it."] },
