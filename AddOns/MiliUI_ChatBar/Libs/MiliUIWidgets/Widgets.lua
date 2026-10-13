@@ -120,7 +120,7 @@ function W.Stylize(frame, color, borderColor)
     frame:SetBackdrop({
         bgFile = WHITE,
         edgeFile = WHITE,
-        edgeSize = P.Scale(1),
+        edgeSize = P.Pixel(1),
     })
     frame:SetBackdropColor(unpack(color))
     frame:SetBackdropBorderColor(unpack(borderColor))
@@ -526,7 +526,7 @@ function W.CreateTabCard(parent, opts)
             for _, t in pairs(edges) do t:Hide() end
             return
         end
-        local px = P.Scale(1)
+        local px = P.Pixel(1)
         local h = cardTop - cardBottom
         Bar(bg, cardX, cardTop, cardW, h)
         Bar(edges.left, cardX, cardTop, px, h)
@@ -598,9 +598,9 @@ function W.CreateTabCard(parent, opts)
         local bridge = b:CreateTexture(nil, "ARTWORK")
         bridge:SetTexture(WHITE)
         bridge:SetVertexColor(unpack(CARD_FILL))
-        bridge:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", P.Scale(1), 0)
-        bridge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -P.Scale(1), 0)
-        bridge:SetHeight(P.Scale(1))
+        bridge:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", P.Pixel(1), 0)
+        bridge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -P.Pixel(1), 0)
+        bridge:SetHeight(P.Pixel(1))
         bridge:Hide()
         b._tcBridge = bridge
         b:SetScript("OnClick", function(self)
@@ -1661,13 +1661,13 @@ function W.CreateSectionTitle(parent, text, width)
     shadow:SetVertexColor(0, 0, 0, 1)
     shadow:SetPoint("BOTTOMLEFT", 1, -1)
     shadow:SetPoint("BOTTOMRIGHT", 1, -1)
-    shadow:SetHeight(P.Scale(1))
+    shadow:SetHeight(P.Pixel(1))
     local line = holder:CreateTexture(nil, "ARTWORK")
     line:SetTexture(WHITE)
     line:SetVertexColor(W.Accent(0.777))
     line:SetPoint("BOTTOMLEFT", 0, 0)
     line:SetPoint("BOTTOMRIGHT", 0, 0)
-    line:SetHeight(P.Scale(1))
+    line:SetHeight(P.Pixel(1))
     holder.text = fs
     return holder
 end
