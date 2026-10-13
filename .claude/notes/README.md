@@ -57,6 +57,8 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | AddOnRestrictionType 六型別；**ChallengeMode 整趟鑰石都算**、聊天封鎖時連填聊天輸入框都被擋、狀態事件派送當下讀不到終值 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
 | [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | **插件開聊天輸入框只能走超連結**（`|Hchannel:…|h` ＋ propagate 給 ChatFrameTemplate 框，2026-09-16 根治）；前半是密語回覆在秘密名字下的死路史，鏡射／`/r` 降級全是治標 |
+| [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 `MacroFrame:SelectMacro`／`SaveMacro` 或改巨集格欄數 ⇒ 安全按鈕跑巨集前的 `SaveMacro` 讀到髒的 `selectedIndex`，快捷列巨集被擋到 /reload；搜尋只能 `PickupMacro`＋自畫高亮 |
+| [wow-stacksplit-onhide-runbinding.md](wow-stacksplit-onhide-runbinding.md) | 插件直接 Hide `StackSplitFrame` ⇒ OnHide 在插件執行裡 `RunBinding` 按住的鍵；用 secure snippet 關、只在脫戰接手 |
 | [wow-121-unitpopup-menu.md](wow-121-unitpopup-menu.md) | 右鍵單位選單地雷圖：`togglemenu` 誤判、tainted 重開的代價、ClickBindings 閘、`CopyToClipboard` 是保護函式 |
 | [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 12.1 正解範本 —— **原始碼已不在本機**，要看去 GitHub；本機範本改看 Cell／Plumber／BuffReminders |
 | [wow-cdm-equipslot-stale-cache.md](wow-cdm-equipslot-stale-cache.md) | 冷卻管理器飾品格缺框＝暴雪 displayData 快取過期（API isKnown=true、快取 false 且不髒）；插件標不了髒，修法走自己畫 |
