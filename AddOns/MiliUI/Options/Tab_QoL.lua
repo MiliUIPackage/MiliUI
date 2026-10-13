@@ -214,6 +214,11 @@ tinsert(CONTROLS, { type = "toggle", label = "自動接任務",
     set = function(v) if MiliUI_QuestBasic then MiliUI_QuestBasic.SetAutoAccept(v) end end })
 tinsert(CONTROLS, { type = "text", label = "任務視窗打開時自動接受。NPC 同時有好幾個任務可以接時不會替你挑。"
     .. "按住 Shift 跟 NPC 對話可以略過這一次的自動交接。" })
+tinsert(CONTROLS, { type = "toggle", label = "多選獎勵標出售價最高的",
+    get = function() return ns.QuestRewardValue and ns.QuestRewardValue.IsEnabled() end,
+    set = function(v) if ns.QuestRewardValue then ns.QuestRewardValue.SetEnabled(v) end end })
+tinsert(CONTROLS, { type = "text", label = "任務獎勵可以挑一件的時候，在賣給商人最值錢（單價 × 數量）的那件畫一圈金框。"
+    .. "只是標記，不會替你選。同價就一起標；都不能賣就不標。" })
 -- 進階設定鈕只在任務追蹤器有載入時長出來。理由同下面的撞車警告：
 -- 本檔載入時 Enhance 模組還不存在，要等打開分頁才問得到
 tinsert(CONTROLS, { type = "custom", label = "", h = 0, build = function(parent, x, y)
@@ -235,6 +240,14 @@ tinsert(CONTROLS, { type = "custom", label = "", h = 0, build = function(parent,
     fs:SetText("有開米利的任務追蹤器，上面兩個開關跟它標題列上的開關是同一個，由任務追蹤器處理。")
     return 26 + 6 + math.ceil(fs:GetStringHeight()) + 8
 end })
+
+tinsert(CONTROLS, { type = "header", label = "交易" })
+tinsert(CONTROLS, { type = "toggle", label = "交易完成後密語對方明細",
+    get = function() return ns.TradeWhisper and ns.TradeWhisper.IsEnabled() end,
+    set = function(v) if ns.TradeWhisper then ns.TradeWhisper.SetEnabled(v) end end })
+tinsert(CONTROLS, { type = "text", label = "交易成功時，把雙方給了什麼、收到什麼和金額整理成密語送給對方，"
+    .. "兩邊都留一份記錄方便對帳；物品用連結，點得開。預設關閉。"
+    .. "首領戰、傳奇鑰石、PvP 期間遊戲不讓插件送聊天，那時只在自己的聊天框印出明細。" })
 
 -- spec 自帶 get/set，ctx 只是轉接
 local ctx = {
