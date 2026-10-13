@@ -353,7 +353,7 @@ end
 -- 回傳 dx, dy（0 或半個像素，UI 單位）
 local function HalfPixelFix(f, point, rel, relPoint)
     local P = ns.P
-    local px = P and P.Scale and P.Scale(1)
+    local px = P and P.Pixel and P.Pixel(1)
     if not (px and px > 0 and rel and rel.GetSize) then return 0, 0 end
     local w, h = f:GetSize()
     local rw, rh = rel:GetSize()

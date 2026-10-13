@@ -1677,7 +1677,7 @@ local function Warm(st)
     end
     local P = Enum and Enum.DurationTextBindingProperty
     st.remainingProp = P and P.RemainingDuration or 0
-    st.inset = (st.bsize > 0) and ns.P.Scale(st.bsize) or 0
+    st.inset = (st.bsize > 0) and ns.P.Pixel(st.bsize) or 0
     -- 陰影外擴（Core/Shape.lua 的 ShadowOutset）：形狀不是方形而且有畫襯底時，外擴從襯底那一圈算起
     if st.shadow and ns.Shape then
         local t = (st.ishape and not st.noEdge) and st.inset or 0

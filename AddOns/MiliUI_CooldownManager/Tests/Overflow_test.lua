@@ -36,7 +36,7 @@ end
 local O = ns.Overflow
 do
     -- 佔位判斷跟 Bars 放格共用的判準（Layout.AuraSlot）
-    ns.P = { Scale = function(v) return v end }
+    ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }
     local chunk = assert(loadfile(here .. "/../Core/Layout.lua"))
     chunk("MiliUI_CooldownManager", ns)
 end

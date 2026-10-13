@@ -68,7 +68,7 @@ local function Fmt(v) return string.format("%.3f", tonumber(v) or 0) end
 ------------------------------------------------------------
 -- 回傳 { cells = { { x, w }, … }, gaps = { { x, w }, … } }（x 從左緣量；reversed 時由呼叫端鏡像）
 --
--- pixel（1 實體像素的 UI 單位，ns.P.Scale(1)）給了就貼實體像素：
+-- pixel（1 實體像素的 UI 單位，ns.P.Pixel(1)）給了就貼實體像素：
 --   * 第 k 格的右界貼著引擎的填色終點 W·k/n：有格距時右界只能落在 [終點−gp, 終點] 的整數裡（分隔那 gp 個像素
 --     要蓋住終點），這個範圍裡挑最接近等分格界 k·segW+(k−1)·gp 的那個（格距 ≥2 時才有得挑，格寬才不會頭一格多出
 --     一截）；格距 0 取 ceil（終點落在這格右邊那條 1px 邊裡）。分隔／邊一定蓋得住填色的尾巴、不留半像素的亮縫
@@ -180,7 +180,7 @@ end
 -- 1 實體像素的 UI 單位（分段幾何貼像素用）；讀不到 ⇒ nil（等分的浮點幾何）
 local function PixelUnit()
     local P = ns.P
-    local v = P and P.Scale and P.Scale(1)
+    local v = P and P.Pixel and P.Pixel(1)
     return (type(v) == "number" and v > 0) and v or nil
 end
 

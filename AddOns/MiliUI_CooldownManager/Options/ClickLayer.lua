@@ -77,7 +77,7 @@ local function Ensure(key)
     l:SetScript("OnDragStop", function()
         if ns.EditMode and ns.EditMode.EndDrag then ns.EditMode.EndDrag(true) end
     end)
-    l:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Scale(1) })
+    l:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Pixel(1) })
     SetBorder(l, 0)
     l:Hide()
     l:SetScript("OnEnter", function(self)

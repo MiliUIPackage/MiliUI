@@ -85,13 +85,13 @@ function M.SetPixelFont(fs, size, flags, token)
 end
 
 -- 邊框實際佔掉的厚度（版面單位）。
--- ⚠ 內容內縮一定要用這個、不能直接用設定裡的像素數：backdrop 的 edgeSize 走 P.Scale
+-- ⚠ 內容內縮一定要用這個、不能直接用設定裡的像素數：backdrop 的 edgeSize 走 P.Pixel
 -- （把 N 個實體像素換算回版面單位），UI 縮放 ≠ 1 時兩者不相等，邊框內緣與內容外緣
 -- 會露出一圈次像素縫。
 function M.BorderInset(size)
     size = size or 1
     if size <= 0 then return 0 end
-    return ns.P.Scale(size)
+    return ns.P.Pixel(size)
 end
 
 -- 邊框材質 token → 路徑；"solid"（或查不到）回 nil ＝ 用四條純色細條畫

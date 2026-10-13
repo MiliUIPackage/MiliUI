@@ -921,7 +921,7 @@ end
 do
     -- 一格一框的分段：格距 0 ⇒ 相鄰兩格重疊 1px 共用一條邊，總寬不變
     local savedP = ns.P
-    ns.P = { Scale = function(v) return v end }      -- 1 單位 ＝ 1 實體像素
+    ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }      -- 1 單位 ＝ 1 實體像素
     -- 每一格：左緣、寬都是整數像素；第一格從 0 起、最後一格右緣剛好落在 W；相鄰兩格的距離＝格距
     local function cells(W, n, sp)
         local ok, prevRight = true, nil
@@ -1009,7 +1009,7 @@ do
     check("分段：不給邊框 ＝ 舊公式", sameDefault)
     check("分段：邊框 1 ＝ 舊公式", sameOne)
     -- 實體像素換算 ≠ 1（UI 縮放）：t 照實體像素算，結果仍是 px 的整數倍、右緣落在 W
-    ns.P = { Scale = function(v) return v * 0.5 end }   -- 1 實體像素 ＝ 0.5 UI 單位
+    ns.P = { Scale = function(v) return v * 0.5 end, Pixel = function(v) return v * 0.5 end }   -- 1 實體像素 ＝ 0.5 UI 單位
     do
         local x1, w1 = R.SegCell(100, 4, 0, 1, 2)
         local x2 = R.SegCell(100, 4, 0, 2, 2)

@@ -171,7 +171,7 @@ local function GridRow(key, root, gate)
         edge:SetPoint("TOPLEFT", -1, 1)
         edge:SetPoint("BOTTOMRIGHT", 1, -1)
         edge:SetFrameLevel(sub:GetFrameLevel() + 5)
-        edge:SetBackdrop({ edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = ns.P and ns.P.Scale and ns.P.Scale(1) or 1 })
+        edge:SetBackdrop({ edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = ns.P and ns.P.Pixel and ns.P.Pixel(1) or 1 })
         edge:SetBackdropBorderColor(unpack(SUB_EDGE))
 
         -- 結果一行：「這條的上緣中點 貼在 核心技能 的下緣中點」

@@ -98,7 +98,7 @@ local function BuildOverlay(key, c)
     ov:SetFrameStrata("HIGH")
     ov:SetIgnoreParentAlpha(true)      -- 容器可能被顯示條件淡掉；覆蓋層永遠看得到
     ov:EnableMouse(false)
-    ov:SetBackdrop({ edgeFile = Style.WHITE, edgeSize = ns.P.Scale(1) })
+    ov:SetBackdrop({ edgeFile = Style.WHITE, edgeSize = ns.P.Pixel(1) })
     ov:SetBackdropBorderColor(Style.Accent(1))
     ov:Hide()
 
@@ -220,7 +220,7 @@ local function BuildSelection(key, c, ov)
     else
         -- 模板建不出來（靜默失敗）就自己畫一個藍框頂著，拖曳照常
         sel = CreateFrame("Frame", nil, c, "BackdropTemplate")
-        sel:SetBackdrop({ bgFile = ns.Style.WHITE, edgeFile = ns.Style.WHITE, edgeSize = ns.P.Scale(1) })
+        sel:SetBackdrop({ bgFile = ns.Style.WHITE, edgeFile = ns.Style.WHITE, edgeSize = ns.P.Pixel(1) })
         sel:SetBackdropColor(0.25, 0.6, 1, 0.15)
         sel:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
         sel:SetIgnoreParentAlpha(true)

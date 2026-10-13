@@ -1068,20 +1068,20 @@ end
 
 -- 一組四條邊（上、下、左、右）的粗細與顏色。t ＝ 實體像素整數（0 ＝ 藏起來）、c ＝ 色表。
 -- 值沒變就不碰貼圖（重排時每列都會叫，設定沒改就零寫入）。
--- ⚠ 線寬是 ns.P.Scale(t)：UI 縮放改了要重算 ⇒ 握柄也記下當時的 1px 換算值
+-- ⚠ 線寬是 ns.P.Pixel(t)：UI 縮放改了要重算 ⇒ 握柄也記下當時的 1px 換算值
 local function PaintEdges(edges, t, c)
     if type(edges) ~= "table" then return end
     t = tonumber(t) or R.BORDER_DEFAULT
     c = c or BORDER_BLACK
     local r, g, b, a = c.r or 0, c.g or 0, c.b or 0, c.a or 1
-    local px = ns.P.Scale(1)
+    local px = ns.P.Pixel(1)
     if edges.t == t and edges.px == px and edges.r == r and edges.g == g and edges.b == b and edges.a == a then return end
     edges.t, edges.px, edges.r, edges.g, edges.b, edges.a = t, px, r, g, b, a
     if t <= 0 then
         for i = 1, 4 do edges[i]:Hide() end
         return
     end
-    local w = ns.P.Scale(t)
+    local w = ns.P.Pixel(t)
     edges[1]:SetHeight(w)
     edges[2]:SetHeight(w)
     edges[3]:SetWidth(w)
@@ -1097,7 +1097,7 @@ R.PaintEdges = PaintEdges
 function R.DecorPx(cfg)
     local t = R.BorderSize(cfg)
     if t <= 0 then return 0 end
-    return ns.P.Scale(t)
+    return ns.P.Pixel(t)
 end
 
 function R.EdgeArray(cfg)
@@ -1113,7 +1113,7 @@ end
 -- 每格自帶邊框，格距 0 時相鄰兩條邊並排成 2t ⇒ 改成重疊 t 實體像素，兩格共用同一條邊；
 -- 邊框 0 時格距 0 ＝ 剛好相貼（不重疊）。格距 > 0 跟邊框無關：兩格之間空 spacing 實體像素
 function R.SegCell(W, n, spacing, i, border)
-    local px = ns.P.Scale(1)
+    local px = ns.P.Pixel(1)
     if not px or px <= 0 then px = 1 end
     local t = math.floor((tonumber(border) or 1) + 0.5)
     if t < 0 then t = 0 end
@@ -1571,7 +1571,7 @@ local function LayoutTicks(row, W, H, reversed)
     row.tkFrame:SetFrameLevel((row:GetFrameLevel() or 1) + 6)
     row.tkFrame:Show()
     row.tkW, row.tkH, row.tkRev = W, H, reversed and true or false
-    row.tkTW = ns.P.Scale(2)
+    row.tkTW = ns.P.Pixel(2)
     row.tkOn = true
     StartTicks(row)
 end
@@ -1582,14 +1582,14 @@ local TIMER_DECIMALS_BELOW = 5
 local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     if not ns.AuraBar then return false end
     row.ab = row.ab or ns.AuraBar.New(row, OnAuraRegen)
-    local gap = ns.P.Scale(tonumber(cfg.segmentSpacing) or 1)
+    local gap = ns.P.Pixel(tonumber(cfg.segmentSpacing) or 1)
     local geom = {
         W = W, H = H, n = numSeg, gap = gap, segW = (W - gap * (numSeg - 1)) / numSeg, reversed = reversed,
         segments = true, dim = R.DimArray(cfg), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
         instances = def.instances and true or nil,     -- 一顆光環一格：裝飾跟引擎的等分排版對齊、不貼像素（AuraBar.LayoutDecor）
     }
     -- 透明格距：格距 > 0 時填色貼圖掛遮罩把格距挖掉（AuraBar.MaskPlan），裝飾就不畫分隔
-    local mask = (not def.instances and gap > 0) and { period = geom.segW + gap, gap = gap, pixel = ns.P.Scale(1) } or nil
+    local mask = (not def.instances and gap > 0) and { period = geom.segW + gap, gap = gap, pixel = ns.P.Pixel(1) } or nil
     geom.mask = mask ~= nil
     local cc = ResolveColor(cfg, key, "color")
     local count
@@ -1739,7 +1739,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
         alpha = tonumber(cfg.barAlpha) or 1, reversed = reversed, count = count,
         -- 盾的剩餘時間：條底部一條細線（引擎畫，含暴力爆發之類的刷新）；高度約列高的 1/5、至少 1 實體像素
         strip = cfg.ipDuration ~= false and {
-            h = math.max(ns.P.Scale(1), math.floor(H / 5 + 0.5)), r = 1, g = 1, b = 1, a = 0.85 } or nil,
+            h = math.max(ns.P.Pixel(1), math.floor(H / 5 + 0.5)), r = 1, g = 1, b = 1, a = 0.85 } or nil,
     })
     row.engineStatus = status
     if status ~= "ready" then

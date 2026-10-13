@@ -990,7 +990,7 @@ LAYOUT.speed = function(f, look, W)
     f.tick:ClearAllPoints()
     f.tick:SetPoint("TOP", f, "TOPLEFT", x, 0)
     f.tick:SetPoint("BOTTOM", f, "BOTTOMLEFT", x, 0)
-    f.tick:SetWidth(ns.P.Scale(1))
+    f.tick:SetWidth(ns.P.Pixel(1))
 end
 
 LAYOUT.surge = function(f, look, W, H, cfg)

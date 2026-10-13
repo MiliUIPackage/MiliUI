@@ -94,7 +94,7 @@ local ns = {
     ReportError = function(e) print("ReportError: " .. tostring(e)) end,
     Write = function(frame, fn) fn(frame) return true end,
     Style = { ApplyPanel = function() end },
-    P = { Scale = function(v) return v end },
+    P = { Scale = function(v) return v end, Pixel = function(v) return v end },
 }
 
 local function Load(rel)

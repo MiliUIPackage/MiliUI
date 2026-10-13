@@ -1407,7 +1407,7 @@ function Proto:DragTick()
     if not pos then line:Hide() return end
     line:SetVertexColor(W.Accent(1))
     line:ClearAllPoints()
-    local t = P.Scale(2)
+    local t = P.Pixel(2)
     if side == "BOTTOM" then
         line:SetPoint("TOPLEFT", s, "BOTTOMLEFT", 0, -1)
         line:SetSize(s:GetWidth(), t)

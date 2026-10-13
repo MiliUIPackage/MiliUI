@@ -373,7 +373,7 @@ function Sidebar.Build(panel, width)
     thumb = col:CreateTexture(nil, "OVERLAY")
     thumb:SetTexture(WHITE)
     thumb:SetVertexColor(W.Accent(0.6))
-    thumb:SetWidth(P.Scale(2))
+    thumb:SetWidth(P.Pixel(2))
     thumb:Hide()
 
     heads.spells = W.CreateGroupLabel(child, L["Spells"])
@@ -388,7 +388,7 @@ function Sidebar.Build(panel, width)
     sep:SetVertexColor(0, 0, 0, 1)
     sep:SetPoint("TOPLEFT", col, "TOPRIGHT", 0, -10)
     sep:SetPoint("BOTTOMLEFT", col, "BOTTOMRIGHT", 0, 10)
-    sep:SetWidth(P.Scale(1))
+    sep:SetWidth(P.Pixel(1))
 
     Sidebar.Rebuild()
     return col

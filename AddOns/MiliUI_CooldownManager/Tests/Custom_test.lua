@@ -474,7 +474,7 @@ do
     ns.Write = function(frame, fn) fn(frame) return true end
     ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode,
         IconTexCoord = RealLayout.IconTexCoord }
-    ns.P = { Scale = function(v) return v end }
+    ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }
     ns.Sound = { RequestAuraSync = function() end }
     ns.MiliUIGlow = nil
 
@@ -1377,7 +1377,7 @@ do
     end
     ns.Layout = { Snap = function(v) return v end, BarEmptyMode = RealLayout.BarEmptyMode, SpellEmptyMode = RealLayout.SpellEmptyMode,
         IconTexCoord = RealLayout.IconTexCoord }
-    ns.P = { Scale = function(v) return v end }
+    ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }
     local soundSyncs = 0
     ns.Sound = { RequestAuraSync = function() soundSyncs = soundSyncs + 1 end }
     ns.MiliUIGlow = nil
@@ -1681,7 +1681,7 @@ do
         local notes = {}
         ns.Diag = { Note = function(kind, text) notes[#notes + 1] = "[" .. kind .. "] " .. text end }
         ns.Style = { ApplyPanel = function() end }
-        ns.P = { Scale = function(v) return v end }
+        ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }
         ns.Viewers = { AURA_KIND = { buffs = true, buffbars = true }, frames = {}, EnsureScale = function() end,
                        Get = function() return nil end }
         ns.Decorate.ApplyItemAlpha = function() end

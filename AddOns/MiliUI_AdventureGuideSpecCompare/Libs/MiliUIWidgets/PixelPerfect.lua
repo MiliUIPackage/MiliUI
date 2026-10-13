@@ -21,6 +21,16 @@ function P.Scale(desiredPixels)
     return GetNearestPixelSize(desiredPixels, UIParent:GetEffectiveScale())
 end
 
+-- 剛好 n 個實體像素的 UI 單位（照 UIParent 的有效縮放）。
+-- ⚠ 跟 P.Scale(n) 不一樣：P.Scale 把「n 個 UI 單位」貼到最近的整數像素，1 個 UI 單位
+-- ≥ 1.5 實體像素（1440p 以上、UI 縮放偏大）時 P.Scale(1) 是 2px 以上，< 0.5 時是 0。
+-- 邊框粗細、細線、「1px」這類以實體像素計的量用這支；尺寸、間距、座標照舊 P.Scale
+function P.Pixel(n)
+    n = math.floor((tonumber(n) or 0) + 0.5)
+    if n <= 0 then return 0 end
+    return n * PixelUtil.GetPixelToUIUnitFactor() / UIParent:GetEffectiveScale()
+end
+
 function P.Size(frame, width, height)
     frame.width = width
     frame.height = height

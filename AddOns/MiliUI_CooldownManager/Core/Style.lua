@@ -75,7 +75,7 @@ end
 --
 -- ⚠ **冪等**：全部走 SetBackdrop、不建貼圖，同一個框套幾次都不會多長一層
 --   （frame 與 region 刪不掉，每呼叫一次就新建等於永久洩漏）。
--- ⚠ 邊寬走 P.Scale(1)，不要寫死 1：UI 縮放 ≠ 1 時寫死 1 會畫出糊邊。
+-- ⚠ 邊寬走 P.Pixel(1)，不要寫死 1：UI 縮放 ≠ 1 時寫死 1 會畫出糊邊。
 -- ⚠ 只能套在**自己的**框上。暴雪的框（檢視器、item frame）一個欄位都不能寫。
 ------------------------------------------------------------
 local function EnsureBackdrop(frame)
@@ -88,7 +88,7 @@ end
 function S.ApplyPanel(frame, opaque)
     if not frame then return end
     EnsureBackdrop(frame)
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = ns.P.Scale(1) })
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = ns.P.Pixel(1) })
     frame:SetBackdropColor(S.BG_R, S.BG_G, S.BG_B, opaque and S.BG_A_SOLID or S.BG_A)
     frame:SetBackdropBorderColor(S.Accent(S.BORDER_A))
     return frame
@@ -98,7 +98,7 @@ end
 function S.ApplyTooltipPanel(frame)
     if not frame then return end
     EnsureBackdrop(frame)
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = ns.P.Scale(1) })
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = ns.P.Pixel(1) })
     frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, S.TIP_A)
     frame:SetBackdropBorderColor(S.Accent(S.BORDER_A))
     return frame

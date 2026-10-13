@@ -146,7 +146,7 @@ DB.Init()
 C.Refresh("test")
 
 -- 外觀相關的 stub（AuraStyle／InitAuraButton 要的那幾支）
-ns.P = { Scale = function(v) return v end }
+ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }
 ns.Text = {
     SpellText = RealText.SpellText, BarTimePlace = RealText.BarTimePlace, Color = RealText.Color, EMPTY = RealText.EMPTY,
     BuffTiming = RealText.BuffTiming, LabelStyle = RealText.LabelStyle, LabelPlace = RealText.LabelPlace, LabelSig = RealText.LabelSig,

@@ -395,7 +395,7 @@ function LayoutBorder(b, region, size, token, r, g, bl, a)
         end
         e:ClearAllPoints()
         e:SetAllPoints(region)
-        e:SetBackdrop({ edgeFile = edgeFile, edgeSize = ns.P.Scale(size * 4) })
+        e:SetBackdrop({ edgeFile = edgeFile, edgeSize = ns.P.Pixel(size * 4) })
         e:SetBackdropBorderColor(r, g, bl, a)
         e:Show()
         return

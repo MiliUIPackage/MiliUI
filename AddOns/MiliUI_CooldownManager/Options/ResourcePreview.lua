@@ -158,7 +158,7 @@ local function LayoutBarRow(row, plan, style, Wd)
     local st = plan.st
     local H = P.Scale(st.height)
     row:SetSize(Wd, H)
-    local g = ns.CustomBars.Geometry(Wd, H, st.icon, P.Scale(1))
+    local g = ns.CustomBars.Geometry(Wd, H, st.icon, P.Pixel(1))
     local look = ns.CustomBars.Look(style, plan, g)
     local lv = row:GetFrameLevel() or 1
     LayoutBarIcon(row, st, look, g, H)
@@ -272,13 +272,13 @@ end
 local function LayoutStackCells(row, plan, style, Wd, H, look)
     local R = ns.Resources
     local n = plan.numSeg
-    local gap = P.Scale(tonumber(style.segmentSpacing) or 1)
+    local gap = P.Pixel(tonumber(style.segmentSpacing) or 1)
     local segW = (Wd - gap * (n - 1)) / n
     local lv = row:GetFrameLevel() or 1
     ns.AuraBar.RowDecor(row, { W = Wd, H = H, n = n, gap = gap, segW = segW, reversed = look.reversed, segments = true,
         dim = R.DimArray(style), px = R.DecorPx(style), edge = R.EdgeArray(style), bgTex = look.bgTex, mask = gap > 0 }, lv + 8)
     row.fillFrame:SetFrameLevel(lv + 2)
-    local geo = ns.AuraBar.Geometry(Wd, n, gap, segW, P.Scale(1))
+    local geo = ns.AuraBar.Geometry(Wd, n, gap, segW, P.Pixel(1))
     for i, c in ipairs(geo.cells) do
         local t = row.fills[i]
         if not t then

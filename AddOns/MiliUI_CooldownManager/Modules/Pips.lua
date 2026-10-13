@@ -515,7 +515,7 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
     }
     local inside = plan.showWhen == "active"
     -- 透明格距：格距 > 0 時填色貼圖掛遮罩把格距挖掉（AuraBar.MaskPlan），裝飾就不畫分隔
-    local mask = gap > 0 and { period = geom.segW + gap, gap = gap, pixel = ns.P.Scale(1) } or nil
+    local mask = gap > 0 and { period = geom.segW + gap, gap = gap, pixel = ns.P.Pixel(1) } or nil
     geom.mask = mask ~= nil
     local status = ns.AuraBar.Apply(row.ab, {
         spellIDs = { plan.spellID }, max = n, texture = tex, color = { r = r, g = g, b = b }, alpha = alpha,
@@ -543,7 +543,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
     row:SetAlpha(1)
     local reversed = ns.FillReversed(style)
     local tex = ns.Media.Texture(style.texture)
-    local gap = ns.P.Scale(tonumber(style.segmentSpacing) or 1)     -- 引擎列（裝飾自己處理 0 間距）
+    local gap = ns.P.Pixel(tonumber(style.segmentSpacing) or 1)     -- 引擎列（裝飾自己處理 0 間距）
     local r, g, b = CustomColor(plan.entry)
     local alpha = tonumber(style.barAlpha) or 1
     local charges = plan.kind == "charges"
