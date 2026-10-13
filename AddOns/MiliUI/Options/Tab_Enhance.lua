@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「插件強化」分頁：施法條美化（只在舊的冷卻管理器插件載入時出現）、拍賣行篩選、鑰石發光、聊天視窗樣式、世界地圖、調色盤、巨集視窗、Raider.IO 右鍵選單
+-- 「插件強化」分頁：施法條美化（只在舊的冷卻管理器插件載入時出現）、拍賣行篩選、鑰石發光、聊天視窗樣式、世界地圖、調色盤、巨集視窗、好友名單職業色、Raider.IO 右鍵選單
 --
 -- 這頁只放「指名一個介面對象」的注入式功能；不指名對象、純粹省你一個動作的
 -- （商人自動化、骰裝提示過濾、探究標記鈕、CVar、套組自身設定）在「便利功能」頁。
@@ -7,7 +7,7 @@
 -- 每一條 spec 自帶 get/set，直接接各 Enhance 模組的全域 API
 -- （MiliUI_CastBarEnhance / MiliUI_AHFilter / MiliUI_BaganatorKeystone /
 --   MiliUI_ChattynatorTabs / MiliUI_WorldMapCoords / MiliUI_RaiderIOUnitMenu，
---   以及 ns.ColorPickerTools / ns.MacroFrameTools）。模組沒載入時 get/set 都靜默略過。
+--   以及 ns.ColorPickerTools / ns.MacroFrameTools / ns.FriendsClassColor）。模組沒載入時 get/set 都靜默略過。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -147,6 +147,18 @@ local CONTROLS = {
     { type = "text", label = "巨集視窗右邊多一塊搜尋，同時找通用與角色巨集的名稱和內文。"
         .. "滑過結果看全文、左鍵把巨集拿起來直接放到快捷列；目前分頁裡符合的格子會框起來，點那一格就能編輯。|n"
         .. "|cffffd200搜尋不會替你選中那一格：插件去選巨集會讓快捷列上的巨集施法被遊戲擋掉。|r" },
+
+    { type = "header", label = "好友名單" },
+    { type = "toggle", label = "名字顯示職業色",
+      get = function() return ns.FriendsClassColor and ns.FriendsClassColor.IsEnabled() end,
+      set = function(v) if ns.FriendsClassColor then ns.FriendsClassColor.SetEnabled(v) end end },
+    { type = "text", label = "好友視窗的名單裡，正在玩魔獸世界的好友名字改用職業色："
+        .. "遊戲內好友是名字本身，戰網好友是括號裡的角色名（只限在玩正式服、可以邀進隊伍的）。離線好友維持原樣。" },
+    { type = "toggle", label = "滿級時隱藏等級",
+      get = function() return ns.FriendsClassColor and ns.FriendsClassColor.IsHideMaxLevel() end,
+      set = function(v) if ns.FriendsClassColor then ns.FriendsClassColor.SetHideMaxLevel(v) end end },
+    { type = "text", label = "遊戲內好友已經滿級時，名字後面不再寫「等級 N 職業」，職業看名字顏色就知道。"
+        .. "要先開啟上面的職業色才有作用；戰網好友在名單裡本來就不顯示等級。" },
 
     { type = "header", label = "Raider.IO" },
     { type = "toggle", label = "關閉右鍵選單的 Raider.IO 項目",

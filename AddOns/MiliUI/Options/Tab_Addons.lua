@@ -7,6 +7,8 @@
 -- 開關模型是批次的：勾選變更先記在 pending，底部按「套用並重載」才一次
 -- Enable/DisableAddOn ＋ ReloadUI——停用本來就要重載才生效，攢一批只重載一次。
 -- 名冊（分組、指令、說明覆蓋）在 Options/Roster.lua。
+-- 標題列右邊的「進入／離開除錯模式」是 Enhance/DebugMode.lua 的入口（那支在 TOC 排在
+-- 本檔之後，一律執行期才問 ns.DebugMode）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -29,6 +31,7 @@ local pending = {}                  -- key -> 期望的啟用狀態（跟現況�
 local selectedKey
 
 local applyText, applyBtn, discardBtn, hintText
+local debugBtn, debugText, debugPopup   -- 除錯模式（標題列右邊）
 
 ------------------------------------------------------------
 -- 狀態查詢
@@ -681,6 +684,59 @@ local function Init()
     applyText:SetFontObject(W.fontNormal)
     applyText:SetPoint("RIGHT", discardBtn, "LEFT", -12, 0)
     applyText:Hide()
+
+    -- 標題列右邊：除錯模式（Enhance/DebugMode.lua）。按鈕寫的是「按下去會做什麼」，
+    -- 狀態寫在左邊那行字：平時灰字講用途，除錯中橘字講停用了幾個
+    debugBtn = W.CreateButton(tab, "進入除錯模式", "normal", 110, 20)
+    W.FitButton(debugBtn, 110, 20)
+    debugBtn:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 5)
+    debugBtn:SetScript("OnClick", function()
+        local dm = ns.DebugMode
+        if not dm then return end
+        if not debugPopup then
+            debugPopup = W.CreateConfirmPopup(ns.WidgetsEnv.PopupParent(), 320, "", function()
+                local ok
+                if dm.IsActive() then ok = dm.Leave() else ok = dm.Enter() end
+                if ok then
+                    wipe(pending)
+                    ReloadUI()
+                end
+            end)
+        end
+        if dm.IsActive() then
+            debugPopup.text:SetText("重新啟用進入除錯模式前的插件（除錯中自己開關過的以原本的清單為準），"
+                .. "並還原錯誤訊息的顯示設定，然後重新載入介面。")
+        else
+            debugPopup.text:SetText(("將停用 %d 個插件，只留米利UI套組本體、!BugGrabber、BugSack，"
+                .. "並開啟 Lua 錯誤顯示，然後重新載入介面。原本的清單會記下來，之後按「離開除錯模式」即可還原。")
+                :format(dm.PendingCount()))
+        end
+        debugPopup:Show()
+    end)
+
+    debugText = tab:CreateFontString(nil, "OVERLAY")
+    debugText:SetFontObject(W.fontSmall)
+    debugText:SetPoint("RIGHT", debugBtn, "LEFT", -10, 0)
+    debugText:SetJustifyH("RIGHT")
+end
+
+-- 除錯模式按鈕跟著現況換字；除錯中用 primary（離開才是這時候該按的那顆）
+local function UpdateDebugButton()
+    local dm = ns.DebugMode
+    if not (debugBtn and dm) then
+        if debugBtn then debugBtn:Hide() debugText:Hide() end
+        return
+    end
+    if dm.IsActive() then
+        debugBtn:SetText("離開除錯模式")
+        W.SetButtonVariant(debugBtn, "primary")
+        debugText:SetText(("|cffff9900除錯模式中：已停用 %d 個插件|r"):format(dm.DisabledCount()))
+    else
+        debugBtn:SetText("進入除錯模式")
+        W.SetButtonVariant(debugBtn, "normal")
+        debugText:SetText("|cff888888回報問題用：只留套組本體與 BugSack|r")
+    end
+    W.FitButton(debugBtn, 110, 20)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "addonsTab", function(id)
@@ -701,5 +757,6 @@ ns.RegisterCallback("ShowOptionsTab", "addonsTab", function(id)
     RefreshRows()
     ShowDetail(entriesByKey[selectedKey])
     UpdateApplyBar()
+    UpdateDebugButton()
     tab:Show()
 end)

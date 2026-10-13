@@ -78,9 +78,11 @@ Enhance\Quest_Automation.lua
 Enhance\QuestReward_BestValue.lua
 Enhance\ColorPicker_Tools.lua
 Enhance\MacroFrame_Tools.lua
+Enhance\FriendsList_ClassColor.lua
 Enhance\Trade_Whisper.lua
 Enhance\EditMode_BagsAlpha.lua
 Enhance\TaintLog.lua
+Enhance\DebugMode.lua
 Enhance\RaiderIO_UnitMenu.lua
 Enhance\DiGua_LoginMessage.lua
 
