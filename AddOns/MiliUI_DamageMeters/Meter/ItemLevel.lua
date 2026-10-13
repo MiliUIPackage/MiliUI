@@ -19,6 +19,7 @@ local _, ns = ...
 ns.ItemLevel = {}
 local IL = ns.ItemLevel
 local D = ns.Data
+local issecret = ns.Secret.IsSecret
 
 local TTL      = 600    -- 快取 10 分鐘：換裝不頻繁，過期了下次滑過再問
 local THROTTLE = 1.5
