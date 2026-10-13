@@ -1,7 +1,7 @@
 ---
 name: wow-cooldownviewer-buffbar-text-gate
-description: 暴雪增益長條只在文字框「正在顯示」的那一刻寫字——名字一律保持顯示讓暴雪寫、插件只管樣式與位置；絕不從污染路徑叫 RefreshName（召喚物的 totemData 是秘密表）；**召喚物第一拍名字是 nil 而且暴雪不會再補寫 ⇒ SetText 後掛勾用法術名字頂是必要的不是好看**
-metadata: 
+description: 暴雪增益長條只在文字框「正在顯示」的那一刻寫字——名字一律保持顯示讓暴雪寫、插件只管樣式與位置；絕不從污染路徑叫 RefreshName（召喚物的 totemData 是秘密表）；**召喚物第一拍名字是 nil 而且暴雪不會再補寫 ⇒ SetText 後掛勾用法術名字頂是必要的不是好看**（先問 item:GetSpellID 再退目錄；秘密字串先擋再比 nil）
+metadata:
   node_type: memory
   type: reference
   originSessionId: 1c609bfc-70e6-4f13-bdd9-e3945c4659df
@@ -51,22 +51,17 @@ end
 暴雪自己藏它的那次（`SetBarContent` 僅圖示）用後掛勾當場 `Show()` 回來——框從池子取出時
 `OnAcquireItemFrame → SetBarContent` 就先過這條，緊接著的 `RefreshData → RefreshName` 就寫了字。
 
-插件在 `Bar.Name` 的 `SetText` 後掛勾只做兩件不用讀秘密的事：自訂名字蓋上去（暴雪寫的那份留著參考，
-秘密字串也只是拿著不讀，自訂名字清掉時原樣放回、不叫暴雪重寫）；暴雪寫進 nil／非秘密空字串時
-（召喚第一拍 totemData 已是秘密表但 name 還是 nil，真名約 0.9 秒後才到）用 `C_Spell.GetSpellName(spellID)`
-頂一秒，秘密字串進來就自然換掉——這段純屬好看，暴雪原版那一秒也是空的。
-
-套組裡的實作在 `Ayije_CDM/Core/Style.lua`（就地改，見 [[project-local-addon-forks]]）：
-名字 alpha-only、可見度掛勾只留給倒數與層數、`SetBarContent` 後掛勾 `Show()`、`InstallBarNameTextHook`
-處理自訂名字與 nil 退路、`ApplyCustomBarName` 處理自訂名字切換。沒有任何地方呼叫暴雪的 `RefreshName`。
-
-**修正（2026-10-03，MiliUI_CooldownManager 惡魔暴君整條沒名字）**：上面「頂一秒、之後秘密字串自然換掉」的觀察
-是在 Ayije 底下看到的——那第二次寫字八成是 Ayije 自己的延後重套觸發的 RefreshData，**不是暴雪**。暴雪的路徑只有
-`PLAYER_TOTEM_UPDATE → OnPlayerTotemUpdateEvent → RefreshData → RefreshName` 這一次，而 `GetTotemInfo` 在那一拍對
-召喚惡魔（265187 惡魔暴君）回的 name 是 nil（單位名字還沒從伺服器來）；之後沒有事件會再叫 RefreshName
+**召喚物第一拍名字是 nil、暴雪不會再補（2026-10-03 定論）**：暴雪的路徑只有 `PLAYER_TOTEM_UPDATE → OnPlayerTotemUpdateEvent → RefreshData → RefreshName`
+這一次，而 `GetTotemInfo` 在那一拍對召喚惡魔（265187 惡魔暴君）回的 name 是 nil（單位名字還沒從伺服器來）；之後沒有事件會再叫 RefreshName
 （UNIT_AURA 的局部更新只刷有 auraInstanceID 對應的 item），所以**整條空到消失**，暴雪原版也一樣。
+（之前在 Ayije 底下看到「頂一秒之後秘密字串自然換掉」，那第二次寫字八成是 Ayije 自己延後重套觸發的 RefreshData，不是暴雪。）
 指紋：條、底色、秒數都對、沒 Lua 錯誤、`/mcdm debug` 的 diag 沒東西。
-正解＝`Bar.Name` 的 `SetText` 後掛勾（`Core/Decorate.lua` `OnBarNameSetText`）：**先 `ns.IsSecret(text)` 擋掉再比 nil／""**
-（秘密值連跟 nil 比都會拋錯），空的就用 `Catalog.Info(rec.cooldownID)` 的明文 `overrideSpellID or spellID` 問
-`C_Spell.GetSpellName` 頂上去（寫的是法術名「召喚惡魔暴君」不是單位名），有重入閘、自訂框不掛、不碰 totemData。
-離線測試在 `Tests/Extras_test.lua` 第 2 節尾。
+正解＝`Bar.Name` 的 `SetText` 後掛勾（MCDM `Core/Decorate.lua` `OnBarNameSetText`）：**先 `ns.IsSecret(text)` 擋掉再比 nil／""**
+（秘密值連跟 nil 比都會拋錯），空的就用法術名頂上去（寫的是法術名「召喚惡魔暴君」不是單位名）。法術 id **先問 item 自己的 `GetSpellID()`
+（暴雪寫名字用的就是它；Ayije 同招）**，讀不到明文才退目錄的 `overrideSpellID or spellID`（549bad8e4）；有重入閘、自訂框不掛、不碰 totemData；
+每次處理記一行 `[barname]` diag（去重），實機不對時 `/mcdm debug` 看得到。
+
+後掛勾另一件事：自訂名字蓋上去（暴雪寫的那份留著參考，秘密字串也只是拿著不讀，自訂名字清掉時原樣放回、不叫暴雪重寫）。
+
+套組裡 Ayije_CDM 的版本在 `Ayije_CDM/Core/Style.lua`（就地改，見 [[project-local-addon-forks]]）：名字 alpha-only、可見度掛勾只留給倒數與層數、
+`SetBarContent` 後掛勾 `Show()`、`InstallBarNameTextHook`／`ApplyCustomBarName`。沒有任何地方呼叫暴雪的 `RefreshName`。

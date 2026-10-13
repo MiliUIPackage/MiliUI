@@ -44,4 +44,4 @@ MiliUI 內建 Platynator 預設值放在 `AddOns/MiliUI/Config/Luxthos_Platynato
 ⚠ 一般施法色不能設成琥珀 1/0.7/0 —— 那跟 Platynator 的「斷法就緒」1/0.741/0 幾乎一樣，
 兩個狀態會分不出來。這是舊值踩過的坑。
 
-相關：[[project-focuser-castbar]]、[[project-miliui-unit-frame]]
+相關：[[project-miliui-focus-addon]]、[[project-miliui-unit-frame]]

@@ -1,11 +1,11 @@
 ---
 name: wow-securegroupheader-refresh-snippet
-description: 給 SecureGroupHeader 的格子掛額外的次要按鈕（寵物、目標）時，unit 只能在 refreshUnitChange snippet 裡派；Lua 端唯一的開關是「動 header 的任一個屬性」
+description: 給 SecureGroupHeader 的格子掛額外的次要按鈕（寵物、目標）時，unit 只能在 refreshUnitChange snippet 裡派；Lua 端唯一的開關是「動 header 的任一個屬性」（值沒變別重設，那是整排重排）
 metadata: 
   node_type: memory
   type: reference
   originSessionId: 9a86fa22-8fc6-4603-9fa1-ecbc80f5596f
-  modified: 2026-09-08T11:30:07.761Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
 在 `SecureGroupHeaderTemplate` 的每一格旁邊掛一顆次要單位按鈕（寵物、該隊員的目標…），
@@ -31,11 +31,12 @@ header 隱藏時（單人、團隊）那次設定不會生效，但模板的 `On
 ⚠ 反過來說，值沒變就別重設：那是一次完整的 header 重排（每顆按鈕重新 SetPoint ＋ snippet 跑五次），
 拖滑桿的時候一步一次會很痛。
 
-順手的兩個坑：
+順手的兩個坑（本地 fork 的 Cell，`RaidFrames/Groups/PetFrame.lua`、`UnitButton.lua`）：
 
-- **`b.isSpotlight = true`**（Cell）名字看起來跟 Spotlight 綁死，實際語意是「這顆按鈕不擁有它顯示的
+- **`b.isSpotlight = true`** 名字看起來跟 Spotlight 綁死，實際語意是「這顆按鈕不擁有它顯示的
   單位」—— 只有它在擋 `Cell.vars.guids` / `Cell.vars.names` 的寫入。次要按鈕沒設這個旗標，
   隊友一選到隊員，`guids[隊員GUID]` 就會被改指到 `party2target`，所有走 GUID 路由的更新跟著跑錯地方。
 - `partyNtarget` 這種複合 token **沒有事件**。Cell 的做法是 `refreshOnUpdate` 屬性掛上共用 tick
   driver（0.25 秒一次 `UnitButton_UpdateAll`）；自己那格用 `target` ＋ `updateOnTargetChanged`
-  走 `PLAYER_TARGET_CHANGED` 就好。
+  走 `PLAYER_TARGET_CHANGED` 就好。單位框架那邊同一個問題的解法是 `INDIRECT_UNITS` 0.5 秒輪詢，
+  見 [[project-miliui-unit-frame]]。

@@ -1,6 +1,6 @@
 ---
 name: wow-121-duration-objects
-description: 12.1 秘密值倒數的通解 —— C_DurationUtil.CreateDuration + SetTimeFromStart 寫入，交給 StatusBar/Cooldown 由引擎驅動；絕不讀回；**「剩 N 秒」的 Lua 訊號戰鬥中拿不到（2026-10-09 實測＋文件，六條路全封）**
+description: 12.1 秘密值倒數的通解 —— C_DurationUtil.CreateDuration + SetTimeFromStart 寫入，交給 StatusBar/Cooldown 由引擎驅動；絕不讀回；自己建的餵不進秘密值但 arm 過就由引擎跑；身分也是秘密所以查表倒數不行；**「剩 N 秒」的 Lua 訊號戰鬥中拿不到（2026-10-09 實測＋文件，六條路全封），能做的只有「施放後固定秒數」並照實標示**
 metadata: 
   node_type: memory
   type: reference
@@ -31,7 +31,7 @@ if dur:IsZero() then ... end   -- ❌ 布林測試，當場炸
 ```
 
 Plumber 的 `Modules/Shared/CooldownUtil.lua` 把整段 CreateDuration 註解掉並標
-「Unusable in combat」—— 踩到的是 `IsZero()` 的**測試**，**不是** `SetTimeFromStart`。
+「Unsuable in combat」—— 踩到的是 `IsZero()` 的**測試**，**不是** `SetTimeFromStart`。
 分清楚這件事才知道這條路其實可以走。
 
 取得之後照 [[wow-121-secret-values]] 的「當傳遞者，不當讀取者」用掉就好：
@@ -42,7 +42,7 @@ Eval(dur:IsZero(), 就緒色, 原色)                          -- 秘密布林�
 ```
 
 Platynator 的 `Display/Colors.lua`／`Display/Nameplate.lua` 用同一套做 CastBar 的打斷標記；
-MiliUI_UnitFrames 的 `Core/Interrupt.lua`（斷法就緒染色）跟著抄。
+MiliUI_UnitFrames 的 `Core/Interrupt.lua`（斷法就緒染色）、MiliUI_Focus 的施法條（[[project-miliui-focus-addon]]）跟著抄。
 
 ### 回秘密布林的函式要多回一個**明文**旗標
 
@@ -87,7 +87,7 @@ Secret values are only allowed during untainted execution for this argument.
 
 結果：戰鬥前開始的全程正確，戰鬥中開始的只是晚幾秒才出現倒數。
 
-Stuf 用的是等價的手法（`b.endtime = GetTime() + safeRemain`，把秘密值 pcall 換算成
+Stuf（已從套組移除）用的是等價的手法（`b.endtime = GetTime() + safeRemain`，把秘密值 pcall 換算成
 明文時間戳存一次，之後自己算）。⚠ 但它捕捉失敗時退回 `i * 20` 的**假倒數** ——
 數字是編的，看起來卻很正常。不要抄那一段。
 
@@ -122,6 +122,10 @@ VIEWERS = {  -- Ayije_CDM/Core/Constants.lua
 }
 ```
 
+變形：**鏡射**暴雪那條（原生 StatusBar 之間 `SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 轉手秘密值是允許的，
+中間不能有任何 Lua 比較或算術）——[[project-miliui-crusadingstrikes]] 與 MiliUI_CooldownManager 的征戰聖擊列都走這條，
+那篇列了六條死路（含 AuraContainer 看不到天賦被動光環）。
+
 判斷準則：**要「精確的秘密計時」就得寄生暴雪的框；要「自己排版的顯示」就只能接受
 arm 不到時沒有數字。** 兩者不可兼得，別花時間找第三種。
 
@@ -132,7 +136,7 @@ arm 不到時沒有數字。** 兩者不可兼得，別花時間找第三種。
 ## ⚠ 「剩 N 秒時通知我」戰鬥中做不到（2026-10-09）
 
 起因：玩家要 MCDM「冷卻剩幾秒時語音倒數」。插件唯一精確的時間訊號是探針 Cooldown 的
-`OnCooldownDone`——只在**結束那一刻**。要提早 N 秒，就得讓引擎替我們算「剩餘 − N」再回呼 Lua，
+`OnCooldownDone`（MCDM `Core/Glow.lua`）——只在**結束那一刻**。要提早 N 秒，就得讓引擎替我們算「剩餘 − N」再回呼 Lua，
 這條管道暴雪全部封了：
 
 | 試過的路 | 結果 |
@@ -145,9 +149,13 @@ arm 不到時沒有數字。** 兩者不可兼得，別花時間找第三種。
 | Cooldown `SetCountdownFormatter`／DurationTextBinding | 格式化在 C 端跑，沒有 Lua 回呼；FontString 沒有文字變更事件 |
 
 結論：**脫戰（明文）可以用 C_Timer 精確倒數；戰鬥中只剩「轉好那一刻」一個訊號**（就緒音效／語音已經在用）。
-寫死冷卻秒數表＋施法事件自己倒（DiGuaTimelineAudioHelper 的打斷／藥水做法）遇到急速、天賦、打中減冷卻就報錯數字，
+寫死冷卻秒數表＋施法事件自己倒（DiGuaTimelineAudioHelper `PlayerSpellCooldown.lua` 的斷法 CD 表做法）遇到急速、天賦、打中減冷卻就報錯數字，
 跟上面 Stuf 的假倒數同類，不要做。暴雪自己的警示系統有 `PandemicTime` 事件，但警示存在版面資料裡、
 `SetLayoutData` 是 AllowedWhenUntainted，插件加不進去。
+
+能做、也做了的（MCDM 913ce7343，`Core/Sound.lua`「施放後提醒」）：**「施放後 N 秒提醒」**——從 `UNIT_SPELLCAST_SUCCEEDED` 那一刻自己用 `C_Timer` 算，
+不讀冷卻、不讀光環剩餘；倒數播報的每一聲也只是這條線上的固定時間點。它跟假倒數的差別只在**設定頁與功能名稱照實寫「施放後固定秒數」**，
+不假裝是「冷卻剩餘」；spellID 是秘密值的那一次略過（不比較、不當 key）。
 
 ## 別忘了 modRate
 
@@ -155,8 +163,8 @@ arm 不到時沒有數字。** 兩者不可兼得，別花時間找第三種。
 `SetTimeFromStart(start, duration, modRate)` 第三個參數就是它，漏掉的話被加速的
 倒數會跟實際走鐘。
 
-2026-08-18 用這招修好 MiliUI_UnitFrames「戰鬥中召喚物沒有倒數」。
+2026-08-18 用這招修好 MiliUI_UnitFrames「戰鬥中召喚物沒有倒數」（`Elements/Totems.lua`）。
 暴雪自己的 TotemFrame 是在 Lua 算的（`math.ceil(GetTotemTimeLeft(slot))`），
 那是 untainted 程式讀得到秘密值，插件不能照抄 —— 見 [[wow-121-secret-values]]。
 
-相關：[[project-focuser-castbar]]、[[project-miliui-unit-frame]]
+相關：[[project-miliui-focus-addon]]、[[project-miliui-unit-frame]]、[[project-miliui-crusadingstrikes]]、[[project-miliui-cooldownmanager]]

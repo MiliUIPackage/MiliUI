@@ -110,6 +110,11 @@ AuraContainer 掛了 aura group 之後就**不再收 `OnSizeChanged`**（連錨�
 
 `AnchorUtil.FlowLayoutAxis = { Horizontal = 0, Vertical = 1 }`；`AnchorUtil.FlowDirection = { Left = -1, Right = 1, Up = 1, Down = -1 }`。FlowLayout 預設是 Horizontal 軸、錨點 `TOPLEFT`、往 Right / Down 長，所以錨在 `BOTTOMLEFT` 卻沒改生長方向的話會往下長出框外。
 
+**`includeSpellIDs` 看不到天賦本身的被動光環**（征戰聖擊 404542，2026-10-02 MiliUI_CooldownManager 實機：單格容器整列空白，
+沒有錯誤）。天賦的被動效果不是 `UNIT_AURA` 可見的光環，容器當然撈不到；要顯示它的數值只能**鏡射暴雪自己的追蹤量條 item**
+（每幀把 `GetMinMaxValues`／`GetValue` 原封轉手到自己的 StatusBar，秘密值不經 Lua），所以那個法術一定要留在暴雪的追蹤量條裡。
+相關：[[project-miliui-crusadingstrikes]]。
+
 **spellID 過濾有身分限制**（`Blizzard_CustomAuraContainer.lua` 第 78 行註解）：光環是 secret 時，`includeSpellIDs` / `excludeSpellIDs` 只允許用在「友方單位上的增益」與「敵方單位上的減益」。所以團隊框架上的**減益不能用 spellID 過濾**（防自動化），增益可以。被標為 non-secret 的法術不受限（12.1 PTR 6 放寬）。Secret 減益只能靠 `excludeDispelTypes` / `maxDuration` / 布林欄位這些非 ID 條件過濾。
 
 `candidateFilters` 的完整欄位：`includeSpellIDs`、`excludeSpellIDs`、`includeDispelTypes`、`excludeDispelTypes`、`maxDuration`、`processedAuraType`，加上一組布林 `isFromPlayerOrPlayerPet`、`isRoleAura`、`isPriorityAura`、`isStealable`、`nameplateShowAll`、`nameplateShowPersonal`、`canApplyAura`、`isBossAura`、`isBossOrRoleAura`。

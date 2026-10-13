@@ -281,3 +281,7 @@ while execution tainted by 'MiliUI_AuraEnhance')`。錯誤指向的檔案跟我�
   （暴雪是拿秘密的冷卻狀態算出來再傳的）；在掛勾裡寫 `if desaturated == false` 當場拋錯、而且每次刷新都拋
   （2026-09-30，MiliUI_CooldownManager 48 次）。掛勾的參數一律當秘密值處理：要分支先 `issecretvalue(v)`，
   秘密的就走「不看值」的那條路。「有沒有拿到值」寫成 `issecretvalue(v) or v ~= nil`，不要直接比 nil。
+- **`SetAlphaFromBoolean` 會讓子孫的 `GetAlpha()` 變秘密。** 框餵過秘密布林之後 alpha 沿父子鏈傳染，
+  子貼圖 `GetAlpha()` 回秘密數字；第三方（Masque 套皮）拿它跟 0 比大小當場炸，錯誤指向對方檔案
+  （2026-10-13，MiliUI_CooldownManager a3fa91923）。把自己的框交給別的函式庫前先 `issecretvalue(GetAlpha())`，
+  秘密就這一輪不交、下次排版再試。

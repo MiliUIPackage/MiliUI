@@ -1,187 +1,100 @@
 ---
 name: project-miliui-widgets-vendor
-description: MiliUI 自製插件的共用設定介面（MiliUIWidgets）—— 走 vendor 複製而非 LibStub，唯一 source 在 MiliUI 本體
+description: MiliUI 自製插件的共用基礎設施（MiliUIWidgets）—— 走 vendor 複製而非 LibStub，唯一 source 在 MiliUI 本體；Env 契約、各元件的地雷、設定視窗 Panel.lua 的三條層級規矩（關閉鈕／toplevel／換面板叫回）、選色器與 1px 的修正模型
 metadata: 
   node_type: memory
   type: project
   originSessionId: 7d08d4b9-4715-4b8f-87ca-737e01131ca6
-  modified: 2026-08-22T20:42:59.910Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
-**任何 MiliUI 自製插件要做設定介面，複製 `AddOns/MiliUI/Libs/MiliUIWidgets/`
-整包過去，不要重寫、也不要叫 agent「參考頭像的介面」。** 那是唯一 source，包內
-`README.md` 寫了完整的複製契約。（2026-08-18 建立；2026-08-23 唯一 source 從
-UnitFrames 搬到 MiliUI 本體——本體那天也改用自製視窗，順勢接手 source 角色。
-九份 copy 的 Widgets/Controls/PixelPerfect/README 均已 md5 同步。）
+**任何 MiliUI 自製插件要做設定介面，複製 `AddOns/MiliUI/Libs/MiliUIWidgets/` 整包過去，
+不要重寫、也不要叫 agent「參考頭像的介面」。** 那是唯一 source，包內 `README.md` 是完整契約
+（檔案表、Env 契約、載入順序、各元件用法、規矩、刻意不含什麼）。2026-08-18 建立，08-23 起 source 在本體。
 
-**內容**：`Widgets.lua`（元件庫）、`Controls.lua`（宣告式表單引擎）、`PixelPerfect.lua`、
-`Env.lua`。前三支逐字複製，**只改 `Env.lua`** —— 它是唯一的宿主接點，提供
-`NAMESPACE / L / P / Font / Accent / PopupParent` 六項，另有選用的 `LABEL_W`
-（表單標籤欄寬，預設 128；2026-08-22 加，Tooltip 的 zhTW 長標籤用 200）。
-同日 MakeLabel 補了左緣錨點＋WordWrap——原本只錨右緣，超過欄寬的標籤會往左
-溢出被捲軸邊緣裁掉開頭（症狀：字的前面被吃掉），夾住後改成換行。
+**消費者數字別寫死**：一律 `ls -d AddOns/*/Libs/MiliUIWidgets`（2026-10-14 是 21 份）。
+同步跑 `python3 .claude/scripts/sync-widgets.py`（無參數＝同步並列出改了哪幾份，`--check`＝檢查漂移，
+已接進 `check-all.sh` 與 CI；它也同步單檔 vendor MiliUIGlow／MiliUISnap）。
+⚠ 腳本**不會主動把新模組塞進沒帶它的插件**，只更新已經帶著的那幾支；例外是 `Media/` 的資產檔
+（`check-outline.tga`）一律補齊——貼圖不排 TOC、缺了是靜默空白。
+
+**內容**：`Env.lua`（唯一宿主接點：`NAMESPACE / L / P / Font / Accent / PopupParent` ＋選用 `LABEL_W`）、
+`Secret.lua`／`Errors.lua`／`Metro.lua`（無相依，排 TOC 最前面）、`BlizzOptions.lua`（暴雪「選項>插件」入口頁，
+選用 `extraButtons`）、`Widgets.lua`（元件庫）、`ContextMenu.lua`（右鍵選單，要在 Widgets 之後）、
+`Controls.lua`（宣告式表單引擎）、`PixelPerfect.lua`。除 Env 外逐字複製。
 宿主專屬的選單清單與 spec 工廠放各自的 `Options/Specs_*.lua`，不要寫回 `Controls.lua`。
 
 **Why 選 vendor 而不是 LibStub 或 MiliUI_Core 插件**：
-- Core 插件 → 玩家從 GitHub 抓 zip 會缺件，而缺件的後果是插件整個不能設定（硬失敗）。
-  插件都是單體發佈的，不能有這種前置條件。
+- Core 插件 → 玩家從 GitHub 抓 zip 會缺件，後果是插件整個不能設定（硬失敗）。插件都是單體發佈的。
 - LibStub → 能共享單一視窗，但要背「API 只能加不能改語意」的永久稅。
-- vendor → 拿到「介面不漂移、bug 修一次跑腳本同步」，又不用背相容包袱；代價是不能
-  共用同一個設定視窗（各插件各開各的）。**哪天真的想要「一個視窗多分頁」再升級成
-  LibStub 不遲**，原始碼已經是單一 source。
+- vendor → 介面不漂移、bug 修一次跑腳本同步；代價是各插件各開各的視窗。哪天真要「一個視窗多分頁」再升級成 LibStub 不遲。
 
-**踩雷點**：`Env.NAMESPACE` 每個插件必須不同。`CreateFont("同名")` 回傳既有物件而非
-新的，具名 frame 也一樣 —— 撞名會讓兩個插件互相蓋掉字型設定，而且不報錯。
+**踩雷點**：`Env.NAMESPACE` 每個插件必須不同——`CreateFont("同名")` 回傳既有物件、具名 frame 也一樣，
+撞名會互相蓋掉字型設定而且不報錯。已用掉的前綴清單在 README「NAMESPACE 為什麼一定要不同」。
 
-**現況**：十個消費者——**MiliUI 本體（source，2026-08-23 起）**、UnitFrames（舊 source）、
-**MiliUI_Tooltip**（2026-08-22，見 [[project-miliui-tooltip]]）、**MiliUI_Focus**
-（2026-08-22，見 [[project-miliui-focus-addon]]）、**MiliUI_BurstPotionHelper／
-MiliUI_BloodlustMusic／MiliUI_ChatBar**（2026-08-23，見
-[[project-miliui-esc-menu-window-migration]]）、**MiliUI_DamageMeters**、
-**MiliUI_AuraEnhance**（2026-08-26，見 [[project-miliui-auraenhance]]）、
-**MiliUI_CharacterNotes**（2026-08-26，見 [[project-miliui-characternotes]]）。
-設定視窗本體（`Options/Panel.lua`）仍是各插件自己組裝（簡化版：無搜尋、無小地圖鈕）；
-設定搜尋刻意不進包，理由寫在 README 末段。
-本體的視窗（2026-08-23）比別家多：頂部 banner（職業色漸層＋版本號，零圖檔）、開窗
-0.15s 淡入、**「插件總覽」控制台分頁**（`Options/Roster.lua` 名冊＋`Tab_Addons.lua`：
-分組清單＋勾選批次開關插件＋詳情面板含擷圖/說明/CPU/開啟設定按鈕；擷圖放
-`MiliUI/Media/Shots/<key>.png` 840x420，佔位圖墊底所以不用偵測檔案存在）。
-NAMESPACE 已用掉：MiliUIPack（本體）/MiliUIUF/MiliUITip/MiliUIFocus/MiliUIChatBar/
-MiliUIBurst/MiliUIBLM/MiliUIDM/MiliUIAura/MiliUINote（2026-08-26 起共十份 copy，README 的
-前綴清單同步更新；順手把 README 的「整包就是四支 .lua」改成五支——ContextMenu 早就進來了）。舊 `MiliUI/Settings.lua`（暴雪 canvas 面板）已刪，importRegistry
-搬到 `MiliUI/Options/Tab_Import.lua`。
+## 語系契約：四個 key，不要擴充
 
-**`custom` spec（2026-08-22 加，共用層唯一一次擴充）**：`Controls.Build` 多了
-`{ type = "custom", label, build, h }`，`build(parent, x, y, width, ctx)` 回傳
-`高度, refresh(選用)`。宿主自己畫那一列、共用層只負責排版與把 refresh 併進 refreshers。
-加它的理由：Focus 需要「擷取按鍵」與「唯讀巨集複製框」兩種控件，兩者都只有一個插件會用
-—— 與其在共用層長出 `keybind` / `copybox` 這種宿主味的型別，不如開一個通用逃生口。
-**三份 copy 必須一字不差**（改完 `diff` 三份確認），這次是同時改三份同步過去的。
+共用層只查 `Apply / Okay / Cancel / Can't change settings during combat`。AceLocale 宿主（ChatBar／BurstPotionHelper／
+BloodlustMusic）補在各自 `Locales/enUS.lua` 就好（其他語系退回 enUS）。`BlizzOptions.lua` 第一版偷查
+`L["Version: %s"]`，AceLocale 那三支當場 `Missing entry` 洗版——**需要字串就從 spec 收，沒傳退回英文字面值**。
+共用層自己長出來的元件（拖曳把手、格線開關）的文案例外：自帶十語系，宿主要蓋走 `opts`。
+`check_locales.py` 會掃 `Libs/MiliUIWidgets`（先剝註解，否則檔頭範例被當成真用到）；`miliui-locale-audit`
+技能的腳本對 AceLocale 那三支不適用。
 
-**2026-08-23 第二次擴充共用層**（同樣三份 → 六份一起同步，`md5` 對過）：
-- `W.CreateCopyBox(parent, w, h, getText, selectLabel)` —— 唯讀但選得起來的複製框
-  （巨集／指令）。停用的輸入框連選取都做不到，所以做法是「一被輸入就還原」。
-  `selectLabel` 由宿主傳，共用層不多吃一個 L key。消費者：Focus（斷法巨集）、
-  BurstPotionHelper（/click 那行）。
-- `W.CreateRowList(parent, w, h, rowH, buildRow)` —— 列會回收的可捲動清單。
-  **`updateRow` 必須連 OnClick 的 closure 一起重設**，否則捲幾次就會動到別筆；
-  最省事的寫法是 handler 一律讀 `row.<欄位>`，建列時完全不抓資料進 closure。
-  消費者：藥水清單／曲目清單／頻道開關三支。
-- `W.CreateInputPopup(parent, w, title, fields)` —— 「新增一筆／改名」的輸入彈窗，
-  `onAccept` 回傳 `false` 就不關窗。**刻意不 Raise**：層級固定 410（遮罩 400 之上、
-  戰鬥遮罩 500 之下），Raise 會讓它戰鬥中浮在戰鬥遮罩上面還能按。
+## 元件地雷（每條都是撞過的）
 
-**2026-08-24 共用層修正（八份一起同步，`md5` 對過）**：`W.CreateConfirmPopup`
-建完之後沒有 `Hide()` —— 而 `W.CreateFrame` 建出來預設是**顯示**的。兩個後果：
-1. 「分頁 Init 就先建好、按鈕按下去才 Show」這種寫法，確認視窗會**一進分頁就自己跳出來**
-   （MiliUI_DamageMeters 的「還原預設值」就是這樣被使用者看到的）。
-2. 就算是「建完馬上 Show」的多數寫法也壞：對一個**已經顯示**的框呼叫 `Show()`
-   不會觸發 `OnShow`，所以第一次按下去時背後那層遮罩不會出現。
-修法是 `return popup` 之前補一行 `popup:Hide()`。
-通則：**共用層任何「建好但預設不顯示」的元件都要自己關掉**，不要指望呼叫端記得。
+- **`custom` spec**：`{ type = "custom", label, build, h }`，`build(parent, x, y, width, ctx)` 回 `高度, refresh(選用)`。
+  只有一個插件會用的控件走這裡，不要在共用層長新型別。
+- **`W.CreateRowList`**：`updateRow` 必須連 OnClick 的 closure 一起重設，否則捲幾次就動到別筆；handler 一律讀 `row.<欄位>`。
+- **`W.CreateInputPopup`**：刻意不 Raise，層級固定 410（遮罩 400 之上、戰鬥遮罩 500 之下）——Raise 會讓它戰鬥中浮在戰鬥遮罩上還能按。
+- **建好但預設不顯示的元件要自己 `Hide()`**：`W.CreateFrame` 建出來預設顯示；`CreateConfirmPopup` 漏了那行的後果是
+  「進分頁就自己跳出來」＋「已顯示的框 `Show()` 不觸發 OnShow ⇒ 第一次沒遮罩」。
+- **`W.CloseOnEscape(frame, closeWithPanels)`** 走 `UISpecialFrames`，吃全域名稱、註冊後不移除，只給設定視窗／下拉／彈窗用，
+  建立時叫一次。⚠ 不要自己 `EnableKeyboard` 抓 ESC（[[wow-keyboard-capture-blocks-bindings]]）；收尾掛 `OnHide`，ESC 是繞過 `Hide()` 直接藏框的。
+  **換面板叫回**（2026-10-01）：ShowUIPanel 開中間面板（天賦／法術書）走的是同一支 `CloseSpecialWindows`，
+  設定視窗會跟著被收掉（症狀：從法術書 Shift 點法術填 ID，視窗先關了）。預設分辨兩條路：同一幀被收掉且接著 ShowUIPanel 跑完＝換面板→叫回；
+  ESC（ToggleGameMenu）不經 ShowUIPanel→照關。下拉與右鍵選單傳 `true` 維持舊行為。⚠ 自己的程式先關視窗、同一幀再 ShowUIPanel，視窗會被叫回來——要延一幀。
+  詳見 [[wow-uispecialframes-login-closed]]。
+- **`W.CreateTitleBar` / `W.MakeDragHandle`**：把手是有底有邊的 chip（標題列在面板外側、背後是會動的遊戲畫面）；
+  `MakeDragHandle` 走 `HookScript`，宿主同一框的 `SetScript("OnMouseUp")` 要排在它前面（[[wow-setscript-clobbers-hookscript]]）；
+  放開落在把手外的自檢靠 `IsMouseButtonDown` 輪詢（clamp 住時收不到 OnMouseUp）。通則：**雙用途控件一定要給第二個訊號**（分頁鈕兼把手＝隱形把手）。
+- **`W.Menu.Show(items, anchorBtn, keepAnchor)`**（ContextMenu）：「有哪些項目」留在宿主；設計規則見 `miliui-menu-design` 技能。
+  2026-09-22 起支援項目 `tooltip`、子選單裡的開關按下去原地重畫不收掉。
+- **`W.CreateColorPicker`** 對暴雪 `ColorPickerFrame` 的兩個事實（同一控件修兩次，10-07／10-11）：
+  ① 按確定**一律**呼叫 `opacityFunc`，沒開透明度時不重設滑桿 ⇒ `GetColorAlpha()` 回的是上一個選色器（可能是別支插件）留下的值，
+  要守 `hasAlpha`、沒開就沿用原 alpha；② 取消（含點外面、ESC）給的舊值是 `{ r, g, b, a }`，透明度在 **`a` 不在 `opacity`**，
+  讀錯欄位寫成 nil，畫面當下還留著拖過的值、重載／換專精才露出來。
+- **`W.CreateChoicePopup`** 按鈕等寬平分、最長的字放不下就整個視窗撐寬（`width` 是最小值），OnShow 再量一次（建立時字型可能未就緒、字寬 0）。
+- **表單 `Controls.Build`** 的 opt-in：`requires = { key }`（toggle 依賴另一個勾選）、`maxW`（控件欄上限）、`numbers` 的 `field.get／set`。
+  標籤換行與欄寬見 [[project-miliui-options-label-width]]。
+- **`W.CreateTabCard`**：頁裡的一段要分子分頁就用它（卡片是畫在 parent 上的貼圖不是 frame ⇒ 列、遮罩自動在上面；`opts.help` 加「!」說明）。
+  **頂層分頁不套卡片**（accent-hover 群組），跟子分頁區分階層。
+- **`W.CreateGridToggle`**：全套組共用一張 `_G.MiliUIWidgetsGridOverlay1`，暴雪格線看得到就讓位——要問 `IsVisible` 不是 `IsShown`（[[wow-editmode-blizzard-grid]]）。
+- **`W.fontEmphasis`** 黃字說明（[[feedback-emphasis-note-yellow]]）；**`W.CreateButton(…, "primary")`／`W.PaintButton`／`W.SetButtonVariant`**（[[project-miliui-button-variants]]）。
+- **勾選框的勾**是 `Media/check-outline.tga`（64×64 白勾黑框，SetVertexColor 染職業色）：原本拿 30×29 的 `checkmark-minimal` 圖集當遮罩放大，高解析度糊成一團。
+- **1px 邊框與細線走 `P.Pixel(1)` 不是 `P.Scale(1)`**（2026-10-14，[[wow-hairline-p-pixel-not-p-scale]]）。
 
-**2026-08-26 第三次擴充：右鍵選單收進共用層（`ContextMenu.lua`）。**
-起因是同一個「ESC 關不掉」的 bug 修了兩次 —— ChatBar 與 DamageMeters 各帶一份幾乎
-一樣的選單引擎，而且已經分家（約 400 行裡 150 行不同，DamageMeters 那份多了子選單
-關閉寬限期、打勾欄、標題階層、右側值讀數）。這正是這包當初存在的理由重演一次。
+## 設定視窗 `Options/Panel.lua` 的三條層級規矩（各插件自己組裝，共用層不含）
 
-API：`W.Menu.Show(items, anchorBtn, keepAnchor)` / `.Hide()` / `.IsOpenFor(btn)`，
-外加選用的 `W.SetMenuFont(token, size)`（讓選單跟著宿主自己的字型設定走 ——
-DamageMeters 從 `Windows.ApplyStyle` 餵）。**「有哪些項目」留在宿主**，
-ChatBar 的 `Menu.lua` 從 417 行縮成 63 行、只剩 `Items()` 與 `ns.ShowBarMenu`。
-載入順序：`ContextMenu.lua` 要在 `Widgets.lua` **之後**（它用 `W.Accent` /
-`W.CloseOnEscape`）。設計規則見 `miliui-menu-design` 技能。
+1. **關閉鈕不能單獨設 strata**（09-30 修一次、10-01 又回來才抓到模型）：子框一旦 `SetFrameStrata` 過，面板之後被抬層級
+   （Open 裡的 `Raise()`、拖曳 `StartMoving` 自動 Raise）它就不跟著走 ⇒ 掉到面板背景後面，看起來暗掉、點不到。
+   正確做法：一般狀態只設相對層級（`panel:GetFrameLevel() + 200`，壓過表單遮罩 +40 起跳的子框）；
+   戰鬥中要壓過戰鬥遮罩的那顆是**建在遮罩裡的另一顆**（`CreateCloseButton(mask, …)`），跟著遮罩的 strata。
+   「原本為了戰鬥中切 DIALOG／FULLSCREEN_DIALOG，每次開窗都把它設成自訂 strata」就是這個 bug 修了又回來的原因。
+2. **有標題列的視窗開 `SetToplevel(true)`**（`W.CreateTitleBar` 裡做，09-26）：各插件視窗都是 DIALOG／level 100，Raise 只抬面板本身，
+   同時開兩扇時控件照 level 交錯著畫。toplevel 隱含 render layer flattening（[[wow-toplevel-flattens-child-strata]]）：
+   整扇併成一層、視窗之間只剩整扇前後。代價是子孫的 strata 失效——視窗內彈窗／戰鬥遮罩靠 level 400～520 所以照樣在上；
+   **要浮到別的視窗上面的東西別掛在面板底下**（下拉與右鍵選單掛 UIParent）。
+3. **從設定視窗開別的面板要先關視窗**（HIGH 會被 DIALOG 蓋住，[[project-miliui-mythicplus]]）；配合 `CloseOnEscape` 的換面板叫回，關完要開暴雪中間面板得延一幀。
 
-**同一批的 ESC 修正**：共用層原本**完全沒有處理 ESC**（下拉、三個彈窗都是）。
-新增 `W.CloseOnEscape(frame)` 走 `UISpecialFrames`。
-⚠ **不要自己 `EnableKeyboard` 抓 ESC** —— 鍵盤啟用又不轉發的框會擋掉全部快捷鍵、
-連 ESC 本身都失效（[[wow-keyboard-capture-blocks-bindings]]）。
-兩個限制決定了它只適合彈窗與選單：吃全域名稱（沒名字就掛一個到 `_G`）、註冊後不移除。
-⚠ 收尾要掛在 `OnHide`，不能只寫在自己的 `Hide()` 裡 —— ESC 是繞過那支直接 Hide 框的。
+## Errors.lua 是修 bug 不是省行數
 
-⚠ **消費者現在是十個**（多了 MiliUI_AuraEnhance 與 MiliUI_CharacterNotes）。同步時 `ls -d */Libs/MiliUIWidgets`
-列一次，不要憑記憶打清單 —— 這次就差點漏掉它。
+8 份 `ReportError` 只有 2 份有守衛，其餘 `tostring(err)`——`tostring(secret)` 是禁止操作，錯誤處理器在最需要它的時候自己炸成
+"error in error handling"。共用版三道守衛缺一不可：① 防遞迴 ② err 可能是秘密字串 ③ 下游 handler 包 pcall。
+`Secret.lua` 收掉八支插件的 15 處 `issecretvalue` 宣告（UnitFrames 的 `Core/Secret.lua` 只剩單位框自己的短名）；
+`Metro.lua`：`ns.Metro.New(tick, onError)` → `Add/Remove/SetEnabled/Debug`，取代各自的輪詢 ticker。
 
-**2026-08-26 第四次擴充：視窗拖曳把手（`W.CreateTitleBar` / `W.MakeDragHandle`）。**
-起因是玩家回報「設定視窗不能移動」—— 其實一直能拖（分頁鈕兼把手），但那個把手是
-**隱形**的：分頁鈕的視覺語言講的是「切換頁面」，沒有任何訊號說它同時能移動視窗。
-**通則：雙用途控件一定要給第二個訊號，否則等於沒有那個用途。**
+本體的視窗比別家多：頂部 banner（職業色漸層＋版本號）、開窗淡入、「插件總覽」控制台分頁（`Options/Roster.lua` 名冊＋`Tab_Addons.lua`，
+擷圖放 `MiliUI/Media/Shots/<key>.png` 840×420）。設定搜尋刻意不進包，理由在 README 末段。
 
-`W.CreateTitleBar(panel, titleText, onMoved, opts)` 在面板**上緣外側**（分頁列的上面
-一層）畫 `[⠿ 拖曳移動] 插件名稱 v1.2.3`，整條含標題文字都是拖曳區，右鍵把視窗叫回
-畫面中央（拖到看不見是必然會發生的意外，而位置有存檔，關掉再開救不回來）。
-`titleText` 傳 `nil` 就只長把手 chip —— 本體的視窗有 banner 寫名稱，用這個模式，
-另外把 banner 自己也 `MakeDragHandle` 起來。**把手 chip 在十個視窗都在左上角同一格**。
-
-- 把手做成**有底有邊的 chip** 而不是光禿禿六個點：標題列在面板外側，背後是會動的
-  遊戲畫面，灰點在亮色地圖上等於不存在。chip 沿用 `WIDGET_FILL` 底 ＋ hover 換
-  accent，跟底下的分頁鈕同一套視覺語言。
-- `W.MakeDragHandle(handle, target, onMoved)` 收掉九份複製的把手邏輯，順便補
-  **「放開落在把手外面」的自檢**（`IsMouseButtonDown` 輪詢）—— 拖到螢幕邊緣被 clamp
-  住時 `OnMouseUp` 收不到，原本的版本會讓視窗黏在游標上。
-- ⚠ 它走 `HookScript`，宿主要在同一個 frame `SetScript("OnMouseUp")` 必須排在它
-  **前面**（[[wow-setscript-clobbers-hookscript]]）。標題列的右鍵重設就是這樣排的。
-- ⚠ **拖曳文案是共用層自帶的**（`DRAG_TEXT`，十個語系），這是這包唯一不由宿主提供的
-  字串。破例的理由：共用層自己長出來的元件，九個宿主 × 十個語系去補 key，補完必然
-  漂移。宿主要蓋掉走 `opts.label / tipTitle / tipBody / tipReset`。
-- 工具提示原本有第三句「上面那排分頁標籤也可以拖」，使用者當場砍掉 —— 隱藏的便利
-  功能不必寫進提示，寫了反而讓提示變成三行牆。
-
-**AceLocale 宿主要補四個 key**：那三支是 AceLocale（大寫 key 風格），共用層查的是
-`Apply / Okay / Cancel / Can't change settings during combat` 這四個英文原文 key，
-補在各自的 `Locales/enUS.lua` 就好（AceLocale 是單一 app 表，其他語系沒翻會退回 enUS）。
-另外 **`miliui-locale-audit` 技能的腳本對這三支不適用**——它假設 `ns.L` ＋ 英文原文 key
-的架構，跑 AceLocale 插件會噴一整排假警報（格式符、TOC 找不到 Locale.lua…）。
-
-**2026-08-28 第五次擴充：這包從「設定介面元件庫」變成「共用基礎設施」。**
-體檢查出四樣「每支插件都在重寫」的東西，全部收進來（照舊 vendor 複製，
-所以單體發佈時玩家還是只下載一個資料夾）：
-
-| 新模組 | 取代掉 | 為什麼值得收 |
-|---|---|---|
-| `Secret.lua` | 8 支插件的 15 處 `issecretvalue` 宣告、4 種命名，＋ Tooltip／UnitFrames 兩份 `Core/Secret.lua` | **秘密值規則半年改三輪**，散著就是下一輪要改 15 個地方 |
-| `Errors.lua` | 8 份 `ReportError` ＋ 3 份封鎖動作攔截 | **這項是修 bug 不是省行數**，見下 |
-| `Metro.lua` | 各自的輪詢 ticker | `ns.Metro.New(tick, onError)` → `Add/Remove/SetEnabled/Debug` |
-| `BlizzOptions.lua` | 10 份只差四個字串的暴雪入口頁（412 → 108 行） | |
-
-⚠⚠ **`Errors.lua` 是修 bug**：8 份 `ReportError` 只有 2 份有守衛，其餘 6 份是裸的
-`tostring(err)` —— 而 `tostring(secret)` 是禁止操作，也就是說**那 6 支的錯誤處理器
-在最需要它的時候（呼叫堆疊上有秘密值）自己會炸**成 "error in error handling"。
-共用版三道守衛缺一不可：① 防遞迴（有插件會包住前一個 handler 再呼叫）
-② err 可能是秘密字串 ③ 下游 handler 包 pcall（順便擋「handler 就是自己」）。
-
-⚠⚠ **共用層絕對不要擴充語系契約。** `BlizzOptions.lua` 第一版偷懶查
-`L["Version: %s"]` / `L["Open options"]`，那是自寫 `ns.L` 那六支的 key 形狀；
-用 AceLocale ＋ token key 的三支（ChatBar／BurstPotionHelper／BloodlustMusic）
-當場變成 `AceLocale-3.0: Missing entry for 'Open options'` 洗版。
-**契約就是那四個 key，多一個都不行** —— 需要字串就從 spec 收，沒傳退回英文字面值。
-（同一次也修了 `check_locales.py`：它原本整個跳過 `Libs/`，所以共用層自己查的 key
-從來沒被掃過。現在 `MiliUIWidgets` 照掃，而且會先剝註解 —— 否則檔頭的用法範例
-`L["MiliUI Tooltip"]` 會被當成真的用到，九支全被誤報。）
-
-**同步終於有腳本了**：`.claude/scripts/sync-widgets.py`（無參數＝同步並列出改了哪幾份，
-`--check`＝檢查漂移），已接進 `check-all.sh` 與 CI。
-vendor 最怕的就是「改了來源忘了同步」，這道檢查上線第一天就抓到一次
-（BlizzOptions 修完，九份消費者還帶著舊版）。
-⚠ 腳本**不會主動把新模組塞進沒帶它的插件**，只更新已經帶著的那幾支 —— 要讓某支
-開始用新模組得先手動複製一次、TOC 排好。
-
-載入順序：`Secret` / `Errors` / `Metro` **完全沒有相依**（不讀 Env、不讀語系），
-跟 `PixelPerfect.lua` 一起排在 TOC 最前面 —— 宿主的 `Core/*.lua` 在檔案層就會用到。
-`BlizzOptions.lua` 排在 `Options\Blizzard.lua` 之前。
-
-**2026-09-22 第六次擴充：按鈕的 `primary` 配色＋`W.PaintButton`。** 起因是採購清單要「取 MiliUI_Skin 按鈕的職業色搭法」，
-使用者接著定成全套組規則（[[project-miliui-button-variants]]）。配色表多兩格邊色（`{ 平時底, 滑過底, 平時邊, 滑過邊 }`），
-只有兩格的舊配色行為一個位元都沒變。⚠ 宿主自己 `SetScript("OnEnter")` 的要叫 `W.PaintButton`，不要再 `unpack(_colors[2])`。
-⚠ **消費者數字別寫死**：一律以 `ls -d AddOns/*/Libs/MiliUIWidgets` 為準（2026-10-09 是 20 份；上面寫的「十個」「17 份」都是舊數字）。
-
-**2026-10-03～10-07 的共用層擴充（這篇之前漏記）**：`W.fontEmphasis`（黃字說明，[[feedback-emphasis-note-yellow]]）、`W.SetButtonVariant`（執行期切 primary／normal，[[project-miliui-button-variants]]）、`W.CreateGridToggle`（編輯模式格線開關）、`CreateTabCard` 的 `opts.help`、選色器取消時 alpha nil 修正。
-
-相關：[[project-miliui-unit-frame]]、[[project-miliui-release-version]]
-
-## 分頁卡片 W.CreateTabCard（2026-10-06，使用者：「做成共用的樣式，以後會用到」）
-**頁裡的一段要分子分頁就用這支**：一排分頁鈕＋底下一張卡片（底 0.15、1px 職業色×0.6 邊、直角），選中鈕與卡片同底、底邊打通。
-`tc = W.CreateTabCard(parent, { tabs = {{id,label}…}, selected, onSelect })`；`tc:Place(x, y, width)` 回鈕列高，
-表單用 `tc:SetBottom(rows[i].bottom - W.TAB_CARD_PAD)`、自由版面用 `tc:SetCardHeight(h)`；`Select`／`SetTabs`／`SetShown`。
-卡片是畫在 parent 上的貼圖（不是 frame）⇒ 列、遮罩自動在上面。用法範例在共用層 README「子分頁卡片」。
-**頂層分頁（整頁的那排）不套卡片**：用 accent-hover 群組，跟子分頁卡片區分階層。首用處：MiliUI_CooldownManager 文字分頁「冷卻｜增益持續時間」。
+相關：[[project-miliui-unit-frame]]、[[project-miliui-release-version]]、[[project-miliui-glow-vendor]]、[[project-miliui-snap-bars]]

@@ -338,3 +338,5 @@ if ( self.setText == 1) then
 ⚠ 這條「降級」連同 `Fix_ReplyTell.lua`／`ClearSecretTellTarget` 已於 2026-09-16 `614444e6f` 整個刪除，沒有待實測的對象了——用超連結根治。
 
 相關：[[wow-121-secret-values]]、[[wow-121-unit-api-secrets]]、[[project-miliui-chatbar-snap]]
+
+**第三方也會從別條路把聊天輸入框弄髒**（2026-10-09 `030e0bed4`）：Raider.IO 用 `Menu.ModifyMenu` 改全部 `MENU_UNIT_*` 選單，右鍵好友→密語時 taint.log 顯示 `LAST_ACTIVE_CHAT_EDIT_BOX` 以 RaiderIO 的污染寫入——症狀跟我們自己開框一模一樣，先看 taint.log 是誰寫的再修。本體 `Enhance/RaiderIO_UnitMenu.lua` 登入時寫 `RaiderIO_Config.disableDropdownMenu` 把它的選單項目關掉（它第一次開選單才讀，所以登入時寫有效），插件強化頁可關、預設開。

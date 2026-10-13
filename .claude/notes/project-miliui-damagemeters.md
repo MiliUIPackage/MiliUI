@@ -1,15 +1,16 @@
 ---
 name: project-miliui-damagemeters
-description: 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策與踩過的點
+description: 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策、標題列按鈕看板與發佈、遷移鏈（DB v5）、踩過的點、除錯分頁
 metadata: 
   node_type: memory
   type: project
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-09-15T04:33:06.086Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
-`AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，當時 v1.0.0、2026-10-09 TOC 1.1.1）。SavedVariables=`MiliUI_DamageMeters_DB`，
-指令 `/mdm`，NAMESPACE=`MiliUIDM`。約 5500 行、392KB。
+`AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，2026-10-14 TOC 1.2.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
+指令 `/mdm`（`/mdm debug`、`/mdm resetall`），NAMESPACE=`MiliUIDM`，`ns.DB_VERSION = 5`。
+本體約 1 萬行／440KB（不含 Libs）。
 
 **設計哲學整包抄 `tmp/EUIStandaloneDamageMeters`**，通則寫在
 [[wow-damagemeter-c-api-design]]（不解析戰鬥記錄、固定 bar 池、cacheKey、每列備忘、
@@ -18,14 +19,20 @@ metadata:
 ## 檔案分工
 
 ```
-Core/     Init（啟動＋HAS_API 客戶端閘）/ Media（字型、材質、職業色）/ DB
-Meter/    Data（C_DamageMeter 包裝＋秘密值守衛＋數字格式）
-          Combat（戰鬥狀態機＋共用 ticker）  Menu（視窗內選單）
+Core/     Init（啟動＋HAS_API 客戶端閘＋DB_VERSION）/ Media（字型、材質、職業色）/ DB（預設值＋遷移鏈）
+Meter/    Data（C_DamageMeter 包裝＋秘密值守衛＋數字格式＋專精對照／圖示）
+          ItemLevel（裝等：自己 GetAverageItemLevel、隊友觀察快取）  Card（頭像卡片）
+          Combat（戰鬥狀態機＋共用 ticker＋假死監看）  Menu（視窗內選單）
           Window（視窗工廠）  Rows（熱路徑繪製）  Breakdown  Tooltip  Home
-          Move（拖曳／縮放／磁吸／編輯模式）  Manager（視窗池、統一套用、選單內容）
-Options/  Panel ＋ 七個分頁（一般／長條／文字／視窗／各視窗／設定檔／關於）＋ ButtonBoard
-Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
+          Builtin（暴雪內建統計的唯一出口）  Move（拖曳／縮放／磁吸／編輯模式）
+          Manager（視窗池、統一套用、選單內容、DAMAGE_METER_* 事件）
+          Debug（/mdm debug 的位置診斷報告）  Publish（發佈到聊天）  AutoReset（進新副本自動重置）
+Options/  Panel ＋ 七個分頁（一般／長條／文字／視窗／各視窗／設定檔／關於）
+          ＋ 隱藏的「除錯」分頁（Tab_Debug，/mdm debug 後才出現）＋ ButtonBoard ＋ Specs（下拉清單）
+Api.lua   /mdm、插件選單、MiliUI_MenuEntries（ESC 選單項目，往全域表塞不呼叫本體）
 ```
+
+專精圖示／頭像卡片／裝等那一批見 [[project-mdm-spec-icons]]。
 
 ## 七個跟 EUI 不一樣的決定（都是刻意的）
 
@@ -34,12 +41,15 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
    這裡工廠只建 `W`（frame 樹＋池），繪製／拖曳／展開／首頁都是模組層級函式、`W` 當第一參數。
 2. **視窗池化，不做 Destroy。** frame 在 WoW 刪不掉（[[wow-frame-lifecycle-costs]]），
    EUI 的 Destroy 是 Hide + SetParent(nil)，視窗數 3→1→3 來回調就留一堆孤兒。
-   這裡 `_pool[idx]` 建一次，數量只決定「顯示到第幾個」。
+   這裡 `_pool[idx]` 建一次，數量只決定「顯示到第幾個」（上限 `DB.MAX_WINDOWS = 10`）。
 3. **unlock mode → 編輯模式覆蓋層。** EUI 為了自家的解鎖模式寫了 12871 行；
    這裡走 `EditModeSystemSelectionTemplate`（[[wow-editmode-draggable]] 技能），
    外加標題列直接拖曳。
 4. **位置存 TOPLEFT 位移，不是編輯模式技能推薦的 CENTER 位移。**
    這是可縮放視窗——錨 CENTER 從右下角拉大會讓整個框往左上漂。
+   **`Move.ApplyPosition` 只做型別檢查、不夾邊、不寫回 wdb**（2026-10-12 之前會照 UIParent
+   尺寸夾回來再存，右下角的視窗每次登入都跑掉，根因與通則見 [[wow-login-screen-size-not-final]]）；
+   留在畫面內是 `frame:SetClampedToScreen(true)` 的事。
 5. **磁吸做成設定**（使用者要求）：`style.snapEnabled` ＋ 每視窗 `snapDisabled`（右鍵選單）。
    而且 **X/Y 兩軸都吸**，EUI 只吸 X 軸與寬高。拖曳自己算游標位移不用 `StartMoving`，
    因為磁吸要在拖的當下就吸住。
@@ -55,7 +65,7 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
      而那個寬度在秘密值下本來就量不得。
    副作用（好的）：細線模式下填滿條從來沒收過秘密值 → 它與掛在它身上的圖示／文字層
    幾何都是乾淨的。
-   預設字級同時改成 12 ＋ `fontOutline = "OUTLINE"`。
+   預設字級同時改成 12 ＋ `fontOutline = "OUTLINE"`（描邊 2026-10-03 起全套組五選一，含單色描邊）。
 
 ## 資產
 
@@ -66,6 +76,7 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
 - **標題列八款圖示是 Pillow 畫的**，腳本在 `miliui-damagemeter-icons` 技能。
   第一版用暴雪的 `Interface\Buttons\*`，使用者回報「好糊」——那些是 16~32px 的舊素材，
   而且六張來自三個不同年代，湊一排像雜牌軍。**也不要改用 atlas**（消失時是靜默失敗）。
+- 40 張米利風格專精圖示在 `Media/Spec/`，見 [[project-mdm-spec-icons]]。
 
 ## 踩過 / 差點踩到的點
 
@@ -74,6 +85,10 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
 - **`header` 必須是 Button 不是 Frame**：右鍵選單走 `OnClick`，那是 Button 才有的腳本。
 - **`Win.MakeBar` 建立時就要給字型**：沒有字型物件的 FontString 一 `SetText` 就丟錯，
   而不是每條路徑都會經過 `RelayoutBar`（展開頁的名次欄就不會）。
+- **新檔案少一行 `local issecret = ns.Secret.IsSecret`，CI 抓不到**（a19103de1，`Meter/ItemLevel.lua`
+  照 Data.lua 的寫法呼叫 `issecret(v)`，整檔沒宣告 → 滑過列與觀察回來時「attempt to call a nil value」）。
+  `check_lua.py` 只掃**全域寫入**（SETTABUP），呼叫一個不存在的全域是**讀取**，靜態檢查放行。
+  新開檔案時用 [[wow-luac-global-scan]] 的 `globals_read` 跟同插件既有檔比對一次，多出來的名字一眼就看得出。
 - **選單裡的開關項目要「原地重畫」**：直接再呼叫 `Menu.Show` 會撞上「同一顆再按一次＝關閉」
   而把選單關掉。加了 `keepAnchor` 參數，並記住上次解出來的錨點。
 - **`Move.UpdateEditState` 在開檔時就可能被呼叫**（編輯模式已經開著），
@@ -85,8 +100,7 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
 - **細線與填滿條都錨在 `bar.row`**，不是「線錨在填滿條上」（EUI 是後者）。
   填滿條的幾何在秘密值下是髒的，不要讓它往下傳染。
 - **確認彈窗一進「關於」分頁就自己跳出來**：`W.CreateConfirmPopup` 建完沒有 `Hide()`，
-  而 `W.CreateFrame` 預設是顯示的。修在共用層（八份同步），見
-  [[project-miliui-widgets-vendor]]。
+  而 `W.CreateFrame` 預設是顯示的。修在共用層，見 [[project-miliui-widgets-vendor]]。
 - **`SetStatusBarTexture` 不會清掉 `SetStatusBarColor`。** 細線樣式把填滿條的頂點色
   設成 `(0,0,0,0)` 當隱形容器，換回實心時那個全透明**原封不動留著** —— 症狀是
   「選了實心填滿沒反應，要 /reload 才出現」（reload 後 bar 是全新建的，沒有殘留）。
@@ -97,7 +111,7 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
   （剛登入、剛重置），就會留在舊樣式直到下一場戰鬥。
 - **事件名稱猜錯 ＋ 被 pcall 吞掉。** 寫成 `COMBAT_SESSION_UPDATED`（漏了
   `DAMAGE_METER_` 前綴），`RegisterEvent` 拋錯被 pcall 吃掉 → 閒置時視窗永遠不更新，
-  零徵兆。現在名稱照 EUI 抄，註冊失敗會記進 `ns.errors`（`/mdm debug` 看得到）。
+  零徵兆。現在名稱照 EUI 抄，註冊失敗會記進 `ns.errors`（除錯分頁看得到）。
   **通則：包 pcall 可以，但不能讓失敗無聲。**
 - **戰鬥中點別人的列會開出空白展開頁**：秘密 GUID 被 getter 拒收、錯誤被我們的 pcall
   吃掉。要在呼叫**之前**擋（只放行死亡與自己那一列），細節見
@@ -105,9 +119,22 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
 - **拖曳／縮放進行中不能再 SetPoint / SetSize。** `Move.ApplyPosition` 與
   `Win.ApplyStyle` 都要看 `W._drag / W._resize` 早退，否則會跟逐幀的 SetPoint 打架
   （畫面上是視窗抽動）。EUI 也留了同一道守衛。
+- **放字的列高／標題高不能寫死**（bd47e1561，NGA 回報）：滑過預覽的列高 16／標題 20、展開頁標題 18
+  都是常數，玩家把字級調到 16 以上就溢出、上下兩列疊在一起。規則：**所有放文字的高度都從字級算**
+  （`max(下限, 字級 + 6)`），展開頁標題再跟列高取大。主清單的列高是玩家設的 `barHeight`，
+  次要檢視沒有那個設定可跟，就只能從字級算。
+- **展開頁層級 `+45`**（c40d42dde）：`+30` 時實機看到第一名那列的字從標題列底下透出來，
+  **原因未查明**（猜是拖曳／磁吸後層級被重排）；上限 `+50` 是視窗邊框，再高就蓋掉邊框。
 - **語系稽核的兩個假警報**：類型名稱本來寫成 `L[D.TYPE_NAMES[t]]` 間接查表，
   被 `miliui-locale-audit` 報成「多餘 8 條」→ 改成在 `TYPE_DEFS` 就用字面字串查好。
   註解裡寫 `L["字面量"]` 也會被掃進去，別在註解裡寫這種形狀。
+
+## `/mdm debug`：設定視窗的「除錯」分頁（2026-10-12）
+
+下過一次指令才出現（`TABS` 裡 `hidden = true`）。`ns.DebugText()` 把每個視窗的**存檔座標 vs 實際錨點與矩形**、
+UIParent 尺寸／縮放／錨點、暴雪內建統計視窗的位置、套組磁吸註冊表（`ns.Snap.bars`）、`ns.errors` 全印成文字，
+玩家全選複製貼給作者。**「位置跑掉」類回報先要這份**——2026-10-12 右下角跑掉的根因就是從兩份報告反推出來的
+（存檔座標剛好等於夾邊公式）。
 
 ## 第一次擺放：接手暴雪內建統計視窗的位置
 
@@ -120,7 +147,8 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
 
 兩個實作要點：
 - `wdb.autoPlaced` 記號：接不到時設 true，代表「這位置是我們挑的、玩家還沒碰過」。
-  登入 3 秒後 `Move.RetryAdoptBlizzardPosition()` 再試一次（內建視窗可能比我們晚建好）。
+  登入 3 秒後 `Move.RetryAdoptBlizzardPosition()` 再試一次（內建視窗可能比我們晚建好），
+  **清掉座標後照編號順序整組重跑 `PlaceInitial`**，不是各自算各自的。
   記號存在 SV，這次沒接到下次登入還會再試。玩家一拖曳／一動設定頁就清掉。
 - **不去猜 `Blizzard_DamageMeter` 這個插件名**配 `ContinueOnAddOnLoaded` —— 猜錯是靜默
   失效。直接延遲看 `_G` 比較實在。
@@ -129,8 +157,7 @@ Meter/AutoReset.lua、Meter/Publish.lua 也在（表漏列）
 
 ## 內建統計：登入就主動關掉（使用者拍板，不要改回去）
 
-`Meter/Builtin.lua` 是跟暴雪內建統計互動的唯一出口。視窗叫
-`DamageMeterSessionWindow1` ~ `3`（名字從本機 `DamageMeterTools` 挖的）。
+`Meter/Builtin.lua` 是跟暴雪內建統計互動的唯一出口。
 
 **開關是 CVar `damageMeterEnabled`** —— 出處是 `Blizzard_DamageMeter/DamageMeter.lua` 的
 `DAMAGE_METER_ENABLED_CVAR`（Gethe/wow-ui-source 查到），對應「選項 → 遊戲體驗強化 →
@@ -265,13 +292,14 @@ zhTW 的 Current 譯名同時從「本場」改成「目前」（使用者點名
 ### 資料模型：`style.hdrButtons`
 
 ```lua
-hdrButtons = { segments = { enabled, order }, publish =, reset =, settings =, lock = }
+hdrButtons = { publish = { enabled, order }, segments =, reset =, settings =, lock = }
 ```
 
 `order` 是**畫面上由左到右**的順序（小的在左），看板拖放後整條重編 10、20、30…。
-`DB.HDR_BUTTON_IDS` 是有序的 id 清單，看板與 `Win.LayoutHeaderButtons` 都用它列舉
-（**不要 `pairs`** —— 兩邊都需要穩定順序）。`DB.HdrButton(id)` 是防呆存取器：
-缺表／缺項／型別不對就當場補成預設值再回傳，匯入的字串與手改的 SV 才不會讓排版迴圈炸掉。
+`DB.HDR_BUTTON_IDS = { "publish", "segments", "reset", "settings", "lock" }` 是有序的 id 清單，
+看板與 `Win.LayoutHeaderButtons` 都用它列舉（**不要 `pairs`** —— 兩邊都需要穩定順序）。
+`DB.HdrButton(id)` 是防呆存取器：缺表／缺項／型別不對就當場補成預設值再回傳，
+匯入的字串與手改的 SV 才不會讓排版迴圈炸掉。
 五個 id 是**存檔內容**，改名＝洗掉玩家調好的顯示與排序。
 
 ⚠ `Win.LayoutHeaderButtons` 是**從右緣往左貼**的（舊的就是），所以排好序之後要
@@ -295,17 +323,21 @@ hdrButtons = { segments = { enabled, order }, publish =, reset =, settings =, lo
 封鎖＝`InCombatLockdown()` 或 `ns.Combat.IsInCombat()`（戰鬥中名字與數字是秘密值），
 或聊天封鎖（`C_ChatInfo.InChatMessagingLockdown()`，再 OR 一道
 `C_ChallengeMode.IsChallengeModeActive()` —— 使用者點名鑰石要擋，不賭 API 的涵蓋範圍）。
-`ns.IsChatRestricted` 那段是**抄一份**過來的，不跨插件呼叫（單體發佈）。
+`ns.IsChatRestricted` 那段是從 MiliUI_Focus **抄一份**過來的，不跨插件呼叫（單體發佈）。
 `ADDON_RESTRICTION_STATE_CHANGED` 派送當下讀不到終值 ⇒ 除了 `PLAYER_REGEN_DISABLED`
 （要當場生效，並收掉**發佈自己開的**選單 —— 用 `Menu.IsOpenFor(發佈鈕)` 認，分段／視窗選單
-戰鬥中照樣能用，不要連坐），其餘事件一律 `C_Timer.After(0, …)`。
+戰鬥中照樣能用，不要連坐），其餘事件一律延後：`PLAYER_REGEN_ENABLED`／`ENCOUNTER_END`
+延 `LATE_RECHECK` = 1.5 秒（`ns.Combat.IsInCombat()` 的結束比 REGEN 晚），其他 `C_Timer.After(0, …)`。
 `ns.Combat.IsInCombat()` 的起訖跟 `PLAYER_REGEN_*` 不同步（隊友先開怪、自己死了團隊還在打、
 5 秒保險絲），那些轉折沒有遊戲事件可聽 ⇒ `Combat.lua` 的 `BeginSegment`／`FreezeCombat`
-直接叫 `ns.Publish.Refresh()`（延一幀：FreezeCombat 當下 `_inCombat` 還沒清）。
-沒有這兩個掛點的話，圖示會在「死著等團隊打完」之後一直卡在打叉。點擊時也一律先補一次狀態。
+直接叫 `ns.Publish.Refresh()`。沒有這兩個掛點的話，圖示會在「死著等團隊打完」之後一直卡在打叉。
+點擊時也一律先補一次狀態。
 
 頻道清單：團隊裡「隊伍」照樣列（送給自己那一小隊）；用不了的頻道**不列出來**
-（共用層的選單沒有 disabled 項目，不為此改共用層）。設定頁那一節叫「按鈕」不叫「標題列按鈕」
+（共用層的選單沒有 disabled 項目，不為此改共用層）。
+**社群頻道在 `GetChannelList()` 裡的名字是 `Community:<社群ID>:<頻道ID>`**（f85458d5c，實機才看到一串數字），
+要用 `C_Club.GetClubInfo`／`GetStreamInfo` 換成聊天框顯示的名字：一般頻道只報社群名、其餘「社群 - 頻道」，
+查不到就退回原字串。設定頁那一節叫「按鈕」不叫「標題列按鈕」
 —— 「視窗」分頁已經有一節同名的（管大小與滑過顯示）。
 
 ### 同步送出，所以行數上限是 10
@@ -321,18 +353,19 @@ hdrButtons = { segments = { enabled, order }, publish =, reset =, settings =, lo
   戰鬥閘擋掉絕大多數情況，但脫戰後 API 還要約 0.5 秒才解密，那段空窗靠它。
   不要對秘密值做 `..`／`format`／比較／`tostring`。
 - **訊息裡不能有 `|`**：那是跳脫字元，帶著送出會被伺服器拒收（整條不見、沒有錯誤）。
-  每一列組好之後 `gsub("|", "")`，並以 UTF-8 字元為界截到 255 bytes。
+  每一列組好之後 `gsub("|", "")`，並以 UTF-8 字元為界截到 255 bytes（`MAX_BYTES`）。
 
 死亡類型的假死過濾共用 `ns.Rows.FilterDeaths(holder, sources)`（原本是 Rows 內部的
 local，改成吃一個「緩衝掛在誰身上」的 holder）—— **不要複製一份**，判準兩套的話
 清單裡看不到的人會出現在貼進聊天的排行裡。
 
-## 遷移鏈（2026-08-29 起真的有一條了）
+## 遷移鏈
 
-`ns.DB_VERSION = 4`。`PROFILE_MIGRATIONS[v]` 一條一版，**值閘**：只動還等於舊預設
+`ns.DB_VERSION = 5`（`Core/Init.lua`）。`PROFILE_MIGRATIONS[v]` 一條一版，**值閘**：只動還等於舊預設
 的欄位。v2「懸停預覽 `breakdownAnchor` row → right」（使用者要求）；
 v3「剛好貼在前一個正下方、沒有 snapTo 的視窗補吸上去」（幾何閘，見下）；
-v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見下面的按鈕看板那節）。
+v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見上面的按鈕看板那節）；
+v5「`iconStyle` 還是舊預設 `spec` 的改成 `mili`」（[[project-mdm-spec-icons]]）。
 
 ### 預設擺放要真的吸上去（2026-09-15）
 使用者回報「預設 2 個，傷害輸出和治療沒有上下磁吸好」：`StackBelowPrevious` 以前只給座標，
@@ -344,10 +377,10 @@ v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見下面
 兩個上緣各自照抄** → 內建視窗比我們矮（上緣相距 171、我們高 200），第二個壓進第一個 29，
 而且錨在 UIParent 上不吸。現在 `Builtin.StackedUnderPrevious(idx)`（同一欄、上緣貼著或壓進前一號
 下緣，容差 8）為真就改走 StackBelowPrevious。資訊列內縮 UIParent 會把所有視窗一起推，不會造成錯位。
-診斷法：`/run` 印 `b:GetPoint()` —— relativeTo 是 UIParent 就是沒吸上。
-上限改 10 之後疊到超出畫面底部會另起一欄；3～7 號視窗有預設類型（只在第一次建立時生效）。
+診斷法：除錯分頁（或 `/run` 印 `b:GetPoint()`）—— relativeTo 是 UIParent 就是沒吸上。
+上限 10 之後疊到超出畫面底部會另起一欄；3～7 號視窗有預設類型（只在第一次建立時生效）。
 
-- **`DB.Init` 現在真的會跑遷移**（以前只是把版本號蓋上去）。三個順序是硬的：
+- **`DB.Init` 真的會跑遷移**。三個順序是硬的：
   1. 舊版本號要在蓋掉**之前**先讀進 `fromVersion` —— 蓋完就分不出這份 SV 從哪來。
   2. 遷移跑**每一份**設定檔，不是只有現在這隻角色用的那份 —— 別份等切過去才補的話，
      切過去的當下畫面已經用舊值畫過一輪。
@@ -357,15 +390,8 @@ v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見下面
   帳號層的版本號**不能**跟著匯入字串降下去 —— 降了遷移會在所有設定檔上重跑。
 - 值閘的固有代價：刻意選了「剛好等於舊預設」的人會被一起改到。分不出「沒動過」與
   「動過但選了同一個值」，要分得出來得養一張「碰過沒」的旗標表，不值得。
-
-## ~~發佈前：其餘預設值仍然不配遷移~~（⚠ 作廢：2026-08-24 首個 commit 就在 tag 20260824 內＝已發佈，遷移鏈 v2～v4 見上節；改預設值要寫遷移）
-
-**這支還沒發佈**（2026-08-24 使用者明確交代），所以調任何 `BuildDefaults()` 的值都
-直接改，不要寫遷移。`MergeDefaults` 只補 nil，發佈之後才需要「版本閘＋值閘」那一套。
-
-副作用要講清楚：**已經跑過一次的機器，SavedVariables 裡的舊值會留著**，
-改預設值對自己這台沒有效果 —— 要看新預設得 `/mdm resetall`（整包還原並重載）
-或到設定頁手動調。
+- **這支從 tag 20260824 起就是已發佈的**，改任何 `BuildDefaults()` 的值都要寫一條遷移。
+  自己這台的 SV 留著舊值，要看新預設得 `/mdm resetall`（整包還原並重載）或到設定頁手動調。
 
 ## 效能：熱路徑的現況與一條硬不變式（2026-08-25）
 
@@ -404,17 +430,6 @@ v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見下面
 （失效點：`SetDMType` / `SetSegment` / `InvalidateData` / `Tab_Each.Apply`）、
 `M.Font` 記住解出來的路徑（**只快取問到的** —— 註冊那支字型的插件可能比我們晚載入）。
 
-## 待驗證（2026-08-24 寫的「都還沒進遊戲跑過」；09-05／09-15 起已多輪實機，`C_DamageMeter` 欄位名顯然對過，下面只剩沒被後文覆蓋的才算待驗）
-
-- `C_DamageMeter` 的欄位名是從 EUI 的原始碼抄的，沒有實機對過
-- 標題列八張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
-- 發佈：各頻道（說／頻道在野外的硬體事件要求）實際送得出去沒、封鎖時的圖示切換時機
-- 按鈕看板：五顆方塊在 620 寬下不換行（量過但沒進遊戲看）、拖曳手感
-- 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard
-- 磁吸手感（`snapThreshold` 預設 6 是抄 EUI 的）
-- 細線樣式在 18px 列高 ＋ 12pt 描邊字下的實際觀感（參考圖的列看起來比 18px 高）
-- 分段判定的各種邊界（連拉、滅團、PvP 回合間、假死）
-
 ## 假死監看的註冊閘（2026-08-28）
 
 `UNIT_SPELLCAST_SUCCEEDED` 原本是**全域註冊** —— 視野內每一個單位的每一次施法成功
@@ -433,5 +448,19 @@ v4「三個 `hide*Button` 旗標 → `style.hdrButtons` 一張表」（見下面
 
 **通則**：「這個高頻事件只為某個職業／某個情境服務」時，閘要下在**註冊面**而不是
 處理器裡的早退。早退省的是 Lua 執行，註冊省的是整個派送。
-相關：[[wow-damagemeter-c-api-design]]、[[project-miliui-widgets-vendor]]、
-[[wow-121-secret-values]]、[[wow-frame-lifecycle-costs]]
+
+## 實機狀態（2026-10-14 整理）
+
+09-05 起多輪實機，NGA 玩家在用。**已上過實機、有回報或後續修正**：`C_DamageMeter` 欄位名、
+發佈選單（09-20 社群頻道名稱是實機看到才修）、按鈕看板（09-20 當天就改過預設順序）、
+磁吸（09-15 預設擺放回報）、位置存檔（10-12 右下角根因）、頭像卡片與裝等（10-13～14 三個修正）。
+
+**仍沒有證據的**（沒人回報不等於對）：
+- 標題列八張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
+- 發佈：「說」／自訂頻道在野外的硬體事件要求實際送得出去沒
+- 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard
+- 細線樣式在 18px 列高 ＋ 12pt 描邊字下的實際觀感
+- 分段判定的各種邊界（連拉、滅團、PvP 回合間、假死）
+
+相關：[[wow-damagemeter-c-api-design]]、[[project-mdm-spec-icons]]、[[wow-login-screen-size-not-final]]、
+[[project-miliui-widgets-vendor]]、[[wow-121-secret-values]]、[[wow-frame-lifecycle-costs]]、[[wow-luac-global-scan]]

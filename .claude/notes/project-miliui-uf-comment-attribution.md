@@ -1,11 +1,11 @@
 ---
 name: project-miliui-uf-comment-attribution
-description: 自製插件的註解與 .claude/notes 都不點名第三方插件；只有「實際複製過來的檔案」與致謝區塊要留出處
+description: 自製插件的註解與 .claude/notes 都不點名第三方插件；只有「實際複製過來的檔案」與致謝區塊要留出處；判準是 repo 裡有沒有那個東西
 metadata: 
   node_type: memory
   type: feedback
   originSessionId: 0667fdac-ad7b-4957-92aa-1465a01c4c3c
-  modified: 2026-08-16T18:48:40.669Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
 在**所有自製插件**（`MiliUI`、`MiliUI_*`）**與 `.claude/notes/`** 寫東西時
@@ -17,10 +17,13 @@ metadata:
   `.claude/notes/` 19，含 `wow-damagemeter-c-api-design.md` 的 description 與開頭
   「拆解對象」那段）。**`.claude/notes/` 是進版控的**，暴露量比程式碼註解大 —— 做這種
   清理時**一定要一起掃**，只掃 `AddOns/` 會漏掉大半。
+- 2026-10-14 覆核：`git grep -n -I -E "\bEUI\b|EllesmereUI|DandersFrames" -- AddOns/MiliUI_UnitFrames` 為空，
+  單位框架程式碼乾淨；`.claude/notes/` 的單位框系列筆記同日改寫時一併去名。
 
 **兩個例外（使用者定案要保留）**：
-1. **實際複製過來的檔案**要留出處註解 —— `Libs/PixelPerfect.lua`（取自 Cell/Libs/PixelPerfect.lua）、
-   `Core/Media.lua` 與 `Elements/Health.lua` 提到的四張疊加層貼圖（原封不動從 Cell/Media 複製）。
+1. **實際複製過來的檔案**要留出處註解 —— `Libs/MiliUIWidgets/PixelPerfect.lua`（檔頭「取自
+   Cell/Libs/PixelPerfect.lua 精簡版」，隨共用層同步到每一份 vendor）、`Core/Media.lua` 與
+   `Elements/Health.lua` 提到的四張疊加層貼圖（原封不動從 Cell/Media 複製）。
 2. **`Options/Panel.lua` 關於頁的「致謝」區塊**（點名 Cell / Stuf 與作者 enderneko、Kato）。
 
 **Why**：那些第三方插件的授權多半是 all rights reserved（`Cell/LICENSE.txt` 如此，
@@ -28,9 +31,9 @@ metadata:
 
 **判準是「repo 裡有沒有那個東西」，不是「參考過沒有」**：
 - **有複製檔案進來** → 刪註解 = 把「這是複製的」變成沒揭露，**方向反而更糟**，出處必須留
-  （Cell 的 PixelPerfect.lua 與四張貼圖就是這種，使用者選擇維持現狀）。
+  （PixelPerfect.lua 與四張貼圖就是這種）。
 - **只是讀過原始碼、學到做法** → repo 裡沒有它的任何檔案（那支的原始碼放在 `tmp/`，
-  被 `.gitignore:61` 的 `/tmp/` 擋掉，`git ls-files tmp/` 是空的），
+  被 `.gitignore` 的 `/tmp/` 擋掉，`git ls-files tmp/` 是空的），
   沒有再散布的事實，**點名反而只是在公開 repo 裡對別人的實作評頭論足**。這種一律清掉。
   2026-08-24 使用者對這一類明確拍板「不點名，全部移除」。
 
@@ -44,6 +47,8 @@ metadata:
   （「某某插件的小地圖模組會干擾」），不是出處。
 - `Platynator`、`BuffReminders`、`DandersFrames` 這類**單純當旁證列舉**的還在，
   使用者沒有指名要清；真要清時同一套判準。
+- 施法條配色「對齊 `MiliUI/Config/Luxthos_Platynator.lua`」這種**指向 repo 裡自己的設定檔**的，
+  不是點名出處，照留。
 
 掃描指令：`git grep -n -I -E "<名字>" -- 'AddOns/MiliUI*' '.claude/'`，
 改完 `luac -p` 過一次。

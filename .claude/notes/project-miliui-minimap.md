@@ -1,56 +1,38 @@
 ---
 name: project-miliui-minimap
-description: MiliUI_Minimap 方形小地圖＋公會/好友資訊列——架構決定、接管暴雪小地圖的規則、待驗證清單
+description: MiliUI_Minimap 方形小地圖＋社交列＋插件按鈕收納（取代 MBB）——接管暴雪小地圖的四條規則、方形遮罩的滑鼠死角、按鈕收納的掃描隔離與拆遮罩、「像被上了遮罩」四個成因（主因 SetParent 不帶 strata）、好友人數的語意換掉成本歸零、名單走聊天超連結、登入不夾位置、待驗證清單
 metadata: 
   node_type: memory
   type: project
   originSessionId: 580e7fa6-2fb6-4fbd-8d8b-3858879778a6
-  modified: 2026-09-30T09:15:01.282Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
-**2026-08-29 新建的獨立插件**（MiliUIWidgets 的消費者之一——序號別寫死，以 `ls` 為準，
-NAMESPACE `MiliUIMap`）。兩件事：方形小地圖套 HUD 皮、地圖下方一條
-「左公會在線／右好友在線」的資訊列。設計語言見 [[project-miliui-hud-skin]]。
+**2026-08-29 新建的獨立插件**（MiliUIWidgets 的消費者之一，NAMESPACE `MiliUIMap`，`/mmap`）。
+檔案：`Map/{Skin,Buttons,Difficulty}.lua`、`Panel/{Bar,Data,Tip}.lua`＋`Panel/LinkSink.xml`、`Core/{DB,Init,Profile,Style}.lua`。
+三件事：方形小地圖套 HUD 皮、地圖下方一條「左公會在線／右好友在線」的**社交列**、插件按鈕收納。
+設計語言見 [[project-miliui-hud-skin]]。接管手法學自 EllesmereUIMinimap、社交列的資料面學自 ElvUI DataTexts（原始碼都已不在本機），
+**只抄結論不抄結構**。
 
-參考來源：`tmp/EllesmereUI-v9.0.7/EllesmereUIMinimap`（接管小地圖的手法）、
-`tmp/Elv/ElvUI/Game/Shared/Modules/DataTexts/{Guild,Friends}.lua`（資訊列的資料面）。
-**兩邊都只抄結論不抄結構** —— Ellesmere 那支是 5489 行的單檔。
+## 接管暴雪小地圖的規則
 
-## 接管暴雪小地圖的規則（Ellesmere 註解裡記著它踩過的，照抄）
+1. **`MinimapCluster` 只做 `SetAlpha(0)` ＋ `EnableMouse(false)`。** 不 `Hide()`、不 `SetPoint()`、不 `SetSize()` ——
+   它是編輯模式管的系統框（[[project-miliui-hide-blizzard-taint]]）。
+2. **接管動作全部延後一幀**（`C_Timer.After(0)`）。同步做會在 ShowUIPanel／開世界地圖的流程中途動到 secure frame 環境，
+   症狀是**稍後地城圖釘的資料提供者**呼叫 `SetPropagateMouseClicks` 時噴 ADDON_ACTION_BLOCKED —— 錯誤指向地圖圖釘，看不出跟小地圖有關。
+3. **Minimap 會被搶走**（住宅轉場等），`hooksecurefunc(Minimap, "SetParent", …)` 要搶回來，但**只能排程**。
+4. alpha 是**相乘**的 ⇒ cluster 一歸零，它底下的追蹤／郵件／日曆全部看不見。要留的按鈕必須 **reparent 出來**。
 
-1. **`MinimapCluster` 只做 `SetAlpha(0)` ＋ `EnableMouse(false)`。**
-   不 `Hide()`、不 `SetPoint()`、不 `SetSize()` —— 它是編輯模式管的系統框，
-   碰那三樣會在登入跑版面時中獎（見 [[project-miliui-hide-blizzard-taint]]）。
-2. **接管動作全部延後一幀**（`C_Timer.After(0)`）。同步做會在 ShowUIPanel／開世界地圖
-   的流程中途動到 secure frame 環境，症狀是**稍後地城圖釘的資料提供者**呼叫受保護的
-   `SetPropagateMouseClicks` 時噴 ADDON_ACTION_BLOCKED —— 錯誤指向地圖圖釘，
-   完全看不出跟小地圖有關。
-3. **Minimap 會被搶走**（住宅轉場等），`hooksecurefunc(Minimap, "SetParent", …)` 要
-   搶回來，但**只能排程**、不能在 hook 裡同步做。
-4. alpha 是**相乘**的 ⇒ cluster 一歸零，它底下的追蹤／郵件／日曆全部看不見。
-   要留的按鈕必須 **reparent 出來**。
+**三個自己的決定**：多一層 `holder`（普通 frame 掛 UIParent，位置與尺寸的唯一權威，被搶走時只要把 Minimap 錨回來）；
+暴雪的功能按鈕**重新錨位、不重畫一套**（零 taint、零維護）；插件按鈕自己收（同時把 **MBB 從套組移除**，兩個插件各管一半＝兩套視覺語言）。
 
-## 這支的三個自己的決定
-
-- **多一層 `holder`**（普通 frame 掛 UIParent），Minimap reparent 進去。位置與尺寸的
-  唯一權威在 holder 上。Ellesmere 是「Minimap 直接掛 UIParent ＋ 另建 layoutFrame」，
-  同一個問題的另一種解法；holder 的好處是被搶走時只要把 Minimap 錨回來，不必重算位置。
-- **暴雪的功能按鈕重新錨位，不重畫一套。** Ellesmere 自己畫了一整組 atlas 按鈕再把
-  暴雪的藏起來 —— 造型能完全統一，代價是每顆按鈕的點擊行為（追蹤選單、日曆開關…）
-  都要自己重接，暴雪改一次就要跟一次。我們要的只是「不要散在圓形外圍」，
-  搬位置就夠了＝零 taint、零維護。
-- **插件按鈕自己收**（2026-08-29 第二輪加的，同時把 **MBB 從套組移除**）。
-  原本的判斷是「MBB 已經在做，別搶」，但兩個插件各管一半的結果是地圖旁邊
-  永遠有兩套視覺語言。詳見下面「插件按鈕收納」。
-
-## 12.x 的實際框架結構（Blizzard_Minimap/Mainline/Minimap.xml 查過）
+### 12.x 的框架結構（Blizzard_Minimap/Mainline/Minimap.xml）
 
 ```
 Minimap
   ├ ZoomHitArea / ZoomIn / ZoomOut
   └ MinimapBackdrop                          ← 圓環畫在這裡面
-       ├ MinimapCompassTexture               （四箭頭羅盤環）
-       ├ StaticOverlayTexture                （金邊）
+       ├ MinimapCompassTexture / StaticOverlayTexture
        └ ExpansionLandingPageMinimapButton   ← ⚠ 功能按鈕，不是裝飾
 MinimapCluster
   ├ BorderTop / ZoneTextButton / Tracking / IndicatorFrame
@@ -58,431 +40,150 @@ MinimapCluster
   └ InstanceDifficulty
 ```
 
-⚠⚠ **不要整個 `MinimapBackdrop` alpha 歸零。** 資料片戰役／龍騎那顆
-`ExpansionLandingPageMinimapButton` 是它的小孩，alpha 相乘 ⇒ 連功能按鈕一起弄不見，
-而且是靜默的：玩家只會發現「戰役按鈕不見了」，完全不會聯想到小地圖美化。
-要關的只有 `MinimapCompassTexture` 與 `MinimapBackdrop.StaticOverlayTexture` 兩張貼圖。
+⚠⚠ **不要整個 `MinimapBackdrop` alpha 歸零**：資料片戰役那顆 `ExpansionLandingPageMinimapButton` 是它的小孩，會靜默消失。
+要關的只有 `MinimapCompassTexture` 與 `StaticOverlayTexture` 兩張貼圖。`MinimapBorder` / `MinimapBorderTop` / `MinimapNorthTag` 是舊版全域名，12.x 已不存在。
 
-`MinimapBorder` / `MinimapBorderTop` / `MinimapNorthTag` 是**舊版全域名**，12.x 多半
-已經不存在 —— 照著別人的清單抄會抄到一堆 nil（無害，但別以為那就是在關圓環）。
+### 方形小地圖的兩個必知
 
-## 方形小地圖的兩個必知
+- `Minimap:SetMaskTexture(130937)` = 方形，`186178` = 圓形；另關 `SetArchBlobRingScalar(0)` / `SetQuestBlobRingScalar(0)`。
+- ⚠ **Minimap 自己的滑鼠判定區永遠是圓的，跟遮罩無關**：四個角落是滾輪死角（滾上去縮放攝影機）、從角落進入 OnEnter 不觸發。
+  解法是蓋一層覆蓋整個方形的 blocker frame，`SetPassThroughButtons` 放行左右鍵、`SetPropagateMouseMotion(true)`，自己只吃滾輪與 enter/leave。
 
-- `Minimap:SetMaskTexture(130937)` = 方形，`186178` = 圓形。
-  另外要把 `SetArchBlobRingScalar(0)` / `SetQuestBlobRingScalar(0)` 關掉，
-  不然那圈圓形的任務／考古範圍環會突出到角落外面。
-- ⚠ **Minimap 自己的滑鼠判定區永遠是圓的，跟遮罩無關。** 兩個後果：
-  ① 方形的四個角落是「滾輪死角」，滾上去會去縮放攝影機；
-  ② 從角落進入地圖時 OnEnter 不觸發，mouseover 的元素長不出來。
-  解法是蓋一層覆蓋整個方形的 blocker frame，`SetPassThroughButtons` 放行左右鍵、
-  `SetPropagateMouseMotion(true)` 讓動作照常傳下去，自己只吃滾輪與 enter/leave。
+### 尺寸
 
-## 插件按鈕收納（取代 MBB）
+預設 200（172 太小，暴雪原本約 198）。拉把手在左下角（解鎖時才出現）。⚠ **不用 `StartSizing`**：那支會讓寬高各自跑，
+而 **Minimap 的地形投影與玩家箭頭要求畫布是正方形**；自己讀游標算邊長。錨 TOPRIGHT ＋ 拉左下角＝右上角釘住不動。
+**長方形做不到**：裁切遮罩是被拉伸的，一張遮罩只對應一個比例。要整體變小用 scale。
+位置的 SetPoint 位移單位是 holder 自己的 effective scale，存位置時換算成螢幕像素再除回（[[wow-setscale-offset-units]]）。
+**登入時位置只檢查型別、不照螢幕尺寸夾**（2026-10-12 `7fbb8a9d1`）：PLAYER_LOGIN 當下 UIParent 縮放可能還不是最終值，
+正常座標被誤判成畫面外、每次登入打回預設；飄出畫面交給 `SetClampedToScreen`＋右鍵叫回（[[wow-login-screen-size-not-final]]）。
 
-兩個容器，每顆按鈕擇一：
+## 插件按鈕收納（`Map/Buttons.lua`，取代 MBB）
 
-| 容器 | 什麼時候看得到 | 給誰 |
-|---|---|---|
-| 收納袋 `bag` | 按九宮格鈕才展開 | 絕大多數 |
-| 常駐排 `pin` | 永遠 | 玩家自己釘的那幾顆 |
+兩個容器，每顆按鈕擇一：收納袋 `bag`（按九宮格鈕／滑過才展開）給絕大多數；常駐排 `pin` 給玩家自己釘的。
+**「單獨留在地圖上」是必要功能**：有些按鈕本身就是讀數（收件匣、拍賣掃描進度），收進袋子等於廢掉。
 
-**「單獨留在地圖上」是必要功能，不是裝飾**（使用者指出的）：有些按鈕**本身就是讀數**
-—— 收件匣有沒有信、大秘境計時、拍賣掃描進度。把那種東西收進「要點一下才看得到」
-的袋子，等於把那顆按鈕廢掉。
+- 釘選狀態存 `db.pinned[frameName] = true`。⚠ **鍵一定是 frame 的名字**，索引會隨「今天載了哪些插件」變動。
+- 常駐排預設貼下方（地圖 → 社交列 → 常駐排一條軸線；有社交列時接在它下緣）、**單排不折行**（釘太多超出邊界，那個難看正是訊號）。
+- 釘選 UI 在設定頁不在右鍵選單（清單二三十列是常態）。釘選欄的文案走 `ns.Buttons.PinLabel()`，依 `pinSide` 回「釘選按鈕到社交列下方／小地圖上方／左側／右側」
+  ——**文案裡寫了方位，就得跟著那個方位的設定走**。
 
-- 釘選狀態存 `db.pinned[frameName] = true`。⚠ **鍵一定是 frame 的名字**，
-  不能是排序後的索引 —— 索引會隨「今天載了哪些插件」變動，存索引等於每次登入
-  釘到不同的按鈕。
-- 常駐排**預設貼下方**：收納袋鈕搬進資訊列之後，整組由上而下就是
-  「地圖 → 資訊列 → 常駐排」一條軸線；選 top 會讓它跑到地圖上面、跟其他東西斷開。
-  （bottom 會自動避開資訊列，接在它下緣。）
-- 常駐排**單排不折行**是刻意的：它永遠佔畫面，讓它長兩行等於默許把二十顆都釘出來，
-  那就回到我們要解決的問題本身。釘太多會超出地圖邊界，那個難看正是訊號。
-- 釘選 UI 在設定頁而不是右鍵選單：清單長度＝裝了幾個帶小地圖按鈕的插件，
-  二三十列是常態，而選單超過一螢幕就沒人點得動。
+**架構：永久 reparent，不做「借過去再還」**。Ellesmere 是「按鈕留在小地圖上、alpha 歸零、開面板時再借」，要跟 LibDBIcon 搶 Show/Hide（三段狀態機）。
+我們搬進自己的容器就不還了——一旦不是 Minimap 的子框，插件再怎麼 Show 都只是在我們的容器裡顯示。代價：關掉功能要 /reload。
 
-**架構選擇：永久 reparent，不做「借過去再還」。**
-Ellesmere 是「按鈕留在小地圖上、alpha 歸零、開面板時再借」，代價是要跟 LibDBIcon
-搶 Show/Hide（掛勾＋記錄插件本來想不想顯示＋面板開著時凍結那份紀錄，三段狀態機，
-每段都有例外）。我們搬進自己的容器就不還了 —— 一旦不是 Minimap 的子框，插件再怎麼
-Show 都只是「在我們的容器裡顯示」。而「留在地圖上」也不必走回頭路，換個容器而已。
-代價：沒有還原路徑，關掉功能要 /reload 才會把按鈕還給小地圖。
-
-踩到／想清楚的：
-- **收下的當場就要 `SetParent` 進容器**，不能等 Layout。Layout 只排「顯示中」的，
-  插件自己關掉的按鈕會留在 Minimap 底下而且**已經被 ClearAllPoints**，
-  一旦被 Show 回來就出現在畫面原點。
-- 圓框裝飾用**貼圖本體**認（fileID ＋ 路徑兩種都比），不要認欄位名 ——
-  各家把那張圖放在 `.border` / `.Border` / 匿名 region 都有。
-- 常駐排貼「下方」會**撞到資訊列**（兩者都錨 holder 的 BOTTOMLEFT）。有資訊列時
-  改接在它下面。
-- `hooksecurefunc(btn, "Show"/"Hide")` 只用來**排程重排**，不做別的 —— 插件關掉
-  自己的圖示時格子要收合，但 Show/Hide 在戰鬥中也會被呼叫、一次設定變更可能連打十幾發。
-- **掃描逐顆隔離**（2026-09-30）：`Scan` 對每個子框 `xpcall(Collect, ns.ReportError, child)`。
-  起因是一顆圖示被 `Texture:SetMask` 過的按鈕（[[project-feimiao-raidcommander]]）——
-  `Normalize` 的 `SetTexCoord` 對它直接拋錯（Cannot set tex coords when texture has mask）；
-  沒隔離時一顆拋錯＝整輪中斷（後面的沒收、這輪不排版、拋錯那顆搬進來了卻沒掛 Show/Hide 勾）。
-  兩個順序是契約，別調回去：
-  ① `Collect` 裡 **登記 → 搬進容器 → 掛勾 → 整形**，會拋的整形擺最後，失敗的按鈕才是
-  「收得完整、只是圖示沒整好」；② `Normalize` 裡 **`StripMask` → `SetTexCoord` 是最後兩行**，
-  拋了只少裁 8%（鋪滿、提 OVERLAY 都已做完）。「這輪有沒有收到新的」看 `#collected` 有沒有變長，
-  不看 `Collect` 有沒有跑完。錯誤不吞，每顆報一次。
-- **裁切前先拆遮罩**（同日第二輪，治本）：隔離只是不連坐，那顆按鈕每次登入還是報一次錯。
-  `StripMask(icon)` 兩種都拆 —— MaskTexture 物件走 `GetNumMaskTextures`／`RemoveMaskTexture`；
-  舊式 `Texture:SetMask(檔案)` **沒有 getter、數量那支也看不到**，但 **`SetMask("")` 清得掉**
-  （nil 不行：參數是非 nilable 字串。⚠ 第一輪的結論「拆不掉」是錯的，只試想了 nil；
-  12.1 的換皮插件在裁 TexCoord 前都是先餵空字串）。認不出來所以無條件清。
+踩到的：
+- **收下的當場就要 `SetParent` 進容器**，不能等 Layout。插件自己關掉的按鈕已被 ClearAllPoints，一旦被 Show 回來就出現在畫面原點。
+- 圓框裝飾用**貼圖本體**認（fileID ＋ 路徑兩種都比），不要認欄位名。
+- `hooksecurefunc(btn, "Show"/"Hide")` 只用來**排程重排**，而且 `_miliShown` 沒變就不排——Show 對已顯示的框是常見的無害重複呼叫，LibDBIcon 系每個事件甚至每幀都叫。
+- **掃描逐顆隔離**（2026-09-30 `39d273355`）：`Scan` 對每個子框 `xpcall(Collect, ns.ReportError, child)`。一顆拋錯＝整輪中斷（後面的沒收、不排版、拋錯那顆搬進來卻沒掛勾）。
+  兩個順序是契約：① `Collect` 裡 **登記 → 搬進容器 → 掛勾 → 整形**，會拋的整形擺最後；② `Normalize` 裡 **`StripMask` → `SetTexCoord` 是最後兩行**。
+  「這輪有沒有收到新的」看 `#collected` 有沒有變長。錯誤不吞。`LayoutInto` 的逐顆迴圈**還沒隔離**（只碰 SetParent／SetPoint／strata）。
+- **裁切前先拆遮罩**（同日 `b249b3c7d`，治本）：圖示貼圖帶遮罩的按鈕，`SetTexCoord` 拋「Cannot set tex coords when texture has mask」。
+  `StripMask(icon)` 兩種都拆——MaskTexture 物件走 `GetNumMaskTextures`／`RemoveMaskTexture`；舊式 `Texture:SetMask(檔案)` **沒有 getter、數量那支也看不到，但 `SetMask("")` 清得掉**
+  （nil 不行：參數是非 nilable 字串）。⚠ 第一輪的結論「拆不掉」是錯的，只試想了 nil。認不出來所以無條件清。
   選「拆」不選「有遮罩就跳過裁切」：圓形遮罩跟金色圓框是同一套造型，跳過會在方格裡留一顆圓的。
-  ⚠ **未實機驗證**：`SetMask("")` 對「本來沒遮罩」的貼圖應是空動作，收納袋開起來看圖示有沒有異狀。
-  ⚠ `LayoutInto` 的逐顆迴圈**還沒隔離**（只碰 SetParent／SetPoint／strata，目前沒有已知會拋的狀態）。
+- ⚠ `GetNormalTexture()` 不能無條件當成圖示：有一類按鈕的 normal texture 就是暴雪圓框本身，退回它之前要先 `IsJunk` 過。
+- 收下來的圖示要 `SetDrawLayer("OVERLAY")` 往上提：自帶造型的插件會留一張我們不認識的裝飾貼圖在 ARTWORK。
 
-⚠ **收納袋的提示與收納袋面板從同一個錨點往下長 ⇒ 完全重疊。** 提示在 `TOOLTIP`
-strata、面板在 `HIGH`，提示永遠壓在上面，使用者回報的症狀是「圖示好像被上了一個
-遮罩」。修法（2026-09-06 起）：那一格**二選一** —— 袋子裡有東西就滑過去直接開袋子、
-不彈提示；空的才彈提示說「0 顆」。開袋子當下也主動 `Tip.Close()`。
-通則寫進 [[project-miliui-hud-skin]]。
+### 「像被上了遮罩」查到四個成因，主因是 strata
 
-**收納袋是 hover 開的（2026-09-06 改，使用者要求）。** 左鍵只剩「開著就收」，
-右鍵設定選單前先把袋子收掉（選單從同一格往下長，疊在袋子上會蓋住圖示）。
-`/mmap bag` 仍是開關式，那是沒有格子可以滑時的唯一入口。
+使用者連續回報「圖示好像被上了一個遮罩」。四個成因依序找到：提示框與收納袋從同一錨點往下長完全重疊（修成**二選一**：袋子有東西滑過直接開袋、空的才彈提示）；
+收納袋面板用了 HUD 半透明皮（改用**提示皮不透明**——它是「彈出來給人看內容」的表面，地形從底下透上來就是一道亮痕）；圖示壓在 ARTWORK；圓框被當成圖示。
+⚠⚠ **真正的元兇（`/framestack`）：`SetParent()` 不會把 strata 帶過去。** LibDBIcon 把每顆按鈕釘在 `MEDIUM`，搬進 `HIGH` 的袋子之後還在 MEDIUM，
+**面板自己的底色貼圖**整片畫在圖示上面。沒被蓋到的剛好是自己設 HIGH 的按鈕。規則見 [[wow-frame-vs-texture-layering]]。
+**別在第一個找到的原因就收手；症狀重複三次以上就直接開 `/framestack`，不要再用推理的。**
 
-⚠ **收納袋面板要用提示皮（不透明），不是 HUD 面板皮（半透明 0.8）。**
-它是「彈出來給人看內容」的表面，判準跟滑過去的名單同一條。半透明的實測後果：
-小地圖的地形從面板底下透上來，斜斜一道亮痕橫過整排圖示，看起來像每顆圖示都被
-蓋了一層紗 —— 使用者連續回報兩次「還是有遮罩感覺」，兩次的成因都不是圖示本身。
+收納袋是 hover 開的（使用者要求）。左鍵只剩「開著就收」，右鍵設定選單前先收袋。`/mmap bag` 仍是開關式（沒有格子可以滑時的唯一入口）。
 
-⚠⚠ **真正的元兇（`/framestack` 查到）：`SetParent()` 不會把 strata 帶過去。**
-LibDBIcon 把每顆按鈕明確釘在 `MEDIUM`，搬進 `HIGH` 的收納袋之後按鈕還在 MEDIUM，
-於是**面板自己的底色貼圖**整片畫在圖示上面 —— 那層「遮罩」就是我們的面板底。
-同一個袋子裡沒被蓋到的，剛好是自己就設 HIGH 的按鈕（`MiliUIUF_MinimapButton`）。
-修法見 [[wow-frame-vs-texture-layering]]（那份筆記原本的規則也因此修正了）。
+## 社交列：三格，可客製
 
-⚠ **`GetNormalTexture()` 不能無條件當成圖示。** 有一類按鈕的 normal texture 就是
-那圈暴雪圓框本身、圖示是另一張子貼圖；把圓框拉滿整格再裁 8%，就是一張灰環蓋在
-整顆按鈕上（而且我們還把它提到 OVERLAY）。退回它之前要先 `IsJunk` 過一次。
-「像被上了遮罩」總共查到**四個**不同的成因（提示框重疊、面板半透明、圖示壓在
-ARTWORK、圓框被當成圖示），最後才發現主因是 strata。**別在第一個找到的原因就收手，
-而且症狀重複出現三次以上就該直接開 `/framestack`，不要再用推理的。**
+三格各自可選 **公會／好友／插件收納袋／無**。收納袋收進社交列是版面理由（地圖上下各長一條東西 → 只剩下方一條）。
+**寬度規則：收納袋那格固定寬（正方形），其餘平分剩下的；「無」完全不佔位置；三格都「無」整條收起來。**
+⚠ **標籤與數字必須是同一個 FontString**（數字用色碼上色，`S.AccentHex()`）：兩個各自置中的 FontString 在 9→10 時整組字會抖一下。
+三格都沒選收納袋的話袋子沒有入口，逃生口 `/mmap bag`；**刻意不做「沒入口就自動長一顆鈕回來」**。
 
-⚠ 收下來的按鈕圖示要 `SetDrawLayer("OVERLAY")` 往**上**提，不要壓到 ARTWORK：
-我們只拆得掉認得出來的暴雪圓框，自帶造型的插件會留一張我們不認識的裝飾貼圖在
-ARTWORK，把圖示壓下去等於讓那張貼圖蓋在圖示上面 —— 同樣是「像被上了遮罩」。
+那條列叫「社交列」不叫「資訊列」（2026-09-06 改名，跟 [[project-miliui-infobar]] 撞名）。**只改人看的字，識別字一個都沒動**：
+`db.infoBar*`、`ns.infoBar`、MiliUISnap 的 key `"infoBar"` 是存檔內容（[[project-miliui-snap-bars]]）；`Libs/MiliUISnap.lua` 的註解除外（vendor 複製，它說的正是 InfoBar）。
 
-## ⚠⚠ 記憶體：四輪才抓到的 855 KB／次（2026-08-30）
+### 資料面：零背景工作
 
-**結論先講：`BNGetNumFriends()` 只取第一個回傳值，導致每次數人數都把整份
-（含離線）好友名單配置一遍，單次 855 KB。**
+- 人數走現成 API（`GetNumGuildMembers()` 的第二回傳、`C_FriendList.GetNumOnlineFriends()` + `select(2, BNGetNumFriends())`），名單只在面板打開那一刻掃。
+  ⚠ `GetNumGuildMembers()` 沒請求過可能是 0，要主動 `C_GuildInfo.GuildRoster()`（伺服器端約 10 秒節流）。
+- ⚠ 戰網好友的 `game.className` 是在地化顯示名，查 `RAID_CLASS_COLORS` 永遠 nil；走 `game.classID` → `C_CreatureInfo.GetClassInfo(id).classFile`。
+  `C_FriendList` 的角色好友沒有 classFile，拿不到就不上色（[[wow-unitclassbase-npc-returns-rogue]]）。
+- ⚠⚠ **「在玩 WoW」不等於「有角色名可用」**：停在選角畫面的戰網好友 `clientProgram` 已是 `"WoW"` 但 `characterName` 是**空字串**、`characterLevel` 是 0（`charName or tag` 擋不住空字串）。
+  `wowProjectID ~= WOW_PROJECT_ID` 是跨版本好友，標出來、不進邀請清單，密語照樣可走戰網暱稱。
+- 12.1：名字／區域／備註可能是秘密字串，每個欄位進 `Data.lua` 就先過 `Secret.PlainText`，洗不出明文的整筆丟掉。
 
-追查過程值得留著，因為前三輪的推理**每一輪都是對的、也都真的修掉了東西，
-但都不是主因** —— 那正是「用讀程式碼找配置點」的失敗模式。
-最後是靠 `/mmap prof`（Core/Profile.lua）的取樣曲線定案：
+### ⚠⚠ 記憶體：四輪才抓到的 855 KB／次（2026-08-30）
 
-```
-每 5 秒累計 KB：0 → 883 → 1735 → 1736 → 2588 → 3440 → 4292 → 5143 → …
-```
+使用者回報 26 分鐘吃掉 96 MB。前三輪都在追**頻率**（每幀掃 → TTL → 事件合流），每一輪都真的修掉了東西但都不是主因；
+第四輪靠 `/mmap prof`（`Core/Profile.lua`）的取樣曲線定案——**階梯狀、每階 ~852 KB**（線性爬升＝持續配置，階梯＝單次很貴）。
+**真兇：`BNGetNumFriends()` 回 `numTotal, numOnline`，只取了第一個** ⇒ 連離線好友也逐筆走 `C_BattleNet.GetFriendAccountInfo(i)`（每次配一張巢狀表）。
+戰網清單是在線優先排序的，走 `1..numOnline` 就夠。
 
-**階梯狀、每階 ~852 KB**，而且階數對得上 `FriendsOnline!walk` 的次數
-（三輪各 6／6／10 次，總量 5146／5146／8555 KB，除下來都是 855）。
-曲線是決定性的證據 —— 線性爬升代表「持續配置」，階梯代表「單次很貴」。
+**最後的答案：語意換掉，成本歸零。** 數字從「正在玩 WoW 的好友」改成「在線好友」（ElvUI／Ellesmere 都是這個答案），常駐數字免費，
+逐人查詢只在面板打開時。補一件兩邊都沒做的：**名單也一起收非 WoW 的人**（灰字＋右欄 `richPresence`），否則「數字 13、底下只列 5 列」會被當成 bug。
+為此加的四層快取機制全部刪掉。
 
+教訓（都是通則）：
+- **語意的代價要在選語意的時候就算清楚**：一個定義若需要常駐輪詢才維持得住，它就不是更好的定義，只是更貴的定義。問「能不能用免費的 API 算出來」，不能就換定義不要換快取。
+- **先問「一次吃多少」，再問「被叫幾次」**：那支呼叫次數只有 0.1/秒，在報告上完全無辜；`成本 = 單次 × 次數`，三輪只看右邊那一項。
+- **把「別人會怎麼呼叫我的掛勾」當成每幀**；鏈上每一環都要補守衛，不只堵最貴的那個（Show 掛勾比狀態、Layout 顆數沒變不廣播、事件合流 5s／0.5s、內容沒變不 SetFormattedText）。
+- **TTL 是地板不是節流**：`BN_FRIEND_INFO_CHANGED` 是消防水管，只要事件不停就永遠每 TTL 一次；要壓持續的事件流得讓事件本身合流。
+- **量測工具本身不能是配置點**：`ns.Count("Fire:" .. event)` 的字串串接、`ns.Meter(key, function() end)` 的 closure 都是「剖析關著也照樣配置」，旗標要包住**參數的求值**。
+- **回傳 table 的 C API 是配置點**（`GetFriendAccountInfo`、`C_Map.GetPlayerMapPosition`、`GetMouseFoci`）。
+相關 [[wow-addon-profiler-cost]]。
 
+### 名單是自己畫的可互動列表（`Panel/Tip.lua`），密語走聊天超連結
 
-使用者回報這支 **26 分鐘吃掉 96 MB、佔全部插件記憶體 31%**。根因是一條每幀觸發的鏈：
+第一版是 `GameTooltipTemplate` 換皮，人名只能看不能點；現在是一個面板＋一池 Button 列，人名列**左鍵密語／右鍵邀請**，最底下「公會名冊／好友清單」按鈕（`Tip.AddButton`）。
+⚠ 開面板第一版綁中鍵，回饋不直覺。⚠⚠ 那顆按鈕**不能呼叫 ToggleGuildFrame/ToggleFriendsFrame**（12.1 封鎖），是兩顆掛 UIParent 的 secure 鈕做點擊轉發
+（[[wow-121-other-api-changes]]）。字級走 `db.tipFontSize`。邀請完名單留著、密語與開面板才收。
+**提示框／名單走不透明底**：它是臨時跳出來讓人讀字的，多半蓋在任務追蹤框上，0.8 的底會兩層字疊在一起。判準：**底色承載「讓字讀得出來」的就不能透。**
 
-```
-被收納的插件 btn:Show()      ← LibDBIcon 系每個事件甚至每幀都叫一次
-  → 我們的 Show 掛勾
-  → QueueLayout → Buttons.Layout
-  → Fire("BagCountChanged") → Bar.Update → 三格 UpdateSlot
-  → D.FriendsOnline()
-```
+**密語改走聊天超連結（2026-09-16）**：從插件的 OnClick 呼叫 `ChatFrame_SendTell` 會在自己的堆疊上寫 `LAST_ACTIVE_CHAT_EDIT_BOX`，之後按 R 回覆秘密名字就炸
+（[[wow-121-chat-reply-secret-taint]]）。跟 MiliUI_ChatBar 同一套：
+- `Panel/LinkSink.xml`：一顆 `ChatFrameTemplate`（`hyperlinksEnabled`），名單面板掛在它底下。⚠ 模板是 toplevel，名單畫在 **Sink 的** strata ——
+  `frameStrata="TOOLTIP"` 要設在 LinkSink.xml 上，面板自己的 SetFrameStrata 在繪製上沒用（[[wow-toplevel-flattens-child-strata]]）。
+  Sink 要補 `editBox = DEFAULT_CHAT_FRAME.editBox`（`chatStyle = "im"` 時 `ChooseBoxForSend` 直接讀這個欄位、沒 nil 備援，2026-09-20）。
+- 每一列的字放在子框 `row.link`，名字包成 `|Hplayer:名字|h`／`|HBNplayer:暱稱:帳號ID|h`，左鍵由暴雪的 `SetItemRef → SendTell` 開密語；右鍵 `SetPassThroughButtons` 穿透回列本身做邀請。
+  ⚠⚠ **propagate 是一層一層交的**：`row.link → row → panel → Sink` 每一層都要 `SetHyperlinkPropagateToParent(true)`。09-17 第一版漏了中間的 row，
+  左鍵密語沒反應、名單也不收，**零錯誤、taint.log 乾淨**（09-21 `891d6122f`）。判別法：點名字後名單收不收——afterOpen 掛在 Sink 的 OnHyperlinkClick 上。
+- ⚠ `SetPassThroughButtons` 戰鬥中對任何框都封（[[wow-hasrestrictions-mouse-apis]]）⇒ 列池不能懶建：`Tip.Reserve(上限＋LIST_CHROME_ROWS)` 由 Bar 在 Init／ConfigChanged 叫，
+  戰鬥外長滿；戰鬥中被迫新建的列先不穿透、出戰鬥補。`LIST_CHROME_ROWS = 11` 是人名以外的列數，改版面要跟著改。
+- 亮塊：連結字框是另一個滑鼠焦點（[[wow-hyperlink-region-steals-hover]]），Sink 的 `OnHyperlinkEnter/Leave` 用 `region:GetParent().row` 補。
+- 右鍵選單只剩「邀請」：選單項目是插件的 OnClick，放密語又會髒。
 
-`C_BattleNet.GetFriendAccountInfo(i)` **每次呼叫都配一張新表**，裡面還巢著一張
-`gameAccountInfo`。40 個戰網好友 ＝ 每幀 80 張表的垃圾。
+**「跟著游標活著」的關閉機制在 `Panel/Bar.lua` 的 Hover 段**，名單與收納袋共用：滑入格子停 **0.5 秒**才開（`OPEN_DELAY`，2026-10-03，路過時不擋下方；已有面板開著時格子間移動仍立即切換）、
+游標在格子或面板上就留著、離開兩者超過 0.35 秒才關（`GRACE`）。⚠ 不能掛格子的 OnLeave 立刻關（游標跨縫那一瞬間兩邊都不在）；
+用 OnUpdate 輪詢而不是事件（面板的 OnLeave 在游標移到子列上時也會觸發）。格子上開著選單（`W.Menu.IsOpenFor`）也算「還在」。
+格子本身任一鍵都是密語／邀請選單；**不綁開面板**——塞 secure 子框會讓整條社交列變保護框。
 
-**教訓一：把「別人會怎麼呼叫我的掛勾」當成每幀。** `hooksecurefunc(btn, "Show")`
-看起來是事件驅動，實際上取決於**別人**的呼叫頻率 —— 而 `Show()` 對已顯示的框
-是常見的無害重複呼叫，沒人會覺得那需要節制。掛勾裡一定要先問「狀態真的變了嗎」。
+## 已修的坑（別再寫回去）
 
-**教訓二：鏈上每一環都要補守衛，不要只堵最貴的那個。** 各自獨立：
-- Show/Hide 掛勾：`_miliShown` 沒變就不排程
-- `Buttons.Layout`：顆數沒變就不廣播
-- 事件合流：連發事件只排一次 `Bar.Update`（慢 5 秒／快 0.5 秒）
-- `D.FriendsOnline`：2 秒 TTL 當地板（人數是**讀數**不是狀態機，差幾秒無影響）
-- 提示重畫：秒級節流（重建 30 列要走一遍 761 人的名冊）
-- `UpdateSlot` / `UpdateClock`：內容沒變就不 `SetFormattedText`
-  （時鐘只到分鐘，0.5 秒 ticker 一分鐘有 119 次在重寫同一串字）
-
-**真兇（第四輪才抓到，用剖析器）：`BNGetNumFriends()` 回傳兩個值
-`numTotal, numOnline`，而我只取了第一個** ⇒ 連**離線**好友也一筆一筆走過。
-`C_BattleNet.GetFriendAccountInfo(i)` 每次都配一張巢狀表，所以「為了數出 13 個
-在線的人，把整份幾百人的名單全配了一遍」。**單次 855 KB。**
-戰網清單是**在線優先排序**的（暴雪的 `FriendsList_Update` 就靠這個前提），
-走 `1..numOnline` 就夠。
-
-### 最後的答案：**語意換掉，成本歸零**
-
-前面所有的快取／TTL／dirty 旗標／事件分級都只是在調頻率，地板永遠是那 244 KB
-（尖峰時段人來人往、事件狂發時最糟）。使用者一句「這對我來說已經算是記憶體洩漏」
-問到重點，並要求去看 Elles／ElvUI 怎麼做 —— **兩邊是同一個答案，而且不是靠技巧**：
-
-| | 常駐的數字 | 昂貴的逐人查詢 |
-|---|---|---|
-| ElvUI `DataTexts/Friends.lua` | `GetNumOnlineFriends() + select(2, BNGetNumFriends())` | 只在提示打開時（`dataValid` 旗標，註解明說 "only ... when we actually view the tooltip"） |
-| EllesmereUI `GatherOnlineFriends` | 沒有常駐數字 | "Zero background work -- all data is read live when the tooltip opens." |
-
-代價是數字的語意從「正在玩 WoW 的好友」變成「在線好友」。我們照抄，
-並補一件兩邊都沒做的事：**提示的清單也一起收非 WoW 的人**（灰字 ＋ 右欄顯示
-`richPresence`，WoW 的排前面）—— 否則「數字 13、底下只列 5 列」會被當成 bug。
-
-⚠⚠ **教訓零（最重要的一條）：語意的代價要在選語意的時候就算清楚。**
-「只算正在玩 WoW 的」聽起來是更精確的定義，而且理由寫得出來（跟「能不能找他
-一起打」對齊）。但它需要**常駐輪詢**才維持得住 —— 那它就不是更好的定義，
-只是更貴的定義，而且貴在最不該貴的時候（人多、事件多）。
-真正該問的是：**這個定義能不能用免費的 API 算出來？** 不能的話就換定義，
-不要換成快取 —— 我為此連續加了四層快取機制，全部刪掉了。
-
-**收在哪裡：1300 → 110 → 21 → 4 → **0** KB/秒（穩態零配置）
-（下面這段是換語意之前的紀錄，留著當追查過程的參考）：1300 → 110 → 21 → 4 → ~4 KB/秒，對照整個 Lua 堆
-的 300+ KB/秒 已經進到雜訊裡。** 剩下的成本結構很單純：**每 60 秒一次 244 KB 的
-好友掃描，其餘為零**（曲線是「一路平 → 一階 → 一路平」）。
-
-244 KB 是這個語意的**地板**：`GetFriendAccountInfo` 每個在線好友回一張約 18 KB
-的巢狀表。想再降只有兩條路，兩條都有代價：
-
-| 做法 | 省下 | 代價 |
-|---|---|---|
-| 改用 `select(2, BNGetNumFriends())` 當數字 | 全部（零配置） | 數字變成「戰網在線」而不是「在玩 WoW」，跟提示清單的長度對不上 |
-| 用 `BN_FRIEND_INFO_CHANGED` 的 friendIndex 只重查那一個人 | 理論上 13× | ⚠ **實際更糟**：那個事件一分鐘發幾十次，18 KB × 幾十次 > 244 KB × 1 次。要合流的話又回到全掃 |
-
-**所以「每 N 秒全掃一次」就是這個語意下的最佳形狀，只剩 N 可以調。**
-N 是**雜訊路徑的兜底週期，不是更新延遲** —— 真的有人上／下線走精準事件，那條即時。
-
-**教訓三：先問「一次吃多少」，再問「被叫幾次」。** 前三輪全部在追頻率
-（每幀掃 → 每秒掃 → 事件合流），每一輪都真的修掉了東西，但都不是主因 ——
-因為那支的呼叫次數只有 **0.1/秒**，在報告上看起來完全無辜。
-`成本 = 單次 × 次數`，而我連續三輪只看右邊那一項。
-
-**教訓四：量測工具本身不能是配置點。** 兩次差點犯：`ns.Count("Fire:" .. event)`
-的字串串接放在旗標外面、`ns.Meter(key, function() ... end)` 的 closure 每次呼叫
-都會配置 —— 兩者都是「剖析關著也照樣配置」。旗標要包住**參數的求值**，
-而不只是包住函式本體。
-
-**教訓五：TTL 是地板，不是節流。** 第一輪只加了 1 秒 TTL，把「每幀掃一遍」壓成
-「每秒掃一遍」—— 而 `BN_FRIEND_INFO_CHANGED` 是消防水管（好友換區、改狀態、改廣播
-都發，三十個人在打副本時一秒好幾十發），只要事件不停就**永遠**每秒一次，一小時
-還是好幾 MB。TTL 只擋得住「同一波事件裡的重複呼叫」；要壓下**持續**的事件流，
-得讓事件本身合流（一連串只排一次更新），而且分急迫度：好友名單的雜訊給 5 秒，
-真的上下線給 0.5 秒。
-
-**教訓六：回傳 table 的 C API 是配置點。** `GetFriendAccountInfo`、
-`C_Map.GetPlayerMapPosition`、`GetMouseFoci` 這類每次都給新物件，放進任何
-「可能被高頻呼叫」的路徑之前先想清楚誰會叫它。
-
-## 2026-09-16：名單的密語改走聊天超連結，選單不再有密語
-
-從插件的 OnClick 呼叫 `ChatFrame_SendTell` 會在自己的堆疊上寫 `LAST_ACTIVE_CHAT_EDIT_BOX`，
-之後玩家按 R 回覆秘密名字就炸（[[wow-121-chat-reply-secret-taint]]）。改法跟 MiliUI_ChatBar 同一套：
-- `Panel/LinkSink.xml`：一顆 `ChatFrameTemplate`（XML 開 `hyperlinksEnabled`），名單面板掛在它底下，
-  面板與每一列 `SetHyperlinkPropagateToParent(true)`。
-  ⚠ 模板是 toplevel（隱含 render layer flattening），名單畫在 **Sink 的** strata —— 所以 `frameStrata="TOOLTIP"`
-  設在 LinkSink.xml 上，面板自己的 SetFrameStrata 在繪製上沒用（2026-09-19 名單被任務追蹤框蓋住，
-  [[wow-toplevel-flattens-child-strata]]）。
-- 每一列的字放在列上一個子框 `row.link`（人名列才開它的滑鼠）：名字與區域包成
-  `|Hplayer:名字|h`／`|HBNplayer:暱稱:帳號ID|h`，左鍵由暴雪的 `SetItemRef → SendTell` 開密語；
-  右鍵 `SetPassThroughButtons` 穿透回列本身做邀請。列的整寬另鋪一串空白的連結（字級＝列高），
-  點在名字與區域之間的空隙也算數。
-  ⚠⚠ **propagate 是一層一層交的**：`row.link → row → panel → Sink` 每一層都要
-  `SetHyperlinkPropagateToParent(true)`。09-17 第一版漏了中間的 row，左鍵密語從那時起就沒反應、名單也不收，
-  **零錯誤、taint.log 乾淨**（2026-09-21 才發現，`891d6122f` 補上）。判別法：點名字後名單收不收
-  ——afterOpen 掛在 Sink 的 OnHyperlinkClick 上，不收＝點擊沒到 Sink。
-  ⚠ SetPassThroughButtons 戰鬥中對任何框都封（[[wow-hasrestrictions-mouse-apis]]）⇒ 列池不能懶建：
-  `Tip.Reserve(上限＋11)` 由 Bar 在 Init／ConfigChanged 叫，戰鬥外長滿；戰鬥中被迫新建的列先不穿透、
-  出戰鬥 Grow 補。Bar.lua 的 `LIST_CHROME_ROWS = 11` 是好友名單人名以外的列數，改版面要跟著改
-  （2026-09-21 戰鬥中第一次滑開公會名單，14 列各擋一次）。
-- 亮塊：連結字框是另一個滑鼠焦點（[[wow-hyperlink-region-steals-hover]]），`row.link` 的
-  OnEnter/OnLeave 之外，Sink 的 `OnHyperlinkEnter/Leave` 用 `region:GetParent().row` 補。
-- 名單收掉：`sink:HookScript("OnHyperlinkClick", …)` 後掛 `Tip.afterOpen`（跟 secure 開面板鈕同一條）。
-  OnHyperlinkClick 本體不能碰。
-- 右鍵選單只剩「邀請」：選單項目是插件的 OnClick，放密語又會髒；超過列數上限的人去開完整面板。
-
-相關：[[wow-addon-profiler-cost]]。
-
-## 尺寸
-
-- 預設 172 **太小**（暴雪原本約 198），使用者第一時間就反映了。改 200 起跳。
-- 左下角有拉把手（解鎖時才出現）。⚠ **不用 `StartSizing`**：那支會讓寬高各自跑，
-  而 **Minimap 的地形投影與玩家箭頭要求畫布是正方形**。自己讀游標算邊長更短、
-  而且保證正方。錨 TOPRIGHT ＋ 拉左下角＝右上角釘住不動，是唯一不會邊改邊漂的角落。
-- **長方形做不到（不是偷懶）**：要裁成長方形得另外做一張**固定比例**的裁切遮罩貼圖
-  （Ellesmere 就帶了一張 4:3 的 tga），而遮罩是被拉伸的 ⇒ 一張遮罩只能對應一個比例，
-  「自由拖曳寬高」需要在遊戲裡即時生成貼圖，做不到。要整體變小用 scale。
-
-## 資訊列：三格，可客製
-
-```
-┌──────────────┬────┬──────────────┐
-│     公會 12  │ ▦  │    好友 4    │
-└──────────────┴────┴──────────────┘
-```
-
-三格各自可選 **公會／好友／插件收納袋／無**。收納袋原本是地圖上方外側一顆孤鈕，
-2026-08-29 收進資訊列 —— 版面理由：那樣地圖上下各長一條東西（上面一顆孤零零的鈕、
-下面一條資訊列），收進來之後只剩下方一條，而那條本來就是「地圖旁邊一排小東西」
-該待的地方。
-
-**寬度規則：收納袋那格固定寬（正方形），其餘平分剩下的；選「無」的格子完全不佔位置。**
-- 收納袋格裡只有一顆 3×3 圖示，給它三分之一條寬只會讓圖示孤零零飄在空白中間。
-- 「無」不佔位置 ⇒「只留公會」是一條整寬的公會列，不是一格公會加兩格空白。
-- 三格都選「無」就整條收起來，不要留一條空的深色橫槓。
-
-⚠ **標籤與數字必須是同一個 FontString**（數字用 `|cff` 色碼上色），不能拆兩個。
-兩個 FontString 各自置中會分別以自己的中心對齊，中間那道縫會隨數字位數變動而左右晃
-—— 從 9 跳到 10 的時候整組字會抖一下。為此在 Style 加了 `S.AccentHex()`。
-
-⚠ 三格都沒選收納袋的話袋子就沒有入口，逃生口是 `/mmap bag`。
-**刻意不做「沒入口就自動長一顆鈕回來」** —— 同一顆鈕有兩個可能的位置，玩家更找不到。
-
-## 資訊列的資料面
-
-- **零背景工作**：人數走現成 API（`GetNumGuildMembers()` 的第二回傳、
-  `C_FriendList.GetNumOnlineFriends()`），名單只在提示打開的那一刻才掃。
-  反過來做（登入建表、每個事件維護增量）在 500 人公會是每次 GUILD_ROSTER_UPDATE
-  掃五百筆，換來提示早 3ms 出現。
-- ⚠ `GetNumGuildMembers()` 在**沒有請求過**的情況下可能是 0，要主動叫
-  `C_GuildInfo.GuildRoster()`（伺服器端約 10 秒節流，叫太密它自己會忽略）。
-- ⚠ **戰網好友的 `game.className` 是在地化顯示名**（中文客戶端拿到「聖騎士」），
-  拿去查 `RAID_CLASS_COLORS` 永遠是 nil。要走 `game.classID` →
-  `C_CreatureInfo.GetClassInfo(id).classFile`。
-  `C_FriendList` 的角色好友**根本沒有 classFile**，拿不到就不上色 ——
-  不要猜一個 token 去查表（[[wow-unitclassbase-npc-returns-rogue]]）。
-- ⚠⚠ **「在玩 WoW」不等於「有角色名可用」。** 剛登入停在選角畫面、或還在讀取的
-  戰網好友，`clientProgram` 已經是 `"WoW"` 了但 `characterName` 是**空字串**、
-  `characterLevel` 是 **0**。照單全收的後果是名單與右鍵選單裡出現一排「0 」開頭的
-  空白列，那幾筆既點不了密語也邀不到人（使用者擷圖回報）。
-  **空字串不是 nil**，`charName or tag` 擋不住它（空字串是真值）；0 同理。
-  另外 `wowProjectID ~= WOW_PROJECT_ID` 是跨版本好友（經典服／PTR），
-  邀請對他們無效 —— 標出來、而且不進邀請清單，但密語照樣可以走戰網暱稱。
-- 12.1：名字／區域／備註在受限內容中可能是秘密字串，每個欄位進 `Data.lua` 就先過
-  `Secret.PlainText`；洗不出明文的整筆丟掉。密語／邀請的目標名字必須是明文
-  （[[wow-121-chat-reply-secret-taint]]）。
-- **提示框走不透明底，不跟 HUD 面板的半透明走。** HUD 面板要透是因為它常駐、擋住
-  世界會礙事；提示框相反 —— 它是臨時跳出來讓人**讀字**的，而且多半蓋在任務追蹤框
-  上面，0.8 的底會讓追蹤框的字整片透上來，三十行的公會名單當場變成兩層字疊在一起
-  （使用者擷圖）。判準：**底色承載「讓字讀得出來」的就不能透。**
-- **名單是自己畫的可互動列表，不是 GameTooltip**（2026-09-06 改，使用者要求
-  「滑鼠要能移上去點」）。第一版是自己開一個 `GameTooltipTemplate` 換皮，問題只有
-  一個但是決定性的：GameTooltip 碰不到，人名只能看不能點。現在 `Panel/Tip.lua` 是
-  一個面板＋一池 Button 列，人名列**左鍵密語／右鍵邀請組隊**，最底下一列是
-  「公會名冊／好友清單」按鈕（`Tip.AddButton`，滿寬實心帶＋置中字、貼著下緣）。
-  ⚠ 開面板第一版綁中鍵，使用者回饋不直覺 —— 沒人會想到按中鍵，要就做成看得見的按鈕。
-  ⚠⚠ 那顆按鈕**不能呼叫 ToggleGuildFrame/ToggleFriendsFrame**（12.1 封鎖，實測
-  「介面功能因插件而失效」），是兩顆掛 UIParent 的 secure 鈕蓋在按鈕列上做點擊轉發，
-  規則與戰鬥紀律見 [[wow-121-other-api-changes]] 的「從插件 Lua 開暴雪面板會被封鎖」；
-  對外仍保留 `AddLine / AddDoubleLine / Show` 的 GameTooltip 形狀，`Map/Skin.lua`
-  的拉把手照舊借它顯示尺寸。字級走 `db.tipFontSize`（列表不再從提示框繼承字型）。
-  ⚠ 邀請完名單**留著**（連拉幾個人是常態），密語與開面板才收。
-- **「跟著游標活著」的關閉機制在 `Panel/Bar.lua` 的 Hover 段**，名單與收納袋共用：
-  滑過格子就開、游標在格子或面板上就留著、離開兩者超過 0.35 秒才關。
-  ⚠ 不能掛在格子的 OnLeave 立刻關 —— 游標從格子移到面板要跨過中間那幾 px 的縫，
-  那一瞬間兩邊都不在，立刻關等於永遠移不進面板。用 OnUpdate 輪詢（只在面板開著時跑）
-  而不是事件：面板的 OnLeave 在游標移到它自己的子列上時也會觸發，沒有可靠的事件。
-  格子上開著選單（`W.Menu.IsOpenFor`）也算「還在」。格子的亮塊要留到面板真的關掉
-  那一刻才收（`SlotIdle`），OnLeave 不能收。
-- 格子本身：任一鍵都是密語／邀請選單（備援：名單有列數上限，超過的人只能從選單找）。
-  格子上**不綁開面板** —— 那也得走 secure 鈕，而格子在資訊列裡，塞 secure 子框會讓
-  整條資訊列變保護框（InfoBar 為此付了一整套 Defer 的代價，這裡不值得）。
-
-## 五個已修的坑（別再寫回去）
-
-- `ns.Fire` 的派送順序是 `pairs()`。資訊列原本也註冊 `Init` 並在裡面 `Apply()`，
-  Skin 的 Init 若晚跑，`ns.holder` 還是 nil ⇒「貼在地圖下緣」走不到、資訊列會用
-  絕對座標貼出去。改成由 `Skin.Apply` 結尾的 `SkinApplied` 驅動，順序由呼叫鏈保證。
-- 位置的 SetPoint 位移單位是**被錨的框自己的 effective scale**。holder 有自己的
-  `SetScale`，存位置時要換算成螢幕像素再除回 holder 的 scale，否則縮放不是 1 的人
-  每存一次就往角落漂一點（[[wow-setscale-offset-units]]）。
-
-- **「開設定就自動解鎖」不能走會寫檔的那支。** 第一版的 `Skin.SetLocked(false)` 同時
-  寫進 DB，於是設定視窗一 OnHide、讀回來的 `db.locked` 已經是 false ——
-  鎖定狀態每開一次設定就被洗掉一次。拆成 `SetLocked`（寫檔）與 `RefreshDrag`
-  （只算「現在該不該顯示遮罩」＝`ns._optionsOpen or not db.locked`）。
-  **通則：暫時性的 UI 覆寫不要經過持久化的那條路。**
-- **FontString 沒給字型就 `SetText` 是硬錯，而且會中斷整支 `Build()`。**
-  拖曳遮罩的標籤踩到，症狀是**小地圖完全沒被接管**（`Apply()` 從來沒跑到），
-  跟字型看起來毫無關係。現在模組裡不留裸的 `CreateFontString`，一律走
-  `MakeText()`（建完馬上給字型）。完整說明：[[wow-fontstring-font-before-settext]]。
-  ⚠ 同一批也發現資訊列的兩個 FontString「只是剛好安全」（靠 Apply 的字型迴圈排在
-  Update 前面），一併改掉 —— 靠順序的安全不算安全。
-- `GameTooltip:AddDoubleLine(l, r, rL,gL,bL, rR,gR,bR)` **不能直接接 `S.Accent()`** ——
-  它回四個值（含 alpha），alpha 會被當成右欄的紅色分量，右欄變成半紅的字。
-  `AddLine` 同理（第四個參數是 wrapText）。一律先解成三個變數。
-
-## 那條列叫「社交列」不叫「資訊列」（2026-09-06 改名）
-
-跟 [[project-miliui-infobar]]（畫面頂端那條、取代微型選單的）撞名了，玩家與筆記
-兩邊都會混。zhTW「社交列」／zhCN「社交栏」／英文 key `Social bar`。
-
-⚠ **只改人看的字，識別字一個都沒動**：`db.infoBar*` 一整組、`ns.infoBar`、
-MiliUISnap 的註冊 key `"infoBar"` —— 那些是**存檔內容**，改名等於把玩家的設定與
-磁吸關係洗掉（[[project-miliui-snap-bars]] 同一條）。程式碼註解裡的「資訊列」
-一併換成「社交列」，**但 `Libs/MiliUISnap.lua` 除外**：那是 vendor 複製，
-它註解裡列的「資訊列」指的正是 InfoBar 那支。
-
-## 位置性的文案要跟著設定走
-
-原本釘選欄叫「留在地圖上」，使用者的判語是**不直覺**——釘住的按鈕從來就不是
-留在原地，它們被排進常駐排，而常駐排在哪一邊是設定出來的。改成
-`ns.Buttons.PinLabel()`：依 `pinSide` 回「釘選按鈕到社交列下方／到小地圖上方／
-左側／右側」，bottom 再依有沒有社交列分兩句（沒有就貼地圖底緣）。
-右鍵選單項與設定頁的清單標題共用同一句。
-
-**通則：文案裡寫了方位，就得跟著那個方位的設定走。** 位置講錯的文案比沒有文案
-更糟——玩家勾完會去錯的地方找按鈕，然後回報「釘選壞掉了」。
-
-## 設定頁的欄頭要對齊欄位，不是對齊標題線
-
-「文字左右間隔不一樣」查出來是兩件事疊在一起：
-- 清單寬用 `FORM_W`（560，表單控件的寬），標題線用 `PANEL_W-32`（588）⇒ 右邊界
-  差 28px。**佔滿一行的東西（標題線、清單）一律用 `Options.CONTENT_W`**，
-  FORM_W 只給滑桿那類需要右邊留手感空間的控件。
-- 欄頭靠右貼著標題線（-8），勾選框卻縮在捲軸內側（-20-10）⇒ 兩者差快 60px。
-  欄頭是**那一欄的頭**，中心要對齊勾選框中心：
-  `head:SetPoint("BOTTOM", list, "TOPRIGHT", -(SCROLLBAR_W + CHECK_INSET + CHECK_SIZE/2), 3)`。
-  三個數字抽成常數，勾選框的 SetPoint 也用同一組，否則下次改一邊就又歪了。
-  （`SCROLLBAR_W = 20` 是 MiliUIWidgets `CreateScrollFrame` 給捲軸留的內縮。）
+- `ns.Fire` 的派送順序是 `pairs()`。社交列改由 `Skin.Apply` 結尾的 `SkinApplied` 驅動，順序由呼叫鏈保證。
+- **「開設定就自動解鎖」不能走會寫檔的那支**：拆成 `SetLocked`（寫檔）與 `RefreshDrag`（只算 `_optionsOpen or not db.locked or InEditMode()`）。**暫時性的 UI 覆寫不要經過持久化的那條路。**
+- **FontString 沒給字型就 `SetText` 是硬錯，會中斷整支 `Build()`**，症狀是小地圖完全沒被接管。模組裡一律走 `MakeText()`（[[wow-fontstring-font-before-settext]]）。
+- `GameTooltip:AddDoubleLine` 不能直接接 `S.Accent()`——它回四個值，alpha 被當成右欄紅色分量。先解成三個變數。
+- 設定頁欄頭要對齊欄位不是對齊標題線：佔滿一行的東西用 `Options.CONTENT_W`，`FORM_W` 只給滑桿類；欄頭中心對齊勾選框中心，三個數字抽成常數（`SCROLLBAR_W = 20` 是共用層 `CreateScrollFrame` 給捲軸留的）。
 
 ## 編輯模式拖曳（2026-09-06）
 
-**進編輯模式＝暫時解鎖**，顯示的還是自己那層拖曳遮罩，不借
-`EditModeSystemSelectionTemplate` 的藍框。理由：遮罩比藍框多了左下角拉把手
-（改尺寸）與右鍵歸位，而且跟「開設定視窗」看到的是同一層 —— 同一個功能兩種外觀
-才是問題。所以這支需要的只有**進出的訊號**，拖曳機制早就有了
-（`RefreshDrag` 的條件從 `_optionsOpen or not locked` 變成再 or 一個 `InEditMode()`）。
-不註冊真的 Edit Mode 系統（那要碰暴雪內部＋污染），見 [[wow-editmode-draggable]]。
+**進編輯模式＝暫時解鎖**，顯示的還是自己那層拖曳遮罩（比藍框多了拉把手與右鍵歸位，跟開設定視窗同一層）。不註冊真的 Edit Mode 系統（[[wow-editmode-draggable]]）。
+⚠ **進出編輯模式都要補一次 `Skin.Apply()`（延一幀）**：編輯模式跑版面會把 `MinimapCluster` 的 alpha 與暴雪按鈕位置還原。`EDIT_MODE_LAYOUTS_UPDATED` 只在版面真的被改存時才發。
 
-⚠ **進出編輯模式都要補一次 `Skin.Apply()`（延一幀）**：編輯模式跑版面會把
-`MinimapCluster` 的 alpha 與暴雪按鈕位置還原 ⇒ 空的原版小地圖現形疊在我們上面。
-既有的 `EDIT_MODE_LAYOUTS_UPDATED` 只在版面**真的被改存**時才發，純進出補不到。
+## 副本難度文字（2026-10-13，未實機驗證）
 
-## 待驗證（2026-08-29 寫的「遊戲裡沒跑過」；09-06～09-30 已多輪實機回報——遮罩感、記憶體、名單左鍵都是實機修的，登入接管／按鈕收納／釘選顯然跑過；Leatrix_Plus 08-29 已移出套組，不用再測打架）
+`Map/Difficulty.lua`：左下角一小塊白字（「英雄 5人」「M+12」「探究 8」），開啟時暴雪旗子 reparent 到 `ns.hiddenParent`（沿用 Skin.Apply 的戰鬥閘），關掉搬回。
+難度對照表在檔頭，沒列到的退回暴雪在地化名稱。刻意白字不按難度上色。開關 `difficultyText` 預設開。
 
-- [ ] 登入時接管有沒有成功、有沒有跳封鎖彈窗（`/mmap debug` 看）
-- [ ] 追蹤／郵件／日曆／副本難度四顆 reparent 之後點得動嗎、位置對嗎
-- [ ] `AddonCompartmentFrame` 搬到地圖上方會不會被暴雪搶回去（Ellesmere 說它會，
-      而且掛了持續性的 hook 才守得住 —— 我們目前只在 Apply 時擺一次）
-- [ ] 進出副本／住宅轉場之後 Minimap 有沒有被搶走
-- [ ] 編輯模式開關一次，cluster 的 alpha 有沒有被還原（有掛
-      `EDIT_MODE_LAYOUTS_UPDATED` 重跑，但沒實測）
-- [ ] 資訊列的提示在 500 人公會會不會太長／太慢
-- [ ] 跟 Mapster、Leatrix_Plus 的小地圖選項有沒有打架
-- [ ] 插件按鈕收得乾不乾淨（有沒有漏收、有沒有誤收圖釘）
-- [ ] 釘選勾起來之後按鈕有沒有真的跑到常駐排、/reload 之後還在不在
+## 待驗證
+
+09-06～10-03 多輪實機回報（遮罩感、記憶體、名單左鍵、戰鬥中列池都是實機修的），登入接管／按鈕收納／釘選顯然跑過。剩下沒被覆蓋的：
+- [ ] `AddonCompartmentFrame` 搬到地圖上方會不會被暴雪搶回去（Ellesmere 掛了持續性 hook；我們只在 Apply 時擺一次）
 - [ ] LoadOnDemand 的插件（拍賣、背包）開過之後有沒有被補收進來
-- [ ] 拉把手調尺寸：資訊列與常駐排有沒有跟著對齊
-- [ ] 編輯模式裡拖得動嗎：暴雪 `MinimapCluster` 的選取框 alpha 是 0 但**滑鼠判定還在**
-      （alpha 不影響點擊），預設位置又剛好跟我們重疊在右上角 —— 若拖不動就是它攔走了，
-      解法候選是拖曳遮罩在編輯模式期間提 strata，或對 cluster 的 Selection 收滑鼠
-      （後者要先確認不會污染）。**開 `/framestack` 看是誰吃到點擊，不要靜態猜。**
-
-## 2026-10-13 副本難度文字（未實機驗證）
-`Map/Difficulty.lua`：左下角坐在下資訊帶上緣的一小塊白字（「英雄 5人」「M+12」「探究 8」），開啟時暴雪旗子 reparent 到 `ns.hiddenParent`（在 `LayoutBlizzardButtons`，沿用 Skin.Apply 的戰鬥閘），關掉走原本 Anchor 搬回。難度對照表在檔頭，沒列到的退回暴雪在地化名稱。刻意白字不按難度上色（理由在 Paint 註解）。開關 `difficultyText` 預設開。
+- [ ] 社交列的名單在 500 人公會會不會太長／太慢
+- [ ] `SetMask("")` 對「本來沒遮罩」的貼圖應是空動作，收納袋開起來看圖示有沒有異狀
+- [ ] 編輯模式裡拖得動嗎：暴雪 `MinimapCluster` 的選取框 alpha 是 0 但**滑鼠判定還在**，預設位置又跟我們重疊在右上角。**開 `/framestack` 看是誰吃到點擊。**
+- [ ] 副本難度文字

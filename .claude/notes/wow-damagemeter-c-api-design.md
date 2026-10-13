@@ -1,15 +1,16 @@
 ---
 name: wow-damagemeter-c-api-design
-description: 走 C_DamageMeter 的「輕量傷害統計」設計哲學——不解析戰鬥記錄、成本只跟可見列數走；從 EUIStandaloneDamageMeters 拆解而來
+description: 走 C_DamageMeter 的「輕量傷害統計」設計哲學——不解析戰鬥記錄、成本只跟可見列數走；API 面（source 有什麼、沒什麼）、事件名、分段判定、秘密值紀律；從 EUIStandaloneDamageMeters 拆解而來
 metadata: 
   node_type: memory
   type: reference
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-08-24T03:09:53.975Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
 拆解對象：`tmp/EUIStandaloneDamageMeters`（Ellesmere，v8.9.8）。核心檔案是
 `EUIStandaloneDamageMeters.lua`（5200 行，其餘一萬多行是它自家的 EUI 框架）。
+`tmp/` 在 .gitignore，只在這台機器上有；換機器要看原始碼得另外拿。
 `MiliUI_DamageMeters` 照這條路線走，見 [[project-miliui-damagemeters]]。
 
 ## 一句話哲學：**當渲染器，不當統計引擎**
@@ -41,7 +42,7 @@ Enum.DamageMeterType.{DamageDone,HealingDone,DamageTaken,AvoidableDamageTaken,
 Enum.DamageMeterSessionType.{Current,Overall}
 ```
 
-回傳結構（欄位名照抄，別自己猜）：
+回傳結構（欄位名照抄，MiliUI_DamageMeters 實機多輪用過）：
 
 - `session.combatSources` = 陣列，**API 已排好序**，不必 `table.sort`
 - source：`name` / `classFilename` / `specIconID` / `totalAmount` / `amountPerSecond` /
@@ -49,11 +50,18 @@ Enum.DamageMeterSessionType.{Current,Overall}
 - sourceData（單一施法者展開）：`combatSpells`（一樣已排序）/ `combatSpellDetails`
 - spell：`spellID` / `totalAmount` / `creatureName`
 
+**source 沒有的東西**（要自己補）：
+- **沒有 specID，只有 `specIconID`（圖示 fileID）**。要寫「獸王 獵人」或換自己的專精圖，得用
+  `GetSpecializationInfoForClassID` 把全部職業掃一遍建 fileID→專精表（一次性）。
+- **沒有裝等**。自己 `GetAverageItemLevel`，隊友要走觀察（`NotifyInspect`→`INSPECT_READY`→
+  `C_PaperDollInfo.GetInspectItemLevel`），伺服器對觀察有節流、戰鬥中 GUID 是秘密也查不了快取。
+  做法與陷阱見 [[project-mdm-spec-icons]]。
+
 ## 省資源的十三條手法
 
 1. **閒置零成本。** ticker 只在戰鬥期間存在（`PLAYER_REGEN_DISABLED` / `ENCOUNTER_START`
    建，離開戰鬥取消）。不是 `OnUpdate` 常駐。
-2. **刷新率是設定值，預設 1 秒。** `C_Timer.NewTicker(rate)`。
+2. **刷新率是設定值，預設 1 秒。** `C_Timer.NewTicker(rate)`。（MiliUI 版預設 0.5。）
 3. **全部視窗共用一個 ticker**，不是一個視窗一個。
 4. **固定 40 個 bar 的池，建完永不銷毀。** 換排名只是重新 `SetPoint` ＋填值。
    （呼應 [[wow-frame-lifecycle-costs]]：frame 刪不掉，所以一開始就不要多建。）
@@ -68,6 +76,7 @@ Enum.DamageMeterSessionType.{Current,Overall}
    靠捲動位移算出來，不是每列問 `IsVisible()`。
 8. **尖峰預算延後。** `debugprofilestop()` 量 API 呼叫，超過 1.5ms 就
    `C_Timer.After(0, RefreshUI)` 把繪製推到下一幀，避免 API 尖峰跟繪製尖峰疊在同一幀。
+   （MiliUI 版沒採用。）
 9. **計時器跟刷新解耦。** 另開一個 0.5 秒的 ticker 只更新秒數文字，並用「顯示的整數秒」
    做備忘 —— 這樣 1 秒的 bar 刷新率不會讓時鐘看起來卡卡的，多出來的 tick 免費。
 10. **全部懶建。** 滑鼠提示框、展開用的法術池、每列邊框、圖示邊框都是第一次用到才建。
@@ -101,7 +110,11 @@ Enum.DamageMeterSessionType.{Current,Overall}
   例外：全隊還在戰鬥（死著重載／觀戰）就別硬斷，走輪詢那條路。
 - **假死**：暴雪不為假死送 `UNIT_AURA`，只能監聽 `UNIT_SPELLCAST_SUCCEEDED` 抓 spellID
   5384 記 GUID，然後在死亡列表裡濾掉（`deathRecapID > 0` 對假死也成立）。
-  這是高頻事件，handler 第一件事就要用整數比較早退。
+  這是高頻事件，handler 第一件事就要用整數比較早退——更好的是**只在隊裡有獵人時才註冊**
+  （[[project-miliui-damagemeters]] 的「假死監看的註冊閘」）。
+- **「戰鬥狀態機的起訖」跟 `PLAYER_REGEN_*` 不同步**（隊友先開怪、自己死了團隊還在打、
+  5 秒保險絲）：任何要跟著「在不在打」切換的東西（發佈鈕的封鎖圖示、智慧顯示）都不能只聽遊戲事件，
+  要從狀態機的 BeginSegment／FreezeCombat 直接推。
 
 ## 事件：名稱不能猜
 
@@ -142,7 +155,7 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
 ## 錯誤處理器自己不能拋錯
 
 `xpcall` 的訊息處理器拋錯 = 錯誤**穿出** xpcall 的隔離，變成「error in error handling」，
-比原本那個錯誤更難查。三道守衛：
+比原本那個錯誤更難查。三道守衛（現在住在共用層 `Libs/MiliUIWidgets/Errors.lua`，全套組同一份）：
 
 - **防遞迴旗標。** 有些插件會「包住前一個 handler 再呼叫」，錯誤有可能繞回來 → stack overflow。
 - **`tostring(err)` 要擋秘密值。** 呼叫堆疊上有秘密值參與時 `debugstack()` 就是秘密的，
@@ -173,6 +186,7 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
   也要退化成「不是自己」，不能退化成 throw。
 - `classFilename` 可能是秘密 → `RAID_CLASS_COLORS[classFile]` 前必須 `issecretvalue` 擋。
 - `sourceGUID` 可能是秘密 → **絕對不能當 table key**（假死快取就是因此只對明碼 GUID 生效）。
+- `specIconID` 可能是秘密 → 拿它查專精表前要擋（查表是硬錯），擋掉就退回暴雪圖示。
 - **秘密值 → 一律寫入，永不備忘。** 名字／數字可能是秘密，`SetText(secret)` 合法（顯示得出來），
   但 `~=` 比較會 throw。所以形狀固定是：
   ```lua
@@ -189,6 +203,8 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
   **通則：條的填充長度是秘密的那一刻起，這條 bar 的任何尺寸都只能來自設定值，不能量。**
 - 跨 source 比大小的功能（例如「這個人打了哪些目標」）**在戰鬥中直接跳過**，
   離開戰鬥 0.5 秒後 API 才會把 GUID 解密。
+- **要把數字送出去（聊天發佈）時秘密值一票否決**：任何一個值是秘密就整份放棄，脫戰後約 0.5 秒
+  的解密空窗靠這道。
 
 ## 架構形狀
 
@@ -201,4 +217,4 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
 - `_buildGen` 世代 token：登入時分批建視窗（跨幀），重建時要能讓還在飛的舊步驟自己放棄，
   否則舊步驟會把 `_windows[i]` 蓋掉，留下一堆掛著沒人管卻還顯示的 frame。
 
-相關：[[wow-frame-lifecycle-costs]]、[[wow-121-secret-values]]、[[project-miliui-damagemeters]]
+相關：[[wow-frame-lifecycle-costs]]、[[wow-121-secret-values]]、[[project-miliui-damagemeters]]、[[project-mdm-spec-icons]]

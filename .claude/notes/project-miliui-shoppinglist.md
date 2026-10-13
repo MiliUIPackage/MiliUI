@@ -1,6 +1,6 @@
 ---
 name: project-miliui-shoppinglist
-description: MiliUI_ShoppingList 專業採購清單——架構、跟參考來源不同的六個決定、taint 紀律、待驗證清單
+description: MiliUI_ShoppingList 專業採購清單——架構、跟參考來源不同的六個決定、拍賣場貼齊下方與兩份位置、加入鈕避開鄰居、taint 紀律、待驗證清單
 metadata: 
   node_type: memory
   type: project
@@ -9,7 +9,7 @@ metadata:
 ---
 
 **2026-09-08 新建的獨立插件**（MiliUIWidgets 的消費者之一——序號別寫死，
-NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
+NAMESPACE `MiliUIShop`；TOC 版本 1.0.4）。立案計畫在 `tmp/ProfessionShop/PLAN.md`（`tmp/` 不進版控）。
 
 參考來源是 **Profession Shop**（作者 TW-Ballxx，原始碼放在 `tmp/ProfessionShop/`，
 不進版控）。**只參考做法，程式從頭寫**，一行都沒搬。借的是概念：配方項目存「每份材料」、
@@ -23,14 +23,15 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 | `Core/Schematic.lua` | 讀暴雪的 recipeSchematic／transaction → 我們的格式 |
 | `Core/List.lua` | 配方清單 → 採購清單的彙總、持有量、節流刷新 |
 | `Core/Auction.lua` | 搜尋報價 ＋ 購買狀態機（節流佇列） |
-| `Modules/AddButton.lua` | 兩頁共用的按鈕外觀／狀態／位置 |
+| `Modules/AddButton.lua` | 兩頁共用的按鈕外觀／狀態／位置（含避開鄰居） |
 | `Modules/CraftingPage.lua`／`CustomerOrders.lua` | 只掛按鈕，不讀資料 |
+| `Modules/Vendor.lua` | 商人掃描（哪些材料商店買得到） |
+| `Modules/ChatLink.lua` | Shift 點連結加入物品 |
 | `UI/Rows.lua` | 採購列（表頭／列／確認列） |
 | `UI/Window.lua` | **整個插件唯一的視窗** |
 
 **製作頁與代工下單頁讀的是同一種東西**（schematic ＋ transaction），差別只在
 「哪些材料算我的」——所以讀取全收在 `Schematic.lua`，Modules 只負責掛按鈕與徽章。
-計畫原本把訂單的讀取放在 `Modules/CustomerOrders.lua`，實作時併過去了。
 
 ## 跟參考來源不同的六個決定
 
@@ -61,12 +62,23 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 - **分頁是錯的切法。** 「我要做什麼」與「我要買什麼」必須一起看 —— 改份數就是為了
   看採購量跟著變。分開之後每改一次數字都要切一次分頁。
 - **拍賣場面板是採購區的第三份複本。** 同一張表三個地方顯示，加一個欄位要改三處。
-  改成開拍賣場時把**同一個視窗**貼到拍賣場右邊（`W.PlaceClamped`），關閉時放回
-  原位；玩家自己拖過就解除貼附。位置只有非貼附時才存檔。
+  改成開拍賣場時把**同一個視窗**貼到拍賣場旁邊，關閉時放回原位。
 - **配方列砍到剩「圖示＋名字＋數量」**（另加一個 `= N 個` 的產出提示與移除鈕）。
   來源標籤、缺 N、展開材料明細全部拿掉 —— 材料明細與缺 N 就在下面那張表裡，
   同一件事在同一個視窗講兩遍只會讓人不知道該看哪個。
 - 配方區高度隨列數長，最多五列後開始捲動；剩下的高度全給採購區。
+
+### 拍賣場貼齊：貼**下面**、兩份位置（2026-09-24 定案，`UI/Window.lua`）
+
+- 貼在拍賣場**正下方、同寬**（視線往下走；貼右邊會被推到畫面邊緣跟背包搶位置）。
+  先量拍賣場下緣到畫面底剩多少：夠 → 貼下面、高度收到剩餘空間（清單自己捲）；不夠 → 才退回貼右邊。
+  **先 Show 才量得到矩形**，再由 `W.PlaceClamped` 把超出畫面的推回來。
+- ⚠ **拍賣場的分頁長在 `AuctionHouseFrame` 矩形外面**（購買／出售／拍賣＋Auctionator 加的），只看 `GetBottom`
+  會把清單貼在分頁上、蓋掉分頁。往下看兩層 children（插件加的分頁常包在容器裡），只算「上緣碰著拍賣場下緣、往下垂出去」的，
+  取最低點再貼。
+- 位置存兩份：`db.windows.main`（平常）／`db.windows.ah`（拍賣場開著時拖的）。**玩家拖過就照他擺的、不再自動貼**。
+  拖完 `SetUserPlaced(false)`、位置自己存（兩邊都存會在登入時互蓋，同 [[project-miliui-chatbar-snap]]）。
+- **標題列右鍵＝回預設位置**，只清「現在這個模式」那一份：拍賣場開著時回自動貼齊，平常回畫面中央；另一份不動。
 
 ## 代工下單頁的兩個關鍵事實
 
@@ -220,8 +232,8 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   `order.isRecraft`；製作頁才看 `transaction:IsRecraft()`。
 - ⚠ **重製訂單放入物品走 `SetRecraftItemGUID` → `InitSchematic`，不會再跑 `Init`**。
   靠 `InitSchematic` 結尾的 `UpdateListOrderButton` hook 接到。
-- 清單 key 分開：`recraft:<id>`（製作頁）、`recraftOrder:<id>`（下單頁），名字前綴
-  「重新製作：」。同一配方的一般製作與重製材料量不同，同 key 會互相蓋掉。
+- 清單 key 分開：`<source>:<id>`，source 是 `craft`／`recraft`（製作頁）、`order`／`recraftOrder`（下單頁），
+  重製的名字前綴「重新製作：」。同一配方的一般製作與重製材料量不同，同 key 會互相蓋掉。
 - 製作頁重製固定 1 份：數量框在重製時是藏起來的，裡面殘留的數字不能用。
 - 已送出的訂單（`form.committed`）按鈕整顆藏起來：材料已經交出去了。
 
@@ -229,16 +241,9 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 
 兩次都標錯（先是拿「誰必須提供」當判準，改成「配方需不需要」之後，清單與提示
 還是滿滿的「可選」），使用者的結論是：**這個資訊不值得標，玩家自己判斷就好**。
-清單的欄位與下單頁提示的 `(可選)` 全部移除。
-留在下面的段落是當初為什麼會標錯的紀錄。
-
-## （已移除）「可選」講的是配方，不是誰來出
-
-`類別` 欄原本把訂單裡「顧客不一定要出」的材料標成可選，結果個人／公會訂單
-（欄位大多是 Any）整張單全部標成「可選」，而畫面上每一樣明明都得備齊。
-語意改成「配方需不需要這樣材料」：基礎材料一律必備，只有裝飾／加成材料才是可選。
-→ 這樣一改，整欄幾乎都是「必備」，那一欄就沒有存在價值了，直接拿掉，
-  真的可選的改成在名字後面加灰字 `(可選)`。
+清單的欄位與下單頁提示的 `(可選)` 全部移除。當初標錯的過程：`類別` 欄把訂單裡
+「顧客不一定要出」的材料標成可選，結果個人／公會訂單（欄位大多是 Any）整張單全是「可選」；
+改成「配方需不需要」後整欄幾乎都是「必備」，那一欄就沒有存在價值。
 
 ## ⚠ 整批瀏覽會抹掉 isCommodity（「明明有賣卻說沒人賣」的真正根因）
 
@@ -275,12 +280,12 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   數量與旗標。
 - **回收列的 NumberBox** 的 commit closure 只能轉呼叫 `row._commit`，
   真正的目標由 updateRow 換掉（見 [[project-miliui-widgets-vendor]] 的 CreateRowList 警語）。
-- `Shift` 點連結**只在「加入物品」輸入框有焦點時才吃**。沒有這道閘的話玩家在背包裡
+- `Shift` 點連結**只在「加入物品」輸入框有焦點時才吃**（`Modules/ChatLink.lua`）。沒有這道閘的話玩家在背包裡
   Shift 點任何東西都會被吞進清單。掛 `HandleModifiedItemClick` 不掛
   `ChatEdit_InsertLink`（後者只在聊天輸入框開著時才會被呼叫）。
 - 代工按鈕不能錨在 `ReagentContainer.Reagents` 下緣：Auctionator 的材料價格框
   已經貼在那裡（frameLevel 520）。
-- **⚠ 按鈕現在的位置（2026-09-14 定案）：材料區標題右邊、同一列**，兩頁共用
+- **⚠ 按鈕的位置（2026-09-14 定案、09-26 實機修過一次）：材料區標題右邊、同一列**，兩頁共用
   `Modules/AddButton.lua`。錨點＝`section.Label` 的 LEFT ＋ 字寬（`GetUnboundedStringWidth`，
   上限是標題框的 180 寬）＋ 10。按鈕高 20 ＝ 標題列高度（暴雪的材料格從容器頂下 20 開始排），
   寬度跟著字走。依序試 `Reagents` → `OptionalReagents`，都沒顯示就整顆 Hide。
@@ -289,6 +294,11 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
   - 製作頁「追蹤配方」左邊 —— 回收類配方沒有追蹤勾選框，按鈕浮在面板中間
   - 材料區右端 —— 製作頁的詳細資訊面板貼在右上（TOPRIGHT -20, -125）
   - 按鈕底下常駐一行說明 —— 使用者要求**說明只在滑過時出現**，改成工具提示第一行
+- **⚠ 標題右邊是別的插件也愛放東西的地方**（2026-09-26 實機，`435c91b9b`）：別的插件把勾選框用 `LEFT` 錨在
+  同一個標題上、x 同樣是字寬 ⇒ 跟我們的按鈕整顆疊在一起。做法不點名、不認欄位：掃 section 與它父框的 children，
+  找「錨點 LEFT、錨在這個標題上」的框（暴雪自己的東西是 TOPLEFT／BOTTOMLEFT 往下疊，撈不到），有顯示的就排在它後面
+  （勾選框的字畫在框外，有字錨字）。撈到的每顆都 `HookScript` OnShow／OnHide（那是別家的框不是暴雪框），變了就延一幀重算。
+  **製作頁的 OnShow 也要延一幀**：form OnShow 時材料區子框自己的 OnShow 還沒跑完，鄰居那時還沒擺到標題旁邊。
 - **⚠ 按鈕字不放色碼。** 內嵌色碼蓋得過 W.CreateButton 停用時上的灰字 —— 以前一律帶金色，
   停用的按鈕看起來跟能按的一樣，回報就變成「按鈕不能按」（其實是被停用，只是看不出來）。
   2026-09-22 起按鈕是 primary（[[project-miliui-button-variants]]）：啟用＝職業色、停用＝中性，
@@ -336,10 +346,9 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
 
 ## 待驗證（進遊戲才知道）
 
-- [x] ~~製作頁的按鈕位置~~ —— 已實測修掉，見上面「踩過的點」。
-- [x] ~~下單頁的按鈕位置~~ —— 見上面「踩過的點」。
-- [ ] 2026-09-14 改到材料區標題右邊：四種畫面（製作／重製 × 製作頁／下單頁）
-      與縮小版製作頁都要看一次有沒有壓到第一排材料、字寬量得準不準。
+- [x] ~~製作頁／下單頁的按鈕位置~~ —— 已實測修掉，見上面「踩過的點」。
+- [x] ~~2026-09-14 改到材料區標題右邊~~ —— 09-26 實機撞到別家勾選框、已修（`435c91b9b`）；
+      四種畫面（製作／重製 × 製作頁／下單頁）之後沒有再回報。
 - [ ] 重製時原裝備的火花／裝飾是否真的被 `IsModificationUnchangedAtSlotIndex` 排除
       （工具提示那張材料表不該出現它們）。
 - [ ] `CraftingPage.CreateMultipleInputBox` 的取值方法名（程式三條路都試：
@@ -353,11 +362,13 @@ NAMESPACE `MiliUIShop`）。立案計畫在 `tmp/ProfessionShop/PLAN.md`。
       （拍賣不在 [[wow-12x-addon-restrictions]] 的封鎖清單上，但要按一次看）。
 - [ ] 火花排除清單的 itemID 是不是本季的（`Core/List.lua` 的 `SPARK_IDS`，
       名字比對有兜底，過期不會壞）。
-
 - [ ] 2026-09-22 按鈕改 primary（每列購買、全部購買、確認列的確認／購買，見 [[project-miliui-button-variants]]）：
       平時職業色底＋邊、滑過整顆亮、**拍賣場沒開／不缺的那幾列要退回中性**；滑過中被停用再移開不能卡色。
       專業視窗的「加入一鍵購買清單」同樣是 primary、沒有發光；下單頁沒選配方時要是中性（停用）。
       加進去之後要立刻變成「已在清單中」＋中性；到清單視窗移掉那個配方，按鈕要變回可按。
+      （之後只有位置相關的回報，顏色沒人提 —— 不等於驗過。）
+- [ ] 2026-09-24 拍賣場貼下方：分頁最低點的兩層掃描在「Auctionator 分頁包在容器裡」的情況對不對、
+      解析度低到剩餘空間不夠時有沒有退回貼右邊。
 
 ## 已知的檢查器誤報
 

@@ -1,6 +1,6 @@
 ---
 name: project-miliui-cooldownmanager
-description: 自製冷卻管理器 MiliUI_CooldownManager（2026-09-30 一夜做完 A～H 八階段，已上線 1.4.x、部分實機驗證）——六條拍板、Ayije 授權一行不能搬、架構要點、實機驗證從哪開始、plan 位置
+description: 自製冷卻管理器 MiliUI_CooldownManager（取代 Ayije_CDM；2026-09-30 一夜做完 A～H、已上線 1.5.x、大半功能上過實機）——拍板與授權、引擎契約、撞牆通則（增益旗標只有 SetUseAuraDisplayTime、到期只 Clear 不寫旗標、charges 旗標≠有充能、裝備欄 GCD 當真冷卻、掛勾參數是秘密值、收合框不當錨點、互斥停用要全帳號…）、各功能一句話索引、實機驗證從哪開始
 metadata:
   node_type: memory
   type: project
@@ -8,209 +8,160 @@ metadata:
   modified: 2026-10-12T03:59:28.650Z
 ---
 
-2026-09-30 使用者決定**自製 MiliUI_CooldownManager 取代 Ayije_CDM fork**（起因：Ayije 設定介面 UX 差，
-同一條的設定散在四五個分頁、群組複製不繼承、無說明無重設）。plan 在 `~/.claude/plans/miliui-cdm.md`，
-流程照 [[feedback-plan-opus-verify-workflow]]，分 A～H 八階段。
+## 緣起與拍板
 
-**六條拍板**：自製新插件（不重寫 Ayije_CDM_Options）／資源條與施法條留在冷卻管理器插件內（不拆去 UnitFrames）／預覽即編輯器進第一版／
-**位置屬於設定檔，不跟暴雪 Edit Mode layout 走**（套組其他插件也都不跟）／不做遷移器、直接給套組預設值／
-兩列不同尺寸與固定格位都保留。
+2026-09-30 使用者決定**自製 MiliUI_CooldownManager 取代 Ayije_CDM fork**（起因：Ayije 設定介面 UX 差——同一條的設定散在
+四五個分頁、群組複製不繼承、無說明無重設；根在資料模型，只重寫 Options 會整包繼承，fork 的本地修改每次上游更新都要重套）。
+流程照 [[feedback-plan-opus-verify-workflow]]：總 plan `~/.claude/plans/miliui-cdm.md`，之後**每個功能各一份** `miliui-cdm-<功能>.md`
+（二十多份，以 `ls ~/.claude/plans/miliui-cdm*` 為準）。
 
-**授權**：`Ayije_CDM/LICENSE` 是 All Rights Reserved（跟 Cell 一樣，[[project-cell-fork-license-decision]]）。
-**新插件一行都不能搬它的程式**，包括 Reanchor／Style／資源條／施法條／追蹤條；只能參考「做了什麼」與
-「踩過哪些 12.1 地雷」。資源條與施法條從我們自己的 `MiliUI_UnitFrames/Elements/{ClassPower,Power,Castbar}.lua` 改。
-EllesmereUI 同樣只看做法。註解不點名（[[project-miliui-uf-comment-attribution]]）。
+**六條拍板**：自製新插件（不重寫 Ayije_CDM_Options）／資源條與施法條留在冷卻管理器內（不拆去 UnitFrames）／預覽即編輯器進第一版／
+**位置屬於設定檔、不跟暴雪 Edit Mode layout 走**／不做遷移器、直接給套組預設值（後來另做了「從 Ayije 匯入」）／兩列不同尺寸與固定格位都保留。
 
-**三方分析結論**（2026-09-29）：
-- Ayije 與 EllesmereUI 的引擎同一路線：認領暴雪 item frame 重錨到自家容器；自畫圖示在 12.1 不可行（光環讀不到、
-  警示／覆寫／裝備欄都在暴雪 item 裡）。Elles 的契約更嚴：不 SetParent、不 Hide（會讓暴雪重建檢視器成迴圈）、
-  不在暴雪框寫欄位（弱鍵表）。
-- Elles 設定介面值得抄的骨架：左欄選條、一條一頁、頁首即時預覽兼編輯器（點開逐法術面板、拖排序、中鍵刪）、
-  次要選項收「⋯」彈窗。不抄：逐設定「同步到全部條」（複製不是繼承）、三層 scope 條、成長方向藏在自家 Unlock Mode。
-- **tmp 的 YUI_NovaToolbox 沒有 CDM 模組**；完整版 `tmp/YUI` 的 CDM 在 YHUD（Halo 監控台）裡，同樣是認領重錨，
-  設計器是畫面即畫布加浮動檢查器（InspectorV2 9700 行，太重不抄）。借進 plan 的：解碼 `GetLayoutData`
-  拿暴雪面板的玩家順序（specTag＝classID×10＋specIndex，整串當簽章）、隱藏 Cooldown 探針判冷卻結束、
-  髒標記三級、訊號零秒合併、挑選器三區、覆寫計數＋一鍵清除、匯入建新檔先審閱、固定格位被逼時說原因。
-  `CooldownMgr` 元件只是安裝精靈的版面匯入器，會刪玩家的暴雪版面，不可取。
-- 暴雪 12.1 開放給插件的：`GetCooldownViewerCategorySet`／`GetCooldownViewerCooldownInfo` 明文（含 overrideSpellID、
-  equipSlot、isInvisible）；警示系統六種事件（音效／TTS／視覺）自己有，第一版不做音效；`SetLayoutData` 是
-  AllowedWhenUntainted，分類與順序交給暴雪面板。
+**授權**：`Ayije_CDM/LICENSE` 是 All Rights Reserved（同 [[project-cell-fork-license-decision]]）。**新插件一行都不能搬它的程式**，
+只能參考「做了什麼」與「踩過哪些 12.1 地雷」；資源條／施法條從自己的 `MiliUI_UnitFrames/Elements/{ClassPower,Power,Castbar}.lua` 改。
+EllesmereUI、YHUD／Halo、Falcon 同樣只看做法。註解不點名（[[project-miliui-uf-comment-attribution]]）。
 
+**三方分析結論（2026-09-29，仍成立）**：12.1 引擎路線只有一條——認領暴雪 item 重錨到自家容器（Ayije／EUI／YHUD 都是）；自畫圖示不可行
+（光環讀不到、警示／覆寫／裝備欄都在暴雪 item 裡）。暴雪開放的 `GetCooldownViewerCategorySet`／`GetCooldownViewerCooldownInfo` 明文、
+`SetLayoutData` 是 AllowedWhenUntainted ⇒ **分類與順序交給暴雪面板**。EUI 設定介面的骨架抄了（左欄選條、一條一頁、頁首預覽即編輯器），
+不抄「同步到全部條」（複製不是繼承）；YHUD 借的是解碼 `GetLayoutData`、隱藏 Cooldown 探針、髒標記三級、覆寫計數，它的 CooldownMgr 元件會刪玩家版面不可取。
+後續對照見 [[project-miliui-cdm-eui-comparison-2026-10-04]]、[[project-miliui-cdm-halo-borrow]]。
 
-## 實作現況（2026-09-30 夜間，全部只在離線 stub 跑過，**未實機驗證**）
+## 現況（2026-10-14）
 
-八個階段各一個 Opus 子代理在 worktree 做、我逐階段讀 diff 驗收後 commit＋merge 進 master（已 push，tag 20261009 內）：
-A 骨架、B 引擎、C 編輯模式、D 設定介面、E 自訂項目與效果、F 資源條與施法條、G 套組接線、H 打磨（審查 9 條）。
-插件約 1.4 萬行（不含 vendor），離線測試八支（Layout／Catalog／DB／EditMode／Settings／Custom／Keybinds／Resources）。
+- TOC `## Version` 1.5.0；DB 版本以 `Core/DB.lua` 的 `ns.DB_VERSION` 為準（2026-10-14 是 v8：v2 施法條暴雪材質、v3 資源列分專精、
+  v4 持續時間換色拆欄、v5 低秒變色拆欄、v6 長條層數字級、v7 增益不在時三態、v8 快捷鍵文字歸「文字」）。約 6.5 萬行 Lua（不含 Libs／Tests），
+  離線測試 27 支（`lua AddOns/MiliUI_CooldownManager/Tests/<名>`，不進 TOC）。
+- 2026-09-30 一夜 A～H 八階段（骨架／引擎／編輯模式／設定介面／自訂項目與效果／資源條與施法條／套組接線／打磨），每階段一個 Opus 子代理在
+  worktree 做、逐階段讀 diff 驗收後 commit＋merge；之後兩週 120 多個 fix 多半來自玩家回報 ⇒ **核心功能都上過實機**。
+- **有實機證據的**：就緒發光 GCD 閘（2026-10-01）、符文排序與倒數（10-01）、Masque 方形觸發發光（10-01）、`SetUseAuraDisplayTime` 旗標（10-03）與
+  到期不寫旗標（10-04 痛苦術回報）、關掉增益時間的格（10-05 NGA 回報兩個 bug）、Masque 模式（10-07～10-13 三個回報）、從 Ayije 匯入與互斥彈窗
+  （10-02／10-12 玩家回報）、鐵鬃是單顆光環疊層（10-08）、Masque 卸皮還原 IconOverlay（10-08）、沸點探針（10-12）、充能技能去飽和的暴雪快取 bug（10-12 懲戒騎回報）、
+  秘法齊射 25 格層數列（10-12 截圖）、方向鍵微調、資源條順序（10-12 回報）。
+- **還沒實機驗證的大項**：充能去飽和自算（10-12）、層數列 REPEAT 遮罩、資源條逐列版面、錨定視窗雙九宮格、第四層「這個角色」、互斥停用改全帳號、
+  可點擊群組、戰鬥助手（沒開 CVar 時 API 有沒有值）、效能 E0～E3 與功能 F1～F8（[[project-miliui-cdm-eui-comparison-2026-10-04]]）、圓環（[[project-miliui-cdm-rings]]）、
+  天空騎術（[[project-miliui-cdm-skyriding]]）、Halo 四件（[[project-miliui-cdm-halo-borrow]]）、自訂列、資源列獨立擺放、飾品欄觸發發光、`SetCountdownFormatter` 吃不吃 `|c` 色碼。
+- **驗證從哪開始**：README《待實機驗證》（五百多條照功能分組、編號連續，有證據的已劃掉；⚠ 2026-10-14 有兩組 498～501 重複編號）。
+  除錯指令 `/mcdm debug`（引擎現況＋每顆 item，存 `diag.dump`；設定視窗多一個「除錯」分頁可全選複製）、`/mcdm aura`（光環格保護狀態）、
+  `/mcdm glow`（發光逐格現況＋最近轉換，**別先 /reload**）、`/mcdm echo`（沸點）、`/mcdm perf`、`/mcdm release`（還給暴雪）。
+  壞掉時請玩家「按技能 → 冷卻中打 `/mcdm debug` → 全選貼回來」或 /reload 後讀 `WTF/.../SavedVariables/MiliUI_CooldownManager.lua` 的 `diag.*`。第一戰開 `/console taintLog 2`。
+- `Ayije_CDM`／`Ayije_CDM_Options` 資料夾還在套組（互斥彈窗與匯入要讀它的 SV）；Falcon、MiliUI_SoundPack 已併入並刪除。
 
-**架構要點（跟 plan 不同的、之後改東西要知道的）**
-- 倒數文字**不自己畫**：`GetCooldownTimes` 回秘密值、曲線餵不進 Cooldown ⇒ 打開暴雪 Cooldown 內建數字、
-  用 `GetCountdownFontString()` 換樣式，小數走 `SetCountdownMillisecondsThreshold`、低秒變色走
-  `SetCountdownFormatter`＋`|c` 色碼（**待驗證會不會吃色碼**）。
-- 玩家順序來源：解碼 `C_CooldownViewer.GetLayoutData()`（`"1|"`＋Base64＋Deflate＋CBOR，
-  `data[3][specTag][layoutID][1]`，specTag＝classID×10＋specIndex），整串當簽章；解不開退類別集合順序。
-- 認領重錨契約：不 SetParent／不 Hide（alpha 0＋停放到 -10000）、暴雪框零欄位（弱鍵表）、只後掛勾
-  （唯一例外：編輯模式 Selection 的 OnDragStart／OnDragStop 用 SetScript）、容器寫入走 `ns.Write`（戰鬥中
-  碰保護鏈記帳）、髒標記三級。
-- 就緒發光靠**畫面外探針 Cooldown**：明文原封轉交 SetCooldown、被拒就餵 `GetSpellCooldownDuration` 的
-  duration 物件；掛探針的 OnCooldownDone。光環格不提供發光（固定前綴 `AuraPrefix` 後來拿掉了，見下）。
-  **GCD 閘走 `GetSpellCooldown` 的明文 `isOnGCD`／`isActive`**（零長度 duration 物件被 clearIfZero 清掉卻仍標武裝 ⇒
-  GCD 結束暴雪 Clear 時整排亮，2026-10-01 修）；用掉（isOnGCD=false 且 isActive=true）就提早熄，回充不提早熄。
-  觸發樣式裝了 Masque 改用它的方形循環圖（只借貼圖）。三項 2026-10-01 實機通過；設定頁有發光預覽樣本。
-  預設樣式：觸發＝proc、就緒＝button（不遷移）。
-- 資源條點數型每格一顆 StatusBar `SetMinMaxValues(i-1,i)`＋`SetValue(秘密值)`；法力補回；吸收型不做。
-- 公開 API：`MiliUI_CooldownManager.IsReady／GetBarFrame／GetResourceColors／GetResourceConditions／
-  GetResourceBarFrame／RegisterCallback("ResourceStyleChanged")`；UnitFrames 資源色改問它；CrusadingStrikes 只用 `Anchor.MiliCDMLoaded()` 偵測有沒有載入，不呼叫這組 API。
+## 引擎契約與架構要點（跟 plan 不同的、改東西前要知道的）
 
-**How to apply（實機驗證從哪開始）：** README 的「第一次啟用」與「待實機驗證」清單（四十多條，
-`/mcdm debug`、`/mcdm aura`、`/mcdm release` 三個除錯指令）。Ayije 還開著時新插件只彈互斥視窗（含「從 Ayije 匯入」鈕，`Core/Init.lua`）。
-第一戰開 `/console taintLog 2`。Ayije_CDM 資料夾這一輪沒刪。
+- **倒數文字不自己畫**：`GetCooldownTimes` 回秘密值、曲線餵不進 Cooldown ⇒ 打開暴雪 Cooldown 內建數字、用 `GetCountdownFontString()` 換樣式，
+  小數走 `SetCountdownMillisecondsThreshold`、低秒變色走 `SetCountdownFormatter`＋`|c` 色碼（**待驗證會不會吃色碼**，`Core/Text.lua` 檔頭）。
+  長條的秒數是暴雪每幀用秘密剩餘時間寫的 ⇒ 小數門檻對長條無效、預覽也別印假小數。
+- **玩家順序**：解碼 `C_CooldownViewer.GetLayoutData()`（`"1|"`＋Base64＋Deflate＋CBOR，`data[3][specTag][layoutID][1]`，specTag＝classID×10＋specIndex），整串當簽章；解不開退類別集合順序。
+- **認領重錨契約**：不 SetParent／不 Hide（alpha 0＋停放到畫面外）、只後掛勾（唯一例外：編輯模式 Selection 的拖曳腳本用 SetScript）、
+  容器寫入走 `ns.Write`（戰鬥中碰保護鏈記帳、脫戰補做）、髒標記三級。**暴雪框零欄位**，例外只有兩個：`Core/Compat.lua` 蓋圖示套皮插件的「已套皮」印記
+  （它的 SkinnedKey，改名就靜默失效，[[project-masqueblizzbars-cooldownviewer]]）、Masque 自己寫的 `_MSQ_*`。
+- **就緒發光靠畫面外探針 Cooldown**：明文原封轉交 SetCooldown、被拒就餵 `GetSpellCooldownDuration` 的 duration 物件，掛探針的 OnCooldownDone；
+  **GCD 閘走 `C_Spell.GetSpellCooldown` 的 `isOnGCD`／`isActive`（戰鬥中明文，2026-10-01 實機）**——零長度 duration 物件被 clearIfZero 清掉卻仍標武裝 ⇒ GCD 結束暴雪 Clear 時整排亮；
+  用掉（isOnGCD=false 且 isActive=true）提早熄。預設樣式觸發＝proc、就緒＝button。
+- **item 的 alpha 唯一出口 `Decorate.ApplyItemAlpha`**（條淡出 × 冷卻狀態；明文走 GetSpellCooldown、秘密走 duration:IsZero → SetAlphaFromBoolean）；
+  填充上色唯一出口 `Decorate.PaintFill`／`BarFillStyle`；長條名字的退路在 `OnBarNameSetText`（[[wow-cooldownviewer-buffbar-text-gate]]）。
+- **資源條**：點數型每格一顆 StatusBar `SetMinMaxValues(i-1,i)`＋`SetValue(秘密值)`；連續條直接餵；數值縮寫與百分比**交給 C 端**
+  （`AbbreviateNumbers`／`UnitPowerPercent`，12.1 法力永遠是秘密值，先過 Plain 就永遠空白）；戰鬥中條件規則展成 Step 色曲線交 C 端挑色。
+  引擎寫的層數列（`Modules/AuraBar.lua`：旋風斬／橫掃攻擊／惡魔核心／秘法齊射）走單格 AuraContainer＋`SetApplicationBar`；征戰聖擊**鏡射**暴雪追蹤量條（見撞牆）；
+  鐵鬃是 auraTimer（剩餘時間條＋刻度，`Modules/CastStacks.lua`），**不是分段列**，說明文字別拿它當層數列例子。
+  `Modules/Resources.lua` 主 chunk 貼 200 local 上限，新幫手收進 `do` 區塊或掛 `R.xxx`。
+- **公開 API** `MiliUI_CooldownManager.IsReady／GetBarFrame／GetResourceColors／GetResourceConditions／GetResourceBarFrame／RegisterCallback("ResourceStyleChanged")`
+  （回傳形狀不改，README《公開 API》）；UnitFrames 資源色改問它；CrusadingStrikes 只用自己的 `Anchor.MiliCDMLoaded()` 偵測有沒有載入，不呼叫這組 API。
+- **錨定是「排開」不是照字面貼**：`anchor` 只說跟著誰、在哪一邊，實際貼在誰身上由 `Layout.StackTarget` 算（同目標同邊照固定順序往外排）；
+  預設四個都直接跟核心技能，**不要做鏈式預設**（輔助錨在自訂格子上那種，使用者把格子移到上方就疊在一起）。重貼**兩段式**（先全部 ClearAllPoints 再 SetPoint），
+  逐條貼會撞「錨在依賴自己的框上」。2026-10-12 起錨定走「錨定視窗」（`Options/AnchorWindow.lua`：目標下拉＋雙九宮格，`Layout.AnchorSide` 排開規則不變；
+  單位框候選六個單位 × MiliUI → EllesmereUI → ElvUI → MSUF → 暴雪，unit key 是存檔內容）。
+- **三層繼承只有兩支取值函式** `ns.Setting(barKey, path)`／`ns.SpellSetting(barKey, id, key)`：主題 → 條（`follow` 為 false 才讀）→ 逐法術；沒有複製；「沒有／不要」存 `false` 不存 `nil`。
+  **逐法術覆寫新增欄位時照主題頁的欄位一對一開**（`SPELL_FALLBACK` 指同名路徑），不要把開關折進值裡（2026-10-03 持續時間換色就是把「一個下拉兼開關與顏色」拆回開關＋顏色，`MIGRATIONS[4]`）。
+  三態（跟隨／關／自訂）要讀覆寫本身 `ns.SpellOverride`，SpellSetting 退回條層後分不出「跟隨」。
+- **自訂項目四層範圍**：戰隊 `w:<uid>`／職業 `k:<uid>`／角色 `p:<uid>`（`customChar[DB.CharKey()]`，2026-10-12 使用者改口加的）／專精 `c:<index>`，窄的蓋寬的（`DB.ResolveScopes`），
+  覆寫跟著寬層那一筆走。**不做「這個角色的這個專精」第五層**（2026-10-13 拍板：要這種切法就讓那隻角色用自己的設定檔）。種族技能是動態 `kind="racial"`。
+- **只有「移除」、沒有「隱藏」**（使用者 2026-09-30 定案）：預覽中鍵＝從這條移除、不留暗格，加回來走「＋」；底層暴雪法術記 `hidden`、自訂項目整筆刪，差別不露給使用者。
+  **How to apply:** 設定介面的動詞照使用者看到的結果取。2026-10-10 另加「不顯示（只給其他插件讀取）」：增益留在暴雪清單讓別的插件讀、我們不認領不佔位（死騎骨盾給語音插件）。
+- **1px 邊框、細線、分段格距走 `P.Pixel(n)`（剛好 n 實體像素）**，不是 `P.Scale(n)`（UI 單位貼整數像素，1440p 以上 `P.Scale(1)` 是 2px；2026-10-14 共用層新增）。
+- 內建音效 `Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，本體程式不是 GPL，兩邊不互搬；載入時註冊進內嵌的 LibSharedMedia。
+  ⚠ 新版 LSM 註冊時問 `C_UIFileAsset.IsKnownFile`，**檔案不存在就靜默不註冊**；新增音檔要整個重開遊戲，`/reload` 不夠。
 
-**錨定是「排開」不是照字面貼（2026-09-30）**：`anchor` 只說「跟著誰、在哪一邊」，實際貼在誰身上由
-`Layout.StackTarget` 算——同目標同邊的照固定順序往外排（資源條→自訂格子→輔助→施法條→…）。預設四個都直接跟核心技能，
-**不要再做鏈式預設**（輔助錨在自訂格子上那種）：使用者把格子移到上方，輔助跟著黏上去、又跟資源條疊在一起。
-重貼要**兩段式**（先全部 ClearAllPoints 再 SetPoint），逐條貼會在過渡狀態撞上「錨在依賴自己的框上」。
+## 撞牆通則（從程式碼和 git 看不出來的）
 
-**進副本／被系統換專精會破圖（2026-09-30）**：排追隨者地城當補師，系統把專精換成神聖，核心技能一格變大帶深色外框、
-輔助技能整條不見；**沒有 Lua 錯誤、taint.log 也沒有東西**。兩個成因、各一條通則：
-① 清單是我們照 API 自己重建的，進場／換專精那幾幀 API 回的不完整 ⇒ 清單漏的 id 沒人認領被停到畫面外。
-**作用中、有 cooldownID 的 item 才是真相**，清單漏了就收養（`Catalog.Adopt`），不要停放。
-② 另一支替暴雪框套皮的插件在每次 RefreshLayout 把新框交給皮膚函式庫，戰鬥中又不重套 ⇒ 暴雪新生的框變混合體。
-由 `Core/Compat.lua` 蓋它的「已套皮」印記讓四條檢視器都跳過（本體那支 Fix 只管舊插件）。
-另加進場／天賦事件後 0／0.5／1.5／3 秒整套重來、縮放稽核。**這類「不報錯」的毛病靠 `Core/Diag.lua`**：
-引擎每次出手記一行進 SV（`diag.log`），`/mcdm debug` 連每顆 item 的現況一起存（`diag.dump`），壞掉時請使用者打一次再 /reload，
-直接讀 `WTF/Account/<帳號>/SavedVariables/MiliUI_CooldownManager.lua`。BugGrabber 的 SV 同資料夾也能讀。
+**冷卻格「正在倒增益時間」的唯一訊號（2026-10-03／10-04 實機）**：`Cooldown:SetUseAuraDisplayTime(旗標)` 的後掛勾——按下技能 true、增益掉了 false、戰鬥中明文。
+item 的 `cooldownUseAuraDisplayTime` 欄位（永遠 false）、Cooldown 的 `IsActive()`（跟整條重排翻）、`IsExpired()`（永遠 true）都不能用。
+但暴雪 `RefreshSpellCooldownInfo` **到期那條（光環掉了、技能又沒冷卻，例：痛苦詛咒）只叫 `CooldownFrame_Clear`、不寫 false** ⇒ 旗標卡在 true
+（症狀：效果不在時變暗勾了，DoT 掉了還是亮）。解法：setter 記 `rec.auraFlagPending`，SetCooldown 後掛勾消掉，Clear 後掛勾看不到這一筆就當 false。
+**How to apply:** 任何吃 auraFlag 的功能（音效、生效發光、變暗、持續時間換色）都走 `Decorate.SetAuraFlag`，不要只掛 setter。探針埋 log 的坑見 [[wow-121-hook-print-dropped]]。
+Ayije 從來不顯示持續時間的原因：它預設在 SetCooldown 後掛勾 `SetUseAuraDisplayTime(false)` 再餵 duration 物件蓋掉。我們的「增益持續中不顯示持續時間」開關也是這招
+（`FeedRealCooldown`，自己叫的 setter 用 `overriding` 守衛擋自己的後掛勾；探針改走 `Glow.ArmProbe`；去飽和走 `Decorate.DesatCurve`）——**改餵冷卻時要用含 GCD 的時長**，
+不然一直掛減益的格永遠沒 GCD（2026-10-05 回報）。
 
-**輔助技能整條消失的真正成因（2026-09-30，待實機確認）**：自訂格子面板沒有列時被設成高度 0，輔助技能貼在它身上。
-高度 0 的框沒有有效的矩形，貼在它身上的整條都畫不出來（清單、認領、設定頁預覽全部正常，所以診斷記錄裡也沒有 `[adopt]`）。
-只在「沒有自訂格子的專精」發生（懲戒有格子、神聖沒有）。改成收合＝邏輯狀態、框留 1 高、排開時跳過（`StackTarget` 的 `skip`）。
-**通則：不要把任何東西錨在寬或高是 0 的框上**；要「不佔位」就讓別人改錨，不是把它縮成 0。
+**充能旗標不等於有充能（2026-10-04）**：冷卻管理器資料的 `charges` 是「可以有充能」，天賦給第二次的技能沒點也是 true；照它問 `GetSpellChargeDuration` 回充永遠是零 ⇒
+隱藏 GCD 轉圈把武器戰法術反射的冷卻框一直藏著。凡是照它選 `GetSpellChargeDuration` 的地方都要過 `Decorate.IsChargeSpell`（`maxCharges > 1`，秘密時沿用上次明文）。
+「還有充能／0 充能」別讀 `currentCharges`（戰鬥中秘密值），看 `GetSpellCooldown` 的 `isActive` 且非 `isOnGCD`（`ChargeState`）。
+**充能用完「有時候」不去飽和是暴雪的快取 bug**，去飽和自己照 `GetSpellCooldownDuration(id, true)` 算：[[wow-cooldownviewer-charge-cache-stale]]（2026-10-12，修法未實機驗證）。
+隱藏 GCD 轉圈本身也不能讀 `SetCooldown` 的 duration（秘密值，勾了等於沒勾），改餵 ignoreGCD 的 duration 物件 `IsZero` → `SetAlphaFromBoolean` 交給引擎判。
 
-**暴雪 API 在神聖專精給的是懲戒的清單（2026-09-30，暴雪 bug）**：使用者的聖騎換成神聖後，暴雪自己的「冷卻技能設定」面板列的是
-懲戒那一套（本專精沒學的整排灰色、「不顯示」只剩懲戒的兩個），神聖自己的精通光環（31821）、公正之盾（415091）不見。
-證據是 cooldownID：存檔 `spells[65]` 裡出現 19397（＝懲戒那一套的審判）。**cooldownID 就是 `CooldownSetSpell.ID`**，
-`https://wago.tools/db2/CooldownSetSpell/csv` 與 `CooldownSet/csv`（ChrSpecialization）對得出每個 id 屬於哪個專精；
-聖騎：懲戒 set 901、神聖 1164、防護 637。暴雪端的 bug（面板資料全來自 `GetCooldownViewerCategorySet`，版面只重排）；
-**觸發條件（使用者確認）：排追隨者地城被系統強制切專精**——專精換了，冷卻清單還是原本那個專精的。
-`/mcdm debug` 有一行「暴雪清單（API）」印前三個 cooldownID＝法術，對表就知道現在拿到的是哪個專精的。
-能做的只有自訂 ID 補格子；重登／切專精是否恢復待使用者回報。
+**裝備欄項目（飾品）在 GCD 期間變灰（2026-09-30）**：暴雪對裝備欄項目拿 `GetInventoryItemCooldown` 當真冷卻、`isOnGCD` 寫死 false ⇒ 按任何技能那格都去飽和。
+`SetDesaturated` 後掛勾重判（秘密值時走「不含 GCD 的法術冷卻是不是零」交給引擎）。飾品格「有時缺框」是暴雪 `isKnown` 快取過期、插件標不了髒 ⇒ 改自己代畫：[[wow-cdm-equipslot-stale-cache]]。
 
-**只有「移除」、沒有「隱藏」（使用者 2026-09-30 定案）**：預覽上按中鍵＝從這條移除、不留暗格，加回來走「＋」
-（挑選器第一區灰階列出被移除的）。底層暴雪法術仍是記 `hidden`、自訂項目是整筆刪，但**這個差別不露給使用者**。
-**Why:** 使用者不在意東西有沒有從暴雪的冷卻管理器拿掉，只在意「設定面板上有什麼，畫面上就有什麼」；
-把實作上的差別（能不能真的刪）做成兩個動詞，只會讓人覺得「移不掉」。
-**How to apply:** 設定介面的動詞照使用者看到的結果取，不照底層資料怎麼存取。
+**掛勾收到的參數、讀回的幾何都可能是秘密值**（總則 [[wow-121-secret-values]]）：`SetDesaturated` 後掛勾的布林戰鬥中是秘密的，`if v == false` 每次刷新都拋（2026-09-30，48 次/場）；
+「有沒有拿到值」寫 `IsSecret(v) or v ~= nil`，秘密值連跟 nil 比都炸。錨定鏈牽到秘密錨點時 `GetNumPoints` 回秘密數字（2026-10-07），判「被 Masque 管過」改用自己記的旗標 `msqButton／msqTouched`。
+item 餵過 `SetAlphaFromBoolean` 後 alpha 沿父子鏈變秘密，**Masque 套皮會拿圖示 `GetAlpha()` 跟 0 比就炸**（2026-10-13）⇒ 讀到秘密先不交、下一次排版再試（`Core/Masque.lua` `PlainAlpha`）。
 
-**從 Ayije_CDM 匯入設定（2026-10-01，未實機驗證）**：`Core/Import.lua`，純轉換 `Convert(profile, opts)`＋離線測試
-`Tests/Import_test.lua`（夾具是使用者存檔的去名縮小版）。**只能在互斥彈窗那一刻做**（對方的 SV 只在它載入時存在）：
-彈窗多一顆主按鈕「從 %s 匯入」→ 讀 `Ayije_CDMDB`、每份 profile 轉成「Ayije：<名>」新設定檔、寫進我們的 SV（DB.Init 前直接寫）、
-停用它、重載；設定檔頁只放「啟用它並重載」。spellID→cooldownID 只換得了目前專精，其他專精存 `profile.pendingImport[specID]`，
-目錄建好時 `ResolvePending` 補。對方存檔只存跟它預設不同的鍵 ⇒ **沒出現的鍵不動**。計畫在 `~/.claude/plans/miliui-cdm-import-ayije.md`。
-**互斥停用與匯入是全帳號的（2026-10-12 修，未實機驗證，README 驗證清單 98）**：玩家回報「切換角色設定會跑掉」，根因是
-`DisableAddOns` 只停目前這隻角色（傳 GUID），換角色彈窗再跳、第二次「重新匯入」把上一隻調好的「Ayije：…」整份覆寫回對方版本。
-改成 `DisableAddOn(name)` 不帶角色（＝所有角色，**這個語意還沒實機驗證**；保險留著：目前這隻沒關掉再補 GUID 那次），
-匯入時 `Import.PlanBindings` 把對方 `profileKeys`／`specProfiles` 裡**每隻角色**的綁定一次搬過來（本插件已有 profileKeys 或
-specProfiles 的角色不覆蓋、對方轉換失敗的不退回 Default）。「重新匯入會覆寫」沒動——那是症狀不是根因。
-**How to apply:** 任何「停用某支插件」的流程都走 `DisableAddOns`、當帳號層決定；設定檔頁「啟用它並重載」仍只開目前這隻（未改）。
+**光環**：增益格「在不在」讀 item 的 `IsActive()`（讀不到當在），不讀 `IsShown`——暴雪「未作用時隱藏」沒勾時不在的增益也顯示著暗格（2026-10-03，`Bars.AuraPresent`）。
+名字／圖示照暴雪面板走 **`overrideTooltipSpellID` 優先**（鮮血女王的精華 spellID 是吸血鬼打擊；冷卻比對仍用 spellID／overrideSpellID，2026-10-04）。
+目標身上有該法術減益時圖示鎖成減益圖示、**觸發發光晚 3～5 秒**：[[wow-cooldownviewer-target-aura-locks-icon]]（自己聽 SPELL_ACTIVATION_OVERLAY_GLOW_SHOW／HIDE）。
+**AuraContainer 的 `includeSpellIDs` 看不到天賦本身的被動光環**（征戰聖擊 404542，2026-10-02 實機整列空白）⇒ 那一列改成**鏡射**暴雪追蹤量條的 item（每幀 `SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手），
+征戰聖擊一定要留在暴雪的追蹤量條裡。鐵鬃實測是單顆光環疊層數（一度誤判成每施放一顆，2026-10-08）。
+光環格可放條上任意位置（條上有光環格時固定格位已強制開、位置本來不動；代價：戰鬥中暴雪清單變動那場位置可能不對）。
 
-**自訂圖示群組「可點擊」（2026-10-01，未實機驗證）**：`Core/Clickable.lua`，每格上面蓋一顆透明的
-`SecureActionButtonTemplate` 鈕（parent／錨點都是容器、層級容器 +40、只掛 OnEnter／OnLeave 轉給 Decorate 的提示）。
-動作：自訂法術 `spell`＝基底 id、物品 `item="item:<id>"`、飾品欄 `slot`、暴雪技能有裝備欄走 `slot` 否則 spellID；
-光環格／增益類來源／物品冷卻類別／占位格／秘密值 ⇒ 那格不蓋鈕。**鈕錨在容器上 ⇒ 容器隱式保護 ⇒ 可點擊的群組
-強制固定格位**（跟光環格同一套），寫入走 `ns.Write`＋三種簽章去重，鈕只在戰鬥外建（戰鬥中記 pending、脫戰重排）。
-編輯模式中鈕全收（strata 高的群組會蓋在選取框上）。**內建條不做**（item 是暴雪的框）。已知限制：淡到 0 的群組鈕
-還在收點擊（條件式顯示要走 secure 狀態驅動才解得了，等實機回饋）。Plan 在 `~/.claude/plans/miliui-cdm-clickable-groups.md`。
+**進副本／被系統換專精會破圖（2026-09-30）**：排追隨者地城被換成補師專精，核心一格變大帶深色外框、輔助整條不見；**沒有 Lua 錯誤、taint.log 也沒東西**。
+① 進場那幾幀 API 回的清單不完整，漏的 id 沒人認領被停到畫面外——**作用中、有 cooldownID 的 item 才是真相**，清單漏了就收養（`Catalog.Adopt`）不要停放；
+② 圖示套皮插件在每次 RefreshLayout 把新框交給皮膚庫、戰鬥中又不重套 ⇒ 混合體，由 `Core/Compat.lua` 讓它跳過。另加進場／天賦事件後 0／0.5／1.5／3 秒整套重來與縮放稽核（README《進場、換專精：暴雪正在顯示的才是真相》）。
+**這類「不報錯」的毛病靠 `Core/Diag.lua`**：引擎每次出手記一行進 SV（`diag.log`）。
+同一場景的暴雪 bug：**系統強制切專精後 `GetCooldownViewerCategorySet` 給的還是原專精的清單**（神聖拿到懲戒那套，存檔 `spells[65]` 出現 19397＝懲戒審判）。
+cooldownID 就是 `CooldownSetSpell.ID`，`wago.tools/db2/CooldownSetSpell/csv`＋`CooldownSet/csv` 對得出屬於哪個專精（聖騎：懲戒 901、神聖 1164、防護 637）；`/mcdm debug` 印前三個 cooldownID＝法術可對表。能做的只有自訂 ID 補格子。
 
-**內建音效（2026-09-30）**：`Media/Sounds/`（106 個音檔＋`Sounds.lua`）**是 GPL-2.0 的獨立子資料夾**，自帶 LICENSE 與出處
-README；本體程式不是 GPL，兩邊不要互搬。音效直接放在本插件、載入時註冊進 LibSharedMedia 讓其他插件也選得到
-（使用者拍板：不另立音效包插件）。為此內嵌了 LibStub／CallbackHandler／LibSharedMedia（取套組裡最新那份）。
-⚠ 新版 LibSharedMedia 註冊時會問 `C_UIFileAsset.IsKnownFile`，**檔案不存在就靜默不註冊**；新增音檔要整個重開遊戲，
-`/reload` 不夠。
+**不要把任何東西錨在寬或高是 0 的框上（2026-09-30）**：自訂格子沒有列時容器設高 0、輔助技能貼在它身上 ⇒ 整條畫不出來（清單、認領、預覽全正常、診斷也沒東西）。
+收合＝邏輯狀態、框留 1 高、排開時跳過（`StackTarget` 的 `skip`）；要「不佔位」就讓別人改錨。資源列全部拆走時面板同樣留 1 高。
 
-**Why:** 修 UX 的根在資料模型（三百個扁平 key、共用／獨立無規則、複製不繼承），只重寫 Options 會整包繼承；
-fork 的本地修改每次上游更新都要重套。
-**How to apply:** 動 CDM 相關工作先讀 plan；Ayije_CDM 資料夾在新插件實機驗過前不刪。
-相關：[[project-ayije-cdm-aura-slots]]、[[project-ayije-cdm-editmode-drag]]、[[project-local-addon-forks]]。
+**資源列順序分專精合併（2026-10-12）**：別的專精才有的 key 寫回時要**錨在它原本前一個 key 後面**（`R.MergeOrder`），一律接到最後會讓共有列（血量）在兩個專精間互相洗掉。
 
-**圖示外觀可改用 Masque（2026-10-01，未實機驗證）**：`Core/Masque.lua`，主題頁「圖示」節的 `icon.skin`（miliui 預設｜masque），
-走 follow.icon 繼承。Masque 管邊框／縮放／轉圈材質，文字／轉圈色／發光等留我們；**模式登入時快照、切換只提示重載**（不做執行期雙向切換）。
-Masque 群組 `Group("MiliUI Cooldown Manager", L["Icons"], "Icons")`——**插件名與 StaticID 不能在地化**（那是群組 ID）。
-AddButton 一律完整 regions＋Strict；長條只交 item.Icon（條身邊框照畫）；無損刷新在 Masque 模式只在窗口內亮我們的邊框。
-這是「暴雪框零欄位」的第二個例外（Masque 自己寫 _MSQ_*）。待驗證 README 121–128。Plan：`~/.claude/plans/miliui-cdm-masque.md`。
+**編輯模式**：掛暴雪檢視器的 SetPoint 後掛勾釘回容器一律**延一幀**，不然我們的框名被存進版面、登入報 Couldn't find region：[[wow-editmode-setpoint-hook-saves-our-name]]。
+戰鬥中開 `/mcdm` 的方向鍵捕捉框被戰鬥閘收著 ⇒ **脫戰處理器一律常駐註冊、不看進戰鬥那一刻的狀態**（2026-10-03）。Selection 的拖曳腳本用 SetScript 是契約唯一例外（README《為什麼暴雪的 Selection 用 SetScript》）。
+格子的滑鼠提示走預設錨點（跟暴雪 item 一樣），提示插件的錨點設定才管得到（2026-10-11）。
 
-**2026-10-03 對照 EllesmereUI／Ayije 後補的五組功能（全部未實機驗證，README 待實機驗證 152～189 條）**：plan 在
-`~/.claude/plans/miliui-cdm-eui-features.md`，五個 Opus 子代理各一階段、同一個 worktree 依序做，逐階段驗收後 commit＋merge。
-- P1 冷卻狀態效果（`icon.cdState`：dim／hideOnCD／hideReady，逐法術可覆寫）：**item 的 alpha 唯一出口 `Decorate.ApplyItemAlpha`**
-  （條的淡出 × 冷卻狀態；明文走 GetSpellCooldown 的 isActive／isOnGCD，秘密走 duration:IsZero → SetAlphaFromBoolean）。
-  附帶 `Core/SpellIndex.lua`（spellID → 格子）＋ SPELL_UPDATE_COOLDOWN 帶明文 ID 時精準重算（讀不懂就全掃）。
-- P2 戰鬥助手（暴雪字串「戰鬥助手」「輔助醒目標示」）：`Core/Assist.lua` **自己 0.1 秒輪詢 `C_AssistedCombat.GetNextCastSpell(false)`**
-  （只在戰鬥中或目標可攻擊時），不依賴 CVar；第四種發光 "assist"；面板 `assistIcon`（PANEL_ORDER 最後）。兩者預設關。
-  ⚠ 沒開 CVar 時 API 有沒有值是最關鍵的待驗證項。
-- P3 常用預設 `Core/Presets.lua`（種族／防禦技能／藥水與治療石／團隊增益；ID 兩來源對過，Ayije 的 1287685 是錯的）；
-  自訂物品可帶 `alts`（挑包包裡有的）、光環格可帶 `spellIDs`（嗜血用多 ID 讓引擎畫真實增益）；`DB.CopyCustomEntry` 複製到其他專精。
-- P4 層數門檻 `Core/StackGate.lua`：秘密層數走「閘 StatusBar(N-1,N)＋裁切框錨在閘填充貼圖」；長條換色那層畫在**條身底下**
-  （暴雪填充調透明），無損刷新色會蓋過它。層數來源 item:GetAuraDataCached().applications（原樣餵）。
-- P5：自訂法術距離／可用上色（照暴雪常數）、逐法術 `customIcon`（Icon:SetTexture 後掛勾蓋回）、群組跟著游標 `Core/Cursor.lua`
-  （只有無光環格、不可點擊的自訂圖示群組）、語音播報 `readySpeak／gainSpeak／loseSpeak`（C_VoiceChat.SpeakText）、長條火花 `bar.spark`。
-- 語系稽核基準「共 9 個問題」＝原本就有的 5 條多餘條目，不要刪。
+**互斥與匯入**：互斥彈窗不能登記 UISpecialFrames（登入時被 CloseAllWindows 收掉，[[wow-uispecialframes-login-closed]]）。`DisableAddOn` 的 character 參數要傳 **GUID**，傳名字有的角色靜默無效 ⇒ 重載又偵測到衝突、彈窗無限循環（2026-10-02）。
+**停用要全帳號**（`DisableAddOn(name)` 不帶角色；語意未實機驗證，保險留著：目前這隻沒關掉再補一次帶 GUID）：只停目前角色的話換角色彈窗再跳、第二次「重新匯入」把上一隻調好的「Ayije：…」洗回對方版本（2026-10-12 回報）；
+匯入時 `Import.PlanBindings` 把對方每隻角色的 `profileKeys`／`specProfiles` 一次搬過來（本插件已有綁定的角色不覆蓋）。匯入**只能在互斥彈窗那一刻做**（對方 SV 只在它載入時存在）；
+對方只存跟預設不同的鍵 ⇒ 沒出現的鍵不動；spellID→cooldownID 只換得了目前專精，其他存 `pendingImport[specID]`、`ResolvePending` 補（README《從 Ayije_CDM 匯入》）。
 
-**增益持續時間的倒數換色（2026-10-03，未實機驗證，README 待實機驗證 197～202）**：plan 在 `~/.claude/plans/miliui-cdm-duration-color.md`。
-核心／輔助技能用掉後暴雪先倒**增益持續時間**、增益掉了才倒冷卻（`CheckCacheCooldownValuesFromAura` 優先於法術冷卻）。
-**訊號＝`Cooldown:SetUseAuraDisplayTime(旗標)` 後掛勾**：暴雪每次 `RefreshSpellCooldownInfo` 都先設它再 `SetCooldown`，
-旗標是暴雪 Lua 的字面布林（預期明文），記 `rec.auraTime`，`SetCooldown` 後掛勾只多一次 `SetTextColor`。
-主題 `icon.colorDuration`（預設開）＋`icon.durationColor`（黃 1/0.85/0.1，**放圖示節、跟「顯示增益持續時間」開關同一組**）；逐法術 `durationColor` 三態（nil 跟隨／false 不換／色表），
-**三態要讀覆寫本身 `ns.SpellOverride`**（SpellSetting 沒覆寫時退回條層、分不出跟隨）。增益兩條／長條／自訂法術沒有這一段、不適用。
-低秒變色兩段各一顆 formatter（`icon.durationLowColor` 預設粉 0.95/0.45/0.70、門檻共用）、增益那一段轉圈背景 `icon.durationSwipeColor`（淡黃 a0.5），三色同一個「持續時間換色」開關。
-**Ayije_CDM 從來不顯示持續時間的原因**：逐法術「Show Aura Overlay」預設關（只有內建 DoT 清單預設開），關著時它在 `SetCooldown`
-後掛勾裡 `SetUseAuraDisplayTime(false)` 再用 `GetSpellCooldownDuration` 的 duration 物件重餵、蓋掉暴雪的增益倒數。
-暴雪那邊沒有玩家設定（只有 `CooldownSetSpellFlags.HideAura` 資料旗標）。
-**「增益持續中顯示持續時間」開關已做（2026-10-03，未實機驗證，README 待實機驗證 203～211）**：plan `~/.claude/plans/miliui-cdm-aura-time-toggle.md`。
-主題 `icon.showAuraTime`（預設 true＝暴雪行為）、逐法術三態。關＝`SetCooldown` 後掛勾裡 `FeedRealCooldown`：`SetUseAuraDisplayTime(false)`＋
-餵 `GetSpellCooldownDuration(id,true)`／回充 `GetSpellChargeDuration` 的 duration 物件（拿不到就 Clear），**探針改走 `Glow.ArmProbe`**
-（`Glow.OnItemSetCooldown` 看到增益旗標會直接 return、探針永遠不武裝），去飽和走 `Decorate.DesatCurve`＋`EvaluateRemainingDuration`
-（曲線從 Custom.lua 搬來共用）；自己叫的 SetUseAuraDisplayTime／Clear 用 `overriding` 守衛擋掉自己的後掛勾。
-只做法術類，飾品（裝備欄項目）照暴雪顯示增益。最可能實機翻車：去飽和在冷卻轉好那一刻要等暴雪下一次刷新才還原（207）。
+**施法條**：隱藏暴雪施法條只解事件、可原樣裝回；載具／變身叫出覆蓋快捷列時暴雪改顯示 **`OverlayPlayerCastingBarFrame`**（自己註冊事件，關了本體照樣出現，2026-10-08）；
+NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪條事件**裝回**（2026-10-10）⇒ 讀完畫面延一幀再對帳、被裝回就再解一次。
 
-**逐法術的持續時間換色跟主題頁同一套五欄位（2026-10-03，當時 DB v4；DB 版本現在以 `Core/DB.lua` 的 `ns.DB_VERSION` 為準，2026-10-09 是 v7：v5 低秒變色拆欄、v7「增益不在時」三態，見 README）**：使用者要求「個別設定也都要可以獨立設置，
-邏輯和關聯性和主題頁一樣」。逐法術覆寫 `colorDuration`（三態）＋`durationColor`／`durationLowColor`／`durationSwipeColor`（各自 nil 或色表），
-全部走 `SpellSetting` 退回條層；`Decorate.SpellStyle` 解成生效值、`PhaseColors(style, spell)`／`DurationColorOf(on, color)` 改簽章。
-面板：換色下拉（跟隨／換色／不換色）＋三列「自訂」勾選框＋色票（抄邊框顏色那列），停用連動＝顯示增益持續時間 → 換色 → 顏色。
-**舊三態 `durationColor`（false／色表＝條層關著也換）靠 `MIGRATIONS[4]` 拆開**，行為不變。
-**Why:** 逐法術用「一個下拉兼開關與顏色」跟主題頁的「開關＋顏色」是兩套心智模型，使用者要的是同一套。
-**How to apply:** 逐法術覆寫新增欄位時照主題頁的欄位一對一開（SPELL_FALLBACK 指同名路徑），不要把開關折進值裡。
+**Lua 本身**：`Options/SpellPopover.lua` 的 `Build` upvalue 貼 60 上限（超過整檔載入失敗、小窗打不開，`check_lua.py` 已抓；新 helper 掛 `Pop.xxx`，[[project-miliui-cdm-halo-borrow]]）。
+`(not on) and false or nil` 把 false 吃成 nil（同一症狀踩兩次：資源列勾選、脫戰也亮）、`n and n:GetCenter()` 截掉第二個回傳值——[[wow-lua-and-or-pitfalls]]，lint 抓不到。
 
-**長條類的條也收自訂項目（2026-10-03，Opus 實作、未實機驗證）**：plan `~/.claude/plans/miliui-cdm-custom-bars.md`。
-框依條的 kind 池化（`rec.frames = { icons, bars }`，`CU.UseFrame`）、搬條換框；法術／物品的條身走
-`StatusBar:SetTimerDuration(duo, nil, RemainingTime)`、秒數用一顆只印數字的 Cooldown（`.Bar.Timer`）讓引擎寫；
-光環長條在 initializeFrame 同時交 `SetDurationBar`＋`SetDurationText`＋`SetApplicationCount`、名字自己寫；
-長條不畫發光（`rec.noGlow`）。Decorate／Text 零改動。最要驗：零長度物件能不能清空條身（`CU.clearPath`）、三個 API 同時交會不會打架、搬條舊框收乾淨。
-**光環格可放任意位置（同日定案）**：拿掉 Catalog 的 AuraPrefix，光環格走同一張 order 表；理由是條上有光環格時固定格位已強制打開、
-位置本來就不動。代價：戰鬥中暴雪清單變動那一場位置可能不對。匯入的光環格現在接在後面（不寫 order）。
+**共用層選色器**（兩次踩到）：暴雪 ColorPickerFrame 按確定一律叫 opacityFunc、沒開透明度時不重設滑桿 ⇒ 上一個選色器殘留的 alpha 被寫進設定（天空騎術顏色變半透明）；取消時舊值的透明度在 `a` 不在 `opacity`，讀錯欄位寫成 nil。都已在 MiliUIWidgets 修（[[project-miliui-widgets-vendor]]）。
 
-## 12.1 冷卻格「正在倒增益時間」的唯一可靠訊號（2026-10-03 實機）
-Cooldown:SetUseAuraDisplayTime(旗標) 的後掛勾：按下技能 true、增益掉了 false、戰鬥中明文。冷卻格的
-IsActive()（跟著整條重排翻）、item 的 cooldownUseAuraDisplayTime 欄位（永遠 false）、IsExpired()（永遠 true，
-暴雪每次刷新幾乎都 Clear）都不能用。冷卻格的「生效期間發光」就接在這個旗標上（rec.auraFlag → Glow.SyncActive）。
-探針埋 log 的坑見 [[wow-121-hook-print-dropped]]。
-「生效期間發光」2026-10-03 起跟觸發／就緒同一套：條層 glow.active（enabled 預設關、樣式／顏色／線條／粗細、跟隨主題），
-逐法術只蓋開關；不要再做逐法術的發光顏色／樣式（使用者明確改回一致）。
-- 2026-10-03 續（同日另一個 session 並行推 master：法術小窗分頁、天賦條件、生效發光重做…，合併時衝突交 Opus 解）：
-  **P6** 每種資源自己的設定視窗（`resources.style[key]` 代理表 `R.StyleFor`，貼在設定視窗右邊；「顯示數字」逐資源獨立、沒有統一開關）；
-  **P7** 顯示條件補敵對目標／飛行騎乘／房屋，逐法術 `replaceWith`（以增益取代；覆寫自成 "replace" 組；只能選增益圖示列，長條鏡射不可行＝**P9 擱置**）；
-  **P8** 自訂項目三層範圍 戰隊 `w:<uid>`／職業 `k:<uid>`／專精 `c:<index>`，窄的蓋寬的（`DB.ResolveScopes`），覆寫跟著寬層那一筆走（`DB.OverrideTable` 分流），
-  種族技能是動態 `kind="racial"`，預覽記號 PNG 由 `miliui-cdm-scope-icons` 技能產生。原本定案不做角色專屬層，**2026-10-12 使用者改口加了第四層「這個角色」**（`customChar[DB.CharKey()]`、id `"p:<uid>"`、排序 戰隊＜職業＜角色＜專精；專精表同設定檔跨角色共用，所以角色與專精其實是兩個維度，角色→專精的確認字另寫）。**不做「這個角色的這個專精」第五層**（2026-10-13 拍板：要這種切法就讓那隻角色用自己的設定檔，專精層自然只屬於它）。不做 EUI 式同步。
-- 2026-10-04：**冷卻管理器資料的 `charges` 只是「可以有充能」**（天賦給第二次的技能沒點也是 true）；凡是照它選 `GetSpellChargeDuration` 的地方要過 `Decorate.IsChargeSpell`（`maxCharges > 1`），否則單次技能的回充永遠是零 ⇒ 隱藏 GCD 轉圈把冷卻框一直藏著。`/mcdm debug` 之後設定視窗有「除錯」分頁可全選複製，玩家回報先叫他「按技能 → 冷卻中打 /mcdm debug → 全選貼回來」。
-- 2026-10-12：**充能技能的去飽和不靠暴雪**（[[wow-cooldownviewer-charge-cache-stale]]）：`ChargeState` 判「0 充能」看 `GetSpellCooldown` 的 `isActive` 且非 `isOnGCD`（明文），不讀 `currentCharges`（戰鬥中秘密值 ⇒ 以前 0 充能也走回充那條、去飽和物件 nil）；去飽和一律照 `GetSpellCooldownDuration(id, true)`；`SetDesaturated` 後掛勾對充能技能（沒倒光環時間）重算、`SPELL_UPDATE_CHARGES` 延一幀整批對一次。**未實機驗證（README 495～496）**。同日層數列（引擎寫的 AuraBar）的分隔改畫**不透明暗底色**而不是黑：填色整列連續、格距底下一定有色，分隔不能透明，以前跟黑邊同色 ⇒ 格距 2 是 4px 實心黑、比點數型（邊＋透明格距＋邊）粗一倍（秘法齊射 25 格截圖量到 8px/2px）；同日再改：格距 > 0 時填色貼圖在 initializeFrame 掛 **REPEAT 遮罩**挖掉格距（`AB.MaskPlan`：遮罩寬＝節距、`Media/segmask-<den>.png` 右端 1/den 透明、比例落在 1/den～2/den 疊第二張左移、挖寬多 1px 藏在黑邊下、幾何進簽章；貼圖由 `miliui-cdm-segment-masks` 技能產生），掛不上才退回暗底色分隔。**REPEAT 遮罩矩形外重複、反向 SetTexCoord 翻圖都未實機驗證**。
-- 2026-10-12：**資源條的版面整組可逐列另設**（寬／列距／文字偏移／分段間距（只有分段的列）／填充方向／顯示數字；使用者指定「分級、各自的設定最優先」、「只有用到的才出現」）：都存 `style[key].*`；**「跟隨資源條的版面」`style[key].followLayout`（沒存＝跟，跟外觀的勾同一套，勾著時那五列蓋遮罩、自己存的值不讀）**；純量走 `R.StyleFor` 代理表（`R.LAYOUT_FIELDS`；顯示數字仍是 `R.INDEPENDENT_FIELDS` 不看跟隨），文字偏移逐欄位退回全域（代理表回合併表），寬與列距不經代理表（`R.KeyWidth`／`R.KeyRowSpacing`，`Relayout` 改累計 y、窄列置中、面板寬＝最寬列）。共用層 numbers 控件多收 `field.get`／`field.set`（已 sync 到各消費者）。`Resources.lua` 主 chunk 貼 200 local 上限，新幫手收進 `do` 區塊。未實機驗證（README 498～501）。⚠ 鐵鬃是 auraTimer（剩餘時間條、castTimers），**不是**分段列，說明文字別拿它當層數列的例子（層數列的例子是旋風斬／橫掃攻擊／秘法齊射）。裝飾格界同時改貼實體像素（`AB.Geometry` 的 `pixel`）、instances 型不貼；README 497 待驗。
+## 功能索引（一句話；細節在 README 同名章節）
 
-**冷卻格的增益旗標只在「沒到期」才寫（2026-10-04 實機）**：`SetUseAuraDisplayTime` 後掛勾是「暴雪正在倒增益時間」的唯一訊號，
-但暴雪 `RefreshSpellCooldownInfo` 到期那條（光環掉了、技能又沒冷卻，例：痛苦詛咒）只叫 `CooldownFrame_Clear`、**不寫 false**
-⇒ `rec.auraFlag` 卡在 true（症狀：效果不在時變暗勾了，DoT 掉了／換目標還是亮）。解法在 Decorate：setter 記 `rec.auraFlagPending`，
-SetCooldown 後掛勾消掉，Clear 後掛勾看不到這一筆 ⇒ 當 false（`SetAuraFlag` 共用連帶：音效、生效發光、變暗）。
-**How to apply:** 任何吃 auraFlag 的新功能都走 `SetAuraFlag`，不要只掛 setter。逐法術「效果不在時變暗」（`dimNoAura`）就是靠這個。
-- 2026-10-12：**錨定改成「錨定視窗」**（`Options/AnchorWindow.lua`，殼是 SettingsWindow、`configKey` 可省略＝每列自己的 key）：表單只剩摘要列＋「設定」鈕；
-  視窗內＝跟著哪條走下拉（寫入規則只有 `Specs.AnchorTargetSpec` 一份）→「目前接到：家名（框名）」灰字（`Anchor.Provider`）→**雙九宮格**
-  （主格＝目標的點 relPoint、次格＝這條的點 point，次格用遊戲裡同一句 `SetPoint(point, main, relPoint)` 擺、holder 固定 132）→偏移。
-  「邊」四選一下拉拿掉、`Layout.AnchorSide` 排開規則不變（任意組合可選，只有上下／左右相對的排開）。單位框候選六個單位 × 五家
-  （MiliUI → EllesmereUI → ElvUI → MSUF（框名 `MSUF_<小寫unit>`，前綴玩家可改）→ 暴雪；新 unit key `pet`／`targettarget`／`focustarget` 是存檔內容）。plan `~/.claude/plans/miliui-cdm-anchor-picker.md`，
-  **未實機驗證（README 498～507）**；最可能翻車：次格疊住主格的格子點不到（507）、歐語圖例換第三行（503）。
+- **從 Ayije_CDM 匯入**（`Core/Import.lua`，純轉換 `Convert`＋`Tests/Import_test.lua`）、**可點擊的自訂群組**（`Core/Clickable.lua`：每格蓋 secure 鈕、強制固定格位、戰鬥中零寫入；已知限制：淡到 0 的群組鈕還在收點擊）。
+- **圖示外觀 Masque**（`Core/Masque.lua`：登入快照、切換只提示重載；群組名與 StaticID 不能在地化；**停用／卸皮後圖示凍在舊尺寸**要貼回整格；光環格家族也交 Masque、發光與按鍵閃光跟著皮的形狀）；
+  **內建圖示形狀與陰影**（`Core/Shape.lua`，遮罩建在 item 本身）。
+- **冷卻狀態效果**（`icon.cdState` dim／hideOnCD／hideReady＋`Core/SpellIndex.lua` 精準重算）、**戰鬥助手**（`Core/Assist.lua` 自己 0.1 秒輪詢 `GetNextCastSpell(false)`、第四種發光 assist、面板 assistIcon）、
+  **常用預設**（`Core/Presets.lua`，每季要對一次；物品可帶 `alts`、光環格可帶 `spellIDs`）、**層數門檻發光／長條層數換色／比較子**（`Core/StackGate.lua`：秘密層數走閘 StatusBar＋裁切框，長條換色層畫在條身底下）、
+  小項（距離上色、`customIcon`、跟著游標 `Core/Cursor.lua`、語音播報、火花）。
+- **增益持續時間**：倒數換色（主題 `icon.colorDuration`＋三色，逐法術同一套五欄位）、低秒變色與小數門檻跟冷卻那段分開、**增益持續中不顯示持續時間**（`icon.showAuraTime`，只做法術類）；
+  冷卻低秒變色開關與秒數拆兩欄（v5）；**增益不在時三態**（collapse／blank／dim，條層與逐法術同一下拉，v7）；回充的長相三開關；**以增益取代**（`replaceWith`，只能選增益圖示列）。
+- **長條**：長條類的條也收自訂項目（框依 kind 池化、`StatusBar:SetTimerDuration`＋只印數字的 Cooldown；光環走 `SetDurationBar`＋`SetDurationText`＋`SetApplicationCount`）、漸層／充能分段／垂直（F8）、反向填充、逐法術名字與條色、**暴雪樣式外觀**（圖集填充＋圓角遮罩＋外框圖，填充色另存 `bar.blizzardColor`）。
+- **版面**：格數上限＋溢出到別條（F1）、按鍵鏡射（F2）、逐法術占位（F7，後併入三態）、只有光環格的條引擎補位（H1）、**圓環顯示**（[[project-miliui-cdm-rings]]）、**不顯示（只給其他插件讀取）**。
+- **資源條**：每種資源自己的設定視窗（`resources.style[key]` 代理表 `R.StyleFor`；顯示數字逐資源獨立）、**版面逐列另設**（寬／列距／文字偏移／分段間距／填充方向，`followLayout` 沒存＝跟）、
+  層數列格距 REPEAT 遮罩（`AB.MaskPlan`、技能 `miliui-cdm-segment-masks`；裝飾格界貼實體像素）、血量列與門檻曲線、征戰聖擊鏡射列、噬滅虛空化身計時（`Modules/DevourerMeta.lua`）、
+  **自訂列**（`Modules/CustomBars.lua`：自身增益／目標減益／法術冷卻的計時條，2026-10-13）、**資源列獨立擺放**（`resources.detached[key]`，列的 parent 不換只改錨點，閒置面板走 `Bars.Dormant`）、
+  自訂格子（`Modules/Pips.lua`）與兩個分頁的固定預覽框。
+- **飾品**：裝備欄位 `kind="slot"`（不經暴雪）、飾品冷卻格疊增益持續時間、暴雪沒給框時代畫（`[proxy]`）、飾品欄增益 `kind="slotbuff"`、沒有物品時隱藏／被動飾品不顯示、飾品欄觸發發光、藥水格疊增益。
+- **音效**（`Core/Sound.lua`：就緒／出現／消失／充能滿／層數增加／施放後 N 秒提醒／倒數播報、天賦條件、自訂語音）、**事件視窗 沸點**（`Modules/EchoWindow.lua`，2026-10-12 實機：戰鬥中 `SPELL_UPDATE_COOLDOWN` 的 spellID 明文）。
+- **天空騎術**（[[project-miliui-cdm-skyriding]]）、**錨到單位框與具名框**（[[project-miliui-cdm-halo-borrow]] H4）、**效能計數 `/mcdm perf`** 與 E1～E3 修整（[[project-miliui-cdm-eui-comparison-2026-10-04]]）。
+
+相關：[[project-ayije-cdm-aura-slots]]、[[project-ayije-cdm-editmode-drag]]、[[project-local-addon-forks]]、[[wow-121-aura-containers]]、[[wow-121-duration-objects]]。

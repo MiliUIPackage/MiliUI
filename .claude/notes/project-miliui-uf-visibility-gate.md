@@ -1,11 +1,11 @@
 ---
 name: project-miliui-uf-visibility-gate
-description: MiliUI_UnitFrames 的顯示條件走「兩層閘框」：外層 RegisterStateDriver（巨集條件，戰鬥中照樣切）、內層 Lua（只剩副本類型）；Lua 藏父層在戰鬥中會被擋（隱式保護往上傳）
+description: MiliUI_UnitFrames 的顯示條件走「兩層閘框」（外層 RegisterStateDriver 巨集條件、內層 Lua 只剩副本類型，DB v19 顯示時機 OR＋限制優先）；整框透明度單一出口與脫戰淡出的兩個例外（有目標／血量不滿走曲線，秘密 alpha 模型不繼承）
 metadata:
   node_type: memory
   type: project
   originSessionId: de450f90-cdd7-4e1f-8c62-1e9716828626
-  modified: 2026-09-14T09:42:14.067Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
 **MiliUI_UnitFrames 的顯示條件（`Core/Visibility.lua`）走兩層閘框**（2026-09-14 從一層改成兩層）：
@@ -35,8 +35,8 @@ tainted Lua `SetShown` 閘框一樣被擋（2026-09-06 taint.log 實測 ×11）�
     `UPDATE_SHAPESHIFT_FORMS` 重掃）／`visHideCombat [combat] hide`／`visGroup` solo `[group] hide`、group `[nogroup] hide`、
     party `[group:raid] hide; [nogroup] hide`（`group:party` 在團隊裡也成立）、raid `[nogroup:raid] hide`／`visOnlyInstances`（內層 Lua）
   - **為什麼改**：舊模型是「單選主模式 AND 每個隱藏開關」，組不出最常見的「戰鬥中**或**有目標」——玩家回報
-    「只在戰鬥中＋沒有目標時隱藏，戰鬥中丟目標框就不見」。動態事件（戰鬥／目標）玩家期待 OR，場合（副本／隊伍）期待 AND，
-    舊的單選下拉把兩種混在一起。遷移唯一的語意變化就是那個組合 AND→OR；`outOfCombat` 無損轉成 `visHideCombat`。
+    「只在戰鬥中＋沒有目標時隱藏，戰鬥中丟目標框就不見」。動態事件（戰鬥／目標）玩家期待 OR，場合（副本／隊伍）期待 AND。
+    遷移唯一的語意變化就是那個組合 AND→OR；`outOfCombat` 無損轉成 `visHideCombat`。
   - 「有目標」「有專注目標」設定頁只開放 player／pet（目標系的框存在＝有目標，空轉）；「有敵對目標」多開放 target 三連。
     沒開放的單位若現值為 true（遷移帶來的）照樣列出來讓人關——不留沒有介面的隱形狀態。
   - **不要抄「一張大清單混放顯示與隱藏條件」的介面**（互斥成對、優先權看不出來）；滑鼠懸停屬於透明度那條路，不放進這組。
@@ -57,8 +57,6 @@ tainted Lua `SetShown` 閘框一樣被擋（2026-09-06 taint.log 實測 ×11）�
   **沒實測過**；補畫做了就不依賴它。）
 - 預覽孿生（Options/Preview.lua）不經過閘框，預覽開窗是直接藏真實框，跟兩層閘框無關。
 - `SetParent` 對 secure 框在戰鬥中不合法 → 兩層都只在 spawn 建，且要排在 `ApplyFramePosition` 之前。
-- 整框 alpha 收成單一出口 `V.ApplyAlpha`：超出距離淡出（輪詢）與脫戰淡出（吃事件）
-  **不可以各自 SetAlpha**，後設的會蓋掉前設的。取兩者最低。
 - **隱藏時仍可點擊**（`frame.clickWhenHidden`，只開放玩家框，預設關，2026-09-14）：藏起來的框收不到滑鼠，
   所以在單位框**底下**墊一顆透明 SecureUnitButton（`uf.visCatcher`，父層 UIParent、同 strata、level 0、
   `*type1=target`）。框顯示時單位框蓋在上面照舊接點擊；被閘框藏起來時滑鼠落到墊底按鈕。
@@ -67,8 +65,35 @@ tainted Lua `SetShown` 閘框一樣被擋（2026-09-06 taint.log 實測 ×11）�
   （`V.PlaceCatcher`，ns.ApplyFramePosition 結尾呼叫），不錨到父層藏著的框上。代價：那塊一直吃滑鼠。
 - 診斷：`/muf debug` 的「顯示條件」列出每框 `外開/關 內開/關`、`!外待補`，以及實際註冊的巨集字串
   （字串錯了暴雪不報錯，只會一直判 hide）。
-- **待遊戲內驗證**（2026-09-14 只做了離線窮舉比對語意）：戰鬥中選怪框立刻出現、只在戰鬥中進戰出現、
-  寵物框／寵物目標框、德魯伊旅行型態、`[@target,harm]` 對中立怪、taint.log 沒有新的 statehidden 封鎖；
-  2026-09-18 新增：**`[nogroup:raid]` 這個帶參數的否定式沒在遊戲內驗過**（無效的症狀＝「只在團隊」永遠不顯示）、戰鬥中丟目標玩家框不藏。
+- **待遊戲內驗證**（2026-09-14 只做了離線窮舉比對語意，之後 1.3～1.4.8 沒有相關回報，但也沒有正面證據）：
+  戰鬥中選怪框立刻出現、只在戰鬥中進戰出現、寵物框／寵物目標框、德魯伊旅行型態、`[@target,harm]` 對中立怪、
+  taint.log 沒有新的 statehidden 封鎖；**`[nogroup:raid]` 這個帶參數的否定式沒在遊戲內驗過**
+  （無效的症狀＝「只在團隊」永遠不顯示）、戰鬥中丟目標玩家框不藏。
 
-相關：[[project-miliui-unit-frame]]、[[project-miliui-hide-blizzard-taint]]、[[wow-combat-drag-release]]
+## 整框透明度（`V.ApplyAlpha` 唯一出口）
+
+- 來源有兩個：**超出距離**（輪詢 `ns.Range`，掛在 Metro 上跟框的可見度上下）與**脫戰淡出**（吃事件）。
+  **不可以各自 SetAlpha**，後設的會蓋掉前設的；`V.Alpha` 取兩者最低，`uf.appliedAlpha` 記現值、一樣就不重設
+  （SetAlpha 會跟預覽的高亮 alpha 打架）。
+- 超出距離預設 **`oorStyle = "dim"`**（2026-08-20）：不降整框 alpha，改在**每個元件各自底下**疊一張暗色層
+  （`SCRIM_LIFT` 表：hpbar 抬 3、castbar 抬 5、mpbar 只抬 1 —— 往上要蓋住自己的內部零件、往下不能高過壓在
+  它上面那個元件的不透明底色，否則重疊處疊成兩倍暗）。降 alpha 的問題是背景透出來（紅血條疊草地變濁褐）；
+  一張聯集大矩形的問題是把沒畫東西的角落也塗黑（實測「超醜」）。遮罩掛在元件自己底下，元件藏了遮罩
+  跟著藏（掛 uf 的話隱藏中的施法條會留黑塊）。3D 頭像**完全不遮不淡**（使用者定案）；觀察按鈕走
+  `SetOORAlpha` 合成（它自己用 alpha 表達顯示與否，直接 SetAlpha 會每輪輪詢蓋回 1）。`"fade"` 才降整框 alpha。
+- **玩家框沒有超出距離淡出**（`2e4a05bec` 拿掉選項、`9fb53cc22` 舊存檔勾過也不掛輪詢）。
+- **脫戰淡出的兩個例外**（`fadeOutOfCombat` 底下、設定頁用 `requires` 依賴它，沒勾時變暗點不動）：
+  - `oocShowWithTarget`「有目標時不淡出」：`UnitExists("target")` 是明文，直接判。
+  - `oocShowWhenHurt`「血量不滿時不淡出」：**不能在 Lua 比 `UnitHealth < UnitHealthMax`** —— 12.1 脫戰也拿到
+    秘密值，第一版秘密保底當「不滿」⇒ 滿血也永遠不淡出（`5418d6898`）。改成 Step 曲線
+    `(0, 淡出值)`、`(1−ε, 1)` 餵 `UnitHealthPercent(unit, true, curve)`，結果（秘密 alpha）直接 `SetAlpha`
+    （`V.SetHurtAlpha(region, unit, full, hurt)`，曲線按「滿|不滿」兩值快取）。觸發點不另收事件：血條元件
+    每次 `UNIT_HEALTH` 叫 `V.CheckHurt` 重算，所以**只對有開血條的框有效**。通則見 [[wow-121-unit-api-secrets]]。
+    - 秘密 alpha **不能跟超出距離取最低** ⇒ 超出距離時改走一般路徑（距離淡出本來就更優先）。
+    - **父框 alpha 是秘密值時 3D 模型不繼承**（`8a65d5724` 實測：脫戰透明度 0.1，條與文字淡了、模型全亮）
+      ⇒ `uf.hurtAlpha` 立著時 Portrait 的 `ApplyOcclusion` 讓模型 `SetIgnoreParentAlpha(true)` 自己走同一條曲線
+      （兩端乘模型透明度）；其餘時候一律還回跟隨父框，別讓 IgnoreParentAlpha 殘留（預覽高亮、距離淡出都靠繼承）。
+    - `uf.appliedAlpha` 走曲線那次要清掉（秘密值不能記也不能比），下次走一般路徑才會強迫重設。
+  - 透明度滑桿下限改成 0（`111136484`）。
+
+相關：[[project-miliui-unit-frame]]、[[project-miliui-hide-blizzard-taint]]、[[wow-combat-drag-release]]、[[wow-121-secret-values]]

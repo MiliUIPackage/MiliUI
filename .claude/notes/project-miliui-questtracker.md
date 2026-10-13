@@ -1,34 +1,35 @@
 ---
 name: project-miliui-questtracker
-description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊機制走 IsProtected 分流（**摺著時標題列改錨存檔座標**）、內建傳奇鑰石計時面板（取代 WarpDeplete，該插件已於 2026-09-05 移出套組）、Leatrix 衝突偵測、待驗證清單
+description: 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker 的獨立插件；六條 taint 規矩、摺疊走 IsProtected 分流（摺著時標題列改錨存檔座標）、**位置接管的正確模型（右側容器列管＋編輯模式指紋，10-12 三連修）**、內建 M+ 計時面板、/mquest debug 三段判定、目標行字級同池、待驗證清單
 metadata: 
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-09-20T18:37:33.006Z
+  modified: 2026-10-14T00:00:00.000Z
 ---
 
-2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`），骨架照
-[[project-miliui-auraenhance]]：MiliUIWidgets vendor 一份、`Core/Init+Media+DB`、
-自製設定視窗、`/mquest`。NAMESPACE = `MiliUIQuest`。
+2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`，2026-10-12 TOC 1.0.9），骨架照
+[[project-miliui-auraenhance]]：MiliUIWidgets vendor 一份、`Core/Init+Media+DB+Tracker+Diag`、
+`Modules/{Chrome,Skin,Visibility,Position,Menu,MythicPlus,AutoQuest}`、自製設定視窗、`/mquest`。
+NAMESPACE = `MiliUIQuest`，`ns.DB_VERSION = 2`。自動接任務的時序問題獨立成 [[wow-autoaccept-quest-delay]]。
 
-**核心決定：不自己畫追蹤器。** 暴雪的 `ObjectiveTrackerFrame` 仍然是唯一的渲染引擎，
-我們只換外觀、加自己的框、決定什麼時候收起來。理由是追蹤器有一半的內容是從暴雪的
-**共用 widget pool** 借出來畫的（場景、UI widget），而那個池子同時服務工具提示與
-地圖圖釘 —— 自己重畫等於要複製那整套資料流。
+**核心決定：不自己畫追蹤器。** 暴雪的 `ObjectiveTrackerFrame`（下稱 OTF）仍然是唯一的渲染引擎，
+我們只換外觀、加自己的框、決定什麼時候收起來。追蹤器有一半的內容是從暴雪的**共用 widget pool**
+借出來畫的（場景、UI widget），那個池子同時服務工具提示與地圖圖釘 —— 自己重畫等於要複製整套資料流。
 
 ## 六條規矩集中在 `Core/Tracker.lua`
 
-**所有碰得到追蹤器的動作只能從那支出去**，別的模組不准自己摸 `ObjectiveTrackerFrame`。
-每一條背後都是「不會當場報錯、但會在別的地方炸」的失敗，散在各模組裡遲早被繞過去：
+**所有碰得到追蹤器的動作只能從那支出去**，別的模組不准自己摸 OTF。每一條背後都是
+「不會當場報錯、但會在別的地方炸」：
 
 1. **不要呼叫 `ObjectiveTrackerFrame:Update()`**，任何形式都不行。`C_Timer` 延後**沒有用**
    —— taint 記的是「誰的執行環境」不是「誰呼叫的」。代價（改字級後行高暫時錯位）要接受。
-2. 自己的旗標不准寫在暴雪的 frame／table 上（它會 `pairs()` 走 `usedBlocks` 決定哪些
-   區塊還在用）。走 `T.Flags()` 弱鍵表。
+   同理 **`OTF:SetHeight()` 等於呼叫 Update**（`OnSizeChanged → MarkDirty`，而且 `dirty` 欄位從此是髒的到 /reload）。
+2. 自己的旗標不准寫在暴雪的 frame／table 上（它會 `pairs()` 走 `usedBlocks`）。走 `T.Flags()` 弱鍵表。
 3. **`ScenarioObjectiveTracker` / `UIWidgetObjectiveTracker` 的子區塊連 `GetBottom()` 都不能叫。**
-   它們的 Header 安全（不從池子來），可以照樣美化。`T.EachBlock` 把這道閘擋在裡面。
-   **唯一例外：場景 `ObjectivesBlock.usedLines` 的目標行**（`T.EachScenarioLine`，2026-09-14），理由見下方「目標行字級不一致」。
+   Header 安全（不從池子來）。`T.EachBlock` 把這道閘擋在裡面。
+   兩個例外：場景 `ObjectivesBlock.usedLines` 的目標行（`T.EachScenarioLine`，理由見「目標行字級」）、
+   XML 固定子框 `StageBlock`（`T.StageArt`，見「場景階段框」）。
 4. 藏貼圖只准 `SetTexture("")`；`SetTexture(nil)` 與 `SetAlpha(0)` 都會沾到暴雪的貼圖。
 5. `block.poiButton` 不准 `Hide()` 也不准掛它的 `Show()` —— 那顆的 OnShow/OnHide 會動
    `EventRegistry` 上 `"Supertracking.OnChanged"` 的共用訂閱表。要藏走 alpha ＋ `EnableMouse(false)`。
@@ -36,370 +37,228 @@ metadata:
 6. **不要做「覆蓋層轉發點擊」。** 點整條標題收合走原生按鈕的 `SetHitRectInsets`，
    讓玩家的滑鼠直接落在暴雪自己的 OnClick 上。
 
+對過的暴雪事實：`DirtiableMixin` 的 `self.dirty = nil` 寫在 `method(self)` 之後 —— Update 拋錯一次，
+追蹤器到 /reload 前不再更新；容器的 Update 派送迴圈沒有 pcall，一個模組拋錯、後面的全部跳過。
+原始碼：`Blizzard_ManagedFrameSystem/Shared/ManagedFrameSystem.lua`、`Blizzard_EditMode/Shared/EditModeSystemTemplates.lua`
+＋`EditModeUtil.lua`＋`Mainline/EditModePresetLayouts.lua`、`Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua`。
+
 ## 摺疊機制：用 `IsProtected()` 分流，不要猜
 
-**`ObjectiveTrackerFrame` 在編輯模式被錨到快捷列時才會變成受保護框**，那時候戰鬥中的
-`Show`／`Hide`／`SetParent` 全部靜默被封鎖；沒被錨的時候戰鬥中照樣動得了。所以走哪條路是
-**問出來的**（`otf:IsProtected()`），不是「戰鬥中一律 alpha」：
+**OTF 在編輯模式被錨到快捷列時才會變成受保護框**，那時候戰鬥中的 `Show`／`Hide`／`SetParent`
+全部靜默被封鎖；沒被錨的時候戰鬥中照樣動得了。所以走哪條路是**問出來的**（`otf:IsProtected()`）：
 
-- 動得了 parent → `SetParent(hiddenParent)`。子框連滑鼠都收不到，最乾淨。
-- 動不了 → `SetAlpha(0)` ＋ **自己蓋一塊擋滑鼠的板子**。
-- `PLAYER_REGEN_ENABLED` 再收斂回 parent 路線。已經 parent 藏起來之後，戰鬥中就是展不開（客觀限制，設定頁有寫）。
+- 動得了 parent → `SetParent(hiddenParent)`（`MiliUIQuestTrackerHidden`，`SetAllPoints(UIParent)`）。子框連滑鼠都收不到。
+- 動不了 → `SetAlpha(0)` ＋ 自己蓋一塊擋滑鼠的板子（`mouseBlocker`）。
+- `PLAYER_REGEN_ENABLED` 再收斂回 parent 路線（`T.Reconcile`）。已經 parent 藏起來之後，戰鬥中就是展不開（設定頁有寫）。
 
-`hiddenParent` 要 `SetAllPoints(UIParent)`。
+**暴雪原生的收合（`Header:SetCollapsed`）不能拿來做自動摺疊** —— 那要跑它整串收合程式碼。
+所以「自動縮起」是我們自己藏，配一條自畫的標題列當把手（`Modules/Chrome.lua`）。
+自動摺疊的條件在 `Modules/Visibility.lua`（`visibility.*`，2026-10-13 第八個是 `vehicle`：只認 `UnitHasVehicleUI`、
+乘客座不算、進出載具事件 0.3s 後再評估一次）。手動摺疊 `db.folded` 點標題列就寫入，誤點一次永久摺著——這個 UX 沒處理；
+救急指令 `/mquest fold`。
 
-⚠ **parent 不是我們一個人的（2026-09-18）。** 暴雪有三處直接寫它、都不看現在掛在誰底下：
+⚠ **parent 不是我們一個人的。** 暴雪有三處直接寫它、都不看現在掛在誰底下：
 `ManagedFrameContainerMixin:UpdateFrame`（`SetParent(RightManagedFrameContainer)`）、`EditModeSystemMixin:ApplySystemAnchor`
 （`AddManagedFrame` 的閘是 **`IsShown` 不是 `IsVisible`**）、`BreakFromFrameManager`（`SetParent(UIParent)`）。
 每次編輯模式套用版面都會把摺著的清單拉回畫面 ⇒ `hooksecurefunc(otf, "SetParent")` 只排下一幀的 `Reconcile`
 （不在 hook 裡直接 SetParent，會重入 AddManagedFrame）。實測一個 session 收回 23 次，報告印 `parentReclaimed=N`。
 
-## ⚠ 摺著的時候標題列不能錨在追蹤器上（2026-09-22，「進探究整個消失」的真正根因）
+### 摺著的時候標題列不能錨在追蹤器上（2026-09-22，「進探究整個消失」的根因）
 
-**症狀：沒有錯誤、整份清單連「目標」標題列一起不見。** 報告指紋：`folded=true parentedAway=true`、
-`OTF topleft=(1505, 1013) of screen 1820x1024`、`size=260x1013`。
-預設位置的追蹤器錨在 `RightManagedFrameContainer`（LayoutFrame，錨在 UIParent TOPRIGHT `(−右側列寬−5, RIGHT_CONTAINER_OFFSET_Y=−260)`）；
-SetParent 把它抽離版面之後，位置解到**螢幕最頂端**、高度變成整個螢幕（`UpdateHeight` 讀 `GetParent():GetHeight()`）。
-標題列原本無條件錨在追蹤器上 ⇒ 跟著飛進小地圖那一區被蓋住，唯一的把手也沒了。
-**用搬家遮罩拖過位置的人錨點是絕對座標，所以 Mili 自己一直沒事**——只有預設位置的玩家中。
+症狀：沒有錯誤、整份清單連標題列一起不見。報告指紋：`folded=true parentedAway=true`、`OTF topleft=(1505, 1013) of screen 1820x1024`。
+預設位置的追蹤器錨在 `RightManagedFrameContainer`；SetParent 把它抽離版面之後位置解到**螢幕最頂端**、高度變成整個螢幕
+（`UpdateHeight` 讀 `GetParent():GetHeight()`）。標題列原本無條件錨在追蹤器上 ⇒ 跟著飛進小地圖那一區。
+用搬家遮罩拖過的人錨點是絕對座標所以沒事——只有預設位置的玩家中。
 
-修法（`Modules/Chrome.lua` 的 `RememberTrackerRect`／`FoldedAnchor`）：追蹤器看得見的時候每次 Layout 順手記下
-它的左／右／上緣，存成**相對 UIParent 右上角**的位移，放 `db.barSnapshot["名字-伺服器"]`（分角色，因為編輯模式版面可以分角色；
-登入時就摺著的人沒有「上一次看得見」可以量）。摺著時標題列改錨 UIParent 到那組座標；背景／搬家遮罩／鑰石面板都錨在標題列上，一起對。
-從來沒量過的人用 `EditModeUtil:GetRightContainerAnchor()` 推（`AnchorMixin:Get()` 回五個值），位置接管中或非預設位置回 nil、照舊跟追蹤器。
-`FoldChanged` 改成整個 `Chrome.Layout()`（摺與不摺錨的對象不同）。代價：摺著期間暴雪版面變了標題列不會跟，展開一次才更新——刻意的。
-報告加了 `title bar topleft=…`（不在螢幕內標 `!!`）。**還沒進遊戲驗證。**
+修法（`Chrome.lua` 的 `RememberTrackerRect`／`FoldedAnchor`）：追蹤器看得見的時候每次 Layout 記下左／右／上緣，
+存成**相對 UIParent 右上角**的位移，放 `db.barSnapshot["名字-伺服器"]`（分角色，編輯模式版面可以分角色）。
+摺著時標題列改錨 UIParent 到那組座標；背景／搬家遮罩／鑰石面板都錨在標題列上。從來沒量過的人用
+`EditModeUtil:GetRightContainerAnchor()` 推。`FoldChanged` 改成整個 `Chrome.Layout()`。
+代價：摺著期間暴雪版面變了標題列不會跟，展開一次才更新——刻意的。
+否決的兩條：只走 alpha＋擋滑鼠板（摺著時那塊區域點不到地面、起不了滑鼠轉視角）；`SetScale(0.001)`（沒依據）。
 
-**考慮過、否決的兩條**：①只走 alpha＋擋滑鼠板（位置高度都對，但摺著時那塊區域點不到地面、起不了滑鼠轉視角，使用者不要）；
-②`SetScale(0.001)`（沒人搶 scale，但整棵帶文字的框縮到千分之一會不會出事沒依據）。
-判定 D（容器因排不進去自己 Hide；場景模組 `hasDisplayPriority`，被截斷就把後面所有模組的可用高度歸零）**目前沒有實例**，9/19 我誤以為是它。
-救急指令：`/mquest fold`。`db.folded` 點標題列就寫入、誤點一次永久摺著，這個 UX 還沒處理。
-對過的暴雪事實：`DirtiableMixin` 的 `self.dirty = nil` 寫在 `method(self)` 之後 —— Update 拋錯一次，追蹤器到 /reload 前不再更新。
-原始碼：`Blizzard_ManagedFrameSystem/Shared/ManagedFrameSystem.lua`、`Blizzard_EditMode/Shared/EditModeSystemTemplates.lua`＋`EditModeUtil.lua`＋
-`Mainline/EditModePresetLayouts.lua`（常數）、`Blizzard_UIParentPanelManager/Shared/UIParentPanelManager.lua`（`ManageRightFrameContainer`）。
+## 位置接管（`Modules/Position.lua`）：正確模型
 
-**暴雪原生的收合（`Header:SetCollapsed`）不能拿來做自動摺疊** —— 那要跑它整串收合程式碼。
-所以「自動縮起」是我們自己藏，配一條自畫的標題列當把手（`Modules/Chrome.lua`）。
+搬家遮罩＝左鍵拖、右鍵放手。**這是這支插件唯一一處故意跟暴雪搶的地方，而且是使用者指定的**
+（「編輯模式歸編輯模式」，要獨立拖曳）。沒拖過（`position.set` 為 false）就完全不介入。
+
+**2026-10-12 同一天同症狀「位置跑掉、被往左頂」修了三次（`e263e62bd`→`50de9777d`→`8dc7d0241`），
+前兩次都修到真實存在但不是主因的東西。** 把整個模型寫下來，下次先對這張表：
+
+| 會動 OTF 位置的力 | 什麼時候 | 對策 |
+|---|---|---|
+| **右側容器 `RightManagedFrameContainer` 的 Layout** | 預設位置的 OTF 是容器的小孩、還在它的 `showingFrames` 裡；首領框／競技場框出現、UIParent 重新顯示、OTF 自己 OnShow→`AddManagedFrame`→`UpdateFrame`（`ClearAllPoints`＋`SetParent(容器)`）都會重排 | **只貼 SetPoint 擋不住**。`Pos.Apply` 把 parent 從容器換成 UIParent（容器的 Layout 就不碰它）；掛 OTF 的 `SetParent`，暴雪收回容器時**下一幀**再搬（hook 裡當場動會重入 UpdateFrame）。`Pos.Reset` 放手時原本錨在容器上就放回去 |
+| **編輯模式套用版面**（進出編輯模式、`EDIT_MODE_LAYOUTS_UPDATED`、重載） | 把 OTF 貼回它記的座標 | 盯那幾個事件（PEW／EDIT_MODE_LAYOUTS_UPDATED／UI_SCALE_CHANGED／DISPLAY_SIZE_CHANGED／REGEN_ENABLED）**延後貼兩次**（0.1s＋0.6s，套用版面的時機不保證在我們之前）；編輯模式開著不貼 |
+| **玩家用編輯模式拖過**（或換了一套版面） | 離開編輯模式／重載 | 接管時記 `position.editModeSig`（`otf.systemInfo` 的 `isInDefaultPosition`＋`anchorInfo` 唯讀指紋）；指紋變了＝編輯模式有新主意 ⇒ **自動放手**。舊存檔沒指紋時編輯模式已有自訂位置就直接放手。沒有這條，08-30 用遮罩拖過一次留下的 `position.set=true` 會在每次離開編輯模式／重載把剛拖好的位置蓋回舊座標 |
+| UIParent 寬度（UI 縮放、視窗大小、角色不同） | 存「距左緣 x」的框靠右放時右邊多出一截 | 存**上緣＋離得近的那一邊**（`position.point`＝TOPLEFT／TOPRIGHT，舊格式在 Apply 時就地換算）。垂直錨上緣：內容往下長，CENTER 的話任務一多整條往上飄 |
+
+指紋：存檔的右緣 −5／−101 ＝ 無／有右側快捷列的預設位置（容器錨在右側快捷列左邊，偏的量就是一排快捷列寬）。
+**教訓：「位置跑掉」先問玩家是用哪條路拖的（遮罩 vs 編輯模式），再看存檔有沒有殘留的接管旗標**；
+第一輪誤判成「UIParent 寬度因角色而異」就是沒問。
+
+- 要能右鍵放手回得去，得在**第一次覆蓋之前**把暴雪原本的錨點抄進記憶體（`ClearAllPoints` 之後就沒了）。
+- 拖曳自己算游標位移，不用 `StartMoving`；位移要換成追蹤器自己的座標單位（編輯模式可單獨縮放它，[[wow-setscale-offset-units]]）。
+- 遮罩會吃滑鼠，所以編輯模式一開就要讓開。判斷編輯模式開沒開走**輪詢**（只在設定視窗開著時跑）：
+  掛 `HookScript` 會把我們塞進 `EditModeManagerFrame` 的執行路徑，`EventRegistry` 回呼要寫共用訂閱表，規矩 5 在擋。
+- 套組磁吸（`Libs/MiliUISnap.lua`）註冊的是 OTF 本身，key `questTracker`（[[project-miliui-snap-bars]]）。
+- ⚠ **2026-10-14 體檢發現 `8dc7d0241` 帶進一個會炸的順序錯誤**：`Save()` 裡呼叫的 `EditModeSig` 在它的
+  `local function` 宣告**之後**才出現 ⇒ 編譯成全域讀取（`luac -l` 看到 `GETTABUP _ENV "EditModeSig"`），
+  遮罩放手（`EndDrag→Save`）與舊格式換算會 `attempt to call a nil value`。check_lua 只掃全域寫入抓不到
+  （[[wow-luac-global-scan]]）。修法：把 `EditModeSig` 移到 `Save` 前面。修好前第三輪的指紋機制等於沒上線。
+
+`Modules/Menu.lua` 只有內容，引擎在共用層。**`Menu.Show` 不要傳 anchor**（傳了會掛在標題列右下角，標題列跟追蹤器一樣寬）。
+檔頭寫明**刻意不放**三樣：「顯示標題列」是自殺選項、「在編輯模式中移動」等於在管著追蹤器保護狀態的系統上開污染入口、
+自動摺疊的多選條件在共用層子選單裡沒辦法原地重畫。
 
 ## 標題列的標籤叫「目標」，讀數是括號灰字
 
-**叫「任務」是錯的**：那條是**整個追蹤器**的標題（取代暴雪的「所有目標」），
-底下同時裝著戰役、任務、成就、專業。使用者回報「數字看不懂」，排版只是表象，
-真正的成因是標籤與內容對不起來。改叫「目標」＋讀數改成 `T.CountBlocks()`
-（清單裡實際有幾筆），不再用 `GetNumQuestWatches()`（那支只數任務）。
+**叫「任務」是錯的**：那條是**整個追蹤器**的標題，底下同時裝著戰役、任務、成就、專業。讀數是 `T.CountBlocks()`
+（清單裡實際有幾筆），不是 `GetNumQuestWatches()`（只數任務）。排版 `目標 (17)`：括號＋灰＋小一級，
+讀數是**獨立的 FontString**（色碼做不到字級）。
 
-排版是 `目標 (17)`：括號（結構）＋灰（顏色）＋小一級（字級），三層訊號都用上。
-讀數是**獨立的 FontString**，不是同一串塞色碼 —— 色碼做不到字級。
+⚠ **跟 `MiliUI_InfoBar` 的 `Dim()` 相反，是刻意的**：資訊列壓的是標籤（你要掃的是數字），這裡「目標」是清單的名字，
+壓灰會讓標題變成最弱的元素。程式碼裡有註記「不要為了統一把它改回去」。
 
-⚠ **這裡跟套組其他地方相反，是刻意的。** `MiliUI_InfoBar` 的 `Dim()`
-（`|cffaaaaaa`）壓的是**標籤**（`裝等 489`）—— 資訊列你要掃的是數字。
-這裡是**標題列**，「目標」是這份清單的名字不是註記，壓灰會讓標題變成最弱的元素。
-程式碼裡有註記「不要為了統一把它改回去」。
+標題列右側的開關 chip（自動交／自動接）擠不下時**逐級讓位：完整 → 短字 → 只剩方框（滑過看完整名）**，
+標題與讀數不縮（`Chrome.FitChips`，2026-10-07）——英文 `Objectives (14)`＋兩顆 chip 在預設寬一定疊，中文剛好塞得下所以沒被發現。
 
-⚠ 語系 key 撞過一次：`Objectives` 同時被顏色設定的「目標文字」用掉了。
-顏色那條改成 `Objective text`（跟旁邊的 `Objective size` 一致）。
+⚠ 語系 key 撞過：`Objectives` 同時被顏色設定的「目標文字」用掉，改成 `Objective text`。
 **同一個英文字在兩個地方是不同意思，就是 key 要更精確的訊號。**
 
 ## ⚠ 目標行是 `block.usedLines`，不是 `block.lines`
 
 **寫錯不會報錯**，那圈迴圈只是永遠空的 —— 症狀是「目標文字大小拉了完全沒反應」。
-對照 `Blizzard_ObjectiveTrackerBlock.lua` 的 `ObjectiveTrackerBlockMixin:GetLine()`：
-`self.usedLines[objectiveKey] = line`。行上的 FontString 是 `line.Text` / `line.Dash`。
-收在 `T.EachLine()` 裡（兩個欄位都試，`usedLines` 優先）。
-
-⚠ **另一支同類插件也寫成 `lines`**，但它另有一段盲掃 FontString 的程式碼把行文字
-順手蓋到了，所以看起來是有效的。**別人怎麼寫不能當根據，要去對原始碼。**
-（這次連帶咬到自己：把盲掃拿掉修 `□%` 之後，這個一直存在的 bug 才浮出來。）
-
-`ObjectiveTrackerLineMixin` 本身不碰字型（`Blizzard_ObjectiveTrackerShared.lua`
-裡唯一的 `SetFontObject` 是獎勵彈窗），所以我們設上去的字型不會被下一次排版蓋掉。
+`ObjectiveTrackerBlockMixin:GetLine()`：`self.usedLines[objectiveKey] = line`，行上的 FontString 是 `line.Text` / `line.Dash`。
+收在 `T.EachLine()`。另一支同類插件也寫成 `lines`，但它另有盲掃 FontString 的程式碼順手蓋到了——
+**別人怎麼寫不能當根據，要去對原始碼。** `ObjectiveTrackerLineMixin` 本身不碰字型，我們設上去的不會被下一次排版蓋掉。
 
 ## ⚠ 不要盲掃 FontString 重設字型
 
-**症狀：進度條的百分比顯示成 `□%`。** 那個方塊是秘密值的佔位控制字元（`\001N`）
-原樣被畫出來 —— 進度條的數字是引擎在算繪時才回填的，我們對那個 FontString
-呼叫 `SetFont` 就把回填弄掉了，剩下控制字元自己顯示成方塊
-（同一個症狀 [[wow-unitclass-npc-returns-name]] 記過）。
+**症狀：進度條的百分比顯示成 `□%`。** 秘密值的佔位控制字元原樣被畫出來 —— 進度條的數字是引擎在算繪時才回填的，
+對那個 FontString `SetFont` 就把回填弄掉了。**通則：只動具名認得的那幾個**（區塊標題、行的 `Text`／`Dash`、`itemButton.Count`），
+其餘一律當作可能帶秘密值。代價是進度條與計時條的數字保留暴雪字型。
 
-肇因是「走訪子框、把掃到的每個 FontString 都重設字型」這種寫法。**通則：只動
-具名認得的那幾個**（區塊標題、`block.lines` 的 `Text`／`Dash`、`itemButton.Count`），
-其餘一律當作可能帶秘密值。代價是進度條與計時條的數字保留暴雪原本的字型 ——
-那本來就是它們該有的樣子。（2026-08-29 拿掉三處盲掃：`ProcessChildren`、
-`SkinHeader` 的 region 掃描、`SkinBlock` 的 region 掃描。）
+## 外觀
 
-## 外觀：底色跟傷害統計共用，但份量不一樣
+底色 `0x1A`（0.102）＋0.8 跟 `MiliUI_DamageMeters` 的視窗底同一組（那邊 `Core/DB.lua` 的常數 `DARK_BG`），要改兩支一起改。
+**但「標題列實心、內容半透」那套不能照抄**（回饋「標題好重」）：傷害統計的標題列是視窗的一部分，這裡是浮在地形上的一條。
+標題列的底跟清單同一階，關掉背景時只留 1px 線。滑過給不透明度下限 0.45 再往白色插值。**背景預設關**。
+描邊五選一（無／描邊／粗描邊／單色描邊／單色粗描邊，2026-10-03 跟 CDM 同一套，舊布林在 Normalize 就地換成 flags）。
+`PAD_LEFT`／`PAD_RIGHT`（`Chrome.lua`）＝ −10／+10。
 
-底色 `0x1A`（0.102）跟 `MiliUI_DamageMeters` 的視窗底同一組（那邊的常數叫
-`DARK_BG`）。要改配色就兩支一起改，不然兩個視窗擺在一起看得出色差。
+## 傳奇鑰石計時面板（`Modules/MythicPlus.lua`）
 
-**但「標題列實心、內容半透」那套不能照抄。** 試過之後使用者的回饋是「標題好重」：
-傷害統計的標題列是**視窗的一部分**，這裡的標題列是**浮在地形上的一條**，份量不能一樣。
-現在標題列的底跟清單同一階，關掉背景時它也沒有底、只留 1px 線。
-滑過給一個不透明度下限（0.45）再往白色插值提亮 —— 插值不是加常數，
-非灰階底色才不會偏色相。
-
-**背景預設關**（使用者要求）。
-
-## 右鍵選單與搬家遮罩
-
-`Modules/Menu.lua` 只有內容，引擎在共用層。**`Menu.Show` 不要傳 anchor** ——
-傳了會把選單掛在標題列右下角，而標題列跟追蹤器一樣寬，在左邊按右鍵選單卻從
-最右邊掉出來。不傳就是貼著游標開（聊天列與資訊列也是這樣）。
-
-**搬家遮罩＝左鍵拖、右鍵放手**（`Modules/Position.lua`）。跟資訊列／小地圖同一套視覺，
-但底下的事情完全不同：那兩支拖的是自己的框，這裡拖的是**暴雪的編輯模式系統**。
-
-⚠ **這是這支插件唯一一處故意跟暴雪搶的地方，而且是使用者指定的**（2026-08-29；
-我先提過「走編輯模式比較乾淨」，他明確要獨立拖曳，「編輯模式歸編輯模式」）。
-代價要記著：編輯模式會在**套用版面／進出編輯模式／重載**時把追蹤器貼回它記的座標，
-所以 `Position.lua` 是盯著那幾個事件**再貼一次**——持續的拉鋸，不是一次性設定。
-降低拉鋸的三個設計：
-  * 沒拖過就完全不介入（`position.set` 是 false ⇒ 那支等於不存在）
-  * 編輯模式開著的時候不貼，玩家還是能用原生拖曳
-  * 右鍵遮罩＝放手，把位置整個交還給編輯模式（要能還，就得在**第一次覆蓋之前**
-    把暴雪原本的錨點抄進記憶體 —— `ClearAllPoints` 之後那組就沒了）
-
-座標存 **上緣＋離得近的那一邊**（`position.point` = TOPLEFT／TOPRIGHT 相對 UIParent 同一角，y 為負），不是編輯模式技能推薦的 CENTER 位移：
-追蹤器的內容往下長，用 CENTER 的話任務一多整條就自己往上飄。
-⚠ **「位置一直跑掉、被往左頂」的根因（2026-10-12）**：預設位置的追蹤器是 RightManagedFrameContainer 的**小孩**、還在它的 showingFrames 裡；容器每次 Layout（別的右側框 UpdateFrame、UIParent 重新顯示、追蹤器 OnShow → AddManagedFrame → UpdateFrame 的 ClearAllPoints＋SetParent(容器)）都把它錨回容器——容器錨在右側快捷列左邊，所以偏一排快捷列寬（存檔的右緣 −5／−101 就是無／有右側快捷列的預設位置）。修法：`Pos.Apply` 把 parent 從容器換成 UIParent（容器的 Layout 就不碰它），掛 OTF 的 SetParent，暴雪收回容器時下一幀再搬（hook 裡當場動會重入 UpdateFrame）。高度照 UpdateHeight 的預設路徑＝UIParent 高＋offsetY，到螢幕底。**第一輪我誤判成「UIParent 寬度因角色而異」**，順手改成存貼近邊（`position.point`，舊格式在 Apply 時就地換算）——那也沒錯但不是原因；換算時位置已被頂歪的話要重拖一次。待實機驗證。
-⚠ **同日第三輪，使用者其實是用編輯模式拖的**：真兇是 08-30 遮罩拖過留下的 `position.set=true`，每次離開編輯模式（EDIT_MODE_LAYOUTS_UPDATED）／重載都把編輯模式剛拖好的位置蓋回舊座標。現在接管時記 `position.editModeSig`（`otf.systemInfo` 的 isInDefaultPosition＋anchorInfo 唯讀指紋），指紋變了＝玩家用編輯模式拖過或換了版面 ⇒ 自動放手；舊存檔沒指紋時編輯模式已有自訂位置就直接放手。**教訓：「位置跑掉」先問玩家用哪條路拖的，再看存檔有沒有殘留的接管旗標。**
-事件觸發後**貼兩次**（0.1s ＋ 0.6s）：編輯模式套用版面的時機不保證在我們之前。
-
-⚠ 遮罩會吃滑鼠，所以編輯模式一開就要讓開，否則玩家在編輯模式裡拖不動追蹤器。
-判斷編輯模式開沒開走**輪詢**（只在設定視窗開著時跑）：掛 `HookScript` 會把我們塞進
-`EditModeManagerFrame` 的執行路徑，`EventRegistry` 回呼要寫共用訂閱表，兩樣都是規矩 5 在擋的。
-
-`Modules/Menu.lua` **刻意不放**三樣東西，理由寫在檔頭：
-「顯示標題列」是自殺選項（關掉就沒東西可以右鍵）、「在編輯模式中移動」等於在
-管著追蹤器保護狀態的系統上開污染入口、自動摺疊的七個條件在共用層的子選單裡
-沒辦法原地重畫（多選型勾選按下去會整個關掉）。
-
-## 傳奇鑰石計時面板（2026-09-05，`Modules/MythicPlus.lua`）
-
-鑰石中清單摺起來（`visibility.mythicPlus`），面板錨在標題列底下（`Chrome.GetBar()`）補進原位；
+鑰石中清單摺起來（`visibility.mythicPlus`，預設開，DB v2 遷移），面板錨在標題列底下補進原位；
 三個條件都成立才顯示：選項開、`MP.IsInChallenge()`、`T.IsHidden()`（玩家偷看展開就讓位）。
-版面是慣見的那一種（文字靠右、死亡／計時／[等級] 詞綴／三段計時條 +3|+2|+1／敵軍條／首領），
-皮是純色 1px，字型描邊跟 appearance 走，尺寸在 `db.mythicPlus`、設定分頁「傳奇鑰石」。
+版面：死亡／計時／[等級] 詞綴／三段計時條 +3|+2|+1／敵軍條／首領；文字預設靠右、可選靠左（`c.align`，2026-10-04）；
+計時條／敵軍條顏色可自訂（2026-10-08）；設定分頁「傳奇鑰石」。
 
 **不碰暴雪追蹤器**：暴雪自己的 M+ 區塊在共用池的場景模組裡（規矩 3），我們讀同一組 API 畫自己的框。
-API：`C_ChallengeMode.{GetActiveChallengeMapID,GetActiveKeystoneInfo,GetAffixInfo,GetMapUIInfo,GetDeathCount,
-GetChallengeCompletionInfo}`、`C_Scenario.GetStepInfo`、`C_ScenarioInfo.{GetCriteriaInfo,GetUnitCriteriaProgressValues}`、
-`GetWorldElapsedTime(1)`；事件 CHALLENGE_MODE_START/COMPLETED/DEATH_COUNT_UPDATED、WORLD_STATE_TIMER_START、
-SCENARIO_CRITERIA_UPDATE/POI_UPDATE。在不在鑰石用 `GetInstanceInfo` 難度 8＋party（打完到出副本都算，
-`IsChallengeModeActive` 打完就 false）。所有數字先過 `Num()`／`Bool()` 秘密閘，秘密就退化（敵軍字串原樣 SetText）。
+在不在鑰石用 `GetInstanceInfo` 難度 8＋party（打完到出副本都算，`IsChallengeModeActive` 打完就 false）。
+所有數字先過 `Num()`／`Bool()` 秘密閘，秘密就退化（敵軍字串原樣 SetText）。
+**敵軍百分比**：`quantity` 已經是百分比、`quantityString` 才是絕對數量，見 [[wow-mplus-enemy-forces-fields]]。
 
-**每季要看**：+2／+3 比例 0.8／0.6、挑戰者的危機（詞綴 152）+90 秒的扣法（`PLUS_FRACTIONS`／`PERIL_*` 常數）。
-**刻意不做**：拉怪預估（MDT／戰鬥記錄，12.x 已死）、~~死亡名單（GUID 秘密）~~（2026-10-07 `f681b837a` 借 AdvancedMythicTracker 做了，`Modules/MythicPlus.lua` 的 `deathList`：UNIT_DIED GUID 對隊伍快照，見 [[project-miliui-mythicplus]]）、EJ 首領名（開面板會污染，
-criteria description 就是名字）、分段紀錄、自動放鑰石（套組已有）。
-**敵軍百分比**：`quantity` 已經是百分比、`quantityString` 才是絕對數量（帶假的 % 號），
-拿 `quantity / totalQuantity` 會得到「滿了顯示 14.58%」—— 2026-09-05 修掉，
-完整欄位表見 [[wow-mplus-enemy-forces-fields]]。
+**每季要看**：`PLUS_FRACTIONS = {1.0, 0.8, 0.6}`、挑戰者的危機 `PERIL_AFFIX_ID = 152`／`PERIL_BONUS_SEC = 90` 的扣法。
+**刻意不做**：拉怪預估（戰鬥記錄 12.x 已死）、EJ 首領名（開面板會污染，criteria description 就是名字）、分段紀錄、
+自動放鑰石（在 [[project-miliui-mythicplus]]）。死亡名單 2026-10-07 借 AdvancedMythicTracker 做了（`deathList`：
+UNIT_DIED 的 GUID 對開場隊伍快照，滑過死亡數顯示；死亡數以 `GetDeathCount` 為準，名單可能比較少）。
 
-**使用者確認已在遊戲內驗證、都正常**：版面、秘密值路徑（受限內容）、修好後的敵軍百分比（2026-09-15）；
-面板在標題列關掉時的錨點（2026-09-16）。
+已實機驗證：版面、秘密值路徑、敵軍百分比（2026-09-15）、面板在標題列關掉時的錨點（09-16）。死亡名單未驗。
 
-## `/mquest debug` 診斷報告（2026-09-06，`Core/Diag.lua`）
+## `/mquest debug` 診斷報告（`Core/Diag.lua`）
 
-起因：玩家回報「詛咒浪潮：圍攻低語沼澤沒顯示任務進度和開始前倒數，重新登入就好」。
-這種症狀有三種病因，畫面一模一樣，所以報告分三段對照再給一句判定（A／B／C）：
+起因：玩家回報「詛咒浪潮沒顯示任務進度和開始前倒數，重新登入就好」。三種病因畫面一模一樣，報告分三段對照再給一句判定：
 
-- **A. API 端**：`C_Scenario.IsInScenario`、`C_ScenarioInfo.GetScenarioInfo/GetScenarioStepInfo/GetCriteriaInfo`、
-  `C_UIWidgetManager.GetObjectiveTrackerWidgetSetID`＋`GetAllWidgetsBySetID`、`GetWorldElapsedTimers`
-  （開始前倒數是 world timer）。API 說不在場景裡 ⇒ 暴雪端問題。
-- **B. 模組端**：每個子追蹤器的 `state`（`ObjectiveTrackerModuleState` 列舉：Skipped／NoObjectives／NotShown／
-  ShownPartially／ShownFully）、`hasContents`、`contentsHeight`、`isCollapsed`、`hasSkippedBlocks`、
-  Update 次數與上次時間（Skin 的 hook 往 `Diag.NoteUpdate` 報到）、`otf.modules` 有沒有它。
-  **對照 Blizzard_ObjectiveTrackerContainer.lua：容器的 Update 派送迴圈沒有 pcall，一個模組拋錯、
-  後面的全部跳過**；場景模組的 LayoutContents 在污染的執行下讀到秘密值就是這樣消失的。
-  ⚠ **「重新登入就好」不是 taint 的指紋** —— 2026-09-08 改掉的假設。用戶端資料庫跟伺服器
-  失去同步也是只有重登會好（`/reload` 只重跑 Lua，不重新跟伺服器要場景狀態）。兩者的分辨
-  方式是叫玩家做一次 `/reload`：好了＝Lua 端，非得重登＝同步問題。
-- **C. 我們這端**：`T.DiagState()`（wantHidden／parentedAway／mouseBlocker）、位置換算成 UIParent 座標
-  比螢幕、Position 接管、Chrome.Diagnose。
+- **A. API 端**：`C_Scenario.IsInScenario`、`C_ScenarioInfo.*`、`C_UIWidgetManager.GetObjectiveTrackerWidgetSetID`＋`GetAllWidgetsBySetID`、
+  `GetWorldElapsedTimers`。API 說不在場景裡 ⇒ 暴雪端。措辭要分「人在事件裡」與「不在」——不在事件裡打報告本來就是 A。
+- **B. 模組端**：每個子追蹤器的 `state`（`ObjectiveTrackerModuleState`）、`hasContents`、`contentsHeight`、`isCollapsed`、`hasSkippedBlocks`、
+  Update 次數（Skin 的 hook 往 `Diag.NoteUpdate` 報到）。
+- **C. 我們這端**：`T.DiagState()`、位置換算成 UIParent 座標比螢幕、Position 接管、Chrome.Diagnose、標題列座標（不在螢幕內標 `!!`）、vehicle 現況。
 
-另外兩段：**taint** 走 `issecurevariable(tbl, key)`（會直接點名弄髒的插件；查 `_G` 的四個全域、
-OTF 的 modules、每個模組的八個欄位、UIWidgetManager 的三張表）；**錯誤** 合併 `ns.errors`、
-其他插件的 ADDON_ACTION_BLOCKED/FORBIDDEN（共用層只記自己的，Diag 另記別人的、去重計數）、
-BugGrabber 本 session 提到 ObjectiveTracker/Scenario/UIWidget/WorldState 的錯誤；沒裝 BugGrabber 就報
-`scriptErrors` 並提示開啟。被動記錄 SCENARIO_*／WORLD_STATE_TIMER_*／PLAYER_ENTERING_WORLD 的時間戳。
+另外：**taint** 走 `issecurevariable(tbl, key)`（直接點名弄髒的插件）；**錯誤** 合併 `ns.errors`、其他插件的 ADDON_ACTION_BLOCKED/FORBIDDEN、
+BugGrabber 本 session 相關錯誤；被動記錄 SCENARIO_*／WORLD_STATE_TIMER_*／PEW 的時間戳。
+報告開在 `W.CreateScrollEditBox` 視窗（**不用 `CreateCopyBox`**，那支藏了捲軸）；所有值過 `Str()`（秘密值印 `<secret>`），每段各自 pcall。
 
-報告開在可整段複製的視窗（`W.CreateScrollEditBox` ＋ userInput 還原；**不用 `CreateCopyBox`**，
-那支把捲軸藏掉了，幾十行的報告捲不動），聊天視窗只印判定那一句；`/mquest debug chat` 全印聊天。
-所有值過 `Str()`（秘密值印 `<secret>`），每段各自 pcall。共用池的兩支只讀模組框欄位，不進子區塊。
+三個實測事實與一個改掉的假設：
+- **開始前的倒數是 step 的 widgetSetID 裡的 `ScenarioHeaderTimer` widget**，不是 world timer；`GetWorldElapsedTimers()` 沒計時器時回一個空佔位，只認正整數 ID。
+- **`GetAllWidgetsBySetID` 連 `shownState = Hidden` 的 widget 也一起回**（指紋：`setID=1 widgets=33`）。`shownState` 要走各型別自己的
+  visualization info getter，名字有兩種拼法（`Get<Type>VisualizationInfo` / `Get<Type>WidgetVisualizationInfo`），照 `Enum.UIWidgetVisualizationType` 兩種都試。
+  widget 狀態四態：`shown`／`hidden`／`noinfo`（getter 有、問不到＝畫不出來；`SpellDisplay`、`IconAndText` 實測落這裡）／`?`（沒 getter，**不能當成沒顯示**）。
+  **場景與 widget 是兩條獨立的路**（widget set 由伺服器指派），判定 A 之前先問「有 widget 顯示中但 UIWidget 模組是空的嗎」。
+- **「重新登入就好」不是 taint 的指紋**：用戶端資料庫跟伺服器失去同步也只有重登會好（`/reload` 不重新要場景狀態）。
+  叫玩家 `/reload`：好了＝Lua 端，非得重登＝同步問題。**2026-09-08 症狀當下的報告判定就是同步**：`IsInScenario=false`（明值）、
+  widget `shown=0`、**`SCENARIO_UPDATE` 只有登入時 2 次、`SCENARIO_CRITERIA_UPDATE` 從來沒有**、taint 0 髒——用戶端連通知都沒收到，插件無能為力。
+  判定 A 現在印「上一次收到場景事件是 %s」。
+- 報告缺段（例如沒有「objective line fonts」）⇒ **先懷疑遊戲讀的是舊程式**（改動在 worktree 沒部署），別先懷疑修法。
 
-**2026-09-06 已在遊戲內驗證**（盤蛇島的詛咒浪潮「逼近的突變巨獸」，scenarioID 3288）：欄位名全對、
-判定正確。兩個實測事實：**開始前的倒數是 step 的 widgetSetID 裡的 `ScenarioHeaderTimer` widget**
-（不是 world timer）；`GetWorldElapsedTimers()` 是多回傳值，沒計時器時回一個空佔位（印成
-`world timer : elapsed=0 type=0`），只認正整數 ID。判定 A 的措辭要分「人在事件裡」與「不在」——
-不在事件裡打報告本來就是 A，不能說成暴雪的問題。
 下次玩家再遇到就叫他**在症狀出現的當下**打 `/mquest debug` 把視窗內容貼過來。
-
-**2026-09-08 第二份報告（事件結束 8 分鐘後打的，判定 A，對症狀沒有證據力）暴露一個盲點：
-`C_UIWidgetManager.GetAllWidgetsBySetID` 連 `shownState = Hidden` 的 widget 也一起回。**
-證據就在同一份報告裡 —— `top-center widget set: setID=1 widgets=33`，螢幕上從來不會同時
-掛 33 個 widget。所以「set 裡有幾個」不等於「畫得出來幾個」，原本只印總數的那一行
-**在症狀正好是「widget 該出來卻沒出來」的時候完全沒有證據能力**。
-`shownState` 不在 `GetAllWidgetsBySetID` 回的輕量結構裡，要走各型別自己的
-visualization info getter，而名字有兩種拼法（`TextureAndText` →
-`GetTextureAndTextWidgetVisualizationInfo`，`SpellDisplay` → `GetSpellDisplayVisualizationInfo`）
-—— 不要手寫清單，照 `Enum.UIWidgetVisualizationType` 的名字兩種都試一次。
-連帶修掉判定的一個結構性錯誤：**場景與 widget 是兩條獨立的路**（widget set 由伺服器指派，
-跟 `C_Scenario` 無關，開始前倒數那類就是 widget），原本 `not ctx.apiScenario` 一律先返回 A，
-會把 widget 那條的 B 型故障吃掉。現在 A 之前先問一次「有 widget 顯示中但 UIWidget 模組是空的嗎」。
-widget 的狀態是**四態**不是兩態：`shown`／`hidden`（有 visualization info）／`noinfo`
-（getter 有、問不到資料，等於畫不出來）／`?`（型別沒有對得上的 getter，**不能當成沒顯示**）。
-實測 `SpellDisplay`、`IconAndText` 這兩型會落在 `noinfo`。
-
-## 2026-09-08 症狀當下的報告：病因是同步，不是 taint 也不是我們
-
-玩家在盤蛇島／灼蝕露臺看到事件已經開始，當下打的報告：
-
-- `IsInScenario=false`、`GetScenarioInfo/GetScenarioStepInfo → nil`（都是**明值**不是秘密值，
-  所以不是 12.1 的秘密值遮蔽）
-- `tracker widget set: setID=240 widgets=3 shown=0` —— widget 那條也是空的
-- **`SCENARIO_UPDATE` 只有登入時的 2 次（uptime 1429s，上一次 1375.8s 前），
-  `SCENARIO_CRITERIA_UPDATE` 從來沒有過**
-- taint 96 個欄位 0 髒、自己 0 錯、別的插件 0 封鎖、BugGrabber 0
-- 模組 `updates=51`，派送迴圈是活的
-
-**決定性的是事件計數：用戶端連通知都沒收到。** taint 與排版故障都是「資料有、畫不出來」，
-這裡是資料根本沒到 —— 插件這端無能為力。所以判定 A 現在會印出
-「上一次收到場景事件是 %s」＋ widget shown 數，並要玩家做一次 `/reload` 來分辨 Lua 端／同步端。
-
-（順帶：同一份報告裡 `Quest: state=ShownPartially skipped=true`，
-CampaignQuest 153.91 ＋ Quest 485.31 塞在 700 高的框裡，有任務區塊被截掉。
-追蹤器沒有捲動是既定限制，不是這個症狀的一部分。）
 
 ## 目標行字級不一致：場景行跟戰役行同一個行池（2026-09-14）
 
-症狀：探究／墓窖場景底下，一行是我們的字（小、描邊），其他行是暴雪原樣（大、陰影、0.80 灰）；
-`/reload` 之後變成**全部**沒套到。玩家的直覺是「變糟了」，其實是池子被重置。
+症狀：探究底下一行是我們的字，其他行是暴雪原樣；`/reload` 之後變成全部沒套到（池子被重置）。
+**根因：行池的鍵只看模板名稱**（`Pools.lua` 的 `GetPoolKey(template, specialization)`，父層不算）。場景用 `ObjectiveTrackerAnimLineTemplate`，
+**戰役、世界任務、成就、冒險、每月活動、倡議、專業配方都是同一個模板**（只有一般任務是 `QuestObjectiveLineTemplate`）。
+所以「場景的行不美化」從來不成立——我們 SetFont 過的戰役行被回收給場景就帶著我們的字型。
+**修法：把場景的目標行也納入美化**（`T.EachScenarioLine`：只讀 `ObjectivesBlock.usedLines`、不呼叫區塊方法、行文字是秘密值就跳過）。
+掛在場景 Update hook 的 `T.Defer("scenarioLines")` —— **不能跟 `"poolHeader"` 共用 key**，Defer 先到先贏。
+否決：釋放時還原字型（要 hook FreeLine，真正的禁區）；直接改 `ObjectiveTrackerLineFont`（編輯模式 `SetTextSize` 會拉鋸）。
 
-**根因：行池的鍵只看模板名稱**（`Blizzard_SharedXMLBase/Pools.lua` 的 `GetPoolKey(template, specialization)`，
-父層不算；`GetLine` 借出來再 `SetParent` 過去）。場景用 `ObjectiveTrackerAnimLineTemplate`，
-**戰役、額外目標／世界任務、成就、冒險、每月活動、倡議、專業配方都是同一個模板**（只有一般任務是
-`QuestObjectiveLineTemplate`）。所以規矩 3 原本的「場景的行不美化」從來不成立 —— 我們 SetFont 過的戰役行
-被回收給場景就帶著我們的字型，新建的沒有 ⇒ 看運氣。
-**修法：把場景的目標行也納入美化**，界線收在 `T.EachScenarioLine`：只讀 `ObjectivesBlock.usedLines`、
-不呼叫區塊方法（widget／法術框／進度條才是規矩 3 真正在擋的）、行文字是秘密值就跳過（□% 那條）。
-掛在場景 Update hook 的 `T.Defer("scenarioLines")` —— **不能跟 `"poolHeader"` 共用 key**，Defer 是先到先贏，
-同一幀 widget 模組的那次會被吃掉（反過來也一樣）。新借的行第一輪行高是暴雪字型算的，規矩 1 同一種代價。
+機制：目標行 `Text` 繼承 `ObjectiveTrackerLineFont`，編輯模式「文字大小」改的是字型物件（繁中 12 實際 15）；行池是**每個區塊一個**；
+顏色是第二個指紋：暴雪一般色 0.80、完成色 0.60，`SetStringText` **只在色系換掉時才 SetTextColor**，我們預設 0.72——完成那行印 0.60 代表完成後 SkinLine 沒再跑。
+報告的「objective line fonts」段逐行印字級／描邊／字型檔／role／顏色／動畫狀態，對不上標 `!!`。
+**2026-09-14 已在遊戲內驗證**（探究「納爾多島」）。
 
-**反過來的路（場景保持原樣、在釋放時把字型還原）被否決**：玩家要的是一致有套到；而且要 hook 釋放，
-在場景的 FreeLine 路徑上動手才真的是規矩 3 的禁區。
-**字型物件路線（直接改 `ObjectiveTrackerLineFont`）也沒走**：編輯模式的文字大小（`SetTextSize`）會跟它拉鋸，
-而且每行的 SetTextColor 照樣會隨池子外洩。
-
-`/mquest debug` 原本完全不記字型（判定 A 講的是場景同步，跟這個症狀無關），所以加了「objective line fonts」段。
-**⚠ 玩家兩份「變糟」的報告都沒有這一段 ⇒ 遊戲讀的還是主資料夾的舊程式**（改動在 worktree）。
-看到報告缺段，先懷疑沒部署，別先懷疑修法。
-
-**機制（對過暴雪原始碼）**：目標行的 `Text` 繼承 `ObjectiveTrackerLineFont`，編輯模式的「文字大小」
-改的是那個字型物件（`ObjectiveTrackerManager:SetTextSize`；繁中的 12 實際是 15）。我們 `SetFont` 過的行
-才會是設定頁的字級 ⇒ **字級對不上的那行，就是 SkinLine 在某個時間點沒碰到的行**。
-行池是**每個區塊一個**（`AcquireFrame(block, template)`），`GetLine` 模板不同才換新行；完成的目標沿用同模板。
-顏色是第二個指紋：暴雪一般色 0.80、完成色 0.60，而 `SetStringText` **只在色系換掉時才 SetTextColor**，
-我們的目標行預設 0.72 —— 完成那行印 0.60 就代表完成之後 SkinLine 沒再跑過。
-
-報告每行印 `字級/描邊 字型檔 role=（StyleFS 碰過沒）c=顏色 state=動畫狀態`，對不上標 `!!`；
-另列「顯示中、卻不在 usedLines 裡」的孤兒行（SkinLine 只走 usedLines）；區塊照 `firstBlock→nextBlock`
-排序並印「skinned N 秒前」（`Diag.NoteSkin`，SkinBlock 開頭報到）。全部對得上的區塊只留一行。
-場景行另列一組 `Scenario objectives`（不掃孤兒行，那要對區塊呼叫 GetChildren）。
-不參與判定，但判定下面會補一行 `also:` 指過來。`Skin.FontRole`／`Skin.TitleFS` 是給這段讀的。
-
-**2026-09-14 已在遊戲內驗證**（探究「納爾多島」）：場景兩行跟戰役行同字級、同描邊，玩家確認正常。
-秘密值閘在 M+ 的表現：2026-09-15 使用者確認正常。
+### 2026-10-13 目標進度上色／百分比（未實機驗證）
+`Skin.lua` 的「目標進度」段：進度從**行文字**解析（全形數字／「／」先轉半形、貼圖跳脫碼先拿掉），紅→黃→綠漸層；
+完成照 `line.Text.colorStyle`（**滑過時存的是 `Complete.reverse`，兩個都要認**）或動畫 state。補色掛在 AddBlock post-hook＋標題 OnEnter/OnLeave HookScript
+（順帶修掉「滑過離開後目標行回 0.8 灰」）。百分比用 SetText 接在原文後，接完比 `GetNumLines`／`IsTruncated`，多一行或被截就退回原文；原文記在 `T.Flags()`。
+預設：上色開、百分比關。
 
 ## 場景階段框 StageBlock：規矩 3 的第二個例外（2026-09-21）
 
-玩家要求把階段框（「清理詛咒深淵」那塊）往右挪、跟標題底線隔開。對過原始碼的事實：
+- `ScenarioObjectiveTracker.StageBlock` 是 **XML 寫死的固定子框**（`parentArray="FixedBlocks"`），不是池子來的；region `NormalBG`／`ThemeOverlay`／`FinalBG`／
+  `GlowTexture`／`Stage`／`Name`／`CompleteLabel`，暴雪對這些 **只寫不讀**。
+- **`UpdateStageBlock` 只在 `currentStage`／`scenarioID` 換掉時才呼叫**，挪錨點幾乎不用拉鋸。它重設 `NormalBG`／`FinalBG`／`Stage` 的 TOPLEFT（不 ClearAllPoints）。
+- 底圖位移表 `textureKitOffsets`：evergreen 0、delves -2、**midnight-scenario -6**。有 `widgetSetID` 的場景（探究、詛咒浪潮）會把 NormalBG／Stage／Name 藏掉——碰不了。
+- **高度縮不了**（`height=83` KeyValue），間距只能靠把 region 在格子裡往下挪。
 
-- `ScenarioObjectiveTracker.StageBlock` 是 **XML 寫死的固定子框**（`parentArray="FixedBlocks"`），不是池子來的。
-  region：`NormalBG`（底圖）、`ThemeOverlay`（錨在 NormalBG 上）、`FinalBG`、`GlowTexture`、`Stage`（Game18Font）、
-  `Name`（錨在 Stage 上）、`CompleteLabel`；池子的東西在 `WidgetContainer` 底下。暴雪對這些 region **只寫不讀**。
-- **`UpdateStageBlock` 只在 `currentStage`／`scenarioID` 換掉時才呼叫**，不是每次排版 ⇒ 挪錨點幾乎不用拉鋸。
-  它重設的是 `NormalBG`／`FinalBG`／`Stage` 的 TOPLEFT（**不 ClearAllPoints**）＋每次 `SetAtlas(…, true)`＋`Stage:SetTextColor`。
-- 底圖位移表 `textureKitOffsets` 是檔案 local：evergreen 0、delves -2、**midnight-scenario -6**（所以 12.x 的場景框會凸出底線左端）。
-- 有 `widgetSetID` 的場景（探究、詛咒浪潮）`UpdateWidgetRegistration` 會把 NormalBG／Stage／Name 藏掉，畫面交給池子 —— 那種碰不了。
-- **高度縮不了**：區塊高度是 `height=83` KeyValue，排版在讀；場景模組 `fromHeaderOffsetY = 0`（一般模組 -10），所以框才會貼著底線。
-  ⇒ 間距只能靠把 region 在 83 高的格子裡往下挪，吃的是框底下那段空白（原本約 25，挪 7 剩 18）。
-
-做法：`T.StageArt`／`T.RegionBase`／`T.NudgeRegion`（Core/Tracker.lua）＋ `AlignStageArt`（Skin.lua，掛場景 Update hook 的
-`T.Defer("stageArt")`）。水平是**量出來置中在標題底線上**（不查表）；分辨「暴雪剛重設過」的方式是讀到的位移不等於我們上次設的。
-⚠ `STAGE_GAP_Y` **不能是 8**：Stage 的兩種 y（-10／-18）差剛好 8，會讓基準偵測撞值。
-**目標行跟著對齊框左緣**（同日第二輪）：目標行是鏈狀錨定（`AddObjective`／`AddProgressBar` 都錨在 `lastRegion or HeaderText`
-的 BOTTOMLEFT），行本身**每次排版**都被重新錨定，挪它會每輪跳一下；但第一行錨的 `ObjectivesBlock.HeaderText` 的 TOPLEFT
-暴雪只在 `AdjustSlideAnchor`（滑入動畫）才重設 ⇒ **挪 HeaderText 一次，整串含進度條跟著走、不用拉鋸**（`T.ScenarioObjectivesAnchor`）。
-`block.offsetX = 32` 是排版在讀的 KeyValue，不能寫。位移量 ＝ 框的可見左緣 − 圓點左緣，其中 `STAGE_BG_PAD = 3`／`BULLET_LEFT = 5`
-是**從截圖量的**，再加 `OBJECTIVES_INSET = 3` 縮到框線內緣（對齊外緣時圓點光暈會凸出去、看起來仍偏左；合計約 +7）；StageArt 回 nil（widget 接手、鑰石、收合）時歸零。
-換皮（清 NormalBG 畫自己的框）還只是討論，沒做；要做的話 `SetAtlas` 同樣只在換階段時重設。
+做法：`T.StageArt`／`T.RegionBase`／`T.NudgeRegion`＋ `AlignStageArt`（`T.Defer("stageArt")`）。水平是量出來置中在標題底線上。
+⚠ `STAGE_GAP_Y` **不能是 8**：Stage 的兩種 y（-10／-18）差剛好 8，會讓基準偵測撞值（現在 7）。
+**目標行跟著對齊框左緣**：行本身每次排版都被重新錨定，但第一行錨的 `ObjectivesBlock.HeaderText` 暴雪只在 `AdjustSlideAnchor` 才重設 ⇒
+**挪 HeaderText 一次整串跟著走**（`T.ScenarioObjectivesAnchor`）。`block.offsetX = 32` 是排版在讀的 KeyValue，不能寫。
+`STAGE_BG_PAD = 3`／`BULLET_LEFT = 5` 是從截圖量的、`OBJECTIVES_INSET = 3`。
+靜態位置使用者已在一般地城（evergreen）驗收；三個左緣各差約 2 的階梯是接受的，不要為了切齊去改。
 
 ## 跟別的插件的關係
 
-- **Leatrix Plus**：`LeaPlusLC` 是檔案內 local，**遙控不了也同步不了**。只能讀
-  `_G.LeaPlusDB`（他的 SavedVariable，是登入當下的值），偵測到就在設定頁與聊天視窗警告。
-  文案要講清楚「這是登入時的狀態，改完要 /reload 才會重判」，不然看起來像壞掉。
-  使用者的 Leatrix 自動任務目前是**全開**的。
-- **WarpDeplete**（2026-09-05 **整支移出套組**）：M+ 藏清單改由我們負責，`visibility.mythicPlus`
-  預設**開**。原本它是本地改版（藏追蹤器改成選項）＋設定頁互相提醒，這一輪把那些全部拆掉：
-  程式、註解、語系條目都不再提到它，`MiliUI/Options/Roster.lua`／`Enhance/AddonNames.lua` 的
-  條目移除，`MiliUI/Enhance/LegacyAddons.lua` 的 `REMOVED` 加一筆讓還留著資料夾的玩家
-  收到一次刪除提醒（**不自動停用** —— 使用者要的是提醒不是代勞）。
-  **改預設值的遷移範本**：`ns.DB_VERSION` 1→2，`DB.lua` 的 `Migrate(db)` 在 `MergeDefaults` **之前**
-  看 `schemaVersion`（merge 之後會被補成最新，舊新存檔就分不出來；全新存檔沒有版本號直接跳過），
-  `from < 2` 就把 `visibility.mythicPlus` 設成 true。之後再改任何預設值都照這個形狀加一段。
-- 我們的自動交任務比 Elles 完整：他缺 `QUEST_PROGRESS → CompleteQuest()`（中間的「繼續」
-  要手點）、`QUEST_GREETING`、`QUEST_ACCEPT_CONFIRM`。**但 `QUEST_AUTOCOMPLETE → ShowQuestComplete()`
-  要跟他一樣刻意不做** —— 那會跑暴雪的完成面板流程（`ShowUIPanel` ＋ 往世界地圖寫
-  UIPanel 屬性），之後每次開地圖都讀到，戰鬥中地圖圖釘就開始被封鎖。
-- 不用 `UnitGUID` 記 NPC（12.1 之後可能是秘密值，當 table key 直接炸）。
-  「同一個 NPC 有多個任務就別亂挑」用「可接任務不只一個就不挑」表達即可。
-
-## ⚠ EllesmereUI 的授權
-
-`tmp/EllesmereUI-v9.0.7/EllesmereUI/license.txt` 是 **All rights reserved**，沒有任何複製授權。
-**程式碼一行都不能貼，連註解都不行。** 可以學的是事實（哪個 API 會污染、事件流程、
-`Crosshair_*` 這種暴雪資產名），那些不受著作權保護。他的 M+ 計時器也拿不走 ——
-`## Dependencies: EllesmereUI`，而本體是 22MB 的半套 UI。
-
-## 待驗證（還沒進遊戲看過）
-
-- ~~標題列的垂直位置~~ —— 已驗證，「藏掉『所有目標』之後版面高度還是保留著」成立，
-  22px 的標題列擺進那個洞不會蓋到第一個任務。
-- 場景階段框置中＋下移 7、目標行對齊框線內緣（2026-09-21）：**靜態位置使用者已在一般地城（evergreen 主題）驗收**
-  —— 間距、置中、圓點位置都 OK；三個左緣（區段字首／框緣／圓點）各差約 2 的階梯是接受的，不要為了切齊去改。
-  還沒看過的：換階段那一幀會不會跳、滑入動畫有沒有跟著、有進度條的場景有沒有一起動、長目標換行後右緣會不會出界、
-  midnight-scenario 主題（紫框）套上之後的樣子。
-- `PAD_LEFT` / `PAD_RIGHT`（`Modules/Chrome.lua`，2026-10-09 是 -10 / +10）—— 追蹤器的區塊本來就從框緣往內縮，要看實際的縮排調。
-- 任務類型圖示擺 TOPRIGHT ＋ 壓掉 POI 按鈕：要確認 12.1.5 的 POI 按鈕真的在那個位置。
-- 背景高度的跨縮放算式（編輯模式可以單獨縮放追蹤器，所以座標一律換成螢幕像素再比較）。
-- ~~`ui-questtrackerbutton-secondary-collapse/expand`~~ —— 已驗證存在。
-- `□%` 的修法（拿掉三處盲掃）還沒回報驗證過。
-- 位置接管跟編輯模式的拉鋸：兩次 defer 夠不夠、右鍵放手還得回不回得去，都還沒實測。
-- 追蹤器**沒有捲動**：可見高度是編輯模式的「高度」設定，超出就截掉。
-  Elles 也沒做（整包沒有任何 scroll/mousewheel）。要自己加就得每幀搬
-  暴雪的 ContentsFrame 跟它的排版對打 —— 不做。
-  **2026-09-19 玩家許願滾輪捲動，對過原始碼再評估一次，結論不變，理由更硬：**
-  (1) 截斷發生在**排版階段**不是繪製階段（`CanFitBlock`：`contentsHeight + height <= availableHeight`，
-  排不進去的區塊根本沒被建出來）⇒ 沒有「藏在下面的內容」可以捲，要捲就得先把 OTF 撐得比可見區高；
-  (2) **`OTF:SetHeight()` 等於呼叫 `Update()`**：`ObjectiveTrackerContainerMixin:OnSizeChanged → MarkDirty()`，
-  在我們的執行裡寫 `self.dirty = true` ＋ `RunNextFrame(dirtyCallback)` ⇒ 下一幀整趟排版是髒的（規矩 1），
-  而且 `dirty` 欄位從此是髒的，之後暴雪自己的 MarkDirty 讀到它也跟著髒，到 /reload 為止；
-  (3) 裁切要 `SetClipsChildren` 的祖先 ⇒ OTF 得**常駐**掛在我們的框底下，09-18 那條 parent 拉鋸從
-  「只有摺起來時」變成全時段。編輯模式的「高度」滑桿是 400–1000（`EditModeSettingDisplayInfo.lua`），
-  非預設位置時 `UpdateHeight` 取 `max(editModeHeight or 800, mustFit 模組高度)`。
-  可做的替代：標題列讀模組的 `hasSkippedBlocks`（唯讀，Diag 已經在讀）標出「有被截掉」。
-
-相關：[[project-miliui-widgets-vendor]]、[[project-miliui-hide-blizzard-taint]]、
-[[wow-121-secret-values]]、[[project-local-addon-forks]]、[[feedback-ui-visual-style]]
+- **Leatrix Plus**（已不在套組）：`LeaPlusLC` 是檔案內 local，只能讀 `_G.LeaPlusDB`（登入當下的值），玩家自己裝回來才會存在；偵測到就在設定頁與聊天視窗警告，
+  文案要講清楚「改完要 /reload 才會重判」。
+- **WarpDeplete**（2026-09-05 整支移出套組）：M+ 藏清單改由我們負責。`MiliUI/Enhance/LegacyAddons.lua` 的 `REMOVED` 有一筆讓還留著資料夾的玩家收到刪除提醒（不自動停用）。
+  **改預設值的遷移範本**：`ns.DB_VERSION` 1→2，`DB.lua` 的 `Migrate(db)` 在 `MergeDefaults` **之前**看 `schemaVersion`（merge 之後會被補成最新；全新存檔沒版本號直接跳過）。
+- 自動交任務比 Elles 完整（`QUEST_PROGRESS → CompleteQuest()`、`QUEST_GREETING`、`QUEST_ACCEPT_CONFIRM`）。**但 `QUEST_AUTOCOMPLETE → ShowQuestComplete()` 刻意不做**——
+  那會跑暴雪的完成面板流程（`ShowUIPanel` ＋ 往世界地圖寫 UIPanel 屬性），之後戰鬥中地圖圖釘被封鎖。
+- 不用 `UnitGUID` 記 NPC（可能是秘密值，當 table key 直接炸）。「同一個 NPC 有多個任務就別亂挑」用「可接任務不只一個就不挑」表達。
+- **EllesmereUI 的授權是 All rights reserved**（原始碼已不在本機）：程式碼一行都不能貼，連註解都不行；可以學的是事實（哪個 API 會污染、事件流程、暴雪資產名）。
 
 ## 跟本體基本型自動交接任務的分工（2026-09-25）
 本體 `MiliUI/Enhance/Quest_Automation.lua` 是基本型（Shift 暫停、特殊對話選項不動、多獎勵／收金幣不交、多個可接不挑、秒接不學習）。
-判準是全域表 `MiliUI_QuestAutomation`（QT 的 Api.lua）在不在：在 ⇒ 本體 PLAYER_LOGIN 不註冊任何任務事件，設定頁開關改讀寫 QT 的 `ns.db.automation`，`MiliUI_DB.quest` 只是鏡像；QT 的 ns.db 要等它自己的 PLAYER_LOGIN，同步延一幀。
-`MiliUI_DB.quest.dirty`：QT 不在時改過開關 ⇒ QT 回來時推過去，否則以 QT 為準抄回。**`MiliUI_QuestAutomation` 改名＝兩邊各接一次。** 待實機驗證。
+判準是全域表 `MiliUI_QuestAutomation`（QT 的 `Api.lua`）在不在：在 ⇒ 本體不註冊任何任務事件，設定頁開關改讀寫 QT 的 `ns.db.automation`，`MiliUI_DB.quest` 只是鏡像；
+QT 的 ns.db 要等它自己的 PLAYER_LOGIN，同步延一幀。`MiliUI_DB.quest.dirty`：QT 不在時改過開關 ⇒ QT 回來時推過去，否則以 QT 為準抄回。
+**`MiliUI_QuestAutomation` 改名＝兩邊各接一次。** 待實機驗證。
 
-## 2026-10-13 目標進度上色／百分比、載具摺疊（未實機驗證）
-`Modules/Skin.lua` 的「目標進度」段：進度從**行文字**解析（全形數字／「／」先轉半形、貼圖跳脫碼先拿掉），紅→黃→綠漸層；完成照暴雪的 `line.Text.colorStyle`（**滑過時存的是 `Complete.reverse`，兩個都要認**）或動畫 state。
-暴雪 `SetStringText` 只在色系換掉時才 SetTextColor ⇒ 補色掛在既有 AddBlock post-hook＋標題 OnEnter/OnLeave HookScript（順帶修掉「滑過離開後目標行回 0.8 灰」）。
-百分比用 SetText 接在原文後（暴雪行高以它自己 SetText 原文後量的為準），接完比 `GetNumLines`／`IsTruncated`，多一行或被截就退回原文；原文記在 `T.Flags()` 弱鍵表。預設：上色開、百分比關。
-自動摺疊第八個條件 `visibility.vehicle`（預設關）：只認 `UnitHasVehicleUI`（乘客座不算），進出載具事件 0.3s 後再評估一次。`/mquest debug` 的 Ours 段印 vehicle 現況。
+## 待驗證（還沒進遊戲看過）
+
+- 摺著時標題列錨存檔座標（09-22）：預設位置的玩家進探究／鑰石。
+- 位置接管三連修（10-12）：先修上面那個 `EditModeSig` 順序錯誤，再驗「右側容器重排不再拉回」「編輯模式拖過自動放手」「右鍵放手回得去」。
+- 目標進度上色／百分比、載具摺疊（10-13）。
+- 場景階段框：換階段那一幀會不會跳、滑入動畫、有進度條的場景、長目標換行後右緣、midnight-scenario 主題。
+- 任務類型圖示擺 TOPRIGHT ＋ 壓掉 POI 按鈕：要確認 12.1.5 的 POI 按鈕真的在那個位置。
+- 背景高度的跨縮放算式（座標一律換成螢幕像素再比較）。
+- `□%` 的修法（拿掉三處盲掃）沒回報驗證過。
+- M+ 計時面板死亡名單、文字靠左、自訂顏色。
+- 追蹤器**沒有捲動**是既定限制，**不做**（09-19 玩家許願，對過原始碼結論不變）：截斷發生在排版階段（`CanFitBlock`，排不進去的區塊根本沒建出來）⇒ 沒有「藏在下面的內容」可捲；
+  `OTF:SetHeight()` 等於 Update（規矩 1）；裁切要 `SetClipsChildren` 的祖先 ⇒ OTF 得常駐掛我們底下，parent 拉鋸變全時段。
+  可做的替代：標題列讀模組的 `hasSkippedBlocks` 標出「有被截掉」。編輯模式的「高度」滑桿是 400–1000。
+
+相關：[[project-miliui-widgets-vendor]]、[[project-miliui-hide-blizzard-taint]]、[[wow-121-secret-values]]、
+[[wow-editmode-setpoint-hook-saves-our-name]]、[[feedback-ui-visual-style]]、[[wow-autoaccept-quest-delay]]

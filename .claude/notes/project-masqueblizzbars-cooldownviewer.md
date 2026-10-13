@@ -1,7 +1,7 @@
 ---
 name: project-masqueblizzbars-cooldownviewer
-description: MasqueBlizzBars 12.1.0.0 起會對冷卻管理器（含增益長條圖示）套 Masque 皮，跟 Ayije_CDM 打架：長條出現偏移方框、層數數字被皮重新錨點裁字；MiliUI/Fix 用它的「已套皮」印記擋長條、用假 Count 讓數字歸 Ayije_CDM 管
-metadata: 
+description: MasqueBlizzBars 12.1.0.0 起會對冷卻管理器（含增益長條圖示）套 Masque 皮，跟 Ayije_CDM 打架：長條出現偏移方框、層數數字被皮重新錨點裁字；MiliUI/Fix 用它的「已套皮」印記擋長條、用假 Count 讓數字歸 Ayije_CDM 管；MCDM 自己的 Core/Compat.lua 對四條檢視器蓋同一個印記
+metadata:
   node_type: memory
   type: project
   originSessionId: 91bb680d-7204-4dc1-9679-0b4fb96ab808
@@ -25,7 +25,10 @@ Masque 套皮改圖示貼圖的錨點／texcoord／遮罩，沒有 NormalTexture
 `IconOverlay:SetShown(groupDisabled)` —— 群組關掉反而把暴雪的圓框秀回來；關群組時 Masque 也會把
 已套皮的圖示「還原」成暴雪預設錨點，一樣蓋掉 Ayije_CDM 的內縮。
 
-**修法**：`MiliUI/Fix/MasqueBlizzBars_CooldownViewer.lua` —— **只管 Ayije_CDM**（MiliUI_CooldownManager 載入時由它自己的 `Core/Compat.lua` 對四條檢視器蓋同一個印記、整批跳過，2026-09-30 起）。Fix 檔現況是「長條整個不套皮（`BLOCK_VIEWERS`）＋三個圖示檢視器只保數字（`KEEP_COUNT_VIEWERS`）」，下面是第一版的描述：Ayije_CDM 有載入時，**只有增益長條檢視器**的
+**修法**：`MiliUI/Fix/MasqueBlizzBars_CooldownViewer.lua` —— **只管 Ayije_CDM**。
+MiliUI_CooldownManager 載入時由它自己的 `Core/Compat.lua` 處理（2026-09-30 起）：四條檢視器的 `OnAcquireItemFrame` 後掛勾在 item（長條連 `item.Icon` 那一層）蓋同一個印記，
+整批跳過；互斥偵測成立或已還給暴雪（`ns.conflict`／`ns.released`）時不蓋。
+Fix 檔現況是「長條整個不套皮（`BLOCK_VIEWERS`）＋三個圖示檢視器只保數字（`KEEP_COUNT_VIEWERS`）」，下面是第一版的描述：Ayije_CDM 有載入時，**只有增益長條檢視器**的
 `OnAcquireItemFrame` 後掛勾把 MasqueBlizzBars 自己的印記 `_MasqueBlizzBarsSkinned` 蓋到項目框
 （蓋在 `frame.Icon` 那層）。三個圖示檢視器不擋：使用者真的在用 Masque 皮（Raeli - Square Inset），
 而且 Action 型的皮跟 Ayije_CDM 沒打架。`Core:Skin` 看到印記就跳過 AddButton、PreHook 也不掛 SetSize。
@@ -45,6 +48,7 @@ Ayije_CDM 每次套樣式再把錨點拉回自己的「頂端」，但不會還�
 就被 Masque 套皮（舊群組也是啟用）只是 Action 型的皮在 Frame 上看不出來，長條是 Aura 型才露餡。
 
 **How to apply:** MasqueBlizzBars 更新後看 `Core.lua` 開頭 `SkinnedKey = "_"..AddonName.."Skinned"`
-還在不在、`PreHook_CooldownViewer` 是否仍用 `frame.Icon.Icon` 判斷長條；印記改名這支就靜默失效，
-症狀是方框回來。同一天第二張圖的「第二條長條沒名字」跟這個無關 —— 是補寫名字時從污染路徑叫暴雪 `RefreshName`
+還在不在、`MasqueBlizzBars.lua` 的 `PreHook_CooldownViewer` 是否仍用 `frame.Icon.Icon` 判斷長條、`not frame.Count` 才對應數字
+（2026-10-14 核對：版本仍 12.1.0.0，三處都在）；印記改名這支與 MCDM 的 Compat 都靜默失效，症狀是方框回來。
+同一天第二張圖的「第二條長條沒名字」跟這個無關 —— 是補寫名字時從污染路徑叫暴雪 `RefreshName`
 碰到秘密 `totemData`，見 [[wow-cooldownviewer-buffbar-text-gate]]。
