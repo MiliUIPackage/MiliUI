@@ -86,6 +86,7 @@
 --   * 錨定不看自己存的 anchor／pos：貼資源條容器的固定邊（資源條的錨點，預設 BOTTOM；SR.RelayPlace）；資源條關掉或收合（enabled／StackSkip，
 --     不讀框的幾何）時改用資源條自己的錨定設定（同樣的 to／point／relPoint／x／y），資源條也沒錨定就用資源條的 pos。
 --   * 不參與排開：不進 StackKeys、AnchorCfg 把它當不存在（別人不能把它當排開目標，錨在它身上的改用自己的 pos）。
+--     判斷集中在 Dormant（閒置的面板走同一條路，見下面「面板」）。
 --   * 資源條的結構一套完（ApplyOne）就跟著重貼它（開關會換錨定目標）。
 --   獨立擺放（standalone）時就是一般的面板。
 --
@@ -93,6 +94,13 @@
 -- 同一套 ApplyStructure（pos／anchor、strata、enabled＝false 就 Hide）與編輯模式／磁吸，
 -- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
 -- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
+--
+-- 第一次用到才登記的面板（資源列獨立擺放 "res:<key>"，Modules/Resources.lua）：不在 DB.PANEL_ORDER，
+-- 設定表由 DB.ConfigTable 認前綴。def 多兩欄：
+--   rank  排開的排名（STACK_RANK 沒有它）
+--   idle  fn → true ＝ 閒置：框刪不掉，閒置時當它不存在——容器收起來（ApplyOne）、AnchorCfg 回 nil、不進 StackKeys、
+--         編輯模式沒有覆蓋層／選取框、不能拖（EditMode 問 B.Dormant）。跟天空騎術接力共用 Dormant 這一個判斷。
+--         idle 的結果變了由模組自己請結構級重套（B.ApplyPanelStructure）
 --
 -- 可收合的面板（collapsible，自訂格子）：沒有內容時是「收合」（state.collapsed；框本身留 1 的高度）。
 -- **收合的面板不佔位**：排開時別人跳過它、接到它的上一層（Layout.StackTarget 的 skip）。
@@ -225,6 +233,24 @@ local function SkyRelayTo()
 end
 B.SkyRelayTo = SkyRelayTo
 
+-- 閒置的面板（登記時給了 def.idle，回 true 的那段時間）：框刪不掉，只好讓它「不在」——
+-- 容器收起來、不是任何人的錨定／排開目標、自己不參與排開、編輯模式沒有覆蓋層與選取框、不能拖。
+-- 目前的使用者：資源列獨立擺放（"res:<key>"，開關關著、或這個專精／型態沒有這一列；Modules/Resources.lua）
+local function PanelIdle(key)
+    local pd = panels[key]
+    if not (pd and pd.idle) then return false end
+    return pd.idle() and true or false
+end
+B.PanelIdle = PanelIdle
+
+-- 「當它不存在」的通用判斷（AnchorCfg、StackKeys、編輯模式、錨定候選都問這支）：
+-- 接力中的天空騎術（位置由接力規則決定，不是任何人的目標）＋閒置的面板
+local function Dormant(key)
+    if key == SKY and SkyRelay() then return true end
+    return PanelIdle(key)
+end
+B.Dormant = Dormant
+
 -- 外部目標（單位框、具名框；Core/Anchor.lua）：解析得到 ⇒ 一張空的設定表（沒有自己的 anchor、算開著），
 -- 所以排開把它當堆疊的根（同一個外部目標、同一邊的照 STACK_RANK 往外排）；解析不到 ⇒ 不存在，
 -- 錨在它身上的條照 anchor.fallback（沒有就 pos）貼 UIParent（PlaceContainer）
@@ -239,8 +265,8 @@ local function AnchorCfg(key)
         return ns.Anchor.Resolve(key) and EXT_CFG or nil
     end
     if ns.Cursor and ns.Cursor.Configured(key) then return nil end
-    -- 接力中的天空騎術不是任何人的錨定／排開目標
-    if key == SKY and SkyRelay() then return nil end
+    -- 接力中的天空騎術、閒置的面板不是任何人的錨定／排開目標
+    if Dormant(key) then return nil end
     return BarCfg(key)
 end
 
@@ -260,6 +286,9 @@ local STACK_RANK = { resources = 1, custombars = 1.2, skyriding = 1.5, pips = 2,
                      essential = 7, assistIcon = 900 }
 local function StackRank(key)
     if STACK_RANK[key] then return STACK_RANK[key] end
+    -- 第一次用到才登記的面板（獨立擺放的資源列）：排名在登記時給（def.rank）
+    local pd = panels[key]
+    if pd and pd.rank then return pd.rank end
     local p = Profile()
     local order = type(p) == "table" and type(p.barOrder) == "table" and p.barOrder or {}
     for i = 1, #order do
@@ -273,10 +302,15 @@ local function StackKeys()
     if type(p) == "table" and type(p.bars) == "table" then
         for k in pairs(p.bars) do keys[#keys + 1] = k end
     end
-    local relay = SkyRelay()
+    local listed = {}
     for _, k in ipairs(ns.DB.PANEL_ORDER) do
-        -- 接力中的天空騎術不參與排開（不然會把輔助技能、施法條往外推）
-        if BarCfg(k) and not (k == SKY and relay) then keys[#keys + 1] = k end
+        listed[k] = true
+        -- 接力中的天空騎術、閒置的面板不參與排開（不然會把輔助技能、施法條往外推）
+        if BarCfg(k) and not Dormant(k) then keys[#keys + 1] = k end
+    end
+    -- 第一次用到才登記的面板（不在 PANEL_ORDER：獨立擺放的資源列）
+    for k in pairs(panels) do
+        if not listed[k] and BarCfg(k) and not Dormant(k) then keys[#keys + 1] = k end
     end
     return keys
 end
@@ -447,8 +481,8 @@ local function ApplyOne(key)
     local c = EnsureContainer(key)
     local bar = BarCfg(key)
     local st = state[key]
-    -- enabled ＝ false 只有面板會有（條沒有這個欄位）
-    if not bar or bar.enabled == false then
+    -- enabled ＝ false 只有面板會有（條沒有這個欄位）；閒置的面板（PanelIdle）同樣收起來
+    if not bar or bar.enabled == false or PanelIdle(key) then
         -- 條被刪（自訂群組、換設定檔少了這條）或面板關掉：容器收起來，編輯模式的覆蓋層／選取框也收
         --（frame 刪不掉；同一個 key 之後再建回來會重用，ApplyBarNow 看 BarCfg 決定要不要再顯示）
         -- 關掉的面板位置照樣對好：照字面錨在它身上的東西要有個位置，而且容器身上不能留著舊的錨
@@ -1804,6 +1838,12 @@ function B.RegisterPanel(key, def)
     local c = EnsureContainer(key)
     if InCombatLockdown() then structurePending[key] = true; ArmStructurePending() else ApplyStructure(key) end
     return c
+end
+
+-- 模組自己知道某個面板的結構要重套（閒置狀態變了）：戰鬥外當場套、戰鬥中記帳到脫戰
+function B.ApplyPanelStructure(key)
+    if not panels[key] then return end
+    if InCombatLockdown() then structurePending[key] = true; ArmStructurePending() else ApplyStructure(key) end
 end
 
 function B.IsPanel(key) return panels[key] ~= nil end

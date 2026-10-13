@@ -29,6 +29,8 @@
 --      GcdFormatter 的分段）、分專精開關（SetRow／SpecCandidates／MigrateFlatRows／設定遷移 v3）
 --  13. 每種資源自己的外觀（R.StyleFor 代理表：跟／不跟、退回全域、非外觀欄位照讀、唯讀、不可遍歷、
 --      快取在 R.Apply 後作廢）、預設 style 空表、DefaultFor 回 nil
+--  14. 資源列獨立擺放：IsDetached、"res:" 前綴與 ConfigTable（讀取不建表）、EnsureDetached 的預設、DetachedKeys、
+--      DefaultFor、錨定成環、刪條清錨定、MainRows（全不拆／拆中間一列往上補／拆第一列／全部拆走／scratch）
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -1941,5 +1943,97 @@ do
     check("AnyOverride：target 規則不算", not RC.AnyOverride({ { target = 1, overrides = { tagColor = red } } }, "tagColor"))
     eq("pick 回 nil ⇒ 展不開", RC.CurvePointsBy(conds, 100, 262, function() return nil end), nil)
 end
+------------------------------------------------------------
+-- 14. 資源列獨立擺放（resources.detached、面板 "res:<key>"）
+------------------------------------------------------------
+do
+    local R = ns.Resources
+    local DB = ns.DB
+    ns.profile = DB.BuildDefaults().profile
+    local res = ns.profile.resources
+    check("預設：detached 是空表", type(res.detached) == "table" and next(res.detached) == nil)
+    -- IsDetached：只看 on == true
+    check("IsDetached：沒有表", not R.IsDetached(res, "Mana"))
+    check("IsDetached：cfg 不是表", not R.IsDetached(nil, "Mana"))
+    check("IsDetached：detached 壞資料", not R.IsDetached({ detached = "x" }, "Mana"))
+    check("IsDetached：on = false", not R.IsDetached({ detached = { Mana = { on = false } } }, "Mana"))
+    check("IsDetached：on = 1 不算（只認 true）", not R.IsDetached({ detached = { Mana = { on = 1 } } }, "Mana"))
+    check("IsDetached：on = true", R.IsDetached({ detached = { Mana = { on = true } } }, "Mana"))
+    -- 前綴
+    eq("DetachedResource：res:Mana", DB.DetachedResource("res:Mana"), "Mana")
+    eq("DetachedResource：空名", DB.DetachedResource("res:"), nil)
+    eq("DetachedResource：一般的 key", DB.DetachedResource("resources"), nil)
+    eq("DetachedResource：非字串", DB.DetachedResource(nil), nil)
+    -- ConfigTable：讀取路徑不建表
+    eq("ConfigTable res:Mana 沒有表 ⇒ nil", DB.ConfigTable("res:Mana"), nil)
+    check("ConfigTable 沒有建表", res.detached.Mana == nil)
+    -- EnsureDetached：建表、預設錨在資源條上方、開關關、y ＝ 列距
+    res.rowSpacing = 3
+    local t = R.EnsureDetached("Mana")
+    check("EnsureDetached：建了", type(t) == "table" and res.detached.Mana == t)
+    eq("EnsureDetached：開關關", t.on, false)
+    check("EnsureDetached：錨在資源條，下緣貼上緣", type(t.anchor) == "table" and t.anchor.to == "resources"
+        and t.anchor.point == "BOTTOM" and t.anchor.relPoint == "TOP" and t.anchor.x == 0)
+    eq("EnsureDetached：y ＝ 建立當下的列距", t.anchor.y, 3)
+    check("EnsureDetached：有 pos", type(t.pos) == "table" and t.pos.point == "CENTER")
+    t.on, t.anchor.x = true, 7
+    eq("EnsureDetached：已有就不動", R.EnsureDetached("Mana"), t)
+    eq("EnsureDetached：值留著", t.anchor.x, 7)
+    eq("ConfigTable res:Mana", DB.ConfigTable("res:Mana"), t)
+    check("res: 不是靜態面板", not DB.IsPanel("res:Mana") and DB.PANEL_KEYS["res:Mana"] == nil)
+    eqList("DetachedKeys", DB.DetachedKeys(ns.profile), { "res:Mana" })
+    res.detached.Bad = "x"
+    eqList("DetachedKeys：壞資料略過", DB.DetachedKeys(ns.profile), { "res:Mana" })
+    res.detached.Bad = nil
+    eqList("DetachedKeys：沒有 profile", DB.DetachedKeys(nil), {})
+    -- DefaultFor：右鍵重設回新建的預設
+    eq("DefaultFor res:：on", DB.DefaultFor("bar", "res:Mana", "on"), false)
+    eq("DefaultFor res:：anchor.to", DB.DefaultFor("bar", "res:Mana", "anchor.to"), "resources")
+    eq("DefaultFor res:：anchor.point", DB.DefaultFor("bar", "res:Mana", "anchor.point"), "BOTTOM")
+    -- 錨定成環：res: 不是任何人的目標，錨到資源條不成環；資源條（錨核心）錨不回 res:（沒有人錨它）
+    check("res:Mana → 資源條不成環", not DB.AnchorWouldCycle("res:Mana", "resources"))
+    check("res:Mana → 核心技能不成環", not DB.AnchorWouldCycle("res:Mana", "essential"))
+    check("res:Mana → 自己成環", DB.AnchorWouldCycle("res:Mana", "res:Mana"))
+    -- 刪條：錨在被刪的群組上的拆出列放開（跟其他面板一樣清成 false）
+    local g = DB.CreateBar("icons", "臨時")
+    t.anchor = { to = g, point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 }
+    DB.DeleteBar(g)
+    eq("刪條：錨在它身上的拆出列放開", t.anchor, false)
+    eq("刪條：開關不動", t.on, true)
+
+    -- MainRows：哪幾列留在主面板、各自的 y、總高
+    local H = { A = 10, B = 20, C = 5, D = 8 }
+    local SP = { A = 1, B = 2, C = 3, D = 4 }
+    local function hOf(k) return H[k] end
+    local function sOf(k) return SP[k] end
+    local function none() return false end
+    local list4 = { "A", "B", "C", "D" }
+    local main, yOf, total = R.MainRows(list4, none, hOf, sOf)
+    eqList("MainRows 全不拆：四列", main, list4)
+    check("MainRows 全不拆：y", yOf.A == 0 and yOf.B == 12 and yOf.C == 35 and yOf.D == 44,
+        table.concat({ yOf.A, yOf.B, yOf.C, yOf.D }, ","))
+    eq("MainRows 全不拆：總高（第一列的間距不算）", total, 10 + 2 + 20 + 3 + 5 + 4 + 8)
+    main, yOf, total = R.MainRows(list4, function(k) return k == "B" end, hOf, sOf)
+    eqList("MainRows 拆中間一列：剩三列", main, { "A", "C", "D" })
+    eq("MainRows 拆中間一列：C 往上補（A 高＋C 的間距）", yOf.C, 13)
+    eq("MainRows 拆中間一列：拆走的沒有 y", yOf.B, nil)
+    eq("MainRows 拆中間一列：總高不多一份間距", total, 10 + 3 + 5 + 4 + 8)
+    main, yOf, total = R.MainRows(list4, function(k) return k == "A" end, hOf, sOf)
+    eq("MainRows 拆第一列：B 頂到 0（它的間距不算）", yOf.B, 0)
+    eq("MainRows 拆第一列：總高", total, 20 + 3 + 5 + 4 + 8)
+    main, yOf, total = R.MainRows(list4, function() return true end, hOf, sOf)
+    eq("MainRows 全部拆走：沒有列", #main, 0)
+    eq("MainRows 全部拆走：總高 0（引擎改用 1）", total, 0)
+    main, yOf, total = R.MainRows({}, none, hOf, sOf)
+    check("MainRows 空清單", #main == 0 and total == 0)
+    -- scratch 表就地清空重填
+    local out, ys = { "X", "Y", "Z" }, { X = 99 }
+    local m2, y2 = R.MainRows({ "A" }, none, hOf, sOf, out, ys)
+    check("MainRows scratch：同一張表、舊的清掉", m2 == out and y2 == ys and #out == 1 and ys.X == nil and ys.A == 0)
+    -- 壞資料：高度／間距不是數字當 0
+    main, yOf, total = R.MainRows({ "A", "Q" }, none, hOf, sOf)
+    eq("MainRows 讀不到高度的列當 0", total, 10)
+end
+
 print(("Resources_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

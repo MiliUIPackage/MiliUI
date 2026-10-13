@@ -6,6 +6,9 @@
 --
 -- 所有會錨定的東西都走這一支：四條內建檢視器、自訂圖示／長條群組、資源條、自訂格子（pips）、施法條、
 -- 下一招圖示、天空騎術獨立擺放——表單上的入口都是 Specs.Anchor 的摘要列。
+-- 資源列獨立擺放（"res:<key>"）的入口是資源條頁「這個專精要顯示哪些」每一列的「錨定」鈕：最上面多一列
+-- 「獨立擺放」開關（寫 resources.detached[key].on），關著時下面每一列都蓋停用遮罩（Specs 的 disabled 機制：
+-- 遮罩吃滑鼠，雙九宮格的格子點不到、整列變暗）。
 --
 -- 內容（由上到下，全部 spec，Specs.BuildForm 建）：
 --   跟著哪條走     Specs.AnchorTargetSpec（候選＋寫入規則只有那一份）
@@ -258,13 +261,30 @@ end
 ------------------------------------------------------------
 local function Note(label) return { type = "text", label = label } end
 
+-- 獨立擺放的資源列（"res:<key>"）：開關開著沒有
+local function DetachedOn(key)
+    local t = Cfg(key)
+    return type(t) == "table" and t.on == true
+end
+
 local function Controls(key)
     local Sp = ns.Specs
     local root = "bar@" .. key
     local gate = Sp.AnchorCursorGate(key)
     local a = AnchorOf(key)
     local kind = a and ns.Anchor and ns.Anchor.Parse(a.to) or nil
-    local list = { Sp.AnchorTargetSpec(key, root, gate) }
+    local list = {}
+    if ns.DB.DetachedResource(key) then
+        -- 最上面一列「獨立擺放」開關（寫 on）；關著時下面全部停用（看得到、不能改），值留著，打開回到上次的位置
+        list[1] = { type = "toggle", root = root, path = "on", key = "on", label = L["Standalone"], level = "structure" }
+        list[2] = Note(L["When on, this row leaves the resource bar and is placed by the anchoring below. It still shows and hides with the resource bar."])
+        local cursorGate = gate
+        gate = function(info)
+            if cursorGate and cursorGate(info) then return true end
+            return not DetachedOn(key)
+        end
+    end
+    list[#list + 1] = Sp.AnchorTargetSpec(key, root, gate)
     if kind == "frame" then list[#list + 1] = Sp.FrameNameRow(key, gate) end
     if Sp.ExternalUnresolved(key) then
         list[#list + 1] = Sp.EmphasisNote(L["Not found, using its own position for now."])
@@ -288,6 +308,8 @@ local function Signature(key)
     local kind = a and ns.Anchor and ns.Anchor.Parse(a.to) or nil
     return table.concat({
         tostring(key),
+        -- 獨立擺放的開關：一切換就重建表單（停用遮罩跟著換）
+        ns.DB.DetachedResource(key) and (DetachedOn(key) and "on" or "off") or "-",
         a and "a" or "-",
         kind or "-",
         ns.Specs.ExternalUnresolved(key) and "!" or "-",

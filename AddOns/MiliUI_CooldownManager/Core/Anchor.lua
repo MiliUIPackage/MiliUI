@@ -227,6 +227,10 @@ local function UsedTargets()
     end
     for _, bar in pairs(type(p.bars) == "table" and p.bars or {}) do Add(bar) end
     for _, k in ipairs(ns.DB and ns.DB.PANEL_ORDER or {}) do Add(p[k]) end
+    -- 獨立擺放的資源列（"res:<key>"）也可以錨外部框
+    if ns.DB and ns.DB.DetachedKeys then
+        for _, k in ipairs(ns.DB.DetachedKeys(p)) do Add(ns.DB.ConfigTable(k)) end
+    end
     return out
 end
 

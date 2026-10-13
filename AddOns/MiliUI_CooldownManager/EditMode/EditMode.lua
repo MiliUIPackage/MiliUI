@@ -216,7 +216,7 @@ driver:SetScript("OnUpdate", DragTick)
 
 function EM.BeginDrag(key)
     if dragState or InCombatLockdown() then return end
-    if EM.SkyRelayHidden and EM.SkyRelayHidden(key) then return end   -- 接力中的天空騎術不能拖
+    if EM.Dormant and EM.Dormant(key) then return end   -- 接力中的天空騎術、閒置的面板不能拖
     local c, bar = ns.Bars.Get(key), BarCfg(key)
     if not (c and bar) then return end
     local rect = EM.RectOf(c)
@@ -268,7 +268,7 @@ EM.HoveredKey = HoveredKey
 
 function EM.Nudge(key, dx, dy)
     if dragState or InCombatLockdown() then return false end
-    if EM.SkyRelayHidden and EM.SkyRelayHidden(key) then return false end
+    if EM.Dormant and EM.Dormant(key) then return false end
     local bar = BarCfg(key)
     if not (bar and ns.Bars.Get(key)) then return false end
     local t
@@ -549,10 +549,12 @@ function EM.DebugLines()
         local bar = BarCfg(key)
         local pos = bar and type(bar.pos) == "table" and bar.pos or {}
         local a = bar and type(bar.anchor) == "table" and bar.anchor
-        out[#out + 1] = ("  %-9s pos %s(%s, %s)  錨點 %s  跟隨 %s  選取框 %s")
+        out[#out + 1] = ("  %-9s pos %s(%s, %s)  錨點 %s  跟隨 %s  選取框 %s%s")
             :format(key, tostring(pos.point or "CENTER"), tostring(pos.x), tostring(pos.y),
                     tostring(B.AnchorPoint(key)), a and FollowText(key, a) or "—",
-                    tostring(EM.selKind[key] or "—"))
+                    tostring(EM.selKind[key] or "—"),
+                    -- 當它不存在（接力中的天空騎術、閒置的面板：Bars.Dormant）
+                    (B.Dormant and B.Dormant(key)) and "  （不在）" or "")
     end
     return out
 end

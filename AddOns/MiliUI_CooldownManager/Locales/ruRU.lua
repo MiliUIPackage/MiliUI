@@ -1108,3 +1108,5 @@ L["Plays when the cooldown finishes; for a spell with charges, each time a charg
 L["Only edge-to-opposite-edge pairs (top/bottom, left/right) stack; other pairs are placed exactly as chosen."] = "Складываются только пары противоположных краёв (верх/низ, лево/право); остальные ставятся ровно как выбрано."
 L["It can also follow the player, target, focus, pet or target-of-target frame of whichever unit frames are loaded, or any frame by name. A frame hidden for lack of a unit still holds the position."] = "Также можно следовать за рамкой игрока, цели, фокуса, питомца или цели цели загруженных рамок юнитов или за любой рамкой по имени. Рамка, скрытая без юнита, сохраняет позицию."
 L["Nothing to show right now: the spells on this list aren't learned."] = "Сейчас нечего показать: заклинания из этого списка не изучены."
+-- 資源列獨立擺放（錨定視窗最上面的開關底下）
+L["When on, this row leaves the resource bar and is placed by the anchoring below. It still shows and hides with the resource bar."] = "Если включено, эта строка покидает панель ресурсов и размещается по привязке ниже. Показывается и скрывается она по-прежнему вместе с панелью ресурсов."

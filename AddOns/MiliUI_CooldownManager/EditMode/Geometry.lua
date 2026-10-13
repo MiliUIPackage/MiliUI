@@ -111,6 +111,10 @@ function EM.ReadPos(key)
     local bar = p and type(p.bars) == "table" and p.bars[key]
     -- 面板（資源條、施法條）存在 profile[key]（ns.PANEL_KEYS 由 Core/DB.lua 給；離線測試可以不給）
     if bar == nil and p and ns.PANEL_KEYS and ns.PANEL_KEYS[key] then bar = p[key] end
+    -- 獨立擺放的資源列（"res:<key>"）：設定表在 profile.resources.detached，認前綴的是 DB.ConfigTable
+    if bar == nil and p and ns.DB and ns.DB.DetachedResource and ns.DB.DetachedResource(key) then
+        bar = ns.DB.ConfigTable(key)
+    end
     if not (c and type(bar) == "table") then return nil end
     local rect, parent = EM.RectOf(c), EM.RectOf(UIParent)
     if not (rect and parent) then return nil end

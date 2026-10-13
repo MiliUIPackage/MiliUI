@@ -74,17 +74,23 @@ local SUBPANELS = {
     assistIcon = { host = "assist",    title = L["Next cast icon"] },
 }
 
--- 這個 id 的設定在哪一頁（一般的條／頁就是自己）
+-- 這個 id 的設定在哪一頁（一般的條／頁就是自己）。獨立擺放的資源列（"res:<key>"）在資源條頁
 function Options.HostPage(id)
     local sp = SUBPANELS[id]
-    return sp and sp.host or id
+    if sp then return sp.host end
+    if ns.DB.DetachedResource(id) then return "resources" end
+    return id
 end
 
 function Options.PageTitle(id)
     local def = pageDefs[id]
     if not def then
         local sp = SUBPANELS[id]
-        return sp and sp.title or nil
+        if sp then return sp.title end
+        -- 獨立擺放的資源列：資源名稱（錨定視窗標題、編輯模式覆蓋層的名字都走這裡）
+        local rk = ns.DB.DetachedResource(id)
+        if rk and ns.Resources and ns.Resources.Name then return ns.Resources.Name(rk) end
+        return nil
     end
     if type(def.title) == "function" then return def.title(id) end
     return def.title

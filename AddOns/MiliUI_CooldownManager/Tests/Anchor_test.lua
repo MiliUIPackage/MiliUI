@@ -386,5 +386,52 @@ do
     p.castbar.anchor = false
 end
 
+------------------------------------------------------------
+-- 8. 閒置的面板（資源列獨立擺放 "res:<key>"）：Bars.Dormant 的通用判斷
+------------------------------------------------------------
+do
+    local B = ns.Bars
+    local det = { on = true, anchor = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
+                  pos = { point = "CENTER", x = 0, y = -150 } }
+    p.resources.detached = { Mana = det }
+    p.castbar.anchor = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 }
+    local live = true
+    B.RegisterPanel("res:Mana", { anchorPoint = "CENTER", rank = 1.1, idle = function() return not live end })
+    local c = B.Get("res:Mana")
+    check("拆出列：容器建好（名字照 MiliUICDM_Bar_<key>）", c ~= nil and c.name == "MiliUICDM_Bar_res:Mana")
+    check("拆出列：不是靜態面板，但 Bars 認得", B.IsPanel("res:Mana") and not DB.IsPanel("res:Mana"))
+    check("拆出列（現役）：不閒置", not B.PanelIdle("res:Mana") and not B.Dormant("res:Mana"))
+    eq("拆出列（現役）：貼資源條", B.StackTarget("res:Mana"), "resources")
+    eq("拆出列（現役）：施法條排在它外面（rank 1.1 < 4）", B.StackTarget("castbar"), "res:Mana")
+    B.ApplyStructure("res:Mana")
+    check("拆出列（現役）：容器顯示", c.shown == true)
+    local pt = c.points[#c.points] or {}
+    check("拆出列（現役）：錨在資源條容器上", pt[1] == "BOTTOM" and pt[2] == B.Get("resources") and pt[3] == "TOP")
+
+    -- 閒置：當它不存在（AnchorCfg nil、不進排開、容器收起來）
+    live = false
+    check("閒置：PanelIdle／Dormant", B.PanelIdle("res:Mana") and B.Dormant("res:Mana"))
+    eq("閒置：自己沒有排開目標", B.StackTarget("res:Mana"), nil)
+    eq("閒置：施法條改貼資源條", B.StackTarget("castbar"), "resources")
+    B.ApplyPanelStructure("res:Mana")
+    check("閒置：容器收起來", c.shown == false)
+    -- 開關關著也一樣（設定表還在、值留著）：閒置由模組的 idle 決定，Bars 不讀 on
+    check("閒置：設定表留著", DB.ConfigTable("res:Mana") == det)
+
+    -- 回到現役
+    live = true
+    B.ApplyPanelStructure("res:Mana")
+    check("回到現役：容器顯示", c.shown == true)
+    eq("回到現役：施法條又排到它外面", B.StackTarget("castbar"), "res:Mana")
+    -- 天空騎術接力以外的面板：Dormant 不誤判
+    check("Dormant：資源條不是", not B.Dormant("resources"))
+    check("Dormant：沒登記的 key 不是", not B.Dormant("nope"))
+
+    live = false
+    B.ApplyPanelStructure("res:Mana")
+    p.castbar.anchor = false
+    p.resources.detached = {}
+end
+
 print(("Anchor_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

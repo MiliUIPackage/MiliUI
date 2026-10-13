@@ -118,10 +118,15 @@ function CL.Refresh()
     -- 面板（資源條、自訂格子、施法條）也蓋一層；關掉的面板容器是藏著的，不蓋。
     -- 自訂格子沒有自己一頁：點了開資源條頁（Options.ShowPage 照 HostPage 轉）
     -- 接力中的天空騎術不蓋（跟著資源條，點資源條那一層）
-    local skyRelay = ns.Bars and ns.Bars.SkyRelay and ns.Bars.SkyRelay()
+    -- 閒置的面板（Bars.Dormant）同理不蓋
+    local dormant = ns.Bars and ns.Bars.Dormant
     for _, key in ipairs(ns.DB.PANEL_ORDER) do
         local cfg = ns.DB.ConfigTable(key)
-        if cfg and cfg.enabled ~= false and not (key == "skyriding" and skyRelay) then bars[key] = true end
+        if cfg and cfg.enabled ~= false and not (dormant and dormant(key)) then bars[key] = true end
+    end
+    -- 獨立擺放的資源列（"res:<key>"，第一次用到才登記的面板）：現在拆出來的才蓋，點了開資源條頁（HostPage）
+    for key in pairs(ns.Bars and ns.Bars.Panels and ns.Bars.Panels() or {}) do
+        if ns.DB.DetachedResource(key) and ns.DB.ConfigTable(key) and not (dormant and dormant(key)) then bars[key] = true end
     end
     for key in pairs(bars) do
         if want and ns.Bars and ns.Bars.Get(key) then
@@ -139,7 +144,7 @@ function CL.Refresh()
     end
 end
 
--- 設定視窗的開關、編輯模式進出、條增減、換設定檔：下一幀對一次
+-- 設定視窗的開關、編輯模式進出、條增減、換設定檔、資源列拆出收回：下一幀對一次
 local armed = false
 local function Later()
     if armed then return end
@@ -156,6 +161,8 @@ ns.RegisterCallback("EditModeChanged", "clicklayer", Later)
 ns.RegisterCallback("BarsListChanged", "clicklayer", Later)
 ns.RegisterCallback("ProfileChanged", "clicklayer", Later)
 ns.RegisterCallback("BarMoved", "clicklayer", Later)
+-- 資源列拆出／收回（Modules/Resources.lua 的 SyncDetached）：面板出現或閒置
+ns.RegisterCallback("DetachedChanged", "clicklayer", Later)
 
 -- 進戰鬥那一刻（鎖定還沒生效）當場收掉；脫戰再照狀態對一次
 local combat = CreateFrame("Frame")

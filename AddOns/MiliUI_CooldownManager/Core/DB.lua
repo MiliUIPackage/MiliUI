@@ -284,6 +284,11 @@ ResourcesDefaults = function()
         -- 每種資源自己的外觀（設定視窗的「外觀」那一節）。開放式、預設空；follow 沒存 ＝ 跟下面這幾欄（全域）。
         -- 引擎讀 Modules/Resources.lua 的 R.StyleFor 回的代理表
         style         = {},
+        -- [資源key] = { on, anchor, pos }：這一列「獨立擺放」（離開資源條、自己一個面板 "res:<key>"，見 DB.ConfigTable、
+        -- Modules/Resources.lua 的「獨立擺放」）。所有專精共用；開放式、預設空（沒有這一筆 ＝ 沒拆）。
+        -- 表只在玩家按那一列的「錨定」鈕時建（DB.NewDetached 的預設），讀取路徑不建。開關叫 on 不叫 enabled：
+        -- 面板的 enabled == false 是「整個面板關掉」
+        detached      = {},
         rowSpacing    = 1,
         segmentSpacing = 0,                -- 點數型（聖能、連擊點…）的格距；0 ＝ 相鄰兩格共用 1px 邊（使用者 2026-10-01 指定，不遷移）
         fillDirection = "ltr",             -- ltr | rtl（點數型從右邊亮起）
@@ -1528,11 +1533,52 @@ ns.PANEL_KEYS = PANEL_KEYS
 DB.PANEL_ORDER = { "resources", "pips", "custombars", "castbar", "assistIcon", "skyriding" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
+-- 資源列獨立擺放的面板 key："res:<資源 key>"（不在 PANEL_KEYS：那是靜態表，這種面板第一次用到才登記）。
+-- ⚠ key 是存檔內容的一部分（別的設定只會在 DeleteBar 清它的 anchor.to，不會有人錨到它，但編輯模式的磁吸用它當名字）
+DB.DETACHED_PREFIX = "res:"
+-- "res:Mana" → "Mana"；不是這種 key 回 nil
+function DB.DetachedResource(key)
+    if type(key) ~= "string" or key:sub(1, 4) ~= "res:" then return nil end
+    local r = key:sub(5)
+    return r ~= "" and r or nil
+end
+
+-- 新建一筆的預設：錨在資源條上、這一列的下緣貼資源條的上緣（同自訂列，往上長），y ＝ 建立當下資源條的列距
+function DB.NewDetached(rowSpacing)
+    return {
+        on     = false,
+        anchor = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = tonumber(rowSpacing) or 1 },
+        pos    = { point = "CENTER", x = 0, y = -150 },
+    }
+end
+
+-- 有獨立擺放設定的那幾個面板 key（不管開關；DeleteBar 清錨定、外部目標的解析都要看）
+function DB.DetachedKeys(p)
+    local out = {}
+    local res = type(p) == "table" and p.resources
+    local d = type(res) == "table" and res.detached
+    if type(d) ~= "table" then return out end
+    for k, t in pairs(d) do
+        if type(k) == "string" and type(t) == "table" then out[#out + 1] = "res:" .. k end
+    end
+    table.sort(out)
+    return out
+end
+
 -- 條或面板的設定表（錨定、位置、編輯模式、設定頁的 root "bar" 一律走這支）
 function DB.ConfigTable(key)
     if PANEL_KEYS[key] then
         local p = ns.profile
         local t = p and p[key]
+        return type(t) == "table" and t or nil
+    end
+    local rk = DB.DetachedResource(key)
+    if rk then
+        -- 只讀：沒有這一筆就回 nil（建表在 Resources.EnsureDetached）
+        local p = ns.profile
+        local res = p and p.resources
+        local d = type(res) == "table" and res.detached
+        local t = type(d) == "table" and d[rk]
         return type(t) == "table" and t or nil
     end
     return BarTable(key)
@@ -1553,6 +1599,11 @@ function DB.DefaultFor(root, barKey, path)
         return nil
     end
     local ref = PANEL_KEYS[barKey] and d[barKey] or d.bars[barKey]
+    -- 資源列獨立擺放：新建那一筆的預設（右鍵重設開關／錨點／偏移）
+    if not ref and DB.DetachedResource(barKey) then
+        local res = ns.profile and ns.profile.resources
+        ref = DB.NewDetached(type(res) == "table" and res.rowSpacing or nil)
+    end
     if not ref then
         local bar = BarTable(barKey)
         local kind = bar and bar.kind or "icons"
@@ -1625,6 +1676,11 @@ function DB.DeleteBar(key)
     end
     for pk in pairs(PANEL_KEYS) do
         local t = p[pk]
+        if type(t) == "table" and type(t.anchor) == "table" and t.anchor.to == key then t.anchor = false end
+    end
+    -- 獨立擺放的資源列也是面板：錨在被刪的條上就清掉（下次照自己的 pos）
+    for _, rk in ipairs(DB.DetachedKeys(p)) do
+        local t = DB.ConfigTable(rk)
         if type(t) == "table" and type(t.anchor) == "table" and t.anchor.to == key then t.anchor = false end
     end
     p.bars[key] = nil

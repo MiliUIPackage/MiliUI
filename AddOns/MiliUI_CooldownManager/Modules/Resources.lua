@@ -12,6 +12,16 @@
 -- 哪幾列要顯示是**分專精**存的（resources.rows[specID][key]，見 R.RowOn／R.SetRow）。
 -- 高度（resources.heights[key]）與外觀（resources.style[key]，見 R.StyleFor）是逐列的、所有專精共用。
 --
+-- 獨立擺放（resources.detached[key].on，所有專精共用；2026-10-13）：這一列離開資源條，照自己的錨定／位置擺在
+-- 面板 "res:<key>"（容器 MiliUICDM_Bar_res:<key>，第一次用到才登記；Core/Bars.lua 的「第一次用到才登記的面板」）。
+--   * 列的 parent **不換**（留在 root 底下），只把 SetPoint 改錨到那個面板的容器：顯示條件、整條關掉、淡出
+--     全部由資源條的容器帶，「顯示條件跟資源條」不用另外寫；代價是 strata 跟資源條一樣。
+--   * 拆出的列不累計 y、不算進資源條的寬高（R.MainRows）；那個面板的大小＝這一列的寬高。
+--   * 閒置（開關關著、這個專精／型態沒有這一列、資源條整條關掉）：面板當它不存在（Bars 的 idle／Dormant），
+--     判斷讀 R.det.live（上一次排版的結果 ⇒ 跟畫面一致；戰鬥中排版延後時也一起延後）。
+--   * 引擎畫的列（無視苦痛、鐵鬃…）是保護框：錨在它身上的容器跟著變成隱式保護，容器的寫入照舊全走 ns.Write，
+--     資源條本身照舊 MustDefer／DeferRelayout。
+--
 -- 每一列自己決定長相：
 --   pip        分段（點數型：聖能／連擊點數／真氣／碎片／充能／精華／符文，以及光環堆疊型：冰刺…）
 --   bar        連續長條（怒氣／能量／集中值／符文能量／星能／元能／狂亂值／魔怒／法力；
@@ -2897,15 +2907,120 @@ local function DeferRelayout()
     ns.Events.Register("PLAYER_REGEN_ENABLED", "resources_relayout", OnRegenRelayout)
 end
 
+------------------------------------------------------------
+-- 獨立擺放
+------------------------------------------------------------
+-- 這一列有沒有拆出去（只看開關；這個專精有沒有這一列是排版的事）
+function R.IsDetached(cfg, key)
+    local d = type(cfg) == "table" and cfg.detached
+    local t = type(d) == "table" and d[key]
+    return type(t) == "table" and t.on == true
+end
+
+-- 建表（只有那一列的「錨定」鈕會叫；讀取路徑不建）：預設見 DB.NewDetached，開關維持關
+function R.EnsureDetached(key)
+    local cfg = Cfg()
+    if not (cfg and type(key) == "string") then return nil end
+    if type(cfg.detached) ~= "table" then cfg.detached = {} end
+    local t = cfg.detached[key]
+    if type(t) ~= "table" then
+        t = ns.DB.NewDetached(cfg.rowSpacing)
+        cfg.detached[key] = t
+    end
+    return t
+end
+
+-- 純函式：哪幾列留在主面板、各自的 y、主面板總高。
+--   list 實際要畫的列；isDetached(key) 拆出去的不算；heightOf(key)／spacingOf(key) 列高、跟上一列的間距
+-- 間距只加在「主面板裡的上一列」與這一列之間：拆走中間一列，下面的往上補、間距不多一份。
+-- 回 main（陣列）, yOf（key → y）, total。out／yOf 可傳 scratch 表（就地清空重填）
+function R.MainRows(list, isDetached, heightOf, spacingOf, out, yOf)
+    out, yOf = out or {}, yOf or {}
+    for i = #out, 1, -1 do out[i] = nil end
+    for k in pairs(yOf) do yOf[k] = nil end
+    local y = 0
+    for _, key in ipairs(list) do
+        if not isDetached(key) then
+            if #out > 0 then y = y + (tonumber(spacingOf(key)) or 0) end
+            out[#out + 1] = key
+            yOf[key] = y
+            y = y + (tonumber(heightOf(key)) or 0)
+        end
+    end
+    return out, yOf, y
+end
+
+-- 狀態集中一張表（這個檔的主 chunk 貼著 200 個 local 的上限）：
+--   live    key → true：上一次排版拆出去、畫在自己面板上的列（面板的閒置判斷讀這張）
+--   panels  key → 容器（登記過的 "res:<key>"；框刪不掉，登記一次就一直在）
+--   want／main／ys  Relayout 的 scratch
+-- （表掛在 R.det 上、不另開 local；R.detachedLive 給 /mcdm debug、測試用）
+R.det = { live = {}, panels = {}, want = {}, main = {}, ys = {}, none = {} }
+R.detachedLive = R.det.live
+
+do
+    local DET = R.det
+    -- 第一次拆出來才登記（RegisterPanel 當場套結構：live 要先寫好，才不會被當成閒置）
+    local function Panel(key)
+        local c = DET.panels[key]
+        if c then return c, false end
+        c = ns.Bars.RegisterPanel(ns.DB.DETACHED_PREFIX .. key, {
+            anchorPoint = "CENTER",
+            rank        = 1.1,                -- 排開：緊貼資源條（1），在自訂列（1.2）裡面
+            minSize     = function()
+                local cfg = Cfg() or {}
+                return R.KeyWidth(cfg, key) or R.Width(cfg), R.KeyRowHeight(cfg, key)
+            end,
+            idle        = function() return not DET.live[key] end,
+        })
+        DET.panels[key] = c
+        return c, true
+    end
+
+    -- 這一輪拆出去的集合（want：key → true）跟上一輪比：變了的那幾個面板請 Bars 重套結構（出現／收起來、排開重算）。
+    -- 回傳有沒有變
+    function R.SyncDetached(want)
+        local live, changed = DET.live, false
+        for key in pairs(live) do
+            if not want[key] then
+                live[key] = nil
+                changed = true
+                if DET.panels[key] then ns.Bars.ApplyPanelStructure(ns.DB.DETACHED_PREFIX .. key) end
+            end
+        end
+        for key in pairs(want) do
+            if not live[key] then
+                live[key] = true
+                changed = true
+                local _, fresh = Panel(key)
+                if not fresh then ns.Bars.ApplyPanelStructure(ns.DB.DETACHED_PREFIX .. key) end
+            end
+        end
+        if changed and ns.Fire then ns.Fire("DetachedChanged") end
+        return changed
+    end
+end
+
 -- W ＝ 資源條的寬（實體像素）。每一列可以有自己的寬（R.KeyWidth）與跟上一列的間距（R.KeyRowSpacing）：
 -- 面板寬＝最寬的那一列，窄的列置中（位移貼整數像素）；列從面板頂端用累計的 y 擺，不互相鏈結
 local function Relayout(cfg, list, W)
-    local panelPx = W
+    -- 拆出去的列先定案（面板的閒置判斷讀 R.det.live，登記／重套結構要在擺列之前）
+    local DET = R.det
+    local want, live = DET.want, DET.live
+    for k in pairs(want) do want[k] = nil end
     for _, key in ipairs(list) do
+        if R.IsDetached(cfg, key) then want[key] = true end
+    end
+    R.SyncDetached(want)
+    local P = ns.P
+    local main, yOf, total = R.MainRows(list, function(k) return live[k] end,
+        function(k) return P.Scale(R.KeyRowHeight(cfg, k)) end,
+        function(k) return P.Scale(R.KeyRowSpacing(cfg, k)) end, DET.main, DET.ys)
+    local panelPx = W
+    for _, key in ipairs(main) do
         local w = R.KeyWidth(cfg, key)
         if w and w > panelPx then panelPx = w end
     end
-    local y = 0
     healthShown = false
     local metaShown = false
     local DM = ns.DevourerMeta
@@ -2921,14 +3036,18 @@ local function Relayout(cfg, list, W)
             healthShown = true
             PrepareHealthCurve(cfg)
         end
-        if i > 1 then y = y + ns.P.Scale(R.KeyRowSpacing(cfg, key)) end
         local rowPx = R.KeyWidth(cfg, key) or W
-        local xPx = math.floor((panelPx - rowPx) / 2 + 0.5)
-        row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", root, "TOPLEFT", ns.P.Scale(xPx), -y)
-        row:Show()
         local H = ns.P.Scale(R.KeyRowHeight(cfg, key))
-        y = y + H
+        row:ClearAllPoints()
+        if live[key] then
+            -- 獨立擺放：parent 照舊是 root，只錨到自己的面板；面板大小＝這一列
+            row:SetPoint("TOPLEFT", DET.panels[key], "TOPLEFT", 0, 0)
+            ns.Bars.SetPanelSize(ns.DB.DETACHED_PREFIX .. key, ns.P.Scale(rowPx), H)
+        else
+            local xPx = math.floor((panelPx - rowPx) / 2 + 0.5)
+            row:SetPoint("TOPLEFT", root, "TOPLEFT", ns.P.Scale(xPx), -(yOf[key] or 0))
+        end
+        row:Show()
         -- 外觀與版面：這一列自己的（代理表，見 R.StyleFor）；錨定照全域
         LayoutRow(row, key, R.StyleFor(cfg, key), row.numSeg, ns.P.Scale(rowPx), H)
         if row.ab and ns.AuraBar then ns.AuraBar.KickPending(row.ab) end
@@ -2951,7 +3070,8 @@ local function Relayout(cfg, list, W)
     shownCount = #list
     R.SetMirrorDriver(rows, shownCount, cfg)
     SyncUnitEvents()
-    ns.Bars.SetPanelSize("resources", ns.P.Scale(panelPx), #list > 0 and y or 1)
+    -- 一列都不剩（沒有列、或全部拆走）：高度 1（不能是 0，見 Core/Bars.lua 收合那段）
+    ns.Bars.SetPanelSize("resources", ns.P.Scale(panelPx), #main > 0 and total or 1)
 end
 
 -- force：重排（清單、格數、尺寸設定、寬度都可能變了）。不給 ＝ 只重畫值（能量事件走這條，
@@ -2968,6 +3088,7 @@ function R.Update(force)
         shownCount = 0
         healthShown = false
         laidOut = false
+        R.SyncDetached(R.det.none)       -- 拆出去的面板跟著收（閒置）
         if ns.DevourerMeta then ns.DevourerMeta.Reset() end
         R.SetMirrorDriver(rows, 0, cfg)
         SyncUnitEvents()
@@ -3334,10 +3455,10 @@ function R.DebugLines()
         local cur, max = GetValue(key)
         local secret = ns.IsSecret(cur) or ns.IsSecret(max)
         local n = RC.Resolve(cfg, key)
-        local extra = ""
+        local extra = R.det.live[key] and "  獨立擺放" or ""
         if R.EngineDriven(key) and row.ab and ns.AuraBar then
             local bound = ns.AuraBar.Bound(row.ab)
-            extra = ("  容器 %s／交條 %s"):format(tostring(row.engineStatus),
+            extra = extra .. ("  容器 %s／交條 %s"):format(tostring(row.engineStatus),
                 bound == true and "是" or bound == false and "失敗" or "未知")
         end
         out[#out + 1] = ("    %d. %-15s %s%s  畫法 %s  秘密 %s  條件 %d  %s%s")

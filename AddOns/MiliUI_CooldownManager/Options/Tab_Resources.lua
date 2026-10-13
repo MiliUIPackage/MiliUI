@@ -906,7 +906,8 @@ end
 
 -- 「顯示哪些」那種一列：勾選框＋上移／下移＋「設定」鈕（開那一列自己的設定視窗）。
 -- 對外出借（Tab.OrderRow）：天空騎術頁的四列也用這一支，長相一致、不另抄一份。
---   o = { label, first, last, get() → bool, set(on, ctx), move(dir, ctx), open() }
+--   o = { label, first, last, get() → bool, set(on, ctx), move(dir, ctx), open(), anchor() }
+--   anchor 可省：有給才在「設定」右邊多一顆「錨定」鈕（資源條頁每一列：獨立擺放；天空騎術頁不給，長相不變）
 function Tab.OrderRow(o)
     return { type = "custom", label = o.label, h = ROW_TOGGLE_H, noReset = true,
              build = function(parent, x, y, width, ctx)
@@ -925,6 +926,12 @@ function Tab.OrderRow(o)
         W.FitButton(sb, 70, 20)
         sb:SetPoint("LEFT", down, "RIGHT", 12, 0)
         sb:SetScript("OnClick", function() o.open() end)
+        if o.anchor then
+            local ab = W.CreateButton(parent, L["Anchoring"], "normal", 70, 20)
+            W.FitButton(ab, 70, 20)
+            ab:SetPoint("LEFT", sb, "RIGHT", 12, 0)
+            ab:SetScript("OnClick", function() o.anchor() end)
+        end
         local function Refresh() cb:SetChecked(o.get() and true or false) end
         Refresh()
         return ROW_TOGGLE_H, Refresh
@@ -947,6 +954,11 @@ local function ShowRow(cand, i)
         move  = function(dir, ctx) MoveRow(ctx, key, dir) end,
         -- 這一列自己的設定（高、外觀、數字、顏色、條件規則）：開一個小視窗（Options/ResourceSettings.lua）
         open  = function() ns.ResourceSettings.Open(key) end,
+        -- 獨立擺放：第一次按才建表（開關維持關），錨定視窗最上面是開關
+        anchor = function()
+            if not R.EnsureDetached(key) then return end
+            if ns.AnchorWindow then ns.AnchorWindow.Open(ns.DB.DETACHED_PREFIX .. key) end
+        end,
     })
 end
 

@@ -1108,3 +1108,5 @@ L["Plays when the cooldown finishes; for a spell with charges, each time a charg
 L["Only edge-to-opposite-edge pairs (top/bottom, left/right) stack; other pairs are placed exactly as chosen."] = "只有上下、左右相對的組合會排開；其他組合照選的位置貼。"
 L["It can also follow the player, target, focus, pet or target-of-target frame of whichever unit frames are loaded, or any frame by name. A frame hidden for lack of a unit still holds the position."] = "也可以跟著目前載入的單位框架的玩家／目標／專注目標／寵物／目標的目標框架，或指定名稱的任何框架。單位不在而藏起來的框架，位置照樣不變。"
 L["Nothing to show right now: the spells on this list aren't learned."] = "目前沒有可顯示的列：清單上的法術尚未學會。"
+-- 資源列獨立擺放（錨定視窗最上面的開關底下）
+L["When on, this row leaves the resource bar and is placed by the anchoring below. It still shows and hides with the resource bar."] = "開啟後這一列離開資源條，照下面的錨定擺放；顯示與隱藏仍跟著資源條。"

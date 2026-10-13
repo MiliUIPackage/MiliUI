@@ -93,6 +93,14 @@ function Sidebar.RemoveGroup(k)
             if pos then bar.pos = pos end
         end
     end
+    -- 獨立擺放的資源列同理（DeleteBar 會把它們錨在這條上的錨定清掉）
+    for _, rk in ipairs(ns.DB.DetachedKeys(p)) do
+        local t = ns.DB.ConfigTable(rk)
+        if type(t) == "table" and type(t.anchor) == "table" and t.anchor.to == k then
+            local pos = ns.EditMode and ns.EditMode.ReadPos and ns.EditMode.ReadPos(rk)
+            if pos then t.pos = pos end
+        end
+    end
     if not ns.DB.DeleteBar(k) then return false end
     local showing = ns.Options.CurrentPage() == k
     AfterBarsChanged(showing and "essential" or nil)

@@ -1606,12 +1606,13 @@ local function AnchorItems(key)
     local cand = {}
     for _, other in ipairs(p and p.barOrder or {}) do cand[#cand + 1] = other end
     for _, other in ipairs(ns.DB.PANEL_ORDER) do cand[#cand + 1] = other end
-    local skyRelay = ns.Bars and ns.Bars.SkyRelay and ns.Bars.SkyRelay()
+    local dormant = ns.Bars and ns.Bars.Dormant
     for _, other in ipairs(cand) do
-        -- 跟著游標的條、接力中的天空騎術不能被錨定（Core/Bars.lua 把它們當不存在）
+        -- 跟著游標的條、接力中的天空騎術不能被錨定（Core/Bars.lua 把它們當不存在）。
+        -- 獨立擺放的資源列（"res:<key>"）不在候選裡（不當別人的目標）；它自己的候選＝資源條的候選＋資源條本身
         if other ~= key and ns.DB.ConfigTable(other) and not ns.DB.AnchorWouldCycle(key, other)
             and not (ns.Cursor and ns.Cursor.Configured(other))
-            and not (other == "skyriding" and skyRelay) then
+            and not (dormant and dormant(other)) then
             items[#items + 1] = { text = ns.Options.PageTitle(other) or ns.Options.BarTitle(other), value = other }
         end
     end
