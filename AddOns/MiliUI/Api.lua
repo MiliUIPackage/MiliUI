@@ -63,6 +63,9 @@ SlashCmdList.MILIUIPACK = function(msg)
             print(("  %s%s|r  %s"):format(ok and "|cff33ff66" or "|cffff5555", entry.key,
                 #bits > 0 and table.concat(bits, "  ") or "|cff808080沒有定義入口|r"))
         end
+    elseif msg:match("^debug%s") then
+        -- 除錯模式（Enhance/DebugMode.lua）：/miliui debug on|off
+        ns.DebugMode.Command(msg:match("^debug%s*(.*)$"))
     elseif msg == "debug" then
         ns.Print("v" .. ns.VERSION)
         if #ns.errors == 0 then
@@ -72,6 +75,7 @@ SlashCmdList.MILIUIPACK = function(msg)
                 print(("  %d. %s"):format(i, err))
             end
         end
+        print("  |cff808080/miliui debug on：除錯模式（只留套組本體與 BugSack）；/miliui debug off：還原|r")
     else
         ns.OpenOptions()
     end
