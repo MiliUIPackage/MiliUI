@@ -19,27 +19,44 @@ local Dim = ns.Dim
 -- 已收藏不等於不想買（坐騎的第二份可以賣、配方可以當材料）
 local DIM_ALPHA = 0.4
 
-local CHECK_SIZE = 14
-
--- 打勾貼圖的參照存在**自己的表**裡，用格子編號當 key。
--- ⚠ 不可以寫成 `cell.miliuiCheck = f` —— 暴雪的框上一個欄位都不能寫，
---   而我們自己建的第 13 格以後跑的是暴雪的處理器，一視同仁。
-local checks = {}
-
 ------------------------------------------------------------
--- 打勾：自己的 overlay 框，貼在商品圖示的右下角
+-- 標記器：變暗＋打勾的畫法只有這一份，商人格與拍賣場各拿一個實例
+--
+--   marker:Set(target, holder, region, collected)
+--     target   要變暗的那一整塊（商人的一格、拍賣場的一列）
+--     holder   打勾框的 parent（可以是 nil：只處理變暗）
+--     region   打勾貼齊的對象，右下角對右下角（省略＝holder）
+--   marker:HideAll()   全部還原（亮度回 1、勾收掉）
+--
+-- 打勾框與「變暗過誰」都記在**自己的弱鍵表**裡，key 是暴雪的框。
+-- ⚠ 不可以寫成 `button.miliuiCheck = f` —— 暴雪的框上一個欄位都不能寫，
+--   商人第 13 格以後雖然是我們建的，跑的卻是暴雪的處理器，一視同仁；
+--   拍賣場的列更是池化重用的，欄位寫上去就跟著列漂到別的物品去。
+--
+-- 只還原**自己變暗過的**：沒碰過的框不去 SetAlpha(1)，免得蓋掉暴雪或別人
+-- 自己設的亮度。
 ------------------------------------------------------------
-local function GetCheck(i)
-    local existing = checks[i]
+local Marker = {}
+Marker.__index = Marker
+
+function Dim.NewMarker(size, offX, offY)
+    return setmetatable({
+        size   = size,
+        offX   = offX or 2,
+        offY   = offY or -2,
+        checks = setmetatable({}, { __mode = "k" }),
+        dimmed = setmetatable({}, { __mode = "k" }),
+    }, Marker)
+end
+
+function Marker:GetCheck(holder, region)
+    local existing = self.checks[holder]
     if existing then return existing end
 
-    local button = _G["MerchantItem" .. i .. "ItemButton"]
-    if not button then return nil end
-
-    local f = CreateFrame("Frame", nil, button)
-    f:SetSize(CHECK_SIZE, CHECK_SIZE)
-    f:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 2, -2)
-    f:SetFrameLevel(button:GetFrameLevel() + 5)
+    local f = CreateFrame("Frame", nil, holder)
+    f:SetSize(self.size, self.size)
+    f:SetPoint("BOTTOMRIGHT", region or holder, "BOTTOMRIGHT", self.offX, self.offY)
+    f:SetFrameLevel(holder:GetFrameLevel() + 5)
     -- ⚠ 變暗的是整格（我們的祖先），打勾要維持全亮，不然它跟著一起淡掉，
     --   「已收藏」就只剩一個很難察覺的灰階差
     f:SetIgnoreParentAlpha(true)
@@ -53,28 +70,46 @@ local function GetCheck(i)
     end
 
     f:Hide()
-    checks[i] = f
+    self.checks[holder] = f
     return f
 end
 
-local function SetCheckShown(i, shown)
-    if not shown then
-        -- 還沒建過就別為了藏它而建一個
-        local existing = checks[i]
-        if existing then existing:Hide() end
+function Marker:Set(target, holder, region, collected)
+    if collected then
+        target:SetAlpha(DIM_ALPHA)
+        self.dimmed[target] = true
+        if holder then self:GetCheck(holder, region):Show() end
         return
     end
-    local f = GetCheck(i)
-    if f then f:Show() end
+
+    if self.dimmed[target] then
+        target:SetAlpha(1)
+        self.dimmed[target] = nil
+    end
+    -- 還沒建過就別為了藏它而建一個
+    local existing = holder and self.checks[holder]
+    if existing then existing:Hide() end
 end
+
+function Marker:HideAll()
+    for target in pairs(self.dimmed) do
+        target:SetAlpha(1)
+    end
+    wipe(self.dimmed)
+    for _, f in pairs(self.checks) do
+        f:Hide()
+    end
+end
+
+-- 商人格的標記器：勾 14px，貼商品圖示右下角
+local CHECK_SIZE = 14
+local merchant = Dim.NewMarker(CHECK_SIZE, 2, -2)
 
 ------------------------------------------------------------
 -- 全部還原（買回分頁用）
 ------------------------------------------------------------
 function Dim.HideAll()
-    for _, f in pairs(checks) do
-        f:Hide()
-    end
+    merchant:HideAll()
 end
 
 ------------------------------------------------------------
@@ -105,21 +140,19 @@ local function OnMerchantInfo()
                 end
             end
 
-            if collected then
-                cell:SetAlpha(DIM_ALPHA)
-                SetCheckShown(i, true)
-            else
-                -- 沒收藏、關掉了、或**資料還沒到**都走這條：先照原樣顯示，
-                -- 資料到了再由 Collected 的重試把這一輪重跑一次
-                cell:SetAlpha(1)
-                SetCheckShown(i, false)
-            end
+            -- 沒收藏、關掉了、或**資料還沒到**都走「不標」：先照原樣顯示，
+            -- 資料到了再由 Collected 的重試把這一輪重跑一次
+            local button = _G["MerchantItem" .. i .. "ItemButton"]
+            merchant:Set(cell, button, button, collected)
         end
     end
 
-    -- 這一頁以外的格子（縮小列欄數之後留下來的）打勾也要收掉
+    -- 這一頁以外的格子（縮小列欄數之後留下來的）也要還原
     for i = perPage + 1, ns.Grid.CreatedCells() do
-        SetCheckShown(i, false)
+        local cell = _G["MerchantItem" .. i]
+        if cell then
+            merchant:Set(cell, _G["MerchantItem" .. i .. "ItemButton"], nil, false)
+        end
     end
 
     -- 這一輪有格子回 nil 的話掛上 GET_ITEM_INFO_RECEIVED，沒有的話拔掉

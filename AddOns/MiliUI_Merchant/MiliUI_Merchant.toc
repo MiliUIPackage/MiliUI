@@ -34,6 +34,8 @@ Modules\Collected.lua
 # Grid 的掛勾要排在 Dim 前面：先排好版、再決定哪一格變暗
 Modules\Grid.lua
 Modules\Dim.lua
+# 拍賣場用 Dim 的標記器與 Collected 的判定，兩者都要先在
+Modules\AuctionHouse.lua
 # 批量購買的視窗用共用層的元件，但只在執行期才建，所以排在 Widgets 前面也沒關係
 Modules\BulkBuy.lua
 

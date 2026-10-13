@@ -46,6 +46,9 @@ local function BuildDefaults()
             -- 房屋裝飾預設關：裝飾品常常要買好幾個擺滿一整間房，
             -- 「有了一個」不等於「不用再買」
             housing  = false,
+
+            -- 拍賣場的搜尋結果與點進去的購買頁也套同一套判定（Modules/AuctionHouse.lua）
+            auctionHouse = true,
         },
     }
 end
@@ -111,5 +114,7 @@ function DB.ResetAll()
     wipe(db)
     MergeDefaults(db, BuildDefaults())
     db.schemaVersion = ns.DB_VERSION
+    ns.Collected.Wipe()
     ns.Grid.Apply()
+    ns.AuctionHouse.Refresh()
 end

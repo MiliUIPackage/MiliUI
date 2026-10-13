@@ -1,7 +1,13 @@
 ------------------------------------------------------------
 -- 已收藏判定
 --
--- `Collected.Is(index, itemID)` 回三種值：
+-- 三個入口，回傳值的語意相同：
+--   `Collected.Is(index, itemID)`     商人格（配方提示／外觀連結照商品索引問）
+--   `Collected.IsItem(itemID, link)`  只有物品編號（或連結）的地方，例如拍賣場
+--   `Collected.IsSpecies(speciesID)`  戰寵籠子：同一個籠子物品裝的是不同的寵物，
+--                                     只能照種類問
+--
+-- 回三種值：
 --   true   已經有了 —— Dim 會把那一格變暗並打勾。「有了」包含兩種：收藏裡學會了，
 --          **或者東西已經躺在背包／銀行裡還沒用掉**（見 OwnsCopy）
 --   false  還沒有
@@ -46,12 +52,16 @@ local sawUnknown = false
 --     `quantity` 這個欄位；持有數要自己把三個欄位加起來（見 IsHousingCollected）
 ------------------------------------------------------------
 
-local function IsPetCollected(itemID)
-    local speciesID = select(13, C_PetJournal.GetPetInfoByItemID(itemID))
-    if not speciesID then return nil end
+local function IsSpeciesCollected(speciesID)
     local numCollected = C_PetJournal.GetNumCollectedInfo(speciesID)
     if not numCollected then return nil end
     return numCollected > 0
+end
+
+local function IsPetCollected(itemID)
+    local speciesID = select(13, C_PetJournal.GetPetInfoByItemID(itemID))
+    if not speciesID then return nil end
+    return IsSpeciesCollected(speciesID)
 end
 
 local function IsMountCollected(itemID)
@@ -69,10 +79,11 @@ local function IsToyCollected(itemID)
 end
 
 -- 配方沒有「查得到學會沒」的 API，唯一的來源是工具提示上那一行「已學會」。
--- ⚠ 所以這一支吃的是**商人格的索引**而不是 itemID：GetMerchantItem 直接跟伺服器
---   要那一格的提示內容，不必自己組 item link（附魔卷軸那種帶參數的組不出來）。
-local function IsRecipeKnown(index)
-    local data = C_TooltipInfo.GetMerchantItem(index)
+-- ⚠ 提示從哪裡要由呼叫端決定（getTip(arg)）：商人格用 GetMerchantItem(索引) ——
+--   直接跟伺服器要那一格的提示，不必自己組 item link（附魔卷軸那種帶參數的組不出來）；
+--   拍賣場那種只有物品編號的地方才退回 GetHyperlink("item:編號")。
+local function IsRecipeKnown(getTip, arg)
+    local data = getTip(arg)
     if not data or not data.lines or #data.lines == 0 then return nil end
     for _, line in ipairs(data.lines) do
         local text = line.leftText
@@ -124,7 +135,10 @@ end
 -- 關掉的類別**整段跳過**，連 API 都不呼叫 —— 關掉一個類別本來就該連它的成本
 -- 一起關掉。
 ------------------------------------------------------------
-local function Compute(index, itemID, dim)
+-- getTip／getLink 是「這件東西的提示／連結從哪裡要」，arg 是餵給它們的參數
+-- （商人格是索引、其他地方是連結字串）。傳函式＋參數而不是傳閉包：
+-- 這一支每一格每一輪都會跑，閉包等於每次都配一個新物件。
+local function Compute(itemID, dim, getTip, getLink, arg)
     if dim.pets then
         local v = IsPetCollected(itemID)
         if v ~= nil then return v or UNLEARNED end
@@ -145,13 +159,13 @@ local function Compute(index, itemID, dim)
     -- 這三類的 nil（資料未到）要原樣傳回去，false 才換成 UNLEARNED
     local v
     if dim.recipes and classID == Enum.ItemClass.Recipe then
-        v = IsRecipeKnown(index)
+        v = IsRecipeKnown(getTip, arg)
     elseif dim.housing and classID == Enum.ItemClass.Housing then
         v = IsHousingCollected(itemID)
     elseif dim.transmog
         and (classID == Enum.ItemClass.Weapon or classID == Enum.ItemClass.Armor) then
         -- 塑形要用 link 不用 itemID：外觀是掛在 item link 的修飾子上的
-        v = HasTransmog(GetMerchantItemLink(index))
+        v = HasTransmog(getLink(arg))
     else
         -- 不屬於任何開著的類別：藥水、材料這種東西「背包裡有」不代表不用再買
         return false
@@ -162,9 +176,9 @@ local function Compute(index, itemID, dim)
 end
 
 ------------------------------------------------------------
--- Collected.Is(index, itemID) → true / false / nil
+-- 共用的「查快取 → 算 → 記下來」
 ------------------------------------------------------------
-function C.Is(index, itemID)
+local function Lookup(itemID, getTip, getLink, arg)
     -- ⚠ itemID 是 table 的 key。秘密值不能當 key（"cannot be indexed with
     --   secret keys" 是硬錯，會中斷整支重畫）
     if not itemID or issecret(itemID) then return nil end
@@ -174,7 +188,7 @@ function C.Is(index, itemID)
         local dim = ns.db and ns.db.dim
         if not dim then return nil end
 
-        value = Compute(index, itemID, dim)
+        value = Compute(itemID, dim, getTip, getLink, arg)
         if value == nil then
             sawUnknown = true
             return nil
@@ -188,12 +202,71 @@ function C.Is(index, itemID)
     return value
 end
 
+------------------------------------------------------------
+-- Collected.Is(index, itemID) → true / false / nil   （商人格）
+------------------------------------------------------------
+function C.Is(index, itemID)
+    return Lookup(itemID, C_TooltipInfo.GetMerchantItem, GetMerchantItemLink, index)
+end
+
+------------------------------------------------------------
+-- Collected.IsItem(itemID, link) → true / false / nil
+--
+-- link 可以不給：沒有的話用 "item:編號" 頂替。拍賣場的瀏覽結果只給 itemKey，
+-- 拿不到帶修飾子的連結 —— 外觀照基本型判，跟商人格的快取共用同一張表。
+------------------------------------------------------------
+local function SameLink(link) return link end
+
+local function HyperlinkTip(link)
+    return C_TooltipInfo.GetHyperlink(link)
+end
+
+function C.IsItem(itemID, link)
+    if not itemID or issecret(itemID) then return nil end
+    if not link or issecret(link) then
+        link = "item:" .. itemID
+    end
+    return Lookup(itemID, HyperlinkTip, SameLink, link)
+end
+
+------------------------------------------------------------
+-- Collected.IsSpecies(speciesID) → true / false / nil
+--
+-- 戰寵籠子在背包裡只看得到「一個籠子」，數不出是哪一種寵物，所以這條**沒有**
+-- 「買了還沒用也算」：種類沒收藏就是 false。寵物類別關掉時一律 false。
+------------------------------------------------------------
+local speciesCache = {}
+
+function C.IsSpecies(speciesID)
+    if not speciesID or issecret(speciesID) then return nil end
+
+    local value = speciesCache[speciesID]
+    if value ~= nil then return value end
+
+    local dim = ns.db and ns.db.dim
+    if not dim then return nil end
+    if not dim.pets then
+        value = false
+    else
+        value = IsSpeciesCollected(speciesID)
+        if value == nil then
+            sawUnknown = true
+            return nil
+        end
+    end
+
+    speciesCache[speciesID] = value
+    cacheCount = cacheCount + 1
+    return value
+end
+
 function C.Count()
     return cacheCount
 end
 
 function C.Wipe()
     wipe(cache)
+    wipe(speciesCache)
     cacheCount = 0
 end
 
@@ -206,7 +279,7 @@ end
 ------------------------------------------------------------
 local watcher
 
--- 收藏內容變了 → 清快取，商人開著就順便重刷（當場買一隻寵物就要當場變暗）
+-- 收藏內容變了 → 清快取，商人／拍賣場開著就順便重刷（當場學會一隻寵物就要當場變暗）
 local COLLECTION_EVENTS = {
     "NEW_PET_ADDED",
     "NEW_MOUNT_ADDED",
@@ -223,9 +296,10 @@ local function DoRetry()
         watcher:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
     end
     ns.Grid.Refresh()
+    ns.AuctionHouse.Refresh()
 end
 
--- Dim 每跑完一輪叫一次：這一輪有格子回 nil 就掛上監聽，沒有就確保拔掉
+-- Dim／拍賣場每跑完一輪叫一次：這一輪有格子回 nil 就掛上監聽，沒有就確保拔掉
 function C.ArmRetry()
     if sawUnknown then
         sawUnknown = false
@@ -240,6 +314,7 @@ end
 function C.Init()
     watcher = CreateFrame("Frame")
     watcher:RegisterEvent("MERCHANT_CLOSED")
+    watcher:RegisterEvent("AUCTION_HOUSE_CLOSED")
     for _, event in ipairs(COLLECTION_EVENTS) do
         watcher:RegisterEvent(event)
     end
@@ -254,8 +329,9 @@ function C.Init()
         end
 
         C.Wipe()
-        if event ~= "MERCHANT_CLOSED" then
+        if event ~= "MERCHANT_CLOSED" and event ~= "AUCTION_HOUSE_CLOSED" then
             ns.Grid.Refresh()
+            ns.AuctionHouse.Refresh()
         end
     end)
 end

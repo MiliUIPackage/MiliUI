@@ -69,13 +69,17 @@ boot:SetScript("OnEvent", function(self)
     self:UnregisterEvent("PLAYER_LOGIN")
     ns.DB.Init()
 
+    -- 收藏判定與拍賣場的標示跟商人視窗的擴充無關：別的插件在擴充商人視窗時
+    -- 我們只讓出商人那一半，拍賣場照常標示
+    ns.Collected.Init()
+    ns.AuctionHouse.Init()
+
     if DetectConflict() then
         ns.dormant = true
         ns.Print(ns.L["Another add-on is already extending the merchant window, so this one is standing down. Disable one of them and reload."])
         return
     end
 
-    ns.Collected.Init()
     ns.Grid.Init()
     ns.Dim.Init()
     ns.BulkBuy.Init()

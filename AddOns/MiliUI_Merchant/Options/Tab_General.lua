@@ -31,6 +31,8 @@ local function BuildSpecs()
         { type = "toggle", sub = "dim", key = "enabled", label = L["Dim them"] },
         { type = "text", label = L["Fade the slot and tick the icon instead of removing it, so every slot keeps the number the game gave it."] },
         { type = "text", label = L["Bought but not used yet counts too: anything still sitting in your bags or bank is dimmed the same way."] },
+        { type = "toggle", sub = "dim", key = "auctionHouse", label = L["Mark them in the Auction House too"] },
+        { type = "text", label = L["Search results get the same fade and tick, and so does the item you open to buy."] },
         { type = "toggle", sub = "dim", key = "pets",     label = L["Battle pets"] },
         { type = "toggle", sub = "dim", key = "mounts",   label = L["Mounts"] },
         { type = "toggle", sub = "dim", key = "toys",     label = L["Toys"] },
@@ -43,7 +45,7 @@ local function BuildSpecs()
 end
 
 ------------------------------------------------------------
--- 總開關關掉時，六個類別蓋上一層半透明黑
+-- 總開關關掉時，拍賣場開關與六個類別蓋上一層半透明黑
 --
 -- 共用層的表單引擎沒有「停用一列」這個概念，而且**不該為了這個長出來**：
 -- 這是版面的事，不是控件的事。蓋一塊遮罩在那幾列上面同時解決兩件事 ——
@@ -90,7 +92,10 @@ local function Init()
 
     local ctx = ns.Controls.MakeCtx(function() return ns.db end, function()
         UpdateMask()
+        -- 快取記的是照當時設定算的結果；商人那邊休眠時 Grid.Apply 不會替我們清
+        ns.Collected.Wipe()
         ns.Grid.Apply()
+        ns.AuctionHouse.Refresh()
     end)
 
     local content, built, rows = ns.Options.BuildScrollBody(scroll, BuildSpecs(), ctx)
