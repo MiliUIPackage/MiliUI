@@ -1778,14 +1778,17 @@ local function LayoutFold(row, on, numSeg, W, H, cfg, tex, reversed)
         o:Show()
     end
     for i = numSeg + 1, #row.overs do row.overs[i]:Hide() end
-    -- 數值文字蓋在上層之上
-    row.textFrame:SetFrameLevel(lv + 3)
     row.folded = true
 end
+
+-- 數值文字的層級：要高過**隔壁列**所有東西 —— 引擎畫的列（無視苦痛／鐵鬃）裝飾在 +8、引擎層數字約 +15，
+-- 列高比字矮時字會凸出到隔壁列上，層級不夠就被隔壁的邊框壓住（2026-10-13 玩家回報：怒氣數字被無視苦痛的邊蓋掉）
+local TEXT_LEVEL = 20
 
 local function LayoutRow(row, key, cfg, numSeg, W, H)
     local def = RESOURCES[key]
     row:SetSize(W, H)
+    row.textFrame:SetFrameLevel((row:GetFrameLevel() or 1) + TEXT_LEVEL)
     -- 換列：上一個資源的條件殘留一律先還原
     row:SetAlpha(1)
     row.condAlpha, row.condApplied = nil, nil
@@ -1847,7 +1850,6 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
             local lv = row:GetFrameLevel() or 1
             row.absorbClip:SetFrameLevel(lv + 1)
             row.bar:SetFrameLevel(lv + 2)
-            row.textFrame:SetFrameLevel(lv + 3)
             row.bar:SetMinMaxValues(0, 1)
             row.bar:SetValue(0)
             local ab = row.absorbBar
