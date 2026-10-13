@@ -214,9 +214,9 @@ local function BuildDefaults()
             ------------------------------------------------------------
             -- 圖示
             ------------------------------------------------------------
-            -- 刻意只有三種：專精圖示（暴雪內建 fileID）／暴雪職業圖示（內建 sprite）／無。
-            -- 不帶自己的圖檔——這個 repo 玩家會整包 clone，多一套 sprite 就是多幾 MB。
-            iconStyle = "spec",         -- none | spec | class
+            -- 米利風格是自己畫的 40 張專精圖（Media/Spec，約 1 MB）；其餘三種用暴雪內建資源。
+            -- 原本刻意不帶圖檔，2026-10 玩家要求美化專精圖示後改成預設米利風格（遷移見 v5）。
+            iconStyle = "mili",         -- mili | spec | class | none
             iconZoom  = 0.06,
 
             ------------------------------------------------------------
@@ -557,6 +557,12 @@ local PROFILE_MIGRATIONS = {
             lock     = { enabled = st.hideLockButton     == false, order = 50 },
         }
         st.hideResetButton, st.hideSettingsButton, st.hideLockButton = nil, nil, nil
+    end,
+
+    -- v5：圖示預設 spec → mili（自己畫的專精圖）。值閘：還是舊預設 spec 的才改。
+    [5] = function(p)
+        local st = p.style
+        if st and st.iconStyle == "spec" then st.iconStyle = "mili" end
     end,
 }
 

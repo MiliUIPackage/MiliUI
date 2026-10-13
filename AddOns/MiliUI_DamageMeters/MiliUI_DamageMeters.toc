@@ -35,9 +35,11 @@ Core\DB.lua
 
 # Window 要在 Rows / Breakdown / Tooltip / Home / Manager 之前（它們在檔案層取 ns.Window）
 Meter\Data.lua
+Meter\ItemLevel.lua
 Meter\Combat.lua
 Meter\Window.lua
 Meter\Rows.lua
+Meter\Card.lua
 Meter\Breakdown.lua
 Meter\Tooltip.lua
 Meter\Home.lua

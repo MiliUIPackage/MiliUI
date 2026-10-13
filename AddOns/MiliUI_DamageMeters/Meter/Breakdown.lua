@@ -15,6 +15,7 @@ local B = ns.Breakdown
 local D = ns.Data
 local M = ns.Media
 local Win = ns.Window
+local Card = ns.Card
 
 local POOL = 40
 local MELEE_ICON = 135274   -- 近戰攻擊的通用圖示（沒有 spellID 時的退路）
@@ -175,8 +176,11 @@ local function EnsureFrame(W)
     topBg:SetAllPoints()
     topBg:SetColorTexture(0, 0, 0, 0.5)
     W.srcTop = top
-    W.srcTitle = top:CreateFontString(nil, "OVERLAY")
-    W.srcTitle:SetPoint("LEFT", top, "LEFT", 6, 0)
+    -- 左邊是頭像卡片（大圖示＋名字＋專精職業裝等），跟滑過預覽同一份
+    W.srcCard = Card.Create(top)
+    W.srcCard:SetPoint("LEFT", top, "LEFT", 4, 0)
+    W.srcCard:SetPoint("RIGHT", top, "RIGHT", -4, 0)
+    W.srcTitle = W.srcCard.name
     W.srcHint = top:CreateFontString(nil, "OVERLAY")
     W.srcHint:SetPoint("RIGHT", top, "RIGHT", -6, 0)
     W.srcHint:SetTextColor(0.6, 0.6, 0.6)
@@ -185,6 +189,7 @@ local function EnsureFrame(W)
     W.srcTotal = top:CreateFontString(nil, "OVERLAY")
     W.srcTotal:SetPoint("RIGHT", W.srcHint, "LEFT", -8, 0)
     W.srcTotal:SetTextColor(0.88, 0.88, 0.88)
+    Card.ClipRight(W.srcCard, W.srcTotal)
     -- 先給字型再 SetText：沒有字型物件的 FontString 一寫字就丟錯
     local st = ns.DB.Style()
     Win.SetFont(W.srcTitle, st.leftFontSize or 11)
@@ -261,6 +266,8 @@ function B.OpenFromBar(W, bar)
         name       = src.name,
         classFile  = src.classFilename,
         recapID    = src.deathRecapID,
+        specIcon   = src.specIconID,
+        isOwn      = D.IsOwnRow(src),
         -- 標題列的總量讀數。從點下去那一列直接帶過來，省一次 API 往返，
         -- 而且跟主清單顯示的數字保證一致（同一筆來源）
         total      = src.totalAmount,
@@ -268,7 +275,7 @@ function B.OpenFromBar(W, bar)
     })
 end
 
--- info = { dmType, guid, creatureID, name, classFile, recapID, total, perSec }
+-- info = { dmType, guid, creatureID, name, classFile, recapID, specIcon, isOwn, total, perSec }
 -- 收成一張表而不是排八個參數：位置參數到第五個之後就沒人記得順序了
 function B.Open(W, info)
     if not info then return end
@@ -295,12 +302,14 @@ function B.Open(W, info)
     Win.SetFont(W.srcTotal, s.rightFontSize or 11)
     -- 標題列高跟下面的列一樣高，字大於列高時再撐開。原本寫死 18：
     -- 字一調大，名字與總量就溢出標題列、跟第一列疊在一起（NGA 回報）。
+    -- 現在左邊是兩行字的頭像卡片，高度以卡片為準。
     local fontMax = math.max(s.leftFontSize or 11, s.rightFontSize or 11)
-    W.srcTop:SetHeight(math.max(18, D.Px(s.barHeight or 18), fontMax + 6))
-    local r, g, b = M.ClassColor(classFile)
-    W.srcTitle:SetTextColor(r or 1, g or 1, b or 1)
-    -- 名字可能是秘密：FontString 顯示得出來，不要拿去串接
-    W.srcTitle:SetText(D.StripRealm(name))
+    local cardH = Card.Layout(W.srcCard)
+    W.srcTop:SetHeight(math.max(18, D.Px(s.barHeight or 18), fontMax + 6, cardH + 6))
+    Card.Fill(W.srcCard, {
+        name = name, classFilename = classFile, specIconID = info.specIcon,
+        guid = info.guid, isOwn = info.isOwn,
+    })
 
     -- 死亡回顧沒有「總量」可言（那一頁是血量曲線），留白。
     -- 次數型跟主清單一樣只印整數：打斷／驅散的「每秒」沒有意義，還會被夾成 (1)
@@ -520,7 +529,7 @@ local function RefreshEnemyPlayers(W)
         local bar = W.spellPool[i]
 
         local offset = 0
-        if (s.iconStyle or "spec") ~= "none" then
+        if (s.iconStyle or "mili") ~= "none" then
             offset = D.ResolveIcon({ classFilename = p.class, specIconID = p.specIcon },
                 bar.icon, barH, s.iconStyle, s.iconZoom)
         else

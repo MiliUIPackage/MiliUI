@@ -14,6 +14,7 @@ local TT = ns.Tooltip
 local D = ns.Data
 local M = ns.Media
 local Win = ns.Window
+local Card = ns.Card
 
 local MAX_ROWS = 8
 local ROW_H    = 16   -- 列高與標題高的**下限**；實際值跟著字型大小算（見 Populate）
@@ -38,14 +39,16 @@ local function Ensure()
     f:Hide()
     _frame = f
 
-    f.title = f:CreateFontString(nil, "OVERLAY")
-    f.title:SetPoint("TOPLEFT", f, "TOPLEFT", PAD + 2, -PAD - 2)
-    f.title:SetJustifyH("LEFT")
-
     f.subtitle = f:CreateFontString(nil, "OVERLAY")
     f.subtitle:SetPoint("TOPRIGHT", f, "TOPRIGHT", -PAD - 2, -PAD - 2)
     f.subtitle:SetJustifyH("RIGHT")
     f.subtitle:SetTextColor(0.6, 0.6, 0.6)
+
+    -- 標題＝頭像卡片（大圖示＋名字＋專精職業裝等），右緣讓給統計類型
+    f.card = Card.Create(f)
+    f.card:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, -PAD)
+    f.card:SetPoint("TOPRIGHT", f, "TOPRIGHT", -PAD, -PAD)
+    Card.ClipRight(f.card, f.subtitle)
 
     _bars = {}
 end
@@ -111,18 +114,19 @@ local function Populate(bar)
     local W_frame = W.frame
     _frame:SetWidth((W_frame and W_frame:GetWidth()) or WIDTH)
 
-    Win.SetFont(_frame.title, s.leftFontSize or 11)
     Win.SetFont(_frame.subtitle, fs)
 
     -- 列高／標題高跟著字型長：寫死 16／20 時，玩家把字調到 16 以上
     -- 每一列的字就溢出列外、上下兩列疊在一起（NGA 回報）。
     local rowH = math.max(ROW_H, fs + 6)
-    local hdrH = math.max(HDR_H, (s.leftFontSize or 11) + 8)
+    -- 標題列＝卡片高度（兩行字）加一點與第一列的間距
+    local hdrH = math.max(HDR_H, Card.Layout(_frame.card) + 4)
 
-    local r, g, b = M.ClassColor(src.classFilename)
-    _frame.title:SetTextColor(r or 1, g or 1, b or 1)
-    _frame.title:SetText(D.StripRealm(src.name))
     _frame.subtitle:SetText(D.TYPE_NAMES[dmType] or ns.L["Damage Done"])
+    Card.Fill(_frame.card, {
+        name = src.name, classFilename = src.classFilename, specIconID = src.specIconID,
+        guid = src.sourceGUID, isOwn = D.IsOwnRow(src),
+    })
 
     ------------------------------------------------------------
     -- 取資料

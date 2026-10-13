@@ -50,6 +50,7 @@ Specs.NUMBER_FORMATS = {
 }
 
 Specs.ICON_STYLES = {
+    { text = L["MiliUI style"],        value = "mili" },
     { text = L["Specialization icon"], value = "spec" },
     { text = L["Class icon"],          value = "class" },
     { text = L["None"],                value = "none" },

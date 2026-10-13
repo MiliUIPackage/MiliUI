@@ -508,7 +508,7 @@ function Rows.Render(W, session, session2)
     ctx.rightFS = rightFS
     ctx.texPath = texPath
     ctx.isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
-    ctx.iconStyle = s.iconStyle or "spec"
+    ctx.iconStyle = s.iconStyle or "mili"
     ctx.iconZoom = s.iconZoom or 0.06
     ctx.numFmt = s.numberFormat or 2
     ctx.split = split

@@ -287,15 +287,93 @@ function D.ResetAll()
 end
 
 ------------------------------------------------------------
+-- 專精對照：暴雪專精圖示（fileID）→ 專精資訊
+--
+-- C_DamageMeter 的 source 只給 specIconID，沒有 specID。要換成自己的圖、或寫出
+-- 「獸王 獵人」，都得先從圖示反查專精。圖示 fileID 每個專精唯一，所以第一次用到
+-- 時把全部職業的專精掃一遍建表就好（13 職業 × 3～4 專精，一次性成本）。
+--
+-- 自己的圖檔照「職業-專精」命名（Media/Spec/hunter-beastmastery.png），
+-- 專精名用**暴雪的專精順序**對（GetSpecializationInfoForClassID 的第 i 個）——
+-- 不寫死 specID：新專精（噬滅）的 ID 寫錯就整張對不到，順序則跟遊戲內的天賦頁一樣。
+-- ⚠ 暴雪改了某職業的專精順序，這張表要跟著改，否則圖會錯位到同職業別的專精上。
+------------------------------------------------------------
+local SPEC_KEYS = {
+    DEATHKNIGHT = { "blood", "frost", "unholy" },
+    DEMONHUNTER = { "havoc", "vengeance", "devourer" },
+    DRUID       = { "balance", "feral", "guardian", "restoration" },
+    EVOKER      = { "devastation", "preservation", "augmentation" },
+    HUNTER      = { "beastmastery", "marksmanship", "survival" },
+    MAGE        = { "arcane", "fire", "frost" },
+    MONK        = { "brewmaster", "mistweaver", "windwalker" },
+    PALADIN     = { "holy", "protection", "retribution" },
+    PRIEST      = { "discipline", "holy", "shadow" },
+    ROGUE       = { "assassination", "outlaw", "subtlety" },
+    SHAMAN      = { "elemental", "enhancement", "restoration" },
+    WARLOCK     = { "affliction", "demonology", "destruction" },
+    WARRIOR     = { "arms", "fury", "protection" },
+}
+local SPEC_TEX_DIR = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\Spec\\"
+
+local specByIcon
+local function BuildSpecMap()
+    specByIcon = {}
+    if not (GetNumClasses and GetClassInfo and GetNumSpecializationsForClassID
+            and GetSpecializationInfoForClassID) then return end
+    for classID = 1, GetNumClasses() do
+        local _, classFile = GetClassInfo(classID)
+        local keys = classFile and SPEC_KEYS[classFile]
+        for i = 1, GetNumSpecializationsForClassID(classID) or 0 do
+            local specID, name, _, icon = GetSpecializationInfoForClassID(classID, i)
+            if icon then
+                specByIcon[icon] = {
+                    specID = specID, name = name, classFile = classFile,
+                    tex = keys and keys[i] and (SPEC_TEX_DIR .. classFile:lower() .. "-" .. keys[i] .. ".png"),
+                }
+            end
+        end
+    end
+end
+
+-- 回傳 { specID, name, classFile, tex } 或 nil。秘密的 fileID 不能拿來查表（會硬錯）。
+function D.SpecInfo(specIconID)
+    if specIconID == nil or issecret(specIconID) or type(specIconID) ~= "number" or specIconID == 0 then
+        return nil
+    end
+    if not specByIcon then BuildSpecMap() end
+    return specByIcon[specIconID]
+end
+
+------------------------------------------------------------
 -- 圖示
 --
--- 三種樣式，全部用暴雪內建資源：
+-- 四種樣式：
+--   mili  自己畫的專精圖（Media/Spec）＋程式畫的深底 → 對不到就退 spec
 --   spec  專精圖示（source.specIconID，是個 fileID）→ 沒有就退職業 sprite
 --   class 職業 sprite（CLASS_ICON_TCOORDS）
 --   none  不畫
 -- 回傳圖示佔用的寬度（0 = 沒畫），呼叫端用它決定填充條從哪裡開始。
 ------------------------------------------------------------
 local CLASS_SPRITE = "Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES"
+
+-- 米利圖是去背的，需要一塊深底才不會直接疊在長條材質上。
+-- 懶建在圖示的同一個父層、低一個 sublevel：不必改任何一處建列的程式。
+local ICON_BG = { 0.055, 0.055, 0.055, 0.92 }
+local function IconBg(tex, show)
+    local bg = tex._miliBg
+    if not show then
+        if bg then bg:Hide() end
+        return
+    end
+    if not bg then
+        local layer, sub = tex:GetDrawLayer()
+        bg = tex:GetParent():CreateTexture(nil, layer, nil, math.max(-8, (sub or 0) - 1))
+        bg:SetColorTexture(ICON_BG[1], ICON_BG[2], ICON_BG[3], ICON_BG[4])
+        bg:SetAllPoints(tex)
+        tex._miliBg = bg
+    end
+    bg:Show()
+end
 
 local function ZoomCoords(u1, u2, v1, v2, z)
     local du, dv = (u2 - u1) * z, (v2 - v1) * z
@@ -313,14 +391,21 @@ local function ApplyClassSprite(tex, classFile, zoom)
 end
 
 function D.ResolveIcon(src, tex, size, style, zoom)
-    if style == "none" then tex:Hide(); return 0 end
+    if style == "none" then tex:Hide(); IconBg(tex, false); return 0 end
     zoom = zoom or 0.06
 
     local classFile = D.SafeClass(src.classFilename)
     -- 拿不到職業（秘密值、NPC、寵物）就不畫圖示：畫一個猜出來的職業圖比空白更糟
-    if not classFile then tex:Hide(); return 0 end
+    if not classFile then tex:Hide(); IconBg(tex, false); return 0 end
 
-    if style == "spec" then
+    local info = (style == "mili") and D.SpecInfo(src.specIconID)
+    if info and info.tex then
+        -- 自己的圖本身就留了邊，不做 zoom 裁切
+        tex:SetTexture(info.tex)
+        tex:SetTexCoord(0, 1, 0, 1)
+        IconBg(tex, true)
+    elseif style == "spec" or style == "mili" then
+        IconBg(tex, false)
         local specIcon = src.specIconID
         if specIcon and not issecret(specIcon) and type(specIcon) == "number" and specIcon ~= 0 then
             tex:SetTexture(specIcon)
@@ -329,6 +414,7 @@ function D.ResolveIcon(src, tex, size, style, zoom)
             ApplyClassSprite(tex, classFile, zoom)
         end
     else
+        IconBg(tex, false)
         ApplyClassSprite(tex, classFile, zoom)
     end
 

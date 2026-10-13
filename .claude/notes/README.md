@@ -159,6 +159,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 |---|---|
 | [project-burst-helper.md](project-burst-helper.md) | MiliUI_BurstPotionHelper 爆發藥水 |
 | [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 傷害統計 MiliUI_DamageMeters —— C_DamageMeter 渲染器；七個刻意的架構決定、細線樣式、踩過的點 |
+| [project-mdm-spec-icons.md](project-mdm-spec-icons.md) | 傷害統計的米利風格專精圖示（40 張）＋頭像卡片＋裝等；產圖流程在 miliui-damagemeter-spec-icons 技能、使用者拍板的設計決定、未實機驗證清單 |
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（Ayije_CDM 仍出貨、兩支互斥並存）—— 六條拍板、**Ayije 授權 All Rights Reserved 一行不能搬**、三方分析結論、plan 在 ~/.claude/plans/miliui-cdm.md |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije）—— 報告在 ~/.claude/plans；效能 plan `miliui-cdm-perf.md`（E0～E3）、功能 plan `miliui-cdm-eui-features-2.md`（F1～F8）|
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | 2026-10-10 對照 Halo 監控台後給 MCDM 加的四件事（光環格引擎補位／內建圖示形狀／施放後音效＋天賦條件／錨到單位框）；三家光環格佈局「混排／收合／保留功能」只能拿兩項；SpellPopover Build upvalue 與 Resources.lua 主 chunk local 都貼著上限 |
