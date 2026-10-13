@@ -16,7 +16,7 @@ local M = ns.Media
 local Win = ns.Window
 
 local MAX_ROWS = 8
-local ROW_H    = 16
+local ROW_H    = 16   -- 列高與標題高的**下限**；實際值跟著字型大小算（見 Populate）
 local ROW_SP   = 1
 local HDR_H    = 20
 local WIDTH    = 288   -- 只在拿不到本體視窗寬度時才用（見 Populate）
@@ -114,6 +114,11 @@ local function Populate(bar)
     Win.SetFont(_frame.title, s.leftFontSize or 11)
     Win.SetFont(_frame.subtitle, fs)
 
+    -- 列高／標題高跟著字型長：寫死 16／20 時，玩家把字調到 16 以上
+    -- 每一列的字就溢出列外、上下兩列疊在一起（NGA 回報）。
+    local rowH = math.max(ROW_H, fs + 6)
+    local hdrH = math.max(HDR_H, (s.leftFontSize or 11) + 8)
+
     local r, g, b = M.ClassColor(src.classFilename)
     _frame.title:SetTextColor(r or 1, g or 1, b or 1)
     _frame.title:SetText(D.StripRealm(src.name))
@@ -187,7 +192,7 @@ local function Populate(bar)
     ------------------------------------------------------------
     local br, bg, bb = Win.BarColor(s, D.SafeClass(src.classFilename), dmType)
     local texPath = M.BarTexture(s.barTexture)
-    local y = -(HDR_H + PAD)
+    local y = -(hdrH + PAD)
     for i = 1, MAX_ROWS do
         local row = rows[i]
         local tb = _bars[i]
@@ -196,6 +201,9 @@ local function Populate(bar)
             tb.row:ClearAllPoints()
             tb.row:SetPoint("TOPLEFT", _frame, "TOPLEFT", PAD, y)
             tb.row:SetPoint("TOPRIGHT", _frame, "TOPRIGHT", -PAD, y)
+            tb.row:SetHeight(rowH)
+            tb.fill:SetHeight(rowH)
+            tb.icon:SetSize(rowH, rowH)
             tb.row:Show()
 
             local icon
@@ -208,7 +216,7 @@ local function Populate(bar)
             -- 橫向從圖示右緣起算，跟主清單一致 —— 也順便避開「填滿條是子 frame、
             -- 會蓋掉畫在 row 上的圖示」那個疊層問題（見 wow-frame-vs-texture-layering）。
             tb._target = Win.ApplyBarStyle(tb, s, texPath)
-            Win.AnchorBarFill(tb, ROW_H)
+            Win.AnchorBarFill(tb, rowH)
             tb._target:SetStatusBarColor(br, bg, bb)
             tb._target:SetMinMaxValues(0, maxAmt)
             tb._target:SetValue(row.amount or 0)
@@ -228,14 +236,14 @@ local function Populate(bar)
                 tb.amount:SetText(D.Abbrev(row.amount))
             end
 
-            y = y - (ROW_H + ROW_SP)
+            y = y - (rowH + ROW_SP)
         elseif tb then
             tb.row:Hide()
         end
     end
 
     -- 標題 + 每列 + 下邊距
-    _frame:SetHeight(HDR_H + PAD + #rows * (ROW_H + ROW_SP) - ROW_SP + PAD)
+    _frame:SetHeight(hdrH + PAD + #rows * (rowH + ROW_SP) - ROW_SP + PAD)
     return true
 end
 

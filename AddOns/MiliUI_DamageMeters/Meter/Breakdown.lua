@@ -166,7 +166,7 @@ local function EnsureFrame(W)
 
     -- 小標題列：返回鈕 ＋ 對象名字
     local top = CreateFrame("Button", nil, f)
-    top:SetHeight(18)
+    top:SetHeight(18)   -- 暫定；B.Open 依字型與列高重算（StyleTopBar）
     top:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
     top:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
     top:RegisterForClicks("AnyUp")
@@ -174,6 +174,7 @@ local function EnsureFrame(W)
     local topBg = top:CreateTexture(nil, "BACKGROUND")
     topBg:SetAllPoints()
     topBg:SetColorTexture(0, 0, 0, 0.5)
+    W.srcTop = top
     W.srcTitle = top:CreateFontString(nil, "OVERLAY")
     W.srcTitle:SetPoint("LEFT", top, "LEFT", 6, 0)
     W.srcHint = top:CreateFontString(nil, "OVERLAY")
@@ -292,6 +293,10 @@ function B.Open(W, info)
     Win.SetFont(W.srcTitle, s.leftFontSize or 11)
     Win.SetFont(W.srcHint, math.max(8, (s.leftFontSize or 11) - 2))
     Win.SetFont(W.srcTotal, s.rightFontSize or 11)
+    -- 標題列高跟下面的列一樣高，字大於列高時再撐開。原本寫死 18：
+    -- 字一調大，名字與總量就溢出標題列、跟第一列疊在一起（NGA 回報）。
+    local fontMax = math.max(s.leftFontSize or 11, s.rightFontSize or 11)
+    W.srcTop:SetHeight(math.max(18, D.Px(s.barHeight or 18), fontMax + 6))
     local r, g, b = M.ClassColor(classFile)
     W.srcTitle:SetTextColor(r or 1, g or 1, b or 1)
     -- 名字可能是秘密：FontString 顯示得出來，不要拿去串接
