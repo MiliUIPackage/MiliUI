@@ -29,6 +29,17 @@ local function RefreshInstanceType()
     instanceType = select(2, GetInstanceInfo()) or "none"
 end
 
+-- 坐載具：只認**有載具快捷列**的那種（UnitHasVehicleUI）。
+-- 不用 UnitInVehicle：雙人坐騎的乘客座、計程車式的護送載具也算「在載具上」，
+-- 那時候清單沒有理由收；要讓位的是開砲台、駕駛任務載具這種畫面被載具 UI 佔掉的情況。
+-- 明文 true 才算（秘密值／API 不在／拋錯 ＝ 不成立）。
+local function InVehicle()
+    if not UnitHasVehicleUI then return false end
+    local ok, v = pcall(UnitHasVehicleUI, "player")
+    if not ok or ns.Secret.IsSecret(v) then return false end
+    return v == true
+end
+
 local function ComputeAuto()
     local v = ns.db and ns.db.visibility
     if not v then return false end
@@ -39,6 +50,7 @@ local function ComputeAuto()
     if v.raid and instanceType == "raid" then return true end
     if v.raidBoss and instanceType == "raid" and inEncounter then return true end
     if v.dungeon and instanceType == "party" then return true end
+    if v.vehicle and InVehicle() then return true end
     if v.mythicPlus then
         -- 面板模組用副本資訊判斷（打完鑰石到出副本之前都算），跟面板同一個口徑；
         -- 它還沒載入時退回 IsChallengeModeActive
@@ -52,6 +64,29 @@ local function ComputeAuto()
 end
 
 function V.IsFolded() return folded end
+
+-- 報告用：問 player 一次，秘密值印 <secret>
+local function Probe(fn)
+    if not fn then return "nil" end
+    local ok, v = pcall(fn, "player")
+    if not ok then return "error" end
+    if ns.Secret.IsSecret(v) then return "<secret>" end
+    return tostring(v)
+end
+
+-- /mquest debug 用：條件＝開關/現況（現況不管開沒開都照實印）
+function V.DiagLines()
+    local v = ns.db and ns.db.visibility or {}
+    local function f(on, now) return (on and "on" or "off") .. "/" .. tostring(now and true or false) end
+    return {
+        ("auto=%s peeking=%s manual=%s instanceType=%s inEncounter=%s"):format(
+            tostring(autoActive), tostring(peeking), tostring(ns.db and ns.db.folded or false),
+            tostring(instanceType), tostring(inEncounter)),
+        ("vehicle=%s (UnitHasVehicleUI=%s UnitInVehicle=%s) combat=%s"):format(
+            f(v.vehicle, InVehicle()), Probe(UnitHasVehicleUI), Probe(UnitInVehicle),
+            f(v.combat, InCombatLockdown())),
+    }
+end
 
 function V.Evaluate()
     if not ns.db then return end
@@ -93,9 +128,14 @@ ns.RegisterCallback("Init", "visibility", function()
         "ENCOUNTER_START", "ENCOUNTER_END",
         "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
         "CHALLENGE_MODE_START", "CHALLENGE_MODE_COMPLETED", "CHALLENGE_MODE_RESET",
+        -- 載具 UI 的換上／換下。UNIT_ENTERED_VEHICLE 在轉場「開始」就送出，那一刻
+        -- UnitHasVehicleUI 不保證已經是終值，所以快捷列換好的這個再問一次
+        "UPDATE_VEHICLE_ACTIONBAR",
     }) do
         evt:RegisterEvent(e)
     end
+    evt:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", "player")
+    evt:RegisterUnitEvent("UNIT_EXITED_VEHICLE", "player")
     evt:SetScript("OnEvent", function(_, event)
         if event == "ENCOUNTER_START" then
             inEncounter = true
@@ -108,6 +148,9 @@ ns.RegisterCallback("Init", "visibility", function()
             RefreshInstanceType()
         elseif event == "ZONE_CHANGED_NEW_AREA" then
             RefreshInstanceType()
+        elseif event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE" then
+            -- 轉場還沒完成時讀到的值可能是舊的，晚一點再補一次（同 key 合併）
+            T.Defer("vehicleFold", V.Evaluate, 0.3)
         end
         V.Evaluate()
     end)

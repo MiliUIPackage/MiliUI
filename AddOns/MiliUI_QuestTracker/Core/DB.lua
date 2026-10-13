@@ -50,6 +50,12 @@ local function BuildDefaults()
             focusColor     = { r = 0.87, g = 0.25, b = 1.00 },  -- 追蹤中（紫）
             objectiveColor = { r = 0.72, g = 0.72, b = 0.72 },  -- 目標行（灰）
 
+            -- 目標進度（Modules/Skin.lua 的「目標進度」段）。2026-10-13 新增的鍵，nil-merge 補上，不用遷移。
+            -- 上色：帶 x/y 的目標行紅→黃→綠，暴雪判完成之後換 completedColor；沒有數字的行仍是 objectiveColor
+            progressColor   = true,
+            -- 行尾接「(38%)」。預設關：x/y 已經寫在行上，百分比是加碼的資訊
+            progressPercent = false,
+
             -- 區段標題（任務／成就／專業…）。預設吃職業色，關掉才讀 headerColor
             headerUseClass = true,
             headerColor    = { r = 1.00, g = 1.00, b = 1.00 },
@@ -99,6 +105,9 @@ local function BuildDefaults()
             -- M+：預設開。鑰石中清單摺起來，原位讓給下面那塊計時面板。
             -- ⚠ 從 false 改成 true 是改預設值 ⇒ 配 DB_VERSION 2 的遷移（見 Migrate）
             mythicPlus = true,
+            -- 坐載具（有載具快捷列的那種，見 Modules/Visibility.lua）。2026-10-13 新增、預設關，
+            -- nil-merge 補成 false 即可，不用遷移
+            vehicle    = false,
         },
 
         -- 傳奇鑰石計時面板（Modules/MythicPlus.lua）：鑰石中清單摺起來的位置放它。

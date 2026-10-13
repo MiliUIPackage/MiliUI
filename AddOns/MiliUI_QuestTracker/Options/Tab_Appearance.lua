@@ -53,6 +53,12 @@ local function BuildControls()
         { type = "toggle", key = "headerUseClass", label = L["Section headers use your class colour"] },
         { type = "color",  key = "headerColor",    label = L["Section header colour"], hasAlpha = false },
 
+        { type = "header", label = L["Objective progress"] },
+        { type = "toggle", key = "progressColor",   label = L["Colour objectives by progress"] },
+        { type = "text",   label = L["Objectives with a count such as 3/8 shade from red through yellow to green as they fill up, and switch to the Completed colour once done. Lines without a count keep the objective text colour."] },
+        { type = "toggle", key = "progressPercent", label = L["Append a percentage to objectives"] },
+        { type = "text",   label = L["Left off on lines where it would push the text onto another row."] },
+
         { type = "header", label = L["Background"] },
         { type = "toggle", key = "background", label = L["Draw a background"] },
         { type = "color",  key = "bgColor",    label = L["Background colour"], hasAlpha = false },
