@@ -62,6 +62,28 @@ L["Never"] = "不顯示"
 L["\"Mouseover\" elements appear while the cursor is anywhere over the map, including the strips themselves."] =
     "「滑鼠移過時」的判定範圍是整張方形地圖，包含上下那兩條資訊帶本身。"
 
+-- 副本難度文字（Map/Difficulty.lua）—— 難度名用暴雪官方詞彙
+L["Show instance difficulty as text"] = "副本難度改用文字顯示"
+L["Replaces Blizzard's difficulty flag with a short label in the bottom-left corner, such as \"Heroic 5-man\", \"M+12\" or \"Delve 8\"."] =
+    "把暴雪的難度旗子換成左下角的一小段文字，例如「英雄 5人」「M+12」「探究 8」。"
+L["Normal"] = "普通"
+L["Heroic"] = "英雄"
+L["Mythic"] = "傳奇"
+L["Raid Finder"] = "隨機"
+L["Timewalking"] = "時光漫遊"
+L["Scenario"] = "事件"
+L["Heroic scenario"] = "英雄事件"
+L["Mythic scenario"] = "傳奇事件"
+L["Follower"] = "追隨者"
+L["Story"] = "劇情"
+L["Battleground"] = "戰場"
+L["Arena"] = "競技場"
+L["M+"] = "M+"
+L["M+%d"] = "M+%d"
+L["Delve"] = "探究"
+L["Delve %d"] = "探究 %d"
+L["%s %d-man"] = "%s %d人"
+
 -- 暴雪的東西
 L["Blizzard's own bits"] = "暴雪原本的東西"
 L["Hide the border art and compass"] = "隱藏外框浮雕與指北針"

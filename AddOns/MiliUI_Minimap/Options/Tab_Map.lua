@@ -50,6 +50,8 @@ local CONTROLS = {
     { type = "dropdown", key = "coords",   label = L["Coordinates"], items = Specs.VISIBILITY },
     { type = "dropdown", key = "clock",    label = L["Clock"], items = Specs.VISIBILITY },
     { type = "text",     label = L["\"Mouseover\" elements appear while the cursor is anywhere over the map, including the strips themselves."] },
+    { type = "toggle",   key = "difficultyText", label = L["Show instance difficulty as text"] },
+    { type = "text",     label = L["Replaces Blizzard's difficulty flag with a short label in the bottom-left corner, such as \"Heroic 5-man\", \"M+12\" or \"Delve 8\"."] },
 
     { type = "header",   label = L["Blizzard's own bits"] },
     { type = "toggle",   key = "hideBlizzardArt", label = L["Hide the border art and compass"] },

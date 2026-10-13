@@ -42,6 +42,7 @@ Libs\MiliUIWidgets\Controls.lua
 
 Map\Skin.lua
 Map\Buttons.lua
+Map\Difficulty.lua
 
 Panel\Data.lua
 Panel\LinkSink.xml

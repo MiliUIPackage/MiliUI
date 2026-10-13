@@ -153,9 +153,18 @@ local function LayoutBlizzardButtons()
     end
 
     -- 副本難度旗：左下角，讓開下面那條
+    --
+    -- 開了「難度改用文字」（Map/Difficulty.lua）就把旗子 **reparent 到隱藏框**：
+    --   不 Hide() —— 暴雪會依副本自己 Show/Hide 它，比誰後叫到 Show 是打不完的仗；
+    --   也不 SetAlpha(0) 留在原位 —— 透明的旗子滑鼠判定還在，會在文字底下吃掉 hover。
+    --   關掉時走下面同一條 Anchor 搬回來，不必另寫還原。
     local diff = cluster.InstanceDifficulty or _G.MiniMapInstanceDifficulty
     if diff then
-        Anchor(diff, "BOTTOMLEFT", holder, "BOTTOMLEFT", inset, botH + inset, 3)
+        if db.difficultyText then
+            if diff:GetParent() ~= ns.hiddenParent then diff:SetParent(ns.hiddenParent) end
+        else
+            Anchor(diff, "BOTTOMLEFT", holder, "BOTTOMLEFT", inset, botH + inset, 3)
+        end
     end
 
     -- 日曆：右下角

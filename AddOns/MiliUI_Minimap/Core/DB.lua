@@ -77,6 +77,10 @@ local DEFAULTS = {
     hideTracking    = false,
     hideMail        = false,
     hideCalendar    = false,
+    -- 副本難度改用文字（「英雄 5人」「M+12」），暴雪的旗子收起來。
+    -- 旗子要認圖案（骷髏、星星、公會徽章），文字一眼就讀得出來，而且跟地圖上的
+    -- 其他資訊同一套字型與底色。見 Map/Difficulty.lua。
+    difficultyText  = true,
     -- 暴雪的「插件」隔間鈕。**預設關掉** —— 它在地圖旁邊是一塊寫著「插件」的
     -- 文字招牌，跟這套皮完全不同語言，而且它做的事（列出插件入口）跟我們的
     -- 按鈕收納重疊。要用的人自己開。
