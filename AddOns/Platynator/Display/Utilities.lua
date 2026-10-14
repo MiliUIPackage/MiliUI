@@ -3,6 +3,11 @@ local addonTable = select(2, ...)
 
 addonTable.Display.Utilities = {}
 
+local function GetColor(rgb)
+  local color = CreateColorFromRGBHexString(rgb)
+  return {r = color.r, g = color.g, b = color.b}
+end
+
 function addonTable.Display.Utilities.IsNeutralUnit(unit)
   if UnitSelectionType then
     return UnitSelectionType(unit) == 2
@@ -402,11 +407,14 @@ do
   local rangeLimit = 0
   local lastSpecializationIndex = 0
   local specializationID = 0
-  local harmChecker
+  local harmChecker, harmMeleeChecker
   local _, playerClass = UnitClass("player")
 
   local RangeCheck = LibStub("LibRangeCheck-3.0")
-  RangeCheck.RegisterCallback("Platynator", RangeCheck.CHECKERS_CHANGED, function() harmChecker = RangeCheck:GetHarmMaxChecker(addonTable.Display.Utilities.GetRangedLimit() or RangeCheck.MeleeRange) end)
+  RangeCheck.RegisterCallback("Platynator", RangeCheck.CHECKERS_CHANGED, function()
+    harmChecker = RangeCheck:GetHarmMaxChecker(addonTable.Display.Utilities.GetRangedLimit() or RangeCheck.MeleeRange) or function() return nil end
+    harmMeleeChecker = RangeCheck:GetHarmMaxChecker(RangeCheck.MeleeRange) or function() return nil end
+  end)
 
   local isDiscovery = C_Seasons and C_Seasons.GetActiveSeason() == Enum.SeasonID.SeasonOfDiscovery or false
 
@@ -433,27 +441,17 @@ do
     end
 
   elseif addonTable.Constants.IsForever then
-    if playerClass == "WARRIOR" then
-      GetPlayerRole = function()
-        if GetShapeshiftForm() == 2 then
-          return roleType.Tank
-        end
-        return roleType.Damage
+    local roleMap = {
+      ["DAMAGER"] = roleType.Damage,
+      ["TANK"] = roleType.Tank,
+      ["HEALER"] = roleType.Healer,
+    }
+
+    GetPlayerRole = function()
+      if UnitHasEffectivelyTankAura("player") then
+        return roleType.Tank
       end
-    elseif playerClass == "DRUID" then
-      GetPlayerRole = function()
-        if GetShapeshiftForm() == 1 then
-          return roleType.Tank
-        end
-        return roleType.Damage
-      end
-    else
-      GetPlayerRole = function()
-        if UnitHasEffectivelyTankAura("player") then
-          return roleType.Tank
-        end
-        return roleType.Damage
-      end
+      return roleMap[UnitGroupRolesAssigned("player")] or roleType.Damage
     end
 
   else
@@ -469,8 +467,8 @@ do
     end
   end
 
-  local function AssignRange()
-    if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath then
+  local function AssignRange(isPEW)
+    if addonTable.Constants.IsEra or addonTable.Constants.IsBC or addonTable.Constants.IsWrath or addonTable.Constants.IsForever then
       rangeLimit = addonTable.Constants.DefaultRange[playerClass]
     else
       rangeLimit = addonTable.Constants.DefaultRange[specializationID]
@@ -481,7 +479,18 @@ do
         end
       end
     end
-    harmChecker = RangeCheck:GetHarmMaxChecker(addonTable.Display.Utilities.GetRangedLimit() or RangeCheck.MeleeRange)
+    local newHarmChecker = RangeCheck:GetHarmMaxChecker(addonTable.Display.Utilities.GetRangedLimit() or RangeCheck.MeleeRange)
+    local newHarmMeleeChecker = RangeCheck:GetHarmMaxChecker(RangeCheck.MeleeRange)
+
+    -- Avoid overwriting harm checker when changing zone
+
+    if newHarmChecker or not isPEW and not newHarmChecker or not harmChecker then
+      harmChecker = newHarmChecker or function() return false end
+    end
+
+    if newHarmMeleeChecker or not isPEW and not newHarmMeleeChecker or not harmMeleeChecker then
+      harmMeleeChecker = newHarmMeleeChecker or function() return false end
+    end
   end
 
   local function UpdateAuraFilters()
@@ -490,6 +499,27 @@ do
       allFilters[specializationID] = {
         buffs = { include = {}, exclude = {} },
         debuffs = { include = {}, exclude = {} },
+      }
+    end
+
+    local allHighlights = addonTable.Config.Get(addonTable.Config.Options.AURA_HIGHLIGHTS)
+
+    if not allHighlights[specializationID] then
+      allHighlights[specializationID] = {
+        buffs = {
+          mode = "health",
+          showAll = {color = GetColor("ff0000"), enabled = false},
+          showNone = {color = GetColor("00ff00"), enabled = false},
+          showIndividualColors = true,
+          auras = {}
+        },
+        debuffs = {
+          mode = "health",
+          showAll = {color = GetColor("ff0000"), enabled = false},
+          showNone = {color = GetColor("00ff00"), enabled = false},
+          showIndividualColors = true,
+          auras = {}
+        }
       }
     end
   end
@@ -516,6 +546,8 @@ do
       elseif playerClass == "PALADIN" then
         specializationMonitor:RegisterUnitEvent("UNIT_AURA", "player")
       end
+      specializationMonitor:RegisterEvent("PLAYER_ROLES_ASSIGNED")
+      specializationMonitor:RegisterEvent("GROUP_ROSTER_UPDATE")
 
     elseif C_EventUtils.IsEventValid("PLAYER_SPECIALIZATION_CHANGED") then
       specializationMonitor:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
@@ -533,7 +565,7 @@ do
         specializationID = C_SpecializationInfo.GetSpecializationInfo(specIndex)
       end
 
-      AssignRange()
+      AssignRange(e == "PLAYER_ENTERING_WORLD")
       UpdateAuraFilters()
 
       if e ~= "SPELLS_CHANGED" then
@@ -561,6 +593,10 @@ do
 
   function addonTable.Display.Utilities.GetRangeChecker()
     return harmChecker
+  end
+
+  function addonTable.Display.Utilities.GetMeleeRangeChecker()
+    return harmMeleeChecker
   end
 
   function addonTable.Display.Utilities.GetSpecializationID()
@@ -803,5 +839,30 @@ do
 
   function addonTable.Display.Utilities.GetAuraNumericFormatter()
     return auraFormatter, auraPlainFormatter
+  end
+end
+
+do
+  local curve = C_CurveUtil.CreateCurve()
+  curve:AddPoint(0.9999999, 1)
+  curve:AddPoint(1, 0)
+
+  function addonTable.Display.Utilities.Get01HiddenCurve()
+    return curve
+  end
+end
+
+do
+  local inInstanceOrParty = false
+  local instanceTracker = CreateFrame("Frame")
+  instanceTracker:RegisterEvent("PLAYER_ENTERING_WORLD")
+  instanceTracker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+  instanceTracker:RegisterEvent("INSTANCE_GROUP_SIZE_CHANGED")
+  instanceTracker:SetScript("OnEvent", function(_, event)
+    inInstanceOrParty = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true, delve = true, pvp = true}) or IsInGroup()
+  end)
+
+  function addonTable.Display.Utilities.IsInInstanceOrParty()
+    return inInstanceOrParty
   end
 end

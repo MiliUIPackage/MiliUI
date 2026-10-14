@@ -6,6 +6,10 @@ local function GetColor(rgb, a)
   return {r = color.r, g = color.g, b = color.b, a = a}
 end
 
+local threatForDifferential = CopyTable(addonTable.CustomiseDialog.ColorsConfig["threat"].default)
+threatForDifferential.enabled.safe = true
+threatForDifferential.colors.safe = GetColor("00FF00")
+
 addonTable.CustomiseDialog.DesignWidgets = {
   {
     name = addonTable.Locales.BARS,
@@ -262,6 +266,44 @@ addonTable.CustomiseDialog.DesignWidgets = {
     },
   },
   {
+    name = addonTable.Locales.FIXED_BORDERED,
+    kind = "highlights",
+    default = {
+      anchor = {"TOPLEFT", -140, 50},
+      kind = "fixedBordered",
+      background = {
+        asset = "Platy: Fade Bottom",
+        color = GetColor("FFFFFF", 1),
+        applyColor = false,
+      },
+      border = {
+        asset = "Platy: 7px",
+        color = GetColor("000000", 1),
+        width = 1,
+        height = 1,
+        show = true,
+      },
+      sliced = true,
+      scale = 1,
+      layer = 0,
+    },
+  },
+  {
+    name = addonTable.Locales.AURAS,
+    kind = "highlights",
+    default = {
+      anchor = {"TOPLEFT", -140, 50},
+      kind = "auras",
+      asset = "Platy: Soft Glow",
+      sliced = true,
+      width = 1.07,
+      height = 1.54,
+      color = GetColor("FFFFFF", 1),
+      scale = 1,
+      layer = 3,
+    },
+  },
+  {
     name = addonTable.Locales.ANIMATED_BORDER,
     kind = "highlights",
     default = {
@@ -277,6 +319,25 @@ addonTable.CustomiseDialog.DesignWidgets = {
       },
       scale = 1,
       layer = 3,
+    },
+  },
+  {
+    name = addonTable.Locales.FLASHING,
+    kind = "highlights",
+    default = {
+      anchor = {"TOPLEFT", -140, 50},
+      kind = "flashing",
+      asset = "Platy: Feathered",
+      sliced = true,
+      height = 1.1,
+      width = 1,
+      color = GetColor("AAAAAA", 1),
+      autoColors = {
+        CopyTable(addonTable.CustomiseDialog.ColorsConfig["importantCast"].default),
+      },
+      scale = 1,
+      layer = 0,
+      speed = 1,
     },
   },
   {
@@ -518,8 +579,27 @@ addonTable.CustomiseDialog.DesignWidgets = {
       align = "CENTER",
       shorten = "NONE",
       showPercentSymbol = true,
+      value = "raw",
       autoColors = {
         CopyTable(addonTable.CustomiseDialog.ColorsConfig["threat"].default),
+      },
+      showWhenGrouped = true,
+    },
+  },
+  {
+    name = addonTable.Locales.THREAT_DIFFERENTIAL,
+    kind = "texts",
+    default = {
+      kind = "threatDifferential",
+      scale = 1,
+      layer = 2,
+      anchor = {"TOPLEFT", -140, 50},
+      color = GetColor("FFFFFF"),
+      maxWidth = 0,
+      align = "CENTER",
+      shorten = "NONE",
+      autoColors = {
+        threatForDifferential,
       },
       showWhenGrouped = true,
     },

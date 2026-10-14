@@ -1,8 +1,7 @@
 # Platynator
 
-## [490](https://github.com/TheMouseNest/Platynator/tree/490) (2026-09-22)
-[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/489...490) 
+## [506](https://github.com/TheMouseNest/Platynator/tree/506) (2026-10-13)
+[Full Changelog](https://github.com/TheMouseNest/Platynator/compare/505...506) 
 
-- Forever: Fix quest marker/colours not applying when grouped  
-- Add "Threat Percentage" widget  
-- Designer: Highlight widgets currently selected in selection context menu  
+- Fix aura highlights not showing reliably  
+- Option to move some extra debuffs from the Debuffs widget into Crowd Control  

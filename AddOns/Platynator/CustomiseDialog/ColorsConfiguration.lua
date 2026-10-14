@@ -133,8 +133,12 @@ addonTable.CustomiseDialog.ColorsConfig = {
       instancesOnly = false,
       combatOnly = true,
       tanksOnly = false,
-      useSafeColor = false,
-      useOffTankColor = false,
+      enabled = {
+        safe = false,
+        offtank = false,
+        transition = true,
+        warning = true,
+      },
     },
     entries = {
       {
@@ -142,10 +146,10 @@ addonTable.CustomiseDialog.ColorsConfig = {
         kind = "colorPickerWithCheckbox",
         setter = function(details, value)
           details.colors.safe = value.color
-          details.useSafeColor = value.enabled
+          details.enabled.safe = value.enabled
         end,
         getter = function(details)
-          return {color = details.colors.safe, enabled = details.useSafeColor}
+          return {color = details.colors.safe, enabled = details.enabled.safe}
         end,
       },
       {
@@ -153,30 +157,32 @@ addonTable.CustomiseDialog.ColorsConfig = {
         kind = "colorPickerWithCheckbox",
         setter = function(details, value)
           details.colors.offtank = value.color
-          details.useOffTankColor = value.enabled
+          details.enabled.offtank = value.enabled
         end,
         getter = function(details)
-          return {color = details.colors.offtank, enabled = details.useOffTankColor}
+          return {color = details.colors.offtank, enabled = details.enabled.offtank}
         end,
       },
       {
         label = addonTable.Locales.TRANSITION,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.transition = value
+          details.colors.transition = value.color
+          details.enabled.transition = value.enabled
         end,
         getter = function(details)
-          return details.colors.transition
+          return {color = details.colors.transition, enabled = details.enabled.transition}
         end,
       },
       {
         label = addonTable.Locales.WARNING,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.warning = value
+          details.colors.warning = value.color
+          details.enabled.warning = value.enabled
         end,
         getter = function(details)
-          return details.colors.warning
+          return {color = details.colors.warning, enabled = details.enabled.warning}
         end,
       },
       { kind = "spacer" },
@@ -828,26 +834,32 @@ addonTable.CustomiseDialog.ColorsConfig = {
         cast = GetColor("FF1827"),
         channel = GetColor("0A43FF"),
       },
+      enabled = {
+        cast = true,
+        channel = true,
+      }
     },
     entries = {
       {
         label = addonTable.Locales.CAST,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.cast = value
+          details.colors.cast = value.color
+          details.enabled.cast = value.enabled
         end,
         getter = function(details)
-          return details.colors.cast
+          return {color = details.colors.cast, enabled = details.enabled.cast}
         end,
       },
       {
         label = addonTable.Locales.CHANNEL,
-        kind = "colorPicker",
+        kind = "colorPickerWithCheckbox",
         setter = function(details, value)
-          details.colors.channel = value
+          details.colors.channel = value.color
+          details.enabled.channel = value.enabled
         end,
         getter = function(details)
-          return details.colors.channel
+          return {color = details.colors.channel, enabled = details.enabled.channel}
         end,
       },
     }
@@ -1171,6 +1183,48 @@ addonTable.CustomiseDialog.ColorsConfig = {
       },
     },
   },
+  ["inRangeMelee"] = {
+    label = addonTable.Locales.IN_RANGE_MELEE,
+    default = {
+      kind = "inRangeMelee",
+      colors = {
+        inRange = GetColor("34edd1"),
+      },
+    },
+    entries = {
+      {
+        label = addonTable.Locales.IN_RANGE,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.inRange = value
+        end,
+        getter = function(details)
+          return details.colors.inRange
+        end,
+      },
+    },
+  },
+  ["outOfRangeMelee"] = {
+    label = addonTable.Locales.OUT_OF_RANGE_MELEE,
+    default = {
+      kind = "outOfRangeMelee",
+      colors = {
+        outOfRange = GetColor("34edd1"),
+      },
+    },
+    entries = {
+      {
+        label = addonTable.Locales.OUT_OF_RANGE,
+        kind = "colorPicker",
+        setter = function(details, value)
+          details.colors.outOfRange = value
+        end,
+        getter = function(details)
+          return details.colors.outOfRange
+        end,
+      },
+    },
+  },
   ["party"] = {
     label = addonTable.Locales.PARTY,
     default = {
@@ -1229,6 +1283,8 @@ addonTable.CustomiseDialog.ColorsConfigOrder = {
   "inCombat",
   "inRange",
   "outOfRange",
+  "inRangeMelee",
+  "outOfRangeMelee",
   "isCast",
   "notCast",
   "delveType",

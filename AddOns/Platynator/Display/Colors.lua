@@ -59,7 +59,9 @@ local kindToCache = {
   notCast = {"cast"},
   isCast = {"cast"},
   inRange = {"range"},
+  inRangeMelee = {"rangeMelee"},
   outOfRange = {"range"},
+  outOfRangeMelee = {"rangeMelee"},
   target = {"target"},
   notTarget = {"target"},
   softTarget = {"softTarget"},
@@ -202,16 +204,16 @@ function addonTable.Display.GetColor(settings, state, unit)
       local hostile = state.hostile
       local isTank = IsTankRole()
       if not state.isPlayer and (inRelevantThreatInstance or not s.instancesOnly) and (threat or (hostile and not s.combatOnly) or IsInCombatWith(unit)) and (not s.tanksOnly or isTank) then
-        if (isTank and (threat == 0 or threat == nil) and (not s.useOffTankColor or not doesOtherTankHaveAggro)) or (not isTank and threat == 3) then
+        if s.enabled.warning and ((isTank and (threat == 0 or threat == nil) and (not s.enabled.offtank or not doesOtherTankHaveAggro)) or (not isTank and threat == 3)) then
           table.insert(colorQueue, {color = s.colors.warning})
           break
-        elseif threat == 1 or threat == 2 then
+        elseif s.enabled.transition and threat == 1 or threat == 2 then
           table.insert(colorQueue, {color = s.colors.transition})
           break
-        elseif s.useSafeColor and ((isTank and threat == 3) or (not isTank and (threat == 0 or threat == nil))) then
+        elseif s.enabled.safe and ((isTank and threat == 3) or (not isTank and (threat == 0 or threat == nil))) then
           table.insert(colorQueue, {color = s.colors.safe})
           break
-        elseif s.useOffTankColor and isTank and (threat == 0 or threat == nil) and doesOtherTankHaveAggro then
+        elseif s.enabled.offtank and isTank and (threat == 0 or threat == nil) and doesOtherTankHaveAggro then
           table.insert(colorQueue, {color = s.colors.offtank})
           break
         end
@@ -282,10 +284,20 @@ function addonTable.Display.GetColor(settings, state, unit)
           break
         end
       end
+    elseif s.kind == "friend" then
+      if UnitIsPlayer(unit) then
+        local guid = UnitGUID(unit)
+        if not issecretvalue(guid) and C_FriendList.IsFriend(guid) then
+          table.insert(colorQueue, {color = s.colors.friend})
+        end
+      end
     elseif s.kind == "classColors" then
       if state.isPlayer then
         local _, class = UnitClass(unit)
-        if issecretvalue(class) then
+        if addonTable.Constants.IsForever or addonTable.Constants.IsMidnightNext then
+          local color = C_ClassColor.GetClassColor(class, s.colors.class)
+          table.insert(colorQueue, {color = color})
+        elseif issecretvalue(class) then
           local color = C_ClassColor.GetClassColor(class)
           if s.colors.class then
             color.a = s.colors.class.a
@@ -394,9 +406,9 @@ function addonTable.Display.GetColor(settings, state, unit)
         end
         if spellID ~= nil then
           local isImportant = C_Spell.IsSpellImportant(spellID)
-          if isChannel then
+          if isChannel and s.enabled.channel then
             table.insert(colorQueue, {state = {{value = isImportant}}, color = s.colors.channel})
-          else
+          elseif not isChannel and s.enabled.cast then
             table.insert(colorQueue, {state = {{value = isImportant}}, color = s.colors.cast})
           end
         end
@@ -467,8 +479,20 @@ function addonTable.Display.GetColor(settings, state, unit)
         table.insert(colorQueue, {color = s.colors.inRange})
         break
       end
+    elseif s.kind == "inRangeMelee" then
+      local range = addonTable.Cache:Get(unit, "rangeMelee")
+      if range then
+        table.insert(colorQueue, {color = s.colors.inRange})
+        break
+      end
     elseif s.kind == "outOfRange" then
       local range = addonTable.Cache:Get(unit, "range")
+      if not range then
+        table.insert(colorQueue, {color = s.colors.outOfRange})
+        break
+      end
+    elseif s.kind == "outOfRangeMelee" then
+      local range = addonTable.Cache:Get(unit, "rangeMelee")
       if not range then
         table.insert(colorQueue, {color = s.colors.outOfRange})
         break
@@ -477,7 +501,7 @@ function addonTable.Display.GetColor(settings, state, unit)
       if UnitInParty(unit) then
         if UnitGroupRolesAssigned then
           local role = UnitGroupRolesAssigned(unit)
-          if role then
+          if role and not issecretvalue(role) then
             table.insert(colorQueue, {color = s.colors[roleMap[role]]})
             break
           end

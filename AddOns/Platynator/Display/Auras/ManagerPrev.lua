@@ -290,6 +290,10 @@ function addonTable.Display.AurasManagerMixin:SetCrowdControlCallback(callback)
   self.OnCrowdControlUpdate = callback
 end
 
+function addonTable.Display.AurasManagerMixin:ReleaseSlots()
+  -- Do nothing
+end
+
 legacy.crowdControlSpells = {
 [377048] = true,
 [221562] = true,

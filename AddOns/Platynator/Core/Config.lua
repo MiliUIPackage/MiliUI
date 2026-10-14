@@ -27,6 +27,18 @@ local settings = {
 
   AURA_FILTERS = {key = "aura_filters", default = {crowdControl = {include = {}, exclude = {}}}},
   AURA_DEDUPLICATE = {key = "aura_deduplicate", default = {["DEATHKNIGHT"] = {55078}}},
+  AURA_HIGHLIGHTS = {key = "aura_highlights", default = {--[[ [265] = { -- Affliction Warlock
+    buffs = {
+      showAll = {color = GetColor("ff0000"), enabled = false},
+      showNone = {color = GetColor("ff0000"), enabled = false},
+      showIndividualColors = true,
+      auras = {
+        {spellID = 2830, color = GetColor("ff11ff"), enabled = true}
+      }
+    debuffs = {
+      -- Just like buffs
+    }
+  }]]}},
 
   TARGET_SCALE = {key = "target_scale", default = 1.2, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
   CAST_SCALE = {key = "cast_scale", default = 1, refresh = {addonTable.Constants.RefreshReason.TargetBehaviour}},
@@ -40,7 +52,8 @@ local settings = {
   NOT_IN_PULL_ALPHA = {key = "not_in_combat_alpha", default = 1, refresh = {addonTable.Constants.RefreshReason.Design}},
 
   STACKING_NAMEPLATES = {key = "stacking_nameplates", default = {friend = false, enemy = true}, refresh = {addonTable.Constants.RefreshReason.StackingBehaviour}},
-  CLOSER_TO_SCREEN_EDGES = {key = "closer_to_screen_edges", default = true, refresh = {addonTable.Constants.RefreshReason.StackingBehaviour}},
+  STACK_POSITION_INSETS = {key = "stack_position_insets", default = {top = 0.08, bottom = 0.1}, refresh = {addonTable.Constants.RefreshReason.Movement}},
+  STACK_MOTION_SPEED = {key = "stack_motion_speed", default = 0.3, refresh = {addonTable.Constants.RefreshReason.Movement}},
   CLICK_REGION_SCALE_X = {key = "click_region_scale_x", default = 1},
   CLICK_REGION_SCALE_Y = {key = "click_region_scale_y", default = 1},
   CLICKABLE_NAMEPLATES = {key = "clickable_nameplates", default = {friend = false, enemy = true}, refresh = {addonTable.Constants.RefreshReason.Clickable}},

@@ -296,25 +296,16 @@ local function GetSizingOptions(parent)
 
   local allFrames = {}
 
-  local simplifiedScaleSlider
-  if addonTable.Constants.IsSimplifiedAvailable then
-    if C_CVar.GetCVarInfo("nameplateSimplifiedScale") then
-      simplifiedScaleSlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.SIMPLIFIED_SCALE, 1, 100, function(value) return ("%d%%"):format(value) end, function(value)
-        addonTable.Config.Set(addonTable.Config.Options.SIMPLIFIED_SCALE, value / 100)
-      end)
-      simplifiedScaleSlider:SetPoint("TOP")
-      table.insert(allFrames, simplifiedScaleSlider)
-    end
-  end
+  local simplifiedScaleSlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.SIMPLIFIED_SCALE, 1, 100, function(value) return ("%d%%"):format(value) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.SIMPLIFIED_SCALE, value / 100)
+  end)
+  simplifiedScaleSlider:SetPoint("TOP")
+  table.insert(allFrames, simplifiedScaleSlider)
 
   local targetScaleSlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.ON_TARGET_SCALE, 1, 500, function(value) return ("%d%%"):format(value) end, function(value)
     addonTable.Config.Set(addonTable.Config.Options.TARGET_SCALE, value / 100)
   end)
-  if #allFrames > 0 then
-    targetScaleSlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
-  else
-    targetScaleSlider:SetPoint("TOP")
-  end
+  targetScaleSlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
   table.insert(allFrames, targetScaleSlider)
 
   local castScaleSlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.ON_CAST_SCALE, 1, 500, function(value) return ("%d%%"):format(value) end, function(value)
@@ -335,99 +326,71 @@ local function GetSizingOptions(parent)
     table.insert(allFrames, closerToScreenEdgesCheckbox)
   end
 
-  local clickRegionSliderX, clickRegionSliderY, stackRegionSliderX, stackRegionSliderY
-  if not addonTable.Constants.IsHitTestPointsAvailable then
-    clickRegionSliderX = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.CLICK_REGION_WIDTH, 1, 300, function(value) return ("%d%%"):format(value) end, function(value)
-      addonTable.Config.Set(addonTable.Config.Options.CLICK_REGION_SCALE_X, value / 100)
-    end)
-    clickRegionSliderX:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
-    clickRegionSliderX:SetScript("OnEnter", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", true)
-    end)
-    clickRegionSliderX:SetScript("OnLeave", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", false)
-    end)
-    table.insert(allFrames, clickRegionSliderX)
+  local wrapper = CreateFrame("Frame", nil, container)
+  wrapper:SetPoint("LEFT")
+  wrapper:SetPoint("RIGHT")
+  wrapper:SetHeight(40)
+  local label = wrapper:CreateFontString(nil, nil, "GameFontHighlight")
+  label:SetText(addonTable.Locales.STACK_CLICK_SETTINGS_HAVE_MOVED_X)
+  label:SetPoint("CENTER", 0, 0)
+  label:SetPoint("LEFT", 30, 0)
+  label:SetPoint("RIGHT", -30, 0)
+  wrapper:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  table.insert(allFrames, wrapper)
 
-    clickRegionSliderY = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.CLICK_REGION_HEIGHT, 1, 500, function(value) return ("%d%%"):format(value) end, function(value)
-      addonTable.Config.Set(addonTable.Config.Options.CLICK_REGION_SCALE_Y, value / 100)
-    end)
-    clickRegionSliderY:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
-    clickRegionSliderY:SetScript("OnEnter", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", true)
-    end)
-    clickRegionSliderY:SetScript("OnLeave", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "click", false)
-    end)
-    table.insert(allFrames, clickRegionSliderY)
-
-    stackRegionSliderX = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.STACKING_REGION_WIDTH, 1, 300, function(value) return ("%d%%"):format(value) end, function(value)
-      addonTable.Config.Set(addonTable.Config.Options.STACK_REGION_SCALE_X, value / 100)
-    end)
-    stackRegionSliderX:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
-    stackRegionSliderX:SetScript("OnEnter", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "stack", true)
-    end)
-    stackRegionSliderX:SetScript("OnLeave", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "stack", false)
-    end)
-    table.insert(allFrames, stackRegionSliderX)
-
-    stackRegionSliderY = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.STACKING_REGION_HEIGHT, 1, 500, function(value) return ("%d%%"):format(value) end, function(value)
-      addonTable.Config.Set(addonTable.Config.Options.STACK_REGION_SCALE_Y, value / 100)
-    end)
-    stackRegionSliderY:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
-    stackRegionSliderY:SetScript("OnEnter", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "stack", true)
-    end)
-    stackRegionSliderY:SetScript("OnLeave", function()
-      addonTable.CallbackRegistry:TriggerEvent("ShowRegion", "stack", false)
-    end)
-    table.insert(allFrames, stackRegionSliderY)
-  else
-    local wrapper = CreateFrame("Frame", nil, container)
-    wrapper:SetPoint("LEFT")
-    wrapper:SetPoint("RIGHT")
-    wrapper:SetHeight(40)
-    local label = wrapper:CreateFontString(nil, nil, "GameFontHighlight")
-    label:SetText(addonTable.Locales.STACK_CLICK_SETTINGS_HAVE_MOVED_X)
-    label:SetPoint("CENTER", 0, 0)
-    label:SetPoint("LEFT", 30, 0)
-    label:SetPoint("RIGHT", -30, 0)
-    wrapper:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
-    table.insert(allFrames, wrapper)
-  end
-
-  local verticalOffset
-  if addonTable.Constants.IsHitTestPointsAvailable then
-    verticalOffset = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.VERTICAL_OFFSET, 0, 500, function(value) return ("%d%%"):format(value) end, function(value)
-      addonTable.Config.Set(addonTable.Config.Options.VERTICAL_OFFSET, value / 100)
-    end)
-    verticalOffset:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
-    table.insert(allFrames, verticalOffset)
-  end
+  local verticalOffset = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.VERTICAL_OFFSET, 0, 500, function(value) return ("%d%%"):format(value) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.VERTICAL_OFFSET, value / 100)
+  end)
+  verticalOffset:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  table.insert(allFrames, verticalOffset)
 
   container:SetScript("OnShow", function()
     targetScaleSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.TARGET_SCALE) * 100)
-    if simplifiedScaleSlider then
-      simplifiedScaleSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.SIMPLIFIED_SCALE) * 100)
-    end
+    simplifiedScaleSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.SIMPLIFIED_SCALE) * 100)
 
     castScaleSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.CAST_SCALE) * 100)
-    if addonTable.Constants.IsHitTestPointsAvailable then
-      verticalOffset:SetValue(addonTable.Config.Get(addonTable.Config.Options.VERTICAL_OFFSET) * 100)
-    else
-      clickRegionSliderX:SetValue(addonTable.Config.Get(addonTable.Config.Options.CLICK_REGION_SCALE_X) * 100)
-      clickRegionSliderY:SetValue(addonTable.Config.Get(addonTable.Config.Options.CLICK_REGION_SCALE_Y) * 100)
-      stackRegionSliderX:SetValue(addonTable.Config.Get(addonTable.Config.Options.STACK_REGION_SCALE_X) * 100)
-      stackRegionSliderY:SetValue(addonTable.Config.Get(addonTable.Config.Options.STACK_REGION_SCALE_Y) * 100)
-    end
+    verticalOffset:SetValue(addonTable.Config.Get(addonTable.Config.Options.VERTICAL_OFFSET) * 100)
 
     for _, f in ipairs(allFrames) do
       if f.SetValue and f.option then
         f:SetValue(addonTable.Config.Get(f.option))
       end
     end
+  end)
+
+  return container
+end
+
+local function GetMovementOptions(parent)
+  local container = CreateFrame("Frame", nil, parent)
+
+  local allFrames = {}
+
+  local topInsetSlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.SCREEN_TOP_INSET, 0, 40, function(value) return ("%d%%"):format(value) end, function(value)
+    addonTable.Config.Get(addonTable.Config.Options.STACK_POSITION_INSETS).top = value / 100
+    addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", {[addonTable.Constants.RefreshReason.Movement] = true})
+  end)
+  topInsetSlider:SetPoint("TOP")
+  table.insert(allFrames, topInsetSlider)
+
+  local bottomInsetSlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.SCREEN_BOTTOM_INSET, 0, 40, function(value) return ("%d%%"):format(value) end, function(value)
+    addonTable.Config.Get(addonTable.Config.Options.STACK_POSITION_INSETS).bottom = value / 100
+    addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", {[addonTable.Constants.RefreshReason.Movement] = true})
+  end)
+  bottomInsetSlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
+  table.insert(allFrames, bottomInsetSlider)
+
+  local motionSpeedSlider = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.MOTION_SPEED, 0, 10, function(value) return ("%d%%"):format(value * 10) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.STACK_MOTION_SPEED, value / 10)
+    addonTable.CallbackRegistry:TriggerEvent("RefreshStateChange", {[addonTable.Constants.RefreshReason.Movement] = true})
+  end)
+  motionSpeedSlider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  table.insert(allFrames, motionSpeedSlider)
+
+  container:SetScript("OnShow", function()
+    topInsetSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.STACK_POSITION_INSETS).top * 100)
+    bottomInsetSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.STACK_POSITION_INSETS).bottom * 100)
+    motionSpeedSlider:SetValue(addonTable.Config.Get(addonTable.Config.Options.STACK_MOTION_SPEED) * 10)
   end)
 
   return container
@@ -445,6 +408,11 @@ function addonTable.CustomiseDialog.GetBehaviour(parent)
     {name = addonTable.Locales.FADING, container = fadingContainer},
     {name = addonTable.Locales.SIZING, container = sizingContainer},
   }
+
+  if addonTable.Constants.IsCVarsBack then
+    local movementContainer = GetMovementOptions(container)
+    table.insert(tabContainers, {name = addonTable.Locales.MOVEMENT, container = movementContainer})
+  end
 
   local Tabs = {}
   local lastTab

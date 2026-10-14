@@ -714,6 +714,79 @@ local function UpgradeDesignv20(design)
   end
 end
 
+local function UpgradeDesignv21(design)
+  for _, text in ipairs(design.texts) do
+    if text.kind == "health" then
+      text.hideWhen01 = false
+    end
+  end
+
+  local function UpdateAutoColorsv21(autoColors)
+    for _, ac in ipairs(autoColors) do
+      if ac.kind == "importantCast" then
+        ac.enabled = {
+          cast = true,
+          channel = true,
+        }
+      elseif ac.kind == "threat" then
+        ac.enabled = {
+          safe = ac.useSafeColor,
+          offtank = ac.useOffTankColor,
+          transition = true,
+          warning = true,
+        }
+        ac.useSafeColor = nil
+        ac.useOffTankColor = nil
+      end
+    end
+  end
+
+  for _, b in ipairs(design.bars) do
+    if b.autoColors then
+      UpdateAutoColorsv21(b.autoColors)
+    end
+  end
+
+  for _, h in ipairs(design.highlights) do
+    if h.autoColors then
+      UpdateAutoColorsv21(h.autoColors)
+    end
+  end
+
+  for _, t in ipairs(design.texts) do
+    if t.autoColors then
+      UpdateAutoColorsv21(t.autoColors)
+    end
+  end
+end
+
+local function UpgradeDesignv22(design)
+  for _, text in ipairs(design.texts) do
+    if text.kind == "threat" then
+      text.value = "raw"
+    end
+  end
+end
+
+local function UpgradeDesignv23(design)
+  for _, auras in ipairs(design.auras) do
+    if auras.kind == "buffs" then
+      auras.filters.showLongDurations = true
+      auras.filters.magic = false
+    end
+  end
+end
+
+local function UpgradeDesignv24(design)
+  for _, auras in ipairs(design.auras) do
+    if auras.kind == "debuffs" then
+      auras.filters.includeExtras = true
+    elseif auras.kind == "crowdControl" then
+      auras.filters.includeExtras = false
+    end
+  end
+end
+
 local designUpgrades = {
   UpgradeDesignv1,
   UpgradeDesignv2,
@@ -735,6 +808,11 @@ local designUpgrades = {
   UpgradeDesignv18,
   UpgradeDesignv19,
   UpgradeDesignv20,
+  UpgradeDesignv21,
+  UpgradeDesignv22,
+  UpgradeDesignv23,
+  UpgradeDesignv23,
+  UpgradeDesignv24,
 }
 
 function addonTable.Core.UpgradeDesign(design)
@@ -899,6 +977,47 @@ local function MigrateSettingsv7()
   filters.crowdControl = globalCrowdControl
 end
 
+local function MigrateSettingsv8()
+  local filters = addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS)
+
+  for classID, groups in pairs(filters) do
+    if classID == "crowdControl" then
+      for _, g in pairs(groups) do
+        for spellID, _ in pairs(g) do
+          if type(spellID) == "string" then
+            g[spellID] = nil
+          end
+        end
+      end
+    else
+      for _, subgroup in pairs(groups) do
+        for _, g in pairs(subgroup) do
+          for spellID, _ in pairs(g) do
+            if type(spellID) == "string" then
+              g[spellID] = nil
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+local function MigrateSettingsv9()
+  local filters = addonTable.Config.Get(addonTable.Config.Options.AURA_FILTERS)
+  if not filters.crowdControl then
+    filters.crowdControl = {include = {}, exclude = {}}
+  end
+end
+
+local function MigrateSettingsv10()
+  local filters = addonTable.Config.Get(addonTable.Config.Options.AURA_HIGHLIGHTS)
+  for _, details in pairs(filters) do
+    details.debuffs.mode = "health"
+    details.buffs.mode = "health"
+  end
+end
+
 local settingUpgrades = {
   MigrateSettingsv1,
   MigrateSettingsv2,
@@ -908,6 +1027,9 @@ local settingUpgrades = {
   MigrateSettingsv6,
   MigrateSettingsv6,
   MigrateSettingsv7,
+  MigrateSettingsv8,
+  MigrateSettingsv9,
+  MigrateSettingsv10,
 }
 function addonTable.Core.MigrateSettings()
   if #settingUpgrades + 1 ~= addonTable.Config.Get(addonTable.Config.Options.MIGRATION) then

@@ -373,6 +373,57 @@ local function SetupFont(parent)
   return container
 end
 
+local function SetupAuras(parent)
+  local container = CreateFrame("Frame", nil, parent)
+
+  local tabContainers = {
+    {name = addonTable.Locales.FILTERS, container = addonTable.CustomiseDialog.GetAuraFilters(container)},
+  }
+
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
+    table.insert(
+      tabContainers,
+      {name = addonTable.Locales.COLORS, container = addonTable.CustomiseDialog.GetAuraHighlights(container)}
+    )
+  end
+
+  local Tabs = {}
+  local lastTab
+  for _, setup in ipairs(tabContainers) do
+    local tabContainer = setup.container
+    tabContainer:SetPoint("TOPLEFT", addonTable.Constants.ButtonFrameOffset, -45)
+    tabContainer:SetPoint("BOTTOMRIGHT")
+
+    local tabButton = addonTable.CustomiseDialog.Components.GetTab(container, setup.name)
+    if lastTab then
+      tabButton:SetPoint("LEFT", lastTab, "RIGHT", 5, 0)
+    else
+      tabButton:SetPoint("TOPLEFT", 0 + addonTable.Constants.ButtonFrameOffset + 5, 0)
+    end
+    lastTab = tabButton
+    tabContainer.button = tabButton
+    tabButton:SetScript("OnClick", function()
+      for _, c in ipairs(tabContainers) do
+        PanelTemplates_DeselectTab(c.container.button)
+        c.container:Hide()
+      end
+      PanelTemplates_SelectTab(tabButton)
+      tabContainer:Show()
+    end)
+    tabContainer:Hide()
+
+    table.insert(Tabs, tabButton)
+  end
+  container.Tabs = Tabs
+  PanelTemplates_SetNumTabs(container, #container.Tabs)
+
+  container:SetScript("OnShow", function()
+    Tabs[1]:Click()
+  end)
+
+  return container
+end
+
 function addonTable.CustomiseDialog.GetStyleDropdown(parent)
   local styleDropdown = addonTable.CustomiseDialog.Components.GetBasicDropdown(parent, addonTable.Locales.STYLE)
   styleDropdown.option = addonTable.Config.Options.STYLE
@@ -508,7 +559,7 @@ local TabSetups = {
   {callback = addonTable.CustomiseDialog.GetMainDesigner, name = addonTable.Locales.DESIGNER, include = true},
   {callback = addonTable.CustomiseDialog.GetStyleSelection, name = addonTable.Locales.STYLE_SELECT, restricted = true, include = true},
   {callback = addonTable.CustomiseDialog.GetBehaviour, name = addonTable.Locales.BEHAVIOUR, include = true},
-  {callback = addonTable.CustomiseDialog.GetAuraFilters, name = addonTable.Locales.AURAS, include = true},
+  {callback = SetupAuras, name = addonTable.Locales.AURAS, include = true, restricted = true},
   {callback = SetupFont, name = addonTable.Locales.FONT, include = true},
 }
 
@@ -616,15 +667,14 @@ function addonTable.CustomiseDialog.Toggle()
           if container:IsShown() then
             Tabs[1]:Click()
           end
+        end
+      end
+      for index, tab in ipairs(Tabs) do
+        local details = TabSetups[index]
+        local container = containers[index]
+        if details.restricted then
           tab:Disable()
           tab:SetAlpha(0.5)
-        else
-          if not container:IsShown() then
-            tab:Enable()
-          else
-            PanelTemplates_SetTab(frame, index)
-          end
-          tab:SetAlpha(1)
         end
       end
     else

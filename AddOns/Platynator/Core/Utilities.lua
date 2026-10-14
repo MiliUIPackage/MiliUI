@@ -51,8 +51,12 @@ do
 end
 
 if C_Secrets and C_Secrets.HasSecretRestrictions() then
+  local playerLogin = false
+  EventUtil.ContinueOnPlayerLogin(function()
+    playerLogin = true
+  end)
   function addonTable.Utilities.IsChangesRestricted()
-    return InCombatLockdown() or C_Secrets.ShouldAurasBeSecret()
+    return playerLogin and (InCombatLockdown() or C_Secrets.ShouldAurasBeSecret())
   end
 else
   function addonTable.Utilities.IsChangesRestricted()

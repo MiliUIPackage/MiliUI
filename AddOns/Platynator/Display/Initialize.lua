@@ -94,7 +94,6 @@ function addonTable.Display.ManagerMixin:OnLoad()
   end
 
   self:RegisterEvent("VARIABLES_LOADED")
-  self:MiliSetupAuraPrewarm() -- MiliUI: lazy aura groups
 
   addonTable.CallbackRegistry:RegisterCallback("RefreshStateChange", function(_, state)
     if state[addonTable.Constants.RefreshReason.Design] then
@@ -140,6 +139,9 @@ function addonTable.Display.ManagerMixin:OnLoad()
         self:Uninstall(unit)
         self:Install(unit)
       end
+    end
+    if state[addonTable.Constants.RefreshReason.Movement] then
+      self:UpdateMovement()
     end
     if state[addonTable.Constants.RefreshReason.ShowBehaviour] then
       self:UpdateFriendlyFont()
@@ -228,67 +230,6 @@ local function StyleSettingsKey(settings)
   return settings.style .. "$$" .. settings.scale .. "$$" .. addonTable.Core.GetDesignScale(settings.simplified or false)
 end
 
--- MiliUI: lazy aura groups -- instance prewarm (local change, re-apply after upstream
--- updates; see .claude/notes/project-local-addon-forks.md).
--- Outside instances only the first 16 displays of each style carry aura groups (AurasNext.lua
--- PREWARM_SLOTS); the rest declare theirs on their first SetUnit, synchronously, ~7 groups of
--- 10 pre-built buttons each. A big first pull showing a dozen new plates would pay that in one
--- frame, so inside a dungeon (25) or raid (40) the remaining displays are declared ahead of
--- time, one display per frame, out of combat. Frames can never be freed, so the higher count
--- stays for the rest of the session.
-local MILI_PREWARM_TARGET = {party = 25, scenario = 25, raid = 40}
-
-function addonTable.Display.ManagerMixin:MiliSetupAuraPrewarm()
-  local target, ticker, startedAt = 0, nil, 0
-
-  local function Step()
-    -- in combat the SetUnit path still covers any plate that shows up; resume at regen.
-    -- While the pools restyle their pending state is not final yet.
-    if InCombatLockdown() or self.styleTicker then
-      return
-    end
-    local stale = false
-    for _, displays in ipairs(self.preallocatedDisplaysByIndex) do
-      for slot = 1, math.min(target, #displays) do
-        local display = displays[slot]
-        local auras = display.AurasManager
-        if display.styleIndex ~= self.styleIndex then
-          stale = true
-        elseif auras and auras.MiliEnsureGroups and auras:MiliEnsureGroups() then
-          return
-        end
-      end
-    end
-    -- a display not restyled yet (restyle deferred by combat/secrets) may still be picked
-    -- up shortly; give it a bounded wait instead of ticking forever
-    if stale and GetTime() - startedAt < 30 then
-      return
-    end
-    ticker:Cancel()
-    ticker = nil
-  end
-
-  local function Check()
-    local inInstance, kind = IsInInstance()
-    local want = inInstance and MILI_PREWARM_TARGET[kind] or 0
-    if want > target then
-      target = want
-    end
-    if want > 0 and not ticker then
-      startedAt = GetTime()
-      ticker = C_Timer.NewTicker(0, Step)
-    end
-  end
-
-  local watcher = CreateFrame("Frame")
-  watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
-  watcher:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-  watcher:SetScript("OnEvent", function()
-    -- after the loading screen's restyle has had a chance to start
-    C_Timer.After(2, Check)
-  end)
-end
-
 function addonTable.Display.ManagerMixin:GeneratePoolForIndex(index)
   self.preallocatedDisplaysByIndex[index] = table.create(40)
   for i = 1, 40 do
@@ -304,7 +245,11 @@ function addonTable.Display.ManagerMixin:GeneratePoolForIndex(index)
 end
 
 function addonTable.Display.ManagerMixin:GeneratePools()
-  self:RestylePoolsStaggered(1)
+  if addonTable.Constants.IsForever or addonTable.Constants.IsMidnightNext then
+    self:RestylePools()
+  else
+    self:RestylePoolsStaggered(1)
+  end
 end
 
 function addonTable.Display.ManagerMixin:AllocateEnoughPools()
@@ -401,25 +346,21 @@ function addonTable.Display.ManagerMixin:UpdateStacking()
   if self:CombatChangesCheck() then
     return
   end
-  if addonTable.Constants.IsHitTestPointsAvailable then
-    local state = addonTable.Config.Get(addonTable.Config.Options.STACKING_NAMEPLATES)
-    C_CVar.SetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Enemy, state.enemy)
-    C_CVar.SetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Friendly, state.friend)
-  else
-    local enemyDesign = addonTable.Core.GetDesignByName(addonTable.Display.Context:GetDefaultEnemyNPCDesign())
-    local click, stack = enemyDesign.regions.click, enemyDesign.regions.stack
-    C_CVar.SetCVar("nameplateOverlapH", stack.width / click.width * addonTable.Config.Get(addonTable.Config.Options.STACK_REGION_SCALE_X) / addonTable.Config.Get(addonTable.Config.Options.CLICK_REGION_SCALE_X))
-    C_CVar.SetCVar("nameplateOverlapV", stack.height / click.height * addonTable.Config.Get(addonTable.Config.Options.STACK_REGION_SCALE_Y) / addonTable.Config.Get(addonTable.Config.Options.CLICK_REGION_SCALE_Y))
-    if addonTable.Config.Get(addonTable.Config.Options.CLOSER_TO_SCREEN_EDGES) then
-      C_CVar.SetCVar("nameplateOtherTopInset", "0.05")
-      C_CVar.SetCVar("nameplateLargeTopInset", "0.07")
-    elseif C_CVar.GetCVar("nameplateOtherTopInset") == "0.05" and C_CVar.GetCVar("nameplateLargeTopInset") == "0.07" then
-      C_CVar.SetCVar("nameplateOtherTopInset", "0.08")
-      C_CVar.SetCVar("nameplateLargeTopInset", "0.1")
-    end
+  local state = addonTable.Config.Get(addonTable.Config.Options.STACKING_NAMEPLATES)
+  C_CVar.SetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Enemy, state.enemy)
+  C_CVar.SetCVarBitfield("nameplateStackingTypes", Enum.NamePlateStackType.Friendly, state.friend)
+end
 
-    local state = addonTable.Config.Get(addonTable.Config.Options.STACKING_NAMEPLATES)
-    C_CVar.SetCVar("nameplateMotion", (state.enemy or state.friend) and "1" or "0")
+function addonTable.Display.ManagerMixin:UpdateMovement()
+  if self:CombatChangesCheck() then
+    return
+  end
+  if addonTable.Constants.IsCVarsBack then
+    local insets = addonTable.Config.Get(addonTable.Config.Options.STACK_POSITION_INSETS)
+    C_CVar.SetCVar("nameplateTopInset", insets.top)
+    C_CVar.SetCVar("nameplateBottomInset", insets.bottom)
+    local speed = addonTable.Config.Get(addonTable.Config.Options.STACK_MOTION_SPEED)
+    C_CVar.SetCVar("nameplateMotionSpeed", speed * 0.1) -- Scaled down due to larger values giving wonky results
   end
 end
 
@@ -582,7 +523,7 @@ end
 
 function addonTable.Display.ManagerMixin:UpdateClickRegion(unit)
   local nameplate = C_NamePlate.GetNamePlateForUnit(unit, issecure())
-  if nameplate and addonTable.Constants.IsHitTestPointsAvailable and nameplate:CanChangeHitTestPoints() then
+  if nameplate and nameplate:CanChangeHitTestPoints() then
     local clickRegion = self.nameplateClickRegions[nameplate:GetName()]
     if not clickRegion.parented then
       clickRegion.parented = true
@@ -631,7 +572,7 @@ function addonTable.Display.ManagerMixin:Install(unit)
   if unit == "preview" then
     return
   end
-  local nameplate = C_NamePlate.GetNamePlateForUnit(unit, issecure())
+  local nameplate = C_NamePlate.GetNamePlateForUnit(unit)
   -- NOTE: the nameplate _name_ does not correspond to the unit
   if nameplate and unit and (addonTable.Constants.IsRetail or not UnitIsUnit("player", unit)) then
     addonTable.Cache:AddUnit(unit)
@@ -646,9 +587,7 @@ function addonTable.Display.ManagerMixin:Install(unit)
     local design = addonTable.Core.GetDesignByName(designName)
     local nameplateIndex = tonumber(nameplate:GetName():match("%d+"))
     local newDisplay = self.preallocatedDisplaysByIndex[self.seenStyleIndexes[StyleSettingsKey(settings)]][nameplateIndex]
-    if C_NamePlateManager and C_NamePlateManager.SetNamePlateSimplified then
-      C_NamePlateManager.SetNamePlateSimplified(unit, shouldSimplify)
-    end
+    C_NamePlateManager.SetNamePlateSimplified(unit, shouldSimplify)
     self.nameplateDisplays[unit] = newDisplay
     if nameplate.SetStackingBoundsFrame then
       if not self.nameplateStackRegions[nameplate:GetName()].parented then
@@ -677,10 +616,10 @@ function addonTable.Display.ManagerMixin:Install(unit)
   end
 end
 
-function addonTable.Display.ManagerMixin:Uninstall(unit)
+function addonTable.Display.ManagerMixin:Uninstall(unit, removed)
   local display = self.nameplateDisplays[unit]
   if display then
-    addonTable.Cache:RemoveUnit(unit)
+    addonTable.Cache:RemoveUnit(unit, removed)
     addonTable.Display.Context:RevokedUnitListeners(unit)
     display:SetUnit(nil)
     display:ClearAllPoints()
@@ -720,9 +659,6 @@ function addonTable.Display.ManagerMixin:UpdateNamePlateSize()
 
   local globalScale = addonTable.Config.Get(addonTable.Config.Options.GLOBAL_SCALE)
   local verticalOffset = addonTable.Config.Get(addonTable.Config.Options.VERTICAL_OFFSET) * addonTable.Assets.BarBordersSize.height
-  if not addonTable.Constants.IsHitTestPointsAvailable then
-    verticalOffset = 0
-  end
 
   local width = math.max(math.abs(right), math.abs(left)) * 2 * globalScale
   local height = (top - bottom) * globalScale
@@ -958,7 +894,7 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
     self:Install(unit)
   elseif eventName == "NAME_PLATE_UNIT_REMOVED" then
     local unit = ...
-    self:Uninstall(unit)
+    self:Uninstall(unit, true)
   elseif eventName == "NAME_PLATE_CREATED" then
     local nameplate = ...
     local index = tonumber(nameplate:GetName():match("%d+"))
@@ -1041,6 +977,7 @@ function addonTable.Display.ManagerMixin:OnEvent(eventName, ...)
     self:UpdateInstanceShowState()
     self:UpdateFriendlyFont()
     self:UpdateStacking()
+    self:UpdateMovement()
     self:UpdateShowState()
     self:UpdateTargetScale()
     self:UpdateBaseNamePlateInfo()
