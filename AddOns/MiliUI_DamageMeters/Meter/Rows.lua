@@ -35,11 +35,14 @@ local function PaintBar(W, bar, src, ctx, rank)
     -- ⚠ 備忘必須連 specIconID 一起記，不能只記 classFilename——
     --   長條是照排名回收的，同職業不同專精的兩個人換位置時 classFilename 沒變，
     --   那一列就會留著前一個人的專精圖。
+    -- ⚠ 還要連 D.specGen：別人的 specIconID 常常是 nil，專精靠觀察快取補，
+    --   問到的那一刻職業與 specIconID 都沒變，不比世代就永遠停在職業圖示。
     local classFile = src.classFilename
     local specIcon  = src.specIconID
-    if classFile ~= bar._class or specIcon ~= bar._specIcon then
+    if classFile ~= bar._class or specIcon ~= bar._specIcon or bar._specGen ~= D.specGen then
         bar._class    = classFile
         bar._specIcon = specIcon
+        bar._specGen  = D.specGen
         bar._colorClass = nil
         local offset = D.ResolveIcon(src, bar.icon, ctx.barH, ctx.iconStyle, ctx.iconZoom)
         Win.AnchorBarFill(bar, offset)

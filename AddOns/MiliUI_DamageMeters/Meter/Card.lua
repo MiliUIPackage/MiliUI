@@ -104,7 +104,7 @@ function Card.Fill(card, src)
     local classFile = D.SafeClass(src.classFilename)
     if not classFile then card.sub:SetText(""); return end
     local className = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[classFile]) or classFile
-    local info = D.SpecInfo(src.specIconID)
+    local info = D.SourceSpec(src)
     local text = info and info.name and (info.name .. " " .. className) or className
     local lvl = IL.Get(src.guid, src.isOwn)
     if lvl then

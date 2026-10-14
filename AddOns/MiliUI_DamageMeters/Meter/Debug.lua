@@ -162,11 +162,12 @@ function ns.DebugText()
     local function BarLine(prefix, bar)
         local src = bar and bar._src
         if not src or not bar.row:IsShown() then return end
-        local info = D.SpecInfo(src.specIconID)
+        local info = D.SourceSpec(src)
+        local cached = ns.ItemLevel.Spec(src.sourceGUID)
         local tex = bar.icon:IsShown() and bar.icon:GetTexture()
-        add(("%s %s class=%s specIcon=%s own=%s -> mili=%s | icon shown=%s tex=%s bg=%s")
+        add(("%s %s class=%s specIcon=%s inspectSpec=%s own=%s -> mili=%s | icon shown=%s tex=%s bg=%s")
             :format(prefix, Str(src.name), Str(src.classFilename), Str(src.specIconID),
-                    tostring(D.IsOwnRow(src)),
+                    Str(cached), tostring(D.IsOwnRow(src)),
                     info and (info.tex and info.tex:match("([^\\]+)%.png$") or "no tex") or "NO",
                     tostring(bar.icon:IsShown()), Str(tex),
                     tostring(bar.icon._miliBg and bar.icon._miliBg:IsShown() or false)))

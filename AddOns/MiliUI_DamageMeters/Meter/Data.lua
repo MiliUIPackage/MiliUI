@@ -315,9 +315,9 @@ local SPEC_KEYS = {
 }
 local SPEC_TEX_DIR = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\Spec\\"
 
-local specByIcon
+local specByIcon, specByID
 local function BuildSpecMap()
-    specByIcon = {}
+    specByIcon, specByID = {}, {}
     if not (GetNumClasses and GetClassInfo and GetNumSpecializationsForClassID
             and GetSpecializationInfoForClassID) then return end
     for classID = 1, GetNumClasses() do
@@ -326,10 +326,12 @@ local function BuildSpecMap()
         for i = 1, GetNumSpecializationsForClassID(classID) or 0 do
             local specID, name, _, icon = GetSpecializationInfoForClassID(classID, i)
             if icon then
-                specByIcon[icon] = {
-                    specID = specID, name = name, classFile = classFile,
+                local info = {
+                    specID = specID, name = name, classFile = classFile, icon = icon,
                     tex = keys and keys[i] and (SPEC_TEX_DIR .. classFile:lower() .. "-" .. keys[i] .. ".png"),
                 }
+                specByIcon[icon] = info
+                if specID then specByID[specID] = info end
             end
         end
     end
@@ -343,6 +345,27 @@ function D.SpecInfo(specIconID)
     if not specByIcon then BuildSpecMap() end
     return specByIcon[specIconID]
 end
+
+function D.SpecInfoByID(specID)
+    if specID == nil or issecret(specID) or type(specID) ~= "number" then return nil end
+    if not specByIcon then BuildSpecMap() end
+    return specByID[specID]
+end
+
+-- 這個 source 是哪個專精。
+-- ⚠ C_DamageMeter **常常不給別人的 specIconID**（實測 2026-10-14：同隊、距離遠的兩位隊友
+--   都是 nil，只有自己有）。退路是觀察快取（ItemLevel.lua 觀察時順便記的專精，
+--   脫戰自動排隊問隊友）。戰鬥中 GUID 是秘密值查不了快取，那時只剩 specIconID。
+function D.SourceSpec(src)
+    local info = D.SpecInfo(src.specIconID)
+    if info then return info end
+    local IL = ns.ItemLevel
+    return IL and D.SpecInfoByID(IL.Spec(src.sourceGUID or src.guid))
+end
+
+-- 觀察問到新專精時 +1。長條的圖示備忘連它一起比，不然 specIconID 一直是 nil、
+-- 職業也沒變，那一列永遠不會重畫。
+D.specGen = 0
 
 -- 除錯報告用：整張對照表一行一個專精，照職業與暴雪順序排（驗 SPEC_KEYS 有沒有錯位）
 function D.SpecMapLines()
@@ -411,16 +434,22 @@ function D.ResolveIcon(src, tex, size, style, zoom)
     -- 拿不到職業（秘密值、NPC、寵物）就不畫圖示：畫一個猜出來的職業圖比空白更糟
     if not classFile then tex:Hide(); IconBg(tex, false); return 0 end
 
-    local info = (style == "mili") and D.SpecInfo(src.specIconID)
-    if info and info.tex then
+    local info = (style == "mili" or style == "spec") and D.SourceSpec(src)
+    if style == "mili" and info and info.tex then
         -- 自己的圖本身就留了邊，不做 zoom 裁切
         tex:SetTexture(info.tex)
         tex:SetTexCoord(0, 1, 0, 1)
         IconBg(tex, true)
     elseif style == "spec" or style == "mili" then
         IconBg(tex, false)
-        local specIcon = src.specIconID
-        if specIcon and not issecret(specIcon) and type(specIcon) == "number" and specIcon ~= 0 then
+        -- specIconID 沒給時，觀察快取問到的專精也能換回暴雪的專精圖示
+        local specIcon = info and info.icon
+        -- 對照表沒收到的圖示 ID（理論上不會有）照舊直接畫，不要退成職業圖
+        if not specIcon then
+            local raw = src.specIconID
+            if raw and not issecret(raw) and type(raw) == "number" and raw ~= 0 then specIcon = raw end
+        end
+        if specIcon then
             tex:SetTexture(specIcon)
             tex:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
         else
