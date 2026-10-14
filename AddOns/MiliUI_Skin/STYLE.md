@@ -760,6 +760,41 @@ implicitly protected as well… This applies recursively."
 是三件不同的事。⚠ 「隱式（照樣上皮）」那一張**不計入**配方行尾括號裡的問題數 ——
 它是參考資料不是問題。
 
+### Extras（自建功能，2026-10-15）
+
+`Extras/` 放的**不是皮**，是照 EllesmereUI 做的幾個「功能」：自己的框、自己讀 API、
+自己畫列，疊在暴雪的面板上；暴雪原本那一份用 `Engine.Neutralize`（alpha 0）藏起來照跑。
+目前兩支：`Extras/CharacterStats.lua`（自建屬性清單）、`Extras/CharacterTitles.lua`
+（稱號頁搜尋 ＋ 自建清單）；共用件（啟動、細捲軸、線條箭頭、秘密值收手）在
+`Extras/Common.lua`。開關在 `db.extras`（設定視窗的「角色面板」分頁），**建不建要
+/reload**（沒有拆掉的路，理由同「套用時機」最後一條）。
+
+**對暴雪物件的規矩沒有放寬：**
+
+- 零欄位寫入；
+- 只准 `SetAlpha`（一律走 `Engine.Neutralize`）、`HookScript`、`hooksecurefunc`；
+- 自己的框可以掛在暴雪框底下（CreateFrame 的 parent）、錨到暴雪框上，層級讀
+  `Engine.TargetLevel`；
+- 不 Hide／Show／SetPoint 任何暴雪框，不呼叫 `PanelTemplates_*`／`ShowUIPanel`。
+- 每支檔頭一張「對暴雪物件的接觸面」表（格式同 `Skins/Character.lua`）。
+
+**lint 對 Extras 用另一套較鬆的規則**（`check_skin.py` 的 `EXTRAS_RULE_PATTERNS`）：
+只擋 `PanelTemplates_*(`、`ShowUIPanel(`／`HideUIPanel(`、`StripTextures`、
+`BackdropTemplate`、`securecall(`、`seterrorhandler(`、`AddAcquiredFrameCallback`
+這幾條「不管對誰都不該出現」的呼叫。SetPoint／SetSize／Show／Hide／SetScript 對
+**自己的框**是合法的，lint 又分不出變數是不是暴雪的框 ⇒ 對暴雪物件的接觸靠檔頭清單
+＋ review。（共用層 `W.CreateEditBox` 內部用了 BackdropTemplate，但那是建在**我們自己**
+的框上，而且字串不在 Extras 的檔案裡，lint 不會誤報。）
+
+**另外三條：**
+
+- 宿主框 `SetIgnoreParentAlpha(true)`（被中和的 pane 是 alpha 0）＋ `EnableMouse(true)`
+  ＋ `EnableMouseWheel(true)`：暴雪那些 alpha 0 的列**還在收滑鼠與滾輪**，要蓋住。
+- 讀值一律過 `X.Num`／`X.Try`：秘密值整格收手顯示「—」、不給 tooltip；哨兵以外的錯誤
+  才交給 `ns.ReportError`（每個 label 只報一次）。
+- unit 事件一律 `RegisterUnitEvent(…, "player")`：12.1 的 unit token 參數本身可能是
+  秘密字串，處理器裡不比對 arg1。只在自己的框顯示時註冊、同一幀合併成一次。
+
 ### 套用時機
 
 - `PLAYER_LOGIN` 之後才套。
@@ -1287,6 +1322,8 @@ footer 沒有 —— 底部按鈕列的高度要嘛量（契約禁止），要�
 | `PlayerTitleButtonTemplate`（稱號頁，池化）<br>`PaperDollFrame.xml:137` | `BgTop`／`BgMiddle`／`BgBottom`、`Stripe`（reapply） | `text` 走 `GameFontHighlightSmallLeft` | `Skin.Row`（`fill` 淡底、Highlight 白 8%）；`SelectedBar`／`Check` 去飽和染職業色，顯隱仍是暴雪的 | 第十輪未實機（2026-10-15） |
 | `GearSetButtonTemplate`（裝備頁，池化）<br>`PaperDollFrame.xml:203` | 同上 | 不碰（暴雪每次 Init 設金／紅／綠） | 自己的 `fill` 淡底；`HighlightBar` 去飽和壓白、alpha 降；`SelectedBar`／`Check` 同稱號列；`icon`（NormalTexture）裁邊＋1px 方框（reapply 重裁） | 第十輪未實機（2026-10-15） |
 | `CharacterStatFrameTemplate`（`statsFramePool` 池化）<br>`CharacterFrame.xml:101` | `Background`（atlas `UI-Character-Info-Line-Bounce`，隔行提亮條） | `Label` → `textDim`、`Value` → 分類色 | 14 支全域 `PaperDollFrame_Set*` 的後置勾（分類由 setter 決定）；標籤與數值之間一條 `statLeader` 引導線 | 第十輪未實機（2026-10-15） |
+| **`CharacterStatsPane`（Extras 版）**<br>`CharacterFrame.xml:199`、`PaperDollFrame.lua:138-260,1900` | 整個 pane `Engine.Neutralize`（alpha 0，暴雪的 UpdateStats 照跑） | — | **不是換皮**：`Extras/CharacterStats.lua` 自建清單（pane 的子框、SetAllPoints、層級 +5）—— 物品等級／屬性／次要／第三／攻擊／防禦六區，分類色、可收合、可排序、`%.2f`；計算與顯示條件照 `PaperDollFrame_Set*` 與 `PAPERDOLL_STATCATEGORIES`，tooltip 用暴雪的 `CR_*_TOOLTIP`／`STAT_*_TOOLTIP`。開著時上面那兩列（分類標題牌、屬性列）的上色勾不裝 | 未實機（2026-10-15） |
+| **`PaperDollFrame.TitleManagerPane`（Extras 版）**<br>`PaperDollFrame.xml:540`、`PaperDollFrame.lua:2514-2623` | `ScrollBox`／`ScrollBar` `Engine.Neutralize`（暴雪清單照跑） | 列：滑過白 8%、選中＝`AccentFill` 底 ＋ 左緣職業色直條（自己畫） | **不是換皮**：`Extras/CharacterTitles.lua` 自建清單 ＋ 頂端搜尋框（共用層 `W.CreateEditBox`，`fillInset` 底、提示字、右端 ×）；宿主框錨 `InsetRight`（要蓋到 pane 右緣外的暴雪捲軸）、層級 +10。點列 `SetCurrentTitle(id)`，「無稱號」是 -1 | 未實機（2026-10-15） |
 | `ListHeaderThreeSliceTemplate`<br>`Blizzard_SharedXML/ListTemplates.xml:53`<br>（＝聲望頁的 `ReputationHeaderTemplate`，`ReputationFrame.xml:3`） | `Left` / `Middle` / `HighlightRight`。⚠ **`Right` 不中和** —— ＋／− 記號烤在那張 atlas 裡，只染 `textDim`。**第七輪重新評估過「中和端帽、改畫自己的 ＋／−」，結論是維持現狀**：通用的 `ListHeaderThreeSliceMixin:UpdateCollapsedState(collapsed)` 確實把狀態當**參數**傳進來（讀取例外表上的那一條），但這支原語今天唯一的使用者是聲望頁，而 `ReputationHeaderMixin`（`ReputationFrame.lua`，`= {}` 不是 `CreateFromMixins`）走的是自己的 `Initialize`，狀態來自 `self:IsCollapsed()` —— 那是**呼叫暴雪框的方法**，不在讀取例外表上。兩條路各自有無狀態來源 ⇒ 做下去會變成「有些分類列有 ＋／− 有些沒有」，比現在的暗金端帽更糟 | **引擎**：`HighlightLeft`/`HighlightMiddle` → `SetAlpha(1)` ＋ 白 8% | ListHeader overlay ＋ `Name` 改白 | 已實測（2026-09-20） |
 | `ReputationBarTemplate`<br>`Blizzard_UIPanels_Game/Mainline/ReputationFrame.xml:77,126`<br>`…/ReputationFrame.lua:502,524,547,619` | `Background`、`LeftTexture`、`RightTexture` | **填充色不碰**：`UpdateBarColor` 每次 Initialize 都重設，而且那是聲望等級的資訊（註 ⓓ）。**材質換 `barTexture`**：`<BarTexture>` 原本是 `UI-Character-Skills-Bar`，查過 `ReputationBarMixin` 沒有讀回 | StatusBar overlay；**邊畫在條之下、矩形往外推 1px**（第五輪）＋ **`pad = 2`** —— 條只有 **13** 高（`<Size x="99" y="13"/>`）而 `BarText` 是 `GameFontHighlightSmall`，中文字面高過 13，不留內距字的上下兩端會壓在邊線上（實機擷圖 16） | **未實測（第五輪改動）** |
 | `TokenEntryTemplate`<br>`Blizzard_TokenUI/Blizzard_TokenUI.xml:39` | **一張都不碰** | — | **第六輪整條拿掉**（原本是 `Content.CurrencyIcon` 走 Icon）。理由見 ⑦ 的 C 級：這條列跟戰隊通貨轉移那個受保護請求是同一條執行流 | — |

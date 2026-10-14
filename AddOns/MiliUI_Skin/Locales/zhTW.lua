@@ -127,3 +127,16 @@ L["Implicitly protected (skinned anyway):"] = "隱式保護的容器（照樣上
 L["Deferred until out of combat:"] = "脫戰後才會處理:"
 L["Backdrop drawn as a child frame:"] = "背景改用子框畫（沒走貼圖那條路）:"
 L["Region backdrops:"] = "貼圖背景:"
+
+-- 自建功能（Extras/）與「角色面板」設定分頁
+L["Character Sheet"] = "角色面板"
+L["Custom stat list"] = "自建屬性清單"
+L["Splits stats the EllesmereUI way: Attributes, Secondary, Tertiary, Attack and Defense each get a section that can be collapsed and reordered; values show two decimal places. Requires a UI reload."] = "照 EllesmereUI 的分法：屬性／次要屬性／第三屬性／攻擊／防禦各一區，可收合、可排序，數值顯示到小數第二位。需要重新載入介面。"
+L["Show rating next to percentages"] = "百分比旁顯示評等值"
+L["Title search box"] = "稱號頁搜尋框"
+L["Requires a UI reload."] = "需要重新載入介面。"
+-- 輸入框的提示字（刪節號在這裡是「請輸入」的語氣，不是按鈕文字）
+L["Search titles..."] = "搜尋稱號…"
+-- 屬性清單的區標題（屬性／攻擊／防禦用暴雪的 STAT_CATEGORY_*，這兩個暴雪沒有）
+L["Secondary Stats"] = "次要屬性"
+L["Tertiary Stats"] = "第三屬性"

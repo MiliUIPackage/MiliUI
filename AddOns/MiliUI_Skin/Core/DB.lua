@@ -116,6 +116,17 @@ local function BuildDefaults()
             raiderio            = true,
             mapster             = true,
         },
+        -- 「自建功能」（`Extras/`，STYLE.md ③ 的 Extras 小節）：不是換皮，是自己的框
+        -- 疊在暴雪的面板上。跟總開關是「而且」的關係；跟視窗開關無關。
+        -- ⚠ `statsCollapsed`／`statsOrder` 是空表當預設：MergeDefaults 遇到已有的表
+        --   只往裡面補鍵，空表什麼都不補 ⇒ 玩家的收合與排序不會被洗掉。
+        extras = {
+            statsPanel = true,        -- 自建屬性清單（/reload 生效）
+            statsShowRating = false,  -- 百分比旁顯示評等值（即時）
+            statsCollapsed = {},      -- [sectionKey] = true
+            statsOrder = {},          -- 陣列，sectionKey 的順序；空＝預設
+            titlesSearch = true,      -- 稱號頁搜尋框（/reload 生效）
+        },
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -160,6 +171,18 @@ function DB.IsWindowEnabled(key)
     local db = ns.db
     if not db or not db.enabled then return false end
     return db.windows[key] ~= false
+end
+
+------------------------------------------------------------
+-- 這一項自建功能（`Extras/`）現在該不該建？（總開關 ＋ 它自己的開關）
+-- 沒有 `db.extras` 時當成「開」，理由同 IsThirdPartyEnabled。
+------------------------------------------------------------
+function DB.IsExtraEnabled(key)
+    local db = ns.db
+    if not db or not db.enabled then return false end
+    local t = db.extras
+    if not t then return true end
+    return t[key] ~= false
 end
 
 ------------------------------------------------------------

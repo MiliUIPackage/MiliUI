@@ -111,8 +111,15 @@ Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 
+# 自建功能（不是換皮：自己的框疊在暴雪面板上，STYLE.md ③ 的 Extras 小節）。
+# 要用共用層的輸入框（ns.W），所以排在 Widgets 之後；Common.lua 一定第一個。
+Extras\Common.lua
+Extras\CharacterStats.lua
+Extras\CharacterTitles.lua
+
 Options\Panel.lua
 Options\Tab_General.lua
+Options\Tab_Character.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 
