@@ -95,6 +95,12 @@ Ayije 從來不顯示持續時間的原因：它預設在 SetCooldown 後掛勾 
 （`FeedRealCooldown`，自己叫的 setter 用 `overriding` 守衛擋自己的後掛勾；探針改走 `Glow.ArmProbe`；去飽和走 `Decorate.DesatCurve`）——**改餵冷卻時要用含 GCD 的時長**，
 不然一直掛減益的格永遠沒 GCD（2026-10-05 回報）。
 
+**戰鬥中保護框：貼圖的顏色可以寫、幾何不行 ⇒ 顏色類設定要跟重排分開（2026-10-15 玩家回報惡魔之核）**：面板有 AuraContainer 時整個面板是保護框，
+`MustDefer` 把重排延到脫戰。點數型的列在 UpdateRow 每次都重上底色所以戰鬥中（打木樁）拉「背景透明度」立刻變，引擎寫層數／時間的列
+暗底只在 Layout 時上 ⇒ 同一條滑桿對惡魔之核沒反應、脫戰才變，玩家當成 bug。解法：延後重排時另叫 `R.RecolorDeferred` → `AB.RecolorRowDecor`
+只 SetVertexColor／SetTexture（不 SetPoint／SetSize／Show）。**How to apply：** 新的「只在 Layout 上色」的東西（裝飾、邊框、底）都要有一條戰鬥中的重上色路；
+尺寸與填色（在容器簽章裡）照舊等脫戰。自訂列（CustomBars）同一個模式還沒補。
+
 **充能旗標不等於有充能（2026-10-04）**：冷卻管理器資料的 `charges` 是「可以有充能」，天賦給第二次的技能沒點也是 true；照它問 `GetSpellChargeDuration` 回充永遠是零 ⇒
 隱藏 GCD 轉圈把武器戰法術反射的冷卻框一直藏著。凡是照它選 `GetSpellChargeDuration` 的地方都要過 `Decorate.IsChargeSpell`（`maxCharges > 1`，秘密時沿用上次明文）。
 「還有充能／0 充能」別讀 `currentCharges`（戰鬥中秘密值），看 `GetSpellCooldown` 的 `isActive` 且非 `isOnGCD`（`ChargeState`）。
