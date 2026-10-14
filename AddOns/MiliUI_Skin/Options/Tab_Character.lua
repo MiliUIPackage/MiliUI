@@ -21,6 +21,7 @@ local controls = {
     { type = "toggle", sub = "extras", key = "statsPanel", label = L["Custom stat list"] },
     { type = "text", label = L["Splits stats the EllesmereUI way: Attributes, Secondary, Tertiary, Attack and Defense each get a section that can be collapsed and reordered; values show two decimal places. Requires a UI reload."] },
     { type = "toggle", sub = "extras", key = "statsShowRating", label = L["Show rating next to percentages"] },
+    { type = "text", label = L["Other settings (colors, which rows show, on-screen stats) are behind the gear at the top right of the character sheet."] },
     { type = "toggle", sub = "extras", key = "titlesSearch", label = L["Title search box"] },
     { type = "text", label = L["Requires a UI reload."] },
 }

@@ -1,5 +1,6 @@
 ------------------------------------------------------------
--- 自建功能（Extras/）的共用件：啟動、細捲軸、線條箭頭
+-- 自建功能（Extras/）的共用件：啟動、秘密值收手與「交給引擎畫」、細捲軸、自畫底與邊、
+-- 編輯狀態的廣播
 --
 -- Extras 跟 Skins 是兩種東西（STYLE.md ③ 的「Extras（自建功能）」小節）：
 --   * Skins 是**換皮**：只重畫暴雪自己的物件，不重排、不自建內容。
@@ -68,11 +69,12 @@ end
 ------------------------------------------------------------
 -- 錯誤處理：秘密值是「預期中的拒絕」，其他錯誤才報
 --
--- 讀值與組 tooltip 的程式一律包在 `X.Try` 裡，數字先過 `X.Num`：
--- 拿到秘密值（或不是數字）就丟一個哨兵錯誤，整段收手、顯示「—」。
+-- 要在 Lua 裡**讀**數字的程式（組 tooltip、算「上一次明碼值」）一律包在 `X.Try` 裡，
+-- 數字先過 `X.Num`：拿到秘密值（或不是數字）就丟一個哨兵錯誤，整段收手。
 -- 這樣「秘密值不能算術／比較」的規則不必在每一行重寫一次，而且**不會**半途
 -- 算到一半才炸在 `format` 裡。哨兵以外的錯誤是真的 bug，照常交給 ns.ReportError
 -- （每個 label 只報一次，事件一秒好幾發，不能洗版）。
+-- ⚠ **顯示**數字不走這條 —— 見下一節 `X.ValueParts`：秘密值照樣畫得出來。
 ------------------------------------------------------------
 local SECRET = {}
 X.SECRET = SECRET
@@ -104,6 +106,194 @@ function X.Try(label, fn, ...)
 end
 
 ------------------------------------------------------------
+-- 秘密值交給引擎畫：`FontString:SetFormattedText(template, ...)`
+--
+-- 12.1 戰鬥中（與受限內容裡）屬性 API 回的是秘密值。秘密值**拒絕被檢查** ——
+-- 比較、算術、在 Lua 裡 `format`／`tostring` 都會炸 —— 但**畫得出來**：
+-- `SetFormattedText` 是 C 端的 sink，秘密值當**參數**丟進去，引擎照樣把真的數字
+-- 畫在畫面上，戰鬥中照樣跳動。做法照 EllesmereUI QoL 的 Secondary Stats overlay：
+--
+--   * 數字一律當參數，**template 只由明碼組成**（標籤要先過 `X.Esc` 把 `%` 跳脫，
+--     不然翻譯裡的「%」會變成多出來的格式符）。
+--   * 只在**明碼**時做的事：hideZero 的「等於 0」、兩個 getter 相加（臨機應變）、
+--     多個法術系取最小（法術強度、爆擊）、評等的 BreakUpLargeNumbers。秘密時：
+--     要相加／挑選的沿用**上一次明碼的結果**（EllesmereUI 同；從沒拿過明碼就顯示「—」），
+--     hideZero 維持上一次的可見性，評等改用 `%d` 直接把秘密值當參數。
+--   * ⚠ **餵過秘密值的 FontString 不能 GetStringWidth／GetStringHeight**（會炸），
+--     而且**下一次明碼那一幀也還是秘密**（度量屬於上一次排版出來的字串）。
+--     要量尺寸只在「這一輪全部明碼」時量，量到的寬高還要再問一次 `IsSecret`；
+--     不是的話沿用上一次的尺寸，等下一輪（PLAYER_REGEN_ENABLED 會再畫一次）。
+--   * 「—」只留給 nil（真的讀不到）；秘密值不再顯示「—」。
+------------------------------------------------------------
+local DASH = "\226\128\148"   -- 「—」
+X.DASH = DASH
+
+function X.IsSecret(v)
+    return S.IsSecret(v)
+end
+
+-- 放進 template 的明碼字串：`%` 跳脫成 `%%`
+function X.Esc(s)
+    return (tostring(s or ""):gsub("%%", "%%%%"))
+end
+
+local function Push(args, v)
+    args.n = (args.n or 0) + 1
+    args[args.n] = v
+end
+
+-- 一格數值的 template ＋ 參數。把參數依序 push 進 `args`（`args.n` 記長度，中間不會有 nil），
+-- 回傳 (template, 這一格有沒有餵秘密值)。
+--   kind    "pct"｜"int"｜"dec"｜"speed"
+--   v, v2   數值（可能是秘密值；nil ＝ 讀不到 ⇒「—」）。v2 只有 speed 用（副手）
+--   rating  評等（可能是秘密值；nil ＝ 這一格沒有評等）
+--   mode    pct 才看："pct"｜"rating"｜"pct_rating"｜"rating_pct"
+--   sign    pct 才看：false ＝ 不要「%」
+function X.ValueParts(args, kind, v, v2, rating, mode, sign)
+    if v == nil then return DASH, false end
+    local secret = S.IsSecret(v)
+    if kind == "int" then
+        if secret then
+            Push(args, v)
+            return "%.0f", true
+        end
+        Push(args, BreakUpLargeNumbers(math.floor(v + 0.5)))
+        return "%s", false
+    elseif kind == "dec" then
+        Push(args, v)
+        return "%.2f", secret
+    elseif kind == "speed" then
+        Push(args, v)
+        if v2 ~= nil then
+            Push(args, v2)
+            return "%.2f / %.2f", secret or S.IsSecret(v2)
+        end
+        return "%.2f", secret
+    end
+    -- pct
+    local pct = (sign == false) and "%.2f" or "%.2f%%"
+    if rating == nil or mode == nil or mode == "pct" then
+        Push(args, v)
+        return pct, secret
+    end
+    local rt, rSecret
+    if S.IsSecret(rating) then
+        rt, rSecret = "%d", true
+    else
+        rt = "%s"
+        rating = BreakUpLargeNumbers(math.floor(rating + 0.5))
+    end
+    if mode == "rating" then
+        Push(args, rating)
+        return rt, rSecret
+    elseif mode == "rating_pct" then
+        Push(args, rating)
+        Push(args, v)
+        return rt .. " (" .. pct .. ")", secret or rSecret
+    end
+    Push(args, v)
+    Push(args, rating)
+    return pct .. " (" .. rt .. ")", secret or rSecret
+end
+
+------------------------------------------------------------
+-- 自畫的底與邊（Extras 不准用暴雪的 backdrop 模板 —— 它自帶的 OnSizeChanged Lua
+-- 會跑進暴雪的執行堆疊，lint 也會擋）
+--
+-- 一張底 ＋ 四條邊，邊寬 `P.Pixel(1)`（1 個實體像素，見 Hairline）。
+-- 回傳一張可換色的表：
+--   bd:SetFill(c)／bd:SetBorder(c)     c ＝ { r, g, b, a }（或 nil 不變）
+--   bd:SetFillShown(on)／bd:SetBorderShown(on)
+-- 兩種皮：
+--   設定視窗皮 X.Backdrop(f, T.fill, T.border)
+--   HUD 皮     X.Backdrop(f, X.HUD_FILL, { T.Accent() })（0.102 灰 alpha 0.8 ＋ 1px 職業色邊，
+--              .claude/notes/project-miliui-hud-skin.md）
+------------------------------------------------------------
+X.HUD_FILL = { 0.102, 0.102, 0.102, 0.8 }
+
+local function Paint(tex, c)
+    tex:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
+end
+
+function X.Backdrop(frame, fill, border)
+    local bd = {}
+    local bg = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+    bg:SetTexture(WHITE)
+    bg:SetAllPoints(frame)
+    bd.bg = bg
+
+    local px = P.Pixel(1)
+    local t = frame:CreateTexture(nil, "BORDER")
+    t:SetPoint("TOPLEFT"); t:SetPoint("TOPRIGHT"); t:SetHeight(px)
+    local b = frame:CreateTexture(nil, "BORDER")
+    b:SetPoint("BOTTOMLEFT"); b:SetPoint("BOTTOMRIGHT"); b:SetHeight(px)
+    local l = frame:CreateTexture(nil, "BORDER")
+    l:SetPoint("TOPLEFT"); l:SetPoint("BOTTOMLEFT"); l:SetWidth(px)
+    local r = frame:CreateTexture(nil, "BORDER")
+    r:SetPoint("TOPRIGHT"); r:SetPoint("BOTTOMRIGHT"); r:SetWidth(px)
+    bd.edges = { t, b, l, r }
+    for _, e in ipairs(bd.edges) do e:SetTexture(WHITE) end
+
+    function bd:SetFill(c)
+        if c then Paint(bg, c) end
+    end
+    function bd:SetBorder(c)
+        if not c then return end
+        for _, e in ipairs(self.edges) do Paint(e, c) end
+    end
+    function bd:SetFillShown(on)
+        bg:SetShown(on and true or false)
+    end
+    function bd:SetBorderShown(on)
+        for _, e in ipairs(self.edges) do e:SetShown(on and true or false) end
+    end
+
+    bd:SetFill(fill or T.fill)
+    bd:SetBorder(border or T.border)
+    return bd
+end
+
+------------------------------------------------------------
+-- 屬性清單的「編輯狀態」（角色面板右上角的齒輪開的設定面板開著＝on）
+--
+-- 不存檔：每次登入都是關的。狀態本身放在這裡（而不是 StatsSettings.lua），因為
+-- 清單（CharacterStats.lua）與畫面顯示（StatsHud.lua）都要聽 —— 誰先載入都一樣。
+-- `X.OnEditChanged(fn)` 登記監聽，`X.SetEditing(on)` 改狀態並通知（沒變就不通知）。
+------------------------------------------------------------
+local editing = false
+local editListeners = {}
+
+function X.IsEditing()
+    return editing
+end
+
+function X.OnEditChanged(fn)
+    editListeners[#editListeners + 1] = fn
+end
+
+function X.SetEditing(on)
+    on = on and true or false
+    if on == editing then return end
+    editing = on
+    for _, fn in ipairs(editListeners) do
+        xpcall(fn, ns.ReportError, on)
+    end
+end
+
+-- 「屬性的設定改了」：清單與畫面顯示各自登記重畫（顏色、隱藏、排序、評等…）
+local changeListeners = {}
+
+function X.OnStatsChanged(fn)
+    changeListeners[#changeListeners + 1] = fn
+end
+
+function X.NotifyStatsChanged(what)
+    for _, fn in ipairs(changeListeners) do
+        xpcall(fn, ns.ReportError, what)
+    end
+end
+
+------------------------------------------------------------
 -- 髮絲線：1 個**實體**像素（P.Pixel，不是 P.Scale —— 1440p 以上 P.Scale(1) 是 2px）
 ------------------------------------------------------------
 function X.Hairline(parent, color, layer)
@@ -112,30 +302,6 @@ function X.Hairline(parent, color, layer)
     tex:SetVertexColor(color[1], color[2], color[3], color[4] or 1)
     tex:SetHeight(P.Pixel(1))
     return tex
-end
-
-------------------------------------------------------------
--- 線條 chevron（∧／∨），同 `Engine` 的 BuildGlyph：兩條 CreateLine 畫在自己的框上。
--- 半高比半寬小（±0.5 對 ±1），不然小尺寸下像半個箭頭。回傳線的陣列（換色用）。
-------------------------------------------------------------
-local CHEVRON = {
-    up   = { { -1, -0.5, 0,  0.5 }, { 0,  0.5, 1, -0.5 } },
-    down = { { -1,  0.5, 0, -0.5 }, { 0, -0.5, 1,  0.5 } },
-}
-
-function X.Chevron(frame, dir, size, color)
-    local half = (size or 8) / 2
-    local lines = {}
-    for _, seg in ipairs(CHEVRON[dir]) do
-        local line = frame:CreateLine(nil, "ARTWORK")
-        line:SetThickness(P.Pixel(1.5))
-        line:SetTexture(WHITE)
-        line:SetVertexColor(color[1], color[2], color[3], color[4] or 1)
-        line:SetStartPoint("CENTER", frame, seg[1] * half, seg[2] * half)
-        line:SetEndPoint("CENTER", frame, seg[3] * half, seg[4] * half)
-        lines[#lines + 1] = line
-    end
-    return lines
 end
 
 ------------------------------------------------------------
