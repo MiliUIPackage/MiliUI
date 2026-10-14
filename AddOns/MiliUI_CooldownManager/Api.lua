@@ -152,6 +152,75 @@ local function BarCfgLines(out)
     end
 end
 
+------------------------------------------------------------
+-- /mcdm px：像素稽核。容器、每顆 item、四條邊框的矩形換算成實體像素印出來，落在非整數像素上的邊標 ⚠。
+-- 「邊框少一條／多一塊」「格距粗細不一」這類回報先要這份：1px 的邊只要邊緣落在半個像素上，
+-- 引擎貼齊格線時就會被四捨五入成 0 或 2 px（Core/Bars.lua「半像素補正」）。
+------------------------------------------------------------
+local function PxRect(frame)
+    if not frame then return nil end
+    local l, b, w, h = Read(frame, "GetRect")
+    local s = Read(frame, "GetEffectiveScale")
+    if type(l) ~= "number" or type(b) ~= "number" or type(w) ~= "number" or type(h) ~= "number" or type(s) ~= "number" then
+        return nil
+    end
+    local k = s / PixelUtil.GetPixelToUIUnitFactor()
+    return l * k, b * k, (l + w) * k, (b + h) * k
+end
+local function PxEdge(v)
+    local frac = v - math.floor(v + 0.5)
+    local bad = math.abs(frac) > 0.02
+    return ("%.2f%s"):format(v, bad and "⚠" or "")
+end
+local function PxLine(label, frame)
+    local l, b, r, t = PxRect(frame)
+    if not l then return ("    %s：讀不到（秘密值或沒有矩形）"):format(label) end
+    return ("    %s：左 %s  右 %s  上 %s  下 %s  （%.2f×%.2f px）"):format(label, PxEdge(l), PxEdge(r), PxEdge(t), PxEdge(b), r - l, t - b)
+end
+local function PixelLines(out)
+    local V, B = ns.Viewers, ns.Bars
+    local physW, physH = GetPhysicalScreenSize()
+    out[#out + 1] = ("  像素稽核：螢幕 %sx%s  UIParent 縮放 %s  1px = %s 單位  UIParent %s×%s 單位"):format(
+        Num(physW), Num(physH), Num(UIParent:GetEffectiveScale()), Num(ns.P.Pixel(1)), Num(UIParent:GetWidth()), Num(UIParent:GetHeight()))
+    if not (B and B.Containers) then return end
+    local keys = {}
+    for key in pairs(B.Containers()) do keys[#keys + 1] = key end
+    table.sort(keys)
+    for _, key in ipairs(keys) do
+        local c = B.Get(key)
+        if c and c:IsShown() then
+            local place, fix, stackTo, ap = B.PlaceInfo(key)
+            local rel = place and place[2]
+            local relName = rel == UIParent and "UIParent" or (type(rel) == "table" and tostring(Read(rel, "GetName") or "?"):gsub("^MiliUICDM_Bar_", "容器:") or "?")
+            out[#out + 1] = ("   %s：錨 %s→%s %s (%s, %s)  補正 %s  疊在 %s  版面錨點 %s"):format(
+                key, place and place[1] or "?", relName, place and place[3] or "?", place and Num(place[4]) or "?", place and Num(place[5]) or "?",
+                tostring(fix), tostring(stackTo), tostring(ap))
+            out[#out + 1] = PxLine("容器", c)
+            local n = 0
+            if V and V.EnumerateItems then
+                V.EnumerateItems(function(item, rec)
+                    if (rec.claimKey or rec.placedBar) ~= key or not item:IsShown() then return end
+                    n = n + 1
+                    if n <= 3 then
+                        out[#out + 1] = PxLine(("item #%d（id %s）"):format(n, tostring(rec.cooldownID)), item)
+                        local bd = rec.border
+                        if type(bd) == "table" and n == 1 then
+                            local names = { "上邊", "下邊", "左邊", "右邊" }
+                            for i = 1, 4 do
+                                local tex = bd[i]
+                                if tex and tex:IsShown() then out[#out + 1] = PxLine(names[i], tex) end
+                            end
+                            if bd.edge and bd.edge:IsShown() then out[#out + 1] = PxLine("材質邊框", bd.edge) end
+                        end
+                    end
+                end)
+            end
+            if n > 3 then out[#out + 1] = ("    …共 %d 顆 item，只印前 3 顆"):format(n) end
+        end
+    end
+end
+ns.PixelLines = PixelLines
+
 -- 每條檢視器與每顆 item 的現況（只進存檔，不印聊天框：幾十行）
 local function ItemLines(out)
     local V, B = ns.Viewers, ns.Bars
@@ -911,6 +980,11 @@ SlashCmdList.MILIUICDM = function(msg)
         else
             for _, line in ipairs(GlowLines(ns.debugGlowAll)) do print(line) end
         end
+    elseif msg == "px" then
+        -- 像素稽核：容器／item／邊框的邊落在哪個實體像素上（「邊框少一條、多一塊」先要這份）
+        local lines = {}
+        xpcall(PixelLines, ns.ReportError, lines)
+        for _, line in ipairs(lines) do print(line) end
     elseif msg == "aura" then
         AuraDebug()
     elseif msg == "echo" then

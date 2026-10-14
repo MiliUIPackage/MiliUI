@@ -1806,6 +1806,13 @@ function B.Count(key)
     return st and st.count or 0
 end
 
+-- /mcdm px 用：容器現在貼在哪（補正前的錨點、補正量、排開後貼的對象）
+function B.PlaceInfo(key)
+    local st = state[key]
+    if not st then return nil end
+    return st.place, st.placeFix, st.stackTo, st.anchorPoint, st.placeExt
+end
+
 -- 某條圖示條第一列的寬；還沒排過、長條類回 0
 function B.FirstRowWidth(key)
     return firstRowW[key or "essential"] or 0
