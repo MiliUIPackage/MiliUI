@@ -27,6 +27,10 @@ L["Show status"] = "列出套用狀態"
 -- 視窗名稱（用暴雪官方詞彙）
 L["Gossip"] = "對話"
 L["Character Info"] = "角色資訊"
+-- 角色面板側邊欄的三個文字分頁（分頁只有 33 寬，兩個字剛好）
+L["Character"] = "角色"
+L["Titles"] = "稱號"
+L["Equipment"] = "裝備"
 L["Achievements"] = "成就"
 L["Quest"] = "任務"
 L["Mail"] = "郵件"
