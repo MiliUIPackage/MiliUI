@@ -56,6 +56,19 @@ local function ParentRect(otf)
     return pl * k, pr * k, pt * k
 end
 
+-- 編輯模式記的追蹤器位置（唯讀暴雪欄位，不寫）。沒初始化完回 nil
+local function EditModeSig(otf)
+    local info = otf.systemInfo
+    local a = info and info.anchorInfo
+    if not a then return nil end
+    return table.concat({
+        info.isInDefaultPosition and "default" or "custom",
+        tostring(a.point), tostring(a.relativeTo), tostring(a.relativePoint),
+        string.format("%.1f", tonumber(a.offsetX) or 0),
+        string.format("%.1f", tonumber(a.offsetY) or 0),
+    }, "|")
+end
+
 -- 量現在的位置，存成離得近那一邊的位移
 local function Save(otf, c)
     local left, right, top = otf:GetLeft(), otf:GetRight(), otf:GetTop()
@@ -70,19 +83,6 @@ local function Save(otf, c)
     end
     c.y = top - pt
     return true
-end
-
--- 編輯模式記的追蹤器位置（唯讀暴雪欄位，不寫）。沒初始化完回 nil
-local function EditModeSig(otf)
-    local info = otf.systemInfo
-    local a = info and info.anchorInfo
-    if not a then return nil end
-    return table.concat({
-        info.isInDefaultPosition and "default" or "custom",
-        tostring(a.point), tostring(a.relativeTo), tostring(a.relativePoint),
-        string.format("%.1f", tonumber(a.offsetX) or 0),
-        string.format("%.1f", tonumber(a.offsetY) or 0),
-    }, "|")
 end
 
 local function EditModeOpen()

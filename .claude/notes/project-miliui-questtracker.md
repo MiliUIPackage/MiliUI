@@ -101,10 +101,10 @@ NAMESPACE = `MiliUIQuest`，`ns.DB_VERSION = 2`。自動接任務的時序問題
 - 遮罩會吃滑鼠，所以編輯模式一開就要讓開。判斷編輯模式開沒開走**輪詢**（只在設定視窗開著時跑）：
   掛 `HookScript` 會把我們塞進 `EditModeManagerFrame` 的執行路徑，`EventRegistry` 回呼要寫共用訂閱表，規矩 5 在擋。
 - 套組磁吸（`Libs/MiliUISnap.lua`）註冊的是 OTF 本身，key `questTracker`（[[project-miliui-snap-bars]]）。
-- ⚠ **2026-10-14 體檢發現 `8dc7d0241` 帶進一個會炸的順序錯誤**：`Save()` 裡呼叫的 `EditModeSig` 在它的
+- **`8dc7d0241` 帶進過一個會炸的順序錯誤（2026-10-14 體檢抓到、同日修）**：`Save()` 裡呼叫的 `EditModeSig` 在它的
   `local function` 宣告**之後**才出現 ⇒ 編譯成全域讀取（`luac -l` 看到 `GETTABUP _ENV "EditModeSig"`），
   遮罩放手（`EndDrag→Save`）與舊格式換算會 `attempt to call a nil value`。check_lua 只掃全域寫入抓不到
-  （[[wow-luac-global-scan]]）。修法：把 `EditModeSig` 移到 `Save` 前面。修好前第三輪的指紋機制等於沒上線。
+  （[[wow-luac-global-scan]]）。已把 `EditModeSig` 移到 `Save` 前面；教訓：**local function 的呼叫端排在宣告後面**，新檔用 `luac -l` 掃一次 `GETTABUP`。
 
 `Modules/Menu.lua` 只有內容，引擎在共用層。**`Menu.Show` 不要傳 anchor**（傳了會掛在標題列右下角，標題列跟追蹤器一樣寬）。
 檔頭寫明**刻意不放**三樣：「顯示標題列」是自殺選項、「在編輯模式中移動」等於在管著追蹤器保護狀態的系統上開污染入口、
@@ -249,7 +249,7 @@ QT 的 ns.db 要等它自己的 PLAYER_LOGIN，同步延一幀。`MiliUI_DB.ques
 ## 待驗證（還沒進遊戲看過）
 
 - 摺著時標題列錨存檔座標（09-22）：預設位置的玩家進探究／鑰石。
-- 位置接管三連修（10-12）：先修上面那個 `EditModeSig` 順序錯誤，再驗「右側容器重排不再拉回」「編輯模式拖過自動放手」「右鍵放手回得去」。
+- 位置接管三連修（10-12）＋順序錯誤修正（10-14）：驗「遮罩放手後位置存得住」「右側容器重排不再拉回」「編輯模式拖過自動放手」「右鍵放手回得去」。
 - 目標進度上色／百分比、載具摺疊（10-13）。
 - 場景階段框：換階段那一幀會不會跳、滑入動畫、有進度條的場景、長目標換行後右緣、midnight-scenario 主題。
 - 任務類型圖示擺 TOPRIGHT ＋ 壓掉 POI 按鈕：要確認 12.1.5 的 POI 按鈕真的在那個位置。
