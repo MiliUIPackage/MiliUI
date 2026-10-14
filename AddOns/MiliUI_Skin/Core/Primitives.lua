@@ -1632,6 +1632,80 @@ function Skin.SectionTitle(frame, key, opts)
 end
 
 ------------------------------------------------------------
+-- FlankedTitle：兩側帶線的小節標題（角色面板屬性欄的三塊分類牌，第十輪）
+--
+-- 出處同 SectionTitle：`CharacterStatFrameCategoryTemplate`（CharacterFrame.xml:77）
+--   197×40 的框，Background（atlas UI-Character-Info-Title）錨 TOPLEFT、
+--   Title（GameFontHighlight）錨 CENTER (0, +1)。
+--
+-- 樣式照 EllesmereUI 的角色面板：「—— 標題 ——」。標題字染分類色，左右各一條同色的
+-- 髮絲線從字的兩側延伸到框緣（線的 alpha 壓到 `statRuleAlpha`，比字弱一階）。
+-- 跟 SectionTitle 的差別只在線的位置：那一種是「標題底下一條」，這一種是「字的兩側」。
+--
+-- ⚠ 線的內側那一端錨在 `Title` 這個 FontString 的 LEFT／RIGHT 上 —— 那是「把自己的框
+--   錨到暴雪物件」（白名單），不是讀它的尺寸：標題多長、哪一種語系，線自己跟著縮。
+-- ⚠ 外側那一端錨在框緣、y 給 `opts.y`：Title 在 CENTER (0, +1)，一條線兩端的
+--   LEFT／RIGHT 錨點要給出同一個垂直中心，外側的 y 就要跟 Title 的 y 位移一樣。
+--   預設 1 就是 XML 的值。
+-- ⚠ 顏色建好就上一次（`opts.color`），之後換色走 `Skin.FlankedTitleColor` ——
+--   「物品等級」那一塊的顏色是轉交暴雪的 `GetItemLevelColor()`，每次更新都可能換。
+--
+-- opts：color、padLeft / padRight（線的外側離框緣多遠）、gap（線離字多遠，預設 6）、y
+------------------------------------------------------------
+function Skin.FlankedTitle(frame, key, opts)
+    if not E.Usable(frame, key) then return end
+    opts = opts or {}
+
+    E.NeutralizeKeys(frame, { "Background" }, key)
+
+    local title
+    if not (pcall(function() title = frame.Title end) and title) then
+        E.Missing(key .. ".Title")
+        return
+    end
+
+    local gap = opts.gap or 6
+    local y = opts.y or 1
+    E.Overlay(frame, {
+        key = key .. ".ruleLeft",
+        slot = "ruleLeft",
+        noBorder = true,
+        height = 1,
+        points = {
+            { "LEFT", "LEFT", opts.padLeft or 10, y },
+            { "RIGHT", "LEFT", -gap, 0, rel = title },
+        },
+    })
+    E.Overlay(frame, {
+        key = key .. ".ruleRight",
+        slot = "ruleRight",
+        noBorder = true,
+        height = 1,
+        points = {
+            { "LEFT", "RIGHT", gap, 0, rel = title },
+            { "RIGHT", "RIGHT", -(opts.padRight or 10), y },
+        },
+    })
+    Skin.FlankedTitleColor(frame, key, opts.color or T.text)
+end
+
+-- 換一塊 FlankedTitle 的顏色（字 ＋ 兩條線）。
+-- `color` 可以是轉交來的分量（物品等級的品質色）：這裡只原封不動往 setter 送，
+-- 不比較、不算術（STYLE.md ③ 的傳遞者規則）。
+function Skin.FlankedTitleColor(frame, key, color)
+    if not E.Usable(frame, key) then return end
+    local title
+    if pcall(function() title = frame.Title end) and title then
+        E.TextColor(title, color, key .. ".Title")
+    end
+    local rule = { color[1], color[2], color[3], T.statRuleAlpha }
+    for _, slot in ipairs({ "ruleLeft", "ruleRight" }) do
+        local ov = E.GetOverlay(frame, slot)
+        if ov then E.Fill(ov, rule) end
+    end
+end
+
+------------------------------------------------------------
 -- ListHeader：三片式的清單分類列（那條圓角長條）
 --
 -- 出處（12.1.0.69875）：
