@@ -125,7 +125,33 @@ local function BuildDefaults()
             statsShowRating = false,  -- 百分比旁顯示評等值（即時）
             statsCollapsed = {},      -- [sectionKey] = true
             statsOrder = {},          -- 陣列，sectionKey 的順序；空＝預設
+            statsHidden = {},         -- [defKey] = true：這一列不顯示（角色面板齒輪的編輯狀態裡勾）
+            statsColors = {},         -- [sectionKey] = { r, g, b }：蓋過 T.statCategory
+            statsPalette = "miliui",  -- 設定面板「預設配色」下拉目前顯示哪一個（"miliui"｜"class"）
             titlesSearch = true,      -- 稱號頁搜尋框（/reload 生效）
+            -- 畫面上顯示屬性（`Extras/StatsHud.lua`）。全部即時生效，設定在角色面板的齒輪裡。
+            -- ⚠ `pos` 沒有預設值（nil ＝ 預設位置）：MergeDefaults 不會把玩家拖過的位置洗掉，
+            --   「重設位置」就是把它設回 nil。
+            hud = {
+                enabled = false,
+                stats = {             -- [statKey] = 顯示與否（順序固定，見 StatsHud.lua 的 HUD_STATS）
+                    primary = true, stamina = false, crit = true, haste = true, mastery = true,
+                    vers = true, leech = false, avoidance = false, speed = false,
+                    power = false, armor = false,
+                },
+                colors = {},          -- [statKey] = { r, g, b }：只在 colorMode == "custom" 時用
+                labelStyle = "full",  -- "full"｜"short"｜"none"
+                valueFormat = "pct",  -- "pct"｜"rating"｜"pct_rating"｜"rating_pct"
+                percentSign = true,
+                colorMode = "section", -- "section"｜"class"｜"custom"
+                valueColored = false,
+                fontSize = 12,
+                outline = "",         -- ""｜"OUTLINE"｜"THICKOUTLINE"｜"MONOCHROME,OUTLINE"｜"MONOCHROME,THICKOUTLINE"
+                shadow = true,
+                scale = 1,
+                backdrop = false,
+                when = "always",      -- "always"｜"combat"｜"instance"
+            },
         },
     }
 end

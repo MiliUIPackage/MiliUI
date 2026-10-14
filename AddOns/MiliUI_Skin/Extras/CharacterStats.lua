@@ -5,15 +5,23 @@
 -- stock 樣式：清單是 `CharacterStatsPane` 的子框、停在 InsetRight 那一格，暴雪
 -- 自己的側邊欄分頁 Show/Hide 那個 pane 就帶著它顯隱）；樣式套這包的 Tokens。
 --
--- 分區（key ＝ `db.extras.statsOrder`／`statsCollapsed` 裡的 sectionKey）：
---   itemlevel   物品等級（永遠第一、不能收合、沒有箭頭；顏色轉交 GetItemLevelColor）
+-- 分區（key ＝ `db.extras.statsOrder`／`statsCollapsed`／`statsColors` 裡的 sectionKey）：
+--   itemlevel   物品等級（永遠第一、不能收合、不能拖、沒有色票；顏色轉交 GetItemLevelColor）
 --   attributes  屬性：主屬性（依專精）、耐力、生命、法力（有法力的才列）
 --   secondary   次要屬性：致命一擊、加速、精通、臨機應變
 --   tertiary    第三屬性：汲取、迴避、速度
 --   attack      攻擊：法術強度（主屬性是智力）或攻擊強度、攻擊速度
 --   defense     防禦：護甲、閃躲、招架、格擋、醉拳
--- 每一區一個顏色（`T.statCategory[sectionKey]`），可收合、可用標題兩端的箭頭排序，
--- 百分比一律顯示到小數第二位（暴雪的屬性欄是 `%d%%` 四捨五入）。
+-- 每一區一個顏色（`statsColors[sectionKey]`，沒有就 `T.statCategory[sectionKey]`），
+-- 點標題收合；百分比一律顯示到小數第二位（暴雪的屬性欄是 `%d%%` 四捨五入）。
+--
+-- **編輯狀態**（角色面板右上角的齒輪開的設定面板開著時，`X.IsEditing()`，
+-- 見 StatsSettings.lua）：
+--   * 拖曳區標題排序（物品等級固定第一、不能拖、也不能被插到它前面）；
+--   * 每一列左邊一顆勾選框決定顯示（`statsHidden[defKey]`）—— 被隱藏的列在編輯狀態
+--     照樣列出來（alpha 0.4）好讓人勾回來，編輯狀態關掉之後才真的不排；
+--   * 區標題右端一顆色票換這一區的顏色（共用層 `W.CreateColorPicker`，暴雪的選色器）。
+-- 編輯狀態外色票照樣佔位（alpha 0、不吃滑鼠）：右線一律錨在色票左邊，版面不跳。
 --
 -- 計算照暴雪自己的 `PaperDollFrame_Set*`（Blizzard_UIPanels_Game/Mainline/
 -- PaperDollFrame.lua，12.1 live）：哪一種爆擊、哪一種加速、法術強度取哪幾個法術系、
@@ -21,13 +29,14 @@
 -- `PAPERDOLL_STATCATEGORIES`（:246）的 roles／hideAt／showFunc。
 -- tooltip 的說明行用暴雪自己組 `statFrame.tooltip2` 的那些全域格式字串
 -- （CR_*_TOOLTIP、STAT_*_TOOLTIP…）⇒ 語系免費、跟暴雪原本的說明一字不差。
+-- 列的定義（`DEF_BY_KEY`）與讀值也給畫面上的屬性顯示用（`X.StatDefs`，StatsHud.lua）。
 --
 -- ## 刻意沒做
 --
 -- * EllesmereUI 的「紋章」與「PvP」兩區 —— 紋章的通貨代碼每季都變（套組另有每季
 --   維護的清單，不想再多一份會過期的表）；PvP 那區跟角色屬性無關。
 -- * 移動速度（暴雪屬性欄的 MOVESPEED）—— 暴雪自己也沒放進 PAPERDOLL_STATCATEGORIES。
--- * 自訂分區顏色、隱藏整區 —— EllesmereUI 有，這包先不開設定。
+-- * 隱藏整區 —— 把那一區的每一列都取消勾選就等於隱藏整區（標題跟著收起來）。
 -- * 把暴雪的 pane 停到螢幕外（EllesmereUI 的 `CharSheetParkStatsPane`，SetPoint 到
 --   y=-10000）—— 那是重排暴雪框，我們不做；改成整個 pane alpha 0（下表）。
 --
@@ -40,9 +49,11 @@
 -- | CharacterStatsPane | 當我們宿主框的 parent（CreateFrame 的 parent 參數）＋ SetAllPoints 的錨點 |
 -- | CharacterStatsPane | `GetFrameLevel()`（`Engine.TargetLevel`，三道守衛）—— 宿主框的層級 ＝ 它 +5 |
 -- | GameTooltip | SetOwner／SetText／AddLine／Show／Hide（全套組共用的提示框，一般用法） |
+-- | ColorPickerFrame | 色票走共用層 `W.CreateColorPicker` → `SetupColorPickerAndShow`（暴雪公開的進入點） |
 --
 -- 寫入暴雪欄位：無。hook：無（Show/Hide 跟著 parent 走，用的是**自己框**的 OnShow/OnHide）。
 -- 讀暴雪物件：只有上面那一個 GetFrameLevel。其餘全部是讀 API（UnitStat、GetCombatRating…）。
+-- 拖曳中的影子是**自己的**框（parent UIParent、TOOLTIP strata），不碰暴雪物件。
 --
 -- 宿主框 `SetIgnoreParentAlpha(true)`：pane 是 alpha 0，不忽略就跟著看不見。
 -- 代價：別的插件對 CharacterFrame 整體做淡入淡出時，這一塊不會跟著淡。
@@ -51,11 +62,14 @@
 --
 -- ## 12.1 秘密值
 --
--- 每個讀值都過 `X.Num`（Extras/Common.lua）：秘密值或不是數字 ⇒ 整格收手、顯示「—」、
--- 不給 tooltip。秘密值從不拿來比較、算術、當 key。戰鬥中 `UnitHealthMax` 這類可能是
--- 秘密值（.claude/notes/wow-121-unit-api-secrets.md）。
+-- 顯示走 `X.ValueParts` ＋ `FontString:SetFormattedText`（Common.lua 那一節）：數字當
+-- **參數**交給引擎畫，戰鬥中照樣是真的數字、照樣會動；「—」只留給 nil。
+-- 要相加／挑選的（臨機應變、爆擊挑哪一種、法術強度取哪個法術系、攻擊強度）只在明碼時
+-- 算，秘密時沿用上一次明碼的結果或挑法（EllesmereUI 的 Secondary Stats overlay 同）。
+-- hideZero 只在明碼時判斷，秘密時維持上一次的可見性。
+-- tooltip 要在 Lua 裡讀數字 ⇒ 照舊過 `X.Num`：秘密值整段收手、不給 tooltip。
 -- 物品等級的顏色（`GetItemLevelColor()`）只原封不動交給 SetTextColor／SetVertexColor
--- （傳遞者規則）。
+-- （傳遞者規則）。這支**不量**任何餵過數值的 FontString（版面是固定列高）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -63,9 +77,12 @@ local X = ns.Extras
 local E = ns.Engine
 local T = ns.Tokens
 local S = ns.Secret
+local P = ns.P
+local W = ns.W
 local L = ns.L
 
 local Num, Try = X.Num, X.Try
+local IsSecret = X.IsSecret
 
 -- 版面（框架單位）。照 EllesmereUI：標題 16 高、列從標題下 22 開始、列高 16、區間距 6。
 local TITLE_H     = 16
@@ -73,15 +90,19 @@ local TITLE_GAP   = 6
 local ROW_H       = 16
 local SECTION_GAP = 8
 local ILVL_ROW_H  = 26
-local ARROW       = 12
-local RULE_GAP    = 6     -- 線與字／箭頭之間
+local SWATCH      = 10    -- 區標題右端的色票（編輯狀態外 alpha 0、照樣佔位）
+local RULE_GAP    = 6     -- 線與字／色票之間
 local PAD         = 6     -- 宿主框的內距（左右上下）
+local CHECK       = 14    -- 編輯狀態每列左邊的勾選框
+local CHECK_INDENT = 18   -- 編輯狀態標籤往右讓的距離
+local HIDDEN_ALPHA = 0.4  -- 編輯狀態裡被隱藏的列
+local DRAG_ALPHA   = 0.4  -- 拖曳中的那一個區標題
 
 local FONT_TITLE = 12
 local FONT_ROW   = 11
 local FONT_ILVL  = 20
 
-local DASH = "—"
+local DASH = X.DASH
 
 local STR, AGI, STA, INT = 1, 2, 3, 4   -- LE_UNIT_STAT_*
 
@@ -96,10 +117,6 @@ end
 
 local function Big(n)
     return BreakUpLargeNumbers(n)
-end
-
-local function Round(n)
-    return math.floor(n + 0.5)
 end
 
 ------------------------------------------------------------
@@ -151,24 +168,6 @@ local function SecondaryBonus(rating, base, coeff)
         return base
     end
     return Num(GetCombatRatingBonus(rating)) * (coeff or 1)
-end
-
--- PaperDollFrame.lua:1020 `PaperDollFrame_SetCritChance`：法術系（2..MAX_SPELL_SCHOOLS 取最小）、
--- 遠程、近戰三者取最大，評等跟著挑中的那一種走
-local function CritInfo()
-    local holy = 2
-    local spell = Num(GetSpellCritChance(holy))
-    for i = holy + 1, MAX_SPELL_SCHOOLS or 7 do
-        spell = math.min(spell, Num(GetSpellCritChance(i)))
-    end
-    local ranged = Num(GetRangedCritChance())
-    local melee = Num(GetCritChance())
-    if spell >= ranged and spell >= melee then
-        return spell, CR_CRIT_SPELL
-    elseif ranged >= melee then
-        return ranged, CR_CRIT_RANGED
-    end
-    return melee, CR_CRIT_MELEE
 end
 
 -- PaperDollFrame.lua:972 `PaperDollFrame_SetSpellPower`：法術系 2..MAX 取最小
@@ -286,11 +285,6 @@ local function StatName(i)
     return G("SPELL_STAT" .. i .. "_NAME", fallback)
 end
 
--- 評等：`(N)`，N 走 BreakUpLargeNumbers
-local function RatingText(cr)
-    return Big(Round(Num(GetCombatRating(cr))))
-end
-
 local function ArmorReduction(armor)
     return Num(C_PaperDollInfo.GetArmorEffectiveness(armor, Num(UnitEffectiveLevel("player")))) * 100
 end
@@ -302,30 +296,95 @@ local function ArmorReductionTarget(armor)
 end
 
 ------------------------------------------------------------
+-- 顯示用的讀值：**不檢查**數值，秘密值原封不動往外交（給 SetFormattedText 當參數）
+--
+-- 要挑選或相加的四支只在明碼時算，秘密時沿用上一次明碼的挑法／結果
+-- （照 EllesmereUI 的 `PlayerCritChance` 與 overlay 的 `_versLastClean`）。
+------------------------------------------------------------
+local critPick, critSchool = "spell", 2
+
+-- PaperDollFrame.lua:1020 的挑法；回傳 (爆擊率, 對應的 CR_*)
+local function CritValue()
+    local ranged, melee = GetRangedCritChance(), GetCritChance()
+    local spell, school = GetSpellCritChance(2), 2
+    local secret = IsSecret(ranged) or IsSecret(melee) or IsSecret(spell)
+    if not secret then
+        for i = 3, MAX_SPELL_SCHOOLS or 7 do
+            local v = GetSpellCritChance(i)
+            if IsSecret(v) then secret = true break end
+            if v < spell then spell, school = v, i end
+        end
+    end
+    if secret then
+        if critPick == "spell" then return GetSpellCritChance(critSchool), CR_CRIT_SPELL end
+        if critPick == "ranged" then return ranged, CR_CRIT_RANGED end
+        return melee, CR_CRIT_MELEE
+    end
+    if spell >= ranged and spell >= melee then
+        critPick, critSchool = "spell", school
+        return spell, CR_CRIT_SPELL
+    elseif ranged >= melee then
+        critPick = "ranged"
+        return ranged, CR_CRIT_RANGED
+    end
+    critPick = "melee"
+    return melee, CR_CRIT_MELEE
+end
+
+-- PaperDollFrame.lua:972：法術系 2..MAX 取最小；秘密時回上一次挑中那一系的（秘密）值
+local spSchool = 2
+local function SpellPowerValue()
+    local v, school = GetSpellBonusDamage(2), 2
+    if IsSecret(v) then return GetSpellBonusDamage(spSchool) end
+    for i = 3, MAX_SPELL_SCHOOLS or 7 do
+        local s = GetSpellBonusDamage(i)
+        if IsSecret(s) then return GetSpellBonusDamage(spSchool) end
+        if s < v then v, school = s, i end
+    end
+    spSchool = school
+    return v
+end
+
+-- 攻擊強度要把 base／加成／減益加起來（還有以法術強度換算那條）⇒ 秘密時沿用上一次
+local lastAP
+local function AttackPowerValue()
+    local ok, v = Try("CharacterStats.ap", AttackPowerInfo)
+    if ok then lastAP = v end
+    return lastAP
+end
+
+-- 臨機應變 ＝ 評等加成 ＋ 固定加成（PaperDollFrame.lua:1276）⇒ 秘密時沿用上一次
+local lastVers
+local function VersValue()
+    local a = GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE)
+    local b = GetVersatilityBonus(CR_VERSATILITY_DAMAGE_DONE)
+    if IsSecret(a) or IsSecret(b) or type(a) ~= "number" or type(b) ~= "number" then
+        return lastVers
+    end
+    lastVers = a + b
+    return lastVers
+end
+
+------------------------------------------------------------
 -- 列的定義
 --
 -- 每一列：
---   label(ctx)      標籤（字串或函式）
---   get(ctx)        回傳要顯示的數字（之後的回傳值給 tip 用），秘密值在 Num 就收手
+--   key             defKey（`statsHidden` 的 key；畫面顯示也用它找定義）
+--   label(ctx)      標籤
+--   value(ctx)      回傳 (v, v2)：要顯示的數值，**可能是秘密值**、可能是 nil（讀不到）
 --   kind            "pct"（%.2f%%）、"int"（BreakUpLargeNumbers）、"dec"（%.2f）、"speed"
---   rating          評等的 CR_* 常數或函式（statsShowRating 開著才顯示）
---   hideZero        值等於 0 就不列（暴雪的 hideAt = 0）
+--   rating(ctx, v, v2)  評等的 CR_* 常數（statsShowRating 開著才顯示）
+--   hideZero        值等於 0 就不列（暴雪的 hideAt = 0；只在明碼時判斷）
 --   show(ctx)       顯示條件（暴雪的 roles／showFunc）
---   tip(ctx, ...)   回傳 tooltip 的說明行陣列（get 的全部回傳值照順序傳進來）
+--   tip(ctx, v, v2) 回傳 tooltip 的說明行陣列。進來之前 v 已經過 Num（明碼）；
+--                   要用的其他數字自己讀、自己過 Num
 ------------------------------------------------------------
-local function PrimaryDef()
-    return {
-        key = "primary",
-        label = function(ctx) return StatName(ctx.primary) end,
-        kind = "int",
-        get = function(ctx)
-            local stat, eff, pos, neg = UnitStat("player", ctx.primary)
-            return Num(eff), Num(stat), Num(pos), Num(neg)
-        end,
-        tip = function(ctx, eff, stat, pos, neg)
-            return { BuffLine(stat - pos - neg, pos, neg), StatTooltip(ctx.primary, eff, ctx) }
-        end,
-    }
+local function StatTip(statIndex)
+    return function(ctx, eff)
+        local stat, _, pos, neg = UnitStat("player", statIndex)
+        stat, pos, neg = Num(stat), Num(pos), Num(neg)
+        return { BuffLine(stat - pos - neg, pos, neg), StatTooltip(statIndex, eff, ctx) }
+    end
 end
 
 local SECTIONS = {
@@ -343,12 +402,11 @@ local SECTIONS = {
                     return not lvl or lvl >= (MIN_PLAYER_LEVEL_FOR_ITEM_LEVEL_DISPLAY or 10)
                 end,
                 label = function() return G("STAT_AVERAGE_ITEM_LEVEL", "Item Level") end,
-                get = function()
-                    local avg, equipped, pvp = GetAverageItemLevel()
-                    return Num(equipped), Num(avg), Num(pvp)
-                end,
+                value = function() return (select(2, GetAverageItemLevel())) end,
                 -- PaperDollFrame.lua:1293 `PaperDollFrame_SetItemLevel`
-                tip = function(_, equipped, avg, pvp)
+                tip = function(_, equipped)
+                    local avg, _, pvp = GetAverageItemLevel()
+                    avg, pvp = Num(avg), Num(pvp)
                     local lines = {}
                     if math.floor(equipped) ~= math.floor(avg) then
                         lines[#lines + 1] = HIGHLIGHT_FONT_COLOR_CODE .. G("STAT_AVERAGE_ITEM_LEVEL", "") .. " "
@@ -368,24 +426,25 @@ local SECTIONS = {
         key = "attributes",
         title = function() return G("STAT_CATEGORY_ATTRIBUTES", "Attributes") end,
         defs = {
-            PrimaryDef(),
+            {
+                key = "primary",
+                label = function(ctx) return StatName(ctx.primary) end,
+                kind = "int",
+                value = function(ctx) return (select(2, UnitStat("player", ctx.primary))) end,
+                tip = function(ctx, eff) return StatTip(ctx.primary)(ctx, eff) end,
+            },
             {
                 key = "stamina",
                 label = function() return StatName(STA) end,
                 kind = "int",
-                get = function()
-                    local stat, eff, pos, neg = UnitStat("player", STA)
-                    return Num(eff), Num(stat), Num(pos), Num(neg)
-                end,
-                tip = function(ctx, eff, stat, pos, neg)
-                    return { BuffLine(stat - pos - neg, pos, neg), StatTooltip(STA, eff, ctx) }
-                end,
+                value = function() return (select(2, UnitStat("player", STA))) end,
+                tip = StatTip(STA),
             },
             {
                 key = "health",
                 label = function() return G("HEALTH", "Health") end,
                 kind = "int",
-                get = function() return Num(UnitHealthMax("player")) end,
+                value = function() return UnitHealthMax("player") end,
                 tip = function() return { G("STAT_HEALTH_TOOLTIP") } end,
             },
             {
@@ -393,7 +452,7 @@ local SECTIONS = {
                 label = function() return G("MANA", "Mana") end,
                 kind = "int",
                 show = function(ctx) return ctx.hasMana end,
-                get = function() return Num(UnitPowerMax("player", Enum.PowerType.Mana)) end,
+                value = function() return UnitPowerMax("player", Enum.PowerType.Mana) end,
                 tip = function() return { G("STAT_MANA_TOOLTIP") } end,
             },
         },
@@ -407,8 +466,8 @@ local SECTIONS = {
                 label = function() return G("STAT_CRITICAL_STRIKE", "Critical Strike") end,
                 kind = "pct",
                 hideZero = true,
-                rating = function() return select(2, CritInfo()) end,
-                get = function() return CritInfo() end,
+                rating = function(_, _, cr) return cr end,
+                value = CritValue,
                 -- PaperDollFrame.lua:1056
                 tip = function(_, chance, cr)
                     local rating = Num(GetCombatRating(cr))
@@ -426,7 +485,7 @@ local SECTIONS = {
                 kind = "pct",
                 hideZero = true,
                 rating = function() return CR_HASTE_MELEE end,
-                get = function() return Num(GetHaste()) end,
+                value = function() return GetHaste() end,
                 -- PaperDollFrame.lua:1129
                 tip = function(_, haste)
                     local cls = S.PlainText(select(2, UnitClass("player")))
@@ -442,12 +501,10 @@ local SECTIONS = {
                 kind = "pct",
                 hideZero = true,
                 rating = function() return CR_MASTERY end,
-                get = function()
-                    local mastery, coeff = GetMasteryEffect()
-                    return Num(mastery), coeff
-                end,
+                value = function() return (GetMasteryEffect()) end,
                 -- PaperDollFrame.lua:1185 `Mastery_OnEnter`：精通法術的說明 ＋ 評等那一行
-                tip = function(ctx, mastery, coeff)
+                tip = function(ctx, mastery)
+                    local coeff = S.PlainNumber(select(2, GetMasteryEffect()))
                     local lines = {}
                     if ctx.spec and C_SpecializationInfo.GetSpecializationMasterySpells then
                         for _, id in ipairs(C_SpecializationInfo.GetSpecializationMasterySpells(ctx.spec) or {}) do
@@ -458,7 +515,7 @@ local SECTIONS = {
                         end
                     end
                     lines[#lines + 1] = format(STAT_MASTERY_TOOLTIP, Big(Num(GetCombatRating(CR_MASTERY))),
-                        SecondaryBonus(CR_MASTERY, mastery, S.PlainNumber(coeff)))
+                        SecondaryBonus(CR_MASTERY, mastery, coeff))
                     return lines
                 end,
             },
@@ -468,12 +525,11 @@ local SECTIONS = {
                 kind = "pct",
                 hideZero = true,
                 rating = function() return CR_VERSATILITY_DAMAGE_DONE end,
-                -- PaperDollFrame.lua:1276：傷害加成 ＝ 評等加成 ＋ 臨機應變的固定加成
-                get = function()
-                    return Num(GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE))
+                value = VersValue,
+                tip = function()
+                    -- 秘密時 value 回的是上一次的明碼值；tooltip 要的是「現在」⇒ 重讀、過 Num
+                    local dmg = Num(GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE))
                         + Num(GetVersatilityBonus(CR_VERSATILITY_DAMAGE_DONE))
-                end,
-                tip = function(_, dmg)
                     local taken = Num(GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_TAKEN))
                         + Num(GetVersatilityBonus(CR_VERSATILITY_DAMAGE_TAKEN))
                     local rating = Num(GetCombatRating(CR_VERSATILITY_DAMAGE_DONE))
@@ -493,7 +549,7 @@ local SECTIONS = {
                 label = function() return G("STAT_LIFESTEAL", "Leech") end,
                 kind = "pct", hideZero = true,
                 rating = function() return CR_LIFESTEAL end,
-                get = function() return Num(GetLifesteal()) end,
+                value = function() return GetLifesteal() end,
                 tip = function()
                     return { format(CR_LIFESTEAL_TOOLTIP, Big(Num(GetCombatRating(CR_LIFESTEAL))), Num(GetCombatRatingBonus(CR_LIFESTEAL))) }
                 end,
@@ -503,7 +559,7 @@ local SECTIONS = {
                 label = function() return G("STAT_AVOIDANCE", "Avoidance") end,
                 kind = "pct", hideZero = true,
                 rating = function() return CR_AVOIDANCE end,
-                get = function() return Num(GetAvoidance()) end,
+                value = function() return GetAvoidance() end,
                 tip = function()
                     return { format(CR_AVOIDANCE_TOOLTIP, Big(Num(GetCombatRating(CR_AVOIDANCE))), Num(GetCombatRatingBonus(CR_AVOIDANCE))) }
                 end,
@@ -513,7 +569,7 @@ local SECTIONS = {
                 label = function() return G("STAT_SPEED", "Speed") end,
                 kind = "pct", hideZero = true,
                 rating = function() return CR_SPEED end,
-                get = function() return Num(GetSpeed()) end,
+                value = function() return GetSpeed() end,
                 tip = function()
                     return { format(CR_SPEED_TOOLTIP, Big(Num(GetCombatRating(CR_SPEED))), Num(GetCombatRatingBonus(CR_SPEED))) }
                 end,
@@ -532,12 +588,13 @@ local SECTIONS = {
                     return G("STAT_ATTACK_POWER", "Attack Power")
                 end,
                 kind = "int",
-                get = function(ctx)
-                    if ctx.primary == INT then return SpellPower() end
-                    return AttackPowerInfo()
+                value = function(ctx)
+                    if ctx.primary == INT then return SpellPowerValue() end
+                    return AttackPowerValue()
                 end,
-                tip = function(ctx, _, base, pos, neg, line)
+                tip = function(ctx)
                     if ctx.primary == INT then return { G("STAT_SPELLPOWER_TOOLTIP") } end
+                    local _, base, pos, neg, line = AttackPowerInfo()
                     return { BuffLine(base, pos, neg), line }
                 end,
             },
@@ -546,10 +603,7 @@ local SECTIONS = {
                 label = function() return G("WEAPON_SPEED", "Attack Speed") end,
                 kind = "speed",
                 -- PaperDollFrame.lua:908：主手（有副手就「主 / 副」）
-                get = function()
-                    local main, off = UnitAttackSpeed("player")
-                    return Num(main), off ~= nil and Num(off) or nil
-                end,
+                value = function() return UnitAttackSpeed("player") end,
                 tip = function()
                     return { format(STAT_ATTACK_SPEED_BASE_TOOLTIP, Big(Num(GetMeleeHaste()))) }
                 end,
@@ -564,10 +618,7 @@ local SECTIONS = {
                 key = "armor",
                 label = function() return G("STAT_ARMOR", "Armor") end,
                 kind = "int",
-                get = function()
-                    local _, effective = UnitArmor("player")
-                    return Num(effective)
-                end,
+                value = function() return (select(2, UnitArmor("player"))) end,
                 -- PaperDollFrame.lua:706
                 tip = function(_, armor)
                     local lines = { format(STAT_ARMOR_TOOLTIP, ArmorReduction(armor)) }
@@ -582,7 +633,7 @@ local SECTIONS = {
                 kind = "pct",
                 rating = function() return CR_DODGE end,
                 show = function(ctx) return ctx.tank end,
-                get = function() return Num(GetDodgeChance()) end,
+                value = function() return GetDodgeChance() end,
                 tip = function()
                     return { format(CR_DODGE_TOOLTIP, Num(GetCombatRating(CR_DODGE)), Num(GetCombatRatingBonus(CR_DODGE))) }
                 end,
@@ -593,7 +644,7 @@ local SECTIONS = {
                 kind = "pct", hideZero = true,
                 rating = function() return CR_PARRY end,
                 show = function(ctx) return ctx.tank end,
-                get = function() return Num(GetParryChance()) end,
+                value = function() return GetParryChance() end,
                 tip = function()
                     return { format(CR_PARRY_TOOLTIP, Num(GetCombatRating(CR_PARRY)), Num(GetCombatRatingBonus(CR_PARRY))) }
                 end,
@@ -603,7 +654,7 @@ local SECTIONS = {
                 label = function() return G("STAT_BLOCK", "Block") end,
                 kind = "pct", hideZero = true,
                 show = function(ctx) return ctx.hasShield end,
-                get = function() return Num(GetBlockChance()) end,
+                value = function() return GetBlockChance() end,
                 -- PaperDollFrame.lua:750
                 tip = function()
                     local shield = Num(GetShieldBlock())
@@ -618,14 +669,11 @@ local SECTIONS = {
                 label = function() return G("STAT_STAGGER", "Stagger") end,
                 kind = "pct", hideZero = true,
                 show = function(ctx) return ctx.tank end,
-                get = function()
-                    local stagger, vsTarget = C_PaperDollInfo.GetStaggerPercentage("player")
-                    return Num(stagger), vsTarget
-                end,
+                value = function() return (C_PaperDollInfo.GetStaggerPercentage("player")) end,
                 -- PaperDollFrame.lua:722
-                tip = function(_, stagger, vsTarget)
+                tip = function(_, stagger)
                     local lines = { format(STAT_STAGGER_TOOLTIP, stagger) }
-                    vsTarget = S.PlainNumber(vsTarget)
+                    local vsTarget = S.PlainNumber(select(2, C_PaperDollInfo.GetStaggerPercentage("player")))
                     if vsTarget then lines[#lines + 1] = format(STAT_STAGGER_TARGET_TOOLTIP, vsTarget) end
                     return lines
                 end,
@@ -635,46 +683,42 @@ local SECTIONS = {
 }
 
 local SECTION_BY_KEY = {}
-for _, sec in ipairs(SECTIONS) do SECTION_BY_KEY[sec.key] = sec end
-
-------------------------------------------------------------
--- 文字格式
-------------------------------------------------------------
-local function FormatValue(def, ctx, v, v2)
-    local kind = def.kind
-    local text
-    if kind == "pct" then
-        text = format("%.2f%%", v)
-    elseif kind == "dec" then
-        text = format("%.2f", v)
-    elseif kind == "speed" then
-        text = format("%.2f", v)
-        if v2 then text = text .. " / " .. format("%.2f", v2) end
-    else
-        text = Big(Round(v))
+local DEF_BY_KEY = {}
+local SECTION_OF = {}     -- defKey → sectionKey
+for _, sec in ipairs(SECTIONS) do
+    SECTION_BY_KEY[sec.key] = sec
+    for _, def in ipairs(sec.defs) do
+        DEF_BY_KEY[def.key] = def
+        SECTION_OF[def.key] = sec.key
     end
-    if ctx.showRating and def.rating then
-        -- 評等讀不到（秘密值）就只少括號那一段，百分比照樣顯示
-        local ok, r = pcall(function() return RatingText(def.rating(ctx)) end)
-        if ok and r then text = text .. " (" .. r .. ")" end
-    end
-    return text
 end
 
 ------------------------------------------------------------
--- 狀態與 UI
+-- 匯出給畫面上的屬性顯示（StatsHud.lua）：同一份定義與讀值，不抄第二份
 ------------------------------------------------------------
-local host, scroll
-local built = {}         -- sectionKey → { header, title, ruleL, ruleR, up, down, rows = {} }
-local ctx                -- 最後一次 BuildContext 的結果（tooltip 用）
+X.StatDefs = DEF_BY_KEY
+X.StatSectionOf = SECTION_OF
+X.BuildStatContext = BuildContext
 
 local function DB()
     return ns.db.extras
 end
 
+-- 一區的顏色：玩家換過的（`statsColors`）優先，其次是 Tokens 的預設
 local function SectionColor(key)
+    local over = DB().statsColors
+    local c = type(over) == "table" and over[key]
+    if type(c) == "table" and type(c[1]) == "number" then return c end
     return T.statCategory[key] or T.text
 end
+X.SectionColor = SectionColor
+
+------------------------------------------------------------
+-- 狀態與 UI
+------------------------------------------------------------
+local host, scroll
+local built = {}         -- sectionKey → { header, title, ruleL, ruleR, swatch, rows = {} }
+local ctx                -- 最後一次 BuildContext 的結果（tooltip 用）
 
 -- 排序：存檔裡認得的 key 照存檔順序，缺的照預設補在後面（新增一區時舊存檔照樣能用）
 local function Order()
@@ -700,6 +744,17 @@ local function IsCollapsed(key)
     return type(t) == "table" and t[key] == true
 end
 
+local function IsHidden(defKey)
+    local t = DB().statsHidden
+    return type(t) == "table" and t[defKey] == true
+end
+
+local function SubTable(name)
+    local t = DB()[name]
+    if type(t) ~= "table" then t = {}; DB()[name] = t end
+    return t
+end
+
 local Layout   -- forward
 
 local function NewFont(parent, size, justify)
@@ -716,16 +771,41 @@ local function SetColor(fs, c, a)
 end
 
 ------------------------------------------------------------
--- tooltip
+-- 數值 → FontString（秘密值當參數交給引擎畫，見 Common.lua）
+------------------------------------------------------------
+local function ValueMode(c)
+    return c.showRating and "pct_rating" or "pct"
+end
+
+-- 回傳 (template, args)；rating 讀不到（nil）就只少括號那一段
+local function ValueTemplate(def, c, v, v2)
+    local rating
+    if c.showRating and def.rating then
+        local cr = def.rating(c, v, v2)
+        if cr then rating = GetCombatRating(cr) end
+    end
+    local args = { n = 0 }
+    local tmpl = X.ValueParts(args, def.kind, v, v2, rating, ValueMode(c))
+    return tmpl, args
+end
+
+------------------------------------------------------------
+-- tooltip（要在 Lua 裡讀數字 ⇒ 只在明碼時給）
 ------------------------------------------------------------
 local function ShowTooltip(row)
     local def, sec = row.def, row.sec
     if not def or not ctx then return end
     local ok, lines, head = Try("CharacterStats.tip." .. def.key, function()
-        local vals = X.Pack(def.get(ctx))
+        local v, v2 = def.value(ctx)
+        Num(v)
+        if v2 ~= nil then Num(v2) end
+        local tmpl, args = ValueTemplate(def, ctx, v, v2)
+        for i = 1, args.n do
+            if IsSecret(args[i]) then Num(args[i]) end   -- 評等是秘密值 ⇒ 收手
+        end
         local headText = format(PAPERDOLLFRAME_TOOLTIP_FORMAT or "%s:", row.labelText or "") .. " "
-            .. FormatValue(def, ctx, vals[1], vals[2])
-        local out = def.tip and def.tip(ctx, unpack(vals, 1, vals.n)) or {}
+            .. format(tmpl, unpack(args, 1, args.n))
+        local out = def.tip and def.tip(ctx, v, v2) or {}
         return out, headText
     end)
     if not ok then return end
@@ -756,6 +836,35 @@ local function HideTooltip(row)
 end
 
 ------------------------------------------------------------
+-- 編輯狀態每列左邊的勾選框（自己畫：同共用層 `W.CreateCheckButton` 那張勾、同一個色）
+------------------------------------------------------------
+local function NewRowCheck(row)
+    local b = CreateFrame("Button", nil, row)
+    b:SetSize(CHECK, CHECK)
+    b:SetPoint("LEFT", row, "LEFT", 0, 0)
+    local bd = X.Backdrop(b, T.fillCheck, T.border)
+    -- 勾的貼圖邊長：同 T.checkGlyphHeight 對 T.checkBoxSize 的比例，再除掉貼圖留白（勾往外溢）
+    local glyph = b:CreateTexture(nil, "OVERLAY")
+    glyph:SetTexture(T.checkOutlineTexture)
+    local size = CHECK * T.checkGlyphHeight / T.checkBoxSize / T.checkOutlineGlyphFrac
+    glyph:SetSize(size, size)
+    glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
+    glyph:SetVertexColor(T.AccentCheck())
+    b.glyph = glyph
+
+    b:SetScript("OnEnter", function() bd:SetBorder({ T.Accent() }) end)
+    b:SetScript("OnLeave", function() bd:SetBorder(T.border) end)
+    b:SetScript("OnClick", function()
+        local key = row.def.key
+        local t = SubTable("statsHidden")
+        t[key] = (not IsHidden(key)) or nil
+        Layout()
+    end)
+    b:Hide()
+    return b
+end
+
+------------------------------------------------------------
 -- 建一列
 ------------------------------------------------------------
 local function NewRow(sec, big)
@@ -777,56 +886,116 @@ local function NewRow(sec, big)
         leader:SetPoint("LEFT", row.label, "RIGHT", 10, 0)
         leader:SetPoint("RIGHT", row.value, "LEFT", -10, 0)
     end
+    row.check = NewRowCheck(row)
     row:SetScript("OnEnter", ShowTooltip)
     row:SetScript("OnLeave", HideTooltip)
     return row
 end
 
 ------------------------------------------------------------
--- 區標題：「∧ ——— 標題 ——— ∨」
---   點標題＝收合／展開；左箭頭＝跟上一區交換、右箭頭＝跟下一區交換。
+-- 區的顏色：標題字、兩條線、色票、每列的數值
 ------------------------------------------------------------
-local function Swap(key, dir)
-    local order = Order()
-    for i, k in ipairs(order) do
-        if k == key then
-            local j = i + dir
-            if j < 1 or j > #order then return end
-            order[i], order[j] = order[j], order[i]
-            DB().statsOrder = order
-            Layout()
-            return
+local function PaintSection(key)
+    local ui = built[key]
+    if not ui or SECTION_BY_KEY[key].fixed then return end
+    local c = SectionColor(key)
+    if not ui.hover then SetColor(ui.title, c) end
+    ui.ruleL:SetVertexColor(c[1], c[2], c[3], T.statRuleAlpha)
+    ui.ruleR:SetVertexColor(c[1], c[2], c[3], T.statRuleAlpha)
+    if ui.swatch then ui.swatch:SetColor({ r = c[1], g = c[2], b = c[3], a = 1 }) end
+    for _, row in ipairs(ui.rows) do
+        if row.label then SetColor(row.value, c) end
+    end
+end
+
+local function PaintAll()
+    for key in pairs(built) do PaintSection(key) end
+end
+
+-- 色票選了顏色：跟預設一樣就不存（「重設顏色」之後再點開取消，不該留下一筆覆寫）
+local function SetSectionColor(key, r, g, b)
+    local def = T.statCategory[key]
+    local t = SubTable("statsColors")
+    if def and math.abs(def[1] - r) < 0.002 and math.abs(def[2] - g) < 0.002 and math.abs(def[3] - b) < 0.002 then
+        t[key] = nil
+    else
+        t[key] = { r, g, b }
+    end
+    X.NotifyStatsChanged("colors")
+end
+
+------------------------------------------------------------
+-- 拖曳排序（只在編輯狀態）
+--
+-- 影子是**自己的**框：parent UIParent、TOOLTIP strata，同字同色的 FontString 跟著游標。
+-- 放手時拿游標的 y 跟各區標題的 GetTop／GetBottom（自己的框，量得到）比：
+-- 中線在游標上面的那幾區排在前面，拖的那一區插在它們後面。物品等級不在排序裡 ⇒
+-- 永遠第一、也插不到它前面。
+------------------------------------------------------------
+local ghost
+local dragging
+
+local function Ghost()
+    if ghost then return ghost end
+    ghost = CreateFrame("Frame", nil, UIParent)
+    ghost:SetFrameStrata("TOOLTIP")
+    ghost:SetSize(1, 1)
+    ghost.text = NewFont(ghost, FONT_TITLE, "CENTER")
+    ghost.text:SetPoint("CENTER", ghost, "CENTER", 0, 0)
+    ghost:SetScript("OnUpdate", function(self)
+        local x, y = GetCursorPosition()
+        local s = self:GetEffectiveScale()
+        self:ClearAllPoints()
+        self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / s, y / s)
+    end)
+    ghost:Hide()
+    return ghost
+end
+
+local function BeginDrag(key)
+    local ui = built[key]
+    dragging = key
+    ui.header:SetAlpha(DRAG_ALPHA)
+    local g = Ghost()
+    local hs, us = ui.header:GetEffectiveScale(), UIParent:GetEffectiveScale()
+    if hs and us and us > 0 then g:SetScale(hs / us) end
+    g.text:SetText(ui.title:GetText() or "")
+    SetColor(g.text, SectionColor(key))
+    g:Show()
+end
+
+-- cancel：清單被收起來／編輯狀態被關掉時只收尾、不改順序
+local function EndDrag(key, cancel)
+    if dragging ~= key then return end
+    dragging = nil
+    local ui = built[key]
+    ui.header:SetAlpha(1)
+    if ghost then ghost:Hide() end
+    if cancel then return end
+
+    local _, cy = GetCursorPosition()
+    local others = {}
+    for _, k in ipairs(Order()) do
+        if k ~= key then others[#others + 1] = k end
+    end
+    local pos = 0
+    for i, k in ipairs(others) do
+        local h = built[k].header
+        if h:IsShown() then
+            local top, bottom = h:GetTop(), h:GetBottom()
+            local s = h:GetEffectiveScale()
+            if top and bottom and s and s > 0 and (top + bottom) / 2 > cy / s then pos = i end
         end
     end
+    table.insert(others, pos + 1, key)
+    DB().statsOrder = others
+    Layout()
 end
 
-local arrowEnabled = setmetatable({}, { __mode = "k" })
-
-local function NewArrow(header, dir, color)
-    local b = CreateFrame("Button", nil, header)
-    b:SetSize(ARROW, ARROW)
-    b:SetFrameLevel(header:GetFrameLevel() + 2)
-    X.Chevron(b, dir, 8, color)
-    b:SetAlpha(T.statArrowAlpha)
-    b:SetScript("OnEnter", function(self) self:SetAlpha(T.statArrowHoverAlpha) end)
-    b:SetScript("OnLeave", function(self)
-        if arrowEnabled[self] ~= false then self:SetAlpha(T.statArrowAlpha) end
-    end)
-    return b
-end
-
--- 箭頭能不能按：第一區的上、最後一區的下灰到 0.25 且不吃滑鼠（EllesmereUI 同）。
--- 狀態記在自己的表：交換之後滑鼠還停在那顆上，OnLeave 不能把灰掉的又點亮。
-local function SetArrowEnabled(b, enabled)
-    arrowEnabled[b] = enabled
-    b:EnableMouse(enabled)
-    if not enabled then
-        b:SetAlpha(T.statArrowDisabledAlpha)
-    elseif not b:IsMouseOver() then
-        b:SetAlpha(T.statArrowAlpha)
-    end
-end
-
+------------------------------------------------------------
+-- 區標題：「——— 標題 ——— ■」（■ 是編輯狀態的色票）
+--   點標題＝收合／展開；編輯狀態拖標題＝排序。
+------------------------------------------------------------
 local function BuildSection(sec)
     local key = sec.key
     local color = SectionColor(key)
@@ -855,29 +1024,52 @@ local function BuildSection(sec)
         ruleR:SetPoint("RIGHT", header, "RIGHT", 0, 0)
         header:EnableMouse(false)
     else
-        local up = NewArrow(header, "up", color)
-        up:SetPoint("LEFT", header, "LEFT", 0, 0)
-        up:SetScript("OnClick", function() Swap(key, -1) end)
-        local down = NewArrow(header, "down", color)
-        down:SetPoint("RIGHT", header, "RIGHT", 0, 0)
-        down:SetScript("OnClick", function() Swap(key, 1) end)
-        ui.up, ui.down = up, down
+        -- 色票永遠佔位（編輯狀態外 alpha 0、不吃滑鼠）⇒ 右線一律錨在它左邊，版面不跳；
+        -- 左線讓出同樣寬，標題才置中在兩條線之間
+        local swatch = W.CreateColorPicker(header, nil, false, function(r, g, b)
+            SetSectionColor(key, r, g, b)
+        end)
+        P.Size(swatch, SWATCH, SWATCH)
+        swatch:SetPoint("RIGHT", header, "RIGHT", 0, 0)
+        swatch:SetFrameLevel(header:GetFrameLevel() + 2)
+        swatch:SetColor({ r = color[1], g = color[2], b = color[3], a = 1 })
+        swatch:SetAlpha(0)
+        swatch:EnableMouse(false)
+        ui.swatch = swatch
 
-        ruleL:SetPoint("LEFT", up, "RIGHT", RULE_GAP, 0)
+        ruleL:SetPoint("LEFT", header, "LEFT", SWATCH + RULE_GAP, 0)
         ruleL:SetPoint("RIGHT", title, "LEFT", -RULE_GAP, 0)
         ruleR:SetPoint("LEFT", title, "RIGHT", RULE_GAP, 0)
-        ruleR:SetPoint("RIGHT", down, "LEFT", -RULE_GAP, 0)
+        ruleR:SetPoint("RIGHT", swatch, "LEFT", -RULE_GAP, 0)
 
         header:RegisterForClicks("LeftButtonUp")
-        header:SetScript("OnClick", function()
-            local t = DB().statsCollapsed
-            if type(t) ~= "table" then t = {}; DB().statsCollapsed = t end
+        header:RegisterForDrag("LeftButton")
+        -- 拖過就不算點（拖完放手時 OnClick 可能還會來）；按下時重置，不然沒來的那次會吃掉下一次點擊
+        header:SetScript("OnMouseDown", function(self) self.dragged = false end)
+        header:SetScript("OnDragStart", function(self)
+            if not X.IsEditing() then return end
+            self.dragged = true
+            BeginDrag(key)
+        end)
+        header:SetScript("OnDragStop", function() EndDrag(key) end)
+        header:SetScript("OnClick", function(self)
+            if self.dragged then
+                self.dragged = false
+                return
+            end
+            local t = SubTable("statsCollapsed")
             t[key] = (not IsCollapsed(key)) or nil
             Layout()
         end)
         -- 滑過標題：字提亮成白，告訴玩家這一條可以點（狀態只換明暗）
-        header:SetScript("OnEnter", function() SetColor(title, T.text) end)
-        header:SetScript("OnLeave", function() SetColor(title, color) end)
+        header:SetScript("OnEnter", function()
+            ui.hover = true
+            SetColor(title, T.text)
+        end)
+        header:SetScript("OnLeave", function()
+            ui.hover = false
+            SetColor(title, SectionColor(key))
+        end)
     end
 
     for i, def in ipairs(sec.defs) do
@@ -901,24 +1093,32 @@ local function PaintItemLevelColor()
 end
 
 ------------------------------------------------------------
--- 排版：只在「顯示的列」或順序／收合變了的時候跑（每次讀值不一定要重排）
+-- 排版：只在「可顯示的列」、順序／收合／隱藏、編輯狀態變了的時候跑
+--
+-- row.avail   ＝ 這一列現在有資料可顯示（show 條件 ＋ hideZero，Refresh 決定）
+-- 列出來的條件 ＝ avail 而且（編輯狀態 或 沒被玩家隱藏）
 ------------------------------------------------------------
 function Layout()
     if not scroll then return end
     local child = scroll.child
+    local editing = X.IsEditing()
     local y = 0
     local keys = { "itemlevel" }
     for _, k in ipairs(Order()) do keys[#keys + 1] = k end
 
-    local orderable = #keys - 1
-    for idx, key in ipairs(keys) do
+    for _, key in ipairs(keys) do
         local ui = built[key]
-        local anyVisible = false
+        local anyListed = false
         for _, row in ipairs(ui.rows) do
-            if row.visible then anyVisible = true break end
+            row.listed = row.avail and (editing or not IsHidden(row.def.key)) or false
+            if row.listed then anyListed = true end
         end
-        -- 整區沒有可顯示的列（例如低等級的物品等級）⇒ 連標題一起收起來
-        if not anyVisible then
+        if ui.swatch then
+            ui.swatch:SetAlpha(editing and 1 or 0)
+            ui.swatch:EnableMouse(editing)
+        end
+        -- 整區沒有可列的（例如低等級的物品等級、整區被取消勾選）⇒ 連標題一起收起來
+        if not anyListed then
             ui.header:Hide()
             for _, row in ipairs(ui.rows) do row:Hide() end
         else
@@ -930,11 +1130,19 @@ function Layout()
             local collapsed = IsCollapsed(key)
             if not collapsed then y = y + TITLE_GAP end
             for _, row in ipairs(ui.rows) do
-                if row.visible and not collapsed then
+                if row.listed and not collapsed then
+                    local hidden = IsHidden(row.def.key)
                     row:Show()
                     row:ClearAllPoints()
                     row:SetPoint("TOPLEFT", child, "TOPLEFT", 0, -y)
                     row:SetPoint("TOPRIGHT", child, "TOPRIGHT", 0, -y)
+                    row:SetAlpha((editing and hidden) and HIDDEN_ALPHA or 1)
+                    row.check:SetShown(editing)
+                    row.check.glyph:SetShown(not hidden)
+                    if row.label then
+                        row.label:ClearAllPoints()
+                        row.label:SetPoint("LEFT", row, "LEFT", editing and CHECK_INDENT or 0, 0)
+                    end
                     y = y + (row.def.big and ILVL_ROW_H or ROW_H)
                 else
                     row:Hide()
@@ -942,53 +1150,54 @@ function Layout()
             end
             y = y + SECTION_GAP
         end
-        if ui.up then
-            SetArrowEnabled(ui.up, idx > 2)                 -- keys[1] 是物品等級
-            SetArrowEnabled(ui.down, idx - 1 < orderable)
-        end
     end
     scroll:SetContentHeight(y)
 end
 
 ------------------------------------------------------------
--- 讀值：每一列跑一次 get，決定顯示與否與文字
+-- 讀值：每一列跑一次 value，決定可不可顯示與文字
 ------------------------------------------------------------
+local function UpdateRow(row)
+    local def = row.def
+    local avail = (def.show == nil) or (def.show(ctx) and true or false)
+    if avail then
+        local v, v2 = def.value(ctx)
+        if v == nil then
+            row.value:SetText(DASH)
+        else
+            -- hideZero：明碼才判斷；秘密時維持上一次的可見性（第一次就當可見）
+            if def.hideZero then
+                if IsSecret(v) then
+                    if row.avail == false then avail = false end
+                elseif v == 0 then
+                    avail = false
+                end
+            end
+            if avail then
+                local tmpl, args = ValueTemplate(def, ctx, v, v2)
+                row.value:SetFormattedText(tmpl, unpack(args, 1, args.n))
+            end
+        end
+    end
+    local label = def.label(ctx)
+    row.labelText = label
+    if row.label then row.label:SetText(label) end
+    return avail
+end
+
 local function Refresh()
     if not host then return end
     ctx = BuildContext()
     local changed = false
     for _, sec in ipairs(SECTIONS) do
-        local ui = built[sec.key]
-        for _, row in ipairs(ui.rows) do
-            local def = row.def
-            local visible = (def.show == nil) or (def.show(ctx) and true or false)
-            local text
-            if visible then
-                local ok, v, v2 = Try("CharacterStats." .. def.key, function()
-                    local a, b = def.get(ctx)
-                    return a, b
-                end)
-                if ok then
-                    if def.hideZero and v == 0 then
-                        visible = false
-                    else
-                        local okf, s = Try("CharacterStats.format." .. def.key, FormatValue, def, ctx, v, v2)
-                        text = okf and s or DASH
-                    end
-                else
-                    text = DASH       -- 秘密值（或讀不到）：照樣列出來，數值顯示「—」
-                end
+        for _, row in ipairs(built[sec.key].rows) do
+            local ok, avail = Try("CharacterStats." .. row.def.key, UpdateRow, row)
+            if not ok then
+                row.value:SetText(DASH)
+                avail = true
             end
-            if row.label then
-                local label = def.label(ctx)
-                row.labelText = label
-                row.label:SetText(label)
-            else
-                row.labelText = def.label(ctx)
-            end
-            if visible then row.value:SetText(text) end
-            if row.visible ~= visible then
-                row.visible = visible
+            if row.avail ~= avail then
+                row.avail = avail
                 changed = true
             end
         end
@@ -1061,11 +1270,24 @@ local function Build()
     end)
     host:SetScript("OnHide", function(self)
         self:UnregisterAllEvents()
+        -- 拖到一半清單被收起來（關角色面板）：OnDragStop 不一定會來
+        if dragging then EndDrag(dragging, true) end
     end)
     host:SetScript("OnEvent", Queue)
 
     -- 暴雪的 pane 整個藏起來（alpha 0），它自己的更新照跑
     E.Neutralize(pane, "CharacterStatsPane")
+
+    -- 編輯狀態切換、設定面板改了東西：重畫
+    X.OnEditChanged(function()
+        if dragging then EndDrag(dragging, true) end
+        Layout()
+    end)
+    X.OnStatsChanged(function()
+        PaintAll()
+        if host:IsVisible() then Refresh() end
+        Layout()
+    end)
 
     Refresh()
     Layout()
@@ -1074,7 +1296,7 @@ end
 
 -- 設定頁的「百分比旁顯示評等值」是即時的：改了就重讀一次
 function X.RefreshStats()
-    if host and host:IsVisible() then Refresh() end
+    X.NotifyStatsChanged("rating")
 end
 
 X.Register("statsPanel", Build)
