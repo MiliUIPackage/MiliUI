@@ -102,6 +102,8 @@ Ayije 從來不顯示持續時間的原因：它預設在 SetCooldown 後掛勾 
 **How to apply：** 上色後不要再 SetAlpha 貼圖；要「顯示／隱藏」用 Show／Hide。另一條真的缺口也一起補了：戰鬥中面板是保護框、重排延到脫戰，
 引擎列的暗底只在 Layout 上色 ⇒ 延後時走 `R.RecolorDeferred` → `AB.RecolorRowDecor` 只 SetVertexColor／SetTexture 不動幾何；
 自訂列（CustomBars）這條還沒補。
+同一天使用者拍板：**背景透明度是絕對值**（1 不透明、0 全透明、預設 0.6），不是倍率；DB v9 把舊值 × 0.6（含 style[key]）。所有底色（自動推的、自訂、
+條件規則 bgColor、征戰聖擊 backColor）顏色各走各的、alpha 一律 `BgAlpha(cfg)`，別再在上面乘 0.6／0.8。
 
 **充能旗標不等於有充能（2026-10-04）**：冷卻管理器資料的 `charges` 是「可以有充能」，天賦給第二次的技能沒點也是 true；照它問 `GetSpellChargeDuration` 回充永遠是零 ⇒
 隱藏 GCD 轉圈把武器戰法術反射的冷卻框一直藏著。凡是照它選 `GetSpellChargeDuration` 的地方都要過 `Decorate.IsChargeSpell`（`maxCharges > 1`，秘密時沿用上次明文）。

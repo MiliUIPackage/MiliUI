@@ -42,7 +42,7 @@ local function ComputeItemIdData(linkOrId)
     local data = {}
     local _, itemId = ParseHyperLink(linkOrId)
     data.itemId = itemId
-    data.isEquippable = (IsEquippableItem and IsEquippableItem(linkOrId)) and true or false
+    data.isEquippable = C_Item.IsEquippableItem(linkOrId) and true or false
     data.enhancementId = L["N/A"]
     data.bonusId = L["N/A"]
     data.gemId = L["N/A"]
@@ -114,7 +114,7 @@ function Item.Apply(tip, state, link)
 
     -- 資料片
     if (db.item.showItemExpansion or showAll) and link then
-        local expacId = select(15, GetItemInfo(link))
+        local expacId = select(15, C_Item.GetItemInfo(link))
         expacId = S.PlainNumber(expacId)
         if expacId then
             local expansionName = _G["EXPANSION_NAME" .. expacId]
@@ -144,11 +144,11 @@ function Item.Apply(tip, state, link)
             AddIdLine(tip, L["Gem ID"], data.gemId, true)
         end
         if db.item.showItemIconId or showAll then
-            local icon = select(10, GetItemInfo(link))
+            local icon = select(10, C_Item.GetItemInfo(link))
             if S.PlainNumber(icon) then AddIdLine(tip, L["Icon ID"], icon, true) end
         end
         if db.item.showItemMaxStack or showAll then
-            local maxStack = select(8, GetItemInfo(link))
+            local maxStack = select(8, C_Item.GetItemInfo(link))
             maxStack = S.PlainNumber(maxStack)
             if maxStack and maxStack > 1 then AddIdLine(tip, L["Max stack"], maxStack, true) end
         end
@@ -156,7 +156,7 @@ function Item.Apply(tip, state, link)
 
     -- 圖示（塞在第一行前面）
     if db.item.showItemIcon and link then
-        local texture = select(10, GetItemInfo(link))
+        local texture = select(10, C_Item.GetItemInfo(link))
         if texture and not S.IsForbiddenObject(tip) then
             local line1 = Lines.Get(tip, 1)
             local text = line1 and S.PlainText(line1:GetText())
@@ -178,9 +178,9 @@ function Item.Apply(tip, state, link)
             end
         end
         if r == nil and link then
-            local quality = S.PlainNumber(select(3, GetItemInfo(link)))
+            local quality = S.PlainNumber(select(3, C_Item.GetItemInfo(link)))
             if quality then
-                r, g, b = GetItemQualityColor(quality)
+                r, g, b = C_Item.GetItemQualityColor(quality)
             end
         end
         if r ~= nil then

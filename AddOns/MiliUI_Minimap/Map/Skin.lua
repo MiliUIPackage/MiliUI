@@ -99,6 +99,16 @@ local function HideBlizzardArt(hide)
     if MinimapCluster and MinimapCluster.BorderTop then
         MinimapCluster.BorderTop:SetAlpha(a)
     end
+
+    -- 12.1.5 新增的暴雪座標框（cvar minimapShowPlayerCoords 預設開、錨在 Minimap 底下）。
+    -- 我們自己畫座標（coordText），兩份會疊在一起。用 Hide 不用 alpha：它有每 0.1 秒
+    -- 查 C_Map.GetPlayerMapPosition 的 OnUpdate，Hide 才會停。普通框不是保護框。
+    -- 12.1.0 沒有這個框，查不到就跳過。
+    local pc = MinimapCluster and MinimapCluster.MinimapContainer
+        and MinimapCluster.MinimapContainer.PlayerCoords
+    if pc then
+        if hide then pc:Hide() else pc:Show() end
+    end
 end
 
 ------------------------------------------------------------
