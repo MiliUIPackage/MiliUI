@@ -147,6 +147,44 @@ function ns.DebugText()
     end
 
     ------------------------------------------------------------
+    -- 圖示：每個視窗目前顯示的列，輸入（職業、專精圖示）→ 對到哪張圖 → 實際畫了什麼。
+    -- 「有些列沒圖示」的回報看這段：class=nil 是 NPC／秘密值（照設計不畫），
+    -- specIcon=secret 是戰鬥中拿不到（退暴雪圖示），mili=NO 是對照表沒對上。
+    ------------------------------------------------------------
+    add("")
+    local st = ns.DB.Style() or {}
+    add(("[icons] style=%s zoom=%s"):format(tostring(st.iconStyle), Num(st.iconZoom)))
+    local function Str(v)
+        if v == nil then return "nil" end
+        if D.IsSecret(v) then return "secret" end
+        return tostring(v)
+    end
+    local function BarLine(prefix, bar)
+        local src = bar and bar._src
+        if not src or not bar.row:IsShown() then return end
+        local info = D.SpecInfo(src.specIconID)
+        local tex = bar.icon:IsShown() and bar.icon:GetTexture()
+        add(("%s %s class=%s specIcon=%s own=%s -> mili=%s | icon shown=%s tex=%s bg=%s")
+            :format(prefix, Str(src.name), Str(src.classFilename), Str(src.specIconID),
+                    tostring(D.IsOwnRow(src)),
+                    info and (info.tex and info.tex:match("([^\\]+)%.png$") or "no tex") or "NO",
+                    tostring(bar.icon:IsShown()), Str(tex),
+                    tostring(bar.icon._miliBg and bar.icon._miliBg:IsShown() or false)))
+    end
+    if ns.Windows then
+        ns.Windows.ForEach(function(W)
+            add(("#%d type=%s"):format(W.idx, Str(W.curDMType)))
+            ns.Window.ForEachPane(W, function(P)
+                local tag = (P == W) and "  " or "  [split]"
+                for i, bar in ipairs(P.rowPool or {}) do BarLine(tag .. " " .. i .. ".", bar) end
+                if P.stickyBar then BarLine(tag .. " sticky", P.stickyBar) end
+            end)
+        end)
+    end
+    add("  spec map:")
+    for _, line in ipairs(D.SpecMapLines()) do add("    " .. line) end
+
+    ------------------------------------------------------------
     -- 錯誤
     ------------------------------------------------------------
     add("")

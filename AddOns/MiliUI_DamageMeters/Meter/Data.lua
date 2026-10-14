@@ -344,6 +344,19 @@ function D.SpecInfo(specIconID)
     return specByIcon[specIconID]
 end
 
+-- 除錯報告用：整張對照表一行一個專精，照職業與暴雪順序排（驗 SPEC_KEYS 有沒有錯位）
+function D.SpecMapLines()
+    if not specByIcon then BuildSpecMap() end
+    local rows = {}
+    for icon, info in pairs(specByIcon) do
+        rows[#rows + 1] = ("%s %s(%s) icon=%s -> %s"):format(tostring(info.classFile),
+            tostring(info.name), tostring(info.specID), tostring(icon),
+            info.tex and info.tex:match("([^\\]+)%.png$") or "NO TEXTURE")
+    end
+    table.sort(rows)
+    return rows
+end
+
 ------------------------------------------------------------
 -- 圖示
 --
