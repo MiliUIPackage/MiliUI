@@ -420,6 +420,13 @@ function Pop.SlotProcState()
 end
 function Pop.SlotProcTipWhen(kind, class) return Pop.ProcWhen(kind, class) and Pop.SlotProcState() == "proc" end
 function Pop.SlotNoProcWhen(kind, class) return Pop.ProcWhen(kind, class) and Pop.SlotProcState() == "none" end
+-- 條層選了往前補、這一格的增益疊層被關掉（Catalog.BarOverlaysSuppressed）：飾品欄（含代畫格）、自訂物品的
+-- 「顯示增益持續時間」那一段與「觸發發光」那一列停用、黃字寫原因。暴雪自己畫的裝備欄格（沒在代畫）不算：
+-- 那是暴雪自己的增益持續時間，不是我們的疊層。掛在 Pop 上（Build 的 upvalue 上限）
+function Pop.OverlaySuppressed(kind)
+    if not (cur and ns.Catalog.BarOverlaysSuppressed and ns.Catalog.BarOverlaysSuppressed(cur.key)) then return false end
+    return kind == "slot" or kind == "item" or CurSlot() ~= nil
+end
 -- 那一格解不出增益（疊不了增益按鈕）：增益持續時間那一段停用、黃字寫原因
 local function CurSlotNoBuff()
     local slot = CurSlot()
@@ -2387,10 +2394,17 @@ local function Build()
         -- 飾品欄／代畫格解不出增益：增益持續時間那一段停用的原因
         EmphasisRow(L["What's equipped in this slot has no buff to track."],
             function(kind, class) return DurationRows(kind, class) and CurSlotNoBuff() end, tab)
+        -- 條層選了往前補 ⇒ 疊層關掉：增益持續時間那一段停用的原因（解不出增益時讓上一句講）
+        EmphasisRow(L["This bar is set to “Hide, others move over”, so no buff is overlaid here."],
+            function(kind, class) return DurationRows(kind, class) and not CurSlotNoBuff() and Pop.OverlaySuppressed(kind) end, tab)
     end
     -- 飾品欄的觸發發光解不出觸發增益：原因（發光分頁）
     EmphasisRow(L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."]
         :format(L["Custom ID"], L["Aura"]), Pop.SlotNoProcWhen, "glow")
+    -- 條層選了往前補 ⇒ 觸發發光疊層也關掉：觸發發光那一列停用的原因
+    EmphasisRow(L["This bar is set to “Hide, others move over”, so no buff is overlaid here."],
+        function(kind, class) return Pop.ProcWhen(kind, class) and not Pop.SlotNoProcWhen(kind, class) and Pop.OverlaySuppressed(kind) end,
+        "glow")
     -- 飾品欄增益解不出增益：問號格的原因（一般分頁）
     EmphasisRow(L["This trinket has no buff to track."],
         function(kind) return kind == "aura" and CurSlotBuffMissing() == "nobuff" end, "general")
@@ -2722,6 +2736,12 @@ function Pop.Refresh()
 
     for _, r in ipairs(toggles) do
         r.cb:SetChecked(ns.SpellSetting(key, id, r.field) and true or false)
+        -- 觸發發光：條層選了往前補、這一格的觸發發光疊層被關掉 ⇒ 停用（黃字寫原因，EmphasisRow）
+        if r.field == "procGlow" then
+            local off = Pop.OverlaySuppressed(kind)
+            r.cb:SetEnabled(not off)
+            r.cb:SetAlpha(off and 0.4 or 1)
+        end
         -- 沒覆寫時講清楚值從哪來：條在這一節跟隨主題就是「跟隨主題」，條用自己的值就是「跟隨這一條」，
         -- 兩個都沒有（隱藏倒數／層數）就是預設
         if Override(r.field) ~= nil then
@@ -2749,7 +2769,8 @@ function Pop.Refresh()
     local av = Override("showAuraTime")
     frame.auraTimeDD:SetSelectedValue(av == true and "show" or av == false and "hide" or "follow")
     -- 飾品欄／代畫格解不出增益：整段停用（黃字寫原因）
-    local noBuff = CurSlotNoBuff()
+    -- 條層選了往前補（疊層關掉）同樣整段停用（黃字寫原因）
+    local noBuff = CurSlotNoBuff() or Pop.OverlaySuppressed(kind)
     frame.auraTimeDD:SetEnabled(not noBuff)
     frame.auraTimeDD:SetAlpha(noBuff and 0.4 or 1)
     local auraShown = not noBuff and ns.SpellSetting(key, id, "showAuraTime") ~= false

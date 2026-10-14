@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-12T03:59:28.650Z
+  modified: 2026-10-14T17:25:12.298Z
 ---
 
 ## 緣起與拍板
@@ -169,6 +169,11 @@ NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪�
   **自訂列**（`Modules/CustomBars.lua`：自身增益／目標減益／法術冷卻的計時條，2026-10-13）、**資源列獨立擺放**（`resources.detached[key]`，列的 parent 不換只改錨點，閒置面板走 `Bars.Dormant`）、
   自訂格子（`Modules/Pips.lua`）與兩個分頁的固定預覽框。
 - **飾品**：裝備欄位 `kind="slot"`（不經暴雪）、飾品冷卻格疊增益持續時間、暴雪沒給框時代畫（`[proxy]`）、飾品欄增益 `kind="slotbuff"`、沒有物品時隱藏／被動飾品不顯示、飾品欄觸發發光、藥水格疊增益。
+  **條層選往前補 ⇒ 飾品／藥水疊層自動關**（2026-10-15 玩家回報「加飾品就不能往前補」，使用者拍板排版優先於疊層）：`Catalog.BarOverlaysSuppressed`
+  要 `layout.emptyMode=="collapse"` **且** `layout.collapseChosen==true`（設定頁選了才寫）——每條預設存值就是 collapse，只看存值會讓所有人的疊層在更新後消失；
+  設定頁能不能選往前補看 `Bars.CollapseLocked`（忽略自己的疊層）不是 forced；溢過來的格子疊不疊照接收條判。
+  **真實條上飾品增益的提示**：暴雪 EquipSlotTracked 項目沒有 spellID，`ShowTip` 以前掉進 `SetInventoryItem` 畫整顆飾品 ⇒ 改走 `Catalog.SlotBuffTooltip`
+  （`Catalog.EquipTrackedOf`；增益在身上時暴雪畫 aura instance，我們不碰秘密 auraInstanceID）。三項都未實機（README 559～561）。
 - **音效**（`Core/Sound.lua`：就緒／出現／消失／充能滿／層數增加／施放後 N 秒提醒／倒數播報、天賦條件、自訂語音）、**事件視窗 沸點**（`Modules/EchoWindow.lua`，2026-10-12 實機：戰鬥中 `SPELL_UPDATE_COOLDOWN` 的 spellID 明文）。
 - **天空騎術**（[[project-miliui-cdm-skyriding]]）、**錨到單位框與具名框**（[[project-miliui-cdm-halo-borrow]] H4）、**效能計數 `/mcdm perf`** 與 E1～E3 修整（[[project-miliui-cdm-eui-comparison-2026-10-04]]）。
 

@@ -167,11 +167,20 @@ function Specs.EmptyModeDesc(mode, isBars)
 end
 
 -- 「往前補」不能選的原因；nil ＝ 能選。
--- 條上有光環格：只有光環格的條（Catalog.BarAuraFlow 成立）收合照選、走引擎補位；不成立時照 why 講原因
--- （混排沿用原本那句）。可點擊另一句。forSpell（逐法術那一列，Bars.SpellEmptyForced）：條本身能收合、但條層沒選收合時
--- 單格也不能收合（光環格只有整條補位一種收法）
+-- 條層那一列（EmptyModeRow）：Bars.CollapseLocked 成立時叫——問的是「選了往前補之後還有沒有保護框」，飾品／藥水的增益疊層
+-- 不算（選了往前補疊層就關掉，Catalog.BarOverlaysSuppressed）。原因照 Catalog.BarAuraFlow 的 why，說法點名格子與解法：
+--   混排（mixed）：列出這條的光環格（最多 3 個）＋「移到別條、或這條只留光環格」；
+--   這條自己沒有光環格、是被溢出來源條的光環格鎖住：點名來源條＋「移走那條的光環格、或取消它的溢出」；
+--   某一格自己設了留空位／暗圖示（spell）：點名那幾格＋「改回跟隨條」；其餘（rings／clickable／overflow／row2）照舊一句。
+-- forSpell（逐法術那一列，Bars.SpellEmptyForced）：單格選往前補不會關疊層，鎖是生效值——條層鎖住時同上；條只有光環格、
+-- 但條層沒選收合 ⇒ EMPTY_FORCED_BAR；條只是被自己的疊層逼成固定格位 ⇒ 指向條層的往前補（EMPTY_FORCED_OVERLAY）。
+-- EMPTY_FORCED（原本那句「有光環格或會顯示增益的飾品欄」）只剩當退路（判不出是哪一種時），語系條目不刪
 Specs.EMPTY_FORCED = L["This bar has aura slots or trinkets showing their buff. They can't move during combat, so slots can't close up."]
 Specs.EMPTY_FORCED_CLICK = L["This bar is clickable. The click targets can't move during combat, so slots can't close up."]
+Specs.EMPTY_FORCED_MIXED = L["Aura slots %s share this bar with other slots. Aura slots can't move during combat, so slots can't close up. Move the aura slots to another bar, or keep only aura slots on this bar, and slots can close up."]
+Specs.EMPTY_FORCED_FROM = L["The overflow source bar “%s” has aura slots. Aura slots that overflow here can't move during combat, so slots can't close up. Move those aura slots off that bar, or turn off its overflow, and slots can close up."]
+Specs.EMPTY_FORCED_SPELL = L["Aura slots %s are set to leave their slot empty or show a dimmed icon, so slots can't close up. Set them back to follow the bar, and slots can close up."]
+Specs.EMPTY_FORCED_OVERLAY = L["Trinkets or potions on this bar are showing their buff, and those can't move during combat. Set the whole bar to “Hide, others move over” (their buff overlays turn off), and this slot can close up too."]
 Specs.EMPTY_FORCED_WHY = {
     mixed     = Specs.EMPTY_FORCED,
     rings     = L["Aura slots on a ring bar keep their ring, so slots can't close up."],
@@ -181,16 +190,72 @@ Specs.EMPTY_FORCED_WHY = {
     row2      = L["This bar has aura slots and a different second-row size, so slots can't close up."],
 }
 Specs.EMPTY_FORCED_BAR = L["Aura slots only move over when the whole bar is set to “Hide, others move over”."]
+-- 條層那一列的黃字提示（W.fontEmphasis，在底部灰字說明正上方）：Specs.EmptyModeHint 的兩種
+Specs.EMPTY_HINT = {
+    will = L["Picking “Hide, others move over” turns off the buff overlays of trinkets and potions on this bar (no buff duration or proc glow)."],
+    off  = L["This bar is set to “Hide, others move over”, so trinkets and potions on it don't show their buff overlays (buff duration, proc glow)."],
+}
+
+-- 格子名字的清單：最多 3 個，超過寫「等 N 格」（N ＝ 總數）
+function Specs.SlotNameList(ids)
+    local names = {}
+    for i, id in ipairs(ids) do
+        if i > 3 then break end
+        local inf = ns.Catalog.Info(id)
+        names[#names + 1] = inf and inf.name or tostring(id)
+    end
+    local s = table.concat(names, L[", "])
+    if #ids > 3 then s = L["%s and others (%d in all)"]:format(s, #ids) end
+    return s
+end
+
 function Specs.EmptyModeForcedText(key, forSpell)
     local C = ns.Catalog
-    if C.BarHasAuraSlot(key) then
+    if C.BarHasAuraSlot(key, true) then
         local ok, why = C.BarAuraFlow(key)
-        if not ok then return Specs.EMPTY_FORCED_WHY[why] or Specs.EMPTY_FORCED end
+        if not ok then
+            local own = C.BarAuraSlotIDs(key)
+            if #own == 0 then
+                -- 自己沒有光環格：鎖在溢出來源條的光環格（Catalog.OverflowAuraSources）
+                local src = C.OverflowAuraSources(key)
+                if #src > 0 then
+                    local names = {}
+                    for i, k in ipairs(src) do names[i] = ns.Options.PageTitle(k) or ns.Options.BarTitle(k) or k end
+                    return Specs.EMPTY_FORCED_FROM:format(table.concat(names, L[", "]))
+                end
+                return Specs.EMPTY_FORCED
+            end
+            if why == "mixed" then return Specs.EMPTY_FORCED_MIXED:format(Specs.SlotNameList(own)) end
+            if why == "spell" then
+                local cells = {}
+                for _, id in ipairs((C.BarBase(key))) do
+                    local m = ns.SpellSetting(key, id, "emptyMode")
+                    if C.IsAuraSlot(id) and (m == "blank" or m == "dim") then cells[#cells + 1] = id end
+                end
+                if #cells > 0 then return Specs.EMPTY_FORCED_SPELL:format(Specs.SlotNameList(cells)) end
+            end
+            return Specs.EMPTY_FORCED_WHY[why] or Specs.EMPTY_FORCED
+        end
         if forSpell then return Specs.EMPTY_FORCED_BAR end
         return nil
     end
     if ns.DB.BarClickable(key) then return Specs.EMPTY_FORCED_CLICK end
+    -- 逐法術：條只是被自己的飾品／藥水疊層逼成固定格位（條層選往前補就解開）
+    if forSpell and C.BarHasAuraSlot(key) then return Specs.EMPTY_FORCED_OVERLAY end
     return nil
+end
+
+-- 條層那一列要不要黃字提示 → "will"｜"off"｜nil（進 BarSignature：出不出現決定列高）
+--   will：往前補能選（沒被 CollapseLocked 鎖住）、現在疊層還在（沒 suppress）、而且這條有「不看往前補的話會疊」的格子
+--   off ：條層選了往前補、疊層已經關掉（BarOverlaysSuppressed）、而且有那種格子
+function Specs.EmptyModeHint(key)
+    local C, B = ns.Catalog, ns.Bars
+    if not (C and B and B.CollapseLocked and C.BarOverlaysSuppressed) then return nil end
+    if not ns.DB.BarTable(key) or ns.DB.BarIsRings(key) then return nil end
+    if not C.BarHasOverlayCandidates(key) then return nil end
+    if C.BarOverlaysSuppressed(key) then return "off" end
+    if B.CollapseLocked(key) then return nil end
+    return "will"
 end
 
 local GROUP_ITEMS = {
@@ -1030,9 +1095,14 @@ end
 
 ------------------------------------------------------------
 -- 增益不在時（條層 layout.emptyMode）：三態下拉＋下一列灰字。收合／留空位／暗圖示（長條類：空長條）。
--- 條上有光環格（走不了引擎補位）或可點擊（Bars.BarEmptyMode 的 forced）：「往前補」那一項灰掉（選了不寫）、顯示的是退回後的生效值，
--- 灰字換成原因（黃字）；存的值不動，條件解除就回來。下拉自己建（表單引擎的下拉清單建表時就定了、也沒有停用項），
--- 高度取所有說法裡最高的（列高在建表單時就定了）。
+-- 「往前補」能不能選看 Bars.CollapseLocked（選了之後會不會成立：飾品／藥水的增益疊層選了往前補就關掉，不算數）；
+-- 鎖住時那一項灰掉（選了不寫）、灰字換成原因（黃字色）；存的值不動，條件解除就回來。顯示的選中值是 Bars.BarEmptyMode 的生效值
+-- （存著往前補、但疊層還活著時退回的暗圖示／留空位）。
+-- 選往前補同時寫 layout.collapseChosen = true（Catalog.BarOverlaysSuppressed 只認這個：每條的預設值本來就是 collapse，
+-- 只看存值會讓所有人的飾品增益與觸發發光在更新後一起消失）；選別的清掉。
+-- 黃字提示（Specs.EmptyModeHint，W.fontEmphasis）：整列寬、在灰字說明正上方；出不出現進 BarSignature ⇒ 變了整張表單換形狀
+-- （refreshPage），列高在建表單時照當下的狀態定。下拉自己建（表單引擎的下拉清單建表時就定了、也沒有停用項），
+-- 灰字的高度取所有說法裡最高的。
 ------------------------------------------------------------
 local LOCKED = "locked"
 function EmptyModeRow(key, isBars)
@@ -1054,33 +1124,56 @@ function EmptyModeRow(key, isBars)
             if not b or value == LOCKED then Refresh() return end
             if type(b.layout) ~= "table" then b.layout = {} end
             b.layout.emptyMode = value
-            ctx.lastSpec = { level = "layout" }
+            b.layout.collapseChosen = (value == "collapse") or nil
+            ctx.lastSpec = { level = "layout", refreshPage = true }
             ctx.apply()
         end)
         dd:SetMaxWidth(width)
         dd:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
+        -- 黃字提示：只在建表單當下需要時建（列高跟著加）；之後狀態變了由 BarSignature 換表單
+        local hint = Specs.EmptyModeHint(key)
+        local hintFS, hintH = nil, 0
+        if hint then
+            hintFS = parent:CreateFontString(nil, "OVERLAY")
+            hintFS:SetFontObject(W.fontEmphasis)
+            hintFS:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 30)
+            hintFS:SetWidth(width)
+            hintFS:SetJustifyH("LEFT")
+            hintFS:SetWordWrap(true)
+            hintFS:SetText(Specs.EMPTY_HINT[hint])
+            hintH = math.max(14, hintFS:GetStringHeight() or 14) + 4
+        end
         local fs = parent:CreateFontString(nil, "OVERLAY")
         fs:SetFontObject(W.fontSmall)
-        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 30)
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 30 - hintH)
         fs:SetWidth(width)
         fs:SetJustifyH("LEFT")
         fs:SetWordWrap(true)
         local tallest = 14
-        local texts = { FORCED, FORCED_CLICK, Specs.EmptyModeDesc("collapse"), Specs.EmptyModeDesc("blank"),
-            Specs.EmptyModeDesc("dim", isBars) }
+        local texts = { FORCED, FORCED_CLICK, Specs.EMPTY_FORCED_FROM, Specs.EmptyModeDesc("collapse"),
+            Specs.EmptyModeDesc("blank"), Specs.EmptyModeDesc("dim", isBars) }
         for _, t in pairs(Specs.EMPTY_FORCED_WHY) do texts[#texts + 1] = t end
+        -- 點名格子的兩句：拿三個長名字的佔位量（真的名字在 Refresh 才填）
+        local sample = L["%s and others (%d in all)"]:format(table.concat({ "WWWWWWWWWW", "WWWWWWWWWW", "WWWWWWWWWW" }, L[", "]), 9)
+        texts[#texts + 1] = Specs.EMPTY_FORCED_MIXED:format(sample)
+        texts[#texts + 1] = Specs.EMPTY_FORCED_SPELL:format(sample)
         for _, t in ipairs(texts) do
             fs:SetText(t)
             tallest = math.max(tallest, fs:GetStringHeight() or 14)
         end
-        local h = 30 + tallest + 8
+        local h = 30 + hintH + tallest + 8
         Refresh = function()
-            local mode, forced = ns.Bars.BarEmptyMode(key)
-            dd:SetItems(Items(forced))
+            local mode = ns.Bars.BarEmptyMode(key)
+            local locked = ns.Bars.CollapseLocked(key)
+            dd:SetItems(Items(locked))
             dd:SetSelectedValue(mode)
-            local reason = forced and Specs.EmptyModeForcedText(key) or nil
+            local reason = locked and (Specs.EmptyModeForcedText(key) or FORCED) or nil
             fs:SetText(reason or Specs.EmptyModeDesc(mode, isBars))
             fs:SetTextColor(reason and 1 or 0.65, reason and 0.82 or 0.65, reason and 0 or 0.65)
+            if hintFS then
+                local now = Specs.EmptyModeHint(key)
+                hintFS:SetText(now and Specs.EMPTY_HINT[now] or "")
+            end
         end
         return h, Refresh
     end }
@@ -1939,6 +2032,8 @@ function Specs.BarSignature(key)
         table.concat(p and p.barOrder or {}, ","),
         Specs.AnchorGraphSig(),
         Specs.OverflowSig(key),
+        -- 「增益不在時」那一列的黃字提示出不出現（列高跟著變，EmptyModeRow）
+        "eh:" .. tostring(Specs.EmptyModeHint(key) or "-"),
     }, "|")
 end
 
