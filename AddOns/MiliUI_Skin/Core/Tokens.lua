@@ -82,7 +82,21 @@ T.textDisabled = { 0.4, 0.4, 0.4 }
 T.statCategory = {
     AttributesCategory   = { 0.047, 0.824, 0.616 },
     EnhancementsCategory = { 0.471, 0.255, 0.784 },
+    -- 自建屬性清單（`Extras/CharacterStats.lua`）的五區，key ＝ 區的 sectionKey。
+    -- 數值照抄 EllesmereUI 的預設調色；前兩條跟上面那兩條同色是刻意的
+    -- （暴雪的「屬性」＝我們的「屬性」，暴雪的「強化」主體＝我們的「次要屬性」）。
+    attributes = { 0.047, 0.824, 0.616 },
+    secondary  = { 0.471, 0.255, 0.784 },
+    tertiary   = { 0.859, 0.325, 0.855 },
+    attack     = { 1, 0.353, 0.122 },
+    defense    = { 0.247, 0.655, 1 },
 }
+
+-- 自建屬性清單區標題兩端的排序箭頭：閒置／滑過／不能按（第一區的上、最後一區的下）。
+-- 不能按的 0.25 照 EllesmereUI；閒置比滑過暗一階（狀態只換明暗）。
+T.statArrowAlpha         = 0.6
+T.statArrowHoverAlpha    = 1
+T.statArrowDisabledAlpha = 0.25
 
 -- 分類標題兩側那兩條髮絲線的 alpha：線比字弱一階。
 T.statRuleAlpha = 0.8

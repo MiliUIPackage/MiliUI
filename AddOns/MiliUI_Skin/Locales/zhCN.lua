@@ -126,3 +126,14 @@ L["Implicitly protected (skinned anyway):"] = "隐式保护的容器（照样换
 L["Deferred until out of combat:"] = "脱战后才会处理:"
 L["Backdrop drawn as a child frame:"] = "背景改用子框绘制（没走贴图那条路）:"
 L["Region backdrops:"] = "贴图背景:"
+
+-- 自建功能（Extras/）与「角色面板」设置分页
+L["Character Sheet"] = "角色面板"
+L["Custom stat list"] = "自建属性列表"
+L["Splits stats the EllesmereUI way: Attributes, Secondary, Tertiary, Attack and Defense each get a section that can be collapsed and reordered; values show two decimal places. Requires a UI reload."] = "照 EllesmereUI 的分法：属性／次要属性／第三属性／攻击／防御各一区，可折叠、可排序，数值显示到小数点后两位。需要重新加载界面。"
+L["Show rating next to percentages"] = "百分比旁显示等级值"
+L["Title search box"] = "称号页搜索框"
+L["Requires a UI reload."] = "需要重新加载界面。"
+L["Search titles..."] = "搜索称号…"
+L["Secondary Stats"] = "次要属性"
+L["Tertiary Stats"] = "第三属性"
