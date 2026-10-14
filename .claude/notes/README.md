@@ -174,7 +174,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-infobar.md](project-miliui-infobar.md) | 米利的資訊列 MiliUI_InfoBar —— 取代微型選單；secure 點擊轉發（macrotext）／hider／09-07 taint 四條入口／遊戲選單鈕走 secure snippet／**戰隊角色記錄多來源只能就地更新、不能整筆重建**／停靠／自動修裝與本體連動／外部方塊接口 MiliUI_InfoBarPlugins |
 | [project-miliui-debug-mode.md](project-miliui-debug-mode.md) | 本體除錯模式（只留本體與 BugSack、一鍵還原）＋好友名單職業色 |
 | [project-miliui-perf-tab.md](project-miliui-perf-tab.md) | 設定視窗的「效能監控」分頁 —— 插件 CPU／記憶體儀表板；成本紀律、戰鬥遮罩例外、待驗證清單 |
-| [project-miliui-questtracker.md](project-miliui-questtracker.md) | 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker；六條 taint 規矩、摺疊走 IsProtected 分流、**位置接管的正確模型（右側容器列管＋編輯模式指紋，10-12 三連修；Position.lua 的 EditModeSig 宣告順序 bug 待修）**、`/mquest debug` 三段判定 |
+| [project-miliui-questtracker.md](project-miliui-questtracker.md) | 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker；六條 taint 規矩、摺疊走 IsProtected 分流、**位置接管的正確模型（右側容器列管＋編輯模式指紋，10-12 三連修；EditModeSig 宣告順序 bug 10-14 已修）**、`/mquest debug` 三段判定 |
 | [project-miliui-characternotes.md](project-miliui-characternotes.md) | 米利的角色筆記 MiliUI_CharacterNotes —— 從套組拆出的獨立插件；聊天連結分享；**副本／首領筆記 2026-10-11 整組拔掉（程式碼已核對）**，分享協定格式不動、舊 SV 不刪 |
 | [project-miliui-shoppinglist.md](project-miliui-shoppinglist.md) | 米利的採購清單 MiliUI_ShoppingList —— 跟參考來源不同的六個決定、**代工下單頁的分配結果才是真相**、taint 紀律；拍賣場貼正下方（分頁長在矩形外）、位置分兩份、加入鈕避開別家錨在標題上的鄰居 |
 | [project-miliui-merchant.md](project-miliui-merchant.md) | 米利的商人視窗 MiliUI_Merchant —— 沿用暴雪命名讓照格子名稱裝飾的插件照常生效、post-hook 的 IsShown 閘、收藏快取兩個陷阱；**10-13 批量購買（拆分框不能從 Lua Hide）與拍賣場標示未實機**；Krowi 資料夾已移除、匿名框待給全域名 |
