@@ -7,7 +7,7 @@
 ## Author: 阿言
 ## Version: yah-113
 ## SavedVariables: YUI_AuctionHelper_DB
-## Interface: 120100, 120007, 120005, 120001, 120000
+## Interface: 120100, 120007, 120005, 120001, 120000, 120105
 ## OptionalDeps: YUI, YUI_NovaToolbox
 ## LoadOnDemand: 1
 ## LoadWith: Blizzard_AuctionHouseUI

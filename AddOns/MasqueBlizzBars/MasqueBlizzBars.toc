@@ -1,4 +1,4 @@
-## Interface: 120100, 120007, 50504, 40402, 20506, 11509
+## Interface: 120100, 120007, 120105, 50504, 40402, 20506, 11509
 ## Version: 12.1.0.0
 ## Title: Masque Blizzard Bars
 ## Title-zhTW: |cff0099FF[樣式]|r 快捷樣式 - 暴雪快捷列

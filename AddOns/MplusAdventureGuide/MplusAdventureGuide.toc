@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120100, 120105
 ## Title: Mythic+ Miscellaneous
 ## Author: Teelo
 ## Version: 12.1-004

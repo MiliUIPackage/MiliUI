@@ -1,4 +1,4 @@
-## Interface: 120007, 120100
+## Interface: 120007, 120100, 120105
 ## Title: HandyNotes: Midnight - Capital
 ## Title-zhCN: HandyNotes：至暗之夜 - 主城
 ## Title-deDE: HandyNotes: Midnight - Hauptstadt
