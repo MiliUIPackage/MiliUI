@@ -1167,9 +1167,11 @@ end
 -- GetInventoryItemCooldown——而它在 GCD 期間回的就是 GCD 本身，那條路又把 isOnGCD 寫死成 false。
 -- 結果：每次 GCD，飾品那一格都被當成「真的在冷卻」⇒ 圖示去飽和、還會閃一下。法術類的格子沒這個問題。
 -- 我們在 SetDesaturated 的後掛勾裡重判一次，只有真的在冷卻才留著去飽和。
+-- 12.1.5：GetInventoryItemCooldown 多了第 4 個回傳 isOnGCD（暴雪 CooldownViewer 自己也改用它）。
+-- 讀得到明文布林就照它判「只是 GCD」，讀不到（12.1.0／秘密值）才退回「duration > 1.5 秒」的猜法。
 --
 -- 回傳：
---   "plain",  active   讀得到明文：冷卻中而且比 GCD 長（GCD 最長 1.5 秒）
+--   "plain",  active   讀得到明文：冷卻中而且不只是 GCD（isOnGCD，或退回比 GCD 最長 1.5 秒長）
 --   "secret", zero     讀到的是秘密值：改問那一格法術的「不含 GCD 的冷卻」是不是零（秘密布林，交給引擎）
 --   nil                判不出來（不動）
 ------------------------------------------------------------
@@ -1196,12 +1198,18 @@ end
 local function EquipRealCooldown(info)
     if not (info and type(info.equipSlot) == "number") then return nil end
     if GetInventoryItemCooldown then
-        local ok, start, duration, enable = pcall(GetInventoryItemCooldown, "player", info.equipSlot)
+        local ok, start, duration, enable, isOnGCD = pcall(GetInventoryItemCooldown, "player", info.equipSlot)
         if ok and not (ns.IsSecret(start) or ns.IsSecret(duration) or ns.IsSecret(enable))
             and type(start) == "number" and type(duration) == "number" then
             local enabled = enable ~= 0 and enable ~= false
             local now = GetTime and GetTime() or 0
-            return "plain", (enabled and duration > GCD_MAX and start + duration > now) and true or false
+            local gcdOnly
+            if not ns.IsSecret(isOnGCD) and type(isOnGCD) == "boolean" then
+                gcdOnly = isOnGCD                  -- 12.1.5 起有
+            else
+                gcdOnly = duration <= GCD_MAX      -- 12.1.0／讀不到：用長度猜
+            end
+            return "plain", (enabled and not gcdOnly and start + duration > now) and true or false
         end
     end
     local spellID = EquipSlotSpell(info)
@@ -2521,8 +2529,18 @@ local function ShowTip(ov)
         GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
     end
     local shown = false
+    -- 飾品的增益（暴雪的裝備欄追蹤項目、自訂飾品欄增益）：照暴雪 RefreshTooltipInternal 的「增益不在身上」那一支
+    -- （DisplayEquipSlotTrackedTooltip：飾品名＋每個連帶增益一段），走共用的 Catalog.SlotBuffTooltip。
+    -- 增益在身上時暴雪改畫光環本身（SetUnitAuraByAuraInstanceID）——那要讀暴雪框上的 auraInstanceID（可能是秘密值），不做。
+    -- 法術資料還沒載入：SlotBuffTooltip 先畫標題，載完在提示還開著、擁有者還是這顆 overlay、中間沒被蓋過時叫 refresh
+    -- ⇒ 重跑一次 ShowTip（那時資料已經在快取，不會再等，不會無限重入）
+    local function Refresh() if ov.tipOn then ShowTip(ov) end end
     if rec.custom then
-        if rec.kind == "slot" and rec.slot then
+        local sb = rec.slotBuff
+        if type(sb) == "table" and type(sb.slot) == "number" then
+            ns.Catalog.SlotBuffTooltip(GameTooltip, sb.slot, sb.buff, Refresh)
+            shown = true
+        elseif rec.kind == "slot" and rec.slot then
             shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", rec.slot)
         elseif rec.kind == "item" and rec.itemID then
             shown = pcall(GameTooltip.SetItemByID, GameTooltip, rec.itemID)
@@ -2530,9 +2548,15 @@ local function ShowTip(ov)
             shown = pcall(GameTooltip.SetSpellByID, GameTooltip, rec.overrideID or rec.spellID)
         end
     else
-        local info = ns.Catalog.Info(rec.cooldownID)
+        local C = ns.Catalog
+        -- 先判裝備欄追蹤（暴雪也是先走裝備欄那條、再看 spellID）；飾品的冷卻格（EquipSlotEssential）不算，照舊畫物品
+        local slot, buff = C.EquipTrackedOf(rec.cooldownID)
+        local info = C.Info(rec.cooldownID)
         local spellID = info and (info.overrideTooltipSpellID or info.overrideSpellID or info.spellID)
-        if type(spellID) == "number" then
+        if slot then
+            C.SlotBuffTooltip(GameTooltip, slot, buff, Refresh)
+            shown = true
+        elseif type(spellID) == "number" then
             shown = pcall(GameTooltip.SetSpellByID, GameTooltip, spellID)
         elseif info and type(info.equipSlot) == "number" then
             shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", info.equipSlot)

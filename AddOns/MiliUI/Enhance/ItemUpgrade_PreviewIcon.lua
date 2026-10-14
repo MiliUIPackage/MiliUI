@@ -22,8 +22,7 @@
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ItemUpgradeUI", function()
     if not ItemUpgradeFrame then return end
 
-    local GetDetailedIlvl = (C_Item and C_Item.GetDetailedItemLevelInfo)
-        or GetDetailedItemLevelInfo
+    local GetDetailedIlvl = C_Item.GetDetailedItemLevelInfo
 
     -- 「物品等級 +N」差值 bonusID：N 1..100 對應 1473..1572（通用，跨季不變）
     local function GetIlvlDeltaBonusID(delta)

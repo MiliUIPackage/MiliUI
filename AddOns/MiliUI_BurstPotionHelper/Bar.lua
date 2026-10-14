@@ -58,9 +58,7 @@ local function GetQualityAtlas(itemID)
 end
 
 local function SetIcon(tex, itemID)
-    local icon = (C_Item.GetItemIconByID and C_Item.GetItemIconByID(itemID))
-        or (GetItemIcon and GetItemIcon(itemID))
-        or ns.FALLBACK_ICON
+    local icon = C_Item.GetItemIconByID(itemID) or ns.FALLBACK_ICON
     tex:SetTexture(icon)
     tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 end
@@ -68,8 +66,6 @@ end
 local function GetItemCD(itemID)
     if C_Item and C_Item.GetItemCooldown then
         return C_Item.GetItemCooldown(itemID)
-    elseif GetItemCooldown then
-        return GetItemCooldown(itemID)
     end
     return 0, 0, 0
 end

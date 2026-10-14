@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120100, 120105
 ## Title: Premade Groups Filter
 ## Version: 7.5.2
 ## IconTexture: 397907

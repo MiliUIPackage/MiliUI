@@ -1,4 +1,4 @@
-## Interface: 120007, 120100
+## Interface: 120007, 120100, 120105
 ## Title: Masque: Caith
 ## Title-zhTW: |cff0099FF[樣式]|r 快捷樣式 - Caith
 ## IconTexture: Interface\AddOns\Masque\Textures\Icon

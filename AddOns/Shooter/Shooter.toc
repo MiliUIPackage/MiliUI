@@ -1,4 +1,4 @@
-## Interface: 120007, 120100
+## Interface: 120007, 120100, 120105
 ## Title: Shooter
 ## Notes: Takes a screenshot when you earn an achievement.
 ## Title-zhTW: |r|cffFFFFFF[成就]|r 自動擷圖

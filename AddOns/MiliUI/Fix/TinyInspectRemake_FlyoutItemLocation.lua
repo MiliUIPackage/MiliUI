@@ -109,7 +109,7 @@ local function ApplyLevel(button, level, quality, equipSlot, link)
 
     if (DEBUG) then dprint(button:GetName(), "ApplyLevel WRITE", level, link) end
     if (TinyInspectRemakeDB and TinyInspectRemakeDB.ShowColoredItemLevelString and quality) then
-        local _, _, _, hex = GetItemQualityColor(quality)
+        local _, _, _, hex = C_Item.GetItemQualityColor(quality)
         frame.levelString:SetText(format("|c%s%s|r", hex, tostring(level)))
     else
         frame.levelString:SetText(tostring(level))
@@ -260,7 +260,7 @@ local function FixButton(button, modernHint)
         return
     end
 
-    local _, _, quality, _, _, _, _, _, equipSlot = GetItemInfo(link)
+    local _, _, quality, _, _, _, _, _, equipSlot = C_Item.GetItemInfo(link)
     ApplyLevel(button, level, quality, equipSlot, link)
 end
 

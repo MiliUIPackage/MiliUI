@@ -1777,6 +1777,190 @@ do
     end
 
     ------------------------------------------------------------
+    -- 14b. 條層選往前補 ⇒ 飾品／藥水的增益疊層自動關掉（Catalog.BarOverlaysSuppressed、Bars.CollapseLocked、
+    --      BarHasAuraSlot 的 ignoreOwnOverlays、BarHasOverlayCandidates、溢出的 evalKey、重入守衛）；
+    --      滑鼠提示認得暴雪的裝備欄追蹤增益（Catalog.Info 的 buffSlot、EquipTrackedOf）
+    ------------------------------------------------------------
+    do
+        for i = #list, 1, -1 do list[i] = nil end
+        CU.Sync()
+        equipped[13] = 270175
+        linked[801] = { 13, 1, { 1297761 } }
+        linked[802] = { 13, 2, { 1305376 } }
+        local savedCached = env.C_Item.IsItemDataCachedByID
+        env.C_Item.IsItemDataCachedByID = function() return true end
+        C.InvalidateSlotBuffs()
+        C.Refresh("test")
+        local savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedP = ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.P
+        ns.Diag = { Note = function() end }
+        ns.Style = { ApplyPanel = function() end }
+        ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }
+        ns.Viewers = { AURA_KIND = { buffs = true, buffbars = true }, frames = {}, EnsureScale = function() end,
+                       Get = function() return nil end }
+        local savedClick = ns.Clickable
+        ns.Clickable = { Enabled = function(key) return DB.BarClickable(key) end, Release = function() end,
+                         EndBar = function() end, Place = function() end }
+        local savedOverflow = ns.Overflow
+        load("Core/Overflow.lua")
+        load("Core/Layout.lua")
+        load("Core/Bars.lua")
+        local B = ns.Bars
+
+        local g = DB.CreateBar("icons", "飾品藥水")
+        local bg = DB.BarTable(g)
+        bg.layout = bg.layout or {}
+        local gSlot = "c:" .. DB.AddCustom({ kind = "slot", slot = 13, bar = g })
+        local gItem = "c:" .. DB.AddCustom({ kind = "item", itemID = 280000, bar = g })
+        local eItem = C.CustomEntry(gItem)
+        CU.Sync()
+        local srec = CU.Get(gSlot)
+
+        -- 預設（每條存的都是 collapse、但沒選過）：疊層照舊、條被逼成固定格位，但往前補沒有被鎖
+        eq("預設存值就是 collapse", bg.layout.emptyMode, "collapse")
+        check("沒選過往前補 ⇒ 不 suppress（不能讓所有人的疊層在更新後消失）", not C.BarOverlaysSuppressed(g))
+        check("預設：飾品欄疊增益", C.SlotOverlayIDs(g, gSlot, 13) ~= nil)
+        check("預設：飾品欄疊觸發發光", C.SlotProcOverlayIDs(g, gSlot, 13) ~= nil)
+        check("預設：藥水疊增益", C.ItemOverlayIDs(g, gItem, eItem) ~= nil)
+        check("預設：BarHasAuraSlot（疊層活著）", C.BarHasAuraSlot(g))
+        check("預設：忽略自己的疊層 ⇒ 沒有保護框", not C.BarHasAuraSlot(g, true))
+        local mode, forced = B.BarEmptyMode(g)
+        check("預設：生效值退成暗圖示、forced", mode == "dim" and forced == true, tostring(mode))
+        check("預設：CollapseLocked 不成立（選得到往前補）", not B.CollapseLocked(g))
+        check("預設：有疊層候選", C.BarHasOverlayCandidates(g))
+        local cont = Obj("Frame"); cont.level = 10
+        CU.Place(srec, cont, { x = 0, y = 0, w = 36, h = 36 }, g, 1)
+        check("預設：增益疊層放上去", srec.buffOverlay and srec.buffOverlay.placedBar == g)
+        check("預設：觸發疊層放上去", srec.procOverlay and srec.procOverlay.placedBar == g)
+
+        -- 玩家選了往前補（設定頁寫 emptyMode ＋ collapseChosen）
+        bg.layout.emptyMode, bg.layout.collapseChosen = "collapse", true
+        check("選了往前補 ⇒ suppress", C.BarOverlaysSuppressed(g))
+        eq("suppress ⇒ SlotOverlayIDs nil", C.SlotOverlayIDs(g, gSlot, 13), nil)
+        eq("suppress ⇒ SlotProcOverlayIDs nil", C.SlotProcOverlayIDs(g, gSlot, 13), nil)
+        eq("suppress ⇒ ItemOverlayIDs nil", C.ItemOverlayIDs(g, gItem, eItem), nil)
+        check("raw 不看 suppress", C.SlotOverlayIDs(g, gSlot, 13, true) ~= nil and C.SlotProcOverlayIDs(g, gSlot, 13, true) ~= nil
+            and C.ItemOverlayIDs(g, gItem, eItem, true) ~= nil)
+        check("suppress ⇒ BarHasAuraSlot 不成立", not C.BarHasAuraSlot(g))
+        mode, forced = B.BarEmptyMode(g)
+        check("suppress ⇒ 真的往前補、不 forced", mode == "collapse" and forced == false, tostring(mode))
+        check("suppress ⇒ CollapseLocked 不成立", not B.CollapseLocked(g))
+        check("suppress ⇒ 候選照算（黃字用）", C.BarHasOverlayCandidates(g))
+        local _, sf = B.SpellEmptyForced(g)
+        check("suppress ⇒ 單格也不 forced", sf == false)
+        local bo, po = srec.buffOverlay, srec.procOverlay
+        CU.Place(srec, cont, { x = 0, y = 0, w = 36, h = 36 }, g, 2)
+        check("suppress ⇒ 增益疊層收起來（持有框 Hide、placedBar 清掉）", bo.placedBar == nil and bo.frame.shown == false)
+        check("suppress ⇒ 觸發疊層收起來", po.placedBar == nil and po.frame.shown == false)
+        -- 其他條不受影響
+        check("別條不 suppress", not C.BarOverlaysSuppressed("essential"))
+
+        -- 存了往前補但沒標記（舊存檔／預設）⇒ 不 suppress；改留空位 ⇒ 不 suppress、疊層回來
+        bg.layout.collapseChosen = nil
+        check("collapse 沒標記 ⇒ 不 suppress", not C.BarOverlaysSuppressed(g))
+        bg.layout.emptyMode, bg.layout.collapseChosen = "blank", true
+        check("存留空位（標記殘留）⇒ 不 suppress", not C.BarOverlaysSuppressed(g))
+        check("留空位：疊層活著", C.SlotOverlayIDs(g, gSlot, 13) ~= nil and C.BarHasAuraSlot(g))
+        check("留空位：CollapseLocked 仍不成立（往前補選得到）", not B.CollapseLocked(g))
+        _, sf = B.SpellEmptyForced(g)
+        check("留空位、疊層活著 ⇒ 單格照舊 forced（單格選往前補不會關疊層）", sf == true)
+        CU.Place(srec, cont, { x = 0, y = 0, w = 36, h = 36 }, g, 3)
+        check("留空位：疊層放回來", bo.placedBar == g and bo.frame.shown == true and po.placedBar == g)
+        bg.layout.emptyMode = "collapse"
+
+        -- 有光環格的混排條：不 suppress（關疊層也換不到往前補）、CollapseLocked、why mixed
+        local gAura = "c:" .. DB.AddCustom({ kind = "aura", spellID = 700, filter = "HELPFUL", bar = g })
+        check("混排 ⇒ 不 suppress", not C.BarOverlaysSuppressed(g))
+        check("混排 ⇒ 疊層照疊", C.SlotOverlayIDs(g, gSlot, 13) ~= nil)
+        check("混排 ⇒ CollapseLocked", B.CollapseLocked(g))
+        local ok, why = C.BarAuraFlow(g)
+        check("混排 ⇒ why mixed", not ok and why == "mixed", tostring(why))
+        eqList("BarAuraSlotIDs：這條的光環格", C.BarAuraSlotIDs(g), { gAura })
+        DB.RemoveCustom(gAura)
+        check("拿掉光環格 ⇒ 回到 suppress", C.BarOverlaysSuppressed(g))
+
+        -- 可點擊：不 suppress、CollapseLocked
+        bg.clickable = true
+        check("可點擊 ⇒ 不 suppress", not C.BarOverlaysSuppressed(g))
+        check("可點擊 ⇒ CollapseLocked", B.CollapseLocked(g))
+        bg.clickable = nil
+
+        -- 溢出：來源條有光環格 ⇒ 接收條不 suppress、CollapseLocked
+        local s = DB.CreateBar("icons", "來源")
+        local bs = DB.BarTable(s)
+        bs.layout = bs.layout or {}
+        bs.layout.maxIcons, bs.layout.overflowTo = 1, g
+        local sAura = "c:" .. DB.AddCustom({ kind = "aura", spellID = 710, filter = "HELPFUL", bar = s })
+        check("來源條有光環格 ⇒ 接收條不 suppress", not C.BarOverlaysSuppressed(g))
+        check("來源條有光環格 ⇒ 接收條 CollapseLocked", B.CollapseLocked(g))
+        eqList("OverflowAuraSources", C.OverflowAuraSources(g), { s })
+        check("來源條有光環格 ⇒ 接收條 BarHasAuraSlot", C.BarHasAuraSlot(g))
+        DB.RemoveCustom(sAura)
+        -- 來源條只有藥水（疊層活著、沒選往前補）：溢過來的格子照接收條判 ⇒ 接收條選了往前補就照樣 suppress、沒有保護框
+        DB.RemoveCustom(gItem)
+        local sItem = "c:" .. DB.AddCustom({ kind = "item", itemID = 280000, bar = s })
+        local sEntry = C.CustomEntry(sItem)
+        check("來源條只有藥水 ⇒ 接收條照樣 suppress", C.BarOverlaysSuppressed(g))
+        check("來源條自己的疊層活著", C.ItemOverlayIDs(s, sItem, sEntry) ~= nil and C.BarHasAuraSlot(s))
+        check("溢到接收條的藥水照接收條判 ⇒ 接收條沒有保護框", not C.BarHasAuraSlot(g))
+        check("接收條：往前補沒被鎖", not B.CollapseLocked(g))
+        bg.layout.collapseChosen = nil
+        check("接收條沒選往前補 ⇒ 溢過來的藥水會疊 ⇒ 接收條有保護框（evalKey ＝ 接收條）", C.BarHasAuraSlot(g))
+        check("接收條沒選往前補 ⇒ 候選含溢過來的藥水", C.BarHasOverlayCandidates(g))
+        bg.layout.collapseChosen = true
+
+        -- 溢出成環（設定上 Overflow.Target 擋掉了，這裡直接塞一對互指）：不會無限遞迴
+        local savedPairs = C.OverflowPairs
+        C.OverflowPairs = function() return { { src = s, dst = g }, { src = g, dst = s } } end
+        bs.layout.emptyMode, bs.layout.collapseChosen = "collapse", true
+        local okA, resA = pcall(C.BarOverlaysSuppressed, g)
+        local okB = pcall(C.BarHasAuraSlot, g)
+        local okC = pcall(B.CollapseLocked, s)
+        local okD = pcall(C.BarHasOverlayCandidates, g)
+        check("成環：BarOverlaysSuppressed 不當掉", okA and resA == true, tostring(resA))
+        check("成環：BarHasAuraSlot／CollapseLocked／候選不當掉", okB and okC and okD)
+        C.OverflowPairs = savedPairs
+
+        -- 滑鼠提示的判準：暴雪的裝備欄追蹤增益（801／802：equipSlot＋buffSlot）⇒ 走 SlotBuffTooltip；
+        -- 飾品的冷卻格（equipSlot、沒有 buffSlot、類別不是 EquipSlotTracked）⇒ 照舊畫物品
+        C.Refresh("test")
+        local i802 = C.Info(802)
+        eq("Catalog.Info：帶 buffSlot", i802 and i802.buffSlot, 2)
+        local sl, bf = C.EquipTrackedOf(802)
+        check("EquipTrackedOf：裝備欄追蹤 ⇒ slot, buff", sl == 13 and bf == 2, tostring(sl) .. "/" .. tostring(bf))
+        eq("EquipTrackedOf：一般法術 ⇒ nil", C.EquipTrackedOf(11), nil)
+        eq("EquipTrackedOf：自訂項目 ⇒ nil", C.EquipTrackedOf(gSlot), nil)
+        -- 飾品的冷卻格（資料類別 EquipSlotEssential）就算帶了 buffSlot 也不算 ⇒ 照舊畫物品
+        do
+            local E = env.Enum.CooldownViewerCategory
+            local savedSetX, savedInfoX = CV.GetCooldownViewerCategorySet, CV.GetCooldownViewerCooldownInfo
+            E.EquipSlotEssential = 7
+            CV.GetCooldownViewerCategorySet = function(cat, ...)
+                if cat == 7 then return { 803 } end
+                return savedSetX(cat, ...)
+            end
+            CV.GetCooldownViewerCooldownInfo = function(id)
+                if id == 803 then return { cooldownID = id, equipSlot = 13, buffSlot = 1, linkedSpellIDs = { 1297761 }, category = 7 } end
+                return savedInfoX(id)
+            end
+            C.Refresh("test")
+            check("EquipSlotEssential 那一筆有進目錄", C.Info(803) ~= nil)
+            eq("EquipTrackedOf：飾品冷卻格（帶 buffSlot）⇒ nil", C.EquipTrackedOf(803), nil)
+            E.EquipSlotEssential = nil
+            CV.GetCooldownViewerCategorySet, CV.GetCooldownViewerCooldownInfo = savedSetX, savedInfoX
+            C.InvalidateSlotBuffs()
+            C.Refresh("test")
+        end
+
+        DB.RemoveCustom(sItem)
+        DB.RemoveCustom(gSlot)
+        CU.Sync()
+        env.C_Item.IsItemDataCachedByID = savedCached
+        C.InvalidateSlotBuffs()
+        ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.P = savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedP
+        ns.Clickable, ns.Overflow = savedClick, savedOverflow
+    end
+
+    ------------------------------------------------------------
     -- 15. 飾品欄增益（C，kind "slotbuff"）：身分、驗證、重複、範圍搬移；Catalog.Info（問號格）；引擎當光環格
     --     （第幾個增益認不同的法術、占位用飾品圖示、換飾品換容器、戰鬥中只記旗標、存了第 3 個而這件只有 1 個不報錯）；
     --     BarHasAuraSlot／IsAuraSlot；SlotBuffTooltip（標題、每個增益一段、資料沒載入時等載完、序號擋舊的）
