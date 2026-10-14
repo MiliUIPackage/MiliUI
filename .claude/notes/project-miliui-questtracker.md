@@ -212,7 +212,8 @@ BugGrabber 本 session 相關錯誤；被動記錄 SCENARIO_*／WORLD_STATE_TIME
 `Skin.lua` 的「目標進度」段：進度從**行文字**解析（全形數字／「／」先轉半形、貼圖跳脫碼先拿掉），紅→黃→綠漸層；
 完成照 `line.Text.colorStyle`（**滑過時存的是 `Complete.reverse`，兩個都要認**）或動畫 state。補色掛在 AddBlock post-hook＋標題 OnEnter/OnLeave HookScript
 （順帶修掉「滑過離開後目標行回 0.8 灰」）。百分比用 SetText 接在原文後，接完比 `GetNumLines`／`IsTruncated`，多一行或被截就退回原文；原文記在 `T.Flags()`。
-預設：上色開、百分比關。
+預設：上色關（1.0.10 發佈時是開，10-15 改關、DB v3 遷移一律壓成 false）、百分比關。
+完成的目標行上色是**白**不是外觀分頁的「已完成」色 —— 那一個是可交付任務標題的綠，目標行打勾只退回中性色。
 
 ## 場景階段框 StageBlock：規矩 3 的第二個例外（2026-09-21）
 

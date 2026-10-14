@@ -50,9 +50,10 @@ local function BuildDefaults()
             focusColor     = { r = 0.87, g = 0.25, b = 1.00 },  -- 追蹤中（紫）
             objectiveColor = { r = 0.72, g = 0.72, b = 0.72 },  -- 目標行（灰）
 
-            -- 目標進度（Modules/Skin.lua 的「目標進度」段）。2026-10-13 新增的鍵，nil-merge 補上，不用遷移。
-            -- 上色：帶 x/y 的目標行紅→黃→綠，暴雪判完成之後換 completedColor；沒有數字的行仍是 objectiveColor
-            progressColor   = true,
+            -- 目標進度（Modules/Skin.lua 的「目標進度」段）。
+            -- 上色：帶 x/y 的目標行紅→黃→綠，暴雪判完成之後換白；沒有數字的行仍是 objectiveColor。
+            -- 1.0.10 發佈時預設開，2026-10-15 改預設關 ⇒ 配 DB_VERSION 3 的遷移（見 Migrate）
+            progressColor   = false,
             -- 行尾接「(38%)」。預設關：x/y 已經寫在行上，百分比是加碼的資訊
             progressPercent = false,
 
@@ -283,6 +284,14 @@ local function Migrate(db)
     if from < 2 then
         if type(db.visibility) == "table" then
             db.visibility.mythicPlus = true
+        end
+    end
+
+    -- v3（2026-10-15）：目標進度上色從預設開改成預設關。1.0.10 上線時 nil-merge 補的 true
+    -- 跟玩家自己勾的分不出來，一律跟新預設走；之後主動開的（版本已是 3）不會再碰。
+    if from < 3 then
+        if type(db.appearance) == "table" then
+            db.appearance.progressColor = false
         end
     end
 end
