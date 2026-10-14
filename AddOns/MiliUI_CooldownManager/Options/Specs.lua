@@ -834,6 +834,9 @@ function Specs.Themed(mode, key)
         NB(ShapeNoteRow()),
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
         CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"])),
+        -- 暴雪的就緒閃光（Core/Decorate.lua 的 DimReadyFlash）：增益兩條沒有這個動畫 ⇒ 不出現
+        CD(TS("icon", "toggle", "icon.hideReadyFlash", L["Hide ready flash"])),
+        CD(Note(L["Blizzard plays a short flash over the icon just before its cooldown ends."], "icon")),
         CD(TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"])),
         CS(TS("icon", "dropdown", "icon.cdState", L["Cooldown state"], { items = CDSTATE_ITEMS,
             get = function(info) return ReadThemed(info, "icon.cdState") or "none" end })),

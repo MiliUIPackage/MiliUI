@@ -577,6 +577,9 @@ function DB.BuildDefaults()
                           -- 舊存檔沒有這三欄 ＝ 合併預設值補成方形、無陰影，行為不變、不遷移
                           shape = "square", shadow = false, shadowAlpha = 0.6,
                           hideGCDSwipe = false, desaturateOnCooldown = true,
+                          -- 暴雪的就緒閃光（item.CooldownFlash：冷卻結束前 0.75 秒蓋在圖示上播的翻頁動畫）：true ＝ 藏。
+                          -- 預設 false ＝ 暴雪原本的行為；舊存檔沒有這欄 ＝ 合併預設補成 false，不遷移（2026-10-14 玩家要求）
+                          hideReadyFlash = false,
                           -- 充能技能回充中（還有充能、下一層在轉）的長相（Core/Decorate.lua 的「回充的長相」）。暴雪原本：
                           -- 不畫暗色轉圈、畫邊緣亮線、顯示倒數。三個開關都是「改掉暴雪原本的」，**預設全關**
                           -- （2026-10-08 使用者指定；舊存檔沒有這三欄 ＝ 合併預設補成關，行為不變、不遷移）

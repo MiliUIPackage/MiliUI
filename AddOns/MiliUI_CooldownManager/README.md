@@ -788,6 +788,20 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   - 隱藏的格上面的發光（觸發／就緒）、按鍵文字跟著看不到（都是 item 的子框）；「轉好時看不到」配就緒發光沒有意義。
   - 精準重算的條件很保守：施放技能那一下的事件幾乎都帶 GCD 類別（`GCD_PRECISE` 關掉時 ⇒ 全掃）；精準的多半是冷卻結束／重置那種只帶 spellID 的事件。
 
+### 隱藏暴雪的就緒閃光（`Core/Decorate.lua`、`Core/Bars.lua`、`Core/DB.lua`、`Options/Specs.lua`，2026-10-14，玩家要求）
+
+暴雪的核心／輔助 item 模板帶一個 `CooldownFlash` 子框（圖集 `UI-HUD-ActionBar-GCD-Flipbook` 的翻頁動畫，0.75 秒 22 格）：
+`RefreshSpellCooldownInfo` 在 `cooldownPlayFlash and not isExpired` 時把 `FlashAnim` 的 startDelay 設成「剩餘時間 − 0.75」再 Play ⇒
+冷卻結束前 0.75 秒在圖示上閃一下。`cooldownPlayFlash` 來自 `isOnActualCooldown`（法術／裝備欄：GCD 不播）、充能路徑一律 true、
+增益與編輯模式一律 false。增益圖示／長條模板沒有這個子框。跟 Cooldown 自己的 bling（`SetDrawBling`，圓環／自訂框早就關了）是兩回事。
+
+- **資料**：主題 `icon.hideReadyFlash = false`（圖示節，走 `follow.icon` 繼承到條）。沒有逐法術欄位。舊存檔沒有 ＝ 合併預設補成關、
+  行為不變、`DB_VERSION` 不動。進 `Decorate.Resolve` 的條層簽章（`r.hideReadyFlash`）。
+- **做法**（`Decorate.DimReadyFlash`，跟 `DimDebuffBorder` 同一招、EllesmereUI 與 Yui 也都這樣做）：`item.CooldownFlash:SetAlpha(0)`。
+  暴雪只對它 Show／Hide、`FlashAnim` 只動子貼圖 `Flipbook` 的 alpha ⇒ 框的 alpha 0 一直有效，不必擋動畫、不 Hide、不寫欄位。
+  `D.Apply` 每次整套重套時照設定寫 0／1；停放（`Bars` 收格）寫回 1 還給暴雪。
+- **設定頁**：主題頁與條頁「圖示」節，「隱藏 GCD 轉圈」下面一列「隱藏就緒閃光」勾選＋灰字。增益兩條的條頁不出現（`CD`）。
+
 ### 增益持續時間的倒數換色（`Core/Decorate.lua`、`Core/Text.lua`、`Options/SpellPopover.lua`）
 
 核心／輔助技能用掉之後，暴雪的格子**先倒增益的持續時間、增益掉了才改倒冷卻**（例：20 秒增益、2 分鐘冷卻的招，前 20 秒倒的是增益）。
@@ -3930,6 +3944,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 552. 排開：拆出的列預設貼資源條上方（排名 1.1），自訂列與施法條排到它外面、不重疊；拆出的列收回（開關關、換到沒這一列的專精）時它們貼回資源條。
 553. 全部拆走（例：只有一列又拆掉）：資源條容器剩 1px 高，錨在它身上的東西（核心技能上方那一疊）照樣畫得出來、位置不跳。
 554. 九語系：錨定視窗「獨立擺放」下面那句灰字歐語換行正常；資源條頁每一列「設定」「錨定」兩顆鈕放得下（deDE「Verankerung」）。
+555. 隱藏就緒閃光：主題「圖示」勾上後，核心／輔助技能冷卻結束前那一下白色翻頁閃光不再出現（充能技能回滿最後一層也不閃）；取消勾選、或把條搬到別的設定檔，閃光回來不必 /reload；增益圖示列的條頁沒有這一列。
 
 **效能基準**
 

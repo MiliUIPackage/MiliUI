@@ -1743,6 +1743,7 @@ function B.ReleaseAll(reason)
         if ns.Decorate and ns.Decorate.ClearShape then pcall(ns.Decorate.ClearShape, item, rec) end
         local alert = item.SpellActivationAlert
         if alert and alert.SetAlpha then pcall(alert.SetAlpha, alert, 1) end
+        if ns.Decorate and ns.Decorate.DimReadyFlash then ns.Decorate.DimReadyFlash(item, false) end   -- 就緒閃光還給暴雪
         pcall(item.SetAlpha, item, 1)
         pcall(item.ClearAllPoints, item)
         if rec.origW and rec.origH then pcall(item.SetSize, item, rec.origW, rec.origH) end

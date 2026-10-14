@@ -2699,5 +2699,32 @@ do
     ns.Media.Texture = savedTex
 end
 
+------------------------------------------------------------
+-- 隱藏暴雪的就緒閃光（icon.hideReadyFlash，2026-10-14）：預設值、條層簽章、DimReadyFlash 只動 CooldownFlash 的 alpha
+------------------------------------------------------------
+do
+    eq("主題預設不藏", p.theme.icon.hideReadyFlash, false)
+    D.InvalidateAll()
+    local r0 = D.Resolve("essential")
+    eq("Resolve：預設 false", r0.hideReadyFlash, false)
+    p.theme.icon.hideReadyFlash = true
+    D.InvalidateAll()
+    local r1 = D.Resolve("essential")
+    eq("Resolve：開了讀到 true", r1.hideReadyFlash, true)
+    check("進條層簽章（開關不同 ⇒ 簽章不同）", r0.sig ~= r1.sig)
+    p.theme.icon.hideReadyFlash = false
+    D.InvalidateAll()
+
+    local function Flash() return { alpha = 1, SetAlpha = function(self, a) self.alpha = a end } end
+    local item = { CooldownFlash = Flash() }
+    D.DimReadyFlash(item, true)
+    eq("藏 ⇒ CooldownFlash alpha 0", item.CooldownFlash.alpha, 0)
+    D.DimReadyFlash(item, false)
+    eq("還原 ⇒ alpha 1", item.CooldownFlash.alpha, 1)
+    D.DimReadyFlash({}, true)                          -- 增益圖示／長條沒有這個子框
+    D.DimReadyFlash({ CooldownFlash = 5 }, true)        -- 壞值不炸
+    check("沒有 CooldownFlash 的 item 不炸", true)
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

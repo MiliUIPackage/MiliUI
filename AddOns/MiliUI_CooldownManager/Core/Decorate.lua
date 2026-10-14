@@ -127,6 +127,7 @@ function D.Resolve(barKey, fresh)
         swipeColor   = S(barKey, "icon.swipeColor"),
         hideGCDSwipe = S(barKey, "icon.hideGCDSwipe") and true or false,
         hideDebuffBorder = S(barKey, "icon.hideDebuffBorder") ~= false,   -- 舊存檔沒有這欄 ＝ 預設藏
+        hideReadyFlash = S(barKey, "icon.hideReadyFlash") and true or false,   -- 暴雪的就緒閃光（DimReadyFlash）；舊存檔沒有 ＝ 不藏
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
         colorDuration = S(barKey, "icon.colorDuration") and true or false,   -- 增益那一段的倒數換色（PhaseColors）
         durationColor = S(barKey, "icon.durationColor"),
@@ -149,7 +150,7 @@ function D.Resolve(barKey, fresh)
     end
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom, tostring(r.crop),
-        CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.drawEdge), tostring(r.tooltips),
+        CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.hideReadyFlash), tostring(r.drawEdge), tostring(r.tooltips),
         tostring(r.pressFlash), r.pressAlpha,
         tostring(r.colorDuration), CSig(r.durationColor), CSig(r.durationLowColor), CSig(r.durationSwipeColor),
         TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText), r.stackBarPoint,
@@ -576,6 +577,16 @@ local function DimDebuffBorder(item, hide)
         if type(b) == "table" and b.SetAlpha then pcall(b.SetAlpha, b, a) end
     end
 end
+
+-- 暴雪的就緒閃光（item.CooldownFlash；只有核心／輔助的 item 模板有，增益圖示／長條沒有）：冷卻結束前 0.75 秒
+-- 在圖示上播一段翻頁動畫（RefreshSpellCooldownInfo 照 isOnActualCooldown 算 startDelay；GCD 與增益那一段不播）。
+-- 暴雪只對它 Show／Hide、FlashAnim 只動子貼圖 Flipbook 的 alpha ⇒ 框本身 alpha 0 一直有效、不必擋動畫；
+-- 不 Hide（暴雪下一次刷新會再 Show）、不寫它的欄位。設定關掉時還 alpha 1（EllesmereUI／Yui 同一招）
+local function DimReadyFlash(item, hide)
+    local f = rawget(item, "CooldownFlash")
+    if type(f) == "table" and f.SetAlpha then pcall(f.SetAlpha, f, hide and 0 or 1) end
+end
+D.DimReadyFlash = DimReadyFlash      -- Bars 停放時還原、測試用
 
 -- 從 Masque 群組拿出來（條改回米利、改成圓環、群組換掉）：卸皮會把暴雪的外框圖（切角的 IconOverlay）還原，
 -- 而 StripBlizzard 只做一次（rec.stripped）⇒ 方框留在畫面上直到 /reload（2026-10-08 實機確認：/reload 後方框就消失）。
@@ -2694,6 +2705,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
     -- 長條的遮罩／外框圖在下面長條那一段決定（暴雪樣式要裝回去）
     if not isBar then StripBlizzard(item, rec, false) end
     DimDebuffBorder(item, style.hideDebuffBorder or ringOn)     -- 圓環：方形的減益框一律熄
+    DimReadyFlash(item, style.hideReadyFlash)
 
     -- 後掛勾讀的快取（暴雪下一次刷新時再套一次）
     local sr, sg, sb, sa = C4(style.swipeColor, 0, 0, 0, 0.8)

@@ -153,7 +153,7 @@ NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪�
   **常用預設**（`Core/Presets.lua`，每季要對一次；物品可帶 `alts`、光環格可帶 `spellIDs`）、**層數門檻發光／長條層數換色／比較子**（`Core/StackGate.lua`：秘密層數走閘 StatusBar＋裁切框，長條換色層畫在條身底下）、
   小項（距離上色、`customIcon`、跟著游標 `Core/Cursor.lua`、語音播報、火花）。
 - **增益持續時間**：倒數換色（主題 `icon.colorDuration`＋三色，逐法術同一套五欄位）、低秒變色與小數門檻跟冷卻那段分開、**增益持續中不顯示持續時間**（`icon.showAuraTime`，只做法術類）；
-  冷卻低秒變色開關與秒數拆兩欄（v5）；**增益不在時三態**（collapse／blank／dim，條層與逐法術同一下拉，v7）；回充的長相三開關；**以增益取代**（`replaceWith`，只能選增益圖示列）。
+  冷卻低秒變色開關與秒數拆兩欄（v5）；**增益不在時三態**（collapse／blank／dim，條層與逐法術同一下拉，v7）；回充的長相三開關；**隱藏暴雪的就緒閃光**（`icon.hideReadyFlash`：`item.CooldownFlash:SetAlpha(0)`，EUI／Yui 同招；2026-10-14 玩家要求）；**以增益取代**（`replaceWith`，只能選增益圖示列）。
 - **長條**：長條類的條也收自訂項目（框依 kind 池化、`StatusBar:SetTimerDuration`＋只印數字的 Cooldown；光環走 `SetDurationBar`＋`SetDurationText`＋`SetApplicationCount`）、漸層／充能分段／垂直（F8）、反向填充、逐法術名字與條色、**暴雪樣式外觀**（圖集填充＋圓角遮罩＋外框圖，填充色另存 `bar.blizzardColor`）。
 - **版面**：格數上限＋溢出到別條（F1）、按鍵鏡射（F2）、逐法術占位（F7，後併入三態）、只有光環格的條引擎補位（H1）、**圓環顯示**（[[project-miliui-cdm-rings]]）、**不顯示（只給其他插件讀取）**。
 - **資源條**：每種資源自己的設定視窗（`resources.style[key]` 代理表 `R.StyleFor`；顯示數字逐資源獨立）、**版面逐列另設**（寬／列距／文字偏移／分段間距／填充方向，`followLayout` 沒存＝跟）、
