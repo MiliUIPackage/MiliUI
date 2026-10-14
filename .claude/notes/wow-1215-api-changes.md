@@ -38,8 +38,8 @@ metadata:
   `CreateFrameWithOptions`、`SetCasterName`＋cvar `tooltipShowAuraCasterNames`、`C_UnitAuras.AddAuraSound` 的
   `throttleSeconds`（上限 5 秒）、`C_ClassColor.GetClassColor` 的 tint 參數。
 
-**沒做的**：Cell（本地 fork、我們自己的 AuraContainer 重寫）`RaidFrames/AuraContainerCore.lua`／`AuraDisplay.lua`
-也用 `SetAuraBorder`，要另外修；第三方直接呼叫舊全域的粗估（含別名誤判）：Plumber 53、MRT 53、
+**Cell 不用修**：`RaidFrames/AuraContainerCore.lua` 本來就 `AddDispelTypeTexture` 優先且先 Clear，`SetAuraBorder` 只是死退路，
+已拿掉。**沒做的**：第三方直接呼叫舊全域的粗估（含別名誤判）：Plumber 53、MRT 53、
 YUI_AuctionHelper 26、TinyInspect-Remake 17、AppearanceTooltip 7、TeleportMenu／Cell／BuffReminders／Ayije_CDM 各 3。
 
 **怎麼比對（下次改版照抄）**：
