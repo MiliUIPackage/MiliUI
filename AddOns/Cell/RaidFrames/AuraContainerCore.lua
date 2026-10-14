@@ -337,9 +337,8 @@ local function AddDispelTexture(button, texture, opts)
             if button.ClearDispelTypeTextures then pcall(button.ClearDispelTypeTextures, button) end
         end
         return pcall(button.AddDispelTypeTexture, button, texture, opts)
-    elseif button.SetAuraBorder then
-        return pcall(button.SetAuraBorder, button, texture, opts) -- deprecated single-region alias
     end
+    -- (12.1.5 removed the SetAuraBorder alias; it was only ever Clear + AddDispelTypeTexture)
     return false
 end
 
@@ -347,7 +346,7 @@ end
 -- Callers rely on that: whatever they want an undispellable aura to look like has to be
 -- drawn on a layer underneath, because this one simply will not be there.
 function ACC.BindDispelTexture(button, texture, styleName)
-    if not (button.AddDispelTypeTexture or button.SetAuraBorder) then return end
+    if not button.AddDispelTypeTexture then return end
 
     local E = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
     local opts = { showWhenHarmful = true, showWhenHelpful = false }
