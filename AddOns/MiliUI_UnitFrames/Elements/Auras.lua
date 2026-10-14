@@ -324,11 +324,15 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
     borderTex:SetAllPoints(auraButton)
     auraButton.Border = borderTex
 
-    if style.dispelBorder and auraButton.SetAuraBorder then
+    if style.dispelBorder and auraButton.AddDispelTypeTexture then
         -- 驅散色在底框，掃描用灰色由上吃掉（SetSwipeColor 給不了逐光環的驅散色，
         -- 兩層對調繞過限制）
+        -- 12.1.5 刪掉了 SetAuraBorder；它在 12.1.0 只是 Clear ＋ AddDispelTypeTexture，
+        -- 直接呼叫後者兩版都通。12.1.5 起同一張貼圖 Add 兩次會拋錯 —— 這裡每次都是
+        -- 剛建的新貼圖、且只在 initializeFrame 跑一次（樣式改了走簽章重建整顆容器），
+        -- 所以不必先 ClearDispelTypeTextures。
         borderTex:SetColorTexture(1, 1, 1, 1)
-        auraButton:SetAuraBorder(borderTex, {
+        auraButton:AddDispelTypeTexture(borderTex, {
             style = Enum.CustomAuraButtonDispelTypeTextureStyle
                 and Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset or nil,
             showIcon = false,
@@ -716,7 +720,7 @@ local function CreateContainer(uf, elementName, edb, filter, cand, style)
             -- 的 CreateFrame → CreateFrameBatch 裡面，錯誤逃出去會把**整批** frame 的
             -- 建立一起打斷，不是只有這一顆按鈕。而 12.1 一直在追加「被污染時不給存取」
             -- 的表（ColorMixin 就是一張），初始化裡每個裸的暴雪 API 呼叫都是一顆地雷 ——
-            -- InitAuraButton 裡的 SetAuraBorder / SetDurationCooldown / SetIcon /
+            -- InitAuraButton 裡的 AddDispelTypeTexture / SetDurationCooldown / SetIcon /
             -- SetApplicationCount 都還是裸的。
             -- 這道閘的代價是「那顆按鈕外觀不完整」，比「整批光環不出來」便宜太多。
             xpcall(InitAuraButton, ns.ReportError, auraButton, style, edb.w or 20, edb.h or 20)

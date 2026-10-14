@@ -951,7 +951,7 @@ local function UpdateSpell(rec)
 end
 
 local function ItemCooldown(itemID)
-    local api = (C_Item and C_Item.GetItemCooldown) or _G.GetItemCooldown
+    local api = C_Item.GetItemCooldown
     return Try(api, itemID)
 end
 

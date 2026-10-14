@@ -82,10 +82,7 @@ local function LeatrixJunkConflict()
 end
 
 local function CoinText(amount)
-    if C_CurrencyInfo and C_CurrencyInfo.GetCoinText then
-        return C_CurrencyInfo.GetCoinText(amount)
-    end
-    return GetCoinTextureString(amount)
+    return C_CurrencyInfo.GetCoinText(amount)
 end
 
 ------------------------------------------------------------
