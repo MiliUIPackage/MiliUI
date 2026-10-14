@@ -1991,7 +1991,15 @@ local function ShowIndicatorSettings(id)
             -- one font for both texts, so it closes the pair of text sections
             settingsTable = {"enabled", "auras", "position", "frameLevel", "stack", "duration", "font-noOffset"}
         elseif indicatorType == "bar" then
-            settingsTable = {"enabled", "auras", "maxValue", "colors", "barOrientation", "glowSection:manual", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            if indicatorTable["auraType"] == "buff" then
+                -- buff bars run on the AuraContainer path (engine-driven StatusBar, see
+                -- AuraDisplay's BuildEffectBar): no fixed max value there -- the engine owns
+                -- the bar's scale -- and the glow is the engine-timed section
+                settingsTable = {"enabled", "auras", "colors", "barOrientation", "glowSection", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            else
+                -- debuff bars stay on the manual path, where the max value still works
+                settingsTable = {"enabled", "auras", "maxValue", "colors", "barOrientation", "glowSection:manual", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            end
         elseif indicatorType == "bars" then
             settingsTable = {"enabled", "auras", "maxValue", "glowSection:manual", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
         elseif indicatorType == "rect" then

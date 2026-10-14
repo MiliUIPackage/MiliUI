@@ -298,7 +298,8 @@ local function BuildRecordsRaw(opts)
         -- records, and a band's formatter is frozen once bound, so a parked container must
         -- never come back to a config asking for a different threshold or colour.
         local rb = opts.effectBands
-        if type(rb) == "table" and (opts.customStyle == "rect" or opts.customStyle == "block") then
+        if type(rb) == "table" and (opts.customStyle == "rect" or opts.customStyle == "block"
+            or opts.customStyle == "bar") then
             local function csig(c)
                 return string.format("%.3f,%.3f,%.3f,%.3f", tonumber(c[1]) or 1, tonumber(c[2]) or 1,
                     tonumber(c[3]) or 1, tonumber(c[4]) or 1)
@@ -667,6 +668,7 @@ local EFFECT_SLOT_STYLES = {
     border  = true,   -- ring around the unit button
     rect    = true,   -- filled rectangle with a border
     texture = true,   -- arbitrary texture / atlas
+    bar     = true,   -- progress bar: an engine-driven StatusBar (see BuildEffectBar)
 }
 AD.EFFECT_SLOT_STYLES = EFFECT_SLOT_STYLES
 
@@ -731,7 +733,9 @@ end
 -- Shared by the block/text custom styles; the default icon branch keeps its OWN inline copy
 -- because there it interleaves with icon/cooldown frame-level assignment.
 -- durColorOpt (optional): SetDurationText textColor { curve, property } for colour-by-time.
-local function BindDurStack(button, cfg, base, durColorOpt)
+-- keepAnchor: place the number at the font's own anchor/offset instead of the icon's forced
+-- centre (the bar's duration font carries one: RIGHT by default, opposite the stack's LEFT).
+local function BindDurStack(button, cfg, base, durColorOpt, keepAnchor)
     if not button.dfDur then
         button.dfDurHolder = CreateFrame("Frame", nil, button)
         button.dfDurHolder:SetAllPoints(button)
@@ -739,7 +743,7 @@ local function BindDurStack(button, cfg, base, durColorOpt)
         button.dfDur:SetPoint("CENTER")
     end
     button.dfDurHolder:SetFrameLevel(base + 6)
-    ApplyFont(button.dfDur, button.dfDurHolder, cfg.durationFont, true)
+    ApplyFont(button.dfDur, button.dfDurHolder, cfg.durationFont, not keepAnchor)
 
     if not button.dfStack then
         button.dfStackHolder = CreateFrame("Frame", nil, button)
@@ -923,6 +927,26 @@ end
 -- ============================================================
 local EFFECT_LAYER = { border = 1, pct = 2, pandemic = 3, sec = 4, swipe = 5 }
 
+-- The part of an engine-driven bar that is still to run (the bar custom style, see
+-- BuildEffectBar). The StatusBar is handed over with the default direction (elapsed time)
+-- and ReverseFill, so its own texture is the ELAPSED part growing in from the far end; what
+-- remains is the span from the bar's near edge to that texture's near edge. Pure anchoring:
+-- the engine moves the texture every frame, the anchor follows, and nothing here ever
+-- reads a value. Shared by the bar's own fill and by its colour bands (BuildBandSlot), so
+-- a band recolours the remaining part only -- which is what the manual bar did.
+local function AnchorBarRemaining(region, bar, tex, vertical)
+    region:ClearAllPoints()
+    if vertical then
+        -- ReverseFill + VERTICAL = the elapsed texture hangs from the top (same recipe as
+        -- block's shadow); the remainder is the bottom span
+        region:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT")
+        region:SetPoint("TOPRIGHT", tex, "BOTTOMRIGHT")
+    else
+        region:SetPoint("TOPLEFT", bar, "TOPLEFT")
+        region:SetPoint("BOTTOMRIGHT", tex, "BOTTOMLEFT")
+    end
+end
+
 local BuildBandSlot
 do  -- local-budget block: the band helpers are only reachable through BuildBandSlot
     -- plain white (Cell/Media/white.tga is 128x128). The |T texWidth/texHeight and the uv
@@ -1001,6 +1025,19 @@ do  -- local-budget block: the band helpers are only reachable through BuildBand
             button.dfBand = fs
         end
         button.dfBandHolder:SetFrameLevel(button:GetFrameLevel() + (EFFECT_LAYER[band.kind] or 2))
+        -- bar: the band covers the REMAINING span of the main slot's bar, not the box. The
+        -- main slot is the first record, so its bar is already built when this companion
+        -- is styled (AddAuraSlot creates its frame synchronously; Restyle walks the buttons
+        -- in creation order). Re-anchored every pass like the level above, so an
+        -- orientation change follows.
+        if cfg.customStyle == "bar" then
+            local bf = handle._barFill
+            if bf then
+                AnchorBarRemaining(button.dfBandHolder, bf.bar, bf.tex, bf.vertical)
+            else
+                Err(handle, "band " .. tostring(band.kind) .. ": bar not built before its band")
+            end
+        end
 
         -- the |T is asked for at inner box x overscan and clipped by the holder; sizes come
         -- from config, never from the button
@@ -1137,11 +1174,74 @@ local function BuildEffectTexture(handle, button, cfg)
     tex:SetVertexColor(r, g, b, a)
 end
 
+-- Bar (進度條) custom style, buff only. The manual bar is a Lua OnUpdate countdown
+-- (Base.lua Bar_OnUpdate), and that is exactly what froze in combat: the aura's start and
+-- duration are secret there, so the value, the colour bands and the number all stopped at
+-- whatever they showed when the pull started (2026-10-08 report). Here the ENGINE is the
+-- clock: a StatusBar handed over with SetDurationBar, and every visual is geometry hung
+-- off it -- nothing on our side reads a remaining time.
+--
+-- Recipe: the same hand-over as block's vertical shadow (default direction = elapsed time,
+-- ReverseFill, NO options table), so the bar's own texture is the elapsed part growing in
+-- from the far end -- painted with nothing, so the backdrop shows through it exactly as
+-- on the manual bar. The remaining part is our own texture anchored between the near edge
+-- and that texture's near edge (AnchorBarRemaining); the colour bands are companion
+-- slots anchored to the same span (BuildBandSlot), so "< N%" / "< N sec" recolour the
+-- remaining part only. Countdown number and stack are blind-rendered (BindDurStack) at
+-- the font's own anchor, as the manual bar placed them.
+--
+-- Not carried over: 設置進度條最大值. The engine owns the bar's min/max (the aura's full
+-- duration), so a fixed scale cannot be imposed on it; Custom.lua neutralises the setting
+-- on the preview as well so the two agree, and the options page hides it for buff bars.
+local function BuildEffectBar(handle, button, cfg)
+    local holder = button.dfEffHolder
+    if not holder then
+        -- backdrop (colors[5]) + edge (colors[4]) on a holder of our own, the StatusBar
+        -- inset inside it: the elapsed/remaining geometry never touches the edge
+        holder = CreateFrame("Frame", nil, button, "BackdropTemplate")
+        holder:SetAllPoints(button)
+        holder:SetBackdrop({ bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = CELL_BORDER_SIZE })
+        button.dfEffHolder = holder
+        local bar = CreateFrame("StatusBar", nil, holder)
+        bar:SetPoint("TOPLEFT", holder, "TOPLEFT", CELL_BORDER_SIZE, -CELL_BORDER_SIZE)
+        bar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -CELL_BORDER_SIZE, CELL_BORDER_SIZE)
+        -- a texture must be set BEFORE GetStatusBarTexture is read (it is nil until then)
+        bar:SetStatusBarTexture(ACC.WHITE)
+        bar:GetStatusBarTexture():SetVertexColor(0, 0, 0, 0) -- the elapsed part: invisible
+        bar:SetReverseFill(true)
+        button.dfBar = bar
+        button.dfEffTex = bar:CreateTexture(nil, "ARTWORK")
+    end
+    holder:SetFrameLevel(button:GetFrameLevel() + EFFECT_LAYER.border)
+
+    local bar = button.dfBar
+    local vertical = type(cfg.orientation) == "string" and strlower(cfg.orientation) == "vertical"
+    bar:SetOrientation(vertical and "VERTICAL" or "HORIZONTAL")
+    local tex = bar:GetStatusBarTexture()
+    AnchorBarRemaining(button.dfEffTex, bar, tex, vertical)
+    -- for the band companions styled after this button (see BuildBandSlot)
+    handle._barFill = { bar = bar, tex = tex, vertical = vertical }
+
+    local colors = cfg.effectColors
+    local fr, fg, fb, fa = ColorOr(colors and colors[1], 0, 1, 0, 1)
+    button.dfEffTex:SetColorTexture(fr, fg, fb, fa)
+    local br, bg, bb, ba = ColorOr(colors and colors[4], 0, 0, 0, 1)
+    holder:SetBackdropBorderColor(br, bg, bb, ba)
+    local gr, gg, gb, ga = ColorOr(colors and colors[5], 0.07, 0.07, 0.07, 0.9)
+    holder:SetBackdropColor(gr, gg, gb, ga)
+
+    if button.SetDurationBar and not button._boundBar then
+        button:SetDurationBar(bar)
+        button._boundBar = true
+    end
+end
+
 local EFFECT_BUILDERS = {
     color   = BuildEffectColor,
     border  = BuildEffectBorder,
     rect    = BuildEffectRect,
     texture = BuildEffectTexture,
+    bar     = BuildEffectBar,
 }
 
 -- ============================================================
@@ -1388,9 +1488,11 @@ local function StyleButton(handle, button)
         -- rect is the one effect with room for text, and Blizzard renders both blind, so it
         -- keeps its countdown and stack -- more than the manual path could show in an
         -- instance. The others are pure fills with nowhere sensible to put a number.
-        if cfg.customStyle == "rect" then
-            BindDurStack(button, cfg, button:GetFrameLevel(), BuildDurColorOpt(cfg))
-            if button.dfDur then
+        -- bar keeps both too, at the font's own anchors (number RIGHT, stack LEFT by
+        -- default) -- the manual bar never centred them.
+        if cfg.customStyle == "rect" or cfg.customStyle == "bar" then
+            BindDurStack(button, cfg, button:GetFrameLevel(), BuildDurColorOpt(cfg), cfg.customStyle == "bar")
+            if cfg.customStyle == "rect" and button.dfDur then
                 local colors = cfg.effectColors
                 local nb = (cfg.durationColors and cfg.durationColors.base)
                     or (type(colors) == "table" and colors[4])

@@ -143,12 +143,23 @@ function I.CreateIndicator(parent, indicatorTable)
     -- (rect and block get them back engine-driven: the countdown colour curve, the Pandemic
     -- fill and the two remaining-time bands -- see AuraDisplay's BuildPandemicFill and
     -- BuildBandSlot.)
-    -- (glow / bar / bars / blocks are still on the manual path: see the notes in
-    -- AuraDisplay's EFFECT SLOTS block for what each of them still needs.)
+    -- (bar joined them 2026-10-15: an engine-driven StatusBar, its bands on companion
+    -- slots -- see AuraDisplay's BuildEffectBar. glow / bars / blocks are still on the
+    -- manual path: see the notes in AuraDisplay's EFFECT SLOTS block for what each of
+    -- them still needs.)
     local ctype = indicatorTable["type"]
     local isIconish  = ctype == "icon" or ctype == "icons"
-    local isEffectish = ctype == "block" or ctype == "text"
+    local isEffectish = ctype == "block" or ctype == "text" or ctype == "bar"
         or ctype == "color" or ctype == "border" or ctype == "rect" or ctype == "texture"
+    -- A buff bar's 設置進度條最大值 cannot be honoured on the container path: the engine
+    -- owns the StatusBar's min/max (the aura's full duration). The PREVIEW button never
+    -- gets a container (it keeps the manual bar), so it must drop the setting too, or the
+    -- panel would show a scale the unit frames cannot draw. The options page hides the
+    -- widget for buff bars; this covers the value a layout already stores.
+    if ctype == "bar" and indicatorTable["auraType"] == "buff" and I.AttachBuffContainer
+        and Cell.AuraDisplay and Cell.AuraDisplay.IsSupported() then
+        indicator.SetMaxValue = function() end
+    end
     if indicator and indicatorTable["auraType"] == "buff" and I.AttachBuffContainer
         and (isIconish or isEffectish) then
         local isMulti = ctype == "icons"

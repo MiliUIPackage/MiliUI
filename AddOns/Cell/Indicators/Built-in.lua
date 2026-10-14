@@ -481,11 +481,14 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 local first = t["auras"] and t["auras"][1]
                 opts.effectColors = (type(first) == "table" and first[2]) or t["colors"]
             end
-            if customStyle ~= "rect" then
+            if customStyle ~= "rect" and customStyle ~= "bar" then
                 -- a fill or a ring has nowhere to put a number
                 opts.showDuration = false
                 opts.showStack = false
             else
+                -- rect and bar keep their number and stack (Blizzard renders both blind),
+                -- and both get the two colour bands below. The Pandemic fill is rect's
+                -- alone: a bar has no pandemicColor setting, so the key stays off for it.
                 -- Pandemic fill: the one time-based colour a rect can still have, because the
                 -- ENGINE decides when to show it (AddPandemicRegion). The switch is structural
                 -- (the region is handed over in the initializeFrame window, so turning it on
@@ -495,7 +498,8 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 opts.pandemicOn = type(pc) == "table" and pc[1] == true
                 opts.pandemicColor = type(pc) == "table" and pc[2] or nil
                 -- The two colour bands, colors[2] = {en, fraction, col} ("remaining < N% of
-                -- the duration") and colors[3] = {en, seconds, col} ("remaining < N sec").
+                -- the duration") and colors[3] = {en, seconds, col} ("remaining < N sec") --
+                -- the same two slots in rect's and bar's colours tables.
                 -- Each becomes a companion slot whose fill is a |T escape the ENGINE picks
                 -- against the secret remaining time (AuraDisplay's BuildBandSlot). A band that
                 -- is off is not sent at all.
