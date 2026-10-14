@@ -2001,7 +2001,14 @@ local function ShowIndicatorSettings(id)
                 settingsTable = {"enabled", "auras", "maxValue", "colors", "barOrientation", "glowSection:manual", "size", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
             end
         elseif indicatorType == "bars" then
-            settingsTable = {"enabled", "auras", "maxValue", "glowSection:manual", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            if indicatorTable["auraType"] == "buff" then
+                -- buff bars run on the AuraContainer path too (one engine-driven row per
+                -- spell, see AuraDisplay's BuildEffectBar): same rules as bar above -- no
+                -- fixed max value, engine-timed glow
+                settingsTable = {"enabled", "auras", "glowSection", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            else
+                settingsTable = {"enabled", "auras", "maxValue", "glowSection:manual", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "stackText", "font1:stackFont", "durationText", "font2:durationFont"}
+            end
         elseif indicatorType == "rect" then
             if indicatorTable["auraType"] == "buff" then
                 -- buff rects run on the AuraContainer path, where every time-based colour is

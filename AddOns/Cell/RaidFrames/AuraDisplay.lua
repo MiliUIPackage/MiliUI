@@ -81,8 +81,9 @@ end
 
 -- How many single-spell effect slots one indicator may declare before it collapses back to
 -- a single shared slot. Each slot is an AuraButton on EVERY unit button, so this is a real
--- per-frame cost, not a config nicety.
-local EFFECT_PER_SPELL_CAP = 8
+-- per-frame cost, not a config nicety. bars (one row per spell, see BuildEffectBar) gets
+-- the manual path's ten -- that is how many rows CreateAura_Bars ever built.
+local EFFECT_PER_SPELL_CAP = { default = 8, bars = 10 }
 
 -- Blizzard filter tokens (defensive: names differ slightly across PTR builds).
 local TOKEN_CC   = "CROWD_CONTROL"
@@ -268,11 +269,17 @@ local function BuildRecordsRaw(opts)
         -- Capped: each slot is a real AuraButton on every unit button, and past a handful the
         -- indicator is really a list, not a highlight. Over the cap it collapses to one slot
         -- in the first spell's colour rather than refusing to render.
+        -- bars (one row per spell) is the same shape: a flow group per spell, each one
+        -- row wide (GroupBudget), declared in the LIST's order -- on a row display the
+        -- order is visible, and the options page promises "priority decreases from top to
+        -- bottom". effectSpellOrder carries that order; without it (border) the records
+        -- are sorted by key, which is all a single overlapping slot needs.
         local perSpell = opts.effectSpellColors
         if type(perSpell) == "table" then
-            local recs = {}
-            for id in pairs(ids) do
-                if type(id) == "number" then
+            local recs, seen = {}, {}
+            local function add(id)
+                if type(id) == "number" and ids[id] and not seen[id] then
+                    seen[id] = true
                     recs[#recs + 1] = {
                         key = "eff" .. id, filter = f,
                         candidateFilters = { includeSpellIDs = { [id] = true } },
@@ -280,9 +287,16 @@ local function BuildRecordsRaw(opts)
                     }
                 end
             end
-            if #recs > 0 and #recs <= EFFECT_PER_SPELL_CAP then
+            local order = opts.effectSpellOrder
+            if type(order) == "table" then
+                for _, id in ipairs(order) do add(id) end
+            else
+                for id in pairs(ids) do add(id) end
                 -- stable order so a park key built from these records does not churn
                 table.sort(recs, function(a, b) return a.key < b.key end)
+            end
+            local cap = EFFECT_PER_SPELL_CAP[opts.customStyle] or EFFECT_PER_SPELL_CAP.default
+            if #recs > 0 and #recs <= cap then
                 return recs
             end
         end
@@ -669,6 +683,8 @@ local EFFECT_SLOT_STYLES = {
     rect    = true,   -- filled rectangle with a border
     texture = true,   -- arbitrary texture / atlas
     bar     = true,   -- progress bar: an engine-driven StatusBar (see BuildEffectBar)
+    -- NOT here: bars (進度條組). It draws the same bar per aura, but as a FLOW of one-row
+    -- groups (one per spell, see BuildRecords), so it is a grid like icons, not a slot.
 }
 AD.EFFECT_SLOT_STYLES = EFFECT_SLOT_STYLES
 
@@ -1193,6 +1209,13 @@ end
 -- Not carried over: 設置進度條最大值. The engine owns the bar's min/max (the aura's full
 -- duration), so a fixed scale cannot be imposed on it; Custom.lua neutralises the setting
 -- on the preview as well so the two agree, and the options page hides it for buff bars.
+--
+-- bars (進度條組, 2026-10-15) draws the same bar once per aura: not a slot but a flow of
+-- one-row groups, one group per spell in the list (BuildRecords' per-spell path, as
+-- border uses), each capped at one row (GroupBudget), laid out by the icon grid options.
+-- No colour bands and no companion slots: the row's colour is the spell's. `num` is only
+-- the line-wrap budget there (there is no cross-group total; a spell past `num` wraps to
+-- the next line rather than vanishing).
 local function BuildEffectBar(handle, button, cfg)
     local holder = button.dfEffHolder
     if not holder then
@@ -1215,20 +1238,34 @@ local function BuildEffectBar(handle, button, cfg)
     holder:SetFrameLevel(button:GetFrameLevel() + EFFECT_LAYER.border)
 
     local bar = button.dfBar
-    local vertical = type(cfg.orientation) == "string" and strlower(cfg.orientation) == "vertical"
+    local multi = cfg.customStyle == "bars"
+    -- bars: `orientation` is the GRID's (top-to-bottom...), and every row is horizontal,
+    -- as the manual rows were (CreateAura_Bars never turned one on its side)
+    local vertical = not multi and type(cfg.orientation) == "string" and strlower(cfg.orientation) == "vertical"
     bar:SetOrientation(vertical and "VERTICAL" or "HORIZONTAL")
     local tex = bar:GetStatusBarTexture()
     AnchorBarRemaining(button.dfEffTex, bar, tex, vertical)
-    -- for the band companions styled after this button (see BuildBandSlot)
-    handle._barFill = { bar = bar, tex = tex, vertical = vertical }
 
     local colors = cfg.effectColors
-    local fr, fg, fb, fa = ColorOr(colors and colors[1], 0, 1, 0, 1)
-    button.dfEffTex:SetColorTexture(fr, fg, fb, fa)
-    local br, bg, bb, ba = ColorOr(colors and colors[4], 0, 0, 0, 1)
-    holder:SetBackdropBorderColor(br, bg, bb, ba)
-    local gr, gg, gb, ga = ColorOr(colors and colors[5], 0.07, 0.07, 0.07, 0.9)
-    holder:SetBackdropColor(gr, gg, gb, ga)
+    if multi then
+        -- one row per spell: the fill is the spell's colour from the list (stamped on the
+        -- button by its record, see AddGroups), the backdrop that colour at 0.2 and the
+        -- edge black -- Bars_SetCooldown's recipe, since bars has no colours table of its
+        -- own. effectColors is the fallback for the over-cap collapse (the first row's).
+        local r, g, b, a = ColorOr(button._adEffColor or colors, 0, 1, 0, 1)
+        button.dfEffTex:SetColorTexture(r, g, b, a)
+        holder:SetBackdropBorderColor(0, 0, 0, 1)
+        holder:SetBackdropColor(r * 0.2, g * 0.2, b * 0.2, a)
+    else
+        -- for the band companions styled after this button (see BuildBandSlot)
+        handle._barFill = { bar = bar, tex = tex, vertical = vertical }
+        local fr, fg, fb, fa = ColorOr(colors and colors[1], 0, 1, 0, 1)
+        button.dfEffTex:SetColorTexture(fr, fg, fb, fa)
+        local br, bg, bb, ba = ColorOr(colors and colors[4], 0, 0, 0, 1)
+        holder:SetBackdropBorderColor(br, bg, bb, ba)
+        local gr, gg, gb, ga = ColorOr(colors and colors[5], 0.07, 0.07, 0.07, 0.9)
+        holder:SetBackdropColor(gr, gg, gb, ga)
+    end
 
     if button.SetDurationBar and not button._boundBar then
         button:SetDurationBar(bar)
@@ -1242,6 +1279,7 @@ local EFFECT_BUILDERS = {
     rect    = BuildEffectRect,
     texture = BuildEffectTexture,
     bar     = BuildEffectBar,
+    bars    = BuildEffectBar, -- one row per spell; same drawing, per-spell colour
 }
 
 -- ============================================================
@@ -1490,8 +1528,9 @@ local function StyleButton(handle, button)
         -- instance. The others are pure fills with nowhere sensible to put a number.
         -- bar keeps both too, at the font's own anchors (number RIGHT, stack LEFT by
         -- default) -- the manual bar never centred them.
-        if cfg.customStyle == "rect" or cfg.customStyle == "bar" then
-            BindDurStack(button, cfg, button:GetFrameLevel(), BuildDurColorOpt(cfg), cfg.customStyle == "bar")
+        local st = cfg.customStyle
+        if st == "rect" or st == "bar" or st == "bars" then
+            BindDurStack(button, cfg, button:GetFrameLevel(), BuildDurColorOpt(cfg), st ~= "rect")
             if cfg.customStyle == "rect" and button.dfDur then
                 local colors = cfg.effectColors
                 local nb = (cfg.durationColors and cfg.durationColors.base)
@@ -1936,12 +1975,19 @@ end
 -- display for its ordering, not for its share: with it first and flexible, the boss/role
 -- group would drop to 1 and the common case above would break again. `flexIndex` is the
 -- position among the flexible groups only (see FlexCount).
+--
+-- bars (one flow group PER SPELL, see BuildRecords): every group is exactly one row, in
+-- declaration order -- there the first group must NOT take the whole `num`, or the first
+-- spell would be allowed `num` rows and the others one each. `num` is the line-wrap
+-- budget only (ApplyLayout). The over-cap collapse is a single group and keeps `num`.
 local FIXED_BUDGET = { short = 1 }
 
-local function GroupBudget(key, flexIndex, total, wanted)
+local function GroupBudget(cfg, key, flexIndex, total)
+    local wanted = cfg.num or 3
     if total <= 1 then return wanted end
     local fixed = FIXED_BUDGET[key]
     if fixed then return fixed end
+    if cfg.customStyle == "bars" then return 1 end
     return flexIndex == 1 and wanted or 1
 end
 
@@ -2122,7 +2168,6 @@ local function AddGroups(handle, host, c, records, slotMode, strict)
     -- category groups, so num=3 meant "up to 15 icons" and made Blizzard pre-allocate a
     -- batch of 10 buttons PER GROUP (50 for three visible icons). The budget is handed out
     -- per group by GroupBudget -- read the note above it before changing the shape.
-    local wanted = handle.config.num or 3
     local first = true
 
     for _, rec in ipairs(records) do
@@ -2175,7 +2220,7 @@ local function AddGroups(handle, host, c, records, slotMode, strict)
         else
             okG, errG = pcall(c.AddAuraGroup, c, rec.key, rec.filter, {
                 -- position among flexible groups added so far (+1 = this one, if flexible)
-                maxFrameCount = GroupBudget(rec.key, FlexCount(handle._groupKeys) + 1, #records, wanted),
+                maxFrameCount = GroupBudget(handle.config, rec.key, FlexCount(handle._groupKeys) + 1, #records),
                 initializeFrame = initFn,
                 layout = groupLayout,
                 candidateFilters = rec.candidateFilters,
@@ -2721,7 +2766,7 @@ function Handle:SetNum(n)
         local flex = 0
         for _, key in ipairs(self._groupKeys) do
             if not FIXED_BUDGET[key] then flex = flex + 1 end
-            local per = GroupBudget(key, flex, total, n)
+            local per = GroupBudget(self.config, key, flex, total)
             if not pcall(c.SetAuraGroupMaxFrameCount, c, key, per) then allOK = false end
         end
         if allOK then
