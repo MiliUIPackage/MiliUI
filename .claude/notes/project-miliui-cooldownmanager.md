@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-12T03:59:28.650Z
+  modified: 2026-10-14T17:25:12.298Z
 ---
 
 ## 緣起與拍板
@@ -95,6 +95,14 @@ Ayije 從來不顯示持續時間的原因：它預設在 SetCooldown 後掛勾 
 （`FeedRealCooldown`，自己叫的 setter 用 `overriding` 守衛擋自己的後掛勾；探針改走 `Glow.ArmProbe`；去飽和走 `Decorate.DesatCurve`）——**改餵冷卻時要用含 GCD 的時長**，
 不然一直掛減益的格永遠沒 GCD（2026-10-05 回報）。
 
+**貼圖的 SetAlpha 跟 SetVertexColor 的第四個參數是同一個值（2026-10-15 玩家回報惡魔之核灰底關不掉）**：`AB.RowDecor` 在 `LayoutDecor`
+寫完暗底的 `dim[4]` 之後對每張暗底 `SetAlpha(1)`，alpha 被打回 1 ⇒ 引擎畫的列（層數／剩餘時間／百分比、自訂格子層數列、自訂列、預覽）
+暗底從 09-30 起一直不透明、「背景透明度」對它們全無效；按鈕子樹裡的裝飾沒走這行所以正常，點數型／連續條走別的路也正常。
+查法：`/run` 倒出列上貼圖的 `GetVertexColor()`，alpha 1 而程式最高只寫 0.6 ⇒ 一定有人事後 SetAlpha。
+**How to apply：** 上色後不要再 SetAlpha 貼圖；要「顯示／隱藏」用 Show／Hide。另一條真的缺口也一起補了：戰鬥中面板是保護框、重排延到脫戰，
+引擎列的暗底只在 Layout 上色 ⇒ 延後時走 `R.RecolorDeferred` → `AB.RecolorRowDecor` 只 SetVertexColor／SetTexture 不動幾何；
+自訂列（CustomBars）這條還沒補。
+
 **充能旗標不等於有充能（2026-10-04）**：冷卻管理器資料的 `charges` 是「可以有充能」，天賦給第二次的技能沒點也是 true；照它問 `GetSpellChargeDuration` 回充永遠是零 ⇒
 隱藏 GCD 轉圈把武器戰法術反射的冷卻框一直藏著。凡是照它選 `GetSpellChargeDuration` 的地方都要過 `Decorate.IsChargeSpell`（`maxCharges > 1`，秘密時沿用上次明文）。
 「還有充能／0 充能」別讀 `currentCharges`（戰鬥中秘密值），看 `GetSpellCooldown` 的 `isActive` 且非 `isOnGCD`（`ChargeState`）。
@@ -161,6 +169,11 @@ NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪�
   **自訂列**（`Modules/CustomBars.lua`：自身增益／目標減益／法術冷卻的計時條，2026-10-13）、**資源列獨立擺放**（`resources.detached[key]`，列的 parent 不換只改錨點，閒置面板走 `Bars.Dormant`）、
   自訂格子（`Modules/Pips.lua`）與兩個分頁的固定預覽框。
 - **飾品**：裝備欄位 `kind="slot"`（不經暴雪）、飾品冷卻格疊增益持續時間、暴雪沒給框時代畫（`[proxy]`）、飾品欄增益 `kind="slotbuff"`、沒有物品時隱藏／被動飾品不顯示、飾品欄觸發發光、藥水格疊增益。
+  **條層選往前補 ⇒ 飾品／藥水疊層自動關**（2026-10-15 玩家回報「加飾品就不能往前補」，使用者拍板排版優先於疊層）：`Catalog.BarOverlaysSuppressed`
+  要 `layout.emptyMode=="collapse"` **且** `layout.collapseChosen==true`（設定頁選了才寫）——每條預設存值就是 collapse，只看存值會讓所有人的疊層在更新後消失；
+  設定頁能不能選往前補看 `Bars.CollapseLocked`（忽略自己的疊層）不是 forced；溢過來的格子疊不疊照接收條判。
+  **真實條上飾品增益的提示**：暴雪 EquipSlotTracked 項目沒有 spellID，`ShowTip` 以前掉進 `SetInventoryItem` 畫整顆飾品 ⇒ 改走 `Catalog.SlotBuffTooltip`
+  （`Catalog.EquipTrackedOf`；增益在身上時暴雪畫 aura instance，我們不碰秘密 auraInstanceID）。三項都未實機（README 556～558）。
 - **音效**（`Core/Sound.lua`：就緒／出現／消失／充能滿／層數增加／施放後 N 秒提醒／倒數播報、天賦條件、自訂語音）、**事件視窗 沸點**（`Modules/EchoWindow.lua`，2026-10-12 實機：戰鬥中 `SPELL_UPDATE_COOLDOWN` 的 spellID 明文）。
 - **天空騎術**（[[project-miliui-cdm-skyriding]]）、**錨到單位框與具名框**（[[project-miliui-cdm-halo-borrow]] H4）、**效能計數 `/mcdm perf`** 與 E1～E3 修整（[[project-miliui-cdm-eui-comparison-2026-10-04]]）。
 

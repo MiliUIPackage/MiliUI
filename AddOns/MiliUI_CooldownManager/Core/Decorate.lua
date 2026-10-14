@@ -2521,8 +2521,18 @@ local function ShowTip(ov)
         GameTooltip:SetOwner(ov, "ANCHOR_RIGHT")
     end
     local shown = false
+    -- 飾品的增益（暴雪的裝備欄追蹤項目、自訂飾品欄增益）：照暴雪 RefreshTooltipInternal 的「增益不在身上」那一支
+    -- （DisplayEquipSlotTrackedTooltip：飾品名＋每個連帶增益一段），走共用的 Catalog.SlotBuffTooltip。
+    -- 增益在身上時暴雪改畫光環本身（SetUnitAuraByAuraInstanceID）——那要讀暴雪框上的 auraInstanceID（可能是秘密值），不做。
+    -- 法術資料還沒載入：SlotBuffTooltip 先畫標題，載完在提示還開著、擁有者還是這顆 overlay、中間沒被蓋過時叫 refresh
+    -- ⇒ 重跑一次 ShowTip（那時資料已經在快取，不會再等，不會無限重入）
+    local function Refresh() if ov.tipOn then ShowTip(ov) end end
     if rec.custom then
-        if rec.kind == "slot" and rec.slot then
+        local sb = rec.slotBuff
+        if type(sb) == "table" and type(sb.slot) == "number" then
+            ns.Catalog.SlotBuffTooltip(GameTooltip, sb.slot, sb.buff, Refresh)
+            shown = true
+        elseif rec.kind == "slot" and rec.slot then
             shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", rec.slot)
         elseif rec.kind == "item" and rec.itemID then
             shown = pcall(GameTooltip.SetItemByID, GameTooltip, rec.itemID)
@@ -2530,9 +2540,15 @@ local function ShowTip(ov)
             shown = pcall(GameTooltip.SetSpellByID, GameTooltip, rec.overrideID or rec.spellID)
         end
     else
-        local info = ns.Catalog.Info(rec.cooldownID)
+        local C = ns.Catalog
+        -- 先判裝備欄追蹤（暴雪也是先走裝備欄那條、再看 spellID）；飾品的冷卻格（EquipSlotEssential）不算，照舊畫物品
+        local slot, buff = C.EquipTrackedOf(rec.cooldownID)
+        local info = C.Info(rec.cooldownID)
         local spellID = info and (info.overrideTooltipSpellID or info.overrideSpellID or info.spellID)
-        if type(spellID) == "number" then
+        if slot then
+            C.SlotBuffTooltip(GameTooltip, slot, buff, Refresh)
+            shown = true
+        elseif type(spellID) == "number" then
             shown = pcall(GameTooltip.SetSpellByID, GameTooltip, spellID)
         elseif info and type(info.equipSlot) == "number" then
             shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", info.equipSlot)

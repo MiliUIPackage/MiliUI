@@ -727,6 +727,18 @@ function B.BarEmptyMode(barKey)
     return ns.Layout.BarEmptyMode(layout.emptyMode, forced, bar and bar.kind == "bars", layout.emptyStyle), forced
 end
 
+-- 設定頁的「往前補」能不能選（Options/Specs.lua 的 EmptyModeRow）：問的是「選了之後會不會成立」，不是現在的 forced。
+-- 條層選往前補會把這條的飾品／藥水增益疊層關掉（Catalog.BarOverlaysSuppressed），所以疊層不算數
+-- （BarHasAuraSlot 的 ignoreOwnOverlays）；剩下的光環格（自己的、溢出來源條的）與可點擊才會擋。
+-- ⚠ 只管設定頁能不能選；生效值照舊是 B.BarEmptyMode（存著留空位時疊層活著 ⇒ forced，這是對的）。
+-- 逐法術那一列不用這支：單格選往前補不會關疊層（關疊層只看條層），所以單格的鎖照舊是 B.SpellEmptyForced 的生效值
+function B.CollapseLocked(barKey)
+    local C = ns.Catalog
+    if ns.Clickable and ns.Clickable.Enabled(barKey) then return true end
+    if C.BarHasAuraSlot(barKey, true) and not (C.BarAuraFlow and C.BarAuraFlow(barKey)) then return true end
+    return false
+end
+
 -- 這條現在走引擎補位嗎：只有光環格（BarAuraFlow 成立）而且條層生效的「增益不在時」是收合
 function B.AuraFlow(barKey)
     local C = ns.Catalog
