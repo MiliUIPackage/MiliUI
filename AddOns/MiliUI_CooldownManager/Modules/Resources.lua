@@ -3074,6 +3074,29 @@ local function Relayout(cfg, list, W)
     ns.Bars.SetPanelSize("resources", ns.P.Scale(panelPx), #main > 0 and total or 1)
 end
 
+-- 戰鬥中該重排卻重排不了（MustDefer：有 auraBar 容器的面板是保護框）時，引擎寫的列只把裝飾的顏色就地重上：
+-- 背景不透明度／自訂底色／背景材質／邊框色這幾樣改了當場看得到，不必等脫戰（點數型的列在 UpdateRow 每次都重上色，
+-- 引擎列的暗底只在 Layout 時上，戰鬥中改設定會一直停在舊的灰底 —— 玩家回報 2026-10-15 惡魔之核）。
+-- 尺寸、格數、填色（在容器簽章裡）照舊等脫戰的重排
+function R.RecolorDeferred(cfg)
+    if not ns.AuraBar then return end
+    for i = 1, shownCount do
+        local row = rows[i]
+        local key = row and row.key
+        local def = key and RESOURCES[key]
+        if def and row.abDecor and row.mode == "engine" then
+            local sc = R.StyleFor(cfg, key)
+            local dim
+            if def.mode == "auraBar" then
+                dim = R.DimArray(sc)
+            else
+                dim = R.TimerBg(sc, key, ResolveColor(sc, key, "color"))
+            end
+            ns.AuraBar.RecolorRowDecor(row, dim, R.EdgeArray(sc), R.BgTexture(sc))
+        end
+    end
+end
+
 -- force：重排（清單、格數、尺寸設定、寬度都可能變了）。不給 ＝ 只重畫值（能量事件走這條，
 -- 熱路徑上不重算清單、不配任何表或字串）
 function R.Update(force)
@@ -3097,6 +3120,7 @@ function R.Update(force)
     if force or not laidOut then
         if MustDefer() then
             DeferRelayout()
+            R.RecolorDeferred(cfg)
         else
             Relayout(cfg, ActiveRows(cfg), R.Width(cfg))
             laidOut = true
