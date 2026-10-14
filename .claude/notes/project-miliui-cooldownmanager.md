@@ -95,11 +95,13 @@ Ayije 從來不顯示持續時間的原因：它預設在 SetCooldown 後掛勾 
 （`FeedRealCooldown`，自己叫的 setter 用 `overriding` 守衛擋自己的後掛勾；探針改走 `Glow.ArmProbe`；去飽和走 `Decorate.DesatCurve`）——**改餵冷卻時要用含 GCD 的時長**，
 不然一直掛減益的格永遠沒 GCD（2026-10-05 回報）。
 
-**戰鬥中保護框：貼圖的顏色可以寫、幾何不行 ⇒ 顏色類設定要跟重排分開（2026-10-15 玩家回報惡魔之核）**：面板有 AuraContainer 時整個面板是保護框，
-`MustDefer` 把重排延到脫戰。點數型的列在 UpdateRow 每次都重上底色所以戰鬥中（打木樁）拉「背景透明度」立刻變，引擎寫層數／時間的列
-暗底只在 Layout 時上 ⇒ 同一條滑桿對惡魔之核沒反應、脫戰才變，玩家當成 bug。解法：延後重排時另叫 `R.RecolorDeferred` → `AB.RecolorRowDecor`
-只 SetVertexColor／SetTexture（不 SetPoint／SetSize／Show）。**How to apply：** 新的「只在 Layout 上色」的東西（裝飾、邊框、底）都要有一條戰鬥中的重上色路；
-尺寸與填色（在容器簽章裡）照舊等脫戰。自訂列（CustomBars）同一個模式還沒補。
+**貼圖的 SetAlpha 跟 SetVertexColor 的第四個參數是同一個值（2026-10-15 玩家回報惡魔之核灰底關不掉）**：`AB.RowDecor` 在 `LayoutDecor`
+寫完暗底的 `dim[4]` 之後對每張暗底 `SetAlpha(1)`，alpha 被打回 1 ⇒ 引擎畫的列（層數／剩餘時間／百分比、自訂格子層數列、自訂列、預覽）
+暗底從 09-30 起一直不透明、「背景透明度」對它們全無效；按鈕子樹裡的裝飾沒走這行所以正常，點數型／連續條走別的路也正常。
+查法：`/run` 倒出列上貼圖的 `GetVertexColor()`，alpha 1 而程式最高只寫 0.6 ⇒ 一定有人事後 SetAlpha。
+**How to apply：** 上色後不要再 SetAlpha 貼圖；要「顯示／隱藏」用 Show／Hide。另一條真的缺口也一起補了：戰鬥中面板是保護框、重排延到脫戰，
+引擎列的暗底只在 Layout 上色 ⇒ 延後時走 `R.RecolorDeferred` → `AB.RecolorRowDecor` 只 SetVertexColor／SetTexture 不動幾何；
+自訂列（CustomBars）這條還沒補。
 
 **充能旗標不等於有充能（2026-10-04）**：冷卻管理器資料的 `charges` 是「可以有充能」，天賦給第二次的技能沒點也是 true；照它問 `GetSpellChargeDuration` 回充永遠是零 ⇒
 隱藏 GCD 轉圈把武器戰法術反射的冷卻框一直藏著。凡是照它選 `GetSpellChargeDuration` 的地方都要過 `Decorate.IsChargeSpell`（`maxCharges > 1`，秘密時沿用上次明文）。

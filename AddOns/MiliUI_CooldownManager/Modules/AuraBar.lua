@@ -255,7 +255,9 @@ function AB.RowDecor(row, geom, level)
     if level then d.overlay:SetFrameLevel(level) end
     LayoutDecor(d, row, geom)
     d.overlay:Show()
-    for _, t in ipairs(d.bgs) do if t:IsShown() then t:SetAlpha(1) end end
+    -- ⚠ 這裡不能再對暗底 SetAlpha(1)：貼圖的 SetAlpha 跟 SetVertexColor 的第四個參數是同一個值，
+    -- 會把 LayoutDecor 剛寫的 dim[4] 打回 1 ⇒ 引擎畫的列暗底永遠不透明、「背景透明度」對它們無效
+    -- （玩家回報 2026-10-15 惡魔之核；按鈕子樹裡的裝飾沒走這行所以一直是對的）
     return d
 end
 
