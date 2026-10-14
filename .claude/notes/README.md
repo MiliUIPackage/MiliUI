@@ -55,6 +55,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-identity-gate-failopen.md](wow-121-identity-gate-failopen.md) | 身分閘 fail-open：白名單 buff 變成顯示全部、且只有 `/reload` 有效；⚠ 09-05 原始碼核對說機制不是 `UnitCanAssist`，未定案 |
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、**開暴雪面板要走 secure 點擊轉發**、改名與移除 |
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | AddOnRestrictionType 六型別；**ChallengeMode 整趟鑰石都算**、聊天封鎖時連填聊天輸入框都被擋、狀態事件派送當下讀不到終值 |
+| [wow-1215-api-changes.md](wow-1215-api-changes.md) | 12.1.5 對插件有影響的 API 變動與 MiliUI 系列已修清單：相容層全拔（GetItemInfo 等舊全域變 nil）、SetAuraBorder 刪除、GetInventoryItemCooldown 第 4 回傳、保護 Cooldown 不能 SetCooldown |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
 | [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | **插件開聊天輸入框只能走超連結**（`|Hchannel:…|h` ＋ propagate 給 ChatFrameTemplate 框，2026-09-16 根治）；前半是密語回覆在秘密名字下的死路史，鏡射／`/r` 降級全是治標 |
 | [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 `MacroFrame:SelectMacro`／`SaveMacro` 或改巨集格欄數 ⇒ 安全按鈕跑巨集前的 `SaveMacro` 讀到髒的 `selectedIndex`，快捷列巨集被擋到 /reload；搜尋只能 `PickupMacro`＋自畫高亮 |
