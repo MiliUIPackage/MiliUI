@@ -46,13 +46,13 @@ function M.ElementFont(own, general)
 end
 
 ------------------------------------------------------------
--- 自製的長條材質「MiliUI Glass」：Media/bar-glass.png 是技能 miliui-cdm-bar-texture 的腳本畫的
--- （上緣高光往下壓到平台的純灰階漸層，完全自己做、不帶別人的檔）。專注目標施法條的預設材質。
+-- 套組共用的長條材質「MiliUI Satin」：Media/miliui_satin.png 是技能 miliui-satin-texture 的腳本畫的
+-- （上緣高光往下壓到平台的純灰階漸層，完全自己做、不帶別人的檔；五支插件各帶一份、md5 相同）。專注目標施法條的預設材質。
 -- 登記名加前綴「MiliUI」：LSM 撞名會被靜默拒絕。解析時先認自己的名字再問 LSM，所以 LSM 還不認得新檔也畫得出來。
 -- ⚠ LSM 登記會問 C_UIFileAsset.IsKnownFile：新檔案要整個重開遊戲才認得，/reload 不夠
 ------------------------------------------------------------
-M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\bar-glass.png"
-M.BAR_TEXTURE_NAME = "MiliUI Glass"
+M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_satin.png"
+M.BAR_TEXTURE_NAME = "MiliUI Satin"
 
 local lsmDone = false
 function M.RegisterSharedMedia()

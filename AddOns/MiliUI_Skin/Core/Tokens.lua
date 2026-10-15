@@ -115,11 +115,12 @@ T.itemBorderSize = 1
 --   "ring"    保留圓形，外圈的金屬環去飽和壓深（第五輪的做法：邊緣是一圈模糊的暗暈）
 T.categoryIconStyle = "square"
 
--- 進度條的填充材質。套組自己的細橫紋（跟傷害統計同一張），取代暴雪那幾張
+-- 進度條的填充材質。套組自製的 MiliUI Satin（上緣一道高光往下壓到平台的漸層，跟傷害統計／單位框架同一張，
+-- 技能 miliui-satin-texture 的腳本畫的；2026-10-16 取代 TukTex），取代暴雪那幾張
 -- 帶漸層與高光的 UI-StatusBar／UI-Character-Skills-Bar。
 -- ⚠ 單體發佈 ⇒ 檔案複製一份在自己的 Media/ 底下，**不要跨插件引用路徑**：
 --   玩家只裝這一支的時候那個路徑不存在，條會變成全白。
-T.barTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\tuktex.tga"
+T.barTexture = "Interface\\AddOns\\MiliUI_Skin\\Media\\miliui_satin.png"
 
 -- 捲軸拇指。比 fillHover 再亮一階，軌道用 fillInset。
 T.scrollThumb = { 0.35, 0.35, 0.35, 1 }

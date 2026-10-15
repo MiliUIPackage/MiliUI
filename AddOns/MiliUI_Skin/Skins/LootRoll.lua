@@ -62,7 +62,7 @@
 -- | `IconFrame.Border`（圓角品質框） | `SetAlpha(0)` |
 -- | `IconFrame.Icon` | `SetTexCoord`（裁邊，每次顯示重下） |
 -- | `IconFrame` | 以它為 parent 建一個前景子框（1px 品質色方框，不吃滑鼠） |
--- | `Timer` | `SetStatusBarTexture(tuktex)`（`Engine.BarTexture`）；`Background` `SetAlpha(0)`；條自己的底與邊貼圖（`Engine.RegionBackdrop`） |
+-- | `Timer` | `SetStatusBarTexture(satin)`（`Engine.BarTexture`）；`Background` `SetAlpha(0)`；條自己的底與邊貼圖（`Engine.RegionBackdrop`） |
 --
 -- **讀了什麼**：parentKey；`GroupLootFrameN.Border` 的 `IsShown()`／`GetVertexColor()`
 -- （只經 `Engine.PassBorderColor` 轉交，不存、不比、不算）。**不讀** `rollID`、

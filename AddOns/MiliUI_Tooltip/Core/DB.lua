@@ -48,7 +48,7 @@ local function BuildDefaults()
             hideInCombat = false,  -- 戰鬥中照樣顯示（值畫得出來——C 端呈現；想清爽再自己開）
             height = 4,
             position = "bottom",           -- bottom | top
-            texture = "tuktex",
+            texture = "satin",             -- 套組自製的 MiliUI Satin（Core/Media.lua）
             textFormat = "healthmaxpercent", -- none | percent | healthmax | healthmaxpercent
             fontSize = 10,
             color = "auto",                -- auto（職業/立場色）| custom
@@ -330,13 +330,19 @@ local function MigrateAccount(db)
 end
 
 -- 設定檔層：[版本號] = 把一份設定檔補到那個版本要做的事。
--- 目前是空的（還沒發佈過需要遷移的預設值變更）。發佈之後改任何預設值都要在這裡
--- 加一條並 bump ns.DB_VERSION——通則是「只動還等於舊預設值的欄位」（值閘），
+-- 改任何預設值都要在這裡加一條並 bump ns.DB_VERSION——通則是「只動還等於舊預設值的欄位」（值閘），
 -- 使用者調過的不碰。
 --
 -- 為什麼跟帳號層拆開：**匯入字串**帶著自己的 schemaVersion，可能比目前舊。那一份
 -- 要補遷移，但不能把帳號層的版本號降下去——降了會讓遷移在所有設定檔上重跑一次。
-local PROFILE_MIGRATIONS = {}
+local PROFILE_MIGRATIONS = {
+    -- v2（2026-10-16）：血條材質從自帶的 TukTex 換成套組自製的 MiliUI Satin，token "tuktex" → "satin"。
+    -- 值閘：還是舊 token 的才換；玩家選了 LSM 別的材質不碰（Media.lua 留著 "tuktex" 別名）
+    [2] = function(p)
+        local sb = p.statusbar
+        if type(sb) == "table" and sb.texture == "tuktex" then sb.texture = "satin" end
+    end,
+}
 
 function DB.MigrateProfile(profile, fromVersion)
     if type(profile) ~= "table" then return end
@@ -372,7 +378,6 @@ function DB.Init()
     end
     local db = MiliUI_Tooltip_DB
     MigrateAccount(db)
-    -- 尚未發佈、沒有遷移鏈；schemaVersion 先佔位，發佈後改預設值要配遷移
     db.schemaVersion = ns.DB_VERSION
 
     -- 帳號層預設值（設定視窗位置）

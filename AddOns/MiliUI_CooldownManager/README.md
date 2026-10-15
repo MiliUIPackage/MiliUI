@@ -2304,9 +2304,10 @@ customBars[specID] = {
     Cooldown 框（`SetCooldownFromDurationObject`，不畫數字／邊緣／閃光，轉圈色照主題 `icon.swipeColor`），圖示 alpha 餵 `IsZero()` 的布林
     （就緒 1、冷卻中 0.55；秘密走 `SetAlphaFromBoolean`）。重餵時機：開唱、`SPELL_UPDATE_COOLDOWN`（條顯示著才做事）、預覽、套用設定、
     留空條時；法術書／天賦／專精／寵物變了重排（有無、圖）。
-  - **材質預設「MiliUI Glass」**：自製的 `Media/bar-glass.png`（技能 `miliui-cdm-bar-texture` 的 Pillow 腳本畫的：上緣高光往下壓到平台的
-    純灰階漸層，使用者拍板不要 TukTex 那層雲狀明暗、也不帶別人的檔），`Core/Media.lua` 登記進內嵌 LSM 並在解析時先認自己的名字。
-    曾經自帶 TukTex 一天（v10），`MIGRATIONS[11]` 值閘把存檔裡的「MiliUI TukTex」換成新名字。玩家施法條維持暴雪漸層，兩條質感不同。
+  - **材質預設「MiliUI Satin」**：套組自製的 `Media/miliui_satin.png`（技能 `miliui-satin-texture` 的 Pillow 腳本畫的：上緣高光往下壓到平台的
+    純灰階漸層，使用者拍板不要 TukTex 那層雲狀明暗、也不帶別人的檔；單位框架／傷害統計／滑鼠提示／外觀各帶一份同一張圖），
+    `Core/Media.lua` 登記進內嵌 LSM 並在解析時先認自己的名字。曾經自帶 TukTex 一天（v10）、第一版叫 Glass，`MIGRATIONS[11]` 值閘把存檔裡那兩個名字換掉。
+    玩家施法條維持暴雪漸層，兩條質感不同。
     ⚠ 新檔案要整個重開遊戲 LSM 才認得（解析不經 LSM，條本身照畫）。
 - **顏色三態**（`colors.ready`／`cd`／`immune`，同專注目標助手的預設：金／橘／灰）：`cd` 起底 → 我方斷法就緒
   （`Modules/Interrupt.lua` 的 `IsReady`，可能是秘密布林，只餵 `EvaluateColorValueFromBoolean`）蓋成 `ready` →
@@ -4067,8 +4068,8 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 570. 施法者名字：條上印「怪名：法術名」（戰鬥中名字是秘密字串也印得出來、不報錯）；關掉開關只剩法術名；預覽印「專注目標：預覽施法」
 571. 條尾斷法圖示：圖示在施法圖示的對邊、同大小；按下斷法後轉圈跑、圖示變暗，轉好變亮（戰鬥中 IsZero 是秘密布林 ⇒ 只能看畫面）；
      神聖牧師等沒斷法的專精不出現、條佔滿寬；術士換惡魔（有／沒有斧頭投擲）圖示跟著換或消失；「隱藏 GCD 轉圈」無關（餵的是 ignoreGCD 的物件）
-572. 材質：全新安裝預設是自製的 MiliUI Glass（上緣一道高光、下半實色，跟玩家施法條的暴雪漸層看得出不同）；材質下拉有「MiliUI Glass」一項；
-     重開遊戲前（LSM 還不認得新檔）仍畫得出（解析不經 LSM）；昨天那版存下的「MiliUI TukTex」登入後自動換成 Glass
+572. 材質：全新安裝預設是套組自製的 MiliUI Satin（上緣一道高光、下半實色，跟玩家施法條的暴雪漸層看得出不同）；材質下拉有「MiliUI Satin」一項
+     （單位框架等也登記同名，只出現一筆）；重開遊戲前（LSM 還不認得新檔）仍畫得出（解析不經 LSM）；昨天那版存下的「MiliUI TukTex」登入後自動換成 Satin
 
 **效能基準**
 

@@ -35,13 +35,14 @@ end
 ------------------------------------------------------------
 -- 內建材質：檔案自己帶、註冊也自己做
 --
--- 以前只是把路徑寫死指到自己的 Media/，但「tuktex」這個 token 在 LibSharedMedia
--- 裡是**別的插件**註冊的——那個插件一移除或改名，任何用 token 查表的地方就撲空。
--- 現在：解析一律先查自己的表，查不到才去問 LSM；同時把自己的材質登記進 LSM，
--- 讓別的插件的材質選單也看得到。兩個方向都不再依賴外人。
+-- 「satin」＝套組自製的長條材質 MiliUI Satin（Media/miliui_satin.png，技能 miliui-satin-texture 的腳本畫的，
+-- 五支插件各帶一份同一張圖；2026-10-16 取代原本自帶的 TukTex）。解析一律先查自己的表，查不到才去問 LSM；
+-- 同時把自己的材質登記進 LSM，讓別的插件的材質選單也看得到。兩個方向都不依賴外人。
+-- 舊 token "tuktex" 當別名（v20 值閘遷移會把存檔改成 "satin"，別名是給匯入的舊字串與遷移跑到之前用的）。
 ------------------------------------------------------------
 M.TEXTURES = {
-    tuktex = MEDIA_PATH .. "tuktex",
+    satin  = MEDIA_PATH .. "miliui_satin.png",
+    tuktex = MEDIA_PATH .. "miliui_satin.png",   -- 舊 token 別名
 }
 
 -- 血條疊加層用的貼圖，四個檔案原封不動從 Cell/Media 複製過來
@@ -49,11 +50,11 @@ M.TEXTURES = {
 M.SHIELD_TEXTURE      = MEDIA_PATH .. "shield"
 M.OVERSHIELD_TEXTURE  = MEDIA_PATH .. "overshield"
 M.OVERSHIELD_R_TEXTURE = MEDIA_PATH .. "overshield_reversed"
-M.DEFAULT_TEXTURE = M.TEXTURES.tuktex
+M.DEFAULT_TEXTURE = M.TEXTURES.satin
 
--- 登記到 LSM 用的顯示名。加前綴是因為 LSM **撞名會被拒絕**——別人若已經註冊過
--- 「TukTex」，我們沒加前綴就會登記失敗，而且失敗是靜默的
-local LSM_NAME = "MiliUI TukTex"
+-- 登記到 LSM 用的顯示名。加前綴是因為 LSM **撞名會被拒絕**，而且失敗是靜默的；
+-- 套組其他插件也登記同一個名字＝同一張圖，誰先到都一樣
+local LSM_NAME = "MiliUI Satin"
 
 local lsmDone = false
 function M.RegisterSharedMedia()
@@ -62,7 +63,7 @@ function M.RegisterSharedMedia()
     if not LSM then return end        -- 沒裝就算了，我們本來就不靠它
     lsmDone = true
     for _, def in ipairs({
-        { "statusbar", LSM_NAME, M.TEXTURES.tuktex },
+        { "statusbar", LSM_NAME, M.TEXTURES.satin },
     }) do
         pcall(LSM.Register, LSM, def[1], def[2], def[3])
     end
@@ -74,7 +75,7 @@ function M.BarTexture(token)
     if not token then return M.DEFAULT_TEXTURE end
     local own = M.TEXTURES[token]
     if own then return own end
-    if token == LSM_NAME then return M.TEXTURES.tuktex end   -- 別人選了我們登記的名字
+    if token == LSM_NAME then return M.TEXTURES.satin end   -- 別人選了我們登記的名字
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     if LSM then
         local path = LSM:Fetch("statusbar", token, true)
@@ -93,7 +94,7 @@ end
 -- 自己的材質永遠排第一（不靠 LSM 也要有東西可選）；LSM 的接在後面。
 -- 跳過 LSM_NAME —— 那是我們自己登記出去的同一個檔，兩個名字指同一張圖只會讓人困惑。
 function M.BarTextureItems()
-    local items = { { text = L["Built-in (TukTex)"], value = "tuktex" } }
+    local items = { { text = L["Built-in (Satin)"], value = "satin" } }
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     if LSM then
         local ok, list = pcall(LSM.List, LSM, "statusbar")

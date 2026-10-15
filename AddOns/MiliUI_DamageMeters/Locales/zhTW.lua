@@ -168,7 +168,7 @@ L["MiliUI style"] = "米利風格"
 L["Specialization icon"] = "專精圖示"
 L["Class icon"] = "職業圖示"
 L["None"] = "無"
-L["Built-in (TukTex)"] = "內建（TukTex）"
+L["Built-in (Satin)"] = "內建（Satin）"
 L["Solid"] = "純色"
 
 -- 文字分頁

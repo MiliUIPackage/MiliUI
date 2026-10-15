@@ -200,9 +200,9 @@ local function BuildDefaults()
             -- 會跟著數值長短的細線（圖示與文字照舊，長條本身退成一條線）
             barStyle = "line-bottom",
             barLineHeight = 2,
-            -- 套組共用的預設材質，跟 MiliUI_UnitFrames 的血條同一張圖。
+            -- 套組自製的預設材質 MiliUI Satin，跟 MiliUI_UnitFrames 的血條同一張圖。
             -- "solid" = 純色白貼圖，其餘走 LSM 名稱。
-            barTexture = "tuktex",
+            barTexture = "satin",
             barFillAlpha = 1,
             barColorMode = "class",     -- class | accent | custom
             barColor = Color(0.35, 0.55, 0.8),
@@ -563,6 +563,13 @@ local PROFILE_MIGRATIONS = {
     [5] = function(p)
         local st = p.style
         if st and st.iconStyle == "spec" then st.iconStyle = "mili" end
+    end,
+
+    -- v6（2026-10-16）：長條材質從自帶的 TukTex 換成套組自製的 MiliUI Satin，token "tuktex" → "satin"。
+    -- 值閘：還是舊 token 的才換；玩家選了 LSM 別的材質不碰（Media.lua 留著 "tuktex" 別名）
+    [6] = function(p)
+        local st = p.style
+        if st and st.barTexture == "tuktex" then st.barTexture = "satin" end
     end,
 }
 

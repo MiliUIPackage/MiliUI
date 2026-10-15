@@ -95,7 +95,7 @@ local fc = d.focuscast
 check("預設：有這張表、開著", type(fc) == "table" and fc.enabled == true)
 check("預設：錨在施法條上方（這條的下緣貼施法條的上緣）", type(fc.anchor) == "table" and fc.anchor.to == "castbar"
     and fc.anchor.point == "BOTTOM" and fc.anchor.relPoint == "TOP")
-check("預設：寬 0（跟核心技能第一列）、高 20、自製材質 MiliUI Glass", fc.width == 0 and fc.height == 20 and fc.texture == "MiliUI Glass")
+check("預設：寬 0（跟核心技能第一列）、高 20、套組材質 MiliUI Satin", fc.width == 0 and fc.height == 20 and fc.texture == "MiliUI Satin")
 check("預設：施法者名字、條尾斷法圖示都開", fc.showCaster == true and fc.showKick == true)
 check("預設：三態顏色（就緒金、冷卻橘、不可中斷灰）", fc.colors.ready.r == 1 and fc.colors.ready.g == 0.741
     and fc.colors.cd.r == 0.906 and fc.colors.immune.r == 0.529)
@@ -231,13 +231,16 @@ do
     eq("斷法圖示：這個專精沒有斷法 → nil", FC.KickSpell({ showKick = true }), nil)
     env.LibStub = nil
     Load("Core/Media.lua")
-    eq("自製材質：名字直接解到自己的檔（不問 LSM）", ns.Media.Texture("MiliUI Glass"), ns.Media.BAR_TEXTURE)
-    check("自製材質：路徑在本插件的 Media", ns.Media.BAR_TEXTURE:find("MiliUI_CooldownManager\\Media\\bar-glass.png", 1, true) ~= nil)
+    eq("自製材質：名字直接解到自己的檔（不問 LSM）", ns.Media.Texture("MiliUI Satin"), ns.Media.BAR_TEXTURE)
+    check("自製材質：路徑在本插件的 Media", ns.Media.BAR_TEXTURE:find("MiliUI_CooldownManager\\Media\\miliui_satin.png", 1, true) ~= nil)
     eq("材質：solid 照舊", ns.Media.Texture("solid"), ns.Media.WHITE8X8)
     -- v11：只上線一天的舊名字換成自製的；玩家自己選的不碰
     local m = { focuscast = { texture = "MiliUI TukTex" } }
     DB.MIGRATIONS[11](m)
-    eq("v11：舊名字換成 MiliUI Glass", m.focuscast.texture, "MiliUI Glass")
+    eq("v11：舊名字換成 MiliUI Satin", m.focuscast.texture, "MiliUI Satin")
+    local m3 = { focuscast = { texture = "MiliUI Glass" } }
+    DB.MIGRATIONS[11](m3)
+    eq("v11：Glass 也換成 Satin", m3.focuscast.texture, "MiliUI Satin")
     local m2 = { focuscast = { texture = "Smooth" } }
     DB.MIGRATIONS[11](m2)
     eq("v11：玩家選的材質不動", m2.focuscast.texture, "Smooth")
