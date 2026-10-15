@@ -60,8 +60,10 @@ local GEAR_FB_Y   = 16.5
 -- 分頁列置中：容器 PaperDollSidebarTabs 168×35、底貼 InsetRight 上緣（y=-1，PaperDollFrame.xml:478），
 -- 三顆分頁佔容器 x∈[31,138]，所以容器中心就是三顆分頁的中心。齒輪佔第四格 ⇒ 四格一起
 -- 置中要把容器往左挪半格（(33+4)/2）。y 照暴雪的 -1。
-local TABS_X      = -GEAR_SLOT / 2
-local TABS_Y      = -1
+-- ⚠ 命名避開下面設定面板那排分頁鈕的 TABS_Y／TAB_H（同檔另一組 local）：2026-10-15 兩邊各自
+--   叫 TABS_Y，自動合併後這裡抓到的是 -42，整列掉進屬性區；luac 不報同名 local 遮蔽。
+local SIDEBAR_X   = -GEAR_SLOT / 2
+local SIDEBAR_Y   = -1
 local GEAR_IDLE   = 0.45
 local GEAR_TEX    = "Interface\\AddOns\\MiliUI_Skin\\Media\\icon-settings.png"
 
@@ -465,7 +467,7 @@ local function CenterSidebarTabs()
         return
     end
     host:ClearAllPoints()
-    host:SetPoint("BOTTOM", inset, "TOP", TABS_X, TABS_Y)
+    host:SetPoint("BOTTOM", inset, "TOP", SIDEBAR_X, SIDEBAR_Y)
 end
 
 local function BuildGear(doll)
