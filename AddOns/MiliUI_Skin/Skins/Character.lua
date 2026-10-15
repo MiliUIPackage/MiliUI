@@ -324,7 +324,9 @@ local function PaintSidebarTabs()
                     color = T.textDim
                 end
                 rec.fs:SetTextColor(color[1], color[2], color[3], 1)
+                E.AccentLine(ov, selected and accentFill or false)
             else
+                E.AccentLine(ov, false)
                 E.Fill(ov, selected and accentFill or T.fill)
             end
         end
@@ -351,7 +353,9 @@ local function SkinSidebarTabs()
         if tab then
             -- TabBg 是底板、Hider 是「沒選中時蓋住下緣」的那條。兩張都是裝飾。
             E.NeutralizeKeys(tab, { "TabBg", "Hider" }, key)
-            local ov = E.Overlay(tab, { key = key })
+            -- accentSide：文字分頁選中時下緣那條職業色線（分頁組同一條語彙、同一個粗細）。
+            -- 分頁底貼在 InsetRight 上緣，線跟內容區的上框接起來。圖示模式不點亮它。
+            local ov = E.Overlay(tab, { key = key, accentSide = "BOTTOM", accentSize = T.tabAccentSize })
             if ov then
                 tabs[i] = tab
                 labels[i] = E.OverlayText(ov, texts[i], { size = 11, maxWidth = SIDEBAR_LABEL_MAX_W })
