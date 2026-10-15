@@ -78,7 +78,7 @@ local function HDB()
     return ns.db.extras.hud
 end
 
-local frame, text, bd
+local frame, text, bd, selection
 local inCombat, inInstance, editMode = false, false, false
 local heals = 0
 
@@ -253,7 +253,12 @@ local function UpdateChrome()
     bd:SetFill(X.HUD_FILL)
     bd:SetBorder({ T.Accent() })
     bd:SetFillShown(h.backdrop)
-    bd:SetBorderShown(h.backdrop or drag)
+    -- 暴雪編輯模式：藍色選取框（跟暴雪自己的系統同一款）取代職業色邊；設定面板開著時照舊職業色邊
+    local blue = editMode and h.enabled
+    if selection then
+        if blue then selection:ShowHighlighted() else selection:Hide() end
+    end
+    bd:SetBorderShown(h.backdrop or (drag and not blue))
 end
 
 local function UpdateVisibility()
@@ -355,6 +360,30 @@ local function Build()
     text:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -PAD)
     text:SetJustifyH("LEFT")
     ApplyFont()
+
+    -- 編輯模式的藍色選取框（照 wow-editmode-draggable 技能：借暴雪的
+    -- `EditModeSystemSelectionTemplate` 當視覺，不註冊真的 Edit Mode 系統）。
+    -- ⚠ 建框時就建，不要等進了編輯模式才建；模板的 OnMouseDown 會叫
+    --   `EditModeManagerFrame:SelectSystem(self.parent)` —— 我們不是真的系統，必須 no-op 化，
+    --   不然暴雪帶著我們的 taint 掃過每一個已註冊系統（動作條在內），戰鬥中才爆。
+    -- 標籤走 `self.system:GetSystemName()`，塞個 stub。建不出來就自己畫一個藍框頂著。
+    local okSel, sel = pcall(CreateFrame, "Frame", nil, frame, "EditModeSystemSelectionTemplate")
+    if okSel and sel then
+        sel:SetScript("OnMouseDown", function() end)
+        sel.system = { GetSystemName = function() return L["Stats HUD"] end }
+    else
+        sel = CreateFrame("Frame", nil, frame)
+        X.Backdrop(sel, { 0.25, 0.6, 1, 0.15 }, { 0.25, 0.6, 1, 0.9 })
+        sel.ShowHighlighted = sel.Show
+    end
+    sel:SetAllPoints(frame)
+    sel:EnableMouse(true)
+    sel:RegisterForDrag("LeftButton")
+    -- 藍框蓋在整塊上面、吃掉滑鼠 ⇒ 拖曳從它進來，轉給框自己的處理器（StartMoving 動的是父框）
+    sel:SetScript("OnDragStart", function() frame:GetScript("OnDragStart")(frame) end)
+    sel:SetScript("OnDragStop", function() frame:GetScript("OnDragStop")(frame) end)
+    sel:Hide()
+    selection = sel
 
     frame:SetScript("OnShow", function()
         RegisterStatEvents()
