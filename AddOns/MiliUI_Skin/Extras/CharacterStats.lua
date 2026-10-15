@@ -90,7 +90,7 @@ local TITLE_GAP   = 6
 local ROW_H       = 16
 local SECTION_GAP = 8
 local ILVL_ROW_H  = 26
-local SWATCH      = 10    -- 區標題右端的色票（編輯狀態外 alpha 0、照樣佔位）
+local SWATCH      = 10    -- 區標題右端的色票（編輯狀態外 alpha 0，疊在右線末端上）
 local RULE_GAP    = 6     -- 線與字／色票之間
 local PAD         = 6     -- 宿主框的內距（左右上下）
 local CHECK       = 14    -- 編輯狀態每列左邊的勾選框
@@ -1024,8 +1024,8 @@ local function BuildSection(sec)
         ruleR:SetPoint("RIGHT", header, "RIGHT", 0, 0)
         header:EnableMouse(false)
     else
-        -- 色票永遠佔位（編輯狀態外 alpha 0、不吃滑鼠）⇒ 右線一律錨在它左邊，版面不跳；
-        -- 左線讓出同樣寬，標題才置中在兩條線之間
+        -- 色票只在編輯狀態出現（平時 alpha 0、不吃滑鼠），直接疊在右線末端上
+        -- （層級比線高、自帶底色蓋得住）⇒ 兩條線跟物品等級那一區一樣兩端到底，版面不跳
         local swatch = W.CreateColorPicker(header, nil, false, function(r, g, b)
             SetSectionColor(key, r, g, b)
         end)
@@ -1037,10 +1037,10 @@ local function BuildSection(sec)
         swatch:EnableMouse(false)
         ui.swatch = swatch
 
-        ruleL:SetPoint("LEFT", header, "LEFT", SWATCH + RULE_GAP, 0)
+        ruleL:SetPoint("LEFT", header, "LEFT", 0, 0)
         ruleL:SetPoint("RIGHT", title, "LEFT", -RULE_GAP, 0)
         ruleR:SetPoint("LEFT", title, "RIGHT", RULE_GAP, 0)
-        ruleR:SetPoint("RIGHT", swatch, "LEFT", -RULE_GAP, 0)
+        ruleR:SetPoint("RIGHT", header, "RIGHT", 0, 0)
 
         header:RegisterForClicks("LeftButtonUp")
         header:RegisterForDrag("LeftButton")
