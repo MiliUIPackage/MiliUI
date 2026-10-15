@@ -4,7 +4,10 @@
 -- 互相廣播版本號（YYYYMMDD），收到比自己新的就提示一次。
 --
 -- 設計重點：
---   1. 版本號從 TOC 的「## Version」讀取，純整數比較。
+--   1. 版本號從 TOC 的「## Version」讀取，編成整數比較：
+--      「YYYYMMDD」→ YYYYMMDD00、「YYYYMMDD-N」（同一天第 N 次發佈）→ YYYYMMDD0N。
+--      廣播送的也是這個整數——沒升級的舊版客戶端拿 tonumber 直接比，
+--      2026101502 > 20261015 方向仍然正確。
 --   2. 通道：公會（PLAYER_LOGIN 後）、隊伍 / 團隊（進場 + 名單變動）
 --      皆有 30 秒節流。
 --   3. 一個 session 只提示一次，避免洗版。
@@ -26,12 +29,27 @@ local GetTime    = GetTime
 local UnitName   = UnitName
 local GetRealmName = GetRealmName
 
+-- 版本字串 → 可比較的整數；認不得的格式回 nil。
+--   "20261015"    → 2026101500
+--   "20261015-2"  → 2026101502（N 上限 99）
+--   "2026101502"  → 2026101502（別人廣播來的、已經編碼過的整數）
+local function ParseVersion(s)
+    if type(s) ~= "string" then return nil end
+    local date, sub = s:match("^(%d%d%d%d%d%d%d%d)%-?(%d*)$")
+    if date then
+        local n = tonumber(sub) or 0
+        if n > 99 then n = 99 end
+        return tonumber(date) * 100 + n
+    end
+    return tonumber(s)
+end
+
 -- 讀 TOC 版本號
 local function ReadVersion()
     local meta = C_AddOns and C_AddOns.GetAddOnMetadata
     if not meta then return 0, nil end
     local v = meta(AddonName, "Version")
-    return tonumber(v) or 0, v
+    return ParseVersion(v) or 0, v
 end
 
 local MY_VERSION, MY_VERSION_STR = ReadVersion()
@@ -117,7 +135,7 @@ f:SetScript("OnEvent", function(_, event, ...)
         local prefix, msg, _, sender = ...
         if prefix ~= PREFIX then return end
         if IsSelf(sender) then return end
-        local theirVersion = tonumber(msg)
+        local theirVersion = ParseVersion(msg)
         if theirVersion and MY_VERSION > 0 and theirVersion > MY_VERSION then
             -- 提示只跳一次，但這裡每次都更新，讓版本標籤永遠顯示看過的最高版本
             local V = MiliUI.Version
