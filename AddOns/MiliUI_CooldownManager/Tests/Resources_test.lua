@@ -804,6 +804,48 @@ check("鐵鬃看被動 192081、疊層數型（不是 instances）", R.RESOURCES
 ns.Events = ns.Events or { Register = function() end }
 Load("Modules/AuraBar.lua")
 local AB = ns.AuraBar
+-- 持有框的補踢只踢「現在該顯示」的容器（h.shownC）：列是池化的，列換成別的資源（HideContainer）之後 Hide→Show，
+-- 不能把上一個資源的容器踢回畫面（守護德魯伊鐵鬃排在怒氣上面、人形換回熊形之後怒氣列上疊一條鐵鬃，NGA 2026-10-16）
+do
+    local savedCF, savedDefer, savedWrite = env.CreateFrame, ns.Defer, ns.Write
+    env.CreateFrame = function()
+        local f = { hooks = {} }
+        function f:SetAllPoints() end
+        function f:EnableMouse() end
+        function f:HookScript(ev, fn) self.hooks[ev] = fn end
+        return f
+    end
+    ns.Defer = function(fn, ...) fn(...) end
+    ns.Write = function(f, fn) fn(f) return true end
+    local h = AB.New({}, function() end)
+    local c = { shown = true, kicks = 0 }
+    function c:Hide() self.shown = false end
+    function c:Show() self.shown = true; self.kicks = self.kicks + 1 end
+    function c:SetEnabled(v) self.enabled = v end
+    -- 像 Apply 跑完：容器在、該顯示
+    h.container, h.sig, h.shownC = c, "sig", true
+    h.hooks.OnShow()
+    check("持有框 OnShow：該顯示的容器補踢（Hide→Show→SetEnabled）", c.kicks == 1 and c.shown and c.enabled == true)
+    -- 列換成別的資源：收起來之後 OnShow 不踢、容器維持收著
+    AB.HideContainer(h)
+    check("HideContainer：收起來", c.shown == false and h.shownC == false)
+    c.enabled = nil
+    h.hooks.OnShow()
+    check("持有框 OnShow：收起來的容器不踢、不顯示", c.kicks == 1 and c.shown == false and c.enabled == nil)
+    -- 戰鬥中 OnShow 記的旗標，脫戰補踢也看 shownC
+    env.InCombatLockdown = function() return true end
+    h.shownC = true
+    h.hooks.OnShow()
+    check("戰鬥中 OnShow：只記旗標", h.pendingKick == true and c.kicks == 1)
+    env.InCombatLockdown = function() return false end
+    h.shownC = false
+    AB.KickPending(h)
+    check("脫戰補踢：收起來的容器不踢、旗標清掉", c.kicks == 1 and c.shown == false and h.pendingKick == nil)
+    h.pendingKick, h.shownC = true, true
+    AB.KickPending(h)
+    check("脫戰補踢：該顯示的照踢", c.kicks == 2 and c.shown)
+    env.CreateFrame, ns.Defer, ns.Write = savedCF, savedDefer, savedWrite
+end
 local g = AB.Geometry(100, 4, 2)
 eq("幾何：4 格", #g.cells, 4)
 eq("幾何：格寬", g.cells[1].w, 23.5)

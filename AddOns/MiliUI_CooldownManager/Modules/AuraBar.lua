@@ -418,9 +418,13 @@ local function Kick(c)
     if c.SetEnabled then pcall(c.SetEnabled, c, true) end
 end
 
+-- ⚠ 只踢「現在該顯示」的那顆（h.shownC）：列是池化的，持有框跟著列、容器留在池子裡。列換成別的資源
+-- （HideContainer 收起來、shownC = false）之後列 Hide→Show（換型態、面板顯示條件），持有框的 OnShow 一樣會進來，
+-- 這時不看 shownC 就把上一個資源的容器踢回畫面——守護德魯伊把鐵鬃排在怒氣上面、人形換回熊形之後，
+-- 怒氣列上疊著一條鐵鬃的時間條（NGA 回報 2026-10-16），而且沒有任何東西會再把它收掉
 local function OnHolderShow(h)
     local c = h.container
-    if not c then return end
+    if not c or not h.shownC then return end
     if InCombatLockdown() then
         h.pendingKick = true
         ns.Events.Register("PLAYER_REGEN_ENABLED", "aurabar", AB.OnRegen)
@@ -984,8 +988,8 @@ end
 -- 持有框 OnShow 記下的補踢（戰鬥中顯示的），脫戰由 Pips／Resources 的重排順手做：
 -- 那裡本來就會在脫戰重排，重排走 AB.Apply ⇒ 同簽章直接回 ready，所以補踢另外做
 function AB.KickPending(h)
-    if h and h.pendingKick and h.container and not InCombatLockdown() then
+    if h and h.pendingKick and not InCombatLockdown() then
         h.pendingKick = nil
-        Kick(h.container)
+        if h.container and h.shownC then Kick(h.container) end
     end
 end

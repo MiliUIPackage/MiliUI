@@ -439,7 +439,9 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   尺寸不進簽章（按鈕 `SetAllPoints` 到容器、容器 `SetAllPoints` 到持有框，跟著走）。
 - **戰鬥中不建容器**（會不可攔截地報錯）：記旗標，`PLAYER_REGEN_ENABLED` 再建；占位圖示先頂著。
 - `initializeFrame` 整段 `xpcall`、不 `CreateColor`、不掛 script；formatter 與低秒變色的色彩曲線在建容器前先建好。
-- 持有框 `OnShow`（`ns.Defer`）時戰鬥外補踢容器（Hide→Show→SetEnabled），戰鬥中記旗標。
+- 持有框 `OnShow`（`ns.Defer`）時戰鬥外補踢容器（Hide→Show→SetEnabled），戰鬥中記旗標。**只踢現在該顯示的那顆**（`h.shownC`）：
+  列是池化的，列換成別的資源（`HideContainer`）之後 Hide→Show（換型態、面板顯示條件）不能把上一個資源的容器踢回畫面
+  （守護德魯伊把鐵鬃排在怒氣上面、人形換回熊形之後怒氣列上疊一條鐵鬃的時間條，NGA 回報 2026-10-16；脫戰補踢 `KickPending` 同一條規矩）。
 - 減益只收 `C_Secrets.GetSpellAuraSecrecy(id) == NeverSecret`（新增時就擋並說明）。
 - 光環格不提供發光（不知道光環在不在）。
 - 占位（不在時的灰圖示）是條容器上的獨立普通框（跟暴雪增益的占位同一種，層級在持有框底下），不在保護鏈上；
