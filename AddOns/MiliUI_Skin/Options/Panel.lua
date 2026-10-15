@@ -31,8 +31,7 @@ Options.tabs = {}
 
 local TABS = {
     { id = "general", label = L["General"] },
-    -- 自建功能（Extras/）的開關：Options/Tab_Character.lua
-    { id = "charsheet", label = L["Character Sheet"] },
+    -- （「角色面板」分頁 2026-10-15 隨自建功能搬去 MiliUI_QoL；這包只剩一般頁）
 }
 
 function Options.NewTabFrame()
@@ -67,7 +66,7 @@ end
 Options.FORM_W = FORM_W
 
 ------------------------------------------------------------
--- 「要不要現在重新載入？」—— 兩個分頁共用（一般頁的視窗開關、角色面板頁的 Extras 開關）
+-- 「要不要現在重新載入？」—— 一般頁的視窗開關用
 --
 -- ⚠ 整個設定視窗只問**第一次**。每勾一個框就彈一次確認窗的話，想一次改三個視窗的
 --   人會被問三次，而且每次都蓋住他正要勾的下一個框。之後靠表單裡那行說明與

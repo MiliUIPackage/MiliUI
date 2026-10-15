@@ -20,8 +20,9 @@ Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
-# 套組框體互相磁吸（vendor 複製，唯一 source 在 MiliUI/Libs/MiliUISnap/；畫面上的屬性顯示用）
-Libs\MiliUISnap.lua
+# 角色屬性的分區色（vendor 複製，唯一 source 在 MiliUI/Libs/MiliUIStats/）：Tokens 的 statCategory 從它拿，
+# 跟 MiliUI_QoL 的自建屬性清單同一組顏色。沒有這支也行（Tokens 退回寫死的同一組值）
+Libs\MiliUIStats.lua
 
 Locales\Locale.lua
 Locales\zhTW.lua
@@ -113,19 +114,11 @@ Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 
-# 自建功能（不是換皮：自己的框疊在暴雪面板上，STYLE.md ③ 的 Extras 小節）。
-# 要用共用層的輸入框（ns.W），所以排在 Widgets 之後；Common.lua 一定第一個。
-Extras\Common.lua
-# 角色面板右上角的齒輪 ＋ 右側設定面板（編輯狀態的開關）；面板內容延到第一次打開才建
-Extras\StatsSettings.lua
-Extras\CharacterStats.lua
-Extras\CharacterTitles.lua
-# 畫面上顯示屬性（HUD）：用 CharacterStats.lua 匯出的列定義 ⇒ 排在它後面
-Extras\StatsHud.lua
+# （角色面板的自建功能——自建屬性清單、齒輪面板、稱號搜尋、畫面顯示屬性——2026-10-15 整組搬到
+#   MiliUI_QoL 的 Modules/，這包回到純換皮。）
 
 Options\Panel.lua
 Options\Tab_General.lua
-Options\Tab_Character.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 
