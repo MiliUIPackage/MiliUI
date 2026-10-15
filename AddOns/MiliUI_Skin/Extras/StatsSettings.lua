@@ -24,6 +24,7 @@
 -- | 物件 | 動作 |
 -- |---|---|
 -- | PaperDollFrame | 齒輪的 parent（跟著角色分頁顯隱）；`HookScript("OnShow"/"OnHide")` 同步面板顯隱；讀 `IsShown()` |
+-- | PaperDollSidebarTabs | **重錨一次**（`ClearAllPoints`＋`SetPoint`，建立時）：整列（三個分頁＋齒輪）置中在 InsetRight 上。這是套組裡唯一一處重排暴雪框，使用者 2026-10-15 點名要的；暴雪對這個容器只 `Show()`／`Hide()`（PaperDollFrame.lua:1436／:1451）、從不重錨，三顆分頁都錨在容器內部所以跟著走；不是保護框、不歸編輯模式管 |
 -- | PaperDollSidebarTab3 | 齒輪的錨點（第四格；只當 relativeTo，不讀不寫）；找不到才退回 CharacterFrame.InsetRight |
 -- | CharacterFrame.InsetRight | 齒輪的備援錨點；讀 parentKey（pcall 包著，結構查詢） |
 -- | CharacterFrame | 面板的 parent ＋ 錨點（右緣外側）；`GetFrameLevel()`（`Engine.TargetLevel`）—— 面板層級 ＝ 它 +30、齒輪 ＝ PaperDollFrame +20；`HookScript("OnHide")` 關編輯狀態 |
@@ -55,6 +56,12 @@ local GEAR_SIZE   = 14
 local GEAR_SLOT   = 33 + 4
 local GEAR_FB_X   = -15.5
 local GEAR_FB_Y   = 16.5
+
+-- 分頁列置中：容器 PaperDollSidebarTabs 168×35、底貼 InsetRight 上緣（y=-1，PaperDollFrame.xml:478），
+-- 三顆分頁佔容器 x∈[31,138]，所以容器中心就是三顆分頁的中心。齒輪佔第四格 ⇒ 四格一起
+-- 置中要把容器往左挪半格（(33+4)/2）。y 照暴雪的 -1。
+local TABS_X      = -GEAR_SLOT / 2
+local TABS_Y      = -1
 local GEAR_IDLE   = 0.45
 local GEAR_TEX    = "Interface\\AddOns\\MiliUI_Skin\\Media\\icon-settings.png"
 
@@ -395,6 +402,20 @@ local function PaintGear(hover)
     gear:SetAlpha(lit and 1 or GEAR_IDLE)
 end
 
+-- 分頁列置中（見檔頭接觸面表的 PaperDollSidebarTabs 那列）。找不到容器或 InsetRight 就不動，
+-- 齒輪照樣排在第四格 —— 那時整列還是暴雪原本靠右的位置，只是沒置中。
+local function CenterSidebarTabs()
+    local host = _G.PaperDollSidebarTabs
+    local inset
+    pcall(function() inset = _G.CharacterFrame.InsetRight end)
+    if not host or not inset then
+        E.Missing(host and "CharacterFrame.InsetRight" or "PaperDollSidebarTabs")
+        return
+    end
+    host:ClearAllPoints()
+    host:SetPoint("BOTTOM", inset, "TOP", TABS_X, TABS_Y)
+end
+
 local function BuildGear(doll)
     local tab3 = _G.PaperDollSidebarTab3
     local inset
@@ -446,6 +467,7 @@ local function Build()
         E.Missing("PaperDollFrame")
         return
     end
+    CenterSidebarTabs()
     BuildGear(doll)
     BuildPanel()
 
