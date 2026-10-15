@@ -11,7 +11,7 @@
 | demonhunter | vengeance | 惡魔面盔（骨白面甲、綠眼、金冠綠寶石、紫角、底部橘火） | 骨白＋金 | ✅ |
 | demonhunter | devourer | 大黑洞（黑芯＋青光環）＋後方露出的靛藍惡魔翼、角尖（俯視） | 靛藍＋青 | ✅ |
 | druid | balance | 梟獸頭（金／紫雙眼）＋頭頂日月 | 橘棕 | ✅ |
-| druid | feral | 三道撕裂爪痕 | 橘 | ✅ |
+| druid | feral | 火焰獅頭（側臉往右、張嘴獠牙、橘黃火焰鬃毛） | 橘黃 | ✅ |
 | druid | guardian | 咆哮的熊頭 | 棕 | ✅ |
 | druid | restoration | 葉子 | 綠 | ✅ |
 | evoker | devastation | 破滅：黑龍頭（亮面黑＋熔岩紅縫）噴紅藍交纏火 | 黑＋紅藍 | ✅ |
@@ -27,7 +27,7 @@
 | monk | mistweaver | 深翡翠玉龍繞亮白寶珠＋雲霧 | 翡翠＋亮白 | ✅ |
 | monk | windwalker | 白虎（雪怒）＋風旋 | 白＋青 | ✅ |
 | paladin | holy | 攤開的聖書（亮書頁＋金色符文、粉緞帶半透明可接受） | 金 | ✅ |
-| paladin | protection | 深藍盾面＋金邊金十字＋實心光芒線 | 藍＋金 | ✅ |
+| paladin | protection | 金盾獅頭（金色尖頂盾框、灰石獅臉、盾內深紫） | 金＋灰 | ✅ |
 | paladin | retribution | 灰燼使者（單刃寬刀、刀背缺口嵌金珠、藍握把） | 銀＋金 | ✅ |
 | priest | discipline | 懺悟光束翼盾（白盾面＋金四芒星＋三道實心金光束、上揚三層白翼） | 金＋白 | ✅ |
 | priest | holy | 兜帽天使（灰藍石像臉、緊湊徽章輪廓、淡藍金長髮 S 形漩渦收尾、無身體無手、實心光環、中型白翼從兜帽兩側上揚） | 金白 | ✅ |
