@@ -2296,6 +2296,16 @@ customBars[specID] = {
 - **預設錨在施法條上方**（`anchor = { to = "castbar", BOTTOM → TOP }`，使用者指定）。錨定視窗照舊可以改成施法條下方、
   核心技能、單位框……別的東西照排開讓位：預設畫面由下而上是核心 → 資源條 → 自訂列 → 施法條 → **專注目標施法條** → 增益圖示。
   寬 0 ＝ 跟核心技能第一列同寬（`Bars.AutoWidth`：錨在施法條上拿不到第一列寬，退回核心技能）。
+- **跟玩家施法條分得開的兩樣**（使用者 2026-10-16 指定，不靠顏色也認得出這不是自己的條；兩個預設開）：
+  - **施法者名字**（`showCaster`）：法術名前面印「張三：治療鍊」（`FC.DisplayName` 純函式；分隔是語系字串 `L[": "]`）。
+    `UnitName("focus")` 受限內容是秘密字串：只串接、只交給 SetText；截字只截法術名、名字過長先不管（使用者定案）。
+  - **條尾斷法圖示**（`showKick`）：圖示的對邊一顆自己的斷法技能圖示（`Modules/Interrupt.lua` 挑的那顆，明文）＋冷卻轉圈，
+    跟圖示同大小同間距、沒有斷法的專精不畫不佔寬（`FC.KickSpell`）。冷卻餵 `GetSpellCooldownDuration(id, true)` 的 duration 物件給自己的
+    Cooldown 框（`SetCooldownFromDurationObject`，不畫數字／邊緣／閃光，轉圈色照主題 `icon.swipeColor`），圖示 alpha 餵 `IsZero()` 的布林
+    （就緒 1、冷卻中 0.55；秘密走 `SetAlphaFromBoolean`）。重餵時機：開唱、`SPELL_UPDATE_COOLDOWN`（條顯示著才做事）、預覽、套用設定、
+    留空條時；法術書／天賦／專精／寵物變了重排（有無、圖）。
+  - **材質預設「MiliUI TukTex」**：自帶 `Media/tuktex.tga`（跟單位框架同一張），`Core/Media.lua` 登記進內嵌 LSM 並在解析時先認自己的名字
+    （單位框架沒載入也查得到）。玩家施法條維持暴雪漸層，兩條質感不同。⚠ 新檔案要整個重開遊戲 LSM 才認得。
 - **顏色三態**（`colors.ready`／`cd`／`immune`，同專注目標助手的預設：金／橘／灰）：`cd` 起底 → 我方斷法就緒
   （`Modules/Interrupt.lua` 的 `IsReady`，可能是秘密布林，只餵 `EvaluateColorValueFromBoolean`）蓋成 `ready` →
   不可打斷（秘密布林同上；`UNIT_SPELLCAST_(NOT_)INTERRUPTIBLE` 事件的明文值優先）蓋成 `immune`。被打斷紅（`colors.interrupted`）。
@@ -4052,6 +4062,10 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 567. 錨定視窗把它改成施法條下方、核心技能上方、目標框架：別的東西跟著讓位（施法條下方 ⇒ 排到核心技能下方那一疊最外面）；關掉玩家施法條時它貼回資源條外面
 568. 專注目標助手（MiliUI_Focus）同時裝著：只看到冷卻管理器這一條，助手的「施法條」分頁有黃字說被接手；把冷卻管理器這條關掉後助手那條立刻回來（不用 /reload）；助手的唱法音效照常
 569. 預覽鈕：十秒假施法帶「!」與發光，再按一次停；離開那一頁自動停；專注目標真的開唱時按預覽會印「關著或正在施法」
+570. 施法者名字：條上印「怪名：法術名」（戰鬥中名字是秘密字串也印得出來、不報錯）；關掉開關只剩法術名；預覽印「專注目標：預覽施法」
+571. 條尾斷法圖示：圖示在施法圖示的對邊、同大小；按下斷法後轉圈跑、圖示變暗，轉好變亮（戰鬥中 IsZero 是秘密布林 ⇒ 只能看畫面）；
+     神聖牧師等沒斷法的專精不出現、條佔滿寬；術士換惡魔（有／沒有斧頭投擲）圖示跟著換或消失；「隱藏 GCD 轉圈」無關（餵的是 ignoreGCD 的物件）
+572. 材質：全新安裝預設是 TukTex（跟玩家施法條的暴雪漸層看得出不同）；材質下拉有「MiliUI TukTex」一項；重開遊戲前（LSM 還不認得新檔）仍畫得出（解析不經 LSM）
 
 **效能基準**
 

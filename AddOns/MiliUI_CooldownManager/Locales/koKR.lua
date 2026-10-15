@@ -1144,3 +1144,8 @@ L["When the cast is interrupted, the bar turns red and shows the interrupter's n
 L["Restore focus cast bar defaults"] = "주시 대상 시전 바 설정 초기화"
 L["Restore the focus cast bar settings to their defaults?"] = "주시 대상 시전 바 설정을 기본값으로 되돌릴까요?"
 L["The focus cast bar is off or your focus is casting right now."] = "주시 대상 시전 바가 꺼져 있거나 주시 대상이 지금 시전 중입니다."
+L[": "] = ": "
+L["Focus target"] = "주시 대상"
+L["Show the caster's name before the spell"] = "주문 이름 앞에 시전자 이름 표시"
+L["Show your interrupt at the end of the bar"] = "바 끝에 내 차단 기술 표시"
+L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "차단 기술 아이콘이 바 반대쪽 끝에 재사용 대기시간 스윕과 함께 표시됩니다. 준비되면 밝게, 대기 중에는 어둡게. 이 전문화에 차단 기술이 없으면 숨겨집니다."

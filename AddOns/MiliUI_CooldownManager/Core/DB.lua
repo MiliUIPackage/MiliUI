@@ -470,8 +470,11 @@ FocusCastDefaults = function()
         width         = 0,                 -- 0 ＝ 跟錨定的圖示條第一列同寬（錨在施法條上時＝核心技能第一列）
         height        = 20,
         font          = "INHERIT",
-        texture       = "blizzard",
+        texture       = "MiliUI TukTex",   -- 自帶的 TukTex（Core/Media.lua）；跟玩家施法條的暴雪漸層分得開（使用者 2026-10-16 指定）
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
+        -- 跟玩家施法條分得開的兩樣（使用者 2026-10-16 指定）：法術名前面印施法者的名字、條尾放自己的斷法圖示＋冷卻轉圈
+        showCaster    = true,
+        showKick      = true,
         -- 三態：可斷法（斷法就緒）金／可斷法（斷法冷卻中）橘／不可中斷灰；被打斷紅
         colors        = {
             ready       = rgba(1, 0.741, 0),

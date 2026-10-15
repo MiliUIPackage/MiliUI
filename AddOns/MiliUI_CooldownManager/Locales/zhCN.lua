@@ -1144,3 +1144,8 @@ L["When the cast is interrupted, the bar turns red and shows the interrupter's n
 L["Restore focus cast bar defaults"] = "焦点目标施法条恢复默认"
 L["Restore the focus cast bar settings to their defaults?"] = "把焦点目标施法条的设置恢复成默认值？"
 L["The focus cast bar is off or your focus is casting right now."] = "焦点目标施法条关着，或焦点目标正在施法。"
+L[": "] = "："
+L["Focus target"] = "焦点目标"
+L["Show the caster's name before the spell"] = "法术名前面印施法者的名字"
+L["Show your interrupt at the end of the bar"] = "条尾显示自己的打断技能"
+L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "打断技能的图标放在条的另一端，带冷却转圈：就绪时亮、冷却中变暗。这个专精没有打断就不显示。"

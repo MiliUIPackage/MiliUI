@@ -19,6 +19,12 @@
 --
 -- 專注目標換了（PLAYER_FOCUS_CHANGED）：新的專注目標正在唱就直接接上，沒在唱就收條。
 -- 音效留在專注目標助手（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑，這裡不另做一份）。
+--
+-- 跟玩家施法條分得開的兩樣（使用者 2026-10-16 指定，不靠顏色也認得出這不是自己的條）：
+--   * 法術名前面印施法者的名字「張三：治療鍊」（showCaster）。UnitName("focus") 受限內容是秘密字串：只串接、只交給 SetText
+--   * 條尾（圖示的對邊）一顆自己的斷法技能圖示＋冷卻轉圈（showKick）：圖示是自己的法術（明文），冷卻餵
+--     GetSpellCooldownDuration(id, true) 的 duration 物件給自己的 Cooldown 框（SetCooldownFromDurationObject，秘密值下照樣成立），
+--     圖示 alpha 餵 IsZero() 的布林（就緒亮、冷卻中暗）。沒有斷法的專精不畫、不佔寬
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -74,6 +80,19 @@ local function MinSize()
     return Width(cfg), tonumber(cfg.height) or 20
 end
 
+-- 斷法圖示要不要畫：開關開著、而且這個專精有斷法（Modules/Interrupt.lua 挑的那顆）
+local function KickSpell(cfg)
+    if (cfg or Cfg() or {}).showKick == false then return nil end
+    local I = ns.Interrupt
+    return I and I.SpellID and I.SpellID() or nil
+end
+FC.KickSpell = KickSpell
+
+local function C4(c, dr, dg, db, da)
+    if type(c) == "table" and type(c.r) == "number" then return c.r, c.g, c.b, c.a or da end
+    return dr, dg, db, da
+end
+
 local function Build()
     f = CreateFrame("Frame", nil, container)
     f:SetAllPoints(container)
@@ -94,6 +113,20 @@ local function Build()
     f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
     f.spark:SetBlendMode("ADD")
     f.spark:Hide()
+
+    -- 條尾的斷法圖示（圖示的對邊）：邊框＋圖示＋冷卻轉圈（不畫數字、不畫邊緣線、不畫閃光）
+    f.kickFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    f.kickIcon = f.kickFrame:CreateTexture(nil, "ARTWORK")
+    f.kickIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    local okCD, kcd = pcall(CreateFrame, "Cooldown", nil, f.kickFrame, "CooldownFrameTemplate")
+    if okCD and kcd then
+        if kcd.SetDrawBling then kcd:SetDrawBling(false) end
+        if kcd.SetDrawEdge then kcd:SetDrawEdge(false) end
+        if kcd.SetHideCountdownNumbers then kcd:SetHideCountdownNumbers(true) end
+        kcd:EnableMouse(false)
+        f.kickCD = kcd
+    end
+    f.kickFrame:Hide()
 
     f.textFrame = CreateFrame("Frame", nil, f)
     f.textFrame:SetAllPoints(f.barHolder)
@@ -144,11 +177,33 @@ function FC.Layout()
     f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", edge, -edge)
     f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -edge, edge)
 
-    local barW = W - iconW - gap
+    -- 斷法圖示在圖示的對邊（圖示左 ⇒ 斷法右），跟圖示同大小、同間距；沒有斷法就不佔寬
+    local kickID = KickSpell(cfg)
+    local kickW = kickID and H or 0
+    local kickGap = kickID and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
+    f.kickFrame:SetShown(kickID ~= nil)
+    f.kickFrame:ClearAllPoints()
+    f.kickFrame:SetSize(kickW > 0 and kickW or 1, H)
+    f.kickFrame:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
+    f.kickFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+    f.kickFrame:SetBackdropColor(0, 0, 0, 1)
+    f.kickFrame:SetBackdropBorderColor(0, 0, 0, 1)
+    f.kickIcon:ClearAllPoints()
+    f.kickIcon:SetPoint("TOPLEFT", f.kickFrame, "TOPLEFT", edge, -edge)
+    f.kickIcon:SetPoint("BOTTOMRIGHT", f.kickFrame, "BOTTOMRIGHT", -edge, edge)
+    if f.kickCD then
+        f.kickCD:ClearAllPoints()
+        f.kickCD:SetAllPoints(f.kickIcon)
+        if f.kickCD.SetSwipeColor then
+            f.kickCD:SetSwipeColor(C4(ns.Setting("theme", "icon.swipeColor"), 0, 0, 0, 0.8))
+        end
+    end
+
+    local barW = W - iconW - gap - kickW - kickGap
     if barW < 4 then barW = 4 end
     f.barHolder:ClearAllPoints()
     f.barHolder:SetSize(barW, H)
-    f.barHolder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
+    f.barHolder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f.kickFrame, left and "TOPLEFT" or "TOPRIGHT", left and -kickGap or kickGap, 0)
     local inset = ns.Media.BorderInset(1)
     f.barHolder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
     f.barHolder:SetBackdropBorderColor(0, 0, 0, 1)
@@ -170,6 +225,7 @@ function FC.Layout()
     f.bar:SetFrameLevel(lvl + 1)
     f.textFrame:SetFrameLevel(lvl + 3)
     f.iconFrame:SetFrameLevel(lvl + 1)
+    f.kickFrame:SetFrameLevel(lvl + 1)
 
     local general = ns.Setting(nil, "font")
     local outline = ns.Media.ThemeOutline()
@@ -340,18 +396,27 @@ local function QueryImportant(spellID)
     return nil
 end
 
--- 名字：important ＝ 明文或秘密布林，nil ＝ 不標。name 可能是秘密字串：只串接、只交給 SetText
-local function SetName(name, important)
+-- 顯示的名字（純函式）：施法者名字 ＋ 分隔 ＋ 法術名（截字只截法術名；兩段都可能是秘密字串，只串接）
+function FC.DisplayName(caster, spell, showCaster, maxChars)
+    local shown = CB().Truncate(spell, maxChars) or ""
+    if showCaster ~= false and caster ~= nil then
+        return caster .. L[": "] .. shown
+    end
+    return shown
+end
+
+-- 名字：important ＝ 明文或秘密布林，nil ＝ 不標。caster ＝ 施法者名字（nil ＝ 不印）。都可能是秘密字串：只串接、只交給 SetText
+local function SetName(name, important, caster)
     local cfg = Cfg() or {}
-    local shown = CB().Truncate(name, cfg.nameMaxChars)
-    f.nameText:SetText(shown or "")
+    local shown = FC.DisplayName(caster, name, cfg.showCaster, cfg.nameMaxChars)
+    f.nameText:SetText(shown)
     if important == nil or not cfg.bangImportant then
         f.bangText:SetAlpha(0)
         f.nameText:SetAlpha(1)
         return
     end
     local cr, cg, cb = C(Colors().glow, 0.95, 0.95, 0.32)
-    f.bangText:SetText(string.format("|cff%02x%02x%02x!|r ", cr * 255, cg * 255, cb * 255) .. (shown or ""))
+    f.bangText:SetText(string.format("|cff%02x%02x%02x!|r ", cr * 255, cg * 255, cb * 255) .. shown)
     f.bangText:SetAlphaFromBoolean(important, 1, 0)
     f.nameText:SetAlphaFromBoolean(important, 0, 1)
 end
@@ -368,6 +433,46 @@ end
 local function ShowSpark()
     f.spark:SetShown((Cfg() or {}).showSpark ~= false)
 end
+
+-- 斷法圖示：圖示（自己的法術，明文）、冷卻轉圈（duration 物件原封轉交）、就緒亮／冷卻中暗（IsZero 的布林只餵 alpha）。
+-- 餵不進去就 Clear（圖示留著）。開唱、SPELL_UPDATE_COOLDOWN（條顯示中）、預覽、套用設定時叫
+local function UpdateKick()
+    if not (f and f.kickFrame:IsShown()) then return end
+    local id = KickSpell()
+    if not id then return end
+    local getTex = C_Spell and C_Spell.GetSpellTexture
+    if getTex then
+        local ok, tex = pcall(getTex, id)
+        if ok and tex ~= nil then f.kickIcon:SetTexture(tex) end
+    end
+    local dur
+    local getDur = C_Spell and C_Spell.GetSpellCooldownDuration
+    if getDur then
+        local ok, d = pcall(getDur, id, true)
+        if ok and d then dur = d end
+    end
+    local cd = f.kickCD
+    if cd then
+        local fed = false
+        if dur and cd.SetCooldownFromDurationObject then
+            fed = pcall(cd.SetCooldownFromDurationObject, cd, dur, true)
+        end
+        if not fed and cd.Clear then pcall(cd.Clear, cd) end
+    end
+    local zero
+    if dur and dur.IsZero then
+        local ok, z = pcall(dur.IsZero, dur)
+        if ok then zero = z end
+    end
+    if zero == nil then
+        f.kickIcon:SetAlpha(1)
+    elseif IsSecret(zero) then
+        if not pcall(f.kickIcon.SetAlphaFromBoolean, f.kickIcon, zero, 1, 0.55) then f.kickIcon:SetAlpha(1) end
+    else
+        f.kickIcon:SetAlpha(zero and 1 or 0.55)
+    end
+end
+FC.UpdateKick = UpdateKick
 
 local function HideBar()
     local wasPreview = S.preview
@@ -395,6 +500,7 @@ local function HideBar()
         f.timeText:SetText("")
         f.icon:SetTexture(nil)
         f:Show()
+        UpdateKick()
     end
     if ns.Visibility then ns.Visibility.Apply(KEY) end
     if wasPreview and ns.Fire then ns.Fire("FocusCastPreview", false) end
@@ -555,9 +661,11 @@ local function StartDisplay()
     f.icon:SetTexture(texture)
     f.timeText:SetTextColor(1, 1, 1)          -- 打斷顯示會把右側文字染職業色，這裡還原
     local important = QueryImportant(spellID)
-    SetName(name, important)
+    local caster = UnitName(UNIT)              -- 可能是秘密字串：只串接
+    SetName(name, important, caster)
     if important == nil then StopGlow() else ShowGlow(important) end
     f.timeText:SetText("")
+    UpdateKick()
 
     local ps, pe = Plain(s4), Plain(s5)
     S.tStart = ps and ps / 1000 or nil
@@ -685,9 +793,10 @@ function FC.StartPreview()
     f:SetAlpha(1)
     f.icon:SetTexture(PREVIEW_ICON)
     f.timeText:SetTextColor(1, 1, 1)
-    SetName(L["Preview cast"], true)
+    SetName(L["Preview cast"], true, L["Focus target"])
     ShowGlow(nil)
     f.timeText:SetText("")
+    UpdateKick()
     ApplyColor()
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(0)
@@ -759,9 +868,15 @@ local function RegisterEvents()
     ev = CreateFrame("Frame")
     for _, event in ipairs(CAST_EVENTS) do ev:RegisterUnitEvent(event, UNIT) end
     ev:RegisterEvent("PLAYER_FOCUS_CHANGED")
+    -- 斷法圖示的轉圈：自己的冷卻變了就重餵（戰鬥中每個 GCD 都派，只在條顯示著時做事）
+    ev:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     ev:SetScript("OnEvent", function(_, event, ...)
         if event == "PLAYER_FOCUS_CHANGED" then
             ns.Defer(RefreshFromFocus)
+            return
+        end
+        if event == "SPELL_UPDATE_COOLDOWN" then
+            if f and f:IsShown() and f.kickFrame:IsShown() then ns.Defer(UpdateKick) end
             return
         end
         ns.Defer(OnCastEvent, event, ...)
@@ -789,6 +904,12 @@ function FC.Init()
         if cfg and (tonumber(cfg.width) or 0) <= 0 then FC.Layout() end
     end)
     ns.RegisterCallback("ProfileChanged", KEY, function() FC.Apply() end)
+    -- 斷法技能換了（法術書／天賦／專精／術士換惡魔）：Interrupt 會重挑，條尾的圖示跟著重排（有無、圖）
+    local function KickLater() ns.Defer(function() FC.Layout(); UpdateKick() end) end
+    ns.Events.Register("SPELLS_CHANGED", KEY .. "_kick", KickLater)
+    ns.Events.Register("PLAYER_TALENT_UPDATE", KEY .. "_kick", KickLater)
+    ns.Events.Register("UNIT_PET", KEY .. "_kick", KickLater, "player")
+    ns.RegisterCallback("SpecChanged", KEY .. "_kick", KickLater)
     if ns.Fire then ns.Fire("FocusCastBarChanged") end
 end
 
@@ -804,6 +925,7 @@ function FC.Apply()
         RefreshFromFocus()         -- 剛打開：專注目標正在唱就接上
     else
         ApplyColor()
+        UpdateKick()
         if S.preview then ShowGlow(nil) end
     end
     if InCombatLockdown() then ns.Bars.Request(KEY, "structure") else ns.Bars.ApplyStructure(KEY) end
@@ -829,10 +951,11 @@ function FC.DebugLines()
         return out
     end
     local cfg = Cfg() or {}
-    out[#out + 1] = ("  專注目標施法條：%s  狀態 %s%s  秘密模式 %s  明文時間軸 %s（總長 %.2f）  發光 %s  alpha %s")
+    out[#out + 1] = ("  專注目標施法條：%s  狀態 %s%s  秘密模式 %s  明文時間軸 %s（總長 %.2f）  發光 %s  斷法圖示 %s  alpha %s")
         :format(cfg.enabled ~= false and "開" or "關", STATE_NAME[S.castState] or "閒置",
                 S.preview and "（預覽）" or "", S.castSecret and "是" or "否",
                 S.tStart and "有" or "無", S.total or 0, tostring(S.glowShown or "無"),
+                tostring(KickSpell(cfg) or "無"),
                 tostring(ns.Visibility and ns.Visibility.Current(KEY)))
     return out
 end
