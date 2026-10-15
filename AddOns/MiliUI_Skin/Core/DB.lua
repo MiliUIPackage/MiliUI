@@ -122,7 +122,7 @@ local function BuildDefaults()
         --   只往裡面補鍵，空表什麼都不補 ⇒ 玩家的收合與排序不會被洗掉。
         extras = {
             statsPanel = true,        -- 自建屬性清單（/reload 生效）
-            statsShowRating = false,  -- 百分比旁顯示評等值（即時）
+            statsValueFormat = "pct", -- 清單的數值怎麼顯示："pct"｜"rating"｜"pct_rating"｜"rating_pct"（即時；同 hud.valueFormat）
             statsCollapsed = {},      -- [sectionKey] = true
             statsOrder = {},          -- 陣列，sectionKey 的順序；空＝預設
             statsHidden = {},         -- [defKey] = true：這一列不顯示（角色面板齒輪的編輯狀態裡勾）
@@ -184,6 +184,15 @@ function DB.Init()
     local db = MiliUI_Skin_DB
 
     MergeDefaults(db, BuildDefaults())
+    -- 2026-10-15：清單的「百分比旁顯示評等值」勾選框改成「顯示數值」下拉（同 HUD）。
+    -- 舊的 statsShowRating = true ⇒ 「百分比 (評等)」；之後把舊鍵拿掉。
+    local ex = db.extras
+    if type(ex) == "table" and ex.statsShowRating ~= nil then
+        if ex.statsShowRating == true and ex.statsValueFormat == "pct" then
+            ex.statsValueFormat = "pct_rating"
+        end
+        ex.statsShowRating = nil
+    end
     db.schemaVersion = ns.DB_VERSION
     ns.db = db
     return db

@@ -128,6 +128,30 @@ end
 local DASH = "\226\128\148"   -- 「—」
 X.DASH = DASH
 
+-- 數值顯示方式（清單的 `extras.statsValueFormat` 與 HUD 的 `extras.hud.valueFormat` 共用）
+X.VALUE_FORMATS = { pct = true, rating = true, pct_rating = true, rating_pct = true }
+
+function X.ValueFormat(v)
+    return (type(v) == "string" and X.VALUE_FORMATS[v]) and v or "pct"
+end
+
+-- 這種顯示方式要不要讀評等
+function X.FormatNeedsRating(v)
+    v = X.ValueFormat(v)
+    return v ~= "pct"
+end
+
+-- 設定面板的下拉選項（兩處同一組）
+function X.ValueFormatItems()
+    local L = ns.L
+    return {
+        { text = L["Percentage"], value = "pct" },
+        { text = L["Rating"], value = "rating" },
+        { text = L["Percentage (rating)"], value = "pct_rating" },
+        { text = L["Rating (percentage)"], value = "rating_pct" },
+    }
+end
+
 function X.IsSecret(v)
     return S.IsSecret(v)
 end
