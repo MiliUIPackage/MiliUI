@@ -4,8 +4,8 @@
 -- ── 跟 MiliUI 本體的分工（2026-09-23）──
 -- 9/19 從本體搬過來之後，**沒開資訊列的玩家就沒修裝了**，所以現在兩邊都有：
 --   * 本體在 ⇒ 本體修（2026-10 起是 MiliUI_QoL/Modules/Merchant_Automation.lua），這裡不修。
---     AR.IsEnabled／SetEnabled／IsGuild／SetGuild 轉去讀寫本體的
---     MiliUI_DB.merchant，所以耐久面板、「修裝」分頁、本體的便利功能分頁三個
+--     AR.IsEnabled／SetEnabled／IsGuild／SetGuild 轉去讀寫本體（MiliUI_QoL）的
+--     merchant 設定，所以耐久面板、「修裝」分頁、「便利功能」設定三個
 --     入口改的是同一份設定。寫的時候順手抄一份進自己的 db.repair（鏡像）。
 --   * 只有資訊列 ⇒ 用自己的 db.repair 修。
 -- 「本體在不在」一律**呼叫當下**才問（CoreAPI），不能在檔案層快取：

@@ -12,7 +12,7 @@ metadata:
 改格子欄數（`SetCustomStride`／`view:SetStride`）也一樣：下次 UPDATE_MACROS 的安全重排讀到髒欄位，接著寫出的 selectedIndex 是髒的。
 `ScrollBox:RegisterCallback` 也不行（安全派送會叫到插件函式）。
 
-**安全做法**（MiliUI/Enhance/MacroFrame_Tools.lua）：巨集視窗的方法一個都不叫；搜尋結果放自己的面板，
+**安全做法**（MiliUI_QoL/Modules/MacroFrame_Tools.lua）：巨集視窗的方法一個都不叫；搜尋結果放自己的面板，
 用 `PickupMacro(index)`（C API）拿起、在格子上畫自己的高亮框讓玩家自己點；加高只對內文區 SetHeight、
 在 Blizzard_MacroUI 剛載入時做一次。Plumber 的 Macros.lua 也因同一原因註解掉 SaveMacro 掛勾。
 第三方「巨集視窗增強」若有「搜尋後跳到那一格」的功能，八成踩到這條。

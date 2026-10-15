@@ -23,7 +23,7 @@ UIParent 比最終值小（2026-10-12 實例：CVar 0.76、實際 0.53，登入�
   不照螢幕／UIParent 尺寸夾、更不要寫回。
 - 「留在畫面內」交給 `frame:SetClampedToScreen(true)`（引擎夾畫出來的位置、存檔不動），
   另外給一條叫回預設的路（右鍵／設定頁按鈕）。非要在 Lua 夾就只夾套用值，
-  範本是本體的 `Enhance/Delves_MarkButton.lua` ClampPos。
+  範本是本體的 `MiliUI_QoL/Modules/Delves_MarkButton.lua` ClampPos。
 - 存 UIParent 單位的偏移（TOPLEFT／CENTER 都行）本身不怕縮放變：偏移是 UIParent 單位，
   UIParent 縮放改了位置自然對；需要重算的只有「用 UIParent 尺寸算出絕對數字」的那種
   （頭像框那樣），要掛 `UI_SCALE_CHANGED`／`DISPLAY_SIZE_CHANGED` ＋ UIParent `OnSizeChanged`。

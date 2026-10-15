@@ -55,8 +55,8 @@ end
 -- 從 MiliUI 套組遷移（只做一次）
 --
 -- 頂層 key 的名稱與形狀跟 MiliUI_DB **完全相同**，遷移就是「逐 key 深拷貝」，不換結構。
--- 清單隨模組分批搬進來補齊（拆分計畫的 Phase 1～3）。⚠ 只發一次版，所以發佈前清單要齊；
--- 開發期間印記可能已經蓋了，新加進清單的 key 用 /mqol migrate 補搬。
+-- 清單＝從本體搬來的每支模組在 MiliUI_DB 裡用到的全部頂層 key（2026-10 拆分完成時定稿）。
+-- 之後再從本體搬模組過來，要把它的 key 加進來；印記已經蓋過的玩家要 /mqol migrate 才搬得到。
 --
 -- 印記 db.miliuiMigration：nil = 還沒查過；"migrated" / "none" / "reset" = 查過了。
 --   * 不是 nil 就**永遠不再讀 MiliUI_DB** —— 否則玩家在這裡改的設定會被舊值一再蓋回去
@@ -69,9 +69,10 @@ local MIGRATE_KEYS = {
     "bonusRollFilter", "bonusRollConfirm", "lootHistory",
     -- Phase 2（商人／任務／任務獎勵標示／交易密語／遊戲行為 CVar）
     "merchant", "quest", "questRewardValue", "tradeWhisper", "cvarEnforce",
-    -- Phase 3："delveMarkButton", "delveMarkButtonPos", "hideWorldMapCoords", "macroFrame",
-    --          "colorPicker", "ahFeatureEnabled", "ahAutoCurrentExpansion",
-    --          "friendsClassColor", "friendsHideMaxLevel",
+    -- Phase 3（探究標記鈕／世界地圖座標／巨集視窗／調色盤／拍賣行篩選／好友名單職業色）
+    "delveMarkButton", "delveMarkButtonPos", "hideWorldMapCoords", "macroFrame",
+    "colorPicker", "ahFeatureEnabled", "ahAutoCurrentExpansion",
+    "friendsClassColor", "friendsHideMaxLevel",
 }
 DB.MIGRATE_KEYS = MIGRATE_KEYS
 

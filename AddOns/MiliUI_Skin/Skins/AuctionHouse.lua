@@ -170,7 +170,7 @@
 -- |---|---|---|
 -- | `AuctionatorTabs_Shopping` / `_Selling` / `_Cancelling` / `_Auctionator` | 套組內建的拍賣插件加在底部的四顆分頁，用的是**暴雪同一個** `AuctionHouseFrameDisplayModeTabTemplate` ⇒ 不處理的話一排分頁會有兩種長相 | 名字登記在 `ThirdParty/Auctionator.lua`，下面 `SkinTabRow` 用 `Engine.CompanionTabs` 取出來，跟暴雪那三顆**同一次**交給 `Skin.TabGroup` |
 -- | `YUI_AuctionHelperFrame` | 另一支套組內建插件的**獨立側邊面板**（錨在拍賣場右外側，自己有一整套主題系統） | 不碰，見下面「刻意不碰」 |
--- | 本體 `Enhance/AuctionHouseFilter.lua` 的按鈕 | 套組本體加在視窗右上外側的「僅限當前資料片」開關（本身已是套組按鈕樣式） | 不碰，見下面「刻意不碰」 |
+-- | MiliUI_QoL `Modules/AuctionHouseFilter.lua` 的按鈕 | 套組加在視窗右上外側的「僅限當前資料片」開關（本身已是套組按鈕樣式） | 不碰，見下面「刻意不碰」 |
 --
 -- ⚠ 分頁那一排**整排都在伴隨元件的那一輪才畫**（`AUCTION_HOUSE_SHOW` ＋ 延一幀）。
 --   理由是 `Skin.TabGroup` 的接縫是「這一顆的右緣錨在下一顆的左緣」，錨點只在
@@ -202,7 +202,7 @@
 --   深色／原生），兩邊都畫就是兩層底。
 --   ⚠ 底部多四顆分頁的那一支（拍賣小幫手）**沒有**主題系統，它四頁的內容元件在
 --   `ThirdParty/Auctionator.lua` 畫；這一份只負責那四顆分頁跟暴雪三顆同一次畫完。
--- * **套組本體的「僅限當前資料片」按鈕** —— 它是 `BackdropTemplate` ＋ 自己的
+-- * **MiliUI_QoL 的「僅限當前資料片」按鈕** —— 它是 `BackdropTemplate` ＋ 自己的
 --   `OnEnter`/`OnLeave` 會重設 backdrop 顏色；我們的 overlay 壓在它的 backdrop
 --   之下，畫了也看不見，而要讓它看得見就得動它的腳本（伴隨元件規則明文禁止）。
 --

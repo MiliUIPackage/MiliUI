@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 好友名單：名字改成職業色
+-- MiliUI_QoL: 好友名單：名字改成職業色（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 好友視窗「聯絡人」頁的清單裡，正在玩 WoW 的好友名字換成職業色：
 --   * 遊戲內好友（線上）：「名字, 等級 N 職業」的名字那一段。
@@ -27,8 +27,9 @@
 -- 全域，但只碰列的 background／highlight 與滑鼠腳本，不碰 name 的字與顏色。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
 
-local S = ns.Secret
+local S = ns.Secret   -- 共用層 Secret.lua 在 QoL 的 TOC 排在 Modules\ 之前，檔案載入當下就有
 
 -- 暴雪原本寫進 button.name 的字（明文才記）。弱鍵：列是池化的，框不會消失，
 -- 但不要讓這張表變成唯一一條參照
@@ -64,9 +65,10 @@ end
 ------------------------------------------------------------
 -- 設定
 ------------------------------------------------------------
+-- 讀寫於 MiliUI_QoL_DB.friendsClassColor（預設開）／friendsHideMaxLevel（預設關），都是頂層 key
 local function DB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    return MiliUI_DB
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前一律當預設值，不碰存檔
+    return ns.db or {}
 end
 
 local function IsEnabled() return DB().friendsClassColor ~= false end

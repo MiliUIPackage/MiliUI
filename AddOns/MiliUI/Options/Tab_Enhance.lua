@@ -1,13 +1,15 @@
 ------------------------------------------------------------
--- 「插件強化」分頁：施法條美化（只在舊的冷卻管理器插件載入時出現）、拍賣行篩選、鑰石發光、聊天視窗樣式、世界地圖、調色盤、巨集視窗、好友名單職業色、Raider.IO 右鍵選單
+-- 「插件強化」分頁：施法條美化（只在舊的冷卻管理器插件載入時出現）、Baganator 鑰石發光、
+-- Chattynator 聊天視窗樣式、Raider.IO 右鍵選單
 --
--- 這頁只放「指名一個介面對象」的注入式功能；不指名對象、純粹省你一個動作的
--- （商人自動化、骰裝提示過濾、探究標記鈕、CVar、套組自身設定）在「便利功能」頁。
+-- 分界：這頁只管**第三方插件**的強化（Ayije_CDM、Baganator、Chattynator、Raider.IO）。
+-- 暴雪介面本身的便利功能（商人、任務、探究、世界地圖、調色盤、巨集視窗、好友名單、
+-- 拍賣行……）在獨立插件 MiliUI_QoL，它自己向本體註冊「便利功能」分頁。
 --
 -- 每一條 spec 自帶 get/set，直接接各 Enhance 模組的全域 API
--- （MiliUI_CastBarEnhance / MiliUI_AHFilter / MiliUI_BaganatorKeystone /
---   MiliUI_ChattynatorTabs / MiliUI_WorldMapCoords / MiliUI_RaiderIOUnitMenu，
---   以及 ns.ColorPickerTools / ns.MacroFrameTools / ns.FriendsClassColor）。模組沒載入時 get/set 都靜默略過。
+-- （MiliUI_CastBarEnhance / MiliUI_BaganatorKeystone / MiliUI_ChattynatorTabs /
+--   MiliUI_ChattynatorButtons / MiliUI_ChattynatorURLs / MiliUI_RaiderIOUnitMenu）。
+-- 模組沒載入時 get/set 都靜默略過。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -79,18 +81,6 @@ local CASTBAR_CONTROLS = {
 }
 
 local CONTROLS = {
-    { type = "header", label = "拍賣行" },
-    { type = "toggle", label = "「僅限當前資料片」篩選",
-      get = function() return not MiliUI_DB or MiliUI_DB.ahFeatureEnabled ~= false end,
-      set = function(v)
-          if not MiliUI_DB then MiliUI_DB = {} end
-          MiliUI_DB.ahFeatureEnabled = v
-          if MiliUI_AHFilter and MiliUI_AHFilter.UpdateVisibility then
-              MiliUI_AHFilter.UpdateVisibility()
-          end
-      end },
-    { type = "text", label = "在拍賣行介面右上角顯示篩選選項，瀏覽查詢時自動套用「僅限當前資料片」。" },
-
     { type = "header", label = "Baganator 背包" },
     { type = "toggle", label = "鑰石發光提示",
       get = function() return MiliUI_BaganatorKeystone and MiliUI_BaganatorKeystone.IsEnabled() end,
@@ -116,49 +106,6 @@ local CONTROLS = {
     { type = "text", label = "訊息裡的網址變成藍色 [網址] 連結，點一下跳出複製框並自動全選，"
         .. "依 Mac／Windows 提示按 Cmd+C 或 Ctrl+C，複製後自動關閉。"
         .. "緊貼中文的網址、沒寫 https:// 的網域（如 raider.io/…）也認得出來。" },
-
-    { type = "header", label = "世界地圖" },
-    { type = "toggle", label = "隱藏內建世界地圖座標",
-      get = function() return MiliUI_WorldMapCoords and MiliUI_WorldMapCoords.IsEnabled() end,
-      set = function(v) if MiliUI_WorldMapCoords then MiliUI_WorldMapCoords.SetEnabled(v) end end },
-    { type = "text", label = "關掉世界地圖左下角內建的「玩家地圖座標」與「游標地圖座標」兩塊面板"
-        .. "（worldMapShowPlayerCoords、worldMapShowCursorCoords），一次兩個一起。"
-        .. "取消勾選則兩個都顯示。改完立即生效，不需要重載。" },
-
-    { type = "header", label = "調色盤" },
-    { type = "toggle", label = "調色盤旁邊加工具列",
-      get = function() return ns.ColorPickerTools and ns.ColorPickerTools.IsEnabled() end,
-      set = function(v) if ns.ColorPickerTools then ns.ColorPickerTools.SetEnabled(v) end end },
-    { type = "text", label = "遊戲的調色盤右邊多一塊：紅綠藍（0～255）與透明度可以直接打數字，"
-        .. "顏色可以複製貼上（重載後還在），一排職業色點了就套用，"
-        .. "還會記住最近按「確定」選過的 7 個顏色。所有用到遊戲調色盤的地方都有。" },
-
-    { type = "header", label = "巨集視窗" },
-    { type = "toggle", label = "加高巨集內文編輯區",
-      get = function() return ns.MacroFrameTools and ns.MacroFrameTools.IsTall() end,
-      set = function(v)
-          if not ns.MacroFrameTools then return end
-          if ns.MacroFrameTools.SetTall(v) then AskReload() end
-      end },
-    { type = "text", label = "巨集視窗往下加長，內文區一次看得到整支巨集。上面的圖示格不動。" },
-    { type = "toggle", label = "巨集搜尋",
-      get = function() return ns.MacroFrameTools and ns.MacroFrameTools.IsSearch() end,
-      set = function(v) if ns.MacroFrameTools then ns.MacroFrameTools.SetSearch(v) end end },
-    { type = "text", label = "巨集視窗右邊多一塊搜尋，同時找通用與角色巨集的名稱和內文。"
-        .. "滑過結果看全文、左鍵把巨集拿起來直接放到快捷列；目前分頁裡符合的格子會框起來，點那一格就能編輯。|n"
-        .. "|cffffd200搜尋不會替你選中那一格：插件去選巨集會讓快捷列上的巨集施法被遊戲擋掉。|r" },
-
-    { type = "header", label = "好友名單" },
-    { type = "toggle", label = "名字顯示職業色",
-      get = function() return ns.FriendsClassColor and ns.FriendsClassColor.IsEnabled() end,
-      set = function(v) if ns.FriendsClassColor then ns.FriendsClassColor.SetEnabled(v) end end },
-    { type = "text", label = "好友視窗的名單裡，正在玩魔獸世界的好友名字改用職業色："
-        .. "遊戲內好友是名字本身，戰網好友是括號裡的角色名（只限在玩正式服、可以邀進隊伍的）。離線好友維持原樣。" },
-    { type = "toggle", label = "滿級時隱藏等級",
-      get = function() return ns.FriendsClassColor and ns.FriendsClassColor.IsHideMaxLevel() end,
-      set = function(v) if ns.FriendsClassColor then ns.FriendsClassColor.SetHideMaxLevel(v) end end },
-    { type = "text", label = "遊戲內好友已經滿級時，名字後面不再寫「等級 N 職業」，職業看名字顏色就知道。"
-        .. "要先開啟上面的職業色才有作用；戰網好友在名單裡本來就不顯示等級。" },
 
     { type = "header", label = "Raider.IO" },
     { type = "toggle", label = "關閉右鍵選單的 Raider.IO 項目",

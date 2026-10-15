@@ -13,4 +13,4 @@ metadata:
 - **待驗**：All／Some 語意、A 角色進入 B 角色離開時 EnableAddOn(name, A) 是否作用。
 - 回報問題時可以叫玩家先 `/miliui debug on` 重現一次。
 
-同日加的 `Enhance/FriendsList_ClassColor.lua`：後掛 `FriendsFrame_UpdateFriendButton`，照暴雪原組法重組字串只換色碼（字寬不變，最愛星號照字寬排）；**不能合作（跨陣營）的戰網好友維持暴雪灰色**，那是有意義的訊號。開關在「插件強化」頁。
+同日加的 `MiliUI_QoL/Modules/FriendsList_ClassColor.lua`：後掛 `FriendsFrame_UpdateFriendButton`，照暴雪原組法重組字串只換色碼（字寬不變，最愛星號照字寬排）；**不能合作（跨陣營）的戰網好友維持暴雪灰色**，那是有意義的訊號。開關在「插件強化」頁。

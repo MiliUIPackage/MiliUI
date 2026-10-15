@@ -1,5 +1,7 @@
--- AutoStoryStroll: 自動點擊故事漫遊 Gossip 選項
+-- AutoStoryStroll: 自動點擊故事漫遊 Gossip 選項（MiliUI_QoL，2026-10 從本體 MiliUI/Enhance 搬來）
 -- /story 開關功能，按住 Shift 暫停自動選擇
+local _, ns = ...
+if ns.legacyCore then return end
 local KEYWORD = "故事漫遊"
 local TELEPORT_KEYWORD = "傳送"
 local EXIT_KEYWORD = "退出"

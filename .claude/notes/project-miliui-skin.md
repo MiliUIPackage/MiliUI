@@ -110,7 +110,7 @@ metadata:
 拍賣結果清單的列（唯一出口 `TableBuilderMixin:AddRow` 跟出價／直購同流）；預組隊伍的 per-result 資料；就位確認以外的 LFG 彈窗；
 secure 格子（玩具／傳家寶／技能鈕只裁圖示）；天賦樹與法術格內容；`ProfessionsRankBar`（不是 StatusBar）；征服條（每次 SetAtlas）。
 照 EllesmereUI 查出的 taint 雷（[[feedback-skin-copy-ellesmereui]]）：就位確認 OnShow 緊接著用秘密的發起人名字 ⇒ 改聽 `READY_CHECK` 延一幀；
-戰利品擲骰視窗從插件 `Hide()` 會讓 OnHide 在髒執行裡寫清單資料 ⇒ 功能放 `MiliUI/Enhance/GroupLootHistory_AutoClose.lua`（secure snippet 關窗）。
+戰利品擲骰視窗從插件 `Hide()` 會讓 OnHide 在髒執行裡寫清單資料 ⇒ 功能放 `MiliUI_QoL/Modules/GroupLootHistory_AutoClose.lua`（secure snippet 關窗）。
 
 ## 第三方（伴隨元件）
 

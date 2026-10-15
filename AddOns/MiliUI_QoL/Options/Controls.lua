@@ -296,7 +296,26 @@ Append({
         .. "首領戰、傳奇鑰石、PvP 期間遊戲不讓插件送聊天，那時只在自己的聊天框印出明細。" },
 })
 
--- （探究：Phase 3 搬進來時排在這裡）
+-- 探究「標記敦敦」按鈕（Modules/Delves_MarkButton.lua）。
+-- ⚠ 這一段是條件加進去的：名字目前只有繁中的「敦敦」，其他語系的叫法還沒查，
+-- 硬留一個按了只會 /target 失敗的選項更糟。直接看語系（跟模組的 SUPPORTED 同一道閘）；
+-- 舊本體偵測命中時模組不由 QoL 建，所以 get/set 一律先判斷全域在不在。
+if GetLocale() == "zhTW" then
+    Append({
+        { type = "header", label = "探究" },
+        { type = "toggle", label = "顯示「點擊標記敦敦」按鈕",
+          get = function() return MiliUI_DelveMarkButton and MiliUI_DelveMarkButton.IsEnabled() end,
+          set = function(v) if MiliUI_DelveMarkButton then MiliUI_DelveMarkButton.SetEnabled(v) end end },
+        { type = "text", label = "在豐碩探究裡、而且探究等級已經到 3（寶藏獵人）時，"
+            .. "畫面上多一顆按鈕，點一下就 /target 敦敦 並標上圓圈（/tm 2）。"
+            .. "按鈕可以拖曳移動，戰鬥中不能移動。|n"
+            .. "沒出現的話在探究裡輸入 /run MiliUI_DelveMarkButton.Debug() 看判定卡在哪一關。" },
+        { type = "button", label = "", text = "重設按鈕位置", width = 120,
+          onClick = function()
+              if MiliUI_DelveMarkButton then MiliUI_DelveMarkButton.ResetPosition() end
+          end },
+    })
+end
 
 -- 遊戲行為 CVar（Modules/GameplayCVars.lua）
 Append({
@@ -315,6 +334,63 @@ Append({
           if old ~= v then ns.AskReload() end
       end },
     { type = "text", label = "選擇「強制」後，每次登入／重載介面會自動套用（deselectOnClick），覆蓋遊戲選項與其他插件寫入的值。" },
+})
+
+-- 介面工具：世界地圖座標、調色盤、巨集視窗、好友名單、拍賣行（Modules/WorldMapCoords.lua、
+-- ColorPicker_Tools.lua、MacroFrame_Tools.lua、FriendsList_ClassColor.lua、AuctionHouseFilter.lua）。
+-- 舊本體偵測命中時這些全域是舊本體建的（拍賣行那張表沒有 IsEnabled／SetEnabled），
+-- 所以 get/set 一律先判斷在不在。
+Append({
+    { type = "header", label = "世界地圖" },
+    { type = "toggle", label = "隱藏內建世界地圖座標",
+      get = function() return MiliUI_WorldMapCoords and MiliUI_WorldMapCoords.IsEnabled() end,
+      set = function(v) if MiliUI_WorldMapCoords then MiliUI_WorldMapCoords.SetEnabled(v) end end },
+    { type = "text", label = "關掉世界地圖左下角內建的「玩家地圖座標」與「游標地圖座標」兩塊面板"
+        .. "（worldMapShowPlayerCoords、worldMapShowCursorCoords），一次兩個一起。"
+        .. "取消勾選則兩個都顯示。改完立即生效，不需要重載。" },
+
+    { type = "header", label = "調色盤" },
+    { type = "toggle", label = "調色盤旁邊加工具列",
+      get = function() return ns.ColorPickerTools and ns.ColorPickerTools.IsEnabled() end,
+      set = function(v) if ns.ColorPickerTools then ns.ColorPickerTools.SetEnabled(v) end end },
+    { type = "text", label = "遊戲的調色盤右邊多一塊：紅綠藍（0～255）與透明度可以直接打數字，"
+        .. "顏色可以複製貼上（重載後還在），一排職業色點了就套用，"
+        .. "還會記住最近按「確定」選過的 7 個顏色。所有用到遊戲調色盤的地方都有。" },
+
+    { type = "header", label = "巨集視窗" },
+    { type = "toggle", label = "加高巨集內文編輯區",
+      get = function() return ns.MacroFrameTools and ns.MacroFrameTools.IsTall() end,
+      set = function(v)
+          if not ns.MacroFrameTools then return end
+          if ns.MacroFrameTools.SetTall(v) then ns.AskReload() end
+      end },
+    { type = "text", label = "巨集視窗往下加長，內文區一次看得到整支巨集。上面的圖示格不動。" },
+    { type = "toggle", label = "巨集搜尋",
+      get = function() return ns.MacroFrameTools and ns.MacroFrameTools.IsSearch() end,
+      set = function(v) if ns.MacroFrameTools then ns.MacroFrameTools.SetSearch(v) end end },
+    { type = "text", label = "巨集視窗右邊多一塊搜尋，同時找通用與角色巨集的名稱和內文。"
+        .. "滑過結果看全文、左鍵把巨集拿起來直接放到快捷列；目前分頁裡符合的格子會框起來，點那一格就能編輯。|n"
+        .. "|cffffd200搜尋不會替你選中那一格：插件去選巨集會讓快捷列上的巨集施法被遊戲擋掉。|r" },
+
+    { type = "header", label = "好友名單" },
+    { type = "toggle", label = "名字顯示職業色",
+      get = function() return ns.FriendsClassColor and ns.FriendsClassColor.IsEnabled() end,
+      set = function(v) if ns.FriendsClassColor then ns.FriendsClassColor.SetEnabled(v) end end },
+    { type = "text", label = "好友視窗的名單裡，正在玩魔獸世界的好友名字改用職業色："
+        .. "遊戲內好友是名字本身，戰網好友是括號裡的角色名（只限在玩正式服、可以邀進隊伍的）。離線好友維持原樣。" },
+    { type = "toggle", label = "滿級時隱藏等級",
+      get = function() return ns.FriendsClassColor and ns.FriendsClassColor.IsHideMaxLevel() end,
+      set = function(v) if ns.FriendsClassColor then ns.FriendsClassColor.SetHideMaxLevel(v) end end },
+    { type = "text", label = "遊戲內好友已經滿級時，名字後面不再寫「等級 N 職業」，職業看名字顏色就知道。"
+        .. "要先開啟上面的職業色才有作用；戰網好友在名單裡本來就不顯示等級。" },
+
+    { type = "header", label = "拍賣行" },
+    { type = "toggle", label = "「僅限當前資料片」篩選",
+      get = function() return MiliUI_AHFilter and MiliUI_AHFilter.IsEnabled and MiliUI_AHFilter.IsEnabled() end,
+      set = function(v)
+          if MiliUI_AHFilter and MiliUI_AHFilter.SetEnabled then MiliUI_AHFilter.SetEnabled(v) end
+      end },
+    { type = "text", label = "在拍賣行介面右上角顯示篩選選項，瀏覽查詢時自動套用「僅限當前資料片」。" },
 })
 
 ns.QoLControls = CONTROLS

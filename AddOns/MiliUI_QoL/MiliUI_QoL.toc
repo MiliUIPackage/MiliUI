@@ -36,6 +36,16 @@ Modules\Merchant_Automation.lua
 Modules\Quest_Automation.lua
 Modules\QuestReward_BestValue.lua
 Modules\Trade_Whisper.lua
+Modules\CraftingOrders_RewardColumn.xml
+Modules\CraftingOrders_RewardColumn.lua
+Modules\AutoStoryStroll.lua
+Modules\AuctionHouseFilter.lua
+Modules\WorldMapCoords.lua
+Modules\Delves_MarkButton.lua
+Modules\ItemUpgrade_PreviewIcon.lua
+Modules\ColorPicker_Tools.lua
+Modules\MacroFrame_Tools.lua
+Modules\FriendsList_ClassColor.lua
 
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua

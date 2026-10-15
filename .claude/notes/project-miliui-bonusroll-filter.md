@@ -1,6 +1,6 @@
 ---
 name: project-miliui-bonusroll-filter
-description: 星雲之核骰裝提示的兩支強化（MiliUI/Enhance/BonusRoll_Filter.lua 過濾、BonusRoll_Confirm.lua 確認框）——12.1 骰裝介面就是舊 BonusRollFrame、事件自帶 difficultyID/treasureContextLevel、+8 傳奇軌道門檻每季要驗；確認框不走 StaticPopup、要高過 DIALOG+toplevel 的貪需視窗
+description: 星雲之核骰裝提示的兩支強化（MiliUI_QoL/Modules/BonusRoll_Filter.lua 過濾、BonusRoll_Confirm.lua 確認框）——12.1 骰裝介面就是舊 BonusRollFrame、事件自帶 difficultyID/treasureContextLevel、+8 傳奇軌道門檻每季要驗；確認框不走 StaticPopup、要高過 DIALOG+toplevel 的貪需視窗
 metadata: 
   node_type: memory
   type: project
@@ -8,7 +8,7 @@ metadata:
   modified: 2026-10-14T00:00:00.000Z
 ---
 
-## 過濾：`MiliUI/Enhance/BonusRoll_Filter.lua`（2026-08-27）
+## 過濾：`MiliUI_QoL/Modules/BonusRoll_Filter.lua`（2026-08-27）
 
 依內容類型隱藏星雲之核（Nebulous Voidcore）骰裝提示。設定在 Tab_Enhance「星雲之核骰裝提示」區段，DB 在 `MiliUI_DB.bonusRollFilter`。
 
@@ -24,7 +24,7 @@ metadata:
 **每季要驗**：`MPLUS_SHOW_MIN = 8`（+8 以上完賽獎勵是傳奇 Myth 軌道，Midnight S2 的規則，使用者口述）。新賽季軌道門檻若變就改這個常數。
 團本難度 ID 若再加新的記得補 `RAID_ALWAYS_SHOW`／`RAID_NORMAL_BELOW`。
 
-## 確認：`MiliUI/Enhance/BonusRoll_Confirm.lua`（2026-09-24，預設開，`MiliUI_DB.bonusRollConfirm`）
+## 確認：`MiliUI_QoL/Modules/BonusRoll_Confirm.lua`（2026-09-24，預設開，`MiliUI_DB.bonusRollConfirm`）
 
 按骰子鈕之前先問一聲並顯示目前的拾取專精——手滑或忘了切拾取專精就花掉核心，事後救不回來。只攔「擲骰」，放棄鈕不動。
 `PromptFrame.RollButton` 是普通按鈕（OnClick＝`AcceptSpellConfirmationPrompt(spellID)`，不受保護），所以把它的 OnClick 包一層，按確定才跑原本那段。
