@@ -131,7 +131,10 @@ end
 local function Pos()
     local p = HDB().pos
     if type(p) == "table" and type(p.x) == "number" and type(p.y) == "number" then return p end
-    local l, b = X.SettingsRect and X.SettingsRect()
+    -- ⚠ 不能寫 `X.SettingsRect and X.SettingsRect()`：`and` 會把第二個回傳值截掉
+    --   （.claude/notes/wow-lua-and-or-pitfalls.md），下緣永遠是 nil ⇒ 退回舊預設位置
+    local l, b
+    if X.SettingsRect then l, b = X.SettingsRect() end
     if l and b then
         p = { point = "TOPLEFT", x = math.floor(l + 0.5), y = math.floor(b - PANEL_GAP + 0.5) }
         HDB().pos = p
