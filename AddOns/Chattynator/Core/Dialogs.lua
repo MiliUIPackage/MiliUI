@@ -1,12 +1,11 @@
----@class addonTableChattynator
-local addonTable = select(2, ...)
+local addonName, addonTable = ...
 
 local counter = 0
 local function GenerateDialog()
   counter = counter + 1
-  local dialog = CreateFrame("Frame", "ChattynatorDialog" .. counter, UIParent)
+  local dialog = CreateFrame("Frame", addonName .. "Dialog" .. counter, UIParent)
   dialog:SetToplevel(true)
-  table.insert(UISpecialFrames, "ChattynatorDialog" .. counter)
+  table.insert(UISpecialFrames, addonName .. "Dialog" .. counter)
   dialog:SetPoint("TOP", 0, -135)
   dialog:EnableMouse(true)
   dialog:SetFrameStrata("DIALOG")
@@ -128,6 +127,9 @@ function addonTable.Dialogs.ShowConfirm(text, yesText, noText, confirmCallback)
     dialog.cancelButton:SetScript("OnClick", function()
       dialog:Hide()
     end)
+
+    addonTable.Skins.AddFrame("Button", dialog.acceptButton)
+    addonTable.Skins.AddFrame("Button", dialog.cancelButton)
 
     confirmDialogsBySkin[currentSkinKey] = dialog
   end
@@ -262,7 +264,6 @@ function addonTable.Dialogs.ShowDualChoice(text, option1Text, option2Text, optio
     dialog.text:SetPoint("TOP", 0, -30)
 
     dialog.option1Button = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
-    addonTable.Skins.AddFrame("Button", dialog.option1Button)
     dialog.option2Button = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
     dialog.cancelButton = CreateFrame("Button", nil, dialog, "UIPanelDynamicResizeButtonTemplate")
 

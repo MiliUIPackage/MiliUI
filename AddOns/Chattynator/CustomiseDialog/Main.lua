@@ -584,6 +584,15 @@ local function SetupFormatting(parent)
   useClassColors:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
   table.insert(allFrames, useClassColors)
 
+  if addonTable.Constants.IsMidnightNext or addonTable.Constants.IsForever then
+    local showPlayerLevel = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.SHOW_PLAYER_LEVEL, 28, function(state)
+      addonTable.Config.Set(addonTable.Config.Options.SHOW_LEVEL, state)
+    end)
+    showPlayerLevel.option = addonTable.Config.Options.SHOW_LEVEL
+    showPlayerLevel:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
+    table.insert(allFrames, showPlayerLevel)
+  end
+
   container:SetScript("OnShow", function()
     timestampSpacing:SetValue(addonTable.Config.Get(addonTable.Config.Options.TIMESTAMP_SPACING) * 100)
     for _, f in ipairs(allFrames) do

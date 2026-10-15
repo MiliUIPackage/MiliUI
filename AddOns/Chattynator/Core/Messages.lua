@@ -510,22 +510,22 @@ function addonTable.MessagesMonitorMixin:OnEvent(eventName, ...)
   else
     local text, playerArg, _, _, _, _, channelID, channelIndex, _, _, lineID, playerGUID = ...
     local channelName = self.channelMap[channelIndex]
-    local playerClass, playerRace, playerSex, _
-    if (not issecretvalue or not issecretvalue(playerGUID)) and playerGUID then
-      _, playerClass, _, playerRace, playerSex = GetPlayerInfoByGUID(playerGUID)
-    elseif (issecretvalue and issecretvalue(playerArg)) or type(playerArg) ~= "string" or playerArg == "" then
+    local playerClass, playerRace, playerSex, playerLevel, _
+    if not issecretvalue(playerGUID) and playerGUID then
+      _, playerClass, _, playerRace, playerSex, _, _, playerLevel = GetPlayerInfoByGUID(playerGUID)
+    elseif issecretvalue(playerArg) or type(playerArg) ~= "string" or playerArg == "" then
       playerArg = nil
     end
     self:SetIncomingType({
       type = ChatTypeGroupInverted[eventName] or "NONE",
       event = eventName,
-      player = playerArg and {name = Ambiguate(playerArg, "none"), class = playerClass, race = playerRace, sex = playerSex},
+      player = playerArg and {name = Ambiguate(playerArg, "none"), class = playerClass, race = playerRace, sex = playerSex, level = playerLevel},
       channel = channelName and {name = channelName, index = channelIndex, isDefault = self.defaultChannels[channelName], zoneID = channelID} or nil,
     })
     self.lineID = lineID
     self.playerGUID = playerGUID
     self.lockType = true
-    if not (ChatFrame_SystemEventHandler or ChatFrameMixin.SystemEventHandler)(self, eventName, ...) then
+    if not ChatFrameMixin.SystemEventHandler(self, eventName, ...) then
       self:MessageEventHandler(eventName, ...)
     end
     self.lockType = false
@@ -743,6 +743,9 @@ function addonTable.MessagesMonitorMixin:UpdateChannels()
   for i = 1, GetNumDisplayChannels() do
     local name, isHeader, _, channelNumber, _, _, category = GetChannelDisplayInfo(i)
     if not isHeader then
+      if category ~= "CHANNEL_CATEGORY_WORLD" then
+        name = _G[category] .. ": " .. name
+      end
       if channelNumber then
         self.channelMap[channelNumber] = name
         self.maxDisplayChannels = math.max(self.maxDisplayChannels, channelNumber)
@@ -754,15 +757,21 @@ function addonTable.MessagesMonitorMixin:UpdateChannels()
     end
   end
 
+  local guildClubId = C_Club.GetGuildClubId()
   for _, channelName in ipairs(self.channelList) do
     local communityIDStr, channelID = channelName:match("^Community:(%d+):(%d+)$")
     if communityIDStr then
-      local index = GetChannelName(channelName)
+      local index, _, _, isCommunities = GetChannelName(channelName)
       local clubInfo = C_Club.GetClubInfo(communityIDStr)
       local streamInfo = C_Club.GetStreamInfo(communityIDStr, channelID)
       if clubInfo and streamInfo and ChatFrame_ContainsChannel(ChatFrame1, channelName) then
         local key = clubInfo.name .. " - " .. streamInfo.name
-        if not issecretvalue or not issecretvalue(key) then
+        if clubInfo.clubId == guildClubId then
+          key = GUILD .. ": " .. key
+        else
+          key = COMMUNITIES .. ": " .. key
+        end
+        if not issecretvalue(key) then
           self.channelMap[index] = key
           self.defaultChannels[key] = true
           self.maxDisplayChannels = math.max(self.maxDisplayChannels, index)
@@ -907,20 +916,15 @@ local function GetDecoratedSenderName(event, ...)
     decoratedPlayerName = TimerunningUtil.AddSmallIcon(decoratedPlayerName);
   end
 
-  if senderGUID and ChatTypeInfo[chatType] and GetPlayerInfoByGUID ~= nil then
-    local _, englishClass, _, _, _, _ = GetPlayerInfoByGUID(senderGUID);
+  if senderGUID and ChatTypeInfo[chatType] then
+    local _, englishClass, _, _, _, _, _, playerLevel = GetPlayerInfoByGUID(senderGUID);
+
+    if issecretvalue(playerLevel) and addonTable.Config.Get(addonTable.Config.Options.SHOW_LEVEL) then
+      decoratedPlayerName = decoratedPlayerName .. " (" .. playerLevel .. ")"
+    end
+
     if englishClass then
-      local classColor
-      if C_ClassColor then
-        classColor = C_ClassColor.GetClassColor(englishClass);
-      else
-        if CUSTOM_CLASS_COLORS then
-          local color = CUSTOM_CLASS_COLORS[englishClass]
-          classColor = CreateColor(color.r, color.g, color.b)
-        else
-          classColor = RAID_CLASS_COLORS[englishClass]
-        end
-      end
+      local classColor = C_ClassColor.GetClassColor(englishClass);
 
       if classColor then
         decoratedPlayerName = classColor:WrapTextInColorCode(decoratedPlayerName);

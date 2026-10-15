@@ -1,13 +1,19 @@
 ---@class addonTableChattynator
 local addonTable = select(2, ...)
 
+local build = select(4, GetBuildInfo())
+
 addonTable.Constants = {
-  IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE,
-  --IsMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC,
-  --IsCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC,
-  --IsWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC,
-  --IsEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC,
+  IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE and build >= 120000,
+  IsForever = build >= 16000 and build < 20000,
   IsClassic = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE,
+  IsMists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC,
+  IsCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC,
+  IsWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC,
+  IsBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC,
+  IsEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC,
+
+  IsMidnightNext = build >= 120105,
 
   NewTabMarkup = CreateTextureMarkup("Interface/AddOns/Chattynator/Assets/NewTab.png", 40, 40, 15, 15, 0, 1, 0, 1),
   TabDropdownMarkup = CreateTextureMarkup("Interface/AddOns/Chattynator/Assets/TabDropdown.png", 40, 40, 15, 15, 0, 1, 0, 1),
@@ -25,6 +31,9 @@ addonTable.Constants = {
     Services = 42,
   }
 }
+
+addonTable.Constants.IsClassic = addonTable.Constants.IsClassic and not addonTable.Constants.IsForever
+
 addonTable.Constants.Events = {
   "Render",
 

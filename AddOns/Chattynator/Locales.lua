@@ -95,6 +95,7 @@ L["TIMESTAMP"] = "Timestamp"
 L["SHOW_VERTICAL_SEPARATOR"] = "Show vertical separator"
 L["TIMESTAMP_SPACING"] = "Timestamp spacing"
 L["USE_CLASS_COLORS"] = "Use class colors"
+L["SHOW_PLAYER_LEVEL"] = "Show player level"
 L["THIN"] = "Thin"
 L["THICK"] = "Thick"
 L["ALWAYS"] = "Always"
@@ -579,22 +580,18 @@ L["ELVUI"] = "ElvUI"
 L["EMPTY_WINDOW"] = "Пустое окно"
 L["ENABLE_MESSAGE_FADE"] = "Включить затухание сообщений"
 L["ENTER_PROFILE_NAME"] = "Введите имя профиля:"
---[[Translation missing --]]
-L["ENTER_THE_NEW_PROFILE_NAME"] = "Enter the new profile name"
---[[Translation missing --]]
-L["EXPORT"] = "Export"
+L["ENTER_THE_NEW_PROFILE_NAME"] = "Введите новое имя профиля"
+L["EXPORT"] = "Экспорт"
 L["FADE_CHAT_WHEN_NOT_IN_USE"] = "Скрыть чат, когда он не используется"
 L["FIRST_MESSAGE"] = [=[Первое сообщение
 
 ]=]
 L["FLASH_TABS_ON"] = "Мигание вкладок"
-L["FORMATTING"] = "Форматирование"
-L["GLOBAL_SETTINGS"] = "Настройка Chattynator"
+L["FORMATTING"] = "Формат"
+L["GLOBAL_SETTINGS"] = "Глобальные настройки"
 L["GW2_UI"] = "GW2 UI"
---[[Translation missing --]]
-L["IMPORT"] = "Import"
---[[Translation missing --]]
-L["INVALID_IMPORT"] = "Invalid import"
+L["IMPORT"] = "Импорт"
+L["INVALID_IMPORT"] = "Ошибка импорта"
 L["JOIN_THE_DISCORD"] = "Присоединяйтесь к Discord"
 L["KEEP_EDIT_BOX_VISIBLE"] = "Оставить поле редактирования видимым"
 L["LAYOUT"] = "Макет"
@@ -606,8 +603,7 @@ L["LINE_SPACING"] = [=[Межстрочный интервал
 ]=]
 L["LINK"] = "Ссылка"
 L["LOCK_CHAT"] = "Заблокировать чат"
---[[Translation missing --]]
-L["MAKE_NEW"] = "Make new"
+L["MAKE_NEW"] = "Создать новый"
 L["MESSAGE_COLORS"] = "Цвета сообщений"
 L["MESSAGE_FADE_TIME"] = "Время затухания сообщений"
 L["MESSAGE_FONT"] = "Шрифт сообщений"
@@ -628,12 +624,9 @@ L["NONE"] = "Нет"
 L["NONE_SELECTED"] = "Ничего не выбрано"
 L["NOTIFICATIONS"] = "Уведомления"
 L["OPEN_OPTIONS"] = "Открыть настройки"
---[[Translation missing --]]
-L["OVERWRITE"] = "Overwrite"
---[[Translation missing --]]
-L["OVERWRITE_CURRENT_PROFILE"] = "Overwrite current profile?"
---[[Translation missing --]]
-L["PASTE_YOUR_IMPORT_STRING_HERE"] = "Paste your import string here"
+L["OVERWRITE"] = "Перезаписать "
+L["OVERWRITE_CURRENT_PROFILE"] = "Перезаписать текущий профиль?"
+L["PASTE_YOUR_IMPORT_STRING_HERE"] = "Вставьте строку импорта"
 L["PROFILES"] = "Профили"
 L["QUICK_CHAT"] = "Быстрый чат"
 L["REDUCE_REDUNDANT_TEXT"] = "Сократить лишний текст"
@@ -682,15 +675,13 @@ L["TAB_TRANSPARENCY"] = "Прозрачность вкладок"
 L["TAB_X"] = "вкладка %s"
 L["TABS_ABOVE"] = "Над вкладками"
 L["TABS_BELOW"] = "Под вкладками"
---[[Translation missing --]]
-L["THANKS_FOR_USING_CHATTYNATOR_DONATE"] = "Thanks for using Chattynator. Consider donating to support development"
---[[Translation missing --]]
-L["THAT_PROFILE_NAME_ALREADY_EXISTS"] = "That profile name already exists"
+L["THANKS_FOR_USING_CHATTYNATOR_DONATE"] = [=[Спасибо, что пользуетесь Chattynator. Поддержите разработку донатом
+]=]
+L["THAT_PROFILE_NAME_ALREADY_EXISTS"] = "Профиль с таким именем уже существует"
 L["THEME"] = "Тема"
 L["THICK"] = "Толстый"
 L["THIN"] = "Тонкий"
---[[Translation missing --]]
-L["THIS_WILL_OVERWRITE_STYLE_CUSTOM"] = "This will overwrite style \"Custom\". Continue?"
+L["THIS_WILL_OVERWRITE_STYLE_CUSTOM"] = "Текущий стиль \"Пользовательский\" будет перезаписан. Продолжить?"
 L["TIMESTAMP"] = "Формат времени"
 L["TIMESTAMP_SPACING"] = [=[Интервал между временными метками
 ]=]
