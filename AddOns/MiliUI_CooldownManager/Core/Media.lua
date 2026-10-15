@@ -46,13 +46,13 @@ function M.ElementFont(own, general)
 end
 
 ------------------------------------------------------------
--- 內建材質：檔案自己帶（Media/tuktex.tga，跟單位框架同一張）、登記也自己做。
--- 登記名加前綴「MiliUI」：LSM 撞名會被靜默拒絕（單位框架也登記同一個名字＝同一個檔，誰先到都一樣）。
--- 解析時先認自己的名字再問 LSM，所以單位框架沒載入照樣查得到。專注目標施法條的預設材質（使用者 2026-10-16 指定）。
+-- 自製的長條材質「MiliUI Glass」：Media/bar-glass.png 是技能 miliui-cdm-bar-texture 的腳本畫的
+-- （上緣高光往下壓到平台的純灰階漸層，完全自己做、不帶別人的檔）。專注目標施法條的預設材質。
+-- 登記名加前綴「MiliUI」：LSM 撞名會被靜默拒絕。解析時先認自己的名字再問 LSM，所以 LSM 還不認得新檔也畫得出來。
 -- ⚠ LSM 登記會問 C_UIFileAsset.IsKnownFile：新檔案要整個重開遊戲才認得，/reload 不夠
 ------------------------------------------------------------
-M.TUKTEX = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\tuktex"
-M.TUKTEX_NAME = "MiliUI TukTex"
+M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\bar-glass.png"
+M.BAR_TEXTURE_NAME = "MiliUI Glass"
 
 local lsmDone = false
 function M.RegisterSharedMedia()
@@ -60,14 +60,14 @@ function M.RegisterSharedMedia()
     local lsm = LSM()
     if not lsm then return end
     lsmDone = true
-    pcall(lsm.Register, lsm, "statusbar", M.TUKTEX_NAME, M.TUKTEX)
+    pcall(lsm.Register, lsm, "statusbar", M.BAR_TEXTURE_NAME, M.BAR_TEXTURE)
 end
 M.RegisterSharedMedia()
 
 -- 材質 token → 路徑（statusbar 類）
 function M.Texture(token)
     if not token or token == "solid" then return M.WHITE8X8 end
-    if token == M.TUKTEX_NAME then return M.TUKTEX end
+    if token == M.BAR_TEXTURE_NAME then return M.BAR_TEXTURE end
     local lsm = LSM()
     if lsm then
         local ok, path = pcall(lsm.Fetch, lsm, "statusbar", token, true)

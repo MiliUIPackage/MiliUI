@@ -183,7 +183,7 @@ NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪�
   玩家那條零改動。**預設錨在 `castbar` 上方**（使用者指定；是唯一不直接錨核心技能的預設，施法條關掉由排開接到上一層）、`STACK_RANK` 4.5。
   跟 MiliUI_Focus 的分工：公開 API `FocusCastBarActive()`＋事件 `FocusCastBarChanged`，Focus 的 `Monitoring()` 問它讓位、設定頁黃字說被接手；音效留在 Focus。
   2026-10-16 使用者問「除了顏色怎麼看出不是玩家的條」：選了**法術名前印施法者名字**（`showCaster`，名字過長先不管）＋**條尾自己的斷法圖示＋冷卻轉圈**（`showKick`，
-  duration 物件餵自己的 Cooldown、IsZero 餵圖示 alpha），材質預設改**自帶的 `MiliUI TukTex`**（`Media/tuktex.tga`，Core/Media.lua 登記 LSM、解析先認自己）。
+  duration 物件餵自己的 Cooldown、IsZero 餵圖示 alpha），材質預設改**自製的 `MiliUI Glass`**（`Media/bar-glass.png`，技能 `miliui-cdm-bar-texture` 的腳本畫：TukTex 拆開只是漸層＋雲，使用者拍板只要漸層、不帶別人的檔；曾自帶 tuktex.tga 一天，v11 值閘遷移舊名）。
   未實機（README 563～572）。
 
 相關：[[project-ayije-cdm-aura-slots]]、[[project-ayije-cdm-editmode-drag]]、[[project-local-addon-forks]]、[[wow-121-aura-containers]]、[[wow-121-duration-objects]]。
