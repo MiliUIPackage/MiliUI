@@ -40,6 +40,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_Minimap_DB",
     "MiliUI_MythicPlus_DB",
     "MiliUI_QuestTracker_DB",
+    "MiliUI_QoL_DB",
     "MiliUI_ShoppingList_DB", "MiliUI_ShoppingList_CharDB",
     "MiliUI_Skin_DB",
     "MiliUI_Tooltip_DB", "MiliUI_UnitFrames_DB",
@@ -58,6 +59,8 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUITip_API",                  # MiliUI_Tooltip 的公開接管介面（Api.lua），MiliUI_Skin 的 ThirdParty/ 會叫它
     "MiliUISkin_API",                 # MiliUI_Skin 的對外皮膚 handle（Core/External.lua），背包插件的 MiliUI 皮會叫它
     "MiliUICrafterTableCellRewardsMixin",
+    "MiliUIQoL", "MiliUIQoL_OnAddonCompartmentClick",   # MiliUI_QoL 的命名空間與收納選單入口
+    "MiliUI_LootToast",               # MiliUI_QoL 戰利品通知過濾的對外開關（Modules/LootToast.lua）
     # 各 Enhance 模組的對外開關（設定面板要叫得到）
     "MiliUI_AHFilter", "MiliUI_BagsAlpha", "MiliUI_BaganatorKeystone",
     "MiliUI_BonusRollFilter",

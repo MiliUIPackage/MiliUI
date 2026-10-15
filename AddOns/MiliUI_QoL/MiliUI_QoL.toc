@@ -1,0 +1,41 @@
+## Interface: 120007, 120100, 120105
+## Title: MiliUI QoL
+## Title-zhTW: |cff338FFF[便利]|r 米利的便利功能
+## Title-zhCN: |cff338FFF[便利]|r 米利的便利功能
+## Notes: Quality-of-life tweaks for the Blizzard UI: filter the "You received" loot toasts by type and quality, and move where they appear.|n|n|cffffd200Usage: |r/mqol opens settings.
+## Notes-zhTW: MiliUI QoL|n|n米利的便利功能。|n|n只動暴雪介面、省你一個動作的小功能：拾取時跳出的「你獲得了」通知可以依種類與品質隱藏，也可以搬到別的位置。|n|n|cffffd200使用方法: |r/mqol 開啟設定。
+## Notes-zhCN: MiliUI QoL|n|n米利的便利功能。|n|n只动暴雪界面、省你一个动作的小功能：拾取时跳出的“你获得了”通知可以依种类与品质隐藏，也可以搬到别的位置。|n|n|cffffd200使用方法: |r/mqol 打开设置。
+## Category: Interface
+## Category-zhTW: 介面
+## Category-zhCN: 界面
+## Author: Mili
+## Version: 1.0.0
+## X-Website: https://github.com/MiliUIPackage/MiliUI
+## IconTexture: Interface\Icons\INV_Misc_Gear_01
+## OptionalDeps: MiliUI
+## SavedVariables: MiliUI_QoL_DB
+## AddonCompartmentFunc: MiliUIQoL_OnAddonCompartmentClick
+
+Libs\MiliUIWidgets\PixelPerfect.lua
+Libs\MiliUIWidgets\Secret.lua
+Libs\MiliUIWidgets\Errors.lua
+Libs\MiliUIWidgets\Metro.lua
+Libs\Callbacks.lua
+Locales\Locale.lua
+
+Core\Init.lua
+Core\DB.lua
+
+Modules\LootToast.lua
+Modules\LootToastAnchor.lua
+
+Libs\MiliUIWidgets\Env.lua
+Libs\MiliUIWidgets\Widgets.lua
+Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Controls.lua
+Options\Host.lua
+Options\Controls.lua
+Options\Panel.lua
+Libs\MiliUIWidgets\BlizzOptions.lua
+Options\Blizzard.lua
+Api.lua

@@ -1,6 +1,6 @@
 ## Interface: 120100, 120105
 ## Title: MiliUI Skin
-## Title-zhTW: |cff33F5FF[外觀]|r 米利的介面外觀
+## Title-zhTW: |cff33FFF5[外觀]|r 米利的介面外觀
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的界面外观
 ## Notes: Repaints Blizzard's own windows in the MiliUI settings-window look: opaque grey fill, 1px black border, white text, square corners. Only repaints — never moves or rebuilds anything.|n|n|cffffd200Usage: |r/mskin opens settings.
 ## Notes-zhTW: MiliUI Skin|n|n米利的介面外觀。|n|n把暴雪原生視窗換成米利UI的設定視窗皮：不透明灰底、1 像素純黑硬邊、白字、直角。只重畫，不搬動也不重組任何東西。|n|n|cffffd200使用方法: |r/mskin 開啟設定。

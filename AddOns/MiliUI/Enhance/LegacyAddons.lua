@@ -192,7 +192,7 @@ StaticPopupDialogs["MILIUI_LEGACY_ADDON_DISABLED"] = {
         local count = RestoreDisabled()
         GetDB().legacyAddonGuard = false
         Print("已保留舊插件，不再自動停用（重新啟用 " .. count .. " 個，需 /reload 生效）。"
-            .. "\n|cff999999可在「米利UI設定 → 便利功能 → 舊插件相容」重新開啟。|r")
+            .. "\n|cff999999可在「米利UI設定 → 關於 → 套組設定」重新開啟。|r")
     end,
     timeout = 0,
     whileDead = true,

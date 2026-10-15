@@ -1,5 +1,12 @@
 ------------------------------------------------------------
--- 「便利功能」分頁：省你一個動作的東西，跟「插件強化」的分界是
+-- ⚠ 過渡期分頁「便利功能（舊）」（id qol-legacy）
+--
+-- 便利功能正在整組搬進獨立插件 MiliUI_QoL（它自己註冊「便利功能」分頁，設定內容的唯一
+-- 來源是 MiliUI_QoL/Options/Controls.lua）。這裡只留**還沒搬走**的模組控件，每搬一批就刪
+-- 對應段落，全部搬完整檔刪掉（連同 Panel.lua 靜態分頁表裡的 qol-legacy）。
+-- 原本在這頁的「登入訊息」「舊插件相容」屬於套組本體，已移到「關於」頁底部的「套組設定」。
+--
+-- 以下是原本的說明——「便利功能」分頁：省你一個動作的東西，跟「插件強化」的分界是
 -- 「有沒有指名一個介面對象」——
 --   插件強化 = 改冷卻管理器／拍賣行／Baganator／Chattynator／世界地圖 長什麼樣
 --   便利功能 = 商人自動化、骰裝提示過濾、探究標記鈕、遊戲行為 CVar、套組自身設定
@@ -117,23 +124,6 @@ local CONTROLS = {
           if old ~= v then AskReload() end
       end },
     { type = "text", label = "選擇「強制」後，每次登入／重載介面會自動套用（deselectOnClick），覆蓋遊戲選項與其他插件寫入的值。" },
-
-    { type = "header", label = "登入訊息" },
-    { type = "toggle", label = "更新後在聊天視窗提示一次",
-      get = function() return not MiliUI_DB or MiliUI_DB.welcomeMessage ~= false end,
-      set = function(v)
-          if not MiliUI_DB then MiliUI_DB = {} end
-          MiliUI_DB.welcomeMessage = v
-      end },
-    { type = "text", label = "套組版本號變動之後的第一次登入，在聊天視窗印一行更新提示與網址。"
-        .. "版本沒變就不會再出現（不是每次登入都講）。取消勾選則完全不印。" },
-
-    { type = "header", label = "舊插件相容" },
-    { type = "toggle", label = "自動停用被取代的舊插件",
-      get = function() return MiliUI_LegacyAddons and MiliUI_LegacyAddons.IsEnabled() end,
-      set = function(v) if MiliUI_LegacyAddons then MiliUI_LegacyAddons.SetEnabled(v) end end },
-    { type = "text", label = "AddOns 資料夾裡還留著已被套組內建功能取代的舊插件（Stuf、TinyTooltip、Leatrix Plus、MBB、Krowi's Extended Vendor UI）時，"
-        .. "登入自動停用它們，避免兩套功能互相干擾。取消勾選則不再自動處理，並把先前停用的重新啟用。" },
 }
 
 -- 探究「標記敦敦」按鈕。
@@ -258,13 +248,13 @@ local ctx = {
 
 local function Init()
     if tab then return end
-    tab, scroll = ns.Options.MakeFormTab("便利功能")
+    tab, scroll = ns.Options.MakeFormTab("便利功能（舊）")
     local _
     _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "qolTab", function(id)
-    if id ~= "qol" then
+    if id ~= "qol-legacy" then
         if tab then tab:Hide() end
         return
     end
