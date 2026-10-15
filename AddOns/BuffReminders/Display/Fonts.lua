@@ -1,8 +1,8 @@
 ---@class BR
 local _, BR = ...
 
--- Fonts for the display layer. The options panel typeface is a separate
--- system (UI/Fonts.lua).
+-- Fonts for the display layer. Options panel text uses the stock GameFont objects,
+-- except for the font previews.
 --
 -- At login the client can report a successful SetFont without a real apply,
 -- and can revert a verified apply when the async load of the font file

@@ -13,18 +13,11 @@ local GetPlayerRole = BR.BuffState.GetPlayerRole
 
 local spellTextureCache = {}
 
--- Reusable single-element buffer to avoid { spellID } allocations in hot loops.
--- SAFETY: callers must consume the result immediately - the buffer is overwritten on next call.
-local singleSpellBuf = {}
-local function AsSpellList(val)
-    if type(val) == "table" then
-        return val
-    end
-    singleSpellBuf[1] = val
-    return singleSpellBuf
-end
+-- Weak keys: custom buff defs are SavedVariables tables, so the cache must not be a field on them.
+local buffIconsCache = setmetatable({}, { __mode = "k" })
 
 ---Resolve a spell ID to its texture, with caching. Returns nil if the API cannot resolve it yet.
+---A miss stays cached until a spell data event clears the misses.
 ---@param id number
 ---@return number? textureID
 local function GetSpellTextureCached(id)
@@ -39,6 +32,21 @@ local function GetSpellTextureCached(id)
     spellTextureCache[id] = texture or false
     return texture
 end
+
+local function ClearSpellTextureMisses()
+    local cleared = false
+    for id, texture in pairs(spellTextureCache) do
+        if texture == false then
+            spellTextureCache[id] = nil
+            cleared = true
+        end
+    end
+    -- A cached icon list can lack the texture of a cleared miss.
+    if cleared then
+        wipe(buffIconsCache)
+    end
+end
+BR.GameContext.RegisterCache("spellTextureMisses", ClearSpellTextureMisses)
 
 ---Get spell texture from a single spell ID. For a buff def use GetBuffIcons(buff)[1]
 ---instead, so that buff.icons takes priority over the raw spellID lookup.
@@ -73,13 +81,13 @@ local function ResolveStaticIcons(icons, add)
     end
 end
 
----Resolve the static icon list for a buff. Cached lazily on the buff: spell textures
+---Resolve the static icon list for a buff, cached per buff def. Spell textures
 ---can return nil during early load, before spell data settles. An empty result stays
----uncached and the next read resolves it again.
+---uncached, so the first read after a spell data event resolves it again.
 ---@param buff table Any buff def (RaidBuff, SelfBuff, ConsumableBuff, CustomBuff, ...)
 ---@return number[] textures (may be empty)
 local function GetBuffIcons(buff)
-    local cached = buff._iconsCache
+    local cached = buffIconsCache[buff]
     if cached then
         return cached
     end
@@ -103,7 +111,7 @@ local function GetBuffIcons(buff)
     end
 
     if #out > 0 then
-        buff._iconsCache = out
+        buffIconsCache[buff] = out
     end
     return out
 end
@@ -124,7 +132,7 @@ local function ApplyDynamicIcon(entry, buff)
     end
 end
 
----Pre-fill `_iconsCache` for every static buff. The caller must wait until spell data
+---Pre-fill the icon cache for every static buff. The caller must wait until spell data
 ---settles.
 local function PreFillIconCaches()
     for _, buffArray in pairs(BR.BUFF_TABLES) do
@@ -162,7 +170,6 @@ local function ResolveFrameTexture(frame)
 end
 
 BR.Icons = {
-    AsSpellList = AsSpellList,
     GetBuffTexture = GetBuffTexture,
     GetBuffIcons = GetBuffIcons,
     ApplyDynamicIcon = ApplyDynamicIcon,
@@ -173,5 +180,10 @@ BR.Icons = {
     ---@param spellID number
     InvalidateSpell = function(spellID)
         spellTextureCache[spellID] = nil
+    end,
+    ---Drop one buff def's cached icon list so the next GetBuffIcons resolves it again.
+    ---@param buff table
+    InvalidateBuffIcons = function(buff)
+        buffIconsCache[buff] = nil
     end,
 }

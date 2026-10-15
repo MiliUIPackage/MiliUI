@@ -88,12 +88,8 @@ bootstrapFrame:SetScript("OnEvent", function(_, event, arg1)
         BR.Options.WhatsNew.MarkSeen()
     end
 
-    -- The glow fallback lookup keeps custom buffs usable in M+ and in combat.
-    for _, customBuff in ipairs(BR.BUFF_TABLES.custom) do
-        if customBuff.glowMode ~= "disabled" then
-            BR.Display.RegisterGlowBuff(customBuff, "custom")
-        end
-    end
+    -- The glow registry reads the profile and the custom-buff array, so it must build after both.
+    BR.GameContext.RebuildGlowRegistry()
 
     if not db.defaults then
         db.defaults = {}

@@ -15,7 +15,7 @@ local Components = BR.Components
 
 local BuffGroups = BR.BuffGroups
 
-local GetBuffIcons = BR.Helpers.GetBuffIcons
+local GetBuffIcons = BR.Icons.GetBuffIcons
 local IsIconDetached = BR.Helpers.IsIconDetached
 
 local UpdateDisplay = BR.Display.Update
@@ -199,7 +199,8 @@ local function CreateBuffRow(
         end
     end
     syncTrailing()
-    tinsert(BR.RefreshableComponents, { Refresh = syncTrailing })
+    settingsBtn.Refresh = syncTrailing
+    tinsert(BR.RefreshableComponents, settingsBtn)
 
     -- Clamp the label so it (and its trailing info icon) can never run under the
     -- trailing cluster, whatever the buff name's length or which glyphs show.
@@ -306,4 +307,3 @@ local function RenderBuffArray(parent, x, y, buffArray, rowWidth)
 end
 
 BR.Options.BuffRow.Render = RenderBuffArray
-BR.Options.BuffRow.CreateRow = CreateBuffRow

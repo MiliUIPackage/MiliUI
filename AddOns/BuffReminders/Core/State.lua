@@ -4,7 +4,7 @@ local _, BR = ...
 -- BUFF STATE MODULE
 -- ============================================================================
 -- Pure data layer: computes "what buffs are missing" without any UI concerns.
--- Display layer subscribes to BuffStateChanged events to render.
+-- The display render loop calls BuffState.Refresh, then reads the entries.
 
 -- ============================================================================
 -- TYPE DEFINITIONS
@@ -66,6 +66,7 @@ local SpecBeneficiaries = BR.SpecBeneficiaries
 
 -- Sticky target memory for cast-on-others buffs (Core/TargetMemory.lua)
 local TargetMemory = BR.TargetMemory
+local GameContext = BR.GameContext
 
 -- Buffs with class-specific aura variants can resolve to a single spell ID per unit.
 -- This avoids scanning every possible variant for every raid member on each refresh.
@@ -126,32 +127,8 @@ local BuffState = {
 local _, playerClass = UnitClass("player")
 local playerName = GetUnitName("player", true)
 
--- Player level and max expansion level (updated via SetPlayerLevel on PLAYER_LEVEL_UP)
-local playerLevel = UnitLevel("player")
-local maxExpansionLevel = GetMaxLevelForPlayerExpansion()
-
--- Ready check state (set via SetReadyCheckState)
-local inReadyCheck = false
-
--- Instance entry state (set via SetInstanceEntryState)
--- Briefly shows buffs with showOnInstanceEntry when zoning into a dungeon/raid
-local inInstanceEntry = false
-
--- Delve entry state (set via SetDelveEntryState)
--- Briefly shows consumables with showOnInstanceEntry when zoning into a delve
-local inDelveEntry = false
-
--- Vehicle state (set via SetInVehicle)
-local inVehicle = false
-
 -- Consumables dismissed state (transient, resets on instance change / reload)
 local consumablesDismissed = false
-
--- Combat/encounter state (set via SetInCombat by the Display layer). It covers
--- both combat lockdown and boss encounters (ENCOUNTER_START fires before
--- InCombatLockdown() turns true). The flag gates fighting-dependent behavior
--- only; restriction detection is measured in IsRestricted().
-local inCombat = false
 
 -- ============================================================================
 -- CACHED VALUES (invalidated by specific events)
@@ -173,14 +150,6 @@ local inCombat = false
 ---@field legacyInstance boolean? -- legacy loot mode (populated with contentType)
 local instanceCache = {}
 local GetDifficultyIDCached -- forward declaration (defined next to GetCurrentContentType)
-
--- True in the PvP prep phase (before gates open). The `hideInPvPMatch` setting
--- gates buff display once the match starts.
--- Deliberately NOT part of instanceCache: SetPvPPrepPhase manages it explicitly
--- and it must survive the cache invalidation.
--- The aura API is restricted for the entire BG/arena, prep included, so this
--- flag does NOT affect IsRestricted().
-local inPvPPrepPhase = false
 
 -- Maps content type to its difficulty-key lookup table
 local CONTENT_DIFFICULTY_TABLES = {
@@ -222,7 +191,7 @@ local cachedPlayerRole = nil
 local cachedOffHandType = nil -- nil = not yet checked, "weapon" | "shield" | "none"
 
 -- Item ownership cache
----@type table<number, boolean>
+---@type table<string, table<number, boolean>>
 local cachedItemOwnership = {}
 
 -- Lowest equipped-item durability ratio (0-1). The 18-slot scan is a read-only
@@ -234,7 +203,7 @@ local cachedLowestDurability = nil
 -- Resolved repair click sources (mount to summon / item to use). Mount collection
 -- and bag contents only change on their own events, so the pair is resolved once.
 -- Only ever holds a positive answer (see GetRepairSources).
----@type { mountSpellID: number?, itemID: number? }|nil
+---@type { mountSpellID: number?, mountID: number?, itemID: number? }|nil
 local cachedRepairSources = nil
 
 -- Loadout state cache: rule.key -> { satisfied, icon }. The detection calls
@@ -611,19 +580,26 @@ end
 ---@param mode? "owned"|"equipped"|"bags" -- "owned" (default) = bags or equipped
 ---@return boolean
 local function HasItemByMode(itemID, mode)
-    if cachedItemOwnership[itemID] ~= nil then
-        return cachedItemOwnership[itemID]
+    mode = mode or "owned"
+    local byItem = cachedItemOwnership[mode]
+    if not byItem then
+        byItem = {}
+        cachedItemOwnership[mode] = byItem
+    end
+    local cached = byItem[itemID]
+    if cached ~= nil then
+        return cached
     end
     local result
     if mode == "equipped" then
         result = HasItemEquipped(itemID)
     elseif mode == "bags" then
         result = HasItemInBags(itemID)
-    else -- "owned" or nil (default)
+    else -- "owned" (default)
         local ok, count = pcall(C_Item.GetItemCount, itemID)
         result = (ok and count ~= nil and count > 0) or HasItemEquipped(itemID)
     end
-    cachedItemOwnership[itemID] = result
+    byItem[itemID] = result
     return result
 end
 
@@ -1114,7 +1090,7 @@ end
 ---@param category CategoryName
 ---@return boolean
 local function IsCategoryVisibleForContent(category, skipReadyCheck)
-    if inVehicle and category ~= "raid" and category ~= "presence" then
+    if GameContext.IsInVehicle() and category ~= "raid" and category ~= "presence" then
         return false
     end
     local db = BR.profile
@@ -1138,13 +1114,13 @@ local function IsCategoryVisibleForContent(category, skipReadyCheck)
         end
     end
     -- Hide category when PvP match is active (past prep phase)
-    if contentType == "pvp" and not inPvPPrepPhase and visibility.hideInPvPMatch then
+    if contentType == "pvp" and not GameContext.IsPvPPrepPhase() and visibility.hideInPvPMatch then
         return false
     end
     -- Per-category ready check filter (skipped when caller handles ready check independently)
     if not skipReadyCheck then
         local catSettings = db.categorySettings and db.categorySettings[category]
-        if catSettings and catSettings.showOnlyOnReadyCheck and not inReadyCheck then
+        if catSettings and catSettings.showOnlyOnReadyCheck and not GameContext.IsInReadyCheck() then
             return false
         end
     end
@@ -1155,7 +1131,7 @@ end
 ---@param buff CustomBuff
 ---@return boolean
 local function IsCustomBuffVisibleForContent(buff)
-    if inVehicle then
+    if GameContext.IsInVehicle() then
         return false
     end
     local lc = buff.loadConditions
@@ -1177,14 +1153,16 @@ local function IsCustomBuffVisibleForContent(buff)
         end
     end
 
-    if lc.readyCheckOnly and not inReadyCheck then
+    if lc.readyCheckOnly and not GameContext.IsInReadyCheck() then
         return false
     end
 
     if lc.levelFilter then
-        if lc.levelFilter == "maxLevel" and playerLevel < maxExpansionLevel then
+        if lc.levelFilter == "maxLevel" and GameContext.GetPlayerLevel() < GameContext.GetMaxExpansionLevel() then
             return false
-        elseif lc.levelFilter == "belowMaxLevel" and playerLevel >= maxExpansionLevel then
+        elseif
+            lc.levelFilter == "belowMaxLevel" and GameContext.GetPlayerLevel() >= GameContext.GetMaxExpansionLevel()
+        then
             return false
         end
     end
@@ -1213,7 +1191,7 @@ local LOADOUT_SCOPE_CONTENT = {
 ---@param rule LoadoutRule
 ---@return boolean
 local function IsLoadoutRuleVisibleForContent(rule)
-    if inVehicle then
+    if GameContext.IsInVehicle() then
         return false
     end
     local when = rule.when
@@ -1248,7 +1226,7 @@ local function IsLoadoutRuleVisibleForContent(rule)
         end
     end
 
-    if when.readyCheckOnly and not inReadyCheck then
+    if when.readyCheckOnly and not GameContext.IsInReadyCheck() then
         return false
     end
 
@@ -1312,10 +1290,10 @@ local function GetEffectiveTrackingMode(db)
             mode, rank = ApplyOverride(mode, rank, outside)
         end
     end
-    if inCombat then
+    if GameContext.IsInCombat() then
         mode, rank = ApplyOverride(mode, rank, db.combatMode)
     end
-    if playerLevel < maxExpansionLevel then
+    if GameContext.GetPlayerLevel() < GameContext.GetMaxExpansionLevel() then
         mode = ApplyOverride(mode, rank, db.levelingMode)
     end
 
@@ -1424,7 +1402,7 @@ local function CountMissingBuff(spellIDs, buffKey, playerOnly, playersOnly)
         return missing, total, minRemaining
     end
 
-    local countNPCs = includeNPCsInCounting and not inCombat and not playersOnly
+    local countNPCs = includeNPCsInCounting and not GameContext.IsInCombat() and not playersOnly
     for _, data in ipairs(currentValidUnits) do
         -- Skip NPCs unless in whitelisted content. During combat, also skip NPCs
         -- here: NPC-cast raid buff spell IDs (e.g. 432661) are not
@@ -1606,7 +1584,7 @@ local function ShouldShowTargetedBuff(spellIDs, requiredClass, beneficiaryRole, 
         -- contexts like M+, or the target is phased / out of range), so a miss is
         -- ambiguous and must NOT forget the memory. Roster pruning handles
         -- departures, and a retarget overwrites on the next successful scan.
-        if buffKey and not inCombat and hasBuff then
+        if buffKey and not GameContext.IsInCombat() and hasBuff then
             for _, data in ipairs(currentValidUnits) do
                 if not Plain(UnitIsUnit(data.unit, "player")) then
                     local targetHas = UnitHasBuff(data.unit, spellIDs)
@@ -1804,7 +1782,7 @@ end
 ---@param db table Database settings
 ---@return boolean
 local function IsFreeConsumableVisible(db)
-    if inVehicle then
+    if GameContext.IsInVehicle() then
         return false
     end
     local vis = db.defaults and db.defaults.freeConsumableVisibility
@@ -1824,7 +1802,7 @@ local function IsFreeConsumableVisible(db)
         end
     end
     -- PvP match hiding follows the consumable category's setting
-    if contentType == "pvp" and not inPvPPrepPhase then
+    if contentType == "pvp" and not GameContext.IsPvPPrepPhase() then
         local catVis = db.categoryVisibility and db.categoryVisibility.consumable
         if catVis and catVis.hideInPvPMatch then
             return false
@@ -1850,6 +1828,19 @@ local function IsInCompetitivePvP()
     return result
 end
 
+-- Aura spell of the consumable the player runs now, per consumable category. The
+-- bag sort puts the matching item first, so a refresh drinks the same consumable.
+---@type table<string, number>
+local activeConsumableSpells = {}
+
+local function SetActiveConsumableSpell(category, spellID)
+    if activeConsumableSpells[category] == spellID then
+        return
+    end
+    activeConsumableSpells[category] = spellID
+    BR.CallbackRegistry:TriggerEvent("ActiveConsumableChanged", category, spellID)
+end
+
 ---Check if player is missing a consumable buff, weapon enchant, or inventory item (returns true if missing)
 ---@param buff table Consumable buff definition
 ---@return boolean shouldShow
@@ -1858,15 +1849,22 @@ end
 ---@return number? itemCount total count of items in inventory (for item-based consumables)
 local function ShouldShowConsumableBuff(buff)
     if buff.spellID then
+        local category = buff.consumableCategory
         for _, id in ipairs(AsSpellList(buff.spellID)) do
             local hasBuff, remaining = UnitHasBuff("player", id)
             if hasBuff then
                 local CM = BR.ConsumableMemory
-                if CM and buff.consumableCategory and not CM.IsFleetingSpell(id) then
-                    CM.Remember(GetPlayerSpecId(), buff.consumableCategory, id, true)
+                if CM and category and not CM.IsFleetingSpell(id) then
+                    CM.Remember(GetPlayerSpecId(), category, id, true)
+                end
+                if category then
+                    SetActiveConsumableSpell(category, id)
                 end
                 return false, remaining, id -- Has at least one of the consumable buffs
             end
+        end
+        if category then
+            SetActiveConsumableSpell(category, nil)
         end
     end
 
@@ -1951,7 +1949,7 @@ local function PassesPreChecks(buff, presentClasses, db, trackingMode)
     end
 
     -- Ready check gate (for readyCheckOnly buffs like presence buffs)
-    if buff.readyCheckOnly and not inReadyCheck then
+    if buff.readyCheckOnly and not GameContext.IsInReadyCheck() then
         local overrides = db.readyCheckOnlyOverrides
         local settingKey = buff.groupId or buff.key
         if not overrides or overrides[settingKey] ~= false then
@@ -2113,19 +2111,13 @@ local function TrySetEntryExpiring(entry, remaining, threshold, shouldGlow)
     return false
 end
 
--- Cached reference to Display.IsSpellGlowing (resolved once per Refresh cycle)
-local cachedIsSpellGlowing = nil
-
----Check if any of a buff's spell IDs are glowing on the action bar (via Display layer)
+---Check if any of a buff's spell IDs are glowing on the action bar.
 ---This path replaces ShouldShow* in restricted contexts, so it repeats the spec
 ---and spell-known gates. Without them a glow flag for an uncastable spell shows
 ---a reminder.
 ---@param buff table Buff entry with spellID field
 ---@return boolean
 local function IsAnySpellGlowing(buff)
-    if not cachedIsSpellGlowing then
-        return false
-    end
     if buff.requireSpecId and GetPlayerSpecId() ~= buff.requireSpecId then
         return false
     end
@@ -2135,20 +2127,20 @@ local function IsAnySpellGlowing(buff)
     end
     if type(spellID) == "table" then
         for _, id in ipairs(spellID) do
-            if IsPlayerSpellCached(id) and cachedIsSpellGlowing(id) then
+            if IsPlayerSpellCached(id) and GameContext.IsSpellGlowing(id) then
                 return true
             end
         end
         return false
     end
-    return IsPlayerSpellCached(spellID) and cachedIsSpellGlowing(spellID)
+    return IsPlayerSpellCached(spellID) and GameContext.IsSpellGlowing(spellID)
 end
 
 -- Coverage category: the reminder counts how many group members miss the buff.
 local function RefreshRaid(db, trackingMode, hideExpiring, missingCountOnly)
     local raidVisible = IsCategoryVisibleForContent("raid")
     local raidExGlow, raidMissGlow, raidThreshold = GetCategoryGlowSettings("raid")
-    local bronzeHiddenInCombat = inCombat and db.bronzeHideInCombat
+    local bronzeHiddenInCombat = GameContext.IsInCombat() and db.bronzeHideInCombat
     for i, buff in ipairs(RaidBuffs) do
         local entry = GetOrCreateEntry(buff.key, "raid", i)
         local scope =
@@ -2193,7 +2185,7 @@ local function RefreshSelf(isAuraRestricted, hideExpiring)
             -- Self buff shown only briefly on zone-in - no normal buff checks.
             -- customCheck makes an API call, so it runs after every other gate.
             if
-                inInstanceEntry
+                GameContext.IsInInstanceEntry()
                 and selfVisible
                 and (not buff.class or buff.class == playerClass)
                 and IsBuffEnabled(settingKey)
@@ -2209,7 +2201,7 @@ local function RefreshSelf(isAuraRestricted, hideExpiring)
                     if useGlowDet then
                         if IsAnySpellGlowing(buff) then
                             SetEntryText(entry, buff.overlayText, selfMissGlow)
-                            BR.Helpers.ApplyDynamicIcon(entry, buff)
+                            BR.Icons.ApplyDynamicIcon(entry, buff)
                         end
                     else
                         local shouldShow = ShouldShowSelfBuff(
@@ -2229,7 +2221,7 @@ local function RefreshSelf(isAuraRestricted, hideExpiring)
                         local show = (wantPresent and shouldShow == false) or (not wantPresent and shouldShow)
                         if show then
                             SetEntryText(entry, buff.overlayText, selfMissGlow)
-                            BR.Helpers.ApplyDynamicIcon(entry, buff)
+                            BR.Icons.ApplyDynamicIcon(entry, buff)
                         elseif
                             shouldShow == false
                             and not wantPresent
@@ -2246,7 +2238,7 @@ local function RefreshSelf(isAuraRestricted, hideExpiring)
                             end
                             if TrySetEntryExpiring(entry, remaining, selfThreshold, selfExGlow) then
                                 if expiringCastID then
-                                    entry.dynamicIcon = C_Spell.GetSpellTexture(expiringCastID)
+                                    entry.dynamicIcon = BR.Icons.GetBuffTexture(expiringCastID)
                                 end
                             end
                         end
@@ -2262,11 +2254,11 @@ end
 local function RefreshUtility(db, trackingMode, isAuraRestricted)
     local utilityVisible = IsCategoryVisibleForContent("utility")
     local _, utilityMissGlow = GetCategoryGlowSettings("utility")
-    local repairHiddenInCombat = inCombat and db.defaults and db.defaults.repairHideInCombat ~= false
+    local repairHiddenInCombat = GameContext.IsInCombat() and db.defaults and db.defaults.repairHideInCombat ~= false
     for i, buff in ipairs(UtilityBuffs) do
         local entry = GetOrCreateEntry(buff.key, "utility", i)
         local settingKey = buff.groupId or buff.key
-        local entryOk = not buff.showOnInstanceEntry or inInstanceEntry
+        local entryOk = not buff.showOnInstanceEntry or GameContext.IsInInstanceEntry()
         if
             entryOk
             and not (repairHiddenInCombat and buff.key == "repairGear")
@@ -2277,7 +2269,7 @@ local function RefreshUtility(db, trackingMode, isAuraRestricted)
             and (not buff.customCheck or buff.customCheck(isAuraRestricted))
         then
             SetEntryText(entry, buff.overlayTextFn and buff.overlayTextFn() or buff.overlayText, utilityMissGlow)
-            BR.Helpers.ApplyDynamicIcon(entry, buff)
+            BR.Icons.ApplyDynamicIcon(entry, buff)
         end
     end
 end
@@ -2303,9 +2295,9 @@ local function RefreshPresence(db, trackingMode, isAuraRestricted, hideExpiring)
                 buff.castOnOthers
             )
             local instanceEntryOk = buff.showOnInstanceEntry
-                and inInstanceEntry
+                and GameContext.IsInInstanceEntry()
                 and (not buff.casterClass or buff.casterClass == playerClass)
-            local readyCheckOk = not buff.readyCheckOnly or inReadyCheck
+            local readyCheckOk = not buff.readyCheckOnly or GameContext.IsInReadyCheck()
             -- Soulstone visibility mode overrides readyCheckOnly
             if buff.key == "soulstone" and not readyCheckOk then
                 local ssMode = db.defaults and db.defaults.soulstoneVisibility or "readyCheck"
@@ -2334,7 +2326,7 @@ local function RefreshPresence(db, trackingMode, isAuraRestricted, hideExpiring)
             local scanned = false
             if
                 isOwnCaster
-                and not inCombat
+                and not GameContext.IsInCombat()
                 and #currentValidUnits > 1
                 and IsBuffEnabled(buff.key)
                 and (not isAuraRestricted or IsAuraTrackable(buff))
@@ -2426,7 +2418,7 @@ end
 -- Pet summon reminders. A summon has no duration, so nothing tracks expiration.
 local function RefreshPet()
     local petVisible = IsCategoryVisibleForContent("pet")
-    if IsMounted() or BR.Display.IsPetDismountSuppressed() then
+    if IsMounted() or GameContext.IsPetDismountSuppressed() then
         petVisible = false
     end
     local petPassiveHidden = BR.profile.petPassiveOnlyInCombat and not UnitAffectingCombat("player")
@@ -2450,7 +2442,7 @@ local function RefreshPet()
             )
             if shouldShow then
                 SetEntryText(entry, buff.overlayText, petMissGlow)
-                BR.Helpers.ApplyDynamicIcon(entry, buff)
+                BR.Icons.ApplyDynamicIcon(entry, buff)
                 if buff.getPetActions then
                     local actions = buff.getPetActions()
                     if actions and #actions > 0 then
@@ -2493,10 +2485,9 @@ local function RefreshConsumables(db, trackingMode, isAuraRestricted, hideExpiri
 
         if buff.showOnInstanceEntry and (db.defaults and db.defaults.delveFoodTimer) then
             -- Instance-entry-only consumable (e.g. delve food): shows for 30s after
-            -- entry, then hides. The Display layer clears the entry state on combat
-            -- start.
+            -- entry, then hides. GameContext ends the window when combat starts.
             if
-                inDelveEntry
+                GameContext.IsInDelveEntry()
                 and catVisible
                 and IsBuffEnabled(settingKey)
                 and PassesPreChecks(buff, nil, db, trackingMode)
@@ -2512,7 +2503,7 @@ local function RefreshConsumables(db, trackingMode, isAuraRestricted, hideExpiri
             local isFreeConsumable = freeVisible and IsFreeConsumable(buff)
             -- Healthstone ready check mode (independent of follow/override content gates)
             local freeReadyCheckOk = true
-            if buff.freeConsumable and not inReadyCheck then
+            if buff.freeConsumable and not GameContext.IsInReadyCheck() then
                 if freeRcMode == "readyCheck" then
                     freeReadyCheckOk = false
                 elseif freeRcMode == "casterOnly" then
@@ -2564,8 +2555,7 @@ local function RefreshConsumables(db, trackingMode, isAuraRestricted, hideExpiri
                         elseif not buff.noExpirationGlow and not hideExpiring then
                             if TrySetEntryExpiring(entry, remainingTime, consThreshold, consExGlow) then
                                 if activeSpellID and type(buff.spellID) == "table" then
-                                    local ok, tex = pcall(C_Spell.GetSpellTexture, activeSpellID)
-                                    entry.dynamicIcon = ok and tex or nil
+                                    entry.dynamicIcon = BR.Icons.GetBuffTexture(activeSpellID)
                                 end
                             end
                         end
@@ -2715,9 +2705,6 @@ function BuffState.Refresh(refreshMode)
     local groupOnly = refreshMode == "group"
     nextTimedChangeIn = nil
 
-    -- Cache Display.IsSpellGlowing once per refresh cycle (State.lua loads before Display)
-    cachedIsSpellGlowing = BR.Display and BR.Display.IsSpellGlowing
-
     -- Reset entries that will be recomputed this cycle.
     for _, entry in pairs(BuffState.entries) do
         if
@@ -2812,44 +2799,6 @@ function BuffState.Refresh(refreshMode)
     end
 
     BuffState.lastUpdate = GetTime()
-
-    BR.CallbackRegistry:TriggerEvent("BuffStateChanged")
-end
-
----Set the player level (called on PLAYER_LEVEL_UP)
----@param level number
-function BuffState.SetPlayerLevel(level)
-    playerLevel = level
-end
-
----Set the max expansion level (called on UPDATE_EXPANSION_LEVEL)
----@param level number
-function BuffState.SetMaxExpansionLevel(level)
-    maxExpansionLevel = level
-end
-
----@return number playerLevel
----@return number maxExpansionLevel
-function BuffState.GetLevelInfo()
-    return playerLevel, maxExpansionLevel
-end
-
----Set the ready check state
----@param state boolean
-function BuffState.SetReadyCheckState(state)
-    inReadyCheck = state
-end
-
----Get the ready check state
----@return boolean
-function BuffState.GetReadyCheckState()
-    return inReadyCheck
-end
-
----Set the instance entry state (briefly shows showOnInstanceEntry buffs)
----@param state boolean
-function BuffState.SetInstanceEntryState(state)
-    inInstanceEntry = state
 end
 
 ---Check if the current zone qualifies for dungeon entry triggers
@@ -2866,28 +2815,10 @@ function BuffState.ShouldTriggerDungeonEntry()
     return diffKey ~= "mythicPlus" and diffKey ~= "follower"
 end
 
----Set the delve entry state (briefly shows consumables with showOnInstanceEntry)
----@param state boolean
-function BuffState.SetDelveEntryState(state)
-    inDelveEntry = state
-end
-
 ---Check if the current zone qualifies for delve entry triggers
 ---@return boolean
 function BuffState.ShouldTriggerDelveEntry()
     return BR.IsInDelve()
-end
-
----Set the vehicle state
----@param state boolean
-function BuffState.SetInVehicle(state)
-    inVehicle = state
-end
-
----Get the vehicle state
----@return boolean
-function BuffState.GetInVehicle()
-    return inVehicle
 end
 
 ---Check if the current instance is legacy content (cached alongside content type)
@@ -2911,19 +2842,6 @@ function BuffState.GetConsumablesDismissed()
     return consumablesDismissed
 end
 
----Set the combat/encounter state.
----Called by the Display layer on ENCOUNTER_START, PLAYER_REGEN_DISABLED, etc.
----@param state boolean
-function BuffState.SetInCombat(state)
-    inCombat = state
-end
-
----Set the PvP prep phase flag (true before the gates open).
----@param state boolean
-function BuffState.SetPvPPrepPhase(state)
-    inPvPPrepPhase = state
-end
-
 ---Raw difficultyID from GetInstanceInfo (cached; invalidated with content type)
 BuffState.GetDifficultyID = GetDifficultyIDCached
 
@@ -2939,6 +2857,45 @@ BuffState.IsRestricted = BR.Restrictions.AurasRestricted
 ---@return boolean
 function BuffState.IsAlone()
     return GetNumGroupMembers() <= 1
+end
+
+-- The "Decor Duel" brawl is hide-and-seek as furniture. Only its difficulty ID identifies it.
+local DECOR_DUEL_DIFFICULTY_ID = 253
+
+---@alias HideAllReason "dead"|"decorDuel"|"solo"|"resting"|"combat"|"vehicle"|"mounted"|"legacyInstance"|"leveling"
+
+---The reason to hide every display frame, or nil to show them. Safe to call every render pass.
+---@param db table The active profile
+---@return HideAllReason?
+function BuffState.GetHideAllReason(db)
+    if UnitIsDeadOrGhost("player") then
+        return "dead"
+    end
+    if GetDifficultyIDCached() == DECOR_DUEL_DIFFICULTY_ID then
+        return "decorDuel"
+    end
+    if db.showOnlyInGroup and BuffState.IsAlone() then
+        return "solo"
+    end
+    if db.hideWhileResting and GameContext.IsResting() then
+        return "resting"
+    end
+    if db.hideInCombat and GameContext.IsInCombat() then
+        return "combat"
+    end
+    if db.hideAllInVehicle and GameContext.IsInVehicle() then
+        return "vehicle"
+    end
+    if db.hideWhileMounted and IsMounted() then
+        return "mounted"
+    end
+    if db.hideInLegacyInstances and BuffState.IsLegacyInstance() then
+        return "legacyInstance"
+    end
+    if db.hideWhileLeveling and GameContext.GetPlayerLevel() < GameContext.GetMaxExpansionLevel() then
+        return "leveling"
+    end
+    return nil
 end
 
 ---Whether any group member is assigned the HEALER role (cached; invalidated on
@@ -3037,28 +2994,25 @@ end
 -- CACHE INVALIDATION
 -- ============================================================================
 
----Invalidate content type cache (call on PLAYER_ENTERING_WORLD)
+---Invalidate content type cache
 function BuffState.InvalidateContentTypeCache()
     wipe(instanceCache)
-    -- inPvPPrepPhase is NOT reset here - SetPvPPrepPhase() manages it explicitly.
-    -- A reset here clobbers the prep state when the deferred
-    -- ZONE_CHANGED_NEW_AREA invalidation fires 0.5s after entry to a PvP instance.
 end
 
----Invalidate the aura-trackable caches (call on PLAYER_ENTERING_WORLD).
+---Invalidate the aura-trackable caches.
 ---Blizzard can reclassify a spell's secrecy in a mid-session hotfix.
 function BuffState.InvalidateAuraTrackableCache()
     auraTrackableCache = setmetatable({}, { __mode = "k" })
     BR.Restrictions.InvalidateSpellSecrecyCache()
 end
 
----Invalidate spec ID cache (call on PLAYER_ENTERING_WORLD, PLAYER_SPECIALIZATION_CHANGED)
+---Invalidate spec ID cache
 function BuffState.InvalidateSpecCache()
     cachedSpecId = nil
     cachedPlayerRole = nil
 end
 
----Invalidate group-healer cache (call on GROUP_ROSTER_UPDATE, PLAYER_ROLES_ASSIGNED)
+---Invalidate group-healer cache
 function BuffState.InvalidateHealerCache()
     cachedHealerInGroup = nil
 end
@@ -3067,7 +3021,7 @@ end
 ---@return RoleType?
 BuffState.GetPlayerRole = GetPlayerRole
 
----Invalidate spell knowledge cache (call on PLAYER_SPECIALIZATION_CHANGED)
+---Invalidate spell knowledge cache
 function BuffState.InvalidateSpellCache()
     cachedSpellKnowledge = {}
     cachedSpecId = nil
@@ -3092,7 +3046,7 @@ local function ResolveOffHandType()
         end
         return
     end
-    local _, _, _, _, _, itemClassID, itemSubClassID = GetItemInfoInstant(offhandItemID)
+    local _, _, _, _, _, itemClassID, itemSubClassID = C_Item.GetItemInfoInstant(offhandItemID)
     if not itemClassID then
         -- Item data is not available yet (intermittent right after login/reload).
         -- Leave the cache unset so the next refresh retries. A stale "none" here
@@ -3138,12 +3092,12 @@ function BuffState.GetPermanentWeaponEnchantID(slot)
     return currentWeaponEnchants.permanentOH
 end
 
----Invalidate off-hand weapon/shield cache (call on PLAYER_EQUIPMENT_CHANGED, PLAYER_SPECIALIZATION_CHANGED)
+---Invalidate off-hand weapon/shield cache
 function BuffState.InvalidateOffHandCache()
     cachedOffHandType = nil
 end
 
----Invalidate item ownership + count caches (call on BAG_UPDATE_DELAYED, PLAYER_EQUIPMENT_CHANGED)
+---Invalidate item ownership + count caches
 function BuffState.InvalidateItemCache()
     cachedItemOwnership = {}
     cachedItemCounts = {}
@@ -3157,20 +3111,27 @@ function BuffState.GetLowestDurability()
         return cachedLowestDurability
     end
     local lowest = 1
+    local readable = false
     for slot = 1, 18 do
         local cur, max = GetInventoryItemDurability(slot)
         if cur and max and max > 0 then
+            readable = true
             local pct = cur / max
             if pct < lowest then
                 lowest = pct
             end
         end
     end
-    cachedLowestDurability = lowest
+    -- Only a readable answer is cached: a zone change answers nil for every slot
+    -- while the inventory resolves, and a frozen "nothing is damaged" hides the
+    -- repair reminder until the next durability event.
+    if readable then
+        cachedLowestDurability = lowest
+    end
     return lowest
 end
 
----Invalidate the durability cache (call on UPDATE_INVENTORY_DURABILITY, PLAYER_EQUIPMENT_CHANGED)
+---Invalidate the durability cache
 function BuffState.InvalidateDurabilityCache()
     cachedLowestDurability = nil
 end
@@ -3178,7 +3139,7 @@ end
 ---Best repair sources for the repair reminder's click action: a collected repair
 ---mount and/or a usable repair item. Both answers only change on collection and
 ---bag events, so the resolved pair is memoized.
----@return { mountSpellID: number?, itemID: number? }
+---@return { mountSpellID: number?, mountID: number?, itemID: number? }
 function BuffState.GetRepairSources()
     if cachedRepairSources then
         return cachedRepairSources
@@ -3190,6 +3151,7 @@ function BuffState.GetRepairSources()
             local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
             if isCollected then
                 sources.mountSpellID = spellID
+                sources.mountID = mountID
                 break
             end
         end
@@ -3215,14 +3177,33 @@ function BuffState.GetRepairSources()
     return sources
 end
 
----Invalidate the repair source cache (call on BAG_UPDATE_DELAYED, NEW_MOUNT_ADDED,
----PLAYER_ENTERING_WORLD)
+---Whether the collected repair mount can be summoned where the player stands.
+---The `[outdoors]` macro conditional cannot answer this: an outdoor area that
+---blocks mounts still reads as outdoors, so the click spends nothing. The mount
+---journal knows the real restriction. The answer follows the subzone, so it is
+---never cached - the macro that reads it is rebuilt on every zone change.
+---@return boolean
+function BuffState.IsRepairMountUsable()
+    local mountID = BuffState.GetRepairSources().mountID
+    if not mountID then
+        return false
+    end
+    return C_MountJournal.GetMountUsabilityByID(mountID, IsIndoors()) == true
+end
+
+---Invalidate the repair source cache
 function BuffState.InvalidateRepairSourceCache()
     cachedRepairSources = nil
 end
 
----Invalidate loadout state cache (call on PLAYER_SPECIALIZATION_CHANGED,
----TRAIT_CONFIG_UPDATED, SPELLS_CHANGED, PLAYER_EQUIPMENT_CHANGED, EQUIPMENT_SETS_CHANGED)
+---Aura spell of the consumable the player runs now, or nil when none is up.
+---@param category string Consumable category
+---@return number? spellID
+function BuffState.GetActiveConsumableSpell(category)
+    return activeConsumableSpells[category]
+end
+
+---Invalidate loadout state cache
 function BuffState.InvalidateLoadoutCache()
     cachedLoadoutState = {}
 end
@@ -3256,8 +3237,7 @@ function BuffState.IsWrongDemonPet()
     return cachedWrongPetStatus
 end
 
----Invalidate wrong-pet cache (call on UNIT_PET, PLAYER_ENTERING_WORLD,
----PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED, SPELLS_CHANGED)
+---Invalidate wrong-pet cache
 function BuffState.InvalidatePetCache()
     cachedWrongPetStatus = nil
 end
@@ -3431,10 +3411,7 @@ function BuffState.GetExpectedDruidFormID()
     return stanceCache.expectedDruidFormID or nil
 end
 
----Invalidate all stance caches (warrior wrong-stance + priest shadowform +
----druid wrong-form). Call on UPDATE_SHAPESHIFT_FORM, UPDATE_SHAPESHIFT_FORMS,
----PLAYER_SPECIALIZATION_CHANGED, TRAIT_CONFIG_UPDATED, SPELLS_CHANGED,
----PLAYER_ENTERING_WORLD.
+---Invalidate all stance caches (warrior wrong-stance, priest shadowform, druid wrong-form).
 function BuffState.InvalidateStanceCache()
     wipe(stanceCache)
 end
@@ -3499,9 +3476,9 @@ if LibSpec then
             return -- no change
         end
         allySpecCache[sender] = specId
-        -- Trigger display refresh when a known ally changes spec (affects beneficiary counts)
-        if oldSpec and BuffState.Refresh then
-            BuffState.Refresh()
+        -- A known ally's spec change alters beneficiary counts, so ask for a render.
+        if oldSpec then
+            BR.CallbackRegistry:TriggerEvent("GameContextChanged", false)
         end
     end)
 end
@@ -3519,6 +3496,21 @@ BR.StateHelpers = {
     IsCategoryVisibleForContent = IsCategoryVisibleForContent,
     GetBuffSettingKey = GetBuffSettingKey,
     IsBuffEnabled = IsBuffEnabled,
+    IsPlayerSpellCached = IsPlayerSpellCached,
+    AsSpellList = AsSpellList,
 }
 
 BR.BuffState = BuffState
+
+BR.GameContext.RegisterCache("contentType", BuffState.InvalidateContentTypeCache)
+BR.GameContext.RegisterCache("auraTrackable", BuffState.InvalidateAuraTrackableCache)
+BR.GameContext.RegisterCache("spell", BuffState.InvalidateSpellCache)
+BR.GameContext.RegisterCache("spec", BuffState.InvalidateSpecCache)
+BR.GameContext.RegisterCache("healer", BuffState.InvalidateHealerCache)
+BR.GameContext.RegisterCache("offHand", BuffState.InvalidateOffHandCache)
+BR.GameContext.RegisterCache("item", BuffState.InvalidateItemCache)
+BR.GameContext.RegisterCache("durability", BuffState.InvalidateDurabilityCache)
+BR.GameContext.RegisterCache("repairSource", BuffState.InvalidateRepairSourceCache)
+BR.GameContext.RegisterCache("loadout", BuffState.InvalidateLoadoutCache)
+BR.GameContext.RegisterCache("pet", BuffState.InvalidatePetCache)
+BR.GameContext.RegisterCache("stance", BuffState.InvalidateStanceCache)

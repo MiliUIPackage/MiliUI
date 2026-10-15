@@ -7,7 +7,7 @@ local _, BR = ...
 -- the preferred item first. Items used outside the addon have no event, so the
 -- module detects them from item count deltas between bag refreshes.
 
-local GetItemSpell = GetItemSpell
+local GetItemSpell = C_Item.GetItemSpell
 
 -- ============================================================================
 -- FLEETING FLASK DETECTION

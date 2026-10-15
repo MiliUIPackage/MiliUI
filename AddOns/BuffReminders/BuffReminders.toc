@@ -1,15 +1,23 @@
-## Interface: 120100, 120105
-# WOW_INTERFACE_TARGETS: mainline
+## Interface: 120105
+# WOW_INTERFACE_TARGETS: standard
 ## Title: BuffReminders
 ## Notes: Track missing buffs at a glance
 ## Author: zerbi
-## Version: v6.8.0
+## Version: v6.8.7
 ## SavedVariables: BuffRemindersDB
 ## X-Curse-Project-ID: 1441094
 ## X-Wago-ID: qGYZZjNg
 ## OptionalDeps: Masque, LibCustomGlow-1.0
 ## IconTexture: Interface\AddOns\BuffReminders\icon.tga
 ## Category: Buffs & Debuffs
+## Category-deDE: Buffs & Debuffs
+## Category-esES: Beneficios y Perjuicios
+## Category-esMX: Beneficios y Perjuicios
+## Category-frFR: Améliorations et Affaiblissements
+## Category-itIT: Benefici e penalità
+## Category-koKR: 버프 및 디버프
+## Category-ptBR: Bônus e Penalidades
+## Category-ruRU: Баффы и дебаффы
 ## Category-zhCN: 增益和减益
 ## Category-zhTW: 增益與減益
 
@@ -29,6 +37,14 @@ Libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
 Libs\LibSpecialization\LibSpecialization.lua
 
 Locales\enUS.lua
+Locales\deDE.lua
+Locales\esES.lua
+Locales\esMX.lua
+Locales\frFR.lua
+Locales\itIT.lua
+Locales\koKR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
 Locales\zhCN.lua
 Locales\zhTW.lua
 
@@ -37,6 +53,7 @@ Core\Restrictions.lua
 Core\TextPositions.lua
 Core\Profiles.lua
 Core\Migrations.lua
+Core\GameContext.lua
 Data\Buffs.lua
 Data\Defaults.lua
 Data\Beneficiaries.lua
@@ -68,6 +85,7 @@ Options\Context.lua
 Options\WhatsNew.lua
 Options\Dialogs\Glow.lua
 Options\Dialogs\CustomBuff.lua
+Options\Dialogs\CustomBuffShare.lua
 Options\Dialogs\LoadoutReminder.lua
 Options\Dialogs\RoguePoison.lua
 Options\Dialogs\Runeforge.lua

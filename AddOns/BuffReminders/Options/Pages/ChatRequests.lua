@@ -10,7 +10,7 @@ local L = BR.L
 local Components = BR.Components
 local CreateButton = BR.CreateButton
 local CreateBuffIcon = BR.CreateBuffIcon
-local GetBuffIcons = BR.Helpers.GetBuffIcons
+local GetBuffIcons = BR.Icons.GetBuffIcons
 
 local LayoutSectionHeader = BR.Options.Helpers.LayoutSectionHeader
 local LayoutSectionNote = BR.Options.Helpers.LayoutSectionNote
@@ -32,7 +32,7 @@ local ChatRequest = BR.ChatRequest
 
 local function RefreshChatActions()
     for _, cat in ipairs(ChatRequest.Categories()) do
-        BR.Display.UpdateActionButtons(cat)
+        BR.SecureButtons.UpdateActionButtons(cat)
     end
 end
 

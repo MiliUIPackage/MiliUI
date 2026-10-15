@@ -20,7 +20,7 @@ local ListEditor = BR.Options.Helpers.ListEditor
 
 local UpdateDisplay = BR.Display.Update
 
-local GetBuffIcons = BR.Helpers.GetBuffIcons
+local GetBuffIcons = BR.Icons.GetBuffIcons
 
 local TEXCOORD_INSET = BR.TEXCOORD_INSET
 
@@ -136,6 +136,13 @@ local function Build(content, scrollFrame)
         onAdd = function(render)
             BR.Options.Dialogs.CustomBuff.Show(nil, render)
         end,
+        secondaryButton = {
+            label = L["CustomBuff.Share.Import"],
+            width = 90,
+            onClick = function(render)
+                BR.Options.Dialogs.CustomBuffShare.ShowImport(render)
+            end,
+        },
         rowHeight = ROW_HEIGHT,
         emptyText = L["CustomBuff.Empty"],
         getItems = GetSortedBuffs,

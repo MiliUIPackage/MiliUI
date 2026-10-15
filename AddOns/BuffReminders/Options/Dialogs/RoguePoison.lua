@@ -126,7 +126,6 @@ local function BuildInline(parent, opts)
 
     local function ApplyChange()
         BR.InvalidatePoisonCache()
-        BR.BuffState.Refresh()
         UpdateDisplay()
         -- Repaint the All Buffs row: its trailing link flips gold <-> orange as
         -- the poison selection goes set <-> unset.

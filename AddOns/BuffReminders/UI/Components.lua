@@ -23,13 +23,6 @@ local ACCENT_R, ACCENT_G, ACCENT_B = unpack(BR.Colors.Accent)
 ---@field x? number Starting X position (default 0)
 ---@field y? number Starting Y position (default 0)
 
----@class CollapsibleSectionConfig
----@field title string Header text
----@field defaultCollapsed? boolean Start collapsed (default true)
----@field width? number Optional explicit width override
----@field scrollbarOffset? number Offset to subtract from parent width (used when width not specified)
----@field onToggle? fun(expanded: boolean) Optional callback when toggled
-
 ---@class ToggleConfig
 ---@field disabledReason? string|fun(): string Shown on hover while the control is disabled
 ---@field label string
@@ -1193,7 +1186,12 @@ local ToggleColors = {
 ---@return Frame
 function Components.Toggle(parent, config)
     local colors = ToggleColors
-    local checked = config.checked or false
+    local checked
+    if config.get then
+        checked = config.get() and true or false
+    else
+        checked = config.checked or false
+    end
 
     local TRACK_W = 32
     local LABEL_GAP = 6
@@ -2018,6 +2016,10 @@ local CONTENT_TOGGLE_DEFS = {
         diffDefs = PVP_TYPE_DEFS,
     },
 }
+
+-- The set of content and difficulty keys a visibility table can hold. Exported
+-- so import validation needs no second copy of the same list.
+Components.ContentToggleDefs = CONTENT_TOGGLE_DEFS
 
 local contentToggleByKey = {}
 local DIFF_MAPPINGS = {}
@@ -3674,31 +3676,61 @@ function Components.SetEditBoxesRef(editBoxes)
     panelEditBoxes = editBoxes
 end
 
----Refresh all registered components (call on panel OnShow)
----
----Auto-prunes orphaned component frames as it goes: any holder that has been
----SetParent(nil)'d (the teardown signal for a transient widget in a dialog or
----re-rendered list) is dropped from the registry instead of refreshed. This is
----a safety net behind explicit Components.Unregister calls -- a call site that
----forgets to unregister does not leak a holder that fires :Refresh() forever
----and pins its dead dialog alive. Plain refresh hooks (tables without a frame)
----have no GetParent and are never pruned, so persistent page hooks survive.
----Iterate in reverse so table.remove during the walk is safe.
-function Components.RefreshAll()
-    for i = #RefreshableComponents, 1, -1 do
-        local component = RefreshableComponents[i]
-        if component.GetParent and component:GetParent() == nil then
-            table.remove(RefreshableComponents, i)
-        elseif component.Refresh then
-            component:Refresh()
+---True when nothing in the frame's ancestry reaches UIParent, which is how a
+---dialog signals that it tore its body down (SetParent(nil) on the body).
+local function IsDetached(frame)
+    local node = frame
+    while node do
+        if node == UIParent then
+            return false
+        end
+        node = node.GetParent and node:GetParent() or nil
+    end
+    return true
+end
+
+---Drop tracked edit boxes whose dialog body is gone. Every edit box a factory
+---builds registers here, including the ones in a dialog that rebuilds its body
+---per open, so without this the list grows for the whole session. Call it from
+---a dialog teardown after the body is unparented. Mirrors the auto-prune in
+---RefreshAll. Iterate in reverse so table.remove during the walk is safe.
+function Components.PruneEditBoxes()
+    if not panelEditBoxes then
+        return
+    end
+    for i = #panelEditBoxes, 1, -1 do
+        if IsDetached(panelEditBoxes[i]) then
+            table.remove(panelEditBoxes, i)
         end
     end
 end
 
----Clear refreshable components registry (call before recreating panel)
-function Components.ClearRegistry()
+---Clear focus on every tracked edit box that is still attached.
+function Components.ClearEditBoxFocus()
+    Components.PruneEditBoxes()
+    if not panelEditBoxes then
+        return
+    end
+    for _, editBox in ipairs(panelEditBoxes) do
+        editBox:ClearFocus()
+    end
+end
+
+---Refresh all registered components (call on panel OnShow)
+---
+---Drops each holder whose ancestry no longer reaches UIParent instead of
+---refreshing it. A teardown unparents a body frame, not each holder, so a
+---direct GetParent() check misses the holders inside that body.
+---Plain refresh hooks (tables without a frame) have no GetParent and are never
+---pruned. Iterate in reverse so table.remove during the walk is safe.
+function Components.RefreshAll()
     for i = #RefreshableComponents, 1, -1 do
-        RefreshableComponents[i] = nil
+        local component = RefreshableComponents[i]
+        if component.GetParent and IsDetached(component) then
+            table.remove(RefreshableComponents, i)
+        elseif component.Refresh then
+            component:Refresh()
+        end
     end
 end
 
@@ -3921,149 +3953,6 @@ function Components.VerticalLayout(parent, config)
     end
 
     return layout
-end
-
----Create an accordion-style collapsible section
----@param parent table Parent frame
----@param config CollapsibleSectionConfig Configuration table
----@return table holder Frame with :SetCollapsed(bool), :IsCollapsed(), :GetContentFrame(), :GetContentHeight(), :SetContentHeight(h)
-function Components.CollapsibleSection(parent, config)
-    -- Header height grows with font, so a big font does not clip the title.
-    local HEADER_HEIGHT = max(24, MeasureTextHeight("Wg", "GameFontNormal") + 10)
-    local CONTENT_PADDING = 10
-    local BORDER_COLOR = { 0.25, 0.25, 0.25, 1 }
-    local CONTENT_BG_COLOR = { 0.08, 0.08, 0.08, 0.95 }
-
-    local holder = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-
-    -- Calculate width: explicit > parent-based with scrollbar offset > parent > default
-    local sectionWidth = config.width
-    if not sectionWidth then
-        local parentWidth = parent.GetWidth and parent:GetWidth() or 480
-        local scrollbarOffset = config.scrollbarOffset or 0
-        sectionWidth = parentWidth - scrollbarOffset
-    end
-    holder:SetSize(sectionWidth, HEADER_HEIGHT)
-    holder:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8",
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
-        edgeSize = 1,
-    })
-    holder:SetBackdropColor(0, 0, 0, 0) -- Transparent bg (header/content have their own)
-    holder:SetBackdropBorderColor(unpack(BORDER_COLOR))
-
-    local header = CreateFrame("Button", nil, holder)
-    header:SetSize(holder:GetWidth() - 2, HEADER_HEIGHT - 1) -- Account for border
-    header:SetPoint("TOPLEFT", 1, -1)
-
-    local headerBg = header:CreateTexture(nil, "BACKGROUND")
-    headerBg:SetAllPoints()
-    headerBg:SetColorTexture(0.18, 0.18, 0.18, 1)
-
-    local indicator = header:CreateTexture(nil, "OVERLAY")
-    indicator:SetSize(12, 12)
-    indicator:SetPoint("LEFT", 10, 0)
-    indicator:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
-    indicator:SetVertexColor(0.6, 0.6, 0.6)
-
-    local title = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("LEFT", indicator, "RIGHT", 8, 0)
-    title:SetPoint("RIGHT", header, "RIGHT", -8, 0)
-    title:SetWordWrap(false)
-    title:SetJustifyH("LEFT")
-    title:SetText(config.title)
-
-    local contentBg = CreateFrame("Frame", nil, holder)
-    contentBg:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
-    contentBg:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
-    contentBg:SetHeight(100)
-    contentBg:Hide()
-
-    local contentBgTex = contentBg:CreateTexture(nil, "BACKGROUND")
-    contentBgTex:SetAllPoints()
-    contentBgTex:SetColorTexture(unpack(CONTENT_BG_COLOR))
-
-    local separator = contentBg:CreateTexture(nil, "ARTWORK")
-    separator:SetHeight(1)
-    separator:SetPoint("TOPLEFT", 0, 0)
-    separator:SetPoint("TOPRIGHT", 0, 0)
-    separator:SetColorTexture(0.25, 0.25, 0.25, 1)
-
-    local content = CreateFrame("Frame", nil, contentBg)
-    content:SetPoint("TOPLEFT", CONTENT_PADDING, -CONTENT_PADDING)
-    content:SetPoint("TOPRIGHT", -CONTENT_PADDING, -CONTENT_PADDING)
-    content:SetHeight(100) -- Default height, will be set by caller
-
-    local isCollapsed = config.defaultCollapsed ~= false -- Default to collapsed
-    local contentHeight = 100
-
-    local function UpdateVisual()
-        if isCollapsed then
-            indicator:SetRotation(0) -- points right (native orientation)
-            contentBg:Hide()
-            holder:SetHeight(HEADER_HEIGHT)
-        else
-            indicator:SetRotation(math.rad(-90)) -- points down
-            contentBg:Show()
-            holder:SetHeight(HEADER_HEIGHT + contentHeight + CONTENT_PADDING * 2)
-        end
-
-        if config.onToggle then
-            config.onToggle(not isCollapsed)
-        end
-    end
-
-    header:SetScript("OnEnter", function()
-        headerBg:SetColorTexture(0.22, 0.22, 0.22, 1)
-        indicator:SetVertexColor(0.8, 0.8, 0.8)
-    end)
-    header:SetScript("OnLeave", function()
-        headerBg:SetColorTexture(0.18, 0.18, 0.18, 1)
-        indicator:SetVertexColor(0.6, 0.6, 0.6)
-    end)
-
-    header:SetScript("OnClick", function()
-        isCollapsed = not isCollapsed
-        UpdateVisual()
-    end)
-
-    function holder:SetCollapsed(collapsed)
-        isCollapsed = collapsed
-        UpdateVisual()
-    end
-
-    function holder:IsCollapsed()
-        return isCollapsed
-    end
-
-    function holder:GetContentFrame()
-        return content
-    end
-
-    function holder:GetContentHeight()
-        return contentHeight
-    end
-
-    function holder:SetContentHeight(height)
-        contentHeight = height
-        content:SetHeight(height)
-        contentBg:SetHeight(height + CONTENT_PADDING * 2)
-        if not isCollapsed then
-            holder:SetHeight(HEADER_HEIGHT + contentHeight + CONTENT_PADDING * 2)
-        end
-    end
-
-    function holder:SetTitle(newTitle)
-        title:SetText(newTitle)
-    end
-
-    function holder:Refresh()
-        UpdateVisual()
-    end
-
-    UpdateVisual()
-
-    return holder
 end
 
 -- ============================================================================

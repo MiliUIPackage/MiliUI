@@ -10,7 +10,7 @@ local GlowType = Glow.Type
 
 local TEXCOORD_INSET = BR.TEXCOORD_INSET
 local DEFAULT_BORDER_SIZE = BR.DEFAULT_BORDER_SIZE
-local GetBuffTexture = BR.Helpers.GetBuffTexture
+local GetBuffTexture = BR.Icons.GetBuffTexture
 
 local LayoutSeparator = BR.Options.Helpers.LayoutSeparator
 

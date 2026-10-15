@@ -11,8 +11,16 @@ local floor = math.floor
 local REPAIR_LABEL = L["Overlay.RepairLabel"]
 
 -- WoW API locals
-local GetSpellTexture = C_Spell.GetSpellTexture
 local _, playerClass = UnitClass("player")
+
+-- State and Icons load after this file, so these helpers resolve their target at call time.
+local function GetSpellTextureCached(spellID)
+    return BR.Icons.GetBuffTexture(spellID)
+end
+
+local function IsPlayerSpellCached(spellID)
+    return BR.StateHelpers.IsPlayerSpellCached(spellID)
+end
 
 -- Secret-safe read helpers (see Core.lua)
 local AuraField = BR.Secret.AuraField
@@ -225,8 +233,7 @@ end
 ---Check if the player is inside a delve (difficultyID 208)
 ---@return boolean
 local function IsInDelve()
-    local difficultyID = select(3, GetInstanceInfo())
-    return difficultyID == 208
+    return BR.BuffState.GetDifficultyID() == 208
 end
 BR.IsInDelve = IsInDelve
 
@@ -327,7 +334,7 @@ local function ScanPoisonCategory(poisons, now)
     local active, known, missing = 0, 0, nil
     local minRem, expID = nil, nil
     for _, id in ipairs(poisons) do
-        local isKnown = IsPlayerSpell(id)
+        local isKnown = IsPlayerSpellCached(id)
         if isKnown then
             known = known + 1
         end
@@ -371,7 +378,7 @@ local function RefreshPoisonCache()
     poisonCache.missingNL = missingNL
 
     -- Dragon-Tempered Blades (381801): can have 2 of each, otherwise 1
-    local hasDTB = IsPlayerSpell(381801)
+    local hasDTB = IsPlayerSpellCached(381801)
     poisonCache.requiredL = min(knownL, hasDTB and 2 or 1)
     poisonCache.requiredNL = min(knownNL, hasDTB and 2 or 1)
 
@@ -776,7 +783,7 @@ BR.BUFF_TABLES = {
                 spells = { 768, 5487, 24858 }, -- Cat, Bear, Moonkin
                 dynamic = function()
                     local expected = BR.BuffState.GetExpectedDruidFormID()
-                    return expected and C_Spell.GetSpellTexture(expected)
+                    return expected and GetSpellTextureCached(expected)
                 end,
             },
             castSpellID = 768, -- Cat Form: baseline-known by all druids, just gates click-to-cast (clickMacro casts the right form)
@@ -833,7 +840,7 @@ BR.BUFF_TABLES = {
                 textures = { 136242 }, -- Deadly Poison (menu fallback)
                 dynamic = function()
                     local castID = GetNextPoisonCastID()
-                    return castID and C_Spell.GetSpellTexture(castID)
+                    return castID and GetSpellTextureCached(castID)
                 end,
             },
             castSpellID = 315584, -- Instant Poison (baseline, ensures click-to-cast overlay is created)
@@ -880,7 +887,7 @@ BR.BUFF_TABLES = {
                         -- Iterate in DK_RUNEFORGES order for deterministic icon
                         for _, rune in ipairs(DK_RUNEFORGES) do
                             if accepted[rune.enchantID] then
-                                return GetSpellTexture(rune.spellID)
+                                return GetSpellTextureCached(rune.spellID)
                             end
                         end
                     end
@@ -923,7 +930,7 @@ BR.BUFF_TABLES = {
                     if accepted then
                         for _, rune in ipairs(DK_RUNEFORGES) do
                             if accepted[rune.enchantID] then
-                                return GetSpellTexture(rune.spellID)
+                                return GetSpellTextureCached(rune.spellID)
                             end
                         end
                     end
@@ -998,7 +1005,7 @@ BR.BUFF_TABLES = {
             requireSpecId = 264, -- Restoration
             groupId = "shamanImbues",
             customCheck = function()
-                if not IsPlayerSpell(457481) then
+                if not IsPlayerSpellCached(457481) then
                     return nil
                 end
                 if not BR.BuffState.HasShield() then
@@ -1076,7 +1083,7 @@ BR.BUFF_TABLES = {
                         return current
                     end
                     local expected = BR.BuffState.GetExpectedWarriorStanceID()
-                    return expected and C_Spell.GetSpellTexture(expected)
+                    return expected and GetSpellTextureCached(expected)
                 end,
             },
             castSpellID = 386208, -- Defensive Stance: baseline-known by all warriors, just gates click-to-cast (clickMacro casts the right stance)
@@ -1110,7 +1117,7 @@ BR.BUFF_TABLES = {
             groupId = "pets",
             customCheck = function()
                 -- MM Hunters do not use pets without Unbreakable Bond
-                if BR.StateHelpers.GetPlayerSpecId() == 254 and not IsPlayerSpell(1223323) then
+                if BR.StateHelpers.GetPlayerSpecId() == 254 and not IsPlayerSpellCached(1223323) then
                     return nil
                 end
                 return not UnitExists("pet") or UnitIsDead("pet") or nil

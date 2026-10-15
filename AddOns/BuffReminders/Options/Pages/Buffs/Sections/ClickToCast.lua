@@ -35,7 +35,7 @@ local function Build(ctx, layout)
         },
         onChange = function(checked)
             Helpers.SetCategorySetting(category, "clickable", checked)
-            BR.Display.UpdateActionButtons(category)
+            BR.SecureButtons.UpdateActionButtons(category)
             Components.RefreshAll()
         end,
     })
@@ -52,7 +52,7 @@ local function Build(ctx, layout)
         },
         onChange = function(checked)
             Helpers.SetCategorySetting(category, "clickableHighlight", checked)
-            BR.Display.UpdateActionButtons(category)
+            BR.SecureButtons.UpdateActionButtons(category)
         end,
     })
     layout:Add(highlightHolder, nil, COMPONENT_GAP)

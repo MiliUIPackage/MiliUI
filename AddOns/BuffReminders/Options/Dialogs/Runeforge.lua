@@ -90,7 +90,6 @@ local function BuildInline(parent, opts)
                         prefs[slot] = {}
                     end
                     prefs[slot][enchantID] = checked or nil
-                    BR.BuffState.Refresh()
                     UpdateDisplay()
                 end,
             })

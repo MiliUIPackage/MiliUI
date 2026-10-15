@@ -13,7 +13,7 @@ local _, BR = ...
 -- and bump DB_VERSION.
 --
 -- The pre-AceDB format conversion (old flat layout -> AceDB) is NOT here:
--- it must run before AceDB:New(), so it lives inline in Display/Display.lua's
+-- it must run before AceDB:New(), so it lives inline in Core/Bootstrap.lua's
 -- ADDON_LOADED handler.
 -- ============================================================================
 
@@ -22,7 +22,7 @@ local max = math.max
 
 BR.Migrations = {}
 
-BR.Migrations.DB_VERSION = 54
+BR.Migrations.DB_VERSION = 55
 
 -- Run pending migrations against the profile `db`, using code `defaults` for
 -- fallbacks. `ctx` carries the Display.lua file-scope values the migrations
@@ -1086,6 +1086,26 @@ function BR.Migrations.Run(db, defaults, ctx)
             if externals.sounds then
                 externals.sounds.luminousBarrier = nil
                 externals.sounds.earthenWall = nil
+            end
+        end,
+        -- [55] The icon cache leaves the custom buff entries. The display code
+        -- wrote `_iconsCache` onto each entry, so SavedVariables and profile
+        -- exports carried it. This pass covers every profile, not only `db`:
+        -- an inactive profile keeps the dead key and exports it.
+        [55] = function()
+            local profiles = BR.aceDB and BR.aceDB.sv and BR.aceDB.sv.profiles
+            if not profiles then
+                return
+            end
+            for _, profile in pairs(profiles) do
+                local customBuffs = type(profile) == "table" and profile.customBuffs
+                if type(customBuffs) == "table" then
+                    for _, buff in pairs(customBuffs) do
+                        if type(buff) == "table" then
+                            buff._iconsCache = nil
+                        end
+                    end
+                end
             end
         end,
     }

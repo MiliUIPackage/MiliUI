@@ -27,7 +27,6 @@ local C_ClassTalents = C_ClassTalents
 local C_Traits = C_Traits
 local C_EquipmentSet = C_EquipmentSet
 local C_ChallengeMode = C_ChallengeMode
-local C_Spell = C_Spell
 
 local DEFAULT_TALENT_ICON = 133741 -- inv_misc_book_09: generic talent/loadout book icon, last resort
 local DEFAULT_GEAR_ICON = 7539422 -- ui-transmog-showequippedgear: fallback for sets with no icon
@@ -211,9 +210,9 @@ local function IsTLXRule(rule)
 end
 Loadouts.IsTLXRule = IsTLXRule
 
----Prepare the external addons the given rules depend on. Runs one time for each
----session, and only for a rule set that asks an external addon a question: the
----load it needs is a client-wide one, so an unrelated profile must not pay for it.
+---Prepare the external addons the given rules depend on. Runs only for a rule set
+---that asks an external addon a question: the load it needs is a client-wide one,
+---so an unrelated profile must not pay for it.
 ---@param rules LoadoutRule[]
 function Loadouts.EnsureAddonsReady(rules)
     for _, rule in ipairs(rules) do
@@ -304,6 +303,7 @@ end
 ---@return { name: string, configID: number }[]
 function Loadouts.ListLoadouts(specID)
     local out = {}
+    -- An API error ends the list early. Callers handle a short or empty list.
     pcall(function()
         if not (C_ClassTalents and C_Traits) then
             return
@@ -326,6 +326,7 @@ end
 ---@return { setID: number, name: string, icon: number }[]
 function Loadouts.ListEquipmentSets()
     local out = {}
+    -- An API error ends the list early. Callers handle a short or empty list.
     pcall(function()
         if not C_EquipmentSet then
             return
@@ -346,6 +347,7 @@ end
 ---@return { id: number, mapID: number?, name: string, icon: number?, kind: string }[]
 function Loadouts.ListCurrentInstances()
     local out = {}
+    -- An API error ends only the dungeon list early, so the raid list below still loads.
     pcall(function()
         if C_ChallengeMode and C_ChallengeMode.GetMapTable then
             local maps = C_ChallengeMode.GetMapTable()
@@ -395,8 +397,8 @@ end
 ---@return number|string
 function Loadouts.GetRuleIcon(rule)
     if rule.require == "talent" and rule.spellID then
-        local ok, tex = pcall(C_Spell.GetSpellTexture, rule.spellID)
-        if ok and tex then
+        local tex = BR.Icons.GetBuffTexture(rule.spellID)
+        if tex then
             return tex
         end
     elseif rule.require == "gear" and rule.gear and rule.gear.setID then

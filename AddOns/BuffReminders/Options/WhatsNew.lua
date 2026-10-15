@@ -6,7 +6,7 @@ local _, BR = ...
 -- Dots that point the user at features from a release that the user did not
 -- acknowledge yet. A `cohort` is an opaque label. `BR.aceDB.global.seenVersions`
 -- is the set of acknowledged cohorts. A cohort is new only when that set does
--- not hold it. No code compares versions, so the v6.8.0 package token
+-- not hold it. No code compares versions, so the v6.8.7 package token
 -- and prerelease suffixes stay safe.
 --
 -- This module owns state and lifecycle only. Each dot is drawn where its UI lives.

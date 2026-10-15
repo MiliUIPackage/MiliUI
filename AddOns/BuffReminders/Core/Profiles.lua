@@ -103,7 +103,7 @@ function BR.Profiles.SwitchProfile(name)
     end
     if InCombatLockdown() then
         pendingSwitch = name
-        print("|cffffcc00BuffReminders:|r " .. BR.L["Profile.SwitchQueued"])
+        print("|cff00ccffBuffReminders:|r " .. BR.L["Profile.SwitchQueued"])
         return true
     end
     BR.aceDB:SetProfile(name) -- fires OnProfileChanged -> RefreshAfterProfileChange
@@ -231,6 +231,7 @@ function BR.Profiles.RefreshAfterProfileChange()
     if BR.Display and BR.Display.BuildCustomBuffArray then
         BR.Display.BuildCustomBuffArray()
     end
+    BR.GameContext.RebuildGlowRegistry()
 
     if BR.Display and BR.Display.BuildLoadoutRulesArray then
         BR.Display.BuildLoadoutRulesArray()
@@ -269,10 +270,6 @@ function BR.Profiles.RefreshAfterProfileChange()
         BR.SecureButtons.RefreshChatRequestMacros()
     end
 
-    if BR.BuffState then
-        BR.BuffState.Refresh()
-    end
-
     if BR.Movers then
         if BR.Movers.RepositionAllFrames then
             BR.Movers.RepositionAllFrames()
@@ -298,6 +295,6 @@ eventFrame:SetScript("OnEvent", function(_, event)
         local name = pendingSwitch
         pendingSwitch = nil
         BR.aceDB:SetProfile(name) -- fires OnProfileChanged -> RefreshAfterProfileChange
-        print("|cffffcc00BuffReminders:|r " .. string.format(BR.L["Profile.Switched"], name))
+        print("|cff00ccffBuffReminders:|r " .. string.format(BR.L["Profile.Switched"], name))
     end
 end)

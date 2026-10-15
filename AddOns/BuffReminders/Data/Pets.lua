@@ -40,11 +40,11 @@ local SUMMON_DEMON_FLYOUT = 10
 
 -- Warlock summon spell ID -> short pet name (fallback: full spell name)
 local WARLOCK_PET_NAMES = {
-    [688] = "Imp",
-    [697] = "Voidwalker",
-    [691] = "Felhunter",
-    [366222] = "Sayaad",
-    [30146] = "Felguard",
+    [688] = L["Label.Imp"],
+    [697] = L["Label.Voidwalker"],
+    [691] = L["Label.Felhunter"],
+    [366222] = L["Label.Sayaad"],
+    [30146] = L["Label.Felguard"],
 }
 
 -- Resolve Spirit Beast family name from Blizzard's creature family data (localized)
@@ -154,8 +154,8 @@ end
 -- These classes summon one pet with one spell. The name is the short name a
 -- player uses. The full spell name is the fallback.
 local SINGLE_PET = {
-    DEATHKNIGHT = { spellID = 46584, name = "Ghoul" }, -- Raise Dead
-    MAGE = { spellID = 31687, name = "Water Elemental" }, -- Summon Water Elemental
+    DEATHKNIGHT = { spellID = 46584, name = L["Label.Ghoul"] }, -- Raise Dead
+    MAGE = { spellID = 31687, name = L["Label.WaterElemental"] }, -- Summon Water Elemental
 }
 
 local SINGLE_PET_NAMES = {}
@@ -251,3 +251,5 @@ BR.PetHelpers = {
     GetFelguardAction = BuildFelguardAction,
     InvalidatePetActions = InvalidatePetActions,
 }
+
+BR.GameContext.RegisterCache("petActions", InvalidatePetActions)

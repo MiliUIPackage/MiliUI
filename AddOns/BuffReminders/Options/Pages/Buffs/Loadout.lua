@@ -48,8 +48,7 @@ local function FormatSummary(rule)
         target = rule.loadout and rule.loadout.name
     elseif rule.require == "talent" then
         if rule.spellID then
-            local ok, name = pcall(C_Spell.GetSpellName, rule.spellID)
-            target = (ok and name) or tostring(rule.spellID)
+            target = BR.GetSpellName(rule.spellID) or tostring(rule.spellID)
         end
     end
     local summary = target and (kind .. " · " .. target) or kind

@@ -206,9 +206,10 @@ CallbackRegistry:GenerateCallbackEvents({
     "LayoutRefresh", -- Fired when layout needs recalculation (spacing, direction)
     "FramesReparent", -- Fired when frames need reparenting (split category change)
     "VisibilityRefresh", -- Fired when visibility toggles change (hide-when, show-only-in-group)
-    "BuffStateChanged", -- Fired when buff state entries are recomputed
     "ExternalsRefresh", -- Fired when the externals display needs reconfiguring
     "CustomAnchorsChanged", -- Fired when the user's anchor-target list gains or loses a name
+    "ActiveConsumableChanged", -- Fired when the running consumable aura changes: (category, spellID)
+    "GameContextChanged", -- Fired when the game context changes and needs a render: (urgent, reason?)
 })
 BR.CallbackRegistry = CallbackRegistry
 
@@ -400,6 +401,7 @@ local DefaultSettingKeys = {
     showBuffTooltips = "VisualsRefresh", -- Toggles raid/presence hover capture vs click-through
     hideLegacyConsumables = "DisplayRefresh",
     preferReusableRunes = "DisplayRefresh",
+    feastAtPlayer = "DisplayRefresh",
     -- Pet display mode
     petDisplayMode = "DisplayRefresh",
     petLabels = "DisplayRefresh",
@@ -445,7 +447,6 @@ end
 local DynamicRoots = {
     enabledBuffs = "DisplayRefresh",
     categoryVisibility = "DisplayRefresh",
-    splitCategories = "FramesReparent",
     readyCheckOnlyOverrides = "DisplayRefresh",
     detachedIcons = "FramesReparent",
     loadoutReminders = "DisplayRefresh",
@@ -523,7 +524,6 @@ local function ValidatePath(segments)
         return false, nil
     end
 
-    -- Check dynamic roots (enabledBuffs.*, categoryVisibility.*, splitCategories.*)
     if DynamicRoots[root] then
         -- Any subpath is valid for dynamic roots
         return true, DynamicRoots[root]
@@ -565,7 +565,7 @@ function BR.Config.Set(path, value)
     -- Debug mode only warns; an invalid path still writes.
     local isValid, validatedRefreshType = ValidatePath(segments)
     if not isValid and BR.Config.DebugMode then
-        print("|cffff6600BuffReminders:|r Invalid config path: " .. path)
+        print("|cff00ccffBuffReminders:|r Invalid config path: " .. path)
     end
 
     -- Level 1 reads through the BR.profile proxy metatable: the proxy is an empty
@@ -645,7 +645,7 @@ function BR.Config.SetMulti(changes)
         if #segments > 0 then
             local isValid, validatedRefreshType = ValidatePath(segments)
             if not isValid and BR.Config.DebugMode then
-                print("|cffff6600BuffReminders:|r Invalid config path: " .. path)
+                print("|cff00ccffBuffReminders:|r Invalid config path: " .. path)
             end
 
             -- See BR.Config.Set for why level 1 uses __index and levels 2+ use rawget.
@@ -1030,11 +1030,12 @@ end
 -- ============================================================================
 -- SPELL NAME CACHE
 -- ============================================================================
--- A spell name is immutable for a given spellID within a session.
+-- A spell name is immutable for a given spellID within a session. A miss stays
+-- cached until a spell data event clears the misses.
 
 local spellNameCache = {}
 
----Get spell name with caching (immutable per session)
+---Get spell name with caching
 ---@param spellID number
 ---@return string?
 function BR.GetSpellName(spellID)
@@ -1044,6 +1045,15 @@ function BR.GetSpellName(spellID)
         spellNameCache[spellID] = name
     end
     return name or nil
+end
+
+---Drop the cached misses, so the next BR.GetSpellName reads the API again.
+function BR.ClearSpellNameMisses()
+    for spellID, name in pairs(spellNameCache) do
+        if name == false then
+            spellNameCache[spellID] = nil
+        end
+    end
 end
 
 ---Create a buff icon texture with standard formatting
