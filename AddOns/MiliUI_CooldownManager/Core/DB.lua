@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 10
+ns.DB_VERSION = 11
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -470,7 +470,7 @@ FocusCastDefaults = function()
         width         = 0,                 -- 0 ＝ 跟錨定的圖示條第一列同寬（錨在施法條上時＝核心技能第一列）
         height        = 20,
         font          = "INHERIT",
-        texture       = "MiliUI TukTex",   -- 自帶的 TukTex（Core/Media.lua）；跟玩家施法條的暴雪漸層分得開（使用者 2026-10-16 指定）
+        texture       = "MiliUI Glass",    -- 自製的漸層材質（Core/Media.lua、技能 miliui-cdm-bar-texture）；跟玩家施法條的暴雪漸層分得開（使用者 2026-10-16 指定）
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
         -- 跟玩家施法條分得開的兩樣（使用者 2026-10-16 指定）：法術名前面印施法者的名字、條尾放自己的斷法圖示＋冷卻轉圈
         showCaster    = true,
@@ -981,6 +981,13 @@ local MIGRATIONS = {
         if type(cb) ~= "table" then return end
         if cb.font ~= nil then cb.timeFont = cb.font end
         if cb.textSize ~= nil then cb.timeTextSize = cb.textSize end
+    end,
+    -- v11（2026-10-16）：專注目標施法條的預設材質從「MiliUI TukTex」（曾經自帶別人的檔，只上線一天）換成自製的「MiliUI Glass」。
+    -- 值閘：合併預設值寫進存檔的那個舊名字才換；玩家自己選別的材質不碰
+    [11] = function(profile)
+        local fc = profile.focuscast
+        if type(fc) ~= "table" then return end
+        if fc.texture == "MiliUI TukTex" then fc.texture = "MiliUI Glass" end
     end,
 }
 DB.MIGRATIONS = MIGRATIONS
