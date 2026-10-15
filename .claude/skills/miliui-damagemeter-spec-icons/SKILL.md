@@ -1,11 +1,13 @@
 ---
 name: miliui-damagemeter-spec-icons
-description: 重做或補做 MiliUI_DamageMeters「米利風格」專精圖示（Media/Spec/<職業>-<專精>.png，40 張卡通風格去背圖）。當使用者說「某個專精圖示重畫」「換獸王的圖」「專精圖示太暗／太小／認不出來」「新專精要補圖」「米利風格圖示」，或要動 Meter/Data.lua 的 SPEC_KEYS／D.SpecInfo、Media/Spec/ 時使用。圖是 AI 產圖＋腳本後製，不要用繪圖軟體手改 PNG，也不要臨時寫一次性的去背腳本——這裡的去背判準是一張一張踩出來的。
+description: 重做或補做 MiliUI_DamageMeters「米利風格」專精圖示（Media/Spec/<職業>-<專精>.png，40 張）與職業圖示（Media/Class/<職業>.png，13 張），卡通風格去背圖。當使用者說「某個專精圖示重畫」「換獸王的圖」「專精圖示太暗／太小／認不出來」「新專精要補圖」「米利風格圖示」，或要動 Meter/Data.lua 的 SPEC_KEYS／D.SpecInfo、Media/Spec/ 時使用。圖是 AI 產圖＋腳本後製，不要用繪圖軟體手改 PNG，也不要臨時寫一次性的去背腳本——這裡的去背判準是一張一張踩出來的。
 ---
 
 # 米利風格專精圖示
 
-40 張圖：13 職業 × 3～4 專精（12.1 惡魔獵人有第三個專精「噬滅」）。
+40 張專精圖：13 職業 × 3～4 專精（12.1 惡魔獵人有第三個專精「噬滅」）；
+另有 13 張職業圖（`Media/Class/<職業>.png`），是米利風格在「專精還不知道」時的退路
+（別人的 specIconID 常常是 nil，觀察問到之前顯示職業圖）。職業圖跟專精圖分開跑 normalize。
 遊戲裡顯示在傷害統計每一列左側（18～32px）與頭像卡片（約 26～40px），
 圖示格的深底是程式畫的（`Meter/Data.lua` 的 `IconBg`），**圖檔本身一律透明**。
 
@@ -59,6 +61,7 @@ python3 -I $S/overview.py tmp/spec-icons/final-norm overview.png
 | 主體是綠色 | 綠底吃掉 | 洋紅底 |
 | 紫＋綠都有（痛苦術士） | 兩種底都會吃 | 洋紅底，紫一律指定 deep dark purple |
 | 透明的玻璃／泡泡 | 透出底色、破洞 | 提示詞寫 opaque |
+| 主體顏色接近底色、但整圈有黑框（洋紅底上的紫火焰） | 被吃成半透明 | `key.py --fill-enclosed`：黑框包住的半透明補成不透明、顏色用原圖；包住的全透明洞保持透明。預設關，舊圖重跑不加 |
 | Gemini 自己加了一圈外框 | — | key.py 的 strip_frame 會裁（四邊取最小值、上限 8%，主體貼邊不會被誤裁） |
 
 2026-10-14 試過「亮像素改物理反算＋半透明去溢色」想救光芒：中間仍粉、外圍變綠、淡紫緞帶被洗灰，
@@ -77,3 +80,4 @@ python3 -I $S/overview.py tmp/spec-icons/final-norm overview.png
   `D.ResolveIcon` 的 `mili` 樣式、`IconBg` 深底
 - 暴雪改了某職業的專精順序 → `SPEC_KEYS` 要跟著改，否則圖會錯位到同職業的別的專精
 - 新增專精 → 補圖、補 `SPEC_KEYS`、補 subjects.md
+- 職業圖：`CLASS_TEX_DIR`，檔名＝`classFile:lower()`；只有 `SPEC_KEYS` 有的職業才用（NPC 不畫）

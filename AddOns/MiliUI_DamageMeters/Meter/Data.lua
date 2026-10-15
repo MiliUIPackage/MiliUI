@@ -314,6 +314,8 @@ local SPEC_KEYS = {
     WARRIOR     = { "arms", "fury", "protection" },
 }
 local SPEC_TEX_DIR = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\Spec\\"
+-- 米利風格的職業圖（Media/Class/<職業>.png，13 張）：還不知道專精時的退路
+local CLASS_TEX_DIR = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\Class\\"
 
 local specByIcon, specByID
 local function BuildSpecMap()
@@ -384,7 +386,7 @@ end
 -- 圖示
 --
 -- 四種樣式：
---   mili  自己畫的專精圖（Media/Spec）＋程式畫的深底 → 對不到就退 spec
+--   mili  自己畫的專精圖（Media/Spec）＋程式畫的深底 → 專精不知道就用自己的職業圖（Media/Class）
 --   spec  專精圖示（source.specIconID，是個 fileID）→ 沒有就退職業 sprite
 --   class 職業 sprite（CLASS_ICON_TCOORDS）
 --   none  不畫
@@ -435,12 +437,20 @@ function D.ResolveIcon(src, tex, size, style, zoom)
     if not classFile then tex:Hide(); IconBg(tex, false); return 0 end
 
     local info = (style == "mili" or style == "spec") and D.SourceSpec(src)
-    if style == "mili" and info and info.tex then
-        -- 自己的圖本身就留了邊，不做 zoom 裁切
-        tex:SetTexture(info.tex)
-        tex:SetTexCoord(0, 1, 0, 1)
-        IconBg(tex, true)
-    elseif style == "spec" or style == "mili" then
+    if style == "mili" then
+        -- 自己的圖本身就留了邊，不做 zoom 裁切。
+        -- 專精還不知道（別人的 specIconID 常常是 nil、觀察還沒問到）→ 米利職業圖，不猜專精
+        local path = (info and info.tex)
+            or (SPEC_KEYS[classFile] and (CLASS_TEX_DIR .. classFile:lower() .. ".png"))
+        if path then
+            tex:SetTexture(path)
+            tex:SetTexCoord(0, 1, 0, 1)
+            IconBg(tex, true)
+        else
+            IconBg(tex, false)
+            ApplyClassSprite(tex, classFile, zoom)
+        end
+    elseif style == "spec" then
         IconBg(tex, false)
         -- specIconID 沒給時，觀察快取問到的專精也能換回暴雪的專精圖示
         local specIcon = info and info.icon

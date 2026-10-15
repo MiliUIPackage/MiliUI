@@ -1,4 +1,11 @@
-"""洋紅底／綠底去背（從四角自動判斷） → 裁成正方 → 128px。用法：python3 -I key.py 輸出名=輸入檔 ..."""
+"""洋紅底／綠底去背（從四角自動判斷） → 裁成正方 → 128px。
+
+用法：python3 -I key.py [--fill-enclosed] 輸出名=輸入檔 ...   （輸出到目前目錄的 out/，會自動建）
+
+--fill-enclosed：主體顏色接近底色（洋紅底上的紫色）時用。被黑框整圈包住的像素一定是主體，
+  從四邊往內灌不到的地方一律改成不透明、顏色用原圖。前提是外框連續封閉；預設關，
+  開了會改變結果，舊圖重跑不要加。2026-10-16 術士職業圖的紫火焰（16% 被吃成半透明）用它救回。
+"""
 import sys
 import numpy as np
 from PIL import Image
@@ -38,6 +45,25 @@ def strip_frame(a, score):
     m = 6  # 多裁幾像素，吃掉外框和洋紅交界的 JPEG 雜訊
     return a[top + m:h - bot - m, lef + m:w - rig - m]
 
+def fill_enclosed(rgba, raw):
+    from scipy import ndimage
+    a = rgba[..., 3].astype(np.float32) / 255
+    # 不完全不透明的像素裡，跟畫面邊緣連通的才是背景（含外框外側的抗鋸齒）
+    soft = a < 0.98
+    lab, _ = ndimage.label(soft)
+    border = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    outside = np.isin(lab, list(border))
+    # 被包住、但幾乎全透明的那一塊是真的洞（手腕與火焰之間透出的底色），保持透明；
+    # 洞邊緣幾個像素的抗鋸齒也照原本的算法，不然洞會鑲一圈洋紅邊
+    holes = (a < 0.15) & ~outside
+    near_hole = ndimage.binary_dilation(holes, iterations=max(2, a.shape[0] // 300))
+    inner = soft & ~outside & ~near_hole
+    rgba[inner, :3] = np.clip(raw[inner], 0, 255).astype(np.uint8)
+    rgba[inner, 3] = 255
+    return rgba
+
+FILL_ENCLOSED = False
+
 def key(path):
     a = np.asarray(Image.open(path).convert("RGB")).astype(np.float32)
     # 有外框時四角是框的顏色，判不出來 → 用畫面內縮 6% 的位置取樣
@@ -53,6 +79,8 @@ def key(path):
     fg = np.clip((a - (1 - alpha[..., None]) * M) / al, 0, 255)
     fg[alpha < 1e-3] = 0
     rgba = np.dstack([fg, alpha * 255]).astype(np.uint8)
+    if FILL_ENCLOSED:
+        rgba = fill_enclosed(rgba, a)
     return Image.fromarray(rgba, "RGBA")
 
 def square_crop(im):
@@ -68,7 +96,13 @@ def shrink(im, px):
     # 預乘 alpha 再縮，透明區的黑色才不會滲進邊緣
     return im.convert("RGBa").resize((px, px), Image.LANCZOS).convert("RGBA")
 
-for arg in sys.argv[1:]:
+import os
+os.makedirs("out", exist_ok=True)
+args = sys.argv[1:]
+if "--fill-enclosed" in args:
+    FILL_ENCLOSED = True
+    args.remove("--fill-enclosed")
+for arg in args:
     name, src = arg.split("=", 1)
     big = square_crop(key(src))
     big.save(f"out/{name}-full.png")
