@@ -1144,3 +1144,8 @@ L["When the cast is interrupted, the bar turns red and shows the interrupter's n
 L["Restore focus cast bar defaults"] = "Fokus-Zauberleiste zurücksetzen"
 L["Restore the focus cast bar settings to their defaults?"] = "Die Einstellungen der Fokus-Zauberleiste auf die Standardwerte zurücksetzen?"
 L["The focus cast bar is off or your focus is casting right now."] = "Die Fokus-Zauberleiste ist aus oder euer Fokus wirkt gerade."
+L[": "] = ": "
+L["Focus target"] = "Fokusziel"
+L["Show the caster's name before the spell"] = "Namen des Zaubernden vor dem Zauber anzeigen"
+L["Show your interrupt at the end of the bar"] = "Eigenes Unterbrechen am Ende der Leiste anzeigen"
+L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "Das Symbol eures Unterbrechens sitzt am anderen Ende mit seiner Abklingzeit: hell, wenn bereit, gedimmt während der Abklingzeit. Ausgeblendet, wenn diese Spezialisierung kein Unterbrechen hat."

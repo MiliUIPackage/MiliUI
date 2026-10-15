@@ -1144,3 +1144,8 @@ L["When the cast is interrupted, the bar turns red and shows the interrupter's n
 L["Restore focus cast bar defaults"] = "Restablecer la barra del foco"
 L["Restore the focus cast bar settings to their defaults?"] = "¿Restablecer la configuración de la barra de lanzamiento del foco?"
 L["The focus cast bar is off or your focus is casting right now."] = "La barra del foco está desactivada o tu foco está lanzando ahora mismo."
+L[": "] = ": "
+L["Focus target"] = "Objetivo de foco"
+L["Show the caster's name before the spell"] = "Mostrar el nombre del lanzador antes del hechizo"
+L["Show your interrupt at the end of the bar"] = "Mostrar tu interrupción al final de la barra"
+L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "El icono de tu interrupción se coloca en el otro extremo con su barrido de enfriamiento: brillante cuando está lista, atenuado durante el enfriamiento. Oculto si esta especialización no tiene interrupción."

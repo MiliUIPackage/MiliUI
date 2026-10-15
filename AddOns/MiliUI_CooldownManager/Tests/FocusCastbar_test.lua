@@ -95,7 +95,8 @@ local fc = d.focuscast
 check("預設：有這張表、開著", type(fc) == "table" and fc.enabled == true)
 check("預設：錨在施法條上方（這條的下緣貼施法條的上緣）", type(fc.anchor) == "table" and fc.anchor.to == "castbar"
     and fc.anchor.point == "BOTTOM" and fc.anchor.relPoint == "TOP")
-check("預設：寬 0（跟核心技能第一列）、高 20、暴雪材質", fc.width == 0 and fc.height == 20 and fc.texture == "blizzard")
+check("預設：寬 0（跟核心技能第一列）、高 20、自帶 TukTex", fc.width == 0 and fc.height == 20 and fc.texture == "MiliUI TukTex")
+check("預設：施法者名字、條尾斷法圖示都開", fc.showCaster == true and fc.showKick == true)
 check("預設：三態顏色（就緒金、冷卻橘、不可中斷灰）", fc.colors.ready.r == 1 and fc.colors.ready.g == 0.741
     and fc.colors.cd.r == 0.906 and fc.colors.immune.r == 0.529)
 check("預設：重要法術發光＋「!」、像素跑線", fc.glowImportant == true and fc.bangImportant == true and fc.glowStyle == "pixel")
@@ -200,6 +201,39 @@ do
     eq("改成施法條下方（那邊是資源條那一疊）：排到核心技能下方那一疊的最外面", T("focuscast"), "utility")
     cfg.focuscast.anchor = ABOVE("essential")
     eq("改錨核心技能上方：照排名排在施法條外面", T("focuscast"), "castbar")
+end
+
+------------------------------------------------------------
+-- 4. 模組的純函式：顯示名字（施法者＋分隔＋法術名）、斷法圖示要不要畫；自帶材質的解析
+------------------------------------------------------------
+do
+    local SECRET = setmetatable({}, { __tostring = function() return "<secret>" end,
+        __concat = function(a, b) return (type(a) == "table" and "<s>" or a) .. (type(b) == "table" and "<s>" or b) end })
+    ns.IsSecret = function(v) return rawequal(v, SECRET) end
+    env.C_CurveUtil = nil
+    env.C_Spell = nil
+    env.CreateFrame = function() error("module must not create frames at load") end
+    env.GetLocale = function() return "enUS" end
+    Load("Modules/Castbar.lua")
+    Load("Modules/FocusCastbar.lua")
+    local FC = ns.FocusCastbar
+    eq("顯示名字：施法者＋法術", FC.DisplayName("張三", "治療鍊", true, 0), "張三: 治療鍊")
+    eq("顯示名字：關掉施法者", FC.DisplayName("張三", "治療鍊", false, 0), "治療鍊")
+    eq("顯示名字：沒有施法者", FC.DisplayName(nil, "治療鍊", true, 0), "治療鍊")
+    eq("顯示名字：截字只截法術名", FC.DisplayName("張三", "Fireball", true, 4), "張三: Fire…")
+    eq("顯示名字：秘密的施法者只串接", FC.DisplayName(SECRET, "治療鍊", true, 3), "<s>: 治療鍊")
+    eq("顯示名字：秘密的法術名不截", FC.DisplayName("張三", SECRET, true, 3), "張三: <s>")
+    ns.Interrupt = { SpellID = function() return 57994 end }
+    eq("斷法圖示：有斷法、開著 → 法術 ID", FC.KickSpell({ showKick = true }), 57994)
+    eq("斷法圖示：關掉 → nil", FC.KickSpell({ showKick = false }), nil)
+    eq("斷法圖示：沒存 ＝ 開", FC.KickSpell({}), 57994)
+    ns.Interrupt.SpellID = function() return nil end
+    eq("斷法圖示：這個專精沒有斷法 → nil", FC.KickSpell({ showKick = true }), nil)
+    env.LibStub = nil
+    Load("Core/Media.lua")
+    eq("自帶材質：名字直接解到自己的檔（不問 LSM）", ns.Media.Texture("MiliUI TukTex"), ns.Media.TUKTEX)
+    check("自帶材質：路徑在本插件的 Media", ns.Media.TUKTEX:find("MiliUI_CooldownManager\\Media\\tuktex", 1, true) ~= nil)
+    eq("材質：solid 照舊", ns.Media.Texture("solid"), ns.Media.WHITE8X8)
 end
 
 print(("FocusCastbar_test: %d passed, %d failed"):format(passed, failed))
