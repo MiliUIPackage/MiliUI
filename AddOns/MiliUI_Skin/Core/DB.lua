@@ -134,7 +134,7 @@ local function BuildDefaults()
             --   「重設位置」就是把它設回 nil。
             hud = {
                 -- 預設值的版本：MergeDefaults 只補 nil，改預設值要靠 DB.Init 裡的遷移（看 rev）
-                rev = 1,
+                rev = 2,
                 enabled = false,
                 stats = {             -- [statKey] = 顯示與否（順序固定，見 StatsHud.lua 的 HUD_STATS）
                     primary = true, stamina = false, crit = true, haste = true, mastery = true,
@@ -147,7 +147,7 @@ local function BuildDefaults()
                 percentSign = true,
                 colorMode = "class",  -- "section"｜"class"｜"custom"（2026-10-15 使用者定：預設職業色）
                 valueColored = false,
-                fontSize = 12,
+                fontSize = 14,        -- rev 2：12 → 14（使用者 2026-10-15）
                 outline = "OUTLINE",  -- ""｜"OUTLINE"｜"THICKOUTLINE"｜"MONOCHROME,OUTLINE"｜"MONOCHROME,THICKOUTLINE"（預設描邊）
                 shadow = true,
                 scale = 1,
@@ -195,6 +195,11 @@ function DB.Init()
             hud.outline = "OUTLINE"
             hud.colorMode = "class"
             hud.rev = 1
+        end
+        -- rev 2：字型大小預設 12 → 14。只改還停在舊預設的（玩家自己調過的不動）。
+        if type(hud) == "table" and hud.rev == 1 then
+            if hud.fontSize == 12 then hud.fontSize = 14 end
+            hud.rev = 2
         end
     end
     MergeDefaults(db, BuildDefaults())
