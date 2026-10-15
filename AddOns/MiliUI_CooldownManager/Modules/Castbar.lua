@@ -64,6 +64,7 @@ local function SecretsActive()
     if not ok or IsSecret(v) then return true end      -- 讀不到就當受限（走 duration 物件那條）
     return v and true or false
 end
+CB.SecretsActive = SecretsActive          -- 專注目標施法條（Modules/FocusCastbar.lua）共用
 
 local function TimerDir(isChannel, isEmpowered)
     if isChannel and not isEmpowered then
@@ -71,6 +72,7 @@ local function TimerDir(isChannel, isEmpowered)
     end
     return Enum.StatusBarTimerDirection.ElapsedTime
 end
+CB.TimerDir = TimerDir
 
 -- 時間文字（timeFormat）：
 --   remainTotal 剩餘/總 0.3/1.5 ｜ elapsedTotal 已唱/總 1.2/1.5 ｜ remain 0.3 ｜ elapsed 1.2
@@ -215,6 +217,7 @@ local function SetFillTexture(bar, token)
     local tex = bar:GetStatusBarTexture()
     if tex then tex:SetDesaturated(false) end
 end
+CB.SetFillTexture = SetFillTexture
 
 ------------------------------------------------------------
 -- 框

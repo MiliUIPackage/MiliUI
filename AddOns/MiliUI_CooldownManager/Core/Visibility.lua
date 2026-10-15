@@ -31,13 +31,14 @@
 -- （它們的 parent 仍是暴雪檢視器，我們不 SetParent），容器的 alpha 管不到它們 ——
 -- 所以每個認領中的 item 也要各自 SetAlpha（走 Decorate.ApplyItemAlpha：冷卻狀態效果疊在條的 alpha 上，相乘）。
 --
--- 面板（資源條、自訂格子、施法條、下一招圖示）不走上面的模型，各自一條（Vis.PanelAlpha）：
+-- 面板（資源條、自訂格子、施法條、專注目標施法條、下一招圖示）不走上面的模型，各自一條（Vis.PanelAlpha）：
 --   資源條  enabled ＝ false → 0；載入條件 loadConditions（騎乘或坐載具／只在戰鬥中）任一不符 → 0；
 --           fadeWithEssential 開著時取核心技能條現在的 alpha（它的顯示條件與淡出一起帶過來）
 --   自訂格子  enabled ＝ false → 0；載入條件與 fadeWithEssential 同資源條，但讀的是 profile.pips
 --             自己的那一份（資源條的不帶過來）
 --   自訂列  同自訂格子，讀 profile.custombars
 --   施法條  enabled ＝ false → 0；hideWhenNotCasting 且沒在施法（ns.Castbar.IsActive）→ 0
+--   專注目標施法條  同施法條，問 ns.FocusCastbar.IsActive（專注目標在唱、淡出、打斷停留、預覽都算）
 --   下一招圖示  enabled ＝ false → 0；onlyCombat 且不在戰鬥 → 0；戰鬥輔助沒有建議（ns.Assist.Current）→ 0
 --   天空騎術  enabled ＝ false → 0；Snapshot.skyridingPanel（ns.Skyriding.Shown ＝ 上次 Active 的結果：在天空騎術、不在德比賽跑、
 --             沒有「地面上而且充能全滿」…，見 Modules/Skyriding.lua）→ 1，否則 0
@@ -256,7 +257,7 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting, suggestion)
             return a
         end
         return 1
-    elseif key == "castbar" then
+    elseif key == "castbar" or key == "focuscast" then
         if cfg.hideWhenNotCasting ~= false and not casting then return 0 end
         return 1
     elseif key == "assistIcon" then
@@ -287,7 +288,12 @@ function Vis.PanelAlpha(key, s, essAlpha)
         ess = essAlpha or current.essential
         if ess == nil then ess = Vis.Alpha("essential", s) end
     end
-    local casting = ns.Castbar and ns.Castbar.IsActive and ns.Castbar.IsActive() or false
+    local casting = false
+    if key == "focuscast" then
+        casting = ns.FocusCastbar and ns.FocusCastbar.IsActive and ns.FocusCastbar.IsActive() or false
+    else
+        casting = ns.Castbar and ns.Castbar.IsActive and ns.Castbar.IsActive() or false
+    end
     local suggestion = key == "assistIcon" and ns.Assist and ns.Assist.Current and ns.Assist.Current() or nil
     return Vis.EvaluatePanel(key, cfg, s, ess, casting, suggestion)
 end

@@ -56,7 +56,7 @@ function DB.TouchCustom()
 end
 
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
-local ResourcesDefaults, PipsDefaults, CastbarDefaults, AssistIconDefaults, SkyridingDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
+local ResourcesDefaults, PipsDefaults, CastbarDefaults, FocusCastDefaults, AssistIconDefaults, SkyridingDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 local CustomBarsDefaults                                                                         -- 同上（自訂列）
 
 -- 「整張表當一個值」的預設：設定檔裡**沒有這個鍵**才整張給，已經有（含空表）就一個字都不合併。
@@ -459,6 +459,49 @@ CastbarDefaults = function()
     }
 end
 
+-- 專注目標施法條（Modules/FocusCastbar.lua，面板 focuscast；2026-10-15 從專注目標助手搬來的做法）：
+-- 專注目標在唱什麼、依「我能不能斷」三態上色、暴雪標為重要的法術外框發光＋名字前加「!」。
+-- 預設開、錨在玩家施法條上方（施法條關掉或改錨時由排開接到它的上一層）。舊存檔沒有這張表 ＝ 合併預設值補上，不遷移
+FocusCastDefaults = function()
+    return {
+        enabled       = true,
+        pos           = { point = "CENTER", x = 0, y = -236 },
+        anchor        = { to = "castbar", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
+        width         = 0,                 -- 0 ＝ 跟錨定的圖示條第一列同寬（錨在施法條上時＝核心技能第一列）
+        height        = 20,
+        font          = "INHERIT",
+        texture       = "blizzard",
+        bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
+        -- 三態：可斷法（斷法就緒）金／可斷法（斷法冷卻中）橘／不可中斷灰；被打斷紅
+        colors        = {
+            ready       = rgba(1, 0.741, 0),
+            cd          = rgba(0.906, 0.424, 0.2),
+            immune      = rgba(0.529, 0.529, 0.529),
+            interrupted = rgba(1, 0.204, 0.145),
+            glow        = rgba(0.95, 0.95, 0.32),
+        },
+        glowImportant = true,              -- 重要法術外框發光（C_Spell.IsSpellImportant；秘密布林只餵宿主的 alpha）
+        bangImportant = true,              -- 重要法術名稱前加「!」
+        glowStyle     = "pixel",           -- pixel | autocast | proc
+        showIcon      = true,
+        iconSide      = "LEFT",
+        iconGap       = 1,
+        showName      = true,
+        nameMaxChars  = 0,
+        showTime      = true,
+        timeFormat    = "remainTotal",
+        textSize      = 12,
+        timeTextSize  = 12,
+        nameOffset    = { x = 4, y = 0 },
+        timeOffset    = { x = -4, y = 0 },
+        showSpark     = true,
+        showInterrupter = true,            -- 被打斷時右側印斷法者的名字（職業色）
+        fillDirection = "ltr",
+        hideWhenNotCasting = true,
+        strata        = "MEDIUM",
+    }
+end
+
 -- 下一招圖示（Modules/AssistIcon.lua，面板 assistIcon）：戰鬥輔助建議的下一招，純顯示、不能點。
 -- 預設關；舊存檔沒有這張表 ＝ 合併預設值補上（關著），不遷移
 AssistIconDefaults = function()
@@ -662,6 +705,7 @@ function DB.BuildDefaults()
             pips      = PipsDefaults(),
             custombars = CustomBarsDefaults(),
             castbar   = CastbarDefaults(),
+            focuscast = FocusCastDefaults(),
             assistIcon = AssistIconDefaults(),
             skyriding = SkyridingDefaults(),
         },
@@ -1555,14 +1599,14 @@ function DB.BarClickable(key)
         and not DB.BarIsRings(key)) and true or false
 end
 
--- 「面板」：資源條、自訂格子、施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
+-- 「面板」：資源條、自訂格子、施法條、專注目標施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
 -- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套（天空騎術的接力模式例外，見 Core/Bars.lua）。
 -- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
-local PANEL_KEYS = { resources = true, pips = true, custombars = true, castbar = true, assistIcon = true, skyriding = true }
+local PANEL_KEYS = { resources = true, pips = true, custombars = true, castbar = true, focuscast = true, assistIcon = true, skyriding = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS
 -- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排最後；自訂列 2026-10-13 加在自訂格子後面）
-DB.PANEL_ORDER = { "resources", "pips", "custombars", "castbar", "assistIcon", "skyriding" }
+DB.PANEL_ORDER = { "resources", "pips", "custombars", "castbar", "focuscast", "assistIcon", "skyriding" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 資源列獨立擺放的面板 key："res:<資源 key>"（不在 PANEL_KEYS：那是靜態表，這種面板第一次用到才登記）。

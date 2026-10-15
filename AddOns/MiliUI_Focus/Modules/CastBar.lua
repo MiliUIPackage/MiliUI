@@ -47,6 +47,22 @@ local function DB()
     return ns.db.cast
 end
 
+-- 套組的冷卻管理器（MiliUI_CooldownManager）2026-10-15 起自己有一條專注目標施法條：它開著時這條讓位
+-- （只問它的公開 API，不讀它的存檔）。它的開關一變會廣播 FocusCastBarChanged，Init 裡訂閱後重套。
+local function TakenOver()
+    local api = _G.MiliUI_CooldownManager
+    local fn = type(api) == "table" and api.FocusCastBarActive
+    if type(fn) ~= "function" then return false end
+    local ok, v = pcall(fn)
+    return ok and v == true
+end
+CastBar.TakenOver = TakenOver
+
+-- 監控開著、而且沒有被冷卻管理器接手
+local function Monitoring()
+    return DB().monitor and not TakenOver()
+end
+
 ----------------------------------------------------------------------
 -- State
 ----------------------------------------------------------------------
@@ -576,7 +592,7 @@ end
 
 -- 開始顯示專注目標施法條（不放音效）。castTbl/chanTbl 可由呼叫端預讀後傳入，避免重複讀取。
 local function StartDisplay(castTbl, chanTbl)
-    if not DB().monitor then return end
+    if not Monitoring() then return end
     if isInEditMode then return end   -- 範例條顯示中不蓋掉；離開時 RefreshFromFocus 會接回
 
     -- 用 == nil 偵測（秘密安全）；用「明文 isCast」旗標挑欄位，避免對秘密值分支
@@ -704,7 +720,7 @@ end
 
 -- 專注目標切換 / 重新整理：若專注目標正在施法就顯示（不放音效）
 local function RefreshFromFocus()
-    if not DB().monitor then HideBar(); return end
+    if not Monitoring() then HideBar(); return end
     StartDisplay()   -- 內部自行判斷是否在施法，未施法會收條
 end
 
@@ -716,7 +732,7 @@ local function UpdateEditModeState()
     local wasPreview = isInEditMode
     isInEditMode = editModeOpen or settingsOpen
     CreateBarFrame()
-    if isInEditMode and DB().monitor then
+    if isInEditMode and Monitoring() then
         -- 進入編輯模式：停掉施法中的每幀回呼/ticker，顯示靜態範例
         active = false
         StopDisplayTicker()
@@ -770,7 +786,7 @@ end
 -- 設定改完統一走這裡
 function CastBar.Apply()
     if not ns.db then return end
-    if not DB().monitor then HideBar() end
+    if not Monitoring() then HideBar() end
     CreateBarFrame()
     StopGlow()          -- 換色／關掉發光：拆掉重建，下面的刷新會照新設定再點亮
     UpdateBarPosition()
@@ -855,6 +871,11 @@ ns.RegisterCallback("Init", "castbar", function()
     RefreshInterruptSpells()
     CreateBarFrame()
     HookEditMode()  -- Tier 3
+    -- 冷卻管理器的專注目標施法條開關變了：重套（讓位／接回）。它比我們早載入，API 這時一定在（沒有就是沒裝）
+    local api = _G.MiliUI_CooldownManager
+    if type(api) == "table" and type(api.RegisterCallback) == "function" then
+        pcall(api.RegisterCallback, "FocusCastBarChanged", "MiliUI_Focus", function() CastBar.Apply() end)
+    end
 
     ev:RegisterEvent("SPELLS_CHANGED")
     ev:RegisterEvent("PLAYER_ENTERING_WORLD")

@@ -40,9 +40,25 @@ local function BuildMacroRow(parent, x, y, width)
     return box.totalHeight + 10, function() box:Refresh() end
 end
 
+-- 冷卻管理器接手了：黃字一行（W.fontEmphasis），沒接手時留空（表單是靜態的，列高不變）
+local function BuildTakenOverRow(parent, x, y, width)
+    local fs = parent:CreateFontString(nil, "OVERLAY")
+    fs:SetFontObject(W.fontEmphasis)
+    fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 2)
+    fs:SetWidth(width)
+    fs:SetJustifyH("LEFT")
+    fs:SetWordWrap(true)
+    local function Refresh()
+        fs:SetText(ns.CastBar.TakenOver() and L["MiliUI Cooldown Manager's focus cast bar is on, so this bar steps aside. Turn that one off to use this one."] or "")
+    end
+    Refresh()
+    return 30, Refresh
+end
+
 local CONTROLS = {
     { type = "header", label = L["Focus cast bar"] },
     { type = "toggle", key = "monitor", label = L["Enable the focus cast bar"] },
+    { type = "custom", label = "", build = BuildTakenOverRow },
     { type = "text",   label = L["Shows what your focus is casting and colors the bar by whether you can interrupt it. Drag it in Edit Mode."] },
     { type = "numbers", label = L["Size"], fields = {
         { key = "width",  label = L["W"] },

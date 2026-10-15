@@ -545,6 +545,9 @@ local function Debug(silent)
     if ns.Castbar and ns.Castbar.DebugLines then
         for _, line in ipairs(ns.Castbar.DebugLines()) do p(line) end
     end
+    if ns.FocusCastbar and ns.FocusCastbar.DebugLines then
+        for _, line in ipairs(ns.FocusCastbar.DebugLines()) do p(line) end
+    end
     -- 戰鬥輔助：輪詢的 ticker 在不在、目前建議、亮著幾格；下一招圖示的現況
     if ns.Assist and ns.Assist.DebugLine then p(ns.Assist.DebugLine()) end
     if ns.AssistIcon and ns.AssistIcon.DebugLine then p(ns.AssistIcon.DebugLine()) end
@@ -1035,7 +1038,7 @@ ns.RegisterCallback("ProfileChanged", "api_style", ns.NotifyResourceStyle)
 ns.RegisterCallback("SpecChanged", "api_style", ns.NotifyResourceStyle)
 
 -- 對外開放的回呼（白名單）；key 加前綴，不會撞到內部訂閱者
-local PUBLIC_EVENTS = { ResourceStyleChanged = true }
+local PUBLIC_EVENTS = { ResourceStyleChanged = true, FocusCastBarChanged = true }
 local function ExtKey(key) return "ext:" .. tostring(key) end
 
 _G.MiliUI_CooldownManager = {
@@ -1067,13 +1070,18 @@ _G.MiliUI_CooldownManager = {
         return (ns.ready and ns.Viewers and ns.Viewers.ready and ns.Bars and ns.Bars.ready) and true or false
     end,
     -- 某條的容器框（MiliUICDM_Bar_<key>；資源條 "resources"、自訂格子 "pips"、自訂列 "custombars"、施法條 "castbar"、
-    -- 下一招圖示 "assistIcon"、天空騎術 "skyriding" 也是），給別的插件錨定用；
+    -- 專注目標施法條 "focuscast"、下一招圖示 "assistIcon"、天空騎術 "skyriding" 也是），給別的插件錨定用；
     -- 還沒建好回 nil。⚠ 錨上來的框會跟著這條移動；別對它 SetParent 或改它的大小。
     GetBarFrame = function(barKey)
         return ns.Bars and ns.Bars.Get(barKey) or nil
     end,
-    -- 訂閱本插件的事件；目前只開放 "ResourceStyleChanged"（資源顏色或條件規則變了，
-    -- 不帶參數，已合併節流）。同一個 key 再登記＝換掉。成功回 true，事件不開放回 false。
+    -- 本插件的專注目標施法條有沒有在接手（開著就算，不管專注目標在不在、引擎建好沒）：
+    -- 套組的專注目標助手（MiliUI_Focus）問這個決定自己那條要不要讓位。變了廣播 "FocusCastBarChanged"（不帶參數）
+    FocusCastBarActive = function()
+        return (ns.ready and ns.FocusCastbar and ns.FocusCastbar.Enabled and ns.FocusCastbar.Enabled()) and true or false
+    end,
+    -- 訂閱本插件的事件；開放 "ResourceStyleChanged"（資源顏色或條件規則變了，
+    -- 不帶參數，已合併節流）與 "FocusCastBarChanged"（專注目標施法條的開關／設定套用，不帶參數）。同一個 key 再登記＝換掉。成功回 true，事件不開放回 false。
     -- fn 拋錯會被隔離（記在本插件的錯誤清單），不影響其他訂閱者
     RegisterCallback = function(event, key, fn)
         if not PUBLIC_EVENTS[event] or key == nil or type(fn) ~= "function" then return false end

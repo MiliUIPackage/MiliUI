@@ -39,7 +39,8 @@ SV 在 `MiliUI_DB.perf.leak`（`on` / `sessions[]`，最多 4 次登入、每次
   「每小時 +359」是真洩漏，但分插件的數字無法分辨。
 - **只在乾淨時機拍快照**：`gc`＝每秒讀 count，大幅下降後回升 2MB＝一輪收完
   （最短 3 分鐘一張）；`load`＝讀取畫面／登入 PEW 強制完整回收（凍結藏在讀取畫面）；
-  `afk`＝暫離旗標亮起時強制回收；`start`＝勾選當下。戰鬥中不拍。
+  `afk`＝暫離旗標亮起時強制回收；`start`＝勾選當下。戰鬥中不拍；首領戰／整趟鑰石／PvP 中
+  連 AFK 旗標都不讀（`UnitIsAFK` 是 SecretInChatMessagingLockdown，2026-10-15 首領戰中炸過，先問 `C_ChatInfo.InChatMessagingLockdown()`）。
   強制回收會觸發卡頓記錄器 → `ns.LagWatch.Suppress(sec)` 先壓掉。
 - **比對全自動**：總量／插件合計／其他三條最小平方斜率（MB/h）、每資料夾斜率
   （清單「每小時」欄，有結論時照它排）、成長最多的兩個區間＋當時事件、事件伴隨

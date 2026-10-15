@@ -77,6 +77,7 @@ Modules\Pips.lua
 Modules\CustomBars.lua
 Modules\Interrupt.lua
 Modules\Castbar.lua
+Modules\FocusCastbar.lua
 Modules\AssistIcon.lua
 Modules\Skyriding.lua
 Libs\MiliUIWidgets\Env.lua
@@ -104,6 +105,7 @@ Options\Tab_Resources.lua
 Options\CustomBars.lua
 Options\ResourcePreview.lua
 Options\Tab_Castbar.lua
+Options\Tab_FocusCast.lua
 Options\Tab_Assist.lua
 Options\SkyridingSettings.lua
 Options\Tab_Skyriding.lua

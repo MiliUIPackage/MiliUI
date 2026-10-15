@@ -186,3 +186,6 @@ L["Right-click to toggle announcing on every focus"] = "右鍵：切換「每次
 L["Shift-click / the focus hotkey announces as it sets focus and marks a living enemy; needs auto-mark on. Uses a second macro, %s. Right-click the speaker on the bar to toggle quickly."] = "Shift+點擊或快捷鍵設專注目標、上標記的同時一併宣告（對象要是活著的敵人，且要開自動標記）。會另外佔一格巨集 %s。標記列上的喇叭按右鍵可快速切換。"
 L["Created the %s macro in your macro book. It sets focus, marks and announces in one go when \"announce on every focus\" is on; deleting it just recreates it."] = "已在你的巨集書建立 %s 巨集。開啟「每次設專注目標都宣告」時，設專注目標、上標記、宣告都由它一次完成；刪掉的話會自動補回來。"
 L["Focus+announce macro:"] = "專注＋宣告巨集:"
+
+-- 冷卻管理器接手專注目標施法條（2026-10-15）
+L["MiliUI Cooldown Manager's focus cast bar is on, so this bar steps aside. Turn that one off to use this one."] = "米利的冷卻管理器的專注目標施法條開著，這條先讓位；要用這條請把那邊的關掉。"

@@ -111,6 +111,14 @@ arg1 從頭到尾沒被用過 —— 路由只是為了少畫幾格。把三個�
 它們是第一批要查的。判準：處理函式有沒有真的用到 arg1；沒用到就收掉路由，有用到才另想辦法。
 見 [[feedback-fix-root-cause-not-symptom]]。
 
+**`UnitIsAFK`／`UnitIsDND` 的秘密條件是聊天封鎖，不是戰鬥**（2026-10-15 查 `UnitDocumentation.lua`）：
+兩支都標 `SecretInChatMessagingLockdown = true`（`UnitAffectingCombat` 沒有），所以**首領戰進行中、
+整趟未完成的鑰石、PvP 對戰**期間對 `"player"` 也回秘密布林，脫戰照樣炸；判準直接問
+`C_ChatInfo.InChatMessagingLockdown()`，不要用 InCombatLockdown 當代理（M+ 脫戰就漏）。
+實測：MiliUI `Options/LeakTrack.lua` 的 AFK 快照在首領戰中 `if UnitIsAFK("player")` 炸
+「attempt to perform boolean test on a secret boolean value」。那一處的正解是先問情境再讀旗標 ——
+遭遇中本來就沒有「人不在電腦前」的安靜時機。Cell 的 `SafeIsAFK` 是 pcall 治標版。
+
 **最大生命值損失：`GetUnitTotalModifiedMaxHealthPercent(unit)`**（2026-09-22 查 12.1.0 (69875)
 的 `UnitDocumentation.lua`）：文件**沒有任何秘密標記**（沒有 SecretReturns、
 也沒有 SecretWhen…Restricted），回 0～1 的損失比例 —— 少數插件可以拿來算版面的血量值。

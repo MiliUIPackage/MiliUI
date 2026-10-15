@@ -90,7 +90,7 @@
 --   * 資源條的結構一套完（ApplyOne）就跟著重貼它（開關會換錨定目標）。
 --   獨立擺放（standalone）時就是一般的面板。
 --
--- 面板（資源條、自訂格子、施法條、下一招圖示、天空騎術；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
+-- 面板（資源條、自訂格子、施法條、專注目標施法條、下一招圖示、天空騎術；ns.Bars.RegisterPanel）：容器同樣是 MiliUICDM_Bar_<key>、
 -- 同一套 ApplyStructure（pos／anchor、strata、enabled＝false 就 Hide）與編輯模式／磁吸，
 -- 但裡面畫什麼、多大由模組自己管（B.SetPanelSize）。重排排程對面板只做結構級，
 -- 其餘交給模組的 relayout 回呼。核心技能第一列寬度變了廣播 "FirstRowWidthChanged"。
@@ -282,7 +282,8 @@ end
 -- 同一邊」時才用得上——資源條關掉（自訂列接到核心技能上方）或玩家把自訂列改錨核心技能時，要排在資源條的位置之後、
 -- 天空騎術（1.5）與施法條（4）之前：自訂列是戰鬥資訊、跟資源條是一組，天空騎術獨立擺放時照舊在這一組的外面，
 -- 自訂列收合時大家的相對位置跟沒有這個面板時一模一樣
-local STACK_RANK = { resources = 1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, buffs = 5, buffbars = 6,
+-- 專注目標施法條（focuscast）4.5：預設錨在施法條上方；跟施法條同一疊時緊貼在它外面、增益圖示之前
+local STACK_RANK = { resources = 1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, focuscast = 4.5, buffs = 5, buffbars = 6,
                      essential = 7, assistIcon = 900 }
 local function StackRank(key)
     if STACK_RANK[key] then return STACK_RANK[key] end
