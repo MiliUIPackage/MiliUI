@@ -206,7 +206,12 @@ ev:SetScript("OnEvent", function(_, event, arg1, arg2)
         return
     end
     if event == "PLAYER_FLAGS_CHANGED" then
-        if arg1 == "player" and UnitIsAFK("player") then Forced("afk") end
+        -- 首領戰／整趟鑰石／PvP 對戰期間沒有「人不在電腦前」這回事，強制回收的半秒凍結
+        -- 會直接卡在遭遇裡；而且 UnitIsAFK 在這些情境（SecretInChatMessagingLockdown）
+        -- 回的是秘密布林，拿來做 if 判斷會炸。先問情境、再問旗標。
+        if arg1 == "player" and not C_ChatInfo.InChatMessagingLockdown() and UnitIsAFK("player") then
+            Forced("afk")
+        end
         return
     end
     local label = MARKS[event]
