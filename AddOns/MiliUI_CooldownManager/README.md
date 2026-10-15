@@ -578,7 +578,12 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   之前（多個增益全部列出，不再只有第一個）；暴雪的裝備欄追蹤項目（`Catalog.EquipTrackedOf`：資料帶 `equipSlot`，而且帶 `buffSlot`——
   `Catalog.Info` 現在帶出來，只收明文正整數——或資料類別是 `EquipSlotTracked`）先判、再看 spellID。飾品的冷卻格（EquipSlotEssential）照舊
   `SetInventoryItem`。資料沒載入時 refresh 重跑同一顆的 `ShowTip`（`SlotBuffTooltip` 自己擋擁有者與序號；第二次資料已在快取，不會再等）。
-  增益在身上時暴雪改畫光環本身（`SetUnitAuraByAuraInstanceID`）——要讀暴雪框上的 auraInstanceID（可能是秘密值），**不做**。
+  **增益在身上時畫光環本身**（2026-10-16，玩家回報「飾品增益的提示是效果說明、不是增益本身」）：照暴雪 `RefreshTooltipInternal` 的順序，
+  aura instance 排在裝備欄／法術提示之前。暴雪在安全端掃 player／target；我們走 spellID 路線（`C_UnitAuras.GetPlayerAuraBySpellID`／
+  `GetUnitAuraBySpellID`，AllowedWhenTainted）拿 auraInstanceID 再交給 `GameTooltip:SetUnitAuraByAuraInstanceID`（`Decorate` 的 `ShowAuraTip`）。
+  問哪些法術（`D.TipAuraIDs`）照暴雪 `GetAssociatedAuraSpellPriority`：linkedSpellIDs → overrideTooltipSpellID → overrideSpellID → spellID；
+  飾品增益格是那個增益的法術、飾品冷卻格是使用效果的增益（`SlotUseBuffIDs`）、自訂物品是用掉之後的增益（`ItemUseBuffIDs`）；自訂法術不問。
+  光環受限時（首領戰／M+／PvP）auraInstanceID 是秘密值、tooltip 那支不收（AllowedWhenUntainted）⇒ 先擋、退回原本的提示。未實機。
 - **條層選往前補時疊層自動關**：見「只有光環格的條：引擎補位」那節的 `BarOverlaysSuppressed`。飾品／藥水的增益疊層與觸發發光疊層都關，
   條不再被它們逼成固定格位，真的往前補。
 - 逐法術面板：自訂飾品欄的「增益持續時間」分頁（顯示增益持續時間＋換色＋三個顏色）打開；解不出增益時整段停用＋黃字原因。
