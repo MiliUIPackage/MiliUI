@@ -8,24 +8,10 @@
 local _, ns = ...
 
 local L = ns.L
-local W = ns.W
 
-local asked = false
-local reloadPopup
-
--- ⚠ 只問**第一次**。每勾一個框就彈一次確認窗的話，想一次改三個視窗的人會被問三次，
---   而且每次都蓋住他正要勾的下一個框。之後靠表單裡那行說明與「重新載入介面」按鈕。
+-- 「要不要現在重新載入？」搬到 Panel.lua（`ns.Options.AskReload`），角色面板頁也用同一個
 local function AskReload()
-    if asked then return end
-    asked = true
-    local parent = ns.Options.panel
-    if not parent then return end
-    if not reloadPopup then
-        reloadPopup = W.CreateConfirmPopup(parent, 320, L["Changes take effect after a UI reload. Reload now?"], function()
-            ReloadUI()
-        end)
-    end
-    reloadPopup:Show()
+    ns.Options.AskReload()
 end
 
 local controls = {

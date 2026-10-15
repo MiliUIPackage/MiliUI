@@ -1,6 +1,8 @@
 ---@class addonTablePlatynator
 local addonTable = select(2, ...)
 
+local curve = addonTable.Display.Utilities.Get01HiddenCurve()
+
 addonTable.Display.HealthTextMixin = {}
 
 local significantFiguresCaches = {}
@@ -24,13 +26,16 @@ function addonTable.Display.HealthTextMixin:PostInit()
     self.percentTail = ""
   end
   self.formatMultiple = self.details.formatMultiple
+  self.hideAuto = self.details.hideWhen01
 end
 
 function addonTable.Display.HealthTextMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
-    self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
-    self:UpdateText()
+    self:UpdateText(addonTable.Cache:Get(self.unit, "health"))
+    addonTable.Cache:RegisterCallback(self.unit, "health", function(state)
+      self:UpdateText(state)
+    end)
   else
     self:UnregisterAllEvents()
   end
@@ -43,22 +48,22 @@ function addonTable.Display.HealthTextMixin:Strip()
   self.percentTail = nil
   self.formatMultiple = nil
   self.PostInit = nil
+  self.text:SetAlpha(1)
 end
 
-function addonTable.Display.HealthTextMixin:OnEvent()
-  self:UpdateText()
-end
-
-function addonTable.Display.HealthTextMixin:UpdateText()
+function addonTable.Display.HealthTextMixin:UpdateText(state)
   if UnitIsDeadOrGhost(self.unit) then
     self.text:SetText("0")
+    if self.hideAuto then
+      self.text:SetAlpha(0)
+    end
   else
     local values = {
       percentage = "",
-      absolute = AbbreviateNumbers(UnitHealth(self.unit)),
+      absolute = AbbreviateNumbers(state.absolute),
     }
     local types = self.details.displayTypes
-    local value = UnitHealthPercent(self.unit, true, CurveConstants.ScaleTo100)
+    local value = state.percent
     if self.abbreviateData then
       values.percentage = AbbreviateNumbers(value, self.abbreviateData) .. self.percentTail
     else
@@ -68,6 +73,10 @@ function addonTable.Display.HealthTextMixin:UpdateText()
       self.text:SetFormattedText(self.formatMultiple, values[types[1]], values[types[2]])
     elseif #types == 1 then
       self.text:SetFormattedText("%s", values[types[1]])
+    end
+
+    if self.hideAuto then
+      self.text:SetAlpha(state.markerAlpha)
     end
   end
 end

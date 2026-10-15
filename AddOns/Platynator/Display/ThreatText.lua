@@ -1,14 +1,7 @@
 ---@class addonTablePlatynator
 local addonTable = select(2, ...)
 
-local inInstanceOrParty = false
-local instanceTracker = CreateFrame("Frame")
-instanceTracker:RegisterEvent("PLAYER_ENTERING_WORLD")
-instanceTracker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-instanceTracker:RegisterEvent("INSTANCE_GROUP_SIZE_CHANGED")
-instanceTracker:SetScript("OnEvent", function(_, event)
-  inInstanceOrParty = addonTable.Display.Utilities.IsInRelevantInstance({dungeon = true, raid = true, delve = true, pvp = true}) or IsInGroup()
-end)
+local InstanceOrParty = addonTable.Display.Utilities.IsInInstanceOrParty
 
 addonTable.Display.ThreatTextMixin = {}
 
@@ -20,6 +13,8 @@ function addonTable.Display.ThreatTextMixin:PostInit()
   end
 
   self.partyOnly = self.details.showWhenGrouped
+
+  self.value = self.details.value
 end
 
 function addonTable.Display.ThreatTextMixin:SetUnit(unit)
@@ -40,6 +35,7 @@ function addonTable.Display.ThreatTextMixin:Strip()
   addonTable.Display.UnregisterForColorEvents(self)
   self:UnregisterAllEvents()
   self.tail = nil
+  self.value = nil
 end
 
 function addonTable.Display.ThreatTextMixin:OnEvent(eventName)
@@ -60,11 +56,19 @@ end
 
 function addonTable.Display.ThreatTextMixin:Update()
   self.text:SetText("")
-  if not self.partyOnly or inInstanceOrParty then
-    local _, _, percentage = UnitDetailedThreatSituation("player", self.unit)
+  if not self.partyOnly or InstanceOrParty() then
+    local _, _, scaled, raw = UnitDetailedThreatSituation("player", self.unit)
+    local percentToShow = raw
+    local prefix = ""
+    if self.value == "raw" and UnitThreatSituation("player", self.unit) == 3 then
+      percentToShow = UnitThreatPercentageOfLead("player", self.unit)
+      prefix = "+"
+    elseif self.value == "scaled" then
+      percentToShow = scaled
+    end
 
-    if percentage then
-      self.text:SetText(C_StringUtil.RoundToNearestString(percentage) .. self.tail)
+    if percentToShow then
+      self.text:SetText(prefix .. C_StringUtil.RoundToNearestString(percentToShow) .. self.tail)
     end
   end
 end

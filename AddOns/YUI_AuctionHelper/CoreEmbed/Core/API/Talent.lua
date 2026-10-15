@@ -15,12 +15,15 @@ YUI.API.Talent = Talent
 
 local Legacy = YUI.WOW_API
 local isRetail = YUI.IsRetail
+local isForever = YUI.IsForever
 local isMists = YUI.IsMists
 local isWrath = YUI.IsWrath
 local UNLEARNED_SPEC_NAME = "未激活天赋"
 local UNLEARNED_SPEC_ICON = 134400
 
 local currentSpecInfoCache
+local configurationSpecInfoCache
+local configurationSpecCacheDirty = true
 local currentSpecCacheEventsRegistered
 
 Talent.Constants = Talent.Constants or {
@@ -77,6 +80,8 @@ local function CopySpecInfo(info)
         groupIndex = info.groupIndex,
         treeIndex = info.treeIndex,
         points = info.points,
+        configID = info.configID,
+        nativeSpecID = info.nativeSpecID,
         isInitial = info.isInitial == true,
     }
 end
@@ -180,7 +185,7 @@ local function MarkCastBarDiagAction(action)
 end
 
 function Talent.ToggleTalentFrame()
-    if isRetail then
+    if isRetail or isForever then
         MarkCastBarDiagAction("ToggleTalentFrame")
         ScheduleCastBarDiag("ToggleTalentFrame before")
 
@@ -253,7 +258,7 @@ function Talent.SetLootSpecialization(specID)
 end
 
 function Talent.GetSpecialization()
-    if isRetail then
+    if isRetail or isForever then
         if C_SpecializationInfo and C_SpecializationInfo.GetSpecialization then
             return C_SpecializationInfo.GetSpecialization()
         elseif GetSpecialization then
@@ -298,7 +303,7 @@ end
 function Talent.SetSpecialization(index)
     Talent.ClearCurrentSpecializationInfoCache()
 
-    if isRetail then
+    if isRetail or isForever then
         MarkCastBarDiagAction("SetSpecialization:" .. tostring(index))
         ScheduleCastBarDiag("SetSpecialization before")
 
@@ -348,7 +353,7 @@ function Talent.SetSpecialization(index)
 end
 
 function Talent.GetNumSpecializations()
-    if isRetail then
+    if isRetail or isForever then
         if GetNumSpecializations then
             return GetNumSpecializations()
         end
@@ -387,7 +392,7 @@ end
 -- Retail 会在角色尚未获得正式专精时返回一个位于正式专精列表之后的
 -- “初始专精索引”。这个索引只描述当前角色状态，不能作为持久专精身份。
 function Talent.IsInitialSpecializationIndex(index)
-    if not isRetail then return false end
+    if not (isRetail or isForever) then return false end
     index = tonumber(index)
     if not index or index % 1 ~= 0 or index < 1 then return false end
     local count = tonumber(Talent.GetNumSpecializations()) or 0
@@ -408,7 +413,7 @@ local function GetTalentTabInfoCompat(tab, groupIndex)
 end
 
 function Talent.GetTalentTabInfo(tab, groupIndex)
-    if isRetail then return nil end
+    if isRetail or isForever then return nil end
     return GetTalentTabInfoCompat(tab, groupIndex)
 end
 
@@ -444,7 +449,7 @@ end
 function Talent.GetSpecializationInfo(index)
     if not index then return nil end
 
-    if isRetail then
+    if isRetail or isForever then
         if C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo then
             return C_SpecializationInfo.GetSpecializationInfo(index)
         elseif GetSpecializationInfo then
@@ -544,6 +549,38 @@ end
 
 function Talent.ClearCurrentSpecializationInfoCache()
     currentSpecInfoCache = nil
+    configurationSpecCacheDirty = true
+end
+
+-- 配置身份与游戏原生专精身份分离；其他客户端继续使用原生专精。
+function Talent.GetClassConfigurationSpecializations(classInfoOrClassID)
+    if not isForever then return Talent.GetClassSpecializations(classInfoOrClassID) end
+    local classInfo = ResolveClassInfo(classInfoOrClassID)
+    local catalog = Talent.ConfigurationCatalog
+    local entry = catalog and classInfo and catalog[classInfo.classFile]
+    local result = {}
+    if not entry then return result end
+    local locale = YUI.Locale and YUI.Locale:Get("Core")
+    for index, tree in ipairs(entry.trees) do
+        result[index] = {
+            specID = tree.specID, nativeSpecID = entry.nativeSpecID,
+            specIndex = index, treeIndex = index,
+            name = locale and locale[tree.nameKey] or tree.name, icon = tree.icon,
+            classID = entry.classID, classFile = classInfo.classFile,
+        }
+    end
+    return result
+end
+
+-- 仅用于将旧 Forever 职业配置分配迁移为三系配置分配。
+function Talent.GetConfigurationSpecializationKeys(specKey)
+    local classFile, id
+    if type(specKey) == "string" then classFile, id = specKey:match("^([A-Z]+):(%d+)$") end
+    local entry = isForever and Talent.ConfigurationCatalog and Talent.ConfigurationCatalog[classFile]
+    if not entry or tonumber(id) ~= entry.nativeSpecID then return { specKey } end
+    local keys = {}
+    for index, tree in ipairs(entry.trees) do keys[index] = classFile .. ":" .. tree.specID end
+    return keys
 end
 
 local function BuildRetailCurrentSpecializationInfo()
@@ -664,11 +701,142 @@ function Talent.IsStarterBuildConfigID(configID)
 end
 
 function Talent.GetCurrentConfigID()
+    if isForever then
+        local api = C_SpecializationInfo
+        if api and api.GetActiveSpecGroup and api.GetCombatConfigIDForSpecGroup then
+            return SecureCallFunction(api.GetCombatConfigIDForSpecGroup, api.GetActiveSpecGroup())
+        end
+        return nil
+    end
     if isRetail and C_ClassTalents and C_ClassTalents.GetActiveConfigID then
         return SecureCallFunction(C_ClassTalents.GetActiveConfigID)
     end
 
     return nil
+end
+
+-- Forever 的天赋组身份独立于专精身份；缺失或受限数据不猜测为第一组。
+local function IsPublicGroupNumber(value)
+    return not (issecretvalue and issecretvalue(value)) and type(value) == "number"
+end
+
+function Talent.GetNumTalentGroups()
+    if not isForever or not GetNumSpecGroups then return 0 end
+    local count = GetNumSpecGroups()
+    return IsPublicGroupNumber(count) and count or 0
+end
+
+function Talent.GetActiveTalentGroup()
+    if not isForever or not C_SpecializationInfo or not C_SpecializationInfo.GetActiveSpecGroup then return nil end
+    local group = C_SpecializationInfo.GetActiveSpecGroup()
+    return IsPublicGroupNumber(group) and group or nil
+end
+
+function Talent.CanUseTalentGroups()
+    if not isForever or not C_SpecializationInfo or not C_SpecializationInfo.CanPlayerUseTalentUI then
+        return false
+    end
+    return C_SpecializationInfo.CanPlayerUseTalentUI()
+end
+
+-- Forever 1.60.1: 三系是 Trait 分组，不是职业专精。只返回公开、完整的已应用数据。
+-- 冷事件/提示路径使用；有预览时由视图保留同 configID 的上次快照。
+function Talent.GetTalentGroupDistribution(group)
+    if not isForever or not IsPublicGroupNumber(group) or group % 1 ~= 0
+        or group < 1 or group > Talent.GetNumTalentGroups() then return nil end
+    local api, traits = C_SpecializationInfo, C_Traits
+    if not api or not api.GetCombatConfigIDForSpecGroup or not traits
+        or not traits.GetConfigInfo or not traits.GetGroupDisplayInfoByTreeID
+        or not traits.GetGroupCurrencyInfo or not traits.ConfigHasStagedChanges
+        or not traits.GetTreeCurrencyInfo then return nil end
+    local configID = api.GetCombatConfigIDForSpecGroup(group)
+    if not IsPublicGroupNumber(configID) then return nil end
+    local staged = traits.ConfigHasStagedChanges(configID)
+    if issecretvalue and issecretvalue(staged) then return nil end
+    if staged then return nil, configID, true end
+    local config = traits.GetConfigInfo(configID)
+    local treeID = config and config.treeIDs and config.treeIDs[1]
+    if not IsPublicGroupNumber(treeID) then return nil end
+    local display = traits.GetGroupDisplayInfoByTreeID(treeID)
+    if type(display) ~= "table" or #display ~= 3 then return nil end
+    local trees, ids = {}, {}
+    for i, item in ipairs(display) do
+        if not IsPublicGroupNumber(item.groupID) or not IsPublicGroupNumber(item.orderIndex)
+            or not IsPublicGroupNumber(item.icon)
+            or (issecretvalue and issecretvalue(item.displayName))
+            or type(item.displayName) ~= "string" then return nil end
+        trees[i] = {id=item.groupID, order=item.orderIndex, name=item.displayName, icon=item.icon}
+        ids[i] = item.groupID
+    end
+    table.sort(trees, function(a, b) return a.order < b.order end)
+    local currencies = traits.GetGroupCurrencyInfo(configID, ids)
+    if type(currencies) ~= "table" then return nil end
+    local total, selected, selectedIndex = 0, nil, nil
+    for index, tree in ipairs(trees) do
+        -- 与客户端标题一致：没有该分组的 currency 记录代表尚未投入。
+        tree.points = 0
+        for _, entry in ipairs(currencies) do
+            if not IsPublicGroupNumber(entry.traitNodeGroupID) then return nil end
+            if entry.traitNodeGroupID == tree.id then
+                local currency = entry.currencyInfos and entry.currencyInfos[1]
+                if currency then tree.points = currency.spent end
+                break
+            end
+        end
+        if not IsPublicGroupNumber(tree.points) or tree.points < 0 then return nil end
+        total = total + tree.points
+        -- 严格大于：并列保留客户端顺序中的首项。
+        if not selected or tree.points > selected.points then selected, selectedIndex = tree, index end
+    end
+    local currency = traits.GetTreeCurrencyInfo(configID, treeID, true)
+    local unspent = currency and currency[1] and currency[1].quantity
+    if not IsPublicGroupNumber(unspent) or unspent < 0 then unspent = nil end
+    return {trees=trees, total=total, name=selected.name, icon=selected.icon,
+        specID=selected.id, treeIndex=selectedIndex, unspent=unspent}, configID
+end
+
+function Talent.GetCurrentConfigurationSpecializationInfo()
+    if not isForever then return Talent.GetCurrentSpecializationInfo() end
+    local classInfo = GetPlayerClassInfo()
+    local group = Talent.GetActiveTalentGroup()
+    if not classInfo or not group then return nil end
+    local cached = configurationSpecInfoCache
+    local sameContext = cached and cached.classFile == classInfo.classFile and cached.groupIndex == group
+    if sameContext and not configurationSpecCacheDirty then return CopySpecInfo(cached) end
+    local distribution, configID, staged = Talent.GetTalentGroupDistribution(group)
+    if not distribution then
+        -- 编辑预览不改变已应用配置，也不替另一个天赋组猜测身份。
+        if staged and sameContext and cached.configID == configID then
+            configurationSpecCacheDirty = false
+            return CopySpecInfo(cached)
+        end
+        return nil
+    end
+    local entry = Talent.ConfigurationCatalog and Talent.ConfigurationCatalog[classInfo.classFile]
+    local tree = entry and entry.trees[distribution.treeIndex]
+    if not tree or tree.specID ~= distribution.specID then return nil end
+    configurationSpecInfoCache = {
+        specID = distribution.specID, nativeSpecID = entry.nativeSpecID,
+        specIndex = distribution.treeIndex, treeIndex = distribution.treeIndex,
+        name = distribution.name, icon = distribution.icon,
+        points = distribution.trees[distribution.treeIndex].points,
+        classID = classInfo.classID, classFile = classInfo.classFile,
+        groupIndex = group, configID = configID, isInitial = false,
+    }
+    configurationSpecCacheDirty = false
+    return CopySpecInfo(configurationSpecInfoCache)
+end
+
+function Talent.SetActiveTalentGroup(group)
+    local security = YUI.API and YUI.API.Security
+    if not isForever or not security or security.InCombatLockdown()
+        or not Talent.CanUseTalentGroups() or not IsPublicGroupNumber(group)
+        or group % 1 ~= 0 or group < 1 or group > Talent.GetNumTalentGroups()
+        or group == Talent.GetActiveTalentGroup()
+        or not C_SpecializationInfo or not C_SpecializationInfo.SetActiveSpecGroup then return false end
+    if (UnitCastingInfo and UnitCastingInfo("player")) or (UnitChannelInfo and UnitChannelInfo("player")) then return false end
+    SecureCallFunction(C_SpecializationInfo.SetActiveSpecGroup, group)
+    return true -- 表示已请求，实际当前组仍以事件后的客户端读数为准。
 end
 
 local function ReadTraitValue(func, ...)
@@ -1000,6 +1168,7 @@ local function RegisterCurrentSpecCacheEvents()
     YUI.Event:On("CHARACTER_POINTS_CHANGED", ClearCache, Talent)
     YUI.Event:On("ACTIVE_TALENT_GROUP_CHANGED", ClearCache, Talent)
     YUI.Event:On("ACTIVE_COMBAT_CONFIG_CHANGED", ClearCache, Talent)
+    if isForever then YUI.Event:On("TRAIT_CONFIG_UPDATED", ClearCache, Talent) end
     YUI.Event:On("YUI_WORLD_READY", ClearCache, Talent)
 end
 

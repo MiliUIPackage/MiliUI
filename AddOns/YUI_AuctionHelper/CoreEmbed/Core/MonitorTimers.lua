@@ -44,7 +44,8 @@ local function Receive(source,state,event,unit,guid,spellID)
     end
     local params=source.params
     unit,guid,spellID=Public(unit),Public(guid),Public(spellID)
-    if unit~=params.unit or spellID~=params.spellID or type(guid)~='string' or guid=='' or guid==state.castGUID then return false end
+    if unit~=params.unit or (spellID~=params.spellID and not (params.spellIDs and params.spellIDs[spellID]))
+        or type(guid)~='string' or guid=='' or guid==state.castGUID then return false end
     state.castGUID=guid
     if params.policy=='ignore' and (source.timerCount or 0)>0 then return false end
     if params.policy=='restart' then Clear(source) end
@@ -104,38 +105,85 @@ local WINDOW_TYPE = 'yhud.spell-event-window'
 local function EndWindow(source)
     M:RefreshSourceNow(source,'spell-event-window-expired',true)
 end
+local function StartWindow(source,state,at,continued)
+    M:CancelTasks(source)
+    local ok,code=M:ScheduleTask(source,'window-end',at+source.params.durationSeconds,EndWindow)
+    state.sequence=state.sequence+1
+    state.issue=not ok and code or nil
+    state.phase=ok and 'started' or 'reset'
+    state.startTime=ok and at or 0
+    state.available=ok==true
+    source.continuedAt=continued and at or nil
+    source.pendingEcho=nil
+end
+local function WindowEvent(source,state,event,spellID)
+    if event=='SPELL_ACTIVATION_OVERLAY_GLOW_SHOW' or event=='SPELL_ACTIVATION_OVERLAY_GLOW_HIDE' then
+        spellID=Public(spellID)
+        if type(spellID)~='number' then return false end
+        local api=YUI.API and YUI.API.Spell
+        local base=api and api.GetBaseSpellID and Public(api.GetBaseSpellID(spellID)) or spellID
+        if base~=50842 and spellID~=50842 then return false end
+        local shown=event=='SPELL_ACTIVATION_OVERLAY_GLOW_SHOW'
+        local rising=shown and not source.glowOn
+        source.glowOn=shown
+        if not rising then return false end
+        -- One outstanding empowerment can feed the next echo. Repeated SHOW
+        -- notifications for the same glow must not queue additional windows.
+        if state.available then source.pendingEcho=true
+        else
+            state.phase='idle'
+            state.manualSequence=state.manualSequence+1
+        end
+        source.windowDirty=true
+        return true
+    end
+    return true
+end
 local function WindowRead(source,state,reason)
+    local changed=source.windowDirty==true
+    source.windowDirty=nil
     if reason=='spell-event-window-trigger' then
-        M:CancelTasks(source)
         local now=GetTime()
-        local ok,code=M:ScheduleTask(source,'window-end',now+source.params.durationSeconds,EndWindow)
-        state.sequence=state.sequence+1
-        state.issue=not ok and code or nil
-        state.phase=ok and 'started' or 'reset'
-        state.startTime=ok and now or 0
-        state.available=ok==true
+        -- The engine may report the echo just after the scheduled continuation.
+        -- It confirms that window; it must not restart it or consume a new proc.
+        if source.continuedAt and now-source.continuedAt<=0.25 then return changed end
+        if state.available and now-state.startTime<0.05 then return changed end
+        if state.available and now>=state.startTime+state.duration-0.25 then
+            state.endSequence=state.endSequence+1
+        end
+        StartWindow(source,state,now,false)
         return true
     end
     if reason=='PLAYER_DEAD' or reason=='PLAYER_ENTERING_WORLD' then
         M:CancelTasks(source)
+        source.pendingEcho,source.continuedAt,source.glowOn=nil,nil,nil
         state.sequence=state.sequence+1;state.phase='reset';state.available=false;state.startTime=0
         return true
     end
     if state.available and GetTime()>=state.startTime+state.duration then
+        state.endSequence=state.endSequence+1
+        local nextStart=state.startTime+state.duration
+        if source.pendingEcho and GetTime()<nextStart+state.duration then
+            StartWindow(source,state,nextStart,true)
+            return true
+        end
+        source.pendingEcho,source.continuedAt=nil,nil
         state.sequence=state.sequence+1;state.phase='ended';state.available=false;state.startTime=0
         return true
     end
-    return false
+    return changed
 end
 function Sources:RegisterSpellEventWindowSourceType()
     if self.eventWindowRegistered then return true end
     local registered,code=M:RegisterSourceType(WINDOW_TYPE,{
         createState=function(params) return {sourceKind='spell-event-window',spellID=params.spellID,
             icon=params.icon,startTime=0,duration=params.durationSeconds,isEnabled=true,
-            available=false,resolved=true,secret=false,sequence=0,phase='idle'} end,
+            available=false,resolved=true,secret=false,sequence=0,manualSequence=0,endSequence=0,phase='idle'} end,
         getIdentity=function(params) return params.triggerSpellIDs end,
-        read=WindowRead,
+        read=WindowRead,onEvent=WindowEvent,
         events={{event='SPELL_UPDATE_COOLDOWN',identityArgs={1,2},identityReason='spell-event-window-trigger',synchronous=true},
+            {event='SPELL_ACTIVATION_OVERLAY_GLOW_SHOW',all=true,synchronous=true},
+            {event='SPELL_ACTIVATION_OVERLAY_GLOW_HIDE',all=true,synchronous=true},
             {event='PLAYER_ENTERING_WORLD',all=true,synchronous=true},
             {event='PLAYER_DEAD',all=true,synchronous=true}},
     })
@@ -143,8 +191,8 @@ function Sources:RegisterSpellEventWindowSourceType()
     self.eventWindowRegistered=true
     return true
 end
--- The gain sound is registered directly on aura 1265968. Only the delayed
--- ending consumes this existing visual window; it never represents aura loss.
+-- Manual reminders and echo endings share the visual window. Neither is an
+-- aura-loss event, and empowerment during an echo never requests manual input.
 function Sources:DescribeBoilingPoint()
     if not YUI.IsRetail then return nil,'unsupported-client' end
     local ok,code=self:RegisterSpellEventWindowSourceType()

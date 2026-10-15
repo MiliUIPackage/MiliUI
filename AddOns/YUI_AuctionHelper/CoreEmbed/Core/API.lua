@@ -12,7 +12,7 @@ local API = YUI.WOW_API
 
 API.Constants = {
     TraitConsts = {
-        STARTER_BUILD_TRAIT_CONFIG_ID = Constants.TraitConsts.STARTER_BUILD_TRAIT_CONFIG_ID
+        STARTER_BUILD_TRAIT_CONFIG_ID = Constants and Constants.TraitConsts and Constants.TraitConsts.STARTER_BUILD_TRAIT_CONFIG_ID
     }
 }
 

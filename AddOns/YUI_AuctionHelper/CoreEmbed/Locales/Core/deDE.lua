@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("deDE") then return end
+
 YUI.Locale:Register("Core", "deDE", {
     ["teleports.settings.announce_header"] = "Teleport Ankündigung",
     ["teleports.settings.announce_scope"] = "Bekanntgabeumfang",
@@ -213,11 +215,11 @@ YUI.Locale:Register("Core", "deDE", {
     ["cpu_watch.probe.ychat_driver"] = "YChat event/deferred Fahrer",
     ["cpu_watch.probe.development_load"] = "CPU-Diagnose simulierte Last",
     ["cpu_watch.probe.event_other"] = "Weitere EventBus-Hörer",
-    ["cpu_watch.probe.yhud_context"] = "YHUD Kontext auffrischen",
-    ["cpu_watch.probe.yhud_item_acquire"] = "YHUD Item-Frame Akquisition",
-    ["cpu_watch.probe.yhud_static_cooldown"] = "YHUD Cooldown Refresh",
-    ["cpu_watch.probe.yhud_static_position"] = "YHUD-Positionsreparatur",
-    ["cpu_watch.probe.yhud_category_sync"] = "YHUD Category Sync",
+    ["cpu_watch.probe.yhud_context"] = "Halo Kontext auffrischen",
+    ["cpu_watch.probe.yhud_item_acquire"] = "Halo Item-Frame Akquisition",
+    ["cpu_watch.probe.yhud_static_cooldown"] = "Halo Cooldown Refresh",
+    ["cpu_watch.probe.yhud_static_position"] = "Halo-Positionsreparatur",
+    ["cpu_watch.probe.yhud_category_sync"] = "Halo Category Sync",
     ["cpu_watch.probe.yhud_resource_preview"] = "Halo Resource Preview",
     ["cpu_watch.movement.taxi"] = "Flugbahn",
     ["cpu_watch.movement.skyriding"] = "Skyriding",
@@ -465,7 +467,7 @@ YUI.Locale:Register("Core", "deDE", {
     ["layout.filter.action"] = "Anzeige",
     ["layout.filter.title"] = "Mover Display",
     ["layout.filter.category.actionbar"] = "Aktionsleisten",
-    ["layout.filter.category.monitor"] = "Halo Konsole",
+    ["layout.filter.category.monitor"] = "Halo Monitor",
     ["layout.filter.category.combat"] = "Kampfwerkzeuge",
     ["layout.filter.category.communication"] = "Chat & Kommunikation",
     ["layout.filter.category.map"] = "Karte & Navigation",
@@ -1334,7 +1336,7 @@ YUI.Locale:Register("Core", "deDE", {
     ["game_menu.text.011"] = "Hilfe",
     ["game_menu.text.012"] = "Öffne die FAQ Seite",
     ["game_menu.text.013"] = "Aura-Editor",
-    ["game_menu.text.014"] = "Öffne den YHUD Aura-Editor",
+    ["game_menu.text.014"] = "Öffne den Halo Aura-Editor",
     ["game_menu.text.015"] = "Abklingzeit",
     ["game_menu.text.016"] = "|cFFFF0000[YUI] Einstellungen des Abklingzeitmanagers nicht gefunden|r",
     ["game_menu.text.017"] = "Blizzard-Abklingzeitmanager öffnen",

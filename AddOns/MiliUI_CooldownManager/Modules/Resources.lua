@@ -1255,11 +1255,11 @@ local function ApplyRowOverrides(row, ov)
 end
 
 -- 背景（空的那截）的玩家設定（玩家回報 2026-10-03：以前只能換成空材質才透明）：
---   bgAlpha   乘在最後的不透明度上（1 ＝ 預設的深淺；0 ＝ 全透明）。條件規則的 bgColor 也照乘
+--   bgAlpha   背景的不透明度，**絕對值**（1 ＝ 不透明、0 ＝ 全透明、預設 0.6；使用者 2026-10-15 指定，v9 前是倍率）。
+--             所有底色（自動推的、自訂的、條件規則的 bgColor、征戰聖擊的 backColor）一律用這個 alpha，顏色各走各的
 --   bgCustom＋bgColor  換掉「自動推的」底色（點數型的暗灰、連續條的主色 × 0.25）；條件規則命中時規則優先
---   征戰聖擊那種自己有 backColor 的列：顏色照它，只乘 bgAlpha
 local function BgAlpha(cfg)
-    local a = tonumber(type(cfg) == "table" and cfg.bgAlpha) or 1
+    local a = tonumber(type(cfg) == "table" and cfg.bgAlpha) or 0.6
     if a < 0 then a = 0 elseif a > 1 then a = 1 end
     return a
 end
@@ -1276,11 +1276,11 @@ local function DimColor(barOv, cfg)
     local m = BgAlpha(cfg)
     if barOv then
         local bc = RC.ValidColor(barOv.bgColor)
-        if bc then return bc, (bc.a or DIM.a) * m end
+        if bc then return bc, m end
     end
     local cc = BgCustom(cfg)
-    if cc then return cc, DIM.a * m end
-    return DIM, DIM.a * m
+    if cc then return cc, m end
+    return DIM, m
 end
 R.DimColor = DimColor
 
@@ -1290,19 +1290,19 @@ function R.DimArray(cfg)
     return { c.r, c.g, c.b, a }
 end
 
--- 連續條的背景：規則 bgColor ＞ 自訂背景色 ＞ 主色 × 0.25；alpha 乘 bgAlpha
+-- 連續條的背景：規則 bgColor ＞ 自訂背景色 ＞ 主色 × 0.25；alpha ＝ bgAlpha
 local function PaintBarBG(row, cfg, barOv, fc)
     local m = BgAlpha(cfg)
     local bgc = barOv and RC.ValidColor(barOv.bgColor)
     if bgc then
-        row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, (bgc.a or 0.8) * m)
+        row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, m)
         return
     end
     local cc = BgCustom(cfg)
     if cc then
-        row.barBG:SetVertexColor(cc.r, cc.g, cc.b, 0.8 * m)
+        row.barBG:SetVertexColor(cc.r, cc.g, cc.b, m)
     else
-        row.barBG:SetVertexColor(fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, 0.8 * m)
+        row.barBG:SetVertexColor(fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, m)
     end
 end
 
@@ -1642,7 +1642,7 @@ function R.TimerBack(cfg, key, cc, out)
     return R.TimerDim(cc, out)
 end
 
--- 剩餘時間條「當背景畫」的底色：TimerBack 再套玩家的背景設定（自己有 backColor 的列只乘 bgAlpha）。
+-- 剩餘時間條「當背景畫」的底色：TimerBack 再套玩家的背景設定（自己有 backColor 的列顏色照它、alpha 照 bgAlpha）。
 -- ⚠ 征戰聖擊「經過時間」模式拿 TimerBack 當**填充**色（PaintMirror），那裡照用 TimerBack
 function R.TimerBg(cfg, key, cc, out)
     out = R.TimerBack(cfg, key, cc, out)
@@ -1650,7 +1650,7 @@ function R.TimerBg(cfg, key, cc, out)
     local own = colors and type(colors[key]) == "table" and type(colors[key].backColor) == "table"
     local custom = not own and BgCustom(cfg)
     if custom then out[1], out[2], out[3] = custom.r, custom.g, custom.b end
-    out[4] = out[4] * BgAlpha(cfg)
+    out[4] = BgAlpha(cfg)
     return out
 end
 
@@ -2146,7 +2146,7 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
         SetSegColor(seg, c, alpha)
         if isCharged then
             -- 充能但還沒填到：底色畫成暗的充能色（打滿之前就看得出哪幾格是充能格）
-            seg.bg:SetVertexColor(chargedEmptyCC.r, chargedEmptyCC.g, chargedEmptyCC.b, DIM.a * BgAlpha(cfg))
+            seg.bg:SetVertexColor(chargedEmptyCC.r, chargedEmptyCC.g, chargedEmptyCC.b, BgAlpha(cfg))
         else
             seg.bg:SetVertexColor(dimC.r, dimC.g, dimC.b, dimA)
         end
@@ -2287,10 +2287,10 @@ function R.BgPick(cfg, cc)
     local custom = BgCustom(cfg)
     return function(ov)
         local bgc = ov and RC.ValidColor(ov.bgColor)
-        if bgc then return { bgc.r, bgc.g, bgc.b, (bgc.a or 0.8) * m } end
-        if custom then return { custom.r, custom.g, custom.b, 0.8 * m } end
+        if bgc then return { bgc.r, bgc.g, bgc.b, m } end
+        if custom then return { custom.r, custom.g, custom.b, m } end
         local fc = (ov and RC.ValidColor(ov.color)) or cc
-        return { fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, 0.8 * m }
+        return { fc.r * 0.25, fc.g * 0.25, fc.b * 0.25, m }
     end
 end
 function R.TextPick(ov)
@@ -3074,6 +3074,29 @@ local function Relayout(cfg, list, W)
     ns.Bars.SetPanelSize("resources", ns.P.Scale(panelPx), #main > 0 and total or 1)
 end
 
+-- 戰鬥中該重排卻重排不了（MustDefer：有 auraBar 容器的面板是保護框）時，引擎寫的列只把裝飾的顏色就地重上：
+-- 背景不透明度／自訂底色／背景材質／邊框色這幾樣改了當場看得到，不必等脫戰（點數型的列在 UpdateRow 每次都重上色，
+-- 引擎列的暗底只在 Layout 時上，戰鬥中改設定會一直停在舊的灰底 —— 玩家回報 2026-10-15 惡魔之核）。
+-- 尺寸、格數、填色（在容器簽章裡）照舊等脫戰的重排
+function R.RecolorDeferred(cfg)
+    if not ns.AuraBar then return end
+    for i = 1, shownCount do
+        local row = rows[i]
+        local key = row and row.key
+        local def = key and RESOURCES[key]
+        if def and row.abDecor and row.mode == "engine" then
+            local sc = R.StyleFor(cfg, key)
+            local dim
+            if def.mode == "auraBar" then
+                dim = R.DimArray(sc)
+            else
+                dim = R.TimerBg(sc, key, ResolveColor(sc, key, "color"))
+            end
+            ns.AuraBar.RecolorRowDecor(row, dim, R.EdgeArray(sc), R.BgTexture(sc))
+        end
+    end
+end
+
 -- force：重排（清單、格數、尺寸設定、寬度都可能變了）。不給 ＝ 只重畫值（能量事件走這條，
 -- 熱路徑上不重算清單、不配任何表或字串）
 function R.Update(force)
@@ -3097,6 +3120,7 @@ function R.Update(force)
     if force or not laidOut then
         if MustDefer() then
             DeferRelayout()
+            R.RecolorDeferred(cfg)
         else
             Relayout(cfg, ActiveRows(cfg), R.Width(cfg))
             laidOut = true

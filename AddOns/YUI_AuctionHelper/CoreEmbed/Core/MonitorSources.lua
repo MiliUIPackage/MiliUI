@@ -307,6 +307,12 @@ local function ReadItemCooldown(source, state)
     )
 end
 
+local function FindSharedSpellSource(sourceType, params)
+    local source = sourceType.identityIndex[params.spellID]
+    -- An alias owned by another active override is not the same runtime source.
+    if source and source.params.spellID == params.spellID then return source end
+end
+
 -- Conservative grouped policy: all owned members must have public cooldowns.
 -- It deliberately makes no assumption that the category shares one cooldown.
 local function ReadItemGroup(source, state)
@@ -412,6 +418,7 @@ function Sources:RegisterSpellSourceType()
     local sourceType, code = Monitor:RegisterSourceType(SPELL_SOURCE_TYPE, {
         createState = CreateSpellState,
         getIdentity = GetSpellIdentity,
+        findSharedSource = FindSharedSpellSource,
         -- Mixed spell domains must not discard a charge/uses/completion update.
         coalescedReason = "spell-refresh",
         read = ReadSpellCooldown,

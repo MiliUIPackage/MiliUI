@@ -2,15 +2,15 @@ local ADDON_NAME = ...
 
 local PRODUCT_ID = "auction_helper"
 local PRODUCT_TITLE = "Auction Helper · YanForge"
-local PRODUCT_VERSION = "yah-113"
-local PRODUCT_LOGO = "icons\\logo_256.png"
+local PRODUCT_VERSION = "yah-121"
+local PRODUCT_LOGO = "icons\\logo_32.png"
 local CORE_MODE = "embedded"
 local SETTINGS_SCOPE = "auction_helper"
 local PRODUCT_SETTINGS = { enabled = false }
 local PRODUCT_DB = { enabled = true, savedVariable = "YUI_AuctionHelper_DB", storageKey = "AuctionHelper" }
 local PRODUCT_COMMANDS = { { alias = "/yah", aliases = { "/yauctionhelper" }, action = "openSettings" } }
-local REQUIRED_CORE_VERSION = 1
-local EMBEDDED_CORE_VERSION = 14
+local REQUIRED_CORE_VERSION = 18
+local EMBEDDED_CORE_VERSION = 26
 
 local states = _G.YUI_CORE_EMBED_STATE
 if not states then

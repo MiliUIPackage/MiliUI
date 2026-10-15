@@ -19,3 +19,5 @@ worktree 工作分支（`claude/...`）的 commit 要帶進 master 時，直接�
 **commit 和 merge 綁在同一個指令裡，回報前查證。** 2026-09-24 MiliUI_Skin 地圖側邊分頁：我 commit 之後接著做下一件事，那一次忘了 merge，使用者 reload 看到舊樣式，回「改動沒有成功」，然後說「明明已經寫進守則了，不準再出現」。規則寫了照樣漏，是因為 commit 和 merge 分成兩步、中間被別的工作插隊。做法：
 - 每次 commit 一律用同一串指令接 merge：`git commit … && B=$(git branch --show-current) && git -C <Interface> merge --no-edit "$B"`，**沒有「只 commit」這個選項**。一次做好幾項時也一樣：每一項 commit 完當場 merge，不留到最後一起合。
 - 回報「已 merge」之前查一次：`git -C <Interface> branch --no-merged master` 必須是空的（或 `git merge-base --is-ancestor <分支> master`）。沒查就不准寫「已 merge」。
+
+- 2026-10-15：遠端**名叫 `MiliUIPackage`，沒有 `origin`** —— `git push origin master` 會回「無法讀取遠端版本庫」，那是打錯名字不是權限。`git push MiliUIPackage master` 在本體 checkout 推得通（當天 bd1e2dca5→b3ea0d12c 實證）。子工作階段（沙箱、SSH agent 不在）同一條指令可能也回同樣訊息：先試 `git push ssh://git@ssh.github.com:443/MiliUIPackage/MiliUI.git master`（notes/wow-git-tag-push-rejected.md），還是不通才回報請使用者 push，不要反覆重試。推完用 HTTPS `ls-remote` 比對 SHA。

@@ -55,3 +55,8 @@ git ls-remote --tags https://github.com/<owner>/<repo>.git
 
 使用者自己的 Fork／終端機走 SSH 是正常的，別把這個沙箱限制誤判成他的環境壞了。
 相關：[[project-miliui-release-version]]、[[feedback-ayije-cdm-sync-tag]]
+
+## push 時 22 埠對 GitHub 逾時（2026-10-15）
+
+`ssh -T git@github.com` 連 22 埠 Operation timed out、HTTPS `ls-remote` 卻通 ⇒ 是網路擋 22，不是金鑰或權限（git 的訊息「無法讀取遠端版本庫／請確認您有正確的存取權限」會誤導）。
+不改 remote，直接推到 GitHub 的 443 埠 SSH：`git push ssh://git@ssh.github.com:443/MiliUIPackage/MiliUI.git master`，同一把金鑰。推完用 HTTPS `ls-remote` 比對 SHA 確認。

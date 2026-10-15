@@ -14,12 +14,11 @@ addonTable.Constants = {
   IsClassic = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE,
 
   IsMidnightNext = select(4, GetBuildInfo()) >= 120105,
-  IsHitTestPointsAvailable = C_NamePlate.SetNamePlateSize ~= nil,
-  IsSimplifiedAvailable = C_NamePlateManager and C_NamePlateManager.SetNamePlateSimplified ~= nil,
-  IsModernPlates = C_NamePlate and C_NamePlate.SetNamePlateSize ~= nil,
+  IsCVarsBack = C_CVar.GetCVarInfo("nameplateMotionSpeed") ~= nil,
   -- Restricted to secrets clients due to MoP bug where the duration objects don't work properly
   IsCooldownFormattingAvailable = CreateFrame("Cooldown").SetCountdownFormatter ~= nil and C_Secrets.HasSecretRestrictions(),
   IsSecretsActive = C_Secrets and C_Secrets.HasSecretRestrictions() or false,
+  IsModernAuras = C_XMLUtil.GetTemplateInfo("CustomAuraButton") ~= nil,
 
   DeathKnightMaxRunes = 6,
 
@@ -39,6 +38,9 @@ addonTable.Constants = {
   StackRegionColor = CreateColor(198/255, 0/255, 0/255, 0.3),
   StackRegionBorderColor = CreateColor(104/255, 0/255, 0/255),
 }
+
+addonTable.Constants.IsClassic = addonTable.Constants.IsClassic and not addonTable.Constants.IsForever
+
 addonTable.Constants.Events = {
   "SettingChanged",
   "RefreshStateChange",
@@ -72,6 +74,7 @@ addonTable.Constants.RefreshReason = {
   Clickable = 8,
   BlizzardWidgetScale = 9,
   DesignSelection = 10,
+  Movement = 11,
 }
 
 addonTable.Constants.OldFontMapping = {
@@ -118,7 +121,7 @@ addonTable.Constants.DefaultRange = {
   [1473] = 25, -- Augmentation
   [1465] = 25,
   -- Hunter
-  ["HUNTER"] = 40,
+  ["HUNTER"] = addonTable.Constants.IsForever and 35 or 40,
   [253] = 40, -- Beast Mastery
   [254] = 40, -- Marksmanship
   [255] = 40, -- Survival

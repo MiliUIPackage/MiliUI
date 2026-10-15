@@ -82,6 +82,17 @@ function Service:GetConfig()
     return profile.TeleportAnnouncement
 end
 
+-- Tooltip query: preserve legacy scope without creating or migrating configuration.
+function Service:GetScopeSnapshot()
+    local product = self:GetOwnerProduct()
+    if not product or not YUI.DB:IsReady() then return nil end
+    local profile = YUI.DB:GetProfile(product)
+    if not profile then return nil end
+    local db = type(profile.TeleportAnnouncement) == "table" and profile.TeleportAnnouncement
+        or GetLegacyConfig(profile)
+    return db and IsValidAnnounceScope(db.announceScope) and db.announceScope or ANNOUNCE_SCOPE_OFF
+end
+
 function Service:GetScope()
     local db = self:GetConfig()
     return db and IsValidAnnounceScope(db.announceScope) and db.announceScope or ANNOUNCE_SCOPE_OFF

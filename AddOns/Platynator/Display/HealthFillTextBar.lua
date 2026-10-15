@@ -7,9 +7,6 @@ function addonTable.Display.HealthFillTextBarMixin:PostInit()
   if self.details.background.applyColor then -- Apply tint to colours
     self.modColors = addonTable.Display.Utilities.TintAutoColors(self.details.autoColors, self.details.background.color)
   end
-  self.calculator = CreateUnitHealPredictionCalculator()
-  self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
-  self.calculator:SetDamageAbsorbClampMode(Enum.UnitDamageAbsorbClampMode.MaximumHealth)
 
   self.animate = self.details.animate and Enum.StatusBarInterpolation.ExponentialEaseOut or Enum.StatusBarInterpolation.Immediate
 end
@@ -17,22 +14,21 @@ end
 function addonTable.Display.HealthFillTextBarMixin:SetUnit(unit)
   self.unit = unit
   if self.unit then
-    self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
-    self:RegisterUnitEvent("UNIT_MAXHEALTH", self.unit)
-    self:RegisterUnitEvent("UNIT_ABSORB_AMOUNT_CHANGED", self.unit)
     self:RegisterUnitEvent("UNIT_NAME_UPDATE", self.unit)
 
-    self.defaultText = UnitName(self.unit)
+    self:SaveName()
     self:SetText(self.defaultText)
 
     -- Disable animation for initial setup
     local animate = self.animate
     self.animate = nil
-    self:UpdateHealth()
+    self:UpdateHealth(addonTable.Cache:Get(self.unit, "health"))
+    addonTable.Cache:RegisterCallback(self.unit, "health", function(state)
+      self:UpdateHealth(state)
+    end)
     self.animate = animate
 
     if self.details.showWhenWowDoes then
-      self:RegisterUnitEvent("UNIT_HEALTH", self.unit)
       self:SetShown(UnitShouldDisplayName(self.unit))
       addonTable.Cache:RegisterCallback(unit, "target", function()
         self:SetShown(UnitIsUnit(self.unit, "target") or UnitShouldDisplayName(self.unit))
@@ -78,38 +74,35 @@ function addonTable.Display.HealthFillTextBarMixin:SetColor(...)
   end
 end
 
-function addonTable.Display.HealthFillTextBarMixin:UpdateHealth()
-  UnitGetDetailedHealPrediction(self.unit, nil, self.calculator)
+function addonTable.Display.HealthFillTextBarMixin:UpdateHealth(state)
+  self.statusBar:SetMinMaxValues(0, state.maxWithAbsorbs)
 
-  self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.WithAbsorbs)
-  local maxHealth = self.calculator:GetMaximumHealth()
-  self.statusBar:SetMinMaxValues(0, maxHealth)
+  self.statusBarAbsorb:SetMinMaxValues(0, state.maxWithAbsorbs)
 
-  self.statusBarAbsorb:SetMinMaxValues(0, maxHealth)
-
-  local absorbs = self.calculator:GetDamageAbsorbs()
-  self.statusBarAbsorb:SetValue(absorbs, self.animate)
-  self.calculator:SetMaximumHealthMode(Enum.UnitMaximumHealthMode.Default)
-  local newHealth = self.calculator:GetCurrentHealth()
-  self.statusBar:SetValue(newHealth, self.animate)
+  self.statusBarAbsorb:SetValue(state.absorbs, self.animate)
+  self.statusBar:SetValue(state.absolute, self.animate)
 end
 
 function addonTable.Display.HealthFillTextBarMixin:OnEvent(eventName)
   if eventName == "UNIT_HEALTH" then
-    self:UpdateHealth()
     if self.details.showWhenWowDoes then
       self:SetShown(UnitShouldDisplayName(self.unit))
     end
-  elseif eventName == "UNIT_MAXHEALTH" then
-    self:UpdateHealth()
-  elseif eventName == "UNIT_ABSORB_AMOUNT_CHANGED" then
-    self:UpdateHealth()
   elseif eventName == "UNIT_NAME_UPDATE" then
-    self.defaultText = UnitName(self.unit)
+    self:SaveName()
     self:SetText(self.defaultText)
   end
 
   self:ColorEventHandler(eventName)
+end
+
+function addonTable.Display.HealthFillTextBarMixin:SaveName()
+  if UnitIsPlayer(self.unit) and RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then
+    local part1, part2 = UnitName(self.unit)
+    self.defaultText = part1 and part2 and part1 .. Constants.CharacterNameSeparatorConsts.CHARACTERNAME_SURNAME_SEPARATOR .. part2 or part1
+  else
+    self.defaultText = UnitName(self.unit)
+  end
 end
 
 function addonTable.Display.HealthFillTextBarMixin:ApplyTextOverride()

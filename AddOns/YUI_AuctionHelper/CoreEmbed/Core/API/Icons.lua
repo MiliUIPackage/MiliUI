@@ -1091,6 +1091,10 @@ local function GetRaceIconAtlas(raceFile, atlasGender)
         "raceicon128-" .. stem .. "-" .. atlasGender,
         "raceicon-" .. stem .. "-" .. atlasGender,
     }
+    if YUI.IsForever and stem == "skyborne" then
+        candidates[#candidates + 1] = "raceicon128-skyborne-" .. atlasGender .. "-c60"
+        candidates[#candidates + 1] = "raceicon-skyborne-" .. atlasGender .. "-c60"
+    end
 
     for _, atlas in ipairs(candidates) do
         local ok, info = pcall(C_Texture.GetAtlasInfo, atlas)
@@ -1228,14 +1232,16 @@ Icons.RegisterIconScope({
     default = true,
 })
 
-Icons.RegisterIconScope({
-    id = "light_damage",
-    name = "LightDamage",
-    nameKey = "settings.appearance.scope.light_damage",
-    tooltipKey = "settings.appearance.scope.light_damage.tooltip",
-    order = 20,
-    default = true,
-})
+if not YUI.IsForever then
+    Icons.RegisterIconScope({
+        id = "light_damage",
+        name = "LightDamage",
+        nameKey = "settings.appearance.scope.light_damage",
+        tooltipKey = "settings.appearance.scope.light_damage.tooltip",
+        order = 20,
+        default = true,
+    })
+end
 
 Icons.RegisterIconScope({
     id = "ellesmere_damage_meters",

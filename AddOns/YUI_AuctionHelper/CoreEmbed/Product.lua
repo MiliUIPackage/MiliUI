@@ -11,9 +11,9 @@ end
 
 local PRODUCT_ID = "auction_helper"
 local PRODUCT_TITLE = "Auction Helper · YanForge"
-local PRODUCT_LOGO = "icons\\logo_256.png"
-local PRODUCT_SMALL_LOGO = nil
-local PRODUCT_LOGO_CROP = nil
+local PRODUCT_LOGO = "icons\\logo_32.png"
+local PRODUCT_SMALL_LOGO = "icons\\logo_32.png"
+local PRODUCT_LOGO_CROP = false
 local OWNED_GLOBALS = {}
 local PRODUCT_SETTINGS = { enabled = false }
 local PRODUCT_DB = { enabled = true, savedVariable = "YUI_AuctionHelper_DB", storageKey = "AuctionHelper" }
@@ -21,6 +21,16 @@ local PRODUCT_COMMANDS = { { alias = "/yah", aliases = { "/yauctionhelper" }, ac
 local PRODUCT_ASSET_FOLDERS = { "Components\\AuctionHelper\\Media" } or {}
 local PRODUCT_COMPONENT = { id = "AuctionHelper", settingsMode = "toggleOnly" }
 local PRODUCT_COMPONENTS = nil or {}
+local client = YUI.IsForever and "forever" or YUI.IsRetail and "mainline"
+    or YUI.IsWrath and "wrath" or YUI.IsMists and "mists"
+local activeComponents = {}
+for i = 1, #PRODUCT_COMPONENTS do
+    local component = PRODUCT_COMPONENTS[i]
+    if not component.clients or component.clients[client] then
+        activeComponents[#activeComponents + 1] = component
+    end
+end
+PRODUCT_COMPONENTS = activeComponents
 local SUITE_EXCLUSIVE = nil == true
 
 local function Report(message)
@@ -122,10 +132,10 @@ local product = {
     logo = PRODUCT_LOGO,
     smallLogo = PRODUCT_SMALL_LOGO,
     logoCrop = PRODUCT_LOGO_CROP,
-    version = "yah-113",
+    version = "yah-121",
     coreMode = "embedded",
-    requiredCoreVersion = 1,
-    embeddedCoreVersion = 14,
+    requiredCoreVersion = 18,
+    embeddedCoreVersion = 26,
     settingsScope = "auction_helper",
     author = "阿言",
     notes = "购物助手 · 言工坊",

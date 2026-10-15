@@ -6,7 +6,7 @@
 --   ns.SkyridingSettings.Refresh()   開著就重讀（天空騎術頁改了會影響這裡的值時叫）
 --
 -- 殼是共用的（Options/SettingsWindow.lua，同資源條每種資源的設定視窗）。讀寫 profile.skyriding.rows.<key>.*，小節：
---   版面   高（1～40）
+--   版面   （旋轉急衝才有）顯示長條（關掉＝只顯示圖示）、高（1～40）
 --   外觀   材質（第一項「跟隨資源條的外觀」＝INHERIT）、背景材質（跟隨資源條／跟填充相同（FILL）／各材質）、背景色（含透明度）、
 --          前景色：速度＝三色（一般速度／快意翱翔／貼地飛掠）；旋轉急衝、重新振作＝一色；
 --          活力＝一色＋「改用速度條的顏色」＋重新振作的底色（灰字：重新振作那一列開著時不畫）
@@ -75,25 +75,48 @@ local SIDE_ITEMS = {
 
 local function Row(key) return SR().RowCfg(Cfg(), key) end
 
+-- 旋轉急衝的長條關著（只顯示圖示）：長條自己的設定（高、外觀、文字、效果）一律停用
+local function BarOff(key)
+    return key == "surge" and Row("surge").bar == false
+end
+
+-- 帶上長條關著的遮罩：fn 可省
+local function Gate(key, fn)
+    if key ~= "surge" then return fn end
+    return function(info) return BarOff(key) or (fn and fn(info) or false) end
+end
+
 local function TextOff(key)
-    return function()
+    return Gate(key, function()
         local t = Row(key).text
         return not (type(t) == "table" and t.show)
-    end
+    end)
 end
 
 local function AppendLayout(add, key, base)
     add({ type = "header", label = L["Layout"] })
-    add(BS("slider", base .. "height", L["Height"], { min = 1, max = 40, step = 1 }))
+    if key == "surge" then
+        add(BS("toggle", base .. "bar", L["Show the bar"], {
+            get = function() return Row("surge").bar ~= false end,
+            set = function(_, v)
+                local c = Cfg()
+                if not c then return end
+                ns.DB.SetPath(c, base .. "bar", v and true or false)
+                -- 長條關掉時圖示還是「不顯示」＝ 整列什麼都沒有：順手把圖示打開
+                if not v and SR().SurgeIcon(c, true) == "off" then ns.DB.SetPath(c, base .. "icon.mode", "always") end
+            end }))
+        add(Note(L["Turn it off to show only the icon (see Icon below)."]))
+    end
+    add(BS("slider", base .. "height", L["Height"], { min = 1, max = 40, step = 1, disabled = Gate(key) }))
 end
 
 local function AppendLook(add, key, base)
     add({ type = "header", label = L["Appearance"] })
-    add(BS("dropdown", base .. "texture", L["Texture"], { items = TextureItems,
+    add(BS("dropdown", base .. "texture", L["Texture"], { items = TextureItems, disabled = Gate(key),
         get = function() return ns.Specs.InheritOr(Row(key).texture) end }))
-    add(BS("dropdown", base .. "bgTexture", L["Background texture"], { items = BgTextureItems,
+    add(BS("dropdown", base .. "bgTexture", L["Background texture"], { items = BgTextureItems, disabled = Gate(key),
         get = function() return ns.Specs.InheritOr(Row(key).bgTexture) end }))
-    add(BS("color", base .. "bgColor", L["Background color"], { hasAlpha = true }))
+    add(BS("color", base .. "bgColor", L["Background color"], { hasAlpha = true, disabled = Gate(key) }))
     if key == "speed" then
         add(BS("color", base .. "colors.low", L["Normal speed"], { hasAlpha = false }))
         add(BS("color", base .. "colors.thrill", Spell("thrill"), { hasAlpha = false }))
@@ -106,7 +129,7 @@ local function AppendLook(add, key, base)
             disabled = function() return SR().RowOn(Cfg(), "secondWind") end }))
         add(Note(L["Not drawn while the %s row is on."]:format(Spell("secondWind"))))
     else
-        add(BS("color", base .. "color", L["Color"], { hasAlpha = false }))
+        add(BS("color", base .. "color", L["Color"], { hasAlpha = false, disabled = Gate(key) }))
     end
 end
 
@@ -114,7 +137,7 @@ local function AppendText(add, key, base)
     local tb = base .. "text."
     local off = TextOff(key)
     add({ type = "header", label = L["Text"] })
-    add(BS("toggle", tb .. "show", L["Show"]))
+    add(BS("toggle", tb .. "show", L["Show"], { disabled = Gate(key) }))
     if key == "speed" then
         add(Note(L["Your speed as a percent of running speed."]))
     elseif key == "surge" then
@@ -147,20 +170,20 @@ local FX_STYLE_ITEMS = {
 
 local function AppendSurge(add, base)
     add({ type = "header", label = L["Effects"] })
-    add(BS("toggle", base .. "fx", L["Electric effect when full"]))
+    add(BS("toggle", base .. "fx", L["Electric effect when full"], { disabled = Gate("surge") }))
     add(BS("dropdown", base .. "fxStyle", L["Style"], { items = FX_STYLE_ITEMS,
-        disabled = function() return Row("surge").fx == false end,
+        disabled = Gate("surge", function() return Row("surge").fx == false end),
         get = function() return Row("surge").fxStyle == "sweep" and "sweep" or "lightning" end }))
-    add(BS("toggle", base .. "shake", L["Shake after it fills up"]))
+    add(BS("toggle", base .. "shake", L["Shake after it fills up"], { disabled = Gate("surge") }))
 
     local ib = base .. "icon."
-    local function IconOff() return SR().SurgeIcon(Cfg()) == "off" end
+    local function IconOff() return SR().SurgeIcon(Cfg(), true) == "off" end
     add({ type = "header", label = L["Icon"] })
     add(BS("dropdown", ib .. "mode", L["Show when"], { items = ICON_ITEMS,
-        get = function() return (SR().SurgeIcon(Cfg())) end }))
+        get = function() return (SR().SurgeIcon(Cfg(), true)) end }))
     add(BS("slider", ib .. "size", L["Icon size"], { min = 12, max = 64, step = 1, disabled = IconOff }))
     add(BS("dropdown", ib .. "side", L["Icon position"], { items = SIDE_ITEMS, disabled = IconOff,
-        get = function() return select(3, SR().SurgeIcon(Cfg())) end }))
+        get = function() return select(3, SR().SurgeIcon(Cfg(), true)) end }))
     add(Note(L["Border, zoom and cooldown swipe follow the theme's icon settings."]))
 end
 

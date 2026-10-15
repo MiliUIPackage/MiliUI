@@ -319,6 +319,117 @@ local energyMobs = {
   },
 }
 
+local defaultHighlight = {
+  label = addonTable.Locales.GENERAL,
+  entries = {
+    {
+      label = addonTable.Locales.HEIGHT,
+      kind = "slider",
+      min = 50, max = 600,
+      valuePattern = "%d%%",
+      setter = function(details, value)
+        details.height = value / 100
+      end,
+      getter = function(details)
+        return details.height * 100
+      end,
+    },
+    {
+      label = addonTable.Locales.WIDTH,
+      kind = "slider",
+      min = 15, max = 300,
+      valuePattern = "%d%%",
+      setter = function(details, value)
+        details.width = value / 100
+      end,
+      getter = function(details)
+        return details.width * 100
+      end,
+    },
+    {
+      label = addonTable.Locales.VISUAL,
+      kind = "dropdown",
+      getInitData = function(details)
+        if details.kind:match("^animated") then
+          return GetLabelsValuesHighlightsAnimated()
+        else
+          return GetLabelsValuesHighlightsNotAnimated()
+        end
+      end,
+      setter = function(details, value)
+        details.sliced = value.sliced
+        details.asset = value.asset
+      end,
+      getter = function(details)
+        if details.kind:match("^animated") then
+          return {asset = details.asset}
+        else
+          return {sliced = details.sliced, asset = details.asset}
+        end
+      end
+    },
+    {
+      label = addonTable.Locales.COLOR,
+      kind = "colorPicker",
+      setter = function(details, value)
+        details.color = value
+      end,
+      getter = function(details)
+        return details.color
+      end,
+    },
+  }
+}
+
+local mouseoverHighlight = CopyTable(defaultHighlight)
+table.insert(mouseoverHighlight.entries, { kind = "spacer" })
+table.insert(mouseoverHighlight.entries,
+  {
+    label = addonTable.Locales.INCLUDE_TARGET,
+    kind = "checkbox",
+    setter = function(details, value)
+      details.includeTarget = value
+    end,
+    getter = function(details)
+      return details.includeTarget
+    end,
+  }
+)
+
+local animatedBorderHighlight = CopyTable(defaultHighlight)
+table.insert(animatedBorderHighlight.entries, { kind = "spacer" })
+table.insert(animatedBorderHighlight.entries,
+  {
+    label = addonTable.Locales.BORDER_WIDTH,
+    kind = "slider",
+    min = 50, max = 500,
+    valuePattern = "%d%%",
+    setter = function(details, value)
+      details.borderWidth = value / 100
+    end,
+    getter = function(details)
+      return details.borderWidth * 100
+    end,
+  }
+)
+
+local flashingHighlight = CopyTable(defaultHighlight)
+table.insert(flashingHighlight.entries, { kind = "spacer" })
+table.insert(flashingHighlight.entries,
+  {
+    label = addonTable.Locales.SPEED,
+    kind = "slider",
+    min = 10, max = 500,
+    valuePattern = "%d%%",
+    setter = function(details, value)
+      details.speed = value / 100
+    end,
+    getter = function(details)
+      return details.speed * 100
+    end,
+  }
+)
+
 addonTable.CustomiseDialog.WidgetsConfig = {
   ["bars"] = {
     ["*"] = {
@@ -674,6 +785,21 @@ addonTable.CustomiseDialog.WidgetsConfig = {
     },
     ["health"] = {
       {
+        label = addonTable.Locales.GENERAL,
+        entries = {
+          {
+            label = addonTable.Locales.HIDE_WHEN_01,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.hideWhen01 = value
+            end,
+            getter = function(details)
+              return details.hideWhen01
+            end,
+          },
+        },
+      },
+      {
         label = addonTable.Locales.VALUES,
         entries = {
           {
@@ -1022,6 +1148,40 @@ addonTable.CustomiseDialog.WidgetsConfig = {
         label = addonTable.Locales.GENERAL,
         entries = {
           {
+            label = addonTable.Locales.ONLY_SHOW_WHEN_IN_GROUP,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.showWhenGrouped = value
+            end,
+            getter = function(details)
+              return details.showWhenGrouped
+            end,
+          },
+        },
+      },
+      {
+        label = addonTable.Locales.VALUE,
+        entries = {
+          {
+            label = addonTable.Locales.PERCENTAGE,
+            kind = "dropdown",
+            getInitData = function()
+              return {
+                addonTable.Locales.RAW,
+                addonTable.Locales.SCALED,
+              }, {
+                "raw",
+                "scaled",
+              }
+            end,
+            setter = function(details, value)
+              details.value = value
+            end,
+            getter = function(details)
+              return details.value
+            end
+          },
+          {
             label = addonTable.Locales.SHOW_PERCENT_SYMBOL,
             kind = "checkbox",
             setter = function(details, value)
@@ -1031,6 +1191,27 @@ addonTable.CustomiseDialog.WidgetsConfig = {
               return details.showPercentSymbol
             end,
           },
+        }
+      },
+      {
+        label = addonTable.Locales.COLORS,
+        entries = {
+          {
+            label = "",
+            kind = "autoColors",
+            lockedElements = {},
+            setter = function() end,
+            getter = function(details)
+              return details.autoColors
+            end,
+          },
+        },
+      },
+    },
+    ["threatDifferential"] = {
+      {
+        label = addonTable.Locales.GENERAL,
+        entries = {
           {
             label = addonTable.Locales.ONLY_SHOW_WHEN_IN_GROUP,
             kind = "checkbox",
@@ -1049,7 +1230,7 @@ addonTable.CustomiseDialog.WidgetsConfig = {
           {
             label = "",
             kind = "autoColors",
-            lockedElements = {reaction = true},
+            lockedElements = {},
             setter = function() end,
             getter = function(details)
               return details.autoColors
@@ -1255,6 +1436,21 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
           },
           {
+            label = addonTable.Locales.SHOW_TOOLTIPS,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.showTooltips = value
+            end,
+            getter = function(details)
+              return details.showTooltips
+            end,
+          },
+        },
+      },
+      {
+        label = addonTable.Locales.VISUAL,
+        entries = {
+          {
             label = addonTable.Locales.SHOW_TYPE_BORDER,
             kind = "checkbox",
             setter = function(details, value)
@@ -1274,17 +1470,7 @@ addonTable.CustomiseDialog.WidgetsConfig = {
               return details.showSwipe
             end,
           },
-          {
-            label = addonTable.Locales.SHOW_TOOLTIPS,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.showTooltips = value
-            end,
-            getter = function(details)
-              return details.showTooltips
-            end,
-          },
-        },
+        }
       },
       {
         label = addonTable.Locales.TEXTS,
@@ -1364,10 +1550,21 @@ addonTable.CustomiseDialog.WidgetsConfig = {
               return details.filters.fromYou
             end,
           },
+          { kind = "spacer" },
+          {
+            label = addonTable.Locales.EXTRAS,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.includeExtras = value
+            end,
+            getter = function(details)
+              return details.filters.includeExtras
+            end,
+          },
         }
       },
       {
-        label = addonTable.Locales.PANDEMIC,
+        label = addonTable.Locales.VISUAL,
         entries = {
           {
             label = addonTable.Locales.SHOW_PANDEMIC,
@@ -1421,6 +1618,16 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
           },
           {
+            label = addonTable.Locales.MAGIC,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.magic = value
+            end,
+            getter = function(details)
+              return details.filters.magic
+            end,
+          },
+          {
             label = addonTable.Locales.DISPELLABLE,
             kind = "checkbox",
             setter = function(details, value)
@@ -1454,10 +1661,21 @@ addonTable.CustomiseDialog.WidgetsConfig = {
             end,
             hide = addonTable.Constants.IsClassic,
           },
+          {
+            label = addonTable.Locales.SHOW_LONG_DURATION_AURAS,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.showLongDurations = value
+            end,
+            getter = function(details)
+              return details.filters.showLongDurations
+            end,
+            hide = addonTable.Constants.IsClassic,
+          },
         }
       },
       {
-        label = addonTable.Locales.PURGEABLE,
+        label = addonTable.Locales.VISUAL,
         entries = {
           {
             label = addonTable.Locales.SHOW_PURGEABLE_BORDER,
@@ -1500,6 +1718,17 @@ addonTable.CustomiseDialog.WidgetsConfig = {
               return details.filters.fromYou
             end,
           },
+          { kind = "spacer" },
+          {
+            label = addonTable.Locales.EXTRAS,
+            kind = "checkbox",
+            setter = function(details, value)
+              details.filters.includeExtras = value
+            end,
+            getter = function(details)
+              return details.filters.includeExtras
+            end,
+          },
         }
       }
     },
@@ -1533,84 +1762,11 @@ addonTable.CustomiseDialog.WidgetsConfig = {
               return details.layer
             end,
           },
-          { kind = "spacer" },
-          {
-            label = addonTable.Locales.HEIGHT,
-            kind = "slider",
-            min = 50, max = 600,
-            valuePattern = "%d%%",
-            setter = function(details, value)
-              details.height = value / 100
-            end,
-            getter = function(details)
-              return details.height * 100
-            end,
-          },
-          {
-            label = addonTable.Locales.WIDTH,
-            kind = "slider",
-            min = 15, max = 300,
-            valuePattern = "%d%%",
-            setter = function(details, value)
-              details.width = value / 100
-            end,
-            getter = function(details)
-              return details.width * 100
-            end,
-          },
-          {
-            label = addonTable.Locales.VISUAL,
-            kind = "dropdown",
-            getInitData = function(details)
-              if details.kind:match("^animated") then
-                return GetLabelsValuesHighlightsAnimated()
-              else
-                return GetLabelsValuesHighlightsNotAnimated()
-              end
-            end,
-            setter = function(details, value)
-              details.sliced = value.sliced
-              details.asset = value.asset
-            end,
-            getter = function(details)
-              if details.kind:match("^animated") then
-                return {asset = details.asset}
-              else
-                return {sliced = details.sliced, asset = details.asset}
-              end
-            end
-          },
-          {
-            label = addonTable.Locales.COLOR,
-            kind = "colorPicker",
-            setter = function(details, value)
-              details.color = value
-            end,
-            getter = function(details)
-              return details.color
-            end,
-          },
-        },
-      },
-    },
-    ["mouseover"] = {
-      {
-        label = addonTable.Locales.GENERAL,
-        entries = {
-          {
-            label = addonTable.Locales.INCLUDE_TARGET,
-            kind = "checkbox",
-            setter = function(details, value)
-              details.includeTarget = value
-            end,
-            getter = function(details)
-              return details.includeTarget
-            end,
-          },
         },
       },
     },
     ["automatic"] = {
+      defaultHighlight,
       {
         label = addonTable.Locales.COLORS,
         entries = {
@@ -1627,24 +1783,126 @@ addonTable.CustomiseDialog.WidgetsConfig = {
         },
       },
     },
-    ["animatedBorder"] = {
+    ["target"] = {
+      defaultHighlight,
+    },
+    ["softTarget"] = {
+      defaultHighlight,
+    },
+    ["focus"] = {
+      defaultHighlight,
+    },
+    ["mouseover"] = {
+      mouseoverHighlight
+    },
+    ["fixed"] = {
+      defaultHighlight,
+    },
+    ["auras"] = {
+      defaultHighlight,
+    },
+    ["fixedBordered"] = {
       {
         label = addonTable.Locales.GENERAL,
         entries = {
           {
-            label = addonTable.Locales.BORDER_WIDTH,
+            label = addonTable.Locales.HEIGHT,
             kind = "slider",
-            min = 50, max = 500,
-            valuePattern = "%d%%",
+            min = 50, max = 300,
+            formatter = function(value) return value .. "%" end,
             setter = function(details, value)
-              details.borderWidth = value / 100
+              details.border.height = value / 100
             end,
             getter = function(details)
-              return details.borderWidth * 100
+              return details.border.height * 100
+            end,
+          },
+          {
+            label = addonTable.Locales.WIDTH,
+            kind = "slider",
+            min = 15, max = 300,
+            formatter = function(value) return value .. "%" end,
+            setter = function(details, value)
+              details.border.width = value / 100
+            end,
+            getter = function(details)
+              return details.border.width * 100
+            end,
+          },
+        },
+      },
+      {
+        label = addonTable.Locales.TEXTURES,
+        entries = {
+          {
+            label = addonTable.Locales.BORDER,
+            kind = "dropdown",
+            getInitData = function(details)
+              return GetLabelsValuesBorders()
+            end,
+            setter = function(details, value)
+              details.border.asset = value
+            end,
+            getter = function(details)
+              return details.border.asset
+            end
+          },
+          {
+            label = addonTable.Locales.BORDER_COLOR,
+            kind = "colorPicker",
+            setter = function(details, value)
+              details.border.color = value
+            end,
+            getter = function(details)
+              return details.border.color
+            end,
+          },
+          {
+            label = addonTable.Locales.BACKGROUND,
+            kind = "dropdown",
+            getInitData = function()
+              return GetLabelsValuesBackgrounds()
+            end,
+            setter = function(details, value)
+              details.background.asset = value
+            end,
+            getter = function(details)
+              return details.background.asset
+            end
+          },
+          {
+            label = addonTable.Locales.BACKGROUND_COLOR,
+            kind = "colorPicker",
+            setter = function(details, value)
+              details.background.color = value
+            end,
+            getter = function(details)
+              return details.background.color
             end,
           },
         }
       },
+    },
+    ["animatedBorder"] = {
+      animatedBorderHighlight,
+      {
+        label = addonTable.Locales.COLORS,
+        entries = {
+          {
+            label = "",
+            kind = "autoColors",
+            lockedElements = {},
+            addAlpha = true,
+            setter = function() end,
+            getter = function(details)
+              return details.autoColors
+            end,
+          },
+        },
+      },
+    },
+    ["flashing"] = {
+      flashingHighlight,
       {
         label = addonTable.Locales.COLORS,
         entries = {

@@ -366,21 +366,24 @@ local function BuildChromeMili()
     title:SetWordWrap(false)
     panel.titleText = title
 
-    -- 關閉鈕：red（button-variants 判準 7：關閉鈕 ×），× 用兩條線自己畫
-    local close = W.CreateButton(panel, "", "red", 16, 16)
-    close:SetPoint("RIGHT", bar, "RIGHT", -3, 0)
-    local th = P.Pixel(1)
-    for i = 1, 2 do
+    -- 關閉鈕：跟 MiliUI_Skin 的 Skin.CloseButton 同一套長相（使用者 10-15 指定）——
+    -- 閒置＝面板底＋1px 黑邊、滑過＝提亮一階＋職業色邊（Engine.PaintHover 沒給
+    -- hoverBorder 時的預設），× 是 9 單位的兩條白線。不走共用層的 red 變體。
+    -- 配色表照 W.PaintButton 的四格形狀 { 平時底, 滑過底, 平時邊, 滑過邊 } 塞進 _colors。
+    local close = W.CreateButton(panel, "", "normal", 18, 18)
+    close._colors = { MC.fill, { 0.23, 0.23, 0.23, 1 }, MC.border, { W.Accent(1) } }
+    W.PaintButton(close, false)
+    close:SetPoint("RIGHT", bar, "RIGHT", -2, 0)
+    -- ⚠ 線粗走 P.Scale 不是 P.Pixel：× 是跟按鈕一起縮放的圖記，不是邊框那種髮絲線。
+    --   P.Pixel(1) 在 5K（2764 列、UI 縮放 1）是真的 1 個實體像素，斜線直接看不見；
+    --   MiliUI_Skin 引擎的 BuildGlyph 也是 P.Scale(thickness)。
+    local th, half = P.Scale(1), P.Scale(4.5)
+    for _, dir in ipairs({ 1, -1 }) do
         local ln = close:CreateLine(nil, "OVERLAY")
         ln:SetColorTexture(1, 1, 1, 1)
         ln:SetThickness(th)
-        if i == 1 then
-            ln:SetStartPoint("TOPLEFT", 4, -4)
-            ln:SetEndPoint("BOTTOMRIGHT", -4, 4)
-        else
-            ln:SetStartPoint("TOPRIGHT", -4, -4)
-            ln:SetEndPoint("BOTTOMLEFT", 4, 4)
-        end
+        ln:SetStartPoint("CENTER", close, -half, -half * dir)
+        ln:SetEndPoint("CENTER", close, half, half * dir)
     end
     close:SetScript("OnClick", function() panel:Hide() end)
     panel.closeButton = close

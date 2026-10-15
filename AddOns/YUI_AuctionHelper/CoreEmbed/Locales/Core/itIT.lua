@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("itIT") then return end
+
 YUI.Locale:Register("Core", "itIT", {
     ["teleports.settings.announce_header"] = "Annuncio di Teleport",
     ["teleports.settings.announce_scope"] = "Discorso d'annuncio",
@@ -213,11 +215,11 @@ YUI.Locale:Register("Core", "itIT", {
     ["cpu_watch.probe.ychat_driver"] = "YChat event/deferred driver",
     ["cpu_watch.probe.development_load"] = "Carico simulato diagnostico della CPU",
     ["cpu_watch.probe.event_other"] = "Altri ascoltatori EventBus",
-    ["cpu_watch.probe.yhud_context"] = "Rinfresco contesto YHUD",
-    ["cpu_watch.probe.yhud_item_acquire"] = "YHUD acquisizione di quadri",
-    ["cpu_watch.probe.yhud_static_cooldown"] = "YHUD rinfrescarsi",
-    ["cpu_watch.probe.yhud_static_position"] = "Riparazione posizione YHUD",
-    ["cpu_watch.probe.yhud_category_sync"] = "Sincronismo di categoria YHUD",
+    ["cpu_watch.probe.yhud_context"] = "Rinfresco contesto Halo",
+    ["cpu_watch.probe.yhud_item_acquire"] = "Halo acquisizione di quadri",
+    ["cpu_watch.probe.yhud_static_cooldown"] = "Halo rinfrescarsi",
+    ["cpu_watch.probe.yhud_static_position"] = "Riparazione posizione Halo",
+    ["cpu_watch.probe.yhud_category_sync"] = "Sincronismo di categoria Halo",
     ["cpu_watch.probe.yhud_resource_preview"] = "Anteprima risorsa Halo",
     ["cpu_watch.movement.taxi"] = "Percorso di volo",
     ["cpu_watch.movement.skyriding"] = "skyriding",
@@ -465,7 +467,7 @@ YUI.Locale:Register("Core", "itIT", {
     ["layout.filter.action"] = "Display",
     ["layout.filter.title"] = "Display Mover",
     ["layout.filter.category.actionbar"] = "Barre delle azioni",
-    ["layout.filter.category.monitor"] = "Halo Console",
+    ["layout.filter.category.monitor"] = "Halo Monitor",
     ["layout.filter.category.combat"] = "Attrezzi di combattimento",
     ["layout.filter.category.communication"] = "Chat & Communication",
     ["layout.filter.category.map"] = "Mappa e navigazione",
@@ -1334,7 +1336,7 @@ YUI.Locale:Register("Core", "itIT", {
     ["game_menu.text.011"] = "Aiuto",
     ["game_menu.text.012"] = "Apri la pagina FAQ",
     ["game_menu.text.013"] = "Editor aure",
-    ["game_menu.text.014"] = "Aprire lo YHUD Editor aure",
+    ["game_menu.text.014"] = "Aprire lo Halo Editor aure",
     ["game_menu.text.015"] = "Recuperi",
     ["game_menu.text.016"] = "|cFFFF0000[YUI] Impostazioni del Gestore tempi di recupero non trovate|r",
     ["game_menu.text.017"] = "Apri Gestore tempi di recupero Blizzard",

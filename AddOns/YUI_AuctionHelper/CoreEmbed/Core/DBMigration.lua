@@ -14,8 +14,8 @@ local DB = YUI.DB
 
 local SCHEMA_VERSION = 2
 local MIGRATION_KEY = "legacyToV2"
-local NATIVE_INTERFACE_MIGRATION_KEY = "nativeInterfaceV1"
-local NATIVE_INTERFACE_MIGRATION_VERSION = 1
+local NATIVE_INTERFACE_MIGRATION_KEY = "nativeInterfaceV2"
+local NATIVE_INTERFACE_MIGRATION_VERSION = 2
 
 local APPEARANCE_LEGACY_KEYS = {
     elvUI = "YUISkins",
@@ -525,7 +525,6 @@ end
 local COMMON_NATIVE_INTERFACE_KEYS = {
     "hideStatusTrackingBars",
     "hideMicroMenu",
-    "hideBagsBar",
 }
 
 local RETAIL_NATIVE_INTERFACE_KEYS = {
@@ -542,16 +541,18 @@ local RETAIL_NATIVE_INTERFACE_LEGACY_KEYS = {
 }
 
 local COMMON_NATIVE_INTERFACE_ALLOWED = {
+    tooltipInstantHide = true,
     hideStatusTrackingBars = true,
     hideMicroMenu = true,
-    hideBagsBar = true,
+    bagsBarVisibility = true,
     _migrationVersion = true,
 }
 
 local RETAIL_NATIVE_INTERFACE_ALLOWED = {
+    tooltipInstantHide = true,
     hideStatusTrackingBars = true,
     hideMicroMenu = true,
-    hideBagsBar = true,
+    bagsBarVisibility = true,
     hideBuffCollapseButton = true,
     manageTopCenterWidget = true,
     managePowerBarWidget = true,
@@ -567,6 +568,13 @@ local function IsNormalizedNativeInterfaceConfig(config)
     for _, key in ipairs(COMMON_NATIVE_INTERFACE_KEYS) do
         if type(config[key]) ~= "boolean" then return false end
     end
+    if config.tooltipInstantHide ~= nil and type(config.tooltipInstantHide) ~= "boolean" then return false end
+    if config.bagsBarVisibility ~= "auto" and config.bagsBarVisibility ~= "hide"
+        and config.bagsBarVisibility ~= "show" then return false end
+    if YUI.IsForever == true and type(config.fixBagSortButton) ~= "boolean" then return false end
+    if YUI.IsForever == true and type(config.fixProfessionsIcon) ~= "boolean" then return false end
+    if YUI.IsForever == true and type(config.questLootSparkles) ~= "boolean" then return false end
+    if YUI.IsForever == true and type(config.hideRaidManager) ~= "boolean" then return false end
     if YUI.IsRetail == true then
         for _, key in ipairs(RETAIL_NATIVE_INTERFACE_KEYS) do
             if type(config[key]) ~= "boolean" then return false end
@@ -575,7 +583,10 @@ local function IsNormalizedNativeInterfaceConfig(config)
     local expected = YUI.IsRetail == true
         and RETAIL_NATIVE_INTERFACE_ALLOWED or COMMON_NATIVE_INTERFACE_ALLOWED
     for key in pairs(config) do
-        if expected[key] ~= true then return false end
+        local foreverField = YUI.IsForever == true and (key == "compactBetaReporter"
+            or key == "windowMovement" or key == "fixBagSortButton" or key == "fixProfessionsIcon" or key == "questLootSparkles"
+            or key == "hideRaidManager")
+        if expected[key] ~= true and not foreverField then return false end
     end
     return true
 end
@@ -600,6 +611,21 @@ local function BuildNativeInterfaceCandidate(profile)
     local current = components and components.NativeInterface_Config or nil
     if IsNormalizedNativeInterfaceConfig(current) then return current, current end
     local candidate = {}
+    -- Retain the former component field until MouseEnhancement can migrate it.
+    if type(current) == "table" and type(current.tooltipInstantHide) == "boolean" then
+        candidate.tooltipInstantHide = current.tooltipInstantHide
+    end
+    -- Persisted choices take precedence over newly introduced profile defaults.
+    local mode = type(current) == "table" and rawget(current, "bagsBarVisibility") or nil
+    if mode == "auto" or mode == "hide" or mode == "show" then
+        candidate.bagsBarVisibility = mode
+    elseif type(current) == "table" and type(current.hideBagsBar) == "boolean" then
+        candidate.bagsBarVisibility = current.hideBagsBar and "auto" or "show"
+    elseif type(profile.YActionBar) == "table" then
+        candidate.bagsBarVisibility = ResolveLegacyYActionBarVisibility(profile, "bagsBar") and "auto" or "show"
+    else
+        candidate.bagsBarVisibility = "auto"
+    end
     for _, key in ipairs(COMMON_NATIVE_INTERFACE_KEYS) do
         if type(current) == "table" and type(current[key]) == "boolean" then
             candidate[key] = current[key]
@@ -620,6 +646,17 @@ local function BuildNativeInterfaceCandidate(profile)
         end
     end
     candidate._migrationVersion = NATIVE_INTERFACE_MIGRATION_VERSION
+    if YUI.IsForever == true then
+        candidate.fixBagSortButton = not (type(current) == "table" and current.fixBagSortButton == false)
+        candidate.fixProfessionsIcon = not (type(current) == "table" and current.fixProfessionsIcon == false)
+        candidate.questLootSparkles = not (type(current) == "table" and current.questLootSparkles == false)
+        candidate.hideRaidManager = type(current) == "table" and current.hideRaidManager == true or false
+    end
+    if YUI.IsForever == true and type(current) == "table" then
+        for _, key in ipairs({ "compactBetaReporter", "windowMovement" }) do
+            candidate[key] = current[key]
+        end
+    end
     return candidate, current
 end
 

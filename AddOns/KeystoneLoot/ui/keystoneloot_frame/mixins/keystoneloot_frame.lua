@@ -4,7 +4,9 @@ local DB = KeystoneLoot.DB;
 local Favorites = KeystoneLoot.Favorites;
 local Character = KeystoneLoot.Character;
 local Voidcore = KeystoneLoot.Voidcore;
+local RoleCheck = KeystoneLoot.RoleCheck;
 local Keystone = KeystoneLoot.Keystone;
+local Owned = KeystoneLoot.Owned;
 local CopyPopup = KeystoneLoot.CopyPopup;
 local L = KeystoneLoot.L;
 
@@ -17,6 +19,7 @@ KeystoneLootFrameMixin = {};
 function KeystoneLootFrameMixin:OnLoad()
     self:RegisterEvent("PLAYER_ENTERING_WORLD");
     self:RegisterEvent("BONUS_ROLL_RESULT");
+    self:RegisterEvent("LFG_ROLE_CHECK_SHOW");
     self:RegisterForDrag("LeftButton");
 
     CallbackRegistryMixin.OnLoad(self);
@@ -54,7 +57,7 @@ function KeystoneLootFrameMixin:OnEvent(event, ...)
     if (event == "ACTIVE_TALENT_GROUP_CHANGED") then
         self:SyncSpecFilter();
         return;
-    elseif (event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED") then
+    elseif (event == "BAG_UPDATE_DELAYED" or event == "PLAYER_EQUIPMENT_CHANGED" or event == "ITEM_DATA_LOAD_RESULT") then
         self:RefreshOwnedIcons();
         return;
     elseif (event == "BONUS_ROLL_RESULT") then
@@ -69,6 +72,13 @@ function KeystoneLootFrameMixin:OnEvent(event, ...)
         end
 
         Voidcore:OnBonusRoll(itemId);
+        return;
+    elseif (event == "BANKFRAME_OPENED" or event == "BANKFRAME_CLOSED") then
+        Owned:ScanBank();
+        self:RefreshOwnedIcons();
+        return;
+    elseif (event == "LFG_ROLE_CHECK_SHOW") then
+        RoleCheck:OnRoleCheckShow();
         return;
     elseif (event == "CHAT_MSG_PARTY" or event == "CHAT_MSG_PARTY_LEADER" or event == "CHAT_MSG_GUILD") then
         if (not DB:Get("settings.keyCommand." .. event) or isResponsePaused) then
@@ -98,11 +108,15 @@ function KeystoneLootFrameMixin:OnEvent(event, ...)
     self:RegisterEvent("CHAT_MSG_PARTY");
     self:RegisterEvent("CHAT_MSG_PARTY_LEADER");
     self:RegisterEvent("CHAT_MSG_GUILD");
+    self:RegisterEvent("BANKFRAME_OPENED");
+    self:RegisterEvent("BANKFRAME_CLOSED");
 
     DB:Init();
     Favorites:Init();
 
     self:InitSpecFilter();
+    self:InitScale();
+    self:InitOwnedCheck();
 
     self:InitializeTabSystem();
 
@@ -135,6 +149,20 @@ function KeystoneLootFrameMixin:SyncSpecFilter()
     end
 end
 
+function KeystoneLootFrameMixin:InitOwnedCheck()
+    DB:AddObserver("settings.ownedCheck", function()
+        self:RefreshOwnedIcons();
+    end);
+end
+
+function KeystoneLootFrameMixin:InitScale()
+    self:SetScale(DB:Get("settings.windowScale") / 100);
+
+    DB:AddObserver("settings.windowScale", function(percent)
+        self:SetScale(percent / 100);
+    end);
+end
+
 function KeystoneLootFrameMixin:InitSpecFilter()
     local currentClassId = Character:GetCurrentClassId();
     local currentSpecId = Character:GetCurrentSpecId();
@@ -157,6 +185,8 @@ function KeystoneLootFrameMixin:SetTab(tabId)
 end
 
 function KeystoneLootFrameMixin:RefreshOwnedIcons()
+    Owned:RefreshTracks();
+
     for _, Frame in ipairs({ self.DungeonsFrame, self.RaidsFrame, self.CatalystFrame, self.CustomItemFrame }) do
         Frame:RefreshOwnedIcons();
     end
@@ -167,6 +197,7 @@ function KeystoneLootFrameMixin:OnShow()
 
     self:RegisterEvent("BAG_UPDATE_DELAYED");
     self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED");
+    self:RegisterEvent("ITEM_DATA_LOAD_RESULT");
 
     self:RefreshOwnedIcons();
 end
@@ -176,6 +207,7 @@ function KeystoneLootFrameMixin:OnHide()
 
     self:UnregisterEvent("BAG_UPDATE_DELAYED");
     self:UnregisterEvent("PLAYER_EQUIPMENT_CHANGED");
+    self:UnregisterEvent("ITEM_DATA_LOAD_RESULT");
 end
 
 function KeystoneLootFrameMixin:OnDragStart()

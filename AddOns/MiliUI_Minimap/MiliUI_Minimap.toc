@@ -1,6 +1,6 @@
 ## Interface: 120100, 120105
 ## Title: MiliUI Minimap
-## Title-zhTW: |cff33E0FF[地圖]|r 米利的小地圖
+## Title-zhTW: |cff33F5FF[地圖]|r 米利的小地圖
 ## Title-zhCN: |cff33E0FF[地图]|r 米利的小地图
 ## Notes: A square minimap in the MiliUI house style — black translucent panel, 1px border in your class colour — plus a three-slot social bar underneath: guild online, friends online, and a bag that collects every addon's minimap button.|n|nHover a slot for the full list and move onto it: left-click a name to whisper, right-click to invite, and the button at the bottom opens the panel. The bag opens on hover too.|n|n|cffffd200Usage: |r/mmap opens settings.
 ## Notes-zhTW: MiliUI Minimap|n|n米利的小地圖。|n|n方形小地圖，套組統一的黑色半透明底＋1px 職業色框線；區域名、座標與時鐘收進上下兩條資訊帶。|n|n地圖下方一條社交列，切成三格：公會在線、好友在線、插件按鈕收納袋（把各插件散在地圖旁的圓鈕全收進來，也可以單獨釘幾顆排在社交列下方）。|n|n滑鼠移過去看完整名單，游標移到名單上它會留著：左鍵人名密語、右鍵邀請組隊，最底下的按鈕開對應的面板。收納袋也是滑過去就開。|n|n|cffffd200使用方法: |r/mmap 開啟設定。

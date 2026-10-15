@@ -313,6 +313,10 @@ local function ReadInfo(id)
         if name == nil then name = GlobalText(catDef.title) end
     end
     local isKnown = Plain(raw.isKnown)
+    -- 裝備欄追蹤的增益項目（EquipSlotTracked）：第幾個增益（暴雪的 buffSlot）。只收明文正整數；
+    -- 滑鼠提示（Decorate 的 ShowTip → C.EquipTrackedOf）靠它認出「這是飾品的增益，不是飾品本身」
+    local buffSlot = Plain(raw.buffSlot)
+    if not (type(buffSlot) == "number" and buffSlot > 0 and buffSlot == math.floor(buffSlot)) then buffSlot = nil end
     -- 連帶的法術（增益類常是光環本身的 ID；Core/Sound.lua 的層數增加音效逐一登記）：只收明文數字
     local linked
     local okL, list = pcall(function() return raw.linkedSpellIDs end)
@@ -335,6 +339,7 @@ local function ReadInfo(id)
         name            = name,
         category        = Plain(raw.category),
         equipSlot       = equipSlot,
+        buffSlot        = buffSlot,
         spellCategoryID = spellCategoryID,
         hasAura         = Plain(raw.hasAura) and true or false,
         charges         = Plain(raw.charges) and true or false,
@@ -768,11 +773,12 @@ end
 --                                                                 nil ＝ 全部合併去重
 --   ns.Catalog.SlotBuffIndices(slot)         → { buffIndex… }（排序；解得出增益的那幾個）
 --   ns.Catalog.SlotUseBuffIDs(slot)          → { spellID… }, sig    冷卻格（使用效果）認的增益（暴雪 EquipSlotEssential 那一筆）
---   ns.Catalog.SlotOverlayIDs(barKey, id, slot) → ids, sig ｜ nil   冷卻格要不要疊增益按鈕（Modules/Custom.lua）
+--   ns.Catalog.SlotOverlayIDs(barKey, id, slot [, raw]) → ids, sig ｜ nil   冷卻格要不要疊增益按鈕（Modules/Custom.lua）；
+--                                                 條層選了往前補（BarOverlaysSuppressed）⇒ nil，raw 為真時不看這條
 --   ns.Catalog.SlotProcIDs(slot)             → { spellID… }, sig    這件飾品的觸發增益（全部增益扣掉使用效果那幾個）
---   ns.Catalog.SlotProcOverlayIDs(barKey, id, slot) → ids, sig ｜ nil   冷卻格要不要疊觸發發光（Modules/Custom.lua）
+--   ns.Catalog.SlotProcOverlayIDs(barKey, id, slot [, raw]) → ids, sig ｜ nil   冷卻格要不要疊觸發發光（同上）
 --   ns.Catalog.ItemUseBuffIDs(itemIDs)       → { spellID… }, sig    自訂物品（藥水那類）用掉之後身上的增益
---   ns.Catalog.ItemOverlayIDs(barKey, id, e) → ids, sig ｜ nil   自訂物品的冷卻格要不要疊增益按鈕（同飾品欄）
+--   ns.Catalog.ItemOverlayIDs(barKey, id, e [, raw]) → ids, sig ｜ nil   自訂物品的冷卻格要不要疊增益按鈕（同飾品欄）
 --   ns.Catalog.InvalidateSlotBuffs()         作廢快取（換裝、暴雪資料重載／熱修正、進場）
 --
 -- 來源：EquipSlotTracked 類別裡 equipSlot == slot 的那幾筆的 linkedSpellIDs（暴雪從現在裝的物品帶出來的增益，
@@ -1046,38 +1052,47 @@ function C.ItemUseBuffIDs(itemIDs)
     return ids, sig
 end
 
--- 自訂物品的冷卻格要不要疊增益按鈕：跟飾品欄同一個判準（條層／逐法術 showAuraTime 沒關、解得出增益）
-function C.ItemOverlayIDs(barKey, id, e)
+-- 三支疊層判準共用的尾巴：條層選了往前補（C.BarOverlaysSuppressed，定義在 BarHasAuraSlot 旁邊、執行時才取）⇒ 不疊。
+-- raw 為真 ＝ 不看這一條（設定頁問「要是沒選往前補會不會疊」用：C.BarHasOverlayCandidates、逐法術面板）。
+-- 先算完自己的判準、會疊才問條層（大部分格子根本不疊，不必每格掃一次生效清單）
+local function Unsuppressed(barKey, raw, ids, sig)
+    if not ids then return nil end
+    if not raw and C.BarOverlaysSuppressed and C.BarOverlaysSuppressed(barKey) then return nil end
+    return ids, sig
+end
+
+-- 自訂物品的冷卻格要不要疊增益按鈕：跟飾品欄同一個判準（條層／逐法術 showAuraTime 沒關、解得出增益、條層沒選往前補）
+function C.ItemOverlayIDs(barKey, id, e, raw)
     if id == nil or type(e) ~= "table" or e.kind ~= "item" or e.itemID == nil then return nil end
     if ns.SpellSetting and ns.SpellSetting(barKey, id, "showAuraTime") == false then return nil end
     local list = { e.itemID }
     for _, a in ipairs(type(e.alts) == "table" and e.alts or EMPTY) do list[#list + 1] = a end
     local ids, sig = C.ItemUseBuffIDs(list)
     if #ids == 0 then return nil end
-    return ids, sig
+    return Unsuppressed(barKey, raw, ids, sig)
 end
 
--- 飾品欄冷卻格要不要疊增益按鈕：條層／逐法術的「增益持續中顯示持續時間」沒關、而且解得出增益 ⇒ ids, sig
+-- 飾品欄冷卻格要不要疊增益按鈕：條層／逐法術的「增益持續中顯示持續時間」沒關、解得出增益、而且條層沒選往前補 ⇒ ids, sig
 -- （Modules/Custom.lua 的疊層與下面的 BarHasAuraSlot 同一個判準）
-function C.SlotOverlayIDs(barKey, id, slot)
+function C.SlotOverlayIDs(barKey, id, slot, raw)
     if id == nil or not CUSTOM_SLOTS[slot] then return nil end
     if ns.SpellSetting and ns.SpellSetting(barKey, id, "showAuraTime") == false then return nil end
     local ids, sig = C.SlotUseBuffIDs(slot)
     if #ids == 0 then return nil end
-    return ids, sig
+    return Unsuppressed(barKey, raw, ids, sig)
 end
 
 -- 飾品欄冷卻格要不要疊觸發發光（Modules/Custom.lua 的「飾品欄的觸發發光疊層」）：逐法術的觸發發光（procGlow，
 -- 沒覆寫退條層 glow.proc.enabled）開著、不是長條類的條（長條不畫發光）也不是圓環條（飾品欄冷卻上不了圓環條）、
--- 而且解得出觸發增益 ⇒ ids, sig。跟 BarHasAuraSlot 同一個判準
-function C.SlotProcOverlayIDs(barKey, id, slot)
+-- 而且解得出觸發增益、條層沒選往前補 ⇒ ids, sig。跟 BarHasAuraSlot 同一個判準
+function C.SlotProcOverlayIDs(barKey, id, slot, raw)
     if id == nil or not CUSTOM_SLOTS[slot] then return nil end
     if not (ns.SpellSetting and ns.SpellSetting(barKey, id, "procGlow")) then return nil end
     if ns.Setting and ns.Setting(barKey, "kind") == "bars" then return nil end
     if ns.DB and ns.DB.BarIsRings and ns.DB.BarIsRings(barKey) then return nil end
     local ids, sig = C.SlotProcIDs(slot)
     if #ids == 0 then return nil end
-    return ids, sig
+    return Unsuppressed(barKey, raw, ids, sig)
 end
 
 ------------------------------------------------------------
@@ -1299,15 +1314,22 @@ function C.IsAuraSlot(id)
 end
 
 -- 這條上有沒有保護框（有的話固定格位被強制打開）：光環格（含飾品欄增益），**或**會疊增益按鈕的飾品欄（C.SlotOverlayIDs；
--- 疊層的持有框跟光環格一樣是條容器底下的保護框）、會疊觸發發光的飾品欄（C.SlotProcOverlayIDs，同理）。名字沿用，設定頁的黃字原因同一句。
+-- 疊層的持有框跟光環格一樣是條容器底下的保護框）、會疊觸發發光的飾品欄（C.SlotProcOverlayIDs，同理）。名字沿用。
 -- 暴雪的裝備欄冷卻格（C.ProxySlotOf 成立的）也算：暴雪沒給框時由我們代畫（Core/Bars.lua），代畫格就是飾品欄、
 -- 一樣會疊增益。**不管這一輪暴雪有沒有給框**（保守：給框時固定格位多開不會壞；跟著框的有無翻來翻去反而會在
 -- 戰鬥中改格位）。清單用 BarBase（不套溢出）：BarHasAuraSlot ← Bars.Occupancy ← Overflow 的佔位判斷，
 -- 這裡再走 C.Bar／C.Overflow 會繞回自己。
 -- 溢出：接收條算「有」——只要有一條成立的來源條上有（保守：不管這一輪有沒有真的溢過來）。
--- 持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標
+-- 持有框是保護框，溢過來之後也不能在戰鬥中移，所以接收條同樣要固定格位、不能跟著游標。
+-- ⚠ 來源條上的格子的疊層判準照**接收條**問（evalKey）：溢過去的格子是放在接收條上、由 Custom.Place(…, 接收條) 照
+-- 接收條的設定決定疊不疊（包括接收條選了往前補 ⇒ 不疊），這裡要跟放格同一個答案，否則來源條選往前補、接收條沒選時
+-- 接收條會被當成沒有保護框而收合。
 -- 圓環條只收增益（Core/Bars.lua）：只看光環格（含飾品欄增益）；飾品欄冷卻格與代畫格放不上去，不算
-function C.BarHasAuraSlot(barKey)
+--
+-- ignoreOwnOverlays 為真（設定頁 Bars.CollapseLocked 用）：這條的三種疊層（自己的飾品欄／自訂物品／代畫格，以及從來源條
+-- 溢過來、放在這條上的）一律當不疊——問的是「這條選了往前補之後還有沒有保護框」，而選了往前補疊層就會關掉
+-- （C.BarOverlaysSuppressed）。光環格照算。
+function C.BarHasAuraSlot(barKey, ignoreOwnOverlays)
     -- 先看有沒有任何一筆暴雪的裝備欄冷卻格排在條上：沒有就不必為每條重算 BarBase
     local proxyCandidate = nil
     local function AnyProxyCandidate()
@@ -1323,31 +1345,110 @@ function C.BarHasAuraSlot(barKey)
         end
         return proxyCandidate
     end
-    local function Has(k)
-        local ring = ns.DB.BarIsRings and ns.DB.BarIsRings(k) or false
+    -- k：誰的格子（e.bar／BarBase）；evalKey：疊層照哪一條的設定判（格子實際放在哪一條）
+    local function Has(k, evalKey)
+        local ring = ns.DB.BarIsRings and ns.DB.BarIsRings(evalKey) or false
+        local overlays = not ring and not ignoreOwnOverlays
         for _, it in ipairs(Effective()) do
             local e = it.entry
             if ValidCustom(e) and e.bar == k then
                 if AuraShaped(e.kind) then return true end
-                if not ring and e.kind == "slot" and (C.SlotOverlayIDs(k, it.id, e.slot)
-                    or C.SlotProcOverlayIDs(k, it.id, e.slot)) then return true end
-                if not ring and e.kind == "item" and C.ItemOverlayIDs(k, it.id, e) then return true end
+                if overlays and e.kind == "slot" and (C.SlotOverlayIDs(evalKey, it.id, e.slot)
+                    or C.SlotProcOverlayIDs(evalKey, it.id, e.slot)) then return true end
+                if overlays and e.kind == "item" and C.ItemOverlayIDs(evalKey, it.id, e) then return true end
             end
         end
-        if not ring and AnyProxyCandidate() then
+        if overlays and AnyProxyCandidate() then
             for _, id in ipairs((C.BarBase(k))) do
                 local slot = C.ProxySlotOf(id)
-                if slot and (C.SlotOverlayIDs(k, id, slot) or C.SlotProcOverlayIDs(k, id, slot)) then return true end
+                if slot and (C.SlotOverlayIDs(evalKey, id, slot) or C.SlotProcOverlayIDs(evalKey, id, slot)) then return true end
             end
         end
         return false
     end
-    if Has(barKey) then return true end
+    if Has(barKey, barKey) then return true end
     local ov = C.OverflowPairs and C.OverflowPairs()
     if ov then
         for _, pr in ipairs(ov) do
-            if pr.dst == barKey and Has(pr.src) then return true end
+            if pr.dst == barKey and Has(pr.src, barKey) then return true end
         end
+    end
+    return false
+end
+
+-- 這條自己的光環格形狀的格（光環格、飾品欄增益）：生效清單裡 bar == k 的，照清單順序（設定頁的原因列名字用）
+function C.BarAuraSlotIDs(barKey)
+    local out = {}
+    for _, it in ipairs(Effective()) do
+        local e = it.entry
+        if ValidCustom(e) and e.bar == barKey and AuraShaped(e.kind) then out[#out + 1] = it.id end
+    end
+    return out
+end
+
+-- 溢到這條、而且自己帶著光環格的來源條（照 OverflowPairs 的順序）：這幾條讓接收條鎖死固定格位
+-- （光環格溢過來也是保護框；疊層不算，溢過來的疊層照接收條判、接收條選往前補就關掉）
+function C.OverflowAuraSources(barKey)
+    local out = {}
+    local ov = C.OverflowPairs and C.OverflowPairs()
+    for _, pr in ipairs(ov or EMPTY) do
+        if pr.dst == barKey and #C.BarAuraSlotIDs(pr.src) > 0 then out[#out + 1] = pr.src end
+    end
+    return out
+end
+
+-- 條層選了往前補 ⇒ 這條的飾品／藥水增益疊層全部關掉（使用者 2026-10-15 拍板：玩家選了往前補就是要往前補，排版優先於疊層）。
+-- 成立 ⇔ 全部：
+--   * 條層存的 layout.emptyMode == "collapse" **而且** layout.collapseChosen == true（玩家在設定頁親手選了往前補；
+--     Options/Specs.lua 的 EmptyModeRow 寫）。⚠ 只看 emptyMode 不夠：每條的預設值就是 "collapse"（Core/DB.lua），
+--     以前有疊層的條被強制退成暗圖示、存的照舊是 collapse ⇒ 只看存值會讓所有人的飾品增益與觸發發光在更新後一起消失；
+--   * 不是圓環條、沒勾可點擊（那兩種收合本來就不成立，關疊層換不到往前補）；
+--   * 這條自己沒有光環格形狀的格（有的話是混排、本來就鎖死；只有光環格的條沒有疊層可關）；
+--   * 溢到這條的來源條都沒有光環格（C.OverflowAuraSources；溢過來的光環格是保護框，關疊層也換不到往前補）。
+-- 三支疊層判準（SlotOverlayIDs／ItemOverlayIDs／SlotProcOverlayIDs）開頭問這支 ⇒ BarHasAuraSlot、疊層建立／收起、
+-- 音效登記、游標資格、逐法術面板全部跟著。
+-- 重入守衛：正在算的 key 直接回 false。現在的判準只掃生效清單與溢出對、不回頭問疊層判準，結構上不會遞迴；
+-- 守衛留著防之後有人把判準改成問 BarHasAuraSlot（那條路會經 SlotOverlayIDs 繞回這裡）
+local suppressBusy = {}
+function C.BarOverlaysSuppressed(barKey)
+    if barKey == nil or suppressBusy[barKey] then return false end
+    local b = C.BarCfgOf and C.BarCfgOf(barKey)
+    local layout = b and type(b.layout) == "table" and b.layout or nil
+    if not (layout and layout.emptyMode == "collapse" and layout.collapseChosen == true) then return false end
+    local DB = ns.DB
+    if DB and DB.BarIsRings and DB.BarIsRings(barKey) then return false end
+    if DB and DB.BarClickable and DB.BarClickable(barKey) then return false end
+    suppressBusy[barKey] = true
+    local res = #C.BarAuraSlotIDs(barKey) == 0 and #C.OverflowAuraSources(barKey) == 0
+    suppressBusy[barKey] = nil
+    return res
+end
+
+-- 這條有沒有「不看往前補的話會疊」的格子（設定頁的黃字提示用）：自己的飾品欄／自訂物品／代畫格，以及溢出來源條上
+-- 溢過來會放在這條的那幾種（照這條的設定判，同 BarHasAuraSlot 的 evalKey）。三種判準都帶 raw ＝ 不看 BarOverlaysSuppressed
+function C.BarHasOverlayCandidates(barKey)
+    if ns.DB.BarIsRings and ns.DB.BarIsRings(barKey) then return false end
+    local function Cand(k)
+        for _, it in ipairs(Effective()) do
+            local e = it.entry
+            if ValidCustom(e) and e.bar == k then
+                if e.kind == "slot" and (C.SlotOverlayIDs(barKey, it.id, e.slot, true)
+                    or C.SlotProcOverlayIDs(barKey, it.id, e.slot, true)) then return true end
+                if e.kind == "item" and C.ItemOverlayIDs(barKey, it.id, e, true) then return true end
+            end
+        end
+        for _, id in ipairs((C.BarBase(k))) do
+            local slot = C.ProxySlotOf(id)
+            if slot and (C.SlotOverlayIDs(barKey, id, slot, true) or C.SlotProcOverlayIDs(barKey, id, slot, true)) then
+                return true
+            end
+        end
+        return false
+    end
+    if Cand(barKey) then return true end
+    local ov = C.OverflowPairs and C.OverflowPairs()
+    for _, pr in ipairs(ov or EMPTY) do
+        if pr.dst == barKey and Cand(pr.src) then return true end
     end
     return false
 end
@@ -1578,6 +1679,26 @@ function C.ProxySlotOf(id)
     local aura = (ns.Viewers and ns.Viewers.AURA_KIND) or AURA_SOURCE
     if src == nil or aura[src] then return nil end
     return slot
+end
+
+-- 暴雪的「裝備欄追蹤」增益項目（EquipSlotTracked：飾品用掉／觸發之後身上的那個增益）→ slot, buff ｜ nil
+-- 判準照暴雪 CooldownViewerItemDataMixin 的 EquipSlotTracked 分支：資料帶 equipSlot，而且帶 buffSlot（明文正整數）
+-- 或資料本身的類別就是 EquipSlotTracked（玩家拖到別條，覆寫的是有效類別、資料類別不變）；資料類別是 EquipSlotEssential 的
+-- 一律不算（就算帶了 buffSlot）。buff 讀不到 ⇒ nil
+-- （C.SlotBuffTooltip 畫這一格全部的增益）。EquipSlotEssential（飾品的冷卻格）不算 ⇒ 呼叫端照舊畫物品提示。
+-- 這一筆沒有 spellID：滑鼠提示（Core/Decorate.lua 的 ShowTip）要先判這支，不然會掉進 SetInventoryItem 畫整顆飾品
+function C.EquipTrackedOf(id)
+    if type(id) ~= "number" then return nil end
+    local info = C.Info(id)
+    local slot = info and info.equipSlot
+    if type(slot) ~= "number" then return nil end
+    local buff = PositiveInt(info.buffSlot) and info.buffSlot or nil
+    -- 資料類別是飾品冷卻格（EquipSlotEssential）的一律不算：那一筆就算帶了 buffSlot（「使用增益持續時間」認的增益）也是冷卻格
+    local essential = EnumCategory("EquipSlotEssential")
+    if essential ~= nil and info.category == essential then return nil end
+    local tracked = EnumCategory("EquipSlotTracked")
+    if buff or (tracked ~= nil and info.category == tracked) then return slot, buff end
+    return nil
 end
 
 ------------------------------------------------------------

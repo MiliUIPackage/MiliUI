@@ -42,6 +42,7 @@ end
 local function RegisterAppearance(frame, heading, role)
     if not Appearance then return end
     Appearance:Register(frame, {
+        blizzardWindow = "auctionhouse",
         themeProvider = GetAppearanceTheme,
         heading = heading,
         role = role,
@@ -1013,6 +1014,7 @@ function Editor:AddCategory()
         field = true,
         hasAlpha = false,
         value = HexToColor(categoryColor),
+        default = HexToColor("3366CC"),
         set = function(value)
             categoryColor = ColorToHex(value)
         end,

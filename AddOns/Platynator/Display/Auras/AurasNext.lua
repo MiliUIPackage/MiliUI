@@ -5,6 +5,68 @@ local LSM = LibStub("LibSharedMedia-3.0")
 
 local auraFormatter, auraPlainFormatter = addonTable.Display.Utilities.GetAuraNumericFormatter()
 
+function addonTable.Display.GeneratePandemicAnimation(frame)
+  frame.Pandemic = CreateFrame("Frame", nil, frame)
+  frame.Pandemic:SetAllPoints()
+  frame.Pandemic.Animation = frame.Pandemic:CreateAnimationGroup()
+  frame.Pandemic:SetFrameLevel(frame.Cooldown:GetFrameLevel() + 5)
+  do
+    frame.Pandemic.Top = frame.Pandemic:CreateTexture()
+    frame.Pandemic.Top:SetPoint("TOPLEFT")
+    frame.Pandemic.Top:SetPoint("TOPRIGHT")
+    frame.Pandemic.Top:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic.png")
+    frame.Pandemic.Bottom = frame.Pandemic:CreateTexture()
+    frame.Pandemic.Bottom:SetPoint("BOTTOMLEFT")
+    frame.Pandemic.Bottom:SetPoint("BOTTOMRIGHT")
+    frame.Pandemic.Bottom:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic.png")
+    frame.Pandemic.Bottom:SetRotation(math.pi)
+    frame.Pandemic.Left = frame.Pandemic:CreateTexture()
+    frame.Pandemic.Left:SetPoint("TOPLEFT")
+    frame.Pandemic.Left:SetPoint("BOTTOMLEFT")
+    frame.Pandemic.Left:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic-90.png")
+    frame.Pandemic.Right = frame.Pandemic:CreateTexture()
+    frame.Pandemic.Right:SetPoint("TOPRIGHT")
+    frame.Pandemic.Right:SetPoint("BOTTOMRIGHT")
+    frame.Pandemic.Right:SetTexture("Interface/AddOns/Platynator/Assets/Special/pandemic-90.png")
+    frame.Pandemic.Right:SetRotation(math.pi)
+
+    local pandemicDim = 1
+    frame.Pandemic.Top:SetHeight(pandemicDim)
+    frame.Pandemic.Bottom:SetHeight(pandemicDim)
+    frame.Pandemic.Left:SetWidth(pandemicDim)
+    frame.Pandemic.Right:SetWidth(pandemicDim)
+
+    local fb = frame.Pandemic.Animation:CreateAnimation("Flipbook")
+    fb:SetFlipBookColumns(1)
+    fb:SetFlipBookRows(11)
+    fb:SetDuration(0.5)
+    fb:SetTarget(frame.Pandemic.Top)
+    local fb = frame.Pandemic.Animation:CreateAnimation("Flipbook")
+    fb:SetFlipBookColumns(1)
+    fb:SetFlipBookRows(11)
+    fb:SetDuration(0.5)
+    fb:SetTarget(frame.Pandemic.Bottom)
+    local fb = frame.Pandemic.Animation:CreateAnimation("Flipbook")
+    fb:SetFlipBookColumns(11)
+    fb:SetFlipBookRows(1)
+    fb:SetDuration(0.5)
+    fb:SetTarget(frame.Pandemic.Left)
+    local fb = frame.Pandemic.Animation:CreateAnimation("Flipbook")
+    fb:SetFlipBookColumns(11)
+    fb:SetFlipBookRows(1)
+    fb:SetDuration(0.5)
+    fb:SetTarget(frame.Pandemic.Right)
+    frame.Pandemic.Animation:SetLooping("REPEAT")
+    frame.Pandemic.Animation:Stop()
+    function frame.Pandemic:SetVertexColor(...)
+      frame.Pandemic.Top:SetVertexColor(...)
+      frame.Pandemic.Bottom:SetVertexColor(...)
+      frame.Pandemic.Left:SetVertexColor(...)
+      frame.Pandemic.Right:SetVertexColor(...)
+    end
+  end
+end
+
 local function StyleAura(auraFrame, details, container)
   auraFrame.kind = details.kind
 
@@ -46,10 +108,8 @@ local function StyleAura(auraFrame, details, container)
     end
   end
 
-  if auraFrame.TextsContainer.Applications.SetSmoothScaling then
-    auraFrame.TextsContainer.Applications:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
-    auraFrame.TextsContainer.Countdown:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
-  end
+  auraFrame.TextsContainer.Applications:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
+  auraFrame.TextsContainer.Countdown:SetSmoothScaling(addonTable.CurrentFontUsesSmoothing)
 
   auraFrame.Cooldown:SetDrawEdge(details.showSwipe)
   auraFrame.Cooldown:SetDrawSwipe(details.showSwipe)
@@ -61,6 +121,19 @@ local function StyleAura(auraFrame, details, container)
   auraFrame.Icon:SetSize(width, height)
   local texBase = 0.95 * (1 - details.height) / 2
   auraFrame.Icon:SetTexCoord(0.05, 0.95, 0.05 + texBase, 0.95 - texBase)
+
+  if addonTable.Constants.IsMidnightNext or addonTable.Constants.IsForever then
+    auraFrame:ClearPandemicActiveAnimations()
+    auraFrame:ClearPandemicRegions()
+    auraFrame.Pandemic:SetShown(details.showPandemic)
+    if details.showPandemic then
+      auraFrame:AddPandemicRegion(auraFrame.Pandemic.Top)
+      auraFrame:AddPandemicRegion(auraFrame.Pandemic.Left)
+      auraFrame:AddPandemicRegion(auraFrame.Pandemic.Right)
+      auraFrame:AddPandemicRegion(auraFrame.Pandemic.Bottom)
+      auraFrame:AddPandemicActiveAnimation(auraFrame.Pandemic.Animation)
+    end
+  end
 
   auraFrame.Dispel:SetShown(details.showType)
 end
@@ -105,6 +178,11 @@ local function GetAurasInitializerModern(container)
       frame.Dispel.Border = dispelTexture
     end
 
+    if addonTable.Constants.IsMidnightNext or addonTable.Constants.IsForever then
+      addonTable.Display.GeneratePandemicAnimation(frame)
+      PixelUtil.SetRoundLayoutToNearestPixelRecursively(frame.Pandemic, true)
+    end
+
     frame:SetApplicationCount(frame.TextsContainer.Applications, {})
     frame:SetIcon(frame.Icon)
     frame:SetDurationCooldown(frame.Cooldown)
@@ -123,15 +201,21 @@ function addonTable.Display.AurasManagerNextMixin:OnLoad()
   self.debuffs = CreateFrame("AuraContainer", nil, self, "CustomAuraContainerTemplate")
   self.crowdControl = CreateFrame("AuraContainer", nil, self, "CustomAuraContainerTemplate")
 
+  self.slots = CreateFrame("AuraContainer", nil, self, "CustomAuraContainerTemplate")
+
   self.buffs:SetEnabled(false)
   self.debuffs:SetEnabled(false)
   self.crowdControl:SetEnabled(false)
+  self.slots:SetEnabled(false)
 
   self.initialSetup = true
 
   self.crowdControl.frames = {}
   self.buffs.frames = {}
   self.debuffs.frames = {}
+  self.slots.framesByKey = {}
+  self.slots.occupied = 0
+  self.slots.available = 0
 
   addonTable.CallbackRegistry:RegisterCallback("SpecializationChanged", function()
     if not self.initialSetup then
@@ -252,63 +336,77 @@ function addonTable.Display.AurasManagerNextMixin:GetFilters(kind, settings)
   end
 
   if kind == "buffs" then
-    table.insert(output, {"HELPFUL|PLAYER", {excludeSpellIDs = exclude}})
-    if settings.filters.defensive then
-      table.insert(output, {"HELPFUL|BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude}})
-      table.insert(output, {"HELPFUL|EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude}})
-      table.insert(output, {"HELPFUL|RAID_IN_COMBAT|!EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude}})
-    elseif settings.filters.important then
+    local maxDuration = 300
+    if settings.filters.showLongDurations then
+      maxDuration = nil
+    end
+    local dispelTypes = nil
+    if settings.filters.enrage or settings.filters.magic then
+      dispelTypes = {}
       if settings.filters.enrage then
-        table.insert(output, {"HELPFUL|!PLAYER", {isBossOrRoleAura = true, isFromPlayerOrPlayerPet = false}})
-        table.insert(output, {"HELPFUL|IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isBossOrRoleAura = false}})
+        dispelTypes["Enrage"] = true
+      end
+      if settings.filters.magic then
+        dispelTypes["Magic"] = true
+      end
+    end
+
+    table.insert(output, {"HELPFUL|PLAYER", {excludeSpellIDs = exclude, maxDuration = maxDuration}})
+    if settings.filters.defensive then
+      table.insert(output, {"HELPFUL|BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude, maxDuration = maxDuration}})
+      table.insert(output, {"HELPFUL|EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude, maxDuration = maxDuration}})
+      table.insert(output, {"HELPFUL|RAID_IN_COMBAT|!EXTERNAL_DEFENSIVE|!BIG_DEFENSIVE|!PLAYER", {excludeSpellIDs = exclude, maxDuration = maxDuration}})
+    elseif settings.filters.important then
+      table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude, isBossOrRoleAura = true, isFromPlayerOrPlayerPet = false, maxDuration = maxDuration}})
+      table.insert(output, {"HELPFUL|IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isBossOrRoleAura = false, maxDuration = maxDuration}})
+      if dispelTypes then
         table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {
-          includeDispelTypes = {["Enrage"] = true},
+          includeDispelTypes = dispelTypes,
           excludeSpellIDs = exclude,
           isBossOrRoleAura = false,
         }})
-        if settings.filters.dispellable then
-          table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, excludeDispelTypes = {["Enrage"] = true}, isStealable = true}})
-        end
-      else
-        table.insert(output, {"HELPFUL|!PLAYER", {isBossOrRoleAura = true, isFromPlayerOrPlayerPet = false}})
-        table.insert(output, {"HELPFUL|IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isBossOrRoleAura = false}})
-        if settings.filters.dispellable then
-          table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, isStealable = true, isBossOrRoleAura = false}})
-        end
+      end
+      if settings.filters.dispellable then
+        table.insert(output, {"HELPFUL|!IMPORTANT|!PLAYER", {excludeSpellIDs = exclude, excludeDispelTypes = dispelTypes, isStealable = true, maxDuration = maxDuration}})
       end
     else
-      if settings.filters.enrage then
-        table.insert(output, {"HELPFUL|!PLAYER", {includeDispelTypes = {["Enrage"] = true}}})
-        if settings.filters.dispellable then
-          table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude, isStealable = true, excludeDispelTypes = {["Enrage"] = true}}})
+      if settings.filters.dispellable or settings.filters.enrage or settings.filters.magic then
+        if dispelTypes then
+          table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude, includeDispelTypes = dispelTypes, maxDuration = maxDuration}})
         end
-      elseif settings.filters.dispellable then
-        table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude, isStealable = true}})
+        if settings.filters.dispellable then
+          table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude, isStealable = true, excludeDispelTypes = dispelTypes, maxDuration = maxDuration}})
+        end
       else
-        table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude}})
+        table.insert(output, {"HELPFUL|!PLAYER", {excludeSpellIDs = exclude}, maxDuration = maxDuration})
       end
     end
   elseif kind == "debuffs" then
+    local playerFilter = ""
     if settings.filters.fromYou then
-      if settings.filters.important then
-        table.insert(output, {"HARMFUL|IMPORTANT|PLAYER|!CROWD_CONTROL", {excludeSpellIDs = exclude}})
-        table.insert(output, {"HARMFUL|!IMPORTANT|PLAYER|!CROWD_CONTROL", {excludeSpellIDs = exclude, nameplateShowPersonal = true}})
-      else
-        table.insert(output, {"HARMFUL|PLAYER|!CROWD_CONTROL", {excludeSpellIDs = exclude}})
-      end
+      playerFilter = "|PLAYER"
+    end
+    local nameplateShowAll = nil
+    if not settings.filters.includeExtras then
+      nameplateShowAll = false
+    end
+    if settings.filters.important then
+      table.insert(output, {"HARMFUL|IMPORTANT|!CROWD_CONTROL" .. playerFilter, {excludeSpellIDs = exclude, nameplateShowAll = nameplateShowAll}})
+      table.insert(output, {"HARMFUL|!IMPORTANT|!CROWD_CONTROL" .. playerFilter, {excludeSpellIDs = exclude, nameplateShowAll = nameplateShowAll, nameplateShowPersonal = true}})
     else
-      if settings.filters.important then
-        table.insert(output, {"HARMFUL|IMPORTANT|!CROWD_CONTROL", {excludeSpellIDs = exclude}})
-        table.insert(output, {"HARMFUL|!IMPORTANT|!CROWD_CONTROL", {excludeSpellIDs = exclude, nameplateShowPersonal = true}})
-      else
-        table.insert(output, {"HARMFUL|!CROWD_CONTROL", {excludeSpellIDs = exclude}})
-      end
+      table.insert(output, {"HARMFUL|!CROWD_CONTROL" .. playerFilter, {excludeSpellIDs = exclude, nameplateShowAll = nameplateShowAll}})
     end
   elseif kind == "crowdControl" then
     if settings.filters.fromYou then
       table.insert(output, {"HARMFUL|CROWD_CONTROL|PLAYER", {excludeSpellIDs = exclude}})
+      if settings.filters.includeExtras then
+        table.insert(output, {"HARMFUL|!CROWD_CONTROL|PLAYER", {nameplateShowAll = true}})
+      end
     else
       table.insert(output, {"HARMFUL|CROWD_CONTROL", {excludeSpellIDs = exclude}})
+      if settings.filters.includeExtras then
+        table.insert(output, {"HARMFUL|!CROWD_CONTROL", {nameplateShowAll = true}})
+      end
     end
   end
 
@@ -342,6 +440,7 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
   self.buffs:SetEnabled(false)
   self.debuffs:SetEnabled(false)
   self.crowdControl:SetEnabled(false)
+  self.slots:SetEnabled(false)
 
   -- MiliUI: lazy aura groups
   self.buffs.pendingGroups, self.debuffs.pendingGroups, self.crowdControl.pendingGroups = nil, nil, nil
@@ -379,19 +478,6 @@ function addonTable.Display.AurasManagerNextMixin:InitializeWidgets(parent, aura
   self.initialSetup = false
 end
 
--- MiliUI: lazy aura groups. Declares whatever InitializeWidgets skipped; returns true when it
--- created anything (the manager's instance prewarm does one display per frame).
-function addonTable.Display.AurasManagerNextMixin:MiliEnsureGroups()
-  local did = false
-  for _, container in ipairs({self.buffs, self.debuffs, self.crowdControl}) do
-    if container.pendingGroups and container.details then
-      ApplyGroups(container, container.details, container.pendingGroups, true)
-      did = true
-    end
-  end
-  return did
-end
-
 local function ApplyStartTailCount(auras, count)
   if auras.manualStart > 0 then
     for i = 1, auras.manualStart do
@@ -410,16 +496,69 @@ local function ApplyStartTailCount(auras, count)
   end
 end
 
+function addonTable.Display.AurasManagerNextMixin:ReleaseSlots()
+  if addonTable.Utilities.IsChangesRestricted() then
+    return
+  end
+
+  if self.slots.occupied > 0 then
+    for i = 1, self.slots.occupied do
+      self.slots:SetAuraSlotFilterString(tostring(i), "")
+    end
+  end
+end
+
+function addonTable.Display.AurasManagerNextMixin:AcquireSlot(height, point, filterString, spellID)
+  self.slots.occupied = self.slots.occupied + 1
+  local key = tostring(self.slots.occupied)
+  if self.slots.available >= self.slots.occupied then
+    local frame = self.slots.framesByKey[key]
+    if not addonTable.Utilities.IsChangesRestricted() then
+      frame.height = height
+      frame:SetHeight(height)
+    end
+    self.slots:SetAuraSlotEnabled(key, true)
+    self.slots:SetAuraSlotFilterString(key, filterString)
+    self.slots:SetAuraSlotCandidateFilters(key, {
+      includeSpellIDs = {[spellID] = true}
+    })
+    return self.slots.framesByKey[key]
+  end
+
+  local frame = self.slots:AddAuraSlot(key, filterString, {initializeFrame = function(auraFrame)
+    auraFrame.key = key
+    auraFrame.height = height
+    auraFrame:SetSize(20, height)
+    auraFrame:SetPoint(unpack(point))
+    auraFrame:SetCollapsesLayout(true)
+  end, candidateFilters = { includeSpellIDs = {[spellID] = true} } })
+
+  if frame.RoundLayoutToNearestPixel then
+    frame:RoundLayoutToNearestPixel(true)
+  end
+  self.slots.framesByKey[key] = frame
+
+  self.slots.available = self.slots.available + 1
+
+  return frame
+end
+
 function addonTable.Display.AurasManagerNextMixin:SetUnit(unit)
   self.unit = unit
   if not unit then
     self.buffs:SetEnabled(false)
     self.debuffs:SetEnabled(false)
     self.crowdControl:SetEnabled(false)
+    self.slots:SetEnabled(false)
     return
   end
 
-  self:MiliEnsureGroups() -- MiliUI: lazy aura groups -- first unit on a display that skipped them
+  -- MiliUI: lazy aura groups -- first unit on a display that skipped them at pool build
+  for _, container in ipairs({self.buffs, self.debuffs, self.crowdControl}) do
+    if container.pendingGroups and container.details then
+      ApplyGroups(container, container.details, container.pendingGroups, true)
+    end
+  end
 
   if UnitCanAssist("player", unit) then
     if self.debuffs.details then
@@ -454,8 +593,10 @@ function addonTable.Display.AurasManagerNextMixin:SetUnit(unit)
   self.buffs:SetUnit(unit)
   self.debuffs:SetUnit(unit)
   self.crowdControl:SetUnit(unit)
+  self.slots:SetUnit(unit)
 
   self.buffs:SetEnabled(self.buffs.details ~= nil and (not UnitTreatAsPlayerForDisplay(unit) or not addonTable.Display.Utilities.IsInRelevantInstance({delve = true})))
   self.debuffs:SetEnabled(self.debuffs.details ~= nil)
   self.crowdControl:SetEnabled(self.crowdControl.details ~= nil)
+  self.slots:SetEnabled(self.slots.occupied > 0)
 end

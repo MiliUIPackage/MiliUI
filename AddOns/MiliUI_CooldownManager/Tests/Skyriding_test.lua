@@ -334,6 +334,22 @@ do
     check("圖示：一直顯示、夾值 64、上", m == "always" and sz == 64 and sd2 == "TOP")
     m = SR.SurgeIcon({ rows = { surge = { icon = { mode = "bogus" } } } })
     eq("圖示：不認得的模式 ＝ 關", m, "off")
+
+    -- 整列沒勾：長條與圖示都不畫；raw 讀存的值
+    local off = { rows = { surge = { enabled = false, icon = { mode = "always" } } } }
+    eq("沒勾：圖示關", (SR.SurgeIcon(off)), "off")
+    eq("沒勾：raw 照存的值", (SR.SurgeIcon(off, true)), "always")
+    check("沒勾：長條關", not SR.SurgeBarOn(off))
+    -- 只顯示圖示（bar ＝ false）
+    local only = { rows = { surge = { enabled = true, bar = false, icon = { mode = "always" } } } }
+    check("只顯示圖示：長條關", not SR.SurgeBarOn(only))
+    eq("只顯示圖示：圖示開", (SR.SurgeIcon(only)), "always")
+    eq("只顯示圖示：不佔高", SR.Geometry(only).rows.surge, nil)
+    check("只開圖示、其餘都關：還算開著", SR.Enabled({ rows = { speed = { enabled = false }, vigor = { enabled = false },
+        surge = { enabled = true, bar = false, icon = { mode = "cooldown" } } } }))
+    check("長條關、圖示關、其餘都關：等同關掉", not SR.Enabled({ rows = { speed = { enabled = false }, vigor = { enabled = false },
+        surge = { enabled = true, bar = false, icon = { mode = "off" } } } }))
+    check("bar 沒存：長條開", SR.SurgeBarOn({}))
 end
 
 ------------------------------------------------------------

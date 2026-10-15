@@ -42,8 +42,8 @@ local BINDING_MODIFIERS = {
 }
 
 local BINDING_KEYS = {
-    MOUSEWHEELUP = "MwU",
-    MOUSEWHEELDOWN = "MwD",
+    MOUSEWHEELUP = "MU",
+    MOUSEWHEELDOWN = "MD",
     NUMPADDECIMAL = "N.",
     NUMPADPLUS = "N+",
     NUMPADMINUS = "N-",
@@ -170,7 +170,7 @@ function ActionBar:IsAvailable()
 end
 
 function ActionBar:GetProfessionQualityAtlas(slot)
-    if YUI.IsRetail ~= true then return nil end
+    if (YUI.IsForever or YUI.IsRetail) ~= true then return nil end
     slot = SafeNumber(slot)
     if not slot or slot <= 0 then return nil end
 
@@ -226,6 +226,64 @@ function ActionBar:ReadSlotIdentity(slot, result)
     end
 
     return result, nil
+end
+
+function ActionBar:IsCursorEmpty()
+    if type(_G.GetCursorInfo) ~= "function" then return false, "api-unavailable" end
+    local ok, cursorType = pcall(_G.GetCursorInfo)
+    if not ok or IsSecretValue(cursorType) then return false, "restricted" end
+    return cursorType == nil, cursorType and "cursor-busy" or nil
+end
+
+-- Forever regular/bonus player pages end at page 15; special pages start at 16.
+-- One cold scan supplies both highest-rank presence and candidate slots.
+function ActionBar:ReadPlayerSpellSlots()
+    if not YUI.IsForever then return nil, "unsupported-client" end
+    local slots, counts = {}, {}
+    for slot = 1, 180 do
+        local actionType, id = ReadActionInfo(slot)
+        if not actionType and id ~= "empty" then return nil, id end
+        if actionType == "spell" then
+            id = SafeNumber(id)
+            if not id then return nil, "restricted" end
+            slots[#slots + 1] = { slot = slot, spellID = id }
+            counts[id] = (counts[id] or 0) + 1
+        end
+    end
+    return slots, counts
+end
+
+-- Never clear a pre-existing cursor. Recheck the source after pickup, and report
+-- success only after reading back the requested spell from the destination.
+function ActionBar:ReplaceSpellSlot(slot, expectedID, targetID)
+    if not YUI.IsForever then return false, "unsupported-client" end
+    slot, expectedID, targetID = SafeNumber(slot), SafeNumber(expectedID), SafeNumber(targetID)
+    if not slot or not expectedID or not targetID then return false, "invalid-argument" end
+    local security = YUI.API and YUI.API.Security
+    if not security or security.InCombatLockdown() then return false, "combat-lockdown" end
+    if not self:IsCursorEmpty() then return false, "cursor-busy" end
+    local spell = YUI.API and YUI.API.Spell
+    if not spell or spell.GetKnownState(targetID) ~= true then return false, "unknown-spell" end
+    if not (_G.C_Spell and _G.C_Spell.PickupSpell and _G.PlaceAction and _G.ClearCursor) then
+        return false, "api-unavailable"
+    end
+    local actionType, id = ReadActionInfo(slot)
+    if actionType ~= "spell" or SafeNumber(id) ~= expectedID then return false, "slot-changed" end
+    local picked = security.SafeCall("ActionBar rank pickup", _G.C_Spell.PickupSpell, targetID)
+    if not picked then return false, "pickup-failed" end
+    local cursorOK, cursorType = pcall(_G.GetCursorInfo)
+    if not cursorOK or IsSecretValue(cursorType) then return false, "restricted" end
+    if cursorType ~= "spell" then return false, "pickup-failed" end
+    actionType, id = ReadActionInfo(slot)
+    if security.InCombatLockdown() or actionType ~= "spell" or SafeNumber(id) ~= expectedID then
+        security.SafeCall("ActionBar rank cancel pickup", _G.ClearCursor)
+        return false, "slot-changed"
+    end
+    local placed = security.SafeCall("ActionBar rank place", _G.PlaceAction, slot)
+    security.SafeCall("ActionBar rank clear pickup", _G.ClearCursor)
+    actionType, id = ReadActionInfo(slot)
+    if placed and actionType == "spell" and SafeNumber(id) == targetID then return true end
+    return false, "placement-unconfirmed"
 end
 
 function ActionBar:ReadMacroBody(macroIndex)

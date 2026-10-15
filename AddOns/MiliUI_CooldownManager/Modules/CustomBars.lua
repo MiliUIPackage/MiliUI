@@ -555,10 +555,10 @@ local function Look(style, plan, g)
     local scale = UIParent:GetEffectiveScale()
     if not scale or scale <= 0 then scale = 1 end
     local token = ns.Media.ElementFont(style.textFont, ns.Setting(nil, "font"))
-    -- 暗底：自訂底色 ＞ 填色 × 0.25（同資源條的連續條），alpha 乘背景不透明度
+    -- 暗底：自訂底色 ＞ 填色 × 0.25（同資源條的連續條），alpha ＝ 背景不透明度（絕對值）
     local m = R.BgAlpha(style)
     local bc = R.BgCustom(style)
-    local dim = bc and { bc.r, bc.g, bc.b, 0.8 * m } or { r * 0.25, gg * 0.25, b * 0.25, 0.8 * m }
+    local dim = bc and { bc.r, bc.g, bc.b, m } or { r * 0.25, gg * 0.25, b * 0.25, m }
     local _, oy = R.TextOffset(style)
     return {
         r = r, g = gg, b = b, alpha = tonumber(style.barAlpha) or 1,

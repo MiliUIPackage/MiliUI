@@ -1,11 +1,13 @@
 
 local _, ns = ...
 
-BINDING_HEADER_TinyInspect = "TinyInspect"
-
 if (GetLocale() ~= "zhTW") then return end
 
-ns.L = {
+local L = ns.L
+local T = {
+    AnnouncementTitle           = "公告",
+    AnnouncementKey             = "announcement_2026_10_14",
+    AnnouncementChat            = "針對12.1.5的API變更進行了相容性更新。",
     ShowItemBorder              = "物品直角邊框",
     EnableItemLevel             = "物品等級顯示",
     ShowColoredItemLevelString  = "裝等文字隨物品品質",
@@ -38,11 +40,45 @@ ns.L = {
     PaperDoll                   = "人物面板",
     Chat                        = "聊天",
     Loot                        = "拾取",
+    Other                       = "其他未分類物品",
     ShowGemAndEnchant           = "顯示寶石和附魔信息",
     ShowUpgradeInfo             = "顯示裝備升級資訊",
     ItemLevelAnchorPoint        = "裝等位置",
     ShowGearDurability          = "顯示裝備耐久度",
     GearDurabilityAnchorPoint   = "耐久度位置",
+    AnchorPicker                = "錨點器",
+    Fonts                       = "字體",
+    InspectNameFont             = "玩家名稱字體",
+    InspectItemFont             = "物品字體",
+    DefaultFont                 = "預設字體",
+    ChatFont                    = "聊天字體",
+    GameFont                    = "遊戲字體",
+    QuestFont                   = "任務字體",
+    CombatLogFont               = "戰鬥記錄字體",
+    SelectOption                = "請選擇",
+    Announcements               = "公告",
+    AnnouncementMode            = "公告顯示方式",
+    AlwaysShowAnnouncements     = "始終顯示公告訊息",
+    ShowOncePerAnnouncement     = "每次公告更新時僅顯示一次",
+    NeverShowAnnouncements      = "永不顯示公告訊息",
+    General                     = "通用",
+    InspectPanel                = "觀察面板",
+    ItemLevel                   = "物品等級",
+    PartyAndRaid                = "小隊與團隊",
+    MouseFunctions              = "滑鼠功能",
+    EquipmentInformation        = "裝備資訊",
+    Appearance                  = "外觀",
+    ItemLevelText               = "裝等文字",
+    DisplayLocations            = "顯示場景",
+    PositionAndDurability       = "位置與耐久度",
+    Durability                  = "耐久度",
+    InvalidFontMessage          = "所選字體「%s」無法使用，或不是遊戲已知檔案。變更未生效。",
+    ItemLevelAbbreviation       = "裝等",
+    RaidItemLevel               = "團隊裝等",
+    ArtifactPower               = "能量",
+    NotAvailable                = "無法取得",
 }
 
-BINDING_NAME_InspectRaidFrame = "顯示團隊觀察面板"
+for key, value in pairs(T) do
+    L[key] = value
+end

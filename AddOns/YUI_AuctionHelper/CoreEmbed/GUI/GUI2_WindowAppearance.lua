@@ -370,6 +370,19 @@ function Appearance:Resolve(themeStyle, options)
     if themeStyle == "dark" then return DarkContext() end
 
     local skip = options and options.skip
+    if not (skip and skip.ellesmere) and IsAddOnLoaded("EllesmereUIBlizzardSkin") then
+        local provider = _G.EllesmereUI
+        local killed, killedOK = SafeCall(provider, "BlizzWindowSkinsKilled")
+        local window = options and options.blizzardWindow
+        local style, styleOK
+        if type(window) == "string" and window ~= "" then
+            style, styleOK = SafeCall(provider, "GetBlizzWindowStyle", window)
+        end
+        -- An explicit stock window choice is terminal, not a provider failure.
+        if (killedOK and killed == true) or (styleOK and style == "off") then
+            return { source = "native" }
+        end
+    end
     local context = not (skip and skip.ellesmere)
         and (TryResolve(ResolveOfficialProvider, skip) or TryResolve(ResolveLegacyProvider, skip))
         or nil
@@ -513,8 +526,33 @@ local function CreateBorder(frame, state)
     end
 end
 
+local function ApplyNativeShellLayout(state)
+    local layout = state.options.nativeLayout == "Dialog" and "Dialog" or "ButtonFrameTemplateNoPortrait"
+    if state.nativeLayout == layout then return end
+    local native = state.nativeFrame
+    local util = _G.NineSliceUtil
+    if native and type(util) == "table" and type(util.ApplyLayoutByName) == "function" then
+        local ok = pcall(util.ApplyLayoutByName, native, layout)
+        if ok then state.nativeLayout = layout end
+    end
+    local texture = state.nativeTexture
+    if texture then
+        texture:ClearAllPoints()
+        if layout == "Dialog" then
+            texture:SetPoint("TOPLEFT", native, "TOPLEFT", 7, -7)
+            texture:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", -7, 7)
+        else
+            texture:SetPoint("TOPLEFT", native, "TOPLEFT", 6, -2)
+            texture:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", -2, 2)
+        end
+    end
+end
+
 local function CreateNativeShell(frame, state)
-    if state.nativeAttempted then return state.nativeFrame end
+    if state.nativeAttempted then
+        if state.nativeFrame then ApplyNativeShellLayout(state) end
+        return state.nativeFrame
+    end
     state.nativeAttempted = true
     if type(_G.CreateFrame) ~= "function" then return nil end
     local clip
@@ -531,7 +569,9 @@ local function CreateNativeShell(frame, state)
     if type(clip.SetFrameLevel) == "function" and type(frame.GetFrameLevel) == "function" then
         clip:SetFrameLevel(math.max(0, frame:GetFrameLevel() - 2))
     end
-    if type(clip.SetClipsChildren) == "function" then pcall(clip.SetClipsChildren, clip, true) end
+    if type(clip.SetClipsChildren) == "function" then
+        pcall(clip.SetClipsChildren, clip, state.options.nativeBorderOverflow ~= true)
+    end
     state.nativeClip = clip
 
     local ok, native = pcall(_G.CreateFrame, "Frame", nil, clip, "NineSlicePanelTemplate")
@@ -540,20 +580,15 @@ local function CreateNativeShell(frame, state)
     if type(native.SetFrameLevel) == "function" and type(frame.GetFrameLevel) == "function" then
         native:SetFrameLevel(math.max(0, frame:GetFrameLevel() - 1))
     end
-    local util = _G.NineSliceUtil
-    if type(util) == "table" and type(util.ApplyLayoutByName) == "function" then
-        pcall(util.ApplyLayoutByName, native, "ButtonFrameTemplateNoPortrait")
-    end
     local texture = CreateTexture(native, "BACKGROUND", -7)
     if texture then
         texture:SetTexture(NATIVE_TEXTURE)
-        texture:SetPoint("TOPLEFT", native, "TOPLEFT", 6, -2)
-        texture:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", -2, 2)
         if type(texture.SetHorizTile) == "function" then texture:SetHorizTile(true) end
         if type(texture.SetVertTile) == "function" then texture:SetVertTile(true) end
     end
     state.nativeFrame = native
     state.nativeTexture = texture
+    ApplyNativeShellLayout(state)
     return native
 end
 
@@ -955,7 +990,7 @@ local function ApplyResolvedShell(self, frame, state, context, themeStyle)
             ApplyCleanBorderAtlas(frame, state, context)
             return context
         end
-        context = self:Resolve(themeStyle, { skip = { ellesmere = true } })
+        context = self:Resolve(themeStyle, { skip = { ellesmere = true }, blizzardWindow = state.options.blizzardWindow })
     end
 
     if context.source == "ndui" then
@@ -963,7 +998,7 @@ local function ApplyResolvedShell(self, frame, state, context, themeStyle)
             ApplyCleanBorderAtlas(frame, state, context)
             return context
         end
-        context = self:Resolve(themeStyle, { skip = { ndui = true } })
+        context = self:Resolve(themeStyle, { skip = { ndui = true }, blizzardWindow = state.options.blizzardWindow })
     end
 
     if context.source == "native" then
@@ -995,7 +1030,7 @@ function Appearance:Refresh(frame)
         local ok, value = pcall(state.options.themeProvider)
         if ok and (value == "auto" or value == "native" or value == "dark") then themeStyle = value end
     end
-    local context = self:Resolve(themeStyle)
+    local context = self:Resolve(themeStyle, state.options)
     context = ApplyResolvedShell(self, frame, state, context, themeStyle)
     state.context = context
 
@@ -1047,9 +1082,12 @@ function Appearance:Register(frame, options)
     options = options or {}
     state.options = {
         themeProvider = options.themeProvider,
+        blizzardWindow = options.blizzardWindow,
         headings = options.headings or (options.heading and { options.heading }) or {},
         headingColorKey = options.headingColorKey,
         noTopBar = options.noTopBar == true,
+        nativeBorderOverflow = options.nativeBorderOverflow == true,
+        nativeLayout = options.nativeLayout,
         role = options.role,
         onRefresh = options.onRefresh,
     }

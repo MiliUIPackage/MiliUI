@@ -408,6 +408,27 @@ function Data:AcquireSource(owner, sourceKey, typeId, params, handler)
     if source and source.sourceType ~= sourceType then
         return nil, "source-key-type-conflict"
     end
+    local definition = sourceType.definition
+    if not source and definition.findSharedSource then
+        source = definition.findSharedSource(sourceType, params)
+        if source then
+            -- A late consumer may add base/override aliases to an existing source.
+            -- Check all conflicts before extending the shared event index.
+            local identities = definition.getIdentity(params)
+            if type(identities) ~= "table" then identities = { identities } end
+            for _, identity in ipairs(identities) do
+                local existing = sourceType.identityIndex[identity]
+                if existing and existing ~= source then return nil, "source-identity-exists" end
+            end
+            for _, identity in ipairs(identities) do
+                if not sourceType.identityIndex[identity] then
+                    source.identities[#source.identities + 1] = identity
+                    sourceType.identityIndex[identity] = source
+                    self.stats.activeIndexes = self.stats.activeIndexes + 1
+                end
+            end
+        end
+    end
     if not source then
         local reason
         source, reason = self:_CreateSource(sourceKey, sourceType, params)

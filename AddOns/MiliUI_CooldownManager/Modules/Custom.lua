@@ -951,7 +951,7 @@ local function UpdateSpell(rec)
 end
 
 local function ItemCooldown(itemID)
-    local api = (C_Item and C_Item.GetItemCooldown) or _G.GetItemCooldown
+    local api = C_Item.GetItemCooldown
     return Try(api, itemID)
 end
 
@@ -2876,6 +2876,7 @@ CU.UseFrame = UseFrame                -- 測試用
 --     只照冷卻格的 Icon 讀回形狀烘遮罩、不畫米利邊（OverlayShape，見「光環格的 Masque」）。
 -- 要不要疊：Catalog.SlotOverlayIDs（條層／逐法術 showAuraTime 沒關、而且解得出增益）——跟 BarHasAuraSlot 同一個判準，
 -- 所以有疊層的條固定格位一定被強制打開。不疊時持有框收起來（ns.Write Hide），容器留在池裡。
+-- 條層選了往前補（Catalog.BarOverlaysSuppressed）三支判準都回 nil ⇒ 疊層收起來、條不再被逼成固定格位、真的往前補。
 --
 -- 持有框是保護框 ⇒ **不能錨在冷卻格上**（保護沿錨點鏈傳染，冷卻格會跟著變保護框）：跟光環格一樣 parent＝條容器、
 -- 直接 SetPoint 到容器、同一個矩形。層級（frame level，同一個 strata 裡跨父層比得出高低）：

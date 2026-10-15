@@ -1,5 +1,5 @@
 ## Interface: 120007, 120100, 120105
-## Version: 20261014
+## Version: 20261015
 ## Title: |cffffe00a[整合]|r 米利UI套組
 ## Notes: 歡迎使用米利UI套組。|nUI套組不定時更新，|n請至|cff9c27b0[奇樂-魔獸世界中文插件補給站]|r取得最新版本的UI。|n若有任何問題歡迎前往討論唷。|n|cffffd200https://addons.miliui.com|r
 ## IconTexture: Interface\AddOns\MiliUI\icon
@@ -60,7 +60,6 @@ Enhance\GameMenu_MiliUIButton.lua
 Enhance\VersionCheck.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
-Enhance\GameplayCVars.lua
 Enhance\WorldMapCoords.lua
 Enhance\Delves_MarkButton.lua
 Enhance\Chattynator_TabStyle.lua
@@ -69,17 +68,10 @@ Enhance\Chattynator_URLs.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
 Enhance\MplusAdventureGuide_Masque.lua
-Enhance\BonusRoll_Filter.lua
-Enhance\BonusRoll_Confirm.lua
-Enhance\GroupLootHistory_AutoClose.lua
 Enhance\LegacyAddons.lua
-Enhance\Merchant_Automation.lua
-Enhance\Quest_Automation.lua
-Enhance\QuestReward_BestValue.lua
 Enhance\ColorPicker_Tools.lua
 Enhance\MacroFrame_Tools.lua
 Enhance\FriendsList_ClassColor.lua
-Enhance\Trade_Whisper.lua
 Enhance\EditMode_BagsAlpha.lua
 Enhance\TaintLog.lua
 Enhance\DebugMode.lua

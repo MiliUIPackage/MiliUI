@@ -398,6 +398,18 @@ function Frame.InstallPlatynatorFriendlyNamePlateTextureHooks()
     return false, "HOOK_FAILED"
 end
 
+function Frame.IsCinematicOrMovieShown()
+    -- 原生 fullscreen 流程先隐藏 UIParent，再显示 CinematicFrame。
+    local ok, active = SafeFunction(_G.InCinematic)
+    if ok and active == true then return true end
+    local cinematic, movie = _G.CinematicFrame, _G.MovieFrame
+    local shown
+    ok, shown = SafeFunction(SafeField(cinematic, "IsShown"), cinematic)
+    if ok and shown then return true end
+    ok, shown = SafeFunction(SafeField(movie, "IsShown"), movie)
+    return ok and shown == true
+end
+
 function Frame.GetPhysicalScreenSize()
     if GetPhysicalScreenSize then
         return GetPhysicalScreenSize()
@@ -444,6 +456,15 @@ end
 
 function Frame.ToggleCharacter(tab)
     if ToggleCharacter then
+        if YUI.IsForever then
+            -- Native OnShow reads restricted health values. Keep its execution
+            -- outside the addon-tainted click callback; do not replace native code.
+            if type(_G.securecallfunction) ~= "function" or not Security
+                or type(Security.SecureCallFunction) ~= "function" then
+                return false, "secure_call_unavailable"
+            end
+            return Security.SecureCallFunction(ToggleCharacter, tab)
+        end
         return ToggleCharacter(tab)
     end
 
@@ -451,7 +472,7 @@ function Frame.ToggleCharacter(tab)
 end
 
 function Frame.ToggleSpellBook()
-    if isRetail then
+    if YUI.IsForever or isRetail then
         if PlayerSpellsUtil and PlayerSpellsUtil.ToggleSpellBookFrame then
             return PlayerSpellsUtil.ToggleSpellBookFrame()
         elseif ToggleSpellBook then
@@ -470,6 +491,27 @@ function Frame.ToggleAchievementFrame()
     end
 
     return nil
+end
+
+-- Forever 传承由奖励轨道声望解锁，不以当前角色等级判断。
+function Frame.IsLegacySystemUnlocked()
+    if not YUI.IsForever then return false end
+    local legacyConsts = Constants and Constants.LegacyConsts
+    local factionID = legacyConsts and legacyConsts.LEGACY_REWARD_TRACK_FACTION_ID
+    if not factionID or not C_MajorFactions or not C_MajorFactions.GetCurrentRenownLevel then
+        return false
+    end
+    local level = C_MajorFactions.GetCurrentRenownLevel(factionID)
+    if issecretvalue and issecretvalue(level) then return false end
+    return type(level) == "number" and level > 0
+end
+
+function Frame.ToggleLegacySystemUI()
+    if not Frame.IsLegacySystemUnlocked() or type(ToggleLegacySystemUI) ~= "function" then
+        return false
+    end
+    ToggleLegacySystemUI()
+    return true
 end
 
 function Frame.ToggleQuestLog()
@@ -497,6 +539,10 @@ function Frame.ToggleEncounterJournal()
 end
 
 function Frame.TogglePVEFrame()
+    if YUI.IsForever and type(ToggleGroupFinderFrame) == "function" then
+        return ToggleGroupFinderFrame()
+    end
+
     if PVEFrame_ToggleFrame then
         return PVEFrame_ToggleFrame()
     elseif ToggleLFGParentFrame then
@@ -507,7 +553,7 @@ function Frame.TogglePVEFrame()
 end
 
 function Frame.TogglePVPUI()
-    local togglePVPUI = isRetail and TogglePVPUI or TogglePVPFrame
+    local togglePVPUI = (YUI.IsForever or isRetail) and TogglePVPUI or TogglePVPFrame
     if togglePVPUI then
         return togglePVPUI()
     end

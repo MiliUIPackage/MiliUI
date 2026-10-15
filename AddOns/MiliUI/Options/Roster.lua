@@ -34,6 +34,7 @@ ns.AddonRoster = {
         { key = "MiliUI_CooldownManager", folders = { "MiliUI_CooldownManager" }, menuKey = "cooldownmanager" },
         { key = "MiliUI_Tooltip", folders = { "MiliUI_Tooltip" }, menuKey = "tooltip" },
         { key = "MiliUI_Focus", folders = { "MiliUI_Focus" }, menuKey = "focus" },
+        { key = "MiliUI_QoL", folders = { "MiliUI_QoL" }, menuKey = "qol" },
         { key = "MiliUI_CrusadingStrikes", folders = { "MiliUI_CrusadingStrikes" }, menuKey = "crusadingstrikes" },
         { key = "MiliUI_ChatBar", folders = { "MiliUI_ChatBar" }, menuKey = "chatbar" },
         { key = "MiliUI_BurstPotionHelper", folders = { "MiliUI_BurstPotionHelper" }, menuKey = "burstpotion" },

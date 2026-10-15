@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("ruRU") then return end
+
 YUI.Locale:Register("Core", "ruRU", {
     ["teleports.settings.announce_header"] = "Объявление Teleport",
     ["teleports.settings.announce_scope"] = "Объявление Сфера",
@@ -213,11 +215,11 @@ YUI.Locale:Register("Core", "ruRU", {
     ["cpu_watch.probe.ychat_driver"] = "YChat event/deferred драйвер",
     ["cpu_watch.probe.development_load"] = "Диагностика CPU имитирует нагрузку",
     ["cpu_watch.probe.event_other"] = "Другие слушатели EventBus",
-    ["cpu_watch.probe.yhud_context"] = "Обновить контекст YHUD",
-    ["cpu_watch.probe.yhud_item_acquire"] = "Приобретение платформ YHUD",
-    ["cpu_watch.probe.yhud_static_cooldown"] = "Обновление YHUD cooldown",
-    ["cpu_watch.probe.yhud_static_position"] = "Ремонт позиции YHUD",
-    ["cpu_watch.probe.yhud_category_sync"] = "Категория YHUD синхронизация",
+    ["cpu_watch.probe.yhud_context"] = "Обновить контекст Halo",
+    ["cpu_watch.probe.yhud_item_acquire"] = "Приобретение платформ Halo",
+    ["cpu_watch.probe.yhud_static_cooldown"] = "Обновление Halo cooldown",
+    ["cpu_watch.probe.yhud_static_position"] = "Ремонт позиции Halo",
+    ["cpu_watch.probe.yhud_category_sync"] = "Категория Halo синхронизация",
     ["cpu_watch.probe.yhud_resource_preview"] = "Предварительный просмотр Halo",
     ["cpu_watch.movement.taxi"] = "Путь полета",
     ["cpu_watch.movement.skyriding"] = "небоскрёб",
@@ -465,7 +467,7 @@ YUI.Locale:Register("Core", "ruRU", {
     ["layout.filter.action"] = "дисплей",
     ["layout.filter.title"] = "Mover Display",
     ["layout.filter.category.actionbar"] = "Панели команд",
-    ["layout.filter.category.monitor"] = "Halo Console",
+    ["layout.filter.category.monitor"] = "Halo Monitor",
     ["layout.filter.category.combat"] = "Боевые инструменты",
     ["layout.filter.category.communication"] = "Чат и коммуникация",
     ["layout.filter.category.map"] = "Карта и навигация",
@@ -1334,7 +1336,7 @@ YUI.Locale:Register("Core", "ruRU", {
     ["game_menu.text.011"] = "Помощь",
     ["game_menu.text.012"] = "Открыть страницу FAQ",
     ["game_menu.text.013"] = "Ауры",
-    ["game_menu.text.014"] = "Откройте дизайн YHUD Aura",
+    ["game_menu.text.014"] = "Откройте дизайн Halo Aura",
     ["game_menu.text.015"] = "Откаты",
     ["game_menu.text.016"] = "|cFFFF0000[YUI] Настройки менеджера восстановления не найдены|r",
     ["game_menu.text.017"] = "Открыть менеджер восстановления Blizzard",

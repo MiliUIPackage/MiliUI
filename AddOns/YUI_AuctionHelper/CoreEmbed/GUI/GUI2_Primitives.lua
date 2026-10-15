@@ -1267,7 +1267,7 @@ function GUI2:CreateVirtualScrollBar(parent, opts)
         object.gui2VirtualFirstIndex = firstIndex
         object.gui2VirtualUpdating = true
         object:SetMinMaxValues(1, maxFirst)
-        object:SetValue(maxFirst - firstIndex + 1)
+        object:SetValue(firstIndex)
         object.gui2VirtualUpdating = false
         RefreshLayout(object)
         if total > visible then object:Show() else object:Hide() end
@@ -1281,7 +1281,7 @@ function GUI2:CreateVirtualScrollBar(parent, opts)
     bar:SetScript("OnValueChanged", function(object, value)
         if object.gui2VirtualUpdating then return end
         local maxFirst = object.gui2VirtualMaxFirst or 1
-        local firstIndex = maxFirst - math_floor((tonumber(value) or 1) + 0.5) + 1
+        local firstIndex = math_floor((tonumber(value) or 1) + 0.5)
         firstIndex = math_max(1, math_min(maxFirst, firstIndex))
         if firstIndex == object.gui2VirtualFirstIndex then return end
         object.gui2VirtualFirstIndex = firstIndex
@@ -5083,9 +5083,7 @@ function GUI2:CreateBareMicroIconButton(parent, opts)
     button.gui2BareMicroIconTooltip = opts.tooltip
     button.gui2BareMicroIconTooltipAnchor = opts.tooltipAnchor or "ANCHOR_RIGHT"
 
-    if button.SetPropagateMouseClicks then
-        button:SetPropagateMouseClicks(false)
-    end
+    -- Fresh buttons use native click handling; avoid a protected propagation setter.
 
     button.icon = self:CreateMicroIcon(button, {
         iconName = opts.iconName or opts.microIcon or opts.icon or opts.name,
@@ -6223,11 +6221,13 @@ function GUI2:ApplyFontAppearance(fontString, opts)
     if not (fontString and fontString.SetFont) then return false end
     opts = type(opts) == "table" and opts or {}
     local size = math_max(8, math_min(32, tonumber(opts.size) or 14))
+    local scale = tonumber(opts.fontScale) or 1
+    if scale <= 0 or scale ~= scale or scale == math.huge then scale = 1 end
     pcall(
         fontString.SetFont,
         fontString,
         ResolveCooldownTextFont(opts.font),
-        size,
+        size / scale,
         ResolveCooldownTextOutline(opts.outline)
     )
     local hasShadow = opts.outline == "shadow"
@@ -6241,7 +6241,7 @@ function GUI2:ApplyFontAppearance(fontString, opts)
     end
     if fontString.SetShadowOffset then
         if hasShadow then
-            fontString:SetShadowOffset(1, -1)
+            fontString:SetShadowOffset(1 / scale, -1 / scale)
         else
             fontString:SetShadowOffset(0, 0)
         end
@@ -6661,7 +6661,11 @@ function GUI2:CreateNavButton(parent, text, icon, width, height, iconOptions)
         if not frame or not frame.text then return end
         local rightInset = tonumber(frame.gui2TextRightInset) or 10
         frame.text:ClearAllPoints()
-        if frame.icon then
+        if frame.gui2IconColumnWidth then
+            frame.text:SetPoint("LEFT", frame, "LEFT", 15 + frame.gui2IconColumnWidth + 15, 0)
+            frame.text:SetPoint("RIGHT", -rightInset, 0)
+            frame.text:SetJustifyH("LEFT")
+        elseif frame.icon then
             frame.text:SetPoint("LEFT", frame.icon, "RIGHT", 15, 0)
             frame.text:SetPoint("RIGHT", -rightInset, 0)
             frame.text:SetJustifyH("LEFT")
@@ -6672,6 +6676,20 @@ function GUI2:CreateNavButton(parent, text, icon, width, height, iconOptions)
         end
     end
 
+    local function ApplyIconPoints(frame, options, initialize)
+        local previousColumnWidth = frame.gui2IconColumnWidth
+        local columnWidth = type(options) == "table" and tonumber(options.columnWidth) or nil
+        frame.gui2IconColumnWidth = columnWidth and columnWidth > 0 and columnWidth or nil
+        if not initialize and not previousColumnWidth and not frame.gui2IconColumnWidth then return end
+        if frame.icon then
+            local iconSize = frame.icon:GetWidth()
+            local columnOffset = frame.gui2IconColumnWidth and (frame.gui2IconColumnWidth - iconSize) / 2 or 0
+            frame.icon:ClearAllPoints()
+            frame.icon:SetPoint("LEFT", 15 + columnOffset, 0)
+        end
+        ApplyTextPoints(frame)
+    end
+
     if icon then
         local iconTex = self:CreateIcon(button, {
             icon = icon,
@@ -6680,7 +6698,6 @@ function GUI2:CreateNavButton(parent, text, icon, width, height, iconOptions)
             texCoords = iconOptions.texCoords,
             fallbackIcon = iconOptions.fallbackIcon,
         })
-        iconTex:SetPoint("LEFT", 15, 0)
         button.icon = iconTex
         button.gui2PreserveIconColor = true
 
@@ -6691,7 +6708,7 @@ function GUI2:CreateNavButton(parent, text, icon, width, height, iconOptions)
         iconBg:SetFrameLevel(button:GetFrameLevel())
         button.iconBg = iconBg
     end
-    ApplyTextPoints(button)
+    ApplyIconPoints(button, iconOptions, true)
 
     function button:SetText(value)
         self.gui2FullText = value or ""
@@ -6722,6 +6739,7 @@ function GUI2:CreateNavButton(parent, text, icon, width, height, iconOptions)
         else
             self.icon:SetTexCoord(unpack(DEFAULT_ICON_TEXCOORDS))
         end
+        ApplyIconPoints(self, options)
         return true
     end
 
@@ -7036,6 +7054,9 @@ end
 function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width, config)
     if not parent or not options then return end
     local rowHeight = 28
+    for _, option in ipairs(options) do
+        if type(option.description) == "string" and option.description ~= "" then rowHeight = 46; break end
+    end
     local menuPadding = 2
     local checkColumnWidth = 18
     local checkSize = 6
@@ -7317,6 +7338,10 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width, conf
     frame:EnableMouse(true)
     frame.anchor = parent
     frame:SetParent(UIParent)
+    local settings = YUI.Settings
+    if settings and settings.SyncOwnedWindowScale then
+        settings:SyncOwnedWindowScale(frame, parent)
+    end
 
     local dropdownWidth = width or parent:GetWidth() or 160
     local contentWidth = math_max(dropdownWidth - menuPadding - scrollRightInset, 1)
@@ -7479,6 +7504,22 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width, conf
             UpdateDropdownSeparator(button, rowIndex)
         end
         button.text:SetText(opt.text or "")
+        if button.description then button.description:Hide() end
+        if type(opt.description) == "string" and opt.description ~= "" then
+            if not button.description then
+                button.description = self:CreateText(button, "", "font.size.sm", "color.text.secondary")
+                button.description:SetJustifyH("LEFT")
+                button.description:SetWordWrap(false)
+            end
+            button.text:ClearAllPoints()
+            button.text:SetPoint("TOPLEFT", textLeft, -5)
+            button.text:SetPoint("TOPRIGHT", textRight, -5)
+            button.description:ClearAllPoints()
+            button.description:SetPoint("BOTTOMLEFT", textLeft, 5)
+            button.description:SetPoint("BOTTOMRIGHT", textRight, 5)
+            button.description:SetText(opt.description)
+            button.description:Show()
+        end
         if isSelected then
             button.check:Show()
         else
@@ -7561,6 +7602,13 @@ function GUI2:OpenDropdown(parent, options, onSelect, selectedValue, width, conf
     local parentBottom = parent.GetBottom and parent:GetBottom()
     local parentTop = parent.GetTop and parent:GetTop()
     local screenHeight = UIParent and UIParent.GetHeight and UIParent:GetHeight()
+    if frame.yuiSettingsScaleRoot then
+        local menuScale = frame:GetEffectiveScale()
+        local anchorScale = parent:GetEffectiveScale() / menuScale
+        parentBottom = parentBottom and parentBottom * anchorScale
+        parentTop = parentTop and parentTop * anchorScale
+        screenHeight = screenHeight and screenHeight * UIParent:GetEffectiveScale() / menuScale
+    end
     frame:ClearAllPoints()
     if parentBottom and parentTop and screenHeight and parentBottom - finalHeight - 8 < 0 and screenHeight - parentTop > finalHeight + 8 then
         frame:SetPoint("BOTTOMLEFT", parent, "TOPLEFT", 0, 2)

@@ -2,6 +2,9 @@
 -------------------------------------
 -- 物品等級顯示 Author: M
 -------------------------------------
+local _, ns = ...
+local L = ns.L
+
 -- 兼容性补丁：防止旧版神器圣物函数报错
 if not IsArtifactRelicItem then
     IsArtifactRelicItem = function(link)
@@ -19,8 +22,7 @@ local ARMOR = ARMOR or "Armor"
 local WEAPON = WEAPON or "Weapon"
 local MOUNTS = MOUNTS or "Mount"
 local RELICSLOT = RELICSLOT or "Relic"
-local ARTIFACT_POWER = ARTIFACT_POWER or "Artifact"
-if (GetLocale():sub(1,2) == "zh") then ARTIFACT_POWER = "能量" end
+local ARTIFACT_POWER = L.ArtifactPower
 
 --fixed for 8.x
 local GetLootInfoByIndex = EJ_GetLootInfoByIndex
@@ -38,7 +40,10 @@ if (C_Container and C_Container.GetContainerItemInfo) then
     end
 end
 
-local GetItemStats = GetItemStats or C_Item.GetItemStats
+local GetItemInfo = C_Item.GetItemInfo
+local IsEquippableItem = C_Item.IsEquippableItem
+local IsArtifactPowerItem = C_Item.IsArtifactPowerItem
+local GetItemStats = C_Item.GetItemStats
 local GetInventoryItemDurability = GetInventoryItemDurability
 
 local function SafeNumber(value, fallback)
@@ -123,7 +128,7 @@ end
 --設置裝等文字
 local function SetItemLevelString(self, text, quality, link)
     if (quality and TinyInspectRemakeDB and TinyInspectRemakeDB.ShowColoredItemLevelString) then
-        local r, g, b, hex = GetItemQualityColor(quality)
+        local r, g, b, hex = C_Item.GetItemQualityColor(quality)
         text = format("|c%s%s|r", hex, text)
     end
     self:SetText(text)

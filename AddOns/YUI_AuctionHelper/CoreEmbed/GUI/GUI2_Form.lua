@@ -10,7 +10,6 @@ YUI.GUI2 = YUI.GUI2 or {}
 
 local GUI2 = YUI.GUI2
 local CreateFrame = CreateFrame
-local ColorPickerFrame = ColorPickerFrame
 local GameTooltip = GameTooltip
 local UIParent = UIParent
 local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
@@ -445,9 +444,56 @@ local function NormalizeColorValue(value)
         value[4] or value.a or 1
 end
 
+-- Opt-in cold pages retain controls and replace only their value bindings.
+-- Only opted-in ancestors retain bindings; traversal occurs on creation only.
+local function RegisterRetainedValue(frame, parent, opts)
+    if not (opts and type(opts.get) == "function") then return end
+    local owner = parent
+    for _ = 1, 16 do
+        if not owner then return end
+        if owner.yuiRetainedBindings then
+            local bindings = owner.yuiRetainedBindings
+            bindings[#bindings + 1] = { widget = frame, opts = opts }
+            return
+        end
+        owner = owner.GetParent and owner:GetParent() or nil
+    end
+end
+
+function GUI2.Form:RefreshRetainedValues(owner, config)
+    local fields = {}
+    local function collect(items)
+        for _, item in ipairs(items or {}) do
+            if item.retainedFields then collect(item.retainedFields)
+            elseif item.children then collect(item.children)
+            elseif type(item.get) == "function" then fields[#fields + 1] = item end
+        end
+    end
+    collect(config)
+    local bindings = owner.yuiRetainedBindings or {}
+    if #fields ~= #bindings then return false, "retained-field-count" end
+    -- Validate before replacing any callbacks; never silently show an old binding.
+    for i, binding in ipairs(bindings) do
+        if binding.opts.type ~= fields[i].type then return false, "retained-field-type" end
+    end
+    for i, binding in ipairs(bindings) do
+        local field, opts, widget = fields[i], binding.opts, binding.widget
+        opts.get, opts.set, opts.onChange = field.get, field.set, field.onChange
+        opts.onCommit, opts.onPreview = field.onCommit, field.onPreview
+        opts.disabled = field.disabled
+        if widget.SetDisabled then widget:SetDisabled(field.disabled == true) end
+        widget:SetValue(field.get(), true)
+        if YUI.Settings and YUI.Settings.Search then
+            YUI.Settings.Search:Bind(field, widget, opts.labelRegion)
+        end
+    end
+    return true
+end
+
 local function AddTooltip(frame, opts)
     if not frame or not opts or not opts.tooltip then return end
     frame:HookScript("OnEnter", function(self)
+        if not opts.tooltip or opts.tooltip == "" then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         local heading = opts.label
         if heading == nil or heading == "" then heading = opts.text end
@@ -619,6 +665,10 @@ local function StateTokens(frame, state)
             surface = frame.gui2PressedSurfaceToken or surface
             border = frame.gui2PressedBorderToken or border
             text = frame.gui2PressedTextColorKey or text
+        elseif state == "selected" or state == "active" then
+            surface = frame.gui2SelectedSurfaceToken or surface
+            border = frame.gui2SelectedBorderToken or border
+            text = frame.gui2SelectedTextColorKey or text
         elseif state == "normal" then
             surface = frame.gui2SurfaceToken or surface
             border = frame.gui2BorderToken or border
@@ -764,6 +814,13 @@ local function SetButtonEnabled(button, enabled)
     return true
 end
 
+local BUTTON_SYMBOL_TEXT = {
+    ["↑"] = true, ["↓"] = true, ["←"] = true, ["→"] = true,
+    ["‹"] = true, ["›"] = true, ["<"] = true, [">"] = true,
+    ["×"] = true, ["✕"] = true, ["✖"] = true,
+    ["+"] = true, ["-"] = true, ["−"] = true,
+}
+
 local function LayoutButtonContent(button, offsetX, offsetY)
     if not button then return end
     offsetX = offsetX or 0
@@ -797,8 +854,10 @@ local function LayoutButtonContent(button, offsetX, offsetY)
             text:SetPoint("RIGHT", button, "RIGHT", -(button.gui2TextRightPadding or 8) + offsetX, offsetY)
             text:SetJustifyH(button.gui2JustifyH or "LEFT")
         else
-            text:SetPoint("LEFT", button, "LEFT", (button.gui2TextLeftPadding or 8) + offsetX, offsetY)
-            text:SetPoint("RIGHT", button, "RIGHT", -(button.gui2TextRightPadding or 8) + offsetX, offsetY)
+            local isSymbol = text.GetText and BUTTON_SYMBOL_TEXT[text:GetText()]
+            local padding = isSymbol and 2 or 8
+            text:SetPoint("LEFT", button, "LEFT", (button.gui2TextLeftPadding or padding) + offsetX, offsetY)
+            text:SetPoint("RIGHT", button, "RIGHT", -(button.gui2TextRightPadding or padding) + offsetX, offsetY)
             text:SetJustifyH(button.gui2JustifyH or "CENTER")
         end
     end
@@ -839,6 +898,9 @@ function GUI2.Form:CreateButton(parent, opts)
     if button.RegisterForClicks then button:RegisterForClicks("AnyUp") end
     ConfigureMotion(button, opts)
     button.gui2Tone = opts.tone or "accent"
+    button.gui2SelectedSurfaceToken = opts.selectedSurface
+    button.gui2SelectedBorderToken = opts.selectedBorder
+    button.gui2SelectedTextColorKey = opts.selectedTextColorKey
     button.gui2Relief = opts.relief
     GUI2:ApplyBackdrop(button, "color.control.bg")
     GUI2:CreateBorder(button, "color.border.default")
@@ -888,8 +950,8 @@ function GUI2.Form:CreateButton(parent, opts)
         InheritMotion(icon, button)
     else
         button.gui2ContentAlign = opts.contentAlign
-        button.gui2TextLeftPadding = opts.textLeftPadding or 8
-        button.gui2TextRightPadding = opts.textRightPadding or 8
+        button.gui2TextLeftPadding = opts.textLeftPadding
+        button.gui2TextRightPadding = opts.textRightPadding
         button.gui2JustifyH = opts.justifyH or "CENTER"
     end
     LayoutButtonContent(button)
@@ -1167,6 +1229,7 @@ function GUI2.Form:CreateCheckbox(parent, opts)
         frame.text:SetWidth(math_max(frame.width - 26, 0))
     end
     GUI2:RegisterThemeObject(frame)
+    RegisterRetainedValue(frame, parent, opts)
     return frame
 end
 
@@ -2109,7 +2172,9 @@ function GUI2.Form:CreateUnderlineTabs(parent, opts)
         end
     end
 
-    for i, data in ipairs(items) do
+    local tabPool = {}
+    local function AcquireTab(i, data)
+        if tabPool[i] then return tabPool[i] end
         local button = GUI2:CreateButtonFrame(tabParent, {
             width = minItemWidth,
             height = height,
@@ -2150,12 +2215,33 @@ function GUI2.Form:CreateUnderlineTabs(parent, opts)
             selfButton.gui2Hovered = false
             RefreshButton(selfButton)
         end)
-        AddTooltip(button, {
-            text = data.text,
-            tooltip = data.tooltip,
-        })
-        frame.buttons[i] = button
+        button.gui2TabTooltip = { text = data.text, tooltip = data.tooltip or "" }
+        AddTooltip(button, button.gui2TabTooltip)
+        tabPool[i] = button
+        return button
     end
+
+    function frame:SetItems(nextItems, value, width)
+        StopScrollAnimation(self, false)
+        items = nextItems or {}
+        self.items = items
+        if width then explicitWidth = width end
+        for _, button in ipairs(tabPool) do button:Hide() end
+        for i = #self.buttons, 1, -1 do self.buttons[i] = nil end
+        for i, data in ipairs(items) do
+            local button = AcquireTab(i, data)
+            button.gui2TabValue = data.value
+            button.gui2ItemDisabled = data.disabled == true
+            button.gui2Hovered = false
+            button.text:SetText(data.text or "")
+            button.gui2TabTooltip.text, button.gui2TabTooltip.tooltip = data.text, data.tooltip
+            self.buttons[i] = button
+            button:Show()
+        end
+        self:Relayout()
+        self:SetValue(value, { silent = true, animate = false, force = true })
+    end
+    frame:SetItems(items, GetValue(opts), explicitWidth)
 
     if frame.previousButton then
         frame.previousButton:SetScript("OnClick", function()
@@ -2424,6 +2510,7 @@ function GUI2.Form:CreateSlider(parent, opts)
     Update(GetValue(opts) or minValue, nil, true)
     container:SetDisabled(opts.disabled)
     GUI2:RegisterThemeObject(container)
+    RegisterRetainedValue(container, parent, opts)
     return container
 end
 
@@ -2520,6 +2607,7 @@ function GUI2.Form:CreateEditBox(parent, opts)
     AddTooltip(edit, opts)
     edit:SetDisabled(opts.disabled)
     GUI2:RegisterThemeObject(edit)
+    RegisterRetainedValue(edit, parent, opts)
     return edit
 end
 
@@ -2910,6 +2998,7 @@ function GUI2.Form:CreateDropdown(parent, opts)
             local opt = optionTable
             menuOptions[#menuOptions + 1] = {
                 text = opt.text or tostring(opt.value),
+                description = opt.description,
                 value = opt.value,
                 checked = self.value == opt.value,
                 render = opt.render,
@@ -2969,6 +3058,7 @@ function GUI2.Form:CreateDropdown(parent, opts)
     frame:SetValue(GetValue(opts), true)
     frame:SetDisabled(opts.disabled)
     GUI2:RegisterThemeObject(frame)
+    RegisterRetainedValue(frame, parent, opts)
     return frame
 end
 
@@ -2991,7 +3081,7 @@ end
 
 local function BuildLSMFontOptions(opts)
     local options = {}
-    local seen = {}
+    local seen, seenLabels = {}, {}
     local fontSize = GUI2.Fonts and GUI2.Fonts.size_normal
         or GUI2:GetMetric("font.size.md", 13)
 
@@ -3010,7 +3100,8 @@ local function BuildLSMFontOptions(opts)
             and YUI.Locale and YUI.Locale.GetFontDisplayName then
             option.text = YUI.Locale:GetFontDisplayName(option.value)
         end
-        seen[option.value] = true
+        if seenLabels[option.text] then return end
+        seen[option.value], seenLabels[option.text] = true, true
 
         local baseRender = option.render
         local fontPath = option.fontPath or ResolveLSMFontPath(option.value)
@@ -3646,32 +3737,6 @@ function GUI2.Form:CreateRaceDropdown(parent, opts)
     return dropdown
 end
 
-local activeColorPickerControl
-local colorPickerHideHookInstalled = false
-
-local function FinishActiveColorPicker(cancelled)
-    local control = activeColorPickerControl
-    if not control then return false end
-    activeColorPickerControl = nil
-    if control.FinishColorPreview then
-        return control:FinishColorPreview(cancelled == true)
-    end
-    return false
-end
-
-local function EnsureColorPickerHideHook()
-    if colorPickerHideHookInstalled or not ColorPickerFrame then
-        return colorPickerHideHookInstalled
-    end
-    if ColorPickerFrame.HookScript then
-        ColorPickerFrame:HookScript("OnHide", function()
-            FinishActiveColorPicker(false)
-        end)
-        colorPickerHideHookInstalled = true
-    end
-    return colorPickerHideHookInstalled
-end
-
 function GUI2.Form:CreateColorPicker(parent, opts)
     opts = opts or {}
     BindItem(opts)
@@ -3785,6 +3850,7 @@ function GUI2.Form:CreateColorPicker(parent, opts)
             and self.gui2ColorOriginalValue
             or self.gui2ColorPendingValue
         if not value then return false end
+        value = { value[1], value[2], value[3], value[4] }
         self.value = value
         opts.value = value
         UpdateChip()
@@ -3807,6 +3873,14 @@ function GUI2.Form:CreateColorPicker(parent, opts)
     end
     function frame:SetValue(value, silent)
         if value == nil then return end
+        local picker = GUI2.ColorPicker
+        if picker and picker.owner == self then
+            local r, g, b, a = NormalizeColorValue(value)
+            local cr, cg, cb, ca = CurrentColor()
+            if r ~= cr or g ~= cg or b ~= cb or (opts.hasAlpha ~= false and a ~= ca) then
+                picker:Close("abandon")
+            end
+        end
         local isSilent, animate, setOptions = ParseSetOptions(silent)
         if self.gui2ValueInitialized
             and ValuesEqual(self.value, value)
@@ -3829,6 +3903,8 @@ function GUI2.Form:CreateColorPicker(parent, opts)
         if self.gui2DisabledInitialized and self.gui2Disabled == disabled then
             return false
         end
+        local picker = GUI2.ColorPicker
+        if disabled and picker and picker.owner == self then picker:Close("cancel") end
         self.gui2Disabled = disabled
         if self.gui2Disabled then
             if self.Disable then self:Disable() end
@@ -3848,94 +3924,44 @@ function GUI2.Form:CreateColorPicker(parent, opts)
 
     frame:SetScript("OnClick", function(self)
         if self.gui2Disabled then return end
+        local picker = GUI2.ColorPicker
+        if not picker then return end
+        picker:Close("cancel")
         local r, g, b, a = CurrentColor()
-        local enhanced = self.gui2ColorPreview ~= nil
-        if enhanced then
-            if activeColorPickerControl
-                and activeColorPickerControl ~= self then
-                FinishActiveColorPicker(false)
-            end
-            local original = self.gui2ColorOriginalValue or {}
-            local pending = self.gui2ColorPendingValue or {}
-            self.gui2ColorOriginalValue = original
-            self.gui2ColorPendingValue = pending
-            original[1], original[2], original[3], original[4] = r, g, b, a
-            pending[1], pending[2], pending[3], pending[4] = r, g, b, a
-            self.gui2ColorPreviewActive = true
-            activeColorPickerControl = self
-            EnsureColorPickerHideHook()
+        local original = { r, g, b, a }
+        self.gui2ColorOriginalValue = original
+        self.gui2ColorPendingValue = { r, g, b, opts.hasAlpha == false and 1 or a }
+        self.gui2ColorPreviewActive = true
+        local default
+        local defaultValue
+        if opts.getDefault then defaultValue = opts.getDefault()
+        else defaultValue = opts.default or opts.defaultValue end
+        if type(defaultValue) == "table" then
+            local def = type(defaultValue[1]) == "table" and defaultValue[1] or defaultValue
+            default = { NormalizeColorValue(def) }
         end
-        local info
-        info = {
-            r = r,
-            g = g,
-            b = b,
-            opacity = a,
-            hasOpacity = opts.hasAlpha ~= false,
-            swatchFunc = function()
-                local nr, ng, nb = ColorPickerFrame:GetColorRGB()
-                local na = a
-                if opts.hasAlpha ~= false then
-                    if ColorPickerFrame.GetColorAlpha then
-                        na = ColorPickerFrame:GetColorAlpha()
-                    elseif ColorPickerFrame.GetOpacity then
-                        na = ColorPickerFrame:GetOpacity()
-                    elseif ColorPickerFrame.opacity then
-                        na = ColorPickerFrame.opacity
-                    end
-                end
-                if enhanced then
-                    self:PreviewColorValue(nr, ng, nb, na or 1)
-                else
-                    local value = { nr, ng, nb, na or 1 }
-                    self:SetValue(value)
+        picker:Open(self, {
+            r = r, g = g, b = b, a = a,
+            hasAlpha = opts.hasAlpha ~= false,
+            default = default,
+            preview = function(nr, ng, nb, na)
+                self:PreviewColorValue(nr, ng, nb, na)
+                if not self.gui2ColorPreview then
+                    CommitValue(opts, self, { nr, ng, nb, na })
                 end
             end,
-            opacityFunc = function()
-                if info.swatchFunc then info.swatchFunc() end
-            end,
-            cancelFunc = function()
-                if enhanced then
-                    if activeColorPickerControl == self then
-                        activeColorPickerControl = nil
-                    end
-                    self:FinishColorPreview(true)
-                else
-                    local value = { r, g, b, a }
-                    self:SetValue(value)
+            commit = function() self:FinishColorPreview(false) end,
+            cancel = function()
+                self:FinishColorPreview(true)
+                if not self.gui2ColorPreview then
+                    CommitValue(opts, self, { r, g, b, a })
                 end
             end,
-        }
-        if opts.default then
-            local def = opts.default
-            if type(def) == "table" and type(def[1]) == "table" then def = def[1] end
-            if type(def) == "table" then
-                local dR, dG, dB, dA = NormalizeColorValue(def)
-                info.defaultColor = { r = dR, g = dG, b = dB, a = dA }
-            end
-        end
-        if ColorPickerFrame.SetupColorPickerAndShow then
-            ColorPickerFrame:SetupColorPickerAndShow(info)
-        else
-            ColorPickerFrame.func = info.swatchFunc
-            ColorPickerFrame.opacityFunc = info.opacityFunc
-            ColorPickerFrame.cancelFunc = info.cancelFunc
-            ColorPickerFrame.hasOpacity = info.hasOpacity
-            ColorPickerFrame:SetColorRGB(r, g, b)
-            if ColorPickerFrame.SetOpacity then ColorPickerFrame:SetOpacity(a) end
-            ColorPickerFrame.previousValues = { r, g, b, a }
-            ColorPickerFrame:Show()
-        end
-        if ColorPickerFrame.SetFrameStrata then
-            ColorPickerFrame:SetFrameStrata("TOOLTIP")
-        end
-        if ColorPickerFrame.SetFrameLevel then
-            ColorPickerFrame:SetFrameLevel(9800)
-        end
-        if ColorPickerFrame.SetToplevel then
-            ColorPickerFrame:SetToplevel(true)
-        end
-        if ColorPickerFrame.Raise then ColorPickerFrame:Raise() end
+        })
+    end)
+    frame:HookScript("OnHide", function(self)
+        local picker = GUI2.ColorPicker
+        if picker and picker.owner == self then picker:Close("cancel") end
     end)
     frame:SetScript("OnEnter", function(self)
         if self.gui2Disabled then return end
@@ -3951,6 +3977,7 @@ function GUI2.Form:CreateColorPicker(parent, opts)
     frame:SetValue(GetValue(opts) or opts.default or { 1, 1, 1, 1 }, true)
     frame:SetDisabled(opts.disabled)
     GUI2:RegisterThemeObject(frame)
+    RegisterRetainedValue(frame, parent, opts)
     return frame
 end
 
@@ -4297,6 +4324,7 @@ function GUI2.Form:CreateGlowOptions(parent, opts)
                 fillControl = true,
                 hasAlpha = true,
                 get = function() return value[field.key] end,
+                getDefault = function() return ResolveStyleDefaults(value.style)[field.key] end,
                 set = function(nextFieldValue)
                     local nextValue = NormalizeGlowOptionsValue(value, opts.default)
                     nextValue[field.key] = NormalizeGlowColorOption(nextFieldValue, value[field.key])

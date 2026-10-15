@@ -73,30 +73,30 @@ Components.TAGS = Components.TAGS or {
 local FEATURE_META = {
     SXMusic = { tags = { "战斗辅助" }, settingsMode = "inline", order = 100, sourceRoot = "Components\\SXMusic", assetFolders = { "Components\\SXMusic\\Media" }, modSwitchImage = "modswitch\\sxmusic-bg.png", modSwitchImageCrop = false },
     MythicPlusTools = { tags = { "战斗辅助" }, settingsMode = "inline", order = 101, sourceRoot = "Components\\MythicPlusTools", modSwitchImage = "modswitch\\mythicplustools-bg.png", modSwitchImageCrop = false },
-    FocusHelper = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 102, sourceRoot = "Components\\FocusHelper", versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\focushelper-bg.png", modSwitchImageCrop = false },
+    FocusHelper = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 102, sourceRoot = "Components\\FocusHelper", versions = { "forever", "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\focushelper-bg.png", modSwitchImageCrop = false },
     ClassExtraMonitor = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 103, sourceRoot = "Components\\ClassExtraMonitor", versions = { "mainline" }, modSwitchImage = "modswitch\\classextramonitor-bg.png", modSwitchImageCrop = false },
 
     LagTolerance = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 200, sourceRoot = "Components\\LagTolerance", modSwitchImage = "modswitch\\lagtolerance-bg.png", modSwitchImageCrop = false },
-    SpellAlert = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 200.5, sourceRoot = "Components\\SpellAlert", assetFolders = { "Components\\SpellAlert\\Media" }, versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\spellalert-bg.png", modSwitchImageCrop = false },
+    SpellAlert = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 200.5, sourceRoot = "Components\\SpellAlert", assetFolders = { "Components\\SpellAlert\\Media" }, versions = { "forever", "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\spellalert-bg.png", modSwitchImageCrop = false },
     CombatCue = { tags = { "战斗辅助" }, settingsMode = "inline", order = 201, sourceRoot = "Components\\CombatCue", assetFolders = { "Components\\CombatCue\\Media" }, modSwitchImage = "modswitch\\combatcue-bg.png", modSwitchImageCrop = false },
-    CombatEnhancement = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 202, sourceRoot = "Components\\CombatEnhancement", assetFolders = { "Components\\CombatEnhancement\\Media" }, versions = { "mainline", "wrath" }, modSwitchImage = "modswitch\\combatenhancement-bg.png", modSwitchImageCrop = false },
+    CombatEnhancement = { tags = { "战斗辅助" }, settingsMode = "inline", default = false, order = 202, sourceRoot = "Components\\CombatEnhancement", assetFolders = { "Components\\CombatEnhancement\\Media" }, versions = { "forever", "mainline", "wrath" }, modSwitchImage = "modswitch\\combatenhancement-bg.png", modSwitchImageCrop = false },
 
     GameMenuButtons = { tags = { "实用功能" }, settingsMode = "toggleOnly", order = 300, sourceRoot = "Components\\GameMenuButtons", modSwitchImage = "modswitch\\gamemenubuttons-bg.png", modSwitchImageCrop = false },
     LoginCheck = { tags = { "实用功能" }, settingsMode = "inline", order = 301, sourceRoot = "Components\\LoginCheck", modSwitchImage = "modswitch\\logincheck-bg.png", modSwitchImageCrop = false },
     MinimapCollection = { tags = { "实用功能", "美化皮肤" }, settingsMode = "inline", order = 302, sourceRoot = "Components\\MinimapCollection", modSwitchImage = "modswitch\\minimapcollection-bg.png", modSwitchImageCrop = false },
     MapPosition = { tags = { "实用功能" }, settingsMode = "toggleOnly", order = 303, sourceRoot = "Components\\MapPosition", modSwitchImage = "modswitch\\mapposition-bg.png", modSwitchImageCrop = false },
     TradeEnhancement = { tags = { "实用功能" }, settingsMode = "inline", order = 304, sourceRoot = "Components\\TradeEnhancement", modSwitchImage = "modswitch\\tradeenhancement-bg.png", modSwitchImageCrop = false },
-    UtilityTools = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 305, sourceRoot = "Components\\UtilityTools", versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\utilitytools-bg.png", modSwitchImageCrop = false },
-    AutoGossip = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 305.5, sourceRoot = "Components\\AutoGossip", assetFolders = { "Components\\AutoGossip\\Media" }, versions = { "mainline" }, modSwitchImage = "modswitch\\autogossip-bg.png", modSwitchImageCrop = false },
-    MouseEnhancement = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 306, sourceRoot = "Components\\MouseEnhancement", assetFolders = { "Components\\MouseEnhancement\\Media" }, versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\mouseenhancement-bg.png", modSwitchImageCrop = false },
-    CharacterEquipmentInfo = { tags = { "实用功能" }, settingsMode = "inline", order = 307, sourceRoot = "Components\\CharacterEquipmentInfo", assetFolders = { "Components\\CharacterEquipmentInfo\\Media" }, modSwitchImage = "modswitch\\characterequipmentinfo-bg.png", modSwitchImageCrop = false, versions = { "mainline" } },
-    CharacterStatsPanel = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 307.5, sourceRoot = "Components\\CharacterStatsPanel", assetFolders = { "Components\\CharacterStatsPanel\\Media" }, modSwitchImage = "modswitch\\characterstatspanel-bg.png", modSwitchImageCrop = false, versions = { "mainline", "wrath" } },
+    UtilityTools = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 305, sourceRoot = "Components\\UtilityTools", versions = { "forever", "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\utilitytools-bg.png", modSwitchImageCrop = false },
+    AutoGossip = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 305.5, sourceRoot = "Components\\AutoGossip", assetFolders = { "Components\\AutoGossip\\Media" }, versions = { "mainline", "mists", "wrath", "forever" }, modSwitchImage = "modswitch\\autogossip-bg.png", modSwitchImageCrop = false },
+    MouseEnhancement = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 306, sourceRoot = "Components\\MouseEnhancement", assetFolders = { "Components\\MouseEnhancement\\Media" }, versions = { "forever", "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\mouseenhancement-bg.png", modSwitchImageCrop = false },
+    CharacterEquipmentInfo = { tags = { "实用功能" }, settingsMode = "inline", order = 307, sourceRoot = "Components\\CharacterEquipmentInfo", assetFolders = { "Components\\CharacterEquipmentInfo\\Media" }, modSwitchImage = "modswitch\\characterequipmentinfo-bg.png", modSwitchImageCrop = false, versions = { "forever", "mainline", "wrath" } },
+    CharacterStatsPanel = { tags = { "实用功能" }, settingsMode = "inline", default = true, order = 307.5, sourceRoot = "Components\\CharacterStatsPanel", assetFolders = { "Components\\CharacterStatsPanel\\Media" }, modSwitchImage = "modswitch\\characterstatspanel-bg.png", modSwitchImageCrop = false, versions = { "forever", "mainline", "wrath" } },
 
     AuctionHelper = { tags = { "交易社交" }, settingsMode = "toggleOnly", standalone = true, order = 400, sourceRoot = "Components\\AuctionHelper", modSwitchImage = "modswitch\\auctionhelper-bg.png", modSwitchImageCrop = false },
     ChatBar = { tags = { "交易社交" }, settingsMode = "inline", order = 401, sourceRoot = "Components\\ChatBar", modSwitchImage = "modswitch\\chatbar-bg.png", modSwitchImageCrop = false },
-    WhisperManager = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 402, sourceRoot = "Components\\WhisperManager", versions = { "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\whispermanager-bg.png", modSwitchImageCrop = false },
-    SocialEnhancement = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 403, sourceRoot = "Components\\SocialEnhancement", assetFolders = { "Components\\SocialEnhancement\\Media" }, versions = { "mainline", "wrath" }, modSwitchImage = "modswitch\\socialenhancement-bg.png", modSwitchImageCrop = false },
-    MailAssistant = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 404, sourceRoot = "Components\\MailAssistant", assetFolders = { "Components\\MailAssistant\\Media" }, versions = { "mainline" }, modSwitchImage = "modswitch\\mailassistant-bg.png", modSwitchImageCrop = false },
+    WhisperManager = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 402, sourceRoot = "Components\\WhisperManager", versions = { "forever", "mainline", "mists", "wrath" }, modSwitchImage = "modswitch\\whispermanager-bg.png", modSwitchImageCrop = false },
+    SocialEnhancement = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 403, sourceRoot = "Components\\SocialEnhancement", assetFolders = { "Components\\SocialEnhancement\\Media" }, versions = { "forever", "mainline", "wrath" }, modSwitchImage = "modswitch\\socialenhancement-bg.png", modSwitchImageCrop = false },
+    MailAssistant = { tags = { "交易社交" }, settingsMode = "inline", default = true, order = 404, sourceRoot = "Components\\MailAssistant", assetFolders = { "Components\\MailAssistant\\Media" }, versions = { "forever", "mainline" }, modSwitchImage = "modswitch\\mailassistant-bg.png", modSwitchImageCrop = false },
 
     ElvUIAdapter = { tags = { "插件适配", "美化皮肤" }, settingsMode = "inline", order = 500, sourceRoot = "Components\\ElvUIAdapter", modSwitchImage = "modswitch\\elvuiadapter-bg.png", modSwitchImageCrop = false },
     NDuiAdapter = { tags = { "插件适配", "美化皮肤" }, settingsMode = "toggleOnly", order = 501, sourceRoot = "Components\\NDuiAdapter", modSwitchImage = "modswitch\\nduiadapter-bg.png", modSwitchImageCrop = false },
@@ -107,7 +107,6 @@ local FEATURE_META = {
 
     FixWrathKeyDown = { tags = { "系统修正" }, settingsMode = "toggleOnly", order = 601, sourceRoot = "Components\\FixWrathKeyDown", modSwitchImage = "modswitch\\fixwrathkeydown-bg.png", modSwitchImageCrop = false },
     ForbiddenNamePlates = { tags = { "插件适配" }, settingsMode = "toggleOnly", order = 602, sourceRoot = "Components\\ForbiddenNamePlates", modSwitchImage = "modswitch\\forbiddennameplates-bg.png", modSwitchImageCrop = false },
-    SyncFriendlyNameplates = { tags = { "系统修正" }, settingsMode = "toggleOnly", order = 603, sourceRoot = "Components\\SyncFriendlyNameplates", modSwitchImage = "modswitch\\syncfriendlynameplates-bg.png", modSwitchImageCrop = false },
 
     RaidOptimization = { tags = { "战斗辅助" }, settingsMode = "toggleOnly", order = 701, sourceRoot = "Components\\RaidOptimization", modSwitchImage = "modswitch\\raidoptimization-bg.png", modSwitchImageCrop = false },
     YDamageMeter = { tags = { "美化皮肤", "战斗辅助" }, settingsMode = "inline", order = 702, sourceRoot = "Components\\YDamageMeter", modSwitchImage = "modswitch\\ydamagemeter-bg.png", modSwitchImageCrop = false },
@@ -326,6 +325,18 @@ local function NormalizeEffectiveState(value, reason, tone)
     end
 
     return { effective = true }
+end
+
+-- Cold, read-only summary supplied by the component; never build its settings UI.
+function Components:GetSubFeatureStates(component)
+    if type(component) == "string" then component = self.registry[component] end
+    if not component then return nil end
+    local feature = component.feature or component
+    local resolver = component.GetSubFeatureStates or feature.GetSubFeatureStates
+    if type(resolver) ~= "function" then return nil end
+    local ok, rows = pcall(resolver, feature, component)
+    if not ok or type(rows) ~= "table" then return nil, true end
+    return rows
 end
 
 function Components:GetEffectiveState(component)

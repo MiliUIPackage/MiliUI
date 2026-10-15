@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("ptBR") then return end
+
 YUI.Locale:Register("Core", "ptBR", {
     ["teleports.settings.announce_header"] = " Anúncio de Teleporto",
     ["teleports.settings.announce_scope"] = " Escopo do anúncio",
@@ -213,11 +215,11 @@ YUI.Locale:Register("Core", "ptBR", {
     ["cpu_watch.probe.ychat_driver"] = "YChat event/deferred driver",
     ["cpu_watch.probe.development_load"] = " Carga simulada diagnóstica da CPU",
     ["cpu_watch.probe.event_other"] = " Outros ouvintes EventBus",
-    ["cpu_watch.probe.yhud_context"] = " Atualizar contexto YHUD",
-    ["cpu_watch.probe.yhud_item_acquire"] = " Aquisição do YHUD item-frame",
-    ["cpu_watch.probe.yhud_static_cooldown"] = "Reanimação YHUD",
-    ["cpu_watch.probe.yhud_static_position"] = "YHUD reparação posição",
-    ["cpu_watch.probe.yhud_category_sync"] = "Sincronização da categoria YHUD",
+    ["cpu_watch.probe.yhud_context"] = " Atualizar contexto Halo",
+    ["cpu_watch.probe.yhud_item_acquire"] = " Aquisição do Halo item-frame",
+    ["cpu_watch.probe.yhud_static_cooldown"] = "Reanimação Halo",
+    ["cpu_watch.probe.yhud_static_position"] = "Halo reparação posição",
+    ["cpu_watch.probe.yhud_category_sync"] = "Sincronização da categoria Halo",
     ["cpu_watch.probe.yhud_resource_preview"] = "Visualização dos recursos do Halo",
     ["cpu_watch.movement.taxi"] = "Via de voo",
     ["cpu_watch.movement.skyriding"] = "skyriding",
@@ -465,7 +467,7 @@ YUI.Locale:Register("Core", "ptBR", {
     ["layout.filter.action"] = "Visualização",
     ["layout.filter.title"] = "Exibição de mudanças",
     ["layout.filter.category.actionbar"] = "Barras de ação",
-    ["layout.filter.category.monitor"] = "Halo Console",
+    ["layout.filter.category.monitor"] = "Halo Monitor",
     ["layout.filter.category.combat"] = " Ferramentas de Combate",
     ["layout.filter.category.communication"] = "Chat & Comunicação",
     ["layout.filter.category.map"] = " Mapa & Navegação",
@@ -1334,7 +1336,7 @@ YUI.Locale:Register("Core", "ptBR", {
     ["game_menu.text.011"] = "Ajuda",
     ["game_menu.text.012"] = " Abra a página FAQ",
     ["game_menu.text.013"] = "Editor de Auras",
-    ["game_menu.text.014"] = " Abra o YHUD Editor de Auras",
+    ["game_menu.text.014"] = " Abra o Halo Editor de Auras",
     ["game_menu.text.015"] = "Recargas",
     ["game_menu.text.016"] = "|cFFFF0000[YUI] Configurações do Gerenciador de Recarga não encontradas|r",
     ["game_menu.text.017"] = "Abrir Gerenciador de Recarga da Blizzard",

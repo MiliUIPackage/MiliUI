@@ -67,7 +67,7 @@ function addonTable.Core.GetDesignByName(name)
 end
 
 function addonTable.Core.GetDesignScale(isSimplified)
-  if isSimplified and addonTable.Constants.IsSimplifiedAvailable then
+  if isSimplified then
     return addonTable.Config.Get(addonTable.Config.Options.SIMPLIFIED_SCALE)
   else
     return 1

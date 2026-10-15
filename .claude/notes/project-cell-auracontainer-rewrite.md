@@ -18,7 +18,7 @@ Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard Au
 
 **已搬容器的指示器**：中央「重要減益」（原 Raid Debuffs，顯示名已改，key `raidDebuffs` 不動）、左下 debuff 排（`excludeSpellIDs = 黑名單`）、右下驅散 icon + 血條 highlight overlay（一個指示器兩個容器）、減傷（自身/來自他人）、allCooldowns、自訂 **icon/icons 型** buff 指示器（如 Healers）。
 
-**效果型自訂指示器已走「效果槽」**（2026-08-27 起：color/border/rect/texture ＝ 一個 AddAuraSlot 撐滿錨點，效果建在槽按鈕上，presence 由引擎管；block/text 同法）。**仍走手動路**（secret 內容中會凍住）：glow、bar/bars/blocks、debuff 型的所有自訂指示器（友方減益禁止 spellID 過濾）、`crowdControls`。矩形的時間類效果見下方「矩形的三層時間效果」。
+**效果型自訂指示器已走「效果槽」**（2026-08-27 起：color/border/rect/texture ＝ 一個 AddAuraSlot 撐滿錨點，效果建在槽按鈕上，presence 由引擎管；block/text 同法）。**仍走手動路**（secret 內容中會凍住）：glow、blocks、debuff 型的所有自訂指示器（友方減益禁止 spellID 過濾）、`crowdControls`。**bar／bars（進度條／進度條組）2026-10-15 起走容器路**，見下方「進度條」節。矩形的時間類效果見下方「矩形的三層時間效果」。
 
 **驅動是泛型的**：按鈕上 `_containerIndicators` 註冊表（`I.RegisterContainerIndicator`），`UnitButton_UpdateAuras` 迭代呼叫 `SetContainerUnit`；`UpdateIndicators` 的即時推送對「任何有 `ConfigureContainer` 方法的指示器」生效；`CONTAINER_DEPENDENTS = {raidDebuffs = {"debuffs"}}` + `PushContainerConfig` 做跨指示器重推。生命週期：`I.RemoveIndicator`/`RemoveAllCustomIndicators` 呼叫 `I.UnregisterContainerIndicator`（Destroy + 移出註冊表），`Handle:Destroy` 有 `_destroyed` 旗標。
 
@@ -107,6 +107,40 @@ layout key `dispelBadge`（`checkbutton4`，預設開，Revise 同一段補 nil�
 - 預覽：`UpdateBadgePreview`（取代 UpdateBossBadgePreview）同時管兩個符號，「＋」看 `I.CanDispel(預覽圖示的學派)`
   ——預覽三顆是 無／詛咒／魔法，**不能驅散的專精預覽上就不會有「＋」**（遊戲內也不會有）。
 - **待驗證**：能驅的學派才有「＋」、不能驅的完全透明；換專精後「＋」跟著換；登入後一秒那次重建沒有副作用。
+
+## 進度條（bar）接上容器路（2026-10-15，未在遊戲內驗證）
+
+**起因**：玩家 2026-10-08 回報自訂「進度條」型 buff 指示器脫戰正常、進戰鬥就不動——手動路的 `Bar_OnUpdate`
+靠 start/duration 算值，秘密值下整條凍住。
+
+- **做法＝引擎當時鐘、幾何畫剩餘段**（`AuraDisplay.lua` `BuildEffectBar`）：bar 進 `EFFECT_SLOT_STYLES`（單槽、
+  位置與尺寸照 rect 走一般的 position/size）。槽按鈕上建 BackdropTemplate holder（底色 colors[5]、邊 colors[4]）＋
+  內縮一個 StatusBar 交給 `SetDurationBar`，**用 block 陰影同一套配方**（預設方向＝已過時間＋`SetReverseFill(true)`，
+  不傳 options），StatusBar 自己的貼圖是「已過的那段」、alpha 0 讓底色透出；**「剩餘段」是自己的貼圖，錨在近端邊與
+  已過貼圖的近端邊之間**（`AnchorBarRemaining`：橫向 TOPLEFT→bar、BOTTOMRIGHT→tex 的 BOTTOMLEFT；直向 BOTTOMLEFT→bar、
+  TOPRIGHT→tex 的 BOTTOMRIGHT）。引擎每幀移動貼圖、錨點跟著走，插件零讀取。
+- **色帶**（剩餘 < N%／< N 秒）沿用 rect/block 的伴隨槽 `BuildBandSlot`，但 bar 的 band holder **錨到主槽的剩餘段**
+  （`handle._barFill`，主槽在 `BuildEffectBar` 寫入）而不是整個框——所以只有剩餘段換色，跟手動路一樣。前提是主槽先於
+  伴隨槽上樣式：record 順序 main→band_pct→band_sec，`AddAuraSlot` 同步建框、Restyle 照建立順序走；沒先建就 `Err` 記錄。
+- 倒數數字與層數走 `BindDurStack(..., keepAnchor=true)`：**保留字型自己的錨點**（預設倒數 RIGHT、層數 LEFT），不像圖示
+  強制置中。showDuration 的值只有 false/true/秒數（durationText 控件沒有百分比），formatter 照舊。
+- **不支援「設置進度條最大值」**：引擎管 StatusBar 的 min/max（＝光環全長），固定刻度塞不進去。三處一致：
+  設定頁 buff bar 不列 `maxValue`（debuff bar 照舊）、`Custom.lua` 對 buff bar 把 `SetMaxValue` 換成 no-op（預覽也不吃，
+  預覽＝遊戲內）、容器路本來就沒讀。allowSmaller＋光環 ≤ 上限的情況本來就跟「照全長」一樣，只有光環比上限長才看得出差別。
+- 方向改變：`orientation` 在 LAYOUT_KEYS，但單槽沒有 group ⇒ `ApplyLiveLayout` 回 false ⇒ 整組重建（色帶錨點跟著重來）。
+  顏色（effectColors）是 cosmetic ⇒ restyle 重上色，不重建。發光改用 `glowSection`（引擎計時）。
+- **待驗證**：戰鬥中條會動且顏色在門檻處切換；直向；數字靠右／層數靠左；底色半透明時已過段透出健康條；
+  ReverseFill 在 value=0 那一瞬剩餘段是不是全滿（若貼圖被藏而 rect 殘留會閃一下）。
+- **bars（進度條組）同日接上**（未在遊戲內驗證）：不是單槽，是 **flow 群組**——沿 border 的 per-spell 路
+  （`effectSpellColors`，每個 spellID 一個 record `eff<id>`，`effColor` 蓋在按鈕 `_adEffColor`），每組 `maxFrameCount` 固定 1
+  （`GroupBudget` 改收 cfg：`customStyle == "bars"` 時每組 1，不再「第一彈性組給滿 num」；over-cap 收成單組時照舊給 num）。
+  record 順序照清單順序（`EffectSpellColors` 第二回傳 `effectSpellOrder`，設定頁承諾「優先度由上而下」；border 不送、照 key 排），
+  同 id 重複去重。上限 `EFFECT_PER_SPELL_CAP` 改成表 `{ default = 8, bars = 10 }`（10＝手動路 `CreateAura_Bars` 的條數）。
+  畫法共用 `BuildEffectBar`（`EFFECT_BUILDERS.bars`）：`multi` 分支填色＝按鈕的 `_adEffColor`、底＝顏色×0.2（`Bars_SetCooldown`
+  配方）、邊黑；永遠橫向（`orientation` 是格線方向）；不寫 `handle._barFill`（沒有色帶）。倒數／層數走 `BindDurStack(keepAnchor)`。
+  排版走 `GridOpts`（`Built-in.lua` 對 bars 也送 num／numPerLine／spacing／anchor），size {18,4}。**`num` 只是換行預算**：
+  跨群組沒有總量 API，超過 num 的法術換行不消失。`Custom.lua`：`isEffectish`＋`isMulti` 含 bars、buff bars 的 `SetMaxValue` no-op；
+  設定頁 buff bars 拿掉 `maxValue`、`glowSection` 引擎版（debuff bars 照舊）。
 
 ## 樣式規則（StyleButton）
 
@@ -263,7 +297,7 @@ TOC 排在 AuraDisplay 後面；舊的一行版只在這支沒載入時才退回
 2. glow / tooltip 尚未接到容器（`SetMouseMotionEnabled(false)` 寫死）。
 3. dispel 自訂 icon 樣式要走 CustomAsset+map。
 4. `crowdControls` 指示器還在手動路。
-5. 效果型自訂指示器（bar/bars/block…）在 secret 內容中凍住 —— 要做要另外設計，不是照抄圖示路。
+5. 效果型自訂指示器只剩 glow 與 blocks 還在手動路（secret 內容中凍住）—— 要做要另外設計，不是照抄圖示路（bar／bars 2026-10-15 已接）。
 6. 未在遊戲內驗證：合併後的 debuff 排 / 三個 cooldown / 自訂圖示指示器、統一後的外環顏色與 `SetReverse(true)` 消退方向。
 
 ## 歷史
@@ -423,4 +457,4 @@ buff 矩形／色塊多一個 `glowTiming`（`"none"`／`"aura"`／`"pandemic"`�
 
 ## 發光區段推廣到所有有發光的指示器（2026-09-29，未實機驗證）
 
-`glowSection`（容器路：buff icon／icons、buff rect／block、四條內建冷卻列，三個時機）／`glowSection:manual`（手動路：debuff icon／icons、bar／bars／blocks、debuff rect／block，無損刷新項反灰、存了 pandemic 開頁改 aura），同一顆 widget 實例，`SetDBValue(g, timing, allowPandemic)`。不套的：`glow` 型、targetedSpells、raidDebuffs 逐法術發光。預設值全部改「一般」＋時機「無」（`Indicator_Defaults`、治療者在 `Indicator_DefaultSpells`、**內建冷卻列在 `Layout_Defaults.lua`**）。手動路：BarIcon 沒開倒數字時用 `BarIcon_OnUpdate_Glow` 補 tick；Bar 的 OnHide 用 HookScript（`Cell.CreateStatusBar` 已 SetScript）；列型用 `I.Glow_SetTimingForChildren` 轉發；`IsPreview` 讀自己再讀父框。**12.1 內建冷卻列的預覽子框是 BorderIcon（SetupGlow 空函式），預覽看不到發光，實機才有**。
+`glowSection`（容器路：buff icon／icons、buff rect／block、buff bar／bars、四條內建冷卻列，三個時機）／`glowSection:manual`（手動路：debuff icon／icons、debuff bar／bars、blocks、debuff rect／block，無損刷新項反灰、存了 pandemic 開頁改 aura），同一顆 widget 實例，`SetDBValue(g, timing, allowPandemic)`。不套的：`glow` 型、targetedSpells、raidDebuffs 逐法術發光。預設值全部改「一般」＋時機「無」（`Indicator_Defaults`、治療者在 `Indicator_DefaultSpells`、**內建冷卻列在 `Layout_Defaults.lua`**）。手動路：BarIcon 沒開倒數字時用 `BarIcon_OnUpdate_Glow` 補 tick；Bar 的 OnHide 用 HookScript（`Cell.CreateStatusBar` 已 SetScript）；列型用 `I.Glow_SetTimingForChildren` 轉發；`IsPreview` 讀自己再讀父框。**12.1 內建冷卻列的預覽子框是 BorderIcon（SetupGlow 空函式），預覽看不到發光，實機才有**。

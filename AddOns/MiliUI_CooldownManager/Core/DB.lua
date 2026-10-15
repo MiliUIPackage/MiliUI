@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 8
+ns.DB_VERSION = 10
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -295,8 +295,9 @@ ResourcesDefaults = function()
         texture       = "solid",
         bgTexture     = "INHERIT",         -- 空的那截（背景）的材質；"INHERIT" ＝ 跟填充同一張（自訂格子也照這個）
         barAlpha      = 1,                 -- 填充色的不透明度
-        -- 背景（空的那截）：bgAlpha 乘在預設深淺上（1 ＝ 原樣、0 ＝ 透明）；bgCustom 勾了才用 bgColor 換掉自動推的底色
-        bgAlpha       = 1,
+        -- 背景（空的那截）：bgAlpha 是絕對的不透明度（1 ＝ 不透明、0 ＝ 全透明；v9 前是倍率，MIGRATIONS[9] × 0.6）；
+        -- bgCustom 勾了才用 bgColor 換掉自動推的底色
+        bgAlpha       = 0.6,
         bgCustom      = false,
         bgColor       = { r = 0.15, g = 0.15, b = 0.15, a = 1 },
         -- 邊框（每格／每條四邊，疊在填充上）：粗細是實體像素 0～4（0 ＝ 不畫）；預設 1px 不透明黑 ＝ 加設定以前的樣子。
@@ -440,7 +441,8 @@ CastbarDefaults = function()
         nameMaxChars  = 0,                 -- 0 ＝ 不限
         showTime      = true,
         timeFormat    = "remainTotal",     -- remainTotal | elapsedTotal | remain | elapsed
-        textSize      = 12,
+        textSize      = 12,                -- 法術名稱的字級（字型 font）；沒存字型 ＝ 跟隨通用字型
+        timeTextSize  = 12,                -- 時間的字級（字型 timeFont），2026-10-15 從名字拆出來（v10）
         -- 名字／時間的位移（2026-10-04，玩家要求）：錨點固定（名字錨左緣、時間錨右緣、都是垂直中線），
         -- 預設 y ＝ 0 ⇒ 被動垂直置中；x 是離邊的留白。舊存檔靠 MergeDefaults 補上，不遷移
         nameOffset    = { x = 4, y = 0 },
@@ -508,6 +510,7 @@ SkyridingDefaults = function()
             }),
             -- 旋轉急衝長條：好了是滿的、冷卻中從空長到滿（使用者 2026-10-06 指定）
             surge = SkyRow(true, 12, {         -- 高 12（使用者 2026-10-06 指定；舊存檔的 6 由 Skyriding 的 rev 1 改）
+                bar   = true,                     -- 顯示長條；關掉＝只顯示下面的圖示（使用者 2026-10-15 指定）
                 color = rgba(0.30, 0.85, 1.00),
                 fx    = true,                     -- 滿的時候的電光（呼吸亮層＋下面選的樣式）
                 fxStyle = "lightning",            -- lightning（閃電序列圖，使用者 2026-10-06 要求）| sweep（掃光）
@@ -905,6 +908,32 @@ local MIGRATIONS = {
                 glow.keybind = nil
             end
         end
+    end,
+    -- v9（2026-10-15）：資源條「背景透明度」從倍率改成絕對值（1 ＝ 不透明、0 ＝ 全透明、預設 0.6；使用者指定）。
+    -- 以前 1 ＝ 預設深淺（點數型與引擎列 0.6、連續條 0.8）⇒ 舊值一律 × 0.6 再貼到 0.05 的刻度：點數型畫面不變、連續條稍淡。
+    -- 全域與每種資源自己的（style[key].bgAlpha）都搬；語意變了所以沒有值閘（0 乘完還是 0；自訂格子／自訂列共用這幾欄）
+    [9] = function(profile)
+        local res = profile.resources
+        if type(res) ~= "table" then return end
+        local function conv(t)
+            local v = tonumber(t.bgAlpha)
+            if v ~= nil then t.bgAlpha = math.floor(v * 0.6 / 0.05 + 0.5) * 0.05 end
+        end
+        conv(res)
+        if type(res.style) == "table" then
+            for _, st in pairs(res.style) do
+                if type(st) == "table" then conv(st) end
+            end
+        end
+    end,
+    -- v10（2026-10-15）：施法條的字型／字級從「名字與時間共用」拆成各自一組（玩家要求法術名稱能單獨換字型）。
+    -- 舊的 font／textSize 留給名字，時間那組（timeFont／timeTextSize）照抄一份 ⇒ 畫面不變。
+    -- 新欄位以前不存在 ⇒ 不用值閘（timeTextSize 可能已被合併預設值補成 12，照樣蓋）
+    [10] = function(profile)
+        local cb = profile.castbar
+        if type(cb) ~= "table" then return end
+        if cb.font ~= nil then cb.timeFont = cb.font end
+        if cb.textSize ~= nil then cb.timeTextSize = cb.textSize end
     end,
 }
 DB.MIGRATIONS = MIGRATIONS

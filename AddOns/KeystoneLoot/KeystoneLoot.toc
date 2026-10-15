@@ -1,11 +1,20 @@
-## Interface: 120100
+## Interface: 120105
 ## Title: |cff9d5db8KeystoneLoot|r
 ## Notes: Shows the items from the mythic plus instances in a compact overview
+## Notes-ruRU: Отображает уровни предметов из подземелий М+
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 2.16.0
+## Version: 2.18.4
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## Category-enUS: Dungeons & Raids
+## Category-deDE: Dungeons & Schlachtzüge
+## Category-esES: Mazmorras y bandas
+## Category-esMX: Calabozos y bandas
+## Category-frFR: Donjons et raids
+## Category-itIT: Spedizioni e incursioni
+## Category-koKR: 던전 및 공격대
+## Category-ptBR: Masmorras e Raides
+## Category-ruRU: Подземелья и рейды
 ## Category-zhCN: 地下城和团队副本
 ## Category-zhTW: 地城與團隊
 ## OptionalDeps: LibStub, EllesmereUI
@@ -38,6 +47,13 @@ app.lua
 # Locales
 locales/locale.lua
 locales/enUS.lua
+locales/deDE.lua
+locales/esES.lua
+locales/frFR.lua
+locales/itIT.lua
+locales/koKR.lua
+locales/ptBR.lua
+locales/ruRU.lua
 locales/zhCN.lua
 locales/zhTW.lua
 
@@ -63,6 +79,7 @@ modules/upgrade.lua
 modules/keystone.lua
 modules/voidcore.lua
 modules/owned.lua
+modules/role_check.lua
 modules/api.lua
 
 # UI

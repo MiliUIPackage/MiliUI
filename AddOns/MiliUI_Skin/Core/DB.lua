@@ -116,6 +116,45 @@ local function BuildDefaults()
             raiderio            = true,
             mapster             = true,
         },
+        -- 「自建功能」（`Extras/`，STYLE.md ③ 的 Extras 小節）：不是換皮，是自己的框
+        -- 疊在暴雪的面板上。跟總開關是「而且」的關係；跟視窗開關無關。
+        -- ⚠ `statsCollapsed`／`statsOrder` 是空表當預設：MergeDefaults 遇到已有的表
+        --   只往裡面補鍵，空表什麼都不補 ⇒ 玩家的收合與排序不會被洗掉。
+        extras = {
+            statsPanel = true,        -- 自建屬性清單（/reload 生效）
+            statsValueFormat = "pct", -- 清單的數值怎麼顯示："pct"｜"rating"｜"pct_rating"｜"rating_pct"（即時；同 hud.valueFormat）
+            statsCollapsed = {},      -- [sectionKey] = true
+            statsOrder = {},          -- 陣列，sectionKey 的順序；空＝預設
+            statsHidden = {},         -- [defKey] = true：這一列不顯示（角色面板齒輪的編輯狀態裡勾）
+            statsColors = {},         -- [sectionKey] = { r, g, b }：蓋過 T.statCategory
+            statsPalette = "miliui",  -- 設定面板「預設配色」下拉目前顯示哪一個（"miliui"｜"class"）
+            titlesSearch = true,      -- 稱號頁搜尋框（/reload 生效）
+            -- 畫面上顯示屬性（`Extras/StatsHud.lua`）。全部即時生效，設定在角色面板的齒輪裡。
+            -- ⚠ `pos` 沒有預設值（nil ＝ 預設位置）：MergeDefaults 不會把玩家拖過的位置洗掉，
+            --   「重設位置」就是把它設回 nil。
+            hud = {
+                -- 預設值的版本：MergeDefaults 只補 nil，改預設值要靠 DB.Init 裡的遷移（看 rev）
+                rev = 2,
+                enabled = false,
+                stats = {             -- [statKey] = 顯示與否（順序固定，見 StatsHud.lua 的 HUD_STATS）
+                    primary = true, stamina = false, crit = true, haste = true, mastery = true,
+                    vers = true, leech = false, avoidance = false, speed = false,
+                    power = false, armor = false,
+                },
+                colors = {},          -- [statKey] = { r, g, b }：只在 colorMode == "custom" 時用
+                labelStyle = "full",  -- "full"｜"short"｜"none"
+                valueFormat = "pct",  -- "pct"｜"rating"｜"pct_rating"｜"rating_pct"
+                percentSign = true,
+                colorMode = "class",  -- "section"｜"class"｜"custom"（2026-10-15 使用者定：預設職業色）
+                valueColored = false,
+                fontSize = 14,        -- rev 2：12 → 14（使用者 2026-10-15）
+                outline = "OUTLINE",  -- ""｜"OUTLINE"｜"THICKOUTLINE"｜"MONOCHROME,OUTLINE"｜"MONOCHROME,THICKOUTLINE"（預設描邊）
+                shadow = true,
+                scale = 1,
+                backdrop = false,
+                when = "always",      -- "always"｜"combat"｜"instance"
+            },
+        },
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -146,7 +185,33 @@ function DB.Init()
     end
     local db = MiliUI_Skin_DB
 
+    -- hud rev 1（2026-10-15）：描邊與標籤顏色的預設值改成「描邊」「職業色」。
+    -- 第一版發出去時沒有 rev，已經有 hud 表的存檔要在 MergeDefaults **之前**補
+    -- （之後 rev 會被預設值填成 1，就分不出新舊）。玩家自己改過的值這裡會被蓋成新預設：
+    -- 第一版只上線了幾個小時，接受。
+    do
+        local hud = type(db.extras) == "table" and db.extras.hud
+        if type(hud) == "table" and hud.rev == nil then
+            hud.outline = "OUTLINE"
+            hud.colorMode = "class"
+            hud.rev = 1
+        end
+        -- rev 2：字型大小預設 12 → 14。只改還停在舊預設的（玩家自己調過的不動）。
+        if type(hud) == "table" and hud.rev == 1 then
+            if hud.fontSize == 12 then hud.fontSize = 14 end
+            hud.rev = 2
+        end
+    end
     MergeDefaults(db, BuildDefaults())
+    -- 2026-10-15：清單的「百分比旁顯示評等值」勾選框改成「顯示數值」下拉（同 HUD）。
+    -- 舊的 statsShowRating = true ⇒ 「百分比 (評等)」；之後把舊鍵拿掉。
+    local ex = db.extras
+    if type(ex) == "table" and ex.statsShowRating ~= nil then
+        if ex.statsShowRating == true and ex.statsValueFormat == "pct" then
+            ex.statsValueFormat = "pct_rating"
+        end
+        ex.statsShowRating = nil
+    end
     db.schemaVersion = ns.DB_VERSION
     ns.db = db
     return db
@@ -160,6 +225,18 @@ function DB.IsWindowEnabled(key)
     local db = ns.db
     if not db or not db.enabled then return false end
     return db.windows[key] ~= false
+end
+
+------------------------------------------------------------
+-- 這一項自建功能（`Extras/`）現在該不該建？（總開關 ＋ 它自己的開關）
+-- 沒有 `db.extras` 時當成「開」，理由同 IsThirdPartyEnabled。
+------------------------------------------------------------
+function DB.IsExtraEnabled(key)
+    local db = ns.db
+    if not db or not db.enabled then return false end
+    local t = db.extras
+    if not t then return true end
+    return t[key] ~= false
 end
 
 ------------------------------------------------------------

@@ -1,6 +1,6 @@
 ## Interface: 120007, 120100, 120105
 ## Title: MiliUI Aura Enhance
-## Title-zhTW: |cff33A3FF[光環]|r 米利的光環美化
+## Title-zhTW: |cff33B8FF[光環]|r 米利的光環美化
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的光环美化
 ## Notes: Restyles the duration and stack text on Blizzard's buff and debuff icons: font, size, outline and position. The text itself is never touched.|n|n|cffffd200Usage: |r/maura opens settings.
 ## Notes-zhTW: MiliUI Aura Enhance|n|n米利的光環美化。|n|n調整增益／減益圖示的時間文字與堆疊層數：字型、大小、描邊與位置，不修改文字內容。|n|n|cffffd200使用方法: |r/maura 開啟設定。
@@ -9,7 +9,7 @@
 ## Category-zhTW: 介面
 ## Category-zhCN: 界面
 ## Author: Mili
-## Version: 1.3.3
+## Version: 1.3.4
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\Spell_Holy_WordFortitude
 ## SavedVariables: MiliUI_AuraEnhance_DB, MiliUI_AuraEnhanceDB

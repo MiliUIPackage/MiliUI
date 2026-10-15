@@ -9,8 +9,29 @@
       那支是 protected function。Chattynator 的 Core/HyperlinkHandler.xml 同一寫法。
     ⚠ 不要在這裡加 OnLoad／OnHyperlinkClick：任何自己的 script 都是插件的執行。
       OnUpdate 留空是拿掉模板的淡出處理，這顆框不顯示訊息。
+    ⚠ ScrollToBottomButton 是補給模板 OnLoad 用的：12.1.5 起 ChatFrameMixin:OnLoad 無條件讀
+      self.ScrollToBottomButton.Flash.FlashAnim（FloatingChatFrame.xml 那顆鈕只長在 ChatFrameN 本體，
+      不在 ChatFrameTemplate 裡），少了就在載入時報 nil。照暴雪的結構用純 XML 補一顆隱藏的，
+      不掛 OnClick、不給貼圖；OnUpdate 已留空所以 Flash 永遠不會播。
   -->
   <ScrollingMessageFrame name="MiliUI_ChatBar_LinkSink" inherits="ChatFrameTemplate" parent="UIParent" hyperlinksEnabled="true">
+    <Frames>
+      <Button parentKey="ScrollToBottomButton" alpha="0" hidden="true">
+        <Size x="1" y="1"/>
+        <Layers>
+          <Layer level="OVERLAY">
+            <Texture parentKey="Flash" hidden="true">
+              <Animations>
+                <AnimationGroup parentKey="FlashAnim" looping="REPEAT">
+                  <Alpha parentKey="FadeIn" order="1" duration="0.1" fromAlpha="0" toAlpha="1"/>
+                  <Alpha parentKey="FadeOut" order="2" duration="0.1" fromAlpha="1" toAlpha="0"/>
+                </AnimationGroup>
+              </Animations>
+            </Texture>
+          </Layer>
+        </Layers>
+      </Button>
+    </Frames>
     <Scripts>
       <OnUpdate></OnUpdate>
     </Scripts>

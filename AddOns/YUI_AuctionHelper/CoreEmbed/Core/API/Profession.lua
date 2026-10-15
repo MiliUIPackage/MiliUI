@@ -171,6 +171,10 @@ end
 function Profession.GetProfessionInfo(index)
     if not index then return nil end
 
+    if YUI.IsForever then
+        return GetProfessionInfoFromGlobal(index, true)
+    end
+
     if YUI.IsRetail then
         return GetProfessionInfoFromGlobal(index, false)
     end
@@ -202,6 +206,27 @@ function Profession.GetOpenName(name, skillLineID, extraSpellId, preferExtraSpel
     end
 
     return name
+end
+
+-- 从 Forever 已学专业的实际法术书条目解析动作，优先制作入口。
+function Profession.GetProfessionSpellID(index)
+    if not YUI.IsForever or not index or not GetProfessionInfo or not C_SpellBook
+        or not C_SpellBook.GetSpellBookItemInfo or not Enum or not Enum.SpellBookSpellBank then return nil end
+    local _, _, _, _, count, offset = GetProfessionInfo(index)
+    if (issecretvalue and (issecretvalue(count) or issecretvalue(offset)))
+        or type(count) ~= "number" or type(offset) ~= "number" then return nil end
+    local fallback
+    for slot = offset + 1, offset + count do
+        local info = C_SpellBook.GetSpellBookItemInfo(slot, Enum.SpellBookSpellBank.Player)
+        local spellID = info and info.spellID
+        if spellID and not (issecretvalue and issecretvalue(spellID)) and type(spellID) == "number"
+            and Enum.SpellBookItemType and info.itemType == Enum.SpellBookItemType.Spell then
+            fallback = fallback or spellID
+            if C_TradeSkillUI and C_TradeSkillUI.CanTradeSkillShowCraftingUI
+                and C_TradeSkillUI.CanTradeSkillShowCraftingUI(spellID) then return spellID end
+        end
+    end
+    return fallback
 end
 
 local function ToggleRetailProfessionFrame(skillLineID)

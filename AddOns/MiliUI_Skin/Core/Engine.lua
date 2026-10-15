@@ -1223,6 +1223,43 @@ function Engine.GlyphColor(ov, color)
 end
 
 ------------------------------------------------------------
+-- Engine.OverlayText(ov, text, opts) —— 在**自己的** overlay 上放一段文字
+--
+-- 第十輪：角色面板的側邊欄分頁改成文字分頁（照 EllesmereUI），暴雪的圖示中和後
+-- 由這段字代替。FontString 建在我們自己的 overlay 上（不是暴雪的框），字型走
+-- `T.Font()`（在地化字型），先 SetFont 再 SetText（FontString 沒字型就 SetText 會炸）。
+--
+-- opts：size（預設 11）、x / y（置中後的位移）、maxWidth —— 量**自己這段字**的寬度，
+--   超過就把字藏起來、回 nil，呼叫端拿這個決定要不要退回圖示。
+--   ⚠ 讀的是自己的 FontString，不是暴雪的物件；契約禁的是讀暴雪的尺寸。
+-- 冪等：同一個 overlay 只建一個 FontString，之後只換文字。
+------------------------------------------------------------
+function Engine.OverlayText(ov, text, opts)
+    if not ov or type(text) ~= "string" then return nil end
+    opts = opts or {}
+    local fs = ov.text
+    if not fs then
+        fs = ov:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(T.Font(), opts.size or 11, "")
+        fs:SetPoint("CENTER", ov, "CENTER", P.Scale(opts.x or 0), P.Scale(opts.y or 0))
+        ov.text = fs
+    end
+    fs:SetText(text)
+    if opts.maxWidth and fs:GetStringWidth() > P.Scale(opts.maxWidth) then
+        fs:Hide()
+        return nil
+    end
+    fs:Show()
+    return fs
+end
+
+-- 把 `OverlayText` 放上去的字藏起來（退回圖示模式時用）。自己的 FontString，
+-- 但 lint 認不出「自己的」，所以藏這個動作也收在 Engine 裡。
+function Engine.HideOverlayText(ov)
+    if ov and ov.text then ov.text:Hide() end
+end
+
+------------------------------------------------------------
 -- Engine.Overlay(target, opts) → overlay 或 nil
 --
 -- opts:

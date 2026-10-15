@@ -10,6 +10,58 @@ local GetItemInfoAPI = C_Item.GetItemInfo
 local GetItemSetInfoAPI = C_Item.GetItemSetInfo
 local GetLootJournalItemSetItemsAPI = C_LootJournal.GetItemSetItems
 
+local DEFAULT_NAME_FONT_FILE, DEFAULT_NAME_FONT_SIZE, DEFAULT_NAME_FONT_FLAGS = GameFontNormalLargeOutline:GetFont()
+local DEFAULT_ITEM_FONT_FILE, DEFAULT_ITEM_FONT_SIZE, DEFAULT_ITEM_FONT_FLAGS = ChatFontNormal:GetFont()
+local InspectFrames = setmetatable({}, { __mode = "k" })
+
+local function GetConfiguredFontFile(dbKey, defaultFontFile)
+    local font = TinyInspectRemakeDB and TinyInspectRemakeDB[dbKey]
+    if (not font or font == "default") then
+        return defaultFontFile
+    end
+
+    local fontFile
+    local fontObject = _G[font]
+    if (fontObject and fontObject.GetFont) then
+        fontFile = fontObject:GetFont()
+    end
+
+    if (not fontFile) then
+        local LibMedia = LibStub:GetLibrary("LibSharedMedia-3.0", true)
+        if (LibMedia and LibMedia:IsValid("font", font)) then
+            fontFile = LibMedia:Fetch("font", font)
+        end
+    end
+    if (not fontFile) then
+        return defaultFontFile
+    end
+    if (not C_UIFileAsset.IsKnownFile(fontFile)) then
+        return defaultFontFile
+    end
+    return fontFile
+end
+
+local function ApplyInspectFonts(frame)
+    if (not frame) then return end
+    local nameFontFile = GetConfiguredFontFile("InspectNameFont", DEFAULT_NAME_FONT_FILE)
+    local itemFontFile = GetConfiguredFontFile("InspectItemFont", DEFAULT_ITEM_FONT_FILE)
+
+    if (frame.title) then
+        frame.title:SetFont(nameFontFile, DEFAULT_NAME_FONT_SIZE, DEFAULT_NAME_FONT_FLAGS)
+    end
+    if (frame.setSummary) then
+        frame.setSummary:SetFont(itemFontFile, 14, "THINOUTLINE")
+    end
+
+    local i = 1
+    while (frame["item"..i]) do
+        local itemframe = frame["item"..i]
+        itemframe.levelString:SetFont(itemFontFile, DEFAULT_ITEM_FONT_SIZE, DEFAULT_ITEM_FONT_FLAGS)
+        itemframe.itemString:SetFont(itemFontFile, DEFAULT_ITEM_FONT_SIZE, DEFAULT_ITEM_FONT_FLAGS)
+        i = i + 1
+    end
+end
+
 --bliz func
 --裝備清單
 local slots_retail = {
@@ -297,11 +349,19 @@ local function GetInspectItemListFrame(parent)
 
         parent:HookScript("OnHide", function(self) frame:Hide() end)
         parent.inspectFrame = frame
+        InspectFrames[frame] = true
+        ApplyInspectFonts(frame)
         LibEvent:trigger("INSPECT_FRAME_CREATED", frame, parent)
     end
 
     return parent.inspectFrame
 end
+
+LibEvent:attachTrigger("INSPECT_FONT_CHANGED", function()
+    for frame in pairs(InspectFrames) do
+        ApplyInspectFonts(frame)
+    end
+end)
 
 --顯示面板
 function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
@@ -314,7 +374,7 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     frame.portrait.PortraitRingQuality:SetVertexColor(color.r, color.g, color.b)
     frame.portrait.LevelBorder:SetVertexColor(color.r, color.g, color.b)
     SetPortraitTexture(frame.portrait.Portrait, unit)
-    frame.title:SetText(format("%s （%s）", UnitName(unit), FormatAverageItemLevel(ilevel)))
+    frame.title:SetText(format("%s (%s) ", UnitName(unit), FormatAverageItemLevel(ilevel)))
     frame.title:SetTextColor(color.r, color.g, color.b)
     frame.setSummary:SetText("")
     frame.setSummary:Hide()
@@ -459,7 +519,7 @@ LibEvent:attachTrigger("INSPECT_ITEMFRAME_UPDATED", function(self, itemframe)
     local r, g, b = 0, 0.9, 0.9
     if (TinyInspectRemakeDB and TinyInspectRemakeDB.ShowInspectColoredLabel) then
         if (itemframe.quality and itemframe.quality > 4) then
-            r, g, b = GetItemQualityColor(itemframe.quality)
+            r, g, b = C_Item.GetItemQualityColor(itemframe.quality)
         elseif (itemframe.name and not itemframe.link) then
             r, g, b = 0.9, 0.8, 0.4
         elseif (not itemframe.link) then

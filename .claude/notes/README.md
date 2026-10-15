@@ -55,6 +55,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-identity-gate-failopen.md](wow-121-identity-gate-failopen.md) | 身分閘 fail-open：白名單 buff 變成顯示全部、且只有 `/reload` 有效；⚠ 09-05 原始碼核對說機制不是 `UnitCanAssist`，未定案 |
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、**開暴雪面板要走 secure 點擊轉發**、改名與移除 |
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | AddOnRestrictionType 六型別；**ChallengeMode 整趟鑰石都算**、聊天封鎖時連填聊天輸入框都被擋、狀態事件派送當下讀不到終值 |
+| [wow-1215-api-changes.md](wow-1215-api-changes.md) | 12.1.5：相容層全拔（`GetItemInfo` 等舊全域變 nil、`X and X()` 靜默失效）、`SetAuraBorder` 刪除→`AddDispelTypeTexture`、小地圖新座標框要 Hide、`GetInventoryItemCooldown` 第 4 回傳、保護 Cooldown 不能 SetCooldown；Cell 本來就走 AddDispelTypeTexture；Ketho＋wow-ui-source 比對步驟 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
 | [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | **插件開聊天輸入框只能走超連結**（`|Hchannel:…|h` ＋ propagate 給 ChatFrameTemplate 框，2026-09-16 根治）；前半是密語回覆在秘密名字下的死路史，鏡射／`/r` 降級全是治標 |
 | [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 `MacroFrame:SelectMacro`／`SaveMacro` 或改巨集格欄數 ⇒ 安全按鈕跑巨集前的 `SaveMacro` 讀到髒的 `selectedIndex`，快捷列巨集被擋到 /reload；搜尋只能 `PickupMacro`＋自畫高亮 |
@@ -166,6 +167,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | MCDM 借 Halo 的四件事：光環格引擎補位（groupSpacing 必須 0；「單點錨置中」跟 aura-containers 篇對立、待驗）／內建形狀／施放後音效／錨到單位框（2026-10-12 擴成錨定視窗、六單位五家）；SpellPopover Build upvalue 正好 60、Resources.lua 貼 200 local |
 | [project-miliui-cdm-rings.md](project-miliui-cdm-rings.md) | MCDM 圓環顯示 —— 改造暴雪 item 自己的 Cooldown（環形 swipe）不自建；圓環只收增益、正確用法是圓環群組；Masque 卸皮會還原暴雪方框、貼回整格不能讀 GetNumPoints；部分實機、README 清單未逐項勾 |
 | [project-miliui-cdm-skyriding.md](project-miliui-cdm-skyriding.md) | MCDM 天空騎術面板（Falcon 已從套組刪除、本機還載著就停用＋提醒）—— 接力對象 2026-10-11 改預設核心技能；發佈前欄位搬家用 `cfg.rev`（rev 不放預設值）；已上實機、README 清單未逐項勾 |
+| [project-miliui-qol.md](project-miliui-qol.md) | 米利的便利功能 MiliUI_QoL —— 本體純暴雪便利功能拆出；分頁由 QoL 向本體註冊（MiliUI.RegisterOptionsTab）、設定只有一份 ns.BuildBody；戰利品通知＝攔截→過濾→轉交 AlertFrame:OnEvent；分批搬家、Phase 3 前不 push |
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | 米利的專注目標助手 MiliUI_Focus —— 拆出的獨立插件；一次性 SV 遷移印記；宣告走巨集書具名巨集（M+ 可送、點鈕才喊、戰鬥中內容不更新）；專注目標施法條在秘密值下的四條繞法、重要法術發光掛自己的宿主框；斷法巨集；不要 hook CreateFrame |
 | [project-feimiao-raidcommander.md](project-feimiao-raidcommander.md) | 肥喵的團隊指揮 FeiMiao_RaidCommander —— 私人插件、gitignore 不進版控（搬自 Cell 團隊工具）；四個元件的出現時機／磁吸／編輯模式拖曳、一律當保護框、待實機驗證清單 |
 | [project-miliui-crusadingstrikes.md](project-miliui-crusadingstrikes.md) | 德莫的征戰聖擊助手 MiliUI_CrusadingStrikes —— 12.1 普攻計時只剩「鏡射暴雪追蹤量條」；六條死路（含 AuraContainer 看不到天賦被動光環）、餵過秘密值的條不准再讀、MCDM 載入時讓位 |
@@ -197,6 +199,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [wow-lua-and-or-pitfalls.md](wow-lua-and-or-pitfalls.md) | Lua `a and b or c` 兩個地雷：`cond and false or nil` 把 false 吃成 nil（三態設定「取消勾選沒作用」）、`x and f()` 截掉第二個回傳值（GetCenter 的 y 變 nil）；lint 抓不到、MCDM 三天踩三次 |
+| [wow-lua-duplicate-local-after-merge.md](wow-lua-duplicate-local-after-merge.md) | 兩條分支各加同名頂層 local，git 自動合併、luac、check-all 全綠，後宣告的遮蔽前者；看到「自動合併 <檔>」就掃重複 local |
 | [wow-luac-global-scan.md](wow-luac-global-scan.md) | `luac -p` 抓不到未宣告全域；要用 `luac -l` 掃 `_ENV` 讀取 |
 | [wow-git-tag-push-rejected.md](wow-git-tag-push-rejected.md) | push 被拒「tag already exists」：同名標籤兩顆不同物件，採用遠端那顆別 force push |
 | [wow-locale-key-access-patterns.md](wow-locale-key-access-patterns.md) | 語系 key 的四種取法（含前綴拼接）；**不要自動刪沒人用的語系條目** —— 為此翻車兩次 |

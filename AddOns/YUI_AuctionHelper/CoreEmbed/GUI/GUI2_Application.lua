@@ -32,6 +32,28 @@ local tonumber = tonumber
 local tostring = tostring
 local type = type
 
+function GUI2:GetDurationTextFormatter()
+    if self.resourceDurationTextFormatter then return self.resourceDurationTextFormatter end
+    if not (C_StringUtil and C_StringUtil.CreateNumericRuleFormatter) then return nil end
+    local formatter = C_StringUtil.CreateNumericRuleFormatter()
+    if not (formatter and formatter.SetBreakpoints) then return nil end
+    local rounding = _G.Enum and _G.Enum.NumericRuleFormatRounding
+    local roundUp = rounding and rounding.Up or 1
+    local roundDown = rounding and rounding.Down or 2
+    formatter:SetBreakpoints({
+        { threshold = 0, min = 0, step = 0.1, rounding = roundDown, format = "%.1f" },
+        { threshold = 3, step = 1, rounding = roundDown, format = "%d" },
+        { threshold = 60, format = "%dm", components = {
+            { div = 60, step = 1, rounding = roundUp },
+        } },
+        { threshold = 3600, format = "%dh", components = {
+            { div = 3600, step = 1, rounding = roundUp },
+        } },
+    })
+    self.resourceDurationTextFormatter = formatter
+    return formatter
+end
+
 GUI2.Application = GUI2.Application or {}
 local App = GUI2.Application
 local STATUS_BAR_INTERPOLATION = _G.Enum
@@ -527,6 +549,59 @@ local function GetCastTimerDirection(isChannel)
         return Enum.StatusBarTimerDirection.ElapsedTime or 0
     end
     return isChannel and 1 or 0
+end
+
+function GUI2:BindCastTimer(statusBar, duration, isChannel, interpolation)
+    if not (duration and statusBar and statusBar.SetTimerDuration) then return false end
+    return pcall(statusBar.SetTimerDuration, statusBar, duration,
+        interpolation or GetStatusBarImmediateInterpolation(), GetCastTimerDirection(isChannel == true)) == true
+end
+
+-- Allocate at the configuration boundary; updates only reuse bounded textures.
+function GUI2:CreateCastMarkers(parent, capacity, markers)
+    markers = markers or {}
+    for index = #markers + 1, math_min(31, math_max(0, capacity or 8)) do
+        local marker = self:CreateTexture(parent, "color.text.primary", "OVERLAY")
+        marker:SetAlpha(0.7); marker:Hide()
+        marker.gui2CastShown = false
+        markers[index] = marker
+    end
+    return markers
+end
+
+function GUI2:UpdateCastMarkers(markers, track, stages, total, ticks, vertical, reverse)
+    if not markers then return end
+    local pixel = self:GetPixelSize(track, 1, 1)
+    local width, height = track:GetWidth(), track:GetHeight()
+    local extent = vertical and height or width
+    for index, marker in ipairs(markers) do
+        local fraction
+        if total and total > 0 then
+            local position = stages and stages[index]
+            if position and position > 0 and position < total then fraction = position / total end
+        elseif ticks and index < ticks then
+            fraction = index / ticks
+        end
+        local shown = fraction ~= nil
+        if marker.gui2CastShown ~= shown then
+            marker:SetShown(shown); marker.gui2CastShown = shown
+        end
+        if shown then
+            if reverse then fraction = 1 - fraction end
+            local offset = math_max(0, math_min(extent - pixel,
+                math_floor((extent * fraction - pixel * 0.5) / pixel + 0.5) * pixel))
+            if marker.gui2CastOffset ~= offset or marker.gui2CastWidth ~= width
+                or marker.gui2CastHeight ~= height or marker.gui2CastVertical ~= vertical
+                or marker.gui2CastPixel ~= pixel then
+                marker.gui2CastOffset, marker.gui2CastWidth, marker.gui2CastHeight = offset, width, height
+                marker.gui2CastVertical, marker.gui2CastPixel = vertical, pixel
+                marker:ClearAllPoints()
+                marker:SetSize(vertical and width or pixel, vertical and pixel or height)
+                marker:SetPoint(vertical and "BOTTOMLEFT" or "TOPLEFT", track,
+                    vertical and "BOTTOMLEFT" or "TOPLEFT", vertical and 0 or offset, vertical and offset or 0)
+            end
+        end
+    end
 end
 
 local function GetFrameNativeStatusBarStyle(frame)
@@ -1898,7 +1973,9 @@ do
             fillTexture = opts.fillTexture or opts.statusBarTexture,
             fillColor = opts.fillColor or opts.barColor
                 or "color.accent.primary",
-            fillDirection = orientation == "vertical" and "up" or "left",
+            fillDirection = orientation == "vertical"
+                and (opts.reverse == true and "down" or "up")
+                or (opts.reverse == true and "right" or "left"),
             projectedFill = true,
             collapseAdjacentBorder = true,
             iconVariant = "bare",
@@ -2316,13 +2393,15 @@ do
             self,
             nextOrientation,
             nextIconPosition,
-            nextIconGap
+            nextIconGap,
+            reverse
         )
             nextOrientation = nextOrientation == "vertical"
                 and "vertical" or "horizontal"
             nextIconPosition = nextIconPosition
                 or (nextOrientation == "vertical" and "bottom" or "left")
             self.orientation = nextOrientation
+            if reverse ~= nil then self.gui2DurationReverse = reverse == true end
             self.gui2DurationIconPosition = nextIconPosition
             self.iconPosition = self.gui2DurationShowIcon == false
                 and nil or nextIconPosition
@@ -2345,7 +2424,9 @@ do
             end
             if self.SetFillDirection then
                 self:SetFillDirection(
-                    nextOrientation == "vertical" and "up" or "left"
+                    nextOrientation == "vertical"
+                        and (self.gui2DurationReverse and "down" or "up")
+                        or (self.gui2DurationReverse and "right" or "left")
                 )
             end
             self:SetDurationBarSize(
@@ -2482,7 +2563,22 @@ do
         local nameText = frame.resourceNameText
         if nameText then
             nameText:ClearAllPoints()
-            if vertical then
+            local appearance = frame.gui2ResourceTextAppearance or {}
+            local position = appearance.namePosition
+            if position == "start" or position == "center" or position == "end" then
+                local point = vertical
+                    and (position == "start" and "BOTTOM" or position == "end" and "TOP" or "CENTER")
+                    or (position == "start" and "LEFT" or position == "end" and "RIGHT" or "CENTER")
+                local inset = position == "start" and (vertical and 4 or 5)
+                    or position == "end" and (vertical and -4 or -5) or 0
+                local x, y = tonumber(appearance.nameOffsetX) or 0, tonumber(appearance.nameOffsetY) or 0
+                nameText:SetPoint(point, frame.resourceOverlay, point,
+                    x + (vertical and 0 or inset), y + (vertical and inset or 0))
+                nameText:SetWidth(math_max(1, vertical and frame.gui2ResourceHeight - 8
+                    or frame.gui2ResourceWidth - 64))
+                nameText:SetJustifyH(vertical and "CENTER"
+                    or position == "start" and "LEFT" or position == "end" and "RIGHT" or "CENTER")
+            elseif vertical then
                 nameText:SetPoint(
                     "BOTTOM",
                     frame.resourceOverlay,
@@ -2511,9 +2607,19 @@ do
                 )
             end
         end
-        for textIndex = 1, 2 do
-            local valueText = textIndex == 1 and frame.resourceValueText or frame.resourceValueText2
-            local appearance = textIndex == 1 and frame.gui2ResourceTextAppearance
+        -- Native countdowns use the same anchors as their public preview labels.
+        for textIndex = 1, 4 do
+            local index = (textIndex - 1) % 2 + 1
+            local valueText = index == 1 and frame.resourceValueText or frame.resourceValueText2
+            if textIndex > 2 then
+                local countdown = index == 1 and frame.resourceDurationCountdown or frame.resourceDurationCountdown2
+                valueText = nil
+                if countdown and countdown.GetCountdownFontString then
+                    local ok, text = pcall(countdown.GetCountdownFontString, countdown)
+                    if ok then valueText = text end
+                end
+            end
+            local appearance = index == 1 and frame.gui2ResourceTextAppearance
                 or frame.gui2ResourceTextAppearance2
             appearance = appearance or {}
             if valueText then
@@ -2540,6 +2646,7 @@ do
                         1,
                         frame.gui2ResourceHeight - 8
                     ))
+                    if valueText.SetJustifyH then valueText:SetJustifyH("CENTER") end
                 else
                     -- FontString 会保留之前由方向写入的显式宽度。每次都重写
                     -- 横向可用宽度和唯一锚点，避免连续切换左/中/右时旧状态
@@ -2575,6 +2682,8 @@ do
         if valueFormat == "whole" then return tostring(math_floor(value)) end
         if valueFormat == "duration" then
             value = math_max(0, value)
+            if value >= 3600 then return string_format("%dh", math_ceil(value / 3600)) end
+            if value >= 60 then return string_format("%dm", math_ceil(value / 60)) end
             if value >= 3 then return tostring(math_floor(value)) end
             return string_format("%.1f", math_floor(value * 10) / 10)
         end
@@ -3393,6 +3502,45 @@ do
         return true
     end
 
+    local function ApplyResourceTextCarrierLayer(carrier, level, strata)
+        if not carrier then return end
+        if carrier.SetFrameLevel then carrier:SetFrameLevel(level) end
+        if strata and carrier.SetFrameStrata then carrier:SetFrameStrata(strata) end
+    end
+
+    local function ApplyResourceAuraTextLayers(handle, level, strata)
+        local frames = handle and handle.frames
+        if not frames then return end
+        for index = 1, #frames do
+            ApplyResourceTextCarrierLayer(frames[index].gui2ResourceTextCarrier, level, strata)
+        end
+    end
+
+    local function SetResourceTextLayer(frame, level, strata)
+        frame.gui2ResourceTextLevel = level
+        frame.gui2ResourceTextStrata = strata
+        ApplyResourceTextCarrierLayer(frame.resourceOverlay, level, strata)
+        ApplyResourceTextCarrierLayer(frame.resourceDurationCountdown, level + 1, strata)
+        ApplyResourceTextCarrierLayer(frame.resourceDurationCountdown2, level + 1, strata)
+        local cells = frame.resourceCells
+        if cells then
+            for index = 1, #cells do
+                ApplyResourceTextCarrierLayer(cells[index].cooldown, level + 1, strata)
+            end
+        end
+        ApplyResourceAuraTextLayers(frame.gui2FilteredAuraDurationDisplay, level + 1, strata)
+        ApplyResourceAuraTextLayers(frame.gui2FilteredAuraApplicationDisplay, level + 1, strata)
+        ApplyResourceAuraTextLayers(frame.gui2ResourceExtraTextDisplay, level + 1, strata)
+    end
+
+    -- 资源条创建函数只捕获一个文字助手表，留出客户端 upvalue 预算。
+    local ResourceTextHelpers = {
+        SetLayer = SetResourceTextLayer,
+        ApplyCarrierLayer = ApplyResourceTextCarrierLayer,
+        ClearValue = ClearResourceValueText,
+        Position = PositionResourceText,
+    }
+
     local function CreateResourceCell(frame)
         local host = CreateFrame("Frame", nil, frame.track)
         if host.SetFrameLevel and frame.track.GetFrameLevel then
@@ -3492,6 +3640,10 @@ do
             maskTargets = {},
         }
         ApplyResourceCellCooldownAppearance(frame, cell)
+        if frame.gui2ResourceTextLevel then
+            ApplyResourceTextCarrierLayer(cooldown, frame.gui2ResourceTextLevel + 1,
+                frame.gui2ResourceTextStrata)
+        end
         return cell
     end
 
@@ -4722,13 +4874,9 @@ do
             frame.gui2ResourceSmoothProgress,
             frame.gui2ResourceDurationBound
         )
-        local ok = pcall(
-            statusBar.SetTimerDuration,
-            statusBar,
-            durationObject,
-            interpolation,
-            GetCastTimerDirection(true)
-        ) == true
+        local ok = GUI2:BindCastTimer(statusBar, durationObject,
+            not (frame.gui2ResourceDisplayConfig
+                and frame.gui2ResourceDisplayConfig.durationProgressDirection == "elapsed"), interpolation)
         if ok then
             frame.gui2ResourceDurationBound = true
             RestoreResourceStatusBarColor(statusBar)
@@ -5016,6 +5164,7 @@ do
         end
         durationCountdown:Hide()
         frame.resourceDurationCountdown = durationCountdown
+        frame.SetResourceTextLayer = ResourceTextHelpers.SetLayer
         local function EnsureSecondResourceCountdown()
             if frame.resourceDurationCountdown2 then return end
             local durationCountdown2 = CreateFrame(
@@ -5045,6 +5194,10 @@ do
             end
             durationCountdown2:Hide()
             frame.resourceDurationCountdown2 = durationCountdown2
+            if frame.gui2ResourceTextLevel then
+                ResourceTextHelpers.ApplyCarrierLayer(durationCountdown2, frame.gui2ResourceTextLevel + 1,
+                    frame.gui2ResourceTextStrata)
+            end
         end
 
         local baseRefreshTheme = frame.RefreshTheme
@@ -5093,7 +5246,7 @@ do
                 self.gui2ResourceWidth,
                 self.gui2ResourceHeight
             )
-            PositionResourceText(self)
+            ResourceTextHelpers.Position(self)
             LayoutResourceCells(self)
             if geometryChanged
                 and self.gui2FilteredAuraApplicationDisplay
@@ -5148,6 +5301,7 @@ do
             end
             appearance = type(appearance) == "table" and appearance or {}
             local textCarrier = CreateFrame("Frame", nil, auraFrame)
+            auraFrame.gui2ResourceTextCarrier = textCarrier
             textCarrier:SetAllPoints(self.track)
             if textCarrier.SetFrameLevel then
                 local overlayLevel = self.resourceOverlay
@@ -5159,6 +5313,9 @@ do
                     type(overlayLevel) == "number"
                         and overlayLevel + 1 or auraLevel + 4
                 )
+            end
+            if self.gui2ResourceTextStrata and textCarrier.SetFrameStrata then
+                textCarrier:SetFrameStrata(self.gui2ResourceTextStrata)
             end
             if textCarrier.EnableMouse then textCarrier:EnableMouse(false) end
             local text = textCarrier:CreateFontString(nil, "OVERLAY")
@@ -5199,18 +5356,8 @@ do
         local function ConfigureFilteredAuraDurationText(self, auraFrame, appearance)
             local text = ConfigureFilteredAuraBoundText(self, auraFrame, appearance)
             if not text then return nil end
-            if not (C_StringUtil and C_StringUtil.CreateNumericRuleFormatter) then return text end
-            local formatter = GUI2.resourceDurationTextFormatter
-            if not formatter then
-                formatter = C_StringUtil.CreateNumericRuleFormatter()
-                local rounding = _G.Enum and _G.Enum.NumericRuleFormatRounding
-                rounding = rounding and rounding.Down or 2
-                formatter:SetBreakpoints({
-                    { threshold = 0, min = 0, step = 0.1, rounding = rounding, format = "%.1f" },
-                    { threshold = 3, step = 1, rounding = rounding, format = "%d" },
-                })
-                GUI2.resourceDurationTextFormatter = formatter
-            end
+            local formatter = GUI2:GetDurationTextFormatter()
+            if not formatter then return text end
             return { target = text, options = { textFormatter = formatter } }
         end
 
@@ -6755,6 +6902,8 @@ do
                 rechargeProgress = config.rechargeProgress == true,
                 independentCells = config.independentCells == true,
                 durationProgress = config.durationProgress == true,
+                durationProgressDirection = config.durationProgressDirection == "elapsed"
+                    and "elapsed" or "remaining",
                 timerMarkers = config.timerMarkers == true,
                 partialRecharge = config.partialRecharge == true,
                 partialUnit = config.partialUnit or "player",
@@ -6964,7 +7113,10 @@ do
                 if GUI2.ApplyFontAppearance then
                     GUI2:ApplyFontAppearance(
                         self.resourceNameText,
-                        appearance
+                        appearance.nameSize and {
+                            font = appearance.font, size = appearance.nameSize,
+                            outline = appearance.outline, color = appearance.color, fontScale = appearance.fontScale,
+                        } or appearance
                     )
                 end
             end
@@ -7003,7 +7155,7 @@ do
                     and self.gui2FilteredAuraApplicationPublicPreview ~= true then
                 if self.resourceValueText then self.resourceValueText:Hide() end
             end
-            PositionResourceText(self)
+            ResourceTextHelpers.Position(self)
             EnsureResourceExtraTextDisplay(self)
         end
         local function FinishResourceValueUpdate(
@@ -7288,8 +7440,8 @@ do
             self.gui2ResourceRechargeRetryAttempted = false
             ApplyResourceBaseColor(self)
             self:RefreshResourceFillStyle(false)
-            ClearResourceValueText(self.resourceValueText)
-            ClearResourceValueText(self.resourceValueText2)
+            ResourceTextHelpers.ClearValue(self.resourceValueText)
+            ResourceTextHelpers.ClearValue(self.resourceValueText2)
             for index = 1, 2 do
                 local countdown = index == 1 and self.resourceDurationCountdown or self.resourceDurationCountdown2
                 if countdown then
@@ -8797,6 +8949,52 @@ function App:CreateModSwitch(parent, item)
         end
     end
 
+    function container:RefreshTooltip()
+        local frame = self
+        local tooltip = item.tooltip
+        if type(tooltip) == "function" then
+            local ok, value = pcall(tooltip, frame)
+            tooltip = ok and value or nil
+        end
+        if (type(tooltip) == "string" and tooltip ~= "") or type(tooltip) == "table" then
+            GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+            if type(tooltip) == "table" then
+                local function AddRow(left, right, leftColor, rightColor)
+                    local r, g, b = GUI2:GetColor(leftColor or "color.text.primary")
+                    if right then
+                        local rr, rg, rb = GUI2:GetColor(rightColor or "color.text.secondary")
+                        GameTooltip:AddDoubleLine(left, right, r, g, b, rr, rg, rb)
+                    else
+                        GameTooltip:AddLine(left, r, g, b, true)
+                    end
+                end
+                GameTooltip:ClearLines()
+                AddRow(item.label or item.name or "", tooltip.status, "color.text.heading", tooltip.statusColorKey)
+                for _, line in ipairs(tooltip.lines or {}) do
+                    AddRow(line.text or " ", line.right, line.colorKey, line.rightColorKey)
+                end
+            else
+                GameTooltip:SetText(item.label or item.name or "")
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine(tooltip, 1, 1, 1, true)
+            end
+            if frame.gui2Ineffective and frame.gui2EffectiveState and frame.gui2EffectiveState.reason then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("未生效：" .. tostring(frame.gui2EffectiveState.reason), 1, 0.82, 0, true)
+            end
+            if type(tooltip) == "table" and tooltip.footer and #tooltip.footer > 0 then
+                GameTooltip:AddLine(" ")
+                local r, g, b = GUI2:GetColor("color.text.primary")
+                for _, text in ipairs(tooltip.footer) do
+                    GameTooltip:AddLine(text, r, g, b, true)
+                end
+            end
+            GameTooltip:Show()
+        elseif GameTooltip:IsOwned(frame) then
+            YUI.HideGameTooltip()
+        end
+    end
+
     function container:SetValue(value, silent)
         local isSilent, animate = ParseSetOptions(silent)
         local previous = self.gui2Value
@@ -8806,6 +9004,7 @@ function App:CreateModSwitch(parent, item)
             if item.onChange then item.onChange(self, self.gui2Value) end
         end
         self:RefreshState()
+        if self.gui2Hover and GameTooltip:IsOwned(self) then self:RefreshTooltip() end
         if animate and previous ~= nil and previous ~= self.gui2Value then
             PlayCenteredMotionOverlay(self, "modswitch-toggle")
             if self.statusLabel and GUI2.PlayControlMotion then
@@ -8824,7 +9023,15 @@ function App:CreateModSwitch(parent, item)
         frame:RefreshState()
     end
 
-    container:SetScript("OnClick", function(frame)
+    container:SetScript("OnClick", function(frame, button)
+        if button == "RightButton" then
+            if item.settingsClick then
+                if GameTooltip:IsOwned(frame) then YUI.HideGameTooltip() end
+                item.settingsClick()
+            end
+            return
+        end
+        if button and button ~= "LeftButton" then return end
         local nextValue = not frame.gui2Value
         if nextValue == true and type(item.confirmEnable) == "function" then
             local committed
@@ -8850,22 +9057,17 @@ function App:CreateModSwitch(parent, item)
     container:SetScript("OnEnter", function(frame)
         frame.gui2Hover = true
         frame:RefreshState()
-        if item.tooltip then
-            GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-            GameTooltip:SetText(item.label or item.name or "")
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(item.tooltip, 1, 1, 1, true)
-            if frame.gui2Ineffective and frame.gui2EffectiveState and frame.gui2EffectiveState.reason then
-                GameTooltip:AddLine(" ")
-                GameTooltip:AddLine("未生效：" .. tostring(frame.gui2EffectiveState.reason), 1, 0.82, 0, true)
-            end
-            GameTooltip:Show()
-        end
+        frame:RefreshTooltip()
     end)
     container:SetScript("OnLeave", function(frame)
         frame.gui2Hover = false
         frame:RefreshState()
         YUI.HideGameTooltip()
+    end)
+
+    container:SetScript("OnHide", function(frame)
+        frame.gui2Hover = false
+        if GameTooltip:IsOwned(frame) then YUI.HideGameTooltip() end
     end)
 
     local currentValue = item.default

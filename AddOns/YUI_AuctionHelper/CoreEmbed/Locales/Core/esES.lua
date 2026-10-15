@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("esES") then return end
+
 YUI.Locale:Register("Core", "esES", {
     ["teleports.settings.announce_header"] = "Anuncio de teleporto",
     ["teleports.settings.announce_scope"] = "Ámbito de anuncio",
@@ -213,11 +215,11 @@ YUI.Locale:Register("Core", "esES", {
     ["cpu_watch.probe.ychat_driver"] = "YChat event/deferred driver",
     ["cpu_watch.probe.development_load"] = "Carga simulada de diagnóstico CPU",
     ["cpu_watch.probe.event_other"] = "Otros oyentes de EventBus",
-    ["cpu_watch.probe.yhud_context"] = "YHUD contexto refresca",
-    ["cpu_watch.probe.yhud_item_acquire"] = "Adquisición de marco de artículo YHUD",
-    ["cpu_watch.probe.yhud_static_cooldown"] = "Refrigerio YHUD",
-    ["cpu_watch.probe.yhud_static_position"] = "Reparación de posición YHUD",
-    ["cpu_watch.probe.yhud_category_sync"] = "Síntesis de la categoría YHUD",
+    ["cpu_watch.probe.yhud_context"] = "Halo contexto refresca",
+    ["cpu_watch.probe.yhud_item_acquire"] = "Adquisición de marco de artículo Halo",
+    ["cpu_watch.probe.yhud_static_cooldown"] = "Refrigerio Halo",
+    ["cpu_watch.probe.yhud_static_position"] = "Reparación de posición Halo",
+    ["cpu_watch.probe.yhud_category_sync"] = "Síntesis de la categoría Halo",
     ["cpu_watch.probe.yhud_resource_preview"] = "Previsión de recursos Halo",
     ["cpu_watch.movement.taxi"] = "ruta de vuelo",
     ["cpu_watch.movement.skyriding"] = "skyriding",
@@ -465,7 +467,7 @@ YUI.Locale:Register("Core", "esES", {
     ["layout.filter.action"] = "Pantalla",
     ["layout.filter.title"] = "Muévete",
     ["layout.filter.category.actionbar"] = "Barras de acción",
-    ["layout.filter.category.monitor"] = "Consol Halo",
+    ["layout.filter.category.monitor"] = "Halo Monitor",
     ["layout.filter.category.combat"] = "Herramientas de combate",
     ["layout.filter.category.communication"] = "Chat & Comunicación",
     ["layout.filter.category.map"] = "Mapa &amp; Navegación",
@@ -1334,7 +1336,7 @@ YUI.Locale:Register("Core", "esES", {
     ["game_menu.text.011"] = "Ayuda",
     ["game_menu.text.012"] = "Abra la página FAQ",
     ["game_menu.text.013"] = "Editor auras",
-    ["game_menu.text.014"] = "Abra el diseñador YHUD Aura",
+    ["game_menu.text.014"] = "Abra el diseñador Halo Aura",
     ["game_menu.text.015"] = "Reutilización",
     ["game_menu.text.016"] = "|cFFFF0000[YUI] No se encontraron las opciones del Gestor de reutilización|r",
     ["game_menu.text.017"] = "Abrir el Gestor de reutilización de Blizzard",

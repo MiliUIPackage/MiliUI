@@ -119,6 +119,52 @@ function Layout:OpenPluginSettings(id)
     return self:OpenFrameOptions(id)
 end
 
+local function SizeControlPanel(panel)
+    local measure = panel.layoutMeasure
+    local function Width(text, padding, minimum)
+        measure:SetText(text)
+        return math_max(minimum or 0, math.ceil(measure:GetStringWidth()) + padding)
+    end
+    local maxWidth = math_max(360, math_min(900, UIParent:GetWidth() - 40))
+    local available = maxWidth - 32
+    local densityWidth = 110
+    for _, option in ipairs(GetGridDensityOptions()) do
+        densityWidth = math_max(densityWidth, Width(option.text, 42))
+    end
+    local controls = {
+        { panel.snapButton, Width(L("layout.option.snap"), 38, 80) },
+        { panel.gridButton, Width(L("layout.option.grid"), 38, 80) },
+        { panel.gridDensity, densityWidth },
+        { panel.filterButton, Width(L("layout.filter.action"), 28, 90) },
+        { panel.doneButton, Width(L("layout.action.done"), 28, 80) },
+    }
+    local x, row, widest = 0, 0, 0
+    for _, item in ipairs(controls) do
+        local control, width = item[1], item[2]
+        if x > 0 and x + width > available then row = row + 1; x = 0 end
+        control:ClearAllPoints()
+        control:SetPoint("TOPLEFT", panel.controlsRow, "TOPLEFT", x, -row * 38)
+        control:SetSize(width, 28)
+        if control == panel.snapButton or control == panel.gridButton then
+            control.text:SetWidth(width - 26)
+        end
+        x = x + width + 10
+        widest = math_max(widest, x - 10)
+    end
+    local width = math_min(maxWidth, math_max(480, widest + 32, Width(LayoutPanelTitleText(), 48)))
+    panel:SetWidth(width)
+    panel.titlePlate:SetWidth(Width(LayoutPanelTitleText(), 32, 150))
+    local hintsHeight = 0
+    for _, hint in ipairs({ panel.hintLeft, panel.hintRight, panel.hintHide }) do
+        hint:SetWidth(width - 32)
+        hint:SetWordWrap(true)
+        hintsHeight = hintsHeight + hint:GetStringHeight() + 3
+    end
+    local controlsHeight = row * 38 + 28
+    panel.controlsRow:SetSize(widest, controlsHeight)
+    panel:SetHeight(math_max(160, 38 + hintsHeight + 24 + controlsHeight + 14))
+end
+
 function Layout:ShowControlPanel()
     local panel = self.controlPanel
     if not panel then
@@ -194,6 +240,8 @@ function Layout:ShowControlPanel()
         local title = GUI2:CreateText(titlePlate, LayoutPanelTitleText(), "font.size.md", "color.text.primary", "CENTER")
         title:SetPoint("CENTER")
         panel.title = title
+        panel.layoutMeasure = GUI2:CreateText(panel, "", "font.size.md", "color.text.primary")
+        panel.layoutMeasure:Hide()
 
         local hintLeft = GUI2:CreateText(panel, L("layout.panel.hint.left_click"), "font.size.md", "color.text.secondary", "CENTER")
         hintLeft:SetPoint("TOP", panel, "TOP", 0, -38)
@@ -223,6 +271,7 @@ function Layout:ShowControlPanel()
             set = function(value) GetOptions().snap = value and true or false end,
         })
         snap:SetPoint("LEFT", controlsRow, "LEFT", 0, 0)
+        panel.snapButton = snap
 
         local grid = GUI2.Form:CreateCheckbox(panel, {
             label = L("layout.option.grid"),
@@ -235,6 +284,7 @@ function Layout:ShowControlPanel()
             end,
         })
         grid:SetPoint("LEFT", snap, "RIGHT", 2, 0)
+        panel.gridButton = grid
 
         local gridDensity = GUI2.Form:CreateDropdown(panel, {
             width = 64,
@@ -302,6 +352,9 @@ function Layout:RefreshControlPanel()
     if panel.gridDensity and panel.gridDensity.SetValue then
         panel.gridDensity:SetValue(GetGridDensity(), true)
     end
+    panel.snapButton.text:SetText(L("layout.option.snap"))
+    panel.gridButton.text:SetText(L("layout.option.grid"))
+    SizeControlPanel(panel)
 end
 
 local function GetMoverPanelEntry()
@@ -1702,13 +1755,6 @@ local function RenderSettings(parent)
     })
     density:SetPoint("LEFT", grid, "RIGHT", 12, 0)
 
-    local locked = GUI2.Form:CreateCheckbox(root, {
-        label = L("layout.option.locked"),
-        width = 160,
-        get = function() return GetOptions().locked end,
-        set = function(value) GetOptions().locked = value and true or false end,
-    })
-    locked:SetPoint("LEFT", density, "RIGHT", 12, 0)
     y = y - 44
 
     local selected = GUI2:CreateText(root, "", "font.size.md", "color.text.primary")

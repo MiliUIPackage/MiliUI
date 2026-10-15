@@ -340,17 +340,20 @@ local function AnchorEffectFrame(cfr, parent, style, t)
 end
 
 -- Per-spell colours for the effect styles whose colour belongs to the SPELL rather than to
--- the indicator (border). The layout stores those lists as {spellID, {r,g,b,a}} rows;
--- AuraDisplay turns the result into one single-spell slot each.
+-- the indicator (border, bars). The layout stores those lists as {spellID, {r,g,b,a}} rows;
+-- AuraDisplay turns the result into one single-spell slot (border) or row (bars) each.
+-- Second return: the spell IDs in LIST order, for bars, where the rows' order is visible
+-- and the options page promises "priority decreases from top to bottom".
 local function EffectSpellColors(t)
-    local out
-    for _, row in pairs(t["auras"] or {}) do
+    local out, order = nil, {}
+    for _, row in ipairs(t["auras"] or {}) do
         if type(row) == "table" and type(row[1]) == "number" and type(row[2]) == "table" then
             out = out or {}
             out[row[1]] = row[2]
+            order[#order + 1] = row[1]
         end
     end
-    return out
+    return out, order
 end
 
 -- The icon grid the preview draws (Icons_SetOrientation): per-line wrap, the X/Y gaps and
@@ -457,8 +460,9 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- COSMETIC_KEYS.
         opts.glowTiming = timing
         -- icon rows only: an effect frame is positioned by AnchorEffectFrame / its own size,
-        -- and handing it an anchor corner would move a single block by the size mismatch
-        if not customStyle then GridOpts(opts, t) end
+        -- and handing it an anchor corner would move a single block by the size mismatch.
+        -- bars is a row grid like icons (one row per spell), so it takes the grid too.
+        if not customStyle or customStyle == "bars" then GridOpts(opts, t) end
         -- EFFECT SLOTS (colour/border/rect/texture): the visual is built from the
         -- indicator's own settings, and everything Lua-timed is dropped -- the fade-out and
         -- colour's change-over-time all needed a countdown that is now secret. (rect is the
@@ -466,7 +470,9 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         -- below.)
         -- (Fonts fall through to the icon/block branch below: rect stores t.font in the same
         -- {stackFont, durationFont} shape.)
-        if IsEffectStyle(customStyle) then
+        -- (bars is not a slot style -- it is a flow of one-row groups -- but its colours
+        -- are built the same way: per spell, like border's.)
+        if IsEffectStyle(customStyle) or customStyle == "bars" then
             -- only the colour style has a live, unit-derived tint; everything else is baked
             -- at style time, so SetContainerUnit can skip the lookup entirely
             self._effWantsClassColor = customStyle == "color"
@@ -474,18 +480,21 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
             opts.effectColors = t["colors"]
             opts.effectThickness = t["thickness"]
             opts.effectTexture = t["texture"]
-            if customStyle == "border" then
-                -- border's colour is per SPELL, so it splits into one slot per spell
-                opts.effectSpellColors = EffectSpellColors(t)
+            if customStyle == "border" or customStyle == "bars" then
+                -- the colour is per SPELL, so the display splits into one slot (border) /
+                -- one row (bars) per spell. bars also sends the list order: its rows are
+                -- declared in it (border's slots overlap, so order means nothing there).
+                local perSpell, order = EffectSpellColors(t)
+                opts.effectSpellColors = perSpell
+                opts.effectSpellOrder = customStyle == "bars" and order or false
                 -- the fallback when the list is over the split cap: the first row's colour
                 local first = t["auras"] and t["auras"][1]
                 opts.effectColors = (type(first) == "table" and first[2]) or t["colors"]
             end
-            if customStyle ~= "rect" then
-                -- a fill or a ring has nowhere to put a number
-                opts.showDuration = false
-                opts.showStack = false
-            else
+            if customStyle == "rect" or customStyle == "bar" then
+                -- rect and bar keep their number and stack (Blizzard renders both blind),
+                -- and both get the two colour bands below. The Pandemic fill is rect's
+                -- alone: a bar has no pandemicColor setting, so the key stays off for it.
                 -- Pandemic fill: the one time-based colour a rect can still have, because the
                 -- ENGINE decides when to show it (AddPandemicRegion). The switch is structural
                 -- (the region is handed over in the initializeFrame window, so turning it on
@@ -495,7 +504,8 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                 opts.pandemicOn = type(pc) == "table" and pc[1] == true
                 opts.pandemicColor = type(pc) == "table" and pc[2] or nil
                 -- The two colour bands, colors[2] = {en, fraction, col} ("remaining < N% of
-                -- the duration") and colors[3] = {en, seconds, col} ("remaining < N sec").
+                -- the duration") and colors[3] = {en, seconds, col} ("remaining < N sec") --
+                -- the same two slots in rect's and bar's colours tables.
                 -- Each becomes a companion slot whose fill is a |T escape the ENGINE picks
                 -- against the secret remaining time (AuraDisplay's BuildBandSlot). A band that
                 -- is off is not sent at all.
@@ -515,6 +525,12 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
                     end
                 end
                 opts.effectBands = (bands.pct or bands.sec) and bands or false
+            elseif customStyle ~= "bars" then
+                -- a fill or a ring has nowhere to put a number. bars keeps its number and
+                -- stack at the fonts' own anchors, like bar -- no bands and no Pandemic fill
+                -- (it has no colours table), so nothing else to send.
+                opts.showDuration = false
+                opts.showStack = false
             end
         end
         -- a text-style indicator with no explicit duration toggle still shows its countdown

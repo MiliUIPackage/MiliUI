@@ -1,6 +1,6 @@
 ## Interface: 120100, 120105
 ## Title: MiliUI Skin
-## Title-zhTW: |cff33F5FF[外觀]|r 米利的介面外觀
+## Title-zhTW: |cff33FFF5[外觀]|r 米利的介面外觀
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的界面外观
 ## Notes: Repaints Blizzard's own windows in the MiliUI settings-window look: opaque grey fill, 1px black border, white text, square corners. Only repaints — never moves or rebuilds anything.|n|n|cffffd200Usage: |r/mskin opens settings.
 ## Notes-zhTW: MiliUI Skin|n|n米利的介面外觀。|n|n把暴雪原生視窗換成米利UI的設定視窗皮：不透明灰底、1 像素純黑硬邊、白字、直角。只重畫，不搬動也不重組任何東西。|n|n|cffffd200使用方法: |r/mskin 開啟設定。
@@ -20,6 +20,8 @@ Libs\MiliUIWidgets\PixelPerfect.lua
 Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
+# 套組框體互相磁吸（vendor 複製，唯一 source 在 MiliUI/Libs/MiliUISnap/；畫面上的屬性顯示用）
+Libs\MiliUISnap.lua
 
 Locales\Locale.lua
 Locales\zhTW.lua
@@ -111,8 +113,19 @@ Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
 
+# 自建功能（不是換皮：自己的框疊在暴雪面板上，STYLE.md ③ 的 Extras 小節）。
+# 要用共用層的輸入框（ns.W），所以排在 Widgets 之後；Common.lua 一定第一個。
+Extras\Common.lua
+# 角色面板右上角的齒輪 ＋ 右側設定面板（編輯狀態的開關）；面板內容延到第一次打開才建
+Extras\StatsSettings.lua
+Extras\CharacterStats.lua
+Extras\CharacterTitles.lua
+# 畫面上顯示屬性（HUD）：用 CharacterStats.lua 匯出的列定義 ⇒ 排在它後面
+Extras\StatsHud.lua
+
 Options\Panel.lua
 Options\Tab_General.lua
+Options\Tab_Character.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 

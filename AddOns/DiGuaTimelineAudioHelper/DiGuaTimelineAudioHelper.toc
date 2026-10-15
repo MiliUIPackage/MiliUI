@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120100, 120105
 ## Title: [神秘地瓜] 副本语音助手
 ## Title-zhTW: |cffFF7F00[語音]|r 神秘地瓜 - 副本語音助手
 ## IconTexture: Interface\Icons\Ability_Warrior_BattleShout

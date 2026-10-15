@@ -157,6 +157,19 @@ function Delves.IsDelveDifficulty(difficultyID)
     return YUI.IsRetail == true and NormalizePositiveInteger(difficultyID) == DELVE_DIFFICULTY_ID
 end
 
+-- 点击路径：nil 表示无法安全判断；地下堡内绝不回退为退队。
+function Delves.TryLeave()
+    if YUI.IsRetail ~= true then return false, false end
+    local api = _G.C_DelvesUI
+    if not api or type(api.HasActiveDelve) ~= "function" then return nil, false end
+    local ok, active = SafeCall("Delves.HasActiveDelve", api.HasActiveDelve)
+    if not ok or IsSecretValue(active) or type(active) ~= "boolean" then return nil, false end
+    if not active then return false, false end
+    local party = _G.C_PartyInfo
+    -- 与原生离开流程一致，由客户端判断是否允许传送，不提前检查完成状态。
+    return true, SafeCall("Delves.TeleportOut", party and party.DelveTeleportOut)
+end
+
 function Delves.IsTierWidgetUpdate(widgetInfo)
     if YUI.IsRetail ~= true then return false end
     return NormalizePositiveInteger(ReadField(widgetInfo, "widgetType")) == GetDelveWidgetType()

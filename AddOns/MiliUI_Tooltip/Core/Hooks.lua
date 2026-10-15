@@ -145,7 +145,7 @@ local function ResolveMacroPayload(tip, macroId)
     if type(macroId) == "number" and type(GetMacroItem) == "function" then
         local ok, macroItem = pcall(GetMacroItem, macroId)
         if ok and macroItem then
-            local okInfo, _, itemLink = pcall(GetItemInfo, macroItem)
+            local okInfo, _, itemLink = pcall(C_Item.GetItemInfo, macroItem)
             if okInfo and type(itemLink) == "string" and itemLink ~= "" then
                 return nil, itemLink
             end

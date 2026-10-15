@@ -98,7 +98,7 @@ local function IsEquipment(info)
         return false
     end
 
-    local _, _, _, equipLoc, _, classID, subClassID = GetItemInfoInstant(info.itemID)
+    local _, _, _, equipLoc, _, classID, subClassID = C_Item.GetItemInfoInstant(info.itemID)
 
     -- 真實可裝備欄位（排除 INVTYPE_NON_EQUIP_IGNORE 這種「不可裝備」標記）
     if equipLoc and equipLoc ~= "" and equipLoc ~= "INVTYPE_NON_EQUIP_IGNORE" then
@@ -350,7 +350,7 @@ local commands = {
         for i = 1, num do
             local info = C_EncounterJournal.GetLootInfoByIndex(i)
             if info and info.itemID then
-                local _, _, _, equipLoc, _, classID, subClassID = GetItemInfoInstant(info.itemID)
+                local _, _, _, equipLoc, _, classID, subClassID = C_Item.GetItemInfoInstant(info.itemID)
                 print(string.format("  [%d] %s | id=%d class=%s sub=%s ft=%s equip=%s",
                     i, tostring(info.name), info.itemID,
                     tostring(classID), tostring(subClassID),

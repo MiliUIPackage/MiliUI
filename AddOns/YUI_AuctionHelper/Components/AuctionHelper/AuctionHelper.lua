@@ -22,7 +22,7 @@ local TOOLBOX_MANAGED = PRODUCT_ID == "suite" or PRODUCT_ID == "toolbox"
 
 -- 缓存全局函数
 local GetItemIcon = GetItemIcon or C_Item.GetItemIconByID
-local GetItemCount = GetItemCount
+local GetItemCount = YUI.API.Item.GetCount
 local GetItemInfo = GetItemInfo or C_Item.GetItemInfo
 local C_AuctionHouse = C_AuctionHouse
 
@@ -898,7 +898,7 @@ local function CreateUI()
     
     local db = DB:Get()
     local appearance = ns.AuctionHelperAppearance
-    local optionalSkin = appearance:Resolve(db.themeStyle)
+    local optionalSkin = appearance:Resolve(db.themeStyle, { blizzardWindow = "auctionhouse" })
     local isSkinEnabled = appearance:IsDark(optionalSkin)
     local appearanceTexts = {}
 
@@ -914,7 +914,7 @@ local function CreateUI()
     f:SetPoint("BOTTOMLEFT", parent, "BOTTOMRIGHT", 2, 0)
     f:SetWidth(helperWidth)
     f:SetFrameLevel(parent:GetFrameLevel() + 20)
-    appearance:Register(f, { themeProvider = function() return DB:Get().themeStyle end, role = "helper" })
+    appearance:Register(f, { blizzardWindow = "auctionhouse", themeProvider = function() return DB:Get().themeStyle end, role = "helper" })
     
     ns.AuctionHelperFrame = f
     
@@ -1063,7 +1063,7 @@ local function CreateUI()
     settingsFrame:SetPoint("BOTTOMLEFT", f, "BOTTOMRIGHT", 2, 0)
     settingsFrame:Hide()
     settingsFrame:SetFrameLevel(f:GetFrameLevel() + 5)
-    appearance:Register(settingsFrame, { themeProvider = function() return DB:Get().themeStyle end, role = "settings" })
+    appearance:Register(settingsFrame, { blizzardWindow = "auctionhouse", themeProvider = function() return DB:Get().themeStyle end, role = "settings" })
 
     -- Settings Close Button
     local sCloseBtn = GUI2:CreateButtonFrame(settingsFrame, { template = "BackdropTemplate" })
@@ -1111,6 +1111,7 @@ local function CreateUI()
     local sTitle = CreateAuctionText(settingsFrame, L["settings.title"], 14)
     sTitle:SetPoint("TOP", 0, -5)
     appearance:Register(settingsFrame, {
+        blizzardWindow = "auctionhouse",
         themeProvider = function() return DB:Get().themeStyle end,
         heading = sTitle,
         headingColorKey = "color.text.accent",
@@ -1496,6 +1497,7 @@ local function CreateUI()
 
     title:SetPoint("TOP", 0, -5)
     appearance:Register(f, {
+        blizzardWindow = "auctionhouse",
         themeProvider = function() return DB:Get().themeStyle end,
         heading = title,
         headingColorKey = "color.text.accent",
@@ -1796,6 +1798,8 @@ local function CreateUI()
     RebuildTabs(1)
     
     UpdateCounts = function()
+        if not auctionHelperFeatureActive or not DB:IsEnabled() or not f:IsVisible() then return end
+
         local current = DB:Get()
         for _, btn in ipairs(allItemButtons) do
             local total = 0
@@ -1803,17 +1807,19 @@ local function CreateUI()
                 total = total + GetItemCount(id, true)
             end
             
-            if total > 0 then
-                btn.count:SetText(total)
-                btn.icon:SetDesaturated(false)
-                btn.icon:SetVertexColor(1, 1, 1)
-            else
-                btn.count:SetText("")
-                btn.icon:SetVertexColor(0.3, 0.3, 0.3)
+            if btn.ownedCount ~= total then
+                if total > 0 then
+                    btn.count:SetText(total)
+                    btn.icon:SetDesaturated(false)
+                    btn.icon:SetVertexColor(1, 1, 1)
+                else
+                    btn.count:SetText("")
+                    btn.icon:SetVertexColor(0.3, 0.3, 0.3)
+                end
+                btn.ownedCount = total
+                ApplyQuantityFont(btn.count, current)
+                FitQuantityText(btn.count)
             end
-            btn.ownedCount = total
-            ApplyQuantityFont(btn.count, current)
-            FitQuantityText(btn.count)
         end
     end
     
@@ -1870,14 +1876,26 @@ local function CreateUI()
         RefreshItemFonts()
     end
 
-    YUI.Event:OffOwner(f)
-    YUI.Event:On("BAG_UPDATE", "UpdateCounts", f)
+    local countUpdateHandle
+    function f:StartCountUpdates()
+        if countUpdateHandle or not auctionHelperFeatureActive or not DB:IsEnabled() or not self:IsVisible() then return end
+        -- 聚合背包变化；关闭拍卖行或收起助手后不再统计。
+        countUpdateHandle = YUI.Event:On("BAG_UPDATE_DELAYED", "UpdateCounts", self)
+        UpdateCounts()
+    end
+    function f:StopCountUpdates()
+        if countUpdateHandle then
+            YUI.Event:Off(countUpdateHandle)
+            countUpdateHandle = nil
+        end
+    end
     f:SetScript("OnShow", function()
         RefreshOptionalAppearance()
-        UpdateCounts()
+        f:StartCountUpdates()
     end)
+    f:SetScript("OnHide", function() f:StopCountUpdates() end)
     
-    UpdateCounts()
+    f:StartCountUpdates()
     InstallBrowseResultsFontHooks()
     if ns.AuctionHelperRecipeTracker then
         f.recipeTracker = ns.AuctionHelperRecipeTracker:Create({
@@ -1912,9 +1930,7 @@ ns.Components:RegisterFeature("AuctionHelper", {
             -- 如果已经创建了 Frame，则直接显示
             if ns.AuctionHelperFrame then
                 ns.AuctionHelperFrame:Show()
-                -- 重新注册事件（如果在禁用时注销了）
-                YUI.Event:OffOwner(ns.AuctionHelperFrame)
-                YUI.Event:On("BAG_UPDATE", "UpdateCounts", ns.AuctionHelperFrame)
+                ns.AuctionHelperFrame:StartCountUpdates()
                 InstallBrowseResultsFontHooks()
                 return
             end
@@ -1948,7 +1964,7 @@ ns.Components:RegisterFeature("AuctionHelper", {
             end
             if ns.AuctionHelperFrame then
                 ns.AuctionHelperFrame:Hide()
-                YUI.Event:OffOwner(ns.AuctionHelperFrame)
+                ns.AuctionHelperFrame:StopCountUpdates()
             end
             if ns.AuctionHelperLoadHandle then
                 YUI.Event:Off(ns.AuctionHelperLoadHandle)

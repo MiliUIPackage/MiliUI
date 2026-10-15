@@ -255,7 +255,9 @@ function AB.RowDecor(row, geom, level)
     if level then d.overlay:SetFrameLevel(level) end
     LayoutDecor(d, row, geom)
     d.overlay:Show()
-    for _, t in ipairs(d.bgs) do if t:IsShown() then t:SetAlpha(1) end end
+    -- ⚠ 這裡不能再對暗底 SetAlpha(1)：貼圖的 SetAlpha 跟 SetVertexColor 的第四個參數是同一個值，
+    -- 會把 LayoutDecor 剛寫的 dim[4] 打回 1 ⇒ 引擎畫的列暗底永遠不透明、「背景透明度」對它們無效
+    -- （玩家回報 2026-10-15 惡魔之核；按鈕子樹裡的裝飾沒走這行所以一直是對的）
     return d
 end
 
@@ -264,6 +266,22 @@ function AB.HideRowDecor(row)
     if not d then return end
     d.overlay:Hide()
     for _, t in ipairs(d.bgs) do t:Hide() end
+end
+
+-- 只重上色、不重排：暗底的顏色／材質、黑邊與分隔的顏色就地改（貼圖的顏色戰鬥中也能寫）。
+-- 戰鬥中列是保護框（AuraContainer 連坐），RowDecor 那種 SetPoint／SetSize／Show 要等脫戰；
+-- 玩家戰鬥中（打木樁疊層）改背景不透明度／底色／邊框色，引擎寫的列靠這支當場生效（點數型的列本來就每次更新重上色）
+function AB.RecolorRowDecor(row, dim, edge, bgTex)
+    local d = row.abDecor
+    if not d then return end
+    local er, eg, eb, ea = 0, 0, 0, 1
+    if type(edge) == "table" then er, eg, eb, ea = edge[1] or 0, edge[2] or 0, edge[3] or 0, edge[4] or 1 end
+    for _, t in ipairs(d.bgs) do
+        if bgTex then t:SetTexture(bgTex) end
+        t:SetVertexColor(dim[1], dim[2], dim[3], dim[4])
+    end
+    for _, t in ipairs(d.edges) do t:SetVertexColor(er, eg, eb, ea) end
+    for _, t in ipairs(d.seps) do t:SetVertexColor(dim[1], dim[2], dim[3], 1) end
 end
 
 ------------------------------------------------------------

@@ -18,9 +18,13 @@ local SUPPRESSION_LATE_ADDONS = {
     Blizzard_TalentUI = true,
     Blizzard_TutorialManager = true,
     Blizzard_Tutorials = true,
+    Blizzard_SwingTimer = true,
+    Blizzard_UnitFrame = true,
+    Blizzard_UIPanels_Game = true,
 }
 
 local ELEMENTS = {
+    experienceBar = {},
     statusTrackingBars = {
         frameGroups = {
             { "StatusTrackingBarManager" },
@@ -46,6 +50,22 @@ local ELEMENTS = {
         },
     },
 }
+
+if YUI.IsForever == true then
+    ELEMENTS.swingTimers = {
+        frameGroups = {
+            { "SwingTimerMainHandFrame", "SwingTimerOffHandFrame", "SwingTimerRangedFrame" },
+        },
+        restoreMethod = "UpdateShownState",
+    }
+end
+
+if YUI.IsRetail or YUI.IsForever then
+    ELEMENTS.playerCastBar = {
+        frameGroups = { { "PlayerCastingBarFrame" }, { "CastingBarFrame" } },
+        restoreMethod = "player-cast",
+    }
+end
 
 local COMPOSITES = {
     {
@@ -90,6 +110,19 @@ end
 local function IsFrameShown(frame)
     local ok, shown = SafeMethod(frame, "IsShown")
     return ok and shown == true
+end
+
+-- IsBagOpen returns a boolean on modern clients and a frame index on Wrath.
+-- Limit the query to equipped bags so bank containers do not keep the bar visible.
+function BlizzardUI:IsPlayerBagOpen()
+    if type(IsBagOpen) ~= "function" then return false end
+    local lastBag = NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_TOTAL_BAG_FRAMES
+        or NUM_BAG_FRAMES or NUM_BAG_SLOTS or 4
+    for bagID = 0, lastBag do
+        local ok, open = pcall(IsBagOpen, bagID)
+        if ok and open ~= nil and open ~= false then return true end
+    end
+    return false
 end
 
 local function IsElementClaimed(elementId)
@@ -301,7 +334,7 @@ local function EnsureSuppressionLoadFrame()
     local frame = CreateFrame("Frame")
     frame:SetScript("OnEvent", function(_, event, addonName)
         if event ~= "ADDON_LOADED" or SUPPRESSION_LATE_ADDONS[addonName] ~= true then return end
-        if IsHelpTipSuppressionActive() then
+        if IsHelpTipSuppressionActive() or IsElementClaimed("swingTimers") or IsElementClaimed("playerCastBar") then
             BlizzardUI:Refresh("suppression-addon-loaded")
         end
     end)
@@ -326,13 +359,13 @@ local function SetSuppressionLoadWatching(watching)
     return true
 end
 
-local function AddFirstAvailableFrameGroup(target, frameGroups)
+local function AddFirstAvailableFrameGroup(target, frameGroups, restoreMethod)
     for _, names in ipairs(frameGroups or {}) do
         local found = false
         for _, name in ipairs(names) do
             local frame = _G[name]
             if frame then
-                target[frame] = true
+                target[frame] = restoreMethod or target[frame] or true
                 found = true
             end
         end
@@ -347,7 +380,29 @@ local function BuildDesiredFrames()
 
     for elementId, definition in pairs(ELEMENTS) do
         if IsElementClaimed(elementId) then
-            AddFirstAvailableFrameGroup(desired, definition.frameGroups)
+            AddFirstAvailableFrameGroup(desired, definition.frameGroups, definition.restoreMethod)
+        end
+    end
+
+    -- Containers are reused for reputation and other tracking bars. Claim only
+    -- containers currently displaying XP, never the whole tracking manager.
+    if IsElementClaimed("experienceBar") then
+        local manager = _G.StatusTrackingBarManager
+        local info = _G.StatusTrackingBarInfo
+        local xpIndex = info and info.BarsEnum and info.BarsEnum.Experience
+        if manager and manager.barContainers and xpIndex then
+            BlizzardUI.experienceHooks = BlizzardUI.experienceHooks or setmetatable({}, { __mode = "k" })
+            for _, container in ipairs(manager.barContainers) do
+                if not BlizzardUI.experienceHooks[container] and type(container.UpdateShownState) == "function" then
+                    hooksecurefunc(container, "UpdateShownState", function()
+                        if IsElementClaimed("experienceBar") then BlizzardUI:Refresh("experience-container") end
+                    end)
+                    BlizzardUI.experienceHooks[container] = true
+                end
+                if container.shownBarIndex == xpIndex then desired[container] = true end
+            end
+        elseif _G.MainMenuExpBar then
+            desired[_G.MainMenuExpBar] = true
         end
     end
 
@@ -408,10 +463,12 @@ end
 local function HideSuppressedFrame(frame)
     local state = BlizzardUI.frameState[frame]
     if not state then return false end
-    state.selfHiding = true
+    -- Nested visibility scripts may deliver OnHide after Hide has returned.
+    -- Keep the intent until that notification consumes it, not just on the call stack.
+    state.pendingHide = true
     local ok = SafeMethod(frame, "Hide")
-    state.selfHiding = false
     if not ok then
+        state.pendingHide = nil
         BlizzardUI.failureCount = BlizzardUI.failureCount + 1
         if IsInCombat() then QueueDeferredRefresh() end
     end
@@ -428,8 +485,12 @@ end
 local function OnFrameHidden(frame)
     if BlizzardUI.suppressedFrames[frame] ~= true then return end
     local state = BlizzardUI.frameState[frame]
-    if state and state.selfHiding ~= true then
-        state.restoreShown = false
+    if state then
+        if state.pendingHide == true then
+            state.pendingHide = nil
+        else
+            state.restoreShown = false
+        end
     end
 end
 
@@ -445,7 +506,7 @@ local function InstallFrameHooks(frame)
     return false
 end
 
-local function SuppressFrame(frame)
+local function SuppressFrame(frame, restoreMethod)
     local state = BlizzardUI.frameState[frame]
     if not state then
         state = {
@@ -454,6 +515,7 @@ local function SuppressFrame(frame)
         BlizzardUI.frameState[frame] = state
         state.hooksInstalled = InstallFrameHooks(frame)
     end
+    state.restoreMethod = type(restoreMethod) == "string" and restoreMethod or nil
     BlizzardUI.suppressedFrames[frame] = true
     local hidden = true
     if IsFrameShown(frame) then
@@ -468,7 +530,21 @@ local function RestoreFrame(frame)
     if not state then return true end
 
     local ok
-    if state.restoreShown == true then
+    if state.restoreMethod == "player-cast" then
+        local unit = YUI.API and YUI.API.Unit
+        local info = unit and unit.GetCastInfo and unit.GetCastInfo("player")
+        if info then
+            local event = info.isEmpowered and "UNIT_SPELLCAST_EMPOWER_START"
+                or info.isChannel and "UNIT_SPELLCAST_CHANNEL_START" or "UNIT_SPELLCAST_START"
+            ok = SafeMethod(frame, "OnEvent", event, "player")
+        else
+            ok = SafeMethod(frame, "UpdateShownState", false)
+        end
+    elseif state.restoreMethod then
+        -- Re-evaluate native CVars, weapon availability and visibility rules
+        -- instead of restoring a snapshot taken before the suppression claim.
+        ok = SafeMethod(frame, state.restoreMethod)
+    elseif state.restoreShown == true then
         ok = SafeMethod(frame, "Show")
     else
         ok = SafeMethod(frame, "Hide")
@@ -503,10 +579,12 @@ function BlizzardUI:Refresh()
         if not EnsureHelpTipHook() then failures = failures + 1 end
         if not SuppressHelpTips() then failures = failures + 1 end
     end
-    if not SetSuppressionLoadWatching(helpTipSuppressionActive) then failures = failures + 1 end
+    if not SetSuppressionLoadWatching(helpTipSuppressionActive or IsElementClaimed("swingTimers") or IsElementClaimed("playerCastBar")) then
+        failures = failures + 1
+    end
 
     for frame in pairs(self.frameState) do
-        if desired[frame] ~= true then
+        if desired[frame] == nil then
             restoreFrames[#restoreFrames + 1] = frame
         end
     end
@@ -515,8 +593,8 @@ function BlizzardUI:Refresh()
             failures = failures + 1
         end
     end
-    for frame in pairs(desired) do
-        if not SuppressFrame(frame) then
+    for frame, restoreMethod in pairs(desired) do
+        if not SuppressFrame(frame, restoreMethod) then
             failures = failures + 1
         end
     end

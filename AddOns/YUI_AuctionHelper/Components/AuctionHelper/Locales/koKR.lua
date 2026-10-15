@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("koKR") then return end
+
 YUI.Locale:Register("AuctionHelper", "koKR", {
     ["product.title"] = "Auction Helper · YanForge",
     ["product.notes"] = "Auction Helper · YanForge",

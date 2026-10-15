@@ -22,12 +22,10 @@ local cvars = {
   ["clampTargetNameplateToScreen"] = "1",
   ["nameplateNotSelectedAlpha"] = "-1",
   ["nameplateShowOnlyNameForFriendlyPlayerUnits"] = "1",
+  ["nameplateOverlapH"] = "1",
+  ["nameplateOverlapV"] = "1",
 }
 
-if addonTable.Constants.IsModernPlates then
-  cvars["nameplateOverlapH"] = "1"
-  cvars["nameplateOverlapV"] = "1"
-end
 
 function addonTable.Display.SetCVars()
   if not addonTable.Config.Get(addonTable.Config.Options.APPLY_CVARS) then

@@ -30,6 +30,45 @@ function MiliUI.OpenPerf(sub)
     perfRelay:Show()
 end
 
+-- 跨插件入口：開本體設定視窗並切到指定分頁（tabId 省略＝預設頁）。
+-- 給外掛分頁的插件用（MiliUI_QoL 的 /mqol、選單項目都走這裡開「便利功能」頁）。
+-- 同樣走中繼框、下一幀再開，理由同上。分頁不存在就退回預設頁（Options.Open 處理）。
+local openRelay = CreateFrame("Frame")
+openRelay:Hide()
+openRelay:SetScript("OnUpdate", function(self)
+    self:Hide()
+    local tabId = self.pendingTab
+    self.pendingTab = nil
+    ns.OpenOptions(tabId)
+end)
+function MiliUI.OpenOptions(tabId)
+    openRelay.pendingTab = type(tabId) == "string" and tabId or nil
+    openRelay:Show()
+end
+
+-- 跨插件入口：往本體設定視窗掛一個分頁（例：MiliUI_QoL 的「便利功能」）。
+--
+--   MiliUI.RegisterOptionsTab({
+--       id = "qol", label = "便利功能", order = 20,
+--       readOnly = false,                -- true 時戰鬥遮罩不蓋這一頁
+--       build  = function(container, width) ... return refresh end,  -- 第一次切進來才呼叫
+--       onShow = function() end,         -- 每次切進來
+--       onHide = function() end,         -- 每次切走或關窗
+--   })
+--
+-- container 是本體建的分頁框（錨在 banner 底下、蓋滿其餘的視窗），width 是視窗寬。
+-- 標題與捲軸由呼叫端自己建，這樣它自己的獨立視窗跟這一頁長得一模一樣。
+-- 回傳 true＝註冊成功；欄位不對或 id 已存在回傳 false。
+-- 靜態分頁的 order：插件總覽 10、插件強化 30、效能監控 40、預設值匯入 50、關於 90。
+function MiliUI.RegisterOptionsTab(def)
+    if type(def) ~= "table" or type(def.id) ~= "string" or def.id == ""
+            or type(def.label) ~= "string" or type(def.build) ~= "function" then
+        return false
+    end
+    if def.order ~= nil and type(def.order) ~= "number" then return false end
+    return ns.Options.RegisterTab(def)
+end
+
 -- 刻意不往 MiliUI_MenuEntries 塞「套組」項目：ESC 那顆「米利UI設定」按鈕
 -- 點下去開的就是本體設定，選單裡再列一次是重複入口。
 

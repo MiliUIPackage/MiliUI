@@ -31,6 +31,8 @@ Options.tabs = {}
 
 local TABS = {
     { id = "general", label = L["General"] },
+    -- 自建功能（Extras/）的開關：Options/Tab_Character.lua
+    { id = "charsheet", label = L["Character Sheet"] },
 }
 
 function Options.NewTabFrame()
@@ -63,6 +65,29 @@ function Options.BuildScrollBody(scroll, controls, ctx, width)
 end
 
 Options.FORM_W = FORM_W
+
+------------------------------------------------------------
+-- 「要不要現在重新載入？」—— 兩個分頁共用（一般頁的視窗開關、角色面板頁的 Extras 開關）
+--
+-- ⚠ 整個設定視窗只問**第一次**。每勾一個框就彈一次確認窗的話，想一次改三個視窗的
+--   人會被問三次，而且每次都蓋住他正要勾的下一個框。之後靠表單裡那行說明與
+--   「重新載入介面」按鈕。
+------------------------------------------------------------
+local reloadAsked = false
+local reloadPopup
+
+function Options.AskReload()
+    if reloadAsked then return end
+    reloadAsked = true
+    local parent = Options.panel
+    if not parent then return end
+    if not reloadPopup then
+        reloadPopup = W.CreateConfirmPopup(parent, 320, L["Changes take effect after a UI reload. Reload now?"], function()
+            ReloadUI()
+        end)
+    end
+    reloadPopup:Show()
+end
 
 local function SavePosition()
     local cx, cy = UIParent:GetCenter()

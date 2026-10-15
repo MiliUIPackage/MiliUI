@@ -347,10 +347,10 @@ eq("舊 SV：每份設定檔各跑一次", calls, 1)
 eq("舊 SV：版本推到目前", sv.schemaVersion, ns.DB_VERSION)
 
 calls = 0
-sv.schemaVersion = 9
+sv.schemaVersion = ns.DB_VERSION + 1
 DB.Init()
 eq("較新的 SV：版本壓回目前", sv.schemaVersion, ns.DB_VERSION)
-eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, 9)
+eq("較新的 SV：記住看過第幾版", sv.schemaVersionSeen, ns.DB_VERSION + 1)
 eq("較新的 SV：不跑遷移", calls, 0)
 DB.MIGRATIONS[1] = real
 DB.MIGRATIONS[2] = real2
@@ -360,6 +360,19 @@ DB.MIGRATIONS[5] = real5
 DB.MIGRATIONS[6] = real6
 DB.MIGRATIONS[7] = real7
 DB.MIGRATIONS[8] = real8
+
+-- v10：施法條字型拆成名字／時間各一組，時間那組照抄舊的共用值
+do
+    local p = { castbar = { font = "MyFont", textSize = 15, timeTextSize = 12 } }
+    DB.MIGRATIONS[10](p)
+    eq("v10 時間字型照抄", p.castbar.timeFont, "MyFont")
+    eq("v10 時間字級照抄（蓋掉合併預設值的 12）", p.castbar.timeTextSize, 15)
+    eq("v10 名字字型不動", p.castbar.font, "MyFont")
+    local q = { castbar = {} }
+    DB.MIGRATIONS[10](q)
+    eq("v10 沒存過 ⇒ 不寫", q.castbar.timeFont, nil)
+    DB.MIGRATIONS[10]({})
+end
 
 -- v8：快捷鍵文字從效果搬到文字（glow.keybind → text.keybind，跟隨看 follow.text）
 do

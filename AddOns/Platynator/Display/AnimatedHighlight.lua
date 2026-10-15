@@ -24,14 +24,12 @@ end
 
 function addonTable.Display.AnimatedBorderHighlightMixin:SetColor(...)
   self:SetShown(... ~= nil)
+  self.Animation:SetPlaying(... ~= nil)
   if ... then
-    self.Animation:Play()
     self.Top:SetVertexColor(...)
     self.Bottom:SetVertexColor(...)
     self.Left:SetVertexColor(...)
     self.Right:SetVertexColor(...)
-  else
-    self.Animation:Stop()
   end
 end
 
