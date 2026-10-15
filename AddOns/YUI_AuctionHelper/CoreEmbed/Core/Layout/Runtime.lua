@@ -43,6 +43,15 @@ local BUILTIN_ANCHOR_TARGETS = P.BUILTIN_ANCHOR_TARGETS or {}
 local PARTY_ANCHOR_TARGET = BUILTIN_ANCHOR_TARGETS.PARTY or "@YUI.PartyFrame"
 local RAID_ANCHOR_TARGET = BUILTIN_ANCHOR_TARGETS.RAID or "@YUI.RaidFrame"
 
+local function DeferImportRuntime()
+    local transfer = YUI.Settings and YUI.Settings.ConfigTransfer
+    if transfer and transfer.IsImporting and transfer:IsImporting() then
+        Layout.importRuntimePending = true
+        return true
+    end
+    return false
+end
+
 local function IsEditEntryEligible(entry)
     if not entry or entry.placementState == PLACEMENT_PENDING then return false end
     local frame = ResolveEntryFrame(entry)
@@ -198,6 +207,7 @@ local function SchedulePendingAnchorRetry(reset)
         Layout.pendingAnchorRetryPaused = nil
         return
     end
+    if DeferImportRuntime() then return end
     if InCombat() then
         Layout.pendingAnchorRetryPaused = true
         return
@@ -219,6 +229,7 @@ local function SchedulePendingAnchorRetry(reset)
     C_Timer.After(delay, function()
         if Layout.pendingAnchorRetryToken ~= token or not Layout.pendingAnchorRetryScheduled then return end
         Layout.pendingAnchorRetryScheduled = nil
+        if DeferImportRuntime() then return end
         if (Layout.pendingAnchorRetryGeneration or 0) ~= generation then
             SchedulePendingAnchorRetry(false)
             return
@@ -654,6 +665,13 @@ local function RunLayoutRuntimeEvent(event, ...)
     local watchdog = YUI.CPUWatchdog
     local perf = watchdog and watchdog.sceneCapture and watchdog.sceneCapture.layoutPerf
     if perf then perf.eventCalls = perf.eventCalls + 1 end
+    -- Automatic geometry recovery can persist placements. Keep user/transfer
+    -- writes on their normal paths, but coalesce background events until the
+    -- final profile is known. Combat entry must still close edit mode now.
+    if event ~= "PLAYER_REGEN_DISABLED" and DeferImportRuntime() then
+        if OFFSCREEN_RECHECK_EVENTS[event] then Layout.offscreenRecoveryPending = true end
+        return
+    end
     if Layout.RefreshAnchorProviders and (event == "PLAYER_REGEN_ENABLED"
         or event == "YUI_DB_READY" or event == "DISPLAY_SIZE_CHANGED"
         or event == "UI_SCALE_CHANGED" or event == "PLAYER_ENTERING_WORLD") then
@@ -708,6 +726,15 @@ local function RunLayoutRuntimeEvent(event, ...)
     end
 end
 
+local function OnImportReleased()
+    if not Layout.importRuntimePending then return end
+    if DeferImportRuntime() then return end
+    Layout.importRuntimePending = nil
+    RunLayoutRuntimeEvent("PLAYER_REGEN_ENABLED")
+    RefreshReadyGroupAnchorPlacements()
+    Layout:ApplyAllPlacements()
+end
+
 Layout:TryHookNative()
 Layout:RegisterMoveCommands()
 local function OnLayoutRuntimeEvent(event, ...)
@@ -719,6 +746,10 @@ local function OnLayoutRuntimeEvent(event, ...)
 end
 
 if Event and Event.On then
+    Event:On("YUI_CONFIG_TRANSFER_RELEASED", OnImportReleased, Layout, {
+        moduleId = MODULE_ID,
+        traceName = "Layout:ImportReleased",
+    })
     local function RegisterRuntimeEvent(event, throttle)
         Event:On(event, OnLayoutRuntimeEvent, Layout, {
             moduleId = MODULE_ID,

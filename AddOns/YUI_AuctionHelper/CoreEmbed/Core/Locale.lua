@@ -42,60 +42,18 @@ local NORMALIZED_OVERRIDES = {
     zhtw = "zhTW",
 }
 
-local OVERRIDE_ORDER = {
-    "enUS", "deDE", "esES", "esMX", "frFR", "itIT",
-    "koKR", "ptBR", "ruRU", "zhCN", "zhTW",
-}
-
+-- Development builds may replace nil with one supported locale before loading.
+-- Never read SavedVariables here: they arrive after the locale files execute.
+local DEVELOPMENT_LOCALE = nil
 local currentLocale = GetLocale and GetLocale() or Locale.defaultLocale
 local previousSlashHandler = YUI.HandleSlashCommand
-
 local function NormalizeOverrideLocale(locale)
-    if type(locale) ~= "string" or locale == "" then
-        return nil
-    end
-
-    return NORMALIZED_OVERRIDES[locale:lower()] or locale
+    return type(locale) == "string" and (NORMALIZED_OVERRIDES[locale:lower()] or locale) or nil
 end
-
-local function IsSupportedOverride(locale)
-    return SUPPORTED_OVERRIDES[locale] == true
-end
-
-local function GetRawGlobal()
-    local sv = _G and _G.YUI_DB
-    if type(sv) == "table" and type(sv.global) == "table" then
-        return sv.global
-    end
-    return nil
-end
-
-local function GetDBGlobal()
-    if YUI.DB and YUI.DB.IsReady and YUI.DB.GetGlobal and YUI.DB:IsReady() then
-        local global = YUI.DB:GetGlobal("suite")
-        if type(global) == "table" then
-            return global
-        end
-    end
-
-    if type(YUI.global) == "table" then
-        return YUI.global
-    end
-
-    return GetRawGlobal()
-end
-
-local function GetPersistedOverride()
-    local global = GetDBGlobal()
-    local locale = global and NormalizeOverrideLocale(global.localeOverride)
-    if IsSupportedOverride(locale) then
-        return locale
-    end
-    return nil
-end
-
-Locale.overrideLocale = Locale.overrideLocale or GetPersistedOverride()
-Locale.pendingPersistedOverride = Locale.pendingPersistedOverride
+local selectedLocale = NormalizeOverrideLocale(DEVELOPMENT_LOCALE) or currentLocale
+if not SUPPORTED_OVERRIDES[selectedLocale] then selectedLocale = "enUS" end
+Locale.overrideLocale = DEVELOPMENT_LOCALE and selectedLocale or nil
+Locale.pendingPersistedOverride = nil
 
 local function EnsureNamespace(namespace)
     local data = Locale.namespaces[namespace]
@@ -123,82 +81,42 @@ local function NoteMissing(namespace, key)
 end
 
 function Locale:Current()
-    return self.overrideLocale or currentLocale or self.defaultLocale
+    return selectedLocale
 end
 
 function Locale:GetClientLocale()
-    return currentLocale or self.defaultLocale
+    return currentLocale
 end
 
 function Locale:GetOverride()
     return self.overrideLocale
 end
 
-function Locale:SetOverride(locale)
-    locale = NormalizeOverrideLocale(locale)
-    if not IsSupportedOverride(locale) then
-        return false
-    end
+function Locale:ShouldLoad(locale)
+    return locale == "enUS" or locale == selectedLocale
+end
 
-    self.overrideLocale = locale
-    self:PersistOverride(locale)
-    return true
+-- A merged table cannot switch languages in place: overwritten text is released.
+function Locale:SetOverride(locale)
+    return NormalizeOverrideLocale(locale) == selectedLocale
 end
 
 function Locale:ClearOverride()
-    self.overrideLocale = nil
-    self:PersistOverride(nil)
-end
-
-function Locale:PersistOverride(locale)
-    if locale ~= nil then
-        locale = NormalizeOverrideLocale(locale)
-        if not IsSupportedOverride(locale) then
-            return false
-        end
-    end
-
-    local global = GetDBGlobal()
-    if type(global) == "table" then
-        global.localeOverride = locale
-        self.pendingPersistedOverride = nil
-        return true
-    end
-
-    self.pendingPersistedOverride = locale or false
-    return false
+    self:ApplyPersistedOverride()
+    return DEVELOPMENT_LOCALE == nil
 end
 
 function Locale:ApplyPersistedOverride()
-    local global = GetDBGlobal()
-    if type(global) ~= "table" then
-        return false
-    end
-
-    if self.pendingPersistedOverride ~= nil then
-        if self.pendingPersistedOverride == false then
-            global.localeOverride = nil
-            self.pendingPersistedOverride = nil
-            return true
-        end
-
-        if IsSupportedOverride(self.pendingPersistedOverride) then
-            global.localeOverride = self.pendingPersistedOverride
-            self.overrideLocale = self.pendingPersistedOverride
-            self.pendingPersistedOverride = nil
-            return true
-        end
-    end
-
-    local persisted = GetPersistedOverride()
-    if persisted then
-        self.overrideLocale = persisted
-    end
+    local global = YUI.DB and YUI.DB.IsReady and YUI.DB:IsReady()
+        and YUI.DB.GetGlobal and YUI.DB:GetGlobal("suite")
+        or YUI.global or (_G.YUI_DB and _G.YUI_DB.global)
+    if type(global) ~= "table" then return false end
+    global.localeOverride = nil
     return true
 end
 
 function Locale:GetPersistedOverride()
-    return GetPersistedOverride()
+    return nil
 end
 
 function Locale:Register(namespace, locale, values)
@@ -212,11 +130,12 @@ function Locale:Register(namespace, locale, values)
         return false
     end
 
+    if not self:ShouldLoad(locale) then return false end
     local data = EnsureNamespace(namespace)
-    data[locale] = data[locale] or {}
-
     for key, value in pairs(values) do
-        data[locale][key] = value
+        if locale == selectedLocale or data[key] == nil then
+            data[key] = value
+        end
     end
 
     return true
@@ -230,18 +149,9 @@ function Locale:Resolve(namespace, key, locale)
         return nil
     end
 
-    local activeLocale = locale or self:Current()
-    local active = data[activeLocale]
-    if type(active) == "table" and active[key] ~= nil then
-        return active[key]
-    end
-
-    local fallback = data[self.defaultLocale]
-    if type(fallback) == "table" then
-        return fallback[key]
-    end
-
-    return nil
+    -- Explicit requests for an unloaded language must not mislabel active text.
+    if locale and locale ~= selectedLocale then return nil end
+    return data[key]
 end
 
 function Locale:Get(namespace)
@@ -310,76 +220,14 @@ end
 
 YUI.L = Locale:Get("Core")
 
-local function PrintLocaleStatus()
-    if not YUI.Print then
-        return
-    end
-
-    local override = Locale:GetOverride()
-    local persisted = Locale:GetPersistedOverride()
-    local active = Locale:Current()
-    local client = Locale:GetClientLocale()
-    if override then
-        local source = persisted == override and "persisted" or "session"
-        YUI:Print("Locale override:", override, "(" .. source .. ", client:", client .. ")")
-    else
-        YUI:Print("Locale:", active, "(client)")
-    end
-end
-
-local function PrintLocaleHelp()
-    if not YUI.Print then
-        return
-    end
-
-    YUI:Print("Locale commands:")
-    for _, locale in ipairs(OVERRIDE_ORDER) do
-        YUI:Print("/yui locale " .. locale)
-    end
-    YUI:Print("/yui locale reset")
-    YUI:Print("/yui locale status")
-end
-
 local function HandleLocaleSlash(args)
     args = strtrim(args or "")
-    if args == "" or args == "help" then
-        PrintLocaleHelp()
-        return true
-    end
-
-    local locale = args:match("^(%S+)")
-    if not locale then
-        PrintLocaleHelp()
-        return true
-    end
-
-    local normalized = locale:lower()
-    locale = NormalizeOverrideLocale(locale)
-
-    if normalized == "reset" or normalized == "clear" then
-        Locale:ClearOverride()
-        if YUI.Print then
-            YUI:Print("Locale override cleared. Reopen the panel or /reload to refresh existing text.")
-        end
-        return true
-    end
-
-    if normalized == "status" then
-        PrintLocaleStatus()
-        return true
-    end
-
-    if not IsSupportedOverride(locale) then
-        if YUI.Print then
-            YUI:Print("Unsupported locale override:", locale)
-        end
-        PrintLocaleHelp()
-        return true
-    end
-
-    Locale:SetOverride(locale)
+    if args == "reset" or args == "clear" then Locale:ClearOverride() end
     if YUI.Print then
-        YUI:Print("Locale override set to:", locale, "(persisted). Reopen the panel or /reload to refresh existing text.")
+        YUI:Print("Locale:", Locale:Current(), "(client:", Locale:GetClientLocale() .. ")")
+        if args ~= "status" then
+            YUI:Print("Development locale: set DEVELOPMENT_LOCALE in Core/Locale.lua in the test build, then /reload. Set nil to follow the client.")
+        end
     end
     return true
 end

@@ -889,6 +889,76 @@ function Item.GetInventoryItemID(unit, slot)
     return nil
 end
 
+-- Forever 1.60.1.70235: character/client ammo capability.
+-- true/false means confirmed capability; nil means unavailable/restricted data.
+function Item.GetAmmoCapability()
+    if YUI.IsForever ~= true then return false, false end
+    local paperDoll = _G.C_PaperDollInfo
+    if not (paperDoll and paperDoll.AmmoNeeded and _G.UnitUsesAmmo) then
+        return nil, false
+    end
+    local security = YUI.API.Security
+    local isSecret = security and security.IsSecretValue or _G.issecretvalue
+    local needed = paperDoll.AmmoNeeded()
+    if isSecret and isSecret(needed) then return nil, true end
+    if type(needed) ~= "boolean" then return nil, false end
+    if needed == false then return false, false end
+    local usesAmmo = _G.UnitUsesAmmo("player")
+    if isSecret and isSecret(usesAmmo) then return nil, true end
+    if type(usesAmmo) ~= "boolean" then return nil, false end
+    return usesAmmo, false
+end
+
+-- Selected ammo identity plus carried count; no bag scan.
+-- Reuses the caller's state and never forwards restricted values.
+function Item.ReadEquippedAmmo(target)
+    target = target or {}
+    local security = YUI.API.Security
+    local isSecret = security and security.IsSecretValue or _G.issecretvalue
+    local paperDoll = _G.C_PaperDollInfo
+    local itemID, icon, count, slotID
+    local supported, secret = Item.GetAmmoCapability()
+    local status = supported == false and "unsupported" or "unknown"
+    if supported == true and paperDoll and paperDoll.GetInventorySlotInfo
+        and _G.GetInventoryItemID
+        and (_G.GetItemCount or (_G.C_Item and _G.C_Item.GetItemCount)) then
+        slotID = paperDoll.GetInventorySlotInfo("AmmoSlot")
+        if isSecret and isSecret(slotID) then
+            slotID, secret = nil, true
+        elseif type(slotID) == "number" and slotID >= 0 then
+            itemID = Item.GetInventoryItemID("player", slotID)
+            if isSecret and isSecret(itemID) then
+                itemID, secret = nil, true
+            elseif itemID == nil or itemID == 0 then
+                itemID, status = nil, "missing"
+            elseif type(itemID) == "number" and itemID > 0 then
+                icon = Item.GetInventoryItemTexture("player", slotID)
+                count = Item.GetCount(itemID, false, false, false, false)
+                if isSecret and (isSecret(icon) or isSecret(count)) then
+                    itemID, icon, count, secret = nil, nil, nil, true
+                elseif type(count) == "number" and count >= 0 then
+                    status = "selected"
+                else
+                    count = nil
+                end
+            else
+                itemID = nil
+            end
+        else
+            slotID = nil
+        end
+    end
+    local resolved = status ~= "unknown"
+    local changed = target.itemID ~= itemID or target.icon ~= icon
+        or target.slotID ~= slotID or target.displayCount ~= count
+        or target.ammoStatus ~= status or target.resolved ~= resolved
+        or target.secret ~= secret
+    target.itemID, target.icon, target.slotID = itemID, icon, slotID
+    target.displayCount, target.ammoStatus = count, status
+    target.resolved, target.secret = resolved, secret
+    return target, changed
+end
+
 function Item.GetInventoryCooldown(unit, slot)
     if not GetInventoryItemCooldown then return nil end
     return NormalizeCooldown(GetInventoryItemCooldown(unit, slot))

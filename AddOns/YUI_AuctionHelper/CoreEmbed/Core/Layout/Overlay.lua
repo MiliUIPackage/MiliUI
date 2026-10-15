@@ -947,6 +947,10 @@ local function SyncFrameToOverlay(entry)
     if not AnchorOverlayToScreen(overlay) then return end
     frame:ClearAllPoints()
     frame:SetPoint("CENTER", overlay, "CENTER", -(overlay.yuiLayoutMoverOffsetX or 0), -(overlay.yuiLayoutMoverOffsetY or 0))
+    -- Visual-only companions follow the live mover; persistence remains at commit.
+    if type(entry.spec.onMoverSync) == "function" then
+        SafeCall("Layout:onMoverSync:" .. tostring(entry.id), entry.spec.onMoverSync, frame, entry, Layout)
+    end
 end
 
 local function CollectSnapCandidates(entry)
@@ -1108,7 +1112,6 @@ local function OverlayOnDragStart(self)
     local placementState = entry and Layout.GetPlacementState
         and Layout:GetPlacementState(entry.id)
     if not entry or Layout.anchorPickerEntryId or InCombat()
-        or (GetOptions().locked and Layout.directDragEntry~=entry)
         or (Layout.IsPlacementReady
             and placementState ~= PLACEMENT_FALLBACK
             and not Layout:IsPlacementReady(entry.id))

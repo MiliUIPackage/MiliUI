@@ -220,7 +220,6 @@ local function CreatePlaceholderFrame(value)
 
     frame:SetScript("OnDragStart", function(self)
         if not Layout.editing or Layout.anchorPickerEntryId or (P.InCombat and P.InCombat()) then return end
-        if P.GetOptions and P.GetOptions().locked then return end
         self:StartMoving()
     end)
     frame:SetScript("OnDragStop", function(self)

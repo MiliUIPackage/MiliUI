@@ -223,6 +223,7 @@ function Tracker:Create(config)
     local title = config.createText(panel, L["tracker.title"], 14)
     title:SetPoint("TOP", 0, -5)
     appearance:Register(panel, {
+        blizzardWindow = "auctionhouse",
         themeProvider = config.themeProvider, heading = title,
         headingColorKey = "color.text.accent", role = "settings",
     })
@@ -283,7 +284,7 @@ function Tracker:Create(config)
     scroll:SetScrollChild(content)
     self.scroll, self.content = scroll, content
 
-    local tabContext = appearance:Resolve(config.themeProvider())
+    local tabContext = appearance:Resolve(config.themeProvider(), { blizzardWindow = "auctionhouse" })
     local accent = tabContext.accent
     self.tabs = GUI2.Form:CreateUnderlineTabs(panel, {
         width = 210, height = 24,

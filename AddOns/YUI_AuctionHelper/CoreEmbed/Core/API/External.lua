@@ -82,12 +82,14 @@ local definitions = {
         addons = { "EllesmereUIActionBars" },
         loadedMeansActive = true,
         retailOnly = true,
+        foreverSupported = true,
     },
     ellesmere_cooldown = {
         label = "EllesmereUI Cooldown Manager",
         addons = { "EllesmereUICooldownManager" },
         loadedMeansActive = true,
         retailOnly = true,
+        foreverSupported = true,
     },
     ellesmere_minimap = {
         label = "EllesmereUI Minimap",
@@ -540,7 +542,8 @@ function External.ResolveCapability(selfOrCapabilityKey, capabilityKeyOrOptions,
     for _, candidate in ipairs(capabilities[capabilityKey]) do
         local definition = definitions[candidate.addon]
         local value
-        if definition.retailOnly and YUI.IsRetail ~= true then
+        if definition.retailOnly and YUI.IsRetail ~= true
+            and not (YUI.IsForever == true and definition.foreverSupported == true) then
             value = false
         elseif candidate.module then
             value = External:GetModuleState(candidate.addon, candidate.module, options)

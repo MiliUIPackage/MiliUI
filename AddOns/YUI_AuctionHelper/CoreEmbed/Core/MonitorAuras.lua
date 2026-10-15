@@ -41,7 +41,7 @@ local function Read(source, state)
     elseif not code then
         -- A restricted exact query may return nil. Never convert that into
         -- an aura-lost event; public absence is only accepted out of combat.
-        if YUI.IsRetail and (not Combat or Combat.InCombatLockdown() ~= false) then
+        if (YUI.IsRetail or YUI.IsForever) and (not Combat or Combat.InCombatLockdown() ~= false) then
             code = 'aura-absence-unknown'
         else present = false end
     end

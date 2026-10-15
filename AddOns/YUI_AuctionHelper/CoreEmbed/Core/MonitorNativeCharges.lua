@@ -9,7 +9,7 @@ local _, YUI = ...
 YUI = YUI or _G.YUI
 local M = YUI and YUI.Monitor
 local Sources = M and M.CommonSources
-if not Sources or YUI.IsRetail ~= true then return end
+if not Sources or (YUI.IsRetail ~= true and YUI.IsForever ~= true) then return end
 local TYPE = 'native-charge-signal'
 local bindings, hooked, viewers = setmetatable({}, {__mode='k'}), setmetatable({}, {__mode='k'}), setmetatable({}, {__mode='k'})
 local owners = setmetatable({}, {__mode='k'})

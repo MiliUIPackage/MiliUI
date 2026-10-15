@@ -320,8 +320,142 @@ function GUI2:SetProjectedStatusBarShown(frame, shown)
     SetNativeProgressFillShown(frame, shown)
 end
 
+function GUI2:ReleaseAuraBarThresholds(frame)
+    if not frame then return end
+    local trackLevel = frame.track and frame.track:GetFrameLevel() or 0
+    for overlay, offset in pairs(frame.gui2AuraBarThresholdOverlayLevels or {}) do
+        overlay:SetFrameLevel(trackLevel + offset)
+    end
+    frame.gui2AuraBarThresholdOverlayLevels = nil
+    frame.gui2AuraBarThresholdTopLevel = nil
+    frame.gui2AuraBarThresholdLayerCount = nil
+    local unit = YUI.API and YUI.API.Unit
+    if frame.gui2AuraBarThresholdHandle and unit and unit.ReleaseFilteredAuraDisplay then
+        unit.ReleaseFilteredAuraDisplay(frame.gui2AuraBarThresholdHandle)
+    end
+    frame.gui2AuraBarThresholdHandle = nil
+    frame.gui2AuraBarThresholdSignature = nil
+end
+
+function GUI2:RaiseAuraBarThresholdOverlay(frame, overlay, offset)
+    if not (frame and overlay and frame.gui2AuraBarThresholdTopLevel) then return end
+    local handle = frame.gui2AuraBarThresholdHandle
+    if handle then
+        frame.gui2AuraBarThresholdTopLevel = handle.container:GetFrameLevel()
+            + frame.gui2AuraBarThresholdLayerCount * 3 + 2
+    end
+    frame.gui2AuraBarThresholdOverlayLevels = frame.gui2AuraBarThresholdOverlayLevels or {}
+    local levels = frame.gui2AuraBarThresholdOverlayLevels
+    if levels[overlay] == nil then
+        levels[overlay] = overlay:GetFrameLevel() - frame.track:GetFrameLevel()
+    end
+    local level = frame.gui2AuraBarThresholdTopLevel + offset
+    if overlay:GetFrameLevel() ~= level then overlay:SetFrameLevel(level) end
+end
+
+-- Each gate is one integer application binding, independent of the aura cap.
+-- The timer clip remains the outer owner; a gate only selects its material.
+function GUI2:SetAuraBarThresholds(frame, options)
+    if not frame then return false end
+    local policy = options and options.policy
+    local unit = YUI.API and YUI.API.Unit
+    if not (policy and policy.enabled and frame.nativeFillClip
+        and frame.track and unit and unit.CreateFilteredAuraDisplay) then
+        self:ReleaseAuraBarThresholds(frame)
+        return false
+    end
+    if frame.gui2AuraBarThresholdSignature == options.signature then
+        return frame.gui2AuraBarThresholdHandle ~= nil or frame.gui2AuraBarThresholdLayerCount == 0
+    end
+    local layers = {}
+    local low, high = policy.low, policy.high
+    if low.enabled then
+        layers[#layers + 1] = { trigger = 0, color = low.color }
+        layers[#layers + 1] = { trigger = low.value + 1, color = options.fillColor }
+    end
+    if high.enabled then
+        layers[#layers + 1] = { trigger = high.value, color = high.color }
+    end
+    if #layers == 0 then
+        self:ReleaseAuraBarThresholds(frame)
+        frame.gui2AuraBarThresholdSignature = options.signature
+        frame.gui2AuraBarThresholdLayerCount = 0
+        return true
+    end
+    local slots = {}
+    local topLevel
+    for index = 1, #layers do
+        local layer = layers[index]
+        slots[index] = {
+            key = "bar-stack-color-" .. index,
+            spellIDs = options.spellIDs,
+            initializeFrame = function(auraFrame, _, handle)
+                auraFrame:ClearAllPoints()
+                auraFrame:SetAllPoints(frame.track)
+                local level = handle.container:GetFrameLevel() + index * 3
+                topLevel = math.max(topLevel or 0, level + 2)
+                auraFrame:SetFrameLevel(level)
+                local materialParent = auraFrame
+                local driver
+                if layer.trigger > 0 then
+                    -- A full-track interval is exposed only at the integer
+                    -- boundary. Never read the bound value or its geometry.
+                    driver = CreateFrame("StatusBar", nil, auraFrame)
+                    driver:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+                    driver:SetOrientation("HORIZONTAL")
+                    driver:SetReverseFill(false)
+                    driver:SetWidth(options.width * layer.trigger)
+                    driver:SetPoint("TOPRIGHT", frame.track, "TOPRIGHT")
+                    driver:SetPoint("BOTTOMRIGHT", frame.track, "BOTTOMRIGHT")
+                    driver:GetStatusBarTexture():SetAlpha(0)
+                    materialParent = CreateFrame("Frame", nil, auraFrame)
+                    materialParent:SetAllPoints(driver:GetStatusBarTexture())
+                    materialParent:SetClipsChildren(true)
+                    materialParent:SetFrameLevel(level + 1)
+                end
+                local material = CreateFrame("StatusBar", nil, materialParent)
+                material:SetAllPoints(frame.track)
+                material:SetFrameLevel(level + 2)
+                material:SetMinMaxValues(0, 1)
+                material:SetValue(1)
+                material:SetStatusBarTexture(options.texture)
+                if self.ResolveNativeStatusBarDirection then
+                    local orientation, rotates, reverse = self:ResolveNativeStatusBarDirection(
+                        options.orientation, options.fillDirection)
+                    material:SetOrientation(orientation)
+                    material:SetRotatesTexture(rotates)
+                    material:SetReverseFill(reverse)
+                end
+                local texture = material:GetStatusBarTexture()
+                texture:SetTexCoord(options.u0, options.u1, options.v0, options.v1)
+                local color = layer.color
+                material:SetStatusBarColor(color.r or color[1], color.g or color[2],
+                    color.b or color[3], color.a or color[4] or 1)
+                if driver then
+                    return { applicationBar = { target = driver,
+                        options = { maxApplications = layer.trigger,
+                            interpolation = 0 } } }
+                end
+            end,
+        }
+    end
+    local handle = unit.CreateFilteredAuraDisplay(frame.nativeFillClip, {
+        unit = options.unit, filter = options.filter,
+        requirePlayerSource = options.requirePlayerSource,
+        slots = slots,
+    })
+    -- A changed source must not keep the previous source's tint on failure.
+    self:ReleaseAuraBarThresholds(frame)
+    frame.gui2AuraBarThresholdSignature = options.signature
+    frame.gui2AuraBarThresholdHandle = handle
+    frame.gui2AuraBarThresholdTopLevel = handle and topLevel or nil
+    frame.gui2AuraBarThresholdLayerCount = handle and #layers or nil
+    return handle ~= nil
+end
+
 function GUI2:ReleaseProjectedStatusBarFill(frame)
     if not frame then return end
+    self:ReleaseAuraBarThresholds(frame)
     if frame.nativeFillClip then frame.nativeFillClip:Hide() end
     if frame.nativeVisibleStatusBar then
         frame.nativeVisibleStatusBar:Hide()

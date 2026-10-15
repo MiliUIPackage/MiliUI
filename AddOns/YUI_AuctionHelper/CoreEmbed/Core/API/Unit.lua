@@ -62,6 +62,33 @@ local function SafeBool(func, ...)
     return value and true or false
 end
 
+-- Forever extends UnitAttackSpeed with a third ranged return. Unknown or
+-- restricted results stay unknown; nil from a successful public read means
+-- no off-hand/ranged attack. Callers reuse target at structural boundaries.
+local function SetSwingCapability(target, hand, speed)
+    if IsSecretValue(speed) then return end
+    if speed == nil then
+        if hand ~= "mainhand" then target[hand] = false end
+    elseif type(speed) == "number" and speed > 0 and speed < math.huge then
+        target[hand], target[hand .. "Duration"] = true, speed
+    elseif type(speed) == "number" then
+        target[hand] = false
+    end
+end
+
+function Unit.ReadPlayerSwingCapabilities(target)
+    target = type(target) == "table" and target or {}
+    target.mainhand, target.offhand, target.ranged = nil, nil, nil
+    target.mainhandDuration, target.offhandDuration, target.rangedDuration = nil, nil, nil
+    if YUI.IsForever ~= true or type(UnitAttackSpeed) ~= "function" then return target end
+    local ok, mainhand, offhand, ranged = pcall(UnitAttackSpeed, "player")
+    if not ok then return target end
+    SetSwingCapability(target, "mainhand", mainhand)
+    SetSwingCapability(target, "offhand", offhand)
+    SetSwingCapability(target, "ranged", ranged)
+    return target
+end
+
 local CLASS_ID_ORDER = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }
 local classInfosCache
 local classInfosByID
@@ -187,10 +214,11 @@ local function BuildRaceInfoCaches()
 
     local function Add(info, fallbackID)
         info = NormalizeRaceInfo(info, fallbackID)
-        if not info or byFile[info.clientFileString] then return end
+        if not info or (info.raceID and byID[info.raceID])
+            or (not info.raceID and byFile[info.clientFileString]) then return end
 
         list[#list + 1] = info
-        byFile[info.clientFileString] = info
+        byFile[info.clientFileString] = byFile[info.clientFileString] or info
         if info.raceID then
             byID[info.raceID] = info
         end
@@ -692,6 +720,15 @@ function Unit.GetPlayerAuraBySpellID(spellID)
     return nil, "aura-api-unavailable"
 end
 
+function Unit.GetPlayerLevel()
+    local level = SafeValue(UnitLevel, "player")
+    if type(level) ~= "number" or not (level > 0)
+        or level == math.huge or level ~= math.floor(level) then
+        return nil
+    end
+    return level
+end
+
 function Unit.GetMaxPlayerLevel()
     if GetMaxPlayerLevel then
         local ok, level = pcall(GetMaxPlayerLevel)
@@ -1134,7 +1171,7 @@ function Unit.GetRangeEstimate(unit, checkVisible, noItems, maxCacheAge)
         end
     end
 
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         return nil, nil, nil
     end
 
@@ -1288,6 +1325,8 @@ local function NormalizeCastInfoTable(unit, info, isChannel)
 
     local notInterruptibleRaw = FirstRawDisplayValue(info.notInterruptible, info.uninterruptible)
     local notInterruptible, notInterruptibleKnown = SafeInterruptibleFlag(notInterruptibleRaw)
+
+    local isEmpowered = isChannel == true and YUI.IsRetail == true and SafeRawValue(info.isEmpowered) == true
     local startTimeMS = FirstSafeNumberValue(info.startTimeMS, info.startTime, info.startTimeMilliseconds)
     local endTimeMS = FirstSafeNumberValue(info.endTimeMS, info.endTime, info.endTimeMilliseconds)
     local texture = FirstSafeRawValue(info.texture, info.textureID, info.icon, info.iconID)
@@ -1307,6 +1346,8 @@ local function NormalizeCastInfoTable(unit, info, isChannel)
         castID = FirstSafeRawValue(info.castID, info.castId, info.castGUID),
         castIDRaw = FirstRawDisplayValue(info.castID, info.castId, info.castGUID),
         isChannel = isChannel == true,
+        isEmpowered = isEmpowered,
+        numEmpowerStages = isEmpowered and SafeNumberValue(info.numEmpowerStages) or nil,
         startTimeMS = startTimeMS,
         endTimeMS = endTimeMS,
         durationObject = SafeRawValue(info.durationObject),
@@ -1339,7 +1380,7 @@ local function ReadCastInfo(unit, isChannel)
         }, durationObject)
     end
 
-    local ok, name, text, texture, startTimeMS, endTimeMS, isTradeSkill, arg7, arg8, arg9 = pcall(func, unit)
+    local ok, name, text, texture, startTimeMS, endTimeMS, isTradeSkill, arg7, arg8, arg9, arg10 = pcall(func, unit)
     if not ok then
         if durationObject == nil then
             return nil
@@ -1413,6 +1454,8 @@ local function ReadCastInfo(unit, isChannel)
     local safeStartTimeMS = SafeNumberValue(startTimeMS)
     local safeEndTimeMS = SafeNumberValue(endTimeMS)
     local notInterruptible, notInterruptibleKnown = SafeInterruptibleFlag(notInterruptibleRaw)
+    local isEmpowered = isChannel == true and YUI.IsRetail == true and SafeRawValue(arg9) == true
+    if isEmpowered then durationObject = SafeDurationObject(UnitEmpoweredChannelDuration, unit) or durationObject end
 
     return ApplyDurationClock({
         unit = unit,
@@ -1431,6 +1474,8 @@ local function ReadCastInfo(unit, isChannel)
         isChannel = isChannel == true,
         startTimeMS = safeStartTimeMS,
         endTimeMS = safeEndTimeMS,
+        isEmpowered = isEmpowered,
+        numEmpowerStages = isChannel == true and YUI.IsRetail == true and SafeNumberValue(arg10) or nil,
         durationObject = durationObject,
         notInterruptibleRaw = notInterruptibleRaw,
         visualNotInterruptibleRaw = notInterruptibleRaw,
@@ -1449,6 +1494,67 @@ end
 
 function Unit.GetChannelInfo(unit)
     return ReadCastInfo(unit, true)
+end
+
+-- Public stage metadata only; unavailable/restricted timing never becomes zero.
+-- The caller owns/reuses target. Returns stages, total seconds including hold.
+function Unit.ReadPlayerEmpowerStages(count, target)
+    target = type(target) == "table" and target or {}
+    for index = #target, 1, -1 do target[index] = nil end
+    if YUI.IsRetail ~= true or IsSecretValue(count) or type(count) ~= "number" or count < 1 or count > 8 then
+        return target, nil
+    end
+    local total = 0
+    for index = 1, math.floor(count) do
+        local duration = SafeValue(GetUnitEmpowerStageDuration, "player", index - 1)
+        if type(duration) ~= "number" or duration < 0 then
+            for clear = #target, 1, -1 do target[clear] = nil end
+            return target, nil
+        end
+        total = total + duration / 1000
+        target[index] = total
+    end
+    local hold = SafeValue(GetUnitEmpowerHoldAtMaxTime, "player")
+    if type(hold) ~= "number" or hold < 0 then return target, nil end
+    return target, total + hold / 1000
+end
+
+-- Client catalog, shared by every cast display. Unknown or restricted
+-- spells have no inferred tick count; empower stages are separate metadata.
+local FOREVER_CHANNEL_TICKS = {
+    [5143] = 3, [5144] = 4, [5145] = 5, [8416] = 5, [8417] = 5,
+    [10211] = 5, [10212] = 5, [12051] = 4, [10] = 8, [6141] = 8,
+    [8427] = 8, [10185] = 8, [10186] = 8, [10187] = 8,
+}
+
+function Unit.GetChannelTickCount(spellID)
+    if YUI.IsForever ~= true or IsSecretValue(spellID) then return 0 end
+    return FOREVER_CHANNEL_TICKS[spellID] or 0
+end
+
+-- Caller-owned public metadata and reusable empower timer. Raw cast fields are
+-- never copied here. The returned native duration goes straight to a sink.
+function Unit.ReadCastDisplay(info, target)
+    target.castStages = target.castStages or {}
+    target.castTotal, target.castTickCount = nil, 0
+    if info and info.isEmpowered and info.unit == "player" then
+        local _, total = Unit.ReadPlayerEmpowerStages(info.numEmpowerStages, target.castStages)
+        target.castTotal = total
+        if total and info.startTimeMS and C_DurationUtil and C_DurationUtil.CreateDuration then
+            local duration = target.empowerDuration or C_DurationUtil.CreateDuration()
+            target.empowerDuration = duration
+            if duration and duration.SetTimeFromStart then
+                duration:SetTimeFromStart(info.startTimeMS / 1000, total, 1)
+                return duration, false
+            end
+        end
+    else
+        for index = #target.castStages, 1, -1 do target.castStages[index] = nil end
+        if info and info.isChannel and not info.isEmpowered then
+            target.castTickCount = Unit.GetChannelTickCount(info.spellID)
+        end
+    end
+    return info and info.durationObject, info and info.isChannel and not info.isEmpowered or false
 end
 
 function Unit.GetSpellTargetInfo(unit)
@@ -1681,7 +1787,13 @@ function Unit.ReadPowerDisplay(unit, powerType, state, colorCurve)
 
     local valueOK, valueRaw = false, nil
     local maxOK, maxRaw = false, nil
-    if powerType ~= nil and type(UnitPower) == "function" then
+    local targetComboPoints = YUI.IsForever == true
+        and powerType == ((Enum and Enum.PowerType and Enum.PowerType.ComboPoints) or 4)
+    if targetComboPoints then
+        if type(GetComboPoints) == "function" then
+            valueOK, valueRaw = pcall(GetComboPoints, unit, "target")
+        end
+    elseif powerType ~= nil and type(UnitPower) == "function" then
         valueOK, valueRaw = pcall(UnitPower, unit, powerType)
     end
     if powerType ~= nil and type(UnitPowerMax) == "function" then
@@ -1738,7 +1850,7 @@ function Unit.ReadPowerDisplay(unit, powerType, state, colorCurve)
     state.maxValueRaw = available and maxRaw or nil
     state.rawValuesAvailable = available
     state.percentRaw = nil
-    if secret and type(UnitPowerPercent) == "function" then
+    if secret and not targetComboPoints and type(UnitPowerPercent) == "function" then
         local percentOK, percentRaw = pcall(
             UnitPowerPercent,
             unit,
@@ -1749,8 +1861,43 @@ function Unit.ReadPowerDisplay(unit, powerType, state, colorCurve)
         if percentOK then state.percentRaw = percentRaw end
     end
     state.colorRaw = nil
-    if secret and colorCurve then
+    if secret and not targetComboPoints and colorCurve then
         state.colorRaw = Unit.ReadPowerColor(unit, powerType, colorCurve)
+    end
+    return state, changed
+end
+
+-- Matches ReadPowerDisplay's transient display contract without power identity.
+-- Raw health and percent go only to native display sinks; no secret arithmetic.
+function Unit.ReadHealthColor(unit, curve)
+    return SafeCall(UnitHealthPercent, unit, false, curve)
+end
+
+function Unit.ReadHealthDisplay(unit, state)
+    state = type(state) == "table" and state or {}
+    unit = type(unit) == "string" and unit or "player"
+    local raw = SafeCall(UnitHealth, unit)
+    local maximum = SafeCall(UnitHealthMax, unit)
+    local rawSecret, maxSecret = IsSecretValue(raw), IsSecretValue(maximum)
+    local available = (rawSecret or type(raw) == "number")
+        and (maxSecret or type(maximum) == "number")
+    local secret = available and (rawSecret or maxSecret)
+    local value = not rawSecret and type(raw) == "number" and raw or nil
+    local maxValue = not maxSecret and type(maximum) == "number" and maximum or nil
+    local changed = state.available ~= available or state.secret ~= secret
+        or state.value ~= value or state.maxValue ~= maxValue
+    state.available, state.secret = available, secret
+    state.value, state.maxValue, state.publicMaxValue = value, maxValue, maxValue
+    state.rawValuesAvailable = available
+    state.valueRaw, state.maxValueRaw, state.percentRaw = nil, nil, nil
+    if available then state.valueRaw, state.maxValueRaw = raw, maximum end
+    if secret then
+        state.value, state.maxValue = nil, nil
+        state.opaqueRevision = (state.opaqueRevision or 0) + 1
+        changed = true
+        if type(UnitHealthPercent) == "function" then
+            state.percentRaw = SafeCall(UnitHealthPercent, unit, false, GetPowerPercentDisplayCurve())
+        end
     end
     return state, changed
 end
@@ -1966,7 +2113,7 @@ end
 
 function Unit.EnsureFilteredAuraDisplay()
     if Unit.SupportsFilteredAuraDisplay() then return true end
-    if YUI.IsRetail == false then
+    if (YUI.IsForever or YUI.IsRetail) == false then
         return false, "filtered-aura-display-unsupported-client"
     end
 
@@ -1992,7 +2139,7 @@ function Unit.SupportsFilteredAuraDurationDisplay()
 end
 
 function Unit.IsAuraRestricted()
-    if YUI.IsRetail == false then return false end
+    if (YUI.IsForever or YUI.IsRetail) == false then return false end
 
     local restrictedActions = _G.C_RestrictedActions
     local restrictionTypes = _G.Enum and _G.Enum.AddOnRestrictionType
@@ -2026,7 +2173,7 @@ function Unit.IsAuraRestricted()
 end
 
 function Unit.IsPlayerHelpfulAuraIdentityTrusted()
-    if YUI.IsRetail == false then return true end
+    if (YUI.IsForever or YUI.IsRetail) == false then return true end
 
     local usingVehicle = SafeBool(_G.UnitUsingVehicle, "player")
     if usingVehicle == true then return false end
@@ -2094,7 +2241,7 @@ end
 -- Cold-path configuration: constant color sampled by the native duration binding.
 function Unit.CreateAuraDurationTextColor(r, g, b, a)
     local property = Enum and Enum.DurationTextBindingProperty and Enum.DurationTextBindingProperty.RemainingPercent
-    if not YUI.IsRetail or property == nil or not CreateColor
+    if not (YUI.IsForever or YUI.IsRetail) or property == nil or not CreateColor
         or not (C_CurveUtil and C_CurveUtil.CreateColorCurve) then return nil end
     for _, value in ipairs({r, g, b, a}) do
         if IsSecretValue(value) or type(value) ~= 'number' or value ~= value or value < 0 or value > 1 then return nil end
@@ -2388,13 +2535,15 @@ function Unit.CreateFilteredAuraDisplay(parent, spec)
                     code or "filtered-aura-binding-failed"
                 return
             end
+            -- Native Aura tooltips execute in the secure button partition.
+            -- Opt in explicitly; visual-only and layout displays stay inert.
+            if auraFrame.EnableMouse then auraFrame:EnableMouse(false) end
             if auraFrame.SetMouseClickEnabled then
                 auraFrame:SetMouseClickEnabled(false)
             end
             if auraFrame.SetMouseMotionEnabled then
-                auraFrame:SetMouseMotionEnabled(false)
+                auraFrame:SetMouseMotionEnabled(spec.showTooltip == true)
             end
-            if auraFrame.EnableMouse then auraFrame:EnableMouse(false) end
         end
     end
 

@@ -368,14 +368,17 @@ function Secure:CreateActionHost(owner, opts)
     if not owner then return nil end
     opts = opts or {}
 
-    local secureHost = opts.secure ~= false
+    local secureHost = opts.secure ~= false and not opts.insecureAction
     local inLockdown = opts.inCombat or InLockdown
     if secureHost and inLockdown() then
         return nil, "combat lockdown"
     end
 
     local host
-    if secureHost then
+    if opts.insecureAction then
+        -- Native click handler permits macro actions only outside combat.
+        host = CreateFrame("Button", nil, owner, "InsecureActionButtonTemplate")
+    elseif secureHost then
         host = CreateFrame("Button", nil, owner, "SecureActionButtonTemplate")
     elseif GUI2.CreateButtonFrame then
         host = GUI2:CreateButtonFrame(owner)

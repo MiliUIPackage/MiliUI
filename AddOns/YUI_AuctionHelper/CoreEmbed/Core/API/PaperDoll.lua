@@ -24,6 +24,16 @@ local ITEM_SECONDARY_STAT_RULES = {
 }
 local EQUIPMENT_SECONDARY_STAT_IDS = { "crit", "haste", "mastery", "versatility" }
 
+if YUI.IsForever or YUI.IsWrath then
+    ITEM_SECONDARY_STAT_RULES = {
+        { id = "haste", key = "ITEM_MOD_HASTE_RATING_SHORT", priority = 1 },
+        { id = "crit", key = "ITEM_MOD_CRIT_RATING_SHORT", priority = 2 },
+        { id = "hit", key = "ITEM_MOD_HIT_RATING_SHORT", priority = 3 },
+        { id = "expertise", key = "ITEM_MOD_EXPERTISE_RATING_SHORT", priority = 4 },
+    }
+    EQUIPMENT_SECONDARY_STAT_IDS = { "crit", "haste", "hit", "expertise" }
+end
+
 local ENCHANTABLE_SLOT_KEYS = {
     head = true,
     shoulder = true,
@@ -160,6 +170,10 @@ local SLOT_DEFINITIONS = {
     { key = "offhand", labelKey = "slot.offhand", slot = ResolveSlot("SecondaryHandSlot", 17) },
 }
 
+if YUI.IsForever or YUI.IsWrath then
+    SLOT_DEFINITIONS[#SLOT_DEFINITIONS + 1] = { key = "ranged", labelKey = "slot.ranged", slot = ResolveSlot("RangedSlot", 18) }
+end
+
 local SLOT_BY_KEY = {}
 for _, definition in ipairs(SLOT_DEFINITIONS) do
     SLOT_BY_KEY[definition.key] = definition
@@ -171,6 +185,178 @@ end
 
 function PaperDoll.GetSlotDefinition(key)
     return SLOT_BY_KEY[key]
+end
+
+local slotDisplayScanner
+local function ReadLegacySlotTooltip(unit, slotID, link, bag)
+    if not CreateFrame then return nil end
+    if not slotDisplayScanner then
+        if InCombatLockdown and InCombatLockdown() then return nil end
+        slotDisplayScanner = CreateFrame("GameTooltip", "YUISlotDisplayScanner", UIParent, "GameTooltipTemplate")
+    end
+    local scanner = slotDisplayScanner
+    scanner:SetOwner(UIParent, "ANCHOR_NONE")
+    scanner:ClearLines()
+    local ok
+    if bag ~= nil then ok = pcall(scanner.SetBagItem, scanner, bag, slotID)
+    elseif unit and slotID then ok = pcall(scanner.SetInventoryItem, scanner, unit, slotID)
+    else ok = pcall(scanner.SetHyperlink, scanner, link) end
+    local data = { lines = {} }
+    if ok then
+        for index = 1, scanner:NumLines() do
+            local region = _G["YUISlotDisplayScannerTextLeft" .. index]
+            local text = region and region:GetText()
+            if not IsSecretValue(text) then data.lines[#data.lines + 1] = { leftText = text } end
+        end
+    end
+    scanner:Hide()
+    return ok and data or nil
+end
+
+-- Cold, visible-slot reader. Reuses caller storage; restricted fields are omitted.
+-- Durability is player-only: the inventory API has no unit argument.
+function PaperDoll.ReadSlotDisplay(unit, slotID, link, target, bag, tooltipData)
+    target = target or {}
+    target.link, target.level, target.quality, target.enchant, target.durability = nil, nil, nil, nil, nil
+    target.itemID, target.pending = nil, false
+    target.pendingItems = target.pendingItems or {}
+    for key in pairs(target.pendingItems) do target.pendingItems[key] = nil end
+    target.gems = target.gems or {}
+    for index = #target.gems, 1, -1 do target.gems[index] = nil end
+    if IsSecretValue(unit) or IsSecretValue(slotID) or IsSecretValue(link) then return target end
+    if not link and unit and slotID then
+        link = select(1, SafeCall(GetInventoryItemLink, unit, slotID))
+    end
+    if IsSecretValue(link) or type(link) ~= "string" then return target end
+    target.link = link
+    target.itemID = tonumber(link:match("item:(%d+)"))
+    local info = select(1, SafeCall(Item and Item.GetInfo, link))
+    if not IsSecretValue(info) and type(info) == "table" then
+        if not IsSecretValue(info.level) and type(info.level) == "number" and info.level > 0 then target.level = info.level end
+        if not IsSecretValue(info.quality) and type(info.quality) == "number" then target.quality = info.quality end
+    end
+    local level = select(1, SafeCall(Item and Item.GetLevel, link))
+    if not IsSecretValue(level) and type(level) == "number" and level > 0 then target.level = level end
+    target.pending = target.level == nil
+    local tooltip = _G.C_TooltipInfo
+    local data = tooltipData
+    if not data and tooltip then
+        if bag ~= nil then
+            data = select(1, SafeCall(tooltip.GetBagItem, bag, slotID))
+        elseif unit and slotID then
+            data = select(1, SafeCall(tooltip.GetInventoryItem, unit, slotID))
+        else
+            data = select(1, SafeCall(tooltip.GetHyperlink, link))
+        end
+    end
+    if not data and (not tooltip or type(tooltip.GetInventoryItem) ~= "function") then
+        data = ReadLegacySlotTooltip(unit, slotID, link, bag)
+    end
+    if not IsSecretValue(data) and type(data) == "table" and not IsSecretValue(data.lines)
+        and type(data.lines) == "table" then
+        if TooltipUtil and type(TooltipUtil.SurfaceArgs) == "function" then pcall(TooltipUtil.SurfaceArgs, data) end
+        local enchantType = Enum and Enum.TooltipDataLineType and Enum.TooltipDataLineType.ItemEnchantmentPermanent
+        local enchantPrefix, enchantSuffix
+        if type(ENCHANTED_TOOLTIP_LINE) == "string" then
+            enchantPrefix, enchantSuffix = ENCHANTED_TOOLTIP_LINE:match("^(.-)%%s(.-)$")
+        end
+        for _, line in ipairs(data.lines) do
+            if not IsSecretValue(line) and type(line) == "table" then
+                local text, kind, enchantID = line.leftText, line.type, line.enchantID
+                if not IsSecretValue(text) and type(text) == "string" then
+                    local enchantText
+                    if enchantPrefix and (enchantPrefix ~= "" or enchantSuffix ~= "") then
+                        local plain = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+                        if plain:sub(1, #enchantPrefix) == enchantPrefix
+                            and (enchantSuffix == "" or plain:sub(-#enchantSuffix) == enchantSuffix) then
+                            enchantText = plain:sub(#enchantPrefix + 1, enchantSuffix == "" and -1 or -#enchantSuffix - 1)
+                        end
+                    end
+                    if (not IsSecretValue(enchantID) and type(enchantID) == "number" and enchantID > 0)
+                        or (enchantType and not IsSecretValue(kind) and kind == enchantType) then
+                        target.enchant = enchantText or text
+                    elseif enchantText then
+                        target.enchant = enchantText
+                    end
+                end
+                local icon, socket = line.gemIcon, line.socketType
+                if #target.gems < 4 then
+                    if not IsSecretValue(icon) and (type(icon) == "number" or type(icon) == "string") then
+                        target.gems[#target.gems + 1] = icon
+                    elseif not IsSecretValue(socket) and type(socket) == "string" and socket:match("^%a+$") then
+                        target.gems[#target.gems + 1] = "Interface\\ItemSocketingFrame\\UI-EmptySocket-" .. socket
+                    end
+                end
+            end
+        end
+    else
+        target.pending = true
+    end
+    -- Older tooltips expose text only. Preserve socket order and resolve filled gems.
+    if #target.gems == 0 then
+        local itemAPI = _G.C_Item or {}
+        local stats = select(1, SafeCall(itemAPI.GetItemStats or _G.GetItemStats, link))
+        if not IsSecretValue(stats) and type(stats) == "table" then
+            for _, color in ipairs({ "META", "RED", "YELLOW", "BLUE", "PRISMATIC", "COGWHEEL", "HYDRAULIC" }) do
+                local count = stats["EMPTY_SOCKET_" .. color]
+                if not IsSecretValue(count) and type(count) == "number" then
+                    for _ = 1, math.min(4 - #target.gems, count) do
+                        target.gems[#target.gems + 1] = "Interface\\ItemSocketingFrame\\UI-EmptySocket-" .. color
+                    end
+                end
+            end
+        end
+        for index = 1, 4 do
+            local _, okGem, gemLink = SafeCall(itemAPI.GetItemGem or _G.GetItemGem, link, index)
+            if okGem and not IsSecretValue(gemLink) and type(gemLink) == "string" then
+                local gem = select(1, SafeCall(Item and Item.GetInfo, gemLink))
+                if not IsSecretValue(gem) and type(gem) == "table" and not IsSecretValue(gem.texture) and gem.texture then
+                    target.gems[index] = gem.texture
+                else
+                    target.pending = true
+                    local gemID = tonumber(gemLink:match("item:(%d+)"))
+                    if gemID then target.pendingItems[gemID] = true end
+                end
+            end
+        end
+    end
+    local current, ok, maximum
+    if bag ~= nil then
+        current, ok, maximum = SafeCall(C_Container and C_Container.GetContainerItemDurability, bag, slotID)
+    elseif unit == "player" and slotID then
+        current, ok, maximum = SafeCall(GetInventoryItemDurability, slotID)
+    end
+    if ok and not IsSecretValue(current) and not IsSecretValue(maximum)
+        and type(current) == "number" and type(maximum) == "number" and maximum > 0 then
+        target.durability = math.max(0, math.min(1, current / maximum))
+    end
+    return target
+end
+
+function PaperDoll.ReadFlyoutDisplay(location, target)
+    if IsSecretValue(location) then return PaperDoll.ReadSlotDisplay(nil, nil, nil, target) end
+    local unit, slot, bag, link
+    if type(location) == "number" and location >= 0 and location < (_G.EQUIPMENTFLYOUT_FIRST_SPECIAL_LOCATION or 0xFFFFFFFD) then
+        if type(EquipmentManager_GetLocationData) == "function" then
+            local info, ok = SafeCall(EquipmentManager_GetLocationData, location)
+            if ok and type(info) == "table" and not ContainsSecretValue(info) then
+                if info.isBags then bag, slot = info.bag, info.slot
+                elseif info.isPlayer or info.isBank then unit, slot = "player", info.slot end
+            end
+        elseif type(EquipmentManager_UnpackLocation) == "function" then
+            local ok, player, bank, bags, inventorySlot, bagID = pcall(EquipmentManager_UnpackLocation, location)
+            if ok and not IsSecretValue(player) and not IsSecretValue(bank) and not IsSecretValue(bags)
+                and not IsSecretValue(inventorySlot) and not IsSecretValue(bagID) then
+                if bags then bag, slot = bagID, inventorySlot
+                elseif player or bank then unit, slot = "player", inventorySlot end
+            end
+        end
+    elseif type(location) == "table" then
+        if location.IsBagAndSlot and location:IsBagAndSlot() then bag, slot = location:GetBagAndSlot()
+        elseif location.IsEquipmentSlot and location:IsEquipmentSlot() then unit, slot = "player", location:GetEquipmentSlot() end
+    end
+    if bag ~= nil then link = select(1, SafeCall(C_Container and C_Container.GetContainerItemLink, bag, slot)) end
+    return PaperDoll.ReadSlotDisplay(unit, slot, link, target, bag)
 end
 
 local function NormalizeItemInfo(link)
@@ -309,6 +495,10 @@ end
 
 local function ReadTooltipData(unit, slotID, link)
     local tooltipInfo = _G.C_TooltipInfo
+    if YUI.IsWrath and (not tooltipInfo or type(tooltipInfo.GetInventoryItem) ~= "function") then
+        local data = ReadLegacySlotTooltip(unit, slotID, link)
+        return data, data and "ready" or "pending"
+    end
     if not tooltipInfo then return nil, "unsupported" end
 
     local data, ok
@@ -377,6 +567,10 @@ local function ReadItemStats(unit, slotID, link)
 
     local rawStats, rawState = ReadRawItemStats(link)
     if rawState == "secret" then return nil, "secret", tooltipData end
+    if YUI.IsForever then
+        if ContainsSecretValue(rawStats) then return nil, "secret", tooltipData end
+        return rawStats, rawState, tooltipData
+    end
     local stats, state = ReadTooltipItemStats(tooltipData, rawStats)
     return stats, state, tooltipData
 end
@@ -448,6 +642,8 @@ end
 
 local function IsEnchantableSlot(definition, itemInfo)
     local key = definition and definition.key
+    -- Forever enchant eligibility is not inferred from Retail slot/season rules.
+    if YUI.IsForever or YUI.IsWrath then return false end
     if not ENCHANTABLE_SLOT_KEYS[key] then return false end
 
     local itemQuality = _G.Enum and _G.Enum.ItemQuality
@@ -664,6 +860,34 @@ local function ReadEnhancementStatus(
     return target
 end
 
+local FOREVER_SUMMARY_RULES = {
+    str = { "ITEM_MOD_STRENGTH_SHORT" },
+    agi = { "ITEM_MOD_AGILITY_SHORT" },
+    int = { "ITEM_MOD_INTELLECT_SHORT" },
+    spell_power = { "ITEM_MOD_SPELL_POWER_SHORT", "ITEM_MOD_SPELL_DAMAGE_DONE_SHORT" },
+    attack_power = { "ITEM_MOD_ATTACK_POWER_SHORT" },
+    ranged_attack_power = { "ITEM_MOD_RANGED_ATTACK_POWER_SHORT", "ITEM_MOD_ATTACK_POWER_SHORT" },
+    crit = { "ITEM_MOD_CRIT_RATING_SHORT", "ITEM_MOD_CRIT_MELEE_RATING_SHORT", "ITEM_MOD_CRIT_RANGED_RATING_SHORT", "ITEM_MOD_CRIT_SPELL_RATING_SHORT" },
+    haste = { "ITEM_MOD_HASTE_RATING_SHORT", "ITEM_MOD_HASTE_MELEE_RATING_SHORT", "ITEM_MOD_HASTE_RANGED_RATING_SHORT", "ITEM_MOD_HASTE_SPELL_RATING_SHORT" },
+}
+
+local FOREVER_SUMMARY_PROFILES = {
+    WARRIOR = { primary = { "str" }, power = { "attack_power" } },
+    PALADIN = { primary = { "str", "int" }, power = { "spell_power", "attack_power" } },
+    HUNTER = { primary = { "agi" }, power = { "ranged_attack_power" } },
+    ROGUE = { primary = { "agi" }, power = { "attack_power" } },
+    PRIEST = { primary = { "int" }, power = { "spell_power" } },
+    SHAMAN = { primary = { "str", "int" }, power = { "spell_power", "attack_power" } },
+    MAGE = { primary = { "int" }, power = { "spell_power" } },
+    WARLOCK = { primary = { "int" }, power = { "spell_power" } },
+    DRUID = { primary = { "str", "agi", "int" }, power = { "spell_power", "attack_power" } },
+}
+
+function PaperDoll.GetEquipmentSummaryProfile(classToken)
+    if not YUI.IsForever or IsSecretValue(classToken) then return nil end
+    return FOREVER_SUMMARY_PROFILES[classToken]
+end
+
 function PaperDoll.ReadEquipmentSlot(unit, definition, target)
     target = target or {}
     definition = definition or {}
@@ -684,6 +908,9 @@ function PaperDoll.ReadEquipmentSlot(unit, definition, target)
     target.statsKnown = false
     target.statsUnavailable = false
     target.statsSecret = false
+    target.summaryStats = target.summaryStats or {}
+    for key in pairs(target.summaryStats) do target.summaryStats[key] = nil end
+    target.slotDisplay = nil
     target.enhancement = ReadEnhancementStatus(
         nil,
         nil,
@@ -700,7 +927,7 @@ function PaperDoll.ReadEquipmentSlot(unit, definition, target)
     target.pending = false
     target.secret = false
 
-    if not YUI.IsRetail or not unit or not slotID then
+    if not (YUI.IsRetail or YUI.IsForever or YUI.IsWrath) or not unit or not slotID then
         return target
     end
 
@@ -760,8 +987,8 @@ function PaperDoll.ReadEquipmentSlot(unit, definition, target)
         target.itemID = target.itemID or info.itemID
     end
 
-    target.upgrade = NormalizeItemUpgradeInfo(link)
-    if not target.upgrade or target.upgrade.quality == nil then
+    target.upgrade = YUI.IsRetail and NormalizeItemUpgradeInfo(link) or nil
+    if YUI.IsRetail and (not target.upgrade or target.upgrade.quality == nil) then
         target.craftedQuality = ReadCraftedQuality(link)
     end
 
@@ -774,6 +1001,18 @@ function PaperDoll.ReadEquipmentSlot(unit, definition, target)
         target.statsSecret = itemStatsState == "secret"
         target.pending = itemStatsState == "pending"
         if target.statsKnown then
+            if YUI.IsForever then
+                for id, keys in pairs(FOREVER_SUMMARY_RULES) do
+                    local value = 0
+                    for _, key in ipairs(keys) do
+                        local amount = itemStats[key]
+                        if type(amount) == "number" then value = math.max(value, amount) end
+                    end
+                    target.summaryStats[id] = value
+                end
+                target._slotDisplay = PaperDoll.ReadSlotDisplay(unit, slotID, link, target._slotDisplay, nil, tooltipData)
+                target.slotDisplay = target._slotDisplay
+            end
             target.secondaryStats = ReadSecondaryStats(itemStats, target.secondaryStats)
             target.enhancement = ReadEnhancementStatus(
                 unit,
@@ -796,7 +1035,7 @@ end
 function PaperDoll.ReadEquipment(unit, target)
     target = target or {}
     target.unit = unit
-    target.available = YUI.IsRetail == true and type(unit) == "string"
+    target.available = (YUI.IsRetail == true or YUI.IsForever == true or YUI.IsWrath == true) and type(unit) == "string"
     target.slots = target.slots or {}
 
     if not target.available then
@@ -821,6 +1060,37 @@ function PaperDoll.ReadEquipment(unit, target)
     return target
 end
 
+function PaperDoll.ReadEquipmentSummaryTotals(equipment, target)
+    target = target or {}
+    target.values = target.values or {}
+    for id in pairs(FOREVER_SUMMARY_RULES) do target.values[id] = nil end
+    target.complete, target.pending, target.available = false, false, false
+    if not YUI.IsForever or type(equipment) ~= "table" or not equipment.available then return target end
+    local unavailable = false
+    for _, slot in ipairs(equipment.slots or {}) do
+        if slot.secret or slot.statsSecret or slot.statsUnavailable then
+            unavailable = true
+        elseif slot.available then
+            if slot.pending then target.pending = true
+            elseif not slot.statsKnown or not slot.summaryStats then unavailable = true end
+        end
+    end
+    if unavailable or target.pending then return target end
+    for id in pairs(FOREVER_SUMMARY_RULES) do
+        local total, known = 0, true
+        for _, slot in ipairs(equipment.slots or {}) do
+            if slot.available then
+                local value = slot.summaryStats[id]
+                if IsSecretValue(value) or type(value) ~= "number" then known = false
+                else total = total + value end
+            end
+        end
+        if known then target.values[id] = total end
+    end
+    target.complete, target.available = true, true
+    return target
+end
+
 function PaperDoll.ReadEquipmentSecondaryTotals(equipment, target)
     target = target or {}
     target.values = target.values or {}
@@ -832,7 +1102,7 @@ function PaperDoll.ReadEquipmentSecondaryTotals(equipment, target)
     target.pending = false
     target.secret = false
 
-    if not YUI.IsRetail or type(equipment) ~= "table"
+    if not (YUI.IsRetail or YUI.IsForever or YUI.IsWrath) or type(equipment) ~= "table"
         or equipment.available ~= true or type(equipment.slots) ~= "table"
     then
         return target
@@ -860,9 +1130,9 @@ function PaperDoll.ReadEquipmentSecondaryTotals(equipment, target)
                             crit = crit + value
                         elseif record.id == "haste" then
                             haste = haste + value
-                        elseif record.id == "mastery" then
+                        elseif record.id == EQUIPMENT_SECONDARY_STAT_IDS[3] then
                             mastery = mastery + value
-                        elseif record.id == "versatility" then
+                        elseif record.id == EQUIPMENT_SECONDARY_STAT_IDS[4] then
                             versatility = versatility + value
                         end
                     elseif IsSecretValue(value) then
@@ -878,14 +1148,14 @@ function PaperDoll.ReadEquipmentSecondaryTotals(equipment, target)
     if target.complete then
         target.values.crit = crit
         target.values.haste = haste
-        target.values.mastery = mastery
-        target.values.versatility = versatility
+        target.values[EQUIPMENT_SECONDARY_STAT_IDS[3]] = mastery
+        target.values[EQUIPMENT_SECONDARY_STAT_IDS[4]] = versatility
     end
     return target
 end
 
 function PaperDoll.RequestItemData(itemID)
-    if not YUI.IsRetail or not itemID or not Item then return false end
+    if not (YUI.IsRetail or YUI.IsForever or YUI.IsWrath) or not itemID or not Item then return false end
     if type(Item.RequestLoadDataByID) ~= "function" then return false end
     local ok = pcall(Item.RequestLoadDataByID, itemID)
     return ok == true
@@ -941,6 +1211,22 @@ local STAT_DEFINITIONS = {
     { id = "block", category = "defense", percent = true },
     { id = "stagger", category = "defense", percent = true },
 }
+
+if YUI.IsForever or YUI.IsWrath then
+    local definitions = {}
+    for _, definition in ipairs(STAT_DEFINITIONS) do
+        if definition.id ~= "mastery" and definition.id ~= "versatility" and definition.id ~= "stagger" then
+            definitions[#definitions + 1] = definition
+        end
+    end
+    definitions[#definitions + 1] = { id = "spirit", category = "primary", percent = false }
+    definitions[#definitions + 1] = { id = "hit", category = "secondary", percent = true }
+    definitions[#definitions + 1] = { id = "expertise", category = "secondary", percent = true }
+    definitions[#definitions + 1] = { id = "attack_power", category = "other", percent = false }
+    definitions[#definitions + 1] = { id = "spell_power", category = "other", percent = false }
+    definitions[#definitions + 1] = { id = "manaregen", category = "other", percent = false }
+    STAT_DEFINITIONS = definitions
+end
 
 local STAT_BY_ID = {}
 for _, definition in ipairs(STAT_DEFINITIONS) do
@@ -1066,8 +1352,72 @@ local STAT_READERS = {
     stagger = ReadStagger,
 }
 
+if YUI.IsForever then
+    -- Match Camelot's native summary without doing arithmetic on restricted values.
+    local function PublicNumber(callback, ...)
+        local value, ok = SafeCall(callback, ...)
+        if not ok or IsSecretValue(value) or type(value) ~= "number" then return nil end
+        return value
+    end
+    local function Maximum(a, b, c)
+        if a == nil or b == nil or c == nil then return nil end
+        return math.max(a, b, c)
+    end
+    local function Hit(rating, modifier)
+        if rating == nil then return nil end
+        local bonus, extra = PublicNumber(GetCombatRatingBonus, rating), PublicNumber(modifier)
+        if bonus == nil or extra == nil then return nil end
+        return bonus + extra
+    end
+    STAT_READERS.attack_power = function(unit)
+        local base, ok, positive, negative = SafeCall(UnitAttackPower, unit)
+        if not ok or IsSecretValue(base) or IsSecretValue(positive) or IsSecretValue(negative)
+            or type(base) ~= "number" or type(positive) ~= "number" or type(negative) ~= "number" then return nil end
+        return base + positive + negative
+    end
+    STAT_READERS.spell_power = function(unit)
+        if unit ~= "player" then return nil end
+        local maximum = 0
+        for school = 2, 7 do
+            local value = PublicNumber(GetSpellBonusDamage, school)
+            if value == nil then return nil end
+            maximum = math.max(maximum, value)
+        end
+        return maximum
+    end
+    STAT_READERS.manaregen = function(unit)
+        if unit ~= "player" then return nil end
+        local base, ok, casting = SafeCall(GetManaRegen)
+        if not ok or IsSecretValue(casting) or type(casting) ~= "number" then return nil end
+        return casting * 5
+    end
+    STAT_READERS.spirit = function(unit) return ReadUnitStat(5, unit) end
+    STAT_READERS.crit = function(unit)
+        if unit ~= "player" then return nil end
+        return Maximum(PublicNumber(GetCritChance), PublicNumber(GetRangedCritChance), PublicNumber(GetSpellCritChance))
+    end
+    STAT_READERS.haste = function(unit)
+        if unit ~= "player" then return nil end
+        local ranged, ok, ammo = SafeCall(GetRangedHaste)
+        if not ok or IsSecretValue(ranged) or IsSecretValue(ammo)
+            or type(ranged) ~= "number" or type(ammo) ~= "number" then return nil end
+        return Maximum(PublicNumber(GetMeleeHaste), ranged + ammo, PublicNumber(UnitSpellHaste, unit))
+    end
+    STAT_READERS.hit = function(unit)
+        if unit ~= "player" then return nil end
+        return Maximum(Hit(CR_HIT_MELEE, GetHitModifier), Hit(CR_HIT_RANGED, GetRangedHitModifier), Hit(CR_HIT_SPELL, GetSpellHitModifier))
+    end
+    STAT_READERS.expertise = function(unit)
+        if unit ~= "player" then return nil end
+        local melee, ok, offhand, ranged = SafeCall(GetExpertise)
+        if not ok or IsSecretValue(melee) or IsSecretValue(offhand) or IsSecretValue(ranged)
+            or type(melee) ~= "number" or type(offhand) ~= "number" or type(ranged) ~= "number" then return nil end
+        return Maximum(melee, offhand, ranged)
+    end
+end
+
 function PaperDoll.ReadStatRecord(id, unit, target)
-    if not YUI.IsRetail or type(unit) ~= "string" then
+    if not (YUI.IsRetail or YUI.IsForever or YUI.IsWrath) or type(unit) ~= "string" then
         return nil
     end
 
@@ -1076,7 +1426,7 @@ function PaperDoll.ReadStatRecord(id, unit, target)
     if not definition or not reader then return nil end
 
     local value, ok = SafeCall(reader, unit)
-    if not ok or value == nil then return nil end
+    if not ok or (not IsSecretValue(value) and value == nil) then return nil end
 
     target = target or {}
     target.id = id
@@ -1089,14 +1439,15 @@ end
 
 function PaperDoll.ReadStat(id, unit)
     unit = unit or "player"
-    if not YUI.IsRetail or type(unit) ~= "string" then
+    if not (YUI.IsRetail or YUI.IsForever or YUI.IsWrath) or type(unit) ~= "string" then
         return nil
     end
 
     local reader = STAT_READERS[id]
     if not STAT_BY_ID[id] or not reader then return nil end
     local value, ok = SafeCall(reader, unit)
-    return ok and value or nil
+    if ok then return value end
+    return nil
 end
 
 function PaperDoll.ReadCurrentStats(unit, target)
@@ -1104,7 +1455,7 @@ function PaperDoll.ReadCurrentStats(unit, target)
     target.unit = unit or "player"
     target.values = target.values or {}
 
-    if not YUI.IsRetail or type(target.unit) ~= "string" then
+    if not (YUI.IsRetail or YUI.IsForever or YUI.IsWrath) or type(target.unit) ~= "string" then
         target.available = false
         target.reason = "unsupported"
         return target

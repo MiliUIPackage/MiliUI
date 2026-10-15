@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("koKR") then return end
+
 YUI.Locale:Register("Core", "koKR", {
     ["teleports.settings.announce_header"] = "Teleport 공지 사항",
     ["teleports.settings.announce_scope"] = "공지사항 Scope",
@@ -213,11 +215,11 @@ YUI.Locale:Register("Core", "koKR", {
     ["cpu_watch.probe.ychat_driver"] = "YChat event/deferred 드라이버",
     ["cpu_watch.probe.development_load"] = "CPU 진단에 의하여 가장되는 짐",
     ["cpu_watch.probe.event_other"] = "다른 EventBus 청취자",
-    ["cpu_watch.probe.yhud_context"] = "YHUD 컨텍스트 리프레시",
-    ["cpu_watch.probe.yhud_item_acquire"] = "YHUD 아이템 프레임 취득",
-    ["cpu_watch.probe.yhud_static_cooldown"] = "YHUD cooldown 새로 고침",
-    ["cpu_watch.probe.yhud_static_position"] = "YHUD 위치 수리",
-    ["cpu_watch.probe.yhud_category_sync"] = "YHUD 카테고리 sync",
+    ["cpu_watch.probe.yhud_context"] = "Halo 컨텍스트 리프레시",
+    ["cpu_watch.probe.yhud_item_acquire"] = "Halo 아이템 프레임 취득",
+    ["cpu_watch.probe.yhud_static_cooldown"] = "Halo cooldown 새로 고침",
+    ["cpu_watch.probe.yhud_static_position"] = "Halo 위치 수리",
+    ["cpu_watch.probe.yhud_category_sync"] = "Halo 카테고리 sync",
     ["cpu_watch.probe.yhud_resource_preview"] = "Halo 리소스 미리보기",
     ["cpu_watch.movement.taxi"] = "비행 경로",
     ["cpu_watch.movement.skyriding"] = "공유하기",
@@ -465,7 +467,7 @@ YUI.Locale:Register("Core", "koKR", {
     ["layout.filter.action"] = "제품정보",
     ["layout.filter.title"] = "Mover 전시",
     ["layout.filter.category.actionbar"] = "행동 단축바",
-    ["layout.filter.category.monitor"] = "Halo 콘솔",
+    ["layout.filter.category.monitor"] = "Halo Monitor",
     ["layout.filter.category.combat"] = "Combat 도구",
     ["layout.filter.category.communication"] = "채팅 및 커뮤니케이션",
     ["layout.filter.category.map"] = "지도 및 항법",
@@ -1334,7 +1336,7 @@ YUI.Locale:Register("Core", "koKR", {
     ["game_menu.text.011"] = "도움말",
     ["game_menu.text.012"] = "FAQ 페이지를 엽니다",
     ["game_menu.text.013"] = "오라 편집",
-    ["game_menu.text.014"] = "YHUD 오라 편집기를 엽니다",
+    ["game_menu.text.014"] = "Halo 오라 편집기를 엽니다",
     ["game_menu.text.015"] = "재사용",
     ["game_menu.text.016"] = "|cFFFF0000[YUI] 재사용 대기시간 관리자 설정을 찾을 수 없습니다|r",
     ["game_menu.text.017"] = "블리자드 재사용 대기시간 관리자 열기",

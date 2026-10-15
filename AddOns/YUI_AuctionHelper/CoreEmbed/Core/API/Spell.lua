@@ -182,7 +182,7 @@ end
 function Spell.GetInfo(spellID)
     if not spellID then return nil end
 
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         return GetInfoFromCSpell(spellID) or GetInfoFromGlobal(spellID)
     end
 
@@ -223,7 +223,7 @@ end
 function Spell.GetTexture(spellID)
     if not spellID then return nil end
 
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         return GetTextureFromCSpell(spellID) or GetTextureFromGlobal(spellID)
     end
 
@@ -1219,7 +1219,7 @@ end
 function Spell.HasRange(spellID)
     if not spellID then return nil end
 
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         local result = HasRangeFromCSpell(spellID)
         if result ~= nil then return result end
         return HasRangeFromGlobal(spellID)
@@ -1265,7 +1265,7 @@ function Spell.IsInRange(spellID, unit)
     if not spellID then return nil end
     unit = unit or "target"
 
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         local result = IsInRangeFromCSpell(spellID, unit)
         if result ~= nil then return result end
         return IsInRangeFromGlobal(spellID, unit)
@@ -1334,7 +1334,7 @@ end
 function Spell.GetCooldown(spellID)
     if not spellID then return nil end
 
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         return GetCooldownFromCSpell(spellID) or GetCooldownFromGlobal(spellID)
     end
 
@@ -1637,7 +1637,7 @@ end
 
 function Spell.ReadCooldownRuleState(spellID)
     spellID = SafeNumberValue(spellID)
-    if not (spellID and YUI.IsRetail) then return false, false end
+    if not (spellID and (YUI.IsForever or YUI.IsRetail)) then return false, false end
 
     local info = ReadRetailCooldownInfo(spellID)
     if not info or IsSecretValue(info) then return false, false end
@@ -1677,7 +1677,7 @@ end
 -- Public recharge activity only: counts and duration fields may be restricted.
 function Spell.ReadChargeRuleState(spellID)
     spellID = SafeNumberValue(spellID)
-    if not (spellID and YUI.IsRetail) then return false, false end
+    if not (spellID and (YUI.IsForever or YUI.IsRetail)) then return false, false end
     local info = ReadRetailChargeInfo(spellID)
     if not info or IsSecretValue(info) then return false, false end
     local active = info.isActive
@@ -1689,7 +1689,7 @@ end
 -- Return matching-cast, resolved without exposing restricted cast data.
 function Spell.ReadPlayerCastRuleState(spellID)
     spellID = SafeNumberValue(spellID)
-    if not (spellID and YUI.IsRetail and type(UnitCastingInfo) == "function") then return false, false end
+    if not (spellID and (YUI.IsForever or YUI.IsRetail) and type(UnitCastingInfo) == "function") then return false, false end
     local ok, name, text, texture, startTime, endTime, tradeSkill, castGUID, notInterruptible, castID = pcall(UnitCastingInfo, "player")
     if not ok then return false, false end
     if not IsSecretValue(name) and name == nil then return false, true end
@@ -1714,7 +1714,7 @@ end
 function Spell.GetEffectiveSpellID(spellID, specID)
     spellID = SafeNumberValue(spellID)
     if not spellID or spellID <= 0 then return nil end
-    if not YUI.IsRetail then return spellID end
+    if not (YUI.IsForever or YUI.IsRetail) then return spellID end
     if specID ~= nil then
         specID = SafeNumberValue(specID)
         if not specID or specID <= 0 then return spellID end
@@ -1733,7 +1733,7 @@ function Spell.GetBaseSpellID(spellID, specID)
         specID = SafeNumberValue(specID)
         if not specID or specID <= 0 then return spellID end
     end
-    if YUI.IsRetail and C_Spell and C_Spell.GetBaseSpell then
+    if (YUI.IsForever or YUI.IsRetail) and C_Spell and C_Spell.GetBaseSpell then
         local ok, value = pcall(C_Spell.GetBaseSpell, spellID, SafeNumberValue(specID) or 0)
         value = ok and SafeNumberValue(value) or nil
         if value and value > 0 then return value end
@@ -1746,7 +1746,7 @@ function Spell.GetChargeCapability(spellID)
     spellID = SafeNumberValue(spellID)
     if not spellID or spellID <= 0 then return nil end
     local info
-    if YUI.IsRetail and C_Spell and C_Spell.GetSpellCharges then
+    if (YUI.IsForever or YUI.IsRetail) and C_Spell and C_Spell.GetSpellCharges then
         local ok, value = pcall(C_Spell.GetSpellCharges, spellID)
         if not ok or IsSecretValue(value) then return nil end
         if value == nil then return false end
@@ -1763,7 +1763,7 @@ end
 function Spell.GetOverrideSpellID(spellID, specID, onlyKnown)
     spellID = SafeNumberValue(spellID)
     if not spellID or spellID <= 0 then return nil end
-    if YUI.IsRetail == false then return spellID end
+    if (YUI.IsForever or YUI.IsRetail) == false then return spellID end
 
     specID = SafeNumberValue(specID) or 0
     if C_Spell and C_Spell.GetOverrideSpell then
@@ -2058,12 +2058,15 @@ local function ReadCooldownDisplayCooldown(spellID, chargeSpellID, target)
     local changed = target.isEnabled ~= isEnabled
         or target.cooldownReadResolved ~= cooldownReadResolved
         or target.cooldownActive ~= cooldownActive
+        or target.isOnGCD ~= isOnGCD
         or target.cooldownGCDResolved ~= cooldownGCDResolved
         or target.cooldownStateSecret ~= cooldownStateSecret
         or target.durationMode ~= durationMode
     target.isEnabled = isEnabled
     target.cooldownReadResolved = cooldownReadResolved
     target.cooldownActive = cooldownActive
+    -- 公共冷却只提供显示元数据，不进入实际冷却/充能状态。
+    target.isOnGCD = isOnGCD
     target.cooldownGCDResolved = cooldownGCDResolved
     target.cooldownStateSecret = cooldownStateSecret
     target.durationMode = durationMode
@@ -2072,7 +2075,7 @@ local function ReadCooldownDisplayCooldown(spellID, chargeSpellID, target)
         target,
         changed,
         durationObject,
-        cooldownStateSecret
+        cooldownStateSecret or isOnGCD
     )
 end
 
@@ -2333,6 +2336,7 @@ local function ReadCooldownDisplayFull(
         or target.available ~= available
         or target.isEnabled ~= isEnabled
         or target.cooldownActive ~= cooldownActive
+        or target.isOnGCD ~= isOnGCD
         or target.cooldownGCDResolved ~= cooldownGCDResolved
         or target.cooldownStateSecret ~= cooldownStateSecret
         or target.chargeActive ~= chargeActive
@@ -2357,6 +2361,7 @@ local function ReadCooldownDisplayFull(
     target.available = available
     target.isEnabled = isEnabled
     target.cooldownActive = cooldownActive
+    target.isOnGCD = isOnGCD
     target.cooldownGCDResolved = cooldownGCDResolved
     target.cooldownStateSecret = cooldownStateSecret
     target.chargeActive = chargeActive
@@ -2380,7 +2385,7 @@ local function ReadCooldownDisplayFull(
         target,
         changed,
         durationObject,
-        cooldownStateSecret or chargeStateSecret or chargeMetadataSecret
+        cooldownStateSecret or chargeStateSecret or chargeMetadataSecret or isOnGCD
             or countSecret
     )
 end
@@ -2457,7 +2462,7 @@ function Spell.GetCooldownProbeState(spellID)
         }
     end
 
-    if not YUI.IsRetail then
+    if not (YUI.IsForever or YUI.IsRetail) then
         local cd = Spell.GetCooldown(spellID)
         if type(cd) ~= "table" then
             return {
@@ -2838,7 +2843,7 @@ end
 function Spell.GetCharges(spellID)
     if not spellID then return nil end
 
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         return GetChargesFromCSpell(spellID) or GetChargesFromGlobal(spellID)
     end
 
@@ -2949,7 +2954,7 @@ function Spell.IsKnown(spellID)
     if not spellID then return false end
 
     local result
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         result = IsKnownFromCSpellBook(spellID)
         if result ~= nil then return result end
         return IsKnownFromGlobal(spellID) or false
@@ -2976,7 +2981,7 @@ function Spell.IsKnownOrInSpellBook(spellID)
     if not spellID then return false end
 
     local result
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         result = IsKnownOrInSpellBookFromCSpellBook(spellID)
         if result == true then return true end
         local globalResult = IsKnownFromGlobal(spellID)
@@ -3024,7 +3029,7 @@ Legacy.IsSpellKnownOrInSpellBook = Spell.IsKnownOrInSpellBook
 function Spell.GetKnownState(spellID)
     if IsSecretValue(spellID) or type(spellID) ~= 'number' then return nil end
     local value
-    if YUI.IsRetail then
+    if (YUI.IsForever or YUI.IsRetail) then
         value = IsKnownFromCSpellBook(spellID)
         if value ~= nil then return value end
         return IsKnownFromGlobal(spellID)
@@ -3039,4 +3044,55 @@ function Spell.GetPublicDescription(spellID)
         or not (C_Spell and C_Spell.GetSpellDescription) then return nil end
     local ok, text = pcall(C_Spell.GetSpellDescription, spellID)
     if ok and not IsSecretValue(text) and type(text) == 'string' then return text end
+end
+
+-- Forever 1.60.1.70245: enumerate the unfiltered player bank, including low ranks.
+-- Cold-path snapshot only. nil means unavailable/restricted/not yet ready.
+function Spell.ReadRankedPlayerSpellBook()
+    if not YUI.IsForever then return nil, "unsupported-client" end
+    local book, enums = C_SpellBook, Enum
+    local bank = enums and enums.SpellBookSpellBank and enums.SpellBookSpellBank.Player
+    local spellType = enums and enums.SpellBookItemType and enums.SpellBookItemType.Spell
+    if not (book and bank and spellType and book.GetNumSpellBookSkillLines
+        and book.GetSpellBookSkillLineInfo and book.GetSpellBookItemInfo
+        and book.IsSpellBookItemLowRank and book.IsSpellKnown) then
+        return nil, "api-unavailable"
+    end
+    local ok, count = pcall(book.GetNumSpellBookSkillLines)
+    count = ok and SafeNumberValue(count) or nil
+    if not count then return nil, "not-ready" end
+    local entries = {}
+    for lineIndex = 1, count do
+        local lineOK, line = pcall(book.GetSpellBookSkillLineInfo, lineIndex)
+        if not lineOK or IsSecretValue(line) or type(line) ~= "table" then return nil, "not-ready" end
+        local offset, size = SafeNumberValue(line.itemIndexOffset), SafeNumberValue(line.numSpellBookItems)
+        if not offset or not size then return nil, "not-ready" end
+        for slot = offset + 1, offset + size do
+            local itemOK, info = pcall(book.GetSpellBookItemInfo, slot, bank)
+            if not itemOK or IsSecretValue(info) or type(info) ~= "table" then return nil, "not-ready" end
+            if not IsSecretValue(info.itemType) and info.itemType == spellType
+                and SafeRawValue(info.isPassive) == false and SafeRawValue(info.isOffSpec) == false then
+                local id, actionID = SafeNumberValue(info.spellID), SafeNumberValue(info.actionID)
+                -- Overrides describe a different ability, not a rank upgrade.
+                if id and id == actionID then
+                    local knownOK, known = pcall(book.IsSpellKnown, id, bank)
+                    if knownOK and SafeRawValue(known) == true then
+                        local name, subName = SafeRawValue(info.name), SafeRawValue(info.subName)
+                        if type(name) ~= "string" or name == "" or type(subName) ~= "string" then
+                            return nil, "not-ready"
+                        end
+                        local rank = tonumber(subName:match("^%D*(%d+)%D*$"))
+                        local lowOK, low = pcall(book.IsSpellBookItemLowRank, slot, bank)
+                        low = lowOK and SafeRawValue(low)
+                        if type(low) ~= "boolean" or (low and not rank) then return nil, "not-ready" end
+                        entries[#entries + 1] = {
+                            spellID = id, name = name, subName = subName, rank = rank,
+                            skillLineIndex = lineIndex, lowRank = low,
+                        }
+                    end
+                end
+            end
+        end
+    end
+    return entries
 end

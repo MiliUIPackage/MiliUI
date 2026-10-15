@@ -5,20 +5,20 @@
 ## Notes-zhCN: 购物助手 · 言工坊
 ## Notes-zhTW: 購物助手 · 言工坊
 ## Author: 阿言
-## Version: yah-113
+## Version: yah-121
 ## SavedVariables: YUI_AuctionHelper_DB
-## Interface: 120100, 120007, 120005, 120001, 120000, 120105
+## Interface: 120105, 120100, 120007, 120005, 120001, 120000
 ## OptionalDeps: YUI, YUI_NovaToolbox
 ## LoadOnDemand: 1
 ## LoadWith: Blizzard_AuctionHouseUI
-## IconTexture: Interface\AddOns\YUI_AuctionHelper\Components\AuctionHelper\Media\icons\logo_256.png
+## IconTexture: Interface\AddOns\YUI_AuctionHelper\Components\AuctionHelper\Media\icons\logo_32.png
 ## X-YUI-Product: auction_helper
 ## X-YUI-CoreMode: embedded
-## X-YUI-RequiredCoreVersion: 1
 ## Category-zhTW: 拍賣
 ## Title-zhTW: |cffFFFF99[拍賣]|r 購物助手
 ## Notes-zhTW: Auction Helper · YanForge|n|n言工坊出品的拍賣行購物助手，方便快速選購與批次購買。|n|n|cffffd200使用方法: |r第一次開拍賣場時才會載入。在拍賣場的購物面板點齒輪，或開過拍賣場後輸入 /yah 開啟設定。
-## X-YUI-EmbeddedCoreVersion: 14
+## X-YUI-RequiredCoreVersion: 18
+## X-YUI-EmbeddedCoreVersion: 26
 
 CoreEmbed\Bootstrap.lua
 CoreEmbed\Libs\!load.xml
@@ -35,6 +35,7 @@ CoreEmbed\Core\Components.lua
 CoreEmbed\Media\BundleManifest.lua
 CoreEmbed\Media\Init_SharedMedia.lua
 CoreEmbed\Core\Locale.lua
+CoreEmbed\Changelog\Service.lua
 CoreEmbed\Locales\Core\!load.xml
 CoreEmbed\Core\API.lua
 CoreEmbed\Core\API\System.lua
@@ -56,11 +57,13 @@ CoreEmbed\Core\API\Frame.lua
 CoreEmbed\Core\API\BlizzardUI.lua
 CoreEmbed\Core\API\Combat.lua
 CoreEmbed\Core\API\Sound.lua
+CoreEmbed\Core\NotificationSound.lua
 CoreEmbed\Core\API\Visibility.lua
 CoreEmbed\Core\API\Keystone.lua
 CoreEmbed\Core\API\Gossip.lua
 CoreEmbed\Core\API\EventScheduler.lua
 CoreEmbed\Core\API\Delves.lua
+CoreEmbed\Core\API\Map.lua
 CoreEmbed\Core\API\Talent.lua
 CoreEmbed\Core\API\Icons.lua
 CoreEmbed\Core\Bloodlust.lua
@@ -69,6 +72,7 @@ CoreEmbed\Core\MinimapIcon.lua
 CoreEmbed\Core\Animation\!load.xml
 CoreEmbed\GUI\!load.xml
 CoreEmbed\Core\!load_Mainline.xml
+Changelog/Data_AuctionHelper.lua
 Components\AuctionHelper\Locales\!load.xml
 Components\AuctionHelper\DataProfiles.lua
 Components\AuctionHelper\Appearance.lua

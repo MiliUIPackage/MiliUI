@@ -9,6 +9,7 @@ local YUI=_G.YUI
 local GUI=YUI and YUI.GUI2
 if not (GUI and GUI.Form) then return end
 local Picker={}
+local unpack=unpack or table.unpack
 local dropdownIconCrop={0.08,0.92,0.08,0.92}
 Picker.parents=setmetatable({}, {__mode='k'})
 GUI.VoicePicker=Picker
@@ -38,7 +39,9 @@ function Picker:SetRowIcon(row,icon)
         local width=row.iconText:GetStringWidth()
         if width>28 then row.iconText:SetFont(font,math.max(6,size*28/width),'OUTLINE') end
     else
-        row.icon:SetTexture(icon or 134400)
+        row.icon:SetTexture(icon or GUI:GetSettingsIcon('sound'))
+        if type(icon)=='number' then row.icon:SetTexCoord(unpack(dropdownIconCrop))
+        else row.icon:SetTexCoord(0,1,0,1) end
     end
 end
 
@@ -46,7 +49,7 @@ function Picker.Layout(width,height)
     width=math.max(1,width-28)
     height=math.max(1,height-28)
     local columns=math.max(1,math.min(5,math.floor((width-44)/170)))
-    local rows=math.max(1,math.min(10,math.floor((height-194)/46)))
+    local rows=math.max(1,math.min(10,math.floor((height-216)/46)))
     return {width=width,height=height,columns=columns,rows=rows,
         cardWidth=(width-54-(columns-1)*10)/columns}
 end
@@ -82,7 +85,8 @@ function Picker:Open(parent,options)
     local function SelectionAvailable()
         if dialog.options and dialog.options.previewOnly then return false end
         if not dialog.selected then return false end
-        for _,entry in ipairs(YUI.Sound:GetEntries({})) do if entry.id==dialog.selected then return true end end
+        if YUI.Sound.ParseSpecialVoice and YUI.Sound:ParseSpecialVoice(dialog.selected) then return true end
+        for _,entry in ipairs(dialog.baseRows or {}) do if entry.id==dialog.selected then return true end end
         return false
     end
     local title=GUI:CreateText(dialog,T('sound.voice_selector.title'),'font.size.lg','color.text.heading','LEFT')
@@ -129,6 +133,8 @@ function Picker:Open(parent,options)
     dialog.exitButton=exit;dialog.cancelButton=cancel
     local count=GUI:CreateText(dialog,'','font.size.md','color.text.secondary','LEFT')
     count:SetPoint('TOPLEFT',18,-124)
+    local detail=GUI:CreateText(dialog,'','font.size.sm','color.text.secondary','LEFT')
+    detail:SetPoint('BOTTOMLEFT',18,48); detail:SetHeight(24); detail:SetWordWrap(false)
     local capacity=layout.columns*layout.rows
     local function MaxOffset()
         return math.max(0,math.ceil(#dialog.choices/layout.columns)-layout.rows)*layout.columns
@@ -178,20 +184,67 @@ function Picker:Open(parent,options)
             if entry then
                 row.card:ClearAllPoints(); row.card:SetPoint('TOPLEFT',((i-1)%layout.columns)*(layout.cardWidth+10),-math.floor((self.offset+i-1)/layout.columns)*46)
                 row.card:Show(); row.label:SetText(entry.name)
+                if GUI.SetTextColorKey then GUI:SetTextColorKey(row.label,entry.recorded==false and 'color.text.secondary' or 'color.text.primary') end
                 Picker:SetRowIcon(row,entry.icon)
                 row.select:SetSelected(not self.options.previewOnly and entry.id==self.selected)
             else row.card:Hide() end
         end
         if #self.choices==0 then empty:Show() else empty:Hide() end
         confirm:SetDisabled(not SelectionAvailable(),true)
+        local sound=YUI.Sound
+        local origin=sound.ParseSpecialVoice and sound:ParseSpecialVoice(self.selected)
+        if origin then
+            if origin==self.packId and not sound:HasVoiceRecording(self.selected,self.packId) then
+                detail:SetText(T('sound.center.specialVoiceUnavailable')..' · '..sound:GetEntryLabel(self.selected))
+            else
+                local state=origin==self.packId and 'sound.voice_selector.specialReady' or 'sound.voice_selector.specialSilent'
+                detail:SetText(string.format(T(state),sound:GetEntryLabel(self.selected),sound:GetVoicePackLabel(origin)))
+            end
+        elseif self.selected and sound.HasVoiceRecording and not sound:HasVoiceRecording(self.selected,self.packId) then
+            detail:SetText(T('sound.voice_selector.standardFallback'))
+        else detail:SetText('') end
         count:SetText(#self.choices==0 and '0' or (self.offset+1)..'–'..math.min(self.offset+capacity,#self.choices)..' / '..#self.choices)
     end
     function dialog:Refresh()
-        self.choices=YUI.Sound:GetEntries({query=self.query,class=self.class,spec=self.spec})
+        self.choices={}
+        local query=string.lower(self.query or '')
+        for _,entry in ipairs(self.baseRows or {}) do
+            local classMatch=self.class=='all' or self.class=='general' and entry.class==nil or entry.class==self.class
+            if classMatch and (self.class=='special' or not self.spec or not entry.spec or entry.spec==self.spec)
+                and (query=='' or string.find(string.lower(entry.name),query,1,true)) then self.choices[#self.choices+1]=entry end
+        end
         self.offset=math.min(math.floor(self.offset/layout.columns)*layout.columns,MaxOffset())
         viewport.child:SetWidth(layout.width-54); GUI:FitScrollContent(viewport,math.max(1,math.ceil(#self.choices/layout.columns)*46-8))
         viewport:SetVerticalScroll(math.floor(self.offset/layout.columns)*46)
         self:RefreshRows()
+    end
+    function dialog:RefreshData()
+        if not self.options then return end
+        local sound=YUI.Sound
+        local prefs=sound.GetPreferences and sound:GetPreferences()
+        self.packId=prefs and prefs.voicePackId or 'yui.default'
+        local entries=sound:GetEntries({})
+        self.specialRows=sound.GetSpecialEntries and sound:GetSpecialEntries(self.packId) or {}
+        for _,entry in ipairs(self.specialRows) do entries[#entries+1]=entry end
+        self.baseRows=sound.OrderVoiceEntries and sound:OrderVoiceEntries(entries,self.options.matchNames,self.packId) or entries
+        local counted={}
+        for _,choice in ipairs(self.classChoices or {}) do
+            local row={}; for key,value in pairs(choice) do row[key]=value end
+            local n=0
+            for _,entry in ipairs(entries) do
+                if choice.value=='all' or choice.value=='general' and entry.class==nil or choice.value==entry.class then n=n+1 end
+            end
+            row.text=string.format(T('sound.center.categoryCount') or '%s (%d)',choice.text,n)
+            counted[#counted+1]=row
+        end
+        local packIcon=sound:GetVoicePackIcon(self.packId) or GUI:GetSettingsIcon('sound')
+        if sound:GetIconText(packIcon) then packIcon=GUI:GetSettingsIcon('sound') end
+        table.insert(counted,math.min(2,#counted+1),{
+            text=string.format(T('sound.center.categoryCount') or '%s (%d)',T('sound.voice_selector.special'),#self.specialRows),
+            value='special',icon=packIcon,iconSize=18,texCoord=type(packIcon)=='number' and dropdownIconCrop or {0,1,0,1}})
+        classOptions=counted
+        class:RefreshOptions()
+        self:RefreshTitle(); self:Refresh()
     end
     function dialog:ResizeFromParent()
         local parent=self:GetParent()
@@ -201,6 +254,7 @@ function Picker:Open(parent,options)
         self:SetSize(layout.width,layout.height)
         search:SetWidth((layout.width-56)*0.5); class:SetWidth((layout.width-56)*0.25); spec:SetWidth((layout.width-56)*0.25)
         viewport:SetSize(layout.width-54,layout.rows*46-8); empty:SetWidth(layout.width-60)
+        detail:SetWidth(layout.width-36)
         for i,row in ipairs(self.rows) do
             row.card:SetSize(layout.cardWidth,38); row.card:ClearAllPoints()
             row.card:SetPoint('TOPLEFT',((i-1)%layout.columns)*(layout.cardWidth+10),-math.floor((dialog.offset+i-1)/layout.columns)*46)
@@ -260,16 +314,7 @@ function Picker:Open(parent,options)
             end
         end
         if nextOptions.classes then classOptions=nextOptions.classes end
-        local countedOptions={}
-        for _,choice in ipairs(classOptions) do
-            local counted={}
-            for key,value in pairs(choice) do counted[key]=value end
-            counted.text=string.format(T('sound.center.categoryCount') or '%s (%d)',choice.text or '',
-                #YUI.Sound:GetEntries({class=choice.value}))
-            if choice.value=='general' then counted.icon=132996; counted.texCoord=dropdownIconCrop end
-            countedOptions[#countedOptions+1]=counted
-        end
-        classOptions=countedOptions
+        self.classChoices=classOptions
         local found=false
         for _,choice in ipairs(classOptions) do if choice.value==self.class then found=true end end
         if not found then self.class='all' end
@@ -282,18 +327,20 @@ function Picker:Open(parent,options)
         class:SetWidth((layout.width-56)*0.25); spec:SetWidth((layout.width-56)*0.25)
         class:SetValue(self.class,true); class:RefreshOptions(); spec:SetValue('all',true); self:RefreshSpecIcons()
         if YUI.Event and YUI.Event.On then
-            YUI.Event:On('YUI_SOUND_PREFERENCES_CHANGED','RefreshTitle',self)
-            YUI.Event:On('YUI_SOUND_PACKS_CHANGED','RefreshTitle',self)
+            YUI.Event:On('YUI_SOUND_PREFERENCES_CHANGED','RefreshData',self)
+            YUI.Event:On('YUI_SOUND_PACKS_CHANGED','RefreshData',self)
+            YUI.Event:On('YUI_SOUND_ENTRIES_CHANGED','RefreshData',self)
             YUI.Event:On('YUI_APPEARANCE_ICON_SET_CHANGED','RefreshSpecIcons',self)
             YUI.Event:On('YUI_APPEARANCE_ICON_SCOPE_CHANGED','OnIconScopeChanged',self)
         end
         viewport:SetSize(layout.width-54,layout.rows*46-8); empty:SetWidth(layout.width-60)
+        detail:SetWidth(layout.width-36)
         for i,row in ipairs(self.rows) do
             row.card:SetSize(layout.cardWidth,38); row.card:ClearAllPoints()
             row.card:SetPoint('TOPLEFT',((i-1)%layout.columns)*(layout.cardWidth+10),-math.floor((dialog.offset+i-1)/layout.columns)*46)
             row.select:SetWidth(layout.cardWidth); row.label:SetWidth(layout.cardWidth-50)
         end
-        self:Refresh(); self:Show()
+        self:RefreshData(); self:Show()
         local scrim=GUI:ShowModalScrim(self)
         if scrim then
             scrim:SetParent(self:GetParent()); scrim:ClearAllPoints(); scrim:SetAllPoints(self:GetParent())
@@ -304,6 +351,9 @@ function Picker:Open(parent,options)
         if dialog.options and dialog.options.stopPreview then dialog.options.stopPreview(dialog) end
         if YUI.Event then YUI.Event:OffOwner(dialog) end
         dialog.options=nil
+        dialog.baseRows=nil; dialog.specialRows=nil; dialog.classChoices=nil; dialog.choices={}
+        dialog.paintedChoices=nil
+        for _,row in ipairs(dialog.rows) do row.entry=nil end
     end)
     if dialog.EnableKeyboard then
         dialog:EnableKeyboard(true)

@@ -408,6 +408,9 @@ function Picker:Open(options)
     if not self.dialog then self.dialog = CreateDialog() end
     local dialog = self.dialog
     dialog.options = type(options) == "table" and options or {}
+    if YUI.Settings and YUI.Settings.SyncOwnedWindowScale then
+        YUI.Settings:SyncOwnedWindowScale(dialog, dialog.options.owner)
+    end
     local requestedSource = dialog.options.source
     dialog.source = SOURCE_TEXT[requestedSource] and requestedSource or "all"
     dialog.query = ""
@@ -459,6 +462,7 @@ function Picker:CreateSelector(parent, options)
     end
     selector:SetScript("OnClick", function(self)
         Picker:Open({
+            owner = self,
             value = self:GetValue(),
             allowNone = options.allowNone == true,
             onSelect = function(value)

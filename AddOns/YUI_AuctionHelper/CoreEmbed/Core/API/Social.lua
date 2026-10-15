@@ -15,6 +15,25 @@ YUI.API.Social = Social
 
 local Legacy = YUI.WOW_API
 
+-- 仅由用户点击触发。true 表示调用已发出，不代表服务器已完成操作。
+function Social.LeaveGroupOrDelve()
+    local delves = YUI.API.Delves
+    if YUI.IsRetail then
+        if not delves or not delves.TryLeave then return false end
+        local handled, ok, reason = delves.TryLeave()
+        if handled ~= false then return ok == true, reason end
+    end
+    local leave = _G.C_PartyInfo and _G.C_PartyInfo.LeaveParty or _G.LeaveParty
+    if type(leave) ~= "function" then return false end
+    -- 原生默认类别优先副本队伍，否则普通队伍；每次点击只退出一个。
+    return pcall(leave)
+end
+
+function Social.ResetInstances()
+    if type(_G.ResetInstances) ~= "function" then return false end
+    return pcall(_G.ResetInstances)
+end
+
 -- 返回的聊天字段必须是普通值；未知限制状态按受限处理。
 do
     local function Safe(value)
@@ -58,25 +77,49 @@ do
         return { text = text, name = name, guid = guid }
     end
 
-    -- 使用恢复后的对端名称验证 ID；昵称重名时不选择第一个好友。
-    function Social.ResolveDeferredWhisperFriend(name, id)
+    local function MatchesWhisperFriend(name, info)
+        return info and Safe(info.accountName) and Safe(info.battleTag) and Safe(info.bnetID)
+            and Social.BNNameMatches(name, info.accountName, info.battleTag)
+    end
+
+    local function HasWhisperBattleTag(info)
+        return info and Safe(info.battleTag) and type(info.battleTag) == "string"
+            and info.battleTag:match("^.+#%d+$") ~= nil
+    end
+
+    -- 即时与补记共用身份判定；可读 ID 与名称冲突时不能改投另一位好友。
+    function Social.ResolveWhisperFriend(name, id)
         if not Safe(name) or type(name) ~= "string" or name == "" then return nil end
-        if Safe(id) and type(id) == "number" and id > 0 then
+        local validID = Safe(id) and type(id) == "number" and id > 0
+        if validID then
             local info = Social.GetBNFriendInfoByID(id)
-            if info and Safe(info.accountName) and Safe(info.battleTag)
-                and Social.BNNameMatches(name, info.accountName, info.battleTag) then return info end
+            if info then
+                if MatchesWhisperFriend(name, info) and HasWhisperBattleTag(info)
+                    and (info.bnetID == nil or info.bnetID == id) then return info end
+                return nil, "identityMismatch"
+            end
         end
         local found
         for index = 1, Social.GetBNNumFriends() do
             local info = Social.GetBNFriendInfoByIndex(index)
-            if info and Safe(info.accountName) and Safe(info.battleTag) and Safe(info.bnetID)
-                and Social.BNNameMatches(name, info.accountName, info.battleTag) then
-                if found then return nil, "ambiguous" end
-                found = info
+            -- 名称回退需要完整列表才能证明唯一；未知条目不能当作不匹配。
+            if not validID and (not info or not Safe(info.accountName)
+                or not Safe(info.battleTag) or not Safe(info.bnetID)) then
+                return nil, "identityUnavailable"
+            end
+            if MatchesWhisperFriend(name, info) then
+                if validID then
+                    if info.bnetID == id and HasWhisperBattleTag(info) then return info end
+                else
+                    -- 缺少 BattleTag 的同名好友也构成歧义，不能跳过后选另一个。
+                    if found then return nil, "ambiguous" end
+                    found = info
+                end
             end
         end
-        return found
+        if HasWhisperBattleTag(found) then return found end
     end
+    Social.ResolveDeferredWhisperFriend = Social.ResolveWhisperFriend
 end
 
 local type = type
@@ -277,6 +320,16 @@ function Social.InviteUnit(name)
     end
 
     return false, "unsupported"
+end
+
+-- Cold menu path. Resolve while opening the menu, before its unit can change.
+function Social.GetForeverMenuPlayerName(contextData)
+    if YUI.IsForever ~= true or type(contextData) ~= "table" then return nil end
+    local util = _G.UnitPopupSharedUtil
+    if not util or type(util.GetFullPlayerName) ~= "function" then return nil end
+    local ok, name = pcall(util.GetFullPlayerName, contextData)
+    if not ok or (type(_G.issecretvalue) == "function" and _G.issecretvalue(name)) then return nil end
+    return NonEmptyString(name)
 end
 
 function Social.AddFriend(name)

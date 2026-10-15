@@ -9,7 +9,7 @@ local ADDON_NAME, YUI = ...
 local bootstrapState = _G.YUI_CORE_EMBED_STATE and _G.YUI_CORE_EMBED_STATE[ADDON_NAME]
 
 YUI.AddonName = ADDON_NAME
-YUI.CoreVersion = YUI.CoreVersion or (bootstrapState and bootstrapState.embeddedCoreVersion) or 14
+YUI.CoreVersion = YUI.CoreVersion or (bootstrapState and bootstrapState.embeddedCoreVersion) or 26
 YUI.CoreMode = YUI.CoreMode or (bootstrapState and bootstrapState.coreMode) or "suite"
 YUI.ProductId = YUI.ProductId or (bootstrapState and bootstrapState.productId) or "suite"
 YUI.SettingsScope = YUI.SettingsScope or (bootstrapState and bootstrapState.settingsScope) or "suite"
@@ -195,7 +195,12 @@ DB.activeProductId = DB.activeProductId or YUI.ProductId or "suite"
 DB.ready = DB.ready == true
 DB.notReadyAccesses = DB.notReadyAccesses or {}
 
+-- Only explicit switches are guarded; ordinary reads retain the existing restore behavior.
+local profileSwitches = setmetatable({}, { __mode = "k" })
+
 local function GetCharacterProfileKey(db)
+    local switching = db and profileSwitches[db]
+    if switching then return switching.charKey end
     local fallback = db and db.keys and db.keys.char or nil
     return YUI.Player:GetCharacterKey(fallback)
 end
@@ -242,6 +247,8 @@ local function ResolvePersistedProfileName(sv, charKey)
 end
 
 function DB:PersistCurrentProfile(db, savedVariableName)
+    local switching = db and profileSwitches[db]
+    if switching and switching.applying then return true end
     if type(db) ~= "table" or type(db.GetCurrentProfile) ~= "function" then
         return false
     end
@@ -264,6 +271,7 @@ function DB:PersistCurrentProfile(db, savedVariableName)
 end
 
 function DB:RestorePersistedProfile(db, savedVariableName)
+    if db and profileSwitches[db] then return false end
     if type(db) ~= "table" or type(db.SetProfile) ~= "function" then
         return false
     end
@@ -291,6 +299,80 @@ function DB:RestorePersistedProfile(db, savedVariableName)
         local _ = db.profile
     end
     return true
+end
+
+-- Publish the intended character binding before callbacks run. Shutdown callbacks
+-- still read the old profile; changed callbacks read the new one, without either
+-- read restoring or persisting an intermediate profile. No profile is created.
+function DB:SwitchProfile(db, profileName)
+    if type(db) ~= "table" or type(db.SetProfile) ~= "function"
+        or type(db.GetCurrentProfile) ~= "function" then
+        return false, "unavailable"
+    end
+    if profileSwitches[db] then return false, "busy" end
+
+    local context
+    local ok, result, reason = pcall(function()
+        local savedVariableName = self.databaseSavedVariables[db]
+        local sv = ResolveSavedVariablesTable(db, savedVariableName)
+        if type(sv) ~= "table" then return false, "binding" end
+        if type(profileName) ~= "string" or type(sv.profiles) ~= "table"
+            or type(sv.profiles[profileName]) ~= "table" then
+            return false, "missing"
+        end
+        if sv ~= db.sv then return false, "binding" end
+        local charKey = GetCharacterProfileKey(db)
+        if not charKey or charKey == "" then return false, "character" end
+        local current = db:GetCurrentProfile()
+        if not current or current == "" then return false, "unavailable" end
+        local keys = EnsureProfileKeys(sv)
+        if not keys then return false, "binding" end
+        local aceKey = db.keys and db.keys.char
+        context = {
+            charKey = charKey, applying = true, current = current, sv = sv,
+            keys = keys, oldBinding = keys[charKey], aceKey = aceKey,
+            oldAceBinding = aceKey and keys[aceKey],
+        }
+        profileSwitches[db] = context
+        keys[charKey] = profileName
+        if current ~= profileName then db:SetProfile(profileName) end
+        if db:GetCurrentProfile() ~= profileName then return false, "interrupted" end
+        if ResolveSavedVariablesTable(db, savedVariableName) ~= sv then return false, "binding" end
+        -- AceDB may still hold the identity captured at library load time.
+        if aceKey and aceKey ~= charKey then keys[aceKey] = context.oldAceBinding end
+        context.applying = false
+        if self:PersistCurrentProfile(db, savedVariableName) ~= true
+            or sv.profileKeys ~= keys or keys[charKey] ~= profileName then
+            return false, "binding"
+        end
+        if db:GetCurrentProfile() ~= profileName then return false, "interrupted" end
+        return true
+    end)
+
+    local detail
+    if not ok then detail, result, reason = result, false, "failed" end
+    if not result and context then
+        context.applying = true
+        local rollbackOK = pcall(function()
+            if db:GetCurrentProfile() ~= context.current then db:SetProfile(context.current) end
+            if db:GetCurrentProfile() ~= context.current then error("profile rollback failed") end
+        end)
+        local bindingOK = pcall(function()
+            -- Restore both keys that AceDB/YUI may have touched, including absent keys.
+            local function restore(keys)
+                keys[context.charKey] = context.oldBinding
+                if context.aceKey and context.aceKey ~= context.charKey then
+                    keys[context.aceKey] = context.oldAceBinding
+                end
+            end
+            restore(context.keys)
+            local keys = EnsureProfileKeys(context.sv)
+            if keys ~= context.keys then restore(keys) end
+        end)
+        if not rollbackOK or not bindingOK then reason = "rollback" end
+    end
+    profileSwitches[db] = nil
+    return result, reason, detail
 end
 
 function DB:RestoreProductProfile(productId)
@@ -1066,6 +1148,8 @@ function DB:InitializeSavedVariables()
 end
 
 function YUI:OnProfileChanged(event, database, newProfileKey)
+    local colorPicker = self.GUI2 and self.GUI2.ColorPicker
+    if colorPicker then colorPicker:Close("abandon") end
     if database and DB.PersistCurrentProfile then
         DB:PersistCurrentProfile(database)
     end

@@ -7,6 +7,8 @@ do
 end
 local YUI = _G.YUI
 
+if YUI.Locale.ShouldLoad and not YUI.Locale:ShouldLoad("frFR") then return end
+
 YUI.Locale:Register("Core", "frFR", {
     ["teleports.settings.announce_header"] = "Avis de téléportation",
     ["teleports.settings.announce_scope"] = " Portée de l'avis",
@@ -213,11 +215,11 @@ YUI.Locale:Register("Core", "frFR", {
     ["cpu_watch.probe.ychat_driver"] = "Pilote YChat event/deferred",
     ["cpu_watch.probe.development_load"] = "Charge simulée du diagnostic CPU",
     ["cpu_watch.probe.event_other"] = " Autres auditeurs EventBus",
-    ["cpu_watch.probe.yhud_context"] = " Contexte YHUD rafraîchi",
-    ["cpu_watch.probe.yhud_item_acquire"] = "Acquisition de l'image d'élément YHUD",
-    ["cpu_watch.probe.yhud_static_cooldown"] = "Refroidissement YHUD",
-    ["cpu_watch.probe.yhud_static_position"] = "Réparer la position YHUD",
-    ["cpu_watch.probe.yhud_category_sync"] = "Synchronisation de catégorie YHUD",
+    ["cpu_watch.probe.yhud_context"] = " Contexte Halo rafraîchi",
+    ["cpu_watch.probe.yhud_item_acquire"] = "Acquisition de l'image d'élément Halo",
+    ["cpu_watch.probe.yhud_static_cooldown"] = "Refroidissement Halo",
+    ["cpu_watch.probe.yhud_static_position"] = "Réparer la position Halo",
+    ["cpu_watch.probe.yhud_category_sync"] = "Synchronisation de catégorie Halo",
     ["cpu_watch.probe.yhud_resource_preview"] = " Aperçu des ressources Halo",
     ["cpu_watch.movement.taxi"] = " trajectoire de vol",
     ["cpu_watch.movement.skyriding"] = "dans le ciel",
@@ -465,7 +467,7 @@ YUI.Locale:Register("Core", "frFR", {
     ["layout.filter.action"] = " Affichage",
     ["layout.filter.title"] = " Affichage Mover",
     ["layout.filter.category.actionbar"] = "Barres d’action",
-    ["layout.filter.category.monitor"] = "Console Halo",
+    ["layout.filter.category.monitor"] = "Halo Monitor",
     ["layout.filter.category.combat"] = " Outils de combat",
     ["layout.filter.category.communication"] = "Chat & Communication",
     ["layout.filter.category.map"] = " Carte & Navigation",
@@ -1334,7 +1336,7 @@ YUI.Locale:Register("Core", "frFR", {
     ["game_menu.text.011"] = "Aide",
     ["game_menu.text.012"] = " Ouvre la page FAQ",
     ["game_menu.text.013"] = "Éditeur auras",
-    ["game_menu.text.014"] = " Ouvrez le YHUD Éditeur d’auras",
+    ["game_menu.text.014"] = " Ouvrez le Halo Éditeur d’auras",
     ["game_menu.text.015"] = "Recharge",
     ["game_menu.text.016"] = "|cFFFF0000[YUI] Paramètres du gestionnaire de temps de recharge introuvables|r",
     ["game_menu.text.017"] = "Ouvrir le gestionnaire de temps de recharge Blizzard",

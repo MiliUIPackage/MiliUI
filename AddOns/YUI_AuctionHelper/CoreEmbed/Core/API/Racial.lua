@@ -95,6 +95,31 @@ local auraIDs = YUI.IsRetail and {
     [291944]=true, -- Regeneratin'
 } or {}
 if not YUI.IsRetail then R.Presets = {} end
+if YUI.IsForever then
+    R.Presets = YUI.API.ForeverRacialCatalog
+        and YUI.API.ForeverRacialCatalog.presets or {}
+end
+function R.GetPlayerRaceToken()
+    local unit = YUI.API.Unit
+    local token = unit and unit.GetRaceToken and unit.GetRaceToken("player")
+    local catalog = YUI.IsForever and YUI.API.ForeverRacialCatalog
+    if catalog and token == "SKYBORNE" and UnitRace then
+        local ok, _, _, raceID = pcall(UnitRace, "player")
+        if ok and not (issecretvalue and issecretvalue(raceID)) then
+            for key, id in pairs(catalog.races) do
+                if raceID == id then return key end
+            end
+        end
+    end
+    return token
+end
+function R.GetRaceInfo(token)
+    local unit = YUI.API.Unit
+    local catalog = YUI.IsForever and YUI.API.ForeverRacialCatalog
+    local id = catalog and catalog.races[token]
+    if id and unit and unit.GetRaceInfoByID then return unit.GetRaceInfoByID(id) end
+    return unit and unit.GetRaceInfoByFile and unit.GetRaceInfoByFile(token)
+end
 local byID, rows = {}, {}
 local races = {}
 for race in pairs(R.Presets) do races[#races+1] = race end

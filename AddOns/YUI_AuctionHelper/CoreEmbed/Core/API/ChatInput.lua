@@ -275,7 +275,7 @@ end
 -- Explicit switching leaves text, selection, sticky type and whisper identity untouched.
 -- Only attributes modified by this transaction are read for rollback.
 function ChatInput.SwitchChannel(editBox, chatType, channelId, activate)
-    if not YUI.IsRetail then return false, "unsupported-client" end
+    if not (YUI.IsRetail or YUI.IsForever) then return false, "unsupported-client" end
     if not IsSafeValue(editBox) or (type(editBox) ~= "table" and type(editBox) ~= "userdata") then
         return false, "invalid-editbox"
     end
