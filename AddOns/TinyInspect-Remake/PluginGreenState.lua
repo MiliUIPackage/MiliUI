@@ -5,8 +5,8 @@
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 
-local GetItemInfo = GetItemInfo or C_Item.GetItemInfo
-local GetItemStats = GetItemStats or C_Item.GetItemStats
+local GetItemInfo = C_Item.GetItemInfo
+local GetItemStats = C_Item.GetItemStats
 
 local locale = GetLocale():sub(1,2)
 
@@ -79,7 +79,7 @@ LibEvent:attachTrigger("INSPECT_FRAME_CREATED", function(this, frame, parent)
             itemframe[k]:SetBackdropBorderColor(v.r, v.g, v.b, 0.25)
             itemframe[k]:SetBackdropColor(0, 0, 0, 0.5)
             itemframe[k].text = itemframe[k]:CreateFontString(nil, "ARTWORK")
-            itemframe[k].text:SetFont(UNIT_NAME_FONT, 12, "")
+            itemframe[k].text:SetFont(UNIT_NAME_FONT, 12)
             itemframe[k].text:SetPoint("CENTER")
             itemframe[k].text:SetText(strsubutf8(_G[k] or k,1,1))
             itemframe[k].text:SetTextColor(v.r, v.g, v.b)

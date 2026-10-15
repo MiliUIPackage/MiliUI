@@ -2,6 +2,8 @@
 -------------------------------------
 -- 小隊装备等级 Author: M
 -------------------------------------
+local _, ns = ...
+local L = ns.L
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
@@ -144,7 +146,7 @@ end)
 
 
 
-local label = "<" .. (ITEM_LEVEL_ABBR or "ItemLevel") .. ">"
+local label = "<" .. L.ItemLevelAbbreviation .. ">"
 
 --角色類型
 local function GetRoleIcon(unit)

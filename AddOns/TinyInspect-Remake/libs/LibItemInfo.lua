@@ -3,10 +3,10 @@
 -- 物品信息庫 Author: M
 ---------------------------------
 
-local MAJOR, MINOR = "LibItemInfo.7000", 8
+local MAJOR, MINOR = "LibItemInfo.7000", 9
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 
--- local GetItemInfo = GetItemInfo
+local GetItemInfo = C_Item.GetItemInfo
 local GetItemStats = C_Item and C_Item.GetItemStats
 local GetDetailedItemLevelInfoAPI = C_Item and C_Item.GetDetailedItemLevelInfo
 
@@ -150,7 +150,14 @@ function lib:GetUnitItemInfo(unit, index, stats)
     end
     self:GetStatsViaAPI(link, stats)
     if (string.match(link, "item:(%d+):")) then
-        return 0, level, GetItemInfo(link)
+        local name, _, quality, itemLevel, minLevel, itemType, itemSubType, stackCount,
+            equipLocation, iconFileID, sellPrice, classID, subclassID, bindType,
+            expansionID, setID, isCraftingReagent = GetItemInfo(link)
+        -- Keep the original inventory link because it contains the equipped
+        -- item's enchant and gem IDs. GetItemInfo may return a normalized link.
+        return 0, level, name, link, quality, itemLevel, minLevel, itemType,
+            itemSubType, stackCount, equipLocation, iconFileID, sellPrice,
+            classID, subclassID, bindType, expansionID, setID, isCraftingReagent
     else
         return 0, level, link
     end

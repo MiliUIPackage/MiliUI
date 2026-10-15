@@ -2,6 +2,8 @@
 -------------------------------------
 -- 團隊装备等级 Author: M
 -------------------------------------
+local _, ns = ...
+local L = ns.L
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
@@ -188,9 +190,9 @@ frame.label:SetPoint("BOTTOMRIGHT")
 frame.label:RegisterForDrag("LeftButton")
 frame.label:SetHitRectInsets(0, 0, 0, 0)
 frame.label.text = frame.label:CreateFontString(nil, "BORDER", "GameFontNormal")
-frame.label.text:SetFont(UNIT_NAME_FONT, 13, "")
+frame.label.text:SetFont(UNIT_NAME_FONT, 13)
 frame.label.text:SetPoint("TOP", 0, -5)
-frame.label.text:SetText(RAID..ITEM_LEVEL_ABBR)
+frame.label.text:SetText(L.RaidItemLevel)
 frame.label:SetScript("OnDragStop", function(self) self:GetParent():StopMovingOrSizing() end)
 frame.label:SetScript("OnDragStart", function(self) self:GetParent():StartMoving() end)
 frame.label:SetScript("OnClick", function(self)

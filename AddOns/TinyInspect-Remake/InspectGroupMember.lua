@@ -2,6 +2,8 @@
 -------------------------------------
 -- 小队或团队 装备等级 Author: M
 -------------------------------------
+local _, ns = ...
+local L = ns.L
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
@@ -166,7 +168,7 @@ end)
 -- 小队时
 ----------------
 
-local label = "<" .. (ITEM_LEVEL_ABBR or "ItemLevel") .. ">"
+local label = "<" .. L.ItemLevelAbbreviation .. ">"
 
 --角色類型
 local function GetRoleIcon(unit)
@@ -286,9 +288,9 @@ frame.label:SetPoint("BOTTOMRIGHT")
 frame.label:RegisterForDrag("LeftButton")
 frame.label:SetHitRectInsets(0, 0, 0, 0)
 frame.label.text = frame.label:CreateFontString(nil, "BORDER", "GameFontNormal")
-frame.label.text:SetFont(UNIT_NAME_FONT, 13, "")
+frame.label.text:SetFont(UNIT_NAME_FONT, 13)
 frame.label.text:SetPoint("TOP", 0, -5)
-frame.label.text:SetText(ITEM_LEVEL_ABBR)
+frame.label.text:SetText(L.ItemLevelAbbreviation)
 frame.label:SetScript("OnDragStop", function(self) self:GetParent():StopMovingOrSizing() end)
 frame.label:SetScript("OnDragStart", function(self) self:GetParent():StartMoving() end)
 frame.label:SetScript("OnClick", function(self)

@@ -2,6 +2,8 @@
 -------------------------------------
 -- 鼠标装等和天赋 Author: M
 -------------------------------------
+local _, ns = ...
+local L = ns.L
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 
@@ -86,7 +88,7 @@ if (GameTooltip.ProcessInfo) then
             local inspecting = GetInspecting()
             if (inspecting) then
                 if (inspecting.unit and not SafeUnitIsUnit(inspecting.unit, unit)) then
-                    return AppendToGameTooltip(nil, "n/a")
+                    return AppendToGameTooltip(nil, L.NotAvailable)
                 else
                     return AppendToGameTooltip(nil, "......")
                 end

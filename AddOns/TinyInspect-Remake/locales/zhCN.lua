@@ -3,7 +3,11 @@ local _, ns = ...
 
 if (GetLocale() ~= "zhCN") then return end
 
-ns.L = {
+local L = ns.L
+local T = {
+    AnnouncementTitle           = "公告",
+    AnnouncementKey             = "announcement_2026_10_14",
+    AnnouncementChat            = "针对12.1.5的API变更做了兼容性更新。",
     ShowItemBorder              = "物品直角边框",
     EnableItemLevel             = "物品等级显示",
     ShowColoredItemLevelString  = "装等文字随物品品质",
@@ -36,11 +40,45 @@ ns.L = {
     PaperDoll                   = "人物面板",
     Chat                        = "聊天",
     Loot                        = "拾取",
+    Other                       = "其他未分类物品",
     ShowGemAndEnchant           = "显示宝石和附魔信息",
     ShowUpgradeInfo             = "显示装备升级信息",
     ItemLevelAnchorPoint        = "装等位置",
     ShowGearDurability          = "显示装备耐久度",
     GearDurabilityAnchorPoint   = "耐久度位置",
+    AnchorPicker                = "锚点器",
+    Fonts                       = "字体",
+    InspectNameFont             = "玩家名称字体",
+    InspectItemFont             = "物品字体",
+    DefaultFont                 = "默认字体",
+    ChatFont                    = "聊天字体",
+    GameFont                    = "游戏字体",
+    QuestFont                   = "任务字体",
+    CombatLogFont               = "战斗记录字体",
+    SelectOption                = "请选择",
+    Announcements               = "公告",
+    AnnouncementMode            = "公告显示方式",
+    AlwaysShowAnnouncements     = "始终显示公告信息",
+    ShowOncePerAnnouncement     = "每次公告更新时仅显示一次",
+    NeverShowAnnouncements      = "从不显示公告信息",
+    General                     = "通用",
+    InspectPanel                = "观察面板",
+    ItemLevel                   = "物品等级",
+    PartyAndRaid                = "小队与团队",
+    MouseFunctions              = "鼠标功能",
+    EquipmentInformation        = "装备信息",
+    Appearance                  = "外观",
+    ItemLevelText               = "装等文字",
+    DisplayLocations            = "显示场景",
+    PositionAndDurability       = "位置与耐久度",
+    Durability                  = "耐久度",
+    InvalidFontMessage          = "所选字体“%s”不可用，或不是游戏已知文件。改动未生效。",
+    ItemLevelAbbreviation       = "装等",
+    RaidItemLevel               = "团队装等",
+    ArtifactPower               = "能量",
+    NotAvailable                = "不可用",
 }
 
-BINDING_NAME_InspectRaidFrame = "显示团队观察面板"
+for key, value in pairs(T) do
+    L[key] = value
+end
