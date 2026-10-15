@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 設定資料：預設值、nil-merge、從 MiliUI 套組一次性遷移
+-- 設定資料：預設值、nil-merge、從 MiliUI 套組／MiliUI_Skin 一次性遷移
 --
 -- ⚠ MergeDefaults 只補 nil：發佈後要改任何預設值，都得配一條遷移
 --   （版本閘＋值閘）。發佈前可以直接改。
@@ -33,6 +33,43 @@ local function BuildDefaults()
             -- 執行期換算暴雪預設位置（UIParent 底部往上 128）
             moveEnabled = false,
             x = nil, y = nil,
+        },
+        -- 角色面板的自建功能（Modules/CharacterSheet*.lua、StatsHud.lua；2026-10-15 從 MiliUI_Skin
+        -- 的 Extras 搬來）。建不建（statsPanel／titlesSearch）要 /reload；其餘即時。
+        -- ⚠ `statsCollapsed`／`statsOrder`／`statsHidden`／`statsColors` 是空表當預設：MergeDefaults
+        --   遇到已有的表只往裡面補鍵，空表什麼都不補 ⇒ 玩家的收合與排序不會被洗掉。
+        charSheet = {
+            statsPanel = true,        -- 自建屬性清單（/reload 生效）
+            statsValueFormat = "pct", -- 清單的數值怎麼顯示："pct"｜"rating"｜"pct_rating"｜"rating_pct"（即時；同 hud.valueFormat）
+            statsCollapsed = {},      -- [sectionKey] = true
+            statsOrder = {},          -- 陣列，sectionKey 的順序；空＝預設
+            statsHidden = {},         -- [defKey] = true：這一列不顯示（角色面板齒輪的編輯狀態裡勾）
+            statsColors = {},         -- [sectionKey] = { r, g, b }：蓋過 MiliUI_Stats.SECTION_COLORS
+            statsPalette = "miliui",  -- 設定面板「預設配色」下拉目前顯示哪一個（"miliui"｜"class"）
+            titlesSearch = true,      -- 稱號頁搜尋框（/reload 生效）
+            -- 畫面上顯示屬性（Modules/StatsHud.lua）。全部即時生效。
+            -- ⚠ `pos` 沒有預設值（nil ＝ 預設位置）：MergeDefaults 不會把玩家拖過的位置洗掉，
+            --   「重設位置」就是把它設回 nil。
+            hud = {
+                enabled = false,
+                stats = {             -- [statKey] = 顯示與否（順序固定，見 StatsHud.lua 的 HUD_STATS）
+                    primary = true, stamina = false, crit = true, haste = true, mastery = true,
+                    vers = true, leech = false, avoidance = false, speed = false,
+                    power = false, armor = false,
+                },
+                colors = {},          -- [statKey] = { r, g, b }：只在 colorMode == "custom" 時用
+                labelStyle = "full",  -- "full"｜"short"｜"none"
+                valueFormat = "pct",  -- "pct"｜"rating"｜"pct_rating"｜"rating_pct"
+                percentSign = true,
+                colorMode = "class",  -- "section"｜"class"｜"custom"（2026-10-15 使用者定：預設職業色）
+                valueColored = false,
+                fontSize = 14,
+                outline = "OUTLINE",  -- ""｜"OUTLINE"｜"THICKOUTLINE"｜"MONOCHROME,OUTLINE"｜"MONOCHROME,THICKOUTLINE"
+                shadow = true,
+                scale = 1,
+                backdrop = false,
+                when = "always",      -- "always"｜"combat"｜"instance"
+            },
         },
     }
 end
@@ -97,13 +134,59 @@ local function MigrateFromMiliUI(db)
     return moved > 0, moved
 end
 
--- 手動重跑（/mqol migrate）：第一次啟動時剛好把 MiliUI 停用，或印記蓋了之後才加進
--- 清單的 key。會覆蓋現有設定，所以只在明確下指令時才跑。
+------------------------------------------------------------
+-- 從 MiliUI_Skin 遷移角色面板的自建功能（只做一次；2026-10-15）
+--
+-- Skin 的 `MiliUI_Skin_DB.extras`（statsOrder／statsCollapsed／statsHidden／statsColors／
+-- statsValueFormat／statsPalette／statsPanel／titlesSearch／hud 整表）整張深拷貝成
+-- `db.charSheet`，不換結構（key 名一樣）。印記 `db.skinExtrasMigration` 跟上面那個
+-- 同一套規矩：nil = 還沒查過；"migrated" / "none" / "reset" = 查過了，之後永遠不再讀。
+-- 全程唯讀 MiliUI_Skin_DB——Skin 自己留著那段不刪（它那邊標註已搬）。
+--
+-- ⚠ TOC 宣告 OptionalDeps: MiliUI_Skin ⇒ Skin 先載入，它的 SavedVariables 在我們的
+--   ADDON_LOADED 時已經在了。沒裝 Skin 就是 "none"。
+-- Skin 那邊 hud 的兩版預設值修正（rev 1：描邊／職業色；rev 2：字 12→14）是在 Skin 的
+-- PLAYER_LOGIN 才跑，比我們晚 ⇒ 搬過來時自己補跑一次，照同一套判準。
+------------------------------------------------------------
+local function MigrateFromSkin(db)
+    local old = _G.MiliUI_Skin_DB
+    local ex = type(old) == "table" and old.extras
+    if type(ex) ~= "table" then return false end
+    local moved = CopyTable(ex)
+    local hud = moved.hud
+    if type(hud) == "table" then
+        if hud.rev == nil then
+            hud.outline = "OUTLINE"
+            hud.colorMode = "class"
+            hud.rev = 1
+        end
+        if hud.rev == 1 then
+            if hud.fontSize == 12 then hud.fontSize = 14 end
+            hud.rev = 2
+        end
+        hud.rev = nil   -- QoL 這邊沒有 rev，預設值要改走 MergeDefaults 前的遷移段
+    end
+    -- 2026-10-15 之前的舊鍵（Skin 自己的遷移段也處理過，保險再做一次）
+    if moved.statsShowRating ~= nil then
+        if moved.statsShowRating == true and (moved.statsValueFormat == nil or moved.statsValueFormat == "pct") then
+            moved.statsValueFormat = "pct_rating"
+        end
+        moved.statsShowRating = nil
+    end
+    db.charSheet = moved
+    return true
+end
+
+-- 手動重跑（/mqol migrate）：第一次啟動時剛好把 MiliUI／MiliUI_Skin 停用，或印記蓋了之後
+-- 才加進清單的 key。會覆蓋現有設定，所以只在明確下指令時才跑。
+-- 回傳 (有沒有搬到東西, 從本體搬的筆數, 有沒有從 Skin 搬到角色面板設定)
 function DB.RunMigration()
-    if type(MiliUI_QoL_DB) ~= "table" then return false, 0 end
+    if type(MiliUI_QoL_DB) ~= "table" then return false, 0, false end
     local ok, moved = MigrateFromMiliUI(MiliUI_QoL_DB)
     MiliUI_QoL_DB.miliuiMigration = ok and "migrated" or "none"
-    return ok, moved or 0
+    local okSkin = MigrateFromSkin(MiliUI_QoL_DB)
+    MiliUI_QoL_DB.skinExtrasMigration = okSkin and "migrated" or "none"
+    return ok or okSkin, moved or 0, okSkin
 end
 
 function DB.Init()
@@ -125,6 +208,16 @@ function DB.Init()
         end
     end
 
+    if db.skinExtrasMigration == nil then
+        local ok = MigrateFromSkin(db)
+        db.skinExtrasMigration = ok and "migrated" or "none"
+        if ok then
+            C_Timer.After(5, function()
+                ns.Print("已從米利的介面外觀搬入角色面板的設定（屬性清單的排序與配色、畫面顯示屬性）。")
+            end)
+        end
+    end
+
     MergeDefaults(db, BuildDefaults())
 
     db.schemaVersion = ns.DB_VERSION
@@ -133,7 +226,7 @@ function DB.Init()
 end
 
 function DB.ResetAll()
-    -- 印記要留著：整包清掉的話，下次登入又會從 MiliUI_DB 搬一次舊設定回來
-    MiliUI_QoL_DB = { miliuiMigration = "reset" }
+    -- 印記要留著：整包清掉的話，下次登入又會從 MiliUI_DB／MiliUI_Skin_DB 搬一次舊設定回來
+    MiliUI_QoL_DB = { miliuiMigration = "reset", skinExtrasMigration = "reset" }
     ReloadUI()
 end
