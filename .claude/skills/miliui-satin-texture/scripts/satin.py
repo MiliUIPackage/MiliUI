@@ -20,7 +20,7 @@ POWER = 1.6             # 漸層曲線：> 1 ＝ 一開始掉得快、接近平�
 NAME = "miliui_satin.png"
 
 # 自帶這張圖的插件（Core/Media.lua 或 Core/Tokens.lua 的路徑要跟這裡一致）
-ADDONS = ["MiliUI_CooldownManager", "MiliUI_UnitFrames", "MiliUI_DamageMeters", "MiliUI_Tooltip", "MiliUI_Skin"]
+ADDONS = ["MiliUI_CooldownManager", "MiliUI_UnitFrames", "MiliUI_DamageMeters", "MiliUI_Tooltip", "MiliUI_Skin", "Cell"]
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
 
