@@ -48,7 +48,7 @@ L["Objective progress"] = "目标进度"
 L["Colour objectives by progress"] = "按进度为目标上色"
 L["Objectives with a count such as 3/8 shade from red through yellow to green as they fill up, and switch to the Completed colour once done. Lines without a count keep the objective text colour. When off, completed objectives are shown in white."] = "带数量的目标（例如 3/8）会随进度由红转黄再转绿，完成后换成“已完成”的颜色。没有数量的行保持目标文字的颜色。关闭时已完成的目标显示为白色。"
 L["Append a percentage to objectives"] = "在目标后面显示百分比"
-L["Left off on lines where it would push the text onto another row."] = "加上去会让文字多换一行的目标不显示。"
+L["Left off on lines where it would push the text onto another row."] = "目标文字太长、加了会多出一行的，就不加百分比。"
 L["Section headers use your class colour"] = "分区标题使用职业色"
 L["Section header colour"] = "分区标题颜色"
 
