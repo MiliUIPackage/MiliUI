@@ -23,7 +23,7 @@ local C_AddOns = C_AddOns
 
 -- 被套組內建功能取代 → 自動停用
 -- folders 順序 = 停用順序，主插件放最後，避免相依插件先失去依賴
--- ⚠ 加減組別時同步 Options/Tab_QoL.lua「舊插件相容」的說明文字（那邊是寫死的清單）
+-- ⚠ 加減組別時同步 Options/Panel.lua「關於 → 套組設定」裡「舊插件相容」的說明文字（那邊是寫死的清單）
 local REPLACED = {
     {
         label   = "Stuf",

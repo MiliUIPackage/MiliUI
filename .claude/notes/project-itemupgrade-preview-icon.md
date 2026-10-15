@@ -8,7 +8,7 @@ metadata:
   modified: 2026-08-12T15:27:46.594Z
 ---
 
-`MiliUI/Enhance/ItemUpgrade_PreviewIcon.lua` 在物品升級介面的左右比較面板加 icon；右側 icon 顯示「升級後」的版本。
+`MiliUI_QoL/Modules/ItemUpgrade_PreviewIcon.lua` 在物品升級介面的左右比較面板加 icon；右側 icon 顯示「升級後」的版本。
 
 **2026-08-11 起不再需要每季維護。** 舊版寫死了一張 `TRACK_BONUS_IDS`（veteran/champion/hero/myth 各 6 階的 bonusID，抄 KeystoneLoot 的 `data/upgrade_tracks.lua`），那張表已經刪掉了。**如果看到舊筆記說「每季要更新軌道表」，那是過期資訊。**
 

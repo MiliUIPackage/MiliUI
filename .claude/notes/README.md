@@ -167,7 +167,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | MCDM 借 Halo 的四件事：光環格引擎補位（groupSpacing 必須 0；「單點錨置中」跟 aura-containers 篇對立、待驗）／內建形狀／施放後音效／錨到單位框（2026-10-12 擴成錨定視窗、六單位五家）；SpellPopover Build upvalue 正好 60、Resources.lua 貼 200 local |
 | [project-miliui-cdm-rings.md](project-miliui-cdm-rings.md) | MCDM 圓環顯示 —— 改造暴雪 item 自己的 Cooldown（環形 swipe）不自建；圓環只收增益、正確用法是圓環群組；Masque 卸皮會還原暴雪方框、貼回整格不能讀 GetNumPoints；部分實機、README 清單未逐項勾 |
 | [project-miliui-cdm-skyriding.md](project-miliui-cdm-skyriding.md) | MCDM 天空騎術面板（Falcon 已從套組刪除、本機還載著就停用＋提醒）—— 接力對象 2026-10-11 改預設核心技能；發佈前欄位搬家用 `cfg.rev`（rev 不放預設值）；已上實機、README 清單未逐項勾 |
-| [project-miliui-qol.md](project-miliui-qol.md) | 米利的便利功能 MiliUI_QoL —— 本體純暴雪便利功能拆出；分頁由 QoL 向本體註冊（MiliUI.RegisterOptionsTab）、設定只有一份 ns.BuildBody；戰利品通知＝攔截→過濾→轉交 AlertFrame:OnEvent；分批搬家、Phase 3 前不 push |
+| [project-miliui-qol.md](project-miliui-qol.md) | 米利的便利功能 MiliUI_QoL —— 本體純暴雪便利功能拆出；分頁由 QoL 向本體註冊（MiliUI.RegisterOptionsTab）、設定只有一份 ns.BuildBody；戰利品通知＝攔截→過濾→轉交 AlertFrame:OnEvent；2026-10-15 四批搬完；本體插件強化只剩第三方 |
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | 米利的專注目標助手 MiliUI_Focus —— 拆出的獨立插件；一次性 SV 遷移印記；宣告走巨集書具名巨集（M+ 可送、點鈕才喊、戰鬥中內容不更新）；專注目標施法條在秘密值下的四條繞法、重要法術發光掛自己的宿主框；斷法巨集；不要 hook CreateFrame |
 | [project-feimiao-raidcommander.md](project-feimiao-raidcommander.md) | 肥喵的團隊指揮 FeiMiao_RaidCommander —— 私人插件、gitignore 不進版控（搬自 Cell 團隊工具）；四個元件的出現時機／磁吸／編輯模式拖曳、一律當保護框、待實機驗證清單 |
 | [project-miliui-crusadingstrikes.md](project-miliui-crusadingstrikes.md) | 德莫的征戰聖擊助手 MiliUI_CrusadingStrikes —— 12.1 普攻計時只剩「鏡射暴雪追蹤量條」；六條死路（含 AuraContainer 看不到天賦被動光環）、餵過秘密值的條不准再讀、MCDM 載入時讓位 |

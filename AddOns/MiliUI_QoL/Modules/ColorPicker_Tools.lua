@@ -1,13 +1,13 @@
 ------------------------------------------------------------
--- MiliUI: 調色盤工具列（暴雪 ColorPickerFrame 右邊多一塊）
+-- MiliUI_QoL: 調色盤工具列（暴雪 ColorPickerFrame 右邊多一塊）（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 內容：
 --   * R／G／B（0～255）與透明度（0～100，只在該次選色有透明度時出現）數值輸入
---   * 複製／貼上：存的是 RGBA，跨重載保留（MiliUI_DB.colorPicker.clip）
+--   * 複製／貼上：存的是 RGBA，跨重載保留（MiliUI_QoL_DB.colorPicker.clip）
 --   * 職業色一排：點一下套用
---   * 最近使用：按「確定」收下來的顏色，最多 7 個（MiliUI_DB.colorPicker.recent）
+--   * 最近使用：按「確定」收下來的顏色，最多 7 個（MiliUI_QoL_DB.colorPicker.recent）
 -- 所有呼叫暴雪調色盤的地方（聊天設定、套組各插件的色票、第三方插件）都會長出來。
--- 開關讀寫於 MiliUI_DB.colorPicker.enabled（預設 true），關掉就整塊藏起來。
+-- 開關讀寫於 MiliUI_QoL_DB.colorPicker.enabled（預設 true），關掉就整塊藏起來。
 --
 -- ## taint 紀律
 --
@@ -28,8 +28,11 @@
 --   * 有別的調色盤增強插件在就整支不動（兩塊工具列疊在一起沒意義）。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
 
-local W = ns.W
+-- ns.W（共用層）在 QoL 的 TOC 排在 Modules\ 之後，檔案載入當下還是 nil ⇒ Build 時才取
+-- （用到 W 的 Label／CreateSwatch／NumberRow 都只從 Build 裡叫）
+local W
 
 local PANEL_W   = 132
 local PAD       = 8
@@ -41,11 +44,14 @@ local RECENT_MAX = 7
 local OTHER_PICKERS = { "ColorPickerPlus", "ColorTools", "ColorPickerExtensions" }
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    local db = MiliUI_DB.colorPicker
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值，不碰存檔
+    local root = ns.db
+    if not root then return { enabled = true, recent = {} } end
+    local db = root.colorPicker
     if type(db) ~= "table" then
         db = {}
-        MiliUI_DB.colorPicker = db
+        root.colorPicker = db
     end
     if db.enabled == nil then db.enabled = true end
     if type(db.recent) ~= "table" then db.recent = {} end
@@ -269,6 +275,7 @@ local function NumberRow(parent, key, text, maxV, anchor)
 end
 
 local function Build()
+    W = W or ns.W
     panel = W.CreateFrame(nil, picker, PANEL_W, 200)
     panel:SetPoint("TOPLEFT", picker, "TOPRIGHT", 2, 0)
     panel:SetBackdropColor(0.06, 0.06, 0.06, 0.95)
@@ -409,7 +416,7 @@ ev:SetScript("OnEvent", function(self, event, name)
 end)
 
 ------------------------------------------------------------
--- 對外（給 Options/Tab_Enhance.lua 用）
+-- 對外（給 Options/Controls.lua 用）
 ------------------------------------------------------------
 ns.ColorPickerTools = {
     IsEnabled = IsEnabled,

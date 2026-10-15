@@ -11,7 +11,7 @@ metadata:
 
 做法：`SecureHandlerExecute` snippet 裡對 frame handle `Hide()`（拆分框不是保護框 ⇒ handle 只在脫戰有效，
 戰鬥中就不接手）。掛點用 `StackSplitFrame:HookScript("OnShow")` ＋ 延一幀（OnShow 時 OpenStackSplitFrame 還沒跑完），
-`owner` 只讀。實作：MiliUI_Merchant/Modules/BulkBuy.lua；同招先例 MiliUI/Enhance/GroupLootHistory_AutoClose.lua。
+`owner` 只讀。實作：MiliUI_Merchant/Modules/BulkBuy.lua；同招先例 MiliUI_QoL/Modules/GroupLootHistory_AutoClose.lua。
 
 通則：**暴雪框的 OnHide／OnShow 有副作用時，從插件碼 Show/Hide 它＝在插件執行裡跑那些副作用**，先看 OnHide 寫了什麼。
 

@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- MiliUI: 巨集視窗加高編輯區＋搜尋
+-- MiliUI_QoL: 巨集視窗加高編輯區＋搜尋（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 --   * 加高：巨集內文那一塊往下長 EXTRA_H，一次看得到整支巨集（255 字元上限，原本只有
 --     七行左右的高度）。只改高度、不改寬度：寬度一動就要改 UIPanel 的排版寬，
@@ -7,7 +7,7 @@
 --   * 搜尋：視窗右邊一塊自己的面板，輸入字串同時比對「通用」與「角色」兩邊的巨集名稱
 --     與內文。結果列滑過顯示全文；左鍵把巨集拿到游標上（直接放快捷列）；
 --     目前分頁裡符合的格子會畫一圈框，讓你自己點過去編輯。
--- 讀寫於 MiliUI_DB.macroFrame（tall／search，預設都開）。tall 改了要重載才生效。
+-- 讀寫於 MiliUI_QoL_DB.macroFrame（tall／search，預設都開）。tall 改了要重載才生效。
 --
 -- ## 為什麼搜尋「不幫你選中」那一格（這是整支最重要的一段）
 --
@@ -34,8 +34,10 @@
 --     （Blizzard_MacroUI.xml），玩家打字時由安全執行重新寫入，不受我們影響。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
 
-local W = ns.W
+-- ns.W（共用層）在 QoL 的 TOC 排在 Modules\ 之後，檔案載入當下還是 nil ⇒ BuildPanel 時才取
+local W
 
 local EXTRA_H   = 160
 local PANEL_W   = 230
@@ -44,11 +46,14 @@ local MAX_ROWS  = 20     -- 加高後放得下的列數
 local SHORT_ROWS = 13    -- 沒加高（原廠 424 高）時只畫這麼多列
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    local db = MiliUI_DB.macroFrame
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值，不碰存檔
+    local root = ns.db
+    if not root then return { tall = true, search = true } end
+    local db = root.macroFrame
     if type(db) ~= "table" then
         db = {}
-        MiliUI_DB.macroFrame = db
+        root.macroFrame = db
     end
     if db.tall == nil then db.tall = true end
     if db.search == nil then db.search = true end
@@ -203,6 +208,7 @@ local function ShowRowTip(row)
 end
 
 local function BuildPanel()
+    W = W or ns.W
     local f = _G.MacroFrame
     visibleRows = tallApplied and MAX_ROWS or SHORT_ROWS
     panel = W.CreateFrame(nil, f, PANEL_W, 200)
@@ -332,7 +338,7 @@ ev:SetScript("OnEvent", function(self, event, name)
 end)
 
 ------------------------------------------------------------
--- 對外（給 Options/Tab_Enhance.lua 用）
+-- 對外（給 Options/Controls.lua 用）
 ------------------------------------------------------------
 ns.MacroFrameTools = {
     IsTall = function() return GetDB().tall end,

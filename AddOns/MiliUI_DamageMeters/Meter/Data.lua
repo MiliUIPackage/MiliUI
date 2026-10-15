@@ -472,7 +472,7 @@ end
 --
 -- ⚠ 用 `C_PartyInfo.IsPartyWalkIn()`，**不要用 `IsDelveInProgress()`**。
 --   本機的證據很一致：Plumber 與 Cell 都把 `IsDelveInProgress` 註解掉改用這支，
---   我們自己的 MiliUI/Enhance/Delves_MarkButton.lua 也是（實機驗證過，
+--   我們自己的 MiliUI_QoL/Modules/Delves_MarkButton.lua 也是（實機驗證過，
 --   見 notes/wow-delve-detection）。EUI 用的是大家已經放棄的那支。
 --
 -- ⚠ 已知延遲：**離開探究的那一瞬間它還會回 true**（Plumber 的 API.lua 為此加了

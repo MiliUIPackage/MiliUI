@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- CraftingOrders_RewardColumn
+-- CraftingOrders_RewardColumn（MiliUI_QoL，2026-10 從本體 MiliUI/Enhance 搬來）
 -- 在「製作訂單」(顧客分頁) 的訂單列表新增一個獨立的「獎勵」欄位，顯示 NPC
 -- 訂單的獎勵物品圖示。欄位標題不可排序 (用 AddUnsortableFixedWidthColumn)。
 --
@@ -10,7 +10,14 @@
 --      我們的欄位，並重跑 Arrange() 重新排版。
 --   3. 只在 Flat browse 模式 (顧客 / 公開 / 個人) 加入；Bucketed 模式
 --      (按配方聚合) 沒有單筆訂單概念，會跳過。
+--
+-- ⚠ 模板 MiliUICrafterTableCellRewardsTemplate 在同目錄的 .xml（TOC 排在本檔之前），
+--   XML 擋不了舊本體閘：舊本體＋QoL 同時載入時模板會被定義兩次。兩份內容一模一樣、
+--   mixin 是照名字在建 cell 時才解析的全域 ⇒ 誰後定義都一樣；本檔被下面的閘擋掉，
+--   不會蓋掉舊本體的 MiliUICrafterTableCellRewardsMixin，欄位也只由舊本體加一次。
 --------------------------------------------------------------------------------
+local _, ns = ...
+if ns.legacyCore then return end
 
 local MAX_ICONS    = 4
 local ICON_SIZE    = 20

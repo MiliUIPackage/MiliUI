@@ -100,7 +100,7 @@ SlashCmdList.MILIUIQUEST = function(msg)
 end
 
 ------------------------------------------------------------
--- 任務自動化的對外 API（給 MiliUI 本體的「便利功能」分頁用）
+-- 任務自動化的對外 API（給 MiliUI_QoL 的「便利功能」設定用）
 --
 -- 本體有一份基本型的自動交接任務（2026-10 起在 MiliUI_QoL/Modules/Quest_Automation.lua）。
 -- 這支有載入的時候本體那份整個不註冊事件，本體設定頁的兩個開關改成讀寫

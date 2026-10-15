@@ -242,7 +242,7 @@ BugGrabber 本 session 相關錯誤；被動記錄 SCENARIO_*／WORLD_STATE_TIME
 - **EllesmereUI 的授權是 All rights reserved**（原始碼已不在本機）：程式碼一行都不能貼，連註解都不行；可以學的是事實（哪個 API 會污染、事件流程、暴雪資產名）。
 
 ## 跟本體基本型自動交接任務的分工（2026-09-25）
-本體 `MiliUI/Enhance/Quest_Automation.lua` 是基本型（Shift 暫停、特殊對話選項不動、多獎勵／收金幣不交、多個可接不挑、秒接不學習）。
+本體 `MiliUI_QoL/Modules/Quest_Automation.lua` 是基本型（Shift 暫停、特殊對話選項不動、多獎勵／收金幣不交、多個可接不挑、秒接不學習）。
 判準是全域表 `MiliUI_QuestAutomation`（QT 的 `Api.lua`）在不在：在 ⇒ 本體不註冊任何任務事件，設定頁開關改讀寫 QT 的 `ns.db.automation`，`MiliUI_DB.quest` 只是鏡像；
 QT 的 ns.db 要等它自己的 PLAYER_LOGIN，同步延一幀。`MiliUI_DB.quest.dirty`：QT 不在時改過開關 ⇒ QT 回來時推過去，否則以 QT 為準抄回。
 **`MiliUI_QuestAutomation` 改名＝兩邊各接一次。** 待實機驗證。

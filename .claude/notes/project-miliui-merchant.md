@@ -81,7 +81,7 @@ Shift 點商品、錢跟背包都夠買**超過一組**（`GetMerchantItemMaxSta
 - 掛點只有 `StackSplitFrame:HookScript("OnShow")`，欄位只讀 `owner`；**延一幀才接手**（OnShow 時 `OpenStackSplitFrame` 還沒跑完）。
 - ⚠ **關掉原生拆分框不能從插件 Lua 直接 `Hide()`**：它的 OnHide 會 `RunBinding(…, "up")`，按住的若是快捷列鍵就是插件執行去跑保護動作 ⇒ 封鎖。
   改在 secure snippet 裡對 handle Hide（受限環境只在脫戰有效 ⇒ **戰鬥中整個功能不接手**）。規則見 [[wow-stacksplit-onhide-runbinding]]，
-  套組先例 `MiliUI/Enhance/GroupLootHistory_AutoClose.lua`。
+  套組先例 `MiliUI_QoL/Modules/GroupLootHistory_AutoClose.lua`。
 - `BuyMerchantItem` 不是保護函式；視窗全是自己的框。
 
 ## 待驗證（剩下的）

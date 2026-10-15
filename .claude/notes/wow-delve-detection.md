@@ -8,7 +8,7 @@ metadata:
   modified: 2026-08-24T14:10:26.375Z
 ---
 
-三件事三個來源，都在 `MiliUI/Enhance/Delves_MarkButton.lua` 實際跑過（2026-08-24）。
+三件事三個來源，都在 `MiliUI_QoL/Modules/Delves_MarkButton.lua` 實際跑過（2026-08-24）。
 
 **在不在探究裡** → `C_PartyInfo.IsPartyWalkIn()`。
 ⚠ **不要用 `C_DelvesUI.HasActiveDelve(mapID)`**：在探究裡重新登入時會失準。

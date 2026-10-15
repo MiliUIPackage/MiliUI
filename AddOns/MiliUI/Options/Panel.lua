@@ -41,9 +41,6 @@ local bannerVersion, bannerNewest
 ------------------------------------------------------------
 local tabs = {
     { id = "addons",  label = "插件總覽",   order = 10 },
-    -- ⚠ 過渡期分頁：便利功能拆成 MiliUI_QoL 的期間，還沒搬走的模組控件暫住這裡
-    --   （Tab_QoL.lua）。全部搬完就整個刪掉，連同這一行。
-    { id = "qol-legacy", label = "便利功能（舊）", order = 25 },
     { id = "enhance", label = "插件強化",   order = 30 },
     -- 戰鬥遮罩不蓋這一頁：唯讀的儀表板，沒有任何會被戰鬥擋下的動作，
     -- 而「戰鬥中插件吃多少 CPU」正好是最需要看的時候（首領戰平均那個指標就是為此存在）
@@ -326,9 +323,9 @@ local function AboutLines()
         "|cff8888cc•|r  |cffffd200插件總覽|r — 檢視套組收錄的插件、開啟各插件設定、勾選啟用或停用",
     }
     if tabById.qol then
-        lines[#lines + 1] = "|cff8888cc•|r  |cffffd200便利功能|r — 戰利品通知過濾、商人自動賣垃圾、骰裝提示過濾等省事的設定"
+        lines[#lines + 1] = "|cff8888cc•|r  |cffffd200便利功能|r — 商人自動修裝與賣垃圾、任務自動接交、骰裝提示過濾、戰利品通知等省事的設定"
     end
-    lines[#lines + 1] = "|cff8888cc•|r  |cffffd200插件強化|r — 施法條美化、拍賣行篩選、鑰石發光等注入式功能"
+    lines[#lines + 1] = "|cff8888cc•|r  |cffffd200插件強化|r — 施法條美化、鑰石發光、聊天視窗樣式等第三方插件的強化"
     lines[#lines + 1] = "|cff8888cc•|r  |cffffd200效能監控|r — 看每個插件吃掉多少 CPU 與記憶體，揪出拖慢遊戲的那一個"
     lines[#lines + 1] = "|cff8888cc•|r  |cffffd200預設值匯入|r — 一鍵匯入 MiliUI 精心調校的插件設定"
     lines[#lines + 1] = ""

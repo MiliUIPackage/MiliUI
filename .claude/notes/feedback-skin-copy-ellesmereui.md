@@ -11,7 +11,7 @@ metadata:
 - 樣式 ＝ 我們的 Tokens／原語（設定視窗皮、提示皮、按鈕兩種變體），見 [[project-miliui-skin]]。
 - 契約（STYLE.md ③、check_skin.py）照舊：它用了我們禁止的動作（在暴雪框實例上 hooksecurefunc、HookScript OnShow、重排、讀尺寸）就換成白名單內的等價做法或少做，並記下「照抄不了的地方」。
 - **只有就位確認**准許照它越過契約（OnShow 上皮、量寬、重錨），越界動作要在配方檔頭列白名單；lint 的 `skin-lint: readycheck-allowlist` 註記只在 `Skins/ReadyCheck.lua` 有效。
-- 功能性的東西（不是皮，例如「戰利品擲骰視窗自動關閉」）放 `MiliUI/Enhance/`，不塞進 MiliUI_Skin（已照做：`MiliUI/Enhance/GroupLootHistory_AutoClose.lua`）。
+- 功能性的東西（不是皮，例如「戰利品擲骰視窗自動關閉」）放 `MiliUI/Enhance/`，不塞進 MiliUI_Skin（已照做：`MiliUI_QoL/Modules/GroupLootHistory_AutoClose.lua`）。
 
 之後實際發生的事（事實，不改偏好）：09-24 起「照 Elles」又開了幾個契約例外，但都收在 Engine 或檔頭註明、不是另開白名單——
 `Engine.ShiftRoot`／`Reanchor`／`Resize` 三支重排例外，以及 `Skins/Menu.lua` 把選單底直接畫在暴雪那張貼圖上（行尾 `skin-lint: own-frame` 放行）。

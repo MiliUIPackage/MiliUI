@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- MiliUI: 探究「標記敦敦」按鈕
+-- MiliUI_QoL: 探究「標記敦敦」按鈕（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 在**豐碩探究**裡，而且探究等級已經到 3（寶藏獵人）時，畫面上多一顆按鈕，
 -- 點一下就跑一串巨集：清目標、指定敦敦、標上橘圈、對它報點（內容見下面的 MACRO_LINES）。
@@ -14,8 +14,12 @@
 -- 名字目前只有繁中的「敦敦」。其他語系的叫法還沒查，所以非 zhTW 的客戶端不啟用
 -- （硬套一個查不到的名字，巨集只會 /tar 失敗，比不顯示更糟）。
 --
--- 讀寫於 MiliUI_DB.delveMarkButton（boolean，預設開）與 .delveMarkButtonPos。
+-- 讀寫於 MiliUI_QoL_DB.delveMarkButton（boolean，預設開）與 .delveMarkButtonPos。
+--
+-- 按鈕外觀借本體的 MiliUI.Style.ApplyDarkButton（軟相依）：沒裝本體時退回素面按鈕。
 ------------------------------------------------------------
+local _, ns = ...
+if ns.legacyCore then return end
 
 local MIN_LEVEL   = 3            -- 探究**等級**（賽季軌道），不是探究的難度層級
 local TARGET_NAME = "敦敦"
@@ -89,15 +93,21 @@ local BOUNTIFUL_NAME_MATCH = "豐"
 ------------------------------------------------------------
 -- 設定
 ------------------------------------------------------------
+-- 回傳的是根表（delveMarkButton／delveMarkButtonPos 都是頂層 key）
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    if MiliUI_DB.delveMarkButton == nil then
-        MiliUI_DB.delveMarkButton = true
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡
+    -- （事件最早是 PLAYER_ENTERING_WORLD），萬一有就給一份預設值，不碰存檔
+    local root = ns.db
+    if not root then
+        return { delveMarkButton = true, delveMarkButtonPos = { x = DEFAULT_POS.x, y = DEFAULT_POS.y } }
     end
-    if type(MiliUI_DB.delveMarkButtonPos) ~= "table" then
-        MiliUI_DB.delveMarkButtonPos = { x = DEFAULT_POS.x, y = DEFAULT_POS.y }
+    if root.delveMarkButton == nil then
+        root.delveMarkButton = true
     end
-    return MiliUI_DB
+    if type(root.delveMarkButtonPos) ~= "table" then
+        root.delveMarkButtonPos = { x = DEFAULT_POS.x, y = DEFAULT_POS.y }
+    end
+    return root
 end
 
 local function IsEnabled()
@@ -344,7 +354,7 @@ watcher:SetScript("OnEvent", function(_, event)
 end)
 
 ------------------------------------------------------------
--- 對外 API（給 Options/Tab_Enhance.lua 用）
+-- 對外 API（給 Options/Controls.lua 用）
 ------------------------------------------------------------
 local function Say(...)
     print("|cff4DD2FF[米利UI 探究]|r", ...)

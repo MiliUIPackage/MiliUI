@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- ItemUpgrade_PreviewIcon
+-- ItemUpgrade_PreviewIcon（MiliUI_QoL，2026-10 從本體 MiliUI/Enhance 搬來）
 -- 物品升級介面（ItemUpgradeFrame）的左右屬性比較面板不顯示物品 icon，
 -- 在兩個面板右上角各補一個 icon，mouseover 顯示完整物品 tooltip，
 -- 讓塑形收藏類 tooltip 插件（CanIMogIt 等）能接手。
@@ -18,6 +18,8 @@
 -- 這個關係跨季不變。難點只剩「連結裡哪一個 bonusID 才是軌道的」，用
 -- GetDetailedItemLevelInfo 對每個候選試算 ilvl 來驗證即可。
 --------------------------------------------------------------------------------
+local _, ns = ...
+if ns.legacyCore then return end
 
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ItemUpgradeUI", function()
     if not ItemUpgradeFrame then return end

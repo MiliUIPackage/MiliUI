@@ -13,7 +13,7 @@ metadata:
 
 **How to apply（兩種寫法，repo 裡各有一支活的實作）：**
 - **raidtarget 安全動作**：`SecureActionButtonTemplate` + 屬性 `type1="raidtarget"`、`marker=1~8`、`action1="set"`（另有 toggle/clear/clear-all/set-unmarked，見 Blizzard_FrameXML/SecureTemplates.lua 的 SECURE_ACTIONS.raidtarget）、`unit="focus"`。含保護按鈕的彈出選單，開關要用 SecureHandlerClickTemplate 的 `_onclick` 快照 + `SecureHandlerWrapScript` postbody 收合（戰鬥中一般程式不能 Show/Hide 保護框架），母框架的 Show/Hide/拖曳要 InCombatLockdown guard + 延後到 PLAYER_REGEN_ENABLED。實作：`AddOns/MiliUI_Focus/Modules/MarkBar.lua`（[[project-miliui-focus-addon]]；2026-08-22 前在 MiliUI/Enhance/FocuserBar.lua）。
-- **macro 型安全按鈕跑 `/tm`**：巨集內文建立時寫死、交給暴雪的巨集執行環境，戰鬥中才有效；顯示切換一律過 InCombatLockdown 閘、延到脫戰再補。實作：`AddOns/MiliUI/Enhance/Delves_MarkButton.lua`（豐碩探究標記敦敦）。
+- **macro 型安全按鈕跑 `/tm`**：巨集內文建立時寫死、交給暴雪的巨集執行環境，戰鬥中才有效；顯示切換一律過 InCombatLockdown 閘、延到脫戰再補。實作：`MiliUI_QoL/Modules/Delves_MarkButton.lua`（豐碩探究標記敦敦）。
 - 私人插件 FeiMiao_RaidCommander 的標記列同一套（不進版控，[[project-feimiao-raidcommander]]）。
 
 另外三條相關規則（Focuser 重構時踩到）：
