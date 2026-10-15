@@ -3637,9 +3637,14 @@ end)
 --! come to the same thing here: the answer lives in the unit's TOOLTIP, and there is no
 --! readable tooltip for a unit you are not allowed to identify.
 --!
---! Cached by GUID, which is readable exactly where this layer runs. Scanning a tooltip four
---! times a second per button would be the most expensive thing on the row by a wide margin;
---! this way it is one scan per creature, ever.
+--! Cached by GUID. Scanning a tooltip four times a second per button would be the most
+--! expensive thing on the row by a wide margin; this way it is one scan per creature, ever.
+--!
+--! ⚠ The GUID is read HERE, not taken from the button's `__displayedGuid`: OnTick only
+--! refreshes that cache while UnitGUID is plaintext, so after a swap to an identity-secret
+--! unit it still holds the previous creature's GUID -- readable, and wrong. The gate is the
+--! engine's own `C_Secrets.ShouldUnitIdentityBeSecret` (the nameplate rule asks the same),
+--! and a secret identity is never cached: the next readable unit gets a real scan.
 --!
 --! ⚠ Wrapped in do...end on purpose: UnitButton.lua's main chunk is close to Lua's
 --! 200-local ceiling, and a block's locals give their registers back at its end.
@@ -3666,22 +3671,31 @@ do
     local skip = false
     for _, line in ipairs(info.lines) do
         local t = line.type
+        --! 12.1: a line's text can be a secret string even on a unit whose identity is
+        --! readable (another player's name, for one). Comparing or pattern-matching a
+        --! secret is a hard Lua error, so an unreadable line is treated as "not ours".
+        local text = F.Desecret(line.leftText)
         if t == Enum.TooltipDataLineType.QuestPlayer then
             --! a NAME here means the objectives under it belong to that group member
-            skip = line.leftText ~= playerName
+            skip = text ~= playerName
         elseif t == Enum.TooltipDataLineType.QuestTitle then
             skip = false
-        elseif not skip and t == Enum.TooltipDataLineType.QuestObjective and line.leftText then
-            local have, need = strmatch(line.leftText, "(%d+)/(%d+)")
+        elseif not skip and t == Enum.TooltipDataLineType.QuestObjective and text then
+            local have, need = strmatch(text, "(%d+)/(%d+)")
             if have and have ~= need then return true end
-            local percent = strmatch(line.leftText, "(%d+)%%")
+            local percent = strmatch(text, "(%d+)%%")
             if percent and percent ~= "100" then return true end
         end
     end
     return false
     end
 
-    function IsQuestUnit(unit, guid)
+    function IsQuestUnit(unit)
+    if C_Secrets and C_Secrets.ShouldUnitIdentityBeSecret
+        and F.ToBool(C_Secrets.ShouldUnitIdentityBeSecret(unit)) then
+        return false
+    end
+    local guid = F.Desecret(UnitGUID(unit))
     if not guid then return false end
     local cached = questCache[guid]
     if cached == nil then
@@ -3710,15 +3724,13 @@ local function EliteType(unit)
     --! layer for those and this row is not where you go looking for a rare
 end
 
---! guid: the button's cached, known-readable GUID (nil inside instances, where the quest
---! layer does not run anyway)
-local function ReactionColor(unit, guid)
+local function ReactionColor(unit)
     --! quest sits above everything the nameplate chain does except class colours, and Cell
     --! already colours players by class before this is ever called
     if partyTargetColors["quest"]
         and Cell.vars.instanceType ~= "party" and Cell.vars.instanceType ~= "raid"
         and Cell.vars.instanceType ~= "pvp" and Cell.vars.instanceType ~= "arena"
-        and IsQuestUnit(unit, guid) then
+        and IsQuestUnit(unit) then
         return partyTargetColors["quest"]
     end
 
@@ -3936,7 +3948,7 @@ UnitButton_UpdateHealthColor = function(self)
     elseif self.isPartyTarget then -- fix from MiliUI: npc on a party-target button
         --! `or` the stock green, not an assert: a palette key can be missing for one frame
         --! after a profile swap, and a wrong shade beats a Lua error on a health update
-        local c = ReactionColor(unit, self.__displayedGuid) or PARTY_TARGET.NPC_GREEN
+        local c = ReactionColor(unit) or PARTY_TARGET.NPC_GREEN
         baseR, baseG, baseB = c[1], c[2], c[3]
         barR, barG, barB, lossR, lossG, lossB = F.GetHealthBarColor(self.states.healthPercent, self.states.isDeadOrGhost or self.states.isDead, baseR, baseG, baseB)
     else -- npc
