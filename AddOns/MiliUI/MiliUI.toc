@@ -60,7 +60,6 @@ Enhance\GameMenu_MiliUIButton.lua
 Enhance\VersionCheck.lua
 Enhance\TinyInspectRemake_GearSlots.lua
 Enhance\TinyInspectRemake_TrackColors.lua
-Enhance\GameplayCVars.lua
 Enhance\WorldMapCoords.lua
 Enhance\Delves_MarkButton.lua
 Enhance\Chattynator_TabStyle.lua
@@ -70,13 +69,9 @@ Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
 Enhance\MplusAdventureGuide_Masque.lua
 Enhance\LegacyAddons.lua
-Enhance\Merchant_Automation.lua
-Enhance\Quest_Automation.lua
-Enhance\QuestReward_BestValue.lua
 Enhance\ColorPicker_Tools.lua
 Enhance\MacroFrame_Tools.lua
 Enhance\FriendsList_ClassColor.lua
-Enhance\Trade_Whisper.lua
 Enhance\EditMode_BagsAlpha.lua
 Enhance\TaintLog.lua
 Enhance\DebugMode.lua

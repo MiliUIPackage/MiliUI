@@ -67,7 +67,8 @@ end
 local MIGRATE_KEYS = {
     -- Phase 1（骰裝過濾／擲骰確認／戰利品擲骰視窗）
     "bonusRollFilter", "bonusRollConfirm", "lootHistory",
-    -- Phase 2："merchant", "quest", "questRewardValue", "tradeWhisper", "cvarEnforce",
+    -- Phase 2（商人／任務／任務獎勵標示／交易密語／遊戲行為 CVar）
+    "merchant", "quest", "questRewardValue", "tradeWhisper", "cvarEnforce",
     -- Phase 3："delveMarkButton", "delveMarkButtonPos", "hideWorldMapCoords", "macroFrame",
     --          "colorPicker", "ahFeatureEnabled", "ahAutoCurrentExpansion",
     --          "friendsClassColor", "friendsHideMaxLevel",

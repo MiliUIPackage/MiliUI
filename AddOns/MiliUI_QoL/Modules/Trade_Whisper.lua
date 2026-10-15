@@ -1,10 +1,10 @@
 ------------------------------------------------------------
--- MiliUI: 交易完成後密語對方明細
+-- MiliUI_QoL: 交易完成後密語對方明細（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 交易成功的那一刻，把「給了什麼、收到什麼、金額」整理成一則（太長就拆成幾則）密語
 -- 送給交易對象，雙方都留一份聊天記錄可以對帳。物品用連結，對方點得開。
 -- 預設關閉（這是替玩家對外發訊息的功能，要玩家自己打開）。
--- 讀寫於 MiliUI_DB.tradeWhisper（boolean）。
+-- 讀寫於 MiliUI_QoL_DB.tradeWhisper（boolean）。
 --
 -- ## 流程
 --
@@ -24,6 +24,7 @@
 -- 不硬送（硬送會彈封鎖對話框）。對方名字或物品資料讀到秘密值也一樣只印不送。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
 
 local LOCALE = GetLocale()
 local T = ({
@@ -42,8 +43,9 @@ end
 local MAX_BYTES = 240       -- 一則聊天上限 255，留一點餘裕
 local TRADE_SLOTS = 6       -- 第 7 格是「不交易」的附魔欄，不算轉手
 
+-- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前一律當關閉
 local function IsEnabled()
-    return MiliUI_DB and MiliUI_DB.tradeWhisper == true
+    return ns.db and ns.db.tradeWhisper == true
 end
 
 local function Plain(v)
@@ -175,13 +177,13 @@ boot:SetScript("OnEvent", function(self)
 end)
 
 ------------------------------------------------------------
--- 對外（給 Options/Tab_QoL.lua 用）
+-- 對外（給 Options/Controls.lua 用）
 ------------------------------------------------------------
 ns.TradeWhisper = {
     IsEnabled = IsEnabled,
     SetEnabled = function(v)
-        if not MiliUI_DB then MiliUI_DB = {} end
-        MiliUI_DB.tradeWhisper = v and true or false
+        if not ns.db then return end
+        ns.db.tradeWhisper = v and true or false
         Sync()
     end,
 }

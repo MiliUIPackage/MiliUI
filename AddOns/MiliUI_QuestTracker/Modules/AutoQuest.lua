@@ -506,7 +506,7 @@ end
 --
 -- ⚠ 米利UI 套組已經不內附 Leatrix Plus（2026-08-29 移除），這段仍然要留著：
 --   玩家自己裝回來時 LeaPlusDB 才會存在，沒裝就靜音（同
---   MiliUI/Enhance/Merchant_Automation.lua 的判斷）。
+--   MiliUI_QoL/Modules/Merchant_Automation.lua 的判斷）。
 ------------------------------------------------------------
 function AQ.LeatrixConflict()
     local db = _G.LeaPlusDB

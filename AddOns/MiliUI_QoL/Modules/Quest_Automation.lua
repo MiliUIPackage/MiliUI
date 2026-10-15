@@ -1,15 +1,15 @@
 ------------------------------------------------------------
--- MiliUI: 自動交接任務（基本型）
+-- MiliUI_QoL: 自動交接任務（基本型）（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- ── 跟米利的任務追蹤器的分工 ──
 -- 進階型在 MiliUI_QuestTracker/Modules/AutoQuest.lua（多選一不挑、要花錢的不交、
 -- 接不到的任務記起來下次先等…）。同一時間只有一邊在做：
 --   * 任務追蹤器有載入 ⇒ 這支**完全不註冊任務事件**。設定頁的兩個開關透過
---     MiliUI_QuestAutomation 讀寫任務追蹤器那份，這裡的 MiliUI_DB.quest 只是鏡像，
+--     MiliUI_QuestAutomation 讀寫任務追蹤器那份，這裡的 MiliUI_QoL_DB.quest 只是鏡像，
 --     哪天任務追蹤器被停用，就從鏡像接著用。
---   * 沒有任務追蹤器 ⇒ 這支用 MiliUI_DB.quest 做最基本的交任務／接任務。
+--   * 沒有任務追蹤器 ⇒ 這支用 MiliUI_QoL_DB.quest 做最基本的交任務／接任務。
 -- ⚠ 判準是「MiliUI_QuestAutomation 那張表在不在」（任務追蹤器的 Api.lua 定義）。
---   它在檔案層就建好，所以本體 PLAYER_LOGIN 時一定看得到；但任務追蹤器的 ns.db
+--   它在檔案層就建好，所以這支的 PLAYER_LOGIN 時一定看得到；但任務追蹤器的 ns.db
 --   要等它自己的 PLAYER_LOGIN，讀寫設定的同步要延一幀。
 --
 -- ── 基本型做什麼 ──
@@ -29,17 +29,27 @@
 --   「記住哪些任務要先等」是任務追蹤器的進階功能。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
+
+-- 預設開，跟任務追蹤器的預設一致
+local DEFAULTS = {
+    autoTurnIn = true,
+    autoAccept = true,
+}
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    local db = MiliUI_DB.quest
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值的拷貝，不碰存檔
+    local root = ns.db
+    if not root then return CopyTable(DEFAULTS) end
+    local db = root.quest
     if type(db) ~= "table" then
         db = {}
-        MiliUI_DB.quest = db
+        root.quest = db
     end
-    -- 預設開，跟任務追蹤器的預設一致
-    if db.autoTurnIn == nil then db.autoTurnIn = true end
-    if db.autoAccept == nil then db.autoAccept = true end
+    for k, v in pairs(DEFAULTS) do
+        if db[k] == nil then db[k] = v end
+    end
     return db
 end
 
@@ -221,7 +231,7 @@ boot:SetScript("OnEvent", function(self)
 end)
 
 ------------------------------------------------------------
--- 對外 API（給 Options/Tab_QoL.lua）
+-- 對外 API（給 Options/Controls.lua）
 ------------------------------------------------------------
 MiliUI_QuestBasic = {
     IsAutoTurnIn = IsTurnIn,

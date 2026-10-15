@@ -1,12 +1,14 @@
 ------------------------------------------------------------
--- MiliUI: 商人自動化（自動賣垃圾 ＋ 自動修裝）
+-- MiliUI_QoL: 商人自動化（自動賣垃圾 ＋ 自動修裝）（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 開商人視窗時自動發生的事：先賣垃圾，再修裝。
 --
 -- ── 自動修裝跟資訊列的分工（2026-09-23）──
 -- 9/19 曾經把修裝整個搬去 MiliUI_InfoBar，結果**沒開資訊列的玩家就沒修裝了**。
 -- 現在兩邊都有修裝，但同一時間只有一邊在做、設定只有一份：
---   * 本體在 ⇒ 本體修，設定就是這裡的 MiliUI_DB.merchant.autoRepair／guildRepair。
+--   * 本體在 ⇒ 本體修，設定就是這裡的 MiliUI_QoL_DB.merchant.autoRepair／guildRepair。
+--     （2026-10 起「本體」＝MiliUI_QoL；資訊列只認 MiliUI_MerchantAutomation 這個全域，
+--     不在乎它是誰建的。資訊列從 MiliUI_DB.merchant 的一次性遷移照舊有效：本體不刪舊資料）
 --     資訊列的開關（耐久面板、「修裝」分頁）透過下面的對外 API 讀寫這兩格，
 --     所以在任一邊關掉，另一邊看到的就是關的。
 --   * 只有資訊列 ⇒ 資訊列用自己的 db.repair 修（MiliUI_InfoBar/Core/AutoRepair.lua）。
@@ -36,21 +38,31 @@
 --      公會每日上限用完時第一下會失敗，第二下用個人的補完；全部由公會付掉的話
 --      第二下是空包彈。這是行之有年的寫法，別自作聰明改成只打一次。
 --
--- 讀寫於 MiliUI_DB.merchant（autoRepair 預設開、sellJunk 預設開、guildRepair
+-- 讀寫於 MiliUI_QoL_DB.merchant（autoRepair 預設開、sellJunk 預設開、guildRepair
 -- 預設關）。公會金庫花的是公會的錢，要不要用得由玩家自己說，不能替他決定。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
+
+local DEFAULTS = {
+    autoRepair = true,
+    sellJunk = true,
+    guildRepair = false,
+}
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    local db = MiliUI_DB.merchant
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值的拷貝，不碰存檔
+    local root = ns.db
+    if not root then return CopyTable(DEFAULTS) end
+    local db = root.merchant
     if type(db) ~= "table" then
         db = {}
-        MiliUI_DB.merchant = db
+        root.merchant = db
     end
-    if db.autoRepair == nil then db.autoRepair = true end
-    if db.sellJunk == nil then db.sellJunk = true end
-    if db.guildRepair == nil then db.guildRepair = false end
+    for k, v in pairs(DEFAULTS) do
+        if db[k] == nil then db[k] = v end
+    end
     return db
 end
 
@@ -193,7 +205,7 @@ frame:SetScript("OnEvent", function(_, event)
 end)
 
 ------------------------------------------------------------
--- 對外 API（給 Options/Tab_QoL.lua 與 MiliUI_InfoBar 用）
+-- 對外 API（給 Options/Controls.lua 與 MiliUI_InfoBar 用）
 --
 -- ⚠ IsAutoRepair 是資訊列判斷「本體會修裝」的依據（檔頭），不要改名。
 ------------------------------------------------------------

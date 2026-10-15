@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- GameplayCVars
+-- GameplayCVars（MiliUI_QoL，2026-10 從本體 MiliUI/Enhance 搬來）
 -- 每次載入（PLAYER_LOGIN）時強制套用使用者指定的 CVar 值，
 -- 覆蓋遊戲內建選項或其他插件寫入的值。
 --
@@ -10,7 +10,12 @@
 --   "ignore"  — 不強制，沿用遊戲設定
 --   "on"      — 強制設為 1
 --   "off"     — 強制設為 0
+--
+-- 設定讀寫於 MiliUI_QoL_DB.cvarEnforce[cvar]。套用在 PLAYER_LOGIN，晚於 QoL 自己
+-- ADDON_LOADED 的 DB.Init，讀得到搬好的值。
 --------------------------------------------------------------------------------
+local _, ns = ...
+if ns.legacyCore then return end
 
 local MODE_IGNORE = "ignore"
 local MODE_ON     = "on"
@@ -26,9 +31,12 @@ local CVARS = {
 local originalValues = {}
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    if not MiliUI_DB.cvarEnforce then MiliUI_DB.cvarEnforce = {} end
-    return MiliUI_DB.cvarEnforce
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前給一張空表（＝全部用預設），
+    -- 不碰存檔
+    local root = ns.db
+    if not root then return {} end
+    if not root.cvarEnforce then root.cvarEnforce = {} end
+    return root.cvarEnforce
 end
 
 local function IsValidMode(mode)
@@ -82,7 +90,7 @@ local function ApplyAll()
     end
 end
 
--- 暴露 API 給 Settings.lua 使用
+-- 暴露 API 給 Options/Controls.lua 使用
 MiliUI_CVarEnforce = {
     GetMode   = GetMode,
     SetMode   = SetMode,

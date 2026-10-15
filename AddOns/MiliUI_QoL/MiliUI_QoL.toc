@@ -2,9 +2,9 @@
 ## Title: MiliUI QoL
 ## Title-zhTW: |cff338FFF[便利]|r 米利的便利功能
 ## Title-zhCN: |cff338FFF[便利]|r 米利的便利功能
-## Notes: Quality-of-life tweaks for the Blizzard UI: filter the "You received" loot toasts by type and quality, and move where they appear.|n|n|cffffd200Usage: |r/mqol opens settings.
-## Notes-zhTW: MiliUI QoL|n|n米利的便利功能。|n|n只動暴雪介面、省你一個動作的小功能：拾取時跳出的「你獲得了」通知可以依種類與品質隱藏，也可以搬到別的位置。|n|n|cffffd200使用方法: |r/mqol 開啟設定。
-## Notes-zhCN: MiliUI QoL|n|n米利的便利功能。|n|n只动暴雪界面、省你一个动作的小功能：拾取时跳出的“你获得了”通知可以依种类与品质隐藏，也可以搬到别的位置。|n|n|cffffd200使用方法: |r/mqol 打开设置。
+## Notes: Auto repair and sell junk at vendors, auto accept and turn in quests, highlight the most valuable quest reward, bonus roll prompt filter and roll confirmation, macro search, number input for the color picker, class-colored friends list, and more.|n|n|cffffd200Usage: |r/mqol opens settings.
+## Notes-zhTW: MiliUI QoL|n|n米利的便利功能。|n|n商人自動修裝與賣垃圾、任務自動接交、任務獎勵標出最值錢的、星雲之核骰裝提示過濾與擲骰確認、巨集搜尋、調色盤直接輸入數值、好友名單職業色等。|n|n|cffffd200使用方法: |r/mqol 開啟設定。
+## Notes-zhCN: MiliUI QoL|n|n米利的便利功能。|n|n商人自动修理与卖垃圾、任务自动接受与交付、任务奖励标出最值钱的、额外战利品掷骰提示过滤与掷骰确认、宏搜索、调色板直接输入数值、好友列表职业颜色等。|n|n|cffffd200使用方法: |r/mqol 打开设置。
 ## Category: Interface
 ## Category-zhTW: 介面
 ## Category-zhCN: 界面
@@ -31,6 +31,11 @@ Modules\LootToastAnchor.lua
 Modules\BonusRoll_Filter.lua
 Modules\BonusRoll_Confirm.lua
 Modules\GroupLootHistory_AutoClose.lua
+Modules\GameplayCVars.lua
+Modules\Merchant_Automation.lua
+Modules\Quest_Automation.lua
+Modules\QuestReward_BestValue.lua
+Modules\Trade_Whisper.lua
 
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua

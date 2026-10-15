@@ -1,11 +1,11 @@
 ------------------------------------------------------------
--- MiliUI: 任務多選獎勵標出「賣給商人最值錢」的那件
+-- MiliUI_QoL: 任務多選獎勵標出「賣給商人最值錢」的那件（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 交任務、獎勵可以挑一件的時候，在商人售價（單價 × 數量）最高的那一格畫一圈金框。
--- 只是標記，不替玩家選 —— 自動交任務遇到多選本來就停下來留給玩家（Enhance/
+-- 只是標記，不替玩家選 —— 自動交任務遇到多選本來就停下來留給玩家（Modules/
 -- Quest_Automation.lua、MiliUI_QuestTracker 的 AutoQuest 都一樣），這裡補上「該選哪件」
 -- 的參考。同價就全部標；售價全是 0（不能賣）就不標。
--- 讀寫於 MiliUI_DB.questRewardValue（boolean，預設 true）。
+-- 讀寫於 MiliUI_QoL_DB.questRewardValue（boolean，預設 true）。
 --
 -- ## 範圍
 --
@@ -26,14 +26,19 @@
 --     不拿部分資料猜贏家。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
 
 local BORDER = { 1, 0.82, 0, 0.95 }     -- 跟共用層 W.fontEmphasis 同一個黃
 local FILL   = { 1, 0.82, 0, 0.10 }
 
+-- 回傳的是根表（questRewardValue 是頂層布林，不是子表）
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    if MiliUI_DB.questRewardValue == nil then MiliUI_DB.questRewardValue = true end
-    return MiliUI_DB
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值，不碰存檔
+    local root = ns.db
+    if not root then return { questRewardValue = true } end
+    if root.questRewardValue == nil then root.questRewardValue = true end
+    return root
 end
 
 local function IsEnabled() return GetDB().questRewardValue and true or false end
@@ -180,7 +185,7 @@ end)
 ev:RegisterEvent("PLAYER_LOGIN")
 
 ------------------------------------------------------------
--- 對外（給 Options/Tab_QoL.lua 用）
+-- 對外（給 Options/Controls.lua 用）
 ------------------------------------------------------------
 ns.QuestRewardValue = {
     IsEnabled = IsEnabled,
