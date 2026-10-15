@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- MiliUI: 星雲之核骰裝提示過濾
+-- MiliUI_QoL: 星雲之核骰裝提示過濾（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 12.x 的星雲之核（Nebulous Voidcore）骰裝提示（BonusRollFrame）在探究、
 -- 儀式地點、低層 M+、低難度團本這些骰不到高品質裝備的內容結束時也會跳。
@@ -22,8 +22,10 @@
 -- M+ 層數三層備援：完賽資訊 → 進行中鑰石 → 事件的 treasureContextLevel。
 -- 全部拿不到就顯示 —— 寧可多跳一次，不要吃掉傳奇品質的機會。
 --
--- 讀寫於 MiliUI_DB.bonusRollFilter。
+-- 讀寫於 MiliUI_QoL_DB.bonusRollFilter（key 名與形狀同舊的 MiliUI_DB.bonusRollFilter，DB.lua 遷移）。
 ------------------------------------------------------------
+local _, ns = ...
+if ns.legacyCore then return end
 
 -- +8 以上完賽的寶庫已是傳奇軌道，骰裝才有機會出傳奇品質
 local MPLUS_SHOW_MIN = 8
@@ -48,11 +50,14 @@ local DEFAULTS = {
 }
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    local db = MiliUI_DB.bonusRollFilter
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值的拷貝，不碰存檔
+    local root = ns.db
+    if not root then return CopyTable(DEFAULTS) end
+    local db = root.bonusRollFilter
     if not db then
         db = {}
-        MiliUI_DB.bonusRollFilter = db
+        root.bonusRollFilter = db
     end
     for k, v in pairs(DEFAULTS) do
         if db[k] == nil then db[k] = v end
@@ -107,7 +112,7 @@ if type(BonusRollFrame_StartBonusRoll) == "function" then
 end
 
 ------------------------------------------------------------
--- 對外 API（給 Options/Tab_Enhance.lua 用）
+-- 對外 API（給 Options/Controls.lua 用）
 ------------------------------------------------------------
 MiliUI_BonusRollFilter = {
     IsEnabled  = function() return GetDB().enabled and true or false end,

@@ -65,7 +65,8 @@ end
 --   * 全程唯讀 MiliUI_DB，一個字都不寫（本體不刪舊資料，InfoBar 的遷移還靠它）
 ------------------------------------------------------------
 local MIGRATE_KEYS = {
-    -- Phase 1："bonusRollFilter", "bonusRollConfirm", "lootHistory",
+    -- Phase 1（骰裝過濾／擲骰確認／戰利品擲骰視窗）
+    "bonusRollFilter", "bonusRollConfirm", "lootHistory",
     -- Phase 2："merchant", "quest", "questRewardValue", "tradeWhisper", "cvarEnforce",
     -- Phase 3："delveMarkButton", "delveMarkButtonPos", "hideWorldMapCoords", "macroFrame",
     --          "colorPicker", "ahFeatureEnabled", "ahAutoCurrentExpansion",

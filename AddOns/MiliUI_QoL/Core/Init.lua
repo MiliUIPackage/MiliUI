@@ -36,6 +36,10 @@ end
 -- ⚠ 第二個條件不能省：拆分期間（本體已有 RegisterOptionsTab、模組分批搬走）骰裝過濾
 --   還在本體，只看第一個條件會把開發中的本體當成舊版，「便利功能」分頁就永遠掛不上去。
 --   拆分期間本體還留著的模組，QoL 這邊一定還沒有，不會重複執行。
+-- ⚠ Phase 1 起骰裝過濾本身也搬進 QoL（Modules/BonusRoll_Filter.lua，沿用同一個全域名），
+--   判準照樣成立：本檔在 TOC 排在 Core\ 那一批，早於 Modules\ 的任何一支，QoL 自己那份
+--   還沒定義這個全域 ⇒ 此刻看得到的，一定是先載入的舊本體定義的。
+--   ⚠ 所以**不要把本檔挪到 Modules\BonusRoll_Filter.lua 之後**，也不要在更早的檔案裡碰這個全域。
 --
 -- 每支從本體搬來的模組，檔頭第一行都是 `if ns.legacyCore then return end`。
 -- 戰利品通知（Modules/LootToast.lua）是新功能，不受這道閘影響。

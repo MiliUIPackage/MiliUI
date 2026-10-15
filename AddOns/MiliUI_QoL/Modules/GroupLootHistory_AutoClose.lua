@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- MiliUI: 「戰利品擲骰」視窗隱藏／自動關閉（GroupLootHistoryFrame）
+-- MiliUI_QoL: 「戰利品擲骰」視窗隱藏／自動關閉（GroupLootHistoryFrame）
 --
 -- 團隊裡每掉一件裝備，暴雪就把「戰利品擲骰」清單視窗（誰擲了什麼、誰贏了）
 -- 自動彈出來。兩種模式，同一個開關：
@@ -7,7 +7,7 @@
 --   autoclose  照常彈出，N 秒後自己關掉（預設 5 秒，1~30）；
 --              視窗開著時又掉東西／有新的擲骰結果就重新計時
 -- **不影響需求／貪婪的擲骰彈窗本身**（那是 GroupLootFrame，另一個框）。
--- 預設關閉。讀寫於 MiliUI_DB.lootHistory。
+-- 預設關閉。讀寫於 MiliUI_QoL_DB.lootHistory（2026-10 從本體 MiliUI/Enhance 搬來）。
 --
 -- ## 為什麼不照成熟同類實作的寫法（`hooksecurefunc(f, "Show")` ＋ OnShow 裡 Hide）
 --
@@ -52,6 +52,7 @@
 --   * 只管「自動彈出」的那一次：玩家自己 /loot 打開的視窗不倒數（除非開著的時候又掉東西）。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
 
 local GO_TO = "LOOT_HISTORY_GO_TO_ENCOUNTER"
 local DEFAULT_DELAY = 5
@@ -63,11 +64,14 @@ local DEFAULTS = {
 }
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    local db = MiliUI_DB.lootHistory
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值的拷貝，不碰存檔
+    local root = ns.db
+    if not root then return CopyTable(DEFAULTS) end
+    local db = root.lootHistory
     if type(db) ~= "table" then
         db = {}
-        MiliUI_DB.lootHistory = db
+        root.lootHistory = db
     end
     for k, v in pairs(DEFAULTS) do
         if db[k] == nil then db[k] = v end
@@ -215,7 +219,7 @@ local function ApplyNow()
 end
 
 ------------------------------------------------------------
--- 對內 API（給 Options/Tab_QoL.lua 用；走 ns，不開全域）
+-- 對內 API（給 Options/Controls.lua 用；走 ns，不開全域）
 ------------------------------------------------------------
 ns.LootHistoryAutoClose = {
     IsEnabled  = function() return GetDB().enabled and true or false end,

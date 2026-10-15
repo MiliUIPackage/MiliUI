@@ -1,9 +1,9 @@
 ------------------------------------------------------------
--- MiliUI: 星雲之核擲骰確認
+-- MiliUI_QoL: 星雲之核擲骰確認（2026-10 從本體 MiliUI/Enhance 搬來）
 --
 -- 按下骰裝提示（BonusRollFrame）的骰子鈕之前先問一聲，並順便顯示目前的
 -- 拾取專精 —— 手滑點到、或忘了切拾取專精就花掉核心，事後救不回來。
--- 只攔「擲骰」，放棄鈕不動。預設開啟，讀寫於 MiliUI_DB.bonusRollConfirm。
+-- 只攔「擲骰」，放棄鈕不動。預設開啟，讀寫於 MiliUI_QoL_DB.bonusRollConfirm。
 --
 -- 出處（12.1 live，Gethe/wow-ui-source）：
 --   Blizzard_UIPanels_Game/Mainline/GroupLootFrame.xml  PromptFrame.RollButton
@@ -24,17 +24,21 @@
 -- 介面縮放之後也拉不出螢幕。
 ------------------------------------------------------------
 local _, ns = ...
+if ns.legacyCore then return end
 
 local DEFAULTS = {
     enabled = true,
 }
 
 local function GetDB()
-    if not MiliUI_DB then MiliUI_DB = {} end
-    local db = MiliUI_DB.bonusRollConfirm
+    -- ns.db（＝MiliUI_QoL_DB）在自己的 ADDON_LOADED 才有；那之前不會有人叫到這裡，
+    -- 萬一有就給一份預設值的拷貝，不碰存檔
+    local root = ns.db
+    if not root then return CopyTable(DEFAULTS) end
+    local db = root.bonusRollConfirm
     if not db then
         db = {}
-        MiliUI_DB.bonusRollConfirm = db
+        root.bonusRollConfirm = db
     end
     for k, v in pairs(DEFAULTS) do
         if db[k] == nil then db[k] = v end
@@ -173,7 +177,7 @@ end
 Hook()
 
 ------------------------------------------------------------
--- 對外 API（給 Options/Tab_QoL.lua 用）
+-- 對外 API（給 Options/Controls.lua 用）
 ------------------------------------------------------------
 MiliUI_BonusRollConfirm = {
     IsEnabled  = function() return GetDB().enabled and true or false end,

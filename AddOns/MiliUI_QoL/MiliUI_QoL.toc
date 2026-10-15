@@ -28,6 +28,9 @@ Core\DB.lua
 
 Modules\LootToast.lua
 Modules\LootToastAnchor.lua
+Modules\BonusRoll_Filter.lua
+Modules\BonusRoll_Confirm.lua
+Modules\GroupLootHistory_AutoClose.lua
 
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua

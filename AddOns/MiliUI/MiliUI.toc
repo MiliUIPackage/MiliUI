@@ -69,9 +69,6 @@ Enhance\Chattynator_URLs.lua
 Enhance\DBM_PrivateAura.lua
 Enhance\ItemUpgrade_PreviewIcon.lua
 Enhance\MplusAdventureGuide_Masque.lua
-Enhance\BonusRoll_Filter.lua
-Enhance\BonusRoll_Confirm.lua
-Enhance\GroupLootHistory_AutoClose.lua
 Enhance\LegacyAddons.lua
 Enhance\Merchant_Automation.lua
 Enhance\Quest_Automation.lua
