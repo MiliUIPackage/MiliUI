@@ -26,6 +26,11 @@ L["Minimap button"] = "小地圖按鈕";
 L["Item level in keystone tooltip"] = "在傳奇鑰石顯示對應等級";
 L["Favorite in item tooltip"] = "在物品提示中顯示最愛";
 L["Favorite on item icons"] = "在物品圖示上顯示最愛";
+L["Top left"] = "左上";
+L["Top right"] = "右上";
+L["Bottom left"] = "左下";
+L["Bottom right"] = "右下";
+L["Baganator: The position in the bags is set in the Baganator settings under Icons."] = "Baganator：背包中的位置請在 Baganator 設定的 Icons 中調整。";
 L["Slot name on item icons"] = "在物品圖示上顯示部位";
 L["Owned in item tooltip"] = "在物品提示中顯示擁有情況";
 L["Shows in the item tooltip where the item is: equipped, bags or bank."] = "在物品提示中顯示該物品的位置：已裝備、背包或銀行。";
@@ -69,6 +74,8 @@ L["Shares your favorites with your group members so they can choose their loot s
 L["Shows a notification when another player loots an item you have marked as a favorite."] = "當其他玩家拾取你標記為最愛的物品時顯示通知。";
 L["Teleport notification (Mythic+)"] = "傳送通知（傳奇+）";
 L["Shows the dungeon and your role with a teleport button when you join a Mythic+ group or the group becomes full."] = "當你加入傳奇+隊伍或隊伍滿員時，顯示地城和你的職責，並提供傳送按鈕。";
+L["When joining a group"] = "加入隊伍時";
+L["When the group is full"] = "隊伍滿員時";
 L["Whisper message..."] = "悄悄話訊息...";
 L["Whisper message\n{item} will be replaced with the item link."] = "悄悄話訊息\n{item} 將被替換為物品連結。";
 L["Multiple slot filtering"] = "多欄位篩選";
@@ -76,6 +83,16 @@ L["Auto Keystone response"] = "鑰石自動回覆";
 L["Enable party chat"] = "在隊伍聊天中啟用";
 L["Enable guild chat"] = "在公會聊天中啟用";
 L["Automatically responds with your current Mythic+ keystone when someone types \"!keys\" in the selected chat channels. Only works if other group members also have this addon."] = "當有人在所選聊天頻道輸入 \"!keys\" 時，自動回覆你目前的傳奇鑰石。僅當其他隊伍成員也安裝了此插件時才有效。";
+L["Auto role check"] = "自動確認職責";
+L["Accepts the role check window for you. The roles used are the ones you have selected in the Dungeon Finder."] = "替你確認職責檢查視窗。使用的是你在地城搜尋器中選擇的職責。";
+L["Mythic+ only"] = "僅限傳奇+";
+L["Only when your group signs up for Mythic+ in the group finder."] = "僅當你的隊伍在隊伍搜尋器中報名傳奇+時生效。";
+L["Everywhere"] = "全部";
+L["Every role check, including Dungeon Finder and Raid Finder queues."] = "所有職責檢查，包括地城搜尋器和團隊搜尋器的排隊。";
+L["Window scale"] = "視窗縮放";
+L["Owned items"] = "已擁有的物品";
+L["Shows a checkmark on items you already own, starting at the selected upgrade track. Bank items count once you have opened your bank at least once."] = "在你已擁有且達到所選升級軌道的物品上顯示勾號。銀行中的物品在你開啟過一次銀行後開始計入。";
+L["Disabled"] = "已停用";
 
 -- custom_item_icon.lua
 L["Custom Items"] = "自訂物品";
@@ -132,6 +149,7 @@ L["+%d items dropping for all specs."] = "+%d 件物品對所有專精掉落。"
 L["%s has a smaller loot pool than %s"] = "%s的戰利品池比%s更小。";
 L["Your group needs loot from here"] = "你的隊伍需要這裡的戰利品";
 L["Wanted by %s"] = "%s想要";
+L["Loot specialization restored after leaving the dungeon."] = "離開地城後，戰利品專精已恢復。";
 
 -- minimap_button.lua
 L["Left click: Open overview"] = "左鍵點擊：開啟概覽";
@@ -154,6 +172,9 @@ L["Rescan bonus rolls"] = "重新掃描額外擲骰";
 L["Checking for past bonus rolls (one time)..."] = "正在檢查過去的額外擲骰（單次）...";
 L["%d past |4bonus roll:bonus rolls; detected."] = "偵測到 %d 次過去的額外擲骰。";
 L["No untracked bonus rolls found."] = "未發現未記錄的額外擲骰。";
+
+-- role_check.lua
+L["Role check confirmed automatically."] = "已自動確認職責檢查。";
 
 -- bindings.lua
 L["Toggle Window"] = "開啟/關閉視窗";

@@ -6,6 +6,7 @@ local Character = KeystoneLoot.Character;
 local L = KeystoneLoot.L;
 local Voidcore = KeystoneLoot.Voidcore;
 local Owned = KeystoneLoot.Owned;
+local RoleCheck = KeystoneLoot.RoleCheck;
 
 local NORMAL_R, NORMAL_G, NORMAL_B = NORMAL_FONT_COLOR:GetRGB();
 
@@ -15,6 +16,33 @@ local HIGHLIGHTS = {
     { key = "settings.highlighting.mastery",     label = ITEM_MOD_MASTERY_RATING_SHORT },
     { key = "settings.highlighting.versatility", label = ITEM_MOD_VERSATILITY },
     { key = "settings.highlighting.noStats",     label = L["No stats"] },
+};
+
+local WINDOW_SCALES = { 80, 90, 100, 110, 120, 130, 140, 150, 160 };
+
+local FAVORITE_ICON_POSITIONS = {
+    { point = false,         label = L["Disabled"] },
+    { point = "TOPLEFT",     label = L["Top left"] },
+    { point = "TOPRIGHT",    label = L["Top right"] },
+    { point = "BOTTOMLEFT",  label = L["Bottom left"] },
+    { point = "BOTTOMRIGHT", label = L["Bottom right"] },
+};
+
+local ROLE_CHECK_MODES = {
+    {
+        mode    = RoleCheck.MODE_MYTHIC_PLUS,
+        label   = L["Mythic+ only"],
+        tooltip = L["Only when your group signs up for Mythic+ in the group finder."]
+    },
+    {
+        mode    = RoleCheck.MODE_EVERYWHERE,
+        label   = L["Everywhere"],
+        tooltip = L["Every role check, including Dungeon Finder and Raid Finder queues."]
+    },
+    {
+        mode  = RoleCheck.MODE_DISABLED,
+        label = L["Disabled"]
+    },
 };
 
 local function GetColoredCharacterName()
@@ -217,7 +245,19 @@ function KeystoneLootSettingsDropdownMixin:Init()
         generalMenu:CreateDivider();
         CreateSettingCheckbox(generalMenu, L["Item level in keystone tooltip"], "settings.keystoneTooltip");
         CreateSettingCheckbox(generalMenu, L["Favorite in item tooltip"], "settings.favoriteTooltip");
-        CreateSettingCheckbox(generalMenu, L["Favorite on item icons"], "settings.favoriteIcon");
+        local favoriteIconMenu = generalMenu:CreateButton(L["Favorite on item icons"]);
+        if (C_AddOns.IsAddOnLoaded("Baganator")) then
+            SetTooltip(favoriteIconMenu, L["Baganator: The position in the bags is set in the Baganator settings under Icons."]);
+        end
+
+        for _, entry in ipairs(FAVORITE_ICON_POSITIONS) do
+            favoriteIconMenu:CreateRadio(
+                entry.label,
+                function(point) return DB:Get("settings.favoriteIcon") == point; end,
+                function(point) DB:Set("settings.favoriteIcon", point); end,
+                entry.point
+            );
+        end
         CreateSettingCheckbox(generalMenu, L["Slot name on item icons"], "settings.slotName");
 
         local ownedTooltipCheckbox = generalMenu:CreateCheckbox(
@@ -244,6 +284,36 @@ function KeystoneLootSettingsDropdownMixin:Init()
         end);
         rescanButton:SetEnabled(UnitLevel("player") == 90);
 
+        local accessibilityMenu = rootDescription:CreateButton(ACCESSIBILITY_LABEL);
+
+        local scaleMenu = accessibilityMenu:CreateButton(L["Window scale"]);
+        for _, percent in ipairs(WINDOW_SCALES) do
+            scaleMenu:CreateRadio(
+                string.format(PERCENTAGE_STRING, percent),
+                function(value) return DB:Get("settings.windowScale") == value; end,
+                function(value) DB:Set("settings.windowScale", value); end,
+                percent
+            );
+        end
+
+        local ownedMenu = rootDescription:CreateButton(L["Owned items"]);
+        SetTooltip(ownedMenu, L["Shows a checkmark on items you already own, starting at the selected upgrade track. Bank items count once you have opened your bank at least once."]);
+
+        ownedMenu:CreateRadio(
+            L["Disabled"],
+            function() return not DB:Get("settings.ownedCheck"); end,
+            function() DB:Set("settings.ownedCheck", false); end
+        );
+
+        for _, entry in ipairs(KeystoneLoot.TrackStrings) do
+            ownedMenu:CreateRadio(
+                entry.label,
+                function(key) return DB:Get("settings.ownedCheck") == key; end,
+                function(key) DB:Set("settings.ownedCheck", key); end,
+                entry.key
+            );
+        end
+
         local notificationMenu = rootDescription:CreateButton(COMMUNITIES_NOTIFICATION_SETTINGS);
 
         local lootReminderMenu = notificationMenu:CreateButton(L["Loot reminder (dungeons)"]);
@@ -257,8 +327,11 @@ function KeystoneLootSettingsDropdownMixin:Init()
         local shareFavoritesCheckbox = CreateSettingCheckbox(lootReminderMenu, L["Share favorites with group"], "settings.lootReminder.share");
         SetTooltip(shareFavoritesCheckbox, L["Shares your favorites with your group members so they can choose their loot spec in a way that lets your favorites drop for them."]);
 
-        local mythicPlusNotificationCheckbox = CreateSettingCheckbox(notificationMenu, L["Teleport notification (Mythic+)"], "settings.mythicPlusNotification");
-        SetTooltip(mythicPlusNotificationCheckbox, L["Shows the dungeon and your role with a teleport button when you join a Mythic+ group or the group becomes full."]);
+        local mythicPlusNotificationMenu = notificationMenu:CreateButton(L["Teleport notification (Mythic+)"]);
+        SetTooltip(mythicPlusNotificationMenu, L["Shows the dungeon and your role with a teleport button when you join a Mythic+ group or the group becomes full."]);
+
+        CreateSettingCheckbox(mythicPlusNotificationMenu, L["When joining a group"], "settings.mythicPlusNotification.joined");
+        CreateSettingCheckbox(mythicPlusNotificationMenu, L["When the group is full"], "settings.mythicPlusNotification.full");
 
         local dropAlertCheckbox = CreateSettingCheckbox(notificationMenu, L["Drop notification (favorites)"], "settings.lootReminder.dropAlert");
         SetTooltip(dropAlertCheckbox, L["Shows a notification when another player loots an item you have marked as a favorite."]);
@@ -280,6 +353,22 @@ function KeystoneLootSettingsDropdownMixin:Init()
             end
         );
         CreateSettingCheckbox(responseButton, L["Enable guild chat"], "settings.keyCommand.CHAT_MSG_GUILD");
+
+        local roleCheckButton = rootDescription:CreateButton(L["Auto role check"]);
+        SetTooltip(roleCheckButton, L["Accepts the role check window for you. The roles used are the ones you have selected in the Dungeon Finder."]);
+
+        for _, entry in ipairs(ROLE_CHECK_MODES) do
+            local radio = roleCheckButton:CreateRadio(
+                entry.label,
+                function(mode) return DB:Get("settings.roleCheck") == mode; end,
+                function(mode) DB:Set("settings.roleCheck", mode); end,
+                entry.mode
+            );
+
+            if (entry.tooltip) then
+                SetTooltip(radio, entry.tooltip);
+            end
+        end
 
         local manageButton = rootDescription:CreateButton(L["Manage characters"]);
         local extent = 20;

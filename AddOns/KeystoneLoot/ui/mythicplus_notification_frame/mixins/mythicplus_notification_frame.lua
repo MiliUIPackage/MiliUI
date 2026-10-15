@@ -1,6 +1,7 @@
 local AddonName, KeystoneLoot                = ...;
 
 local DB                                     = KeystoneLoot.DB;
+local Keystone                               = KeystoneLoot.Keystone;
 local Query                                  = KeystoneLoot.Query;
 local L                                      = KeystoneLoot.L;
 
@@ -99,7 +100,8 @@ function KeystoneLootMythicPlusNotificationFrameMixin:OnEvent(event, ...)
         return;
     end
 
-    if (not DB:Get("settings.mythicPlusNotification")) then
+    local showJoined = DB:Get("settings.mythicPlusNotification.joined");
+    if (not showJoined and not DB:Get("settings.mythicPlusNotification.full")) then
         return;
     end
 
@@ -116,17 +118,25 @@ function KeystoneLootMythicPlusNotificationFrameMixin:OnEvent(event, ...)
     local _, _, _, _, role = C_LFGList.GetApplicationInfo(searchResultId);
     self.appliedRole = role;
 
-    self.suppressResultId = searchResultId;
-    self:HideJoinDialog();
-
     self:RegisterEvent("GROUP_ROSTER_UPDATE");
     self:RegisterEvent("GROUP_LEFT");
 
-    self:Open(activityInfo.mapID, activityInfo.fullName, false);
+    if (showJoined) then
+        self.suppressResultId = searchResultId;
+        self:HideJoinDialog();
+
+        self:Open(activityInfo.mapID, activityInfo.fullName, false);
+    else
+        self.groupInfo = {
+            instanceId    = activityInfo.mapID,
+            activityName  = activityInfo.fullName,
+            sawIncomplete = true
+        };
+    end
 end
 
 function KeystoneLootMythicPlusNotificationFrameMixin:CheckActiveEntry()
-    if (self.groupInfo or not DB:Get("settings.mythicPlusNotification")) then
+    if (self.groupInfo or not DB:Get("settings.mythicPlusNotification.full")) then
         return;
     end
 
@@ -141,8 +151,9 @@ function KeystoneLootMythicPlusNotificationFrameMixin:CheckActiveEntry()
     end
 
     self.groupInfo = {
-        instanceId   = activityInfo.mapID,
-        activityName = activityInfo.fullName
+        instanceId    = activityInfo.mapID,
+        activityName  = activityInfo.fullName,
+        sawIncomplete = GetNumGroupMembers() < FULL_GROUP_SIZE
     };
 
     self:RegisterEvent("GROUP_ROSTER_UPDATE");
@@ -159,7 +170,7 @@ end
 
 function KeystoneLootMythicPlusNotificationFrameMixin:CheckFullGroup()
     local groupInfo = self.groupInfo;
-    if (not groupInfo or groupInfo.notifiedFull) then
+    if (not groupInfo) then
         return;
     end
 
@@ -168,15 +179,22 @@ function KeystoneLootMythicPlusNotificationFrameMixin:CheckFullGroup()
         return;
     end
 
-    groupInfo.notifiedFull = true;
     self:UnregisterEvent("GROUP_ROSTER_UPDATE");
 
-    if (groupInfo.sawIncomplete) then
+    if (groupInfo.sawIncomplete and DB:Get("settings.mythicPlusNotification.full")) then
         self:Open(groupInfo.instanceId, groupInfo.activityName, true);
+    else
+        self.groupInfo = nil;
     end
 end
 
 function KeystoneLootMythicPlusNotificationFrameMixin:Open(instanceId, activityName, isFull)
+    local dungeon = instanceIdToDungeon[instanceId];
+    if (dungeon and Keystone:GetCurrentChallengeMapId() == dungeon.challengeModeId) then
+        self.groupInfo = nil;
+        return;
+    end
+
     local groupInfo = self.groupInfo or {};
 
     groupInfo.instanceId = instanceId;
@@ -191,7 +209,6 @@ function KeystoneLootMythicPlusNotificationFrameMixin:Open(instanceId, activityN
     end
 
     local Card = self.Card;
-    local dungeon = instanceIdToDungeon[instanceId];
     local dungeonName = activityName;
 
     if (dungeon) then
@@ -224,6 +241,10 @@ function KeystoneLootMythicPlusNotificationFrameMixin:Open(instanceId, activityN
 
     self:SetWidth(FRAME_PADDING * 2 + CARD_TEXT_LEFT + CARD_PADDING + Card.DungeonName:GetStringWidth());
     self:Show();
+
+    if (isFull) then
+        self.groupInfo = nil;
+    end
 end
 
 EventUtil.ContinueOnAddOnLoaded("Blizzard_GroupFinder", function()
