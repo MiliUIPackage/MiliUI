@@ -44,7 +44,8 @@ L["New Feature Abbr"] = "New";
 L["Format Month Day"] = EVENT_SCHEDULER_DAY_FORMAT or "%s %d";
 L["Always On Module"] = "This module is always enabled.";
 L["Return To Module List"] = "Return to List";
-L["Generic Addon Conflict"] = "This module might be incompatible with addons of similar functionalities:";
+L["Generic Addon Conflict"] = "This module might be incompatible with addons of similar functionalities:"; -- Addon names are shown as new lines. Support showing multiple names.
+L["Addon Conflict Format"] = "This module might be incompatible with %s."; -- Show one addon name. Used in changelogs.
 L["Work In Progress Tag"] = "[WIP]";
 L["Colon With Space"] = ": ";
 L["Disabled Module Requires Reload Format"] = "You must %s to apply the changes.";	--We'll replace %s with a clickable "reload the UI"
@@ -141,7 +142,7 @@ L["Catalyst Charges"] = "Catalyst Charges";
 
 
 --GossipFrameMedal
-L["ModuleName GossipFrameMedal"] = "Dragonriding Race Medal";
+L["ModuleName GossipFrameMedal"] = "Skyriding Race Medal";
 L["ModuleDescription GossipFrameMedal Format"] = "Replace the default icon %s with the medal %s you earn.\n\nIt may take a brief moment to acquire your records when you interact with the NPC.";
 
 
@@ -568,7 +569,7 @@ L["ModuleDescription StaticPopup_Confirm"] = "Adjust the confirmation dialog tha
 
 --Loot UI
 L["ModuleName LootUI"] = HUD_EDIT_MODE_LOOT_FRAME_LABEL or "Loot Window";
-L["ModuleDescription LootUI"] = "Replace the default Loot Window and provide some optional features:\n\n- Loot items fast.\n\n- Fix Auto Loot failure bug.\n\n- Show a Take All button when looting manually.";
+L["ModuleDescription LootUI"] = "Replace the default Loot Window and provide optional features like:\n\n- Fast Loot.\n\n- Show number of owned items.\n\n- Merge junks as one notification.\n\n- Show a Take All button when looting manually.";
 L["Take All"] = "Take All";     --Take all items from a loot window
 L["You Received"] = YOU_RECEIVED_LABEL or "You received";
 L["Reach Currency Cap"] = "Reached currency caps";
@@ -616,6 +617,18 @@ L["LootUI Option Show All Currency"] = "Show Any Currency Changes";
 L["LootUI Option Show All Currency Tooltip"] = "Show currencies earned from all sources, not just loot.\n\n|cffff4800You may sometimes see currencies that are not displayed in the chat window.|r";
 L["LootUI Option Hide Title"] = "Hide \"You Received\" Text";
 L["LootUI Option Hide Title Tooltip"] = "Hide the \"You received\" text on the top of the loot window.";
+L["LootUI Option Loot Speed"] = "Loot Speed";
+L["LootUI Option Loot Speed Moderate"] = "Moderate";
+L["LootUI Option Loot Speed Moderate Tooltip"] = "Fast loot at moderate speed.";
+L["LootUI Option Loot Speed Maximum"] = "Maximum";
+L["LootUI Option Loot Speed Maximum Tooltip"] = "Fast loot at maximum speed.\n\n|cffff4800Other addons that rely on tracking looted items might break at this speed.|r";
+
+
+--Fast Loot
+L["ModuleName FastLoot"] = "Fast Loot";
+L["ModuleDescription FastLoot"] = "Loot items fast.";
+L["FastLoot Always On Reason"] = "Fast Loot is always enabled with Plumber Loot Window.";
+L["FastLoot User Notes"] = "*Plumber Fast Loot only does one thing... fast loot. If you prefer finer control, try addons like \"Speedy AutoLoot\" or \"XLoot\".";
 
 
 --Quick Slot For Third-party Dev
@@ -729,6 +742,7 @@ L["Weekly Coffer Key Shards Tooltip"] = "The first four weekly caches you earn e
 L["Weekly Cap"] = "Weekly Cap";
 L["Weekly Cap Reached"] = "Weekly cap reached.";
 L["Instruction Right Click To Use"] = "<Right Click to Use>";
+L["Instruction Right Click To Use Format"] = "<Right Click to Use %s>";
 L["Join Queue"] = WOW_LABS_JOIN_QUEUE or "Join Queue";
 L["In Queue"] = BATTLEFIELD_QUEUE_STATUS or "In Queue";
 L["Click To Switch"] = "Click to switch to |cffffffff%s|r";
@@ -785,6 +799,7 @@ L["EditMode Instruction InstanceDifficulty"] = "The frame width is affected by t
 L["Difficulty Locked To Format"] = "The instance is locked to |cffffffff%s|r due to boss kill.";
 L["Difficulty Locked To Current Alert"] = "The instance is locked to this difficulty due to boss kill.";
 L["Shared Difficulty Alert"] = "Defeating a boss will lock the instance to this difficulty.";
+L["Can Only Change Difficulty Via Native UI"] = "This difficulty can only be selected when interacting with the entrance portal.";
 
 
 --TransmogChatCommand
@@ -803,6 +818,18 @@ L["ModuleDescription2 TransmogOutfitSelect"] = "To do this: open the Transmog UI
 L["Outfit Collection"] = "Outfit Collection";
 L["Quick Access Outfit Button"] = "Quick Access";
 L["Quick Access Outfit Button Tooltip"] = "Click and drag this button to your action bars so you can change outfits anywhere.";
+
+
+--TransmogRaestorePending
+L["ModuleName TransmogRaestorePending"] = "Transmog UI: Restore Pending Changes";
+L["ModuleDescription TransmogRaestorePending"] = "Pending Transmog changes are automatically restored when reopening the window.\n\nPending changes can be moved over to another outfit.";
+L["Outfit Popup Warning"] = "The current outfit has pending changes.\n\nDo you wish to move these changes over to the new outfit or discard them?";
+L["Outfit Popup Move Changes"] = "Move";
+L["Outfit Popup Move Changes Tooltip"] = "Move the pending changes over to the newly selected outfit.";
+L["Outfit Popup Always Move Changes Over"] = "Always Move Changes Over";
+L["Outfit Popup Always Move Changes Over Tooltip"] = "Always move the pending changes to the newly selected outfit.\n\nYou will stop seeing this popup window.";
+L["Outfit Popup Discard Changes"] = "Discard";
+L["Outfit Popup Discard Changes Tooltip"] = "Discard the pending changes.";
 
 
 --QuestWatchCycle

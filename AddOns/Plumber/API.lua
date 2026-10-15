@@ -162,20 +162,33 @@ do  -- String
 	end
 	API.GetUnitIDGeneral = GetUnitIDGeneral;
 
-	local function GetGlobalObject(objNameKey)
-		--Get object via string "FrameName.Key1.Key2"
-		local obj = _G;
-
+	local function GetObjectByKey(tbl, objNameKey, showTrace)
+		local obj = tbl;
 		for k in string.gmatch(objNameKey, "%w+") do
 			obj = obj[k];
 			if not obj then
-				return
+				if showTrace then
+					API.PrintMessage(string.format("Failed to find %s (stopped at %s)", objNameKey, k));
+				end
+				return;
 			end
 		end
-
-		return obj
+		return obj;
 	end
-	API.GetGlobalObject = GetGlobalObject;
+
+	---Get object via string "_G.Key1.Key2..."
+	---@param objNameKey string "Key1.Key2..."
+	---@param showTrace boolean? If true, show where it fails
+	function API.GetGlobalObject(objNameKey, showTrace)
+		return GetObjectByKey(_G, objNameKey, showTrace);
+	end
+
+	---Get object via string "addon.Key1.Key2..."
+	---@param objNameKey string "Key1.Key2..."
+	---@param showTrace boolean? If true, show where it fails
+	function API.GetPrivateObject(objNameKey, showTrace)
+		return GetObjectByKey(addon, objNameKey, showTrace);
+	end
 
 	local function JoinText(delimiter, l, r)
 		if l and r then
@@ -1668,6 +1681,17 @@ do  -- Currency
 		end
 	end
 
+	local HiddenDuplicateCurrencies = {
+		--No API exposes a currency's CategoryID, so hidden duplicates have to be hardcoded
+		--Midnight Season 2
+		[3437] = true,	--Adventurer Mistcrest
+		[3438] = true,	--Veteran Mistcrest
+		[3439] = true,	--Champion Mistcrest
+		[3440] = true,	--Hero Mistcrest
+		[3441] = true,	--Myth Mistcrest
+		[3513] = true,	--Nebulous Voidcore
+	};
+
 	function API.GetCurrencyDisplayInfo(currencyID)
 		if not currencyID then return end;
 
@@ -1675,7 +1699,7 @@ do  -- Currency
 			local info = GetCurrencyInfo(currencyID);
 			local name = info and info.name;
 			if name then
-				if info.iconFileID and info.iconFileID ~= 0 and info.description and info.description ~= "" and (not find(info.description, "(Hidden)")) and (not find(info.description, "DNT")) then
+				if info.iconFileID and info.iconFileID ~= 0 and info.description and info.description ~= "" and (not find(info.description, "(Hidden)")) and (not find(info.description, "DNT")) and (not HiddenDuplicateCurrencies[currencyID]) then
 					CurrencyDataProvider.shouldDisplayForUI[currencyID] = true;
 					CurrencyDataProvider:CacheCurrencyInfo(currencyID, info);
 				else
@@ -2751,7 +2775,7 @@ do  -- ObjectPool
 end
 
 do  -- Transmog
-	if addon.IsToCVersionEqualOrNewerThan(40000) then
+	if addon.IS_MODERN or addon.IsToCVersionEqualOrNewerThan(40000) then
 		local GetSourceInfo = C_TransmogCollection.GetSourceInfo;
 		local GetAllAppearanceSources = C_TransmogCollection.GetAllAppearanceSources;
 		local GetItemInfo = C_TransmogCollection.GetItemInfo;
@@ -4535,24 +4559,10 @@ do  -- Delves
 		else
 			GameTooltip_SetTitle(tooltip, WEEKLY_REWARDS_CURRENT_REWARD);
 
-
-			--[[
-			--This default method is unreliable since 11.2.0, so we hardcode itemlevel
-			local itemLink, upgradeItemLink = C_WeeklyRewards.GetExampleRewardItemHyperlinks(id);
-			local itemLevel, upgradeItemLevel;
-
-			if itemLink then
-				itemLevel = C_Item.GetDetailedItemLevelInfo(itemLink);
-			end
-			if upgradeItemLink then
-				upgradeItemLevel = C_Item.GetDetailedItemLevelInfo(upgradeItemLink);
-			end
-			--]]
-
-			local itemLevel = API.GetDelvesGreatVaultItemLevel(level);
+			local itemLevel = API.GetDelvesGreatVaultItemLevel(level, id);
 
 			local nextLevel = level + 1;
-			local upgradeItemLevel = API.GetDelvesGreatVaultItemLevel(nextLevel);
+			local upgradeItemLevel = API.GetDelvesGreatVaultItemLevel(nextLevel, id, true);
 
 			if level > 0 and itemLevel then
 				GameTooltip_AddNormalLine(tooltip, string.format(WEEKLY_REWARDS_ITEM_LEVEL_WORLD, itemLevel, level));

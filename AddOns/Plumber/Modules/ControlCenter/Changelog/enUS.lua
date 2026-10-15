@@ -7,7 +7,422 @@ local _, addon = ...
 local L = addon.L;
 local changelogs = addon.ControlCenter.changelogs;
 
+changelogs[10906] = {
+	{
+		type = "date",
+		versionText = "1.9.6 c",
+		timestamp = 1791600000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName TransmogRaestorePending"],
+	},
+
+	{
+		type = "p",
+		text = "Fixed several Shoulder Slot issues.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Shoulder slots that were set to \"Show Equipped Gear\" or \"Ignore Slot\" no longer turn \"Hidden\" after reopening the Transmog UI.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "The Left Shoulder no longer keeps showing the old appearance after you reset the Right Shoulder or turn off Separate Shoulders.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Turning off Separate Shoulders now stays off after reopening the Transmog UI.",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Nameplate: Soft Target: Fixed NPC names and quest objectives overlapping with health bars.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.6 b",
+		timestamp = 1790500000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName FastLoot"],
+		dbKey = "LootUI",
+	},
+
+	{
+		type = "Checkbox",
+		dbKey = "FastLoot",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "You can now choose between \"Moderate\" and \"Maximum\" fast loot speeds.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "\"Maximum\" is the fastest option, but it might affect other addons that track looted items, such as ore, herbs, and fish.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		textGetter = "LootUI.GetFastLootWarningForChangelog",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = "Bug Fix",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Fixed an error that occurred when using WoW Edit Mode if Plumber Loot Window was disabled.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.6",
+		timestamp = 1790300000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName LootUI"],
+		dbKey = "LootUI",
+	},
+
+	{
+		type = "Checkbox",
+		dbKey = "LootUI",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Loot speed has become faster.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Fast Loot can now be enabled separately without enabling the Plumber Loot Window. You can find that option in Plumber Settings > Loot.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "We made lots of changes behind the scenes to make this module easier to maintain, but please expect temporary issues :)",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = "Bug Fixes",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Instance Difficulty Selector: \"World\" difficulty should no longer appear for raids.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Instance Difficulty Selector: The UI should reliably show when you approach the entrance of Throne of the Four Winds and The Tidebound Grotto.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Loot Window: Fixed an issue that could lead to disconnections if you kept looting the same corpse while the bag was full.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Loot Window: Fixed an issue where currencies (such as crests) received from a chest could show double if you had enabled \"Show Any Currency Changes\" in the settings.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Unspent Engineering Knowledge: The unspent points are now also displayed on the tooltip of Gnomish/Goblin Engineer.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: Fixed an incorrect achievement for Nek'zali the Soulcoiler.",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: Added Zul'jarra's Forces to Activities > Delves > Bonus Renowns.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Plumber now supports WoW: Forever.",
+	},
+};
+
+
+changelogs[10905] = {
+	{
+		type = "date",
+		versionText = "1.9.5 b",
+		timestamp = 1788800000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName TransmogRaestorePending"],
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Pending changes can now be moved over to another outfit.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Pending situations are also stored now.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Closing the Transmog UI with pending changes and then reopening it will automatically select the outfit you were editing, instead of jumping to the active one.",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "The \"World\" difficulty for The Tidebound Grotto now correctly appears on the Instance Difficulty Selector and the Raids tab in the Expansion Summary UI.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary Minimap Button: You can access Blizzard's Omnium Folio UI from the right-click menu once unlocked.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.5",
+		timestamp = 1788400000,
+	},
+
+	{
+		type = "h1",
+		text = L["ModuleName TransmogRaestorePending"],
+		dbKey = "TransmogRaestorePending",
+	},
+
+	{
+		type = "Checkbox",
+		dbKey = "TransmogRaestorePending",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Pending Transmog changes are automatically restored when reopening the window.",
+	},
+
+	{
+		type = "img",
+		fileName = "Changelog_TransmogRaestorePending",
+		canvasWidth = 512,
+		canvasHeight = 256,
+		imageRight = 512,
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Skyriding Race Medal: Fixed an error that occurred when interacting with Skyriding NPCs during combat.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Plumber Housing Macro: You can now rename this macro. Clicking Save will no longer reset its name.",
+	},
+};
+
 changelogs[10904] = {
+	{
+		type = "date",
+		versionText = "1.9.4 c",
+		timestamp = 1787500000,
+	},
+
+	{
+		type = "h1",
+		text = "Bug Fixes",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: Fixed the wrong item level in the World activity's tooltip.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Nameplate: Soft Target: Fixed an issue that caused rare/elite icons on the nameplate to disappear.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Hunt Table: The extra tooltip for the Prey Season 2 intro quest should no longer appear if you are not on the quest.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
+	{
+		type = "date",
+		versionText = "1.9.4 b",
+		timestamp = 1786800000,
+	},
+
+	{
+		type = "h1",
+		text = "Bug Fixes",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Housing Dashboard: Fixed an issue where the House Information tab was sometimes empty.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Housing Editor, Customize Mode: Fixed an error that appeared when changing dyes.",
+	},
+
+	{
+		type = "br",
+	},
+
+	{
+		type = "h1",
+		text = MISCELLANEOUS,
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: Added Captain Tokka to Factions.",
+	},
+
+	{
+		type = "p",
+		bullet = true,
+		text = "Expansion Summary UI: Added Community Coupons and Coiled Filament to the resource list.",
+	},
+
+	{
+		type = "br",
+	},
+	{
+		type = "br",
+	},
+
 	{
 		type = "date",
 		versionText = "1.9.4",
@@ -1972,6 +2387,7 @@ changelogs[10803] = {
 		type = "br",
 	},
 
+	--[[
 	{
 		type = "h1",
 		text = "Extend Search Results",
@@ -2003,7 +2419,9 @@ changelogs[10803] = {
 	{
 		type = "br",
 	},
+	--]]
 
+	--[[
 	{
 		type = "h1",
 		text = "Tooltip: Dye Pigment",
@@ -2035,6 +2453,7 @@ changelogs[10803] = {
 	{
 		type = "br",
 	},
+	--]]
 
 	{
 		type = "h1",
@@ -2171,6 +2590,7 @@ changelogs[10802] = {
 };
 
 
+--[[
 changelogs[10801] = {
 	{
 		type = "date",
@@ -2330,3 +2750,4 @@ changelogs[10800] = {
 		text = "Loot Window, Link Item: You can link an item in chat by Shift + clicking an item in Manual Loot mode.",
 	},
 };
+--]]

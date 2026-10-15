@@ -1,4 +1,4 @@
---Coutesy of ZamestoTV. Thank you!    --Translator: ZamestoTV as of 1.9.3 c
+--Coutesy of ZamestoTV. Thank you!    --Translator: ZamestoTV as of 1.9.6 b
 
 if not (GetLocale() == "ruRU") then return end;
 
@@ -45,6 +45,7 @@ L["Format Month Day"] = EVENT_SCHEDULER_DAY_FORMAT or "%s %d";
 L["Always On Module"] = "Этот модуль всегда включен.";
 L["Return To Module List"] = "Вернуться к списку";
 L["Generic Addon Conflict"] = "Этот модуль может быть несовместим с аддонами, обладающими аналогичными функциональными возможностями:";
+L["Addon Conflict Format"] = "Этот модуль может быть несовместим с %s."; -- Show one addon name. Used in changelogs.
 L["Work In Progress Tag"] = "[ВТЗ]";
 L["Colon With Space"] = ": ";
 L["Disabled Module Requires Reload Format"] = "Вы должны %s, чтобы применить изменения.";	--We'll replace %s with a clickable "reload the UI"
@@ -616,6 +617,18 @@ L["LootUI Option Show All Currency"] = "Показывать все измене
 L["LootUI Option Show All Currency Tooltip"] = "Показывать валюту, полученную из всех источников, а не только из добычи.\n\n|cffff4800Иногда могут отображаться валюты, которые не выводятся в обычном окне чата.|r";
 L["LootUI Option Hide Title"] = "Скрыть текст \"Вы получили\"";
 L["LootUI Option Hide Title Tooltip"] = "Скрыть текст \"Вы получили\" в верхней части окна добычи.";
+L["LootUI Option Loot Speed"] = "Скорость сбора добычи";
+L["LootUI Option Loot Speed Moderate"] = "Умеренная";
+L["LootUI Option Loot Speed Moderate Tooltip"] = "Быстрый сбор добычи на умеренной скорости.";
+L["LootUI Option Loot Speed Maximum"] = "Максимальная";
+L["LootUI Option Loot Speed Maximum Tooltip"] = "Быстрый сбор добычи на максимальной скорости.\n\n|cffff4800Другие аддоны, отслеживающие получение предметов, могут работать некорректно на этой скорости.|r";
+
+
+--Fast Loot
+L["ModuleName FastLoot"] = "Быстрый сбор добычи";
+L["ModuleDescription FastLoot"] = "Быстрый сбор предметов.";
+L["FastLoot Always On Reason"] = "Быстрый сбор добычи всегда включен при использовании окна добычи Plumber.";
+L["FastLoot User Notes"] = "*Функция быстрого сбора добычи в Plumber делает только одно... быстро собирает добычу. Если вам нужен более точный контроль, попробуйте такие аддоны, как \"Speedy AutoLoot\" или \"XLoot\".";
 
 
 --Quick Slot For Third-party Dev
@@ -657,7 +670,8 @@ L["Drawer Option Update Frequently"] = "Часто обновляйте";
 L["Drawer Option Update Frequently Tooltip"] = "Попробуйте обновить состояние кнопок всякий раз, когда в ваших сумках или книгах заклинаний происходят изменения. Включение этой опции может немного увеличить использование ресурсов.";
 L["ModuleName DrawerMacro"] = "Макрос ящика";
 L["ModuleDescription DrawerMacro"] = "Создайте пользовательское всплывающее меню для управления вашими предметами, заклинаниями, питомцами, маунтами и игрушками.\n\nЧтобы создать макрос Ящика, сначала создайте новый макрос, затем введите |cffd7c0a3#plumber:drawer|r в поле редактирования команд.";
-L["No Slot For New Character Macro Alert"] = "You need to have a spare Character Specific Macro slot to complete this action.";
+L["No Slot For New Character Macro Alert"] = "Для завершения этого действия у вас должна быть свободная ячейка в макросах персонажа.";
+L["Unknown Pet"] = "Неизвестный питомец";
 
 
 --New Expansion Landing Page
@@ -674,6 +688,7 @@ L["Not On Quest"] = "Вы не выполняете это задание";
 L["Factions"] = "Фракции";
 L["Activities"] = MAP_LEGEND_CATEGORY_ACTIVITIES or "Активности";
 L["Raids"] = RAIDS or "Рейды";
+L["Player Power"] = "Силы";
 L["Instruction Track Achievement"] = "<Shift + клик, чтобы отслеживать это достижение>";
 L["Instruction Untrack Achievement"] = CONTENT_TRACKING_UNTRACK_TOOLTIP_PROMPT or "<Shift + клик, чтобы прекратить отслеживание>";
 L["No Data"] = "Нет данных";
@@ -727,6 +742,7 @@ L["Weekly Coffer Key Shards Tooltip"] = "Первые четыре еженед�
 L["Weekly Cap"] = "Еженедельный лимит";
 L["Weekly Cap Reached"] = "Достигнут недельный лимит.";
 L["Instruction Right Click To Use"] = "<ПКМ, чтобы использовать>";
+L["Instruction Right Click To Use Format"] = "<ПКМ: использовать %s>";
 L["Join Queue"] = WOW_LABS_JOIN_QUEUE or "Присоединиться к очереди";
 L["In Queue"] = BATTLEFIELD_QUEUE_STATUS or "В очереди";
 L["Click To Switch"] = "Нажмите, чтобы переключиться на |cffffffff%s|r";
@@ -743,6 +759,7 @@ L["Near Completion Tooltip"] = "Эта запись видна вам, так к
 L["Inactive Currencies Tooltip"] = "Эти валюты скрыты, так как вы пометили их как «Неиспользуемые»:";
 L["New Quest"] = "Новое задание";
 L["Trait Points Available"] = "Доступно очков";
+L["Unspent Points"] = "Нераспределенные очки";
 
 
 --ExpansionSummaryMinimapButton
@@ -782,6 +799,7 @@ L["EditMode Instruction InstanceDifficulty"] = "Ширина рамки зави
 L["Difficulty Locked To Format"] = "Для этого подземелья установлена сложность |cffffffff%s|r из-за убитого босса.";
 L["Difficulty Locked To Current Alert"] = "Для этого подземелья установлена текущая сложность из-за убитого босса.";
 L["Shared Difficulty Alert"] = "Победа над боссом привяжет это подземелье к текущей сложности.";
+L["Can Only Change Difficulty Via Native UI"] = "Эту сложность можно выбрать только при взаимодействии с входным порталом.";
 
 
 --TransmogChatCommand
@@ -800,6 +818,18 @@ L["ModuleDescription2 TransmogOutfitSelect"] = "Для этого: открой�
 L["Outfit Collection"] = "Коллекция образов";
 L["Quick Access Outfit Button"] = "Быстрый доступ";
 L["Quick Access Outfit Button Tooltip"] = "Нажмите и перетащите эту кнопку на панель действий, чтобы менять образы в любом месте.";
+
+
+--TransmogRaestorePending
+L["ModuleName TransmogRaestorePending"] = "Интерфейс трансмогрификации: восстановление несохранённых изменений";
+L["ModuleDescription TransmogRaestorePending"] = "Несохранённые изменения трансмогрификации автоматически восстанавливаются при повторном открытии окна.\n\nНесохранённые изменения можно перенести на другой образ.";
+L["Outfit Popup Warning"] = "В текущем образе есть несохранённые изменения.\n\nХотите перенести эти изменения на новый образ или отклонить их?";
+L["Outfit Popup Move Changes"] = "Перенести";
+L["Outfit Popup Move Changes Tooltip"] = "Переносит несохранённые изменения на новый выбранный образ.";
+L["Outfit Popup Always Move Changes Over"] = "Всегда переносить изменения";
+L["Outfit Popup Always Move Changes Over Tooltip"] = "Всегда переносит несохранённые изменения на новый выбранный образ.\n\nЭто окно больше не будет отображаться.";
+L["Outfit Popup Discard Changes"] = "Отклонить";
+L["Outfit Popup Discard Changes Tooltip"] = "Отклоняет несохранённые изменения.";
 
 
 --QuestWatchCycle
@@ -909,6 +939,7 @@ L["ModuleDescription CatalystUI"] = "Позволяет нажать Ctrl+кли
 L["ModuleName HuntTable"] = "Добыча: Таблица охоты";
 L["ModuleDescription HuntTable"] = "- Заменяет стандартные синие значки заданий на значки с указанием сложности.\n\n- Показывает индикатор, если цель охоты необходима для получения еще не выполненного достижения.";
 L["Prey Target Has Achievement"] = "Эта цель охоты необходима для получения еще не выполненного достижения.";
+L["Quest Objective Entry Format"] = "Задача задания для: %s";
 
 
 --PreyQuestSuperTrack

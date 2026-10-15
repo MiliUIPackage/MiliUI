@@ -627,7 +627,12 @@ do  --Dropdown Menu
 		if self.tooltip then
 			local tooltip = GameTooltip;
 			tooltip:SetOwner(self, "ANCHOR_NONE");
-			tooltip:SetPoint("TOPLEFT", self, "TOPRIGHT", 4, 4);
+			local right = self:GetRight();
+			if API.Secret_CanAccess(right) and (UIParent:GetRight() - right < 320) then
+				tooltip:SetPoint("TOPRIGHT", self, "TOPLEFT", -4, 4);
+			else
+				tooltip:SetPoint("TOPLEFT", self, "TOPRIGHT", 4, 4);
+			end
 			tooltip:SetText(self.Text:GetText(), 1, 1, 1, 1, true);
 			tooltip:AddLine(self.tooltip, 1, 0.82, 0, true);
 			tooltip:Show();
@@ -1734,7 +1739,7 @@ do  --Expansion Select
 		[5] = {name = EXPANSION_NAME4},     --MOP
 	};
 
-	if addon.IS_MIDNIGHT then
+	if addon.IS_RETAIL then
 		ExpansionList = {11, 12};
 	else
 		ExpansionList = {5};

@@ -24,7 +24,7 @@ do  --Item Upgrade Track
 			3383,   --Adventurer (LFR, H)
 		},
 
-		CrestSources = {    --TODO: Midnight S1: Dawncrest
+		CrestSources = {
 			(PLAYER_DIFFICULTY6 or "Mythic") .. ", +9",
 			(PLAYER_DIFFICULTY2 or "Heroic") .. ", +4",
 			(PLAYER_DIFFICULTY1 or "Normal") .. ", +2",
@@ -48,12 +48,19 @@ do  --Item Upgrade Track
 
 	addon.ItemUpgradeConstant = ItemUpgradeConstant;
 
+	local CrestNameAbbreviation = {
+		L["Upgrade Track 6"],
+		L["Upgrade Track 5"],
+		L["Upgrade Track 4"],
+		L["Upgrade Track 3"],
+		L["Upgrade Track 1"],
+	};
 
-	L["currency-3347"] = L["Upgrade Track 6"];
-	L["currency-3345"] = L["Upgrade Track 5"];
-	L["currency-3343"] = L["Upgrade Track 4"];
-	L["currency-3341"] = L["Upgrade Track 3"];
-	L["currency-3383"] = L["Upgrade Track 1"];
+	for index, currencyID in ipairs(ItemUpgradeConstant.Crests) do
+		L["currency-"..currencyID] = CrestNameAbbreviation[index];
+	end
+
+	CrestNameAbbreviation = nil;
 end
 
 
@@ -155,21 +162,21 @@ do  --Weekly Caches (Meta quest rewards)
 
 		DelvesGreatVaultItemLevel = {
 			--Hardcode this because BLZ API is unreliable in 11.2.0
-			233,
-			237,
-			240,
-			243,
-			246,
+			279,
+			282,
+			285,
+			289,
+			292,
 
-			250,
-			256,
-			259,    --Tier 8 Max
-			259,
-			259,
+			295,
+			298,
+			305,    --Tier 8 Max
+			305,
+			305,
 
-			259,
-			263,
-			269,
+			305,
+			305,
+			305,
 		},
 
 		GreatVaultWorldActivityMaxLevel = 13,
@@ -179,8 +186,21 @@ do  --Weekly Caches (Meta quest rewards)
 	addon.WeeklyRewardsConstant = WeeklyRewardsConstant;
 
 
-	function API.GetDelvesGreatVaultItemLevel(tier)
-		return WeeklyRewardsConstant.DelvesGreatVaultItemLevel[tier]
+	local USE_HARDCODED_ITEM_LEVEL = true; -- Disable this when new season starts where the levels are not settled.
+	--- Use a hardcoded list to fix the occasional wrong item level issue.
+	---@param tier number
+	---@param id number activityInfo.id
+	---@param getNextTierItemLevel boolean?
+	function API.GetDelvesGreatVaultItemLevel(tier, id, getNextTierItemLevel)
+		if USE_HARDCODED_ITEM_LEVEL then
+			return WeeklyRewardsConstant.DelvesGreatVaultItemLevel[tier];
+		elseif id then
+			local itemLink, upgradeItemLink = C_WeeklyRewards.GetExampleRewardItemHyperlinks(id);
+			local link = (getNextTierItemLevel and upgradeItemLink) or itemLink;
+			if link then
+				return C_Item.GetDetailedItemLevelInfo(link);
+			end
+		end
 	end
 end
 

@@ -1,5 +1,5 @@
-local VERSION_TEXT = "1.9.4";
-local VERSION_DATE = 1786300000;
+local VERSION_TEXT = "1.9.6 c";
+local VERSION_DATE = 1791600000;
 
 
 local addonName, addon = ...
@@ -20,7 +20,6 @@ local EL = CreateFrame("Frame");
 
 local CallbackRegistry = {};
 CallbackRegistry.events = {};
-CallbackRegistry.addonLoadedCallbacks = {};
 addon.CallbackRegistry = CallbackRegistry;
 
 local tinsert = table.insert;
@@ -120,24 +119,8 @@ do  --CallbackRegistry
 		end
 	end
 
-	function CallbackRegistry:RegisterAddOnLoadedCallback(name, callback)
-		if C_AddOns.IsAddOnLoaded(name) then
-			callback();
-			return
-		end
-
-		if not self.addonLoadedCallbacks[name] then
-			self.addonLoadedCallbacks[name] = {};
-			EL:RegisterEvent("ADDON_LOADED");
-		end
-
-		self.addonLoadedCallbacks[name][callback] = true;
-	end
-
-	function CallbackRegistry:UnregisterAddOnLoadedCallback(name, callback)
-		if self.addonLoadedCallbacks[name] then
-			self.addonLoadedCallbacks[name][callback] = nil;
-		end
+	function CallbackRegistry:WipeCallbacksForEvent(event)
+		self.events[event] = nil;
 	end
 end
 
@@ -238,7 +221,7 @@ local DefaultValues = {
 	QueueStatus = false,                --Add a progress bar to LFG Eye
 		QueueStatus_ShowTime = false,   --Relative Queue Time
 		QueueStatus_TextPosition = 1,   --0:Center, 1-4:Clockwise
-	InstanceDifficulty = false,         --Instance Difficulty Selector
+	InstanceDifficulty = true,         --Instance Difficulty Selector
 	TransmogChatCommand = false,        --Adjust /outfit command behavior
 	CraftSearchExtended = false,        --Show more search result, custom keywords
 	SourceAchievementLink = true,       --Make Achievement name in MountJournal, DecorCatalog interactable
@@ -246,8 +229,8 @@ local DefaultValues = {
 	CatalystUI = true,					--Allow Ctrl-Click to preview items in Dressing Room for UIs that don't natively support this action
 	HuntTable = true,					--Replace generic quest icons with difficulties and add achievement indicators.
 	PreyQuestSuperTrack = true,			--During the final stage, clicking the Prey widget also super track the target location.
-	BlizzFixActionBarArt = true,		--Fix Action Bar Art Reappears After Hide/Show UI
-
+	TransmogRaestorePending = true,		--Restore unsaved transmog changes
+		TransmogRaestorePending_AlwaysMoveChanges = false,
 
 	--Tooltip
 	TooltipChestKeys = true,            --Show keys that unlocked the current chest or door
@@ -297,7 +280,6 @@ local DefaultValues = {
 		LootUI_NewTransmogIcon = true,
 		LootUI_UseCustomColor = false,
 		LootUI_GrowUpwards = false,
-		LootUI_WindowHide = false,
 		LootUI_CombineItem = true,
 		LootUI_LowFrameStrata = false,
 		LootUI_HideTitle = false,
@@ -309,7 +291,11 @@ local DefaultValues = {
 		LootUI_LootUnderMouse = false,
 		LootUI_UseHotkey = true,
 		LootUI_HotkeyName = "E",
-		LootUI_UseStockUI = false,
+		--LootUI_UseStockUI = false,	--Deprecated and merged into FastLoot
+		--LootUI_WindowHide = false,	--Deprecated and merged into FastLoot
+
+	FastLoot = false,					--FastLoot now works independently instead instead of being a LootUI suboptions.
+		FastLoot_Speed = 2,				--1: Moderate 2: Extreme. This setting is also shared with LootUI
 
 
 	--Unified Map Pin System
@@ -417,6 +403,7 @@ local DefaultValues = {
 	--BlizzFixWardrobeTrackingTip = true,   --Hide Wardrobe tip that cannot be disabled   --Tip removed by Blizzard
 	--MinimapMouseover = false,             --Ridden with compatibility issue
 	--LandingPageSwitch = true,             --Right click on ExpansionLandingPageMinimapButton to open a menu to access mission report  --Merged into NewExpansionLandingPage
+	--BlizzFixActionBarArt = true,			--Fix Action Bar Art Reappears After Hide/Show UI
 };
 
 
@@ -437,6 +424,8 @@ local function LoadDatabase()
 
 	local alwaysEnableNew = DB.EnableNewByDefault or false;
 	local newDBKeys = {};
+
+	CallbackRegistry:Trigger("DBPreload", DB);
 
 	for dbKey, value in pairs(DefaultValues) do
 		if DB[dbKey] == nil then
@@ -470,8 +459,9 @@ local function LoadDatabase()
 	CallbackRegistry:Trigger("NewDBKeysAdded", newDBKeys);
 	CallbackRegistry:Trigger("DBLoaded", DB);
 
-
-	PlumberStorage.CreatureSpells = nil;    --Store SpellcastingInfo, retired in  Midnight
+	CallbackRegistry:WipeCallbacksForEvent("DBPreload");
+	CallbackRegistry:WipeCallbacksForEvent("NewDBKeysAdded");
+	CallbackRegistry:WipeCallbacksForEvent("DBLoaded");
 end
 
 
@@ -484,17 +474,8 @@ EL:SetScript("OnEvent", function(self, event, ...)
 	if event == "ADDON_LOADED" then
 		local name = ...
 		if name == addonName then
-			self.plumberLoaded = true;
 			self:UnregisterEvent(event);
 			LoadDatabase();
-		elseif self.plumberLoaded then
-			if CallbackRegistry.addonLoadedCallbacks[name] then
-				local tbl = CallbackRegistry.addonLoadedCallbacks[name];
-				CallbackRegistry.addonLoadedCallbacks[name] = nil;
-				for callback in pairs(tbl) do
-					callback();
-				end
-			end
 		end
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		self:UnregisterEvent(event);
@@ -557,21 +538,30 @@ end
 
 
 do
-	local tocVersion = select(4, GetBuildInfo());
-	tocVersion = tonumber(tocVersion or 0);
+	local currentToCVersion = select(4, GetBuildInfo());
+	if not currentToCVersion then
+		print("API Changed: GetBuildInfo()")
+		currentToCVersion = 999999;
+	end
+	currentToCVersion = tonumber(currentToCVersion);
 
 	local function IsToCVersionEqualOrNewerThan(targetVersion)
-		return tocVersion >= targetVersion
+		return currentToCVersion >= targetVersion
 	end
 	addon.IsToCVersionEqualOrNewerThan = IsToCVersionEqualOrNewerThan;
 
-	addon.IS_MIDNIGHT = IsToCVersionEqualOrNewerThan(120000);
+	-- TOC "X-Game" is always a string, WOW_PROJECT_* may be nil
+	local game = C_AddOns.GetAddOnMetadata(addonName, "X-Game");
 
-	addon.IS_CLASSIC = C_AddOns.GetAddOnMetadata(addonName, "X-Flavor") ~= "retail";
+	-- TODO: "Camelot" / WOW_PROJECT_CAMELOT will be renamed to "Forever"
+	addon.IS_FOREVER = game == "Camelot" or WOW_PROJECT_ID == WOW_PROJECT_CAMELOT;
+	addon.IS_MISTS = game == "Mists" or WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC;
+	addon.IS_RETAIL = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE;
 
-	addon.IS_MOP = C_AddOns.GetAddOnMetadata(addonName, "X-Expansion") == "MOP";
+	-- Modern (Standard & Forever) have Secrets, etc.
+	addon.IS_MODERN = addon.IS_RETAIL or addon.IS_FOREVER;
+	addon.IS_CLASSIC = not addon.IS_MODERN;
 
-	addon.IS_12_0_7 = IsToCVersionEqualOrNewerThan(120007);
 	addon.IS_12_1_0 = IsToCVersionEqualOrNewerThan(120100);
 
 

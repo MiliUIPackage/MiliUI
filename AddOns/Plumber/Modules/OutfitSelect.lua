@@ -840,13 +840,13 @@ do  --Module Registry
 	local function EnableModule(state)
 		if state and not EL.enabled then
 			EL.enabled = true;
-			addon.CallbackRegistry:RegisterAddOnLoadedCallback("Blizzard_Transmog", Mod.Transmog_OnLoad);
+			addon.BlizzardFrameUtil:AddFrameModifier("TransmogFrame", Mod.Transmog_OnLoad);
 		elseif (not state) and EL.enabled then
 			EL.enabled = nil;
 			if TransmogFrame then
 				Mod.MaximizeTransmogUI();
 			end
-			addon.CallbackRegistry:UnregisterAddOnLoadedCallback("Blizzard_Transmog", Mod.Transmog_OnLoad);
+			addon.BlizzardFrameUtil:RemoveFrameModifier("TransmogFrame", Mod.Transmog_OnLoad);
 		end
 	end
 
@@ -859,12 +859,10 @@ do  --Module Registry
 		categoryKeys = {"Collection"},
 	};
 
-	local IS_MOP_TRANSMOG = addon.IS_MOP and addon.IsToCVersionEqualOrNewerThan(50504); -- Modern Transmog system has been added to 5.5.4
-
-	if addon.IS_MIDNIGHT or IS_MOP_TRANSMOG then
+	if C_GameRules.IsGameRuleActive(Enum.GameRule.TransmogEnabled) then
 		addon.ControlCenter:AddModule(moduleData);
 
-		if IS_MOP_TRANSMOG then
+		if addon.IS_MISTS then
 			Def.MacroIcon = 135025;
 		end
 	end

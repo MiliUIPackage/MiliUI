@@ -20,7 +20,7 @@ local EncounterData = {
 	--/dump GetMouseFoci()[1].icon:GetTexture()
 	[2849] = {icon = 3012069, achv = {63683, 63681, 63682}},	--Nymrissa Wavecaller
 
-	[2888] = {icon = 7966621, achv = {61372, 63418}},      --Nek'zali the Soulcoiler
+	[2888] = {icon = 7966621, achv = {63523, 63418}},      --Nek'zali the Soulcoiler
 	[2874] = {icon = 7966620, achv = {63524, 63250}},      --Entombed Sentinels
 	[2882] = {icon = 7966618, achv = {63526, 63397}},      --Vashnik the Malignant
 	[2894] = {icon = 7966622, achv = {63525, 63645}},      --The Lost Explorers
@@ -98,7 +98,9 @@ local EncounterData = {
 
 
 local Difficulties;
-if addon.IS_MOP then
+local OverrideDifficulties = {};
+
+if addon.IS_MISTS then
 	Difficulties = {
 		DifficultyUtil.ID.RaidLFR,
 		DifficultyUtil.ID.Raid10Normal,
@@ -112,6 +114,17 @@ else
 		DifficultyUtil.ID.PrimaryRaidNormal,
 		DifficultyUtil.ID.PrimaryRaidHeroic,
 		DifficultyUtil.ID.PrimaryRaidMythic,
+	};
+
+	local Lairs = {
+		DifficultyUtil.ID.RaidWorld,
+		DifficultyUtil.ID.PrimaryRaidNormal,
+		DifficultyUtil.ID.PrimaryRaidHeroic,
+		DifficultyUtil.ID.PrimaryRaidMythic,
+	};
+
+	OverrideDifficulties = {
+		[2987] = Lairs,		-- Nymrissa Wavecaller
 	};
 end
 LandingPageUtil.RaidDifficulties = Difficulties;
@@ -147,7 +160,7 @@ local PlayerClassList_MOP = {
 	11, --DRUID
 };
 
-if addon.IS_MOP then
+if addon.IS_MISTS then
 	LandingPageUtil.PlayerClassList = PlayerClassList_MOP;
 else
 	LandingPageUtil.PlayerClassList = PlayerClassList_Modern;
@@ -201,8 +214,9 @@ function LandingPageUtil.GetEncounterProgress(instanceID, dungeonEncounterID)
 	--instanceID = mapID
 
 	local progress = {};    --{boolean1, boolean2, ...}
+	local difficulties = OverrideDifficulties[instanceID] or Difficulties;
 
-	for i, difficultyID in ipairs(Difficulties) do
+	for i, difficultyID in ipairs(difficulties) do
 		progress[i] = IsEncounterComplete(instanceID, dungeonEncounterID, difficultyID);
 	end
 
@@ -211,8 +225,9 @@ end
 
 function LandingPageUtil.GetInstanceProgress(instanceID, dungeonEncounterIDs)
 	local consolidatedProgress = {};    --{numComplete1, numComplete2, ...}
+	local difficulties = OverrideDifficulties[instanceID] or Difficulties;
 
-	for i, difficultyID in ipairs(Difficulties) do
+	for i, difficultyID in ipairs(difficulties) do
 		local numComplete = 0;
 		for _, dungeonEncounterID in ipairs(dungeonEncounterIDs) do
 			if IsEncounterComplete(instanceID, dungeonEncounterID, difficultyID) then
@@ -238,7 +253,7 @@ function LandingPageUtil.GetDefaultRaidDifficulty()
 end
 
 function LandingPageUtil.GetBaseRaidDifficulty()
-	if addon.IS_MOP then
+	if addon.IS_MISTS then
 		return DifficultyUtil.ID.Raid25Heroic;
 	else
 		return DifficultyUtil.ID.PrimaryRaidNormal;

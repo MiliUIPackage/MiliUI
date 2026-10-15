@@ -62,6 +62,7 @@ local function GetHiddenSourceIDForSlot(slotID)
 	end
 end
 TransmogUtil.GetAppearanceSources = GetAppearanceSources;
+TransmogUtil.GetHiddenSourceIDForSlot = GetHiddenSourceIDForSlot;
 
 
 local function PopupateInfoListWithHiddenVisuals(itemTransmogInfoList)
@@ -207,7 +208,7 @@ local function AddCopyButtonToDropdowns()
 			rootDescription:CreateTitle("Plumber");
 
 			local function CopyButton_OnClick()
-				addon.ShowClipboard(slashCommand);
+				addon.ShowClipboard(slashCommand, TRANSMOG_OUTFIT_COPY_TO_CLIPBOARD_NOTICE);
 			end
 
 			local button1 = rootDescription:CreateButton(L["Copy To Clipboard"], CopyButton_OnClick);
@@ -254,7 +255,7 @@ local function AddCopyButtonToDropdowns()
 			rootDescription:CreateDivider();
 
 			local function CopyButton_OnClick()
-				addon.ShowClipboard(slashCommand);
+				addon.ShowClipboard(slashCommand, TRANSMOG_OUTFIT_COPY_TO_CLIPBOARD_NOTICE);
 				C_Timer.After(0, function()
 					GameTooltip:Hide();
 				end);
@@ -270,8 +271,7 @@ local function AddCopyButtonToDropdowns()
 end
 
 
-
-
+--[[
 do
 	local function EnableModule(state)
 		if state and not D.enabled then
@@ -294,7 +294,6 @@ do
 		categoryKeys = {"Collection"},
 	};
 
-	if not addon.IS_MIDNIGHT then
-		addon.ControlCenter:AddModule(moduleData);
-	end
+	addon.ControlCenter:AddModule(moduleData);
 end
+--]]

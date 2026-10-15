@@ -351,7 +351,7 @@ do  -- Checkbox
 		local newState;
 
 		if self.dbKey then
-			newState = not addon.GetDBValue(self.dbKey)
+			newState = not addon.GetDBBool(self.dbKey)
 			addon.SetDBValue(self.dbKey, newState, true);
 			self:SetChecked(newState);
 		else
@@ -405,6 +405,12 @@ do  -- Checkbox
 		self.checked = state;
 	end
 
+	function CheckboxMixin:UpdateChecked()
+		if self.dbKey then
+			self:SetChecked(addon.GetDBBool(self.dbKey));
+		end
+	end
+
 	function CheckboxMixin:SetFixedWidth(width)
 		self.fixedWidth = width;
 		self:SetWidth(width);
@@ -453,6 +459,8 @@ do  -- Checkbox
 		self.restrictionInstance = data.restrictionInstance;
 		self.parentDBKey = data.parentDBKey;
 		self.shouldEnableOption = data.shouldEnableOption;
+
+		self:UpdateChecked();
 
 		if data.label then
 			return self:SetLabel(data.label)
@@ -2022,6 +2030,7 @@ do  --(In)Secure Button Pool
 		end
 		if self.onHideCallback then
 			self.onHideCallback(self);
+			self.onHideCallback = nil;
 		end
 	end
 
@@ -2096,6 +2105,9 @@ do  --(In)Secure Button Pool
 		else
 			self:SetMacroText("/use "..item);
 		end
+
+		self:SetAttribute("useOnKeyDown", false);
+		self:RegisterForClicks("AnyDown", "AnyUp");
 	end
 
 	function SecureButtonMixin:SetEquipOutfit(playerFacingOutfitIndex)
@@ -4535,7 +4547,8 @@ do  --DropdownFrame--
 	end
 
 	function DropdownFrameMixin:UpdateEnabledState()
-		local enabled = self.menuData and self.menuData.ShouldEnable and self.menuData.ShouldEnable();
+		local menuData = self.menuData;
+		local enabled = menuData and ((not menuData.ShouldEnable) or menuData.ShouldEnable());
 		self:SetEnabled(enabled);
 	end
 
@@ -4606,7 +4619,11 @@ do  --DropdownFrame--
 			tooltip:SetOwner(self, "ANCHOR_RIGHT");
 			tooltip:SetText(self.Text:GetText(), 1, 1, 1);
 			if self.tooltip then
-				tooltip:AddLine(self.tooltip, 1, 0.82, 0, true);
+				if type(self.tooltip) == "function" then
+					tooltip:AddLine(self.tooltip(), 1, 0.82, 0, true);
+				else
+					tooltip:AddLine(self.tooltip, 1, 0.82, 0, true);
+				end
 			end
 			tooltip:Show();
 		end

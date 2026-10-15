@@ -6,7 +6,7 @@
 
 
 local _, addon = ...
---if addon.IS_MIDNIGHT then return end;     --DEBUG Functioning again in 64228, praise the Absolute!
+--if addon.IS_RETAIL then return end;     --DEBUG Functioning again in 64228, praise the Absolute!
 
 
 -- User Settings
@@ -453,9 +453,10 @@ function EL:UpdateDrawers()
 		for _, macroIndex in ipairs(drawers) do
 			commandInfo = self.macroIndexCommandInfo[macroIndex];
 
-			if commandInfo and commandInfo.shouldUseDrawer() and commandInfo.getOverrideDrawerInfo then
+			if commandInfo and commandInfo.shouldUseDrawer and commandInfo.shouldUseDrawer() and commandInfo.getOverrideDrawerInfo then
 				drawerInfo = commandInfo.getOverrideDrawerInfo();
-				name = commandInfo.name;
+				name = GetMacroInfo(macroIndex);
+				name = name or commandInfo.name;
 				body, icon = commandInfo.writeFunc();
 				body = "#plumber:"..commandInfo.command;
 			else

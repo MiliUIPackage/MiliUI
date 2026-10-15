@@ -45,7 +45,7 @@ local Settings = {
 	showObjectives = false,
 	hideIconInHouse = false,
 	hideNameInHouse = false,
-	IS_MIDNIGHT = addon.IS_MIDNIGHT,
+	IS_MODERN = addon.IS_MODERN,
 };
 
 
@@ -55,6 +55,9 @@ local IgnoredGameObjects = {
 
 local SpecialGameObjects = {};
 
+local function IsHousingAvailable()
+	return addon.IS_RETAIL;
+end
 
 do  --Display
 	Display:Hide();
@@ -188,6 +191,8 @@ do  --Display
 	end
 
 	function Display:UpdateInHouseStatus(state)
+		if not IsHousingAvailable() then return end;    --Forever does not have Housing
+
 		if state ~= nil then
 			self.inHouseArea = state;
 		else
@@ -327,7 +332,7 @@ do  --Display
 		end
 	end
 
-	if Settings.IS_MIDNIGHT then
+	if Settings.IS_MODERN then
 		function Display:UpdateCastingIndicator()
 			local duo = UnitCastingDuration("player");
 			if not duo then
@@ -410,6 +415,19 @@ do  --Display
 
 		self.SubtextContainer:Show();
 		self.SubtextContainer:SetScript("OnUpdate", SharedFadeIn_OnUpdate);
+	end
+
+	function Display:UpdateTextAnchor(unitFrame)
+		self.Title:ClearAllPoints();
+		self.Subtext:ClearAllPoints();
+		local healthBar = unitFrame.HealthBarsContainer and unitFrame.HealthBarsContainer.healthBar;
+		if healthBar and healthBar:IsShown() then
+			self.Title:SetPoint("BOTTOM", healthBar, "TOP", 0, 3);
+			self.Subtext:SetPoint("TOP", healthBar, "BOTTOM", 0, -3);
+		else
+			self.Title:SetPoint("TOP", self, "TOP", 0, 0);
+			self.Subtext:SetPoint("TOP", self.Title, "BOTTOM", 0, -2);
+		end
 	end
 
 	function Display:Remove()
@@ -536,9 +554,10 @@ do  --EL
 			if f:IsShown() then
 				local unitID = GetUnitIDGeneral(unit);
 				--print("GameObject:", unitID);
+
 				if unitID and IgnoredGameObjects[unitID] then
 					Display:Hide();
-					return
+					return;
 				end
 
 				local objectName = UnitName(unit);
@@ -582,6 +601,8 @@ do  --EL
 					Display.Background:Show();
 				end
 
+				Display:UpdateTextAnchor(nameplate.UnitFrame);
+
 				local subtextFontHeight = Round(Settings.subtextHeight*uiScale);
 				Display.subtextFontHeight = subtextFontHeight;
 
@@ -616,10 +637,10 @@ do  --EL
 				Display:Hide();
 			end
 
-			--Fix the Elite icon on GameObject namepalte
+			--Fix the Elite icon on GameObject nameplate
 			--CompactUnitFrame_UpdateClassificationIndicator(nameplate.UnitFrame);
-			if nameplate.UnitFrame.classificationIndicator then
-				nameplate.UnitFrame.classificationIndicator:Hide();
+			if nameplate.UnitFrame.ClassificationFrame then
+				nameplate.UnitFrame.ClassificationFrame:Hide();
 			end
 		else
 			Display:Hide();
@@ -739,10 +760,10 @@ do  --Options, Settings
 			{type = "Checkbox", label = L["SoftTargetName ShowNPC"], tooltip = L["SoftTargetName ShowNPC Tooltip"], onClickFunc = CheckboxShared_OnClick, dbKey = "SoftTarget_ShowNPC"},
 
 
-			{type = "Divider"},
-			{type = "Header", label = L["SC Housing"]},
-			{type = "Checkbox", label = L["SoftTargetName HideIcon"], tooltip = L["SoftTargetName HideIcon Tooltip"], onClickFunc = CheckboxShared_OnClick, dbKey = "SoftTarget_House_HideIcon"},
-			{type = "Checkbox", label = L["SoftTargetName HideName"], tooltip = L["SoftTargetName HideName Tooltip"], onClickFunc = CheckboxShared_OnClick, dbKey = "SoftTarget_House_HideName"},
+			{type = "Divider", validityCheckFunc = IsHousingAvailable},
+			{type = "Header", label = L["SC Housing"], validityCheckFunc = IsHousingAvailable},
+			{type = "Checkbox", label = L["SoftTargetName HideIcon"], tooltip = L["SoftTargetName HideIcon Tooltip"], onClickFunc = CheckboxShared_OnClick, dbKey = "SoftTarget_House_HideIcon", validityCheckFunc = IsHousingAvailable},
+			{type = "Checkbox", label = L["SoftTargetName HideName"], tooltip = L["SoftTargetName HideName Tooltip"], onClickFunc = CheckboxShared_OnClick, dbKey = "SoftTarget_House_HideName", validityCheckFunc = IsHousingAvailable},
 		},
 	};
 
@@ -879,6 +900,7 @@ do  --SpecialGameObjects
 	local function SubtextFunc_MisplacedTome()
 		return SubtextFunc_Item(242241)
 	end
+	SpecialGameObjects[531477] = SubtextFunc_MisplacedTome; --Coalesced Light
 	SpecialGameObjects[531478] = SubtextFunc_MisplacedTome;
 	SpecialGameObjects[531479] = SubtextFunc_MisplacedTome;	--Ranger's Cache
 end

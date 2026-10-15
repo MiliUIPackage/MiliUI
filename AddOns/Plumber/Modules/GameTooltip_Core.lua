@@ -80,23 +80,27 @@ local SubModuleMixin = {};
 do
 	function SubModuleMixin:ProcessData(tooltip, itemID)
 		if self.enabled then
-
+			-- Override
 		else
-			return false
+			return false;
 		end
 	end
 
 	function SubModuleMixin:GetDBKey()
-		return "dbkey"
+		return self.dbKey;
 	end
 
 	function SubModuleMixin:SetEnabled(enabled)
-		self.enabled = enabled == true
+		self.enabled = enabled == true;
 		self.parentManager:RequestUpdate();
+
+		if self.OnEnabledStateChanged then
+			self:OnEnabledStateChanged(enabled);
+		end
 	end
 
 	function SubModuleMixin:IsEnabled()
-		return self.enabled == true
+		return self.enabled == true;
 	end
 end
 
@@ -117,6 +121,7 @@ do
 	function HandlerMixin:CallSubModules(tooltip, id, hyperlink)
 		self.altModeState = nil;
 		self.hideGenericAltInstruction = nil;
+		self.anyChange = nil;
 		self.currentTooltip = tooltip;
 
 		for _, m in ipairs(self.modules) do
@@ -234,8 +239,9 @@ do
 		end
 	end
 
-	function HandlerMixin:CreateSubModule(dbKey)
-		local module = Mixin({}, SubModuleMixin);
+	function HandlerMixin:CreateSubModule(dbKey, asFrame)
+		local module = (asFrame and CreateFrame("Frame")) or {};
+		Mixin(module, SubModuleMixin);
 
 		module.parentManager = self;
 		module.dbKey = dbKey;
@@ -301,9 +307,13 @@ do  --GameTooltipManager
 			handler.tooltipDataType = tooltipDataType;
 			handler.noModuleEnabled = true;
 			handler.isItemHandler = tooltipDataType == 0;
+			handler.isItemHandler = tooltipDataType == Enum.TooltipDataType.Item;
 
 			if useLeftTextAsArgument then
 				function handler.ProcessDisplayedData(tooltip)
+					if handler.noModuleEnabled then return; end
+					if tooltip.IsEmbedded then return; end -- Disabled for embedded tooltip. Maybe it will fix the taint?
+
 					local tooltipData = tooltip.infoList and tooltip.infoList[1] and tooltip.infoList[1].tooltipData;
 					if tooltipData and tooltipData.type == tooltipDataType then
 						local leftText = tooltipData.lines and tooltipData.lines[1] and tooltipData.lines[1].leftText;
@@ -321,6 +331,9 @@ do  --GameTooltipManager
 				end
 			else
 				function handler.ProcessDisplayedData(tooltip)
+					if handler.noModuleEnabled then return; end
+					if tooltip.IsEmbedded then return; end -- Disabled for embedded tooltip. Maybe it will fix the taint?
+
 					local tooltipData = tooltip.infoList and tooltip.infoList[1] and tooltip.infoList[1].tooltipData;
 					if tooltipData and tooltipData.type == tooltipDataType then
 						local arg1 = tooltipData.id;

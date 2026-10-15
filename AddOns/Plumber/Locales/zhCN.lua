@@ -44,7 +44,8 @@ L["New Feature Abbr"] = "新";
 L["Format Month Day"] = "%s%d日";
 L["Always On Module"] = "此模块将被一直启用。";
 L["Return To Module List"] = "返回模块列表";
-L["LootUI Addon Conflict"] = "此模块可能与以下功能类似的插件不兼容：";
+L["Generic Addon Conflict"] = "此模块可能与以下功能类似的插件不兼容：";
+L["Addon Conflict Format"] = "此模块可能与 %s 不兼容。";
 L["Work In Progress Tag"] = "[施工中]";
 L["Colon With Space"] = "：";
 L["Disabled Module Requires Reload Format"] = "你必须%s才能使改变生效。";	--We'll replace %s with a clickable "reload the UI"
@@ -141,7 +142,7 @@ L["Catalyst Charges"] = "充能层数";
 
 
 --GossipFrameMedal
-L["ModuleName GossipFrameMedal"] = "驭龙竞速评级";
+L["ModuleName GossipFrameMedal"] = "驭空术竞速评级";
 L["ModuleDescription GossipFrameMedal Format"] = "将默认图标 %s 替换为你获得的奖章 %s。\n\n在你与青铜时光守护者对话后，可能需要短暂的时间来从服务器获取记录。";
 
 
@@ -568,7 +569,7 @@ L["ModuleDescription StaticPopup_Confirm"] = "调整购买不可退款物品时�
 
 --Loot UI
 L["ModuleName LootUI"] = "拾取窗口";
-L["ModuleDescription LootUI"] = "替换默认的拾取窗口并提供以下功能：\n\n- 快速拾取所有物品\n\n- 修复自动拾取有时失效的问题\n\n- 手动拾取时显示“全部拾取”按钮";
+L["ModuleDescription LootUI"] = "替换默认的拾取窗口并提供以下功能：\n\n- 快速拾取物品\n\n- 显示已拥有的物品数量\n\n- 将垃圾物品整合成一条提示\n\n- 手动拾取时显示“全部拾取”按钮";
 L["Take All"] = "全部拾取";
 L["You Received"] = "你获得了";
 L["Reach Currency Cap"] = "货币已达到上限";
@@ -616,6 +617,18 @@ L["LootUI Option Show All Currency"] = "显示任何货币变动";
 L["LootUI Option Show All Currency Tooltip"] = "显示从任何来源获得的货币，而不仅限于从战利品中拾取到的。\n\n|cffff4800你可能偶尔会看到不在聊天窗口内显示的货币。|r";
 L["LootUI Option Hide Title"] = "隐藏“你获得了”标题";
 L["LootUI Option Hide Title Tooltip"] = "隐藏拾取窗口上方显示的“你获得了”标题。";
+L["LootUI Option Loot Speed"] = "拾取速度";
+L["LootUI Option Loot Speed Moderate"] = "适中";
+L["LootUI Option Loot Speed Moderate Tooltip"] = "用适中速度进行快速拾取。";
+L["LootUI Option Loot Speed Maximum"] = "最大";
+L["LootUI Option Loot Speed Maximum Tooltip"] = "用最大速度进行快速拾取。\n\n|cffff4800其他统计拾取物品的插件可能在此速度下失效。|r";
+
+
+--Fast Loot
+L["ModuleName FastLoot"] = "快速拾取";
+L["ModuleDescription FastLoot"] = "快速拾取物品。";
+L["FastLoot Always On Reason"] = "快速拾取功能将一直生效，因为你已启用Plumber拾取窗口。";
+L["FastLoot User Notes"] = "*Plumber快速拾取只干一项任务...快速拾取。若你想要更多功能，请尝试其它拾取插件例如\"Speedy AutoLoot\"或\"XLoot\".";
 
 
 --Quick Slot For Third-party Dev
@@ -698,6 +711,7 @@ L["Weekly Coffer Key Shards Tooltip"] = "每周获得的前四个周常宝箱里
 L["Weekly Cap"] = "每周上限";
 L["Weekly Cap Reached"] = "已达到每周上限。";
 L["Instruction Right Click To Use"] = "<右键单击来使用>"
+L["Instruction Right Click To Use Format"] = "<右键单击来使用%s>";
 L["Join Queue"] = "加入队列";
 L["In Queue"] = "在队列中";
 L["Click To Switch"] = "点击以切换为|cffffffff%s|r";
@@ -754,6 +768,7 @@ L["EditMode Instruction InstanceDifficulty"] = "此窗口的实际宽度由选�
 L["Difficulty Locked To Format"] = "此副本难度被锁定为|cffffffff%s|r，因为你已击败了一个首领。";
 L["Difficulty Locked To Current Alert"] = "此副本难度被锁定为当前难度，因为你已击败了一个首领。";
 L["Shared Difficulty Alert"] = "击败任何一个首领将会使副本锁定至此难度。";
+L["Can Only Change Difficulty Via Native UI"] = "你必须与副本入口交互才能选择此难度。";
 
 
 --TransmogChatCommand
@@ -771,6 +786,18 @@ L["ModuleDescription TransmogOutfitSelect"] = "允许你随时随地打开外观
 L["Outfit Collection"] = "外观列表";
 L["Quick Access Outfit Button"] = "快捷访问";
 L["Quick Access Outfit Button Tooltip"] = "点击并拖动此按钮到技能栏上，以便随时随地访问外观列表。";
+
+
+--TransmogRaestorePending
+L["ModuleName TransmogRaestorePending"] = "幻化界面: 恢复未保存的改动";
+L["ModuleDescription TransmogRaestorePending"] = "未保存的改动将在你重新打开幻化界面时自动恢复。\n\n未保存的改动可以转移至另一个外观方案。";
+L["Outfit Popup Warning"] = "当前外观方案有未保存的改动。\n\n你想将这些改动转移至新的外观方案，还是要舍弃它们？";
+L["Outfit Popup Move Changes"] = "转移";
+L["Outfit Popup Move Changes Tooltip"] = "将未保存的改动转移至新选择的外观方案。";
+L["Outfit Popup Always Move Changes Over"] = "永远转移改动";
+L["Outfit Popup Always Move Changes Over Tooltip"] = "永远将未保存的改动转移至新选择的外观方案。\n\n你将不会再看到这个弹出窗口。";
+L["Outfit Popup Discard Changes"] = "舍弃";
+L["Outfit Popup Discard Changes Tooltip"] = "舍弃未保存的改动。";
 
 
 --QuestWatchCycle

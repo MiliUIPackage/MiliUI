@@ -90,7 +90,7 @@ local function SetupPin(pin)
 			description = description.."\n\n"..L["Prey Target Has Achievement"];
 		end
 
-		if rootQuestID then
+		if rootQuestID and C_QuestLog.IsOnQuest(rootQuestID) then
 			local questName = addon.API.GetQuestName(rootQuestID);
 			if questName then
 				description = description.."\n\n"..string.format(L["Quest Objective Entry Format"], "|cffffffff"..questName.."|r");
@@ -130,14 +130,14 @@ end
 --local function Callback_RemoveAllData(dataProvider)
 --end
 
-local function OnBlizzardUILoaded()
+local function OnBlizzardUILoaded(CovenantMissionFrame)
 	if not Def.loaded then
 		Def.loaded = true;
 	else
 		return;
 	end
 
-	local map = addon.API.GetGlobalObject("CovenantMissionFrame.MapTab");
+	local map = CovenantMissionFrame.MapTab;
 	local dataProviders = map and map.dataProviders;
 	local found;
 
@@ -165,10 +165,10 @@ do
 	local function EnableModule(state)
 		if state and not MODULE_ENABLED then
 			MODULE_ENABLED = true;
-			addon.CallbackRegistry:RegisterAddOnLoadedCallback("Blizzard_GarrisonUI", OnBlizzardUILoaded);
+			addon.BlizzardFrameUtil:AddFrameModifier("CovenantMissionFrame", OnBlizzardUILoaded);
 		elseif (not state) and MODULE_ENABLED then
 			MODULE_ENABLED = false;
-			addon.CallbackRegistry:UnregisterAddOnLoadedCallback("Blizzard_GarrisonUI", OnBlizzardUILoaded);
+			addon.BlizzardFrameUtil:RemoveFrameModifier("CovenantMissionFrame", OnBlizzardUILoaded);
 			RestoreAllPins();
 		end
 	end
