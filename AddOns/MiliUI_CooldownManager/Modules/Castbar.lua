@@ -379,11 +379,11 @@ function CB.Layout()
     f.textFrame:SetFrameLevel(lvl + 3)
     f.iconFrame:SetFrameLevel(lvl + 1)
 
-    local font = ns.Media.ElementFont(cfg.font, ns.Setting(nil, "font"))
-    local size = tonumber(cfg.textSize) or 12
+    -- 名字（font／textSize）與時間（timeFont／timeTextSize）各一組，沒存字型 ＝ 跟隨通用字型
+    local general = ns.Setting(nil, "font")
     local outline = ns.Media.ThemeOutline()
-    ns.Media.SetFont(f.nameText, size, outline, font)
-    ns.Media.SetFont(f.timeText, size, outline, font)
+    ns.Media.SetFont(f.nameText, tonumber(cfg.textSize) or 12, outline, ns.Media.ElementFont(cfg.font, general))
+    ns.Media.SetFont(f.timeText, tonumber(cfg.timeTextSize) or 12, outline, ns.Media.ElementFont(cfg.timeFont, general))
     -- 錨點固定在左右兩緣的垂直中線（y ＝ 0 就是被動置中），位移照設定
     local no = type(cfg.nameOffset) == "table" and cfg.nameOffset or {}
     local to = type(cfg.timeOffset) == "table" and cfg.timeOffset or {}

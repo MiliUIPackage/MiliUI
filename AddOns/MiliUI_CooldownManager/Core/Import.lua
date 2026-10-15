@@ -994,7 +994,7 @@ local function StepCastbar(ctx)
     v = Num(Take(ctx, "castBarHeight"))
     if v and v > 0 then cb.height = v end
     v = Num(Take(ctx, "castBarFontSize"))
-    if v and v > 0 then cb.textSize = v end
+    if v and v > 0 then cb.textSize, cb.timeTextSize = v, v end
     v = Num(Take(ctx, "castBarNameMaxChars"))
     if v and v >= 0 then cb.nameMaxChars = math.floor(v) end
     v = Take(ctx, "castBarShowTotalDuration")

@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 9
+ns.DB_VERSION = 10
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -441,7 +441,8 @@ CastbarDefaults = function()
         nameMaxChars  = 0,                 -- 0 ＝ 不限
         showTime      = true,
         timeFormat    = "remainTotal",     -- remainTotal | elapsedTotal | remain | elapsed
-        textSize      = 12,
+        textSize      = 12,                -- 法術名稱的字級（字型 font）；沒存字型 ＝ 跟隨通用字型
+        timeTextSize  = 12,                -- 時間的字級（字型 timeFont），2026-10-15 從名字拆出來（v10）
         -- 名字／時間的位移（2026-10-04，玩家要求）：錨點固定（名字錨左緣、時間錨右緣、都是垂直中線），
         -- 預設 y ＝ 0 ⇒ 被動垂直置中；x 是離邊的留白。舊存檔靠 MergeDefaults 補上，不遷移
         nameOffset    = { x = 4, y = 0 },
@@ -923,6 +924,15 @@ local MIGRATIONS = {
                 if type(st) == "table" then conv(st) end
             end
         end
+    end,
+    -- v10（2026-10-15）：施法條的字型／字級從「名字與時間共用」拆成各自一組（玩家要求法術名稱能單獨換字型）。
+    -- 舊的 font／textSize 留給名字，時間那組（timeFont／timeTextSize）照抄一份 ⇒ 畫面不變。
+    -- 新欄位以前不存在 ⇒ 不用值閘（timeTextSize 可能已被合併預設值補成 12，照樣蓋）
+    [10] = function(profile)
+        local cb = profile.castbar
+        if type(cb) ~= "table" then return end
+        if cb.font ~= nil then cb.timeFont = cb.font end
+        if cb.textSize ~= nil then cb.timeTextSize = cb.textSize end
     end,
 }
 DB.MIGRATIONS = MIGRATIONS
