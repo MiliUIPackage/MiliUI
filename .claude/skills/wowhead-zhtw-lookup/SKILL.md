@@ -47,6 +47,13 @@ Wowhead is fronted by CloudFront with aggressive bot protection. Cutting corners
 
 If you see a 403, **stop immediately**. The IP is blacklisted; further requests just deepen the block. Wait at least 30 minutes, ideally hours, before retrying. Tell the user the situation honestly rather than thrashing.
 
+**Fallback that works while curl is blocked (verified 2026-10-15):** open the zhTW page
+directly in the built-in browser pane — `navigate` to `https://www.wowhead.com/tw/quest=<ID>`
+(same for `item`/`spell`/`npc`), then `get_page_text`. The page title is
+`<zhTW name>—任務—魔獸世界`, and the English name is on the 小知識 line `英語：`. The pane is a
+real browser session so CloudFront lets it through. Fine for a handful of IDs; for a batch,
+wait out the block instead of driving the browser hundreds of times.
+
 ## How to use
 
 ### Single lookup
