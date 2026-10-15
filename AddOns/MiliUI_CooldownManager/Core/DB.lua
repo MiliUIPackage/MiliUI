@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 11
+ns.DB_VERSION = 12
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -461,10 +461,11 @@ end
 
 -- 專注目標施法條（Modules/FocusCastbar.lua，面板 focuscast；2026-10-15 從專注目標助手搬來的做法）：
 -- 專注目標在唱什麼、依「我能不能斷」三態上色、暴雪標為重要的法術外框發光＋名字前加「!」。
--- 預設開、錨在玩家施法條上方（施法條關掉或改錨時由排開接到它的上一層）。舊存檔沒有這張表 ＝ 合併預設值補上，不遷移
+-- **預設關**（2026-10-16 使用者改口；10-15 那版預設開，v12 值閘翻回來）、錨在玩家施法條上方（施法條關掉或改錨時由排開接到它的上一層）。
+-- 舊存檔沒有這張表 ＝ 合併預設值補上
 FocusCastDefaults = function()
     return {
-        enabled       = true,
+        enabled       = false,
         pos           = { point = "CENTER", x = 0, y = -236 },
         anchor        = { to = "castbar", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
         width         = 0,                 -- 0 ＝ 跟錨定的圖示條第一列同寬（錨在施法條上時＝核心技能第一列）
@@ -988,6 +989,12 @@ local MIGRATIONS = {
         local fc = profile.focuscast
         if type(fc) ~= "table" then return end
         if fc.texture == "MiliUI TukTex" or fc.texture == "MiliUI Glass" then fc.texture = "MiliUI Satin" end
+    end,
+    -- v12（2026-10-16）：專注目標施法條改成預設關。10-15 那版預設開、合併預設值已經把 enabled = true 寫進每個人的存檔，
+    -- 只改預設值改不到既有玩家 ⇒ 值閘翻成關（那版只活了一天，刻意打開的人重新勾一次）
+    [12] = function(profile)
+        local fc = profile.focuscast
+        if type(fc) == "table" and fc.enabled == true then fc.enabled = false end
     end,
 }
 DB.MIGRATIONS = MIGRATIONS

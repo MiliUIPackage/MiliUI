@@ -26,7 +26,7 @@ metadata:
 **接進插件的位置**：
 - `C_DamageMeter` 的 source 只給 `specIconID`（圖示 fileID），沒有 specID、沒有裝等。`D.SpecInfo(specIconID)` 第一次用到時掃 `GetSpecializationInfoForClassID` 建 fileID→專精表；檔名用 `SPEC_KEYS[classFile][i]`，**i 是暴雪的專精順序**（不寫死 specID）。暴雪改某職業的順序，這張表要跟著改，否則圖錯位到同職業別的專精。
 - **暴雪常常不給別人的 `specIconID`**（實測 2026-10-14 `/mdm debug`：同隊、距離遠的兩位隊友都是 nil，只有自己有）。專精一律走 `D.SourceSpec(src)`：先 specIconID，沒有就查觀察快取 `IL.Spec(guid)`（觀察時順便讀 `GetInspectSpecialization`；脫戰自動排隊問隊友，每 2 秒一個、`UnitIsVisible` 看不到的先跳過、全部問完就停、戰鬥中暫停、`PLAYER_SPECIALIZATION_CHANGED` 清掉重問）。問到新專精 `D.specGen` +1、`W.Refresh()`，長條圖示備忘連 specGen 一起比（不比的話 specIconID 一直 nil 的列永遠不重畫）（c90cde634）。
-- **還不知道專精時顯示職業圖示，不猜**（使用者拍板 A）。有同類插件的做法是退成該職業第一個專精的圖＝會畫錯（懲戒騎顯示成神聖），我們不學。**使用者之後要重畫一套米利風格職業圖示**，到時 mili 樣式的職業退路改用它。
+- **還不知道專精時顯示職業圖示，不猜**（使用者拍板 A）。有同類插件的做法是退成該職業第一個專精的圖＝會畫錯（懲戒騎顯示成神聖），我們不學。2026-10-16 職業圖示 13 張已做（`Media/Class/<classFile 小寫>.png`，75b6af626），mili 樣式的職業退路已改用它；`class` 樣式仍是暴雪職業圖。術士職業圖的紫火焰在洋紅底被吃掉，用 `key.py --fill-enclosed` 救回。2026-10-16 同日野性德魯伊換火焰獅頭、防護聖騎換金盾獅頭（9a0bccd16）——這兩張與職業 13 張都跟第三方參考圖集幾乎一致，已提醒授權風險，使用者決定直接用。
 - 樣式退路：`mili` 對不到（秘密的 fileID、NPC、沒有圖檔）→ `spec`（暴雪專精圖示）→ 職業 sprite。戰鬥中 GUID 是秘密值查不了快取，只剩 specIconID。
 - 頭像卡片 `Meter/Card.lua`（滑過預覽與展開頁標題共用：大圖示＋名字＋「專精 職業 · 裝等」）。右側兩格 `right1`／`right2` 各對一行，由宿主填（預覽：統計類型；展開頁：總量／返回提示）。**名字只讓位給 right1、第二行只讓位給 right2** —— 早期兩行都讓位給同一格，展開頁的總量很長就把名字擠成「米利丹…」（c40d42dde）。卡片高度從字級算，宿主的標題列跟著撐（bd47e1561，寫死高度在字調大時溢出，見 [[project-miliui-damagemeters]]）。
 - 裝等 `Meter/ItemLevel.lua`：自己 `GetAverageItemLevel`；隊友 `NotifyInspect` → `INSPECT_READY` → `C_PaperDollInfo.GetInspectItemLevel`，快取 10 分鐘、兩次請求至少隔 1.5 秒、同一時間只等一個人；**別人發的觀察也收**（搭便車）、**不呼叫 `ClearInspectPlayer`**（INSPECT_READY 是廣播，後面的監聽者還要讀）、觀察視窗開著時不發（會換掉它的對象）、戰鬥中不發。
