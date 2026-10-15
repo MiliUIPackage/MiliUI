@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "充能格改用速度條的顏色"
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "邊框、縮放與冷卻轉圈照主題的圖示設定。"
 L["Restore the skyriding settings to their defaults?"] = "把天空騎術的設定恢復成預設值？"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "天空騎術時，這個位置由天空騎術條接手（天空騎術頁的「位置：接力」）。"
+L["Show the bar"] = "顯示長條"
+L["Turn it off to show only the icon (see Icon below)."] = "關掉就只顯示圖示（在下方「圖示」設定）。"
 L["Electric effect when full"] = "充滿時的電光效果"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "速度條"

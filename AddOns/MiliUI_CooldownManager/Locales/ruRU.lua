@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "Заряды цветом полосы
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "Рамка, увеличение и затемнение восстановления следуют настройкам значков темы."
 L["Restore the skyriding settings to their defaults?"] = "Вернуть настройки высшего пилотажа по умолчанию?"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "В высшем пилотаже это место занимают полосы высшего пилотажа (страница «Высший пилотаж», позиция: поочередно)."
+L["Show the bar"] = "Показывать полосу"
+L["Turn it off to show only the icon (see Icon below)."] = "Выключите, чтобы показывать только значок (см. «Значок» ниже)."
 L["Electric effect when full"] = "Электрический эффект при заполнении"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "Полоса скорости"

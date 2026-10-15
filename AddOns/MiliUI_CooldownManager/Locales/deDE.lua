@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "Aufladungen in der Farbe der Tempoleis
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "Rand, Zoom und Abklingspirale folgen den Symboleinstellungen des Themas."
 L["Restore the skyriding settings to their defaults?"] = "Die Himmelsreiten-Einstellungen auf Standard zurücksetzen?"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "Beim Himmelsreiten übernehmen die Himmelsreiten-Leisten diesen Platz (Seite Himmelsreiten, Position: Wechsel)."
+L["Show the bar"] = "Leiste anzeigen"
+L["Turn it off to show only the icon (see Icon below)."] = "Ausschalten, um nur das Symbol zu zeigen (siehe Symbol unten)."
 L["Electric effect when full"] = "Elektrischer Effekt, wenn voll"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "Tempoleiste"

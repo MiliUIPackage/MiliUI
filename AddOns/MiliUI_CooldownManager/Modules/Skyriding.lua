@@ -8,6 +8,7 @@
 --   secondWind  重新振作充能格（預設關；競速中畫成空的）
 -- 每一列各自的高、前景／背景材質（INHERIT ＝ 跟資源條頁）、背景色、前景色、文字（顯示、位置、位移、字型、字級、顏色）。
 -- 另有一顆可選的旋轉急衝冷卻圖示（rows.surge.icon，預設關；錨在整塊面板外面，不算在面板尺寸裡 ⇒ 不影響排開）。
+-- 旋轉急衝那一列沒勾 ⇒ 長條與圖示都不畫；rows.surge.bar ＝ false ⇒ 只畫圖示（SR.SurgeBarOn／SR.SurgeIcon）。
 --
 -- 旋轉急衝長條：好了 ＝ 滿的（一顆靜態的 StatusBar），冷卻中 ＝ 另一顆 StatusBar 吃 GetSpellCooldownDuration 的
 -- duration 物件從空長到滿（引擎跑）。滿的時候疊電光（裁切框裡一道 ADD 掃光＋整條呼吸亮層），冷卻好了那一刻震一下
@@ -175,11 +176,23 @@ function SR.MoveRow(cfg, key, dir)
     return true
 end
 
--- 四列都關 ＝ 等同關掉
+-- 旋轉急衝那一列分成長條與圖示兩件：勾選框（RowOn）管整列，關掉兩件都不畫；
+-- 長條另有自己的開關 rows.surge.bar（沒存 ＝ 開；關掉＝只顯示圖示，使用者 2026-10-15 指定）
+function SR.SurgeBarOn(cfg)
+    return SR.RowOn(cfg, "surge") and SR.RowCfg(cfg, "surge").bar ~= false
+end
+
+-- 這一列實際有沒有東西要畫：旋轉急衝看長條或圖示，其餘看勾選框
+local function RowShows(cfg, key)
+    if key == "surge" then return SR.SurgeBarOn(cfg) or SR.SurgeIcon(cfg) ~= "off" end
+    return SR.RowOn(cfg, key)
+end
+
+-- 四列都沒東西畫 ＝ 等同關掉
 function SR.Enabled(cfg)
     if type(cfg) ~= "table" or cfg.enabled == false then return false end
     for _, k in ipairs(ROW_KEYS) do
-        if SR.RowOn(cfg, k) then return true end
+        if RowShows(cfg, k) then return true end
     end
     return false
 end
@@ -238,7 +251,7 @@ function SR.Geometry(cfg)
     local g = { gap = Clamp(cfg.gap, 0, 20, 1), rows = {}, list = {}, h = 0 }
     local y = 0
     for _, key in ipairs(SR.Order(cfg)) do
-        if SR.RowOn(cfg, key) then
+        if (key == "surge" and SR.SurgeBarOn(cfg)) or (key ~= "surge" and SR.RowOn(cfg, key)) then
             local h = Clamp(SR.RowCfg(cfg, key).height, 1, 40, ROW_H[key])
             if #g.list > 0 then y = y + g.gap end
             g.rows[key] = { y = y, h = h }
@@ -287,12 +300,14 @@ function SR.SurgeSeconds(endTime, now)
 end
 
 -- 旋轉急衝圖示的設定（rows.surge.icon）：mode（off｜cooldown｜ready｜always，不認得當 off）、size（12～64）、side（LEFT｜RIGHT｜TOP｜BOTTOM）
+-- 整列沒勾 ⇒ mode 一律 off（使用者 2026-10-15：不勾就什麼都不顯示）；raw ＝ 存的值（設定視窗讀）
 local ICON_MODES = { off = true, cooldown = true, ready = true, always = true }
 local ICON_SIDES = { LEFT = true, RIGHT = true, TOP = true, BOTTOM = true }
-function SR.SurgeIcon(cfg)
+function SR.SurgeIcon(cfg, raw)
     local ic = SR.RowCfg(cfg, "surge").icon
     ic = type(ic) == "table" and ic or {}
     local mode = ICON_MODES[ic.mode] and ic.mode or "off"
+    if not raw and not SR.RowOn(cfg, "surge") then mode = "off" end
     local side = ICON_SIDES[ic.side] and ic.side or "RIGHT"
     return mode, Clamp(ic.size, 12, 64, 24), side
 end
@@ -1479,7 +1494,7 @@ local function SyncEvents(wantCharges, wantLive, cfg)
         end
     end
     -- 旋轉急衝的冷卻：面板顯示中而且圖示或長條有開才聽
-    local wantCD = wantLive and (SR.SurgeIcon(cfg) ~= "off" or SR.RowOn(cfg, "surge"))
+    local wantCD = wantLive and (SR.SurgeIcon(cfg) ~= "off" or SR.SurgeBarOn(cfg))
     if wantCD ~= events.cd then
         events.cd = wantCD
         if wantCD then E.Register("SPELL_UPDATE_COOLDOWN", "skyriding", Mark)
