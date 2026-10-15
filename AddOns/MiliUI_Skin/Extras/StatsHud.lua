@@ -50,7 +50,8 @@ local IsSecret = X.IsSecret
 local PAD = 6             -- 字與框緣（背景／拖曳提示的邊）之間
 local ROW_GAP = 3         -- 行距（SetSpacing）
 local SNAP_KEY = "charStatsHud"   -- ⚠ 存檔內容（MiliUISnap 的 key），改名等於拆掉玩家的組合
-local DEFAULT_POS = { x = 30, y = -200 }   -- 相對 UIParent 左上角，UIParent 單位
+local DEFAULT_POS = { x = 30, y = -200 }   -- 相對 UIParent 左上角，UIParent 單位（設定面板沒開時的退路）
+local PANEL_GAP = 8                        -- 第一次開啟：擺在設定面板正下方，離它這麼遠
 local MAX_HEALS = 5       -- 量不到尺寸時的重試次數上限（每次 1 秒）
 
 -- 順序固定。def ＝ CharacterStats.lua 的 defKey；short ＝ 縮寫的語系 key，en ＝ 英文縮寫
@@ -125,9 +126,17 @@ end
 ------------------------------------------------------------
 -- 位置（存 UIParent 單位；SetPoint 的偏移是框自己的單位 ⇒ 除以框的 scale）
 ------------------------------------------------------------
+-- 沒存過位置：設定面板開著就擺在它正下方（左緣對齊）並**存起來** —— 面板跟著角色面板
+-- 關掉之後 HUD 要留在原地，不能每次都重算。面板沒開才退到 DEFAULT_POS（不存）。
 local function Pos()
     local p = HDB().pos
     if type(p) == "table" and type(p.x) == "number" and type(p.y) == "number" then return p end
+    local l, b = X.SettingsRect and X.SettingsRect()
+    if l and b then
+        p = { point = "TOPLEFT", x = math.floor(l + 0.5), y = math.floor(b - PANEL_GAP + 0.5) }
+        HDB().pos = p
+        return p
+    end
     return DEFAULT_POS
 end
 

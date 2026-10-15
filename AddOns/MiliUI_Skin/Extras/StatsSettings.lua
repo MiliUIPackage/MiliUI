@@ -71,6 +71,17 @@ function X.SettingsShown()
     return panel ~= nil and panel:IsVisible()
 end
 
+-- 面板的左緣與下緣（UIParent 單位，UIParent 左上角起算；y 往下是負的）。
+-- 畫面上的屬性顯示第一次開啟時擺在面板正下方，勾下去當場就看得到。面板沒開就回 nil。
+function X.SettingsRect()
+    if not (panel and panel:IsVisible()) then return nil end
+    local l, b = panel:GetLeft(), panel:GetBottom()
+    local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
+    if not (l and b and pl and pt) then return nil end
+    local k = (panel:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
+    return l * k - pl, b * k - pt
+end
+
 local function Doll() return _G.PaperDollFrame end
 
 local function SyncPanel()
@@ -243,9 +254,8 @@ local function BuildHudStats(parent, y, width)
     return #stats * HUD_ROW + 4, refresh
 end
 
-local function Specs()
+local function ListSpecs()
     return {
-        { type = "header", label = L["Stat list"] },
         {
             type = "dropdown", label = L["Show values"],
             items = X.ValueFormatItems(),
@@ -274,7 +284,13 @@ local function Specs()
         },
         { type = "text", label = L["While this panel is open: drag a section title to reorder, the checkbox in front of each row decides whether it shows, and the swatch at the right end of a section title changes its color."] },
 
-        { type = "header", label = L["On-screen stats"] },
+        { type = "header", label = L["Other"] },
+        { type = "text", label = L["The custom stat list and title search switches are in the \"Character Sheet\" tab of /mskin."] },
+    }
+end
+
+local function HudSpecs()
+    return {
         HudSpec("enabled", "toggle", L["Show stats on screen"]),
         { type = "text", indent = true, label = L["Can be dragged while this panel or Blizzard's Edit Mode is open."] },
         { type = "custom", build = BuildHudStats },
@@ -315,26 +331,62 @@ local function Specs()
                 { text = L["Reset position"], onClick = function() if X.Hud then X.Hud.ResetPosition() end end },
             },
         },
-
-        { type = "header", label = L["Other"] },
-        { type = "text", label = L["The custom stat list and title search switches are in the \"Character Sheet\" tab of /mskin."] },
     }
 end
 
 ------------------------------------------------------------
 -- 面板
 ------------------------------------------------------------
+-- 兩個分頁（屬性清單／畫面顯示）：分頁鈕一排在標題下，各自一個捲動表單，同一時間只顯示一個。
+-- 分頁鈕的寫法同 Options/Panel.lua（`accent-hover` ＋ `W.CreateButtonGroup`）。
+local TABS_Y    = -42      -- 分頁鈕那一排的上緣
+local TAB_H     = 22
+local TAB_MIN_W = 84
+local TAB_PAD   = 20
+
 local function BuildContent()
-    local holder = CreateFrame("Frame", nil, panel)
-    holder:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -44)
-    holder:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -8, 10)
-    local scroll = W.CreateScrollFrame(holder)
-    local content = CreateFrame("Frame", nil, scroll.child)
-    content:SetPoint("TOPLEFT", scroll.child, "TOPLEFT", 4, -4)
-    content:SetSize(FORM_W, 1)
-    local h = BuildForm(content, Specs(), FORM_W)
-    content:SetHeight(h + 8)
-    scroll:SetContentHeight(h + 16)
+    local tabs = {
+        { id = "list", label = L["Stat list"], specs = ListSpecs },
+        { id = "hud",  label = L["On-screen stats"], specs = HudSpecs },
+    }
+    local buttons, pages = {}, {}
+    local prev
+    for i, tab in ipairs(tabs) do
+        local b = W.CreateButton(panel, tab.label, "accent-hover", TAB_MIN_W, TAB_H)
+        b.id = tab.id
+        local fs = b:GetFontString()
+        local w = TAB_MIN_W
+        if fs then w = math.max(TAB_MIN_W, math.ceil(fs:GetStringWidth()) + TAB_PAD) end
+        P.Size(b, w, TAB_H)
+        if prev then
+            b:SetPoint("TOPLEFT", prev, "TOPRIGHT", 3, 0)
+        else
+            b:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, TABS_Y)
+        end
+        prev = b
+        buttons[i] = b
+
+        local holder = CreateFrame("Frame", nil, panel)
+        holder:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, TABS_Y - TAB_H - 6)
+        holder:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -8, 10)
+        local scroll = W.CreateScrollFrame(holder)
+        local content = CreateFrame("Frame", nil, scroll.child)
+        content:SetPoint("TOPLEFT", scroll.child, "TOPLEFT", 4, -4)
+        content:SetSize(FORM_W, 1)
+        local h = BuildForm(content, tab.specs(), FORM_W)
+        content:SetHeight(h + 8)
+        scroll:SetContentHeight(h + 16)
+        holder:Hide()
+        pages[tab.id] = holder
+    end
+
+    local function ShowTab(id)
+        W.CloseDropdowns()
+        for tabId, page in pairs(pages) do page:SetShown(tabId == id) end
+    end
+    local highlight = W.CreateButtonGroup(buttons, ShowTab)
+    highlight(buttons[1])
+    ShowTab(tabs[1].id)
 end
 
 local function BuildPanel()
