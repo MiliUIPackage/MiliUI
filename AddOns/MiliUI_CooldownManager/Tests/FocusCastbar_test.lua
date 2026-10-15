@@ -142,7 +142,8 @@ eq("施法中 → 1", Vis.EvaluatePanel("focuscast", { hideWhenNotCasting = true
 eq("不隱藏 → 1", Vis.EvaluatePanel("focuscast", { hideWhenNotCasting = false }, s, 1, false), 1)
 eq("hideWhenNotCasting 沒存 ＝ 預設隱藏", Vis.EvaluatePanel("focuscast", {}, s, 1, false), 0)
 eq("核心技能的淡出不帶過來", Vis.EvaluatePanel("focuscast", { hideWhenNotCasting = false }, s, 0.3, false), 1)
--- PanelAlpha：問的是 ns.FocusCastbar.IsActive，不是玩家施法條
+-- PanelAlpha：問的是 ns.FocusCastbar.IsActive，不是玩家施法條（預設關，這一段先打開）
+p.focuscast.enabled = true
 ns.EditMode = { active = false }
 ns.Castbar = { IsActive = function() return true end }
 ns.FocusCastbar = { IsActive = function() return false end }
@@ -156,7 +157,7 @@ eq("PanelAlpha：編輯模式全亮", Vis.PanelAlpha("focuscast", s), 1)
 ns.EditMode.active = false
 p.focuscast.enabled = false
 eq("PanelAlpha：關著 → 0", Vis.PanelAlpha("focuscast", s), 0)
-p.focuscast.enabled = true
+p.focuscast.enabled = true           -- 後面的排開測試用自己的 cfg，這裡留開著無妨
 
 ------------------------------------------------------------
 -- 3. 排開
