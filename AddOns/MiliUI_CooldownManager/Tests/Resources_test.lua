@@ -1594,8 +1594,8 @@ do
     R.MigrateFlatRows(mixed)
     eq("遷移：新形狀已有的值不蓋", mixed[258].Mana, false)
     eq("遷移：其他專精照寫", mixed[262].Mana, true)
-    -- 設定遷移 v3（Core/DB.lua；這支測試有載資源模組）
-    eq("DB_VERSION 8（資源列的遷移是 v3）", ns.DB_VERSION, 8)
+    -- 設定遷移 v3（Core/DB.lua；這支測試有載資源模組）。版本號不寫死：只要求涵蓋資源列的 v3 與背景透明度絕對值的 v9
+    check("DB_VERSION 涵蓋資源列 v3 與背景透明度 v9 的遷移", type(ns.DB_VERSION) == "number" and ns.DB_VERSION >= 9, ns.DB_VERSION)
     local prof = { resources = { rows = { Mana = true } } }
     ns.DB.MigrateProfile(prof, 2)
     check("v3：平面 → 分專精", prof.resources.rows.Mana == nil and prof.resources.rows[267].Mana == true)
@@ -1632,27 +1632,27 @@ do
     local dim = R.TimerBack(d, "EbonMight", { r = 1, g = 1, b = 1 })
     check("沒有 backColor 的列照主色推", dim[1] == 0.25 and dim[4] == 0.8)
 
-    -- 背景設定（bgAlpha 乘在最後、bgCustom＋bgColor 換掉自動推的色、規則 bgColor 優先）
+    -- 背景設定（bgAlpha 是絕對值：所有底色一律用它當 alpha、顏色各走各的；bgCustom＋bgColor 換掉自動推的色、規則 bgColor 優先）
     local function near(a, b) return math.abs(a - b) < 1e-9 end
     local dc, da = R.DimColor(nil, d)
     check("預設：暗灰 0.6", dc == R.DIM and near(da, 0.6))
     local half = { bgAlpha = 0.5 }
     dc, da = R.DimColor(nil, half)
-    check("bgAlpha 0.5：0.3", near(da, 0.3))
+    check("bgAlpha 0.5：絕對值 0.5", near(da, 0.5))
     eq("bgAlpha 夾到 0", R.BgAlpha({ bgAlpha = -1 }), 0)
     local cust = { bgAlpha = 0.5, bgCustom = true, bgColor = { r = 1, g = 0, b = 0 } }
     dc, da = R.DimColor(nil, cust)
-    check("自訂背景色", dc.r == 1 and dc.g == 0 and near(da, 0.3))
+    check("自訂背景色：顏色照它、alpha 照 bgAlpha", dc.r == 1 and dc.g == 0 and near(da, 0.5))
     eq("沒勾自訂：不換色", R.BgCustom({ bgColor = { r = 1, g = 0, b = 0 } }), nil)
     dc, da = R.DimColor({ bgColor = { r = 0, g = 1, b = 0, a = 0.4 } }, cust)
-    check("規則 bgColor 優先、照乘", dc.g == 1 and near(da, 0.2))
+    check("規則 bgColor 優先、alpha 不用規則自己的 a 而照 bgAlpha", dc.g == 1 and near(da, 0.5))
     local arr = R.DimArray(cust)
-    check("DimArray", arr[1] == 1 and near(arr[4], 0.3))
+    check("DimArray：自訂色＋bgAlpha", arr[1] == 1 and near(arr[4], 0.5))
     local tb = R.TimerBg(cust, "EbonMight", { r = 1, g = 1, b = 1 })
-    check("剩餘時間條：自訂色＋乘", tb[1] == 1 and tb[2] == 0 and near(tb[4], 0.4))
+    check("剩餘時間條：自訂色、alpha 照 bgAlpha", tb[1] == 1 and tb[2] == 0 and near(tb[4], 0.5))
     local dc2 = { colors = d.colors, bgAlpha = 0.5, bgCustom = true, bgColor = { r = 1, g = 0, b = 0 } }
     local tb2 = R.TimerBg(dc2, "CrusadingStrikes", c.color)
-    check("自己有 backColor：顏色照它、只乘", tb2[1] == 0 and near(tb2[4], 0.3))
+    check("自己有 backColor：顏色照它、alpha 照 bgAlpha", tb2[1] == 0 and near(tb2[4], 0.5))
     local raw = R.TimerBack(dc2, "CrusadingStrikes", c.color)
     check("TimerBack 不受背景設定影響（經過時間模式拿它當填充）", near(raw[4], 0.6))
 end
@@ -1959,12 +1959,12 @@ do
     local red, green = { r = 1, g = 0, b = 0 }, { r = 0, g = 1, b = 0, a = 0.5 }
     local conds = { { check = { var = "powerValue", cmp = ">=", value = 90 },
         overrides = { color = red, bgColor = green, tagColor = red } } }
-    -- 背景：規則 bgColor（alpha 乘 bgAlpha）＞ 主色 × 0.25
+    -- 背景：規則 bgColor ＞ 主色 × 0.25；alpha 一律是 bgAlpha（絕對值）
     local pts = RC.CurvePointsBy(conds, 100, 262, R.BgPick({ bgAlpha = 0.5 }, base))
     eq("背景：0 是主色 × 0.25", pts[1][4], 0.25)
-    eq("背景：0 的 alpha 0.8 × 0.5", pts[1][5], 0.4)
+    eq("背景：0 的 alpha ＝ bgAlpha 0.5", pts[1][5], 0.5)
     eq("背景：0.9 是規則的 bgColor", pts[2][3], 1)
-    eq("背景：規則 bgColor 的 alpha × bgAlpha", pts[2][5], 0.25)
+    eq("背景：規則 bgColor 的 alpha 也是 bgAlpha（不用規則自己的 a）", pts[2][5], 0.5)
     -- 規則只換填充色：預設背景跟著填充走（紅 × 0.25）
     local c2 = { { check = { var = "powerValue", cmp = ">=", value = 90 }, overrides = { color = red } } }
     pts = RC.CurvePointsBy(c2, 100, 262, R.BgPick({}, base))
