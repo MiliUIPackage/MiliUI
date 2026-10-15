@@ -18,3 +18,5 @@ metadata:
 **戰利品通知（Modules/LootToast.lua）**：直接解 `SHOW_LOOT_TOAST` 會連金錢／貨幣／要塞金庫／榮譽一起藏；佇列 API 沒有單筆否決點 ⇒ 拿下 AlertFrame 當下仍註冊的事件、自己聽、要顯示就叫 `AlertFrame.OnEvent(AlertFrame, ev, ...)`（XML 是 `method="OnEvent"`）。PEW 後 1 秒才拿（讓 Plumber 先拿）；別人還回去就放手。失效方向一律顯示。自訂位置＝錨 AlertFrame 到自己的編輯模式框。縮短停留要寫 `frame.duration`（暴雪池化框欄位）⇒ 不做；額外戰利品骰是具名框、不經事件 ⇒ 不做。
 
 **待實機（Phase 3 部分）**：拍賣行開關與 Auctionator 並存、巨集視窗／調色盤首次開啟（改成延後取 ns.W）、探究鈕、代工獎勵欄、好友職業色、/story、/miliuiupgrade。Phase 0 的待實機：五類分類與品質例外、轉交後的 taint（`taintLog 2` 首領戰）、與 Plumber 戰利品介面並存、自訂位置的疊放與戰鬥 taint、本體分頁切換／戰鬥遮罩、無本體時 `/mqol` 獨立視窗。
+
+**設定頁子分頁（2026-10-15）**：`Options/Controls.lua` 用 `Page(id)` 決定後面 Append 的小節進哪一頁——戰利品（通知／骰裝／擲骰視窗）、自動化（商人／任務／交易）、介面工具（世界地圖／調色盤／巨集／好友／拍賣行）、其他（探究 zhTW 限定／遊戲行為）；子頁懶建、上次看的記在 `db.optionsPage`。**戰利品通知預設（使用者定案）**：開、藏拾取物品／貨幣／金錢、團隊擲骰與升級照常、品質不例外；發佈後再改要配遷移。

@@ -20,7 +20,7 @@
 --    （Plumber 的戰利品介面會解掉 SHOW_LOOT_TOAST）。拿下的記在 taken[ev]。
 -- 2. 要顯示就轉交 AlertFrame:OnEvent(ev, ...)。AlertFrames.xml 的 OnEvent 是
 --    `<OnEvent method="OnEvent"/>`，也就是 AlertFrameMixin.OnEvent 本人，直接叫方法。
--- 3. 功能關掉或全部類別都顯示：taken 裡的事件還給 AlertFrame。**預設不碰 AlertFrame 任何東西。**
+-- 3. 功能關掉或全部類別都顯示：taken 裡的事件還給 AlertFrame，不再碰 AlertFrame 任何東西。
 --
 -- ⚠ 不寫暴雪框的任何欄位（[[wow-121-addon-code-in-secure-stack]] 入口 5）：對 AlertFrame
 --   只有 Unregister／RegisterEvent、IsEventRegistered 與呼叫它的 OnEvent。

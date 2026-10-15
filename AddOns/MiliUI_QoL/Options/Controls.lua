@@ -50,6 +50,21 @@ local function ForeignText()
     return "「" .. table.concat(names, "、") .. "」類由其他插件接管，這裡的設定不會生效。"
 end
 
+------------------------------------------------------------
+-- 子分頁：小節太多，一頁捲不完。每個小節屬於哪個子分頁，看它 Append 之前最後一次
+-- Page(id) 設的是哪個；順序就是子分頁鈕的左右順序。
+------------------------------------------------------------
+local PAGES = {
+    { id = "loot", label = "戰利品" },
+    { id = "auto", label = "自動化" },
+    { id = "ui",   label = "介面工具" },
+    { id = "misc", label = "其他" },
+}
+local PAGE_CONTROLS = {}
+for _, pg in ipairs(PAGES) do PAGE_CONTROLS[pg.id] = {} end
+local curPage = "loot"
+local function Page(id) curPage = id end
+
 local CONTROLS = {
     { type = "header", label = "戰利品通知" },
     { type = "toggle", label = "過濾戰利品通知",
@@ -63,8 +78,11 @@ local CONTROLS = {
     { type = "text", label = "拾取時跳出的「你獲得了」通知，可以依種類隱藏，需要時再看聊天框的拾取訊息。" },
 }
 
+for _, spec in ipairs(CONTROLS) do tinsert(PAGE_CONTROLS.loot, spec) end
+
 local function Append(list)
-    for _, spec in ipairs(list) do CONTROLS[#CONTROLS + 1] = spec end
+    local dst = PAGE_CONTROLS[curPage]
+    for _, spec in ipairs(list) do dst[#dst + 1] = spec end
 end
 
 Append(HideToggle("rollWon",  "隱藏「團隊擲骰獲得」", "團隊擲骰（需求／貪婪）贏得物品時跳出的通知。"))
@@ -201,6 +219,7 @@ Append({
 -- （Leatrix 沒裝／沒開就不佔位置），而且它是登入當下讀到的狀態，文案要講清楚。
 -- 自動修裝跟資訊列耐久面板上的那兩列是同一份設定（Modules/Merchant_Automation.lua
 -- 檔頭），在哪一邊改都一樣。
+Page("auto")
 Append({
     { type = "header", label = "商人" },
     { type = "toggle", label = "在商人處自動修裝",
@@ -300,6 +319,7 @@ Append({
 -- ⚠ 這一段是條件加進去的：名字目前只有繁中的「敦敦」，其他語系的叫法還沒查，
 -- 硬留一個按了只會 /target 失敗的選項更糟。直接看語系（跟模組的 SUPPORTED 同一道閘）；
 -- 舊本體偵測命中時模組不由 QoL 建，所以 get/set 一律先判斷全域在不在。
+Page("misc")
 if GetLocale() == "zhTW" then
     Append({
         { type = "header", label = "探究" },
@@ -340,6 +360,7 @@ Append({
 -- ColorPicker_Tools.lua、MacroFrame_Tools.lua、FriendsList_ClassColor.lua、AuctionHouseFilter.lua）。
 -- 舊本體偵測命中時這些全域是舊本體建的（拍賣行那張表沒有 IsEnabled／SetEnabled），
 -- 所以 get/set 一律先判斷在不在。
+Page("ui")
 Append({
     { type = "header", label = "世界地圖" },
     { type = "toggle", label = "隱藏內建世界地圖座標",
@@ -393,7 +414,8 @@ Append({
     { type = "text", label = "在拍賣行介面右上角顯示篩選選項，瀏覽查詢時自動套用「僅限當前資料片」。" },
 })
 
-ns.QoLControls = CONTROLS
+ns.QoLPages = PAGES
+ns.QoLControls = PAGE_CONTROLS   -- [頁 id] = spec 清單
 
 -- spec 自帶 get/set，ctx 只是轉接
 local ctx = {
@@ -403,33 +425,88 @@ local ctx = {
 }
 
 ------------------------------------------------------------
--- 內容建構：標題＋捲軸＋表單。兩個宿主都叫這一支。
+-- 內容建構：標題＋子分頁鈕列＋各子頁（各自捲動）。兩個宿主都叫這一支。
 --   container  宿主給的框（本體分頁框，或自己的視窗）
 --   width      視窗寬（本體與獨立視窗都是 780）
--- 回傳 refresh（每次切進來重讀一次值）
+-- 回傳 refresh（每次切進來重讀目前子頁的值）
+--
+-- 子分頁鈕跟本體「效能監控」頁的 CPU／記憶體同一套（accent-hover ＋ ButtonGroup 高亮）。
+-- 子頁第一次切進去才建；上次看的子頁記在 db.optionsPage，下次打開直接回到那頁。
 ------------------------------------------------------------
+local SIDE     = 16
+local SUB_Y    = -44          -- 子分頁鈕列
+local SUB_H    = 22
+local SUB_MINW = 76
+local SUB_PAD  = 20
+local PAGE_TOP = -74          -- 子頁內容起點
+
 function ns.BuildBody(container, width)
     width = width or 780
     local formW = width - 80          -- 捲動內容寬度（扣掉左右留白與捲軸），同本體的 FORM_W
 
     local title = W.CreateSectionTitle(container, "便利功能", width - 32)
-    title:SetPoint("TOPLEFT", 16, -14)
+    title:SetPoint("TOPLEFT", SIDE, -14)
 
-    local holder = CreateFrame("Frame", nil, container)
-    holder:SetPoint("TOPLEFT", 12, -44)
-    holder:SetPoint("BOTTOMRIGHT", -8, 10)
-    local scroll = W.CreateScrollFrame(holder)
+    local pages = {}                  -- [id] = { frame, refreshers }
+    local current
 
-    local content = CreateFrame("Frame", nil, scroll.child)
-    content:SetPoint("TOPLEFT")
-    content:SetSize(formW, 1)
-    local height, refreshers = ns.Controls.Build(content, ns.QoLControls, ctx, 4, -4, formW)
-    content:SetHeight(height + 20)
-    scroll:SetContentHeight(height + 20)
-
-    return function()
-        for _, fn in ipairs(refreshers) do fn() end
+    local function BuildPage(id)
+        local holder = CreateFrame("Frame", nil, container)
+        holder:SetPoint("TOPLEFT", 12, PAGE_TOP)
+        holder:SetPoint("BOTTOMRIGHT", -8, 10)
+        local scroll = W.CreateScrollFrame(holder)
+        local content = CreateFrame("Frame", nil, scroll.child)
+        content:SetPoint("TOPLEFT")
+        content:SetSize(formW, 1)
+        local height, refreshers = ns.Controls.Build(content, PAGE_CONTROLS[id], ctx, 4, -4, formW)
+        content:SetHeight(height + 20)
+        scroll:SetContentHeight(height + 20)
+        local pg = { frame = holder, refreshers = refreshers }
+        pages[id] = pg
+        return pg
     end
+
+    local function RefreshCurrent()
+        local pg = current and pages[current]
+        if not pg then return end
+        for _, fn in ipairs(pg.refreshers) do fn() end
+    end
+
+    local function ShowPage(id)
+        W.CloseDropdowns()
+        for pid, pg in pairs(pages) do
+            if pid ~= id then pg.frame:Hide() end
+        end
+        local pg = pages[id] or BuildPage(id)
+        current = id
+        if ns.db then ns.db.optionsPage = id end
+        pg.frame:Show()
+        RefreshCurrent()
+    end
+
+    local prev, buttons, byId = nil, {}, {}
+    for _, d in ipairs(PAGES) do
+        local b = W.CreateButton(container, d.label, "accent-hover", SUB_MINW, SUB_H)
+        b.id = d.id
+        local fs = b:GetFontString()
+        if fs then ns.P.Size(b, math.max(SUB_MINW, math.ceil(fs:GetStringWidth()) + SUB_PAD), SUB_H) end
+        if prev then
+            b:SetPoint("TOPLEFT", prev, "TOPRIGHT", 4, 0)
+        else
+            b:SetPoint("TOPLEFT", SIDE, SUB_Y)
+        end
+        buttons[#buttons + 1] = b
+        byId[d.id] = b
+        prev = b
+    end
+    local highlight = W.CreateButtonGroup(buttons, ShowPage)
+
+    local first = ns.db and ns.db.optionsPage
+    if not (first and PAGE_CONTROLS[first]) then first = PAGES[1].id end
+    highlight(byId[first])
+    ShowPage(first)
+
+    return RefreshCurrent
 end
 
 ------------------------------------------------------------

@@ -15,18 +15,20 @@ local function BuildDefaults()
     return {
         schemaVersion = ns.DB_VERSION,
         optionsWindow = { x = 0, y = 0 },
-        -- 戰利品通知過濾（Modules/LootToast.lua）。預設全關：改的是暴雪行為，要玩家自己開。
+        -- 戰利品通知過濾（Modules/LootToast.lua）。預設（2026-10-15 使用者定案）：開，藏拾取物品／
+        -- 貨幣／金錢三類、團隊擲骰與裝備升級照常顯示，品質不例外。
+        -- ⚠ 發佈後再改預設值要配遷移（MergeDefaults 只補 nil）。
         lootToast = {
-            enabled = false,
+            enabled = true,
             hide = {
                 rollWon  = false,
-                item     = false,
-                currency = false,
-                money    = false,
+                item     = true,
+                currency = true,
+                money    = true,
                 upgrade  = false,
             },
             -- 這個品質以上照常顯示：0 = 不例外、3 = 精良、4 = 史詩、5 = 傳說
-            keepQuality = 4,
+            keepQuality = 0,
             -- 自訂通知位置（Modules/LootToastAnchor.lua）。x/y = nil：沒拖過，
             -- 執行期換算暴雪預設位置（UIParent 底部往上 128）
             moveEnabled = false,
