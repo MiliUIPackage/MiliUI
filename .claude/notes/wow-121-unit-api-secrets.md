@@ -132,3 +132,10 @@ MiliUI_UnitFrames 用它畫血條的損失段（`Elements/Health.lua`、`Core/Ev
 `startTime`／`duration` 才是秘密值。要分辨「只是 GCD」「沒在冷卻」「進了真的冷卻」就問這兩個旗標
 （仍過一次 `issecretvalue` 保底）；別靠 `duration <= 1.5` —— 戰鬥中讀不到，閘形同虛設。
 實例：MiliUI_CooldownManager 就緒發光「GCD 結束整排亮」的修法（[[project-miliui-cooldownmanager]]）。
+
+**`C_TooltipInfo.GetUnit` 對身分受限的單位整組是秘密值（2026-10-15 實機）**：`info.guid`、每一列的
+`leftText`／`guid`／`leftColor` 全是秘密，比較或 `strmatch` 都是硬錯（Cell 隊伍目標的「任務」上色
+在 `ScanQuestUnit` 炸過）。掃提示前先問 `C_Secrets.ShouldUnitIdentityBeSecret(unit)`（Platynator 姓名板
+同一條閘），逐列再過一次 `issecretvalue`。附帶陷阱：**「上次讀到的明文 GUID」不代表現在這個單位可讀**
+—— Cell 的 `__displayedGuid` 只在 `UnitGUID` 明文時更新，換到秘密單位後停在上一隻怪，拿它當閘等於沒閘，
+要現場重讀。
