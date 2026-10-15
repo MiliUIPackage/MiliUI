@@ -133,6 +133,8 @@ local function BuildDefaults()
             -- ⚠ `pos` 沒有預設值（nil ＝ 預設位置）：MergeDefaults 不會把玩家拖過的位置洗掉，
             --   「重設位置」就是把它設回 nil。
             hud = {
+                -- 預設值的版本：MergeDefaults 只補 nil，改預設值要靠 DB.Init 裡的遷移（看 rev）
+                rev = 1,
                 enabled = false,
                 stats = {             -- [statKey] = 顯示與否（順序固定，見 StatsHud.lua 的 HUD_STATS）
                     primary = true, stamina = false, crit = true, haste = true, mastery = true,
@@ -143,10 +145,10 @@ local function BuildDefaults()
                 labelStyle = "full",  -- "full"｜"short"｜"none"
                 valueFormat = "pct",  -- "pct"｜"rating"｜"pct_rating"｜"rating_pct"
                 percentSign = true,
-                colorMode = "section", -- "section"｜"class"｜"custom"
+                colorMode = "class",  -- "section"｜"class"｜"custom"（2026-10-15 使用者定：預設職業色）
                 valueColored = false,
                 fontSize = 12,
-                outline = "",         -- ""｜"OUTLINE"｜"THICKOUTLINE"｜"MONOCHROME,OUTLINE"｜"MONOCHROME,THICKOUTLINE"
+                outline = "OUTLINE",  -- ""｜"OUTLINE"｜"THICKOUTLINE"｜"MONOCHROME,OUTLINE"｜"MONOCHROME,THICKOUTLINE"（預設描邊）
                 shadow = true,
                 scale = 1,
                 backdrop = false,
@@ -183,6 +185,18 @@ function DB.Init()
     end
     local db = MiliUI_Skin_DB
 
+    -- hud rev 1（2026-10-15）：描邊與標籤顏色的預設值改成「描邊」「職業色」。
+    -- 第一版發出去時沒有 rev，已經有 hud 表的存檔要在 MergeDefaults **之前**補
+    -- （之後 rev 會被預設值填成 1，就分不出新舊）。玩家自己改過的值這裡會被蓋成新預設：
+    -- 第一版只上線了幾個小時，接受。
+    do
+        local hud = type(db.extras) == "table" and db.extras.hud
+        if type(hud) == "table" and hud.rev == nil then
+            hud.outline = "OUTLINE"
+            hud.colorMode = "class"
+            hud.rev = 1
+        end
+    end
     MergeDefaults(db, BuildDefaults())
     -- 2026-10-15：清單的「百分比旁顯示評等值」勾選框改成「顯示數值」下拉（同 HUD）。
     -- 舊的 statsShowRating = true ⇒ 「百分比 (評等)」；之後把舊鍵拿掉。
