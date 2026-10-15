@@ -24,7 +24,8 @@
 -- | 物件 | 動作 |
 -- |---|---|
 -- | PaperDollFrame | 齒輪的 parent（跟著角色分頁顯隱）；`HookScript("OnShow"/"OnHide")` 同步面板顯隱；讀 `IsShown()` |
--- | CharacterFrame.InsetRight | 齒輪的錨點；讀 parentKey（pcall 包著，結構查詢） |
+-- | PaperDollSidebarTab3 | 齒輪的錨點（第四格；只當 relativeTo，不讀不寫）；找不到才退回 CharacterFrame.InsetRight |
+-- | CharacterFrame.InsetRight | 齒輪的備援錨點；讀 parentKey（pcall 包著，結構查詢） |
 -- | CharacterFrame | 面板的 parent ＋ 錨點（右緣外側）；`GetFrameLevel()`（`Engine.TargetLevel`）—— 面板層級 ＝ 它 +30、齒輪 ＝ PaperDollFrame +20；`HookScript("OnHide")` 關編輯狀態 |
 -- | GameTooltip | 齒輪的提示（SetOwner／SetText／Show／Hide） |
 -- | ColorPickerFrame | 色票走共用層 `W.CreateColorPicker` |
@@ -44,10 +45,16 @@ local P = ns.P
 local W = ns.W
 local L = ns.L
 
--- 齒輪：錨 InsetRight 的右上角往左、往上（裝備分頁右邊那塊空位；實機再微調）
+-- 齒輪：排成側邊分頁的「第四格」—— 中心對齊 PaperDollSidebarTab3 的中心、往右一格。
+-- 分頁 33 寬、間距 4（PaperDollFrame.xml:394／:506），文字分頁的字是置中畫在分頁上的
+-- （Engine.OverlayText），所以 角色／稱號／裝備／⚙ 四個中心等距，齒輪也跟字同一條水平線。
+-- 這些是暴雪 XML 的 UI 單位，不過 P.Scale。
+-- 備援（找不到 Tab3）：錨 InsetRight 右上角 —— 分頁列底貼在 InsetRight 上緣（y=-1）、
+-- 高 35，所以中心在上緣 +16.5；Tab3 右緣在 -36、第四格中心在 -15.5。
 local GEAR_SIZE   = 14
-local GEAR_X      = -20
-local GEAR_Y      = 16
+local GEAR_SLOT   = 33 + 4
+local GEAR_FB_X   = -15.5
+local GEAR_FB_Y   = 16.5
 local GEAR_IDLE   = 0.45
 local GEAR_TEX    = "Interface\\AddOns\\MiliUI_Skin\\Media\\icon-settings.png"
 
@@ -441,15 +448,23 @@ local function PaintGear(hover)
 end
 
 local function BuildGear(doll)
+    local tab3 = _G.PaperDollSidebarTab3
     local inset
-    pcall(function() inset = _G.CharacterFrame.InsetRight end)
-    if not inset then
-        E.Missing("CharacterFrame.InsetRight")
-        return
+    if not tab3 then
+        E.Missing("PaperDollSidebarTab3")
+        pcall(function() inset = _G.CharacterFrame.InsetRight end)
+        if not inset then
+            E.Missing("CharacterFrame.InsetRight")
+            return
+        end
     end
     gear = CreateFrame("Button", nil, doll)
     gear:SetSize(GEAR_SIZE, GEAR_SIZE)
-    gear:SetPoint("TOPRIGHT", inset, "TOPRIGHT", GEAR_X, GEAR_Y)
+    if tab3 then
+        gear:SetPoint("CENTER", tab3, "CENTER", GEAR_SLOT, 0)
+    else
+        gear:SetPoint("CENTER", inset, "TOPRIGHT", GEAR_FB_X, GEAR_FB_Y)
+    end
     gear:SetFrameLevel((E.TargetLevel(doll) or 1) + 20)
     local icon = gear:CreateTexture(nil, "ARTWORK")
     icon:SetTexture(GEAR_TEX)
