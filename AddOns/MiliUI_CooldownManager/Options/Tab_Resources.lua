@@ -19,6 +19,7 @@
 --
 -- 「自訂列」分頁（計時條：自身增益／目標減益／法術冷卻）的表單在 Options/CustomBars.lua，卡片、拖曳排序、
 -- 選種類彈窗的提示借這裡的（Tab.CardHeader 等，src 參數決定讀寫哪一份清單）。
+-- 「觸發牌堆」分頁（增強薩的暴風雨、末日之風…，清單照專精內建）的表單在 Options/ProcDeck.lua，借 BS／Note／卡片尺寸。
 --
 -- 「這個專精要顯示哪些」一列一個資源：勾選框（resources.rows[specID][key]，分專精）＋上移／下移
 -- （resources.order，不分專精；移一下就把目前候選的完整順序寫回去，見 Modules/Resources.lua 的 R.MergeOrder）。
@@ -58,13 +59,14 @@ local FILL_ITEMS = {
     { text = L["Right to left"], value = "rtl" },
 }
 
--- 重設整張 profile.resources、profile.pips 與 profile.custombars（自訂格子、自訂列的位置／錨定也在這一頁）。
+-- 重設整張 profile.resources、profile.pips、profile.custombars 與 profile.procdeck（自訂格子、自訂列、觸發牌堆的列的
+-- 位置／錨定也在這一頁）。
 -- 原地清空再灌：引擎抓著的是這幾張表的參照
 local function ResetAll()
     local p = ns.profile
     if not p then return end
     local d = ns.DB.BuildDefaults().profile
-    for _, key in ipairs({ KEY, PIPS, "custombars" }) do
+    for _, key in ipairs({ KEY, PIPS, "custombars", "procdeck" }) do
         local cfg = ns.DB.ConfigTable(key)
         if cfg then
             for k in pairs(cfg) do cfg[k] = nil end
@@ -973,6 +975,11 @@ local function Controls(cand, sub)
         ns.CustomBarsUI.Append(only)
         return only
     end
+    if sub == "procdeck" then
+        local only = {}
+        ns.ProcDeckUI.Append(only)
+        return only
+    end
     local list = {
         BS("toggle", "enabled", L["Show resource bars"], { level = "structure" }),
         Note(L["Which resources appear follows your specialization and switches automatically. Specs that cast with mana get a mana row at the bottom."]),
@@ -1044,8 +1051,8 @@ end
 ------------------------------------------------------------
 -- 頁面
 ------------------------------------------------------------
-local currentSub = "class"        -- "class"（職業資源）| "pips"（自訂格子）| "custombars"（自訂列）
-local SUBS = { class = true, pips = true, custombars = true }
+local currentSub = "class"        -- "class"（職業資源）| "pips"（自訂格子）| "custombars"（自訂列）| "procdeck"（觸發牌堆）
+local SUBS = { class = true, pips = true, custombars = true, procdeck = true }
 
 local function Signature()
     local cand, specID = ns.Resources.Candidates()
@@ -1056,9 +1063,11 @@ local function Signature()
         tostring(specID), table.concat(cand, ","),
         CustomSignature(),
         ns.CustomBarsUI and ns.CustomBarsUI.Signature() or "",
+        ns.ProcDeckUI and ns.ProcDeckUI.Signature() or "",
         type(cfg.anchor) == "table" and "a" or "-",
         type(ns.DB.GetPath(ns.DB.ConfigTable(PIPS), "anchor")) == "table" and "pa" or "-",
         type(ns.DB.GetPath(ns.DB.ConfigTable("custombars"), "anchor")) == "table" and "ca" or "-",
+        type(ns.DB.GetPath(ns.DB.ConfigTable("procdeck"), "anchor")) == "table" and "da" or "-",
         table.concat(p and p.barOrder or {}, ","),
         ns.Specs.AnchorGraphSig(),
     }, "|")
@@ -1078,13 +1087,13 @@ function Tab.Build(parent, title)
     note:SetWordWrap(true)
     note:SetText(L["One row per resource, stacked; drag it in Edit Mode or anchor it to a bar below."])
 
-    -- 兩個分頁：職業資源／自訂格子。分頁鈕放在頁標題右邊、同一列
+    -- 四個分頁：職業資源／自訂格子／自訂列／觸發牌堆。分頁鈕放在頁標題右邊、同一列（四顆排得下：寬 72、字長的自己撐開）
     local subButtons = {}
     local prevBtn
     for i, def in ipairs({ { id = "class", label = L["Class Resources"] }, { id = "pips", label = L["Custom segments"] },
-                           { id = "custombars", label = L["Custom bars"] } }) do
-        local b = W.CreateButton(page, def.label, "accent-hover", 80, 20)
-        W.FitButton(b, 80, 20)
+                           { id = "custombars", label = L["Custom bars"] }, { id = "procdeck", label = L["Proc decks"] } }) do
+        local b = W.CreateButton(page, def.label, "accent-hover", 72, 20)
+        W.FitButton(b, 72, 20)
         b.id = def.id
         if prevBtn then
             b:SetPoint("LEFT", prevBtn, "RIGHT", 3, 0)
@@ -1128,6 +1137,9 @@ function Tab.Build(parent, title)
         if ns.Pips then ns.Pips.Apply() end
         -- 自訂列：清單與每列設定、它的位置／錨定，也吃這一頁的寬／材質／邊框／列距
         if ns.CustomBars then ns.CustomBars.Apply() end
+        -- 觸發牌堆：每個牌堆的設定（疊在格子上的立刻重畫）與列的面板（吃這一頁的寬／材質／邊框／列距）
+        if ns.ProcDeck then ns.ProcDeck.Apply() end
+        if ns.ProcDeckRows then ns.ProcDeckRows.Apply() end
         -- 外觀、恢復預設（顏色可能一起變）：跟隨我們顏色的插件重畫，合併節流
         if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
@@ -1208,7 +1220,7 @@ local function Reread()
     end
 end
 ns.RegisterCallback("SpecChanged", "tab_resources", Reread)
-local OWN = { [KEY] = true, [PIPS] = true, custombars = true }
+local OWN = { [KEY] = true, [PIPS] = true, custombars = true, procdeck = true }
 ns.RegisterCallback("BarMoved", "tab_resources", function(key) if OWN[key] then Reread() end end)
 -- 錨定視窗改了資源條、自訂格子或自訂列的錨定：摘要列重讀
 ns.RegisterCallback("AnchorChanged", "tab_resources", function(key) if OWN[key] then Reread() end end)

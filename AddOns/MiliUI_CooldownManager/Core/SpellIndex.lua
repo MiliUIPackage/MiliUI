@@ -6,7 +6,7 @@
 --   ns.SpellIndex.dirty                   索引的輸入在認領之外變了 ⇒ 下一輪排版結尾要重建。設的地方（寫入出口）：
 --                                         Catalog 重建目錄（C.info 整張換新：覆寫法術不在目錄簽章裡，
 --                                         簽章沒變也可能換了）、Catalog.Adopt 收養、自訂法術的 overrideID 換了
---                                         （Modules/Custom.lua 的 UpdateSpell）。Rebuild 清掉
+--                                         （Modules/Custom.lua 的 UpdateSpell）。Rebuild 清掉；重建完 Fire("SpellIndexRebuilt")
 --   ns.SpellIndex.Lookup(spellID)         → { { owner, rec, key }, … }（沒有回共用的空表，唯讀）
 --   ns.SpellIndex.Build(sources)          純函式：sources = { { ids = { … }, owner, rec, key }, … } → 索引表
 --   ns.SpellIndex.Classify(lookup, isSecret, spellID, baseSpellID, category, startRecoveryCategory, itemID)
@@ -174,6 +174,8 @@ function SI.Rebuild()
     end
     index = SI.Build(sources)
     SI.rebuilds = SI.rebuilds + 1
+    -- 畫在格子上的東西（Modules/ProcDeck.lua 的 overlay）：rec 可能換了，要重找
+    if ns.Fire then ns.Fire("SpellIndexRebuilt") end
 end
 
 function SI.Count()

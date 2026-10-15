@@ -58,6 +58,7 @@ end
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 local ResourcesDefaults, PipsDefaults, CastbarDefaults, FocusCastDefaults, AssistIconDefaults, SkyridingDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
 local CustomBarsDefaults                                                                         -- 同上（自訂列）
+local ProcDeckDefaults                                                                           -- 同上（觸發牌堆的列）
 
 -- 「整張表當一個值」的預設：設定檔裡**沒有這個鍵**才整張給，已經有（含空表）就一個字都不合併。
 -- 給內容是使用者自己的清單、但預設不是空的那種表用（資源條的上色規則）：逐元素合併會把預設規則的
@@ -370,6 +371,10 @@ ResourcesDefaults = function()
         -- 自訂列（計時條）：[specID] = { { kind = "buff"|"debuff"|"cooldown", spellID, height, … }, … }
         -- 開放式、預設空。畫在自己的面板（profile.custombars、Modules/CustomBars.lua），寬／材質／邊框／列距沿用這張表
         customBars    = {},
+        -- 觸發牌堆（Modules/ProcDeck.lua）：[specID] = { [牌堆 key] = { on, style = "overlay"|"row", text, spend, colors, … } }
+        -- 開放式、預設空（沒存＝不勾、疊在格子上）。row 樣式畫在自己的面板（profile.procdeck、Modules/ProcDeckRows.lua），
+        -- 寬／材質／邊框／列距沿用這張表
+        procDecks     = {},
         colors        = colors,
         -- 載入條件：任一成立就整條藏（alpha 0）
         loadConditions = { hideMounted = false, onlyCombat = false },
@@ -403,6 +408,20 @@ CustomBarsDefaults = function()
         -- 預設貼在資源條上緣、往上長（使用者 2026-10-13 指定）。施法條跟的是核心技能上方，排開時
         -- 自動排到自訂列外面（資源條 → 自訂列 → 施法條）；沒有任何一列時收合、施法條貼回資源條
         anchor        = { to = "resources", point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 },
+        fadeWithEssential = true,
+        loadConditions = { hideMounted = false, onlyCombat = false },
+        strata        = "MEDIUM",
+    }
+end
+
+-- 觸發牌堆的列（row 樣式）的面板：同自訂列，只有位置／錨定／開關／淡出是自己的（每個牌堆的設定與樣式在 profile.resources）
+ProcDeckDefaults = function()
+    return {
+        enabled       = true,
+        pos           = { point = "CENTER", x = 0, y = -180 },
+        -- 預設貼在資源條下緣、往下長（使用者 2026-10-16 指定）。資源條預設在核心技能上方 ⇒ 照排開的通則實際排在
+        -- 核心技能下方那一疊的最內側（Core/Bars.lua 的 STACK_RANK）；沒有任何一列時收合
+        anchor        = { to = "resources", point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 },
         fadeWithEssential = true,
         loadConditions = { hideMounted = false, onlyCombat = false },
         strata        = "MEDIUM",
@@ -708,6 +727,7 @@ function DB.BuildDefaults()
             resources = ResourcesDefaults(),
             pips      = PipsDefaults(),
             custombars = CustomBarsDefaults(),
+            procdeck  = ProcDeckDefaults(),
             castbar   = CastbarDefaults(),
             focuscast = FocusCastDefaults(),
             assistIcon = AssistIconDefaults(),
@@ -1054,6 +1074,9 @@ function DB.Init()
     sv.profileKeys  = sv.profileKeys or {}
     sv.specProfiles = sv.specProfiles or {}
     sv.charClasses  = sv.charClasses or {}
+    -- 觸發牌堆的進度（Modules/ProcDeck.lua）：[角色][牌堆 key] = { drawn, hit, deckNo, ticks, drift }。
+    -- 是追蹤進度不是設定，不在 profile 裡
+    sv.procdeck     = sv.procdeck or {}
 
     local key = CharKey()
     sv.charClasses[key] = ns.playerClass
@@ -1616,14 +1639,15 @@ function DB.BarClickable(key)
         and not DB.BarIsRings(key)) and true or false
 end
 
--- 「面板」：資源條、自訂格子、施法條、專注目標施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
+-- 「面板」：資源條、自訂格子、自訂列、觸發牌堆的列、施法條、專注目標施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
 -- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套（天空騎術的接力模式例外，見 Core/Bars.lua）。
 -- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
-local PANEL_KEYS = { resources = true, pips = true, custombars = true, castbar = true, focuscast = true, assistIcon = true, skyriding = true }
+local PANEL_KEYS = { resources = true, pips = true, custombars = true, procdeck = true, castbar = true, focuscast = true, assistIcon = true, skyriding = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS
--- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排最後；自訂列 2026-10-13 加在自訂格子後面）
-DB.PANEL_ORDER = { "resources", "pips", "custombars", "castbar", "focuscast", "assistIcon", "skyriding" }
+-- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排最後；自訂列 2026-10-13 加在自訂格子後面、
+-- 觸發牌堆 2026-10-16 加在自訂列後面）
+DB.PANEL_ORDER = { "resources", "pips", "custombars", "procdeck", "castbar", "focuscast", "assistIcon", "skyriding" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 資源列獨立擺放的面板 key："res:<資源 key>"（不在 PANEL_KEYS：那是靜態表，這種面板第一次用到才登記）。

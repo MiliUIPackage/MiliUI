@@ -282,8 +282,10 @@ end
 -- 同一邊」時才用得上——資源條關掉（自訂列接到核心技能上方）或玩家把自訂列改錨核心技能時，要排在資源條的位置之後、
 -- 天空騎術（1.5）與施法條（4）之前：自訂列是戰鬥資訊、跟資源條是一組，天空騎術獨立擺放時照舊在這一組的外面，
 -- 自訂列收合時大家的相對位置跟沒有這個面板時一模一樣
+-- 觸發牌堆的列（procdeck）1.1：預設錨在資源條下方（資源條在核心上方 ⇒ 照通則排到核心技能下方那一疊），跟資源條是一組的
+-- 戰鬥資訊，同一疊時排在最內側（自訂格子 2、輔助技能 3 之前）；跟自訂列同一邊時比它靠內（自訂列預設在上方、牌堆預設在下方，平常不同邊）
 -- 專注目標施法條（focuscast）4.5：預設錨在施法條上方；跟施法條同一疊時緊貼在它外面、增益圖示之前
-local STACK_RANK = { resources = 1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, focuscast = 4.5, buffs = 5, buffbars = 6,
+local STACK_RANK = { resources = 1, procdeck = 1.1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, focuscast = 4.5, buffs = 5, buffbars = 6,
                      essential = 7, assistIcon = 900 }
 local function StackRank(key)
     if STACK_RANK[key] then return STACK_RANK[key] end

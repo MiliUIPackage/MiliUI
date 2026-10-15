@@ -320,6 +320,9 @@ do
     -- 自訂列（預設錨在資源條上方）：沒有任何一列時收合、不佔位（遊戲裡就是這樣），這一節不測它
     B.RegisterPanel("custombars", { anchorPoint = "BOTTOM", collapsible = true })
     B.SetPanelSize("custombars", 100, 0)
+    -- 觸發牌堆的列（預設錨在資源條下方）：同上，沒有列時收合
+    B.RegisterPanel("procdeck", { anchorPoint = "TOP", collapsible = true })
+    B.SetPanelSize("procdeck", 100, 0)
     local res, cast = B.Get("resources"), B.Get("castbar")
     local function Pt(f) return f.points[#f.points] or {} end
     -- 貼 UIParent 時照舊有半像素補正（最多半個像素）

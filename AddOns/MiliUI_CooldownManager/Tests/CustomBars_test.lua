@@ -105,7 +105,8 @@ do
     local at
     for i, k in ipairs(DB.PANEL_ORDER) do if k == "custombars" then at = i end end
     eq("面板順序：自訂列在自訂格子後面", DB.PANEL_ORDER[at - 1], "pips")
-    eq("面板順序：自訂列在施法條前面", DB.PANEL_ORDER[at + 1], "castbar")
+    eq("面板順序：自訂列後面是觸發牌堆的列（2026-10-16）", DB.PANEL_ORDER[at + 1], "procdeck")
+    eq("面板順序：再後面是施法條", DB.PANEL_ORDER[at + 2], "castbar")
 end
 
 ------------------------------------------------------------

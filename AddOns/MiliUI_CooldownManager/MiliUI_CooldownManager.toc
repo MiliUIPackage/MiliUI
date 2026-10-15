@@ -75,6 +75,8 @@ Modules\EchoWindow.lua
 Modules\Resources.lua
 Modules\Pips.lua
 Modules\CustomBars.lua
+Modules\ProcDeck.lua
+Modules\ProcDeckRows.lua
 Modules\Interrupt.lua
 Modules\Castbar.lua
 Modules\FocusCastbar.lua
@@ -103,6 +105,7 @@ Options\StackColors.lua
 Options\CustomSounds.lua
 Options\Tab_Resources.lua
 Options\CustomBars.lua
+Options\ProcDeck.lua
 Options\ResourcePreview.lua
 Options\Tab_Castbar.lua
 Options\Tab_FocusCast.lua

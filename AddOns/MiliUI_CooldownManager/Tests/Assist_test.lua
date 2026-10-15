@@ -160,7 +160,7 @@ check("圖示預設：44、只在戰鬥中、按鍵、GCD、MEDIUM", ai.size == 
     and ai.showGCD == true and ai.strata == "MEDIUM")
 check("PANEL_KEYS 有 assistIcon", DB.PANEL_KEYS.assistIcon == true and ns.PANEL_KEYS.assistIcon == true)
 check("IsPanel(assistIcon)", DB.IsPanel("assistIcon"))
-eq("PANEL_ORDER：下一招圖示接在專注目標施法條後面（天空騎術在它之後；自訂列 2026-10-13 插在自訂格子後面、專注目標施法條 2026-10-15 插在施法條後面）", table.concat(DB.PANEL_ORDER, ","), "resources,pips,custombars,castbar,focuscast,assistIcon,skyriding")
+eq("PANEL_ORDER：下一招圖示接在專注目標施法條後面（天空騎術在它之後；自訂列 2026-10-13 插在自訂格子後面、專注目標施法條 2026-10-15 插在施法條後面、觸發牌堆的列 2026-10-16 插在自訂列後面）", table.concat(DB.PANEL_ORDER, ","), "resources,pips,custombars,procdeck,castbar,focuscast,assistIcon,skyriding")
 
 ns.profile = DB.BuildDefaults().profile
 local p = ns.profile

@@ -12,6 +12,7 @@
 --       perf = { … },  perfAt = "…",                                       上一次 /mcdm perf 的輸出
 --       glow = { … },  glowAt = "…",                                       上一次 /mcdm glow 的輸出
 --       echo = { … },  echoAt = "…",                                       上一次 /mcdm echo 的輸出
+--       deck = { … },  deckAt = "…",                                       上一次 /mcdm deck 的輸出
 --   }
 --
 --   ns.Diag.Note(kind, text)   記一行。跟上一行一模一樣就只累計次數，不洗版
@@ -20,6 +21,7 @@
 --   ns.Diag.SavePerf(lines)    存 /mcdm perf 的輸出（另一個欄位：/mcdm debug 換掉 dump 時不會把它洗掉）
 --   ns.Diag.SaveGlow(lines)    存 /mcdm glow 的輸出（同上，自己一個欄位）
 --   ns.Diag.SaveEcho(lines)    存 /mcdm echo 的輸出（事件視窗的探針，Modules/EchoWindow.lua）
+--   ns.Diag.SaveDeck(lines)    存 /mcdm deck 的輸出（觸發牌堆的探針，Modules/ProcDeck.lua）
 --   ns.Diag.Attach(sv)         DB 就緒後接上存檔（之前記的先放在記憶體裡）
 --
 -- 這支只記不修，修的動作在各模組；字串不進語系檔（開發用）。
@@ -89,6 +91,13 @@ function D.SaveEcho(lines)
     if type(sv) ~= "table" or type(sv.diag) ~= "table" then return end
     sv.diag.echo = lines
     sv.diag.echoAt = Stamp()
+end
+
+function D.SaveDeck(lines)
+    local sv = _G.MiliUI_CooldownManager_DB
+    if type(sv) ~= "table" or type(sv.diag) ~= "table" then return end
+    sv.diag.deck = lines
+    sv.diag.deckAt = Stamp()
 end
 
 function D.Attach(sv)

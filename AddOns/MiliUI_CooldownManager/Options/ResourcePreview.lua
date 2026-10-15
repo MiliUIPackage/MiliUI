@@ -1,8 +1,8 @@
 ------------------------------------------------------------
--- 資源條頁「自訂格子」「自訂列」兩個分頁上方的固定預覽框
+-- 資源條頁「自訂格子」「自訂列」「觸發牌堆」三個分頁上方的固定預覽框
 --
 --   local pv = ns.ResPreview.Create(page, width)   資源條頁建一次（Options/Tab_Resources.lua）
---   pv:SetMode("pips"|"custombars"|其他)          換分頁；其他 ＝ 整框藏起來（職業資源分頁不出）
+--   pv:SetMode("pips"|"custombars"|"procdeck"|其他) 換分頁；其他 ＝ 整框藏起來（職業資源分頁不出）
 --   pv:Refresh()                                   照目前設定重畫（任何改值、拖曳排序、增刪、換專精、切分頁、頁面重新顯示）
 --
 -- 放在捲動區外面（照圖示條頁的預覽框：W.Stylize 深底黑邊、頁面上方），表單捲到哪都看得到。
@@ -24,6 +24,8 @@
 --   充能列    滿 HOLD 秒 → 用掉一格 → 下一格平滑長回來（回充 6～10 秒，數字開著時印回充秒數）→ 滿
 --   層數列    0 → 上限每秒加一層、到頂停 HOLD 秒 → 歸零；光環剩餘時間每加一層刷新一次（文字照 TextMode）。
 --            「只在有光環時顯示」在 0 層那段整列透明（遊戲裡裝飾與填色都在按鈕子樹，沒光環整列不見、照樣佔位）
+--   觸發牌堆  只畫 row 樣式、勾了的牌堆（PD.Plan），列借引擎的 ProcDeckRows.NewRow／LayoutRow／PaintRow，值是固定假資料
+--            （翻到 37%、中了一個、刻度在 20%），不動。疊在格子上的樣式不畫（看畫面上的格子）
 -- 沒有任何一列：框縮成一行灰字（框照樣在，跟圖示條頁「這條目前沒有技能」時框還在一致，加第一列時表單不跳）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -365,7 +367,7 @@ local Proto = {}
 Proto.__index = Proto
 
 function RP.Create(parent, width)
-    local pv = setmetatable({ width = width, mode = nil, barRows = {}, pipRows = {}, shown = {}, t0 = GetTime() }, Proto)
+    local pv = setmetatable({ width = width, mode = nil, barRows = {}, pipRows = {}, deckRows = {}, shown = {}, t0 = GetTime() }, Proto)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     W.Stylize(f, { 0.06, 0.06, 0.06, 1 }, { 0, 0, 0, 1 })
     f:SetSize(width, EMPTY_H)
@@ -391,7 +393,7 @@ function RP.Create(parent, width)
 end
 
 function Proto:SetMode(mode)
-    self.mode = (mode == "pips" or mode == "custombars") and mode or nil
+    self.mode = (mode == "pips" or mode == "custombars" or mode == "procdeck") and mode or nil
     self:Refresh()
 end
 
@@ -430,6 +432,7 @@ function Proto:Refresh()
     local style = ns.DB.ConfigTable("resources")
     if not style then return end
     if not ns.specID then return self:ShowEmpty(L["Pick a specialization first."]) end
+    if self.mode == "procdeck" then return self:RefreshDecks(style) end
     local plans, hasList = self:Plans(style)
     if plans[1] == nil then
         if hasList then return self:ShowEmpty(L["Nothing to show right now: the spells on this list aren't learned."]) end
@@ -444,6 +447,7 @@ function Proto:Layout(plans, style)
     local pool = bars and self.barRows or self.pipRows
     local other = bars and self.pipRows or self.barRows
     for _, row in ipairs(other) do row:Hide() end
+    for _, row in ipairs(self.deckRows) do row:Hide() end
     local inner = self.width - 2 * PAD - 2
     local Wd = P.Scale(math.min(ns.Resources.Width(style, self.mode), inner))
     local gap = P.Scale(tonumber(style.rowSpacing) or 1)
@@ -487,6 +491,51 @@ function Proto:Layout(plans, style)
     self.frame:SetHeight(math.min(MAX_H, contentH + 2 * PAD))
     self.frame:SetScript("OnUpdate", self.onUpdate)
     self:Tick()
+end
+
+-- 觸發牌堆：勾了、樣式是資源條列的牌堆，畫固定的假資料（不跑動畫）
+function Proto:RefreshDecks(style)
+    local PD, PDR = ns.ProcDeck, ns.ProcDeckRows
+    if PD.DefsFor(ns.playerClass, ns.specID)[1] == nil then
+        return self:ShowEmpty(L["This specialization has no proc decks to track."])
+    end
+    local plans = PD.Plan(style, ns.playerClass, ns.specID, "row")
+    if plans[1] == nil then
+        return self:ShowEmpty(L["No deck is shown as a resource bar row; decks on a cooldown icon show on the icon itself."])
+    end
+    for _, row in ipairs(self.barRows) do row:Hide() end
+    for _, row in ipairs(self.pipRows) do row:Hide() end
+    local inner = self.width - 2 * PAD - 2
+    local Wd = P.Scale(math.min(ns.Resources.Width(style, PDR.KEY), inner))
+    local gap = P.Scale(tonumber(style.rowSpacing) or 1)
+    local heights = {}
+    for i, p in ipairs(plans) do heights[i] = P.Scale(p.s.height) end
+    local offsets = ns.CustomBars.RowOffsets(heights, gap)
+    local contentH = ns.CustomBars.PanelHeight(heights, gap)
+    local cfg = ns.DB.ConfigTable(PDR.KEY)
+    local down = ns.CustomBars.Grow(cfg and cfg.anchor) == "down"
+    local stack = self.stack
+    stack:ClearAllPoints()
+    stack:SetSize(Wd, contentH)
+    if down then stack:SetPoint("TOP", self.clip, "TOP", 0, -(PAD - 1)) else stack:SetPoint("BOTTOM", self.clip, "BOTTOM", 0, PAD - 1) end
+    stack:SetAlpha((cfg and cfg.enabled == false) and OFF_ALPHA or 1)
+    stack:Show()
+    self.empty:Hide()
+    for i, p in ipairs(plans) do
+        local row = self.deckRows[i] or PDR.NewRow(stack)
+        self.deckRows[i] = row
+        row:ClearAllPoints()
+        if down then row:SetPoint("TOPLEFT", stack, "TOPLEFT", 0, -offsets[i]) else row:SetPoint("BOTTOMLEFT", stack, "BOTTOMLEFT", 0, offsets[i]) end
+        row:Show()
+        PDR.LayoutRow(row, p.def, p.s, style, Wd)
+        local st = PD.New()
+        st.drawn, st.hit, st.ticks = math.floor(p.def.size * 0.37), 1, { math.floor(p.def.size * 0.2) }
+        PDR.PaintRow(row, st)
+    end
+    for i = #plans + 1, #self.deckRows do self.deckRows[i]:Hide() end
+    self.shown = {}
+    self.frame:SetHeight(math.min(MAX_H, contentH + 2 * PAD))
+    self.frame:SetScript("OnUpdate", nil)
 end
 
 function Proto:Tick()

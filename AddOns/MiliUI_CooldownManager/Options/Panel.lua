@@ -71,6 +71,7 @@ end
 local SUBPANELS = {
     pips       = { host = "resources", title = L["Custom segments"] },
     custombars = { host = "resources", title = L["Custom bars"] },
+    procdeck   = { host = "resources", title = L["Proc decks"] },
     assistIcon = { host = "assist",    title = L["Next cast icon"] },
 }
 

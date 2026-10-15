@@ -812,5 +812,44 @@ do
     cfg.custombars.anchor = ABOVE("resources")
 end
 
+------------------------------------------------------------
+-- 觸發牌堆的列（procdeck，2026-10-16）：預設錨在資源條下方。資源條在核心技能上方 ⇒ 照通則改排到核心技能下方那一疊，
+-- 排名 1.1 ⇒ 貼核心、自訂格子與輔助技能排到它外面；收合時大家照沒有它的樣子貼。排名同 Core/Bars.lua 的 STACK_RANK
+------------------------------------------------------------
+do
+    local ABOVE = function(to) return { to = to, point = "BOTTOM", relPoint = "TOP", x = 0, y = 1 } end
+    local BELOW = function(to) return { to = to, point = "TOP", relPoint = "BOTTOM", x = 0, y = -1 } end
+    local RANK = { resources = 1, procdeck = 1.1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4,
+                   buffs = 5, buffbars = 6, essential = 7 }
+    local function rank(k) return RANK[k] or 100 end
+    local cfg = {
+        essential  = { anchor = false },
+        resources  = { enabled = true, anchor = ABOVE("essential") },
+        custombars = { enabled = true, anchor = ABOVE("resources") },
+        procdeck   = { enabled = true, anchor = BELOW("resources") },
+        castbar    = { enabled = true, anchor = ABOVE("essential") },
+        pips       = { enabled = true, anchor = BELOW("essential") },
+        utility    = { anchor = BELOW("essential") },
+    }
+    local keys = {}
+    for k in pairs(cfg) do keys[#keys + 1] = k end
+    table.sort(keys)
+    local collapsed = {}
+    local function cfgOf(k) return cfg[k] end
+    local function skip(k) return collapsed[k] == true end
+    local function T(k) return Lay.StackTarget(k, cfgOf, keys, rank, skip) end
+
+    eq("觸發牌堆預設：排到核心下方、貼核心", T("procdeck"), "essential")
+    eq("觸發牌堆預設：自訂格子排到它外面", T("pips"), "procdeck")
+    eq("觸發牌堆預設：輔助技能照舊在自訂格子外面", T("utility"), "pips")
+    eq("觸發牌堆預設：上方那一疊不受影響", T("castbar"), "custombars")
+    collapsed.procdeck = true
+    eq("觸發牌堆收合：自訂格子貼回核心", T("pips"), "essential")
+    collapsed.procdeck = nil
+    cfg.procdeck.enabled = false
+    eq("觸發牌堆關掉：自訂格子貼回核心", T("pips"), "essential")
+    cfg.procdeck.enabled = true
+end
+
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

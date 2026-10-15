@@ -478,6 +478,7 @@ end
 -- → Keybinds（綁定事件）
 -- → Bars（容器與排程；Viewers 就緒時它會收到 ViewersReady）
 -- → Interrupt／Resources／Pips／CustomBars／Castbar／FocusCastbar（資源條、自訂格子、自訂列、施法條、專注目標施法條：在 Bars 上登記自己的面板容器）
+--   （CustomBars 後面接 ProcDeck（觸發牌堆的事件與存檔、疊在格子上的畫法）→ ProcDeckRows（觸發牌堆的列：也是面板））
 -- → Assist（戰鬥輔助的輪詢與醒目標示）→ AssistIcon（下一招圖示：也是面板）→ Skyriding（天空騎術：也是面板）
 -- → Visibility（alpha；面板排在條後面，資源條要讀核心技能的 alpha）
 -- → Cursor（跟著游標的群組：要讀 Visibility 剛套好的 alpha 決定掛不掛 OnUpdate）。
@@ -486,7 +487,7 @@ end
 -- 設定檔／專精換了：清樣式簽章、重讀目錄、全部重排、重套 alpha——沒有任何選項要 /reload。
 ------------------------------------------------------------
 local ENGINE = { "Catalog", "Viewers", "Custom", "Glow", "Sound", "Keybinds", "Bars",
-                 "Interrupt", "Resources", "Pips", "CustomBars", "Castbar", "FocusCastbar", "Assist", "AssistIcon", "Skyriding", "Visibility", "Cursor" }
+                 "Interrupt", "Resources", "Pips", "CustomBars", "ProcDeck", "ProcDeckRows", "Castbar", "FocusCastbar", "Assist", "AssistIcon", "Skyriding", "Visibility", "Cursor" }
 
 local function RestyleAll(reason)
     if ns.Decorate then ns.Decorate.InvalidateAll() end

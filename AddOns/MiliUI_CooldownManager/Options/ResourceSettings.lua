@@ -682,6 +682,7 @@ win = ns.SettingsWindow.New({
         ns.Resources.Apply()
         if ns.Pips then ns.Pips.Apply() end
         if ns.CustomBars then ns.CustomBars.Apply() end
+        if ns.ProcDeckRows then ns.ProcDeckRows.Apply() end
         -- 顏色與條件規則：跟隨我們顏色的插件重畫（合併節流）
         if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end
