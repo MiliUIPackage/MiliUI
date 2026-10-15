@@ -69,34 +69,28 @@ T.textDim      = { 0.65, 0.65, 0.65 }
 T.textDisabled = { 0.4, 0.4, 0.4 }
 
 ------------------------------------------------------------
--- 角色面板屬性欄的分類色（第十輪 2026-10-15；第二輪換成自己的調色）
+-- 角色面板屬性欄的分類色（第十輪 2026-10-15）
 --
 -- 做法照 EllesmereUI 的角色面板：一個分類一個顏色，標題字、標題兩側的髮絲線、
 -- 底下每一列的**數值**全用同一個顏色，標籤降到 `textDim`。
 --
--- 調色**不照抄** EllesmereUI：它那五色是高飽和、其中兩個（紫 0.47/0.26/0.78、
--- 青綠 0.05/0.82/0.62）比白字還暗，五個擺在一起像霓虹燈。這裡換成**同一個亮度帶**
--- （相對亮度約 0.75–0.8）、中等飽和的五色 —— 讀起來像一家人，而且白色標籤
--- （滑過標題時的白）永遠是畫面上最亮的那個：
---   屬性＝金沙、次要＝冰藍、第三＝薰衣草、攻擊＝珊瑚、防禦＝青瓷。
--- 玩家可以在角色面板的設定齒輪裡逐區換色（`db.extras.statsColors` 蓋過這張表）。
---
+-- 五色（屬性＝金沙、次要＝冰藍、第三＝薰衣草、攻擊＝珊瑚、防禦＝青瓷）與調色的理由
+-- 住在共用的 `Libs/MiliUIStats.lua`（`MiliUI_Stats.SECTION_COLORS`，vendor 複製）——
+-- MiliUI_QoL 的自建屬性清單用同一組，兩支裝在一起時顏色才對得上。這裡只做**對映**：
 -- 正式服的暴雪屬性欄只有兩塊分類（屬性／強化），「強化」把次要、第三、防禦屬性
 -- 全裝在一起 ⇒ 用「次要屬性」那個顏色（`Skins/Character.lua` 用這兩條）。
 -- 「物品等級」那一塊沒有固定色：跟著暴雪替物品等級數字挑的顏色走
 -- （`GetItemLevelColor()`，品質色），由配方在更新後置勾裡轉交。
--- key ＝ `CharacterStatsPane` 上的 parentKey ／ 自建清單的 sectionKey。
+-- key ＝ `CharacterStatsPane` 上的 parentKey。
+--
+-- ⚠ 共用層不在（單體發佈時 TOC 那一行被拿掉、或版本不對）就退回寫死的同一組值——
+--   顏色是這包自己的設定視窗皮的一部分，不能因為少一支函式庫就變白。
+local FALLBACK_ATTRIBUTES = { 0.98, 0.80, 0.42 }   -- 金沙
+local FALLBACK_SECONDARY  = { 0.46, 0.78, 1.00 }   -- 冰藍
+local sectionColors = type(_G.MiliUI_Stats) == "table" and _G.MiliUI_Stats.SECTION_COLORS or nil
 T.statCategory = {
-    AttributesCategory   = { 0.98, 0.80, 0.42 },
-    EnhancementsCategory = { 0.46, 0.78, 1.00 },
-    -- 自建屬性清單（`Extras/CharacterStats.lua`）的五區，key ＝ 區的 sectionKey。
-    -- 前兩條跟上面那兩條同色是刻意的
-    -- （暴雪的「屬性」＝我們的「屬性」，暴雪的「強化」主體＝我們的「次要屬性」）。
-    attributes = { 0.98, 0.80, 0.42 },   -- 金沙
-    secondary  = { 0.46, 0.78, 1.00 },   -- 冰藍
-    tertiary   = { 0.78, 0.66, 1.00 },   -- 薰衣草
-    attack     = { 1.00, 0.53, 0.47 },   -- 珊瑚
-    defense    = { 0.50, 0.88, 0.70 },   -- 青瓷
+    AttributesCategory   = sectionColors and sectionColors.attributes or FALLBACK_ATTRIBUTES,
+    EnhancementsCategory = sectionColors and sectionColors.secondary  or FALLBACK_SECONDARY,
 }
 
 -- 分類標題兩側那兩條髮絲線的 alpha：線比字弱一階。

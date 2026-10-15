@@ -22,11 +22,8 @@ SetDesaturated（限 Engine.Desaturate）／SetStatusBarTexture（限 Engine.Bar
       對它們能做的動作**跟對暴雪物件完全一樣** —— 契約沒有因為「那不是暴雪的框」
       而放寬一條，所以掃描範圍也一樣。
 
-  * `Extras/*.lua` —— **自建功能**（自建屬性清單、稱號搜尋…），不是換皮：它們建的是
-    自己的框，SetPoint／SetSize／Show／Hide／SetScript 這些定位類呼叫對自己的框是
-    合法的，所以只套一組較鬆的規則（`EXTRAS_RULE_PATTERNS`：那幾條「不管對誰都不該出現」
-    的呼叫）。對暴雪物件的接觸（只准 SetAlpha／HookScript／hooksecurefunc／把自己的
-    框錨上去）靠各檔檔頭的接觸面清單 ＋ review —— lint 分不出變數是不是暴雪的框。
+  （角色面板的自建功能原本在 `Extras/`、套一組較鬆的規則；2026-10-15 整組搬到
+    MiliUI_QoL，這包回到純換皮，那組規則一併拿掉。）
 
 真的有例外就在行尾加 `-- skin-lint: own-frame`，那一行會放行並列進輸出的放行數
 —— 看得到才管得住，靜默的例外等於沒有規則。
@@ -161,24 +158,6 @@ RULES = [
 
 COMPILED = [(re.compile(p), why) for p, why in RULES]
 
-# `Extras/`（自建功能）的較鬆規則：只留「不管對誰呼叫都不該出現」的那幾條。
-# 定位類（SetPoint／SetSize／Show／Hide／SetScript…）不在這裡 —— Extras 建的是自己的框，
-# 對自己的框那些都是合法的；對暴雪物件的接觸靠檔頭的接觸面清單 ＋ review（STYLE.md ③）。
-EXTRAS_RULE_PATTERNS = (
-    r"\bPanelTemplates_\w+\s*\(",
-    r"\bShowUIPanel\s*\(",
-    r"\bHideUIPanel\s*\(",
-    r"StripTextures",
-    r"BackdropTemplate",
-    r"\bsecurecall\s*\(",
-    r"\bseterrorhandler\s*\(",
-    r"AddAcquiredFrameCallback",
-)
-EXTRAS_COMPILED = [(rx, why) for rx, why in COMPILED if rx.pattern in EXTRAS_RULE_PATTERNS]
-assert len(EXTRAS_COMPILED) == len(EXTRAS_RULE_PATTERNS), "EXTRAS_RULE_PATTERNS 跟 RULES 對不上"
-EXTRAS_DIR = "Extras"
-
-
 SCAN_DIRS = ("Skins", "ThirdParty")
 
 
@@ -200,16 +179,6 @@ def scanned_files():
         for name in sorted(os.listdir(folder)):
             if name.endswith(".lua"):
                 yield os.path.join(folder, name)
-
-
-def extras_files():
-    """`Extras/*.lua`：自建功能，只套 EXTRAS_COMPILED。"""
-    folder = os.path.join(ADDON, EXTRAS_DIR)
-    if not os.path.isdir(folder):
-        return
-    for name in sorted(os.listdir(folder)):
-        if name.endswith(".lua"):
-            yield os.path.join(folder, name)
 
 
 def strip_comment(line):
@@ -284,8 +253,7 @@ def main():
     rc_allowed = []
     count = 0
 
-    jobs = [(p, COMPILED) for p in scanned_files()] + [(p, EXTRAS_COMPILED) for p in extras_files()]
-    extras_count = sum(1 for _, rules in jobs if rules is EXTRAS_COMPILED)
+    jobs = [(p, COMPILED) for p in scanned_files()]
     for path, rules in jobs:
         count += 1
         rel = os.path.relpath(path, REPO)
@@ -313,9 +281,6 @@ def main():
 
     print(f"掃了 {count} 個檔（Core/Primitives.lua ＋ Core/External.lua ＋ Skins/*.lua ＋ ThirdParty/*.lua；"
           f"Core/Engine.lua 不在範圍內）")
-    if extras_count:
-        print(f"  其中 {extras_count} 個是 Extras/*.lua（自建功能）：只套 {len(EXTRAS_COMPILED)} 條較鬆規則 ——"
-              f"\n  Extras 是自建框，定位類呼叫對自己的框是合法的；對暴雪物件的接觸靠檔頭清單 ＋ review")
 
     if hits:
         print(f"\n違反 Skin 契約 {len(hits)} 處：")

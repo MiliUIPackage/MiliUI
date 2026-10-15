@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 MiliUIWidgets 共用層（以及單檔 vendor：MiliUIGlow、MiliUISnap）從本體同步到各消費插件。
+"""把 MiliUIWidgets 共用層（以及單檔 vendor：MiliUIGlow、MiliUISnap、MiliUIStats）從本體同步到各消費插件。
 
     python3 .claude/scripts/sync-widgets.py           同步，並列出改了哪幾份
     python3 .claude/scripts/sync-widgets.py --check   只檢查有沒有漂移（有就回傳 1）
@@ -51,6 +51,7 @@ ASSETS = [
 VENDOR_FILES = [
     (os.path.join("MiliUIGlow", "MiliUIGlow.lua"), os.path.join("Libs", "MiliUIGlow", "MiliUIGlow.lua")),
     (os.path.join("MiliUISnap", "MiliUISnap.lua"), os.path.join("Libs", "MiliUISnap.lua")),
+    (os.path.join("MiliUIStats", "MiliUIStats.lua"), os.path.join("Libs", "MiliUIStats.lua")),
 ]
 
 

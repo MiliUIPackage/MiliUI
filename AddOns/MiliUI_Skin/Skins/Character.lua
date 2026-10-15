@@ -139,9 +139,10 @@
 --     第一行先認 `GetParent() == CharacterStatsPane`：這幾支是全遊戲的屬性框共用的。
 --   * `hooksecurefunc("PaperDollFrame_UpdateStats", …)` —— 「物品等級」那塊標題轉交
 --     `GetItemLevelColor()`（暴雪自己在同一支裡拿它給數字上色，PaperDollFrame.lua:1907）。
---   * ⚠ 上面這兩組（14 支 setter ＋ UpdateStats）在**自建屬性清單開著時不裝**
---     （`db.extras.statsPanel`，Extras/CharacterStats.lua）：那時整個 `CharacterStatsPane`
---     是 alpha 0，替看不見的列上色只是白跑。分類標題牌與屬性列的中和照做（無害）。
+--   * ⚠ 上面這兩組（14 支 setter ＋ UpdateStats）在 **MiliUI_QoL 的自建屬性清單開著時不裝**
+--     （問 `MiliUIQoL.StatsListEnabled()`；QoL 不在或關著就照常上色）：那時整個
+--     `CharacterStatsPane` 被它 alpha 0，替看不見的列上色只是白跑。分類標題牌與屬性列的
+--     中和照做（無害）。
 --   * **第十輪**：`Engine.HookRows` 再加兩支**全域**後置勾（mixin 傳 `_G`）：
 --     `PaperDollTitlesPane_InitButton`（PaperDollFrame.lua:2534）、
 --     `PaperDollEquipmentManagerPane_InitButton`（:2380）—— 稱號列與裝備組列。
@@ -185,7 +186,7 @@
 -- * **`PaperDollItemSlotButton` 的 `popoutButton`** —— 裝備切換的彈出箭頭，是功能。
 -- * 稱號頁的**搜尋框**、裝備頁的**縮放與搬位** —— EllesmereUI 自己重建了稱號清單
 --   （加搜尋）、把裝備管理面板 `SetScale(0.85)` 搬到它的欄位裡；前者是功能、
---   後者是重排，都不是皮。稱號搜尋做在 `Extras/CharacterTitles.lua`（自建功能）；
+--   後者是重排，都不是皮。稱號搜尋在 MiliUI_QoL（`Modules/CharacterTitles.lua`，自建功能）；
 --   裝備頁的搬位不做（它搬是因為把文字分頁移到欄位頂端，我們的字直接放在暴雪分頁上）。
 --   這裡兩頁的列照樣換皮（自建稱號清單關掉時看到的就是這一份）。
 -- * 裝備組列的 `text` 顏色 —— 暴雪每次 Init 都 `SetTextColor`（金／缺件紅／新增綠，
@@ -201,7 +202,7 @@
 --   都會重設它的 alpha，中和不住）。
 -- * 屬性欄的**分類結構** —— 暴雪只有兩塊（屬性／強化）。EllesmereUI 那種次要／第三／
 --   攻擊／防禦分開、每塊可收合可排序的清單是它**自己重建**的（自己讀 API、自己畫列），
---   不是皮 ⇒ 做在 `Extras/CharacterStats.lua`（自建功能，2026-10-15）。這裡只做
+--   不是皮 ⇒ 在 MiliUI_QoL（`Modules/CharacterStats.lua`，自建功能，2026-10-15 從這包搬過去）。這裡只做
 --   「同一塊同一個顏色」（第十輪），自建清單關掉時看到的就是這一份。
 --   （屬性列的 `Background` 隔行底第十輪起**中和**：顏色已經把分類分出來了，
 --   隔行條跟分類色線疊在一起反而花。）
@@ -679,9 +680,18 @@ local function PaintStatRow(row, category)
     end
 end
 
+-- MiliUI_QoL 的自建屬性清單開著沒（它會把 `CharacterStatsPane` 整塊 alpha 0）。
+-- QoL 不在、或沒開這個查詢（舊版）⇒ 當成關著，照常上色。純 Lua 布林，不是秘密值。
+local function ExternalStatsList()
+    local qol = _G.MiliUIQoL
+    if type(qol) ~= "table" or type(qol.StatsListEnabled) ~= "function" then return false end
+    local ok, on = pcall(qol.StatsListEnabled)
+    return ok and on == true
+end
+
 local function HookStatRows()
     -- 自建屬性清單開著 ⇒ 暴雪的屬性欄整塊 alpha 0，不必替它上色（見檔頭 hook 那段）
-    if ns.DB.IsExtraEnabled("statsPanel") then return end
+    if ExternalStatsList() then return end
     for name, category in pairs(STAT_SETTERS) do
         if type(_G[name]) == "function" then
             hooksecurefunc(name, function(row)
@@ -1204,8 +1214,8 @@ local function InstallHooks()
     else
         E.Missing("PaperDollFrame_UpdateSidebarTabs")
     end
-    if ns.DB.IsExtraEnabled("statsPanel") then
-        -- 自建屬性清單開著：暴雪的屬性欄看不見，物品等級標題不必轉交顏色（見 HookStatRows）
+    if ExternalStatsList() then
+        -- QoL 的自建屬性清單開著：暴雪的屬性欄看不見，物品等級標題不必轉交顏色（見 HookStatRows）
     elseif type(_G.PaperDollFrame_UpdateStats) == "function" then
         hooksecurefunc("PaperDollFrame_UpdateStats", PaintItemLevelTitle)
     else

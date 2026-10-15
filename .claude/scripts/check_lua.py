@@ -49,6 +49,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_PlatynatorProfile", "MiliUI_AyijeCDM_Profile", "MiliUI_CooldownManager_Profile",
     # 對外 API 與跨插件註冊表
     "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
+    "MiliUI_Stats",                   # 角色屬性計算層（Libs/MiliUIStats，vendor；全域先到先贏）
     "MiliUI_InfoBarPlugins",          # 資訊列的外部方塊註冊表（MiliUI_InfoBar/Core/Plugins.lua）
     "MiliUI_OpenUnitFrameSettings", "MiliUIUF_OnAddonCompartmentClick",
     "MiliUI_UnitFrames",              # 單位框架的公開 API（Api.lua：HidesPlayerCastBar），冷卻管理器的施法條會問

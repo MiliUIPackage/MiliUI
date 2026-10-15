@@ -34,18 +34,30 @@ SlashCmdList.MILIUIQOL = function(msg)
     elseif msg == "migrate" then
         -- 補搬：第一次啟動時剛好沒開 MiliUI，或印記蓋了之後才加進遷移清單的設定。
         -- 會覆蓋現有設定，所以只在明確下指令時跑。
-        local ok, moved = ns.DB.RunMigration()
+        local ok, moved, fromSkin = ns.DB.RunMigration()
         if ok then
-            ns.Print(("已從米利UI套組搬入 %d 項設定，重新載入介面。"):format(moved))
+            ns.Print(("已從米利UI套組搬入 %d 項設定%s，重新載入介面。"):format(moved,
+                fromSkin and "、從米利的介面外觀搬入角色面板的設定" or ""))
             C_Timer.After(1, ReloadUI)
         else
-            ns.Print("沒有可以搬的設定（米利UI套組沒有存過便利功能的設定）。")
+            ns.Print("沒有可以搬的設定（米利UI套組與介面外觀都沒有存過相關設定）。")
         end
     elseif msg == "debug loot" then
         ns.LootToast.Debug()
     elseif msg == "debug" then
         ns.Print("v" .. ns.VERSION .. "  migration=" .. tostring(ns.db and ns.db.miliuiMigration)
+            .. "  skinExtras=" .. tostring(ns.db and ns.db.skinExtrasMigration)
             .. "  host=" .. tostring(ns.Host.Mode()) .. "  legacyCore=" .. tostring(ns.legacyCore))
+        -- 角色面板的自建功能：建了哪些、哪些暴雪物件找不到（暴雪改版改名的線索）
+        if ns.CharSheet then
+            local built = {}
+            for k, v in pairs(ns.CharSheet.built) do
+                built[#built + 1] = tostring(type(k) == "string" and k or "hud/gear") .. "=" .. tostring(v)
+            end
+            table.sort(built)
+            print("  角色面板：" .. (#built > 0 and table.concat(built, " ") or "尚未建立")
+                .. (#ns.CharSheet.missing > 0 and ("  找不到：" .. table.concat(ns.CharSheet.missing, "、")) or ""))
+        end
         if #ns.errors == 0 then
             print("  沒有記錄到錯誤")
         else

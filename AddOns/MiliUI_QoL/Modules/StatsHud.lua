@@ -1,9 +1,9 @@
 ------------------------------------------------------------
--- 自建功能：畫面上顯示屬性（HUD，預設關閉）
+-- MiliUI_QoL: 畫面上顯示屬性（HUD，預設關閉；2026-10-15 從 MiliUI_Skin 搬來）
 --
 -- 做法照 EllesmereUI QoL 的 Secondary Stats overlay（EllesmereUIQoL.lua 1985-2560）：
---   * **一個** FontString，每列「標籤: 數值」，整塊用 `SetFormattedText` 一次畫完 ——
---     數值當參數交給引擎（秘密值照樣畫得出來、戰鬥中照樣會動，Common.lua 那一節）；
+--   * **一個** FontString，每列「標籤: 數值」，整塊用 `SetFormattedText` 一次畫完——
+--     數值當參數交給引擎（秘密值照樣畫得出來、戰鬥中照樣會動，Libs/MiliUIStats.lua 檔頭）；
 --   * 事件驅動、同一幀合併一次；
 --   * 尺寸只在「這一輪全部明碼」時量，量到的寬高還要再問一次 IsSecret，
 --     不是明碼就沿用上一次的尺寸（有限次數的重試，脫戰那一發 PLAYER_REGEN_ENABLED
@@ -11,20 +11,20 @@
 --   * 位置存**邊錨**（TOPLEFT），不存中心：尺寸變了中心會漂（EUI 的理由）。
 -- 設定項照 SimpleStatsPanel（每個屬性一個開關＋顏色、字級、縮放）再加使用者要的：
 -- 標籤完整／縮寫／不顯示、數值格式、% 符號、標籤顏色模式、數值同色、描邊（含像素字體
--- 的 MONOCHROME）、陰影、背景、顯示時機。設定全部在角色面板的齒輪（StatsSettings.lua），
--- 全部即時生效，存 `db.extras.hud`。
+-- 的 MONOCHROME）、陰影、背景、顯示時機。設定在角色面板的齒輪（CharacterStatsSettings.lua）
+-- 與 /mqol 的「角色面板」頁，全部即時生效，存 `db.charSheet.hud`。
 --
 -- 可拖曳 ＝「角色面板的設定面板開著」或「暴雪編輯模式開著」（兩者都只在 hud.enabled 時）。
 -- 可拖曳時強制顯示（不管顯示時機）、畫一圈 1px 職業色邊當提示、吃滑鼠；平常整塊
 -- 不吃滑鼠（點得穿）。磁吸走套組的 MiliUISnap（`Libs/MiliUISnap.lua`）：只**對齊**，不貼附。
 --
--- 計算與 CharacterStats.lua 共用（`X.StatDefs`、`X.BuildStatContext`、`X.SectionColor`）。
+-- 計算與清單共用（`ns.Stats`、`X.SectionColor`）。
 --
 -- ## 刻意沒做
 --
--- * 移動速度 —— 「速度」是第三屬性那個（`GetSpeed`），不是移動速度。
--- * 自訂排序 —— 順序固定（主屬性、耐力、次要四項、第三三項、強度、護甲）。
--- * 隱藏「等於 0」的列 —— 這裡的每一列都是玩家自己勾的，0 也照列。
+-- * 移動速度——「速度」是第三屬性那個（`GetSpeed`），不是移動速度。
+-- * 自訂排序——順序固定（主屬性、耐力、次要四項、第三三項、強度、護甲）。
+-- * 隱藏「等於 0」的列——這裡的每一列都是玩家自己勾的，0 也照列。
 --
 ------------------------------------------------------------
 -- ## 對暴雪物件的接觸面
@@ -32,20 +32,20 @@
 -- | 物件 | 動作 |
 -- |---|---|
 -- | UIParent | 我們的框的 parent ＋ 錨點；讀 GetLeft／GetTop／GetEffectiveScale 換算位置 |
--- | EditModeManagerFrame | `HookScript("OnShow"/"OnHide")`、`hooksecurefunc("EnterEditMode"/"ExitEditMode")`（後置勾，只改自己的狀態）；讀 `IsShown()` |
+-- | EditModeManagerFrame | `HookScript("OnShow"/"OnHide")`、`hooksecurefunc("EnterEditMode"/"ExitEditMode")`、EventRegistry 的 EditMode.Enter／Exit（後置勾，只改自己的狀態）；讀 `IsShown()` |
 -- | GameTooltip | SetOwner／SetText／AddLine／Show／Hide（可拖曳時滑過的說明） |
 --
 -- 寫入暴雪欄位：無。我們的框是普通框（沒有 secure 子物件）⇒ 戰鬥中顯示、隱藏、拖曳都合法。
 ------------------------------------------------------------
 local _, ns = ...
 
-local X = ns.Extras
-local T = ns.Tokens
+local X = ns.CharSheet
+local C = X.C
 local S = ns.Secret
-local L = ns.L
+local Stats = ns.Stats
 
-local Try = X.Try
-local IsSecret = X.IsSecret
+local Try = Stats.Try
+local IsSecret = Stats.IsSecret
 
 local PAD = 6             -- 字與框緣（背景／拖曳提示的邊）之間
 local ROW_GAP = 3         -- 行距（SetSpacing）
@@ -53,21 +53,23 @@ local SNAP_KEY = "charStatsHud"   -- ⚠ 存檔內容（MiliUISnap 的 key），
 local DEFAULT_POS = { x = 30, y = -200 }   -- 相對 UIParent 左上角，UIParent 單位（設定面板沒開時的退路）
 local PANEL_GAP = 8                        -- 第一次開啟：擺在設定面板正下方，離它這麼遠
 local MAX_HEALS = 5       -- 量不到尺寸時的重試次數上限（每次 1 秒）
+local HUD_NAME = "畫面屬性"
 
--- 順序固定。def ＝ CharacterStats.lua 的 defKey；short ＝ 縮寫的語系 key，en ＝ 英文縮寫
--- （語系表查不到時 L 會回 key 本身，英文用戶端要的是 en 這一欄）。
+-- 順序固定。def ＝ MiliUIStats 的 defKey；short ＝ 「標籤：縮寫」用的一字縮寫
+-- （zhTW／zhCN 一字，其他語系用英文縮寫）。
+local SHORT_ZH = GetLocale() == "zhTW" or GetLocale() == "zhCN"
 local HUD_STATS = {
-    { key = "primary",   def = "primary",     short = "Primary (short)",     en = "P"  },
-    { key = "stamina",   def = "stamina",     short = "Stamina (short)",     en = "S"  },
-    { key = "crit",      def = "crit",        short = "Crit (short)",        en = "C"  },
-    { key = "haste",     def = "haste",       short = "Haste (short)",       en = "H"  },
-    { key = "mastery",   def = "mastery",     short = "Mastery (short)",     en = "M"  },
-    { key = "vers",      def = "versatility", short = "Versatility (short)", en = "V"  },
-    { key = "leech",     def = "lifesteal",   short = "Leech (short)",       en = "L"  },
-    { key = "avoidance", def = "avoidance",   short = "Avoidance (short)",   en = "A"  },
-    { key = "speed",     def = "speed",       short = "Speed (short)",       en = "Sp" },
-    { key = "power",     def = "power",       short = "Power (short)",       en = "AP" },
-    { key = "armor",     def = "armor",       short = "Armor (short)",       en = "Ar" },
+    { key = "primary",   def = "primary",     zh = "主", en = "P"  },
+    { key = "stamina",   def = "stamina",     zh = "耐", en = "S"  },
+    { key = "crit",      def = "crit",        zh = "爆", en = "C"  },
+    { key = "haste",     def = "haste",       zh = "急", en = "H"  },
+    { key = "mastery",   def = "mastery",     zh = "精", en = "M"  },
+    { key = "vers",      def = "versatility", zh = "全", en = "V"  },
+    { key = "leech",     def = "lifesteal",   zh = "汲", en = "L"  },
+    { key = "avoidance", def = "avoidance",   zh = "迴", en = "A"  },
+    { key = "speed",     def = "speed",       zh = "速", en = "Sp" },
+    { key = "power",     def = "power",       zh = "攻", en = "AP" },
+    { key = "armor",     def = "armor",       zh = "甲", en = "Ar" },
 }
 
 local Hud = {}
@@ -75,7 +77,7 @@ X.Hud = Hud
 Hud.STATS = HUD_STATS
 
 local function HDB()
-    return ns.db.extras.hud
+    return X.DB().hud
 end
 
 local frame, text, bd, selection
@@ -83,17 +85,15 @@ local inCombat, inInstance, editMode = false, false, false
 local heals = 0
 
 local function Short(st)
-    local s = L[st.short]
-    if s == st.short then return st.en end
-    return s
+    return SHORT_ZH and st.zh or st.en
 end
 
 -- 這一列的標籤顏色（{ r, g, b }）。分區色含玩家在清單裡換過的（statsColors）。
 function Hud.StatColor(st)
     local h = HDB()
-    local sectionColor = X.SectionColor and X.SectionColor(X.StatSectionOf[st.def]) or T.text
+    local sectionColor = X.SectionColor and X.SectionColor(Stats.SectionOf[st.def]) or C.text
     if h.colorMode == "class" then
-        return { T.Accent() }
+        return { X.Accent() }
     elseif h.colorMode == "custom" then
         local c = type(h.colors) == "table" and h.colors[st.key]
         if type(c) == "table" and type(c[1]) == "number" then return c end
@@ -116,7 +116,7 @@ end
 
 local function ShouldShow()
     local h = HDB()
-    if not h.enabled or not ns.db.enabled then return false end
+    if not h.enabled then return false end
     if Draggable() then return true end
     if h.when == "combat" then return inCombat end
     if h.when == "instance" then return inInstance end
@@ -126,7 +126,7 @@ end
 ------------------------------------------------------------
 -- 位置（存 UIParent 單位；SetPoint 的偏移是框自己的單位 ⇒ 除以框的 scale）
 ------------------------------------------------------------
--- 沒存過位置：設定面板開著就擺在它正下方（左緣對齊）並**存起來** —— 面板跟著角色面板
+-- 沒存過位置：設定面板開著就擺在它正下方（左緣對齊）並**存起來**——面板跟著角色面板
 -- 關掉之後 HUD 要留在原地，不能每次都重算。面板沒開才退到 DEFAULT_POS（不存）。
 local function Pos()
     local p = HDB().pos
@@ -186,28 +186,22 @@ local function Measure()
     frame:SetSize(math.max(w, 1) + PAD * 2, math.max(h, 1) + PAD * 2)
 end
 
-local function NeedsRating(fmt)
-    return fmt == "rating" or fmt == "pct_rating" or fmt == "rating_pct"
-end
-
 function Render()
     if not frame or not frame:IsShown() then return end
     local h = HDB()
-    local c = X.BuildStatContext()
+    local c = Stats.BuildContext(h.valueFormat)
     local rows, args = {}, { n = 0 }
     local anySecret = false
-    local wantRating = NeedsRating(h.valueFormat)
     for _, st in ipairs(HUD_STATS) do
-        local def = X.StatDefs[st.def]
+        local def = Stats.DefByKey[st.def]
         if def and h.stats[st.key] and (def.show == nil or def.show(c)) then
             local ok, v, v2 = Try("StatsHud." .. st.key, def.value, c)
             if not ok then v, v2 = nil, nil end
-            local rating
-            if wantRating and def.rating and v ~= nil then
-                local cr = def.rating(c, v, v2)
-                if cr then rating = GetCombatRating(cr) end
+            local tmpl, rowArgs, secret = Stats.ValueTemplate(def, c, v, v2, h.percentSign ~= false)
+            for i = 1, rowArgs.n do
+                args.n = args.n + 1
+                args[args.n] = rowArgs[i]
             end
-            local tmpl, secret = X.ValueParts(args, def.kind, v, v2, rating, h.valueFormat, h.percentSign ~= false)
             if secret then anySecret = true end
             local hex = Hex(Hud.StatColor(st))
             local valHex = h.valueColored and hex or "ffffff"
@@ -215,11 +209,11 @@ function Render()
                 rows[#rows + 1] = "|cff" .. valHex .. tmpl .. "|r"
             else
                 local label = (h.labelStyle == "short") and Short(st) or def.label(c)
-                rows[#rows + 1] = "|cff" .. hex .. X.Esc(label) .. ":|r |cff" .. valHex .. tmpl .. "|r"
+                rows[#rows + 1] = "|cff" .. hex .. Stats.Esc(label) .. ":|r |cff" .. valHex .. tmpl .. "|r"
             end
         end
     end
-    -- 引擎把參數填進 template —— 秘密值從頭到尾沒在 Lua 裡被讀過
+    -- 引擎把參數填進 template——秘密值從頭到尾沒在 Lua 裡被讀過
     text:SetFormattedText(table.concat(rows, "\n"), unpack(args, 1, args.n))
     if not anySecret then Measure() end
 end
@@ -239,7 +233,7 @@ end
 ------------------------------------------------------------
 local function ApplyFont()
     local h = HDB()
-    text:SetFont(T.Font(), h.fontSize or 12, h.outline or "")
+    text:SetFont(X.Font(), h.fontSize or 12, h.outline or "")
     if h.shadow ~= false then
         text:SetShadowColor(0, 0, 0, 1)
         text:SetShadowOffset(1, -1)
@@ -254,7 +248,7 @@ local function UpdateChrome()
     local drag = Draggable()
     frame:EnableMouse(drag)
     bd:SetFill(X.HUD_FILL)
-    bd:SetBorder({ T.Accent() })
+    bd:SetBorder({ X.Accent() })
     bd:SetFillShown(h.backdrop)
     -- 暴雪編輯模式：藍色選取框（跟暴雪自己的系統同一款）取代職業色邊；設定面板開著時照舊職業色邊
     local blue = editMode and h.enabled
@@ -319,7 +313,8 @@ local function OnEvent(_, event)
 end
 
 ------------------------------------------------------------
--- 暴雪編輯模式：開著時可以拖（後置勾，只改自己的狀態；不寫它的任何欄位）
+-- 暴雪編輯模式：開著時可以拖（三重訊號、全部冪等，技能 wow-editmode-draggable 第 4 節；
+-- 後置勾，只改自己的狀態；不寫它的任何欄位）
 ------------------------------------------------------------
 local editHooked = false
 local function SetEditMode(on)
@@ -341,6 +336,10 @@ local function HookEditMode()
     if type(em.ExitEditMode) == "function" then
         hooksecurefunc(em, "ExitEditMode", function() SetEditMode(false) end)
     end
+    if EventRegistry and EventRegistry.RegisterCallback then
+        EventRegistry:RegisterCallback("EditMode.Enter", function() SetEditMode(true) end, "MiliUIQoL_StatsHud")
+        EventRegistry:RegisterCallback("EditMode.Exit", function() SetEditMode(false) end, "MiliUIQoL_StatsHud")
+    end
     editMode = S.ToBool(em:IsShown()) == true
 end
 
@@ -353,11 +352,12 @@ local function Build()
     frame:SetSize(120, 60)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
+    frame:SetUserPlaced(false)   -- 位置自己存 SavedVariables，不給版面快取管
     frame:EnableMouse(false)
     frame:RegisterForDrag("LeftButton")
     frame:Hide()
 
-    bd = X.Backdrop(frame, X.HUD_FILL, { T.Accent() })
+    bd = X.Backdrop(frame, X.HUD_FILL, { X.Accent() })
 
     text = frame:CreateFontString(nil, "OVERLAY")
     text:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -PAD)
@@ -367,13 +367,13 @@ local function Build()
     -- 編輯模式的藍色選取框（照 wow-editmode-draggable 技能：借暴雪的
     -- `EditModeSystemSelectionTemplate` 當視覺，不註冊真的 Edit Mode 系統）。
     -- ⚠ 建框時就建，不要等進了編輯模式才建；模板的 OnMouseDown 會叫
-    --   `EditModeManagerFrame:SelectSystem(self.parent)` —— 我們不是真的系統，必須 no-op 化，
+    --   `EditModeManagerFrame:SelectSystem(self.parent)`——我們不是真的系統，必須 no-op 化，
     --   不然暴雪帶著我們的 taint 掃過每一個已註冊系統（動作條在內），戰鬥中才爆。
     -- 標籤走 `self.system:GetSystemName()`，塞個 stub。建不出來就自己畫一個藍框頂著。
     local okSel, sel = pcall(CreateFrame, "Frame", nil, frame, "EditModeSystemSelectionTemplate")
     if okSel and sel then
         sel:SetScript("OnMouseDown", function() end)
-        sel.system = { GetSystemName = function() return L["Stats HUD"] end }
+        sel.system = { GetSystemName = function() return HUD_NAME end }
     else
         sel = CreateFrame("Frame", nil, frame)
         X.Backdrop(sel, { 0.25, 0.6, 1, 0.15 }, { 0.25, 0.6, 1, 0.9 })
@@ -395,6 +395,7 @@ local function Build()
     frame:SetScript("OnHide", UnregisterStatEvents)
     frame:SetScript("OnEvent", OnEvent)
 
+    -- 普通框（沒有 secure 子物件）⇒ StartMoving 可用；保護框才要走技能的手動拖曳
     frame:SetScript("OnDragStart", function(self)
         if not Draggable() then return end
         if ns.Snap then ns.Snap.OnDragStart(SNAP_KEY) end
@@ -412,8 +413,8 @@ local function Build()
     frame:SetScript("OnEnter", function(self)
         if not Draggable() then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(L["Stats HUD"], 1, 1, 1)
-        GameTooltip:AddLine(L["Drag to move."], T.textDim[1], T.textDim[2], T.textDim[3])
+        GameTooltip:SetText(HUD_NAME, 1, 1, 1)
+        GameTooltip:AddLine("拖曳可以移動。", C.textDim[1], C.textDim[2], C.textDim[3])
         GameTooltip:Show()
     end)
     frame:SetScript("OnLeave", function(self)
@@ -423,7 +424,7 @@ local function Build()
     if ns.Snap then
         ns.Snap.Register(SNAP_KEY, frame, {
             db = HDB,
-            label = L["Stats HUD"],
+            label = HUD_NAME,
             enabled = function() return HDB().enabled == true end,
         })
     end
@@ -442,7 +443,7 @@ end
 -- 設定改了一律叫這支：沒建就建（開啟）、關了就收（框留著，frame 刪不掉）
 function Hud.Apply()
     local h = HDB()
-    if not (h.enabled and ns.db.enabled) then
+    if not h.enabled then
         if frame then
             frame:UnregisterAllEvents()
             frame:Hide()
@@ -483,7 +484,7 @@ function Hud.ResetPosition()
     if frame then ApplyPos() end
 end
 
--- 登入：開著才建（總開關關掉時 X.Register 本身就不會叫到這裡）
-X.Register("statsHud", function()
+-- 登入：開著才建（沒有自己的 db 開關——看 hud.enabled）
+X.Register(nil, function()
     if HDB().enabled then Hud.Apply() end
 end)

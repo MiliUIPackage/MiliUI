@@ -58,8 +58,6 @@ boot:SetScript("OnEvent", function(self, event)
     self:UnregisterEvent("PLAYER_LOGIN")
     ns.DB.Init()
     ns.Engine.Boot()
-    -- 自建功能（Extras/）：換皮之後再建 —— 它們疊在已經上好皮的面板上
-    ns.Extras.Boot()
     -- 對外 handle（`Core/External.lua`）：Boot 前登記的插件在這一刻拿到 handle
     ns.External.OnBoot()
 end)

@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 自建功能：角色面板稱號頁的搜尋框（連清單一起自建）
+-- MiliUI_QoL: 角色面板稱號頁的搜尋框（連清單一起自建；2026-10-15 從 MiliUI_Skin 搬來）
 --
 -- 做法照 EllesmereUI 的角色面板（EllesmereUIBlizzardSkin_CharacterSheet.lua 的稱號頁：
 -- 自己的面板 ＋ 頂端搜尋框 ＋ 一次建好、排序、子字串過濾的清單，KNOWN_TITLES_UPDATE
@@ -7,7 +7,7 @@
 -- DataProvider（寫暴雪的狀態），所以跟 EllesmereUI 一樣：自己畫一份，暴雪那份藏起來照跑。
 --
 -- 清單內容照暴雪的 `GetKnownTitles`／`PaperDollTitlesPane_Update`（PaperDollFrame.lua:2579-2618）：
---   * 第一列固定是「無稱號」（`PLAYER_TITLE_NONE`），點了 `SetCurrentTitle(-1)` ——
+--   * 第一列固定是「無稱號」（`PLAYER_TITLE_NONE`），點了 `SetCurrentTitle(-1)`——
 --     **-1 才會清掉稱號，0 是 no-op**；
 --   * 其餘是 `IsTitleKnown(i)` 的 `GetTitleName(i)`，照名字排序；
 --   * 選中態 ＝ `GetCurrentTitle()`（> 0 而且已知才算，否則是「無稱號」）。
@@ -20,28 +20,26 @@
 --
 -- | 物件 | 動作 |
 -- |---|---|
--- | PaperDollFrame.TitleManagerPane.ScrollBox / .ScrollBar | `Engine.Neutralize`（SetAlpha 0）—— 暴雪的清單照跑、沒人看得到 |
+-- | PaperDollFrame.TitleManagerPane.ScrollBox / .ScrollBar | `X.Neutralize`（SetAlpha 0）——暴雪的清單照跑、沒人看得到 |
 -- | PaperDollFrame.TitleManagerPane | 當我們宿主框的 parent ＋ 左上角的錨點 |
 -- | CharacterFrame.InsetRight | 宿主框右下角的錨點（暴雪的捲軸在 pane 右緣**外面**，要蓋到它） |
--- | PaperDollFrame.TitleManagerPane | `GetFrameLevel()`（`Engine.TargetLevel`）—— 宿主框的層級 ＝ 它 +10 |
+-- | PaperDollFrame.TitleManagerPane | `GetFrameLevel()`（`X.TargetLevel`）——宿主框的層級 ＝ 它 +10 |
 -- | `PaperDollFrame.TitleManagerPane`／`.ScrollBox`／`.ScrollBar`／`CharacterFrame.InsetRight` | 讀 parentKey（pcall 包著，結構查詢） |
 --
 -- 寫入暴雪欄位：無。hook：無（顯隱跟著 parent 走，用的是**自己框**的 OnShow/OnHide）。
 -- 呼叫的 API：GetNumTitles／IsTitleKnown／GetTitleName／GetCurrentTitle／SetCurrentTitle／
--- UnitName("player")／PlaySound —— 都不是保護函式。
+-- UnitName("player")／PlaySound——都不是保護函式。
 --
 -- 宿主框 `EnableMouse(true)` ＋ `EnableMouseWheel(true)`：暴雪 alpha 0 的稱號列與捲軸還在收
 -- 滑鼠（點得到、滾得動），我們的框蓋在上面把它們擋掉。層級 +10（不是 +5）：ScrollBox →
 -- ScrollTarget → 列、ScrollBar → 拇指，暴雪那邊已經疊了三、四層。
--- 宿主框 `SetIgnoreParentAlpha(true)`：保險 —— pane 本身沒中和，但跟屬性清單同一套寫法。
+-- 宿主框 `SetIgnoreParentAlpha(true)`：保險——pane 本身沒中和，但跟屬性清單同一套寫法。
 ------------------------------------------------------------
 local _, ns = ...
 
-local X = ns.Extras
-local E = ns.Engine
-local T = ns.Tokens
+local X = ns.CharSheet
+local C = X.C
 local S = ns.Secret
-local L = ns.L
 local W = ns.W
 
 local ROW_H    = 22
@@ -109,15 +107,15 @@ local function Filter()
 end
 
 ------------------------------------------------------------
--- 列：淡底 ＋ 滑過白 8% ＋ 選中＝職業色底與左緣直條（同 Skin.Row ownHover 的語彙）
+-- 列：淡底 ＋ 滑過白 8% ＋ 選中＝職業色底與左緣直條（套組清單列的語彙）
 ------------------------------------------------------------
 local function PaintRow(row, selected)
     if selected then
-        row.bg:SetColorTexture(T.AccentFill(1))
-        row.accent:SetColorTexture(T.Accent())
+        row.bg:SetColorTexture(X.AccentFill(1))
+        row.accent:SetColorTexture(X.Accent())
         row.accent:Show()
     else
-        row.bg:SetColorTexture(T.fill[1], T.fill[2], T.fill[3], T.fill[4] or 1)
+        row.bg:SetColorTexture(C.fill[1], C.fill[2], C.fill[3], C.fill[4] or 1)
         row.accent:Hide()
     end
 end
@@ -145,17 +143,17 @@ local function NewRow(i)
     row.accent = row:CreateTexture(nil, "BORDER")
     row.accent:SetPoint("TOPLEFT")
     row.accent:SetPoint("BOTTOMLEFT")
-    row.accent:SetWidth(ns.P.Scale(T.rowAccentSize))
+    row.accent:SetWidth(ns.P.Scale(C.rowAccentSize))
 
     local hl = row:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints()
-    hl:SetColorTexture(1, 1, 1, T.highlightAlpha)
+    hl:SetColorTexture(1, 1, 1, C.highlightAlpha)
 
     row.text = row:CreateFontString(nil, "OVERLAY")
-    row.text:SetFont(T.Font(), FONT_ROW, "")
+    row.text:SetFont(X.Font(), FONT_ROW, "")
     row.text:SetShadowColor(0, 0, 0, 1)
     row.text:SetShadowOffset(1, -1)
-    row.text:SetTextColor(T.text[1], T.text[2], T.text[3], 1)
+    row.text:SetTextColor(C.text[1], C.text[2], C.text[3], 1)
     row.text:SetJustifyH("LEFT")
     row.text:SetWordWrap(false)
     row.text:SetPoint("LEFT", row, "LEFT", TEXT_PAD, 0)
@@ -208,16 +206,17 @@ local function BuildSearch()
     search:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
     search:SetPoint("TOPRIGHT", host, "TOPRIGHT", 0, 0)
     search:SetHeight(SEARCH_H)
-    search:SetBackdropColor(T.fillInset[1], T.fillInset[2], T.fillInset[3], T.fillInset[4] or 1)
+    search:SetBackdropColor(C.fillInset[1], C.fillInset[2], C.fillInset[3], C.fillInset[4] or 1)
     search:SetTextInsets(6, SEARCH_H, 0, 0)
-    search:SetFont(T.Font(), FONT_ROW, "")
-    search:SetTextColor(T.text[1], T.text[2], T.text[3], 1)
+    search:SetFont(X.Font(), FONT_ROW, "")
+    search:SetTextColor(C.text[1], C.text[2], C.text[3], 1)
 
     placeholder = search:CreateFontString(nil, "OVERLAY")
-    placeholder:SetFont(T.Font(), FONT_ROW, "")
-    placeholder:SetTextColor(T.textDim[1], T.textDim[2], T.textDim[3], 1)
+    placeholder:SetFont(X.Font(), FONT_ROW, "")
+    placeholder:SetTextColor(C.textDim[1], C.textDim[2], C.textDim[3], 1)
     placeholder:SetPoint("LEFT", search, "LEFT", 6, 0)
-    placeholder:SetText(L["Search titles..."])
+    -- 輸入框的提示字（刪節號在這裡是「請輸入」的語氣，不是按鈕文字）
+    placeholder:SetText("搜尋稱號…")
 
     clearBtn = CreateFrame("Button", nil, search)
     clearBtn:SetSize(SEARCH_H, SEARCH_H)
@@ -227,7 +226,7 @@ local function BuildSearch()
         local line = clearBtn:CreateLine(nil, "ARTWORK")
         line:SetThickness(ns.P.Pixel(1.5))
         line:SetColorTexture(1, 1, 1, 1)
-        line:SetVertexColor(T.textDim[1], T.textDim[2], T.textDim[3], 1)
+        line:SetVertexColor(C.textDim[1], C.textDim[2], C.textDim[3], 1)
         line:SetStartPoint("CENTER", clearBtn, d[1] * 4, d[2] * 4)
         line:SetEndPoint("CENTER", clearBtn, d[3] * 4, d[4] * 4)
         lines[#lines + 1] = line
@@ -235,8 +234,8 @@ local function BuildSearch()
     local function Tint(c)
         for _, line in ipairs(lines) do line:SetVertexColor(c[1], c[2], c[3], 1) end
     end
-    clearBtn:SetScript("OnEnter", function() Tint(T.text) end)
-    clearBtn:SetScript("OnLeave", function() Tint(T.textDim) end)
+    clearBtn:SetScript("OnEnter", function() Tint(C.text) end)
+    clearBtn:SetScript("OnLeave", function() Tint(C.textDim) end)
     clearBtn:SetScript("OnClick", function()
         search:SetText("")
         search:ClearFocus()
@@ -271,7 +270,7 @@ local function Build()
     local doll = _G.PaperDollFrame
     local pane, box, bar, inset
     if not (doll and pcall(function() pane = doll.TitleManagerPane end) and pane) then
-        E.Missing("PaperDollFrame.TitleManagerPane")
+        X.Missing("PaperDollFrame.TitleManagerPane")
         return
     end
     pcall(function() box = pane.ScrollBox; bar = pane.ScrollBar end)
@@ -285,7 +284,7 @@ local function Build()
     else
         host:SetAllPoints(pane)
     end
-    host:SetFrameLevel((E.TargetLevel(pane) or 1) + 10)
+    host:SetFrameLevel((X.TargetLevel(pane) or 1) + 10)
     host:SetIgnoreParentAlpha(true)
     host:EnableMouse(true)
     host:EnableMouseWheel(true)
@@ -311,8 +310,8 @@ local function Build()
     host:RegisterUnitEvent("UNIT_NAME_UPDATE", "player")
     host:SetScript("OnEvent", OnEvent)
 
-    if box then E.Neutralize(box, "TitleManagerPane.ScrollBox") else E.Missing("TitleManagerPane.ScrollBox") end
-    if bar then E.Neutralize(bar, "TitleManagerPane.ScrollBar") else E.Missing("TitleManagerPane.ScrollBar") end
+    X.Neutralize(box, "TitleManagerPane.ScrollBox")
+    X.Neutralize(bar, "TitleManagerPane.ScrollBar")
 
     if host:IsVisible() then
         Collect()

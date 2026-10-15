@@ -58,6 +58,7 @@ local PAGES = {
     { id = "loot", label = "戰利品" },
     { id = "auto", label = "自動化" },
     { id = "ui",   label = "介面工具" },
+    { id = "charsheet", label = "角色面板" },
     { id = "misc", label = "其他" },
 }
 local PAGE_CONTROLS = {}
@@ -412,6 +413,156 @@ Append({
           if MiliUI_AHFilter and MiliUI_AHFilter.SetEnabled then MiliUI_AHFilter.SetEnabled(v) end
       end },
     { type = "text", label = "在拍賣行介面右上角顯示篩選選項，瀏覽查詢時自動套用「僅限當前資料片」。" },
+})
+
+-- 角色面板的自建功能（Modules/CharacterSheetCommon.lua、CharacterStats.lua、CharacterTitles.lua、
+-- StatsHud.lua；2026-10-15 從 MiliUI_Skin 的 Extras 搬來）。
+--   * 建不建（自建清單、稱號搜尋）要 /reload：沒有「拆掉」那條路（檔頭）。
+--   * 清單的配色／顯示哪些列是「就地編輯」——在角色面板右上角的齒輪裡改，當場看得到；這裡只放
+--     總表性的（顯示數值、預設配色、重設）。
+--   * 畫面顯示屬性（HUD）全部設定這裡一份、齒輪面板一份，改的是同一張表、全部即時。
+Page("charsheet")
+local function CS() return ns.CharSheet end
+local function CSDB() return ns.db and ns.db.charSheet end
+local function HDB() local d = CSDB(); return d and d.hud end
+local function ApplyHud() local X = CS(); if X and X.Hud then X.Hud.Apply() end end
+
+local function HudToggle(key, label, desc)
+    local out = {
+        { type = "toggle", label = label,
+          requires = { get = function() local h = HDB(); return h and h.enabled end },
+          get = function() local h = HDB(); return h and h[key] end,
+          set = function(v) local h = HDB(); if h then h[key] = v and true or false; ApplyHud() end end },
+    }
+    if desc then out[2] = { type = "text", label = desc } end
+    return out
+end
+
+local function HudPick(t, key, label, extra)
+    local spec = {
+        type = t, label = label,
+        get = function() local h = HDB(); return h and h[key] end,
+        set = function(v) local h = HDB(); if h then h[key] = v; ApplyHud() end end,
+    }
+    for k, v in pairs(extra or {}) do spec[k] = v end
+    return spec
+end
+
+Append({
+    { type = "header", label = "角色面板" },
+    { type = "toggle", label = "自建屬性清單",
+      get = function() local d = CSDB(); return d and d.statsPanel ~= false end,
+      set = function(v)
+          local d = CSDB()
+          if not d then return end
+          local old = d.statsPanel ~= false
+          d.statsPanel = v and true or false
+          if old ~= d.statsPanel then ns.AskReload() end
+      end },
+    { type = "text", label = "照 EllesmereUI 的分法：物品等級／屬性／次要屬性／第三屬性／攻擊／防禦各一區，可收合、可排序，"
+        .. "數值顯示到小數第二位，戰鬥中照樣會動。其餘設定（配色、顯示哪些列、畫面顯示）在角色面板右上角的齒輪。需要重新載入介面。" },
+    { type = "dropdown", label = "顯示數值",
+      items = function() local X = CS(); return X and X.ValueFormatItems() or {} end,
+      get = function() local d = CSDB(); return d and d.statsValueFormat end,
+      set = function(v)
+          local d = CSDB()
+          if not d then return end
+          d.statsValueFormat = v
+          local X = CS()
+          if X then X.NotifyStatsChanged("rating") end
+      end },
+    { type = "dropdown", label = "預設配色",
+      items = function() local X = CS(); return X and X.PALETTE_ITEMS or {} end,
+      get = function() local d = CSDB(); return d and (d.statsPalette or "miliui") end,
+      set = function(v) local X = CS(); if X then X.ApplyPalette(v) end end },
+    { type = "text", label = "「米利UI」是套組自己的五色（屬性金沙、次要冰藍、第三薰衣草、攻擊珊瑚、防禦青瓷），「職業色」五區全用職業色。"
+        .. "逐區換色在齒輪面板的編輯狀態裡，區標題右端的色票。" },
+    { type = "custom", label = "", build = function(parent, x, y)
+        local reset = W.CreateButton(parent, "重設顏色", "normal", 120, 22)
+        W.FitButton(reset, 120, 22)
+        reset:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 2)
+        reset:SetScript("OnClick", function() local X = CS(); if X then X.ApplyPalette("miliui") end end)
+        local order = W.CreateButton(parent, "重設排序與顯示", "normal", 120, 22)
+        W.FitButton(order, 120, 22)
+        order:SetPoint("LEFT", reset, "RIGHT", 8, 0)
+        order:SetScript("OnClick", function() local X = CS(); if X then X.ResetOrder() end end)
+        return 30
+    end },
+    { type = "toggle", label = "稱號頁搜尋框",
+      get = function() local d = CSDB(); return d and d.titlesSearch ~= false end,
+      set = function(v)
+          local d = CSDB()
+          if not d then return end
+          local old = d.titlesSearch ~= false
+          d.titlesSearch = v and true or false
+          if old ~= d.titlesSearch then ns.AskReload() end
+      end },
+    { type = "text", label = "稱號頁頂端多一個搜尋框，清單照名字排序、打字就過濾。需要重新載入介面。" },
+
+    { type = "header", label = "畫面上顯示屬性" },
+    { type = "toggle", label = "在畫面上顯示屬性",
+      get = function() local h = HDB(); return h and h.enabled end,
+      set = function(v) local h = HDB(); if h then h.enabled = v and true or false; ApplyHud() end end },
+    { type = "text", label = "畫面上一塊「標籤: 數值」的文字，戰鬥中照樣會動。角色面板的齒輪面板或暴雪編輯模式開著時可以拖曳，"
+        .. "放手離套組其他框 2 像素內會對齊。" },
+    -- 顯示哪些屬性：一列一個勾選框，右端色票（只在「自訂」標籤顏色時出現）
+    { type = "custom", label = "顯示的屬性", build = function(parent, x, y, width)
+        local X = CS()
+        local Stats = ns.Stats
+        if not (X and X.Hud and Stats) then return 0 end
+        local ROW = 22
+        local ctx = Stats.BuildContext()
+        local items = {}
+        for i, st in ipairs(X.Hud.STATS) do
+            local def = Stats.DefByKey[st.def]
+            local name = def and def.label(ctx) or st.key
+            local rowY = y - (i - 1) * ROW
+            local cb = W.CreateCheckButton(parent, name, function(checked)
+                local h = HDB()
+                if not h then return end
+                h.stats[st.key] = checked
+                ApplyHud()
+            end)
+            cb:SetPoint("TOPLEFT", parent, "TOPLEFT", x, rowY - 2)
+            cb:SetLabelMaxWidth(width - 24 - 24)
+            local sw = W.CreateColorPicker(parent, nil, false, function(r, g, b)
+                local h = HDB()
+                if not h then return end
+                if type(h.colors) ~= "table" then h.colors = {} end
+                h.colors[st.key] = { r, g, b }
+                ApplyHud()
+            end)
+            sw:SetPoint("LEFT", parent, "TOPLEFT", x + math.min(width, 230) - 14, rowY - 11)
+            items[i] = { st = st, cb = cb, sw = sw }
+        end
+        local function refresh()
+            local h = HDB()
+            if not h then return end
+            for _, it in ipairs(items) do
+                it.cb:SetChecked(h.stats[it.st.key] and true or false)
+                it.sw:SetShown(h.colorMode == "custom")
+                local c = X.Hud.StatColor(it.st)
+                it.sw:SetColor({ r = c[1], g = c[2], b = c[3], a = 1 })
+            end
+        end
+        return #X.Hud.STATS * ROW + 4, refresh
+    end },
+    HudPick("dropdown", "labelStyle", "標籤", { items = function() local X = CS(); return X and X.HUD_LABEL_ITEMS or {} end }),
+    HudPick("dropdown", "valueFormat", "顯示數值", { items = function() local X = CS(); return X and X.ValueFormatItems() or {} end }),
+    { type = "text", label = "主屬性、耐力、攻擊／法術強度、護甲沒有百分比，一律顯示整數。" },
+    HudToggle("percentSign", "顯示 % 符號")[1],
+    HudPick("dropdown", "colorMode", "標籤顏色", { items = function() local X = CS(); return X and X.HUD_COLOR_ITEMS or {} end }),
+    { type = "text", label = "「分區色」跟著屬性清單那一區的顏色（含你在清單裡換過的）；「自訂」每個屬性一個色票，在上面那排的右端。" },
+    HudToggle("valueColored", "數值同標籤顏色")[1],
+    HudPick("slider", "fontSize", "字型大小", { min = 8, max = 24, step = 1 }),
+    HudPick("dropdown", "outline", "描邊", { items = function() local X = CS(); return X and X.HUD_OUTLINE_ITEMS or {} end }),
+    HudToggle("shadow", "文字陰影")[1],
+    HudPick("slider", "scale", "縮放", { min = 0.6, max = 2, step = 0.05 }),
+    HudToggle("backdrop", "背景")[1],
+    { type = "text", label = "HUD 皮：0.102 灰底、1px 職業色邊。" },
+    HudPick("dropdown", "when", "顯示時機", { items = function() local X = CS(); return X and X.HUD_WHEN_ITEMS or {} end }),
+    { type = "button", label = "", text = "重設位置", width = 120,
+      onClick = function() local X = CS(); if X and X.Hud then X.Hud.ResetPosition() end end },
 })
 
 ns.QoLPages = PAGES
