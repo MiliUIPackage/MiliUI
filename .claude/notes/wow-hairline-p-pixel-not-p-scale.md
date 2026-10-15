@@ -1,6 +1,6 @@
 ---
 name: wow-hairline-p-pixel-not-p-scale
-description: 1px 邊框／細線在 1440p 以上畫成 2px 的成因——P.Scale(n) 是「n 個 UI 單位貼整數像素」，實體像素量要走 P.Pixel(n)；兩支的算式、哪些量該用哪支、全套組已套用清單
+description: 1px 邊框／細線在 1440p 以上畫成 2px 的成因——P.Scale(n) 是「n 個 UI 單位貼整數像素」，實體像素量要走 P.Pixel(n)；兩支的算式、哪些量該用哪支、CreateLine 圖記線粗留 P.Scale（5K 上 P.Pixel(1) 看不見）、全套組已套用清單
 metadata:
   type: reference
 ---
@@ -26,6 +26,15 @@ metadata:
 
 **判準一句話：設計稿上寫「1px」的東西用 `P.Pixel`，寫「10 單位寬」的用 `P.Scale`。**
 以前全套組把兩種量都丟給 `P.Scale`，低解析度看不出差別（1 UI 單位 ≈ 1 像素），是高解析度玩家回報才露餡。
+
+## 圖記的線不是髮絲線（2026-10-15 翻車一次）
+
+`CreateLine` 畫的 ×／＋／chevron 這種**圖記**，線粗要走 `P.Scale(thickness)`，不是 `P.Pixel`：
+它是跟按鈕一起縮放的形狀（像字），不是「貼著邊框的 1px」。10-14 那波把
+AdventureGuideSpecCompare 關閉鈕 × 的 `SetThickness` 一起換成 `P.Pixel(1)`，在使用者的
+5K（2764 列、UI 縮放 1）上是真的 1 個實體像素，斜線直接看不見（10-15 改回）。
+MiliUI_Skin 引擎 `BuildGlyph` 本來就是 `P.Scale(g.thickness or 1)`，STYLE.md 註 ⓖ 也寫明。
+**判準：線的粗細要不要跟著按鈕變大？要 → P.Scale；永遠就是 1 像素 → P.Pixel。**
 
 ## 內縮也要跟邊框同一支
 

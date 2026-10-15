@@ -369,7 +369,10 @@ local function BuildChromeMili()
     -- 關閉鈕：red（button-variants 判準 7：關閉鈕 ×），× 用兩條線自己畫
     local close = W.CreateButton(panel, "", "red", 16, 16)
     close:SetPoint("RIGHT", bar, "RIGHT", -3, 0)
-    local th = P.Pixel(1)
+    -- ⚠ 線粗走 P.Scale 不是 P.Pixel：× 是跟按鈕一起縮放的圖記，不是邊框那種髮絲線。
+    --   P.Pixel(1) 在 5K（2764 列、UI 縮放 1）是真的 1 個實體像素，斜線直接看不見；
+    --   MiliUI_Skin 引擎的 BuildGlyph 也是 P.Scale(thickness)。
+    local th = P.Scale(1)
     for i = 1, 2 do
         local ln = close:CreateLine(nil, "OVERLAY")
         ln:SetColorTexture(1, 1, 1, 1)
