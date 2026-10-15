@@ -9,11 +9,24 @@ local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
 
 local guids, inspecting = {}, false
 
+-- fix from MiliUI: 12.1 對身分受限的單位，UnitGUID / UnitHealthMax 回傳 secret value。
+-- secret 不能當 table 的 key，也不能拿來比較，取不到就當作沒有值處理。
+local issecretvalue = issecretvalue or function() return false end
+local function SafeUnitGUID(unit)
+    local guid = unit and UnitGUID(unit)
+    if (not guid or issecretvalue(guid)) then return nil end
+    return guid
+end
+
 -- Global API
 function GetInspectInfo(unit, timelimit, checkhp)
-    local guid = UnitGUID(unit)
+    local guid = SafeUnitGUID(unit)
     if (not guid or not guids[guid]) then return end
-    if (checkhp and UnitHealthMax(unit) ~= guids[guid].hp) then return end
+    if (checkhp) then
+        -- fix from MiliUI: 讀不到血量上限時略過這道新鮮度檢查，不要整組資料丟掉
+        local hp = UnitHealthMax(unit)
+        if (not issecretvalue(hp) and not issecretvalue(guids[guid].hp) and hp ~= guids[guid].hp) then return end
+    end
     if (not timelimit or timelimit == 0) then
         return guids[guid]
     end
@@ -25,8 +38,8 @@ end
 -- Global API
 function GetInspecting()
     if (InspectFrame and InspectFrame.unit) then
-        local guid = UnitGUID(InspectFrame.unit)
-        return guids[guid] or { inuse = true }
+        local guid = SafeUnitGUID(InspectFrame.unit)
+        return (guid and guids[guid]) or { inuse = true }
     end
     if (inspecting and inspecting.expired > time()) then
         return inspecting
@@ -35,7 +48,7 @@ end
 
 -- Global API @trigger UNIT_REINSPECT_READY
 function ReInspect(unit)
-    local guid = UnitGUID(unit)
+    local guid = SafeUnitGUID(unit)
     if (not guid) then return end
     local data = guids[guid]
     if (not data) then return end
@@ -84,7 +97,7 @@ end)
 
 -- @trigger UNIT_INSPECT_STARTED
 hooksecurefunc("NotifyInspect", function(unit)
-    local guid = UnitGUID(unit)
+    local guid = SafeUnitGUID(unit)
     if (not guid) then return end
     local data = guids[guid]
     if (data) then
