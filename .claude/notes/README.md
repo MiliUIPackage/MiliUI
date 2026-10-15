@@ -198,6 +198,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [wow-lua-and-or-pitfalls.md](wow-lua-and-or-pitfalls.md) | Lua `a and b or c` 兩個地雷：`cond and false or nil` 把 false 吃成 nil（三態設定「取消勾選沒作用」）、`x and f()` 截掉第二個回傳值（GetCenter 的 y 變 nil）；lint 抓不到、MCDM 三天踩三次 |
+| [wow-lua-duplicate-local-after-merge.md](wow-lua-duplicate-local-after-merge.md) | 兩條分支各加同名頂層 local，git 自動合併、luac、check-all 全綠，後宣告的遮蔽前者；看到「自動合併 <檔>」就掃重複 local |
 | [wow-luac-global-scan.md](wow-luac-global-scan.md) | `luac -p` 抓不到未宣告全域；要用 `luac -l` 掃 `_ENV` 讀取 |
 | [wow-git-tag-push-rejected.md](wow-git-tag-push-rejected.md) | push 被拒「tag already exists」：同名標籤兩顆不同物件，採用遠端那顆別 force push |
 | [wow-locale-key-access-patterns.md](wow-locale-key-access-patterns.md) | 語系 key 的四種取法（含前綴拼接）；**不要自動刪沒人用的語系條目** —— 為此翻車兩次 |
