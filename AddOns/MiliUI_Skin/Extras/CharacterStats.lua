@@ -154,7 +154,7 @@ local function BuildContext()
     ctx.hasMana = lastHasMana
     ctx.hasShield = C_PaperDollInfo and C_PaperDollInfo.OffhandHasShield
         and S.ToBool(C_PaperDollInfo.OffhandHasShield()) == true or false
-    ctx.showRating = ns.db and ns.db.extras and ns.db.extras.statsShowRating == true
+    ctx.valueFormat = X.ValueFormat(ns.db and ns.db.extras and ns.db.extras.statsValueFormat)
     return ctx
 end
 
@@ -373,7 +373,7 @@ end
 --   label(ctx)      標籤
 --   value(ctx)      回傳 (v, v2)：要顯示的數值，**可能是秘密值**、可能是 nil（讀不到）
 --   kind            "pct"（%.2f%%）、"int"（BreakUpLargeNumbers）、"dec"（%.2f）、"speed"
---   rating(ctx, v, v2)  評等的 CR_* 常數（statsShowRating 開著才顯示）
+--   rating(ctx, v, v2)  評等的 CR_* 常數（statsValueFormat 要評等時才讀）
 --   hideZero        值等於 0 就不列（暴雪的 hideAt = 0；只在明碼時判斷）
 --   show(ctx)       顯示條件（暴雪的 roles／showFunc）
 --   tip(ctx, v, v2) 回傳 tooltip 的說明行陣列。進來之前 v 已經過 Num（明碼）；
@@ -774,13 +774,13 @@ end
 -- 數值 → FontString（秘密值當參數交給引擎畫，見 Common.lua）
 ------------------------------------------------------------
 local function ValueMode(c)
-    return c.showRating and "pct_rating" or "pct"
+    return c.valueFormat or "pct"
 end
 
 -- 回傳 (template, args)；rating 讀不到（nil）就只少括號那一段
 local function ValueTemplate(def, c, v, v2)
     local rating
-    if c.showRating and def.rating then
+    if X.FormatNeedsRating(c.valueFormat) and def.rating then
         local cr = def.rating(c, v, v2)
         if cr then rating = GetCombatRating(cr) end
     end

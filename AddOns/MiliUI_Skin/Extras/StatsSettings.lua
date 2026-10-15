@@ -192,14 +192,6 @@ local function ApplyPalette(v)
     X.NotifyStatsChanged("colors")
 end
 
-local function ExtraToggle(key, label)
-    return {
-        type = "toggle", label = label,
-        get = function() return EX()[key] end,
-        set = function(v) EX()[key] = v; X.NotifyStatsChanged(key) end,
-    }
-end
-
 local function HudSpec(key, t, label, extra)
     local spec = {
         type = t, label = label,
@@ -254,7 +246,12 @@ end
 local function Specs()
     return {
         { type = "header", label = L["Stat list"] },
-        ExtraToggle("statsShowRating", L["Show rating next to percentages"]),
+        {
+            type = "dropdown", label = L["Show values"],
+            items = X.ValueFormatItems(),
+            get = function() return X.ValueFormat(EX().statsValueFormat) end,
+            set = function(v) EX().statsValueFormat = v; X.NotifyStatsChanged("rating") end,
+        },
         {
             type = "dropdown", label = L["Default colors"],
             items = {
@@ -286,12 +283,7 @@ local function Specs()
             { text = L["Abbreviated"], value = "short" },
             { text = L["Don't show"], value = "none" },
         } }),
-        HudSpec("valueFormat", "dropdown", L["Values"], { items = {
-            { text = L["Percentage"], value = "pct" },
-            { text = L["Rating"], value = "rating" },
-            { text = L["Percentage (rating)"], value = "pct_rating" },
-            { text = L["Rating (percentage)"], value = "rating_pct" },
-        } }),
+        HudSpec("valueFormat", "dropdown", L["Show values"], { items = X.ValueFormatItems() }),
         { type = "text", label = L["Primary stat, Stamina, power and Armor have no percentage: they always show a whole number."] },
         HudSpec("percentSign", "toggle", L["Show percent sign"]),
         HudSpec("colorMode", "dropdown", L["Label color"], { items = {
