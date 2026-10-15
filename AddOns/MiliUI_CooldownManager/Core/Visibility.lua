@@ -44,6 +44,12 @@
 --   編輯模式中一律全亮（同條）。面板的框都是容器的子框，容器的 alpha 就管得到。
 --   例外：舊的獨立天空騎術插件這次登入還載著（ns.falconBlocked）時，天空騎術面板編輯模式中也是 0。
 --
+-- 寵物對戰（Snapshot.petBattle ＝ C_PetBattles.IsInBattle() 明文 true）：每一條與每個面板都是 0，蓋過一切、
+-- 不寫進任何設定（沒有「寵物對戰也顯示」的理由：暴雪自己的檢視器那時也不在，而我們自己畫的資源條／自訂格子／
+-- 施法條不是暴雪的子框，不會跟著消失——2026-10-15 玩家回報對戰中法力條還掛在畫面上）。事件
+-- PET_BATTLE_OPENING_START／PET_BATTLE_OVER／PET_BATTLE_CLOSE 都標髒（誰先到依勝負而定，重算冪等）。
+-- 編輯模式判斷在它前面，但寵物對戰介面本來就擋著不讓進編輯模式。
+--
 -- 天空騎術的「藏起冷卻管理器」（profile.skyriding.hideCdm）：面板顯示中（Snapshot.skyridingHideCdm）時，
 -- 每一條（Vis.Alpha）與天空騎術以外的每個面板（PanelAlpha）都是 0。加在既有的限制前面，不寫進每條的
 -- visibility 表、不改存檔；編輯模式中不套用（編輯模式的全亮在它前面判斷）。
@@ -126,6 +132,12 @@ local function InVehicle()
     return PlainTrue(UnitHasVehicleUI, "player") or PlainTrue(UnitInVehicle, "player")
 end
 
+-- 寵物對戰中（C_PetBattles.IsInBattle；明文 true 才算）
+local function InPetBattle()
+    local PB = C_PetBattles
+    return PlainTrue(PB and PB.IsInBattle)
+end
+
 local function InInstance()
     if not IsInInstance then return false end
     local inside, kind = IsInInstance()
@@ -189,6 +201,7 @@ local function Snapshot()
         housing  = InHousing(),
         resting  = Resting(),
         vehicle  = InVehicle(),
+        petBattle = InPetBattle(),
         skyridingPanel = sky,
         skyridingHideCdm = SR and SR.HidesCdm and SR.HidesCdm(sky) or false,
     }
@@ -198,9 +211,9 @@ Vis.Snapshot = Snapshot
 -- /mcdm debug：顯示條件用的判斷快照（alpha 全是 0 時第一個要看的東西）
 function Vis.DebugLine()
     local s = Snapshot()
-    return ("  顯示條件快照：戰鬥 %s  目標 %s  敵對目標 %s  騎乘 %s  飛行騎乘 %s  房屋 %s  休息中 %s  載具 %s  副本 %s  隊伍 %s"):format(
+    return ("  顯示條件快照：戰鬥 %s  目標 %s  敵對目標 %s  騎乘 %s  飛行騎乘 %s  房屋 %s  休息中 %s  載具 %s  寵物對戰 %s  副本 %s  隊伍 %s"):format(
         tostring(s.combat), tostring(s.target), tostring(s.enemy), tostring(s.mounted), tostring(s.skyriding),
-        tostring(s.housing), tostring(s.resting), tostring(s.vehicle), tostring(s.instance), tostring(s.group))
+        tostring(s.housing), tostring(s.resting), tostring(s.vehicle), tostring(s.petBattle), tostring(s.instance), tostring(s.group))
 end
 
 -- s：Snapshot() 的形狀（同一輪排版／套用共用一份）；沒給才自己建
@@ -210,6 +223,8 @@ function Vis.Alpha(key, s)
     -- 編輯模式裡每條都全亮：玩家是來擺位置的，條件不成立（沒目標、騎乘中）的條也要看得到
     if ns.EditMode and ns.EditMode.active then return 1 end
     s = s or Snapshot()
+    -- 寵物對戰中：全部藏（不寫進 visibility 表）
+    if s.petBattle then return 0 end
     -- 天空騎術面板顯示中、藏起冷卻管理器：蓋過一切（不寫進 visibility 表）
     if s.skyridingHideCdm then return 0 end
     local fade = ns.Setting(key, "fade")
@@ -265,6 +280,7 @@ function Vis.PanelAlpha(key, s, essAlpha)
     if key == "skyriding" and ns.falconBlocked then return 0 end
     if ns.EditMode and ns.EditMode.active then return 1 end
     s = s or Snapshot()
+    if s.petBattle then return 0 end
     if key ~= "skyriding" and s.skyridingHideCdm then return 0 end
     local ess = 1
     if (key == "resources" or key == "pips" or key == "custombars") and cfg.fadeWithEssential ~= false then
@@ -379,6 +395,10 @@ function Vis.Init()
     E.Register("UNIT_EXITED_VEHICLE", "visibility", Later, "player")
     -- 目標的敵我關係變了（中立怪被打成敵對、決鬥開始）
     E.Register("UNIT_FACTION", "visibility", Later, "target")
+    -- 寵物對戰進出（OVER 與 CLOSE 都接：誰後到依勝負而定，重算冪等）
+    E.Register("PET_BATTLE_OPENING_START", "visibility", Later)
+    E.Register("PET_BATTLE_OVER", "visibility", Later)
+    E.Register("PET_BATTLE_CLOSE", "visibility", Later)
     -- 飛行騎乘與房屋：客戶端有這個事件才註冊（舊版本沒有）；房屋查不到事件時靠上面的
     -- PLAYER_ENTERING_WORLD／ZONE_CHANGED_NEW_AREA 重判
     for _, ev in ipairs({ "PLAYER_CAN_GLIDE_CHANGED", "HOUSE_PLOT_ENTERED", "HOUSE_PLOT_EXITED" }) do

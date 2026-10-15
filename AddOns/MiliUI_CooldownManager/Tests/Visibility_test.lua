@@ -17,6 +17,8 @@
 --      PLAYER_UPDATE_RESTING 註冊、DebugLine 印休息中／載具
 --   4. 效能（2026-10-04 E1）：Alpha／PanelAlpha 給 s 就不建 Snapshot、Refresh 不跑 item、
 --      ApplyPanels 讀 current.essential、ApplyAll 一輪只建一次 Snapshot
+--   6. 寵物對戰（2026-10-15）：Snapshot.petBattle（IsInBattle 明文 true 才算、秘密／拋錯／API 不在不算）；
+--      成立時每一條與每個面板（含天空騎術）都 0、蓋過「一直顯示」；編輯模式不套；三個事件註冊；DebugLine 印出
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Visibility.lua"
@@ -411,6 +413,59 @@ do
     local s1 = Vis.Snapshot()
     check("快照：Shown／HidesCdm 帶進來", s1.skyridingPanel == true and s1.skyridingHideCdm == true)
     ns.Skyriding = nil
+end
+
+------------------------------------------------------------
+-- 6. 寵物對戰：快照、條與面板全 0、編輯模式不套、事件
+------------------------------------------------------------
+do
+    local panelCfg = { resources = { enabled = true, fadeWithEssential = false, loadConditions = {} },
+                       castbar = { enabled = true, hideWhenNotCasting = false },
+                       skyriding = { enabled = true } }
+    ns.profile = { bars = { essential = { visibility = {} } } }
+    ns.Setting = function() return nil end
+    ns.DB = {
+        PANEL_ORDER = { "resources", "castbar", "skyriding" },
+        IsPanel = function(k) return panelCfg[k] ~= nil end,
+        ConfigTable = function(k) return panelCfg[k] or ns.profile.bars[k] end,
+    }
+    -- 快照：API 不在／明文 true／false／秘密／拋錯
+    eq("快照：C_PetBattles 不在 → false", Vis.Snapshot().petBattle, false)
+    local inBattle = false
+    env.C_PetBattles = { IsInBattle = function() return Ret(inBattle) end }
+    eq("快照：不在對戰 → false", Vis.Snapshot().petBattle, false)
+    inBattle = true
+    eq("快照：對戰中 → true", Vis.Snapshot().petBattle, true)
+    inBattle = SECRET
+    eq("快照：秘密值 → false", Vis.Snapshot().petBattle, false)
+    inBattle = "error"
+    eq("快照：拋錯 → false", Vis.Snapshot().petBattle, false)
+    inBattle = true
+    check("DebugLine 印寵物對戰", Vis.DebugLine():find("寵物對戰 true", 1, true) ~= nil)
+    -- 條與面板
+    local on = S{ petBattle = true, skyridingPanel = true }
+    eq("對戰中：條 0（蓋過一直顯示）", Vis.Alpha("essential", on), 0)
+    eq("對戰中：資源條 0", Vis.PanelAlpha("resources", on, 1), 0)
+    eq("對戰中：施法條 0", Vis.PanelAlpha("castbar", on), 0)
+    eq("對戰中：天空騎術也 0", Vis.PanelAlpha("skyriding", on), 0)
+    local off = S{ petBattle = false, skyridingPanel = true }
+    eq("沒對戰：條照常", Vis.Alpha("essential", off), 1)
+    eq("沒對戰：資源條照常", Vis.PanelAlpha("resources", off, 1), 1)
+    -- 沒給 s 時自己建的快照也帶 petBattle
+    eq("Alpha 自建快照：對戰中 0", Vis.Alpha("essential"), 0)
+    eq("PanelAlpha 自建快照：對戰中 0", Vis.PanelAlpha("resources", nil, 1), 0)
+    inBattle = false
+    eq("Alpha 自建快照：脫離對戰 1", Vis.Alpha("essential"), 1)
+    -- 編輯模式在它前面
+    ns.EditMode = { active = true }
+    eq("編輯模式：條不套", Vis.Alpha("essential", on), 1)
+    eq("編輯模式：資源條不套", Vis.PanelAlpha("resources", on, 1), 1)
+    ns.EditMode = nil
+    env.C_PetBattles = nil
+    -- 事件（Init 在第 3 節已跑過，registered 是累積表）
+    check("註冊 PET_BATTLE_OPENING_START", registered["PET_BATTLE_OPENING_START"] == true)
+    check("註冊 PET_BATTLE_OVER", registered["PET_BATTLE_OVER"] == true)
+    check("註冊 PET_BATTLE_CLOSE", registered["PET_BATTLE_CLOSE"] == true)
 end
 
 print(("Visibility_test: %d passed, %d failed"):format(passed, failed))
