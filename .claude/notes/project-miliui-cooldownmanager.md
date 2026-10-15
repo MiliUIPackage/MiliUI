@@ -180,7 +180,7 @@ NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪�
   受限時 ID 是秘密值就退回說明提示（`Decorate` 的 `ShowAuraTip`／`D.TipAuraIDs`，順序照暴雪 `GetAssociatedAuraSpellPriority`）。都未實機。
 - **音效**（`Core/Sound.lua`：就緒／出現／消失／充能滿／層數增加／施放後 N 秒提醒／倒數播報、天賦條件、自訂語音）、**事件視窗 沸點**（`Modules/EchoWindow.lua`，2026-10-12 實機：戰鬥中 `SPELL_UPDATE_COOLDOWN` 的 spellID 明文）。
 - **天空騎術**（[[project-miliui-cdm-skyriding]]）、**錨到單位框與具名框**（[[project-miliui-cdm-halo-borrow]] H4）、**效能計數 `/mcdm perf`** 與 E1～E3 修整（[[project-miliui-cdm-eui-comparison-2026-10-04]]）。
-- **專注目標施法條**（2026-10-15，面板 `focuscast`，`Modules/FocusCastbar.lua`＋`Options/Tab_FocusCast.lua`，左欄「專注目標施法」在施法條底下、**預設開**）：
+- **專注目標施法條**（2026-10-15，面板 `focuscast`，`Modules/FocusCastbar.lua`＋`Options/Tab_FocusCast.lua`，左欄「專注目標施法」在施法條底下、**預設關**——10-15 預設開、10-16 使用者改口，v12 值閘把寫進存檔的開翻回來）：
   做法從 MiliUI_Focus 的 `CastBar.lua` 搬來（三態斷法色、重要法術發光＋「!」、斷法者名字），引擎照玩家施法條但**兩支分開寫**（只共用 `CB.FormatTime／Truncate／SetFillTexture／SecretsActive／TimerDir`），
   玩家那條零改動。**預設錨在 `castbar` 上方**（使用者指定；是唯一不直接錨核心技能的預設，施法條關掉由排開接到上一層）、`STACK_RANK` 4.5。
   跟 MiliUI_Focus 的分工：公開 API `FocusCastBarActive()`＋事件 `FocusCastBarChanged`，Focus 的 `Monitoring()` 問它讓位、設定頁黃字說被接手；音效留在 Focus。

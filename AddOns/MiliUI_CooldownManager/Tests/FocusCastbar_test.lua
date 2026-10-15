@@ -92,7 +92,7 @@ local DB, Lay, Vis = ns.DB, ns.Layout, ns.Visibility
 ------------------------------------------------------------
 local d = DB.BuildDefaults().profile
 local fc = d.focuscast
-check("預設：有這張表、開著", type(fc) == "table" and fc.enabled == true)
+check("預設：有這張表、關著（2026-10-16 改口）", type(fc) == "table" and fc.enabled == false)
 check("預設：錨在施法條上方（這條的下緣貼施法條的上緣）", type(fc.anchor) == "table" and fc.anchor.to == "castbar"
     and fc.anchor.point == "BOTTOM" and fc.anchor.relPoint == "TOP")
 check("預設：寬 0（跟核心技能第一列）、高 20、套組材質 MiliUI Satin", fc.width == 0 and fc.height == 20 and fc.texture == "MiliUI Satin")
@@ -117,7 +117,7 @@ check("DefaultFor 位置是複本", DB.DefaultFor("bar", "focuscast", "pos") ~= 
 do
     local old = { theme = { font = "x" }, castbar = { enabled = false, height = 33 }, resources = { width = 123 }, bars = {} }
     DB.MergeDefaults(old, DB.BuildDefaults().profile)
-    check("舊存檔：補上 focuscast（開著、錨施法條）", type(old.focuscast) == "table" and old.focuscast.enabled == true
+    check("舊存檔：補上 focuscast（關著、錨施法條）", type(old.focuscast) == "table" and old.focuscast.enabled == false
         and old.focuscast.anchor.to == "castbar")
     check("舊存檔：施法條的值不動", old.castbar.enabled == false and old.castbar.height == 33)
 end
@@ -246,7 +246,15 @@ do
     eq("v11：玩家選的材質不動", m2.focuscast.texture, "Smooth")
     DB.MIGRATIONS[11]({})
     check("v11：沒有這張表不報錯", true)
-    check("DB_VERSION 升到 11", ns.DB_VERSION == 11)
+    check("DB_VERSION 升到 12", ns.DB_VERSION == 12)
+    local v = { focuscast = { enabled = true } }
+    DB.MIGRATIONS[12](v)
+    eq("v12：10-15 那版寫進存檔的開翻成關", v.focuscast.enabled, false)
+    local v2 = { focuscast = { enabled = false } }
+    DB.MIGRATIONS[12](v2)
+    eq("v12：本來就關的不動", v2.focuscast.enabled, false)
+    DB.MIGRATIONS[12]({})
+    check("v12：沒有這張表不報錯", true)
 end
 
 print(("FocusCastbar_test: %d passed, %d failed"):format(passed, failed))
