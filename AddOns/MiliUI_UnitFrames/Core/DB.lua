@@ -225,7 +225,7 @@ function DB.BuildDefaults()
             -- 整套框架的縮放（百分比）。跟每個框自己的 frame.scale **相乘**，
             -- 不改寫它們的值 —— 全域＝整套放大多少，個別＝這個框相對其他框的修正。
             scale       = 100,
-            barTexture  = "tuktex",
+            barTexture  = "satin",       -- 套組自製的 MiliUI Satin（Core/Media.lua）
             font        = "DEFAULT",
             borderSize  = 1,
             borderColor = black(1),
@@ -1629,6 +1629,13 @@ local PROFILE_MIGRATIONS = {
                 f.visibility, f.visHideNoTarget, f.visHideNoEnemy = nil, nil, nil
             end
         end
+    end,
+
+    -- v20（2026-10-16）：長條材質從自帶的 TukTex 換成套組自製的 MiliUI Satin，token "tuktex" → "satin"。
+    -- 值閘：存檔裡是舊 token 才換；玩家選了 LSM 別的材質不碰（Media.lua 留著 "tuktex" 別名，遷移前也畫得出）
+    [20] = function(profile)
+        local g = profile.global
+        if type(g) == "table" and g.barTexture == "tuktex" then g.barTexture = "satin" end
     end,
 }
 

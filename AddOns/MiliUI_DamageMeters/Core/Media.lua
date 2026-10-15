@@ -50,7 +50,8 @@ end
 ------------------------------------------------------------
 -- 內建材質：檔案自己帶、註冊也自己做（做法與 MiliUI_UnitFrames 一致）
 --
--- tuktex 是套組共用的預設長條材質，跟頭像框架用的是同一個檔（md5 相同）。
+-- satin 是套組共用的預設長條材質 MiliUI Satin（Media/miliui_satin.png，技能 miliui-satin-texture 的腳本畫的），
+-- 跟頭像框架用的是同一個檔（md5 相同）；2026-10-16 取代自帶的 TukTex，舊 token "tuktex" 當別名（v6 值閘遷移）。
 -- **自己帶一份而不是指到 MiliUI_UnitFrames 的路徑**：這些插件是單體發佈的，
 -- 玩家可能只裝這一支，指過去就會是一條空白的條。
 --
@@ -60,15 +61,16 @@ end
 local MEDIA_PATH = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\"
 
 M.TEXTURES = {
-    tuktex = MEDIA_PATH .. "tuktex",
+    satin  = MEDIA_PATH .. "miliui_satin.png",
+    tuktex = MEDIA_PATH .. "miliui_satin.png",   -- 舊 token 別名
 }
-M.DEFAULT_TEXTURE = M.TEXTURES.tuktex
+M.DEFAULT_TEXTURE = M.TEXTURES.satin
 
 -- 登記到 LSM 用的顯示名。加前綴是因為 LSM **撞名會被拒絕**，而且失敗是靜默的。
 -- 跟 MiliUI_UnitFrames 用同一個名字是刻意的：兩邊是同一張圖，共用一個條目
 -- 才不會在別人的材質選單裡出現兩筆長得一樣的東西。誰先載入誰註冊成功，
 -- 另一邊靜默失敗——但兩邊解析 token 都走自己的 M.TEXTURES，不受影響。
-local LSM_NAME = "MiliUI TukTex"
+local LSM_NAME = "MiliUI Satin"
 M.LSM_NAME = LSM_NAME
 
 local lsmDone = false
@@ -77,7 +79,7 @@ function M.RegisterSharedMedia()
     local lsm = LSM()
     if not lsm then return end        -- 沒裝就算了，我們本來就不靠它
     lsmDone = true
-    pcall(lsm.Register, lsm, "statusbar", LSM_NAME, M.TEXTURES.tuktex)
+    pcall(lsm.Register, lsm, "statusbar", LSM_NAME, M.TEXTURES.satin)
 end
 M.RegisterSharedMedia()               -- LSM 若比我們晚載入，登入時會再叫一次
 
@@ -87,7 +89,7 @@ function M.BarTexture(token)
     if token == "solid" then return M.WHITE8X8 end
     local own = M.TEXTURES[token]
     if own then return own end
-    if token == LSM_NAME then return M.TEXTURES.tuktex end   -- 別人選了我們登記的名字
+    if token == LSM_NAME then return M.TEXTURES.satin end   -- 別人選了我們登記的名字
     local lsm = LSM()
     if lsm then
         local path = lsm:Fetch("statusbar", token, true)
@@ -106,7 +108,7 @@ end
 -- 跳過 LSM_NAME —— 那是我們自己登記出去的同一個檔，兩個名字指同一張圖只會讓人困惑。
 function M.BarTextureItems()
     local items = {
-        { text = ns.L["Built-in (TukTex)"], value = "tuktex" },
+        { text = ns.L["Built-in (Satin)"], value = "satin" },
         { text = ns.L["Solid"],             value = "solid" },
     }
     local lsm = LSM()

@@ -69,8 +69,8 @@ Api.lua   /mdm、插件選單、MiliUI_MenuEntries（ESC 選單項目，往全�
 
 ## 資產
 
-- **材質 `tuktex.tga` 從 MiliUI_UnitFrames 複製一份**（md5 相同），預設值就用它，
-  LSM 註冊名同樣是 `"MiliUI TukTex"`。**不要指到 UnitFrames 的路徑**——插件是單體發佈的，
+- **材質 `miliui_satin.png` 是套組自製的 MiliUI Satin**（[[project-miliui-satin-texture]]，2026-10-16 取代 TukTex；五支插件各一份、md5 相同），
+  預設 token `"satin"`（舊 `"tuktex"` 當別名、v6 值閘遷移），LSM 註冊名同樣是 `"MiliUI Satin"`。**不要指到 UnitFrames 的路徑**——插件是單體發佈的，
   玩家可能只裝這一支。同名註冊誰先載入誰成功，另一邊靜默失敗，但兩邊解析都走自己的
   `M.TEXTURES`，不受影響。做法見 [[project-miliui-widgets-vendor]] 的同一套邏輯。
 - **標題列八款圖示是 Pillow 畫的**，腳本在 `miliui-damagemeter-icons` 技能。

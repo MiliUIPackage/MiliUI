@@ -67,19 +67,21 @@ function M.BackgroundItems()
 end
 
 ------------------------------------------------------------
--- 血條材質：自帶 tuktex（跟 MiliUI_UnitFrames 同一張、同一套做法）
+-- 血條材質：自帶套組自製的 MiliUI Satin（Media/miliui_satin.png，跟 MiliUI_UnitFrames 同一張、同一套做法；
+-- 2026-10-16 取代 TukTex，舊 token "tuktex" 當別名、v2 值閘遷移）
 -- 解析先查自己的表、查不到才問 LSM；同時把自己的材質登記進 LSM，
 -- 讓別的插件的材質選單也看得到。兩個方向都不依賴外人。
 ------------------------------------------------------------
 local MEDIA_PATH = "Interface\\AddOns\\MiliUI_Tooltip\\Media\\"
 
 M.TEXTURES = {
-    tuktex = MEDIA_PATH .. "tuktex",
+    satin  = MEDIA_PATH .. "miliui_satin.png",
+    tuktex = MEDIA_PATH .. "miliui_satin.png",   -- 舊 token 別名
 }
 
 -- 登記到 LSM 的顯示名。⚠ LSM 撞名會被靜默拒絕——MiliUI_UnitFrames 也用這個名字
 -- 登記同一張圖，誰先到誰贏，兩邊檔案相同所以無所謂；自己解析不走這個名字。
-local LSM_NAME = "MiliUI TukTex"
+local LSM_NAME = "MiliUI Satin"
 
 local lsmDone = false
 function M.RegisterSharedMedia()
@@ -87,14 +89,14 @@ function M.RegisterSharedMedia()
     local lsm = LSM()
     if not lsm then return end
     lsmDone = true
-    pcall(lsm.Register, lsm, "statusbar", LSM_NAME, M.TEXTURES.tuktex)
+    pcall(lsm.Register, lsm, "statusbar", LSM_NAME, M.TEXTURES.satin)
 end
 M.RegisterSharedMedia()
 
 function M.BarTexture(token)
     if type(token) ~= "string" or token == "" or token == "solid" then return M.WHITE8X8 end
     if M.TEXTURES[token] then return M.TEXTURES[token] end
-    if token == LSM_NAME then return M.TEXTURES.tuktex end
+    if token == LSM_NAME then return M.TEXTURES.satin end
     local lsm = LSM()
     if lsm then
         local path = lsm:Fetch("statusbar", token, true)
@@ -106,7 +108,7 @@ end
 function M.BarTextureItems()
     M.RegisterSharedMedia()   -- LSM 若比我們晚載入，開選單時再補登一次
     local items = {
-        { text = "MiliUI TukTex", value = "tuktex" },
+        { text = "MiliUI Satin", value = "satin" },
         { text = L["Solid"], value = "solid" },
     }
     local lsm = LSM()

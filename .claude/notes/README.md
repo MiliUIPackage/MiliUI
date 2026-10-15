@@ -189,6 +189,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | 快捷聊天列的磁吸與自適應寬度 —— 位置從 `SetUserPlaced` 收回自己存；吸附基準是內容底；設定頁整組重套害磁吸亂跳；戰鬥中錨點鏈連坐／im 樣式 editBox 連到通則 |
 | [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 三支小插件改自製設定視窗（爆發藥水／嗜血音樂／快捷聊天列）的標準結構（AceLocale 宿主）；踩過的點；UNIT_AURA 只聽自己 |
 | [project-miliui-font-pack.md](project-miliui-font-pack.md) | 套組字型改用思源黑體：基底配置、`~/MiliUI-Fonts` 典藏庫、雅黑授權問題 |
+| [套組共用長條材質 MiliUI Satin](project-miliui-satin-texture.md) | 2026-10-16 取代 TukTex：技能腳本一次產五份 miliui_satin.png、純漸層不含雲；各插件 token／遷移；Cell／SharedMedia／Ayije 的 TukTex 不動 |
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | 戰利品取得記錄（沒有歷史 API） |
 | [project-speccompare-equipment-filter.md](project-speccompare-equipment-filter.md) | 裝備篩選排除玩具／純造型 |
 | [project-tinyinspect-track-colors.md](project-tinyinspect-track-colors.md) | TinyInspect 裝等軌道色 —— **通則：掛在 setter 上不能讀宿主快取欄位**；Journal 軌道取得方式 |
