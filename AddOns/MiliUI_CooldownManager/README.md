@@ -56,6 +56,7 @@
 | `Core/Shape.lua` | 內建圖示形狀（方／圓角／圓）＋陰影：遮罩、邊框襯底、陰影的畫法與幾何（見「圖示形狀與陰影」） |
 | `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
+| `Modules/FocusCastbar.lua` | 專注目標施法條（面板 `focuscast`，2026-10-15），見「專注目標施法條」 |
 | `Modules/Skyriding.lua`、`Options/Tab_Skyriding.lua`、`Options/SkyridingSettings.lua` | 天空騎術的四列（速度條、旋轉急衝、活力、重新振作）＋旋轉急衝圖示（面板 `skyriding`；接力／獨立擺放、藏起冷卻管理器、每列一個設定視窗），見「天空騎術」 |
 | `Options/SettingsWindow.lua` | 「一列一個設定小視窗」的共用殼（資源條每種資源的設定、天空騎術每一列的設定、錨定視窗共用）：框、標題、捲動、貼在設定視窗旁、表單照形狀快取；`configKey` 省略＝每一列自己的 key（錨定視窗） |
 | `Options/AnchorWindow.lua` | 錨定視窗（每條／每個面板「錨定」列的「設定」鈕開的）：跟著哪條走、目前接到哪一家、雙九宮格（目標的點＋這條的點）、偏移，見「錨到單位框與具名框」 |
@@ -93,7 +94,7 @@
 | `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；放在長條類的條上時換成長條框／長條版的光環按鈕；每一格都是 Bars 的一個 entry。冷卻／數量／可用／距離事件依生效清單動態註冊（`CU.SyncEvents`，沒有非光環項目就一個都不聽）；`SPELL_UPDATE_USABLE` 只重算顏色（`rec.colorDirty`） |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
-→ Interrupt → Resources → Pips → Castbar → Assist → AssistIcon → Skyriding → Visibility → Cursor（`Core/Init.lua` 的 `ns.StartEngine`）。
+→ Interrupt → Resources → Pips → Castbar → FocusCastbar → Assist → AssistIcon → Skyriding → Visibility → Cursor（`Core/Init.lua` 的 `ns.StartEngine`）。
 換設定檔／專精：清樣式簽章、重讀目錄、全部重排、重套 alpha，不需要 /reload。
 任何一步 `Init` 拋錯 ⇒ `ns.EngineFailed`：`Bars.ReleaseAll` 把冷卻管理器還給暴雪，聊天框印一行。
 
@@ -285,6 +286,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
 | `Options/Tab_Resources.lua`、`Options/ResourceSettings.lua`、`Options/ResourceConditions.lua`、`Options/HealthThresholds.lua`、`Options/ResourcePreview.lua` | 資源條頁、每種資源自己的設定視窗（頁上每列「設定…」開的）、視窗裡的條件規則編輯器、血量門檻彈窗、自訂格子／自訂列分頁上方的預覽框 |
 | `Options/Tab_Castbar.lua` | 施法條頁（頁首「預覽」） |
+| `Options/Tab_FocusCast.lua` | 專注目標施法頁（頁首「預覽」：十秒假施法、當重要法術） |
 | `Options/Tab_Assist.lua` | 戰鬥助手頁：下一招醒目標示（主題層）＋下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Options/ClickLayer.lua` | 視窗開著時畫面上每條蓋一層透明點擊層，點了切到那條的頁面並閃職業色邊 |
 
@@ -1834,32 +1836,33 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 
 ## 資源條與施法條
 
-六者都是**面板**：資源條、自訂格子（`pips`）、自訂列（`custombars`，2026-10-13，見「自訂列」）、施法條、下一招圖示（`assistIcon`，見「戰鬥輔助」）、天空騎術（`skyriding`，見「天空騎術」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
-`profile.resources`／`profile.pips`／`profile.castbar`／`profile.assistIcon`，資源條與施法條在左欄有自己的頁（自訂格子的設定在資源條頁、
+七者都是**面板**：資源條、自訂格子（`pips`）、自訂列（`custombars`，2026-10-13，見「自訂列」）、施法條、專注目標施法條（`focuscast`，2026-10-15，見「專注目標施法條」）、下一招圖示（`assistIcon`，見「戰鬥輔助」）、天空騎術（`skyriding`，見「天空騎術」）。不在 `bars` 裡（沒有版面／主題繼承），設定在
+`profile.resources`／`profile.pips`／`profile.castbar`／`profile.focuscast`／`profile.assistIcon`，資源條、施法條與專注目標施法條在左欄有自己的頁（自訂格子的設定在資源條頁、
 下一招圖示在戰鬥助手頁）；
 但**錨定語意跟條一模一樣**（`pos = { point, x, y }`、`anchor = false | { to, point, relPoint, x, y }`），
 容器也是 `MiliUICDM_Bar_<key>`、走 `Core/Bars.lua` 的同一套 `ApplyStructure`、編輯模式覆蓋層／選取框／磁吸、點擊層。
 
 | 位置 | 內容 |
 |---|---|
-| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`castbar`、`assistIcon`、`skyriding`；順序＝顯示條件套用與錨定候選的順序，天空騎術排最後）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
+| `Core/DB.lua` | `DB.PANEL_KEYS`／`DB.PANEL_ORDER`（`resources`、`pips`、`custombars`、`castbar`、`focuscast`、`assistIcon`、`skyriding`；順序＝顯示條件套用與錨定候選的順序，天空騎術排最後）、`DB.ConfigTable(key)`（條或面板的設定表：錨定、編輯模式、設定頁的 `root = "bar"` 都走它）、`RESOURCE_COLORS`（資源預設色的單一來源）、三張預設表 |
 | `Core/Bars.lua` | `B.RegisterPanel(key, { anchorPoint, minSize, relayout, collapsible })`：建容器（連帶 `EditMode.OnContainer`）、照存檔貼位置；`B.SetPanelSize`（走 `ns.Write`；`collapsible` 的面板收 `h = 0`，見「自訂格子」）；`B.FirstRowWidth(key)` 記每條圖示條的第一列寬，變了廣播 `FirstRowWidthChanged(key, w)`；`B.AutoWidth(panelKey)` ＝ 面板寬 0 的實際寬（錨在圖示條上跟那條，否則核心技能）。排程對面板只做結構級，內容交給模組的 `relayout` |
 | `Core/Visibility.lua` | `Vis.EvaluatePanel`／`PanelAlpha`（見下），一律 alpha；面板排在條後面套（資源條要讀核心技能剛算好的 alpha） |
 | `Options/Specs.lua` | `Specs.Anchor(key, opts)` 對面板照用；`opts.other` ＝ 讀寫的不是這張表單自己的條（資源條頁上的自訂格子）：「位置」列的 root 換成 `"bar@pips"`（numbers 型的子格只把 root／sub 往下傳，所以目標帶在 root 上），`MakeCtx` 與右鍵重設都認得；錨定視窗（`Options/AnchorWindow.lua`）的 spec 一律 `"bar@<key>"`；錨定候選＝`barOrder` ＋ `PANEL_ORDER`（排除成環）；表單簽章多了整張錨定圖（別條的錨定一變，候選清單就要重算） |
 | `Options/Panel.lua` | 沒有自己一頁的面板：`Options.HostPage("pips") == "resources"`、`Options.HostPage("assistIcon") == "assist"`（`ShowPage`／`FocusBar` 照它轉，點擊層點了開那一頁）、`Options.PageTitle("pips")` 回「自訂格子」、`PageTitle("assistIcon")` 回「下一招圖示」（覆蓋層條名、錨定候選、點擊層提示） |
 
 容器的錨點：資源條 `BOTTOM`（預設錨在核心技能上緣、往上長，列數增減時下緣不動）、自訂格子 `TOP`（預設錨在
-核心技能下緣、往下長）、施法條與下一招圖示 `CENTER`。寬 0 ＝ 錨定的圖示群組第一列寬，沒錨在圖示條上就是核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`；天空騎術一律核心技能）。
+核心技能下緣、往下長）、施法條、專注目標施法條與下一招圖示 `CENTER`。寬 0 ＝ 錨定的圖示群組第一列寬，沒錨在圖示條上就是核心技能第一列寬（施法條含圖示；自訂格子照資源條的 `width`；天空騎術一律核心技能）。
 
-預設的上下疊法（使用者 2026-09-30 指定；增益圖示 2026-10-01 加入；自訂列 2026-10-13 加入，沒有列時收合不佔位）：增益圖示 → 施法條 → 自訂列 → 資源條 → **核心技能 → 自訂格子 → 輔助技能**。
-五個的 `anchor.to` 全部是 `essential`（資源條、施法條、增益圖示在上方；自訂格子、輔助技能在下方），先後由排開決定。
+預設的上下疊法（使用者 2026-09-30 指定；增益圖示 2026-10-01 加入；自訂列 2026-10-13 加入，沒有列時收合不佔位；專注目標施法條 2026-10-15 加入）：增益圖示 → 專注目標施法條 → 施法條 → 自訂列 → 資源條 → **核心技能 → 自訂格子 → 輔助技能**。
+五個的 `anchor.to` 全部是 `essential`（資源條、施法條、增益圖示在上方；自訂格子、輔助技能在下方），先後由排開決定；
+專注目標施法條是唯一直接錨在**施法條**上的（使用者指定「預設在施法條上方」）——施法條關掉或改錨別處時，排開把它接到施法條的上一層（核心技能上方那一疊）。
 
 ### 錨定的排開（`Core/Layout.lua` 的 `StackTarget`）
 
 設定裡的錨定是「跟著誰、在它哪一邊」。照字面各自貼上去的話，兩個東西都選「核心技能上方」就疊在一起，
 所以**實際貼在誰身上是算出來的**：
 
-- 跟著同一個目標、同一邊的算一疊，照固定順序往外排：資源條 → 自訂列 → 天空騎術（獨立擺放）→ 自訂格子 → 輔助技能 → 施法條 → 增益圖示 →
+- 跟著同一個目標、同一邊的算一疊，照固定順序往外排：資源條 → 自訂列 → 天空騎術（獨立擺放）→ 自訂格子 → 輔助技能 → 施法條 → 專注目標施法條 → 增益圖示 →
   增益長條 → 自訂群組（照左欄順序）→ 下一招圖示（預設不錨定；錨了就排最外圈）。後面那個貼在前面那個的外緣，邊與偏移照自己的設定。
 - 前面那個自己身上同一邊還掛著東西（有人指名跟著它）⇒ 貼在那一串的最外面。
 - 目標關掉了、而且它自己也掛在同一邊 ⇒ 當它不存在，接到它的上一層（資源條關掉，施法條貼回核心）。
@@ -2279,6 +2282,44 @@ customBars[specID] = {
 - **打斷震動**（`interruptShake`，預設開）：被打斷或施法失敗時整條照暴雪自己施法條的 `InterruptShakeAnim` 抖一下（停 0.1 秒、每 0.05 秒跳一次、四段 1～2px 加總歸零）；失敗只認「目前這條」（castGUID 相符），引導中另外按技能失敗不震。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑，帶假延遲），再按一次停；真的開唱就讓位；離開那一頁自動停。
 
+### 專注目標施法條（`Modules/FocusCastbar.lua`、`Options/Tab_FocusCast.lua`，2026-10-15）
+
+專注目標在唱什麼。做法照套組的專注目標助手（MiliUI_Focus）那條施法條搬過來，引擎（框、秘密模式、版面、材質）
+跟玩家施法條同一套，但**兩條刻意分開寫**：玩家那條有引導刻度／延遲／蓄力／隱藏暴雪條，這條沒有；這條多的是
+「我能不能斷」三態上色、重要法術發光＋「!」、被打斷時印斷法者。純函式（時間文字 `CB.FormatTime`、截字 `CB.Truncate`、
+材質 `CB.SetFillTexture`、`CB.SecretsActive`、`CB.TimerDir`）直接用玩家施法條的。
+
+- **面板 key `focuscast`**（存檔內容，不要改名）：`DB.PANEL_KEYS`／`DB.PANEL_ORDER`（排在施法條後面、下一招圖示前面）、
+  `profile.focuscast`（`FocusCastDefaults`）、`STACK_RANK.focuscast = 4.5`、`Vis.EvaluatePanel` 跟施法條同一條
+  （`hideWhenNotCasting` 且沒在施法 → 0；`PanelAlpha` 問 `ns.FocusCastbar.IsActive`）、左欄「專注目標施法」在施法條底下。
+  舊存檔沒有這張表 ＝ 合併預設值補上（**開著**），不遷移。
+- **預設錨在施法條上方**（`anchor = { to = "castbar", BOTTOM → TOP }`，使用者指定）。錨定視窗照舊可以改成施法條下方、
+  核心技能、單位框……別的東西照排開讓位：預設畫面由下而上是核心 → 資源條 → 自訂列 → 施法條 → **專注目標施法條** → 增益圖示。
+  寬 0 ＝ 跟核心技能第一列同寬（`Bars.AutoWidth`：錨在施法條上拿不到第一列寬，退回核心技能）。
+- **顏色三態**（`colors.ready`／`cd`／`immune`，同專注目標助手的預設：金／橘／灰）：`cd` 起底 → 我方斷法就緒
+  （`Modules/Interrupt.lua` 的 `IsReady`，可能是秘密布林，只餵 `EvaluateColorValueFromBoolean`）蓋成 `ready` →
+  不可打斷（秘密布林同上；`UNIT_SPELLCAST_(NOT_)INTERRUPTIBLE` 事件的明文值優先）蓋成 `immune`。被打斷紅（`colors.interrupted`）。
+  沒有斷法的職業整條就是 `cd` 色（跟專注目標助手一樣）。
+- **重要法術**（`glowImportant`、`bangImportant`，預設開）：判定 `C_Spell.IsSpellImportant(spellID)`，spellID 與回傳值都可能是秘密值。
+  發光永遠開著、掛在自己的宿主框（`f.glowHosts[style]`，level +20）上，秘密布林只餵宿主的 `SetAlphaFromBoolean`；
+  「!」版的名字是另一顆 FontString（`f.bangText`，疊在 `nameText` 上），兩顆 alpha 互補（`SetAlphaFromBoolean(important, 1, 0)` ／ `(important, 0, 1)`）。
+  樣式 `glowStyle`：像素跑線（條外框，2px 往外推 1px）／自動施放閃點（條外框）／觸發發光（圖示）；引擎 vendor 的 `MiliUIGlow`，`Start` 系列失敗（pcall）就不亮。
+  施法結束、被打斷、換樣式都 `StopGlow`。
+- **被打斷**（`showInterrupter`，預設開）：`UNIT_SPELLCAST_INTERRUPTED` 第 4 參數／`CHANNEL_STOP` 第 4／`EMPOWER_STOP` 第 5 是 interrupterGUID（只比 nil）。
+  凍結滿條變紅、名字換「已打斷」、右側 `timeText` 印斷法者（`UnitNameFromGUID` ＋ `GetPlayerInfoByGUID` 的職業 → `C_ClassColor`；
+  **職業是秘密字串就白字**，秘密值不能當 table key、`SetTextColor` 不收秘密值），停留 1 秒再淡出（玩家施法條是 0.4 秒；這條要讀得到名字）。
+  下一次開唱先把 `timeText` 的顏色還原成白。
+- **專注目標換了**（`PLAYER_FOCUS_CHANGED`）：新的正在唱就直接接上、沒在唱就收條；預覽中不蓋掉。重載時專注目標正在唱也接得上（Init 延一幀 Refresh）。
+- **事件**全部 `RegisterUnitEvent(…, "focus")`、處理器只轉手 `ns.Defer`；unit 參數不比對（受限內容 unit token 可能是秘密字串）。
+  `FAILED`／`STOP` 不分「哪一條」（別人的 castGUID 沒有理由比對）。沒有延遲條、沒有刻度、沒有蓄力分階（`DELAYED`／`CHANNEL_UPDATE` 只重設計時）。
+- **音效留在專注目標助手**（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑），這裡不另做一份。
+- **跟專注目標助手（MiliUI_Focus）的分工**：公開 API `MiliUI_CooldownManager.FocusCastBarActive()`（這條開著就 true，不管專注目標在不在）＋
+  事件 `FocusCastBarChanged`（開關／設定套用時廣播）。專注目標助手的 `Modules/CastBar.lua` 問它決定自己那條要不要讓位（`Monitoring()`），
+  設定頁「施法條」分頁在開關底下多一行黃字說明被接手了。兩邊都裝的人預設只會看到這一條。
+- **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑、當重要法術：看得到「!」與發光），再按一次停；專注目標真的開唱就讓位；離開那一頁自動停。
+- `/mcdm debug` 多一行「專注目標施法條：…」（狀態、秘密模式、明文時間軸、發光樣式、alpha）。
+- 離線測試 `Tests/FocusCastbar_test.lua`（預設值／面板登記／顯示條件／排開）。
+
 ### 公開 API（契約：回傳形狀之後不改）
 
 全域表 `MiliUI_CooldownManager`（`Api.lua`）。呼叫端一律處理 `nil`（本插件沒載入完、互斥偵測成立、那一項不存在）。
@@ -2289,9 +2330,10 @@ customBars[specID] = {
 | `GetResourceColors(key)` | `{ color = {r,g,b,a}, chargedColor = {…}\|nil, chargedEmptyColor = {…}\|nil }`；沒有這個資源、設定檔還沒載入 → `nil`。key 見下 |
 | `GetResourceConditions(key)` | 規則陣列（形狀見 `Modules/ResourceConditions.lua` 檔頭，與單位框架相同）；沒有規則 → `nil` |
 | `GetResourceBarFrame(powerType)` | `Enum.PowerType`（或資源 key 字串，給沒有 PowerType 的資源：`"Stagger"`、`"IgnorePain"`、`"Ironfur"`、`"EbonMight"`…）→ 資源條上那一列的框；沒有這一列、玩家關掉、整條關掉（容器藏起來）→ `nil`。載入條件／淡出造成的 alpha 0 不算藏（框還在，錨在上面的東西不必換錨點） |
-| `GetBarFrame(key)` | 容器框 `MiliUICDM_Bar_<key>`（四條檢視器、自訂群組、`resources`、`pips`、`castbar`、`assistIcon`）；還沒建 → `nil` |
+| `GetBarFrame(key)` | 容器框 `MiliUICDM_Bar_<key>`（四條檢視器、自訂群組、`resources`、`pips`、`custombars`、`castbar`、`focuscast`、`assistIcon`、`skyriding`）；還沒建 → `nil` |
+| `FocusCastBarActive()` | 專注目標施法條有沒有在接手（開著就 `true`，不管專注目標在不在；引擎沒起來 → `false`）。套組的專注目標助手拿它決定自己那條要不要讓位 |
 | `IsReady()` | 引擎是否已經認領好四條檢視器（布林）。問資源顏色／條件不必等它：設定檔載入前那兩支自己回 `nil` |
-| `RegisterCallback(event, key, fn)` | 訂閱事件，目前只開放 `"ResourceStyleChanged"`（資源顏色或條件規則變了：資源條頁的套用、換設定檔、換專精，合併 0.2 秒，不帶參數）。同一個 key 再登記＝換掉；成功回 `true`，事件不開放回 `false`。`fn` 拋錯會被隔離 |
+| `RegisterCallback(event, key, fn)` | 訂閱事件，開放 `"ResourceStyleChanged"`（資源顏色或條件規則變了：資源條頁的套用、換設定檔、換專精，合併 0.2 秒，不帶參數）與 `"FocusCastBarChanged"`（專注目標施法條的開關／設定套用，不帶參數）。同一個 key 再登記＝換掉；成功回 `true`，事件不開放回 `false`。`fn` 拋錯會被隔離 |
 | `UnregisterCallback(event, key)` | 取消訂閱 |
 
 資源 key（存檔內容，不要改名）：`Mana`、`Rage`、`Energy`、`Focus`、`RunicPower`、`LunarPower`、`Maelstrom`、`Insanity`、`Fury`、
@@ -4003,6 +4045,13 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      混排光環格的條點名光環格與解法；溢出來源條有光環格時點名來源條；九語系換行正常。
 562. 寵物對戰：開打後資源條（法力條）、自訂格子、自訂列、施法條、下一招圖示全部消失；對戰結束（勝、負、逃跑三種）都回來、不閃兩次；
      對戰中 `/mcdm debug` 的顯示條件快照印「寵物對戰 true」。
+563. 專注目標施法條（預設開）：登入後設專注目標、讓它讀條，條出現在玩家施法條正上方、寬度跟核心技能第一列一樣；不隱藏時空條在同一個位置
+564. 三態顏色：自己的斷法轉好時金、冷卻中橘、不可打斷的施法灰（戰鬥中三個都是秘密布林 ⇒ 顏色由引擎挑，Lua 不能驗、只能看畫面）；被打斷整條紅、右側印斷法者名字＋職業色，一秒後淡出
+565. 重要法術：專注目標施放暴雪標為重要的法術時條外框跑像素線、名字前有黃色「!」；不重要的法術兩樣都不出現；換成「觸發發光」樣式時發光在圖示上
+566. 專注目標換了／清掉：正在唱的新目標直接接上；清掉專注目標條消失；/reload 時專注目標正在唱也接得上
+567. 錨定視窗把它改成施法條下方、核心技能上方、目標框架：別的東西跟著讓位（施法條下方 ⇒ 排到核心技能下方那一疊最外面）；關掉玩家施法條時它貼回資源條外面
+568. 專注目標助手（MiliUI_Focus）同時裝著：只看到冷卻管理器這一條，助手的「施法條」分頁有黃字說被接手；把冷卻管理器這條關掉後助手那條立刻回來（不用 /reload）；助手的唱法音效照常
+569. 預覽鈕：十秒假施法帶「!」與發光，再按一次停；離開那一頁自動停；專注目標真的開唱時按預覽會印「關著或正在施法」
 
 **效能基準**
 
