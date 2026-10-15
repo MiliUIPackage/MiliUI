@@ -415,8 +415,8 @@ end
 --   * 另貼 FontString 的路線要知道「最後一個字在哪」，換行之後量不到，只能疊在行尾右緣蓋字
 -- 原文記在弱鍵表（fs → 原文／我們顯示的字），讀到的字不是我們上次寫的 ⇒ 暴雪剛寫過新原文。
 ------------------------------------------------------------
--- 紅 → 黃 → 綠。滿了但暴雪還沒判完成時停在綠；判完成之後換白 ——
--- 不用外觀分頁的「已完成」色：那一個是給可交付的任務標題用的，目標行打勾之後只要退回中性色
+-- 紅 → 黃 → 綠。滿了但暴雪還沒判完成時停在綠；判完成之後換「已完成」色（外觀分頁那一個）。
+-- 上色關著時（預設）打勾的行不留在目標灰、改成白：灰是「還沒做」，做完的要看得出來
 local PROGRESS_STOPS = {
     { 0.0, 1.00, 0.36, 0.36 },
     { 0.5, 1.00, 0.82, 0.30 },
@@ -530,11 +530,14 @@ local function ColorLine(line, hovered)
             local _, cur, req = LineProgress(line)
             if cur then
                 if IsLineComplete(line) then
-                    tr, tg, tb = 1, 1, 1
+                    local c = a.completedColor
+                    tr, tg, tb = c.r, c.g, c.b
                 else
                     tr, tg, tb = ProgressRGB(math.max(0, math.min(1, cur / req)))
                 end
             end
+        elseif IsLineComplete(line) then
+            tr, tg, tb = 1, 1, 1
         end
         line.Text:SetTextColor(Lift(tr, tg, tb, hovered))
     end

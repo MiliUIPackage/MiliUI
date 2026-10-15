@@ -51,7 +51,8 @@ local function BuildDefaults()
             objectiveColor = { r = 0.72, g = 0.72, b = 0.72 },  -- 目標行（灰）
 
             -- 目標進度（Modules/Skin.lua 的「目標進度」段）。
-            -- 上色：帶 x/y 的目標行紅→黃→綠，暴雪判完成之後換白；沒有數字的行仍是 objectiveColor。
+            -- 上色：帶 x/y 的目標行紅→黃→綠，暴雪判完成之後換 completedColor；沒有數字的行仍是 objectiveColor。
+            -- 關著時打勾的行是白（Skin.ColorLine），其餘 objectiveColor
             -- 1.0.10 發佈時預設開，2026-10-15 改預設關 ⇒ 配 DB_VERSION 3 的遷移（見 Migrate）
             progressColor   = false,
             -- 行尾接「(38%)」。預設關：x/y 已經寫在行上，百分比是加碼的資訊
