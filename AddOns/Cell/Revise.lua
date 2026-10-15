@@ -3427,6 +3427,17 @@ function F.Revise()
         -- Saved variable secrets: any secrets stored before this version will be nil'd by WoW.
     end
 
+    -- MiliUI (2026-10-16): default bar texture "TukTex" -> "MiliUI Satin" (the pack's own texture,
+    -- Media/miliui_satin.png). Gated by a one-shot flag, NOT by dbRevision: r308 is already in players'
+    -- hands and the version number is only bumped on release. Value-gated: only the old default is
+    -- rewritten, a texture the player picked stays (SharedMedia still provides "TukTex").
+    if type(CellDB["appearance"]) == "table" and not CellDB["miliuiSatinMigrated"] then
+        if CellDB["appearance"]["texture"] == "TukTex" then
+            CellDB["appearance"]["texture"] = "MiliUI Satin"
+        end
+        CellDB["miliuiSatinMigrated"] = true
+    end
+
     -- ----------------------------------------------------------------------- --
     --            update from old versions, validate all indicators            --
     -- ----------------------------------------------------------------------- --
