@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "充能格改用速度条的颜色"
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "边框、缩放与冷却转圈照主题的图标设置。"
 L["Restore the skyriding settings to their defaults?"] = "把驭空术的设置恢复成默认值？"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "驭空术时，这个位置由驭空术条接管（驭空术页的“位置：接力”）。"
+L["Show the bar"] = "显示长条"
+L["Turn it off to show only the icon (see Icon below)."] = "关掉就只显示图标（在下方「图标」设置）。"
 L["Electric effect when full"] = "充满时的电光效果"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "速度条"

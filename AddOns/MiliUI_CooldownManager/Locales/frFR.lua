@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "Charges à la couleur de la vitesse"
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "La bordure, le zoom et le balayage de recharge suivent les réglages d’icône du thème."
 L["Restore the skyriding settings to their defaults?"] = "Rétablir les réglages par défaut du vol dynamique ?"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "En vol dynamique, les barres de vol dynamique prennent cette place (page Vol dynamique, Position : Relais)."
+L["Show the bar"] = "Afficher la barre"
+L["Turn it off to show only the icon (see Icon below)."] = "Désactivez pour n'afficher que l'icône (voir Icône plus bas)."
 L["Electric effect when full"] = "Effet électrique quand pleine"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "Barre de vitesse"

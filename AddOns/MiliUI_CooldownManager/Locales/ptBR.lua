@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "Cargas na cor da velocidade"
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "Borda, zoom e varredura de recarga seguem as opções de ícone do tema."
 L["Restore the skyriding settings to their defaults?"] = "Restaurar as configurações padrão da pilotagem aérea?"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "Na pilotagem aérea, as barras de pilotagem aérea ocupam este lugar (página Pilotagem Aérea, Posição: Revezamento)."
+L["Show the bar"] = "Mostrar a barra"
+L["Turn it off to show only the icon (see Icon below)."] = "Desative para mostrar só o ícone (veja Ícone abaixo)."
 L["Electric effect when full"] = "Efeito elétrico quando cheia"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "Barra de velocidade"

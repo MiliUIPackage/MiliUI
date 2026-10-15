@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "Cargas con el color de velocidad"
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "El borde, el zoom y el barrido de reutilización siguen los ajustes de icono del tema."
 L["Restore the skyriding settings to their defaults?"] = "¿Restablecer los ajustes de surcacielos?"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "Al surcar los cielos, las barras de surcacielos ocupan este lugar (página Surcacielos, Posición: Relevo)."
+L["Show the bar"] = "Mostrar la barra"
+L["Turn it off to show only the icon (see Icon below)."] = "Desactívalo para mostrar solo el icono (ver Icono abajo)."
 L["Electric effect when full"] = "Efecto eléctrico al llenarse"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "Barra de velocidad"

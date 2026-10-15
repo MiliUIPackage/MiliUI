@@ -993,6 +993,8 @@ L["Charges use the speed bar's color"] = "충전에 속도 바 색상 사용"
 L["Border, zoom and cooldown swipe follow the theme's icon settings."] = "테두리, 확대, 재사용 대기시간 표시는 테마의 아이콘 설정을 따릅니다."
 L["Restore the skyriding settings to their defaults?"] = "하늘비행 설정을 기본값으로 되돌릴까요?"
 L["While skyriding, the skyriding bars take over this spot (Skyriding page, Position: Relay)."] = "하늘비행 중에는 하늘비행 바가 이 자리를 대신합니다 (하늘비행 페이지, 위치: 교대)."
+L["Show the bar"] = "바 표시"
+L["Turn it off to show only the icon (see Icon below)."] = "끄면 아이콘만 표시합니다(아래 아이콘에서 설정)."
 L["Electric effect when full"] = "가득 찼을 때 전기 효과"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "속도 바"
