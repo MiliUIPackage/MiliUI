@@ -2726,5 +2726,40 @@ do
     check("沒有 CooldownFlash 的 item 不炸", true)
 end
 
+------------------------------------------------------------
+-- 滑鼠提示：光環在身上時要問哪些法術（D.TipAuraIDs，順序照暴雪 GetAssociatedAuraSpellPriority）
+------------------------------------------------------------
+do
+    local saved = { Info = C.Info, EquipTrackedOf = C.EquipTrackedOf, SlotBuffIDs = C.SlotBuffIDs,
+                    SlotBuffIndices = C.SlotBuffIndices, SlotUseBuffIDs = C.SlotUseBuffIDs, ItemUseBuffIDs = C.ItemUseBuffIDs }
+    local function List(t) return table.concat(t, ",") end
+    C.Info = function(id)
+        if id == 11 then return { spellID = 100, overrideSpellID = 101, overrideTooltipSpellID = 102, linkedSpellIDs = { 103, 104 } } end
+        if id == 12 then return { spellID = 200, overrideTooltipSpellID = "x", linkedSpellIDs = { 0, -1 } } end
+        return nil
+    end
+    C.EquipTrackedOf = function(id)
+        if id == 801 then return 13, 2 end
+        if id == 802 then return 14, nil end
+        return nil
+    end
+    C.SlotBuffIDs = function(slot, n) return { slot * 100 + n * 10, slot * 100 + n * 10 + 1 }, "sig" end
+    C.SlotBuffIndices = function(slot) return slot == 14 and { 1, 2 } or {} end
+    C.SlotUseBuffIDs = function(slot) return { 7000 + slot }, "sig" end
+    C.ItemUseBuffIDs = function(list) return { 9000 + list[1] }, "sig" end
+
+    eq("暴雪 item：linked → tooltip → override → spellID", List(D.TipAuraIDs({ cooldownID = 11 })), "103,104,102,101,100")
+    eq("暴雪 item：非正整數與非數字不收", List(D.TipAuraIDs({ cooldownID = 12 })), "200")
+    eq("暴雪 item：讀不到 ⇒ 空", #D.TipAuraIDs({ cooldownID = 99 }), 0)
+    eq("裝備欄追蹤增益（第 2 個）：那個增益的法術", List(D.TipAuraIDs({ cooldownID = 801 })), "1320,1321")
+    eq("裝備欄追蹤增益（全部）：每個增益都問", List(D.TipAuraIDs({ cooldownID = 802 })), "1410,1411,1420,1421")
+    eq("自訂飾品欄增益：SlotBuffIDs", List(D.TipAuraIDs({ custom = true, kind = "aura", slotBuff = { slot = 13, buff = 1 } })), "1310,1311")
+    eq("自訂飾品冷卻格：使用效果的增益", List(D.TipAuraIDs({ custom = true, kind = "slot", slot = 14 })), "7014")
+    eq("自訂物品：用掉之後的增益", List(D.TipAuraIDs({ custom = true, kind = "item", itemID = 5 })), "9005")
+    eq("自訂法術：不問", #D.TipAuraIDs({ custom = true, kind = "spell", spellID = 123 }), 0)
+    eq("自訂飾品冷卻格沒裝東西：空", #D.TipAuraIDs({ custom = true, kind = "slot" }), 0)
+    for k, v in pairs(saved) do C[k] = v end
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

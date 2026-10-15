@@ -2513,6 +2513,73 @@ end
 -- 照樣收滑鼠但什麼都不顯示 ⇒ 暴雪的提示也一起關掉，不用去碰它的 SetTooltipsShown（那會寫暴雪欄位）。
 -- 只收滑鼠移動、不收點擊（SetMouseClickEnabled(false)），點擊照舊穿到底下。
 ------------------------------------------------------------
+-- 光環在身上時改畫光環本身（照暴雪 RefreshTooltipInternal：aura instance 排在裝備欄／法術提示之前）。
+-- 暴雪在安全端掃 player／target 的光環；我們是 tainted，只能走 spellID 路線（C_UnitAuras.GetPlayerAuraBySpellID／
+-- GetUnitAuraBySpellID 是 AllowedWhenTainted），拿回來的 auraInstanceID 再交給 SetUnitAuraByAuraInstanceID。
+-- 光環受限時（首領戰／M+／PvP）那個 ID 是秘密值、tooltip 那支不收（AllowedWhenUntainted）⇒ 先擋、退回原本的提示。
+-- 這一格要問哪些法術（TipAuraIDs）照暴雪 GetAssociatedAuraSpellPriority 的順序：linkedSpellIDs → overrideTooltipSpellID →
+-- overrideSpellID → spellID；飾品的增益格是那個增益的法術（Catalog.SlotBuffIDs）、飾品冷卻格是使用效果的增益
+-- （SlotUseBuffIDs）、自訂物品是用掉之後的增益（ItemUseBuffIDs）。自訂法術不問（冷卻格，照舊畫法術）。
+-- 2026-10-16 玩家回報「飾品增益的提示是效果說明、不是增益本身」
+local TIP_AURA_UNITS = { "player", "target" }
+local TIP_NO_IDS = {}
+local function TipAuraIDs(rec)
+    local C = ns.Catalog
+    local out = {}
+    local function Add(v) if type(v) == "number" and v > 0 then out[#out + 1] = v end end
+    local function AddAll(list) for _, v in ipairs(type(list) == "table" and list or TIP_NO_IDS) do Add(v) end end
+    if rec.custom then
+        local sb = rec.slotBuff
+        if type(sb) == "table" and type(sb.slot) == "number" and C.SlotBuffIDs then
+            AddAll((C.SlotBuffIDs(sb.slot, sb.buff or 1)))
+        elseif rec.kind == "slot" and rec.slot and C.SlotUseBuffIDs then
+            AddAll((C.SlotUseBuffIDs(rec.slot)))
+        elseif rec.kind == "item" and rec.itemID and C.ItemUseBuffIDs then
+            AddAll((C.ItemUseBuffIDs({ rec.itemID })))
+        end
+        return out
+    end
+    local slot, buff = C.EquipTrackedOf(rec.cooldownID)
+    if slot then
+        if buff then
+            AddAll((C.SlotBuffIDs(slot, buff)))
+        else
+            for _, n in ipairs(C.SlotBuffIndices(slot)) do AddAll((C.SlotBuffIDs(slot, n))) end
+        end
+        return out
+    end
+    local info = C.Info(rec.cooldownID)
+    if info then
+        AddAll(info.linkedSpellIDs)
+        Add(info.overrideTooltipSpellID)
+        Add(info.overrideSpellID)
+        Add(info.spellID)
+    end
+    return out
+end
+D.TipAuraIDs = TipAuraIDs           -- 測試用
+
+local function ShowAuraTip(tooltip, ids)
+    local UA = C_UnitAuras
+    if not (UA and tooltip.SetUnitAuraByAuraInstanceID) or #ids == 0 then return false end
+    for _, unit in ipairs(TIP_AURA_UNITS) do
+        local api = unit == "player" and UA.GetPlayerAuraBySpellID or UA.GetUnitAuraBySpellID
+        for _, id in ipairs(ids) do
+            local ok, aura
+            if unit == "player" then ok, aura = pcall(api, id) else ok, aura = pcall(api, unit, id) end
+            if ok and type(aura) == "table" then
+                local aid = aura.auraInstanceID
+                -- 秘密值先擋（連跟 nil 比都會拋錯）：受限時退回原本的提示
+                if not ns.IsSecret(aid) and type(aid) == "number"
+                    and pcall(tooltip.SetUnitAuraByAuraInstanceID, tooltip, unit, aid, "INCLUDE_NAME_PLATE_ONLY") then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
 local function ShowTip(ov)
     local rec = ov.rec
     if not (rec and GameTooltip) then return end
@@ -2531,11 +2598,14 @@ local function ShowTip(ov)
     local shown = false
     -- 飾品的增益（暴雪的裝備欄追蹤項目、自訂飾品欄增益）：照暴雪 RefreshTooltipInternal 的「增益不在身上」那一支
     -- （DisplayEquipSlotTrackedTooltip：飾品名＋每個連帶增益一段），走共用的 Catalog.SlotBuffTooltip。
-    -- 增益在身上時暴雪改畫光環本身（SetUnitAuraByAuraInstanceID）——那要讀暴雪框上的 auraInstanceID（可能是秘密值），不做。
+    -- 增益在身上時暴雪改畫光環本身（SetUnitAuraByAuraInstanceID）：ShowAuraTip 走 spellID 路線拿 auraInstanceID（上面）。
     -- 法術資料還沒載入：SlotBuffTooltip 先畫標題，載完在提示還開著、擁有者還是這顆 overlay、中間沒被蓋過時叫 refresh
     -- ⇒ 重跑一次 ShowTip（那時資料已經在快取，不會再等，不會無限重入）
     local function Refresh() if ov.tipOn then ShowTip(ov) end end
-    if rec.custom then
+    -- 光環在身上：畫光環本身（剩餘時間跟著跑），拿不到才退回下面的裝備欄／法術提示
+    if ShowAuraTip(GameTooltip, TipAuraIDs(rec)) then
+        shown = true
+    elseif rec.custom then
         local sb = rec.slotBuff
         if type(sb) == "table" and type(sb.slot) == "number" then
             ns.Catalog.SlotBuffTooltip(GameTooltip, sb.slot, sb.buff, Refresh)
