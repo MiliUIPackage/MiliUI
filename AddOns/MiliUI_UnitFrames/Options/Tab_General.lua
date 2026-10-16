@@ -65,6 +65,9 @@ local CONTROLS = {
     { type = "color",  key = "highlightColor", label = L["Highlight color"] },
     { type = "slider", key = "highlightSize", label = L["Highlight thickness"], min = 1, max = 4, step = 1 },
     { type = "text",   label = L["The border drawn while the cursor is over a frame. Which frames get it is set per unit, under Units > Frame."] },
+    { type = "color",  key = "targetHighlightColor", label = L["Target border color"] },
+    { type = "slider", key = "targetHighlightSize", label = L["Target border thickness"], min = 1, max = 4, step = 1 },
+    { type = "text",   label = L["The border drawn around your current target's frame (boss frames by default). Which frames get it is set per unit, under Units > Frame."] },
 
     -- 驅散類型高亮（Elements/DispelHighlight.lua）。key 是引擎的 dispelName，不要改
     { type = "header", label = L["Debuff type highlight"] },

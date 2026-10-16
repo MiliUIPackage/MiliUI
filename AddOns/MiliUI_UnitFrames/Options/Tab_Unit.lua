@@ -134,8 +134,12 @@ local function FrameSpecs(unitKey)
     if ns.MULTI_UNIT_KEYS[unitKey] then
         tinsert(list, { type = "header", label = L["Multiple boss layout"] })
         tinsert(list, { type = "dropdown", root = "frame", key = "growth", label = L["Grow direction"],
-                        items = { { text = L["Downward"], value = "DOWN" }, { text = L["Upward"], value = "UP" } } })
+                        items = { { text = L["Downward"], value = "DOWN" }, { text = L["Upward"], value = "UP" },
+                                  { text = L["Rightward"], value = "RIGHT" }, { text = L["Leftward"], value = "LEFT" } } })
         tinsert(list, { type = "slider", root = "frame", key = "spacing", label = L["Spacing"], min = 20, max = 120 })
+        -- 橫排的間距另存一份（hSpacing＝格與格之間的空隙），理由見 ns.ApplyFramePosition
+        tinsert(list, { type = "slider", root = "frame", key = "hSpacing", label = L["Horizontal gap"], min = 0, max = 100 })
+        tinsert(list, { type = "text", label = L["Spacing is used when stacking up or down, measured from one frame's top to the next. Horizontal gap is the empty space between frames when laid out left or right."] })
     end
     ------------------------------------------------------------
     -- 顯示條件
@@ -210,6 +214,12 @@ local function FrameSpecs(unitKey)
     tinsert(list, { type = "toggle", root = "frame", key = "highlight",
                     label = L["Highlight border"] })
     tinsert(list, { type = "text", label = L["Draws a border around the frame while the cursor is over it. Color and thickness are set globally under General."] })
+    -- 目標框自己永遠是目標，這個選項對它沒有意義
+    if unitKey ~= "target" then
+        tinsert(list, { type = "toggle", root = "frame", key = "targetHighlight",
+                        label = L["Target border"] })
+        tinsert(list, { type = "text", label = L["Draws a border around the health and power bars while this unit is your target. Color and thickness are set globally under General."] })
+    end
 
     -- 驅散類型高亮（Elements/DispelHighlight.lua）。跟滑鼠高亮是同一圈邊框、壓在它上面，
     -- 所以緊接在它後面

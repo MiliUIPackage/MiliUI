@@ -439,6 +439,15 @@ L["Draws a border around the frame while the cursor is over it. Color and thickn
 L["Highlight color"] = "高亮顏色"
 L["Highlight thickness"] = "高亮粗細"
 L["The border drawn while the cursor is over a frame. Which frames get it is set per unit, under Units > Frame."] = "游標移到框上時畫的那圈邊框。哪些框要畫是逐單位設定的，在「單位」分頁 → 框架。"
+L["Rightward"] = "往右"
+L["Leftward"] = "往左"
+L["Horizontal gap"] = "橫排間距"
+L["Spacing is used when stacking up or down, measured from one frame's top to the next. Horizontal gap is the empty space between frames when laid out left or right."] = "往上／往下排時用「間距」，是上一格頂端到下一格頂端的距離；往左／往右排時用「橫排間距」，是格與格之間的空隙。"
+L["Target border"] = "選中目標邊框"
+L["Draws a border around the health and power bars while this unit is your target. Color and thickness are set globally under General."] = "這個單位是你的目標時，在血條與能量條外畫一圈邊框。顏色與粗細在「一般」分頁統一設定。"
+L["Target border color"] = "目標邊框顏色"
+L["Target border thickness"] = "目標邊框粗細"
+L["The border drawn around your current target's frame (boss frames by default). Which frames get it is set per unit, under Units > Frame."] = "畫在你目前目標的框上的邊框（預設只有首領框開啟）。哪些框要畫是逐單位設定的，在「單位」分頁 → 框架。"
 
 ------------------------------------------------------------
 -- 施法目標／吸收盾細條／斷法就緒／編輯模式格線（C4 C6 C8 C11）

@@ -75,6 +75,7 @@ local ICON_LEVEL = 21
 --   highlight         滑鼠移過時畫一圈高亮邊框
 --   dispelHighlight   身上有魔法／詛咒／疾病／中毒／流血減益（敵方：激怒）時，
 --                     框體畫一圈該類型顏色的邊框（Elements/DispelHighlight.lua）
+--   targetHighlight   這個單位是你的目標時畫一圈邊框（預設只有首領框開；目標框不給）
 ------------------------------------------------------------
 local function frameDef(o)
     if o.scale == nil then o.scale = 100 end
@@ -93,6 +94,7 @@ local function frameDef(o)
     if o.oocShowWithTarget == nil then o.oocShowWithTarget = false end
     if o.highlight == nil then o.highlight = true end
     if o.dispelHighlight == nil then o.dispelHighlight = true end
+    if o.targetHighlight == nil then o.targetHighlight = false end
     return o
 end
 
@@ -245,6 +247,10 @@ function DB.BuildDefaults()
             -- 滑鼠移過的高亮邊框（開關在每單位的 frame.highlight）
             highlightColor = white(0.7),
             highlightSize  = 1,
+            -- 選中目標的邊框（開關在每單位的 frame.targetHighlight）。比滑鼠高亮亮一階、
+            -- 粗一格：兩個同時出現時要分得出哪一個是「選中」
+            targetHighlightColor = white(1),
+            targetHighlightSize  = 2,
             -- 驅散類型高亮（開關在每單位的 frame.dispelHighlight）。
             -- 預設比滑鼠高亮粗一格：它是警示，1px 的深藍／紫壓在黑邊框上不容易看到。
             dispelHighlightSize = 2,
@@ -942,7 +948,7 @@ function DB.BuildDefaults()
                 -- 我們自己畫首領框、暴雪的已隱藏，所以位置與暴雪首領框無關。
                 enabled = true,
                 frame = frameDef{ x = 499, y = 319, w = 220, h = 32, growth = "DOWN", spacing = 80,
-                                 fadeOutOfRange = true },
+                                 hSpacing = 10, fadeOutOfRange = true, targetHighlight = true },
                 elements = {
                     portrait = { enabled = true, x = 37, y = 50, w = 66, h = 66, mode = "3d",
                                  bg = { r = 0, g = 0, b = 0, a = 0 },
@@ -1047,7 +1053,7 @@ function DB.BuildDefaults()
             bosstarget = {
                 enabled = false,
                 frame = frameDef{ x = 671, y = 323, w = 120, h = 24, growth = "DOWN", spacing = 80,
-                                  fadeOutOfRange = true },
+                                  hSpacing = 10, fadeOutOfRange = true },
                 elements = {
                     -- 條寬 119 不是 120：底下那排光環 6 顆 × 19 ＋ 5 個 1px 間距 = 119
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 14, level = 4,

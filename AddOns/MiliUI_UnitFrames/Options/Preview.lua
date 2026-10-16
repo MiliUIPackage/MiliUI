@@ -251,6 +251,7 @@ local function SpawnTwin(unitKey, bossIndex)
     uf.elements = {}
     ns.ApplyFramePosition(uf)
     ns.BuildElements(uf)
+    ns.ApplyTargetHighlight(uf)   -- 第一格示意「選中目標」的邊框
     BuildFakeAuras(uf, "buffs", uf.db.elements and uf.db.elements.buffs)
     BuildFakeAuras(uf, "debuffs", uf.db.elements and uf.db.elements.debuffs)
     ns.Refresh(uf, "unitchanged")
@@ -347,6 +348,7 @@ function Preview.Rebuild(unitKey)
         uf.db = ns.GetUnitDB(unitKey)
         ns.ApplyFramePosition(uf)
         ns.BuildElements(uf)
+        ns.ApplyTargetHighlight(uf)   -- 第一格示意「選中目標」的邊框
         BuildFakeAuras(uf, "buffs", uf.db.elements and uf.db.elements.buffs)
         BuildFakeAuras(uf, "debuffs", uf.db.elements and uf.db.elements.debuffs)
         ns.Refresh(uf, "unitchanged", true)   -- force：設定重建不能被同幀去重吃掉

@@ -211,6 +211,10 @@ function ns.Refresh(uf, bucket, force, src)
         if (bucket == "unitchanged" or bucket == "reaction") and uf.dispelHL then
             xpcall(ns.DispelHighlight.Update, ns.ReportError, uf)
         end
+        -- 選中目標的邊框：框換了單位（首領換人、boss2 頂上來）就要重問一次
+        if bucket == "unitchanged" and uf.targetHLOn then
+            xpcall(ns.UpdateTargetHighlight, ns.ReportError, uf)
+        end
     end
     if bucket == "unitchanged" then
         -- 只有這個桶跑所有元件：框現在看的是另一個單位，每個元件都要重接
@@ -358,7 +362,7 @@ local function QueueShowRefresh(uf)
 end
 
 ------------------------------------------------------------
--- 位置：CENTER 對 CENTER 偏移；boss1-5 依 growth/spacing 疊排
+-- 位置：CENTER 對 CENTER 偏移；boss1-5 依 growth/spacing（橫排是 hSpacing）疊排
 ------------------------------------------------------------
 -- 在指定的 effective scale 上對齊實體像素。
 -- ⚠ 不能用 ns.P.Scale：它一律拿 UIParent 的縮放去湊整數像素，框架自己 SetScale 之後
@@ -398,11 +402,21 @@ function ns.ApplyFramePosition(uf)
     if uf.bossIndex and uf.bossIndex > 1 then
         -- 間距也跟著縮放：不跟的話放大後整疊首領框會互相重疊，
         -- 縮小後又散開一大片 —— 使用者要的是「整組一起變大」而不是「每格變大」。
-        local spacing = (fdb.spacing or 47) * s
-        if fdb.growth == "UP" then
-            y = y + (uf.bossIndex - 1) * spacing
+        local n = uf.bossIndex - 1
+        local growth = fdb.growth
+        if growth == "RIGHT" or growth == "LEFT" then
+            -- 橫排：間距是「格與格之間的空隙」，步距＝框寬＋空隙。不沿用直排的 spacing
+            -- （那是上一格頂到下一格頂的距離，預設 80，比首領框寬 220 小得多 ⇒
+            -- 切成橫排當場疊成一團）。寬度與空隙都是未縮放單位，一起乘 s。
+            local step = ((fdb.w or 100) + (fdb.hSpacing or 10)) * s
+            x = x + (growth == "RIGHT" and n or -n) * step
         else
-            y = y - (uf.bossIndex - 1) * spacing
+            local spacing = (fdb.spacing or 47) * s
+            if growth == "UP" then
+                y = y + n * spacing
+            else
+                y = y - n * spacing
+            end
         end
     end
     -- 單位框自己也要對齊實體像素：它沒對齊的話，底下所有元件再怎麼對齊都白搭。
@@ -548,6 +562,103 @@ function ns.ApplyHighlight(uf)
     hl:SetBackdrop({ edgeFile = Media.WHITE8X8, edgeSize = Media.BorderInset(g.highlightSize or 1) })
     hl:SetBackdropBorderColor(c.r, c.g, c.b, c.a or 0.7)
     hl:Hide()      -- 顯示與否由 OnEnter/OnLeave 決定
+end
+
+------------------------------------------------------------
+-- 選中目標的邊框（開關在每單位的 frame.targetHighlight，預設只有首領框開）
+--
+-- 跟滑鼠高亮貼同一個視覺框體（血條＋能量條），預設白色、粗一格，滑鼠移過的細框
+-- 疊在上面也分得出「我現在選的是哪隻」。打首領切目標時要一眼看出來。
+--
+-- ⚠ 「這個框是不是我的目標」**不能 if**：UnitIsUnit 對身分受限的單位回秘密布林
+-- （見 notes 的 wow-121-unit-api-secrets）。框一律 Show，alpha 交給
+-- SetAlphaFromBoolean 由 C 端決定 —— 不用分明文／秘密兩條路，也不會 fail-open
+-- 整排全亮。
+------------------------------------------------------------
+function ns.UpdateTargetHighlight(uf)
+    local th = uf.targetHL
+    if not (th and uf.targetHLOn) then return end
+    if uf.isPreview then
+        -- 預覽：第一格當示意（假資料，沒有真的目標可問）
+        th:SetAlpha((uf.bossIndex or 1) == 1 and 1 or 0)
+        return
+    end
+    local same = UnitIsUnit(uf.unit, "target")
+    if th.SetAlphaFromBoolean then
+        th:SetAlphaFromBoolean(same, 1, 0)
+    else
+        th:SetAlpha((not ns.IsSecret(same) and same) and 1 or 0)
+    end
+end
+
+function ns.ApplyTargetHighlight(uf)
+    local on = uf.db.frame.targetHighlight == true and uf.baseUnit ~= "target"
+    uf.targetHLOn = on
+    if not on then
+        if uf.targetHL then uf.targetHL:Hide() end
+        return
+    end
+    local th = uf.targetHL
+    if not th then
+        th = CreateFrame("Frame", nil, uf, "BackdropTemplate")
+        th:SetFrameLevel(HIGHLIGHT_LEVEL)
+        th:EnableMouse(false)
+        uf.targetHL = th
+    end
+    local l, t, r, b = BodyBounds(uf)
+    th:ClearAllPoints()
+    th:SetPoint("TOPLEFT", uf, "TOPLEFT", Scale(l), Scale(t))
+    th:SetPoint("BOTTOMRIGHT", uf, "TOPLEFT", Scale(r), Scale(b))
+    local g = ns.db.global
+    local c = g.targetHighlightColor or { r = 1, g = 1, b = 1, a = 1 }
+    th:SetBackdrop({ edgeFile = Media.WHITE8X8, edgeSize = Media.BorderInset(g.targetHighlightSize or 2) })
+    th:SetBackdropBorderColor(c.r, c.g, c.b, c.a or 1)
+    th:Show()
+    ns.UpdateTargetHighlight(uf)
+end
+
+-- 換目標：事件經 ns.Events 的佇列派送，已經脫離按鍵的 secure 堆疊（見 Core/Events.lua）
+ns.Events.Register("PLAYER_TARGET_CHANGED", "target_highlight", function()
+    for _, uf in pairs(ns.frames) do
+        if uf.targetHLOn then ns.UpdateTargetHighlight(uf) end
+    end
+end)
+
+------------------------------------------------------------
+-- 滑鼠感應範圍擴大到整個視覺框體（只給首領框）
+--
+-- 首領框的框架矩形只有 220×32（兩條 bar ＋ 施法條上半），名字與 3D 頭像都畫在
+-- 框**上方**，游標停在頭像或名字上時既不亮高亮、也點不到。把 hit rect 往外撐到
+-- 「頭像／血條／能量條／施法條／文字」的聯集，整塊看起來是首領框的地方都能
+-- 滑鼠移過高亮、點擊選取。
+--
+-- 光環刻意不收：光環按鈕自己吃滑鼠（提示），收進來也輪不到 uf。
+-- ⚠ SetHitRectInsets 對 protected frame 戰鬥中被擋；呼叫點（spawn／ApplySettings）
+--   本來就保證不在戰鬥，這裡再閘一次。
+------------------------------------------------------------
+local HIT_EXPAND_UNITS = { boss = true }
+local HIT_ELEMENTS = { "portrait", "hpbar", "mpbar", "castbar" }
+
+function ns.ApplyHitArea(uf)
+    if uf.isPreview or not HIT_EXPAND_UNITS[uf.unitKey] then return end
+    if InCombatLockdown() then return end
+    local fw, fh = uf.db.frame.w or 0, uf.db.frame.h or 0
+    local l, t, r, b = 0, 0, fw, -fh
+    local function add(e)
+        if type(e) ~= "table" or e.enabled == false then return end
+        local x1, y1 = e.x or 0, e.y or 0
+        local x2, y2 = x1 + (e.w or 0), y1 - (e.h or 0)
+        if x1 < l then l = x1 end
+        if y1 > t then t = y1 end
+        if x2 > r then r = x2 end
+        if y2 < b then b = y2 end
+    end
+    local els = uf.db.elements or {}
+    for _, name in ipairs(HIT_ELEMENTS) do add(els[name]) end
+    if type(els.texts) == "table" then
+        for _, e in ipairs(els.texts) do add(e) end
+    end
+    uf:SetHitRectInsets(Scale(l), Scale(fw - r), Scale(-t), Scale(fh + b))
 end
 
 ------------------------------------------------------------
@@ -888,6 +999,8 @@ function ns.SpawnUnitFrame(unit)
     ns.ApplyFramePosition(uf)
     ns.BuildElements(uf)
     ns.ApplyHighlight(uf)
+    ns.ApplyTargetHighlight(uf)
+    ns.ApplyHitArea(uf)
     -- 隔離：裡面建 AuraContainer，一炸不能拖垮整個 spawn（後面還有淡出與 unit watch）
     xpcall(ns.DispelHighlight.Apply, ns.ReportError, uf)
     ns.ApplyFrameFade(uf)
@@ -978,6 +1091,8 @@ function ns.ApplySettings(unitKey)
                     ns.ApplyFramePosition(uf)
                     ns.BuildElements(uf)
                     ns.ApplyHighlight(uf)
+                    ns.ApplyTargetHighlight(uf)
+                    ns.ApplyHitArea(uf)
                     xpcall(ns.DispelHighlight.Apply, ns.ReportError, uf)
                     ns.ApplyFrameFade(uf)
                     -- 預覽開啟時真實框由 Preview 管顯示，這裡不搶（關窗時 RestoreReal 還原）
