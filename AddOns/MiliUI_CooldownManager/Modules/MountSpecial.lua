@@ -338,12 +338,27 @@ end
 ------------------------------------------------------------
 -- 除錯
 ------------------------------------------------------------
+-- 滑鼠現在停在哪個框上（滑過效果不對時第一個要看的東西：有別的框蓋在按鈕上就是它搶走了 OnEnter）
+local function MouseFocusName()
+    local ok, foci = pcall(GetMouseFoci)
+    local f = ok and type(foci) == "table" and foci[1] or nil
+    if not f then return "無" end
+    local okn, name = pcall(f.GetName, f)
+    name = okn and not ns.IsSecret(name) and name or nil
+    if name then return name end
+    local okp, parent = pcall(f.GetParent, f)
+    local okpn, pname = false, nil
+    if okp and parent then okpn, pname = pcall(parent.GetName, parent) end
+    return "（匿名框" .. ((okpn and type(pname) == "string") and ("，父框 " .. pname) or "") .. "）"
+end
+
 function MS.DebugLine()
     if not btn then return "  坐騎特效鈕：沒有初始化" end
     local cfg = Cfg() or {}
     local st = ReadState()
-    return ("  坐騎特效鈕：%s  顯示 %s  騎乘 %s  載具 %s  滑翔 %s  跟著天空騎術條 %s（現在 %s）  alpha %s")
+    return ("  坐騎特效鈕：%s  顯示 %s  騎乘 %s  載具 %s  滑翔 %s  跟著天空騎術條 %s（現在 %s）  收滑鼠 %s  滑鼠在 %s  alpha %s")
         :format(cfg.enabled ~= false and "開" or "關", tostring(visible), tostring(st.mounted), tostring(st.vehicle),
                 tostring(st.gliding), tostring(MS.FollowSky(cfg)), skyShown and "是" or "否",
+                btn:IsMouseEnabled() and "是" or "否", MouseFocusName(),
                 tostring(ns.Visibility and ns.Visibility.Current(KEY)))
 end

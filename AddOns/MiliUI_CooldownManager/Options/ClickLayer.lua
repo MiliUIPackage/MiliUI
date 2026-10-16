@@ -119,10 +119,12 @@ function CL.Refresh()
     -- 自訂格子沒有自己一頁：點了開資源條頁（Options.ShowPage 照 HostPage 轉）
     -- 接力中的天空騎術不蓋（跟著資源條，點資源條那一層）
     -- 閒置的面板（Bars.Dormant）同理不蓋
+    -- 坐騎特效按鈕（mountspecial）不蓋：它是真的要按的控件，蓋了就按不到、滑過效果也會被點擊層搶走（玩家 2026-10-16 回報
+    -- 「滑過閃一下、不是每次都有」就是在設定視窗開著時測的）。要移動它走編輯模式或它那一頁的錨定設定
     local dormant = ns.Bars and ns.Bars.Dormant
     for _, key in ipairs(ns.DB.PANEL_ORDER) do
         local cfg = ns.DB.ConfigTable(key)
-        if cfg and cfg.enabled ~= false and not (dormant and dormant(key)) then bars[key] = true end
+        if key ~= "mountspecial" and cfg and cfg.enabled ~= false and not (dormant and dormant(key)) then bars[key] = true end
     end
     -- 獨立擺放的資源列（"res:<key>"，第一次用到才登記的面板）：現在拆出來的才蓋，點了開資源條頁（HostPage）
     for key in pairs(ns.Bars and ns.Bars.Panels and ns.Bars.Panels() or {}) do
