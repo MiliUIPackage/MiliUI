@@ -586,7 +586,14 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   `GetUnitAuraBySpellID`，AllowedWhenTainted）拿 auraInstanceID 再交給 `GameTooltip:SetUnitAuraByAuraInstanceID`（`Decorate` 的 `ShowAuraTip`）。
   問哪些法術（`D.TipAuraIDs`）照暴雪 `GetAssociatedAuraSpellPriority`：linkedSpellIDs → overrideTooltipSpellID → overrideSpellID → spellID；
   飾品增益格是那個增益的法術、飾品冷卻格是使用效果的增益（`SlotUseBuffIDs`）、自訂物品是用掉之後的增益（`ItemUseBuffIDs`）；自訂法術不問。
-  光環受限時（首領戰／M+／PvP）auraInstanceID 是秘密值、tooltip 那支不收（AllowedWhenUntainted）⇒ 先擋、退回原本的提示。未實機。
+  光環受限時（首領戰／M+／PvP）auraInstanceID 是秘密值、tooltip 那支不收（AllowedWhenUntainted）⇒ 先擋、退回原本的提示。
+  ⚠ 玩家 1.6.0 回報「戰鬥外對了、戰鬥中還是描述」＝就是這條退路 ⇒ **暴雪的 item 一律讓它自己畫**（2026-10-17，`D.TipPass`）：
+  overlay 在「提示開著、是暴雪的 item、看得到、item 自己收滑鼠（暴雪的「顯示提示」開著）」時 `SetMouseMotionEnabled(false)`，
+  滑鼠落到暴雪 item 上、它自己的 OnEnter 在安全環境裡跑 `RefreshTooltipInternal`（秘密的 auraInstanceID 它讀得到）——跟官方檢視器一模一樣。
+  overlay 照舊自己攔的：提示關著（擋掉暴雪的）、自訂框（沒有暴雪的 OnEnter，`ShowAuraTip` 退路只在脫戰有效）、明文 alpha 0（冷卻狀態藏了、
+  整條 alpha 0：暴雪不知道我們把它藏了）、讀不到 item 的滑鼠旗標。秘密值 alpha（不知道藏了沒）照舊讓。每次 `ApplyItemAlpha`（放格、
+  淡出、冷卻狀態變了）重判；放格時 Apply 之後一定跟一次 ApplyItemAlpha，重取出（暴雪 `SetTooltipsShown` 重設 item 的滑鼠）也接得到。
+  提示的錨點因此是暴雪 item 自己的 `SetTooltipAnchor`（同樣走 `GameTooltip_SetDefaultAnchor`）。
 - **條層選往前補時疊層自動關**：見「只有光環格的條：引擎補位」那節的 `BarOverlaysSuppressed`。飾品／藥水的增益疊層與觸發發光疊層都關，
   條不再被它們逼成固定格位，真的往前補。
 - 逐法術面板：自訂飾品欄的「增益持續時間」分頁（顯示增益持續時間＋換色＋三個顏色）打開；解不出增益時整段停用＋黃字原因。
@@ -4201,6 +4208,12 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 585. 設定頁「坐騎特效按鈕」：設定視窗開著時按鈕照常能滑過、能按（沒有點擊層蓋著，其他條照舊有）；關掉開關鈕立刻消失、其餘停用；改尺寸／字級／天空騎術條下方位移即時生效；編輯模式能拖（覆蓋層名字「坐騎特效按鈕」）、拖了就脫離核心技能的錨定、
      錨定視窗能把它錨到任何一條、磁吸正常；恢復預設後回到核心技能下方。核心技能有兩列以上時鈕在整塊圖示（含輔助技能那一疊）的最下面。
 586. 戰鬥中：被打時上下坐騎鈕照切、按得下去、沒有 ADDON_ACTION_BLOCKED。10-16 上午那版的存檔（`skyriding.mountButton`）登入後搬到新面板、舊表清掉、天空騎術頁沒有那一節。
+
+**提示讓給暴雪 item（2026-10-17）**
+
+587. 首領戰／M+ 戰鬥中，增益圖示列的飾品增益（暴雪的格）在身上時滑過去：是光環本身（名字、剩餘時間），不是效果說明；增益不在時是飾品名＋增益說明。
+     核心技能、增益長條同樣是暴雪自己的提示；整條用顯示條件藏起來（alpha 0）或冷卻狀態藏起來的格滑過去不冒提示；設定頁關掉「滑過顯示提示」後沒有任何提示；
+     點擊照舊穿到底下、可點擊群組照舊；第一戰開 `/console taintLog 2`，滑過幾次後 taint.log 沒有 MiliUI_CooldownManager 的 SetUnitAuraByAuraInstanceID 紀錄。
 
 **效能基準**
 

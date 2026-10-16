@@ -238,6 +238,74 @@ do
 end
 
 ------------------------------------------------------------
+-- 4b. 提示讓給暴雪 item（D.TipPass）：overlay 收不收滑鼠移動
+--     讓 ⇔ 提示開著、暴雪的 item、看得到（明文 alpha > 0 或秘密值不知道）、item 自己收滑鼠
+------------------------------------------------------------
+do
+    local function Overlay(item)
+        local ov = {}
+        function ov:SetMouseMotionEnabled(v) self.motion = v end
+        function ov:SetMouseClickEnabled(v) self.click = v end
+        function ov:SetScript() end
+        function ov:GetParent() return item end
+        return ov
+    end
+    local it = Item()
+    function it:IsMouseMotionEnabled() return self.itemMotion end
+    it.itemMotion = true
+    local ov = Overlay(it)
+    local r = { cooldownID = 1, claimKey = "essential", style = { cdState = "hideOnCD", cdAlpha = 0.5 }, overlay = ov }
+
+    D.ApplyTooltip(ov, r, true)
+    eq("提示開、看得到 ⇒ overlay 不收滑鼠", ov.motion, false)
+    eq("讓給暴雪", ov.tipPassed, true)
+    eq("點擊一律不收", ov.click, false)
+
+    D.ApplyTooltip(ov, r, false)
+    eq("提示關 ⇒ overlay 收滑鼠（擋掉暴雪的提示）", ov.motion, true)
+
+    D.ApplyTooltip(ov, r, true)
+    cooldowns[100] = { isActive = true, isOnGCD = false }
+    D.ApplyItemAlpha(it, r, 1)
+    eq("冷卻狀態藏起來 ⇒ overlay 攔下", ov.motion, true)
+    cooldowns[100] = { isActive = false, isOnGCD = false }
+    D.ApplyItemAlpha(it, r, 1)
+    eq("轉好、看得到 ⇒ 讓回去", ov.motion, false)
+
+    r.style.cdState = nil
+    D.ApplyItemAlpha(it, r, 0)
+    eq("整條 alpha 0 ⇒ overlay 攔下", ov.motion, true)
+    D.ApplyItemAlpha(it, r, 0.3)
+    eq("淡出（alpha > 0）⇒ 照樣讓", ov.motion, false)
+
+    r.style.cdState = "hideOnCD"
+    cooldowns[100] = { isActive = Secret(true), isOnGCD = Secret(false) }
+    durZero[100] = Secret(false)
+    D.ApplyItemAlpha(it, r, 1)
+    eq("秘密值（不知道藏了沒）⇒ 照舊讓", ov.motion, false)
+    durZero[100] = nil
+    cooldowns[100] = { isActive = false, isOnGCD = false }
+
+    it.itemMotion = false
+    D.ApplyItemAlpha(it, r, 1)
+    eq("暴雪關了 item 的滑鼠 ⇒ overlay 自己畫", ov.motion, true)
+    it.itemMotion = true
+    it.IsMouseMotionEnabled = function() error("forbidden") end
+    D.ApplyItemAlpha(it, r, 1)
+    eq("讀不到 item 的滑鼠旗標 ⇒ overlay 自己畫", ov.motion, true)
+    it.IsMouseMotionEnabled = function(self) return self.itemMotion end
+
+    r.custom = true
+    D.ApplyTooltip(ov, r, true)
+    eq("自訂框（沒有暴雪的 OnEnter）⇒ overlay 自己畫", ov.motion, true)
+    r.custom = nil
+
+    -- ApplyItemAlpha 在 overlay 建好之前就跑（rec.overlay 還沒有）：不出錯
+    local r2 = { cooldownID = 1, claimKey = "essential", style = {} }
+    check("沒有 overlay ⇒ 不出錯", pcall(D.ApplyItemAlpha, Item(), r2, 1))
+end
+
+------------------------------------------------------------
 -- 5. 法術索引
 ------------------------------------------------------------
 do

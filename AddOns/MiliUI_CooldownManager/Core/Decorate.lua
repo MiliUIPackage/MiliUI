@@ -1379,9 +1379,8 @@ local function CurrentBarAlpha(key)
     return tonumber(a) or 1
 end
 
-function D.ApplyItemAlpha(item, rec, barAlpha)
-    if not item or ns.released then return end
-    if barAlpha == nil then barAlpha = CurrentBarAlpha(rec and rec.claimKey) end
+-- 回這一格明文算出來的 alpha（秘密值路徑回 nil ＝ 不知道）；D.ApplyItemAlpha 接著拿它決定 overlay 要不要把滑鼠讓給暴雪 item
+local function ApplyItemAlphaCore(item, rec, barAlpha)
     local st = rec and rec.style
     local mode = st and st.cdState
     -- 效果不在時變暗：條的 alpha 先乘上去，下面冷卻狀態照常算（編輯模式中全亮）
@@ -1391,7 +1390,7 @@ function D.ApplyItemAlpha(item, rec, barAlpha)
     if not mode or EditModeActive() then
         item:SetAlpha(barAlpha)
         if rec then rec.stateHidden = nil end
-        return
+        return barAlpha
     end
     local aCD, aReady = D.StateAlphas(mode, st.cdAlpha, barAlpha)
     local kind, v = D.CooldownState(item, rec)
@@ -1399,15 +1398,27 @@ function D.ApplyItemAlpha(item, rec, barAlpha)
         local a = v and aCD or aReady
         item:SetAlpha(a)
         rec.stateHidden = (a == 0)
+        return a
     elseif kind == "secret" and item.SetAlphaFromBoolean
         and pcall(item.SetAlphaFromBoolean, item, v, aReady, aCD) then
         -- v ＝「不含 GCD 的冷卻是零」：真 ⇒ 轉好的 alpha
         rec.stateHidden = nil            -- 不知道藏了沒（提示照舊）
         rec.alphaSecret = true
-    else
-        item:SetAlpha(barAlpha)
-        rec.stateHidden = nil
+        return nil
     end
+    item:SetAlpha(barAlpha)
+    rec.stateHidden = nil
+    return barAlpha
+end
+
+function D.ApplyItemAlpha(item, rec, barAlpha)
+    if not item or ns.released then return end
+    if barAlpha == nil then barAlpha = CurrentBarAlpha(rec and rec.claimKey) end
+    local shown = ApplyItemAlphaCore(item, rec, barAlpha)
+    -- 看不到的格不冒提示：alpha 是明文 0（整條藏了、冷卻狀態藏了、效果不在時暗到 0）⇒ overlay 攔下滑鼠；
+    -- 秘密值路徑不知道（nil）⇒ 照舊讓給暴雪（跟 ShowTip 的「不知道藏了沒就照舊顯示」同一個判斷）
+    local ov = rec and rec.overlay
+    if ov and D.TipPass then D.TipPass(ov, shown == nil or shown > 0) end
 end
 
 -- rec → 暴雪 item（就緒探針只拿得到 rec）。弱鍵弱值：item 是池化的框，rec 是 Viewers 的弱鍵表裡的值
@@ -2508,10 +2519,17 @@ end
 ------------------------------------------------------------
 -- 滑鼠提示
 --
--- 用**我們的 overlay** 收滑鼠移動（它蓋在 item 上面，子框收到 OnEnter 之後父層就收不到，
--- 所以暴雪 item 自己的提示自然不會再出現）。開：顯示這格的法術／裝備／物品提示；關：overlay
--- 照樣收滑鼠但什麼都不顯示 ⇒ 暴雪的提示也一起關掉，不用去碰它的 SetTooltipsShown（那會寫暴雪欄位）。
--- 只收滑鼠移動、不收點擊（SetMouseClickEnabled(false)），點擊照舊穿到底下。
+-- overlay 蓋在 item 上面（子框收到 OnEnter 之後父層就收不到）。它收不收滑鼠移動（D.TipPass）決定提示由誰畫：
+--   * **讓給暴雪 item**（overlay 不收滑鼠）：提示開著、而且是暴雪的 item、看得到、暴雪自己沒關它的滑鼠。
+--     暴雪 item 自己的 OnEnter 在安全環境裡跑：增益在身上時畫**光環本身**（SetUnitAuraByAuraInstanceID，有剩餘時間；
+--     戰鬥中光環受限時 auraInstanceID 在我們這邊是秘密值、下面的 ShowAuraTip 畫不了），不在時畫飾品增益說明／法術提示
+--     ——跟官方檢視器一模一樣。玩家 2026-10-16 回報 1.6.0「戰鬥外對了、戰鬥中還是描述」：overlay 一律搶走滑鼠、
+--     永遠走 ShowTip，而 ShowTip 的光環路線戰鬥中拿到的是秘密 ID。
+--   * **overlay 自己收**（ShowTip）：提示關著（什麼都不畫，順便把暴雪自己的提示擋掉，不用碰它的 SetTooltipsShown——
+--     那會寫暴雪欄位）；自訂框（沒有暴雪的 OnEnter）；這格看不到（冷卻狀態藏了、整條 alpha 0：暴雪 item 不知道我們
+--     把它藏了，會在空位冒提示）；暴雪自己的「顯示提示」關著（item 不收滑鼠，讓了也沒人畫）。
+--   可點擊群組的 secure 鈕蓋在最上層時 hover 由它轉來（D.HoverEnter → ShowTip），跟 overlay 的旗標無關。
+-- 一律不收點擊（SetMouseClickEnabled(false)），點擊照舊穿到底下。
 ------------------------------------------------------------
 -- 光環在身上時改畫光環本身（照暴雪 RefreshTooltipInternal：aura instance 排在裝備欄／法術提示之前）。
 -- 暴雪在安全端掃 player／target 的光環；我們是 tainted，只能走 spellID 路線（C_UnitAuras.GetPlayerAuraBySpellID／
@@ -2598,7 +2616,9 @@ local function ShowTip(ov)
     local shown = false
     -- 飾品的增益（暴雪的裝備欄追蹤項目、自訂飾品欄增益）：照暴雪 RefreshTooltipInternal 的「增益不在身上」那一支
     -- （DisplayEquipSlotTrackedTooltip：飾品名＋每個連帶增益一段），走共用的 Catalog.SlotBuffTooltip。
-    -- 增益在身上時暴雪改畫光環本身（SetUnitAuraByAuraInstanceID）：ShowAuraTip 走 spellID 路線拿 auraInstanceID（上面）。
+    -- 增益在身上時要畫光環本身：暴雪 item 讓得了就讓它自己畫（D.TipPass，戰鬥中光環受限也畫得出來）。
+    -- 走到這裡是讓不了的情況（自訂框、可點擊群組、暴雪關了 item 的滑鼠）：ShowAuraTip 走 spellID 路線拿 auraInstanceID
+    -- （上面），受限時那個 ID 是秘密值 ⇒ 只能退回說明。
     -- 法術資料還沒載入：SlotBuffTooltip 先畫標題，載完在提示還開著、擁有者還是這顆 overlay、中間沒被蓋過時叫 refresh
     -- ⇒ 重跑一次 ShowTip（那時資料已經在快取，不會再等，不會無限重入）
     local function Refresh() if ov.tipOn then ShowTip(ov) end end
@@ -2639,6 +2659,22 @@ local function HideTip(ov)
     if GameTooltip and GameTooltip:IsOwned(ov) then GameTooltip:Hide() end
 end
 
+-- overlay 要不要把滑鼠讓給暴雪 item（判準見這一節的檔頭）。visible：這格看不看得到（nil ＝ 不知道，當看得到）。
+-- 一開始（ApplyTooltip）與每次 ApplyItemAlpha（條的 alpha、冷卻狀態變了）都重判。
+-- 讀暴雪 item 的 IsMouseMotionEnabled 是讀不是寫；overlay 是我們自己的框，旗標隨時能改
+function D.TipPass(ov, visible)
+    local rec = ov and ov.rec
+    if not rec then return end
+    local pass = ov.tipOn == true and not rec.custom and not rec.stateHidden and visible ~= false
+    if pass then
+        local item = ov:GetParent()
+        local ok, motion = pcall(function() return item and item.IsMouseMotionEnabled and item:IsMouseMotionEnabled() end)
+        pass = ok and motion == true
+    end
+    pcall(ov.SetMouseMotionEnabled, ov, not pass)
+    ov.tipPassed = pass                    -- 測試／除錯用
+end
+
 local function ApplyTooltip(ov, rec, on)
     ov.rec = rec
     if not ov.tipWired then
@@ -2647,8 +2683,7 @@ local function ApplyTooltip(ov, rec, on)
         ov:SetScript("OnLeave", HideTip)
     end
     ov.tipOn = on
-    -- 兩種狀態 overlay 都收滑鼠移動：關的時候是為了把暴雪自己的提示也擋掉
-    pcall(ov.SetMouseMotionEnabled, ov, true)
+    D.TipPass(ov, not rec.stateHidden and (not rec.claimKey or CurrentBarAlpha(rec.claimKey) > 0))
     pcall(ov.SetMouseClickEnabled, ov, false)
 end
 D.ApplyTooltip = ApplyTooltip
