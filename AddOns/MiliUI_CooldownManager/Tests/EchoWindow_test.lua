@@ -81,5 +81,55 @@ check("Reset：全清", not st.active and not st.pending and not st.glowOn and s
 for i = 1, 40 do EW.ProbeLine("x" .. i) end
 eq("探針最多 30 行", #EW.probe.lines, 30)
 
+------------------------------------------------------------
+-- 設定（2026-10-17）：Settings 的預設與清洗、DefFor／DefForCell、TalentKnown、Cfg／EnsureCfg
+------------------------------------------------------------
+do
+    local on, snd, spk = EW.Settings(nil)
+    check("Settings：沒存 ＝ 開、預設音效、不念", on == true and snd == EW.DEFAULT_SOUND and spk == nil)
+    on, snd, spk = EW.Settings({ enabled = false, sound = false, speak = true })
+    check("Settings：關、無音效、念法術名", on == false and snd == nil and spk == true)
+    on, snd, spk = EW.Settings({ sound = "", speak = "" })
+    check("Settings：空字串音效 ＝ 無、空字串語音 ＝ 關", on == true and snd == nil and spk == nil)
+    on, snd, spk = EW.Settings({ sound = "Air Horn", speak = "回聲" })
+    check("Settings：照存的", snd == "Air Horn" and spk == "回聲")
+    eq("Settings：speak = false ＝ 關", select(3, EW.Settings({ speak = false })), nil)
+
+    local bp = EW.DEFS[1]
+    eq("天賦 ID 跟觸發 ID 分開", bp.talent, 1265790)
+    check("觸發 ID 照舊", bp.triggers[1] == 1265982)
+    eq("DefFor：鮮血＋沸血術", EW.DefFor("DEATHKNIGHT", 250, 50842), bp)
+    eq("DefFor：鮮血、覆寫 ID 對得上也算", EW.DefFor("DEATHKNIGHT", 250, nil, 50842), bp)
+    eq("DefFor：冰霜專精 ⇒ nil", EW.DefFor("DEATHKNIGHT", 251, 50842), nil)
+    eq("DefFor：別的職業 ⇒ nil", EW.DefFor("PALADIN", 250, 50842), nil)
+    eq("DefFor：別的法術 ⇒ nil", EW.DefFor("DEATHKNIGHT", 250, 49998), nil)
+    eq("DefFor：沒給法術 ⇒ nil", EW.DefFor("DEATHKNIGHT", 250), nil)
+
+    ns.playerClass, ns.specID = "DEATHKNIGHT", 250
+    local infos = { [22787] = { spellID = 50842 }, [111] = { spellID = 49998 }, ["c:1"] = { spellID = 50842 } }
+    ns.Catalog = { Info = function(id) return infos[id] end, TalentKnown = function(id) return id == 1265790 end }
+    eq("DefForCell：暴雪的沸血術格", EW.DefForCell(22787), bp)
+    eq("DefForCell：自訂的沸血術", EW.DefForCell("c:1"), bp)
+    eq("DefForCell：別的格", EW.DefForCell(111), nil)
+    eq("DefForCell：查不到", EW.DefForCell(999), nil)
+    ns.specID = 251
+    eq("DefForCell：換成冰霜就不出", EW.DefForCell(22787), nil)
+    ns.specID = 250
+    eq("TalentKnown：問的是天賦 ID", EW.TalentKnown(bp), true)
+    ns.Catalog.TalentKnown = function() return false end
+    eq("TalentKnown：沒點", EW.TalentKnown(bp), false)
+    ns.Catalog.TalentKnown = nil
+    eq("TalentKnown：問不到 ⇒ nil", EW.TalentKnown(bp), nil)
+
+    ns.profile = {}
+    eq("Cfg：沒有 echo 表 ⇒ nil", EW.Cfg(bp), nil)
+    local c = EW.EnsureCfg(bp)
+    check("EnsureCfg：建出來", type(c) == "table" and ns.profile.echo.boilingPoint == c)
+    eq("Cfg：之後讀得到", EW.Cfg(bp), c)
+    eq("EnsureCfg：再叫一次同一張", EW.EnsureCfg(bp), c)
+    ns.profile = nil
+    eq("EnsureCfg：沒有設定檔 ⇒ nil", EW.EnsureCfg(bp), nil)
+end
+
 print(("EchoWindow_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

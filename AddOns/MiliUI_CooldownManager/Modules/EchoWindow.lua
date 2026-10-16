@@ -9,8 +9,16 @@
 -- 畫法：血液沸騰那一格（暴雪的冷卻格或自訂法術，SpellIndex 查得到的）overlay 上面一條頂端的倒數條＋秒數，
 -- 不新增格子、不重排版面（戰鬥中照樣能畫，全是自己的框）。
 --
--- ⚠ 待實機驗證：戰鬥中 SPELL_UPDATE_COOLDOWN 帶的 1265982 是不是明文。探針（/mcdm echo）一直在記，
---   印出明文／秘密參數的次數與最近的事件；秘密的話這個功能等於不會動（只會在脫戰時亮）。
+-- 2026-10-12 實機：戰鬥中 SPELL_UPDATE_COOLDOWN 帶的 1265982 是明文。探針（/mcdm echo）一直在記，
+--   印出明文／秘密參數的次數與最近的事件。
+-- ⚠ 天賦本身的 ID 是 1265790（天賦樹滑鼠提示那個），1265982 是觸發時事件帶的那顆（另一個法術 ID）——
+--   掃「有沒有點天賦」要問 talent，認觸發要看 triggers，兩個不能互換。
+--
+-- 設定（2026-10-17，profile.echo[def.key]，Core/DB.lua）：開關（倒數條＋音效，預設開）、回聲音效（預設 Water Drop）、語音播報。
+--   回聲那一刻＝每一段倒數走完（EW.Tick 回 true：接續下一段或結束都是「再觸發了一次」）⇒ 響音效／念字，
+--   走 Sound 的總開關、讀取畫面靜音、節流（key "echo:<def.key>"）。死亡／讀取畫面／換專精清空不算回聲、不響。
+--   設定介面在那個法術格的逐法術面板「沸點」分頁（Options/SpellPopover.lua 的 Pop.BuildEchoTab）：
+--   只有職業與專精對得上、而且那一格就是 def.spell 才出現；沒點天賦（EW.TalentKnown 明文 false）時那一頁多一列黃字。
 --
 --   EW.DEFS                         每一種事件視窗的資料（專精、要畫的法術、觸發法術、秒數）
 --   EW.New()                        一份狀態
@@ -18,6 +26,11 @@
 --   EW.OnGlow(st, show)             那個法術的觸發發光開／關（只看亮起來的那一下）
 --   EW.Tick(st, def, now)           時間到了沒：到了 ⇒ 接續或結束；回 true ＝ 狀態變了
 --   EW.Reset(st)
+--   EW.Settings(cfg)                設定表 → enabled, sound（nil ＝ 無）, speak（nil ＝ 關）
+--   EW.DefFor(class, spec, ...)     這個職業／專精下，法術 ID 之一是 def.spell 的那一種（沒有 nil）
+--   EW.DefForCell(id)               逐法術面板的這一格對到哪一種（讀 Catalog.Info 的 spellID／overrideSpellID）
+--   EW.TalentKnown(def)             天賦學了沒（true／false／nil 讀不到）
+--   EW.Cfg(def)／EW.EnsureCfg(def)／EW.Apply()   設定表（設定檔裡那一份）／寫入用（沒有就建）／設定改了（關掉 ⇒ 正在跑的清掉）
 -- 純邏輯（時間從參數進來），離線測得到；畫面與事件在檔尾。
 ------------------------------------------------------------
 local _, ns = ...
@@ -26,8 +39,65 @@ ns.EchoWindow = {}
 local EW = ns.EchoWindow
 
 EW.DEFS = {
-    { key = "boilingPoint", class = "DEATHKNIGHT", spec = 250, spell = 50842, triggers = { 1265982 }, secs = 3 },
+    -- talent：天賦本身（1265790，掃有沒有點）；triggers：觸發時 SPELL_UPDATE_COOLDOWN 帶的（1265982）
+    { key = "boilingPoint", class = "DEATHKNIGHT", spec = 250, spell = 50842, talent = 1265790, triggers = { 1265982 }, secs = 3 },
 }
+
+EW.DEFAULT_SOUND = "Water Drop"
+
+local function IsSecretValue(v) return ns.IsSecret ~= nil and ns.IsSecret(v) and true or false end
+
+-- 設定表 → enabled（沒存 ＝ 開）, sound（沒存 ＝ 預設音效；false／空字串 ＝ 無 ⇒ nil）, speak（true／非空字串；其餘 nil）
+function EW.Settings(cfg)
+    cfg = type(cfg) == "table" and cfg or {}
+    local sound = cfg.sound
+    if sound == nil then sound = EW.DEFAULT_SOUND end
+    if type(sound) ~= "string" or sound == "" then sound = nil end
+    local speak = cfg.speak
+    if not (speak == true or (type(speak) == "string" and speak ~= "")) then speak = nil end
+    return cfg.enabled ~= false, sound, speak
+end
+
+-- 法術 ID 之一（spellID、overrideSpellID…；nil 跳過）是 def.spell、職業專精對得上的那一種
+function EW.DefFor(class, spec, ...)
+    for _, def in ipairs(EW.DEFS) do
+        if def.class == class and def.spec == spec then
+            for i = 1, select("#", ...) do
+                if select(i, ...) == def.spell then return def end
+            end
+        end
+    end
+    return nil
+end
+
+function EW.DefForCell(id)
+    local C = ns.Catalog
+    local info = id ~= nil and C and C.Info and C.Info(id) or nil
+    if type(info) ~= "table" then return nil end
+    return EW.DefFor(ns.playerClass, ns.specID, info.spellID, info.overrideSpellID)
+end
+
+function EW.TalentKnown(def)
+    local C = ns.Catalog
+    if not (def and def.talent and C and C.TalentKnown) then return nil end
+    return C.TalentKnown(def.talent)
+end
+
+function EW.Cfg(def)
+    local p = ns.profile
+    local e = p and type(p.echo) == "table" and p.echo or nil
+    local t = e and def and e[def.key]
+    return type(t) == "table" and t or nil
+end
+
+-- 設定面板寫入用：沒有就建（舊存檔、換設定檔還沒合併預設值）
+function EW.EnsureCfg(def)
+    local p = ns.profile
+    if not (p and def) then return nil end
+    if type(p.echo) ~= "table" then p.echo = {} end
+    if type(p.echo[def.key]) ~= "table" then p.echo[def.key] = {} end
+    return p.echo[def.key]
+end
 
 -- 同一次觸發，引擎有時連派兩次事件／回聲剛好在接續的那一刻又報一次：這麼近的不算新的一次
 local DUP_WINDOW, ECHO_CONFIRM = 0.05, 0.25
@@ -189,12 +259,33 @@ local function StopTicker()
     if ticker then ticker:Cancel() ticker = nil end
 end
 
+-- 回聲那一刻：音效＋語音播報（Sound 的總開關、讀取畫面靜音、節流照走）
+local function Alert(def)
+    local on, sound, speak = EW.Settings(EW.Cfg(def))
+    local S = ns.Sound
+    if not (on and S) then return end
+    local key = "echo:" .. def.key
+    if sound then S.Play(sound, key, "echo") end
+    if speak and S.CanSpeak and S.CanSpeak() then
+        local name
+        local fn = C_Spell and C_Spell.GetSpellName
+        if fn then
+            local ok, n = pcall(fn, def.spell)
+            if ok and type(n) == "string" and not IsSecretValue(n) then name = n end
+        end
+        local text = S.Logic and S.Logic.SpeakText(speak, name)
+        if text then S.Speak(text, key, "echo") end
+    end
+end
+
 local function OnTick()
     local now = GetTime()
     for _, def in ipairs(EW.DEFS) do
         local st = states[def.key]
         if st and EW.Tick(st, def, now) then
             ProbeLine(st.active and ("接續下一段（回聲）%s"):format(def.key) or ("結束 %s"):format(def.key))
+            -- 每一段走完＝再觸發了一次（接續或結束都是）
+            xpcall(Alert, ns.ReportError or print, def)
         end
     end
     Render()
@@ -228,7 +319,7 @@ local function OnCooldown(spellID, baseSpellID)
     end
     local now = GetTime()
     for _, def in ipairs(DefsForSpec()) do
-        if EW.IsTrigger(def, spellID, baseSpellID) then
+        if EW.IsTrigger(def, spellID, baseSpellID) and (EW.Settings(EW.Cfg(def))) then
             local p = EW.probe.plain
             if InCombat() then p.combat = p.combat + 1 else p.idle = p.idle + 1 end
             states[def.key] = states[def.key] or EW.New()
@@ -263,6 +354,19 @@ local function ResetAll(why)
         EW.Reset(st)
     end
     StopTicker()
+    Render()
+end
+
+-- 設定改了（逐法術面板的「沸點」分頁）：關掉的那一種正在跑就清掉
+function EW.Apply()
+    for _, def in ipairs(EW.DEFS) do
+        local st = states[def.key]
+        if st and st.active and not (EW.Settings(EW.Cfg(def))) then
+            ProbeLine("清空（關掉）")
+            EW.Reset(st)
+        end
+    end
+    if not AnyActive() then StopTicker() end
     Render()
 end
 

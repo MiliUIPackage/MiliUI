@@ -751,6 +751,15 @@ function DB.BuildDefaults()
             assistIcon = AssistIconDefaults(),
             skyriding = SkyridingDefaults(),
             mountspecial = MountSpecialDefaults(),
+            -- 事件視窗（Modules/EchoWindow.lua）的設定，key 是 EW.DEFS 的 key。2026-10-17 加（使用者指定預設開、有音效）；
+            -- 舊存檔沒有 ＝ 合併預設值補上，不遷移。設定在血液沸騰那一格的逐法術面板「沸點」分頁（Options/SpellPopover.lua 的 Pop.BuildEchoTab）。
+            -- 跟著設定檔走、不是逐法術覆寫：沸血術可能同時是暴雪的冷卻格與自訂法術，兩格畫的是同一個倒數
+            --   enabled  倒數條＋音效（沒存 ＝ 開）
+            --   sound    回聲觸發那一刻的音效：LSM 名／自訂語音代號；false ＝ 無；沒存 ＝ EW.DEFAULT_SOUND
+            --   speak    語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
+            echo = {
+                boilingPoint = { enabled = true, sound = "Water Drop", speak = false },
+            },
         },
     }
 end

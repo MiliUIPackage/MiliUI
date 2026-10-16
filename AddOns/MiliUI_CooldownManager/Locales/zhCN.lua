@@ -1006,6 +1006,13 @@ L["While the skyriding bars are showing, the button sits centered right under th
 L["Offset below the skyriding bars"] = "驭空术条下方的位移"
 L["Button size"] = "按钮尺寸"
 L["Restore the Mount Special button settings to their defaults?"] = "把坐骑特效按钮的设置恢复成默认值？"
+-- 沸点（事件窗口）分页（Options/SpellPopover.lua 的 Pop.BuildEchoTab，Modules/EchoWindow.lua，2026-10-17）
+L["Boiling Point"] = "沸点"
+L["Echo alert"] = "回声提示"
+L["Echo sound"] = "回声音效"
+L["An empowered Blood Boil strikes again 3 seconds later. While it counts down, this icon shows a bar and the seconds left at the top, and the sound below plays the moment it strikes again."] = "强化的血液沸腾 3 秒后会再触发一次。倒数期间这一格顶端显示倒数条与剩余秒数，再触发的那一刻响下面的音效。"
+L["These settings are saved in your profile, not on this icon. Right-click a row's label to restore its default."] = "这一页的设置保存在配置文件里，不是这一格的覆写。右键一行的标签还原默认。"
+L["You haven't learned %s, so nothing on this page has any effect."] = "你没有点「%s」天赋，这一页的设置目前不会有作用。"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "速度条"
 L["Rows to show"] = "显示哪些"

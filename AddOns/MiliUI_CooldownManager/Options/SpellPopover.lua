@@ -42,6 +42,11 @@
 -- 所有格在音效分頁最後多「天賦條件」（soundTalent，閘這一格全部音效與語音）。建列與回填在 Pop.BuildCastRows／
 -- Pop.BuildSoundTalent／Pop.RefreshSoundExtras（拆出 Build：upvalue 上限）。
 --
+-- 沸點（2026-10-17，使用者指定）：鮮血死騎的沸血術那一格才有的分頁（EchoWindow.DefForCell 對得上才出現，排在音效後面），
+-- 管事件視窗（Modules/EchoWindow.lua）：開關（倒數條＋音效）、回聲音效（下拉＋試聽）、語音播報（勾選＋輸入框＋試聽）＋灰字；
+-- 沒點沸點天賦時底部說明正上方一列黃字。值存在設定檔的 profile.echo[def.key]（不是逐法術覆寫）；右鍵標籤還原那一列的預設。
+-- 建列與回填在 Pop.BuildEchoTab／Pop.RefreshEchoTab（拆出 Build：upvalue 上限）。
+--
 -- 冷卻狀態（冷卻類才有）：一列下拉，第一項「跟隨這一條」＝清掉覆寫，其餘四項寫進 overrides[id].cdState；
 -- 右鍵整列清掉。變暗的透明度逐法術不另給控件（吃條的 icon.cdStateAlpha）。
 --
@@ -123,6 +128,8 @@ local TABS = {
     { id = "look",     label = L["Appearance"] },
     { id = "glow",     label = L["Glow"] },
     { id = "sound",    label = L["Sounds"] },
+    -- 沸點（事件視窗）：鮮血死騎的沸血術那一格才有（Pop.EchoWhen）
+    { id = "echo",     label = L["Boiling Point"] },
     -- 自訂文字（M）：增益圖示類的格才有，排最後（使用者 2026-10-06）
     { id = "label",    label = L["Custom text"] },
 }
@@ -743,6 +750,137 @@ function Pop.RefreshSoundExtras()
         t.name:SetPoint("LEFT", tn and t.icon or t.box, "RIGHT", tn and 4 or 6, 0)
         t.name:SetPoint("RIGHT", t.box:GetParent(), "RIGHT", 0, 0)
     end
+end
+
+------------------------------------------------------------
+-- 沸點（事件視窗，Modules/EchoWindow.lua）分頁：只在鮮血死騎的沸血術那一格出現。
+-- 值存在 profile.echo[def.key]（EchoWindow.EnsureCfg），不是逐法術覆寫；右鍵標籤 ＝ 那一欄寫 nil（讀的時候當預設：
+-- 開關＝開、音效＝EchoWindow.DEFAULT_SOUND、語音＝關）。開關關著時音效與語音那兩列變暗停用。
+------------------------------------------------------------
+local function EchoDef()
+    local EW = ns.EchoWindow
+    return cur and EW and EW.DefForCell and EW.DefForCell(cur.id) or nil
+end
+function Pop.EchoWhen() return EchoDef() ~= nil end
+function Pop.EchoNoTalent()
+    local def = EchoDef()
+    return def ~= nil and ns.EchoWindow.TalentKnown(def) == false
+end
+
+local function EchoWrite(field, v)
+    local def = EchoDef()
+    local cfg = def and ns.EchoWindow.EnsureCfg(def)
+    if not cfg then return end
+    cfg[field] = v
+    ns.EchoWindow.Apply()
+    Pop.Refresh()
+end
+
+-- 右鍵標籤 ＝ 那一欄還原預設（寫 nil）
+local function EchoRightClick(r, field)
+    local hit = CreateFrame("Frame", nil, r)
+    hit:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+    hit:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+    hit:SetWidth(LABEL_W)
+    hit:EnableMouse(true)
+    hit:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" then EchoWrite(field, nil) end
+    end)
+end
+
+function Pop.BuildEchoTab(NoteRow)
+    local prevTab = buildTab
+    buildTab = "echo"
+    local ctl = {}
+    Pop.echoCtl = ctl
+    local When = Pop.EchoWhen
+
+    local er = NewRow(L["Echo alert"], When)
+    local ecb = W.CreateCheckButton(er, nil, function(on) EchoWrite("enabled", on and true or false) end)
+    ecb:SetPoint("LEFT", er, "LEFT", CTRL_X, 0)
+    EchoRightClick(er, "enabled")
+    ctl.enabled = ecb
+    NoteRow(L["An empowered Blood Boil strikes again 3 seconds later. While it counts down, this icon shows a bar and the seconds left at the top, and the sound below plays the moment it strikes again."], When)
+
+    -- 回聲音效：下拉＋試聽（同音效分頁）
+    local sr = NewRow(L["Echo sound"], When)
+    local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
+    W.FitButton(listen, 44, 20)
+    listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
+    local ddW = ROW_W - CTRL_X - (listen:GetWidth() or 44) - 6
+    local sdd = W.CreateDropdown(sr, ddW, {}, function(value)
+        EchoWrite("sound", (type(value) == "string" and value ~= "") and value or false)
+    end)
+    sdd:SetPoint("LEFT", sr, "LEFT", CTRL_X, 0)
+    listen:SetScript("OnClick", function()
+        local v = sdd:GetSelected()
+        if type(v) == "string" and ns.Sound then ns.Sound.Preview(v) end
+    end)
+    EchoRightClick(sr, "sound")
+    ctl.sound, ctl.listen, ctl.soundRow = sdd, listen, sr
+
+    -- 語音播報：勾著才寫（字串或 true）；沒勾時輸入框只是記著字
+    local kr = NewRow(L["Speak"], function() return When() and ns.Sound.CanSpeak() end,
+        L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
+    local kcb = W.CreateCheckButton(kr, nil, function(on)
+        if on then
+            local txt = strtrim(ctl.box:GetText() or "")
+            EchoWrite("speak", txt ~= "" and txt or true)
+        else
+            EchoWrite("speak", false)
+        end
+    end)
+    kcb:SetPoint("LEFT", kr, "LEFT", CTRL_X, 0)
+    local klisten = W.CreateButton(kr, L["Listen"], "normal", 44, 20)
+    W.FitButton(klisten, 44, 20)
+    klisten:SetPoint("RIGHT", kr, "RIGHT", 0, 0)
+    local kbox = W.CreateEditBox(kr, 80, 20)
+    kbox:SetPoint("LEFT", kcb, "RIGHT", 6, 0)
+    kbox:SetPoint("RIGHT", klisten, "LEFT", -6, 0)
+    kbox:SetMaxLetters(100)
+    kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    kbox:HookScript("OnEditFocusLost", function(self)
+        if not kcb:GetChecked() then return end
+        local txt = strtrim(self:GetText() or "")
+        local want = txt ~= "" and txt or true
+        local def = EchoDef()
+        local cfg = def and ns.EchoWindow.Cfg(def)
+        if cfg and cfg.speak == want then return end
+        EchoWrite("speak", want)
+    end)
+    klisten:SetScript("OnClick", function()
+        local def = EchoDef()
+        if not def then return end
+        local txt = strtrim(kbox:GetText() or "")
+        local S = ns.Sound
+        S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, SpellNameOf(def.spell)))
+    end)
+    EchoRightClick(kr, "speak")
+    ctl.speak, ctl.box, ctl.speakListen, ctl.speakRow = kcb, kbox, klisten, kr
+
+    NoteRow(L["These settings are saved in your profile, not on this icon. Right-click a row's label to restore its default."], When)
+    buildTab = prevTab
+end
+
+function Pop.RefreshEchoTab()
+    local ctl = Pop.echoCtl
+    local def = EchoDef()
+    if not (ctl and def) then return end
+    local on, sound, speak = ns.EchoWindow.Settings(ns.EchoWindow.Cfg(def))
+    ctl.enabled:SetChecked(on)
+    ctl.sound:SetItems(SoundItems())
+    ctl.sound:SetSelectedValue(sound or false)
+    ctl.speak:SetChecked(speak ~= nil)
+    if not ctl.box:HasFocus() then
+        ctl.box:SetText(type(speak) == "string" and speak or "")
+        ctl.box:SetCursorPosition(0)
+    end
+    -- 開關關著：音效與語音那兩列停用變暗
+    for _, w in ipairs({ ctl.sound, ctl.listen, ctl.speak, ctl.box, ctl.speakListen }) do
+        if w.SetEnabled then w:SetEnabled(on) end
+    end
+    ctl.soundRow:SetAlpha(on and 1 or 0.4)
+    ctl.speakRow:SetAlpha(on and 1 or 0.4)
 end
 
 ------------------------------------------------------------
@@ -2315,6 +2453,9 @@ local function Build()
     end
     AddRow(nsEntry)
 
+    -- 沸點（事件視窗）分頁：建完把 buildTab 交回下面的 general
+    Pop.BuildEchoTab(NoteRow)
+
     -- 增益不在時（暴雪的增益圖示／增益長條、光環格含飾品欄增益）：逐法術覆寫 emptyMode（v7 之前是 placeholder），
     -- 第一項「跟隨條（條現在的生效值）」＝清掉覆寫。條上有光環格或可點擊時「往前補」灰掉（選了不寫）；
     -- 存著往前補的覆寫讀取時當跟隨條（Layout.SpellEmptyMode），顯示也是跟隨條。下一列灰字照生效值換說法（Refresh）；右鍵標籤清
@@ -2412,6 +2553,9 @@ local function Build()
         function(kind) return kind == "aura" and CurSlotBuffMissing() == "empty" end, "general")
     EmphasisRow(L["Buff gained and lost only apply to spells that show their buff's time first after you cast them, like %s (%s): gained plays when the buff's countdown starts, lost when it ends and the icon switches to the cooldown."]:format(ExampleArgs()),
         BlizzCooldownSound, "sound")
+    -- 沸點：沒點天賦（明文 false；讀不到不出）
+    EmphasisRow(L["You haven't learned %s, so nothing on this page has any effect."]:format(L["Boiling Point"]),
+        function() return Pop.EchoNoTalent() end, "echo")
 
     -- 說明
     local tipRow = CreateFrame("Frame", nil, frame.body)
@@ -2929,6 +3073,7 @@ function Pop.Refresh()
         r.listen:SetEnabled(v ~= false)
     end
     Pop.RefreshSoundExtras()
+    Pop.RefreshEchoTab()
     frame.restoreBtn:SetEnabled(ns.DB.HasOverrides(id))
 end
 
