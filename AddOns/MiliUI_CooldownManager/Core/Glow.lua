@@ -136,6 +136,15 @@ local function Plain(v)
     return v
 end
 
+-- GetSpellCooldown 的 isOnGCD：不在 GCD 時暴雪**不給這個欄位**（nil；實機 2026-10-17，惡魔暴君冷卻中 isOnGCD=nil
+-- isActive=true），暴雪 CooldownViewer 自己也是 `not isOnGCD`。⇒ 沒給＝false；秘密／讀不到＝nil。
+-- 以前當 nil ＝ 讀不到：「明文確認進了冷卻」永遠不成立，亮到使用為止的就緒發光用了也不熄
+local function GCDOf(info)
+    local v = info.isOnGCD
+    if v == nil then return false end
+    return Plain(v)
+end
+
 -- 發光追蹤（/mcdm glow 印）：觸發／就緒的狀態「轉換」記一行，只在記憶體（最近 TRACE_MAX 行）。
 -- 每格跟自己上一行一樣就不記（暴雪每次 RefreshData 都 HideAlert，被擋下來的那一行會洗版）。
 -- rec 為 nil ＝ 全域的（事件 id 是秘密值被略過之類）
@@ -1196,7 +1205,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
             local spellID = SpellOf(rec)
             local okInfo, info = false, nil
             if spellID then okInfo, info = pcall(C_Spell.GetSpellCooldown, spellID) end
-            if okInfo and type(info) == "table" and Plain(info.isOnGCD) == false and Plain(info.isActive) == true then
+            if okInfo and type(info) == "table" and GCDOf(info) == false and Plain(info.isActive) == true then
                 Trace(rec, "就緒熄（顯示光環時間中，明文確認技能在冷卻）")
                 G.CooldownStarted(rec)
             end
@@ -1214,7 +1223,7 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     if not charges and spellID then
         local okInfo, info = pcall(C_Spell.GetSpellCooldown, spellID)
         if okInfo and type(info) == "table" then
-            local gcd, active = Plain(info.isOnGCD), Plain(info.isActive)
+            local gcd, active = GCDOf(info), Plain(info.isActive)
             armInfo = ("isOnGCD=%s isActive=%s"):format(tostring(gcd), tostring(active))
             if gcd == true or active == false then return end
             -- 明文確認進了新的冷卻（技能用掉了）⇒ 還亮著的就緒發光收掉

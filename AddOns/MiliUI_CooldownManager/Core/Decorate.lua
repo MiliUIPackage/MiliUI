@@ -75,6 +75,15 @@ local function Plain(v)
     return v
 end
 
+-- GetSpellCooldown 的 isOnGCD：不在 GCD 時暴雪**不給這個欄位**（nil；實機 2026-10-17，惡魔暴君冷卻中 isOnGCD=nil
+-- isActive=true），暴雪 CooldownViewer 自己也是 `not isOnGCD`。⇒ 沒給＝false；秘密／讀不到＝nil。
+-- 以前當 nil ＝ 讀不到：「明文確認進了冷卻」永遠不成立，亮到使用為止的就緒發光用了也不熄
+local function GCDOf(info)
+    local v = info.isOnGCD
+    if v == nil then return false end
+    return Plain(v)
+end
+
 local function C4(c, dr, dg, db, da)
     if type(c) ~= "table" then return dr, dg, db, da end
     return c.r or dr, c.g or dg, c.b or db, c.a or da
@@ -810,7 +819,7 @@ D.HideTarget = HideTarget                                           -- 測試用
 local function ChargeState(id)
     local cd = C_Spell and C_Spell.GetSpellCooldown and TryDur(C_Spell.GetSpellCooldown, id)
     local active, gcd
-    if type(cd) == "table" then active, gcd = Plain(cd.isActive), Plain(cd.isOnGCD) end
+    if type(cd) == "table" then active, gcd = Plain(cd.isActive), GCDOf(cd) end
     if active == true and gcd == false then return false, false end   -- 0 充能：暴雪畫技能冷卻（轉圈）
     local info = C_Spell and C_Spell.GetSpellCharges and TryDur(C_Spell.GetSpellCharges, id)
     if type(info) ~= "table" then return true, false end
@@ -829,7 +838,7 @@ local function ShouldArm(rec, id, chargePath, full)
     if chargePath then return not full end
     local info = C_Spell and C_Spell.GetSpellCooldown and TryDur(C_Spell.GetSpellCooldown, id)
     if type(info) ~= "table" then return true end
-    local gcd, active = Plain(info.isOnGCD), Plain(info.isActive)
+    local gcd, active = GCDOf(info), Plain(info.isActive)
     if gcd == true or active == false then return false end
     -- 明文確認進了新的冷卻（技能用掉了）⇒ 還亮著的就緒發光收掉（正常路徑在 Glow.OnItemSetCooldown 做，這條路不經過它）
     if gcd == false and active == true and ns.Glow and ns.Glow.CooldownStarted then ns.Glow.CooldownStarted(rec) end
@@ -1342,7 +1351,7 @@ function D.CooldownState(item, rec)
         if C_Spell.GetSpellCooldown then
             local ok, cd = pcall(C_Spell.GetSpellCooldown, id)
             if ok and type(cd) == "table" then
-                local active, gcd = Plain(cd.isActive), Plain(cd.isOnGCD)
+                local active, gcd = Plain(cd.isActive), GCDOf(cd)
                 if type(active) == "boolean" and type(gcd) == "boolean" then
                     return "plain", (active and not gcd) and true or false
                 end

@@ -296,6 +296,7 @@ function CB.CooldownState(info, isSecret)
     if type(info) ~= "table" then return nil end
     local gcd, active = info.isOnGCD, info.isActive
     if isSecret and (isSecret(gcd) or isSecret(active)) then return nil end
+    -- 不在 GCD 時暴雪不給 isOnGCD（nil）：當 false（暴雪自己也是 not isOnGCD），見 Core/Glow.lua 的 GCDOf
     if gcd == true then return "idle" end
     if active == false then return "idle" end
     if active == true then return "active" end

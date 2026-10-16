@@ -135,6 +135,15 @@ local function Plain(v)
     return v
 end
 
+-- GetSpellCooldown 的 isOnGCD：不在 GCD 時暴雪**不給這個欄位**（nil；實機 2026-10-17，惡魔暴君冷卻中 isOnGCD=nil
+-- isActive=true），暴雪 CooldownViewer 自己也是 `not isOnGCD`。⇒ 沒給＝false；秘密／讀不到＝nil。
+-- 以前當 nil ＝ 讀不到：「明文確認進了冷卻」永遠不成立，亮到使用為止的就緒發光用了也不熄
+local function GCDOf(info)
+    local v = info.isOnGCD
+    if v == nil then return false end
+    return Plain(v)
+end
+
 local function Try(fn, ...)
     if not fn then return nil end
     local ok, a, b, c, d, e = pcall(fn, ...)
@@ -941,7 +950,7 @@ local function UpdateSpell(rec)
     -- 用掉了（進了真的冷卻，GCD 不算）：還亮著的就緒發光當場熄。兩個旗標都要明文
     if ns.Glow and known then
         local info = Try(C_Spell and C_Spell.GetSpellCooldown, id)
-        if type(info) == "table" and Plain(info.isActive) == true and Plain(info.isOnGCD) == false then
+        if type(info) == "table" and Plain(info.isActive) == true and GCDOf(info) == false then
             ns.Glow.CooldownStarted(rec)
         end
     end
@@ -1100,7 +1109,7 @@ function CU.CooldownState(rec)
     end
     local info = Try(C_Spell and C_Spell.GetSpellCooldown, rec.overrideID or rec.spellID)
     if type(info) == "table" then
-        local active, gcd = Plain(info.isActive), Plain(info.isOnGCD)
+        local active, gcd = Plain(info.isActive), GCDOf(info)
         if type(active) == "boolean" and type(gcd) == "boolean" then return "plain", (active and not gcd) and true or false end
     end
     local dur = rec.dur
