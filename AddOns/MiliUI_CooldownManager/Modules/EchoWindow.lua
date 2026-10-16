@@ -14,7 +14,7 @@
 -- ⚠ 天賦本身的 ID 是 1265790（天賦樹滑鼠提示那個），1265982 是觸發時事件帶的那顆（另一個法術 ID）——
 --   掃「有沒有點天賦」要問 talent，認觸發要看 triggers，兩個不能互換。
 --
--- 設定（2026-10-17，profile.echo[def.key]，Core/DB.lua）：開關（倒數條＋音效，預設開）、回聲音效（預設 Water Drop）、語音播報。
+-- 設定（2026-10-17，profile.echo[def.key]，Core/DB.lua）：開關（倒數條＋音效，預設開）、回聲音效（預設無，使用者 10-17 改）、語音播報（預設關）。
 --   回聲那一刻＝每一段倒數走完（EW.Tick 回 true：接續下一段或結束都是「再觸發了一次」）⇒ 響音效／念字，
 --   走 Sound 的總開關、讀取畫面靜音、節流（key "echo:<def.key>"）。死亡／讀取畫面／換專精清空不算回聲、不響。
 --   設定介面在那個法術格的逐法術面板「沸點」分頁（Options/SpellPopover.lua 的 Pop.BuildEchoTab）：
@@ -43,15 +43,12 @@ EW.DEFS = {
     { key = "boilingPoint", class = "DEATHKNIGHT", spec = 250, spell = 50842, talent = 1265790, triggers = { 1265982 }, secs = 3 },
 }
 
-EW.DEFAULT_SOUND = "Water Drop"
-
 local function IsSecretValue(v) return ns.IsSecret ~= nil and ns.IsSecret(v) and true or false end
 
--- 設定表 → enabled（沒存 ＝ 開）, sound（沒存 ＝ 預設音效；false／空字串 ＝ 無 ⇒ nil）, speak（true／非空字串；其餘 nil）
+-- 設定表 → enabled（沒存 ＝ 開）, sound（非空字串才有；沒存／false／空字串 ＝ 無 ⇒ nil）, speak（true／非空字串；其餘 nil）
 function EW.Settings(cfg)
     cfg = type(cfg) == "table" and cfg or {}
     local sound = cfg.sound
-    if sound == nil then sound = EW.DEFAULT_SOUND end
     if type(sound) ~= "string" or sound == "" then sound = nil end
     local speak = cfg.speak
     if not (speak == true or (type(speak) == "string" and speak ~= "")) then speak = nil end

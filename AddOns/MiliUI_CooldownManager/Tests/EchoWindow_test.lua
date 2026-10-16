@@ -86,7 +86,7 @@ eq("探針最多 30 行", #EW.probe.lines, 30)
 ------------------------------------------------------------
 do
     local on, snd, spk = EW.Settings(nil)
-    check("Settings：沒存 ＝ 開、預設音效、不念", on == true and snd == EW.DEFAULT_SOUND and spk == nil)
+    check("Settings：沒存 ＝ 開、沒有音效、不念", on == true and snd == nil and spk == nil)
     on, snd, spk = EW.Settings({ enabled = false, sound = false, speak = true })
     check("Settings：關、無音效、念法術名", on == false and snd == nil and spk == true)
     on, snd, spk = EW.Settings({ sound = "", speak = "" })

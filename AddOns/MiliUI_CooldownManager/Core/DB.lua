@@ -755,10 +755,11 @@ function DB.BuildDefaults()
             -- 舊存檔沒有 ＝ 合併預設值補上，不遷移。設定在血液沸騰那一格的逐法術面板「沸點」分頁（Options/SpellPopover.lua 的 Pop.BuildEchoTab）。
             -- 跟著設定檔走、不是逐法術覆寫：沸血術可能同時是暴雪的冷卻格與自訂法術，兩格畫的是同一個倒數
             --   enabled  倒數條＋音效（沒存 ＝ 開）
-            --   sound    回聲觸發那一刻的音效：LSM 名／自訂語音代號；false ＝ 無；沒存 ＝ EW.DEFAULT_SOUND
+            --   sound    回聲觸發那一刻的音效：LSM 名／自訂語音代號；false／沒存 ＝ 無（使用者 10-17 改預設關，
+            --            不遷移：當天上午那版已經合進 Water Drop 的存檔照舊響，玩家自己改）
             --   speak    語音播報：false ＝ 關、true ＝ 念法術名、字串 ＝ 念那段字
             echo = {
-                boilingPoint = { enabled = true, sound = "Water Drop", speak = false },
+                boilingPoint = { enabled = true, sound = false, speak = false },
             },
         },
     }
