@@ -110,8 +110,21 @@ local function Spawned(unitKey)
     return ns.frames[unitKey] ~= nil
 end
 
+-- 戰鬥中 /reload 時 PLAYER_LOGIN 就在戰鬥鎖定裡 —— 以前這裡直接 return、之後再也沒人叫，
+-- 結果整場登入暴雪原生框全都還在、跟我們的框疊在一起，直到下一次脫戰 /reload。
+local loginRetry = CreateFrame("Frame")
+loginRetry:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    ns.HideBlizzardFrames()
+end)
+
+-- 冪等：登入跑一次，設定裡「啟用這個單位框架」中途生出新框時（UnitFrame.lua 的
+-- ApplySettings）再跑一次。重跑只會多 reparent／解事件一次，SetParent 掛勾有 hookedFrames 擋
 function ns.HideBlizzardFrames()
-    if InCombatLockdown() then return end   -- 登入時不會在戰鬥，保險
+    if InCombatLockdown() then
+        loginRetry:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
 
     for unitKey, getter in pairs(BLIZZARD_FRAMES) do
         local udb = ns.GetUnitDB(unitKey)

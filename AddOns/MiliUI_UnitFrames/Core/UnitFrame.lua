@@ -966,6 +966,9 @@ function ns.ApplySettings(unitKey)
             if udb.enabled then
                 if not uf then
                     uf = ns.SpawnUnitFrame(unit)
+                    -- 登入後才啟用的單位：HideBlizzard 只在登入跑過，那時這格還沒生出來
+                    -- （閘看 Spawned），不補跑就是暴雪原生框跟我們的框疊在一起直到 /reload
+                    if uf then ns.HideBlizzardFrames() end
                     -- 預覽開著時真實框由 Preview 管：剛生出來的先藏，關窗 RestoreReal 再放出
                     if uf and previewOpen then
                         UnregisterUnitWatch(uf)
