@@ -1737,11 +1737,8 @@ end
 --   不一定再叫一次 RefreshName（只有下一次 RefreshData 會）⇒ 整條空到消失。
 --   秘密字串不碰（拿著不讀）；真名之後寫進來就自然蓋掉。只讀 Catalog 的明文資料，不碰 totemData。
 --   法術 id 先問 item 自己的 GetSpellID（暴雪會把 linkedSpell／光環的 id 算進去，跟它寫名字用的是同一個），
---   讀不到明文再退 Catalog。每次處理都記一行 diag（去重），實機不對時 /mcdm debug 看得到。
+--   讀不到明文再退 Catalog。每次處理都記一行 diag（Diag.Note 合併同字），實機不對時 /mcdm debug 看得到。
 local nameGuard = false
--- 秘密字串那一支的 diag 只記一次（Diag.Note 自己會合併同字，但每次仍要 date()＋組字串）；進場清掉、下一輪再記一次
-local notedSecret = {}
-ns.Events.Register("PLAYER_ENTERING_WORLD", "decorate_barname", function() notedSecret = {} end)
 local function BarItemSpellID(item, rec)
     local get = item.GetSpellID
     if type(get) == "function" then
@@ -1809,28 +1806,67 @@ function D.RestyleNameFill(fs)
     if f and ns.Text and ns.Text.StyleNameFill then ns.Text.StyleNameFill(fs, f) end
 end
 
+-- 這一格的法術名（退路用）：nil ＝ 拿不到
+local function FallbackName(item, rec)
+    local spellID = BarItemSpellID(item, rec)
+    if spellID then
+        local ok, v = pcall(C_Spell.GetSpellName, spellID)
+        v = ok and Plain(v) or nil
+        if type(v) == "string" and v ~= "" then return v, spellID end
+    end
+    return nil, spellID
+end
+
+-- 名字框現在量到的寬度 → 0（空的）／"寬>0"／"寬秘密"／"寬讀不到"
+local function WidthKind(fs)
+    local ok, w = pcall(fs.GetStringWidth, fs)
+    if not ok then return "寬讀不到" end
+    if ns.IsSecret(w) then return "寬秘密" end
+    w = Plain(w)
+    if w == 0 then return 0 end
+    return type(w) == "number" and "寬>0" or "寬讀不到"
+end
+
+-- 暴雪每寫一次名字就換一號：下一幀的重量只在這中間沒有新的寫入時才算數
+local nameGen = setmetatable({}, { __mode = "k" })
+
+-- 秘密字串、寫字當下量到的寬度不是 0：下一幀再量一次。
+-- 實機 2026-10-17：/reload 後第一次召喚暴君記到「秘密字串（留著）」、畫面卻空白約 0.5 秒才出現真名
+-- ⇒ 寫字當下的寬度不可靠（推測是上一次的字留下的版面還沒重算；當下是秘密值也一樣當不知道）
+local function RecheckSecretName(fs, gen, first)
+    if nameGen[fs] ~= gen or ns.released then return end
+    local item = nameOwner[fs]
+    local rec = item and ns.Viewers.frames[item]
+    if not rec or rec.custom then return end
+    local now = WidthKind(fs)
+    local Note = ns.Diag and ns.Diag.Note
+    if now ~= 0 then
+        if Note then Note("barname", string.format("%s 秘密字串 %s、下一幀 %s（留著）", tostring(rec.cooldownID), first, now)) end
+        return
+    end
+    local name = FallbackName(item, rec)
+    local how = name and ShowNameFill(fs, name) and ("疊字 " .. name) or "沒退路"
+    if Note then Note("barname", string.format("%s 秘密字串 %s、下一幀量到空的 → %s", tostring(rec.cooldownID), first, how)) end
+end
+
 local function OnBarNameSetText(fs, text)
     if nameGuard or ns.released then return end
     local item = nameOwner[fs]
     local rec = item and ns.Viewers.frames[item]
     if not rec or rec.custom then return end
+    local gen = (nameGen[fs] or 0) + 1
+    nameGen[fs] = gen
     local Note = ns.Diag and ns.Diag.Note
     local what, secret
     if ns.IsSecret(text) then                           -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
         -- 秘密字串讀不到內容，但 GetStringWidth 只在「錨點是秘密」時才回秘密（API 文件 SecretWhenAnchoringSecret，
         -- 跟文字的秘密 aspect 無關）⇒ 明文寬度 0 ＝ 暴雪寫進來的是空的。實機 2026-10-17：12.1.5 召喚惡魔暴君
         -- 第一次召喚的名字是秘密字串（totemData 整張秘密），而且是空的 ⇒ 以前「秘密就留著」整條空白到消失
-        local okW, w = pcall(fs.GetStringWidth, fs)
-        w = okW and Plain(w) or nil
-        if w ~= 0 then
+        local kind = WidthKind(fs)
+        if kind ~= 0 then
+            -- 當下量不到 0：先當有名字（疊字收起來），下一幀再量一次（見 RecheckSecretName）
             HideNameFill(fs)
-            local cid = rec.cooldownID
-            if Note and cid ~= nil and not notedSecret[cid] then
-                notedSecret[cid] = true
-                Note("barname", tostring(cid) .. " 秘密字串（留著）")
-            elseif Note and cid == nil then
-                Note("barname", "nil 秘密字串（留著）")
-            end
+            ns.Defer(RecheckSecretName, fs, gen, kind)
             return
         end
         what, secret = "空的秘密字串", true
@@ -1840,13 +1876,7 @@ local function OnBarNameSetText(fs, text)
     else
         what = text == nil and "nil" or "空字串"
     end
-    local spellID = BarItemSpellID(item, rec)
-    local name
-    if spellID then
-        local ok, v = pcall(C_Spell.GetSpellName, spellID)
-        v = ok and Plain(v) or nil
-        if type(v) == "string" and v ~= "" then name = v end
-    end
+    local name, spellID = FallbackName(item, rec)
     local how = "沒退路（spellID " .. tostring(spellID) .. "）"
     if name then
         if secret and ShowNameFill(fs, name) then
@@ -1861,6 +1891,7 @@ local function OnBarNameSetText(fs, text)
     end
     if Note then Note("barname", string.format("%s %s → %s", tostring(rec.cooldownID), what, how)) end
 end
+D.RecheckSecretName = RecheckSecretName                              -- 測試用
 
 function D.HookItem(item, rec)
     if rec.decoHooked then return end

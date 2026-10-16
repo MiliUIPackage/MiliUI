@@ -497,6 +497,37 @@ do
     fs:SetText(s2); nameHook(fs, s2)
     eq("寬度是秘密值（錨點秘密）留著", fs.text, s2)
     eq("寬度是秘密值 ⇒ 不疊字", fill.shown, false)
+    -- 寫字當下量到的寬度不可靠（實機：第二次召喚量到上一次名字的寬、畫面卻空白）⇒ 下一幀重量
+    local function Flush(jobs) for _, j in ipairs(jobs) do j.fn(unpack(j, 1, j.n)) end end
+    for i = #deferred, 1, -1 do deferred[i] = nil end
+    fs.GetStringWidth = function() return 42 end
+    fs:SetText(s2); nameHook(fs, s2)
+    local jobs = {}
+    for i, j in ipairs(deferred) do jobs[i] = j end
+    for i = #deferred, 1, -1 do deferred[i] = nil end
+    eq("寬度不是 0 ⇒ 排一次下一幀重量", #jobs, 1)
+    eq("排下一幀時先不疊字", fill.shown, false)
+    fs.GetStringWidth = function() return 0 end
+    Flush(jobs)
+    check("下一幀量到 0 ⇒ 疊字", fill.shown)
+    -- 中間暴雪又寫了一次 ⇒ 舊的那次重量作廢
+    fs.GetStringWidth = function() return 42 end
+    fs:SetText(s2); nameHook(fs, s2)
+    jobs = {}
+    for i, j in ipairs(deferred) do jobs[i] = j end
+    for i = #deferred, 1, -1 do deferred[i] = nil end
+    fs:SetText("真名"); nameHook(fs, "真名")
+    fs.GetStringWidth = function() return 0 end
+    Flush(jobs)
+    eq("中間有新的寫入 ⇒ 舊的重量不疊字", fill.shown, false)
+    -- 下一幀還是有寬度 ⇒ 留著
+    fs.GetStringWidth = function() return 42 end
+    fs:SetText(s2); nameHook(fs, s2)
+    jobs = {}
+    for i, j in ipairs(deferred) do jobs[i] = j end
+    for i = #deferred, 1, -1 do deferred[i] = nil end
+    Flush(jobs)
+    eq("下一幀還有寬度 ⇒ 不疊字", fill.shown, false)
     -- 有長條名字的設定樣式（Text.StyleNameFill）⇒ 照設定畫，不從暴雪那行抄
     ns.Text = ns.Text or {}
     local oldStyle, styled = ns.Text.StyleNameFill, nil
