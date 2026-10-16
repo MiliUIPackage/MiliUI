@@ -68,5 +68,5 @@ end
 
 **12.1.5 更新（2026-10-17 實機）**：召喚惡魔暴君第一次召喚時，暴雪寫進來的名字變成**空的秘密字串**（diag 是 `[barname] 84224 秘密字串（留著）`、畫面整條沒名字），上面那條「nil 就用法術名頂」接不到。
 秘密字串讀不到內容，但 `FontString:GetStringWidth()` 只在**錨點是秘密**時才回秘密（API 文件 `SecretWhenAnchoringSecret`，跟文字的秘密 aspect 無關）⇒ 明文寬度 0 ＝ 空的；寬度非 0 或是秘密值就留著。
-⚠ **對這個框 `SetText(法術名)` 實機照樣空白**（diag 記到「→ 法術名」、畫面看不到；pcall 沒報錯）⇒ 秘密那條改成**在暴雪名字上疊一行自己的 FontString**（SetAllPoints、字型／顏色／對齊／alpha 每次從暴雪那行抄），暴雪之後寫進有寬度的名字就藏。明文 nil／空字串那條照舊直接 SetText（10-15 實機有效）。MCDM `ShowNameFill`／`OnBarNameSetText`，diag 寫「→ 疊字」。疊字版待實機驗證。
+⚠ **對這個框 `SetText(法術名)` 實機照樣空白**（diag 記到「→ 法術名」、畫面看不到；pcall 沒報錯）⇒ 秘密那條改成**在暴雪名字上疊一行自己的 FontString**（SetAllPoints；樣式走 `Text.StyleNameFill`＝跟暴雪那行同一份設定，**別從暴雪那行 GetFont 抄：實機抄不到、退成遊戲預設字型**），暴雪之後寫進有寬度的名字就藏。明文 nil／空字串那條照舊直接 SetText（10-15 實機有效）。MCDM `ShowNameFill`／`OnBarNameSetText`，diag 寫「→ 疊字」。疊字顯示已實機確認（10-17），照設定樣式那版待驗。
 

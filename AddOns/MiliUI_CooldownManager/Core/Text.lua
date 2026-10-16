@@ -565,6 +565,19 @@ function T.BarStackInset(pt)
     return ix, iy
 end
 
+-- 長條名字的樣式記一份（弱鍵：暴雪名字 FontString → { size, outline, font, alpha }）：
+-- 空的秘密名字的退路疊字（Core/Decorate.lua 的 ShowNameFill）照同一組設定畫，不從暴雪的框抄（抄不到會退預設字型）
+local barNameStyle = setmetatable({}, { __mode = "k" })
+function T.StyleNameFill(src, dst)
+    local st = barNameStyle[src]
+    if not (st and dst) then return false end
+    SetFont(dst, st.size, st.outline, st.font)
+    dst:SetTextColor(1, 1, 1, 1)
+    if dst.SetJustifyH then dst:SetJustifyH("LEFT") end
+    dst:SetAlpha(st.alpha)
+    return true
+end
+
 function T.ApplyBar(item, style, spell, bar, rec)
     local font, outline = style.font, style.outline
     local b = item.Bar
@@ -585,7 +598,10 @@ function T.ApplyBar(item, style, spell, bar, rec)
             name:SetPoint("RIGHT", b, "RIGHT", (nx - (tonumber(tt.size) or 12) * 3) * s, ny * s)
             if name.SetJustifyH then name:SetJustifyH("LEFT") end
             -- 直向（F8c）：FontString 不能轉，名字不畫
-            name:SetAlpha((nt.show and not bar.vertical) and 1 or 0)
+            local alpha = (nt.show and not bar.vertical) and 1 or 0
+            name:SetAlpha(alpha)
+            barNameStyle[name] = { size = nt.size or 12, outline = outline, font = ns.Media.ElementFont(nt.font, font), alpha = alpha }
+            if ns.Decorate and ns.Decorate.RestyleNameFill then ns.Decorate.RestyleNameFill(name) end
         end
         local dur = b.Duration
         if dur then

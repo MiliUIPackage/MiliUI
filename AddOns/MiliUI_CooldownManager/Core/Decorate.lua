@@ -1757,7 +1757,9 @@ end
 -- 空的秘密名字的退路：疊在暴雪名字上面的一行我們自己的字（不寫進暴雪的框）。
 -- 實機 2026-10-17：暴雪寫進空的秘密字串之後，我們對它 SetText(法術名) 畫面照樣空白（diag 記到「→ 法術名」、玩家看不到）
 -- ⇒ 不跟暴雪的框搶：秘密那條改成自己疊一行，暴雪之後寫進任何有寬度的名字就藏起來。
--- 字型／顏色／對齊／alpha 每次顯示時從暴雪那行抄（樣式設定改過也跟得上；讀不到的退預設）
+-- 樣式照長條名字的設定（字型、字級、描邊、顯示開關；Text.StyleNameFill，跟暴雪那行同一份），設定改了 Text.ApplyBar
+-- 會叫 RestyleNameFill 跟著換。Text 還沒套過這一格（理論上不會）才退回從暴雪那行抄
+-- （實機 2026-10-17：從暴雪那行抄字型抄不到，退成遊戲預設字型，跟玩家設的不一致）
 local nameFill = setmetatable({}, { __mode = "k" })   -- 暴雪名字 FontString → 我們的退路字
 local function HideNameFill(fs)
     local f = nameFill[fs]
@@ -1772,6 +1774,11 @@ local function ShowNameFill(fs, name)
         f = parent:CreateFontString(nil, "OVERLAY")
         f:SetAllPoints(fs)
         nameFill[fs] = f
+    end
+    if ns.Text and ns.Text.StyleNameFill and ns.Text.StyleNameFill(fs, f) then
+        f:SetText(name)
+        f:Show()
+        return true
     end
     local okF, font, size, flags = pcall(fs.GetFont, fs)
     font, size, flags = Plain(font), Plain(size), Plain(flags)
@@ -1796,6 +1803,11 @@ local function ShowNameFill(fs, name)
     return true
 end
 D.ShowNameFill, D.HideNameFill = ShowNameFill, HideNameFill      -- 測試用
+-- Text.ApplyBar 套完名字樣式叫：疊字建過就跟著換（沒建過不建）
+function D.RestyleNameFill(fs)
+    local f = nameFill[fs]
+    if f and ns.Text and ns.Text.StyleNameFill then ns.Text.StyleNameFill(fs, f) end
+end
 
 local function OnBarNameSetText(fs, text)
     if nameGuard or ns.released then return end

@@ -497,6 +497,19 @@ do
     fs:SetText(s2); nameHook(fs, s2)
     eq("寬度是秘密值（錨點秘密）留著", fs.text, s2)
     eq("寬度是秘密值 ⇒ 不疊字", fill.shown, false)
+    -- 有長條名字的設定樣式（Text.StyleNameFill）⇒ 照設定畫，不從暴雪那行抄
+    ns.Text = ns.Text or {}
+    local oldStyle, styled = ns.Text.StyleNameFill, nil
+    ns.Text.StyleNameFill = function(src, dst) styled = { src, dst }; dst.jh = "SETTING"; return true end
+    fs.GetStringWidth = function() return 0 end
+    fs:SetText(s2); nameHook(fs, s2)
+    check("照設定樣式畫疊字", styled and styled[1] == fs and styled[2] == fill)
+    eq("照設定樣式：不再抄暴雪的對齊", fill.jh, "SETTING")
+    check("照設定樣式：疊字顯示", fill.shown)
+    styled = nil
+    D.RestyleNameFill(fs)
+    check("RestyleNameFill 跟著換樣式", styled and styled[2] == fill)
+    ns.Text.StyleNameFill = oldStyle
     fs.GetStringWidth = nil
     fs.GetParent, fs.GetFont, fs.GetJustifyH, fs.GetTextColor, fs.GetAlpha = nil, nil, nil, nil, nil
     -- 自訂框不掛
