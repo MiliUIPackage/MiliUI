@@ -573,7 +573,11 @@ module.db.achievementsList_statistic = {
 	},
 }
 
-if ExRT.isClassic and ExRT.isMoP then
+if ExRT.isFE then
+	module.db.achievementsList = {{}}
+	module.db.achievementsList_statistic = {{}}
+end
+if (ExRT.isClassic and ExRT.isMoP) then
 	local c = 0
 	for i=1,#module.db.achievementsList do
 		if module.db.achievementsList[i][1] == EXPANSION_NAME4 then
@@ -1000,7 +1004,7 @@ function module.options:Load()
 		{
 			text = "",
 			isTitle = true,	
-			slider = {min = 150, max = 500, val = module.db.colorizeLowIlvlCustomN, func = function(self,val)
+			slider = {min = ExRT.isFE and 0 or 150, max = 500, val = module.db.colorizeLowIlvlCustomN, func = function(self,val)
 				val = floor(val + .5)
 				module.db.colorizeLowIlvlCustomN = val
 				VMRT.InspectViewer.ColorizeLowIlvlCustomN = val
@@ -1039,7 +1043,7 @@ function module.options:Load()
 
 	local dropDownTable = {
 		[1] = {
-			ExRT.isClassic and {
+			(ExRT.isClassic or ExRT.isFE) and {
 				"WARRIOR",
 				"PALADIN",
 				"HUNTER",
@@ -1061,13 +1065,13 @@ function module.options:Load()
 		},
 		[4] = {
 			{
-				ExRT.isClassic and "_PALADIN_PRIEST_WARLOCK" or "_PALADIN_PRIEST_WARLOCK_DEMONHUNTER",
-				ExRT.isClassic and "_ROGUE_MAGE_DRUID" or "_ROGUE_DEATHKNIGHT_MAGE_DRUID",
-				ExRT.isClassic and "_WARRIOR_HUNTER_SHAMAN" or "_WARRIOR_HUNTER_SHAMAN_MONK"
+				(ExRT.isClassic or ExRT.isFE) and "_PALADIN_PRIEST_WARLOCK" or "_PALADIN_PRIEST_WARLOCK_DEMONHUNTER",
+				(ExRT.isClassic or ExRT.isFE) and "_ROGUE_MAGE_DRUID" or "_ROGUE_DEATHKNIGHT_MAGE_DRUID",
+				(ExRT.isClassic or ExRT.isFE) and "_WARRIOR_HUNTER_SHAMAN" or "_WARRIOR_HUNTER_SHAMAN_MONK"
 			},
 		},
 	}
-	if not ExRT.isClassic then
+	if not (ExRT.isClassic or ExRT.isFE) then
 		dropDownTable[4] = {
 			{
 				"_MAGE_DRUID_HUNTER",
@@ -1346,7 +1350,7 @@ function module.options:Load()
 					if specIcon then
 						line.spec.texture:SetTexture(specIcon)
 						line.spec.id = spec
-					elseif ExRT.isClassic and not ExRT.isCata then
+					elseif (ExRT.isClassic and not ExRT.isCata) or ExRT.isFE then
 						line.spec.texture:SetTexture("")
 						line.spec.id = nil
 					else
@@ -1463,7 +1467,7 @@ function module.options:Load()
 										isSlotForEnchant = false
 									end
 
-									if not ExRT.isClassic and (
+									if not ExRT.isClassic and not ExRT.isFE and (
 										(enchantID == 0 and isSlotForEnchant and module.db.colorizeNoEnch) or
 										(items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < colorizeLowIlvl630 and module.db.colorizeLowIlvl) or
 										(module.db.colorizeNoGems and ExRT.F.IsBonusOnItem(item,module.db.socketsBonusIDs) and IsItemHasNotGem(item)) or 
@@ -2017,7 +2021,7 @@ function module.options:Load()
 						if specIcon then
 							line.spec.texture:SetTexture(specIcon)
 							line.spec.id = spec
-						elseif ExRT.isClassic and not ExRT.isCata then
+						elseif (ExRT.isClassic and not ExRT.isCata) or ExRT.isFE then
 							line.spec.texture:SetTexture("")
 							line.spec.id = nil
 						else

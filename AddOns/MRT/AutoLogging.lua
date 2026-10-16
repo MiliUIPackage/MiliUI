@@ -124,7 +124,7 @@ function module.options:Load()
 		end
 	end):Shown(ExRT.isBC)
 
-	if ExRT.isClassic then
+	if ExRT.isClassic or ExRT.isFE then
 		self.shtml1:SetText(RAID)
 		self.enable3ppScenario:Hide()
 		self.enable5ppLegion:Hide()
@@ -173,7 +173,7 @@ local function GetCurrentMapForLogging()
 			end
 		elseif mapID and module.db.mapsToLog[mapID] then
 			return true 
-		elseif ExRT.isClassic and (zoneType == 'raid' or (C_Engraving and C_Engraving.IsEngravingEnabled() and module.db.mapsSoD[mapID]) or difficulty == 198) then
+		elseif (ExRT.isClassic or ExRT.isFE) and (zoneType == 'raid' or (C_Engraving and C_Engraving.IsEngravingEnabled() and module.db.mapsSoD[mapID]) or difficulty == 198) then
 			return true 
 		elseif zoneType == 'raid' and (tonumber(mapID) and (mapID >= module.db.minRaidMapID or module.db.mapsToLog_raid[mapID])) and (((difficulty == 16 or difficulty == 233) and not VMRT.Logging.disableMythic) or (difficulty == 15 and not VMRT.Logging.disableHeroic) or (difficulty == 14 and not VMRT.Logging.disableNormal) or (difficulty ~= 14 and difficulty ~= 15 and difficulty ~= 16 and difficulty ~= 233)) then
 			return true

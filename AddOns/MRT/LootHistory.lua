@@ -34,20 +34,12 @@ end
 
 function module:Enable()
   	module:RegisterEvents('ENCOUNTER_LOOT_RECEIVED','BOSS_KILL',"ENCOUNTER_END")
-	if ExRT.clientVersion > 100007 then
-		module:RegisterEvents('LOOT_HISTORY_UPDATE_ENCOUNTER','LOOT_HISTORY_UPDATE_DROP')
-	else
-		module:RegisterEvents("LOOT_HISTORY_AUTO_SHOW","LOOT_HISTORY_FULL_UPDATE","LOOT_HISTORY_ROLL_COMPLETE")
-	end
+	module:RegisterEvents('LOOT_HISTORY_UPDATE_ENCOUNTER','LOOT_HISTORY_UPDATE_DROP')
 end
 
 function module:Disable()
   	module:UnregisterEvents('ENCOUNTER_LOOT_RECEIVED','BOSS_KILL',"ENCOUNTER_END")
-	if ExRT.clientVersion > 100007 then
-		module:UnregisterEvents('LOOT_HISTORY_UPDATE_ENCOUNTER','LOOT_HISTORY_UPDATE_DROP')
-	else
-		module:UnregisterEvents("LOOT_HISTORY_AUTO_SHOW","LOOT_HISTORY_FULL_UPDATE","LOOT_HISTORY_ROLL_COMPLETE")
-	end
+	module:UnregisterEvents('LOOT_HISTORY_UPDATE_ENCOUNTER','LOOT_HISTORY_UPDATE_DROP')
 end
 
 function module.main:BOSS_KILL(encounterID, name)
@@ -77,7 +69,7 @@ function module.main:ENCOUNTER_LOOT_RECEIVED(encounterID, itemID, itemLink, quan
 	end
 
 	local _, _, itemRarity = GetItemInfo(itemLinkShort)
-	if itemRarity and itemRarity < 4 then
+	if itemRarity and itemRarity < (ExRT.isFE and 3 or 4) then
 		return
 	end
 
@@ -125,7 +117,7 @@ function module.main:LOOT_HISTORY_FULL_UPDATE()
 				itemLinkShort = itemLink:match("(item:.-)|h")
 			
 				local _, _, itemRarity = GetItemInfo(itemLink)
-				if itemRarity and itemRarity < 4 then
+				if itemRarity and itemRarity < (ExRT.isFE and 3 or 4) then
 					currTime = nil
 				end
 				encounterID = module.db.prevEncounterID
@@ -211,7 +203,7 @@ function module.main:LOOT_HISTORY_UPDATE_ENCOUNTER(encounterID)
 				itemLinkShort = itemLink:match("(item:.-)|h")
 			
 				local _, _, itemRarity = GetItemInfo(itemLink)
-				if itemRarity and itemRarity < 4 then
+				if itemRarity and itemRarity < (ExRT.isFE and 3 or 4) then
 					currTime = nil
 				end
 			end

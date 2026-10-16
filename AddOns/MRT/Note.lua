@@ -608,7 +608,7 @@ end
 function module.options:Load()
 	self:CreateTilte()
 
-	module.db.otherIconsAdditionalList = MRT.isClassic and {} or {
+	module.db.otherIconsAdditionalList = (MRT.isClassic or MRT.isFE) and {} or {
 		31821,62618,97462,98008,115310,64843,740,265202,108280,31884,196718,15286,64901,47536,246287,109964,33891,16191,108281,114049,51052,359816,363534,322118,325197,124974,197721,0,
 		47788,33206,6940,102342,114030,1022,116849,633,204018,207399,370960,357170,370537,0,
 		2825,32182,80353,0,
@@ -780,7 +780,7 @@ function module.options:Load()
 	end
 	--/run GMRT.A.Note.options:DebugGetIcons(true)
 
-	if not MRT.isClassic then
+	if not (MRT.isClassic or MRT.isFE) then
 		module.db.encountersList = MRT.F.GetEncountersList(true,false,true)
 		tinsert(module.db.encountersList,MRT.F.table_find(module.db.encountersList,1582,1) or #module.db.encountersList,{EXPANSION_NAME8..": "..DUNGEONS,-1182,-1183,-1184,-1185,-1186,-1187,-1188,-1189})
 		tinsert(module.db.encountersList,MRT.F.table_find(module.db.encountersList,909,1) or #module.db.encountersList,{EXPANSION_NAME7..": "..DUNGEONS,-1012,-968,-1041,-1022,-1030,-1023,-1002,-1001,-1036,-1021})
@@ -1387,7 +1387,7 @@ function module.options:Load()
 
 		GameTooltip_Hide()
 	end)
-	if MRT.isClassic and not MRT.isCata then
+	if (MRT.isClassic or MRT.isFE) and not MRT.isCata then
 		self.autoLoadDropdown:Hide()
 	end
 
@@ -2462,7 +2462,7 @@ function module.options:Load()
 	end) 
 
 
-	if MRT.isClassic and not MRT.isCata then
+	if (MRT.isClassic or MRT.isFE) and not MRT.isCata then
 		self.dropDownBossAutoLoadType:Hide()
 		self.chkEnableBossAutoLoad:Hide()
 		self.chkBossAutoLoadSend:Hide()
@@ -3128,8 +3128,8 @@ function module.options:Load()
 		"|n|cffffff00{!c:|r|cff00ff00Mage,Hunter|r|cffffff00}|r...|cffffff00{/c}|r - "..L.NoteHelp8b..
 		"|n|cffffff00{g|r|cff00ff002|r|cffffff00}|r...|cffffff00{/g}|r - "..L.NoteHelp10..
 		"|n|cffffff00{!g|r|cff00ff0034|r|cffffff00}|r...|cffffff00{/g}|r - "..L.NoteHelp10b..
-		(MRT.isClassic and "|n|cffffff00{race:|r|cff00ff00troll,orc|r|cffffff00}|r...|cffffff00{/race}|r - "..L.NoteHelp11 or "")..
-		(MRT.isClassic and "|n|cffffff00{!race:|r|cff00ff00dwarf|r|cffffff00}|r...|cffffff00{/race}|r - "..L.NoteHelp11b or "")..
+		((MRT.isClassic or MRT.isFE) and "|n|cffffff00{race:|r|cff00ff00troll,orc|r|cffffff00}|r...|cffffff00{/race}|r - "..L.NoteHelp11 or "")..
+		((MRT.isClassic or MRT.isFE) and "|n|cffffff00{!race:|r|cff00ff00dwarf|r|cffffff00}|r...|cffffff00{/race}|r - "..L.NoteHelp11b or "")..
 		("|n|cffffff00{time:|r|cff00ff002:45|r|cffffff00}|r - "..L.NoteHelp7 or "")..
 		(not MRT.isClassic and "|n|cffffff00{p|r|cff00ff002|r|cffffff00}|r...|cffffff00{/p}|r - "..L.NoteHelp9 or "")..
 		"|n|cffffff00{0}|r...|cffffff00{/0}|r - "..L.NoteHelp12

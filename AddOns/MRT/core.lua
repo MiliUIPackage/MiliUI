@@ -1,8 +1,8 @@
---	10.09.2026
+--	11.10.2026
 
 local GlobalAddonName, MRT = ...
 
-MRT.V = 5330
+MRT.V = 5335
 MRT.T = "R"
 
 MRT.Slash = {}			--> функции вызова из коммандной строки
@@ -39,9 +39,13 @@ do
 	local expansion,majorPatch,minorPatch = (version or "5.0.0"):match("^(%d+)%.(%d+)%.(%d+)")
 	MRT.clientVersion = (expansion or 0) * 10000 + (majorPatch or 0) * 100 + (minorPatch or 0)
 end
-if MRT.clientVersion < 20000 then
+if MRT.clientVersion < 16000 then
 	MRT.isClassic = true
-	MRT.T = "Classic"	
+	MRT.T = "Classic"
+elseif MRT.clientVersion < 20000 then
+	MRT.isMN = true
+	MRT.isFE = true
+	MRT.T = "Forever"	
 elseif MRT.clientVersion < 30000 then
 	MRT.isClassic = true
 	MRT.isBC = true

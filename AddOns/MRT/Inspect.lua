@@ -98,7 +98,7 @@ module.db.itemsSlotTable = {
 	16,	--INVSLOT_MAINHAND
 	17,	--INVSLOT_OFFHAND
 }
-if ExRT.isClassic and not ExRT.isMoP then
+if (ExRT.isClassic and not ExRT.isMoP) or (ExRT.isFE) then
 	module.db.itemsSlotTable[#module.db.itemsSlotTable+1] = 18 	--INVSLOT_RANGED
 end
 

@@ -111,7 +111,7 @@ local function CreateTimers(ctime,cname)
 		SendAddonMessage("BigWigs", "P^Pull^"..ctime, chat_type,playerName)
 		local _,_,_,_,_,_,_,mapID = GetInstanceInfo()
 		SendAddonMessage(dbmPrefix, ("%s1\tPT\t%d\t%d"):format(dbmPlayerPrefix, ctime,mapID or 0), chat_type,playerName)
-		if not ExRT.isClassic and VMRT.Timers.BlizzTimer then
+		if not (ExRT.isClassic or ExRT.isFE) and VMRT.Timers.BlizzTimer then
 			if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown() then
 				print("Not possible to start ingame countdown during combat.")
 			else
@@ -139,7 +139,7 @@ local function CreateTimers(ctime,cname)
 		end
 		SendAddonMessage("BigWigs", "P^CBar^"..ctime.." "..cname, chat_type,playerName)
 		SendAddonMessage(dbmPrefix, ("%s1\tU\t%d\t%s"):format(dbmPlayerPrefix, ctime, cname), chat_type,playerName)
-		if not ExRT.isClassic and VMRT.Timers.BlizzTimer then
+		if not (ExRT.isClassic or ExRT.isFE) and VMRT.Timers.BlizzTimer then
 			if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown() then
 				print("Not possible to stop ingame countdown during combat.")
 			else
@@ -347,7 +347,7 @@ function module.options:Load()
 
 	self.chkDisableRW = ELib:Check(self,L.TimerEnableBlizz,VMRT.Timers.BlizzTimer):Tooltip(L.TimerEnableBlizzTooltip):Point(15,-175):OnClick(function(self) 
 		VMRT.Timers.BlizzTimer = self:GetChecked()
-	end):Shown(not ExRT.isClassic)
+	end):Shown(not (ExRT.isClassic or ExRT.isFE))
 	
 	self.TabTimerFrame = ELib:OneTab(self):Size(678,155):Point("TOP",0,-205)
 	ELib:Border(self.TabTimerFrame,0)
@@ -551,7 +551,7 @@ function module.options:Load()
 		else
 			VMRT.Timers.useDPT = nil
 		end
-	end):Shown(not ExRT.isClassic or ExRT.isCata)
+	end):Shown(not (ExRT.isClassic or ExRT.isFE) or ExRT.isCata)
 	
 	local function SpecsEditBoxTextChanged(self,isUser)
 		if not isUser then
@@ -570,9 +570,9 @@ function module.options:Load()
 		VMRT.Timers.specTimes[spec] = val
 	end
 	
-	self.scrollFrame = ELib:ScrollFrame(self):Size(678,220):Point("TOP",0,-413):Height(700):Shown(not ExRT.isClassic or ExRT.isCata)
+	self.scrollFrame = ELib:ScrollFrame(self):Size(678,220):Point("TOP",0,-413):Height(700):Shown(not (ExRT.isClassic or ExRT.isFE) or ExRT.isCata)
 	ELib:Border(self.scrollFrame,0)
-	self.scrollFrameText = ELib:Text(self,L.TimerSpecTimerHeader,12):Size(620,30):Point("BOTTOMLEFT",self.scrollFrame,"TOPLEFT",5,1):Bottom():Shown(not ExRT.isClassic or ExRT.isCata)
+	self.scrollFrameText = ELib:Text(self,L.TimerSpecTimerHeader,12):Size(620,30):Point("BOTTOMLEFT",self.scrollFrame,"TOPLEFT",5,1):Bottom():Shown(not (ExRT.isClassic or ExRT.isFE) or ExRT.isCata)
 	self.scrollFrame.C.classTitles = {}
 	self.scrollFrame.C.classFrames = {}
 	if ExRT.isCata then

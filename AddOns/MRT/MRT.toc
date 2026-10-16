@@ -1,11 +1,11 @@
-## Interface: 11509, 40402, 120100, 120105, 50504, 20506, 38002
+## Interface: 11509, 40402, 120100, 120105, 50504, 20506, 38002, 16001
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools
 ## Title-zhTW: |cffFF7F00[副本]|r Method 團隊工具箱
 ## Notes-zhTW: Method Raid Tools |n|n一個團隊會用到應有盡有的工具箱插件，包含團隊技能CD，團隊準備檢查等等。
 ## SavedVariables: VMRT
-## Version: 5330
+## Version: 5335
 ## AddonCompartmentFunc: MRT_MinimapClickFunction
 ## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
 ## Category: Raid
@@ -45,6 +45,7 @@ Timers.lua
 RaidAttendance.lua
 Encounter.lua
 LootHistory.lua
+Coins.lua [AllowLoadGameType classic]
 WhoPulled.lua [AllowLoadGameType classic]
 Pets.lua
 AutoLogging.lua

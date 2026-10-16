@@ -3761,7 +3761,7 @@ function options:Load()
 		for i=1,#dungBossList do dungIDs[ dungBossList[i][1] ] = true end
 
 		local listDung = {}
-		self.List[#self.List+1] = {text = DUNGEONS or "DUNGEONS", arg3 = "dung", subMenu = listDung, prio = 40000-1, isHidden = ExRT.isClassic}
+		self.List[#self.List+1] = {text = DUNGEONS or "DUNGEONS", arg3 = "dung", subMenu = listDung, prio = 40000-1, isHidden = (ExRT.isClassic or ExRT.isFE)}
 
 		for bossID,bossData in pairs(options.timeLine.Data) do
 			local toadd
@@ -3800,7 +3800,7 @@ function options:Load()
 							end
 						end
 
-						toadd = {text = text, arg3 = zone[1], subMenu = {}, zonemd = zone, prio = 40000+zone[1]+(zoneMapID and SORT_DUNG_LIST[ zoneMapID ] and SORT_DUNG_LIST[ zoneMapID ]*5000 or 0), icon = zoneImg, isHidden = ExRT.isClassic and text and text:find("^Map ID")}
+						toadd = {text = text, arg3 = zone[1], subMenu = {}, zonemd = zone, prio = 40000+zone[1]+(zoneMapID and SORT_DUNG_LIST[ zoneMapID ] and SORT_DUNG_LIST[ zoneMapID ]*5000 or 0), icon = zoneImg, isHidden = (ExRT.isClassic or ExRT.isFE) and text and text:find("^Map ID")}
 						if not isDung then
 							self.List[#self.List+1] = toadd
 						else
@@ -3813,7 +3813,7 @@ function options:Load()
 				isZone = true
 				toadd = ExRT.F.table_find3(self.List,"m+","arg3")
 				if not toadd then
-					toadd = {text = PLAYER_DIFFICULTY_MYTHIC_PLUS or "M+", arg3 = "m+", subMenu = {}, prio = 40000-2, isHidden = ExRT.isClassic}
+					toadd = {text = PLAYER_DIFFICULTY_MYTHIC_PLUS or "M+", arg3 = "m+", subMenu = {}, prio = 40000-2, isHidden = (ExRT.isClassic or ExRT.isFE)}
 					self.List[#self.List+1] = toadd
 				end
 				toadd = toadd.subMenu
@@ -3852,7 +3852,7 @@ function options:Load()
 				boss_list.arg2 = name
 				boss_list.prio = -100000-bossID+(SORT_DUNG_LIST[-bossID] and SORT_DUNG_LIST[-bossID]*5000 or 0)
 			end
-			if not (boss_list.text == "" and ExRT.isClassic) then
+			if not (boss_list.text == "" and (ExRT.isClassic or ExRT.isFE)) then
 				toadd[#toadd+1] = boss_list
 			end
 			if boss_list.text == "" then

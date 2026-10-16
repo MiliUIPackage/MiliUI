@@ -1217,7 +1217,7 @@ function module.options:Load()
 		{L.S_ZoneT22Uldir,9,8,11,7,6,5,4,2,3},
 		{DUNGEONS..": "..EXPANSION_NAME7,41,42,43,44,12,13,14,15,16,17,18,19},
 	}
-	if ExRT.isClassic then
+	if ExRT.isClassic or ExRT.isFE then
 		mapsSorted = {
 			1,
 			{L.NoteColor,10,94,95,96,97,98,99},

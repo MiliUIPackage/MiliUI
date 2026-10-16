@@ -235,7 +235,7 @@ function ExRT.F:LockMove(isLocked,touchTexture,dontTouchMouse)
 end
 
 local MAX_RAID_GROUP = 5
-if ExRT.isClassic and not ExRT.isBC then
+if (ExRT.isClassic or ExRT.isFE) and not ExRT.isBC then
 	MAX_RAID_GROUP = 8
 end
 local DIFF_TO_MAX_GROUP = {
@@ -2645,6 +2645,7 @@ ExRT.GDB.EncountersList = {
 	{2427,3159},	--Sporefall:Raid
 	{2632,3379},	--The Tidebound Grotto:Raid
 	{2606,3470,3445,3497,3455,3420,3421,3429,3492},	--The Venomous Abyss:Raid
+	{2669,3513},
 }
 
 
