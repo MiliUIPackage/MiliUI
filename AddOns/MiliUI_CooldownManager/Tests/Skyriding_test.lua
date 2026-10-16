@@ -335,6 +335,15 @@ do
     m = SR.SurgeIcon({ rows = { surge = { icon = { mode = "bogus" } } } })
     eq("圖示：不認得的模式 ＝ 關", m, "off")
 
+    -- 坐騎特效按鈕的設定（夾值；沒存 ＝ 開）
+    local on, bw, bh, bx, by, bs = SR.MountButton({})
+    check("坐騎特效鈕：沒存 ＝ 開、100×20、(0,-6)、字級 12", on == true and bw == 100 and bh == 20 and bx == 0 and by == -6 and bs == 12)
+    on, bw, bh, bx, by, bs = SR.MountButton({ mountButton = { enabled = false, width = 9999, height = 1, x = -9999, y = 50, size = 99 } })
+    check("坐騎特效鈕：關、夾值", on == false and bw == 400 and bh == 12 and bx == -400 and by == 50 and bs == 40)
+    check("坐騎特效鈕：不是表 ＝ 預設", (SR.MountButton({ mountButton = "x" })) == true)
+    local dm = DB.BuildDefaults().profile.skyriding.mountButton
+    check("預設值有 mountButton 且開著", type(dm) == "table" and dm.enabled == true and dm.width == 100)
+
     -- 整列沒勾：長條與圖示都不畫；raw 讀存的值
     local off = { rows = { surge = { enabled = false, icon = { mode = "always" } } } }
     eq("沒勾：圖示關", (SR.SurgeIcon(off)), "off")

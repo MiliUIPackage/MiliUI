@@ -996,6 +996,12 @@ L["While skyriding, the skyriding bars take over this spot (Skyriding page, Posi
 L["Show the bar"] = "显示长条"
 L["Turn it off to show only the icon (see Icon below)."] = "关掉就只显示图标（在下方「图标」设置）。"
 L["Electric effect when full"] = "充满时的电光效果"
+-- 坐骑特效按钮（Modules/Skyriding.lua、Options/Tab_Skyriding.lua，2026-10-16）
+L["Mount Special"] = "坐骑特效"
+L["Mount Special button"] = "坐骑特效按钮"
+L["Show a Mount Special button"] = "显示坐骑特效按钮"
+L["A button centered under the skyriding bars that runs /mountspecial, your mount's special animation. It only shows while skyriding on the ground."] = "驭空术条下方正中央的一个按钮，按下去执行 /mountspecial（坐骑的特效动作）。只在驭空术、在地面上时出现。"
+L["Button size"] = "按钮尺寸"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "速度条"
 L["Rows to show"] = "显示哪些"

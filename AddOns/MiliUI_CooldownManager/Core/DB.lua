@@ -566,6 +566,9 @@ SkyridingDefaults = function()
         width            = 0,              -- 0 ＝ 跟核心技能第一列同寬（同資源條）
         gap              = 1,              -- 列與列之間、充能格之間的間距
         hideGroundedFull = false,          -- 在地面上而且活力全滿 ⇒ 不顯示（使用者 2026-10-06 指定預設關）
+        -- 坐騎特效按鈕（2026-10-16，使用者指定預設開）：面板下方正中央的 secure 巨集鈕（/mountspecial），只在地面上出現。
+        -- x／y ＝ 鈕的 TOP 對面板 BOTTOM 的位移；size ＝ 字級（Skyriding.MountButton 夾值）
+        mountButton      = { enabled = true, width = 100, height = 20, x = 0, y = -6, size = 12 },
         -- 由上往下的順序（設定頁的上下箭頭改這張）。整張是一個值：使用者排過的不跟預設逐格合併
         --（逐格合併會把預設的 key 補進使用者少掉的格子、排出重複）；缺的 key 由 Skyriding.Order 補在後面
         order            = Atomic({ "speed", "surge", "vigor", "secondWind" }),
