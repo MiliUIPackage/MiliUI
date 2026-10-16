@@ -65,3 +65,7 @@ end
 
 套組裡 Ayije_CDM 的版本在 `Ayije_CDM/Core/Style.lua`（就地改，見 [[project-local-addon-forks]]）：名字 alpha-only、可見度掛勾只留給倒數與層數、
 `SetBarContent` 後掛勾 `Show()`、`InstallBarNameTextHook`／`ApplyCustomBarName`。沒有任何地方呼叫暴雪的 `RefreshName`。
+
+**12.1.5 更新（2026-10-17 實機）**：召喚惡魔暴君第一次召喚時，暴雪寫進來的名字變成**空的秘密字串**（diag 是 `[barname] 84224 秘密字串（留著）`、畫面整條沒名字），上面那條「nil 就用法術名頂」接不到。
+秘密字串讀不到內容，但 `FontString:GetStringWidth()` 只在**錨點是秘密**時才回秘密（API 文件 `SecretWhenAnchoringSecret`，跟文字的秘密 aspect 無關）⇒ 明文寬度 0 ＝ 空的 ⇒ 照樣用法術名頂；寬度非 0 或是秘密值就留著。MCDM `OnBarNameSetText` 已改。
+

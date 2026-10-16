@@ -103,6 +103,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-unitframe-event-dispatch-cost.md](wow-unitframe-event-dispatch-cost.md) | 團隊框架的成本在事件派送不在繪圖：`RegisterUnitEvent` 的 C 層過濾、共用 ticker 取代 N 個 OnUpdate、filter 字串共用解析、顏色套用戳記 |
 | [wow-autoaccept-quest-delay.md](wow-autoaccept-quest-delay.md) | 自動接任務要延遲 0.5 秒：立刻 AcceptQuest 會被伺服器丟掉、六個假設全錯；實作＝預設秒接＋查勤＋內建種子清單（週任 ID 輪替）＋逐條學習、**共用秒數只在「等過還失敗」才加**、questID 0 不查勤 |
 | [wow-gettime-stamp-multipacket.md](wow-gettime-stamp-multipacket.md) | **「一幀之內狀態不會變」是錯的**：多封包幀同一個 `GetTime()` 派送多波事件 —— 快照讀取＋終點狀態不能吃戳記跳過，「字對條錯」是指紋 |
+| [wow-getspellcooldown-isongcd-nil.md](wow-getspellcooldown-isongcd-nil.md) | `C_Spell.GetSpellCooldown` 不在 GCD 時 `isOnGCD` 是 **nil 不是 false**；判真冷卻要 `not isOnGCD`，比 `== false` 永遠不成立 |
 | [wow-unit-power-update-2s.md](wow-unit-power-update-2s.md) | `UNIT_POWER_UPDATE` 在回能／衰減期間**兩秒才送一次** ——「能量要 2 秒才更新」的成因；掛 `UNIT_POWER_FREQUENT`，UPDATE 留 force 當「回滿」的保底 |
 | [wow-transmog-roll-chat-garbage.md](wow-transmog-roll-chat-garbage.md) | 團隊骰裝按**塑形**聊天印出 `u`、`]` 之類怪字元：GlobalStrings 缺塑形的 `_SELF` 字串，客戶端把首領編號的原始位元組當訊息（**位元組當整數解回來＝lootHistory 編號**是指紋）；GlobalStrings 可從 wago.tools 整張抓；含四條看起來很像真的錯路 |
 | [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口；**隱式保護沿錨點鏈遞迴傳** —— 排版鏈尾巴一顆 secure 鈕，前面整排都成保護框，要直接錨父框 |
