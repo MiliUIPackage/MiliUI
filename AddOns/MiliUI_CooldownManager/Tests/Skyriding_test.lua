@@ -343,6 +343,16 @@ do
     check("坐騎特效鈕：不是表 ＝ 預設", (SR.MountButton({ mountButton = "x" })) == true)
     local dm = DB.BuildDefaults().profile.skyriding.mountButton
     check("預設值有 mountButton 且開著", type(dm) == "table" and dm.enabled == true and dm.width == 100)
+    -- 顯示判斷：面板顯示中而且在地面上；空中／秘密／讀不到都藏；編輯模式一律顯示；關掉或舊插件擋著一律藏
+    local MS = SR.MountShown
+    eq("坐騎特效鈕：地面上 ⇒ 顯示", MS({}, { isGliding = false }, true, false), true)
+    eq("坐騎特效鈕：空中 ⇒ 藏", MS({}, { isGliding = true }, true, false), false)
+    eq("坐騎特效鈕：isGliding 秘密 ⇒ 藏", MS({}, { isGliding = SECRET }, true, false), false)
+    eq("坐騎特效鈕：isGliding 讀不到 ⇒ 藏", MS({}, {}, true, false), false)
+    eq("坐騎特效鈕：面板沒顯示 ⇒ 藏", MS({}, { isGliding = false }, false, false), false)
+    eq("坐騎特效鈕：編輯模式一律顯示", MS({}, { isGliding = true }, false, true), true)
+    eq("坐騎特效鈕：關掉 ⇒ 編輯模式也藏", MS({ mountButton = { enabled = false } }, { isGliding = false }, true, true), false)
+    eq("坐騎特效鈕：舊插件擋著 ⇒ 藏", MS({}, { blocked = true, isGliding = false }, true, true), false)
 
     -- 整列沒勾：長條與圖示都不畫；raw 讀存的值
     local off = { rows = { surge = { enabled = false, icon = { mode = "always" } } } }

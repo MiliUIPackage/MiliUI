@@ -9,8 +9,8 @@
 -- 每一列各自的高、前景／背景材質（INHERIT ＝ 跟資源條頁）、背景色、前景色、文字（顯示、位置、位移、字型、字級、顏色）。
 -- 另有一顆可選的旋轉急衝冷卻圖示（rows.surge.icon，預設關；錨在整塊面板外面，不算在面板尺寸裡 ⇒ 不影響排開）。
 -- 旋轉急衝那一列沒勾 ⇒ 長條與圖示都不畫；rows.surge.bar ＝ false ⇒ 只畫圖示（SR.SurgeBarOn／SR.SurgeIcon）。
--- 另有一顆可選的坐騎特效按鈕（mountButton，預設開）：面板下方正中央的 secure 巨集鈕（/mountspecial），只在天空騎術、地面上出現，
--- 同樣錨在面板外面、不算在面板尺寸裡；規矩見下面「坐騎特效按鈕」那一節。
+-- 另有一顆可選的坐騎特效按鈕（mountButton，預設開）：面板下方正中央的普通按鈕（C_ChatInfo.PerformEmote "MOUNTSPECIAL"，五秒冷卻），
+-- 只在天空騎術、地面上出現；同樣錨在面板外面、不算在面板尺寸裡；規矩見下面「坐騎特效按鈕」那一節。
 --
 -- 旋轉急衝長條：好了 ＝ 滿的（一顆靜態的 StatusBar），冷卻中 ＝ 另一顆 StatusBar 吃 GetSpellCooldownDuration 的
 -- duration 物件從空長到滿（引擎跑）。滿的時候疊電光（裁切框裡一道 ADD 掃光＋整條呼吸亮層），冷卻好了那一刻震一下
@@ -664,10 +664,11 @@ local surgeGen = 0             -- 冷卻結束補一次的 C_Timer 世代
 local surgeTicker, surgeEnd    -- 秒數文字的 ticker 與冷卻結束時刻（明文）
 local Mark                     -- 前置宣告（定義在事件那一節；DrawSurgeBar 的 C_Timer 也叫它）
 local geo                      -- 上次排版的 SR.Geometry
-local mountBtn, mountUI        -- 坐騎特效按鈕（secure；戰鬥外才建）與它的子元件（不寫在鈕身上）
-local mountMode                -- 上次寫進鈕的模式：off｜live｜preview（nil ＝ 還沒寫過）
-local mountSig                 -- 上次寫進鈕的幾何簽章
-local mountPending = false     -- 戰鬥中要建鈕但建不了：脫戰 Mark 一次
+local mountBtn, mountUI        -- 坐騎特效按鈕與它的子元件
+local mountShown               -- 上次 SetShown 的值（nil ＝ 還沒寫過）
+local mountCdEnd               -- 冷卻結束時刻（GetTime）；nil ＝ 沒在冷卻
+local mountCdGen = 0           -- 冷卻結束 C_Timer 的世代
+local BuildMountButton         -- 前置宣告（定義在「坐騎特效按鈕」那一節；Build 叫）
 
 local function C4(c, d)
     if type(c) ~= "table" then return d[1], d[2], d[3], d[4] or 1 end
@@ -908,6 +909,7 @@ local function Build()
     surge.top:SetFrameLevel(surge:GetFrameLevel() + 5)
     surge.border = ns.Decorate.MakeBorder(surge.top)
     surge:Hide()
+    BuildMountButton()
 end
 
 ------------------------------------------------------------
@@ -1083,29 +1085,22 @@ end
 ------------------------------------------------------------
 -- 坐騎特效按鈕（cfg.mountButton；2026-10-16）
 --
--- 面板下方正中央一顆 secure 巨集鈕（SecureActionButtonTemplate、type=macro、macrotext=/mountspecial：英文指令每個語系都通），
--- 按下去播坐騎的特效動作。為什麼不是普通按鈕呼叫 Lua：DoEmote 12.0 起列為棄用（Deprecated_ChatInfo.lua），
--- 12.1.5 有拔相容層的前例（.claude/notes/wow-1215-api-changes.md）⇒ 不押它；巨集走暴雪自己的指令解析，不怕改名。
+-- 面板下方正中央一顆**普通**按鈕（不是 secure 模板），按下去呼叫 C_ChatInfo.PerformEmote("MOUNTSPECIAL")
+-- （12.0 取代 DoEmote 的 API，wiki 沒標保護、只標 HasRestrictions；舊客戶端退回 DoEmote）。token 是英文，每個語系都通。
+-- 為什麼不用 secure 巨集鈕：坐騎特效不是施法，不需要 secure；普通按鈕才能自己做滑過／按下的效果與五秒冷卻，
+-- 而且戰鬥中 Show／Hide／改欄位都不受限、也不會把容器變成隱式保護框。
 --
--- 顯示／隱藏（跟點擊層同一套規矩，Core/Clickable.lua）：
---   * 它是保護框：戰鬥中不能 Show／Hide／SetPoint／SetAttribute ⇒ 幾何與模式切換一律走 ns.Write（戰鬥中記帳到脫戰）、
---     用簽章去重；只在戰鬥外建（戰鬥中缺鈕記 mountPending，脫戰 Mark 一次）。
---   * 「在天空騎術而且在地面上」交給 secure 狀態驅動：RegisterStateDriver(鈕, "visibility", MOUNT_COND)
---     —— bonusbar:5 ＝ 天空騎術專用動作條（同 SR.Riding 看的 11／5），noflying ＝ 沒在空中。戰鬥中上下坐騎、起飛落地都由引擎切，
---     我們的 Lua 不碰。空中按了沒用（坐騎特效只在地面播）所以空中不顯示。
---   * 面板不顯示（關掉、德比賽跑、舊插件擋著、地面上活力全滿時隱藏）⇒ 卸掉驅動＋Hide（mode "off"）；面板顯示中 ⇒ 掛驅動（"live"）；
---     編輯模式 ⇒ 卸掉驅動＋Show（"preview"，讓玩家看得到位置）。三種模式只在變了的時候寫。
---     戰鬥中面板從顯示變不顯示（例如 hideGroundedFull）時卸不掉驅動：鈕跟著容器 alpha 0 看不見但還吃滑鼠，脫戰補做；
---     反過來戰鬥中才變顯示則脫戰才出現（寧可少顯示）。
---   * 鈕只掛暴雪自己的高亮／按下貼圖，不掛 OnClick／PreClick（同一次點擊裡排在 secure 動作前的插件 Lua 會染髒那次點擊）；
---     鈕身上不寫 Lua 欄位（模板的 OnClick 是暴雪的碼），子元件放 mountUI。
---   * 鈕錨在容器上 ⇒ 容器變隱式保護框：Bars 對容器的寫入本來就走 ns.Write（點擊層早就造成同樣狀況）。
--- 外觀照套組 HUD 皮：0x1A 灰底 alpha 0.8、1 實體像素職業色邊（ns.Resources.Edges，P.Pixel）、白字描邊、直角；
--- 滑過亮一階（高亮貼圖）、按下暗一階（按下貼圖），只換明暗。字＝語系檔的「坐騎特效」。
+-- 顯示：面板顯示中（active）而且在地面上（isGliding 明文 false；秘密／讀不到 ⇒ 當在空中，不顯示——空中按了沒用）；
+--   編輯模式一律顯示（讓玩家看得到位置）；關掉、面板不顯示 ⇒ 藏。每次 SR.Refresh 判一次（起飛落地有事件）。
+-- 效果（HUD 皮的三態：只換明暗）：閒置字 0.75、滑過字 1.0＋亮一層、按下字 0.6＋暗一層＋字下沉 1px。
+-- 冷卻（MOUNT_CD 秒）：按下後 Cooldown 框跑轉圈（引擎跑，沒有 OnUpdate）、字變暗、按鈕停用；到時 C_Timer 復原（世代計數擋舊的）。
+--   文字與邊框放在冷卻框上面的子框（top），轉圈蓋不到字。
+-- 外觀照套組 HUD 皮：0x1A 灰底 alpha 0.8、1 實體像素職業色邊（ns.Resources.Edges，P.Pixel）、白字描邊、直角。
 ------------------------------------------------------------
-local MOUNT_MACRO = "/mountspecial"
-local MOUNT_COND  = "[bonusbar:5,noflying] show; hide"
+local MOUNT_EMOTE = "MOUNTSPECIAL"
+local MOUNT_CD    = 5
 local HUD_BG      = 0x1A / 255
+local MOUNT_IDLE, MOUNT_HOVER, MOUNT_PRESS, MOUNT_CDALPHA = 0.75, 1, 0.6, 0.4
 
 local function AccentColor()
     local r, g, b = ns.Style.Accent()
@@ -1116,67 +1111,130 @@ local function PaintMountBorder()
     if mountUI then ns.Resources.PaintEdges(mountUI.edges, 1, AccentColor()) end
 end
 
--- 幾何走 ns.Write（簽章去重）；字級與邊框是區域，直接畫
+local function MountOnCooldown()
+    return mountCdEnd ~= nil and GetTime() < mountCdEnd
+end
+
+-- 三態的樣子：hover／pressed 來自滑鼠腳本；冷卻中一律暗字、不亮
+local function PaintMountState(hover, pressed)
+    local ui = mountUI
+    if not ui then return end
+    if MountOnCooldown() then
+        ui.text:SetAlpha(MOUNT_CDALPHA)
+        ui.hl:SetAlpha(0)
+        ui.dark:SetAlpha(0)
+        ui.text:SetPoint("CENTER", ui.top, "CENTER", 0, 0)
+        return
+    end
+    ui.text:SetAlpha(pressed and MOUNT_PRESS or hover and MOUNT_HOVER or MOUNT_IDLE)
+    ui.hl:SetAlpha(hover and not pressed and 0.10 or 0)
+    ui.dark:SetAlpha(pressed and 0.30 or 0)
+    ui.text:SetPoint("CENTER", ui.top, "CENTER", 0, pressed and -ns.P.Pixel(1) or 0)
+end
+
+local function EndMountCooldown(gen)
+    if gen ~= mountCdGen then return end
+    mountCdEnd = nil
+    if mountBtn then
+        mountBtn:SetEnabled(true)
+        PaintMountState(mountBtn:IsMouseOver(), false)
+    end
+end
+
+local function StartMountCooldown()
+    mountCdGen = mountCdGen + 1
+    mountCdEnd = GetTime() + MOUNT_CD
+    if mountUI.cd then mountUI.cd:SetCooldown(GetTime(), MOUNT_CD) end
+    mountBtn:SetEnabled(false)              -- 停用：OnClick 不響、滑過不亮
+    PaintMountState(false, false)
+    local gen = mountCdGen
+    C_Timer.After(MOUNT_CD, function() EndMountCooldown(gen) end)
+end
+
+local function MountClick()
+    if MountOnCooldown() then return end
+    local fn = (C_ChatInfo and C_ChatInfo.PerformEmote) or DoEmote
+    if fn then pcall(fn, MOUNT_EMOTE) end     -- 受限（M+ 的聊天封鎖那類）時回 false／拋錯：不報、照樣進冷卻
+    StartMountCooldown()
+end
+
+-- 幾何；字級與邊框跟著設定
 local function LayoutMountButton(cfg)
     local b = mountBtn
     if not b then return end
     local _, w, h, x, y, size = SR.MountButton(cfg)
-    local W, H, X, Y = ns.P.Scale(w), ns.P.Scale(h), ns.P.Scale(x), ns.P.Scale(y)
-    local sig = table.concat({ W, H, X, Y }, ",")
-    if sig ~= mountSig then
-        mountSig = sig
-        ns.Write(b, function(f)
-            f:SetSize(W, H)
-            f:ClearAllPoints()
-            f:SetPoint("TOP", container, "BOTTOM", X, Y)
-        end, "geom")
-    end
+    b:SetSize(ns.P.Scale(w), ns.P.Scale(h))
+    b:ClearAllPoints()
+    b:SetPoint("TOP", container, "BOTTOM", ns.P.Scale(x), ns.P.Scale(y))
     ns.Media.SetPixelFont(mountUI.text, size, "OUTLINE")
     PaintMountBorder()
 end
 
--- 只在戰鬥外建；戰鬥中回 nil 並記 pending（脫戰 Mark）
-local function EnsureMountButton()
-    if mountBtn then return mountBtn end
-    if InCombatLockdown() then mountPending = true; return nil end
-    local b = CreateFrame("Button", "MiliUICDM_MountSpecial", container, "SecureActionButtonTemplate")
+BuildMountButton = function()
+    local b = CreateFrame("Button", "MiliUICDM_MountSpecial", container)
     b:SetFrameLevel(root:GetFrameLevel() + 10)
-    b:RegisterForClicks("AnyDown", "AnyUp")        -- 兩邊都註冊：引擎照 ActionButtonUseKeyDown 決定哪一邊，只響一次（套組慣例）
-    b:SetAttribute("type", "macro")
-    b:SetAttribute("macrotext", MOUNT_MACRO)
+    b:RegisterForClicks("LeftButtonUp")
     local bg = b:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints(b)
     bg:SetTexture(SOLID)
     bg:SetVertexColor(HUD_BG, HUD_BG, HUD_BG, 0.8)
-    b:SetHighlightTexture(SOLID)
-    b:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.12)
-    b:SetPushedTexture(SOLID)
-    b:GetPushedTexture():SetVertexColor(0, 0, 0, 0.25)
-    local text = b:CreateFontString(nil, "OVERLAY")
+    local hl = b:CreateTexture(nil, "ARTWORK")          -- 滑過：亮一層（ADD）
+    hl:SetAllPoints(b)
+    hl:SetTexture(SOLID)
+    hl:SetBlendMode("ADD")
+    hl:SetVertexColor(1, 1, 1, 1)
+    hl:SetAlpha(0)
+    local dark = b:CreateTexture(nil, "ARTWORK", nil, 1) -- 按下：暗一層
+    dark:SetAllPoints(b)
+    dark:SetTexture(SOLID)
+    dark:SetVertexColor(0, 0, 0, 1)
+    dark:SetAlpha(0)
+    -- 冷卻轉圈：在底與亮暗層之上、文字與邊框之下
+    local ok, cd = pcall(CreateFrame, "Cooldown", nil, b, "CooldownFrameTemplate")
+    if ok and cd then
+        cd:SetAllPoints(b)
+        cd:SetFrameLevel(b:GetFrameLevel() + 1)
+        if cd.SetDrawBling then cd:SetDrawBling(false) end
+        if cd.SetDrawEdge then cd:SetDrawEdge(false) end
+        if cd.SetHideCountdownNumbers then cd:SetHideCountdownNumbers(true) end
+        if cd.SetSwipeColor then cd:SetSwipeColor(0, 0, 0, 0.6) end
+        cd:EnableMouse(false)
+    else
+        cd = nil
+    end
+    -- 文字與邊框：冷卻框上面的子框，不吃滑鼠（不然會搶走按鈕的 OnEnter／OnLeave）
+    local top = CreateFrame("Frame", nil, b)
+    top:SetAllPoints(b)
+    top:SetFrameLevel(b:GetFrameLevel() + 3)
+    top:EnableMouse(false)
+    local text = top:CreateFontString(nil, "OVERLAY")
     ns.Media.SetPixelFont(text, 12, "OUTLINE")       -- 先有字型才能 SetText
-    text:SetPoint("CENTER", b, "CENTER", 0, 0)
+    text:SetPoint("CENTER", top, "CENTER", 0, 0)
     text:SetText(L["Mount Special"])
-    mountUI = { bg = bg, text = text, edges = ns.Resources.Edges(b, 1, AccentColor()) }
+    text:SetAlpha(MOUNT_IDLE)
+    mountUI = { bg = bg, hl = hl, dark = dark, cd = cd, top = top, text = text, edges = ns.Resources.Edges(top, 1, AccentColor()) }
+    b:SetScript("OnEnter", function() PaintMountState(true, false) end)
+    b:SetScript("OnLeave", function() PaintMountState(false, false) end)
+    b:SetScript("OnMouseDown", function() PaintMountState(true, true) end)
+    b:SetScript("OnMouseUp", function(self) PaintMountState(self:IsMouseOver(), false) end)
+    b:SetScript("OnClick", MountClick)
     b:Hide()
     mountBtn = b
-    mountSig = nil
-    LayoutMountButton(Cfg() or {})
-    return b
 end
 
--- 模式：off（卸驅動＋Hide）｜live（掛驅動，引擎照 MOUNT_COND 切）｜preview（卸驅動＋Show）。沒變不寫
-local function SyncMountButton(mode)
-    if mode ~= "off" and not EnsureMountButton() then return end
-    if not mountBtn or mountMode == mode then return end
-    mountMode = mode
-    ns.Write(mountBtn, function(f)
-        if mode == "live" then
-            RegisterStateDriver(f, "visibility", MOUNT_COND)
-        else
-            UnregisterStateDriver(f, "visibility")
-            if mode == "preview" then f:Show() else f:Hide() end
-        end
-    end, "mode")
+-- 顯示判斷：開著、沒被舊插件擋、（編輯模式）或（面板顯示中而且在地面上）
+function SR.MountShown(cfg, st, active, preview)
+    if not (SR.MountButton(cfg)) then return false end
+    if type(st) ~= "table" or st.blocked then return false end
+    if preview then return true end
+    return active == true and Plain(st.isGliding) == false
+end
+
+local function SyncMountButton(shown)
+    if not mountBtn or mountShown == shown then return end
+    mountShown = shown
+    mountBtn:SetShown(shown)
+    if shown then PaintMountState(mountBtn:IsMouseOver(), false) end
 end
 
 -- 版面變了（設定、寬、順序）才叫；格數變了只重排那一列的格子（LayoutCells）
@@ -1637,22 +1695,19 @@ function SR.Refresh()
     local preview = Editing() and SR.Enabled(cfg) and not st.blocked
     SyncEvents(riding and SR.Enabled(cfg), active, cfg)
     if wasActive ~= active and ns.Visibility then ns.Visibility.Later() end
-    local mountOn = (SR.MountButton(cfg)) and not st.blocked
+    SyncMountButton(SR.MountShown(cfg, st, active, preview))
 
     if preview then
         StopSpeed()
         DrawPreview(cfg)
-        SyncMountButton(mountOn and "preview" or "off")
         return
     end
     if not active then
         StopSpeed()
         dispSpeed = nil
         HideLive()
-        SyncMountButton("off")
         return
     end
-    SyncMountButton(mountOn and "live" or "off")
     if racingDirty then
         racingDirty = false
         racing = ReadRacing()
@@ -1749,10 +1804,7 @@ function SR.Init()
         local cfg = Cfg()
         if cfg and (tonumber(cfg.width) or 0) <= 0 then SR.Layout(); Mark() end
     end)
-    -- 坐騎特效按鈕：戰鬥中建不了鈕 ⇒ 脫戰補；職業色變了重畫邊
-    E.Register("PLAYER_REGEN_ENABLED", "skyriding", function()
-        if mountPending then mountPending = false; Mark() end
-    end)
+    -- 坐騎特效按鈕：職業色變了重畫邊
     ns.RegisterCallback("AccentChanged", "skyriding", PaintMountBorder)
     -- 進出編輯模式：離開時主動重算一次真實狀態（不等下一個事件）
     ns.RegisterCallback("EditModeChanged", "skyriding", Mark)
@@ -1775,7 +1827,7 @@ function SR.DebugLine()
                 tostring(st.isGliding), tostring(st.charges), tostring(st.maxCharges),
                 tostring(swCur), tostring(swMax), table.concat(SR.Geometry(cfg).list, ","), tostring(racing),
                 tostring(speedMax), speedState, ticking and "是" or "否", surgeTicker and "是" or "否",
-                mountBtn and tostring(mountMode) or (mountPending and "待脫戰建" or "沒建"),
+                (mountShown and "顯示" or "藏") .. (MountOnCooldown() and "(冷卻中)" or ""),
                 tostring(ns.Visibility and ns.Visibility.Current(KEY)),
                 ns.falconBlocked and "  （舊的獨立插件這次登入還載著，本面板停用）" or "")
 end
