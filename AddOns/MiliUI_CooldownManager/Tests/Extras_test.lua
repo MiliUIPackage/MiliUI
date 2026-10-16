@@ -456,7 +456,18 @@ do
     fs:SetText(s2)
     local ok2, err2 = pcall(nameHook, fs, s2)
     check("秘密字串：掛勾不碰、不拋錯", ok2, err2)
-    eq("秘密字串留著", fs.text, s2)
+    eq("秘密字串（沒有寬度 API）留著", fs.text, s2)
+    -- 秘密字串但明文寬度 0 ＝ 暴雪寫進來的是空的（12.1.5 召喚惡魔暴君第一次）⇒ 用法術名字頂
+    fs.GetStringWidth = function() return 0 end
+    fs:SetText(s2); nameHook(fs, s2)
+    eq("空的秘密字串（寬 0）⇒ 用法術名字頂", fs.text, "法術1200")
+    fs.GetStringWidth = function() return 42 end
+    fs:SetText(s2); nameHook(fs, s2)
+    eq("有寬度的秘密字串留著", fs.text, s2)
+    fs.GetStringWidth = function() return Secret() end
+    fs:SetText(s2); nameHook(fs, s2)
+    eq("寬度是秘密值（錨點秘密）留著", fs.text, s2)
+    fs.GetStringWidth = nil
     -- 自訂框不掛
     local fs2 = {}
     function fs2:SetText() end

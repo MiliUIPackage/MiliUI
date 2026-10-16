@@ -1760,17 +1760,29 @@ local function OnBarNameSetText(fs, text)
     local rec = item and ns.Viewers.frames[item]
     if not rec or rec.custom then return end
     local Note = ns.Diag and ns.Diag.Note
+    local what
     if ns.IsSecret(text) then                           -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
-        local cid = rec.cooldownID
-        if Note and cid ~= nil and not notedSecret[cid] then
-            notedSecret[cid] = true
-            Note("barname", tostring(cid) .. " 秘密字串（留著）")
-        elseif Note and cid == nil then
-            Note("barname", "nil 秘密字串（留著）")
+        -- 秘密字串讀不到內容，但 GetStringWidth 只在「錨點是秘密」時才回秘密（API 文件 SecretWhenAnchoringSecret，
+        -- 跟文字的秘密 aspect 無關）⇒ 明文寬度 0 ＝ 暴雪寫進來的是空的。實機 2026-10-17：12.1.5 召喚惡魔暴君
+        -- 第一次召喚的名字是秘密字串（totemData 整張秘密），而且是空的 ⇒ 以前「秘密就留著」整條空白到消失
+        local okW, w = pcall(fs.GetStringWidth, fs)
+        w = okW and Plain(w) or nil
+        if w ~= 0 then
+            local cid = rec.cooldownID
+            if Note and cid ~= nil and not notedSecret[cid] then
+                notedSecret[cid] = true
+                Note("barname", tostring(cid) .. " 秘密字串（留著）")
+            elseif Note and cid == nil then
+                Note("barname", "nil 秘密字串（留著）")
+            end
+            return
         end
+        what = "空的秘密字串"
+    elseif text ~= nil and text ~= "" then
         return
+    else
+        what = text == nil and "nil" or "空字串"
     end
-    if text ~= nil and text ~= "" then return end
     local spellID = BarItemSpellID(item, rec)
     local name
     if spellID then
@@ -1779,7 +1791,7 @@ local function OnBarNameSetText(fs, text)
         if type(v) == "string" and v ~= "" then name = v end
     end
     if Note then
-        Note("barname", string.format("%s %s → %s", tostring(rec.cooldownID), text == nil and "nil" or "空字串",
+        Note("barname", string.format("%s %s → %s", tostring(rec.cooldownID), what,
             name and ("法術名 " .. name) or ("沒退路（spellID " .. tostring(spellID) .. "）")))
     end
     if not name then return end
