@@ -104,7 +104,7 @@ check("預設：被打斷印斷法者、沒在施法時隱藏", fc.showInterrupt
 check("預設：pos 在施法條預設位置的上面一點", fc.pos.point == "CENTER" and fc.pos.y > d.castbar.pos.y)
 check("PANEL_KEYS 有 focuscast", DB.PANEL_KEYS.focuscast == true and ns.PANEL_KEYS.focuscast == true)
 check("IsPanel(focuscast)", DB.IsPanel("focuscast"))
-eq("PANEL_ORDER：專注目標施法條緊接在施法條後面", table.concat(DB.PANEL_ORDER, ","), "resources,pips,custombars,procdeck,castbar,focuscast,assistIcon,skyriding")
+eq("PANEL_ORDER：專注目標施法條緊接在施法條後面", table.concat(DB.PANEL_ORDER, ","), "resources,pips,custombars,procdeck,castbar,focuscast,assistIcon,skyriding,mountspecial")
 
 ns.profile = DB.BuildDefaults().profile
 local p = ns.profile

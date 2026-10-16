@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-14T17:25:12.298Z
+  modified: 2026-10-16T16:14:05.908Z
 ---
 
 ## 緣起與拍板
@@ -177,7 +177,10 @@ NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪�
   **真實條上飾品增益的提示**：暴雪 EquipSlotTracked 項目沒有 spellID，`ShowTip` 以前掉進 `SetInventoryItem` 畫整顆飾品 ⇒ 改走 `Catalog.SlotBuffTooltip`
   （`Catalog.EquipTrackedOf`）。**增益在身上時畫光環本身**（2026-10-16 玩家回報「提示是效果說明不是增益」）：走 spellID 路線
   `C_UnitAuras.GetPlayerAuraBySpellID`／`GetUnitAuraBySpellID`（AllowedWhenTainted）拿 auraInstanceID 再交給 `SetUnitAuraByAuraInstanceID`，
-  受限時 ID 是秘密值就退回說明提示（`Decorate` 的 `ShowAuraTip`／`D.TipAuraIDs`，順序照暴雪 `GetAssociatedAuraSpellPriority`）。都未實機。
+  受限時 ID 是秘密值就退回說明提示（`Decorate` 的 `ShowAuraTip`／`D.TipAuraIDs`，順序照暴雪 `GetAssociatedAuraSpellPriority`）。
+  ⚠ 玩家實機（1.6.0）：脫戰對、**戰鬥中還是描述**＝那條退路 ⇒ 2026-10-17 改成**暴雪的 item 讓它自己畫**（`D.TipPass`：提示開、看得到、
+  item 自己收滑鼠時 overlay `SetMouseMotionEnabled(false)`，暴雪 OnEnter 在安全環境讀得到秘密 ID）；ShowAuraTip 只剩自訂框用。
+  **通則：秘密值擋住的提示別自己畫，讓暴雪的框收滑鼠。** 都未實機（README 587）。
 - **音效**（`Core/Sound.lua`：就緒／出現／消失／充能滿／層數增加／施放後 N 秒提醒／倒數播報、天賦條件、自訂語音）、**事件視窗 沸點**（`Modules/EchoWindow.lua`，2026-10-12 實機：戰鬥中 `SPELL_UPDATE_COOLDOWN` 的 spellID 明文）。
 - **天空騎術**（[[project-miliui-cdm-skyriding]]）、**錨到單位框與具名框**（[[project-miliui-cdm-halo-borrow]] H4）、**效能計數 `/mcdm perf`** 與 E1～E3 修整（[[project-miliui-cdm-eui-comparison-2026-10-04]]）。
 - **專注目標施法條**（2026-10-15，面板 `focuscast`，`Modules/FocusCastbar.lua`＋`Options/Tab_FocusCast.lua`，左欄「專注目標施法」在施法條底下、**預設關**——10-15 預設開、10-16 使用者改口，v12 值閘把寫進存檔的開翻回來）：

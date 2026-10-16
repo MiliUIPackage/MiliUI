@@ -1157,8 +1157,26 @@ function Tab.Build(parent, title)
         end)
     end
 
+    -- 「觸發牌堆」分頁只給有牌堆的專精（目前只有增強薩，Modules/ProcDeck.lua 的 PD.DEFS）：其他專精連分頁鈕都不出現，
+    -- 停在那一頁時換成沒有牌堆的專精就退回職業資源。鈕排最後一顆，藏掉不留縫
+    local deckBtn
+    for _, b in ipairs(subButtons) do if b.id == "procdeck" then deckBtn = b end end
+    local function HasDecks()
+        local PD = ns.ProcDeck
+        return PD ~= nil and ns.specID ~= nil and PD.DefsFor(ns.playerClass, ns.specID)[1] ~= nil
+    end
+    local function SyncDeckTab(sub)
+        local has = HasDecks()
+        if deckBtn then deckBtn:SetShown(has) end
+        if sub == "procdeck" and not has then return "class" end
+        return sub
+    end
+
     function page:RefreshForm()
         if not Cfg() then return end
+        -- 換專精（Reread）走的是這裡不是 SetSub：牌堆分頁鈕的顯示與退回要跟著
+        local sub = SyncDeckTab(currentSub)
+        if sub ~= currentSub then return self:SetSub(sub) end
         local sig = Signature()
         local form = forms[sig]
         if not form then
@@ -1184,6 +1202,7 @@ function Tab.Build(parent, title)
 
     local highlightSub
     function page:SetSub(sub)
+        sub = SyncDeckTab(sub)
         if not SUBS[sub] then sub = "class" end
         local changed = currentSub ~= sub
         currentSub = sub

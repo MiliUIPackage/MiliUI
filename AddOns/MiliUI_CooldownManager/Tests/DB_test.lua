@@ -99,10 +99,16 @@ DB.Init()
 local sv = env.MiliUI_CooldownManager_DB
 check("SV 建立", type(sv) == "table")
 eq("schemaVersion", sv.schemaVersion, ns.DB_VERSION)
-eq("DB_VERSION", ns.DB_VERSION, 8)
-check("MIGRATIONS 有版本 3", type(DB.MIGRATIONS[3]) == "function")
-check("MIGRATIONS 有版本 4", type(DB.MIGRATIONS[4]) == "function")
-check("MIGRATIONS 有版本 1", type(DB.MIGRATIONS[1]) == "function")
+-- 版本號只跟 MIGRATIONS 走：DB_VERSION ＝ 最後一條遷移的號碼，1～DB_VERSION 每一號都有條目（號碼不重用、不跳號）。
+-- 後面「這一項不遷移、不升版本」的檢查都拿它比，不寫死數字（之後每加一條遷移都會打翻寫死的期待）
+local LAST_MIGRATION = 0
+for k in pairs(DB.MIGRATIONS) do
+    if type(k) == "number" and k > LAST_MIGRATION then LAST_MIGRATION = k end
+end
+eq("DB_VERSION ＝ 最後一條遷移", ns.DB_VERSION, LAST_MIGRATION)
+for v = 1, ns.DB_VERSION do
+    check("MIGRATIONS 有版本 " .. v, type(DB.MIGRATIONS[v]) == "function")
+end
 eq("預設設定檔名", ns.profileName, "Default")
 eq("profileKeys 記下角色", sv.profileKeys["米利 - 世界之樹"], "Default")
 eq("charClasses", sv.charClasses["米利 - 世界之樹"], "PALADIN")
@@ -548,7 +554,7 @@ do
     DB.Init()
     eq("舊存檔補上 none", ns.profile.theme.icon.cdState, "none")
     eq("舊存檔補上 0.4", ns.profile.theme.icon.cdStateAlpha, 0.4)
-    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
+    eq("DB_VERSION 沒動（這一項不遷移）", ns.DB_VERSION, LAST_MIGRATION)
 end
 
 ------------------------------------------------------------
@@ -650,7 +656,7 @@ do
     eq("清 stack 那一組", SS2("buffs", 5555, "stackGlow"), false)
     eq("清 stack 那一組不動生效發光", SS2("buffs", 5555, "activeGlow"), true)
     DB.SetOverride(5555, "activeGlow", nil)
-    eq("DB_VERSION 沒動（這一項不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
+    eq("DB_VERSION 沒動（這一項不遷移）", ns.DB_VERSION, LAST_MIGRATION)
 end
 
 ------------------------------------------------------------
@@ -690,7 +696,7 @@ do
     eq("清 icon 那一組 ⇒ 還在", SS2("essential", 7777, "replaceWith"), 8888)
     DB.ClearOverrides({ 7777 }, "replace")
     eq("清 replace 那一組 ⇒ 不取代", SS2("essential", 7777, "replaceWith"), false)
-    eq("DB_VERSION 沒動（P7 不遷移；4 是 master 的 colorDuration 遷移、5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
+    eq("DB_VERSION 沒動（P7 不遷移）", ns.DB_VERSION, LAST_MIGRATION)
 end
 
 ------------------------------------------------------------
@@ -898,7 +904,7 @@ do
 
     P.customShared, P.customClass, P.customNextUID = nil, nil, nil
     P.spells[cur], P.spells[other] = nil, nil
-    eq("DB_VERSION 沒動（P8 與角色層都不遷移；5 是冷卻低秒變色開關、6 是長條層數字級、7 是增益不在時、8 是快捷鍵文字搬到文字）", ns.DB_VERSION, 8)
+    eq("DB_VERSION 沒動（P8 與角色層都不遷移）", ns.DB_VERSION, LAST_MIGRATION)
 end
 
 ------------------------------------------------------------
@@ -1224,7 +1230,7 @@ do
     eq("圓環：DefaultFor 自訂群組的環寬", DB.DefaultFor("bar", "nope", "ring.thickness"), 8)
     eq("圓環：DefaultFor 自訂群組的顯示樣式", DB.DefaultFor("bar", "nope", "layout.style"), "icons")
     eq("圓環：DefaultFor 內建條的方向", DB.DefaultFor("bar", "buffs", "ring.direction"), "outward")
-    eq("圓環：純新增欄位，不升 DB_VERSION", ns.DB_VERSION, 8)
+    eq("圓環：純新增欄位，不升 DB_VERSION", ns.DB_VERSION, LAST_MIGRATION)
     -- 舊存檔（沒有 style／ring）：合併補預設；玩家自己存的不蓋
     local old = DB.BuildDefaults().profile
     old.bars.buffs.layout.style = nil
