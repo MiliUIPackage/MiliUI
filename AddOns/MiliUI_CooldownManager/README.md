@@ -2549,19 +2549,11 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   - 正在競速＝背包有青銅時光代幣（191140）而且任務日誌有一條任務的特殊物品就是它（`GetQuestLogSpecialItemInfo`）。
   - 編輯模式預覽：活力 4 滿、第 5 格半格、第 6 格空、中間「4」（文字來源是重新振作時印「2」）；重新振作 2/3 滿；速度 65%、天空之悅色＋刻度；
     旋轉急衝長條滿的＋電光（不震，文字開著時印「12」當示意）；圖示照 `icon.mode`（`off` 不顯示）。
-- **坐騎特效按鈕**（`mountButton`，預設開，2026-10-16）：面板下方正中央一顆**普通按鈕**（不是 secure 模板），OnClick 呼叫
-  `C_ChatInfo.PerformEmote("MOUNTSPECIAL")`（12.0 取代 `DoEmote` 的 API，wiki 只標 HasRestrictions、沒標保護；舊客戶端退回 `DoEmote`；token 是英文，每個語系都通）。
-  坐騎特效不是施法，不需要 secure；普通按鈕才做得出滑過／按下效果與冷卻，戰鬥中 Show／Hide 也不受限、容器不會變隱式保護框。
-  顯示（`SR.MountShown`，純函式）＝面板顯示中（`active`）而且 `isGliding` 明文 false（秘密／讀不到 ⇒ 當在空中，不顯示——空中按了沒用）；
-  編輯模式一律顯示給玩家看位置；關掉或舊插件擋著一律藏。每次 `SR.Refresh` 判一次（起飛落地有事件）。
-  效果照 HUD 皮三態（只換明暗）：閒置字 0.75、滑過字 1.0＋ADD 亮層 0.10、按下字 0.6＋暗層 0.30＋字下沉 1 實體像素。
-  **五秒冷卻**（`MOUNT_CD`）：按下後 `CooldownFrameTemplate` 跑轉圈（引擎跑、沒有 OnUpdate；不畫數字、不畫邊、不閃）、字 0.4、`SetEnabled(false)`
-  （OnClick 不響、滑過不亮）；到時 `C_Timer.After` 復原（世代計數擋舊的）。文字與邊框放在冷卻框上面的 `top` 子框（不吃滑鼠），轉圈蓋不到字。
-  外觀：0x1A 灰底 0.8、1 實體像素職業色邊（`Resources.Edges`，職業色變了 `AccentChanged` 重畫）、白字描邊、直角。
+- **坐騎特效按鈕**是自己的面板（`mountspecial`，見下一節）：跟著這塊面板時貼在正下方，由 `Core/Bars.lua` 的 `PlaceContainer` 處理；
+  本模組只在顯示狀態變了時廣播 `SkyridingShownChanged`。10-16 上午曾經放在 `profile.skyriding.mountButton`，`MountSpecial.Upgrade` 看到舊表就搬走。
 - **設定頁**（`Options/Tab_Skyriding.lua`）：一般（啟用、位置、藏起冷卻管理器、地面上活力全滿時隱藏）→ **顯示哪些**（四列，長相照資源條頁
   「這個專精要顯示哪些」：`Tab_Resources` 出借的 `TabResources.OrderRow`——勾選框、上下箭頭、「設定」；上下移寫 `order`（`SR.MoveRow`），
-  順序進表單簽章 ⇒ 換一份表單）→ 版面（寬＋灰字、間距）→ 坐騎特效按鈕（開關＋灰字、按鈕尺寸 寬／高、位移 X／Y、字級；關著時其餘停用）→
-  （獨立擺放時）錨定 → 恢復預設。
+  順序進表單簽章 ⇒ 換一份表單）→ 版面（寬＋灰字、間距）→（獨立擺放時）錨定 → 恢復預設。
   **每列設定視窗**（`Options/SkyridingSettings.lua`，殼是 `Options/SettingsWindow.lua`，同資源條每種資源的設定視窗；一次只開一個、表單只看是哪一列）：
   版面（高）、外觀（材質、背景材質、背景色、前景色——速度三色；活力一色＋「改用速度條的顏色」＋重新振作的底色（灰字：重新振作那一列開著時不畫））、
   文字（顯示＋灰字、活力的內容、位置、X／Y 位移、字型、字級、顏色；文字關著時其餘停用）、效果（旋轉急衝：電光、充滿後震動）、
@@ -2581,6 +2573,36 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   （主按鈕「重新載入」、一般按鈕「稍後」；**不登記 UISpecialFrames**）。跟冷卻管理器的互斥彈窗同時成立時**不另外跳**：互斥彈窗多一段說明，
   留下本插件的兩個選項（匯入／直接改用）會在 `DisableAndReload` 裡順手停用它（`Keep Ayije` 那個不動它）。它的存檔 `FalconAddOnDB` 不讀、不匯入。
 - **`/mcdm debug`** 多一行：`天空騎術：開／關  接力／獨立  藏冷卻管理器  騎術中  顯示  滑翔  活力 n/m  重新振作 n/m  列（照順序）  競速  最高速  狀態  速度掛勾  秒數 ticker  alpha`。
+
+
+## 坐騎特效按鈕（`Modules/MountSpecial.lua`、`Options/Tab_MountSpecial.lua`，2026-10-16）
+
+面板 `mountspecial`（容器 `MiliUICDM_Bar_mountspecial`）：一顆**普通按鈕**（不是 secure 模板），OnClick 呼叫
+`C_ChatInfo.PerformEmote("MOUNTSPECIAL")`——坐騎的特效動作。預設開。使用者 10-16 拍板：先做在天空騎術面板底下（只有天空騎術坐騎看得到），
+同日改成獨立面板（任何坐騎都能用）、拿掉原本的五秒冷卻、按下去要有「像快捷列按鍵那種」閃一下。
+
+- **為什麼是普通按鈕**：`PerformEmote` 是 12.0 取代 `DoEmote` 的 API（wiki 只標 HasRestrictions、沒標保護；舊客戶端退回 `DoEmote`；token 是英文，每個語系都通）。
+  坐騎特效不是施法，不需要 secure；普通按鈕才做得出滑過／按下／閃光，戰鬥中 Show／Hide 也不受限、容器不會變隱式保護框。
+  受限（M+ 那類聊天封鎖）時回 false／拋錯：不報、不處理。
+- **顯示**（`MS.Shown`，純函式；Visibility 的 `EvaluatePanel` 讀上次判的 `MS.Visible`，Snapshot 的 `mountButton`）：開著、`IsMounted` 明文 true、不在載具
+  （`UnitInVehicle`／`UnitHasVehicleUI`）、`GetGlidingInfo` 的 `isGliding` 明文 false（秘密／讀不到 ⇒ 當在空中，不顯示——天空騎術在空中按了沒用；
+  沒有這支 API 的客戶端當 false）。一般飛行坐騎在空中照樣顯示（懸停時特效播得出來）。天空騎術的「藏起冷卻管理器」**不藏它**（`PanelAlpha` 豁免，同天空騎術自己）。
+  事件：`PLAYER_MOUNT_DISPLAY_CHANGED`、`UNIT_ENTERED/EXITED_VEHICLE`（player）、`PLAYER_ENTERING_WORLD`、`PLAYER_CAN_GLIDE_CHANGED`／`PLAYER_IS_GLIDING_CHANGED`
+  （客戶端認得才註冊）＋ `SkyridingShownChanged`、`EditModeChanged`；只標髒、下一幀 `MS.Refresh`。
+- **位置**：走既有的面板機制（`Bars.RegisterPanel`：編輯模式拖曳／磁吸／錨定候選／設定頁的錨定小節都自動有）。預設 `anchor` 錨在核心技能下方正中央（`TOP`→`BOTTOM`，y −6），
+  排開的排名 950（最外圈：在核心技能那一疊的最下面，沒有人以它為排開目標）。**`followSky`（預設開）**：天空騎術條顯示中（`SR.Shown`）時 `PlaceContainer` 改把它貼在
+  天空騎術條容器正下方（`sky.x`／`sky.y`，預設 (0, −6)），不看自己的錨定／pos；天空騎術條的結構重套時跟著重貼（`ApplyOne(SKY)` 尾端），顯示狀態一變
+  （`SkyridingShownChanged`）就 `ApplyPanelStructure`。編輯模式中 `SR.Shown` 是真實狀態（預覽不算），所以沒上坐騎時按鈕在自己的位置、拖得動。
+- **效果**（HUD 皮三態，只換明暗）：閒置字 0.75、滑過字 1.0＋ADD 亮層 0.10、按下字 0.6＋暗層 0.30＋字下沉 1 實體像素（`P.Pixel`）。
+  **按下去閃一下**：比鈕大兩個實體像素（溢出邊框）的白色 ADD 貼圖，AnimationGroup 0.06 秒衝到 0.9、0.30 秒淡掉（OUT）（引擎跑，沒有 OnUpdate）；
+  連按就 Stop 再 Play。沒有冷卻（10-16 拿掉）。文字與邊框放在最上層的 `top` 子框（不吃滑鼠，不然會搶走按鈕的 OnEnter／OnLeave）。
+  編輯模式中按鈕不收滑鼠（不然蓋在覆蓋層上、拖曳變按鈕），離開編輯模式恢復。
+  外觀：0x1A 灰底 0.8、1 實體像素職業色邊（`Resources.Edges`，`AccentChanged` 重畫）、白字描邊、直角。
+- **設定**（`profile.mountspecial`，`MountSpecialDefaults`）：`enabled`、`followSky`、`sky{x,y}`、`box{w,h}`（40～400 × 12～60，預設 100×20）、`fontSize`（6～40，12）、
+  `pos`／`anchor`／`strata`（面板通用）。設定頁：一般（開關＋灰字、跟著天空騎術條＋灰字、天空騎術條下方的位移 X／Y）→ 版面（按鈕尺寸 寬／高、字級）→ 錨定 → 恢復預設。
+  **欄位搬家** `MS.Upgrade(cfg, skyCfg)`（Init 與 ProfileChanged）：10-16 上午版本的 `skyriding.mountButton{enabled,width,height,x,y,size}` → `enabled`／`box`／`sky`／`fontSize`，
+  搬完清掉舊表（冪等；只有開發者存檔有，不走 DB 遷移鏈）。
+- `/mcdm debug` 多一行：`坐騎特效鈕：開／關  顯示  騎乘  載具  滑翔  跟著天空騎術條 x（現在 是／否）  alpha`。
 
 ## 套組接線
 
@@ -4166,17 +4188,16 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 581. 編輯模式能拖 procdeck 面板（覆蓋層名字「觸發牌堆」）、錨定視窗的候選列得出「觸發牌堆」
 582. 機率文字：滿牌末日之風印 4.9%、滿牌暴風雨印 19%（下一發花 10 層）
 
-**天空騎術的坐騎特效按鈕（2026-10-16）**
+**坐騎特效按鈕（2026-10-16，獨立面板版）**
 
-583. 上天空騎術坐騎站在地上：面板下方正中央出現「坐騎特效」鈕，寬 100 高 20、職業色 1px 邊、白字；按下去坐騎播特效（zhTW 客戶端也要通——token 是英文 `MOUNTSPECIAL`；
-     `C_ChatInfo.PerformEmote` 存在、從插件叫不會 ADDON_ACTION_FORBIDDEN）；起飛鈕消失、落地回來；下坐騎消失。
-     `isGliding` 在地面上是不是明文 false（戰鬥中呢）——秘密的話鈕不出現（`/mcdm debug` 的「滑翔」欄）。
-583b. 效果：滑過字變全白＋底亮一層，移開回暗；按住字下沉一像素＋底變暗，放開回滑過狀態。按下後轉圈從滿掃到空、字變暗、五秒內再按沒反應也不亮；
-     五秒到字回來、可再按。冷卻中起飛再落地，轉圈接著跑、不重頭。
-584. 戰鬥中：被打時起飛落地鈕照切、按得下去、沒有 ADDON_ACTION_BLOCKED；戰鬥中改尺寸／位移立刻套。
-585. 設定頁：關掉開關鈕立刻消失、尺寸／位移／字級停用；改寬高位移字級即時生效；編輯模式中面板預覽下方看得到鈕（不管有沒有上坐騎）、離開編輯模式照真實狀態；
-     接力與獨立擺放兩種位置鈕都跟著面板。恢復預設後開關回開。
-586. 德比賽跑、「地面上活力全滿時隱藏」成立時鈕不出現；舊的 Falcon 還載著那次登入鈕不建。核心技能開「可點擊」時兩種 secure 鈕互不影響。
+583. 任何坐騎（地面、一般飛行、天空騎術）一上去，核心技能那一疊的最下面出現「坐騎特效」鈕（100×20、職業色 1px 邊、白字）；按下去坐騎播特效（zhTW 客戶端也要通——token 是英文
+     `MOUNTSPECIAL`；`C_ChatInfo.PerformEmote` 存在、從插件叫不會 ADDON_ACTION_FORBIDDEN）；下坐騎消失；上載具不出現。
+583b. 效果：滑過字變全白＋底亮一層，移開回暗；按住字下沉一像素＋底變暗，放開回滑過狀態；按下去整顆閃白一下、光溢出邊框兩像素（約 0.35 秒），連按每次都閃、沒有冷卻。
+584. 天空騎術：地面上鈕貼在天空騎術條正下方正中央（跟著天空騎術條，預設 (0,−6)）、藏起冷卻管理器時它照樣在；起飛消失、落地回來；下坐騎後回到核心技能下方。
+     `isGliding` 在地面上是不是明文 false（戰鬥中呢）——秘密的話鈕不出現（`/mcdm debug` 的「滑翔」欄）。關掉「跟著天空騎術條」後天空騎術時留在自己的位置。
+585. 設定頁「坐騎特效按鈕」：關掉開關鈕立刻消失、其餘停用；改尺寸／字級／天空騎術條下方位移即時生效；編輯模式能拖（覆蓋層名字「坐騎特效按鈕」）、拖了就脫離核心技能的錨定、
+     錨定視窗能把它錨到任何一條、磁吸正常；恢復預設後回到核心技能下方。核心技能有兩列以上時鈕在整塊圖示（含輔助技能那一疊）的最下面。
+586. 戰鬥中：被打時上下坐騎鈕照切、按得下去、沒有 ADDON_ACTION_BLOCKED。10-16 上午那版的存檔（`skyriding.mountButton`）登入後搬到新面板、舊表清掉、天空騎術頁沒有那一節。
 
 **效能基準**
 

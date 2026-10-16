@@ -82,6 +82,7 @@ Modules\Castbar.lua
 Modules\FocusCastbar.lua
 Modules\AssistIcon.lua
 Modules\Skyriding.lua
+Modules\MountSpecial.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
@@ -112,6 +113,7 @@ Options\Tab_FocusCast.lua
 Options\Tab_Assist.lua
 Options\SkyridingSettings.lua
 Options\Tab_Skyriding.lua
+Options\Tab_MountSpecial.lua
 Options\ClickLayer.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua

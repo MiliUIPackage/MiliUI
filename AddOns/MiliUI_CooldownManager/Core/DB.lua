@@ -57,6 +57,7 @@ end
 
 local function rgba(r, g, b, a) return { r = r, g = g, b = b, a = a or 1 } end
 local ResourcesDefaults, PipsDefaults, CastbarDefaults, FocusCastDefaults, AssistIconDefaults, SkyridingDefaults   -- 定義在 BuildDefaults 前面（前置宣告，免得變全域）
+local MountSpecialDefaults                                                                       -- 同上（坐騎特效按鈕）
 local CustomBarsDefaults                                                                         -- 同上（自訂列）
 local ProcDeckDefaults                                                                           -- 同上（觸發牌堆的列）
 
@@ -566,9 +567,7 @@ SkyridingDefaults = function()
         width            = 0,              -- 0 ＝ 跟核心技能第一列同寬（同資源條）
         gap              = 1,              -- 列與列之間、充能格之間的間距
         hideGroundedFull = false,          -- 在地面上而且活力全滿 ⇒ 不顯示（使用者 2026-10-06 指定預設關）
-        -- 坐騎特效按鈕（2026-10-16，使用者指定預設開）：面板下方正中央的 secure 巨集鈕（/mountspecial），只在地面上出現。
-        -- x／y ＝ 鈕的 TOP 對面板 BOTTOM 的位移；size ＝ 字級（Skyriding.MountButton 夾值）
-        mountButton      = { enabled = true, width = 100, height = 20, x = 0, y = -6, size = 12 },
+        -- （10-16 上午的 mountButton 欄位已搬去 profile.mountspecial：MountSpecial.Upgrade 看到舊表就搬、不放預設值）
         -- 由上往下的順序（設定頁的上下箭頭改這張）。整張是一個值：使用者排過的不跟預設逐格合併
         --（逐格合併會把預設的 key 補進使用者少掉的格子、排出重複）；缺的 key 由 Skyriding.Order 補在後面
         order            = Atomic({ "speed", "surge", "vigor", "secondWind" }),
@@ -603,6 +602,22 @@ SkyridingDefaults = function()
             }),
         },
         strata           = "MEDIUM",
+    }
+end
+
+-- 坐騎特效按鈕（Modules/MountSpecial.lua，面板 mountspecial；2026-10-16，使用者指定預設開）：
+-- 騎著坐騎、不在空中滑翔時出現的一顆普通按鈕（PerformEmote "MOUNTSPECIAL"）。預設錨在核心技能下方正中央；
+-- followSky ＝ 天空騎術條顯示中時改貼在它正下方（sky.x／sky.y 是那時的位移）。box 是按鈕尺寸、fontSize 是字級
+MountSpecialDefaults = function()
+    return {
+        enabled   = true,
+        pos       = { point = "TOP", x = 0, y = -260 },          -- 沒有錨定時的位置（拖過就是這個）
+        anchor    = { to = "essential", point = "TOP", relPoint = "BOTTOM", x = 0, y = -6 },
+        followSky = true,
+        sky       = { x = 0, y = -6 },
+        box       = { w = 100, h = 20 },
+        fontSize  = 12,
+        strata    = "MEDIUM",
     }
 end
 
@@ -735,6 +750,7 @@ function DB.BuildDefaults()
             focuscast = FocusCastDefaults(),
             assistIcon = AssistIconDefaults(),
             skyriding = SkyridingDefaults(),
+            mountspecial = MountSpecialDefaults(),
         },
     }
 end
@@ -1642,15 +1658,16 @@ function DB.BarClickable(key)
         and not DB.BarIsRings(key)) and true or false
 end
 
--- 「面板」：資源條、自訂格子、自訂列、觸發牌堆的列、施法條、專注目標施法條、下一招圖示與天空騎術。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
--- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套（天空騎術的接力模式例外，見 Core/Bars.lua）。
+-- 「面板」：資源條、自訂格子、自訂列、觸發牌堆的列、施法條、專注目標施法條、下一招圖示、天空騎術與坐騎特效按鈕。不在 bars 裡、有自己的設定頁（自訂格子在資源條頁、
+-- 下一招圖示在戰鬥輔助頁），但錨定／位置／編輯模式跟條同一套（天空騎術的接力模式、坐騎特效按鈕跟著天空騎術條時例外，見 Core/Bars.lua）。
 -- ⚠ key 是存檔內容（別的條的 anchor.to 會指向它），不要改名。
-local PANEL_KEYS = { resources = true, pips = true, custombars = true, procdeck = true, castbar = true, focuscast = true, assistIcon = true, skyriding = true }
+local PANEL_KEYS = { resources = true, pips = true, custombars = true, procdeck = true, castbar = true, focuscast = true, assistIcon = true, skyriding = true,
+                     mountspecial = true }
 DB.PANEL_KEYS = PANEL_KEYS
 ns.PANEL_KEYS = PANEL_KEYS
--- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排最後；自訂列 2026-10-13 加在自訂格子後面、
--- 觸發牌堆 2026-10-16 加在自訂列後面）
-DB.PANEL_ORDER = { "resources", "pips", "custombars", "procdeck", "castbar", "focuscast", "assistIcon", "skyriding" }
+-- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排在倒數第二、坐騎特效按鈕 2026-10-16 加在最後；
+-- 自訂列 2026-10-13 加在自訂格子後面、觸發牌堆 2026-10-16 加在自訂列後面）
+DB.PANEL_ORDER = { "resources", "pips", "custombars", "procdeck", "castbar", "focuscast", "assistIcon", "skyriding", "mountspecial" }
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 資源列獨立擺放的面板 key："res:<資源 key>"（不在 PANEL_KEYS：那是靜態表，這種面板第一次用到才登記）。

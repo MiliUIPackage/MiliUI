@@ -487,7 +487,8 @@ end
 -- 設定檔／專精換了：清樣式簽章、重讀目錄、全部重排、重套 alpha——沒有任何選項要 /reload。
 ------------------------------------------------------------
 local ENGINE = { "Catalog", "Viewers", "Custom", "Glow", "Sound", "Keybinds", "Bars",
-                 "Interrupt", "Resources", "Pips", "CustomBars", "ProcDeck", "ProcDeckRows", "Castbar", "FocusCastbar", "Assist", "AssistIcon", "Skyriding", "Visibility", "Cursor" }
+                 "Interrupt", "Resources", "Pips", "CustomBars", "ProcDeck", "ProcDeckRows", "Castbar", "FocusCastbar", "Assist", "AssistIcon", "Skyriding", "MountSpecial",
+                 "Visibility", "Cursor" }
 
 local function RestyleAll(reason)
     if ns.Decorate then ns.Decorate.InvalidateAll() end

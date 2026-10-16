@@ -232,6 +232,14 @@ local function SkyRelayTo()
     return SR and SR.RelayTo and SR.RelayTo() or nil
 end
 B.SkyRelayTo = SkyRelayTo
+-- 坐騎特效按鈕（面板 mountspecial，Modules/MountSpecial.lua）跟著天空騎術條：天空騎術條顯示中時貼在它正下方，不看自己的錨定／pos。
+-- 它排在排開的最外圈（STACK_RANK 950），沒有人以它為排開目標，直接貼不會成環
+local MOUNT = "mountspecial"
+local function MountFollowsSky()
+    local MS = ns.MountSpecial
+    return (MS and MS.FollowingSky and MS.FollowingSky() and containers[SKY] ~= nil) and true or false
+end
+B.MountFollowsSky = MountFollowsSky
 
 -- 閒置的面板（登記時給了 def.idle，回 true 的那段時間）：框刪不掉，只好讓它「不在」——
 -- 容器收起來、不是任何人的錨定／排開目標、自己不參與排開、編輯模式沒有覆蓋層與選取框、不能拖。
@@ -286,7 +294,7 @@ end
 -- 戰鬥資訊，同一疊時排在最內側（自訂格子 2、輔助技能 3 之前）；跟自訂列同一邊時比它靠內（自訂列預設在上方、牌堆預設在下方，平常不同邊）
 -- 專注目標施法條（focuscast）4.5：預設錨在施法條上方；跟施法條同一疊時緊貼在它外面、增益圖示之前
 local STACK_RANK = { resources = 1, procdeck = 1.1, custombars = 1.2, skyriding = 1.5, pips = 2, utility = 3, castbar = 4, focuscast = 4.5, buffs = 5, buffbars = 6,
-                     essential = 7, assistIcon = 900 }
+                     essential = 7, assistIcon = 900, mountspecial = 950 }
 local function StackRank(key)
     if STACK_RANK[key] then return STACK_RANK[key] end
     -- 第一次用到才登記的面板（獨立擺放的資源列）：排名在登記時給（def.rank）
@@ -411,6 +419,14 @@ local function PlaceContainer(f, key, bar, st)
         return
     end
     local snap = ns.Layout.Snap
+    if key == MOUNT and MountFollowsSky() then
+        -- 坐騎特效按鈕跟著天空騎術條（規則見 SKY 旁的說明與 Modules/MountSpecial.lua）
+        f:ClearAllPoints()
+        local x, y = ns.MountSpecial.SkyOffset()
+        SetPlace(f, st, "TOP", containers[SKY], "BOTTOM", snap(x), snap(y))
+        st.stackTo = StackTarget(key)     -- 照記排開的結果（不然 StackChanged 每輪都當它「變了」重套一次）
+        return
+    end
     local relayTo = key == SKY and SkyRelayTo()
     if relayTo then
         -- 接力：跟接力對象同一個位置（規則見檔頭與 Modules/Skyriding.lua 的 SR.RelayPlace）
@@ -498,6 +514,7 @@ local function ApplyOne(key)
         if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
         -- 接力對象關掉：接力中的天空騎術改用它自己的錨定（見下面 Show 那條路的同一段）
         if key ~= SKY and key == SkyRelayTo() and containers[SKY] then ApplyOne(SKY) end
+        if key == SKY and containers[MOUNT] and MountFollowsSky() then ApplyOne(MOUNT) end
         return
     end
     local anchorPoint = st.anchorPoint or "CENTER"
@@ -513,6 +530,8 @@ local function ApplyOne(key)
     if ns.Cursor and ns.Cursor.Refresh then ns.Cursor.Refresh() end
     -- 接力對象的結構變了（開關、位置）：接力中的天空騎術跟著重貼（沒有人錨在它身上，直接貼不會成環）
     if key ~= SKY and key == SkyRelayTo() and containers[SKY] then ApplyOne(SKY) end
+    -- 天空騎術條的結構變了：跟著它的坐騎特效按鈕重貼
+    if key == SKY and containers[MOUNT] and MountFollowsSky() then ApplyOne(MOUNT) end
 end
 
 -- 尺寸變了以後：補正量不一樣了就照同一組錨點重貼（不重算排開 ⇒ 不會撞上錨定循環）

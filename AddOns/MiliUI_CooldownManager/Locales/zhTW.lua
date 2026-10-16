@@ -996,12 +996,16 @@ L["While skyriding, the skyriding bars take over this spot (Skyriding page, Posi
 L["Show the bar"] = "顯示長條"
 L["Turn it off to show only the icon (see Icon below)."] = "關掉就只顯示圖示（在下方「圖示」設定）。"
 L["Electric effect when full"] = "充滿時的電光效果"
--- 坐騎特效按鈕（Modules/Skyriding.lua、Options/Tab_Skyriding.lua，2026-10-16）
+-- 坐騎特效按鈕（Modules/MountSpecial.lua、Options/Tab_MountSpecial.lua，2026-10-16）
 L["Mount Special"] = "坐騎特效"
 L["Mount Special button"] = "坐騎特效按鈕"
-L["Show a Mount Special button"] = "顯示坐騎特效按鈕"
-L["A button centered under the skyriding bars that runs /mountspecial, your mount's special animation. It only shows while skyriding on the ground."] = "天空騎術條下方正中央的一顆按鈕，按下去執行 /mountspecial（坐騎的特效動作）。只在天空騎術、在地面上時出現。"
+L["Show the Mount Special button"] = "顯示坐騎特效按鈕"
+L["A button that plays your mount's special animation (the same as /mountspecial). It shows whenever you are mounted and not gliding in skyriding."] = "按下去播坐騎的特效動作（跟 /mountspecial 一樣）。騎著坐騎時都會出現，天空騎術在空中滑翔時不出現。"
+L["Follow the skyriding bars"] = "跟著天空騎術條"
+L["While the skyriding bars are showing, the button sits centered right under them instead of at its own position."] = "天空騎術條顯示時，按鈕改貼在它正下方的正中央，不在自己的位置。"
+L["Offset below the skyriding bars"] = "天空騎術條下方的位移"
 L["Button size"] = "按鈕尺寸"
+L["Restore the Mount Special button settings to their defaults?"] = "把坐騎特效按鈕的設定恢復成預設值？"
 -- 天空騎術第二階段（四列＋每列設定視窗：Options/Tab_Skyriding.lua、Options/SkyridingSettings.lua）
 L["Speed bar"] = "速度條"
 L["Rows to show"] = "顯示哪些"

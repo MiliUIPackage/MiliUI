@@ -213,6 +213,7 @@ local function Items()
     out[#out + 1] = { id = "focuscast" }       -- 專注目標施法條（Modules/FocusCastbar.lua）
     out[#out + 1] = { id = "assist" }          -- 戰鬥輔助（下一招醒目標示＋下一招圖示）
     out[#out + 1] = { id = "skyriding" }       -- 天空騎術（活力充能＋速度條）
+    out[#out + 1] = { id = "mountspecial" }    -- 坐騎特效按鈕（Modules/MountSpecial.lua）
     return out
 end
 

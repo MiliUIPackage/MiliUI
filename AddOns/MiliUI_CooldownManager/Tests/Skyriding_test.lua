@@ -163,7 +163,7 @@ check("預設：背景色 ＝ 資源條的暗底", sd.rows.speed.bgColor.r == 0.
 check("預設：各列的背景色不是同一張表", sd.rows.speed.bgColor ~= sd.rows.vigor.bgColor)
 check("預設：沒有第一階段的舊欄位", sd.speedOnTop == nil and sd.showSpeed == nil and sd.colors == nil and sd.chargeText == nil)
 check("PANEL_KEYS 有 skyriding", DB.PANEL_KEYS.skyriding == true and DB.IsPanel("skyriding"))
-eq("PANEL_ORDER：排最後", DB.PANEL_ORDER[#DB.PANEL_ORDER], "skyriding")
+eq("PANEL_ORDER：倒數第二（坐騎特效按鈕 2026-10-16 加在它後面）", DB.PANEL_ORDER[#DB.PANEL_ORDER - 1], "skyriding")
 ns.profile = d
 eq("ConfigTable(skyriding)", DB.ConfigTable("skyriding"), d.skyriding)
 do
@@ -335,24 +335,6 @@ do
     m = SR.SurgeIcon({ rows = { surge = { icon = { mode = "bogus" } } } })
     eq("圖示：不認得的模式 ＝ 關", m, "off")
 
-    -- 坐騎特效按鈕的設定（夾值；沒存 ＝ 開）
-    local on, bw, bh, bx, by, bs = SR.MountButton({})
-    check("坐騎特效鈕：沒存 ＝ 開、100×20、(0,-6)、字級 12", on == true and bw == 100 and bh == 20 and bx == 0 and by == -6 and bs == 12)
-    on, bw, bh, bx, by, bs = SR.MountButton({ mountButton = { enabled = false, width = 9999, height = 1, x = -9999, y = 50, size = 99 } })
-    check("坐騎特效鈕：關、夾值", on == false and bw == 400 and bh == 12 and bx == -400 and by == 50 and bs == 40)
-    check("坐騎特效鈕：不是表 ＝ 預設", (SR.MountButton({ mountButton = "x" })) == true)
-    local dm = DB.BuildDefaults().profile.skyriding.mountButton
-    check("預設值有 mountButton 且開著", type(dm) == "table" and dm.enabled == true and dm.width == 100)
-    -- 顯示判斷：面板顯示中而且在地面上；空中／秘密／讀不到都藏；編輯模式一律顯示；關掉或舊插件擋著一律藏
-    local MS = SR.MountShown
-    eq("坐騎特效鈕：地面上 ⇒ 顯示", MS({}, { isGliding = false }, true, false), true)
-    eq("坐騎特效鈕：空中 ⇒ 藏", MS({}, { isGliding = true }, true, false), false)
-    eq("坐騎特效鈕：isGliding 秘密 ⇒ 藏", MS({}, { isGliding = SECRET }, true, false), false)
-    eq("坐騎特效鈕：isGliding 讀不到 ⇒ 藏", MS({}, {}, true, false), false)
-    eq("坐騎特效鈕：面板沒顯示 ⇒ 藏", MS({}, { isGliding = false }, false, false), false)
-    eq("坐騎特效鈕：編輯模式一律顯示", MS({}, { isGliding = true }, false, true), true)
-    eq("坐騎特效鈕：關掉 ⇒ 編輯模式也藏", MS({ mountButton = { enabled = false } }, { isGliding = false }, true, true), false)
-    eq("坐騎特效鈕：舊插件擋著 ⇒ 藏", MS({}, { blocked = true, isGliding = false }, true, true), false)
 
     -- 整列沒勾：長條與圖示都不畫；raw 讀存的值
     local off = { rows = { surge = { enabled = false, icon = { mode = "always" } } } }

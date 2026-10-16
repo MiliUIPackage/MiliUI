@@ -206,6 +206,8 @@ local function Snapshot()
         petBattle = InPetBattle(),
         skyridingPanel = sky,
         skyridingHideCdm = SR and SR.HidesCdm and SR.HidesCdm(sky) or false,
+        -- 坐騎特效按鈕上次判的「該顯示」（Modules/MountSpecial.lua；同樣不重讀 API）
+        mountButton = ns.MountSpecial and ns.MountSpecial.Visible and ns.MountSpecial.Visible() or false,
     }
 end
 Vis.Snapshot = Snapshot
@@ -268,6 +270,8 @@ function Vis.EvaluatePanel(key, cfg, s, essentialAlpha, casting, suggestion)
         return 1
     elseif key == "skyriding" then
         return s.skyridingPanel and 1 or 0
+    elseif key == "mountspecial" then
+        return s.mountButton and 1 or 0
     end
     return 1
 end
@@ -283,7 +287,8 @@ function Vis.PanelAlpha(key, s, essAlpha)
     if ns.EditMode and ns.EditMode.active then return 1 end
     s = s or Snapshot()
     if s.petBattle then return 0 end
-    if key ~= "skyriding" and s.skyridingHideCdm then return 0 end
+    -- 天空騎術的「藏起冷卻管理器」不藏天空騎術自己，也不藏坐騎特效按鈕（它就是給天空騎術時用的）
+    if key ~= "skyriding" and key ~= "mountspecial" and s.skyridingHideCdm then return 0 end
     local ess = 1
     if (key == "resources" or key == "pips" or key == "custombars" or key == "procdeck") and cfg.fadeWithEssential ~= false then
         ess = essAlpha or current.essential

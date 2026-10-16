@@ -2,7 +2,7 @@
 -- 「天空騎術」頁（profile.skyriding；引擎在 Modules/Skyriding.lua）
 --
 -- 小節：一般（開關、位置：接力／獨立擺放、藏起冷卻管理器、地面上活力全滿時隱藏）→ 顯示哪些 → 版面（寬、間距）→
--- 坐騎特效按鈕（開關、尺寸、位移、字級）→（獨立擺放時）錨定 → 恢復預設。說明一律下一列灰字。
+--（獨立擺放時）錨定 → 恢復預設。說明一律下一列灰字。坐騎特效按鈕有自己的一頁（Options/Tab_MountSpecial.lua）。
 -- 「顯示哪些」照資源條頁「這個專精要顯示哪些」的長相（Tab_Resources 出借的 Tab.OrderRow）：四列（速度條、旋轉急衝、
 -- 活力、重新振作）各一列勾選框＋上下移＋「設定」。上下移寫 order（Skyriding.MoveRow），順序進表單簽章 ⇒ 換一份表單；
 -- 每一列的高、外觀、顏色、文字、旋轉急衝的效果與圖示在那一列的設定視窗（Options/SkyridingSettings.lua）。
@@ -96,19 +96,6 @@ local function Controls()
     add(BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }))
     add(Note(L["0 matches the first row of Essential Cooldowns."]))
     add(BS("slider", "gap", L["Spacing"], { min = 0, max = 20, step = 1 }))
-
-    -- 坐騎特效按鈕：面板下方正中央的 secure 巨集鈕（/mountspecial），引擎見 Modules/Skyriding.lua「坐騎特效按鈕」
-    add({ type = "header", label = L["Mount Special button"] })
-    add(BS("toggle", "mountButton.enabled", L["Show a Mount Special button"]))
-    add(Note(L["A button centered under the skyriding bars that runs /mountspecial, your mount's special animation. It only shows while skyriding on the ground."]))
-    local function NoBtn() return not (SR().MountButton(Cfg())) end
-    add(BS("numbers", nil, L["Button size"], { sub = "mountButton", path = false, disabled = NoBtn,
-        resetPaths = { "mountButton.width", "mountButton.height" },
-        fields = { { key = "width", label = L["W"] }, { key = "height", label = L["H"] } } }))
-    add(BS("numbers", nil, L["Offset"], { sub = "mountButton", path = false, disabled = NoBtn,
-        resetPaths = { "mountButton.x", "mountButton.y" },
-        fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }))
-    add(BS("slider", "mountButton.size", L["Font size"], { min = 6, max = 40, step = 1, disabled = NoBtn }))
 
     if not Relay() then
         for _, s in ipairs(ns.Specs.Anchor(KEY)) do add(s) end
