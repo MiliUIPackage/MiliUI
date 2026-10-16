@@ -111,7 +111,7 @@ WarningFrame:SetScript("OnEvent", function(self, event, ...)
     and (C_ScenarioInfo.GetCriteriaInfo(2) and C_ScenarioInfo.GetCriteriaInfo(2).completed or false) == false -- Boss2   
     and (GetSubZoneText() == "漫长寒冬" or GetSubZoneText() == "恆常凜冬") -- 子区域 (漫长寒冬)
     then
-        addonTable.CustomEncounterBar(135857, 50, "強風")
+        addonTable.CustomEncounterBar(135857, 50, "强风")
         PlaySoundFile(MEDIA_PATH .. "KuaiZhaoYanTi.ogg", DiGuaTimelineAudioHelper.audioChannel)
         C_Timer.After(14.5, function()
             if currentEncounterID == 0 then

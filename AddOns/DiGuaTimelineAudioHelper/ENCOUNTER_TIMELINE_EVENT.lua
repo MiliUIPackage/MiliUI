@@ -36,6 +36,10 @@ local function OpenJuDuWeiSuo()
 end
 
 frame:SetScript("OnEvent", function(self, event)
+    -- if event == "ENCOUNTER_TIMELINE_EVENT_ADDED" then
+    --     print("ENCOUNTER_TIMELINE_EVENT_ADDED")
+    -- end
+
     local encID = addonTable.GetEncounterID and addonTable.GetEncounterID()
 
     -- 切 Boss 或重进战斗时重置
@@ -130,4 +134,53 @@ frame:SetScript("OnEvent", function(self, event)
         end
         return
     end
+
+
+
+
+
+    ---------------------------------------------------------------------------
+    -- 3. 护光者鲁伊亚 (3201)
+    ---------------------------------------------------------------------------
+    if encID == 3201 then
+        -- 1 秒内连续触发 5 次 → 以第 5 次为起点，第 12 / 45 / 77 秒各播报一次
+        if (now - windowStartTime) > 1 then
+            windowStartTime = now
+            eventCounter = 1
+        else
+            eventCounter = eventCounter + 1
+        end
+
+        if eventCounter == 5 then
+            C_Timer.After(12, function()
+                if addonTable.GetEncounterID and addonTable.GetEncounterID() == 3201 then
+                    PlaySoundFile(addonTable.GetMediaPath() .. "ComboComboZhuYiJianShang.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end
+            end)
+
+            C_Timer.After(45, function()
+                if addonTable.GetEncounterID and addonTable.GetEncounterID() == 3201 then
+                    PlaySoundFile(addonTable.GetMediaPath() .. "ComboComboZhuYiJianShang.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end
+            end)
+
+            C_Timer.After(77, function()
+                if addonTable.GetEncounterID and addonTable.GetEncounterID() == 3201 then
+                    PlaySoundFile(addonTable.GetMediaPath() .. "ComboComboZhuYiJianShang.ogg", DiGuaTimelineAudioHelper.audioChannel)
+                end
+            end)
+
+            eventCounter = 0
+            windowStartTime = 0
+        end
+        return
+    end
+
+
+
+
+
+
+
+
 end)

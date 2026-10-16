@@ -22,9 +22,20 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local encounterID = ...
         wasActive.boss2 = false
         wasActive.boss3 = false
-        if encounterID == 2623 then
+        if encounterID == 2623 then -- 基拉卡与厄克哈特·风脉
             addonTable.Boss2623EngageCount = 0
             -- print("|cffffd100[DiGua]|r 2623 开战，Boss2623EngageCount 已重置为 0")
+
+            -- 基拉卡与厄克哈特·风脉：开怪瞬间一次性登记本场固定时间轴倒计时
+            -- （CustomEncounterBar 第 2 个参数 = “从现在起倒计时多少秒”，
+            --   所以直接写战斗时间轴上的秒数即可，不用自己换算剩余时间）
+            addonTable.CustomEncounterBar(135809, 19, "左侧放火", nil, "00ff00")
+            addonTable.CustomEncounterBar(135809, 40, "门口放火", nil, "00ff00")
+            addonTable.CustomEncounterBar(135809, 65, "右侧放火", nil, "00ff00")
+            addonTable.CustomEncounterBar(135809, 88, "阳台放火", nil, "00ff00")
+            addonTable.CustomEncounterBar(135809, 112, "左侧放火", nil, "00ff00")
+            addonTable.CustomEncounterBar(135809, 142, "门口放火", nil, "00ff00")
+            addonTable.CustomEncounterBar(135809, 161, "右侧放火", nil, "00ff00")
         end
         return
     end

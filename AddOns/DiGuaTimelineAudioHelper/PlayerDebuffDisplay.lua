@@ -23,6 +23,32 @@ local function ApplyDebuffSize()
     if HostFrame then HostFrame:SetSize(HOST_BASE_SIZE * factor, HOST_BASE_SIZE * factor) end
 end
 
+-- 生长方向：false = 向右（默认：容器锚在宿主框左边缘、布局锚点 TOPLEFT、方向 Right）
+--           true  = 向左（镜像：容器锚在宿主框右边缘、布局锚点 TOPRIGHT、方向 Left）
+-- 两者成对切换，保证「第一个图标贴着宿主框左/右边缘 + 内缩 4px」完全镜像
+local growLeft = false
+
+-- 应用生长方向（容器已存在时立即生效；还没建容器就等 BuildContainer 里调）
+local function ApplyDebuffLayout()
+    local c = container
+    if not c then return end
+    local fd = AnchorUtil and AnchorUtil.FlowDirection
+    if not fd then return end
+
+    pcall(c.ClearAllPoints, c)
+    if growLeft then
+        pcall(c.SetPoint, c, "RIGHT", HostFrame, "RIGHT", 0, 0)
+        pcall(c.SetFlowLayoutGrowthDirection, c, fd.Left, fd.Down)
+        pcall(c.SetFlowLayoutAnchorPoint, c, "TOPRIGHT")
+    else
+        pcall(c.SetPoint, c, "LEFT", HostFrame, "LEFT", 0, 0)
+        pcall(c.SetFlowLayoutGrowthDirection, c, fd.Right, fd.Down)
+        pcall(c.SetFlowLayoutAnchorPoint, c, "TOPLEFT")
+    end
+    -- 立刻按新方向重排一次（没图标时会自己跳过）
+    if c.UpdateAllAuras then pcall(c.UpdateAllAuras, c) end
+end
+
 -- 可移动宿主框（控制台打开且开关开启时可拖动，否则点击穿透）
 HostFrame = CreateFrame("Frame", nil, UIParent)
 HostFrame:SetSize(HOST_BASE_SIZE, HOST_BASE_SIZE)
@@ -38,7 +64,7 @@ HostFrame.bg:Hide()
 
 HostFrame.text = HostFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 HostFrame.text:SetPoint("CENTER", HostFrame, "CENTER", 0, 0)
-HostFrame.text:SetText("玩家減益\n圖示")
+HostFrame.text:SetText("玩家减益\n图标")
 HostFrame.text:SetTextColor(1, 1, 1, 0.9)
 HostFrame.text:SetJustifyH("CENTER")
 HostFrame.text:SetSpacing(2)
@@ -60,7 +86,7 @@ local function BuildContainer()
     if not ok or not c then return nil end
     c:Hide()
 
-    -- 以左侧为锚点，跟随宿主拖动；图标向右生长
+    -- 先给个默认锚点（勾了「向左生长」时 ApplyDebuffLayout 会改成锚在宿主框右边缘），跟随宿主拖动
     c:SetPoint("LEFT", HostFrame, "LEFT", 0, 0)
 
     local ICON_SIZE = 48
@@ -134,17 +160,14 @@ local function BuildContainer()
     c:SetAuraGroupSortMethod("debuffs",
         AuraContainerSortMethod.Expiration, AuraContainerSortDirection.Normal)
 
-    -- 布局：以左侧为锚点，向右生长，一行最多 3 个
-    local hG = AnchorUtil.FlowDirection.Right
-    local vG = AnchorUtil.FlowDirection.Down
-    pcall(c.SetFlowLayoutGrowthDirection, c, hG, vG)
-    pcall(c.SetFlowLayoutAnchorPoint, c, "TOPLEFT")
+    -- 布局：一行最多 3 个（生长方向 + 锚点由 ApplyDebuffLayout 统一处理，支持「向左生长」）
     pcall(c.SetFlowLayoutPadding, c, 4, 4, 4, 4)
     pcall(c.SetFlowLayoutMaximumLineSize, c, maxCount * (ICON_SIZE + 9))
     pcall(c.SetAuraGroupLayout, c, "debuffs", { elementSpacing = 9, lineSpacing = 9 })
 
     container = c
     c:SetScale(SizeFactor()) -- 应用玩家设定的大小档位(整体等比)
+    ApplyDebuffLayout() -- 应用生长方向（默认向右；勾了「向左生长」则镜像）
     return c
 end
 
@@ -166,7 +189,7 @@ HostFrame:SetScript("OnMouseUp", function(self)
         if DiGuaTimelineAudioHelper then
             DiGuaTimelineAudioHelper.playerDebuffX = xOfs
             DiGuaTimelineAudioHelper.playerDebuffY = yOfs
-            print(string.format("|cff00ff00[DiGua]|r 玩家減益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
+            print(string.format("|cff00ff00[DiGua]|r 玩家减益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
         end
     end
 end)
@@ -213,6 +236,13 @@ function addonTable.SetPlayerDebuffSize(step)
     ApplyDebuffSize()
 end
 
+-- 设置生长方向：true = 向左生长（默认 false = 向右生长）
+function addonTable.SetPlayerDebuffGrowLeft(enabled)
+    growLeft = enabled and true or false
+    if DiGuaTimelineAudioHelper then DiGuaTimelineAudioHelper.playerDebuffGrowLeft = growLeft end
+    ApplyDebuffLayout()
+end
+
 -- PLAYER_LOGIN 读取位置并按开关显示；UNIT_AURA(player) 兜底刷新
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
@@ -231,6 +261,10 @@ f:SetScript("OnEvent", function(self, event, unit)
             sizeStep = tonumber(DiGuaTimelineAudioHelper.playerDebuffSize) or 0
             if sizeStep < MIN_SIZE_STEP then sizeStep = MIN_SIZE_STEP
             elseif sizeStep > MAX_SIZE_STEP then sizeStep = MAX_SIZE_STEP end
+        end
+        -- 读取生长方向（默认向右；存档里 true = 向左）—— 要在建容器之前设好
+        if DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.playerDebuffGrowLeft ~= nil then
+            growLeft = DiGuaTimelineAudioHelper.playerDebuffGrowLeft and true or false
         end
         -- 默认关闭，按开关显示/隐藏并同步拖动框状态
         addonTable.SetPlayerDebuffEnabled(DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.playerDebuffEnabled)

@@ -85,7 +85,7 @@ local RACE_SPELL_CONFIG = {
 local COMMON_SPELL_CONFIG = {
     {
         ids = { 1236616, 1236998, 1236994 },
-        name = "爆發藥水",
+        name = "爆发药水",
         cooldown = 300,
         onReady = function()
             local keystoneLevel = C_ChallengeMode.GetActiveKeystoneInfo()
@@ -161,7 +161,7 @@ end
 -- 由 EncounterTimeline.lua 在播报前调用，药水 CD 中则跳过该语音
 function addonTable.IsBurstPotionOnCooldown()
     for _, config in ipairs(COMMON_SPELL_CONFIG) do
-        if config.name == "爆發藥水" then
+        if config.name == "爆发药水" then
             for _, id in ipairs(config.ids) do
                 if addonTable.PlayerSpellStatus.spells[id] == false then
                     return true

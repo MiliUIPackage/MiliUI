@@ -570,7 +570,7 @@ addonTable.NormalAura = {
         [372963]  = "JingBao", -- 风暴之眼
         [373593]  = "CengShuGuoGao", -- 冻结     
         -- [373688]  = "HuDunKuaiDa", -- 冰霜过载
-        [373693]  = "KuaiKaiJianShang", -- 活动炸弹
+        [373693]  = "QuSanMoFa:player:HEALER|QuSanMoFa:party:HEALER|WuMaFenSan:player:TANK,DAMAGER", -- 活动炸弹（治疗：自己/小队中→驱散魔法；非治疗：自己中→五码分散）
         [381515]  = "NiBeiYiShang:player:TANK|QuSanTanKe:party:HEALER", -- 风暴猛击
         -- [381518]  = "JingBao", -- 变迁之风
         [381526]  = "JingBao", -- 怒吼火息
@@ -772,6 +772,27 @@ addonTable.NormalAura = {
         [1258677] = "JingBao", -- 激荡漩涡
         [1271458] = "ZhuYiXiaoShui", -- 水流喷射
         [1281341] = "JingBao", -- 野性撕咬
+
+    -- ============================
+    -- ==       基希克斯破封       ==
+    -- ============================
+
+        [1303406] = "MuBiaoShiNi", -- 深渊攫取
+        [1304948] = "NiBeiYiShang", -- 重创
+        [1302319] = "alarmbeep", -- 腐蚀胃液
+        [1308674] = "alarmbeep", -- 蚀日碎片
+        -- [1307662] = "", -- 精疲力竭
+        [1304526] = "AnQuan", -- 圣光之拥
+        [1305428] = "NiBeiQiangHua", -- 光耀恩典
+        [1318467] = "QuanZhuXiaoQiu", -- 湮消
+        [1308873] = "JiHeFangQuan", -- 虚无之门
+        [1308875] = "alarmbeep", -- 失效
+        [1304046] = "KongJu", -- 极度恐惧
+        [1301110] = "JieDuanZhuanHuan", -- 冥河怒嚎
+        -- [1303165] = "", -- 窒息黑暗
+        [1303257] = "JingBao", -- 窒息
+        [1304045] = "TieBianQuSan", -- 不可名状之怖
+        [1302334] = "alarmbeep", -- 虚空编织
     },
 
     -- 接在团本块之后的普通条目（5人本 / 通用）
@@ -800,6 +821,7 @@ addonTable.NormalAura = {
         [1238801] = "alarmbeep", -- 饥肠辘辘
         [272021]  = "alarmbeep", -- 喷涌黑暗
         [1219631] = "alarmbeep", -- 邪能灌注货物
+        [1308875] = "alarmbeep", -- 失效
         -- [1307700] = "alarmbeep", -- 腐肉喷发
         -- [1294845] = "NiBeiYiShang_Refresh",
     },

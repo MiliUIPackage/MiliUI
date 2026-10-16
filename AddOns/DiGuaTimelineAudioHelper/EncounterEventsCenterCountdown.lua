@@ -144,17 +144,31 @@ Base:SetFrameStrata("HIGH")
 Base:SetClampedToScreen(true)
 
 -- 拖拽时的背景指示层
+-- ⚠️ 文字是从 Base 的【中心】向上生长的（见下面 row:SetPoint("BOTTOM", Base, "CENTER", …)），
+--    所以黄框不能再用 SetAllPoints（那会以中心为基准上下各 40px，看着就“太靠下”）。
+--    这里把黄框挂到“中心往上 0 ~ 2 行”的区域：
+--        高 = ROW_HEIGHT×2 + ROW_GAP×1 = 26×2 + 6 = 58   ← 只罩前 2 行，想改行数就改这个数
+--        宽 = 就是 Base 自己的 240（不动）
+--    → 文字位置一点都不动，只是框对上了。
 Base.bg = Base:CreateTexture(nil, "BACKGROUND")
-Base.bg:SetAllPoints()
+Base.bg:SetPoint("BOTTOM", Base, "CENTER", 0, 0)
+Base.bg:SetPoint("TOP",    Base, "CENTER", 0, 58)
+Base.bg:SetPoint("LEFT",   Base, "CENTER", -120, 0)
+Base.bg:SetPoint("RIGHT",  Base, "CENTER", 120, 0)
 Base.bg:SetColorTexture(1, 0.82, 0, 0.25)
 Base.bg:Hide()
 
--- 拖拽时的中心文字提示
+-- 拖拽时的文字提示（跟着黄框挪到框体正中：高 58 → 中心在 +29）
 Base.txt = Base:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-Base.txt:SetPoint("CENTER")
-Base.txt:SetText("剩餘5秒\n倒計時")
+Base.txt:SetPoint("CENTER", Base, "CENTER", 0, 29)
+Base.txt:SetText("剩余5秒\n倒计时")
 Base.txt:SetTextColor(1, 1, 1, 0.9)
 Base.txt:Hide()
+
+-- 鼠标可拖区域也对齐到黄框（负 insets = 往外扩，正 insets = 往里缩；纹理本身不接收鼠标，事件都归 Base）：
+--   Base 本体仍是 240×80、中心仍是锚点（所以文字不动）；左右不动（宽 240 就是黄框宽度）
+--   下边 40 往上收到中心线（0），上边 -18 往上扩到 +58  → 可点击区域 = 黄框 240×58
+Base:SetHitRectInsets(0, 0, -18, 40)
 
 -- 开启/关闭 UI 拖拽移动状态
 function addonTable.SetCenterCountdownDragEnabled(enabled)
@@ -182,7 +196,7 @@ Base:SetScript("OnMouseUp", function(self)
     local x, y = addonTable.NormalizeFrameToUIParentCenter(self)
     DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
     DiGuaTimelineAudioHelper.centerCountdownX, DiGuaTimelineAudioHelper.centerCountdownY = x, y
-    print(string.format("|cff00ff00[DiGua]|r 剩餘5秒倒計時新位置已保存 (X: %d, Y: %d)", x, y))
+    print(string.format("|cff00ff00[DiGua]|r 剩余5秒倒计时新位置已保存 (X: %d, Y: %d)", x, y))
 end)
 
 ------------------------------------------------------------

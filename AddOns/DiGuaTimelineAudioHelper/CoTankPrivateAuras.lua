@@ -91,6 +91,37 @@ function addonTable.SetCoTankAuraSize(step)
     ApplyCoTankSize()
 end
 
+-- ── 生长方向（与 PlayerDebuffDisplay.lua 完全同一套做法）────────────────────
+-- false = 向右（默认：容器锚在宿主框左边缘、布局锚点 TOPLEFT、方向 Right）
+-- true  = 向左（镜像：容器锚在宿主框右边缘、布局锚点 TOPRIGHT、方向 Left）
+local growLeft = false
+
+local function ApplyCoTankLayout()
+    local c = container
+    if not c then return end
+    local fd = AnchorUtil and AnchorUtil.FlowDirection
+    if not fd then return end
+
+    pcall(c.ClearAllPoints, c)
+    if growLeft then
+        pcall(c.SetPoint, c, "RIGHT", HostFrame, "RIGHT", 0, 0)
+        pcall(c.SetFlowLayoutGrowthDirection, c, fd.Left, fd.Down)
+        pcall(c.SetFlowLayoutAnchorPoint, c, "TOPRIGHT")
+    else
+        pcall(c.SetPoint, c, "LEFT", HostFrame, "LEFT", 0, 0)
+        pcall(c.SetFlowLayoutGrowthDirection, c, fd.Right, fd.Down)
+        pcall(c.SetFlowLayoutAnchorPoint, c, "TOPLEFT")
+    end
+    if c.UpdateAllAuras then pcall(c.UpdateAllAuras, c) end
+end
+
+-- 外部接口：控制台「向左生长」勾选框调用
+function addonTable.SetCoTankGrowLeft(enabled)
+    growLeft = enabled and true or false
+    if DiGuaTimelineAudioHelper then DiGuaTimelineAudioHelper.coTankGrowLeft = growLeft end
+    ApplyCoTankLayout()
+end
+
 -- ============================================================================
 -- 1. 创建宿主框体（控制台打开且开关开启时可拖动，其它时候完全点击穿透）
 -- ============================================================================
@@ -111,7 +142,7 @@ HostFrame.bg:Hide() -- 默认隐藏
 
 HostFrame.text = HostFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 HostFrame.text:SetPoint("CENTER", HostFrame, "CENTER", 0, 0)
-HostFrame.text:SetText("副坦\n減益")
+HostFrame.text:SetText("副坦\n减益")
 HostFrame.text:SetTextColor(1, 1, 1, 0.9)
 HostFrame.text:SetJustifyH("CENTER")
 HostFrame.text:SetSpacing(2)
@@ -149,13 +180,13 @@ end
 local function BuildContainer()
     if container then return container end
     if not IsAuraContainerAvailable() then
-        Warn("客戶端不支持 AuraContainer（12.1 才有）→ 功能跳過")
+        Warn("客户端不支持 AuraContainer（12.1 才有）→ 功能跳过")
         return nil
     end
 
     local ok, c = pcall(CreateFrame, "AuraContainer", nil, HostFrame, "CustomAuraContainerTemplate")
     if not ok or not c then
-        Warn("CreateFrame(AuraContainer) 失敗 → " .. tostring(c))
+        Warn("CreateFrame(AuraContainer) 失败 → " .. tostring(c))
         return nil
     end
     c:Hide()
@@ -250,11 +281,8 @@ local function BuildContainer()
             AuraContainerSortMethod.Expiration, AuraContainerSortDirection.Normal)
     end)
 
-    -- 布局：与「玩家减益」完全一致 —— 垂直居中于绿框、向左贴边，向右生长，一行最多 MAX_ICONS 个
-    Try("SetFlowLayoutGrowthDirection(Right,Down)", function()
-        c:SetFlowLayoutGrowthDirection(AnchorUtil.FlowDirection.Right, AnchorUtil.FlowDirection.Down)
-    end)
-    Try("SetFlowLayoutAnchorPoint(TOPLEFT)", function() c:SetFlowLayoutAnchorPoint("TOPLEFT") end)
+    -- 布局：与「玩家减益」完全一致 —— 垂直居中于绿框、贴边，一行最多 MAX_ICONS 个
+    -- （生长方向 + 锚点由 ApplyCoTankLayout 统一处理，支持「向左生长」）
     -- ⚠️ 内缩必须和「玩家减益」一样是 4px：
     --    绿框 55px、图标 48px，差 7px；四周各让 4px 后图标正好在框内竖直居中
     --    （改成 0 的话图标会贴着左上角，看起来「没居中」）
@@ -266,17 +294,11 @@ local function BuildContainer()
         c:SetAuraGroupLayout("debuffs", { elementSpacing = ICON_SPACING, lineSpacing = ICON_SPACING })
     end)
 
-    -- 容器锚点：左侧对齐宿主框左侧（垂直方向由 Padding 撑出居中效果），跟随绿框拖动。
-    -- ⚠️ 这里用 LEFT 而不是 TOPLEFT —— TOPLEFT 会把图标顶到框的最上面，
-    --    和「玩家减益」（用 LEFT）表现不一致，用户一眼就能看出副坦没居中。
-    Try("SetPoint(LEFT ← 宿主框 LEFT)", function()
-        c:SetPoint("LEFT", HostFrame, "LEFT", 0, 0)
-    end)
-
-    -- 先挂上全局引用，再缩放：ApplyCoTankSize 内部读的是 container，
-    -- 若放在赋值之前调用会静默 return（容器还没登记，缩放不生效）
+    -- 先挂上全局引用，再缩放 / 排布局：ApplyCoTankSize 与 ApplyCoTankLayout 内部读的都是 container，
+    -- 若放在赋值之前调用会静默 return（容器还没登记，不生效）
     container = c
     ApplyCoTankSize() -- 应用控制台设定的档位（整体等比缩放）
+    ApplyCoTankLayout() -- 应用生长方向（默认向右；勾了「向左生长」则镜像）
     return c
 end
 
@@ -349,6 +371,8 @@ function addonTable.UpdateRaidTankAuras()
 
     -- 存档里的档位可能在登录后才读到（SavedVariables 加载顺序），这里每次对齐一次
     coTankSizeStep = tonumber((DiGuaTimelineAudioHelper or {}).coTankSize) or coTankSizeStep
+    -- 生长方向同样每次对齐存档（控制台可能刚改过 / 登录后才读到）
+    growLeft = (DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.coTankGrowLeft) and true or false
 
     -- 开关关掉 → 直接收起容器（容器留着，下次开不用重建）
     if not (DiGuaTimelineAudioHelper and DiGuaTimelineAudioHelper.coTankAuraEnabled) then
@@ -425,7 +449,7 @@ HostFrame:SetScript("OnMouseUp", function(self, button)
         if DiGuaTimelineAudioHelper then
             DiGuaTimelineAudioHelper.coTankX = xOfs
             DiGuaTimelineAudioHelper.coTankY = yOfs
-            print(string.format("|cff00ff00[DiGua]|r 副坦減益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
+            print(string.format("|cff00ff00[DiGua]|r 副坦减益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
         end
     end
 end)

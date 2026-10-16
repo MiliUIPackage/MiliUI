@@ -18,10 +18,10 @@ addonTable.EventSoundData = {
     -- 护光者鲁伊亚
     [181] = { {"ZhuYiDianMing.ogg", 1}}, -- 光明之火 (1239824) , {"JiHeFangFeng.ogg", 0}
     [182] = { {"WuMiaoZhuYiDuoQuan.ogg", 2} }, -- 光明坠落 (1240098)
-    [184] = { {"ZhunBeiLiuXue.ogg", 1}, {"WuMiaoHouLiuXue.ogg", 2, {HEALER = true}} }, -- 凶残痛击 (1241058)
+    [184] = { {"ZhunBeiAOE.ogg", 1}, {"WuMiaoHouAOE.ogg", 2} }, -- 凶残痛击 (1241058)
     [188] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 峡谷之灵 (1241067)
     [115] = { {"TanKeChengShang.ogg", 1, {TANK = true, HEALER = true}} }, -- 撕裂之爪 (1258136)
-    [183] = { {"ZhuYiDianMing.ogg", 1} }, -- 粉碎打击 (1240210)
+    [183] = { {"ZhuYiTouQian.ogg", 1} }, -- 粉碎打击 (1240210)
 
     -- 兹欧凯特
     [192] = { {"ZhunBeiChiQiu.ogg", 1} }, -- 光绽精华 (1246858)
@@ -100,14 +100,20 @@ addonTable.EventSoundData = {
         {"ZhunBeiDianMing.ogg", 1, {NOT_CLASS = "WARRIOR"}},
         {"ZhunBeiDunFanSanErYiDunFan.ogg", 2, {CLASS = "WARRIOR"}},
         {"WuMiaoHouDianMing.ogg", 2, {NOT_CLASS = "WARRIOR"}},
-    }, -- , {"WuMaFenSan.ogg", 0}
+    },
     [798] = { {"DuoKaiTouQian.ogg", 1} }, -- 反刍 (1296050)
     [899] = { {"ZhunBeiAOE.ogg", 1} }, -- 贪婪践踏 (1307894)
     -- [902] = { {".ogg", 1} }, -- 进食狂热 (1307765)
     [901] = { {"TanKeDaiWei.ogg", 0, {TANK = true}} }, -- 鲜肉 (1307921)
 
     -- 扭缠盘蛇
-    [813] = { {"ZhunBeiAOE.ogg", 1} }, -- 同步毒液 (1299154)
+    -- [813] = { {"ZhunBeiAOE.ogg", 1} }, -- 同步毒液 (1299154)
+
+    [813] = { -- 同步毒液 (1299154)
+        {"ZhunBeiAOE.ogg", 1, {NOT_CLASS = "WARRIOR"}},
+        {"FaShuFanShe.ogg", 1, {CLASS = "WARRIOR"}},
+    },
+    
     [814] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 镰尾 (1298949)
     [815] = { {"DuoKaiChongFengSiDianLiuMiaoDuoKaiTouQian.ogg", 1} }, -- 复仇猛攻 (1299940)
     [816] = { {"ZhunBeiLaXian.ogg", 1} }, -- 濒死喘息 (1299053)
@@ -344,6 +350,23 @@ addonTable.RaidEventSoundData = {
     [745] = { {"ShouLingKuangBao.ogg", 1} }, -- 无尽潮汐 (1294867)
     [976] = { {"ZhuYiDianMing.ogg", 1}, {"WuMiaoHouDianMing.ogg", 2} }, -- 刺骨寒霜 (1313393)
     -- [977] = { {"ZhuanHuoXiaoGuai.ogg", 0} }, -- 诱人水泡 (1257717)
+
+
+
+    -- 基希克斯破封（基希克斯 / Kith'ix）
+    -- [838] = { {".ogg", 1} }, -- 不可名状之怖 (1304045)
+    [858] = { {"TanKeChengShang.ogg", 1} }, -- 黑暗毁灭 (1304930)
+    [859] = { {"ZhunBeiXiaoGuai.ogg", 1} }, -- 虚空虫群 (1301511)
+    [860] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 窒息黑暗 (1302951)
+    [861] = { {"ZhunBeiChiQiu.ogg", 1} }, -- 熄灭 (1304424)
+    [862] = { {"ZhuYiJiaoXia.ogg", 1} }, -- 扭曲的附肢 (1303681)
+    [864] = { {"ShuaXiNaiDun.ogg", 1, {HEALER = true}} }, -- 深渊攫取 (1303406)
+    [903] = { {"ZhunBeiDianMing.ogg", 2} }, -- 虚无之门 (1308873)
+    [951] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 神圣光辉 (1303169)
+    [1002] = { {"TanKeChengShang.ogg", 1} }, -- 湮消 (1318467)
+    [1003] = { {"ShouLingKuangBao.ogg", 1} }, -- 八重蚀日 (1301479)
+
+
 }
 
 -- ==================================================================

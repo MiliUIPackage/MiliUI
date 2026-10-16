@@ -23,6 +23,9 @@ local JOBS = {
         { unit = "boss1", min = 40, max = 46 },
         { unit = "boss2", min = 40, max = 46 },
     } },
+    [3201] = { units = { -- 夺目3
+        { unit = "boss1", min = 70, max = 76 },
+    } },
     -- [3429] = { units = { -- 烈毒7
     --     { unit = "boss1", min = 0, max = 5 },
     --     { unit = "boss2", min = 0, max = 5 },
@@ -180,7 +183,7 @@ HostFrame.bg:Hide()
 
 HostFrame.text = HostFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 HostFrame.text:SetPoint("CENTER")
-HostFrame.text:SetText("首領\n轉階段\n血量%")
+HostFrame.text:SetText("首领\n转阶段\n血量%")
 HostFrame.text:SetTextColor(1, 1, 1, 0.95)
 HostFrame.text:SetJustifyH("CENTER")
 HostFrame.text:SetSpacing(2)
@@ -207,7 +210,7 @@ for i = 1, #Labels do
     local c = HostFrame:CreateFontString(nil, "OVERLAY")
     c:SetPoint("BOTTOM", Labels[i], "TOP", 0, 3)
     c:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 40, "OUTLINE")
-    c:SetText("轉階段")
+    c:SetText("转阶段")
     c:SetTextColor(1, 0.82, 0, 1) -- 金色
     c:SetShadowOffset(1, -1)
     c:SetShadowColor(0, 0, 0, 0.85)
@@ -238,7 +241,7 @@ HostFrame:SetScript("OnMouseUp", function(self)
     local x, y = addonTable.NormalizeFrameToUIParentCenter(self)
     DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
     DiGuaTimelineAudioHelper.bossHealthPctX, DiGuaTimelineAudioHelper.bossHealthPctY = x, y
-    print(string.format("|cff00ff00[DiGua]|r 首領轉階段血量百分比新位置已保存 (X: %d, Y: %d)", x, y))
+    print(string.format("|cff00ff00[DiGua]|r 首领转阶段血量百分比新位置已保存 (X: %d, Y: %d)", x, y))
 end)
 
 -- 控制台打开 + 开关开启 → 显示半透明可拖动框；否则点击穿透
