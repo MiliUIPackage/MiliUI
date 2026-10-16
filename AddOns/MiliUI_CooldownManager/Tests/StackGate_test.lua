@@ -105,6 +105,7 @@ env.hooksecurefunc = function(obj, name, fn)
 end
 env.CreateFrame = function(kind, _, parent) return NewFrame(kind, parent) end
 env.InCombatLockdown = function() return false end
+env.GetTime = function() return 0 end
 local auraByIID = {}
 env.C_UnitAuras = {
     GetAuraDataByAuraInstanceID = function(unit, iid)

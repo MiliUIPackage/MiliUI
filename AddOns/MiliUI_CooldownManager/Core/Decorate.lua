@@ -1544,6 +1544,8 @@ local function OnClearCooldown(cd)
     local item = cooldownOwner[cd]
     local rec = item and ns.Viewers.frames[item]
     if not rec then return end
+    -- 清掉的是不是光環時間（改旗標之前記；就緒發光的探針靠它分辨「增益結束」與「技能轉好」）
+    local endedAura = rec.auraFlag == true
     -- 前面沒寫旗標就清 ＝ 暴雪走「到期」那條：什麼都沒在倒 ⇒ 增益持續時間的旗標歸零（見 OnSetUseAuraDisplayTime）。
     -- 剛寫過旗標接著清（CooldownFrame_Set 拿到零長度）＝ 同一次刷新，旗標照暴雪剛寫的
     if rec.auraFlagPending then
@@ -1551,7 +1553,7 @@ local function OnClearCooldown(cd)
     elseif rec.auraFlag and not ns.released then
         SetAuraFlag(item, rec, false)
     end
-    if ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec) end
+    if ns.Glow and ns.Glow.OnItemClear then ns.Glow.OnItemClear(item, rec, endedAura) end
 end
 
 local function OnSetDesaturated(icon, desaturated)

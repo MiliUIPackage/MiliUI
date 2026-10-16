@@ -578,11 +578,14 @@ function G.SyncActive(owner, rec, barKey)
     end
     -- 層數發光開著（Core/StackGate.lua，rec.stackCfg.glow）：生效發光讓位
     local stackGlow = rec.stackCfg ~= nil and rec.stackCfg.glow ~= nil
+    local was = rec.glowOn and rec.glowOn.active and true or false
     if active and not stackGlow and not Hidden(rec) and Wanted(rec, barKey, "active") and CombatOK(rec, barKey) then
         Start(rec, "active", barKey, ActiveCfg(rec, barKey))
     else
         Stop(rec, "active")
     end
+    local now = rec.glowOn and rec.glowOn.active and true or false
+    if was ~= now then Trace(rec, now and "生效發光亮" or "生效發光熄") end
 end
 
 ------------------------------------------------------------
@@ -1184,8 +1187,22 @@ end
 -- 暴雪 item 的 Cooldown:SetCooldown 後掛勾（Decorate 轉過來；cd 是被呼叫的那顆 Cooldown）
 function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     if not ReadyOn(rec) then return end
-    -- 暴雪正在顯示光環時間：那個結束不是技能轉好
-    if UsesAuraTime(item, cd) then return end
+    -- 暴雪正在顯示光環時間：那個結束不是技能轉好，不武裝。
+    -- ⚠ 但「用掉了」照樣要收：用了會跳增益／召喚物的法術（惡魔暴君：召喚物走暴雪的 totem 那條），按下去那一刻
+    --   暴雪就換成顯示光環時間、整段都走這裡 ⇒ 以前不收，「亮到使用為止」的就緒發光一路亮過增益期間
+    --   （玩家回報 2026-10-17：開了增益期間發光，第二輪起看起來像增益發光不熄）
+    if UsesAuraTime(item, cd) then
+        if rec.glowOn and rec.glowOn.ready and not rec.readyWhile and not FromCharges(item) then
+            local spellID = SpellOf(rec)
+            local okInfo, info = false, nil
+            if spellID then okInfo, info = pcall(C_Spell.GetSpellCooldown, spellID) end
+            if okInfo and type(info) == "table" and Plain(info.isOnGCD) == false and Plain(info.isActive) == true then
+                Trace(rec, "就緒熄（顯示光環時間中，明文確認技能在冷卻）")
+                G.CooldownStarted(rec)
+            end
+        end
+        return
+    end
     local d = Plain(duration)
     if d ~= nil and (type(d) ~= "number" or d <= GCD_MAX) then return end
     local spellID = SpellOf(rec)
@@ -1222,13 +1239,19 @@ function G.OnItemSetCooldown(item, rec, start, duration, modRate, cd)
     rec.probeArmInfo = armInfo
 end
 
--- 暴雪清掉冷卻（到期那一刻它自己清、或冷卻被重置）而探針還武裝著 ⇒ 就是轉好了
-function G.OnItemClear(item, rec)
+-- 暴雪清掉冷卻（到期那一刻它自己清、或冷卻被重置）而探針還武裝著 ⇒ 就是轉好了。
+-- endedAura：這次清掉的是光環時間（Decorate 在改旗標之前記的）＝增益／召喚物結束，不是技能轉好：
+-- 暴雪的 IsExpired 在光環剛到期、還沒換回技能冷卻的那一次刷新就走 Clear。探針留著照自己的計時跑
+function G.OnItemClear(item, rec, endedAura)
     -- 冷卻狀態：暴雪清掉冷卻（到期或被重置）＝現在可能轉好了，先照現況重算 alpha。
     -- 暴雪對沒在冷卻的格子每次 GCD 也會 Clear ⇒ 這裡不排 0.1 秒的補算（探針觸發的 Fire 才排）
     if ns.Decorate and ns.Decorate.RefreshState then ns.Decorate.RefreshState(rec, true) end
     if rec.readyWhile then G.ApplyReadyState(rec, item) end
     if not rec.probeArmed then return end
+    if endedAura then
+        Trace(rec, "暴雪 Clear 的是光環時間：不當轉好，探針照跑")
+        return
+    end
     rec.probeArmed = false
     if rec.probe then pcall(rec.probe.Clear, rec.probe) end
     if rec.probeID ~= rec.cooldownID then return end
@@ -1419,6 +1442,8 @@ local function GlowLine(item, rec)
     lines[4] = ("     就緒：設定=%s 模式=%s 探針武裝=%s（%s）一直亮=%s 等資源=%s 冷卻 %s"):format(
         barKey and tostring(Wanted(rec, barKey, "ready")) or "—", barKey and ReadyMode(barKey, rec) or "—",
         Show(rec.probeArmed), tostring(rec.probeArmInfo or "—"), Show(rec.readyWhile), Show(rec.readyPending), cdInfo)
+    lines[5] = ("     生效：設定=%s 光環時間旗標=%s（待配對=%s）"):format(
+        barKey and tostring(Wanted(rec, barKey, "active")) or "—", Show(rec.auraFlag), Show(rec.auraFlagPending))
     return lines
 end
 
