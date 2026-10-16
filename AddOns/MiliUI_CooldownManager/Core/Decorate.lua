@@ -1754,13 +1754,56 @@ local function BarItemSpellID(item, rec)
     return type(id) == "number" and id or nil
 end
 
+-- 空的秘密名字的退路：疊在暴雪名字上面的一行我們自己的字（不寫進暴雪的框）。
+-- 實機 2026-10-17：暴雪寫進空的秘密字串之後，我們對它 SetText(法術名) 畫面照樣空白（diag 記到「→ 法術名」、玩家看不到）
+-- ⇒ 不跟暴雪的框搶：秘密那條改成自己疊一行，暴雪之後寫進任何有寬度的名字就藏起來。
+-- 字型／顏色／對齊／alpha 每次顯示時從暴雪那行抄（樣式設定改過也跟得上；讀不到的退預設）
+local nameFill = setmetatable({}, { __mode = "k" })   -- 暴雪名字 FontString → 我們的退路字
+local function HideNameFill(fs)
+    local f = nameFill[fs]
+    if f then f:Hide() end
+end
+
+local function ShowNameFill(fs, name)
+    local f = nameFill[fs]
+    if not f then
+        local okP, parent = pcall(fs.GetParent, fs)
+        if not (okP and parent and parent.CreateFontString) then return false end
+        f = parent:CreateFontString(nil, "OVERLAY")
+        f:SetAllPoints(fs)
+        nameFill[fs] = f
+    end
+    local okF, font, size, flags = pcall(fs.GetFont, fs)
+    font, size, flags = Plain(font), Plain(size), Plain(flags)
+    if not (okF and type(font) == "string" and type(size) == "number" and pcall(f.SetFont, f, font, size, flags or "")) then
+        f:SetFontObject(_G.GameFontHighlightSmall)          -- ⚠ FontString 要先有字型才能 SetText
+    end
+    local okJ, jh = pcall(fs.GetJustifyH, fs)
+    jh = okJ and Plain(jh) or nil
+    f:SetJustifyH(type(jh) == "string" and jh or "LEFT")
+    local okC, r, g, b, a = pcall(fs.GetTextColor, fs)
+    r, g, b, a = Plain(r), Plain(g), Plain(b), Plain(a)
+    if okC and type(r) == "number" and type(g) == "number" and type(b) == "number" then
+        f:SetTextColor(r, g, b, type(a) == "number" and a or 1)
+    else
+        f:SetTextColor(1, 1, 1, 1)
+    end
+    local okA, alpha = pcall(fs.GetAlpha, fs)
+    alpha = okA and Plain(alpha) or nil
+    f:SetAlpha(type(alpha) == "number" and alpha or 1)
+    f:SetText(name)
+    f:Show()
+    return true
+end
+D.ShowNameFill, D.HideNameFill = ShowNameFill, HideNameFill      -- 測試用
+
 local function OnBarNameSetText(fs, text)
     if nameGuard or ns.released then return end
     local item = nameOwner[fs]
     local rec = item and ns.Viewers.frames[item]
     if not rec or rec.custom then return end
     local Note = ns.Diag and ns.Diag.Note
-    local what
+    local what, secret
     if ns.IsSecret(text) then                           -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
         -- 秘密字串讀不到內容，但 GetStringWidth 只在「錨點是秘密」時才回秘密（API 文件 SecretWhenAnchoringSecret，
         -- 跟文字的秘密 aspect 無關）⇒ 明文寬度 0 ＝ 暴雪寫進來的是空的。實機 2026-10-17：12.1.5 召喚惡魔暴君
@@ -1768,6 +1811,7 @@ local function OnBarNameSetText(fs, text)
         local okW, w = pcall(fs.GetStringWidth, fs)
         w = okW and Plain(w) or nil
         if w ~= 0 then
+            HideNameFill(fs)
             local cid = rec.cooldownID
             if Note and cid ~= nil and not notedSecret[cid] then
                 notedSecret[cid] = true
@@ -1777,8 +1821,9 @@ local function OnBarNameSetText(fs, text)
             end
             return
         end
-        what = "空的秘密字串"
+        what, secret = "空的秘密字串", true
     elseif text ~= nil and text ~= "" then
+        HideNameFill(fs)
         return
     else
         what = text == nil and "nil" or "空字串"
@@ -1790,14 +1835,19 @@ local function OnBarNameSetText(fs, text)
         v = ok and Plain(v) or nil
         if type(v) == "string" and v ~= "" then name = v end
     end
-    if Note then
-        Note("barname", string.format("%s %s → %s", tostring(rec.cooldownID), what,
-            name and ("法術名 " .. name) or ("沒退路（spellID " .. tostring(spellID) .. "）")))
+    local how = "沒退路（spellID " .. tostring(spellID) .. "）"
+    if name then
+        if secret and ShowNameFill(fs, name) then
+            how = "疊字 " .. name
+        else
+            HideNameFill(fs)
+            nameGuard = true
+            local ok = pcall(fs.SetText, fs, name)
+            nameGuard = false
+            how = (ok and "法術名 " or "寫入失敗 ") .. name
+        end
     end
-    if not name then return end
-    nameGuard = true
-    pcall(fs.SetText, fs, name)
-    nameGuard = false
+    if Note then Note("barname", string.format("%s %s → %s", tostring(rec.cooldownID), what, how)) end
 end
 
 function D.HookItem(item, rec)

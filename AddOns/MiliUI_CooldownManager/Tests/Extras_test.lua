@@ -457,17 +457,48 @@ do
     local ok2, err2 = pcall(nameHook, fs, s2)
     check("秘密字串：掛勾不碰、不拋錯", ok2, err2)
     eq("秘密字串（沒有寬度 API）留著", fs.text, s2)
-    -- 秘密字串但明文寬度 0 ＝ 暴雪寫進來的是空的（12.1.5 召喚惡魔暴君第一次）⇒ 用法術名字頂
+    -- 秘密字串但明文寬度 0 ＝ 暴雪寫進來的是空的（12.1.5 召喚惡魔暴君第一次）⇒ 疊一行自己的法術名，暴雪的框不碰
+    local fill
+    local parent = { CreateFontString = function()
+        fill = { shown = false }
+        function fill:SetAllPoints() end
+        function fill:SetFont() return true end
+        function fill:SetFontObject() end
+        function fill:SetJustifyH(v) self.jh = v end
+        function fill:SetTextColor(r, g, b, a) self.color = { r, g, b, a } end
+        function fill:SetAlpha(v) self.alpha = v end
+        function fill:SetText(v) self.text = v end
+        function fill:Show() self.shown = true end
+        function fill:Hide() self.shown = false end
+        return fill
+    end }
+    fs.GetParent = function() return parent end
+    fs.GetFont = function() return "Fonts\\x.ttf", 12, "OUTLINE" end
+    fs.GetJustifyH = function() return "CENTER" end
+    fs.GetTextColor = function() return 0.5, 0.6, 0.7, 1 end
+    fs.GetAlpha = function() return 0.8 end
     fs.GetStringWidth = function() return 0 end
     fs:SetText(s2); nameHook(fs, s2)
-    eq("空的秘密字串（寬 0）⇒ 用法術名字頂", fs.text, "法術1200")
+    eq("空的秘密字串（寬 0）⇒ 暴雪的框不碰", fs.text, s2)
+    check("空的秘密字串 ⇒ 疊字顯示", fill and fill.shown)
+    eq("疊字是法術名", fill and fill.text, "法術1200")
+    eq("疊字抄對齊", fill and fill.jh, "CENTER")
+    eq("疊字抄 alpha", fill and fill.alpha, 0.8)
     fs.GetStringWidth = function() return 42 end
     fs:SetText(s2); nameHook(fs, s2)
     eq("有寬度的秘密字串留著", fs.text, s2)
+    eq("有寬度的秘密字串 ⇒ 疊字藏起來", fill.shown, false)
+    fs.GetStringWidth = function() return 0 end
+    fs:SetText(s2); nameHook(fs, s2)
+    check("又空了 ⇒ 疊字再出來", fill.shown)
+    fs:SetText("真名"); nameHook(fs, "真名")
+    eq("明文真名 ⇒ 疊字藏起來", fill.shown, false)
     fs.GetStringWidth = function() return Secret() end
     fs:SetText(s2); nameHook(fs, s2)
     eq("寬度是秘密值（錨點秘密）留著", fs.text, s2)
+    eq("寬度是秘密值 ⇒ 不疊字", fill.shown, false)
     fs.GetStringWidth = nil
+    fs.GetParent, fs.GetFont, fs.GetJustifyH, fs.GetTextColor, fs.GetAlpha = nil, nil, nil, nil, nil
     -- 自訂框不掛
     local fs2 = {}
     function fs2:SetText() end
