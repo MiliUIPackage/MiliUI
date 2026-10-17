@@ -336,17 +336,23 @@ end
 --
 -- 為什麼跟帳號層拆開：**匯入字串**帶著自己的 schemaVersion，可能比目前舊。那一份
 -- 要補遷移，但不能把帳號層的版本號降下去——降了會讓遷移在所有設定檔上重跑一次。
+-- v2（2026-10-16）：血條材質從自帶的 TukTex 換成套組自製的 MiliUI Satin，token "tuktex" → "satin"。
+-- 值閘：還是舊 token 的才換；玩家選了 LSM 別的材質不碰（Media.lua 留著 "tuktex" 別名）
+-- （拉出來獨立宣告是因為 v3 要再叫一次；表還在建構時 local 名字還看不到自己）
+local function MigrateSatin(p)
+    local sb = p.statusbar
+    if type(sb) == "table" and sb.texture == "tuktex" then sb.texture = "satin" end
+end
+
 local PROFILE_MIGRATIONS = {
-    -- v2（2026-10-16）：血條材質從自帶的 TukTex 換成套組自製的 MiliUI Satin，token "tuktex" → "satin"。
-    -- 值閘：還是舊 token 的才換；玩家選了 LSM 別的材質不碰（Media.lua 留著 "tuktex" 別名）
-    [2] = function(p)
-        local sb = p.statusbar
-        if type(sb) == "table" and sb.texture == "tuktex" then sb.texture = "satin" end
-    end,
+    [2] = MigrateSatin,
     -- v3（2026-10-17）：「游標右側」併進「跟隨游標」，位置由九宮格選。
     -- cursorRight → cursor＋右上（＝原本 ANCHOR_CURSOR_RIGHT 的位置，畫面不變）；
-    -- 舊的 cursor 沒存 cp 的＝上方（原生 ANCHOR_CURSOR），要明寫回去，不然 MergeDefaults 會補成新預設的右上
+    -- 舊的 cursor 沒存 cp 的＝上方（原生 ANCHOR_CURSOR），要明寫回去，不然 MergeDefaults 會補成新預設的右上。
+    -- ⚠ 順便把 v2 再跑一次：v3 之前 DB.Init 只蓋版本號、沒對存檔跑過設定檔遷移，玩家的 SV 已經寫著 2
+    -- 但材質 token 還是 "tuktex"（靠 Media.lua 的別名才畫得出）。v2 是值閘，重跑無害
     [3] = function(p)
+        MigrateSatin(p)
         local function Fix(a)
             if type(a) ~= "table" then return end
             if a.position == "cursorRight" then
