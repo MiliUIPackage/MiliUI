@@ -191,4 +191,9 @@ NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪�
   duration 物件餵自己的 Cooldown、IsZero 餵圖示 alpha），材質預設改**套組自製的 `MiliUI Satin`**（[[project-miliui-satin-texture]]；曾自帶 tuktex.tga 一天、第一版叫 Glass，v11 值閘遷移兩個舊名）。
   未實機（README 563～572）。
 
+- **內建冷卻（kind = "timer"，2026-10-17，`Modules/Timers.lua`）**：暴雪不公開的被動內建冷卻（第一個是薩滿自然守護者 30884）。
+  `GetSpellCooldownDuration` 拿不到 ⇒ 收 `SPELL_UPDATE_COOLDOWN` 參數帶 31616（治療效果、不是天賦 ID）就自己 `GetTime()` 計時；
+  常用預設「防禦技能」可加；存檔角色層 `timers[角色]`；天賦判斷要走 `Catalog.TalentKnown`（SpellKnown 對天賦被動會誤判）。
+  未實機（README 592～597，`/mcdm timer` 探針）。要加別的內建冷卻就往 `TM.DEFS` 加一筆。
+
 相關：[[project-ayije-cdm-aura-slots]]、[[project-ayije-cdm-editmode-drag]]、[[project-local-addon-forks]]、[[wow-121-aura-containers]]、[[wow-121-duration-objects]]。
