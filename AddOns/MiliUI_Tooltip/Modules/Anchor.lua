@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 錨點：cursorRight / cursor（九宮格方向＋偏移）/ static / default，戰鬥隱藏與修飾鍵顯示
+-- 錨點：cursor（九宮格方向＋偏移）/ static / default，戰鬥隱藏與修飾鍵顯示
 --
 -- 入口是 hooksecurefunc(GameTooltip_SetDefaultAnchor)（接觸面清單第 2 條），
 -- 之後只用 SetOwner / SetPoint 這類定位 API（第 8 條）。
@@ -75,7 +75,7 @@ end
 ------------------------------------------------------------
 local CURSOR_GAP = {
     BOTTOM      = { 0, 0 },     -- 上方（偏移 0,0 時不開 driver、直接走原生 ANCHOR_CURSOR）
-    BOTTOMLEFT  = { 4, 4 },     -- 右上
+    BOTTOMLEFT  = { 36, -12 },  -- 右上（預設；偏移 0,0 時走原生 ANCHOR_CURSOR_RIGHT，數字要跟那邊一樣才不跳）
     BOTTOMRIGHT = { -4, 4 },    -- 左上
     RIGHT       = { -8, 0 },    -- 左側
     LEFT        = { 24, 0 },    -- 右側
@@ -173,14 +173,17 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnch
     if hideAnchor and hideAnchor.returnOnUnitFrame and isUnitFrame then
         return AnchorDefaultPosition(tip, parent, hideAnchor, finally)
     end
-    if anchor.position == "cursorRight" then
-        SafeSetOwner(tip, parent, "ANCHOR_CURSOR_RIGHT", 36, -12)
-    elseif anchor.position == "cursor" then
+    if anchor.position == "cursor" then
         local cx = tonumber(anchor.cx) or 0
         local cy = tonumber(anchor.cy) or 0
-        local cp = anchor.cp
-        SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
-        if not (cx == 0 and cy == 0 and (not cp or cp == "BOTTOM")) then
+        local cp = anchor.cp or "BOTTOMLEFT"
+        -- 兩個沒偏移的常用方向直接交給引擎（原生游標錨點，不用自己每幀 SetPoint）
+        if cx == 0 and cy == 0 and cp == "BOTTOMLEFT" then
+            SafeSetOwner(tip, parent, "ANCHOR_CURSOR_RIGHT", 36, -12)
+        elseif cx == 0 and cy == 0 and cp == "BOTTOM" then
+            SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
+        else
+            SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
             StartCursorFollow(tip, cp, cx, cy)
         end
     elseif anchor.position == "inherit" and not finally then

@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 設定資料：預設值、nil-merge、遷移
 --
--- 預設值 = 套組現行 TinyTooltip 的樣式（1px 直角深色框、cursorRight、底部細血條、
+-- 預設值 = 套組現行 TinyTooltip 的樣式（1px 直角深色框、跟隨游標（右上）、底部細血條、
 -- 玩家職業色邊框、NPC 立場色邊框、elements 版面照舊）。
 --
 -- ⚠ MergeDefaults 只補 nil：發佈後要改任何預設值，都得配一條遷移
@@ -18,13 +18,13 @@ end
 
 local function DefaultAnchor(inherit)
     return {
-        position = inherit and "inherit" or "cursorRight",
+        position = inherit and "inherit" or "cursor",
         hiddenInCombat = false,
         modifierShowInCombatKey = inherit and "global" or "none",
         returnInCombat = false,
         returnOnUnitFrame = false,
         x = -30, y = 30, p = "BOTTOMRIGHT",   -- static 模式用（螢幕右下）
-        cp = "BOTTOM", cx = 0, cy = 0,        -- cursor 模式用：tooltip 的哪一點貼游標（BOTTOM＝上方）＋偏移
+        cp = "BOTTOMLEFT", cx = 0, cy = 0,    -- cursor 模式用：tooltip 的哪一點貼游標（BOTTOMLEFT＝游標右上，即暴雪原生 ANCHOR_CURSOR_RIGHT）＋偏移
     }
 end
 
@@ -343,6 +343,25 @@ local PROFILE_MIGRATIONS = {
         local sb = p.statusbar
         if type(sb) == "table" and sb.texture == "tuktex" then sb.texture = "satin" end
     end,
+    -- v3（2026-10-17）：「游標右側」併進「跟隨游標」，位置由九宮格選。
+    -- cursorRight → cursor＋右上（＝原本 ANCHOR_CURSOR_RIGHT 的位置，畫面不變）；
+    -- 舊的 cursor 沒存 cp 的＝上方（原生 ANCHOR_CURSOR），要明寫回去，不然 MergeDefaults 會補成新預設的右上
+    [3] = function(p)
+        local function Fix(a)
+            if type(a) ~= "table" then return end
+            if a.position == "cursorRight" then
+                a.position, a.cp, a.cx, a.cy = "cursor", "BOTTOMLEFT", 0, 0
+            elseif a.position == "cursor" and a.cp == nil then
+                a.cp = "BOTTOM"
+            end
+        end
+        Fix(p.anchor)
+        if type(p.unit) == "table" then
+            for _, u in pairs(p.unit) do
+                if type(u) == "table" then Fix(u.anchor) end
+            end
+        end
+    end,
 }
 
 function DB.MigrateProfile(profile, fromVersion)
@@ -379,6 +398,11 @@ function DB.Init()
     end
     local db = MiliUI_Tooltip_DB
     MigrateAccount(db)
+    -- 設定檔層的遷移在這裡對**每一份**跑（不只目前這份）：帳號層版本號是所有設定檔共用的，
+    -- 之後再切過去的那份沒有別的機會補
+    for _, p in pairs(db.profiles or {}) do
+        DB.MigrateProfile(p, db.schemaVersion)
+    end
     db.schemaVersion = ns.DB_VERSION
 
     -- 帳號層預設值（設定視窗位置）

@@ -14,7 +14,7 @@ local Specs = ns.Specs
 local anchorTab, anchorRefreshers
 
 -- 跟隨游標的九宮格：中間那格是游標本身（不能點，畫一個白點），周圍八格是 tooltip 擺在游標的哪一側。
--- 存的是 tooltip 自己貼在游標上的那一點（「右下」＝TOPLEFT 貼游標），引擎直接拿去 SetPoint。
+-- 存的是 tooltip 自己貼在游標上的那一點（「右下」＝TOPLEFT 貼游標），引擎直接拿去 SetPoint。預設「右上」＝暴雪原生的游標右側。
 -- 畫法照 MCDM 的錨點九宮格（Options/Specs.lua 的 PointGridTS）：深底直角、選中塗職業色、滑過變亮。
 local CURSOR_GRID = {
     { point = "BOTTOMRIGHT", text = L["Upper left of cursor"] },
@@ -86,7 +86,7 @@ local function CursorGridSpec()
             end
         end
         return spec.h, function()
-            cur = ctx.get(spec) or "BOTTOM"
+            cur = ctx.get(spec) or "BOTTOMLEFT"
             Paint()
         end
     end

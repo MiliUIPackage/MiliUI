@@ -97,8 +97,7 @@ L["Reset"] = "重置"
 
 -- 選單清單
 L["None"] = "無"
-L["Cursor right (default)"] = "游標右側（預設）"
-L["Follow cursor"] = "跟隨游標"
+L["Follow cursor (default)"] = "跟隨游標（預設）"
 L["Fixed position"] = "固定位置"
 L["Blizzard default"] = "暴雪預設位置"
 L["Bottom right"] = "右下"

@@ -16,8 +16,7 @@ Specs.MOD_KEY_ITEMS = {
 }
 
 Specs.ANCHOR_POSITION_ITEMS = {
-    { text = L["Cursor right (default)"], value = "cursorRight" },
-    { text = L["Follow cursor"],          value = "cursor" },
+    { text = L["Follow cursor (default)"], value = "cursor" },
     { text = L["Fixed position"],         value = "static" },
     { text = L["Blizzard default"],       value = "default" },
 }
