@@ -220,5 +220,17 @@ do
     check("個人增益：專精讀不到 ⇒ 只剩沒寫 spec 的", not has(P.SelfAuras(nil), "tierWindingUp") and has(P.SelfAuras(nil), "windAwoken"))
 end
 
+-- 內建冷卻那一筆（Modules/Timers.lua 的定義只要 key）
+do
+    local e = P.TimerEntry({ key = "naturesGuardian", talent = 30884, secs = 45 }, "essential")
+    check("TimerEntry：形狀", e and e.kind == "timer" and e.key == "naturesGuardian" and e.bar == "essential")
+    check("TimerEntry：不帶 spellID（不是能施放的法術）", e and e.spellID == nil)
+    local n = 0
+    for _ in pairs(e or {}) do n = n + 1 end
+    eq("TimerEntry：只有三個欄位", n, 3)
+    eq("TimerEntry：沒有定義 ⇒ nil", P.TimerEntry(nil, "essential"), nil)
+    eq("TimerEntry：定義沒有 key ⇒ nil", P.TimerEntry({ talent = 1 }, "essential"), nil)
+end
+
 print(("Presets_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

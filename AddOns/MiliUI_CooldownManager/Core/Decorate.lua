@@ -2750,6 +2750,10 @@ local function ShowTip(ov)
             shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", rec.slot)
         elseif rec.kind == "item" and rec.itemID then
             shown = pcall(GameTooltip.SetItemByID, GameTooltip, rec.itemID)
+        elseif rec.timerKey then
+            -- 內建冷卻（Modules/Timers.lua）：畫天賦本身的說明（rec.spellID 刻意是 nil）
+            local def = ns.Timers and ns.Timers.Def and ns.Timers.Def(rec.timerKey)
+            if def then shown = pcall(GameTooltip.SetSpellByID, GameTooltip, def.talent) end
         elseif rec.spellID then
             shown = pcall(GameTooltip.SetSpellByID, GameTooltip, rec.overrideID or rec.spellID)
         end
