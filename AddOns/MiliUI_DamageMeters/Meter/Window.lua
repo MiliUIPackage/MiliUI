@@ -763,6 +763,9 @@ end
 ------------------------------------------------------------
 function Win.ClickToCurrent(W)
     if not W.wdb.clickToCurrent then return false end
+    -- 兩欄都釘住分段的合併檢視：視窗的分段不在畫面上，切了什麼都不會變，
+    -- 卻會把這一下點擊吃掉（展開頁開不起來）。視窗的分段只管跟著視窗的欄
+    if D.BothPinned(W) then return false end
     if not (ns.Combat.IsInCombat() or InCombatLockdown()) then return false end
     if W.curSessionID == nil and W.curSession == D.S.Current then return false end
     Win.SetSegment(W, D.S.Current, nil)
