@@ -225,6 +225,9 @@ L["Reverse layout"] = "反转显示"
 L["The title bar moves to the bottom and bars stack upward, so the top damage sits at the very bottom."] =
     "标题栏移到最下面，长条由下往上排 —— 伤害最高的那一列就在最底部。"
 L["Smart display"] = "智能显示"
+L["Click to jump back to Current in combat"] = "战斗中点一下切回当前"
+L["While this window is in combat and not on Current, clicking anywhere in it with any mouse button jumps back to Current first, and the click does nothing else. For getting back to the live fight quickly after looking at Overall or a past segment."] =
+    "战斗中此窗口不在「当前」时，左、中、右键点窗口任何地方都会先切回当前，原本的动作不执行。看总计或过去的分段时想快速回到这场战斗用的。"
 L["In combat this window shows Current; a few seconds after combat ends it switches to Overall. In a raid it stays on Current instead, since the overall there spans the whole night across many bosses. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] =
     "战斗中显示「当前」，脱离战斗几秒后自动切到「总计」（留一下让你看完最后的数字）。在团队里则一路保持「当前」，因为那里的总计是跨好几个首领的一整晚。翻看某个特定分段时它不会插手 —— 等你自己切回「当前」或「总计」，或重新打开这个选项，才恢复主动切换。"
 L["Windows with this checked switch segment together — handy when one shows damage and another healing for the same fight."] =

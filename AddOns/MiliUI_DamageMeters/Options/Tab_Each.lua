@@ -79,6 +79,8 @@ local CONTROLS = {
     { type = "text",     label = L["The title bar moves to the bottom and bars stack upward, so the top damage sits at the very bottom."] },
     { type = "toggle",   key = "smartDisplay", label = L["Smart display"] },
     { type = "text",     label = L["In combat this window shows Current; a few seconds after combat ends it switches to Overall. In a raid it stays on Current instead, since the overall there spans the whole night across many bosses. While you are reviewing a specific past segment it stays hands-off — it resumes when you switch back to Current or Overall yourself, or when you turn this option on again."] },
+    { type = "toggle",   key = "clickToCurrent", label = L["Click to jump back to Current in combat"] },
+    { type = "text",     label = L["While this window is in combat and not on Current, clicking anywhere in it with any mouse button jumps back to Current first, and the click does nothing else. For getting back to the live fight quickly after looking at Overall or a past segment."] },
     { type = "toggle",   key = "syncSegments", label = L["Sync segments with other windows"] },
     { type = "text",     label = L["Windows with this checked switch segment together — handy when one shows damage and another healing for the same fight."] },
 

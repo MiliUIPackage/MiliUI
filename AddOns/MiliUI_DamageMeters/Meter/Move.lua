@@ -521,15 +521,18 @@ function Move.Setup(W)
         })
     end
 
-    header:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    header:RegisterForClicks("AnyUp")   -- 跟 Window.lua 的 OnClick 一致
+    -- _headerDragMoved：這次放手前有沒有真的拖過。OnClick 在 OnMouseUp 之後才跑，
+    -- 拖完放手的那一下不能算成點擊（Window.lua 的 header OnClick 讀）。
     header:HookScript("OnMouseDown", function(_, button)
+        W._headerDragMoved = false
         if button ~= "LeftButton" then return end
         if W.wdb.locked and not _editing then return end
         BeginDrag(W)
     end)
     header:HookScript("OnMouseUp", function(_, button)
         if button ~= "LeftButton" then return end
-        EndDrag(W)
+        W._headerDragMoved = EndDrag(W)
     end)
 
     ------------------------------------------------------------

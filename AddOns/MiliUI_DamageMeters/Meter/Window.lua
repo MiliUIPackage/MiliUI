@@ -724,6 +724,30 @@ function Win.SetSegment(W, sessionType, sessionID)
 end
 
 ------------------------------------------------------------
+-- 戰鬥中點一下切回目前（每視窗 wdb.clickToCurrent）
+--
+-- 智慧顯示只在戰鬥邊界動手，而且開打時正在看歷史分段就刻意不碰（Manager 的
+-- SmartApplyFor）；這一支是那條豁免的手動出口：戰鬥中視窗不在「目前」時，
+-- 左中右鍵點視窗任何地方都先切回目前，**那一下點擊就此結束** —— 不再開選單／
+-- 展開頁，否則右鍵會同時切分段又開選單，左鍵會打開「總計」的展開頁再被換成
+-- 目前的。標題列右側的圖示鈕（發佈／重置／鎖定／齒輪）不走這裡：那是明確的
+-- 工具動作，戰鬥中按發佈不該被劫持。拖曳也不算點（呼叫端先問 EndHeaderDrag）。
+--
+-- 走 Win.SetSegment 而不是像智慧顯示那樣各視窗自理：這是玩家自己點的，
+-- 跟手動切分段一樣要沿「分段連動」帶動其他視窗。
+-- 回傳 true 代表點擊已被吃掉，呼叫端直接 return。
+------------------------------------------------------------
+function Win.ClickToCurrent(W)
+    if not W.wdb.clickToCurrent then return false end
+    if not (ns.Combat.IsInCombat() or InCombatLockdown()) then return false end
+    if W.curSessionID == nil and W.curSession == D.S.Current then return false end
+    Win.SetSegment(W, D.S.Current, nil)
+    -- 狀態標籤亮一下：玩家點的是別的東西（列、標題），畫面卻換了分段，要有個交代
+    Win.PulseStatus(W)
+    return true
+end
+
+------------------------------------------------------------
 -- 顯示條件
 ------------------------------------------------------------
 function Win.UpdateVisibility(W)
@@ -852,6 +876,7 @@ local function BuildPane(W, pane)
 
     local function HookBar(bar)
         bar.row:SetScript("OnClick", function(_, button)
+            if Win.ClickToCurrent(W) then return end
             if button == "RightButton" then
                 ns.Windows.ShowContextMenu(W)
             else
@@ -1208,12 +1233,14 @@ function Win.Create(idx)
         ns.Move.BeginHeaderDrag(W)
     end)
     typeBtn:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" then
-            ns.Windows.ShowContextMenu(W)
+        if button ~= "LeftButton" then
+            if Win.ClickToCurrent(W) then return end
+            if button == "RightButton" then ns.Windows.ShowContextMenu(W) end
             return
         end
-        if button ~= "LeftButton" then return end
-        if not ns.Move.EndHeaderDrag(W) then ns.Home.Toggle(W) end
+        if ns.Move.EndHeaderDrag(W) then return end
+        if Win.ClickToCurrent(W) then return end
+        ns.Home.Toggle(W)
     end)
 
     ------------------------------------------------------------
@@ -1239,31 +1266,37 @@ function Win.Create(idx)
         ns.Move.BeginHeaderDrag(W)
     end)
     segBtn:SetScript("OnMouseUp", function(self, button)
-        if button == "RightButton" then
+        if button ~= "LeftButton" then
             GameTooltip:Hide()
-            ns.Windows.ShowContextMenu(W)
+            if Win.ClickToCurrent(W) then return end
+            if button == "RightButton" then ns.Windows.ShowContextMenu(W) end
             return
         end
-        if button ~= "LeftButton" then return end
-        if not ns.Move.EndHeaderDrag(W) then
-            GameTooltip:Hide()
-            ns.Windows.ShowSegmentMenu(W, self)
-        end
+        if ns.Move.EndHeaderDrag(W) then return end
+        GameTooltip:Hide()
+        if Win.ClickToCurrent(W) then return end
+        ns.Windows.ShowSegmentMenu(W, self)
     end)
 
     -- 只需要 OnEnter：收合交給輪詢（見 SetHeaderIconsShown 上方的說明）
     header:SetScript("OnEnter", function() SetHeaderIconsShown(W, true) end)
 
     ------------------------------------------------------------
-    -- 右鍵：整個視窗背景都能開選單
+    -- 右鍵：整個視窗背景都能開選單；任一鍵先問「戰鬥中點一下切回目前」
     ------------------------------------------------------------
-    header:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    -- AnyUp：中鍵也要進得來（Move.lua 掛拖曳時設的是同一個值）
+    header:RegisterForClicks("AnyUp")
     header:SetScript("OnClick", function(_, button)
+        -- 剛拖完放手也會進 OnClick（視窗跟著游標走，放手時游標還在標題列上），
+        -- 旗標由 Move.lua 的 OnMouseUp 掛勾寫
+        if W._headerDragMoved then return end
+        if Win.ClickToCurrent(W) then return end
         if button == "RightButton" then ns.Windows.ShowContextMenu(W) end
     end)
     -- 長條下方的空白處：長條自己會處理右鍵，這條負責沒有長條的那一片
     frame:EnableMouse(true)
     frame:SetScript("OnMouseUp", function(_, button)
+        if Win.ClickToCurrent(W) then return end
         if button == "RightButton" then ns.Windows.ShowContextMenu(W) end
     end)
 

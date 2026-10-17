@@ -132,7 +132,11 @@ end
 local function MakeSpellBar(parent, W)
     local bar = Win.MakeBar(parent, W)
     bar.row:RegisterForClicks("AnyUp")
-    bar.row:SetScript("OnClick", function() B.Close(W) end)
+    -- 戰鬥中點一下切回目前：SetSegment 本來就會關展開頁，不必再 Close
+    bar.row:SetScript("OnClick", function()
+        if Win.ClickToCurrent(W) then return end
+        B.Close(W)
+    end)
     bar.row:SetScript("OnEnter", function(self)
         local s = ns.DB.Style()
         if not s.showSpellTooltips then return end
@@ -174,7 +178,10 @@ local function EnsureFrame(W)
     top:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
     top:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
     top:RegisterForClicks("AnyUp")
-    top:SetScript("OnClick", function() B.Close(W) end)
+    top:SetScript("OnClick", function()
+        if Win.ClickToCurrent(W) then return end
+        B.Close(W)
+    end)
     local topBg = top:CreateTexture(nil, "BACKGROUND")
     topBg:SetAllPoints()
     topBg:SetColorTexture(0, 0, 0, 0.5)
@@ -217,6 +224,7 @@ local function EnsureFrame(W)
     f:SetScript("OnMouseWheel", Wheel)
 
     f:SetScript("OnMouseDown", function(_, button)
+        if Win.ClickToCurrent(W) then return end
         if button == "RightButton" then B.Close(W) end
     end)
 

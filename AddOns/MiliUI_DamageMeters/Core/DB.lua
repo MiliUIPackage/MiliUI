@@ -161,6 +161,9 @@ function DB.NewWindow(idx)
         -- 戰鬥邊界切換。翻看特定分段時它不插手（規則寫在 Manager 的 SmartApplyFor）。
         -- 取代了舊的 autoCurrentOnCombat（只做一半、而且會搶走玩家正在看的分段）。
         smartDisplay = true,
+        -- 戰鬥中點一下切回目前：智慧顯示只在戰鬥邊界動手、開打時正在看歷史分段
+        -- 還刻意不碰，這是那條豁免的手動出口（規則寫在 Window.lua 的 Win.ClickToCurrent）。
+        clickToCurrent = true,
         -- 顯示條件
         visibility = "always",   -- always | combat | instance | group
         hideInDungeon = false,

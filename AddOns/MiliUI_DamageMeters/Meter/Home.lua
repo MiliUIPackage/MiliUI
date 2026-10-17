@@ -54,6 +54,7 @@ local function MakeCard(W, parent)
     card.btn:SetScript("OnEnter", function() card.hl:Show() end)
     card.btn:SetScript("OnLeave", function() card.hl:Hide() end)
     card.btn:SetScript("OnClick", function()
+        if Win.ClickToCurrent(W) then return end
         if card.dmType then Win.SetDMType(W, card.dmType) end
     end)
     return card
@@ -97,6 +98,7 @@ local function Ensure(W)
     f:SetScript("OnMouseWheel", Wheel)
 
     f:SetScript("OnMouseDown", function(_, button)
+        if Win.ClickToCurrent(W) then return end
         if button == "RightButton" then H.Hide(W) end
     end)
 
