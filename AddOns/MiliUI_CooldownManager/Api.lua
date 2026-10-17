@@ -489,7 +489,7 @@ local function Debug(silent)
         local shown = {}
         for _, it in ipairs(items) do
             local e = it.entry
-            local what = type(e) == "table" and (e.kind or "?") .. ":" .. tostring(e.spellID or e.itemID or e.slot)
+            local what = type(e) == "table" and (e.kind or "?") .. ":" .. tostring(e.spellID or e.itemID or e.slot or e.key)
                 .. (e.kind == "slotbuff" and ("#" .. tostring(e.buff or 1) .. "→"
                     .. table.concat((ns.Catalog.SlotBuffIDs(e.slot, e.buff or 1)), "/")) or "")
                 .. (e.racial and "（種族技能）" or "") or "壞資料"
@@ -1001,6 +1001,11 @@ SlashCmdList.MILIUICDM = function(msg)
         -- 事件視窗（沸點）的探針：觸發參數戰鬥中是不是明文（Modules/EchoWindow.lua）
         if ns.EchoWindow and ns.EchoWindow.ProbeReport then
             for _, line in ipairs(ns.EchoWindow.ProbeReport()) do print(line) end
+        end
+    elseif msg == "timer" then
+        -- 內建冷卻（自然守護者）的探針：觸發參數戰鬥中是不是明文、秒數、進場抑制（Modules/Timers.lua）
+        if ns.Timers and ns.Timers.ProbeReport then
+            for _, line in ipairs(ns.Timers.ProbeReport()) do print(line) end
         end
     elseif msg == "deck" then
         -- 觸發牌堆的探針：花層／觸發的時序、參數戰鬥中是不是明文、每個牌堆的位置（Modules/ProcDeck.lua）

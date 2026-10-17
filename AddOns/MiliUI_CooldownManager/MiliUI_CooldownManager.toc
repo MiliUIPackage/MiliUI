@@ -63,6 +63,7 @@ Core\StackGate.lua
 Core\Sound.lua
 Core\Keybinds.lua
 Core\Assist.lua
+Modules\Timers.lua
 Modules\Custom.lua
 Core\Bars.lua
 Core\Visibility.lua

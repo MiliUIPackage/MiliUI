@@ -13,6 +13,7 @@
 --   Presets.SpellEntry(spellID, barKey) / ItemEntry(def, barKey) / AuraEntry(def, barKey, faction)
 --        → 自訂項目的那一筆（Core/DB.lua 的 spells[spec].custom 形狀）
 --   Presets.RacialEntry(barKey)                → 動態的種族技能那一筆（kind = "racial"，不帶 ID）
+--   Presets.TimerEntry(def, barKey)            → 內建冷卻那一筆（kind = "timer"，def 是 Modules/Timers.lua 的定義）
 --   Presets.ResolveRacial(raceFile, isKnown)   → 這個種族學了的那個種族技能 ID（解不到 nil）
 --   Presets.AuraIDs(def)   這一組的全部法術（「這個專精已經加過了沒」用）
 --   Presets.Controls(classFile, isKnown)       → 同 Defensives
@@ -248,6 +249,12 @@ end
 
 function P.SpellEntry(spellID, barKey)
     return { kind = "spell", spellID = spellID, bar = barKey }
+end
+
+-- 內建冷卻（自然守護者那種，Modules/Timers.lua）：只存 key，秒數、觸發、圖示都在定義裡
+function P.TimerEntry(def, barKey)
+    if type(def) ~= "table" or type(def.key) ~= "string" then return nil end
+    return { kind = "timer", key = def.key, bar = barKey }
 end
 
 function P.ItemEntry(def, barKey)

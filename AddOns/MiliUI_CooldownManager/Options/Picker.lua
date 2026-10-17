@@ -1519,6 +1519,21 @@ function Picker.PresetRows(kind, key, scope)
         end
     elseif kind == "defensives" then
         for _, id in ipairs(PR.Defensives(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id, scope) end
+        -- 內建冷卻（Modules/Timers.lua，自然守護者那種被動）：天賦有點的才列（讀不到當有點），接在法術後面。
+        -- id 給天賦本身：滑鼠提示（下面的 OnEnter 走 SetSpellByID）畫天賦說明
+        local TM = ns.Timers
+        for _, def in ipairs(TM and TM.DefsFor and TM.DefsFor(ns.playerClass) or {}) do
+            if ns.Catalog.TalentKnown(def.talent) ~= false then
+                local spellName = PlainValue(C_Spell and C_Spell.GetSpellName, def.icon)
+                out[#out + 1] = {
+                    kind = "timer", id = def.talent,
+                    icon = PlainValue(C_Spell and C_Spell.GetSpellTexture, def.icon),
+                    name = L["%s (internal cooldown)"]:format(spellName or def.key),
+                    added = Added({ kind = "timer", key = def.key }, scope),
+                    make = function(k) return PR.TimerEntry(def, k) end,
+                }
+            end
+        end
     elseif kind == "controls" then
         for _, id in ipairs(PR.Controls(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id, scope) end
     elseif kind == "items" then

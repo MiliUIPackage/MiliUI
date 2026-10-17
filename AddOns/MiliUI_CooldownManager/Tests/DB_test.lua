@@ -1302,5 +1302,60 @@ do
     eq("圖示群組重設樣式＝icons", DB.DefaultFor("bar", gi, "layout.style"), "icons")
 end
 
+------------------------------------------------------------
+-- 內建冷卻（kind = "timer"，Modules/Timers.lua）：身分、CustomView（不認得的 key、寬層天賦沒點、專精層照列）、
+-- 四層合併「窄的蓋寬的」、FindCustom／FindCustomLike
+------------------------------------------------------------
+do
+    local function ids(list) local o = {} for i, it in ipairs(list) do o[i] = it.id end return table.concat(o, ",") end
+    local NG = { key = "naturesGuardian", talent = 30884, icon = 30884, secs = 45 }
+    local talents = { [30884] = false }
+    local opts = {
+        timerDef = function(key) if key == "naturesGuardian" then return NG end return nil end,
+        talentKnown = function(id) return talents[id] end,
+        isKnown = function() return false end,          -- 不該被問到（內建冷卻看天賦）
+    }
+    eq("身分：timer:<key>", DB.CustomIdentity({ kind = "timer", key = "naturesGuardian" }), "timer:naturesGuardian")
+    eq("身分：沒有 key ⇒ nil", DB.CustomIdentity({ kind = "timer" }), nil)
+    eq("身分：key 不是字串 ⇒ nil", DB.CustomIdentity({ kind = "timer", key = 3 }), nil)
+    check("CUSTOM_KINDS 收 timer", DB.CUSTOM_KINDS.timer == true)
+
+    local raw = { kind = "timer", key = "naturesGuardian", bar = "essential", uid = 4 }
+    eq("CustomView：不認得的 key ⇒ 不存在", DB.CustomView({ kind = "timer", key = "gone", uid = 5 }, "spec", opts), nil)
+    eq("CustomView：沒注入 timerDef ⇒ 不存在", DB.CustomView(raw, "class", {}), nil)
+    eq("CustomView：寬層天賦沒點 ⇒ 不列", DB.CustomView(raw, "class", opts), nil)
+    raw.hideUnknown = false
+    eq("CustomView：寬層天賦沒點但 hideUnknown = false ⇒ 照列（問號格）", DB.CustomView(raw, "class", opts), raw)
+    raw.hideUnknown = nil
+    eq("CustomView：專精層天賦沒點 ⇒ 照列（問號格）", DB.CustomView({ kind = "timer", key = "naturesGuardian" }, "spec", opts) ~= nil, true)
+    talents[30884] = true
+    eq("CustomView：寬層天賦有點 ⇒ 原樣", DB.CustomView(raw, "shared", opts), raw)
+    talents[30884] = nil
+    eq("CustomView：天賦讀不到（nil）⇒ 當點了", DB.CustomView(raw, "char", opts), raw)
+
+    -- 四層合併：同一個 key 在職業層與專精層 ⇒ 專精層的蓋掉職業層的；別的 key（壞資料）不影響
+    talents[30884] = true
+    local resolve = function(r, scope) return DB.CustomView(r, scope, opts) end
+    local rr = DB.ResolveScopes({ { kind = "timer", key = "naturesGuardian", uid = 1 } },
+        { { kind = "timer", key = "naturesGuardian", uid = 2 } }, nil,
+        { { kind = "spell", spellID = 30884 }, { kind = "timer", key = "naturesGuardian" } }, resolve)
+    eq("窄蓋寬：專精層的內建冷卻蓋掉戰隊／職業層的（法術 30884 是另一個身分）", ids(rr), "c:1,c:2")
+    rr = DB.ResolveScopes({ { kind = "timer", key = "naturesGuardian", uid = 1 } },
+        { { kind = "timer", key = "naturesGuardian", uid = 2 } }, nil, nil, resolve)
+    eq("窄蓋寬：職業層蓋戰隊層", ids(rr), "k:2")
+    talents[30884] = nil
+
+    -- FindCustom／FindCustomLike（複製到其他專精時判重）
+    local P = ns.profile
+    P.spells = P.spells or {}
+    P.spells[ns.specID] = nil
+    eq("AddCustom 內建冷卻", DB.AddCustom({ kind = "timer", key = "naturesGuardian", bar = "essential" }), 1)
+    eq("FindCustom timer", DB.FindCustom("timer", "naturesGuardian"), 1)
+    eq("FindCustom timer 別的 key", DB.FindCustom("timer", "other"), nil)
+    eq("FindCustomLike timer", DB.FindCustomLike({ kind = "timer", key = "naturesGuardian" }), 1)
+    eq("FindCustomLike timer 沒 key ⇒ nil", DB.FindCustomLike({ kind = "timer" }), nil)
+    P.spells[ns.specID] = nil
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

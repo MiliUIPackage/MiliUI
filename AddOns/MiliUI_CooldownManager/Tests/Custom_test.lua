@@ -2952,5 +2952,153 @@ do
         saved[1], saved[2], saved[3], saved[4], saved[5], saved[6], saved[7], saved[8], saved[9], saved[10]
 end
 
+------------------------------------------------------------
+-- 內建冷卻（kind = "timer"）：New 不設 spellID、身分 key、Catalog.Info、UpdateTimer 三種狀態（假的 ns.Timers）、
+-- WantedEvents 只有內建冷卻時是空集合、TimerChanged 只標對的那幾格
+------------------------------------------------------------
+do
+    local CU = ns.Custom
+    local savedTimers, savedSS, savedGlow, savedDU, savedEvents = ns.Timers, ns.SpellSetting, ns.Glow, env.C_DurationUtil, ns.Events
+    local NG = { key = "naturesGuardian", class = "PALADIN", talent = 30884, icon = 30884, triggers = { 31616 }, secs = 45 }
+    local talent, sStart, sDur = true, nil, nil
+    ns.Timers = {
+        Def = function(key) if key == "naturesGuardian" then return NG end return nil end,
+        TalentKnown = function() return talent end,
+        State = function() return sStart, sDur end,
+    }
+
+    local rec = CU.New({ kind = "timer", key = "naturesGuardian", bar = "essential" })
+    eq("New：kind", rec.kind, "timer")
+    eq("New：timerKey", rec.timerKey, "naturesGuardian")
+    eq("New：spellID 留 nil（不進法術路徑）", rec.spellID, nil)
+    eq("New：別種的 timerKey 是 nil", CU.New({ kind = "spell", spellID = 500 }).timerKey, nil)
+
+    -- 身分 key（Sync 照它池化）＋ Catalog.Info
+    local list = DB.CustomList(true)
+    for i = #list, 1, -1 do list[i] = nil end
+    DB.AddCustom({ kind = "timer", key = "naturesGuardian", bar = "essential" })
+    DB.AddCustom({ kind = "timer", key = "gone", bar = "essential" })        -- 不認得的 key：生效清單擋掉
+    check("ValidCustom：timer 要字串 key", C.ValidCustom({ kind = "timer", key = "x" }) and not C.ValidCustom({ kind = "timer" }))
+    ns.Events = { Register = function() end }
+    CU.Sync()
+    local r = CU.Records()["timer:naturesGuardian"]
+    check("Sync：身分 key ＝ timer:<key>", r ~= nil and r.timerKey == "naturesGuardian")
+    eq("Sync：生效清單只有認得的那筆", CU.Get("c:1"), r)
+    eq("Sync：不認得的 key 不建", CU.Get("c:2"), nil)
+    eq("Sync：內建冷卻不算冷卻類（SpellIndex 不必為它送冷卻事件）", CU.activeNonAura, 0)
+    local info = C.Info("c:1")
+    eq("Info：kind", info and info.kind, "timer")
+    eq("Info：圖示問定義的 icon", info and info.icon, 900000 + 30884)
+    eq("Info：名字標明內建冷卻", info and info.name, "法術30884 (internal cooldown)")
+    eq("Info：spellID 不填", info and info.spellID, nil)
+    eq("Info：talent 給面板標題", info and info.talent, 30884)
+    eq("Info：天賦讀不到 ⇒ 當點了", info and info.isKnown, true)
+    known[30884] = false
+    info = C.Info("c:1")
+    check("Info：天賦沒點 ⇒ 問號、isKnown false", info and info.isKnown == false and info.icon == 134400)
+    known[30884] = nil
+    for i = #list, 1, -1 do list[i] = nil end
+    CU.Sync()
+
+    -- UpdateTimer：框與引擎都 stub
+    local function Tex()
+        local t = {}
+        function t:SetTexture(v) self.tex = v end
+        function t:SetDesaturation(v) self.desat = v end
+        return t
+    end
+    local fed, cleared = 0, 0
+    local frame = {
+        Icon = Tex(),
+        Cooldown = {
+            Clear = function() cleared = cleared + 1 end,
+            SetCooldownFromDurationObject = function() fed = fed + 1 end,
+        },
+        ChargeCount = { Current = { SetText = function(self, v) self.text = v end } },
+        SetAlpha = function(self, a) self.alpha = a end,
+    }
+    local started, armed, lastArm = 0, 0, nil
+    ns.Glow = {
+        CooldownStarted = function() started = started + 1 end,
+        ArmProbe = function(_, d) armed = armed + 1; lastArm = d end,
+        ApplyReadyState = function() end,
+    }
+    env.C_DurationUtil = { CreateDuration = function()
+        local d = {}
+        function d:SetTimeFromStart(a, b) self.s, self.d = a, b end
+        return d
+    end }
+    local desat = nil
+    ns.SpellSetting = function(_, _, field) if field == "desaturate" then return desat end return nil end
+    local t = { kind = "timer", timerKey = "naturesGuardian", frame = frame, placedBar = "essential", cooldownID = "c:1" }
+
+    talent = false
+    CU.Update(t)
+    eq("天賦沒點：問號", frame.Icon.tex, 134400)
+    eq("天賦沒點：灰階", frame.Icon.desat, 1)
+    eq("天賦沒點：known false", t.known, false)
+    eq("天賦沒點：冷卻狀態不判", t.cdOnCD, nil)
+
+    talent = true
+    CU.Update(t)
+    eq("就緒：圖示", frame.Icon.tex, 900000 + 30884)
+    eq("就緒：不灰", frame.Icon.desat, 0)
+    eq("就緒：cdOnCD false", t.cdOnCD, false)
+    eq("就緒：沒 arm 過不清", cleared, 0)
+    eq("數字位置留空", frame.ChargeCount.Current.text, "")
+
+    sStart, sDur = 100, 45
+    CU.Update(t)
+    eq("冷卻中：arm 一次", fed, 1)
+    check("冷卻中：物件照起點／秒數", t.duo and t.duo.s == 100 and t.duo.d == 45)
+    eq("冷卻中：就緒發光熄", started, 1)
+    eq("冷卻中：探針武裝同一顆物件", lastArm, t.duo)
+    eq("冷卻中：cdOnCD true", t.cdOnCD, true)
+    eq("冷卻中：預設去飽和", frame.Icon.desat, 1)
+    CU.Update(t)
+    eq("同一段：不重 arm", fed .. "/" .. started .. "/" .. armed, "1/1/1")
+    desat = false
+    CU.Update(t)
+    eq("逐法術關掉去飽和：不灰", frame.Icon.desat, 0)
+    desat = nil
+    sStart = 130                                   -- 跑到一半又觸發：重新起算
+    CU.Update(t)
+    eq("重新起算：重 arm", fed, 2)
+    eq("重新起算：起點換了", t.duo.s, 130)
+
+    sStart, sDur = nil, nil
+    CU.Update(t)
+    eq("到期：清掉轉圈", cleared, 1)
+    eq("到期：武裝清空", t.armedStart, nil)
+    eq("到期：cdOnCD false", t.cdOnCD, false)
+
+    -- 沒點天賦時有冷卻狀態效果也不套（ApplyState 的問號守門放寬到 timer）
+    talent = false
+    t.style = { cdState = "hideReady", cdAlpha = 0 }
+    CU.Update(t)
+    eq("問號格：冷卻狀態不套（全亮）", frame.alpha, 1)
+    t.style = nil
+    talent = true
+
+    -- WantedEvents：只有內建冷卻 ⇒ 一個都不聽；跟物品混著 ⇒ 照物品的
+    local function Count(tb) local n = 0; for _ in pairs(tb) do n = n + 1 end; return n end
+    eq("只有內建冷卻 ⇒ 一個都不聽", Count(CU.WantedEvents({ a = { kind = "timer" } }, {})), 0)
+    eq("內建冷卻＋物品 ⇒ 物品的五個", Count(CU.WantedEvents({ a = { kind = "timer" }, b = { kind = "item" } }, {})), #CU.MARK_EVENTS)
+
+    -- TimerChanged：只標 timerKey 對得上的（沒放上條 ⇒ Flush 不跑 Update，dirty 留著看得到）
+    local recs = CU.Records()
+    local ra = { kind = "timer", timerKey = "naturesGuardian" }
+    local rb = { kind = "timer", timerKey = "other" }
+    local rc = { kind = "spell", spellID = 500 }
+    recs["test:ra"], recs["test:rb"], recs["test:rc"] = ra, rb, rc
+    CU.TimerChanged("naturesGuardian")
+    eq("TimerChanged：對的那格標髒", ra.dirty, true)
+    eq("TimerChanged：別的 key 不標", rb.dirty, nil)
+    eq("TimerChanged：法術格不標", rc.dirty, nil)
+    recs["test:ra"], recs["test:rb"], recs["test:rc"] = nil, nil, nil
+
+    ns.Timers, ns.SpellSetting, ns.Glow, env.C_DurationUtil, ns.Events = savedTimers, savedSS, savedGlow, savedDU, savedEvents
+end
+
 print(("Custom_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

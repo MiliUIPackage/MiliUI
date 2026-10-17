@@ -416,8 +416,9 @@ function Pop.NativeEquip(kind)
     if not (info and type(info.equipSlot) == "number") then return false end
     return not (ns.Bars and ns.Bars.IsProxied and ns.Bars.IsProxied(cur.key, cur.id))
 end
+-- 內建冷卻（kind "timer"）也不出：它沒有觸發事件，觸發本身就是起算冷卻的那一刻
 function Pop.ProcWhen(kind, class)
-    return NotAuraNotBar(kind, class) and kind ~= "item" and not Pop.NativeEquip(kind)
+    return NotAuraNotBar(kind, class) and kind ~= "item" and kind ~= "timer" and not Pop.NativeEquip(kind)
 end
 -- 飾品欄（含代畫格）：那一格裝著東西時，解得出觸發增益 ⇒ 灰字說明；解不出 ⇒ 黃字原因（Catalog.SlotProcIDs）
 function Pop.SlotProcState()
@@ -1085,8 +1086,9 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
         return class == "aura" or OnBars() or kind == "slot" or CurSlot() ~= nil
     end
     local function StackAnchorRow(kind, class) return StackRows(kind, class) and not OnBars() end
+    -- 內建冷卻是被動、不在快捷列上，沒有按鍵文字可畫（Core/Keybinds.lua 的 TextFor 也只認法術／物品）
     local function KeyRows(kind)
-        return cur ~= nil and kind ~= "aura" and not ns.Keybinds.NoKeybind(cur.key)
+        return cur ~= nil and kind ~= "aura" and kind ~= "timer" and not ns.Keybinds.NoKeybind(cur.key)
     end
     local function KeyOff(kind)
         return KeyRows(kind) and not ns.Setting(cur.key, "keybind.enabled")
@@ -1635,10 +1637,10 @@ local function Build()
     AddRow(sdEntry)
     frame.scopeTip, frame.scopeTipEntry = sdTip, sdEntry
 
-    -- 未學會時不顯示（寬層：戰隊／職業／角色的法術；存在那一筆上）＋下一列灰字
+    -- 未學會時不顯示（寬層：戰隊／職業／角色的法術與內建冷卻（看天賦）；存在那一筆上）＋下一列灰字
     local function WideSpell(kind)
         local sc = CurScope()
-        return kind == "spell" and ns.DB.IsWideScope(sc)
+        return (kind == "spell" or kind == "timer") and ns.DB.IsWideScope(sc)
     end
     local hur = NewRow(L["Hide when not learned"], WideSpell)
     local hucb = W.CreateCheckButton(hur, nil, function(on)
@@ -2772,6 +2774,8 @@ local KIND_TEXT = {
     spell = function(info) return ("spellID %s  ·  %s"):format(tostring(info.spellID), L["Custom spell"]) end,
     item  = function(info) return ("itemID %s  ·  %s"):format(tostring(info.itemID), L["Custom item"]) end,
     slot  = function(info) return ("%s  ·  %s"):format(tostring(info.slotName or info.slot), L["Equipment slot"]) end,
+    -- 內建冷卻：名字已經標明「內建冷卻」，這裡只給天賦的 ID
+    timer = function(info) return ("spellID %s"):format(tostring(info.talent or "?")) end,
     aura  = function(info)
         if info.slotBuff then
             return ("%s  ·  %s"):format(tostring(info.slotName or info.slot), L["Trinket buff"])

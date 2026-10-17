@@ -2076,11 +2076,13 @@ end
 --     ＝ 對這隻角色不存在（生效清單裡沒有，排版照常略過）。號碼空間共用，所以不會撞到這隻角色自己的。
 --   種類多一個 "racial"（種族技能）：沒有 spellID，照這個角色的種族解析成學會的那一個（Presets.ResolveRacial）；
 --   解不到 ＝ 當成沒學（不列）。
+--   種類多一個 "timer"（內建冷卻，Modules/Timers.lua）：{ kind = "timer", key = "naturesGuardian", bar }，沒有 spellID；
+--   key 不認得（定義拿掉了、匯入別人的設定）＝ 不存在；寬層照 hideUnknown 問天賦點了沒（opts.talentKnown）。
 --   **窄的蓋寬的**：同一個身分（同種類＋同主 ID，光環還要同 filter）在多層都有時只有最窄的那層生效，
 --   寬的那筆對這個專精當不存在（DB.ResolveScopes，純函式）。
 --   舊存檔沒有這幾張表 ＝ 只有專精層，行為跟以前一樣（不遷移、DB_VERSION 不動）。
 ------------------------------------------------------------
-DB.CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true, racial = true }
+DB.CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true, racial = true, timer = true }
 
 -- 範圍：越大越窄（窄的蓋寬的）
 DB.SCOPE_RANK = { shared = 1, class = 2, char = 3, spec = 4 }
@@ -2222,6 +2224,7 @@ function DB.CustomIdentity(e)
     if type(e) ~= "table" then return nil end
     local k = e.kind
     if k == "racial" then return "racial" end
+    if k == "timer" then return type(e.key) == "string" and ("timer:" .. e.key) or nil end
     if k == "item" then return e.itemID ~= nil and ("item:" .. tostring(e.itemID)) or nil end
     if k == "slot" then return e.slot ~= nil and ("slot:" .. tostring(e.slot)) or nil end
     if k == "slotbuff" then
@@ -2239,11 +2242,23 @@ end
 -- 這一筆在這個角色身上長什麼樣（純函式；opts 由呼叫端注入）：
 --   opts.racial()        → 這個角色學會的種族技能 spellID（解不到 nil）
 --   opts.isKnown(id)     → 學了沒（false ＝ 沒學；nil／true ＝ 學了或讀不到）
+--   opts.timerDef(key)   → 內建冷卻的定義（Modules/Timers.lua 的 TM.Def；DB 是純函式、不碰 ns.Timers，由呼叫端注入）
+--   opts.talentKnown(id) → 天賦點了沒（同 isKnown 的三態；天賦被動要問 Catalog.TalentKnown，SpellKnown 會誤判沒學）
 -- 種族技能 ⇒ 換成一筆唯讀的法術「視圖」（metatable 讀原本那筆：bar、placeholder、overrides 都是原本的）；
 -- 寬層（戰隊／職業／角色）的法術沒學而且 hideUnknown 沒關 ⇒ nil（整格不列）。回 nil ＝ 這個專精當它不存在。
+-- 內建冷卻：key 不認得 ⇒ nil；寬層的天賦沒點（明確 false）而且 hideUnknown 沒關 ⇒ nil；專精層照列（問號格）
 function DB.CustomView(raw, scope, opts)
     if type(raw) ~= "table" then return raw end
     opts = opts or {}
+    if raw.kind == "timer" then
+        local def = opts.timerDef and opts.timerDef(raw.key)
+        if not def then return nil end
+        if scope ~= "spec" and raw.hideUnknown ~= false and opts.talentKnown
+            and opts.talentKnown(def.talent) == false then
+            return nil
+        end
+        return raw
+    end
     local view = raw
     if raw.kind == "racial" then
         local sid = opts.racial and opts.racial()
@@ -2340,7 +2355,28 @@ local function RuntimeRacial()
     return cache.racial or nil
 end
 
-local RUNTIME_OPTS = { isKnown = RuntimeKnown, racial = RuntimeRacial }
+-- 天賦點了沒（Catalog.TalentKnown：讀不到 nil ⇒ 當點了）；同一幀共用，跟 RuntimeKnown 分開存（三態，key 帶前綴）
+local function RuntimeTalent(spellID)
+    local C = ns.Catalog
+    if not (C and C.TalentKnown) then return nil end
+    local cache = RuntimeFresh()
+    local k = "t:" .. tostring(spellID)
+    local v = cache[k]
+    if v == nil then
+        v = C.TalentKnown(spellID)
+        if v == nil then v = "?" end
+        cache[k] = v
+    end
+    if v == "?" then return nil end
+    return v
+end
+
+local function RuntimeTimerDef(key)
+    local T = ns.Timers
+    return T and T.Def and T.Def(key) or nil
+end
+
+local RUNTIME_OPTS = { isKnown = RuntimeKnown, racial = RuntimeRacial, talentKnown = RuntimeTalent, timerDef = RuntimeTimerDef }
 local function RuntimeView(raw, scope) return DB.CustomView(raw, scope, RUNTIME_OPTS) end
 
 -- 這個專精實際生效的自訂項目（四層合併、窄蓋寬、種族技能解析、用不到的不列）。
@@ -2431,6 +2467,7 @@ function DB.FindCustom(kind, id, filter, specID)
             elseif kind == "slot" then same = e.slot == id
             elseif kind == "slotbuff" then
                 same = e.slot == id and (PositiveInt(e.buff) and e.buff or 1) == (PositiveInt(filter) and filter or 1)
+            elseif kind == "timer" then same = e.key == id
             else same = e.spellID == id and (kind ~= "aura" or (e.filter or "HELPFUL") == (filter or "HELPFUL")) end
             if same then return i end
         end
@@ -2446,6 +2483,7 @@ function DB.FindCustomLike(e, specID)
     if e.kind == "item" then id = e.itemID
     elseif e.kind == "slot" then id = e.slot
     elseif e.kind == "slotbuff" then id, filter = e.slot, e.buff
+    elseif e.kind == "timer" then id = e.key
     else id = e.spellID end
     if id == nil then return nil end
     return DB.FindCustom(e.kind, id, filter, specID)

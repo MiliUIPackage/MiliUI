@@ -742,7 +742,8 @@ local QUESTION = 134400
 -- 挑選清單的順序：會用的多半是飾品，兩格排最前面，其餘照角色面板（襯衣、外袍不收）
 -- slotbuff：飾品欄增益（{ slot = 13|14, buff = N }，N ＝ 暴雪的 buffSlot、不設上限、缺 ＝ 1）：只在那件飾品的
 -- 第 N 個增益生效時出現的光環格（Modules/Custom.lua 當光環格畫，認的法術由 C.SlotBuffIDs 照現在裝的飾品解）
-local CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true }
+-- timer：內建冷卻（{ key = "naturesGuardian" }，Modules/Timers.lua 自己計時；沒有 spellID）
+local CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true, timer = true }
 C.CUSTOM_SLOT_ORDER = { 13, 14, 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 16, 17 }
 local CUSTOM_SLOTS = {}
 for _, slot in ipairs(C.CUSTOM_SLOT_ORDER) do CUSTOM_SLOTS[slot] = true end
@@ -1277,6 +1278,8 @@ local function ValidCustom(e)
     if e.kind == "slotbuff" then
         return SLOTBUFF_SLOTS[e.slot] == true and (e.buff == nil or PositiveInt(e.buff))
     end
+    -- 內建冷卻：形狀只看 key 是字串；不認得的 key 在 DB.CustomView 就擋掉了（生效清單裡不會有）
+    if e.kind == "timer" then return type(e.key) == "string" end
     return type(e.spellID) == "number"
 end
 C.ValidCustom = ValidCustom
@@ -1546,7 +1549,24 @@ BuildCustomInfo = function(id)
         -- 範圍（"shared"｜"class"｜"char"｜"spec"）；種族技能那一筆（解析成這個角色的那一個）多 racial
         scope = scope, racial = e.racial and true or nil,
     }
-    if e.kind == "slotbuff" then
+    if e.kind == "timer" then
+        -- 內建冷卻（Modules/Timers.lua）：圖示與名字問定義的 icon 法術；天賦沒點 ⇒ isKnown false、問號格。
+        -- spellID 不填（不是能施放的法術：發光、按鍵文字、施放後提醒那幾條法術路徑都靠它判）；talent 給逐法術面板的標題
+        local T = ns.Timers
+        local def = T and T.Def and T.Def(e.key)
+        info.timerKey = e.key
+        if def then
+            info.talent = def.talent
+            info.isKnown = TalentKnown(def.talent) ~= false
+            info.icon = Plain(Try(C_Spell and C_Spell.GetSpellTexture, def.icon))
+            info.name = Plain(Try(C_Spell and C_Spell.GetSpellName, def.icon))
+        else
+            info.isKnown = false
+        end
+        if not info.isKnown then info.icon = QUESTION end
+        -- 名字標明是內建冷卻（設定頁預覽格、逐法術面板的標題；跟挑選器那一列同一個字串）
+        info.name = L["%s (internal cooldown)"]:format(info.name or tostring(e.key))
+    elseif e.kind == "slotbuff" then
         -- 飾品欄增益：引擎當光環格畫（kind 回 "aura"，設定頁的光環格路徑照走），多 slotBuff。
         -- 圖示用飾品圖示（占位也是）、名字「飾品名（增益 N）」；解不出增益（空格、沒有可追蹤的增益、
         -- 存了第 3 個而這件只有 1 個）⇒ isKnown false、問號格（提示寫原因，C.SlotBuffTooltip）

@@ -84,6 +84,14 @@
 --         **替代品**（e.alts，常用預設的藥水那種）：每次更新從「主＋alts」照順序挑第一個包包裡有的
 --         當 rec.itemID（都沒有就用主的；CU.PickItem）。換了物品就清武裝、叫 Keybinds.Invalidate，
 --         可點擊的條要求重排（鈕的 item 屬性跟著 rec.itemID，戰鬥中由 ns.Write 記帳到脫戰）。身分 key 仍是主的。
+-- ── 內建冷卻（kind = "timer"，2026-10-17）───────────────────────────────
+-- 暴雪不公開的內建冷卻（自然守護者），Modules/Timers.lua 收觸發訊號、自己用 GetTime() 計時；這裡只是畫：
+-- 框跟自訂物品同一種（圖示框／長條框），UpdateTimer 照 UpdateItem 的明文分支寫——TM.State(key) 的起點／秒數
+-- 是我們自己的明文數字 ⇒ C_DurationUtil 的物件 SetTimeFromStart → 轉圈／條身＋秒數，rec.cdOnCD 給冷卻狀態效果、
+-- 探針照武裝（就緒發光／就緒音效）。圖示與名字問定義的 icon 法術；天賦沒點 ⇒ rec.known = false、問號格。
+-- **rec.spellID 留 nil**：SpellIndex、按鍵文字、可點擊、觸發發光、施放後提醒的法術路徑都靠它（與 kind == "spell"）
+-- 判「這是能施放的法術」，內建冷卻一律不進去。冷卻／數量事件也不必聽（CU.WantedEvents 只算 spell／item／slot），
+-- 起算／到期／天賦變了由 Timers 叫 CU.TimerChanged(key) 標髒。
 -- 光環格的**多法術**（e.spellIDs，嗜血那種「一格代表好幾個法術」）：includeSpellIDs 放全部，
 -- 簽章把整組排序後串進去；占位圖示、身分用主的。只收增益（減益照舊只看主的那一個）。
 -- 事件只標髒、下一幀一次更新全部（SPELL_UPDATE_COOLDOWN 很密）。
@@ -191,6 +199,7 @@ local function IdentityKey(e)
         return "slotbuff:" .. e.slot .. ":" .. b
     end
     if e.kind == "spell" then return "spell:" .. e.spellID end
+    if e.kind == "timer" then return "timer:" .. e.key end
     return "aura:" .. e.spellID .. ":" .. (e.filter == "HARMFUL" and "HARMFUL" or "HELPFUL")
 end
 
@@ -1058,6 +1067,55 @@ local function UpdateItem(rec, placing)
     icon:SetDesaturation(desat and 1 or 0)
 end
 
+-- 內建冷卻（見檔頭「內建冷卻」）：起點／秒數是 Modules/Timers.lua 自己的明文數字，跟上次 arm 的不一樣才重 arm
+local function UpdateTimer(rec)
+    local f = rec.frame
+    local TM = ns.Timers
+    local def = TM and TM.Def and TM.Def(rec.timerKey)
+    local icon = IconTex(f)
+    -- 天賦讀不到（nil）當點了；定義不在（不該發生：生效清單會擋）當沒點
+    local known = def ~= nil and TM.TalentKnown(rec.timerKey) ~= false
+    rec.known = known                             -- 冷卻狀態效果：問號格不套（ApplyState）
+    local tex = known and (IconOverride(rec) or Plain(Try(C_Spell and C_Spell.GetSpellTexture, def.icon))) or QUESTION
+    if rec.tex ~= tex then icon:SetTexture(tex); rec.tex = tex end
+    if f.Bar then
+        SetBarName(rec, f, def and Plain(Try(C_Spell and C_Spell.GetSpellName, def.icon)) or tostring(rec.timerKey))
+    end
+    local fs = CountFS(f)
+    if fs then fs:SetText("") end
+    if not known then
+        if rec.armedStart then ClearCooldown(f) end
+        rec.armedStart, rec.armedDur = nil, nil
+        rec.cdOnCD = nil                           -- 沒點天賦沒有冷卻可判：冷卻狀態效果不套
+        icon:SetDesaturation(1)
+        return
+    end
+    local s, d = TM.State(rec.timerKey)
+    local onCD = false
+    if s then
+        onCD = true
+        if rec.armedStart ~= s or rec.armedDur ~= d then
+            rec.armedStart, rec.armedDur = s, d
+            rec.duo = rec.duo or (C_DurationUtil and C_DurationUtil.CreateDuration and Try(C_DurationUtil.CreateDuration))
+            -- 圖示框：轉圈；長條框：條身＋秒數（同一顆物件，已 arm 的不重 arm）
+            if rec.duo and pcall(rec.duo.SetTimeFromStart, rec.duo, s, d) and (f.Cooldown or f.Bar) then
+                FeedCooldown(f, rec.duo)
+                if ns.Glow then
+                    ns.Glow.CooldownStarted(rec)
+                    ns.Glow.ArmProbe(rec, rec.duo)
+                end
+            end
+        end
+    else
+        if rec.armedStart then ClearCooldown(f) end
+        rec.armedStart, rec.armedDur = nil, nil
+    end
+    rec.cdOnCD = onCD                              -- 冷卻狀態效果、就緒時一直亮讀這個（明文布林）
+    local want = ns.SpellSetting(rec.bar, rec.cooldownID, "desaturate")
+    icon:SetDesaturation((onCD and want ~= false) and 1 or 0)
+end
+CU.UpdateTimer = UpdateTimer          -- 測試用
+
 -- 長條框的秒數（.Bar.Timer 的倒數數字）：照「長條」節的秒數字型／字級排在條的右邊，跟 Text.ApplyBar
 -- 對 .Bar.Duration 做的一樣（錨點 RIGHT -4、像素字型）；顯示與否照「顯示秒數」與逐法術「隱藏倒數」。
 -- 這一招的文字覆寫（字型、字級、顏色、位置）走 Text.SpellText 的 "barTime"；呼叫端用 rec.decorated 當 timerSig，
@@ -1086,7 +1144,8 @@ function CU.Update(rec, placing)
     if not (rec.frame and rec.placedBar) then return end
     rec.dirty, rec.colorDirty = nil, nil          -- 整套更新包含 RefreshColor
     if rec.kind == "spell" then UpdateSpell(rec)
-    elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec, placing) end
+    elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec, placing)
+    elseif rec.kind == "timer" then UpdateTimer(rec) end
     CU.ApplyState(rec)
     if ns.Glow and ns.Glow.ApplyReadyState then ns.Glow.ApplyReadyState(rec) end
 end
@@ -1095,7 +1154,7 @@ end
 -- 冷卻狀態效果（Core/Decorate.lua 那一節的自訂框版）
 --
 -- 框是容器的子框：條的淡出由容器的 alpha 帶 ⇒ 這裡的 barAlpha 一律 1（兩者自然相乘）。
---   物品／飾品欄  UpdateItem 算好的明文 onCD（rec.cdOnCD）
+--   物品／飾品欄  UpdateItem 算好的明文 onCD（rec.cdOnCD）；內建冷卻同（UpdateTimer）
 --   法術          GetSpellCooldown 的兩個明文旗標；讀不到用 rec.dur:IsZero()（可能是秘密布林）→ SetAlphaFromBoolean
 --   未學會（問號）、空的飾品欄、編輯模式中、沒設 ⇒ 1
 ------------------------------------------------------------
@@ -1127,7 +1186,7 @@ function CU.ApplyState(rec)
     local st = rec.style
     local mode = st and st.cdState
     local editing = ns.EditMode and ns.EditMode.active
-    if not mode or not rec.placedBar or editing or (rec.kind == "spell" and rec.known == false) then
+    if not mode or not rec.placedBar or editing or ((rec.kind == "spell" or rec.kind == "timer") and rec.known == false) then
         f:SetAlpha(1)
         rec.stateHidden = nil
         return
@@ -1201,6 +1260,18 @@ function CU.MarkDirty()
     ArmFlush()
 end
 
+-- 內建冷卻起算／到期／天賦變了（Modules/Timers.lua 叫）：只標那幾格
+function CU.TimerChanged(key)
+    local any = false
+    for _, rec in pairs(records) do
+        if rec.timerKey ~= nil and rec.timerKey == key then
+            rec.dirty = true
+            any = true
+        end
+    end
+    if any then ArmFlush() end
+end
+
 -- SPELL_UPDATE_USABLE：只有自訂法術有可用／資源不足的上色（RefreshColor 只看 kind == "spell"）
 local function OnUsable()
     local any = false
@@ -1238,20 +1309,22 @@ local function OnCooldownBatch(all, entries, gcd)
 end
 CU.OnCooldownBatch = OnCooldownBatch
 
--- 目前生效的非光環項目有幾筆（Sync 數；SpellIndex 的 wants 看它：0 ⇒ 冷卻事件對 Custom 沒事做）
+-- 目前生效的冷卻類項目（法術／物品／飾品欄）有幾筆（Sync 數；SpellIndex 的 wants 看它：0 ⇒ 冷卻事件對 Custom 沒事做）
 CU.activeNonAura = 0
 
 ------------------------------------------------------------
 -- 事件註冊動態化（效能修整 E3 #10；樣板是 Modules/Pips.lua 的 SyncEvents）
 --
 --   CU.WantedEvents(recs, rangeOn [, out])   純函式：生效中的 rec 集合＋距離表 → 要註冊的事件集合
---     有任何非光環項目     SPELL_UPDATE_CHARGES、BAG_UPDATE_COOLDOWN、BAG_UPDATE_DELAYED、SPELLS_CHANGED、
+--     有任何冷卻類項目（自訂法術／物品／飾品欄；COOLDOWN_KINDS——光環格、內建冷卻不算：內建冷卻由 Timers 自己標髒）
+--                         SPELL_UPDATE_CHARGES、BAG_UPDATE_COOLDOWN、BAG_UPDATE_DELAYED、SPELLS_CHANGED、
 --                         PLAYER_EQUIPMENT_CHANGED（全標）
 --     有自訂法術           SPELL_UPDATE_USABLE（只重算顏色）
 --     距離表非空           SPELL_RANGE_CHECK_UPDATE、PLAYER_TARGET_CHANGED（兩個處理器開頭本來就看 rangeOn）
 --   SPELL_UPDATE_COOLDOWN 不在這裡：Core/SpellIndex.lua 唯一的處理器，wants 看 CU.activeNonAura。
 --   CU.SyncEvents()  Sync 結尾（生效清單變了）、EnsureRange／DropRange（距離表從空變有／從有變空）叫
 ------------------------------------------------------------
+local COOLDOWN_KINDS = { spell = true, item = true, slot = true }
 local MARK_EVENTS = { "SPELL_UPDATE_CHARGES", "BAG_UPDATE_COOLDOWN", "BAG_UPDATE_DELAYED", "SPELLS_CHANGED",
                       "PLAYER_EQUIPMENT_CHANGED" }
 CU.MARK_EVENTS = MARK_EVENTS
@@ -1261,7 +1334,7 @@ function CU.WantedEvents(recs, range, out)
     for k in pairs(out) do out[k] = nil end
     local any, spell = false, false
     for _, rec in pairs(recs or {}) do
-        if rec.kind ~= "aura" then
+        if COOLDOWN_KINDS[rec.kind] then
             any = true
             if rec.kind == "spell" then spell = true end
         end
@@ -1301,11 +1374,11 @@ function CU.LiveRecs()
     return liveScratch
 end
 
--- 非光環的生效數（SpellIndex 的 wants 看它）＋事件註冊：Sync 結尾、代畫格放上／收起時叫
+-- 冷卻類的生效數（SpellIndex 的 wants 看它；內建冷卻不吃冷卻事件，不算）＋事件註冊：Sync 結尾、代畫格放上／收起時叫
 local function RecountLive()
     local n = 0
     for _, rec in pairs(CU.LiveRecs()) do
-        if rec.kind ~= "aura" then n = n + 1 end
+        if COOLDOWN_KINDS[rec.kind] then n = n + 1 end
     end
     CU.activeNonAura = n
     CU.SyncEvents()
@@ -2806,6 +2879,7 @@ function CU.FlowOf(barKey) return flows[barKey] end
 local function New(e)
     local rec = {
         custom = true, kind = e.kind, spellID = e.spellID, itemID = e.itemID, slot = e.slot,
+        timerKey = e.kind == "timer" and e.key or nil,   -- 內建冷卻：spellID 留 nil（見檔頭「內建冷卻」）
         filter = e.kind == "aura" and (e.filter == "HARMFUL" and "HARMFUL" or "HELPFUL") or nil,
         barKey = "custom",           -- Decorate 用它判斷「是不是增益檢視器」：不是
         frames = {},                 -- "icons"｜"bars" → 框（第一次放進那種條才建，見 UseFrame）
