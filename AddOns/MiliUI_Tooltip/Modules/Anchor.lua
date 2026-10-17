@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 錨點：cursorRight / cursor / static / default，戰鬥隱藏與修飾鍵顯示
+-- 錨點：cursorRight / cursor（九宮格方向＋偏移）/ static / default，戰鬥隱藏與修飾鍵顯示
 --
 -- 入口是 hooksecurefunc(GameTooltip_SetDefaultAnchor)（接觸面清單第 2 條），
 -- 之後只用 SetOwner / SetPoint 這類定位 API（第 8 條）。
@@ -67,32 +67,63 @@ local function SafeSetOwner(tip, parent, anchorType, ...)
 end
 
 ------------------------------------------------------------
--- 游標跟隨 driver（自訂偏移的 cursor 模式用）
+-- 游標跟隨 driver（cursor 模式選了九宮格方向或自訂偏移時用）
+--
+-- cp 是 tooltip 自己的哪一點貼在游標上（九宮格「右下」＝TOPLEFT 貼游標）。
+-- 偏移 = 方向內建的間距 ＋ 玩家的 cx/cy：游標箭頭往右下長，往右／往下的方向不墊開
+-- 會被箭頭蓋住，所以 0,0 就要是「剛好不壓到游標」的位置。
 ------------------------------------------------------------
+local CURSOR_GAP = {
+    BOTTOM      = { 0, 0 },     -- 上方（偏移 0,0 時不開 driver、直接走原生 ANCHOR_CURSOR）
+    BOTTOMLEFT  = { 4, 4 },     -- 右上
+    BOTTOMRIGHT = { -4, 4 },    -- 左上
+    RIGHT       = { -8, 0 },    -- 左側
+    LEFT        = { 24, 0 },    -- 右側
+    TOPRIGHT    = { -4, -4 },   -- 左下
+    TOP         = { 0, -28 },   -- 下方
+    TOPLEFT     = { 20, -24 },  -- 右下
+}
+
 local follow = CreateFrame("Frame")
 follow:Hide()
 local followTip, followCp, followCx, followCy, followScale
+
+local function PlaceAtCursor(tip)
+    local x, y = GetCursorPosition()
+    tip:ClearAllPoints()
+    tip:SetPoint(followCp, UIParent, "BOTTOMLEFT", floor(x / followScale + followCx), floor(y / followScale + followCy))
+end
+
 follow:SetScript("OnUpdate", function(self)
     local tip = followTip
     if not tip or not tip:IsShown() or S.IsForbiddenObject(tip) then
         self:Hide()
         return
     end
+    -- 別的程式（或下一次 SetDefaultAnchor）把錨點換掉了就收手
     local ok, anchorType = pcall(tip.GetAnchorType, tip)
-    if not ok or (anchorType ~= "ANCHOR_CURSOR" and anchorType ~= "ANCHOR_NONE") then
+    if not ok or anchorType ~= "ANCHOR_CURSOR" then
         self:Hide()
         return
     end
-    local x, y = GetCursorPosition()
-    tip:ClearAllPoints()
-    tip:SetPoint(followCp, UIParent, "BOTTOMLEFT", floor(x / followScale + followCx), floor(y / followScale + followCy))
+    PlaceAtCursor(tip)
 end)
 
+local function StopCursorFollow()
+    follow:Hide()
+    followTip = nil
+end
+
 local function StartCursorFollow(tip, cp, cx, cy)
+    cp = CURSOR_GAP[cp] and cp or "BOTTOM"
+    local gap = CURSOR_GAP[cp]
     followTip = tip
-    followCp, followCx, followCy = cp or "BOTTOM", cx or 0, cy or 20
+    followCp, followCx, followCy = cp, gap[1] + (cx or 0), gap[2] + (cy or 0)
     local ok, scale = pcall(tip.GetEffectiveScale, tip)
     followScale = (ok and S.PlainNumber(scale)) or 1
+    if followScale <= 0 then followScale = 1 end
+    -- 當場先擺一次，免得第一幀閃在原生 ANCHOR_CURSOR 的位置
+    PlaceAtCursor(tip)
     follow:Show()
 end
 
@@ -121,6 +152,9 @@ local function AnchorDefaultPosition(tip, parent, anchor, finally)
 end
 
 local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnchor)
+    -- 每次重新定位都先停掉上一輪的跟隨：tooltip 沒關就換了內容（從單位直接滑到按鈕）時，
+    -- 新模式不是自訂跟隨的話，舊的 driver 不能繼續把它拖回游標旁
+    if not finally then StopCursorFollow() end
     local hideAnchor = combatAnchor or anchor
     local general = GeneralAnchor()
     if hideAnchor and hideAnchor ~= general and not hideAnchor.hiddenInCombat
@@ -145,10 +179,8 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnch
         local cx = tonumber(anchor.cx) or 0
         local cy = tonumber(anchor.cy) or 0
         local cp = anchor.cp
-        if cx == 0 and cy == 0 and (not cp or cp == "BOTTOM") then
-            SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
-        else
-            SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
+        SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
+        if not (cx == 0 and cy == 0 and (not cp or cp == "BOTTOM")) then
             StartCursorFollow(tip, cp, cx, cy)
         end
     elseif anchor.position == "inherit" and not finally then

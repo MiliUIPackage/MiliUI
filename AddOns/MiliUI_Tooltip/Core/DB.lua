@@ -24,6 +24,7 @@ local function DefaultAnchor(inherit)
         returnInCombat = false,
         returnOnUnitFrame = false,
         x = -30, y = 30, p = "BOTTOMRIGHT",   -- static 模式用（螢幕右下）
+        cp = "BOTTOM", cx = 0, cy = 0,        -- cursor 模式用：tooltip 的哪一點貼游標（BOTTOM＝上方）＋偏移
     }
 end
 
