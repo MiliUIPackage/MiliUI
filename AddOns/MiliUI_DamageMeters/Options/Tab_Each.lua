@@ -8,6 +8,7 @@ local _, ns = ...
 
 local L = ns.L
 local Specs = ns.Specs
+local D = ns.Data
 
 local tab, scroll, refreshers
 local selected = 1
@@ -30,7 +31,12 @@ local function Apply()
         ns.Move.ApplyPosition(W)
         ns.Window.UpdateLockIcon(W)
         ns.Move.ApplyLock(W)
-        W.curDMType  = W.wdb.curDMType or W.curDMType
+        -- 下拉選的值照理都存在，但存檔可能被匯入／手改過：不存在的類型不收，寫回原值
+        if D.IsValidType(W.wdb.curDMType) then
+            W.curDMType = W.wdb.curDMType
+        else
+            W.wdb.curDMType = W.curDMType
+        end
         W.curSession = W.wdb.curSession or W.curSession
         W.curSessionID = nil
         W._barCacheKey = nil
@@ -67,13 +73,137 @@ local function BuildWindowPicker(parent, x, y, width)
     end
 end
 
+------------------------------------------------------------
+-- 統計類型下拉
+--
+-- 跟視窗選擇器同一個理由走 custom：清單會在分頁建好之後變長（新增／刪除合併檢視），
+-- 普通 dropdown 的 items 只在建分頁時求值一次。版面照普通 dropdown 那一型排
+-- （標準寬 230、列高 30、控件在列的中線），看起來跟上下的下拉是同一種東西。
+------------------------------------------------------------
+local TYPE_SPEC = { key = "curDMType" }
+
+local function BuildMeterTypePicker(parent, x, y, width, ctx)
+    local dd = ns.W.CreateDropdown(parent, 230, Specs.MeterTypeItems(), function(value)
+        ctx.set(TYPE_SPEC, value)
+        ctx.apply()
+    end)
+    dd:SetMaxWidth(width)
+    dd:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+    return 30, function()
+        dd:SetItems(Specs.MeterTypeItems())
+        dd:SetSelectedValue(ctx.get(TYPE_SPEC))
+    end
+end
+
+------------------------------------------------------------
+-- 合併檢視列表
+--
+-- 列是懶建、池化的（最多 DB.MAX_SPLITS 筆，不需要捲動，所以不用 W.CreateRowList）。
+--
+-- ⚠ 高度固定：BuildScrollBody 只在建分頁時算一次內容高度，沒有重排入口。
+--   所以這一節擺在分頁最底部、高度一律以「滿 8 組」計 —— 組合少的時候下面就是
+--   捲動區的尾巴，不會把別的控件推開，也不會被別的控件蓋住。
+------------------------------------------------------------
+local SPLIT_ROW_H = 22
+local SPLIT_BTN_W = 48
+local SPLIT_LIST_H = ns.DB.MAX_SPLITS * SPLIT_ROW_H + 30
+local SPLIT_ICON_FALLBACK = "Interface\\Icons\\INV_Misc_QuestionMark"
+-- 整列寬的自訂控件不吃標籤欄：左緣與寬度跟「一般」分頁的按鈕看板同一組
+--（Options/ButtonBoard.lua 的 BOARD_X／BOARD_W），不然左邊會空出一整欄標籤的寬度
+local SPLIT_LIST_X = 8
+
+local function BuildSplitList(parent, _, y)
+    local W = ns.W
+    local x, width = SPLIT_LIST_X, ns.Options.FORM_W - 20
+    local rows = {}
+    local pendingDelete
+    local confirm
+
+    local addBtn = W.CreateButton(parent, L["Add split view"], "normal", 140, 22)
+    W.FitButton(addBtn, 140, 22)
+    -- 從設定頁新增不套到任何視窗（右鍵選單開的才會讓那個視窗直接切過去）
+    addBtn:SetScript("OnClick", function() ns.SplitPopup.OpenNew(nil) end)
+
+    local function AskDelete(id)
+        pendingDelete = id
+        if not confirm then
+            confirm = W.CreateConfirmPopup(ns.WidgetsEnv.PopupParent(), 320,
+                L["Delete this split view? Windows showing it switch to its left column."],
+                function()
+                    if pendingDelete then ns.DB.DeleteSplit(pendingDelete) end
+                    pendingDelete = nil
+                end)
+        end
+        confirm:Show()
+    end
+
+    local function Row(i)
+        local r = rows[i]
+        if r then return r end
+        r = CreateFrame("Frame", nil, parent)
+        r:SetSize(width, SPLIT_ROW_H)
+        r:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - (i - 1) * SPLIT_ROW_H)
+
+        r.icon = r:CreateTexture(nil, "ARTWORK")
+        r.icon:SetSize(16, 16)
+        r.icon:SetPoint("LEFT", r, "LEFT", 0, 0)
+        r.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+        r.del = W.CreateButton(r, L["Delete"], "normal", SPLIT_BTN_W, 20)
+        r.del:SetPoint("RIGHT", r, "RIGHT", 0, 0)
+        r.del:SetScript("OnClick", function() if r.id then AskDelete(r.id) end end)
+
+        r.edit = W.CreateButton(r, L["Edit"], "normal", SPLIT_BTN_W, 20)
+        r.edit:SetPoint("RIGHT", r.del, "LEFT", -4, 0)
+        r.edit:SetScript("OnClick", function() if r.id then ns.SplitPopup.OpenEdit(r.id) end end)
+
+        r.name = r:CreateFontString(nil, "OVERLAY")
+        r.name:SetFontObject(W.fontNormal)
+        r.name:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
+        r.name:SetPoint("RIGHT", r.edit, "LEFT", -8, 0)
+        r.name:SetJustifyH("LEFT")
+        r.name:SetWordWrap(false)
+
+        rows[i] = r
+        return r
+    end
+
+    local function Refresh()
+        -- 內建的打斷和驅散不列：不可編輯也不可刪，列出來只會多兩顆灰鈕
+        local list = ns.DB.Splits().list
+        for i, def in ipairs(list) do
+            local r = Row(i)
+            r.id = def.id
+            local ok = D.SplitAvailable(def)
+            r.icon:SetTexture((ok and D.TYPE_ICONS[def.left.type]) or SPLIT_ICON_FALLBACK)
+            if ok then
+                r.name:SetText(D.SplitName(def))
+            else
+                -- 這支客戶端沒有其中一種類型：留著不刪（換回去就回來），但編輯會把它換掉，不給編
+                r.name:SetText(D.SplitName(def) .. " |cff737373" .. L["(unavailable)"] .. "|r")
+            end
+            r.edit:SetEnabled(ok)
+            r:Show()
+        end
+        for i = #list + 1, #rows do
+            rows[i].id = nil
+            rows[i]:Hide()
+        end
+        addBtn:ClearAllPoints()
+        addBtn:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - #list * SPLIT_ROW_H - 4)
+        addBtn:SetEnabled(#list < ns.DB.MAX_SPLITS)
+    end
+
+    Refresh()
+    return SPLIT_LIST_H, Refresh
+end
+
 local CONTROLS = {
     { type = "custom",   label = L["Window"], build = BuildWindowPicker, h = 26 },
     { type = "text",     label = L["Add or remove windows on the General tab."] },
 
     { type = "header",   label = L["Content"] },
-    { type = "dropdown", key = "curDMType", label = L["Meter type"],
-      items = function() return Specs.MeterTypeItems() end },
+    { type = "custom",   label = L["Meter type"], build = BuildMeterTypePicker, h = 30 },
     { type = "dropdown", key = "curSession", label = L["Segment"], items = Specs.SESSION_TYPES },
     { type = "toggle",   key = "reverse", label = L["Reverse layout"] },
     { type = "text",     label = L["The title bar moves to the bottom and bars stack upward, so the top damage sits at the very bottom."] },
@@ -104,6 +234,12 @@ local CONTROLS = {
     { type = "toggle",   key = "hideInDelve", label = L["Hide in Delves"] },
     { type = "toggle",   key = "hideOutOfInstance", label = L["Hide outside instances"] },
     { type = "text",     label = L["The window is always shown while Edit Mode or this settings panel is open, so you can see what you are adjusting."] },
+
+    -- 擺最底部：列表高度固定（理由見 BuildSplitList 上方），說明放列表前面，
+    -- 組合少的時候空出來的那一截才會落在捲動區尾巴、不會夾在列表與說明之間
+    { type = "header",   label = L["Split views"] },
+    { type = "text",     label = L["Split views are shared by every window and saved with the profile. Each column picks its own meter type and segment; a column set to \"Follow the window\" uses the window's segment above."] },
+    { type = "custom",   build = BuildSplitList, h = SPLIT_LIST_H },
 }
 
 local function Init()
@@ -134,6 +270,12 @@ end
 
 -- 在遊戲裡拖曳／縮放會改到 x/y/width/height，這一頁開著的話跟著更新
 ns.RegisterCallback("SettingsChanged", "eachTab", function()
+    if tab and tab:IsShown() then RefreshAll() end
+end)
+
+-- 合併檢視的清單變了（新增／編輯／刪除，不管是從這一頁還是右鍵選單）：
+-- 列表與統計類型下拉都要重灌
+ns.RegisterCallback("SplitsChanged", "eachTab", function()
     if tab and tab:IsShown() then RefreshAll() end
 end)
 

@@ -177,6 +177,12 @@ function ns.DebugText()
             add(("#%d type=%s"):format(W.idx, Str(W.curDMType)))
             ns.Window.ForEachPane(W, function(P)
                 local tag = (P == W) and "  " or "  [split]"
+                -- 每欄解析後的分段：合併檢視的欄可以釘住分段，「這欄數字怪怪的」先看這行
+                if D.SplitDef(W.curDMType) then
+                    local side = (P == W) and "left" or "right"
+                    local st, sid = D.PaneSession(W, side)
+                    add(("%s seg=%s/%s id=%s"):format(tag, (P == W) and "L" or "R", Str(st), Str(sid)))
+                end
                 for i, bar in ipairs(P.rowPool or {}) do BarLine(tag .. " " .. i .. ".", bar) end
                 if P.stickyBar then BarLine(tag .. " sticky", P.stickyBar) end
             end)

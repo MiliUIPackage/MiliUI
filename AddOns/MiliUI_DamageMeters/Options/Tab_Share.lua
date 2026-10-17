@@ -45,10 +45,14 @@ end
 
 -- ⚠ 結構也要驗，不能只看版本號。這張表會直接變成一份設定檔，缺了或型別不對的話
 -- 錯誤要等到下次開設定面板／登入才炸，那時已經 ReloadUI 過、沒有回頭路。
+-- 後來才加進設定檔的區塊：舊版匯出的字串本來就沒有，缺了交給 DB.Activate 的
+-- MergeDefaults 補。只放寬「缺」，型別不對照樣擋。
+local OPTIONAL_KEYS = { splits = true }
+
 local function ValidProfile(p)
     if type(p) ~= "table" then return false end
     for k, v in pairs(ns.DB.ProfileDefaults()) do
-        if type(p[k]) ~= type(v) then return false end
+        if not (p[k] == nil and OPTIONAL_KEYS[k]) and type(p[k]) ~= type(v) then return false end
     end
     return true
 end

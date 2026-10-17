@@ -64,6 +64,7 @@ Options\Tab_General.lua
 Options\Tab_Bars.lua
 Options\Tab_Text.lua
 Options\Tab_Window.lua
+Options\SplitPopup.lua
 Options\Tab_Each.lua
 Options\Tab_Share.lua
 Options\Tab_About.lua

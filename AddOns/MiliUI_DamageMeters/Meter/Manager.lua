@@ -46,6 +46,9 @@ local function EnsureWindow(idx)
 end
 
 function Windows.Rebuild()
+    -- 類型登錄表要在建視窗之前重建：Win.Create 的載入驗證拿它判斷存檔的類型還在不在，
+    -- 自訂合併檢視住在設定檔裡，ns.db 指過去之後才讀得到
+    D.RefreshTypes()
     local want = ns.DB.WindowCount()
 
     for i = 1, want do
@@ -162,6 +165,8 @@ end
 
 local function SmartApplyFor(W, inCombat, force, pulse)
     if not W.wdb.smartDisplay then return end
+    -- 兩欄都釘住分段：切了畫面也不會變，還會讓狀態標籤白閃一次
+    if D.BothPinned(W) then return end
     if W.curSessionID ~= nil and not force then return end
     -- ⚠ 只在戰鬥邊界求值，所以「出了團隊之後還沒再打過」會停在「目前」。
     -- 這是良性的（那時候你要看的多半就是最後一場），下一場戰鬥結束就自己修正。
@@ -194,6 +199,9 @@ end
 function Windows.SmartDisplayNote(W)
     if not W.wdb.smartDisplay then return nil end
     local L = ns.L
+    if D.BothPinned(W) then
+        return L["Smart display: both columns are pinned, nothing to switch."]
+    end
     if W.curSessionID ~= nil then
         return L["Smart display is paused while you look at a past segment. Switch back to Current or Overall to resume."]
     end
@@ -382,12 +390,44 @@ end
 -- 選單
 ------------------------------------------------------------
 local function TypeItems(W)
-    local items = { { text = ns.L["Meter type"], isTitle = true } }
-    for _, dmType in ipairs(D.TYPE_ORDER) do
+    local L = ns.L
+    local items = { { text = L["Meter type"], isTitle = true } }
+    local function Add(dmType)
         items[#items + 1] = {
             text = D.TYPE_NAMES[dmType] or "?",
             isActive = (dmType == W.curDMType),
             onClick = function() Win.SetDMType(W, dmType) end,
+        }
+    end
+    -- 暴雪的類型在前、合併檢視自成一組在後（內建的打斷和驅散排第一，自訂照建立順序）。
+    -- TYPE_ORDER 裡內建合併是夾在驅散與死亡之間的，所以這裡分兩趟走
+    local anySplit = false
+    for _, dmType in ipairs(D.TYPE_ORDER) do
+        if D.SplitDef(dmType) then anySplit = true else Add(dmType) end
+    end
+    if anySplit then
+        items[#items + 1] = { isSeparator = true }
+        for _, dmType in ipairs(D.TYPE_ORDER) do
+            if D.SplitDef(dmType) then Add(dmType) end
+        end
+    end
+
+    items[#items + 1] = { isSeparator = true }
+    local used = #ns.DB.Splits().list
+    if used >= ns.DB.MAX_SPLITS then
+        -- 共用層的選單沒有「停用」：沒有動作＋右邊的灰字讀數就是滿了的意思。
+        -- keepOpen：點下去什麼都不會發生，選單也不該因此關掉
+        items[#items + 1] = {
+            text = "+ " .. L["Add split view"],
+            value = format("%d / %d", used, ns.DB.MAX_SPLITS),
+            keepOpen = true,
+        }
+    else
+        items[#items + 1] = {
+            text = "+ " .. L["Add split view"],
+            onClick = function()
+                if ns.SplitPopup then ns.SplitPopup.OpenNew(W) end
+            end,
         }
     end
     return items
@@ -396,6 +436,12 @@ end
 local function SegmentItems(W)
     local L = ns.L
     local items = { { text = L["Segments"], isTitle = true } }
+
+    -- 兩欄都釘住分段：這裡選什麼畫面都不會變（標題列的分段鈕仍開得出這份選單）
+    if D.BothPinned(W) then
+        items[#items + 1] = { text = L["Fixed per column"], keepOpen = true }
+        return items
+    end
 
     items[#items + 1] = {
         text = L["Current"],
@@ -456,7 +502,10 @@ function Windows.ShowContextMenu(W, btn, redraw)
     local items = {
         { text = L["MiliUI Damage Meters"] .. " " .. W.idx, isTitle = true },
         { text = L["Meter type"], value = CurrentTypeLabel(W),    submenu = TypeItems(W) },
-        { text = L["Segments"],   value = Win.SegmentLabel(W), submenu = SegmentItems(W) },
+        -- 兩欄都釘住分段時沒有子選單、也沒有動作：右邊的灰字說明為什麼
+        D.BothPinned(W)
+            and { text = L["Segments"], value = L["Fixed per column"], keepOpen = true }
+            or  { text = L["Segments"], value = Win.SegmentLabel(W), submenu = SegmentItems(W) },
         { isSeparator = true },
         {
             text = L["Hide the timer"], isActive = wdb.hideTimer, keepOpen = true,

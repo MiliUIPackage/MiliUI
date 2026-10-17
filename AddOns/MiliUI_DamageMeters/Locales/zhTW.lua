@@ -326,3 +326,19 @@ L["Opened the Debug tab in the options window: click Select all, Ctrl+C, and pas
 
 -- 頭像卡片（滑過預覽／展開頁）
 L["iLvl %d"] = "裝等 %d"
+
+-- 自訂合併檢視（Options/SplitPopup.lua、Options/Tab_Each.lua、Meter/Manager.lua）
+L["Split views"] = "合併檢視"
+L["Add split view"] = "新增合併檢視"
+L["New split view"] = "新增合併檢視"
+L["Edit split view"] = "編輯合併檢視"
+L["Left column"] = "左欄"
+L["Right column"] = "右欄"
+L["Follow the window"] = "跟著視窗"
+L["The two columns can't be identical."] = "兩欄不能完全一樣。"
+L["Fixed per column"] = "兩欄各自固定"
+L["Edit"] = "編輯"
+L["Delete this split view? Windows showing it switch to its left column."] = "刪除這個合併檢視？正在顯示它的視窗會改成它的左欄類型。"
+L["Split views are shared by every window and saved with the profile. Each column picks its own meter type and segment; a column set to \"Follow the window\" uses the window's segment above."] = "合併檢視是所有視窗共用的，跟著設定檔一起存。每一欄各自選統計類型與分段；選「跟著視窗」的欄用上面那個視窗分段。"
+L["Smart display: both columns are pinned, nothing to switch."] = "智慧顯示：兩欄都固定了分段，沒有東西可切。"
+L["(unavailable)"] = "（這個版本沒有）"
