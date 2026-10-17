@@ -317,11 +317,12 @@ y=323 spacing 80）——⚠ 首領那組座標是照使用者的寬螢幕調的
 
 友方有魔法／詛咒／疾病／中毒／流血減益 → 框體畫一圈該類型色邊框；敵方改看激怒。蓋過滑鼠高亮
 （滑鼠 19、驅散 20，`ns.DISPEL_HIGHLIGHT_LEVEL`）。實作 `Elements/DispelHighlight.lua`。
-- **覆蓋層在所有邊框之上（2026-10-18 定案）**：文字／施法條／觀察鈕／小圖示的 frame level 一律走
-  `ns.OverlayLevel(level)` ＝ 21 ＋ 設定值（文字 10／11 < 施法條 12 < 觀察鈕 17 < 小圖示 21，相對順序
-  不變、設定檔不用遷移）。起因：疾病等驅散邊框與首領框的選取邊框壓到觀察鈕和血量文字。代價：
-  玩家／目標那種整片蓋住框體的施法條唱法時也把邊框遮掉——「施法條要遮住文字」與「文字在邊框之上」
-  兩條的必然結果。
+- **覆蓋層在所有邊框之上（2026-10-18 定案）**：文字／觀察鈕／小圖示的 frame level 一律走
+  `ns.OverlayLevel(level)` ＝ 21 ＋ 設定值（文字 10／11 < 觀察鈕 17 < 小圖示 21，相對順序不變、
+  設定檔不用遷移）。起因：疾病等驅散邊框與首領框的選取邊框壓到觀察鈕和血量文字。
+  **施法條不在覆蓋層**（留在 12，邊框底下，唱法時驅散邊框要看得到）；「施法條遮住名字／血量數字」
+  改由施法條顯示時把版面矩形蓋到的文字 SetAlpha(0)、淡出時跟著淡回（`SetCoveredAlpha`，Build 時算
+  一次 `coveredTextIdx`）。用 alpha 不用 Hide：名字文字上掛著 ping 接收器。
 - **每種類型一個 `AddAuraSlot`**（`candidateFilters.includeDispelTypes` 只放那一種），邊框用四條
   `SetColorTexture` 貼圖直接畫在 slot 按鈕上，顏色建立時就知道 ⇒ 不用 `AddDispelTypeTexture`、
   `initializeFrame` 零 `CreateColor`。`includeDispelTypes` 不在身分閘裡。不用 BackdropTemplate（按鈕子樹的

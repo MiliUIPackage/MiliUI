@@ -59,6 +59,53 @@ ns.CastbarFormatTime = FormatTime      -- 預覽孿生共用同一個 formatter
 ------------------------------------------------------------
 -- 單條施法條物件
 ------------------------------------------------------------
+------------------------------------------------------------
+-- 施法條蓋到的文字：唱法時透明，淡出時跟著回來
+--
+-- 施法條要遮住底下的名字與血量數字，但**不是靠層級**：文字一律在滑鼠／選取／驅散邊框
+-- 之上（ns.OverlayLevel），施法條若也抬到那上面，唱法時整圈驅散邊框就被遮掉（使用者
+-- 定案 2026-10-18：不能接受）。所以施法條留在邊框底下，改由它自己把蓋到的文字調成透明。
+-- 哪幾條算「蓋到」在 Build 時用版面矩形算一次（coveredTextIdx），顯示時只掃那幾條。
+-- 用 alpha 不用 Hide：名字文字上掛著玩家框的 ping 接收器，藏起來它就從 frame stack 消失。
+------------------------------------------------------------
+local function SetCoveredAlpha(f, a)
+    local uf, idx = f.uf, f.coveredTextIdx
+    local frames = uf and uf.textFrames
+    if not (idx and frames) then return end
+    for i = 1, #idx do
+        local t = frames[idx[i]]
+        if t then t:SetAlpha(a) end
+    end
+end
+
+-- 收條：全部還原，不只 coveredTextIdx —— 顯示期間版面可能重算過，舊名單上的要一起放回來
+local function RestoreCoveredTexts(f)
+    local frames = f.uf and f.uf.textFrames
+    if not frames then return end
+    for _, t in pairs(frames) do t:SetAlpha(1) end
+end
+
+local function ComputeCoveredTexts(f, uf, edb)
+    local list
+    local texts = uf.db.elements and uf.db.elements.texts
+    if type(texts) == "table" then
+        -- 兩邊都是「TOPLEFT 對框架 TOPLEFT，往下為負」的版面單位（同 BodyBounds）
+        local ax1, ay1 = edb.x or 0, edb.y or 0
+        local ax2, ay2 = ax1 + (edb.w or 200), ay1 - (edb.h or 20)
+        for i, t in ipairs(texts) do
+            if type(t) == "table" and t.enabled ~= false then
+                local bx1, by1 = t.x or 0, t.y or 0
+                local bx2, by2 = bx1 + (t.w or 100), by1 - (t.h or 12)
+                if bx1 < ax2 and ax1 < bx2 and by2 < ay1 and ay2 < by1 then
+                    list = list or {}
+                    list[#list + 1] = i
+                end
+            end
+        end
+    end
+    f.coveredTextIdx = list
+end
+
 local function HideBar(f)
     f.active = false
     f.castState = nil
@@ -263,6 +310,7 @@ local function FadeOnUpdate(f)
         f:Hide()
     else
         f:SetAlpha((1 - t / dur) * (f.baseAlpha or 1))
+        SetCoveredAlpha(f, t / dur)        -- 條淡出、字淡入
     end
 end
 
@@ -417,6 +465,7 @@ local function StartDisplay(f)
     f.castGUID = isCast and cCastID or nil     -- UnitCastingInfo 第 7 個回傳是 castID
     f.castNotInterruptible = notInt
     f:SetAlpha(f.baseAlpha or 1)              -- 上一次淡出可能留下低 alpha
+    SetCoveredAlpha(f, 0)                     -- 淡出中重新開唱：frame 還顯示著、OnShow 不會再觸發
     f.icon:SetTexture(texture)
     f.spellText:SetText(name)
     f.timeText:SetText("")
@@ -684,6 +733,9 @@ local function Build(uf, edb)
         f.unit = uf.unit
         f.castUnit = uf.unit
         f.displayToken = 0
+        -- 蓋到的文字跟著條的顯示上下（預覽的假施法也是直接 Show，走這裡）
+        f:HookScript("OnShow", function(self) SetCoveredAlpha(self, 0) end)
+        f:HookScript("OnHide", RestoreCoveredTexts)
 
         f.bgTex = f:CreateTexture(nil, "BACKGROUND")
         f.bgTex:SetAllPoints(f)
@@ -805,9 +857,8 @@ local function Build(uf, edb)
     -- ⚠ 不要叫 L：檔案層的 `local L = ns.L` 是語系表，這裡取名 L 會把它遮掉，
     -- 之後任何人想在 Build 裡查一次語系表就會拿到一個數字然後炸掉。
     -- （這裡刻意不把 L[...] 的樣子寫出來 —— 語系對齊檢查會把註解裡的當成真的 key。）
-    -- 覆蓋層：施法條要遮住底下的文字，而文字在邊框之上 ⇒ 施法條也一起墊上去
-    -- （見 Core/UnitFrame.lua 的 ns.OverlayLevel；子框的 +1～+4 一樣跟著）
-    local lvl = ns.OverlayLevel(edb.level or 6)
+    -- 層級留在邊框（19／20）底下：遮文字不靠層級，見上面 SetCoveredAlpha
+    local lvl = edb.level or 6
     f:SetSize(edb.w or 200, edb.h or 20)
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", edb.x or 0, edb.y or 0)
@@ -877,6 +928,11 @@ local function Build(uf, edb)
     f.showInterruptReady = edb.showInterruptReady and true or false
     f.showImportantCast = edb.showImportantCast and true or false
     f.uf = uf                       -- 職業色要讀 uf.cache（BaseColor）
+    ComputeCoveredTexts(f, uf, edb)
+    if f:IsShown() then             -- 顯示中重排（預覽、唱法時改設定）：照新名單重套
+        RestoreCoveredTexts(f)
+        SetCoveredAlpha(f, 0)
+    end
     f.classColorBar = edb.classColorBar and true or false
     f.textOverlay:SetFrameLevel(lvl + 3)
     ApplyTextStyle(f.spellText, edb.spell or {}, f)
