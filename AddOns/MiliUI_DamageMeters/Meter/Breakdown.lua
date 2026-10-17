@@ -33,22 +33,30 @@ function B.InvalidateCaches()
     _targetsCache.map = nil
 end
 
+-- 這一頁看的分段。整頁都讀它、不讀 W.curSession（理由同 srcDMType，見 OpenFromBar）：
+-- 合併檢視的欄可以釘住分段，點開的那一列不一定是視窗的分段
+local function SrcSession(W)
+    if W.srcSessType ~= nil then return W.srcSessType, W.srcSessID end
+    return W.curSession, W.curSessionID
+end
+
 local function AmountPerSecond(total, duration)
     if not duration or duration <= 0 then return total end
     return total / duration
 end
 
 local function BreakdownDuration(W)
-    local d = D.GetSessionDuration(W.curSession, W.curSessionID)
+    local d = D.GetSessionDuration(SrcSession(W))
     if d and not D.IsSecret(d) and type(d) == "number" and d > 0 then return d end
     return 1
 end
 
 local function BuildAllPlayerTargets(W)
-    local key = tostring(W.curSession) .. "|" .. tostring(W.curSessionID)
+    local sessType, sessID = SrcSession(W)
+    local key = tostring(sessType) .. "|" .. tostring(sessID)
     if _targetsCache.key == key then return _targetsCache.map end
 
-    local enemySession = D.GetSession(W.curSession, W.curSessionID, D.T.EnemyDamageTaken)
+    local enemySession = D.GetSession(sessType, sessID, D.T.EnemyDamageTaken)
     if not enemySession or not enemySession.combatSources or #enemySession.combatSources == 0 then
         _targetsCache.key, _targetsCache.map = key, nil
         return nil
@@ -62,7 +70,7 @@ local function BuildAllPlayerTargets(W)
         local eKey = (cid and not D.IsSecret(cid)) and cid or ei
         enemyNames[eKey] = enemy.name
 
-        local srcData = D.GetSource(W.curSession, W.curSessionID, D.T.EnemyDamageTaken,
+        local srcData = D.GetSource(sessType, sessID, D.T.EnemyDamageTaken,
             enemy.sourceGUID, enemy.sourceCreatureID)
         if srcData and srcData.combatSpells then
             for _, spell in ipairs(srcData.combatSpells) do
@@ -267,8 +275,14 @@ function B.OpenFromBar(W, bar)
     local guid = src.sourceGUID
     if D.IsSecret(guid) and D.IsOwnRow(src) then guid = ns.playerGUID end
 
+    -- 分段同理：這一列畫的時候問的是哪個分段（PaintBar 記的是解析後的值）
+    local sessType, sessID = bar._sessType, bar._sessID
+    if sessType == nil then sessType, sessID = W.curSession, W.curSessionID end
+
     B.Open(W, {
         dmType     = dmType,
+        sessType   = sessType,
+        sessID     = sessID,
         guid       = guid,
         creatureID = src.sourceCreatureID,
         name       = src.name,
@@ -283,7 +297,7 @@ function B.OpenFromBar(W, bar)
     })
 end
 
--- info = { dmType, guid, creatureID, name, classFile, recapID, specIcon, isOwn, total, perSec }
+-- info = { dmType, sessType, sessID, guid, creatureID, name, classFile, recapID, specIcon, isOwn, total, perSec }
 -- 收成一張表而不是排八個參數：位置參數到第五個之後就沒人記得順序了
 function B.Open(W, info)
     if not info then return end
@@ -293,6 +307,9 @@ function B.Open(W, info)
     local name, classFile = info.name, info.classFile
     -- 這一頁看的統計類型。整頁都讀它、不讀 W.curDMType（理由見 OpenFromBar）
     W.srcDMType        = info.dmType or W.curDMType
+    -- sessType 沒給＝跟著視窗（SrcSession 退回 W.curSession）
+    W.srcSessType      = info.sessType
+    W.srcSessID        = info.sessType ~= nil and info.sessID or nil
     W.sourceGUID       = info.guid
     W.sourceCreatureID = info.creatureID
     W.sourceClass      = D.SafeClass(classFile)
@@ -338,6 +355,7 @@ function B.Close(W)
     if not W.sourceOpen then return end
     W.sourceOpen = false
     W.srcDMType = nil
+    W.srcSessType, W.srcSessID = nil, nil
     W.sourceGUID = nil
     W.sourceCreatureID = nil
     W.sourceRecapID = nil
@@ -520,7 +538,8 @@ end
 -- 敵方承受：誰打的
 ------------------------------------------------------------
 local function RefreshEnemyPlayers(W)
-    local srcData = D.GetSource(W.curSession, W.curSessionID, W.srcDMType,
+    local sessType, sessID = SrcSession(W)
+    local srcData = D.GetSource(sessType, sessID, W.srcDMType,
         W.sourceGUID, W.sourceCreatureID)
     local players = AggregateEnemyPlayers(srcData, BreakdownDuration(W))
     if not players then HideFrom(W, 1); FinishHeight(W, 0); return end
@@ -561,7 +580,8 @@ end
 -- 一般：法術明細（＋傷害輸出時附上打了哪些目標）
 ------------------------------------------------------------
 local function RefreshSpells(W)
-    local srcData = D.GetSource(W.curSession, W.curSessionID, W.srcDMType,
+    local sessType, sessID = SrcSession(W)
+    local srcData = D.GetSource(sessType, sessID, W.srcDMType,
         W.sourceGUID, W.sourceCreatureID)
     if not srcData or not srcData.combatSpells then
         HideFrom(W, 1); FinishHeight(W, 0); return

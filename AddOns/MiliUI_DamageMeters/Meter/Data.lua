@@ -55,34 +55,136 @@ local SPLIT_DEFS = {
     { key = "InterruptsDispels", left = "Interrupts", right = "Dispels", after = "Dispels",
       name = L["Interrupts & Dispels"], icon = "Interface\\Icons\\Spell_Frost_IceShock" },
 }
-local _split = {}   -- 合併類型的值 → { 左欄類型, 右欄類型 }
+-- 合併類型的值 → 正規化的 def：{ left = { type, seg }, right = { type, seg } }。
+-- 內建與自訂長同一個形狀，消費端（Rows、Publish、Breakdown…）不必分兩條路。
+local _split = {}
 
 D.TYPE_NAMES = {}
 D.TYPE_ICONS = {}
 D.TYPE_ORDER = {}   -- 首頁與選單的排序，也決定「有哪些類型可選」
+
+-- 內建部分（暴雪類型＋內建合併）的快照。它只跟客戶端有關，載入時算一次；
+-- RefreshTypes 每次從它重灌，再把玩家自己組的接在後面。
+local BASE_NAMES, BASE_ICONS, BASE_ORDER, BASE_SPLIT = {}, {}, {}, {}
 for _, def in ipairs(TYPE_DEFS) do
     local value = T[def[1]]
     if value ~= nil then
-        D.TYPE_NAMES[value] = def[2]
-        D.TYPE_ICONS[value] = def[3]
-        D.TYPE_ORDER[#D.TYPE_ORDER + 1] = value
+        BASE_NAMES[value] = def[2]
+        BASE_ICONS[value] = def[3]
+        BASE_ORDER[#BASE_ORDER + 1] = value
     end
     for _, sp in ipairs(SPLIT_DEFS) do
         -- 兩個成員都存在的客戶端才提供（舊客戶端少一種就整個不出現）
         if sp.after == def[1] and T[sp.left] ~= nil and T[sp.right] ~= nil then
-            _split[sp.key] = { T[sp.left], T[sp.right] }
-            D.TYPE_NAMES[sp.key] = sp.name
-            D.TYPE_ICONS[sp.key] = sp.icon
-            D.TYPE_ORDER[#D.TYPE_ORDER + 1] = sp.key
+            BASE_SPLIT[sp.key] = {
+                left  = { type = T[sp.left],  seg = "follow" },
+                right = { type = T[sp.right], seg = "follow" },
+            }
+            BASE_NAMES[sp.key] = sp.name
+            BASE_ICONS[sp.key] = sp.icon
+            BASE_ORDER[#BASE_ORDER + 1] = sp.key
         end
     end
 end
 
+-- 自訂組合的名稱：兩欄都跟著視窗就是「A / B」；有釘分段的欄在名字後面接「·分段」。
+-- 只在 RefreshTypes 時算，不進每幀的路徑。類型在這支客戶端不存在就印「?」
+-- （設定頁的列表還是要列得出它，見 Options/Tab_Each.lua）。
+local function SideName(side)
+    local name = BASE_NAMES[side.type] or "?"
+    local seg = D.SegLabel(side.seg)
+    if seg then return name .. "·" .. seg end
+    return name
+end
+
+function D.SegLabel(seg)
+    if seg == "current" then return L["Current"] end
+    if seg == "overall" then return L["Overall"] end
+    return nil
+end
+
+function D.SplitName(def)
+    return format("%s / %s", SideName(def.left), SideName(def.right))
+end
+
+-- 自訂組合的兩個類型在這支客戶端都有，才算數
+function D.SplitAvailable(def)
+    local a, b = def.left.type, def.right.type
+    -- 只收暴雪的類型：合併套合併沒有意義（BASE_NAMES 裡也有內建合併的字串 key）
+    return type(a) == "number" and type(b) == "number"
+        and BASE_NAMES[a] ~= nil and BASE_NAMES[b] ~= nil
+end
+
+-- 三張表重建：內建照舊在前，自訂照建立順序接在最後。
+-- 呼叫點：Windows.Rebuild 開頭（登入、匯入、換設定檔都以重載收尾，一定會走到）
+-- 與 DB 的每個寫入口。三張表的名字與形狀不變，消費端一行都不必改。
+function D.RefreshTypes()
+    wipe(D.TYPE_NAMES); wipe(D.TYPE_ICONS); wipe(D.TYPE_ORDER); wipe(_split)
+    for k, v in pairs(BASE_NAMES) do D.TYPE_NAMES[k] = v end
+    for k, v in pairs(BASE_ICONS) do D.TYPE_ICONS[k] = v end
+    for k, v in pairs(BASE_SPLIT) do _split[k] = v end
+    for i = 1, #BASE_ORDER do D.TYPE_ORDER[i] = BASE_ORDER[i] end
+
+    local DB = ns.DB
+    if not (DB and DB.Splits and ns.db) then return end
+    for _, def in ipairs(DB.Splits().list) do
+        -- 這支客戶端沒有的類型：跳過不列、也不刪（換回新客戶端就回來）
+        if D.SplitAvailable(def) then
+            local key = DB.SPLIT_PREFIX .. def.id
+            _split[key] = def
+            D.TYPE_NAMES[key] = D.SplitName(def)
+            D.TYPE_ICONS[key] = BASE_ICONS[def.left.type]
+            D.TYPE_ORDER[#D.TYPE_ORDER + 1] = key
+        end
+    end
+end
+D.RefreshTypes()
+
+function D.IsValidType(v)
+    return v ~= nil and D.TYPE_NAMES[v] ~= nil
+end
+
+function D.IsCustomSplit(v)
+    return type(v) == "string" and v:match("^custom:") ~= nil
+end
+
+-- "custom:3" → 3；其他回 nil
+function D.SplitIdOf(v)
+    if not D.IsCustomSplit(v) then return nil end
+    return tonumber(v:match("^custom:(%d+)$"))
+end
+
+function D.SplitDef(dmType)
+    return dmType ~= nil and _split[dmType] or nil
+end
+
 -- 合併類型 → 左欄類型, 右欄類型；一般類型回 nil
 function D.SplitTypes(dmType)
-    local pair = dmType ~= nil and _split[dmType]
-    if not pair then return nil end
-    return pair[1], pair[2]
+    local def = D.SplitDef(dmType)
+    if not def then return nil end
+    return def.left.type, def.right.type
+end
+
+------------------------------------------------------------
+-- 這一欄實際要問 API 的分段
+--
+-- 視窗的分段只管 seg＝follow 的欄。釘住的欄回的是我們自己的 Enum 值，
+-- 不是 API 的回傳值，所以這條路上沒有秘密值。
+-- side = "left" | "right"；nil、或這不是合併類型，就是視窗自己的分段。
+-- dmType 預設是視窗正在看的類型；首頁的卡片要問的是那張卡片的類型，所以可以另外給。
+------------------------------------------------------------
+function D.PaneSession(W, side, dmType)
+    local def = side and D.SplitDef(dmType or W.curDMType)
+    local seg = def and def[side] and def[side].seg
+    if seg == "current" then return S.Current, nil end
+    if seg == "overall" then return S.Overall, nil end
+    return W.curSession, W.curSessionID
+end
+
+-- 兩欄都釘住了分段：視窗的分段在畫面上沒有任何作用（標題、選單、智慧顯示要退場）
+function D.BothPinned(W)
+    local def = D.SplitDef(W.curDMType)
+    return def ~= nil and def.left.seg ~= "follow" and def.right.seg ~= "follow"
 end
 
 -- 「次數」型統計不顯示每秒值，直接印整數

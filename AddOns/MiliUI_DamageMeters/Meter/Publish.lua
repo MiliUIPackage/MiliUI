@@ -154,18 +154,23 @@ end
 -- 標籤共用 Win.SegmentLabel（畫面上寫什麼、貼出去就是什麼）。它自己已經擋過
 -- 秘密字串（秘密就退「分段 N」），這裡再擋一次是因為呼叫端不該記住那件事。
 ------------------------------------------------------------
-local function SegmentLabel(W)
-    local label = Win.SegmentLabel(W)
+-- 吃分段而不是吃視窗：合併檢視的兩欄可以各釘各的分段，每一段的標頭要照自己那欄寫
+local function SegmentLabelFor(sessType, sessID)
+    local label = Win.SegmentLabelFor(sessType, sessID)
     if label == nil or D.IsSecret(label) then return nil end
     return label
 end
 
+local function SegmentLabel(W)
+    return SegmentLabelFor(W.curSession, W.curSessionID)
+end
+
 -- 跟標題列右側計時器讀的是同一個來源（Win.UpdateTimerText 的三條分支），
 -- 不然貼出去的時長會跟畫面上的對不起來
-local function SegmentDuration(W)
-    if W.curSessionID then
-        return D.GetSessionDuration(nil, W.curSessionID)
-    elseif W.curSession == D.S.Current then
+local function SegmentDuration(sessType, sessID)
+    if sessID then
+        return D.GetSessionDuration(nil, sessID)
+    elseif sessType == D.S.Current then
         return ns.Combat.CurrentDuration()
     end
     return D.GetSessionDuration(D.S.Overall, nil)
@@ -281,12 +286,6 @@ function Pub.BuildLines(W)
     local out = _lineBuf
     wipe(out)
 
-    local label = SegmentLabel(W)
-    if not label then
-        return nil, L["The data is still locked by the game. Try again in a moment."]
-    end
-    local dur = SegmentDuration(W)
-    local isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
     local n = Pub.Lines()
 
     -- 合併檢視（打斷和驅散）貼成兩段：先打斷整段、再驅散整段。
@@ -304,7 +303,16 @@ function Pub.BuildLines(W)
     local anyData = false
     for i = 1, #types do
         local dmType = types[i]
-        local session = D.GetSession(W.curSession, W.curSessionID, dmType)
+        -- 每一段各自的分段（合併檢視的欄可以釘住分段），標頭的分段字、時長、
+        -- 「總計不印死亡秒數」都照那一欄
+        local sessType, sessID = D.PaneSession(W, i == 1 and "left" or "right")
+        local label = SegmentLabelFor(sessType, sessID)
+        if not label then
+            return nil, L["The data is still locked by the game. Try again in a moment."]
+        end
+        local dur = SegmentDuration(sessType, sessID)
+        local isOverall = (not sessID and sessType == D.S.Overall)
+        local session = D.GetSession(sessType, sessID, dmType)
         local sources = session and session.combatSources
         if sources and D.IsDeathType(dmType) then
             -- 跟清單同一套假死過濾（共用 Rows 那支，不複製邏輯）
@@ -436,7 +444,9 @@ function Pub.ShowMenu(W, btn, redraw)
     local L = ns.L
     local typeName = D.TYPE_NAMES[W.curDMType] or L["Damage Done"]
     local items = {
-        { text = format(L["Publish: %s - %s"], typeName, SegmentLabel(W) or L["Segment"]),
+        -- 兩欄都釘住分段時視窗的分段不在畫面上，標題寫它會跟貼出去的兩段標頭對不起來
+        { text = format(L["Publish: %s - %s"], typeName,
+              D.BothPinned(W) and L["Fixed per column"] or SegmentLabel(W) or L["Segment"]),
           isTitle = true },
     }
 

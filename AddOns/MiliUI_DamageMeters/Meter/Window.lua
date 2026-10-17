@@ -559,7 +559,8 @@ function Win.FitTitle(W)
     -- 左邊要扣掉類型圖示那一塊（TYPE_PAD + 圖示 + TYPE_GAP）
     local leftUsed = TYPE_PAD + iconSz + TYPE_GAP + (s.hdrTextOffX or 0)
     local avail = headerW - rightUsed - leftUsed - 8
-    local fixed = STATUS_GAP + (W.segArrow:GetWidth() or 0) + 1
+    -- 兩欄都釘住分段時狀態標籤與箭頭整個藏起來（見 UpdateTitle），不佔寬
+    local fixed = W._statusHidden and 0 or (STATUS_GAP + (W.segArrow:GetWidth() or 0) + 1)
 
     fs:SetText(full)
     st:SetText(status)
@@ -580,15 +581,16 @@ end
 -- 狀態標籤的文字：目前／總計／歷史分段的名字（通常是首領名）
 -- 右鍵選單「分段」那一項的讀數也用這支，兩邊的字一定一致。
 ------------------------------------------------------------
-function Win.SegmentLabel(W)
+-- 拆成「吃分段」的那一支：合併檢視的兩欄可以各釘各的分段，發佈要逐欄問標籤
+function Win.SegmentLabelFor(sessType, sessID)
     local L = ns.L
-    if not W.curSessionID then
-        return (W.curSession == D.S.Overall) and L["Overall"] or L["Current"]
+    if not sessID then
+        return (sessType == D.S.Overall) and L["Overall"] or L["Current"]
     end
     local list = D.GetAvailableSessions()
     if list then
         for i, sess in ipairs(list) do
-            if sess.sessionID == W.curSessionID then
+            if sess.sessionID == sessID then
                 -- 分段名稱可能是秘密字串：不能串接、也不能量寬度截斷，秘密就退回編號
                 local label = sess.name
                 if label and not D.IsSecret(label) and label ~= "" then return label end
@@ -599,9 +601,22 @@ function Win.SegmentLabel(W)
     return L["Segment"]
 end
 
+function Win.SegmentLabel(W)
+    return Win.SegmentLabelFor(W.curSession, W.curSessionID)
+end
+
 function Win.UpdateTitle(W)
     W._fullTitle = D.TYPE_NAMES[W.curDMType] or ns.L["Damage Done"]
-    W._fullStatus = Win.SegmentLabel(W)
+    -- 兩欄都釘住分段：視窗的分段在畫面上沒有作用，標著「目前」反而是錯的資訊，
+    -- 點下去換分段也什麼都不會變 —— 整塊收起來
+    local hidden = D.BothPinned(W)
+    W._statusHidden = hidden
+    W._fullStatus = hidden and "" or Win.SegmentLabel(W)
+    if W.segText then
+        W.segText:SetShown(not hidden)
+        W.segArrow:SetShown(not hidden)
+        W.segBtn:SetShown(not hidden)
+    end
     Win.FitTitle(W)
 end
 
@@ -640,27 +655,36 @@ end
 function Win.UpdateTimerText(W)
     if not W.timerText or not W.timerText:IsShown() then return end
 
+    -- 兩欄都釘住時計時器跟左欄走（視窗的分段已經不在畫面上了）；
+    -- 其餘照視窗的分段 —— 至少有一欄跟著它
+    local sessType, sessID
+    if D.BothPinned(W) then
+        sessType, sessID = D.PaneSession(W, "left")
+    else
+        sessType, sessID = W.curSession, W.curSessionID
+    end
+
     local dur
-    if W.curSessionID then
+    if sessID then
         -- 歷史分段的時長是**定值**，而 D.GetSessionDuration 要抓整份分段清單再線性
         -- 搜尋 —— 每 tick 做一次是白做的。切分段時清成 nil 重解一次。
         -- ⚠ 只快取真的解出來的數字：剛切過去時分段可能還沒進清單，
         --   存 false 會讓那一格永遠是空的。
         if W._segDur == nil then
-            local d = D.GetSessionDuration(nil, W.curSessionID)
+            local d = D.GetSessionDuration(nil, sessID)
             if type(d) == "number" then W._segDur = d end
             dur = d
         else
             dur = W._segDur
         end
-    elseif W.curSession == D.S.Current then
+    elseif sessType == D.S.Current then
         -- 跟長條讀的是同一個分段，所以伺服器換分段時兩邊一起歸零
         dur = ns.Combat.CurrentDuration()
     else
         dur = D.GetSessionDuration(D.S.Overall, nil)
     end
 
-    local isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
+    local isOverall = (not sessID and sessType == D.S.Overall)
     -- 合併檢視兩欄都要算：左欄沒人打斷、右欄有人驅散，這一場照樣是有資料的
     local rows = (W.visibleCount or 0)
     if W._splitOn and W.split then rows = rows + (W.split.visibleCount or 0) end
@@ -1035,7 +1059,10 @@ function Win.Create(idx)
 
     W.idx = idx
     W.wdb = wdb
-    W.curDMType    = wdb.curDMType or D.T.DamageDone
+    -- 存的類型可能已經不存在（刪掉的合併檢視、手改的 SV、換到少一種類型的客戶端）：
+    -- 退回傷害輸出並寫回，不然每個讀 TYPE_NAMES 的地方都要各自防一次
+    if not D.IsValidType(wdb.curDMType) then wdb.curDMType = D.T.DamageDone end
+    W.curDMType    = wdb.curDMType
     W.curSession   = wdb.curSession or D.S.Current
     W.curSessionID = nil
     W.visibleCount = 0
@@ -1315,8 +1342,14 @@ function Win.Create(idx)
         -- API 呼叫的耗時要量：偶爾會有尖峰（歷史分段、大團隊），
         -- 尖峰那一幀就把繪製推到下一幀，不要讓兩個尖峰疊在同一幀
         local t0 = debugprofilestop()
-        local session = D.GetSession(W.curSession, W.curSessionID, left or W.curDMType)
-        local session2 = right and D.GetSession(W.curSession, W.curSessionID, right) or nil
+        -- 每欄各自的分段：合併檢視的欄可以釘住「目前／總計」，不跟視窗走
+        local sType, sID = D.PaneSession(W, "left")
+        local session = D.GetSession(sType, sID, left or W.curDMType)
+        local session2
+        if right then
+            local rType, rID = D.PaneSession(W, "right")
+            session2 = D.GetSession(rType, rID, right)
+        end
         local cost = debugprofilestop() - t0
         if cost > 1.5 then
             C_Timer.After(0, function() ns.Rows.Render(W, session, session2) end)

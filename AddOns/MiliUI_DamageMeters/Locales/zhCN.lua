@@ -329,3 +329,19 @@ L["Opened the Debug tab in the options window: click Select all, Ctrl+C, and pas
 
 -- 頭像卡片（滑過預覽／展開頁）
 L["iLvl %d"] = "装等 %d"
+
+-- 自定义合并视图（Options/SplitPopup.lua、Options/Tab_Each.lua、Meter/Manager.lua）
+L["Split views"] = "合并视图"
+L["Add split view"] = "新增合并视图"
+L["New split view"] = "新增合并视图"
+L["Edit split view"] = "编辑合并视图"
+L["Left column"] = "左栏"
+L["Right column"] = "右栏"
+L["Follow the window"] = "跟随窗口"
+L["The two columns can't be identical."] = "两栏不能完全一样。"
+L["Fixed per column"] = "两栏各自固定"
+L["Edit"] = "编辑"
+L["Delete this split view? Windows showing it switch to its left column."] = "删除这个合并视图？正在显示它的窗口会改成它的左栏类型。"
+L["Split views are shared by every window and saved with the profile. Each column picks its own meter type and segment; a column set to \"Follow the window\" uses the window's segment above."] = "合并视图由所有窗口共用，随配置文件一起保存。每一栏各自选择统计类型与分段；选「跟随窗口」的栏使用上面的窗口分段。"
+L["Smart display: both columns are pinned, nothing to switch."] = "智能显示：两栏都固定了分段，没有可切换的内容。"
+L["(unavailable)"] = "（此版本没有）"

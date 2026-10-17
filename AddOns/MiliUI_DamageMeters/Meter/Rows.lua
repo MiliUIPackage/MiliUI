@@ -138,6 +138,9 @@ local function PaintBar(W, bar, src, ctx, rank)
     -- 這一列是哪種統計：合併檢視的兩欄類型不同，展開頁與滑過預覽要照這個查，
     -- 不能照視窗的 curDMType（那是合併類型本身，API 不認得）
     bar._dmType = ctx.dmType
+    -- 同理，這一列是哪個分段：合併檢視的欄可以釘住分段，不一定是視窗的那個。
+    -- 存解析後的值（follow 欄就是視窗當下的分段），滑過預覽與展開頁直接拿去問 API
+    bar._sessType, bar._sessID = ctx.sessType, ctx.sessID
 end
 
 -- 整批重建一列的版面（只在 cacheKey 變或這一格換了排名時跑）
@@ -168,6 +171,7 @@ local function ClearBar(bar)
     bar._src = nil; bar._guid = nil; bar._class = nil; bar._specIcon = nil
     bar._colorClass = nil; bar._name = nil; bar._amtText = nil
     bar._slot = nil; bar._rank = nil; bar._dmType = nil
+    bar._sessType = nil; bar._sessID = nil
 end
 
 ------------------------------------------------------------
@@ -404,9 +408,15 @@ end
 -- ctx 的共用欄位（字級、列高、cacheKey 的判決…）由 Render 算一次，
 -- 這裡只覆寫**跟這一欄的資料有關**的那幾個。
 ------------------------------------------------------------
-local function RenderPane(W, pane, session, dmType, ctx)
+local function RenderPane(W, pane, session, dmType, ctx, side)
     local s = ctx.s
     local count = 0
+
+    -- 這一欄的分段。跟下面那組一樣**每一欄都無條件覆寫**，而且放在有沒有資料的分支之前：
+    -- 右欄沒資料時不能讓左欄的分段留在 ctx 裡給下一趟用
+    local sessType, sessID = D.PaneSession(W, side)
+    ctx.sessType, ctx.sessID = sessType, sessID
+    ctx.isOverall = (not sessID and sessType == D.S.Overall)
 
     -- 版面整批重排時，這一欄自己的版面備忘也一起作廢。主欄以前是由各個呼叫端
     -- 順手清的，右欄沒人會記得清 —— 收斂到這裡，兩欄一視同仁。
@@ -510,7 +520,6 @@ function Rows.Render(W, session, session2)
     ctx.leftFS = leftFS
     ctx.rightFS = rightFS
     ctx.texPath = texPath
-    ctx.isOverall = (not W.curSessionID and W.curSession == D.S.Overall)
     ctx.iconStyle = s.iconStyle or "mili"
     ctx.iconZoom = s.iconZoom or 0.06
     ctx.numFmt = s.numberFormat or 2
@@ -535,8 +544,8 @@ function Rows.Render(W, session, session2)
     ctx.fullRebuild = (key ~= W._barCacheKey)
     if ctx.fullRebuild then W._barCacheKey = key end
 
-    RenderPane(W, W, session, left or W.curDMType, ctx)
-    if split then RenderPane(W, W.split, session2, right, ctx) end
+    RenderPane(W, W, session, left or W.curDMType, ctx, "left")
+    if split then RenderPane(W, W.split, session2, right, ctx, "right") end
 
     Win.UpdateTimerText(W)
 

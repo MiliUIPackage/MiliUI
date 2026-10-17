@@ -102,10 +102,8 @@ local function Ensure(W)
         if button == "RightButton" then H.Hide(W) end
     end)
 
+    -- 卡片在 Refresh 裡補建：類型清單會變長（玩家新增合併檢視），開檔時的張數不夠用
     W.homeCards = {}
-    for i = 1, #D.TYPE_ORDER do
-        W.homeCards[i] = MakeCard(W, child)
-    end
 end
 
 ------------------------------------------------------------
@@ -114,8 +112,10 @@ end
 -- 某個（次數型）類型的第一名：「名字 次數」，名字包職業色碼。
 -- 名字與次數都可能是秘密：format 與 SetFormattedText 吃得下，但不能拿去比較或量長度。
 -- 職業拿不到（秘密、NPC）就不包色碼，交給 FontString 本身的顏色。
-local function TopText(W, dmType)
-    local session = D.GetSession(W.curSession, W.curSessionID, dmType)
+-- splitType＋side：這張卡片是合併檢視時，那一欄自己的分段（可能釘住，不跟視窗）
+local function TopText(W, dmType, splitType, side)
+    local sessType, sessID = D.PaneSession(W, side, splitType)
+    local session = D.GetSession(sessType, sessID, dmType)
     local top = session and session.combatSources and session.combatSources[1]
     if not top then return nil end
     local text = format("%s %s", D.StripRealm(top.name), D.Abbrev(top.totalAmount))
@@ -134,8 +134,15 @@ local function Refresh(W)
     local fs = s.leftFontSize or 11
 
     local y = -PAD
+    local cards = W.homeCards
+    for i = #cards + 1, #D.TYPE_ORDER do cards[i] = MakeCard(W, W.homeChild) end
+    -- 刪掉合併檢視之後多出來的卡片：藏起來就好（池化，frame 刪不掉）
+    for i = #D.TYPE_ORDER + 1, #cards do
+        cards[i].dmType = nil
+        cards[i].btn:Hide()
+    end
     for i, dmType in ipairs(D.TYPE_ORDER) do
-        local card = W.homeCards[i]
+        local card = cards[i]
         card.dmType = dmType
         card.btn:ClearAllPoints()
         card.btn:SetPoint("TOPLEFT", W.homeChild, "TOPLEFT", PAD, y)
@@ -164,7 +171,7 @@ local function Refresh(W)
         if left then
             -- 合併檢視：兩欄的第一名並排，順序跟視窗裡的左右一致。
             -- 其中一欄沒資料就放「—」佔位，不然只剩一個名字時看不出是哪一欄的
-            local a, b = TopText(W, left), TopText(W, right)
+            local a, b = TopText(W, left, dmType, "left"), TopText(W, right, dmType, "right")
             if a or b then
                 card.detail:SetFormattedText("%s  |cff737373/|r  %s", a or "—", b or "—")
                 -- 名字自己帶了職業色碼，這個顏色只管沒色碼的部分（佔位符、職業拿不到的名字）

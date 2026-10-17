@@ -153,7 +153,10 @@ local function Populate(bar)
             end
         end
     else
-        local srcData = D.GetSource(W.curSession, W.curSessionID, dmType,
+        -- 分段也照這一列自己的（合併檢視的欄可以釘住分段）。列還沒畫過才退回視窗的
+        local sessType, sessID = bar._sessType, bar._sessID
+        if sessType == nil then sessType, sessID = W.curSession, W.curSessionID end
+        local srcData = D.GetSource(sessType, sessID, dmType,
             src.sourceGUID, src.sourceCreatureID)
         local spells = srcData and srcData.combatSpells
         if spells and #spells > 0 then

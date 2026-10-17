@@ -299,6 +299,13 @@ local function BuildDefaults()
         -- 而兩個上下貼齊佔的橫向空間跟一個一樣。
         windowCount = 2,
         windows = nil,   -- DB.Init 補
+
+        -- 玩家自己組的合併檢視（存取器與規則見下方 DB.Splits 那一節）。
+        -- 放設定檔層：視窗的 curDMType 會指著它，匯出字串不帶的話匯入後就是一個空指標
+        splits = {
+            nextId = 1,
+            list = {},
+        },
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -374,6 +381,120 @@ function DB.EnsureWindows(profile)
 end
 
 ------------------------------------------------------------
+-- 自訂合併檢視
+--
+-- 每筆 { id, left = { type, seg }, right = { type, seg } }：
+--   type  Enum.DamageMeterType 的數字（跟 wdb.curDMType 同一種值）
+--   seg   "follow"＝跟著視窗的分段｜"current"｜"overall"
+-- 視窗存的是 "custom:" .. id。⚠ key 用 id 不用內容：編輯組合時 key 不能變，
+-- 它是存檔內容（視窗指著它）。id 遞增、刪了不回收 —— 回收的話，別的設定檔或
+-- 匯出字串裡還指著舊 id 的視窗會悄悄換成另一個組合。
+--
+-- 每個寫入口結尾都要重建登錄表再廣播：類型清單（選單、首頁、設定下拉）讀的是
+-- Meter/Data.lua 那三張表，不重建就看不到剛改的東西。
+------------------------------------------------------------
+DB.MAX_SPLITS = 8
+DB.SPLIT_PREFIX = "custom:"
+
+local SPLIT_SEGS = { follow = true, current = true, overall = true }
+
+local function ValidSide(side)
+    return type(side) == "table" and type(side.type) == "number" and SPLIT_SEGS[side.seg] == true
+end
+
+function DB.Splits()
+    local p = ns.db
+    if not p then return { nextId = 1, list = {} } end
+    if type(p.splits) ~= "table" then p.splits = { nextId = 1, list = {} } end
+    local sp = p.splits
+    if type(sp.list) ~= "table" then sp.list = {} end
+    -- 匯入字串與手改的 SV 可能帶著殘缺的條目：形狀不對的直接丟掉（它本來就畫不出來）。
+    -- 「類型在這支客戶端不存在」不是形狀問題，留著 —— 換回新客戶端就回來（見 Data.RefreshTypes）
+    local maxId = 0
+    for i = #sp.list, 1, -1 do
+        local def = sp.list[i]
+        if type(def) ~= "table" or type(def.id) ~= "number"
+           or not ValidSide(def.left) or not ValidSide(def.right) then
+            table.remove(sp.list, i)
+        elseif def.id > maxId then
+            maxId = def.id
+        end
+    end
+    -- nextId 落後於現存的 id（手改過、或舊匯入）會發出重複的 key
+    if type(sp.nextId) ~= "number" or sp.nextId <= maxId then sp.nextId = maxId + 1 end
+    return sp
+end
+
+function DB.SplitById(id)
+    if type(id) ~= "number" then return nil end
+    for _, def in ipairs(DB.Splits().list) do
+        if def.id == id then return def end
+    end
+    return nil
+end
+
+local function CopySide(side)
+    return { type = side.type, seg = side.seg }
+end
+
+local function SplitsChanged()
+    if ns.Data and ns.Data.RefreshTypes then ns.Data.RefreshTypes() end
+    if ns.Fire then ns.Fire("SplitsChanged") end
+end
+
+-- → key；滿了或參數不對回 nil
+function DB.AddSplit(left, right)
+    if not (ValidSide(left) and ValidSide(right)) then return nil end
+    local sp = DB.Splits()
+    if #sp.list >= DB.MAX_SPLITS then return nil end
+    local id = sp.nextId
+    sp.nextId = id + 1
+    sp.list[#sp.list + 1] = { id = id, left = CopySide(left), right = CopySide(right) }
+    SplitsChanged()
+    return DB.SPLIT_PREFIX .. id
+end
+
+-- 就地改：視窗存的 key 不變，正在看它的視窗下次重畫就是新的組合
+function DB.UpdateSplit(id, left, right)
+    if not (ValidSide(left) and ValidSide(right)) then return false end
+    local def = DB.SplitById(id)
+    if not def then return false end
+    def.left, def.right = CopySide(left), CopySide(right)
+    SplitsChanged()
+    return true
+end
+
+-- 指著它的視窗退回左欄類型。走訪 windows **全部**而不是只到 windowCount：
+-- 超出數量的殘留設定留著（見 EnsureWindows），玩家把數量調回去時不能拿到一個空指標
+function DB.DeleteSplit(id)
+    local sp = DB.Splits()
+    local def, at
+    for i, d in ipairs(sp.list) do
+        if d.id == id then def, at = d, i; break end
+    end
+    if not def then return false end
+    table.remove(sp.list, at)
+    local key = DB.SPLIT_PREFIX .. id
+    local fallback = def.left.type
+    local live = {}
+    local wins = ns.db and ns.db.windows
+    if type(wins) == "table" then
+        for idx, wdb in pairs(wins) do
+            if type(wdb) == "table" and wdb.curDMType == key then
+                wdb.curDMType = fallback
+                -- 正在畫面上的視窗要走 SetDMType（標題、展開頁、版面一起換），只改 wdb 不夠
+                local W = ns.Windows and ns.Windows.Get(idx)
+                if W and W.wdb == wdb and W.frame then live[#live + 1] = W end
+            end
+        end
+    end
+    SplitsChanged()
+    -- 登錄表重建完才切：SetDMType 會畫標題，要讀得到新的名稱表
+    for _, W in ipairs(live) do ns.Window.SetDMType(W, fallback) end
+    return true
+end
+
+------------------------------------------------------------
 -- 設定檔
 --
 -- SV 結構：
@@ -406,7 +527,7 @@ local CHAR_PREFIX = "char:"
 -- ⚠ 加新區塊時這裡要一起加，不然它會變成帳號層、切設定檔時不跟著換。
 -- windows 不在這裡：它的預設值是 nil（由 DB.EnsureWindows 生），
 -- 但**匯出匯入與深拷貝要帶著它走**，所以那幾支各自處理。
-local PROFILE_KEYS = { "style", "windowCount", "windows" }
+local PROFILE_KEYS = { "style", "windowCount", "windows", "splits" }
 
 -- 一份全新設定檔。每次呼叫都是新表（BuildDefaults 自己就重建），
 -- 所以拿去塞進 profiles 不會跟別份共用子表。
