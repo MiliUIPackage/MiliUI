@@ -951,6 +951,12 @@ function Specs.Themed(mode, key)
         NB(FontTS("text", "cooldownText.font")),
         NB(TS("text", "slider", "cooldownText.size", L["Font size"], { min = 6, max = 40, step = 1 })),
         NB(TS("text", "color", "cooldownText.color", L["Color"])),
+        -- 錨點＋偏移（玩家回報 2026-10-17：粗描邊時字體感覺偏左上，想微調）。逐法術彈窗本來就有這兩列，
+        -- 這裡補條層／主題那一層；圓環形狀另走 Layout.RingTextPlace，不吃這兩欄
+        NB(PointGridTS("text", "cooldownText.point", L["Anchor"], "CENTER")),
+        NB(TS("text", "numbers", nil, L["Offset"], { sub = "cooldownText", path = false,
+            resetPaths = { "cooldownText.x", "cooldownText.y" },
+            fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } })),
         -- 從小數門檻開始分兩個子分頁「冷卻｜增益持續時間」（K）：同一組四列（小數門檻、低秒變色、變色顏色、變色秒數），
         -- 標籤不帶前綴（子分頁已經講了是哪一種）。子分頁鈕那一列不歸任何 section，但夾在文字那一段裡 ⇒
         -- 文字跟隨時跟卡片一起被文字的遮罩蓋住（BuildForm）
