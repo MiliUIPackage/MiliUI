@@ -49,11 +49,11 @@ local function satedBlacklist()
     return t
 end
 
--- 小圖示（團標／隊長／休息戰鬥／PvP）的框架層級。
--- 必須高於滑鼠移過的高亮邊框（Core/UnitFrame.lua 的 HIGHLIGHT_LEVEL = 19）與
--- 驅散類型高亮（ns.DISPEL_HIGHLIGHT_LEVEL = 20）：
--- 這些圖示故意突出框體上緣，邊框壓在上面的話頂線會從圖示中間劃過去。它們是浮在
--- 框上的徽章，本來就該蓋過邊框。改這個數字要連 UnitFrame.lua 那個常數一起看。
+-- 小圖示（團標／隊長／休息戰鬥／PvP）的層級：覆蓋層裡最高的一階（文字 10／11 <
+-- 施法條 12 < 觀察鈕 17 < 小圖示 21）。它們是浮在框上的徽章，壓過其他覆蓋層元件。
+-- ⚠ 這是覆蓋層**內部**的相對值：文字／施法條／觀察鈕／小圖示實際的 frame level 都經
+-- Core/UnitFrame.lua 的 ns.OverlayLevel 再加 OVERLAY_LEVEL_BASE（21），整層一律高於
+-- 滑鼠高亮（19）與驅散高亮（20）邊框。
 local ICON_LEVEL = 21
 
 ------------------------------------------------------------
@@ -110,6 +110,7 @@ local function textDef(o)
     --   * 超出距離的暗色遮罩最高到 9，低於它的文字會跟著被蓋暗（使用者要的是
     --     「條變暗、數字保持清晰」）
     -- 10 之上還留 11 給需要再壓一層的（既有的幾條文字就是用 11）。
+    -- 這是覆蓋層內的相對值：實際 frame level 經 ns.OverlayLevel 墊到邊框之上。
     o.level    = o.level or 10
     o.color    = o.color or white(1)
     return o
@@ -536,7 +537,7 @@ function DB.BuildDefaults()
                     -- 圖本身帶描邊與投影，亮背景上也撐得住
                     -- ⚠ 層級要在施法條**之上**：施法條本體 12，內部子框（條／圖示／文字／盾）
                     -- 疊到 12+4=16，按鈕壓不過去的話唱法時就點不到。17 剛好在它上面、
-                    -- 又在小圖示（ICON_LEVEL 21）下面。
+                    -- 又在小圖示（ICON_LEVEL 21）下面。整層再經 ns.OverlayLevel 墊到邊框之上。
                     inspect = { enabled = true, x = 180, y = 5, w = 25, h = 25, level = 17, alpha = 1,
                                 style = "glass", border = false, bgColor = black(0),
                                 iconPadding = 0,

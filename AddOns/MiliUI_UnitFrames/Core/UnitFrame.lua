@@ -22,11 +22,13 @@ end
 -- 實體像素邊界（位移量最多動半個實體像素，肉眼看不出來，但邊緣會變乾淨）。
 local Scale = function(v) return ns.P.Scale(v or 0) end
 
-function ns.ApplyElementBase(uf, f, edb)
+-- overlay = true：覆蓋層元件（觀察按鈕），層級要墊到邊框之上，見下面 ns.OverlayLevel
+function ns.ApplyElementBase(uf, f, edb, overlay)
     f:SetSize(Scale(edb.w or 10), Scale(edb.h or 10))
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", Scale(edb.x or 0), Scale(edb.y or 0))
-    f:SetFrameLevel(edb.level or 3)
+    local level = edb.level or 3
+    f:SetFrameLevel(overlay and ns.OverlayLevel(level) or level)
     if f.pingReceiver then f.pingReceiver:SetFrameLevel(f:GetFrameLevel() + 1) end   -- 跟著元件層級走
     f:SetAlpha(edb.alpha or 1)
 end
@@ -484,14 +486,23 @@ end
 -- 一圈細邊框，層級要壓過光環容器的 holder（12），不然滑到有光環的框上時高亮會被
 -- 光環蓋掉一角。EnableMouse(false)：它整片蓋在框體上，吃到滑鼠就會把單位框的點擊擋掉。
 ------------------------------------------------------------
--- 高過使用者能調的上限（各層級滑桿是 0-15），邊框才不會被框內元件遮掉。
--- ⚠ 但小圖示要**再高一層**：團標之類的故意突出框體邊緣，邊框壓上去會從圖示中間
--- 劃過。它們的層級在 Core/DB.lua 的 ICON_LEVEL（21），改這個數字要連那邊一起看。
--- ⚠ 驅散類型高亮（Elements/DispelHighlight.lua）要蓋過滑鼠高亮、又要在小圖示下面，
--- 所以三層排成 滑鼠 19 < 驅散 20 < 小圖示 21，中間沒有空位。
--- 19 仍然壓得過光環按鈕最高的文字層（holder 12 → 容器 13 → 按鈕 14 → 文字 17）。
+-- 高過使用者能調的上限（條的層級滑桿是 0-15），邊框才不會被條遮掉。
+-- 也壓得過光環按鈕最高的文字層（holder 12 → 容器 13 → 按鈕 14 → 文字 17）。
+-- ⚠ 驅散類型高亮（Elements/DispelHighlight.lua）要蓋過滑鼠高亮，所以 滑鼠 19 < 驅散 20。
+--
+-- 覆蓋層：文字／施法條／觀察按鈕／小圖示**一律墊在所有邊框之上**（使用者定案 2026-10-18：
+-- 疾病等驅散邊框、首領框的選取邊框、滑鼠高亮都不准壓到文字與觀察鈕）。這幾個元件設定裡
+-- 的 level 是覆蓋層**內部**的相對順序（文字 10／11 < 施法條 12（子框到 16）< 觀察鈕 17 <
+-- 小圖示 21），實際 frame level 一律經 ns.OverlayLevel 加上 OVERLAY_LEVEL_BASE ——
+-- 設定值不動、既有設定檔不用遷移。
+-- 代價是施法條也在邊框之上：施法條整片蓋住框體的那幾個單位（玩家／目標）唱法時邊框跟著
+-- 被遮。這是「施法條要遮住底下的名字與血量數字」與「文字要在邊框之上」兩條的必然結果。
 local HIGHLIGHT_LEVEL = 19
 ns.DISPEL_HIGHLIGHT_LEVEL = 20
+ns.OVERLAY_LEVEL_BASE = ns.DISPEL_HIGHLIGHT_LEVEL + 1
+function ns.OverlayLevel(level)
+    return ns.OVERLAY_LEVEL_BASE + (level or 0)
+end
 
 ------------------------------------------------------------
 -- 高亮貼的是「視覺框體」，不是框架矩形

@@ -805,7 +805,9 @@ local function Build(uf, edb)
     -- ⚠ 不要叫 L：檔案層的 `local L = ns.L` 是語系表，這裡取名 L 會把它遮掉，
     -- 之後任何人想在 Build 裡查一次語系表就會拿到一個數字然後炸掉。
     -- （這裡刻意不把 L[...] 的樣子寫出來 —— 語系對齊檢查會把註解裡的當成真的 key。）
-    local lvl = edb.level or 6
+    -- 覆蓋層：施法條要遮住底下的文字，而文字在邊框之上 ⇒ 施法條也一起墊上去
+    -- （見 Core/UnitFrame.lua 的 ns.OverlayLevel；子框的 +1～+4 一樣跟著）
+    local lvl = ns.OverlayLevel(edb.level or 6)
     f:SetSize(edb.w or 200, edb.h or 20)
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", edb.x or 0, edb.y or 0)

@@ -165,7 +165,7 @@ local function Build(uf, edb)
         shield:Hide()
         btn.shield = shield
     end
-    ns.ApplyElementBase(uf, btn, edb)
+    ns.ApplyElementBase(uf, btn, edb, true)     -- 覆蓋層：墊到邊框之上
     btn.baseAlpha = edb.alpha or 1
     ArmSecure(btn)
     -- 預覽孿生上的按鈕只是排版用：關掉滑鼠，免得它把編輯模式的拖曳吃掉

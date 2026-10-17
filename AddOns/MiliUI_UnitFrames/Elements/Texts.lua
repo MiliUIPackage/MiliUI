@@ -20,7 +20,8 @@ local function BuildOne(uf, entry, index)
     f:SetSize(ns.P.Scale(entry.w or 100), ns.P.Scale(entry.h or 12))
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "TOPLEFT", ns.P.Scale(entry.x or 0), ns.P.Scale(entry.y or 0))
-    f:SetFrameLevel(entry.level or 5)
+    -- 覆蓋層：墊到滑鼠／選取／驅散邊框之上（見 Core/UnitFrame.lua 的 ns.OverlayLevel）
+    f:SetFrameLevel(ns.OverlayLevel(entry.level or 10))
 
     -- 玩家框：含 [name] 的文字條目掛「名字接收器」——字形範圍內一般 ping、其餘資源 ping。
     -- 條目改了 pattern 之後不再含 [name] 就把接收器藏起來（藏起來的框不在 frame stack 裡）。

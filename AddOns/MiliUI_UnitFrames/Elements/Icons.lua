@@ -140,7 +140,8 @@ local function PlaceIcon(uf, holder, idb)
     holder:SetSize(ns.P.Scale(idb.w or 16), ns.P.Scale(idb.h or 16))
     holder:ClearAllPoints()
     holder:SetPoint("TOPLEFT", uf, "TOPLEFT", ns.P.Scale(idb.x or 0), ns.P.Scale(idb.y or 0))
-    holder:SetFrameLevel(idb.level or 10)
+    -- 覆蓋層：墊到邊框之上（見 Core/UnitFrame.lua 的 ns.OverlayLevel）
+    holder:SetFrameLevel(ns.OverlayLevel(idb.level or 10))
 end
 
 -- 每種小圖示：啟用 → 建立/定位；停用 → 既有 holder 一定要藏（不然取消勾選不會消失）
