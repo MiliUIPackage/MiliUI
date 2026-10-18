@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 MiliUIWidgets 共用層（以及單檔 vendor：MiliUIGlow、MiliUISnap、MiliUIStats）從本體同步到各消費插件。
+"""把 MiliUIWidgets 共用層（以及單檔 vendor：MiliUIGlow、MiliUISnap、MiliUIStats、Callbacks）從本體同步到各消費插件。
 
     python3 .claude/scripts/sync-widgets.py           同步，並列出改了哪幾份
     python3 .claude/scripts/sync-widgets.py --check   只檢查有沒有漂移（有就回傳 1）
@@ -52,6 +52,9 @@ VENDOR_FILES = [
     (os.path.join("MiliUIGlow", "MiliUIGlow.lua"), os.path.join("Libs", "MiliUIGlow", "MiliUIGlow.lua")),
     (os.path.join("MiliUISnap", "MiliUISnap.lua"), os.path.join("Libs", "MiliUISnap.lua")),
     (os.path.join("MiliUIStats", "MiliUIStats.lua"), os.path.join("Libs", "MiliUIStats.lua")),
+    # 極簡 callback 表；本體自己也載入這份。Fire 裡的 `ns.prof and ns.prof.on` 是 Minimap
+    # 的剖析計數接點，其他插件沒有 ns.prof 時恆為 false。
+    ("Callbacks.lua", os.path.join("Libs", "Callbacks.lua")),
 ]
 
 
