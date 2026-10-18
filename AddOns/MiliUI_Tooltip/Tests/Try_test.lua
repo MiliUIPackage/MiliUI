@@ -262,6 +262,42 @@ do
 end
 
 ------------------------------------------------------------
+-- 7b. skin OnHide 也延一幀：清單刷新時游標那一列先藏、下一幀 OnEnter 重設同一件 ⇒ 認領、不閃；沒人認領才拆
+------------------------------------------------------------
+do
+    local t5 = Setup()
+    t5.P.Try(t5.tip, t5.state, ITEM, t5.data)
+    t5.env.FlushTimers()
+    local rendersBefore = t5.renders()
+    t5.P.OnSkinHide(t5.tip, t5.state)                  -- GameTooltip:Hide()（列被重新配置）
+    check("OnHide：當下不拆", t5.state.panel.shown)
+    eq("OnHide：原生 alpha 還是 0", t5.tip.alpha, 0)
+    t5.P.Try(t5.tip, t5.state, ITEM, t5.data)          -- 下一幀 OnEnter 重設同一件
+    t5.env.FlushTimers()
+    check("OnHide：同一件回來 ⇒ 認領、面板還在", t5.state.panel.shown)
+    eq("OnHide：認領不重畫", t5.renders(), rendersBefore)
+    eq("OnHide：認領後 alpha 仍 0", t5.tip.alpha, 0)
+
+    t5.P.OnSkinHide(t5.tip, t5.state)                  -- 真的收掉
+    check("OnHide：當下還沒拆", t5.state.panel.shown)
+    t5.env.FlushTimers()
+    check("OnHide：下一幀沒人認領 ⇒ 拆", not t5.state.panel.shown)
+    eq("OnHide：alpha 寫回 1", t5.tip.alpha, 1)
+    eq("OnHide：輪詢拿掉", t5.polls[t5.state], nil)
+
+    -- 藏了之後換一件：新件照畫、舊的排定拆除不會把新面板拆掉
+    t5.P.Try(t5.tip, t5.state, ITEM, t5.data)
+    t5.env.FlushTimers()
+    t5.P.OnSkinHide(t5.tip, t5.state)
+    local data2 = { id = 20000, lines = { { type = 22, lineIndex = 1, leftText = "Other", leftColor = { r = 1, g = 1, b = 1 } } } }
+    t5.tip:SetLines({ { left = "Other" } })
+    t5.P.Try(t5.tip, t5.state, ITEM, data2)
+    t5.env.FlushTimers()
+    check("OnHide 後換一件：新面板還在", t5.state.panel.shown)
+    eq("OnHide 後換一件：原生 alpha 0", t5.tip.alpha, 0)
+end
+
+------------------------------------------------------------
 -- 8. post-call 之後 tooltip 根本沒顯示 → 下一幀退回
 ------------------------------------------------------------
 do

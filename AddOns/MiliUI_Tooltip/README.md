@@ -24,7 +24,10 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
 - **語系**：認行用的 pattern 全部從 `_G` 的 GlobalStrings 反轉產生（`Panel/Patterns.lua`），不寫任何語言的字面。
 - **效能**：重畫前比指紋（所有行文字＋顏色＋設定版本），比價框每秒重建二十幾次時只重壓 alpha、不重畫；
   FontString／Texture 用池只增不刪；沒有 OnUpdate，跟著 tooltip 的共用輪詢（`Skin.Poll`，0.1 秒）走。
-- **內容被清掉**（`OnTooltipCleared`）先不拆、下一幀還沒被新內容認領才拆；tooltip 藏起來（skin `OnHide`）立刻拆。
+- **內容被清掉**（`OnTooltipCleared`）或 **tooltip 藏起來**（skin `OnHide`）都先不拆、下一幀還沒被新內容認領才拆。
+  清單類介面（ScrollBox：拍賣場結果、背包、任務）每次刷新資料都會把列重新配置，游標那一列先藏、下一幀才 OnEnter 重設同一件，
+  原生提示本來就閃一幀；面板當場拆再重畫就跟著閃（Auctionator 購物結果每次更新 `ScrollBox:SetDataProvider`，實機抓到）。
+  延一幀之後同一件回來就認領、一個像素都不動；真的收掉時面板晚 1 幀消失，看不出來。開著 `/mtip log` 時會記下是誰藏的（呼叫堆疊）。
 - **抖動的根本規則**（`Panel/Try.lua`）：同一次停留裡提示內容本來就會變好幾次（背包格每 0.2 秒重設、法術資料晚到、
   別家插件的行輪流出現；實機記錄同一件記到三種行集合），所以幾何與重畫都照規則走，不追個案：
   - 同一件（型別＋id）的 **panel 寬度只長不縮**、**原生替身的高度只長不縮**（換一件歸零）；

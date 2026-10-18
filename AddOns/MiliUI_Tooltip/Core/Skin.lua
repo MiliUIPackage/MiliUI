@@ -163,7 +163,7 @@ function Skin.Attach(tip, opts)
     end)
     skin:SetScript("OnHide", function()
         Skin.ClearTransient(tip)
-        if ns.Panel then ns.Panel.Restore(tip, state) end      -- 重繪面板：tooltip 藏了就拆
+        if ns.Panel then ns.Panel.OnSkinHide(tip, state) end   -- 重繪面板：延一幀、沒被重新認領才拆（Panel/Try.lua）
         NoteVisibility(state, false)
     end)
 

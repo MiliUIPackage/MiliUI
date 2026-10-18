@@ -18,7 +18,7 @@
 --   5. 輪詢（0.1 秒，只在有 tooltip 顯示時存在）：tooltip 沒了 → Restore；alpha 被改回來 → 重壓；
 --      行數變了 → 排 Reconcile；尺寸漂了 → Fit；層級被抬 → 跟上
 --   6. OnTooltipCleared → Release：先不拆，等下一幀；同一幀裡新的 post-call 會把它認領回去。
---      skin OnHide → Restore 立刻拆。
+--      skin OnHide → OnSkinHide：也延一幀（清單刷新時游標那一列先藏、下一幀才 OnEnter 重設同一件；當場拆會閃）。
 --
 -- 任何一步出錯都由 Core/Hooks.lua 的 xpcall 接住；錯誤之後 Restore 也會被叫到（見 Hooks）。
 ------------------------------------------------------------
@@ -106,6 +106,7 @@ end
 function Panel.Restore(tip, state)
     if not state then return end
     state.releasePending = nil
+    state.hidePending = nil
     state.reconcileToken = (state.reconcileToken or 0) + 1    -- 排著的 Reconcile 作廢
     state.reconcilePending = nil
     state.panelFingerprint, state.panelKey, state.panelFullLines, state.partialSince = nil, nil, nil, nil
@@ -142,6 +143,30 @@ function Panel.Release(tip, state)
     local token = state.releaseToken
     C_Timer.After(0, function()
         if state.releasePending and state.releaseToken == token then
+            Panel.Restore(tip, state)
+        end
+    end)
+end
+
+-- tooltip 藏起來（skin OnHide）：**也先不拆**，走跟 Release 同一條路。
+-- 清單類介面（ScrollBox：拍賣場結果、背包、任務）每次刷新資料都會把列重新配置，游標下那一列先藏（OnLeave →
+-- GameTooltip:Hide）、下一幀引擎重新判定滑鼠焦點才 OnEnter 重設同一件 ⇒ 原生提示本來就會閃一幀。以前 OnHide 當場拆面板
+-- 再下一幀整個重畫，面板跟著閃（2026-10-19 實機：Auctionator 的購物結果每次更新 `ScrollBox:SetDataProvider`）。
+-- 現在延一幀：同一件在下一幀的 post-call 進來就認領（Try 的「同一件的重建」路徑），一個像素都不動；
+-- 沒人認領才 Restore。多留一幀的代價：真的收掉提示時面板晚 1 幀消失，看不出來。
+-- 開著 /mtip log 時記下是誰藏的（debugstack）——「是不是拍賣場在藏」靠這個看
+function Panel.OnSkinHide(tip, state)
+    if not state or not (state.native or (state.panel and state.panel:IsShown())) then return end
+    if ns.logEnabled then
+        ns.Log("面板 OnHide tip=%s key=%s 來源：%s", tostring(S.PlainText((S.SafeCall(tip.GetName, tip))) or "?"),
+            tostring(state.panelKey), debugstack and debugstack(3, 5, 0) or "?")
+    end
+    state.hideToken = (state.hideToken or 0) + 1
+    state.hidePending = true
+    local token = state.hideToken
+    C_Timer.After(0, function()
+        if state.hidePending and state.hideToken == token then
+            if ns.logEnabled then ns.Log("面板 OnHide 下一幀沒人認領 ⇒ Restore key=%s", tostring(state.panelKey)) end
             Panel.Restore(tip, state)
         end
     end)
@@ -300,7 +325,9 @@ function Panel.Try(tip, state, dataType, data)
 
     -- 同一件的重建：當幀不畫，下一幀 Reconcile 拿完整版
     if key and key == state.panelKey and panel and panel:IsShown() and state.native then
-        state.releasePending = nil          -- 認領：上一份被清掉時排定的拆除取消
+        if ns.logEnabled and state.hidePending then ns.Log("面板 認領 key=%s（藏了又回來）", tostring(key)) end
+        state.releasePending = nil          -- 認領：上一份被清掉／藏起來時排定的拆除取消
+        state.hidePending = nil
         state.panelData, state.panelKind = data, kind
         Panel.PaintEdges(panel, state)      -- 邊框色在 ClearTransient 時被重設過，補回來
         if not Native.Hide(tip, state) or Native.Fit(tip, state) == false then
@@ -318,6 +345,7 @@ function Panel.Try(tip, state, dataType, data)
         return
     end
     state.releasePending = nil
+    state.hidePending = nil
     state.panelData, state.panelKind = data, kind
     -- 換一件：只長不縮的幾何與等待中的變化全部歸零
     state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
