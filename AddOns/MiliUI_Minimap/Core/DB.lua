@@ -150,16 +150,7 @@ DB.DEFAULTS = DEFAULTS
 ------------------------------------------------------------
 -- nil-merge
 ------------------------------------------------------------
-local function MergeDefaults(dst, src)
-    for k, v in pairs(src) do
-        if type(v) == "table" then
-            if type(dst[k]) ~= "table" then dst[k] = {} end
-            MergeDefaults(dst[k], v)
-        elseif dst[k] == nil then
-            dst[k] = v
-        end
-    end
-end
+local MergeDefaults = ns.MiliUIDB.MergeDefaults
 
 function DB.Get()
     return MiliUI_Minimap_DB

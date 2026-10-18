@@ -147,6 +147,7 @@ local function BuildDefaults()
             showItemMaxStack = true,
             showItemIconId = false,
             showItemExpansion = true,
+            panel = true,                  -- 以面板重繪（Panel/）；關掉＝原生排版只套邊框與顏色
         },
         spell = {
             modifierShowAll = true,
@@ -154,29 +155,27 @@ local function BuildDefaults()
             showSpellId = false,
             showSpellIconId = false,
             showMountSource = true,
+            panel = true,                  -- 以面板重繪（Panel/）
         },
         quest = {
             coloredQuestBorder = true,
             showQuestId = true,
         },
+        -- 重繪面板的外觀（物品／法術共用）。新欄位一律靠 MergeDefaults 補，不寫遷移
+        panel = {
+            separators = true,       -- 分隔線與 ◆
+            statMarkers = true,      -- 屬性前的 ◆（物品）
+            levelBadge = true,       -- 圖示下的物品等級徽章
+            strip = true,            -- 法術的耗能／施法／冷卻／距離四格
+            numberColor = "class",   -- 描述數字上色："class"｜"custom"（用 numberCustom）｜"none"｜六位 hex
+            numberCustom = Color(1, 0.82, 0, 1),
+        },
     }
 end
 DB.BuildDefaults = BuildDefaults
 
--- nil-merge：只補缺的鍵，不動玩家已有的值。
-local function MergeDefaults(dst, src)
-    for k, v in pairs(src) do
-        if type(v) == "table" then
-            if type(dst[k]) ~= "table" then
-                dst[k] = CopyTable(v)
-            else
-                MergeDefaults(dst[k], v)
-            end
-        elseif dst[k] == nil then
-            dst[k] = v
-        end
-    end
-end
+-- nil-merge：只補缺的鍵，不動玩家已有的值（共用層 Libs/MiliUIDB.lua，行為與原本那份相同）
+local MergeDefaults = ns.MiliUIDB.MergeDefaults
 
 -- 列版面（elements 的數字鍵陣列）存 SV，玩家可在設定頁拖曳排序。
 -- 這裡只做健檢：清掉重複與未知 key、把「預設版面有、SV 列裡沒有」的元素
@@ -251,7 +250,7 @@ local CHAR_PREFIX = "char:"
 
 -- 一份設定檔裝哪些區塊。沒列到的頂層鍵就是帳號層的（optionsWindow、charClasses…）。
 -- ⚠ 加新區塊時這裡要一起加，不然它會變成帳號層、切設定檔時不跟著換。
-local PROFILE_KEYS = { "general", "statusbar", "anchor", "unit", "item", "spell", "quest" }
+local PROFILE_KEYS = { "general", "statusbar", "anchor", "unit", "item", "spell", "quest", "panel" }
 
 -- 一份全新設定檔。每次呼叫都是新表（BuildDefaults 自己就重建），
 -- 所以拿去塞進 profiles 不會跟別份共用子表。
@@ -293,12 +292,8 @@ function DB.CharClass(charKey)
     return db and db.charClasses and db.charClasses[charKey]
 end
 
--- 深拷貝：兩份設定檔絕不能共用同一張子表
-local function DeepCopy(t)
-    local o = {}
-    for k, v in pairs(t) do o[k] = type(v) == "table" and DeepCopy(v) or v end
-    return o
-end
+-- 深拷貝：兩份設定檔絕不能共用同一張子表（共用層 Libs/MiliUIDB.lua）
+local DeepCopy = ns.MiliUIDB.DeepCopy
 
 -- 全部列出來，包含**別隻角色**的角色專屬——刻意的：想直接切去用別隻角色調好的
 -- 版面，或從他那份複製一份出來，都靠這個。
@@ -370,13 +365,11 @@ local PROFILE_MIGRATIONS = {
     end,
 }
 
+-- 逐版跑 PROFILE_MIGRATIONS[from+1 .. DB_VERSION]，每步各自 pcall（共用層 Libs/MiliUIDB.lua；
+-- 炸掉的那步會進 BugSack，不中斷登入）
 function DB.MigrateProfile(profile, fromVersion)
     if type(profile) ~= "table" then return end
-    local from = tonumber(fromVersion) or 1
-    for v = from + 1, ns.DB_VERSION do
-        local step = PROFILE_MIGRATIONS[v]
-        if step then pcall(step, profile) end
-    end
+    ns.MiliUIDB.Migrate(profile, PROFILE_MIGRATIONS, tonumber(fromVersion) or 1, ns.DB_VERSION)
 end
 
 ------------------------------------------------------------

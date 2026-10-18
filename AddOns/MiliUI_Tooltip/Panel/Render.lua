@@ -1,0 +1,538 @@
+------------------------------------------------------------
+-- 重繪面板：view 表 → 畫
+--
+-- view 是一張純資料表，由各型別的 view 函式從 reader 的 model 組出來（版面骨架參考成熟同類實作）。
+-- 寬度照內容量出來，量與畫用同一套函式，兩邊不會對不上。
+--
+-- view = {
+--     icon = 貼圖, iconSize = 設計單位,       標題各行從圖示右邊開始
+--     badge = "字",                           圖示正下方的等級徽章
+--     header = {                              依序，在圖示旁
+--         { text = "名字", style = "title", color = { r, g, b } },
+--         { badges = { { "被動", color }, { "等級 2/3" } }, style = "small" },   中間用 · 隔開
+--         { rows = { { left = , right = , color = , rightColor = } }, style = "body" },
+--     },
+--     tag = "目前裝備",                       比價框：panel 左上方外側的小標籤
+--     sections = {                            依序，在標題區下面
+--         { separator = { divider = true } | { rule = true } | { caption = "材料" } | { space = n },
+--           kind = "prose", paragraphs = { ... }, style, color, numbers = "hex" },
+--         { separator = ..., kind = "rows", rows = { { left, right, color, rightColor, indent } },
+--           style, color, wrap = true },     wrap：沒有右欄的行在段落寬換行
+--         { kind = "custom", draw = function(panel, y, ctx) return y end,
+--           measure = function(panel, ctx) return width end },
+--     },
+--     footer = { rows = { ... }, style, color }   底部實心帶
+--             | { draw = function(panel, y, ctx) return y end, measure = function(panel, ctx) return w end },
+--     minWidth = 設計單位,
+-- }
+--
+-- 色一律是明文 { r, g, b }；邊框色例外（Skin 給的，可能是秘密分量，只交給 SetVertexColor）。
+------------------------------------------------------------
+local _, ns = ...
+
+local S = ns.Secret
+local Panel = ns.Panel
+local Patterns = ns.Patterns
+local LOOK = Panel.LOOK
+
+local BADGE_SEPARATOR = " · "
+
+------------------------------------------------------------
+-- 一次 render 的量尺寸（設計單位 → 貼好像素的 panel 單位）
+------------------------------------------------------------
+local function Metrics(panel)
+    local function sc(n) return Panel.Scale(panel, n) end
+    return {
+        px = Panel.Pixel(panel, 1),
+        pad = sc(LOOK.PAD),
+        padTop = sc(LOOK.PAD + LOOK.PAD_TOP_EXTRA),
+        padBottom = sc(LOOK.PAD + LOOK.PAD_BOTTOM_EXTRA),
+        minW = sc(LOOK.MIN_W), maxW = sc(LOOK.MAX_W), proseW = sc(LOOK.PROSE_W),
+        columnGap = sc(LOOK.COLUMN_GAP),
+        rowGap = sc(LOOK.ROW_GAP),
+        headerGap = sc(LOOK.HEADER_GAP),
+        headerBottom = sc(LOOK.HEADER_BOTTOM),
+        ruleSpace = sc(LOOK.RULE_SPACE),
+        dividerSpace = sc(LOOK.DIVIDER_SPACE),
+        diamond = sc(LOOK.DIAMOND),
+        captionLineGap = sc(LOOK.CAPTION_LINE_GAP),
+        iconGap = sc(LOOK.ICON_GAP),
+        badgeGap = sc(LOOK.BADGE_GAP), badgeH = sc(LOOK.BADGE_H), badgePad = sc(LOOK.BADGE_PAD),
+        footerTop = sc(LOOK.FOOTER_TOP), footerPad = sc(LOOK.FOOTER_PAD),
+        closeSize = sc(LOOK.CLOSE_SIZE), closeLen = sc(LOOK.CLOSE_LEN), closeThick = sc(LOOK.CLOSE_THICK),
+        tagH = sc(LOOK.TAG_H), tagPad = sc(LOOK.TAG_PAD), tagGap = sc(LOOK.TAG_GAP),
+        sc = sc,
+    }
+end
+Panel.Metrics = Metrics
+
+local function StyleOf(ctx, style)
+    if type(style) == "table" then return style end
+    return ctx.styles[style or "body"] or ctx.styles.body
+end
+
+local function Separators()
+    local p = ns.db and ns.db.panel
+    return not p or p.separators ~= false
+end
+
+------------------------------------------------------------
+-- 原件
+------------------------------------------------------------
+-- 一段字放在 (x, y)、寬 width；回傳佔掉的高
+local function TextAt(panel, ctx, text, x, y, width, style, color, justify)
+    local fs = Panel.Text(panel, style)
+    fs:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -y)
+    fs:SetWidth(width)
+    fs:SetJustifyH(justify or "LEFT")
+    color = color or LOOK.TEXT
+    fs:SetTextColor(color[1], color[2], color[3])
+    fs:SetText(text)
+    local h = S.PlainNumber(fs:GetStringHeight()) or 0
+    return math.max(style.size + 2, h)
+end
+Panel.TextAt = TextAt
+
+-- 一列：左欄（可換行）＋右欄（靠右、自動量寬）
+local function RowWidth(row, style, columnGap)
+    local w = Panel.Measure(row.left or "", style)
+    if row.right and row.right ~= "" then
+        -- +2 跟 DrawRow 給右欄的餘裕一致
+        w = w + (columnGap or LOOK.COLUMN_GAP) + Panel.Measure(row.right, style) + 2
+    end
+    return w
+end
+Panel.RowWidth = RowWidth
+
+local function DrawRow(panel, ctx, row, y, style, color, indent, gap)
+    local m = ctx.m
+    indent, gap = indent or 0, gap or m.rowGap
+    local inner = panel.width - 2 * m.pad - indent
+    local left, right = row.left or "", row.right
+    local leftColor = row.color or color
+    if right and right ~= "" then
+        local rightW = math.min(Panel.Measure(right, style) + 2,
+            math.max(inner * 0.5, inner - Panel.Measure(left, style) - m.columnGap))
+        local lh = TextAt(panel, ctx, left, m.pad + indent, y, inner - rightW - m.columnGap, style, leftColor)
+        local rh = TextAt(panel, ctx, right, panel.width - m.pad - rightW, y, rightW, style,
+            row.rightColor or leftColor, "RIGHT")
+        return y + math.max(lh, rh) + gap
+    end
+    return y + TextAt(panel, ctx, left, m.pad + indent, y, inner, style, leftColor) + gap
+end
+Panel.DrawRow = DrawRow
+
+local function Line(panel, ctx, x, y, w, color, alpha)
+    local tex = Panel.Texture(panel, 1)
+    tex:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -Panel.Snap(panel, y))
+    tex:SetSize(w, ctx.m.px)
+    color = color or LOOK.TEXT
+    tex:SetVertexColor(color[1], color[2], color[3], alpha or LOOK.LINE_ALPHA)
+    return tex
+end
+
+-- 整寬 1px 線；before 是線上方的空白（省略＝RULE_SPACE）
+local function Rule(panel, ctx, y, before)
+    local m = ctx.m
+    y = y + (before or m.ruleSpace)
+    if not Separators() then return y end
+    Line(panel, ctx, m.pad, y, panel.width - 2 * m.pad)
+    return y + m.px + m.ruleSpace
+end
+Panel.Rule = Rule
+
+-- 左右兩段 1px 線 ＋ 中央 ◆（玩家職業色）
+local function Divider(panel, ctx, y, before)
+    local m = ctx.m
+    y = y + (before or m.dividerSpace)
+    if not Separators() then return y end
+    local d = m.diamond
+    -- ◆ 是正方形轉 45°，外接寬約 d·√2；兩側線各留一點空
+    local gap = Panel.Snap(panel, d * 0.75 + m.px * 3)
+    local side = Panel.Snap(panel, (panel.width - 2 * m.pad) / 2 - gap)
+    local mid = y + Panel.Snap(panel, d * 0.75)
+    Line(panel, ctx, m.pad, mid, side)
+    Line(panel, ctx, panel.width - m.pad - side, mid, side)
+    local diamond = Panel.Texture(panel, 2)
+    diamond:SetSize(d, d)
+    diamond:SetPoint("CENTER", panel, "TOP", 0, -(Panel.Snap(panel, mid) + m.px / 2))
+    diamond:SetRotation(math.rad(45))
+    local c = ctx.accent
+    diamond:SetVertexColor(c[1], c[2], c[3], LOOK.DIAMOND_ALPHA)
+    return mid + Panel.Snap(panel, d * 0.75) + m.dividerSpace
+end
+Panel.Divider = Divider
+
+-- 置中小字 ＋ 左右兩條線
+local function Caption(panel, ctx, y, text, before)
+    local m = ctx.m
+    local style = ctx.styles.caption
+    y = y + (before or m.ruleSpace)
+    local tw = Panel.Measure(text, style) + 2
+    local gray = { LOOK.CAPTION_GRAY, LOOK.CAPTION_GRAY, LOOK.CAPTION_GRAY }
+    local h = TextAt(panel, ctx, text, (panel.width - tw) / 2, y, tw, style, gray, "CENTER")
+    if Separators() then
+        local side = (panel.width - 2 * m.pad - tw) / 2 - m.captionLineGap
+        if side > 0 then
+            local mid = y + math.floor(style.size / 2) + 1
+            side = Panel.Snap(panel, side)
+            Line(panel, ctx, m.pad, mid, side)
+            Line(panel, ctx, panel.width - m.pad - side, mid, side)
+        end
+    end
+    return y + h + m.ruleSpace
+end
+Panel.Caption = Caption
+
+local function DrawSeparator(panel, ctx, y, sep)
+    if not sep then return y end
+    if sep.divider then return Divider(panel, ctx, y, sep.before) end
+    if sep.rule then return Rule(panel, ctx, y, sep.before) end
+    if sep.caption then return Caption(panel, ctx, y, sep.caption, sep.before) end
+    return y + ctx.m.sc(sep.space or 0)
+end
+
+local function BadgeText(list)
+    local words = {}
+    for i, badge in ipairs(list) do
+        local c = badge[2]
+        if c then
+            words[i] = ("|cff%02x%02x%02x%s|r"):format(
+                math.floor(c[1] * 255 + 0.5), math.floor(c[2] * 255 + 0.5), math.floor(c[3] * 255 + 0.5), badge[1])
+        else
+            words[i] = badge[1]
+        end
+    end
+    return table.concat(words, BADGE_SEPARATOR)
+end
+Panel.BadgeText = BadgeText
+
+------------------------------------------------------------
+-- Strip：一排等寬的格子（格標題小字灰 ＋ 值大字），格間 1px 直線。
+-- 法術的「耗能／施法／冷卻／距離」（P2）用；回傳一個 custom section。
+--   cells = { { label = "耗能", value = "50 法力", color = { r, g, b }, dim = true }, ... }
+------------------------------------------------------------
+function Panel.Strip(cells)
+    local section = { kind = "custom" }
+    section.measure = function(panel, ctx)
+        local m, widest = ctx.m, 0
+        for _, cell in ipairs(cells) do
+            widest = math.max(widest, Panel.Measure(cell.label or "", ctx.styles.caption),
+                Panel.Measure(cell.value or "", ctx.styles.big))
+        end
+        return #cells * (widest + 2 * m.pad) + 2 * m.pad
+    end
+    section.draw = function(panel, y, ctx)
+        local m, n = ctx.m, #cells
+        if n == 0 then return y end
+        local inner = panel.width - 2 * m.pad
+        local cellW = inner / n
+        local bottom = y
+        for i, cell in ipairs(cells) do
+            local x = m.pad + (i - 1) * cellW
+            local ly = y + TextAt(panel, ctx, cell.label or "", x, y, cellW, ctx.styles.caption,
+                LOOK.SECONDARY, "CENTER")
+            local color = cell.dim and LOOK.DIM or (cell.color or LOOK.TEXT)
+            ly = ly + TextAt(panel, ctx, cell.value or "", x, ly, cellW, ctx.styles.big, color, "CENTER")
+            bottom = math.max(bottom, ly)
+            if i > 1 and Separators() then
+                local tex = Panel.Texture(panel, 1)
+                tex:SetPoint("TOPLEFT", panel, "TOPLEFT", Panel.Snap(panel, x), -Panel.Snap(panel, y))
+                tex:SetSize(m.px, Panel.Snap(panel, ly - y))
+                tex:SetVertexColor(1, 1, 1, LOOK.LINE_ALPHA)
+            end
+        end
+        return bottom + m.rowGap
+    end
+    return section
+end
+
+------------------------------------------------------------
+-- 段落
+------------------------------------------------------------
+local DRAW = {
+    prose = function(panel, ctx, y, section)
+        local style = StyleOf(ctx, section.style)
+        for _, text in ipairs(section.paragraphs or {}) do
+            if section.numbers then text = Patterns.ColorNumbers(text, section.numbers) end
+            y = DrawRow(panel, ctx, { left = text }, y, style, section.color or LOOK.DESCRIPTION, 0, section.gap)
+        end
+        return y
+    end,
+    rows = function(panel, ctx, y, section)
+        local style = StyleOf(ctx, section.style)
+        for _, row in ipairs(section.rows or {}) do
+            y = DrawRow(panel, ctx, row, y, style, section.color, ctx.m.sc(row.indent or 0), section.gap)
+        end
+        return y
+    end,
+    custom = function(panel, ctx, y, section)
+        return section.draw(panel, y, ctx)
+    end,
+}
+
+------------------------------------------------------------
+-- 寬度：view 裡最寬的東西＋左右內距，夾在上下限之間
+------------------------------------------------------------
+local function IconIndent(ctx, view)
+    if not view.icon then return 0 end
+    return ctx.m.sc(view.iconSize or LOOK.ICON_ITEM) + ctx.m.iconGap
+end
+
+local function FitWidth(panel, ctx, view)
+    local m = ctx.m
+    local indent, need = IconIndent(ctx, view), 0
+    local function consider(w) if w > need then need = w end end
+    for _, item in ipairs(view.header or {}) do
+        local style = StyleOf(ctx, item.style)
+        if item.text then
+            consider(math.min(Panel.Measure(item.text, style), m.maxW) + indent)
+        elseif item.badges and #item.badges > 0 then
+            consider(Panel.Measure(BadgeText(item.badges), style) + indent)
+        elseif item.rows then
+            for _, row in ipairs(item.rows) do consider(RowWidth(row, style, m.columnGap) + indent) end
+        end
+    end
+    for _, section in ipairs(view.sections or {}) do
+        local style = StyleOf(ctx, section.style)
+        if section.kind == "prose" then
+            for _, text in ipairs(section.paragraphs or {}) do
+                consider(math.min(Panel.Measure(text, style), m.proseW))
+            end
+        elseif section.kind == "rows" then
+            for _, row in ipairs(section.rows or {}) do
+                local w = RowWidth(row, style, m.columnGap)
+                if section.wrap and (not row.right or row.right == "") then w = math.min(w, m.proseW) end
+                consider(w + m.sc(row.indent or 0))
+            end
+        elseif section.kind == "custom" and section.measure then
+            consider(section.measure(panel, ctx))
+        end
+        if section.separator and section.separator.caption then
+            consider(Panel.Measure(section.separator.caption, ctx.styles.caption) + 2 * m.captionLineGap)
+        end
+    end
+    local footer = view.footer
+    if footer then
+        if footer.measure then consider(footer.measure(panel, ctx)) end
+        local style = StyleOf(ctx, footer.style)
+        for _, row in ipairs(footer.rows or {}) do consider(RowWidth(row, style, m.columnGap)) end
+    end
+    local minW = view.minWidth and m.sc(view.minWidth) or m.minW
+    return math.max(minW, math.min(m.maxW, math.ceil(need + 2 * m.pad)))
+end
+Panel.FitWidth = FitWidth
+
+------------------------------------------------------------
+-- 圖示、徽章、關閉鈕、比價標籤
+------------------------------------------------------------
+-- 回傳標題區至少要多高（圖示＋徽章）
+local function DrawIcon(panel, ctx, view)
+    local m = ctx.m
+    if not view.icon then return 0 end
+    local size = m.sc(view.iconSize or LOOK.ICON_ITEM)
+    local icon, border = panel.icon, panel.iconBorder
+    icon:ClearAllPoints()
+    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", m.pad, -m.padTop)
+    icon:SetSize(size, size)
+    icon:SetTexture(view.icon)
+    icon:Show()
+    border:ClearAllPoints()
+    border:SetPoint("TOPLEFT", icon, "TOPLEFT", -m.px, m.px)
+    border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", m.px, -m.px)
+    border:Show()
+    local bottom = m.padTop + size
+    if view.badge and view.badge ~= "" then
+        local style = ctx.styles.small
+        local text = panel.badgeText
+        Panel.ApplyFont(text, style)
+        text:SetTextColor(1, 1, 1)
+        text:SetText(view.badge)
+        local w = math.max(size + 2 * m.px, Panel.Measure(view.badge, style) + m.badgePad)
+        local h = math.max(m.badgeH, style.size + m.sc(6))
+        local badge, fill = panel.badge, panel.badgeFill
+        badge:ClearAllPoints()
+        badge:SetPoint("TOP", icon, "BOTTOM", 0, -(m.badgeGap + m.px))
+        badge:SetSize(Panel.Snap(panel, w), Panel.Snap(panel, h))
+        fill:ClearAllPoints()
+        fill:SetPoint("TOPLEFT", badge, "TOPLEFT", m.px, -m.px)
+        fill:SetPoint("BOTTOMRIGHT", badge, "BOTTOMRIGHT", -m.px, m.px)
+        fill:SetVertexColor(LOOK.BADGE_BG, LOOK.BADGE_BG, LOOK.BADGE_BG, 1)
+        badge:Show(); fill:Show(); text:Show()
+        bottom = bottom + m.badgeGap + h
+    end
+    return bottom
+end
+
+local function EnsureClose(panel, tip)
+    if panel.close then return panel.close end
+    local close = CreateFrame("Button", nil, panel)
+    local lines = {}
+    for i, angle in ipairs({ 45, -45 }) do
+        local line = close:CreateTexture(nil, "ARTWORK")
+        line:SetTexture(ns.Media.WHITE8X8)
+        line:SetPoint("CENTER")
+        line:SetRotation(math.rad(angle))
+        lines[i] = line
+    end
+    local function tint(v) for _, l in ipairs(lines) do l:SetVertexColor(v, v, v, 1) end end
+    close.lines = lines
+    tint(0.65)
+    close:SetScript("OnEnter", function() tint(1) end)
+    close:SetScript("OnLeave", function() tint(0.65) end)
+    -- 接觸面 #11：轉呼叫原生那顆（它跟著 tooltip 一起 alpha 0，點不到）
+    close:SetScript("OnClick", function()
+        local native = _G.ItemRefCloseButton
+        if native and not S.IsForbiddenObject(native) then native:Click() end
+    end)
+    panel.close = close
+    return close
+end
+
+local function DrawClose(panel, ctx, tip)
+    if tip ~= _G.ItemRefTooltip then return end
+    local m = ctx.m
+    local close = EnsureClose(panel, tip)
+    close:SetSize(m.closeSize, m.closeSize)
+    close:ClearAllPoints()
+    close:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -m.sc(3), -m.sc(3))
+    for _, l in ipairs(close.lines) do l:SetSize(m.closeLen, m.closeThick) end
+    close:Show()
+    -- 標題文字不要壓到 ×
+    return m.closeSize
+end
+
+local function DrawTag(panel, ctx, view)
+    if not view.tag or view.tag == "" then return end
+    local m = ctx.m
+    local tag = panel.tag
+    if not tag then
+        tag = CreateFrame("Frame", nil, panel)
+        tag.border = tag:CreateTexture(nil, "BACKGROUND")
+        tag.border:SetTexture(ns.Media.WHITE8X8)
+        tag.border:SetAllPoints()
+        tag.fill = tag:CreateTexture(nil, "BORDER")
+        tag.fill:SetTexture(ns.Media.WHITE8X8)
+        tag.fill:SetVertexColor(LOOK.TAG_BG, LOOK.TAG_BG, LOOK.TAG_BG, 1)
+        tag.text = tag:CreateFontString(nil, "OVERLAY")
+        Panel.ApplyFont(tag.text, ctx.styles.small)
+        tag.text:SetPoint("CENTER")
+        panel.tag = tag
+    end
+    Panel.ApplyFont(tag.text, ctx.styles.small)
+    tag.text:SetTextColor(1, 1, 1)
+    tag.text:SetText(view.tag)
+    tag.fill:ClearAllPoints()
+    tag.fill:SetPoint("TOPLEFT", m.px, -m.px)
+    tag.fill:SetPoint("BOTTOMRIGHT", -m.px, m.px)
+    tag:ClearAllPoints()
+    tag:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, m.tagGap)
+    tag:SetSize(Panel.Snap(panel, Panel.Measure(view.tag, ctx.styles.small) + 2 * m.tagPad),
+        Panel.Snap(panel, math.max(m.tagH, ctx.styles.small.size + m.sc(6))))
+    tag:Show()
+end
+
+------------------------------------------------------------
+-- 主入口
+------------------------------------------------------------
+local function Accent()
+    local cls = ns.playerClass
+    local c = cls and ((_G.CUSTOM_CLASS_COLORS and _G.CUSTOM_CLASS_COLORS[cls]) or (_G.RAID_CLASS_COLORS and _G.RAID_CLASS_COLORS[cls]))
+    if c and type(c.r) == "number" then return { c.r, c.g, c.b } end
+    return { 1, 1, 1 }
+end
+
+-- 畫完回傳 true；panel 不在這裡 Show，也不錨（Try 負責 Align → Native.Hide → Show）
+function Panel.RenderView(panel, tip, view, state)
+    -- 先脫離錨點鏈：量測與 GetStringHeight 不能沾到 tooltip 的秘密錨點
+    Panel.Detach(panel)
+    local scale = ns.db and ns.db.general and S.PlainNumber(ns.db.general.scale) or 1
+    if scale <= 0 then scale = 1 end
+    panel:SetScale(scale)
+    -- 層級 = tooltip + 5（預覽也一樣：預覽 tip 在設定視窗 +20，panel 再往上）
+    panel.syncedLevel = nil
+    Panel.SyncLevel(panel, tip)
+    Panel.Clear(panel)
+
+    local ctx = { m = Metrics(panel), styles = Panel.Styles(), accent = Accent(), tip = tip, state = state }
+    local m = ctx.m
+
+    panel.width = Panel.Snap(panel, FitWidth(panel, ctx, view))
+    panel:SetWidth(panel.width)
+
+    -- 外框：提示皮的底色、1 實體像素的邊
+    local g = ns.db and ns.db.general
+    local bgc = g and g.background
+    if bgc then
+        panel.bg:SetVertexColor(bgc.r, bgc.g, bgc.b, 1)
+        panel.bg:SetAlpha(S.PlainNumber(bgc.a) or 1)
+    else
+        panel.bg:SetVertexColor(0.133, 0.133, 0.133, 1)
+    end
+    Panel.LayoutEdges(panel)
+    Panel.PaintEdges(panel, state)
+
+    -- 標題區
+    local headerMin = DrawIcon(panel, ctx, view)
+    local closeW = DrawClose(panel, ctx, tip) or 0
+    DrawTag(panel, ctx, view)
+    Panel.PaintEdges(panel, state)    -- 徽章／標籤剛建好，邊框色補上
+
+    local indent = IconIndent(ctx, view)
+    local inner = panel.width - 2 * m.pad - indent
+    local y = m.padTop
+    local header = view.header or {}
+    for i, item in ipairs(header) do
+        local style = StyleOf(ctx, item.style)
+        local gap = (i < #header) and m.headerGap or 0
+        if item.text then
+            -- 第一行要讓開關閉鈕
+            local w = inner - ((i == 1) and closeW or 0)
+            y = y + TextAt(panel, ctx, item.text, m.pad + indent, y, w, style, item.color) + gap
+        elseif item.badges and #item.badges > 0 then
+            y = y + TextAt(panel, ctx, BadgeText(item.badges), m.pad + indent, y, inner, style,
+                LOOK.SECONDARY) + gap
+        elseif item.rows then
+            for _, row in ipairs(item.rows) do
+                y = DrawRow(panel, ctx, row, y, style, item.color, indent, m.rowGap)
+            end
+        end
+    end
+    local sections = view.sections or {}
+    local footer = view.footer
+    local hasFooter = footer and (footer.draw or (footer.rows and #footer.rows > 0))
+    if #header > 0 or view.icon then
+        if #sections > 0 or hasFooter then y = y + m.headerBottom end
+        y = math.max(y, headerMin)
+    end
+
+    for _, section in ipairs(sections) do
+        y = DrawSeparator(panel, ctx, y, section.separator)
+        local draw = DRAW[section.kind]
+        if draw then y = draw(panel, ctx, y, section) end
+    end
+
+    if hasFooter then
+        y = y + m.footerTop
+        local top = y
+        y = y + m.footerPad
+        if footer.draw then
+            y = footer.draw(panel, y, ctx)
+        else
+            local style = StyleOf(ctx, footer.style)
+            for _, row in ipairs(footer.rows) do
+                y = DrawRow(panel, ctx, row, y, style, footer.color, 0, m.rowGap)
+            end
+        end
+        local band = panel.footer
+        band:ClearAllPoints()
+        band:SetPoint("TOPLEFT", panel, "TOPLEFT", m.px, -Panel.Snap(panel, top))
+        band:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -m.px, m.px)
+        band:SetVertexColor(LOOK.FOOTER_BG, LOOK.FOOTER_BG, LOOK.FOOTER_BG, 1)
+        band:Show()
+    end
+
+    panel.height = Panel.Snap(panel, y + m.padBottom)
+    panel:SetHeight(panel.height)
+    return true
+end

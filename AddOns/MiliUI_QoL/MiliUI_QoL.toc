@@ -25,6 +25,7 @@ Libs\MiliUISnap.lua
 # 角色屬性的計算層（vendor 複製，唯一 source 在 MiliUI/Libs/MiliUIStats/；自建屬性清單與畫面顯示用）
 Libs\MiliUIStats.lua
 Libs\Callbacks.lua
+Libs\MiliUIDB.lua
 Locales\Locale.lua
 
 Core\Init.lua

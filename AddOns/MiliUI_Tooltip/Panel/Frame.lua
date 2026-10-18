@@ -1,0 +1,403 @@
+------------------------------------------------------------
+-- 重繪面板：框、池、量尺、像素工具、外觀常數
+--
+-- 物品／法術提示改成「原生 tooltip 留在底下當定位與夾邊的替身（alpha 0、padding 撐大），
+-- 旁邊畫一個自己的 panel」。這支只管 panel 本身；藏原生在 Native.lua、流程在 Try.lua。
+--
+-- ⚠ panel 是**自己的** frame（parent UIParent；預覽時 parent 是設定視窗），上面的欄位
+--   隨便寫。暴雪的 tooltip 只被讀（GetPoint／GetLeft…一律先過 S.IsSecret）。
+-- ⚠ 量測與排版**只讀自己記的數字**（panel.width／panel.height），不讀 panel:GetWidth()：
+--   panel 錨在 tooltip 上，tooltip 的錨點鏈帶秘密時幾何會沿鏈傳染（wow-121-secret-values）。
+------------------------------------------------------------
+local _, ns = ...
+
+local S = ns.Secret
+local Media = ns.Media
+
+ns.Panel = ns.Panel or {}
+local Panel = ns.Panel
+
+local WHITE = Media.WHITE8X8
+
+------------------------------------------------------------
+-- 外觀常數（plan「視覺規格」那張表，單位是設計單位，畫的時候才 Snap／Pixel）
+-- 提示皮：底與邊框色由 Skin 那套給（general.background、state.borderColor），這裡不重複定義
+------------------------------------------------------------
+Panel.LOOK = {
+    PAD = 10,                 -- 左右內距；上多 2、下少 2
+    PAD_TOP_EXTRA = 2,
+    PAD_BOTTOM_EXTRA = -2,
+    MIN_W = 220, MAX_W = 440, -- 寬度夾在這之間
+    PROSE_W = 300,            -- 換行段落的內容寬
+    COLUMN_GAP = 12,          -- 左右欄之間
+    ROW_GAP = 2,              -- 行距
+    HEADER_GAP = 4,           -- 標題各行之間
+    HEADER_BOTTOM = 6,        -- 標題區與第一段之間
+
+    LINE_ALPHA = 0.22,        -- Rule／Divider／Caption 兩側線：白、這個 alpha
+    RULE_SPACE = 6,           -- Rule 上下各
+    DIVIDER_SPACE = 8,        -- Divider 上下各
+    DIAMOND = 5,              -- 中央 ◆ 的邊長（旋轉 45°）
+    DIAMOND_ALPHA = 0.9,      -- ◆ 用玩家職業色
+    CAPTION_GRAY = 0.65,
+    CAPTION_LINE_GAP = 8,     -- Caption 文字與兩側線之間
+
+    TEXT = { 1, 1, 1 },             -- 主文
+    SECONDARY = { 0.65, 0.65, 0.65 },
+    DIM = { 0.45, 0.45, 0.45 },
+    UNUSABLE = { 1, 0.34, 0.28 },   -- 不可用／未達成
+    DESCRIPTION = { 1, 1, 1 },      -- 描述也用白，不用米黃
+
+    ICON_ITEM = 40, ICON_SPELL = 36,
+    ICON_GAP = 10,            -- 圖示與標題文字之間
+    BADGE_GAP = 4, BADGE_H = 16, BADGE_PAD = 10, BADGE_BG = 0.08,
+
+    FOOTER_BG = 0.102,        -- HUD 皮的「實心橫條」
+    FOOTER_TOP = 9,           -- 頁尾帶上方留白
+    FOOTER_PAD = 6,           -- 頁尾帶內距
+
+    CLOSE_SIZE = 16, CLOSE_LEN = 11, CLOSE_THICK = 1.5,
+    TAG_H = 16, TAG_PAD = 8, TAG_GAP = 2, TAG_BG = 0.08,
+
+    SMALL_SHRINK = 2, SMALL_MIN = 9,   -- caption／徽章字級 = body − 2（最小 9）
+    BIG_GROW = 2,                      -- strip 的值 = body + 2
+    STAT_GROW = 3,                     -- 物品的每秒傷害／護甲大數字 = body + 3
+
+    EFFECT = { 0.48, 0.88, 0.48 },     -- 使用／裝備效果（暴雪原色的綠）
+    FLAVOR = { 0.86, 0.74, 0.45 },     -- 風味文字
+    SET_NAME = { 1, 0.82, 0 },         -- 套裝名（金）
+    STAT_SHADE = { primary = 1, secondary = 0.85, tertiary = 0.7, other = 0.7 },
+    CREATED_ICON = 24,                 -- 配方成品的小圖示
+    REAGENT_ICON = 14,
+    BAR_W = 54, BAR_H = 6,             -- 頁尾耐久條
+}
+local LOOK = Panel.LOOK
+
+------------------------------------------------------------
+-- 像素：基準是 **panel 自己的** 有效縮放（panel 會跟著 tooltip 的 general.scale 一起 SetScale，
+-- 拿 UIParent 的基準算會整組偏掉，見 wow-setscale-offset-units）。scale = 1 時跟 P.Scale／P.Pixel 一樣。
+------------------------------------------------------------
+local function EffectiveScale(region)
+    local ok, scale = pcall(region.GetEffectiveScale, region)
+    scale = ok and S.PlainNumber(scale)
+    if scale and scale > 0 then return scale end
+end
+Panel.EffectiveScale = EffectiveScale
+
+-- 尺寸／間距：n 個設計單位貼到最近的整數像素（＝ P.Scale 的語意）
+function Panel.Scale(panel, n)
+    if n == 0 then return 0 end
+    local scale = EffectiveScale(panel)
+    if scale and PixelUtil and PixelUtil.GetNearestPixelSize then
+        return PixelUtil.GetNearestPixelSize(n, scale)
+    end
+    return n
+end
+
+-- 剛好 n 個實體像素（＝ P.Pixel 的語意）：邊框、細線
+function Panel.Pixel(panel, n)
+    n = math.floor((n or 1) + 0.5)
+    if n <= 0 then return 0 end
+    local scale = EffectiveScale(panel)
+    local factor = PixelUtil and PixelUtil.GetPixelToUIUnitFactor and PixelUtil.GetPixelToUIUnitFactor()
+    if not (scale and factor) then return n end
+    return n * factor / scale
+end
+
+-- 任意值（已經是 panel 單位）貼到整數像素
+function Panel.Snap(panel, value)
+    local scale = EffectiveScale(panel)
+    if scale and PixelUtil and PixelUtil.GetNearestPixelSize then
+        return PixelUtil.GetNearestPixelSize(value, scale)
+    end
+    return math.floor(value + 0.5)
+end
+
+------------------------------------------------------------
+-- 字型：只讀全域字型物件（Fonts.lua 已經替使用者設好），render 時讀
+------------------------------------------------------------
+local function ReadFont(obj, fallbackSize)
+    local path, size, flags
+    if obj and obj.GetFont then
+        path, size, flags = obj:GetFont()
+    end
+    if type(path) ~= "string" or path == "" then path = Media.Font("default") end
+    if type(size) ~= "number" or size <= 0 then size = fallbackSize end
+    if type(flags) ~= "string" then flags = "" end
+    local sx, sy, sr, sg, sb, sa = 1, -1, 0, 0, 0, 0.9
+    if obj and obj.GetShadowOffset then
+        local ox, oy = obj:GetShadowOffset()
+        if type(ox) == "number" then sx, sy = ox, oy end
+    end
+    if obj and obj.GetShadowColor then
+        local r, g, b, a = obj:GetShadowColor()
+        if type(r) == "number" then sr, sg, sb, sa = r, g, b, a or 1 end
+    end
+    return { font = path, size = size, flags = flags, shadow = { sx, sy, sr, sg, sb, sa } }
+end
+
+local function Derive(base, size)
+    return { font = base.font, size = size, flags = base.flags, shadow = base.shadow }
+end
+
+-- 一次 render 用的整組字型
+function Panel.Styles()
+    local title = ReadFont(_G.GameTooltipHeaderText, 14)
+    local body = ReadFont(_G.GameTooltipText, 12)
+    local small = math.max(LOOK.SMALL_MIN, body.size - LOOK.SMALL_SHRINK)
+    return {
+        title = title,
+        heading = Derive(title, math.max(body.size, title.size - 2)),   -- 巢狀法術／配方成品的小一號標題
+        body = body,
+        small = Derive(body, small),
+        caption = Derive(body, small),
+        big = Derive(body, body.size + LOOK.BIG_GROW),
+        stat = Derive(body, body.size + LOOK.STAT_GROW),   -- 每秒傷害／護甲的大數字
+    }
+end
+
+-- 字型設給一顆 FontString；同樣的值不重設（重繪時大多數行的字型沒變）。
+-- SetFont 失敗（字型檔讀不到）就退在地化預設字型，否則之後的 SetText 會硬錯
+function Panel.ApplyFont(fs, style)
+    if fs.mtFont ~= style.font or fs.mtSize ~= style.size or fs.mtFlags ~= style.flags then
+        -- 不靠 SetFont 的回傳值（各版本不一），設完問 GetFont 有沒有字型
+        local ok = pcall(fs.SetFont, fs, style.font, style.size, style.flags)
+        if not ok or not fs:GetFont() then
+            fs:SetFont(Media.Font("default"), style.size, style.flags)
+        end
+        fs.mtFont, fs.mtSize, fs.mtFlags = style.font, style.size, style.flags
+    end
+    local sh = style.shadow
+    if sh and fs.mtShadow ~= sh then
+        fs:SetShadowOffset(sh[1], sh[2])
+        fs:SetShadowColor(sh[3], sh[4], sh[5], sh[6])
+        fs.mtShadow = sh
+    end
+end
+
+------------------------------------------------------------
+-- 量尺：獨立一顆、不錨在任何 tooltip 上（量測不能沾到秘密錨點鏈）
+------------------------------------------------------------
+local ruler
+local function Ruler()
+    if ruler then return ruler end
+    local holder = CreateFrame("Frame", nil, UIParent)
+    holder:SetSize(1, 1)
+    holder:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+    holder:SetAlpha(0)
+    ruler = holder:CreateFontString(nil, "OVERLAY")
+    ruler:SetPoint("TOPLEFT")
+    Panel.ApplyFont(ruler, ReadFont(_G.GameTooltipText, 12))
+    return ruler
+end
+
+-- 一行字不換行時的寬
+function Panel.Measure(text, style)
+    if type(text) ~= "string" or text == "" then return 0 end
+    local fs = Ruler()
+    Panel.ApplyFont(fs, style)
+    fs:SetText(text)
+    local w = fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth() or fs:GetStringWidth()
+    return S.PlainNumber(w) or 0
+end
+
+------------------------------------------------------------
+-- 池：FontString／Texture 只增不刪，Clear 只藏（frame 刪不掉，見 wow-frame-lifecycle-costs）
+------------------------------------------------------------
+function Panel.Text(panel, style)
+    panel.textsUsed = panel.textsUsed + 1
+    local fs = panel.texts[panel.textsUsed]
+    if not fs then
+        fs = panel:CreateFontString(nil, "OVERLAY")
+        fs:SetJustifyV("TOP")
+        fs:SetWordWrap(true)
+        panel.texts[panel.textsUsed] = fs
+    end
+    Panel.ApplyFont(fs, style)       -- 建立當下就給字型，SetText 才不會硬錯
+    fs:ClearAllPoints()
+    fs:Show()
+    return fs
+end
+
+function Panel.Texture(panel, sublevel)
+    panel.texturesUsed = panel.texturesUsed + 1
+    local tex = panel.textures[panel.texturesUsed]
+    if not tex then
+        tex = panel:CreateTexture(nil, "ARTWORK")
+        panel.textures[panel.texturesUsed] = tex
+    end
+    -- 池裡的貼圖可能上次是圖示：材質與裁切每次都重設
+    tex:SetTexture(WHITE)
+    tex:SetTexCoord(0, 1, 0, 1)
+    tex:SetDrawLayer("ARTWORK", sublevel or 0)
+    tex:SetRotation(0)
+    tex:SetVertexColor(1, 1, 1, 1)
+    tex:ClearAllPoints()
+    tex:Show()
+    return tex
+end
+
+function Panel.Clear(panel)
+    for i = 1, #panel.texts do panel.texts[i]:Hide() end
+    for i = 1, #panel.textures do panel.textures[i]:Hide() end
+    panel.textsUsed, panel.texturesUsed = 0, 0
+    panel.icon:Hide()
+    panel.iconBorder:Hide()
+    panel.badge:Hide()
+    panel.badgeFill:Hide()
+    panel.badgeText:Hide()
+    panel.footer:Hide()
+    if panel.close then panel.close:Hide() end
+    if panel.tag then panel.tag:Hide() end
+end
+
+------------------------------------------------------------
+-- 建立：每個接管的 tooltip 一個 panel，放在 state.panel
+------------------------------------------------------------
+local function MakeTexture(parent, layer, sublevel)
+    local tex = parent:CreateTexture(nil, layer, nil, sublevel or 0)
+    tex:SetTexture(WHITE)
+    return tex
+end
+
+local function Create(tip, state)
+    local parent = UIParent
+    if state.isPreview then
+        -- 預覽：掛在設定視窗底下跟著開關與層級走。
+        -- ⚠ 不單獨設 strata：設定視窗是 toplevel，子框自設 strata 之後就不跟著抬層（Options/Panel.lua 檔頭）
+        local ok, p = pcall(tip.GetParent, tip)
+        if ok and p then parent = p end
+    end
+    local panel = CreateFrame("Frame", nil, parent)
+    if not state.isPreview then
+        -- 跟 tooltip 同一層 strata（接管的那幾支都是 TOOLTIP；讀不到或秘密才退 TOOLTIP）
+        local ok, strata = pcall(tip.GetFrameStrata, tip)
+        strata = ok and S.PlainText(strata)
+        panel:SetFrameStrata(strata or "TOOLTIP")
+        panel:SetClampedToScreen(true)
+    end
+    panel:Hide()
+
+    panel.texts, panel.textsUsed = {}, 0
+    panel.textures, panel.texturesUsed = {}, 0
+
+    panel.bg = MakeTexture(panel, "BACKGROUND")
+    panel.bg:SetAllPoints()
+    panel.footer = MakeTexture(panel, "BORDER")
+    panel.edges = {}
+    for i = 1, 4 do panel.edges[i] = MakeTexture(panel, "OVERLAY", 7) end
+
+    panel.icon = MakeTexture(panel, "ARTWORK", 2)
+    panel.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    panel.iconBorder = MakeTexture(panel, "ARTWORK", 1)
+    panel.badge = MakeTexture(panel, "ARTWORK", 1)
+    panel.badgeFill = MakeTexture(panel, "ARTWORK", 2)
+    panel.badgeText = panel:CreateFontString(nil, "OVERLAY")
+    Panel.ApplyFont(panel.badgeText, ReadFont(_G.GameTooltipText, 12))
+    panel.badgeText:SetPoint("CENTER", panel.badge, "CENTER", 0, 0)
+
+    state.panel = panel
+    return panel
+end
+
+function Panel.Get(tip, state)
+    return state.panel or Create(tip, state)
+end
+
+-- 層級 = tooltip + 5。ItemRefTooltip 是 toplevel＋可拖曳：點它、拖它時暴雪會把它的 level 抬高，
+-- alpha 0 的原生框就壓到 panel 上、把 × 的點擊吃掉 ⇒ render 時設一次不夠，輪詢每次都對一次
+function Panel.SyncLevel(panel, tip)
+    local ok, level = pcall(tip.GetFrameLevel, tip)
+    level = ok and S.PlainNumber(level)
+    if not level then return end
+    if panel.syncedLevel ~= level then
+        panel.syncedLevel = level
+        panel:SetFrameLevel(level + 5)
+    end
+end
+
+-- 邊框：四張 1 實體像素的貼圖，上下橫貫全寬、左右夾在中間
+function Panel.LayoutEdges(panel)
+    local px = Panel.Pixel(panel, 1)
+    local e = panel.edges
+    for i = 1, 4 do e[i]:ClearAllPoints() end
+    e[1]:SetPoint("TOPLEFT"); e[1]:SetPoint("TOPRIGHT"); e[1]:SetHeight(px)
+    e[2]:SetPoint("BOTTOMLEFT"); e[2]:SetPoint("BOTTOMRIGHT"); e[2]:SetHeight(px)
+    e[3]:SetPoint("TOPLEFT", 0, -px); e[3]:SetPoint("BOTTOMLEFT", 0, px); e[3]:SetWidth(px)
+    e[4]:SetPoint("TOPRIGHT", 0, -px); e[4]:SetPoint("BOTTOMRIGHT", 0, px); e[4]:SetWidth(px)
+    panel.px = px
+end
+
+-- 邊框色：Skin.SetBorderColor 記下的那組（分量可能是秘密值，原封不動交給 SetVertexColor）
+function Panel.BorderColor(state)
+    local c = state and state.borderColor
+    local g = ns.db and ns.db.general
+    if c then return c[1], c[2], c[3], c[4] or 1 end
+    if g then return g.borderColor.r, g.borderColor.g, g.borderColor.b, g.borderColor.a or 1 end
+    return 0.18, 0.18, 0.18, 1
+end
+
+function Panel.PaintEdges(panel, state)
+    local r, gg, b, a = Panel.BorderColor(state)
+    for i = 1, 4 do panel.edges[i]:SetVertexColor(r, gg, b, a or 1) end
+    panel.iconBorder:SetVertexColor(r, gg, b, a or 1)
+    panel.badge:SetVertexColor(r, gg, b, a or 1)
+    if panel.tag then panel.tag.border:SetVertexColor(r, gg, b, a or 1) end
+end
+
+------------------------------------------------------------
+-- 對齊：照 tooltip 第一個含 LEFT／RIGHT 的錨點那一側貼齊上緣
+-- （原生撐大後可能比 panel 寬，多出來的那截朝向「不是它被錨的那邊」）。
+-- 角落要在整數像素上，不然 1px 線會在半像素處被捨入成 0 或 2（gridOffset 修正）。
+-- 任何一個讀值是秘密 ⇒ 回 false，呼叫端整格退回原生樣式。
+------------------------------------------------------------
+local function AnchoredSide(tip)
+    local ok, n = pcall(tip.GetNumPoints, tip)
+    n = ok and S.PlainNumber(n)
+    if not n then return nil end
+    for i = 1, n do
+        local okP, point, rel, relPoint, x, y = pcall(tip.GetPoint, tip, i)
+        if not okP then return nil end
+        if S.IsSecret(point) or S.IsSecret(rel) or S.IsSecret(relPoint) or S.IsSecret(x) or S.IsSecret(y) then
+            return nil
+        end
+        if type(point) == "string" then
+            if point:find("RIGHT") then return "RIGHT" end
+            if point:find("LEFT") then return "LEFT" end
+        end
+    end
+    return "LEFT"
+end
+
+local function GridOffset(panel, tip, side)
+    local okX, x = pcall(side == "RIGHT" and tip.GetRight or tip.GetLeft, tip)
+    local okY, y = pcall(tip.GetTop, tip)
+    if not okX or not okY then return nil end
+    if S.IsSecret(x) or S.IsSecret(y) then return nil end
+    if type(x) ~= "number" or type(y) ~= "number" then return 0, 0 end   -- 還沒排版：下一次 Fit 再修
+    local tipScale, panelScale = EffectiveScale(tip), EffectiveScale(panel)
+    if not (tipScale and panelScale) then return 0, 0 end
+    x, y = x * tipScale / panelScale, y * tipScale / panelScale
+    return Panel.Snap(panel, x) - x, Panel.Snap(panel, y) - y
+end
+
+function Panel.Align(panel, tip)
+    local side = AnchoredSide(tip)
+    if not side then return false end
+    local dx, dy = GridOffset(panel, tip, side)
+    if not dx then return false end
+    if panel.alignSide == side and panel.alignTip == tip
+        and math.abs(dx - (panel.alignX or 0)) < 0.001 and math.abs(dy - (panel.alignY or 0)) < 0.001 then
+        return true
+    end
+    panel.alignSide, panel.alignTip, panel.alignX, panel.alignY = side, tip, dx, dy
+    panel:ClearAllPoints()
+    panel:SetPoint("TOP" .. side, tip, "TOP" .. side, dx, dy)
+    return true
+end
+
+-- 脫離錨點鏈（重排前、退回時）
+function Panel.Detach(panel)
+    panel:ClearAllPoints()
+    panel.alignSide, panel.alignTip = nil, nil
+end
