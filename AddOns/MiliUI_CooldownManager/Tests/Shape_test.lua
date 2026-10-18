@@ -130,6 +130,7 @@ end
 -- 3. 設定繼承（Core/DB.lua 的 ns.Setting）
 ------------------------------------------------------------
 Load(here .. "/../Core/DB.lua")
+Load(here .. "/../Core/DB_Custom.lua")
 ns.RefreshSpec()
 ns.DB.Init()
 local P = ns.profile

@@ -115,6 +115,8 @@ local function Load(rel, extra)
 end
 
 Load("Core/DB.lua")
+
+Load("Core/DB_Custom.lua")
 Load("Modules/ResourceConditions.lua")
 local RC = ns.ResCond
 

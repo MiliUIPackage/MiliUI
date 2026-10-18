@@ -44,6 +44,7 @@ Core\Compat.lua
 Core\Media.lua
 Core\Style.lua
 Core\DB.lua
+Core\DB_Custom.lua
 Core\Import.lua
 Core\Overflow.lua
 Core\Catalog.lua

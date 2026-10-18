@@ -133,6 +133,7 @@ local function load(rel)
     chunk("MiliUI_CooldownManager", ns)
 end
 load("Core/DB.lua")
+load("Core/DB_Custom.lua")
 load("Core/Catalog.lua")
 load("Core/Overflow.lua")
 load("Core/MasqueShape.lua")

@@ -83,6 +83,8 @@ local function Load(rel)
 end
 
 Load("Core/DB.lua")
+
+Load("Core/DB_Custom.lua")
 Load("Core/Layout.lua")
 Load("Core/Visibility.lua")
 local DB, Lay, Vis = ns.DB, ns.Layout, ns.Visibility

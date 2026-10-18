@@ -208,6 +208,7 @@ local function Load(rel)
     chunk("MiliUI_CooldownManager", ns)
 end
 Load("Core/DB.lua")
+Load("Core/DB_Custom.lua")
 Load("Core/Catalog.lua")
 Load("Core/Layout.lua")
 Load("Core/SpellIndex.lua")

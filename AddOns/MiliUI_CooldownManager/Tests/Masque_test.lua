@@ -195,6 +195,7 @@ end
 -- 1. 沒裝 Masque
 ------------------------------------------------------------
 Load(here .. "/../Core/DB.lua")
+Load(here .. "/../Core/DB_Custom.lua")
 ns.RefreshSpec()
 ns.DB.Init()
 local P = ns.profile

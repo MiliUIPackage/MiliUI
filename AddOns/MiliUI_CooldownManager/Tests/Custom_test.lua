@@ -93,6 +93,7 @@ local function load(rel)
     chunk("MiliUI_CooldownManager", ns)
 end
 load("Core/DB.lua")
+load("Core/DB_Custom.lua")
 load("Core/Catalog.lua")
 load("Core/MasqueShape.lua")
 load("Core/Layout.lua")             -- 「增益不在時」的判準（BarEmptyMode／SpellEmptyMode）：光環格的占位要用
