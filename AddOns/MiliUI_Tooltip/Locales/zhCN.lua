@@ -296,6 +296,8 @@ L["Creates"] = "制造"
 L["Reagents"] = "材料"
 L["Separate box for lines added by other addons"] = "其他插件的补充行另开一框"
 L["When off, they are appended to the bottom of the main panel."] = "关闭时接在主面板底部。"
+L["Hide duplicate sell price lines from other addons"] = "隐藏其他插件重复的售价行"
+L["When the footer already shows the sell price, lines from other addons with the same amount are hidden."] = "页脚已经有售价时，其他插件加的同金额行不再显示。"
 
 -- 记录模式（/mtip record）
 L["Recording on: hover items and spells, then /reload to save. Turn it off with /mtip record off."] = "记录已开启：鼠标滑过物品与法术就会自动记下，/reload 后存档。用 /mtip record off 关闭。"

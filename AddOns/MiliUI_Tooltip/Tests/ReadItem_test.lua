@@ -466,4 +466,73 @@ do
     check("武器畫：傷害 · 速度", t[F("DAMAGE_TEMPLATE", "65", "99") .. " · " .. G.SPEED .. " 3.60"] ~= nil)
 end
 
+------------------------------------------------------------
+-- M2：堆疊物品的頁尾售價「單價 ×數量 = 總價」；M1 的重複售價行也認單價
+------------------------------------------------------------
+do
+    local P, F, G, env = Setup("zhTW")
+    local function Game(unit, stack)
+        local g = {}
+        for k, v in pairs(GAME) do g[k] = v end
+        g.itemSellPrice = function(x) return unit end
+        g.stackCount = function(guid) return guid == "Item-1" and stack or nil end
+        return g
+    end
+    local function Read(total, game, guid, extra)
+        local rows = {
+            Row(1, "絲綢", nil, { type = LT.ItemName }),
+            Row(2, G.SELL_PRICE, nil, { type = LT.SellPrice, price = total }),
+        }
+        for _, r in ipairs(extra or {}) do rows[#rows + 1] = r end
+        return P.ReadItemRows(rows, game, { id = 4306, guid = guid })
+    end
+    local function Drawn(m)
+        local tip = H.Tip(env, "GameTooltip", {})
+        local state = {}
+        local panel = P.Get(tip, state)
+        P.RenderView(panel, tip, P.ViewItem(m), state)
+        local found
+        for i = 1, panel.textsUsed do
+            local t = panel.texts[i]
+            if t.shown ~= false and t.text and t.text:find("c", 1, true) and t.text:match("^%d") then found = t.text end
+        end
+        return found, panel
+    end
+
+    local m = Read(6000, Game(3000, 2), "Item-1")
+    eq("M2：堆疊數從 guid 拿", m.stackCount, 2)
+    eq("M2：單價", m.unitPrice, 3000)
+    local text, panel = Drawn(m)
+    eq("M2：頁尾畫「單價 ×數量 = 總價」", text, "3000c ×2 = 6000c")
+    check("M2：寬度量測算進整串", panel.width >= P.Measure("3000c ×2 = 6000c", { size = 13 }), panel.width)
+
+    m = Read(9000, Game(3000, nil), nil)
+    eq("M2：沒有 guid ⇒ 總價／單價整除", m.stackCount, 3)
+    eq("M2：整除的畫法", (Drawn(m)), "3000c ×3 = 9000c")
+
+    m = Read(7000, Game(3000, nil), nil)
+    eq("M2：除不盡又沒有堆疊數 ⇒ 只畫總價", m.stackCount, nil)
+    eq("M2：除不盡的畫法", (Drawn(m)), "7000c")
+
+    m = Read(3000, Game(3000, 1), "Item-1")
+    eq("M2：一個 ⇒ 只畫總價", m.stackCount, nil)
+    eq("M2：一個的畫法", (Drawn(m)), "3000c")
+
+    m = Read(6000, Game(nil, 2), "Item-1")
+    eq("M2：單價拿不到 ⇒ 只畫總價", (Drawn(m)), "6000c")
+    m = Read(6000, Game(0, 2), "Item-1")
+    eq("M2：單價 0 ⇒ 只畫總價", (Drawn(m)), "6000c")
+
+    -- M1 認單價：別家印單價的行也藏
+    local Gold = "|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:0:0|t"
+    m = Read(6000, Game(3000, 2), "Item-1", {
+        Row(3, "商人", "30 " .. Gold, { appended = true }),
+        Row(4, "售價: 60 " .. Gold, nil, { appended = true }),
+        Row(5, "拍賣", "45 " .. Gold, { appended = true }),
+    })
+    local lefts = {}
+    for _, e in ipairs(m.appended) do lefts[#lefts + 1] = e.left end
+    eq("M1＋M2：單價行與總價行都藏、別的金額留著", table.concat(lefts, "|"), "拍賣")
+end
+
 H.finish("ReadItem_test")

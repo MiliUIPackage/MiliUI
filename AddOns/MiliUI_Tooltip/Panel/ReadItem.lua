@@ -273,6 +273,58 @@ local function Extra(part, row, left, right, model)
     list[#list + 1] = { left = left or "", right = right, color = row.color, rightColor = row.rightColor }
 end
 
+------------------------------------------------------------
+-- 別家插件重複的售價行（M1）：頁尾已經畫了售價，別家又加「售價: 38 75 34」、「商人 x1 38 75 34」——同一個金額三次。
+-- 語系無關、不看標籤字：只看這行的**金額**等不等於 SellPrice 的 price（銅）。
+--   * 數字後面緊跟金／銀／銅幣圖示（|T…GoldIcon…|t、|A:coin-gold…|a 都是英文檔名）⇒ 照幣別加總，總額相等才算；
+--   * 沒有幣別圖示 ⇒ 去掉 0 之後的數字序列＝price 拆出的非零金／銀／銅段（依序）、而且沒有別的數字。
+-- 堆疊數「x1」先剝掉（數量不是金額）；千分位「1,234」併回去。堆疊總價（x3 的商人價）不等於單價 ⇒ 留著。
+------------------------------------------------------------
+-- 幣別圖示換成不含數字的記號（\1g／\1s／\1c），免得記號本身被當成金額的數字
+local COIN_MARKS = { { "gold", "g" }, { "silver", "s" }, { "copper", "c" } }
+local COIN_VALUE = { g = 10000, s = 100, c = 1 }
+
+local function CoinMark(token)
+    token = token:lower()
+    for _, c in ipairs(COIN_MARKS) do
+        if token:find(c[1], 1, true) then return "\1" .. c[2] end
+    end
+    return " "
+end
+
+local function PriceSegments(price)
+    local segs = {}
+    for _, v in ipairs({ math.floor(price / 10000), math.floor(price / 100) % 100, price % 100 }) do
+        if v > 0 then segs[#segs + 1] = v end
+    end
+    return segs
+end
+
+function Panel.IsDuplicatePrice(left, right, price)
+    price = S.PlainNumber(price)
+    if not price or price <= 0 then return false end
+    local text = (S.PlainText(left) or "") .. " " .. (S.PlainText(right) or "")
+    text = Patterns.StripColors(text)
+    text = text:gsub("|T(.-)|t", CoinMark):gsub("|A(.-)|a", CoinMark)
+    text = text:gsub("[xX]%s?%d+", " "):gsub("×%s?%d+", " ")
+    for _ = 1, 4 do text = text:gsub("(%d)[,%.](%d%d%d)", "%1%2") end
+    local total, allCoins, nonzero = 0, true, {}
+    for num, rest in text:gmatch("(%d+)(%D*)") do
+        local n = tonumber(num)
+        local unit = COIN_VALUE[rest:match("^%s*\1(%a)") or ""]
+        if unit then total = total + n * unit else allCoins = false end
+        if n > 0 then nonzero[#nonzero + 1] = n end
+    end
+    if #nonzero == 0 then return false end
+    if allCoins then return total == price end
+    local segs = PriceSegments(price)
+    if #segs ~= #nonzero then return false end
+    for i, v in ipairs(segs) do
+        if nonzero[i] ~= v then return false end
+    end
+    return true
+end
+
 local function IsBreak(row)
     if Typed(row, "Blank") or Typed(row, "Separator") then return true end
     return Plain(row.left) == "" and not row.right
@@ -287,7 +339,8 @@ local function Speed(text)
     end
 end
 
--- rows：CollectLines 的結果；game：{ itemIcon(x), itemCount(x), playerLevel() }；opts：{ id, compareHeader }
+-- rows：CollectLines 的結果；game：{ itemIcon(x), itemCount(x), playerLevel(), itemSellPrice(x), stackCount(guid) }；
+-- opts：{ id, link, guid, compareHeader }
 function Panel.ReadItemRows(rows, game, opts)
     opts = opts or {}
     local model = NewItem()
@@ -431,6 +484,30 @@ function Panel.ReadItemRows(rows, game, opts)
     if created and game and game.itemIcon and created.id then created.icon = game.itemIcon(created.id) end
     -- 比價框：標籤照抄原生 CompareHeader 的字（「已裝備」／「同時裝備」），沒有標頭就不畫
     if opts.compareHeader then model.tag = opts.compareHeader end
+    -- 堆疊物品：SellPrice 的 price 是**整疊**的。頁尾改畫「單價 ×數量 = 總價」（ViewItem 的 Footer）。
+    -- 單價＝物品資訊的售價；數量先問這一格的堆疊數（guid），問不到才用 總價／單價 整除；數量 1 照舊只畫總價
+    local total = S.PlainNumber(model.price)
+    if total and total > 0 and game and game.itemSellPrice then
+        local unit = game.itemSellPrice(opts.link or model.id)
+        if unit and unit > 0 and unit < total then
+            local count = opts.guid and game.stackCount and game.stackCount(opts.guid)
+            if not count or count <= 1 then
+                count = (total % unit == 0) and math.floor(total / unit) or nil
+            end
+            if count and count > 1 then model.unitPrice, model.stackCount = unit, count end
+        end
+    end
+    -- 頁尾已經有售價：別家加的同金額行（總價或單價）不進附屬框（設定 hideDuplicatePrice）
+    if model.price and #model.appended > 0 and Panel.Option("hideDuplicatePrice") then
+        local kept = {}
+        for _, e in ipairs(model.appended) do
+            if not Panel.IsDuplicatePrice(e.left, e.right, model.price)
+                and not (model.unitPrice and Panel.IsDuplicatePrice(e.left, e.right, model.unitPrice)) then
+                kept[#kept + 1] = e
+            end
+        end
+        model.appended = kept
+    end
     return model
 end
 
@@ -451,11 +528,32 @@ function Game.itemCount(x)
     return ok and S.PlainNumber(n) or nil
 end
 
+-- 物品資訊的第 11 個回傳＝單件的售價（銅）
+function Game.itemSellPrice(x)
+    if x == nil or not (C_Item and C_Item.GetItemInfo) then return end
+    local ok, price = pcall(function() return (select(11, C_Item.GetItemInfo(x))) end)
+    return ok and S.PlainNumber(price) or nil
+end
+
+-- 這一格的堆疊數（背包／銀行裡的物品才有 guid）
+function Game.stackCount(guid)
+    if type(guid) ~= "string" or S.IsSecret(guid) then return end
+    if not (C_Item and C_Item.GetItemLocation and C_Item.GetStackCount) then return end
+    local ok, n = pcall(function()
+        local loc = C_Item.GetItemLocation(guid)
+        if not loc then return end
+        return C_Item.GetStackCount(loc)
+    end)
+    return ok and S.PlainNumber(n) or nil
+end
+
 Panel.readers.item = function(tip, data, _, rows, n)
     if not rows then rows, n = Panel.CollectLines(tip, data) end
     if not rows then return end
     local model = Panel.ReadItemRows(rows, Panel.Game, {
         id = data.id,
+        link = S.PlainText(data.hyperlink),
+        guid = S.PlainText(data.guid),
         compareHeader = Panel.CompareHeaderText(tip),
     })
     if not model then return end

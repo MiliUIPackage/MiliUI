@@ -23,7 +23,12 @@ local function Load()
     env.PowerBarColor = { MANA = { r = 0, g = 0, b = 1 }, HOLY_POWER = { r = 0.95, g = 0.9, b = 0.6 } }
     env.C_Spell = { GetSpellTexture = function(id) return 1000 + id end }
     env.C_Item = { GetItemIconByID = function(x) return type(x) == "number" and 5000 + x or 7777 end,
-        GetItemCount = function() return 0 end }
+        GetItemCount = function() return 0 end,
+        -- M2：單件售價（第 11 個回傳）。只給兩支堆疊消耗品（實機的商人單價）；裝備單價＝售價、不影響
+        GetItemInfo = function(x)
+            local unit = ({ [241325] = 29250, [109076] = 700 })[x]
+            if unit then return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, unit end
+        end }
     env.C_CurrencyInfo = { GetCoinTextureString = function(c) return c .. "c" end }
     env.UnitLevel = function() return 90 end
     local ns = {
@@ -128,14 +133,22 @@ for _, entry in ipairs(FXlist) do
             end
             if line.price then eq(tag .. "售價", model.price, line.price) end
         end
-        -- 後加的行
+        -- 後加的行（M1：跟售價同金額的整行藏掉，其餘一行不丟）
+        model.hiddenPrice = {}
         for i, l in ipairs(entry.lines) do
             if not covered[i] then
                 local left = N(l.left and l.left.text)
-                if left ~= "" then check(tag .. "不丟行（後加）：" .. left, Found(strings, left)) end
-                if l.right and l.right.shown then
-                    local right = N(l.right.text)
-                    if right ~= "" then check(tag .. "不丟行（後加右欄）：" .. right, Found(strings, right)) end
+                local rawRight = l.right and l.right.shown and l.right.text or nil
+                if P.IsDuplicatePrice(l.left and l.left.text, rawRight, model.price)
+                    or (model.unitPrice and P.IsDuplicatePrice(l.left and l.left.text, rawRight, model.unitPrice)) then
+                    model.hiddenPrice[#model.hiddenPrice + 1] = left
+                    check(tag .. "重複售價行藏掉：" .. left, not Found(strings, left) or left == "")
+                else
+                    if left ~= "" then check(tag .. "不丟行（後加）：" .. left, Found(strings, left)) end
+                    if rawRight then
+                        local right = N(rawRight)
+                        if right ~= "" then check(tag .. "不丟行（後加右欄）：" .. right, Found(strings, right)) end
+                    end
                 end
             end
         end
@@ -232,6 +245,65 @@ do -- #1 血騎士精煉藥劑（消耗品）
     eq("#1 售價", m.price, 468000)
     eq("#1 後加行全進附屬框", #m.extras, 0)
     check("#1 附屬框有東西", #m.appended > 0)
+    -- M2：售價是整疊（16 瓶）⇒ 頁尾「2 92 50 ×16 = 46 80」
+    eq("#1 單價", m.unitPrice, 29250)
+    eq("#1 數量（總價／單價整除）", m.stackCount, 16)
+    eq("#1 頁尾售價", P.PriceText(m), "29250c ×16 = 468000c")
+    -- M1：別家的「售價: 46 80」與總價同額、「商人 2 92 50」與單價同額 ⇒ 都藏
+    eq("#1 藏掉的重複售價行", table.concat(m.hiddenPrice, "|"), "售價: 46 80|商人")
+    eq("#4 滑翔工具組（35 個）也一樣", table.concat(BY[4].hiddenPrice, "|"), "售價: 2 45|商人")
+    eq("#4 頁尾售價", P.PriceText(BY[4]), "700c ×35 = 24500c")
+    local function Has(needle)
+        for _, e in ipairs(m.appended) do if e.left == needle then return true end end
+    end
+    check("#1 商人（單價）藏掉", not Has("商人"))
+    check("#1 拍賣留著", Has("拍賣"))
+    check("#1 庫存留著", Has("庫存"))
+end
+
+do -- M1：#39 護手（一件）售價與商人兩行都藏、其餘留著
+    local m = BY[39]
+    eq("#39 藏掉售價與商人兩行", table.concat(m.hiddenPrice, "|"), "售價: 29 51 70|商人")
+    local lefts = {}
+    for _, e in ipairs(m.appended) do lefts[#lefts + 1] = e.left end
+    local all = table.concat(lefts, "|")
+    check("#39 售價行不在附屬框", not all:find("售價", 1, true), all)
+    check("#39 商人行不在附屬框", not all:find("商人", 1, true), all)
+    check("#39 分解留著", all:find("分解", 1, true), all)
+    check("#39 庫存留著", all:find("庫存", 1, true), all)
+end
+
+do -- M1：IsDuplicatePrice 的邊界
+    local D = P.IsDuplicatePrice
+    local G, Sv, C = "|TInterface\\MoneyFrame\\UI-GoldIcon:12:12:0:0|t", "|TInterface\\MoneyFrame\\UI-SilverIcon:12:12:0:0|t",
+        "|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:0:0|t"
+    check("M1：幣別圖示加總相等 ⇒ 重複", D("商人", "38 " .. G .. " 75 " .. Sv .. " 34 " .. C, 387534))
+    check("M1：x1 堆疊數先剝掉", D("商人 x1", "38 " .. G .. " 75 " .. Sv .. " 34 " .. C, 387534))
+    check("M1：x3 總價不等於單價 ⇒ 留", not D("商人 x3", "116 " .. G .. " 26 " .. Sv .. " 02 " .. C, 387534))
+    check("M1：補零的 03 ⇒ 照數字比", D("商人", "49 " .. G .. " 03 " .. Sv .. " 51 " .. C, 490351))
+    check("M1：銅是 00 也算", D("商人", "7 " .. Sv .. " 00 " .. C, 700))
+    check("M1：沒有圖示 ⇒ 非零段依序相等", D("Vendor: 38 75 34", nil, 387534))
+    check("M1：沒有圖示、少一段（銀 0）", D("Vendor: 46 80", nil, 468000))
+    check("M1：金額不同 ⇒ 留", not D("售價: 38 75 35", nil, 387534))
+    check("M1：多一個別的數字 ⇒ 留", not D("拍賣 3 天 38 75 34", nil, 387534))
+    check("M1：price 為 nil ⇒ 留", not D("售價: 38 75 34", nil, nil))
+    check("M1：price 為 0 ⇒ 留", not D("0", nil, 0))
+    check("M1：沒有數字 ⇒ 留", not D("商人", nil, 387534))
+    check("M1：千分位併回去", D("Sell", "1,234 " .. G .. " 5 " .. Sv, 12340500))
+    check("M1：秘密值 ⇒ 留", not D(H.SECRET, nil, 387534))
+end
+
+do -- M1：開關關掉 ⇒ 全部留著
+    local entry
+    for _, e in ipairs(FX) do if e.source == 39 then entry = e end end
+    ns.db.panel.hideDuplicatePrice = false
+    local m = P.readers.item(TipFor(env, entry), entry.data)
+    ns.db.panel.hideDuplicatePrice = nil
+    local all = {}
+    for _, e in ipairs(m.appended) do all[#all + 1] = e.left end
+    all = table.concat(all, "|")
+    check("M1 開關關掉：售價行留著", all:find("售價", 1, true), all)
+    check("M1 開關關掉：商人行留著", all:find("商人", 1, true), all)
 end
 
 do -- 法術

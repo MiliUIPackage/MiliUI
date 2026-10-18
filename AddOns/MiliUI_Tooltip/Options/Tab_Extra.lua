@@ -159,6 +159,8 @@ local EXTRA_CONTROLS = {
     { type = "toggle", root = "panel", key = "levelBadge", label = L["Item level under the icon"] },
     { type = "toggle", root = "panel", key = "extrasBox", label = L["Separate box for lines added by other addons"] },
     { type = "text", label = L["When off, they are appended to the bottom of the main panel."] },
+    { type = "toggle", root = "panel", key = "hideDuplicatePrice", label = L["Hide duplicate sell price lines from other addons"] },
+    { type = "text", label = L["When the footer already shows the sell price, lines from other addons with the same amount are hidden."] },
 
     { type = "header", label = L["Item"] },
     { type = "toggle", root = "item", key = "coloredItemBorder", label = L["Border by item quality"] },

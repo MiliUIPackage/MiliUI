@@ -168,9 +168,18 @@ local function CreatedHeader(created)
     return section
 end
 
--- 頁尾帶：需求類（靠右）、耐久條＋數字、售價
+-- 頁尾帶：需求類（靠右）、耐久條＋數字、售價（堆疊物品畫「單價 ×數量 = 總價」，單價拿不到就只畫總價）
+local function PriceText(model)
+    local total = model.price and Panel.Coins(model.price)
+    if not total then return nil end
+    local unit = model.unitPrice and model.stackCount and model.stackCount > 1 and Panel.Coins(model.unitPrice)
+    if not unit then return total end
+    return ("%s ×%d = %s"):format(unit, model.stackCount, total)
+end
+Panel.PriceText = PriceText
+
 local function Footer(model)
-    local coins = model.price and Panel.Coins(model.price) or nil
+    local coins = PriceText(model)
     local dur = model.durability
     if not coins and not dur and #model.restrictions == 0 then return nil end
     local footer = {}

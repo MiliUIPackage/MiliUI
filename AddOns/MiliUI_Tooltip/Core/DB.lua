@@ -170,6 +170,7 @@ local function BuildDefaults()
             numberColor = "class",   -- 描述數字上色："class"｜"custom"（用 numberCustom）｜"none"｜六位 hex
             numberCustom = Color(1, 0.82, 0, 1),
             extrasBox = true,        -- 別的插件（與我們自己的 ID 行）加的行另開一框接在下面
+            hideDuplicatePrice = true, -- 頁尾有售價時，別的插件加的同金額行不顯示（Panel/ReadItem.lua）
         },
     }
 end
