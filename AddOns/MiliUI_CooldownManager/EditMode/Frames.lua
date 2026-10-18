@@ -9,9 +9,10 @@
 -- 天空騎術的接力模式（Modules/Skyriding.lua）：不給它自己的覆蓋層與選取框（不能拖，拖資源條就一起走），
 -- 改在資源條覆蓋層的條名後面接「＋天空騎術」讓玩家知道它跟著資源條。閒置的面板（獨立擺放的資源列）同一條路（EM.Dormant）。
 --
--- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、條名後面一顆黃色「!」記號
--- （拖曳會被限制時才出現，滑過才顯示整句提示——提示寫成一整行黃字時，疊在一起的條會互相蓋住，
--- 也擋住底下的樣式）。整個 EnableMouse(false) —— 不能擋到底下選取框的拖曳；只有「!」那 14px 吃滑鼠。
+-- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、條名後面一顆白色「!」記號
+-- （拖曳會被限制時才出現；整句提示接在滑過這條時本來就有的 tooltip 最下面，見 EM.AppendHint——
+-- 提示寫成一整行黃字時，疊在一起的條會互相蓋住、也擋住底下的樣式）。整個 EnableMouse(false) ——
+-- 不能擋到底下選取框的拖曳。
 --
 -- 選取框：
 --   * 四條檢視器用**暴雪自己的** viewer.Selection（它勾了「冷卻管理器」才會顯示）。
@@ -112,31 +113,18 @@ local function BuildOverlay(key, c)
     name:SetTextColor(1, 1, 1)
     ov.name = name
 
-    -- 「!」記號：深底灰邊的小方塊（樣式同設定頁的「?」HelpMark），字是黃的；整句提示放 GameTooltip。
-    -- 自己的子框、開檔就建；要蓋過選取框（貼著覆蓋層、層級相近）才接得到滑過
+    -- 「!」記號：1px 白邊、沒底色的小方塊，白字；純標記，不吃滑鼠（滑鼠留給底下的選取框／點擊層）
     local hint = CreateFrame("Frame", nil, ov, "BackdropTemplate")
     hint:SetSize(HINT_W, HINT_W)
     hint:SetPoint("LEFT", name, "RIGHT", 4, 0)
-    hint:SetFrameLevel(ov:GetFrameLevel() + 5)
-    hint:SetBackdrop({ bgFile = Style.WHITE, edgeFile = Style.WHITE, edgeSize = ns.P.Pixel(1) })
-    hint:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
-    hint:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+    hint:EnableMouse(false)
+    hint:SetBackdrop({ edgeFile = Style.WHITE, edgeSize = ns.P.Pixel(1) })
+    hint:SetBackdropBorderColor(1, 1, 1, 1)
     local mark = hint:CreateFontString(nil, "OVERLAY")
-    Media.SetFont(mark, 11)
+    Media.SetFont(mark, 11, "OUTLINE")
     mark:SetPoint("CENTER", hint, "CENTER", 0, 0)
     mark:SetText("!")
-    mark:SetTextColor(HINT_R, HINT_G, HINT_B)
-    hint:EnableMouse(true)
-    hint:SetScript("OnEnter", function(self)
-        hint:SetBackdropBorderColor(HINT_R, HINT_G, HINT_B, 1)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(self.text or "", HINT_R, HINT_G, HINT_B, 1, true)
-        GameTooltip:Show()
-    end)
-    hint:SetScript("OnLeave", function()
-        hint:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
-        GameTooltip:Hide()
-    end)
+    mark:SetTextColor(1, 1, 1)
     hint:Hide()
     ov.hint = hint
 
@@ -165,6 +153,7 @@ end
 
 -- 「!」記號的提示：拖曳會被限制時才有字（目前只有「錨在別條上」這一種）
 local function HintText(bar)
+    if type(bar) ~= "table" then return nil end
     local a = type(bar.anchor) == "table" and bar.anchor
     if a and type(a.to) == "string" and BarCfg(a.to) then
         return L["Dragging stops it following %s"]:format(EM.BarLabel(a.to))
@@ -174,6 +163,19 @@ local function HintText(bar)
         return L["Dragging stops it following %s"]:format(ns.Anchor.Label(a.to))
     end
     return nil
+end
+
+-- 滑過這條的 tooltip（暴雪選取框的系統名、設定視窗點擊層的操作說明）最下面接一行黃字提醒。
+-- 從 OnEnter 的後掛勾叫：tooltip 已經是 self 的就往下加；暴雪在系統「已選取」時不開 tooltip，那就自己開一個只寫條名的
+function EM.AppendHint(owner, key)
+    local hint = HintText(BarCfg(key))
+    if not hint then return end
+    if not (GameTooltip:IsShown() and GameTooltip:GetOwner() == owner) then
+        GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
+        GameTooltip:SetText(EM.BarLabel(key))
+    end
+    GameTooltip:AddLine(hint, HINT_R, HINT_G, HINT_B, true)
+    GameTooltip:Show()
 end
 
 -- 當它不存在的面板（Core/Bars.lua 的 Dormant）：接力中的天空騎術（跟著接力對象，沒有自己的覆蓋層）、
@@ -191,17 +193,7 @@ local function UpdateTexts(key, bar)
         if sky and sky.enabled ~= false then label = L["%s + %s"]:format(label, EM.BarLabel("skyriding")) end
     end
     ov.name:SetText(label)
-    local hint = HintText(bar)
-    ov.hint.text = hint
-    if hint then
-        ov.hint:Show()
-        if GameTooltip:GetOwner() == ov.hint and GameTooltip:IsShown() then
-            GameTooltip:SetText(hint, HINT_R, HINT_G, HINT_B, 1, true)   -- 滑著的時候換錨定對象：提示跟著換
-        end
-    else
-        ov.hint:Hide()
-        if GameTooltip:GetOwner() == ov.hint then GameTooltip:Hide() end
-    end
+    ov.hint:SetShown(HintText(bar) ~= nil)
 end
 
 ------------------------------------------------------------
@@ -255,7 +247,10 @@ local function BuildSelection(key, c, ov)
     end
     if sel.isFallback then
         sel:SetScript("OnMouseDown", function(_, button) OnPress(key, button) end)
+        sel:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
+    -- 樣板的 OnEnter 開一個寫系統名的 tooltip（已選取時不開）：後掛勾把黃字接在最下面；備援框從頭開
+    sel:HookScript("OnEnter", function(self) EM.AppendHint(self, key) end)
     sel:SetAllPoints(ov)
     sel:Hide()
     sel:RegisterForDrag("LeftButton")
@@ -285,6 +280,8 @@ function EM.WireViewer(key)
         -- 點一下開設定頁：後掛勾，暴雪自己的 OnMouseDown（SelectSystem）照跑
         sel:HookScript("OnMouseDown", function(_, button) OnPress(key, button) end)
         sel:HookScript("OnMouseUp", function(self, button) OnRelease(self, key, button) end)
+        -- 暴雪的 OnEnter 開系統名 tooltip：後掛勾把「拖曳會解除跟隨」接在最下面
+        sel:HookScript("OnEnter", function(self) EM.AppendHint(self, key) end)
     end
     return sel
 end

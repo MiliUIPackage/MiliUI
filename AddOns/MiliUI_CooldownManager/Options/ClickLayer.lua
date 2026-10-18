@@ -88,6 +88,8 @@ local function Ensure(key)
         GameTooltip:AddLine(L["Drag to move. Hold Shift to disable snapping."], 0.8, 0.8, 0.8)
         GameTooltip:AddLine(L["Hover a bar and press the arrow keys to nudge it by 1 (Shift: 10)."], 0.8, 0.8, 0.8)
         GameTooltip:Show()
+        -- 錨在別條／外部框上的條：最下面接一行黃字「拖曳會解除跟隨」（覆蓋層條名後的「!」記號講的就是這個）
+        if ns.EditMode and ns.EditMode.AppendHint then ns.EditMode.AppendHint(self, key) end
     end)
     l:SetScript("OnLeave", function(self)
         if not self.flashUntil then SetBorder(self, 0) end
