@@ -145,7 +145,7 @@ do
     eq("成功：寬撐到 panel 寬", t.tip.w, panel.width)
     -- 有別人加的行 ⇒ 附屬框；原生要撐到「主面板＋縫＋附屬框」
     check("成功：附屬框顯示", panel.extrasBox and panel.extrasBox.shown)
-    eq("成功：totalHeight＝主高＋縫＋附高", panel.totalHeight, panel.height + 4 + panel.extrasBox.height)
+    eq("成功：totalHeight＝主高＋縫＋附高", panel.totalHeight, panel.height + 6 + panel.extrasBox.height)
     eq("成功：高撐到整組高", t.tip.h, panel.totalHeight)
     check("成功：登記輪詢", t.polls[t.state] ~= nil)
 
@@ -611,7 +611,7 @@ do
     check("前提：主面板有附屬框", box and box.shown)
     local M = mainPanel.clampMargin
     check("L2：邊緣呼吸換算過、大於 0", M and M > 0, M)
-    eq("I2＋L2：夾邊範圍底邊 = −(縫＋附屬框＋呼吸)", mainPanel.clampInsets[4], -(4 + box.height + M))
+    eq("I2＋L2：夾邊範圍底邊 = −(縫＋附屬框＋呼吸)", mainPanel.clampInsets[4], -(6 + box.height + M))
     eq("L2：沒有標籤時上緣只有呼吸", mainPanel.clampInsets[3], M)
     eq("L2：左緣往外一圈呼吸", mainPanel.clampInsets[1], -M)
     eq("L2：右緣往外一圈呼吸", mainPanel.clampInsets[2], M)
@@ -636,18 +636,20 @@ do
     eq("I1：RIGHT 貼到主面板的 LEFT", sp.points[2][2], mainPanel)
     eq("I1：RIGHT→LEFT", sp.points[2][1] .. ">" .. sp.points[2][3], "RIGHT>LEFT")
     eq("I1：記下鏡射對象", sp.mirrorOf, mainPanel)
+    eq("N1：TOP→TOP 同邊對齊不推", sp.points[1][5], 0)
+    eq("N1：RIGHT→LEFT 相鄰邊往外推 6", sp.points[2][4], -6)
     check("I1：比價面板自己記下標籤高", sp.clampOwnTop and sp.clampOwnTop > 0, sp.clampOwnTop)
     eq("L1：鏡射在主面板上的比價面板自己不夾", sp.clamped, false)
     eq("L1：主面板替帶標籤的依附者預留上緣（標籤高＋呼吸）", mainPanel.clampInsets[3], sp.clampOwnTop + M)
     eq("L1：主面板仍照自己夾", mainPanel.clamped, true)
     -- 依附者的附屬框比主面板的還長 ⇒ 底邊取大者
     local ownBottom = sp.clampOwnBottom
-    sp.clampOwnBottom = 4 + box.height + 30
+    sp.clampOwnBottom = 6 + box.height + 30
     P.UpdateClampInsets(sp)
-    eq("L1：依附者附屬框更長 ⇒ 主面板底邊取大者", mainPanel.clampInsets[4], -(4 + box.height + 30 + M))
+    eq("L1：依附者附屬框更長 ⇒ 主面板底邊取大者", mainPanel.clampInsets[4], -(6 + box.height + 30 + M))
     sp.clampOwnBottom = ownBottom
     P.UpdateClampInsets(sp)
-    eq("L1：依附者附屬框變回短的 ⇒ 底邊回到主面板自己的", mainPanel.clampInsets[4], -(4 + box.height + M))
+    eq("L1：依附者附屬框變回短的 ⇒ 底邊回到主面板自己的", mainPanel.clampInsets[4], -(6 + box.height + M))
 
     -- 串鏈：第二顆比價框貼第一顆 ⇒ 第二顆也不夾、預留收到根（主面板）
     local shopB = H.Tip(env, "ShoppingTooltip4", { { left = "Ring" } })
@@ -659,6 +661,7 @@ do
     P.Try(shopB, stB, ITEM, { id = 7, lines = { { type = 22, lineIndex = 1, leftText = "Ring" } } })
     env.FlushTimers()
     eq("L1：第二顆鏡射在第一顆上", stB.panel.mirrorOf, sp)
+    eq("N1：鏈的第二顆 TOPRIGHT→TOPLEFT 也往外推 6", ("%g,%g"):format(stB.panel.points[1][4], stB.panel.points[1][5]), "-6,0")
     eq("L1：第二顆也不夾", stB.panel.clamped, false)
     stB.panel.clampOwnTop = sp.clampOwnTop + 9      -- 假裝第二顆的標籤更高
     P.UpdateClampInsets(stB.panel)

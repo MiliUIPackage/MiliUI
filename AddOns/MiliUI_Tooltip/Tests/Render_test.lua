@@ -388,9 +388,10 @@ do
     check("附屬框：顯示", box and box.shown)
     eq("附屬框：寬同主面板", box.w, panel.width)
     eq("附屬框：錨在主面板下方", box.points[1][1] .. ">" .. box.points[1][3], "TOPLEFT>BOTTOMLEFT")
-    eq("附屬框：留縫 4", box.points[1][5], -4)
-    eq("附屬框：totalHeight", panel.totalHeight, panel.height + 4 + box.height)
-    eq("附屬框：邊框用 general.borderColor、不吃品質色", box.edges[1].color[1], 0.18)
+    local gap = P.Scale(panel, P.LOOK.FRAME_GAP)
+    eq("N1：附屬框留縫 FRAME_GAP（6）", box.points[1][5], -6)
+    eq("附屬框：totalHeight", panel.totalHeight, panel.height + gap + box.height)
+    eq("N2：附屬框邊框用基底（職業色）、不吃品質色", box.edges[1].color[1], 0.25)
     eq("附屬框：底色同主面板", box.bg.color[1], 0.133)
     local idLine
     for i = 1, box.textsUsed do if box.texts[i].text == "Item ID: 19019" then idLine = box.texts[i] end end
@@ -486,6 +487,36 @@ do
     ns.Panel.RenderView(panel, tip, { header = { { text = "Hi", style = "title" } } }, state)
     eq("L2：預覽面板不設夾邊範圍", panel.clampInsets, nil)
     check("L2：預覽面板不夾邊", not panel.clamped)
+end
+
+------------------------------------------------------------
+-- 13. 基底邊色（N2）：沒有內容色＝職業色、品質色優先、開關關掉＝general.borderColor
+------------------------------------------------------------
+do
+    local _, ns, tip, state, panel = Setup()
+    local P = ns.Panel
+    local view = { header = { { text = "Fireball", style = "title" } },
+        extras = { rows = { { left = "Spell ID: 133" } } } }
+    P.RenderView(panel, tip, view, state)
+    P.PaintEdges(panel, state)
+    eq("N2：沒有內容色 ⇒ 邊是職業色", panel.edges[1].color[1] .. "," .. panel.edges[1].color[3], "0.25,0.92")
+    eq("N2：附屬框也是職業色", panel.extrasBox.edges[1].color[1], 0.25)
+    state.borderColor = { 0.64, 0.21, 0.93, 1 }
+    P.PaintEdges(panel, state)
+    eq("N2：有品質色 ⇒ 品質色", panel.edges[1].color[1], 0.64)
+    eq("N2：品質色時附屬框仍是基底", panel.extrasBox.edges[1].color[1], 0.25)
+    state.borderColor = nil
+    ns.db.general.borderClassColor = false
+    P.RenderView(panel, tip, view, state)
+    P.PaintEdges(panel, state)
+    eq("N2：開關關掉 ⇒ general.borderColor", panel.edges[1].color[1], 0.18)
+    eq("N2：開關關掉 ⇒ 附屬框也是 general.borderColor", panel.extrasBox.edges[1].color[1], 0.18)
+    local r, g, b, a = P.BaseBorderColor()
+    eq("N2：基底的透明度照 general.borderColor", a, 1)
+    ns.db.general.borderClassColor = nil
+    eq("N2：沒設定（nil）視同開", (P.BaseBorderColor()), 0.25)
+    ns.playerClass = "UNKNOWN"
+    eq("N2：職業色查不到 ⇒ 退 general.borderColor", (P.BaseBorderColor()), 0.18)
 end
 
 H.finish("Render_test")

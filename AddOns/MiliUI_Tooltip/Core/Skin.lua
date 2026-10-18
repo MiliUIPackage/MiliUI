@@ -265,13 +265,17 @@ function Skin.SetBackgroundColor(tip, r, g, b, a)
     state.bg:SetAlpha(S.PlainNumber(a) or 1)
 end
 
--- 還原成全域預設色（明文，可安全 unpack）
+-- 還原成全域預設色（明文，可安全 unpack）。邊色走基底（Panel.BaseBorderColor：職業色或 general.borderColor）
 function Skin.ResetColors(tip)
     local state = State[tip]
     if not state or not ns.db then return end
     local g = ns.db.general
     local bc, bgc = g.borderColor, g.background
-    Skin.SetBorderColor(tip, bc.r, bc.g, bc.b, bc.a)
+    if ns.Panel and ns.Panel.BaseBorderColor then
+        Skin.SetBorderColor(tip, ns.Panel.BaseBorderColor())
+    else
+        Skin.SetBorderColor(tip, bc.r, bc.g, bc.b, bc.a)
+    end
     Skin.SetBackgroundColor(tip, bgc.r, bgc.g, bgc.b, bgc.a)
 end
 

@@ -519,7 +519,7 @@ end
 
 ------------------------------------------------------------
 -- 附屬框：別的插件（含我們自己的 ID 行）後加的行另開一框接在主面板下面。
--- 寬同主面板、底色同主面板、邊框用 general.borderColor（不吃品質色，看起來是從屬的）。
+-- 寬同主面板、底色同主面板、邊框用基底邊色（Panel.BaseBorderColor：職業色或 general.borderColor；不吃品質色，看起來是從屬的）。
 -- 它有自己的 texts／textures 池與 width，DrawRow 直接拿它當 panel 用，不另寫排版。
 ------------------------------------------------------------
 local function EnsureBox(panel)
@@ -560,7 +560,7 @@ local function DrawBox(panel, ctx, rows)
     box.width = panel.width
     box:SetFrameLevel(panel:GetFrameLevel())
     box:ClearAllPoints()
-    local gap = m.sc(LOOK.EXTRAS_GAP)
+    local gap = m.sc(LOOK.FRAME_GAP)
     box:SetPoint("TOPLEFT", panel, "BOTTOMLEFT", 0, -gap)
     box:SetWidth(box.width)
     local y = m.padTop
@@ -570,7 +570,7 @@ local function DrawBox(panel, ctx, rows)
     box.height = Panel.Snap(panel, y + m.padBottom)
     box:SetHeight(box.height)
     local g = ns.db and ns.db.general
-    local bgc, bc = g and g.background, g and g.borderColor
+    local bgc = g and g.background
     if bgc then
         box.bg:SetVertexColor(bgc.r, bgc.g, bgc.b, 1)
         box.bg:SetAlpha(S.PlainNumber(bgc.a) or 1)
@@ -578,10 +578,8 @@ local function DrawBox(panel, ctx, rows)
         box.bg:SetVertexColor(0.133, 0.133, 0.133, 1)
     end
     Panel.LayoutEdges(box)
-    for i = 1, 4 do
-        if bc then box.edges[i]:SetVertexColor(bc.r, bc.g, bc.b, bc.a or 1)
-        else box.edges[i]:SetVertexColor(0.18, 0.18, 0.18, 1) end
-    end
+    local br, bgr, bb, ba = Panel.BaseBorderColor()
+    for i = 1, 4 do box.edges[i]:SetVertexColor(br, bgr, bb, ba) end
     box:Show()
     panel.totalHeight = panel.height + gap + box.height
 end

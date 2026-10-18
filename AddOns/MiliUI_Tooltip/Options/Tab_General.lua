@@ -20,6 +20,8 @@ local CONTROLS = {
     { type = "slider", key = "borderSize", label = L["Border thickness"], min = 0, max = 3, step = 1 },
     { type = "text",   label = L["0 = no border. Unit and item tooltips tint this border by class / reaction / quality."] },
     { type = "color",  key = "borderColor", label = L["Border color"] },
+    { type = "toggle", key = "borderClassColor", label = L["Class color border by default"] },
+    { type = "text",   label = L["Content colors such as item quality and NPC reaction still take priority. When off, the color above is used."] },
 
     { type = "header", label = L["Font"] },
     { type = "dropdown", key = "headerFont", label = L["Header font"], items = function() return ns.Media.FontItems() end },

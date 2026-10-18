@@ -296,6 +296,8 @@ L["Creates"] = "製造"
 L["Reagents"] = "材料"
 L["Separate box for lines added by other addons"] = "其他插件的補充行另開一框"
 L["When off, they are appended to the bottom of the main panel."] = "關閉時接在主面板底部。"
+L["Class color border by default"] = "邊框預設用職業色"
+L["Content colors such as item quality and NPC reaction still take priority. When off, the color above is used."] = "物品品質色、NPC 立場色等內容色照樣優先；關掉時用上面選的顏色。"
 L["Hide duplicate sell price lines from other addons"] = "隱藏其他插件重複的售價行"
 L["When the footer already shows the sell price, lines from other addons with the same amount are hidden."] = "頁尾已經有售價時，其他插件加的同金額行不再顯示。"
 

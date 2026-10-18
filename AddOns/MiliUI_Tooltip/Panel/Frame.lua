@@ -77,7 +77,7 @@ Panel.LOOK = {
     CREATED_ICON = 24,                 -- 配方成品的小圖示
     REAGENT_ICON = 14,
     BAR_W = 54, BAR_H = 6,             -- 頁尾耐久條
-    EXTRAS_GAP = 4,                    -- 附屬框（別人加的行）與主面板之間的縫
+    FRAME_GAP = 6,                     -- 框與框之間的縫：附屬框與主面板、比價面板之間、貼在面板旁的別家框（N1）
 }
 local LOOK = Panel.LOOK
 
@@ -407,12 +407,27 @@ function Panel.LayoutEdges(panel)
 end
 
 -- 邊框色：Skin.SetBorderColor 記下的那組（分量可能是秘密值，原封不動交給 SetVertexColor）
+-- 基底邊色（沒有內容色時的邊）：設定 borderClassColor 開著＝玩家職業色（HUD 皮的 1px 職業色邊），
+-- 關掉＝general.borderColor。透明度一律照 general.borderColor 的 a。
+-- Skin.ResetColors、面板的退路、附屬框都從這裡拿；品質色／立場色由 Skin.SetBorderColor 蓋過去
+function Panel.BaseBorderColor()
+    local g = ns.db and ns.db.general
+    local bc = g and g.borderColor
+    local a = bc and bc.a or 1
+    if g and g.borderClassColor ~= false then
+        local cls = ns.playerClass
+        local c = cls and ((_G.CUSTOM_CLASS_COLORS and _G.CUSTOM_CLASS_COLORS[cls])
+            or (_G.RAID_CLASS_COLORS and _G.RAID_CLASS_COLORS[cls]))
+        if c and type(c.r) == "number" then return c.r, c.g, c.b, a end
+    end
+    if bc then return bc.r, bc.g, bc.b, a end
+    return 0.18, 0.18, 0.18, 1
+end
+
 function Panel.BorderColor(state)
     local c = state and state.borderColor
-    local g = ns.db and ns.db.general
     if c then return c[1], c[2], c[3], c[4] or 1 end
-    if g then return g.borderColor.r, g.borderColor.g, g.borderColor.b, g.borderColor.a or 1 end
-    return 0.18, 0.18, 0.18, 1
+    return Panel.BaseBorderColor()
 end
 
 function Panel.PaintEdges(panel, state)
@@ -543,7 +558,9 @@ function Panel.Follow(frame)
         if not panel then return end
         relPoint = type(relPoint) == "string" and relPoint or point
         rec[1], rec[2], rec[3], rec[4], rec[5], rec.panel = point, rel, relPoint, x or 0, y or 0, panel
-        Reanchor(self, point, panel, relPoint, x or 0, y or 0)
+        -- 跟面板之間留縫（N1）：縫的單位是這顆框自己的（位移照它的縮放算）
+        local gx, gy = Panel.GapOffset(point, relPoint, Panel.Scale(self, LOOK.FRAME_GAP))
+        Reanchor(self, point, panel, relPoint, (x or 0) + gx, (y or 0) + gy)
     end)
 end
 
@@ -630,6 +647,21 @@ local function SetMirror(panel, target)
     Panel.UpdateClampInsets(target or panel)
 end
 
+------------------------------------------------------------
+-- 框與框之間留縫（N1）：點對是「相鄰邊」（我的右邊貼對方的左邊、我的頂貼對方的底…）時往外推 FRAME_GAP；
+-- 同邊對齊（TOP→TOP、RIGHT→RIGHT）不動。暴雪的比價框是緊貼的，面板之間貼死看起來像一塊
+------------------------------------------------------------
+function Panel.GapOffset(point, relPoint, gap)
+    if type(point) ~= "string" or type(relPoint) ~= "string" then return 0, 0 end
+    local p, r = point:upper(), relPoint:upper()
+    local dx, dy = 0, 0
+    if p:find("RIGHT", 1, true) and r:find("LEFT", 1, true) then dx = -gap
+    elseif p:find("LEFT", 1, true) and r:find("RIGHT", 1, true) then dx = gap end
+    if p:find("BOTTOM", 1, true) and r:find("TOP", 1, true) then dy = gap
+    elseif p:find("TOP", 1, true) and r:find("BOTTOM", 1, true) then dy = -gap end
+    return dx, dy
+end
+
 local function Mirror(panel, tip, points)
     local mirrored, target = {}, nil
     for i, p in ipairs(points) do
@@ -642,8 +674,13 @@ local function Mirror(panel, tip, points)
     local tipScale, panelScale = EffectiveScale(tip), EffectiveScale(panel)
     local ratio = (tipScale and panelScale) and (tipScale / panelScale) or 1
     local sig = {}
+    local gap = Panel.Scale(panel, LOOK.FRAME_GAP)
     for i, p in ipairs(mirrored) do
         p[4], p[5] = Panel.Snap(panel, p[4] * ratio), Panel.Snap(panel, p[5] * ratio)
+        if p[2] ~= points[i][2] then           -- 換成面板的點才留縫（貼原本對象的照舊）
+            local gx, gy = Panel.GapOffset(p[1], p[3], gap)
+            p[4], p[5] = p[4] + gx, p[5] + gy
+        end
         sig[i] = ("%s|%s|%s|%.3f|%.3f"):format(p[1], tostring(p[2]), tostring(p[3]), p[4], p[5])
     end
     SetMirror(panel, target)

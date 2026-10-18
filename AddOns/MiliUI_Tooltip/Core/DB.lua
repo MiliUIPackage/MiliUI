@@ -39,6 +39,7 @@ local function BuildDefaults()
             background = Color(0.133, 0.133, 0.133, 1),
             borderSize = 1,
             borderColor = Color(0.18, 0.18, 0.18, 1),
+            borderClassColor = true,   -- 沒有內容色（品質、立場、職業）的框邊用玩家職業色（HUD 皮：1px 職業色邊）
             headerFont = "default", headerFontSize = 0, headerFontFlag = "default",
             bodyFont = "default", bodyFontSize = 0, bodyFontFlag = "default",
             hideUnitFrameHint = true,
