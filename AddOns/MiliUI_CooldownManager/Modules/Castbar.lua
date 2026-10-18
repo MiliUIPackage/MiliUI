@@ -28,6 +28,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 local L = ns.L
 
 ns.Castbar = {}
@@ -269,7 +272,7 @@ local function Build()
     f.marks = CreateFrame("Frame", nil, f.bar)
     f.marks:SetAllPoints(f.bar)
     f.markPool = {}
-    f.latency = f.marks:CreateTexture(nil, "OVERLAY", nil, 6)
+    f.latency = NoSnap(f.marks:CreateTexture(nil, "OVERLAY", nil, 6))
     f.latency:SetTexture(SOLID)
     f.latency:SetVertexColor(1, 0, 0, 0.5)
     f.latency:Hide()
@@ -303,7 +306,7 @@ end
 local function Mark(i)
     local t = f.markPool[i]
     if not t then
-        t = f.marks:CreateTexture(nil, "OVERLAY", nil, 7)
+        t = NoSnap(f.marks:CreateTexture(nil, "OVERLAY", nil, 7))
         t:SetTexture(SOLID)
         f.markPool[i] = t
     end

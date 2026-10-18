@@ -73,6 +73,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 local L = ns.L
 
 ns.Resources = {}
@@ -621,7 +624,7 @@ function R.BorderColor(cfg)
 end
 
 local function MakeEdge(parent, p1, p2)
-    local e = parent:CreateTexture(nil, "OVERLAY")
+    local e = NoSnap(parent:CreateTexture(nil, "OVERLAY"))
     e:SetTexture(SOLID)
     e:SetVertexColor(0, 0, 0, 1)
     e:SetPoint(p1)
@@ -707,7 +710,8 @@ R.Edges = Edges
 local function MakeSegment(row)
     local seg = CreateFrame("StatusBar", nil, row)
     seg:SetStatusBarTexture(SOLID)
-    local bg = seg:CreateTexture(nil, "BACKGROUND")
+    NoSnap(seg)
+    local bg = NoSnap(seg:CreateTexture(nil, "BACKGROUND"))
     bg:SetTexture(SOLID)
     bg:SetAllPoints(seg)
     seg.bg = bg
@@ -764,12 +768,13 @@ local function MakeRow(parent)
     local row = CreateFrame("Frame", nil, parent)
     row.segs = {}
     for i = 1, MAX_SEGMENTS do row.segs[i] = MakeSegment(row) end
-    row.barBG = row:CreateTexture(nil, "BACKGROUND")
+    row.barBG = NoSnap(row:CreateTexture(nil, "BACKGROUND"))
     row.barBG:SetAllPoints(row)
     row.barBG:SetTexture(SOLID)
     row.bar = CreateFrame("StatusBar", nil, row)
     row.bar:SetAllPoints(row)
     row.bar:SetStatusBarTexture(SOLID)
+    NoSnap(row.bar)
     -- 邊框建在 bar 上：bar 是層級更高的子框，建在 row 上會被填充蓋掉
     row.barEdges = Edges(row.bar)
     -- 數值掛在獨立的高層框上，父層是 row（點數型會把 bar 整個藏起來）
@@ -1089,7 +1094,7 @@ local function TickUpdate(frame)
     for i, e in ipairs(list) do
         local t = ticks[i]
         if not t then
-            t = frame:CreateTexture(nil, "OVERLAY", nil, 7)
+            t = NoSnap(frame:CreateTexture(nil, "OVERLAY", nil, 7))
             t:SetTexture(SOLID)
             ticks[i] = t
         end

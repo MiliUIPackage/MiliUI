@@ -33,6 +33,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.Shape = {}
 local SH = ns.Shape
 
@@ -197,6 +200,7 @@ function SH.Paint(art, o)
         if not u then
             u = host:CreateTexture(nil, "BACKGROUND", nil, -7)
             u:SetTexture(WHITE)
+            NoSnap(u)
             art.under = u
             art.umask = host:CreateMaskTexture()
             art.umask:SetAllPoints(u)
@@ -221,6 +225,7 @@ function SH.Paint(art, o)
         local s = art.shadowTex
         if not s then
             s = host:CreateTexture(nil, "BACKGROUND", nil, -8)
+            NoSnap(s)
             art.shadowTex = s
         end
         s:SetTexture(SH.SHADOW[shape or "square"])
