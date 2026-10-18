@@ -24,7 +24,9 @@
 --      它的 OnClick 是 HideUIPanel(ItemRefTooltip)，在污染的執行裡跑會連坐面板管理與比價管理器的共用狀態
 --  12. hooksecurefunc(tip, "Show")／(tip, "SetShown")（Panel/Native.lua 的 HookShow）：暴雪的 Show 會把
 --      alpha 改回 1、而且在 post-call 之後才叫 ⇒ 後掛勾同一幀壓回 0。只掛在用過面板的 tooltip 上、
---      面板沒在用時掛勾什麼都不做；掛勾裡只查 Skin.State、只呼叫 SetAlpha
+--      面板沒在用時掛勾什麼都不做；掛勾裡只查 Skin.State、只呼叫 SetAlpha（與補回被清掉的 padding）
+--  13. tip:SetClampedToScreen(false)／還原（Panel/Native.lua）：接管期間原生不夾邊、改由我們的面板自己夾
+--      （面板 SetClampRectInsets 把附屬框與標籤算進去）。C 端 setter，第一次藏原生時記原值、Restore 寫回
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，

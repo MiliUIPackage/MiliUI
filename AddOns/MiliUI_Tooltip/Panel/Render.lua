@@ -706,5 +706,12 @@ function Panel.RenderView(panel, tip, view, state)
     else
         HideBox(panel)
     end
+    -- 夾邊（原生的夾邊關掉了，見 Native.Hide）：把面板外面那幾塊也算進範圍——
+    -- 底下的附屬框（縫＋框高）、上方的「目前裝備」標籤。正值往外（同暴雪 SharedTooltip_OnLoad 的上緣 25）
+    if not state.isPreview and panel.SetClampRectInsets then
+        local top = (panel.tag and panel.tag:IsShown()) and (m.tagGap + m.tagH) or 0
+        local bottom = (panel.totalHeight or panel.height) - panel.height
+        panel:SetClampRectInsets(0, 0, top, -bottom)
+    end
     return true
 end

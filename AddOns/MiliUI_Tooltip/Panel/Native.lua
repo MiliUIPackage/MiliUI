@@ -82,6 +82,15 @@ function Native.Hide(tip, state)
         local r, b, l, t = ReadPadding(tip)
         if not r then return false end
         saved = { alpha = alpha, right = r, bottom = b, left = l, top = t }
+        -- 接觸面 #13：原生的夾邊關掉、改由我們的面板自己夾（Panel/Frame.lua 的 panel 是 SetClampedToScreen(true)）。
+        -- 暴雪的 clamp 照原生的總高決定要不要往下推；原生高度一抖就切換、整組跳一截
+        -- （2026-10-18 實機 dump：三顆 top 全是螢幕上緣）。原值記下來，Restore 寫回。
+        -- 暴雪只在 XML 設 clampedToScreen、執行期間不改（wow-ui-source 查過），不必在 Show 後重申
+        local okC, clamped = pcall(tip.IsClampedToScreen, tip)
+        if okC and not S.IsSecret(clamped) and type(clamped) == "boolean" then
+            saved.clamped = clamped
+            if tip.SetClampedToScreen then tip:SetClampedToScreen(false) end
+        end
         state.native = saved
     end
     HookShow(tip, state)
@@ -115,7 +124,11 @@ Native.RestoreClearedPadding = RestoreClearedPadding
 function Native.Fit(tip, state)
     local saved, panel = state.native, state.panel
     if not saved or not panel or not panel.width or not panel.height then return end
-    if RestoreClearedPadding(tip, state) then return true end
+    if RestoreClearedPadding(tip, state) then
+        -- 不推自然尺寸，但對齊照做（比價面板要能在這裡轉成鏡射到主面板）
+        if not Panel.Align(panel, tip) then return false end
+        return true
+    end
     local okS, shown = pcall(tip.IsShown, tip)
     if not okS or S.IsSecret(shown) or not shown then return end
 
@@ -163,6 +176,7 @@ function Native.Restore(tip, state)
     Panel.ResetNativeClose(tip)      -- 聊天連結提示：原生關閉鈕貼回原位
     if not saved then return end
     if S.IsForbiddenObject(tip) then return end
+    if saved.clamped ~= nil and tip.SetClampedToScreen then tip:SetClampedToScreen(saved.clamped) end
     local okS, shown = pcall(tip.IsShown, tip)
     if okS and not S.IsSecret(shown) and shown and set then
         local pr, pb = ReadPadding(tip)

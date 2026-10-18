@@ -576,4 +576,84 @@ do
     eq("設定版本變：下一幀就重畫", t14.renders(), base + 2)
 end
 
+------------------------------------------------------------
+-- 15. 鏡射錨點（I1）與原生不夾邊（I2）
+------------------------------------------------------------
+do
+    local t15 = Setup()
+    local env, P = t15.env, t15.P
+    local main = t15.tip                         -- GameTooltip：BOTTOMLEFT→UIParent（從下緣錨定）
+    main.clamped = true
+    P.Try(main, t15.state, ITEM, t15.data)
+    env.FlushTimers()
+    local mainPanel = t15.state.panel
+    eq("I2：接管時原生不夾邊", main.clamped, false)
+    -- 主提示有別人加的行 ⇒ 附屬框；面板的夾邊範圍底邊多算縫＋附屬框
+    local box = mainPanel.extrasBox
+    check("前提：主面板有附屬框", box and box.shown)
+    eq("I2：夾邊範圍底邊 = −(縫＋附屬框)", mainPanel.clampInsets[4], -(4 + box.height))
+    eq("I2：沒有標籤時上緣 0", mainPanel.clampInsets[3], 0)
+
+    -- 比價框：TOP→GameTooltip:TOP、RIGHT→GameTooltip:LEFT
+    local shop = H.Tip(env, "ShoppingTooltip1", { { left = "Old Sword" } })
+    shop.clamped = true
+    shop:ClearAllPoints()
+    shop:SetPoint("TOP", main, "TOP", 0, 0)
+    shop:SetPoint("RIGHT", main, "LEFT", 0, 0)
+    local st = {}
+    t15.ns.Skin.State[shop] = st
+    local shopData = { id = 5, lines = { { type = 22, lineIndex = 1, leftText = "Old Sword" } } }
+    P.Try(shop, st, ITEM, shopData)
+    env.FlushTimers()
+    local sp = st.panel
+    eq("I1：比價面板的點數照原生", #sp.points, 2)
+    eq("I1：TOP 貼到主面板", sp.points[1][2], mainPanel)
+    eq("I1：TOP→TOP", sp.points[1][1] .. ">" .. sp.points[1][3], "TOP>TOP")
+    eq("I1：RIGHT 貼到主面板的 LEFT", sp.points[2][2], mainPanel)
+    eq("I1：RIGHT→LEFT", sp.points[2][1] .. ">" .. sp.points[2][3], "RIGHT>LEFT")
+    eq("I1：記下鏡射對象", sp.mirrorOf, mainPanel)
+    check("I1：有「目前裝備」標籤時上緣也算進夾邊", sp.clampInsets[3] > 0)
+
+    -- 主提示的原生自然寬高變了（重設時短暫變）、主面板寬高不變 ⇒ 比價面板不動
+    local before = {}
+    for i, p in ipairs(sp.points) do before[i] = table.concat({ p[1], tostring(p[2]), p[3], p[4], p[5] }, ",") end
+    main.h, main.w = main.h + 37, main.w + 23
+    main.top = main.top + 37
+    t15.polls[st]()
+    env.FlushTimers()
+    local same = true
+    for i, p in ipairs(sp.points) do
+        if table.concat({ p[1], tostring(p[2]), p[3], p[4], p[5] }, ",") ~= before[i] then same = false end
+    end
+    check("I1：對方原生寬高變了、對方面板沒變 ⇒ 比價面板的錨點一模一樣", same)
+
+    -- 主面板退回 ⇒ 比價面板當場改回貼自己的原生
+    P.Restore(main, t15.state)
+    eq("I2：退回時原生的夾邊寫回原值", main.clamped, true)
+    eq("I1：主面板沒了 ⇒ 比價面板貼自己的原生", sp.points[1][2], shop)
+    eq("I1：照被錨定的那一角（TOP＋RIGHT）", sp.points[1][1], "TOPRIGHT")
+    eq("I1：不再記鏡射對象", sp.mirrorOf, nil)
+
+    -- 對方面板沒顯示時第一次對齊：貼自己的原生
+    local shop2 = H.Tip(env, "ShoppingTooltip2", { { left = "Other" } })
+    shop2:ClearAllPoints()
+    shop2:SetPoint("TOPRIGHT", main, "TOPLEFT", 0, 0)
+    local st2 = {}
+    t15.ns.Skin.State[shop2] = st2
+    P.Try(shop2, st2, ITEM, { id = 6, lines = { { type = 22, lineIndex = 1, leftText = "Other" } } })
+    eq("I1：對方面板沒顯示 ⇒ 貼自己的原生", st2.panel.points[1][2], shop2)
+    P.Restore(shop2, st2)
+    P.Restore(shop, st)
+    eq("I2：比價框退回也寫回夾邊", shop.clamped, true)
+
+    -- 秘密錨點：整格退回（照舊）
+    local shop3 = H.Tip(env, "ShoppingTooltip3", { { left = "S" } })
+    shop3:ClearAllPoints()
+    shop3:SetPoint("TOP", SECRET, "TOP", 0, 0)
+    local st3 = {}
+    t15.ns.Skin.State[shop3] = st3
+    P.Try(shop3, st3, ITEM, { id = 7, lines = { { type = 22, lineIndex = 1, leftText = "S" } } })
+    check("秘密錨點：不顯示", not (st3.panel and st3.panel.shown))
+end
+
 H.finish("Try_test")

@@ -33,11 +33,14 @@
 --
 -- 跟 `ThirdParty/RaiderIO.lua` 同一套（STYLE.md ③ 特例二）。
 --
--- **首選 `MiliUITip_API.Adopt(tip, { keepScale = true })`**：外觀跟旁邊那顆提示
+-- **首選 `MiliUITip_API.Adopt(tip, { keepScale = true, ignoreParentAlpha = true })`**：外觀跟旁邊那顆提示
 -- 完全一致（底色、邊色、邊寬、頂部遮罩都跟著玩家的提示框設定走）。
 -- ⚠ **`keepScale` 一定要帶。** `Adopt` 預設會對接管的框 `SetScale(玩家設的提示縮放)`，
 --   而這顆每次顯示都掛在 `GameTooltip` 底下、有效縮放已經吃到那一份 ⇒ 不帶的話
 --   縮放 ≠ 1 的玩家會看到預覽變成平方倍（1.2 → 1.44）。
+-- ⚠ **`ignoreParentAlpha` 也一定要帶。** 提示插件的重繪面板會把 `GameTooltip` 壓 alpha 0（原生框當看不見的替身），
+--   這顆掛在它底下就跟著透明：實機看到只剩 3D 模型浮在世界上（模型不吃父層 alpha），底、邊、兩行字全不見。
+--   退回路徑不需要：沒有提示插件就沒人把 `GameTooltip` 壓 0。
 -- 接管後的層級：提示插件的 skin 子框壓在本體 −1，而它的模型框每次重設都
 -- `SetFrameLevel(本體)` ⇒ 底在模型之下，模型與兩行字（`OVERLAY`）照常在上面。
 --
@@ -66,6 +69,7 @@
 -- | 物件 | 動作 |
 -- |---|---|
 -- | `AppearanceTooltipTooltip` | `MiliUITip_API.Adopt`（有提示插件時）—— 動作記在那一支的接觸面清單；`keepScale` ⇒ 不寫 `SetScale` |
+-- | 同一顆 | `SetIgnoreParentAlpha(true)`（經由 `Adopt` 的 `ignoreParentAlpha`；有提示插件時） |
 -- | 它的 `NineSlice` | `SetAlpha(0)`（退回路徑） |
 -- | 它自己 | `CreateTexture`（底 ＋ 四條邊，經由 `Engine.RegionBackdrop`；退回路徑） |
 --
@@ -121,7 +125,7 @@ local function Sweep()
     --   不能因為早了一拍就退回我們自己畫的那一層。
     local ok
     if MiliUITip_API and type(MiliUITip_API.Adopt) == "function" then
-        ok = MiliUITip_API.Adopt(frame, { keepScale = true })
+        ok = MiliUITip_API.Adopt(frame, { keepScale = true, ignoreParentAlpha = true })
     else
         ok = PaintTipSkin(frame)
     end

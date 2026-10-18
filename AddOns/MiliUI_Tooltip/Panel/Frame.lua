@@ -464,7 +464,69 @@ local function GridOffset(panel, tip, side, vside)
     return Panel.Snap(panel, x) - x, Panel.Snap(panel, y) - y
 end
 
+------------------------------------------------------------
+-- 鏡射錨點：原生錨在「另一顆已接管、面板顯示中的 tooltip」上（比價框 TOP→GameTooltip:TOP、
+-- RIGHT→GameTooltip:LEFT；ShoppingTooltip2 → ShoppingTooltip1）⇒ 面板照原生的每一個點，
+-- 把 relativeTo 換成對方的 **panel**，point／relativePoint／位移原樣。
+-- 原生的幾何依賴（主提示的自然寬高每次重設都短暫變一下 ⇒ 比價框的原生跟著動）就不會傳到面板上：
+-- 比價面板只依賴主面板，主面板的穩定（貼被錨定的一角、只長不縮）就傳下去（2026-10-18 實機：比價面板上下、左右抖）。
+-- 回傳 nil＝這顆沒有錨在別的面板上（照 G1 貼自己的原生）；false＝讀到秘密值。
+------------------------------------------------------------
+local function ReadPoints(tip)
+    local ok, n = pcall(tip.GetNumPoints, tip)
+    n = ok and S.PlainNumber(n)
+    if not n then return nil end
+    local points = {}
+    for i = 1, n do
+        local okP, point, rel, relPoint, x, y = pcall(tip.GetPoint, tip, i)
+        if not okP then return nil end
+        if S.IsSecret(point) or S.IsSecret(rel) or S.IsSecret(relPoint) or S.IsSecret(x) or S.IsSecret(y) then
+            return nil
+        end
+        points[i] = { point, rel, relPoint, x or 0, y or 0 }
+    end
+    return points
+end
+
+local function PanelOf(rel, tip, panel)
+    if type(rel) ~= "table" or rel == tip or not (ns.Skin and ns.Skin.State) then return nil end
+    local st = ns.Skin.State[rel]
+    local other = st and st.panel
+    if other and other ~= panel and other:IsShown() then return other end
+end
+
+local function Mirror(panel, tip, points)
+    local mirrored, target = {}, nil
+    for i, p in ipairs(points) do
+        local other = PanelOf(p[2], tip, panel)
+        if other then target = other end
+        mirrored[i] = { p[1], other or p[2], p[3], p[4], p[5] }
+    end
+    if not target then return nil end
+    -- 位移換成 panel 的單位、修整數像素（對方面板的角本來就在整數像素上）
+    local tipScale, panelScale = EffectiveScale(tip), EffectiveScale(panel)
+    local ratio = (tipScale and panelScale) and (tipScale / panelScale) or 1
+    local sig = {}
+    for i, p in ipairs(mirrored) do
+        p[4], p[5] = Panel.Snap(panel, p[4] * ratio), Panel.Snap(panel, p[5] * ratio)
+        sig[i] = ("%s|%s|%s|%.3f|%.3f"):format(p[1], tostring(p[2]), tostring(p[3]), p[4], p[5])
+    end
+    sig = "mirror:" .. table.concat(sig, ";")
+    panel.mirrorOf = target
+    if panel.alignSig == sig then return true end
+    panel.alignSig = sig
+    panel:ClearAllPoints()
+    for _, p in ipairs(mirrored) do panel:SetPoint(p[1], p[2], p[3], p[4], p[5]) end
+    return true
+end
+
 function Panel.Align(panel, tip)
+    local points = ReadPoints(tip)
+    if not points then return false end
+    local mirrored = Mirror(panel, tip, points)
+    if mirrored then return true end
+    panel.mirrorOf = nil
+
     local side, vside = AnchoredSide(tip)
     if not side then return false end
     local dx, dy = GridOffset(panel, tip, side, vside)
@@ -474,11 +536,9 @@ function Panel.Align(panel, tip)
         dy = dy + ((panel.totalHeight or panel.height or 0) - (panel.height or 0))
     end
     local corner = vside .. side
-    if panel.alignCorner == corner and panel.alignTip == tip
-        and math.abs(dx - (panel.alignX or 0)) < 0.001 and math.abs(dy - (panel.alignY or 0)) < 0.001 then
-        return true
-    end
-    panel.alignCorner, panel.alignTip, panel.alignX, panel.alignY = corner, tip, dx, dy
+    local sig = ("own:%s|%s|%.3f|%.3f"):format(corner, tostring(tip), dx, dy)
+    if panel.alignSig == sig then return true end
+    panel.alignSig = sig
     panel:ClearAllPoints()
     panel:SetPoint(corner, tip, corner, dx, dy)
     return true
@@ -487,5 +547,5 @@ end
 -- 脫離錨點鏈（重排前、退回時）
 function Panel.Detach(panel)
     panel:ClearAllPoints()
-    panel.alignCorner, panel.alignTip = nil, nil
+    panel.alignSig, panel.mirrorOf = nil, nil
 end

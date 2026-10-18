@@ -51,6 +51,12 @@ end
 --                      GameTooltip 底下」的框用（例如外觀預覽的模型框）：它的有效縮放
 --                      已經吃到父層那一份，我們再縮一次就變成平方。之後設定變更重跑
 --                      `ApplyBase` 也照樣跳過。
+--   ignoreParentAlpha = true
+--                      對這顆 `SetIgnoreParentAlpha(true)`（C 端 setter，不寫欄位；這顆是別的插件
+--                      自己建的 Frame，不是暴雪物件）。給「自己 SetParent 到 GameTooltip 底下」的框用：
+--                      重繪面板會把 GameTooltip 壓 alpha 0（Panel/Native.lua），子框跟著透明 ⇒
+--                      實機看到外觀預覽只剩 3D 模型浮著（模型本來就不吃父層 alpha），底、邊、字全不見。
+--                      這一項每次呼叫都會套（冪等的 setter），不受「接管過就直接回 true」影響。
 ------------------------------------------------------------
 MiliUITip_API = MiliUITip_API or {}
 
@@ -58,6 +64,9 @@ function MiliUITip_API.Adopt(tip, opts)
     if type(tip) ~= "table" then return false end
     -- 還沒初始化好（設定值還沒讀進來）⇒ 現在接管會畫出一顆沒有設定的框
     if not ns.db then return false end
+    if opts and opts.ignoreParentAlpha and tip.SetIgnoreParentAlpha then
+        pcall(tip.SetIgnoreParentAlpha, tip, true)
+    end
     if ns.Skin.Get(tip) then return true end
     ns.TrackTip(tip, nil, opts)
     ns.Skin.ApplyBase(tip)
