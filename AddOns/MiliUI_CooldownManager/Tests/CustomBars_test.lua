@@ -78,6 +78,8 @@ local function Load(rel)
 end
 
 Load("Core/DB.lua")
+
+Load("Core/DB_Custom.lua")
 Load("Modules/AuraBar.lua")
 Load("Modules/CustomBars.lua")
 local DB, AB, CB = ns.DB, ns.AuraBar, ns.CustomBars

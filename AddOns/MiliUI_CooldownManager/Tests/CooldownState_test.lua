@@ -91,6 +91,9 @@ local function Load(rel)
 end
 Load("Core/SpellIndex.lua")
 Load("Core/Decorate.lua")
+Load("Core/Decorate_Bars.lua")
+Load("Core/Decorate_Rings.lua")
+Load("Core/Decorate_Tooltip.lua")
 local D, SI = ns.Decorate, ns.SpellIndex
 
 -- 假的 item：記下最後一次 alpha 寫入
@@ -428,6 +431,7 @@ end
 ------------------------------------------------------------
 env.UIParent = {}
 Load("Modules/Custom.lua")
+Load("Modules/Custom_Aura.lua")
 local CU = ns.Custom
 do
     local f = Item()

@@ -86,6 +86,8 @@ local function Load(rel)
 end
 
 Load("Core/DB.lua")
+
+Load("Core/DB_Custom.lua")
 Load("Core/Visibility.lua")
 Load("Modules/MountSpecial.lua")
 local DB, Vis, MS = ns.DB, ns.Visibility, ns.MountSpecial
