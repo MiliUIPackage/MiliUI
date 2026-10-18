@@ -548,15 +548,6 @@ local function Reanchor(frame, point, rel, relPoint, x, y)
     following = false
 end
 
-local function RootOf(panel)
-    local depth = 0
-    while panel and panel.mirrorOf and depth < MAX_CHAIN do
-        panel, depth = panel.mirrorOf, depth + 1
-    end
-    return panel
-end
-Panel.RootOf = RootOf
-
 function Panel.Follow(frame)
     if type(frame) ~= "table" or followers[frame] or type(frame.SetPoint) ~= "function" then return end
     followers[frame] = {}
@@ -638,7 +629,7 @@ function Panel.ClampReserve(panel)
     return Reserve(panel, 0), panel.clampMargin or 0
 end
 
--- 換鏡射目標（RootOf／Reserve 用）
+-- 換鏡射目標（Reserve 沿 mirrorOf 收預留用）
 local function SetMirror(panel, target)
     panel.mirrorOf = target
 end

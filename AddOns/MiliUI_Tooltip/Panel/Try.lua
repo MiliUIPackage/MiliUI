@@ -120,7 +120,7 @@ function Panel.Restore(tip, state)
     end
     if state.native or (state.panel and state.panel:IsShown()) then
         local gone = state.panel
-        -- 跟著這個面板的別家框（外觀預覽）先處理：要在面板還有點的時候讀它的位置才停得住（Panel.ReturnFollowers 的 Park）
+        -- 貼在這個面板上的別家框（外觀預覽）先貼回原生，再拆面板
         if gone then Panel.ReturnFollowers(gone) end
         Native.Restore(tip, state)
         -- 鏡射在這個面板上的（比價面板）當場改回貼自己的原生，不能錨在一個清掉錨點的框上

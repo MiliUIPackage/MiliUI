@@ -61,11 +61,6 @@ function Region:SetWidth(w) self.w = w end
 function Region:SetHeight(h) self.h = h end
 function Region:GetWidth() return self.w end
 function Region:GetHeight() return self.h end
--- 幾何：測試自己設 left／top（沒設就回 nil＝還沒排版）
-function Region:GetLeft() return self.left end
-function Region:GetRight() return self.left and self.w and (self.left + self.w) or nil end
-function Region:GetTop() return self.top end
-function Region:GetBottom() return self.top and self.h and (self.top - self.h) or nil end
 function Region:Show() self.shown = true end
 function Region:Hide() self.shown = false end
 function Region:SetShown(v) self.shown = v and true or false end
@@ -164,8 +159,6 @@ function H.Env(extra)
     env.GetLocale = function() return "zhTW" end
     env.UIParent = H.Region("Frame", nil, "UIParent")
     env.UIParent.shown = true
-    env.GetScreenWidth = function() return env.screenW or 1600 end
-    env.GetScreenHeight = function() return env.screenH or 900 end
     env.CreateFrame = function(kind, name, parent)
         local f = H.Region(kind or "Frame", parent, name)
         f.RegisterEvent = function() end
