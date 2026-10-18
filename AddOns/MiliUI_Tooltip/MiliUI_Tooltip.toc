@@ -26,6 +26,7 @@ Locales\zhTW.lua
 Locales\zhCN.lua
 
 Core\Init.lua
+Core\Record.lua
 Core\Media.lua
 Core\DB.lua
 Core\Colors.lua
@@ -42,6 +43,16 @@ Modules\Quest.lua
 Modules\Model.lua
 Modules\Anchor.lua
 Modules\ChatHover.lua
+Panel\Patterns.lua
+Panel\Frame.lua
+Panel\Render.lua
+Panel\Native.lua
+Panel\ReadFallback.lua
+Panel\Try.lua
+Panel\ReadSpell.lua
+Panel\ViewSpell.lua
+Panel\ReadItem.lua
+Panel\ViewItem.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua

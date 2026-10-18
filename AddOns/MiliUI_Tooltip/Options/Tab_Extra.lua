@@ -143,6 +143,21 @@ end)
 local extraTab, extraRefreshers
 
 local EXTRA_CONTROLS = {
+    { type = "header", label = L["Panel"] },
+    { type = "toggle", root = "item", key = "panel", label = L["Redraw item tooltips as a panel"] },
+    { type = "toggle", root = "spell", key = "panel", label = L["Redraw spell tooltips as a panel"] },
+    { type = "text", label = L["When off, the native layout is kept and only the border and colors are applied."] },
+    { type = "toggle", root = "panel", key = "separators", label = L["Separator lines and diamonds"] },
+    { type = "toggle", root = "panel", key = "strip", label = L["Spell cost / cast / cooldown / range strip"] },
+    { type = "dropdown", root = "panel", key = "numberColor", label = L["Numbers in descriptions"], items = {
+        { text = L["Class color"], value = "class" },
+        { text = L["Custom color"], value = "custom" },
+        { text = L["No color"], value = "none" },
+    } },
+    { type = "color", root = "panel", key = "numberCustom", label = L["Custom number color"], hasAlpha = false },
+    { type = "toggle", root = "panel", key = "statMarkers", label = L["Diamond before item stats"] },
+    { type = "toggle", root = "panel", key = "levelBadge", label = L["Item level under the icon"] },
+
     { type = "header", label = L["Item"] },
     { type = "toggle", root = "item", key = "coloredItemBorder", label = L["Border by item quality"] },
     { type = "toggle", root = "item", key = "showItemIcon", label = L["Item icon before the name"] },

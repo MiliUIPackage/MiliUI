@@ -1,0 +1,394 @@
+------------------------------------------------------------
+-- Panel/ReadItem.lua＋ViewItem.lua 的離線測試（不進 TOC）
+--
+--   lua AddOns/MiliUI_Tooltip/Tests/ReadItem_test.lua
+--
+-- fixture 是手拼的：每一行用 fixtures/GlobalStrings.lua（＋檔內幾條主屬性格式）的實值 format 出來。
+-- ⚠ 真實物品的行佈局（尤其配方的「製造／材料」兩段）要靠 /mtip record 的資料再驗。
+-- 覆蓋（三語）：護甲件（物品等級、提升等級、綁定、唯一、部位／護甲類、護甲、主／次／三屬性分類與排序、
+-- 套裝名／物件／加成、耐久、職業限定、售價）、武器（傷害＋速度＋每秒傷害）、飾品（使用效果＋冷卻）、
+-- 配方（技能需求、成品、材料擁有／需要）、消耗品（沒有部位）、比價框第一行「目前裝備」→ 標籤、
+-- 別人加的行進 extras、秘密 → nil、Try 整合（物品 reader 登記後真的被用到）。
+------------------------------------------------------------
+local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
+local H = dofile(here .. "/helpers.lua")
+H.here = here
+local check, eq = H.check, H.eq
+local GS = dofile(here .. "/fixtures/GlobalStrings.lua")
+
+-- 主屬性的完整格式（%c 是正負號）與部位名，三語實值
+local EXTRA = {
+    enUS = { ITEM_MOD_AGILITY = "%c%s Agility", ITEM_MOD_STAMINA = "%c%s Stamina", INVTYPE_HEAD = "Head",
+        INVTYPE_2HWEAPON = "Two-Hand" },
+    zhTW = { ITEM_MOD_AGILITY = "%c%s敏捷", ITEM_MOD_STAMINA = "%c%s耐力", INVTYPE_HEAD = "頭部",
+        INVTYPE_2HWEAPON = "雙手" },
+    zhCN = { ITEM_MOD_AGILITY = "%c%s 敏捷", ITEM_MOD_STAMINA = "%c%s 耐力", INVTYPE_HEAD = "头部",
+        INVTYPE_2HWEAPON = "双手" },
+}
+
+local LT = H.Env().Enum.TooltipDataLineType
+local WHITE = { 1, 1, 1 }
+local GREEN = { 0, 1, 0 }
+local GRAY = { 0.5, 0.5, 0.5 }
+local RED = { 1, 0.125, 0.125 }
+local GOLD = { 1, 0.82, 0 }
+local EPIC = { 0.64, 0.21, 0.93 }
+
+local function Setup(locale)
+    local strings = {}
+    for k, v in pairs(GS[locale]) do strings[k] = v end
+    for k, v in pairs(EXTRA[locale]) do strings[k] = v end
+    local env = H.Env(strings)
+    env.C_Spell = { GetSpellTexture = function(id) return 1000 + id end }
+    env.C_Item = { GetItemIconByID = function(x) return type(x) == "number" and 5000 + x or 7777 end,
+        GetItemCount = function(name) return name == "Silk" and 5 or 1 end }
+    env.C_CurrencyInfo = { GetCoinTextureString = function(c) return c .. "c" end }
+    env.UnitLevel = function() return 80 end
+    local ns = {
+        L = setmetatable({}, { __index = function(_, k) return k end }),
+        Media = { WHITE8X8 = "white", Font = function() return "default.ttf" end, BarTexture = function() return "satin.png" end },
+        playerClass = "MAGE",
+        db = { general = { scale = 1, background = { r = 0.133, g = 0.133, b = 0.133, a = 1 },
+            borderColor = { r = 0.18, g = 0.18, b = 0.18, a = 1 } },
+            item = { panel = true }, spell = { panel = true },
+            panel = { separators = true, strip = true, statMarkers = true, levelBadge = true, numberColor = "class" } },
+        Skin = { State = {}, Poll = function() end, Unpoll = function() end, Each = function() end },
+    }
+    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Panel/Patterns.lua", "Panel/Frame.lua", "Panel/Render.lua",
+        "Panel/Native.lua", "Panel/ReadFallback.lua", "Panel/Try.lua", "Panel/ReadSpell.lua", "Panel/ViewSpell.lua",
+        "Panel/ReadItem.lua", "Panel/ViewItem.lua" }) do
+        H.Load(env, ns, f)
+    end
+    local function F(key, ...) return string.format(strings[key], ...) end
+    return ns.Panel, F, strings, env, ns
+end
+
+local function Row(i, left, right, opts)
+    local r = { left = left, right = right, lineIndex = i, color = WHITE }
+    for k, v in pairs(opts or {}) do r[k] = v end
+    return r
+end
+local function Blank(i) return Row(i, " ", nil, { type = LT.Blank }) end
+
+local GAME = {
+    itemIcon = function(x) return type(x) == "number" and 5000 + x or 7777 end,
+    itemCount = function(name) return name == "Silk" and 5 or 1 end,
+    playerLevel = function() return 80 end,
+}
+
+-- 屬性行：數字跟名字之間 zhTW 沒有空白、enUS／zhCN 有（照 ITEM_MOD_X 的格式）
+local function StatLine(locale, value, shortName)
+    return "+" .. value .. (locale == "zhTW" and "" or " ") .. shortName
+end
+
+------------------------------------------------------------
+-- 1. 三語：護甲件（含套裝）
+------------------------------------------------------------
+for _, locale in ipairs({ "enUS", "zhTW", "zhCN" }) do
+    local P, F, G = Setup(locale)
+    local tag = locale .. " "
+    local rows = {
+        Row(1, "Shadowcraft Cap", nil, { type = LT.ItemName, color = EPIC }),
+        Row(2, F("ITEM_LEVEL", 639), nil, { type = LT.ItemLevel, color = GOLD }),
+        Row(3, F("ITEM_UPGRADE_TOOLTIP_FORMAT_STRING", "Hero", 4, 8), nil, { type = LT.ItemUpgradeLevel }),
+        Row(4, G.ITEM_SOULBOUND, nil, { type = LT.ItemBinding }),
+        Row(5, G.ITEM_UNIQUE_EQUIPPABLE),
+        Row(6, G.INVTYPE_HEAD, "Leather", { type = LT.EquipSlot }),
+        Row(7, F("ARMOR_TEMPLATE", "1,027")),
+        Row(8, F("ITEM_MOD_AGILITY", 43, "150")),
+        Row(9, F("ITEM_MOD_STAMINA", 43, "900")),
+        Row(10, StatLine(locale, "80", G.ITEM_MOD_CRIT_RATING_SHORT), nil, { color = GREEN }),
+        Row(11, StatLine(locale, "20", G.ITEM_MOD_CR_AVOIDANCE_SHORT), nil, { color = GREEN }),
+        Row(12, StatLine(locale, "60", G.ITEM_MOD_HASTE_RATING_SHORT), nil, { color = GREEN }),
+        Blank(13),
+        Row(14, F("ITEM_SET_NAME", "Shadowcraft", 2, 5), nil, { color = GOLD }),
+        Row(15, "  Shadowcraft Cap", nil, { color = GOLD }),
+        Row(16, "  Shadowcraft Boots", nil, { color = GRAY }),
+        Blank(17),
+        Row(18, F("ITEM_SET_BONUS_GRAY", 2, "Increases damage."), nil, { color = GREEN }),
+        Row(19, F("ITEM_SET_BONUS_GRAY", 4, "Even more."), nil, { color = GRAY }),
+        Blank(20),
+        Row(21, F("DURABILITY_TEMPLATE", 120, 165)),
+        Row(22, F("ITEM_CLASSES_ALLOWED", "Rogue"), nil, { color = RED }),
+        Row(23, F("ITEM_MIN_LEVEL", 80), nil, { type = LT.UsageRequirement }),
+        Row(24, G.SELL_PRICE, nil, { type = LT.SellPrice, price = 123456 }),
+        { left = "Item ID: 1234", lineIndex = 25, appended = true, color = GOLD },
+    }
+    local m = P.ReadItemRows(rows, GAME, { id = 1234 })
+    eq(tag .. "名字", m.name, "Shadowcraft Cap")
+    eq(tag .. "名字品質色", m.nameColor, EPIC)
+    eq(tag .. "圖示", m.icon, 5000 + 1234)
+    eq(tag .. "物品等級", m.itemLevel and m.itemLevel.value, 639)
+    check(tag .. "提升等級", m.upgrade ~= nil)
+    eq(tag .. "綁定", m.binding, G.ITEM_SOULBOUND)
+    eq(tag .. "唯一", m.unique[1], G.ITEM_UNIQUE_EQUIPPABLE)
+    eq(tag .. "部位", m.slot, G.INVTYPE_HEAD)
+    eq(tag .. "護甲類", m.armorType, "Leather")
+    eq(tag .. "護甲值", m.armor and m.armor.value, "1,027")
+    eq(tag .. "屬性數", #m.stats, 5)
+    eq(tag .. "敏捷＝主屬性", m.stats[1].category, "primary")
+    eq(tag .. "耐力＝主屬性", m.stats[2].category, "primary")
+    eq(tag .. "致命一擊＝次屬性", m.stats[3].category, "secondary")
+    eq(tag .. "迴避＝三屬性", m.stats[4].category, "tertiary")
+    eq(tag .. "套裝名", m.set and m.set.name, "Shadowcraft")
+    eq(tag .. "套裝 2/5", m.set and (m.set.owned .. "/" .. m.set.total), "2/5")
+    eq(tag .. "套裝物件數", m.set and #m.set.items, 2)
+    eq(tag .. "套裝物件：擁有", m.set and m.set.items[1].owned, true)
+    eq(tag .. "套裝物件：未擁有（灰）", m.set and m.set.items[2].owned, false)
+    eq(tag .. "套裝加成：啟用", m.set and m.set.bonuses[1] and m.set.bonuses[1].active, true)
+    eq(tag .. "套裝加成：未啟用", m.set and m.set.bonuses[2] and m.set.bonuses[2].active, false)
+    eq(tag .. "耐久", m.durability and m.durability.cur, 120)
+    eq(tag .. "職業限定（紅＝未達成）", m.restrictions[1] and m.restrictions[1].unmet, true)
+    eq(tag .. "等級需求達成", m.levelReq and m.levelReq.unmet, false)
+    eq(tag .. "售價", m.price, 123456)
+    eq(tag .. "別人加的行進 extras", m.extras[1] and m.extras[1].left, "Item ID: 1234")
+    eq(tag .. "extras 只有那一行", #m.extras, 1)
+
+    local view = P.ViewItem(m)
+    eq(tag .. "等級徽章", view.badge, "639")
+    eq(tag .. "標題第二行：護甲類 · 部位", view.header[2].badges[1][1], "Leather")
+    eq(tag .. "第一段前是 ◆ 分隔", view.sections[1].separator and view.sections[1].separator.divider, true)
+    check(tag .. "頁尾帶", view.footer ~= nil)
+end
+
+------------------------------------------------------------
+-- 2. 武器、飾品、消耗品、比價框
+------------------------------------------------------------
+for _, locale in ipairs({ "enUS", "zhTW", "zhCN" }) do
+    local P, F, G = Setup(locale)
+    local tag = locale .. " "
+    local m = P.ReadItemRows({
+        Row(1, "Thunderfury", nil, { type = LT.ItemName }),
+        Row(2, G.INVTYPE_2HWEAPON, "Sword", { type = LT.EquipSlot }),
+        Row(3, F("DAMAGE_TEMPLATE", "65", "99"), G.SPEED .. " 3.60"),
+        Row(4, F("DPS_TEMPLATE", "25.6")),
+    }, GAME, { id = 19019 })
+    eq(tag .. "武器：傷害", m.weapon and m.weapon.damage and m.weapon.damage.min, "65")
+    eq(tag .. "武器：速度", m.weapon and m.weapon.speed and m.weapon.speed.value, "3.60")
+    eq(tag .. "武器：每秒傷害", m.weapon and m.weapon.dps and m.weapon.dps.value, "25.6")
+    eq(tag .. "武器：沒有 extras", #m.extras, 0)
+
+    m = P.ReadItemRows({
+        Row(1, "Trinket", nil, { type = LT.ItemName }),
+        Row(2, G.ITEM_SPELL_TRIGGER_ONUSE .. "Heal yourself.", nil, { type = LT.ItemSpellTriggerOnUse, color = GREEN }),
+        Row(3, F("ITEM_COOLDOWN_TOTAL_MIN", 2)),
+    }, GAME, { id = 1 })
+    eq(tag .. "飾品：使用效果", m.effects[1] and m.effects[1].kind, "use")
+    eq(tag .. "飾品：前綴拆掉", m.effects[1] and m.effects[1].text, "Heal yourself.")
+    eq(tag .. "飾品：標籤去冒號", m.effects[1] and m.effects[1].label, P.TriggerLabel("ITEM_SPELL_TRIGGER_ONUSE"))
+    check(tag .. "飾品：標籤沒有冒號", not m.effects[1].label:find("[:：]$"))
+    eq(tag .. "飾品：冷卻進細節", m.details[1] and m.details[1].left, F("ITEM_COOLDOWN_TOTAL_MIN", 2))
+
+    m = P.ReadItemRows({
+        Row(1, "Bread", nil, { type = LT.ItemName }),
+        Row(2, G.ITEM_SPELL_TRIGGER_ONUSE .. "Eat.", nil, { type = LT.ItemSpellTriggerOnUse }),
+    }, GAME, { id = 2 })
+    eq(tag .. "消耗品：沒有部位", m.slot, nil)
+    local view = P.ViewItem(m)
+    eq(tag .. "消耗品：標題只有名字", #view.header, 1)
+
+    m = P.ReadItemRows({
+        Row(1, G.CURRENTLY_EQUIPPED),
+        Row(2, "Old Sword", nil, { type = LT.ItemName }),
+    }, GAME, { id = 3, isComparison = true })
+    eq(tag .. "比價框：名字不是「目前裝備」", m.name, "Old Sword")
+    eq(tag .. "比價框：標籤", m.tag, G.CURRENTLY_EQUIPPED)
+    eq(tag .. "比價框：沒有 extras", #m.extras, 0)
+end
+
+------------------------------------------------------------
+-- 3. 配方（⚠ 推定的佈局）
+------------------------------------------------------------
+for _, locale in ipairs({ "enUS", "zhTW", "zhCN" }) do
+    local P, F, G = Setup(locale)
+    local tag = locale .. " "
+    local m = P.ReadItemRows({
+        Row(1, "Pattern: Silk Robe", nil, { type = LT.ItemName }),
+        Row(2, G.ITEM_BIND_ON_PICKUP, nil, { type = LT.ItemBinding }),
+        Row(3, F("ITEM_MIN_SKILL", "Tailoring", 75), nil, { color = RED }),
+        Row(4, G.ITEM_SPELL_TRIGGER_ONUSE .. "Teaches you how to sew.", nil, { type = LT.ItemSpellTriggerLearn }),
+        Blank(5),
+        Row(6, "Silk Robe", nil, { type = LT.ItemName, color = { 0.12, 1, 0 } }),
+        Row(7, "Chest", "Cloth", { type = LT.EquipSlot }),
+        Row(8, F("ARMOR_TEMPLATE", "50")),
+        Row(9, F("ITEM_MOD_STAMINA", 43, "10")),
+        Blank(10),
+        Row(11, G.SPELL_REAGENTS .. "Silk (3), Thread (2)"),
+        Row(12, G.SELL_PRICE, nil, { type = LT.SellPrice, price = 500 }),
+    }, GAME, { id = 4 })
+    eq(tag .. "配方：名字", m.name, "Pattern: Silk Robe")
+    eq(tag .. "配方：技能需求（紅）", m.skill and m.skill.unmet, true)
+    eq(tag .. "配方：學習效果", m.effects[1] and m.effects[1].text, "Teaches you how to sew.")
+    eq(tag .. "配方：成品名字", m.created and m.created.name, "Silk Robe")
+    eq(tag .. "配方：成品護甲類", m.created and m.created.armorType, "Cloth")
+    eq(tag .. "配方：成品屬性", m.created and #m.created.stats, 1)
+    eq(tag .. "配方：外層沒有成品的屬性", #m.stats, 0)
+    eq(tag .. "配方：材料數", m.reagents and #m.reagents, 2)
+    eq(tag .. "配方：材料 1", m.reagents and m.reagents[1].name, "Silk")
+    eq(tag .. "配方：材料 1 需要", m.reagents and m.reagents[1].count, 3)
+    eq(tag .. "配方：材料 1 擁有", m.reagents and m.reagents[1].have, 5)
+    eq(tag .. "配方：材料 2 擁有", m.reagents and m.reagents[2].have, 1)
+    eq(tag .. "配方：售價記在外層", m.price, 500)
+
+    local view = P.ViewItem(m)
+    local captions = {}
+    for _, s in ipairs(view.sections) do
+        if s.separator and s.separator.caption then captions[#captions + 1] = s end
+    end
+    eq(tag .. "配方：兩個 Caption", #captions, 2)
+    eq(tag .. "配方：製造", captions[1] and captions[1].separator.caption, "Creates")
+    eq(tag .. "配方：材料", captions[2] and captions[2].separator.caption, "Reagents")
+    local reagents = captions[2] and captions[2].rows
+    eq(tag .. "配方：擁有 / 需要", reagents and reagents[1].right, "5 / 3")
+    check(tag .. "配方：不足紅（1 < 2）", reagents and reagents[2].rightColor[1] == 1 and reagents[2].rightColor[2] == 0.34)
+    check(tag .. "配方：材料圖示", reagents and reagents[1].left:find("|T7777:14|t", 1, true) ~= nil)
+end
+
+-- 材料標籤自己一行、材料逐行
+do
+    local P, F, G = Setup("zhTW")
+    local m = P.ReadItemRows({
+        Row(1, "圖樣：絲質長袍", nil, { type = LT.ItemName }),
+        Row(2, G.SPELL_REAGENTS),
+        Row(3, "Silk（3）"),
+        Row(4, "線"),
+        Blank(5),
+        Row(6, "後面不是材料"),
+    }, GAME, { id = 5 })
+    eq("材料逐行：數量", m.reagents and #m.reagents, 2)
+    eq("材料逐行：全形括號", m.reagents and m.reagents[1].count, 3)
+    eq("材料逐行：沒寫數量＝1", m.reagents and m.reagents[2].count, 1)
+    eq("材料逐行：空行之後不算", m.extras[1] and m.extras[1].left, "後面不是材料")
+end
+
+------------------------------------------------------------
+-- 4. 秘密 → nil；Try 整合；屬性 ◆ 與徽章開關
+------------------------------------------------------------
+do
+    local P, F, G, env, ns = Setup("enUS")
+    local tip = H.Tip(env, "GameTooltip", {
+        { left = "Shadowcraft Cap", color = EPIC }, { left = F("ITEM_LEVEL", 639) },
+        { left = F("ITEM_MOD_AGILITY", 43, "150") }, { left = "Item ID: 1234" },
+    })
+    local data = { id = 1234, lines = {
+        { type = LT.ItemName, lineIndex = 1, leftText = "Shadowcraft Cap", leftColor = { r = EPIC[1], g = EPIC[2], b = EPIC[3] } },
+        { type = LT.ItemLevel, lineIndex = 2, leftText = F("ITEM_LEVEL", 639) },
+        { type = 0, lineIndex = 3, leftText = F("ITEM_MOD_AGILITY", 43, "150") },
+    } }
+    local m = P.readers.item(tip, data)
+    eq("reader：名字", m and m.name, "Shadowcraft Cap")
+    eq("reader：後加的行", m and m.extras[1] and m.extras[1].left, "Item ID: 1234")
+    data.lines[3].leftText = H.SECRET
+    eq("秘密行 → nil", P.readers.item(tip, data), nil)
+    data.lines[3].leftText = F("ITEM_MOD_AGILITY", 43, "150")
+
+    -- Try 整合：登記的 reader／view 真的被用到（徽章就是證據；最簡 reader 沒有徽章）
+    local state = {}
+    ns.Skin.State[tip] = state
+    P.Try(tip, state, 0, data)
+    check("Try：panel 顯示", state.panel and state.panel.shown)
+    check("Try：物品等級徽章", state.panel.badge.shown and state.panel.badgeText.text == "639")
+    local diamonds = 0
+    for i = 1, state.panel.texturesUsed do
+        local t = state.panel.textures[i]
+        if t.shown and t.rotation and t.rotation ~= 0 then diamonds = diamonds + 1 end
+    end
+    eq("Try：◆ 一顆分隔＋一顆屬性", diamonds, 2)
+
+    ns.db.panel.levelBadge = false
+    ns.db.panel.statMarkers = false
+    P.settingsVersion = P.settingsVersion + 1
+    P.Try(tip, state, 0, data)
+    check("徽章關：沒有徽章", not state.panel.badge.shown)
+    diamonds = 0
+    for i = 1, state.panel.texturesUsed do
+        local t = state.panel.textures[i]
+        if t.shown and t.rotation and t.rotation ~= 0 then diamonds = diamonds + 1 end
+    end
+    eq("屬性 ◆ 關：只剩分隔那顆", diamonds, 1)
+    local hasLevelText
+    for i = 1, state.panel.textsUsed do
+        if state.panel.texts[i].shown and state.panel.texts[i].text:find(F("ITEM_LEVEL", 639), 1, true) then hasLevelText = true end
+    end
+    check("徽章關：物品等級改寫在標題", hasLevelText)
+end
+
+------------------------------------------------------------
+-- 5. 整份畫一次：每條自訂段落（大數字、屬性、效果、套裝、成品標題、頁尾耐久條）都真的跑過
+------------------------------------------------------------
+do
+    local P, F, G, env = Setup("zhTW")
+    local tip = H.Tip(env, "GameTooltip", {})
+    local state = {}
+    local panel = P.Get(tip, state)
+    local function texts()
+        local out = {}
+        for i = 1, panel.textsUsed do if panel.texts[i].shown then out[panel.texts[i].text] = panel.texts[i] end end
+        return out
+    end
+
+    local armor = P.ReadItemRows({
+        Row(1, "暗影帽", nil, { type = LT.ItemName, color = EPIC }),
+        Row(2, F("ITEM_LEVEL", 639), nil, { type = LT.ItemLevel }),
+        Row(3, G.INVTYPE_HEAD, "皮甲", { type = LT.EquipSlot }),
+        Row(4, F("ARMOR_TEMPLATE", "1,027")),
+        Row(5, F("ITEM_MOD_AGILITY", 43, "150")),
+        Row(6, StatLine("zhTW", "80", G.ITEM_MOD_CRIT_RATING_SHORT)),
+        Row(7, G.ITEM_SPELL_TRIGGER_ONUSE .. "治療你自己150點。", nil, { type = LT.ItemSpellTriggerOnUse }),
+        Row(8, F("ITEM_SET_NAME", "暗影", 1, 5), nil, { color = GOLD }),
+        Row(9, "  暗影帽", nil, { color = GOLD }),
+        Row(10, "「一段風味文字」", nil, { type = LT.FlavorText }),
+        Row(11, F("DURABILITY_TEMPLATE", 120, 165)),
+        Row(12, F("ITEM_CLASSES_ALLOWED", "盜賊"), nil, { color = RED }),
+        Row(13, G.SELL_PRICE, nil, { type = LT.SellPrice, price = 123456 }),
+    }, GAME, { id = 1 })
+    check("整份畫：成功", P.RenderView(panel, tip, P.ViewItem(armor), state))
+    local t = texts()
+    check("整份畫：護甲大數字", t["1,027"] and t["1,027"].size == 15)
+    check("整份畫：護甲標籤", t[G.ARMOR] ~= nil)
+    check("整份畫：效果綠字", t["治療你自己150點。"] and t["治療你自己150點。"].textColor[2] == 0.88)
+    check("整份畫：效果小標籤", t[P.TriggerLabel("ITEM_SPELL_TRIGGER_ONUSE")] ~= nil)
+    check("整份畫：套裝 1/5", t["1/5"] ~= nil)
+    check("整份畫：套裝物件前加 -", t["- 暗影帽"] ~= nil)
+    check("整份畫：風味文字金", t["「一段風味文字」"] and t["「一段風味文字」"].textColor[1] == 0.86)
+    check("整份畫：耐久數字", t["120 / 165"] ~= nil)
+    check("整份畫：售價", t["123456c"] ~= nil)
+    check("整份畫：職業限定紅", t[F("ITEM_CLASSES_ALLOWED", "盜賊")] and t[F("ITEM_CLASSES_ALLOWED", "盜賊")].textColor[2] == 0.34)
+    check("整份畫：頁尾帶", panel.footer.shown)
+    local bar
+    for i = 1, panel.texturesUsed do if panel.textures[i].shown and panel.textures[i].texture == "satin.png" then bar = panel.textures[i] end end
+    check("整份畫：耐久條是 satin、職業色", bar and bar.color[1] == 0.25)
+    check("整份畫：耐久條長度照比例", bar and math.abs(bar.w - 54 * 120 / 165) <= 1)
+
+    local recipe = P.ReadItemRows({
+        Row(1, "圖樣：絲質長袍", nil, { type = LT.ItemName }),
+        Row(2, F("ITEM_MIN_SKILL", "裁縫", 75)),
+        Blank(3),
+        Row(4, "絲質長袍", nil, { type = LT.ItemName }),
+        Row(5, "胸部", "布甲", { type = LT.EquipSlot }),
+        Row(6, F("ITEM_MOD_STAMINA", 43, "10")),
+        Blank(7),
+        Row(8, G.SPELL_REAGENTS .. "Silk（3），線（2）"),
+    }, GAME, { id = 2 })
+    recipe.created.icon = 4242
+    check("配方畫：成功", P.RenderView(panel, tip, P.ViewItem(recipe), state))
+    t = texts()
+    check("配方畫：成品名字（小一號標題）", t["絲質長袍"] and t["絲質長袍"].size == 12)
+    check("配方畫：成品灰字行", t["布甲 · 胸部"] ~= nil)
+    check("配方畫：材料", t["|T7777:14|t Silk"] and t["5 / 3"])
+    local icon
+    for i = 1, panel.texturesUsed do if panel.textures[i].shown and panel.textures[i].texture == 4242 then icon = panel.textures[i] end end
+    check("配方畫：成品小圖示 24", icon and icon.w == 24)
+
+    local weapon = P.ReadItemRows({
+        Row(1, "雷霆之怒", nil, { type = LT.ItemName }),
+        Row(2, F("DAMAGE_TEMPLATE", "65", "99"), G.SPEED .. " 3.60"),
+        Row(3, F("DPS_TEMPLATE", "25.6")),
+    }, GAME, { id = 3 })
+    check("武器畫：成功", P.RenderView(panel, tip, P.ViewItem(weapon), state))
+    t = texts()
+    check("武器畫：每秒傷害大數字", t["25.6"] ~= nil)
+    check("武器畫：傷害 · 速度", t[F("DAMAGE_TEMPLATE", "65", "99") .. " · " .. G.SPEED .. " 3.60"] ~= nil)
+end
+
+H.finish("ReadItem_test")
