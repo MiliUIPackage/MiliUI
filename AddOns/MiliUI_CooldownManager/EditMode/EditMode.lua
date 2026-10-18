@@ -222,7 +222,7 @@ function EM.BeginDrag(key)
     local rect = EM.RectOf(c)
     if not rect then return end
     -- 錨在別條上的條：拖了就脫離。先把現況換算成 pos 寫進去，放手時再以放手位置覆蓋。
-    -- 提示列（「拖曳會解除跟隨」）拖曳中留著，放手的 RefreshBar 才收掉
+    -- 「!」記號（「拖曳會解除跟隨」）拖曳中留著，放手的 RefreshBar 才收掉
     if type(bar.anchor) == "table" then
         local pos = EM.ReadPos(key)
         if not pos then return end

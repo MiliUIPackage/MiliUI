@@ -9,8 +9,9 @@
 -- 天空騎術的接力模式（Modules/Skyriding.lua）：不給它自己的覆蓋層與選取框（不能拖，拖資源條就一起走），
 -- 改在資源條覆蓋層的條名後面接「＋天空騎術」讓玩家知道它跟著資源條。閒置的面板（獨立擺放的資源列）同一條路（EM.Dormant）。
 --
--- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、
--- 黃字提示列（拖曳會被限制時才出現）。整個 EnableMouse(false) —— 不能擋到底下選取框的拖曳。
+-- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、條名後面一顆黃色「!」記號
+-- （拖曳會被限制時才出現，滑過才顯示整句提示——提示寫成一整行黃字時，疊在一起的條會互相蓋住，
+-- 也擋住底下的樣式）。整個 EnableMouse(false) —— 不能擋到底下選取框的拖曳；只有「!」那 14px 吃滑鼠。
 --
 -- 選取框：
 --   * 四條檢視器用**暴雪自己的** viewer.Selection（它勾了「冷卻管理器」才會顯示）。
@@ -42,6 +43,7 @@ local SNAP_PREFIX = "cdm:"
 EM.SNAP_PREFIX = SNAP_PREFIX
 
 local HINT_R, HINT_G, HINT_B = 1, 0.82, 0          -- 暴雪提示用的金黃
+local HINT_W = 14                                   -- 「!」記號的邊長（同設定頁 HelpMark 的「?」）
 
 -- 條或面板（資源條、施法條）的設定表
 local function BarCfg(key)
@@ -110,12 +112,31 @@ local function BuildOverlay(key, c)
     name:SetTextColor(1, 1, 1)
     ov.name = name
 
-    local hint = ov:CreateFontString(nil, "OVERLAY")
-    Media.SetFont(hint, 11, "OUTLINE")
-    hint:SetPoint("BOTTOMLEFT", ov, "BOTTOMLEFT", 2, 2)
-    hint:SetJustifyH("LEFT")
-    hint:SetWordWrap(false)
-    hint:SetTextColor(HINT_R, HINT_G, HINT_B)
+    -- 「!」記號：深底灰邊的小方塊（樣式同設定頁的「?」HelpMark），字是黃的；整句提示放 GameTooltip。
+    -- 自己的子框、開檔就建；要蓋過選取框（貼著覆蓋層、層級相近）才接得到滑過
+    local hint = CreateFrame("Frame", nil, ov, "BackdropTemplate")
+    hint:SetSize(HINT_W, HINT_W)
+    hint:SetPoint("LEFT", name, "RIGHT", 4, 0)
+    hint:SetFrameLevel(ov:GetFrameLevel() + 5)
+    hint:SetBackdrop({ bgFile = Style.WHITE, edgeFile = Style.WHITE, edgeSize = ns.P.Pixel(1) })
+    hint:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+    hint:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+    local mark = hint:CreateFontString(nil, "OVERLAY")
+    Media.SetFont(mark, 11)
+    mark:SetPoint("CENTER", hint, "CENTER", 0, 0)
+    mark:SetText("!")
+    mark:SetTextColor(HINT_R, HINT_G, HINT_B)
+    hint:EnableMouse(true)
+    hint:SetScript("OnEnter", function(self)
+        hint:SetBackdropBorderColor(HINT_R, HINT_G, HINT_B, 1)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(self.text or "", HINT_R, HINT_G, HINT_B, 1, true)
+        GameTooltip:Show()
+    end)
+    hint:SetScript("OnLeave", function()
+        hint:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+        GameTooltip:Hide()
+    end)
     hint:Hide()
     ov.hint = hint
 
@@ -142,7 +163,7 @@ function EM.LayoutOverlay(key)
     ov:SetSize(w, h)
 end
 
--- 提示列：拖曳會被限制時才有字（目前只有「錨在別條上」這一種）
+-- 「!」記號的提示：拖曳會被限制時才有字（目前只有「錨在別條上」這一種）
 local function HintText(bar)
     local a = type(bar.anchor) == "table" and bar.anchor
     if a and type(a.to) == "string" and BarCfg(a.to) then
@@ -171,11 +192,15 @@ local function UpdateTexts(key, bar)
     end
     ov.name:SetText(label)
     local hint = HintText(bar)
+    ov.hint.text = hint
     if hint then
-        ov.hint:SetText(hint)
         ov.hint:Show()
+        if GameTooltip:GetOwner() == ov.hint and GameTooltip:IsShown() then
+            GameTooltip:SetText(hint, HINT_R, HINT_G, HINT_B, 1, true)   -- 滑著的時候換錨定對象：提示跟著換
+        end
     else
         ov.hint:Hide()
+        if GameTooltip:GetOwner() == ov.hint then GameTooltip:Hide() end
     end
 end
 
