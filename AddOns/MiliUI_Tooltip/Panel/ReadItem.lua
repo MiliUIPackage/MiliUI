@@ -277,7 +277,9 @@ end
 -- 別家插件重複的售價行（M1）：頁尾已經畫了售價，別家又加「售價: 38 75 34」、「商人 x1 38 75 34」——同一個金額三次。
 -- 語系無關、不看標籤字：只看這行的**金額**等不等於 SellPrice 的 price（銅）。
 --   * 數字後面緊跟金／銀／銅幣圖示（|T…GoldIcon…|t、|A:coin-gold…|a 都是英文檔名）⇒ 照幣別加總，總額相等才算；
---   * 沒有幣別圖示 ⇒ 去掉 0 之後的數字序列＝price 拆出的非零金／銀／銅段（依序）、而且沒有別的數字。
+--   * 有幣別圖示、但不是每個數字都帶 ⇒ 去掉 0 之後的數字序列＝price 拆出的非零金／銀／銅段（依序）、而且沒有別的數字；
+--   * **一個幣別圖示都沒有 ⇒ 一律不算**：售價 1 銅的物品，「總計：1」「背包：1」「x1」的數字序列也是 {1}，會全部被誤殺
+--     （2026-10-19 實機：混亂能量爐缸，低等物品賣 1～99 銅很常見）。
 -- 堆疊數「x1」先剝掉（數量不是金額）；千分位「1,234」併回去。堆疊總價（x3 的商人價）不等於單價 ⇒ 留著。
 ------------------------------------------------------------
 -- 幣別圖示換成不含數字的記號（\1g／\1s／\1c），免得記號本身被當成金額的數字
@@ -308,14 +310,14 @@ function Panel.IsDuplicatePrice(left, right, price)
     text = text:gsub("|T(.-)|t", CoinMark):gsub("|A(.-)|a", CoinMark)
     text = text:gsub("[xX]%s?%d+", " "):gsub("×%s?%d+", " ")
     for _ = 1, 4 do text = text:gsub("(%d)[,%.](%d%d%d)", "%1%2") end
-    local total, allCoins, nonzero = 0, true, {}
+    local total, allCoins, anyCoin, nonzero = 0, true, false, {}
     for num, rest in text:gmatch("(%d+)(%D*)") do
         local n = tonumber(num)
         local unit = COIN_VALUE[rest:match("^%s*\1(%a)") or ""]
-        if unit then total = total + n * unit else allCoins = false end
+        if unit then total, anyCoin = total + n * unit, true else allCoins = false end
         if n > 0 then nonzero[#nonzero + 1] = n end
     end
-    if #nonzero == 0 then return false end
+    if #nonzero == 0 or not anyCoin then return false end
     if allCoins then return total == price end
     local segs = PriceSegments(price)
     if #segs ~= #nonzero then return false end

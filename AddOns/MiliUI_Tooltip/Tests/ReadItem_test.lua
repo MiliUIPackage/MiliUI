@@ -535,4 +535,22 @@ do
     eq("M1＋M2：單價行與總價行都藏、別的金額留著", table.concat(lefts, "|"), "拍賣")
 end
 
+do
+    -- 售價 1 銅（低等物品很常見）：純數字 1 的行不能被當成售價（2026-10-19 實機誤殺）
+    local P, F, G = Setup("zhTW")
+    local Copper = "|TInterface\\MoneyFrame\\UI-CopperIcon:12:12:0:0|t"
+    local m = P.ReadItemRows({
+        Row(1, "混亂能量爐缸", nil, { type = LT.ItemName }),
+        Row(2, G.SELL_PRICE, nil, { type = LT.SellPrice, price = 1 }),
+        Row(3, "庫存", "|cff66bbff總計：|cffffffff1|r|r", { appended = true }),
+        Row(4, "  角色1", "|cff66bbff背包：|cffffffff1|r|r", { appended = true }),
+        Row(5, "分解", "x1", { appended = true }),
+        Row(6, "商人 x1", "|cffffffff1 " .. Copper .. "|r", { appended = true }),
+        Row(7, "售價: 1|A:coin-copper:14:14:2:0|a", nil, { appended = true }),
+    }, GAME, { id = 9 })
+    local lefts = {}
+    for _, e in ipairs(m.appended) do lefts[#lefts + 1] = e.left end
+    eq("price=1：純數字 1 的行全留、帶銅幣圖示的兩行藏", table.concat(lefts, "|"), "庫存|  角色1|分解")
+end
+
 H.finish("ReadItem_test")
