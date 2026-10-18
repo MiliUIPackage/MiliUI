@@ -688,6 +688,25 @@ local function FirstWrittenNote(instanceID, pref)
     return nil, Notes.DIFF_ALL, false
 end
 
+-- 進副本時的自動顯示（EvaluateZone 的後半）。冒險指南第一次讀某個副本可能回空清單，
+-- 那時候挑不出「第一隻有筆記的首領」；先記著，Journal 重讀有結果（JournalChanged）再做一次。
+local zonePending   -- { jInst, instanceType, difficultyID }
+
+local function AutoShowFor(jInst, instanceType, difficultyID)
+    local inst = ns.db.settings.instance
+    zonePending = nil
+    if not inst.autoShow then return end
+    if inst.onlyRaid and instanceType ~= "raid" then return end
+    local pref = PreferredDiff(instanceType, difficultyID)
+    local encID, diffKey, any = FirstWrittenNote(jInst, pref)
+    if not any then
+        local _, waiting = Journal.Encounters(jInst)
+        if waiting then zonePending = { jInst, instanceType, difficultyID } end
+        return
+    end
+    Overlay.Show(jInst, encID, diffKey)
+end
+
 local function EvaluateZone()
     local inst = ns.db.settings.instance
     local jInst, _, instanceType, difficultyID = Journal.CurrentInstance()
@@ -704,11 +723,46 @@ local function EvaluateZone()
     local pref = PreferredDiff(instanceType, difficultyID)
     curInstance, curEncounter, curDiff = jInst, nil, pref
 
-    if not inst.autoShow then return end
-    if inst.onlyRaid and instanceType ~= "raid" then return end
-    local encID, diffKey, any = FirstWrittenNote(jInst, pref)
-    if not any then return end
-    Overlay.Show(jInst, encID, diffKey)
+    AutoShowFor(jInst, instanceType, difficultyID)
+end
+
+------------------------------------------------------------
+-- 首領戰開打：切到那隻首領的筆記
+--
+-- 冒險指南第一次讀某個副本可能回空清單（Modules/Journal.lua 開頭），那時候 dungeonEncounterID
+-- 換算不出來；先記著，Journal 重讀有結果（JournalChanged）再做一次。
+------------------------------------------------------------
+local pendingEncounter   -- { dungeonEncounterID, difficultyID }
+
+local function OnEncounterStart(dungeonEncID, encDifficultyID)
+    pendingEncounter = nil
+    local liveInst, _, instanceType, zoneDiff = Journal.CurrentInstance()
+    -- ⚠ 現場那個優先。curInstance 有可能是玩家自己從選單挑來看的**別的副本**
+    --   （「試試看」現在在哪裡都開得起來），拿它去查首領當然查不到。
+    local jInst = liveInst or curInstance
+    local pref = PreferredDiff(instanceType, encDifficultyID or zoneDiff)
+
+    local jEnc
+    if jInst then
+        jEnc = Journal.EncounterByDungeonID(jInst, dungeonEncID)
+        if not jEnc then
+            local _, waiting = Journal.Encounters(jInst)
+            if waiting then pendingEncounter = { dungeonEncID, encDifficultyID } end
+        end
+    end
+    if not jEnc then
+        local savedInst, savedEnc, savedDiff = FindSavedBoss(dungeonEncID)
+        if savedInst then
+            jInst, jEnc = savedInst, savedEnc
+            if savedDiff then pref = savedDiff end
+        end
+    end
+    if not (jInst and jEnc) then return end
+    pendingEncounter = nil
+
+    local note, diffKey = Notes.ResolveInstanceNote(jInst, jEnc, pref)
+    if not note or Notes.IsEmpty(note) then return end
+    Overlay.Show(jInst, jEnc, diffKey)
 end
 
 local ev = CreateFrame("Frame")
@@ -724,28 +778,10 @@ ev:SetScript("OnEvent", function(_, event, ...)
         if not inst.autoBoss then return end
         -- ENCOUNTER_START 自己就帶難度，比再去問 GetInstanceInfo 準
         local dungeonEncID, _, encDifficultyID = ...
-        local liveInst, _, instanceType, zoneDiff = Journal.CurrentInstance()
-        -- ⚠ 現場那個優先。curInstance 有可能是玩家自己從選單挑來看的**別的副本**
-        --   （「試試看」現在在哪裡都開得起來），拿它去查首領當然查不到。
-        local jInst = liveInst or curInstance
-        local pref = PreferredDiff(instanceType, encDifficultyID or zoneDiff)
-
-        local jEnc
-        if jInst then jEnc = Journal.EncounterByDungeonID(jInst, dungeonEncID) end
-        if not jEnc then
-            local savedInst, savedEnc, savedDiff = FindSavedBoss(dungeonEncID)
-            if savedInst then
-                jInst, jEnc = savedInst, savedEnc
-                if savedDiff then pref = savedDiff end
-            end
-        end
-        if not (jInst and jEnc) then return end
-
-        local note, diffKey = Notes.ResolveInstanceNote(jInst, jEnc, pref)
-        if not note or Notes.IsEmpty(note) then return end
-        Overlay.Show(jInst, jEnc, diffKey)
+        OnEncounterStart(dungeonEncID, encDifficultyID)
 
     elseif event == "ENCOUNTER_END" then
+        pendingEncounter = nil
         if not (inst.autoBoss and Overlay.IsShown() and curEncounter) then return end
         -- 打完回到副本總覽，但只在總覽真的有寫東西的時候（沒有的話留著首領筆記，
         -- 團滅重來還看得到）
@@ -781,6 +817,17 @@ end)
 
 ns.RegisterCallback("ClockChanged", "overlay", function()
     SyncHeaderTicker()
+end)
+
+-- 冒險指南重讀有結果：進副本／開打當下換算不出來的再做一次
+ns.RegisterCallback("JournalChanged", "overlay", function()
+    local inst = ns.db and ns.db.settings.instance
+    if not inst then return end
+    if pendingEncounter and inst.autoBoss then
+        OnEncounterStart(pendingEncounter[1], pendingEncounter[2])
+    elseif zonePending and not Overlay.IsShown() then
+        AutoShowFor(zonePending[1], zonePending[2], zonePending[3])
+    end
 end)
 
 ns.RegisterCallback("SyncChanged", "overlay", function()

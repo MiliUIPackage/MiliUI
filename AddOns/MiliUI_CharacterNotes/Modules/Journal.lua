@@ -39,11 +39,52 @@ end
 
 ------------------------------------------------------------
 -- 首領清單（每個副本各自快取）
+--
+-- ⚠⚠ EJ_GetEncounterInfoByIndex 的第二個參數（副本 ID）單獨傳沒有用：沒先 EJ_SelectInstance
+--   選中那個副本，回傳是空的。而且清單還跟著冒險指南「目前選中的難度」走：難度對這個副本
+--   無效（剛登入還沒碰過冒險指南、上次看的是地城這次讀團本），整串回 nil。
+--   所以 Select 之後先檢查 EJ_IsValidInstanceDifficulty，無效就暫時切到一個這副本有的難度
+--   （所在副本的難度優先），讀完切回去；選中的副本也要切回去。
+-- ⚠⚠⚠ **空清單不快取**，而且 0.5 秒後自動重讀一次（每個副本一次）：登入後第一次
+--   EJ_SelectInstance 引擎同一幀還沒把狀態補好，讀到的是舊狀態（MiliUI_BossTimeline 2026-10-19
+--   玩家回報「第一次開首領全空、重開一次就有」）。以前這裡把空清單快取一整個登入期間，
+--   第一次沒讀到就得 /reload。重讀有結果就 Fire("JournalChanged") 並重算本季名單
+--   （本季團本的篩選會把「沒有首領」的格子剔掉，空清單會讓整個團本從本季消失）。
 ------------------------------------------------------------
 local encounterCache = {}
 
--- 有些副本要先挑一個「這個副本真的有」的難度，EJ_GetEncounterInfoByIndex 才回得出東西
-local CANDIDATE_DIFFICULTIES = { 1, 2, 23, 8, 14, 15, 16, 17 }
+-- 團隊（普通／英雄／傳奇／隨機）、地城（英雄／普通／傳奇／鑰石）；哪個難度這副本有由 EJ_IsValidInstanceDifficulty 決定
+local CANDIDATE_DIFFICULTIES = { 14, 15, 16, 17, 2, 1, 23, 8 }
+
+local function PlainNumber(ok, v)
+    if ok and type(v) == "number" and not ns.issecret(v) then return v end
+    return nil
+end
+
+local function ValidDifficulty(diff)
+    if not diff or diff <= 0 then return false end
+    if not EJ_IsValidInstanceDifficulty then return true end
+    local ok, v = pcall(EJ_IsValidInstanceDifficulty, diff)
+    return ok and v == true
+end
+
+-- 目前選中的難度對「目前選中的副本」有效就什麼都不做；無效就切到一個有效的。
+-- 冒險指南視窗開著時不動它（畫面會跟著跳）。
+local function EnsureValidDifficulty()
+    if not (EJ_GetDifficulty and EJ_SetDifficulty and EJ_IsValidInstanceDifficulty) then return end
+    if EncounterJournal and EncounterJournal:IsShown() then return end
+    if ValidDifficulty(PlainNumber(pcall(EJ_GetDifficulty))) then return end
+    local _, instanceType, hereDiff = GetInstanceInfo()
+    local pick
+    if instanceType ~= "none" and ValidDifficulty(hereDiff) then
+        pick = hereDiff
+    else
+        for _, d in ipairs(CANDIDATE_DIFFICULTIES) do
+            if ValidDifficulty(d) then pick = d break end
+        end
+    end
+    if pick then pcall(EJ_SetDifficulty, pick) end
+end
 
 local function EnumerateEncounters(instanceID)
     local list = {}
@@ -63,26 +104,52 @@ local function EnumerateEncounters(instanceID)
     return list
 end
 
+-- 空清單的重讀：[instanceID] = "pending"（排了、還沒跑）／"done"（重讀過了，不再重讀）
+local retryState = {}
+local retryQueue, retryTimer
+
+local function ScheduleRetry(instanceID)
+    if retryState[instanceID] then return end
+    retryState[instanceID] = "pending"
+    retryQueue = retryQueue or {}
+    retryQueue[#retryQueue + 1] = instanceID
+    if retryTimer then return end
+    retryTimer = C_Timer.NewTimer(0.5, function()
+        retryTimer = nil
+        local queue = retryQueue
+        retryQueue = nil
+        local got = false
+        for _, id in ipairs(queue) do
+            retryState[id] = "done"
+            if #Journal.Encounters(id) > 0 then got = true end
+        end
+        if got then
+            Journal.ResetSeason()
+            ns.Fire("JournalChanged")
+        end
+    end)
+end
+
+-- 回傳 清單, 是否還在等重讀（true＝這次是空的、0.5 秒後會再讀一次並 Fire("JournalChanged")）
 function Journal.Encounters(instanceID)
-    if type(instanceID) ~= "number" then return {} end
+    if type(instanceID) ~= "number" then return {}, false end
     local cached = encounterCache[instanceID]
-    if cached then return cached end
-    if not (EJ_SelectInstance and EJ_GetEncounterInfoByIndex) then return {} end
+    if cached then return cached, false end
+    if not (EJ_SelectInstance and EJ_GetEncounterInfoByIndex) then return {}, false end
     EnsureJournalLoaded()
 
-    local savedDiff = EJ_GetDifficulty and EJ_GetDifficulty()
+    local journalOpen = EncounterJournal and EncounterJournal:IsShown()
+    local prevInst = EJ_GetCurrentInstance and PlainNumber(pcall(EJ_GetCurrentInstance))
+    local prevDiff = EJ_GetDifficulty and PlainNumber(pcall(EJ_GetDifficulty))
+
     pcall(EJ_SelectInstance, instanceID)
+    EnsureValidDifficulty()
     local list = EnumerateEncounters(instanceID)
 
-    -- 空的話換難度再試一輪
-    if #list == 0 and EJ_SetDifficulty then
+    -- 還是空的話把這副本有的難度各試一輪（冒險指南視窗開著就不切）
+    if #list == 0 and not journalOpen and EJ_SetDifficulty then
         for _, diff in ipairs(CANDIDATE_DIFFICULTIES) do
-            local valid = true
-            if EJ_IsValidInstanceDifficulty then
-                local ok, v = pcall(EJ_IsValidInstanceDifficulty, diff)
-                valid = ok and v
-            end
-            if valid then
+            if ValidDifficulty(diff) then
                 pcall(EJ_SetDifficulty, diff)
                 list = EnumerateEncounters(instanceID)
                 if #list > 0 then break end
@@ -90,9 +157,15 @@ function Journal.Encounters(instanceID)
         end
     end
 
-    if savedDiff and EJ_SetDifficulty then pcall(EJ_SetDifficulty, savedDiff) end
-    encounterCache[instanceID] = list
-    return list
+    if prevDiff and prevDiff > 0 and EJ_SetDifficulty then pcall(EJ_SetDifficulty, prevDiff) end
+    if prevInst and prevInst > 0 and prevInst ~= instanceID then pcall(EJ_SelectInstance, prevInst) end
+
+    if #list > 0 then
+        encounterCache[instanceID] = list
+        return list, false
+    end
+    ScheduleRetry(instanceID)
+    return list, retryState[instanceID] == "pending"
 end
 
 -- dungeonEncounterID → journalEncounterID, 名稱

@@ -1019,6 +1019,11 @@ ns.RegisterCallback("NotesChanged", "window", function()
     if frame and frame:IsShown() then Refresh() end
 end)
 
+-- 冒險指南重讀有結果（第一次讀到空的首領清單，0.5 秒後補上）：副本樹重畫
+ns.RegisterCallback("JournalChanged", "window", function()
+    if frame and frame:IsShown() then Refresh() end
+end)
+
 ns.RegisterCallback("SettingsChanged", "window", function()
     if frame and frame:IsShown() then Refresh() end
 end)
