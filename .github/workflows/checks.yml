@@ -67,3 +67,8 @@ jobs:
       # MiliUI_CooldownManager 是唯一有離線測試的插件（WoW API 用環境表 stub），用 PATH 上的 lua 5.5 跑
       - name: 冷卻管理器 — 離線測試
         run: bash .claude/scripts/run_tests.sh
+
+      # 第三方插件的本地修補被 `update: <插件>` 整包覆蓋時不會報錯，只是某個修好的問題悄悄回來；
+      # 清單與辨識法對照 .claude/notes/project-local-addon-forks.md（pending 的是已知退化，只警告不擋）
+      - name: 第三方修補 — 有沒有被上游更新洗掉
+        run: python3 .claude/scripts/check_forks.py

@@ -25,7 +25,7 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 |---|---|
 | [.claude/skills/](.claude/skills/) | 技能，會依情境自動觸發，附帶的腳本放各自的 `scripts/` |
 | [.claude/notes/](.claude/notes/) | API 規則與各插件現況，索引在 [notes/README.md](.claude/notes/README.md) |
-| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查，底下是 `check_lua.py`／`check_cell.py`／`check_toc.py`／`check_locales.py`／`check_skin.py`）、`sync-notes.sh`（把 memory 匯出成 notes）、`sync-widgets.py`（把共用層從本體同步到各插件）、`release-notes.sh`（給 `miliui-release-notes` 技能用）、`cell-mouse-icons.py` |
+| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查，底下是 `check_lua.py`／`check_cell.py`／`check_toc.py`／`check_locales.py`／`check_skin.py`／`check_forks.py`）、`sync-notes.sh`（把 memory 匯出成 notes）、`sync-widgets.py`（把共用層從本體同步到各插件）、`release-notes.sh`（給 `miliui-release-notes` 技能用）、`cell-mouse-icons.py` |
 
 `.claude/*.local.json` 是個人設定，不進版控。
 
@@ -58,7 +58,7 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
   用 AceLocale ＋ token key 的那三支會當場洗版。
 - **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、Cell 的 local／upvalue
   上限、TOC 載入清單與 Interface 版本、語系缺鍵／格式符、共用層有沒有漂移、Skin 契約、
-  `MiliUI_CooldownManager` 的離線測試、`.claude/notes` 有沒有落後 memory）。
+  `MiliUI_CooldownManager` 的離線測試、第三方插件的本地修補有沒有被上游更新洗掉、`.claude/notes` 有沒有落後 memory）。
   遊戲裡沒有測試可跑，這幾樣都是「不報錯但會壞」的類型。同一批腳本由
   [.github/workflows/checks.yml](.github/workflows/checks.yml) 在 push 時再跑一次。
 - **commit 訊息**：`feat:` / `fix:` / `update:` / `chore:` 開頭，後面接中文或英文簡述，

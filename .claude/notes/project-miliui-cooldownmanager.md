@@ -124,6 +124,7 @@ item 餵過 `SetAlphaFromBoolean` 後 alpha 沿父子鏈變秘密，**Masque 套
 **AuraContainer 的 `includeSpellIDs` 看不到天賦本身的被動光環**（征戰聖擊 404542，2026-10-02 實機整列空白）⇒ 那一列改成**鏡射**暴雪追蹤量條的 item（每幀 `SetMinMaxValues(src:GetMinMaxValues())`／`SetValue(src:GetValue())` 原封轉手），
 征戰聖擊一定要留在暴雪的追蹤量條裡。鐵鬃實測是單顆光環疊層數（一度誤判成每施放一顆，2026-10-08）。
 光環格可放條上任意位置（條上有光環格時固定格位已強制開、位置本來不動；代價：戰鬥中暴雪清單變動那場位置可能不對）。
+光環格也有層數發光（2026-10-18，只做 ≥；玩家回報套裝增益蓄勢猛擊）：`SetApplicationBar` 的上下限是引擎定的 0～N、做不出 StackGate 的 (N-1, N) 閘，改成條寬 N 段、發光宿主放最後一段的裁切框底下（`Modules/Custom.lua` 的 `StackGateFrame`）；方形光環格轉圈同日改 `SetReverse(true)` 跟暴雪增益同方向，待實機（README 598～601）。
 
 **進副本／被系統換專精會破圖（2026-09-30）**：排追隨者地城被換成補師專精，核心一格變大帶深色外框、輔助整條不見；**沒有 Lua 錯誤、taint.log 也沒東西**。
 ① 進場那幾幀 API 回的清單不完整，漏的 id 沒人認領被停到畫面外——**作用中、有 cooldownID 的 item 才是真相**，清單漏了就收養（`Catalog.Adopt`）不要停放；

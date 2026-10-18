@@ -52,3 +52,4 @@ metadata:
 - 同步上游後，用 `git diff` 看那次 commit 有沒有把上面提到的檔案改回原樣。
 - **本地修改一律留 `MiliUI` 字樣的註解**（例：`-- fix from MiliUI: ...`）。這樣 `grep -rn "MiliUI" AddOns/<插件>` 就能認出來。（DamageMeterTools 已移除、BuffReminders 的改動已被洗掉，兩個都不用再補標記；）AppearanceTooltip 的秘密值修補已補上標記，中文化的部分則刻意不標。
 - 沒有上游 remote 可以 diff，git 歷史 + 這張表就是唯一的紀錄。
+- **新增修補時，同時在 `.claude/scripts/check_forks.py` 的 `PATCHES` 加一筆**（插件、檔案、辨識字串、一句說明）。那支腳本接在 `check-all.sh` 與 CI 裡，被 `update:` 洗掉就會失敗；已知退化、還沒重套的標 `pending=True`（只警告不擋），重套後把 `pending` 拿掉。拿掉表上某列（插件移除、決定放棄）時也要把它的條目一起拿掉。
