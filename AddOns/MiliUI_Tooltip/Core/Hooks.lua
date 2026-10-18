@@ -18,9 +18,13 @@
 --  10. 重繪面板（Panel/Native.lua）：tip:SetAlpha(0)／還原、tip:SetPadding(right, bottom,
 --      left, top)／還原——定位類 C 端 setter，只在 panel 成功顯示時寫，Restore 寫回原值
 --      （padding 只在「還是我們設的那個」時才寫回）。讀 GetPoint／GetLeft／GetWidth／
---      GetPadding 一律先過 S.IsSecret，秘密 ⇒ 整格退回原樣式。不掛 hooksecurefunc。
---  11. ItemRefCloseButton:Click()（Panel/Render.lua：panel 自己畫的 × 轉呼叫原生那顆，
---      原生那顆跟著 tooltip 一起 alpha 0）
+--      GetPadding 一律先過 S.IsSecret，秘密 ⇒ 整格退回原樣式。
+--  11. ItemRefCloseButton 的 ClearAllPoints／SetPoint（Panel/Render.lua）：原生關閉鈕（跟著 tooltip 一起 alpha 0，
+--      看不見但點得到）疊到 panel 畫的 × 上，退回時貼回 TOPRIGHT -4,-4。⚠ **不從我們的程式 Click() 它**：
+--      它的 OnClick 是 HideUIPanel(ItemRefTooltip)，在污染的執行裡跑會連坐面板管理與比價管理器的共用狀態
+--  12. hooksecurefunc(tip, "Show")／(tip, "SetShown")（Panel/Native.lua 的 HookShow）：暴雪的 Show 會把
+--      alpha 改回 1、而且在 post-call 之後才叫 ⇒ 後掛勾同一幀壓回 0。只掛在用過面板的 tooltip 上、
+--      面板沒在用時掛勾什麼都不做；掛勾裡只查 Skin.State、只呼叫 SetAlpha
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，

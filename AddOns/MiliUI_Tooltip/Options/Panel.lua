@@ -227,6 +227,8 @@ local function CreatePanel()
         "",
         L["|cffffd200Credits|r"],
         L["MiliUI Tooltip is deeply inspired by |cffffffffTinyTooltip|r: its look and feature set are where this addon started. Many thanks to its author |cffffffff55510696|r. This is a from-scratch rewrite for 12.1, not a modified copy of TinyTooltip."],
+        "",
+        L["Since 2.0.0, the layout of the item and spell panels is based on |cffffffffPrettyTooltip|r by |cffffffffFallenShard|r. Many thanks."],
     }, "\n"))
 
     ns.RegisterCallback("ShowOptionsTab", "aboutTab", function(id)

@@ -63,6 +63,7 @@ L["|cffffd200Items & spells|r  Quality-colored border, icon, expansion, and item
 L["|cffffd200Position|r  Follow the cursor or pin to a screen corner; optionally hide in combat or use a fixed spot over unit frames."] = "|cffffd200位置|r  跟随鼠标或固定在屏幕角落；可选择战斗中隐藏，或滑过头像框时改用固定位置。"
 L["|cffffd200Profiles|r  Per-character profiles, shareable as export / import strings."] = "|cffffd200配置文件|r  每个角色可以有自己的配置文件，也能用字符串导出／导入分享给别人。"
 L["MiliUI Tooltip is deeply inspired by |cffffffffTinyTooltip|r: its look and feature set are where this addon started. Many thanks to its author |cffffffff55510696|r. This is a from-scratch rewrite for 12.1, not a modified copy of TinyTooltip."] = "米利的鼠标提示深受 |cffffffffTinyTooltip|r 启发，外观与功能都是从它出发的。由衷感谢原作者 |cffffffff55510696|r。本插件是为 12.1 从零重写的版本，并非 TinyTooltip 的修改版。"
+L["Since 2.0.0, the layout of the item and spell panels is based on |cffffffffPrettyTooltip|r by |cffffffffFallenShard|r. Many thanks."] = "2.0.0 起的物品与法术面板版面参考自 |cffffffffFallenShard|r 的 |cffffffffPrettyTooltip|r，特此致谢。"
 
 -- 样式标签页
 L["Scale and background"] = "缩放与背景"

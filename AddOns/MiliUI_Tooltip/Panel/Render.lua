@@ -421,9 +421,28 @@ local function DrawIcon(panel, ctx, view)
     return bottom
 end
 
+------------------------------------------------------------
+-- 聊天連結提示的 ×：我們只畫、不收滑鼠；點擊交給暴雪那顆原生關閉鈕。
+--
+-- ⚠ 不能在我們的程式裡 ItemRefCloseButton:Click()：它的 OnClick 是 HideUIPanel(ItemRefTooltip)，
+--   從我們的執行呼叫等於讓 UIParent 的面板管理與 GameTooltip_OnHide（清比價管理器的共用狀態）在**污染的執行**裡跑，
+--   之後暴雪讀那些欄位的執行都會被連坐（wow-121-secret-values「暴雪會讀的欄位一個都不能寫」）。
+-- ⇒ 原生那顆跟著原生框一起 alpha 0（看不見但點得到），用 SetPoint 疊到我們畫的 × 上；
+--   玩家點到的是原生按鈕本人，走它自己的安全路徑。面板退回時貼回原位（Panel.ResetNativeClose）。
+------------------------------------------------------------
+local CLOSE_HOME = { "TOPRIGHT", -4, -4 }    -- 跟 Core/Hooks.lua 的 Install 一致
+
+function Panel.ResetNativeClose(tip)
+    local native = _G.ItemRefCloseButton
+    if not native or S.IsForbiddenObject(native) or tip ~= _G.ItemRefTooltip then return end
+    native:ClearAllPoints()
+    native:SetPoint(CLOSE_HOME[1], tip, CLOSE_HOME[1], CLOSE_HOME[2], CLOSE_HOME[3])
+end
+
 local function EnsureClose(panel, tip)
     if panel.close then return panel.close end
-    local close = CreateFrame("Button", nil, panel)
+    -- 純 Frame、不 EnableMouse：滑鼠穿過去點到底下的原生關閉鈕
+    local close = CreateFrame("Frame", nil, panel)
     local lines = {}
     for i, angle in ipairs({ 45, -45 }) do
         local line = close:CreateTexture(nil, "ARTWORK")
@@ -432,16 +451,8 @@ local function EnsureClose(panel, tip)
         line:SetRotation(math.rad(angle))
         lines[i] = line
     end
-    local function tint(v) for _, l in ipairs(lines) do l:SetVertexColor(v, v, v, 1) end end
+    for _, l in ipairs(lines) do l:SetVertexColor(0.65, 0.65, 0.65, 1) end
     close.lines = lines
-    tint(0.65)
-    close:SetScript("OnEnter", function() tint(1) end)
-    close:SetScript("OnLeave", function() tint(0.65) end)
-    -- 接觸面 #11：轉呼叫原生那顆（它跟著 tooltip 一起 alpha 0，點不到）
-    close:SetScript("OnClick", function()
-        local native = _G.ItemRefCloseButton
-        if native and not S.IsForbiddenObject(native) then native:Click() end
-    end)
     panel.close = close
     return close
 end
@@ -455,6 +466,12 @@ local function DrawClose(panel, ctx, tip)
     close:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -m.sc(3), -m.sc(3))
     for _, l in ipairs(close.lines) do l:SetSize(m.closeLen, m.closeThick) end
     close:Show()
+    -- 接觸面 #11：原生關閉鈕疊到 × 上（點擊走它自己的安全路徑）
+    local native = _G.ItemRefCloseButton
+    if native and not S.IsForbiddenObject(native) then
+        native:ClearAllPoints()
+        native:SetPoint("CENTER", close, "CENTER", 0, 0)
+    end
     -- 標題文字不要壓到 ×
     return m.closeSize
 end

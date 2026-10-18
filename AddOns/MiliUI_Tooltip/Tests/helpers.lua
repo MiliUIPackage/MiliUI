@@ -172,6 +172,15 @@ function H.Env(extra)
         end,
         GetPixelToUIUnitFactor = function() return 1 end,
     }
+    -- hooksecurefunc(table, method, fn)：把原方法包起來、之後呼叫 fn（跟遊戲一樣是後掛勾）
+    env.hooksecurefunc = function(t, method, fn)
+        local orig = t[method]
+        t[method] = function(...)
+            local r = { orig(...) }
+            fn(...)
+            return table.unpack(r)
+        end
+    end
     env.now = 0
     env.GetTime = function() return env.now end
     env.timers = {}

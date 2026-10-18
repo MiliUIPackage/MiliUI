@@ -5,8 +5,9 @@
 -- 原生框保持顯示、只是看不見，而且撐得跟 panel 一樣大 ⇒ 那些系統把兩者當成一個框，
 -- 我們什麼定位都不用重寫。
 --
--- 接觸面 #10（Core/Hooks.lua 檔頭）：只有 SetAlpha 與 SetPadding 兩支、都是 C 端定位 setter；
--- 只在 panel 成功顯示時寫，Restore 寫回原值。不掛任何 hooksecurefunc。
+-- 接觸面 #10（Core/Hooks.lua 檔頭）：SetAlpha 與 SetPadding 兩支 C 端定位 setter；
+-- 只在 panel 成功顯示時寫，Restore 寫回原值。
+-- 接觸面 #12：hooksecurefunc(tip, "Show"／"SetShown") 後掛勾，見下面 HookShow。
 --
 -- 暴雪自己也會動 padding：GameTooltip 的 OnShow／OnHide 會 ClearPadding（GameTooltip_CalculatePadding），
 -- 所以第一次顯示時我們設的 padding 會被清掉一次 ⇒ Fit 不假設 padding 還是自己設的那個，
@@ -37,6 +38,31 @@ local function ReadPadding(tip)
     return r, b, l, t
 end
 
+------------------------------------------------------------
+-- 暴雪的 Show()／SetShown(true) 會把 tooltip 的 alpha 改回 1，而且在我們的 post-call **之後**才叫
+--（ProcessInfo 結尾的 self:Show()、比價框的 TooltipComparisonManager:AnchorShoppingTooltips → SetShown）。
+-- 只靠輪詢或下一幀重壓的話，那一幀原生框會整個露出來——被面板蓋住看不出來，只有主面板與附屬框之間的縫
+-- 看得到，比價框每秒重建二十幾次 ⇒ 縫裡一直閃（2026-10-18 實機截圖）。
+-- ⇒ 掛在 Show／SetShown 後面、同一幀立刻壓回 0。只掛在真的用過面板的 tooltip 上（第一次 Hide 時才掛），
+--   掛勾裡只查自己的 state、只做 SetAlpha（C 端 setter）。
+------------------------------------------------------------
+local hooked = {}
+
+-- state 是這顆 tooltip 在 Skin.State 裡那一份（每顆一份、不會換），直接閉包住
+local function HookShow(tip, state)
+    if hooked[tip] then return end
+    hooked[tip] = true
+    local function repress(self)
+        if state.native then Native.Repress(self, state) end
+    end
+    if tip.Show then hooksecurefunc(tip, "Show", repress) end
+    if tip.SetShown then
+        hooksecurefunc(tip, "SetShown", function(self, shown)
+            if S.IsSecret(shown) or shown then repress(self) end
+        end)
+    end
+end
+
 -- 記下原值並藏起來。讀不到（秘密／錯誤）回 false，呼叫端整格退回。
 function Native.Hide(tip, state)
     local saved = state.native
@@ -51,6 +77,7 @@ function Native.Hide(tip, state)
         saved = { alpha = alpha, right = r, bottom = b, left = l, top = t }
         state.native = saved
     end
+    HookShow(tip, state)
     tip:SetAlpha(0)
     return true
 end
@@ -103,6 +130,7 @@ function Native.Restore(tip, state)
         state.panel:Hide()
         Panel.Detach(state.panel)
     end
+    Panel.ResetNativeClose(tip)      -- 聊天連結提示：原生關閉鈕貼回原位
     if not saved then return end
     if S.IsForbiddenObject(tip) then return end
     local okS, shown = pcall(tip.IsShown, tip)

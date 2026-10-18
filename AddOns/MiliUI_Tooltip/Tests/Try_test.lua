@@ -402,4 +402,33 @@ do
     eq("Key：用 id", t7.P.Key("spell", { id = 133 }), "spell:133")
 end
 
+------------------------------------------------------------
+-- 11. 暴雪的 Show／SetShown 把 alpha 改回 1（實機：比價框縫裡閃）→ 後掛勾同一幀壓回
+------------------------------------------------------------
+do
+    local t8 = Setup()
+    -- 模擬遊戲：Show／SetShown(true) 會把 alpha 重設成 1
+    local tip = t8.tip
+    function tip:Show() self.shown = true; self.alpha = 1 end
+    function tip:SetShown(v) self.shown = v and true or false; if v then self.alpha = 1 end end
+    t8.P.Try(tip, t8.state, ITEM, t8.data)
+    eq("掛勾前提：面板生效、alpha 0", tip.alpha, 0)
+    tip:Show()
+    eq("Show 之後同一幀就壓回 0", tip.alpha, 0)
+    tip:SetShown(true)
+    eq("SetShown(true) 之後也壓回 0", tip.alpha, 0)
+    -- 面板退回之後，掛勾什麼都不做
+    t8.P.Restore(tip, t8.state)
+    tip:Show()
+    eq("面板沒在用：Show 之後照暴雪的 1", tip.alpha, 1)
+    -- 同一個 tooltip 只掛一次
+    local calls = 0
+    local show = tip.Show
+    tip.Show = function(self) calls = calls + 1; return show(self) end
+    t8.P.Try(tip, t8.state, ITEM, t8.data)
+    t8.P.Try(tip, t8.state, ITEM, { id = 99, lines = t8.data.lines })
+    tip:Show()
+    eq("只掛一次（沒有疊好幾層）", calls, 1)
+end
+
 H.finish("Try_test")

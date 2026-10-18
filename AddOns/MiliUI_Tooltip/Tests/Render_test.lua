@@ -207,9 +207,14 @@ do
     local refState = {}
     local refPanel = P.Get(refTip, refState)
     P.RenderView(refPanel, refTip, { header = { { text = "Linked", style = "title" } } }, refState)
-    check("ItemRef：關閉鈕", refPanel.close and refPanel.close.shown)
-    refPanel.close.scripts.OnClick()
-    eq("ItemRef：點 × 轉呼叫 ItemRefCloseButton:Click()", env.ItemRefCloseButton.clicks, 1)
+    check("ItemRef：畫了 ×", refPanel.close and refPanel.close.shown)
+    eq("ItemRef：× 是純 Frame（不收滑鼠、沒有 OnClick）", refPanel.close.kind, "Frame")
+    eq("ItemRef：× 沒有 OnClick", refPanel.close.scripts.OnClick, nil)
+    eq("ItemRef：原生關閉鈕疊到 × 上", env.ItemRefCloseButton.points[1][2], refPanel.close)
+    eq("ItemRef：從來沒有 Click() 原生那顆", env.ItemRefCloseButton.clicks, nil)
+    P.ResetNativeClose(refTip)
+    eq("ItemRef：退回時貼回原位（錨 tooltip）", env.ItemRefCloseButton.points[1][2], refTip)
+    eq("ItemRef：退回時貼回 TOPRIGHT -4,-4", env.ItemRefCloseButton.points[1][1] .. env.ItemRefCloseButton.points[1][4], "TOPRIGHT-4")
 
     -- Strip
     P.RenderView(panel, tip, {

@@ -49,13 +49,17 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
 
 **開關關掉時對 tooltip 零寫入**，畫面跟沒有這個功能時完全一樣。
 
-### 接觸面（`Core/Hooks.lua` 檔頭 #10、#11）
+### 接觸面（`Core/Hooks.lua` 檔頭 #10～#12）
 
 - #10 `tip:SetAlpha(0)`／還原、`tip:SetPadding(right, bottom, left, top)`／還原。只在 panel 成功顯示時寫；
   padding 只在「tooltip 還顯示著、而且還是我們設的那個值」時寫回（暴雪的 `OnShow`／`OnHide` 會自己 `ClearPadding`）；
   alpha 只在還是 0 時寫回。
-- #11 `ItemRefCloseButton:Click()`：聊天連結提示的 panel 自己畫一顆 ×，轉呼叫原生那顆（原生的跟著 tooltip 一起 alpha 0）。
-- 不掛任何 `hooksecurefunc`；暴雪物件上零欄位寫入，per-tip 狀態在 `Skin.State[tip]`（`state.panel`、`state.native`…）。
+- #11 `ItemRefCloseButton` 的 `ClearAllPoints`／`SetPoint`：聊天連結提示的 panel 畫一顆 ×（純畫、不收滑鼠），
+  把原生關閉鈕（跟著原生框 alpha 0，看不見但點得到）疊上去，點擊走原生按鈕自己的安全路徑；退回時貼回原位。
+  **不從我們的程式 `Click()` 它**：它的 OnClick 是 `HideUIPanel(ItemRefTooltip)`，在污染的執行裡跑會連坐面板管理與比價管理器的共用狀態。
+- #12 `hooksecurefunc(tip, "Show")`／`(tip, "SetShown")`：暴雪的 Show 會把 alpha 改回 1、而且在 post-call 之後才叫，
+  後掛勾同一幀壓回 0。只掛在真的用過面板的 tooltip 上，面板沒在用時掛勾什麼都不做。
+- 暴雪物件上零欄位寫入，per-tip 狀態在 `Skin.State[tip]`（`state.panel`、`state.native`…）。
 
 ### 法術（`Panel/ReadSpell.lua`、`ViewSpell.lua`）
 
@@ -133,6 +137,6 @@ for f in AddOns/MiliUI_Tooltip/Tests/*_test.lua; do lua "$f"; done
 
 實作時多出來的疑點（不佔編號）：
 
-- A. 暴雪的 `tip:Show()` 會不會把 alpha 改回 1。會的話，比價重建、按修飾鍵補 ID 行（`Spell.lua` 的 Show）時
-  原生框會閃一幀（輪詢 0.1 秒內壓回）；第一次顯示由 skin `OnShow` 當場壓回。看到閃再評估掛 `Show`。
+- A. ~~暴雪的 `tip:Show()` 會不會把 alpha 改回 1~~ **會**（2026-10-18 實機截圖：比價框重建時，主面板與附屬框之間的縫露出原生框的字和紫邊）。
+  已改成 `Show`／`SetShown` 後掛勾同一幀壓回 0（`Panel/Native.lua` 的 `HookShow`，接觸面 #12），閃爍是否消失**待驗**。
 - B. 同一個 tooltip 從物品直接換成單位／光環提示時，原生框有一幀還是 alpha 0（下一幀才還原），應該看不出來。
