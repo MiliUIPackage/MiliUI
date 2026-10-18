@@ -148,7 +148,10 @@ local function Ensure()
     -- 掛在面板底下：跟著開關、層級壓在面板底框之上（skin 會自己排到 tip−1）
     tip = CreateFrame("GameTooltip", "MiliUITip_Preview", panel, "GameTooltipTemplate")
     tip:SetFrameLevel(panel:GetFrameLevel() + 20)
-    ns.TrackTip(tip)
+    -- 第二參數：預覽 ⇒ 物品／法術的重繪面板掛在設定視窗底下、層級跟著預覽 tip（Panel/Frame.lua）。
+    -- 物品／法術模式本來就走真管線（SetItemByID／SetSpellByID → post-call），面板自己會長出來；
+    -- 視窗關掉時 tip 藏起來 ⇒ skin OnHide 把面板拆掉
+    ns.TrackTip(tip, true)
 
     chipHolder = CreateFrame("Frame", nil, panel)
     chipHolder:SetSize(260, 22)

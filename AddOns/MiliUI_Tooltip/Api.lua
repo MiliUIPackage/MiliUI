@@ -74,7 +74,11 @@ SLASH_MILIUITIP1 = "/mtip"
 SLASH_MILIUITIP2 = "/miliuitooltip"
 SlashCmdList.MILIUITIP = function(msg)
     msg = strtrim(strlower(msg or ""))
-    if msg == "reset" then
+    local cmd, arg = msg:match("^(%S+)%s*(.-)$")
+    if cmd == "record" then
+        -- 記錄模式：滑的時候自動記物品／法術提示的原始資料（Core/Record.lua）
+        ns.Record.Command(arg)
+    elseif msg == "reset" then
         ns.DB.ResetAll()
     elseif msg == "log" then
         ns.logEnabled = not ns.logEnabled

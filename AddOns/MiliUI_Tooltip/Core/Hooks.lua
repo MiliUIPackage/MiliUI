@@ -15,6 +15,12 @@
 --   7. 全域字型物件（Fonts.lua）
 --   8. SetOwner / SetPoint / SetScale / Hide 等定位 API（Anchor.lua、Skin.lua）
 --   9. per-tip 狀態一律放 Skin.State[tip]，暴雪物件上零欄位寫入
+--  10. 重繪面板（Panel/Native.lua）：tip:SetAlpha(0)／還原、tip:SetPadding(right, bottom,
+--      left, top)／還原——定位類 C 端 setter，只在 panel 成功顯示時寫，Restore 寫回原值
+--      （padding 只在「還是我們設的那個」時才寫回）。讀 GetPoint／GetLeft／GetWidth／
+--      GetPadding 一律先過 S.IsSecret，秘密 ⇒ 整格退回原樣式。不掛 hooksecurefunc。
+--  11. ItemRefCloseButton:Click()（Panel/Render.lua：panel 自己畫的 × 轉呼叫原生那顆，
+--      原生那顆跟著 tooltip 一起 alpha 0）
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，
@@ -72,7 +78,19 @@ local function OnUnit(tip)
     end
 end
 
-local function OnItem(tip)
+-- 記錄模式（/mtip record）＋重繪面板，物品與法術共用。在既有的 Apply 之後：
+-- 面板要撿得到我們自己加的 ID 行；Try 出錯時一定要退回（不能留著 alpha 0 的原生）
+local T_ITEM = Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item
+local T_SPELL = Enum and Enum.TooltipDataType and Enum.TooltipDataType.Spell
+
+local function AfterApply(tip, state, kind, dataType, data)
+    xpcall(ns.Record.OnPostCall, ns.ReportError, tip, kind, data)
+    if not xpcall(ns.Panel.Try, ns.ReportError, tip, state, dataType, data) then
+        ns.Panel.Fail(tip, state)
+    end
+end
+
+local function OnItem(tip, data)
     local state = Gate(tip)
     if not state then return end
     ns.Bar.Deactivate(tip)
@@ -82,6 +100,7 @@ local function OnItem(tip)
         if ok then link = l end
     end
     xpcall(ns.Item.Apply, ns.ReportError, tip, state, link)
+    AfterApply(tip, state, "item", T_ITEM, data)
 end
 
 local function OnSpell(tip, data)
@@ -93,6 +112,7 @@ local function OnSpell(tip, data)
     ns.Bar.Deactivate(tip)
     local spellId = data and S.PlainNumber(data.id)
     xpcall(ns.Spell.Apply, ns.ReportError, tip, state, spellId)
+    AfterApply(tip, state, "spell", T_SPELL, data)
 end
 
 local function OnUnitAura(tip, data)
@@ -178,6 +198,9 @@ end
 -- 設定套用總入口（設定面板 / 載入時）
 ------------------------------------------------------------
 function ns.ApplyAll()
+    -- 重繪面板：設定版本進指紋（改了外觀要重畫）；顯示中的先退回，下一次 post-call 照新設定畫
+    ns.Panel.settingsVersion = ns.Panel.settingsVersion + 1
+    ns.Panel.RestoreAll()
     Skin.ApplyBaseAll()
     ns.Bar.ApplySettingsAll()
     ns.Fonts.Apply()
@@ -187,14 +210,17 @@ end
 ------------------------------------------------------------
 -- 初始化
 ------------------------------------------------------------
-local function TrackTip(tip)
+-- isPreview：設定視窗的預覽 tooltip（重繪面板要掛在設定視窗底下、跟著它的層級）
+local function TrackTip(tip, isPreview)
     if not tip or Skin.Get(tip) then return end
-    Skin.Attach(tip)
+    local state = Skin.Attach(tip)
+    if state and isPreview then state.isPreview = true end
     -- 清理暫態（接觸面 #3）。HookScript 是後掛勾，安全。
     if tip.HasScript and tip:HasScript("OnTooltipCleared") then
         tip:HookScript("OnTooltipCleared", function(self)
             if S.IsForbiddenObject(self) then return end
             Skin.ClearTransient(self)
+            ns.Panel.Release(self, Skin.Get(self))
         end)
     end
 end

@@ -147,6 +147,7 @@ local function BuildDefaults()
             showItemMaxStack = true,
             showItemIconId = false,
             showItemExpansion = true,
+            panel = true,                  -- 以面板重繪（Panel/）；關掉＝原生排版只套邊框與顏色
         },
         spell = {
             modifierShowAll = true,
@@ -154,10 +155,20 @@ local function BuildDefaults()
             showSpellId = false,
             showSpellIconId = false,
             showMountSource = true,
+            panel = true,                  -- 以面板重繪（Panel/）
         },
         quest = {
             coloredQuestBorder = true,
             showQuestId = true,
+        },
+        -- 重繪面板的外觀（物品／法術共用）。新欄位一律靠 MergeDefaults 補，不寫遷移
+        panel = {
+            separators = true,       -- 分隔線與 ◆
+            statMarkers = true,      -- 屬性前的 ◆（物品）
+            levelBadge = true,       -- 圖示下的物品等級徽章
+            strip = true,            -- 法術的耗能／施法／冷卻／距離四格
+            numberColor = "class",   -- 描述數字上色："class"｜"custom"（用 numberCustom）｜"none"｜六位 hex
+            numberCustom = Color(1, 0.82, 0, 1),
         },
     }
 end
@@ -251,7 +262,7 @@ local CHAR_PREFIX = "char:"
 
 -- 一份設定檔裝哪些區塊。沒列到的頂層鍵就是帳號層的（optionsWindow、charClasses…）。
 -- ⚠ 加新區塊時這裡要一起加，不然它會變成帳號層、切設定檔時不跟著換。
-local PROFILE_KEYS = { "general", "statusbar", "anchor", "unit", "item", "spell", "quest" }
+local PROFILE_KEYS = { "general", "statusbar", "anchor", "unit", "item", "spell", "quest", "panel" }
 
 -- 一份全新設定檔。每次呼叫都是新表（BuildDefaults 自己就重建），
 -- 所以拿去塞進 profiles 不會跟別份共用子表。

@@ -154,9 +154,11 @@ function Skin.Attach(tip)
         Skin.NeutralizeTemplateBar(tip)
         Skin.RaiseAccents(tip)
         NoteVisibility(state, true)      -- 共用輪詢的開關，見 Skin.Poll
+        if ns.Panel then ns.Panel.OnSkinShow(tip, state) end   -- 重繪面板：重申原生 alpha 0
     end)
     skin:SetScript("OnHide", function()
         Skin.ClearTransient(tip)
+        if ns.Panel then ns.Panel.Restore(tip, state) end      -- 重繪面板：tooltip 藏了就拆
         NoteVisibility(state, false)
     end)
 
@@ -241,6 +243,13 @@ function Skin.SetBorderColor(tip, r, g, b, a)
     for i = 1, 4 do
         state.edges[i]:SetVertexColor(r, g, b, a or 1)
     end
+    -- 重繪面板讀這份畫自己的邊（分量可能是秘密值：只存、只交給 SetVertexColor）
+    local c = state.borderColor
+    if not c then
+        c = {}
+        state.borderColor = c
+    end
+    c[1], c[2], c[3], c[4] = r, g, b, a or 1
 end
 
 function Skin.SetBackgroundColor(tip, r, g, b, a)

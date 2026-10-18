@@ -1,0 +1,118 @@
+# 米利的滑鼠提示 MiliUI_Tooltip
+
+12.1 起的自製滑鼠提示。單位、光環、巨集提示走「就地改寫」（在暴雪 tooltip 底下墊自己的 skin 框、
+post-call 加行改色）；物品與法術提示另外走「重繪面板」。
+
+taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程式碼必須先過那張表**。
+
+## 重繪面板（`Panel/`）
+
+物品、法術提示：原生 tooltip 留在底下當替身，旁邊畫一個自己的 panel 自由排版。
+設定在「物品與法術」分頁最上面的「面板」（物品、法術各一個開關，預設開）。
+
+### 做法
+
+- **原生 tooltip 不藏、只看不見**：`SetAlpha(0)`，`SetPadding` 撐到跟 panel 一樣大。
+  暴雪的比價框定位、螢幕邊夾邊、跟隨游標全部照原生框的尺寸算，原生撐大之後那些系統自然把兩者當成一個框，
+  定位一行都不用重寫。
+- **panel 是自己的框**（parent `UIParent`、strata `TOOLTIP`、層級 = tooltip + 5；預覽時 parent 是設定視窗、
+  不另設 strata）。照 tooltip 被錨的那一側貼齊上緣，角落修到整數像素。
+- **入口只有既有的 post-call**（`Core/Hooks.lua` 的 `OnItem`／`OnSpell`），在 `Item.Apply`／`Spell.Apply`
+  之後呼叫 `Panel.Try`：我們自己加的 ID 行、別的插件 `AddLine` 加的行都已經在 tooltip 上了。
+- **讀行**（`Panel.CollectLines`）：`data.lines` 逐行讀型別、左右欄、顏色；`lineIndex` 不在 data 裡的
+  `TextLeftN`／`TextRightN` 全部撿回來放「其他」區，顏色照它自己的。一行都不能丟。
+- **語系**：認行用的 pattern 全部從 `_G` 的 GlobalStrings 反轉產生（`Panel/Patterns.lua`），不寫任何語言的字面。
+- **效能**：重畫前比指紋（所有行文字＋顏色＋設定版本），比價框每秒重建二十幾次時只重壓 alpha、不重畫；
+  FontString／Texture 用池只增不刪；沒有 OnUpdate，跟著 tooltip 的共用輪詢（`Skin.Poll`，0.1 秒）走。
+- **內容被清掉**（`OnTooltipCleared`）先不拆、下一幀還沒被新內容認領才拆；tooltip 藏起來（skin `OnHide`）立刻拆。
+
+外觀：提示皮（底 `general.background` 不透明、1 實體像素的邊、白字、直角，不鋪紋理不漸層）；
+邊框色跟就地改寫那套同一組（品質色），分隔線白 alpha 0.22，◆ 用玩家職業色。數值集中在 `Panel/Frame.lua` 的 `Panel.LOOK`。
+
+### 失敗方向：退回現有樣式
+
+下面任何一項成立，就**不藏原生、不顯示 panel**，現有的 skin 管線（品質邊框、ID 行、名稱前圖示）照常：
+
+- 任何一行的文字、型別、顏色、`lineIndex` 是秘密值；別人後加的行讀到秘密值
+- tooltip 的 `GetPoint`／`GetLeft`／`GetTop`／`GetWidth`／`GetPadding` 任何一個回秘密值
+- 讀不出名字、render 出錯（`Core/Hooks.lua` 的 xpcall 接住後 `Panel.Fail` 退回）
+- 內嵌物品框（世界任務獎勵）或底部說明字顯示中——那時暴雪自己在用 padding
+
+**開關關掉時對 tooltip 零寫入**，畫面跟沒有這個功能時完全一樣。
+
+### 接觸面（`Core/Hooks.lua` 檔頭 #10、#11）
+
+- #10 `tip:SetAlpha(0)`／還原、`tip:SetPadding(right, bottom, left, top)`／還原。只在 panel 成功顯示時寫；
+  padding 只在「tooltip 還顯示著、而且還是我們設的那個值」時寫回（暴雪的 `OnShow`／`OnHide` 會自己 `ClearPadding`）；
+  alpha 只在還是 0 時寫回。
+- #11 `ItemRefCloseButton:Click()`：聊天連結提示的 panel 自己畫一顆 ×，轉呼叫原生那顆（原生的跟著 tooltip 一起 alpha 0）。
+- 不掛任何 `hooksecurefunc`；暴雪物件上零欄位寫入，per-tip 狀態在 `Skin.State[tip]`（`state.panel`、`state.native`…）。
+
+### 法術（`Panel/ReadSpell.lua`、`ViewSpell.lua`）
+
+- 標題：圖示、名字、徽章列（被動｜天賦等級｜副標｜最大充能）。
+- 四格（設定「法術四格」）：耗能／施法／冷卻（有充能時是「恢復」）／距離，固定順序；缺的格顯示含義
+  （無／立即施法／無／自身）並用暗灰。時間用 GlobalStrings 的短格式（「冷卻時間8秒」→「8秒」）。耗能值用資源色亮化。
+  關掉時照原生的兩欄排。
+- 描述**整段畫、不切句**（中文沒有「句點＋大寫」可切），`|n` 照留；描述裡的數字上色（職業色亮化／自訂／不上色）。
+  **只上色、不加粗**：FontString 不能局部換字型。
+- 需求（未達成紅）、剩餘冷卻（橘）、材料／工具、天賦面板的「下一級」（Caption）、巢狀法術（變形後的版本：小一號標題＋同一套）。
+- 天賦面板的名字與等級是寫在 data 之外的後加行：畫在第 1 行的那一行當名字。
+
+### 物品與配方（`Panel/ReadItem.lua`、`ViewItem.lua`）
+
+- 標題：圖示＋物品等級徽章（設定「圖示下顯示物品等級」）；名字（品質色）、「護甲類 · 部位」、「綁定 · 唯一 · 需要等級 · 技能需求」（未達成紅）、提升等級／製造品質。
+- ◆ 分隔：武器（大字每秒傷害＋小字「傷害 · 速度」）／護甲（大字）、屬性（◆ 職業色，主 1.0／次 0.85／三 0.7，三類之間細線；不適用的灰字照灰）。
+- ◆ 分隔：效果（小標籤＋綠字）、需求、插槽、附魔、冷卻與其他細節、套裝（名字金、物件未擁有灰、加成未啟用灰）、風味文字（金）。
+- **配方（推定，待實機）**：第二個物品名字（或物品型的巢狀區塊）之後是成品，畫在 Caption「製造」底下（小圖示＋名字＋一行灰字＋屬性）；
+  「材料：」那一行（或它之後到空行為止的行）畫在 Caption「材料」底下，右欄「擁有 / 需要」、不足紅。
+- 頁尾帶：職業／種族／聲望／專精限定（靠右、未達成紅）、耐久條（MiliUI Satin、職業色）＋「120 / 165」、售價。
+- 比價框：左上方外側「目前裝備」標籤。
+
+認不得的行一律進「其他」區（不許少行）。最簡 reader（`ReadFallback.lua`）留著當「型別不認得」的退路。
+
+## 記錄模式（`/mtip record`）
+
+reader 要照真實的行結構寫，這個指令把遊戲裡實際的提示資料記下來：
+
+- `/mtip record on` 之後每次滑過物品／法術都自動記一筆；`/mtip record off` 停；`/mtip record clear` 清空；
+  `/mtip record` 印目前筆數與開關。
+- 每筆：`data` 整張結構＋當下所有行的文字與顏色＋語系＋tooltip 名字，秘密值標 `"<secret>"`。
+- 同一個 id＋型別＋行數只留一筆；上限 60 筆。
+- 存在 `MiliUI_Tooltip_DB.dumps`（帳號層級）。**SavedVariables 只在 `/reload` 或登出時才寫進檔案。**
+  開關也存帳號層，`/reload` 後還開著，登入時聊天會提醒。
+
+## 離線測試
+
+```bash
+for f in AddOns/MiliUI_Tooltip/Tests/*_test.lua; do lua "$f"; done
+```
+
+`Tests/helpers.lua` 是共用的假框、假環境與秘密值哨兵（比較、算術、串接一碰就 error ⇒ 測試沒炸就證明只傳不讀）。
+三語的 GlobalStrings 實值抄自 `Interface/tmp/GlobalStrings/gs_{enUS,zhTW,zhCN}.csv`：reader 測試共用的那份在
+`Tests/fixtures/GlobalStrings.lua`（從 CSV 挑 key 產生、不要手改）。法術／物品 fixture 是用這些格式字串 format 出來的手拼行，
+真實行佈局等 `/mtip record` 的資料進來再對。
+
+## 待實機驗證
+
+1. 比價框（Shift 比較）貼在 panel 旁而不是壓在上面——只靠 padding 夠不夠，不夠才把比價框的錨點改接到 panel。
+2. 跟隨游標模式下 panel 無拖影（游標跟隨每幀 SetPoint tooltip，panel 錨在 tooltip 上應該同步）。
+3. 螢幕邊夾邊：原生撐大後夾邊，panel 不出界。
+4. 戰鬥中開背包滑物品：資料明文、panel 正常；滑快捷列法術同。
+5. 比價風暴下的 CPU（`/miliui` 效能分頁看 MiliUI_Tooltip 的 RecentAverageTime，跟現在比）。
+6. `ItemRefTooltip`（聊天連結）：關閉鈕可點、panel 跟著框走（拖曳原生框時 panel 同步）。
+7. 其他插件加的行（裝備評分、觀察、背包插件加的行）出現在「其他」區且顏色對。
+8. 面板開關關掉後畫面跟 1.0.3 完全相同。
+
+9. 真實法術的行佈局跟 fixture 一致（用 `/mtip record` 抓十個：瞬發、施法、引導、充能、被動、天賦面板的、變形法術、DK、惡魔獵人魔怒、喚能者龍能），把資料併進 `Tests/fixtures/`。
+10. 「按住修飾鍵顯示全部」補的 ID 行有進「其他」區（輪詢看到行數變了會重跑）。
+11. 真實物品記十件（護甲、武器、飾品、配方、寶石、戰隊綁定、提升等級行、專業製造品質）併進 fixtures；主屬性行與次屬性行的實際字串形狀。
+12. 配方的「製造」區與「材料」區在 12.1 的實際行結構（巢狀區塊還是第二個物品名字、材料是一行還是逐行）。
+13. 背包插件的格子外觀與 panel 不打架。
+14. 聊天連結物品（`ItemRefTooltip`）的售價／比價；點過、拖過之後 × 還點得到（panel 層級跟著原生框抬）。
+
+實作時多出來的疑點（不佔編號）：
+
+- A. 暴雪的 `tip:Show()` 會不會把 alpha 改回 1。會的話，比價重建、按修飾鍵補 ID 行（`Spell.lua` 的 Show）時
+  原生框會閃一幀（輪詢 0.1 秒內壓回）；第一次顯示由 skin `OnShow` 當場壓回。看到閃再評估掛 `Show`。
+- B. 同一個 tooltip 從物品直接換成單位／光環提示時，原生框有一幀還是 alpha 0（下一幀才還原），應該看不出來。
