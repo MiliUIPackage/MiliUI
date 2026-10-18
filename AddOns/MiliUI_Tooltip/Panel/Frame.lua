@@ -78,6 +78,8 @@ Panel.LOOK = {
     REAGENT_ICON = 14,
     BAR_W = 54, BAR_H = 6,             -- 頁尾耐久條
     FRAME_GAP = 6,                     -- 框與框之間的縫：附屬框與主面板、比價面板之間、貼在面板旁的別家框（N1）
+    FOLLOW_HYST = 24,                  -- 貼在面板旁的別家框換邊的遲滯：另一邊要多出這麼多餘裕才換（Panel.Follow）
+    FOLLOW_DWELL = 0.3,                -- 換過邊之後至少隔這麼多秒才准再換
 }
 local LOOK = Panel.LOOK
 
@@ -522,14 +524,31 @@ end
 
 ------------------------------------------------------------
 -- 別的插件自己建的框貼在我們接管的 tooltip 旁邊（外觀預覽，經 MiliUITip_API.Adopt 的 followPanel）：
--- 它每 0.2 秒自己 ClearAllPoints＋SetPoint(點, 原生 tooltip, 對方點)。原生被錨定的另一邊會隨自然高度短暫變動，
--- 它貼原生就跟著跳——跟比價面板鏡射同一個道理，改貼面板。
--- 它不是我們的框、會自己重貼 ⇒ 後掛勾 SetPoint：對象是有面板顯示中的 tooltip 時，同一幀改成貼那個面板（點與位移原樣）。
+-- 它每 0.2 秒自己 ClearAllPoints＋SetPoint(點, 原生 tooltip, 對方點)，而那個點是它照**原生的幾何**決定的
+--（貼哪一邊、放不放得下）。接管期間原生不夾邊（Native.Hide）、又被 padding 撐到跟面板一樣大 ⇒ 原生可以超出螢幕
+--（2026-10-19 實機 dump：三顆 top 都是 1280、螢幕上緣 1175），它的判斷跟著亂：每 0.2 秒換邊（抖）、
+-- 選到「貼在上方」時整個框在螢幕外（沒出現）。以前只把對象換成面板、點照它的 ⇒ 把亂的決定忠實搬過來。
+--
+-- 現在對象有面板顯示中時**不照它的決定**，位置由我們定（Place）：
+--   * 貼在整條面板鏈（根＋鏡射在上面的比價面板）的外側，左邊或右邊，貼最外側那顆；
+--   * 上緣對齊鏈的根（主面板）；
+--   * 換邊有遲滯：這一邊還放得下就不換；要換過去，另一邊得多出 FOLLOW_HYST 的餘裕、而且離上次換邊至少
+--     FOLLOW_DWELL 秒；兩邊都放不下就選比較寬的那邊（一樣要寬出 FOLLOW_HYST 才換）；
+--   * 跟隨期間開它的夾邊（原值記下、放手時還原）：鏈貼近螢幕下緣時預覽框不會掉出去。
+-- 它不是我們的框、會自己重貼 ⇒ 後掛勾 SetPoint（接觸面 #14）同一幀改貼；面板鏈每次對齊（Panel.Align，輪詢）
+-- 也重算一次（比價面板出現、鏈變寬時當幀跟上，不等它的 0.2 秒）。幾何全部 pcall＋秘密閘，任何一個讀不到就這一輪不動
+--（已經貼著面板的維持上次的貼法；第一次就讀不到才退回「對象換成面板、點照它的」）。
 -- 只掛在別的插件自己建的 Frame 上（不是暴雪物件），每顆只掛一次；掛勾裡重入旗標擋自己的 SetPoint。
 -- 只保留最後一個點：它每次都先 ClearAllPoints 再設一個點，不會有第二個。
--- 面板退回時（Restore）把貼在那個面板上的框當場貼回原生，不等它下一次自己重貼（錨在沒有點的框上那一下會跑掉）。
+-- 面板退回時（Restore）：根還顯示著就重貼到鏈上；根退了就當場貼回原生，不等它下一次自己重貼
+--（錨在沒有點的框上那一下會跑掉）。它要貼的對象不是面板時（滑到單位）放手：夾邊還原、不改它的點。
 ------------------------------------------------------------
-local followers = {}       -- [frame] = { point, rel, relPoint, x, y, panel }（rel 是它原本要貼的 tooltip）
+local MAX_CHAIN = 8        -- 鏡射鏈最深幾層（也給下面的夾邊預留用）
+
+-- [frame] = { point, rel, relPoint, x, y（它原本要貼的原生 tooltip 與點）,
+--             root = 跟著的鏈的根, panel = 實際貼著的那顆面板, side = "LEFT"／"RIGHT", sideAt = 上次換邊的時間,
+--             placeSig = 上次貼法, clamped = 它原本的夾邊 }
+local followers = {}
 local following = false
 Panel.followers = followers
 
@@ -542,6 +561,123 @@ local function Reanchor(frame, point, rel, relPoint, x, y)
     following = false
 end
 
+local function RootOf(panel)
+    local depth = 0
+    while panel and panel.mirrorOf and depth < MAX_CHAIN do
+        panel, depth = panel.mirrorOf, depth + 1
+    end
+    return panel
+end
+Panel.RootOf = RootOf
+
+-- 螢幕座標（×有效縮放，跟 GetCursorPosition 同一個座標系）：左、右、上。讀不到／秘密／還沒排版 ⇒ nil
+local function ScreenRect(frame)
+    local scale = EffectiveScale(frame)
+    if not scale then return nil end
+    local okL, l = pcall(frame.GetLeft, frame)
+    local okR, r = pcall(frame.GetRight, frame)
+    local okT, t = pcall(frame.GetTop, frame)
+    if not (okL and okR and okT) then return nil end
+    if S.IsSecret(l) or S.IsSecret(r) or S.IsSecret(t) then return nil end
+    if type(l) ~= "number" or type(r) ~= "number" or type(t) ~= "number" then return nil end
+    return l * scale, r * scale, t * scale
+end
+
+local function ScreenSize(frame)
+    local scale = EffectiveScale(frame)
+    if not scale then return nil end
+    local okW, w = pcall(frame.GetWidth, frame)
+    local okH, h = pcall(frame.GetHeight, frame)
+    if not (okW and okH) or S.IsSecret(w) or S.IsSecret(h) then return nil end
+    if type(w) ~= "number" or type(h) ~= "number" or w <= 0 then return nil end
+    return w * scale, h * scale, scale
+end
+
+local function ScreenWidth()
+    local ok, w = pcall(GetScreenWidth)
+    local scale = EffectiveScale(UIParent)
+    if ok and type(w) == "number" and scale then return w * scale end
+end
+
+-- 鏈的範圍：根＋鏡射在根上（可以串）而且顯示中的面板。回最左那顆與左緣、最右那顆與右緣、各自的上緣、根的上緣
+local function ChainExtent(root)
+    local l, r, t = ScreenRect(root)
+    if not l then return nil end
+    local ext = { leftP = root, left = l, leftTop = t, rightP = root, right = r, rightTop = t, top = t }
+    local states = ns.Skin and ns.Skin.State
+    if states then
+        for _, st in pairs(states) do
+            local p = st.panel
+            if p and p ~= root and p:IsShown() and RootOf(p) == root then
+                local pl, pr, pt = ScreenRect(p)
+                if not pl then return nil end
+                if pl < ext.left then ext.leftP, ext.left, ext.leftTop = p, pl, pt end
+                if pr > ext.right then ext.rightP, ext.right, ext.rightTop = p, pr, pt end
+            end
+        end
+    end
+    return ext
+end
+
+local function Now() return GetTime and GetTime() or 0 end
+
+-- 決定貼哪一邊、貼上去。幾何讀不到就什麼都不做（rec.panel 維持原樣）
+local function Place(frame, rec, root)
+    local ext = ChainExtent(root)
+    if not ext then return end
+    local fw, _, fscale = ScreenSize(frame)
+    local screenW = ScreenWidth()
+    if not fw or not screenW then return end
+    local gap = Panel.Scale(frame, LOOK.FRAME_GAP)            -- 它自己的單位
+    local need = fw + gap * fscale                            -- 螢幕座標
+    local hyst = Panel.Scale(frame, LOOK.FOLLOW_HYST) * fscale
+    local room = { LEFT = ext.left, RIGHT = screenW - ext.right }
+    local function Fits(s) return room[s] >= need end
+
+    local side, now = rec.side, Now()
+    if not side then
+        if Fits("RIGHT") ~= Fits("LEFT") then
+            side = Fits("RIGHT") and "RIGHT" or "LEFT"
+        else
+            side = room.RIGHT >= room.LEFT and "RIGHT" or "LEFT"
+        end
+    elseif not Fits(side) and now - (rec.sideAt or 0) >= LOOK.FOLLOW_DWELL then
+        local other = side == "RIGHT" and "LEFT" or "RIGHT"
+        if room[other] >= need + hyst or (not Fits(other) and room[other] >= room[side] + hyst) then
+            side = other
+        end
+    end
+    if side ~= rec.side then rec.side, rec.sideAt = side, now end
+
+    local target, targetTop = ext.rightP, ext.rightTop
+    local point, relPoint, dx = "TOPLEFT", "TOPRIGHT", gap
+    if side == "LEFT" then
+        target, targetTop = ext.leftP, ext.leftTop
+        point, relPoint, dx = "TOPRIGHT", "TOPLEFT", -gap
+    end
+    local dy = Panel.Snap(frame, (ext.top - targetTop) / fscale)
+    local sig = ("%s|%s|%.3f|%.3f"):format(point, tostring(target), dx, dy)
+    if rec.panel == target and rec.placeSig == sig then return end
+    rec.panel, rec.placeSig = target, sig
+    Reanchor(frame, point, target, relPoint, dx, dy)
+end
+
+-- 開始跟一條鏈：記下它原本的夾邊、打開
+local function Hold(frame, rec, root)
+    if not rec.root then
+        local ok, clamped = pcall(frame.IsClampedToScreen, frame)
+        rec.clamped = ok and type(clamped) == "boolean" and clamped or false
+        pcall(frame.SetClampedToScreen, frame, true)
+    end
+    rec.root = root
+end
+
+-- 放手：夾邊還原、忘掉鏈（不動它的點）
+local function Drop(frame, rec)
+    if rec.root then pcall(frame.SetClampedToScreen, frame, rec.clamped and true or false) end
+    rec.root, rec.panel, rec.placeSig = nil, nil, nil
+end
+
 function Panel.Follow(frame)
     if type(frame) ~= "table" or followers[frame] or type(frame.SetPoint) ~= "function" then return end
     followers[frame] = {}
@@ -552,24 +688,43 @@ function Panel.Follow(frame)
         -- SetPoint(點, 對象, x, y) 的寫法：沒有對方點
         if type(relPoint) == "number" then relPoint, x, y = point, relPoint, x end
         local rec = followers[self]
-        rec.panel = nil
-        if type(point) ~= "string" then return end
-        local panel = Panel.PanelFor(rel)
-        if not panel then return end
+        local panel = type(point) == "string" and Panel.PanelFor(rel)
+        if not panel then
+            Drop(self, rec)
+            return
+        end
         relPoint = type(relPoint) == "string" and relPoint or point
-        rec[1], rec[2], rec[3], rec[4], rec[5], rec.panel = point, rel, relPoint, x or 0, y or 0, panel
-        -- 跟面板之間留縫（N1）：縫的單位是這顆框自己的（位移照它的縮放算）
-        local gx, gy = Panel.GapOffset(point, relPoint, Panel.Scale(self, LOOK.FRAME_GAP))
-        Reanchor(self, point, panel, relPoint, (x or 0) + gx, (y or 0) + gy)
+        rec[1], rec[2], rec[3], rec[4], rec[5] = point, rel, relPoint, x or 0, y or 0
+        Hold(self, rec, RootOf(panel))
+        rec.panel, rec.placeSig = nil, nil        -- 它剛 ClearAllPoints 過，一定要重貼
+        Place(self, rec, rec.root)
+        if not rec.panel then
+            -- 幾何讀不到：退回「對象換成面板、點照它的」，至少不留在看不見的原生旁邊
+            local gx, gy = Panel.GapOffset(point, relPoint, Panel.Scale(self, LOOK.FRAME_GAP))
+            rec.panel = panel
+            Reanchor(self, point, panel, relPoint, (x or 0) + gx, (y or 0) + gy)
+        end
     end)
 end
 
--- 面板 gone 要退了：貼在它上面的框貼回原本的 tooltip
+-- 鏈的根 root 對齊過（Panel.Align）：跟著它的框重算一次
+function Panel.PlaceFollowers(root)
+    for frame, rec in pairs(followers) do
+        if rec.root == root then Place(frame, rec, root) end
+    end
+end
+
+-- 面板 gone 要退了：貼在它上面、或跟著它那條鏈的框——根還在就重貼到鏈上，不然貼回原本的 tooltip
 function Panel.ReturnFollowers(gone)
     for frame, rec in pairs(followers) do
-        if rec.panel == gone then
-            rec.panel = nil
-            Reanchor(frame, rec[1], rec[2], rec[3], rec[4], rec[5])
+        if rec.panel == gone or rec.root == gone then
+            local root = rec.root
+            rec.panel, rec.placeSig = nil, nil
+            if root and root ~= gone and root:IsShown() then Place(frame, rec, root) end
+            if not rec.panel then
+                Drop(frame, rec)
+                if rec[1] then Reanchor(frame, rec[1], rec[2], rec[3], rec[4], rec[5]) end
+            end
         end
     end
 end
@@ -603,8 +758,6 @@ end
 -- 鏡射可以串（第二顆比價框貼第一顆、第一顆貼主提示）⇒ 預留沿鏈往上收到根（真正在夾的那顆）。
 -- 只在值變了才 SetClampRectInsets（Align 每次輪詢都會走到這裡）
 ------------------------------------------------------------
-local MAX_CHAIN = 8
-
 local function Reserve(panel, depth)
     local top, bottom = panel.clampOwnTop or 0, panel.clampOwnBottom or 0
     local states = ns.Skin and ns.Skin.State
@@ -687,7 +840,7 @@ local function Mirror(panel, tip, points)
     return Apply(panel, "mirror:" .. table.concat(sig, ";"), mirrored)
 end
 
-function Panel.Align(panel, tip)
+local function AlignInner(panel, tip)
     local points = ReadPoints(tip)
     if not points then return false end
     if #points == 0 then return Keep(panel, tip) end
@@ -718,6 +871,13 @@ function Panel.Align(panel, tip)
     end
     local sig = ("own:%s|%s|%.3f|%.3f"):format(corner, tostring(tip), dx, dy)
     return Apply(panel, sig, { { corner, tip, corner, dx, dy } })
+end
+
+-- 對齊成功後，跟著這條鏈的別家框（外觀預覽）重算一次位置：比價面板剛出現、鏈變寬時當幀跟上
+function Panel.Align(panel, tip)
+    local ok = AlignInner(panel, tip)
+    if ok then Panel.PlaceFollowers(RootOf(panel)) end
+    return ok
 end
 
 -- 脫離錨點鏈（重排前、退回時）。keep：重畫時保留「上次怎麼貼的」與對齊的遲滯記憶，

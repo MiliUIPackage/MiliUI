@@ -41,9 +41,11 @@
 -- ⚠ **`ignoreParentAlpha` 也一定要帶。** 提示插件的重繪面板會把 `GameTooltip` 壓 alpha 0（原生框當看不見的替身），
 --   這顆掛在它底下就跟著透明：實機看到只剩 3D 模型浮在世界上（模型不吃父層 alpha），底、邊、兩行字全不見。
 --   退回路徑不需要：沒有提示插件就沒人把 `GameTooltip` 壓 0。
--- ⚠ **`followPanel` 也帶。** 它的 positioner 每 0.2 秒貼到**原生**提示（或最外側的比價框）旁邊；
---   原生被錨定的另一邊會隨自然高度短暫變動，預覽就跟著上下跳。提示插件後掛勾它的 `SetPoint`，
---   對象有重繪面板顯示中時改貼面板（點與位移原樣）。
+-- ⚠ **`followPanel` 也帶。** 它的 positioner 每 0.2 秒照**原生**提示的幾何決定貼哪一邊、放不放得下，
+--   再貼到原生（或最外側的比價框）旁邊。重繪面板接管期間原生不夾邊、又被撐到跟面板一樣大 ⇒ 原生會超出螢幕，
+--   它的判斷跟著亂（每 0.2 秒換邊、選到「貼在上方」時整個框在螢幕外）。提示插件後掛勾它的 `SetPoint`，
+--   對象有重繪面板顯示中時**不照它的點**，由提示插件定位：貼整條面板鏈外側、上緣對齊主面板、換邊有遲滯；
+--   跟隨期間把它夾在螢幕內（`SetClampedToScreen(true)`，放手還原）。
 -- 接管後的層級：提示插件的 skin 子框壓在本體 −1，而它的模型框每次重設都
 -- `SetFrameLevel(本體)` ⇒ 底在模型之下，模型與兩行字（`OVERLAY`）照常在上面。
 --
@@ -73,7 +75,7 @@
 -- |---|---|
 -- | `AppearanceTooltipTooltip` | `MiliUITip_API.Adopt`（有提示插件時）—— 動作記在那一支的接觸面清單；`keepScale` ⇒ 不寫 `SetScale` |
 -- | 同一顆 | `SetIgnoreParentAlpha(true)`（經由 `Adopt` 的 `ignoreParentAlpha`；有提示插件時） |
--- | 同一顆 | `hooksecurefunc(frame, "SetPoint")`（經由 `Adopt` 的 `followPanel`；有提示插件時。對象是它自己的框，不是暴雪物件） |
+-- | 同一顆 | `hooksecurefunc(frame, "SetPoint")`、跟隨面板期間 `SetClampedToScreen(true)`／放手還原（經由 `Adopt` 的 `followPanel`；有提示插件時。對象是它自己的框，不是暴雪物件） |
 -- | 它的 `NineSlice` | `SetAlpha(0)`（退回路徑） |
 -- | 它自己 | `CreateTexture`（底 ＋ 四條邊，經由 `Engine.RegionBackdrop`；退回路徑） |
 --
@@ -85,7 +87,7 @@
 -- ## 刻意不碰的東西
 --
 -- * **位置、尺寸、縮放、parent、strata** —— 全是它的 positioner 與 `ShowTooltip` 管的
---   （例外：有提示插件時 `followPanel` 把它要貼的對象從原生換成面板，點與位移不動）。
+--   （例外：有提示插件、而且對象正顯示重繪面板時，`followPanel` 由提示插件接手定位與夾邊；沒有面板時一切照它的）。
 -- * **它的模型框**（`DressUpModel`／`ModelScene`）與滑鼠滾輪轉模型的那兩顆隱形按鈕。
 -- * **兩行字的顏色**（下方的收藏狀態淡藍、上方的「職業無法塑形」紅字）—— 那是它的資料。
 -- * **它的設定頁**（`config.lua`，自己的 `BackdropTemplate` 框）。

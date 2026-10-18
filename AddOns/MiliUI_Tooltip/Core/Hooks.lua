@@ -28,8 +28,9 @@
 --  13. tip:SetClampedToScreen(false)／還原（Panel/Native.lua）：接管期間原生不夾邊、改由我們的面板自己夾
 --      （面板 SetClampRectInsets 把附屬框與標籤算進去）。C 端 setter，第一次藏原生時記原值、Restore 寫回
 --  14. hooksecurefunc(frame, "SetPoint")（Panel/Frame.lua 的 Panel.Follow，經 MiliUITip_API.Adopt 的 followPanel）：
---      **對象是別的插件自己建的框，不是暴雪物件**（外觀預覽）。它貼到有面板顯示中的 tooltip 時，掛勾裡改貼面板；
---      讀到的參數先過 S.IsSecret，重入旗標擋自己的 SetPoint，暴雪物件一個都不碰
+--      **對象是別的插件自己建的框，不是暴雪物件**（外觀預覽）。它貼到有面板顯示中的 tooltip 時，掛勾裡改由我們
+--      定位（貼面板鏈外側、上緣對齊主面板、換邊有遲滯），跟隨期間對它 SetClampedToScreen(true)、放手還原；
+--      讀到的參數與面板幾何先過 S.IsSecret，重入旗標擋自己的 SetPoint，暴雪物件一個都不碰
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，

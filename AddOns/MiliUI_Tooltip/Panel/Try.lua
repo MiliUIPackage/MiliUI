@@ -388,6 +388,13 @@ function Panel.DebugDump(out)
         out(("  panel：height=%s total=%s  貼在 %s"):format(D(panel.height), D(panel.totalHeight), Points(panel)))
     end)
     if count == 0 then out("目前沒有顯示中的面板（滑過物品或法術時再下一次指令）") end
+    -- 跟著面板鏈的別家框（外觀預覽，Panel.Follow）：我們選的邊、實際貼在哪、它原本要貼哪
+    for frame, rec in pairs(Panel.followers or {}) do
+        if rec.root then
+            out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）"):format(
+                D(frame), rec.side or "?", Points(frame), D(rec[1]), D(rec[2]), D(rec[3])))
+        end
+    end
     return count
 end
 

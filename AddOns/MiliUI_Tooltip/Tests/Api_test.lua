@@ -5,7 +5,8 @@
 --
 -- 覆蓋：opts.ignoreParentAlpha 會 SetIgnoreParentAlpha(true)、不帶就不碰；已經接管過也照套；
 -- 還沒初始化（ns.db 沒有）回 false 且什麼都不碰；keepScale 照原樣交給 TrackTip；
--- followPanel：貼到有面板顯示中的 tooltip 時改貼面板（L3）。
+-- followPanel：貼到有面板顯示中的 tooltip 時改由我們定位——貼整條面板鏈外側、上緣對齊根、換邊有遲滯、
+-- 跟隨期間夾邊（L3／O1）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local H = dofile(here .. "/helpers.lua")
@@ -72,76 +73,179 @@ do
 end
 
 ------------------------------------------------------------
--- followPanel（L3）：後掛勾 SetPoint，貼到有面板顯示中的 tooltip ⇒ 改貼面板
+-- followPanel（L3／O1）：後掛勾 SetPoint，貼到有面板顯示中的 tooltip ⇒ 不照它的點，由我們定位
+--   貼整條面板鏈外側、上緣對齊根、換邊有遲滯、跟隨期間夾邊
+-- 座標：UIParent 縮放 1、螢幕寬 1600；根面板 left 400 寬 300 top 800；預覽框 280×380
 ------------------------------------------------------------
+local function Pt(f)
+    local p = f.points[1]
+    return ("%s>%s|%g,%g"):format(p[1], p[3], p[4], p[5]), p[2]
+end
+
 do
     local env, ns, _, State = Setup()
     local api = env.MiliUITip_API
     local tip = H.Tip(env, "GameTooltip", {})
     local panel = H.Region("Frame")
     panel:Show()
+    panel.left, panel.w, panel.top, panel.h = 400, 300, 800, 200
     State[tip] = { panel = panel }
     local other = H.Tip(env, "OtherTooltip", {})          -- 沒接管的
     local f = Frame()
+    f.w, f.h = 280, 380
     local setCalls = 0
     local raw = f.SetPoint
     f.SetPoint = function(...) setCalls = setCalls + 1; return raw(...) end
     api.Adopt(f, { keepScale = true, ignoreParentAlpha = true, followPanel = true })
     api.Adopt(f, { followPanel = true })                   -- 第二次：不再掛一層
 
+    -- 它要貼左邊；兩邊都放得下（左 400、右 900）⇒ 我們選比較寬的右邊
     setCalls = 0
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
-    eq("followPanel：只剩一個點", #f.points, 1)
-    eq("followPanel：對象換成面板", f.points[1][2], panel)
-    eq("followPanel：點原樣", f.points[1][1] .. ">" .. f.points[1][3], "TOPRIGHT>TOPLEFT")
-    eq("followPanel＋N1：相鄰邊（右貼左）往外推 6", f.points[1][4], -6)
-    eq("followPanel：y 位移補 0", f.points[1][5], 0)
-    eq("followPanel：同一顆只掛一次（呼叫 1 次＋改貼 1 次）", setCalls, 2)
+    local sig, rel = Pt(f)
+    eq("O1：只剩一個點", #f.points, 1)
+    eq("O1：對象換成面板", rel, panel)
+    eq("O1：不照它的點——貼鏈右側、上緣對齊、留縫 6", sig, "TOPLEFT>TOPRIGHT|6,0")
+    eq("O1：同一顆只掛一次（呼叫 1 次＋改貼 1 次）", setCalls, 2)
+    eq("O1：跟隨期間開夾邊", f.clamped, true)
 
+    -- 它下一輪改要求「貼在上方」（原生超出螢幕時的亂判斷）⇒ 我們不理，還是右側
     f:ClearAllPoints()
-    f:SetPoint("TOPRIGHT", "GameTooltip", "TOPLEFT", 3, -2)
-    eq("followPanel：名字字串也認", f.points[1][2], panel)
-    eq("followPanel：位移原樣＋縫", ("%g,%g"):format(f.points[1][4], f.points[1][5]), "-3,-2")
-    f:ClearAllPoints()
-    f:SetPoint("BOTTOMLEFT", tip, "TOPLEFT", 0, 0)
-    eq("N1：底貼頂 ⇒ y 往上推 6、x 不動", ("%g,%g"):format(f.points[1][4], f.points[1][5]), "0,6")
-    f:ClearAllPoints()
-    f:SetPoint("TOPLEFT", tip, "BOTTOMLEFT", 0, 0)
-    eq("N1：頂貼底 ⇒ y 往下推 6", ("%g,%g"):format(f.points[1][4], f.points[1][5]), "0,-6")
-    f:ClearAllPoints()
-    f:SetPoint("TOP", tip, "TOP", 2, 0)
-    eq("N1：同邊對齊不推", ("%g,%g"):format(f.points[1][4], f.points[1][5]), "2,0")
-    f:ClearAllPoints()
-    f:SetPoint("LEFT", tip, "RIGHT", 0, 0)
-    eq("N1：左貼右 ⇒ x 往右推 6", f.points[1][4], 6)
+    f:SetPoint("BOTTOMLEFT", "GameTooltip", "TOPLEFT", 3, -2)
+    sig, rel = Pt(f)
+    eq("O1：名字字串也認、它換點我們不跟", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
 
+    -- 比價面板鏡射在根上、在右邊（left 706）⇒ 貼最外側那顆
+    local tip2 = H.Tip(env, "ShoppingTooltip1", {})
+    local sp = H.Region("Frame")
+    sp:Show()
+    sp.left, sp.w, sp.top, sp.h, sp.mirrorOf = 706, 300, 800, 180, panel
+    State[tip2] = { panel = sp }
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("O1：比價面板出現 ⇒ 貼鏈最外側那顆", rel, sp)
+    eq("O1：仍是右側、上緣對齊", sig, "TOPLEFT>TOPRIGHT|6,0")
+
+    -- 鏈變寬不等它的 0.2 秒：Align 之後 PlaceFollowers 當幀重算（這裡直接叫）
+    sp.left = 710
+    sp:Hide()
+    ns.Panel.PlaceFollowers(panel)
+    sig, rel = Pt(f)
+    eq("PlaceFollowers：比價面板消失 ⇒ 回到貼根", rel, panel)
+    sp:Show()
+    ns.Panel.PlaceFollowers(panel)
+    sig, rel = Pt(f)
+    eq("PlaceFollowers：又出現 ⇒ 貼回最外側", rel, sp)
+    local before = setCalls
+    ns.Panel.PlaceFollowers(panel)
+    eq("PlaceFollowers：貼法沒變就不重貼", setCalls, before)
+
+    -- 鏈移到右邊緣（右側放不下）：剛換過邊／第一次放的 0.3 秒內不換（遲滯），之後才換到左邊、貼最左那顆
+    panel.left, sp.left = 1200, 1506
+    env.now = 0.1
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("遲滯：0.3 秒內放不下也不換邊", sig .. "@" .. tostring(rel == sp), "TOPLEFT>TOPRIGHT|6,0@true")
+    env.now = 1
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("遲滯：過了 0.3 秒 ⇒ 換到左側、貼根的左緣", sig .. "@" .. tostring(rel == panel), "TOPRIGHT>TOPLEFT|-6,0@true")
+
+    -- 左側放得下就一直留在左側（即使右側更寬）
+    panel.left, sp.left = 400, 706
+    env.now = 2
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("遲滯：這一邊放得下就不換", sig .. "@" .. tostring(rel == panel), "TOPRIGHT>TOPLEFT|-6,0@true")
+
+    -- 左側放不下、右側放得下但比價面板比根低 20 ⇒ 換右側、上緣仍對齊根（y 位移 +20）
+    panel.left, sp.left, sp.top = 100, 406, 780
+    env.now = 3
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("上緣對齊根：貼在比較低的比價面板上時 y 補差", sig .. "@" .. tostring(rel == sp), "TOPLEFT>TOPRIGHT|6,20@true")
+
+    -- 兩邊都放不下（螢幕 500 寬）：選比較寬的那邊，仍貼著面板（夾邊會把它留在螢幕內）
+    env.screenW = 500
+    panel.left, sp.left, sp.top = 120, 426, 800
+    env.now = 4
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("兩邊都放不下：留在比較寬的左邊（左 120、右 −226）", sig .. "@" .. tostring(rel == panel), "TOPRIGHT>TOPLEFT|-6,0@true")
+    env.screenW = nil
+
+    -- 面板退回：貼著的那顆比價面板退了、根還在 ⇒ 重貼到鏈上；根退了 ⇒ 貼回原本的 tooltip、夾邊還原
+    panel.left, sp.left = 400, 706
+    env.now = 5
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT", 1, 1)
+    eq("前提：左側放得下、留在左側貼根", select(2, Pt(f)), panel)
+    panel.left, sp.left = 100, 406
+    env.now = 6
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT", 1, 1)
+    eq("前提：換到右側貼比價面板", select(2, Pt(f)), sp)
+    sp:Hide()
+    ns.Panel.ReturnFollowers(sp)
+    sig, rel = Pt(f)
+    eq("ReturnFollowers（比價面板）：根還在 ⇒ 重貼到根", rel, panel)
+    eq("ReturnFollowers（比價面板）：仍在右側", sig, "TOPLEFT>TOPRIGHT|6,0")
+    ns.Panel.ReturnFollowers(panel)
+    sig, rel = Pt(f)
+    eq("ReturnFollowers（根）：貼回原本的 tooltip", rel, tip)
+    eq("ReturnFollowers（根）：點與位移原樣", sig, "TOPRIGHT>TOPLEFT|1,1")
+    eq("ReturnFollowers（根）：夾邊還原", f.clamped, false)
+    local n = setCalls
+    ns.Panel.PlaceFollowers(panel)
+    eq("放手之後 PlaceFollowers 不再動它", setCalls, n)
+
+    -- 對象不是接管的／面板沒顯示／秘密 ⇒ 不碰它的點；放手時夾邊還原
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    eq("前提：又貼上面板", select(2, Pt(f)), panel)
+    eq("前提：夾邊開", f.clamped, true)
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", other, "TOPLEFT")
-    eq("followPanel：對象不是接管的 ⇒ 原樣", f.points[1][2], other)
-
+    eq("對象不是接管的 ⇒ 原樣", f.points[1][2], other)
+    eq("對象不是接管的 ⇒ 放手、夾邊還原", f.clamped, false)
     panel:Hide()
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
-    eq("followPanel：面板沒顯示 ⇒ 原樣", f.points[1][2], tip)
-
+    eq("面板沒顯示 ⇒ 原樣", f.points[1][2], tip)
     f:ClearAllPoints()
     f:SetPoint("CENTER", H.SECRET, "CENTER")
-    check("followPanel：秘密對象 ⇒ 不碰", rawequal(f.points[1][2], H.SECRET))
+    check("秘密對象 ⇒ 不碰", rawequal(f.points[1][2], H.SECRET))
 
-    -- 面板退回：貼在它上面的框當場貼回原本的 tooltip
+    -- 幾何讀不到（面板還沒排版）：退回「對象換成面板、點照它的」＋縫
     panel:Show()
+    panel.left = nil
     f:ClearAllPoints()
-    f:SetPoint("TOPRIGHT", tip, "TOPLEFT", 1, 1)
-    eq("前提：貼在面板上", f.points[1][2], panel)
-    ns.Panel.ReturnFollowers(panel)
-    eq("ReturnFollowers：貼回原本的 tooltip", f.points[1][2], tip)
-    eq("ReturnFollowers：點與位移原樣", table.concat({ f.points[1][1], f.points[1][3], f.points[1][4], f.points[1][5] }, ","), "TOPRIGHT,TOPLEFT,1,1")
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("幾何讀不到：對象換成面板、點照它的、留縫", sig .. "@" .. tostring(rel == panel), "TOPRIGHT>TOPLEFT|-6,0@true")
+    f:ClearAllPoints()
+    f:SetPoint("BOTTOMLEFT", tip, "TOPLEFT", 0, 0)
+    eq("幾何讀不到＋N1：底貼頂 ⇒ y 往上推 6", select(1, Pt(f)), "BOTTOMLEFT>TOPLEFT|0,6")
 
     local g = Frame()
     api.Adopt(g, { keepScale = true })
     g:SetPoint("TOPRIGHT", tip, "TOPLEFT")
     eq("不帶 followPanel：不改貼", g.points[1][2], tip)
+
+    -- GapOffset 本身（N1）
+    local G = ns.Panel.GapOffset
+    eq("N1：右貼左 x−", select(1, G("TOPRIGHT", "TOPLEFT", 6)), -6)
+    eq("N1：左貼右 x+", select(1, G("LEFT", "RIGHT", 6)), 6)
+    eq("N1：底貼頂 y+", select(2, G("BOTTOMLEFT", "TOPLEFT", 6)), 6)
+    eq("N1：頂貼底 y−", select(2, G("TOPLEFT", "BOTTOMLEFT", 6)), -6)
+    eq("N1：同邊對齊不推", ("%g,%g"):format(G("TOP", "TOP", 6)), "0,0")
 end
 
 H.finish("Api_test")
