@@ -723,10 +723,11 @@ local function Hold(frame, rec, root)
     rec.root = root
 end
 
--- 放手：夾邊還原、忘掉鏈（不動它的點）
-local function Drop(frame, rec)
+-- 放手：夾邊還原、忘掉鏈（不動它的點）。why 給 /mtip panel 看
+local function Drop(frame, rec, why)
     if rec.root then pcall(frame.SetClampedToScreen, frame, rec.clamped and true or false) end
     rec.root, rec.panel, rec.placeSig, rec.lastArgs, rec.rootArgs, rec.holdUntil = nil, nil, nil, nil, nil, nil
+    rec.dropWhy, rec.dropAt = why, Now()
 end
 
 -- 這一輪算不出位置（幾何讀不到）：先照上一次的貼法貼（它剛 ClearAllPoints 過，不能留空），下一幀再算一次。
@@ -757,19 +758,21 @@ function Panel.Follow(frame)
         -- SetPoint(點, 對象, x, y) 的寫法：沒有對方點
         if type(relPoint) == "number" then relPoint, x, y = point, relPoint, x end
         local rec = followers[self]
+        rec.hookAt, rec.hookRel, rec.hookPoint = Now(), rel, tostring(point) .. "→" .. tostring(relPoint)
         if type(point) ~= "string" then
-            Drop(self, rec)
+            Drop(self, rec, "點不是字串")
             return
         end
         local panel = Panel.PanelFor(rel)
         local root = panel and RootOf(panel)
         -- 它要貼的是我們接管中的 tooltip、但此刻沒有面板（比價框重建中那一幀），而跟著的鏈還顯示著 ⇒ 繼續跟鏈，不放手
         --（放手＝它的點留著＝貼到看不見的原生旁邊，下一 tick 又貼回面板＝閃）。對象根本不是接管的才放手
-        if not root and rec.root and Shown(rec.root) and ns.Skin and ns.Skin.State and ns.Skin.State[rel] then
+        local tracked = ns.Skin and ns.Skin.State and ns.Skin.State[rel]
+        if not root and rec.root and Shown(rec.root) and tracked then
             root = rec.root
         end
         if not root then
-            Drop(self, rec)
+            Drop(self, rec, tracked and "對象的面板沒顯示、也沒有跟著的鏈" or "對象不是接管的 tooltip")
             return
         end
         relPoint = type(relPoint) == "string" and relPoint or point
@@ -817,7 +820,7 @@ function Panel.ReturnFollowers(gone)
                 end
             end
             if not kept then
-                Drop(frame, rec)
+                Drop(frame, rec, root == gone and "跟著的鏈退回了" or "貼著的面板退回、重算不出位置")
                 if rec[1] then Reanchor(frame, rec[1], rec[2], rec[3], rec[4], rec[5]) end
             end
         end

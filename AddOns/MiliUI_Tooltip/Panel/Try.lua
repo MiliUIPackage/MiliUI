@@ -388,13 +388,28 @@ function Panel.DebugDump(out)
         out(("  panel：height=%s total=%s  貼在 %s"):format(D(panel.height), D(panel.totalHeight), Points(panel)))
     end)
     if count == 0 then out("目前沒有顯示中的面板（滑過物品或法術時再下一次指令）") end
-    -- 跟著面板鏈的別家框（外觀預覽，Panel.Follow）：我們選的邊、實際貼在哪、它原本要貼哪
+    -- 跟著面板鏈的別家框（外觀預覽，Panel.Follow）：我們選的邊、實際貼在哪、它原本要貼哪。
+    -- 沒在跟的也印：最近一次掛勾多久前、它當時要貼哪、為什麼放手——「預覽在抖但沒有這一行」就是這裡要看的
+    local any = false
+    local now = Now()
     for frame, rec in pairs(Panel.followers or {}) do
+        any = true
+        local okS, shown = pcall(frame.IsShown, frame)
+        local ago = rec.hookAt and ("%.1f 秒前"):format(now - rec.hookAt) or "從未"
         if rec.root then
-            out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）  幾何讀不到 %d 次%s，交棒 %d 次"):format(
+            out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）  幾何讀不到 %d 次%s，交棒 %d 次，最近掛勾 %s"):format(
                 D(frame), rec.side or "?", Points(frame), D(rec[1]), D(rec[2]), D(rec[3]),
-                rec.fails or 0, rec.failWhy and ("，最近：" .. rec.failWhy) or "", rec.handoffs or 0))
+                rec.fails or 0, rec.failWhy and ("，最近：" .. rec.failWhy) or "", rec.handoffs or 0, ago))
+        else
+            out(("|cff4DD2FF跟隨框 %s|r：|cffff6060目前沒跟|r（%s%s）  顯示中=%s  它貼在 %s  最近掛勾 %s：%s 貼 %s"):format(
+                D(frame), rec.dropWhy or "還沒掛勾過",
+                rec.dropAt and ("，%.1f 秒前放手"):format(now - rec.dropAt) or "",
+                tostring(okS and shown), Points(frame), ago, rec.hookPoint or "?", D(rec.hookRel)))
         end
+    end
+    if not any then
+        out(_G.AppearanceTooltipTooltip and "外觀預覽框存在，但沒有登記跟隨（Adopt 沒帶 followPanel，或 MiliUI_Skin 沒委派成功）"
+            or "沒有登記的跟隨框")
     end
     return count
 end
@@ -478,14 +493,15 @@ function Panel.Watch(seconds, out)
         end)
         -- 跟著面板鏈的別家框（外觀預覽）：位置、貼在哪一顆、哪一側
         for frame, rec in pairs(Panel.followers or {}) do
-            if rec.root then
-                local name = "跟隨框." .. D(frame)
-                region(name, frame)
-                note(name .. ".側", rec.side)
-                note(name .. ".貼在", rec.panel == rec.root and "根" or D(rec.panel))
-                note(name .. ".交棒", rec.handoffs or 0)
-                note(name .. ".讀不到", rec.fails or 0)
-            end
+            local name = "跟隨框." .. D(frame)
+            region(name, frame)
+            note(name .. ".顯示中", (Call(frame, "IsShown")))
+            note(name .. ".在跟", rec.root ~= nil)
+            note(name .. ".側", rec.side)
+            note(name .. ".貼在", rec.root and (rec.panel == rec.root and "根" or D(rec.panel)) or "沒跟")
+            note(name .. ".交棒", rec.handoffs or 0)
+            note(name .. ".讀不到", rec.fails or 0)
+            note(name .. ".放手原因", rec.dropWhy)
         end
         frames = frames + 1
     end
