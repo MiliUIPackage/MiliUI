@@ -80,16 +80,18 @@ PATCHES = [
       "TOC 晚載入（拍賣場開啟時載入）", regex=True),
 
     # ── MRT：12.1 光環秘密值閘 ──────────────────────────────────────────
-    #   ⚠ 2026-08-25 `update: MRT` 已洗掉，待重套
-    P("MRT", "RaidCheck.lua", "fix from MiliUI", "UpdateData／CheckPotionsOnPull 光環秘密值閘",
-      pending=True),
+    #   2026-10-18 重套（只剩 CheckPotionsOnPull；UpdateData 上游 5335 已自帶外層閘）。
+    #   重套腳本：python3 .claude/patches/MRT-RaidCheck-secret-gate.py
+    P("MRT", "RaidCheck.lua", "fix from MiliUI", "CheckPotionsOnPull 光環秘密值閘（呼叫之前）"),
 
     # ── ChatThrottleLib：每一份都要改，誰先載入誰贏 ─────────────────────
     P("Cell", "Libs/AceComm-3.0/ChatThrottleLib.lua", "SafeStrLen", "密語秘密字串不炸統計掛勾"),
     P("BugSack", "Libs/AceComm-3.0/ChatThrottleLib.lua", "SafeStrLen", "密語秘密字串不炸統計掛勾"),
-    #   ⚠ 2026-09-26 新進套組的 MDT 那份沒有 SafeStrLen，待補
-    P("MythicDungeonTools", "libs/AceComm-3.0/ChatThrottleLib.lua", "SafeStrLen",
-      "密語秘密字串不炸統計掛勾", pending=True),
+    #   MDT 帶的是 CTL v32：上游自己在兩支 Hook 開頭加了 issecretvalue 早退，效果等同
+    #   SafeStrLen（統計少記一筆而已），所以不重套、改守上游那一行（2026-10-18 核對）。
+    #   ⚠ v32 > v31，載入時會贏過 Cell／BugSack 那兩份 —— 它才是實際在跑的那份。
+    P("MythicDungeonTools", "libs/AceComm-3.0/ChatThrottleLib.lua",
+      "issecretvalue(text) or issecretvalue(destination)", "密語秘密字串不炸統計掛勾（上游 v32 自帶）"),
 
     # ── HandyNotes_Valdrakken：補上漏掉的兩個 local ─────────────────────
     P("HandyNotes_Valdrakken", "core/handler.lua", r"^\s*local profile = self\.db\.profile\s*$",
