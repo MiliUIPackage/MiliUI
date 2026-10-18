@@ -1236,17 +1236,20 @@ local Refresh
 -- 冒險指南第一次讀某個副本可能回空清單（登入後第一次 EJ_SelectInstance，引擎同一幀還沒把狀態補好；
 -- 見 Plans/Journal.lua 開頭）。Journal 那邊空的不快取，所以等一下重畫一次就會有了——每個副本只重試一次，
 -- 真的沒首領的副本（冒險指南還沒收）就維持「還沒有首領」的提示。
+-- 回傳 true＝正在等重讀（側欄顯示「讀取中」轉圈，不顯示「還沒有首領」）
 local retried = {}
 local retryPending
 
 local function RetryEmptyInstance(rows)
-    if #rows > 0 or sel.inst == OTHER or retried[sel.inst] or retryPending then return end
+    if retryPending then return true end
+    if #rows > 0 or sel.inst == OTHER or retried[sel.inst] then return false end
     retried[sel.inst] = true
     retryPending = true
     C_Timer.After(0.5, function()
         retryPending = nil
         if tab and tab:IsVisible() then Refresh() end
     end)
+    return true
 end
 
 function Refresh()
@@ -1264,8 +1267,9 @@ function Refresh()
     instDD:SetItems(InstanceItems())
     instDD:SetSelectedValue(sel.inst)
     bossList:Update(rows, UpdateBossRow)
-    sideEmpty:SetShown(View().sidebar and #rows == 0)
-    RetryEmptyInstance(rows)
+    local loading = RetryEmptyInstance(rows)
+    bossList.loading:SetShown(View().sidebar and loading)
+    sideEmpty:SetShown(View().sidebar and #rows == 0 and not loading)
     sideEmpty:SetText(sel.inst == OTHER and L["Bosses you entered by ID, or from older expansions, show up here."]
         or L["The Adventure Guide has no bosses for this instance yet."])
 
@@ -1547,6 +1551,31 @@ local function BuildSidebar()
     sideEmpty:SetPoint("TOPLEFT", bossList, "TOPLEFT", 4, -4)
     sideEmpty:SetWidth(SIDE_W - 8)
     sideEmpty:SetJustifyH("LEFT")
+
+    -- 讀取中（等冒險指南重讀的那半秒）：轉圈＋一行灰字，跟「還沒有首領」同一個位置
+    -- （掛在 bossList 底下當欄位：Refresh 的 upvalue 已經貼著 60 的上限）
+    local sideLoading = CreateFrame("Frame", nil, tab)
+    bossList.loading = sideLoading
+    sideLoading:SetPoint("TOPLEFT", bossList, "TOPLEFT", 4, -4)
+    sideLoading:SetSize(SIDE_W - 8, 16)
+    local spin = sideLoading:CreateTexture(nil, "OVERLAY")
+    spin:SetTexture("Interface\\Common\\StreamCircle")
+    spin:SetSize(16, 16)
+    spin:SetPoint("LEFT")
+    spin:SetVertexColor(W.Accent(1))
+    local ag = spin:CreateAnimationGroup()
+    ag:SetLooping("REPEAT")
+    local rot = ag:CreateAnimation("Rotation")
+    rot:SetDegrees(-360)
+    rot:SetDuration(1)
+    local loadingText = sideLoading:CreateFontString(nil, "OVERLAY")
+    loadingText:SetFontObject(W.fontSmall)
+    loadingText:SetTextColor(0.6, 0.6, 0.6)
+    loadingText:SetPoint("LEFT", spin, "RIGHT", 6, 0)
+    loadingText:SetText(L["Reading the Adventure Guide…"])
+    sideLoading:SetScript("OnShow", function() ag:Play() end)
+    sideLoading:SetScript("OnHide", function() ag:Stop() end)
+    sideLoading:Hide()
 
     btnManual = W.CreateButton(tab, L["Enter an encounter ID"], "normal", SIDE_W - 26, 22)
     btnManual:SetPoint("BOTTOMLEFT", tab, "TOPLEFT", SIDE_X, CARD_BOTTOM)
