@@ -551,6 +551,8 @@ Append({
     HudPick("dropdown", "valueFormat", "顯示數值", { items = function() local X = CS(); return X and X.ValueFormatItems() or {} end }),
     { type = "text", label = "主屬性、耐力、攻擊／法術強度、護甲沒有百分比，一律顯示整數。" },
     HudToggle("percentSign", "顯示 % 符號")[1],
+    HudToggle("hideZero", "不顯示數值為 0 的屬性")[1],
+    { type = "text", label = "只對次要與第三屬性；戰鬥中讀不到數值時沿用脫戰時的判斷。" },
     HudPick("dropdown", "colorMode", "標籤顏色", { items = function() local X = CS(); return X and X.HUD_COLOR_ITEMS or {} end }),
     { type = "text", label = "「分區色」跟著屬性清單那一區的顏色（含你在清單裡換過的）；「自訂」每個屬性一個色票，在上面那排的右端。" },
     HudToggle("valueColored", "數值同標籤顏色")[1],

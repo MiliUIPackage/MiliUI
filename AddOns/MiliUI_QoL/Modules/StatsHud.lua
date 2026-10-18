@@ -11,7 +11,9 @@
 --   * 位置存**邊錨**（TOPLEFT），不存中心：尺寸變了中心會漂（EUI 的理由）。
 -- 設定項照 SimpleStatsPanel（每個屬性一個開關＋顏色、字級、縮放）再加使用者要的：
 -- 標籤完整／縮寫／不顯示、數值格式、% 符號、標籤顏色模式、數值同色、描邊（含像素字體
--- 的 MONOCHROME）、陰影、背景、顯示時機。設定在角色面板的齒輪（CharacterStatsSettings.lua）
+-- 的 MONOCHROME）、陰影、背景、顯示時機、不顯示數值為 0 的列（`hideZero`，預設開，
+-- 2026-10-19 使用者要的：只對定義帶 `hideZero` 的屬性＝次要四項、第三三項，暴雪自己也是
+-- hideAt = 0；明碼才判斷，秘密時沿用上一次的可見性，跟清單同一套規則）。設定在角色面板的齒輪（CharacterStatsSettings.lua）
 -- 與 /mqol 的「角色面板」頁，全部即時生效，存 `db.charSheet.hud`。
 --
 -- 可拖曳 ＝「角色面板的設定面板開著」或「暴雪編輯模式開著」（兩者都只在 hud.enabled 時）。
@@ -24,7 +26,6 @@
 --
 -- * 移動速度——「速度」是第三屬性那個（`GetSpeed`），不是移動速度。
 -- * 自訂排序——順序固定（主屬性、耐力、次要四項、第三三項、強度、護甲）。
--- * 隱藏「等於 0」的列——這裡的每一列都是玩家自己勾的，0 也照列。
 --
 ------------------------------------------------------------
 -- ## 對暴雪物件的接觸面
@@ -83,6 +84,7 @@ end
 local frame, text, bd, selection
 local inCombat, inInstance, editMode = false, false, false
 local heals = 0
+local lastVisible = {}   -- [statKey] = hideZero 上一次明碼時的可見性（秘密時沿用；沒記過就當可見）
 
 local function Short(st)
     return SHORT_ZH and st.zh or st.en
@@ -197,19 +199,31 @@ function Render()
         if def and h.stats[st.key] and (def.show == nil or def.show(c)) then
             local ok, v, v2 = Try("StatsHud." .. st.key, def.value, c)
             if not ok then v, v2 = nil, nil end
-            local tmpl, rowArgs, secret = Stats.ValueTemplate(def, c, v, v2, h.percentSign ~= false)
-            for i = 1, rowArgs.n do
-                args.n = args.n + 1
-                args[args.n] = rowArgs[i]
+            -- hideZero：明碼才判斷；秘密時維持上一次的可見性（第一次就當可見）
+            local visible = true
+            if h.hideZero ~= false and def.hideZero and v ~= nil then
+                if IsSecret(v) then
+                    visible = lastVisible[st.key] ~= false
+                else
+                    visible = v ~= 0
+                    lastVisible[st.key] = visible
+                end
             end
-            if secret then anySecret = true end
-            local hex = Hex(Hud.StatColor(st))
-            local valHex = h.valueColored and hex or "ffffff"
-            if h.labelStyle == "none" then
-                rows[#rows + 1] = "|cff" .. valHex .. tmpl .. "|r"
-            else
-                local label = (h.labelStyle == "short") and Short(st) or def.label(c)
-                rows[#rows + 1] = "|cff" .. hex .. Stats.Esc(label) .. ":|r |cff" .. valHex .. tmpl .. "|r"
+            if visible then
+                local tmpl, rowArgs, secret = Stats.ValueTemplate(def, c, v, v2, h.percentSign ~= false)
+                for i = 1, rowArgs.n do
+                    args.n = args.n + 1
+                    args[args.n] = rowArgs[i]
+                end
+                if secret then anySecret = true end
+                local hex = Hex(Hud.StatColor(st))
+                local valHex = h.valueColored and hex or "ffffff"
+                if h.labelStyle == "none" then
+                    rows[#rows + 1] = "|cff" .. valHex .. tmpl .. "|r"
+                else
+                    local label = (h.labelStyle == "short") and Short(st) or def.label(c)
+                    rows[#rows + 1] = "|cff" .. hex .. Stats.Esc(label) .. ":|r |cff" .. valHex .. tmpl .. "|r"
+                end
             end
         end
     end

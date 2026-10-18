@@ -40,7 +40,7 @@ local function BuildDefaults()
         --   遇到已有的表只往裡面補鍵，空表什麼都不補 ⇒ 玩家的收合與排序不會被洗掉。
         charSheet = {
             statsPanel = true,        -- 自建屬性清單（/reload 生效）
-            statsValueFormat = "pct", -- 清單的數值怎麼顯示："pct"｜"rating"｜"pct_rating"｜"rating_pct"（即時；同 hud.valueFormat）
+            statsValueFormat = "rating_pct", -- 清單的數值怎麼顯示："pct"｜"rating"｜"pct_rating"｜"rating_pct"（即時；同 hud.valueFormat；2026-10-19 預設改「數值 (百分比)」，舊存檔走 MIGRATIONS[2]）
             statsCollapsed = {},      -- [sectionKey] = true
             statsOrder = {},          -- 陣列，sectionKey 的順序；空＝預設
             statsHidden = {},         -- [defKey] = true：這一列不顯示（角色面板齒輪的編輯狀態裡勾）
@@ -59,8 +59,9 @@ local function BuildDefaults()
                 },
                 colors = {},          -- [statKey] = { r, g, b }：只在 colorMode == "custom" 時用
                 labelStyle = "full",  -- "full"｜"short"｜"none"
-                valueFormat = "pct",  -- "pct"｜"rating"｜"pct_rating"｜"rating_pct"
+                valueFormat = "rating_pct",  -- "pct"｜"rating"｜"pct_rating"｜"rating_pct"（2026-10-19 預設改「數值 (百分比)」，舊存檔走 MIGRATIONS[2]）
                 percentSign = true,
+                hideZero = true,      -- 數值等於 0 的列不畫（只對帶 hideZero 的屬性；秘密時沿用上一次）
                 colorMode = "class",  -- "section"｜"class"｜"custom"（2026-10-15 使用者定：預設職業色）
                 valueColored = false,
                 fontSize = 14,
@@ -77,6 +78,24 @@ DB.BuildDefaults = BuildDefaults
 
 -- nil-merge：只補缺的鍵，不動玩家已有的值（共用層 Libs/MiliUIDB.lua，行為與原本那份相同）
 local MergeDefaults = ns.MiliUIDB.MergeDefaults
+
+------------------------------------------------------------
+-- 版本遷移（ns.DB_VERSION；共用層 MiliUIDB.Versioned ＋ Migrate）。每一步冪等：
+-- 只動還等於舊預設值的欄位，玩家刻意選的值不碰。
+------------------------------------------------------------
+local MIGRATIONS = {
+    -- v2（2026-10-19）：「顯示數值」預設從「百分比」改成「數值 (百分比)」——清單與 HUD 都是。
+    -- 舊存檔裡的 "pct" 分不出是預設還是玩家選的，一律當預設改掉（使用者定案：遷移設定）。
+    [2] = function(db)
+        local cs = db.charSheet
+        if type(cs) ~= "table" then return end
+        if cs.statsValueFormat == nil or cs.statsValueFormat == "pct" then cs.statsValueFormat = "rating_pct" end
+        local hud = cs.hud
+        if type(hud) == "table" and (hud.valueFormat == nil or hud.valueFormat == "pct") then
+            hud.valueFormat = "rating_pct"
+        end
+    end,
+}
 
 ------------------------------------------------------------
 -- 從 MiliUI 套組遷移（只做一次）
@@ -206,9 +225,14 @@ function DB.Init()
         end
     end
 
+    -- 版本號閘要在 MergeDefaults 之前（預設值帶著版本號）。legacy = 1：從本體／Skin 剛搬進來的
+    -- 存檔還沒有版本號但已經有資料，要從 v1 開始跑；真正全新的存檔沒有 charSheet，每一步都是 no-op。
+    ns.MiliUIDB.Versioned(db, ns.DB_VERSION, function(from, seen)
+        ns.MiliUIDB.Migrate(db, MIGRATIONS, seen, ns.DB_VERSION)
+    end, { legacy = 1 })
+
     MergeDefaults(db, BuildDefaults())
 
-    db.schemaVersion = ns.DB_VERSION
     ns.db = db
     return db
 end
