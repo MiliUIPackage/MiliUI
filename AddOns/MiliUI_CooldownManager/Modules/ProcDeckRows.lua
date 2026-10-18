@@ -119,7 +119,7 @@ function PDR.LayoutRow(row, def, s, style, W)
     local look = {
         texture = ns.Media.Texture(style.texture), bgTex = R.BgTexture(style),
         alpha = tonumber(style.barAlpha) or 1, bgA = R.BgAlpha(style), bgCustom = R.BgCustom(style),
-        px = R.DecorPx(style), edge = R.EdgeArray(style),
+        px = R.DecorPx(style), edge = R.EdgeArray(style), shadow = R.ShadowArray(style),
         token = ns.Media.ElementFont(style.textFont, ns.Setting(nil, "font")), outline = R.TextOutline(style),
         size = TextSize(s.height), padPx = TEXT_PAD * scale, offY = oy, g = g, H = H,
     }
@@ -150,8 +150,10 @@ function PDR.LayoutRow(row, def, s, style, W)
     row.sb:SetMinMaxValues(0, def.size)
     row.textFrame:SetFrameLevel(lv + 12)
     -- 暗底與邊框：自訂列同一支（暗底在條身底下、邊框蓋在填色上）。顏色在 PaintRow 照狀態就地改
+    -- 邊緣陰影：圖示開著時一圈圍住圖示＋條身（同自訂列，CB.ShadowGeom）
     ns.AuraBar.RowDecor(row.bar, { W = g.barW, H = H, n = 1, gap = 0, segW = g.barW, segments = false,
-        reversed = false, dim = { 0, 0, 0, look.bgA }, px = look.px, edge = look.edge, bgTex = look.bgTex }, lv + 8)
+        reversed = false, dim = { 0, 0, 0, look.bgA }, px = look.px, edge = look.edge, bgTex = look.bgTex,
+        shadow = ns.CustomBars.ShadowGeom(look.shadow, s.icon and "left" or "none", g, row) }, lv + 8)
     row.decorState = nil
     for _, fs in ipairs({ row.name, row.value }) do
         ns.Media.SetPixelFont(fs, look.size, look.outline, look.token)

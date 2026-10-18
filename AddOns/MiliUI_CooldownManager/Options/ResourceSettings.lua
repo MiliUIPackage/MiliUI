@@ -152,6 +152,15 @@ local function AppendStyle(add, key, info)
     add(SS("slider", key, "borderSize", L["Border size"], { min = 0, max = 4, step = 1,
         get = function() return ns.Resources.BorderSize({ borderSize = StyleGet(key, "borderSize") }) end }))
     add(SS("color", key, "borderColor", L["Border color"], { hasAlpha = true }))
+    -- 邊緣陰影（Core/Shape.lua）：同全域三鍵，開關沒勾時粗細／不透明度停用（顯示值照代理表的規則）
+    add(SS("toggle", key, "shadow", L["Shadow"], { refreshPage = true }))
+    local ssz = SS("slider", key, "shadowSize", L["Shadow size"], { min = 1, max = 8, step = 1 })
+    ssz.disabled = function() return Following(key) or not StyleGet(key, "shadow") end
+    add(ssz)
+    local sal = SS("slider", key, "shadowAlpha", L["Shadow opacity"], { min = 10, max = 100, step = 5, scale = 100 })
+    sal.disabled = ssz.disabled
+    add(sal)
+    add(Note(L["The shadow is drawn outside the border and doesn't change the bar's size. Segmented bars get one shadow per segment."]))
     if info.mode == "bar" then add(SS("toggle", key, "smooth", L["Smooth bar changes"])) end
     if not info.noText then
         add(SS("dropdown", key, "textFont", L["Font"], { items = ns.Specs.ElementFontItems,

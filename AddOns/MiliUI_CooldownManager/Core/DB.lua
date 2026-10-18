@@ -162,6 +162,11 @@ local function LongBar(o)
             gradient  = false,              -- false | { color2 = rgba, dir = "H" | "V" }：填充從 color 漸變到 color2
             chargeSegments  = false,        -- 自訂法術的充能：條身分成 maxCharges 段（Modules/Custom.lua）
             chargeLineColor = rgba(0, 0, 0, 0.6),   -- 分段的分隔線顏色
+            -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow，2026-10-19）：整個 item（圖示＋條身）外面一圈黑色漸層。
+            -- 粗細是實體像素 1～8、不透明度 0.1～1；暴雪樣式不畫。舊存檔沒有 ＝ 關，不遷移
+            shadow      = false,
+            shadowSize  = 3,
+            shadowAlpha = 0.6,
             vertical  = false,              -- 整條直向（填充由下往上、圖示在上／下、條並排）
             reverseFill = false,            -- 反向填充：橫向從右往左、直向從上往下（只換起點，值不碰；舊存檔沒有 ＝ false）
             -- 外觀（2026-10-09；舊存檔沒有 ＝ miliui，不遷移）："miliui" | "blizzard"（畫成暴雪原生長條的長相，只有橫向；
@@ -282,7 +287,7 @@ ResourcesDefaults = function()
         rowHeight     = 14,                -- 使用者 2026-10-01 指定，不遷移。沒有控件了：只當 heights 沒設的列的起始值
         heights       = {},                -- [資源key] = 列高（所有專精共用；每種資源設定視窗的「高」）
         -- [資源key] = { follow, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText, textFont, textSize,
-        --              textOutline, borderSize, borderColor }：
+        --              textOutline, borderSize, borderColor, shadow, shadowSize, shadowAlpha }：
         -- 每種資源自己的外觀（設定視窗的「外觀」那一節）。開放式、預設空；follow 沒存 ＝ 跟下面這幾欄（全域）。
         -- 引擎讀 Modules/Resources.lua 的 R.StyleFor 回的代理表
         style         = {},
@@ -306,6 +311,12 @@ ResourcesDefaults = function()
         -- 自訂格子照這兩個；每種資源可在自己的外觀裡蓋（style[key]）
         borderSize    = 1,
         borderColor   = { r = 0, g = 0, b = 0, a = 1 },
+        -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow，2026-10-19）：邊框外面再往外一圈黑色漸層，條的大小不變；
+        -- 分格的條每格一圈。自訂格子、自訂列、觸發牌堆列、天空騎術也照這三個；每種資源可在自己的外觀裡蓋。
+        -- 舊存檔沒有 ＝ 合併預設補成關，不遷移
+        shadow        = false,
+        shadowSize    = 3,                 -- 實體像素 1～8
+        shadowAlpha   = 0.6,
         smooth        = true,             -- 連續條的原生內插（引擎做，吃秘密值）
         -- 條上的數值：預設開、14 號字、置中（使用者 2026-10-01 指定，不遷移）
         showText      = true,
@@ -441,6 +452,10 @@ CastbarDefaults = function()
         font          = "INHERIT",         -- 文字字型；"INHERIT" ＝ 跟隨主題的通用字型
         texture       = "blizzard",        -- 暴雪施法條的漸層圖（去色後照下面的顏色染）；v2 起的預設（使用者 2026-10-02 指定）
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
+        -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow，2026-10-19）：圖示與條身各一圈；舊存檔沒有 ＝ 關
+        shadow        = false,
+        shadowSize    = 3,
+        shadowAlpha   = 0.6,
         colors        = {
             cast            = rgba(0.906, 0.424, 0.2),
             channel         = rgba(0.906, 0.424, 0.2),
@@ -493,6 +508,10 @@ FocusCastDefaults = function()
         font          = "INHERIT",
         texture       = "MiliUI Satin",    -- 套組自製的漸層材質（Core/Media.lua、技能 miliui-satin-texture）；跟玩家施法條的暴雪漸層分得開（使用者 2026-10-16 指定）
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
+        -- 邊緣陰影（同玩家施法條）：圖示、條身、斷法圖示各一圈；舊存檔沒有 ＝ 關
+        shadow        = false,
+        shadowSize    = 3,
+        shadowAlpha   = 0.6,
         -- 跟玩家施法條分得開的兩樣（使用者 2026-10-16 指定）：法術名前面印施法者的名字、條尾放自己的斷法圖示＋冷卻轉圈
         showCaster    = true,
         showKick      = true,

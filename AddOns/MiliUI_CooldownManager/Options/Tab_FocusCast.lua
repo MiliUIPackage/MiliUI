@@ -78,6 +78,13 @@ local function Controls()
         Note(L["Blizzard cast bar: the gradient look of the game's own cast bar, tinted with the colors below."]),
         BS("color", "bgColor", L["Background color"]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
+        -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow）：條身與每顆圖示各一圈
+        BS("toggle", "shadow", L["Shadow"], { refreshPage = true }),
+        BS("slider", "shadowSize", L["Shadow size"], { min = 1, max = 8, step = 1,
+            disabled = function() local c = Cfg(); return not (c and c.shadow) end }),
+        BS("slider", "shadowAlpha", L["Shadow opacity"], { min = 10, max = 100, step = 5, scale = 100,
+            disabled = function() local c = Cfg(); return not (c and c.shadow) end }),
+        Note(L["The shadow is drawn outside the bar and each of its icons, one ring each."]),
         { type = "header", label = L["Colors"] },
         BS("color", "colors.ready", L["Interruptible (kick ready)"], { hasAlpha = false }),
         BS("color", "colors.cd", L["Interruptible (kick on CD)"], { hasAlpha = false }),

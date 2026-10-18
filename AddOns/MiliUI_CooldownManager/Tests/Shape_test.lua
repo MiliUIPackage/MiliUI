@@ -7,6 +7,9 @@
 -- 襯底與陰影的幾何換算、設定繼承（主題 → 條、跟隨關掉讀條自己的）、Paint 的冪等與還原
 -- （遮罩只掛一次、被別人拔掉會補回、換目標拿掉舊的、切回方形全部拿掉、襯底色、陰影外擴）、
 -- 發光形狀的來源優先順序（Masque 讀回的皮 ＞ 內建設定；沒裝 Masque 一律方形；圓角當方形）。
+-- 長條的邊緣陰影（SH.ShadowOf／EdgeShadowGeometry 的夾範圍、八格 texcoord 照 Backdrop.lua、貼圖尺寸、
+-- EdgeShadow 的冪等（同 region 只建一個框、值沒變不重寫、UI 縮放改了重排、透明度改了只重上色）、層級 host − 1、
+-- ext 延伸、under、HideEdgeShadow、不寫 host／region 的欄位）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 
@@ -283,6 +286,169 @@ do
         msqButton = { _MSQ_CFG = { Shape = "Square" } } }, "essential"), nil)
     M.Mode = saved
     eq("BuiltinShape：nil", G.BuiltinShape(nil), nil)
+end
+
+
+------------------------------------------------------------
+-- 6. 長條的邊緣陰影（SH.EdgeShadow）
+------------------------------------------------------------
+do
+    -- 設定三鍵 → 生效值
+    eq("ShadowOf：沒開 ⇒ nil", SH.ShadowOf(false, 3, 0.6), nil)
+    eq("ShadowOf：不是 true（字串）⇒ nil", SH.ShadowOf("yes", 3, 0.6), nil)
+    local px, a = SH.ShadowOf(true, nil, nil)
+    check("ShadowOf：開、沒存 ⇒ 3 像素 0.6", px == 3 and a == 0.6, tostring(px) .. "/" .. tostring(a))
+    eq("ShadowOf：粗細取整", (SH.ShadowOf(true, 4.6, 0.5)), 5)
+    eq("ShadowOf：粗細 0 夾成 1", (SH.ShadowOf(true, 0, 0.5)), 1)
+    eq("ShadowOf：粗細 12 夾成 8", (SH.ShadowOf(true, 12, 0.5)), 8)
+    eq("ShadowOf：粗細壞資料 ⇒ 3", (SH.ShadowOf(true, "x", 0.5)), 3)
+    eq("ShadowOf：透明度 0 ⇒ 不畫", SH.ShadowOf(true, 3, 0), nil)
+    eq("ShadowOf：透明度負的 ⇒ 不畫", SH.ShadowOf(true, 3, -1), nil)
+    eq("ShadowOf：透明度超過 1 夾 1", select(2, SH.ShadowOf(true, 3, 2)), 1)
+    eq("ShadowOf：透明度太小夾 0.1", select(2, SH.ShadowOf(true, 3, 0.02)), 0.1)
+    eq("ShadowOf：透明度壞資料 ⇒ 0.6", select(2, SH.ShadowOf(true, 3, "x")), 0.6)
+
+    -- 外擴：P.Pixel(px)；這裡 1 實體像素 ＝ 0.75 版面單位（UI 縮放 ≠ 1 的情況）
+    local scale = 0.75
+    ns.P = { Pixel = function(n) return n * scale end }
+    eq("Geometry：nil ⇒ nil", SH.EdgeShadowGeometry(nil), nil)
+    eq("Geometry：0 ⇒ nil", SH.EdgeShadowGeometry(0), nil)
+    eq("Geometry：負的 ⇒ nil", SH.EdgeShadowGeometry(-2), nil)
+    eq("Geometry：0.4 取整成 0 ⇒ nil", SH.EdgeShadowGeometry(0.4), nil)
+    local o, e = SH.EdgeShadowGeometry(3)
+    check("Geometry：3 像素 ⇒ outset ＝ edgeSize ＝ P.Pixel(3)", o == 2.25 and e == 2.25, tostring(o) .. "/" .. tostring(e))
+    eq("Geometry：超過 8 夾 8", SH.EdgeShadowGeometry(20), 6)
+    eq("Geometry：2.6 取整成 3", SH.EdgeShadowGeometry(2.6), 2.25)
+
+    -- 八格 texcoord：照暴雪 Backdrop.lua 的 textureUVs（左、右、上、下、左上、右上、左下、右下）
+    local CELL = { LeftEdge = 0, RightEdge = 1, TopEdge = 2, BottomEdge = 3,
+                   TopLeftCorner = 4, TopRightCorner = 5, BottomLeftCorner = 6, BottomRightCorner = 7 }
+    eq("八格：八張", #SH.EDGE_PIECES, 8)
+    for name, cell in pairs(CELL) do
+        local uv = SH.EDGE_UV[name]
+        local ok = type(uv) == "table" and #uv == 8
+        if ok then
+            for i = 1, 8, 2 do
+                if math.floor(uv[i] * 8) ~= cell then ok = false end           -- x 落在自己那一格
+                if uv[i + 1] < 0.0625 or uv[i + 1] > 0.9375 then ok = false end  -- y 在內縮的範圍裡
+            end
+        end
+        check("八格：" .. name .. " 在第 " .. cell .. " 格", ok)
+    end
+    local te, le = SH.EDGE_UV.TopEdge, SH.EDGE_UV.LeftEdge
+    check("八格：上邊是旋轉過的（螢幕上→下＝貼圖左→右）", te[1] < te[3] and te[2] == te[4] and te[6] < te[2])
+    check("八格：左邊不旋轉（螢幕左→右＝貼圖左→右）", le[1] == le[3] and le[5] > le[1] and le[4] > le[2])
+    do  -- 貼圖檔：PNG 的 IHDR 寫著 128×16
+        local f = io.open(here .. "/../Media/shadow-edge.png", "rb")
+        local head = f and f:read(24)
+        if f then f:close() end
+        local function u32(sv, i) local a1, b1, c1, d1 = sv:byte(i, i + 3); return ((a1 * 256 + b1) * 256 + c1) * 256 + d1 end
+        check("貼圖：Media/shadow-edge.png 是 128×16", head and #head == 24 and u32(head, 17) == 128 and u32(head, 21) == 16)
+    end
+
+    -- 假框：記下每一次寫入（冪等要看「值沒變不重寫」）
+    local made = 0
+    local function Fake(parent, level)
+        local o2 = { parent = parent, level = level or 1, shown = true, points = {}, writes = 0, kids = {} }
+        function o2:GetFrameLevel() return self.level end
+        function o2:SetFrameLevel(v) self.level = v; self.writes = self.writes + 1 end
+        function o2:SetParent(p2) self.parent = p2 end
+        function o2:GetParent() return self.parent end
+        function o2:Show() self.shown = true end
+        function o2:Hide() self.shown = false end
+        function o2:IsShown() return self.shown end
+        function o2:ClearAllPoints() self.points = {}; self.writes = self.writes + 1 end
+        function o2:SetPoint(...) self.points[#self.points + 1] = { ... }; self.writes = self.writes + 1 end
+        function o2:SetSize(w, h) self.w, self.h = w, h; self.writes = self.writes + 1 end
+        function o2:SetTexture(t) self.tex = t end
+        function o2:SetTexCoord(...) self.uv = { ... } end
+        function o2:SetVertexColor(...) self.color = { ... }; self.colorWrites = (self.colorWrites or 0) + 1 end
+        function o2:CreateTexture(_, layer)
+            local t = Fake(self)
+            t.layer = layer
+            self.kids[#self.kids + 1] = t
+            return t
+        end
+        return o2
+    end
+    local savedCF = env.CreateFrame
+    env.CreateFrame = function(_, _, parent)
+        made = made + 1
+        return Fake(parent, (parent and parent.level or 0) + 1)
+    end
+    local host, region = Fake(nil, 5), Fake(nil, 6)
+    local function keys(t) local n = 0; for _ in pairs(t) do n = n + 1 end; return n end
+    local hostKeys, regionKeys = keys(host), keys(region)
+
+    check("EdgeShadow：畫了", SH.EdgeShadow(host, region, 3, 0.5) == true)
+    local sh = SH.shadowOf[region]
+    local f = sh and sh.frame
+    eq("EdgeShadow：建了一個框", made, 1)
+    check("EdgeShadow：陰影框是 host 的子框", f and f.parent == host)
+    eq("EdgeShadow：層級 ＝ host − 1", f and f.level, 4)
+    check("EdgeShadow：顯示", f and f.shown)
+    eq("EdgeShadow：八張貼圖", f and #f.kids, 8)
+    local tl = sh and sh.tex.TopLeftCorner
+    check("EdgeShadow：貼圖是 shadow-edge.png、texcoord 照表", tl and tl.tex == SH.EDGE_SHADOW and tl.uv[1] == SH.EDGE_UV.TopLeftCorner[1])
+    check("EdgeShadow：角落 edgeSize 見方", tl and tl.w == 2.25 and tl.h == 2.25)
+    check("EdgeShadow：黑色＋透明度", tl and tl.color[1] == 0 and tl.color[4] == 0.5)
+    local p1, p2 = f.points[1], f.points[2]
+    check("EdgeShadow：每邊外擴 outset（圍住 region）", p1[2] == region and p1[4] == -2.25 and p1[5] == 2.25
+        and p2[2] == region and p2[4] == 2.25 and p2[5] == -2.25)
+    eq("EdgeShadow：不寫 host 的欄位", keys(host), hostKeys)
+    eq("EdgeShadow：不寫 region 的欄位", keys(region), regionKeys)
+
+    -- 冪等：值沒變 ⇒ 不重建、不重排、不重上色
+    local w0, c0 = f.writes, tl.colorWrites
+    SH.EdgeShadow(host, region, 3, 0.5)
+    eq("冪等：不重建", made, 1)
+    eq("冪等：值沒變不重排", f.writes, w0)
+    eq("冪等：值沒變不重上色", tl.colorWrites, c0)
+    -- 透明度改了：只重上色
+    SH.EdgeShadow(host, region, 3, 0.8)
+    check("透明度改了：重上色、不重排", tl.color[4] == 0.8 and f.writes == w0)
+    -- UI 縮放改了（1 實體像素換算值變）：重排、角落改尺寸
+    scale = 0.5
+    SH.EdgeShadow(host, region, 3, 0.8)
+    check("UI 縮放改了：重排", f.points[1][4] == -1.5 and tl.w == 1.5)
+    scale = 0.75
+    SH.EdgeShadow(host, region, 3, 0.8)
+    -- host 的層級變了：跟著改
+    host.level = 9
+    SH.EdgeShadow(host, region, 3, 0.8)
+    eq("host 層級變了：陰影跟著 host − 1", f.level, 8)
+    -- ext：往左多圍一截（自訂列把圖示圍進去）
+    SH.EdgeShadow(host, region, 3, 0.8, { l = 10 })
+    check("ext：左邊多延伸", f.points[1][4] == -12.25 and f.points[2][4] == 2.25)
+    -- under：層級照另一個框減一
+    SH.PaintEdgeShadow(sh, region, 3, 0.8, nil, Fake(nil, 20))
+    eq("under：層級照 under − 1", f.level, 19)
+    host.level = 0
+    SH.EdgeShadow(host, region, 3, 0.8)
+    eq("層級不低於 0", f.level, 0)
+    host.level = 5
+    -- 關掉／Hide
+    SH.EdgeShadow(host, region, nil, 0.8)
+    check("px nil ⇒ 藏起來", not f.shown and sh.on == false)
+    SH.EdgeShadow(host, region, 3, 0.8)
+    check("再開 ⇒ 顯示、沿用同一個框", f.shown and made == 1)
+    SH.HideEdgeShadow(region)
+    check("HideEdgeShadow ⇒ 藏起來", not f.shown)
+    SH.HideEdgeShadow(Fake())          -- 沒畫過的 region：不報錯
+    SH.EdgeShadow(host, Fake(), nil, 0.5)
+    eq("沒畫過、又是關的 ⇒ 不建框", made, 1)
+    -- 同一個 host 圍兩個 region（施法條：條身＋圖示）⇒ 兩個框，層級都是 host − 1
+    local icon = Fake(nil, 7)
+    SH.EdgeShadow(host, icon, 2, 0.6)
+    local f2 = SH.shadowOf[icon].frame
+    check("同 host 兩個 region ⇒ 兩個框、層級都 host − 1", made == 2 and f2 ~= f and f2.level == 4)
+    -- NewEdgeShadow／PaintEdgeShadow（池化用）
+    local own = SH.NewEdgeShadow(host)
+    check("PaintEdgeShadow：沒有 region ⇒ 不畫", SH.PaintEdgeShadow(own, nil, 3, 0.5) == false and not own.frame.shown)
+    check("PaintEdgeShadow：透明度 0 ⇒ 不畫", SH.PaintEdgeShadow(own, region, 3, 0) == false)
+    check("PaintEdgeShadow：畫", SH.PaintEdgeShadow(own, region, 3, 0.5) == true and own.frame.shown)
+    env.CreateFrame = savedCF
+    ns.P = nil
 end
 
 print(("Shape_test: %d passed, %d failed"):format(passed, failed))

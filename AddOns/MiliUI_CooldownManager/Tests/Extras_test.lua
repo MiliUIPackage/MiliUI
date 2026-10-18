@@ -800,6 +800,19 @@ do
     check("火花進條層簽章", a ~= b)
     p.bars.buffbars.bar.spark = false
 end
+-- 長條的邊緣陰影（bar.shadow／shadowSize／shadowAlpha）：TSig(r.bar) 整張進條層簽章 ⇒ 改了就重套
+do
+    eq("增益長條預設沒有陰影", p.bars.buffbars.bar.shadow, false)
+    local a0 = D.Resolve("buffbars", true).sig
+    p.bars.buffbars.bar.shadow = true
+    local a1 = D.Resolve("buffbars", true).sig
+    p.bars.buffbars.bar.shadowSize = 5
+    local a2 = D.Resolve("buffbars", true).sig
+    p.bars.buffbars.bar.shadowAlpha = 0.3
+    local a3 = D.Resolve("buffbars", true).sig
+    check("陰影進條層簽章（開關、粗細、透明度）", a0 ~= a1 and a1 ~= a2 and a2 ~= a3)
+    p.bars.buffbars.bar.shadow, p.bars.buffbars.bar.shadowSize, p.bars.buffbars.bar.shadowAlpha = false, 3, 0.6
+end
 
 ------------------------------------------------------------
 -- 6. 增益持續時間的倒數換色
@@ -2850,6 +2863,44 @@ do
     eq("自訂法術：不問", #D.TipAuraIDs({ custom = true, kind = "spell", spellID = 123 }), 0)
     eq("自訂飾品冷卻格沒裝東西：空", #D.TipAuraIDs({ custom = true, kind = "slot" }), 0)
     for k, v in pairs(saved) do C[k] = v end
+end
+
+
+-- 長條的邊緣陰影：D.BarShadow（米利樣式畫、暴雪樣式與非長條收掉、ClearShape 還給暴雪時收掉）。最後才載 Shape，前面的測試不受影響
+do
+    Load("Core/Shape.lua")
+    local SH = ns.Shape
+    local savedCF, savedP = env.CreateFrame, ns.P
+    ns.P = { Pixel = function(v) return v end, Scale = function(v) return v end }
+    local function Fake(parent, level)
+        local o = { parent = parent, level = level or 1, shown = true }
+        local noop = function() end
+        for _, m in ipairs({ "SetTexture", "SetTexCoord", "SetVertexColor", "SetSnapToPixelGrid", "SetTexelSnappingBias",
+                             "ClearAllPoints", "SetPoint", "SetSize" }) do o[m] = noop end
+        function o:GetFrameLevel() return self.level end
+        function o:SetFrameLevel(v) self.level = v end
+        function o:Show() self.shown = true end
+        function o:Hide() self.shown = false end
+        function o:CreateTexture() return Fake(self) end
+        return o
+    end
+    env.CreateFrame = function(_, _, parent) return Fake(parent, (parent and parent.level or 0) + 1) end
+    local item = Fake(nil, 500)
+    D.BarShadow(item, { shadow = true }, false)
+    local sh = SH.shadowOf[item]
+    check("BarShadow：米利樣式 ⇒ 整個 item 一圈、item 的子框、層級 item − 1",
+        sh and sh.frame.shown and sh.frame.parent == item and sh.frame.level == 499)
+    D.BarShadow(item, { shadow = true }, true)
+    check("BarShadow：暴雪樣式 ⇒ 收掉", not sh.frame.shown)
+    D.BarShadow(item, { shadow = true }, false)
+    D.BarShadow(item, nil)
+    check("BarShadow：不是長條了 ⇒ 收掉", not sh.frame.shown)
+    D.BarShadow(item, { shadow = false }, false)
+    check("BarShadow：關 ⇒ 不畫", not sh.frame.shown)
+    D.BarShadow(item, { shadow = true }, false)
+    D.ClearShape(item, {})
+    check("ClearShape（還給暴雪）⇒ 陰影收掉", not sh.frame.shown)
+    env.CreateFrame, ns.P = savedCF, savedP
 end
 
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))

@@ -169,7 +169,8 @@ local function LayoutBarRow(row, plan, style, Wd)
     row.barFrame:SetSize(g.barW, H)
     -- 暗底與邊框：引擎一直顯示的列同一支（暗底在條身底下、邊框蓋在填色上）
     ns.AuraBar.RowDecor(row.barFrame, { W = g.barW, H = H, n = 1, gap = 0, segW = g.barW, segments = false,
-        reversed = st.reverse, dim = look.dim, px = look.px, edge = look.edge, bgTex = look.bgTex }, lv + 8)
+        reversed = st.reverse, dim = look.dim, px = look.px, edge = look.edge, bgTex = look.bgTex,
+        shadow = ns.CustomBars.ShadowGeom(look.shadow, st.icon, g, row) }, lv + 8)
     row.bar:SetFrameLevel(lv + 2)
     row.bar:SetStatusBarTexture(look.texture)
     row.bar:SetStatusBarColor(look.r, look.g, look.b, look.alpha or 1)
@@ -234,6 +235,14 @@ local function HideFrom(list, from)
     for i = from, #list do list[i]:Hide() end
 end
 
+-- 充能列的格子：陰影框掛在列上（層級＝列 − 1，同 Pips 的 LayoutCustomRow），格子藏了要自己收
+local function HideCellsFrom(row, from)
+    for i = from, #row.cells do
+        row.cells[i]:Hide()
+        if ns.Shape then ns.Shape.HideEdgeShadow(row.cells[i]) end
+    end
+end
+
 -- 充能列：同 LayoutCustomRow 的格子（R.SegCell、每格四條邊、暗底、填色、暗版回充條、置中秒數）
 local function LayoutChargeCells(row, plan, style, Wd, H, look)
     local R = ns.Resources
@@ -241,11 +250,13 @@ local function LayoutChargeCells(row, plan, style, Wd, H, look)
     local bt, bc = R.BorderSize(style), R.BorderColor(style)
     local dc, da = R.DimColor(nil, style)
     local ox, oy = R.TextOffset(style)
+    local spx, sa = R.ShadowOf(style)
     for i = 1, n do
         local cell = row.cells[i] or NewCell(row)
         row.cells[i] = cell
         local x, segW = R.SegCell(Wd, n, style.segmentSpacing, i, bt)
         R.PaintEdges(cell.edges, bt, bc)
+        if ns.Shape then ns.Shape.EdgeShadow(row, cell, spx, sa) end
         cell:SetSize(segW, H)
         cell:ClearAllPoints()
         if look.reversed then cell:SetPoint("TOPRIGHT", row, "TOPRIGHT", -x, 0) else cell:SetPoint("TOPLEFT", row, "TOPLEFT", x, 0) end
@@ -267,7 +278,7 @@ local function LayoutChargeCells(row, plan, style, Wd, H, look)
         cell.text:SetPoint("CENTER", cell, "CENTER", ox, oy)
         cell:Show()
     end
-    HideFrom(row.cells, n + 1)
+    HideCellsFrom(row, n + 1)
 end
 
 -- 層數列：同 LayoutStackEngine（AuraBar.RowDecor 的暗底與邊框；填色在 AuraBar.Geometry 的格子上，等於引擎整條填色挖掉格距）
@@ -278,7 +289,8 @@ local function LayoutStackCells(row, plan, style, Wd, H, look)
     local segW = (Wd - gap * (n - 1)) / n
     local lv = row:GetFrameLevel() or 1
     ns.AuraBar.RowDecor(row, { W = Wd, H = H, n = n, gap = gap, segW = segW, reversed = look.reversed, segments = true,
-        dim = R.DimArray(style), px = R.DecorPx(style), edge = R.EdgeArray(style), bgTex = look.bgTex, mask = gap > 0 }, lv + 8)
+        dim = R.DimArray(style), px = R.DecorPx(style), edge = R.EdgeArray(style), bgTex = look.bgTex, mask = gap > 0,
+        shadow = R.ShadowArray(style) }, lv + 8)
     row.fillFrame:SetFrameLevel(lv + 2)
     local geo = ns.AuraBar.Geometry(Wd, n, gap, segW, P.Pixel(1))
     for i, c in ipairs(geo.cells) do
@@ -317,7 +329,7 @@ local function LayoutPipRow(row, plan, style, Wd)
         row.text:Hide()
         LayoutChargeCells(row, plan, style, Wd, H, look)
     else
-        HideFrom(row.cells, 1)
+        HideCellsFrom(row, 1)
         LayoutStackCells(row, plan, style, Wd, H, look)
     end
 end
