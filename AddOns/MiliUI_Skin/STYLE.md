@@ -471,7 +471,7 @@ tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了�
 ⚠ **不准為了重申樣式去 hook 那支插件**（規則第 3 條）。要不要重申先查
 `MiliUI_Tooltip/Core/Skin.lua` 是怎麼做的，以及那支插件到底有沒有動那個屬性。
 
-**目前的五支：**
+**目前的六支：**
 
 | 檔案 | host | 元件 | 觸發 | 開關 |
 |---|---|---|---|---|
@@ -480,6 +480,7 @@ tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了�
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | 預組隊伍過濾的 `UsePGFButton` ＋ `PremadeGroupsFilterDialog` ＋ 七個面板 | `atLogin = true` | `premadegroupsfilter` |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 傳奇鑰石檔案插件自建的兩顆 tooltip | `atLogin = true` ＋ 2／10 秒補掃 | `raiderio` |
 | `ThirdParty/Mapster.lua` | `worldmap` | 地圖增強插件在世界地圖標題帶右上的 `MapsterOptionsButton` | `atLogin = true` | `mapster` |
+| `ThirdParty/AppearanceTooltip.lua` | **無**（nil） | 外觀預覽插件的模型預覽框 `AppearanceTooltipTooltip` | `atLogin = true` ＋ 2 秒補掃 | `appearancetooltip` |
 
 ### 外部皮膚 handle（`MiliUISkin_API`，`Core/External.lua`）
 
@@ -1752,9 +1753,10 @@ Blizzard_AchievementUI.lua:1038 AchievementIcon_Desaturate
 | `ThirdParty/Auctionator.lua` | `auctionhouse` | **兩件事**：(1) 底部四顆分頁只登記**全域名字**（`Engine.AddCompanionTabs`），由 host 的 `SkinTabRow` 跟暴雪三顆**同一次** `Skin.TabGroup`；(2) 四頁內容（2026-09-24）：輸入框（數量、金／銀／銅、搜尋、最小最大值、複製連結）`Skin.EditBox`、有效時限三顆單選 `Skin.CheckBox{radio}`、一般按鈕 `Skin.Button`（最大／略過／上一個／返回／掃描… secondary；搜尋、完成、匯出、匯入、完整掃描 primary）、**開始拍賣／取消被壓價的拍賣／購買彈窗的購買與直購／商品確認彈窗的繼續與接受＝特許零腳本 primary**（彈窗裡的取消＝零腳本 secondary）、清單下方與上方兩組小分頁 `Skin.TabGroup`、`WowTrimScrollBar` 借 `ns.External.ScrollBar`、內嵌框與對話框外框（`RegionBackdrop`）、結果清單的表頭帶＋表頭三片中和、無名的重新整理鈕（讀結構找）、背包清單的分類標題列（`FramePool`，`Skin.ListHeader` 語彙：`fill`＋黑邊＋白字，木紋底與縮排線中和、滑過帶去飽和染色；重建時由 `ItemListingFrame` 的 `OnSizeChanged` 補掃）、背包清單內嵌框（畫的範圍右下改錨到 `BagListing`，把捲軸包進框裡，跟右邊結果清單同一套）、銷售頁物品格（上方那格＋背包清單每一格：空格／品質框／橘光暈中和、圖示裁邊、1px 方框建成格子自己的貼圖（OVERLAY 6，壓在專業品質鑽石之下），**背包清單選中那一格＝職業色框**；背包格走 `HookScript("OnShow")` 重裁／重上選中色）、欄位標籤 `textDim` | `AUCTION_HOUSE_SHOW`（全掃）＋ `AUCTION_HOUSE_THROTTLED_SYSTEM_READY`（全掃成功前補全掃、之後只補背包清單與上方物品格的重裁） | 所有清單的「列」（池化、而且就是購買／取消的執行流）；物品格的**品質色**（使用者只要黑框；而且它直接 `SetVertexColor`、沒有全域出口，轉交也跟不上）；上方物品格換物品到查價回來之間圖示未裁（它沒有 OnShow 可接，只能等節流解除的補掃）；背包清單新長出來的格子要等下一次補掃；右鍵確認選單、多筆上架進度、數值文字。⚠ **它沒有主題系統**（這一列之前寫錯，跟同樣掛在拍賣場上的另一支側邊面板插件搞混了）；`SHOW_SELLING_BAG` 關掉時小分頁反排，靠讀 `BagListing:IsShown()` 決定交給 `TabGroup` 的順序，改設定要 `/reload` |
 | `ThirdParty/PremadeGroupsFilter.lua` | `pve` | `UsePGFButton`；`PremadeGroupsFilterDialog` 的 chrome／關閉鈕／最大化最小化／重設與設定小鈕／重新整理鈕；七個面板的區塊標題、每列的勾選框與最小最大輸入框、它自己那一種下拉、四顆小文字鈕、進階過濾式與排序輸入框 | `atLogin = true`（視窗、面板與控件全部是檔案層 ＋ XML 一次建完） | 兩顆小圖示鈕的 `Icon`、說明鈕、列標籤、`UsePGFButton.Text` 的寬度、小文字鈕的 `Label` 顏色、它的彈出選單與設定頁 |
 | `ThirdParty/RaiderIO.lua` | **無**（nil） | 它自建的兩顆 tooltip（`RaiderIO_ProfileTooltip` / `_SearchTooltip`）：**有 `MiliUITip_API` 就 `Adopt` 委派**，沒有才退回自己畫提示皮（NineSlice `SetAlpha(0)` ＋ `Engine.RegionBackdrop`，`T.tipFill` ＋ 1px 職業色邊） | `atLogin = true` ＋ 登入後 2／10 秒各補掃一次 | 它的搜尋視窗本體（`BackdropTemplate` ＋ 它自己的 backdrop，我們的底壓在下面看不見）、tooltip 裡的文字顏色（那是它的資料）、模板自帶的 `StatusBar` |
+| `ThirdParty/AppearanceTooltip.lua` | **無**（nil） | 模型預覽框 `AppearanceTooltipTooltip`（`TooltipBorderedFrameTemplate`，每次顯示 `SetParent` 到提示底下）：**有 `MiliUITip_API` 就 `Adopt(tip, { keepScale = true })` 委派**（`keepScale`：它的縮放已經吃到父層提示那一份，再縮會變平方），沒有才退回自己畫提示皮（同 RaiderIO 那一列） | `atLogin = true`（檔案層建的）＋ 2 秒補掃一次 | 位置／尺寸／縮放／parent（它的 positioner 管）、模型框、兩行字的顏色、它的設定頁。**不讀它任何幾何**（掛進秘密提示鏈時它自己會藏起來） |
 | `ThirdParty/Mapster.lua` | `worldmap` | `MapsterOptionsButton`（`UIPanelButtonTemplate`，`Skin.Button` secondary —— 開設定頁的導覽鈕） | `atLogin = true`（它在 `PLAYER_LOGIN` 的 `OnEnable` 裡建） | 按鈕位置與文字、它的設定頁。⚠ 先勾「隱藏地圖按鈕」登入、之後才取消的話按鈕是那一刻才建的，要 /reload 才有皮。同一排的 `HandyNotesWorldMapButton` **不做**：它的 NormalTexture 是一張不透明、自帶黑框的 64px 圖示，把整顆按鈕蓋滿，紅色切片本來就看不到 |
 
-⚠ 這五支的 hook 數合計：**0**（`hooksecurefunc` / `SetScript` / 呼叫對方函式一個都沒有）。
+⚠ 這六支的 hook 數合計：**0**（`hooksecurefunc` / `SetScript` / 呼叫對方函式一個都沒有）。
 只有原語內建的 `HookScript("OnEnter"/"OnLeave"/"OnEnable"/"OnDisable")`，
 而那幾個只碰**我們自己的** overlay。
 配方自己掛的 frame script 只有 `ThirdParty/Auctionator.lua` 的兩支（2026-09-24）：

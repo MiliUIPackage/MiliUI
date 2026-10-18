@@ -63,3 +63,7 @@ OnUpdate（守在讀取點正前方）。這處**沒有** `fix from MiliUI` 標�
 **How to apply:** 上游更新後三處都要重套，`grep -n "fix from MiliUI" AddOns/AppearanceTooltip/addon.lua`
 一眼看得出有沒有被洗掉。同類修補見 [[project-cell-vehicle-secret]]、[[wow-121-secret-values]]、
 [[project-local-addon-forks]]。
+
+## 換皮不在這裡（2026-10-18）
+
+預覽框的提示皮走 `MiliUI_Skin/ThirdParty/AppearanceTooltip.lua`（委派 `MiliUITip_API.Adopt(tip, { keepScale = true })`，沒裝提示插件才自己畫），**不改這支插件的檔案**。它每次顯示都 `SetParent(提示)`、自己從不 `SetScale`（那段是註解掉的）⇒ 縮放要留給父層，不然變平方。上游哪天把縮放那段打開，要回頭看 keepScale 還對不對。

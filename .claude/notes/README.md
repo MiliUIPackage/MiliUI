@@ -387,7 +387,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-release-version.md](project-miliui-release-version.md) | MiliUI.toc 的 ## Version 是 YYYYMMDD，發佈新版時要手動改成當天日期；版本廣播與登入訊息都靠它；新的 SendAddonMessage 一律過 ns.IsCommRestricted |
 | [project-miliui-satin-texture.md](project-miliui-satin-texture.md) | 套組共用的長條材質 MiliUI Satin（2026-10-16 取代 TukTex）：技能 miliui-satin-texture 的 Pillow 腳本一次產六份 miliui_satin.png（MCDM／UnitFrames／DamageMeters／Tooltip／Skin／Cell）；純漸層不含雲、不帶別人的檔；各插件 token 與遷移（Cell 走一次性旗標不綁版本號）；SharedMedia／Ayije 設定的 TukTex 不動 |
 | [project-miliui-shoppinglist.md](project-miliui-shoppinglist.md) | MiliUI_ShoppingList 專業採購清單——架構、跟參考來源不同的六個決定、拍賣場貼齊下方與兩份位置、加入鈕避開鄰居、taint 紀律、待驗證清單 |
-| [project-miliui-skin.md](project-miliui-skin.md) | 米利的介面外觀 MiliUI_Skin —— 暴雪原生視窗換成設定視窗皮（47 份配方＋5 支第三方、2026-09-24 起預設啟用）；只重畫不重排的契約與 lint 現況、各輪抓到的坑、仍開著的待辦與待驗證 |
+| [project-miliui-skin.md](project-miliui-skin.md) | 米利的介面外觀 MiliUI_Skin —— 暴雪原生視窗換成設定視窗皮（47 份配方＋6 支第三方、2026-09-24 起預設啟用）；只重畫不重排的契約與 lint 現況、各輪抓到的坑、仍開著的待辦與待驗證 |
 | [project-miliui-snap-bars.md](project-miliui-snap-bars.md) | 套組各插件的框互相磁吸（MiliUISnap v4）——標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊、滑鼠淡出群組；vendor 複製（以 ls 為準）、接點、為什麼有些框不貼附 |
 | [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip — 取代 TinyTooltip 的自製滑鼠提示重寫版：taint 接觸面清單、架構決策、接管名單（含 FriendsTooltip 與 MiliUITip_API.Adopt）、v1 刻意捨棄的功能、戰鬥中秘密值與 Leatrix 殘留兩次破案的規則 |
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 自製插件的註解與 .claude/notes 都不點名第三方插件；只有「實際複製過來的檔案」與致謝區塊要留出處；判準是 repo 裡有沒有那個東西 |
