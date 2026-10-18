@@ -341,6 +341,8 @@ local function HudSpecs()
         HudSpec("valueFormat", "dropdown", "顯示數值", { items = X.ValueFormatItems() }),
         { type = "text", label = "主屬性、耐力、攻擊／法術強度、護甲沒有百分比，一律顯示整數。" },
         HudSpec("percentSign", "toggle", "顯示 % 符號"),
+        HudSpec("hideZero", "toggle", "不顯示數值為 0 的屬性"),
+        { type = "text", indent = true, label = "只對次要與第三屬性；戰鬥中讀不到數值時沿用脫戰時的判斷。" },
         HudSpec("colorMode", "dropdown", "標籤顏色", { items = X.HUD_COLOR_ITEMS }),
         HudSpec("valueColored", "toggle", "數值同標籤顏色"),
         HudSpec("fontSize", "slider", "字型大小", { min = 8, max = 24, step = 1 }),

@@ -15,7 +15,7 @@ local ADDON, ns = ...
 
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION = 1
+ns.DB_VERSION = 2   -- 2 = 2026-10-19 顯示數值預設改「數值 (百分比)」（Core/DB.lua 的 MIGRATIONS）
 
 ns.playerClass = select(2, UnitClass("player"))   -- player token 不受 12.1 身分限制，安全
 

@@ -60,7 +60,8 @@ local function BigStat(value, label, sub)
 end
 Panel.BigStat = BigStat
 
--- 屬性列：前面一顆 ◆（職業色），文字照分類的明暗
+-- 屬性列：前面一顆 ◆（職業色），文字照分類的明暗；次要屬性照暴雪原生是綠字，
+-- 但原生那個 (0,1,0) 太亮（2026-10-19 使用者），改用跟使用／裝備效果同一個綠（LOOK.EFFECT）
 local function StatList(stats)
     local markers = Panel.Option("statMarkers")
     local section = { kind = "custom" }
@@ -78,7 +79,14 @@ local function StatList(stats)
             local shade = LOOK.STAT_SHADE[s.category] or LOOK.STAT_SHADE.other
             -- 不適用的（同職業其他專精的主屬性＝DisabledLine、或原本就灰字）：文字與 ◆ 都灰，不用職業色
             local dim = s.disabled or Panel.IsGray(s.color)
-            local color = dim and LOOK.DIM or Gray(shade)
+            local color
+            if dim then
+                color = LOOK.DIM
+            elseif s.category == "secondary" then
+                color = LOOK.EFFECT
+            else
+                color = Gray(shade)
+            end
             local h = Panel.TextAt(panel, ctx, textOf(s), m.pad + lead, y, panel.width - 2 * m.pad - lead, style, color)
             if markers then
                 local d = Panel.Texture(panel, 2)
