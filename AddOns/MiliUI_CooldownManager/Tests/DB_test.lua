@@ -14,6 +14,7 @@
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local DB_PATH = here .. "/../Core/DB.lua"
+local DB_CUSTOM_PATH = here .. "/../Core/DB_Custom.lua"
 
 ------------------------------------------------------------
 -- 迷你斷言
@@ -76,16 +77,20 @@ local function FireEvent(event)
     end
 end
 
-local function LoadDB()
+local function LoadOne(path)
     local chunk, err
     if setfenv then                                   -- Lua 5.1／LuaJIT
-        chunk, err = loadfile(DB_PATH)
+        chunk, err = loadfile(path)
         if chunk then setfenv(chunk, env) end
     else                                              -- Lua 5.2+
-        chunk, err = loadfile(DB_PATH, "t", env)
+        chunk, err = loadfile(path, "t", env)
     end
     assert(chunk, err)
     chunk("MiliUI_CooldownManager", ns)
+end
+local function LoadDB()
+    LoadOne(DB_PATH)
+    LoadOne(DB_CUSTOM_PATH)
 end
 
 LoadDB()

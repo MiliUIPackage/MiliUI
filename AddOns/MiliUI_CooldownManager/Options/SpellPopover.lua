@@ -114,8 +114,10 @@ local CTRL_X  = LABEL_W + 10
 local ROW_W   = WIDTH - PAD * 2
 local SUB_CARD_OUT, SUB_CARD_TOP = 6, 3      -- 子分頁卡片（L）：左右比列寬多出多少（< PAD）、鈕列上方留白
 local TOP_Y   = -PAD - 32 - 12
+-- 跨檔（SpellPopover_Tabs.lua／SpellPopover_Popups.lua）共用的常數
+Pop.PAD, Pop.LABEL_W, Pop.CTRL_X, Pop.ROW_W, Pop.SUB_CARD_OUT, Pop.SUB_CARD_TOP = PAD, LABEL_W, CTRL_X, ROW_W, SUB_CARD_OUT, SUB_CARD_TOP
 
-local frame, cur
+local frame
 -- 內容捲動（使用者 2026-10-12：太長超出螢幕）：標題、分頁鈕固定在 frame 上，各列建在 body（捲動區的子框）上，
 -- 超過螢幕高度才出捲動；捲動提示照側欄那一條細線（Options/Sidebar.lua 的 UpdateThumb）
 local body, scroll, thumb
@@ -134,23 +136,24 @@ local TABS = {
     -- 自訂文字（M）：增益圖示類的格才有，排最後（使用者 2026-10-06）
     { id = "label",    label = L["Custom text"] },
 }
-local buildTab = "general"
+Pop.buildTab = "general"           -- 跨檔：SpellPopover_Tabs.lua 建列時也寫
 local curTab = "general"
 -- 子分頁（K）：同分頁的做法，列建的時候記下 buildSub（哪一頁）與 buildGroup（哪一組）。兩組：
 --   cd  文字分頁倒數的「冷卻｜增益持續時間」：這一格有增益持續時間（鈕列出現）才照 curSub.cd 挑，
 --       沒有就固定冷卻那組（不出鈕；SUB_FALLBACK）
 --   cs  「充能｜層數」（拆兩節時小窗超出螢幕，使用者 2026-10-06）：兩種都有的格（飾品欄）才出鈕；
 --       只有一種的格不出鈕、那一節照舊帶小節標題整個列出來
-local buildSub, buildGroup
+-- Pop.buildSub／Pop.buildGroup：沒建列時是 nil；跨檔（SpellPopover_Tabs.lua 的文字分頁也寫）
 local curSub = { cd = "cooldown", cs = "charges" }
 local SUB_FALLBACK = { cd = "cooldown" }
 local function AddRow(entry)
-    entry.tab = entry.tab or buildTab
-    entry.sub = entry.sub or buildSub
-    if entry.sub then entry.group = entry.group or buildGroup end
+    entry.tab = entry.tab or Pop.buildTab
+    entry.sub = entry.sub or Pop.buildSub
+    if entry.sub then entry.group = entry.group or Pop.buildGroup end
     rows[#rows + 1] = entry
     return entry
 end
+Pop.AddRow = AddRow
 local toggles = {}
 local colorRows = {}     -- 持續時間的三個顏色列：{ field, cb, swatch, fallback }
 -- 「文字」分頁（H）的列：Refresh 照合併後的值（Text.SpellText）回填
@@ -159,6 +162,8 @@ local textLabels = {}    -- { fs, fields }：沒覆寫（跟隨條）＝標籤�
 local labelCtl = {}      -- 自訂文字分頁（M）的控件：Refresh 照覆寫（沒有＝固定預設）回填
 local sounds = {}        -- { field, dd }
 local speaks = {}        -- { field, cb, box, listen }
+-- 跨檔（SpellPopover_Tabs.lua 建列、回填）共用的控件表
+Pop.curSub, Pop.toggles, Pop.textCtl, Pop.textLabels, Pop.labelCtl, Pop.sounds = curSub, toggles, textCtl, textLabels, labelCtl, sounds
 
 -- 音效欄位 → 同一個觸發的語音播報欄位
 -- （層數增加音效沒有：引擎播的，Lua 端沒有訊號 ⇒ 不出語音播報列）
@@ -169,9 +174,9 @@ local SPEAK_OF = { readySound = "readySpeak", fullSound = "fullSpeak", gainSound
 -- 法術照 Core/Glow.lua 的同一套解（G.FullSpellOfID）；解不出法術（物品、裝備欄、增益）＝沒有。
 -- 讀不到（API 不在、秘密值）⇒ 當作有（設定介面寧可多出一列）。天賦換了不即時重排，下次開或切格時重算
 local function HasCharges()
-    if not cur then return false end
+    if not Pop.cur then return false end
     local G = ns.Glow
-    local id = G and G.FullSpellOfID and G.FullSpellOfID(cur.id)
+    local id = G and G.FullSpellOfID and G.FullSpellOfID(Pop.cur.id)
     if type(id) ~= "number" then return false end
     local fn = C_Spell and C_Spell.GetSpellCharges
     if not fn then return true end
@@ -195,9 +200,10 @@ end
 local function BlizzCooldownSound(kind, class) return kind == nil and class == "cooldown" end
 -- 施放後提醒（H3，Core/Sound.lua 的 CastCapable）：暴雪的冷卻格與自訂法術；光環格、物品、裝備欄不做
 local function CastWhen(kind, class) return class == "cooldown" and (kind == nil or kind == "spell") end
+Pop.CastWhen = CastWhen
 -- 隱藏回充倒數：只有暴雪的冷卻格（自訂法術的回充本來就不顯示倒數），而且不在長條類的條上（同 OnBars，那支定義在後面）
 local function ChargeTimerWhen(kind, class)
-    return kind == nil and class == "cooldown" and not (cur ~= nil and ns.Setting(cur.key, "kind") == "bars")
+    return kind == nil and class == "cooldown" and not (Pop.cur ~= nil and ns.Setting(Pop.cur.key, "kind") == "bars")
 end
 -- charge ＝ 整組（音效、語音播報、灰字）只在有充能時出現；note ＝ 下一列灰字（有語音播報列時排在它下面；noteCharge ＝ 灰字只在有充能時）
 local SOUNDS = {
@@ -232,9 +238,9 @@ local function HideNoItemWhen(kind) return kind == "item" end
 local function HidePassiveWhen(kind)
     if kind == "slot" then return true end
     -- 飾品欄增益（Catalog 的資訊是光環格形狀，看存檔的種類）
-    local e = cur and type(cur.id) == "string" and ns.Catalog.CustomEntry and ns.Catalog.CustomEntry(cur.id)
+    local e = Pop.cur and type(Pop.cur.id) == "string" and ns.Catalog.CustomEntry and ns.Catalog.CustomEntry(Pop.cur.id)
     if e and e.kind == "slotbuff" then return true end
-    return kind == nil and cur ~= nil and type(cur.id) == "number" and ns.Catalog.ProxySlotOf(cur.id) ~= nil
+    return kind == nil and Pop.cur ~= nil and type(Pop.cur.id) == "number" and ns.Catalog.ProxySlotOf(Pop.cur.id) ~= nil
 end
 
 local TOGGLES = {
@@ -274,30 +280,34 @@ local READY_MODES = {
 
 -- 「跟隨這一條」寫明條的名字（『核心技能』『我的爆發』…）：面板開在哪一條就是哪一條，自訂群組也顯示自己的名字
 local function BarName()
-    local key = cur and cur.key
+    local key = Pop.cur and Pop.cur.key
     return key and (ns.Options.PageTitle(key) or ns.Options.BarTitle(key)) or key or "?"
 end
 local function FollowText() return L["Follow “%s”"]:format(BarName()) end
+Pop.FollowText = FollowText
 local followItems = {}   -- 第一項是「跟隨『條名』」的下拉的 items 表：Refresh 時改字
+Pop.followItems = followItems
 
 -- 覆寫本身（沒覆寫 nil）；寬層（戰隊／職業／角色）的自訂項目讀那一筆身上的（ns.SpellOverride 分流）
 local function Override(field)
-    if not cur then return nil end
-    return ns.SpellOverride(cur.id, field)
+    if not Pop.cur then return nil end
+    return ns.SpellOverride(Pop.cur.id, field)
 end
+Pop.Override = Override
 
 -- 目前這一格的範圍（暴雪的項目 nil）
 local function CurScope()
-    return cur and ns.DB.ParseCustomID(cur.id) or nil
+    return Pop.cur and ns.DB.ParseCustomID(Pop.cur.id) or nil
 end
 
 local function Changed(level)
-    if not cur then return end
-    ns.Preview.Refresh(cur.key)
-    if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(cur.key) end
+    if not Pop.cur then return end
+    ns.Preview.Refresh(Pop.cur.key)
+    if ns.TabBar and ns.TabBar.RefreshForm then ns.TabBar.RefreshForm(Pop.cur.key) end
     ns.Options.ApplyEngine(level or "layout")
     Pop.Refresh()
 end
+Pop.Changed = Changed
 
 local function Note(parent)
     local fs = parent:CreateFontString(nil, "OVERLAY")
@@ -306,6 +316,7 @@ local function Note(parent)
     fs:SetJustifyH("LEFT")
     return fs
 end
+Pop.Note = Note
 
 -- 一列：自己的框，左邊標籤（靠右對齊）、右邊控件；高度照標籤換行長
 -- 說明問號（help）：標籤後面一個小「?」，滑過才顯示說明（取代下一列灰字：同一段說明在好幾列重複、
@@ -369,6 +380,7 @@ local function NewRow(label, when, help)
     AddRow(row)
     return r, h, row
 end
+Pop.NewRow = NewRow
 
 -- 右鍵整列清掉那一格覆寫（標籤上蓋一層只吃右鍵語意的框）
 local function RightClickClears(r, h, field)
@@ -378,44 +390,48 @@ local function RightClickClears(r, h, field)
     hit:SetWidth(LABEL_W)
     hit:EnableMouse(true)
     hit:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and cur then
-            ns.DB.SetOverride(cur.id, field, nil)
+        if button == "RightButton" and Pop.cur then
+            ns.DB.SetOverride(Pop.cur.id, field, nil)
             Changed()
         end
     end)
 end
+Pop.RightClickClears = RightClickClears
 
 local function IsAura(kind) return kind == "aura" end
+Pop.IsAura = IsAura
 -- 以增益取代：暴雪的核心／輔助技能（cooldownID 是數字、來源條在 Catalog.REPLACE_FROM）
 local function ReplaceCapable(kind, class)
-    if kind ~= nil or class ~= "cooldown" or not cur or type(cur.id) ~= "number" then return false end
-    local src = ns.Catalog.SourceOf(cur.id)
+    if kind ~= nil or class ~= "cooldown" or not Pop.cur or type(Pop.cur.id) ~= "number" then return false end
+    local src = ns.Catalog.SourceOf(Pop.cur.id)
     return src ~= nil and ns.Catalog.REPLACE_FROM[src] == true
 end
 -- 只給有冷卻的（核心／輔助技能、自訂法術／物品／裝備欄）：增益類（暴雪的增益兩條、光環格）沒有觸發亮框、
 -- 沒有冷卻可轉好或去飽和。看 class 不看 kind —— kind 只有自訂項目才有，暴雪的增益是 nil
 local function NotAura(_, class) return class ~= "aura" end
 -- 面板開在長條類的條上（跟 Decorate 的 isBar 同一個判準）：長條不畫發光、冷卻狀態不套
-local function OnBars() return cur ~= nil and ns.Setting(cur.key, "kind") == "bars" end
+local function OnBars() return Pop.cur ~= nil and ns.Setting(Pop.cur.key, "kind") == "bars" end
+Pop.OnBars = OnBars
 local function NotAuraNotBar(kind, class) return NotAura(kind, class) and not OnBars() end
 local function IsCustom(kind) return kind ~= nil end
 
 -- 這一格是哪個裝備欄位的冷卻格：自訂飾品欄（kind "slot"）、或暴雪沒給框由我們代畫的裝備欄冷卻格；其餘 nil
 local function CurSlot()
-    if not cur then return nil end
-    local info = ns.Catalog.Info(cur.id)
+    if not Pop.cur then return nil end
+    local info = ns.Catalog.Info(Pop.cur.id)
     if info and info.custom then return info.kind == "slot" and info.slot or nil end
-    if type(cur.id) == "number" and ns.Bars and ns.Bars.IsProxied then return ns.Bars.IsProxied(cur.key, cur.id) end
+    if type(Pop.cur.id) == "number" and ns.Bars and ns.Bars.IsProxied then return ns.Bars.IsProxied(Pop.cur.key, Pop.cur.id) end
     return nil
 end
+Pop.CurSlot = CurSlot
 -- 觸發發光那一列（TOGGLES 的 procGlow）：有冷卻的、不在長條上（同就緒發光），再扣掉兩種永遠不會亮的——
 -- 自訂物品（沒有觸發事件、也不疊觸發增益）、暴雪自己畫的裝備欄格（kind nil、有 equipSlot、這一輪不是代畫：
 -- 觸發事件不會為飾品派送，觸發發光疊層只疊在我們畫的飾品欄格上）。掛在 Pop 上（Build 的 upvalue 上限）
 function Pop.NativeEquip(kind)
-    if kind ~= nil or not cur or type(cur.id) ~= "number" then return false end
-    local info = ns.Catalog.Info(cur.id)
+    if kind ~= nil or not Pop.cur or type(Pop.cur.id) ~= "number" then return false end
+    local info = ns.Catalog.Info(Pop.cur.id)
     if not (info and type(info.equipSlot) == "number") then return false end
-    return not (ns.Bars and ns.Bars.IsProxied and ns.Bars.IsProxied(cur.key, cur.id))
+    return not (ns.Bars and ns.Bars.IsProxied and ns.Bars.IsProxied(Pop.cur.key, Pop.cur.id))
 end
 -- 內建冷卻（kind "timer"）也不出：它沒有觸發事件，觸發本身就是起算冷卻的那一刻
 function Pop.ProcWhen(kind, class)
@@ -433,7 +449,7 @@ function Pop.SlotNoProcWhen(kind, class) return Pop.ProcWhen(kind, class) and Po
 -- 「顯示增益持續時間」那一段與「觸發發光」那一列停用、黃字寫原因。暴雪自己畫的裝備欄格（沒在代畫）不算：
 -- 那是暴雪自己的增益持續時間，不是我們的疊層。掛在 Pop 上（Build 的 upvalue 上限）
 function Pop.OverlaySuppressed(kind)
-    if not (cur and ns.Catalog.BarOverlaysSuppressed and ns.Catalog.BarOverlaysSuppressed(cur.key)) then return false end
+    if not (Pop.cur and ns.Catalog.BarOverlaysSuppressed and ns.Catalog.BarOverlaysSuppressed(Pop.cur.key)) then return false end
     return kind == "slot" or kind == "item" or CurSlot() ~= nil
 end
 -- 那一格解不出增益（疊不了增益按鈕）：增益持續時間那一段停用、黃字寫原因
@@ -444,8 +460,8 @@ end
 -- 自訂物品（藥水那類）用掉之後有可追蹤的增益：有的話跟飾品欄一樣出「增益持續時間」那幾列（Catalog.ItemUseBuffIDs）；
 -- 沒有的（治療藥水、治療石…）整段不出。掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限
 function Pop.CurItemHasBuff()
-    if not cur then return false end
-    local e = ns.Catalog.CustomEntry(cur.id)
+    if not Pop.cur then return false end
+    local e = ns.Catalog.CustomEntry(Pop.cur.id)
     if not (type(e) == "table" and e.kind == "item" and e.itemID ~= nil) then return false end
     local list = { e.itemID }
     for _, a in ipairs(type(e.alts) == "table" and e.alts or {}) do list[#list + 1] = a end
@@ -453,8 +469,8 @@ function Pop.CurItemHasBuff()
 end
 -- 飾品欄增益那一格解不出增益的原因："empty"（那一格空著）｜"nobuff"（這件沒有、或存的第 N 個這件沒有）｜nil
 local function CurSlotBuffMissing()
-    if not cur then return nil end
-    local info = ns.Catalog.Info(cur.id)
+    if not Pop.cur then return nil end
+    local info = ns.Catalog.Info(Pop.cur.id)
     if not (info and info.slotBuff and info.isKnown == false) then return nil end
     return ns.Catalog.SlotItemID(info.slotBuff.slot) and "nobuff" or "empty"
 end
@@ -471,6 +487,7 @@ local function SoundItems()
     end
     return items
 end
+Pop.SoundItems = SoundItems
 
 -- 虛空化身的門檻規則（Options/MetaRules.lua）也用這張：跟逐法術音效同一個下拉來源
 ns.SpellPopover.SoundItems = SoundItems
@@ -479,12 +496,13 @@ local function NoSounds() return #ns.Media.List("sound") == 0 and #ns.Sound.Cust
 
 -- 層數門檻只給暴雪的增益（kind 只有自訂項目才有，暴雪的是 nil）
 local function BlizzAura(kind, class) return class == "aura" and kind == nil end
+Pop.BlizzAura = BlizzAura
 -- 層數發光那三列：暴雪的增益＋自訂光環格（光環格只做 ≥，引擎閘在 Modules/Custom.lua）。
 -- 掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限
 function Pop.StackGlowWhen(kind, class) return BlizzAura(kind, class) or kind == "aura" end
 -- 換色只有長條（條的種類＝ bars，跟 Decorate 的 isBar 同一個判準）
 local function BlizzAuraBar(kind, class)
-    return BlizzAura(kind, class) and cur ~= nil and ns.Setting(cur.key, "kind") == "bars"
+    return BlizzAura(kind, class) and Pop.cur ~= nil and ns.Setting(Pop.cur.key, "kind") == "bars"
 end
 
 -- 發光樣式的選項（層數發光用；每個下拉各拿一份）
@@ -498,24 +516,24 @@ local function GlowTypeItems()
 end
 
 local function StackOn()
-    return cur ~= nil and type(cur.id) == "number"
-        and ns.StackGate.Threshold(ns.SpellSetting(cur.key, cur.id, "stackGlow")) ~= nil
+    return Pop.cur ~= nil and type(Pop.cur.id) == "number"
+        and ns.StackGate.Threshold(ns.SpellSetting(Pop.cur.key, Pop.cur.id, "stackGlow")) ~= nil
 end
 
 -- 層數發光的比較子（F4）：存了覆寫用它；同一格沒勾時記著剛挑的（frame.stackOpSel）；換一格回到 ≥
 local function StackOpNow()
-    if not cur then return ns.StackGate.DEFAULT_OP end
+    if not Pop.cur then return ns.StackGate.DEFAULT_OP end
     local o = Override("stackGlowOp")
     if type(o) == "string" then return ns.StackGate.Op(o) end
-    if frame.stackOpFor == cur.id and frame.stackOpSel then return ns.StackGate.Op(frame.stackOpSel) end
+    if frame.stackOpFor == Pop.cur.id and frame.stackOpSel then return ns.StackGate.Op(frame.stackOpSel) end
     return ns.StackGate.DEFAULT_OP
 end
 -- 層數發光的門檻（存的；沒勾時同一格用數字框記著的、換一格用預設）
 local function StackNumNow()
-    if not cur then return ns.StackGate.DEFAULT_THRESHOLD end
-    local n = ns.StackGate.Threshold(ns.SpellSetting(cur.key, cur.id, "stackGlow"))
+    if not Pop.cur then return ns.StackGate.DEFAULT_THRESHOLD end
+    local n = ns.StackGate.Threshold(ns.SpellSetting(Pop.cur.key, Pop.cur.id, "stackGlow"))
     if n then return n end
-    if frame.stackNumFor == cur.id and frame.stackNum then
+    if frame.stackNumFor == Pop.cur.id and frame.stackNum then
         return ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
     end
     return ns.StackGate.DEFAULT_THRESHOLD
@@ -527,13 +545,13 @@ end
 
 -- 層數當填充／層數刻度（增益長條）：目前存的表（沒有＝nil）
 local function StackBarTable()
-    if not cur or type(cur.id) ~= "number" then return nil end
-    local v = ns.SpellSetting(cur.key, cur.id, "stackBar")
+    if not Pop.cur or type(Pop.cur.id) ~= "number" then return nil end
+    local v = ns.SpellSetting(Pop.cur.key, Pop.cur.id, "stackBar")
     return type(v) == "table" and ns.StackGate.BarMax(v) and v or nil
 end
 local function StackTicksTable()
-    if not cur or type(cur.id) ~= "number" then return nil end
-    local v = ns.SpellSetting(cur.key, cur.id, "stackTicks")
+    if not Pop.cur or type(Pop.cur.id) ~= "number" then return nil end
+    local v = ns.SpellSetting(Pop.cur.key, Pop.cur.id, "stackTicks")
     return type(v) == "table" and v or nil
 end
 local function StackBarOn() return StackBarTable() ~= nil end
@@ -551,16 +569,16 @@ local function SetTicksField(field, value)
     local nt = {}
     for k, v in pairs(t) do nt[k] = v end
     nt[field] = value
-    ns.DB.SetOverride(cur.id, "stackTicks", nt)
+    ns.DB.SetOverride(Pop.cur.id, "stackTicks", nt)
     return true
 end
 
 -- 天賦條件：寫進覆寫（spellID 留空也存 mode：等玩家填 ID；沒有 ID 的條件引擎當沒有）
 local function SetTalentCond(mode, spellID)
-    if not cur then return end
+    if not Pop.cur then return end
     local v = nil
     if mode == "known" or mode == "unknown" then v = { spellID = spellID, mode = mode } end
-    ns.DB.SetOverride(cur.id, "talentCond", v)
+    ns.DB.SetOverride(Pop.cur.id, "talentCond", v)
     -- 目錄簽章帶著條件結果：標髒讓下一次排版重建（換天賦時才比得出變化）
     if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
     Changed("membership")
@@ -574,6 +592,7 @@ local function SpellNameOf(id)
     if not ok or name == nil or ns.IsSecret(name) then return nil end
     return type(name) == "string" and name ~= "" and name or nil
 end
+Pop.SpellNameOf = SpellNameOf
 
 -- 「先倒增益持續時間」這件事的說明（增益持續時間分頁、音效分頁的增益出現／消失）：舉反魔法護罩為例，法術名與職業名
 -- 用遊戲的官方譯名（C_Spell.GetSpellName、LOCALIZED_CLASS_NAMES_MALE），不進語系檔
@@ -591,879 +610,25 @@ end
 
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
-------------------------------------------------------------
--- 音效分頁的 H3 三件（Build 叫；拆成 Pop 上的函式：Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
---   施放後提醒：音效列＋語音播報列走 SOUNDS 那一圈（castSound／castSpeak）；這裡接「施放後幾秒」「倒數播報」兩個數字框
---     ＋下一列灰字。倒數播報要有語音 API；延遲不到倒數＋1 秒時倒數框停用、寫入時夾範圍（Sound.Logic.Countdown）。
---   天賦條件（soundTalent）：所有格都有。下拉（不限／有這個天賦才響／沒有這個天賦才響）＋下一列 ID 框、圖示與名字
---     （查不到紅字）＋灰字。ID 框有焦點時收 Shift 點天賦樹（同一般分頁的天賦條件：看不見的代理框當 Picker 的收件者）。
---   每一列右鍵標籤清掉那一格。
-------------------------------------------------------------
-function Pop.BuildCastRows(NoteRow)
-    local Logic = ns.Sound.Logic
-    local ctl = {}
-    Pop.castCtl = ctl
-    local dr, dh = NewRow(L["Seconds after cast"], CastWhen)
-    local dnum
-    dnum = W.CreateNumberBox(dr, 40, 1, function(v)
-        if not cur then return end
-        local d = Logic.CastDelay(v)
-        if dnum:GetValue() ~= d then dnum:SetValue(d) end
-        ns.DB.SetOverride(cur.id, "castDelay", d)
-        -- 倒數跟著夾：延遲縮短到不夠倒數時，存著的倒數一起降
-        local c = ns.SpellOverride(cur.id, "castCountdown")
-        if c ~= nil and Logic.Countdown(c, d) ~= c then
-            ns.DB.SetOverride(cur.id, "castCountdown", Logic.Countdown(c, d))
-        end
-        Changed()
-    end)
-    dnum:SetPoint("LEFT", dr, "LEFT", CTRL_X, 0)
-    RightClickClears(dr, dh, "castDelay")
-    ctl.delay = dnum
-
-    local cr, ch = NewRow(L["Spoken countdown"], function(kind, class)
-        return CastWhen(kind, class) and ns.Sound.CanSpeak()
-    end, L["Reads the last seconds aloud before the after-cast alert, for example 3, 2, 1. The delay has to be at least one second longer than the countdown."])
-    local cnum
-    cnum = W.CreateNumberBox(cr, 40, 1, function(v)
-        if not cur then return end
-        local c = Logic.Countdown(v, ns.SpellSetting(cur.key, cur.id, "castDelay"))
-        if cnum:GetValue() ~= c then cnum:SetValue(c) end
-        ns.DB.SetOverride(cur.id, "castCountdown", c)
-        Changed()
-    end)
-    cnum:SetPoint("LEFT", cr, "LEFT", CTRL_X, 0)
-    RightClickClears(cr, ch, "castCountdown")
-    ctl.count, ctl.countRow = cnum, cr
-
-    NoteRow(L["Plays this many seconds after you cast the spell (0 plays right away); casting it again starts over. It counts from your cast, so haste and cooldown reductions don't move it."], CastWhen)
-end
-
-function Pop.BuildSoundTalent(NoteRow)
-    local ctl = {}
-    Pop.soundTalentCtl = ctl
-    local function Write(need, id)
-        if not cur then return end
-        local v = nil
-        if need ~= nil then v = { id = id, need = need } end
-        ns.DB.SetOverride(cur.id, "soundTalent", v)
-        Changed()
-    end
-    local r, h = NewRow(L["Talent condition"])
-    local items = {
-        { text = L["Any talents"],              value = "any" },
-        { text = L["Only with this talent"],    value = "have" },
-        { text = L["Only without this talent"], value = "lack" },
-    }
-    local dd = W.CreateDropdown(r, ROW_W - CTRL_X, items, function(value)
-        if not cur then return end
-        local o = Override("soundTalent")
-        local id = type(o) == "table" and o.id or nil
-        if value == "have" or value == "lack" then Write(value == "have", id) else Write(nil) end
-    end)
-    dd:SetMaxWidth(ROW_W - CTRL_X)
-    dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-    RightClickClears(r, h, "soundTalent")
-    ctl.dd = dd
-
-    -- ID 框＋圖示＋名字（下一列，沒有標籤，對齊控件欄）
-    local ir = NewRow(nil)
-    local box = W.CreateEditBox(ir, 70, 20)
-    box:SetPoint("LEFT", ir, "LEFT", CTRL_X, 0)
-    box:SetNumeric(true)
-    box:SetMaxLetters(10)
-    local icon = ir:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(16, 16)
-    icon:SetPoint("LEFT", box, "RIGHT", 6, 0)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    local name = ir:CreateFontString(nil, "OVERLAY")
-    name:SetFontObject(W.fontSmall)
-    name:SetPoint("LEFT", icon, "RIGHT", 4, 0)
-    name:SetPoint("RIGHT", ir, "RIGHT", 0, 0)
-    name:SetJustifyH("LEFT")
-    name:SetWordWrap(false)
-    ctl.box, ctl.icon, ctl.name = box, icon, name
-    -- 提交：沒選「有／沒有」時填了 ID ⇒ 當成「有這個天賦才響」；清空 ⇒ 留著選項、拿掉 ID（引擎當不限）
-    local function Commit()
-        if not cur then return end
-        local n = ns.Picker.ParseID(box:GetText())
-        local o = Override("soundTalent")
-        local need = type(o) == "table" and o.need
-        if type(need) ~= "boolean" then need = nil end
-        local old = type(o) == "table" and o.id or nil
-        if n == old and (n == nil or need ~= nil) then return end
-        if n and need == nil then need = true end
-        if need == nil then return end
-        Write(need, n)
-    end
-    box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
-    box:HookScript("OnEditFocusLost", Commit)
-    box:HookScript("OnTextChanged", function(_, userInput)
-        if not userInput and box.filling == nil then Commit() end
-    end)
-    -- Shift 點天賦：同一般分頁的天賦條件（ID 框有焦點才收，不吃掉玩家平常 Shift 點進聊天的連結）
-    local proxy = CreateFrame("Frame", nil, ir)
-    proxy:SetSize(1, 1)
-    proxy:SetPoint("TOPLEFT", ir, "TOPLEFT", 0, 0)
-    proxy:SetAlpha(0)
-    proxy.boxes = { id = box }
-    function proxy:IsShown() return self:IsVisible() and box:HasFocus() and true or false end
-    box:HookScript("OnEditFocusGained", function()
-        ns.Picker.WatchInput(proxy, "spell", L["That is an item link. Enter a spell ID here."])
-    end)
-
-    NoteRow(L["This spell's sounds and spoken alerts only play while you have (or don't have) this talent. Enter the talent's spell ID, or click the box and Shift-click the talent in the talent tree."])
-end
-
--- Refresh 叫：施放後提醒的兩個數字框、音效的天賦條件
-function Pop.RefreshSoundExtras()
-    if not cur then return end
-    local key, id = cur.key, cur.id
-    local Logic = ns.Sound.Logic
-    local c = Pop.castCtl
-    if c then
-        local delay = Logic.CastDelay(ns.SpellSetting(key, id, "castDelay"))
-        c.delay:SetValue(delay)
-        c.count:SetValue(Logic.Countdown(ns.SpellSetting(key, id, "castCountdown"), delay))
-        local can = Logic.CountdownMax(delay) > 0
-        c.count:SetEnabled(can)
-        c.count:SetAlpha(can and 1 or 0.4)
-    end
-    local t = Pop.soundTalentCtl
-    if t then
-        local o = Override("soundTalent")
-        local need = type(o) == "table" and o.need
-        t.dd:SetSelectedValue(need == true and "have" or need == false and "lack" or "any")
-        local tid = type(o) == "table" and type(o.id) == "number" and o.id > 0 and o.id or nil
-        t.box.filling = true                     -- 回填不算 Shift 點擊（OnTextChanged 不提交）
-        t.box:SetText(tid and tostring(tid) or "")
-        t.box.filling = nil
-        t.box:SetCursorPosition(0)
-        local tn = tid and SpellNameOf(tid)
-        if tn then
-            t.name:SetText(tn)
-            t.name:SetTextColor(0.8, 0.8, 0.8)
-            t.icon:SetTexture(ns.Picker.LinkIcon("spell", tid) or 134400)
-            t.icon:Show()
-        else
-            t.name:SetText(tid and L["Spell not found"] or "")
-            t.name:SetTextColor(1, 0.3, 0.3)
-            t.icon:Hide()
-        end
-        -- 名字左邊沒有圖示時貼回輸入框
-        t.name:ClearAllPoints()
-        t.name:SetPoint("LEFT", tn and t.icon or t.box, "RIGHT", tn and 4 or 6, 0)
-        t.name:SetPoint("RIGHT", t.box:GetParent(), "RIGHT", 0, 0)
-    end
-end
-
-------------------------------------------------------------
--- 沸點（事件視窗，Modules/EchoWindow.lua）分頁：只在鮮血死騎的沸血術那一格出現。
--- 值存在 profile.echo[def.key]（EchoWindow.EnsureCfg），不是逐法術覆寫；右鍵標籤 ＝ 那一欄寫 nil（讀的時候當預設：
--- 開關＝開、音效＝無、語音＝關）。開關關著時音效與語音那兩列變暗停用。
-------------------------------------------------------------
-local function EchoDef()
-    local EW = ns.EchoWindow
-    return cur and EW and EW.DefForCell and EW.DefForCell(cur.id) or nil
-end
-function Pop.EchoWhen() return EchoDef() ~= nil end
-function Pop.EchoNoTalent()
-    local def = EchoDef()
-    return def ~= nil and ns.EchoWindow.TalentKnown(def) == false
-end
-
-local function EchoWrite(field, v)
-    local def = EchoDef()
-    local cfg = def and ns.EchoWindow.EnsureCfg(def)
-    if not cfg then return end
-    cfg[field] = v
-    ns.EchoWindow.Apply()
-    Pop.Refresh()
-end
-
--- 右鍵標籤 ＝ 那一欄還原預設（寫 nil）
-local function EchoRightClick(r, field)
-    local hit = CreateFrame("Frame", nil, r)
-    hit:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
-    hit:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
-    hit:SetWidth(LABEL_W)
-    hit:EnableMouse(true)
-    hit:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" then EchoWrite(field, nil) end
-    end)
-end
-
-function Pop.BuildEchoTab(NoteRow)
-    local prevTab = buildTab
-    buildTab = "echo"
-    local ctl = {}
-    Pop.echoCtl = ctl
-    local When = Pop.EchoWhen
-
-    local er = NewRow(L["Echo alert"], When)
-    local ecb = W.CreateCheckButton(er, nil, function(on) EchoWrite("enabled", on and true or false) end)
-    ecb:SetPoint("LEFT", er, "LEFT", CTRL_X, 0)
-    EchoRightClick(er, "enabled")
-    ctl.enabled = ecb
-    NoteRow(L["An empowered Blood Boil strikes again 3 seconds later. While it counts down, this icon shows a bar and the seconds left at the top, and the sound below plays the moment it strikes again."], When)
-
-    -- 回聲音效：下拉＋試聽（同音效分頁）
-    local sr = NewRow(L["Echo sound"], When)
-    local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
-    W.FitButton(listen, 44, 20)
-    listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
-    local ddW = ROW_W - CTRL_X - (listen:GetWidth() or 44) - 6
-    local sdd = W.CreateDropdown(sr, ddW, {}, function(value)
-        EchoWrite("sound", (type(value) == "string" and value ~= "") and value or false)
-    end)
-    sdd:SetPoint("LEFT", sr, "LEFT", CTRL_X, 0)
-    listen:SetScript("OnClick", function()
-        local v = sdd:GetSelected()
-        if type(v) == "string" and ns.Sound then ns.Sound.Preview(v) end
-    end)
-    EchoRightClick(sr, "sound")
-    ctl.sound, ctl.listen, ctl.soundRow = sdd, listen, sr
-
-    -- 語音播報：勾著才寫（字串或 true）；沒勾時輸入框只是記著字
-    local kr = NewRow(L["Speak"], function() return When() and ns.Sound.CanSpeak() end,
-        L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
-    local kcb = W.CreateCheckButton(kr, nil, function(on)
-        if on then
-            local txt = strtrim(ctl.box:GetText() or "")
-            EchoWrite("speak", txt ~= "" and txt or true)
-        else
-            EchoWrite("speak", false)
-        end
-    end)
-    kcb:SetPoint("LEFT", kr, "LEFT", CTRL_X, 0)
-    local klisten = W.CreateButton(kr, L["Listen"], "normal", 44, 20)
-    W.FitButton(klisten, 44, 20)
-    klisten:SetPoint("RIGHT", kr, "RIGHT", 0, 0)
-    local kbox = W.CreateEditBox(kr, 80, 20)
-    kbox:SetPoint("LEFT", kcb, "RIGHT", 6, 0)
-    kbox:SetPoint("RIGHT", klisten, "LEFT", -6, 0)
-    kbox:SetMaxLetters(100)
-    kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
-    kbox:HookScript("OnEditFocusLost", function(self)
-        if not kcb:GetChecked() then return end
-        local txt = strtrim(self:GetText() or "")
-        local want = txt ~= "" and txt or true
-        local def = EchoDef()
-        local cfg = def and ns.EchoWindow.Cfg(def)
-        if cfg and cfg.speak == want then return end
-        EchoWrite("speak", want)
-    end)
-    klisten:SetScript("OnClick", function()
-        local def = EchoDef()
-        if not def then return end
-        local txt = strtrim(kbox:GetText() or "")
-        local S = ns.Sound
-        S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, SpellNameOf(def.spell)))
-    end)
-    EchoRightClick(kr, "speak")
-    ctl.speak, ctl.box, ctl.speakListen, ctl.speakRow = kcb, kbox, klisten, kr
-
-    NoteRow(L["These settings are saved in your profile, not on this icon. Right-click a row's label to restore its default."], When)
-    buildTab = prevTab
-end
-
-function Pop.RefreshEchoTab()
-    local ctl = Pop.echoCtl
-    local def = EchoDef()
-    if not (ctl and def) then return end
-    local on, sound, speak = ns.EchoWindow.Settings(ns.EchoWindow.Cfg(def))
-    ctl.enabled:SetChecked(on)
-    ctl.sound:SetItems(SoundItems())
-    ctl.sound:SetSelectedValue(sound or false)
-    ctl.speak:SetChecked(speak ~= nil)
-    if not ctl.box:HasFocus() then
-        ctl.box:SetText(type(speak) == "string" and speak or "")
-        ctl.box:SetCursorPosition(0)
-    end
-    -- 開關關著：音效與語音那兩列停用變暗
-    for _, w in ipairs({ ctl.sound, ctl.listen, ctl.speak, ctl.box, ctl.speakListen }) do
-        if w.SetEnabled then w:SetEnabled(on) end
-    end
-    ctl.soundRow:SetAlpha(on and 1 or 0.4)
-    ctl.speakRow:SetAlpha(on and 1 or 0.4)
-end
-
-------------------------------------------------------------
--- 自訂文字（M）：增益圖示類的格（暴雪的增益圖示、圖示形的光環格與飾品欄增益）才有；長條不出現（長條本來就有名字）。
--- 欄位全是逐法術覆寫、沒有條層值（Core/DB.lua 的 SPELL_CONST，引擎在 Core/Text.lua 的 LabelStyle）：
---   文字   輸入框；按 Enter 或失焦才寫（不每個字重排），Esc 放棄這次的修改；空白 ＝ 清掉（不畫）
---   字型   下拉；第一項「跟隨通用字型」＝清掉（條的通用字型）
---   字級   拉桿，放開才寫（預設 12）
---   顏色   直接一個色票（沒設 ＝ 白；不繼承，沒有「自訂」勾選）
---   錨點   九宮格（圖示內的那個角／邊，同倒數；預設「下」）
---   偏移   X／Y（預設 0／-2：字的下半略壓過圖示下緣）
--- 描邊吃條的設定。每一列右鍵標籤清掉那一格（回預設）；沒覆寫的標籤變暗（同文字分頁）
-------------------------------------------------------------
-local function BuildLabelTab(NoteRow, PointRow, Track)
-    buildTab = "label"
-    local function LabelWhen(kind, class)
-        return (IsAura(kind) or BlizzAura(kind, class)) and not OnBars()
-    end
-    local function Default(field) return ns.DB.SPELL_CONST[field] end
-
-    -- 文字
-    do
-        local r, h = NewRow(L["Text"], LabelWhen)
-        local box = W.CreateEditBox(r, ROW_W - CTRL_X, 20)
-        box:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        box:SetMaxLetters(60)
-        -- 打字中換了一格（小窗還開著、點了別的預覽格）：失焦時 cur 已經是別格 ⇒ 這次的字丟掉，不寫到別格上
-        local function Commit(self)
-            if not cur or cur.id ~= self.editID then return end
-            local txt = strtrim(self:GetText() or "")
-            local want = txt ~= "" and txt or nil
-            if Override("labelText") == want then return end
-            ns.DB.SetOverride(cur.id, "labelText", want)
-            Changed()
-        end
-        box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
-        box:SetScript("OnEscapePressed", function(self)
-            self.cancel = true
-            local v = Override("labelText")
-            self:SetText(type(v) == "string" and v or "")
-            self:ClearFocus()
-        end)
-        box:HookScript("OnEditFocusGained", function(self) self.editID = cur and cur.id end)
-        box:HookScript("OnEditFocusLost", function(self)
-            if self.cancel then self.cancel = nil return end
-            Commit(self)
-        end)
-        RightClickClears(r, h, "labelText")
-        labelCtl[#labelCtl + 1] = { kind = "text", box = box }
-        Track(r, { "labelText" })
-    end
-    NoteRow(L["A short note on this icon, for example what the buff is. Leave it blank to show nothing."], LabelWhen)
-
-    -- 字型：第一項「跟隨通用字型」（INHERIT）＝清掉
-    do
-        local r, h = NewRow(L["Font"], LabelWhen)
-        local dd = W.CreateDropdown(r, ROW_W - CTRL_X, ns.Specs.ElementFontItems(), function(value)
-            if not cur then return end
-            local v = (type(value) == "string" and value ~= "" and value ~= ns.Media.INHERIT) and value or nil
-            ns.DB.SetOverride(cur.id, "labelFont", v)
-            Changed()
-        end)
-        dd:SetMaxWidth(ROW_W - CTRL_X)
-        dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        RightClickClears(r, h, "labelFont")
-        labelCtl[#labelCtl + 1] = { kind = "font", dd = dd }
-        Track(r, { "labelFont" })
-    end
-
-    -- 字級：放開才寫
-    do
-        local r, h = NewRow(L["Font size"], LabelWhen)
-        local sl = W.CreateSlider(r, 6, 40, ROW_W - CTRL_X, 1, nil, function(v)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, "labelSize", v)
-            Changed()
-        end)
-        sl:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        RightClickClears(r, h, "labelSize")
-        labelCtl[#labelCtl + 1] = { kind = "size", slider = sl }
-        Track(r, { "labelSize" })
-    end
-
-    -- 顏色：直接一個色票（不繼承：沒設 ＝ 白），右鍵標籤回白
-    do
-        local r, h = NewRow(L["Color"], LabelWhen)
-        local sw = W.CreateColorPicker(r, nil, false, function(rr, g, b)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, "labelColor", { r = rr, g = g, b = b, a = 1 })
-            Changed()
-        end)
-        sw:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        RightClickClears(r, h, "labelColor")
-        labelCtl[#labelCtl + 1] = { kind = "color", swatch = sw }
-        Track(r, { "labelColor" })
-    end
-
-    -- 錨點：九宮格（文字分頁那一支；沒覆寫 ＝ 預設「下」）
-    PointRow("labelPoint", LabelWhen, nil, Default("labelPoint") or "BOTTOM")
-
-    -- 偏移：X／Y（沒覆寫 ＝ 固定預設 0／-2）；右鍵標籤兩個一起清
-    do
-        local r = NewRow(L["Offset"], LabelWhen)
-        local px = CTRL_X
-        local boxes = {}
-        for _, f in ipairs({ { "X", "labelX" }, { "Y", "labelY" } }) do
-            local tag = r:CreateFontString(nil, "OVERLAY")
-            tag:SetFontObject(W.fontSmall)
-            tag:SetTextColor(0.6, 0.6, 0.6)
-            tag:SetPoint("LEFT", r, "LEFT", px, 0)
-            tag:SetText(f[1])
-            px = px + (tag:GetStringWidth() or 8) + 4
-            local field = f[2]
-            local nb = W.CreateNumberBox(r, 46, 1, function(v)
-                if not cur then return end
-                ns.DB.SetOverride(cur.id, field, v)
-                Changed()
-            end)
-            nb:SetPoint("LEFT", r, "LEFT", px, 0)
-            px = px + 46 + 10
-            boxes[#boxes + 1] = { nb = nb, field = field }
-        end
-        local hit = CreateFrame("Frame", nil, r)
-        hit:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
-        hit:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
-        hit:SetWidth(LABEL_W)
-        hit:EnableMouse(true)
-        hit:SetScript("OnMouseUp", function(_, button)
-            if button == "RightButton" and cur then
-                ns.DB.SetOverride(cur.id, "labelX", nil)
-                ns.DB.SetOverride(cur.id, "labelY", nil)
-                Changed()
-            end
-        end)
-        labelCtl[#labelCtl + 1] = { kind = "offset", boxes = boxes }
-        Track(r, { "labelX", "labelY" })
-    end
-end
-
--- 自訂文字分頁的回填（Pop.Refresh 叫）：值＝覆寫，沒有就是固定預設
-local function RefreshLabelTab()
-    local C = ns.DB.SPELL_CONST
-    local function Val(field)
-        local v = Override(field)
-        if v == nil then v = C[field] end
-        return v
-    end
-    for _, c in ipairs(labelCtl) do
-        if c.kind == "text" then
-            -- 打字打到一半換了一格：那段字是上一格的，丟掉（Commit 也會擋），框換成這一格的字
-            if c.box:HasFocus() and cur and c.box.editID ~= cur.id then
-                c.box.cancel = true
-                c.box:ClearFocus()
-            end
-            if not c.box:HasFocus() then
-                local v = Override("labelText")
-                c.box:SetText(type(v) == "string" and v or "")
-                c.box:SetCursorPosition(0)
-            end
-        elseif c.kind == "font" then
-            local v = Override("labelFont")
-            c.dd:SetSelectedValue((type(v) == "string" and v ~= "") and v or ns.Media.INHERIT)
-        elseif c.kind == "size" then
-            c.slider:SetValue(tonumber(Val("labelSize")) or 12)
-        elseif c.kind == "color" then
-            local v = Override("labelColor")
-            c.swatch:SetColor(type(v) == "table" and v or { r = 1, g = 1, b = 1, a = 1 })
-        elseif c.kind == "offset" then
-            for _, b in ipairs(c.boxes) do b.nb:SetValue(tonumber(Val(b.field)) or 0) end
-        end
-    end
-end
-
-------------------------------------------------------------
--- 「文字」分頁（H）：Build 叫一次。DurationRows／ColorOverrideRow／NoteRow 是 Build 裡的區域函式，傳進來用
-------------------------------------------------------------
-local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
-    --------------------------------------------------------
-    -- 文字（H）：倒數／充能／層數／按鍵文字，每一列都是逐法術覆寫（三態：沒覆寫＝跟隨條；右鍵標籤清掉）。
-    -- 控件照條頁「文字」節：字型與錨點是下拉（第一項「跟隨『條名』」＝清掉）、字級與門檻是拉桿、顏色是「自訂」＋色票、
-    -- 偏移是 X／Y 兩個數字框。拉桿與數字框看不出有沒有覆寫 ⇒ 這一頁的標籤沒覆寫時變暗（Refresh），最上面一列灰字說明。
-    -- 值一律照 Text.SpellText 合併後的回填（長條的秒數另有自己的底，見那支）。
-    -- 哪些列出現：
-    --   名字  長條上的格（橫向；直向長條不畫名字）：顯示名字（三態 barShowName）、字型、字級，排在倒數前面（Text.SpellText 的 "barName"）
-    --   倒數  每一種格都有（長條上的格標題叫「時間」、隱藏叫「隱藏時間」）；小數門檻與低秒變色長條沒有（秒數是暴雪寫的字串／整數 formatter）
-    --         換色開關＋兩個字色＝「先倒增益」那一段（暴雪的冷卻格、飾品欄），從原本的「增益持續時間」分頁搬來
-    --         從小數門檻開始分子分頁「冷卻｜增益持續時間」（K）：各四列（小數門檻＋低秒變色＋變色顏色＋變色秒數）；
-    --         增益持續時間那組（I／J）＝有增益持續時間的格（增益類、暴雪的冷卻格、飾品欄），沒有的格不出子分頁鈕、只有冷卻那組；
-    --         長條兩組都沒有。增益持續時間的變色顏色與秒數只在它的低秒變色生效時可改
-    --   充能  圖示類的冷卻格（暴雪核心／輔助、自訂法術／物品／飾品欄）；增益類與長條沒有
-    --   層數  增益類（暴雪的增益、光環格）、飾品欄（疊在上面的增益按鈕）、長條上的格（圖示右下那個數字）；
-    --         長條的層數固定在圖示右下 ⇒ 沒有錨點列（同條頁）
-    --   按鍵  條層有這一節的（不是長條、不是增益圖示列；Keybinds.NoKeybind）而且不是光環格
-    --------------------------------------------------------
-    buildTab = "text"
-    -- 倒數那一段在這一格讀哪個底：長條 ⇒ 長條的秒數（"barTime"），其餘 ⇒ 條層的倒數
-    local function CdSection() return OnBars() and "barTime" or "cooldownText" end
-    local function Always() return true end
-    local function NotBarsRow() return not OnBars() end
-    local function ChargeRows(_, class) return not OnBars() and class ~= "aura" end
-    local function StackRows(kind, class)
-        return class == "aura" or OnBars() or kind == "slot" or CurSlot() ~= nil
-    end
-    local function StackAnchorRow(kind, class) return StackRows(kind, class) and not OnBars() end
-    -- 內建冷卻是被動、不在快捷列上，沒有按鍵文字可畫（Core/Keybinds.lua 的 TextFor 也只認法術／物品）
-    local function KeyRows(kind)
-        return cur ~= nil and kind ~= "aura" and kind ~= "timer" and not ns.Keybinds.NoKeybind(cur.key)
-    end
-    local function KeyOff(kind)
-        return KeyRows(kind) and not ns.Setting(cur.key, "keybind.enabled")
-    end
-
-    local function Track(r, fields)
-        if r and r.label then
-            textLabels[#textLabels + 1] = { fs = r.label, fields = fields }
-        end
-    end
-
-    -- 小節標題（同條頁的 nested 標題：accent 小字、右緣對齊標籤欄）
-    local function HeaderRow(text, when)
-        local hr = CreateFrame("Frame", nil, body)
-        local fs = W.CreateGroupLabel(hr, text)
-        fs:SetPoint("BOTTOMRIGHT", hr, "BOTTOMLEFT", LABEL_W, 4)
-        fs:SetJustifyH("RIGHT")
-        hr:SetSize(ROW_W, 22)
-        AddRow({ frame = hr, h = 22, when = when })
-    end
-
-    -- 勾選（隱藏）：寫 true／false；旁邊灰字講值從哪來（同上面的 TOGGLES）
-    local function ToggleRow(field, label, when)
-        local tr, th = NewRow(label, when)
-        local cb = W.CreateCheckButton(tr, nil, function(on)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, field, on and true or false)
-            Changed()
-        end)
-        cb:SetPoint("LEFT", tr, "LEFT", CTRL_X, 0)
-        local note = Note(tr)
-        note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
-        note:SetPoint("RIGHT", tr, "RIGHT", 0, 0)
-        note:SetWordWrap(false)
-        toggles[#toggles + 1] = { field = field, cb = cb, note = note, row = tr }
-        RightClickClears(tr, th, field)
-        Track(tr, { field })
-    end
-
-    -- 字型：第一項「跟隨『條名』」＝清掉，第二項「跟隨通用字型」（INHERIT，這也是一個覆寫值），其餘照 LibSharedMedia（Refresh 時才列）
-    local function FontRow(section, field, when)
-        local r, h = NewRow(L["Font"], when)
-        local dd = W.CreateDropdown(r, ROW_W - CTRL_X, { { text = FollowText(), value = false } }, function(value)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, field, (type(value) == "string" and value ~= "") and value or nil)
-            Changed()
-        end)
-        dd:SetMaxWidth(ROW_W - CTRL_X)
-        dd:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        RightClickClears(r, h, field)
-        textCtl[#textCtl + 1] = { kind = "font", dd = dd, field = field, section = section }
-        Track(r, { field })
-    end
-
-    -- 錨點：九宮格（同條頁 Options/Specs.lua 的 PointGridTS）。格子顯示生效的值（沒覆寫＝條的值，標籤變暗）；
-    -- 點一格＝這一招覆寫成那個錨點，右鍵標籤清掉回跟隨條
-    local GRID_CELL, GRID_GAP, GRID_PAD = 14, 2, 4
-    local GRID_IDLE, GRID_HOVER = { 0.28, 0.28, 0.28, 1 }, { 0.45, 0.45, 0.45, 1 }
-    local POINT_TEXT = {}
-    for _, it in ipairs(ns.Specs.POINT_ITEMS) do POINT_TEXT[it.value] = it.text end
-    local function PointRow(field, when, section, fallback)
-        local r, h, row = NewRow(L["Anchor"], when)
-        local side = GRID_CELL * 3 + GRID_GAP * 2
-        local gridH = side + GRID_PAD * 2
-        local function Fit()
-            local nh = math.max(row.h or h, gridH)
-            r:SetHeight(nh)
-            row.h = nh
-        end
-        local remeasure = row.remeasure
-        row.remeasure = function()
-            if remeasure then remeasure() end
-            Fit()
-        end
-        Fit()
-        local holder = CreateFrame("Frame", nil, r)
-        holder:SetSize(side, side)
-        holder:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        local name = r:CreateFontString(nil, "OVERLAY")
-        name:SetFontObject(W.fontSmall)
-        name:SetTextColor(0.65, 0.65, 0.65)
-        name:SetPoint("LEFT", holder, "RIGHT", 8, 0)
-        local ctl = { kind = "point", field = field, section = section, fallback = fallback, cells = {}, name = name }
-        function ctl.Paint()
-            for _, b in ipairs(ctl.cells) do
-                if b.point == ctl.cur then b:SetBackdropColor(W.Accent(1))
-                else b:SetBackdropColor(unpack(b.hover and GRID_HOVER or GRID_IDLE)) end
-            end
-            name:SetText(POINT_TEXT[ctl.cur] or "")
-        end
-        for i, it in ipairs(ns.Specs.POINT_ITEMS) do
-            local b = CreateFrame("Button", nil, holder, "BackdropTemplate")
-            b:SetSize(GRID_CELL, GRID_CELL)
-            b:SetPoint("TOPLEFT", ((i - 1) % 3) * (GRID_CELL + GRID_GAP), -math.floor((i - 1) / 3) * (GRID_CELL + GRID_GAP))
-            W.Stylize(b, GRID_IDLE, { 0, 0, 0, 1 })
-            b.point = it.value
-            b:SetScript("OnEnter", function() b.hover = true; ctl.Paint() end)
-            b:SetScript("OnLeave", function() b.hover = false; ctl.Paint() end)
-            b:SetScript("OnClick", function()
-                if not cur then return end
-                ns.DB.SetOverride(cur.id, field, it.value)
-                ctl.cur = it.value
-                ctl.Paint()
-                Changed()
-            end)
-            ctl.cells[i] = b
-        end
-        RightClickClears(r, h, field)
-        textCtl[#textCtl + 1] = ctl
-        Track(r, { field })
-    end
-
-    -- 拉桿（字級、小數門檻、變色秒數）：放開才寫（拖動中不寫）；顯示合併後的值
-    local function SizeRow(label, section, key, field, lo, hi, when)
-        local r, h = NewRow(label, when)
-        local sl = W.CreateSlider(r, lo, hi, ROW_W - CTRL_X, 1, nil, function(v)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, field, v)
-            Changed()
-        end)
-        sl:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        RightClickClears(r, h, field)
-        textCtl[#textCtl + 1] = { kind = "size", slider = sl, section = section, key = key, field = field, lo = lo }
-        Track(r, { field })
-    end
-
-    -- 顏色：勾「自訂」才寫覆寫（初值＝目前生效的顏色），同上面的顏色列
-    local function TextColorRow(label, section, key, field, fallback, when)
-        local r, h = NewRow(label, when)
-        local cb = W.CreateCheckButton(r, L["Custom"], function(on)
-            if not cur then return end
-            if on then
-                local t = ns.Text.SpellText(cur.key, cur.id, type(section) == "function" and section() or section, true)
-                local c = type(t[key]) == "table" and t[key] or fallback
-                ns.DB.SetOverride(cur.id, field, { r = c.r or 1, g = c.g or 1, b = c.b or 1, a = c.a or 1 })
-            else
-                ns.DB.SetOverride(cur.id, field, nil)
-            end
-            Changed()
-        end)
-        cb:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
-        local sw = W.CreateColorPicker(r, nil, false, function(rr, g, b)
-            if not cur or type(Override(field)) ~= "table" then return end
-            ns.DB.SetOverride(cur.id, field, { r = rr, g = g, b = b, a = 1 })
-            Changed()
-        end)
-        sw:SetPoint("LEFT", cb.label, "RIGHT", 10, 0)
-        RightClickClears(r, h, field)
-        textCtl[#textCtl + 1] = { kind = "color", cb = cb, swatch = sw, section = section, key = key, field = field,
-                                  fallback = fallback }
-        Track(r, { field })
-    end
-
-    -- 偏移：X／Y 兩個數字框（同條頁）；右鍵標籤兩個一起清
-    local function OffsetRow(section, fx, fy, when)
-        local r = NewRow(L["Offset"], when)
-        local px = CTRL_X
-        local boxes = {}
-        for _, f in ipairs({ { "X", fx, "x" }, { "Y", fy, "y" } }) do
-            local tag = r:CreateFontString(nil, "OVERLAY")
-            tag:SetFontObject(W.fontSmall)
-            tag:SetTextColor(0.6, 0.6, 0.6)
-            tag:SetPoint("LEFT", r, "LEFT", px, 0)
-            tag:SetText(f[1])
-            px = px + (tag:GetStringWidth() or 8) + 4
-            local field = f[2]
-            local nb = W.CreateNumberBox(r, 46, 1, function(v)
-                if not cur then return end
-                ns.DB.SetOverride(cur.id, field, v)
-                Changed()
-            end)
-            nb:SetPoint("LEFT", r, "LEFT", px, 0)
-            px = px + 46 + 10
-            boxes[#boxes + 1] = { nb = nb, key = f[3] }
-        end
-        local hit = CreateFrame("Frame", nil, r)
-        hit:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
-        hit:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
-        hit:SetWidth(LABEL_W)
-        hit:EnableMouse(true)
-        hit:SetScript("OnMouseUp", function(_, button)
-            if button == "RightButton" and cur then
-                ns.DB.SetOverride(cur.id, fx, nil)
-                ns.DB.SetOverride(cur.id, fy, nil)
-                Changed()
-            end
-        end)
-        textCtl[#textCtl + 1] = { kind = "offset", boxes = boxes, section = section }
-        Track(r, { fx, fy })
-    end
-
-    -- 名字（長條的格才有，排最前面：長條上第一個看到的就是名字；直向長條不畫名字 ⇒ 不出）。
-    -- 開關是三態的 barShowName：沒覆寫＝跟隨條的「顯示名字」（勾選框照條的值、灰字「（跟隨『條名』）」），
-    -- 點了寫 true／false（條關著也能只開這一招、反之亦然），右鍵標籤回跟隨。字型／字級的底是條的名字字型／字級
-    local function NameRows() return OnBars() and not ns.Setting(cur.key, "bar.vertical") end
-    HeaderRow(L["Name text"], NameRows)
-    ToggleRow("barShowName", L["Show name"], NameRows)
-    FontRow("barName", "barNameFont", NameRows)
-    SizeRow(L["Font size"], "barName", "size", "barNameSize", 6, 30, NameRows)
-
-    -- 倒數（長條的格叫「時間」：倒的是長條右邊的秒數；存檔欄位同一個）
-    HeaderRow(L["Countdown"], NotBarsRow)
-    HeaderRow(L["Time text"], OnBars)
-    ToggleRow("hideCooldownText", L["Hide countdown"], NotBarsRow)
-    ToggleRow("hideCooldownText", L["Hide time"], OnBars)
-    FontRow(CdSection, "cooldownTextFont", Always)
-    SizeRow(L["Font size"], CdSection, "size", "cooldownTextSize", 6, 40, Always)
-    TextColorRow(L["Color"], CdSection, "color", "cooldownTextColor", { r = 1, g = 1, b = 1, a = 1 }, Always)
-    PointRow("cooldownTextPoint", Always, "cooldownText", "CENTER")
-    OffsetRow(CdSection, "cooldownTextX", "cooldownTextY", Always)
-    -- 從小數門檻開始分兩個子分頁「冷卻｜增益持續時間」（K，同條頁）：兩組各四列（小數門檻、低秒變色、變色顏色、
-    -- 變色秒數），標籤不帶前綴。增益持續時間那組只在有增益持續時間的格出現（增益類、暴雪的冷卻格、飾品欄；長條的秒數
-    -- 換不了 ⇒ 長條兩組都沒有）；沒有增益持續時間的格不出子分頁鈕、只有冷卻那組
-    local function BuffTimeRows(kind, class) return not OnBars() and (class == "aura" or DurationRows(kind, class)) end
-    -- 子分頁鈕＋卡片（L，W.CreateTabCard）：卡片左右比列寬各多出 SUB_CARD_OUT（包住標籤與控件），
-    -- 上緣＝鈕列底、底＝最後一個子分頁的列（Layout 排的時候補）。鈕列本身就是這一列的 frame
-    -- labels：卡片裡的標籤，所有卡片的一起量、最長的定左緣（兩張卡片左緣對齊，使用者 2026-10-06）；
-    -- gap：鈕列上方多留的（cs 緊接在 cd 卡片底下）
-    frame.subCards = {}
-    local cardLabels = {}
-    local function SubCard(group, tabs, help, labels, gap, when)
-        for _, k in ipairs(labels) do cardLabels[#cardLabels + 1] = k end
-        local tc = W.CreateTabCard(body, {
-            tabs = tabs,
-            help = help,
-            selected = curSub[group],
-            onSelect = function(id)
-                if id == curSub[group] then return end
-                curSub[group] = id
-                if cur then Layout(frame.kind, frame.soundClass) end
-            end,
-        })
-        frame.subCards[group] = tc
-        AddRow({ frame = tc.strip, h = 0, when = when, subStrip = group,
-            place = function(y)
-                -- 左緣＝卡片裡最長的標籤再外推一點（標籤欄靠右對齊；不包空著的標籤欄左半，使用者 2026-10-06），
-                -- 右緣＝列的右緣再外推 SUB_CARD_OUT
-                local measure = frame.subCardMeasure
-                if not measure then
-                    measure = frame:CreateFontString(nil, "OVERLAY")
-                    measure:SetFontObject(W.fontNormal)
-                    measure:Hide()
-                    frame.subCardMeasure = measure
-                end
-                local lw = 0
-                for _, k in ipairs(cardLabels) do
-                    measure:SetText(L[k])
-                    lw = math.max(lw, math.ceil(measure:GetStringWidth() or 0))
-                end
-                local left = math.max(PAD - SUB_CARD_OUT, PAD + CTRL_X - 10 - math.min(lw, LABEL_W) - 10)
-                local right = PAD + ROW_W + SUB_CARD_OUT
-                local top = SUB_CARD_TOP + gap
-                local sh = tc:Place(left, y - top, right - left)
-                return top + sh + W.TAB_CARD_PAD
-            end,
-            paint = function(id) tc:Select(id) end })
-    end
-    SubCard("cd", { { id = "cooldown", label = L["Cooldown"] }, { id = "duration", label = L["Buff duration"] } },
-        ns.Specs.SubTabHelp, { "Decimals below", "Color when low", "Low color", "Low below (sec)" }, 0, BuffTimeRows)
-    buildGroup = "cd"
-
-    -- 冷卻：低秒變色的開關（cooldownTextLowColorOn）跟變色秒數（cooldownTextLowBelow）分兩個覆寫，同條頁與增益持續時間那組：
-    -- 取消勾選只寫開關，秒數不動（2026-10-06 拆開；舊存檔的「秒數覆寫 0 ＝ 關」由 DB 的 MIGRATIONS[5] 搬）
-    buildSub = "cooldown"
-    SizeRow(L["Decimals below"], "cooldownText", "decimalsBelow", "cooldownTextDecimals", 0, 10, NotBarsRow)
-    NoteRow(L["Shows one decimal place under this many seconds; 0 never shows decimals."], NotBarsRow)
-    ToggleRow("cooldownTextLowColorOn", L["Color when low"], NotBarsRow)
-    TextColorRow(L["Low color"], "cooldownText", "lowColor", "cooldownTextLowColor", { r = 1, g = 0.3, b = 0.3, a = 1 }, NotBarsRow)
-    SizeRow(L["Low below (sec)"], "cooldownText", "lowBelow", "cooldownTextLowBelow", 1, 30, NotBarsRow)
-
-    -- 增益持續時間（I／J）：覆寫 key 跟條層同名（變色顏色是 durationLowColor）；變色顏色只在增益持續時間的低秒變色
-    -- 生效（合併後）時可改
-    buildSub = "duration"
-    local function BuffLowOn(key, id)
-        if OnBars() then return false end
-        return ns.Text.SpellText(key, id, "cooldownText", true).buffLowColor == true
-    end
-    SizeRow(L["Decimals below"], "cooldownText", "buffDecimalsBelow", "buffDecimalsBelow", 0, 10, BuffTimeRows)
-    NoteRow(L["Shows one decimal place under this many seconds; 0 never shows decimals."], BuffTimeRows)
-    ToggleRow("buffLowColor", L["Color when low"], BuffTimeRows)
-    Track(ColorOverrideRow(L["Low color"], "durationLowColor", false, { r = 0.95, g = 0.45, b = 0.70, a = 1 },
-        BuffTimeRows, BuffLowOn, true), { "durationLowColor" })
-    SizeRow(L["Low below (sec)"], "cooldownText", "buffLowBelow", "buffLowBelow", 1, 30, BuffTimeRows)
-
-    -- 增益那一段的換色＋字色：也是增益持續時間的設定 ⇒ 歸「增益持續時間」子分頁（切到「冷卻」時不出現，免得看起來像冷卻的）。
-    -- 原本在「增益持續時間」分頁：五個欄位跟主題頁同一套、
-    -- 同一套連動——「顯示增益持續時間」生效是不顯示 ⇒ 換色列停用；換色生效是關 ⇒ 顏色列停用（Refresh）
-    local cdr, cdh = NewRow(L["Recolor buff duration"], DurationRows)
-    local cdItems = {
-        { text = FollowText(), value = "follow" },
-        { text = L["Recolor"],         value = "on" },
-        { text = L["Don't recolor"],   value = "off" },
-    }
-    local cddd = W.CreateDropdown(cdr, ROW_W - CTRL_X, cdItems, function(value)
-        if not cur then return end
-        local v = nil
-        if value == "on" then v = true elseif value == "off" then v = false end
-        ns.DB.SetOverride(cur.id, "colorDuration", v)
-        Changed()
-    end)
-    cddd:SetMaxWidth(ROW_W - CTRL_X)
-    cddd:SetPoint("LEFT", cdr, "LEFT", CTRL_X, 0)
-    frame.colorDurDD = cddd
-    followItems[#followItems + 1] = { items = cdItems, dd = cddd }
-    RightClickClears(cdr, cdh, "colorDuration")
-    Track(cdr, { "colorDuration" })
-    Track(ColorOverrideRow(L["Buff duration color"],     "durationColor",    false, { r = 1,    g = 0.85, b = 0.1,  a = 1 }), { "durationColor" })
-    buildSub = nil
-
-    -- 充能｜層數（cs 組）：兩種都有的格才出鈕＋卡片；只有一種的格那一節照舊帶小節標題
-    local function BothCS(kind, class) return ChargeRows(kind, class) and StackRows(kind, class) end
-    SubCard("cs", { { id = "charges", label = L["Charges"] }, { id = "stacks", label = L["Stacks"] } }, nil,
-        { "Hide charges", "Hide stacks", "Font", "Font size", "Color", "Anchor", "Offset" }, 6, BothCS)
-    buildGroup = "cs"
-
-    -- 充能
-    buildSub = "charges"
-    HeaderRow(L["Charges"], function(kind, class) return ChargeRows(kind, class) and not StackRows(kind, class) end)
-    ToggleRow("hideChargeText", L["Hide charges"], ChargeRows)
-    FontRow("chargeText", "chargeTextFont", ChargeRows)
-    SizeRow(L["Font size"], "chargeText", "size", "chargeTextSize", 6, 30, ChargeRows)
-    TextColorRow(L["Color"], "chargeText", "color", "chargeTextColor", { r = 1, g = 1, b = 1, a = 1 }, ChargeRows)
-    PointRow("chargeTextPoint", ChargeRows, "chargeText", "BOTTOMRIGHT")
-    OffsetRow("chargeText", "chargeTextX", "chargeTextY", ChargeRows)
-
-    -- 層數
-    buildSub = "stacks"
-    HeaderRow(L["Stacks"], function(kind, class) return StackRows(kind, class) and not ChargeRows(kind, class) end)
-    ToggleRow("hideStackText", L["Hide stacks"], StackRows)
-    FontRow("stackText", "stackTextFont", StackRows)
-    SizeRow(L["Font size"], "stackText", "size", "stackTextSize", 6, 30, StackRows)
-    TextColorRow(L["Color"], "stackText", "color", "stackTextColor", { r = 1, g = 1, b = 1, a = 1 }, StackRows)
-    PointRow("stackTextPoint", StackAnchorRow, "stackText", "TOP")
-    OffsetRow("stackText", "stackTextX", "stackTextY", StackRows)
-    buildSub, buildGroup = nil, nil
-
-    -- 按鍵文字（沒有顏色：一律白字，同條層）
-    HeaderRow(L["Keybind text"], KeyRows)
-    ToggleRow("hideKeybind", L["Hide keybind text"], KeyRows)
-    FontRow("keybind", "keybindFont", KeyRows)
-    SizeRow(L["Font size"], "keybind", "size", "keybindSize", 6, 24, KeyRows)
-    PointRow("keybindPoint", KeyRows, "keybind", "TOPRIGHT")
-    OffsetRow("keybind", "keybindX", "keybindY", KeyRows)
-    NoteRow(L["Keybind text is turned off for this bar, so these only show once it's on (Text, Keybind text)."], KeyOff)
-
-    -- 自訂文字分頁（M）：借這裡的九宮格與標籤變暗；從這裡叫（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
-    BuildLabelTab(NoteRow, PointRow, Track)
-end
-
--- 不顯示（只給其他插件讀取；逐法術 hidden，判準 Catalog.CanHide）：一般分頁最上面一列勾選框＋下一列灰字。
--- 勾了之後只跟畫面有關的停用（Pop.HIDE_VISUAL_TABS 那幾個分頁鈕、一般分頁的「增益不在時」），音效分頁照常。
--- 掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限（Build 只多叫一次 Pop.BuildHideRow，Pop 本來就抓著）
 Pop.HIDE_VISUAL_TABS = { text = true, look = true, glow = true, label = true }
 
 -- 這一格能不能勾（暴雪的增益兩條來源的 item；自訂項目 kind 不是 nil）
 function Pop.HideCapable(kind)
-    return kind == nil and cur ~= nil and ns.Catalog.CanHide(cur.key, cur.id)
+    return kind == nil and Pop.cur ~= nil and ns.Catalog.CanHide(Pop.cur.key, Pop.cur.id)
 end
 
 -- 這一格現在是不是勾著「不顯示」
 function Pop.HideOnlyNow()
-    return cur ~= nil and frame ~= nil and Pop.HideCapable(frame.kind) and ns.Catalog.HiddenOnly(cur.key, cur.id) or false
+    return Pop.cur ~= nil and frame ~= nil and Pop.HideCapable(frame.kind) and ns.Catalog.HiddenOnly(Pop.cur.key, Pop.cur.id) or false
 end
 
 function Pop.BuildHideRow()
-    buildTab = "general"
+    Pop.buildTab = "general"
     local r = NewRow(L["Don't show (for other addons only)"], Pop.HideCapable)
     local cb = W.CreateCheckButton(r, nil, function(on)
-        if not cur then return end
+        if not Pop.cur then return end
         -- 取消勾選 ＝ 清掉覆寫（SPELL_CONST 的 false），不存一筆 false：右鍵清與「還原此法術」同一個結果
-        ns.DB.SetOverride(cur.id, "hidden", on and true or nil)
+        ns.DB.SetOverride(Pop.cur.id, "hidden", on and true or nil)
         Changed()
     end)
     cb:SetPoint("LEFT", r, "LEFT", CTRL_X, 0)
@@ -1489,7 +654,7 @@ end
 
 -- Refresh 叫（Layout 之前）：勾選框回填；勾著時「增益不在時」停用（不放上條就沒有「不在時」可言）
 function Pop.RefreshHideRow()
-    if not (frame and cur) then return end
+    if not (frame and Pop.cur) then return end
     local on = Pop.HideOnlyNow()
     frame.hideOnlyCB:SetChecked(on and true or false)
     if frame.emptyModeDD then
@@ -1576,7 +741,7 @@ local function Build()
     iconTip:SetFrameLevel(frame:GetFrameLevel() + 6)
     iconTip:EnableMouseMotion(true)          -- 只收滑過，不吃點擊
     local function ShowIconTip(self)
-        local info = cur and ns.Catalog.Info(cur.id)
+        local info = Pop.cur and ns.Catalog.Info(Pop.cur.id)
         local sb = info and info.slotBuff
         if not sb then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -1611,11 +776,11 @@ local function Build()
     frame.highlightTab = W.CreateButtonGroup(frame.tabBtns, function(id)
         if id ~= curTab then frame.scroll:SetVerticalScroll(0) end
         curTab = id
-        if cur then Layout(frame.kind, frame.soundClass) end
+        if Pop.cur then Layout(frame.kind, frame.soundClass) end
     end)
 
     -- 適用範圍（自訂項目才有；一般分頁最上面）：戰隊／這個職業／這個專精。切換走 Pop.SetScope（往窄搬先問）
-    buildTab = "general"
+    Pop.buildTab = "general"
     Pop.BuildHideRow()
     local scr = NewRow(L["Scope"], IsCustom)
     local scdd = W.CreateDropdown(scr, ROW_W - CTRL_X, ns.Picker.ScopeItems(), function(value) Pop.SetScope(value) end)
@@ -1648,8 +813,8 @@ local function Build()
     end
     local hur = NewRow(L["Hide when not learned"], WideSpell)
     local hucb = W.CreateCheckButton(hur, nil, function(on)
-        if not cur then return end
-        local e = ns.DB.CustomEntry(cur.id)
+        if not Pop.cur then return end
+        local e = ns.DB.CustomEntry(Pop.cur.id)
         if not e then return end
         e.hideUnknown = on and true or false
         ns.DB.TouchCustom()               -- 生效清單變了（DB.EffectiveCustom 的 memo 作廢點）
@@ -1678,8 +843,8 @@ local function Build()
     -- 所在條
     local r, h = NewRow(L["On bar"])
     local dd = W.CreateDropdown(r, ROW_W - CTRL_X, {}, function(value)
-        if not cur then return end
-        local id, key = cur.id, cur.key
+        if not Pop.cur then return end
+        local id, key = Pop.cur.id, Pop.cur.key
         frame:Hide()
         ns.Preview.MoveTo(id, value, key)
     end)
@@ -1691,7 +856,7 @@ local function Build()
     -- （do 區塊：Build 的 local 數貼著 Lua 5.1 的上限，這幾個用完就收）
     do
         local function RingRefused()
-            return cur ~= nil and ns.DB.BarIsRings(cur.key) and not ns.Catalog.RingAccepts(cur.id)
+            return Pop.cur ~= nil and ns.DB.BarIsRings(Pop.cur.key) and not ns.Catalog.RingAccepts(Pop.cur.id)
         end
         local rrRow = CreateFrame("Frame", nil, frame.body)
         local rrTip = Note(rrRow)
@@ -1714,7 +879,7 @@ local function Build()
     -- 以增益取代（一般分頁、所在條下面）：第一項「無」＝清掉覆寫；被別的技能用掉的那幾項 value 是 "taken"（選了不寫）
     local rwr, rwh = NewRow(L["Replace with buff"], ReplaceCapable)
     local rwdd = W.CreateDropdown(rwr, ROW_W - CTRL_X, {}, function(value)
-        if not cur then return end
+        if not Pop.cur then return end
         if value == "taken" then Pop.Refresh() return end
         if type(value) == "number" then
             -- 同一個增益只給一個技能：別的技能上還掛著它的（那個技能現在不在，所以下拉沒擋）一併清掉
@@ -1722,12 +887,12 @@ local function Build()
             local all = sp and type(sp.overrides) == "table" and sp.overrides or {}
             local stale = {}
             for a, o in pairs(all) do
-                if a ~= cur.id and type(o) == "table" and o.replaceWith == value then stale[#stale + 1] = a end
+                if a ~= Pop.cur.id and type(o) == "table" and o.replaceWith == value then stale[#stale + 1] = a end
             end
             for _, a in ipairs(stale) do ns.DB.SetOverride(a, "replaceWith", nil) end
-            ns.DB.SetOverride(cur.id, "replaceWith", value)
+            ns.DB.SetOverride(Pop.cur.id, "replaceWith", value)
         else
-            ns.DB.SetOverride(cur.id, "replaceWith", nil)
+            ns.DB.SetOverride(Pop.cur.id, "replaceWith", nil)
         end
         -- 增益圖示列（與它被拉去的群組）的清單跟著變：每一條的預覽都重畫
         if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
@@ -1742,8 +907,8 @@ local function Build()
     rhit:SetWidth(LABEL_W)
     rhit:EnableMouse(true)
     rhit:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and cur then
-            ns.DB.SetOverride(cur.id, "replaceWith", nil)
+        if button == "RightButton" and Pop.cur then
+            ns.DB.SetOverride(Pop.cur.id, "replaceWith", nil)
             if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
             Changed("membership")
         end
@@ -1772,10 +937,10 @@ local function Build()
     -- 只存 false（勾回去就清掉覆寫）；沒設以增益取代時停用（Refresh）
     local asr, ash = NewRow(L["Use buff time style"], ReplaceCapable)
     local ascb = W.CreateCheckButton(asr, nil, function(on)
-        if not cur then return end
+        if not Pop.cur then return end
         local v = nil
         if not on then v = false end
-        ns.DB.SetOverride(cur.id, "replaceAuraStyle", v)
+        ns.DB.SetOverride(Pop.cur.id, "replaceAuraStyle", v)
         Changed()
     end)
     ascb:SetPoint("LEFT", asr, "LEFT", CTRL_X, 0)
@@ -1806,7 +971,7 @@ local function Build()
         { text = L["Show if not learned"], value = "unknown" },
     }
     local tcdd = W.CreateDropdown(tcr, ROW_W - CTRL_X, tcItems, function(value)
-        if not cur then return end
+        if not Pop.cur then return end
         local cond = Override("talentCond")
         local sid = type(cond) == "table" and cond.spellID or nil
         if value == "none" then sid = nil end
@@ -1822,7 +987,7 @@ local function Build()
     tchit:SetWidth(LABEL_W)
     tchit:EnableMouse(true)
     tchit:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and cur then SetTalentCond(nil) end
+        if button == "RightButton" and Pop.cur then SetTalentCond(nil) end
     end)
 
     -- ID 框＋法術名（下一列，沒有標籤，對齊控件欄）
@@ -1840,7 +1005,7 @@ local function Build()
     frame.talentBox, frame.talentName = tbox, tname
     -- 提交：沒選模式時填了 ID ⇒ 當成「學了才顯示」；清空 ⇒ 留著模式、拿掉 ID（引擎當沒有條件）
     local function CommitTalentID()
-        if not cur then return end
+        if not Pop.cur then return end
         local n = ns.Picker.ParseID(tbox:GetText())
         local cond = Override("talentCond")
         local mode = type(cond) == "table" and cond.mode or nil
@@ -1890,22 +1055,22 @@ local function Build()
     AddRow(tnEntry)
 
     -- 邊框顏色：勾「自訂」才寫覆寫
-    buildTab = "look"
+    Pop.buildTab = "look"
     local br, bh = NewRow(L["Border color"])
     local custom = W.CreateCheckButton(br, L["Custom"], function(on)
-        if not cur then return end
+        if not Pop.cur then return end
         if on then
-            local c = ns.SpellSetting(cur.key, cur.id, "borderColor") or {}
-            ns.DB.SetOverride(cur.id, "borderColor", { r = c.r or 0, g = c.g or 0, b = c.b or 0, a = c.a or 1 })
+            local c = ns.SpellSetting(Pop.cur.key, Pop.cur.id, "borderColor") or {}
+            ns.DB.SetOverride(Pop.cur.id, "borderColor", { r = c.r or 0, g = c.g or 0, b = c.b or 0, a = c.a or 1 })
         else
-            ns.DB.SetOverride(cur.id, "borderColor", nil)
+            ns.DB.SetOverride(Pop.cur.id, "borderColor", nil)
         end
         Changed()
     end)
     custom:SetPoint("LEFT", br, "LEFT", CTRL_X, 0)
     local swatch = W.CreateColorPicker(br, nil, true, function(rr, g, b, a)
-        if not cur or not Override("borderColor") then return end
-        ns.DB.SetOverride(cur.id, "borderColor", { r = rr, g = g, b = b, a = a })
+        if not Pop.cur or not Override("borderColor") then return end
+        ns.DB.SetOverride(Pop.cur.id, "borderColor", { r = rr, g = g, b = b, a = a })
         Changed()
     end)
     swatch:SetPoint("LEFT", custom.label, "RIGHT", 10, 0)
@@ -1918,14 +1083,14 @@ local function Build()
     W.FitButton(change, 70, 22)
     change:SetPoint("LEFT", ir, "LEFT", CTRL_X, 0)
     change:SetScript("OnClick", function()
-        if cur then Pop.AskIcon(cur.id) end
+        if Pop.cur then Pop.AskIcon(Pop.cur.id) end
     end)
     local clearIcon = W.CreateButton(ir, L["Clear"], "normal", 60, 22)
     W.FitButton(clearIcon, 60, 22)
     clearIcon:SetPoint("LEFT", change, "RIGHT", 6, 0)
     clearIcon:SetScript("OnClick", function()
-        if not cur then return end
-        ns.DB.SetOverride(cur.id, "customIcon", nil)
+        if not Pop.cur then return end
+        ns.DB.SetOverride(Pop.cur.id, "customIcon", nil)
         Changed()
     end)
     frame.iconClear = clearIcon
@@ -1935,11 +1100,11 @@ local function Build()
         local when = t.when
         if t.noAura then when = t.noBar and NotAuraNotBar or NotAura end
         if t.charge then when = ChargeWhen(when) end          -- 只在這招現在有充能時（連同下一列灰字）
-        buildTab = t.tab
+        Pop.buildTab = t.tab
         local tr, th = NewRow(t.label, when)
         local cb = W.CreateCheckButton(tr, nil, function(on)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, t.field, on and true or false)
+            if not Pop.cur then return end
+            ns.DB.SetOverride(Pop.cur.id, t.field, on and true or false)
             Changed()
         end)
         cb:SetPoint("LEFT", tr, "LEFT", CTRL_X, 0)
@@ -1976,11 +1141,11 @@ local function Build()
                 return ActiveGlowWhen(kind, class) and kind ~= "aura" and Pop.NoProc(kind)
             end)
             local occb = W.CreateCheckButton(or_, nil, function(on)
-                if not cur then return end
+                if not Pop.cur then return end
                 -- ⚠ 不能寫 `(not on) and false or nil`：`false or nil` 是 nil，取消勾選永遠存不進去
                 local v = nil
                 if not on then v = false end
-                ns.DB.SetOverride(cur.id, "activeGlowOutOfCombat", v)
+                ns.DB.SetOverride(Pop.cur.id, "activeGlowOutOfCombat", v)
                 Changed()
             end)
             occb:SetPoint("LEFT", or_, "LEFT", CTRL_X, 0)
@@ -1993,8 +1158,8 @@ local function Build()
             local mItems = { { text = FollowText(), value = false } }
             for _, it in ipairs(READY_MODES) do mItems[#mItems + 1] = it end
             local mdd = W.CreateDropdown(mr, ROW_W - CTRL_X, mItems, function(value)
-                if not cur then return end
-                ns.DB.SetOverride(cur.id, "readyGlowMode", (type(value) == "string" and value ~= "") and value or nil)
+                if not Pop.cur then return end
+                ns.DB.SetOverride(Pop.cur.id, "readyGlowMode", (type(value) == "string" and value ~= "") and value or nil)
                 Changed()
             end)
             mdd:SetMaxWidth(ROW_W - CTRL_X)
@@ -2010,10 +1175,10 @@ local function Build()
                 { text = L["Don't wait"],   value = "off" },
             }
             local udd = W.CreateDropdown(ur, ROW_W - CTRL_X, uItems, function(value)
-                if not cur then return end
+                if not Pop.cur then return end
                 local v = nil
                 if value == "on" then v = true elseif value == "off" then v = false end
-                ns.DB.SetOverride(cur.id, "readyGlowUsable", v)
+                ns.DB.SetOverride(Pop.cur.id, "readyGlowUsable", v)
                 Changed()
             end)
             udd:SetMaxWidth(ROW_W - CTRL_X)
@@ -2025,14 +1190,14 @@ local function Build()
     end
 
     -- 冷卻狀態（冷卻類才有）：第一項「跟隨這一條」＝清掉覆寫；變暗的透明度逐法術不另給（吃條的值）
-    buildTab = "look"
+    Pop.buildTab = "look"
     local csr, csh = NewRow(L["Cooldown state"], NotAuraNotBar)
     local csItems = { { text = FollowText(), value = false } }
     followItems[#followItems + 1] = { items = csItems, dd = nil }
     for _, it in ipairs(ns.Specs.CDSTATE_ITEMS) do csItems[#csItems + 1] = it end
     local csdd = W.CreateDropdown(csr, ROW_W - CTRL_X, csItems, function(value)
-        if not cur then return end
-        ns.DB.SetOverride(cur.id, "cdState", (type(value) == "string" and value ~= "") and value or nil)
+        if not Pop.cur then return end
+        ns.DB.SetOverride(Pop.cur.id, "cdState", (type(value) == "string" and value ~= "") and value or nil)
         Changed()
     end)
     csdd:SetMaxWidth(ROW_W - CTRL_X)
@@ -2047,7 +1212,7 @@ local function Build()
     local DurationRows = function(kind, class)
         return BlizzCooldown(kind, class) or kind == "slot" or (kind == "item" and Pop.CurItemHasBuff())
     end
-    buildTab = "look"
+    Pop.buildTab = "look"
     local atr, ath = NewRow(L["Show buff duration"], DurationRows)
     local atItems = {
         { text = FollowText(), value = "follow" },
@@ -2055,10 +1220,10 @@ local function Build()
         { text = L["Don't show"],      value = "hide" },
     }
     local atdd = W.CreateDropdown(atr, ROW_W - CTRL_X, atItems, function(value)
-        if not cur then return end
+        if not Pop.cur then return end
         local v = nil
         if value == "show" then v = true elseif value == "hide" then v = false end
-        ns.DB.SetOverride(cur.id, "showAuraTime", v)
+        ns.DB.SetOverride(Pop.cur.id, "showAuraTime", v)
         Changed()
     end)
     atdd:SetMaxWidth(ROW_W - CTRL_X)
@@ -2073,20 +1238,20 @@ local function Build()
     local function ColorOverrideRow(label, field, hasAlpha, fallback, when, alsoOn, onlyAlso)
         local r2, h2 = NewRow(label, when or DurationRows)
         local cb2 = W.CreateCheckButton(r2, L["Custom"], function(on)
-            if not cur then return end
+            if not Pop.cur then return end
             if on then
-                local c = ns.SpellSetting(cur.key, cur.id, field)
+                local c = ns.SpellSetting(Pop.cur.key, Pop.cur.id, field)
                 if type(c) ~= "table" then c = fallback end
-                ns.DB.SetOverride(cur.id, field, { r = c.r or 1, g = c.g or 1, b = c.b or 1, a = c.a or 1 })
+                ns.DB.SetOverride(Pop.cur.id, field, { r = c.r or 1, g = c.g or 1, b = c.b or 1, a = c.a or 1 })
             else
-                ns.DB.SetOverride(cur.id, field, nil)
+                ns.DB.SetOverride(Pop.cur.id, field, nil)
             end
             Changed()
         end)
         cb2:SetPoint("LEFT", r2, "LEFT", CTRL_X, 0)
         local sw = W.CreateColorPicker(r2, nil, hasAlpha, function(rr, g, b, a)
-            if not cur or type(Override(field)) ~= "table" then return end
-            ns.DB.SetOverride(cur.id, field, { r = rr, g = g, b = b, a = (hasAlpha and a) or 1 })
+            if not Pop.cur or type(Override(field)) ~= "table" then return end
+            ns.DB.SetOverride(Pop.cur.id, field, { r = rr, g = g, b = b, a = (hasAlpha and a) or 1 })
             Changed()
         end)
         sw:SetPoint("LEFT", cb2.label, "RIGHT", 10, 0)
@@ -2103,12 +1268,12 @@ local function Build()
         if k == "r" then return r elseif k == "g" then return g elseif k == "b" then return b elseif k == "a" then return 1 end
     end })
     -- 圓環條只收增益：放得上去的（增益類、光環格）才有圓環顏色
-    local function OnRings() return cur ~= nil and ns.DB.BarIsRings(cur.key) and ns.Catalog.RingAccepts(cur.id) end
+    local function OnRings() return Pop.cur ~= nil and ns.DB.BarIsRings(Pop.cur.key) and ns.Catalog.RingAccepts(Pop.cur.id) end
     ColorOverrideRow(L["Ring color"], "ringColor", true, classFill, OnRings, function() return true end, true)
     -- 長條顏色（長條類的條才有）：這一招的單色填充，蓋過條的顏色／漸層。沒自訂＝條的填色
     -- （色票顯示條現在的填充色：米利樣式 bar.color、暴雪樣式 blizzardColor，代理表每次讀現算）
     local barFill = setmetatable({}, { __index = function(_, k)
-        local bar = cur and ns.Setting(cur.key, "bar")
+        local bar = Pop.cur and ns.Setting(Pop.cur.key, "bar")
         local c = ns.Decorate.BarFillStyle(bar).color
         if type(c) ~= "table" then c = { r = 0.4, g = 0.6, b = 0.9, a = 1 } end
         if k == "a" then return c.a or 1 end
@@ -2139,23 +1304,23 @@ local function Build()
 
     -- 文字分頁（H）：拆成自己的函式（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
     -- 文字分頁（H）＋自訂文字分頁（M，BuildTextTab 最後叫）
-    BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
+    Pop.BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
 
     -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
     -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫。
     -- 放「發光」分頁（檔頭的分頁表）；以前接在增益持續時間那幾列後面、沒換 buildTab，一直落在「增益持續時間」分頁
-    buildTab = "glow"
+    Pop.buildTab = "glow"
     local sgr = NewRow(L["Stack glow"], Pop.StackGlowWhen)
     local scb = W.CreateCheckButton(sgr, nil, function(on)
-        if not cur then return end
+        if not Pop.cur then return end
         if on then
             local n = ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
-            ns.DB.SetOverride(cur.id, "stackGlow", n)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", n)
             -- 光環格只做 ≥（frame.kind 是 Refresh 寫的這一格的種類）：比較子不寫
             local op = frame.kind == "aura" and ns.StackGate.DEFAULT_OP or StackOpNow()
-            ns.DB.SetOverride(cur.id, "stackGlowOp", op ~= ns.StackGate.DEFAULT_OP and op or nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", op ~= ns.StackGate.DEFAULT_OP and op or nil)
         else
-            ns.DB.SetOverride(cur.id, "stackGlow", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", nil)
         end
         Changed()
     end)
@@ -2165,11 +1330,11 @@ local function Build()
         opItems[i] = { text = op == ">=" and "≥" or op == "<=" and "≤" or op == "==" and "=" or op, value = op }
     end
     local opdd = W.CreateDropdown(sgr, 44, opItems, function(value)
-        if not cur then return end
-        frame.stackOpSel, frame.stackOpFor = value, cur.id
+        if not Pop.cur then return end
+        frame.stackOpSel, frame.stackOpFor = value, Pop.cur.id
         if StackOn() then
             -- ≥ 是預設：存 nil（跟沒設過的舊存檔一樣）
-            ns.DB.SetOverride(cur.id, "stackGlowOp", value ~= ns.StackGate.DEFAULT_OP and value or nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", value ~= ns.StackGate.DEFAULT_OP and value or nil)
             Changed()
         else
             Pop.Refresh()                -- 「< 1」的紅字／灰字要跟著換
@@ -2185,11 +1350,11 @@ local function Build()
     ge:Hide()
     frame.stackGE = ge
     local num = W.CreateNumberBox(sgr, 40, 1, function(v)
-        if not cur then return end
+        if not Pop.cur then return end
         local n = ns.StackGate.Threshold(v) or 1
         if frame.stackNum:GetValue() ~= n then frame.stackNum:SetValue(n) end
         if StackOn() then
-            ns.DB.SetOverride(cur.id, "stackGlow", n)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", n)
             Changed()
         else
             Pop.Refresh()
@@ -2198,7 +1363,7 @@ local function Build()
     num:SetPoint("LEFT", opdd, "RIGHT", 4, 0)
     local sswatch = W.CreateColorPicker(sgr, nil, true, function(rr, g, b, a)
         if not StackOn() then return end
-        ns.DB.SetOverride(cur.id, "stackGlowColor", { r = rr, g = g, b = b, a = a })
+        ns.DB.SetOverride(Pop.cur.id, "stackGlowColor", { r = rr, g = g, b = b, a = a })
         Changed()
     end)
     sswatch:SetPoint("LEFT", num, "RIGHT", 10, 0)
@@ -2209,11 +1374,11 @@ local function Build()
     shit:SetWidth(LABEL_W)
     shit:EnableMouse(true)
     shit:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and cur then
-            ns.DB.SetOverride(cur.id, "stackGlow", nil)
-            ns.DB.SetOverride(cur.id, "stackGlowColor", nil)
-            ns.DB.SetOverride(cur.id, "stackGlowType", nil)
-            ns.DB.SetOverride(cur.id, "stackGlowOp", nil)
+        if button == "RightButton" and Pop.cur then
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowColor", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowType", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", nil)
             frame.stackOpSel = nil
             Changed()
         end
@@ -2239,7 +1404,7 @@ local function Build()
     local str = NewRow(L["Glow style"], Pop.StackGlowWhen)
     local sdd = W.CreateDropdown(str, ROW_W - CTRL_X, GlowTypeItems(), function(value)
         if not StackOn() then return end
-        ns.DB.SetOverride(cur.id, "stackGlowType", value)
+        ns.DB.SetOverride(Pop.cur.id, "stackGlowType", value)
         Changed()
     end)
     sdd:SetMaxWidth(ROW_W - CTRL_X)
@@ -2266,25 +1431,25 @@ local function Build()
 
     -- 層數換色（增益長條）：按鈕寫著目前筆數，點開是編輯器（Options/StackColors.lua）
     -- 這一列沒有標籤：按鈕靠右、寬度至少到控件欄，長譯文往左邊（空著的標籤欄）撐（Refresh 換字後 FitButton）
-    buildTab = "look"
+    Pop.buildTab = "look"
     local scr = NewRow(nil, BlizzAuraBar)
     local scbtn = W.CreateButton(scr, L["Stack colors (%d)"]:format(0), "normal", ROW_W - CTRL_X, 22)
     scbtn:SetPoint("RIGHT", scr, "RIGHT", 0, 0)
     scbtn:SetScript("OnClick", function()
-        if not cur then return end
-        ns.StackColors.Open(cur.key, cur.id, function() Changed() end)
+        if not Pop.cur then return end
+        ns.StackColors.Open(Pop.cur.key, Pop.cur.id, function() Changed() end)
     end)
     frame.stackColorsBtn = scbtn
 
     -- 層數當填充（增益長條）：勾選框＋「最大層數」數字框；沒勾時數字框記著要用的值（預設 5）
     local sbr, sbh = NewRow(L["Stacks as fill"], BlizzAuraBar)
     local sbcb = W.CreateCheckButton(sbr, nil, function(on)
-        if not cur then return end
+        if not Pop.cur then return end
         if on then
             local n = ns.StackGate.Threshold(frame.stackBarNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
-            ns.DB.SetOverride(cur.id, "stackBar", { max = n })
+            ns.DB.SetOverride(Pop.cur.id, "stackBar", { max = n })
         else
-            ns.DB.SetOverride(cur.id, "stackBar", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackBar", nil)
         end
         Changed()
     end)
@@ -2294,11 +1459,11 @@ local function Build()
     sbl:SetPoint("LEFT", sbcb, "RIGHT", 8, 0)
     sbl:SetText(L["Max stacks"])
     local sbnum = W.CreateNumberBox(sbr, 40, 1, function(v)
-        if not cur then return end
+        if not Pop.cur then return end
         local n = ns.StackGate.Threshold(v) or 1
         if frame.stackBarNum:GetValue() ~= n then frame.stackBarNum:SetValue(n) end
         if StackBarOn() then
-            ns.DB.SetOverride(cur.id, "stackBar", { max = n })
+            ns.DB.SetOverride(Pop.cur.id, "stackBar", { max = n })
             Changed()
         end
     end)
@@ -2310,7 +1475,7 @@ local function Build()
     -- 層數刻度（增益長條）：勾選框＋位置輸入框（1,5,8；留白＝每一層）＋色票
     local tkr, tkh = NewRow(L["Stack ticks"], BlizzAuraBar)
     local tkcb = W.CreateCheckButton(tkr, nil, function(on)
-        if not cur then return end
+        if not Pop.cur then return end
         if on then
             local at = ns.StackGate.ParseTicks(frame.stackTicksBox:GetText(), TickMax()) or "all"
             local c = frame.stackTicksSwatch.color or ns.StackGate.TICK_COLOR
@@ -2318,9 +1483,9 @@ local function Build()
             if not StackBarOn() then
                 t.max = ns.StackGate.Threshold(frame.stackTicksNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
             end
-            ns.DB.SetOverride(cur.id, "stackTicks", t)
+            ns.DB.SetOverride(Pop.cur.id, "stackTicks", t)
         else
-            ns.DB.SetOverride(cur.id, "stackTicks", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackTicks", nil)
         end
         Changed()
     end)
@@ -2329,7 +1494,7 @@ local function Build()
     tkbox:SetPoint("LEFT", tkcb, "RIGHT", 8, 0)
     tkbox:SetMaxLetters(120)
     local function CommitTicks(self)
-        if not cur then return end
+        if not Pop.cur then return end
         local at = ns.StackGate.ParseTicks(self:GetText(), TickMax())
         if at == nil then
             -- 一個能用的都沒有：還原成存著的（沒勾就清空）
@@ -2349,7 +1514,7 @@ local function Build()
     tkbox:SetScript("OnEnterPressed", function(self) CommitTicks(self); self:ClearFocus() end)
     tkbox:HookScript("OnEditFocusLost", CommitTicks)
     local tksw = W.CreateColorPicker(tkr, nil, true, function(rr, g, b, a)
-        if not cur then return end
+        if not Pop.cur then return end
         if SetTicksField("color", { r = rr, g = g, b = b, a = a or 1 }) then Changed() end
     end)
     tksw:SetPoint("LEFT", tkbox, "RIGHT", 10, 0)
@@ -2360,7 +1525,7 @@ local function Build()
         return BlizzAuraBar(kind, class) and not StackBarOn()
     end)
     local tmnum = W.CreateNumberBox(tmr, 40, 1, function(v)
-        if not cur then return end
+        if not Pop.cur then return end
         local n = ns.StackGate.Threshold(v) or 1
         if frame.stackTicksNum:GetValue() ~= n then frame.stackTicksNum:SetValue(n) end
         if SetTicksField("max", n) then Changed() end
@@ -2371,7 +1536,7 @@ local function Build()
     NoteRow(L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."], BlizzAuraBar)
 
     -- 音效：下拉＋試聽（右鍵整列清掉＝無）
-    buildTab = "sound"
+    Pop.buildTab = "sound"
     for _, t in ipairs(SOUNDS) do
         local cls = t.class
         local function BaseWhen(kind, class)
@@ -2385,8 +1550,8 @@ local function Build()
         listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
         local ddW = ROW_W - CTRL_X - (listen:GetWidth() or 44) - 6
         local sdd = W.CreateDropdown(sr, ddW, {}, function(value)
-            if not cur then return end
-            ns.DB.SetOverride(cur.id, t.field, (type(value) == "string" and value ~= "") and value or nil)
+            if not Pop.cur then return end
+            ns.DB.SetOverride(Pop.cur.id, t.field, (type(value) == "string" and value ~= "") and value or nil)
             Changed()
         end)
         sdd:SetPoint("LEFT", sr, "LEFT", CTRL_X, 0)
@@ -2405,12 +1570,12 @@ local function Build()
             end, L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
             local entry = { field = field }
             local kcb = W.CreateCheckButton(kr, nil, function(on)
-                if not cur then return end
+                if not Pop.cur then return end
                 if on then
                     local txt = strtrim(entry.box:GetText() or "")
-                    ns.DB.SetOverride(cur.id, field, txt ~= "" and txt or true)
+                    ns.DB.SetOverride(Pop.cur.id, field, txt ~= "" and txt or true)
                 else
-                    ns.DB.SetOverride(cur.id, field, nil)
+                    ns.DB.SetOverride(Pop.cur.id, field, nil)
                 end
                 Changed()
             end)
@@ -2425,18 +1590,18 @@ local function Build()
             kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
             -- 勾著才寫（沒勾時只是記著字，勾下去那一刻一起存）
             kbox:HookScript("OnEditFocusLost", function(self)
-                if not cur or not kcb:GetChecked() then return end
+                if not Pop.cur or not kcb:GetChecked() then return end
                 local txt = strtrim(self:GetText() or "")
                 local want = txt ~= "" and txt or true
                 if Override(field) == want then return end
-                ns.DB.SetOverride(cur.id, field, want)
+                ns.DB.SetOverride(Pop.cur.id, field, want)
                 Changed()
             end)
             klisten:SetScript("OnClick", function()
-                if not cur then return end
+                if not Pop.cur then return end
                 local txt = strtrim(kbox:GetText() or "")
                 local S = ns.Sound
-                S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, S.SpellName(cur.id)))
+                S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, S.SpellName(Pop.cur.id)))
             end)
             entry.cb, entry.box, entry.listen = kcb, kbox, klisten
             speaks[#speaks + 1] = entry
@@ -2474,14 +1639,14 @@ local function Build()
     -- 增益不在時（暴雪的增益圖示／增益長條、光環格含飾品欄增益）：逐法術覆寫 emptyMode（v7 之前是 placeholder），
     -- 第一項「跟隨條（條現在的生效值）」＝清掉覆寫。條上有光環格或可點擊時「往前補」灰掉（選了不寫）；
     -- 存著往前補的覆寫讀取時當跟隨條（Layout.SpellEmptyMode），顯示也是跟隨條。下一列灰字照生效值換說法（Refresh）；右鍵標籤清
-    buildTab = "general"
+    Pop.buildTab = "general"
     local EMPTY_LOCKED = "locked"
     local function EmptyAura(kind, class) return IsAura(kind) or BlizzAura(kind, class) end
     local pr = NewRow(L["While the buff is missing"], EmptyAura)
     local emdd = W.CreateDropdown(pr, ROW_W - CTRL_X, {}, function(value)
-        if not cur then return end
+        if not Pop.cur then return end
         if value == EMPTY_LOCKED then Pop.Refresh() return end
-        ns.DB.SetOverride(cur.id, "emptyMode", value or nil)
+        ns.DB.SetOverride(Pop.cur.id, "emptyMode", value or nil)
         Changed()
     end)
     emdd:SetMaxWidth(ROW_W - CTRL_X)
@@ -2495,8 +1660,8 @@ local function Build()
         hit:SetWidth(LABEL_W)
         hit:EnableMouse(true)
         hit:SetScript("OnMouseUp", function(_, button)
-            if button == "RightButton" and cur then
-                ns.DB.SetOverride(cur.id, "emptyMode", nil)
+            if button == "RightButton" and Pop.cur then
+                ns.DB.SetOverride(Pop.cur.id, "emptyMode", nil)
                 Changed()
             end
         end)
@@ -2520,12 +1685,12 @@ local function Build()
     frame.emptyModeTip, frame.emptyModeTipEntry = phTip, phEntry
     -- Refresh 叫：選項（跟隨條那一項帶條的生效值、往前補灰不灰）、選中值、灰字
     frame.RefreshEmptyMode = function()
-        local key = cur.key
+        local key = Pop.cur.key
         local isBars = ns.Setting(key, "kind") == "bars"
         local barMode, forced = ns.Bars.SpellEmptyForced(key)
         local items = ns.Specs.EmptyModeItems(isBars)
         -- 跟隨條那一項寫這一格實際的結果（飾品增益格被逼出來的暗圖示只留空位，Bars.EquipFollowMode）
-        local followMode = ns.Bars.EquipFollowMode(key, cur.id, barMode, false)
+        local followMode = ns.Bars.EquipFollowMode(key, Pop.cur.id, barMode, false)
         local barText
         for _, it in ipairs(items) do
             if it.value == followMode then barText = it.text end
@@ -2598,15 +1763,15 @@ local function Build()
     local remove = W.CreateButton(btnRow, L["Remove from this bar"], "normal", 130, 22)
     W.FitButton(remove, 130, 22)
     remove:SetScript("OnClick", function()
-        if not cur then return end
-        ns.Preview.Remove(cur.key, cur.id)
+        if not Pop.cur then return end
+        ns.Preview.Remove(Pop.cur.key, Pop.cur.id)
     end)
     local restore = W.CreateButton(btnRow, L["Reset this spell"], "normal", 130, 22)
     W.FitButton(restore, 130, 22)
     restore:SetScript("OnClick", function()
-        if not cur then return end
+        if not Pop.cur then return end
         local had = Override("talentCond") ~= nil
-        ns.DB.ResetOverrides(cur.id)
+        ns.DB.ResetOverrides(Pop.cur.id)
         -- 拿掉了天賦條件 ⇒ 格子可能要回到畫面上
         if had and ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
         Changed(had and "membership" or nil)
@@ -2615,8 +1780,8 @@ local function Build()
     local copy = W.CreateButton(btnRow, L["Copy to other specializations"], "normal", 130, 22)
     W.FitButton(copy, 130, 22)
     copy:SetScript("OnClick", function()
-        if not cur then return end
-        Pop.AskCopy(cur.id)
+        if not Pop.cur then return end
+        Pop.AskCopy(Pop.cur.id)
     end)
     frame.removeBtn, frame.restoreBtn, frame.copyBtn, frame.btnRow = remove, restore, copy, btnRow
     AddRow({ frame = btnRow, h = 22 + 6, buttons = true, tab = "all" })
@@ -2626,7 +1791,7 @@ local function Build()
         for _, row in ipairs(rows) do
             if row.remeasure then row.remeasure() end
         end
-        if cur then Layout(frame.kind, frame.soundClass) end
+        if Pop.cur then Layout(frame.kind, frame.soundClass) end
     end)
 
     -- 層數換色的彈窗跟著這個面板走（它改的是這一格）
@@ -2723,6 +1888,7 @@ Layout = function(kind, class)
     P.Height(frame, math.min(headH + contentH, math.max(headH + 120, maxH)))
     Pop.ScrollTo(scroll:GetVerticalScroll() or 0)
 end
+Pop.Layout = Layout
 
 -- 捲到 v（夾在範圍內）並更新右緣的細線；內容放得下時歸零、細線收掉
 function Pop.ScrollTo(v)
@@ -2748,7 +1914,7 @@ local function BarItems(id)
     local p = ns.profile
     local ringOK = ns.Catalog.RingAccepts(id)
     local function Listed(k)
-        return ringOK or not ns.DB.BarIsRings(k) or (cur ~= nil and cur.key == k)
+        return ringOK or not ns.DB.BarIsRings(k) or (Pop.cur ~= nil and Pop.cur.key == k)
     end
     if ns.Catalog.IsCustom(id) then
         for _, k in ipairs(p and p.barOrder or {}) do
@@ -2799,8 +1965,8 @@ local KIND_TEXT = {
 }
 
 function Pop.Refresh()
-    if not (frame and cur) then return end
-    local key, id = cur.key, cur.id
+    if not (frame and Pop.cur) then return end
+    local key, id = Pop.cur.key, Pop.cur.id
     local info = ns.Catalog.Info(id)
     -- 自訂項目在這個專精不見了（刪掉、勾了「未學會時不顯示」而這裡沒學、被窄層蓋掉）：面板跟著關
     if not info and ns.Catalog.IsCustom(id) then frame:Hide() return end
@@ -2989,7 +2155,7 @@ function Pop.Refresh()
         end
     end
     -- 拉桿與數字框看不出有沒有覆寫：這一頁的標籤沒覆寫（跟隨條）時變暗
-    RefreshLabelTab()                   -- 自訂文字（M）
+    Pop.RefreshLabelTab()               -- 自訂文字（M）
     for _, tl in ipairs(textLabels) do
         local own = false
         for _, f in ipairs(tl.fields) do
@@ -3157,20 +2323,20 @@ function Pop.NarrowScopeText(old, newScope)
 end
 
 function Pop.SetScope(newScope)
-    if not cur then return end
-    local id = cur.id
+    if not Pop.cur then return end
+    local id = Pop.cur.id
     local old = ns.DB.ParseCustomID(id)
     if not old or old == newScope then return end
     local RANK = ns.DB.SCOPE_RANK
     local function Do()
-        if not cur or cur.id ~= id then return end
+        if not Pop.cur or Pop.cur.id ~= id then return end
         local nid, why = ns.DB.MoveCustomScope(id, newScope)
         if not nid then
             if why == "exists" then ns.Picker.Notice(L["That scope already has it."]) end
             Pop.Refresh()
             return
         end
-        cur.id = nid
+        Pop.cur.id = nid
         -- 生效清單變了（窄蓋寬、沒學就不列的對象換了）：目錄簽章重算、每一條的預覽都重畫
         if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
         if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
@@ -3188,8 +2354,8 @@ function Pop.Open(key, id, cell)
     if id == nil then return end
     Build()
     if ns.Picker and ns.Picker.IsShown() then ns.Picker.Close() end
-    local same = cur and cur.key == key and cur.id == id
-    cur = { key = key, id = id }
+    local same = Pop.cur and Pop.cur.key == key and Pop.cur.id == id
+    Pop.cur = { key = key, id = id }
     if not same then scroll:SetVerticalScroll(0) end
     Pop.Refresh()
     frame:Show()
@@ -3203,140 +2369,6 @@ end
 
 function Pop.Close()
     if frame then frame:Hide() end
-end
-
-------------------------------------------------------------
--- 複製到其他專精（自訂項目）：每個其他專精一個勾選框，已有的勾著並停用、標「已有」；
--- 確定後逐個 DB.CopyCustomEntry（連同覆寫），彈窗關掉即可，不印聊天框
-------------------------------------------------------------
-local COPY_W = 320
-local copyPopup
-
-local function BuildCopyPopup()
-    local f = W.CreateFrame(nil, ns.Options.panel, COPY_W, 160)
-    f:SetFrameStrata("FULLSCREEN_DIALOG")
-    f:SetFrameLevel(410)
-    f:SetBackdropBorderColor(W.Accent(1))
-    f:SetPoint("CENTER")
-    W.CloseOnEscape(f)
-    f.title = f:CreateFontString(nil, "OVERLAY")
-    f.title:SetFontObject(W.fontNormal)
-    f.title:SetJustifyH("LEFT")
-    f.title:SetWordWrap(true)
-    f.title:SetWidth(COPY_W - PAD * 2)
-    f.title:SetPoint("TOPLEFT", PAD, -12)
-    f.note = Note(f)
-    f.note:SetWidth(COPY_W - PAD * 2)
-    f.note:SetWordWrap(true)
-    f.boxes = {}
-    f.ok = W.CreateButton(f, L["Copy"], "primary", 90, 22)
-    W.FitButton(f.ok, 90, 22)
-    f.cancel = W.CreateButton(f, L["Cancel"], "normal", 90, 22)
-    W.FitButton(f.cancel, 90, 22)
-    f.cancel:SetPoint("BOTTOMRIGHT", -PAD, 12)
-    f.ok:SetPoint("RIGHT", f.cancel, "LEFT", -6, 0)
-    f.cancel:SetScript("OnClick", function() f:Hide() end)
-    f.ok:SetScript("OnClick", function()
-        local id = f.id
-        for _, cb in ipairs(f.boxes) do
-            if cb:IsShown() and cb.specID and not cb.exists and cb:GetChecked() then
-                ns.DB.CopyCustomEntry(id, cb.specID)
-            end
-        end
-        f:Hide()
-    end)
-    f:Hide()
-    ns.RegisterCallback("OptionsHidden", "popover_copy", function() f:Hide() end)
-    ns.RegisterCallback("SpecChanged", "popover_copy", function() f:Hide() end)
-    ns.RegisterCallback("ProfileChanged", "popover_copy", function() f:Hide() end)
-    return f
-end
-
--- 「複製」只有在至少勾了一個還沒有的專精時能按
-local function SyncCopyOK(f)
-    local any = false
-    for _, cb in ipairs(f.boxes) do
-        if cb:IsShown() and not cb.exists and cb:GetChecked() then any = true break end
-    end
-    f.ok:SetEnabled(any)
-end
-
-local function CopyBox(f, i)
-    local cb = f.boxes[i]
-    if cb then return cb end
-    cb = W.CreateCheckButton(f, "", function() SyncCopyOK(f) end)
-    f.boxes[i] = cb
-    return cb
-end
-
-function Pop.AskCopy(id)
-    local e = ns.DB.CustomEntry(id)
-    if not e then return end
-    copyPopup = copyPopup or BuildCopyPopup()
-    local f = copyPopup
-    f.id = id
-    local info = ns.Catalog.Info(id)
-    f.title:SetText(L["Copy \"%s\" to these specializations:"]:format((info and info.name) or ("#" .. tostring(id))))
-    local y = -(12 + (f.title:GetStringHeight() or 14) + 10)
-    local n = 0
-    for _, spec in ipairs(ns.DB.ClassSpecs()) do
-        if spec.id ~= ns.specID then
-            n = n + 1
-            local cb = CopyBox(f, n)
-            local exists = ns.DB.FindCustomLike(e, spec.id) ~= nil
-            cb.specID, cb.exists = spec.id, exists
-            cb.label:SetText(exists and (spec.name .. "  " .. L["(already there)"]) or spec.name)
-            cb:SetHitRectInsets(0, -((cb.label:GetStringWidth() or 0) + 8), 0, 0)   -- 點標籤也能勾
-            cb:SetChecked(true)                      -- 已有的勾著（停用）；其餘預設勾，不要的自己取消
-            cb:SetEnabled(not exists)
-            cb:SetAlpha(exists and 0.5 or 1)
-            cb:ClearAllPoints()
-            cb:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
-            cb:Show()
-            y = y - 18 - 8
-        end
-    end
-    for i = n + 1, #f.boxes do f.boxes[i]:Hide() end
-    f.note:SetShown(n == 0)
-    if n == 0 then
-        f.note:SetText(L["Couldn't read your specializations."])
-        f.note:ClearAllPoints()
-        f.note:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, y)
-        y = y - (f.note:GetStringHeight() or 14) - 8
-    end
-    SyncCopyOK(f)
-    P.Height(f, -y + 22 + 12 + 6)
-    f:Show()
-end
-
-------------------------------------------------------------
--- 自訂圖示的輸入彈窗：圖示編號（貼圖檔案編號）；Shift 點法術書／天賦／背包裡的法術或物品 ⇒ 填它的圖示
--- （Picker.WatchInput 的 "icon" 模式，同一個連結掛勾）
-------------------------------------------------------------
-local iconPopup
-
-function Pop.AskIcon(id)
-    local Picker = ns.Picker
-    if not iconPopup then
-        iconPopup = W.CreateInputPopup(ns.Options.panel, Picker.INPUT_W, L["Custom icon"], {
-            { key = "id", label = L["Icon ID"], maxLetters = 10,
-              hint = L["The icon's file ID, from a database site. Or Shift-click a spell or an item in your spellbook, talents or bags to use its icon."] },
-        })
-        Picker.AddSpellsOpener(iconPopup)
-    end
-    Picker.SetInputError(iconPopup, nil)
-    Picker.WatchInput(iconPopup, "icon")
-    local now = ns.SpellSetting(nil, id, "customIcon")
-    iconPopup:Open({ id = ns.Decorate.ValidIcon(now) and tostring(now) or nil }, function(values)
-        local n = Picker.ParseID(values.id)
-        if not n then
-            Picker.SetInputError(iconPopup, L["Enter a number."])
-            return false
-        end
-        Picker.SetInputError(iconPopup, nil)
-        ns.DB.SetOverride(id, "customIcon", n)
-        if cur then Changed() end
-    end, L["Custom icon"])
 end
 
 -- 面板本體（還沒開過是 nil；離線測試讀按鈕的顯示狀態用）

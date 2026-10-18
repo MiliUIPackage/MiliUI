@@ -176,6 +176,7 @@ env.CreateFrame = env.CreateFrame or function()    -- DB.lua 載入時建一個�
     return { SetScript = function() end, RegisterEvent = function() end, UnregisterEvent = function() end }
 end
 LoadInto(here .. "/../Core/DB.lua")
+LoadInto(here .. "/../Core/DB_Custom.lua")
 LoadInto(PATH)
 local C = ns.Catalog
 

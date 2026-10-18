@@ -133,11 +133,13 @@ local function load(rel)
     chunk("MiliUI_CooldownManager", ns)
 end
 load("Core/DB.lua")
+load("Core/DB_Custom.lua")
 load("Core/Catalog.lua")
 load("Core/Overflow.lua")
 load("Core/MasqueShape.lua")
 load("Core/Layout.lua")
 load("Modules/Custom.lua")
+load("Modules/Custom_Aura.lua")
 load("Core/Text.lua")
 local RealText = ns.Text
 local DB, C, CU, Lay = ns.DB, ns.Catalog, ns.Custom, ns.Layout

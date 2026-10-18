@@ -259,6 +259,9 @@ local function Qualifies(child)
     if IsMapPin(name) then return false end
     if name:match("^MiliUIMinimap") then return false end
 
+    -- 套組自己的小地圖鈕（各插件的 Libs/MiliUIMinimapButton.lua）帶記號，直接認、不用猜
+    if child.miliuiMinimapButton == true then return true end
+
     -- LibDBIcon 的圖示有時是 Frame 不是 Button（函式庫版本差異）
     if child:IsObjectType("Button") then
         -- 尾巴是數字的多半是「同一個插件的第 N 個內部框」，不是主按鈕

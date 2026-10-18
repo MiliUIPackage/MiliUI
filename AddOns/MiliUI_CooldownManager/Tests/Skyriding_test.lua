@@ -123,6 +123,8 @@ local function Load(rel)
 end
 
 Load("Core/DB.lua")
+
+Load("Core/DB_Custom.lua")
 Load("Core/Layout.lua")
 Load("Core/Visibility.lua")
 Load("Modules/Skyriding.lua")

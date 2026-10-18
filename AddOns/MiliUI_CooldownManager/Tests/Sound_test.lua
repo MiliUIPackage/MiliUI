@@ -14,6 +14,7 @@
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local DB_PATH = here .. "/../Core/DB.lua"
+local DB_CUSTOM_PATH = here .. "/../Core/DB_Custom.lua"
 local SOUND_PATH = here .. "/../Core/Sound.lua"
 
 local unpack = table.unpack or unpack
@@ -122,6 +123,7 @@ local function Load(path)
     chunk("MiliUI_CooldownManager", ns)
 end
 Load(DB_PATH)
+Load(DB_CUSTOM_PATH)
 Load(SOUND_PATH)
 local DB, S = ns.DB, ns.Sound
 local Logic = S.Logic

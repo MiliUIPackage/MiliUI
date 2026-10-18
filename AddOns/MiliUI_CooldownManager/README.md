@@ -40,21 +40,28 @@
 另外內嵌三支通用函式庫 `LibStub`、`CallbackHandler-1.0`、`LibSharedMedia-3.0`（原封不動，TOC 最前面載入）：
 字型／材質／音效的名稱都走 LibSharedMedia，單獨安裝本插件時也要有它。
 
+超過 2500 行的檔案順著裡面的段落切成 `<原名>_<段落>.lua`（2026-10-18：`DB_Custom`、`Decorate_Bars／Rings／Tooltip`、
+`SpellPopover_Tabs／Popups`、`Resources_Defs／Rows`、`Custom_Aura`），TOC 緊接在原檔後面載入；切出去的那支跟原檔共用
+同一張模組表（`ns.DB`、`ns.Decorate`、`ns.SpellPopover`、`ns.Resources`、`ns.Custom`），跨檔用到的 local 升成那張表的欄位
+（原檔 `D.Plain = Plain` 這樣掛上去、新檔檔頭 `local Plain = D.Plain` 取回；原檔回頭叫新檔的一律寫 `D.ApplyRing(...)`，
+載入時還沒有）。會變的狀態（逐法術面板的 `Pop.cur`、`Pop.buildTab`，資源條的 `R.condCurveGen`）兩邊都直接讀寫表上的欄位。
+純搬家、不改行為；離線測試的 loader 照 TOC 順序補載新檔。
+
 | 位置 | 內容 |
 |---|---|
 | `Core/Init.lua` | 命名空間、`ns.Guard`（掛勾的 xpcall 包裝）、`ns.Defer`（下一幀）、`ns.Write`（容器層寫入的唯一出口：戰鬥中碰保護框就記帳、脫戰補做）、事件註冊表、互斥偵測、登入流程 |
-| `Core/DB.lua` | 預設值（套組現值）、遷移鏈、設定檔／專精綁定、`ns.Setting`／`ns.SpellSetting` |
+| `Core/DB.lua`、`Core/DB_Custom.lua` | 預設值（套組現值）、遷移鏈、設定檔／專精綁定、`ns.Setting`／`ns.SpellSetting`；自訂項目的資料層（四層範圍、生效清單、新增／刪除／搬層／複製到其他專精）在 `DB_Custom.lua` |
 | `Core/Import.lua` | 從 `Ayije_CDM` 匯入：純函式 `Convert`（對方的一份設定檔 → 本插件的一份）、互斥彈窗的匯入流程 `FromAyije`、別的專精的 spellID 等目錄建好再對表（`ResolvePending`，`Core/Catalog.lua` 叫），見「從 Ayije_CDM 匯入」 |
 | `Core/Media.lua` | 字型／材質 token → 路徑（名稱問 LibSharedMedia） |
 | `Media/Sounds/` | 內建音效 106 個＋`Sounds.lua`（載入時註冊進 LibSharedMedia，別的插件的音效下拉也選得到）。**這個資料夾是 GPL-2.0**，出處與授權見裡面的 `README.md`、`LICENSE`；跟本體其餘程式分開，本體的程式不要搬進去、裡面的東西也不要搬出來混用 |
 | `Core/Style.lua` | HUD 皮數值與職業色強調色 |
 | `Options/` | 700×520 設定視窗、左欄導覽、條頁／主題頁／設定檔頁、預覽、逐法術面板、點擊層、暴雪選項入口頁、小地圖按鈕（見「設定介面」） |
-| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Cursor.lua`、`Core/Glow.lua`、`Core/StackGate.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua` | 引擎，見下一節 |
+| `Core/Catalog.lua` ～ `Core/Visibility.lua`、`Core/Cursor.lua`、`Core/Glow.lua`、`Core/StackGate.lua`、`Core/Keybinds.lua`、`Core/Assist.lua`、`Modules/Custom.lua`、`Modules/Custom_Aura.lua` | 引擎，見下一節 |
 | `Core/Presets.lua` | 挑選器「常用預設」的資料（種族技能、防禦技能、藥水與治療石、團隊增益）＋純函式，**每季要對一次**，見「常用預設＋複製到其他專精」 |
 | `Core/MasqueShape.lua` | 從我們交給 Masque 的框讀回皮套上的形狀（圖示矩形、遮罩、皮外框），光環格與按鍵鏡射的閃光共用 |
 | `Core/Masque.lua` | 圖示外觀＝Masque：登入時的模式快照、單一 Masque 群組、交格子／重套皮（見「圖示外觀：Masque」） |
 | `Core/Shape.lua` | 內建圖示形狀（方／圓角／圓）＋陰影：遮罩、邊框襯底、陰影的畫法與幾何（見「圖示形狀與陰影」） |
-| `Modules/Resources.lua`、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
+| `Modules/Resources.lua`（＋`Resources_Defs.lua` 資源定義表與純函式、`Resources_Rows.lua` 一列的更新：符文／氣漩摺疊／精華回充／征戰聖擊鏡射／血量與門檻曲線／條件色曲線）、`Modules/Pips.lua`、`Modules/AuraBar.lua`、`Modules/ResourceConditions.lua`、`Modules/Castbar.lua`、`Modules/Interrupt.lua` | 資源條、自訂格子、引擎寫層數與剩餘時間的光環條（AuraContainer ＋ SetApplicationBar／SetDurationBar／SetDurationText）、條件規則求值（純邏輯）、玩家施法條、斷法就緒，見「資源條與施法條」 |
 | `Modules/AssistIcon.lua` | 下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Modules/FocusCastbar.lua` | 專注目標施法條（面板 `focuscast`，2026-10-15），見「專注目標施法條」 |
 | `Modules/Skyriding.lua`、`Options/Tab_Skyriding.lua`、`Options/SkyridingSettings.lua` | 天空騎術的四列（速度條、旋轉急衝、活力、重新振作）＋旋轉急衝圖示（面板 `skyriding`；接力／獨立擺放、藏起冷卻管理器、每列一個設定視窗），見「天空騎術」 |
@@ -83,7 +90,7 @@
 | `Core/Viewers.lua` | 四條暴雪檢視器的後掛勾與 item 追蹤（弱鍵表 `frames[item]`）。登入退避重試等檢視器與 `CooldownViewerSettings`；戰鬥外一次把 `cooldownViewerEnabled` 打開；item 的縮放鎖 1。取出（`Track`）**不清樣式簽章**，只標 `rec.reacquired`（`CHEAP_REACQUIRE`，見「進場、換專精」） |
 | `Core/Bars.lua` | 一條一個容器 `MiliUICDM_Bar_<key>`，錨定（pos 或錨在別條上；實際貼在誰身上由排開決定，一條變了整疊兩段式重貼）、重排排程、停放、固定格位的占位貼圖、把暴雪檢視器本體釘在容器上；`ReleaseAll` 全部還給暴雪 |
 | `Core/SpellIndex.lua` | 法術 → 格子的索引（明文 spellID → 認領中的暴雪 item／放好的自訂法術；目錄變了當場重建，`Bars` 排版結尾只在認領變了（`Bars.claimsChanged`）或 `SI.dirty`（目錄重建、收養、自訂法術換覆寫）時重建），與「這次 `SPELL_UPDATE_COOLDOWN` 只要重算哪幾格」的判斷（純函式 `Classify`／`ClassifyGCD`；讀不懂一律全掃）。**`SPELL_UPDATE_COOLDOWN` 唯一的處理器**在這裡：分類一次、合併、延一幀交給消費者（`SI.Subscribe`：Decorate、Custom），全部消費者都沒事做（`wants`）時連分類都不做，見「冷卻狀態效果」 |
-| `Core/Decorate.lua` | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過；簽章之前先比**前置鍵**（八個純量，見「設定讀取的 memo 與前置鍵」），八欄全等連 `SpellStyle`／簽章都不算；剛重新取出而簽章（或前置鍵）相同 ⇒ `Reattach` 只補暴雪取出時會重設的那一樣（倒數數字開關）。`SetCooldown` 後掛勾的倒數色＋formatter 照「樣式那包＋哪一段」去重，轉圈色與邊緣暴雪每次都重寫、照舊每次蓋 |
+| `Core/Decorate.lua`（＋`Decorate_Bars.lua` 長條的名字與版面／暴雪樣式／漸層、`Decorate_Rings.lua` 圓環顯示、`Decorate_Tooltip.lua` 滑鼠提示） | 邊框（自己的 overlay 框上）、圖示縮放、轉圈色、GCD 轉圈、去飽和、長條外觀、冷卻狀態效果（暴雪 item 的 alpha 唯一出口 `ApplyItemAlpha`）；每 item 一個簽章，同簽章跳過；簽章之前先比**前置鍵**（八個純量，見「設定讀取的 memo 與前置鍵」），八欄全等連 `SpellStyle`／簽章都不算；剛重新取出而簽章（或前置鍵）相同 ⇒ `Reattach` 只補暴雪取出時會重設的那一樣（倒數數字開關）。`SetCooldown` 後掛勾的倒數色＋formatter 照「樣式那包＋哪一段」去重，轉圈色與邊緣暴雪每次都重寫、照舊每次蓋 |
 | `Core/Text.lua` | 倒數／充能／層數：改暴雪自己那幾顆 FontString 的樣式，從不寫字（為什麼見檔頭）。字型分兩層：通用字型（`font`，主題／條）＋每段文字自己的 `font`（倒數、充能、層數、按鍵文字、長條的 `bar.nameFont／timeFont`、施法條 `castbar.font`、資源條與自訂格子 `resources.textFont`），值 `"INHERIT"`／沒存＝跟隨通用字型（`ns.Media.ElementFont`） |
 | `Core/Visibility.lua` | 顯示條件與淡出，一律 `SetAlpha`；容器與每個認領中的 item 一起套（自訂項目的框是容器的子框，跟著容器的 alpha）。判斷快照（`Snapshot`）一輪只建一次往下傳；`Refresh` 只套容器、`Apply` 再加 item、`ApplyPanels` 只套面板。條件模型見「顯示條件」 |
 | `Core/Glow.lua` | 觸發發光接管（`ActionButtonSpellAlertManager` 後掛勾）、就緒發光（探針）、無損刷新邊框色；發光一律畫在 overlay 底下自己的宿主框上。無損刷新的兩支後掛勾是「本體一律 `ns.Guard`」的唯一例外（每幀叫，無事路徑只查表＋比布林；狀態變了才進 Guard） |
@@ -93,7 +100,7 @@
 | `Core/Assist.lua` | 戰鬥輔助：自己輪詢下一招建議（`C_AssistedCombat.GetNextCastSpell`），醒目標示畫在索引查到的格子上；建議變了廣播 `AssistSpellChanged`（見「戰鬥輔助」） |
 | `Core/Cursor.lua` | 跟著游標的自訂圖示群組：資格判斷、共用 driver 框的 OnUpdate（只在有這種條而且看得到時掛），見「小項」 |
 | `Core/Clickable.lua` | 可點擊的自訂圖示群組：每格蓋一顆透明的 secure 鈕（屬性戰鬥外寫好、寫入走 `ns.Write`＋簽章去重），見「可點擊的自訂群組」 |
-| `Modules/Custom.lua` | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；放在長條類的條上時換成長條框／長條版的光環按鈕；每一格都是 Bars 的一個 entry。冷卻／數量／可用／距離事件依生效清單動態註冊（`CU.SyncEvents`，沒有非光環項目就一個都不聽）；`SPELL_UPDATE_USABLE` 只重算顏色（`rec.colorDirty`） |
+| `Modules/Custom.lua`（＋`Custom_Aura.lua`：光環格的持有框／容器／按鈕樣式、飾品欄增益、光環格的 Masque、引擎補位） | 自訂項目：光環格（持有框＋AuraContainer）、自訂法術／物品的圖示框；放在長條類的條上時換成長條框／長條版的光環按鈕；每一格都是 Bars 的一個 entry。冷卻／數量／可用／距離事件依生效清單動態註冊（`CU.SyncEvents`，沒有非光環項目就一個都不聽）；`SPELL_UPDATE_USABLE` 只重算顏色（`rec.colorDirty`） |
 
 登入流程：`PLAYER_LOGIN` → DB → `Loaded` → Catalog → Viewers → Custom → Glow → Sound → Keybinds → Bars
 → Interrupt → Resources → Pips → Castbar → FocusCastbar → Assist → AssistIcon → Skyriding → Visibility → Cursor（`Core/Init.lua` 的 `ns.StartEngine`）。
@@ -283,7 +290,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Options/Tab_Bar.lua` | 一條一頁（四條檢視器與自訂群組共用）：標題列、預覽、說明、表單；開暴雪面板 |
 | `Options/Preview.lua` | 預覽即編輯器（見下） |
 | `Options/Picker.lua` | 預覽最右邊「＋」的挑選器；自訂項目的「適用範圍」下拉列（`Picker.ScopeRow`，新增彈窗與逐法術面板共用文字） |
-| `Options/SpellPopover.lua` | 逐法術面板（自訂項目多「適用範圍」與「未學會時不顯示」） |
+| `Options/SpellPopover.lua`（＋`SpellPopover_Tabs.lua` 音效分頁的三件／沸點／自訂文字／文字分頁、`SpellPopover_Popups.lua` 複製到其他專精與自訂圖示彈窗） | 逐法術面板（自訂項目多「適用範圍」與「未學會時不顯示」）；目前那一格是 `Pop.cur`、建列時的分頁游標 `Pop.buildTab／buildSub／buildGroup`（三支共用） |
 | `Options/Tab_Theme.lua` | 全域主題（跟條頁同一支 builder） |
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
 | `Options/Tab_Resources.lua`、`Options/ResourceSettings.lua`、`Options/ResourceConditions.lua`、`Options/HealthThresholds.lua`、`Options/ResourcePreview.lua` | 資源條頁、每種資源自己的設定視窗（頁上每列「設定…」開的）、視窗裡的條件規則編輯器、血量門檻彈窗、自訂格子／自訂列分頁上方的預覽框 |
@@ -1702,7 +1709,7 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
   停放中照樣響（`Tests/Sound_test.lua` 有釘）。發光、層數門檻、冷卻狀態等畫面效果沒有（沒放格就不會接上）。
 - **設定頁**：逐法術小窗「一般」分頁最上面一列勾選框「不顯示（只給其他插件讀取）」＋下一列灰字（`CanHide` 成立才出現）；取消勾選＝清掉覆寫，
   右鍵標籤清。勾著時**文字／外觀／發光／自訂文字四個分頁鈕停用**（`Pop.HIDE_VISUAL_TABS`，停在那幾頁的跳回一般）、
-  一般分頁的「增益不在時」下拉停用；所在條、天賦條件、音效分頁照常（helper 都掛在 `Pop` 上：`Build` 的 upvalue 在 60 上限）。
+  一般分頁的「增益不在時」下拉停用；所在條、天賦條件、音效分頁照常（helper 都掛在 `Pop` 上：`Build` 的 upvalue 一度貼 60 上限，2026-10-18 切檔後 56）。
 - **預覽**：照樣列（點得到才取消得了），畫暗（0.35，同其他暗格）＋**左上角**「眼睛劃一撇」（`Media/hidden.png`，
   同範圍記號的框：10×10 黑底、內縮 1px、8×8 圖案、染灰白；右上角是範圍記號）＋提示一行。圖是
   `.claude/skills/miliui-cdm-scope-icons` 的腳本畫的（直接畫在 8×8 格子上，超取樣縮到 8px 會糊成棋盤格）。
@@ -3051,7 +3058,7 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
      沒有用具名表或尾端追加（尾端是 `resolve`，插在中間才跟 `SCOPE_ORDER` 對得上）。
 155. **寬層判斷抽成 `DB.IsWideScope(scope)`**：原本散在 DB／Catalog／Preview／SpellPopover 的 `scope == "class" or scope == "shared"` 全部換掉，再加一層不用逐處改。
 156. **角色 → 專精的確認字另寫一句**（交辦只給了往角色層搬的字）：專精層是同設定檔、同專精的角色共用，照「其他角色不再顯示」的舊字寫會說錯。
-     確認字挑選抽成 `Pop.NarrowScopeText(old, new)`（掛在 `Pop.` 上，SpellPopover 的 Build upvalue 貼 60）。
+     確認字挑選抽成 `Pop.NarrowScopeText(old, new)`（掛在 `Pop.` 上，SpellPopover 的 Build upvalue 當時貼 60）。
 157. **角色名字讀不到 ⇒ 角色層不存在**（交辦沒寫）：`DB.CharKey()` 讀不到會回 `"? - ?"`，拿它當 key 會讓每隻讀不到名字的角色共用一格。
 158. **角色層的範圍記號是單一人像、白色**（`Media/scope-char.png`，同一支 Pillow 腳本多一個 `char()`）：職業層才染職業色；戰隊兩個人像 vs 角色一個人像在 8px 下差在輪廓寬度與右上那顆頭。
 159. **新增彈窗的預設範圍不變**（`PRESET_SCOPE`）：角色層只是多一個選項，沒有哪一種預設改成角色。

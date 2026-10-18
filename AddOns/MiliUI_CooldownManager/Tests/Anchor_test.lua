@@ -111,6 +111,8 @@ local function Load(rel)
 end
 
 Load("Core/DB.lua")
+
+Load("Core/DB_Custom.lua")
 Load("Core/Layout.lua")
 Load("Core/Anchor.lua")
 local A, DB = ns.Anchor, ns.DB

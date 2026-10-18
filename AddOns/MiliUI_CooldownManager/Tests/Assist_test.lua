@@ -141,6 +141,8 @@ local function Load(rel)
 end
 
 Load("Core/DB.lua")
+
+Load("Core/DB_Custom.lua")
 Load("Core/Visibility.lua")
 local DB, Vis = ns.DB, ns.Visibility
 

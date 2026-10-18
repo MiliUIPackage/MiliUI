@@ -11,6 +11,7 @@
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local DB_PATH = here .. "/../Core/DB.lua"
+local DB_CUSTOM_PATH = here .. "/../Core/DB_Custom.lua"
 
 local passed, failed = 0, 0
 local function check(name, cond, detail)
@@ -68,15 +69,19 @@ local ns = {
 }
 function ns.RefreshSpec() ns.specIndex = 1; ns.specID = 61 end
 
-local chunk, err
-if setfenv then
-    chunk, err = loadfile(DB_PATH)
-    if chunk then setfenv(chunk, env) end
-else
-    chunk, err = loadfile(DB_PATH, "t", env)
+local function Load(path)
+    local chunk, err
+    if setfenv then
+        chunk, err = loadfile(path)
+        if chunk then setfenv(chunk, env) end
+    else
+        chunk, err = loadfile(path, "t", env)
+    end
+    assert(chunk, err)
+    chunk("MiliUI_CooldownManager", ns)
 end
-assert(chunk, err)
-chunk("MiliUI_CooldownManager", ns)
+Load(DB_PATH)
+Load(DB_CUSTOM_PATH)
 local DB = ns.DB
 ns.RefreshSpec()
 DB.Init()

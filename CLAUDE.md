@@ -52,7 +52,7 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
 
 - **`.toc` 的 Interface 版本號不要手改**，用 `wow-toc-interface-bump` 技能的腳本。
   正式服是 6 位數、經典服是 5 位數，手改很容易把多版本相容的插件弄壞。
-- **改共用層（`Libs/MiliUIWidgets/`，以及單檔 vendor 的 `MiliUIGlow`／`MiliUISnap`／`MiliUIStats`／`MiliUIDB`／`Callbacks.lua`）只改本體那一份**，然後跑
+- **改共用層（`Libs/MiliUIWidgets/`，以及單檔 vendor 的 `MiliUIGlow`／`MiliUISnap`／`MiliUIStats`／`MiliUIDB`／`MiliUIEditMode`／`MiliUIMinimapButton`／`Callbacks.lua`）只改本體那一份**，然後跑
   `python3 .claude/scripts/sync-widgets.py` 同步到各消費者（二十來份，以 `ls -d AddOns/*/Libs/MiliUIWidgets` 為準）。那是 vendor 複製不是
   函式庫，改錯地方會被下次同步蓋掉。⚠ 共用層的語系契約只有四個 key
   （`Apply`／`Okay`／`Cancel`／`Can't change settings during combat`），**不要擴充** ——
