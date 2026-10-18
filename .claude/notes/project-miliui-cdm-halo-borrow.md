@@ -27,10 +27,12 @@ Halo 就是 YUI 的 YHUD 拆出來的（本機 `tmp/YUI_Halo`，不在 repo；TO
   提供者 MiliUI → EllesmereUI → ElvUI → MSUF（575478222）→ 暴雪，第一個存在的贏；「框存在」只看 `_G[name]` 能當錨點、不讀位置／可見度（藏著的目標框照樣錨得上）。
   保護只從保護框傳給它的父層與它錨著的框；**我們錨到 secure 單位框上不會變保護框**（wiki IsProtected；反方向要留意：有光環格／可點擊的條去錨一個非保護的外部框，那個框會被連坐）。
 
-**順手抓到的兩個 Lua 上限**：
-- `Options/SpellPopover.lua` 的 `Build()` upvalue 貼著 Lua 5.1 的 60 上限（2026-10-14 `luac -l` 數：**正好 60**），別條線加一個 local 就變 61 ⇒
-  整檔載入失敗、逐法術小窗打不開（本機 luac 是 5.5 不會報，只有 check-all 的 upvalue 檢查抓得到）。新 helper 掛 `Pop.xxx`。
-- `Modules/Resources.lua` 主 chunk 的 local 貼著 200 上限（加 5 個就 `too many local variables`），新 helper 掛 `R.xxx` 或收進 `do` 區塊。
+**順手抓到的兩個 Lua 上限**（2026-10-18 切檔後都鬆了，規矩照舊）：
+- `Options/SpellPopover.lua` 的 `Build()` upvalue 曾貼著 Lua 5.1 的 60 上限（2026-10-14 `luac -l` 數：正好 60），別條線加一個 local 就變 61 ⇒
+  整檔載入失敗、逐法術小窗打不開（本機 luac 是 5.5 不會報，只有 check-all 的 upvalue 檢查抓得到）。2026-10-18 切出 `SpellPopover_Tabs／Popups.lua`、
+  `cur`／`buildTab` 改成 `Pop` 欄位後 **57（5.1 算法 56）**。新 helper 照舊掛 `Pop.xxx`。
+- `Modules/Resources.lua` 主 chunk 的 local 曾貼著 200 上限（10-18 量：餘裕 0），2026-10-18 切出 `Resources_Defs／Rows.lua` 後**餘裕 86**。
+  新 helper 照舊掛 `R.xxx` 或收進 `do` 區塊（Rows 餘裕 126、Defs 163）。
 同類：[[project-cell-unitbutton-local-ceiling]]。
 
 **同一天另一個邊界**：連續資源條秘密值時的條件規則（20b15d1bd、eb91a4921，玩家回報後修 ⇒ 已上實機）：填充／背景（bgColor ＞ 自訂底色 ＞ 填充 × 0.25，alpha 建曲線時乘進去）／
