@@ -491,6 +491,8 @@ local function HideCells(row, from)
         local cell = row.cells[i]
         if cell.cd then cell.cd:Clear() end
         cell:Hide()
+        -- 陰影框掛在列上（層級＝列 − 1），格子藏了它不會跟著藏
+        if ns.Shape then ns.Shape.HideEdgeShadow(cell) end
     end
 end
 
@@ -511,7 +513,7 @@ local function LayoutStackEngine(row, plan, style, W, H, gap, r, g, b, alpha, re
     local geom = {
         W = W, H = H, n = n, gap = gap, segW = (W - gap * (n - 1)) / n, reversed = reversed, segments = true,
         dim = ns.Resources.DimArray(style), px = R.DecorPx(style), edge = R.EdgeArray(style),
-        bgTex = ns.Resources.BgTexture(style),
+        bgTex = ns.Resources.BgTexture(style), shadow = R.ShadowArray(style),
     }
     local inside = plan.showWhen == "active"
     -- 透明格距：格距 > 0 時填色貼圖掛遮罩把格距挖掉（AuraBar.MaskPlan），裝飾就不畫分隔
@@ -572,6 +574,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
     local fmt = ns.Text and ns.Text.PlainFormatter and ns.Text.PlainFormatter(0)
     -- 邊框粗細／顏色照資源條的全域外觀（自訂格子沒有逐列外觀）
     local bt, bc = R.BorderSize(style), R.BorderColor(style)
+    local spx, sa = R.ShadowOf(style)        -- 邊緣陰影：每格一圈，陰影框是列的子框（層級＝列 − 1）
     for i = 1, numSeg do
         local cell = row.cells[i]
         if not cell then
@@ -580,6 +583,7 @@ local function LayoutCustomRow(row, plan, style, W, H)
         end
         local x, segW = R.SegCell(W, numSeg, style.segmentSpacing, i, bt)
         R.PaintEdges(cell.edges, bt, bc)
+        if ns.Shape then ns.Shape.EdgeShadow(row, cell, spx, sa) end
         cell:SetSize(segW, H)
         cell:ClearAllPoints()
         if reversed then

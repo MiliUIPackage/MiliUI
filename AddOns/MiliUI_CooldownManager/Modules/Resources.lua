@@ -671,6 +671,21 @@ function R.EdgeArray(cfg)
     return { c.r or 0, c.g or 0, c.b or 0, c.a or 1 }
 end
 
+-- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow）：資源條外觀的三鍵 shadow／shadowSize／shadowAlpha
+-- （每種資源可在自己的外觀裡蓋，R.StyleFor 的代理表）→ 粗細（實體像素）, 透明度 | nil（關／壞資料）。
+-- 自訂格子、自訂列、觸發牌堆列、天空騎術都照資源條的全域這三個
+function R.ShadowOf(cfg)
+    if type(cfg) ~= "table" or not ns.Shape then return nil end
+    return ns.Shape.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
+end
+
+-- 給 AuraBar 裝飾（geom.shadow）：{ px, alpha } | nil
+function R.ShadowArray(cfg)
+    local px, a = R.ShadowOf(cfg)
+    if not px then return nil end
+    return { px = px, alpha = a }
+end
+
 -- 一格一個框的分段（點數型、自訂格子）：第 i 格的 x 與寬（從填充起點量）。
 -- 整列先換成整數實體像素再切：每格的左右邊界各自四捨五入，零頭平均分到各格，最後一格的右緣一定落在 W 上。
 -- ⚠ 不能「格寬先對齊像素、再乘 n」：每格的捨入誤差會累積，6 格的符文列比同寬的符能條多出 2px
@@ -907,7 +922,7 @@ R.RowHeight = RowHeight
 -- 每種資源自己的外觀（resources.style[key]；設定頁每一列「設定…」視窗裡那一節，Options/ResourceSettings.lua）
 --
 --   style[key] = { follow = true|false, texture, bgTexture, barAlpha, bgAlpha, bgCustom, bgColor, smooth, showText,
---                  textFont, textSize, textOutline, borderSize, borderColor }
+--                  textFont, textSize, textOutline, borderSize, borderColor, shadow, shadowSize, shadowAlpha }
 --   follow 沒存 ＝ 跟（舊存檔沒有這張表 ⇒ 畫面一模一樣，不遷移）；跟著時其餘欄位不讀。
 --
 -- 不跟時，那一列的排版與更新（LayoutRow／UpdateRow 那一整串）讀 R.StyleFor 回的**代理表**：
@@ -919,7 +934,8 @@ R.RowHeight = RowHeight
 local STYLE_FIELDS = { texture = true, bgTexture = true, barAlpha = true, smooth = true,
                        showText = true, textFont = true, textSize = true, textOutline = true,
                        bgAlpha = true, bgCustom = true, bgColor = true,
-                       borderSize = true, borderColor = true }
+                       borderSize = true, borderColor = true,
+                       shadow = true, shadowSize = true, shadowAlpha = true }
 R.STYLE_FIELDS = STYLE_FIELDS
 
 local function OwnStyle(cfg, key)
@@ -1157,6 +1173,7 @@ local function LayoutAuraBar(row, key, def, cfg, numSeg, W, H, reversed, tex)
     local geom = {
         W = W, H = H, n = numSeg, gap = gap, segW = (W - gap * (numSeg - 1)) / numSeg, reversed = reversed,
         segments = true, dim = R.DimArray(cfg), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
+        shadow = R.ShadowArray(cfg),
         instances = def.instances and true or nil,     -- 一顆光環一格：裝飾跟引擎的等分排版對齊、不貼像素（AuraBar.LayoutDecor）
     }
     -- 透明格距：格距 > 0 時填色貼圖掛遮罩把格距挖掉（AuraBar.MaskPlan），裝飾就不畫分隔
@@ -1279,6 +1296,7 @@ local function LayoutAuraTimer(row, key, def, cfg, W, H, reversed, tex)
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
         dim = R.TimerBg(cfg, key, cc), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
+        shadow = R.ShadowArray(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     if def.castTimers and cfg.castTimers ~= false then
         LayoutTicks(row, W, H, reversed)
@@ -1323,6 +1341,7 @@ local function LayoutAuraPct(row, key, def, cfg, W, H, reversed, tex)
     ns.AuraBar.RowDecor(row, {
         W = W, H = H, n = 1, gap = 0, segW = W, reversed = reversed, segments = false,
         dim = R.TimerBg(cfg, key, cc), px = R.DecorPx(cfg), edge = R.EdgeArray(cfg), bgTex = R.BgTexture(cfg),
+        shadow = R.ShadowArray(cfg),
     }, (row:GetFrameLevel() or 1) + 8)
     return true
 end
@@ -1413,6 +1432,18 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     row.barBG:SetShown(isBar)
     row.bar:SetShown(isBar)
     if isBar then PaintEdges(row.barEdges, R.BorderSize(cfg), R.BorderColor(cfg)) end
+    -- 邊緣陰影（Core/Shape.lua）：條型整列一圈、點數型每格一圈；陰影框都是列的子框（層級＝列 − 1，壓在鄰列底下）。
+    -- 用不到的那幾圈這裡收掉（格子藏了，掛在列上的陰影不會跟著藏）；引擎列的陰影在 AuraBar 的裝飾裡
+    do
+        local SH = ns.Shape
+        if SH then
+            local spx, sa = R.ShadowOf(cfg)
+            SH.EdgeShadow(row, row, isBar and spx or nil, sa)
+            for i = 1, MAX_SEGMENTS do
+                SH.EdgeShadow(row, row.segs[i], (isPip and i <= numSeg) and spx or nil, sa)
+            end
+        end
+    end
     if mode ~= "absorbBar" then HideAbsorb(row) end
 
     LayoutFold(row, isPip and R.Folded(cfg, key) or false, numSeg, W, H, cfg, tex, reversed)

@@ -926,7 +926,10 @@ local function Look(rc, rcfg)
         bg = ns.Resources.BgTexture(rc)
     end
     local r, g, b, a = C4(rcfg.bgColor, DIM_D)
-    return { fill = fill, bg = bg, r = r, g = g, b = b, a = a }
+    -- 邊緣陰影（Core/Shape.lua）：照資源條的全域三鍵（天空騎術是資源條的接力）；sp nil ＝ 關
+    local sp, sa
+    if ns.Resources.ShadowOf then sp, sa = ns.Resources.ShadowOf(rc) end
+    return { fill = fill, bg = bg, r = r, g = g, b = b, a = a, sp = sp, sa = sa }
 end
 
 -- 文字：字型（INHERIT ＝ 主題的通用字型）、字級、描邊照主題、顏色、錨點＋位移
@@ -988,14 +991,20 @@ local function LayoutCells(f, n)
         c.bg:SetTexture(look.bg)
         c.bg:SetVertexColor(look.r, look.g, look.b, look.a)
         c:Show()
+        -- 每格一圈；陰影框是列的子框（層級＝列 − 1），格子藏了它不會跟著藏 ⇒ 下面那一段自己收
+        if ns.Shape then ns.Shape.EdgeShadow(f, c, look.sp, look.sa) end
     end
-    for i = n + 1, #f.cells do f.cells[i]:Hide() end
+    for i = n + 1, #f.cells do
+        f.cells[i]:Hide()
+        if ns.Shape then ns.Shape.HideEdgeShadow(f.cells[i]) end
+    end
     f.recharge:SetStatusBarTexture(look.fill)
 end
 
 local function LayoutBarRow(f, look)
     f.bg:SetTexture(look.bg)
     f.bg:SetVertexColor(look.r, look.g, look.b, look.a)
+    if ns.Shape then ns.Shape.EdgeShadow(f, f, look.sp, look.sa) end      -- 整列一圈（層級＝列 − 1）
 end
 
 local LAYOUT = {}
@@ -1063,6 +1072,11 @@ local function LayoutSurge(cfg)
     border = type(border) == "table" and border or {}
     local r, g, b, a = C4(border.color, { 0, 0, 0, 1 })
     ns.Decorate.LayoutBorder(surge.border, surge, tonumber(border.size) or 0, border.texture, r, g, b, a)
+    -- 邊緣陰影：邊框吃主題，陰影跟資源條（同列與格）
+    if ns.Shape and ns.Resources.ShadowOf then
+        local sp, sa = ns.Resources.ShadowOf(ns.DB.ConfigTable("resources"))
+        ns.Shape.EdgeShadow(surge, surge, sp, sa)
+    end
     if surge.cd and surge.cd.SetSwipeColor then
         surge.cd:SetSwipeColor(C4(ns.Setting("theme", "icon.swipeColor"), { 0, 0, 0, 0.8 }))
     end

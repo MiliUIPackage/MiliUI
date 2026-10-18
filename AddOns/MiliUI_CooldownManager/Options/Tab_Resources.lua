@@ -1024,6 +1024,14 @@ local function Controls(cand, sub)
         BS("slider", "borderSize", L["Border size"], { min = 0, max = 4, step = 1 }),
         BS("color", "borderColor", L["Border color"], { hasAlpha = true }),
         Note(L["0 removes the border. Custom segments use the same border."]),
+        -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow）：自訂格子、自訂列、觸發牌堆列、天空騎術也照這三個
+        BS("toggle", "shadow", L["Shadow"], { refreshPage = true }),
+        BS("slider", "shadowSize", L["Shadow size"], { min = 1, max = 8, step = 1,
+            disabled = function() local c = Cfg(); return not (c and c.shadow) end }),
+        BS("slider", "shadowAlpha", L["Shadow opacity"], { min = 10, max = 100, step = 5, scale = 100,
+            disabled = function() local c = Cfg(); return not (c and c.shadow) end }),
+        Note(L["The shadow is drawn outside the border and doesn't change the bar's size. Segmented bars get one shadow per segment."]),
+        Note(L["Custom segments, custom bars, proc decks and Skyriding use the same shadow."]),
         BS("toggle", "smooth", L["Smooth bar changes"]),
         BS("dropdown", "textFont", L["Font"], { items = ns.Specs.ElementFontItems,
             get = function() local c = Cfg(); return ns.Specs.InheritOr(c and c.textFont) end }),
@@ -1140,6 +1148,8 @@ function Tab.Build(parent, title)
         -- 觸發牌堆：每個牌堆的設定（疊在格子上的立刻重畫）與列的面板（吃這一頁的寬／材質／邊框／列距）
         if ns.ProcDeck then ns.ProcDeck.Apply() end
         if ns.ProcDeckRows then ns.ProcDeckRows.Apply() end
+        -- 天空騎術：材質跟隨（INHERIT）與邊緣陰影都讀這一頁的全域外觀 ⇒ 只重排外觀（不動結構、位置）
+        if ns.Skyriding and ns.Skyriding.Layout then ns.Skyriding.Layout() end
         -- 外觀、恢復預設（顏色可能一起變）：跟隨我們顏色的插件重畫，合併節流
         if ns.NotifyResourceStyle then ns.NotifyResourceStyle() end
         if ns.EditMode and ns.EditMode.Editing() and ns.EditMode.RequestRefresh then ns.EditMode.RequestRefresh() end

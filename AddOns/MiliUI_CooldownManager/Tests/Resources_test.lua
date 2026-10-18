@@ -29,6 +29,8 @@
 --      GcdFormatter 的分段）、分專精開關（SetRow／SpecCandidates／MigrateFlatRows／設定遷移 v3）
 --  13. 每種資源自己的外觀（R.StyleFor 代理表：跟／不跟、退回全域、非外觀欄位照讀、唯讀、不可遍歷、
 --      快取在 R.Apply 後作廢）、預設 style 空表、DefaultFor 回 nil
+--  15. 長條的邊緣陰影：R.ShadowOf／ShadowArray（預設關、每種資源蓋全域、壞資料）、外觀欄位，
+--      AuraBar 裝飾的陰影池（n 格 ⇒ n 圈、格距 0／單格 ⇒ 1 圈、l／r 延伸、關掉與 HideRowDecor 全藏、inside 進簽章）
 --  14. 資源列獨立擺放：IsDetached、"res:" 前綴與 ConfigTable（讀取不建表）、EnsureDetached 的預設、DetachedKeys、
 --      DefaultFor、錨定成環、刪條清錨定、MainRows（全不拆／拆中間一列往上補／拆第一列／全部拆走／scratch）
 ------------------------------------------------------------
@@ -1093,6 +1095,96 @@ do
     eq("逐資源：跟 ⇒ 全域粗細", R.BorderSize(R.StyleFor(cfgB, "ComboPoints")), 1)
     eq("逐資源：沒有自己的表 ⇒ 全域", R.BorderSize(R.StyleFor(cfgB, "Chi")), 1)
     R.InvalidateStyles()
+end
+
+-- 15. 長條的邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow；R.ShadowOf、AuraBar 裝飾的 d.shadows 池）
+Load("Core/Shape.lua")
+do
+    local d = ns.DB.BuildDefaults().profile.resources
+    check("陰影：預設關、3 像素、0.6", d.shadow == false and d.shadowSize == 3 and d.shadowAlpha == 0.6)
+    eq("陰影：預設 ⇒ nil", R.ShadowOf(d), nil)
+    eq("陰影：nil 設定表 ⇒ nil", R.ShadowOf(nil), nil)
+    eq("陰影：舊存檔沒有這三欄 ⇒ 關", R.ShadowOf({ borderSize = 1 }), nil)
+    local px, a = R.ShadowOf({ shadow = true })
+    check("陰影：開、沒存粗細與透明度 ⇒ 3／0.6", px == 3 and a == 0.6)
+    eq("陰影：粗細夾 8", (R.ShadowOf({ shadow = true, shadowSize = 30 })), 8)
+    eq("陰影：粗細壞資料 ⇒ 3", (R.ShadowOf({ shadow = true, shadowSize = {} })), 3)
+    eq("陰影：透明度 0 ⇒ 不畫", R.ShadowOf({ shadow = true, shadowAlpha = 0 }), nil)
+    local arr = R.ShadowArray({ shadow = true, shadowSize = 5, shadowAlpha = 0.4 })
+    check("ShadowArray：{ px, alpha }", arr and arr.px == 5 and arr.alpha == 0.4)
+    eq("ShadowArray：關 ⇒ nil", R.ShadowArray({ shadow = false }), nil)
+    check("陰影是外觀欄位（可逐資源覆寫）", R.STYLE_FIELDS.shadow and R.STYLE_FIELDS.shadowSize and R.STYLE_FIELDS.shadowAlpha)
+    local cfgS = { shadow = false, shadowSize = 3, shadowAlpha = 0.6,
+                   style = { HolyPower = { follow = false, shadow = true, shadowSize = 6 },
+                             ComboPoints = { follow = true, shadow = true } } }
+    R.InvalidateStyles()
+    local hp, ha = R.ShadowOf(R.StyleFor(cfgS, "HolyPower"))
+    check("逐資源：不跟 ⇒ 自己開、自己的粗細、透明度退回全域", hp == 6 and ha == 0.6)
+    eq("逐資源：跟 ⇒ 全域（關）", R.ShadowOf(R.StyleFor(cfgS, "ComboPoints")), nil)
+    eq("逐資源：沒有自己的表 ⇒ 全域", R.ShadowOf(R.StyleFor(cfgS, "Chi")), nil)
+    R.InvalidateStyles()
+
+    -- AuraBar 裝飾的陰影池：假框（記顯示狀態與錨點）
+    local savedCF, savedP = env.CreateFrame, ns.P
+    ns.P = { Scale = function(v) return v end, Pixel = function(v) return v end }
+    local function Fake(parent, level)
+        local o = { parent = parent, level = level or 1, shown = true, points = {} }
+        local noop = function() end
+        for _, m in ipairs({ "SetTexture", "SetTexCoord", "SetVertexColor", "SetSnapToPixelGrid", "SetTexelSnappingBias",
+                             "SetAllPoints" }) do o[m] = noop end
+        function o:GetFrameLevel() return self.level end
+        function o:SetFrameLevel(v) self.level = v end
+        function o:Show() self.shown = true end
+        function o:Hide() self.shown = false end
+        function o:ClearAllPoints() self.points = {} end
+        function o:SetPoint(...) self.points[#self.points + 1] = { ... } end
+        function o:SetSize(w, h) self.w, self.h = w, h end
+        function o:CreateTexture() return Fake(self) end
+        return o
+    end
+    env.CreateFrame = function(_, _, parent) return Fake(parent, (parent and parent.level or 0) + 1) end
+    local row = Fake(nil, 10)
+    local base = { W = 100, H = 10, n = 4, gap = 2, segW = 23.5, segments = true, dim = { 0, 0, 0, 1 }, px = 1,
+                   edge = { 0, 0, 0, 1 }, shadow = { px = 3, alpha = 0.6 } }
+    local function shownShadows(dd)
+        local n = 0
+        for _, sh in ipairs(dd.shadows) do if sh.frame.shown then n = n + 1 end end
+        return n
+    end
+    local dd = AB.RowDecor(row, base, 18)
+    eq("裝飾陰影：4 格 ⇒ 4 圈", shownShadows(dd), 4)
+    check("裝飾陰影：每圈錨在那一格的暗底上", dd.shadows[2].frame.points[1][2] == dd.bgs[2])
+    eq("裝飾陰影：層級 ＝ 列 − 1", dd.shadows[1].frame.level, 9)
+    base.gap = 0
+    AB.RowDecor(row, base, 18)
+    eq("裝飾陰影：格距 0 ⇒ 整列 1 圈", shownShadows(dd), 1)
+    check("裝飾陰影：整列那圈錨在列上", dd.shadows[1].frame.points[1][2] == row)
+    base.gap, base.n, base.segments = 2, 1, false
+    base.shadow = { px = 2, alpha = 0.5, l = 11 }
+    AB.RowDecor(row, base, 18)
+    check("裝飾陰影：單格 ⇒ 1 圈，l 往左多延伸", shownShadows(dd) == 1 and dd.shadows[1].frame.points[1][4] == -13)
+    base.shadow.under = Fake(nil, 30)
+    AB.RowDecor(row, base, 18)
+    eq("裝飾陰影：under ⇒ 層級照 under − 1", dd.shadows[1].frame.level, 29)
+    base.shadow = nil
+    AB.RowDecor(row, base, 18)
+    eq("裝飾陰影：關掉 ⇒ 全藏", shownShadows(dd), 0)
+    base.n, base.segments, base.shadow = 4, true, { px = 3, alpha = 0.6 }
+    AB.RowDecor(row, base, 18)
+    AB.HideRowDecor(row)
+    eq("裝飾陰影：HideRowDecor ⇒ 全藏（陰影框掛在列上，不在 overlay 底下）", shownShadows(dd), 0)
+    -- 按鈕子樹裡的裝飾（inside）：陰影進簽章，改了換容器
+    local spec = { spellIDs = { 1 }, max = 4, inside = { W = 100, H = 10, n = 1, gap = 0, segW = 100, segments = false,
+                   px = 1, dim = { 0, 0, 0, 1 }, edge = { 0, 0, 0, 1 } } }
+    local s0 = AB.Signature(spec)
+    spec.inside.shadow = { px = 3, alpha = 0.6 }
+    local s1 = AB.Signature(spec)
+    spec.inside.shadow = { px = 4, alpha = 0.6 }
+    local s2 = AB.Signature(spec)
+    spec.inside.shadow = { px = 4, alpha = 0.6, l = 21 }
+    local s3 = AB.Signature(spec)
+    check("inside 簽章：開陰影、改粗細、改延伸都會變", s0 ~= s1 and s1 ~= s2 and s2 ~= s3)
+    env.CreateFrame, ns.P = savedCF, savedP
 end
 -- 整列寬的填色，第 k 層的終點落在第 k 個分隔裡（被分隔蓋住，看起來還是一格一格）
 for k = 1, 3 do

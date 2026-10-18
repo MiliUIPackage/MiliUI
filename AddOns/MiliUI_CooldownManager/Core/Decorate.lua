@@ -703,9 +703,27 @@ local function ApplyShape(holder, frame, tex, blizz, maskHost, shape, shadow, si
 end
 D.ApplyShape = ApplyShape                 -- 測試用
 
--- 還給暴雪（Bars.ReleaseAll）：我們掛的遮罩、襯底、陰影全部拿掉，轉圈材質回方形（跟原本還給暴雪時一樣）
+-- 長條的邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow；條自己的 bar.shadow／shadowSize／shadowAlpha，不進主題）：
+-- 整個 item（圖示＋條身）外面一圈，暴雪樣式不畫（原生長條沒有邊框，也就沒有陰影）。
+-- 陰影框是 item 的子框（同 ShapeUnder：只是 CreateFrame 掛在它底下、不寫欄位）、層級＝item − 1：
+-- 不放在 overlay 底下——overlay 墊到 530 以上（蓋過長條子框寫死的 511／512），它減一還是比鄰格的條身高，陰影會蓋到鄰格
+-- 對應記在 Shape 的弱鍵表（region ＝ item）。frame 是暴雪 item 或我們的假框（預覽、自訂法術的長條）都一樣
+function D.BarShadow(frame, bar, blizz)
+    local SH = ns.Shape
+    if not (SH and frame) then return end
+    if blizz or type(bar) ~= "table" then
+        SH.HideEdgeShadow(frame)
+        return
+    end
+    local px, a = SH.ShadowOf(bar.shadow, bar.shadowSize, bar.shadowAlpha)
+    SH.EdgeShadow(frame, frame, px, a)
+end
+
+-- 還給暴雪（Bars.ReleaseAll）：我們掛的遮罩、襯底、陰影全部拿掉，轉圈材質回方形（跟原本還給暴雪時一樣）；
+-- 長條的邊緣陰影一起收
 function D.ClearShape(item, rec)
     if not (item and rec) then return end
+    if ns.Shape then ns.Shape.HideEdgeShadow(item) end
     if rec.shapeArt or rec.iconShape then
         ApplyShape(rec, item, item.Icon, true, nil, nil, nil, 0, nil, 0, 0, rec.border)
     end
@@ -2128,10 +2146,12 @@ function D.Apply(item, rec, barKey, w, h, ring)
             end
         end
         LayoutBorder(rec.border2, (not blizz) and item.Bar or nil, size, border.texture, br, bg, bb, ba)
+        D.BarShadow(item, bar, blizz)              -- 邊緣陰影：整個 item 一圈（Masque 畫圖示時照畫，在皮外面）
         ns.Text.ApplyBar(item, style, spell, bar, rec)
         ns.Text.ItemLabel(item, rec, nil)          -- 長條不畫自訂文字（長條本來就有名字）
     elseif ringOn then
         rec.barGeometry, rec.hiddenEdges = nil, nil
+        D.BarShadow(item, nil)                     -- 從長條條搬過來的格：邊緣陰影收掉
         if rec.msqButton then ReleaseSkin(item, rec, false) end      -- 圓環條不進 Masque 群組（放在 ApplyRing 前：卸皮會換回它的轉圈材質）
         rec.msqSkinned, rec.msqEdge = false, nil
         rec.border = rec.border or MakeBorder(ov)
@@ -2150,6 +2170,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
         ns.Text.ItemLabel(item, rec, nil)                     -- 自訂文字不畫（錨點是方形格的邊）
     else
         rec.barGeometry, rec.hiddenEdges = nil, nil
+        D.BarShadow(item, nil)
         local icon, cd = item.Icon, item.Cooldown
         local skinned = false
         if style.masque and icon then
@@ -2295,8 +2316,10 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             if iconTex then NoSnap(iconTex):SetTexCoord(z, 1 - z, z, 1 - z) end
         end
         LayoutBorder(cell.border2, (not blizz) and cell.Bar or nil, size, border.texture, br, bg, bb, ba)
+        D.BarShadow(cell, bar, blizz)
         ns.Text.ApplyBar(cell, style, spell, bar)
     else
+        D.BarShadow(cell, nil)
         local icon = cell.Icon
         local skinned = false
         if masque and icon then

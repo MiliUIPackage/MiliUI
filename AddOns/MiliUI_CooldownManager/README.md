@@ -1306,6 +1306,69 @@ overlay 上面一層自己的框，頂端 3px 白色倒數條（黑底）＋條�
   - 跟計畫不同：計畫寫「形狀來源抽成一支（Masque 讀回 ＞ 內建）」，照做在 `Glow.GlowShape`；內建形狀從格子上記的 `holder.iconShape` 讀，
     光環格按鈕從條層生效值讀（AuraStyle 裡沒有 rec 可記）。陰影存成開關＋透明度兩欄。
 
+### 長條的邊緣陰影（`Core/Shape.lua`、`Modules/Resources.lua`、`Modules/AuraBar.lua`、`Modules/Pips.lua`、`Modules/CustomBars.lua`、`Modules/ProcDeckRows.lua`、`Modules/Castbar.lua`、`Modules/FocusCastbar.lua`、`Modules/Skyriding.lua`、`Core/Decorate.lua`，2026-10-19）
+
+玩家回報整體風格跟 NDui 的「陰影風格」差太多：圖示有「圖示陰影」（上一節），長條類一律沒有。這一套補長條類的。
+
+- **為什麼不共用圖示那張圖**：圖示陰影是一張 128×128 的模糊圖整張拉伸到格子大小、四邊外擴「邊長 × 0.25」。
+  長條 300×20 拉上去，橫邊的模糊只剩 5px、兩端卻 75px，形狀全歪。長條改走 backdrop 的**八格邊緣**：
+  角落固定 edgeSize 見方、直邊夾在兩角之間沿長度拉長，任何長寬比都對；粗細用實體像素指定（ElvUI `CreateShadow`／NDui `CreateSD` 同一種畫法）。
+  兩套各自獨立：圖示的設定不動，玩家要一起開就兩邊都勾。
+- **貼圖**：`Media/shadow-edge.png`，128×16、八格各 16×16，純白、只有透明度（內緣 1 → 外緣 0，角是以內角為圓心的放射衰減）。
+  八格的順序與朝向照暴雪 `SharedXML/Backdrop.lua` 的 `textureUVs`：左、右、上、下、左上、右上、左下、右下，
+  **上下兩格是旋轉過的**（螢幕的上→下＝貼圖的左→右）；格內取樣內縮 1 貼圖像素，所以它也是一張合法的 `edgeFile`。
+  `.claude/skills/miliui-cdm-shape-masks/scripts/shapes.py` 畫的（`--debug` 另出一張八格各一色的驗朝向用圖），不要手改 PNG。
+- **畫法**（`SH.EdgeShadow(host, region, px, alpha, ext)`／池化用的 `SH.NewEdgeShadow`＋`SH.PaintEdgeShadow`）：
+  陰影框是 host 的子框，錨在 region 每邊外擴 `P.Pixel(px)`（＋`ext` 的 l／r／t／b 延伸），八張貼圖都在外擴那一圈裡、
+  region 本身不蓋（半透明的條底下不會變暗）。黑色＋設定的透明度，沒有顏色、沒有偏移（NDui／ElvUI 也沒有）。
+  **不套 `BackdropTemplate`**、自己建八張貼圖、texcoord 抄同一張表（`SH.EDGE_UV`）：引擎列「只在生效時顯示」的裝飾建在
+  AuraButton 的 `initializeFrame` 裡，那裡不能掛 script，而 BackdropTemplate 自帶 OnSizeChanged；直邊沿長度同一個值，拉伸＝重複，
+  texcoord 把 repeat 換成格子的另一端，尺寸變了不必重算。值沒變不重寫（region、外擴、延伸、透明度進快取；外擴是 `P.Pixel(px)`，UI 縮放改了自然重排）。
+  所有貼圖過 `ns.NoSnap`。
+- **疊層**：陰影框的 frame level ＝ host（或 `under`）− 1，每次畫都重設。子框比父框低是允許的、同 strata 照 level 畫
+  ⇒ 多列堆疊時鄰列的條身壓在陰影上面。陰影框沿用 host 的 strata 與 alpha（條件淡出、施法條的沒施法時透明一起跟）。
+  萬一實機發現子框畫不到父框底下，退路是陰影框的父層改成列的容器、錨點照舊錨在列上（`SH.EdgeShadow` 的 host 換掉就好）。
+- **契約**：只建在 host 底下，對應記在弱鍵表 `shadowOf[region]`（或呼叫端自己的池子），**不寫 host／region 的欄位**（region 可能是暴雪 item）。
+  只做 SetPoint／SetSize／SetFrameLevel／SetVertexColor／Show／Hide，都放在各模組畫邊框的同一個呼叫點，自然吃到同一道戰鬥閘
+  （引擎寫的列是保護框，照現在「等脫戰重排」那條路：戰鬥中改陰影設定，引擎列脫戰才補上）。
+- **設定鍵**（三鍵：`shadow` 開關預設關、`shadowSize` 1～8 實體像素預設 3、`shadowAlpha` 0.1～1 預設 0.6；舊存檔沒有＝合併預設補成關，不遷移、`DB_VERSION` 不動）：
+  | 地方 | 鍵 | 消費者 |
+  |---|---|---|
+  | 資源條頁「外觀」（`resources` 全域；每種資源的外觀可蓋，`R.STYLE_FIELDS` 走 `R.StyleFor` 代理表） | `shadow`／`shadowSize`／`shadowAlpha` | 資源條的條型列與分格、自訂格子、自訂列、觸發牌堆列、天空騎術（後四個只讀全域） |
+  | 施法條頁、專注目標施法條頁 | 同三鍵 | `Modules/Castbar.lua`、`Modules/FocusCastbar.lua` |
+  | 條頁「長條」一節（`bar.shadow`／`bar.shadowSize`／`bar.shadowAlpha`，條自己的欄位、不進主題） | 同三鍵 | 增益長條、長條型自訂群組（`Core/Decorate.lua` 的 `D.BarShadow`）；`TSig(r.bar)` 整張進條層簽章 |
+  讀值：資源條那組 `R.ShadowOf(cfg)` → `px, alpha | nil`（`R.ShadowArray` 包成給裝飾的 `{ px, alpha }`），其餘直接 `SH.ShadowOf(on, size, alpha)`；
+  夾範圍、壞資料回預設、透明度 ≤ 0 當關。
+- **掛點**：
+  | 模組 | 畫邊框的地方 | 陰影 |
+  |---|---|---|
+  | `Modules/Resources.lua` | `LayoutRow` 的 `PaintEdges(row.barEdges…)`／`PaintEdges(seg.edges…)` | 條型列 `SH.EdgeShadow(row, row)`、分格每格 `SH.EdgeShadow(row, seg)`（host 都是列 ⇒ 層級列 − 1）；用不到的那幾圈同一處收掉（格子藏了，掛在列上的陰影不會跟著藏）。摺疊的上層不另畫（跟底層同一格） |
+  | `Modules/AuraBar.lua`（引擎寫的列） | `LayoutDecor` | `d.shadows` 池：每格一圈；格距 0（共用邊）或只有一格 ⇒ 整列一圈（圍 anchor，`l`／`r` 延伸只在這時有效）；`HideRowDecor` 一起藏。`geom.shadow = { px, alpha, l, r, under }`；按鈕子樹裡的裝飾（inside）陰影進簽章 |
+  | `Modules/Pips.lua` | 充能列 `R.PaintEdges(cell.edges…)` | 每格 `SH.EdgeShadow(row, cell)`，`HideCells` 一起收；層數列走 AuraBar 的 geom |
+  | `Modules/CustomBars.lua`、`Modules/ProcDeckRows.lua` | `RowDecor(row.bar…)`、inside 的 `spec.inside` | geom 帶 `CB.ShadowGeom(look.shadow, 圖示那一側, g, row)`：**一圈把圖示也圍進去**（往圖示那側多延伸 iconW＋gap）、`under = row` |
+  | `Modules/Castbar.lua`、`Modules/FocusCastbar.lua` | `Layout` 的 `barHolder:SetBackdrop` | 條身、圖示（、斷法圖示）各一圈，host 都是 `f`（層級 f − 1，圖示那圈不會蓋到條身的黑邊）；圖示藏著不畫 |
+  | `Modules/Skyriding.lua` | `LayoutBarRow`、`LayoutCells`、`LayoutSurge` | 長條列整列一圈、格子每格一圈（host 是列）、旋轉急衝圖示一圈；都照資源條的全域三鍵（`Look` 帶 `sp`／`sa`）；資源條頁改任何值都叫一次 `Skyriding.Layout()`（以前材質跟隨也要等天空騎術自己重排） |
+  | `Core/Decorate.lua` | 長條分支的 `LayoutBorder(rec.border2…)`、預覽 `ApplyPreview` | `D.BarShadow(item, bar, blizz)`：整個 item（圖示＋條身）一圈；暴雪樣式不畫；Masque 畫圖示時照畫（在皮外面）；圓環／圖示分支、`ClearShape`（還給暴雪）收掉。長條的占位（`BarPlaceholder`）走預覽那條 |
+  | `Options/ResourcePreview.lua` | 自訂列、自訂格子的預覽列 | 同引擎（`CB.ShadowGeom`、`R.ShadowOf`、`R.ShadowArray`）；觸發牌堆預覽借 `ProcDeckRows.LayoutRow`，自然帶到 |
+  `MountSpecial`（坐騎特效按鈕）不做：那是按鈕不是長條。
+- **設定頁**：上面三處（＋每種資源的「設定…」視窗）在邊框那幾列底下多三列：「陰影」勾選、「陰影粗細」1～8、「陰影透明度」10%～100%
+  （沒勾時停用），下一列灰字。條頁長條一節排在「充能分段」那段後面，暴雪樣式時三列停用、灰字寫「暴雪樣式沒有陰影」。
+- ⚠ **已知限制**：
+  - 光環格（`Modules/Custom.lua` 的 AuraButton 光環格）放在長條類的條上時沒有陰影：它的樣式烘在 `initializeFrame`，這次沒接。
+  - 自訂列「只在生效時顯示」＋圖示：陰影在按鈕子樹裡、層級照列 − 1 在建立當下就固定（之後列的層級變了要等換容器）。
+  - 分格的引擎列在 `l`／`r` 延伸上只認「整列一圈」的情況；多格時延伸不生效（目前沒有呼叫端需要）。
+- **與計畫不同**：
+  - 計畫寫 `frame:SetBackdrop({ edgeFile = …shadow-edge.png })`；改成自己建八張貼圖（理由見「畫法」：initializeFrame 不能掛 script）。貼圖照樣是合法的 edgeFile。
+  - 計畫寫「同一個 host 只建一個框（`shadowOf[host]`）」；改成**以 region 為鍵**：施法條的 host 是 `f`、要圍條身＋圖示＋斷法圖示三個，
+    三圈都掛在 `f` 底下才能同在 f − 1（圖示那圈若掛在圖示框底下，層級＝圖示 − 1 ＝ 條身的層級，會蓋到條身的黑邊）。
+    `HideEdgeShadow` 也跟著收 region。
+  - 計畫寫增益長條 `SH.EdgeShadow(rec.overlay, item)`；改成掛在 item 底下（同 `ShapeUnder`）：overlay 墊到 530 以上，
+    減一還是比鄰格的條身（511／512）高，陰影會蓋到鄰格。
+  - 自訂列／觸發牌堆列：計畫寫「look 多 shadow 傳進 geom」，照做，但一圈把圖示也圍進去（`l`／`r` 延伸），不是條身一圈：
+    圖示與條身只隔 1px，兩圈會疊在接縫上、還會蓋到圖示（同層級時先後沒有保證）。
+  - 陰影框不另外 `SetFrameStrata`（照計畫會寫 host 的 strata）：子框本來就沿用父層的 strata，寫死反而跟不上父層之後的改動。
+  - 測試：計畫的 `Settings_test` 那幾條放在 `DB_test`（合併預設）與 `Extras_test`（條層簽章、`D.BarShadow`），那兩支才載得到對應的模組。
+
 ### 音效（`Core/Sound.lua`）
 
 響什麼是**逐法術**設定（逐法術面板：冷卻類一列「就緒音效」、這招現在有充能時再一列「充能滿音效」，增益類三列
@@ -4300,6 +4363,16 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 599. 光環格的逐法術面板「發光」分頁有「層數發光」三列：勾選框後面是固定的「≥」字（沒有下拉）＋數字框＋色票、樣式下拉、灰字是光環格那句；勾了之後「增益期間發光」兩列變暗。
 600. 蓄勢猛擊這類疊層增益設「≥ N」：層數不到 N 不亮、到 N 亮、掉回 N-1 熄；四種樣式都看一次（按鈕／觸發樣式畫 1.4 倍也在裁切框內）；N-1 層時發光區左緣不露一條邊（1px 餘裕）。
 601. 首領戰／M+ 中（層數是秘密值）照樣亮熄；戰鬥中改門檻等脫戰才換容器（占位先頂著）；條預覽上開了層數發光的光環格照層數樣式常亮。
+
+**長條的邊緣陰影（2026-10-19）**
+
+602. 層級 − 1 的子框真的畫在鄰列底下：連擊點 5 格、符文 6 格、自訂計時條三列堆疊（列距 1）開陰影，鄰列的條身與圖示都壓在陰影上面、沒有一條被陰影蓋暗；不行就照「長條的邊緣陰影」的退路把 host 換成列的容器。
+603. 八格朝向：角落沒有接縫、四條直邊都是貼著條身最濃（沒有反向）；有疑慮時跑 `shapes.py --debug` 換上八色除錯圖看一次（左紅、右綠、上藍、下黃、左上洋紅、右上青、左下橘、右下白）。
+604. UI 縮放 0.64／0.71 下陰影粗細跟設定的像素數一致（截圖數像素），粗細 1 時沒有斷線或忽粗忽細。
+605. 戰鬥中改陰影設定：資源條的條型／點數型列當場生效；引擎寫的列（無視苦痛、鐵鬃、層數型自訂格子）脫戰才補上，戰鬥中零 ADDON_ACTION_BLOCKED。
+606. 增益長條 Masque 模式：陰影在皮外面、整個 item 一圈；換暴雪樣式陰影消失、換回來出現；`/mcdm release` 之後陰影跟著收掉。
+607. 施法條圖示藏著（「顯示圖示」取消）時只有條身一圈；專注目標施法條的斷法圖示也有自己的一圈，沒有斷法技能時那圈不出現。
+608. 天空騎術：速度條、旋轉急衝條整列一圈、活力／重新振作每格一圈、旋轉急衝圖示一圈；跟資源條頁的陰影開關連動。
 
 **效能基準**
 
