@@ -68,6 +68,13 @@ local CONTROLS = {
         { key = "x", label = "X" },
         { key = "y", label = "Y" },
     } },
+    { type = "toggle", key = "showTarget", label = L["Show who the spell is aimed at"] },
+    { type = "text",   label = L["The spell's target sits under the bar's right edge, smaller than the spell name, in the target's class color."] },
+    { type = "toggle", key = "targetClassColor", label = L["Color the target's name by class"] },
+    { type = "numbers", label = L["Target offset"], fields = {
+        { key = "targetX", label = "X" },
+        { key = "targetY", label = "Y" },
+    } },
 
     { type = "header", label = L["Bar colors"] },
     { type = "color", key = "colorReady",  label = L["Interruptible (kick ready)"],   hasAlpha = false },

@@ -103,6 +103,8 @@ check("預設：三態顏色（就緒金、冷卻橘、不可中斷灰）", fc.c
     and fc.colors.cd.r == 0.906 and fc.colors.immune.r == 0.529)
 check("預設：重要法術發光＋「!」、像素跑線", fc.glowImportant == true and fc.bangImportant == true and fc.glowStyle == "pixel")
 check("預設：被打斷印斷法者、沒在施法時隱藏", fc.showInterrupter == true and fc.hideWhenNotCasting == true)
+check("預設：法術打向誰（開、職業色、字級 10、右下角位移 -2/0）", fc.showTarget == true and fc.targetClassColor == true
+    and fc.targetTextSize == 10 and fc.targetOffset.x == -2 and fc.targetOffset.y == 0)
 check("預設：pos 在施法條預設位置的上面一點", fc.pos.point == "CENTER" and fc.pos.y > d.castbar.pos.y)
 check("PANEL_KEYS 有 focuscast", DB.PANEL_KEYS.focuscast == true and ns.PANEL_KEYS.focuscast == true)
 check("IsPanel(focuscast)", DB.IsPanel("focuscast"))

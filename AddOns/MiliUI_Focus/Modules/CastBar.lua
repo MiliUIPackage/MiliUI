@@ -2,6 +2,7 @@
 -- 專注目標施法監控
 --   * 施法條可在編輯模式拖曳
 --   * 三種斷法狀態顏色（可斷／斷法冷卻中／不可中斷）
+--   * 條右下角印法術打向誰（職業色）
 --   * 暴雪標為重要的法術外框發光
 --   * 開始唱法時播一次音效
 -- 本模組不依賴任何其他插件。
@@ -69,6 +70,7 @@ end
 local playerClass = (UnitClassBase and UnitClassBase("player")) or select(2, UnitClass("player"))
 
 local barFrame, barStatusBar, barIcon, barSpark, nameText, bangText, timeText
+local targetText           -- 法術打向誰（條右下角、職業色）
 -- 範例條＋可拖曳：編輯模式或本插件設定視窗任一開著就算（isInEditMode＝兩者 OR）
 local isInEditMode = false
 local editModeOpen, settingsOpen = false, false
@@ -358,7 +360,62 @@ local function SetName(name, important)
 end
 
 ----------------------------------------------------------------------
--- 施法條建立（樣式：圖示在左 + 條 + 名稱疊左 / 時間疊右）
+-- 法術打向誰：條右下角、右靠齊、比法術名小一號、職業色
+--
+-- 12.x 的 UnitSpellTargetName／UnitSpellTargetClass／UnitShouldDisplaySpellTargetName。
+-- 受限內容裡名字與職業都可能是秘密字串：名字只交給 SetText；職業交給
+-- C_ClassColor.GetClassColor 再把分量餵 SetTextColor（名條插件在正式服就是這樣畫，
+-- 分量是秘密數字也收）。「該不該顯示」是布林：明文就 if，秘密就餵 SetAlphaFromBoolean。
+----------------------------------------------------------------------
+local UnitSpellTargetName_  = UnitSpellTargetName
+local UnitSpellTargetClass_ = UnitSpellTargetClass
+local UnitShouldDisplaySpellTargetName_ = UnitShouldDisplaySpellTargetName
+
+local function TargetFontSize(h)
+    return math.max(8, math.floor((h - 8) * 0.72 + 0.5))
+end
+
+local function ClearSpellTarget()
+    if not targetText then return end
+    targetText:SetText("")
+    targetText:SetAlpha(1)
+    targetText:SetTextColor(1, 1, 1)
+end
+
+-- name 可能是秘密字串（只交給 SetText）；class 明文或秘密職業 token（只交給 GetClassColor）或 nil
+local function PaintSpellTarget(name, class)
+    targetText:SetAlpha(1)
+    local r, g, b = 1, 1, 1
+    if class ~= nil and DB().targetClassColor then
+        local color = C_ClassColor and C_ClassColor.GetClassColor(class)
+            or (not issecret(class) and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
+        if color then r, g, b = color:GetRGB() end
+    end
+    targetText:SetTextColor(r, g, b)
+    targetText:SetText(name)
+end
+
+local function SetSpellTarget()
+    if not targetText then return end
+    if not DB().showTarget or not UnitSpellTargetName_ then ClearSpellTarget(); return end
+    local name = UnitSpellTargetName_("focus")
+    if name == nil then ClearSpellTarget(); return end          -- 秘密字串可測 nil
+    local class = UnitSpellTargetClass_ and UnitSpellTargetClass_("focus") or nil
+    PaintSpellTarget(name, class)
+    if UnitShouldDisplaySpellTargetName_ then
+        local show = UnitShouldDisplaySpellTargetName_("focus")
+        if show ~= nil then
+            if issecret(show) then
+                targetText:SetAlphaFromBoolean(show, 1, 0)
+            elseif not show then
+                ClearSpellTarget()
+            end
+        end
+    end
+end
+
+----------------------------------------------------------------------
+-- 施法條建立（樣式：圖示在左 + 條 + 名稱疊左 / 時間疊右 / 法術目標在條下方右側）
 ----------------------------------------------------------------------
 local GAP = 2
 
@@ -384,6 +441,14 @@ local function UpdateBarSize()
     if nameText then nameText:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE") end
     if bangText then bangText:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE") end
     if timeText then timeText:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE") end
+    if targetText then
+        targetText:SetFont(ns.Media.Font(), TargetFontSize(h), "OUTLINE")
+        local bb = barFrame.barBorder
+        targetText:ClearAllPoints()
+        targetText:SetPoint("TOPRIGHT", bb, "BOTTOMRIGHT", db.targetX or 0, db.targetY or 0)
+        targetText:SetPoint("TOPLEFT",  bb, "BOTTOMLEFT",  0,                db.targetY or 0)
+        targetText:SetShown(db.showTarget and true or false)
+    end
 end
 
 local function SaveDragPosition(self)
@@ -484,6 +549,13 @@ local function CreateBarFrame()
     bangText:SetTextColor(1, 1, 1)
     bangText:SetAlpha(0)
 
+    -- 法術打向誰：掛在條下方、右靠齊（位置與字級在 UpdateBarSize）
+    targetText = overlay:CreateFontString(nil, "OVERLAY")
+    targetText:SetFont(font, 10, "OUTLINE")
+    targetText:SetJustifyH("RIGHT")
+    targetText:SetWordWrap(false)
+    targetText:SetTextColor(1, 1, 1)
+
     -- 拖曳（編輯模式）
     barFrame:RegisterForDrag("LeftButton")
     barFrame:SetScript("OnDragStart", function(self)
@@ -522,6 +594,7 @@ function HideBar()
         barFrame:SetScript("OnUpdate", nil)   -- 卸掉一般模式的每幀回呼
         if not isInEditMode then
             StopGlow()
+            ClearSpellTarget()
             barFrame:Hide()
         end
     end
@@ -542,6 +615,7 @@ local function ShowInterrupted(interrupterGUID)
     barStatusBar:SetStatusBarColor(INTERRUPTED_COLOR[1], INTERRUPTED_COLOR[2], INTERRUPTED_COLOR[3])
     SetName(ns.L["Interrupted"])
     timeText:SetText("")
+    ClearSpellTarget()                        -- 施法斷了，打向誰已經不重要
 
     -- 斷法者名字 + 職業色（interrupterGUID 只做 ~= nil 檢查，秘密安全）
     if interrupterGUID ~= nil then
@@ -627,6 +701,7 @@ local function StartDisplay(castTbl, chanTbl)
     local important = QueryImportant(spellID)
     SetName(name, important)
     if important == nil then StopGlow() else ShowGlow(important) end
+    SetSpellTarget()
 
     if SecretsActive() then
         -- 秘密模式：起訖時間為秘密值，改用 duration 物件驅動 StatusBar；顏色用 C_CurveUtil
@@ -742,6 +817,11 @@ local function UpdateEditModeState()
         barIcon:SetTexture(132329)                 -- 範例圖示（隨便一個法術）
         SetName(ns.L["Focus cast bar"], true)     -- 範例條當重要法術，看得到驚嘆號
         timeText:SetText("0.9/1.5")
+        if DB().showTarget then
+            PaintSpellTarget(UnitName("player"), playerClass)   -- 範例：打向自己
+        else
+            ClearSpellTarget()
+        end
         barStatusBar:SetMinMaxValues(0, 1)
         barStatusBar:SetValue(0.6)
         local c = ColorForState("ready")

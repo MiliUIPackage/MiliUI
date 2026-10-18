@@ -134,3 +134,14 @@ castLocalStart 不動避免文字跳）。位置／大小只在建立與編輯�
 監控關閉時編輯模式不顯示。預設座標 x=0,y=260（刻意放 BLM 倒數條 y=300 下方，硬編碼不耦合）。
 
 **斷法巨集**：設定頁 `W.CreateCopyBox`（唯讀＋「全選」）。範本 `#showtooltip\n/cast [@focus,exists][@target] 法術名稱`，`GetInterruptSpellName()` 自動填入玩家斷法技能名。
+
+## 法術打向誰（2026-10-19）
+
+施法條條下方右靠齊印 `UnitSpellTargetName("focus")`、字級約法術名的 0.72 倍、職業色（`db.cast.showTarget`／`targetClassColor`／`targetX`／`targetY`，
+預設開、-2／0）。擺法照使用者 Platynator 名條的 castTarget 字（法術名左、目標右、目標小一號）；條內右側已有時間文字，所以掛在條下方而不是條內。
+同一份邏輯也進了 MiliUI_CooldownManager 的專注目標施法條（`focuscast.showTarget`／`targetClassColor`／`targetTextSize`／`targetOffset`）——
+使用者主角色的 MCDM profile 開著那條，MiliUI_Focus 這條會讓位，只改一邊使用者看不到。
+秘密值：名字只 SetText；`UnitShouldDisplaySpellTargetName` 明文 if、秘密餵 `SetAlphaFromBoolean`；
+**職業色走 `C_ClassColor.GetClassColor(secretClass):GetRGB()` → `FontString:SetTextColor`**，依據是 Platynator `Display/CastTargetText.lua` 在正式服就這樣畫
+（使用者名條上看得到職業色）。這跟套組兩條施法條「斷法者職業是秘密就白字」的保守寫法相反，**待實機驗證**：
+若 M+ 裡每次有目標的施法都報錯，退回 `issecret(class)` 就白字。被打斷時清掉（右側印斷法者）；範例條印自己的名字＋職業色。
