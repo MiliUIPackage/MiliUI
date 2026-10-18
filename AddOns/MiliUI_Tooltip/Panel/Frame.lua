@@ -73,7 +73,7 @@ Panel.LOOK = {
     EFFECT = { 0.48, 0.88, 0.48 },     -- 使用／裝備效果（暴雪原色的綠）
     FLAVOR = { 0.86, 0.74, 0.45 },     -- 風味文字
     SET_NAME = { 1, 0.82, 0 },         -- 套裝名（金）
-    STAT_SHADE = { primary = 1, secondary = 0.85, tertiary = 0.7, other = 0.7 },
+    STAT_SHADE = { primary = 1, secondary = 0.85, tertiary = 0.85, other = 0.7 },   -- 三屬性跟次屬性同一級（N3）
     CREATED_ICON = 24,                 -- 配方成品的小圖示
     REAGENT_ICON = 14,
     BAR_W = 54, BAR_H = 6,             -- 頁尾耐久條

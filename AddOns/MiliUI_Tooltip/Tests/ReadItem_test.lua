@@ -382,6 +382,37 @@ do
     eq("灰屬性：◆ 也 DIM", statDiamond and statDiamond.color[1], 0.45)
 end
 
+do
+    -- N3：三屬性（速度）跟次屬性（加速）同一個綠，◆ 同一色；灰的（DisabledLine）照樣灰
+    local P, F, G, env = Setup("zhTW")
+    local speed = StatLine("zhTW", "59", G.ITEM_MOD_CR_SPEED_SHORT)
+    local haste = StatLine("zhTW", "120", G.ITEM_MOD_HASTE_RATING_SHORT)
+    local m = P.ReadItemRows({
+        Row(1, "護腕", nil, { type = LT.ItemName }),
+        Row(2, haste, nil, { color = GREEN }),
+        Row(3, speed, nil, { color = GREEN }),
+    }, GAME, { id = 10 })
+    local cats = {}
+    for _, st in ipairs(m.stats) do cats[st.text] = st.category end
+    eq("N3 前提：速度是三屬性", cats[speed], "tertiary")
+    eq("N3 前提：加速是次屬性", cats[haste], "secondary")
+    local tip = H.Tip(env, "GameTooltip", {})
+    local state = {}
+    local panel = P.Get(tip, state)
+    P.RenderView(panel, tip, P.ViewItem(m), state)
+    local byText, diamonds = {}, {}
+    for i = 1, panel.textsUsed do byText[panel.texts[i].text] = panel.texts[i] end
+    for i = 1, panel.texturesUsed do
+        local t = panel.textures[i]
+        if t.shown and t.rotation and t.rotation ~= 0 then diamonds[#diamonds + 1] = t end
+    end
+    local function rgb(c) return c and table.concat({ c[1], c[2], c[3] }, ",") end
+    eq("N3：速度跟加速同一個綠", rgb(byText[speed] and byText[speed].textColor), rgb(byText[haste] and byText[haste].textColor))
+    eq("N3：那個綠就是效果綠", rgb(byText[speed] and byText[speed].textColor), rgb(P.LOOK.EFFECT))
+    check("N3 前提：兩顆 ◆", #diamonds >= 2, #diamonds)
+    eq("N3：◆ 同色", rgb(diamonds[#diamonds] and diamonds[#diamonds].color), rgb(diamonds[#diamonds - 1] and diamonds[#diamonds - 1].color))
+end
+
 ------------------------------------------------------------
 -- 5. 整份畫一次：每條自訂段落（大數字、屬性、效果、套裝、成品標題、頁尾耐久條）都真的跑過
 ------------------------------------------------------------

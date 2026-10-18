@@ -101,6 +101,7 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   **M2 頁尾「單價 ×數量 = 總價」**：單價＝`C_Item.GetItemInfo` 第 11 回傳（`Game.itemSellPrice`）；數量＝`C_Item.GetStackCount(C_Item.GetItemLocation(data.guid))`（`Game.stackCount`），拿不到才總價÷單價整除；單價 ≥ 總價、0、nil ⇒ 只畫總價（`Panel.PriceText`）。
 - **框間距與基底邊色（2026-10-19，N1／N2）**：`LOOK.FRAME_GAP = 6`（取代 EXTRAS_GAP 4）；鏡射與 followPanel 換成面板的點、而且點對是相鄰邊時用 `Panel.GapOffset` 往外推（右貼左 x−、左貼右 x+、底貼頂 y+、頂貼底 y−；同邊不動）。
   原生框照暴雪緊貼，只有面板之間有縫——夾邊與比價左右判斷照原生算，多出來的縫沒有進原生寬。
+  三屬性（速度／汲取／迴避／不滅）跟次屬性同用 `LOOK.EFFECT` 綠、STAT_SHADE 同級（N3；原生也是同一個綠，以前畫成灰）。
   `Panel.BaseBorderColor()`：`general.borderClassColor`（預設開）＝玩家職業色（CUSTOM_CLASS_COLORS → RAID_CLASS_COLORS），a 照 general.borderColor；`Skin.ResetColors`、面板退路、附屬框都走它，品質／單位色由 SetBorderColor 蓋過。
 - **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`、`real_zhTW_2.lua`（天賦面板：名字與「等級1/1」是後加行、data 從 lineIndex 3／4 起；雕紋段在描述後的 Blank 之後），17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
   **DisabledLine 是灰字不是需求未達成**（其他專精的主屬性、套裝未擁有件）；SellPrice 行文字是空的（錢幣另外畫）、要在「空行＝分段」之前認走；同 lineIndex 會有重複空行；盾牌格擋 `SHIELD_BLOCK_TEMPLATE`、武器油 `ITEM_ENCHANT_TIME_LEFT_*`、寶石行帶 `gemIcon` 檔案編號（**SetTexture 要餵數字**）。

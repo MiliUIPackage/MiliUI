@@ -61,7 +61,8 @@ end
 Panel.BigStat = BigStat
 
 -- 屬性列：前面一顆 ◆（職業色），文字照分類的明暗；次要屬性照暴雪原生是綠字，
--- 但原生那個 (0,1,0) 太亮（2026-10-19 使用者），改用跟使用／裝備效果同一個綠（LOOK.EFFECT）
+-- 但原生那個 (0,1,0) 太亮（2026-10-19 使用者），改用跟使用／裝備效果同一個綠（LOOK.EFFECT）。
+-- 三屬性（速度、汲取、迴避、不滅）原生也是同一個綠 ⇒ 跟次要屬性一樣（N3：以前畫成灰字）
 local function StatList(stats)
     local markers = Panel.Option("statMarkers")
     local section = { kind = "custom" }
@@ -82,7 +83,7 @@ local function StatList(stats)
             local color
             if dim then
                 color = LOOK.DIM
-            elseif s.category == "secondary" then
+            elseif s.category == "secondary" or s.category == "tertiary" then
                 color = LOOK.EFFECT
             else
                 color = Gray(shade)
