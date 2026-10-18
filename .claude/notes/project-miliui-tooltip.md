@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-18T15:23:26.897Z
+  modified: 2026-10-18T15:46:55.984Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -82,6 +82,9 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   個案修不完，改規則：**同一件停留期間 panel 寬與原生替身高只長不縮**（換一件歸零）；**行數變多立刻補齊，行數變少或同行數內容變了要連續 0.3 秒才採用**（A／B 輪流永遠到不了）；
   **panel 貼原生被錨定的那一角**（跟隨游標與固定右下都是下錨，原生高度暫時不對時下緣不動）；**padding 被 SetOwner／ClearLines／OnShow 清掉當幀補回上次的值不重算**（那一幀 GetHeight 是舊的）；
   暴雪的 `Show()`／`SetShown` 會把 alpha 改回 1 且在 post-call 之後 ⇒ `hooksecurefunc(tip,"Show"/"SetShown")` 後掛勾當幀壓回（接觸面 #12，只做 SetAlpha／SetPadding）。
+  **比價面板不貼自己的原生、鏡射貼主提示的面板**（原生 `TOP→GameTooltip:TOP`／`RIGHT→GameTooltip:LEFT` 照同樣的點換成對方 panel）：主提示自然寬高每次重設短暫變動（別家插件的行晚一幀補回）
+  會讓比價框原生跟著動，貼原生的面板就上下左右抖；主面板只長不縮、貼被錨定側，穩定性沿鏡射傳下去。**接管期間原生 `SetClampedToScreen(false)`、面板自己夾**（暴雪夾邊依原生總高切換會整組跳 16px；接觸面 #13）。
+  掛在 GameTooltip 底下的別家框（AppearanceTooltip 預覽）會跟著原生 alpha 0 透明、只剩模型（模型不吃父層 alpha）⇒ `Adopt(..., { ignoreParentAlpha = true })`。
   聊天連結的 ×：**不可在自己的 OnClick 裡 `ItemRefCloseButton:Click()`**（HideUIPanel 整串在我們的執行裡跑會擴散 taint）；改成把原生鈕 SetPoint 疊到 × 上讓玩家點到原生鈕本人。`/mtip panel` 印錨點／尺寸／padding 診斷。
 - **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`、`real_zhTW_2.lua`（天賦面板：名字與「等級1/1」是後加行、data 從 lineIndex 3／4 起；雕紋段在描述後的 Blank 之後），17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
   **DisabledLine 是灰字不是需求未達成**（其他專精的主屬性、套裝未擁有件）；SellPrice 行文字是空的（錢幣另外畫）、要在「空行＝分段」之前認走；同 lineIndex 會有重複空行；盾牌格擋 `SHIELD_BLOCK_TEMPLATE`、武器油 `ITEM_ENCHANT_TIME_LEFT_*`、寶石行帶 `gemIcon` 檔案編號（**SetTexture 要餵數字**）。
