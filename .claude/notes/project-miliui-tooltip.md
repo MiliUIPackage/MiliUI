@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-10-18T10:12:30.534Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -64,4 +64,27 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 
 **被否證的假設**：secret aspect（`SetText(秘密)` 讓行的 GetText 永久回秘密）——玩家 log 全行 `aspect=false`，脫戰同陣營時 name/class/guid 全明文。`HasSecretAspect("Text")`／`HasSecretValues()` 在 FontString 上回明文布林，探針可用。
 
-相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]
+## 重繪面板（2026-10-18，`Panel/`，commit 289a46807；plan `~/.claude/plans/miliui-tooltip-panel.md`）
+
+**物品／法術／配方三型改走「重繪面板」，單位／光環／巨集維持就地改寫一行未動。** 參考對象是 WoW Forever 的 PrettyTooltip（MIT，本機 `Interface/tmp/PrettyTooltip/`）：
+它鎖 enUS、資料表全是永恆版所以不能直接用，但它是照 12.x 引擎寫的、排版骨架可搬；法術係數／DPM／分解／剝皮那些是客戶端資料表硬編，正式服沒 API，**不搬**。
+
+- **做法**：原生 tooltip 留著當替身——`SetAlpha(0)`、`SetPadding(right, bottom, left, top)` 撐到跟 panel 一樣大（暴雪的比價定位、夾邊、游標跟隨全照原生框算，一行定位都不用重寫），
+  旁邊畫自有 panel（parent UIParent、strata 讀 tip 的、level = tip+5 並在輪詢裡跟著抬——ItemRefTooltip 是 toplevel，點了會抬層，不跟的話 alpha 0 的原生框會吃掉 panel 上 × 的點擊）。
+  接觸面 #10（SetAlpha／SetPadding）、#11（`ItemRefCloseButton:Click()`）；**P0～P3 零 hooksecurefunc**，尺寸貼合走 `C_Timer.After(0)`＋`Skin.Poll` 0.1 秒。
+- **退路＝退回現有樣式**：任何一行文字／型別／顏色／lineIndex 是秘密、GetPoint／GetLeft／GetWidth／GetPadding 回秘密、讀不出名字、render 出錯、內嵌物品框或 BottomFontString 顯示中（暴雪自己在用 padding）
+  → 不藏原生、不顯示 panel。開關關掉時對 tooltip 零寫入。
+- **OnTooltipCleared 先不拆（Release）、下一幀沒被新 post-call 認領才 Restore**；skin OnHide 立刻 Restore。不然比價風暴「清空再填同一件」每秒拆重畫二十幾次，指紋白做。
+  padding 只在「tooltip 還顯示、而且還是我們設的值」才寫回（`GameTooltip_OnHide` 第 419 行自己 `ClearPadding`、OnShow 走 CalculatePadding 沒內嵌框也清——wow-ui-source live 核過）。
+- **先比指紋再解析**：指紋＝CollectLines 的原始行（文字＋顏色＋price）＋設定版本＋行數；相同連 reader 都不跑。
+- **像素基準用 panel 自己的有效縮放**（panel 跟著 `general.scale` SetScale，拿 UIParent 基準整組偏）。量測與排版只讀自己記的 width／height，不讀 `panel:GetWidth()`（錨在 tooltip 上會沿鏈染到秘密幾何）。
+- **語系 pattern 全部從 `_G` 的 GlobalStrings 反轉產生**（`Panel/Patterns.lua`），不寫任何語言字面；12.1.5 的 `TooltipDataLineType` 很多行有型別（ItemName／ItemBinding／EquipSlot／ItemLevel／FlavorText／ItemSpellTriggerOnUse…／SpellName／SpellPassive／SpellDescription／UsageRequirement／NestedBlock），
+  **能用型別就用型別**，文字只留耗能（`_G` 掃 `*_COST`／`_COST_PER_TIME`／`_COST_LARGE`／`_COST_PCT` 族，排除 TRAINER_／REPAIR_／POWER_DISPLAY_ 等）、施法、冷卻、距離、屬性（`ITEM_MOD_*_SHORT`）、護甲、傷害、耐久、套裝、需求。
+  數字型 conversion（%d／%.2g）只吃數字——用 `(.-)` 的話 zhTW「冷卻時間%.2g秒」會吞掉「冷卻時間尚有：12秒」。`|4a:b;` 展開單數／複數／原碼三條。三語 GlobalStrings CSV 在 `Interface/tmp/GlobalStrings/`（gitignored，wago.tools `db2/GlobalStrings/csv?locale=zhTW`）。
+- **`lineIndex` 確實由 `TooltipDataHandlerMixin:ProcessLineData` 第 330 行寫回 lineData**；不在 data 裡的 `TextLeftN` 就是別人（含我們的 ID 行）`AddLine` 加的，全收進「其他」區，**一行不丟**。
+- **描述數字只能上色不能加粗**（FontString 不能局部換字型）。zhTW 描述不切句、整段畫。
+- **`/mtip record on|off|clear` 記錄模式**（使用者要求「滑的時候記錄，不要滑一次 dump 一次」）：post-call 自動記 data 整張＋當下 FontString 文字顏色＋語系，同 id＋型別＋行數去重、上限 60，存帳號層 `MiliUI_Tooltip_DB.dumps`，/reload 才落地。
+  真實行結構（尤其配方「製造／材料」、屬性行形狀）**全部還是推定**，等 record 資料進來對 fixture；README 待實機驗證 1～14。
+- 設定：`item.panel`／`spell.panel`（預設開）、`panel.{separators,strip,numberColor,numberCustom,statMarkers,levelBadge}`，靠 MergeDefaults 補，沒遷移。離線測試 `Tests/*_test.lua` 六支。
+
+相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
