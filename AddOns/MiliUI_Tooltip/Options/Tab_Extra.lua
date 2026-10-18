@@ -156,7 +156,7 @@ local EXTRA_CONTROLS = {
     } },
     { type = "color", root = "panel", key = "numberCustom", label = L["Custom number color"], hasAlpha = false },
     { type = "toggle", root = "panel", key = "statMarkers", label = L["Diamond before item stats"] },
-    { type = "toggle", root = "panel", key = "levelBadge", label = L["Item level under the icon"] },
+    { type = "toggle", root = "panel", key = "levelBadge", label = L["Item level above the icon"] },
     { type = "toggle", root = "panel", key = "extrasBox", label = L["Separate box for lines added by other addons"] },
     { type = "text", label = L["When off, they are appended to the bottom of the main panel."] },
     { type = "toggle", root = "panel", key = "hideDuplicatePrice", label = L["Hide duplicate sell price lines from other addons"] },

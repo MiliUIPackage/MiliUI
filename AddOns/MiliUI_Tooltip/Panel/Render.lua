@@ -384,14 +384,34 @@ Panel.FitWidth = FitWidth
 ------------------------------------------------------------
 -- 圖示、徽章、關閉鈕、比價標籤
 ------------------------------------------------------------
--- 回傳標題區至少要多高（圖示＋徽章）
+-- 回傳標題區至少要多高（徽章＋圖示）。徽章在**上**、圖示在下（2026-10-19 使用者要求對調：
+-- 等級數字跟名字同一列高度，一眼先看到等級）；徽章置中在圖示欄上
 local function DrawIcon(panel, ctx, view)
     local m = ctx.m
     if not view.icon then return 0 end
     local size = m.sc(view.iconSize or LOOK.ICON_ITEM)
     local icon, border = panel.icon, panel.iconBorder
+    local top = m.padTop
+    local hasBadge = view.badge and view.badge ~= ""
+    local badgeH = 0
+    if hasBadge then
+        local style = ctx.styles.small
+        local text = panel.badgeText
+        Panel.ApplyFont(text, style)
+        text:SetTextColor(1, 1, 1)
+        text:SetText(view.badge)
+        local w = math.max(size + 2 * m.px, Panel.Measure(view.badge, style) + m.badgePad)
+        badgeH = Panel.Snap(panel, math.max(m.badgeH, style.size + m.sc(6)))
+        local badge, fill = panel.badge, panel.badgeFill
+        badge:SetSize(Panel.Snap(panel, w), badgeH)
+        fill:ClearAllPoints()
+        fill:SetPoint("TOPLEFT", badge, "TOPLEFT", m.px, -m.px)
+        fill:SetPoint("BOTTOMRIGHT", badge, "BOTTOMRIGHT", -m.px, m.px)
+        fill:SetVertexColor(LOOK.BADGE_BG, LOOK.BADGE_BG, LOOK.BADGE_BG, 1)
+        top = top + badgeH + m.badgeGap
+    end
     icon:ClearAllPoints()
-    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", m.pad, -m.padTop)
+    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", m.pad, -top)
     icon:SetSize(size, size)
     icon:SetTexture(view.icon)
     icon:Show()
@@ -399,27 +419,13 @@ local function DrawIcon(panel, ctx, view)
     border:SetPoint("TOPLEFT", icon, "TOPLEFT", -m.px, m.px)
     border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", m.px, -m.px)
     border:Show()
-    local bottom = m.padTop + size
-    if view.badge and view.badge ~= "" then
-        local style = ctx.styles.small
-        local text = panel.badgeText
-        Panel.ApplyFont(text, style)
-        text:SetTextColor(1, 1, 1)
-        text:SetText(view.badge)
-        local w = math.max(size + 2 * m.px, Panel.Measure(view.badge, style) + m.badgePad)
-        local h = math.max(m.badgeH, style.size + m.sc(6))
-        local badge, fill = panel.badge, panel.badgeFill
+    if hasBadge then
+        local badge = panel.badge
         badge:ClearAllPoints()
-        badge:SetPoint("TOP", icon, "BOTTOM", 0, -(m.badgeGap + m.px))
-        badge:SetSize(Panel.Snap(panel, w), Panel.Snap(panel, h))
-        fill:ClearAllPoints()
-        fill:SetPoint("TOPLEFT", badge, "TOPLEFT", m.px, -m.px)
-        fill:SetPoint("BOTTOMRIGHT", badge, "BOTTOMRIGHT", -m.px, m.px)
-        fill:SetVertexColor(LOOK.BADGE_BG, LOOK.BADGE_BG, LOOK.BADGE_BG, 1)
-        badge:Show(); fill:Show(); text:Show()
-        bottom = bottom + m.badgeGap + h
+        badge:SetPoint("BOTTOM", icon, "TOP", 0, m.badgeGap + m.px)
+        badge:Show(); panel.badgeFill:Show(); panel.badgeText:Show()
     end
-    return bottom
+    return top + size
 end
 
 ------------------------------------------------------------
