@@ -220,6 +220,7 @@ do
     ns.Panel.PlaceFollowers(panel)
     sig, rel = Pt(f)
     eq("交棒二：保留期過、沒回來 ⇒ 縮到根的右緣", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
+    -- 根退了、跟隨框的位置讀不到（沒排版）⇒ 停不住 ⇒ 貼回原本的 tooltip、夾邊還原
     ns.Panel.ReturnFollowers(panel)
     sig, rel = Pt(f)
     eq("ReturnFollowers（根）：貼回原本的 tooltip", rel, tip)
@@ -228,6 +229,40 @@ do
     local n = setCalls
     ns.Panel.PlaceFollowers(panel)
     eq("放手之後 PlaceFollowers 不再動它", setCalls, n)
+
+    -- 停在原地：根退了但跟隨框的位置讀得到 ⇒ 改貼 UIParent 的同一個位置，不還給它；根回來就重新跟上
+    env.now = 8
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT", 1, 1)
+    eq("前提：又在跟（右側貼根）", select(1, Pt(f)) .. "@" .. tostring(select(2, Pt(f)) == panel), "TOPLEFT>TOPRIGHT|6,0@true")
+    f.left, f.top = 406, 800
+    ns.Panel.ReturnFollowers(panel)
+    sig, rel = Pt(f)
+    eq("停在原地：改貼 UIParent 的同一個位置", sig .. "@" .. tostring(rel == env.UIParent), "TOPLEFT>BOTTOMLEFT|406,800@true")
+    eq("停在原地：夾邊不還", f.clamped, true)
+    eq("停在原地：記次數", ns.Panel.followers[f].parks, 1)
+    -- 停著期間它自己 tick 進來、對象暫時沒有面板 ⇒ 位置貼回停的地方，不放手
+    panel:Hide()
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", tip, "TOPRIGHT")
+    eq("停著：它 tick 進來、面板沒顯示 ⇒ 仍停在原地", select(1, Pt(f)) .. "@" .. tostring(select(2, Pt(f)) == env.UIParent), "TOPLEFT>BOTTOMLEFT|406,800@true")
+    -- 根回來（重畫 → Align → PlaceFollowers）⇒ 重新跟上，位置一樣
+    panel:Show()
+    ns.Panel.PlaceFollowers(panel)
+    sig, rel = Pt(f)
+    eq("停著：根回來 ⇒ 重新跟上、位置一樣", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
+    eq("停著：接回來夾邊仍開、原值沒被蓋掉", f.clamped, true)
+    -- 再停一次、這次超過 0.3 秒都沒回來 ⇒ 它 tick 進來就放手、還給它、夾邊還原
+    ns.Panel.ReturnFollowers(panel)
+    eq("停二：又停", select(2, Pt(f)), env.UIParent)
+    panel:Hide()
+    env.now = 9
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", tip, "TOPRIGHT", 2, 2)
+    eq("停二：過了 0.3 秒沒回來 ⇒ 放手、照它的", select(1, Pt(f)) .. "@" .. tostring(select(2, Pt(f)) == tip), "TOPLEFT>TOPRIGHT|2,2@true")
+    eq("停二：夾邊還原成原值 false", f.clamped, false)
+    f.left, f.top = nil, nil
+    panel:Show()
 
     -- 對象不是接管的／面板沒顯示／秘密 ⇒ 不碰它的點；放手時夾邊還原
     f:ClearAllPoints()

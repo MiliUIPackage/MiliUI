@@ -119,10 +119,11 @@ function Panel.Restore(tip, state)
     end
     if state.native or (state.panel and state.panel:IsShown()) then
         local gone = state.panel
+        -- 跟著這個面板的別家框（外觀預覽）先處理：要在面板還有點的時候讀它的位置才停得住（Panel.ReturnFollowers 的 Park）
+        if gone then Panel.ReturnFollowers(gone) end
         Native.Restore(tip, state)
         -- 鏡射在這個面板上的（比價面板）當場改回貼自己的原生，不能錨在一個清掉錨點的框上
         if gone then
-            Panel.ReturnFollowers(gone)
             Skin.Each(function(t2, s2)
                 local p2 = s2.panel
                 if p2 and p2.mirrorOf == gone and s2.native and p2:IsShown() then
@@ -400,11 +401,14 @@ function Panel.DebugDump(out)
             out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）  幾何讀不到 %d 次%s，交棒 %d 次，最近掛勾 %s"):format(
                 D(frame), rec.side or "?", Points(frame), D(rec[1]), D(rec[2]), D(rec[3]),
                 rec.fails or 0, rec.failWhy and ("，最近：" .. rec.failWhy) or "", rec.handoffs or 0, ago))
+        elseif rec.parkArgs then
+            out(("|cff4DD2FF跟隨框 %s|r：停在原地等根回來（%.1f 秒前停的，停過 %d 次）  貼在 %s  最近掛勾 %s"):format(
+                D(frame), now - (rec.parkedAt or now), rec.parks or 0, Points(frame), ago))
         else
-            out(("|cff4DD2FF跟隨框 %s|r：|cffff6060目前沒跟|r（%s%s）  顯示中=%s  它貼在 %s  最近掛勾 %s：%s 貼 %s"):format(
+            out(("|cff4DD2FF跟隨框 %s|r：|cffff6060目前沒跟|r（%s%s）  顯示中=%s  它貼在 %s  最近掛勾 %s：%s 貼 %s  停過 %d 次"):format(
                 D(frame), rec.dropWhy or "還沒掛勾過",
                 rec.dropAt and ("，%.1f 秒前放手"):format(now - rec.dropAt) or "",
-                tostring(okS and shown), Points(frame), ago, rec.hookPoint or "?", D(rec.hookRel)))
+                tostring(okS and shown), Points(frame), ago, rec.hookPoint or "?", D(rec.hookRel), rec.parks or 0))
         end
     end
     if not any then
@@ -500,6 +504,7 @@ function Panel.Watch(seconds, out)
             note(name .. ".側", rec.side)
             note(name .. ".貼在", rec.root and (rec.panel == rec.root and "根" or D(rec.panel)) or "沒跟")
             note(name .. ".交棒", rec.handoffs or 0)
+            note(name .. ".停過", rec.parks or 0)
             note(name .. ".讀不到", rec.fails or 0)
             note(name .. ".放手原因", rec.dropWhy)
         end

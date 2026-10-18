@@ -713,21 +713,49 @@ local function ScheduleRetry(frame, rec)
     end)
 end
 
--- 開始跟一條鏈：記下它原本的夾邊、打開
+-- 開始跟一條鏈：第一次接手時記下它原本的夾邊、打開（停著再接回來不重記，不然原值會被我們設的 true 蓋掉）
 local function Hold(frame, rec, root)
-    if not rec.root then
+    if rec.clamped == nil then
         local ok, clamped = pcall(frame.IsClampedToScreen, frame)
         rec.clamped = ok and type(clamped) == "boolean" and clamped or false
         pcall(frame.SetClampedToScreen, frame, true)
     end
+    rec.parkedAt, rec.parkedRoot, rec.parkArgs = nil, nil, nil
     rec.root = root
 end
 
 -- 放手：夾邊還原、忘掉鏈（不動它的點）。why 給 /mtip panel 看
 local function Drop(frame, rec, why)
-    if rec.root then pcall(frame.SetClampedToScreen, frame, rec.clamped and true or false) end
+    if rec.clamped ~= nil then
+        pcall(frame.SetClampedToScreen, frame, rec.clamped and true or false)
+        rec.clamped = nil
+    end
     rec.root, rec.panel, rec.placeSig, rec.lastArgs, rec.rootArgs, rec.holdUntil = nil, nil, nil, nil, nil, nil
+    rec.parkedAt, rec.parkedRoot, rec.parkArgs = nil, nil, nil
     rec.dropWhy, rec.dropAt = why, Now()
+end
+
+-- 停在原地：鏈的根要退了（拍賣場刷新列表時 GameTooltip 會先 Hide 再 Show，主面板跟著拆掉重畫，下一幀就回來）。
+-- 以前這時立刻把框還給它＝貼回超出螢幕的原生旁邊，它下一個 0.2 秒 tick 才又跟上 ⇒ 每次刷新上下跳一大截
+--（2026-10-19 實機第四輪：兩份 dump 一份「沒在跟」一份「0.1 秒前剛掛勾」）。
+-- 改成：把現在的螢幕位置改用 UIParent 表示、原地不動（rec.parkArgs），記下是哪個根退的；
+-- 根回來（PlaceFollowers）就重新跟上，它自己 tick 進來、對象暫時沒面板也維持停著；超過 FOLLOW_DWELL 都沒回來才真的放手。
+-- 要在根的面板還有點的時候讀（Try.lua 的 Restore 先叫 ReturnFollowers 再 Native.Restore）；讀不到就回 false（呼叫端放手）
+local function Park(frame, rec, root)
+    local okL, l = pcall(frame.GetLeft, frame)
+    local okT, t = pcall(frame.GetTop, frame)
+    if not (okL and okT) or S.IsSecret(l) or S.IsSecret(t) then return false end
+    if type(l) ~= "number" or type(t) ~= "number" then return false end
+    rec.parkArgs = { "TOPLEFT", UIParent, "BOTTOMLEFT", l, t }
+    rec.parkedAt, rec.parkedRoot = Now(), root
+    rec.root, rec.panel, rec.placeSig, rec.lastArgs, rec.rootArgs, rec.holdUntil = nil, nil, nil, nil, nil, nil
+    rec.parks = (rec.parks or 0) + 1
+    Reanchor(frame, "TOPLEFT", UIParent, "BOTTOMLEFT", l, t)
+    return true
+end
+
+local function Parked(rec)
+    return rec.parkArgs ~= nil and (Now() - (rec.parkedAt or 0)) < LOOK.FOLLOW_DWELL
 end
 
 -- 這一輪算不出位置（幾何讀不到）：先照上一次的貼法貼（它剛 ClearAllPoints 過，不能留空），下一幀再算一次。
@@ -772,6 +800,12 @@ function Panel.Follow(frame)
             root = rec.root
         end
         if not root then
+            -- 停著（根剛退、下一幀會回來）：它剛 ClearAllPoints 過，把停的位置貼回去，不放手
+            if tracked and Parked(rec) then
+                local a = rec.parkArgs
+                Reanchor(self, a[1], a[2], a[3], a[4], a[5])
+                return
+            end
             Drop(self, rec, tracked and "對象的面板沒顯示、也沒有跟著的鏈" or "對象不是接管的 tooltip")
             return
         end
@@ -788,10 +822,16 @@ function Panel.Follow(frame)
     end)
 end
 
--- 鏈的根 root 對齊過（Panel.Align）：跟著它的框重算一次
+-- 鏈的根 root 對齊過（Panel.Align）：跟著它的框重算一次；停著等這個根回來的框重新跟上
 function Panel.PlaceFollowers(root)
     for frame, rec in pairs(followers) do
-        if rec.root == root then Place(frame, rec, root) end
+        if rec.root == root then
+            Place(frame, rec, root)
+        elseif rec.parkArgs and rec.parkedRoot == root and Shown(root) then
+            Hold(frame, rec, root)
+            rec.placeSig = nil
+            if not Place(frame, rec, root) then ScheduleRetry(frame, rec) end
+        end
     end
 end
 
@@ -819,6 +859,8 @@ function Panel.ReturnFollowers(gone)
                     kept = Place(frame, rec, root) and rec.panel ~= nil
                 end
             end
+            -- 根要退了：先停在原地（下一幀多半就回來），停不住才放手
+            if not kept and root == gone and Park(frame, rec, gone) then kept = true end
             if not kept then
                 Drop(frame, rec, root == gone and "跟著的鏈退回了" or "貼著的面板退回、重算不出位置")
                 if rec[1] then Reanchor(frame, rec[1], rec[2], rec[3], rec[4], rec[5]) end
