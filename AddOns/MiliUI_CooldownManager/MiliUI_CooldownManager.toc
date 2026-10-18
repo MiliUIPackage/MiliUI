@@ -78,6 +78,8 @@ Modules\AuraBar.lua
 Modules\CastStacks.lua
 Modules\EchoWindow.lua
 Modules\Resources.lua
+Modules\Resources_Defs.lua
+Modules\Resources_Rows.lua
 Modules\Pips.lua
 Modules\CustomBars.lua
 Modules\ProcDeck.lua

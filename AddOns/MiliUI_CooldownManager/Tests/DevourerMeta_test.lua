@@ -535,6 +535,8 @@ end
 do
     local fakeRes = ns.Resources
     Load("Modules/Resources.lua")
+    Load("Modules/Resources_Defs.lua")
+    Load("Modules/Resources_Rows.lua")
     local R = ns.Resources
     local w = R.WantedEvents({ "Fury", "DevourerFragments" }, "DEMONHUNTER")
     eq("噬靈魂碎片列 ⇒ 註冊施法事件", w.UNIT_SPELLCAST_SUCCEEDED, true)
