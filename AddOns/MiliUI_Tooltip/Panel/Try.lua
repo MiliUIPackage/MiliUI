@@ -198,6 +198,8 @@ local function Render(tip, state, kind, data, rows, n, fingerprint)
     if Native.Fit(tip, state) == false then return false end
     panel:Show()
     state.renders = (state.renders or 0) + 1        -- 給 /mtip panel watch 看：同一件重畫了幾次
+    if ns.logEnabled then ns.Log("重畫 key=%s 第 %d 次 行數 %d 面板 %sx%s 總高 %s", tostring(state.panelKey), state.renders, n,
+        tostring(panel.width), tostring(panel.height), tostring(panel.totalHeight)) end
     state.panelFingerprint = fingerprint
     state.panelSettings = Panel.settingsVersion
     state.panelLines = n
@@ -242,6 +244,10 @@ function Reconcile(tip, state)
     end
     local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, state.panelKind .. "|" .. (Panel.CompareHeaderText(tip) or ""))
     local full = state.panelFullLines or 0
+    if ns.logEnabled then
+        ns.Log("對帳 key=%s 行數 %d（完整 %d）指紋%s", tostring(state.panelKey), n, full,
+            fingerprint == state.panelFingerprint and "相同" or "不同")
+    end
 
     if fingerprint == state.panelFingerprint then
         -- 回到現在畫的版本：任何等待中的變化作廢
@@ -326,7 +332,7 @@ function Panel.Try(tip, state, dataType, data)
 
     -- 同一件的重建：當幀不畫，下一幀 Reconcile 拿完整版
     if key and key == state.panelKey and panel and panel:IsShown() and state.native then
-        if ns.logEnabled and state.hidePending then ns.Log("面板 認領 key=%s（藏了又回來）", tostring(key)) end
+        if ns.logEnabled then ns.Log("Try 同一件 key=%s%s", tostring(key), state.hidePending and "（藏了又回來，認領）" or "") end
         state.releasePending = nil          -- 認領：上一份被清掉／藏起來時排定的拆除取消
         state.hidePending = nil
         state.panelData, state.panelKind = data, kind
@@ -348,6 +354,7 @@ function Panel.Try(tip, state, dataType, data)
     state.releasePending = nil
     state.hidePending = nil
     state.panelData, state.panelKind = data, kind
+    if ns.logEnabled then ns.Log("Try 新件 key=%s（之前 %s）", tostring(key), tostring(state.panelKey)) end
     -- 換一件：只長不縮的幾何與等待中的變化全部歸零
     state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
     state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）

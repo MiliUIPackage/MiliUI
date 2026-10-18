@@ -586,6 +586,9 @@ local function Apply(panel, sig, args)
     if panel.alignSig == sig and panel.anchored then return true end
     panel:ClearAllPoints()
     for _, a in ipairs(args) do panel:SetPoint(a[1], a[2], a[3], a[4], a[5]) end
+    if ns.logEnabled and ns.Log then
+        ns.Log("面板 重貼 %s（之前 %s）", sig, tostring(panel.alignSig))
+    end
     panel.alignSig, panel.anchorArgs, panel.anchored = sig, args, true
     return true
 end

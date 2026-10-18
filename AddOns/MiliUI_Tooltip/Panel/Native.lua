@@ -29,6 +29,17 @@ local function Plain(...)
     return true
 end
 
+-- /mtip log 開著時記下對原生的每一筆寫入（抖動但 watch 取樣看不到時：變動發生在取樣之後、繪製之前，只能從寫入點追）
+local function Log(fmt, ...)
+    if ns.logEnabled and ns.Log then ns.Log(fmt, ...) end
+end
+local function Geo(tip)
+    local okT, t = pcall(tip.GetTop, tip)
+    local okB, b = pcall(tip.GetBottom, tip)
+    local okH, h = pcall(tip.GetHeight, tip)
+    return ("top=%s bottom=%s h=%s"):format(okT and ns.Describe and ns.Describe(t) or "?", okB and ns.Describe and ns.Describe(b) or "?", okH and ns.Describe and ns.Describe(h) or "?")
+end
+
 local function ReadPadding(tip)
     if not tip.GetPadding then return 0, 0, 0, 0 end
     local ok, r, b, l, t = pcall(tip.GetPadding, tip)
@@ -115,6 +126,7 @@ function RestoreClearedPadding(tip, state)
     if not pr then return false end
     if Near(pr, saved.right) and Near(pb, saved.bottom) then
         tip:SetPadding(set[1], set[2], saved.left, saved.top)
+        Log("原生 padding 被清掉 ⇒ 補回 %.1f,%.1f  %s", set[1], set[2], Geo(tip))
         return true
     end
     return false
@@ -163,6 +175,8 @@ function Native.Fit(tip, state)
         tip:SetPadding(right, bottom, saved.left, saved.top)
         state.paddingSet = state.paddingSet or {}
         state.paddingSet[1], state.paddingSet[2] = right, bottom
+        Log("原生 SetPadding %.1f,%.1f（之前 %.1f,%.1f；自然 %.1fx%.1f 撐到 %.1fx%.1f）  %s",
+            right, bottom, pr, pb, naturalW, naturalH, pw, ph, Geo(tip))
     end
     Native.UpdateClamp(tip, state, ratio)
     -- 從下緣錨定的 tooltip 撐高之後上緣會動 ⇒ 重新對齊
@@ -185,6 +199,7 @@ function Native.UpdateClamp(tip, state, ratio)
     if state.clampSig == sig then return end
     state.clampSig = sig
     tip:SetClampRectInsets(-margin, margin, top + margin, -margin)
+    Log("原生 夾邊範圍 %.1f,%.1f,%.1f,%.1f  %s", -margin, margin, top + margin, -margin, Geo(tip))
 end
 
 -- 寫回原值、藏 panel。
@@ -226,5 +241,8 @@ function Native.Repress(tip, state)
     if not state.native then return end
     local ok, alpha = pcall(tip.GetAlpha, tip)
     alpha = ok and S.PlainNumber(alpha)
-    if alpha and alpha ~= 0 then tip:SetAlpha(0) end
+    if alpha and alpha ~= 0 then
+        tip:SetAlpha(0)
+        Log("原生 alpha 被改回 %.2f ⇒ 壓回 0", alpha)
+    end
 end
