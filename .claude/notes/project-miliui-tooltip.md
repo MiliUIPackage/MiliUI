@@ -114,7 +114,8 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`、`real_zhTW_2.lua`（天賦面板：名字與「等級1/1」是後加行、data 從 lineIndex 3／4 起；雕紋段在描述後的 Blank 之後），17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
   **DisabledLine 是灰字不是需求未達成**（其他專精的主屬性、套裝未擁有件）；SellPrice 行文字是空的（錢幣另外畫）、要在「空行＝分段」之前認走；同 lineIndex 會有重複空行；盾牌格擋 `SHIELD_BLOCK_TEMPLATE`、武器油 `ITEM_ENCHANT_TIME_LEFT_*`、寶石行帶 `gemIcon` 檔案編號（**SetTexture 要餵數字**）。
   配方／被動／天賦／充能法術仍沒有真實資料。
-- **OnTooltipCleared 先不拆（Release）、下一幀沒被新 post-call 認領才 Restore**；skin OnHide 立刻 Restore。不然比價風暴「清空再填同一件」每秒拆重畫二十幾次，指紋白做。
+- **OnTooltipCleared（Release）與 skin OnHide（OnSkinHide，2026-10-19 起）都先不拆、下一幀沒被新 post-call 認領才 Restore**。不然比價風暴「清空再填同一件」每秒拆重畫二十幾次，指紋白做。
+  OnHide 延一幀的原因：ScrollBox 類清單（Auctionator 購物結果 `UpdateTable → ScrollBox:SetDataProvider`、背包、任務）每次刷新都重新配置列，游標那一列先藏（GameTooltip:Hide）、**下一幀**引擎重判滑鼠焦點才 OnEnter 重設同一件 ⇒ 原生本來就閃一幀；面板當場拆再重畫＝跟著閃（實機：拍賣場滑過結果列整組框閃）。延一幀後同一件回來走「同一件的重建」認領，零重畫；這也讓跟隨框的 Park 幾乎用不到。`/mtip log` 開著時 OnSkinHide 記 `debugstack`（是誰藏的）。
   padding 只在「tooltip 還顯示、而且還是我們設的值」才寫回（`GameTooltip_OnHide` 第 419 行自己 `ClearPadding`、OnShow 走 CalculatePadding 沒內嵌框也清——wow-ui-source live 核過）。
 - **先比指紋再解析**：指紋＝CollectLines 的原始行（文字＋顏色＋price）＋設定版本＋行數；相同連 reader 都不跑。
 - **像素基準用 panel 自己的有效縮放**（panel 跟著 `general.scale` SetScale，拿 UIParent 基準整組偏）。量測與排版只讀自己記的 width／height，不讀 `panel:GetWidth()`（錨在 tooltip 上會沿鏈染到秘密幾何）。
