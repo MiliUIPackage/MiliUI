@@ -96,7 +96,7 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   實機成因：主面板沒標籤 inset 0、比價面板有標籤多留一份，原生錨在螢幕外時兩邊被夾到不同高度，身體錯開一個標籤高。
   四邊再多一圈 `LOOK.EDGE_MARGIN = 4`（換算後存 `panel.clampMargin`）：貼死螢幕邊時 1px 邊框看不見。方向：`SetClampRectInsets(-M, M, top+M, -(bottom+M))`＝範圍比面板大。
   **別家貼在原生旁的框改貼面板（L3）**：外觀預覽每 0.2 秒 `SetPoint(點, 原生 tooltip, 對方點)`，原生上緣隨自然高度變 ⇒ 預覽上下跳。`Adopt(..., { followPanel = true })` → `Panel.Follow`：後掛勾**它自己的框**的 SetPoint（接觸面 #14），對象有面板顯示中就同一幀改貼面板；面板退回時 `Panel.ReturnFollowers` 當場貼回原生。
-- **重複售價行（2026-10-19，M1）**：附屬框裡金額＝SellPrice price 的行藏掉（`Panel.IsDuplicatePrice`，設定 `panel.hideDuplicatePrice`）。語系無關：幣別圖示（|T…GoldIcon…|t、|A:coin-gold…|a 的英文檔名）換成**不含數字的記號**再加總；沒圖示就比非零段；`x%d+` 堆疊數先剝。
+- **重複售價行（2026-10-19，M1）**：附屬框裡金額＝SellPrice price 的行藏掉（`Panel.IsDuplicatePrice`，設定 `panel.hideDuplicatePrice`）。語系無關：幣別圖示（|T…GoldIcon…|t、|A:coin-gold…|a 的英文檔名）換成**不含數字的記號**再加總；**一個幣別圖示都沒有一律不算**（售價 1 銅時「總計：1」「背包：1」的非零段也是 {1}，實機誤殺過），部分帶圖示才比非零段；`x%d+` 堆疊數先剝。
   真實資料：**SellPrice 的 price 是整疊的**（背包 16 瓶藥劑 → 46 80），別家的「商人」是單價 ⇒ M2 之後總價與單價都比，兩行都藏；fixture 全部只命中這兩種行。
   **M2 頁尾「單價 ×數量 = 總價」**：單價＝`C_Item.GetItemInfo` 第 11 回傳（`Game.itemSellPrice`）；數量＝`C_Item.GetStackCount(C_Item.GetItemLocation(data.guid))`（`Game.stackCount`），拿不到才總價÷單價整除；單價 ≥ 總價、0、nil ⇒ 只畫總價（`Panel.PriceText`）。
 - **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`、`real_zhTW_2.lua`（天賦面板：名字與「等級1/1」是後加行、data 從 lineIndex 3／4 起；雕紋段在描述後的 Blank 之後），17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
