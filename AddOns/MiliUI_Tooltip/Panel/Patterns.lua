@@ -460,16 +460,17 @@ end
 
 function Patterns.StripColors(text)
     if type(text) ~= "string" then return text end
-    text = strgsub(text, "|c%x%x%x%x%x%x%x%x", "")
+    text = strgsub(text, "|cn[^:]*:", "")   -- 12.x 的具名色 |cnRED_FONT_COLOR:…|r（要在一般色碼之前，免得 n 開頭被誤吃）
+    text = strgsub(text, "|[cC]%x%x%x%x%x%x%x%x", "")   -- 大小寫都有（實機：|CFFFFFFFF…|R）
     -- 實機看過暴雪自己的壞色碼（「|cFF 0FF 0英雄難度|r」，十六進位位數被空白頂掉）：判斷時一樣拆掉
-    text = strgsub(text, "|c[%x ][%x ][%x ][%x ][%x ][%x ][%x ][%x ]", "")
-    text = strgsub(text, "|cn[^:]*:", "")   -- 12.x 的具名色 |cnRED_FONT_COLOR:…|r
-    return (strgsub(text, "|r", ""))
+    text = strgsub(text, "|[cC][%x ][%x ][%x ][%x ][%x ][%x ][%x ][%x ]", "")
+    return (strgsub(text, "|[rR]", ""))
 end
 
 -- 遊戲自己的跳脫碼：裡面的數字（色碼、圖示尺寸、|4 單複數）不准上色
 local ESCAPES = {
-    "|c%x%x%x%x%x%x%x%x", "|cn[^:]*:", "|r", "|T.-|t", "|A.-|a", "|H.-|h", "|K.-|k", "|4[^;]*;", "|n",
+    -- 色碼大小寫都有（實機：專業技能描述裡的 |CFFFFFFFF…|R）
+    "|[cC]%x%x%x%x%x%x%x%x", "|cn[^:]*:", "|[rR]", "|T.-|t", "|A.-|a", "|H.-|h", "|K.-|k", "|4[^;]*;", "|n",
 }
 
 -- 「1 |4hour:hrs;」的單複數看前面的數字；數字一上色兩者就分開了 ⇒ 先挑好

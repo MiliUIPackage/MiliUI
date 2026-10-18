@@ -7,9 +7,14 @@
 --      別家插件 post-call 加的行，都是**同一幀、我們之後**才補上的。當幀就畫會畫出「少那幾行」的版本，
 --      輪詢再畫回完整版；比價重建每秒二十幾次 ⇒ 兩版交替＝閃爍（2026-10-18 實機回報）。
 --   3. **新物件**（key 不同、panel 沒顯示）→ 立刻畫（第一次顯示要快），再排一次 Reconcile 補齊同一幀後加的行
---   4. Reconcile（C_Timer.After(0)，每個 state 同時只排一個）：CollectLines 重讀 → 指紋相同就不動；
---      不同才 reader → view → RenderView。**行數比這件看過的最多還少 ⇒ 當成部分版不重畫**，下一幀再對；
---      連續 PARTIAL_GRACE 秒都比較少才接受（修飾鍵放開、冷卻行消失這種「真的變少」不能卡死）
+--   4. Reconcile（C_Timer.After(0)，每個 state 同時只排一個）：CollectLines 重讀、比指紋，三種情況：
+--      * 行數**多於**這件看過的最多 ⇒ 立刻重畫（補齊＝長大；第一次顯示少了法術說明行之類，這是唯一允許的可見變化）
+--      * 行數**少於** ⇒ 當成部分版不重畫，連續 SETTLE 秒都比較少才接受（修飾鍵放開、冷卻行消失）
+--      * 行數**相同、指紋不同** ⇒ 這個新指紋要連續看到 SETTLE 秒才重畫。背包每 0.2 秒重設一次提示、不同來源的行
+--        輪流出現（實機記錄：同一件三種行集合），A／B 交替永遠到不了 SETTLE ⇒ 面板停在第一個完整版不動
+--      （設定改了例外：指紋差在設定版本就直接重畫）
+--   4b. 幾何只長不縮（同一件）：panel 寬取這件看過的最大寬；原生替身的高取這件看過的最大總高。
+--       內容少的版本畫在寬面板裡沒關係；原生看不見，多撐一截沒有視覺代價，錨點就不會動。換一件歸零
 --   5. 輪詢（0.1 秒，只在有 tooltip 顯示時存在）：tooltip 沒了 → Restore；alpha 被改回來 → 重壓；
 --      行數變了 → 排 Reconcile；尺寸漂了 → Fit；層級被抬 → 跟上
 --   6. OnTooltipCleared → Release：先不拆，等下一幀；同一幀裡新的 post-call 會把它認領回去。
@@ -35,8 +40,8 @@ Panel.readers = Panel.readers or {}
 Panel.views = Panel.views or {}
 
 local POLL_INTERVAL = 0.1
-local PARTIAL_GRACE = 0.3      -- 行數比完整版少，連續這麼久才接受為新的完整版
-Panel.PARTIAL_GRACE = PARTIAL_GRACE
+local SETTLE = 0.3             -- 行數變少／同行數內容變了：連續這麼久才採用
+Panel.SETTLE = SETTLE
 
 -- 設定一改就 +1（進指紋：改了外觀要重畫）
 Panel.settingsVersion = 0
@@ -104,6 +109,8 @@ function Panel.Restore(tip, state)
     state.reconcileToken = (state.reconcileToken or 0) + 1    -- 排著的 Reconcile 作廢
     state.reconcilePending = nil
     state.panelFingerprint, state.panelKey, state.panelFullLines, state.partialSince = nil, nil, nil, nil
+    state.pendingFingerprint, state.pendingSince = nil, nil
+    state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
     state.panelData, state.panelKind, state.panelLines = nil, nil, nil
     if state.panelPolling then
         state.panelPolling = nil
@@ -146,10 +153,14 @@ local function Render(tip, state, kind, data, rows, n, fingerprint)
     local panel = Panel.Get(tip, state)
     local view = (Panel.views[kind] or Panel.ViewFallback)(model, state)
     if not view or not Panel.RenderView(panel, tip, view, state) then return false end
+    -- 只長不縮：記下這件看過的最大寬（RenderView 下次取 max）與最大總高（Native.Fit 撐原生用）
+    state.panelMaxWidth = math.max(state.panelMaxWidth or 0, panel.width or 0)
+    state.panelMaxTotalHeight = math.max(state.panelMaxTotalHeight or 0, panel.totalHeight or panel.height or 0)
     if not Panel.Align(panel, tip) or not Native.Hide(tip, state) then return false end
     if Native.Fit(tip, state) == false then return false end
     panel:Show()
     state.panelFingerprint = fingerprint
+    state.panelSettings = Panel.settingsVersion
     state.panelLines = n
     return true
 end
@@ -186,26 +197,40 @@ function Reconcile(tip, state)
         Panel.Restore(tip, state)
         return
     end
-    -- 部分版不准蓋掉完整版：比這件看過的最多還少 ⇒ 先等；連續 PARTIAL_GRACE 秒才接受
-    local full = state.panelFullLines or 0
-    if n < full then
-        state.partialSince = state.partialSince or Now()
-        if Now() - state.partialSince < PARTIAL_GRACE then
-            if Native.Fit(tip, state) == false then Panel.Restore(tip, state) return end
-            ScheduleReconcile(tip, state)
-            return
-        end
+    local function wait()
+        if Native.Fit(tip, state) == false then Panel.Restore(tip, state) return end
+        ScheduleReconcile(tip, state)        -- 每幀重讀，直到穩定或回到現在畫的版本
     end
-    -- 到這裡 n 不是更多、就是「少了夠久、接受了」：都成為這件的新完整行數
-    state.partialSince = nil
-    state.panelFullLines = n
-
     local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, state.panelKind)
+    local full = state.panelFullLines or 0
+
     if fingerprint == state.panelFingerprint then
-        state.panelLines = n
+        -- 回到現在畫的版本：任何等待中的變化作廢
+        state.partialSince, state.pendingFingerprint, state.pendingSince = nil, nil, nil
+        state.panelFullLines, state.panelLines = math.max(full, n), n
         if Native.Fit(tip, state) == false then Panel.Restore(tip, state) end
         return
     end
+
+    if state.panelSettings ~= Panel.settingsVersion then
+        -- 設定改了：不是內容在抖，直接照新設定重畫
+    elseif n < full then
+        -- 部分版不准蓋掉完整版：連續 SETTLE 秒都比較少才接受
+        state.partialSince = state.partialSince or Now()
+        state.pendingFingerprint, state.pendingSince = nil, nil
+        if Now() - state.partialSince < SETTLE then return wait() end
+    elseif n == full then
+        -- 同行數、內容不同：這個新版本要連續 SETTLE 秒都沒變回去才採用（A／B 輪流的永遠採用不到）
+        state.partialSince = nil
+        if state.pendingFingerprint ~= fingerprint then
+            state.pendingFingerprint, state.pendingSince = fingerprint, Now()
+            return wait()
+        end
+        if Now() - (state.pendingSince or Now()) < SETTLE then return wait() end
+    end
+    -- 長大（立刻）、或變少／變內容已經穩定夠久：採用
+    state.partialSince, state.pendingFingerprint, state.pendingSince = nil, nil, nil
+    state.panelFullLines = n
     if not Render(tip, state, state.panelKind, state.panelData, rows, n, fingerprint) then
         Panel.Restore(tip, state)
     end
@@ -281,6 +306,9 @@ function Panel.Try(tip, state, dataType, data)
     end
     state.releasePending = nil
     state.panelData, state.panelKind = data, kind
+    -- 換一件：只長不縮的幾何與等待中的變化全部歸零
+    state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
+    state.pendingFingerprint, state.pendingSince, state.partialSince = nil, nil, nil
     local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, kind)
     if not Render(tip, state, kind, data, rows, n, fingerprint) then
         Panel.Restore(tip, state)
@@ -296,4 +324,56 @@ end
 -- Hooks 的 xpcall 失敗時叫：畫到一半出錯也不能留著 alpha 0 的原生
 function Panel.Fail(tip, state)
     pcall(Panel.Restore, tip, state)
+end
+
+------------------------------------------------------------
+-- /mtip panel：面板顯示中的每顆 tooltip 印一段「原生怎麼錨、多高、padding、panel 貼在哪」
+-- 位置跳的回報先要這份：看得出是原生哪一邊在動、padding 有沒有被清掉。全部 pcall、秘密值標 <secret>
+------------------------------------------------------------
+local function D(v)
+    if v == nil then return "nil" end
+    if S.IsSecret(v) then return "<secret>" end
+    local t = type(v)
+    if t == "number" then return ("%.1f"):format(v) end
+    if t == "string" then return v end
+    if t == "table" and v.GetName then
+        local ok, name = pcall(v.GetName, v)
+        if ok and S.PlainText(name) then return name end
+        return "(匿名框)"
+    end
+    return tostring(v)
+end
+
+local function Call(obj, method, ...)
+    if not obj or not obj[method] then return end
+    return S.SafeCall(obj[method], obj, ...)
+end
+
+local function Points(region)
+    local out = {}
+    local n = S.PlainNumber((Call(region, "GetNumPoints"))) or 0
+    for i = 1, n do
+        local p, rel, rp, x, y = Call(region, "GetPoint", i)
+        out[#out + 1] = ("%s→%s:%s(%s,%s)"):format(D(p), D(rel), D(rp), D(x), D(y))
+    end
+    return #out > 0 and table.concat(out, " ") or "（沒有點）"
+end
+
+function Panel.DebugDump(out)
+    out = out or print
+    local count = 0
+    Skin.Each(function(tip, state)
+        local panel = state.panel
+        if not panel or not panel:IsShown() then return end
+        count = count + 1
+        out(("|cff4DD2FF%s|r 原生：%s"):format(D(tip), Points(tip)))
+        local r, b, l, t = Call(tip, "GetPadding")
+        out(("  top=%s bottom=%s h=%s  padding=%s,%s,%s,%s  我們設的=%s,%s"):format(
+            D((Call(tip, "GetTop"))), D((Call(tip, "GetBottom"))), D((Call(tip, "GetHeight"))),
+            D(r), D(b), D(l), D(t),
+            D(state.paddingSet and state.paddingSet[1]), D(state.paddingSet and state.paddingSet[2])))
+        out(("  panel：height=%s total=%s  貼在 %s"):format(D(panel.height), D(panel.totalHeight), Points(panel)))
+    end)
+    if count == 0 then out("目前沒有顯示中的面板（滑過物品或法術時再下一次指令）") end
+    return count
 end

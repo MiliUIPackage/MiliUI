@@ -143,6 +143,10 @@ local function AddBody(sections, part, numberHex)
         end
         push({ kind = "rows", rows = rows, wrap = true })
     end
+    -- 空行之後的另一段（雕紋…）：原樣原色，前面一條細線
+    if part.tail and #part.tail > 0 then
+        push({ kind = "rows", rows = part.tail, wrap = true, color = LOOK.TEXT, separator = { rule = true } })
+    end
 end
 
 function Panel.ViewSpell(model)

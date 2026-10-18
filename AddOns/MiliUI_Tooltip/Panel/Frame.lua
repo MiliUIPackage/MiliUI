@@ -427,10 +427,14 @@ end
 -- 角落要在整數像素上，不然 1px 線會在半像素處被捨入成 0 或 2（gridOffset 修正）。
 -- 任何一個讀值是秘密 ⇒ 回 false，呼叫端整格退回原生樣式。
 ------------------------------------------------------------
+-- 回傳水平側（LEFT／RIGHT）與垂直側（TOP／BOTTOM）：各取第一個含那個字的點；都沒有就 LEFT／TOP。
+-- 貼「被錨定的那一角」：原生的高度在兩幀之間暫時不對（暴雪重設提示時 padding 被清掉）時，
+-- 被錨定的那一邊不動，panel 就不跟著跳（2026-10-18 實機：從下緣錨定的跟隨游標／固定右下／比價框都上下跳）。
 local function AnchoredSide(tip)
     local ok, n = pcall(tip.GetNumPoints, tip)
     n = ok and S.PlainNumber(n)
     if not n then return nil end
+    local h, v
     for i = 1, n do
         local okP, point, rel, relPoint, x, y = pcall(tip.GetPoint, tip, i)
         if not okP then return nil end
@@ -438,16 +442,19 @@ local function AnchoredSide(tip)
             return nil
         end
         if type(point) == "string" then
-            if point:find("RIGHT") then return "RIGHT" end
-            if point:find("LEFT") then return "LEFT" end
+            if not h and point:find("RIGHT") then h = "RIGHT" end
+            if not h and point:find("LEFT") then h = "LEFT" end
+            if not v and point:find("TOP") then v = "TOP" end
+            if not v and point:find("BOTTOM") then v = "BOTTOM" end
         end
     end
-    return "LEFT"
+    return h or "LEFT", v or "TOP"
 end
+Panel.AnchoredSide = AnchoredSide
 
-local function GridOffset(panel, tip, side)
+local function GridOffset(panel, tip, side, vside)
     local okX, x = pcall(side == "RIGHT" and tip.GetRight or tip.GetLeft, tip)
-    local okY, y = pcall(tip.GetTop, tip)
+    local okY, y = pcall(vside == "BOTTOM" and tip.GetBottom or tip.GetTop, tip)
     if not okX or not okY then return nil end
     if S.IsSecret(x) or S.IsSecret(y) then return nil end
     if type(x) ~= "number" or type(y) ~= "number" then return 0, 0 end   -- 還沒排版：下一次 Fit 再修
@@ -458,22 +465,27 @@ local function GridOffset(panel, tip, side)
 end
 
 function Panel.Align(panel, tip)
-    local side = AnchoredSide(tip)
+    local side, vside = AnchoredSide(tip)
     if not side then return false end
-    local dx, dy = GridOffset(panel, tip, side)
+    local dx, dy = GridOffset(panel, tip, side, vside)
     if not dx then return false end
-    if panel.alignSide == side and panel.alignTip == tip
+    -- 從下緣貼：原生的底是整組（主面板＋縫＋附屬框）的底 ⇒ 主面板往上讓出附屬框那一截
+    if vside == "BOTTOM" then
+        dy = dy + ((panel.totalHeight or panel.height or 0) - (panel.height or 0))
+    end
+    local corner = vside .. side
+    if panel.alignCorner == corner and panel.alignTip == tip
         and math.abs(dx - (panel.alignX or 0)) < 0.001 and math.abs(dy - (panel.alignY or 0)) < 0.001 then
         return true
     end
-    panel.alignSide, panel.alignTip, panel.alignX, panel.alignY = side, tip, dx, dy
+    panel.alignCorner, panel.alignTip, panel.alignX, panel.alignY = corner, tip, dx, dy
     panel:ClearAllPoints()
-    panel:SetPoint("TOP" .. side, tip, "TOP" .. side, dx, dy)
+    panel:SetPoint(corner, tip, corner, dx, dy)
     return true
 end
 
 -- 脫離錨點鏈（重排前、退回時）
 function Panel.Detach(panel)
     panel:ClearAllPoints()
-    panel.alignSide, panel.alignTip = nil, nil
+    panel.alignCorner, panel.alignTip = nil, nil
 end

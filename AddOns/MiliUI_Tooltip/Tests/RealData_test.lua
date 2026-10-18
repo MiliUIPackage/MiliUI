@@ -16,6 +16,7 @@ H.here = here
 local check, eq = H.check, H.eq
 local GS = dofile(here .. "/fixtures/GlobalStrings.lua")
 local FX = dofile(here .. "/fixtures/real_zhTW.lua")
+local FX2 = dofile(here .. "/fixtures/real_zhTW_2.lua")      -- 第二批：同一件多個版本、天賦面板、雕紋段、專業技能
 
 local function Load()
     local env = H.Env(GS.zhTW)
@@ -73,7 +74,8 @@ local P = ns.Panel
 
 local function N(s)
     if type(s) ~= "string" then return "" end
-    s = P.Trim(ns.Patterns.StripColors(s:gsub("\r", "")))
+    -- 去色碼、去行內圖示（我們在名字前加的 |T…|t、行尾的品質圖示都是另外畫的）
+    s = P.Trim(ns.Patterns.StripTextures(ns.Patterns.StripColors((s:gsub("\r", "")))))
     return s
 end
 
@@ -101,16 +103,17 @@ local function Found(strings, line)
     return false
 end
 
-local BY = {}
+local BY, BY2 = {}, {}
 local results = {}
 
-for _, entry in ipairs(FX) do
-    local tag = ("#%s %s "):format(tostring(entry.source), tostring(entry.data.lines[1].leftText))
+local function RunFixture(FXlist, by, label)
+for _, entry in ipairs(FXlist) do
+    local tag = ("%s#%s %s "):format(label, tostring(entry.source), tostring(entry.data.lines[1].leftText))
     local tip = TipFor(env, entry)
     local model = P.readers[entry.kind](tip, entry.data)
     check(tag .. "reader 有結果", model ~= nil)
     if model then
-        BY[entry.source] = model
+        by[entry.source] = model
         results[#results + 1] = { entry = entry, model = model, tip = tip }
         local strings = Strings(model)
         -- data 行
@@ -144,6 +147,10 @@ for _, entry in ipairs(FX) do
         check(tag .. "畫得出來", P.RenderView(panel, tip, view, state))
     end
 end
+
+end
+RunFixture(FX, BY, "")
+RunFixture(FX2, BY2, "第二批")
 
 ------------------------------------------------------------
 -- 逐筆
@@ -250,6 +257,65 @@ do -- 法術
     for _, src in ipairs({ 53, 55, 56, 58, 59, 60 }) do
         eq("#" .. src .. " 法術沒有後加行", #BY[src].appended, 0)
     end
+end
+
+------------------------------------------------------------
+-- 第二批逐筆
+------------------------------------------------------------
+do -- 天賦面板：名字與「等級|cffffffff1|r/1」是後加行、data 從第 3／4 行開始
+    local m = BY2[26]
+    eq("2#26 天賦：名字（去掉我們加的圖示）", m.name, "責難")
+    eq("2#26 天賦：等級", m.talent and (m.talent.rank .. "/" .. m.talent.max), "1/1")
+    eq("2#26 近戰範圍", m.range and m.range.key, "MELEE_RANGE")
+    eq("2#26 冷卻 15 秒", P.ShortTime(m.cooldown), "15秒")
+    local view = P.views.spell(m, {})
+    local badgeLine = view.header[2] and P.BadgeText(view.header[2].badges) or ""
+    check("2#26 等級進徽章列", badgeLine:find("等級1/1", 1, true), badgeLine)
+    eq("2#26 天賦行沒有掉進附屬框", #m.appended, 0)
+    m = BY2[28]
+    eq("2#28 天賦被動：名字", m.name, "神聖之地")
+    eq("2#28 被動", m.passive, "被動")
+    eq("2#28 等級", m.talent and (m.talent.rank .. "/" .. m.talent.max), "1/1")
+    view = P.views.spell(m, {})
+    badgeLine = P.BadgeText(view.header[2].badges)
+    check("2#28 徽章列：被動 · 等級", badgeLine:find("被動", 1, true) and badgeLine:find("等級1/1", 1, true), badgeLine)
+    m = BY2[24]
+    eq("2#24 退邪術：名字", m.name, "退邪術")
+    eq("2#24 還沒學（0/1）", m.talent and m.talent.rank, 0)
+    eq("2#24 耗能法力", m.cost and m.cost.power, "MANA")
+    eq("2#24 施法時間精簡", P.ShortTime(m.cast), "1.3秒")
+end
+
+do -- 復仇之怒＋雕紋段
+    local m = BY2[10]
+    eq("2#10 主描述只有一段（雕紋說明沒併進來）", #m.description, 1)
+    eq("2#10 雕紋段三行", m.tail and #m.tail, 3)
+    eq("2#10 雕紋名保留原色", m.tail and m.tail[1].left, "復仇展翅雕紋")
+    H.near("2#10 雕紋名的藍", m.tail and m.tail[1].color[1], 0.44, 0.01)
+    eq("2#10 沒有東西掉進「其他」", #m.extras, 0)
+end
+
+do -- 鍊金術：描述裡的大寫色碼
+    local m = BY2[29]
+    local desc = m.description[1]
+    check("2#29 描述帶大寫色碼", desc:find("|CFFFFFFFF", 1, true))
+    local colored = ns.Patterns.ColorNumbers(desc, "ff0000")
+    check("2#29 數字上色不碰大寫色碼", colored:find("|CFFFFFFFF特殊能力", 1, true), colored)
+    check("2#29 去色碼認得大寫", not ns.Patterns.StripColors(desc):find("|C", 1, true))
+end
+
+do -- 同一件「精工製作之錘」三個版本：都讀得出、行數一版比一版多
+    local a, b, c = BY2[53], BY2[54], BY2[55]
+    eq("2#53 錘：名字", a.name, "精工製作之錘")
+    eq("2#53 錘：標題補充行（房屋裝飾）", a.headerRows and #a.headerRows, 1)
+    eq("2#53 錘：還沒有使用效果", #a.effects, 0)
+    eq("2#54 錘：多了使用效果", #b.effects, 1)
+    check("2#55 錘：按 Shift 的 ID 行進附屬框", #c.appended > #b.appended)
+    eq("2#41 G91：等級需求", BY2[41].levelReq and BY2[41].levelReq.unmet, false)
+    eq("2#42 G91：多了使用效果", #BY2[42].effects, 1)
+    local helm = BY2[31]
+    eq("2#31 戰盔：比價標籤", helm.tag, GS.zhTW.CURRENTLY_EQUIPPED)
+    eq("2#31 戰盔：套裝 4/5", helm.set and (helm.set.owned .. "/" .. helm.set.total), "4/5")
 end
 
 H.finish("RealData_test")

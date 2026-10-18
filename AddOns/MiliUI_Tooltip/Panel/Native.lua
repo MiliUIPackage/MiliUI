@@ -48,12 +48,19 @@ end
 ------------------------------------------------------------
 local hooked = {}
 
+local RestoreClearedPadding     -- 下面定義；Show 後掛勾與 Fit 都用
+
+
 -- state 是這顆 tooltip 在 Skin.State 裡那一份（每顆一份、不會換），直接閉包住
 local function HookShow(tip, state)
     if hooked[tip] then return end
     hooked[tip] = true
     local function repress(self)
-        if state.native then Native.Repress(self, state) end
+        if state.native then
+            Native.Repress(self, state)
+            -- 暴雪的 OnShow（GameTooltip_CalculatePadding）也會在這之前把 padding 清掉：當幀補回
+            RestoreClearedPadding(self, state)
+        end
     end
     if tip.Show then hooksecurefunc(tip, "Show", repress) end
     if tip.SetShown then
@@ -85,9 +92,30 @@ end
 -- 把原生撐到 panel 的尺寸。只在尺寸真的變了才 SetPadding（每次 SetPadding 都是一次完整排版）。
 -- 不在同一幀讀回剛設的尺寸：猜錯了下一次 Fit 的比對自然會修。
 -- 回傳 false 表示讀到秘密值（呼叫端退回）；nil 表示這次不用做（沒顯示、沒資料）。
+-- padding 被暴雪清回基準值（SetOwner／ClearLines／OnShow）、而上次我們設過別的值 ⇒ 當幀直接補回上次的值，
+-- 不重算：那一幀 GetHeight 還是清掉之前的舊值，GetPadding 卻已經是 0，拿來推自然尺寸一定算錯
+-- （2026-10-18 實機：背包格每 0.2 秒重設提示，原生矮一截一幀，從下緣錨定的 panel 跟著跳）。
+-- 下一幀的 Fit（Reconcile／輪詢）再用新鮮的尺寸修正。回 true＝補了。
+local function Near(a, b) return math.abs(a - b) < 0.01 end
+
+function RestoreClearedPadding(tip, state)
+    local saved, set = state.native, state.paddingSet
+    if not saved or not set then return false end
+    if Near(set[1], saved.right) and Near(set[2], saved.bottom) then return false end
+    local pr, pb = ReadPadding(tip)
+    if not pr then return false end
+    if Near(pr, saved.right) and Near(pb, saved.bottom) then
+        tip:SetPadding(set[1], set[2], saved.left, saved.top)
+        return true
+    end
+    return false
+end
+Native.RestoreClearedPadding = RestoreClearedPadding
+
 function Native.Fit(tip, state)
     local saved, panel = state.native, state.panel
     if not saved or not panel or not panel.width or not panel.height then return end
+    if RestoreClearedPadding(tip, state) then return true end
     local okS, shown = pcall(tip.IsShown, tip)
     if not okS or S.IsSecret(shown) or not shown then return end
 
@@ -102,7 +130,9 @@ function Native.Fit(tip, state)
     if not (tipScale and panelScale) then return false end
     local ratio = panelScale / tipScale
     -- 有附屬框時連它一起算：比價框、夾邊才會照整組的範圍
-    local pw, ph = panel.width * ratio, (panel.totalHeight or panel.height) * ratio
+    -- 只長不縮（同一件）：撐到這件看過的最大總高，內容暫時變矮時原生的錨點不動
+    local groupH = math.max(panel.totalHeight or panel.height, state.panelMaxTotalHeight or 0)
+    local pw, ph = panel.width * ratio, groupH * ratio
 
     local naturalW = w - (pr - saved.right)
     local naturalH = h - (pb - saved.bottom)

@@ -618,7 +618,8 @@ function Panel.RenderView(panel, tip, view, state)
         fitView = setmetatable({ sections = withExtras }, { __index = view })
     end
 
-    panel.width = Panel.Snap(panel, FitWidth(panel, ctx, fitView))
+    -- 只長不縮（同一件）：Try 記的最大寬
+    panel.width = Panel.Snap(panel, math.max(FitWidth(panel, ctx, fitView), state.panelMaxWidth or 0))
     panel:SetWidth(panel.width)
 
     -- 外框：提示皮的底色、1 實體像素的邊

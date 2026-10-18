@@ -184,7 +184,11 @@ do
     t.P.Try(t.tip, t.state, ITEM, t.data)
     eq("內容變：當幀不畫", t.renders(), 1)
     t.env.FlushTimers()
-    eq("內容變：下一幀重畫", t.renders(), 2)
+    eq("內容變（同行數）：下一幀還不畫，要穩定一陣子", t.renders(), 1)
+    t.env.now = t.env.now + 0.35
+    t.env.FlushTimers()
+    eq("內容變（同行數）：穩定 0.3 秒後重畫", t.renders(), 2)
+    t.env.FlushTimers()
 end
 
 ------------------------------------------------------------
@@ -429,6 +433,147 @@ do
     t8.P.Try(tip, t8.state, ITEM, { id = 99, lines = t8.data.lines })
     tip:Show()
     eq("只掛一次（沒有疊好幾層）", calls, 1)
+end
+
+------------------------------------------------------------
+-- 12. padding 被暴雪清掉（SetOwner／ClearLines／OnShow）→ 當幀補回上次的值、不重算（G2）
+------------------------------------------------------------
+do
+    local t9 = Setup()
+    local tip = t9.tip
+    t9.P.Try(tip, t9.state, ITEM, t9.data)
+    t9.env.FlushTimers()
+    local set = t9.state.paddingSet
+    check("前提：設過 padding", set and set[2] > 0)
+    local setR, setB = set[1], set[2]
+    -- 暴雪清掉 padding；GetHeight 還是舊的（假框照 padding 縮回去，模擬「讀到的尺寸不可信」）
+    tip.padding = { 0, 0, 0, 0 }
+    tip.h = 999
+    local calls = tip.padCalls
+    t9.P.Release(tip, t9.state)
+    t9.P.Try(tip, t9.state, ITEM, t9.data)       -- 同一件的 post-call
+    eq("當幀補回上次的 padding（右）", tip.padding[1], setR)
+    eq("當幀補回上次的 padding（下）", tip.padding[2], setB)
+    eq("只 SetPadding 一次（沒有拿舊高度重算）", tip.padCalls, calls + 1)
+    -- Show 後掛勾：OnShow（GameTooltip_CalculatePadding）又清一次 → 同一幀補回
+    local t11 = Setup()
+    local tip2 = t11.tip
+    function tip2:Show() self.shown = true; self.alpha = 1; self.padding = { 0, 0, 0, 0 } end   -- 掛勾裝上之前就是這樣
+    t11.P.Try(tip2, t11.state, ITEM, t11.data)
+    t11.env.FlushTimers()
+    local want = t11.state.paddingSet and t11.state.paddingSet[2]
+    check("前提：Show 掛勾那顆設過 padding", want and want > 0)
+    tip2:Show()
+    eq("Show 清掉之後掛勾當幀補回", tip2.padding[2], want)
+    eq("Show 之後 alpha 也壓回", tip2.alpha, 0)
+    -- 我們沒設過（panel 比原生小、不用撐）：被清掉也不動
+    local t10 = Setup()
+    t10.P.Try(t10.tip, t10.state, ITEM, t10.data)
+    t10.state.paddingSet = nil
+    t10.tip.padding = { 0, 0, 0, 0 }
+    check("沒設過就不補", not t10.P.Native.RestoreClearedPadding(t10.tip, t10.state))
+end
+
+------------------------------------------------------------
+-- 13. /mtip panel 診斷：秘密值不讀、只標 <secret>
+------------------------------------------------------------
+do
+    local t12 = Setup()
+    local tip = t12.tip
+    t12.ns.Skin.State[tip] = t12.state
+    t12.P.Try(tip, t12.state, ITEM, t12.data)
+    local lines = {}
+    eq("診斷：印出一顆", t12.P.DebugDump(function(s) lines[#lines + 1] = s end), 1)
+    check("診斷：原生的點", lines[1] and lines[1]:find("BOTTOMLEFT→UIParent:BOTTOMLEFT", 1, true), lines[1])
+    check("診斷：padding 與我們設的值", lines[2] and lines[2]:find("我們設的=", 1, true))
+    check("診斷：panel 貼在哪", lines[3] and lines[3]:find("貼在 BOTTOMLEFT→GameTooltip:BOTTOMLEFT", 1, true), lines[3])
+    tip.GetTop = function() return SECRET end
+    lines = {}
+    t12.P.DebugDump(function(s) lines[#lines + 1] = s end)
+    check("診斷：秘密值標 <secret>、不炸", lines[2] and lines[2]:find("top=<secret>", 1, true), lines[2])
+    t12.P.Restore(tip, t12.state)
+    lines = {}
+    eq("診斷：沒有顯示中的面板", t12.P.DebugDump(function(s) lines[#lines + 1] = s end), 0)
+end
+
+------------------------------------------------------------
+-- 14. 徹底的抖動規則（H1～H4）：同一件的幾何只長不縮；同行數的內容變化要持續才採用
+------------------------------------------------------------
+do
+    local t13 = Setup()
+    local tip, P, env = t13.tip, t13.P, t13.env
+    local short = { { left = "Hammer", color = { 0.12, 1, 0 } }, { left = "Bind" } }
+    local data = { id = 262452, lines = {
+        { type = 22, lineIndex = 1, leftText = "Hammer", leftColor = { r = 0.12, g = 1, b = 0 } },
+        { type = 0, lineIndex = 2, leftText = "Bind" },
+    } }
+    tip:SetLines(short)
+    P.Try(tip, t13.state, ITEM, data)
+    env.FlushTimers()
+    local w0, total0 = t13.state.panel.width, t13.state.panel.totalHeight
+    -- 別家加了一行很長的（附屬框）：長大、立刻重畫、寬度變大
+    local long = { short[1], short[2], { left = string.rep("Bonus ID: 2, 40, 3125, 38, 4 ", 2) } }
+    tip:SetLines(long)
+    t13.polls[t13.state]()
+    env.FlushTimers()
+    eq("H4：行數變多立刻重畫", t13.renders(), 2)
+    local w1, total1 = t13.state.panel.width, t13.state.panel.totalHeight
+    check("前提：變寬變高", w1 > w0 and total1 > total0, ("%s>%s %s>%s"):format(w1, w0, total1, total0))
+    -- 那行不見了（0.3 秒後才接受）：重畫成短版，但寬度不縮、原生高度不縮
+    tip:SetLines(short)
+    t13.polls[t13.state]()
+    env.FlushTimers()
+    env.now = env.now + 0.35
+    env.FlushTimers()
+    eq("變少：0.3 秒後接受", t13.renders(), 3)
+    eq("H1：同一件寬度只長不縮", t13.state.panel.width, w1)
+    check("H2：內容變矮了", t13.state.panel.totalHeight < total1)
+    eq("H2：原生仍撐在最大總高", tip.h, total1)
+    -- 換一件：歸零
+    local other = { id = 1, lines = { { type = 22, lineIndex = 1, leftText = "X" } } }
+    tip:SetLines({ { left = "X" } })
+    P.Release(tip, t13.state)
+    P.Try(tip, t13.state, ITEM, other)
+    check("換一件：寬度重算（變回下限）", t13.state.panel.width < w1, t13.state.panel.width)
+    eq("換一件：最大總高歸零重記", t13.state.panelMaxTotalHeight, t13.state.panel.totalHeight)
+    env.FlushTimers()
+end
+
+do
+    -- 同行數、A／B 每 0.2 秒交替 1 秒：一次都不重畫
+    local t14 = Setup()
+    local tip, P, env = t14.tip, t14.P, t14.env
+    local A = { { left = "Hammer" }, { left = "Bind" }, { left = "Auction" } }
+    local B = { { left = "Hammer" }, { left = "Bind" }, { left = "Auction x1" } }
+    local data = { id = 7, lines = {
+        { type = 22, lineIndex = 1, leftText = "Hammer" }, { type = 0, lineIndex = 2, leftText = "Bind" },
+    } }
+    tip:SetLines(A)
+    P.Try(tip, t14.state, ITEM, data)
+    env.FlushTimers()
+    local base = t14.renders()
+    for step = 1, 50 do                 -- 每幀 0.02 秒、共 1 秒；每 0.2 秒（10 幀）換一次
+        env.now = env.now + 0.02
+        if step % 10 == 0 then
+            tip:SetLines((step / 10) % 2 == 1 and B or A)
+            P.Release(tip, t14.state)
+            P.Try(tip, t14.state, ITEM, data)     -- 背包每 0.2 秒重設一次提示
+        end
+        env.FlushTimers()
+    end
+    eq("H3：A／B 每 0.2 秒交替 1 秒 → 0 次重畫", t14.renders(), base)
+    -- 同行數、持續 0.35 秒的變化：重畫一次
+    tip:SetLines(B)
+    P.Try(tip, t14.state, ITEM, data)
+    for _ = 1, 18 do env.now = env.now + 0.02; env.FlushTimers() end
+    eq("H3：同行數的新內容持續 0.36 秒 → 重畫一次", t14.renders(), base + 1)
+    for _ = 1, 20 do env.now = env.now + 0.02; env.FlushTimers() end
+    eq("H3：採用之後不再重畫", t14.renders(), base + 1)
+    -- 設定改了：不等
+    P.settingsVersion = P.settingsVersion + 1
+    P.Try(tip, t14.state, ITEM, data)
+    env.FlushTimers()
+    eq("設定版本變：下一幀就重畫", t14.renders(), base + 2)
 end
 
 H.finish("Try_test")

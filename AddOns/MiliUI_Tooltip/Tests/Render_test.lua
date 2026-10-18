@@ -244,13 +244,39 @@ end
 do
     local env, ns, tip, state, panel = Setup()
     local P = ns.Panel
+    -- 從上緣錨定（比價框、ANCHOR_TOP…）：貼上緣，照舊
     tip:ClearAllPoints()
-    tip:SetPoint("BOTTOMRIGHT", env.UIParent, "BOTTOMRIGHT", -10, 10)
+    tip:SetPoint("TOPRIGHT", env.UIParent, "TOPRIGHT", -10, -10)
     tip.left, tip.top = 100.4, 500.3
     check("Align：成功", P.Align(panel, tip))
-    eq("Align：右側被錨 → TOPRIGHT", panel.points[1][1], "TOPRIGHT")
+    eq("Align：TOPRIGHT 錨定 → 貼 TOPRIGHT", panel.points[1][1], "TOPRIGHT")
     near("Align：x 修到整數像素", panel.points[1][4], math.floor(100.4 + 200 + 0.5) - (100.4 + 200))
     near("Align：y 修到整數像素", panel.points[1][5], 500 - 500.3)
+
+    -- 從下緣錨定（跟隨游標 cp=BOTTOMLEFT、固定右下）：貼下緣，原生高度暫時不對時 panel 不動
+    tip:ClearAllPoints()
+    tip:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 30, 40)
+    tip.left, tip.top, tip.h = 100, 500.3, 100
+    check("Align：下緣錨定成功", P.Align(panel, tip))
+    eq("Align：BOTTOMLEFT 錨定 → 貼 BOTTOMLEFT", panel.points[1][1], "BOTTOMLEFT")
+    eq("Align：對到 tooltip 的 BOTTOMLEFT", panel.points[1][3], "BOTTOMLEFT")
+    near("Align：下緣也修到整數像素", panel.points[1][5], 400 - 400.3)
+    -- 有附屬框：原生的底＝整組的底，主面板往上讓出縫＋附屬框
+    panel.height, panel.totalHeight = 100, 160
+    P.Align(panel, tip)
+    near("Align：有附屬框時往上讓出 60", panel.points[1][5], (400 - 400.3) + 60)
+    panel.totalHeight = 100
+    -- 只有 LEFT／RIGHT／CENTER 的點：用 TOP
+    tip:ClearAllPoints()
+    tip:SetPoint("LEFT", env.UIParent, "CENTER", 0, 0)
+    P.Align(panel, tip)
+    eq("Align：只有 LEFT → 貼 TOPLEFT", panel.points[1][1], "TOPLEFT")
+    -- 兩個點：第一個含 TOP／BOTTOM 的點決定垂直側
+    tip:ClearAllPoints()
+    tip:SetPoint("RIGHT", env.UIParent, "CENTER", 0, 0)
+    tip:SetPoint("BOTTOM", env.UIParent, "CENTER", 0, 0)
+    P.Align(panel, tip)
+    eq("Align：RIGHT＋BOTTOM → 貼 BOTTOMRIGHT", panel.points[1][1], "BOTTOMRIGHT")
 
     tip:ClearAllPoints()
     tip:SetPoint(H.SECRET, env.UIParent, "TOP", 0, 0)

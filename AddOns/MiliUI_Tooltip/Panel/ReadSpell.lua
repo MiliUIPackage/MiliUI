@@ -195,6 +195,12 @@ function Panel.ReadSpellRows(rows, game, id)
         elseif row.appended and Patterns.Find("nextRank", Trim(Patterns.StripColors(left))) then
             nextRank = {}
             model.nextRank = { label = Trim(left), rows = nextRank }
+        elseif Typed(row, "Blank") or Typed(row, "Separator") then
+            -- 描述之後的空行：後面是另一段（實機：復仇之怒的雕紋段「復仇展翅雕紋」／「神聖、懲戒」／金字說明），
+            -- 原樣原色自成一段，不拆進主描述或「其他」
+            if seenBody or #part.description > 0 then part.tail = part.tail or {} end
+        elseif part.tail and not row.appended then
+            part.tail[#part.tail + 1] = { left = left, right = right, color = row.color, rightColor = row.rightColor }
         elseif Typed(row, "SpellPassive") and not right then
             part.passive = Trim(left)
         elseif Typed(row, "SpellDescription") then

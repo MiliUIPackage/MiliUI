@@ -246,6 +246,7 @@ function H.Tip(env, name, lines)
     function tip:GetLeft() return self.left end
     function tip:GetRight() return self.left + self.w end
     function tip:GetTop() return self.top end
+    function tip:GetBottom() return self.top - self.h end
     tip:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 100, 100)
     tip.lines = {}
     function tip:SetLines(list)

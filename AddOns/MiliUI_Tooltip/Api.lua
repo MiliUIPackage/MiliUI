@@ -75,7 +75,10 @@ SLASH_MILIUITIP2 = "/miliuitooltip"
 SlashCmdList.MILIUITIP = function(msg)
     msg = strtrim(strlower(msg or ""))
     local cmd, arg = msg:match("^(%S+)%s*(.-)$")
-    if cmd == "record" then
+    if cmd == "panel" then
+        -- 重繪面板的位置診斷（Panel/Try.lua）
+        ns.Panel.DebugDump(function(line) print("|cff4DD2FF[米利的滑鼠提示]|r " .. line) end)
+    elseif cmd == "record" then
         -- 記錄模式：滑的時候自動記物品／法術提示的原始資料（Core/Record.lua）
         ns.Record.Command(arg)
     elseif msg == "reset" then
