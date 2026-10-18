@@ -197,6 +197,7 @@ local function Render(tip, state, kind, data, rows, n, fingerprint)
     if not Panel.Align(panel, tip) or not Native.Hide(tip, state) then return false end
     if Native.Fit(tip, state) == false then return false end
     panel:Show()
+    state.renders = (state.renders or 0) + 1        -- 給 /mtip panel watch 看：同一件重畫了幾次
     state.panelFingerprint = fingerprint
     state.panelSettings = Panel.settingsVersion
     state.panelLines = n
@@ -510,6 +511,9 @@ function Panel.Watch(seconds, out)
             note(name .. ".原生.顯示中", (Call(tip, "IsShown")))
             note(name .. ".原生.alpha", (Call(tip, "GetAlpha")))
             note(name .. ".接管中", state.native ~= nil)
+            note(name .. ".重畫次數", state.renders or 0)        -- 尺寸沒變但內容版本切換＝整塊重畫，肉眼是眨一下
+            note(name .. ".行數", state.panelLines)
+            note(name .. ".key", state.panelKey)
             if not panel:IsShown() then return end
             sawPanel = true
             region(name .. ".原生", tip)
