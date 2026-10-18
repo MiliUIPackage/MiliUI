@@ -5,7 +5,8 @@
 #   bash .claude/scripts/sync-notes.sh --check   只檢查有沒有落後，不寫入（給 hook / CI 用）
 #
 # ⚠ 以 memory 為準，這裡是匯出結果，不要兩邊手改。
-# 匯出後如果有新檔案，記得把它加進 notes/README.md 的索引表——這支不會自己改索引。
+# 匯出後會順手重寫 notes/README.md 底下的自動索引（notes-index.py）；上半的人手分組索引
+# 還是要自己加一行，但至少不會漏篇。
 
 set -u
 
@@ -57,6 +58,7 @@ report() {
 if [ "$CHECK" = 1 ]; then
     if report; then
         echo "notes 與 memory 一致。"
+        python3 "$REPO/.claude/scripts/notes-index.py" --check || exit 1
         exit 0
     fi
     echo "notes 落後了，跑 bash .claude/scripts/sync-notes.sh 匯出。"
@@ -74,6 +76,9 @@ if report; then
 else
     if [ "${#added[@]}" -gt 0 ]; then
         echo
-        echo "⚠ 有新檔案 —— 記得把它們加進 .claude/notes/README.md 的索引表。"
+        echo "⚠ 有新檔案 —— 自動索引會補上，但 README.md 上半的分組索引記得自己加一行。"
     fi
 fi
+
+# 自動索引跟著重寫（人手分組索引不動）
+python3 "$REPO/.claude/scripts/notes-index.py"

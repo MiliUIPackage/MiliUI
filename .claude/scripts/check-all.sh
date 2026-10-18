@@ -1,5 +1,5 @@
 #!/bin/bash
-# 提交前的檢查（八道 ＋ 本機才有的 notes 同步）。CI 跑的是同一批腳本（.github/workflows/checks.yml）。
+# 提交前的檢查（十道 ＋ 本機才有的 notes 同步）。CI 跑的是同一批腳本（.github/workflows/checks.yml）。
 #
 #   bash .claude/scripts/check-all.sh
 #
@@ -27,6 +27,8 @@ run "共用層：MiliUIWidgets 有沒有漂移" python3 .claude/scripts/sync-wid
 run "Skin：契約 lint"                  python3 .claude/scripts/check_skin.py
 run "冷卻管理器：離線測試"             bash .claude/scripts/run_tests.sh
 run "第三方修補：有沒有被上游更新洗掉" python3 .claude/scripts/check_forks.py
+run "第三方清單：THIRD_PARTY.md 有沒有過期" python3 .claude/scripts/third-party-manifest.py --check
+run "筆記索引：notes/README.md 自動區塊" python3 .claude/scripts/notes-index.py --check
 
 # notes 同步只在本機有 agent memory 時才有意義（CI 上沒有那個目錄），
 # 所以它自己判斷，找不到就跳過而不是失敗。

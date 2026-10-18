@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # third-party-manifest.py 要從 git log 算「最近同步」
 
       # ⚠ 版本要跟開發機一致（本機是 brew 的 lua 5.5.0）。
       #   apt 的 lua5.4 也編得過大部分檔案，但 `luac -l` 的位元組碼列表格式在版本之間
@@ -72,3 +74,11 @@ jobs:
       # 清單與辨識法對照 .claude/notes/project-local-addon-forks.md（pending 的是已知退化，只警告不擋）
       - name: 第三方修補 — 有沒有被上游更新洗掉
         run: python3 .claude/scripts/check_forks.py
+
+      # THIRD_PARTY.md 的版本與同步日期是從 TOC 與 git log 算的，update: 之後忘了重新產生就會過期
+      - name: 第三方清單 — THIRD_PARTY.md 有沒有過期
+        run: python3 .claude/scripts/third-party-manifest.py --check
+
+      # notes/README.md 底下的「全部筆記」是從 frontmatter 產生的，新增筆記沒重跑就會漏篇
+      - name: 筆記索引 — notes/README.md 自動區塊
+        run: python3 .claude/scripts/notes-index.py --check
