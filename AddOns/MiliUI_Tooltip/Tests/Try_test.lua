@@ -298,6 +298,43 @@ do
 end
 
 ------------------------------------------------------------
+-- 7c. 同一件重設的 post-call 當下內容不完整（別家的行同一幀稍後才加）：padding 照上次對帳量到的自然高度算，
+--     原生總高整幀恆定（夾在螢幕上緣時否則面板掉一幀）；真的變少時下一幀對帳才修
+------------------------------------------------------------
+do
+    local t6 = Setup()
+    t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
+    t6.env.FlushTimers()
+    t6.polls[t6.state]()                               -- 輪詢量一次＝對帳後的自然高度
+    local pad, total, calls = t6.tip.padding[2], t6.tip.h, t6.tip.padCalls
+    check("前提：padding 已撐", pad > 0, pad)
+    -- 重設：post-call 當下內容矮 30（行還沒進來）
+    t6.tip.h = t6.tip.h - 30
+    t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
+    eq("partial：padding 不變（用上次量到的自然高度）", t6.tip.padding[2], pad)
+    eq("partial：連 SetPadding 都不呼叫", t6.tip.padCalls, calls)
+    -- 行進來了 ⇒ 總高剛好回到目標，對帳也不用動 padding
+    t6.tip.h = t6.tip.h + 30
+    t6.env.FlushTimers()
+    eq("行回來：總高＝目標", t6.tip.h, total)
+    eq("行回來：對帳沒動 padding", t6.tip.padCalls, calls)
+    -- 真的變少（修飾鍵放開）：post-call 當下仍照上次的，下一幀對帳量到新值才補 padding 撐回目標
+    t6.tip.h = t6.tip.h - 30
+    t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
+    eq("真的變少：post-call 當下 padding 仍不變", t6.tip.padding[2], pad)
+    t6.env.FlushTimers()
+    eq("真的變少：下一幀對帳補 padding 撐回目標", t6.tip.padding[2], pad + 30)
+    eq("真的變少：總高回到目標", t6.tip.h, total)
+    -- 之後的重設照新的自然高度算，padding 不再跳
+    t6.tip.h = t6.tip.h - 10
+    calls = t6.tip.padCalls
+    t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
+    eq("之後的重設：仍不動 padding", t6.tip.padCalls, calls)
+    t6.tip.h = t6.tip.h + 10
+    t6.env.FlushTimers()
+end
+
+------------------------------------------------------------
 -- 8. post-call 之後 tooltip 根本沒顯示 → 下一幀退回
 ------------------------------------------------------------
 do

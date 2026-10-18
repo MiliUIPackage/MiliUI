@@ -133,7 +133,14 @@ function RestoreClearedPadding(tip, state)
 end
 Native.RestoreClearedPadding = RestoreClearedPadding
 
-function Native.Fit(tip, state)
+-- partial = true：同一件重設的 post-call 當下。那一刻的內容**已知不完整**——別家插件的行、比價說明都是同一幀稍後才加
+-- （Try 檔頭第 2 點），量到的自然高度偏矮；照它算 padding 會先撐大，行進來之後原生總高超過目標，直到下一幀對帳才改回。
+-- 沒夾邊時多出來的往上長（面板貼在下緣）看不見；原生被夾在螢幕上緣時上緣被釘住、多出來的變成**下緣往下掉一幀**，
+-- 面板跟著掉，每 0.2 秒一次（2026-10-19 實機 log：padding 125.3↔35.1 交替、watch 取樣永遠在對帳之後所以看不到）。
+-- ⇒ partial 時自然尺寸用「上次對帳量到的」（state.nativeSettledW／H）與當下量到的取大者：內容會回來的話 padding 一個數字
+--   都不用改、連 SetPadding 都省；真的變少（修飾鍵放開）頂多矮一幀，下一幀對帳量到新值就修正。對帳／輪詢（partial 為 nil）
+--   量到的才記成 settled。
+function Native.Fit(tip, state, partial)
     local saved, panel = state.native, state.panel
     if not saved or not panel or not panel.width or not panel.height then return end
     if RestoreClearedPadding(tip, state) then
@@ -161,6 +168,12 @@ function Native.Fit(tip, state)
 
     local naturalW = w - (pr - saved.right)
     local naturalH = h - (pb - saved.bottom)
+    if partial then
+        naturalW = math.max(naturalW, state.nativeSettledW or 0)
+        naturalH = math.max(naturalH, state.nativeSettledH or 0)
+    else
+        state.nativeSettledW, state.nativeSettledH = naturalW, naturalH
+    end
     -- 原生自己的尺寸也只長不縮（同一件）：撐到這件看過的最大自然寬高。
     -- 原生的寬高是暴雪定位用的——比價框往哪邊放、要把主提示推多少（AnchorShoppingTooltips 的 slideAmount
     -- 用兩顆比價框原生的寬算）、夾邊。自然寬高在每次重設時短暫變（別家的行晚一幀補回、比價說明是不換行的長行），

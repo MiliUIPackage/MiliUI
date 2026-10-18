@@ -15,6 +15,8 @@
 --      （設定改了例外：指紋差在設定版本就直接重畫）
 --   4b. 幾何只長不縮（同一件）：panel 寬取這件看過的最大寬；原生替身的高取這件看過的最大總高。
 --       內容少的版本畫在寬面板裡沒關係；原生看不見，多撐一截沒有視覺代價，錨點就不會動。換一件歸零
+--   4c. 同一件重設的 post-call 當下算 padding 時，自然尺寸用上次對帳量到的（Native.Fit 的 partial）：那一刻內容不完整，
+--       照它算會先撐大、行進來後原生總高超標一幀；原生被夾在螢幕上緣時這一幀變成面板往下掉（2026-10-19 實機 log）
 --   5. 輪詢（0.1 秒，只在有 tooltip 顯示時存在）：tooltip 沒了 → Restore；alpha 被改回來 → 重壓；
 --      行數變了 → 排 Reconcile；尺寸漂了 → Fit；層級被抬 → 跟上
 --   6. OnTooltipCleared → Release：先不拆，等下一幀；同一幀裡新的 post-call 會把它認領回去。
@@ -113,6 +115,7 @@ function Panel.Restore(tip, state)
     state.pendingFingerprint, state.pendingSince = nil, nil
     state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
     state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）
+    state.nativeSettledW, state.nativeSettledH = nil, nil
     state.panelData, state.panelKind, state.panelLines = nil, nil, nil
     if state.panelPolling then
         state.panelPolling = nil
@@ -337,7 +340,8 @@ function Panel.Try(tip, state, dataType, data)
         state.hidePending = nil
         state.panelData, state.panelKind = data, kind
         Panel.PaintEdges(panel, state)      -- 邊框色在 ClearTransient 時被重設過，補回來
-        if not Native.Hide(tip, state) or Native.Fit(tip, state) == false then
+        -- Fit 的 partial：這一刻內容不完整，自然尺寸用上次對帳量到的（Native.lua）
+        if not Native.Hide(tip, state) or Native.Fit(tip, state, true) == false then
             Panel.Restore(tip, state)
             return
         end
@@ -358,6 +362,7 @@ function Panel.Try(tip, state, dataType, data)
     -- 換一件：只長不縮的幾何與等待中的變化全部歸零
     state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
     state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）
+    state.nativeSettledW, state.nativeSettledH = nil, nil
     state.pendingFingerprint, state.pendingSince, state.partialSince = nil, nil, nil
     local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, kind .. "|" .. (Panel.CompareHeaderText(tip) or ""))
     if not Render(tip, state, kind, data, rows, n, fingerprint) then

@@ -137,5 +137,8 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - **跟隨框退回 L3**：對象換成面板、點與位移原樣、相鄰邊留縫；`Place`／`Park`／交棒／換邊遲滯／`PlaceFollowers`／`FOLLOW_HYST`／`FOLLOW_DWELL` 全部刪除。它照真實的原生幾何做的判斷照單全收。
 - 保留：鏡射（I1）、J3、半像素遲滯、原生寬高只長不縮、OnHide 延一幀（那是另一個獨立成因：ScrollBox 刷新）。
 - 教訓：**替身的幾何必須是真的**。要騙暴雪的定位系統，就要騙到底（尺寸、位置、夾邊都跟真的一樣），只騙一半的話每個讀它的人都要另外修。
+- **夾邊打開後暴露的時序問題（同晚，log 破案）**：提示頂到螢幕上緣時面板每 0.2 秒往下掉一幀，watch 600 幀全穩。log：同一件重設的 post-call 當下 `Fit` 量到自然高 306.7（別家的行還沒加）→ padding 125.3 撐到 432；同一幀稍後行加進來（396.8）⇒ 原生總高 522 直到下一幀對帳改回 35.1。沒夾邊時多的往上長、面板貼下緣不動；**夾在上緣時上緣被釘住，多的變成下緣掉 90**。watch 看不到：對帳走 `C_Timer.After(0)`，在 OnUpdate 取樣之前就修回。
+  規則：**post-call 當下的內容已知不完整，padding 用上次對帳量到的自然尺寸算**（`Native.Fit(tip, state, partial)`：partial 取 `nativeSettledW/H` 與當下的大者；對帳／輪詢才記 settled）。效果：padding 每循環一個數字都不變、連 SetPadding 都省；真的變少頂多矮一幀。
+  診斷工具教訓：**每幀取樣抓不到「計時器在取樣前修回」的一幀抖動**，要在寫入點記 log（`/mtip log` 現在記 SetPadding／補回／夾邊／alpha／重貼／對帳／重畫）。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
