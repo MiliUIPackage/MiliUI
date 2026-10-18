@@ -10,6 +10,12 @@
 -- ⚠⚠ EJ_GetEncounterInfoByIndex 的第二個參數（副本 ID）**單獨傳沒有用**：沒先 EJ_SelectInstance
 --   選中那個副本，回傳是空的（2026-10-09 實測：首領下拉整個空白）。MRT／Cell 都是先 Select 再讀，
 --   照做，讀完把原本選中的副本切回去。
+-- ⚠⚠⚠ 首領清單還跟著冒險指南「目前選中的難度」走：難度對這個副本無效（剛登入還沒碰過冒險指南、
+--   或上次看的是地城而這次讀團隊副本），EJ_GetEncounterInfoByIndex 整串回 nil —— Plumber 的
+--   原始碼明寫「不先 EJ_SetDifficulty 會回 nil」。所以 Select 之後先檢查 EJ_IsValidInstanceDifficulty，
+--   無效就暫時切到一個這副本有的難度（所在副本的難度優先），讀完切回去。
+--   2026-10-19 玩家回報：第一次開設定頁首領全空、重開一次就有 —— 第一次 EJ_SelectInstance 之後引擎
+--   才把難度補成有效的，同一幀讀到的還是舊狀態；消費端（Tab_Plans 側欄）讀到空清單時也會延遲重讀一次。
 -- 名稱一律明文（冒險指南的資料不是秘密值）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -64,11 +70,36 @@ end
 
 -- 這個副本的首領：{ { value = 首領戰 ID, text = 名稱 }, ... }
 -- tier：這個副本所在的資料片（選副本之前要先選對資料片，MRT 也是這個順序）
+-- 團隊（普通／英雄／傳奇／尋求團隊）、地城（英雄／普通／傳奇／鑰石）；哪個難度這副本有由 EJ_IsValidInstanceDifficulty 決定
+local DIFF_CANDIDATES = { 14, 15, 16, 17, 2, 1, 23, 8 }
+
+-- 目前選中的難度對「目前選中的副本」有效就什麼都不做；無效就切到一個有效的，回傳原本的難度
+-- （呼叫端讀完要切回去）。冒險指南視窗開著時不動它（畫面會跟著跳）。
+local function EnsureValidDifficulty()
+    if not (EJ_GetDifficulty and EJ_SetDifficulty and EJ_IsValidInstanceDifficulty) then return end
+    if EncounterJournal and EncounterJournal:IsShown() then return end
+    local cur = S.PlainNumber(S.SafeCall(EJ_GetDifficulty))
+    if cur and cur > 0 and S.SafeBool(EJ_IsValidInstanceDifficulty, cur) then return end
+    local _, instanceType, hereDiff = GetInstanceInfo()
+    local pick
+    if instanceType ~= "none" and hereDiff and S.SafeBool(EJ_IsValidInstanceDifficulty, hereDiff) then
+        pick = hereDiff
+    else
+        for _, d in ipairs(DIFF_CANDIDATES) do
+            if S.SafeBool(EJ_IsValidInstanceDifficulty, d) then pick = d break end
+        end
+    end
+    if not pick then return end
+    pcall(EJ_SetDifficulty, pick)
+    return cur
+end
+
 function J.Encounters(journalInstanceID, tier)
     if not J.Available() or not journalInstanceID or not EJ_SelectInstance then return {} end
     local function Read()
         local prevInst = EJ_GetCurrentInstance and S.SafeCall(EJ_GetCurrentInstance)
         pcall(EJ_SelectInstance, journalInstanceID)
+        local prevDiff = EnsureValidDifficulty()
         local out = {}
         for i = 1, 40 do
             local name, _, journalEncounterID, _, _, _, dungeonEncounterID = EJ_GetEncounterInfoByIndex(i, journalInstanceID)
@@ -77,6 +108,7 @@ function J.Encounters(journalInstanceID, tier)
                 out[#out + 1] = { value = dungeonEncounterID, text = name, journal = journalEncounterID }
             end
         end
+        if prevDiff and prevDiff > 0 then pcall(EJ_SetDifficulty, prevDiff) end
         if prevInst and prevInst ~= 0 and prevInst ~= journalInstanceID then pcall(EJ_SelectInstance, prevInst) end
         return out
     end

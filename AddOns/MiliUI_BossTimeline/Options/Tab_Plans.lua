@@ -1231,8 +1231,25 @@ end
 -- 重畫整頁
 ------------------------------------------------------------
 local profileWidgets
+local Refresh
 
-local function Refresh()
+-- 冒險指南第一次讀某個副本可能回空清單（登入後第一次 EJ_SelectInstance，引擎同一幀還沒把狀態補好；
+-- 見 Plans/Journal.lua 開頭）。Journal 那邊空的不快取，所以等一下重畫一次就會有了——每個副本只重試一次，
+-- 真的沒首領的副本（冒險指南還沒收）就維持「還沒有首領」的提示。
+local retried = {}
+local retryPending
+
+local function RetryEmptyInstance(rows)
+    if #rows > 0 or sel.inst == OTHER or retried[sel.inst] or retryPending then return end
+    retried[sel.inst] = true
+    retryPending = true
+    C_Timer.After(0.5, function()
+        retryPending = nil
+        if tab and tab:IsVisible() then Refresh() end
+    end)
+end
+
+function Refresh()
     if not tab then return end
     local cur = RebuildInstances()
     if not chosen then ChooseDefaults(cur) end
@@ -1248,6 +1265,7 @@ local function Refresh()
     instDD:SetSelectedValue(sel.inst)
     bossList:Update(rows, UpdateBossRow)
     sideEmpty:SetShown(View().sidebar and #rows == 0)
+    RetryEmptyInstance(rows)
     sideEmpty:SetText(sel.inst == OTHER and L["Bosses you entered by ID, or from older expansions, show up here."]
         or L["The Adventure Guide has no bosses for this instance yet."])
 
