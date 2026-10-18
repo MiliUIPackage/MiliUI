@@ -362,46 +362,22 @@ local function CreateBarFrame()
 
     barText:SetPoint("RIGHT", barTimeText, "LEFT", -2, 0)
 
-    -- Drag support (Edit Mode only)
+    -- 編輯模式拖曳（Libs/MiliUIEditMode.lua）：選取框、手動拖曳、格線吸附、戰鬥閘都在共用層；
+    -- 這裡只給「放手怎麼存」（CENTER 偏移）與「中斷怎麼放回」
     barFrame:SetMovable(true)
     barFrame:SetUserPlaced(false)
     barFrame:SetClampedToScreen(true)
-    barFrame:RegisterForDrag("LeftButton")
-    barFrame:SetScript("OnDragStart", function(self)
-        if self.unlocked then self:StartMoving() end
-    end)
-    barFrame:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        self:SetUserPlaced(false)
-        local cx, cy = UIParent:GetCenter()
-        local fx, fy = self:GetCenter()
-        db.barX = math.floor(fx - cx + 0.5)
-        db.barY = math.floor(fy - cy + 0.5)
-    end)
-
-    -- Edit Mode selection overlay
-    local editSelection = CreateFrame("Frame", nil, barFrame, "EditModeSystemSelectionTemplate")
-    -- The template's XML binds OnMouseDown -> EditModeManagerFrame:SelectSystem(self.parent).
-    -- We are not a real Edit Mode system: a click without a drag lets Blizzard run that
-    -- selection pass tainted by us across EVERY registered system (action bars included).
-    -- Silent at click time; it surfaces later as blocked action buttons in combat.
-    editSelection:SetScript("OnMouseDown", function() end)
-    editSelection:SetAllPoints()
-    editSelection:Hide()
-    editSelection:RegisterForDrag("LeftButton")
-    editSelection:SetScript("OnDragStart", function() barFrame:StartMoving() end)
-    editSelection:SetScript("OnDragStop", function()
-        barFrame:StopMovingOrSizing()
-        barFrame:SetUserPlaced(false)
-        local cx, cy = UIParent:GetCenter()
-        local fx, fy = barFrame:GetCenter()
-        db.barX = math.floor(fx - cx + 0.5)
-        db.barY = math.floor(fy - cy + 0.5)
-    end)
-    editSelection.system = {
-        GetSystemName = function() return L["ADDON_TITLE"] end,
-    }
-    barFrame.editSelection = editSelection
+    local EM = ns.MiliUIEditMode
+    EM.Attach(barFrame, {
+        name    = function() return L["ADDON_TITLE"] end,
+        enabled = function() return db and db.barEnabled end,
+        save    = function(f)
+            local x, y = EM.CenterOffset(f)
+            if x then db.barX, db.barY = x, y end
+            ns.UpdateBarPosition()
+        end,
+        restore = function() ns.UpdateBarPosition() end,
+    })
 
     -- OnUpdate: ratio every frame (cheap GPU redraw), text+color at 10 Hz
     barFrame:SetScript("OnUpdate", function(self, dt)
@@ -456,31 +432,23 @@ local function UpdateBarSize()
     if barSpark            then barSpark:SetSize(12, bh * 3) end
 end
 
+-- 進出編輯模式：樣板內容與顯示／隱藏。選取框的亮／收由共用層（Libs/MiliUIEditMode.lua）管
 local function UpdateEditModeState()
     if isInEditMode then
         if not (db and db.barEnabled) then
-            if barFrame then
-                barFrame.editSelection:Hide()
-                barFrame:Hide()
-            end
+            if barFrame then barFrame:Hide() end
             return
         end
         CreateBarFrame()
-        barFrame.unlocked = true
-        barFrame:EnableMouse(true)
         barStatusBar:SetValue(0.7)
         barText:SetText(DEFAULT_LUST_NAME)
         barTimeText:SetText("30.0")
         barIcon:SetTexture(DEFAULT_LUST_ICON)
-        barFrame.editSelection:ShowHighlighted()
         UpdateBarPosition()
         UpdateBarSize()
         barFrame:Show()
     else
         if not barFrame then return end
-        barFrame.unlocked = false
-        barFrame:EnableMouse(false)
-        barFrame.editSelection:Hide()
         if not activeLustSpellID then
             barFrame:Hide()
         end
@@ -488,35 +456,12 @@ local function UpdateEditModeState()
 end
 
 ----------------------------------------------------------------------
--- EditMode hook (three tiers: file-scope, AddOn-loaded, PLAYER_LOGIN)
+-- 編輯模式進出訊號：共用層負責三重掛勾與登入保底，狀態改變時（下一幀）通知這裡
 ----------------------------------------------------------------------
-local editModeHooked = false
-local function HookEditMode()
-    if editModeHooked then return end
-    if not EditModeManagerFrame then return end
-    editModeHooked = true
-    DebugPrint("EditMode HOOKED successfully")
-
-    EditModeManagerFrame:HookScript("OnShow", function()
-        isInEditMode = true
-        UpdateEditModeState()
-    end)
-    EditModeManagerFrame:HookScript("OnHide", function()
-        isInEditMode = false
-        UpdateEditModeState()
-    end)
-
-    if EditModeManagerFrame:IsShown() then
-        isInEditMode = true
-        UpdateEditModeState()
-    end
-end
-
-HookEditMode()  -- Tier 1
-
-if not editModeHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
-    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)  -- Tier 2
-end
+ns.MiliUIEditMode.OnChange("music", function(active)
+    isInEditMode = active
+    UpdateEditModeState()
+end)
 
 CreateBarFrame()  -- create eagerly so EditMode can find it
 
@@ -803,7 +748,6 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             end
         end
 
-        HookEditMode()    -- Tier 3
         CreateBarFrame()
 
         -- At login: figure out if we're already inside a lust window.
