@@ -15,6 +15,10 @@
 --     秘密布林只餵宿主的 SetAlphaFromBoolean；「!」版的名字另一顆 FontString，兩顆 alpha 互補
 --   * 名字／圖示可能是秘密值：只交給 SetText／SetTexture，不比較、不截字（CB.Truncate 會原樣回）
 --   * 斷法者 GUID 只比 nil；職業是秘密字串就不上色（秘密值不能當 table key、SetTextColor 不收秘密值）
+--   * 法術打向誰（showTarget，2026-10-19）：12.x UnitSpellTargetName／UnitSpellTargetClass。名字只交給 SetText；
+--     職業交給 C_ClassColor.GetClassColor 再把分量餵 SetTextColor（名條插件在正式服就這樣畫，分量是秘密數字也收——
+--     跟上一行的「不收」是兩回事：那條說的是自己查表算 RGB；這條是 C 端回的色物件原封轉交）。
+--     UnitShouldDisplaySpellTargetName 的布林：明文 if、秘密餵 SetAlphaFromBoolean
 --   * 事件處理器只轉手 ns.Defer
 --
 -- 專注目標換了（PLAYER_FOCUS_CHANGED）：新的專注目標正在唱就直接接上，沒在唱就收條。
@@ -146,6 +150,11 @@ local function Build()
     ns.Media.SetFont(f.timeText, 12, "OUTLINE")
     f.timeText:SetJustifyH("RIGHT")
     f.timeText:SetWordWrap(false)
+    -- 法術打向誰：條下方右靠齊、比法術名小一號（位置與字級在 Layout）
+    f.targetText = f.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(f.targetText, 10, "OUTLINE")
+    f.targetText:SetJustifyH("RIGHT")
+    f.targetText:SetWordWrap(false)
 
     f.glowHosts = {}
     f:Hide()
@@ -256,6 +265,12 @@ function FC.Layout()
     f.nameText:SetShown(showName)
     f.bangText:SetShown(showName)
     f.timeText:SetShown(cfg.showTime ~= false)
+    ns.Media.SetFont(f.targetText, tonumber(cfg.targetTextSize) or 10, outline, nameFont)
+    local tg = type(cfg.targetOffset) == "table" and cfg.targetOffset or {}
+    f.targetText:ClearAllPoints()
+    f.targetText:SetPoint("TOPRIGHT", f.barHolder, "BOTTOMRIGHT", tonumber(tg.x) or -2, tonumber(tg.y) or 0)
+    f.targetText:SetPoint("TOPLEFT",  f.barHolder, "BOTTOMLEFT",  0,                     tonumber(tg.y) or 0)
+    f.targetText:SetShown(cfg.showTarget ~= false)
 
     f.spark:SetSize(10, H * 2.2)
     f.spark:ClearAllPoints()
@@ -430,6 +445,44 @@ local function SetName(name, important, caster)
     f.nameText:SetAlphaFromBoolean(important, 0, 1)
 end
 
+-- 法術打向誰（條右下角、職業色）。name 可能是秘密字串（只交給 SetText）；class 明文或秘密 token（只交給 GetClassColor）
+local function ClearSpellTarget()
+    f.targetText:SetText("")
+    f.targetText:SetAlpha(1)
+    f.targetText:SetTextColor(1, 1, 1)
+end
+
+local function PaintSpellTarget(name, class)
+    f.targetText:SetAlpha(1)
+    local r, g, b = 1, 1, 1
+    if class ~= nil and (Cfg() or {}).targetClassColor ~= false then
+        local color = C_ClassColor and C_ClassColor.GetClassColor(class)
+            or (not IsSecret(class) and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
+        if color then r, g, b = color:GetRGB() end
+    end
+    f.targetText:SetTextColor(r, g, b)
+    f.targetText:SetText(name)
+end
+
+local function SetSpellTarget()
+    local cfg = Cfg() or {}
+    if cfg.showTarget == false or not UnitSpellTargetName then ClearSpellTarget() return end
+    local name = UnitSpellTargetName(UNIT)
+    if name == nil then ClearSpellTarget() return end            -- 秘密字串可測 nil
+    local class = UnitSpellTargetClass and UnitSpellTargetClass(UNIT) or nil
+    PaintSpellTarget(name, class)
+    if UnitShouldDisplaySpellTargetName then
+        local show = UnitShouldDisplaySpellTargetName(UNIT)
+        if show ~= nil then
+            if IsSecret(show) then
+                f.targetText:SetAlphaFromBoolean(show, 1, 0)
+            elseif not show then
+                ClearSpellTarget()
+            end
+        end
+    end
+end
+
 ------------------------------------------------------------
 -- 顯示流程
 ------------------------------------------------------------
@@ -507,6 +560,7 @@ local function HideBar()
         f.nameText:SetAlpha(1)
         f.bangText:SetAlpha(0)
         f.timeText:SetText("")
+        ClearSpellTarget()
         f.icon:SetTexture(nil)
         f:Show()
         UpdateKick()
@@ -553,6 +607,7 @@ local function ShowInterrupted(interrupterGUID)
     if tex then tex:SetVertexColor(C(Colors().interrupted, 1, 0.204, 0.145)) end
     SetName(L["Interrupted"], nil)
     f.timeText:SetText("")
+    ClearSpellTarget()                         -- 施法斷了，打向誰已經不重要
     if interrupterGUID ~= nil and (Cfg() or {}).showInterrupter ~= false then
         local name, class
         if UnitNameFromGUID then
@@ -674,6 +729,7 @@ local function StartDisplay()
     SetName(name, important, caster)
     if important == nil then StopGlow() else ShowGlow(important) end
     f.timeText:SetText("")
+    SetSpellTarget()
     UpdateKick()
 
     local ps, pe = Plain(s4), Plain(s5)
@@ -805,6 +861,11 @@ function FC.StartPreview()
     SetName(L["Preview cast"], true, L["Focus target"])
     ShowGlow(nil)
     f.timeText:SetText("")
+    if (cfg.showTarget ~= false) then
+        PaintSpellTarget(UnitName("player"), ns.playerClass or (UnitClassBase and UnitClassBase("player")))   -- 範例：打向自己
+    else
+        ClearSpellTarget()
+    end
     UpdateKick()
     ApplyColor()
     f.bar:SetMinMaxValues(0, 1)

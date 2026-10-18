@@ -539,6 +539,12 @@ FocusCastDefaults = function()
         timeOffset    = { x = -4, y = 0 },
         showSpark     = true,
         showInterrupter = true,            -- 被打斷時右側印斷法者的名字（職業色）
+        -- 法術打向誰（12.x UnitSpellTargetName）：條下方右靠齊、比法術名小一號、職業色（2026-10-19 使用者指定，
+        -- 擺法照名條上常見的「施法目標」字：法術名左、目標右、目標小一號）
+        showTarget       = true,
+        targetClassColor = true,
+        targetTextSize   = 10,
+        targetOffset     = { x = -2, y = 0 },  -- 文字右上角相對條的右下角
         fillDirection = "ltr",
         hideWhenNotCasting = true,
         strata        = "MEDIUM",
