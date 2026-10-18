@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-18T10:12:30.534Z
+  modified: 2026-10-18T11:01:41.083Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -74,6 +74,12 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   接觸面 #10（SetAlpha／SetPadding）、#11（`ItemRefCloseButton:Click()`）；**P0～P3 零 hooksecurefunc**，尺寸貼合走 `C_Timer.After(0)`＋`Skin.Poll` 0.1 秒。
 - **退路＝退回現有樣式**：任何一行文字／型別／顏色／lineIndex 是秘密、GetPoint／GetLeft／GetWidth／GetPadding 回秘密、讀不出名字、render 出錯、內嵌物品框或 BottomFontString 顯示中（暴雪自己在用 padding）
   → 不藏原生、不顯示 panel。開關關掉時對 tooltip 零寫入。
+- **同一件物品的重建當幀不重畫、延一幀 Reconcile**（實機第一輪抓到的閃爍，commit 98a430937）：比價框每次重建是 `ClearLines → ProcessInfo（我們的 post-call 在這裡）→ 同一幀再 AddLine 補「若你更換此裝備…」`
+  （TooltipComparisonManager:SetItemTooltip 第 236～290 行），別家插件的 post-call 也排在我們後面同一幀加行 ⇒ post-call 當下畫一定少行；每秒二十幾次重建兩版交替＝閃爍。
+  規則：key（型別＋明文 id）相同且 panel 顯示中 → 只重壓 alpha／Fit、排 `C_Timer.After(0)` 對帳；對帳重讀行比指紋；**行數比看過的最多還少＝部分版不准蓋完整版**，連續 0.3 秒才接受（修飾鍵放開、冷卻行消失要能變少）。
+- **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`，17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
+  **DisabledLine 是灰字不是需求未達成**（其他專精的主屬性、套裝未擁有件）；SellPrice 行文字是空的（錢幣另外畫）、要在「空行＝分段」之前認走；同 lineIndex 會有重複空行；盾牌格擋 `SHIELD_BLOCK_TEMPLATE`、武器油 `ITEM_ENCHANT_TIME_LEFT_*`、寶石行帶 `gemIcon` 檔案編號（**SetTexture 要餵數字**）。
+  配方／被動／天賦／充能法術仍沒有真實資料。
 - **OnTooltipCleared 先不拆（Release）、下一幀沒被新 post-call 認領才 Restore**；skin OnHide 立刻 Restore。不然比價風暴「清空再填同一件」每秒拆重畫二十幾次，指紋白做。
   padding 只在「tooltip 還顯示、而且還是我們設的值」才寫回（`GameTooltip_OnHide` 第 419 行自己 `ClearPadding`、OnShow 走 CalculatePadding 沒內嵌框也清——wow-ui-source live 核過）。
 - **先比指紋再解析**：指紋＝CollectLines 的原始行（文字＋顏色＋price）＋設定版本＋行數；相同連 reader 都不跑。
