@@ -431,6 +431,7 @@ end
 ------------------------------------------------------------
 env.UIParent = {}
 Load("Modules/Custom.lua")
+Load("Modules/Custom_Aura.lua")
 local CU = ns.Custom
 do
     local f = Item()

@@ -99,6 +99,7 @@ load("Core/MasqueShape.lua")
 load("Core/Layout.lua")             -- 「增益不在時」的判準（BarEmptyMode／SpellEmptyMode）：光環格的占位要用
 local RealLayout = ns.Layout
 load("Modules/Custom.lua")          -- 替代品／多法術的純函式（第 8 節起）；載入時不建任何框
+load("Modules/Custom_Aura.lua")
 load("Core/Text.lua")               -- 逐法術文字樣式的合併（Text.SpellText）：下面 stub 掉 ns.Text 的地方借用真的那幾支
 local RealText = ns.Text
 local function TextStub(t)

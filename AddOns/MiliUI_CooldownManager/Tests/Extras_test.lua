@@ -218,6 +218,7 @@ Load("Core/Decorate_Rings.lua")
 Load("Core/Decorate_Tooltip.lua")
 Load("Core/Sound.lua")
 Load("Modules/Custom.lua")
+Load("Modules/Custom_Aura.lua")
 Load("Core/Cursor.lua")
 local DB, C, D, S, CU, Cur, Lay = ns.DB, ns.Catalog, ns.Decorate, ns.Sound, ns.Custom, ns.Cursor, ns.Layout
 ns.RefreshSpec()

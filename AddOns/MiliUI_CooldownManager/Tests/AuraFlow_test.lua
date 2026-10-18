@@ -139,6 +139,7 @@ load("Core/Overflow.lua")
 load("Core/MasqueShape.lua")
 load("Core/Layout.lua")
 load("Modules/Custom.lua")
+load("Modules/Custom_Aura.lua")
 load("Core/Text.lua")
 local RealText = ns.Text
 local DB, C, CU, Lay = ns.DB, ns.Catalog, ns.Custom, ns.Layout

@@ -69,6 +69,7 @@ Core\Keybinds.lua
 Core\Assist.lua
 Modules\Timers.lua
 Modules\Custom.lua
+Modules\Custom_Aura.lua
 Core\Bars.lua
 Core\Visibility.lua
 Core\Cursor.lua
