@@ -64,6 +64,7 @@ Panel.LOOK = {
 
     CLOSE_SIZE = 16, CLOSE_LEN = 11, CLOSE_THICK = 1.5,
     TAG_H = 16, TAG_PAD = 8, TAG_GAP = 2, TAG_BG = 0.08,
+    EDGE_MARGIN = 4,        -- 夾邊時離螢幕邊留的呼吸（貼死的話 1px 邊框整條看不見）
 
     SMALL_SHRINK = 2, SMALL_MIN = 9,   -- caption／徽章字級 = body − 2（最小 9）
     BIG_GROW = 2,                      -- strip 的值 = body + 2
@@ -350,6 +351,7 @@ local function Create(tip, state)
         strata = ok and S.PlainText(strata)
         panel:SetFrameStrata(strata or "TOOLTIP")
         panel:SetClampedToScreen(true)
+        panel.clampable = true      -- 鏡射期間暫時關掉（SetMirror）
     end
     panel:Hide()
 
@@ -489,11 +491,70 @@ local function ReadPoints(tip)
     return points
 end
 
+-- 這個框是我們接管、而且面板正顯示著的 tooltip ⇒ 回它的面板
+function Panel.PanelFor(frame)
+    if type(frame) ~= "table" or not (ns.Skin and ns.Skin.State) then return nil end
+    local st = ns.Skin.State[frame]
+    local panel = st and st.panel
+    if panel and panel:IsShown() then return panel end
+end
+
 local function PanelOf(rel, tip, panel)
-    if type(rel) ~= "table" or rel == tip or not (ns.Skin and ns.Skin.State) then return nil end
-    local st = ns.Skin.State[rel]
-    local other = st and st.panel
-    if other and other ~= panel and other:IsShown() then return other end
+    if rel == tip then return nil end
+    local other = Panel.PanelFor(rel)
+    if other ~= panel then return other end
+end
+
+------------------------------------------------------------
+-- 別的插件自己建的框貼在我們接管的 tooltip 旁邊（外觀預覽，經 MiliUITip_API.Adopt 的 followPanel）：
+-- 它每 0.2 秒自己 ClearAllPoints＋SetPoint(點, 原生 tooltip, 對方點)。原生被錨定的另一邊會隨自然高度短暫變動，
+-- 它貼原生就跟著跳——跟比價面板鏡射同一個道理，改貼面板。
+-- 它不是我們的框、會自己重貼 ⇒ 後掛勾 SetPoint：對象是有面板顯示中的 tooltip 時，同一幀改成貼那個面板（點與位移原樣）。
+-- 只掛在別的插件自己建的 Frame 上（不是暴雪物件），每顆只掛一次；掛勾裡重入旗標擋自己的 SetPoint。
+-- 只保留最後一個點：它每次都先 ClearAllPoints 再設一個點，不會有第二個。
+-- 面板退回時（Restore）把貼在那個面板上的框當場貼回原生，不等它下一次自己重貼（錨在沒有點的框上那一下會跑掉）。
+------------------------------------------------------------
+local followers = {}       -- [frame] = { point, rel, relPoint, x, y, panel }（rel 是它原本要貼的 tooltip）
+local following = false
+Panel.followers = followers
+
+local function Reanchor(frame, point, rel, relPoint, x, y)
+    following = true
+    pcall(function()
+        frame:ClearAllPoints()
+        frame:SetPoint(point, rel, relPoint, x, y)
+    end)
+    following = false
+end
+
+function Panel.Follow(frame)
+    if type(frame) ~= "table" or followers[frame] or type(frame.SetPoint) ~= "function" then return end
+    followers[frame] = {}
+    hooksecurefunc(frame, "SetPoint", function(self, point, rel, relPoint, x, y)
+        if following then return end
+        if S.IsSecret(point) or S.IsSecret(rel) or S.IsSecret(relPoint) or S.IsSecret(x) or S.IsSecret(y) then return end
+        if type(rel) == "string" then rel = _G[rel] end
+        -- SetPoint(點, 對象, x, y) 的寫法：沒有對方點
+        if type(relPoint) == "number" then relPoint, x, y = point, relPoint, x end
+        local rec = followers[self]
+        rec.panel = nil
+        if type(point) ~= "string" then return end
+        local panel = Panel.PanelFor(rel)
+        if not panel then return end
+        relPoint = type(relPoint) == "string" and relPoint or point
+        rec[1], rec[2], rec[3], rec[4], rec[5], rec.panel = point, rel, relPoint, x or 0, y or 0, panel
+        Reanchor(self, point, panel, relPoint, x or 0, y or 0)
+    end)
+end
+
+-- 面板 gone 要退了：貼在它上面的框貼回原本的 tooltip
+function Panel.ReturnFollowers(gone)
+    for frame, rec in pairs(followers) do
+        if rec.panel == gone then
+            rec.panel = nil
+            Reanchor(frame, rec[1], rec[2], rec[3], rec[4], rec[5])
+        end
+    end
 end
 
 -- 套一組錨點；跟上次一樣（而且還貼著）就什麼都不做。記下來的 anchorArgs 給「原生暫時沒有點」時照貼回去
@@ -516,6 +577,59 @@ local function Keep(panel, tip)
     return Apply(panel, "provisional", { { "TOPLEFT", tip, "TOPLEFT", 0, 0 } })
 end
 
+------------------------------------------------------------
+-- 夾邊範圍（原生的夾邊關掉了，見 Native.Hide）：自己露在面板外的那幾塊（RenderView 記 clampOwnTop／clampOwnBottom：
+-- 上方的「已裝備」標籤、底下的附屬框），再加上**鏡射在自己身上的面板**的——
+-- 鏡射的面板自己不夾（它的位置完全由目標決定，自己再夾會跟目標拆開），所以由目標替它留位置。
+-- 2026-10-19 實機：主面板沒標籤、上緣 inset 0，比價面板有標籤、上緣多留一份，原生又錨在螢幕外
+-- ⇒ 主面板夾到貼齊上緣、比價面板夾到「上緣減標籤高」，三顆身體不在同一條線上。
+-- 鏡射可以串（第二顆比價框貼第一顆、第一顆貼主提示）⇒ 預留沿鏈往上收到根（真正在夾的那顆）。
+-- 只在值變了才 SetClampRectInsets（Align 每次輪詢都會走到這裡）
+------------------------------------------------------------
+local MAX_CHAIN = 8
+
+local function Reserve(panel, depth)
+    local top, bottom = panel.clampOwnTop or 0, panel.clampOwnBottom or 0
+    local states = ns.Skin and ns.Skin.State
+    if states and depth < MAX_CHAIN then
+        for _, st in pairs(states) do
+            local p = st.panel
+            if p and p ~= panel and p.mirrorOf == panel then
+                local t, b = Reserve(p, depth + 1)
+                top, bottom = math.max(top, t), math.max(bottom, b)
+            end
+        end
+    end
+    return top, bottom
+end
+
+function Panel.UpdateClampInsets(panel)
+    local depth = 0
+    while panel and panel.mirrorOf and depth < MAX_CHAIN do
+        panel, depth = panel.mirrorOf, depth + 1
+    end
+    if not panel or not panel.clampable or panel.clampOwnTop == nil then return end
+    local top, bottom = Reserve(panel, 0)
+    -- 四邊再往外撐一圈 EDGE_MARGIN（RenderView 換算好存 clampMargin）：夾在螢幕邊時不貼死，1px 邊框看得到。
+    -- 方向：正的上緣、負的下緣、負的左緣、正的右緣都是「夾邊範圍比面板大」⇒ 面板離螢幕邊至少這麼遠
+    local margin = panel.clampMargin or 0
+    local sig = ("%.3f|%.3f|%.3f"):format(top, bottom, margin)
+    if panel.clampSig == sig then return end
+    panel.clampSig = sig
+    panel:SetClampRectInsets(-margin, margin, top + margin, -(bottom + margin))
+end
+
+-- 換鏡射目標：自己的夾邊跟著開關、新舊目標重算預留
+local function SetMirror(panel, target)
+    local old = panel.mirrorOf
+    if old == target then return end
+    panel.mirrorOf = target
+    if panel.clampable then panel:SetClampedToScreen(target == nil) end
+    if old then Panel.UpdateClampInsets(old) end
+    -- 鏡射期間重畫時自己的範圍沒寫（UpdateClampInsets 收到根去了）⇒ 改回自己夾時補寫
+    Panel.UpdateClampInsets(target or panel)
+end
+
 local function Mirror(panel, tip, points)
     local mirrored, target = {}, nil
     for i, p in ipairs(points) do
@@ -532,7 +646,7 @@ local function Mirror(panel, tip, points)
         p[4], p[5] = Panel.Snap(panel, p[4] * ratio), Panel.Snap(panel, p[5] * ratio)
         sig[i] = ("%s|%s|%s|%.3f|%.3f"):format(p[1], tostring(p[2]), tostring(p[3]), p[4], p[5])
     end
-    panel.mirrorOf = target
+    SetMirror(panel, target)
     return Apply(panel, "mirror:" .. table.concat(sig, ";"), mirrored)
 end
 
@@ -541,7 +655,7 @@ function Panel.Align(panel, tip)
     if not points then return false end
     if #points == 0 then return Keep(panel, tip) end
     if Mirror(panel, tip, points) then return true end
-    panel.mirrorOf = nil
+    SetMirror(panel, nil)
 
     local side, vside = AnchoredSide(tip)
     if not side then return false end
@@ -575,7 +689,8 @@ function Panel.Detach(panel, keep)
     panel:ClearAllPoints()
     panel.anchored = false
     if not keep then
-        panel.alignSig, panel.anchorArgs, panel.mirrorOf = nil, nil, nil
+        SetMirror(panel, nil)
+        panel.alignSig, panel.anchorArgs = nil, nil
         panel.gridCorner, panel.gridTip, panel.gridRawX = nil, nil, nil
     end
 end

@@ -609,8 +609,13 @@ do
     -- 主提示有別人加的行 ⇒ 附屬框；面板的夾邊範圍底邊多算縫＋附屬框
     local box = mainPanel.extrasBox
     check("前提：主面板有附屬框", box and box.shown)
-    eq("I2：夾邊範圍底邊 = −(縫＋附屬框)", mainPanel.clampInsets[4], -(4 + box.height))
-    eq("I2：沒有標籤時上緣 0", mainPanel.clampInsets[3], 0)
+    local M = mainPanel.clampMargin
+    check("L2：邊緣呼吸換算過、大於 0", M and M > 0, M)
+    eq("I2＋L2：夾邊範圍底邊 = −(縫＋附屬框＋呼吸)", mainPanel.clampInsets[4], -(4 + box.height + M))
+    eq("L2：沒有標籤時上緣只有呼吸", mainPanel.clampInsets[3], M)
+    eq("L2：左緣往外一圈呼吸", mainPanel.clampInsets[1], -M)
+    eq("L2：右緣往外一圈呼吸", mainPanel.clampInsets[2], M)
+    eq("L1：主面板沒有依附者時照自己夾", mainPanel.clamped, true)
 
     -- 比價框：TOP→GameTooltip:TOP、RIGHT→GameTooltip:LEFT
     local shop = H.Tip(env, "ShoppingTooltip1", { { left = "Old Sword" } })
@@ -631,7 +636,37 @@ do
     eq("I1：RIGHT 貼到主面板的 LEFT", sp.points[2][2], mainPanel)
     eq("I1：RIGHT→LEFT", sp.points[2][1] .. ">" .. sp.points[2][3], "RIGHT>LEFT")
     eq("I1：記下鏡射對象", sp.mirrorOf, mainPanel)
-    check("I1：有「目前裝備」標籤時上緣也算進夾邊", sp.clampInsets[3] > 0)
+    check("I1：比價面板自己記下標籤高", sp.clampOwnTop and sp.clampOwnTop > 0, sp.clampOwnTop)
+    eq("L1：鏡射在主面板上的比價面板自己不夾", sp.clamped, false)
+    eq("L1：主面板替帶標籤的依附者預留上緣（標籤高＋呼吸）", mainPanel.clampInsets[3], sp.clampOwnTop + M)
+    eq("L1：主面板仍照自己夾", mainPanel.clamped, true)
+    -- 依附者的附屬框比主面板的還長 ⇒ 底邊取大者
+    local ownBottom = sp.clampOwnBottom
+    sp.clampOwnBottom = 4 + box.height + 30
+    P.UpdateClampInsets(sp)
+    eq("L1：依附者附屬框更長 ⇒ 主面板底邊取大者", mainPanel.clampInsets[4], -(4 + box.height + 30 + M))
+    sp.clampOwnBottom = ownBottom
+    P.UpdateClampInsets(sp)
+    eq("L1：依附者附屬框變回短的 ⇒ 底邊回到主面板自己的", mainPanel.clampInsets[4], -(4 + box.height + M))
+
+    -- 串鏈：第二顆比價框貼第一顆 ⇒ 第二顆也不夾、預留收到根（主面板）
+    local shopB = H.Tip(env, "ShoppingTooltip4", { { left = "Ring" } })
+    H.CompareHeader(shopB, "Equipped together")
+    shopB:ClearAllPoints()
+    shopB:SetPoint("TOPRIGHT", shop, "TOPLEFT", 0, 0)
+    local stB = {}
+    t15.ns.Skin.State[shopB] = stB
+    P.Try(shopB, stB, ITEM, { id = 7, lines = { { type = 22, lineIndex = 1, leftText = "Ring" } } })
+    env.FlushTimers()
+    eq("L1：第二顆鏡射在第一顆上", stB.panel.mirrorOf, sp)
+    eq("L1：第二顆也不夾", stB.panel.clamped, false)
+    stB.panel.clampOwnTop = sp.clampOwnTop + 9      -- 假裝第二顆的標籤更高
+    P.UpdateClampInsets(stB.panel)
+    eq("L1：串鏈的預留收到根", mainPanel.clampInsets[3], sp.clampOwnTop + 9 + M)
+    P.Restore(shopB, stB)
+    eq("L1：第二顆退回 ⇒ 夾邊開回來", stB.panel.clamped, true)
+    eq("L1：第二顆退回 ⇒ 根的預留回到第一顆的", mainPanel.clampInsets[3], sp.clampOwnTop + M)
+    t15.ns.Skin.State[shopB] = nil
 
     -- 主提示的原生自然寬高變了（重設時短暫變）、主面板寬高不變 ⇒ 比價面板不動
     local before = {}
@@ -652,6 +687,8 @@ do
     eq("I1：主面板沒了 ⇒ 比價面板貼自己的原生", sp.points[1][2], shop)
     eq("I1：照被錨定的那一角（TOP＋RIGHT）", sp.points[1][1], "TOPRIGHT")
     eq("I1：不再記鏡射對象", sp.mirrorOf, nil)
+    eq("L1：改貼自己的原生 ⇒ 比價面板自己夾回來", sp.clamped, true)
+    eq("L1：自己夾時上緣＝自己的標籤高＋呼吸", sp.clampInsets[3], sp.clampOwnTop + sp.clampMargin)
 
     -- 對方面板沒顯示時第一次對齊：貼自己的原生
     local shop2 = H.Tip(env, "ShoppingTooltip2", { { left = "Other" } })

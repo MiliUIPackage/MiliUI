@@ -33,7 +33,7 @@
 --
 -- 跟 `ThirdParty/RaiderIO.lua` 同一套（STYLE.md ③ 特例二）。
 --
--- **首選 `MiliUITip_API.Adopt(tip, { keepScale = true, ignoreParentAlpha = true })`**：外觀跟旁邊那顆提示
+-- **首選 `MiliUITip_API.Adopt(tip, { keepScale = true, ignoreParentAlpha = true, followPanel = true })`**：外觀跟旁邊那顆提示
 -- 完全一致（底色、邊色、邊寬、頂部遮罩都跟著玩家的提示框設定走）。
 -- ⚠ **`keepScale` 一定要帶。** `Adopt` 預設會對接管的框 `SetScale(玩家設的提示縮放)`，
 --   而這顆每次顯示都掛在 `GameTooltip` 底下、有效縮放已經吃到那一份 ⇒ 不帶的話
@@ -41,6 +41,9 @@
 -- ⚠ **`ignoreParentAlpha` 也一定要帶。** 提示插件的重繪面板會把 `GameTooltip` 壓 alpha 0（原生框當看不見的替身），
 --   這顆掛在它底下就跟著透明：實機看到只剩 3D 模型浮在世界上（模型不吃父層 alpha），底、邊、兩行字全不見。
 --   退回路徑不需要：沒有提示插件就沒人把 `GameTooltip` 壓 0。
+-- ⚠ **`followPanel` 也帶。** 它的 positioner 每 0.2 秒貼到**原生**提示（或最外側的比價框）旁邊；
+--   原生被錨定的另一邊會隨自然高度短暫變動，預覽就跟著上下跳。提示插件後掛勾它的 `SetPoint`，
+--   對象有重繪面板顯示中時改貼面板（點與位移原樣）。
 -- 接管後的層級：提示插件的 skin 子框壓在本體 −1，而它的模型框每次重設都
 -- `SetFrameLevel(本體)` ⇒ 底在模型之下，模型與兩行字（`OVERLAY`）照常在上面。
 --
@@ -70,17 +73,19 @@
 -- |---|---|
 -- | `AppearanceTooltipTooltip` | `MiliUITip_API.Adopt`（有提示插件時）—— 動作記在那一支的接觸面清單；`keepScale` ⇒ 不寫 `SetScale` |
 -- | 同一顆 | `SetIgnoreParentAlpha(true)`（經由 `Adopt` 的 `ignoreParentAlpha`；有提示插件時） |
+-- | 同一顆 | `hooksecurefunc(frame, "SetPoint")`（經由 `Adopt` 的 `followPanel`；有提示插件時。對象是它自己的框，不是暴雪物件） |
 -- | 它的 `NineSlice` | `SetAlpha(0)`（退回路徑） |
 -- | 它自己 | `CreateTexture`（底 ＋ 四條邊，經由 `Engine.RegionBackdrop`；退回路徑） |
 --
--- hook：**零**。沒有 `hooksecurefunc`、沒有 `HookScript`、沒有 `SetScript`，
---   也沒有呼叫那支插件的任何函式。
+-- hook：這一份自己**零**（沒有 `hooksecurefunc`、`HookScript`、`SetScript`，也沒有呼叫那支插件的任何函式）；
+--   唯一的掛勾是上表那一列，由提示插件經 `followPanel` 掛、記在它的接觸面清單。
 -- 寫入它的欄位：無（「接過了嗎」記在這一份自己的旗標裡）。
 -- 讀它的物件：只有 `_G[名字]` 在不在，以及 `NineSlice` 這個 parentKey —— 讀結構不是讀值。
 --
 -- ## 刻意不碰的東西
 --
--- * **位置、尺寸、縮放、parent、strata** —— 全是它的 positioner 與 `ShowTooltip` 管的。
+-- * **位置、尺寸、縮放、parent、strata** —— 全是它的 positioner 與 `ShowTooltip` 管的
+--   （例外：有提示插件時 `followPanel` 把它要貼的對象從原生換成面板，點與位移不動）。
 -- * **它的模型框**（`DressUpModel`／`ModelScene`）與滑鼠滾輪轉模型的那兩顆隱形按鈕。
 -- * **兩行字的顏色**（下方的收藏狀態淡藍、上方的「職業無法塑形」紅字）—— 那是它的資料。
 -- * **它的設定頁**（`config.lua`，自己的 `BackdropTemplate` 框）。
@@ -125,7 +130,7 @@ local function Sweep()
     --   不能因為早了一拍就退回我們自己畫的那一層。
     local ok
     if MiliUITip_API and type(MiliUITip_API.Adopt) == "function" then
-        ok = MiliUITip_API.Adopt(frame, { keepScale = true, ignoreParentAlpha = true })
+        ok = MiliUITip_API.Adopt(frame, { keepScale = true, ignoreParentAlpha = true, followPanel = true })
     else
         ok = PaintTipSkin(frame)
     end

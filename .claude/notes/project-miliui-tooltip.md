@@ -92,6 +92,10 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   **原生自然寬高也只長不縮**（`state.nativeMaxW/H`，換一件歸零）：暴雪 `AnchorShoppingTooltips` 的 slideAmount 用兩顆比價框原生的寬算，寬一變主提示就被推，鏈尾那顆比價面板抖最兇。
   **比價標籤照抄原生 `CompareHeader.Label` 的字**（zhTW「已裝備」／第二顆「同時裝備」），讀不到退 `EQUIPPED`、沒 header 就不畫；以前寫死 `CURRENTLY_EQUIPPED`「目前裝備」是錯的。標籤字進指紋。
   位置遲滯（J2(b)）**沒做**：跟隨游標每幀合法移動，位置遲滯會讓面板落後游標；等 `/mtip panel watch [秒數]`（逐幀取樣、只印有變動的欄位與次數）在實機證明是滑動造成的再說。
+- **夾邊與鏡射（2026-10-19，L1／L2）**：鏡射在別的面板上的面板**自己不夾**（`SetMirror` 關 clamp、改回貼自己原生時開回），由鏈的根替依附者預留（`Panel.UpdateClampInsets`：上緣／下緣取整條鏈 clampOwnTop／clampOwnBottom 的最大值，鏈可以串兩層）。
+  實機成因：主面板沒標籤 inset 0、比價面板有標籤多留一份，原生錨在螢幕外時兩邊被夾到不同高度，身體錯開一個標籤高。
+  四邊再多一圈 `LOOK.EDGE_MARGIN = 4`（換算後存 `panel.clampMargin`）：貼死螢幕邊時 1px 邊框看不見。方向：`SetClampRectInsets(-M, M, top+M, -(bottom+M))`＝範圍比面板大。
+  **別家貼在原生旁的框改貼面板（L3）**：外觀預覽每 0.2 秒 `SetPoint(點, 原生 tooltip, 對方點)`，原生上緣隨自然高度變 ⇒ 預覽上下跳。`Adopt(..., { followPanel = true })` → `Panel.Follow`：後掛勾**它自己的框**的 SetPoint（接觸面 #14），對象有面板顯示中就同一幀改貼面板；面板退回時 `Panel.ReturnFollowers` 當場貼回原生。
 - **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`、`real_zhTW_2.lua`（天賦面板：名字與「等級1/1」是後加行、data 從 lineIndex 3／4 起；雕紋段在描述後的 Blank 之後），17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
   **DisabledLine 是灰字不是需求未達成**（其他專精的主屬性、套裝未擁有件）；SellPrice 行文字是空的（錢幣另外畫）、要在「空行＝分段」之前認走；同 lineIndex 會有重複空行；盾牌格擋 `SHIELD_BLOCK_TEMPLATE`、武器油 `ITEM_ENCHANT_TIME_LEFT_*`、寶石行帶 `gemIcon` 檔案編號（**SetTexture 要餵數字**）。
   配方／被動／天賦／充能法術仍沒有真實資料。

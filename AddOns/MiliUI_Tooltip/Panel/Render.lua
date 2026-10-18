@@ -12,7 +12,7 @@
 --         { badges = { { "被動", color }, { "等級 2/3" } }, style = "small" },   中間用 · 隔開
 --         { rows = { { left = , right = , color = , rightColor = } }, style = "body" },
 --     },
---     tag = "目前裝備",                       比價框：panel 左上方外側的小標籤
+--     tag = "已裝備",                         比價框：panel 左上方外側的小標籤
 --     sections = {                            依序，在標題區下面
 --         { separator = { divider = true } | { rule = true } | { caption = "材料" } | { space = n },
 --           kind = "prose", paragraphs = { ... }, style, color, numbers = "hex" },
@@ -61,6 +61,7 @@ local function Metrics(panel)
         footerTop = sc(LOOK.FOOTER_TOP), footerPad = sc(LOOK.FOOTER_PAD),
         closeSize = sc(LOOK.CLOSE_SIZE), closeLen = sc(LOOK.CLOSE_LEN), closeThick = sc(LOOK.CLOSE_THICK),
         tagH = sc(LOOK.TAG_H), tagPad = sc(LOOK.TAG_PAD), tagGap = sc(LOOK.TAG_GAP),
+        edgeMargin = sc(LOOK.EDGE_MARGIN),
         sc = sc,
     }
 end
@@ -707,11 +708,14 @@ function Panel.RenderView(panel, tip, view, state)
         HideBox(panel)
     end
     -- 夾邊（原生的夾邊關掉了，見 Native.Hide）：把面板外面那幾塊也算進範圍——
-    -- 底下的附屬框（縫＋框高）、上方的「目前裝備」標籤。正值往外（同暴雪 SharedTooltip_OnLoad 的上緣 25）
+    -- 底下的附屬框（縫＋框高）、上方的「已裝備」標籤。正值往外（同暴雪 SharedTooltip_OnLoad 的上緣 25）。
+    -- 鏡射在別的面板上時自己不夾、由目標替它預留（Panel.UpdateClampInsets）⇒ 兩邊都要重算
     if not state.isPreview and panel.SetClampRectInsets then
-        local top = (panel.tag and panel.tag:IsShown()) and (m.tagGap + m.tagH) or 0
-        local bottom = (panel.totalHeight or panel.height) - panel.height
-        panel:SetClampRectInsets(0, 0, top, -bottom)
+        panel.clampOwnTop = (panel.tag and panel.tag:IsShown()) and (m.tagGap + m.tagH) or 0
+        panel.clampOwnBottom = (panel.totalHeight or panel.height) - panel.height
+        panel.clampMargin = m.edgeMargin
+        Panel.UpdateClampInsets(panel)
+        if panel.mirrorOf then Panel.UpdateClampInsets(panel.mirrorOf) end
     end
     return true
 end

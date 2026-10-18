@@ -57,6 +57,11 @@ end
 --                      重繪面板會把 GameTooltip 壓 alpha 0（Panel/Native.lua），子框跟著透明 ⇒
 --                      實機看到外觀預覽只剩 3D 模型浮著（模型本來就不吃父層 alpha），底、邊、字全不見。
 --                      這一項每次呼叫都會套（冪等的 setter），不受「接管過就直接回 true」影響。
+--   followPanel = true
+--                      這顆自己貼在某顆 tooltip 旁邊、而那顆 tooltip 正顯示重繪面板時，改貼面板（Panel/Frame.lua 的
+--                      `Panel.Follow`：後掛勾這顆框的 SetPoint，同一幀把對象換成面板，點與位移原樣）。
+--                      原生被錨定的另一邊會隨自然高度短暫變動，貼原生就跟著上下跳；面板是穩的。
+--                      只能給別的插件自己建的框用（不是暴雪物件）；每顆只掛一次，同樣不受「接管過」影響。
 ------------------------------------------------------------
 MiliUITip_API = MiliUITip_API or {}
 
@@ -66,6 +71,9 @@ function MiliUITip_API.Adopt(tip, opts)
     if not ns.db then return false end
     if opts and opts.ignoreParentAlpha and tip.SetIgnoreParentAlpha then
         pcall(tip.SetIgnoreParentAlpha, tip, true)
+    end
+    if opts and opts.followPanel and ns.Panel and ns.Panel.Follow then
+        ns.Panel.Follow(tip)
     end
     if ns.Skin.Get(tip) then return true end
     ns.TrackTip(tip, nil, opts)

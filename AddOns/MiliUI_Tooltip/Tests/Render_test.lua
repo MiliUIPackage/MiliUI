@@ -448,4 +448,44 @@ do
     near("退回之後重新貼上：照新位置重算", 300.51 + panel.points[1][4], 301)
 end
 
+------------------------------------------------------------
+-- 12. 夾邊範圍（L2）：四邊各留一圈 EDGE_MARGIN 呼吸；標籤高加在上緣
+------------------------------------------------------------
+do
+    local _, ns, tip, state, panel = Setup()
+    local P = ns.Panel
+    local M = P.Scale(panel, P.LOOK.EDGE_MARGIN)
+    P.RenderView(panel, tip, { header = { { text = "Hi", style = "title" } } }, state)
+    eq("L2：沒有標籤、沒有附屬框 ⇒ 左緣 −呼吸", panel.clampInsets[1], -M)
+    eq("L2：右緣 ＋呼吸", panel.clampInsets[2], M)
+    eq("L2：上緣 ＋呼吸", panel.clampInsets[3], M)
+    eq("L2：下緣 −呼吸", panel.clampInsets[4], -M)
+    P.RenderView(panel, tip, { header = { { text = "Hi", style = "title" } }, tag = "Equipped" }, state)
+    local m = P.Metrics(panel)
+    eq("L2：有標籤 ⇒ 上緣 = 標籤高＋呼吸", panel.clampInsets[3], m.tagGap + m.tagH + M)
+    eq("L2：有標籤時其他三邊不變", panel.clampInsets[4], -M)
+end
+
+do
+    -- 預覽面板不夾邊、不設範圍
+    local env = H.Env()
+    local ns = {
+        L = setmetatable({}, { __index = function(_, k) return k end }),
+        Media = { WHITE8X8 = "white", Font = function() return "default.ttf" end },
+        playerClass = "MAGE",
+        db = { general = { scale = 1, background = { r = 0.133, g = 0.133, b = 0.133, a = 1 },
+            borderColor = { r = 0.18, g = 0.18, b = 0.18, a = 1 } }, panel = { separators = true } },
+    }
+    H.Load(env, ns, "Libs/MiliUIWidgets/Secret.lua")
+    H.Load(env, ns, "Panel/Patterns.lua")
+    H.Load(env, ns, "Panel/Frame.lua")
+    H.Load(env, ns, "Panel/Render.lua")
+    local tip = H.Tip(env, "Preview", {})
+    local state = { isPreview = true }
+    local panel = ns.Panel.Get(tip, state)
+    ns.Panel.RenderView(panel, tip, { header = { { text = "Hi", style = "title" } } }, state)
+    eq("L2：預覽面板不設夾邊範圍", panel.clampInsets, nil)
+    check("L2：預覽面板不夾邊", not panel.clamped)
+end
+
 H.finish("Render_test")

@@ -122,6 +122,7 @@ function Panel.Restore(tip, state)
         Native.Restore(tip, state)
         -- 鏡射在這個面板上的（比價面板）當場改回貼自己的原生，不能錨在一個清掉錨點的框上
         if gone then
+            Panel.ReturnFollowers(gone)
             Skin.Each(function(t2, s2)
                 local p2 = s2.panel
                 if p2 and p2.mirrorOf == gone and s2.native and p2:IsShown() then
