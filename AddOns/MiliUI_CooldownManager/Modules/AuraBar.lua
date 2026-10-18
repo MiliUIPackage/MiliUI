@@ -52,6 +52,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.AuraBar = {}
 local AB = ns.AuraBar
 
@@ -168,7 +171,7 @@ end
 local function Tex(pool, i, parent, layer)
     local t = pool[i]
     if not t then
-        t = parent:CreateTexture(nil, layer)
+        t = NoSnap(parent:CreateTexture(nil, layer))
         t:SetTexture(SOLID)
         pool[i] = t
     end

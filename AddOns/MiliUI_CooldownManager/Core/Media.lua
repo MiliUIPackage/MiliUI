@@ -114,6 +114,29 @@ function M.BorderInset(size)
     return ns.P.Pixel(size)
 end
 
+-- 關掉引擎的像素貼齊（SetSnapToPixelGrid／SetTexelSnappingBias）。
+-- 貼齊開著時，引擎在畫的那一刻把**每張貼圖自己的**頂點各自四捨五入到最近的實體像素；1px 的邊、格距、圖示
+-- 只要四捨五入的方向跟隔壁那張不一樣，就變 0px（缺邊）／2px，或圖示跟邊框差一格。
+-- 2026-10-16 回報：UI 縮放 0.64／預設高 36 缺邊、0.71／高 35 偏移、高 34 正常，而 /mcdm px 每條邊都在整數像素上
+-- —— 稽核量的是框的幾何，引擎最後怎麼畫它看不到。Ayije_CDM／ElvUI／Cell 都是這一招。
+-- 自己畫的細線、邊框、圖示貼圖一律過這支；StatusBar 傳進來就關它的填充貼圖。
+-- 同一張只做一次（弱鍵表，不寫暴雪貼圖的欄位）；暴雪的貼圖可能受限，pcall 包住、失敗下次再試。
+local noSnapDone = setmetatable({}, { __mode = "k" })
+local function NoSnapRaw(t)
+    t:SetSnapToPixelGrid(false)
+    t:SetTexelSnappingBias(0)
+end
+function ns.NoSnap(tex)
+    if type(tex) ~= "table" then return tex end
+    local t = tex
+    if not t.SetSnapToPixelGrid and t.GetStatusBarTexture then t = t:GetStatusBarTexture() end
+    if type(t) == "table" and t.SetSnapToPixelGrid and not noSnapDone[t] and pcall(NoSnapRaw, t) then
+        noSnapDone[t] = true
+    end
+    return tex
+end
+M.NoSnap = ns.NoSnap
+
 -- 邊框材質 token → 路徑；"solid"（或查不到）回 nil ＝ 用四條純色細條畫
 -- （LibSharedMedia 的 border 類是 backdrop 的 edgeFile，要走 backdrop 畫，見 Decorate）
 function M.Border(token)
