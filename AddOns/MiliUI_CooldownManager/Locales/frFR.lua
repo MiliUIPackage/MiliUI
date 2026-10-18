@@ -787,6 +787,7 @@ L["Couldn't read your specializations."] = "Impossible de lire vos spécialisati
 -- 層數門檻（Core/StackGate.lua、Options/StackColors.lua）
 L["Stack glow"] = "Lueur de cumuls"
 L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "Brille tant que le nombre de cumuls de l'amélioration respecte la comparaison. « ≤ » et « < » restent éteints sans l'amélioration. Tant que c'est activé, « Lueur pendant l'amélioration » n'est pas utilisé."
+L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "Brille tant que l'amélioration a au moins ce nombre de cumuls. Tant que c'est activé, « Lueur pendant l'amélioration » n'est pas utilisé."
 L["Fewer than 1 stack is never true."] = "Moins de 1 cumul n'est jamais vrai."
 L["Stack colors (%d)"] = "Couleurs de cumuls (%d)"
 L["Stack colors"] = "Couleurs de cumuls"

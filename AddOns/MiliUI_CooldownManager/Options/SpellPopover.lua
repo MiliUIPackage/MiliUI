@@ -83,9 +83,10 @@
 --   （空白＝念法術名）＋「試聽」。勾著才寫進覆寫（readySpeak／gainSpeak／loseSpeak：字串或 true），
 --   沒勾時輸入框只是記著字。說明放標籤後面的「?」（滑過顯示）。
 --
--- 層數門檻（暴雪的增益才有，自訂光環格不做；引擎在 Core/StackGate.lua）：
---   * 「層數發光」一列：勾選框＋「≥」數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
+-- 層數門檻（暴雪的增益；層數發光那三列光環格也有，引擎在 Core/StackGate.lua、光環格的閘在 Modules/Custom.lua）：
+--   * 「層數發光」一列：勾選框＋比較子下拉＋數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
 --     再下一列灰字說明。勾了它時「生效發光」那兩列變暗（兩者互斥，層數的為準）。右鍵整列清。
+--     光環格只做「≥」：下拉換成固定的「≥」字（frame.stackGE）、比較子不寫、灰字換成光環格的那句（Pop.StackGlowWhen）。
 --   * 增益長條才有的「層數換色（N）」：開 Options/StackColors.lua 的小彈窗（最多 5 段）。
 --   * 增益長條才有（外觀分頁、層數換色按鈕下面）：「層數當填充」勾選框＋最大層數數字框（1～99，預設 5）＋下一列灰字；
 --     「層數刻度」勾選框＋位置輸入框（1,5,8；留白＝每一層，StackGate.ParseTicks）＋色票；沒勾層數當填充時
@@ -478,6 +479,9 @@ local function NoSounds() return #ns.Media.List("sound") == 0 and #ns.Sound.Cust
 
 -- 層數門檻只給暴雪的增益（kind 只有自訂項目才有，暴雪的是 nil）
 local function BlizzAura(kind, class) return class == "aura" and kind == nil end
+-- 層數發光那三列：暴雪的增益＋自訂光環格（光環格只做 ≥，引擎閘在 Modules/Custom.lua）。
+-- 掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限
+function Pop.StackGlowWhen(kind, class) return BlizzAura(kind, class) or kind == "aura" end
 -- 換色只有長條（條的種類＝ bars，跟 Decorate 的 isBar 同一個判準）
 local function BlizzAuraBar(kind, class)
     return BlizzAura(kind, class) and cur ~= nil and ns.Setting(cur.key, "kind") == "bars"
@@ -2141,13 +2145,14 @@ local function Build()
     -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫。
     -- 放「發光」分頁（檔頭的分頁表）；以前接在增益持續時間那幾列後面、沒換 buildTab，一直落在「增益持續時間」分頁
     buildTab = "glow"
-    local sgr = NewRow(L["Stack glow"], BlizzAura)
+    local sgr = NewRow(L["Stack glow"], Pop.StackGlowWhen)
     local scb = W.CreateCheckButton(sgr, nil, function(on)
         if not cur then return end
         if on then
             local n = ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
             ns.DB.SetOverride(cur.id, "stackGlow", n)
-            local op = StackOpNow()
+            -- 光環格只做 ≥（frame.kind 是 Refresh 寫的這一格的種類）：比較子不寫
+            local op = frame.kind == "aura" and ns.StackGate.DEFAULT_OP or StackOpNow()
             ns.DB.SetOverride(cur.id, "stackGlowOp", op ~= ns.StackGate.DEFAULT_OP and op or nil)
         else
             ns.DB.SetOverride(cur.id, "stackGlow", nil)
@@ -2172,6 +2177,13 @@ local function Build()
     end)
     opdd:SetPoint("LEFT", scb, "RIGHT", 8, 0)
     frame.stackOpDD = opdd
+    -- 光環格：下拉藏起來、同一個位置放固定的「≥」（數字框照錨在下拉上，藏著的框位置不變）
+    local ge = sgr:CreateFontString(nil, "OVERLAY")
+    ge:SetFontObject(W.fontNormal)
+    ge:SetPoint("CENTER", opdd, "CENTER", 0, 0)
+    ge:SetText("≥")
+    ge:Hide()
+    frame.stackGE = ge
     local num = W.CreateNumberBox(sgr, 40, 1, function(v)
         if not cur then return end
         local n = ns.StackGate.Threshold(v) or 1
@@ -2224,7 +2236,7 @@ local function Build()
         nvEntry.h = nh
     end
     AddRow(nvEntry)
-    local str = NewRow(L["Glow style"], BlizzAura)
+    local str = NewRow(L["Glow style"], Pop.StackGlowWhen)
     local sdd = W.CreateDropdown(str, ROW_W - CTRL_X, GlowTypeItems(), function(value)
         if not StackOn() then return end
         ns.DB.SetOverride(cur.id, "stackGlowType", value)
@@ -2242,7 +2254,7 @@ local function Build()
     snTip:SetText(L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."])
     local snH = 2 + math.max(14, snTip:GetStringHeight() or 0) + 6
     snRow:SetSize(ROW_W, snH)
-    local snEntry = { frame = snRow, h = snH, when = BlizzAura }
+    local snEntry = { frame = snRow, h = snH, when = Pop.StackGlowWhen }
     snEntry.remeasure = function()
         local sh2 = snTip:GetStringHeight()
         local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
@@ -2250,6 +2262,7 @@ local function Build()
         snEntry.h = nh
     end
     AddRow(snEntry)
+    frame.stackNoteFS, frame.stackNoteEntry = snTip, snEntry
 
     -- 層數換色（增益長條）：按鈕寫著目前筆數，點開是編輯器（Options/StackColors.lua）
     -- 這一列沒有標籤：按鈕靠右、寬度至少到控件欄，長譯文往左邊（空著的標籤欄）撐（Refresh 換字後 FitButton）
@@ -2989,11 +3002,19 @@ function Pop.Refresh()
     frame.activeOOC:SetChecked(ns.SpellSetting(key, id, "activeGlowOutOfCombat") ~= false)
     frame.activeOOC:SetEnabled(activeOn)
     frame.activeOOC:SetAlpha(activeOn and 1 or 0.4)
-    -- 層數門檻（暴雪的增益才顯示這幾列）：勾了層數發光時生效發光那兩列變暗（互斥，層數的為準）
-    local stackOn = BlizzAura(kind, class) and StackOn()
+    -- 層數門檻（暴雪的增益與光環格才顯示這幾列）：勾了層數發光時生效發光那兩列變暗（互斥，層數的為準）
+    local stackOn = Pop.StackGlowWhen(kind, class) and StackOn()
     frame.activeRow:SetAlpha(stackOn and 0.4 or 1)
     frame.activeOOCRow:SetAlpha(stackOn and 0.4 or 1)
-    if BlizzAura(kind, class) then
+    if Pop.StackGlowWhen(kind, class) then
+        -- 光環格只做 ≥：比較子下拉換成固定的「≥」字、灰字換成光環格那句（換字之後重量高度）
+        local slot = kind == "aura"
+        frame.stackOpDD:SetShown(not slot)
+        frame.stackGE:SetShown(slot)
+        frame.stackNoteFS:SetText(slot
+            and L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."]
+            or L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."])
+        frame.stackNoteEntry.remeasure()
         local n = ns.StackGate.Threshold(ns.SpellSetting(key, id, "stackGlow"))
         frame.stackCB:SetChecked(n ~= nil)
         -- 換了一格就回到預設門檻；同一格沒勾時保留玩家剛打的數字

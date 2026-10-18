@@ -17,8 +17,10 @@
 --   stackBar        { max = N }：條身改畫層數（0～N 的填充），不畫時間（增益長條才有）；false ＝ 關
 --   stackTicks      { at = { 1, 5, 8 } | "all", max = N, color = rgba }：條身上第 k 層的位置畫 1px 刻度
 --                   （增益長條才有）；N 有 stackBar 時用它的 max、沒有才用這裡的 max；false ＝ 關
--- 只對暴雪的增益 item（增益圖示列、增益長條，搬進自訂群組也算）。自訂光環格（AuraContainer）不做：
--- 引擎的層數條只能 0～上限，做不出「到 N 才開」的閘。
+-- 這支只對暴雪的增益 item（增益圖示列、增益長條，搬進自訂群組也算）。自訂光環格（AuraContainer）的層數發光
+-- 走同一組欄位（stackGlow／stackGlowType／stackGlowColor，只做 ≥）、閘在 Modules/Custom.lua 的 StackGateFrame：
+-- 引擎的層數條上下限是 0～N（SetApplicationBar 的 maxApplications），做不出 (N-1, N) 的閘，改成條寬 N 段、
+-- 發光宿主放在最後一段。換色／層數當填充／刻度光環格沒有。
 -- 跟生效發光互斥：這格開了層數發光，生效發光不畫（Core/Glow.lua 的 SyncActive 看 rec.stackCfg）。
 --
 -- ── 原理（秘密層數也成立）─────────────────────────────────────────────

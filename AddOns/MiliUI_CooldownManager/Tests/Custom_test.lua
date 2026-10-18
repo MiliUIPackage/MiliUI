@@ -816,6 +816,68 @@ do
         CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 62)
         eq("清掉 ⇒ 拿回原本那顆容器（池化）", arec.container, c0)
     end
+    -- 層數發光（光環格只做 ≥，2026-10-18）：門檻與逐法術樣式解進 st.glow、進簽章；initializeFrame 建閘（透明 StatusBar
+    -- 交給 SetApplicationBar(bar, { maxApplications = N })、裁切框錨在填充貼圖上、發光宿主在裁切框底下）；
+    -- 跟生效發光互斥（層數的為準）；引擎沒有 SetApplicationBar ⇒ 發光不畫（不能退成常亮）
+    do
+        local aid = arec.cooldownID
+        load("Core/StackGate.lua")
+        local savedGlowLib = ns.MiliUIGlow
+        local attached = {}
+        local function Rec(f) attached[#attached + 1] = f end
+        ns.MiliUIGlow = { PixelGlow_Attach = Rec, ProcGlow_Attach = Rec }   -- 樣式是觸發（proc）：宿主畫 1.4 倍
+        eq("層數發光：沒設 ⇒ 不解", CU.AuraStyle(arec, "essential", 36, 36, "icons").glow, nil)
+        DB.SetOverride(aid, "activeGlow", true)
+        local stA = CU.AuraStyle(arec, "essential", 36, 36, "icons")
+        check("生效發光：解進 st.glow、沒有門檻", stA.glow ~= nil and stA.glow.stack == nil)
+        DB.SetOverride(aid, "stackGlow", 3)
+        DB.SetOverride(aid, "stackGlowColor", { r = 1, g = 0, b = 0, a = 1 })
+        DB.SetOverride(aid, "stackGlowType", "proc")
+        local stS = CU.AuraStyle(arec, "essential", 36, 36, "icons")
+        check("層數發光：門檻、逐法術樣式與顏色解進 st.glow", stS.glow ~= nil and stS.glow.stack == 3 and stS.glow.type == "proc"
+            and stS.glow.color[1] == 1 and stS.glow.color[2] == 0)
+        check("層數發光：簽章跟生效發光不同", stS.sig ~= stA.sig)
+        DB.SetOverride(aid, "activeGlow", nil)
+        eq("層數發光：生效發光關掉簽章不變（互斥，層數的為準）", CU.AuraStyle(arec, "essential", 36, 36, "icons").sig, stS.sig)
+        CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 71)
+        local gbtn = Obj("Frame")
+        function gbtn:SetIcon() end
+        function gbtn:SetDurationText() end
+        function gbtn:SetApplicationCount() end
+        local gate
+        function gbtn:SetApplicationBar(bar, opts) gate = { bar = bar, opts = opts } end
+        arec.stackGated, arec.glowAttached, arec.lastError = nil, nil, nil
+        arec.container.slot.opts.initializeFrame(gbtn)
+        eq("層數發光：initializeFrame 沒有錯誤", arec.lastError, nil)
+        eq("層數發光：建了閘", arec.stackGated, 1)
+        eq("層數發光：發光掛了", arec.glowAttached, 1)
+        check("層數發光：閘交給 SetApplicationBar(bar, { maxApplications = 3 })、條是按鈕的子框", gate ~= nil
+            and gate.bar.otype == "StatusBar" and gate.opts.maxApplications == 3 and gate.bar.parent == gbtn)
+        local mx, my = ns.StackGate.Margin(36, 36)
+        local aw = 36 + 2 * mx
+        check("層數發光：條寬 N 段（每段＝發光區寬＋1）、高＝發光區高、右緣對齊發光區右緣", gate.bar.last_SetSize[1] == (aw + 1) * 3
+            and gate.bar.last_SetSize[2] == 36 + 2 * my and gate.bar.last_SetPoint[1] == "TOPRIGHT"
+            and gate.bar.last_SetPoint[2] == gbtn and gate.bar.last_SetPoint[4] == mx and gate.bar.last_SetPoint[5] == my)
+        check("層數發光：填充貼圖透明", gate.bar.fill.last_SetVertexColor[4] == 0)
+        local host = attached[#attached]
+        local clip = host and host.parent
+        check("層數發光：宿主在裁切框底下、裁切框是按鈕的子框、錨在填充貼圖上", clip ~= nil and clip ~= gbtn
+            and clip.parent == gbtn and clip.last_SetClipsChildren[1] == true and clip.last_SetPoint[2] == gate.bar.fill)
+        check("層數發光：宿主在裁切框上一層", host.level == clip.level + 1)
+        local nbtn = Obj("Frame")
+        function nbtn:SetIcon() end
+        function nbtn:SetDurationText() end
+        function nbtn:SetApplicationCount() end
+        nbtn.SetApplicationBar = false       -- Obj 的 __index 會自動生函式，要明確擋掉
+        arec.stackGated, arec.glowAttached, arec.lastError = nil, nil, nil
+        arec.container.slot.opts.initializeFrame(nbtn)
+        eq("層數發光：沒有 SetApplicationBar ⇒ 沒有錯誤", arec.lastError, nil)
+        check("層數發光：沒有 SetApplicationBar ⇒ 不建閘、不掛發光", arec.stackGated == nil and arec.glowAttached == nil)
+        for _, f in ipairs({ "stackGlow", "stackGlowColor", "stackGlowType" }) do DB.SetOverride(aid, f, nil) end
+        eq("層數發光：清掉 ⇒ 不解", CU.AuraStyle(arec, "essential", 36, 36, "icons").glow, nil)
+        CU.Place(arec, cont1, { x = 0, y = 0, w = 36, h = 36 }, "essential", 72)
+        ns.MiliUIGlow = savedGlowLib
+    end
     -- 圖示形狀與陰影（H2，Core/Shape.lua）：條層生效值（Decorate.Resolve 的 ishape／ishadow）解進 st、進簽章 ⇒ 換容器；
     -- initializeFrame 烘形狀遮罩、轉圈換遮罩那張、邊框改襯底、陰影；長條不解、疊層不畫陰影、方形無陰影＝簽章不變
     do

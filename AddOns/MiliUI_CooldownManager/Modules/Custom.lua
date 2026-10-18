@@ -48,6 +48,10 @@
 --     樣式、顏色、格子尺寸（Attach 要 caller 給尺寸，子樹裡不能讀）都進簽章：改了換一顆容器，
 --     戰鬥中改要等脫戰。按鈕／觸發樣式的入場動畫交給引擎（AddAuraShownAnimation）播。
 --     觸發／就緒發光仍不提供（光環格沒有冷卻）。
+--   * 層數發光（overrides[id].stackGlow ＝ N，跟暴雪增益的 Core/StackGate.lua 同一組欄位；光環格只做「≥」）：
+--     同一顆發光宿主，父框換成層數閘的裁切框（AttachGlow → StackGateFrame：一顆透明 StatusBar 交給
+--     SetApplicationBar、引擎寫層數，宿主放在最後一段 ⇒ 層數 ≥ N 才露出來）。跟生效發光互斥（層數的為準）、
+--     圓環不畫；門檻、樣式、顏色進簽章。
 --   * 圖示外觀選 Masque（圖示類的條）：按鈕的外觀只能在 initializeFrame 裡烘、之後 forbidden，Masque 碰不到 ⇒
 --     占位交給 Masque（上一條）；另建一顆看不見的**探針**交給 Masque，從它身上讀回圖示的遮罩／尺寸／texcoord 與
 --     皮外框（Normal）的外觀，烘進按鈕（簽章帶著）：按鈕自己帶皮的外框、跟著增益出現／消失。見「光環格的 Masque」那一節。
@@ -1651,10 +1655,15 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         if st.vert then h = w else w = h end
     end
     local glowSig = "-"
-    if not ringOn and SS(barKey, id, "activeGlow") and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
-        local g = S(barKey, "glow.active")
+    -- 層數發光（層數 ≥ N 才亮；欄位跟暴雪增益的 Core/StackGate.lua 同一組，光環格只做 ≥、不收比較子）：
+    -- 有設就取代生效發光（互斥，層數的為準）。圓環不畫（跟暴雪增益一樣，層數發光是方形的）。
+    -- 閘在 AttachGlow 建（gl.stack）：引擎寫層數的 StatusBar ＋ 裁切框，插件端零讀取
+    local SG = ns.StackGate
+    local stackN = (not ringOn and SG) and SG.Threshold(SS(barKey, id, "stackGlow")) or nil
+    if not ringOn and (stackN or SS(barKey, id, "activeGlow")) and tonumber(w) and tonumber(h) and w > 0 and h > 0 then
+        -- 樣式只讀條層（跟觸發／就緒同一套），逐法術只開關；層數發光多了逐法術的樣式與顏色（StackGate.GlowStyle）
+        local g = stackN and SG.GlowStyle(barKey, id) or S(barKey, "glow.active")
         g = type(g) == "table" and g or {}
-        -- 樣式只讀條層（跟觸發／就緒同一套），逐法術只開關
         st.glow = {
             type      = GLOW_TYPES[g.type] and g.type or "pixel",
             color     = RGBA(g.color, 0.95, 0.95, 0.32, 1),
@@ -1662,6 +1671,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
             thickness = tonumber(g.thickness) or 2,
             frequency = tonumber(g.frequency) or 0.2,
             w = w, h = h,
+            stack     = stackN,                 -- 層數門檻（nil ＝ 生效發光）
         }
         local gl = st.glow
         -- Masque 非方形的皮（圓形、六角形）：發光跟著皮的形狀，映射照 Core/Glow.lua（觸發／閃光換貼圖、像素與自動施法
@@ -1677,7 +1687,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
             if gshape then gl.type, gl.art = ns.Glow.ShapedStyle(gl.type, gshape) end
         end
         glowSig = table.concat({ gl.type, C(gl.color), gl.lines, gl.thickness, gl.frequency,
-            string.format("%.2f,%.2f", w, h), gl.art and gl.art.sig or "-" }, ",")
+            string.format("%.2f,%.2f", w, h), gl.art and gl.art.sig or "-", stackN and ("s" .. stackN) or "-" }, ",")
     end
     -- 飾品欄的增益疊層（rec.overlayOf）：整段都是增益持續時間 ⇒ 套「增益那一段」的設定（跟暴雪冷卻格倒增益時同一組，
     -- Core/Decorate.lua 的 PhaseColors）：換色開著 ⇒ 倒數字色＝durationColor、轉圈色＝durationSwipeColor
@@ -1768,10 +1778,48 @@ local function Warm(st)
 end
 
 -- 生效發光（只能從 initializeFrame 呼叫）：按鈕底下自己的子框，圍住 anchor；尺寸用 gl 給的、不讀
+-- 層數發光的閘（光環格，gl.stack ＝ N）：一顆透明的 StatusBar 交給 SetApplicationBar(bar, { maxApplications = N })
+-- （引擎在安全端把層數寫進去，插件端零讀取；跟 Modules/AuraBar.lua 的層數列同一條路）。條寬 N 段、右緣對齊
+-- 發光區的右緣 ⇒ 填到第 N 段才蓋到發光區；裁切框錨在填充貼圖上、發光宿主當裁切框的子孫 ⇒ 層數 ≥ N 才看得到
+-- （Core/StackGate.lua 的閘是 SetMinMaxValues(N-1, N)，這裡上下限是引擎定的 0～N，改用「宿主放在最後一段」）。
+-- 第 N-1 段的右緣跟發光區左緣之間留 1px：引擎的除法誤差不會露一條邊。發光區 ＝ 格子四邊外擴 StackGate.Margin
+-- （按鈕／觸發樣式畫 1.4 倍，每邊多 0.2，外擴量 ≥ 0.4 蓋得住）。
+-- 全是我們自己的框、只在 initializeFrame 視窗內建；閘餵過層數之後幾何是秘密的 ⇒ 除了裁切框沒有東西錨在它的
+-- 填充貼圖上，閘、裁切框與子孫一律不讀（同 StackGate）。回傳裁切框（發光宿主的父框）；
+-- 引擎沒有 SetApplicationBar／拿不到填充貼圖 ⇒ nil，發光不畫（不能退成常亮）
+local function StackGateFrame(btn, anchor, gl, level, rec)
+    if type(btn.SetApplicationBar) ~= "function" then return nil end
+    local n = gl.stack
+    local mx, my = ns.StackGate.Margin(gl.w, gl.h)
+    local aw, ah = gl.w + 2 * mx, gl.h + 2 * my
+    local bar = CreateFrame("StatusBar", nil, btn)
+    bar:SetStatusBarTexture(WHITE)
+    local fill = bar:GetStatusBarTexture()
+    if not fill then return nil end
+    fill:SetVertexColor(0, 0, 0, 0)
+    bar:SetSize((aw + 1) * n, ah)
+    bar:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", mx, my)
+    if level then bar:SetFrameLevel(level) end
+    local clip = CreateFrame("Frame", nil, btn)
+    clip:SetClipsChildren(true)
+    clip:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, 0)
+    clip:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, 0)
+    if level then clip:SetFrameLevel(level) end
+    btn:SetApplicationBar(bar, { maxApplications = n })
+    rec.stackGated = (rec.stackGated or 0) + 1       -- 測試用
+    return clip
+end
+
 local function AttachGlow(btn, anchor, gl, level, rec)
     local LCG = ns.MiliUIGlow
     if not (gl and LCG and LCG.PixelGlow_Attach) then return end
-    local f = CreateFrame("Frame", nil, btn)
+    local parent = btn
+    if gl.stack then
+        parent = StackGateFrame(btn, anchor, gl, level, rec)
+        if not parent then return end
+        if level then level = level + 1 end          -- 宿主在裁切框上一層
+    end
+    local f = CreateFrame("Frame", nil, parent)
     if level then f:SetFrameLevel(level) end        -- nil ＝ 子框預設（按鈕＋1）
     local gw, gh = gl.w, gl.h
     if gl.type == "button" or gl.type == "proc" then
@@ -1913,6 +1961,10 @@ local function InitAuraButton(btn, c, st, rec)
     cd:SetHideCountdownNumbers(true)
     cd:SetDrawEdge(false)
     cd:SetDrawBling(false)
+    -- 方向跟暴雪的增益圖示一致（CooldownViewer.xml 的增益 item 是 reverse="true"）：剛拿到是亮的、暗色隨時間長滿。
+    -- 模板預設 false 是「暗色蓋剩餘那段」，剛拿到增益整格全暗（玩家回報看不清圖示，2026-10-18）。
+    -- 圓環版（InitAuraRingButton）另有自己的方向（亮的那截＝剩餘時間），不在此列
+    cd:SetReverse(true)
     btn:SetDurationCooldown(cd)
 
     local ov = CreateFrame("Frame", nil, btn)
