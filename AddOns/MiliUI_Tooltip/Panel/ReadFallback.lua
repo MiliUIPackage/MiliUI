@@ -62,6 +62,7 @@ function Panel.CollectLines(tip, data)
     if not name then return end
 
     local rows, covered = {}, {}
+    local rightSeen = {}       -- 這個 lineIndex 已經有某一行 data 給過右欄（實機：同 lineIndex 的空行會重複出現）
     for _, line in ipairs(lines) do
         if type(line) ~= "table" or S.IsSecret(line) then return end
         local left, right = PlainString(line.leftText), PlainString(line.rightText)
@@ -86,7 +87,8 @@ function Panel.CollectLines(tip, data)
             if t == "number" or t == "string" or t == "boolean" then row[field] = v end
         end
         -- 右欄可能只寫在原生的 FontString 上、data 裡是空的（法術的冷卻排在施法時間旁邊）
-        if not row.right and type(index) == "number" then
+        if row.right and type(index) == "number" then rightSeen[index] = true end
+        if not row.right and type(index) == "number" and not rightSeen[index] then
             local rf = _G[name .. "TextRight" .. index]
             if rf and Shown(rf) then
                 local ok, text = pcall(rf.GetText, rf)
@@ -97,6 +99,7 @@ function Panel.CollectLines(tip, data)
                     local rcolor = FontColor(rf)
                     if rcolor == false then return end
                     row.right, row.rightColor = plain, row.rightColor or rcolor
+                    rightSeen[index] = true
                 end
             end
         end
@@ -230,10 +233,7 @@ function Panel.ViewFallback(model)
             kind = "rows", rows = group, wrap = true, color = LOOK.TEXT,
         }
     end
-    if #model.extras > 0 then
-        view.sections[#view.sections + 1] = {
-            separator = { rule = true }, kind = "rows", rows = model.extras, wrap = true, color = LOOK.SECONDARY,
-        }
-    end
+    -- 最簡 reader 的 extras 就是後加的行 ⇒ 附屬框
+    view.extras = { rows = model.extras }
     return view
 end

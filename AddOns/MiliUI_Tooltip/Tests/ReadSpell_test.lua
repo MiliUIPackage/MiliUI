@@ -76,8 +76,9 @@ for _, locale in ipairs({ "enUS", "zhTW", "zhCN" }) do
     eq(tag .. "距離", m.range and m.range.text, F("SPELL_RANGE", "40"))
     eq(tag .. "施法值", m.cast and m.cast.value, "2.2")
     eq(tag .. "描述", m.description[1], "Hurls a fiery ball that causes 150 Fire damage.")
-    eq(tag .. "別人加的行進 extras", m.extras[1] and m.extras[1].left, "Spell ID: 133")
-    eq(tag .. "extras 保留顏色", m.extras[1] and m.extras[1].color, GOLD)
+    eq(tag .. "別人加的行進附屬框那一桶", m.appended[1] and m.appended[1].left, "Spell ID: 133")
+    eq(tag .. "附屬框的行保留顏色", m.appended[1] and m.appended[1].color, GOLD)
+    eq(tag .. "主面板「其他」沒有東西", #m.extras, 0)
 
     local view = P.ViewSpell(m)
     local strip = view.sections[1]
@@ -211,7 +212,7 @@ do
     eq("天賦：描述沒被當名字", m.description[1], "提高暴擊10%。")
     eq("天賦：下一等級標籤", m.nextRank and m.nextRank.label, G.TOOLTIP_TALENT_NEXT_RANK)
     eq("天賦：下一等級內容", m.nextRank and m.nextRank.rows[1].left, "提高暴擊20%。")
-    eq("天賦：帶色碼的 ID 行歸 extras", m.extras[1] and m.extras[1].left, "法術ID: |cffffffff123|r")
+    eq("天賦：帶色碼的 ID 行歸附屬框", m.appended[1] and m.appended[1].left, "法術ID: |cffffffff123|r")
     local view = P.ViewSpell(m)
     local cap
     for _, s in ipairs(view.sections) do if s.separator and s.separator.caption then cap = s end end

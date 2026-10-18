@@ -169,6 +169,7 @@ local function BuildDefaults()
             strip = true,            -- 法術的耗能／施法／冷卻／距離四格
             numberColor = "class",   -- 描述數字上色："class"｜"custom"（用 numberCustom）｜"none"｜六位 hex
             numberCustom = Color(1, 0.82, 0, 1),
+            extrasBox = true,        -- 別的插件（與我們自己的 ID 行）加的行另開一框接在下面
         },
     }
 end

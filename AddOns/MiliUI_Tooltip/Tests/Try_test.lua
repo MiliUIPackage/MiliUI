@@ -143,14 +143,22 @@ do
     eq("成功：原生 alpha 0", t.tip.alpha, 0)
     eq("成功：panel 錨在 tooltip 上", panel.points[1][2], t.tip)
     eq("成功：寬撐到 panel 寬", t.tip.w, panel.width)
-    eq("成功：高撐到 panel 高", t.tip.h, panel.height)
+    -- 有別人加的行 ⇒ 附屬框；原生要撐到「主面板＋縫＋附屬框」
+    check("成功：附屬框顯示", panel.extrasBox and panel.extrasBox.shown)
+    eq("成功：totalHeight＝主高＋縫＋附高", panel.totalHeight, panel.height + 4 + panel.extrasBox.height)
+    eq("成功：高撐到整組高", t.tip.h, panel.totalHeight)
     check("成功：登記輪詢", t.polls[t.state] ~= nil)
 
     local function has(text)
-        for i = 1, panel.textsUsed do if panel.texts[i].shown and panel.texts[i].text == text then return panel.texts[i] end end
+        for _, f in ipairs({ panel, panel.extrasBox }) do
+            for i = 1, f.textsUsed do if f.texts[i].shown and f.texts[i].text == text then return f.texts[i] end end
+        end
     end
     check("內容：名字", has("Thunderfury"))
     check("內容：後加的 ID 行一行都沒丟", has("Item ID: 19019"))
+    local inBox
+    for i = 1, panel.extrasBox.textsUsed do if panel.extrasBox.texts[i].text == "Item ID: 19019" then inBox = true end end
+    check("內容：後加的行在附屬框裡", inBox)
     local price = has("12345c")
     check("內容：售價變錢幣字串", price ~= nil)
     check("內容：名字是品質色", has("Thunderfury").textColor[2] == 0.5)
@@ -170,11 +178,13 @@ do
     check("風暴：panel 還在", t.state.panel.shown)
     eq("風暴：原生還是 alpha 0", t.tip.alpha, 0)
 
-    -- 文字變了才重畫
+    -- 同一件但文字變了：當幀不畫，下一幀 Reconcile 才重畫
     t.data.lines[2].leftText = "Soulbound"
     t.env.GameTooltipTextLeft2.text = "Soulbound"
     t.P.Try(t.tip, t.state, ITEM, t.data)
-    eq("內容變：重畫", t.renders(), 2)
+    eq("內容變：當幀不畫", t.renders(), 1)
+    t.env.FlushTimers()
+    eq("內容變：下一幀重畫", t.renders(), 2)
 end
 
 ------------------------------------------------------------
@@ -188,14 +198,18 @@ do
     t.tip:SetLines(lines)
     t.tip.alpha = 1
     t.polls[t.state]()
-    eq("輪詢：行數變了重畫", t.renders(), 3)
     eq("輪詢：alpha 重壓 0", t.tip.alpha, 0)
+    eq("輪詢：行數變了先排 Reconcile、不直接畫", t.renders(), 2)
+    t.env.FlushTimers()
+    eq("輪詢：下一幀重畫", t.renders(), 3)
     local found
     local panel = t.state.panel
-    for i = 1, panel.textsUsed do if panel.texts[i].text == "Score: 123.4" then found = panel.texts[i] end end
+    local box = panel.extrasBox
+    for i = 1, box.textsUsed do if box.texts[i].text == "Score: 123.4" then found = box.texts[i] end end
     check("輪詢：新加的行進來了", found ~= nil)
     check("輪詢：顏色照它自己的", found and found.textColor[1] == 0.5 and found.textColor[2] == 1)
     t.polls[t.state]()
+    t.env.FlushTimers()
     eq("輪詢：沒變就不重畫", t.renders(), 3)
 
     -- 點／拖 ItemRefTooltip 時暴雪抬它的 level：panel 要跟著，不然 alpha 0 的原生框吃掉 × 的點擊
@@ -291,9 +305,11 @@ do
 
     -- 設定一改（ApplyAll 會 +1）：同樣內容也重畫
     t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
+    t6.env.FlushTimers()                 -- 兩個 tooltip 排著的 Reconcile 先跑完
     local r = t6.renders()
     t6.P.settingsVersion = t6.P.settingsVersion + 1
     t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
+    t6.env.FlushTimers()
     eq("設定版本變：重畫", t6.renders(), r + 1)
 
     -- 內嵌物品框顯示中：暴雪在用 padding，不接
@@ -301,6 +317,89 @@ do
     t6.tip.ItemTooltip = H.Region("Frame"); t6.tip.ItemTooltip.shown = true
     t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
     check("內嵌物品框：不接", not t6.state.panel.shown)
+end
+
+------------------------------------------------------------
+-- 10. 比價重建的閃爍（2026-10-18 實機）：ClearLines → ProcessInfo（我們的 post-call 在這裡）→
+--     同一幀暴雪補「若你更換此裝備…」、別家 post-call 補行。部分版不准蓋掉完整版
+------------------------------------------------------------
+do
+    local t7 = Setup()
+    local base = {
+        { left = "Thunderfury", color = { 1, 0.5, 0 } }, { left = "Binds when picked up" },
+        { left = "Item ID: 19019", color = { 1, 0.82, 0 } },
+    }
+    local full = {
+        base[1], base[2], base[3], { left = " " },
+        { left = "If you replace this item, the following stat changes will occur:" }, { left = "+20 Haste" },
+    }
+    -- 第一次顯示：當幀畫部分版、下一幀補齊（首次最多閃一次）
+    t7.P.Try(t7.tip, t7.state, ITEM, t7.data)
+    eq("首次：當幀就畫", t7.renders(), 1)
+    t7.tip:SetLines(full)                       -- 同一幀暴雪補上比較行
+    t7.env.FlushTimers()
+    eq("首次：下一幀補齊重畫一次", t7.renders(), 2)
+    eq("首次：完整行數記下來", t7.state.panelFullLines, 6)
+
+    -- 之後每一輪重建：清空 → post-call（部分）→ 同一幀補齊 ⇒ 0 次重畫
+    for round = 1, 5 do
+        t7.P.Release(t7.tip, t7.state)
+        t7.tip:SetLines(base)
+        t7.P.Try(t7.tip, t7.state, ITEM, t7.data)
+        t7.tip:SetLines(full)
+        t7.env.FlushTimers()
+    end
+    eq("風暴五輪：0 次重畫", t7.renders(), 2)
+    check("風暴五輪：panel 一直在", t7.state.panel.shown)
+
+    -- 比較行晚一幀才來：部分版的那一幀不重畫
+    t7.P.Release(t7.tip, t7.state)
+    t7.tip:SetLines(base)
+    t7.P.Try(t7.tip, t7.state, ITEM, t7.data)
+    t7.env.FlushTimers()                        -- 這一幀還是部分版
+    eq("晚一幀：部分版不蓋掉完整版", t7.renders(), 2)
+    t7.tip:SetLines(full)
+    t7.env.FlushTimers()                        -- 下一幀補齊
+    eq("晚一幀：補齊後也不用重畫", t7.renders(), 2)
+
+    -- 行數真的變少（修飾鍵放開、冷卻行消失）：連續 0.3 秒才接受
+    t7.tip:SetLines(base)
+    t7.env.now = 10
+    t7.polls[t7.state]()
+    t7.env.FlushTimers()
+    eq("變少：0 秒不接受", t7.renders(), 2)
+    t7.env.now = 10.2
+    t7.env.FlushTimers()
+    eq("變少：0.2 秒還不接受", t7.renders(), 2)
+    t7.env.now = 10.35
+    t7.env.FlushTimers()
+    eq("變少：超過 0.3 秒接受並重畫", t7.renders(), 3)
+    eq("變少：完整行數重設", t7.state.panelFullLines, 3)
+    t7.env.FlushTimers()
+    eq("變少：接受後不再排", #t7.env.timers, 0)
+
+    -- 換一件（key 不同）：當幀立刻畫，完整行數歸零重算
+    t7.P.Release(t7.tip, t7.state)
+    t7.tip:SetLines({ { left = "Ashkandi" } })
+    t7.P.Try(t7.tip, t7.state, ITEM, { id = 19364, lines = {
+        { type = 22, lineIndex = 1, leftText = "Ashkandi", leftColor = { r = 0.64, g = 0.21, b = 0.93 } },
+    } })
+    eq("換一件：當幀立刻畫", t7.renders(), 4)
+    eq("換一件：完整行數重算", t7.state.panelFullLines, 1)
+    t7.env.FlushTimers()
+    check("換一件：沒被下一幀拆掉", t7.state.panel.shown)
+
+    -- 同一個 state 同時只排一個 Reconcile
+    t7.P.Try(t7.tip, t7.state, ITEM, t7.state.panelData)
+    t7.P.Try(t7.tip, t7.state, ITEM, t7.state.panelData)
+    t7.polls[t7.state]()
+    eq("Reconcile 合併：只排一個", #t7.env.timers, 1)
+    t7.env.FlushTimers()
+
+    -- 沒有明文 id 也沒有連結：每次都當不同件（立刻畫）
+    eq("Key：秘密 id 沒連結 → nil", t7.P.Key("item", { id = SECRET }), nil)
+    eq("Key：用連結", t7.P.Key("item", { id = SECRET, hyperlink = "item:1" }), "item:item:1")
+    eq("Key：用 id", t7.P.Key("spell", { id = 133 }), "spell:133")
 end
 
 H.finish("Try_test")

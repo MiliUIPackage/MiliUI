@@ -76,7 +76,9 @@ local function StatList(stats)
         local lead = markers and (m.diamond * 2 + m.sc(2)) or 0
         for _, s in ipairs(stats) do
             local shade = LOOK.STAT_SHADE[s.category] or LOOK.STAT_SHADE.other
-            local color = Panel.IsGray(s.color) and LOOK.DIM or Gray(shade)
+            -- 不適用的（同職業其他專精的主屬性＝DisabledLine、或原本就灰字）：文字與 ◆ 都灰，不用職業色
+            local dim = s.disabled or Panel.IsGray(s.color)
+            local color = dim and LOOK.DIM or Gray(shade)
             local h = Panel.TextAt(panel, ctx, textOf(s), m.pad + lead, y, panel.width - 2 * m.pad - lead, style, color)
             if markers then
                 local d = Panel.Texture(panel, 2)
@@ -84,7 +86,7 @@ local function StatList(stats)
                 d:SetPoint("CENTER", panel, "TOPLEFT", m.pad + m.diamond * 0.75,
                     -Panel.Snap(panel, y + style.size / 2 + 1))
                 d:SetRotation(math.rad(45))
-                local c = ctx.accent
+                local c = dim and LOOK.DIM or ctx.accent
                 d:SetVertexColor(c[1], c[2], c[3], LOOK.DIAMOND_ALPHA)
             end
             y = y + h + m.rowGap
@@ -226,7 +228,12 @@ local function StatsSections(part)
     elseif w and (w.damage or w.speed) then
         out[#out + 1] = { kind = "rows", rows = { { left = w.damage and w.damage.text or "", right = w.speed and w.speed.text } } }
     end
-    if part.armor then out[#out + 1] = BigStat(part.armor.value, _G.ARMOR) end
+    -- 護甲（盾牌的格擋寫在第二行小字，跟武器的「傷害 · 速度」同款）
+    if part.armor then
+        out[#out + 1] = BigStat(part.armor.value, _G.ARMOR, part.block and part.block.text or nil)
+    elseif part.block then
+        out[#out + 1] = { kind = "rows", rows = { { left = part.block.text } } }
+    end
     -- 屬性照分類分組；組間 Rule
     local order, groups = { "primary", "secondary", "tertiary", "other" }, {}
     for _, s in ipairs(part.stats) do
@@ -258,11 +265,19 @@ local function BodySections(part)
     if #part.requirements > 0 then
         add({ kind = "rows", wrap = true, rows = RowsOf(part.requirements, function(r) return r.unmet and LOOK.UNUSABLE or LOOK.TEXT end) })
     end
-    if #part.sockets > 0 then add({ kind = "rows", wrap = true, rows = RowsOf(part.sockets, function(r) return r.color end) }) end
+    if #part.sockets > 0 then
+        -- 寶石圖示（gemIcon）或空插槽圖示接在文字前面，拆成貼圖另外畫（Panel.TextAt）
+        local rows = {}
+        for i, r in ipairs(part.sockets) do
+            local icon = r.gemIcon or (r.socketType and ("Interface\\ItemSocketingFrame\\UI-EmptySocket-" .. r.socketType))
+            rows[i] = { left = icon and ("|T" .. icon .. ":0|t " .. r.left) or r.left, right = r.right, color = r.color }
+        end
+        add({ kind = "rows", wrap = true, rows = rows })
+    end
     if #part.enchants > 0 then add({ kind = "rows", wrap = true, rows = RowsOf(part.enchants, function(r) return r.color end) }) end
     local details = {}
     for _, d in ipairs(part.details) do
-        details[#details + 1] = { left = d.left, color = d.remaining and { 1, 0.6, 0.25 } or LOOK.SECONDARY }
+        details[#details + 1] = { left = d.left, color = d.color or (d.remaining and { 1, 0.6, 0.25 }) or LOOK.SECONDARY }
     end
     if part.maker then details[#details + 1] = { left = part.maker } end
     if #details > 0 then add({ kind = "rows", wrap = true, rows = details }) end
@@ -324,6 +339,8 @@ function Panel.ViewItem(model)
         model.skill and { model.skill.text, model.skill.unmet and LOOK.UNUSABLE or nil } or nil)
     if #line2 > 0 then view.header[#view.header + 1] = { badges = line2, style = "small" } end
     local more = {}
+    -- 標題補充行（難度、虛無鍛造、已塑形為…）：原字串、原色
+    for _, r in ipairs(model.headerRows or {}) do more[#more + 1] = { left = r.left, color = r.color } end
     for i = 2, #model.unique do more[#more + 1] = { left = model.unique[i] } end
     if model.upgrade then more[#more + 1] = { left = model.upgrade } end
     if model.craftQuality then more[#more + 1] = { left = model.craftQuality } end
@@ -368,6 +385,8 @@ function Panel.ViewItem(model)
     end
 
     view.footer = Footer(model)
+    -- 別人後加的行：附屬框（設定關掉時 RenderView 接回 sections 尾端）
+    view.extras = { rows = model.appended or {} }
     return view
 end
 

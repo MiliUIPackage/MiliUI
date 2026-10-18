@@ -74,7 +74,8 @@ function Native.Fit(tip, state)
     local tipScale, panelScale = Panel.EffectiveScale(tip), Panel.EffectiveScale(panel)
     if not (tipScale and panelScale) then return false end
     local ratio = panelScale / tipScale
-    local pw, ph = panel.width * ratio, panel.height * ratio
+    -- 有附屬框時連它一起算：比價框、夾邊才會照整組的範圍
+    local pw, ph = panel.width * ratio, (panel.totalHeight or panel.height) * ratio
 
     local naturalW = w - (pr - saved.right)
     local naturalH = h - (pb - saved.bottom)

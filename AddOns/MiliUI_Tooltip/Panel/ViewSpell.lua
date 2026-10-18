@@ -48,11 +48,7 @@ function Panel.NumberHex()
     return Hex(Brighten(ClassColor()))
 end
 
-local function Option(key)
-    local p = ns.db and ns.db.panel
-    return not p or p[key] ~= false
-end
-Panel.Option = Option
+local Option = Panel.Option
 
 ------------------------------------------------------------
 -- 時間的精簡寫法：從 GlobalStrings 挑短格式（「冷卻時間8秒」→「8秒」），沒把握就整句原樣
@@ -160,6 +156,7 @@ function Panel.ViewSpell(model)
     if model.talent then badges[#badges + 1] = { model.talent.text } end
     if model.subtitle then badges[#badges + 1] = { model.subtitle } end
     if model.charges then badges[#badges + 1] = { model.charges.text } end
+    for _, tag in ipairs(model.tags or {}) do badges[#badges + 1] = { tag[1], tag[2] } end
     if #badges > 0 then view.header[2] = { badges = badges, style = "small" } end
 
     local numberHex = Panel.NumberHex()
@@ -194,6 +191,8 @@ function Panel.ViewSpell(model)
             separator = { rule = true }, kind = "rows", rows = extras, wrap = true, color = LOOK.SECONDARY,
         }
     end
+    -- 別人後加的行：附屬框（設定關掉時 RenderView 接回 sections 尾端）
+    view.extras = { rows = model.appended or {} }
     return view
 end
 

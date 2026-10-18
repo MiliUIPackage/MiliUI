@@ -269,6 +269,19 @@ local STATIC = {
         "ITEM_BIND_TO_ACCOUNT_UNTIL_EQUIP", "ITEM_BIND_TO_ACCOUNT", "ITEM_BIND_TO_BNETACCOUNT",
         "ITEM_ACCOUNTBOUND_UNTIL_EQUIP", "ITEM_ACCOUNTBOUND", "ITEM_BNETACCOUNTBOUND",
     },
+    block = { "SHIELD_BLOCK_TEMPLATE" },
+    -- 臨時附魔／武器油（「薩拉斯鳳凰之油（13分鐘）」）
+    enchantTemp = { "ITEM_ENCHANT_TIME_LEFT_SEC", "ITEM_ENCHANT_TIME_LEFT_MIN", "ITEM_ENCHANT_TIME_LEFT_HOURS",
+        "ITEM_ENCHANT_TIME_LEFT_DAYS" },
+    socketable = { "ITEM_SOCKETABLE" },
+    -- 塑形（「已塑形為：」標籤、「已塑形為：\n名字」、「幻象：附魔名」）
+    transmog = { "TRANSMOGRIFIED", "TRANSMOGRIFIED_HEADER", "TRANSMOGRIFIED_ENCHANT" },
+    -- 難度行：只做整句比對（「英雄難度」「傳奇難度」＝冒險指南的難度旗標字串；其餘照 PLAYER_DIFFICULTY）
+    difficulty = {
+        "ENCOUNTER_JOURNAL_SECTION_FLAG3", "ENCOUNTER_JOURNAL_SECTION_FLAG12", "ITEM_HEROIC",
+        "PLAYER_DIFFICULTY1", "PLAYER_DIFFICULTY2", "PLAYER_DIFFICULTY3", "PLAYER_DIFFICULTY6",
+        "PLAYER_DIFFICULTY_MYTHIC_PLUS", "PLAYER_DIFFICULTY_TIMEWALKER",
+    },
     -- 需求類（職業／種族／聲望／專精）：放頁尾、未達成紅
     restriction = { "ITEM_CLASSES_ALLOWED", "ITEM_RACES_ALLOWED", "ITEM_REQ_REPUTATION", "ITEM_REQ_SPECIALIZATION" },
     misc = {
@@ -448,6 +461,8 @@ end
 function Patterns.StripColors(text)
     if type(text) ~= "string" then return text end
     text = strgsub(text, "|c%x%x%x%x%x%x%x%x", "")
+    -- 實機看過暴雪自己的壞色碼（「|cFF 0FF 0英雄難度|r」，十六進位位數被空白頂掉）：判斷時一樣拆掉
+    text = strgsub(text, "|c[%x ][%x ][%x ][%x ][%x ][%x ][%x ][%x ]", "")
     text = strgsub(text, "|cn[^:]*:", "")   -- 12.x 的具名色 |cnRED_FONT_COLOR:…|r
     return (strgsub(text, "|r", ""))
 end

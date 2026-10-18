@@ -31,6 +31,11 @@ function Panel.IsRed(c)
     return c ~= nil and c[1] > 0.9 and c[2] < 0.3 and c[3] < 0.3
 end
 
+-- 不是白字（白＝暴雪的一般行）
+local function Colored(c)
+    return c ~= nil and not (c[1] > 0.95 and c[2] > 0.95 and c[3] > 0.95)
+end
+
 -- 描述的金色（NORMAL_FONT_COLOR 1, .82, 0）
 local function IsGold(c)
     return c ~= nil and c[1] > 0.9 and c[2] > 0.65 and c[2] < 0.9 and c[3] < 0.3
@@ -122,8 +127,10 @@ local function Unmet(row, text, game)
 end
 Panel.Unmet = Unmet
 
-local function Extra(part, row, left, right)
-    part.extras[#part.extras + 1] = {
+-- 認不得的行：暴雪 data 的進主面板「其他」區；別人後加的（appended）進附屬框那一桶（model.appended）
+local function Extra(part, row, left, right, model)
+    local list = row.appended and model and model.appended or part.extras
+    list[#list + 1] = {
         left = left or "", right = right, color = row.color, rightColor = row.rightColor,
     }
 end
@@ -132,6 +139,9 @@ end
 function Panel.ReadSpellRows(rows, game, id)
     local model = NewPart()
     model.kind = "spell"
+    model.appended = {}
+    model.tags = {}            -- 名字之後、本體之前的帶色行（坐騎：「戰隊坐騎」｜「飛行」）→ 徽章列、保留原色
+    local seenBody = false
     local part = model
     local nextRank             -- 天賦面板「下一等級」那一段
     local nameTaken = false
@@ -188,7 +198,8 @@ function Panel.ReadSpellRows(rows, game, id)
         elseif Typed(row, "SpellPassive") and not right then
             part.passive = Trim(left)
         elseif Typed(row, "SpellDescription") then
-            if Trim(left) ~= "" then part.description[#part.description + 1] = left end
+            seenBody = true
+            if Trim(left) ~= "" then part.description[#part.description + 1] = (left:gsub("\r", "")) end
         elseif Typed(row, "UsageRequirement") then
             part.requirements[#part.requirements + 1] = {
                 left = Trim(left), right = right, unmet = Unmet(row, left, game),
@@ -196,11 +207,23 @@ function Panel.ReadSpellRows(rows, game, id)
         else
             local okLeft = Trim(left) == "" or ClassifyText(part, left, row)
             local okRight = not right or ClassifyText(part, right, row)
+            if not seenBody and not row.appended and part == model then
+                -- 本體之前認不得、但帶顏色的半列 ⇒ 徽章
+                if not okLeft and Colored(row.color) then
+                    model.tags[#model.tags + 1] = { Trim(left), row.color }
+                    okLeft = true
+                end
+                if not okRight and Colored(row.rightColor) then
+                    model.tags[#model.tags + 1] = { Trim(right), row.rightColor }
+                    okRight = true
+                end
+            end
+            if part.cost or part.cast or part.cooldown or part.range then seenBody = true end
             if not okLeft and not row.appended and not right and (row.wrap or IsGold(row.color)) then
                 -- 沒型別的描述（金字或會換行的單欄長行）
                 part.description[#part.description + 1] = left
             elseif not okLeft or not okRight then
-                Extra(part, row, okLeft and "" or left, (not okRight) and right or nil)
+                Extra(part, row, okLeft and "" or left, (not okRight) and right or nil, model)
             end
         end
     end

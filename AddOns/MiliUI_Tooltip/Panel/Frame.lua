@@ -19,6 +19,12 @@ local Panel = ns.Panel
 
 local WHITE = Media.WHITE8X8
 
+-- panel 區塊的布林設定（沒有這欄＝開）
+function Panel.Option(key)
+    local p = ns.db and ns.db.panel
+    return not p or p[key] ~= false
+end
+
 ------------------------------------------------------------
 -- 外觀常數（plan「視覺規格」那張表，單位是設計單位，畫的時候才 Snap／Pixel）
 -- 提示皮：底與邊框色由 Skin 那套給（general.background、state.borderColor），這裡不重複定義
@@ -70,6 +76,7 @@ Panel.LOOK = {
     CREATED_ICON = 24,                 -- 配方成品的小圖示
     REAGENT_ICON = 14,
     BAR_W = 54, BAR_H = 6,             -- 頁尾耐久條
+    EXTRAS_GAP = 4,                    -- 附屬框（別人加的行）與主面板之間的縫
 }
 local LOOK = Panel.LOOK
 
@@ -191,14 +198,82 @@ local function Ruler()
     return ruler
 end
 
--- 一行字不換行時的寬
-function Panel.Measure(text, style)
+------------------------------------------------------------
+-- 行內圖示：頭或尾那一顆拆出來另外畫（Panel.TextAt），不靠 FontString 的行內排版。
+-- 實機：附魔行結尾的品質圖示（|A…|a）比文字低半行、掉進行距。
+-- 只拆「整串只有這一顆圖示」的情況：錢幣字串一串三顆，只拆最後一顆會跟另外兩顆對不齊。
+------------------------------------------------------------
+Panel.ICON_TEXT_GAP = 3
+
+local function ParseIcon(code)
+    if code:sub(2, 2) == "T" then
+        local body = code:match("^|T(.-)|t$")
+        if not body then return end
+        local p = {}
+        for v in (body .. ":"):gmatch("(.-):") do p[#p + 1] = v end
+        -- 檔案編號（寶石的 gemIcon、|T7549137:0|t）要以數字餵 SetTexture；字串形式的數字會被當成路徑找不到
+        local icon = { file = tonumber(p[1]) or p[1], h = tonumber(p[2]), w = tonumber(p[3]) }
+        local tw, th, l, r, t, b = tonumber(p[6]), tonumber(p[7]), tonumber(p[8]), tonumber(p[9]), tonumber(p[10]), tonumber(p[11])
+        if tw and th and tw > 0 and th > 0 and l and r and t and b then
+            icon.coords = { l / tw, r / tw, t / th, b / th }
+        end
+        return icon
+    end
+    local body = code:match("^|A:?(.-)|a$")
+    if not body then return end
+    local p = {}
+    for v in (body .. ":"):gmatch("(.-):") do p[#p + 1] = v end
+    return { atlas = p[1], h = tonumber(p[2]), w = tonumber(p[3]) }
+end
+
+local function IconCount(text)
+    local n = 0
+    for _ in text:gmatch("|[TA]") do n = n + 1 end
+    return n
+end
+
+-- 回傳 lead, body, trail（lead／trail 是圖示表或 nil）
+function Panel.SplitIcons(text)
+    if type(text) ~= "string" or IconCount(text) ~= 1 then return nil, text, nil end
+    local code, rest = text:match("^(|T[^|]*|t)%s?(.*)$")
+    if not code then code, rest = text:match("^(|A[^|]*|a)%s?(.*)$") end
+    if code then return ParseIcon(code), rest, nil end
+    local before
+    before, code = text:match("^(.-)%s?(|T[^|]*|t)$")
+    if not code then before, code = text:match("^(.-)%s?(|A[^|]*|a)$") end
+    if code then return nil, before, ParseIcon(code) end
+    return nil, text, nil
+end
+
+-- 圖示尺寸：字串裡給的；0 或沒給就用那一行的字級（寬沒給＝高）
+function Panel.IconSize(icon, style)
+    local h = (icon.h and icon.h > 0) and icon.h or style.size
+    local w = (icon.w and icon.w > 0) and icon.w or h
+    return w, h
+end
+
+local function MeasureRaw(text, style)
     if type(text) ~= "string" or text == "" then return 0 end
     local fs = Ruler()
     Panel.ApplyFont(fs, style)
     fs:SetText(text)
     local w = fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth() or fs:GetStringWidth()
     return S.PlainNumber(w) or 0
+end
+Panel.MeasureRaw = MeasureRaw
+
+-- 一行字不換行時的寬（拆出來另外畫的圖示也算進去）
+function Panel.Measure(text, style)
+    if type(text) ~= "string" or text == "" then return 0 end
+    local lead, body, trail = Panel.SplitIcons(text)
+    local w = MeasureRaw(body, style)
+    for _, icon in ipairs({ lead or false, trail or false }) do
+        if icon then
+            local iw = Panel.IconSize(icon, style)
+            w = w + iw + ((body ~= "") and Panel.ICON_TEXT_GAP or 0)
+        end
+    end
+    return w
 end
 
 ------------------------------------------------------------
@@ -313,6 +388,7 @@ function Panel.SyncLevel(panel, tip)
     if panel.syncedLevel ~= level then
         panel.syncedLevel = level
         panel:SetFrameLevel(level + 5)
+        if panel.extrasBox then panel.extrasBox:SetFrameLevel(level + 5) end
     end
 end
 

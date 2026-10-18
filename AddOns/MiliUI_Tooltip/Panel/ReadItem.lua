@@ -25,6 +25,32 @@ local ITEM_TYPE = Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item
 Panel.readers = Panel.readers or {}
 
 local Trim, Num = Panel.Trim, Panel.Num
+local LOOK_DIM = Panel.LOOK.DIM
+local LOOK_SECONDARY = Panel.LOOK.SECONDARY
+
+-- 去掉 \r（暴雪的多段文字用 \r\n 接）
+local function NoCR(s) return (s:gsub("\r", "")) end
+
+-- 標題補充區裡還允許出現的型別（ItemName 之後、ItemBinding／EquipSlot／第一行本體之前）
+local HEADER_TYPES = { ItemLevel = true, ItemUpgradeLevel = true, ItemQuality = true, ProfessionCraftingQuality = true }
+local LT_NAME = {}
+for name, value in pairs(LT) do LT_NAME[value] = name end
+
+-- 標題補充區裡認得出用途的行照常分流，不收進補充行：本體（屬性、護甲、傷害…）與有固定位置的欄位。
+-- 難度、虛無鍛造、已塑形為…這些（認不出、或本來就屬於標題的）才是補充行
+local KNOWN_FIELDS = { "armor", "damage", "dps", "block", "durability", "setName", "setBonus", "level", "skill",
+    "restriction", "binding", "unique", "equipped", "itemLevel", "upgrade", "craftQuality", "maker", "enchantTemp" }
+local function Recognized(plain)
+    if Patterns.Stat(plain) then return true end
+    for _, field in ipairs(KNOWN_FIELDS) do
+        if Patterns.Find(field, plain) then return true end
+    end
+    if Patterns.Prefix("SPELL_REAGENTS", plain) then return true end
+    for _, key in ipairs({ "ITEM_SPELL_TRIGGER_ONUSE", "ITEM_SPELL_TRIGGER_ONEQUIP", "ITEM_SPELL_TRIGGER_ONPROC" }) do
+        if Patterns.Prefix(key, plain) then return true end
+    end
+    return false
+end
 
 local function Typed(row, name)
     return row.type ~= nil and LT[name] ~= nil and row.type == LT[name]
@@ -45,6 +71,7 @@ local function NewItem()
     return {
         kind = "item", stats = {}, effects = {}, sockets = {}, enchants = {}, requirements = {},
         restrictions = {}, flavor = {}, details = {}, extras = {}, unique = {},
+        appended = {},     -- 別人後加的行（附屬框）
     }
 end
 
@@ -68,7 +95,7 @@ local function AddEffect(part, row, text)
     for _, t in ipairs(TRIGGERS) do
         local rest = Patterns.Prefix(t.key, text)
         if rest or Typed(row, t.type) then
-            part.effects[#part.effects + 1] = { kind = t.kind, label = TriggerLabel(t.key), text = rest or text }
+            part.effects[#part.effects + 1] = { kind = t.kind, label = TriggerLabel(t.key), text = NoCR(rest or text) }
             return true
         end
     end
@@ -141,6 +168,17 @@ local function ClassifyText(part, model, row, text, game)
         part.stats[#part.stats + 1] = { text = plain, value = value, key = statKey, category = category, color = row.color }
         return true
     end
+    key, a = Patterns.Find("block", plain)
+    if key then part.block = { text = plain, value = a } return true end
+    if Patterns.Find("enchantTemp", plain) then
+        part.enchants[#part.enchants + 1] = { left = text, color = row.color }
+        part.lastEnchant = true
+        return true
+    end
+    if Patterns.Find("socketable", plain) then
+        part.details[#part.details + 1] = { left = plain, color = LOOK_SECONDARY }
+        return true
+    end
     key, a, b = Patterns.Find("durability", plain)
     if key then part.durability = { text = plain, cur = Num(a), max = Num(b) } return true end
 
@@ -210,6 +248,18 @@ local function ClassifyText(part, model, row, text, game)
         part.requirements[#part.requirements + 1] = { left = plain, unmet = Panel.IsRed(row.color) }
         return true
     end
+    -- 塑形與難度：暴雪自己的資訊行，放細節區、保留原色
+    key = Patterns.Find("transmog", plain)
+    if key then
+        part.details[#part.details + 1] = { left = text, color = row.color }
+        -- 只有標籤的那一行：下一行是塑形成的物品名
+        if key == "TRANSMOGRIFIED_HEADER" then part.transmogNext = true end
+        return true
+    end
+    if Patterns.Find("difficulty", plain) then
+        part.details[#part.details + 1] = { left = text, color = row.color }
+        return true
+    end
     if part.inSet then
         part.set.items[#part.set.items + 1] = { text = plain, owned = not IsGray(row.color) }
         return true
@@ -217,8 +267,10 @@ local function ClassifyText(part, model, row, text, game)
     return false
 end
 
-local function Extra(part, row, left, right)
-    part.extras[#part.extras + 1] = { left = left or "", right = right, color = row.color, rightColor = row.rightColor }
+-- 認不得的行：暴雪 data 的進主面板「其他」區；別人後加的（appended）進附屬框那一桶
+local function Extra(part, row, left, right, model)
+    local list = row.appended and model and model.appended or part.extras
+    list[#list + 1] = { left = left or "", right = right, color = row.color, rightColor = row.rightColor }
 end
 
 local function IsBreak(row)
@@ -243,8 +295,19 @@ function Panel.ReadItemRows(rows, game, opts)
 
     for _, row in ipairs(rows) do
         local left, right = row.left or "", row.right
+        local transmogNext = part.transmogNext
+        part.transmogNext = nil
+        local lastEnchant = part.lastEnchant
+        part.lastEnchant = nil
+        -- 標題補充區：ItemName 之後、到 ItemBinding／EquipSlot／效果這類型別行為止
+        if part.inHeader and row.type ~= nil and row.type ~= LT.None then
+            if not HEADER_TYPES[LT_NAME[row.type]] then part.inHeader = nil end
+        end
         if row.appended then
-            if Plain(left) ~= "" or (right and Plain(right) ~= "") then Extra(model, row, left, right) end
+            if Plain(left) ~= "" or (right and Plain(right) ~= "") then Extra(model, row, left, right, model) end
+        elseif Typed(row, "SellPrice") then
+            -- 售價那行的文字是空的（錢幣是另外的框）：要在「空行＝分段」之前認走
+            model.price = row.price
         elseif IsBreak(row) then
             part.inSet = false
             model.inReagents = false
@@ -252,12 +315,14 @@ function Panel.ReadItemRows(rows, game, opts)
             if not part.name then
                 part.name = Trim(Patterns.StripTextures(left))
                 part.nameColor = row.color
+                part.inHeader = true
                 if right and Plain(right) ~= "" then part.subtitle = right end
             else
                 -- 第二個名字：配方的成品從這裡開始
                 local created = NewItem()
                 created.name = Trim(Patterns.StripTextures(left))
                 created.nameColor = row.color
+                created.inHeader = true
                 model.created = created
                 part = created
             end
@@ -286,18 +351,41 @@ function Panel.ReadItemRows(rows, game, opts)
             part.slot = Plain(left) ~= "" and Plain(left) or nil
             part.armorType = right and Plain(right) ~= "" and Plain(right) or nil
         elseif Typed(row, "FlavorText") then
-            part.flavor[#part.flavor + 1] = left
-        elseif Typed(row, "SellPrice") then
-            model.price = row.price
+            part.flavor[#part.flavor + 1] = NoCR(left)
         elseif Typed(row, "GemSocket") then
             part.sockets[#part.sockets + 1] = { left = left, right = right, color = row.color,
                 gemIcon = row.gemIcon, socketType = row.socketType }
+            part.lastEnchant = true
         elseif Typed(row, "GemSocketEnchantment") or Typed(row, "ItemEnchantmentPermanent") then
             part.enchants[#part.enchants + 1] = { left = left, right = right, color = row.color }
+            part.lastEnchant = true
+        elseif part.inHeader and (row.type == nil or row.type == LT.None) and not right
+            and not Recognized(Plain(left)) then
+            -- 標題補充行（難度、虛無鍛造、已塑形為…）：保留原字串與色碼，照 \n 拆列
+            part.headerRows = part.headerRows or {}
+            for piece in (NoCR(left) .. "\n"):gmatch("(.-)\n") do
+                if Plain(piece) ~= "" then
+                    part.headerRows[#part.headerRows + 1] = { left = piece, color = row.color }
+                end
+            end
         elseif Typed(row, "TradeTimeRemaining") then
             part.details[#part.details + 1] = { left = left }
-        elseif Typed(row, "ErrorLine") or Typed(row, "DisabledLine") then
+        elseif Typed(row, "ErrorLine") then
             part.requirements[#part.requirements + 1] = { left = left, unmet = true }
+        elseif Typed(row, "DisabledLine") then
+            -- 灰字的「不適用」行，原版就是灰字，不是需求未達成：先看情境
+            local plain = Plain(left)
+            local value, statKey, category = Patterns.Stat(plain)
+            if part.inSet and part.set then
+                -- 套裝清單裡沒擁有的那一件
+                part.set.items[#part.set.items + 1] = { text = plain, owned = false }
+            elseif value then
+                -- 同職業其他專精用的主屬性：照分類排，畫灰
+                part.stats[#part.stats + 1] = { text = plain, value = value, key = statKey, category = category,
+                    color = row.color, disabled = true }
+            else
+                part.details[#part.details + 1] = { left = left, color = LOOK_DIM }
+            end
         elseif Typed(row, "UsageRequirement") then
             local plain = Plain(left)
             if Patterns.Find("level", plain) then
@@ -310,6 +398,7 @@ function Panel.ReadItemRows(rows, game, opts)
                 part.requirements[#part.requirements + 1] = { left = plain, unmet = Panel.Unmet(row, plain, game) }
             end
         else
+            part.inHeader = nil          -- 認得出用途的無型別行一出現，標題補充區就結束
             local okLeft = ClassifyText(part, model, row, left, game)
             local okRight = true
             if right and Plain(right) ~= "" then
@@ -321,7 +410,13 @@ function Panel.ReadItemRows(rows, game, opts)
                     okRight = false
                 end
             end
-            if not okLeft or not okRight then
+            if not okLeft and transmogNext and not right then
+                part.details[#part.details + 1] = { left = left, color = row.color }
+            elseif not okLeft and lastEnchant and not right then
+                -- 緊接在附魔／寶石行之後、同一段：臨時附魔（pattern 認不出時的鄰接規則）
+                part.enchants[#part.enchants + 1] = { left = left, color = row.color }
+                part.lastEnchant = true
+            elseif not okLeft or not okRight then
                 Extra(part, row, okLeft and "" or left, (not okRight) and right or nil)
             end
         end

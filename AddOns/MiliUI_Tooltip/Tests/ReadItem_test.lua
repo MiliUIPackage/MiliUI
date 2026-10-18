@@ -141,8 +141,9 @@ for _, locale in ipairs({ "enUS", "zhTW", "zhCN" }) do
     eq(tag .. "職業限定（紅＝未達成）", m.restrictions[1] and m.restrictions[1].unmet, true)
     eq(tag .. "等級需求達成", m.levelReq and m.levelReq.unmet, false)
     eq(tag .. "售價", m.price, 123456)
-    eq(tag .. "別人加的行進 extras", m.extras[1] and m.extras[1].left, "Item ID: 1234")
-    eq(tag .. "extras 只有那一行", #m.extras, 1)
+    eq(tag .. "別人加的行進附屬框那一桶", m.appended[1] and m.appended[1].left, "Item ID: 1234")
+    eq(tag .. "附屬框只有那一行", #m.appended, 1)
+    eq(tag .. "主面板的「其他」沒有東西", #m.extras, 0)
 
     local view = P.ViewItem(m)
     eq(tag .. "等級徽章", view.badge, "639")
@@ -277,7 +278,7 @@ do
     } }
     local m = P.readers.item(tip, data)
     eq("reader：名字", m and m.name, "Shadowcraft Cap")
-    eq("reader：後加的行", m and m.extras[1] and m.extras[1].left, "Item ID: 1234")
+    eq("reader：後加的行", m and m.appended[1] and m.appended[1].left, "Item ID: 1234")
     data.lines[3].leftText = H.SECRET
     eq("秘密行 → nil", P.readers.item(tip, data), nil)
     data.lines[3].leftText = F("ITEM_MOD_AGILITY", 43, "150")
@@ -298,7 +299,8 @@ do
     ns.db.panel.levelBadge = false
     ns.db.panel.statMarkers = false
     P.settingsVersion = P.settingsVersion + 1
-    P.Try(tip, state, 0, data)
+    P.Try(tip, state, 0, data)           -- 同一件：下一幀 Reconcile 才照新設定重畫
+    env.FlushTimers()
     check("徽章關：沒有徽章", not state.panel.badge.shown)
     diamonds = 0
     for i = 1, state.panel.texturesUsed do
@@ -311,6 +313,68 @@ do
         if state.panel.texts[i].shown and state.panel.texts[i].text:find(F("ITEM_LEVEL", 639), 1, true) then hasLevelText = true end
     end
     check("徽章關：物品等級改寫在標題", hasLevelText)
+end
+
+------------------------------------------------------------
+-- 4b. DisabledLine 看情境（2026-10-18 實機：被畫成紅字需求）、ErrorLine 仍紅；塑形／難度行進細節
+------------------------------------------------------------
+for _, locale in ipairs({ "enUS", "zhTW", "zhCN" }) do
+    local P, F, G = Setup(locale)
+    local tag = locale .. " "
+    local m = P.ReadItemRows({
+        Row(1, "Gauntlets", nil, { type = LT.ItemName }),
+        Row(2, F("ITEM_MOD_AGILITY", 43, "150")),
+        Row(3, StatLine(locale, "125", G.ITEM_MOD_INTELLECT_SHORT), nil, { type = LT.DisabledLine, color = GRAY }),
+        Row(4, "You can't do that", nil, { type = LT.ErrorLine, color = RED }),
+        Row(5, "Something greyed out", nil, { type = LT.DisabledLine, color = GRAY }),
+        Blank(6),
+        Row(7, F("ITEM_SET_NAME", "Flamewrath", 1, 5), nil, { color = GOLD }),
+        Row(8, "  Flamewrath Gauntlets", nil, { color = GOLD }),
+        Row(9, "  Flamewrath Shoulders", nil, { type = LT.DisabledLine, color = GRAY }),
+        Blank(10),
+        Row(11, G.ENCOUNTER_JOURNAL_SECTION_FLAG12, nil, { color = GREEN }),
+        Row(12, G.TRANSMOGRIFIED_HEADER, nil, { color = { 1, 0.5, 1 } }),
+        Row(13, "Pretty Gloves", nil, { color = { 1, 0.5, 1 } }),
+        Row(14, F("TRANSMOGRIFIED_ENCHANT", "Mongoose"), nil, { color = { 1, 0.5, 1 } }),
+    }, GAME, { id = 7 })
+    local int
+    for _, s in ipairs(m.stats) do if s.disabled then int = s end end
+    check(tag .. "DisabledLine 屬性進 stats 且 disabled", int ~= nil)
+    eq(tag .. "DisabledLine 屬性照分類（主屬性）", int and int.category, "primary")
+    eq(tag .. "套裝裡的 DisabledLine 進 set.items", m.set and #m.set.items, 2)
+    eq(tag .. "套裝裡的 DisabledLine：未擁有", m.set and m.set.items[2].owned, false)
+    eq(tag .. "ErrorLine 仍是紅字需求", #m.requirements, 1)
+    eq(tag .. "ErrorLine unmet", m.requirements[1] and m.requirements[1].unmet, true)
+    local details = {}
+    for _, d in ipairs(m.details) do details[d.left] = d end
+    check(tag .. "其他 DisabledLine 進細節灰字", details["Something greyed out"] and details["Something greyed out"].color[1] == 0.45)
+    check(tag .. "難度行進細節、保留原色", details[G.ENCOUNTER_JOURNAL_SECTION_FLAG12] and details[G.ENCOUNTER_JOURNAL_SECTION_FLAG12].color == GREEN)
+    check(tag .. "塑形標籤進細節", details[G.TRANSMOGRIFIED_HEADER] ~= nil)
+    check(tag .. "塑形標籤下一行（物品名）進細節", details["Pretty Gloves"] ~= nil)
+    check(tag .. "幻象進細節", details[F("TRANSMOGRIFIED_ENCHANT", "Mongoose")] ~= nil)
+    eq(tag .. "沒有東西掉進「其他」", #m.extras, 0)
+end
+
+-- 畫出來：灰的屬性與它的 ◆ 都是灰，不是職業色
+do
+    local P, F, G, env = Setup("zhTW")
+    local m = P.ReadItemRows({
+        Row(1, "護手", nil, { type = LT.ItemName }),
+        Row(2, StatLine("zhTW", "125", G.ITEM_MOD_INTELLECT_SHORT), nil, { type = LT.DisabledLine, color = GRAY }),
+    }, GAME, { id = 8 })
+    local tip = H.Tip(env, "GameTooltip", {})
+    local state = {}
+    local panel = P.Get(tip, state)
+    P.RenderView(panel, tip, P.ViewItem(m), state)
+    local text, diamonds = nil, {}
+    for i = 1, panel.textsUsed do if panel.texts[i].text == StatLine("zhTW", "125", G.ITEM_MOD_INTELLECT_SHORT) then text = panel.texts[i] end end
+    for i = 1, panel.texturesUsed do
+        local t = panel.textures[i]
+        if t.shown and t.rotation and t.rotation ~= 0 then diamonds[#diamonds + 1] = t end
+    end
+    eq("灰屬性：文字 DIM", text and text.textColor[1], 0.45)
+    local statDiamond = diamonds[#diamonds]
+    eq("灰屬性：◆ 也 DIM", statDiamond and statDiamond.color[1], 0.45)
 end
 
 ------------------------------------------------------------
@@ -375,7 +439,13 @@ do
     t = texts()
     check("配方畫：成品名字（小一號標題）", t["絲質長袍"] and t["絲質長袍"].size == 12)
     check("配方畫：成品灰字行", t["布甲 · 胸部"] ~= nil)
-    check("配方畫：材料", t["|T7777:14|t Silk"] and t["5 / 3"])
+    check("配方畫：材料（圖示拆出去，文字只剩名字）", t["Silk"] and t["5 / 3"])
+    local reagentIcon
+    for i = 1, panel.texturesUsed do
+        local x = panel.textures[i]
+        if x.shown and x.texture == 7777 and x.w == 14 then reagentIcon = x end
+    end
+    check("配方畫：材料圖示另外畫（14）", reagentIcon ~= nil)
     local icon
     for i = 1, panel.texturesUsed do if panel.textures[i].shown and panel.textures[i].texture == 4242 then icon = panel.textures[i] end end
     check("配方畫：成品小圖示 24", icon and icon.w == 24)

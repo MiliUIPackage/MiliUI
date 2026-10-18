@@ -89,6 +89,7 @@ function Region:SetVertexColor(r, g, b, a) self.color = { r, g, b, a } end
 function Region:SetColorTexture() end
 function Region:SetDrawLayer(layer, sub) self.layer, self.sublevel = layer, sub end
 function Region:SetRotation(r) self.rotation = r end
+function Region:SetAtlas(a) self.atlas = a; self.texture = nil end
 function Region:SetBlendMode() end
 -- 文字
 function Region:SetFont(path, size, flags)
@@ -171,6 +172,8 @@ function H.Env(extra)
         end,
         GetPixelToUIUnitFactor = function() return 1 end,
     }
+    env.now = 0
+    env.GetTime = function() return env.now end
     env.timers = {}
     env.C_Timer = {
         After = function(_, fn) env.timers[#env.timers + 1] = fn end,

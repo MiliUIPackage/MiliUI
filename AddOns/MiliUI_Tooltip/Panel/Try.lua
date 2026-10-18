@@ -1,14 +1,19 @@
 ------------------------------------------------------------
--- 重繪面板的流程：Try（post-call 進來）／Release（內容被清掉）／Restore（退回原生）
+-- 重繪面板的流程：Try（post-call 進來）／Reconcile（下一幀對帳）／Release（內容被清掉）／Restore（退回原生）
 --
 --   1. 該型別的開關關 → Restore 後 return（沒畫過就什麼都不碰 ⇒ 開關關掉時跟以前逐位元一樣）
---   2. reader(tip, data) → model；nil（秘密值、讀不到、沒名字）→ Restore
---   3. 指紋跟上次相同、panel 還顯示著 → 只重壓 alpha、Fit，不重畫（比價框每秒重建二十幾次）
---   4. view(model) → RenderView → Align → Native.Hide → Fit → Show；下一幀再 Fit 一次；登記輪詢
+--   2. **同一件的重建**（state.panelKey 相同、panel 顯示中）→ 當幀不解析、不重畫，只重壓 alpha、Fit，
+--      排一次 Reconcile。原因：post-call 在暴雪 ProcessInfo 的中間——比價框的「若你更換此裝備…」、
+--      別家插件 post-call 加的行，都是**同一幀、我們之後**才補上的。當幀就畫會畫出「少那幾行」的版本，
+--      輪詢再畫回完整版；比價重建每秒二十幾次 ⇒ 兩版交替＝閃爍（2026-10-18 實機回報）。
+--   3. **新物件**（key 不同、panel 沒顯示）→ 立刻畫（第一次顯示要快），再排一次 Reconcile 補齊同一幀後加的行
+--   4. Reconcile（C_Timer.After(0)，每個 state 同時只排一個）：CollectLines 重讀 → 指紋相同就不動；
+--      不同才 reader → view → RenderView。**行數比這件看過的最多還少 ⇒ 當成部分版不重畫**，下一幀再對；
+--      連續 PARTIAL_GRACE 秒都比較少才接受（修飾鍵放開、冷卻行消失這種「真的變少」不能卡死）
 --   5. 輪詢（0.1 秒，只在有 tooltip 顯示時存在）：tooltip 沒了 → Restore；alpha 被改回來 → 重壓；
---      行數變了（別人後加行、修飾鍵補 ID 行）→ 重跑 Try；尺寸漂了 → Fit
---   6. OnTooltipCleared → Release：先不拆，等下一幀；同一幀裡新的 post-call 會把它認領回去
---      （比價重建＝清空再填同一件，拆了重畫就白費指紋）。skin OnHide → Restore 立刻拆。
+--      行數變了 → 排 Reconcile；尺寸漂了 → Fit；層級被抬 → 跟上
+--   6. OnTooltipCleared → Release：先不拆，等下一幀；同一幀裡新的 post-call 會把它認領回去。
+--      skin OnHide → Restore 立刻拆。
 --
 -- 任何一步出錯都由 Core/Hooks.lua 的 xpcall 接住；錯誤之後 Restore 也會被叫到（見 Hooks）。
 ------------------------------------------------------------
@@ -30,6 +35,8 @@ Panel.readers = Panel.readers or {}
 Panel.views = Panel.views or {}
 
 local POLL_INTERVAL = 0.1
+local PARTIAL_GRACE = 0.3      -- 行數比完整版少，連續這麼久才接受為新的完整版
+Panel.PARTIAL_GRACE = PARTIAL_GRACE
 
 -- 設定一改就 +1（進指紋：改了外觀要重畫）
 Panel.settingsVersion = 0
@@ -69,13 +76,34 @@ function Panel.Fingerprint(model, extra)
     return table.concat(parts, "\031")
 end
 
+-- 「同一件」：型別＋明文 id；沒有 id 就用 hyperlink；兩個都拿不到（秘密）⇒ nil＝每次都當不同件
+function Panel.Key(kind, data)
+    if type(data) ~= "table" then return nil end
+    local id = S.PlainNumber(data.id)
+    if id then return kind .. ":" .. id end
+    local link = S.PlainText(data.hyperlink)
+    if link and link ~= "" then return kind .. ":" .. link end
+    return nil
+end
+
+local function Shown(tip)
+    local ok, shown = pcall(tip.IsShown, tip)
+    return ok and not S.IsSecret(shown) and shown and true or false
+end
+
+local function Now()
+    return GetTime and GetTime() or 0
+end
+
 ------------------------------------------------------------
 -- 退回
 ------------------------------------------------------------
 function Panel.Restore(tip, state)
     if not state then return end
     state.releasePending = nil
-    state.panelFingerprint = nil
+    state.reconcileToken = (state.reconcileToken or 0) + 1    -- 排著的 Reconcile 作廢
+    state.reconcilePending = nil
+    state.panelFingerprint, state.panelKey, state.panelFullLines, state.partialSince = nil, nil, nil, nil
     state.panelData, state.panelKind, state.panelLines = nil, nil, nil
     if state.panelPolling then
         state.panelPolling = nil
@@ -109,6 +137,82 @@ function Panel.OnSkinShow(tip, state)
 end
 
 ------------------------------------------------------------
+-- 畫：rows 已經讀好（指紋用的那份）；失敗回 false（呼叫端 Restore）
+------------------------------------------------------------
+local function Render(tip, state, kind, data, rows, n, fingerprint)
+    local reader = Panel.readers[kind] or Panel.ReadFallback
+    local model = reader(tip, data, kind, rows, n)
+    if not model then return false end
+    local panel = Panel.Get(tip, state)
+    local view = (Panel.views[kind] or Panel.ViewFallback)(model, state)
+    if not view or not Panel.RenderView(panel, tip, view, state) then return false end
+    if not Panel.Align(panel, tip) or not Native.Hide(tip, state) then return false end
+    if Native.Fit(tip, state) == false then return false end
+    panel:Show()
+    state.panelFingerprint = fingerprint
+    state.panelLines = n
+    return true
+end
+
+------------------------------------------------------------
+-- 下一幀對帳
+------------------------------------------------------------
+local Reconcile
+
+local function ScheduleReconcile(tip, state)
+    if state.reconcilePending then return end      -- 每個 state 同時只排一個
+    state.reconcilePending = true
+    state.reconcileToken = state.reconcileToken or 0
+    local token = state.reconcileToken
+    C_Timer.After(0, function()
+        if state.reconcileToken ~= token then return end    -- 中間 Restore 過
+        state.reconcilePending = nil
+        Reconcile(tip, state)
+    end)
+end
+
+function Reconcile(tip, state)
+    if not state.native or not state.panelData then return end
+    -- post-call 在暴雪 Show 之前：tooltip 若根本沒顯示出來（被別的流程藏掉）就退回，panel 不能孤零零留著
+    if S.IsForbiddenObject(tip) or not Shown(tip) then
+        Panel.Restore(tip, state)
+        return
+    end
+    Native.Repress(tip, state)
+    if state.panel then Panel.SyncLevel(state.panel, tip) end
+
+    local rows, n = Panel.CollectLines(tip, state.panelData)
+    if not rows then
+        Panel.Restore(tip, state)
+        return
+    end
+    -- 部分版不准蓋掉完整版：比這件看過的最多還少 ⇒ 先等；連續 PARTIAL_GRACE 秒才接受
+    local full = state.panelFullLines or 0
+    if n < full then
+        state.partialSince = state.partialSince or Now()
+        if Now() - state.partialSince < PARTIAL_GRACE then
+            if Native.Fit(tip, state) == false then Panel.Restore(tip, state) return end
+            ScheduleReconcile(tip, state)
+            return
+        end
+    end
+    -- 到這裡 n 不是更多、就是「少了夠久、接受了」：都成為這件的新完整行數
+    state.partialSince = nil
+    state.panelFullLines = n
+
+    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, state.panelKind)
+    if fingerprint == state.panelFingerprint then
+        state.panelLines = n
+        if Native.Fit(tip, state) == false then Panel.Restore(tip, state) end
+        return
+    end
+    if not Render(tip, state, state.panelKind, state.panelData, rows, n, fingerprint) then
+        Panel.Restore(tip, state)
+    end
+end
+Panel.Reconcile = Reconcile
+
+------------------------------------------------------------
 -- 輪詢
 ------------------------------------------------------------
 local function Tick(tip, state)
@@ -117,8 +221,7 @@ local function Tick(tip, state)
         Skin.Unpoll(state)
         return
     end
-    local okS, shown = pcall(tip.IsShown, tip)
-    if S.IsForbiddenObject(tip) or not okS or S.IsSecret(shown) or not shown then
+    if S.IsForbiddenObject(tip) or not Shown(tip) then
         Panel.Restore(tip, state)
         return
     end
@@ -127,8 +230,7 @@ local function Tick(tip, state)
     local okN, n = pcall(tip.NumLines, tip)
     n = okN and S.PlainNumber(n)
     if n and n ~= state.panelLines and state.panelData then
-        Panel.Try(tip, state, state.panelKind, state.panelData)
-        return
+        ScheduleReconcile(tip, state)
     end
     if Native.Fit(tip, state) == false then Panel.Restore(tip, state) end
 end
@@ -140,9 +242,9 @@ local function StartPoll(tip, state)
 end
 
 ------------------------------------------------------------
--- 主流程
+-- 主流程（post-call 進來）
 ------------------------------------------------------------
--- dataType 是 Enum.TooltipDataType 的值，或直接給 "item"／"spell"（輪詢重跑時）
+-- dataType 是 Enum.TooltipDataType 的值，或直接給 "item"／"spell"
 function Panel.Try(tip, state, dataType, data)
     if not state or not ns.db then return end
     local kind = KIND[dataType] or dataType
@@ -155,62 +257,39 @@ function Panel.Try(tip, state, dataType, data)
         return
     end
 
-    -- 先讀行、比指紋，相同就不解析不重畫（比價框每秒重建二十幾次，pattern 比對只在內容變了才跑）
+    local key = Panel.Key(kind, data)
+    local panel = state.panel
+
+    -- 同一件的重建：當幀不畫，下一幀 Reconcile 拿完整版
+    if key and key == state.panelKey and panel and panel:IsShown() and state.native then
+        state.releasePending = nil          -- 認領：上一份被清掉時排定的拆除取消
+        state.panelData, state.panelKind = data, kind
+        Panel.PaintEdges(panel, state)      -- 邊框色在 ClearTransient 時被重設過，補回來
+        if not Native.Hide(tip, state) or Native.Fit(tip, state) == false then
+            Panel.Restore(tip, state)
+            return
+        end
+        ScheduleReconcile(tip, state)
+        return
+    end
+
+    -- 新物件：立刻畫
     local rows, n = Panel.CollectLines(tip, data)
     if not rows then
         Panel.Restore(tip, state)
         return
     end
-    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, kind)
-    local panel = state.panel
-    if fingerprint == state.panelFingerprint and panel and panel:IsShown() and state.native then
-        state.releasePending = nil         -- 認領：上一份被清掉時排定的拆除取消
-        state.panelData, state.panelKind, state.panelLines = data, kind, n
-        Panel.PaintEdges(panel, state)     -- 邊框色在 ClearTransient 時被重設過，補回來
-        if not Native.Hide(tip, state) or Native.Fit(tip, state) == false then
-            Panel.Restore(tip, state)
-        end
-        return
-    end
-
-    local reader = Panel.readers[kind] or Panel.ReadFallback
-    local model = reader(tip, data, kind, rows, n)
-    if not model then
-        Panel.Restore(tip, state)
-        return
-    end
     state.releasePending = nil
-    state.panelData, state.panelKind, state.panelLines = data, kind, n
-    panel = Panel.Get(tip, state)
-
-    local view = (Panel.views[kind] or Panel.ViewFallback)(model, state)
-    if not view or not Panel.RenderView(panel, tip, view, state) then
+    state.panelData, state.panelKind = data, kind
+    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, kind)
+    if not Render(tip, state, kind, data, rows, n, fingerprint) then
         Panel.Restore(tip, state)
         return
     end
-    if not Panel.Align(panel, tip) or not Native.Hide(tip, state) then
-        Panel.Restore(tip, state)
-        return
-    end
-    if Native.Fit(tip, state) == false then
-        Panel.Restore(tip, state)
-        return
-    end
-    panel:Show()
-    state.panelFingerprint = fingerprint
-
-    -- post-call 在暴雪 Show 之前：第一次顯示時 OnShow 會清掉 padding，下一幀補；
-    -- 那時 tooltip 若根本沒顯示出來（被別的流程藏掉）就退回，panel 不能孤零零留著
-    C_Timer.After(0, function()
-        if state.panelFingerprint ~= fingerprint or not state.native then return end
-        local okS, shown = pcall(tip.IsShown, tip)
-        if not okS or S.IsSecret(shown) or not shown then
-            Panel.Restore(tip, state)
-            return
-        end
-        Native.Repress(tip, state)
-        if Native.Fit(tip, state) == false then Panel.Restore(tip, state) end
-    end)
+    state.panelKey = key
+    state.panelFullLines = n
+    state.partialSince = nil
+    ScheduleReconcile(tip, state)
     StartPoll(tip, state)
 end
 

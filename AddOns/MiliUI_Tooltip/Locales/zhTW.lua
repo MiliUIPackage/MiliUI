@@ -293,6 +293,8 @@ L["Range"] = "距離"
 L["Self"] = "自身"
 L["Creates"] = "製造"
 L["Reagents"] = "材料"
+L["Separate box for lines added by other addons"] = "其他插件的補充行另開一框"
+L["When off, they are appended to the bottom of the main panel."] = "關閉時接在主面板底部。"
 
 -- 記錄模式（/mtip record）
 L["Recording on: hover items and spells, then /reload to save. Turn it off with /mtip record off."] = "記錄已開啟：滑過物品與法術就會自動記下，/reload 後存檔。用 /mtip record off 關閉。"

@@ -256,4 +256,131 @@ do
     eq("Align：秘密 GetTop → false", P.Align(panel, tip), false)
 end
 
+------------------------------------------------------------
+-- 8. 標題區到第一段：圖示（或徽章）底邊至少留 HEADER_BOTTOM；第一段是四格再多 ROW_GAP
+------------------------------------------------------------
+do
+    local _, ns, tip, state, panel = Setup()
+    local P = ns.Panel
+    P.RenderView(panel, tip, {
+        icon = 1, iconSize = 36,
+        header = { { text = "Sense Undead", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = "first" } } } },
+    }, state)
+    local first = FindText(panel, "first")
+    local iconBottom = 12 + 36
+    check("單行名字＋圖示：第一段 ≥ 圖示底 + 6", -first.points[1][5] >= iconBottom + 6, -first.points[1][5])
+
+    P.RenderView(panel, tip, {
+        icon = 1, iconSize = 36,
+        header = { { text = "Sense Undead", style = "title" } },
+        sections = { P.Strip({ { label = "CostLabel", value = "v" } }) },
+    }, state)
+    local label = FindText(panel, "CostLabel")
+    eq("第一段是四格：再多 ROW_GAP", -label.points[1][5], iconBottom + 6 + 2)
+
+    P.RenderView(panel, tip, {
+        icon = 1, iconSize = 40, badge = "639",
+        header = { { text = "Cap", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = "first" } } } },
+    }, state)
+    first = FindText(panel, "first")
+    -- 徽章：圖示下 4、高 16
+    check("有徽章：第一段 ≥ 徽章底 + 6", -first.points[1][5] >= 12 + 40 + 4 + 16 + 6, -first.points[1][5])
+end
+
+------------------------------------------------------------
+-- 9. 行內圖示：頭尾那一顆拆出來另外畫（實機：附魔行尾的品質圖示掉半行）
+------------------------------------------------------------
+do
+    local _, ns, tip, state, panel = Setup()
+    local P = ns.Panel
+    local body = "Enchanted: Gift of the Ashes"
+    local text = body .. " |A:Professions-ChatIcon-Quality-Tier3:17:15::1|a"
+    local style = P.Styles().body
+    eq("量寬：文字寬 + 圖示寬 + 間隔", P.Measure(text, style), H.TextWidth(body, 12) + 15 + P.ICON_TEXT_GAP)
+    local before = 0
+    P.RenderView(panel, tip, { header = { { text = "N", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = "plain" } } } } }, state)
+    for i = 1, panel.texturesUsed do if panel.textures[i].shown then before = before + 1 end end
+    P.RenderView(panel, tip, { header = { { text = "N", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = text } } } } }, state)
+    local after, icon = 0, nil
+    for i = 1, panel.texturesUsed do
+        local t = panel.textures[i]
+        if t.shown then after = after + 1 end
+        if t.shown and t.atlas then icon = t end
+    end
+    eq("尾圖示：多一顆貼圖", after, before + 1)
+    eq("尾圖示：atlas", icon and icon.atlas, "Professions-ChatIcon-Quality-Tier3")
+    eq("尾圖示：寬照字串", icon and icon.w, 15)
+    eq("尾圖示：高照字串", icon and icon.h, 17)
+    local fs = FindText(panel, body)
+    check("尾圖示：文字裡沒有 |A", fs ~= nil)
+    eq("尾圖示：貼在文字之後", icon and icon.points[1][4], fs.points[1][4] + H.TextWidth(body, 12) + P.ICON_TEXT_GAP)
+    eq("尾圖示：垂直置中在這一列", icon and icon.points[1][5], fs.points[1][5] - (12 + 2) / 2)
+    eq("尾圖示：錨 LEFT", icon and icon.points[1][1], "LEFT")
+
+    -- 頭圖示（|T，含裁切）：文字往右讓
+    local lead = "|T12345:16:16:0:0:32:32:2:30:2:30|t Hearthstone"
+    P.RenderView(panel, tip, { header = { { text = "N", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = lead } } } } }, state)
+    local hs = FindText(panel, "Hearthstone")
+    local ic
+    for i = 1, panel.texturesUsed do if panel.textures[i].shown and panel.textures[i].texture == 12345 then ic = panel.textures[i] end end
+    check("頭圖示：另外畫（檔案編號以數字餵 SetTexture）", ic ~= nil and ic.w == 16)
+    eq("頭圖示：文字讓出圖示寬＋間隔", hs and hs.points[1][4], 10 + 16 + P.ICON_TEXT_GAP)
+
+    -- 兩顆以上（錢幣）：不拆，照原樣交給 FontString
+    local coins = "12|TGold:0|t 34|TSilver:0|t"
+    eq("多顆圖示：不拆", select(2, P.SplitIcons(coins)), coins)
+    eq("沒有圖示：不拆", select(2, P.SplitIcons("abc")), "abc")
+    -- 大小沒給（0）：用該行字級
+    local w, h = P.IconSize({ h = 0 }, style)
+    check("圖示大小 0 → 字級", w == 12 and h == 12)
+end
+
+------------------------------------------------------------
+-- 10. 附屬框：別人後加的行另開一框（設定 extrasBox）
+------------------------------------------------------------
+do
+    local _, ns, tip, state, panel = Setup()
+    local P = ns.Panel
+    local view = {
+        header = { { text = "Thunderfury", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = "Binds when picked up" } } } },
+        extras = { rows = { { left = "Item ID: 19019", color = { 1, 0.82, 0 } }, { left = "Bag: 3" } } },
+    }
+    state.borderColor = { 0.64, 0.21, 0.93, 1 }      -- 品質色只給主面板
+    P.RenderView(panel, tip, view, state)
+    local box = panel.extrasBox
+    check("附屬框：顯示", box and box.shown)
+    eq("附屬框：寬同主面板", box.w, panel.width)
+    eq("附屬框：錨在主面板下方", box.points[1][1] .. ">" .. box.points[1][3], "TOPLEFT>BOTTOMLEFT")
+    eq("附屬框：留縫 4", box.points[1][5], -4)
+    eq("附屬框：totalHeight", panel.totalHeight, panel.height + 4 + box.height)
+    eq("附屬框：邊框用 general.borderColor、不吃品質色", box.edges[1].color[1], 0.18)
+    eq("附屬框：底色同主面板", box.bg.color[1], 0.133)
+    local idLine
+    for i = 1, box.textsUsed do if box.texts[i].text == "Item ID: 19019" then idLine = box.texts[i] end end
+    check("附屬框：行保留自己的顏色", idLine and idLine.textColor[2] == 0.82)
+    local inMain
+    for i = 1, panel.textsUsed do if panel.texts[i].shown and panel.texts[i].text == "Bag: 3" then inMain = true end end
+    check("附屬框：主面板裡沒有那些行", not inMain)
+
+    ns.db.panel.extrasBox = false
+    P.RenderView(panel, tip, view, state)
+    check("開關關：附屬框藏起來", not box.shown)
+    eq("開關關：totalHeight＝主高", panel.totalHeight, panel.height)
+    inMain = false
+    for i = 1, panel.textsUsed do if panel.texts[i].shown and panel.texts[i].text == "Bag: 3" then inMain = true end end
+    check("開關關：接回主面板尾端", inMain)
+    eq("開關關：view.sections 沒被改到", #view.sections, 1)
+    ns.db.panel.extrasBox = true
+
+    P.RenderView(panel, tip, { header = { { text = "N", style = "title" } }, extras = { rows = {} } }, state)
+    check("沒有後加的行：附屬框藏起來", not box.shown)
+    eq("沒有後加的行：totalHeight＝主高", panel.totalHeight, panel.height)
+end
+
 H.finish("Render_test")

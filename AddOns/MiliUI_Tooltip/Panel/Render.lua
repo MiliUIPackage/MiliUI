@@ -79,8 +79,65 @@ end
 ------------------------------------------------------------
 -- 原件
 ------------------------------------------------------------
--- 一段字放在 (x, y)、寬 width；回傳佔掉的高
+-- 拆出來的行內圖示：貼一張貼圖，垂直置中在 cy
+local function DrawInlineIcon(panel, icon, x, cy, style)
+    local w, h = Panel.IconSize(icon, style)
+    local tex = Panel.Texture(panel, 3)
+    if icon.atlas then
+        tex:SetAtlas(icon.atlas)
+    else
+        tex:SetTexture(icon.file)
+        if icon.coords then tex:SetTexCoord(icon.coords[1], icon.coords[2], icon.coords[3], icon.coords[4]) end
+    end
+    tex:SetSize(w, h)
+    tex:SetPoint("LEFT", panel, "TOPLEFT", x, -cy)
+    return w, h
+end
+
+local TextAtRaw
+
+-- 一段字放在 (x, y)、寬 width；回傳佔掉的高。頭／尾那一顆行內圖示拆出來另外畫（Panel.SplitIcons）
 local function TextAt(panel, ctx, text, x, y, width, style, color, justify)
+    local lead, body, trail = Panel.SplitIcons(text)
+    if not lead and not trail then
+        return TextAtRaw(panel, ctx, text, x, y, width, style, color, justify)
+    end
+    local gap = Panel.ICON_TEXT_GAP
+    local lineH = style.size + 2
+    local iconH = 0
+    if lead then
+        local w, h = DrawInlineIcon(panel, lead, x, y + lineH / 2, style)
+        iconH = h
+        if body ~= "" then x, width = x + w + gap, width - w - gap end
+    end
+    local textW, tw, th = width, 0, 0
+    if trail then
+        local w = Panel.IconSize(trail, style)
+        textW = width - w - ((body ~= "") and gap or 0)
+    end
+    if body ~= "" then
+        th = TextAtRaw(panel, ctx, body, x, y, textW, style, color, justify)
+        tw = math.min(Panel.MeasureRaw(body, style), textW)
+    end
+    if trail then
+        local ix
+        if justify == "RIGHT" then
+            ix = x + textW + gap
+        elseif justify == "CENTER" then
+            ix = x + (textW + tw) / 2 + gap
+        else
+            ix = x + tw + ((body ~= "") and gap or 0)
+        end
+        -- 文字換行了：貼在最後一行
+        local wrapped = body ~= "" and Panel.MeasureRaw(body, style) > textW
+        local cy = wrapped and (y + th - lineH / 2) or (y + lineH / 2)
+        local _, h = DrawInlineIcon(panel, trail, ix, cy, style)
+        iconH = math.max(iconH, h)
+    end
+    return math.max(th, iconH, style.size + 2)
+end
+
+function TextAtRaw(panel, ctx, text, x, y, width, style, color, justify)
     local fs = Panel.Text(panel, style)
     fs:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -y)
     fs:SetWidth(width)
@@ -213,7 +270,7 @@ Panel.BadgeText = BadgeText
 --   cells = { { label = "耗能", value = "50 法力", color = { r, g, b }, dim = true }, ... }
 ------------------------------------------------------------
 function Panel.Strip(cells)
-    local section = { kind = "custom" }
+    local section = { kind = "custom", strip = true }
     section.measure = function(panel, ctx)
         local m, widest = ctx.m, 0
         for _, cell in ipairs(cells) do
@@ -442,7 +499,77 @@ local function Accent()
     return { 1, 1, 1 }
 end
 
+------------------------------------------------------------
+-- 附屬框：別的插件（含我們自己的 ID 行）後加的行另開一框接在主面板下面。
+-- 寬同主面板、底色同主面板、邊框用 general.borderColor（不吃品質色，看起來是從屬的）。
+-- 它有自己的 texts／textures 池與 width，DrawRow 直接拿它當 panel 用，不另寫排版。
+------------------------------------------------------------
+local function EnsureBox(panel)
+    local box = panel.extrasBox
+    if box then return box end
+    box = CreateFrame("Frame", nil, panel)
+    box.texts, box.textsUsed = {}, 0
+    box.textures, box.texturesUsed = {}, 0
+    box.bg = box:CreateTexture(nil, "BACKGROUND")
+    box.bg:SetTexture(ns.Media.WHITE8X8)
+    box.bg:SetAllPoints()
+    box.edges = {}
+    for i = 1, 4 do
+        local e = box:CreateTexture(nil, "OVERLAY", nil, 7)
+        e:SetTexture(ns.Media.WHITE8X8)
+        box.edges[i] = e
+    end
+    box:Hide()
+    panel.extrasBox = box
+    return box
+end
+
+local function ClearPools(frame)
+    for i = 1, #frame.texts do frame.texts[i]:Hide() end
+    for i = 1, #frame.textures do frame.textures[i]:Hide() end
+    frame.textsUsed, frame.texturesUsed = 0, 0
+end
+
+local function HideBox(panel)
+    if panel.extrasBox then panel.extrasBox:Hide() end
+    panel.totalHeight = panel.height
+end
+
+local function DrawBox(panel, ctx, rows)
+    local m = ctx.m
+    local box = EnsureBox(panel)
+    ClearPools(box)
+    box.width = panel.width
+    box:SetFrameLevel(panel:GetFrameLevel())
+    box:ClearAllPoints()
+    local gap = m.sc(LOOK.EXTRAS_GAP)
+    box:SetPoint("TOPLEFT", panel, "BOTTOMLEFT", 0, -gap)
+    box:SetWidth(box.width)
+    local y = m.padTop
+    for _, row in ipairs(rows) do
+        y = DrawRow(box, ctx, row, y, ctx.styles.body, LOOK.SECONDARY, m.sc(row.indent or 0), m.rowGap)
+    end
+    box.height = Panel.Snap(panel, y + m.padBottom)
+    box:SetHeight(box.height)
+    local g = ns.db and ns.db.general
+    local bgc, bc = g and g.background, g and g.borderColor
+    if bgc then
+        box.bg:SetVertexColor(bgc.r, bgc.g, bgc.b, 1)
+        box.bg:SetAlpha(S.PlainNumber(bgc.a) or 1)
+    else
+        box.bg:SetVertexColor(0.133, 0.133, 0.133, 1)
+    end
+    Panel.LayoutEdges(box)
+    for i = 1, 4 do
+        if bc then box.edges[i]:SetVertexColor(bc.r, bc.g, bc.b, bc.a or 1)
+        else box.edges[i]:SetVertexColor(0.18, 0.18, 0.18, 1) end
+    end
+    box:Show()
+    panel.totalHeight = panel.height + gap + box.height
+end
+
 -- 畫完回傳 true；panel 不在這裡 Show，也不錨（Try 負責 Align → Native.Hide → Show）
+-- panel.height＝主面板高；panel.totalHeight＝連附屬框（Native.Fit 撐原生用這個）
 function Panel.RenderView(panel, tip, view, state)
     -- 先脫離錨點鏈：量測與 GetStringHeight 不能沾到 tooltip 的秘密錨點
     Panel.Detach(panel)
@@ -457,7 +584,24 @@ function Panel.RenderView(panel, tip, view, state)
     local ctx = { m = Metrics(panel), styles = Panel.Styles(), accent = Accent(), tip = tip, state = state }
     local m = ctx.m
 
-    panel.width = Panel.Snap(panel, FitWidth(panel, ctx, view))
+    -- 別人加的行：設定開著另開一框；關著接回 sections 尾端（細線分隔）。量寬兩種都算進去
+    local extraRows = view.extras and view.extras.rows
+    if extraRows and #extraRows == 0 then extraRows = nil end
+    local useBox = extraRows and Panel.Option("extrasBox")
+    local extrasSection = extraRows and {
+        separator = { rule = true }, kind = "rows", rows = extraRows, wrap = true, color = LOOK.SECONDARY,
+    }
+    local sections = view.sections or {}
+    local fitView = view
+    if extrasSection then
+        local withExtras = {}
+        for i, s in ipairs(sections) do withExtras[i] = s end
+        withExtras[#withExtras + 1] = extrasSection
+        if not useBox then sections = withExtras end
+        fitView = setmetatable({ sections = withExtras }, { __index = view })
+    end
+
+    panel.width = Panel.Snap(panel, FitWidth(panel, ctx, fitView))
     panel:SetWidth(panel.width)
 
     -- 外框：提示皮的底色、1 實體像素的邊
@@ -498,12 +642,17 @@ function Panel.RenderView(panel, tip, view, state)
             end
         end
     end
-    local sections = view.sections or {}
     local footer = view.footer
     local hasFooter = footer and (footer.draw or (footer.rows and #footer.rows > 0))
     if #header > 0 or view.icon then
-        if #sections > 0 or hasFooter then y = y + m.headerBottom end
-        y = math.max(y, headerMin)
+        if #sections > 0 or hasFooter then
+            -- 文字與「圖示（或徽章）的底」都要離第一段至少 HEADER_BOTTOM：只有一行名字時文字比圖示矮，
+            -- 只加在文字後面的話圖示底就貼著第一段（實機：單行名字的法術，圖示底黏著四格頂）
+            y = math.max(y + m.headerBottom, headerMin > 0 and (headerMin + m.headerBottom) or 0)
+            if sections[1] and sections[1].strip then y = y + m.rowGap end
+        else
+            y = math.max(y, headerMin)
+        end
     end
 
     for _, section in ipairs(sections) do
@@ -534,5 +683,10 @@ function Panel.RenderView(panel, tip, view, state)
 
     panel.height = Panel.Snap(panel, y + m.padBottom)
     panel:SetHeight(panel.height)
+    if useBox then
+        DrawBox(panel, ctx, extraRows)
+    else
+        HideBox(panel)
+    end
     return true
 end
