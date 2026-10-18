@@ -533,8 +533,6 @@ end
 ------------------------------------------------------------
 local MAX_CHAIN = 8        -- 鏡射鏈最深幾層（夾邊預留沿鏈收到根）
 
-local function Now() return GetTime and GetTime() or 0 end
-
 local followers = {}       -- [frame] = { point, rel, relPoint, x, y, panel }（rel 是它原本要貼的 tooltip）
 local following = false
 Panel.followers = followers
@@ -559,7 +557,6 @@ function Panel.Follow(frame)
         if type(relPoint) == "number" then relPoint, x, y = point, relPoint, x end
         local rec = followers[self]
         rec.panel = nil
-        rec.hookAt, rec.hookRel = Now(), rel
         if type(point) ~= "string" then return end
         local panel = Panel.PanelFor(rel)
         if not panel then return end

@@ -29,7 +29,8 @@ local function Plain(...)
     return true
 end
 
--- /mtip log 開著時記下對原生的每一筆寫入（抖動但 watch 取樣看不到時：變動發生在取樣之後、繪製之前，只能從寫入點追）
+-- /mtip log 開著時記下對原生的每一筆寫入（逐幀取樣看不到的抖動：變動發生在取樣之後、繪製之前，只能從寫入點追）。
+-- 呼叫端要自己用 ns.logEnabled 閘住整句：參數是急切求值的，Geo 每次三個 pcall＋format，關著時不該付這個錢
 local function Log(fmt, ...)
     if ns.logEnabled and ns.Log then ns.Log(fmt, ...) end
 end
@@ -126,7 +127,7 @@ function RestoreClearedPadding(tip, state)
     if not pr then return false end
     if Near(pr, saved.right) and Near(pb, saved.bottom) then
         tip:SetPadding(set[1], set[2], saved.left, saved.top)
-        Log("原生 padding 被清掉 ⇒ 補回 %.1f,%.1f  %s", set[1], set[2], Geo(tip))
+        if ns.logEnabled then Log("原生 padding 被清掉 ⇒ 補回 %.1f,%.1f  %s", set[1], set[2], Geo(tip)) end
         return true
     end
     return false
@@ -136,7 +137,7 @@ Native.RestoreClearedPadding = RestoreClearedPadding
 -- partial = true：同一件重設的 post-call 當下。那一刻的內容**已知不完整**——別家插件的行、比價說明都是同一幀稍後才加
 -- （Try 檔頭第 2 點），量到的自然高度偏矮；照它算 padding 會先撐大，行進來之後原生總高超過目標，直到下一幀對帳才改回。
 -- 沒夾邊時多出來的往上長（面板貼在下緣）看不見；原生被夾在螢幕上緣時上緣被釘住、多出來的變成**下緣往下掉一幀**，
--- 面板跟著掉，每 0.2 秒一次（2026-10-19 實機 log：padding 125.3↔35.1 交替、watch 取樣永遠在對帳之後所以看不到）。
+-- 面板跟著掉，每 0.2 秒一次（2026-10-19 實機 log：padding 125.3↔35.1 交替、逐幀取樣永遠在對帳之後所以看不到）。
 -- ⇒ partial 時自然尺寸用「上次對帳量到的」（state.nativeSettledW／H）與當下量到的取大者：內容會回來的話 padding 一個數字
 --   都不用改、連 SetPadding 都省；真的變少（修飾鍵放開）頂多矮一幀，下一幀對帳量到新值就修正。對帳／輪詢（partial 為 nil）
 --   量到的才記成 settled。
@@ -188,8 +189,8 @@ function Native.Fit(tip, state, partial)
         tip:SetPadding(right, bottom, saved.left, saved.top)
         state.paddingSet = state.paddingSet or {}
         state.paddingSet[1], state.paddingSet[2] = right, bottom
-        Log("原生 SetPadding %.1f,%.1f（之前 %.1f,%.1f；自然 %.1fx%.1f 撐到 %.1fx%.1f）  %s",
-            right, bottom, pr, pb, naturalW, naturalH, pw, ph, Geo(tip))
+        if ns.logEnabled then Log("原生 SetPadding %.1f,%.1f（之前 %.1f,%.1f；自然 %.1fx%.1f 撐到 %.1fx%.1f）  %s",
+            right, bottom, pr, pb, naturalW, naturalH, pw, ph, Geo(tip)) end
     end
     Native.UpdateClamp(tip, state, ratio)
     -- 從下緣錨定的 tooltip 撐高之後上緣會動 ⇒ 重新對齊
@@ -212,7 +213,7 @@ function Native.UpdateClamp(tip, state, ratio)
     if state.clampSig == sig then return end
     state.clampSig = sig
     tip:SetClampRectInsets(-margin, margin, top + margin, -margin)
-    Log("原生 夾邊範圍 %.1f,%.1f,%.1f,%.1f  %s", -margin, margin, top + margin, -margin, Geo(tip))
+    if ns.logEnabled then Log("原生 夾邊範圍 %.1f,%.1f,%.1f,%.1f  %s", -margin, margin, top + margin, -margin, Geo(tip)) end
 end
 
 -- 寫回原值、藏 panel。
@@ -256,6 +257,6 @@ function Native.Repress(tip, state)
     alpha = ok and S.PlainNumber(alpha)
     if alpha and alpha ~= 0 then
         tip:SetAlpha(0)
-        Log("原生 alpha 被改回 %.2f ⇒ 壓回 0", alpha)
+        if ns.logEnabled then Log("原生 alpha 被改回 %.2f ⇒ 壓回 0", alpha) end
     end
 end

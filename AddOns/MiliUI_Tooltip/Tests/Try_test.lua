@@ -859,42 +859,4 @@ do
     check("K2：換一件之後不再撐到上一件的 600", tip.w < 600, tip.w)
 end
 
-------------------------------------------------------------
--- 18. /mtip panel watch：逐幀取樣、只印有變動的欄位
-------------------------------------------------------------
-do
-    local t19 = Setup()
-    local tip, P, env = t19.tip, t19.P, t19.env
-    P.Try(tip, t19.state, ITEM, t19.data)
-    env.FlushTimers()
-    local lines = {}
-    P.Watch(1, function(s) lines[#lines + 1] = s end)
-    local w = P.watcher
-    check("watch：取樣期間掛 OnUpdate", w.scripts.OnUpdate ~= nil)
-    for i = 1, 6 do
-        tip.left = (i % 2 == 0) and 100.4 or 100.6        -- 原生左緣在兩個值之間跳
-        w.scripts.OnUpdate(w, 0.02)
-    end
-    w.scripts.OnUpdate(w, 1)                              -- 時間到：最後一幀（值沒變）
-    check("watch：結束後拆掉 OnUpdate", w.scripts.OnUpdate == nil)
-    local found
-    for _, s in ipairs(lines) do if s:find("GameTooltip.原生.Left：", 1, true) then found = s end end
-    check("watch：印出在跳的欄位", found ~= nil, table.concat(lines, " | "))
-    check("watch：列出兩個值與次數", found and found:find("100.60", 1, true) and found:find("100.40", 1, true) and found:find("變 5 次", 1, true), found)
-    local stableLine
-    for _, s in ipairs(lines) do if s:find("面板.width(記)", 1, true) then stableLine = s end end
-    check("watch：沒變的欄位不印", stableLine == nil)
-
-    lines = {}
-    P.Watch(0.05, function(s) lines[#lines + 1] = s end)
-    for _ = 1, 4 do if w.scripts.OnUpdate then w.scripts.OnUpdate(w, 0.02) end end
-    check("watch：全部穩定時印一行", lines[#lines]:find("幀全部穩定", 1, true), lines[#lines])
-
-    P.Restore(tip, t19.state)
-    lines = {}
-    P.Watch(0.02, function(s) lines[#lines + 1] = s end)
-    w.scripts.OnUpdate(w, 0.03)
-    check("watch：沒有面板時說一聲", lines[#lines]:find("沒有顯示中的面板", 1, true), lines[#lines])
-end
-
 H.finish("Try_test")

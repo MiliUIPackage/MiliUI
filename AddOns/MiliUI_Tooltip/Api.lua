@@ -101,14 +101,9 @@ SlashCmdList.MILIUITIP = function(msg)
     msg = strtrim(strlower(msg or ""))
     local cmd, arg = msg:match("^(%S+)%s*(.-)$")
     if cmd == "panel" then
-        -- 重繪面板的位置診斷（Panel/Try.lua）：/mtip panel 印一次；/mtip panel watch [秒數] 逐幀取樣、只印有變動的欄位
+        -- 重繪面板的位置診斷（Panel/Try.lua）：印一次原生怎麼錨、多高、padding、panel 貼在哪
         local function say(line) print("|cff4DD2FF[米利的滑鼠提示]|r " .. line) end
-        local sub, rest = arg:match("^(%S*)%s*(.-)$")
-        if sub == "watch" then
-            ns.Panel.Watch(tonumber(rest) or 1, say)
-        else
-            ns.Panel.DebugDump(say)
-        end
+        ns.Panel.DebugDump(say)
     elseif cmd == "record" then
         -- 記錄模式：滑的時候自動記物品／法術提示的原始資料（Core/Record.lua）
         ns.Record.Command(arg)

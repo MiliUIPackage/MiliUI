@@ -91,7 +91,7 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   **對齊遲滯**：同一角、同一顆 tip，原生位置移動 ≤ 半像素就沿用上次的取整位移（`gridDX/DY`），四捨五入邊界上來回跳不再 1px 抖。
   **原生自然寬高也只長不縮**（`state.nativeMaxW/H`，換一件歸零）：暴雪 `AnchorShoppingTooltips` 的 slideAmount 用兩顆比價框原生的寬算，寬一變主提示就被推，鏈尾那顆比價面板抖最兇。
   **比價標籤照抄原生 `CompareHeader.Label` 的字**（zhTW「已裝備」／第二顆「同時裝備」），讀不到退 `EQUIPPED`、沒 header 就不畫；以前寫死 `CURRENTLY_EQUIPPED`「目前裝備」是錯的。標籤字進指紋。
-  位置遲滯（J2(b)）**沒做**：跟隨游標每幀合法移動，位置遲滯會讓面板落後游標；等 `/mtip panel watch [秒數]`（逐幀取樣、只印有變動的欄位與次數）在實機證明是滑動造成的再說。
+  位置遲滯（J2(b)）**沒做**：跟隨游標每幀合法移動，位置遲滯會讓面板落後游標；等實機用 `/mtip log` 證明是滑動造成的再說（`/mtip panel watch` 取樣器 2026-10-19 已拔：這類抖動發生在取樣之後、繪製之前，取樣看不到）。
 - **夾邊與鏡射（2026-10-19，L1／L2）**：鏡射在別的面板上的面板**自己不夾**（`SetMirror` 關 clamp、改回貼自己原生時開回），由鏈的根替依附者預留（`Panel.UpdateClampInsets`：上緣／下緣取整條鏈 clampOwnTop／clampOwnBottom 的最大值，鏈可以串兩層）。
   實機成因：主面板沒標籤 inset 0、比價面板有標籤多留一份，原生錨在螢幕外時兩邊被夾到不同高度，身體錯開一個標籤高。
   四邊再多一圈 `LOOK.EDGE_MARGIN = 4`（換算後存 `panel.clampMargin`）：貼死螢幕邊時 1px 邊框看不見。方向：`SetClampRectInsets(-M, M, top+M, -(bottom+M))`＝範圍比面板大。
@@ -101,8 +101,8 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   `Panel.Align` 成功後叫 `Panel.PlaceFollowers(RootOf(panel))`（比價面板出現當幀跟上，不等它 0.2 秒）；`ReturnFollowers(gone)` 根還在就重貼到鏈上。它的 `anchor = "vertical"` 設定在面板顯示時不被尊重（一律左右）。
   **O1 第二輪（實機「左右閃」）**：第一版在掛勾裡幾何讀不到（剛重錨定、rect 未排版時 GetLeft 回 nil）就退回「點照它的」，這幀它的右側、下幀我們的左側＝每 0.2 秒閃。規則：**掛勾裡算不出位置就沿用 `rec.lastArgs` 再 `C_Timer.After(0)` 重算，絕不退回它的點**（`PlaceOrKeep`）；它要貼的是接管中的 tooltip 但此刻沒面板（比價框重建）也不放手、繼續跟 `rec.root`，只有對象根本沒接管才 Drop。
   配合它的偏好：從它的點讀出想貼左或右（`rec.want`），**只在第一次選邊、而且那邊放得下時**採用；之後它每 0.2 秒變的偏好不跟（它是照超出螢幕的原生算的）。`/mtip panel` 的「跟隨框」行多印幾何讀不到的次數與原因（鏈／框尺寸／螢幕）。
-  **O1 第三輪（貼在比價面板右側時抖）**：貼著的比價面板每次重建被 Restore → `ReturnFollowers(sp)` 當場重算 → 縮到根的右緣 → 下一幀 sp 回來再貼回去＝每 0.2 秒左右抖一個比價面板寬。規則：**交棒不動位置**——`Place` 每次同時算好 `rec.rootArgs`（同一個螢幕位置改用「相對於根」表示），`ReturnFollowers` 根還在就 Reanchor 到 rootArgs、`holdUntil = now + FOLLOW_DWELL`；保留期內 `Place` 算出目標是根（鏈縮回）就不往內縮，sp 回來則照常貼回（位置一樣）。dump 多印「交棒 N 次」，watch 取樣跟隨框。
-  **O1 第四輪（還是抖；兩份 dump 一份沒「跟隨框」行、一份「0.1 秒前剛掛勾」）**：跟隨狀態在交替。拍賣場刷新列表時 GameTooltip 先 Hide 再 Show ⇒ skin OnHide 立刻 Restore 主面板 ⇒ `ReturnFollowers(root)` 以前立刻把框還給它（貼回原生 ShoppingTooltip1 的右上，原生 top 在螢幕外）⇒ 它下一個 0.2 秒 tick 才又跟上 ⇒ 每次刷新上下跳一大截；面板本身 hide＋show 在同一幀、watch 看不出來。
+  **O1 第三輪（貼在比價面板右側時抖）**：貼著的比價面板每次重建被 Restore → `ReturnFollowers(sp)` 當場重算 → 縮到根的右緣 → 下一幀 sp 回來再貼回去＝每 0.2 秒左右抖一個比價面板寬。規則：**交棒不動位置**——`Place` 每次同時算好 `rec.rootArgs`（同一個螢幕位置改用「相對於根」表示），`ReturnFollowers` 根還在就 Reanchor 到 rootArgs、`holdUntil = now + FOLLOW_DWELL`；保留期內 `Place` 算出目標是根（鏈縮回）就不往內縮，sp 回來則照常貼回（位置一樣）。dump 多印「交棒 N 次」。
+  **O1 第四輪（還是抖；兩份 dump 一份沒「跟隨框」行、一份「0.1 秒前剛掛勾」）**：跟隨狀態在交替。拍賣場刷新列表時 GameTooltip 先 Hide 再 Show ⇒ skin OnHide 立刻 Restore 主面板 ⇒ `ReturnFollowers(root)` 以前立刻把框還給它（貼回原生 ShoppingTooltip1 的右上，原生 top 在螢幕外）⇒ 它下一個 0.2 秒 tick 才又跟上 ⇒ 每次刷新上下跳一大截；面板本身 hide＋show 在同一幀、逐幀取樣看不出來。
   規則：**根退了先 Park**——讀跟隨框現在的 GetLeft／GetTop 改貼 `UIParent` BOTTOMLEFT（同一個螢幕位置）、夾邊不還、記 `parkedRoot`；`PlaceFollowers(root)` 看到 `parkedRoot == root` 就重新 Hold＋Place；它 tick 進來、對象是接管中的 tooltip 但沒面板 ⇒ 停著不放手；`Parked()` 超過 FOLLOW_DWELL 才 Drop。**Try.lua 的 Restore 要先叫 `ReturnFollowers` 再 `Native.Restore`**（Detach 之後面板沒點、跟隨框的位置就讀不到）。`Hold` 只在 `rec.clamped == nil` 時記原夾邊（停著再接回來不重記）、`Drop` 還原後清掉。dump：「停在原地等根回來（N 秒前停的，停過 M 次）」。
 - **重複售價行（2026-10-19，M1）**：附屬框裡金額＝SellPrice price 的行藏掉（`Panel.IsDuplicatePrice`，設定 `panel.hideDuplicatePrice`）。語系無關：幣別圖示（|T…GoldIcon…|t、|A:coin-gold…|a 的英文檔名）換成**不含數字的記號**再加總；**一個幣別圖示都沒有一律不算**（售價 1 銅時「總計：1」「背包：1」的非零段也是 {1}，實機誤殺過），部分帶圖示才比非零段；`x%d+` 堆疊數先剝。
   真實資料：**SellPrice 的 price 是整疊的**（背包 16 瓶藥劑 → 46 80），別家的「商人」是單價 ⇒ M2 之後總價與單價都比，兩行都藏；fixture 全部只命中這兩種行。
@@ -137,7 +137,7 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - **跟隨框退回 L3**：對象換成面板、點與位移原樣、相鄰邊留縫；`Place`／`Park`／交棒／換邊遲滯／`PlaceFollowers`／`FOLLOW_HYST`／`FOLLOW_DWELL` 全部刪除。它照真實的原生幾何做的判斷照單全收。
 - 保留：鏡射（I1）、J3、半像素遲滯、原生寬高只長不縮、OnHide 延一幀（那是另一個獨立成因：ScrollBox 刷新）。
 - 教訓：**替身的幾何必須是真的**。要騙暴雪的定位系統，就要騙到底（尺寸、位置、夾邊都跟真的一樣），只騙一半的話每個讀它的人都要另外修。
-- **夾邊打開後暴露的時序問題（同晚，log 破案）**：提示頂到螢幕上緣時面板每 0.2 秒往下掉一幀，watch 600 幀全穩。log：同一件重設的 post-call 當下 `Fit` 量到自然高 306.7（別家的行還沒加）→ padding 125.3 撐到 432；同一幀稍後行加進來（396.8）⇒ 原生總高 522 直到下一幀對帳改回 35.1。沒夾邊時多的往上長、面板貼下緣不動；**夾在上緣時上緣被釘住，多的變成下緣掉 90**。watch 看不到：對帳走 `C_Timer.After(0)`，在 OnUpdate 取樣之前就修回。
+- **夾邊打開後暴露的時序問題（同晚，log 破案）**：提示頂到螢幕上緣時面板每 0.2 秒往下掉一幀，逐幀取樣 600 幀全穩。log：同一件重設的 post-call 當下 `Fit` 量到自然高 306.7（別家的行還沒加）→ padding 125.3 撐到 432；同一幀稍後行加進來（396.8）⇒ 原生總高 522 直到下一幀對帳改回 35.1。沒夾邊時多的往上長、面板貼下緣不動；**夾在上緣時上緣被釘住，多的變成下緣掉 90**。取樣看不到：對帳走 `C_Timer.After(0)`，在 OnUpdate 取樣之前就修回（取樣器 2026-10-19 已拔）。
   規則：**post-call 當下的內容已知不完整，padding 用上次對帳量到的自然尺寸算**（`Native.Fit(tip, state, partial)`：partial 取 `nativeSettledW/H` 與當下的大者；對帳／輪詢才記 settled）。效果：padding 每循環一個數字都不變、連 SetPadding 都省；真的變少頂多矮一幀。
   診斷工具教訓：**每幀取樣抓不到「計時器在取樣前修回」的一幀抖動**，要在寫入點記 log（`/mtip log` 現在記 SetPadding／補回／夾邊／alpha／重貼／對帳／重畫）。
 

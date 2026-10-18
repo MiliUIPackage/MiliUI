@@ -1,5 +1,6 @@
 #!/bin/bash
-# 跑離線測試：MiliUI_CooldownManager（AddOns/MiliUI_CooldownManager/Tests/*_test.lua）
+# 跑離線測試：MiliUI_CooldownManager（AddOns/MiliUI_CooldownManager/Tests/*_test.lua）、
+# MiliUI_Tooltip（AddOns/MiliUI_Tooltip/Tests/*_test.lua，fixture 照 arg[0] 相對自己找，從哪裡跑都行）
 # 與本體共用層的單檔 vendor（AddOns/MiliUI/Libs/*/Tests/*_test.lua）。
 #
 #   bash .claude/scripts/run_tests.sh
@@ -22,7 +23,7 @@ total_fail=0
 bad=0
 count=0
 
-for t in AddOns/MiliUI_CooldownManager/Tests/*_test.lua AddOns/MiliUI/Libs/*/Tests/*_test.lua; do
+for t in AddOns/MiliUI_CooldownManager/Tests/*_test.lua AddOns/MiliUI_Tooltip/Tests/*_test.lua AddOns/MiliUI/Libs/*/Tests/*_test.lua; do
     [ -e "$t" ] || { echo "找不到任何測試：$t" >&2; exit 1; }
     count=$((count + 1))
     out="$(lua "$t" 2>&1)"

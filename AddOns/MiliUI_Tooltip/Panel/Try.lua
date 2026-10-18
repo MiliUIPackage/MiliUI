@@ -54,8 +54,9 @@ local function Enabled(kind)
 end
 
 -- 內嵌物品框（世界任務獎勵）或底部說明字顯示時，暴雪自己在用 padding ⇒ 不接
+local BLIZZ_PADDING_USERS = { "ItemTooltip", "BottomFontString" }
 local function Eligible(tip)
-    for _, key in ipairs({ "ItemTooltip", "BottomFontString" }) do
+    for _, key in ipairs(BLIZZ_PADDING_USERS) do
         local region = tip[key]
         if region and region.IsShown then
             local ok, shown = pcall(region.IsShown, region)
@@ -200,8 +201,7 @@ local function Render(tip, state, kind, data, rows, n, fingerprint)
     if not Panel.Align(panel, tip) or not Native.Hide(tip, state) then return false end
     if Native.Fit(tip, state) == false then return false end
     panel:Show()
-    state.renders = (state.renders or 0) + 1        -- 給 /mtip panel watch 看：同一件重畫了幾次
-    if ns.logEnabled then ns.Log("重畫 key=%s 第 %d 次 行數 %d 面板 %sx%s 總高 %s", tostring(state.panelKey), state.renders, n,
+    if ns.logEnabled then ns.Log("重畫 key=%s 行數 %d 面板 %sx%s 總高 %s", tostring(state.panelKey), n,
         tostring(panel.width), tostring(panel.height), tostring(panel.totalHeight)) end
     state.panelFingerprint = fingerprint
     state.panelSettings = Panel.settingsVersion
@@ -432,19 +432,13 @@ function Panel.DebugDump(out)
             D(panel.height), D(panel.totalHeight), Points(panel), D((Call(tip, "IsClampedToScreen"))), D(cl), D(cr), D(ct), D(cb)))
     end)
     if count == 0 then out("目前沒有顯示中的面板（滑過物品或法術時再下一次指令）") end
-    -- 貼在面板旁的別家框（外觀預覽，Panel.Follow）：貼在哪、它原本要貼哪、最近一次掛勾多久前
+    -- 貼在面板旁的別家框（外觀預覽，Panel.Follow）：只印貼在面板的——貼在哪、它原本要貼哪
     local any = false
-    local now = Now()
     for frame, rec in pairs(Panel.followers or {}) do
         any = true
-        local okS, shown = pcall(frame.IsShown, frame)
-        local ago = rec.hookAt and ("%.1f 秒前"):format(now - rec.hookAt) or "從未"
         if rec.panel then
-            out(("|cff4DD2FF跟隨框 %s|r：貼在面板 %s  （它要的是 %s→%s:%s）  最近掛勾 %s"):format(
-                D(frame), Points(frame), D(rec[1]), D(rec[2]), D(rec[3]), ago))
-        else
-            out(("|cff4DD2FF跟隨框 %s|r：照它自己的（對象沒有面板）  顯示中=%s  貼在 %s  最近掛勾 %s 要貼 %s"):format(
-                D(frame), tostring(okS and shown), Points(frame), ago, D(rec.hookRel)))
+            out(("|cff4DD2FF跟隨框 %s|r：貼在面板 %s  （它要的是 %s→%s:%s）"):format(
+                D(frame), Points(frame), D(rec[1]), D(rec[2]), D(rec[3])))
         end
     end
     if not any then
@@ -452,131 +446,4 @@ function Panel.DebugDump(out)
             or "沒有登記的跟隨框")
     end
     return count
-end
-
-------------------------------------------------------------
--- /mtip panel watch [秒數]：逐幀取樣，結束時只印「有變動的欄位」——哪一個數字在兩個值之間跳，一次就看得出來。
--- 取樣器是自己的框、只在 watch 期間掛 OnUpdate，結束就拆（frame 刪不掉，只能 SetScript(nil)）。
--- 全部 pcall；秘密值標 <secret>、不比大小（比的是格式化之後的字串）
-------------------------------------------------------------
-local watcher
-
-local function F2(v)
-    if v == nil then return "nil" end
-    if S.IsSecret(v) then return "<secret>" end
-    if type(v) == "number" then return ("%.2f"):format(v) end
-    return D(v)
-end
-
-function Panel.Watch(seconds, out)
-    out = out or print
-    seconds = tonumber(seconds) or 1
-    if seconds <= 0 then seconds = 1 end
-    if seconds > 10 then seconds = 10 end
-    watcher = watcher or CreateFrame("Frame")
-    Panel.watcher = watcher
-    local rec, order, frames, elapsed, sawPanel = {}, {}, 0, 0, false
-
-    local function note(field, value)
-        local s = F2(value)
-        local r = rec[field]
-        if not r then
-            rec[field] = { last = s, changes = 0, values = { s }, seen = { [s] = true } }
-            order[#order + 1] = field
-        elseif r.last ~= s then
-            r.changes, r.last = r.changes + 1, s
-            if not r.seen[s] then
-                r.seen[s] = true
-                if #r.values < 6 then r.values[#r.values + 1] = s end
-            end
-        end
-    end
-
-    local function region(prefix, obj)
-        for _, m in ipairs({ "GetLeft", "GetRight", "GetTop", "GetBottom", "GetWidth", "GetHeight" }) do
-            note(prefix .. "." .. m:sub(4), (Call(obj, m)))
-        end
-        note(prefix .. ".scale", (Call(obj, "GetEffectiveScale")))
-        local n = S.PlainNumber((Call(obj, "GetNumPoints"))) or 0
-        note(prefix .. ".點數", n)
-        for i = 1, n do
-            local p, rel, rp, x, y = Call(obj, "GetPoint", i)
-            local tag = ("%s.點%d"):format(prefix, i)
-            note(tag, ("%s→%s:%s"):format(D(p), D(rel), D(rp)))
-            note(tag .. ".x", x)
-            note(tag .. ".y", y)
-            if type(rel) == "table" and not S.IsSecret(rel) then
-                note(tag .. ".對象.Left", (Call(rel, "GetLeft")))
-                note(tag .. ".對象.Top", (Call(rel, "GetTop")))
-            end
-        end
-    end
-
-    local function sample()
-        Skin.Each(function(tip, state)
-            local panel = state.panel
-            if not panel then return end
-            local name = D(tip)
-            -- 「消失一下」這類閃爍：面板或原生藏了一幀、alpha 被改回來。曾經用過面板的 tooltip 一律取樣顯示狀態，
-            -- 不然藏起來的那一幀只是被跳過、不會算成變化（2026-10-19 實機：112 幀全部穩定但肉眼在閃）
-            note(name .. ".面板.顯示中", panel:IsShown())
-            note(name .. ".原生.顯示中", (Call(tip, "IsShown")))
-            note(name .. ".原生.alpha", (Call(tip, "GetAlpha")))
-            note(name .. ".接管中", state.native ~= nil)
-            note(name .. ".重畫次數", state.renders or 0)        -- 尺寸沒變但內容版本切換＝整塊重畫，肉眼是眨一下
-            note(name .. ".行數", state.panelLines)
-            note(name .. ".key", state.panelKey)
-            if not panel:IsShown() then return end
-            sawPanel = true
-            region(name .. ".原生", tip)
-            local r, b, l, t = Call(tip, "GetPadding")
-            note(name .. ".原生.padding", ("%s,%s,%s,%s"):format(F2(r), F2(b), F2(l), F2(t)))
-            region(name .. ".面板", panel)
-            note(name .. ".面板.width(記)", panel.width)
-            note(name .. ".面板.height(記)", panel.height)
-            note(name .. ".面板.totalHeight", panel.totalHeight)
-            local box = panel.extrasBox
-            if box and box:IsShown() then
-                note(name .. ".附屬框.Left", (Call(box, "GetLeft")))
-                note(name .. ".附屬框.Bottom", (Call(box, "GetBottom")))
-            end
-        end)
-        -- 貼在面板旁的別家框（外觀預覽）：位置、貼在面板還是照它自己的
-        for frame, rec in pairs(Panel.followers or {}) do
-            local name = "跟隨框." .. D(frame)
-            region(name, frame)
-            note(name .. ".顯示中", (Call(frame, "IsShown")))
-            note(name .. ".alpha", (Call(frame, "GetAlpha")))
-            note(name .. ".貼在面板", rec.panel ~= nil)
-        end
-        frames = frames + 1
-    end
-
-    local function report()
-        if not sawPanel then
-            out(("取樣 %d 幀，期間沒有顯示中的面板（滑過物品或法術時再下一次指令）"):format(frames))
-            return
-        end
-        local changed = 0
-        for _, field in ipairs(order) do
-            local r = rec[field]
-            if r.changes > 0 then
-                changed = changed + 1
-                out(("%s：%s（變 %d 次）"):format(field, table.concat(r.values, " / "), r.changes))
-            end
-        end
-        if changed == 0 then out(("%d 幀全部穩定"):format(frames)) end
-    end
-
-    out(("開始取樣 %.1f 秒"):format(seconds))
-    watcher:SetScript("OnUpdate", function(self, dt)
-        sample()
-        elapsed = elapsed + (dt or 0)
-        if elapsed >= seconds then
-            self:SetScript("OnUpdate", nil)
-            self:Hide()
-            report()
-        end
-    end)
-    watcher:Show()
 end
