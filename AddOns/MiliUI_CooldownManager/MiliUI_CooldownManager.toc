@@ -98,6 +98,8 @@ Options\Specs.lua
 Options\Preview.lua
 Options\Picker.lua
 Options\SpellPopover.lua
+Options\SpellPopover_Tabs.lua
+Options\SpellPopover_Popups.lua
 Options\Tab_Bar.lua
 Options\Tab_Theme.lua
 Options\Tab_Profile.lua
