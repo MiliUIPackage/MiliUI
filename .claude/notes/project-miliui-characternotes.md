@@ -41,6 +41,14 @@ SV `MiliUI_CharacterNotes_DB`、指令 `/mnote`、NAMESPACE `MiliUINote`、選�
 
 ⚠ 這功能是玩家在用的，**下次不要再拔**；要精簡就只收設定項，不收功能。
 
+**撿回來當天順手修的（跟 [[project-miliui-bosstimeline]] 2026-10-19 同一個坑）**：`Modules/Journal.lua` 的
+`Journal.Encounters` 原本把**空清單快取一整個登入期間**——登入後第一次 `EJ_SelectInstance` 引擎同一幀狀態沒補好、
+或目前難度對那副本無效，讀到空就得 /reload；本季團本的篩選還會把「沒有首領」的格子剔掉，整個團本從本季消失。
+現在：Select 之後先 `EJ_IsValidInstanceDifficulty` 檢查（所在副本難度優先）、讀完把難度**與選中的副本**都切回、
+空的不快取、每個副本 0.5 秒後重讀一次，有結果就 `ResetSeason()`＋`Fire("JournalChanged")`；
+`Encounters` 第二回傳值＝還在等重讀。消費端：Window 聽事件重畫；Overlay 進副本（`AutoShowFor`）與
+ENCOUNTER_START（`OnEncounterStart`）換算不出來時記 `zonePending`／`pendingEncounter`，事件來了再做一次。
+
 拔掉期間（2026-10-11～10-19 的版本）寫出來的存檔照樣能用：那段時間 `instanceNotes`／`roster` 不讀也不刪，
 `settings.instance`／`share.broadcast`／`share.syncAccept` 若被「還原預設」清掉會由 MergeDefaults 補回；
 分享協定 `MNOTE2` 格式兩邊相同（拔掉的版本送出時副本／首領／難度欄留空，收到當戰隊共用一般筆記）。
