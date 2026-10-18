@@ -63,3 +63,7 @@ jobs:
 
       - name: Skin — 契約 lint
         run: python3 .claude/scripts/check_skin.py
+
+      # MiliUI_CooldownManager 是唯一有離線測試的插件（WoW API 用環境表 stub），用 PATH 上的 lua 5.5 跑
+      - name: 冷卻管理器 — 離線測試
+        run: bash .claude/scripts/run_tests.sh

@@ -58,7 +58,7 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
   用 AceLocale ＋ token key 的那三支會當場洗版。
 - **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、Cell 的 local／upvalue
   上限、TOC 載入清單與 Interface 版本、語系缺鍵／格式符、共用層有沒有漂移、Skin 契約、
-  `.claude/notes` 有沒有落後 memory）。
+  `MiliUI_CooldownManager` 的離線測試、`.claude/notes` 有沒有落後 memory）。
   遊戲裡沒有測試可跑，這幾樣都是「不報錯但會壞」的類型。同一批腳本由
   [.github/workflows/checks.yml](.github/workflows/checks.yml) 在 push 時再跑一次。
 - **commit 訊息**：`feat:` / `fix:` / `update:` / `chore:` 開頭，後面接中文或英文簡述，
