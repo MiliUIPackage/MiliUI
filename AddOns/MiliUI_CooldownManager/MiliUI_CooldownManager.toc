@@ -58,6 +58,9 @@ Core\MasqueShape.lua
 Core\Masque.lua
 Core\Shape.lua
 Core\Decorate.lua
+Core\Decorate_Bars.lua
+Core\Decorate_Rings.lua
+Core\Decorate_Tooltip.lua
 Core\Clickable.lua
 Core\Glow.lua
 Core\StackGate.lua
