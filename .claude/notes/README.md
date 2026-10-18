@@ -178,7 +178,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-debug-mode.md](project-miliui-debug-mode.md) | 本體除錯模式（只留本體與 BugSack、一鍵還原）＋好友名單職業色 |
 | [project-miliui-perf-tab.md](project-miliui-perf-tab.md) | 設定視窗的「效能監控」分頁 —— 插件 CPU／記憶體儀表板；成本紀律、戰鬥遮罩例外、待驗證清單 |
 | [project-miliui-questtracker.md](project-miliui-questtracker.md) | 米利的任務追蹤器 MiliUI_QuestTracker —— 掛勾暴雪 ObjectiveTracker；六條 taint 規矩、摺疊走 IsProtected 分流、**位置接管的正確模型（右側容器列管＋編輯模式指紋，10-12 三連修；EditModeSig 宣告順序 bug 10-14 已修）**、`/mquest debug` 三段判定 |
-| [project-miliui-characternotes.md](project-miliui-characternotes.md) | 米利的角色筆記 MiliUI_CharacterNotes —— 從套組拆出的獨立插件；聊天連結分享；**副本／首領筆記 2026-10-11 整組拔掉（程式碼已核對）**，分享協定格式不動、舊 SV 不刪 |
+| [project-miliui-characternotes.md](project-miliui-characternotes.md) | 米利的角色筆記 MiliUI_CharacterNotes —— 從套組拆出的獨立插件；聊天連結分享；**副本／首領筆記 2026-10-11 拔掉、2026-10-19 因玩家詢問整組撿回（git revert），別再拔**；分享協定格式兩版相同 |
 | [project-miliui-shoppinglist.md](project-miliui-shoppinglist.md) | 米利的採購清單 MiliUI_ShoppingList —— 跟參考來源不同的六個決定、**代工下單頁的分配結果才是真相**、taint 紀律；拍賣場貼正下方（分頁長在矩形外）、位置分兩份、加入鈕避開別家錨在標題上的鄰居 |
 | [project-miliui-merchant.md](project-miliui-merchant.md) | 米利的商人視窗 MiliUI_Merchant —— 沿用暴雪命名讓照格子名稱裝飾的插件照常生效、post-hook 的 IsShown 閘、收藏快取兩個陷阱；**10-13 批量購買（拆分框不能從 Lua Hide）與拍賣場標示未實機**；Krowi 資料夾已移除、匿名框待給全域名 |
 | [project-miliui-mythicplus.md](project-miliui-mythicplus.md) | 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史；範圍判準「畫在哪個宿主」、整趟合併分段兩倍指紋、從設定視窗開面板要先關視窗、聊天發佈（≤19 全形、一則一連結，送出待驗）、登入不夾位置 |
@@ -363,7 +363,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | 2026-10-10 對照 Halo 監控台（YUI 的 YHUD 獨立版）後給 MCDM 加的四件事（光環格引擎補位／內建圖示形狀／施放後音效＋天賦條件／錨到單位框，H4 在 2026-10-12 擴成錨定視窗＋六單位五家）、三家光環格佈局只能拿兩項、驗收時改掉的地方；SpellPopover Build 的 upvalue 今天就是 60、Resources.lua 主 chunk 貼 200 local；H1 的「容器縮成內容大小＋單點錨＝置中」跟 wow-121-aura-containers 的「置中做不到」對立、待實機 |
 | [project-miliui-cdm-rings.md](project-miliui-cdm-rings.md) | MCDM 圓環顯示（2026-10-08 進 master）——改造暴雪 item 自己的 Cooldown（環形 swipe）不自建；圓環只收增益（暴雪增益圖示＋自訂光環格）、正確用法是圓環群組；Masque 卸皮會還原暴雪方框、貼回整格不能讀 GetNumPoints；部分實機、README 清單未逐項勾 |
 | [project-miliui-cdm-skyriding.md](project-miliui-cdm-skyriding.md) | 2026-10-06 Falcon（天空騎術條）併入 MCDM 成為 skyriding 面板、Falcon 已從套組刪除（本機還載著就主動停用＋提醒）；接力對象 2026-10-11 改預設核心技能；使用者拍板、驗收時修掉的兩個錯、發佈前欄位搬家的 cfg.rev 寫法；已上實機但 README 清單未逐項勾 |
-| [project-miliui-characternotes.md](project-miliui-characternotes.md) | MiliUI_CharacterNotes「米利的角色筆記」——從套組拆出的獨立插件；聊天連結分享；副本／首領筆記整組已於 2026-10-11 拔掉（程式碼已核對） |
+| [project-miliui-characternotes.md](project-miliui-characternotes.md) | MiliUI_CharacterNotes「米利的角色筆記」——從套組拆出的獨立插件；聊天連結分享；副本／首領筆記 2026-10-11 拔掉、2026-10-19 因玩家詢問整組撿回（git revert） |
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | MiliUI_ChatBar 的磁吸／自適應寬度／右鍵選單：位置從 SetUserPlaced 收回自己存、吸附基準是內容底、下面放不下就翻到上面；設定頁「整組重套」害磁吸亂跳的成因；戰鬥中 taint 的兩條教訓連到通則 |
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（取代 Ayije_CDM；2026-09-30 一夜做完 A～H、已上線 1.5.x、大半功能上過實機）——拍板與授權、引擎契約、撞牆通則（增益旗標只有 SetUseAuraDisplayTime、到期只 Clear 不寫旗標、charges 旗標≠有充能、裝備欄 GCD 當真冷卻、掛勾參數是秘密值、收合框不當錨點、互斥停用要全帳號…）、各功能一句話索引、實機驗證從哪開始 |
 | [project-miliui-crusadingstrikes.md](project-miliui-crusadingstrikes.md) | MiliUI_CrusadingStrikes「德莫的征戰聖擊助手」——鏡射暴雪冷卻管理器「追蹤的量條」做普攻計時，掛在 Platynator 名條血條下方或 Ayije 聖能條旁；MiliUI_CooldownManager 載入時讓位（它自己有鏡射列）；12.1 下唯一走得通的那條路與六條死路、餵過秘密值的條不准再讀、兩支插件搶同一個框的 alpha 沒有對的寫法 |

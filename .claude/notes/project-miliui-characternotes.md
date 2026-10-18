@@ -1,6 +1,6 @@
 ---
 name: project-miliui-characternotes
-description: MiliUI_CharacterNotes「米利的角色筆記」——從套組拆出的獨立插件；聊天連結分享；副本／首領筆記整組已於 2026-10-11 拔掉（程式碼已核對）
+description: MiliUI_CharacterNotes「米利的角色筆記」——從套組拆出的獨立插件；聊天連結分享；副本／首領筆記 2026-10-11 拔掉、2026-10-19 因玩家詢問整組撿回（git revert）
 metadata:
   type: project
 ---
@@ -28,23 +28,22 @@ SV `MiliUI_CharacterNotes_DB`、指令 `/mnote`、NAMESPACE `MiliUINote`、選�
 ⚠ `DB.ResetSettings` **只還原設定、不碰筆記**（筆記沒有第二份備份），而且是
 `ResetInto` 就地深層覆寫、不換表 —— 模組把 `db.settings` 的子表抓成 upvalue 也不會失聯。
 
-## 副本／首領筆記：2026-10-11 整組拔掉（使用者要求）
+## 副本／首領筆記：2026-10-11 拔掉、2026-10-19 撿回來
 
-commit `9a9451106`。拔掉的：副本分頁、副本浮動視窗（`/mnote dungeon`、「試試看」、小地圖選單項）、
-`Modules/Journal.lua`（冒險指南列舉／本季名單）、`Clock.lua`（首領戰計時）、
-`Sync.lua`（副本筆記同步）、`Tags.lua`（`{time}`／`{rt}`／`{spell}`／`{p:}`…）、
-`Core/Roster.lua`＋`UI/RosterMenu.lua`＋設定頁「分組」、編輯器的「插入」那排、123 條語系字串。
-標記只在唯讀檢視才展開，而唯讀檢視只剩分享預覽 ⇒ 標記與分組變數跟著一起拔。
-2026-10-14 核對：以上檔案與 `instanceNotes`／`EnsureInstanceNote`／難度選單在程式碼裡都已不存在。
-**要撿回來（含本季團本判定、`maxRaidTier`、EJ 回傳順序、
-`encounterID and t[id] or t.overview` 掉到總覽那些坑）去看它的父 commit 與這篇的 git 前版**。
+2026-10-11 依使用者要求整組拔掉（commit `9a9451106`）。2026-10-19 玩家留言問「角色專屬的筆記之前有每個王的，
+新版沒有了嗎」，使用者決定加回來 —— 直接 `git revert 9a9451106`，沒有衝突；中間三次共用層改動
+（MiliUIDB、MiliUIMinimapButton 小地圖鈕、1px 邊框改 P.Pixel）自動合併後逐檔核對過都對。
+撿回的：副本分頁、副本浮動視窗（`/mnote dungeon`、「試試看」、小地圖選單項）、`Modules/Journal.lua`
+（冒險指南列舉／本季名單）、`Clock.lua`（首領戰計時）、`Sync.lua`（副本筆記同步）、`Tags.lua`
+（`{time}`／`{rt}`／`{spell}`／`{p:}`…）、`Core/Roster.lua`＋`UI/RosterMenu.lua`＋設定頁「分組」、
+編輯器的「插入」那排、123 條語系字串。
+坑（本季團本判定、`maxRaidTier`、EJ 回傳順序、`encounterID and t[id] or t.overview` 掉到總覽）都寫在那些檔案的註解裡。
 
-拔掉之後仍要守住的（都已在碼裡）：
-- **分享協定 `MNOTE2` 格式不動**（`Core/Notes.lua`；表頭的副本／首領／難度欄送出時留空）——還裝著舊版的人收發要對得上。
-  舊版送來的副本／首領筆記一律存成「戰隊共用」的一般筆記。
-- SV 裡的 `instanceNotes`／`roster` **不讀也不刪**（`Core/DB.lua` 不再補預設值）；`settings.instance` 等舊設定鍵
-  在「還原預設」時會被清掉，無害。
-- `perChar.lastScope == "instance"` 的分身開視窗時退回戰隊共用（`UI/Window.lua` 的分頁還原）。
+⚠ 這功能是玩家在用的，**下次不要再拔**；要精簡就只收設定項，不收功能。
+
+拔掉期間（2026-10-11～10-19 的版本）寫出來的存檔照樣能用：那段時間 `instanceNotes`／`roster` 不讀也不刪，
+`settings.instance`／`share.broadcast`／`share.syncAccept` 若被「還原預設」清掉會由 MergeDefaults 補回；
+分享協定 `MNOTE2` 格式兩邊相同（拔掉的版本送出時副本／首領／難度欄留空，收到當戰隊共用一般筆記）。
 
 ## 在最前面按 Backspace ＝ 併回上一個區塊
 
