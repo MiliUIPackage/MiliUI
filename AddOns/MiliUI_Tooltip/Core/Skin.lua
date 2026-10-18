@@ -85,7 +85,10 @@ end
 function Skin.NeutralizeTemplateBar(tip)
     if S.IsForbiddenObject(tip) then return end
     local ok, name = pcall(tip.GetName, tip)
-    local tplBar = ok and name and _G[name .. "StatusBar"]
+    -- ⚠ 名字也可能是秘密字串（框掛進秘密錨點鏈、帶 ObjectName aspect 時），
+    --   拿去查 `_G` 會當場「cannot be indexed with secret keys」⇒ 秘密就跳過
+    if not ok or type(name) ~= "string" or S.IsSecret(name) then return end
+    local tplBar = _G[name .. "StatusBar"]
     if tplBar and tplBar.SetAlpha then
         pcall(tplBar.SetAlpha, tplBar, 0)
     end
@@ -103,12 +106,14 @@ local function LowerSkinLevel(skin)
     end
 end
 
-function Skin.Attach(tip)
+-- opts.keepScale：這顆的縮放不歸我們管（見 `MiliUITip_API.Adopt`），ApplyBase 不寫 SetScale
+function Skin.Attach(tip, opts)
     if not tip or State[tip] then return State[tip] end
     if S.IsForbiddenObject(tip) then return end
 
     local state = {}
     State[tip] = state
+    state.keepScale = opts and opts.keepScale and true or nil
 
     local skin = CreateFrame("Frame", nil, tip)
     skin:SetAllPoints(tip)
@@ -222,7 +227,8 @@ function Skin.ApplyBase(tip)
     Skin.ResetColors(tip)
 
     -- 縮放：寫在暴雪 tip 上的定位類 API（接觸面清單第 8 條），skin 是 child 會跟著縮
-    if not S.IsForbiddenObject(tip) and tip.SetScale then
+    -- ⚠ keepScale 的不寫：那種框掛在已經縮放過的 tooltip 底下，再縮一次會變成平方
+    if not state.keepScale and not S.IsForbiddenObject(tip) and tip.SetScale then
         pcall(tip.SetScale, tip, g.scale or 1)
     end
 end

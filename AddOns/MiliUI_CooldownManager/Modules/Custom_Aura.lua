@@ -10,6 +10,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 local CU = ns.Custom
 
 local WHITE, QUESTION = CU.WHITE, CU.QUESTION
@@ -488,7 +491,7 @@ end
 
 -- 邊框襯底（同 Core/Shape.lua 的畫法）：邊框色的純色貼圖套同一個形狀、每邊大 t、在圖示（ARTWORK）底下
 local function BakeUnder(btn, path, t, bc)
-    local u = btn:CreateTexture(nil, "BACKGROUND", nil, -7)
+    local u = NoSnap(btn:CreateTexture(nil, "BACKGROUND", nil, -7))
     u:SetTexture(WHITE)
     u:SetVertexColor(bc[1], bc[2], bc[3], bc[4])
     u:SetPoint("TOPLEFT", btn, "TOPLEFT", -t, t)
@@ -596,7 +599,7 @@ local function InitAuraButton(btn, c, st, rec)
     elseif t > 0 and not st.noEdge then          -- Masque：外框是皮的（上面那張，或疊層底下冷卻格自己的）
         local bc = st.bcolor
         local function Edge()
-            local e = ov:CreateTexture(nil, "OVERLAY", nil, 7)
+            local e = NoSnap(ov:CreateTexture(nil, "OVERLAY", nil, 7))
             e:SetColorTexture(bc[1], bc[2], bc[3], bc[4])
             return e
         end
@@ -660,7 +663,7 @@ end
 -- 1px 邊（四條純色細條，跟圖示版的光環格同一套）：畫在 parent 上、圍住 region
 local function Edges(parent, region, t, bc)
     local function Edge()
-        local e = parent:CreateTexture(nil, "OVERLAY", nil, 7)
+        local e = NoSnap(parent:CreateTexture(nil, "OVERLAY", nil, 7))
         e:SetColorTexture(bc[1], bc[2], bc[3], bc[4])
         return e
     end

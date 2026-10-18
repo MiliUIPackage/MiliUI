@@ -41,6 +41,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.Decorate = {}
 local D = ns.Decorate
 -- /mcdm perf 的計數（Api.lua；只 +1，不配置）：
@@ -332,6 +335,7 @@ local function MakeBorder(ov)
     for i = 1, 4 do
         local t = ov:CreateTexture(nil, "OVERLAY", nil, 7)
         t:SetTexture(WHITE)
+        NoSnap(t)
         b[i] = t
     end
     return b
@@ -1857,7 +1861,7 @@ function D.ApplyPlaceholder(ph, barKey, id, w, h)
     end
     if ph.tex then
         RefillIcon(ph.tex, ph.frame, ph)
-        ph.tex:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
+        NoSnap(ph.tex):SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
     end
 end
 
@@ -2120,7 +2124,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
             local iconTex = item.Icon and item.Icon.Icon
             if iconTex and iconTex.SetTexCoord then
                 local z = style.zoom
-                iconTex:SetTexCoord(z, 1 - z, z, 1 - z)
+                NoSnap(iconTex):SetTexCoord(z, 1 - z, z, 1 - z)
             end
         end
         LayoutBorder(rec.border2, (not blizz) and item.Bar or nil, size, border.texture, br, bg, bb, ba)
@@ -2177,7 +2181,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
             end
             if icon and icon.SetTexCoord then
                 RefillIcon(icon, item, rec)
-                icon:SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
+                NoSnap(icon):SetTexCoord(ns.Layout.IconTexCoord(style.zoom, w, h, style.crop))
             end
             RefillIcon(cd, item, rec)               -- 轉圈框 Masque 也同樣凍過尺寸
             SquareSwipe(cd, rec, ns.Shape and ns.Shape.SwipeTexture(shape) or nil)
@@ -2288,7 +2292,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         else
             LayoutBorder(cell.border, (g.side ~= "NONE" and not blizz) and cell.Icon or nil, size, border.texture, br, bg, bb, ba)
             local iconTex = cell.Icon and cell.Icon.Icon
-            if iconTex then iconTex:SetTexCoord(z, 1 - z, z, 1 - z) end
+            if iconTex then NoSnap(iconTex):SetTexCoord(z, 1 - z, z, 1 - z) end
         end
         LayoutBorder(cell.border2, (not blizz) and cell.Bar or nil, size, border.texture, br, bg, bb, ba)
         ns.Text.ApplyBar(cell, style, spell, bar)
@@ -2319,7 +2323,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
             end
             if icon then
                 RefillIcon(icon, cell, cell)
-                icon:SetTexCoord(ns.Layout.IconTexCoord(z, w, h, style.crop))
+                NoSnap(icon):SetTexCoord(ns.Layout.IconTexCoord(z, w, h, style.crop))
             end
             RefillIcon(cell.Cooldown, cell, cell)
             SquareSwipe(cell.Cooldown, cell, ns.Shape and ns.Shape.SwipeTexture(shape) or nil)

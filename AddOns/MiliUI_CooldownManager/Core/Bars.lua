@@ -111,6 +111,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.Bars = {}
 local B = ns.Bars
 
@@ -878,7 +881,7 @@ local function Placeholder(key, idx)
         local c = containers[key]
         f = CreateFrame("Frame", nil, c)
         f:SetFrameLevel(c:GetFrameLevel())          -- 不高於容器：item 是檢視器的子框，層級在上面
-        f.tex = f:CreateTexture(nil, "BACKGROUND")
+        f.tex = NoSnap(f:CreateTexture(nil, "BACKGROUND"))
         f.tex:SetAllPoints(f)
         f.ph = { frame = f, tex = f.tex }
         ph.pool[idx] = f
@@ -895,7 +898,7 @@ local function BarPlaceholder(key, idx)
         f = CreateFrame("Frame", nil, c)
         f:SetFrameLevel(c:GetFrameLevel())
         local icon = CreateFrame("Frame", nil, f)
-        icon.Icon = icon:CreateTexture(nil, "ARTWORK")
+        icon.Icon = NoSnap(icon:CreateTexture(nil, "ARTWORK"))
         icon.Icon:SetAllPoints()
         icon.Applications = icon:CreateFontString(nil, "OVERLAY")
         icon.Applications:SetFontObject(GameFontHighlightSmall)   -- 先有字型才能 SetText（樣式由 ApplyPreview 蓋）
@@ -903,7 +906,7 @@ local function BarPlaceholder(key, idx)
         local bar = CreateFrame("StatusBar", nil, f)
         bar:SetMinMaxValues(0, 1)
         bar:SetValue(0)
-        bar.BarBG = bar:CreateTexture(nil, "BACKGROUND")
+        bar.BarBG = NoSnap(bar:CreateTexture(nil, "BACKGROUND"))
         bar.Name = bar:CreateFontString(nil, "OVERLAY")
         bar.Name:SetFontObject(GameFontHighlightSmall)
         bar.Name:SetWordWrap(false)

@@ -25,6 +25,8 @@
 > `/mcdm release` 把冷卻管理器還給暴雪（除錯用，/reload 接回來），`/mcdm perf` 印引擎的效能計數（見「效能計數」）。
 > `/mcdm px` 印像素稽核：每條容器、前三顆 item 與四條邊框的矩形換算成實體像素，落在非整數像素上的邊標 ⚠
 > （「邊框少一條／多一塊」「格距粗細不一」先要這份；成因見 `Core/Bars.lua`「半像素補正」）。
+> 稽核全在整數像素上卻還是缺邊／偏一格 ＝ 引擎的像素貼齊在畫的時候各自四捨五入：自己畫的細線、邊框、圖示貼圖
+> 一律過 `ns.NoSnap`（`Core/Media.lua`，關 SetSnapToPixelGrid／SetTexelSnappingBias；2026-10-16 回報 0.64／36 缺邊、0.71／35 偏移）。
 > `/mcdm glow`（`all` 印全部冷卻格）印觸發／就緒發光的逐格現況（procActive、事件 id、暴雪 HasAlert、各 id 的 `IsSpellOverlayed`、
 > 探針武裝時的 `isOnGCD`／`isActive`）＋最近 80 筆發光狀態轉換，全文放設定視窗的「除錯」分頁（全選、Ctrl+C；「重新整理」重抓現況），
 > 同時存進 `diag.glow`——「沒觸發也一直亮」請玩家在亮著的當下打，**別先 /reload**（轉換記錄只在記憶體）。

@@ -43,16 +43,23 @@ end
 --   `TooltipDataProcessor` 的單位／物品後處理。
 -- ⚠ `Skin.ApplyBase` 要再補一次：`ns.ApplyAll` 只在載入當下跑過一次，
 --   晚到的 tooltip 沒吃到那一輪的設定。
--- ⚠ 冪等：已經接管過的直接回 true，不會長出第二層 skin。
+-- ⚠ 冪等：已經接管過的直接回 true，不會長出第二層 skin（第二次傳的 opts 不生效）。
+--
+-- ## opts（可省略）
+--
+--   keepScale = true   **不要**對這顆 `SetScale(玩家設的提示縮放)`。給「自己 SetParent 到
+--                      GameTooltip 底下」的框用（例如外觀預覽的模型框）：它的有效縮放
+--                      已經吃到父層那一份，我們再縮一次就變成平方。之後設定變更重跑
+--                      `ApplyBase` 也照樣跳過。
 ------------------------------------------------------------
 MiliUITip_API = MiliUITip_API or {}
 
-function MiliUITip_API.Adopt(tip)
+function MiliUITip_API.Adopt(tip, opts)
     if type(tip) ~= "table" then return false end
     -- 還沒初始化好（設定值還沒讀進來）⇒ 現在接管會畫出一顆沒有設定的框
     if not ns.db then return false end
     if ns.Skin.Get(tip) then return true end
-    ns.TrackTip(tip)
+    ns.TrackTip(tip, nil, opts)
     ns.Skin.ApplyBase(tip)
     return ns.Skin.Get(tip) ~= nil
 end
