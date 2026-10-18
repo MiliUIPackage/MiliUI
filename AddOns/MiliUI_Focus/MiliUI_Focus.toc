@@ -22,6 +22,7 @@ Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
 Libs\MiliUISnap.lua
 Libs\MiliUIGlow\MiliUIGlow.lua
+Libs\MiliUIDB.lua
 Locales\Locale.lua
 Locales\zhTW.lua
 Locales\zhCN.lua

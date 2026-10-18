@@ -28,6 +28,7 @@ Locales\zhTW.lua
 Locales\zhCN.lua
 
 Libs\Callbacks.lua
+Libs\MiliUIDB.lua
 
 # Style 要在 Env 之前：Env.Font／Env.Accent 是直接轉手給它的
 Core\Style.lua

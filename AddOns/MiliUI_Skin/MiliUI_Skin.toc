@@ -23,6 +23,7 @@ Libs\MiliUIWidgets\Metro.lua
 # 角色屬性的分區色（vendor 複製，唯一 source 在 MiliUI/Libs/MiliUIStats/）：Tokens 的 statCategory 從它拿，
 # 跟 MiliUI_QoL 的自建屬性清單同一組顏色。沒有這支也行（Tokens 退回寫死的同一組值）
 Libs\MiliUIStats.lua
+Libs\MiliUIDB.lua
 
 Locales\Locale.lua
 Locales\zhTW.lua

@@ -75,20 +75,8 @@ local function BuildDefaults()
 end
 DB.BuildDefaults = BuildDefaults
 
--- nil-merge：只補缺的鍵，不動玩家已有的值
-local function MergeDefaults(dst, src)
-    for k, v in pairs(src) do
-        if type(v) == "table" then
-            if type(dst[k]) ~= "table" then
-                dst[k] = CopyTable(v)
-            else
-                MergeDefaults(dst[k], v)
-            end
-        elseif dst[k] == nil then
-            dst[k] = v
-        end
-    end
-end
+-- nil-merge：只補缺的鍵，不動玩家已有的值（共用層 Libs/MiliUIDB.lua，行為與原本那份相同）
+local MergeDefaults = ns.MiliUIDB.MergeDefaults
 
 ------------------------------------------------------------
 -- 從 MiliUI 套組遷移（只做一次）

@@ -14,7 +14,15 @@ metadata:
 
 **消費者數字別寫死**：一律 `ls -d AddOns/*/Libs/MiliUIWidgets`（2026-10-14 是 21 份）。
 同步跑 `python3 .claude/scripts/sync-widgets.py`（無參數＝同步並列出改了哪幾份，`--check`＝檢查漂移，
-已接進 `check-all.sh` 與 CI；它也同步單檔 vendor MiliUIGlow／MiliUISnap）。
+已接進 `check-all.sh` 與 CI；它也同步單檔 vendor MiliUIGlow／MiliUISnap／MiliUIStats／MiliUIDB／Callbacks）。
+**單檔 vendor 一律照 `AddOns/MiliUI/Libs/<名字>/<名字>.lua`＋`README.md` 的格式**，本體只放 source 不載入，
+消費端放 `<插件>/Libs/<名字>.lua`、TOC 排 Libs 區；新一支要在 `sync-widgets.py` 的 `VENDOR_FILES` 加一筆。
+- **MiliUIDB**（2026-10-18）：SavedVariables 的 nil-merge（`MergeDefaults`）＋遷移鏈（`Migrate`）＋版本號閘（`Versioned`，
+  含單位框／冷卻管理器的 `schemaVersionSeen` 不回收）。純函式、無全域、無 WoW API，離線測試在 source 旁 `Tests/`
+  （`run_tests.sh` 會跑，對照組是換掉前四種原文）。預設行為＝通用那份 nil-merge；單位框的 `userSized`、
+  冷卻管理器的 `atomic`／`keepScalar` 做成 opts。已換：14 支（Merchant／ShoppingList／Tooltip／Skin／Minimap／QuestTracker／
+  MythicPlus／BossTimeline／CrusadingStrikes／CharacterNotes／Focus／QoL／DamageMeters／AuraEnhance）；
+  **UnitFrames／CooldownManager 尚未換**（API 已容納它們的閘；CDM 有自己的離線測試要一起改）。
 ⚠ 腳本**不會主動把新模組塞進沒帶它的插件**，只更新已經帶著的那幾支；例外是 `Media/` 的資產檔
 （`check-outline.tga`）一律補齊——貼圖不排 TOC、缺了是靜默空白。
 
