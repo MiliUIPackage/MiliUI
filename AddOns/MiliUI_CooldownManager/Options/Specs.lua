@@ -102,6 +102,7 @@ local GLOW_ITEMS = {
     { text = L["Autocast"],       value = "autocast" },
     { text = L["Action button"],  value = "button" },
     { text = L["Proc"],           value = "proc" },
+    { text = L["Border only"],    value = "border" },   -- 只變邊框顏色：不動畫，粗細滑桿是那一圈的寬（Core/Glow.lua）
 }
 Specs.GLOW_ITEMS = GLOW_ITEMS
 
@@ -841,8 +842,13 @@ function Specs.Themed(mode, key)
     local noPress = bar and key and ns.Keybinds.NoKeybind(key) or false
     local function NK(s) if noPress then return nil end return s end
     local function NotDim(info) return (ReadThemed(info, "icon.cdState") or "none") ~= "dim" end
-    -- 像素發光的線條數／粗細：粗細只有像素樣式吃；線條數像素與自動施法都吃（玩家回報邊框太粗、以前習慣設 1）
-    local function NotPixel(path) return function(info) return (ReadThemed(info, path) or "pixel") ~= "pixel" end end
+    -- 像素發光的線條數／粗細：粗細像素與「只變邊框顏色」吃；線條數像素與自動施法都吃（玩家回報邊框太粗、以前習慣設 1）
+    local function NoThickness(path)
+        return function(info)
+            local t = ReadThemed(info, path) or "pixel"
+            return t ~= "pixel" and t ~= "border"
+        end
+    end
     local function NoLines(path)
         return function(info)
             local t = ReadThemed(info, path) or "pixel"
@@ -1042,7 +1048,7 @@ function Specs.Themed(mode, key)
             TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.proc.color", L["Color"]),
             TS("glow", "slider", "glow.proc.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.proc.type") }),
-            TS("glow", "slider", "glow.proc.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.proc.type") }),
+            TS("glow", "slider", "glow.proc.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NoThickness("glow.proc.type") }),
             GlowSampleRow("proc"),
             Nested(L["Ready glow"], "glow"),
             TS("glow", "toggle", "glow.ready.enabled", L["Enable"]),
@@ -1050,7 +1056,7 @@ function Specs.Themed(mode, key)
             TS("glow", "dropdown", "glow.ready.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.ready.color", L["Color"]),
             TS("glow", "slider", "glow.ready.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.ready.type") }),
-            TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.ready.type") }),
+            TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NoThickness("glow.ready.type") }),
             GlowSampleRow("ready"),
             TS("glow", "dropdown", "glow.ready.mode", L["Glow for"], { items = READY_MODE_ITEMS }),
             Note(L["\"Until used\" starts when a cooldown finishes, so after a reload it waits for the first use. Spells with charges still go out after the duration."], "glow"),
@@ -1066,7 +1072,7 @@ function Specs.Themed(mode, key)
             TS("glow", "dropdown", "glow.full.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.full.color", L["Color"]),
             TS("glow", "slider", "glow.full.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.full.type") }),
-            TS("glow", "slider", "glow.full.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.full.type") }),
+            TS("glow", "slider", "glow.full.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NoThickness("glow.full.type") }),
             GlowSampleRow("full"))
     end
     -- 生效期間發光：跟觸發／就緒同一套（開關、樣式、顏色、線條、粗細、預覽，跟隨主題的繼承也一樣；使用者 2026-10-03）。
@@ -1077,7 +1083,7 @@ function Specs.Themed(mode, key)
         TS("glow", "dropdown", "glow.active.type", L["Style"], { items = GLOW_ITEMS }),
         TS("glow", "color", "glow.active.color", L["Color"]),
         TS("glow", "slider", "glow.active.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.active.type") }),
-        TS("glow", "slider", "glow.active.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NotPixel("glow.active.type") }),
+        TS("glow", "slider", "glow.active.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NoThickness("glow.active.type") }),
         GlowSampleRow("active"))
     add(Nested(L["Pandemic"], "glow"),
         TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),

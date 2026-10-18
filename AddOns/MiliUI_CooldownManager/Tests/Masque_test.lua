@@ -643,5 +643,52 @@ M.OpenOptions()
 eq("走 /msq", slashArgs, "")
 eq("先關自己的設定視窗", closed, 1)
 
+------------------------------------------------------------
+-- 7. 樣式「只變邊框顏色」（Core/Glow.lua 的 BorderGlow）：不經 MiliUIGlow，宿主上四張純色貼圖、Stop 只 Hide
+------------------------------------------------------------
+do
+    local G = ns.Glow
+    local function BorderHost()
+        local h = { texes = {} }
+        function h:CreateTexture()
+            local t = { shown = false, points = {} }
+            function t:SetColorTexture(r, g, b, a) self.color = { r, g, b, a } end
+            function t:ClearAllPoints() self.points = {} end
+            function t:SetPoint(...) self.points[#self.points + 1] = { ... } end
+            function t:SetHeight(v) self.h = v end
+            function t:SetWidth(v) self.w = v end
+            function t:Show() self.shown = true end
+            function t:Hide() self.shown = false end
+            h.texes[#h.texes + 1] = t
+            return t
+        end
+        return h
+    end
+    local h = BorderHost()
+    local r = GlowRec("essential", nil)
+    r.glowHosts.proc = h
+    local n0 = #glowLog
+    G.Start(r, "proc", "essential", { type = "border", color = { r = 1, g = 0, b = 0, a = 1 }, thickness = 3 })
+    eq("邊框：記下的樣式", r.glowOn.proc, "border")
+    eq("邊框：不經 MiliUIGlow", #glowLog, n0)
+    eq("邊框：四張貼圖", #h.texes, 4)
+    check("邊框：顏色、粗細、顯示", h.texes[1].color[1] == 1 and h.texes[1].color[2] == 0
+        and h.texes[1].h ~= nil and h.texes[3].w == h.texes[1].h and #h.texes[1].points == 2 and h.texes[4].shown)
+    G.Start(r, "proc", "essential", { type = "border", color = { r = 0, g = 1, b = 0, a = 1 }, thickness = 1 })
+    eq("邊框：換色重用同四張", #h.texes, 4)
+    check("邊框：新色", h.texes[1].color[2] == 1 and h.texes[2].color[1] == 0)
+    G.Stop(r, "proc")
+    eq("邊框：Stop 清掉記錄", r.glowOn.proc, nil)
+    check("邊框：Stop 只 Hide", not h.texes[1].shown and not h.texes[4].shown and #h.texes == 4)
+    -- 宿主建不了貼圖（沒有 CreateTexture）⇒ 畫不上、不記、不拋錯
+    local r2 = GlowRec("essential", nil)
+    G.Start(r2, "ready", "essential", { type = "border" })
+    eq("邊框：畫不上就不記", r2.glowOn.ready, nil)
+    -- 光環按鈕的 Attach 路徑：同一支，鍵固定 attach
+    local f = BorderHost()
+    G.BorderAttach(f, { 0, 0, 1, 1 }, 2)
+    check("邊框：Attach 四張貼圖、藍色", #f.texes == 4 and f.texes[1].color[3] == 1 and f._BorderGlowattach ~= nil)
+end
+
 print(("Masque_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

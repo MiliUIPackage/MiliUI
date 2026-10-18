@@ -512,6 +512,7 @@ local function GlowTypeItems()
         { text = L["Autocast"],      value = "autocast" },
         { text = L["Action button"], value = "button" },
         { text = L["Proc"],          value = "proc" },
+        { text = L["Border only"],   value = "border" },
     }
 end
 

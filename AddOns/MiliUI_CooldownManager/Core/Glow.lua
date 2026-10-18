@@ -20,6 +20,8 @@
 --     探針照樣武裝（就緒音效、冷卻狀態照常）。
 --   * 圖示外觀＝Masque 而且皮是非方形（圓形、六角形）：觸發／閃光換成那個形狀的貼圖、像素與自動施法改畫該形狀的觸發
 --     （見下面「發光跟著 Masque 皮的形狀」）。沒交給 Masque 的格子第一行就短路，跟以前完全一樣。
+--   * 樣式 "border"（只變邊框顏色，玩家回報 2026-10-19）：不走 MiliUIGlow，宿主四邊各一張純色貼圖、不動畫
+--     （見下面「只變邊框顏色」）。觸發／就緒／充能滿／生效／層數／戰鬥助手、光環按鈕（Attach 路徑）都收。
 --
 -- ── 觸發發光 ────────────────────────────────────────────────────────────
 -- 暴雪的冷卻管理器 item 用 ActionButtonSpellAlertManager:ShowAlert(item, skipBirth)／HideAlert(item)
@@ -230,11 +232,75 @@ end
 local GLOW_LIFT = 0
 G.GLOW_LIFT = GLOW_LIFT
 
+-- ── 只變邊框顏色（樣式 "border"）─────────────────────────────────────
+-- 玩家要的是「觸發時邊框換色就好，不要一圈在轉」。不走 MiliUIGlow：宿主四邊各一張純色貼圖，沒有動畫、沒有 OnUpdate。
+-- 幾何跟 Core/Decorate.lua 的 LayoutBorder（格子自己的邊框）一樣：貼著宿主外緣往內 t 像素、t ＝ P.Pixel(粗細)；
+-- 宿主尺寸＝排版給的格子尺寸 ⇒ 粗細設成跟「圖示」頁的邊框粗細一樣時，這一圈剛好蓋在格子自己的邊框上，
+-- 看起來就是邊框換了顏色（無損刷新的邊框色在底下，觸發期間被蓋過，熄了就露回來）。
+-- 同一顆宿主上觸發／就緒等用 key 分開（跟函式庫的 key 同語意）；貼圖留在宿主上重用，Stop 只 Hide。
+-- 粗細只有像素與這個樣式吃（Options/Specs.lua 的 NoThickness）。
+-- 光環按鈕（Modules/Custom_Aura.lua 的 AttachGlow）用同一支 G.BorderAttach：initializeFrame 視窗內在自己的子框上建
+-- 四張貼圖、之後不碰——沒有腳本、不讀回任何東西，秘密狀態下照樣成立。
+-- 宿主是非方形的 Masque 皮／內建圓形時跟像素一樣改畫該形狀的觸發（ShapedStyle 對非 button 一律給觸發的循環圖）。
+local function BorderPixels(n)
+    n = tonumber(n) or 2
+    if n < 1 then n = 1 end
+    local P = ns.P
+    if P and P.Pixel then return P.Pixel(n) end
+    return n
+end
+
+local function BorderGlow_Start(h, color, thickness, key)
+    local slot = "_BorderGlow" .. tostring(key or "")
+    local b = h[slot]
+    if not b then
+        b = {}
+        for i = 1, 4 do
+            local t = h:CreateTexture(nil, "OVERLAY", nil, 7)
+            if ns.NoSnap then ns.NoSnap(t) end
+            b[i] = t
+        end
+        h[slot] = b
+    end
+    local t = BorderPixels(thickness)
+    local r, g, bl, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+    for i = 1, 4 do
+        b[i]:SetColorTexture(r, g, bl, a)
+        b[i]:ClearAllPoints()
+        b[i]:Show()
+    end
+    local top, bottom, left, right = b[1], b[2], b[3], b[4]
+    top:SetPoint("TOPLEFT", h, "TOPLEFT", 0, 0)
+    top:SetPoint("TOPRIGHT", h, "TOPRIGHT", 0, 0)
+    top:SetHeight(t)
+    bottom:SetPoint("BOTTOMLEFT", h, "BOTTOMLEFT", 0, 0)
+    bottom:SetPoint("BOTTOMRIGHT", h, "BOTTOMRIGHT", 0, 0)
+    bottom:SetHeight(t)
+    left:SetPoint("TOPLEFT", h, "TOPLEFT", 0, -t)
+    left:SetPoint("BOTTOMLEFT", h, "BOTTOMLEFT", 0, t)
+    left:SetWidth(t)
+    right:SetPoint("TOPRIGHT", h, "TOPRIGHT", 0, -t)
+    right:SetPoint("BOTTOMRIGHT", h, "BOTTOMRIGHT", 0, t)
+    right:SetWidth(t)
+end
+
+local function BorderGlow_Stop(h, key)
+    local b = h["_BorderGlow" .. tostring(key or "")]
+    if not b then return end
+    for i = 1, 4 do b[i]:Hide() end
+end
+
+-- 光環按鈕用（initializeFrame 裡、f 是剛建好的乾淨子框，尺寸由 caller 錨好）
+function G.BorderAttach(f, color, thickness)
+    BorderGlow_Start(f, color, thickness, "attach")
+end
+
 local STOP = {
     pixel    = function(h, key) LCG.PixelGlow_Stop(h, key) end,
     autocast = function(h, key) LCG.AutoCastGlow_Stop(h, key) end,
     button   = function(h) LCG.ButtonGlow_Stop(h) end,
     proc     = function(h, key) LCG.ProcGlow_Stop(h, key) end,
+    border   = function(h, key) BorderGlow_Stop(h, key) end,
 }
 
 -- 在任意框上停／畫一種發光（t ＝ 樣式，key ＝ 同一框上分辨 proc／ready 的鍵）。
@@ -449,6 +515,8 @@ local function PaintOn(h, c, which, key, startAnim, shape)
                 frameLevel = GLOW_LIFT })
             if ok then pcall(SkinProc, h, key, square and MSQ_SQUARE or nil) end
         end
+    elseif t == "border" then
+        ok = pcall(BorderGlow_Start, h, color, c.thickness, key)
     else
         ok = pcall(LCG.PixelGlow_Start, h, color, lines, freq, nil, tonumber(c.thickness) or 2, 0, 0, false, key, GLOW_LIFT)
     end

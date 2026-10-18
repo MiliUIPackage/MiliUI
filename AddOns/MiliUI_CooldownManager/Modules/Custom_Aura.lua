@@ -89,7 +89,7 @@ local function RGBA(c, dr, dg, db, da)
 end
 CU.RGBA = RGBA
 
-local GLOW_TYPES = { pixel = true, autocast = true, button = true, proc = true }
+local GLOW_TYPES = { pixel = true, autocast = true, button = true, proc = true, border = true }
 CU.GLOW_TYPES = GLOW_TYPES
 
 -- shape ＝ "bars"：長條的外觀（ApplyBarGeometry／ApplyBarLook／Text.ApplyBar 讀的那幾格）也解進來、進簽章
@@ -457,6 +457,9 @@ local function AttachGlow(btn, anchor, gl, level, rec)
         anim = LCG.ButtonGlow_Attach(f, gl.color, gl.frequency, gw, gh)
     elseif gl.type == "proc" then
         anim = LCG.ProcGlow_Attach(f, gl.color, 1, gw, gh)
+    elseif gl.type == "border" and ns.Glow and ns.Glow.BorderAttach then
+        -- 只變邊框顏色：四張純色貼圖、沒有動畫（Core/Glow.lua 的「只變邊框顏色」）
+        ns.Glow.BorderAttach(f, gl.color, gl.thickness)
     else
         LCG.PixelGlow_Attach(f, gl.color, gl.lines, gl.frequency, nil, gl.thickness, gw, gh)
     end
