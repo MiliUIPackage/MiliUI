@@ -23,6 +23,7 @@ Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
 Libs\MiliUISnap.lua
 Libs\Callbacks.lua
+Libs\MiliUIDB.lua
 
 Locales\Locale.lua
 Locales\zhTW.lua

@@ -1654,6 +1654,10 @@ end
 
 local function CheckPotionsOnPull()
 	table.wipe(module.db.potionList)
+	-- fix from MiliUI: 這支在 ENCOUNTER_START 後 1.5 秒跑，正好是光環變秘密的時候，
+	-- GetAuraDataByIndex 會直接拋錯（不是回 nil），迴圈裡的 issecretvalue 等不到；
+	-- 閘要在呼叫之前（開場藥水名單就空著，戰鬥中的施放仍由戰鬥記錄補）
+	if C_Secrets and C_Secrets.ShouldAurasBeSecret() then return end
 	local gMax = ExRT.F.GetRaidDiffMaxGroup()
 	for j=1,40 do
 		local name,_,subgroup = GetRaidRosterInfoWithUnit(j)

@@ -262,7 +262,10 @@ local defensives = { -- true: track by name, false: track by id
     ["DEATHKNIGHT"] = {
         [48707] = true, -- 反魔法护罩 - Anti-Magic Shell
         [48792] = true, -- 冰封之韧 - Icebound Fortitude
-        [49028] = true, -- 符文刃舞 - Dancing Rune Weapon
+        [49028] = { -- 符文刃舞 - Dancing Rune Weapon
+            [49028] = false, -- 施放技能
+            [81256] = false, -- 玩家身上的 buff（招架 +30%，8 秒）
+        },
         [55233] = true, -- 吸血鬼之血 - Vampiric Blood
         [49039] = false, -- 巫妖之躯 - Lichborne
         [194679] = true, -- 符文分流 - Rune Tap
@@ -317,7 +320,10 @@ local defensives = { -- true: track by name, false: track by id
         [498] = true, -- 圣佑术 - Divine Protection
         [642] = true, -- 圣盾术 - Divine Shield
         [31850] = true, -- 炽热防御者 - Ardent Defender
-        [212641] = true, -- 远古列王守卫 - Guardian of Ancient Kings
+        [86659] = { -- 远古列王守卫 - Guardian of Ancient Kings
+            [86659] = false, -- 防护 buff 本体
+            [212641] = false, -- 被遗忘的女王护卫（雕文版）
+        },
         [205191] = true, -- 以眼还眼 - Eye for an Eye
         [389539] = true, -- 戒卫 - Sentinel
         [184662] = true, -- 复仇之盾 - Shield of Vengeance
@@ -366,21 +372,37 @@ end
 local builtInDefensives = {}
 local customDefensives = {}
 
+local function UpdateDefensives(id, trackByName)
+    if trackByName then
+        local name = F.GetSpellInfo(id)
+        if name then
+            builtInDefensives[name] = true
+        end
+    end
+    -- Also store by ID (in addition to name when trackByName is true)
+    -- so IsExternalCooldown/IsDefensiveCooldown can match by ID directly
+    builtInDefensives[id] = true
+end
+
 function I.UpdateDefensives(t)
     -- user disabled
     wipe(builtInDefensives)
     for class, spells in pairs(defensives) do
-        for id, trackByName in pairs(spells) do
+        for id, v in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
-                if trackByName then
-                    local name = F.GetSpellInfo(id)
-                    if name then
-                        builtInDefensives[name] = true
+                -- nested table = this is the entry shown in options, and these are the
+                -- buff ids it can land as (same shape as externals). The 12.1 container
+                -- path matches by NUMERIC id only (see NumericKeysOf), so a spell whose
+                -- buff id differs from the listed one has to spell every id out here --
+                -- track-by-name no longer covers it.
+                if type(v) == "table" then
+                    builtInDefensives[id] = true -- for I.IsDefensiveCooldown()
+                    for subId, subTrackByName in pairs(v) do
+                        UpdateDefensives(subId, subTrackByName)
                     end
+                else
+                    UpdateDefensives(id, v)
                 end
-                -- Also store by ID (in addition to name when trackByName is true)
-    -- so IsExternalCooldown/IsDefensiveCooldown can match by ID directly
-                builtInDefensives[id] = true
             end
         end
     end

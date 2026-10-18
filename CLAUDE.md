@@ -25,7 +25,8 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 |---|---|
 | [.claude/skills/](.claude/skills/) | 技能，會依情境自動觸發，附帶的腳本放各自的 `scripts/` |
 | [.claude/notes/](.claude/notes/) | API 規則與各插件現況，索引在 [notes/README.md](.claude/notes/README.md) |
-| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查，底下是 `check_lua.py`／`check_cell.py`／`check_toc.py`／`check_locales.py`／`check_skin.py`）、`sync-notes.sh`（把 memory 匯出成 notes）、`sync-widgets.py`（把共用層從本體同步到各插件）、`release-notes.sh`（給 `miliui-release-notes` 技能用）、`cell-mouse-icons.py` |
+| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查，底下是 `check_lua.py`／`check_cell.py`／`check_toc.py`／`check_locales.py`／`check_skin.py`／`check_forks.py`／`run_tests.sh`，以及 `third-party-manifest.py --check`、`notes-index.py --check`）、`sync-notes.sh`（把 memory 匯出成 notes，順手重寫索引）、`sync-widgets.py`（把共用層從本體同步到各插件）、`third-party-manifest.py`（產生根目錄的 `THIRD_PARTY.md`：第三方插件的上游／版本／最近同步，`update:` 之後要重跑）、`release-notes.sh`（給 `miliui-release-notes` 技能用）、`cell-mouse-icons.py` |
+| [.claude/patches/](.claude/patches/) | 第三方插件本地修補的**重套腳本**（上游更新洗掉後跑一下就回來），慣例見裡面的 README |
 
 `.claude/*.local.json` 是個人設定，不進版控。
 
@@ -51,14 +52,14 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
 
 - **`.toc` 的 Interface 版本號不要手改**，用 `wow-toc-interface-bump` 技能的腳本。
   正式服是 6 位數、經典服是 5 位數，手改很容易把多版本相容的插件弄壞。
-- **改共用層（`Libs/MiliUIWidgets/`）只改本體那一份**，然後跑
+- **改共用層（`Libs/MiliUIWidgets/`，以及單檔 vendor 的 `MiliUIGlow`／`MiliUISnap`／`MiliUIStats`／`MiliUIDB`／`Callbacks.lua`）只改本體那一份**，然後跑
   `python3 .claude/scripts/sync-widgets.py` 同步到各消費者（二十來份，以 `ls -d AddOns/*/Libs/MiliUIWidgets` 為準）。那是 vendor 複製不是
   函式庫，改錯地方會被下次同步蓋掉。⚠ 共用層的語系契約只有四個 key
   （`Apply`／`Okay`／`Cancel`／`Can't change settings during combat`），**不要擴充** ——
   用 AceLocale ＋ token key 的那三支會當場洗版。
 - **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、Cell 的 local／upvalue
   上限、TOC 載入清單與 Interface 版本、語系缺鍵／格式符、共用層有沒有漂移、Skin 契約、
-  `.claude/notes` 有沒有落後 memory）。
+  `MiliUI_CooldownManager` 的離線測試、第三方插件的本地修補有沒有被上游更新洗掉、`THIRD_PARTY.md` 與筆記自動索引有沒有過期、`.claude/notes` 有沒有落後 memory）。
   遊戲裡沒有測試可跑，這幾樣都是「不報錯但會壞」的類型。同一批腳本由
   [.github/workflows/checks.yml](.github/workflows/checks.yml) 在 push 時再跑一次。
 - **commit 訊息**：`feat:` / `fix:` / `update:` / `chore:` 開頭，後面接中文或英文簡述，
