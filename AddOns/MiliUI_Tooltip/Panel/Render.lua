@@ -705,15 +705,11 @@ function Panel.RenderView(panel, tip, view, state)
     else
         HideBox(panel)
     end
-    -- 夾邊（原生的夾邊關掉了，見 Native.Hide）：把面板外面那幾塊也算進範圍——
-    -- 底下的附屬框（縫＋框高）、上方的「已裝備」標籤。正值往外（同暴雪 SharedTooltip_OnLoad 的上緣 25）。
-    -- 鏡射在別的面板上時自己不夾、由目標替它預留（Panel.UpdateClampInsets）⇒ 兩邊都要重算
-    if not state.isPreview and panel.SetClampRectInsets then
+    -- 夾邊是原生在夾（Native.UpdateClamp 每次 Fit 重算）：這裡只記下露在面板外、原生範圍沒涵蓋的那一塊——
+    -- 上方的「已裝備」標籤（底下的附屬框已經在原生撐高的總高裡）——以及四邊的呼吸。面板本身不夾
+    if not state.isPreview then
         panel.clampOwnTop = (panel.tag and panel.tag:IsShown()) and (m.tagGap + m.tagH) or 0
-        panel.clampOwnBottom = (panel.totalHeight or panel.height) - panel.height
         panel.clampMargin = m.edgeMargin
-        Panel.UpdateClampInsets(panel)
-        if panel.mirrorOf then Panel.UpdateClampInsets(panel.mirrorOf) end
     end
     return true
 end

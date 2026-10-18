@@ -82,6 +82,7 @@ function Region:GetFrameStrata() return self.strata or "MEDIUM" end
 function Region:SetClampedToScreen(v) self.clamped = v end
 function Region:IsClampedToScreen() return self.clamped and true or false end
 function Region:SetClampRectInsets(l, r, t, b) self.clampInsets = { l, r, t, b } end
+function Region:GetClampRectInsets() local c = self.clampInsets or { 0, 0, 0, 0 }; return c[1], c[2], c[3], c[4] end
 function Region:GetParent() return self.parent end
 function Region:GetName() return self.name end
 function Region:IsForbidden() return false end

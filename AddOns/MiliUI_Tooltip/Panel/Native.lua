@@ -82,14 +82,14 @@ function Native.Hide(tip, state)
         local r, b, l, t = ReadPadding(tip)
         if not r then return false end
         saved = { alpha = alpha, right = r, bottom = b, left = l, top = t }
-        -- 接觸面 #13：原生的夾邊關掉、改由我們的面板自己夾（Panel/Frame.lua 的 panel 是 SetClampedToScreen(true)）。
-        -- 暴雪的 clamp 照原生的總高決定要不要往下推；原生高度一抖就切換、整組跳一截
-        -- （2026-10-18 實機 dump：三顆 top 全是螢幕上緣）。原值記下來，Restore 寫回。
-        -- 暴雪只在 XML 設 clampedToScreen、執行期間不改（wow-ui-source 查過），不必在 Show 後重申
-        local okC, clamped = pcall(tip.IsClampedToScreen, tip)
-        if okC and not S.IsSecret(clamped) and type(clamped) == "boolean" then
-            saved.clamped = clamped
-            if tip.SetClampedToScreen then tip:SetClampedToScreen(false) end
+        -- 接觸面 #13：原生**照暴雪的夾邊**留在螢幕內（撐到跟面板一樣大之後，夾的就是整組的範圍，面板貼著它走）。
+        -- 我們只替它設夾邊範圍（UpdateClamp：四邊留呼吸、上緣多留比價標籤），原值記下來、Restore 寫回。
+        -- 曾經在這裡把夾邊關掉改由面板自己夾（2026-10-18～19）：原生超出螢幕之後，所有讀原生幾何的東西
+        -- （外觀預覽的定位器、暴雪的比價定位）都被誤導，補了四輪下游症狀；原生寬高「只長不縮」之後
+        -- 當初關掉的理由（高度一抖夾邊就切換）已經不在，2026-10-19 改回來
+        if tip.GetClampRectInsets then
+            local okI, il, ir, it, ib = pcall(tip.GetClampRectInsets, tip)
+            if okI and Plain(il, ir, it, ib) then saved.insets = { il, ir, it, ib } end
         end
         state.native = saved
     end
@@ -164,9 +164,27 @@ function Native.Fit(tip, state)
         state.paddingSet = state.paddingSet or {}
         state.paddingSet[1], state.paddingSet[2] = right, bottom
     end
+    Native.UpdateClamp(tip, state, ratio)
     -- 從下緣錨定的 tooltip 撐高之後上緣會動 ⇒ 重新對齊
     if not Panel.Align(panel, tip) then return false end
     return true
+end
+
+-- 原生的夾邊範圍（接觸面 #13）：四邊各往外一圈 EDGE_MARGIN（貼死螢幕邊時 1px 邊框看不見），上緣再多留
+-- 露在面板外的比價標籤——含鏡射在這顆面板上的那幾顆的（Panel.ClampReserve 沿鏈收到根）。
+-- 面板的單位換成原生的（ratio = panelScale / tipScale）。只在值變了才寫；沒記到原值（讀不到）就不碰。
+-- 方向同暴雪 SetClampRectInsets(left, right, top, bottom)：左負、右正、上正、下負＝範圍比框大
+function Native.UpdateClamp(tip, state, ratio)
+    local saved, panel = state.native, state.panel
+    if not saved or not saved.insets or not panel or not tip.SetClampRectInsets then return end
+    local top, margin = Panel.ClampReserve(panel)
+    if not top then return end
+    ratio = ratio or 1
+    top, margin = top * ratio, margin * ratio
+    local sig = ("%.3f|%.3f"):format(top, margin)
+    if state.clampSig == sig then return end
+    state.clampSig = sig
+    tip:SetClampRectInsets(-margin, margin, top + margin, -margin)
 end
 
 -- 寫回原值、藏 panel。
@@ -182,9 +200,12 @@ function Native.Restore(tip, state)
         Panel.Detach(state.panel)
     end
     Panel.ResetNativeClose(tip)      -- 聊天連結提示：原生關閉鈕貼回原位
+    state.clampSig = nil
     if not saved then return end
     if S.IsForbiddenObject(tip) then return end
-    if saved.clamped ~= nil and tip.SetClampedToScreen then tip:SetClampedToScreen(saved.clamped) end
+    if saved.insets and tip.SetClampRectInsets then
+        tip:SetClampRectInsets(saved.insets[1], saved.insets[2], saved.insets[3], saved.insets[4])
+    end
     local okS, shown = pcall(tip.IsShown, tip)
     if okS and not S.IsSecret(shown) and shown and set then
         local pr, pb = ReadPadding(tip)

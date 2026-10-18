@@ -631,27 +631,25 @@ do
 end
 
 ------------------------------------------------------------
--- 15. 鏡射錨點（I1）與原生不夾邊（I2）
+-- 15. 鏡射錨點（I1）與原生的夾邊（I2：原生照暴雪夾邊，我們只設範圍——四邊呼吸、上緣多留比價標籤、沿鏈收到根）
 ------------------------------------------------------------
 do
     local t15 = Setup()
     local env, P = t15.env, t15.P
     local main = t15.tip                         -- GameTooltip：BOTTOMLEFT→UIParent（從下緣錨定）
     main.clamped = true
+    main.clampInsets = { 0, 0, 25, 0 }           -- 假裝暴雪原本設的範圍
     P.Try(main, t15.state, ITEM, t15.data)
     env.FlushTimers()
     local mainPanel = t15.state.panel
-    eq("I2：接管時原生不夾邊", main.clamped, false)
-    -- 主提示有別人加的行 ⇒ 附屬框；面板的夾邊範圍底邊多算縫＋附屬框
-    local box = mainPanel.extrasBox
-    check("前提：主面板有附屬框", box and box.shown)
+    eq("I2：接管時原生仍照暴雪夾邊", main.clamped, true)
+    check("I2：面板自己不夾", not mainPanel.clamped and mainPanel.clampInsets == nil)
     local M = mainPanel.clampMargin
     check("L2：邊緣呼吸換算過、大於 0", M and M > 0, M)
-    eq("I2＋L2：夾邊範圍底邊 = −(縫＋附屬框＋呼吸)", mainPanel.clampInsets[4], -(6 + box.height + M))
-    eq("L2：沒有標籤時上緣只有呼吸", mainPanel.clampInsets[3], M)
-    eq("L2：左緣往外一圈呼吸", mainPanel.clampInsets[1], -M)
-    eq("L2：右緣往外一圈呼吸", mainPanel.clampInsets[2], M)
-    eq("L1：主面板沒有依附者時照自己夾", mainPanel.clamped, true)
+    eq("L2：原生的範圍左緣往外一圈呼吸", main.clampInsets[1], -M)
+    eq("L2：右緣往外一圈呼吸", main.clampInsets[2], M)
+    eq("L2：沒有標籤時上緣只有呼吸", main.clampInsets[3], M)
+    eq("L2：下緣往外一圈呼吸（附屬框已在原生撐高的總高裡）", main.clampInsets[4], -M)
 
     -- 比價框：TOP→GameTooltip:TOP、RIGHT→GameTooltip:LEFT
     local shop = H.Tip(env, "ShoppingTooltip1", { { left = "Old Sword" } })
@@ -675,19 +673,13 @@ do
     eq("N1：TOP→TOP 同邊對齊不推", sp.points[1][5], 0)
     eq("N1：RIGHT→LEFT 相鄰邊往外推 6", sp.points[2][4], -6)
     check("I1：比價面板自己記下標籤高", sp.clampOwnTop and sp.clampOwnTop > 0, sp.clampOwnTop)
-    eq("L1：鏡射在主面板上的比價面板自己不夾", sp.clamped, false)
-    eq("L1：主面板替帶標籤的依附者預留上緣（標籤高＋呼吸）", mainPanel.clampInsets[3], sp.clampOwnTop + M)
-    eq("L1：主面板仍照自己夾", mainPanel.clamped, true)
-    -- 依附者的附屬框比主面板的還長 ⇒ 底邊取大者
-    local ownBottom = sp.clampOwnBottom
-    sp.clampOwnBottom = 6 + box.height + 30
-    P.UpdateClampInsets(sp)
-    eq("L1：依附者附屬框更長 ⇒ 主面板底邊取大者", mainPanel.clampInsets[4], -(6 + box.height + 30 + M))
-    sp.clampOwnBottom = ownBottom
-    P.UpdateClampInsets(sp)
-    eq("L1：依附者附屬框變回短的 ⇒ 底邊回到主面板自己的", mainPanel.clampInsets[4], -(6 + box.height + M))
+    eq("L1：比價框的原生：上緣＝自己的標籤高＋呼吸", shop.clampInsets[3], sp.clampOwnTop + M)
+    t15.polls[t15.state]()                       -- 主提示下一次輪詢（Fit）把依附者的標籤收進自己的範圍
+    eq("L1：主提示的原生替帶標籤的依附者預留上緣（標籤高＋呼吸）", main.clampInsets[3], sp.clampOwnTop + M)
+    check("L1：比價面板自己不夾", not sp.clamped and sp.clampInsets == nil)
+    eq("L1：比價框的原生沒被關掉夾邊", shop.clamped, true)
 
-    -- 串鏈：第二顆比價框貼第一顆 ⇒ 第二顆也不夾、預留收到根（主面板）
+    -- 串鏈：第二顆比價框貼第一顆 ⇒ 預留收到根（主提示）
     local shopB = H.Tip(env, "ShoppingTooltip4", { { left = "Ring" } })
     H.CompareHeader(shopB, "Equipped together")
     shopB:ClearAllPoints()
@@ -698,13 +690,13 @@ do
     env.FlushTimers()
     eq("L1：第二顆鏡射在第一顆上", stB.panel.mirrorOf, sp)
     eq("N1：鏈的第二顆 TOPRIGHT→TOPLEFT 也往外推 6", ("%g,%g"):format(stB.panel.points[1][4], stB.panel.points[1][5]), "-6,0")
-    eq("L1：第二顆也不夾", stB.panel.clamped, false)
     stB.panel.clampOwnTop = sp.clampOwnTop + 9      -- 假裝第二顆的標籤更高
-    P.UpdateClampInsets(stB.panel)
-    eq("L1：串鏈的預留收到根", mainPanel.clampInsets[3], sp.clampOwnTop + 9 + M)
+    t15.polls[t15.state]()
+    eq("L1：串鏈的預留收到根", main.clampInsets[3], sp.clampOwnTop + 9 + M)
     P.Restore(shopB, stB)
-    eq("L1：第二顆退回 ⇒ 夾邊開回來", stB.panel.clamped, true)
-    eq("L1：第二顆退回 ⇒ 根的預留回到第一顆的", mainPanel.clampInsets[3], sp.clampOwnTop + M)
+    eq("I2：第二顆退回 ⇒ 它的原生範圍寫回原值", shopB.clampInsets[3], 0)
+    t15.polls[t15.state]()
+    eq("L1：第二顆退回 ⇒ 根的預留回到第一顆的", main.clampInsets[3], sp.clampOwnTop + M)
     t15.ns.Skin.State[shopB] = nil
 
     -- 主提示的原生自然寬高變了（重設時短暫變）、主面板寬高不變 ⇒ 比價面板不動
@@ -720,14 +712,14 @@ do
     end
     check("I1：對方原生寬高變了、對方面板沒變 ⇒ 比價面板的錨點一模一樣", same)
 
-    -- 主面板退回 ⇒ 比價面板當場改回貼自己的原生
+    -- 主面板退回 ⇒ 比價面板當場改回貼自己的原生；主提示的原生範圍寫回暴雪的
     P.Restore(main, t15.state)
-    eq("I2：退回時原生的夾邊寫回原值", main.clamped, true)
+    eq("I2：退回時原生的夾邊範圍寫回原值（上緣 25）", main.clampInsets[3], 25)
+    eq("I2：退回時原生的夾邊範圍寫回原值（左緣 0）", main.clampInsets[1], 0)
     eq("I1：主面板沒了 ⇒ 比價面板貼自己的原生", sp.points[1][2], shop)
     eq("I1：照被錨定的那一角（TOP＋RIGHT）", sp.points[1][1], "TOPRIGHT")
     eq("I1：不再記鏡射對象", sp.mirrorOf, nil)
-    eq("L1：改貼自己的原生 ⇒ 比價面板自己夾回來", sp.clamped, true)
-    eq("L1：自己夾時上緣＝自己的標籤高＋呼吸", sp.clampInsets[3], sp.clampOwnTop + sp.clampMargin)
+    eq("L1：比價框的原生範圍仍是自己的標籤高＋呼吸", shop.clampInsets[3], sp.clampOwnTop + M)
 
     -- 對方面板沒顯示時第一次對齊：貼自己的原生
     local shop2 = H.Tip(env, "ShoppingTooltip2", { { left = "Other" } })
@@ -739,7 +731,7 @@ do
     eq("I1：對方面板沒顯示 ⇒ 貼自己的原生", st2.panel.points[1][2], shop2)
     P.Restore(shop2, st2)
     P.Restore(shop, st)
-    eq("I2：比價框退回也寫回夾邊", shop.clamped, true)
+    eq("I2：比價框退回也寫回夾邊範圍", shop.clampInsets[3], 0)
 
     -- 秘密錨點：整格退回（照舊）
     local shop3 = H.Tip(env, "ShoppingTooltip3", { { left = "S" } })

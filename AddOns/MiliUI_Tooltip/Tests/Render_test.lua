@@ -450,21 +450,23 @@ do
 end
 
 ------------------------------------------------------------
--- 12. 夾邊範圍（L2）：四邊各留一圈 EDGE_MARGIN 呼吸；標籤高加在上緣
+-- 12. 夾邊（L2）：面板自己不夾，只記下給原生用的呼吸與標籤高（Native.UpdateClamp 讀）
 ------------------------------------------------------------
 do
     local _, ns, tip, state, panel = Setup()
     local P = ns.Panel
     local M = P.Scale(panel, P.LOOK.EDGE_MARGIN)
     P.RenderView(panel, tip, { header = { { text = "Hi", style = "title" } } }, state)
-    eq("L2：沒有標籤、沒有附屬框 ⇒ 左緣 −呼吸", panel.clampInsets[1], -M)
-    eq("L2：右緣 ＋呼吸", panel.clampInsets[2], M)
-    eq("L2：上緣 ＋呼吸", panel.clampInsets[3], M)
-    eq("L2：下緣 −呼吸", panel.clampInsets[4], -M)
+    check("L2：面板自己不夾邊、不設範圍", not panel.clamped and panel.clampInsets == nil)
+    eq("L2：呼吸換算好記著", panel.clampMargin, M)
+    eq("L2：沒有標籤 ⇒ 上緣預留 0", panel.clampOwnTop, 0)
+    local top, margin = P.ClampReserve(panel)
+    eq("ClampReserve：沒有依附者 ⇒ 自己的 0", top, 0)
+    eq("ClampReserve：呼吸", margin, M)
     P.RenderView(panel, tip, { header = { { text = "Hi", style = "title" } }, tag = "Equipped" }, state)
     local m = P.Metrics(panel)
-    eq("L2：有標籤 ⇒ 上緣 = 標籤高＋呼吸", panel.clampInsets[3], m.tagGap + m.tagH + M)
-    eq("L2：有標籤時其他三邊不變", panel.clampInsets[4], -M)
+    eq("L2：有標籤 ⇒ 上緣預留 = 標籤高", panel.clampOwnTop, m.tagGap + m.tagH)
+    eq("ClampReserve：有標籤", (P.ClampReserve(panel)), m.tagGap + m.tagH)
 end
 
 do
@@ -485,8 +487,9 @@ do
     local state = { isPreview = true }
     local panel = ns.Panel.Get(tip, state)
     ns.Panel.RenderView(panel, tip, { header = { { text = "Hi", style = "title" } } }, state)
-    eq("L2：預覽面板不設夾邊範圍", panel.clampInsets, nil)
+    eq("L2：預覽面板不記夾邊預留", panel.clampOwnTop, nil)
     check("L2：預覽面板不夾邊", not panel.clamped)
+    eq("ClampReserve：預覽面板回 nil", (ns.Panel.ClampReserve(panel)), nil)
 end
 
 ------------------------------------------------------------

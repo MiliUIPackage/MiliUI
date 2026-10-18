@@ -128,4 +128,14 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   真實行結構（尤其配方「製造／材料」、屬性行形狀）**全部還是推定**，等 record 資料進來對 fixture；README 待實機驗證 1～14。
 - 設定：`item.panel`／`spell.panel`（預設開）、`panel.{separators,strip,numberColor,numberCustom,statMarkers,levelBadge}`，靠 MergeDefaults 補，沒遷移。離線測試 `Tests/*_test.lua` 六支。
 
+## 轉向：原生幾何真實化（2026-10-19 深夜，取代 #13 關夾邊、L1／L2 面板自夾、O1 整套）
+
+四輪「外觀預覽抖」補到最後發現都是在補**下游症狀**：原生被 padding 撐大又關了夾邊 ⇒ 原生超出螢幕 ⇒ 所有讀原生幾何的東西（AppearanceTooltip 的 `ComputeTooltipAnchors`、暴雪的比價定位與夾邊）都被誤導。使用者點出「這樣修不是正確的」，改成：
+
+- **原生照暴雪的夾邊**（`Native.Hide` 不再 `SetClampedToScreen(false)`）。當初關掉是因為原生高度一抖夾邊就切換；原生寬高「只長不縮」之後這個前提不在。
+- **夾邊範圍設在原生上**（`Native.UpdateClamp`，每次 Fit；接觸面 #13 改成 `SetClampRectInsets`／`GetClampRectInsets` 記原值、Restore 寫回）：四邊呼吸 `EDGE_MARGIN`、上緣多留比價標籤（`Panel.ClampReserve`：自己的 `clampOwnTop` 加上鏡射在自己身上的面板的、沿鏈收到根）。附屬框已在原生撐高的總高裡，底邊不另留。面板本身不夾（`Create` 不再 `SetClampedToScreen`；`UpdateClampInsets`／`clampable`／`SetMirror` 的夾邊切換全拿掉）。
+- **跟隨框退回 L3**：對象換成面板、點與位移原樣、相鄰邊留縫；`Place`／`Park`／交棒／換邊遲滯／`PlaceFollowers`／`FOLLOW_HYST`／`FOLLOW_DWELL` 全部刪除。它照真實的原生幾何做的判斷照單全收。
+- 保留：鏡射（I1）、J3、半像素遲滯、原生寬高只長不縮、OnHide 延一幀（那是另一個獨立成因：ScrollBox 刷新）。
+- 教訓：**替身的幾何必須是真的**。要騙暴雪的定位系統，就要騙到底（尺寸、位置、夾邊都跟真的一樣），只騙一半的話每個讀它的人都要另外修。
+
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
