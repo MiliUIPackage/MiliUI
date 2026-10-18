@@ -14,7 +14,7 @@ metadata:
 
 **消費者數字別寫死**：一律 `ls -d AddOns/*/Libs/MiliUIWidgets`（2026-10-14 是 21 份）。
 同步跑 `python3 .claude/scripts/sync-widgets.py`（無參數＝同步並列出改了哪幾份，`--check`＝檢查漂移，
-已接進 `check-all.sh` 與 CI；它也同步單檔 vendor MiliUIGlow／MiliUISnap／MiliUIStats／MiliUIDB／MiliUIEditMode／Callbacks）。
+已接進 `check-all.sh` 與 CI；它也同步單檔 vendor MiliUIGlow／MiliUISnap／MiliUIStats／MiliUIDB／MiliUIEditMode／MiliUIMinimapButton／Callbacks）。
 **單檔 vendor 一律照 `AddOns/MiliUI/Libs/<名字>/<名字>.lua`＋`README.md` 的格式**，本體只放 source 不載入，
 消費端放 `<插件>/Libs/<名字>.lua`、TOC 排 Libs 區；新一支要在 `sync-widgets.py` 的 `VENDOR_FILES` 加一筆。
 - **MiliUIDB**（2026-10-18）：SavedVariables 的 nil-merge（`MergeDefaults`）＋遷移鏈（`Migrate`）＋版本號閘（`Versioned`，
@@ -30,6 +30,10 @@ metadata:
   已換：BloodlustMusic（條＋提醒）、ChatBar（save 交給 Anchor.OnDragStop）、BurstPotionHelper（原本沒有編輯模式，新加）。
   **未換**：Focus CastBar、CrusadingStrikes、DamageMeters Move.lua、InfoBar、Minimap、QoL 兩支、QuestTracker、BossTimeline；
   UnitFrames／CooldownManager 刻意不動（它們還掛暴雪系統框，規矩不同）。**三支換用的實機都還沒驗**。
+- **MiliUIMinimapButton**（2026-10-18）：小地圖鈕——`Create(opts)` → `handle:Apply()`；31×31、暴雪圓框、沿邊緣拖曳存**角度**、
+  點擊在 OnMouseUp 判（不用 RegisterForDrag，12px＋0.12s 門檻）、`portrait` 選項（單位框的玩家頭像，事件只綁 player）。
+  **被收納袋收走（父層≠Minimap）就不拖不定位**；收納袋 `Qualifies` 認 `btn.miliuiMinimapButton`。五支全換
+  （UnitFrames／CooldownManager／BossTimeline／CharacterNotes／MythicPlus；CharacterNotes 順便從 RegisterForDrag 改成門檻判定）。實機未驗。
 ⚠ 腳本**不會主動把新模組塞進沒帶它的插件**，只更新已經帶著的那幾支；例外是 `Media/` 的資產檔
 （`check-outline.tga`）一律補齊——貼圖不排 TOC、缺了是靜默空白。
 
