@@ -502,9 +502,16 @@ function Panel.Watch(seconds, out)
     local function sample()
         Skin.Each(function(tip, state)
             local panel = state.panel
-            if not panel or not panel:IsShown() then return end
-            sawPanel = true
+            if not panel then return end
             local name = D(tip)
+            -- 「消失一下」這類閃爍：面板或原生藏了一幀、alpha 被改回來。曾經用過面板的 tooltip 一律取樣顯示狀態，
+            -- 不然藏起來的那一幀只是被跳過、不會算成變化（2026-10-19 實機：112 幀全部穩定但肉眼在閃）
+            note(name .. ".面板.顯示中", panel:IsShown())
+            note(name .. ".原生.顯示中", (Call(tip, "IsShown")))
+            note(name .. ".原生.alpha", (Call(tip, "GetAlpha")))
+            note(name .. ".接管中", state.native ~= nil)
+            if not panel:IsShown() then return end
+            sawPanel = true
             region(name .. ".原生", tip)
             local r, b, l, t = Call(tip, "GetPadding")
             note(name .. ".原生.padding", ("%s,%s,%s,%s"):format(F2(r), F2(b), F2(l), F2(t)))
@@ -523,6 +530,7 @@ function Panel.Watch(seconds, out)
             local name = "跟隨框." .. D(frame)
             region(name, frame)
             note(name .. ".顯示中", (Call(frame, "IsShown")))
+            note(name .. ".alpha", (Call(frame, "GetAlpha")))
             note(name .. ".貼在面板", rec.panel ~= nil)
         end
         frames = frames + 1
