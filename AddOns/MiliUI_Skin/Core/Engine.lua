@@ -322,16 +322,38 @@ end
 --
 -- ⚠ 只掃 owner 自己的 region，不遞迴進子框：子框各自有自己的規則
 --   （金錢框的數字走字型物件、不是 SetTextColor），一路掃下去會把值也染掉。
-function Engine.RecolorRegions(owner, color, prefix)
+--
+-- opts.fontObject  只染**字型物件是這一個**的 FontString（傳字型物件本身，例如
+--                  `GameFontNormal`），其餘跳過。
+--
+--   給「owner 是 EditBox」的情況用：`EditBox:GetRegions()` **會把輸入框自己的
+--   文字 FontString 一起回傳**（2026-10-09 實機），不篩的話玩家打的字會跟標籤
+--   一起染灰；而且染上去之後 **`EditBox:SetTextColor` 補不回來** —— 那條
+--   FontString 自己的顏色已經被蓋掉了，EditBox 層的 setter 管不到它
+--   （2026-10-18 實機：收件人名字整串灰字，第十輪的「掃完再補白」沒有用）。
+--   標籤與內文的字型物件在 XML 裡是分開的（郵件：標籤 `GameFontNormal`、
+--   內文 `ChatFontNormal`，MailFrame.xml:569,627），拿這個分辨就不用讀文字。
+--   `GetFontObject` 是純 C 端的身分查詢（回字型物件的參照，跟 `GetObjectType`
+--   同一級，STYLE.md ③ 讀取例外表）；問不到或回秘密值 ⇒ **跳過不染**
+--   （失敗方向是「標籤留暴雪的暗金」，不是「內文變灰」）。
+function Engine.RecolorRegions(owner, color, prefix, opts)
     if not Usable(owner, prefix) then return end
     if type(owner.GetRegions) ~= "function" then return end
     local ok, regions = pcall(function() return { owner:GetRegions() } end)
     if not ok then return end
+    local wantFont = opts and opts.fontObject
     for i, region in ipairs(regions) do
         if type(region) == "table" and type(region.GetObjectType) == "function" then
             local ok2, kind = pcall(region.GetObjectType, region)
             if ok2 and kind == "FontString" then
-                Engine.TextColor(region, color, (prefix or "?") .. ".text" .. i)
+                local pass = true
+                if wantFont then
+                    local ok3, font = pcall(region.GetFontObject, region)
+                    pass = ok3 and S.SafeValue(font, nil) == wantFont
+                end
+                if pass then
+                    Engine.TextColor(region, color, (prefix or "?") .. ".text" .. i)
+                end
             end
         end
     end

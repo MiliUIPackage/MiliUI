@@ -333,6 +333,7 @@ k = 1、完全不變。職業色不是秘密值，這是純 Lua 算術。
 | `GetFrameLevel` | `Engine.TargetLevel`，決定 overlay 的層級 | 照 `MiliUI_Tooltip` 的 `LowerSkinLevel` 寫法：pcall ＋型別檢查＋秘密值檢查三道守衛 |
 | `GetName` / `GetObjectType` | 找區域、判斷是不是 Texture | 靜態的身分查詢 |
 | `GetRegions` / `GetChildren` | 找「沒有名字也沒有 parentKey」的美術區域（物件池 Acquire 出來的框是無名的，模板裡的 `$parentBG` 連全域名字都沒有） | 讀**結構**不是讀值 —— 只問「有哪些子物件」，不讀它們的尺寸／文字去做邏輯 |
+| FontString 的 `GetFontObject` | `Engine.RecolorRegions` 的 `opts.fontObject`：掃 **EditBox** 的 region 時分辨「標籤」與「輸入框自己的文字」（郵件寄信頁的收件人／主旨，`Skins/Mail.lua`） | 同 `GetObjectType` 一級的**身分查詢**（回字型物件的參照，不是文字／尺寸／錨點）；`EditBox:GetRegions()` 會把內文 FontString 一起回傳，而染灰之後 `EditBox:SetTextColor` 補不回來（2026-10-18 實機），只能一開始就不染它。標籤與內文的字型物件在 XML 裡本來就分開（`GameFontNormal` vs `ChatFontNormal`）。pcall ＋ `Secret.SafeValue`，問不到就**跳過不染**（失敗方向是標籤留暗金，不是內文變灰） |
 | 分頁的 `LeftActive:IsShown()` | `Engine.TrackTab` 的初始同步 | 暴雪自己判斷選中態的**同一個**依據（註 ⓐ），只在建立時讀一次 |
 | **同上，新式分頁** | `Engine.SyncTabSystem` | 同一條，但**不只讀一次**：`TabSystemButtonArtMixin:SetTabSelected` 對那張貼圖 `SetShown(isSelected)`（`TabSystemTemplates.lua:47`），而那一支勾不到（註 ⓘ）⇒ 只能在視窗的全域刷新函式後面重讀。純 C 端布林，過 `Secret.ToBool` |
 | `PaperDollSidebarTabN.Hider:IsShown()` | 側邊欄分頁的選中底色 | 同上：`PaperDollFrame_UpdateSidebarTabs` 對選中的那顆 `Hider:Hide()`（`PaperDollFrame.lua:2678`），在它的後置勾裡讀 |

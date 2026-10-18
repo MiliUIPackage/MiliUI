@@ -77,7 +77,8 @@ metadata:
 - 烤了顏色的 atlas（下拉箭頭、紅金 ＋／− 鈕、暴雪的勾）：乘法染不出中性灰，要先 `SetDesaturated(true)` 再染。
 - 篩選下拉的文字接得住：`OnEnable/OnDisable` 是 frame script、`OnLoad` 只有設過 `baseFontObject` 才動文字；下拉這個 intrinsic 沒有 HighlightTexture。
 - **SimpleHTML**：`SetTextColor("P", r,g,b)` 要帶文字類型，不帶管不到純文字；而且顏色在 `SetText` 那一刻才烘進去 ⇒ 換色後用暴雪剛寫的同一段文字再 SetText 一次（`Engine.HTMLTextColor`／`RepaintHTML`，2026-09-22 實機修的兩筆）。**「接不住」要逐條列路徑，別整塊放棄**（冒險指南三塊內文第九輪放棄、第十輪逐條接住）。
-- ⚠ **`EditBox:GetRegions()` 會回傳輸入框自己的文字 FontString**（2026-10-09 實機 `844644678`，第七輪註解寫「掃不到」是錯的）：`Engine.RecolorRegions(textDim)` 掃標籤時把玩家打的收件人／主旨一起染灰。掃完後各補一次 `EditBox:SetTextColor(text)`。不是陷阱 4，是「掃 region 的函式會撈到 EditBox 內文」這條。
+- ⚠ **`EditBox:GetRegions()` 會回傳輸入框自己的文字 FontString**（2026-10-09 實機 `844644678`，第七輪註解寫「掃不到」是錯的）：`Engine.RecolorRegions(textDim)` 掃標籤時把玩家打的收件人／主旨一起染灰。不是陷阱 4，是「掃 region 的函式會撈到 EditBox 內文」這條。
+  - ⚠ **染上去就補不回來**（2026-10-18 實機）：2026-10-09 的「掃完再 `EditBox:SetTextColor(text)`」沒有用，收件人名字照樣整串灰 —— 那條 FontString 自己的顏色已被蓋掉，EditBox 層的 setter 管不到它。正解是**一開始就不染到它**：`RecolorRegions(…, { fontObject = GameFontNormal })` 用字型物件篩（標籤 `GameFontNormal`、內文 `ChatFontNormal`，XML 本來就分開），內文一行不碰。`GetFontObject` 進了 STYLE.md ③ 的讀取例外表（身分查詢，問不到就跳過不染）。
 - 信件內文自帶的 `|cff…|r` 色碼接不住（GM／活動信可能出現深色字）。
 
 **分頁**
