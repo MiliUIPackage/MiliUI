@@ -279,6 +279,16 @@ function CB.Geometry(W, H, icon, gap)
     return g
 end
 
+-- 邊緣陰影（Core/Shape.lua）的 geom.shadow：shadow ＝ { px, alpha }（R.ShadowArray，nil ＝ 關）。
+-- 圖示畫著時一圈把圖示也圍進去（圖示＋間距＋條身外面一圈，不是兩圈：間距只有 1px，兩圈會疊在接縫上）
+-- ⇒ 往圖示那一側多延伸 iconW＋gap。under ＝ 列（層級照列減一：鄰列的圖示是列自己的貼圖，要壓在陰影上面）
+function CB.ShadowGeom(shadow, side, g, under)
+    if type(shadow) ~= "table" then return nil end
+    local ext = (side == "left" or side == "right") and ((tonumber(g.iconW) or 0) + (tonumber(g.gap) or 0)) or 0
+    return { px = shadow.px, alpha = shadow.alpha, under = under,
+             l = side == "left" and ext or nil, r = side == "right" and ext or nil }
+end
+
 -- 名字最多多寬：秒數／層數在另一邊時讓出約三分之一；跟名字同一邊就整條寬（玩家自己選了疊在一起）
 function CB.NameWidth(s, barW, pad)
     local w = (tonumber(barW) or 0) - 2 * (tonumber(pad) or 0)
@@ -348,9 +358,10 @@ function CB.AuraSpec(plan, look, g)
     end
     if st.showWhen == "active" then
         -- 只在生效時顯示：暗底、邊框、名字、圖示全建在按鈕子樹裡
-        spec.inside = { W = g.barW, H = g.H, n = 1, gap = 0, segW = g.barW, segments = false, reversed = st.reverse,
-                        dim = look.dim, px = look.px, edge = look.edge, bgTex = look.bgTex }
         local hasIcon = st.icon ~= "none" and look.iconFile ~= nil
+        spec.inside = { W = g.barW, H = g.H, n = 1, gap = 0, segW = g.barW, segments = false, reversed = st.reverse,
+                        dim = look.dim, px = look.px, edge = look.edge, bgTex = look.bgTex,
+                        shadow = CB.ShadowGeom(look.shadow, hasIcon and st.icon or "none", g, look.shadowUnder) }
         if st.nameShow or hasIcon then
             spec.label = {
                 name = st.nameShow and look.name or nil, font = look.font, size = look.sizePx, outline = look.outline,
@@ -564,7 +575,7 @@ local function Look(style, plan, g)
     return {
         r = r, g = gg, b = b, alpha = tonumber(style.barAlpha) or 1,
         texture = ns.Media.Texture(style.texture), bgTex = R.BgTexture(style),
-        dim = dim, px = R.DecorPx(style), edge = R.EdgeArray(style),
+        dim = dim, px = R.DecorPx(style), edge = R.EdgeArray(style), shadow = R.ShadowArray(style),
         token = token, font = ns.Media.Font(token), outline = R.TextOutline(style),
         size = st.textSize, sizePx = st.textSize * scale,
         pad = CB.TEXT_PAD, padPx = CB.TEXT_PAD * scale, offY = oy, scale = scale,
@@ -619,7 +630,8 @@ local function LayoutRowParts(row, plan, look, g, inside)
         ns.AuraBar.HideRowDecor(row.bar)
     else
         ns.AuraBar.RowDecor(row.bar, { W = g.barW, H = g.H, n = 1, gap = 0, segW = g.barW, segments = false,
-            reversed = st.reverse, dim = look.dim, px = look.px, edge = look.edge, bgTex = look.bgTex },
+            reversed = st.reverse, dim = look.dim, px = look.px, edge = look.edge, bgTex = look.bgTex,
+            shadow = CB.ShadowGeom(look.shadow, showIcon and st.icon or "none", g, row) },
             (row:GetFrameLevel() or 1) + 8)
     end
 end
@@ -667,6 +679,7 @@ local function LayoutRow(row, plan, style, W)
     row.bar:SetSize(g.barW, H)
     row.textFrame:SetFrameLevel((row:GetFrameLevel() or 1) + 12)
     local look = Look(style, plan, g)
+    look.shadowUnder = row                    -- 按鈕子樹裡的陰影層級也照列減一（CB.ShadowGeom）
     local inside = plan.aura and st.showWhen == "active"
     LayoutRowParts(row, plan, look, g, inside)
     if plan.aura then

@@ -32,7 +32,8 @@
 -- **不給格式器**（引擎拿格式器處理秘密層數會整顆容器壞掉），要接單位（例如「%」）另建一顆固定字的
 -- FontString 貼在旁邊（無視苦痛的百分比條）。兩顆都錨在按鈕中線上，不互相錨定（層數那顆的字是秘密值）。
 --
--- 格子外觀（每格的暗底、邊框（預設 1px 黑；粗細／顏色走 geom.px／geom.edge）、格與格之間的分隔）是另外畫的「裝飾」：
+-- 格子外觀（每格的暗底、邊框（預設 1px 黑；粗細／顏色走 geom.px／geom.edge）、格與格之間的分隔、邊緣陰影（geom.shadow））
+-- 是另外畫的「裝飾」：
 --   * 一直顯示的列：裝飾畫在列上（不在按鈕子樹裡），尺寸變了原地重排，不必換容器
 --   * 「有光環才顯示」的列：裝飾也建在按鈕子樹裡（按鈕只在有光環時顯示 ⇒ 整列跟著出現），
 --     裝飾的幾何進簽章
@@ -161,7 +162,7 @@ end
 -- 在 parent 上建一組裝飾貼圖（暗底 BACKGROUND、黑邊與分隔在 overlay 子框上）。
 -- anchor：幾何的基準框（列本身或按鈕）
 local function NewDecor(parent)
-    local d = { parent = parent, bgs = {}, edges = {}, seps = {} }
+    local d = { parent = parent, bgs = {}, edges = {}, seps = {}, shadows = {} }
     local ov = CreateFrame("Frame", nil, parent)
     ov:SetAllPoints(parent)
     d.overlay = ov
@@ -179,7 +180,9 @@ local function Tex(pool, i, parent, layer)
 end
 
 -- geom = { W, H, n, gap, segW, reversed, segments, dim = { r, g, b, a }, px（邊框粗細，UI 單位；0 ＝ 不畫邊框；沒給 ＝ 1）,
---          edge = { r, g, b, a }（邊框與分隔的顏色；沒給 ＝ 不透明黑）, bgTex（暗底的材質，nil ＝ 純色） }
+--          edge = { r, g, b, a }（邊框與分隔的顏色；沒給 ＝ 不透明黑）, bgTex（暗底的材質，nil ＝ 純色）,
+--          shadow = { px, alpha, l, r, under } | nil（邊緣陰影，Core/Shape.lua：px 實體像素、alpha 不透明度；
+--                   l／r ＝ 只有一圈時往左／右多圍多少（版面單位，自訂列把圖示也圍進去）；under ＝ 層級照哪個框減一，省略＝裝飾的父框） }
 -- 1 實體像素的 UI 單位（分段幾何貼像素用）；讀不到 ⇒ nil（等分的浮點幾何）
 local function PixelUnit()
     local P = ns.P
@@ -243,9 +246,29 @@ local function LayoutDecor(d, anchor, geom)
             Place(t, s.x, s.w, 0, H)
         end
     end
+    -- 邊緣陰影（Core/Shape.lua）：每格一圈；格距 0（相鄰兩格共用邊）或只有一格 ⇒ 整列一圈（圍 anchor，l／r 的延伸只在這時有效）。
+    -- 陰影框是裝飾父框的子框、層級在 under（省略＝父框）底下一層 ⇒ 鄰列的條身壓在它上面
+    local nsh = 0
+    local sg, SH = geom.shadow, ns.Shape
+    if type(sg) == "table" and SH and SH.NewEdgeShadow then
+        local whole = shared or #g.cells == 1
+        local count = whole and 1 or #g.cells
+        for i = 1, count do
+            local sh = d.shadows[i]
+            if not sh then
+                sh = SH.NewEdgeShadow(d.parent)
+                d.shadows[i] = sh
+            end
+            if sh then
+                nsh = i
+                SH.PaintEdgeShadow(sh, whole and anchor or d.bgs[i], sg.px, sg.alpha, whole and sg or nil, sg.under)
+            end
+        end
+    end
     for i = nb + 1, #d.bgs do d.bgs[i]:Hide() end
     for i = ne + 1, #d.edges do d.edges[i]:Hide() end
     for i = ns2 + 1, #d.seps do d.seps[i]:Hide() end
+    for i = nsh + 1, #d.shadows do ns.Shape.PaintEdgeShadow(d.shadows[i], nil) end
 end
 
 -- 列上的裝飾（一直顯示的列）：懶建、原地重排
@@ -269,6 +292,10 @@ function AB.HideRowDecor(row)
     if not d then return end
     d.overlay:Hide()
     for _, t in ipairs(d.bgs) do t:Hide() end
+    -- 陰影框掛在列上（不在 overlay 底下），要自己收
+    if ns.Shape then
+        for _, sh in ipairs(d.shadows) do ns.Shape.PaintEdgeShadow(sh, nil) end
+    end
 end
 
 -- 只重上色、不重排：暗底的顏色／材質、黑邊與分隔的顏色就地改（貼圖的顏色戰鬥中也能寫）。
@@ -375,6 +402,10 @@ function AB.Signature(spec)
         parts[#parts + 1] = table.concat({ "in", Fmt(g.W), Fmt(g.H), tostring(g.n), Fmt(g.gap), Fmt(g.segW),
             tostring(g.segments and true or false), Fmt(g.px), Fmt(dim[1]), Fmt(dim[2]), Fmt(dim[3]), Fmt(dim[4]),
             tostring(g.bgTex), Fmt(edge[1]), Fmt(edge[2]), Fmt(edge[3]), Fmt(edge[4] or 1) }, ":")
+        local sg = g.shadow
+        if type(sg) == "table" then
+            parts[#parts + 1] = table.concat({ "sd", Fmt(sg.px), Fmt(sg.alpha), Fmt(sg.l), Fmt(sg.r) }, ":")
+        end
     end
     return table.concat(parts, "|")
 end

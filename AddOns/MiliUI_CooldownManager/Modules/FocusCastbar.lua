@@ -227,6 +227,15 @@ function FC.Layout()
     f.iconFrame:SetFrameLevel(lvl + 1)
     f.kickFrame:SetFrameLevel(lvl + 1)
 
+    -- 邊緣陰影（Core/Shape.lua，同玩家施法條）：條身、圖示、斷法圖示各一圈，層級都在 f − 1；藏著的那顆不畫
+    local SH = ns.Shape
+    if SH then
+        local spx, sa = SH.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
+        SH.EdgeShadow(f, f.barHolder, spx, sa)
+        SH.EdgeShadow(f, f.iconFrame, showIcon and spx or nil, sa)
+        SH.EdgeShadow(f, f.kickFrame, kickID and spx or nil, sa)
+    end
+
     local general = ns.Setting(nil, "font")
     local outline = ns.Media.ThemeOutline()
     local nameFont = ns.Media.ElementFont(cfg.font, general)

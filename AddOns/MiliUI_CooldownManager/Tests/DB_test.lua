@@ -1362,5 +1362,28 @@ do
     P.spells[ns.specID] = nil
 end
 
+
+-- 長條的邊緣陰影（2026-10-19）：資源條、施法條、專注目標施法條、長條（增益長條＋新長條群組）各三鍵，預設關；
+-- 舊存檔沒有 ⇒ 合併預設補成關、玩家存的不蓋；純新增欄位，不升 DB_VERSION
+do
+    local d = DB.BuildDefaults().profile
+    local function three(t) return t and t.shadow == false and t.shadowSize == 3 and t.shadowAlpha == 0.6 end
+    check("陰影預設：資源條", three(d.resources))
+    check("陰影預設：施法條", three(d.castbar))
+    check("陰影預設：專注目標施法條", three(d.focuscast))
+    check("陰影預設：增益長條的 bar", three(d.bars.buffbars.bar))
+    check("陰影預設：新長條群組的 bar", three(DB.NewBarTable("bars", "x").bar))
+    local old = DB.BuildDefaults().profile
+    for _, t in ipairs({ old.resources, old.castbar, old.focuscast, old.bars.buffbars.bar }) do
+        t.shadow, t.shadowSize, t.shadowAlpha = nil, nil, nil
+    end
+    old.castbar.shadow, old.castbar.shadowSize = true, 6
+    DB.MergeDefaults(old, DB.BuildDefaults().profile)
+    check("陰影：舊存檔補成關", old.resources.shadow == false and old.focuscast.shadow == false
+        and old.bars.buffbars.bar.shadow == false and old.resources.shadowSize == 3)
+    check("陰影：玩家存的不蓋、缺的照補", old.castbar.shadow == true and old.castbar.shadowSize == 6 and old.castbar.shadowAlpha == 0.6)
+    eq("陰影：純新增欄位，不升 DB_VERSION", ns.DB_VERSION, LAST_MIGRATION)
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

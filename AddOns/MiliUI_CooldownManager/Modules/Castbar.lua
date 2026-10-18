@@ -385,6 +385,15 @@ function CB.Layout()
     f.textFrame:SetFrameLevel(lvl + 3)
     f.iconFrame:SetFrameLevel(lvl + 1)
 
+    -- 邊緣陰影（Core/Shape.lua）：條身與圖示各一圈；陰影框都是 f 的子框、層級 f − 1 ⇒ 圖示那圈不會蓋到條身的黑邊。
+    -- 圖示藏著時只有條身一圈
+    local SH = ns.Shape
+    if SH then
+        local spx, sa = SH.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
+        SH.EdgeShadow(f, f.barHolder, spx, sa)
+        SH.EdgeShadow(f, f.iconFrame, showIcon and spx or nil, sa)
+    end
+
     -- 名字（font／textSize）與時間（timeFont／timeTextSize）各一組，沒存字型 ＝ 跟隨通用字型
     local general = ns.Setting(nil, "font")
     local outline = ns.Media.ThemeOutline()

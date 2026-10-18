@@ -1623,6 +1623,15 @@ function Specs.Layout(key)
         add(BS("color", "bar.chargeLineColor", L["Divider color"], { hasAlpha = true,
             disabled = function(info) return not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.chargeSegments") end }))
         add(Note(L["Spells with charges that you added yourself: one segment per charge, and the one recharging fills up."]))
+        -- 邊緣陰影（Core/Decorate.lua 的 D.BarShadow → Core/Shape.lua）：整個 item 一圈；暴雪樣式沒有邊框也就不畫陰影
+        local function ShadowOff(info)
+            return BlizzBarLook(info) or not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.shadow")
+        end
+        add(BS("toggle", "bar.shadow", L["Shadow"], { refreshPage = true, disabled = BlizzBarLook }))
+        add(BS("slider", "bar.shadowSize", L["Shadow size"], { min = 1, max = 8, step = 1, disabled = ShadowOff }))
+        add(BS("slider", "bar.shadowAlpha", L["Shadow opacity"], { min = 10, max = 100, step = 5, scale = 100,
+            disabled = ShadowOff }))
+        add(Note(L["Drawn around the whole bar, icon included. Blizzard style has no shadow."]))
         if bar.source == "buffbars" or bar.source == "custom" then
             -- 空長條＝EllesmereUI 長條「未作用時隱藏」關掉時那一條；留空位＝它圖示的 Keep Buffs in Same Place
             add(EmptyModeRow(key, true))
