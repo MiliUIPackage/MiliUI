@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-18T11:01:41.083Z
+  modified: 2026-10-18T15:23:26.897Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -78,7 +78,12 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - **同一件物品的重建當幀不重畫、延一幀 Reconcile**（實機第一輪抓到的閃爍，commit 98a430937）：比價框每次重建是 `ClearLines → ProcessInfo（我們的 post-call 在這裡）→ 同一幀再 AddLine 補「若你更換此裝備…」`
   （TooltipComparisonManager:SetItemTooltip 第 236～290 行），別家插件的 post-call 也排在我們後面同一幀加行 ⇒ post-call 當下畫一定少行；每秒二十幾次重建兩版交替＝閃爍。
   規則：key（型別＋明文 id）相同且 panel 顯示中 → 只重壓 alpha／Fit、排 `C_Timer.After(0)` 對帳；對帳重讀行比指紋；**行數比看過的最多還少＝部分版不准蓋完整版**，連續 0.3 秒才接受（修飾鍵放開、冷卻行消失要能變少）。
-- **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`，17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
+- **抖動的結構性規則**（實機第二、三輪，commit c96e0a5c1）：同一次停留裡內容本來就會變好幾次（暴雪第一版還沒載法術說明行、別家插件的「x1」、按 Shift 的 ID 行），背包每 0.2 秒重設讓它們輪流出現 ⇒
+  個案修不完，改規則：**同一件停留期間 panel 寬與原生替身高只長不縮**（換一件歸零）；**行數變多立刻補齊，行數變少或同行數內容變了要連續 0.3 秒才採用**（A／B 輪流永遠到不了）；
+  **panel 貼原生被錨定的那一角**（跟隨游標與固定右下都是下錨，原生高度暫時不對時下緣不動）；**padding 被 SetOwner／ClearLines／OnShow 清掉當幀補回上次的值不重算**（那一幀 GetHeight 是舊的）；
+  暴雪的 `Show()`／`SetShown` 會把 alpha 改回 1 且在 post-call 之後 ⇒ `hooksecurefunc(tip,"Show"/"SetShown")` 後掛勾當幀壓回（接觸面 #12，只做 SetAlpha／SetPadding）。
+  聊天連結的 ×：**不可在自己的 OnClick 裡 `ItemRefCloseButton:Click()`**（HideUIPanel 整串在我們的執行裡跑會擴散 taint）；改成把原生鈕 SetPoint 疊到 × 上讓玩家點到原生鈕本人。`/mtip panel` 印錨點／尺寸／padding 診斷。
+- **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`、`real_zhTW_2.lua`（天賦面板：名字與「等級1/1」是後加行、data 從 lineIndex 3／4 起；雕紋段在描述後的 Blank 之後），17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
   **DisabledLine 是灰字不是需求未達成**（其他專精的主屬性、套裝未擁有件）；SellPrice 行文字是空的（錢幣另外畫）、要在「空行＝分段」之前認走；同 lineIndex 會有重複空行；盾牌格擋 `SHIELD_BLOCK_TEMPLATE`、武器油 `ITEM_ENCHANT_TIME_LEFT_*`、寶石行帶 `gemIcon` 檔案編號（**SetTexture 要餵數字**）。
   配方／被動／天賦／充能法術仍沒有真實資料。
 - **OnTooltipCleared 先不拆（Release）、下一幀沒被新 post-call 認領才 Restore**；skin OnHide 立刻 Restore。不然比價風暴「清空再填同一件」每秒拆重畫二十幾次，指紋白做。
