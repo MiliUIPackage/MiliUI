@@ -152,57 +152,29 @@ Mover:RegisterForDrag("LeftButton")
 Mover:SetScript("OnDragStart", function() Chatbar:StartMoving() end)
 Mover:SetScript("OnDragStop", StopDragging)
 
--- Edit Mode Integration
--- When WoW's Edit Mode is active, allow dragging regardless of lock state
-local isInEditMode = false
-
--- Create Edit Mode selection frame (visual highlight)
-local EditModeSelection = CreateFrame("Frame", nil, Chatbar, "EditModeSystemSelectionTemplate")
--- The template's XML binds OnMouseDown -> EditModeManagerFrame:SelectSystem(self.parent).
--- We are not a real Edit Mode system: a click without a drag lets Blizzard run that
--- selection pass tainted by us across EVERY registered system (action bars included).
--- Silent at click time; it surfaces later as blocked action buttons in combat.
-EditModeSelection:SetScript("OnMouseDown", function() end)
-EditModeSelection:SetAllPoints()
-EditModeSelection:Hide()
-
--- Make EditModeSelection draggable
-EditModeSelection:RegisterForDrag("LeftButton")
-EditModeSelection:SetScript("OnDragStart", function() Chatbar:StartMoving() end)
-EditModeSelection:SetScript("OnDragStop", StopDragging)
-
--- Add system info for the selection template
-EditModeSelection.system = {
-    GetSystemName = function()
-        return "MiliUI Chatbar"
-    end
-}
+-- 編輯模式整合（Libs/MiliUIEditMode.lua）：選取框、三重進出訊號、手動拖曳（聊天列是三顆
+-- SecureActionButton 的祖先＝保護框，StartMoving 在編輯模式裡拖不動）、格線吸附、戰鬥閘都在
+-- 共用層。放手與中斷都交給 Anchor：它照框的現況判斷要不要吸回聊天視窗、再存座標。
+-- 不給 snapKey：Anchor.OnDragStop 自己已經走 ns.Snap.OnDragStop("chatBar")。
+local EM = ns.MiliUIEditMode
 
 local function UpdateMoverState()
-    if isInEditMode then
+    if EM.IsActive() then
         -- Always allow dragging in Edit Mode
         Mover:EnableMouse(true)
-        EditModeSelection:ShowHighlighted()
     else
         -- Respect lock setting when not in Edit Mode
         local isLocked = MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar and MiliUI_ChatBar_DB.Chatbar.Locked
         Mover:EnableMouse(not isLocked)
-        EditModeSelection:Hide()
     end
 end
 
--- Hook EditModeManagerFrame if it exists (Retail WoW)
-if EditModeManagerFrame then
-    EditModeManagerFrame:HookScript("OnShow", function()
-        isInEditMode = true
-        UpdateMoverState()
-    end)
-    
-    EditModeManagerFrame:HookScript("OnHide", function()
-        isInEditMode = false
-        UpdateMoverState()
-    end)
-end
+EM.Attach(Chatbar, {
+    name     = "MiliUI Chatbar",
+    save     = function() if ns.Anchor then ns.Anchor.OnDragStop() end end,
+    restore  = function() if ns.Anchor then ns.Anchor.Apply() end end,
+    onChange = UpdateMoverState,
+})
 
 ------------------------------------------------------------
 -- ⚠⚠ 開聊天輸入框的那一下，執行裡不能有插件的程式碼

@@ -66,7 +66,7 @@ EllesmereUI、YHUD／Halo、Falcon 同樣只看做法。註解不點名（[[proj
   （`AbbreviateNumbers`／`UnitPowerPercent`，12.1 法力永遠是秘密值，先過 Plain 就永遠空白）；戰鬥中條件規則展成 Step 色曲線交 C 端挑色。
   引擎寫的層數列（`Modules/AuraBar.lua`：旋風斬／橫掃攻擊／惡魔核心／秘法齊射）走單格 AuraContainer＋`SetApplicationBar`；征戰聖擊**鏡射**暴雪追蹤量條（見撞牆）；
   鐵鬃是 auraTimer（剩餘時間條＋刻度，`Modules/CastStacks.lua`），**不是分段列**，說明文字別拿它當層數列例子。
-  `Modules/Resources.lua` 主 chunk 貼 200 local 上限，新幫手收進 `do` 區塊或掛 `R.xxx`。
+  `Modules/Resources.lua` 主 chunk 曾貼 200 local 上限（2026-10-18 切成 Resources／Resources_Defs／Resources_Rows 後餘裕 86），新幫手照舊收進 `do` 區塊或掛 `R.xxx`。
 - **公開 API** `MiliUI_CooldownManager.IsReady／GetBarFrame／GetResourceColors／GetResourceConditions／GetResourceBarFrame／RegisterCallback("ResourceStyleChanged")`
   （回傳形狀不改，README《公開 API》）；UnitFrames 資源色改問它；CrusadingStrikes 只用自己的 `Anchor.MiliCDMLoaded()` 偵測有沒有載入，不呼叫這組 API。
 - **錨定是「排開」不是照字面貼**：`anchor` 只說跟著誰、在哪一邊，實際貼在誰身上由 `Layout.StackTarget` 算（同目標同邊照固定順序往外排）；
@@ -150,7 +150,9 @@ cooldownID 就是 `CooldownSetSpell.ID`，`wago.tools/db2/CooldownSetSpell/csv`�
 **施法條**：隱藏暴雪施法條只解事件、可原樣裝回；載具／變身叫出覆蓋快捷列時暴雪改顯示 **`OverlayPlayerCastingBarFrame`**（自己註冊事件，關了本體照樣出現，2026-10-08）；
 NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪條事件**裝回**（2026-10-10）⇒ 讀完畫面延一幀再對帳、被裝回就再解一次。
 
-**Lua 本身**：`Options/SpellPopover.lua` 的 `Build` upvalue 貼 60 上限（超過整檔載入失敗、小窗打不開，`check_lua.py` 已抓；新 helper 掛 `Pop.xxx`，[[project-miliui-cdm-halo-borrow]]）。
+**Lua 本身**：`Options/SpellPopover.lua` 的 `Build` upvalue 曾貼 60 上限（超過整檔載入失敗、小窗打不開，`check_lua.py` 已抓；2026-10-18 切檔後 56；新 helper 照舊掛 `Pop.xxx`，[[project-miliui-cdm-halo-borrow]]）。
+**2026-10-18 切檔**：五支超過 2500 行的檔順著段落切成 `<原名>_<段落>.lua`（DB_Custom、Decorate_Bars／Rings／Tooltip、SpellPopover_Tabs／Popups、Resources_Defs／Rows、Custom_Aura），
+TOC 緊接原檔；跨檔 local 升成模組表欄位、新檔檔頭取回成 local，會變的狀態（`Pop.cur`、`Pop.buildTab`、`R.condCurveGen`）直接讀寫欄位。純搬家，**沒實機驗證**；離線測試 9608 全綠。
 `(not on) and false or nil` 把 false 吃成 nil（同一症狀踩兩次：資源列勾選、脫戰也亮）、`n and n:GetCenter()` 截掉第二個回傳值——[[wow-lua-and-or-pitfalls]]，lint 抓不到。
 
 **共用層選色器**（兩次踩到）：暴雪 ColorPickerFrame 按確定一律叫 opacityFunc、沒開透明度時不重設滑桿 ⇒ 上一個選色器殘留的 alpha 被寫進設定（天空騎術顏色變半透明）；取消時舊值的透明度在 `a` 不在 `opacity`，讀錯欄位寫成 nil。都已在 MiliUIWidgets 修（[[project-miliui-widgets-vendor]]）。

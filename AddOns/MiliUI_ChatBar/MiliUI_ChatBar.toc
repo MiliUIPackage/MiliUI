@@ -20,6 +20,7 @@ Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
 Libs\MiliUISnap.lua
+Libs\MiliUIEditMode.lua
 embeds.xml
 Locales\Locales.xml
 

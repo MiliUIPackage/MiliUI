@@ -278,6 +278,28 @@ function ns.CreateBar()
         })
     end
 
+    -- 暴雪編輯模式裡也能拖（Libs/MiliUIEditMode.lua）：選取框、手動拖曳、格線吸附、戰鬥閘在共用層。
+    -- 條是保護框（secure 子按鈕）：進出編輯模式的 Show／Hide 走共用層的戰鬥閘，戰鬥中記到脫戰。
+    -- 鎖定只管平常的把手，編輯模式是明確的「我要調位置」。沒有藥水時條平常藏著，進編輯模式先秀出來
+    -- 讓玩家瞄得到位置，離開重跑一次 Bar_Refresh 照 ShouldShow 收回。
+    if ns.MiliUIEditMode then
+        local EM = ns.MiliUIEditMode
+        EM.Attach(bar, {
+            name        = L.BAR_NAME,
+            enabled     = function() return ns.GetDB().showBar end,
+            snapKey     = SNAP_KEY,
+            anchorPoint = "BOTTOMLEFT",
+            save        = SavePosition,
+            restore     = PositionBar,
+            onChange    = function(editing)
+                if not ns.GetDB().showBar then return end
+                EM.Write(bar, function()
+                    if editing then bar:Show() else ns.Bar_Refresh() end
+                end)
+            end,
+        })
+    end
+
     -- Drag grip (left). Left-drag to move, right-click for settings.
     local grip = CreateFrame("Frame", nil, bar)
     grip:SetPoint("TOPLEFT", 4, -4)
