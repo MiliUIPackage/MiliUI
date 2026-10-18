@@ -37,3 +37,13 @@ cd "/Applications/World of Warcraft/_retail_/Interface/AddOns/MiliUI_CooldownMan
 - 改完要**放大檢查**：把 64px 用 BOX 縮成 8×8、套黑底灰白，再用 NEAREST 放大十幾倍看；
   也看一下 BILINEAR 縮到 8 與 11 的樣子（沒有 mipmap 時、UI 縮放偏大時）。
 
+## 編輯模式的「!」記號（hint-mark.png）
+
+錨在別條／外部框上的條，編輯模式覆蓋層條名後面一顆「方框＋驚嘆號」（`EditMode/Frames.lua` 的 `HINT_TEX`），
+同一張圖用 `|T…|t` 帶 vertex color 塞進滑過那條的 tooltip、黃字「拖曳會解除跟隨」前面——所以它必須是貼圖不是字型，
+兩邊才會長得一樣。
+
+- 跟眼睛同一套畫法：**16×16 的格子**（腳本裡的 `MARK` 字串表）每格放大 4px 輸出 64px，顯示 16 單位時一格＝一像素。
+- 最外一圈留空，方框 14×14 居中：塞進文字列時跟前後的字有一點距離。1 格粗的方框、2 格寬的驚嘆號。
+- 純白：覆蓋層直接用（白），tooltip 用 `|T` 第 12～14 個參數染成提示金黃（255,209,0）。
+

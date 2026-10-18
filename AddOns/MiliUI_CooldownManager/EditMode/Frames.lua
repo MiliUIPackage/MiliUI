@@ -9,10 +9,10 @@
 -- 天空騎術的接力模式（Modules/Skyriding.lua）：不給它自己的覆蓋層與選取框（不能拖，拖資源條就一起走），
 -- 改在資源條覆蓋層的條名後面接「＋天空騎術」讓玩家知道它跟著資源條。閒置的面板（獨立擺放的資源列）同一條路（EM.Dormant）。
 --
--- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、條名後面一顆白色「!」記號
--- （拖曳會被限制時才出現；整句提示接在滑過這條時本來就有的 tooltip 最下面，見 EM.AppendHint——
--- 提示寫成一整行黃字時，疊在一起的條會互相蓋住、也擋住底下的樣式）。整個 EnableMouse(false) ——
--- 不能擋到底下選取框的拖曳。
+-- 覆蓋層（自己的框，parent 容器）：1px 職業色邊、左上角條名、條名後面一顆白色「!」記號（方框＋驚嘆號，
+-- Media/hint-mark.png，拖曳會被限制時才出現）。整句提示接在滑過這條時本來就有的 tooltip 最下面，
+-- 黃字前面用 |T 塞同一張圖染黃（見 EM.AppendHint）——提示寫成一整行黃字時，疊在一起的條會互相蓋住、
+-- 也擋住底下的樣式。整個 EnableMouse(false) —— 不能擋到底下選取框的拖曳。
 --
 -- 選取框：
 --   * 四條檢視器用**暴雪自己的** viewer.Selection（它勾了「冷卻管理器」才會顯示）。
@@ -44,7 +44,12 @@ local SNAP_PREFIX = "cdm:"
 EM.SNAP_PREFIX = SNAP_PREFIX
 
 local HINT_R, HINT_G, HINT_B = 1, 0.82, 0          -- 暴雪提示用的金黃
-local HINT_W = 14                                   -- 「!」記號的邊長（同設定頁 HelpMark 的「?」）
+-- 「!」記號：16×16 格的貼圖（.claude/skills/miliui-cdm-scope-icons 的腳本畫的），顯示 16 單位一格＝一像素；
+-- 純白，覆蓋層直接用、tooltip 用 |T 的 vertex color 染成上面的金黃
+local HINT_TEX = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\hint-mark.png"
+local HINT_W = 16
+local HINT_ICON = ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(
+    HINT_TEX, HINT_W, HINT_W, math.floor(HINT_R * 255 + 0.5), math.floor(HINT_G * 255 + 0.5), math.floor(HINT_B * 255 + 0.5))
 
 -- 條或面板（資源條、施法條）的設定表
 local function BarCfg(key)
@@ -113,18 +118,12 @@ local function BuildOverlay(key, c)
     name:SetTextColor(1, 1, 1)
     ov.name = name
 
-    -- 「!」記號：1px 白邊、沒底色的小方塊，白字；純標記，不吃滑鼠（滑鼠留給底下的選取框／點擊層）
-    local hint = CreateFrame("Frame", nil, ov, "BackdropTemplate")
+    -- 「!」記號：白色的方框＋驚嘆號貼圖；純標記（貼圖不吃滑鼠，滑鼠留給底下的選取框／點擊層）
+    local hint = ov:CreateTexture(nil, "OVERLAY")
     hint:SetSize(HINT_W, HINT_W)
-    hint:SetPoint("LEFT", name, "RIGHT", 4, 0)
-    hint:EnableMouse(false)
-    hint:SetBackdrop({ edgeFile = Style.WHITE, edgeSize = ns.P.Pixel(1) })
-    hint:SetBackdropBorderColor(1, 1, 1, 1)
-    local mark = hint:CreateFontString(nil, "OVERLAY")
-    Media.SetFont(mark, 11, "OUTLINE")
-    mark:SetPoint("CENTER", hint, "CENTER", 0, 0)
-    mark:SetText("!")
-    mark:SetTextColor(1, 1, 1)
+    hint:SetPoint("LEFT", name, "RIGHT", 2, 0)
+    hint:SetTexture(HINT_TEX)
+    hint:SetVertexColor(1, 1, 1, 1)
     hint:Hide()
     ov.hint = hint
 
@@ -174,7 +173,7 @@ function EM.AppendHint(owner, key)
         GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
         GameTooltip:SetText(EM.BarLabel(key))
     end
-    GameTooltip:AddLine(hint, HINT_R, HINT_G, HINT_B, true)
+    GameTooltip:AddLine(HINT_ICON .. " " .. hint, HINT_R, HINT_G, HINT_B, true)
     GameTooltip:Show()
 end
 

@@ -11,6 +11,7 @@
   scope-class.png   職業：盾牌
   scope-char.png    角色：單一人像（戰隊那張的前景人像單獨放大置中），讀成「就這一個人」
   hidden.png        不顯示（只給其他插件讀取）：眼睛劃一撇，畫在預覽格的**左上角**（右上角是範圍記號）
+  hint-mark.png     編輯模式覆蓋層條名後的「!」記號（方框＋驚嘆號）；同一張圖也用 |T…|t 塞進 tooltip 的黃字前面
 
 畫法：8 倍超取樣後 LANCZOS 縮到 64px（WoW 的貼圖邊長要是 2 的次方）。
 """
@@ -114,8 +115,45 @@ def hidden(path):
     print("wrote", path)
 
 
+# 「!」記號（EditMode/Frames.lua 的 HINT_TEX）：16x16 的格子、每格 4px 放大成 64px，顯示 16 單位時一格＝一像素。
+# 最外一圈留空（方框 14x14 居中，塞進 tooltip 文字列時跟字有一點距離），1 格粗的方框、2 格寬的驚嘆號。
+# 純白，覆蓋層直接用、tooltip 用 |T 的 vertex color 染黃
+MARK = [
+    "................",
+    ".##############.",
+    ".#............#.",
+    ".#............#.",
+    ".#.....##.....#.",
+    ".#.....##.....#.",
+    ".#.....##.....#.",
+    ".#.....##.....#.",
+    ".#.....##.....#.",
+    ".#.....##.....#.",
+    ".#............#.",
+    ".#.....##.....#.",
+    ".#.....##.....#.",
+    ".#............#.",
+    ".##############.",
+    "................",
+]
+
+
+def hint_mark(path):
+    n = len(MARK)
+    cell = OUT // n
+    img = Image.new("RGBA", (OUT, OUT), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for y, row in enumerate(MARK):
+        for x, ch in enumerate(row):
+            if ch == "#":
+                d.rectangle([x * cell, y * cell, (x + 1) * cell - 1, (y + 1) * cell - 1], fill=WHITE)
+    img.save(path)
+    print("wrote", path)
+
+
 if __name__ == "__main__":
     shared("scope-shared.png")
     klass("scope-class.png")
     char("scope-char.png")
     hidden("hidden.png")
+    hint_mark("hint-mark.png")
