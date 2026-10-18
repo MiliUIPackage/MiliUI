@@ -192,11 +192,34 @@ do
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT", 1, 1)
     eq("前提：換到右側貼比價面板", select(2, Pt(f)), sp)
+    -- 交棒：比價面板退了、根還在 ⇒ 用同一個螢幕位置改貼到根（根 left 100、sp right 706 ⇒ 612），一個像素都不動
+    env.timers = {}
     sp:Hide()
     ns.Panel.ReturnFollowers(sp)
     sig, rel = Pt(f)
-    eq("ReturnFollowers（比價面板）：根還在 ⇒ 重貼到根", rel, panel)
-    eq("ReturnFollowers（比價面板）：仍在右側", sig, "TOPLEFT>TOPRIGHT|6,0")
+    eq("交棒：改貼到根", rel, panel)
+    eq("交棒：同一個螢幕位置（TOPLEFT 貼根的 TOPLEFT 往右 612）", sig, "TOPLEFT>TOPLEFT|612,0")
+    eq("交棒：記次數", ns.Panel.followers[f].handoffs, 1)
+    -- 保留期內（0.3 秒）比價面板沒回來：不往內縮
+    env.FlushTimers()
+    eq("交棒：下一幀重算、保留期內不往內縮", select(1, Pt(f)), "TOPLEFT>TOPLEFT|612,0")
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT", 1, 1)
+    eq("交棒：保留期內它自己重貼也還是同一個位置", select(1, Pt(f)), "TOPLEFT>TOPLEFT|612,0")
+    -- 比價面板回來了 ⇒ 貼回它（位置一樣）
+    sp:Show()
+    ns.Panel.PlaceFollowers(panel)
+    sig, rel = Pt(f)
+    eq("交棒：比價面板回來 ⇒ 貼回它", rel, sp)
+    eq("交棒：位置一樣", sig, "TOPLEFT>TOPRIGHT|6,0")
+    -- 再退一次、這次真的不回來：保留期過了才縮到根的邊緣
+    sp:Hide()
+    ns.Panel.ReturnFollowers(sp)
+    eq("交棒二：又交棒到根", select(1, Pt(f)), "TOPLEFT>TOPLEFT|612,0")
+    env.now = 7
+    ns.Panel.PlaceFollowers(panel)
+    sig, rel = Pt(f)
+    eq("交棒二：保留期過、沒回來 ⇒ 縮到根的右緣", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
     ns.Panel.ReturnFollowers(panel)
     sig, rel = Pt(f)
     eq("ReturnFollowers（根）：貼回原本的 tooltip", rel, tip)
@@ -225,8 +248,8 @@ do
 
     -- 幾何讀不到（面板還沒排版）、從來沒貼過：退回「對象換成面板、點照它的」＋縫
     panel:Show()
+    env.FlushTimers()                                        -- 前面排著的下一幀重算先跑掉（遊戲裡每幀都會跑）
     panel.left = nil
-    env.timers = {}
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
     sig, rel = Pt(f)

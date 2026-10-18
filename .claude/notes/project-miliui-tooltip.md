@@ -101,6 +101,7 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   `Panel.Align` 成功後叫 `Panel.PlaceFollowers(RootOf(panel))`（比價面板出現當幀跟上，不等它 0.2 秒）；`ReturnFollowers(gone)` 根還在就重貼到鏈上。它的 `anchor = "vertical"` 設定在面板顯示時不被尊重（一律左右）。
   **O1 第二輪（實機「左右閃」）**：第一版在掛勾裡幾何讀不到（剛重錨定、rect 未排版時 GetLeft 回 nil）就退回「點照它的」，這幀它的右側、下幀我們的左側＝每 0.2 秒閃。規則：**掛勾裡算不出位置就沿用 `rec.lastArgs` 再 `C_Timer.After(0)` 重算，絕不退回它的點**（`PlaceOrKeep`）；它要貼的是接管中的 tooltip 但此刻沒面板（比價框重建）也不放手、繼續跟 `rec.root`，只有對象根本沒接管才 Drop。
   配合它的偏好：從它的點讀出想貼左或右（`rec.want`），**只在第一次選邊、而且那邊放得下時**採用；之後它每 0.2 秒變的偏好不跟（它是照超出螢幕的原生算的）。`/mtip panel` 的「跟隨框」行多印幾何讀不到的次數與原因（鏈／框尺寸／螢幕）。
+  **O1 第三輪（貼在比價面板右側時抖）**：貼著的比價面板每次重建被 Restore → `ReturnFollowers(sp)` 當場重算 → 縮到根的右緣 → 下一幀 sp 回來再貼回去＝每 0.2 秒左右抖一個比價面板寬。規則：**交棒不動位置**——`Place` 每次同時算好 `rec.rootArgs`（同一個螢幕位置改用「相對於根」表示），`ReturnFollowers` 根還在就 Reanchor 到 rootArgs、`holdUntil = now + FOLLOW_DWELL`；保留期內 `Place` 算出目標是根（鏈縮回）就不往內縮，sp 回來則照常貼回（位置一樣）。dump 多印「交棒 N 次」，watch 取樣跟隨框。
 - **重複售價行（2026-10-19，M1）**：附屬框裡金額＝SellPrice price 的行藏掉（`Panel.IsDuplicatePrice`，設定 `panel.hideDuplicatePrice`）。語系無關：幣別圖示（|T…GoldIcon…|t、|A:coin-gold…|a 的英文檔名）換成**不含數字的記號**再加總；**一個幣別圖示都沒有一律不算**（售價 1 銅時「總計：1」「背包：1」的非零段也是 {1}，實機誤殺過），部分帶圖示才比非零段；`x%d+` 堆疊數先剝。
   真實資料：**SellPrice 的 price 是整疊的**（背包 16 瓶藥劑 → 46 80），別家的「商人」是單價 ⇒ M2 之後總價與單價都比，兩行都藏；fixture 全部只命中這兩種行。
   **M2 頁尾「單價 ×數量 = 總價」**：單價＝`C_Item.GetItemInfo` 第 11 回傳（`Game.itemSellPrice`）；數量＝`C_Item.GetStackCount(C_Item.GetItemLocation(data.guid))`（`Game.stackCount`），拿不到才總價÷單價整除；單價 ≥ 總價、0、nil ⇒ 只畫總價（`Panel.PriceText`）。

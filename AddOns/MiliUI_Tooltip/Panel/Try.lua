@@ -391,9 +391,9 @@ function Panel.DebugDump(out)
     -- 跟著面板鏈的別家框（外觀預覽，Panel.Follow）：我們選的邊、實際貼在哪、它原本要貼哪
     for frame, rec in pairs(Panel.followers or {}) do
         if rec.root then
-            out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）  幾何讀不到 %d 次%s"):format(
+            out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）  幾何讀不到 %d 次%s，交棒 %d 次"):format(
                 D(frame), rec.side or "?", Points(frame), D(rec[1]), D(rec[2]), D(rec[3]),
-                rec.fails or 0, rec.failWhy and ("，最近：" .. rec.failWhy) or ""))
+                rec.fails or 0, rec.failWhy and ("，最近：" .. rec.failWhy) or "", rec.handoffs or 0))
         end
     end
     return count
@@ -476,6 +476,17 @@ function Panel.Watch(seconds, out)
                 note(name .. ".附屬框.Bottom", (Call(box, "GetBottom")))
             end
         end)
+        -- 跟著面板鏈的別家框（外觀預覽）：位置、貼在哪一顆、哪一側
+        for frame, rec in pairs(Panel.followers or {}) do
+            if rec.root then
+                local name = "跟隨框." .. D(frame)
+                region(name, frame)
+                note(name .. ".側", rec.side)
+                note(name .. ".貼在", rec.panel == rec.root and "根" or D(rec.panel))
+                note(name .. ".交棒", rec.handoffs or 0)
+                note(name .. ".讀不到", rec.fails or 0)
+            end
+        end
         frames = frames + 1
     end
 

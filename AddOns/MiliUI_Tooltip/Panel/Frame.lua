@@ -607,7 +607,8 @@ end
 local function ChainExtent(root)
     local l, r, t = ScreenRect(root)
     if not l then return nil end
-    local ext = { leftP = root, left = l, leftTop = t, rightP = root, right = r, rightTop = t, top = t }
+    local ext = { leftP = root, left = l, leftTop = t, rightP = root, right = r, rightTop = t, top = t,
+                  rootLeft = l, rootRight = r }
     local states = ns.Skin and ns.Skin.State
     if states then
         for _, st in pairs(states) do
@@ -624,6 +625,11 @@ local function ChainExtent(root)
 end
 
 local function Now() return GetTime and GetTime() or 0 end
+
+local function Shown(frame)
+    local ok, shown = pcall(frame.IsShown, frame)
+    return ok and shown == true
+end
 
 -- 幾何讀不到（剛重新錨定、rect 還沒排版時 GetLeft 回 nil；或秘密）：記一筆給 /mtip panel 看，回 false
 local function Fail(rec, why)
@@ -664,21 +670,47 @@ local function Place(frame, rec, root)
             side = other
         end
     end
-    if side ~= rec.side then rec.side, rec.sideAt = side, now end
+    local switched = side ~= rec.side
+    if switched then rec.side, rec.sideAt = side, now end
 
     local target, targetTop = ext.rightP, ext.rightTop
     local point, relPoint, dx = "TOPLEFT", "TOPRIGHT", gap
+    -- 同一個位置改用「相對於根」表示（交棒用，見 ReturnFollowers）：右側＝我的 TOPLEFT 貼根的 TOPLEFT 往右推
+    local rootDX = (ext.right - ext.rootLeft) / fscale + gap
     if side == "LEFT" then
         target, targetTop = ext.leftP, ext.leftTop
         point, relPoint, dx = "TOPRIGHT", "TOPLEFT", -gap
+        rootDX = (ext.left - ext.rootRight) / fscale - gap
     end
+    -- 交棒後的保留期：貼著的比價面板剛退、鏈縮回只剩根的那一小段時間不往內縮——比價框重建時那顆面板
+    -- 下一幀就回來，往內縮再貼回去＝每次重建左右抖一個比價面板寬。保留期內它回來了照常貼回去（位置一樣）
+    if rec.holdUntil and now < rec.holdUntil and target == root and not switched and rec.lastArgs then
+        if rec.placeSig == nil then
+            local a = rec.lastArgs
+            rec.placeSig = "hold"
+            Reanchor(frame, a[1], a[2], a[3], a[4], a[5])
+        end
+        return true
+    end
+    rec.holdUntil = nil
     local dy = Panel.Snap(frame, (ext.top - targetTop) / fscale)
+    rec.rootArgs = { point, root, point, Panel.Snap(frame, rootDX), 0 }
     local sig = ("%s|%s|%.3f|%.3f"):format(point, tostring(target), dx, dy)
     if rec.panel == target and rec.placeSig == sig then return true end
     rec.panel, rec.placeSig = target, sig
     rec.lastArgs = { point, target, relPoint, dx, dy }
     Reanchor(frame, point, target, relPoint, dx, dy)
     return true
+end
+
+-- 下一幀再算一次（同一顆只排一個）
+local function ScheduleRetry(frame, rec)
+    if rec.retry then return end
+    rec.retry = true
+    C_Timer.After(0, function()
+        rec.retry = nil
+        if followers[frame] == rec and rec.root and Shown(rec.root) then Place(frame, rec, rec.root) end
+    end)
 end
 
 -- 開始跟一條鏈：記下它原本的夾邊、打開
@@ -694,12 +726,7 @@ end
 -- 放手：夾邊還原、忘掉鏈（不動它的點）
 local function Drop(frame, rec)
     if rec.root then pcall(frame.SetClampedToScreen, frame, rec.clamped and true or false) end
-    rec.root, rec.panel, rec.placeSig, rec.lastArgs = nil, nil, nil, nil
-end
-
-local function Shown(frame)
-    local ok, shown = pcall(frame.IsShown, frame)
-    return ok and shown == true
+    rec.root, rec.panel, rec.placeSig, rec.lastArgs, rec.rootArgs, rec.holdUntil = nil, nil, nil, nil, nil, nil
 end
 
 -- 這一輪算不出位置（幾何讀不到）：先照上一次的貼法貼（它剛 ClearAllPoints 過，不能留空），下一幀再算一次。
@@ -717,13 +744,7 @@ local function PlaceOrKeep(frame, rec, root, point, panel, relPoint, x, y)
         rec.panel, rec.lastArgs = panel, nil
         Reanchor(frame, point, panel, relPoint, (x or 0) + gx, (y or 0) + gy)
     end
-    if not rec.retry then
-        rec.retry = true
-        C_Timer.After(0, function()
-            rec.retry = nil
-            if followers[frame] == rec and rec.root and Shown(rec.root) then Place(frame, rec, rec.root) end
-        end)
-    end
+    ScheduleRetry(frame, rec)
 end
 
 function Panel.Follow(frame)
@@ -771,14 +792,31 @@ function Panel.PlaceFollowers(root)
     end
 end
 
--- 面板 gone 要退了：貼在它上面、或跟著它那條鏈的框——根還在就重貼到鏈上，不然貼回原本的 tooltip
+-- 面板 gone 要退了：貼在它上面、或跟著它那條鏈的框。
+-- 根還在（退的是貼著的比價面板）⇒ **交棒**：用同一個螢幕位置改貼到根（rootArgs），一個像素都不動，
+--   下一幀再算——比價框每次重建那顆面板下一幀就回來，當場重算會先縮到根的邊緣再貼回去＝左右抖
+--   （2026-10-19 實機第三輪：預覽貼在比價面板右側時抖）。接著 FOLLOW_DWELL 的保留期內不往內縮（Place）。
+-- 根退了 ⇒ 貼回原本的 tooltip（錨在沒有點的框上那一下會跑掉，不等它自己重貼）。
 function Panel.ReturnFollowers(gone)
     for frame, rec in pairs(followers) do
         if rec.panel == gone or rec.root == gone then
             local root = rec.root
-            rec.panel, rec.placeSig, rec.lastArgs = nil, nil, nil
-            if root and root ~= gone and Shown(root) then Place(frame, rec, root) end
-            if not rec.panel then
+            local kept = false
+            if root and root ~= gone and Shown(root) then
+                local ra = rec.rootArgs
+                if ra and ra[2] == root then
+                    rec.panel, rec.placeSig, rec.lastArgs = root, nil, ra
+                    rec.holdUntil = Now() + LOOK.FOLLOW_DWELL
+                    rec.handoffs = (rec.handoffs or 0) + 1
+                    Reanchor(frame, ra[1], ra[2], ra[3], ra[4], ra[5])
+                    ScheduleRetry(frame, rec)
+                    kept = true
+                else
+                    rec.panel, rec.placeSig, rec.lastArgs = nil, nil, nil
+                    kept = Place(frame, rec, root) and rec.panel ~= nil
+                end
+            end
+            if not kept then
                 Drop(frame, rec)
                 if rec[1] then Reanchor(frame, rec[1], rec[2], rec[3], rec[4], rec[5]) end
             end
