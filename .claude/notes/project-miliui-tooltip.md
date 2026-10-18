@@ -22,6 +22,7 @@ metadata:
   **FriendsTooltip**（2026-09-26；它不是 GameTooltip，是繼承 TooltipBackdropTemplate 的普通 Frame，只換外觀、內容不經過 post-call）。
 - **`MiliUITip_API.Adopt(tip)`**（`Api.lua`，2026-09-21）：給套組裡其他插件自建的 tooltip「交給我接管」套同一套提示皮（[[project-miliui-hud-skin]]）。
   只有提示插件 ⇒ 沒人叫 Adopt、那些框維持暴雪原樣；只有外觀插件 ⇒ API 不存在、MiliUI_Skin 退回自己畫一層（[[project-miliui-skin]]「特例二」）。
+  2026-10-18 加第二參數 `opts.keepScale`：Adopt 預設會 `SetScale(general.scale)`，對「自己 SetParent 到 GameTooltip 底下」的框（AppearanceTooltip 的預覽）會變成平方倍 ⇒ 那種要帶 keepScale，旗標存 state、`ApplyBase` 重跑也跳過。同一天 `NeutralizeTemplateBar` 補了秘密名字閘（`GetName` 在秘密錨點鏈上回秘密字串，查 `_G` 會炸）。
 - 一次性視覺中和：`NineSlice:SetAlpha(0)`（skin OnShow 重申）、`GameTooltipStatusBar:SetAlpha(0)`（載入時壓一次不夠，單位提示流程會弄回來 → `Bar.Activate` 每次重申）。
 - 血條／模型層級要明寫 tip+1（skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）。血條是自己的：`UnitHealthPercent(unit, true, ScaleTo100)` → SetValue(秘密)。
 - **post-call 時序紅利**：行加在暴雪排版之前 ⇒ 不需要自我 Show()，比價重建風暴只剩重上色。Show() 只在 ProcessInfo 之外（目標行輪詢、非同步觀察刷新）呼叫。

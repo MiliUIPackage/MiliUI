@@ -1,6 +1,6 @@
 ---
 name: project-miliui-skin
-description: 米利的介面外觀 MiliUI_Skin —— 暴雪原生視窗換成設定視窗皮（47 份配方＋5 支第三方、2026-09-24 起預設啟用）；只重畫不重排的契約與 lint 現況、各輪抓到的坑、仍開著的待辦與待驗證
+description: 米利的介面外觀 MiliUI_Skin —— 暴雪原生視窗換成設定視窗皮（47 份配方＋6 支第三方、2026-09-24 起預設啟用）；只重畫不重排的契約與 lint 現況、各輪抓到的坑、仍開著的待辦與待驗證
 metadata: 
   node_type: memory
   type: project
@@ -9,7 +9,7 @@ metadata:
 ---
 
 **2026-09-20 建立**，`AddOns/MiliUI_Skin/`：`Core/{Engine,Primitives,Tokens,External,DB,Init}.lua`、`Skins/*.lua` **47 份**、
-`ThirdParty/{Postal,Auctionator,PremadeGroupsFilter,RaiderIO,Mapster}.lua`。TOC **預設啟用**（2026-09-24 `7aef1b308` 拿掉
+`ThirdParty/{Postal,Auctionator,PremadeGroupsFilter,RaiderIO,Mapster,AppearanceTooltip}.lua`（AppearanceTooltip 的模型預覽框 2026-10-18 加，`Adopt(tip, { keepScale = true })`，未實機）。TOC **預設啟用**（2026-09-24 `7aef1b308` 拿掉
 `## DefaultState: disabled`；⚠ 那個指令只影響從沒見過這支插件的角色，之前被預設關掉的人要自己去插件清單打開）。
 `/mskin` 開設定、`/mskin debug` 印每份配方的狀態＋找不到的區域＋三張保護框清單＋ `RegionBackdrop` 退回清單；
 `MiliUI_Skin_DB.lastReport` 登出時存同一份（400 行上限，直接讀 WTF 不用等使用者貼）。

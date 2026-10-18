@@ -115,6 +115,7 @@ local function BuildDefaults()
             premadegroupsfilter = true,
             raiderio            = true,
             mapster             = true,
+            appearancetooltip   = true,
         },
         -- ⚠ `extras`（角色面板的自建功能：屬性清單的排序／收合／隱藏／配色、稱號搜尋、畫面顯示屬性）
         --   2026-10-15 整組搬到 MiliUI_QoL（`MiliUI_QoL_DB.charSheet`）。這裡**不再補預設值**，

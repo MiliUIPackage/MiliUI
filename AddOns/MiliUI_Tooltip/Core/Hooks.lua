@@ -215,9 +215,10 @@ end
 -- 初始化
 ------------------------------------------------------------
 -- isPreview：設定視窗的預覽 tooltip（重繪面板要掛在設定視窗底下、跟著它的層級）
-local function TrackTip(tip, isPreview)
+-- opts：原樣交給 Skin.Attach（目前只有 keepScale，見 `MiliUITip_API.Adopt`）
+local function TrackTip(tip, isPreview, opts)
     if not tip or Skin.Get(tip) then return end
-    local state = Skin.Attach(tip)
+    local state = Skin.Attach(tip, opts)
     if state and isPreview then state.isPreview = true end
     -- 清理暫態（接觸面 #3）。HookScript 是後掛勾，安全。
     if tip.HasScript and tip:HasScript("OnTooltipCleared") then
