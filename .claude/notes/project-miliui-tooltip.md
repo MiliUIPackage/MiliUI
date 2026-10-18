@@ -86,6 +86,12 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   會讓比價框原生跟著動，貼原生的面板就上下左右抖；主面板只長不縮、貼被錨定側，穩定性沿鏡射傳下去。**接管期間原生 `SetClampedToScreen(false)`、面板自己夾**（暴雪夾邊依原生總高切換會整組跳 16px；接觸面 #13）。
   掛在 GameTooltip 底下的別家框（AppearanceTooltip 預覽）會跟著原生 alpha 0 透明、只剩模型（模型不吃父層 alpha）⇒ `Adopt(..., { ignoreParentAlpha = true })`。
   聊天連結的 ×：**不可在自己的 OnClick 裡 `ItemRefCloseButton:Click()`**（HideUIPanel 整串在我們的執行裡跑會擴散 taint）；改成把原生鈕 SetPoint 疊到 × 上讓玩家點到原生鈕本人。`/mtip panel` 印錨點／尺寸／padding 診斷。
+- **比價框第四輪（2026-10-19，J／K 批）**：
+  **原生沒有點時不改錨**——比價框重建時 `TooltipComparisonManager` 先 `SetOwner(ANCHOR_NONE)` 清點、我們的 post-call 落在「已清、未重貼」那一刻；以前退到 `TOPLEFT 0,0`、下一幀又鏡射 ⇒ 兩個位置交替。現在沿用上次的錨點（`panel.anchorArgs`），第一次才放暫時錨點；`RenderView` 只 `Detach(panel, true)` 保留記憶。
+  **對齊遲滯**：同一角、同一顆 tip，原生位置移動 ≤ 半像素就沿用上次的取整位移（`gridDX/DY`），四捨五入邊界上來回跳不再 1px 抖。
+  **原生自然寬高也只長不縮**（`state.nativeMaxW/H`，換一件歸零）：暴雪 `AnchorShoppingTooltips` 的 slideAmount 用兩顆比價框原生的寬算，寬一變主提示就被推，鏈尾那顆比價面板抖最兇。
+  **比價標籤照抄原生 `CompareHeader.Label` 的字**（zhTW「已裝備」／第二顆「同時裝備」），讀不到退 `EQUIPPED`、沒 header 就不畫；以前寫死 `CURRENTLY_EQUIPPED`「目前裝備」是錯的。標籤字進指紋。
+  位置遲滯（J2(b)）**沒做**：跟隨游標每幀合法移動，位置遲滯會讓面板落後游標；等 `/mtip panel watch [秒數]`（逐幀取樣、只印有變動的欄位與次數）在實機證明是滑動造成的再說。
 - **真實 zhTW 行結構**（fixture `Tests/fixtures/real_zhTW.lua`、`real_zhTW_2.lua`（天賦面板：名字與「等級1/1」是後加行、data 從 lineIndex 3／4 起；雕紋段在描述後的 Blank 之後），17 筆，角色／伺服器／公會名已假名化；工具 `Tests/tools/export_real_fixture.lua`）：名字之後、ItemBinding／EquipSlot 之前的無型別行是**標題補充行**（難度「|cFF 0FF 0英雄難度|r」——暴雪自己的壞色碼夾空白、虛無鍛造、「已塑形為：」）；
   **DisabledLine 是灰字不是需求未達成**（其他專精的主屬性、套裝未擁有件）；SellPrice 行文字是空的（錢幣另外畫）、要在「空行＝分段」之前認走；同 lineIndex 會有重複空行；盾牌格擋 `SHIELD_BLOCK_TEMPLATE`、武器油 `ITEM_ENCHANT_TIME_LEFT_*`、寶石行帶 `gemIcon` 檔案編號（**SetTexture 要餵數字**）。
   配方／被動／天賦／充能法術仍沒有真實資料。

@@ -589,7 +589,7 @@ end
 -- panel.height＝主面板高；panel.totalHeight＝連附屬框（Native.Fit 撐原生用這個）
 function Panel.RenderView(panel, tip, view, state)
     -- 先脫離錨點鏈：量測與 GetStringHeight 不能沾到 tooltip 的秘密錨點
-    Panel.Detach(panel)
+    Panel.Detach(panel, true)
     local scale = ns.db and ns.db.general and S.PlainNumber(ns.db.general.scale) or 1
     if scale <= 0 then scale = 1 end
     panel:SetScale(scale)

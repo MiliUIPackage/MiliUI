@@ -266,4 +266,14 @@ function H.Tip(env, name, lines)
     return tip
 end
 
+-- 比價框的標頭（暴雪的 CompareHeader 是 tooltip 上方獨立的框，字在 .Label）
+function H.CompareHeader(tip, text, shown)
+    local header = H.Region("Frame", tip)
+    header.shown = shown ~= false
+    header.Label = H.Region("FontString", header)
+    header.Label.size, header.Label.text = 12, text
+    tip.CompareHeader = header
+    return header
+end
+
 return H

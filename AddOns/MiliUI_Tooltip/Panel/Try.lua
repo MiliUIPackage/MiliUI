@@ -111,6 +111,7 @@ function Panel.Restore(tip, state)
     state.panelFingerprint, state.panelKey, state.panelFullLines, state.partialSince = nil, nil, nil, nil
     state.pendingFingerprint, state.pendingSince = nil, nil
     state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
+    state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）
     state.panelData, state.panelKind, state.panelLines = nil, nil, nil
     if state.panelPolling then
         state.panelPolling = nil
@@ -211,7 +212,7 @@ function Reconcile(tip, state)
         if Native.Fit(tip, state) == false then Panel.Restore(tip, state) return end
         ScheduleReconcile(tip, state)        -- 每幀重讀，直到穩定或回到現在畫的版本
     end
-    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, state.panelKind)
+    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, state.panelKind .. "|" .. (Panel.CompareHeaderText(tip) or ""))
     local full = state.panelFullLines or 0
 
     if fingerprint == state.panelFingerprint then
@@ -318,8 +319,9 @@ function Panel.Try(tip, state, dataType, data)
     state.panelData, state.panelKind = data, kind
     -- 換一件：只長不縮的幾何與等待中的變化全部歸零
     state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
+    state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）
     state.pendingFingerprint, state.pendingSince, state.partialSince = nil, nil, nil
-    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, kind)
+    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, kind .. "|" .. (Panel.CompareHeaderText(tip) or ""))
     if not Render(tip, state, kind, data, rows, n, fingerprint) then
         Panel.Restore(tip, state)
         return
@@ -386,4 +388,113 @@ function Panel.DebugDump(out)
     end)
     if count == 0 then out("目前沒有顯示中的面板（滑過物品或法術時再下一次指令）") end
     return count
+end
+
+------------------------------------------------------------
+-- /mtip panel watch [秒數]：逐幀取樣，結束時只印「有變動的欄位」——哪一個數字在兩個值之間跳，一次就看得出來。
+-- 取樣器是自己的框、只在 watch 期間掛 OnUpdate，結束就拆（frame 刪不掉，只能 SetScript(nil)）。
+-- 全部 pcall；秘密值標 <secret>、不比大小（比的是格式化之後的字串）
+------------------------------------------------------------
+local watcher
+
+local function F2(v)
+    if v == nil then return "nil" end
+    if S.IsSecret(v) then return "<secret>" end
+    if type(v) == "number" then return ("%.2f"):format(v) end
+    return D(v)
+end
+
+function Panel.Watch(seconds, out)
+    out = out or print
+    seconds = tonumber(seconds) or 1
+    if seconds <= 0 then seconds = 1 end
+    if seconds > 10 then seconds = 10 end
+    watcher = watcher or CreateFrame("Frame")
+    Panel.watcher = watcher
+    local rec, order, frames, elapsed, sawPanel = {}, {}, 0, 0, false
+
+    local function note(field, value)
+        local s = F2(value)
+        local r = rec[field]
+        if not r then
+            rec[field] = { last = s, changes = 0, values = { s }, seen = { [s] = true } }
+            order[#order + 1] = field
+        elseif r.last ~= s then
+            r.changes, r.last = r.changes + 1, s
+            if not r.seen[s] then
+                r.seen[s] = true
+                if #r.values < 6 then r.values[#r.values + 1] = s end
+            end
+        end
+    end
+
+    local function region(prefix, obj)
+        for _, m in ipairs({ "GetLeft", "GetRight", "GetTop", "GetBottom", "GetWidth", "GetHeight" }) do
+            note(prefix .. "." .. m:sub(4), (Call(obj, m)))
+        end
+        note(prefix .. ".scale", (Call(obj, "GetEffectiveScale")))
+        local n = S.PlainNumber((Call(obj, "GetNumPoints"))) or 0
+        note(prefix .. ".點數", n)
+        for i = 1, n do
+            local p, rel, rp, x, y = Call(obj, "GetPoint", i)
+            local tag = ("%s.點%d"):format(prefix, i)
+            note(tag, ("%s→%s:%s"):format(D(p), D(rel), D(rp)))
+            note(tag .. ".x", x)
+            note(tag .. ".y", y)
+            if type(rel) == "table" and not S.IsSecret(rel) then
+                note(tag .. ".對象.Left", (Call(rel, "GetLeft")))
+                note(tag .. ".對象.Top", (Call(rel, "GetTop")))
+            end
+        end
+    end
+
+    local function sample()
+        Skin.Each(function(tip, state)
+            local panel = state.panel
+            if not panel or not panel:IsShown() then return end
+            sawPanel = true
+            local name = D(tip)
+            region(name .. ".原生", tip)
+            local r, b, l, t = Call(tip, "GetPadding")
+            note(name .. ".原生.padding", ("%s,%s,%s,%s"):format(F2(r), F2(b), F2(l), F2(t)))
+            region(name .. ".面板", panel)
+            note(name .. ".面板.width(記)", panel.width)
+            note(name .. ".面板.height(記)", panel.height)
+            note(name .. ".面板.totalHeight", panel.totalHeight)
+            local box = panel.extrasBox
+            if box and box:IsShown() then
+                note(name .. ".附屬框.Left", (Call(box, "GetLeft")))
+                note(name .. ".附屬框.Bottom", (Call(box, "GetBottom")))
+            end
+        end)
+        frames = frames + 1
+    end
+
+    local function report()
+        if not sawPanel then
+            out(("取樣 %d 幀，期間沒有顯示中的面板（滑過物品或法術時再下一次指令）"):format(frames))
+            return
+        end
+        local changed = 0
+        for _, field in ipairs(order) do
+            local r = rec[field]
+            if r.changes > 0 then
+                changed = changed + 1
+                out(("%s：%s（變 %d 次）"):format(field, table.concat(r.values, " / "), r.changes))
+            end
+        end
+        if changed == 0 then out(("%d 幀全部穩定"):format(frames)) end
+    end
+
+    out(("開始取樣 %.1f 秒"):format(seconds))
+    watcher:SetScript("OnUpdate", function(self, dt)
+        sample()
+        elapsed = elapsed + (dt or 0)
+        if elapsed >= seconds then
+            self:SetScript("OnUpdate", nil)
+            self:Hide()
+            report()
+        end
+    end)
+    watcher:Show()
 end

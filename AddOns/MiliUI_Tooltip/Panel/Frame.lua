@@ -457,11 +457,12 @@ local function GridOffset(panel, tip, side, vside)
     local okY, y = pcall(vside == "BOTTOM" and tip.GetBottom or tip.GetTop, tip)
     if not okX or not okY then return nil end
     if S.IsSecret(x) or S.IsSecret(y) then return nil end
-    if type(x) ~= "number" or type(y) ~= "number" then return 0, 0 end   -- 還沒排版：下一次 Fit 再修
+    -- 還沒排版（剛 SetOwner／ClearAllPoints 過）：回「未定」，呼叫端照 J3 不改貼法
+    if type(x) ~= "number" or type(y) ~= "number" then return nil, nil, nil, nil, true end
     local tipScale, panelScale = EffectiveScale(tip), EffectiveScale(panel)
-    if not (tipScale and panelScale) then return 0, 0 end
+    if not (tipScale and panelScale) then return nil, nil, nil, nil, true end
     x, y = x * tipScale / panelScale, y * tipScale / panelScale
-    return Panel.Snap(panel, x) - x, Panel.Snap(panel, y) - y
+    return Panel.Snap(panel, x) - x, Panel.Snap(panel, y) - y, x, y
 end
 
 ------------------------------------------------------------
@@ -470,8 +471,8 @@ end
 -- 把 relativeTo 換成對方的 **panel**，point／relativePoint／位移原樣。
 -- 原生的幾何依賴（主提示的自然寬高每次重設都短暫變一下 ⇒ 比價框的原生跟著動）就不會傳到面板上：
 -- 比價面板只依賴主面板，主面板的穩定（貼被錨定的一角、只長不縮）就傳下去（2026-10-18 實機：比價面板上下、左右抖）。
--- 回傳 nil＝這顆沒有錨在別的面板上（照 G1 貼自己的原生）；false＝讀到秘密值。
 ------------------------------------------------------------
+-- 回傳點的陣列（可以是空的）；讀到秘密值或失敗回 nil
 local function ReadPoints(tip)
     local ok, n = pcall(tip.GetNumPoints, tip)
     n = ok and S.PlainNumber(n)
@@ -495,6 +496,26 @@ local function PanelOf(rel, tip, panel)
     if other and other ~= panel and other:IsShown() then return other end
 end
 
+-- 套一組錨點；跟上次一樣（而且還貼著）就什麼都不做。記下來的 anchorArgs 給「原生暫時沒有點」時照貼回去
+local function Apply(panel, sig, args)
+    if panel.alignSig == sig and panel.anchored then return true end
+    panel:ClearAllPoints()
+    for _, a in ipairs(args) do panel:SetPoint(a[1], a[2], a[3], a[4], a[5]) end
+    panel.alignSig, panel.anchorArgs, panel.anchored = sig, args, true
+    return true
+end
+
+-- J3：原生暫時沒有點（暴雪每次重設比價框都先 SetOwner(ANCHOR_NONE)＝ClearAllPoints，post-call 之後才 SetPoint）、
+-- 或還沒排版 ⇒ **不改貼法**：還貼著就沿用；重畫時 Detach 過就照上次的貼回去；從來沒貼過才暫貼自己原生的
+-- TOPLEFT（sig = "provisional"，下一次有點時一定重算）。
+-- 之前在這裡退成「沒有點 ⇒ LEFT/TOP、位移 0」，每個重設循環先貼原生的 TOPLEFT、下一幀再鏡射回主面板 ⇒
+-- 兩種貼法輪流＝抖，鏈越長越兇（2026-10-18 實機兩份 dump 對出來）
+local function Keep(panel, tip)
+    if panel.anchored then return true end
+    if panel.anchorArgs then return Apply(panel, panel.alignSig, panel.anchorArgs) end
+    return Apply(panel, "provisional", { { "TOPLEFT", tip, "TOPLEFT", 0, 0 } })
+end
+
 local function Mirror(panel, tip, points)
     local mirrored, target = {}, nil
     for i, p in ipairs(points) do
@@ -511,41 +532,50 @@ local function Mirror(panel, tip, points)
         p[4], p[5] = Panel.Snap(panel, p[4] * ratio), Panel.Snap(panel, p[5] * ratio)
         sig[i] = ("%s|%s|%s|%.3f|%.3f"):format(p[1], tostring(p[2]), tostring(p[3]), p[4], p[5])
     end
-    sig = "mirror:" .. table.concat(sig, ";")
     panel.mirrorOf = target
-    if panel.alignSig == sig then return true end
-    panel.alignSig = sig
-    panel:ClearAllPoints()
-    for _, p in ipairs(mirrored) do panel:SetPoint(p[1], p[2], p[3], p[4], p[5]) end
-    return true
+    return Apply(panel, "mirror:" .. table.concat(sig, ";"), mirrored)
 end
 
 function Panel.Align(panel, tip)
     local points = ReadPoints(tip)
     if not points then return false end
-    local mirrored = Mirror(panel, tip, points)
-    if mirrored then return true end
+    if #points == 0 then return Keep(panel, tip) end
+    if Mirror(panel, tip, points) then return true end
     panel.mirrorOf = nil
 
     local side, vside = AnchoredSide(tip)
     if not side then return false end
-    local dx, dy = GridOffset(panel, tip, side, vside)
+    local dx, dy, rawX, rawY, unlaid = GridOffset(panel, tip, side, vside)
+    if unlaid then return Keep(panel, tip) end
     if not dx then return false end
+    -- 遲滯：同一個角、角的位置移動不到半個實體像素 ⇒ 沿用上次的整數像素修正。
+    -- 原生角停在半像素附近時，每次重算的捨入會在相鄰兩個像素之間翻轉（浮點誤差就夠），面板左右或上下抖 1px
+    -- （2026-10-18 實機：鏡射接上之後還剩約 1px 的左右抖）
+    local corner = vside .. side
+    if panel.gridCorner == corner and panel.gridTip == tip and panel.gridRawX then
+        local half = Panel.Pixel(panel, 1) * 0.5
+        if math.abs(rawX - panel.gridRawX) <= half and math.abs(rawY - panel.gridRawY) <= half then
+            dx, dy = panel.gridDX, panel.gridDY
+            rawX, rawY = panel.gridRawX, panel.gridRawY
+        end
+    end
+    panel.gridCorner, panel.gridTip = corner, tip
+    panel.gridRawX, panel.gridRawY, panel.gridDX, panel.gridDY = rawX, rawY, dx, dy
     -- 從下緣貼：原生的底是整組（主面板＋縫＋附屬框）的底 ⇒ 主面板往上讓出附屬框那一截
     if vside == "BOTTOM" then
         dy = dy + ((panel.totalHeight or panel.height or 0) - (panel.height or 0))
     end
-    local corner = vside .. side
     local sig = ("own:%s|%s|%.3f|%.3f"):format(corner, tostring(tip), dx, dy)
-    if panel.alignSig == sig then return true end
-    panel.alignSig = sig
-    panel:ClearAllPoints()
-    panel:SetPoint(corner, tip, corner, dx, dy)
-    return true
+    return Apply(panel, sig, { { corner, tip, corner, dx, dy } })
 end
 
--- 脫離錨點鏈（重排前、退回時）
-function Panel.Detach(panel)
+-- 脫離錨點鏈（重排前、退回時）。keep：重畫時保留「上次怎麼貼的」與對齊的遲滯記憶，
+-- 只有退回時才全清——不然每次重畫都重新捨入一次、或在原生暫時沒有點的那一刻失去貼法
+function Panel.Detach(panel, keep)
     panel:ClearAllPoints()
-    panel.alignSig, panel.mirrorOf = nil, nil
+    panel.anchored = false
+    if not keep then
+        panel.alignSig, panel.anchorArgs, panel.mirrorOf = nil, nil, nil
+        panel.gridCorner, panel.gridTip, panel.gridRawX = nil, nil, nil
+    end
 end

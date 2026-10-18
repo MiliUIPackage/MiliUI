@@ -414,4 +414,38 @@ do
     eq("沒有後加的行：totalHeight＝主高", panel.totalHeight, panel.height)
 end
 
+------------------------------------------------------------
+-- 11. 對齊的遲滯（J2a）：原生角在半像素附近抖，面板的整數像素修正不翻轉
+------------------------------------------------------------
+do
+    local env, ns, tip, state, panel = Setup()
+    local P = ns.Panel
+    tip:ClearAllPoints()
+    tip:SetPoint("BOTTOMRIGHT", env.UIParent, "BOTTOMRIGHT", -10, 10)
+    tip.top, tip.h = 500, 100
+    tip.left = 100.49                       -- 右緣 300.49：捨入到 300
+    P.Align(panel, tip)
+    local dx1 = panel.points[1][4]
+    near("前提：修正到 300", 300.49 + dx1, 300)
+    tip.left = 100.51                       -- 浮點誤差把右緣推過半像素：不重算就會翻到 301
+    P.Align(panel, tip)
+    near("遲滯：0.02px 的抖動沿用上次的修正（不翻到 301）", panel.points[1][4], dx1)
+    tip.left = 101.4                        -- 真的移動快一個像素：重算
+    P.Align(panel, tip)
+    near("真的移動超過半像素：重算", 301.4 + panel.points[1][4], 301)
+    -- 重畫（RenderView 會 Detach(panel, true)）：遲滯記憶保留
+    tip.left = 101.49
+    P.Align(panel, tip)
+    local dxKeep = panel.points[1][4]
+    P.RenderView(panel, tip, { header = { { text = "N", style = "title" } } }, state)
+    tip.left = 101.51
+    P.Align(panel, tip)
+    near("重畫之後：遲滯記憶還在（不翻）", panel.points[1][4], dxKeep)
+    -- 退回（Detach 不保留）：照新位置重算
+    P.Detach(panel)
+    tip.left = 100.51
+    P.Align(panel, tip)
+    near("退回之後重新貼上：照新位置重算", 300.51 + panel.points[1][4], 301)
+end
+
 H.finish("Render_test")

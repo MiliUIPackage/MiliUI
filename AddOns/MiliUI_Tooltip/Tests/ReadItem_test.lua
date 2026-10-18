@@ -191,10 +191,15 @@ for _, locale in ipairs({ "enUS", "zhTW", "zhCN" }) do
     m = P.ReadItemRows({
         Row(1, G.CURRENTLY_EQUIPPED),
         Row(2, "Old Sword", nil, { type = LT.ItemName }),
-    }, GAME, { id = 3, isComparison = true })
+    }, GAME, { id = 3 })
     eq(tag .. "比價框：名字不是「目前裝備」", m.name, "Old Sword")
-    eq(tag .. "比價框：標籤", m.tag, G.CURRENTLY_EQUIPPED)
+    eq(tag .. "比價框：data 裡的「目前裝備」行當標籤（舊式）", m.tag, G.CURRENTLY_EQUIPPED)
     eq(tag .. "比價框：沒有 extras", #m.extras, 0)
+    -- K1：標籤照抄原生 CompareHeader 的字（第二顆「同時裝備」）
+    m = P.ReadItemRows({ Row(1, "Blade", nil, { type = LT.ItemName }) }, GAME, { id = 4, compareHeader = G.IF_EQUIPPED_TOGETHER })
+    eq(tag .. "K1：第二顆比價框的標籤是「同時裝備」", m.tag, G.IF_EQUIPPED_TOGETHER)
+    m = P.ReadItemRows({ Row(1, "Blade", nil, { type = LT.ItemName }) }, GAME, { id = 4 })
+    eq(tag .. "K1：沒有標頭就沒有標籤", m.tag, nil)
 end
 
 ------------------------------------------------------------

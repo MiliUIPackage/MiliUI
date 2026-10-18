@@ -290,22 +290,40 @@ do
     local shop = H.Tip(t6.env, "ShoppingTooltip1", {
         { left = "Currently Equipped" }, { left = "Old Sword" },
     })
+    H.CompareHeader(shop, "Equipped")
     local st = {}
     t6.ns.Skin.State[shop] = st
     t6.P.Try(shop, st, ITEM, { id = 1, lines = {
         { type = 0, lineIndex = 1, leftText = "Currently Equipped" },
         { type = 22, lineIndex = 2, leftText = "Old Sword" },
     } })
-    check("比價框：標籤", st.panel.tag and st.panel.tag.shown and st.panel.tag.text.text == "Currently Equipped")
+    check("比價框：標籤照抄原生標頭的字", st.panel.tag and st.panel.tag.shown and st.panel.tag.text.text == "Equipped")
+    -- K1：第二顆（可一起裝備）是「Equipped With」；標頭沒顯示就不畫；標頭的字讀不到退 EQUIPPED
+    local shop2 = H.Tip(t6.env, "ShoppingTooltip2", { { left = "Blade" } })
+    local header2 = H.CompareHeader(shop2, "Equipped With")
+    local st2 = {}
+    t6.ns.Skin.State[shop2] = st2
+    local d2 = { id = 2, lines = { { type = 22, lineIndex = 1, leftText = "Blade" } } }
+    t6.P.Try(shop2, st2, ITEM, d2)
+    eq("K1：第二顆標籤＝同時裝備", st2.panel.tag and st2.panel.tag.text.text, "Equipped With")
+    eq("K1：CompareHeaderText", t6.P.CompareHeaderText(shop2), "Equipped With")
+    header2.Label.text = SECRET
+    t6.env.EQUIPPED = "Equipped"
+    eq("K1：讀不到字（秘密）退 EQUIPPED", t6.P.CompareHeaderText(shop2), "Equipped")
+    header2.shown = false
+    eq("K1：標頭沒顯示 ⇒ 沒有標籤", t6.P.CompareHeaderText(shop2), nil)
+    eq("K1：一般 tooltip 沒有標頭", t6.P.CompareHeaderText(t6.tip), nil)
+    t6.P.Restore(shop2, st2)
     local nameShown
     for i = 1, st.panel.textsUsed do if st.panel.texts[i].text == "Old Sword" then nameShown = true end end
     check("比價框：名字跳過「目前裝備」那一行", nameShown)
 
+    local r0 = t6.renders()
     t6.ns.db.spell.panel = false
     t6.P.Try(t6.tip, t6.state, 1, t6.data)
-    eq("法術開關關：物品開著也不畫法術", t6.renders(), 1)
+    eq("法術開關關：物品開著也不畫法術", t6.renders(), r0)
     t6.P.Try(t6.tip, t6.state, 2, t6.data)
-    eq("不認得的型別：不畫", t6.renders(), 1)
+    eq("不認得的型別：不畫", t6.renders(), r0)
 
     -- 設定一改（ApplyAll 會 +1）：同樣內容也重畫
     t6.P.Try(t6.tip, t6.state, ITEM, t6.data)
@@ -596,6 +614,7 @@ do
 
     -- 比價框：TOP→GameTooltip:TOP、RIGHT→GameTooltip:LEFT
     local shop = H.Tip(env, "ShoppingTooltip1", { { left = "Old Sword" } })
+    H.CompareHeader(shop, "Equipped")
     shop.clamped = true
     shop:ClearAllPoints()
     shop:SetPoint("TOP", main, "TOP", 0, 0)
@@ -654,6 +673,123 @@ do
     t15.ns.Skin.State[shop3] = st3
     P.Try(shop3, st3, ITEM, { id = 7, lines = { { type = 22, lineIndex = 1, leftText = "S" } } })
     check("秘密錨點：不顯示", not (st3.panel and st3.panel.shown))
+end
+
+------------------------------------------------------------
+-- 16. J3：原生暫時沒有點（暴雪 SetOwner(ANCHOR_NONE) 之後、post-call 之後才 SetPoint）⇒ 不改貼法
+------------------------------------------------------------
+do
+    local t16 = Setup()
+    local env, P = t16.env, t16.P
+    local tip = t16.tip
+    P.Try(tip, t16.state, ITEM, t16.data)
+    env.FlushTimers()
+    local panel = t16.state.panel
+    local sets, clears = 0, 0
+    local setPoint, clearAll = panel.SetPoint, panel.ClearAllPoints
+    panel.SetPoint = function(...) sets = sets + 1; return setPoint(...) end
+    panel.ClearAllPoints = function(...) clears = clears + 1; return clearAll(...) end
+    local saved = tip.points
+    -- 有點 → 無點 → 有點
+    tip.points = {}
+    check("J3：原生沒有點時對齊照樣成功", P.Align(panel, tip))
+    tip.points = saved
+    P.Align(panel, tip)
+    eq("J3：有點→無點→有點：一次都沒重貼", sets + clears, 0)
+    -- 沒有點、而且還沒排版（GetLeft 回 nil）
+    local getLeft = tip.GetLeft
+    tip.GetLeft = function() return nil end
+    P.Align(panel, tip)
+    tip.GetLeft = getLeft
+    eq("J3：還沒排版也不重貼", sets + clears, 0)
+    -- 重畫（RenderView 會 Detach 掉錨點）的那一刻原生剛好沒有點：照上次的貼法貼回去，不是暫貼
+    local lastArgs = panel.anchorArgs[1]
+    tip.points = {}
+    P.RenderView(panel, tip, P.ViewFallback(P.ReadFallback(tip, t16.data, "item")), t16.state)
+    P.Align(panel, tip)
+    eq("J3：重畫時原生沒有點 ⇒ 照上次的貼回去", panel.points[1][1], lastArgs[1])
+    eq("J3：貼回同一個對象", panel.points[1][2], lastArgs[2])
+    tip.points = saved
+    panel.SetPoint, panel.ClearAllPoints = setPoint, clearAll
+
+    -- 第一次顯示就沒有點：暫貼、下一次有點就改成正式貼法
+    local t17 = Setup()
+    local tip2 = t17.tip
+    tip2.points = {}
+    t17.P.Try(tip2, t17.state, ITEM, t17.data)
+    eq("J3：第一次就沒有點 ⇒ 暫貼", t17.state.panel.alignSig, "provisional")
+    tip2:SetPoint("BOTTOMLEFT", t17.env.UIParent, "BOTTOMLEFT", 100, 100)
+    t17.P.Align(t17.state.panel, tip2)
+    eq("J3：之後有點 ⇒ 正式貼法（下緣）", t17.state.panel.points[1][1], "BOTTOMLEFT")
+    eq("J3：正式貼法對象是自己的原生", t17.state.panel.points[1][2], tip2)
+end
+
+------------------------------------------------------------
+-- 17. K2：原生自己的寬高也只長不縮（暴雪拿比價框原生的寬算推移量，原生寬一抖整條鏈就動）
+------------------------------------------------------------
+do
+    local t18 = Setup()
+    local tip, P, env = t18.tip, t18.P, t18.env
+    P.Try(tip, t18.state, ITEM, t18.data)
+    env.FlushTimers()
+    -- 原生的自然寬比面板寬（不換行的比價說明）：600。
+    -- （paddingSet 先清掉：「padding 被清掉當幀補回」那條在第 12 節測過，這裡只驗 K2）
+    t18.state.paddingSet = nil
+    tip.padding = { 0, 0, 0, 0 }
+    tip.w = 600
+    t18.polls[t18.state]()
+    eq("前提：原生比面板寬時不撐", tip.padding[1], 0)
+    -- 重設的那一刻自然寬短暫變 500（晚一幀補回的行還沒來）
+    t18.state.paddingSet = nil
+    tip.padding = { 0, tip.padding[2], 0, 0 }
+    tip.w = 500
+    t18.polls[t18.state]()
+    eq("K2：原生寬撐回這件看過的最大值 600", tip.w, 600)
+    eq("K2：靠 padding 撐（右 100）", tip.padding[1], 100)
+    -- 換一件：歸零
+    P.Release(tip, t18.state)
+    tip.padding = { 0, 0, 0, 0 }
+    tip.w = 200
+    P.Try(tip, t18.state, ITEM, { id = 999, lines = t18.data.lines })
+    check("K2：換一件之後不再撐到上一件的 600", tip.w < 600, tip.w)
+end
+
+------------------------------------------------------------
+-- 18. /mtip panel watch：逐幀取樣、只印有變動的欄位
+------------------------------------------------------------
+do
+    local t19 = Setup()
+    local tip, P, env = t19.tip, t19.P, t19.env
+    P.Try(tip, t19.state, ITEM, t19.data)
+    env.FlushTimers()
+    local lines = {}
+    P.Watch(1, function(s) lines[#lines + 1] = s end)
+    local w = P.watcher
+    check("watch：取樣期間掛 OnUpdate", w.scripts.OnUpdate ~= nil)
+    for i = 1, 6 do
+        tip.left = (i % 2 == 0) and 100.4 or 100.6        -- 原生左緣在兩個值之間跳
+        w.scripts.OnUpdate(w, 0.02)
+    end
+    w.scripts.OnUpdate(w, 1)                              -- 時間到：最後一幀（值沒變）
+    check("watch：結束後拆掉 OnUpdate", w.scripts.OnUpdate == nil)
+    local found
+    for _, s in ipairs(lines) do if s:find("GameTooltip.原生.Left：", 1, true) then found = s end end
+    check("watch：印出在跳的欄位", found ~= nil, table.concat(lines, " | "))
+    check("watch：列出兩個值與次數", found and found:find("100.60", 1, true) and found:find("100.40", 1, true) and found:find("變 5 次", 1, true), found)
+    local stableLine
+    for _, s in ipairs(lines) do if s:find("面板.width(記)", 1, true) then stableLine = s end end
+    check("watch：沒變的欄位不印", stableLine == nil)
+
+    lines = {}
+    P.Watch(0.05, function(s) lines[#lines + 1] = s end)
+    for _ = 1, 4 do if w.scripts.OnUpdate then w.scripts.OnUpdate(w, 0.02) end end
+    check("watch：全部穩定時印一行", lines[#lines]:find("幀全部穩定", 1, true), lines[#lines])
+
+    P.Restore(tip, t19.state)
+    lines = {}
+    P.Watch(0.02, function(s) lines[#lines + 1] = s end)
+    w.scripts.OnUpdate(w, 0.03)
+    check("watch：沒有面板時說一聲", lines[#lines]:find("沒有顯示中的面板", 1, true), lines[#lines])
 end
 
 H.finish("Try_test")

@@ -143,6 +143,25 @@ function Panel.CollectLines(tip, data)
 end
 
 ------------------------------------------------------------
+-- 比價框的標頭：暴雪的 CompareHeader 是 tooltip 上方一個獨立的框（不是行），字是 EQUIPPED「已裝備」，
+-- 第二顆在「可一起裝備」時是 IF_EQUIPPED_TOGETHER「同時裝備」（TooltipComparisonManager:SetItemTooltip）。
+-- 原生 alpha 0 時它跟著看不見 ⇒ 面板的標籤照抄它的字。只讀不寫；標頭沒顯示 ⇒ nil（不畫標籤）；讀不到字 ⇒ EQUIPPED
+------------------------------------------------------------
+function Panel.CompareHeaderText(tip)
+    local header = tip and tip.CompareHeader
+    if type(header) ~= "table" or not header.IsShown or S.IsForbiddenObject(header) then return nil end
+    local ok, shown = pcall(header.IsShown, header)
+    if not ok or S.IsSecret(shown) or not shown then return nil end
+    local label = header.Label
+    if type(label) == "table" and label.GetText then
+        local okT, text = pcall(label.GetText, label)
+        text = okT and S.PlainText(text)
+        if text and text ~= "" then return text end
+    end
+    return _G.EQUIPPED
+end
+
+------------------------------------------------------------
 -- 售價：錢幣字串（暴雪是另外畫一個錢幣框，不是文字）
 ------------------------------------------------------------
 function Panel.Coins(copper)
@@ -210,9 +229,7 @@ function Panel.ReadFallback(tip, data, kind, rows, n)
         end
     end
 
-    local okName, tipName = pcall(tip.GetName, tip)
-    tipName = okName and S.PlainText(tipName)
-    model.isComparison = tipName and tipName:find("ShoppingTooltip%d$") ~= nil or false
+    model.compareHeader = Panel.CompareHeaderText(tip)
     return model
 end
 
@@ -222,7 +239,7 @@ function Panel.ViewFallback(model)
         iconSize = model.kind == "spell" and LOOK.ICON_SPELL or LOOK.ICON_ITEM,
         header = { { text = model.name, style = "title", color = model.nameColor or LOOK.TEXT } },
         sections = {},
-        tag = model.isComparison and _G.CURRENTLY_EQUIPPED or nil,
+        tag = model.compareHeader,
     }
     if model.subtitle then
         view.header[2] = { badges = { { model.subtitle } }, style = "small" }

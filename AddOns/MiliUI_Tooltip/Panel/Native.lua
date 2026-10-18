@@ -149,6 +149,14 @@ function Native.Fit(tip, state)
 
     local naturalW = w - (pr - saved.right)
     local naturalH = h - (pb - saved.bottom)
+    -- 原生自己的尺寸也只長不縮（同一件）：撐到這件看過的最大自然寬高。
+    -- 原生的寬高是暴雪定位用的——比價框往哪邊放、要把主提示推多少（AnchorShoppingTooltips 的 slideAmount
+    -- 用兩顆比價框原生的寬算）、夾邊。自然寬高在每次重設時短暫變（別家的行晚一幀補回、比價說明是不換行的長行），
+    -- 推移量跟著切換 ⇒ 主提示原生左右移 ⇒ 整條鏈上的面板都動（2026-10-18 實機：最左那顆比價面板抖最兇）。
+    -- 撐到最大值之後原生的寬高單調，暴雪算出來的位置就穩。原生看不見，多撐沒有視覺代價。換一件歸零（Try）
+    state.nativeMaxW = math.max(state.nativeMaxW or 0, naturalW)
+    state.nativeMaxH = math.max(state.nativeMaxH or 0, naturalH)
+    pw, ph = math.max(pw, state.nativeMaxW), math.max(ph, state.nativeMaxH)
     local right = saved.right + math.max(0, pw - naturalW)
     local bottom = saved.bottom + math.max(0, ph - naturalH)
     if math.abs(right - pr) > 0.01 or math.abs(bottom - pb) > 0.01 then

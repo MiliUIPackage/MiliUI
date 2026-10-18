@@ -66,6 +66,8 @@ local function TipFor(env, entry)
         env[entry.tip .. "TextLeft" .. i] = region("left")
         env[entry.tip .. "TextRight" .. i] = region("right")
     end
+    -- 比價框：暴雪的標頭框（記錄裡沒存，照暴雪的預設字 EQUIPPED 補）
+    if entry.tip:find("ShoppingTooltip%d$") then H.CompareHeader(tip, GS.zhTW.EQUIPPED) end
     return tip
 end
 
@@ -138,7 +140,7 @@ for _, entry in ipairs(FXlist) do
             end
         end
         if entry.tip:find("ShoppingTooltip%d$") then
-            eq(tag .. "比價框標籤", model.tag, GS.zhTW.CURRENTLY_EQUIPPED)
+            eq(tag .. "比價框標籤（照抄原生標頭）", model.tag, GS.zhTW.EQUIPPED)
         end
         -- 畫得出來
         local state = {}
@@ -193,7 +195,7 @@ do -- #17 『督軍之怒』馬茲羅亞（比價框）
     eq("#17 阿曼穆索沒擁有", aman and aman.owned, false)
     eq("#17 唯一", m.unique[1], "僅可裝備一件")
     check("#17 提升等級", m.upgrade ~= nil)
-    eq("#17 比價標籤", m.tag, GS.zhTW.CURRENTLY_EQUIPPED)
+    eq("#17 比價標籤", m.tag, GS.zhTW.EQUIPPED)
     eq("#17 標題補充一列（英雄難度）", m.headerRows and #m.headerRows, 1)
     eq("#17 沒有東西掉進「其他」", #m.extras, 0)
 end
@@ -314,7 +316,7 @@ do -- 同一件「精工製作之錘」三個版本：都讀得出、行數一�
     eq("2#41 G91：等級需求", BY2[41].levelReq and BY2[41].levelReq.unmet, false)
     eq("2#42 G91：多了使用效果", #BY2[42].effects, 1)
     local helm = BY2[31]
-    eq("2#31 戰盔：比價標籤", helm.tag, GS.zhTW.CURRENTLY_EQUIPPED)
+    eq("2#31 戰盔：比價標籤", helm.tag, GS.zhTW.EQUIPPED)
     eq("2#31 戰盔：套裝 4/5", helm.set and (helm.set.owned .. "/" .. helm.set.total), "4/5")
 end
 

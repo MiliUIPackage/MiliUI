@@ -287,7 +287,7 @@ local function Speed(text)
     end
 end
 
--- rows：CollectLines 的結果；game：{ itemIcon(x), itemCount(x), playerLevel() }；opts：{ id, isComparison }
+-- rows：CollectLines 的結果；game：{ itemIcon(x), itemCount(x), playerLevel() }；opts：{ id, compareHeader }
 function Panel.ReadItemRows(rows, game, opts)
     opts = opts or {}
     local model = NewItem()
@@ -429,7 +429,8 @@ function Panel.ReadItemRows(rows, game, opts)
     if game and game.itemIcon and model.id then model.icon = game.itemIcon(model.id) end
     local created = model.created
     if created and game and game.itemIcon and created.id then created.icon = game.itemIcon(created.id) end
-    if opts.isComparison and not model.tag then model.tag = _G.CURRENTLY_EQUIPPED end
+    -- 比價框：標籤照抄原生 CompareHeader 的字（「已裝備」／「同時裝備」），沒有標頭就不畫
+    if opts.compareHeader then model.tag = opts.compareHeader end
     return model
 end
 
@@ -453,11 +454,9 @@ end
 Panel.readers.item = function(tip, data, _, rows, n)
     if not rows then rows, n = Panel.CollectLines(tip, data) end
     if not rows then return end
-    local okName, tipName = pcall(tip.GetName, tip)
-    tipName = okName and S.PlainText(tipName)
     local model = Panel.ReadItemRows(rows, Panel.Game, {
         id = data.id,
-        isComparison = tipName and tipName:find("ShoppingTooltip%d$") ~= nil,
+        compareHeader = Panel.CompareHeaderText(tip),
     })
     if not model then return end
     model.rows, model.numLines = rows, n
