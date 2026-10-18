@@ -391,8 +391,9 @@ function Panel.DebugDump(out)
     -- 跟著面板鏈的別家框（外觀預覽，Panel.Follow）：我們選的邊、實際貼在哪、它原本要貼哪
     for frame, rec in pairs(Panel.followers or {}) do
         if rec.root then
-            out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）"):format(
-                D(frame), rec.side or "?", Points(frame), D(rec[1]), D(rec[2]), D(rec[3])))
+            out(("|cff4DD2FF跟隨框 %s|r：%s側 貼在 %s  （它要的是 %s→%s:%s）  幾何讀不到 %d 次%s"):format(
+                D(frame), rec.side or "?", Points(frame), D(rec[1]), D(rec[2]), D(rec[3]),
+                rec.fails or 0, rec.failWhy and ("，最近：" .. rec.failWhy) or ""))
         end
     end
     return count

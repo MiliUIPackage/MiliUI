@@ -532,12 +532,16 @@ end
 -- 現在對象有面板顯示中時**不照它的決定**，位置由我們定（Place）：
 --   * 貼在整條面板鏈（根＋鏡射在上面的比價面板）的外側，左邊或右邊，貼最外側那顆；
 --   * 上緣對齊鏈的根（主面板）；
+--   * 第一次選邊照它的偏好（從它的點讀出想貼左還是右：它有「往螢幕中央靠」「避開比價框」的設定），
+--     前提是那邊用我們算的幾何放得下；之後它的偏好變了不跟；
 --   * 換邊有遲滯：這一邊還放得下就不換；要換過去，另一邊得多出 FOLLOW_HYST 的餘裕、而且離上次換邊至少
 --     FOLLOW_DWELL 秒；兩邊都放不下就選比較寬的那邊（一樣要寬出 FOLLOW_HYST 才換）；
 --   * 跟隨期間開它的夾邊（原值記下、放手時還原）：鏈貼近螢幕下緣時預覽框不會掉出去。
 -- 它不是我們的框、會自己重貼 ⇒ 後掛勾 SetPoint（接觸面 #14）同一幀改貼；面板鏈每次對齊（Panel.Align，輪詢）
--- 也重算一次（比價面板出現、鏈變寬時當幀跟上，不等它的 0.2 秒）。幾何全部 pcall＋秘密閘，任何一個讀不到就這一輪不動
---（已經貼著面板的維持上次的貼法；第一次就讀不到才退回「對象換成面板、點照它的」）。
+-- 也重算一次（比價面板出現、鏈變寬時當幀跟上，不等它的 0.2 秒）。幾何全部 pcall＋秘密閘，任何一個讀不到就這一輪
+-- **沿用上一次的貼法、下一幀再算**（PlaceOrKeep）——不可退回照它的點，那會這幀它的、下幀我們的＝左右閃
+--（2026-10-19 實機第二輪）；從來沒貼過才退回「對象換成面板、點照它的」。它要貼的是接管中的 tooltip 但此刻沒面板
+--（比價框重建中）時也不放手、繼續跟鏈。
 -- 只掛在別的插件自己建的 Frame 上（不是暴雪物件），每顆只掛一次；掛勾裡重入旗標擋自己的 SetPoint。
 -- 只保留最後一個點：它每次都先 ClearAllPoints 再設一個點，不會有第二個。
 -- 面板退回時（Restore）：根還顯示著就重貼到鏈上；根退了就當場貼回原生，不等它下一次自己重貼
@@ -621,22 +625,35 @@ end
 
 local function Now() return GetTime and GetTime() or 0 end
 
--- 決定貼哪一邊、貼上去。幾何讀不到就什麼都不做（rec.panel 維持原樣）
+-- 幾何讀不到（剛重新錨定、rect 還沒排版時 GetLeft 回 nil；或秘密）：記一筆給 /mtip panel 看，回 false
+local function Fail(rec, why)
+    rec.fails, rec.failWhy = (rec.fails or 0) + 1, why
+    return false
+end
+
+-- 決定貼哪一邊、貼上去。回 true＝算過了（不一定有重貼）；false＝幾何讀不到、什麼都沒動（rec.panel 維持原樣）
 local function Place(frame, rec, root)
     local ext = ChainExtent(root)
-    if not ext then return end
+    if not ext then return Fail(rec, "鏈") end
     local fw, _, fscale = ScreenSize(frame)
+    if not fw then return Fail(rec, "框尺寸") end
     local screenW = ScreenWidth()
-    if not fw or not screenW then return end
+    if not screenW then return Fail(rec, "螢幕") end
     local gap = Panel.Scale(frame, LOOK.FRAME_GAP)            -- 它自己的單位
     local need = fw + gap * fscale                            -- 螢幕座標
     local hyst = Panel.Scale(frame, LOOK.FOLLOW_HYST) * fscale
     local room = { LEFT = ext.left, RIGHT = screenW - ext.right }
     local function Fits(s) return room[s] >= need end
 
+    -- 它自己想貼哪一邊（從它的點讀出來的偏好：往螢幕中央靠、避開比價框、它的設定）——
+    -- 只在「第一次選邊」與「這一邊放不下要換」時當優先選項，而且要用我們算的幾何放得下才算；
+    -- 之後它的偏好每 0.2 秒變也不理（它是照超出螢幕的原生算的，兩邊都放得下時跟著它會翻來翻去）
+    local want = rec.want
     local side, now = rec.side, Now()
     if not side then
-        if Fits("RIGHT") ~= Fits("LEFT") then
+        if want and Fits(want) then
+            side = want
+        elseif Fits("RIGHT") ~= Fits("LEFT") then
             side = Fits("RIGHT") and "RIGHT" or "LEFT"
         else
             side = room.RIGHT >= room.LEFT and "RIGHT" or "LEFT"
@@ -657,9 +674,11 @@ local function Place(frame, rec, root)
     end
     local dy = Panel.Snap(frame, (ext.top - targetTop) / fscale)
     local sig = ("%s|%s|%.3f|%.3f"):format(point, tostring(target), dx, dy)
-    if rec.panel == target and rec.placeSig == sig then return end
+    if rec.panel == target and rec.placeSig == sig then return true end
     rec.panel, rec.placeSig = target, sig
+    rec.lastArgs = { point, target, relPoint, dx, dy }
     Reanchor(frame, point, target, relPoint, dx, dy)
+    return true
 end
 
 -- 開始跟一條鏈：記下它原本的夾邊、打開
@@ -675,7 +694,36 @@ end
 -- 放手：夾邊還原、忘掉鏈（不動它的點）
 local function Drop(frame, rec)
     if rec.root then pcall(frame.SetClampedToScreen, frame, rec.clamped and true or false) end
-    rec.root, rec.panel, rec.placeSig = nil, nil, nil
+    rec.root, rec.panel, rec.placeSig, rec.lastArgs = nil, nil, nil, nil
+end
+
+local function Shown(frame)
+    local ok, shown = pcall(frame.IsShown, frame)
+    return ok and shown == true
+end
+
+-- 這一輪算不出位置（幾何讀不到）：先照上一次的貼法貼（它剛 ClearAllPoints 過，不能留空），下一幀再算一次。
+-- ⚠ 不可退回「照它的點」——它的點是照超出螢幕的原生算的，這一幀貼它的、下一幀貼我們的＝左右閃
+--（2026-10-19 實機：比價時每 0.2 秒左右跳一次，dump 顯示它要右側、我們貼左側）。
+-- 從來沒貼過（沒有上一次）才退回「對象換成面板、點照它的」。
+local function PlaceOrKeep(frame, rec, root, point, panel, relPoint, x, y)
+    rec.placeSig = nil                              -- 它剛 ClearAllPoints 過，算得出來就一定重貼
+    if Place(frame, rec, root) then return end
+    local last = rec.lastArgs
+    if last and rec.panel and Shown(rec.panel) and RootOf(rec.panel) == root then
+        Reanchor(frame, last[1], last[2], last[3], last[4], last[5])
+    elseif panel then
+        local gx, gy = Panel.GapOffset(point, relPoint, Panel.Scale(frame, LOOK.FRAME_GAP))
+        rec.panel, rec.lastArgs = panel, nil
+        Reanchor(frame, point, panel, relPoint, (x or 0) + gx, (y or 0) + gy)
+    end
+    if not rec.retry then
+        rec.retry = true
+        C_Timer.After(0, function()
+            rec.retry = nil
+            if followers[frame] == rec and rec.root and Shown(rec.root) then Place(frame, rec, rec.root) end
+        end)
+    end
 end
 
 function Panel.Follow(frame)
@@ -688,22 +736,31 @@ function Panel.Follow(frame)
         -- SetPoint(點, 對象, x, y) 的寫法：沒有對方點
         if type(relPoint) == "number" then relPoint, x, y = point, relPoint, x end
         local rec = followers[self]
-        local panel = type(point) == "string" and Panel.PanelFor(rel)
-        if not panel then
+        if type(point) ~= "string" then
+            Drop(self, rec)
+            return
+        end
+        local panel = Panel.PanelFor(rel)
+        local root = panel and RootOf(panel)
+        -- 它要貼的是我們接管中的 tooltip、但此刻沒有面板（比價框重建中那一幀），而跟著的鏈還顯示著 ⇒ 繼續跟鏈，不放手
+        --（放手＝它的點留著＝貼到看不見的原生旁邊，下一 tick 又貼回面板＝閃）。對象根本不是接管的才放手
+        if not root and rec.root and Shown(rec.root) and ns.Skin and ns.Skin.State and ns.Skin.State[rel] then
+            root = rec.root
+        end
+        if not root then
             Drop(self, rec)
             return
         end
         relPoint = type(relPoint) == "string" and relPoint or point
         rec[1], rec[2], rec[3], rec[4], rec[5] = point, rel, relPoint, x or 0, y or 0
-        Hold(self, rec, RootOf(panel))
-        rec.panel, rec.placeSig = nil, nil        -- 它剛 ClearAllPoints 過，一定要重貼
-        Place(self, rec, rec.root)
-        if not rec.panel then
-            -- 幾何讀不到：退回「對象換成面板、點照它的」，至少不留在看不見的原生旁邊
-            local gx, gy = Panel.GapOffset(point, relPoint, Panel.Scale(self, LOOK.FRAME_GAP))
-            rec.panel = panel
-            Reanchor(self, point, panel, relPoint, (x or 0) + gx, (y or 0) + gy)
-        end
+        -- 它想貼哪一邊：我的左貼對方的右＝右側、我的右貼對方的左＝左側；上下貼法沒有左右偏好
+        local p, rp = point:upper(), relPoint:upper()
+        if p:find("LEFT", 1, true) and rp:find("RIGHT", 1, true) then rec.want = "RIGHT"
+        elseif p:find("RIGHT", 1, true) and rp:find("LEFT", 1, true) then rec.want = "LEFT"
+        else rec.want = nil end
+        if rec.root ~= root then rec.panel, rec.lastArgs = nil, nil end     -- 換了一條鏈：上一次的貼法不算
+        Hold(self, rec, root)
+        PlaceOrKeep(self, rec, root, point, panel, relPoint, x, y)
     end)
 end
 
@@ -719,8 +776,8 @@ function Panel.ReturnFollowers(gone)
     for frame, rec in pairs(followers) do
         if rec.panel == gone or rec.root == gone then
             local root = rec.root
-            rec.panel, rec.placeSig = nil, nil
-            if root and root ~= gone and root:IsShown() then Place(frame, rec, root) end
+            rec.panel, rec.placeSig, rec.lastArgs = nil, nil, nil
+            if root and root ~= gone and Shown(root) then Place(frame, rec, root) end
             if not rec.panel then
                 Drop(frame, rec)
                 if rec[1] then Reanchor(frame, rec[1], rec[2], rec[3], rec[4], rec[5]) end

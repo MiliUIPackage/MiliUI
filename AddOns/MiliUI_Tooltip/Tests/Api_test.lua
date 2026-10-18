@@ -88,7 +88,7 @@ do
     local tip = H.Tip(env, "GameTooltip", {})
     local panel = H.Region("Frame")
     panel:Show()
-    panel.left, panel.w, panel.top, panel.h = 400, 300, 800, 200
+    panel.left, panel.w, panel.top, panel.h = 200, 300, 800, 200
     State[tip] = { panel = panel }
     local other = H.Tip(env, "OtherTooltip", {})          -- 沒接管的
     local f = Frame()
@@ -99,14 +99,14 @@ do
     api.Adopt(f, { keepScale = true, ignoreParentAlpha = true, followPanel = true })
     api.Adopt(f, { followPanel = true })                   -- 第二次：不再掛一層
 
-    -- 它要貼左邊；兩邊都放得下（左 400、右 900）⇒ 我們選比較寬的右邊
+    -- 它要貼左邊；左邊放不下（200 < 280+6）、右邊放得下 ⇒ 右邊
     setCalls = 0
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
     local sig, rel = Pt(f)
     eq("O1：只剩一個點", #f.points, 1)
     eq("O1：對象換成面板", rel, panel)
-    eq("O1：不照它的點——貼鏈右側、上緣對齊、留縫 6", sig, "TOPLEFT>TOPRIGHT|6,0")
+    eq("O1：它要的左邊放不下 ⇒ 貼鏈右側、上緣對齊、留縫 6", sig, "TOPLEFT>TOPRIGHT|6,0")
     eq("O1：同一顆只掛一次（呼叫 1 次＋改貼 1 次）", setCalls, 2)
     eq("O1：跟隨期間開夾邊", f.clamped, true)
 
@@ -116,11 +116,11 @@ do
     sig, rel = Pt(f)
     eq("O1：名字字串也認、它換點我們不跟", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
 
-    -- 比價面板鏡射在根上、在右邊（left 706）⇒ 貼最外側那顆
+    -- 比價面板鏡射在根上、在右邊（left 506）⇒ 貼最外側那顆
     local tip2 = H.Tip(env, "ShoppingTooltip1", {})
     local sp = H.Region("Frame")
     sp:Show()
-    sp.left, sp.w, sp.top, sp.h, sp.mirrorOf = 706, 300, 800, 180, panel
+    sp.left, sp.w, sp.top, sp.h, sp.mirrorOf = 506, 300, 800, 180, panel
     State[tip2] = { panel = sp }
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
@@ -223,16 +223,53 @@ do
     f:SetPoint("CENTER", H.SECRET, "CENTER")
     check("秘密對象 ⇒ 不碰", rawequal(f.points[1][2], H.SECRET))
 
-    -- 幾何讀不到（面板還沒排版）：退回「對象換成面板、點照它的」＋縫
+    -- 幾何讀不到（面板還沒排版）、從來沒貼過：退回「對象換成面板、點照它的」＋縫
     panel:Show()
+    panel.left = nil
+    env.timers = {}
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    sig, rel = Pt(f)
+    eq("幾何讀不到、沒貼過：對象換成面板、點照它的、留縫", sig .. "@" .. tostring(rel == panel), "TOPRIGHT>TOPLEFT|-6,0@true")
+    f:ClearAllPoints()
+    f:SetPoint("BOTTOMLEFT", tip, "TOPLEFT", 0, 0)
+    eq("幾何讀不到＋N1：底貼頂 ⇒ y 往上推 6", select(1, Pt(f)), "BOTTOMLEFT>TOPLEFT|0,6")
+    eq("幾何讀不到：只排一次下一幀重算", #env.timers, 1)
+    -- 下一幀幾何回來 ⇒ 自己貼到我們算的位置（左 100 放不下、右側放得下 ⇒ 右側）
+    panel.left = 100
+    env.FlushTimers()
+    sig, rel = Pt(f)
+    eq("下一幀重算：貼到我們算的位置", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
+
+    -- 已經貼過之後幾何又讀不到：沿用上一次的貼法，**不**退回它的點（以前這裡左右閃）
     panel.left = nil
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
     sig, rel = Pt(f)
-    eq("幾何讀不到：對象換成面板、點照它的、留縫", sig .. "@" .. tostring(rel == panel), "TOPRIGHT>TOPLEFT|-6,0@true")
+    eq("幾何讀不到、貼過：沿用上一次（右側），不照它的左側", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
+    eq("幾何讀不到：記次數給 /mtip panel", ns.Panel.followers[f].fails >= 2, true)
+    panel.left = 100
+
+    -- 它要貼的那顆此刻沒有面板（比價框重建中）、鏈的根還在 ⇒ 繼續跟鏈，不放手、不照它的點
     f:ClearAllPoints()
-    f:SetPoint("BOTTOMLEFT", tip, "TOPLEFT", 0, 0)
-    eq("幾何讀不到＋N1：底貼頂 ⇒ y 往上推 6", select(1, Pt(f)), "BOTTOMLEFT>TOPLEFT|0,6")
+    f:SetPoint("TOPLEFT", tip2, "TOPRIGHT")               -- tip2 的面板 sp 已隱藏
+    sig, rel = Pt(f)
+    eq("對象暫時沒有面板、根還在：仍貼鏈", sig .. "@" .. tostring(rel == panel), "TOPLEFT>TOPRIGHT|6,0@true")
+    eq("對象暫時沒有面板、根還在：夾邊沒放", f.clamped, true)
+
+    -- 配合它的偏好：第一次選邊時，它要的那邊放得下就照它的（即使另一邊更寬）；之後它的偏好變了不跟
+    panel.left = 400                                         -- 左 400、右 900 都放得下
+    local f2 = Frame()
+    f2.w, f2.h = 280, 380
+    api.Adopt(f2, { keepScale = true, ignoreParentAlpha = true, followPanel = true })
+    f2:SetPoint("TOPRIGHT", tip, "TOPLEFT")                  -- 它要左側
+    eq("偏好：第一次照它要的左側（右側雖然更寬）", select(1, Pt(f2)) .. "@" .. tostring(select(2, Pt(f2)) == panel), "TOPRIGHT>TOPLEFT|-6,0@true")
+    f2:ClearAllPoints()
+    f2:SetPoint("TOPLEFT", tip, "TOPRIGHT")                  -- 下一輪它改要右側
+    eq("偏好：之後它改要右側、左側還放得下 ⇒ 不跟", select(1, Pt(f2)), "TOPRIGHT>TOPLEFT|-6,0")
+    f2:ClearAllPoints()
+    f2:SetPoint("BOTTOMLEFT", tip, "TOPLEFT")                -- 上下貼法：沒有左右偏好
+    eq("偏好：上下貼法沒有偏好、位置不變", select(1, Pt(f2)), "TOPRIGHT>TOPLEFT|-6,0")
 
     local g = Frame()
     api.Adopt(g, { keepScale = true })
