@@ -323,6 +323,7 @@ Append({
       get = function() return ns.UlatekAutoRelease and ns.UlatekAutoRelease.IsEnabled() end,
       set = function(v) if ns.UlatekAutoRelease then ns.UlatekAutoRelease.SetEnabled(v) end end },
     { type = "text", label = "英雄／傳奇難度的烏拉特克滅團後 0.5 秒自動釋放靈魂。"
+        .. "滅團後馬上釋放會直接留在首領平台上，不用從墓地重新跑回來。"
         .. "只在滅團時作用，首領打死時倒在地上的人不會被送去墓地；"
         .. "身上有靈魂石、復生這類自我復活可用時也不會自動釋放。預設開啟。" },
 })
