@@ -18,7 +18,7 @@
 | BugSack | v12.0.4 | 2026-03-17 66dbf6bca | https://github.com/funkydude/BugSack |
 | Cell | r310_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
 | Chattynator | 227 | 2026-10-15 6425e9f11 | https://github.com/plusmouse/Chattynator |
-| DiGuaTimelineAudioHelper | 2.0.6 | 2026-10-17 3103bec27 | 待補 |
+| DiGuaTimelineAudioHelper | 2.0.3 | 2026-10-20 c2eb44373 | 待補 |
 | EasyExperienceBar | 2026.03.09.A | 2026-10-15 6b4cf7dc9（收錄） | 待補 |
 | HandyNotes | v1.6.31 | 2026-08-14 4982afee5 | https://www.curseforge.com/projects/14154 |
 | HandyNotes_Dornogal | v1 | 2026-10-15 58f869f49（收錄） | 待補 |
@@ -42,7 +42,7 @@
 | MythicDungeonTools_UI | 6.2.20 | 2026-10-15 58f869f49（收錄） | 隨 MythicDungeonTools 一起 |
 | ParagonReputation | 1.75 | 2026-04-09 dc5f1020d | 待補 |
 | Platynator | 506 | 2026-10-15 527b20896 | https://github.com/plusmouse/Platynator |
-| Plumber | 1.9.6 c | 2026-10-16 229b0f0e1 | https://github.com/Peterodox/Plumber |
+| Plumber | 1.9.6 d | 2026-10-20 870cbaf3f | https://github.com/Peterodox/Plumber |
 | Postal | v4.2.0 | 2016-11-13 d26ef58e7 | 待補 |
 | PremadeGroupsFilter | 7.5.2 | 2026-08-14 fb9edc38a | https://github.com/0xbs/premade-groups-filter |
 | SharedMedia | 3.1.0-191 | 2026-10-15 58f869f49（收錄） | 待補 |
