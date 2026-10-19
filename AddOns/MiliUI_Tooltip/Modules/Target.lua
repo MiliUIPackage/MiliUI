@@ -30,7 +30,7 @@ local function ClassColorCode(unit)
     if not class then return end
     local c = RAID_CLASS_COLORS[class]
     if not c then return end
-    return "ff" .. Colors.Hex(c.r, c.g, c.b)
+    return "ff" .. Colors.ReadableHex(Colors.Hex(c.r, c.g, c.b))
 end
 
 local function GetTargetString(unit)
@@ -52,7 +52,7 @@ local function GetTargetString(unit)
         return format("%s|c%s%s|r", icon, colorCode, name)
     end
     local r, g, b = Colors.UnitColor(unit)
-    local hex = Colors.Hex(r, g, b) or "ffffff"
+    local hex = Colors.Hex(Colors.Readable(r, g, b)) or "ffffff"
     if S.SafeBool(UnitIsOtherPlayersPet, unit) then
         return format("%s|cff%s<%s>|r", icon, hex, name)
     end

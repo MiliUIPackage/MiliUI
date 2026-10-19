@@ -170,7 +170,8 @@ function TextAtRaw(panel, ctx, text, x, y, width, style, color, justify)
     fs:SetWidth(width)
     fs:SetJustifyH(justify or "LEFT")
     color = color or LOOK.TEXT
-    fs:SetTextColor(color[1], color[2], color[3])
+    -- 品質色等外部來的色太暗時保留色相提亮（Colors.Readable；LOOK.DIM 剛好在線上不受影響）
+    fs:SetTextColor(ns.Colors.Readable(color[1], color[2], color[3]))
     fs:SetText(text)
     local h = S.PlainNumber(fs:GetStringHeight()) or 0
     return math.max(style.size + 2, h)

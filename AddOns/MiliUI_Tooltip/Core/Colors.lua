@@ -31,6 +31,37 @@ function Colors.FromHex(hex)
 end
 
 ------------------------------------------------------------
+-- 文字可讀性：深底上的字色太暗時，**保留色相**往白混到夠亮（tint，見 miliui-color-states 技能）。
+-- 只給文字用——邊框是細線，維持原色的飽和度。
+-- 2026-10-19 玩家回報：寵物／守護者的生物類型用選取色（UnitSelectionColor）是純藍 (0,0,1)，
+-- 在提示的深底上幾乎看不見。外部來的色（選取色、職業色、立場色、品質色、玩家自訂色）都可能這樣，一律過這支。
+-- 亮度用 Rec.601 luma（gamma 空間，混白時是線性的 ⇒ 一步算出混多少）。
+-- READABLE_MIN 0.45：純藍提到約 (0.38, 0.38, 1)；職業色只有死騎（0.33）、薩滿（0.36）微亮一點；
+-- 面板的 LOOK.DIM（0.45 灰）剛好在線上、不受影響——要調高這個值先看 DIM
+------------------------------------------------------------
+local READABLE_MIN = 0.45
+Colors.READABLE_MIN = READABLE_MIN
+
+-- 明文 rgb 進、明文 rgb 出；非明文數字原樣回傳（秘密分量本來就只能餵 SetVertexColor，不會走到文字）
+function Colors.Readable(r, g, b)
+    if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number"
+        or S.IsSecret(r) or S.IsSecret(g) or S.IsSecret(b) then
+        return r, g, b
+    end
+    local y = 0.299 * r + 0.587 * g + 0.114 * b
+    if y >= READABLE_MIN then return r, g, b end
+    local t = (READABLE_MIN - y) / (1 - y)
+    return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
+end
+
+-- 六位 hex 進、六位 hex 出（不是 hex 就原樣回傳）
+function Colors.ReadableHex(hex)
+    if type(hex) ~= "string" or not hex:match("^%x%x%x%x%x%x$") then return hex end
+    local r, g, b = Colors.Readable(Colors.FromHex(hex))
+    return ("%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
+------------------------------------------------------------
 -- 暴雪 GameTooltip_UnitColor 的替身：邏輯照抄，但任何讀不到的輸入都退白色。
 -- （暴雪那支跑在我們的 tainted 呼叫路徑上會對秘密值做布林測試而炸）
 ------------------------------------------------------------

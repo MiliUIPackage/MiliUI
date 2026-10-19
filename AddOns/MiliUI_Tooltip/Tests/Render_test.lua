@@ -26,6 +26,7 @@ local function Setup(scale)
             borderColor = { r = 0.18, g = 0.18, b = 0.18, a = 1 } }, panel = { separators = true } },
     }
     H.Load(env, ns, "Libs/MiliUIWidgets/Secret.lua")
+    H.Load(env, ns, "Core/Colors.lua")
     H.Load(env, ns, "Panel/Patterns.lua")
     H.Load(env, ns, "Panel/Frame.lua")
     H.Load(env, ns, "Panel/Render.lua")
@@ -516,6 +517,7 @@ do
             borderColor = { r = 0.18, g = 0.18, b = 0.18, a = 1 } }, panel = { separators = true } },
     }
     H.Load(env, ns, "Libs/MiliUIWidgets/Secret.lua")
+    H.Load(env, ns, "Core/Colors.lua")
     H.Load(env, ns, "Panel/Patterns.lua")
     H.Load(env, ns, "Panel/Frame.lua")
     H.Load(env, ns, "Panel/Render.lua")
@@ -574,6 +576,22 @@ do
     local below = panel.height - (-f2.points[1][5] + 14)
     eq("頁尾帶：上 FOOTER_PAD", above, 6)
     eq("頁尾帶：上下同距", below, above)
+end
+
+------------------------------------------------------------
+-- 字色可讀性：太暗的保留色相往白混（寵物的選取色純藍 2026-10-19）
+------------------------------------------------------------
+do
+    local _, ns = Setup()
+    local C = ns.Colors
+    local function luma(r, g, b) return 0.299 * r + 0.587 * g + 0.114 * b end
+    local r, g, b = C.Readable(0, 0, 1)
+    check("純藍：提亮到門檻", math.abs(luma(r, g, b) - C.READABLE_MIN) < 1e-9)
+    check("純藍：色相不變（仍是藍、r＝g）", b == 1 and r == g and r > 0)
+    eq("夠亮的不動", select(2, C.Readable(1, 0.82, 0)), 0.82)
+    eq("面板 DIM 灰不動", C.Readable(0.45, 0.45, 0.45), 0.45)
+    eq("hex 版", C.ReadableHex("0000ff"), "6161ff")
+    eq("非 hex 原樣", C.ReadableHex("class"), "class")
 end
 
 H.finish("Render_test")

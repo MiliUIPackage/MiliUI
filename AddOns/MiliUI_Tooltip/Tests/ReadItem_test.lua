@@ -54,7 +54,7 @@ local function Setup(locale)
             panel = { separators = true, strip = true, statMarkers = true, levelBadge = true, numberColor = "class" } },
         Skin = { State = {}, Poll = function() end, Unpoll = function() end, Each = function() end },
     }
-    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Panel/Patterns.lua", "Panel/Frame.lua", "Panel/Render.lua",
+    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Core/Colors.lua", "Panel/Patterns.lua", "Panel/Frame.lua", "Panel/Render.lua",
         "Panel/Native.lua", "Panel/ReadFallback.lua", "Panel/Try.lua", "Panel/ReadSpell.lua", "Panel/ViewSpell.lua",
         "Panel/ReadItem.lua", "Panel/ViewItem.lua" }) do
         H.Load(env, ns, f)

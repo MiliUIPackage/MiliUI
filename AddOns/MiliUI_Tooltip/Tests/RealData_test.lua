@@ -43,7 +43,7 @@ local function Load()
         Skin = { State = {}, Poll = function() end, Unpoll = function() end, Each = function() end },
     }
     env.RAID_CLASS_COLORS.PALADIN = { r = 0.96, g = 0.55, b = 0.73 }
-    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Panel/Patterns.lua", "Panel/Frame.lua", "Panel/Render.lua",
+    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Core/Colors.lua", "Panel/Patterns.lua", "Panel/Frame.lua", "Panel/Render.lua",
         "Panel/Native.lua", "Panel/ReadFallback.lua", "Panel/Try.lua", "Panel/ReadSpell.lua", "Panel/ViewSpell.lua",
         "Panel/ReadItem.lua", "Panel/ViewItem.lua" }) do
         H.Load(env, ns, f)
