@@ -189,13 +189,19 @@ local function Line(panel, ctx, x, y, w, color, alpha)
     return tex
 end
 
+-- 線（Rule／Divider）頂到下一段文字的距離：兩種線共用，段落開頭的留白才一致
+-- （屬性分組：主屬性在 Divider 下、次要／其他屬性在 Rule 下，差一截就看得出來）
+local function BelowLine(panel, m)
+    return Panel.Snap(panel, m.diamond * 0.75) + m.dividerSpace
+end
+
 -- 整寬 1px 線；before 是線上方的空白（省略＝RULE_SPACE）
 local function Rule(panel, ctx, y, before)
     local m = ctx.m
     y = y + (before or m.ruleSpace)
     if not Separators() then return y end
     Line(panel, ctx, m.pad, y, panel.width - 2 * m.pad)
-    return y + m.px + m.ruleSpace
+    return y + BelowLine(panel, m)
 end
 Panel.Rule = Rule
 
@@ -217,7 +223,7 @@ local function Divider(panel, ctx, y, before)
     diamond:SetRotation(math.rad(45))
     local c = ctx.accent
     diamond:SetVertexColor(c[1], c[2], c[3], LOOK.DIAMOND_ALPHA)
-    return mid + Panel.Snap(panel, d * 0.75) + m.dividerSpace
+    return mid + BelowLine(panel, m)
 end
 Panel.Divider = Divider
 

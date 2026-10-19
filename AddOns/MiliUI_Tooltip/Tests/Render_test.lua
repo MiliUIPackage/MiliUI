@@ -139,7 +139,8 @@ do
     end
     check("Rule：畫了一條整寬 1px 線", line ~= nil)
     eq("Rule：線在上一段下方 6", -line.points[1][5], aBottom + 6)
-    eq("Rule：下一段在線下方 1px + 6", -b.points[1][5], aBottom + 6 + 1 + 6)
+    local ruleBelow = -b.points[1][5] + line.points[1][5]
+    eq("Rule：下一段在線頂下方 ◆半高 + 8（跟 Divider 同）", ruleBelow, 4 + 8)
     eq("Rule：白 alpha 0.22", line.color[4], 0.22)
 
     ns.db.panel.separators = false
@@ -161,6 +162,13 @@ do
         local t = panel.textures[i]
         if t.rotation and t.rotation ~= 0 then diamond = t end
     end
+    local divLine
+    for i = 1, panel.texturesUsed do
+        local t = panel.textures[i]
+        if t.shown and t.h == 1 and (t.rotation or 0) == 0 then divLine = t end
+    end
+    eq("Divider：線頂到下一段跟 Rule 一樣（段落開頭留白一致）",
+        divLine and (-FindText(panel, "B").points[1][5] + divLine.points[1][5]), ruleBelow)
     check("Divider：◆ 轉 45°", diamond and math.abs(diamond.rotation - math.rad(45)) < 1e-9)
     eq("Divider：◆ 邊長 5", diamond and diamond.w, 5)
     check("Divider：◆ 職業色", diamond and math.abs(diamond.color[1] - 0.25) < 1e-9 and diamond.color[4] == 0.9)
