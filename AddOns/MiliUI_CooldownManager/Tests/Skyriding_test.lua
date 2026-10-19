@@ -140,6 +140,7 @@ eq("預設：開", sd.enabled, true)
 eq("預設：接力", sd.placement, "relay")
 eq("預設：接力核心技能", sd.relayTo, "essential")
 eq("預設：藏起冷卻管理器", sd.hideCdm, true)
+eq("預設：保留施法條", sd.keepCastbar, true)
 eq("預設：不錨定", sd.anchor, false)
 eq("預設：寬 0", sd.width, 0)
 eq("預設：旋轉急衝圖示不顯示（有長條）", sd.rows.surge.icon.mode, "off")
@@ -656,6 +657,19 @@ do
     eq("hideCdm 關：條照常", Vis.Alpha("essential", keep), 1)
     eq("藏冷卻管理器：資源條 0", Vis.PanelAlpha("resources", on, 1), 0)
     eq("藏冷卻管理器：施法條 0", Vis.PanelAlpha("castbar", on), 0)
+    -- 保留施法條（keepCastbar）：施法條照自己的條件（在施法才顯示），專注目標施法條照樣藏
+    local keepCast = S{ skyridingPanel = true, skyridingHideCdm = true, skyridingKeepCast = true }
+    local realCastbar = ns.Castbar
+    ns.Castbar = { IsActive = function() return true end }
+    eq("保留施法條：施法中 1", Vis.PanelAlpha("castbar", keepCast), 1)
+    eq("保留施法條：關著照樣 0", Vis.PanelAlpha("castbar", on), 0)
+    eq("保留施法條：資源條照樣 0", Vis.PanelAlpha("resources", keepCast, 1), 0)
+    ns.FocusCastbar = { IsActive = function() return true end }
+    eq("保留施法條：專注目標施法條照樣 0", Vis.PanelAlpha("focuscast", keepCast), 0)
+    ns.FocusCastbar = nil
+    ns.Castbar = { IsActive = function() return false end }
+    eq("保留施法條：沒在施法 0", Vis.PanelAlpha("castbar", keepCast), 0)
+    ns.Castbar = realCastbar
     eq("藏冷卻管理器：天空騎術自己 1", Vis.PanelAlpha("skyriding", on), 1)
     eq("天空騎術沒顯示：0", Vis.PanelAlpha("skyriding", S()), 0)
     eq("EvaluatePanel：Active → 1", Vis.EvaluatePanel("skyriding", { enabled = true }, on), 1)
@@ -678,6 +692,10 @@ do
     local s = Vis.Snapshot()
     eq("Snapshot：skyridingPanel", s.skyridingPanel, true)
     eq("Snapshot：skyridingHideCdm", s.skyridingHideCdm, true)
+    eq("Snapshot：保留施法條預設開", s.skyridingKeepCast, true)
+    ns.profile.skyriding.keepCastbar = false
+    eq("Snapshot：保留施法條關", Vis.Snapshot().skyridingKeepCast, false)
+    ns.profile.skyriding.keepCastbar = true
     ns.profile.skyriding.hideCdm = false
     s = Vis.Snapshot()
     eq("Snapshot：hideCdm 關", s.skyridingHideCdm, false)

@@ -55,6 +55,7 @@
 -- 天空騎術的「藏起冷卻管理器」（profile.skyriding.hideCdm）：面板顯示中（Snapshot.skyridingHideCdm）時，
 -- 每一條（Vis.Alpha）與天空騎術以外的每個面板（PanelAlpha）都是 0。加在既有的限制前面，不寫進每條的
 -- visibility 表、不改存檔；編輯模式中不套用（編輯模式的全亮在它前面判斷）。
+-- profile.skyriding.keepCastbar（預設開；Snapshot.skyridingKeepCast）時施法條不受它影響、照自己的條件。
 --
 -- 事件處理器只標髒、下一幀套（PLAYER_TARGET_CHANGED 會在按 Tab 的 secure 流程裡同步派送，
 -- 見 wow-121-addon-code-in-secure-stack）。脫戰多等 0.1 秒：戰鬥結束那一瞬間常常緊跟著
@@ -206,6 +207,7 @@ local function Snapshot()
         petBattle = InPetBattle(),
         skyridingPanel = sky,
         skyridingHideCdm = SR and SR.HidesCdm and SR.HidesCdm(sky) or false,
+        skyridingKeepCast = SR and SR.KeepsCastbar and SR.KeepsCastbar() or false,
         -- 坐騎特效按鈕上次判的「該顯示」（Modules/MountSpecial.lua；同樣不重讀 API）
         mountButton = ns.MountSpecial and ns.MountSpecial.Visible and ns.MountSpecial.Visible() or false,
     }
@@ -287,8 +289,10 @@ function Vis.PanelAlpha(key, s, essAlpha)
     if ns.EditMode and ns.EditMode.active then return 1 end
     s = s or Snapshot()
     if s.petBattle then return 0 end
-    -- 天空騎術的「藏起冷卻管理器」不藏天空騎術自己，也不藏坐騎特效按鈕（它就是給天空騎術時用的）
-    if key ~= "skyriding" and key ~= "mountspecial" and s.skyridingHideCdm then return 0 end
+    -- 天空騎術的「藏起冷卻管理器」不藏天空騎術自己，也不藏坐騎特效按鈕（它就是給天空騎術時用的）；
+    -- 「保留施法條」開著時也不藏施法條
+    if key ~= "skyriding" and key ~= "mountspecial" and s.skyridingHideCdm
+       and not (key == "castbar" and s.skyridingKeepCast) then return 0 end
     local ess = 1
     if (key == "resources" or key == "pips" or key == "custombars" or key == "procdeck") and cfg.fadeWithEssential ~= false then
         ess = essAlpha or current.essential

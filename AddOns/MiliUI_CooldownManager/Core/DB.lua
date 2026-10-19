@@ -587,6 +587,7 @@ SkyridingDefaults = function()
         placement        = "relay",        -- relay（接力：佔用 relayTo 那條的位置）| standalone（獨立擺放）
         relayTo          = "essential",    -- 接力對象：essential（核心技能，使用者 2026-10-11 指定預設）| resources（資源條）
         hideCdm          = true,           -- 面板顯示中時，其餘的條與面板 alpha 0（編輯模式中不套用）
+        keepCastbar      = true,           -- hideCdm 時施法條照常（德魯伊飛行形態、坐騎上採集也在施法；玩家 2026-10-19 要求，預設開）
         pos              = { point = "CENTER", x = 0, y = -180 },   -- standalone 用
         anchor           = false,          -- standalone 可以在編輯模式錨到別條
         width            = 0,              -- 0 ＝ 跟核心技能第一列同寬（同資源條）
