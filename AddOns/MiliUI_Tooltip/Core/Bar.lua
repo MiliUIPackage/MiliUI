@@ -69,15 +69,10 @@ function Bar.ApplySettings(tip)
     local state = Skin.Get(tip)
     if not state or not state.bar or not ns.db then return end
     local sb = ns.db.statusbar
+    local bar = state.bar
     -- 重繪面板顯示單位時貼面板（原生與 skin 都在 alpha 0），見 Bar.SetHost
-    local bar, skin = state.bar, state.barHost or state.skin
-    if bar:GetParent() ~= skin then bar:SetParent(skin) end
-    local anchor = skin
-    if state.barHost and sb.position ~= "top" then
-        -- 面板底下有附屬框（別人加的行）時貼在整組的最下面，不壓在附屬框上
-        local box = state.barHost.extrasBox
-        if box and box:IsShown() then anchor = box end
-    end
+    local host = state.barHost or state.skin
+    if bar:GetParent() ~= host then bar:SetParent(host) end
 
     if not sb.enable then
         state.barUnit = nil
@@ -100,13 +95,21 @@ end
 -- 位置與 1px 黑框。黑框粗細跟 skin 邊框同一個基準（Skin.Pixel：tip 縮放後的有效縮放），
 -- 而且要在顯示時換算、跟上次不同才重排：Ensure 第一次跑的時候縮放不一定是最終值，
 -- 之後又只在改設定時重跑（同 Skin.LayoutBorder 的坑）。Activate／ActivateFake 每次都叫一次
+-- 重繪面板顯示單位時（state.barHost＝面板）貼面板；面板底下有附屬框（別人加的行）時貼在整組的最下面，
+-- 不壓在附屬框上。貼的對象也進「跟上次一樣就不重排」的比對
 function Bar.Layout(state)
-    local bar, skin = state.bar, state.skin
+    local bar = state.bar
     if not bar or not ns.db then return end
-    local bw = Skin.Pixel(skin, 1)
-    if state.barPx == bw then return end
-    state.barPx = bw
     local sb = ns.db.statusbar
+    local host = state.barHost or state.skin
+    local anchor = host
+    if state.barHost and sb.position ~= "top" then
+        local box = state.barHost.extrasBox
+        if box and box:IsShown() then anchor = box end
+    end
+    local bw = Skin.Pixel(host, 1)
+    if state.barPx == bw and state.barAnchor == anchor then return end
+    state.barPx, state.barAnchor = bw, anchor
     local h = P.Scale(math.max(1, sb.height or 4))
     -- 血條是離框體 4px 的獨立條（使用者定案）。黑框畫在條的外緣，所以條本身
     -- 要往內縮 1px（bw），讓**黑框的外緣**貼齊框體外緣——條貼齊的話黑框會凸出去

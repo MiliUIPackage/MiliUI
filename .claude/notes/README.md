@@ -396,7 +396,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-shoppinglist.md](project-miliui-shoppinglist.md) | MiliUI_ShoppingList 專業採購清單——架構、跟參考來源不同的六個決定、拍賣場貼齊下方與兩份位置、加入鈕避開鄰居、taint 紀律、待驗證清單 |
 | [project-miliui-skin.md](project-miliui-skin.md) | 米利的介面外觀 MiliUI_Skin —— 暴雪原生視窗換成設定視窗皮（47 份配方＋6 支第三方、2026-09-24 起預設啟用）；只重畫不重排的契約與 lint 現況、各輪抓到的坑、仍開著的待辦與待驗證 |
 | [project-miliui-snap-bars.md](project-miliui-snap-bars.md) | 套組各插件的框互相磁吸（MiliUISnap v4）——標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊、滑鼠淡出群組；vendor 複製（以 ls 為準）、接點、為什麼有些框不貼附 |
-| [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip — 取代 TinyTooltip 的自製滑鼠提示重寫版：taint 接觸面清單、架構決策、接管名單（含 FriendsTooltip 與 MiliUITip_API.Adopt）、v1 刻意捨棄的功能、戰鬥中秘密值與 Leatrix 殘留兩次破案的規則 |
+| [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip — 取代 TinyTooltip 的自製滑鼠提示重寫版（物品／法術／單位走重繪面板）：taint 接觸面清單、架構決策、接管名單（含 FriendsTooltip 與 MiliUITip_API.Adopt）、v1 刻意捨棄的功能、戰鬥中秘密值與 Leatrix 殘留兩次破案的規則 |
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 自製插件的註解與 .claude/notes 都不點名第三方插件；只有「實際複製過來的檔案」與致謝區塊要留出處；判準是 repo 裡有沒有那個東西 |
 | [project-miliui-uf-refresh-journal.md](project-miliui-uf-refresh-journal.md) | MiliUI_UnitFrames「換目標後名字停在上一個單位」的診斷設計（/muf debug 的重畫時間線、看門狗只記不修）與另一支頭像引擎的對照；根因至今未在實機抓到 |
 | [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | MiliUI_UnitFrames 的顯示條件走「兩層閘框」（外層 RegisterStateDriver 巨集條件、內層 Lua 只剩副本類型，DB v19 顯示時機 OR＋限制優先）；整框透明度單一出口與脫戰淡出的兩個例外（有目標／血量不滿走曲線，秘密 alpha 模型不繼承） |
