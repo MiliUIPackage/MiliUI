@@ -339,4 +339,12 @@ if ( self.setText == 1) then
 
 相關：[[wow-121-secret-values]]、[[wow-121-unit-api-secrets]]、[[project-miliui-chatbar-snap]]
 
+## 2026-10-20：第六條路 —— Tab 循環頻道呼叫 UpdateHeader
+
+`ChatFrameEditBox.lua:679` 同一行減法，堆疊是 `OnTabPressed:451 securecall` → 我們換掉的全域 `ChatEdit_CustomTabPressed` → `ChatEdit_UpdateHeader`，locals `type="SAY"`、`tellTarget=<secret>`。
+**chatType 已經是明文 SAY 照樣炸** —— 第四條路說的「輸入框幾何一路秘密到 /reload」實證：秘密的是標頭／輸入框的 `GetLeft/GetRight`，跟這次寫什麼字無關。
+Tab 鍵沒有超連結那種乾淨路可走（`ChatEdit_CustomTabPressed` 是暴雪開給插件的覆寫點，進來就是髒的）。
+修法（`ChatBar.lua` 的 `HeaderGeometrySecret`）：**改屬性之前**先量輸入框與標頭的左右邊，秘密就整個不接手、回 false 交還暴雪的 Tab；代價是該次登入開過秘密名字密語之後 Tab 循環失效到 /reload。
+⇒ 通則：**插件任何呼叫 `UpdateHeader` 的路都要先過這道閘**（`SetChatType` 之後順手刷標頭的寫法都算）。
+
 **第三方也會從別條路把聊天輸入框弄髒**（2026-10-09 `030e0bed4`）：Raider.IO 用 `Menu.ModifyMenu` 改全部 `MENU_UNIT_*` 選單，右鍵好友→密語時 taint.log 顯示 `LAST_ACTIVE_CHAT_EDIT_BOX` 以 RaiderIO 的污染寫入——症狀跟我們自己開框一模一樣，先看 taint.log 是誰寫的再修。本體 `Enhance/RaiderIO_UnitMenu.lua` 登入時寫 `RaiderIO_Config.disableDropdownMenu` 把它的選單項目關掉（它第一次開選單才讀，所以登入時寫有效），插件強化頁可關、預設開。

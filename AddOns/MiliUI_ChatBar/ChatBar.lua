@@ -678,6 +678,22 @@ local function BuildTabCycle()
     return list
 end
 
+-- ⚠ Tab 這條路跑在**我們的**堆疊上（ChatEdit_CustomTabPressed 是被我們換掉的全域，
+-- securecall 進來就是髒的），所以 ChatEdit_UpdateHeader 也是髒的執行。它在 679 行做
+-- `header:GetRight() - header:GetLeft()`，而輸入框只要開過一次秘密名字的密語，標頭與
+-- 輸入框的幾何就一路是秘密數字到 /reload（暴雪自己用秘密寬度呼叫 SetTextInsets，見
+-- .claude/notes/wow-121-chat-reply-secret-taint.md 第四條路）—— 髒執行碰到就崩，
+-- 而且崩的時候 chatType 已經改了、標頭沒跟上。
+-- 判斷要在改任何屬性之前做：讀得到秘密幾何就整個不接手，交還暴雪預設的 Tab。
+local issecret = ns.Secret.IsSecret
+local function HeaderGeometrySecret(editBox)
+    local name = editBox:GetName()
+    local header = editBox.header or (name and _G[name .. "Header"])
+    if issecret(editBox:GetLeft()) or issecret(editBox:GetRight()) then return true end
+    if header and (issecret(header:GetLeft()) or issecret(header:GetRight())) then return true end
+    return false
+end
+
 local function ApplyChatType(editBox, entry)
     editBox:SetAttribute("chatType", entry.chatType)
     if entry.chatType == "CHANNEL" then
@@ -687,6 +703,7 @@ local function ApplyChatType(editBox, entry)
 end
 
 local function CycleChatType(editBox, backwards)
+    if HeaderGeometrySecret(editBox) then return false end
     local list = BuildTabCycle()
     if #list == 0 then return false end
 
