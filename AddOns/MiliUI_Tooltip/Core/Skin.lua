@@ -155,6 +155,7 @@ function Skin.Attach(tip, opts)
     -- 顯示時重新壓層級＋重申 NineSlice 隱藏；隱藏時清掉單位暫態、還原內容色
     skin:SetScript("OnShow", function(self)
         LowerSkinLevel(self)
+        Skin.LayoutBorder(state)         -- 縮放可能在接管之後才定（登入時），見 LayoutBorder
         NeutralizeNineSlice(tip)
         Skin.NeutralizeTemplateBar(tip)
         Skin.RaiseAccents(tip)
@@ -203,28 +204,25 @@ local function SkinPixel(skin, n)
     return n * PixelUtil.GetPixelToUIUnitFactor() / scale
 end
 
-function Skin.ApplyBase(tip)
-    local state = State[tip]
-    if not state or not ns.db then return end
-    local g = ns.db.general
-    local skin, bg, edges, mask = state.skin, state.bg, state.edges, state.mask
-
-    -- 縮放先寫（底下的邊框粗細照縮放後的有效縮放換算）：寫在暴雪 tip 上的定位類 API（接觸面清單第 8 條），skin 是 child 會跟著縮
-    -- ⚠ keepScale 的不寫：那種框掛在已經縮放過的 tooltip 底下，再縮一次會變成平方
-    if not state.keepScale and not S.IsForbiddenObject(tip) and tip.SetScale then
-        pcall(tip.SetScale, tip, g.scale or 1)
-    end
-
-    local inset = SkinPixel(skin, g.borderSize or 1)
+-- 邊框／背景／遮罩的錨點（全部跟著 inset 走）。inset 跟上次一樣就不動。
+-- ⚠ inset 不能只在 ApplyBase 算一次：ApplyBase 第一次跑在 ADDON_LOADED，那時 UIParent 還沒套上
+--   最終的 UI 縮放（見 wow-login-screen-size-not-final），算出來的「1px」實際不到 1 個實體像素，
+--   之後又沒人重算 ⇒ 登入／reload 後單位提示的上邊、左邊整條不見（2026-10-20 玩家回報：
+--   右下角釘在整數像素上還蓋得到像素中心，上、左落在小數座標就漏掉）。
+--   所以 skin 每次 OnShow 都重新換算一次、變了才重排（重繪面板 Panel.Pixel 本來就是畫的時候才算）。
+local function LayoutBorder(state)
+    local g = ns.db and ns.db.general
+    if not g then return end
+    local inset = SkinPixel(state.skin, g.borderSize or 1)
+    if state.borderInset == inset then return end
     state.borderInset = inset
 
+    local bg = state.bg
     bg:ClearAllPoints()
     bg:SetPoint("TOPLEFT", inset, -inset)
     bg:SetPoint("BOTTOMRIGHT", -inset, inset)
-    bg:SetTexture(Media.Background(g.bgfile))
-    bg:SetTexCoord(0, 1, 0, 1)
 
-    local e = edges
+    local e = state.edges
     for i = 1, 4 do
         e[i]:ClearAllPoints()
         e[i]:SetShown(inset > 0)
@@ -236,10 +234,30 @@ function Skin.ApplyBase(tip)
         e[4]:SetPoint("TOPRIGHT", 0, -inset); e[4]:SetPoint("BOTTOMRIGHT", 0, inset); e[4]:SetWidth(inset)
     end
 
+    local mask = state.mask
     mask:ClearAllPoints()
     mask:SetPoint("TOPLEFT", inset, -inset)
-    mask:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -inset, -32)
-    mask:SetShown(g.mask and true or false)
+    mask:SetPoint("BOTTOMRIGHT", state.skin, "TOPRIGHT", -inset, -32)
+end
+Skin.LayoutBorder = LayoutBorder
+
+function Skin.ApplyBase(tip)
+    local state = State[tip]
+    if not state or not ns.db then return end
+    local g = ns.db.general
+
+    -- 縮放先寫（底下的邊框粗細照縮放後的有效縮放換算）：寫在暴雪 tip 上的定位類 API（接觸面清單第 8 條），skin 是 child 會跟著縮
+    -- ⚠ keepScale 的不寫：那種框掛在已經縮放過的 tooltip 底下，再縮一次會變成平方
+    if not state.keepScale and not S.IsForbiddenObject(tip) and tip.SetScale then
+        pcall(tip.SetScale, tip, g.scale or 1)
+    end
+
+    state.borderInset = nil      -- 設定可能改了粗細：強制重排
+    LayoutBorder(state)
+
+    state.bg:SetTexture(Media.Background(g.bgfile))
+    state.bg:SetTexCoord(0, 1, 0, 1)
+    state.mask:SetShown(g.mask and true or false)
 
     Skin.ResetColors(tip)
 end

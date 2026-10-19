@@ -34,5 +34,9 @@ UIParent 比最終值小（2026-10-12 實例：CVar 0.76、實際 0.53，登入�
 - 回報「位置存不住／reload 後跑掉」時先看存檔座標是不是帶小數又剛好是夾邊公式的值，
   那是這個坑的指紋。傷害統計的除錯分頁（`/mdm debug`）把存檔座標、實際矩形、UIParent 尺寸／縮放一次印出來，
   其他插件要查同型問題可以照它做一份。
+- ⚠ **像素量也是同一個坑**：`ADDON_LOADED` 時用 `GetEffectiveScale()` 換算「n 個實體像素」（P.Pixel 那種）也會算錯，
+  因為縮放還沒定。MiliUI_Tooltip 單位提示的 1px 邊框在載入時算一次就不再重算，登入／reload 後邊框實際不到 1px，
+  加上關掉像素貼齊，上邊、左邊整條不見（2026-10-20）。修法：**在顯示的時候換算、跟上次不同才重排**
+  （skin OnShow 呼叫 `Skin.LayoutBorder`），不要只靠設定變更時重算。
 
 相關：[[project-miliui-damagemeters]]、[[wow-setscale-offset-units]]、[[project-miliui-minimap]]、[[project-miliui-mythicplus]]
