@@ -97,6 +97,7 @@
 -- 值變了就叫 G.SyncActive）。實機 log（12.1，戰鬥中）：按下去那一刻 true、增益掉了那一刻 false，都是明文。
 --   ⚠ 冷卻格的 IsActive()、item 上的 cooldownUseAuraDisplayTime 欄位、IsExpired() 在 12.1 都沒用：
 --     IsActive 跟著整條重排翻、欄位永遠 false、IsExpired 永遠 true（暴雪每次刷新幾乎都是 Clear），只有那支 setter 可靠。
+-- 戰鬥藥水代畫（rec.kind ＝ "potion"，Modules/Custom.lua）也走這支：生效＝PotionWindow 的視窗開著，開關照暴雪那一格的 activeGlow。
 -- 這支只管暴雪 item。自訂光環格（AuraContainer）吃同一個逐法術開關，但發光在 Modules/Custom.lua 的
 -- initializeFrame 裡建在引擎按鈕底下（按鈕只在光環存在時顯示），不經過這裡。
 -- 飾品欄冷卻格的增益疊層（rec.buffOverlay）也是那一套：開關照冷卻格那一筆的 activeGlow，畫在疊層按鈕底下；
@@ -652,6 +653,11 @@ function G.SyncActive(owner, rec, barKey)
         active = owner ~= nil and ReadActive(owner)
     elseif not rec.custom then
         active = rec.auraFlag == true
+    elseif rec.kind == "potion" then
+        -- 戰鬥藥水代畫（Modules/PotionWindow.lua）：只在視窗開著時放上條，生效＝視窗開著（明文）；
+        -- 開關照暴雪那一格（rec.cooldownID 是暴雪的數字 id）的 activeGlow。長條形狀 rec.noGlow，Start 擋掉
+        local PW = ns.PotionWindow
+        active = PW ~= nil and PW.Active ~= nil and PW.Active()
     end
     -- 層數發光開著（Core/StackGate.lua，rec.stackCfg.glow）：生效發光讓位
     local stackGlow = rec.stackCfg ~= nil and rec.stackCfg.glow ~= nil

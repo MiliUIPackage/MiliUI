@@ -20,7 +20,9 @@
 --   * 同一時間一個視窗（戰鬥藥水共用冷卻）：新的一瓶直接取代、重新起算；50ms 內同一個法術重複派送不算。
 --   * 收掉：到期（一個 C_Timer.After(剩餘 + 0.05)＋世代號，不輪詢）、死亡。
 --     已知限制：喝到一半 /reload 那一瓶不再代畫（暴雪那格自己補上就照暴雪的）；戰鬥中被取消照計時跑完。
---   * 視窗開、關、換瓶 ⇒ Custom.PotionChanged（代畫格標髒）＋ Bars.RequestAll("membership")（一場一兩次）。
+--   * 視窗開、關、換瓶 ⇒ Custom.PotionChanged（代畫格標髒）＋ Bars.RequestAll("membership")（一場一兩次）＋
+--     Sound.OnPotionWindow（暴雪那一格設的出現／消失音效與語音由視窗送，視窗期間暴雪那格自己的掛勾閉嘴）。
+--     生效發光不用叫：重排時 Glow.SyncActive 對代畫框照「視窗開著」點亮（開關照暴雪那一格的 activeGlow）。
 --   * 事件處理器只收參數、下一幀做（施放事件可能在按鍵的 secure 流程裡同步派送；
 --     .claude/notes/wow-121-addon-code-in-secure-stack.md）。秘密的 spellID 當場丟掉（只記次數）。
 --
@@ -111,10 +113,13 @@ local function SpellName(id)
     return "#" .. tostring(id)
 end
 
-local function Notify()
-    local CU, B = ns.Custom, ns.Bars
+-- what："gain"（開了／換瓶）｜"lose"（收掉）：暴雪那一格的出現／消失音效由這裡送（Core/Sound.lua 的 S.OnPotionWindow，
+-- 視窗期間暴雪那格自己的掛勾閉嘴）；發光不用叫，Bars 重排時 Glow.Sync 照視窗狀態點亮／熄掉
+local function Notify(what)
+    local CU, B, S, C = ns.Custom, ns.Bars, ns.Sound, ns.Catalog
     if CU and CU.PotionChanged then CU.PotionChanged() end
     if B and B.RequestAll then B.RequestAll("membership") end
+    if S and S.OnPotionWindow and C and C.PotionProxyIDs then S.OnPotionWindow(what, C.PotionProxyIDs()) end
 end
 
 local function Close(reason)
@@ -122,7 +127,7 @@ local function Close(reason)
     gen = gen + 1
     PW.probe.closed = ("%.1f %s %s"):format(Now(), SpellName(st.id), reason)
     PW.Reset(st)
-    Notify()
+    Notify("lose")
 end
 
 local function Schedule()
@@ -143,7 +148,7 @@ local function OnCast(spellID, t)
         PW.probe.opened = PW.probe.opened + 1
         PW.probe.last = ("%.1f %s(%d) %.0f 秒"):format(t, SpellName(spellID), spellID, st.d)
         Schedule()
-        Notify()
+        Notify("gain")
     end
 end
 

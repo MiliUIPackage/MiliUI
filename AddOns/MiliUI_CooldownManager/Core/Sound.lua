@@ -75,6 +75,7 @@
 -- 暴雪哪天拿掉這兩支：退回 OnActiveStateChanged 後掛勾＋前後狀態比對（IsActive／IsShown，
 -- 讀得到才算），一樣走合併。
 -- 圖騰型的增益（不是光環）不經過 UNIT_AURA，暴雪那兩支不會叫 ⇒ 沒有出現／消失音效（README）。
+-- 戰鬥藥水增益格例外：暴雪那一格喝下去常常不生效，出現／消失改由戰鬥藥水視窗送（S.OnPotionWindow，見那一段）。
 --
 -- ── 自訂光環格 ─────────────────────────────────────────────────────────
 -- C_UnitAuras.AddAuraSound(Enum.UnitAuraSoundTrigger.Added／ApplicationsIncreased／Removed, { unitToken, spellID,
@@ -847,12 +848,45 @@ local function Push(rec, what)
 end
 S.PushAura = Push        -- 測試／除錯用
 
+-- 戰鬥藥水代畫（Modules/PotionWindow.lua）：視窗開／關是我們自己判的（明文），出現／消失音效由視窗負責（S.OnPotionWindow）。
+-- 視窗開著、以及收掉後 POTION_QUIET 秒內，暴雪那一格自己的出現／消失掛勾不排：暴雪那格常在後段才自己補上生效
+-- （實機：流光藥劑 30 秒只亮最後 7 秒），不擋的話會再響一次出現、結束時兩邊各響一次消失。
+-- 視窗開之前（同一幀）暴雪先響的那一次，跟視窗的出現同一個節流 key（"gain:<id>"），S.Play 擋掉第二次
+local POTION_QUIET = 1.5
+local potionQuietUntil = -1
+local potionRecs = {}          -- cooldownID → 批次用的假 rec（Logic.Push 拿 rec 當合併的 key）
+
+local function PotionQuiet(rec)
+    local id = rec and rec.cooldownID
+    local C, PW = ns.Catalog, ns.PotionWindow
+    if id == nil or not (C and C.PotionProxyOf and C.PotionProxyOf(id)) then return false end
+    return (PW ~= nil and PW.Active ~= nil and PW.Active()) or Now() < potionQuietUntil
+end
+S.PotionQuiet = PotionQuiet     -- 測試用
+
+-- what："gain"（視窗開了／換瓶）｜"lose"（到期、死亡）；ids：暴雪的戰鬥藥水增益格（Catalog.PotionProxyIDs）
+function S.OnPotionWindow(what, ids)
+    if what == "lose" then potionQuietUntil = Now() + POTION_QUIET end
+    for _, id in ipairs(type(ids) == "table" and ids or {}) do
+        local r = potionRecs[id]
+        if not r then
+            r = { cooldownID = id }
+            potionRecs[id] = r
+        end
+        Push(r, what)
+    end
+end
+
 local function OnApplied(item)
-    Push(ns.Viewers.frames[item], "gain")
+    local rec = ns.Viewers.frames[item]
+    if PotionQuiet(rec) then return end
+    Push(rec, "gain")
 end
 
 local function OnRemoved(item)
-    Push(ns.Viewers.frames[item], "lose")
+    local rec = ns.Viewers.frames[item]
+    if PotionQuiet(rec) then return end
+    Push(rec, "lose")
 end
 
 -- 退路：暴雪的布林 getter（pcall、明文才算）
@@ -875,6 +909,7 @@ local function OnActiveChanged(item)
     if rec.soundActiveID == rec.cooldownID then before = rec.soundActive end
     rec.soundActive, rec.soundActiveID = now, rec.cooldownID
     if before == nil or before == now then return end
+    if PotionQuiet(rec) then return end              -- 戰鬥藥水：音效歸視窗（見上面）
     Push(rec, now and "gain" or "lose")
 end
 

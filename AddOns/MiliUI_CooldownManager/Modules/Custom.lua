@@ -1841,7 +1841,8 @@ function CU.Proxies() return proxies end
 --     長條框條身 SetTimerDuration(RemainingTime)＋.Bar.Timer 秒數；圖示框 Cooldown 吃同一顆（reverse，跟暴雪增益圖示一樣）。
 --   * 它是增益不是冷卻：rec.spellID 留 nil（SpellIndex、按鍵文字、可點擊、觸發發光、施放後提醒都不進來）、不武裝就緒探針、
 --     不去飽和、不寫 cdOnCD、不疊增益／觸發疊層；長條本來就 noGlow。冷卻／數量事件不聽（WantedEvents 只算 spell／item／slot）。
---   * 這一版不做：圖示上的「生效發光」（overrides[id].activeGlow，掛在暴雪 item 上）、出現／消失音效（暴雪 item 的警示）——README 有記。
+--   * 生效發光：Glow.SyncActive 對 kind "potion" 判「視窗開著」，開關照那一格的 activeGlow（圖示才畫；長條 noGlow）。
+--   * 出現／消失音效：視窗開／關時 PotionWindow 叫 Sound.OnPotionWindow 送，視窗期間暴雪那一格自己的掛勾閉嘴（Core/Sound.lua）。
 ------------------------------------------------------------
 function CU.PotionProxy(cooldownID, barKey)
     local key = "potion:" .. tostring(cooldownID)

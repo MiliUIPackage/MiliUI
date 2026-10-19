@@ -327,6 +327,7 @@ applied(item); Flush()
 eq("沒設音效不響", #plays, n0)
 irec.cooldownID = 21
 
+
 -- 不顯示（只給其他插件讀取；逐法術 hidden）：item 停放著（沒認領、rec.parked）照樣響——掛勾在 item 上、不看放格
 DB.SetOverride(21, "hidden", true)
 irec.parked, irec.claimKey = true, nil
@@ -1118,6 +1119,49 @@ do
 end
 
 check("DebugLine 是字串", type(S.DebugLine()) == "string")
+
+-- 戰鬥藥水代畫（Modules/PotionWindow.lua）：出現／消失由視窗送；視窗開著與收掉後 1.5 秒內，暴雪那一格自己的掛勾閉嘴
+do
+    -- 放在檔尾：時間往後跳，不打亂前面各段的節流時間軸；音效設定與 item 沿用第 7 段的
+    irec.cooldownID, irec.parked = 21, nil
+    DB.SetOverride(21, "gainSound", "Bell")
+    DB.SetOverride(21, "loseSound", "Num")
+    local origCatalog, origPW = ns.Catalog, ns.PotionWindow
+    local winOn = false
+    ns.Catalog = { PotionProxyOf = function(id) return id == 21 end }
+    ns.PotionWindow = { Active = function() return winOn end }
+    state.now = 100400
+    local n1 = #plays
+    winOn = true
+    S.OnPotionWindow("gain", { 21 })
+    Flush()
+    eq("藥水視窗開：響出現", #plays, n1 + 1)
+    eq("藥水視窗開：出現音效", plays[#plays].path, media.Bell)
+    state.now = 100410
+    applied(item); Flush()
+    eq("視窗開著：暴雪那格的出現不響", #plays, n1 + 1)
+    state.now = 100430
+    removed(item); Flush()
+    eq("視窗開著：暴雪那格的消失不響", #plays, n1 + 1)
+    winOn = false
+    S.OnPotionWindow("lose", { 21 })
+    Flush()
+    eq("藥水視窗收：響消失", #plays, n1 + 2)
+    eq("藥水視窗收：消失音效", plays[#plays].path, media.Num)
+    state.now = 100431
+    removed(item); Flush()
+    eq("收掉後 1.5 秒內：暴雪那格的消失不響", #plays, n1 + 2)
+    check("PotionQuiet：收掉後 1.5 秒內成立", S.PotionQuiet(irec))
+    state.now = 100440
+    check("PotionQuiet：過了就不成立", not S.PotionQuiet(irec))
+    check("PotionQuiet：不是戰鬥藥水格不成立", not S.PotionQuiet({ cooldownID = 77 }))
+    applied(item); Flush()
+    eq("過了閉嘴期：暴雪那格的出現照響", #plays, n1 + 3)
+    S.OnPotionWindow("gain", nil)
+    Flush()
+    eq("ids 壞掉不響也不炸", #plays, n1 + 3)
+    ns.Catalog, ns.PotionWindow = origCatalog, origPW
+end
 
 print(("Sound_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

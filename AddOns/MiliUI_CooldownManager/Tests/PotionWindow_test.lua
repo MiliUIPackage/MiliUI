@@ -99,6 +99,7 @@ do
     local now = 1000
     local timers, deferred, handlers = {}, {}, {}
     local notified, potionChanged = 0, 0
+    local sounds = {}
     local SECRET = setmetatable({}, { __tostring = function() return "SECRET" end })
     local env = setmetatable({
         GetTime = function() return now end,
@@ -113,6 +114,8 @@ do
         Events = { Register = function(ev, key, fn) handlers[ev] = fn end },
         Bars = { RequestAll = function() notified = notified + 1 end },
         Custom = { PotionChanged = function() potionChanged = potionChanged + 1 end, Records = function() return {} end },
+        Catalog = { PotionProxyIDs = function() return { 198946 } end },
+        Sound = { OnPotionWindow = function(what, ids) sounds[#sounds + 1] = what .. ":" .. tostring(ids and ids[1]) end },
     }
     local loaded
     gns.RegisterCallback = function(ev, key, fn) if ev == "Loaded" then loaded = fn end end
@@ -148,6 +151,7 @@ do
     local id, st0, d = G.State()
     check("下一幀開了視窗", id == 500 and st0 == 1000 and d == 30)
     check("開了通知 Custom 與 Bars", potionChanged == 1 and notified == 1)
+    eq("開了送出現音效（暴雪那一格的 id）", sounds[1], "gain:198946")
     check("Active", G.Active())
 
     now = 1010
@@ -163,6 +167,7 @@ do
     RunTimers()
     check("到期收掉", G.State() == nil and not G.Active())
     check("收掉也通知", notified == 3)
+    eq("換瓶送一次出現、收掉送消失", table.concat(sounds, ","), "gain:198946,gain:198946,lose:198946")
 
     now = 1100
     cast("player", "guid", 501)

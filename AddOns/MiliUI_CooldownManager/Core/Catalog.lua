@@ -1716,6 +1716,16 @@ function C.PotionProxyOf(id)
     return src ~= nil and aura[src] and true or false
 end
 
+-- 目錄裡所有成立 PotionProxyOf 的 id（戰鬥藥水視窗開／關時，Core/Sound.lua 照這幾格的出現／消失音效響）
+function C.PotionProxyIDs()
+    local out = {}
+    for id in pairs(C.info or {}) do
+        if C.PotionProxyOf(id) then out[#out + 1] = id end
+    end
+    table.sort(out)
+    return out
+end
+
 -- 暴雪的「裝備欄追蹤」增益項目（EquipSlotTracked：飾品用掉／觸發之後身上的那個增益）→ slot, buff ｜ nil
 -- 判準照暴雪 CooldownViewerItemDataMixin 的 EquipSlotTracked 分支：資料帶 equipSlot，而且帶 buffSlot（明文正整數）
 -- 或資料本身的類別就是 EquipSlotTracked（玩家拖到別條，覆寫的是有效類別、資料類別不變）；資料類別是 EquipSlotEssential 的
