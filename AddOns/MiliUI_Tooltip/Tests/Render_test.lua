@@ -589,8 +589,8 @@ do
     check("純藍：提亮到門檻", math.abs(luma(r, g, b) - C.READABLE_MIN) < 1e-9)
     check("純藍：色相不變（仍是藍、r＝g）", b == 1 and r == g and r > 0)
     eq("夠亮的不動", select(2, C.Readable(1, 0.82, 0)), 0.82)
-    eq("面板 DIM 灰不動", C.Readable(0.45, 0.45, 0.45), 0.45)
-    eq("hex 版", C.ReadableHex("0000ff"), "6161ff")
+    eq("門檻上的灰不動", C.Readable(0.6, 0.6, 0.6), 0.6)
+    eq("hex 版", C.ReadableHex("0000ff"), "7d7dff")
     eq("非 hex 原樣", C.ReadableHex("class"), "class")
 end
 

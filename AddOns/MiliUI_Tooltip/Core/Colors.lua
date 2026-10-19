@@ -37,9 +37,9 @@ end
 -- 在提示的深底上幾乎看不見。**目前只套在選取色的文字 hex**（colorfunc.selection）：
 -- 使用者定案其他字色（職業色的死騎／薩滿、品質色的精良藍…）維持原色，那些沒有讀不到的問題。
 -- 亮度用 Rec.601 luma（gamma 空間，混白時是線性的 ⇒ 一步算出混多少）。
--- READABLE_MIN 0.45：純藍提到約 (0.38, 0.38, 1)
+-- READABLE_MIN 0.55：純藍提到約 (0.49, 0.49, 1) = #7d7dff（2026-10-20 使用者試 0.55；之前 0.45 → #6161ff）
 ------------------------------------------------------------
-local READABLE_MIN = 0.45
+local READABLE_MIN = 0.55
 Colors.READABLE_MIN = READABLE_MIN
 
 -- 明文 rgb 進、明文 rgb 出；非明文數字原樣回傳（秘密分量本來就只能餵 SetVertexColor，不會走到文字）
