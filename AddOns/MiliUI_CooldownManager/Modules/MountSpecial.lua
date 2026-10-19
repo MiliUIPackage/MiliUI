@@ -20,6 +20,11 @@
 -- 效果（HUD 皮的三態：只換明暗）：閒置字 0.75、滑過字 1.0＋亮一層、按下字 0.6＋暗一層＋字下沉 1 實體像素。
 --   按下去閃一下（像快捷列按鍵那種）：一層比鈕大兩個實體像素的白色 ADD 貼圖從 0 衝到 0.9 再淡掉（AnimationGroup，引擎跑）。
 --   編輯模式中不收滑鼠（不然蓋在覆蓋層上、拖曳變按鈕）。
+--   鈕的 frame level 拉高（容器 ＋ RAISE）：它常常疊在冷卻管理器的條上（預設錨在核心技能下方＝功能技能那一排；
+--   跟著天空騎術條時也是），而天空騎術把冷卻管理器淡到 alpha 0 時，那些格子照樣收滑鼠——暴雪 item 自己收，
+--   我們的 overlay 也刻意收（擋暴雪在空位冒提示，見 Core/Decorate_Tooltip.lua 檔頭）。同 strata 下它們的層級比
+--   UIParent 直屬容器的子框高，滑鼠在格子上 hover 被搶走、經過格距才摸到鈕 ⇒ 玩家 2026-10-19 回報
+--  「滑過有時閃一下、有時沒反應」（10-16 修掉的是設定視窗點擊層那一條，不是這條）。編輯模式退回原層級。
 --   外觀照套組 HUD 皮：0x1A 灰底 alpha 0.8、1 實體像素職業色邊（ns.Resources.Edges，P.Pixel）、白字描邊、直角。
 --
 -- 存檔：profile.mountspecial（Core/DB.lua 的 MountSpecialDefaults）。10-16 當天上午的版本把它放在 profile.skyriding.mountButton，
@@ -42,6 +47,8 @@ local HUD_BG = 0x1A / 255
 local A_IDLE, A_HOVER, A_PRESS = 0.75, 1, 0.6
 local FLASH_IN, FLASH_OUT, FLASH_PEAK = 0.06, 0.30, 0.9
 local FLASH_BLEED = 2          -- 閃光比鈕大幾個實體像素（溢出邊框，像快捷列按鍵的那層光）
+local RAISE = 200              -- 鈕比容器高幾層（壓過同 strata 的冷卻管理器格子與它們的 overlay，見檔頭）
+local TOP_ABOVE = 3            -- 文字與邊框的子框比鈕高幾層
 
 local container, btn, ui
 local visible = false          -- 上次 Refresh 判的「該顯示」（Visibility 的快照讀這支，不重讀 API）
@@ -225,7 +232,7 @@ local function Build()
     -- 文字與邊框：最上層的子框，不吃滑鼠（不然會搶走按鈕的 OnEnter／OnLeave）
     local top = CreateFrame("Frame", nil, btn)
     top:SetAllPoints(btn)
-    top:SetFrameLevel(btn:GetFrameLevel() + 3)
+    top:SetFrameLevel(btn:GetFrameLevel() + TOP_ABOVE)
     top:EnableMouse(false)
     local text = top:CreateFontString(nil, "OVERLAY")
     ns.Media.SetPixelFont(text, 12, "OUTLINE")       -- 先有字型才能 SetText
@@ -239,6 +246,15 @@ local function Build()
     btn:SetScript("OnMouseDown", function() PaintState(true, true) end)
     btn:SetScript("OnMouseUp", function(self) PaintState(self:IsMouseOver(), false) end)
     btn:SetScript("OnClick", OnClick)
+end
+
+-- 層級（理由見檔頭）：平常壓在冷卻管理器的格子上面，編輯模式退回容器 ＋ 1（不蓋編輯模式的東西）。
+-- 容器的層級沒有人改，每次 Refresh 對一次就夠（改了才寫）
+local function ApplyLevel(editing)
+    local lvl = container:GetFrameLevel() + (editing and 1 or RAISE)
+    if btn:GetFrameLevel() == lvl then return end
+    btn:SetFrameLevel(lvl)
+    ui.top:SetFrameLevel(lvl + TOP_ABOVE)
 end
 
 ------------------------------------------------------------
@@ -275,6 +291,7 @@ function MS.Refresh()
     -- 編輯模式中不收滑鼠：不然它蓋在覆蓋層上面，拖曳變成按鈕（同點擊層在編輯模式收起來）
     local editing = ns.EditMode and ns.EditMode.active and true or false
     btn:EnableMouse(not editing)
+    ApplyLevel(editing)
     if editing then PaintState(false, false) end
     local sky = MS.FollowingSky()
     if sky ~= skyShown then
@@ -356,9 +373,9 @@ function MS.DebugLine()
     if not btn then return "  坐騎特效鈕：沒有初始化" end
     local cfg = Cfg() or {}
     local st = ReadState()
-    return ("  坐騎特效鈕：%s  顯示 %s  騎乘 %s  載具 %s  滑翔 %s  跟著天空騎術條 %s（現在 %s）  收滑鼠 %s  滑鼠在 %s  alpha %s")
+    return ("  坐騎特效鈕：%s  顯示 %s  騎乘 %s  載具 %s  滑翔 %s  跟著天空騎術條 %s（現在 %s）  收滑鼠 %s  層級 %d（容器 %d）  滑鼠在 %s  alpha %s")
         :format(cfg.enabled ~= false and "開" or "關", tostring(visible), tostring(st.mounted), tostring(st.vehicle),
                 tostring(st.gliding), tostring(MS.FollowSky(cfg)), skyShown and "是" or "否",
-                btn:IsMouseEnabled() and "是" or "否", MouseFocusName(),
+                btn:IsMouseEnabled() and "是" or "否", btn:GetFrameLevel(), container:GetFrameLevel(), MouseFocusName(),
                 tostring(ns.Visibility and ns.Visibility.Current(KEY)))
 end
