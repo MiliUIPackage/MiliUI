@@ -304,6 +304,36 @@ powerMax[9] = 5
 local _, spec = R.Candidates()
 eq("快取：沒 Invalidate 不重算", spec, 65)
 
+-- 復仇靈魂碎片（2026-10-19 回報：列時有時無、設定頁「這個專精要顯示哪些」也沒這一列）：
+-- 閘看碎魂斬 228477（法術書查得到），不看 203981（碎片存在時才掛的 buff 光環，IsSpellKnown 永遠 false ⇒
+-- 退回「當下碎片數 > 0 才列」：脫戰 0 顆不列、戰鬥中秘密值不列）。Candidates 綁定載入時的職業，這裡直接問閘 R.Available
+eq("靈魂碎片的閘是碎魂斬", R.RESOURCES.SoulFragments.passive, 228477)
+check("閘的 ID 跟施放次數的 ID 同一個", R.RESOURCES.SoulFragments.passive == R.RESOURCES.SoulFragments.cast)
+local castCount = 0
+env.C_Spell.GetSpellCastCount = function() return castCount end
+known[228477] = true
+check("學了碎魂斬、碎片 0 顆（脫戰）→ 照列", (R.Available("SoulFragments")))
+castCount = SECRET
+check("學了碎魂斬、碎片數是秘密值（戰鬥中）→ 照列", (R.Available("SoulFragments")))
+known[228477] = nil
+castCount = 0
+check("沒學碎魂斬、碎片 0 顆 → 不列", not (R.Available("SoulFragments")))
+castCount = 3
+check("被動查不到但當下有碎片 → 保險照列", (R.Available("SoulFragments")))
+castCount = 0
+-- 重現舊 bug：閘暫時換回 buff 光環 203981（法術書永遠查不到）⇒ 列只在當下有碎片時才在
+known[228477], known[203981] = true, nil
+R.RESOURCES.SoulFragments.passive = 203981
+check("舊閘 203981：脫戰 0 顆 → 列消失（這就是回報的症狀）", not (R.Available("SoulFragments")))
+castCount = SECRET
+check("舊閘 203981：戰鬥中秘密值 → 列消失", not (R.Available("SoulFragments")))
+castCount = 3
+check("舊閘 203981：剛好有碎片 → 才列（時有時無）", (R.Available("SoulFragments")))
+R.RESOURCES.SoulFragments.passive = 228477
+castCount = 0
+check("新閘 228477：同樣狀態照列", (R.Available("SoulFragments")))
+known[228477] = nil
+
 -- 格數：上限讀不到時沿用上次的明文值
 powerMax[9] = 5
 eq("聖能 5 格", R.SegmentsFor("HolyPower"), 5)

@@ -176,6 +176,9 @@ R.ResolveColor = ResolveColor
 --
 --   標準資源看 UnitPowerMax > 0（沒點到那個天賦時上限就是 0；秘密值當有）。
 --   光環堆疊型查被動是否已學；被動 ID 萬一寫錯會誤判，所以**目前有層數就一律顯示**。
+--   ⚠ 那條保險只保得住「脫戰且當下有層數」：12.1 戰鬥中層數／施放次數是秘密值、脫戰沒層數是 0，
+--   被動 ID 寫成法術書查不到的東西（buff 光環的 ID）整列就會時有時無。def.passive 一律填
+--   法術書查得到的技能或被動（靈魂碎片 2026-10-19 踩過：203981 是 buff，改看碎魂斬 228477）。
 ------------------------------------------------------------
 local function SpellKnown(id)
     if not id then return true end
@@ -221,6 +224,7 @@ local function Available(key)
     if pm <= 0 then return false, "上限 0（天賦沒點／此型態沒有）" end
     return true, "上限 " .. tostring(pm)
 end
+R.Available = Available     -- 離線測試直接問閘（Candidates 綁定載入時的職業）
 
 local function CurrentSpecID()
     return ns.specID

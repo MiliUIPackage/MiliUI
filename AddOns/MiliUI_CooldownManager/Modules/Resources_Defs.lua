@@ -160,7 +160,11 @@ local RESOURCES = {
     -- 光環／技能次數型（資料來源都是暴雪開放的查詢）
     MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10, passive = 187880, foldable = true },
     TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,  passive = 260285 },
-    SoulFragments   = { name = L["Soul Fragments"],   mode = "pip", cast = 228477, max = 6,  passive = 203981 },
+    -- 靈魂碎片（復仇 581）：值是碎魂斬 228477 的施放次數，天賦閘也看 228477（復仇的基礎技能、法術書查得到）。
+    -- ⚠ 不能看 203981：那是碎片存在時才掛在身上的 buff 光環、不在法術書裡，IsSpellKnown 永遠 false，整列退回
+    -- 「當下碎片數 > 0 才列」—— 脫戰沒碎片是 0、戰鬥中施放次數是秘密值，列就跟著有沒有碎片時有時無，
+    -- 設定頁「這個專精要顯示哪些」也沒這一列（2026-10-19 玩家回報）
+    SoulFragments   = { name = L["Soul Fragments"],   mode = "pip", cast = 228477, max = 6,  passive = 228477 },
     -- 2026-09-30 補齊
     Icicles         = { name = SpellName(205473, "Icicles"), nameSpell = 205473, mode = "pip", aura = 205473, max = 5 },
     -- meta：這一列另外畫虛空化身計時＋崩陷之星計數（Modules/DevourerMeta.lua）

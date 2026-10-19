@@ -138,6 +138,8 @@ cooldownID 就是 `CooldownSetSpell.ID`，`wago.tools/db2/CooldownSetSpell/csv`�
 
 **資源列順序分專精合併（2026-10-12）**：別的專精才有的 key 寫回時要**錨在它原本前一個 key 後面**（`R.MergeOrder`），一律接到最後會讓共有列（血量）在兩個專精間互相洗掉。
 
+**資源列天賦閘的 ID 必須是法術書查得到的（2026-10-19）**：`def.passive` 填 buff 光環的 ID（靈魂碎片原本填 203981）`IsSpellKnown` 永遠 false，「目前有層數就顯示」那條保險在 12.1 只保得住脫戰且當下有層數（戰鬥中是秘密值、脫戰沒層數是 0），列就跟著有沒有碎片時有時無、設定頁清單也沒它。復仇靈魂碎片改看碎魂斬 228477（同 YHUD 的 requiresKnownSpellID；EUI 只看專精）。閘公開成 `R.Available(key)` 給離線測試。
+
 **編輯模式**：掛暴雪檢視器的 SetPoint 後掛勾釘回容器一律**延一幀**，不然我們的框名被存進版面、登入報 Couldn't find region：[[wow-editmode-setpoint-hook-saves-our-name]]。
 戰鬥中開 `/mcdm` 的方向鍵捕捉框被戰鬥閘收著 ⇒ **脫戰處理器一律常駐註冊、不看進戰鬥那一刻的狀態**（2026-10-03）。Selection 的拖曳腳本用 SetScript 是契約唯一例外（README《為什麼暴雪的 Selection 用 SetScript》）。
 格子的滑鼠提示走預設錨點（跟暴雪 item 一樣），提示插件的錨點設定才管得到（2026-10-11）。
