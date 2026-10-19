@@ -505,8 +505,10 @@ end
 ------------------------------------------------------------
 -- 顯示條件與格式化
 ------------------------------------------------------------
-function UnitInfo.CheckFilter(config, raw)
-    if IsAltKeyDown() or IsControlKeyDown() then return true end
+-- showAll：按住修飾鍵、且該類單位開著 modifierShowAll（見 UnitInfo.ModifierShowAll）
+-- ⇒ 連關掉的元素也顯示、不看顯示條件
+function UnitInfo.CheckFilter(config, raw, showAll)
+    if showAll then return true end
     if not config or not config.enable then return end
     local filter = config.filter
     if not filter or filter == "" or filter == "none" then return true end
@@ -558,7 +560,13 @@ local function PushLabeled(out, labelText, iconTag, useIcon, valueText)
     tinsert(out, format("%s %s", labelPart, valueText))
 end
 
-function UnitInfo.GetUnitData(unit, elements, raw)
+-- 「按住修飾鍵顯示全部」：Alt／Ctrl，玩家／NPC 各自一個開關（物品／法術是 item／spell 底下那兩個）
+function UnitInfo.ModifierShowAll(config)
+    if not (config and config.modifierShowAll) then return false end
+    return IsAltKeyDown() or IsControlKeyDown()
+end
+
+function UnitInfo.GetUnitData(unit, elements, raw, showAll)
     local data = {}
     local namePos, titlePos
     if not raw then raw = UnitInfo.GetUnitInfo(unit) end
@@ -570,7 +578,7 @@ function UnitInfo.GetUnitData(unit, elements, raw)
         for _, e in ipairs(v) do
             local config = elements[e]
             if e == "mount" then
-                if CheckFilter(config, raw) and raw.mountName then
+                if CheckFilter(config, raw, showAll) and raw.mountName then
                     local nameText
                     if config.color and config.wildcard then
                         nameText = FormatData(raw.mountName, config, raw)
@@ -591,7 +599,7 @@ function UnitInfo.GetUnitData(unit, elements, raw)
                     end
                 end
             elseif e == "className" then
-                if CheckFilter(config, raw) and raw.className then
+                if CheckFilter(config, raw, showAll) and raw.className then
                     local classText
                     if config.color and config.wildcard then
                         classText = FormatData(raw.className, config, raw, raw.className)
@@ -608,7 +616,7 @@ function UnitInfo.GetUnitData(unit, elements, raw)
                     tinsert(out, classText)
                 end
             elseif e == "mplusScore" then
-                if CheckFilter(config, raw) and raw.mplusScoreNumber then
+                if CheckFilter(config, raw, showAll) and raw.mplusScoreNumber then
                     -- 只染分數；括號（最佳層數）固定白色（使用者定案）
                     local scorePart
                     if config.color and config.wildcard then
@@ -625,7 +633,7 @@ function UnitInfo.GetUnitData(unit, elements, raw)
                     end
                 end
             elseif e == "itemLevel" then
-                if CheckFilter(config, raw) and raw.itemLevel then
+                if CheckFilter(config, raw, showAll) and raw.itemLevel then
                     local valuePart
                     if tostring(raw.itemLevel) == L["unknown"] then
                         valuePart = "|cff999999" .. L["unknown"] .. "|r"
@@ -637,7 +645,7 @@ function UnitInfo.GetUnitData(unit, elements, raw)
                     PushLabeled(out, L["ItemLevel"], itemLevelIconTag, config.icon, valuePart)
                 end
             elseif e == "achievementPoints" then
-                if CheckFilter(config, raw) and raw.achievementPoints ~= nil then
+                if CheckFilter(config, raw, showAll) and raw.achievementPoints ~= nil then
                     local valuePart
                     if tostring(raw.achievementPoints) == L["unknown"] then
                         valuePart = "|cff999999" .. L["unknown"] .. "|r"
@@ -648,7 +656,7 @@ function UnitInfo.GetUnitData(unit, elements, raw)
                     end
                     PushLabeled(out, L["Achievement"], achievementIconTag, config.icon, valuePart)
                 end
-            elseif CheckFilter(config, raw) and raw[e] then
+            elseif CheckFilter(config, raw, showAll) and raw[e] then
                 if e == "name" then namePos = #out + 1 end
                 if e == "title" then titlePos = #out + 1 end
                 if config.color and config.wildcard then

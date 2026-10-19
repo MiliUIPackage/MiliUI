@@ -18,6 +18,19 @@ local M = ns.Media
 
 M.WHITE8X8 = "Interface\\BUTTONS\\WHITE8X8"
 
+-- 關掉引擎的像素貼齊（SetSnapToPixelGrid／SetTexelSnappingBias）。
+-- 貼齊開著時，引擎在畫的那一刻把**每張貼圖自己的**頂點各自四捨五入到最近的實體像素；
+-- 跟隨游標的提示停在任意小數座標上，1px 的邊只要兩側四捨五入到同一格就整條變 0px
+-- （2026-10-19 玩家回報：邊框粗細 1 時左邊偶爾不見）。MiliUI_CooldownManager 的 ns.NoSnap 同一招。
+-- 只用在自己建的貼圖上
+function M.NoSnap(tex)
+    if tex and tex.SetSnapToPixelGrid then
+        tex:SetSnapToPixelGrid(false)
+        tex:SetTexelSnappingBias(0)
+    end
+    return tex
+end
+
 local function LSM()
     return LibStub and LibStub("LibSharedMedia-3.0", true)
 end

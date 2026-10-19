@@ -361,7 +361,8 @@ local function Create(tip, state)
     panel.bg:SetAllPoints()
     panel.footer = MakeTexture(panel, "BORDER")
     panel.edges = {}
-    for i = 1, 4 do panel.edges[i] = MakeTexture(panel, "OVERLAY", 7) end
+    -- 邊框不貼齊：鏡射（Mirror）那條路不做整數像素修正，貼齊開著會偶爾整條捨入成 0px（Media.NoSnap）
+    for i = 1, 4 do panel.edges[i] = Media.NoSnap(MakeTexture(panel, "OVERLAY", 7)) end
 
     panel.icon = MakeTexture(panel, "ARTWORK", 2)
     panel.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)

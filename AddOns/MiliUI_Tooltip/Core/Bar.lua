@@ -34,10 +34,11 @@ local function Ensure(tip)
     local bar = CreateFrame("StatusBar", nil, state.skin)
     bar:SetMinMaxValues(0, 100)
     bar:SetValue(0)
-    local tex = bar:CreateTexture(nil, "ARTWORK")
+    -- 條身、底、黑框全部不貼齊（Media.NoSnap）：只關框線的話，條身照樣捨入，兩者之間會露半格縫
+    local tex = Media.NoSnap(bar:CreateTexture(nil, "ARTWORK"))
     bar:SetStatusBarTexture(tex)
 
-    local bg = bar:CreateTexture(nil, "BACKGROUND")
+    local bg = Media.NoSnap(bar:CreateTexture(nil, "BACKGROUND"))
     bg:SetAllPoints(bar)
     bg:SetTexture(Media.WHITE8X8)
     bg:SetVertexColor(0.2, 0.2, 0.2, 0.8)
@@ -45,7 +46,7 @@ local function Ensure(tip)
     -- 1px 黑框線（貼在條的外緣，不吃掉條的高度；上下兩條左右各多 1px 補角）
     local edges = {}
     for i = 1, 4 do
-        edges[i] = bar:CreateTexture(nil, "BORDER")
+        edges[i] = Media.NoSnap(bar:CreateTexture(nil, "BORDER"))
         edges[i]:SetTexture(Media.WHITE8X8)
         edges[i]:SetVertexColor(0, 0, 0, 1)
     end

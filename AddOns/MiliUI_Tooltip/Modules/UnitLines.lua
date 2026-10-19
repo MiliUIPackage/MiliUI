@@ -245,7 +245,7 @@ local function ApplyPlayer(tip, state, unit, config, raw, relayout)
         UnitInfo.RequestAchievements(unit)
     end
 
-    local data = UnitInfo.GetUnitData(unit, config.elements, raw)
+    local data = UnitInfo.GetUnitData(unit, config.elements, raw, UnitInfo.ModifierShowAll(config))
     Lines.HideRange(tip, 2, 3)
     Lines.Hide(tip, "^" .. LEVEL)
     if FACTION_ALLIANCE then Lines.Hide(tip, "^" .. FACTION_ALLIANCE) end
@@ -271,7 +271,7 @@ end
 local function ApplyNpc(tip, state, unit, config, raw)
     local levelLine = Lines.Find(tip, "^" .. LEVEL)
     if levelLine or tip:NumLines() > 1 then
-        local data = UnitInfo.GetUnitData(unit, config.elements, raw)
+        local data = UnitInfo.GetUnitData(unit, config.elements, raw, UnitInfo.ModifierShowAll(config))
         local titleLine = GetNpcTitleLine(tip)
         local increase = 0
         for i, v in ipairs(data) do

@@ -120,14 +120,14 @@ function Skin.Attach(tip, opts)
     state.skin = skin
 
     -- 背景
-    local bg = skin:CreateTexture(nil, "BACKGROUND")
+    local bg = Media.NoSnap(skin:CreateTexture(nil, "BACKGROUND"))   -- 內縮量要跟邊框對得上，同樣不貼齊
     bg:SetTexture(Media.WHITE8X8)
     state.bg = bg
 
     -- 邊框：四張貼圖（上下橫貫全寬、左右夾在中間），SetVertexColor 上色
     local edges = {}
     for i = 1, 4 do
-        edges[i] = skin:CreateTexture(nil, "BORDER")
+        edges[i] = Media.NoSnap(skin:CreateTexture(nil, "BORDER"))
         edges[i]:SetTexture(Media.WHITE8X8)
     end
     state.edges = edges
@@ -192,13 +192,30 @@ end
 ------------------------------------------------------------
 -- 基礎樣式（設定值 → skin），設定變更時對所有 tip 重跑
 ------------------------------------------------------------
+-- 邊框粗細是「n 個實體像素」（P.Pixel 的語意，見 wow-hairline-p-pixel-not-p-scale），
+-- 基準是 skin 自己的有效縮放（tip 會 SetScale(general.scale)；Panel.Pixel 同款）。讀不到或秘密退 P.Pixel
+local function SkinPixel(skin, n)
+    n = math.floor((tonumber(n) or 0) + 0.5)
+    if n <= 0 then return 0 end
+    local ok, scale = pcall(skin.GetEffectiveScale, skin)
+    scale = ok and S.PlainNumber(scale)
+    if not (scale and scale > 0) then return P.Pixel(n) end
+    return n * PixelUtil.GetPixelToUIUnitFactor() / scale
+end
+
 function Skin.ApplyBase(tip)
     local state = State[tip]
     if not state or not ns.db then return end
     local g = ns.db.general
     local skin, bg, edges, mask = state.skin, state.bg, state.edges, state.mask
 
-    local inset = P.Scale(math.max(0, g.borderSize or 1))
+    -- 縮放先寫（底下的邊框粗細照縮放後的有效縮放換算）：寫在暴雪 tip 上的定位類 API（接觸面清單第 8 條），skin 是 child 會跟著縮
+    -- ⚠ keepScale 的不寫：那種框掛在已經縮放過的 tooltip 底下，再縮一次會變成平方
+    if not state.keepScale and not S.IsForbiddenObject(tip) and tip.SetScale then
+        pcall(tip.SetScale, tip, g.scale or 1)
+    end
+
+    local inset = SkinPixel(skin, g.borderSize or 1)
     state.borderInset = inset
 
     bg:ClearAllPoints()
@@ -225,12 +242,6 @@ function Skin.ApplyBase(tip)
     mask:SetShown(g.mask and true or false)
 
     Skin.ResetColors(tip)
-
-    -- 縮放：寫在暴雪 tip 上的定位類 API（接觸面清單第 8 條），skin 是 child 會跟著縮
-    -- ⚠ keepScale 的不寫：那種框掛在已經縮放過的 tooltip 底下，再縮一次會變成平方
-    if not state.keepScale and not S.IsForbiddenObject(tip) and tip.SetScale then
-        pcall(tip.SetScale, tip, g.scale or 1)
-    end
 end
 
 function Skin.ApplyBaseAll()

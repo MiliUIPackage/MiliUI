@@ -46,7 +46,7 @@ local function Setup(locale)
     env.UnitLevel = function() return 80 end
     local ns = {
         L = setmetatable({}, { __index = function(_, k) return k end }),
-        Media = { WHITE8X8 = "white", Font = function() return "default.ttf" end, BarTexture = function() return "satin.png" end },
+        Media = { WHITE8X8 = "white", NoSnap = function(t) return t end, Font = function() return "default.ttf" end, BarTexture = function() return "satin.png" end },
         playerClass = "MAGE",
         db = { general = { scale = 1, background = { r = 0.133, g = 0.133, b = 0.133, a = 1 },
             borderColor = { r = 0.18, g = 0.18, b = 0.18, a = 1 } },
