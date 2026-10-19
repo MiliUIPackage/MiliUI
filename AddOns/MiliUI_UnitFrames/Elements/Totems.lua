@@ -92,34 +92,45 @@ local function SlotColor(i)
     return RAID_CLASS_COLORS[CLASS] or { r = 0.7, g = 0.7, b = 0.7 }
 end
 
+-- 邊框與內縮（實體像素）：建格子時與套設定時都跑，UI 縮放變了才會跟著重算
+-- （建立時算一次存著的話，登入／改縮放之後邊框與內容就對不上）
+local function LayoutSlotBorder(slot)
+    local btn, icon, barBG, bar = slot.btn, slot.icon, slot.barBG, slot.bar
+    Media.ApplyBorder(btn, nil, 1)
+    -- 內縮要用邊框「實際畫出來」的厚度，直接寫 1 會在 Retina 上露出次像素縫
+    local inset = Media.BorderInset(1)
+    local barH = ns.P.Scale(3)
+    icon:ClearAllPoints()
+    icon:SetPoint("TOPLEFT", btn, "TOPLEFT", inset, -inset)
+    icon:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset + barH)   -- 底部留給時間條
+    barBG:ClearAllPoints()
+    barBG:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", inset, inset)
+    barBG:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset)
+    barBG:SetHeight(barH)
+    bar:ClearAllPoints()
+    bar:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", inset, inset)
+    bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset)
+    bar:SetHeight(barH)
+end
+
 local function CreateSlot(i)
     local db = GetDB()
     local size = db.frame.iconSize or 28
 
     local btn = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     btn:SetSize(size, size)
-    Media.ApplyBorder(btn, nil, 1)
-    -- 內縮要用邊框「實際畫出來」的厚度，直接寫 1 會在 Retina 上露出次像素縫
-    local inset = Media.BorderInset(1)
-    local barH = ns.P.Scale(3)
 
-    local icon = btn:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("TOPLEFT", btn, "TOPLEFT", inset, -inset)
-    icon:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset + barH)   -- 底部留給時間條
+    -- 圖示、時間條底與填充都跟邊框相接：關像素貼齊（Media.NoSnap）
+    local icon = Media.NoSnap(btn:CreateTexture(nil, "ARTWORK"))
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    local barBG = btn:CreateTexture(nil, "BACKGROUND")
-    barBG:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", inset, inset)
-    barBG:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset)
-    barBG:SetHeight(barH)
+    local barBG = Media.NoSnap(btn:CreateTexture(nil, "BACKGROUND"))
     barBG:SetTexture(Media.WHITE8X8)
     barBG:SetVertexColor(0, 0, 0, 0.6)
 
     local bar = CreateFrame("StatusBar", nil, btn)
-    bar:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", inset, inset)
-    bar:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -inset, inset)
-    bar:SetHeight(barH)
     bar:SetStatusBarTexture(Media.WHITE8X8)
+    Media.NoSnap(bar)
     bar:SetFrameLevel(btn:GetFrameLevel() + 1)
 
     -- 倒數數字由 Cooldown widget（引擎）畫在圖示上。只要數字不要扇形 ——
@@ -146,6 +157,7 @@ local function CreateSlot(i)
     btn:Hide()
 
     local slot = { btn = btn, icon = icon, bar = bar, barBG = barBG, cd = cd }
+    LayoutSlotBorder(slot)
     -- 每格一顆 duration 物件，重複使用（只寫不讀，見檔案上方的說明）
     if C_DurationUtil and C_DurationUtil.CreateDuration then
         local ok, duo = pcall(C_DurationUtil.CreateDuration)
@@ -472,7 +484,10 @@ ns.TotemsApplySettings = function()
     local size = GetDB().frame.iconSize or 28
     for i = 1, NUM_SLOTS do
         local s = slots[i]
-        if s then s.btn:SetSize(size, size) end
+        if s then
+            s.btn:SetSize(size, size)
+            LayoutSlotBorder(s)
+        end
     end
     Poll()
 end

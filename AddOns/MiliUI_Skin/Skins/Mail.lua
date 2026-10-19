@@ -350,7 +350,7 @@ local function SkinInboxRows()
                     slot = "rule",
                     parent = btn,
                     noBorder = true,
-                    height = 1,
+                    height = 1, hairline = true,
                     points = {
                         { "TOPLEFT", "TOPLEFT", 0, 0 },
                         { "TOPRIGHT", "TOPRIGHT", 0, 0 },

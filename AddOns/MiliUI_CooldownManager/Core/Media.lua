@@ -137,6 +137,17 @@ function ns.NoSnap(tex)
 end
 M.NoSnap = ns.NoSnap
 
+-- BackdropTemplate 的九張貼圖（SetBackdrop 之後才存在）一起關。自己 SetBackdrop 帶 edgeSize 的框，套完叫一次
+local BACKDROP_PIECES = {
+    "Center", "TopEdge", "BottomEdge", "LeftEdge", "RightEdge",
+    "TopLeftCorner", "TopRightCorner", "BottomLeftCorner", "BottomRightCorner",
+}
+function ns.NoSnapBackdrop(frame)
+    if type(frame) ~= "table" then return frame end
+    for _, k in ipairs(BACKDROP_PIECES) do ns.NoSnap(frame[k]) end
+    return frame
+end
+
 -- 邊框材質 token → 路徑；"solid"（或查不到）回 nil ＝ 用四條純色細條畫
 -- （LibSharedMedia 的 border 類是 backdrop 的 edgeFile，要走 backdrop 畫，見 Decorate）
 function M.Border(token)

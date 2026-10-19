@@ -344,7 +344,7 @@ local function SkinTalents(tf, key)
             { "BOTTOMLEFT", "BOTTOMLEFT", 0, TALENT_FOOTER_HEIGHT },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, TALENT_FOOTER_HEIGHT },
         },
-        height = 1,
+        height = 1, hairline = true,
     })
     E.Paint(rule, T.fillHover)
 
@@ -472,7 +472,7 @@ local function HeaderSweep(f)
         slot = "rule",
         noBorder = true,
         points = HEADER_RULE_POINTS,
-        height = 1,
+        height = 1, hairline = true,
     })
     E.Paint(rule, T.fillHover)
 end
@@ -532,7 +532,7 @@ local function SkinSpellBook(sb, key)
             { "TOPLEFT", "TOPLEFT", 0, -SPELLBOOK_HEADER_HEIGHT },
             { "TOPRIGHT", "TOPRIGHT", 0, -SPELLBOOK_HEADER_HEIGHT },
         },
-        height = 1,
+        height = 1, hairline = true,
     })
     E.Paint(rule, T.fillHover)
 

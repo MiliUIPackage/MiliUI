@@ -46,7 +46,7 @@ python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前�
 |---|---|---|
 | `NAMESPACE` | string | 全域名稱前綴。**每個插件必須不同** |
 | `L` | table | 語系表 |
-| `P` | table | 像素對齊，需要 `P.Scale(n)` 與 `P.Size(frame, w, h)` |
+| `P` | table | 像素對齊，需要 `P.Scale(n)`、`P.Pixel(n)` 與 `P.Size(frame, w, h)`；`P.NoSnap`／`P.NoSnapBackdrop` 選用（沒有就不關像素貼齊，1px 邊在小數座標可能不見，見 `.claude/notes/wow-1px-border-rules.md`） |
 | `Font(token)` | function | → 字型路徑 |
 | `Accent()` | function | → r, g, b |
 | `PopupParent()` | function | → 確認彈窗掛哪個框 |

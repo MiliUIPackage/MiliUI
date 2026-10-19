@@ -1282,6 +1282,107 @@ function Engine.HideOverlayText(ov)
 end
 
 ------------------------------------------------------------
+-- 像素量：邊寬、強調線、髮絲線（.claude/notes/wow-1px-border-rules.md）
+--
+--   * 粗細是剛好 n 個實體像素（`RecPixel`，照皮所在框的有效縮放換算），不是 `P.Scale`：
+--     `P.Scale(1)` 是「1 個框架單位貼整數像素」，1440p 以上就是 2px 以上，跟套組設定視窗的 1px 邊對不上。
+--   * 我們建的底、邊、強調線一律關像素貼齊（`P.NoSnap`）：框停在小數座標時引擎會把
+--     每張貼圖各自捨入，1px 邊整條變 0 或 2。只對自己建的貼圖做。
+--   * 換算結果烤在錨點裡 ⇒ 登記在 `pixelRecs`，UI 縮放／解析度變了重排（見檔尾的
+--     `Engine.RelayoutPixels`）。
+--   * 配方的錨點偏移要以實體像素計時（貼著邊的內縮），直接傳 `P.Pixel(n)` 進來：
+--     `P.Scale` 對整數像素是恆等的（`P.Scale(x + P.Pixel(1)) == P.Scale(x) + P.Pixel(1)`）。
+--     那種偏移不會跟著重排，改縮放之後要 /reload 才完全對齊。
+------------------------------------------------------------
+local NoSnap = P.NoSnap
+local pixelRecs = setmetatable({}, { __mode = "k" })   -- [overlay 或 region rec] = true
+
+-- n 個實體像素，照「皮所在的框」自己的有效縮放換算（overlay 是它自己、region 是建在哪個框上）。
+-- 照 UIParent 換算的話，框或祖先 SetScale ≠ 1（RaiderIO 0.9、裝備管理 0.85、keepScale 的提示…）
+-- 時實際粗細是 scale 個像素、不是整數，關了貼齊就是一條糊線。讀不到就退回 P.Pixel。
+local function RecPixel(rec, n)
+    n = math.floor((tonumber(n) or 0) + 0.5)
+    if n <= 0 then return 0 end
+    local host = rec.isRegion and rec.host or rec
+    local ok, scale = pcall(host.GetEffectiveScale, host)
+    scale = ok and S.PlainNumber(scale) or nil
+    if not scale or scale <= 0 then return P.Pixel(n) end
+    return n * PixelUtil.GetPixelToUIUnitFactor() / scale
+end
+
+-- 邊寬：`borderScale` 的（拿邊畫間距的）是框架單位，其餘是實體像素
+local function BorderWidth(rec)
+    if rec.borderScale then return P.Scale(rec.pxBorder) end
+    return RecPixel(rec, rec.pxBorder)
+end
+
+-- 四條邊錨在 overlay 自己（子框那條路）或底那張貼圖上（region 那條路），矩形一致
+local function PlaceEdges(rec)
+    local e = rec.edges
+    if not e then return end
+    local w = BorderWidth(rec)
+    local r = rec.isRegion and rec.bg or rec
+    for i = 1, 4 do e[i]:ClearAllPoints() end
+    e[1]:SetPoint("TOPLEFT", r, "TOPLEFT");         e[1]:SetPoint("TOPRIGHT", r, "TOPRIGHT");         e[1]:SetHeight(w)
+    e[2]:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT");   e[2]:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT");   e[2]:SetHeight(w)
+    e[3]:SetPoint("TOPLEFT", r, "TOPLEFT", 0, -w);  e[3]:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, w);  e[3]:SetWidth(w)
+    e[4]:SetPoint("TOPRIGHT", r, "TOPRIGHT", 0, -w); e[4]:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", 0, w); e[4]:SetWidth(w)
+end
+
+local function PlaceAccent(ov)
+    local bar = ov.accentBar
+    if not bar then return end
+    local th = RecPixel(ov, ov.pxAccent)
+    local side = ov.accentSide
+    bar:ClearAllPoints()
+    if side == "LEFT" then
+        bar:SetPoint("TOPLEFT", ov);    bar:SetPoint("BOTTOMLEFT", ov);  bar:SetWidth(th)
+    elseif side == "RIGHT" then
+        bar:SetPoint("TOPRIGHT", ov);   bar:SetPoint("BOTTOMRIGHT", ov); bar:SetWidth(th)
+    elseif side == "TOP" then
+        bar:SetPoint("TOPLEFT", ov);    bar:SetPoint("TOPRIGHT", ov);    bar:SetHeight(th)
+    else
+        bar:SetPoint("BOTTOMLEFT", ov); bar:SetPoint("BOTTOMRIGHT", ov); bar:SetHeight(th)
+    end
+end
+
+-- 髮絲線（`opts.hairline`）：width／height 是實體像素
+local function PlaceLine(rec)
+    if not rec.pxLine then return end
+    local obj = rec.isRegion and rec.bg or rec
+    local px = RecPixel(rec, rec.pxLine)
+    if rec.pxLineAxis == "w" then obj:SetWidth(px) else obj:SetHeight(px) end
+end
+
+local function RelayoutOne(rec)
+    PlaceLine(rec)
+    PlaceEdges(rec)
+    if not rec.isRegion then PlaceAccent(rec) end
+end
+
+-- UI 縮放／解析度變了：登記過的底、邊、強調線、髮絲線照新的縮放重算粗細。
+-- 延一幀（事件當下縮放可能還沒套上）；戰鬥中不動（邊有的建在隱式保護的框上），脫戰補做。
+local pixelWatcher = CreateFrame("Frame")
+local function RelayoutPixels()
+    if InCombatLockdown() then
+        pixelWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    for rec in pairs(pixelRecs) do pcall(RelayoutOne, rec) end
+end
+Engine.RelayoutPixels = RelayoutPixels
+pixelWatcher:RegisterEvent("UI_SCALE_CHANGED")
+pixelWatcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
+pixelWatcher:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_REGEN_ENABLED" then
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        RelayoutPixels()
+    else
+        C_Timer.After(0, RelayoutPixels)
+    end
+end)
+
+------------------------------------------------------------
 -- Engine.Overlay(target, opts) → overlay 或 nil
 --
 -- opts:
@@ -1294,10 +1395,13 @@ end
 --                 會讓 overlay 退回「parent 的層級 +1」，反而蓋住標題與點數）
 --   inset        SetAllPoints 之後四邊各內縮這麼多框架單位
 --   points       { {point, relativePoint, x, y}, ... } 改成自訂錨點（仍錨在 target 上）
---   width/height 只錨了一邊的時候自己給尺寸（髮絲線就是這樣畫的）
+--   width/height 只錨了一邊的時候自己給尺寸（框架單位，過 P.Scale）
+--   hairline     true ＝ width／height 是**實體像素**（過 P.Pixel）：髮絲線一律帶這個
 --   levelOffset  相對 target 的層級差，預設 -1（壓在目標自己的區域之下）
 --   noBorder     不要四條邊
---   borderSize   邊寬（像素，會過 P.Scale）。不給就是 `T.BorderSize()` 的 1px
+--   borderSize   邊寬（實體像素，過 P.Pixel）。不給就是 1px
+--   borderScale  true ＝ borderSize 是框架單位（過 P.Scale）：拿邊畫「間距」而不是邊框的時候
+--   accentSize   強調線粗細（實體像素，過 P.Pixel），預設 2
 --   skipEdges    { "TOP", ... } 這幾條邊不畫 —— 「跟內容相連的那一邊不畫」
 --                （分頁掛在視窗下緣 ⇒ 相連的是分頁的上邊）
 --   glyph        靜態圖記，建立時定好、執行期不動，兩種：
@@ -1371,8 +1475,13 @@ function Engine.Overlay(target, opts)
     end
 
     -- 只錨了一邊（例如標題下的髮絲線只錨 BOTTOMLEFT/BOTTOMRIGHT）的時候要自己給尺寸
-    if opts.width then ov:SetWidth(P.Scale(opts.width)) end
-    if opts.height then ov:SetHeight(P.Scale(opts.height)) end
+    if opts.hairline and (opts.height or opts.width) then
+        ov.pxLine, ov.pxLineAxis = opts.height or opts.width, opts.height and "h" or "w"
+        PlaceLine(ov)
+    else
+        if opts.width then ov:SetWidth(P.Scale(opts.width)) end
+        if opts.height then ov:SetHeight(P.Scale(opts.height)) end
+    end
 
     local level = TargetLevel(target)
     if level then
@@ -1380,7 +1489,7 @@ function Engine.Overlay(target, opts)
     end
 
     -- 底色。四條邊蓋在它外圈，所以底色整塊鋪滿就好。
-    local bg = ov:CreateTexture(nil, "BACKGROUND")
+    local bg = NoSnap(ov:CreateTexture(nil, "BACKGROUND"))
     bg:SetTexture(WHITE)
     bg:SetAllPoints(ov)
     ov.bg = bg
@@ -1388,17 +1497,14 @@ function Engine.Overlay(target, opts)
     if not opts.noBorder then
         -- 邊寬預設 1px；`borderSize` 讓「邊本身就是主角」的原語自己決定
         -- （物品格的品質方框走 `T.itemBorderSize`，改粗細只要改那一個 token）。
-        local w = opts.borderSize and P.Scale(opts.borderSize) or T.BorderSize()
         local e = {}
         for i = 1, 4 do
-            e[i] = ov:CreateTexture(nil, "BORDER")
+            e[i] = NoSnap(ov:CreateTexture(nil, "BORDER"))
             e[i]:SetTexture(WHITE)
         end
-        e[1]:SetPoint("TOPLEFT");     e[1]:SetPoint("TOPRIGHT");     e[1]:SetHeight(w)
-        e[2]:SetPoint("BOTTOMLEFT");  e[2]:SetPoint("BOTTOMRIGHT");  e[2]:SetHeight(w)
-        e[3]:SetPoint("TOPLEFT", 0, -w);  e[3]:SetPoint("BOTTOMLEFT", 0, w);  e[3]:SetWidth(w)
-        e[4]:SetPoint("TOPRIGHT", 0, -w); e[4]:SetPoint("BOTTOMRIGHT", 0, w); e[4]:SetWidth(w)
         ov.edges = e
+        ov.pxBorder, ov.borderScale = opts.borderSize or 1, opts.borderScale
+        PlaceEdges(ov)
 
         -- 跟內容相連的那一邊不畫（feedback-ui-visual-style）。索引對照見 EDGE_INDEX。
         if opts.skipEdges then
@@ -1420,21 +1526,12 @@ function Engine.Overlay(target, opts)
     -- 畫在 `ARTWORK`：要蓋在底（BACKGROUND）與四條邊（BORDER）之上，
     -- 不然接縫那一顆的左邊線會把線頭切掉。
     if opts.accentSide then
-        local bar = ov:CreateTexture(nil, "ARTWORK")
+        local bar = NoSnap(ov:CreateTexture(nil, "ARTWORK"))
         bar:SetTexture(WHITE)
-        local th = P.Scale(opts.accentSize or 2)
-        local side = opts.accentSide
-        if side == "LEFT" then
-            bar:SetPoint("TOPLEFT");    bar:SetPoint("BOTTOMLEFT");  bar:SetWidth(th)
-        elseif side == "RIGHT" then
-            bar:SetPoint("TOPRIGHT");   bar:SetPoint("BOTTOMRIGHT"); bar:SetWidth(th)
-        elseif side == "TOP" then
-            bar:SetPoint("TOPLEFT");    bar:SetPoint("TOPRIGHT");    bar:SetHeight(th)
-        else
-            bar:SetPoint("BOTTOMLEFT"); bar:SetPoint("BOTTOMRIGHT"); bar:SetHeight(th)
-        end
         bar:SetAlpha(0)
         ov.accentBar = bar
+        ov.pxAccent, ov.accentSide = opts.accentSize or 2, opts.accentSide
+        PlaceAccent(ov)
     end
 
     -- 靜態圖記（關閉鈕的 ×、翻頁的 ‹ ›、下拉的 ⌄、最大化／最小化的 ＋／−）。
@@ -1442,6 +1539,8 @@ function Engine.Overlay(target, opts)
     if opts.glyph then
         BuildGlyph(ov, opts.glyph)
     end
+
+    if ov.edges or ov.accentBar or ov.pxLine then pixelRecs[ov] = true end
 
     st = st or {}
     st.overlays = st.overlays or {}
@@ -1479,7 +1578,7 @@ end
 --   也就是說這一條在最壞的情況下等於第五輪的行為，不會少一塊皮。
 --
 -- opts（跟 `Engine.Overlay` 同名同義）：
---   key / inset / points / noBorder / borderSize / skipEdges / slot
+--   key / inset / points / width / height / hairline / noBorder / borderSize / borderScale / skipEdges / slot
 --   layer, sublevel          底的繪製層，預設 BACKGROUND / -8
 --   edgeLayer, edgeSublevel  邊的繪製層，預設 BACKGROUND / -7
 ------------------------------------------------------------
@@ -1512,6 +1611,8 @@ function Engine.RegionBackdrop(target, opts)
     local ok, bg = pcall(target.CreateTexture, target, nil, layer, nil, sublevel)
     if not ok or not bg then return Fallback("CreateTexture") end
     ownRegions[bg] = true
+    NoSnap(bg)
+    local rec = { bg = bg, isRegion = true, host = target }
 
     local placed = pcall(function()
         bg:SetTexture(WHITE)
@@ -1527,34 +1628,35 @@ function Engine.RegionBackdrop(target, opts)
         else
             bg:SetAllPoints(target)
         end
-        if opts.width then bg:SetWidth(P.Scale(opts.width)) end
-        if opts.height then bg:SetHeight(P.Scale(opts.height)) end
+        if opts.hairline and (opts.height or opts.width) then
+            rec.pxLine, rec.pxLineAxis = opts.height or opts.width, opts.height and "h" or "w"
+            PlaceLine(rec)
+        else
+            if opts.width then bg:SetWidth(P.Scale(opts.width)) end
+            if opts.height then bg:SetHeight(P.Scale(opts.height)) end
+        end
     end)
     if not placed then
         pcall(bg.SetAlpha, bg, 0)     -- 建都建了，至少讓它看不見
         return Fallback("SetPoint")
     end
 
-    local rec = { bg = bg, isRegion = true }
-
     if not opts.noBorder then
-        local w = opts.borderSize and P.Scale(opts.borderSize) or T.BorderSize()
         local e = {}
         local madeAll = true
         for i = 1, 4 do
             local ok2, tex = pcall(target.CreateTexture, target, nil, edgeLayer, nil, edgeSub)
             if not ok2 or not tex then madeAll = false break end
             ownRegions[tex] = true
+            NoSnap(tex)
             tex:SetTexture(WHITE)
             e[i] = tex
         end
         if madeAll then
             -- 四條邊錨在底那張貼圖上（region 可以互相錨定），矩形與 overlay 版一致
-            e[1]:SetPoint("TOPLEFT", bg, "TOPLEFT");        e[1]:SetPoint("TOPRIGHT", bg, "TOPRIGHT");        e[1]:SetHeight(w)
-            e[2]:SetPoint("BOTTOMLEFT", bg, "BOTTOMLEFT");  e[2]:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT");  e[2]:SetHeight(w)
-            e[3]:SetPoint("TOPLEFT", bg, "TOPLEFT", 0, -w); e[3]:SetPoint("BOTTOMLEFT", bg, "BOTTOMLEFT", 0, w); e[3]:SetWidth(w)
-            e[4]:SetPoint("TOPRIGHT", bg, "TOPRIGHT", 0, -w); e[4]:SetPoint("BOTTOMRIGHT", bg, "BOTTOMRIGHT", 0, w); e[4]:SetWidth(w)
             rec.edges = e
+            rec.pxBorder, rec.borderScale = opts.borderSize or 1, opts.borderScale
+            PlaceEdges(rec)
 
             if opts.skipEdges then
                 local skip = {}
@@ -1566,6 +1668,8 @@ function Engine.RegionBackdrop(target, opts)
             end
         end
     end
+
+    if rec.edges or rec.pxLine then pixelRecs[rec] = true end
 
     st = st or {}
     st.overlays = st.overlays or {}

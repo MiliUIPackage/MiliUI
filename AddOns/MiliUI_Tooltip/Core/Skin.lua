@@ -203,6 +203,7 @@ local function SkinPixel(skin, n)
     if not (scale and scale > 0) then return P.Pixel(n) end
     return n * PixelUtil.GetPixelToUIUnitFactor() / scale
 end
+Skin.Pixel = SkinPixel       -- 血條的黑框同一個基準（Core/Bar.lua）
 
 -- 邊框／背景／遮罩的錨點（全部跟著 inset 走）。inset 跟上次一樣就不動。
 -- ⚠ inset 不能只在 ApplyBase 算一次：ApplyBase 第一次跑在 ADDON_LOADED，那時 UIParent 還沒套上

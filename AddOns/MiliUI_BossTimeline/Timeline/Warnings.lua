@@ -107,6 +107,15 @@ local function Anchor(f)
     local size = def.icon * iconScale
     f.left:SetSize(size, size)
     f.right:SetSize(size, size)
+    -- 1px 黑線：照縮放後框自己的有效縮放換算（暴雪框的「整體大小」不是 1 時，照 UIParent 算就不是整數像素）
+    local px = ns.Media.Pixel(f, 1)
+    if f.edgePx ~= px then
+        f.edgePx = px
+        for _, holder in ipairs({ f.left, f.right }) do
+            local e = holder.edges
+            e[1]:SetHeight(px); e[2]:SetHeight(px); e[3]:SetWidth(px); e[4]:SetWidth(px)
+        end
+    end
 end
 
 local function Reanchor()
@@ -119,25 +128,25 @@ end
 -- 方形圖示：裁掉原圖的圓角外框、四邊 1px 黑線（純色硬邊，不用暴雪的圓角遮罩）
 local function MakeIcon(parent)
     local holder = CreateFrame("Frame", nil, parent)
-    local tex = holder:CreateTexture(nil, "ARTWORK")
+    local tex = ns.P.NoSnap(holder:CreateTexture(nil, "ARTWORK"))   -- 跟黑線相接，一樣不貼齊
     tex:SetAllPoints()
     tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     holder.tex = tex
+    -- 粗細在 Anchor 重新換算（每次顯示前重錨，那時縮放已定）；這裡先給個初值
     local function Edge(p1, p2, horizontal)
-        local e = holder:CreateTexture(nil, "OVERLAY")
+        local e = ns.P.NoSnap(holder:CreateTexture(nil, "OVERLAY"))
         e:SetColorTexture(0, 0, 0, 1)
         e:SetPoint(p1)
         e:SetPoint(p2)
-        if horizontal then e:SetHeight(1) else e:SetWidth(1) end
-        if e.SetSnapToPixelGrid then
-            e:SetSnapToPixelGrid(false)
-            e:SetTexelSnappingBias(0)
-        end
+        if horizontal then e:SetHeight(ns.P.Pixel(1)) else e:SetWidth(ns.P.Pixel(1)) end
+        return e
     end
-    Edge("TOPLEFT", "TOPRIGHT", true)
-    Edge("BOTTOMLEFT", "BOTTOMRIGHT", true)
-    Edge("TOPLEFT", "BOTTOMLEFT", false)
-    Edge("TOPRIGHT", "BOTTOMRIGHT", false)
+    holder.edges = {
+        Edge("TOPLEFT", "TOPRIGHT", true),
+        Edge("BOTTOMLEFT", "BOTTOMRIGHT", true),
+        Edge("TOPLEFT", "BOTTOMLEFT", false),
+        Edge("TOPRIGHT", "BOTTOMRIGHT", false),
+    }
     return holder
 end
 

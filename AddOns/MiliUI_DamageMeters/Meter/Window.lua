@@ -111,7 +111,7 @@ function Win.MakeBar(parent, W)
     bar.row:RegisterForClicks("AnyUp")
 
     -- 軌道底色（在填充之下）。預設 alpha 0 = 看不見。
-    bar.bg = bar.row:CreateTexture(nil, "BACKGROUND", nil, -8)
+    bar.bg = M.NoSnap(bar.row:CreateTexture(nil, "BACKGROUND", nil, -8))   -- 跟每列邊框相接
     bar.bg:SetAllPoints(bar.row)
 
     bar.fill = CreateFrame("StatusBar", nil, bar.row)
@@ -119,7 +119,7 @@ function Win.MakeBar(parent, W)
     bar.fill:SetValue(0)
     bar.fill:SetStatusBarTexture(M.WHITE8X8)
 
-    bar.icon = bar.fill:CreateTexture(nil, "OVERLAY")
+    bar.icon = M.NoSnap(bar.fill:CreateTexture(nil, "OVERLAY"))
     bar.icon:SetSize(18, 18)
     bar.icon:SetPoint("LEFT", bar.row, "LEFT", 0, 0)
     bar.icon:Hide()
@@ -212,7 +212,8 @@ function Win.ApplyBarBorder(bar)
         bar.borderFrame = f
     end
     local c = s.barBorderColor
-    bar.borderFrame:SetBackdrop({ edgeFile = M.WHITE8X8, edgeSize = D.Px(sz) })
+    bar.borderFrame:SetBackdrop({ edgeFile = M.WHITE8X8, edgeSize = D.Hair(sz) })
+    M.NoSnapBackdrop(bar.borderFrame)
     bar.borderFrame:SetBackdropBorderColor(c and c.r or 0, c and c.g or 0, c and c.b or 0, c and c.a or 1)
     bar.borderFrame:Show()
 end
@@ -237,6 +238,7 @@ function Win.ApplyBarStyle(bar, s, texPath)
     if not edge then
         if bar.line then bar.line:Hide() end
         bar.fill:SetStatusBarTexture(texPath)
+        M.NoSnap(bar.fill)
         bar.fill:SetAlpha(s.barFillAlpha or 1)
         -- ⚠ 一定要把頂點色救回來：**SetStatusBarTexture 不會清掉 SetStatusBarColor**。
         -- 細線樣式把填滿條的頂點色設成 (0,0,0,0) 當作隱形容器，換回實心時那個
@@ -260,8 +262,9 @@ function Win.ApplyBarStyle(bar, s, texPath)
     bar.fill:SetAlpha(1)
     bar.fill:SetStatusBarColor(0, 0, 0, 0)   -- 退成純容器
     bar.line:SetStatusBarTexture(texPath)
+    M.NoSnap(bar.line)
     bar.line:SetAlpha(s.barFillAlpha or 1)
-    bar.line:SetHeight(D.Px(s.barLineHeight or 2))
+    bar.line:SetHeight(D.Hair(s.barLineHeight or 2))
     bar.line:Show()
     return bar.line
 end
@@ -928,7 +931,7 @@ local function BuildPane(W, pane)
     HookBar(sticky)
     pane.stickyBar = sticky
 
-    pane.stickySep = frame:CreateTexture(nil, "OVERLAY")
+    pane.stickySep = M.NoSnap(frame:CreateTexture(nil, "OVERLAY"))
     pane.stickySep:SetColorTexture(1, 1, 1, 0.25)
     pane.stickySep:Hide()
     return pane
@@ -941,7 +944,7 @@ function Win.EnsureSplitPane(W)
     W.split = P
 
     -- 畫在視窗本體的 BORDER 層：在背景之上、長條（子框）之下
-    local div = W.frame:CreateTexture(nil, "BORDER")
+    local div = M.NoSnap(W.frame:CreateTexture(nil, "BORDER"))
     div:SetColorTexture(1, 1, 1, 0.04)   -- 只是分欄的暗示，不要搶過長條（使用者要求再淡）
     div:Hide()
     W.splitDivider = div
@@ -986,7 +989,7 @@ function Win.AnchorPanes(W)
         div:ClearAllPoints()
         div:SetPoint(O.top, header, O.bot, 0, 0)
         div:SetPoint(O.bot, frame, O.bot, 0, 0)
-        div:SetWidth(D.Px(1))
+        div:SetWidth(D.Hair(1))
     end
 
     -- 釘住自己那列的時候捲動區的錨點屬於那段邏輯（Rows.UpdateSticky），別在這裡搶。
@@ -1088,7 +1091,7 @@ function Win.Create(idx)
     frame:SetUserPlaced(false)
     W.frame = frame
 
-    frame.bg = frame:CreateTexture(nil, "BACKGROUND")
+    frame.bg = M.NoSnap(frame:CreateTexture(nil, "BACKGROUND"))   -- 跟視窗邊框相接
 
     ------------------------------------------------------------
     -- 標題列
@@ -1100,12 +1103,12 @@ function Win.Create(idx)
     header:EnableMouse(true)
     W.header = header
 
-    header.bg = header:CreateTexture(nil, "BACKGROUND")
+    header.bg = M.NoSnap(header:CreateTexture(nil, "BACKGROUND"))
     header.bg:SetAllPoints()
 
     -- 「標題列與清單之間」那條分隔線。反轉時它會跑到標題列上緣 —— 名字留著
     -- （設定頁與樣式套用都在用），語意是「面向清單的那一邊」。
-    header.bottomBorder = header:CreateTexture(nil, "OVERLAY", nil, 7)
+    header.bottomBorder = M.NoSnap(header:CreateTexture(nil, "OVERLAY", nil, 7))
 
     ------------------------------------------------------------
     -- 左側「統計類型」區塊：圖示 ＋ 標題，整塊都是切換按鈕
@@ -1428,6 +1431,7 @@ function Win.ApplyStyle(W)
     local s = ns.DB.Style()
     local wdb = W.wdb
     local frame, header = W.frame, W.header
+    W._hairPx = D.Hair(1)   -- 套用當下的 1 像素換算值（Windows.CheckPixel 比對用）
 
     local hdrH = D.Px(s.hdrHeight or 22)
     header:SetHeight(hdrH)
@@ -1440,7 +1444,7 @@ function Win.ApplyStyle(W)
     header.bg:SetColorTexture(hb.r or 0, hb.g or 0, hb.b or 0, hb.a or 1)
 
     local bb = s.hdrBottomBorderColor
-    header.bottomBorder:SetHeight(D.Px(s.hdrBottomBorderSize or 0))
+    header.bottomBorder:SetHeight(D.Hair(s.hdrBottomBorderSize or 0))
     header.bottomBorder:SetColorTexture(bb.r or 0, bb.g or 0, bb.b or 0, bb.a or 1)
     header.bottomBorder:SetShown((s.hdrBottomBorderSize or 0) > 0)
 
@@ -1485,7 +1489,8 @@ function Win.ApplyStyle(W)
     local sz = s.borderSize or 0
     if sz > 0 then
         local c = s.borderColor
-        W.borderTarget:SetBackdrop({ edgeFile = M.WHITE8X8, edgeSize = D.Px(sz) })
+        W.borderTarget:SetBackdrop({ edgeFile = M.WHITE8X8, edgeSize = D.Hair(sz) })
+        M.NoSnapBackdrop(W.borderTarget)
         W.borderTarget:SetBackdropBorderColor(c and c.r or 0, c and c.g or 0, c and c.b or 0, c and c.a or 1)
         W.borderTarget:Show()
     else

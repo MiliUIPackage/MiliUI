@@ -389,6 +389,23 @@ ns.ApplyEdgeColor = ApplyEdgeColor
 
 -- 停靠時整條 bar 的底與上下框線（tile 之間的空白也要有底）。
 -- 不停靠就藏起來，底由每顆 tile 自己畫（原本的樣子）。
+-- 1px 邊（tile 與停靠時整條）的粗細：P.Pixel 在登入那一刻可能還沒到最終縮放，之後改縮放／解析度
+-- 也要跟著變 ⇒ 每次排版重新換算、跟上次不同才重設（見 wow-1px-border-rules ③）
+local edgePx
+local function SizeEdges(edges, px)
+    edges[1]:SetHeight(px); edges[2]:SetHeight(px)
+    edges[3]:SetWidth(px);  edges[4]:SetWidth(px)
+end
+local function RefreshEdgeSize()
+    local px = P.Pixel(1)
+    if px == edgePx then return end
+    edgePx = px
+    for _, tile in ipairs(allTiles) do
+        if tile.edges then SizeEdges(tile.edges, px) end
+    end
+    if bar and bar.edges then SizeEdges(bar.edges, px) end
+end
+
 local function ApplyBarChrome()
     if not (bar and bar.bg) then return end
     local docked = Docked() ~= nil
@@ -456,7 +473,7 @@ function ns.CreateTile(name, opts)
     local tile = CreateFrame("Button", name, bar, opts.template)
     tile.desiredW = ns.GetDB().height
 
-    local bg = tile:CreateTexture(nil, "BACKGROUND")
+    local bg = P.NoSnap(tile:CreateTexture(nil, "BACKGROUND"))   -- 跟 1px 邊相接
     bg:SetAllPoints()
     bg:SetTexture(WHITE)
     bg:SetVertexColor(BgColor())
@@ -464,7 +481,7 @@ function ns.CreateTile(name, opts)
 
     local edges = {}
     for i = 1, 4 do
-        local e = tile:CreateTexture(nil, "BORDER")
+        local e = P.NoSnap(tile:CreateTexture(nil, "BORDER"))
         e:SetTexture(WHITE)
         edges[i] = e
     end
@@ -472,9 +489,7 @@ function ns.CreateTile(name, opts)
     edges[2]:SetPoint("BOTTOMLEFT"); edges[2]:SetPoint("BOTTOMRIGHT")
     edges[3]:SetPoint("TOPLEFT");    edges[3]:SetPoint("BOTTOMLEFT")
     edges[4]:SetPoint("TOPRIGHT");   edges[4]:SetPoint("BOTTOMRIGHT")
-    local px = P.Pixel(1)
-    edges[1]:SetHeight(px); edges[2]:SetHeight(px)
-    edges[3]:SetWidth(px);  edges[4]:SetWidth(px)
+    SizeEdges(edges, edgePx or P.Pixel(1))   -- 之後由 RefreshEdgeSize 跟著縮放重設
     tile.edges = edges
     ApplyEdgeColor(tile, false)
 
@@ -495,7 +510,7 @@ function ns.CreateTile(name, opts)
         -- 職業色那半（1px 邊）走 OnEnter/OnLeave —— 跟 Chattynator 按鈕同一句話：
         -- 明暗說「它現在怎麼了」，職業色說「焦點在這」。
         tile:SetHighlightTexture(WHITE)
-        local hl = tile:GetHighlightTexture()
+        local hl = P.NoSnap(tile:GetHighlightTexture())
         hl:SetVertexColor(HIGHLIGHT[1], HIGHLIGHT[2], HIGHLIGHT[3], HIGHLIGHT[4])
         tile:SetPushedTextOffset(0, 0)
         tile:HookScript("OnEnter", function(self) ApplyEdgeColor(self, true) end)
@@ -504,7 +519,7 @@ function ns.CreateTile(name, opts)
         -- 不用 OnMouseDown/OnMouseUp 掛 Lua——放開那次派送裡 OnMouseUp 排在 OnClick
         -- 前面，跟 PreClick 一樣會把 secure 轉發整個染髒（見下面的說明）。
         tile:SetPushedTexture(WHITE)
-        tile:GetPushedTexture():SetVertexColor(PushedColor())
+        P.NoSnap(tile:GetPushedTexture()):SetVertexColor(PushedColor())
         -- ⚠⚠ 這裡**不能**掛 PreClick（2026-09-06 曾掛來量點擊耗時，9/07 拆掉）。
         -- PreClick 跑在 secure OnClick **之前、同一次點擊派送裡**，taint 會延續到
         -- OnClick：secure 轉發 clickbutton:Click() → 暴雪微型按鈕 → 開天賦視窗，整段
@@ -648,6 +663,7 @@ local function Layout()
         ns.Defer("layout", Layout)
         return
     end
+    RefreshEdgeSize()
 
     local h = db.height
     local blockGap = db.blockGap or BLOCK_GAP
@@ -1069,6 +1085,7 @@ local function EnsureEditSelection()
     else
         sel = CreateFrame("Frame", nil, bar, "BackdropTemplate")
         sel:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
+        P.NoSnapBackdrop(sel)
         sel:SetBackdropColor(0.25, 0.6, 1, 0.15)
         sel:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
         sel:EnableMouse(true)
@@ -1092,6 +1109,18 @@ end
 ----------------------------------------------------------------------
 local settingsOverlay
 
+-- 遮罩建一次就重用（EnsureBar 時就建好，那時縮放可能還沒定）：顯示前換算 1px，變了才重套
+local function ApplyOverlaySkin(o)
+    local px = P.Pixel(1)
+    if o._px == px then return end
+    o._px = px
+    o:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = px })
+    local r, g, b = ns.W.Accent(1)
+    o:SetBackdropColor(r, g, b, 0.18)
+    o:SetBackdropBorderColor(r, g, b, 0.9)
+    P.NoSnapBackdrop(o)
+end
+
 local function EnsureSettingsOverlay()
     if settingsOverlay or not bar then return end
     local o = CreateFrame("Frame", nil, bar, "BackdropTemplate")
@@ -1099,10 +1128,7 @@ local function EnsureSettingsOverlay()
     o:SetFrameLevel(bar:GetFrameLevel() + 50)
     o:EnableMouse(true)
     o:RegisterForDrag("LeftButton")
-    o:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
-    local r, g, b = ns.W.Accent(1)
-    o:SetBackdropColor(r, g, b, 0.18)
-    o:SetBackdropBorderColor(r, g, b, 0.9)
+    -- 背景與邊框在 ApplyOverlaySkin（顯示時換算 1px）
     local label = o:CreateFontString(nil, "OVERLAY")
     label:SetFont(ns.LOCALE_FONT, 12, "OUTLINE")
     label:SetPoint("CENTER")
@@ -1116,6 +1142,7 @@ local function EnsureSettingsOverlay()
         db.x, db.y = nil, nil
         ApplyPosition()
     end)
+    ApplyOverlaySkin(o)
     o:Hide()
     settingsOverlay = o
 end
@@ -1127,6 +1154,7 @@ function ns.SetBarMoveOverlayShown(shown)
         if shown and bar then
             EnsureSettingsOverlay()
             if settingsOverlay then
+                ApplyOverlaySkin(settingsOverlay)
                 settingsOverlay.label:SetText(Docked() and L["DOCKED_LABEL"] or L["DRAG_LABEL"])
                 settingsOverlay:Show()
             end
@@ -1251,13 +1279,13 @@ local function EnsureBar()
     if ns.Snap then ns.Snap.Register(SNAP_KEY, bar) end
 
     -- 整條的底與上下左右 1px 框線：只在停靠時顯示（ApplyBarChrome）
-    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+    bar.bg = P.NoSnap(bar:CreateTexture(nil, "BACKGROUND"))
     bar.bg:SetAllPoints()
     bar.bg:SetTexture(WHITE)
     bar.bg:Hide()
     bar.edges = {}
     for i = 1, 4 do
-        local e = bar:CreateTexture(nil, "BORDER")
+        local e = P.NoSnap(bar:CreateTexture(nil, "BORDER"))
         e:SetTexture(WHITE)
         e:Hide()
         bar.edges[i] = e
@@ -1266,9 +1294,7 @@ local function EnsureBar()
     bar.edges[2]:SetPoint("BOTTOMLEFT"); bar.edges[2]:SetPoint("BOTTOMRIGHT")
     bar.edges[3]:SetPoint("TOPLEFT");    bar.edges[3]:SetPoint("BOTTOMLEFT")
     bar.edges[4]:SetPoint("TOPRIGHT");   bar.edges[4]:SetPoint("BOTTOMRIGHT")
-    local px = P.Pixel(1)
-    bar.edges[1]:SetHeight(px); bar.edges[2]:SetHeight(px)
-    bar.edges[3]:SetWidth(px);  bar.edges[4]:SetWidth(px)
+    SizeEdges(bar.edges, edgePx or P.Pixel(1))   -- 之後由 RefreshEdgeSize 跟著縮放重設
 
     -- 停靠時寬度是兩角錨定算出來的，第一次排版時可能還是 0；寬一變就重排
     bar:SetScript("OnSizeChanged", function(self, w)
@@ -1432,9 +1458,11 @@ ns.Events.Register("PLAYER_ENTERING_WORLD", "bar-repair", function()
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
     if db and (db.x == nil or db.y == nil) then ApplyPosition() end
     RepairInset()
+    -- 1px 邊的粗細重新換算一次（登入那一刻的縮放可能不是最終值；排版裡比對過才重設）
+    if db and bar then ns.RequestLayout() end
 end)
 ns.Events.Register("CHALLENGE_MODE_START", "dock-inset", RepairInset)
 ns.Events.Register("ZONE_CHANGED_NEW_AREA", "dock-inset", RepairInset)
 -- 停靠的內縮量是像素換算的，縮放或解析度一變就要重貼（順便防暴雪重設 UIParent）
-ns.Events.Register("UI_SCALE_CHANGED",    "dock-inset", function() if db then ApplyInset(true); ApplyPosition() end end)
-ns.Events.Register("DISPLAY_SIZE_CHANGED", "dock-inset", function() if db then ApplyInset(true); ApplyPosition() end end)
+ns.Events.Register("UI_SCALE_CHANGED",    "dock-inset", function() if db then ApplyInset(true); ApplyPosition(); ns.RequestLayout() end end)
+ns.Events.Register("DISPLAY_SIZE_CHANGED", "dock-inset", function() if db then ApplyInset(true); ApplyPosition(); ns.RequestLayout() end end)

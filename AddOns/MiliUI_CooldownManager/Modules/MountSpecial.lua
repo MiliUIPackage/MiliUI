@@ -33,6 +33,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 local L = ns.L
 
 ns.MountSpecial = {}
@@ -198,16 +201,17 @@ local function Build()
     btn = CreateFrame("Button", nil, container)
     btn:SetAllPoints(container)
     btn:RegisterForClicks("LeftButtonUp")
-    local bg = btn:CreateTexture(nil, "BACKGROUND")
+    -- 底與滑過／按下兩層蓋滿整顆、跟 1px 邊相接：不貼齊
+    local bg = NoSnap(btn:CreateTexture(nil, "BACKGROUND"))
     bg:SetAllPoints(btn)
     bg:SetTexture(SOLID)
     bg:SetVertexColor(HUD_BG, HUD_BG, HUD_BG, 0.8)
-    local hl = btn:CreateTexture(nil, "ARTWORK")          -- 滑過：亮一層（ADD）
+    local hl = NoSnap(btn:CreateTexture(nil, "ARTWORK"))  -- 滑過：亮一層（ADD）
     hl:SetAllPoints(btn)
     hl:SetTexture(SOLID)
     hl:SetBlendMode("ADD")
     hl:SetAlpha(0)
-    local dark = btn:CreateTexture(nil, "ARTWORK", nil, 1) -- 按下：暗一層
+    local dark = NoSnap(btn:CreateTexture(nil, "ARTWORK", nil, 1)) -- 按下：暗一層
     dark:SetAllPoints(btn)
     dark:SetTexture(SOLID)
     dark:SetVertexColor(0, 0, 0, 1)

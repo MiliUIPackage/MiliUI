@@ -28,6 +28,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.ProcDeckRows = {}
 local PDR = ns.ProcDeckRows
 
@@ -80,8 +83,9 @@ end
 ------------------------------------------------------------
 function PDR.NewRow(parent)
     local row = CreateFrame("Frame", nil, parent)
-    row.iconFrame = row:CreateTexture(nil, "BACKGROUND")
-    row.icon = row:CreateTexture(nil, "ARTWORK")
+    -- 圖示框（1px 黑邊＝外露的底）、圖示、填充、刻度都不貼齊
+    row.iconFrame = NoSnap(row:CreateTexture(nil, "BACKGROUND"))
+    row.icon = NoSnap(row:CreateTexture(nil, "ARTWORK"))
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     row.bar = CreateFrame("Frame", nil, row)
     row.sb = CreateFrame("StatusBar", nil, row.bar)
@@ -147,6 +151,7 @@ function PDR.LayoutRow(row, def, s, style, W)
     row.bar:SetSize(g.barW, H)
     row.sb:SetFrameLevel(lv + 2)
     row.sb:SetStatusBarTexture(look.texture)
+    NoSnap(row.sb)
     row.sb:SetMinMaxValues(0, def.size)
     row.textFrame:SetFrameLevel(lv + 12)
     -- 暗底與邊框：自訂列同一支（暗底在條身底下、邊框蓋在填色上）。顏色在 PaintRow 照狀態就地改
@@ -193,7 +198,7 @@ function PDR.PaintRow(row, st)
         for i, f in ipairs(pd.TickFractions(st, def)) do
             local tk = row.ticks[i]
             if not tk then
-                tk = row.textFrame:CreateTexture(nil, "ARTWORK")
+                tk = NoSnap(row.textFrame:CreateTexture(nil, "ARTWORK"))
                 tk:SetTexture(WHITE)
                 tk:SetVertexColor(1, 1, 1, 1)
                 row.ticks[i] = tk

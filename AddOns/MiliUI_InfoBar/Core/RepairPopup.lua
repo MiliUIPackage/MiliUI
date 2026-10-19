@@ -85,6 +85,19 @@ local function MountClick(self)
     ns.Mounts.Summon(self.entryID)
 end
 
+-- 1px 邊與圖示內縮：同一個 P.Pixel 值，填按鈕時換算、變了才重排（縮放可能在建立之後才改）
+local function LayoutButtonEdges(btn)
+    local px = P.Pixel(1)
+    if btn._px == px then return end
+    btn._px = px
+    local e = btn.edges
+    e[1]:SetHeight(px); e[2]:SetHeight(px)
+    e[3]:SetWidth(px);  e[4]:SetWidth(px)
+    btn.icon:ClearAllPoints()
+    btn.icon:SetPoint("TOPLEFT", px, -px)
+    btn.icon:SetPoint("BOTTOMRIGHT", -px, px)
+end
+
 local function GetButton(kind, index)
     local pool = pools[kind]
     local btn = pool[index]
@@ -103,21 +116,19 @@ local function GetButton(kind, index)
     btn:RegisterForClicks("AnyUp")
     btn:SetSize(ICON_BTN, ICON_BTN)
 
-    local bg = btn:CreateTexture(nil, "BACKGROUND")
+    local bg = P.NoSnap(btn:CreateTexture(nil, "BACKGROUND"))
     bg:SetAllPoints()
     bg:SetTexture(WHITE)
     bg:SetVertexColor(0, 0, 0, 0.45)
 
-    btn.icon = btn:CreateTexture(nil, "ARTWORK")
-    btn.icon:SetPoint("TOPLEFT", 1, -1)
-    btn.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+    btn.icon = P.NoSnap(btn:CreateTexture(nil, "ARTWORK"))   -- 內縮量見 LayoutButtonEdges
     -- 圖示邊緣那圈留白裁掉，方形圖示才貼得住 1px 的視覺語彙（同列層的圖示欄）
     btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     -- 1px 邊：閒置灰、滑過職業色（HUD 皮：狀態只換明暗，身分色在邊上）
     local edges = {}
     for i = 1, 4 do
-        local e = btn:CreateTexture(nil, "OVERLAY")
+        local e = P.NoSnap(btn:CreateTexture(nil, "OVERLAY"))
         e:SetTexture(WHITE)
         edges[i] = e
     end
@@ -125,11 +136,9 @@ local function GetButton(kind, index)
     edges[2]:SetPoint("BOTTOMLEFT"); edges[2]:SetPoint("BOTTOMRIGHT")
     edges[3]:SetPoint("TOPLEFT");    edges[3]:SetPoint("BOTTOMLEFT")
     edges[4]:SetPoint("TOPRIGHT");   edges[4]:SetPoint("BOTTOMRIGHT")
-    local px = P.Pixel(1)
-    edges[1]:SetHeight(px); edges[2]:SetHeight(px)
-    edges[3]:SetWidth(px);  edges[4]:SetWidth(px)
     for _, e in ipairs(edges) do e:SetVertexColor(EDGE_IDLE, EDGE_IDLE, EDGE_IDLE, 1) end
     btn.edges = edges
+    LayoutButtonEdges(btn)
 
     -- 冷卻扇形是 insecure 的子框，戰鬥中更新它是合法的
     btn.cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
@@ -181,6 +190,7 @@ local function SetButtonCooldown(cd, start, duration, enable)
 end
 
 local function FillButton(btn, entry)
+    LayoutButtonEdges(btn)
     btn.entryKind = entry.kind
     btn.entryID   = entry.id
     btn.icon:SetTexture(entry.icon or "Interface\\Icons\\INV_Misc_QuestionMark")

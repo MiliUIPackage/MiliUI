@@ -106,7 +106,8 @@ local function CreateSelection()
     else
         sel = CreateFrame("Frame", nil, holder, "BackdropTemplate")
         sel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8",
-                          edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+                          edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = ns.P.Pixel(1) })
+        ns.P.NoSnapBackdrop(sel)
         sel:SetBackdropColor(0.25, 0.6, 1, 0.15)
         sel:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
         sel.ShowHighlighted = sel.Show
@@ -175,8 +176,9 @@ end
 function Screen.Apply()
     Create()
     local d = DB()
-    display:Apply(d, ns.DB.Layout(), d.orientation)
+    -- 縮放先寫：Apply 裡的 1px 邊照框自己的有效縮放換算
     display.frame:SetScale(d.scale or 1)
+    display:Apply(d, ns.DB.Layout(), d.orientation)
     -- holder 的大小＝縮放後的時間軸（選取框照它畫）
     local w, h = display.frame:GetSize()
     local sc = d.scale or 1

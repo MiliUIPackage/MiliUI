@@ -10,6 +10,7 @@
 --   flip      false＝最快到的在最上面、往下排；true＝最快到的在最下面、往上排
 --   showName  條上顯示技能名稱
 -- 條數上限 MAX_BARS：時間軸上同時十幾條的時候，最遠的那幾條本來就不急。
+-- 1px 邊照框自己的有效縮放換算（Display:Render 縮放變了會整個重排）；邊、圖示、條身與底都關像素貼齊。
 --
 -- 秘密值：名稱、圖示、顏色照舊只往 SetText／SetTexture／SetStatusBarColor 傳；
 -- 條的長度用剩餘秒數（明文）餵 StatusBar。
@@ -17,6 +18,7 @@
 local _, ns = ...
 
 local P = ns.P
+local NoSnap = P.NoSnap
 local Display = ns.Display.Mixin
 local H = ns.Display.Helpers
 
@@ -27,7 +29,7 @@ local FADE_IN = 1.5
 local function Edges(f)
     local e = {}
     for i = 1, 4 do
-        local t = f:CreateTexture(nil, "OVERLAY", nil, 3)
+        local t = NoSnap(f:CreateTexture(nil, "OVERLAY", nil, 3))
         t:SetTexture(WHITE)
         e[i] = t
     end
@@ -35,7 +37,7 @@ local function Edges(f)
 end
 
 local function LayoutEdges(e, f, on)
-    local px = P.Pixel(1)
+    local px = ns.Media.Pixel(f, 1)
     for i = 1, 4 do
         e[i]:ClearAllPoints()
         e[i]:SetShown(on)
@@ -52,12 +54,12 @@ local function NewBar(d)
     b:SetFrameLevel(d.frame:GetFrameLevel() + 5)
     -- 圖示：沿用時間軸的圖示框（方框＋邊）
     b.iconFrame = CreateFrame("Frame", nil, b)
-    b.iconFrame.icon = b.iconFrame:CreateTexture(nil, "ARTWORK")
+    b.iconFrame.icon = NoSnap(b.iconFrame:CreateTexture(nil, "ARTWORK"))
     b.iconFrame.edges = Edges(b.iconFrame)
     b.iconFrame.ind = {}
     -- 條身
     b.bar = CreateFrame("StatusBar", nil, b)
-    b.bg = b.bar:CreateTexture(nil, "BACKGROUND")
+    b.bg = NoSnap(b.bar:CreateTexture(nil, "BACKGROUND"))
     b.bg:SetAllPoints()
     b.bg:SetTexture(WHITE)
     b.edges = Edges(b.bar)
@@ -76,9 +78,10 @@ function Display:StyleBar(b)
     ic:SetPoint("LEFT", b, "LEFT", 0, 0)
     H.LayoutIcon(ic, h, s.icon)
     b.bar:ClearAllPoints()
-    b.bar:SetPoint("TOPLEFT", ic, "TOPRIGHT", P.Pixel(1), 0)
+    b.bar:SetPoint("TOPLEFT", ic, "TOPRIGHT", ns.Media.Pixel(b, 1), 0)
     b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
     b.bar:SetStatusBarTexture(ns.Media.BarTexture(s.bar.texture))
+    NoSnap(b.bar)          -- 填充貼圖（換材質後再關一次）
     local c, bg = s.bar.color, s.bar.bgColor
     b.bar:SetStatusBarColor(c.r, c.g, c.b, c.a or 1)
     b.bg:SetVertexColor(bg.r, bg.g, bg.b, bg.a or 1)

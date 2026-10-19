@@ -418,6 +418,7 @@ end
 function Panel.ApplySettings()
     if not panel or not ns.db then return end
     panel:SetScale(tonumber(ns.db.panel.scale) or 1)
+    S.RefreshPixels(panel)   -- 縮放之後才換算 1px（邊框與表頭髮絲線，見 Core/Style.lua）
     local pt = ns.db.panel.point
     panel:ClearAllPoints()
     panel:SetPoint("TOP", UIParent, "TOP", pt.x or 0, pt.y or ns.DB.PANEL_DEFAULT_Y)

@@ -114,12 +114,17 @@ do
         sel = f
     else
         f = CreateFrame("Frame", nil, anchor, "BackdropTemplate")
-        f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8",
-                        edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        f:SetBackdropColor(0.25, 0.6, 1, 0.15)
-        f:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
         f:EnableMouse(true)
-        f.ShowHighlighted = f.Show
+        -- 1px 邊是實體像素、顯示時才換算（檔案載入時 UI 縮放還沒定），貼圖關像素貼齊
+        -- （.claude/notes/wow-1px-border-rules.md）
+        f.ShowHighlighted = function(self)
+            self:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8",
+                               edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = ns.P.Pixel(1) })
+            ns.P.NoSnapBackdrop(self)
+            self:SetBackdropColor(0.25, 0.6, 1, 0.15)
+            self:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
+            self:Show()
+        end
         sel = f
     end
     sel:SetAllPoints(anchor)

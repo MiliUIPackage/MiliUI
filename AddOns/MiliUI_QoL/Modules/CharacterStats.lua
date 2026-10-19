@@ -633,6 +633,7 @@ local function Build()
     for _, sec in ipairs(SECTIONS) do BuildSection(sec) end
 
     host:SetScript("OnShow", function(self)
+        X.RelayoutPixels()   -- 1px 邊／線在顯示時重算（建立時在登入，縮放不一定是最終值）
         RegisterEvents(self)
         Refresh()
         Layout()

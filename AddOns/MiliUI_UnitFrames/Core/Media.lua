@@ -178,6 +178,7 @@ function M.ApplyBorder(frame, borderColor, borderSize)
         return
     end
     frame:SetBackdrop({ edgeFile = M.WHITE8X8, edgeSize = M.BorderInset(size) })
+    M.NoSnapBackdrop(frame)
     local c = borderColor or (ns.db and ns.db.global.borderColor) or { r = 0, g = 0, b = 0, a = 1 }
     frame:SetBackdropBorderColor(c.r, c.g, c.b, c.a or 1)
 end
@@ -192,3 +193,10 @@ function M.BorderInset(borderSize)
     if size <= 0 then return 0 end
     return ns.P.Pixel(size)
 end
+
+-- 關像素貼齊（共用層 P.NoSnap）：框停在小數座標時引擎會把每張貼圖各自捨入，1px 邊
+-- 整條變 0 或 2、底／填充跟邊差一格。邊框、跟邊相接的底／填充／圖示、StatusBar 一律過這支；
+-- 只用在自己建的物件上。規則：.claude/notes/wow-1px-border-rules.md
+function M.NoSnap(obj) return ns.P.NoSnap(obj) end
+-- BackdropTemplate 的九張貼圖（SetBackdrop 之後才存在）
+function M.NoSnapBackdrop(frame) return ns.P.NoSnapBackdrop(frame) end

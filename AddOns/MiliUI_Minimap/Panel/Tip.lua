@@ -112,14 +112,14 @@ local function EnsureRow(i)
 
     -- 按鈕列的底：整列一塊比面板亮一階的實心帶。平常就看得到（它是按鈕，
     -- 要讓人知道這裡可以按），滑過再疊上 hl 亮一階 —— 狀態只換明暗不換色。
-    row.fill = row:CreateTexture(nil, "BACKGROUND", nil, -1)
+    row.fill = S.NoSnap(row:CreateTexture(nil, "BACKGROUND", nil, -1))   -- 左右貼著 1px 外框
     row.fill:SetAllPoints(row)
     row.fill:SetColorTexture(1, 1, 1, 0.07)
     row.fill:Hide()
 
     -- 滑過的回饋走**底色明暗**，不換色（miliui-color-states）。
     -- 跟社交列格子的那塊一樣淡：這裡是清單，不是選單，亮太多會像每一列都被選中。
-    row.hl = row:CreateTexture(nil, "BACKGROUND")
+    row.hl = S.NoSnap(row:CreateTexture(nil, "BACKGROUND"))
     row.hl:SetAllPoints(row)
     row.hl:SetColorTexture(1, 1, 1, 0.10)
     row.hl:Hide()
@@ -313,6 +313,7 @@ local function Build()
     function panel:Show()
         local width = MIN_W
         local y = -PAD_Y
+        local px = S.Pixel(self, 1)   -- 列貼在外框內側：內縮跟邊寬同一個值
         for i = 1, used do
             local row = rows[i]
             local w = row.left:GetStringWidth() or 0
@@ -323,8 +324,8 @@ local function Build()
             if w > width then width = w end
 
             row:ClearAllPoints()
-            row:SetPoint("TOPLEFT", self, "TOPLEFT", 1, y)
-            row:SetPoint("TOPRIGHT", self, "TOPRIGHT", -1, y)
+            row:SetPoint("TOPLEFT", self, "TOPLEFT", px, y)
+            row:SetPoint("TOPRIGHT", self, "TOPRIGHT", -px, y)
             row:SetHeight(row.height)
             -- 重畫（名單刷新）時游標可能正停在某一列上，OnEnter 不會再觸發一次，
             -- 這裡補判一次讓亮起來的列跟著內容走。

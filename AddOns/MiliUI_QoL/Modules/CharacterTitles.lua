@@ -224,7 +224,7 @@ local function BuildSearch()
     local lines = {}
     for _, d in ipairs({ { -1, -1, 1, 1 }, { -1, 1, 1, -1 } }) do
         local line = clearBtn:CreateLine(nil, "ARTWORK")
-        line:SetThickness(ns.P.Pixel(1.5))
+        line:SetThickness(ns.P.Scale(1.5))   -- × 是圖記、跟按鈕一起縮放：P.Scale 不是 P.Pixel（wow-1px-border-rules 第 6 條）
         line:SetColorTexture(1, 1, 1, 1)
         line:SetVertexColor(C.textDim[1], C.textDim[2], C.textDim[3], 1)
         line:SetStartPoint("CENTER", clearBtn, d[1] * 4, d[2] * 4)

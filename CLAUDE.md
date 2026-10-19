@@ -57,6 +57,8 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
   函式庫，改錯地方會被下次同步蓋掉。⚠ 共用層的語系契約只有四個 key
   （`Apply`／`Okay`／`Cancel`／`Can't change settings during combat`），**不要擴充** ——
   用 AceLocale ＋ token key 的那三支會當場洗版。
+- **畫 1px 邊框、分隔線、髮絲線照 [wow-1px-border-rules](.claude/notes/wow-1px-border-rules.md)**：粗細走 `P.Pixel`、
+  顯示時才換算、自己建的貼圖過 `P.NoSnap`。漏一條就是「某些玩家邊框不見／變 2px」，而裝著 Cell 的我們自己看不到。
 - **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、Cell 的 local／upvalue
   上限、TOC 載入清單與 Interface 版本、語系缺鍵／格式符、共用層有沒有漂移、Skin 契約、
   `MiliUI_CooldownManager` 的離線測試、第三方插件的本地修補有沒有被上游更新洗掉、`THIRD_PARTY.md` 與筆記自動索引有沒有過期、`.claude/notes` 有沒有落後 memory）。

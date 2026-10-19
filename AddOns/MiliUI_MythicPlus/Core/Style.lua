@@ -13,8 +13,10 @@
 --   玩家可能只裝它一支，跨插件讀設定會在對方缺席時退回一個不一樣的顏色 ——
 --   而「同一個套組的兩個面板長得不一樣」正是要避免的事。改的時候各處一起改。
 --
--- ⚠ 邊寬走 P.Pixel(1) 而不是寫死 1：UI 縮放不是 1 的時候寫死會畫出 1.3 個實體
---   像素，那條邊會有一側糊掉，而且四條邊糊的方向還不一樣。
+-- ⚠ 邊寬走 S.Pixel(frame, 1) 而不是寫死 1：UI 縮放不是 1 的時候寫死會畫出 1.3 個實體
+--   像素，那條邊會有一側糊掉，而且四條邊糊的方向還不一樣。面板有自己的 SetScale（設定的
+--   縮放），基準要用面板自己的有效縮放；縮放可能在建立之後才改，顯示時重算（S.RefreshPixels）。
+--   規則見 .claude/notes/wow-1px-border-rules.md
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -40,6 +42,27 @@ function S.Accent(alpha)
     return r, g, b, alpha or 1
 end
 
+-- 剛好 n 個實體像素，以框自己的有效縮放換算（框或祖先 SetScale ≠ 1 時 P.Pixel 不準）
+function S.Pixel(frame, n)
+    n = n or 1
+    local s = frame and frame.GetEffectiveScale and frame:GetEffectiveScale()
+    if not s or s <= 0 then return P.Pixel(n) end
+    n = math.floor(n + 0.5)
+    if n <= 0 then return 0 end
+    return n * PixelUtil.GetPixelToUIUnitFactor() / s
+end
+
+-- 邊寬換算值變了才重下 backdrop（SetBackdrop 會把顏色洗掉，所以連顏色一起上）
+local function SetEdge(frame)
+    local px = S.Pixel(frame, 1)
+    if frame._miliPx == px then return end
+    frame._miliPx = px
+    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = px })
+    frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
+    frame:SetBackdropBorderColor(S.Accent())
+    P.NoSnapBackdrop(frame)
+end
+
 ------------------------------------------------------------
 -- 套用：面板（提示皮）
 --
@@ -50,10 +73,20 @@ end
 function S.ApplyPanel(frame)
     if not frame then return end
     if not frame.SetBackdrop then Mixin(frame, BackdropTemplateMixin) end
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
-    frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
-    frame:SetBackdropBorderColor(S.Accent())
+    frame._miliPx = nil
+    SetEdge(frame)
     return frame
+end
+
+-- 改縮放之後／顯示前：邊寬與掛在這個框上的髮絲線重新換算（值沒變就不動）
+function S.RefreshPixels(frame)
+    if not frame then return end
+    if frame._miliPx ~= nil then SetEdge(frame) end
+    local lines = frame._miliHairlines
+    if lines then
+        local px = S.Pixel(frame, 1)
+        for _, t in ipairs(lines) do t:SetHeight(px) end
+    end
 end
 
 ------------------------------------------------------------
@@ -75,12 +108,15 @@ function S.NewText(parent, size, color, justify)
     return fs
 end
 
--- 一條髮絲線（純色貼圖，寬度由呼叫端錨出來）
+-- 一條髮絲線（純色貼圖，寬度由呼叫端錨出來）。關像素貼齊；粗細照 parent 的有效縮放，
+-- 記在 parent 上讓 S.RefreshPixels 改縮放時重算
 function S.NewHairline(parent)
-    local t = parent:CreateTexture(nil, "ARTWORK")
+    local t = P.NoSnap(parent:CreateTexture(nil, "ARTWORK"))
     t:SetTexture(WHITE)
     t:SetVertexColor(unpack(S.HAIRLINE))
-    t:SetHeight(P.Pixel(1))
+    t:SetHeight(S.Pixel(parent, 1))
+    parent._miliHairlines = parent._miliHairlines or {}
+    table.insert(parent._miliHairlines, t)
     return t
 end
 

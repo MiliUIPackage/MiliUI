@@ -658,6 +658,7 @@ local function InitButton(btn, c, st, h, sig)
     local bar = CreateFrame("StatusBar", nil, btn)
     bar:SetAllPoints(btn)
     bar:SetStatusBarTexture(st.texture)
+    NoSnap(bar)              -- 填充跟裝飾的 1px 邊相接：不貼齊
     local t = bar:GetStatusBarTexture()
     if t then t:SetVertexColor(st.r, st.g, st.b, st.alpha) end
     bar:SetReverseFill(st.reversed)

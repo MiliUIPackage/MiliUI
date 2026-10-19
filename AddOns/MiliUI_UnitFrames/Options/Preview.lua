@@ -151,9 +151,11 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
         if not b then
             -- Button 而不是 Frame：圖示要能點（跳到對應的增益／減益分頁）
             b = CreateFrame("Button", nil, uf, "BackdropTemplate")
-            b.icon = b:CreateTexture(nil, "ARTWORK")
-            b.icon:SetPoint("TOPLEFT", 1, -1)
-            b.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+            -- 同真實光環：外框 1 實體像素（Elements/Auras.lua 的 BORDER），圖示關像素貼齊
+            local px = ns.P.Pixel(1)
+            b.icon = ns.Media.NoSnap(b:CreateTexture(nil, "ARTWORK"))
+            b.icon:SetPoint("TOPLEFT", px, -px)
+            b.icon:SetPoint("BOTTOMRIGHT", -px, px)
             b.icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
             b.dur = b:CreateFontString(nil, "OVERLAY")
             b.dur:SetPoint("CENTER", b, "CENTER", 0, 0)
@@ -179,6 +181,7 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
         end
         b:SetSize(w, h)
         b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
+        ns.Media.NoSnapBackdrop(b)
         if elementName == "debuffs" then
             b:SetBackdropColor(0.8, 0.1, 0.1, 1)
         else

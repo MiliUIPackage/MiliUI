@@ -116,6 +116,28 @@ ns.PlayReminderSound = PlayReminderSound
 ----------------------------------------------------------------------
 -- Frame creation
 ----------------------------------------------------------------------
+-- 圖示的 1px 黑框：實體像素（P.Pixel），圖示內縮用同一個值。框在檔案載入時就建，那時 UI 縮放
+-- 還沒定 ⇒ 每次顯示前重算、跟上次一樣就不動；框與圖示關像素貼齊（.claude/notes/wow-1px-border-rules.md）
+local reminderBorderPx
+local function LayoutReminderBorder()
+    local iconBorder = reminderFrame and reminderFrame.iconBorder
+    if not iconBorder then return end
+    local px = ns.P.Pixel(1)
+    if reminderBorderPx == px then return end
+    reminderBorderPx = px
+    iconBorder:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = px,
+    })
+    ns.P.NoSnapBackdrop(iconBorder)
+    iconBorder:SetBackdropColor(0, 0, 0, 0.6)
+    iconBorder:SetBackdropBorderColor(0, 0, 0, 1)
+    reminderIcon:ClearAllPoints()
+    reminderIcon:SetPoint("TOPLEFT",     iconBorder, "TOPLEFT",      px, -px)
+    reminderIcon:SetPoint("BOTTOMRIGHT", iconBorder, "BOTTOMRIGHT", -px,  px)
+end
+
 local function CreateReminderFrame()
     if reminderFrame then return end
 
@@ -133,19 +155,11 @@ local function CreateReminderFrame()
     iconBorder:SetSize(42, 42)
     iconBorder:SetPoint("LEFT", reminderFrame, "LEFT", 0, 0)
     iconBorder:SetFrameLevel(reminderFrame:GetFrameLevel() + 1)
-    iconBorder:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    })
-    iconBorder:SetBackdropColor(0, 0, 0, 0.6)
-    iconBorder:SetBackdropBorderColor(0, 0, 0, 1)
 
-    reminderIcon = iconBorder:CreateTexture(nil, "ARTWORK")
-    reminderIcon:SetPoint("TOPLEFT",     iconBorder, "TOPLEFT",      1, -1)
-    reminderIcon:SetPoint("BOTTOMRIGHT", iconBorder, "BOTTOMRIGHT", -1,  1)
+    reminderIcon = ns.P.NoSnap(iconBorder:CreateTexture(nil, "ARTWORK"))
     reminderIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     reminderFrame.iconBorder = iconBorder
+    LayoutReminderBorder()   -- backdrop 與圖示內縮
 
     -- Text
     reminderText = reminderFrame:CreateFontString(nil, "OVERLAY")
@@ -205,6 +219,7 @@ local function UpdateEditModeState(entering)
         if reminderIcon then reminderIcon:SetTexture(ns.DEFAULT_LUST_ICON) end
         reminderText:SetText(L["REMINDER_EDITMODE_TEXT"] or "Lust available!")
         UpdateReminderPosition()
+        LayoutReminderBorder()
         reminderFrame:Show()
     else
         if reminderFrame then
@@ -247,6 +262,7 @@ local function ShowReminder()
         if reminderFrame then reminderFrame:Hide() end  -- OnHide handles cleanup
     end)
 
+    LayoutReminderBorder()
     reminderFrame:Show()
 end
 ns.ShowReminder = ShowReminder

@@ -21,15 +21,18 @@ local function BuildBadge(parent)
     b:SetFrameLevel(parent:GetFrameLevel() + 2)
 
     -- 1px 外框（比圖示大 1px 的純色底，襯在後面露出邊）
-    b.outline = b:CreateTexture(nil, "BACKGROUND")
+    -- 外框寬走實體像素、外框與圖示關像素貼齊（.claude/notes/wow-1px-border-rules.md）
+    local P = ns.P
+    b.outline = P.NoSnap(b:CreateTexture(nil, "BACKGROUND"))
     b.outline:SetColorTexture(0, 0, 0, 1)
 
-    b.icon = b:CreateTexture(nil, "OVERLAY")
+    b.icon = P.NoSnap(b:CreateTexture(nil, "OVERLAY"))
     b.icon:SetAllPoints()
     b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    b.outline:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -1, 1)
-    b.outline:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 1, -1)
+    local px = P.Pixel(1)
+    b.outline:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -px, px)
+    b.outline:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", px, -px)
 
     b.border = b:CreateTexture(nil, "OVERLAY", nil, 1)
     b.border:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")

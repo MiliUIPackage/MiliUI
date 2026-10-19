@@ -303,12 +303,12 @@ local function Build(uf, edb)
     -- ⚠ 不能一律用獨立框再把層級設成跟血條相同：同層繪製順序不保證，
     --   後建立的背景框會蓋在填充上、不透明底色直接吃掉血條（實測踩到）
     if not f.bgInClip then
-        f.bgInClip = f.clip:CreateTexture(nil, "BACKGROUND")
+        f.bgInClip = Media.NoSnap(f.clip:CreateTexture(nil, "BACKGROUND"))
         f.bgInClip:SetAllPoints(f.clip)
     end
     if not f.bgFrame then
         f.bgFrame = CreateFrame("Frame", nil, f)
-        f.bgSeparate = f.bgFrame:CreateTexture(nil, "BACKGROUND")
+        f.bgSeparate = Media.NoSnap(f.bgFrame:CreateTexture(nil, "BACKGROUND"))
         f.bgSeparate:SetAllPoints(f.bgFrame)
     end
     f.bgFrame:ClearAllPoints()
@@ -331,6 +331,7 @@ local function Build(uf, edb)
         f.bar:SetAllPoints(f.clip)
     end
     f.bar:SetStatusBarTexture(texture)
+    Media.NoSnap(f.bar)      -- 填充跟邊框相接：關像素貼齊（Media.NoSnap）
     f.bar:SetFrameLevel(edb.level or 4)
     -- 填充方向。⚠ 下面所有「貼著血量前緣」或「從條的某一端長」的疊加層都要跟著翻，
     -- 漏一個就會長在錯的那端：扣血暗化、治療預估、兩條吸收盾、治療吸收、
@@ -358,10 +359,10 @@ local function Build(uf, edb)
         local m = f.maxLoss
         if not m then
             m = CreateFrame("Frame", nil, f)
-            m.fill = m:CreateTexture(nil, "ARTWORK")
+            m.fill = Media.NoSnap(m:CreateTexture(nil, "ARTWORK"))
             m.fill:SetAllPoints(m)
             m.fill:SetTexture(Media.WHITE8X8)
-            m.divider = m:CreateTexture(nil, "OVERLAY")
+            m.divider = Media.NoSnap(m:CreateTexture(nil, "OVERLAY"))
             m.divider:SetTexture(Media.WHITE8X8)
             m:Hide()
             f.maxLoss = m
@@ -397,7 +398,7 @@ local function Build(uf, edb)
     -- overlay 條之下）。三明治版面裡 3D 模型太搶眼，沒這層「模型」和「模型＋40% 職業色」
     -- 幾乎看不出差別；蓋暗扣血區之後分界才明顯
     if not f.loss then
-        f.loss = f.clip:CreateTexture(nil, "ARTWORK")
+        f.loss = Media.NoSnap(f.clip:CreateTexture(nil, "ARTWORK"))
         f.loss:SetTexture(Media.WHITE8X8)
     end
     local lossA = edb.lossAlpha or 0
@@ -433,6 +434,7 @@ local function Build(uf, edb)
             sb:ClearAllPoints()
             sb:SetAllPoints(f.clip)
             sb:SetStatusBarTexture(Media.SHIELD_TEXTURE)
+            Media.NoSnap(sb)
             sb:SetReverseFill((key == "shieldbarR") ~= reversed)
             sb:SetStatusBarColor(shieldC.r, shieldC.g, shieldC.b, shieldC.a or 0.4)
             sb:Hide()
@@ -479,6 +481,7 @@ local function Build(uf, edb)
         hab:SetAllPoints(f.clip)
         hab:SetReverseFill(not reversed)
         hab:SetStatusBarTexture(Media.SHIELD_TEXTURE)
+        Media.NoSnap(hab)
         local c = edb.healAbsorbColor or { r = 1, g = 0.1, b = 0.1, a = 1 }
         hab:SetStatusBarColor(c.r, c.g, c.b, c.a or 1)
     elseif f.healAbsorbBar then
@@ -499,6 +502,7 @@ local function Build(uf, edb)
         ib:SetWidth(innerW)
         ib:SetReverseFill(reversed)
         ib:SetStatusBarTexture(texture)
+        Media.NoSnap(ib)
     elseif f.incbar then
         f.incbar:Hide()
     end
@@ -520,6 +524,7 @@ local function Build(uf, edb)
         local sb = f.absorbStrip
         sb:SetFrameLevel((edb.level or 4) + 1)
         sb:SetStatusBarTexture(texture)
+        Media.NoSnap(sb)
         sb:SetReverseFill(reversed)          -- 跟血條同向，上下兩條讀起來才是同一把尺
         sb:SetHeight(ns.P.Scale(edb.absorbBarHeight or 4))
         local gap = ns.P.Scale(edb.absorbBarGap or 1)

@@ -571,6 +571,7 @@ function ns.ApplyHighlight(uf)
     local g = ns.db.global
     local c = g.highlightColor or { r = 1, g = 1, b = 1, a = 0.7 }
     hl:SetBackdrop({ edgeFile = Media.WHITE8X8, edgeSize = Media.BorderInset(g.highlightSize or 1) })
+    Media.NoSnapBackdrop(hl)
     hl:SetBackdropBorderColor(c.r, c.g, c.b, c.a or 0.7)
     hl:Hide()      -- 顯示與否由 OnEnter/OnLeave 決定
 end
@@ -623,6 +624,7 @@ function ns.ApplyTargetHighlight(uf)
     local g = ns.db.global
     local c = g.targetHighlightColor or { r = 1, g = 1, b = 1, a = 1 }
     th:SetBackdrop({ edgeFile = Media.WHITE8X8, edgeSize = Media.BorderInset(g.targetHighlightSize or 2) })
+    Media.NoSnapBackdrop(th)
     th:SetBackdropBorderColor(c.r, c.g, c.b, c.a or 1)
     th:Show()
     ns.UpdateTargetHighlight(uf)

@@ -26,6 +26,37 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 S.WHITE = WHITE
 
 ------------------------------------------------------------
+-- 1px 換算：剛好 n 個實體像素，以**框自己的**有效縮放為基準
+--
+-- 小地圖 holder 與社交列各自有 SetScale（設定的「整體縮放」）。P.Pixel 照 UIParent 換算，
+-- 放進縮放 ≠ 1 的框裡實際粗細就是 scale 個像素、不是整數 ⇒ 時有時無。
+-- 框內的邊寬、內縮、跟邊框相接的偏移一律走這支。規則見 .claude/notes/wow-1px-border-rules.md
+------------------------------------------------------------
+function S.Pixel(frame, n)
+    n = n or 1
+    local s = frame and frame.GetEffectiveScale and frame:GetEffectiveScale()
+    if not s or s <= 0 then return P.Pixel(n) end
+    n = math.floor(n + 0.5)
+    if n <= 0 then return 0 end
+    return n * PixelUtil.GetPixelToUIUnitFactor() / s
+end
+
+-- 關像素貼齊（共用層 P.NoSnap）：自己畫的邊、細線、跟邊框相接的底只用在自己建的物件上，
+-- 小地圖本體（Minimap）是暴雪框，它的原生貼圖不要碰
+S.NoSnap = P.NoSnap
+
+-- backdrop 邊寬換算值變了才重下（SetBackdrop 會把顏色洗回預設，呼叫端接著要重上色）
+local function SetEdge(frame, bgFile)
+    local px = S.Pixel(frame, 1)
+    if frame._miliPx == px then return false end
+    frame._miliPx = px
+    frame:SetBackdrop({ bgFile = bgFile, edgeFile = WHITE, edgeSize = px })
+    P.NoSnapBackdrop(frame)
+    return true
+end
+S.SetEdge = SetEdge
+
+------------------------------------------------------------
 -- 色票
 --
 -- `BG` 這個灰階是套組的既有值（`MiliUI_DamageMeters` 的 bgColor 用同一個）：
@@ -113,16 +144,17 @@ end
 --   刪不掉，每呼叫一次就新建一層等於永久洩漏（見 wow-frame-lifecycle-costs）。
 --   這裡全部走 SetBackdrop 沒有 CreateTexture，天然冪等。
 --
--- ⚠ 邊寬走 `P.Pixel(1)` 而不是寫死 1。UI 縮放不是 1 的時候寫死 1 會畫出
+-- ⚠ 邊寬走 `S.Pixel(frame, 1)` 而不是寫死 1。UI 縮放不是 1 的時候寫死 1 會畫出
 --   1.3 個實體像素 —— 那條邊會有一側糊掉，而且四條邊糊的方向還不一樣
---   （見 project-miliui-pixel-snapping）。
+--   （見 project-miliui-pixel-snapping）。框有自己的縮放，所以基準是框自己的。
 ------------------------------------------------------------
 function S.ApplyPanel(frame, opaque)
     if not frame then return end
     if not frame.SetBackdrop then
         Mixin(frame, BackdropTemplateMixin)
     end
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
+    frame._miliPx = nil
+    SetEdge(frame, WHITE)
     local r, g, b, a = S.BackdropColor()
     frame:SetBackdropColor(r, g, b, opaque and S.BG_A_SOLID or a)
     frame:SetBackdropBorderColor(S.BorderColor())
@@ -130,9 +162,10 @@ function S.ApplyPanel(frame, opaque)
     return frame
 end
 
--- 只重上色（設定改動時走這支，不重設 backdrop 表）
+-- 重上色；邊寬換算值變了（縮放改了、登入時縮放還沒定）才重設 backdrop 表
 function S.RefreshPanel(frame, opaque)
     if not frame or not frame._miliHUD then return end
+    SetEdge(frame, WHITE)
     local r, g, b, a = S.BackdropColor()
     frame:SetBackdropColor(r, g, b, opaque and S.BG_A_SOLID or a)
     frame:SetBackdropBorderColor(S.BorderColor())
@@ -168,7 +201,8 @@ S.TIP_BG = 0.133
 
 function S.ApplyTooltipSkin(frame)
     if not frame then return end
-    frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
+    frame._miliPx = nil
+    SetEdge(frame, WHITE)
     frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
     frame:SetBackdropBorderColor(S.BorderColor())
     frame._miliTip = true
@@ -177,6 +211,7 @@ end
 
 function S.RefreshTooltipSkin(frame)
     if not frame or not frame._miliTip then return end
+    SetEdge(frame, WHITE)
     frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
     frame:SetBackdropBorderColor(S.BorderColor())
 end
@@ -195,7 +230,7 @@ function S.CreateBorder(parent, anchorTo)
     local host = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     host:EnableMouse(false)
     host:SetAllPoints(anchorTo or parent)
-    host:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Pixel(1) })
+    SetEdge(host)
     host:SetBackdropBorderColor(S.BorderColor())
     host._miliHUDBorder = true
     return host
@@ -203,7 +238,7 @@ end
 
 function S.RefreshBorder(host)
     if not host or not host._miliHUDBorder then return end
-    host:SetBackdrop({ edgeFile = WHITE, edgeSize = P.Pixel(1) })
+    SetEdge(host)   -- 邊寬照 host 的有效縮放（含 holder 的整體縮放）重算，變了才重下
     host:SetBackdropBorderColor(S.BorderColor())
 end
 

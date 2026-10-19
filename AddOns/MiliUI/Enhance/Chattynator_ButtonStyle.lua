@@ -168,7 +168,8 @@ local function EnsureEdges(button)
     if not edges then
         edges = {}
         for i = 1, 4 do
-            local e = button:CreateTexture(nil, "BORDER")
+            -- 關像素貼齊：1px 邊停在小數座標時才不會被捨入成 0／2px（.claude/notes/wow-1px-border-rules.md）
+            local e = P.NoSnap(button:CreateTexture(nil, "BORDER"))
             e:SetTexture(WHITE)
             edges[i] = e
         end

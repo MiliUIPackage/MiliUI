@@ -35,6 +35,7 @@ local curInstance, curEncounter
 local curDiff = ns.Notes.DIFF_ALL   -- 目前顯示的是哪個難度的那一份
 local showSynced = false            -- 玩家在選單裡選了「看同步版」
 local collapsed = false
+local headerFrame, borderPx         -- 1px 邊框重算用（RefreshBorder）
 
 ------------------------------------------------------------
 -- 目前顯示的是哪一筆
@@ -419,6 +420,8 @@ local function Build()
 
     -- 標題列兼拖曳把手
     local header = W.CreateFrame(nil, frame)
+    headerFrame = header
+    borderPx = P.Pixel(1)
     header:SetHeight(P.Scale(HEADER_H))
     header:SetPoint("TOPLEFT", 0, 0)
     header:SetPoint("TOPRIGHT", 0, 0)
@@ -597,9 +600,20 @@ end
 ------------------------------------------------------------
 -- 對外
 ------------------------------------------------------------
+-- W.Stylize 的 1px 邊框只在建立時換算一次；這個框建了就一直留著（進副本自己跳出來），
+-- 縮放在建立之後才定或玩家改了 UI 縮放，邊會不到／超過 1px ⇒ 顯示時跟上次不同才重套（兩個都是預設配色）
+local function RefreshBorder()
+    local px = P.Pixel(1)
+    if px == borderPx then return end
+    borderPx = px
+    W.Stylize(frame)
+    W.Stylize(headerFrame)
+end
+
 function Overlay.Show(instanceID, encounterID, diffKey)
     if not instanceID then return end
     Build()
+    RefreshBorder()
     curInstance  = instanceID
     curEncounter = encounterID
     curDiff      = Notes.NormalizeDiffKey(diffKey)

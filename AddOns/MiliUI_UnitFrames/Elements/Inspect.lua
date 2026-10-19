@@ -145,9 +145,9 @@ local function Build(uf, edb)
         btn = ns.CreateElementBase(uf, "inspect", "Button", "SecureActionButtonTemplate, BackdropTemplate")
         btn.SetOORAlpha = SetOORAlpha
         btn.visible = true
-        btn.bg = btn:CreateTexture(nil, "BACKGROUND")
+        btn.bg = Media.NoSnap(btn:CreateTexture(nil, "BACKGROUND"))   -- 跟邊框相接：關像素貼齊
         btn.bg:SetTexture(Media.WHITE8X8)
-        btn.icon = btn:CreateTexture(nil, "ARTWORK")
+        btn.icon = Media.NoSnap(btn:CreateTexture(nil, "ARTWORK"))
         -- ⚠ 不要 SetScript("OnClick")：那會蓋掉模板的 SecureActionButton_OnClick
         btn:SetScript("OnEnter", OnEnter)
         btn:SetScript("OnLeave", OnLeave)

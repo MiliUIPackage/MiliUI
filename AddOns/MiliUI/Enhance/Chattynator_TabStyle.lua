@@ -118,23 +118,24 @@ end
 local function EnsureTextures(tab)
     if tab._miliTabBG then return end
 
-    local bg = tab:CreateTexture(nil, "BACKGROUND")
+    -- 底與三條邊都關像素貼齊（P.NoSnap）：邊寬不是整數 UI 單位，貼齊開著會被捨入成 0／2px
+    local bg = P.NoSnap(tab:CreateTexture(nil, "BACKGROUND"))
     bg._miliTabTex = true
     bg:SetAllPoints(tab)
     tab._miliTabBG = bg
 
     -- 只有上、左、右三條 —— 底邊留空，標籤才會跟下面的聊天區連成一片
-    local px = P.Pixel(1)
+    -- 粗細在 LayoutEdges 設（實體像素、套用時才換算）
     local edges = {}
     for i = 1, 3 do
-        local e = tab:CreateTexture(nil, "BORDER")
+        local e = P.NoSnap(tab:CreateTexture(nil, "BORDER"))
         e._miliTabTex = true
         e:SetTexture(WHITE)
         edges[i] = e
     end
-    edges[1]:SetPoint("TOPLEFT");   edges[1]:SetPoint("TOPRIGHT");    edges[1]:SetHeight(px)
-    edges[2]:SetPoint("TOPLEFT");   edges[2]:SetPoint("BOTTOMLEFT");  edges[2]:SetWidth(px)
-    edges[3]:SetPoint("TOPRIGHT");  edges[3]:SetPoint("BOTTOMRIGHT"); edges[3]:SetWidth(px)
+    edges[1]:SetPoint("TOPLEFT");   edges[1]:SetPoint("TOPRIGHT")
+    edges[2]:SetPoint("TOPLEFT");   edges[2]:SetPoint("BOTTOMLEFT")
+    edges[3]:SetPoint("TOPRIGHT");  edges[3]:SetPoint("BOTTOMRIGHT")
     tab._miliTabEdges = edges
 
     -- 閃爍薄膜壓在 ARTWORK，文字在上面不會被蓋掉
@@ -157,10 +158,27 @@ local function EnsureTextures(tab)
 end
 
 ------------------------------------------------------------
+-- 邊寬：1 個實體像素（P.Pixel）。不能只在建立時算——標籤在 PLAYER_LOGIN 那一幀建，
+-- 那時 UI 縮放還不一定是最終值；每次 UpdateVisual 與 UI_SCALE_CHANGED／DISPLAY_SIZE_CHANGED 重算，
+-- 跟上次一樣就不動。規則全文：.claude/notes/wow-1px-border-rules.md
+------------------------------------------------------------
+local function LayoutEdges(tab)
+    local edges = tab._miliTabEdges
+    if not edges then return end
+    local px = P.Pixel(1)
+    if tab._miliTabPx == px then return end
+    tab._miliTabPx = px
+    edges[1]:SetHeight(px)
+    edges[2]:SetWidth(px)
+    edges[3]:SetWidth(px)
+end
+
+------------------------------------------------------------
 -- 依 選中／滑過／閒置 更新顏色
 ------------------------------------------------------------
 local function UpdateVisual(tab)
     if not tab._miliTabBG then return end
+    LayoutEdges(tab)   -- 選中／滑過／重套都會經過這裡，順便確認邊寬（沒變就不動）
 
     local r, g, b = 0.5, 0.5, 0.5
     if tab.color then r, g, b = tab.color.r, tab.color.g, tab.color.b end
@@ -375,9 +393,18 @@ MiliUI_ChattynatorTabs = {
 -- 所以延一幀再動 —— 那時 skin 一定畫完了，標籤也都建好了
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
-frame:SetScript("OnEvent", function(self)
+frame:SetScript("OnEvent", function(self, event)
+    if event ~= "PLAYER_LOGIN" then
+        -- UI 縮放／解析度改了：1px 邊重算（常駐的聊天分頁）
+        if active then
+            for tab in pairs(styledTabs) do LayoutEdges(tab) end
+        end
+        return
+    end
     self:UnregisterEvent("PLAYER_LOGIN")
     if not C_AddOns.IsAddOnLoaded("Chattynator") then return end
+    self:RegisterEvent("UI_SCALE_CHANGED")
+    self:RegisterEvent("DISPLAY_SIZE_CHANGED")
     C_Timer.After(0, function()
         if IsEnabled() then
             active = true

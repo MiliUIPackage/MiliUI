@@ -148,7 +148,7 @@ local function CreatePanel()
     closeBtn = CreateCloseButton(panel, panel:GetFrameLevel() + 200)
 
     -- 左右欄分隔線
-    local sep = panel:CreateTexture(nil, "ARTWORK")
+    local sep = ns.Media.NoSnap(panel:CreateTexture(nil, "ARTWORK"))   -- 1px 線不貼齊（Media.NoSnap）
     sep:SetTexture("Interface\\BUTTONS\\WHITE8X8")
     sep:SetVertexColor(0, 0, 0, 1)
     sep:SetPoint("TOPLEFT", PREVIEW_W, -1)

@@ -288,7 +288,7 @@ end
 -- AuraButton 外觀（三層：外框 → 掃描 → 內縮圖示 → 文字）
 -- 只能在 initializeFrame 內呼叫
 ------------------------------------------------------------
-local BORDER = 1                              -- 版面單位；實際用 ns.P.Scale 對齊實體像素
+local BORDER = 1                              -- 實體像素（ns.P.Pixel）；P.Scale(1) 在 1440p 以上是 2px 以上
 local TRACK_COLOR = { 0, 0, 0, 1 }            -- swipe 底下的黑色軌道
 local SPENT_COLOR = { 0.18, 0.18, 0.18 }      -- 驅散色外框被灰色吃掉
 local BUFF_BORDER_COLOR = { 0, 0, 0, 1 }      -- 1px 黑框（增益不靠顏色分類，跟減益的驅散色區隔）
@@ -320,7 +320,7 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
     end
 
     -- 底層外框
-    local borderTex = auraButton:CreateTexture(nil, "BACKGROUND")
+    local borderTex = Media.NoSnap(auraButton:CreateTexture(nil, "BACKGROUND"))   -- 外框與圖示關像素貼齊
     borderTex:SetAllPoints(auraButton)
     auraButton.Border = borderTex
 
@@ -366,7 +366,7 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
     end
 
     -- 上層：內縮圖示（露出底下那層當外框；內縮量對齊實體像素，邊寬才會每邊一致）
-    local b = ns.P.Scale(BORDER)
+    local b = ns.P.Pixel(BORDER)
     local iconFrame = CreateFrame("Frame", nil, auraButton)
     iconFrame:SetPoint("TOPLEFT", auraButton, "TOPLEFT", b, -b)
     iconFrame:SetPoint("BOTTOMRIGHT", auraButton, "BOTTOMRIGHT", -b, b)
@@ -380,7 +380,7 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
     textFrame:SetFrameLevel(iconFrame:GetFrameLevel() + 1)
     auraButton.TextFrame = textFrame
 
-    local icon = iconFrame:CreateTexture(nil, "ARTWORK")
+    local icon = Media.NoSnap(iconFrame:CreateTexture(nil, "ARTWORK"))
     icon:SetAllPoints(iconFrame)
     icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
     auraButton.Icon = icon

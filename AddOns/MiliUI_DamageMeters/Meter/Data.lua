@@ -606,6 +606,15 @@ function D.Px(userValue)
     return userValue
 end
 
+-- 邊框／分隔線／細線的粗細：設定值＝剛好 n 個實體像素（走 P.Pixel）。
+-- ⚠ 不能走 D.Px：P.Scale 是「n 個 UI 單位貼整數像素」，1440p 以上 1 會變 2px。
+-- 列高、間距這類尺寸照舊 D.Px。規則見 .claude/notes/wow-1px-border-rules.md
+function D.Hair(userValue)
+    if not userValue or userValue == 0 then return 0 end
+    if ns.P and ns.P.Pixel then return ns.P.Pixel(userValue) end
+    return userValue
+end
+
 ------------------------------------------------------------
 -- 排名字串：40 個字串開檔就備好，省掉每次刷新的 i .. "."
 ------------------------------------------------------------

@@ -20,6 +20,9 @@ end
 
 local GetSpellName = C_Spell and C_Spell.GetSpellName or GetSpellInfo
 
+local _, ns = ...
+local P = ns.P
+
 ------------------------------------------------------------
 -- CHANNEL TICKS DATABASE (Quartz 風格：固定跳數表)
 ------------------------------------------------------------
@@ -99,7 +102,7 @@ end
 local function GetTick(parent, index)
     local tf = EnsureTickFrame(parent)
     if tickPool[index] then return tickPool[index] end
-    local tick = tf:CreateTexture(nil, "OVERLAY", nil, 7)
+    local tick = P.NoSnap(tf:CreateTexture(nil, "OVERLAY", nil, 7))   -- 1px 刻度停在小數座標，貼齊開著會整條捨入成 0
     tick:SetColorTexture(1, 1, 1, 0.8)
     tick:Hide()
     tickPool[index] = tick
@@ -116,9 +119,9 @@ local function SetBarTicks(frame, tickCount, duration, ticks)
     local barHeight = frame:GetHeight()
     if barWidth <= 0 then return end
 
-    -- 像素完美的刻度寬度：確保至少 1 個物理像素
-    local pixelUnit = PixelUtil.GetPixelToUIUnitFactor()
-    local tickWidth = math.max(pixelUnit, 1)
+    -- 刻度寬度：剛好 1 個實體像素（P.Pixel；舊寫法 max(GetPixelToUIUnitFactor(), 1) 沒除 UI 縮放，
+    -- 結果恆為 1 個 UI 單位，1440p 以上是 2px）。每次排刻度時才換算（.claude/notes/wow-1px-border-rules.md）
+    local tickWidth = P.Pixel(1)
 
     if tickCount and tickCount > 0 then
         for k = 1, tickCount do
@@ -168,7 +171,7 @@ end
 local function EnsureLatencyVisuals(frame)
     local lf = EnsureLatencyFrame(frame)
     if not latencyTexture then
-        latencyTexture = lf:CreateTexture(nil, "OVERLAY", nil, 6)
+        latencyTexture = P.NoSnap(lf:CreateTexture(nil, "OVERLAY", nil, 6))   -- 貼著條的右緣，跟條身一起不貼齊
         latencyTexture:SetColorTexture(1, 0, 0, 0.5)
         latencyTexture:Hide()
     end

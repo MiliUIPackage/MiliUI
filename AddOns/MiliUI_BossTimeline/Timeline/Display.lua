@@ -20,6 +20,9 @@ local _, ns = ...
 local S = ns.Secret
 local P = ns.P
 local O = ns.Owners
+local NoSnap = P.NoSnap
+-- 1 個實體像素：基準是框自己的有效縮放（畫面上那條會 SetScale、預覽也會縮放），見 Core/Media.lua
+local function Pixel(frame) return ns.Media.Pixel(frame, 1) end
 
 local WHITE = "Interface\\BUTTONS\\WHITE8X8"
 local ALL_ICONS = 1023    -- Constants.EncounterTimelineIconMasks.EncounterTimelineAllIcons
@@ -77,9 +80,10 @@ end
 local function NewEventFrame(d)
     local f = CreateFrame("Frame", nil, d.frame)
     f:SetFrameLevel(d.frame:GetFrameLevel() + 5)
-    f.icon = f:CreateTexture(nil, "ARTWORK")
+    -- 邊框四條與相接的圖示關掉像素貼齊（P.NoSnap）：框停在小數座標時 1px 邊會被捨入成 0／2px
+    f.icon = NoSnap(f:CreateTexture(nil, "ARTWORK"))
     f.edges = {}
-    for i = 1, 4 do f.edges[i] = Tex(f, "OVERLAY") end
+    for i = 1, 4 do f.edges[i] = NoSnap(Tex(f, "OVERLAY")) end
     f.name = NewFont(f)
     f.cd = NewFont(f)
     f.cd:SetPoint("CENTER", f, "CENTER", 0, 0)
@@ -109,7 +113,7 @@ end
 
 -- 邊框四條：畫在圖示**裡面**（圖示內縮一條邊的寬度），方框的外緣就是框的外緣
 local function LayoutIcon(f, size, conf)
-    local px = conf.border and P.Pixel(1) or 0
+    local px = conf.border and Pixel(f) or 0
     f:SetSize(size, size)
     f.icon:ClearAllPoints()
     f.icon:SetPoint("TOPLEFT", px, -px)
@@ -162,7 +166,9 @@ end
 
 -- settings = db.display；layout = 那個方向的版面；orientation = "vertical"/"horizontal"
 function Display:Apply(settings, layout, orientation)
-    self.settings, self.layout = settings, layout
+    self.settings, self.layout, self.orientation = settings, layout, orientation
+    -- 1px 邊／刻度照這次的縮放換算；Render 發現縮放變了（登入後才定、調整大小、預覽縮放）就整個重排
+    self.px = Pixel(self.frame)
     -- 計時條是另一種畫法（Bars.lua），軸線、刻度、圖示框都不用
     self.barsMode = orientation == "bars"
     local axisShown = not self.barsMode
@@ -247,7 +253,7 @@ function Display:LayoutTicks()
     local half = layout.iconSize / 2
     local window, length = layout.window, layout.length
     local count = (tr.show and tr.ticks) and math.floor(window / TICK_STEP) or 0
-    local th = P.Pixel(1)
+    local th = Pixel(f)
     local tickLen = math.floor(layout.iconSize * 0.35 + 0.5)
     local labelAfter = layout.textSide == "before"   -- 刻度數字放在名稱的另一邊
     local c = tr.color
@@ -256,7 +262,7 @@ function Display:LayoutTicks()
         local lbl = self.tickLabels[i]
         if i <= count then
             if not t then
-                t = Tex(f, "BORDER", 1)
+                t = NoSnap(Tex(f, "BORDER", 1))
                 self.ticks[i] = t
                 lbl = NewFont(f, "ARTWORK")
                 self.tickLabels[i] = lbl
@@ -428,6 +434,10 @@ end
 
 function Display:Render()
     if not self.collect or not self.layout then return end
+    -- 縮放跟上次排版時不同 ⇒ 1px 要重算（Apply 時縮放可能還沒定：登入、預覽先排版後縮放）
+    if Pixel(self.frame) ~= self.px then
+        self:Apply(self.settings, self.layout, self.orientation)
+    end
     if self.barsMode then return self:RenderBars() end
     local items = self.items
     local n = self.collect(items, self.filter)

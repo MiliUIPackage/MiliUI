@@ -86,7 +86,7 @@ local function Header(text)
     local row = Row(nil, 20)
     local fs = W.CreateGroupLabel(row, text)
     fs:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 3)
-    local line = row:CreateTexture(nil, "ARTWORK")
+    local line = ns.P.NoSnap(row:CreateTexture(nil, "ARTWORK"))   -- 髮絲線不貼齊（P.NoSnap）
     line:SetTexture("Interface\\Buttons\\WHITE8X8")
     line:SetVertexColor(W.Accent(0.35))
     line:SetHeight(ns.P.Pixel(1))

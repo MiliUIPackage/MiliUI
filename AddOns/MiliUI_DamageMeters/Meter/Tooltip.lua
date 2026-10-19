@@ -26,15 +26,24 @@ local PAD      = 4
 local _frame, _bars, _ticker
 local _activeBar
 
+-- 1px 邊框：粗細在每次顯示時換算、變了才重套（建立時 UI 縮放可能還沒定，見 wow-1px-border-rules）
+local function ApplyEdge(f)
+    local px = D.Hair(1)
+    if f._edgePx == px then return end
+    f._edgePx = px
+    f:SetBackdrop({ bgFile = M.WHITE8X8, edgeFile = M.WHITE8X8, edgeSize = px })
+    f:SetBackdropColor(0.03, 0.03, 0.03, 0.95)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
+    M.NoSnapBackdrop(f)
+end
+
 local function Ensure()
     if _frame then return end
 
     local f = CreateFrame("Frame", "MiliUI_DamageMeters_Preview", UIParent, "BackdropTemplate")
     f:SetFrameStrata("TOOLTIP")
     f:SetWidth(WIDTH)
-    f:SetBackdrop({ bgFile = M.WHITE8X8, edgeFile = M.WHITE8X8, edgeSize = 1 })
-    f:SetBackdropColor(0.03, 0.03, 0.03, 0.95)
-    f:SetBackdropBorderColor(0, 0, 0, 1)
+    ApplyEdge(f)
     f:EnableMouse(false)   -- 純顯示，不能吃掉滑鼠，否則會把下面那列的 OnLeave 弄壞
     f:Hide()
     _frame = f
@@ -102,6 +111,7 @@ local function Populate(bar)
     local dmType = bar._dmType or W.curDMType
 
     Ensure()
+    ApplyEdge(_frame)
     local s = ns.DB.Style()
     local fs = math.max(8, (s.leftFontSize or 11) - 1)
 

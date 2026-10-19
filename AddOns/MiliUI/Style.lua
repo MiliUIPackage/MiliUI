@@ -37,12 +37,25 @@ S.Colors = {
     panelBg       = { 0.06, 0.06, 0.10, 0.92 },
 }
 
--- 標準 backdrop 表
+-- 標準 backdrop 表（舊介面，保留給外部讀；本檔套用一律走 SetPixelBackdrop）
 S.Backdrop = {
     bgFile   = "Interface\\Buttons\\WHITE8X8",
     edgeFile = "Interface\\Buttons\\WHITE8X8",
     edgeSize = 1,
 }
+
+-- 白貼圖底＋1px 邊：邊寬是實體像素（P.Pixel，寫死 1 在 1440p 以上是 2px）、套用當下才換算，
+-- 九張貼圖關像素貼齊。每次新表：BackdropTemplate 存的是表的參照，共用一張改了會連帶別的框。
+-- 規則全文：.claude/notes/wow-1px-border-rules.md
+local function SetPixelBackdrop(frame)
+    local P = ns.P
+    frame:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = P and P.Pixel(1) or 1,
+    })
+    if P and P.NoSnapBackdrop then P.NoSnapBackdrop(frame) end
+end
 
 ------------------------------------------------------------
 -- 套用按鈕風格至既有 Frame/Button
@@ -92,7 +105,7 @@ function S.ApplyButton(frame, text, size, fontSize)
     if not frame then return end
     if size then frame:SetSize(size[1], size[2]) end
 
-    frame:SetBackdrop(S.Backdrop)
+    SetPixelBackdrop(frame)
     frame:SetBackdropColor(unpack(S.Colors.bg))
     frame:SetBackdropBorderColor(unpack(S.Colors.border))
 
@@ -114,7 +127,7 @@ end
 ------------------------------------------------------------
 function S.ApplyPanel(frame)
     if not frame then return end
-    frame:SetBackdrop(S.Backdrop)
+    SetPixelBackdrop(frame)
     frame:SetBackdropColor(unpack(S.Colors.panelBg))
     frame:SetBackdropBorderColor(unpack(S.Colors.border))
 end
@@ -177,12 +190,7 @@ S.TIP_BG = 0.133
 
 function S.ApplyTooltipPanel(frame)
     if not frame then return end
-    local px = ns.P and ns.P.Pixel(1) or 1
-    frame:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = px,
-    })
+    SetPixelBackdrop(frame)
     frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, 1)
     frame:SetBackdropBorderColor(S.Accent(1))
     return frame
@@ -205,12 +213,7 @@ S.HUD = {
 --   （見 .claude/notes/project-miliui-pixel-snapping.md）。
 function S.ApplyHUD(frame, opaque)
     if not frame then return end
-    local px = ns.P and ns.P.Pixel(1) or 1
-    frame:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = px,
-    })
+    SetPixelBackdrop(frame)
     frame:SetBackdropColor(unpack(opaque and S.HUD.bgSolid or S.HUD.bg))
     frame:SetBackdropBorderColor(S.Accent(S.HUD.borderAlpha))
     return frame
@@ -239,7 +242,7 @@ end
 ------------------------------------------------------------
 function S.ApplyDarkPanel(frame, color)
     if not frame then return end
-    frame:SetBackdrop(S.Backdrop)
+    SetPixelBackdrop(frame)
     frame:SetBackdropColor(unpack(color or S.Dark.panel))
     frame:SetBackdropBorderColor(unpack(S.Dark.border))
 end
@@ -262,7 +265,7 @@ function S.ApplyDarkButton(frame, text, size, fontSize)
     if not frame then return end
     if size then frame:SetSize(size[1], size[2]) end
 
-    frame:SetBackdrop(S.Backdrop)
+    SetPixelBackdrop(frame)
     frame:SetBackdropColor(unpack(S.Dark.fill))
     frame:SetBackdropBorderColor(unpack(S.Dark.border))
 

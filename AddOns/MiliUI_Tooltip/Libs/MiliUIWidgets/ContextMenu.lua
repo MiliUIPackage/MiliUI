@@ -36,6 +36,18 @@ local Menu = W.Menu
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
+-- 1px 邊框／髮絲線：實體像素（P.Pixel）、每次排版時換算（面板池化，建立時的縮放不一定是最終值），
+-- 選單跟著游標停在小數座標，貼圖一律關掉像素貼齊。規則見 .claude/notes/wow-1px-border-rules.md
+local function Px()
+    local P = Env.P
+    return (P and P.Pixel) and P.Pixel(1) or 1
+end
+local function NoSnap(t)
+    local P = Env.P
+    if P and P.NoSnap then P.NoSnap(t) end
+    return t
+end
+
 ------------------------------------------------------------
 -- 版面尺寸
 --
@@ -99,16 +111,24 @@ local function MakePanel()
     local f = CreateFrame("Frame", NS .. "_ContextMenu" .. panelSeq, UIParent, "BackdropTemplate")
     f:SetFrameStrata("FULLSCREEN_DIALOG")
     f:EnableMouse(true)
-    f:SetBackdrop({
-        bgFile = WHITE,
-        edgeFile = WHITE,
-        edgeSize = 1,
-    })
-    f:SetBackdropColor(0.06, 0.06, 0.06, 0.96)
-    f:SetBackdropBorderColor(0, 0, 0, 1)
     f.rows = {}
     f:Hide()
     return f
+end
+
+-- 邊框粗細跟上次不同才重設 backdrop（Layout 每次開選單都會呼叫）
+local function ApplyPanelBorder(f, px)
+    if f._px == px then return end
+    f._px = px
+    f:SetBackdrop({
+        bgFile = WHITE,
+        edgeFile = WHITE,
+        edgeSize = px,
+    })
+    local P = Env.P
+    if P and P.NoSnapBackdrop then P.NoSnapBackdrop(f) end
+    f:SetBackdropColor(0.06, 0.06, 0.06, 0.96)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
 end
 
 ------------------------------------------------------------
@@ -200,8 +220,7 @@ local function EnsureRow(panel, idx)
 
     -- 標題底下的髮絲線。標題與內容之間需要一條**結構性**的分隔 ——
     -- 光靠顏色不同還是會被讀成「另一個選項」。
-    row.rule = row:CreateTexture(nil, "ARTWORK")
-    row.rule:SetHeight(1)
+    row.rule = NoSnap(row:CreateTexture(nil, "ARTWORK"))   -- 高度在 Layout 設（實體像素）
     row.rule:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", PAD_X, 0)
     row.rule:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -PAD_X, 0)
     row.rule:SetColorTexture(1, 1, 1, 0.10)
@@ -255,15 +274,18 @@ end
 ------------------------------------------------------------
 local function Layout(panel, items, onDismiss)
     local width = MIN_W
-    local y = -1
+    local px = Px()
+    ApplyPanelBorder(panel, px)
+    local y = -px
     local shown = 0
 
     for i, item in ipairs(items) do
         local row = EnsureRow(panel, i)
         shown = i
         row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", panel, "TOPLEFT", 1, y)
-        row:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -1, y)
+        row:SetPoint("TOPLEFT", panel, "TOPLEFT", px, y)
+        row:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -px, y)
+        row.rule:SetHeight(px)
         row.submenu = item.submenu
         row.enabled = not (item.isTitle or item.isSeparator)
         -- 列是池化的：沒給就要清掉，不然會沿用上一次畫在這一格的提示
@@ -280,12 +302,12 @@ local function Layout(panel, items, onDismiss)
             row.arrow:Hide()
             row:EnableMouse(false)
             if not row.sepTex then
-                row.sepTex = row:CreateTexture(nil, "ARTWORK")
-                row.sepTex:SetHeight(1)
+                row.sepTex = NoSnap(row:CreateTexture(nil, "ARTWORK"))
                 row.sepTex:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
                 row.sepTex:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
                 row.sepTex:SetColorTexture(1, 1, 1, 0.12)
             end
+            row.sepTex:SetHeight(px)
             row.sepTex:Show()
             y = y - SEP_H
 
@@ -340,7 +362,7 @@ local function Layout(panel, items, onDismiss)
     for i = shown + 1, #panel.rows do panel.rows[i]:Hide() end
     for i = 1, shown do panel.rows[i]:Show() end
 
-    panel:SetSize(math.ceil(width), math.ceil(-y) + 1)
+    panel:SetSize(math.ceil(width), math.ceil(-y + px))
     return width
 end
 

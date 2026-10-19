@@ -323,6 +323,7 @@ end
 -- 先填內容、量出高度，再定位：W.PlaceClamped 要的是「已經有正確尺寸並且 Show 著」的框
 local function ShowVaultTip(owner, data)
     local tt = BuildVaultTip()
+    HP.RefreshTipSkin(tt)
     tt.title:SetText(L["WARBAND_VAULT_TITLE"]:format(data and data.name or "?"))
     for i = 1, TT.ROW_COUNT do
         local row = tt.rows[i]
@@ -539,6 +540,7 @@ local function ShowRaidTip(row)
     if not (data and frame) then return end
     raidTipRow = row
     local f = BuildRaidTip()
+    HP.RefreshTipSkin(f)
     f.used = 0
     local P = RT.PAD
     local list, ts = Warband.ActiveRaids(data)
@@ -661,6 +663,7 @@ local function ShowRaidTip(row)
     f:SetHeight(raidH)
 
     if mW then
+        HP.RefreshTipSkin(mplusTip)
         mplusTip:SetSize(width, mH)
         mplusTip:ClearAllPoints()
         mplusTip:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, -STACK_GAP)
@@ -938,12 +941,27 @@ local function FillRow(row, entry, idx, sparkLookup, vaultMode)
     c.date:SetText(date("%m/%d", Warband.LastSeen(data)))
 end
 
+-- 表頭底下的髮絲線：1 實體像素，貼在第一列上緣之上（偏移用同一個值）；縮放改了要重算
+local function LayoutRule()
+    local rule = frame and frame.rule
+    if not rule then return end
+    local px = ns.P.Pixel(1)
+    if rule._px == px then return end
+    rule._px = px
+    local y = -(PAD + TITLE_H + HEADER_H) + px
+    rule:SetHeight(px)
+    rule:ClearAllPoints()
+    rule:SetPoint("TOPLEFT", PAD, y)
+    rule:SetPoint("TOPRIGHT", -PAD, y)
+end
+
 local function Populate()
     local list = Warband.SortedRecords()
     local sparkLookup = ColByKey("spark") and Warband.SparkLookup() or nil
     local vaultMode = VaultMode()
 
     frame.sendAll:SetShown(IsInGroup())
+    LayoutRule()
 
     local rowTop = PAD + TITLE_H + HEADER_H
     for idx, entry in ipairs(list) do
@@ -1081,12 +1099,12 @@ local function BuildTable(f)
     end
 
     -- 表頭底下的髮絲線：標題與內容之間要一條結構性的分隔
-    local rule = frame:CreateTexture(nil, "ARTWORK")
+    -- 粗細與位置在 LayoutRule（每次 Populate 換算）
+    local rule = ns.P.NoSnap(frame:CreateTexture(nil, "ARTWORK"))
     rule:SetTexture(WHITE)
     rule:SetVertexColor(1, 1, 1, 0.12)
-    rule:SetHeight(1)
-    rule:SetPoint("TOPLEFT", PAD, -(PAD + TITLE_H + HEADER_H - 1))
-    rule:SetPoint("TOPRIGHT", -PAD, -(PAD + TITLE_H + HEADER_H - 1))
+    frame.rule = rule
+    LayoutRule()
 
     frame.noData = MakeText(frame)
     frame.noData:SetPoint("TOP", 0, -(PAD + TITLE_H + HEADER_H + 8))

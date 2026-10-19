@@ -102,6 +102,22 @@ function Windows.ApplyStyle()
 end
 
 ------------------------------------------------------------
+-- 邊框粗細跟著縮放重套
+--
+-- 邊框／分隔線的 D.Hair 是 ApplyStyle 當下換算的。登入那一刻 UI 縮放可能還沒定
+-- （見 wow-login-screen-size-not-final），之後改縮放／解析度也沒人重套 ⇒ 1px 邊不到
+-- 一個實體像素、整條不見。1 像素的換算值變了才整批重套（比對一個數字，平常幾乎零成本）。
+------------------------------------------------------------
+function Windows.CheckPixel()
+    local px = D.Hair(1)
+    local stale = false
+    Windows.ForEach(function(W)
+        if W._hairPx ~= px then stale = true end
+    end)
+    if stale then Windows.ApplyStyle() end
+end
+
+------------------------------------------------------------
 -- 快取作廢：**資料**與**外觀**要分開，這不是潔癖
 --
 -- 分段更新（有人死掉、首領被擊殺、伺服器換 session）改變的是**資料**，外觀沒動。
@@ -325,7 +341,8 @@ local function EnsureIdentify(W)
     f:SetAllPoints(W.frame)
     -- 蓋在展開頁（+30）與首頁（+25）之上；不改 strata，免得跨視窗互相遮住
     f:SetFrameLevel(W.frame:GetFrameLevel() + 60)
-    f:SetBackdrop({ edgeFile = ns.Media.WHITE8X8, edgeSize = 2 })
+    f:SetBackdrop({ edgeFile = ns.Media.WHITE8X8, edgeSize = D.Hair(2) })
+    ns.Media.NoSnapBackdrop(f)
 
     f.bg = f:CreateTexture(nil, "BACKGROUND")
     f.bg:SetAllPoints()
@@ -598,12 +615,18 @@ ns.RegisterCallback("Init", "windows", function()
     visFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     visFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
     visFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    visFrame:RegisterEvent("UI_SCALE_CHANGED")
+    visFrame:RegisterEvent("DISPLAY_SIZE_CHANGED")
     visFrame:SetScript("OnEvent", function()
+        Windows.CheckPixel()   -- 縮放定了沒、改了沒（見 Windows.CheckPixel）
         Windows.UpdateVisibility()
         -- ⚠ 再算一次。**離開探究的那一瞬間 IsPartyWalkIn() 還是 true**
         -- （見 Meter/Data.lua 的 D.IsInDelve），只在事件當下判斷會讓視窗
         -- 多藏一段時間。1 秒是抄 Plumber 那 0.5 秒再放寬一點。
-        C_Timer.After(1, Windows.UpdateVisibility)
+        C_Timer.After(1, function()
+            Windows.CheckPixel()
+            Windows.UpdateVisibility()
+        end)
     end)
 
     ------------------------------------------------------------

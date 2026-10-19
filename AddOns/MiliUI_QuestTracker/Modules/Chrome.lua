@@ -59,8 +59,9 @@ end
 -- 1px 實線。⚠ 高度要換算成「框架單位」——直接 SetHeight(1) 在非 1.0 的縮放下
 -- 會變成 1.3 個實體像素，然後被四捨五入成忽粗忽細的線
 ------------------------------------------------------------
+-- 關像素貼齊：小數座標時 1px 會被捨入成 0 或 2（見 wow-1px-border-rules ④）
 local function Hairline(parent, layer)
-    local tex = parent:CreateTexture(nil, layer or "OVERLAY")
+    local tex = P.NoSnap(parent:CreateTexture(nil, layer or "OVERLAY"))
     tex:SetTexture("Interface\\Buttons\\WHITE8X8")
     return tex
 end
@@ -95,14 +96,12 @@ local function CreateChip(parent, text, shortText, getFn, setFn)
     -- 四條邊各一張貼圖：暴雪的 backdrop 邊框在非整數縮放下會糊掉
     box.edges = {}
     for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
-        local e = box:CreateTexture(nil, "BORDER")
+        local e = P.NoSnap(box:CreateTexture(nil, "BORDER"))
         e:SetTexture("Interface\\Buttons\\WHITE8X8")
         box.edges[side] = e
     end
-    box.fill = box:CreateTexture(nil, "ARTWORK")
+    box.fill = P.NoSnap(box:CreateTexture(nil, "ARTWORK"))   -- 內縮 2px 在 LayoutChip 換算
     box.fill:SetTexture("Interface\\Buttons\\WHITE8X8")
-    box.fill:SetPoint("TOPLEFT", box, "TOPLEFT", P.Pixel(2), -P.Pixel(2))
-    box.fill:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -P.Pixel(2), P.Pixel(2))
 
     chip.label = chip:CreateFontString(nil, "OVERLAY")
     chip.label:SetPoint("LEFT", box, "RIGHT", P.Scale(4), 0)
@@ -177,6 +176,10 @@ local function LayoutChip(chip)
     e.LEFT:SetPoint("TOPLEFT");   e.LEFT:SetPoint("BOTTOMLEFT");  e.LEFT:SetWidth(px)
     e.RIGHT:ClearAllPoints()
     e.RIGHT:SetPoint("TOPRIGHT"); e.RIGHT:SetPoint("BOTTOMRIGHT"); e.RIGHT:SetWidth(px)
+    -- 填色內縮 2 實體像素：跟邊同一個換算基準（框自己的有效縮放），每次排版重算
+    box.fill:ClearAllPoints()
+    box.fill:SetPoint("TOPLEFT", box, "TOPLEFT", 2 * px, -2 * px)
+    box.fill:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -2 * px, 2 * px)
 
     ChipFont(chip.label)
     if chip.mode == "box" then
@@ -209,7 +212,7 @@ local function EnsureFrames()
     local newBg = CreateFrame("Frame", "MiliUIQuestTrackerBackground", UIParent)
     newBg:SetFrameStrata(otf:GetFrameStrata() or "MEDIUM")
     newBg:SetFrameLevel(math.max(0, (otf:GetFrameLevel() or 1) - 1))
-    newBg.tex = newBg:CreateTexture(nil, "BACKGROUND")
+    newBg.tex = P.NoSnap(newBg:CreateTexture(nil, "BACKGROUND"))   -- 上緣接著標題列
     newBg.tex:SetAllPoints()
     newBg.tex:SetTexture("Interface\\Buttons\\WHITE8X8")
     newBg:Hide()
@@ -224,7 +227,7 @@ local function EnsureFrames()
     newBar:EnableMouse(true)
     newBar:Hide()
 
-    newBar.tex = newBar:CreateTexture(nil, "BACKGROUND")
+    newBar.tex = P.NoSnap(newBar:CreateTexture(nil, "BACKGROUND"))   -- 底線疊在它下緣
     newBar.tex:SetAllPoints()
     newBar.tex:SetTexture("Interface\\Buttons\\WHITE8X8")
 
@@ -659,11 +662,7 @@ local function EnsureMoveOverlay()
     o:SetFrameLevel((bar:GetFrameLevel() or 1) + 20)
     o:EnableMouse(true)
     o:RegisterForDrag("LeftButton")
-    o:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = P.Pixel(1),
-    })
+    -- backdrop（1px 邊）在 UpdateMoveOverlay 顯示時換算
 
     -- 遮罩上的字**一律描邊**，不跟著設定走：它壓在會動的遊戲畫面上，
     -- 沒描邊在亮的地形會讀不出來。這不是漏掉，不要「修正」成 Outline()
@@ -717,6 +716,17 @@ function Chrome.UpdateMoveOverlay()
     -- 邊框保持原色全亮，「暗面 ＋ 亮邊」的對比也把範圍講清楚了。
     -- 不透明度調過兩輪：0.18 太淡（看不出有遮罩）、0.85 太重（底下的清單整個沒了，
     -- 而玩家拖的時候需要看得到自己在搬什麼）。0.55 是兩者之間。
+    -- 1px 邊在顯示時換算、變了才重下（遮罩建一次就重用，縮放可能之後才改）
+    local px = P.Pixel(1)
+    if moveOverlay._px ~= px then
+        moveOverlay._px = px
+        moveOverlay:SetBackdrop({
+            bgFile   = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = px,
+        })
+        P.NoSnapBackdrop(moveOverlay)
+    end
     local r, g, b = ns.Media.Accent()
     moveOverlay:SetBackdropColor(r * 0.45, g * 0.45, b * 0.45, 0.55)
     moveOverlay:SetBackdropBorderColor(r, g, b, 1)
@@ -744,6 +754,8 @@ ns.RegisterCallback("Init", "chrome", function()
         "TRACKED_ACHIEVEMENT_LIST_CHANGED", "TRACKED_RECIPE_UPDATE",
         "SCENARIO_UPDATE", "SCENARIO_CRITERIA_UPDATE",
         "ZONE_CHANGED_NEW_AREA", "PLAYER_ENTERING_WORLD",
+        -- 1px 邊與底線的粗細照縮放換算，縮放／解析度改了要重排
+        "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED",
     }) do
         evt:RegisterEvent(e)
     end

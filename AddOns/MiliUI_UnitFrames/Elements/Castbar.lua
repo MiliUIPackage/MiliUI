@@ -737,7 +737,7 @@ local function Build(uf, edb)
         f:HookScript("OnShow", function(self) SetCoveredAlpha(self, 0) end)
         f:HookScript("OnHide", RestoreCoveredTexts)
 
-        f.bgTex = f:CreateTexture(nil, "BACKGROUND")
+        f.bgTex = Media.NoSnap(f:CreateTexture(nil, "BACKGROUND"))   -- 跟邊框相接：關像素貼齊
         f.bgTex:SetAllPoints(f)
         f.bgTex:SetTexture(Media.WHITE8X8)
 
@@ -754,10 +754,8 @@ local function Build(uf, edb)
         f.spark:Hide()      -- 新建貼圖預設是顯示的；顯示與否由下面的設定決定
 
         f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
-        f.icon = f.iconFrame:CreateTexture(nil, "ARTWORK")
-        local ib = ns.P.Pixel(1)      -- 對齊 iconFrame backdrop 的 edgeSize
-        f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", ib, -ib)
-        f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -ib, ib)
+        f.icon = Media.NoSnap(f.iconFrame:CreateTexture(nil, "ARTWORK"))
+        -- 錨點在下面的版面段跟 iconFrame 的 edgeSize 一起下（縮放變了要一起重算）
         f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
         -- 不可打斷盾牌：疊在施法圖示上，透明度由秘密布林驅動
@@ -877,6 +875,7 @@ local function Build(uf, edb)
     local bg = edb.bg or { r = 0, g = 0, b = 0, a = 0.8 }
     f.bgTex:SetVertexColor(bg.r, bg.g, bg.b, bg.a or 0.8)
     f.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
+    Media.NoSnap(f.bar)
     -- 填充方向。施法往起點的反方向長、引導從滿格往起點退，兩者的相對關係不變。
     -- SetTimerDuration 驅動的條一樣吃 ReverseFill（方向是條的屬性，不是計時器的）。
     -- ⚠ 火花錨的那一邊要跟著換，見下面
@@ -908,8 +907,14 @@ local function Build(uf, edb)
     f.iconFrame:SetPoint("TOPLEFT", f, "TOPLEFT", icon.x or 0, icon.y or 0)
     f.iconFrame:SetFrameLevel(lvl + 2)
     -- 黑底＋1px 黑框（跟 FocuserCastBar 一樣，圖示有透明區也不會透出條的填充）
+    local ib = ns.P.Pixel(1)
     f.iconFrame:SetBackdrop({ bgFile = Media.WHITE8X8, edgeFile = Media.WHITE8X8,
-                              edgeSize = ns.P.Pixel(1) })
+                              edgeSize = ib })
+    Media.NoSnapBackdrop(f.iconFrame)
+    -- 圖示內縮＝ edgeSize，每次版面都跟著重下（建立時算一次的話，縮放變了就對不上）
+    f.icon:ClearAllPoints()
+    f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", ib, -ib)
+    f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -ib, ib)
     f.iconFrame:SetBackdropColor(0, 0, 0, 1)
     f.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
 

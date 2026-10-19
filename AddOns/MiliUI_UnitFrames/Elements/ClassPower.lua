@@ -799,32 +799,43 @@ end
 -- 列的建構
 ------------------------------------------------------------
 -- 分段的黑邊是疊在填充「之上」的貼圖（不是內縮），所以不會露縫；
--- 但線寬同樣要換算成整數實體像素，否則 Retina 上四邊粗細不一致
+-- 線寬是實體像素（w／h 是像素數，過 P.Pixel），而且要在排版時重算（SizeEdges）：
+-- 建立時算一次的話登入／改 UI 縮放之後就不是整數像素。邊與填充都關像素貼齊（Media.NoSnap）
+local function SizeEdges(edges)
+    for _, e in ipairs(edges) do
+        if e.pxW then e:SetWidth(ns.P.Pixel(e.pxW)) end
+        if e.pxH then e:SetHeight(ns.P.Pixel(e.pxH)) end
+    end
+end
+
 local function MakeEdge(parent, p1, p2, w, h)
-    local e = parent:CreateTexture(nil, "OVERLAY")
+    local e = Media.NoSnap(parent:CreateTexture(nil, "OVERLAY"))
     e:SetTexture(SOLID)
     e:SetVertexColor(0, 0, 0, 1)
     e:SetPoint(p1)
     e:SetPoint(p2)
-    if w then e:SetWidth(ns.P.Scale(w)) end
-    if h then e:SetHeight(ns.P.Scale(h)) end
+    e.pxW, e.pxH = w, h
+    if w then e:SetWidth(ns.P.Pixel(w)) end
+    if h then e:SetHeight(ns.P.Pixel(h)) end
     return e
 end
 
 local function MakeSegment(row)
     local seg = CreateFrame("Frame", nil, row)
-    local fg = seg:CreateTexture(nil, "ARTWORK")
+    local fg = Media.NoSnap(seg:CreateTexture(nil, "ARTWORK"))
     fg:SetTexture(SOLID)
     fg:SetAllPoints(seg)
     seg.fg = fg
-    local bg = seg:CreateTexture(nil, "BACKGROUND")
+    local bg = Media.NoSnap(seg:CreateTexture(nil, "BACKGROUND"))
     bg:SetTexture(SOLID)
     bg:SetAllPoints(seg)
     seg.bg = bg
-    MakeEdge(seg, "TOPLEFT", "TOPRIGHT", nil, 1)
-    MakeEdge(seg, "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
-    MakeEdge(seg, "TOPLEFT", "BOTTOMLEFT", 1, nil)
-    MakeEdge(seg, "TOPRIGHT", "BOTTOMRIGHT", 1, nil)
+    seg.edges = {
+        MakeEdge(seg, "TOPLEFT", "TOPRIGHT", nil, 1),
+        MakeEdge(seg, "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1),
+        MakeEdge(seg, "TOPLEFT", "BOTTOMLEFT", 1, nil),
+        MakeEdge(seg, "TOPRIGHT", "BOTTOMRIGHT", 1, nil),
+    }
     return seg
 end
 
@@ -836,7 +847,7 @@ local function MakeRow(parent)
         row.segs[i]:Hide()
     end
     -- 連續長條用
-    row.barBG = row:CreateTexture(nil, "BACKGROUND")
+    row.barBG = Media.NoSnap(row:CreateTexture(nil, "BACKGROUND"))
     row.barBG:SetAllPoints(row)
     row.barBG:SetTexture(SOLID)
     row.bar = CreateFrame("StatusBar", nil, row)
@@ -937,7 +948,9 @@ local function LayoutRow(row, key, edb, numSeg)
     if not isPip then
         for i = 1, MAX_SEGMENTS do row.segs[i]:Hide() end
         row.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
+        Media.NoSnap(row.bar)
         row.bar:SetReverseFill(reversed)
+        SizeEdges(row.barEdges)
         return
     end
 
@@ -972,6 +985,7 @@ local function LayoutRow(row, key, edb, numSeg)
         end
         seg.fg:SetWidth(segW)
         seg.fgW = segW
+        SizeEdges(seg.edges)
         LayoutRuneTimer(seg, isRune, edb)
         seg:Show()
     end
@@ -1725,7 +1739,7 @@ local function Build(uf, edb)
     if not f then
         f = CreateFrame("Frame", nil, uf, "BackdropTemplate")
         f.ename = "manabar"
-        f.bg = f:CreateTexture(nil, "BACKGROUND")
+        f.bg = Media.NoSnap(f:CreateTexture(nil, "BACKGROUND"))
         f.bg:SetAllPoints(f)
         f.bg:SetTexture(Media.WHITE8X8)
         f.bar = CreateFrame("StatusBar", nil, f)
@@ -1753,6 +1767,7 @@ local function Build(uf, edb)
     f:SetAlpha(edb.alpha or 1)
 
     f.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
+    Media.NoSnap(f.bar)
     f.bar:SetFrameLevel(edb.level or 6)
     f.bar:SetReverseFill(ns.FillReversed(edb))
     -- 預設吃全域的「法力藍」，跟能量條的法力同一個顏色
@@ -1761,6 +1776,7 @@ local function Build(uf, edb)
     f.bar:SetStatusBarColor(c.r, c.g, c.b, (c.a or 1) * (edb.barAlpha or 1))
     -- 底色比照資源列：主色的 25%
     f.bg:SetVertexColor(c.r * 0.25, c.g * 0.25, c.b * 0.25, edb.bgAlpha or 0.8)
+    SizeEdges(f.edges)
     for _, e in ipairs(f.edges) do e:SetShown(edb.border ~= false) end
     f:Show()
 end

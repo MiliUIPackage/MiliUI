@@ -214,8 +214,9 @@ local function CreateBanner()
     local ar, ag, ab = W.Accent()
 
     local banner = CreateFrame("Frame", nil, panel)
-    banner:SetPoint("TOPLEFT", 1, -1)
-    banner:SetPoint("TOPRIGHT", -1, -1)
+    -- 內縮＝面板邊框寬（W.Stylize 的 edgeSize 是 P.Pixel(1)），同一個值才不露縫
+    banner:SetPoint("TOPLEFT", P.Pixel(1), -P.Pixel(1))
+    banner:SetPoint("TOPRIGHT", -P.Pixel(1), -P.Pixel(1))
     P.Height(banner, BANNER_H - 1)
 
     -- banner 就是這個視窗的標題列，讓它照標題列的直覺可以拖
@@ -230,12 +231,13 @@ local function CreateBanner()
     grad:SetGradient("HORIZONTAL", CreateColor(ar, ag, ab, 0.16), CreateColor(ar, ag, ab, 0))
 
     -- 底緣 1px 光線（亮 → 透明）＋下方 1px 黑影，同 SectionTitle 的手法
-    local shadow = banner:CreateTexture(nil, "ARTWORK", nil, -1)
+    -- 兩條 1px 都關像素貼齊（P.NoSnap，.claude/notes/wow-1px-border-rules.md）
+    local shadow = P.NoSnap(banner:CreateTexture(nil, "ARTWORK", nil, -1))
     shadow:SetColorTexture(0, 0, 0, 1)
     shadow:SetPoint("BOTTOMLEFT", 1, -1)
     shadow:SetPoint("BOTTOMRIGHT", 1, -1)
     shadow:SetHeight(P.Pixel(1))
-    local line = banner:CreateTexture(nil, "ARTWORK")
+    local line = P.NoSnap(banner:CreateTexture(nil, "ARTWORK"))
     line:SetColorTexture(1, 1, 1, 1)
     line:SetGradient("HORIZONTAL", CreateColor(ar, ag, ab, 0.9), CreateColor(ar, ag, ab, 0))
     line:SetPoint("BOTTOMLEFT", 0, 0)

@@ -8,6 +8,19 @@ local M = ns.Media
 
 M.WHITE8X8 = "Interface\\BUTTONS\\WHITE8X8"
 
+-- 剛好 n 個實體像素的 UI 單位，基準是**框自己的**有效縮放（P.Pixel 照 UIParent）：
+-- 時間軸會 SetScale(display.scale)、預覽縮放到放得下、首領警告跟暴雪框的大小，照 UIParent 算就不是整數像素。
+-- ⚠ 要在排版／顯示時呼叫（登入當下縮放還沒定，見 .claude/notes/wow-1px-border-rules.md）
+function M.Pixel(frame, n)
+    n = math.floor((tonumber(n) or 0) + 0.5)
+    if n <= 0 then return 0 end
+    -- 警告框錨在暴雪框上：保險起見讀不到或秘密就退回 P.Pixel
+    local ok, scale = pcall(frame.GetEffectiveScale, frame)
+    scale = ok and ns.Secret.PlainNumber(scale)
+    if not (scale and scale > 0) then return ns.P.Pixel(n) end
+    return n * PixelUtil.GetPixelToUIUnitFactor() / scale
+end
+
 -- 在地化字型：FontString 寫死 FRIZQT__ 在 zhTW / zhCN / koKR 會變成方框
 local LOCALE_FONTS = {
     zhTW = "Fonts\\blei00d.TTF",

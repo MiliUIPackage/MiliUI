@@ -327,13 +327,15 @@ local function SectionRow(parent, text)
     fs:SetTextColor(W.Accent(1))
     f.text = fs
 
-    local shadow = f:CreateTexture(nil, "ARTWORK", nil, -1)
+    -- 線與陰影都不貼齊（P.NoSnap）；陰影往下錯開的量＝線粗（P.Pixel），才會剛好貼在線底下
+    local px = P.Pixel(1)
+    local shadow = P.NoSnap(f:CreateTexture(nil, "ARTWORK", nil, -1))
     shadow:SetColorTexture(0, 0, 0, 1)
-    shadow:SetHeight(P.Pixel(1))
-    shadow:SetPoint("BOTTOMLEFT", 1, -1)
-    shadow:SetPoint("BOTTOMRIGHT", 1, -1)
+    shadow:SetHeight(px)
+    shadow:SetPoint("BOTTOMLEFT", px, -px)
+    shadow:SetPoint("BOTTOMRIGHT", px, -px)
 
-    local line = f:CreateTexture(nil, "ARTWORK")
+    local line = P.NoSnap(f:CreateTexture(nil, "ARTWORK"))
     line:SetColorTexture(W.Accent(0.7))
     line:SetHeight(P.Pixel(1))
     line:SetPoint("BOTTOMLEFT", 0, 0)

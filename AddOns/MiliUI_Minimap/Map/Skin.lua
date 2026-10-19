@@ -366,17 +366,13 @@ local function Build()
     local function MakeBar()
         local bar = CreateFrame("Frame", nil, overlay)
         bar:EnableMouse(false)
-        bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+        bar.bg = S.NoSnap(bar:CreateTexture(nil, "BACKGROUND"))   -- 跟外框相接
         bar.bg:SetAllPoints(bar)
         return bar
     end
+    -- 錨點（外框 1px 內側）在 Skin.Apply 跟著縮放換算
     topBar = MakeBar()
-    topBar:SetPoint("TOPLEFT", holder, "TOPLEFT", P.Pixel(1), -P.Pixel(1))
-    topBar:SetPoint("TOPRIGHT", holder, "TOPRIGHT", -P.Pixel(1), -P.Pixel(1))
-
     botBar = MakeBar()
-    botBar:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", P.Pixel(1), P.Pixel(1))
-    botBar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -P.Pixel(1), P.Pixel(1))
 
     zoneText = MakeText(topBar)
     zoneText:SetPoint("LEFT", topBar, "LEFT", 4, 0)
@@ -432,7 +428,7 @@ local function Build()
     dragOverlay:EnableMouse(true)
     dragOverlay:RegisterForDrag("LeftButton")
     dragOverlay:Hide()
-    dragOverlay:SetBackdrop({ bgFile = S.WHITE, edgeFile = S.WHITE, edgeSize = P.Pixel(1) })
+    S.SetEdge(dragOverlay, S.WHITE)   -- Skin.Apply 會跟著縮放重算
     dragOverlay.label = MakeText(dragOverlay, 13)
     dragOverlay.label:SetPoint("CENTER")
     dragOverlay.label:SetText(ns.L["Drag to move"])
@@ -654,6 +650,14 @@ function Skin.Apply()
     -- 外觀
     ------------------------------------------------------------
     S.RefreshBorder(borderHost)
+    -- 上下兩條貼在外框 1px 內側：內縮跟邊寬同一個值（holder 縮放後的實體像素）
+    local px = S.Pixel(topBar, 1)
+    topBar:ClearAllPoints()
+    topBar:SetPoint("TOPLEFT", holder, "TOPLEFT", px, -px)
+    topBar:SetPoint("TOPRIGHT", holder, "TOPRIGHT", -px, -px)
+    botBar:ClearAllPoints()
+    botBar:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", px, px)
+    botBar:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -px, px)
     local br, bg, bb, ba = S.BackdropColor()
     local barH = db.fontSize + BAR_PAD
     for _, bar in ipairs({ topBar, botBar }) do
@@ -667,6 +671,7 @@ function Skin.Apply()
         fs:SetTextColor(unpack(S.TEXT))
     end
 
+    S.SetEdge(dragOverlay, S.WHITE)
     dragOverlay:SetBackdropColor(S.Accent(0.25))
     dragOverlay:SetBackdropBorderColor(S.Accent(1))
     S.SetFont(dragOverlay.label, 13)
@@ -812,6 +817,11 @@ ns.RegisterCallback("Init", "Skin", function()
         else
             lastZone = nil
             ns.Safe(ApplyElementVisibility)
+            -- 登入那一刻的縮放可能不是最終值：進世界時 1px 換算變了就整套重套（邊框、內縮、社交列）
+            if event == "PLAYER_ENTERING_WORLD" and borderHost
+                and borderHost._miliPx ~= S.Pixel(borderHost, 1) then
+                ns.Safe(Skin.Apply)
+            end
         end
     end)
 
