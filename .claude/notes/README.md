@@ -149,6 +149,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「寫 plan → Opus 子代理在 worktree 實作 → 驗收 → commit＋merge」；push 另等指示，遠端叫 `MiliUIPackage` |
 | [feedback-merge-worktree-branch.md](feedback-merge-worktree-branch.md) | worktree 分支 commit 完就 merge 進 master（遊戲只載入本體）；commit 與 merge 同一串指令、回報前查 `branch --no-merged master` 為空；不要 cherry-pick |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 的範圍／掛點／不碰清單照成熟同類實作（本機 tmp 的 EllesmereUI），樣式套我們的；契約照舊、lint 白名單只開就位確認；功能放 MiliUI/Enhance |
+| [feedback-probe-addon-place-directly.md](feedback-probe-addon-place-directly.md) | 暫時的探針插件直接放進本體 `Interface/AddOns`（worktree 寫不進去就暫存區寫好再 `cp -R`），`_` 開頭不進版控；輸出要有可全選複製的視窗 |
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面的控件說明一律下一列 `type="text"` 灰色小字，不用接在勾選框右邊的 hint；實作細節／推銷別支插件的句子不放；灰字夾在兩列間或重複出現時改標籤後「?」hover |
 | [feedback-zh-countdown-wording.md](feedback-zh-countdown-wording.md) | 中文「倒數」不縮成「倒」：先倒數、才倒數冷卻；寫語系字串時就照這樣 |
 | [feedback-emphasis-note-yellow.md](feedback-emphasis-note-yellow.md) | 「黃字說明」＝共用層 `W.fontEmphasis`（1, 0.82, 0）；整列寬、放在底部灰字說明正上方 |
@@ -239,7 +240,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 164 篇）
+## 全部筆記（自動產生，共 165 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -422,6 +423,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動幫使用者 bump Cell 的 TOC 版本號，那是他自己在釋出時才做的決定 |
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面守則——勾選框（及任何控件）的說明一律放在下一行的灰色小字（Controls 的 type=\"text\"），不要接在勾選框右邊（toggle 的 hint） |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「我寫 plan → Opus 子代理在 worktree 實作 → 我驗收 → commit 並 merge 進 master」，push 另外等使用者說 |
+| [feedback-probe-addon-place-directly.md](feedback-probe-addon-place-directly.md) | 給使用者的暫時探針／測試插件要直接放進遊戲本體的 Interface/AddOns，不要叫使用者自己複製 |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 新視窗的做法照抄 EllesmereUI（範圍／掛點／不碰清單／時機），外觀套我們的樣式；契約照舊，lint 白名單只開給就位確認 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | 使用者偏好的 UI 視覺風格——純色直角、深底白字、緊湊間距；狀態靠明暗不靠換色；有標題的小節前面不放收尾隔線 |
 | [feedback-zh-countdown-wording.md](feedback-zh-countdown-wording.md) | 中文介面字「倒數」不要縮成「倒」（先倒增益→先倒數增益、才倒冷卻→才倒數冷卻）；寫新字串時就照這樣 |
