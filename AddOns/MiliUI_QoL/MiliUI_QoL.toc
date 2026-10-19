@@ -41,6 +41,7 @@ Modules\Merchant_Automation.lua
 Modules\Quest_Automation.lua
 Modules\QuestReward_BestValue.lua
 Modules\Trade_Whisper.lua
+Modules\Encounter_AutoRelease.lua
 Modules\CraftingOrders_RewardColumn.xml
 Modules\CraftingOrders_RewardColumn.lua
 Modules\AutoStoryStroll.lua

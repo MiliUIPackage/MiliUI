@@ -316,6 +316,17 @@ Append({
         .. "首領戰、傳奇鑰石、PvP 期間遊戲不讓插件送聊天，那時只在自己的聊天框印出明細。" },
 })
 
+-- 烏拉特克滅團後自動釋放靈魂（Modules/Encounter_AutoRelease.lua）
+Append({
+    { type = "header", label = "首領戰" },
+    { type = "toggle", label = "烏拉特克滅團後自動釋放靈魂",
+      get = function() return ns.UlatekAutoRelease and ns.UlatekAutoRelease.IsEnabled() end,
+      set = function(v) if ns.UlatekAutoRelease then ns.UlatekAutoRelease.SetEnabled(v) end end },
+    { type = "text", label = "英雄／傳奇難度的烏拉特克滅團後 0.5 秒自動釋放靈魂。"
+        .. "只在滅團時作用，首領打死時倒在地上的人不會被送去墓地；"
+        .. "身上有靈魂石、復生這類自我復活可用時也不會自動釋放。預設開啟。" },
+})
+
 -- 探究「標記敦敦」按鈕（Modules/Delves_MarkButton.lua）。
 -- ⚠ 這一段是條件加進去的：名字目前只有繁中的「敦敦」，其他語系的叫法還沒查，
 -- 硬留一個按了只會 /target 失敗的選項更糟。直接看語系（跟模組的 SUPPORTED 同一道閘）；
