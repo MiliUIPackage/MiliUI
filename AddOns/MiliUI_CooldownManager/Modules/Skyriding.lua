@@ -25,6 +25,7 @@
 --               錨定由 Core/Bars.lua 決定（SR.RelayPlace），不參與排開、不給自己的編輯模式覆蓋層、不能拖（拖接力對象就一起走）
 --   standalone  一般的面板：自己的 pos／anchor、可以拖、參與排開
 -- hideCdm：面板顯示中時，其餘的條與面板 alpha 0（Core/Visibility.lua 的 Snapshot.skyridingHideCdm）。
+--   keepCastbar 開著（預設）時施法條例外（Snapshot.skyridingKeepCast）：德魯伊飛行形態、坐騎上採集都會施法。
 --
 -- 顯示（SR.Evaluate，純函式；SR.Active 讀 API 後交給它）：全部成立才顯示
 --   1. 這次登入沒有因為舊的獨立插件還載著而停用本面板（ns.falconBlocked，Core/Init.lua）
@@ -567,6 +568,12 @@ function SR.HidesCdm(active)
     if not active then return false end
     local cfg = Cfg()
     return type(cfg) == "table" and cfg.hideCdm ~= false
+end
+
+-- 「藏起冷卻管理器」時施法條照常（沒存＝預設開）
+function SR.KeepsCastbar()
+    local cfg = Cfg()
+    return type(cfg) ~= "table" or cfg.keepCastbar ~= false
 end
 
 -- 正在競速：背包有青銅時光代幣，而且任務日誌有一條任務的特殊物品就是它

@@ -9,7 +9,7 @@
 -- 法術名（重新振作、旋轉急衝、快意翱翔、貼地飛掠）執行期讀官方譯名（ns.Skyriding.SpellName）。
 --
 -- 套用：任何設定一改就重排這個面板（Skyriding.Apply）；placement 換了走 Bars.SkyPlacementChanged
--- （錨定關係整套換掉）；placement 或 hideCdm 換了再 Bars.RequestAll＋Visibility.ApplyAll（會影響所有的條）。
+-- （錨定關係整套換掉）；placement、hideCdm 或 keepCastbar 換了再 Bars.RequestAll＋Visibility.ApplyAll（會影響所有的條）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -65,6 +65,7 @@ local function Controls()
     add(Note(L["Relay: shares the spot of Essential Cooldowns or the resource bar and takes turns with it while skyriding. Drag that bar to move both. Standalone: its own position, drag it in Edit Mode."]))
     add(BS("toggle", "hideCdm", L["Hide the Cooldown Manager while skyriding"]))
     add(Note(L["Every other bar and panel fades out while these bars are showing. Edit Mode still shows everything."]))
+    add(BS("toggle", "keepCastbar", L["Keep the cast bar"], { disabled = function() local c = Cfg(); return not (c and c.hideCdm ~= false) end }))
     add(BS("toggle", "hideGroundedFull", L["Hide on the ground with full %s"]:format(Spell("vigor"))))
 
     -- 顯示哪些：四列，順序就是由上往下的順序
@@ -145,16 +146,17 @@ function Tab.Build(parent, title)
     local scroll = W.CreateScrollFrame(holder)
     page.scroll = scroll
     local forms = {}
-    -- 上次套用時的 placement／hideCdm（右鍵重設、恢復預設也算：比值不比是哪個控件）
-    local lastPlacement, lastHide
+    -- 上次套用時的 placement／hideCdm／keepCastbar（右鍵重設、恢復預設也算：比值不比是哪個控件）
+    local lastPlacement, lastHide, lastKeep
 
     local function OnApply(spec)
         local cfg = Cfg() or {}
         local placement = SR().PlacementValue(cfg)
         local hide = cfg.hideCdm ~= false
+        local keep = cfg.keepCastbar ~= false
         local placementChanged = lastPlacement ~= nil and placement ~= lastPlacement
-        local wide = placementChanged or (lastHide ~= nil and hide ~= lastHide)
-        lastPlacement, lastHide = placement, hide
+        local wide = placementChanged or (lastHide ~= nil and hide ~= lastHide) or (lastKeep ~= nil and keep ~= lastKeep)
+        lastPlacement, lastHide, lastKeep = placement, hide, keep
         -- 換位置模式先整套換錨定（拆掉貼在它身上的條再貼），再重排面板；反過來的話面板先貼新目標會撞上舊的錨定鏈
         if placementChanged and ns.Bars.SkyPlacementChanged then ns.Bars.SkyPlacementChanged() end
         if ns.Skyriding then ns.Skyriding.Apply() end
@@ -179,7 +181,7 @@ function Tab.Build(parent, title)
         -- 發佈前的欄位搬家（見 Skyriding.Upgrade）：表單讀的是 rows／order
         if SR() then SR().Upgrade(cfg) end
         if lastPlacement == nil then
-            lastPlacement, lastHide = SR().PlacementValue(cfg), cfg.hideCdm ~= false
+            lastPlacement, lastHide, lastKeep = SR().PlacementValue(cfg), cfg.hideCdm ~= false, cfg.keepCastbar ~= false
         end
         local sig = Signature()
         local form = forms[sig]

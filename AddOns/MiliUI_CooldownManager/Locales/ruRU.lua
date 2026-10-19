@@ -990,6 +990,7 @@ L["Show the skyriding bars"] = "Показывать полосы высшего
 L["Relay: shares the spot of Essential Cooldowns or the resource bar and takes turns with it while skyriding. Drag that bar to move both. Standalone: its own position, drag it in Edit Mode."] = "Поочередно: занимает место основных восстановлений или полосы ресурсов и сменяет ее в высшем пилотаже. Перетащите ту полосу, чтобы двигать обе. Отдельно: своя позиция, перетаскивается в режиме редактирования."
 L["Hide the Cooldown Manager while skyriding"] = "Скрывать восстановления в пилотаже"
 L["Every other bar and panel fades out while these bars are showing. Edit Mode still shows everything."] = "Пока эти полосы видны, все остальные полосы и панели скрыты. В режиме редактирования видно все."
+L["Keep the cast bar"] = "Оставлять полосу заклинаний"
 L["Hide on the ground with full %s"] = "Скрывать на земле при полной бодрости (%s)"
 L["Normal speed"] = "Обычная скорость"
 L["Charges use the speed bar's color"] = "Заряды цветом полосы скорости"
