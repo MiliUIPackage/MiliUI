@@ -73,7 +73,7 @@ MoveFrame:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", t
 MoveFrame:SetBackdropColor(0.25, 0.65, 1, 0.4)
 MoveFrame.text = MoveFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 MoveFrame.text:SetPoint("CENTER")
-MoveFrame.text:SetText("焦点特定技能施法条")
+MoveFrame.text:SetText("焦點特定技能施法條")
 MoveFrame.text:SetTextColor(1, 1, 1, 0.9)
 MoveFrame.text:SetDrawLayer("OVERLAY", 7)
 MoveFrame.text:SetJustifyH("CENTER")
@@ -172,7 +172,7 @@ MoveFrame:SetScript("OnMouseUp", function(self)
     end
     CastBar:ClearAllPoints()
     CastBar:SetPoint("CENTER", UIParent, "CENTER", x, y)
-    print(string.format("|cff00ff00[DiGua]|r 焦点特定技能施法条新位置已保存 (X: %d, Y: %d)", x, y))
+    print(string.format("|cff00ff00[DiGua]|r 焦點特定技能施法條新位置已保存 (X: %d, Y: %d)", x, y))
 end)
 
 -- ===== 持续刷新 =====

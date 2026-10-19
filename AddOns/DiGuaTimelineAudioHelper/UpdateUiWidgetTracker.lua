@@ -33,7 +33,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         -- 触发 5 秒倒数（剩余 5 秒时屏幕中央显示）
         if addonTable.CustomEncounterBar then
-            addonTable.CustomEncounterBar(460693, 5, "首领激活")
+            addonTable.CustomEncounterBar(460693, 5, "首領啟動")
         end
 
         -- 5 秒语音倒数：5 → 4 → 3 → 2 → 1（嵌套 C_Timer.After，路径直接调用 addonTable.GetMediaPath()）

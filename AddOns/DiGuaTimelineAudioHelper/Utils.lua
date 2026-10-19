@@ -595,7 +595,7 @@ RingEditFrame.bg:SetColorTexture(0.4, 1, 0.8, 0.25) -- 与圆环同主题的青�
 
 RingEditFrame.text = RingEditFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 RingEditFrame.text:SetPoint("CENTER")
-RingEditFrame.text:SetText("倒计时\n圆环")
+RingEditFrame.text:SetText("倒計時\n圓環")
 RingEditFrame.text:SetTextColor(1, 1, 1, 0.9)
 RingEditFrame.text:SetJustifyH("CENTER")
 RingEditFrame.text:SetSpacing(2)
@@ -627,7 +627,7 @@ RingEditFrame:SetScript("OnMouseUp", function(self)
     DiGuaTimelineAudioHelper = DiGuaTimelineAudioHelper or {}
     DiGuaTimelineAudioHelper.ringX, DiGuaTimelineAudioHelper.ringY = x, y
     ApplyRingPosition() -- 让真正显示的圆环也立刻同步到新位置
-    print(string.format("|cff00ff00[DiGua]|r 倒计时圆环新位置已保存 (X: %d, Y: %d)", x, y))
+    print(string.format("|cff00ff00[DiGua]|r 倒計時圓環新位置已保存 (X: %d, Y: %d)", x, y))
 end)
 
 -- 控制台打开 + 勾选"显示倒计时圆环" → 显示半透明可拖动定位框；否则隐藏并释放鼠标

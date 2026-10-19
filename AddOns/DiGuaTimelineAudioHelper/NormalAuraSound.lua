@@ -234,6 +234,10 @@ end
 --                               注意：Lua 表里同 ID 重复键会覆盖，必须用 "|" 写在同一行！
 --                               例：[1305368] = "ZhongDu:player:DAMAGER|QuSan:player:HEALER"
 --                               每个子配置独立做职责过滤，不匹配的不会注册
+-- 音频时长限制（暴雪新规）：
+--   光环系统 AddAuraSound 不再接受超过 5 秒的音频，因此只保留 [1]321.ogg / [2]321.ogg，
+--   其余 [N]321 / [N]54321 系列（[3]54321、[3]321、[2]54321、[5]321.ogg、[7]321.ogg 等）已全部停用。
+--   混合配置只保留非倒计时的那一段，例如 "YiMiaoMuBiaoShiNi:player|[3]54321:raid" → "YiMiaoMuBiaoShiNi:player"
 -- 控制台开关：
 --   "关闭踩地板警报音"（DiGuaTimelineAudioHelper.jingBaoSoundEnabled，默认 true）
 --     勾选后所有值里声音文件等于 "JingBao" 的条目都不会注册（= 注销这些警报音）
@@ -623,8 +627,8 @@ addonTable.NormalAura = {
         -- [1284590] = "", -- 螺旋毒素
         [1284947] = "KuaiKaiJianShang", -- 培育爆裂
         [1284491] = "alarmbeep", -- 鲜血毒液注射
-        [1288260] = "YiMiaoMuBiaoShiNi:player|[3]54321:raid", -- 不稳定的瘴气（自己中→一秒目标是你，同时也会播 [3]54321；团队里其他人中→[3]54321）
-        [1288297] = "TieBianFangShui|[3]321", -- 附着幽暗
+        [1288260] = "YiMiaoMuBiaoShiNi:player", -- 不稳定的瘴气（自己中→一秒目标是你）
+        [1288297] = "TieBianFangShui", -- 附着幽暗
         [1284471] = "alarmbeep", -- 凋零之血
         [1284210] = "JingBao", -- 鲜血毒液
         [1296880] = "KaoJinDuiYou", -- 变幻的原型毒液
@@ -633,7 +637,7 @@ addonTable.NormalAura = {
     -- ==       迷失的探险者      ==
     -- ============================
         
-        [1296025] = "YuanLiRenQun:player|[2]54321:raid", -- 闪现新星
+        [1296025] = "YuanLiRenQun:player", -- 闪现新星
         -- [1291929] = "", -- 稳固打击
         [1291918] = "alarmbeep", -- 旋壳
         [1286922] = "KuaiKaiJianShang", -- 冰封烈焰
@@ -641,7 +645,7 @@ addonTable.NormalAura = {
         [1295954] = "CaiHuoXiaoCeng", -- 穿刺冰霜
         [1295928] = "CaiBingXiaoCeng", -- 燃烧烈焰
         [1308853] = "LiuXue", -- 木刺炸裂
-        [1297625] = "ZhaDanDianNi|[7]321", -- 爆炸惊喜
+        [1297625] = "ZhaDanDianNi", -- 爆炸惊喜
         [1299854] = "MarioJump", -- 弹射
         [1297648] = "JingBao", -- 冰霜区域
         [1297649] = "JingBao", -- 火焰区域        
@@ -656,7 +660,7 @@ addonTable.NormalAura = {
         -- [1282114] = "", -- 适应性感染
         [1280935] = "NiBeiYiShang", -- 滴毒之牙
         -- [1282509] = "", -- 恶性催化剂
-        [1281913] = "[3]321.ogg", -- 瘟疫泡沫
+        -- [1281913] = "[3]321.ogg", -- 瘟疫泡沫（音频超 5 秒，已停用）
         [1294994] = "ZhuYiJiaoXia", -- 冥河感染
         [1295224] = "KaoJinDuiYou", -- 虹吸感染
         [1295380] = "alarmbeep", -- 虹吸感染
@@ -672,10 +676,10 @@ addonTable.NormalAura = {
         [1297707] = "WuMaFenSan", -- 剧毒
         [1299899] = "WuMaFenSan", -- 剧毒
         [1277051] = "alarmbeep", -- 残毁创伤
-        [1285425] = "XiaoXinJiFei|[5]321.ogg", -- 狂怒侧风
-        [1285453] = "XiaoXinJiFei|[5]321.ogg", -- 狂怒侧风        
-        [1305963] = "[7]321.ogg", -- 剧毒涌动
-        -- [1305959] = "[7]321.ogg", -- 剧毒涌动
+        [1285425] = "XiaoXinJiFei", -- 狂怒侧风
+        [1285453] = "XiaoXinJiFei", -- 狂怒侧风        
+        -- [1305963] = "[7]321.ogg", -- 剧毒涌动（音频超 5 秒，已停用）
+        -- [1305959] = "[7]321.ogg", -- 剧毒涌动（音频超 5 秒，已停用）
         [1296667] = "JingBao", -- 腐蚀残渣
         [1287205] = "alarmbeep", -- 粘稠囊肿
         [1287083] = "ZhongDu", -- 风暴

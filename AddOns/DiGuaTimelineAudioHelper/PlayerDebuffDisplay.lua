@@ -64,7 +64,7 @@ HostFrame.bg:Hide()
 
 HostFrame.text = HostFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 HostFrame.text:SetPoint("CENTER", HostFrame, "CENTER", 0, 0)
-HostFrame.text:SetText("玩家减益\n图标")
+HostFrame.text:SetText("玩家減益\n圖示")
 HostFrame.text:SetTextColor(1, 1, 1, 0.9)
 HostFrame.text:SetJustifyH("CENTER")
 HostFrame.text:SetSpacing(2)
@@ -189,7 +189,7 @@ HostFrame:SetScript("OnMouseUp", function(self)
         if DiGuaTimelineAudioHelper then
             DiGuaTimelineAudioHelper.playerDebuffX = xOfs
             DiGuaTimelineAudioHelper.playerDebuffY = yOfs
-            print(string.format("|cff00ff00[DiGua]|r 玩家减益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
+            print(string.format("|cff00ff00[DiGua]|r 玩家減益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
         end
     end
 end)

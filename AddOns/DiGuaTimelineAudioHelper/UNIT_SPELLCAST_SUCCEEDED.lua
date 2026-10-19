@@ -81,7 +81,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
             and (C_ScenarioInfo.GetCriteriaInfo(1) and C_ScenarioInfo.GetCriteriaInfo(1).completed or false) == false -- Boss1
             and UnitSpellTargetName(unitTarget) -- 法术有目标
             and UnitGroupRolesAssigned("player") == "HEALER"
-            then addonTable.CustomEncounterBar(132887, 6.5, "驱散魔法", unitTarget)
+            then addonTable.CustomEncounterBar(132887, 6.5, "驅散魔法", unitTarget)
             PlaySoundFile(MEDIA_PATH .. "QuSanMoFa.ogg", DiGuaTimelineAudioHelper.audioChannel) end
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 厄运诅咒
@@ -103,7 +103,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                     -- 播放前检查职业：德鲁伊、唤魔师、法师、萨满
                     local class = UnitClassBase("player")
                     if class == "DRUID" or class == "EVOKER" or class == "MAGE" or class == "SHAMAN" then
-                        addonTable.CustomEncounterBar(136122, 25.5, "驱散诅咒", unitTarget)
+                        addonTable.CustomEncounterBar(136122, 25.5, "驅散詛咒", unitTarget)
                         PlaySoundFile(MEDIA_PATH .. "QuSanZuZhou.ogg", DiGuaTimelineAudioHelper.audioChannel)
                     end
                 end
@@ -132,13 +132,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
             end
 
 
-
-
-
-
-
-
-
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 爆破重击（工具）
             and select(8, GetInstanceInfo()) == 1762 -- 副本ID (诸王之眠)
             and (C_Map.GetBestMapForUnit("player") or 0) == 1004 -- 地图ID
@@ -162,13 +155,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
                     end
                 end
             end
-
-
-
-
-
-
-
 
 
         if unitTarget and unitTarget:find("nameplate") and UnitCanAttack("player", unitTarget) -- 嗜血飞斧 (工具) -- 灵魂碾压 (工具)

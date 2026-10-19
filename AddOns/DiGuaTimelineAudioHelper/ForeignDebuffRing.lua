@@ -84,7 +84,7 @@ local SHOW_RULES = {
     },
 
     {
-        name = "红玉老3前小怪",
+        name = "晶紅老3前小怪",
         instanceIDs = { [2521] = true },
         encounterIDs = { [0] = true },   -- 0 = 不在首领战 → 老 3 开打前的小怪阶段
         bossProgress = { [2] = true },   -- 2 号 死亡
@@ -94,7 +94,7 @@ local SHOW_RULES = {
 
 
     {
-        name = "红玉老2",
+        name = "晶紅老2",
         instanceIDs = { [2521] = true },
         encounterIDs = { [2606] = true }, 
         roles = { HEALER = true, DAMAGER = true },  -- 只有治疗 / DPS 显示（坦克不显示）
@@ -104,7 +104,7 @@ local SHOW_RULES = {
 
 
     {
-        name = "神庙",
+        name = "神廟",
         instanceIDs = { [1877] = true },
         roles = { HEALER = true, DAMAGER = true },  -- 只有治疗 / DPS 显示（坦克不显示）
         bossProgress = { [1] = true },   -- 1 号 死亡
@@ -120,24 +120,24 @@ local SHOW_RULES = {
 
 
     {
-        name = "虚无喷发",
+        name = "虛無噴發",
         instanceIDs = { [2923] = true },  -- 虚空之痕竞技场
         bossProgress = { [1] = false },   -- 1 号 Boss 还没打
         maxDuration = 4.5,                -- 这条规则只关心“总时长 ≤4.5 秒”的短 debuff
     },
 
     {
-        name = "钉锤风暴 虚空光束 疯狂尖啸",
-        instanceIDs = { [2923] = true },  -- 虚空之痕竞技场
-        bossProgress = { [1] = true },   -- 2 号 Boss 还没打
-        maxDuration = 7,                -- 这条规则只关心“总时长 ≤7 秒”的短 debuff
+        name = "釘鎚風暴 虛空光束 瘋狂尖嘯",
+        instanceIDs = { [2923] = true },  -- 虛空之痕競技場
+        bossProgress = { [1] = true },   -- 2 號 Boss 還沒打
+        maxDuration = 7,                -- 這條規則只關心「總時長 ≦7 秒」的短 debuff
     },
 
     {
-        name = "虚无喷发 钉锤风暴 虚空光束 疯狂尖啸",
-        instanceIDs = { [2923] = true },  -- 虚空之痕竞技场
-        bossProgress = { [2] = true },   -- 2 号 Boss 还没打
-        maxDuration = 7,                -- 这条规则只关心“总时长 ≤7 秒”的短 debuff
+        name = "虛無噴發 釘鎚風暴 虛空光束 瘋狂尖嘯",
+        instanceIDs = { [2923] = true },  -- 虛空之痕競技場
+        bossProgress = { [2] = true },   -- 2 號 Boss 還沒打
+        maxDuration = 7,                -- 這條規則只關心「總時長 ≦7 秒」的短 debuff
     },
 
 }

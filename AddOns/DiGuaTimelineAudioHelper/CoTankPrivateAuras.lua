@@ -142,7 +142,7 @@ HostFrame.bg:Hide() -- 默认隐藏
 
 HostFrame.text = HostFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 HostFrame.text:SetPoint("CENTER", HostFrame, "CENTER", 0, 0)
-HostFrame.text:SetText("副坦\n减益")
+HostFrame.text:SetText("副坦\n減益")
 HostFrame.text:SetTextColor(1, 1, 1, 0.9)
 HostFrame.text:SetJustifyH("CENTER")
 HostFrame.text:SetSpacing(2)
@@ -180,13 +180,13 @@ end
 local function BuildContainer()
     if container then return container end
     if not IsAuraContainerAvailable() then
-        Warn("客户端不支持 AuraContainer（12.1 才有）→ 功能跳过")
+        Warn("客戶端不支持 AuraContainer（12.1 才有）→ 功能跳過")
         return nil
     end
 
     local ok, c = pcall(CreateFrame, "AuraContainer", nil, HostFrame, "CustomAuraContainerTemplate")
     if not ok or not c then
-        Warn("CreateFrame(AuraContainer) 失败 → " .. tostring(c))
+        Warn("CreateFrame(AuraContainer) 失敗 → " .. tostring(c))
         return nil
     end
     c:Hide()
@@ -449,7 +449,7 @@ HostFrame:SetScript("OnMouseUp", function(self, button)
         if DiGuaTimelineAudioHelper then
             DiGuaTimelineAudioHelper.coTankX = xOfs
             DiGuaTimelineAudioHelper.coTankY = yOfs
-            print(string.format("|cff00ff00[DiGua]|r 副坦减益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
+            print(string.format("|cff00ff00[DiGua]|r 副坦減益新位置已保存 (X: %d, Y: %d)", xOfs, yOfs))
         end
     end
 end)

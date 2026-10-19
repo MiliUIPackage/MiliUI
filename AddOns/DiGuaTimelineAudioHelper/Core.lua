@@ -124,7 +124,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         -- 打印欢迎信息
         C_Timer.After(2, function()
-            print("感谢使用|cFF00FF00[神秘地瓜副本语音插件]|r/digua 可开启控制台")
+            print("感謝使用|cFF00FF00[神秘地瓜副本語音插件]|r/digua 或/dg 可開啟控制台")
         end)
 
         -- 同步 UI 控件勾选状态
@@ -218,8 +218,8 @@ divider:SetWidth(1)
 divider:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
 divider:SetBackdropColor(1, 1, 1, 0.5)
 
-CreateColumnTitle("声音", 110, -30)
-CreateColumnTitle("图形", 340, -30)
+CreateColumnTitle("聲音", 110, -30)
+CreateColumnTitle("圖形", 340, -30)
 
 -- 复选框快速生成构建器（xOffset 用于区分左右两栏）
 local function CreateCheckButton(name, labelText, xOffset, yOffsetY, onClickFunc)
@@ -268,7 +268,7 @@ local function CreateSizeSlider(name, labelText, xOffset, yOffsetY, minStep, max
 end
 
 -- ===== 左栏：听觉 =====
-local cb = CreateCheckButton("DiGuaTimelineEnableCheck", "启用语音", 20, -55, function(self)
+local cb = CreateCheckButton("DiGuaTimelineEnableCheck", "啟用語音", 20, -55, function(self)
     DiGuaTimelineAudioHelper.enabled = self:GetChecked()
     RefreshMediaPath() -- 先换路径（关闭时切到静音目录），下面的重新登记才会用上新路径
     -- 注册式音效（首领语音 SetEventSound / 光环音效 AddAuraSound）的音频路径是“登记时烘死”的：
@@ -276,51 +276,51 @@ local cb = CreateCheckButton("DiGuaTimelineEnableCheck", "启用语音", 20, -55
     -- 会继续按旧路径响到下次登录/重载为止。这里与切声道、禁用团本语音走同一套刷新。
     if addonTable.ReloadTimelineSounds then addonTable.ReloadTimelineSounds() end
     if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
-    print("|cffffd100[DiGua]|r 整体音效状态: " .. (DiGuaTimelineAudioHelper.enabled and "|cff00ff00已开启|r" or "|cffff0000已禁用|r"))
+    print("|cffffd100[DiGua]|r 整體音效狀態: " .. (DiGuaTimelineAudioHelper.enabled and "|cff00ff00已開啟|r" or "|cffff0000已禁用|r"))
 end)
 
-local cbChannel = CreateCheckButton("DiGuaTimelineChannelCheck", "整体音效使用环境音频道", 20, -80, function(self)
+local cbChannel = CreateCheckButton("DiGuaTimelineChannelCheck", "整體音效使用環境音頻道", 20, -80, function(self)
     local isAmbience = self:GetChecked()
     DiGuaTimelineAudioHelper.audioChannel = isAmbience and "Ambience" or "Master"
     -- 声道切换后，重新登记“登记式”声音（首领语音 SetEventSound / 光环声音 AddAuraSound），
     -- 否则登录后改勾选不会生效，会继续沿用旧声道（表现为未勾选却走环境音）。
     if addonTable.ReloadTimelineSounds then addonTable.ReloadTimelineSounds() end
     if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
-    print("|cffffd100[DiGua]|r 整体音效声道已切换至: " .. (isAmbience and "|cff00ff00环境音 (Ambience)|r" or "|cffffd100主音量 (Master)|r"))
+    print("|cffffd100[DiGua]|r 整體音效聲道已切換至: " .. (isAmbience and "|cff00ff00環境音 (Ambience)|r" or "|cffffd100主音量 (Master)|r"))
 end)
 
-local cbTenSec = CreateCheckButton("DiGuaTimelineTenSecCheck", "开怪 10 秒语音倒数", 20, -105, function(self)
+local cbTenSec = CreateCheckButton("DiGuaTimelineTenSecCheck", "開怪 10 秒語音倒數", 20, -105, function(self)
     DiGuaTimelineAudioHelper.tenSecCountDown = self:GetChecked()
-    print("|cffffd100[DiGua]|r 开怪 10 秒语音倒数: " .. (DiGuaTimelineAudioHelper.tenSecCountDown and "|cff00ff00已开启 (10秒)|r" or "|cffff0000未开启 (默认5秒)|r"))
+    print("|cffffd100[DiGua]|r 開怪 10 秒語音倒數: " .. (DiGuaTimelineAudioHelper.tenSecCountDown and "|cff00ff00已開啟 (10秒)|r" or "|cffff0000未開啟 (預設5秒)|r"))
 end)
 
-local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "开启首领语音警报", 20, -130, function(self)
+local cbBossVoice = CreateCheckButton("DiGuaTimelineBossVoiceCheck", "開啟首領語音警報", 20, -130, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.bossVoiceEnabled = isEnabled
     
     -- 改开关后重新登记（常驻表 + 场次表；内部按条件清理/登记，战斗锁定中会延后到脱战）
     if addonTable.ReloadTimelineSounds then addonTable.ReloadTimelineSounds() end
     
-    print("|cffffd100[DiGua]|r 首领语音警报功能: " .. (isEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 首領語音警報功能: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
-local cbBloodlustSound = CreateCheckButton("DiGuaTimelineBloodlustSoundCheck", "嗜血开启提示语音", 20, -155, function(self)
+local cbBloodlustSound = CreateCheckButton("DiGuaTimelineBloodlustSoundCheck", "嗜血開啟提示語音", 20, -155, function(self)
     DiGuaTimelineAudioHelper.bloodlustOpenSound = self:GetChecked()
-    print("|cffffd100[DiGua]|r 嗜血开启提示语音: " .. (DiGuaTimelineAudioHelper.bloodlustOpenSound and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 嗜血開啟提示語音: " .. (DiGuaTimelineAudioHelper.bloodlustOpenSound and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
-local cbLfgProposal = CreateCheckButton("DiGuaTimelineLfgProposalCheck", "副本组队就绪提示语音", 20, -180, function(self)
+local cbLfgProposal = CreateCheckButton("DiGuaTimelineLfgProposalCheck", "副本組隊就緒提示語音", 20, -180, function(self)
     DiGuaTimelineAudioHelper.lfgProposalSound = self:GetChecked()
-    print("|cffffd100[DiGua]|r 副本组队就绪提示语音: " .. (DiGuaTimelineAudioHelper.lfgProposalSound and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 副本組隊就緒提示語音: " .. (DiGuaTimelineAudioHelper.lfgProposalSound and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
-local cbInterruptFocus = CreateCheckButton("DiGuaTimelineInterruptFocusCheck", "有焦点也播报周围怪物打断", 20, -205, function(self)
+local cbInterruptFocus = CreateCheckButton("DiGuaTimelineInterruptFocusCheck", "有焦點也播報周圍怪物打斷", 20, -205, function(self)
     DiGuaTimelineAudioHelper.interruptIgnoreFocus = self:GetChecked()
-    print("|cffffd100[DiGua]|r 有焦点也播报周围怪物打断: " .. (DiGuaTimelineAudioHelper.interruptIgnoreFocus and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 有焦點也播報周圍怪物打斷: " .. (DiGuaTimelineAudioHelper.interruptIgnoreFocus and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
 -- 关闭光环音效（勾选=关闭：注销 NormalAuraSound.lua 注册的所有光环音；默认不勾选=光环有声）
-local cbAuraSound = CreateCheckButton("DiGuaTimelineAuraSoundCheck", "关闭光环音效", 20, -230, function(self)
+local cbAuraSound = CreateCheckButton("DiGuaTimelineAuraSoundCheck", "關閉光環音效", 20, -230, function(self)
     local disabled = self:GetChecked()
     DiGuaTimelineAudioHelper.normalAuraSoundEnabled = not disabled
     if disabled then
@@ -328,17 +328,17 @@ local cbAuraSound = CreateCheckButton("DiGuaTimelineAuraSoundCheck", "关闭光�
     else
         if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
     end
-    print("|cffffd100[DiGua]|r 关闭光环音效: " .. (disabled and "|cffff0000已关闭（光环静音）|r" or "|cff00ff00已开启（光环有声）|r"))
+    print("|cffffd100[DiGua]|r 關閉光環音效: " .. (disabled and "|cffff0000已關閉（光環靜音）|r" or "|cff00ff00已開啟（光環有聲）|r"))
 end)
 
 -- 关闭踩地板警报音（勾选=注销 NormalAuraSound.lua 里所有注册了 JingBao 警报音的光环；默认不勾选=有警报音）
 -- 实现：NormalAuraSound.lua 注册时跳过值为 "JingBao" 的条目，其余光环音效不受影响
-local cbJingBaoSound = CreateCheckButton("DiGuaTimelineJingBaoSoundCheck", "关闭踩地板警报音", 20, -255, function(self)
+local cbJingBaoSound = CreateCheckButton("DiGuaTimelineJingBaoSoundCheck", "關閉踩地板警報音", 20, -255, function(self)
     local disabled = self:GetChecked()
     DiGuaTimelineAudioHelper.jingBaoSoundEnabled = not disabled
     -- 先整体注销、再按开关重新注册（战斗锁定 / 副本 secret 状态会自动延后补做）
     if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
-    print("|cffffd100[DiGua]|r 踩地板警报音: " .. (disabled and "|cffff0000已关闭（JingBao 警报音静音）|r" or "|cff00ff00已开启|r"))
+    print("|cffffd100[DiGua]|r 踩地板警報音: " .. (disabled and "|cffff0000已關閉（JingBao 警報音靜音）|r" or "|cff00ff00已開啟|r"))
 end)
 
 -- 禁用团本语音（勾选=不播放/不注册指定团本首领的语音；默认不勾选=正常播放）
@@ -347,7 +347,7 @@ end)
 --   EncounterEvents.lua  ：RaidEventSoundData 表（盘魂者内克扎莉 / 陵寝哨兵 / 迷失的探险者 /
 --                          万毒邪祟者瓦什尼克 / 斯索拉克 / 双子毒牙 / 盘卷祭坛 / 乌拉特克 / 潮缚石窟）
 --   NormalAuraSound.lua  ：raidAppliedList / raidRefreshedList / raidRemovedList
-local cbRaidVoice = CreateCheckButton("DiGuaTimelineRaidVoiceCheck", "禁用团本语音", 20, -345, function(self)
+local cbRaidVoice = CreateCheckButton("DiGuaTimelineRaidVoiceCheck", "禁用團本語音", 20, -345, function(self)
     local disabled = self:GetChecked()
     DiGuaTimelineAudioHelper.raidVoiceDisabled = disabled
 
@@ -357,13 +357,13 @@ local cbRaidVoice = CreateCheckButton("DiGuaTimelineRaidVoiceCheck", "禁用团�
     -- 重新登记团本光环音效：勾选时不注册 raid*List，取消勾选时恢复
     if addonTable.ReloadNormalAuras then addonTable.ReloadNormalAuras() end
 
-    print("|cffffd100[DiGua]|r 禁用团本语音: " .. (disabled and "|cffff0000已勾选（团本首领语音静音）|r" or "|cff00ff00未勾选（正常播放）|r"))
+    print("|cffffd100[DiGua]|r 禁用團本語音: " .. (disabled and "|cffff0000已勾選（團本首領語音靜音）|r" or "|cff00ff00未勾選（正常播放）|r"))
 end)
 
 -- 跳过过场动画（SkipCinematic.lua）：总开关见右栏「自动跳过过场动画」（默认勾选=自动跳过）
 
 -- ===== 右栏：视觉 =====
-local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "显示倒计时圆环", 250, -55, function(self)
+local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "顯示倒計時圓環", 250, -55, function(self)
     DiGuaTimelineAudioHelper.ringEnabled = self:GetChecked()
     -- 取消勾选时立刻清掉正在显示的圆环（否则要等本次计时器走完才消失）
     if not DiGuaTimelineAudioHelper.ringEnabled and addonTable.ForceHideRingFrame then
@@ -371,7 +371,7 @@ local cbRing = CreateCheckButton("DiGuaTimelineRingCheck", "显示倒计时圆�
     end
     -- 外部减益圆环（ForeignDebuffRing.lua）共用同一总开关：立刻重判显示
     if addonTable.RefreshForeignDebuffRing then addonTable.RefreshForeignDebuffRing() end
-    print("|cffffd100[DiGua]|r 倒计时圆环图标状态: " .. (DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已显示|r" or "|cffff0000已隐藏|r"))
+    print("|cffffd100[DiGua]|r 倒計時圓環圖示狀態: " .. (DiGuaTimelineAudioHelper.ringEnabled and "|cff00ff00已顯示|r" or "|cffff0000已隱藏|r"))
     -- 同步半透明拖动定位框（勾选且控制台打开时显示，供拖动调整圆环位置）
     if addonTable.RefreshRingAnchor then addonTable.RefreshRingAnchor(f:IsShown()) end
 end)
@@ -379,19 +379,19 @@ end)
 -- 团本中关闭倒计时圆环（勾选=团本战斗中不再显示任何倒计时圆环；默认不勾选=团本正常显示）
 -- 只拦倒计时圆环，语音播报 / 中央倒计时 / 首领血量等都不受影响
 -- 判定在 Utils.lua 的 StartCircleTimerBySeconds 内部统一生效，所以所有调用点都被覆盖
-local cbRaidRing = CreateCheckButton("DiGuaTimelineRaidRingCheck", "团本中关闭倒计时圆环", 250, -475, function(self)
+local cbRaidRing = CreateCheckButton("DiGuaTimelineRaidRingCheck", "團本中關閉倒計時圓環", 250, -475, function(self)
     local disabled = self:GetChecked()
     DiGuaTimelineAudioHelper.raidRingDisabled = disabled
     -- 勾选时立刻清掉正在显示的圆环
     if disabled and addonTable.ForceHideRingFrame then
         addonTable.ForceHideRingFrame()
     end
-    print("|cffffd100[DiGua]|r 团本中关闭倒计时圆环: " .. (disabled and "|cffff0000已勾选（团本战斗中不显示圆环）|r" or "|cff00ff00未勾选（团本正常显示）|r"))
+    print("|cffffd100[DiGua]|r 團本中關閉倒計時圓環: " .. (disabled and "|cffff0000已勾選（團本戰鬥中不顯示圓環）|r" or "|cff00ff00未勾選（團本正常顯示）|r"))
 end)
 
-local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦减益监控", 250, -80, function(self)
+local cbCoTank = CreateCheckButton("DiGuaTimelineCoTankCheck", "副坦減益監控", 250, -80, function(self)
     DiGuaTimelineAudioHelper.coTankAuraEnabled = self:GetChecked()
-    print("|cffffd100[DiGua]|r 副坦减益图标: " .. (DiGuaTimelineAudioHelper.coTankAuraEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 副坦減益監控: " .. (DiGuaTimelineAudioHelper.coTankAuraEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     
     if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(f:IsShown()) end
     if addonTable.UpdateRaidTankAuras then addonTable.UpdateRaidTankAuras() end
@@ -407,7 +407,7 @@ local cbCoTankGrowLeft = CreateCheckButton("DiGuaTimelineCoTankGrowLeftCheck", "
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.coTankGrowLeft = isEnabled
     if addonTable.SetCoTankGrowLeft then addonTable.SetCoTankGrowLeft(isEnabled) end
-    print("|cffffd100[DiGua]|r 副坦减益图标生长方向: " .. (isEnabled and "|cff00ff00向左|r" or "|cff00ff00向右|r"))
+    print("|cffffd100[DiGua]|r 副坦減益圖示增長方向: " .. (isEnabled and "|cff00ff00向左|r" or "|cff00ff00向右|r"))
 end)
 cbCoTank:SetHitRectInsets(0, -95, 0, 0)
 cbCoTankGrowLeft:SetHitRectInsets(0, -65, 0, 0)
@@ -415,7 +415,7 @@ cbCoTankGrowLeft:SetHitRectInsets(0, -65, 0, 0)
 -- 副坦减益图标大小滑块（-2~9 档，0 档 = 100%=48px，负档更小、正档更大；图标/间距一起缩放）
 -- 放在“副坦减益监控”勾选项正下方，竖直占位恒为 SLIDER_H(34px)
 local coTankSizeSlider, coTankSizeText, coTankSizeValue, coTankSizeLow, coTankSizeHigh =
-    CreateSizeSlider("DiGuaTimelineCoTankSizeSlider", "副坦减益图标大小", 250, -120, -2, 9)
+    CreateSizeSlider("DiGuaTimelineCoTankSizeSlider", "副坦減益圖示大小", 250, -120, -2, 9)
 local coTankSizeUpdating = false
 local function UpdateCoTankSizeLabel(value)
     if coTankSizeValue then
@@ -437,27 +437,27 @@ coTankSizeUpdating = false
 UpdateCoTankSizeLabel(coTankSizeSlider:GetValue())
 
 -- 以下各项顺排在副坦滑块之后
-local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "自动开启暴雪文字预警", 250, -170, function(self)
+local cbForceWarnings = CreateCheckButton("DiGuaTimelineForceWarningsCheck", "自動開啟暴雪文字預警", 250, -170, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.forceEncounterWarnings = isEnabled
     if isEnabled then
         SetCVar("encounterWarningsEnabled", 1)
     end
-    print("|cffffd100[DiGua]|r 自动开启暴雪文字预警: " .. (isEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 自動開啟暴雪文字預警: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
-local cbCenterCountdown = CreateCheckButton("DiGuaTimelineCenterCountdownCheck", "技能剩余5秒中央倒计时", 250, -195, function(self)
+local cbCenterCountdown = CreateCheckButton("DiGuaTimelineCenterCountdownCheck", "技能剩餘5秒中央倒計時", 250, -195, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.centerCountdownEnabled = isEnabled
     if addonTable.SetCenterCountdownEnabled then addonTable.SetCenterCountdownEnabled(isEnabled) end
     -- 取消勾选时同步隐藏拖动框（仅控制台打开且功能开启时才显示）
     if addonTable.RefreshAnchorState then addonTable.RefreshAnchorState(f:IsShown()) end
-    print("|cffffd100[DiGua]|r 技能剩余5秒中央倒计时: " .. (isEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 技能剩餘5秒中央倒計時: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
-local cbPlayerDebuff = CreateCheckButton("DiGuaTimelinePlayerDebuffCheck", "玩家减益图标", 250, -285, function(self)
+local cbPlayerDebuff = CreateCheckButton("DiGuaTimelinePlayerDebuffCheck", "顯示玩家減益圖示", 250, -285, function(self)
     DiGuaTimelineAudioHelper.playerDebuffEnabled = self:GetChecked()
-    print("|cffffd100[DiGua]|r 玩家减益图标: " .. (DiGuaTimelineAudioHelper.playerDebuffEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 玩家減益圖示: " .. (DiGuaTimelineAudioHelper.playerDebuffEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     if addonTable.SetPlayerDebuffEnabled then addonTable.SetPlayerDebuffEnabled(self:GetChecked()) end
 end)
 
@@ -468,7 +468,7 @@ local cbPlayerDebuffGrowLeft = CreateCheckButton("DiGuaTimelinePlayerDebuffGrowL
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.playerDebuffGrowLeft = isEnabled
     if addonTable.SetPlayerDebuffGrowLeft then addonTable.SetPlayerDebuffGrowLeft(isEnabled) end
-    print("|cffffd100[DiGua]|r 玩家减益图标生长方向: " .. (isEnabled and "|cff00ff00向左|r" or "|cff00ff00向右|r"))
+    print("|cffffd100[DiGua]|r 玩家減益圖示增長方向: " .. (isEnabled and "|cff00ff00向左|r" or "|cff00ff00向右|r"))
 end)
 cbPlayerDebuff:SetHitRectInsets(0, -95, 0, 0)
 cbPlayerDebuffGrowLeft:SetHitRectInsets(0, -65, 0, 0)
@@ -477,7 +477,7 @@ cbPlayerDebuffGrowLeft:SetHitRectInsets(0, -65, 0, 0)
 -- 放在“显示玩家减益图标”勾选项正下方
 local playerDebuffSizeSlider, playerDebuffSizeText, playerDebuffSizeValue,
     playerDebuffSizeLow, playerDebuffSizeHigh =
-    CreateSizeSlider("DiGuaTimelinePlayerDebuffSizeSlider", "玩家减益图标大小", 250, -325, -2, 9)
+    CreateSizeSlider("DiGuaTimelinePlayerDebuffSizeSlider", "玩家減益圖示大小", 250, -325, -2, 9)
 local playerDebuffSizeUpdating = false
 local function UpdatePlayerDebuffSizeLabel(value)
     if playerDebuffSizeValue then
@@ -498,45 +498,45 @@ playerDebuffSizeSlider:SetValue(tonumber((DiGuaTimelineAudioHelper or {}).player
 playerDebuffSizeUpdating = false
 UpdatePlayerDebuffSizeLabel(playerDebuffSizeSlider:GetValue())
 
-local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦点特定技能施法条(测试版)", 250, -375, function(self)
+local cbFocusCastBar = CreateCheckButton("DiGuaTimelineFocusCastBarCheck", "焦點特定技能施法條(測試版)", 250, -375, function(self)
     DiGuaTimelineAudioHelper.focusCastBarEnabled = self:GetChecked()
-    print("|cffffd100[DiGua]|r 焦点特定技能施法条(测试版): " .. (DiGuaTimelineAudioHelper.focusCastBarEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 焦點特定技能施法條(測試版): " .. (DiGuaTimelineAudioHelper.focusCastBarEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
     if addonTable.RefreshFocusCastBarState then addonTable.RefreshFocusCastBarState(f:IsShown()) end
 end)
 
 -- 姓名板显示“图腾”文字（视觉组，紧跟在「焦点特定技能施法条」之后）
-local cbTotemText = CreateCheckButton("DiGuaTimelineTotemTextCheck", "姓名板显示\"图腾\"文字", 250, -400, function(self)
+local cbTotemText = CreateCheckButton("DiGuaTimelineTotemTextCheck", "姓名板顯示\"圖騰\"文字", 250, -400, function(self)
     DiGuaTimelineAudioHelper.nameplateTotemTextEnabled = self:GetChecked()
     if addonTable.SetNameplateTotemTextEnabled then addonTable.SetNameplateTotemTextEnabled(self:GetChecked()) end
-    print("|cffffd100[DiGua]|r 姓名板显示\"图腾\"文字: " .. (DiGuaTimelineAudioHelper.nameplateTotemTextEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 姓名板顯示\"圖騰\"文字: " .. (DiGuaTimelineAudioHelper.nameplateTotemTextEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
 -- 首领转阶段血量百分比（默认关闭）
-local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "首领转阶段血量百分比", 250, -425, function(self)
+local cbBossHealthPct = CreateCheckButton("DiGuaTimelineBossHealthPctCheck", "首領轉階段血量百分比", 250, -425, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.bossHealthCenterEnabled = isEnabled
     if addonTable.SetBossHealthEnabled then addonTable.SetBossHealthEnabled(isEnabled) end
-    print("|cffffd100[DiGua]|r 首领转阶段血量百分比: " .. (isEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 首領轉階段血量百分比: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
 -- 自动跳过过场动画（SkipCinematic.lua 总开关；默认勾选=自动跳过，取消勾选=动画正常播放）
 -- 生效范围不受本开关改变：仍然只在指定副本 / 难度下才会真的跳过（诸王之眠大秘境、烈毒之渊英雄/史诗）
-local cbCinematicSkip = CreateCheckButton("DiGuaTimelineCinematicSkipCheck", "自动跳过过场动画", 250, -450, function(self)
+local cbCinematicSkip = CreateCheckButton("DiGuaTimelineCinematicSkipCheck", "自動跳過過場動畫", 250, -450, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.cinematicSkipEnabled = isEnabled
-    print("|cffffd100[DiGua]|r 自动跳过过场动画: " .. (isEnabled and "|cff00ff00已开启（指定副本内自动跳过）|r" or "|cffff0000已关闭（动画正常播放）|r"))
+    print("|cffffd100[DiGua]|r 自動跳過過場動畫: " .. (isEnabled and "|cff00ff00已開啟（指定副本內自動跳過）|r" or "|cffff0000已關閉（動畫正常播放）|r"))
 end)
 
--- 赛季五人本自动对话（AutoGossip.lua 总开关；默认勾选=在赛季 8 个五人本里自动点掉所有对话选项）
-local cbAutoGossip = CreateCheckButton("DiGuaTimelineAutoGossipCheck", "赛季五人本自动对话", 250, -500, function(self)
+-- 賽季五人本自動對話（AutoGossip.lua 總開關；默認勾選=在賽季 8 個五人本裡自動點掉所有對話選項）
+local cbAutoGossip = CreateCheckButton("DiGuaTimelineAutoGossipCheck", "賽季五人本自動對話", 250, -500, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.autoGossipEnabled = isEnabled
-    print("|cffffd100[DiGua]|r 赛季五人本自动对话: " .. (isEnabled and "|cff00ff00已开启|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r 賽季五人本自動對話: " .. (isEnabled and "|cff00ff00已開啟|r" or "|cffff0000已關閉|r"))
 end)
 
 -- boss1 护盾条总开关（**默认关**；勾选才显示，条和定位框是一体的，一起开关：
 --   勾选 = 显示护盾条，且打开控制台时定位框出现、可拖动；取消勾选 = 两个一起消失）
-local cbTargetAbsorbAnchor = CreateCheckButton("DiGuaTimelineTargetAbsorbAnchorCheck", "boss1 护盾条", 250, -525, function(self)
+local cbTargetAbsorbAnchor = CreateCheckButton("DiGuaTimelineTargetAbsorbAnchorCheck", "boss1 護盾條", 250, -525, function(self)
     local isEnabled = self:GetChecked()
     DiGuaTimelineAudioHelper.targetAbsorbBarEnabled = isEnabled
     if addonTable.SetTargetAbsorbBarEnabled then
@@ -544,7 +544,7 @@ local cbTargetAbsorbAnchor = CreateCheckButton("DiGuaTimelineTargetAbsorbAnchorC
     elseif addonTable.RefreshTargetAbsorbAnchor then
         addonTable.RefreshTargetAbsorbAnchor(f:IsShown())
     end
-    print("|cffffd100[DiGua]|r boss1 护盾条: " .. (isEnabled and "|cff00ff00已开启（含定位框）|r" or "|cffff0000已关闭|r"))
+    print("|cffffd100[DiGua]|r boss1 護盾條: " .. (isEnabled and "|cff00ff00已開啟（含定位框）|r" or "|cffff0000已關閉|r"))
 end)
 
 -- 主音量滑块（映射魔兽系统主音量 Sound_MasterVolume，范围 0-1，显示 0%-100%）
@@ -582,12 +582,12 @@ UpdateMasterVolumeLabel(masterVolumeSlider:GetValue())
 -- 中央倒计时大小滑块（0~9 档，0 = 代码默认最小；每档图标与文字各放大 2px）
 -- 放在右栏“技能剩余5秒中央倒计时”勾选项正下方，便于一起调节
 local centerSizeSlider, centerSizeText, centerSizeValue, centerSizeLow, centerSizeHigh =
-    CreateSizeSlider("DiGuaTimelineCenterSizeSlider", "中央倒计时整体大小", 250, -235)
+    CreateSizeSlider("DiGuaTimelineCenterSizeSlider", "中央倒計時整體大小", 250, -235)
 local centerSizeUpdating = false
 local function UpdateCenterSizeLabel(value)
     if centerSizeValue then
         -- 档位 0~9 对应显示为 1~10 档，直观对应“共10个档位”
-        centerSizeValue:SetText(format("%d档", math.floor((value or 0) + 0.5) + 1))
+        centerSizeValue:SetText(format("%d檔", math.floor((value or 0) + 0.5) + 1))
     end
 end
 centerSizeSlider:SetScript("OnValueChanged", function(self, value)
@@ -663,18 +663,18 @@ SlashCmdList["DIGUA"] = function(msg)
             return top - pTop, bottom - pTop -- 相对面板顶边（向下为负）
         end
         local list = {
-            { "副坦减益图标大小", coTankSizeSlider },
-            { "中央倒计时整体大小", centerSizeSlider },
-            { "玩家减益图标大小", playerDebuffSizeSlider },
+            { "副坦減益圖示大小", coTankSizeSlider },
+            { "中央倒計時整體大小", centerSizeSlider },
+            { "玩家減益圖示大小", playerDebuffSizeSlider },
             { "主音量", masterVolumeSlider },
         }
-        print("|cffffd100[DiGua]|r 滑块几何诊断（相对面板顶边，单位像素）：")
+        print("|cffffd100[DiGua]|r 滑塊幾何診斷（相對面板頂邊，單位像素）：")
         for _, item in ipairs(list) do
             local label, s = item[1], item[2]
             local sTop, sBottom = rel(s)
             local tTop, tBottom = rel(s and s.Text)
             local lTop, lBottom = rel(s and s.Low)
-            print(format("  %s: 滑块[%s ~ %s] 标题[%s ~ %s] 标签[%s ~ %s]",
+            print(format("  %s: 滑塊[%s ~ %s] 標題[%s ~ %s] 標簽[%s ~ %s]",
                 label,
                 tostring(sTop and math.floor(sTop + 0.5)),
                 tostring(sBottom and math.floor(sBottom + 0.5)),
