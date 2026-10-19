@@ -1,16 +1,15 @@
 ------------------------------------------------------------
--- MiliUI_QoL: 烏拉特克滅團後自動釋放靈魂
+-- MiliUI_QoL: 烏拉特克戰鬥結束後自動釋放靈魂
 --
 -- 只認一隻首領：烏拉特克（ENCOUNTER_START 的 encounterID 3492），英雄／傳奇難度。
--- ENCOUNTER_END 回報滅團（第 5 個回傳值 success == 0）之後 0.5 秒呼叫 RepopMe()。
+-- ENCOUNTER_END 之後 0.5 秒呼叫 RepopMe()，滅團與擊殺都算（擊殺時倒地的人一樣能秒放）。
 -- 預設開啟。讀寫於 MiliUI_QoL_DB.ulatekAutoRelease。
 --
--- 為什麼要秒放：滅團後馬上釋放會直接留在首領平台上，不用從墓地重新跑回來。
+-- 為什麼要秒放：戰鬥一結束馬上釋放會直接留在首領平台上，不用從墓地重新跑回來。
 --
--- 只在滅團時觸發：首領打死時自己倒在地上的人要留著等復活，不能被送去墓地。
 -- 不釋放的情況：
 --   * 已經是鬼魂、或根本沒死（假死／隱形活下來的人）
---   * 有自我復活可用（靈魂石、復生）：滅團後用它站起來再群體復活全團，是省跑屍的打法
+--   * 有自我復活可用（靈魂石、復生）：留給玩家自己用，滅團後站起來再群體復活全團是省跑屍的打法
 ------------------------------------------------------------
 local _, ns = ...
 if ns.legacyCore then return end
@@ -57,8 +56,8 @@ local function Release()
 end
 
 local ev = CreateFrame("Frame")
-ev:SetScript("OnEvent", function(_, _, encounterID, _, difficultyID, _, success)
-    if encounterID ~= ENCOUNTER_ID or success ~= 0 then return end
+ev:SetScript("OnEvent", function(_, _, encounterID, _, difficultyID)
+    if encounterID ~= ENCOUNTER_ID then return end
     if not GetDB().enabled then return end
     if not IsHeroicOrMythic(difficultyID) then
         local _, _, instDifficulty = GetInstanceInfo()
