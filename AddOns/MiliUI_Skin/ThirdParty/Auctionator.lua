@@ -542,6 +542,7 @@ local function GapFrame(btn, key)
         key = key .. ".gap",
         slot = "gap",
         borderSize = GAP,
+        borderScale = true,   -- GAP 是框架單位的間距，不是 1px 邊
         skipEdges = { "TOP", "LEFT" },
         edgeLayer = "OVERLAY",
         edgeSublevel = 5,
@@ -551,10 +552,11 @@ local function GapFrame(btn, key)
 end
 
 local function SelectFrame(btn, key)
+    local b = T.BorderSize()   -- 縮在品質方框（1 實體像素）裡面
     local ov = E.RegionBackdrop(btn, {
         key = key .. ".select",
         slot = "select",
-        points = { { "TOPLEFT", "TOPLEFT", 1, -1 }, { "BOTTOMRIGHT", "BOTTOMRIGHT", -(GAP + 1), GAP + 1 } },
+        points = { { "TOPLEFT", "TOPLEFT", b, -b }, { "BOTTOMRIGHT", "BOTTOMRIGHT", -(GAP + b), GAP + b } },
         borderSize = T.itemBorderSize,
         layer = "BACKGROUND",
         sublevel = 7,

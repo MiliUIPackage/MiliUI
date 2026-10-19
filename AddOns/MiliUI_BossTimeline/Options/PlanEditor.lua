@@ -197,10 +197,11 @@ function PE.Create(parent, width, height, hooks)
     -- 物件池
     ed.pools = {
         tick = Pool(function()
-            local t = Tex(canvas, "BACKGROUND", 1, 1, 1, 0.06)
+            -- 格線、刻度、轉階段線都是 1px：不貼齊（P.NoSnap）
+            local t = P.NoSnap(Tex(canvas, "BACKGROUND", 1, 1, 1, 0.06))
             return t
         end),
-        rulerTick = Pool(function() return Tex(ruler, "ARTWORK", 1, 1, 1, 0.35) end),
+        rulerTick = Pool(function() return P.NoSnap(Tex(ruler, "ARTWORK", 1, 1, 1, 0.35)) end),
         rulerLabel = Pool(function() return Font(ruler, true) end),
         laneBg = Pool(function() return Tex(canvas, "BACKGROUND", 1, 1, 1, 0.03) end),
         gutterLabel = Pool(function()
@@ -217,7 +218,7 @@ function PE.Create(parent, width, height, hooks)
         end),
         phase = Pool(function()
             local f = CreateFrame("Frame", nil, canvas)
-            f.line = Tex(f, "ARTWORK", 1, 0.82, 0, 0.5)
+            f.line = P.NoSnap(Tex(f, "ARTWORK", 1, 0.82, 0, 0.5))
             f.line:SetAllPoints()
             f.text = Font(f, true)
             f.text:SetPoint("TOPLEFT", f, "TOPRIGHT", 2, -1)
@@ -331,7 +332,7 @@ function PE:NewGhost()
     local px = P.Pixel(1)
     for i, pt in ipairs({ { "TOPLEFT", "TOPRIGHT", true }, { "BOTTOMLEFT", "BOTTOMRIGHT", true },
                           { "TOPLEFT", "BOTTOMLEFT", false }, { "TOPRIGHT", "BOTTOMRIGHT", false } }) do
-        local t = Tex(b, "OVERLAY", 1, 0.5, 0, 0.9)
+        local t = P.NoSnap(Tex(b, "OVERLAY", 1, 0.5, 0, 0.9))   -- 1px 框不貼齊（P.NoSnap）
         t:SetPoint(pt[1])
         t:SetPoint(pt[2])
         if pt[3] then t:SetHeight(px) else t:SetWidth(px) end
@@ -357,7 +358,7 @@ function PE:NewBlock()
     b.bar = Tex(b, "BACKGROUND", 0.33, 0.8, 0.33, 0.25)
     b.bar:SetPoint("TOPLEFT")
     b.bar:SetPoint("BOTTOMRIGHT")
-    b.edge = Tex(b, "BORDER", 0.33, 0.8, 0.33, 1)
+    b.edge = P.NoSnap(Tex(b, "BORDER", 0.33, 0.8, 0.33, 1))
     b.edge:SetPoint("TOPRIGHT")
     b.edge:SetPoint("BOTTOMRIGHT")
     b.edge:SetWidth(P.Pixel(2))

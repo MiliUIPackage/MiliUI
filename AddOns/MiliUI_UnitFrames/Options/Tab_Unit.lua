@@ -364,15 +364,16 @@ local function ColorSwatchRow(unitKey, name, methodKey, choiceKey)
         -- Controls 傳進來的，跟說明文字同一條右界）。
         local px, py, lines = x, y - 3, 1
         for i, u in ipairs(units) do
-            local slot = parent:CreateTexture(nil, "ARTWORK")
+            local slot = ns.Media.NoSnap(parent:CreateTexture(nil, "ARTWORK"))
             slot:SetSize(SWATCH_W, SWATCH_H)
             -- 深底當 1px 外框，色塊內縮一格疊上去。alpha 0（「隱藏」）時看到的是
             -- 空的深色格子，而不是一整列憑空消失的東西。
             slot:SetColorTexture(0, 0, 0, 0.6)
 
-            local tex = parent:CreateTexture(nil, "OVERLAY")
-            tex:SetPoint("TOPLEFT", slot, "TOPLEFT", 1, -1)
-            tex:SetPoint("BOTTOMRIGHT", slot, "BOTTOMRIGHT", -1, 1)
+            local tex = ns.Media.NoSnap(parent:CreateTexture(nil, "OVERLAY"))
+            local bpx = ns.P.Pixel(1)   -- 外框 1 實體像素（px 是上面的 x 游標，別撞名）
+            tex:SetPoint("TOPLEFT", slot, "TOPLEFT", bpx, -bpx)
+            tex:SetPoint("BOTTOMRIGHT", slot, "BOTTOMRIGHT", -bpx, bpx)
 
             local fs = parent:CreateFontString(nil, "OVERLAY")
             fs:SetFontObject(W.fontSmall)
@@ -998,7 +999,7 @@ local function Init()
     LayoutUnitButtons()
 
     -- 分隔線
-    local sep = tab:CreateTexture(nil, "ARTWORK")
+    local sep = ns.Media.NoSnap(tab:CreateTexture(nil, "ARTWORK"))   -- 1px 線：關像素貼齊
     sep:SetTexture("Interface\\BUTTONS\\WHITE8X8")
     sep:SetVertexColor(0, 0, 0, 1)
     sep:SetPoint("TOPLEFT", 128, -10)
@@ -1027,7 +1028,7 @@ local function Init()
     chipRow:SetHeight(chipRows * CHIP_H + (chipRows - 1) * CHIP_GAP_Y + CHIP_ROW_PAD)
 
     -- 切換列下方一條淡線
-    local chipLine = tab:CreateTexture(nil, "ARTWORK")
+    local chipLine = ns.Media.NoSnap(tab:CreateTexture(nil, "ARTWORK"))
     chipLine:SetTexture("Interface\\BUTTONS\\WHITE8X8")
     chipLine:SetVertexColor(1, 1, 1, 0.08)
     chipLine:SetPoint("TOPLEFT", chipRow, "BOTTOMLEFT", 0, -6)

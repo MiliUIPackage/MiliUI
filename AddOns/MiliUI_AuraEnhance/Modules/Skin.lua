@@ -38,9 +38,24 @@ local ENCHANT_COLOR = { 0.75, 0, 1 }
 -- ⚠ DB.ResetAll 只覆寫表的內容、不換表，upvalue 才不會指到舊表。
 local SKN
 
--- 邊框厚度（框架單位；按鈕吃編輯模式的 SetScale，非整數倍時就跟著縮放）
+-- 邊框厚度設定（設定頁寫的是 px）
 local function Inset()
     return (SKN and SKN.inset) or 2
+end
+
+-- 把厚度換成「n 個實體像素」的框架單位（P.Pixel 的語意）。基準是**按鈕自己的**有效縮放：
+-- 光環框吃編輯模式「圖示大小」的 SetScale，照 UIParent 換算的話實際粗細＝縮放倍的像素、時有時無。
+-- 只讀縮放（不是錨點幾何），pcall＋秘密護欄；讀不到退 P.Pixel。
+-- 規則全文：.claude/notes/wow-1px-border-rules.md
+local GetPixelFactor = PixelUtil.GetPixelToUIUnitFactor
+local function BorderPx(btn)
+    local n = math.floor(Inset() + 0.5)
+    if n <= 0 then return 0 end
+    local ok, scale = pcall(btn.GetEffectiveScale, btn)
+    if ok and type(scale) == "number" and not (issecretvalue and issecretvalue(scale)) and scale > 0 then
+        return n * GetPixelFactor() / scale
+    end
+    return ns.P.Pixel(n)
 end
 
 local function AnchorBorder(border, icon, inset)
@@ -66,6 +81,9 @@ end
 
 -- 光環按鈕 → 邊框貼圖。按鈕池只長不消（暴雪 frame 刪不掉），一顆只建一次。
 local borders = {}
+-- 光環按鈕 → 上次套用的厚度（框架單位）。每輪重算、變了才重錨：縮放在登入後才定、
+-- 編輯模式也會改，只在建立時算一次會停在錯的值
+local borderPx = {}
 
 local _issecret = issecretvalue
 local _issecrettable = issecrettable
@@ -123,8 +141,8 @@ local function ApplyFrames(frames, isDebuff)
                 btn.Icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
 
                 -- Icon 在 BACKGROUND 層級 0（AuraButtonArtTemplate），邊框墊在 -1
-                border = btn:CreateTexture(nil, "BACKGROUND", nil, -1)
-                AnchorBorder(border, btn.Icon, Inset())
+                -- 自己的貼圖關像素貼齊：厚度不是整數框架單位，貼齊開著會被捨入成 0／2px
+                border = ns.P.NoSnap(btn:CreateTexture(nil, "BACKGROUND", nil, -1))
                 borders[btn] = border
 
                 -- 附魔的橘金外框藝術不再需要（1px 紫框取代）。用 alpha 藏：
@@ -132,6 +150,12 @@ local function ApplyFrames(frames, isDebuff)
                 if btn.TempEnchantBorder then
                     btn.TempEnchantBorder:SetAlpha(0)
                 end
+            end
+
+            local px = BorderPx(btn)
+            if borderPx[btn] ~= px then
+                borderPx[btn] = px
+                AnchorBorder(border, btn.Icon, px)
             end
 
             -- 顏色每輪重判：按鈕是回收再用的，種類（減益→附魔）會變
@@ -154,9 +178,10 @@ end
 -- 設定改變時把新厚度套到既有的邊框上（設定頁的 apply 就是它）。
 -- 純 setter 重錨自己的貼圖，所以厚度不用重載；開關才需要（hook 是單向的）。
 function Skin.Apply()
-    local inset = Inset()
     for btn, border in pairs(borders) do
-        AnchorBorder(border, btn.Icon, inset)
+        local px = BorderPx(btn)
+        borderPx[btn] = px
+        AnchorBorder(border, btn.Icon, px)
     end
 end
 

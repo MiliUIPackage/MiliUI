@@ -31,6 +31,35 @@ function P.Pixel(n)
     return n * PixelUtil.GetPixelToUIUnitFactor() / UIParent:GetEffectiveScale()
 end
 
+-- 關掉引擎的像素貼齊（SetSnapToPixelGrid／SetTexelSnappingBias），回傳原物件。
+-- 貼齊開著時，引擎在畫的那一刻把**每張貼圖自己的**頂點各自四捨五入到最近的實體像素：框停在小數座標、
+-- 或邊框粗細不是剛好整數像素時，1px 的邊兩側捨入到同一格就整條變 0px，跟隔壁貼圖方向不同就變 2px／露縫。
+-- Cell／ElvUI 對全域貼圖 metatable 掛勾關掉了這項，所以裝著它們的人看不到這個 bug —— 我們自己要關。
+-- 自己畫的邊框、細線、跟邊框相接的底／填充一律過這支；StatusBar 傳進來就關它的填充貼圖。
+-- 只用在自己建的物件上（不寫欄位、pcall 包住，暴雪受限的貼圖會靜默略過）。
+-- 規則全文：.claude/notes/wow-1px-border-rules.md
+local function NoSnapRaw(t)
+    t:SetSnapToPixelGrid(false)
+    t:SetTexelSnappingBias(0)
+end
+function P.NoSnap(obj)
+    if type(obj) ~= "table" then return obj end
+    local t = obj
+    if not t.SetSnapToPixelGrid and t.GetStatusBarTexture then t = t:GetStatusBarTexture() end
+    if type(t) == "table" and t.SetSnapToPixelGrid then pcall(NoSnapRaw, t) end
+    return obj
+end
+
+-- BackdropTemplate 的九張貼圖（SetBackdrop 之後才存在）
+local BACKDROP_PIECES = {
+    "Center", "TopEdge", "BottomEdge", "LeftEdge", "RightEdge",
+    "TopLeftCorner", "TopRightCorner", "BottomLeftCorner", "BottomRightCorner",
+}
+function P.NoSnapBackdrop(frame)
+    for _, k in ipairs(BACKDROP_PIECES) do P.NoSnap(frame[k]) end
+    return frame
+end
+
 function P.Size(frame, width, height)
     frame.width = width
     frame.height = height

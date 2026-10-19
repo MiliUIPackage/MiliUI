@@ -16,6 +16,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.AssistIcon = {}
 local AI = ns.AssistIcon
 
@@ -54,7 +57,7 @@ local function Build()
     f = CreateFrame("Frame", nil, container)
     f:SetAllPoints(container)
     f:EnableMouse(false)
-    f.icon = f:CreateTexture(nil, "ARTWORK")
+    f.icon = NoSnap(f:CreateTexture(nil, "ARTWORK"))     -- 跟格子同一套 1px 邊相接：不貼齊
     f.icon:SetAllPoints(f)
     f.icon:SetTexture(QUESTION)
     local ok, cd = pcall(CreateFrame, "Cooldown", nil, f, "CooldownFrameTemplate")

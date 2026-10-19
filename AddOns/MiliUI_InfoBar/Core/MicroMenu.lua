@@ -131,7 +131,7 @@ local pulseHooked = false
 
 local function EnsurePulseTexture(tile)
     if tile.pulseTex then return tile.pulseTex end
-    local t = tile:CreateTexture(nil, "OVERLAY", nil, 7)
+    local t = ns.P.NoSnap(tile:CreateTexture(nil, "OVERLAY", nil, 7))   -- 蓋滿方塊、跟 1px 邊相接
     t:SetAllPoints()
     t:SetTexture("Interface\\Buttons\\WHITE8X8")
     t:SetAlpha(0)

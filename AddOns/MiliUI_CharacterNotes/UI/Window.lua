@@ -936,7 +936,7 @@ local function Build()
     listScroll:SetPoint("BOTTOMRIGHT", -20, 2)
     listContent = listScroll.child
 
-    dragLine = listContent:CreateTexture(nil, "OVERLAY")
+    dragLine = P.NoSnap(listContent:CreateTexture(nil, "OVERLAY"))   -- 2px 線不貼齊（P.NoSnap）
     dragLine:SetColorTexture(W.Accent(1))
     dragLine:SetHeight(P.Pixel(2))
     dragLine:Hide()

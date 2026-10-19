@@ -176,7 +176,7 @@ local function EnsureFrame(W)
     f:Hide()
     W.srcFrame = f
 
-    local bg = f:CreateTexture(nil, "BACKGROUND")
+    local bg = M.NoSnap(f:CreateTexture(nil, "BACKGROUND"))   -- 跟視窗邊框相接
     bg:SetAllPoints()
     bg:SetColorTexture(0.02, 0.02, 0.02, 0.96)
 
@@ -190,7 +190,7 @@ local function EnsureFrame(W)
         if Win.ClickToCurrent(W) then return end
         B.Close(W)
     end)
-    local topBg = top:CreateTexture(nil, "BACKGROUND")
+    local topBg = M.NoSnap(top:CreateTexture(nil, "BACKGROUND"))
     topBg:SetAllPoints()
     topBg:SetColorTexture(0, 0, 0, 0.5)
     W.srcTop = top
@@ -680,13 +680,13 @@ local function RefreshSpells(W)
         local targets = W._cachedTargets
         if targets and targets ~= false and #targets > 0 and used < POOL then
             if not W.srcDivider then
-                W.srcDivider = W.srcContent:CreateTexture(nil, "ARTWORK")
-                W.srcDivider:SetHeight(1)
+                W.srcDivider = M.NoSnap(W.srcContent:CreateTexture(nil, "ARTWORK"))
                 W.srcDivider:SetColorTexture(1, 1, 1, 0.15)
                 W.srcLabel = W.srcContent:CreateFontString(nil, "OVERLAY")
                 W.srcLabel:SetTextColor(0.6, 0.6, 0.6)
             end
             local divY = -(count * stride + 4)
+            W.srcDivider:SetHeight(D.Hair(1))   -- 每次排版重算（縮放可能變了）
             W.srcDivider:ClearAllPoints()
             W.srcDivider:SetPoint("TOPLEFT", W.srcContent, "TOPLEFT", 0, divY)
             W.srcDivider:SetPoint("TOPRIGHT", W.srcContent, "TOPRIGHT", 0, divY)

@@ -485,12 +485,13 @@ local function SideTab(tab, key)
 
     if icon then
         E.CropIcon(icon, key .. ".Icon")
+        local bs = T.BorderSize()   -- 外推一個邊寬（1 實體像素），邊剛好落在圖示外圈
         local ov = E.Overlay(tab, {
             key = key,
             anchorTo = icon,
             points = {
-                { "TOPLEFT", "TOPLEFT", -1, 1 },
-                { "BOTTOMRIGHT", "BOTTOMRIGHT", 1, -1 },
+                { "TOPLEFT", "TOPLEFT", -bs, bs },
+                { "BOTTOMRIGHT", "BOTTOMRIGHT", bs, -bs },
             },
         })
         E.Paint(ov, T.fill, T.border)
@@ -928,7 +929,7 @@ local function SkinDetails(f)
 
         if news then
             local v = E.RegionBackdrop(gd, {
-                key = key .. ".divider", slot = "divider", noBorder = true, width = 1,
+                key = key .. ".divider", slot = "divider", noBorder = true, width = 1, hairline = true,
                 points = {
                     { "TOP", "TOPLEFT", -7, -4, rel = news },
                     { "BOTTOM", "BOTTOMLEFT", -7, 4, rel = news },
@@ -938,7 +939,7 @@ local function SkinDetails(f)
         end
         if info then
             local h = E.RegionBackdrop(info, {
-                key = key .. ".Info.divider", slot = "divider", noBorder = true, height = 1,
+                key = key .. ".Info.divider", slot = "divider", noBorder = true, height = 1, hairline = true,
                 points = {
                     { "TOPLEFT", "TOPLEFT", 14, INFO_DIVIDER_Y },
                     { "TOPRIGHT", "TOPRIGHT", -7, INFO_DIVIDER_Y },

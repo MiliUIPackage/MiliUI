@@ -323,7 +323,7 @@ local function Fit()
     pcall(function() fr:SetWidth(want) end)                            -- skin-lint: readycheck-allowlist ④
 
     -- 三段等距（見 RC_FRAME_H 上面的說明）。訊息高度要在 SetWidth 之後量（換行跟著寬度變）
-    local top = ns.P.Scale(1 + TITLE_BAR_H)                -- 標題帶下緣，離彈窗上緣
+    local top = T.BorderSize() + ns.P.Scale(TITLE_BAR_H)   -- 標題帶下緣，離彈窗上緣（邊寬是實體像素）
     local textH
     if fs then
         pcall(function() fs:SetWidth(want - pad) end)                  -- skin-lint: readycheck-allowlist ⑤
@@ -337,7 +337,7 @@ local function Fit()
 
     if title then
         -- 帶子從面板的邊（1px）往下 TITLE_BAR_H ⇒ 中線在 1 ＋ H/2（Skin.TitleBar）
-        local dy = -ns.P.Scale(1 + TITLE_BAR_H / 2)
+        local dy = -(T.BorderSize() + ns.P.Scale(TITLE_BAR_H / 2))
         pcall(function() title:ClearAllPoints() end)                   -- skin-lint: readycheck-allowlist ⑦
         pcall(function() title:SetPoint("CENTER", fr, "TOP", 0, dy) end)   -- skin-lint: readycheck-allowlist ⑦
     end

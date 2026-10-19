@@ -11,6 +11,11 @@ local M = ns.Media
 
 M.WHITE8X8 = "Interface\\Buttons\\WHITE8X8"
 
+-- 關像素貼齊（共用層 P.NoSnap／P.NoSnapBackdrop）：自己畫的 1px 邊、細線、跟邊框相接的底／填充／圖示
+-- 停在小數座標時會被引擎捨入成 0 或 2px。只用在自己建的物件上
+M.NoSnap = ns.P.NoSnap
+M.NoSnapBackdrop = ns.P.NoSnapBackdrop
+
 -- 在地化字型：FontString 寫死 FRIZQT__ 在 zhTW / zhCN / koKR 會變成方框
 local LOCALE_FONTS = {
     zhTW = "Fonts\\blei00d.TTF",

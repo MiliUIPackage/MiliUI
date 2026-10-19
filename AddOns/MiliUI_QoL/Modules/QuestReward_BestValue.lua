@@ -52,25 +52,34 @@ end
 ------------------------------------------------------------
 local marks = setmetatable({}, { __mode = "k" })
 
+-- 金框的 1px 是實體像素（P.Pixel；PixelUtil.SetHeight(t, 1) 是「1 個 UI 單位」貼整數像素，
+-- 1440p 以上會變 2px），每次顯示時換算、變了才重設；貼圖關像素貼齊（.claude/notes/wow-1px-border-rules.md）
+local function LayoutMark(m)
+    local px = ns.P.Pixel(1)
+    if m.px == px then return m end
+    m.px = px
+    for _, e in ipairs(m.edges) do
+        if e.horizontal then e.tex:SetHeight(px) else e.tex:SetWidth(px) end
+    end
+    return m
+end
+
 local function GetMark(button)
     local m = marks[button]
-    if m then return m end
+    if m then return LayoutMark(m) end
     m = CreateFrame("Frame", nil, button)
     m:SetAllPoints(button)
     m:EnableMouse(false)
-    local fill = m:CreateTexture(nil, "BACKGROUND")
+    local fill = ns.P.NoSnap(m:CreateTexture(nil, "BACKGROUND"))
     fill:SetAllPoints()
     fill:SetColorTexture(unpack(FILL))
+    m.edges = {}
     local function Edge(p1, p2, horizontal)
-        local t = m:CreateTexture(nil, "OVERLAY")
+        local t = ns.P.NoSnap(m:CreateTexture(nil, "OVERLAY"))
         t:SetColorTexture(unpack(BORDER))
         t:SetPoint(p1)
         t:SetPoint(p2)
-        if horizontal then
-            PixelUtil.SetHeight(t, 1)
-        else
-            PixelUtil.SetWidth(t, 1)
-        end
+        m.edges[#m.edges + 1] = { tex = t, horizontal = horizontal }
     end
     Edge("TOPLEFT", "TOPRIGHT", true)
     Edge("BOTTOMLEFT", "BOTTOMRIGHT", true)
@@ -78,7 +87,7 @@ local function GetMark(button)
     Edge("TOPRIGHT", "BOTTOMRIGHT", false)
     m:Hide()
     marks[button] = m
-    return m
+    return LayoutMark(m)
 end
 
 local function HideAll()

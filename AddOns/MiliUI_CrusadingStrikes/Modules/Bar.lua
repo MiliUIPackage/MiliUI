@@ -40,23 +40,37 @@ local hiddenByCast = false
 ------------------------------------------------------------
 -- 建立
 ------------------------------------------------------------
+-- 1px 黑框貼在條的外緣（上下兩條左右各多 1px 補角）。粗細是實體像素（P.Pixel；寫死 1 在
+-- 1440p 以上是 2px），條在登入時建、那時 UI 縮放不一定是最終值 ⇒ 每次顯示（ShowBar）重算、
+-- 跟上次一樣就不動。四條邊、底、填充都關像素貼齊。規則全文：.claude/notes/wow-1px-border-rules.md
+-- （只寫自己貼圖的尺寸與錨點，不讀條的幾何——見檔頭）
+local borderPx
+
+local function LayoutBorder()
+    local px = ns.P.Pixel(1)
+    if borderPx == px then return end
+    borderPx = px
+    local top, bottom, left, right = borders[1], borders[2], borders[3], borders[4]
+    for _, tex in ipairs(borders) do tex:ClearAllPoints() end
+    top:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", -px, 0)
+    top:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", px, 0)
+    top:SetHeight(px)
+    bottom:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", -px, 0)
+    bottom:SetPoint("TOPRIGHT", bar, "BOTTOMRIGHT", px, 0)
+    bottom:SetHeight(px)
+    left:SetPoint("TOPRIGHT", bar, "TOPLEFT", 0, px)
+    left:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", 0, -px)
+    left:SetWidth(px)
+    right:SetPoint("TOPLEFT", bar, "TOPRIGHT", 0, px)
+    right:SetPoint("BOTTOMLEFT", bar, "BOTTOMRIGHT", 0, -px)
+    right:SetWidth(px)
+end
+
 local function CreateBorder()
     for i = 1, 4 do
-        borders[i] = bar:CreateTexture(nil, "OVERLAY")
+        borders[i] = ns.P.NoSnap(bar:CreateTexture(nil, "OVERLAY"))
     end
-    local top, bottom, left, right = borders[1], borders[2], borders[3], borders[4]
-    top:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", -1, 0)
-    top:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", 1, 0)
-    top:SetHeight(1)
-    bottom:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", -1, 0)
-    bottom:SetPoint("TOPRIGHT", bar, "BOTTOMRIGHT", 1, 0)
-    bottom:SetHeight(1)
-    left:SetPoint("TOPRIGHT", bar, "TOPLEFT", 0, 1)
-    left:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", 0, -1)
-    left:SetWidth(1)
-    right:SetPoint("TOPLEFT", bar, "TOPRIGHT", 0, 1)
-    right:SetPoint("BOTTOMLEFT", bar, "BOTTOMRIGHT", 0, -1)
-    right:SetWidth(1)
+    LayoutBorder()
 end
 
 local function Create()
@@ -72,9 +86,9 @@ local function Create()
     --   之後換材質是對這個物件 SetTexture，不再叫 bar:GetStatusBarTexture() ——
     --   帶秘密值的 frame 上該少問一次就少問一次。
     bar:SetStatusBarTexture(ns.Media.WHITE8X8)
-    fillTex = bar:GetStatusBarTexture()
+    fillTex = ns.P.NoSnap(bar:GetStatusBarTexture())   -- 跟 1px 框相接：填充、底一起不貼齊
 
-    bgTex = bar:CreateTexture(nil, "BACKGROUND")
+    bgTex = ns.P.NoSnap(bar:CreateTexture(nil, "BACKGROUND"))
     bgTex:SetAllPoints(bar)
 
     CreateBorder()
@@ -162,6 +176,7 @@ end
 local function ShowBar()
     if shown then return end
     shown = true
+    LayoutBorder()   -- 1px 框在顯示時重算（沒變就不動）
     -- 第一次顯示壓兩幀：上一次的值還留在條上，不壓的話會先閃一格舊進度
     bar:SetAlpha(0)
     revealFrames = 2

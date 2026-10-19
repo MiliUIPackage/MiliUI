@@ -196,32 +196,61 @@ end
 -- 自畫的底與邊（不用暴雪的 backdrop 模板——它自帶的 OnSizeChanged Lua 會跑進暴雪的
 -- 執行堆疊；這幾個框掛在暴雪面板底下）
 --
--- 一張底 ＋ 四條邊，邊寬 `P.Pixel(1)`（1 個實體像素）。回傳一張可換色的表：
+-- 一張底 ＋ 四條邊，邊寬 1 個實體像素（見下面 FramePixel）。回傳一張可換色的表：
 --   bd:SetFill(c)／bd:SetBorder(c)     c ＝ { r, g, b, a }（或 nil 不變）
 --   bd:SetFillShown(on)／bd:SetBorderShown(on)
+--   bd:Relayout()                      重算邊寬（X.RelayoutPixels() 一次全跑）
 ------------------------------------------------------------
 local function Paint(tex, c)
     tex:SetVertexColor(c[1], c[2], c[3], c[4] or 1)
 end
 
+-- 1 個實體像素換成 frame 自己座標的 UI 單位：基準是**框自己的**有效縮放（StatsHud 會
+-- SetScale），讀不到或秘密就退 P.Pixel。
+-- ⚠ 不能只在建立時算一次：這幾支在 PLAYER_LOGIN 建，那時 UI 縮放還不一定是最終值 ⇒
+--   建出來的底／邊／髮絲線都登記起來，顯示／排版時叫 X.RelayoutPixels() 重算、變了才重設。
+-- 貼圖一律關像素貼齊（P.NoSnap）。規則全文：.claude/notes/wow-1px-border-rules.md
+local function FramePixel(frame)
+    local ok, scale = pcall(frame.GetEffectiveScale, frame)
+    scale = ok and S.PlainNumber(scale)
+    if not (scale and scale > 0) then return P.Pixel(1) end
+    return PixelUtil.GetPixelToUIUnitFactor() / scale
+end
+
+local pixelObjs = {}   -- 框刪不掉 ⇒ 強參照也不會漏
+
+function X.RelayoutPixels()
+    for i = 1, #pixelObjs do pixelObjs[i]:Relayout() end
+end
+
 function X.Backdrop(frame, fill, border)
     local bd = {}
-    local bg = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+    local bg = P.NoSnap(frame:CreateTexture(nil, "BACKGROUND", nil, -8))
     bg:SetTexture(WHITE)
     bg:SetAllPoints(frame)
     bd.bg = bg
 
-    local px = P.Pixel(1)
-    local t = frame:CreateTexture(nil, "BORDER")
-    t:SetPoint("TOPLEFT"); t:SetPoint("TOPRIGHT"); t:SetHeight(px)
-    local b = frame:CreateTexture(nil, "BORDER")
-    b:SetPoint("BOTTOMLEFT"); b:SetPoint("BOTTOMRIGHT"); b:SetHeight(px)
-    local l = frame:CreateTexture(nil, "BORDER")
-    l:SetPoint("TOPLEFT"); l:SetPoint("BOTTOMLEFT"); l:SetWidth(px)
-    local r = frame:CreateTexture(nil, "BORDER")
-    r:SetPoint("TOPRIGHT"); r:SetPoint("BOTTOMRIGHT"); r:SetWidth(px)
+    local t = P.NoSnap(frame:CreateTexture(nil, "BORDER"))
+    t:SetPoint("TOPLEFT"); t:SetPoint("TOPRIGHT")
+    local b = P.NoSnap(frame:CreateTexture(nil, "BORDER"))
+    b:SetPoint("BOTTOMLEFT"); b:SetPoint("BOTTOMRIGHT")
+    local l = P.NoSnap(frame:CreateTexture(nil, "BORDER"))
+    l:SetPoint("TOPLEFT"); l:SetPoint("BOTTOMLEFT")
+    local r = P.NoSnap(frame:CreateTexture(nil, "BORDER"))
+    r:SetPoint("TOPRIGHT"); r:SetPoint("BOTTOMRIGHT")
     bd.edges = { t, b, l, r }
     for _, e in ipairs(bd.edges) do e:SetTexture(WHITE) end
+
+    -- 邊寬：跟上次一樣就不動
+    function bd:Relayout()
+        local px = FramePixel(frame)
+        if self.px == px then return end
+        self.px = px
+        t:SetHeight(px); b:SetHeight(px)
+        l:SetWidth(px); r:SetWidth(px)
+    end
+    bd:Relayout()
+    pixelObjs[#pixelObjs + 1] = bd
 
     function bd:SetFill(c)
         if c then Paint(bg, c) end
@@ -242,12 +271,20 @@ function X.Backdrop(frame, fill, border)
     return bd
 end
 
--- 髮絲線：1 個**實體**像素（P.Pixel，不是 P.Scale——1440p 以上 P.Scale(1) 是 2px）
+-- 髮絲線：1 個**實體**像素（P.Pixel 的語意，不是 P.Scale——1440p 以上 P.Scale(1) 是 2px）
 function X.Hairline(parent, color, layer)
-    local tex = parent:CreateTexture(nil, layer or "ARTWORK")
+    local tex = P.NoSnap(parent:CreateTexture(nil, layer or "ARTWORK"))
     tex:SetTexture(WHITE)
     tex:SetVertexColor(color[1], color[2], color[3], color[4] or 1)
-    tex:SetHeight(P.Pixel(1))
+    local line = {}
+    function line:Relayout()
+        local px = FramePixel(parent)
+        if self.px == px then return end
+        self.px = px
+        tex:SetHeight(px)
+    end
+    line:Relayout()
+    pixelObjs[#pixelObjs + 1] = line
     return tex
 end
 

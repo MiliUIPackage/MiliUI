@@ -28,15 +28,29 @@ local ANNOUNCE_ICON  = "Interface\\AddOns\\MiliUI_Focus\\Media\\announce"
 local MARK_NONE_ICON = "Interface\\RaidFrame\\ReadyCheck-NotReady"
 local MARKS_TEXTURE  = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
 
--- 套組慣用「無邊框」外觀：1px 像素邊 + 深色半透明底
-local BACKDROP = {
-    bgFile   = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
-    edgeSize = 1,
-}
-
 local bar, markBtn, announceBtn
 local picker, pickerCells
+
+-- 套組慣用「無邊框」外觀：1px 像素邊 + 深色半透明底。
+-- 1px 是實體像素（P.Pixel；寫死 1 在 1440p 以上是 2px），而且要在排版時才換算：列在登入時建，
+-- 那時 UI 縮放還不一定是最終值。跟上次一樣就不重設；九張貼圖關像素貼齊。
+-- 列與選單都有保護子框 ⇒ 只在脫戰時重設（Refresh 與縮放事件都守著戰鬥）。
+-- 規則全文：.claude/notes/wow-1px-border-rules.md
+local backdropPx = {}
+local function ApplyBackdrop(f)
+    if not f then return end
+    local px = ns.P.Pixel(1)
+    if backdropPx[f] == px then return end
+    backdropPx[f] = px
+    f:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = px,
+    })
+    ns.P.NoSnapBackdrop(f)
+    f:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
+end
 
 local function DB()
     return ns.db.bar
@@ -108,9 +122,7 @@ local function CreatePicker()
     local h = PADDING * 2 + PICK_SIZE * 2 + PICK_SPACE
     picker:SetSize(w, h)
     picker:SetPoint("BOTTOM", markBtn, "TOP", 0, PADDING + 2)
-    picker:SetBackdrop(BACKDROP)
-    picker:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
-    picker:SetBackdropBorderColor(0, 0, 0, 1)
+    ApplyBackdrop(picker)
     -- strata 跟著母框（MEDIUM），只靠 level 疊在列上面
     picker:SetFrameLevel(bar:GetFrameLevel() + 10)
     picker:SetClampedToScreen(true)
@@ -180,25 +192,25 @@ local function CreatePicker()
                 end
             ]])
 
-        -- 目前選擇的黃框
-        cell.border = cell:CreateTexture(nil, "BACKGROUND", nil, 1)
+        -- 目前選擇的黃框。黃框／底／圖示／滑過層彼此相接：一起關像素貼齊（P.NoSnap）
+        cell.border = ns.P.NoSnap(cell:CreateTexture(nil, "BACKGROUND", nil, 1))
         cell.border:SetPoint("TOPLEFT", -2, 2)
         cell.border:SetPoint("BOTTOMRIGHT", 2, -2)
         cell.border:SetColorTexture(1, 0.82, 0, 1)
         cell.border:Hide()
 
-        cell.slotBg = cell:CreateTexture(nil, "BACKGROUND", nil, 2)
+        cell.slotBg = ns.P.NoSnap(cell:CreateTexture(nil, "BACKGROUND", nil, 2))
         cell.slotBg:SetPoint("TOPLEFT", 1, -1)
         cell.slotBg:SetPoint("BOTTOMRIGHT", -1, 1)
         cell.slotBg:SetColorTexture(0.05, 0.05, 0.07, 1)
 
-        cell.icon = cell:CreateTexture(nil, "ARTWORK")
+        cell.icon = ns.P.NoSnap(cell:CreateTexture(nil, "ARTWORK"))
         cell.icon:SetPoint("TOPLEFT", 3, -3)
         cell.icon:SetPoint("BOTTOMRIGHT", -3, 3)
         cell.icon:SetTexture(MARKS_TEXTURE)
         SetMarkTexCoord(cell.icon, i)
 
-        cell.highlight = cell:CreateTexture(nil, "HIGHLIGHT")
+        cell.highlight = ns.P.NoSnap(cell:CreateTexture(nil, "HIGHLIGHT"))
         cell.highlight:SetPoint("TOPLEFT", 1, -1)
         cell.highlight:SetPoint("BOTTOMRIGHT", -1, 1)
         cell.highlight:SetColorTexture(1, 1, 1, 0.15)
@@ -415,9 +427,7 @@ local function CreateBar()
     bar:SetFrameLevel(600)
     bar:SetClampedToScreen(true)
     bar:SetMovable(true)
-    bar:SetBackdrop(BACKDROP)
-    bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
-    bar:SetBackdropBorderColor(0, 0, 0, 1)
+    ApplyBackdrop(bar)
     bar:Hide()
     if ns.Snap then
         ns.Snap.Register(SNAP_KEY, bar, {
@@ -641,6 +651,8 @@ function MarkBar.Refresh()
     end
     if ShouldShow() then
         CreateBar()
+        ApplyBackdrop(bar)      -- 1px 邊在顯示時重算（沒變就不動）
+        ApplyBackdrop(picker)
         UpdateMarkIcon()
         PositionBar()
         bar:Show()
@@ -694,7 +706,15 @@ end
 ----------------------------------------------------------------------
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
-    if event == "GLOBAL_MOUSE_DOWN" then
+    if event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
+        -- 1px 邊重算；戰鬥中延到脫戰的 Refresh
+        if InCombatLockdown() then
+            pendingRefresh = true
+        else
+            ApplyBackdrop(bar)
+            ApplyBackdrop(picker)
+        end
+    elseif event == "GLOBAL_MOUSE_DOWN" then
         -- 點選單以外的地方收起選單。排除標記按鈕本身（它的安全 _onclick
         -- 自己會切換，這裡先收會互相抵消變成永遠關不掉／關了又開）。
         -- 戰鬥中不能從一般程式隱藏保護框架，略過（改用再點一次標記按鈕
@@ -721,6 +741,8 @@ end)
 ns.RegisterCallback("Init", "markbar", function()
     ev:RegisterEvent("PLAYER_REGEN_ENABLED")
     ev:RegisterEvent("GLOBAL_MOUSE_DOWN")
+    ev:RegisterEvent("UI_SCALE_CHANGED")       -- 1px 邊重算
+    ev:RegisterEvent("DISPLAY_SIZE_CHANGED")
     -- 限制狀態變動。有 ADDON_RESTRICTION_STATE_CHANGED 就只要它一個
     -- （Combat／Encounter／ChallengeMode／PvPMatch／Map／Chat 全包），
     -- 沒有才退回逐個情境事件

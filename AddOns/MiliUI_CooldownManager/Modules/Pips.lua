@@ -49,6 +49,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.Pips = {}
 local Pips = ns.Pips
 
@@ -437,7 +440,8 @@ local pendingRelayout = false   -- 戰鬥中面板是保護框、該重排的時
 -- 充能格（見檔頭的層次）。層數格只用底色與填色（明文退路）
 local function MakeCustomCell(row)
     local cell = CreateFrame("Frame", nil, row)
-    cell.bg = cell:CreateTexture(nil, "BACKGROUND")
+    -- 底、回充條、填色跟 1px 邊相接：不貼齊
+    cell.bg = NoSnap(cell:CreateTexture(nil, "BACKGROUND"))
     cell.bg:SetTexture(SOLID)
     cell.bg:SetAllPoints(cell)
     -- 閘門：透明，只拿它的填充貼圖當裁切框的錨點
@@ -456,6 +460,7 @@ local function MakeCustomCell(row)
     cell.rc = CreateFrame("StatusBar", nil, cell.clip)
     cell.rc:SetAllPoints(cell)
     cell.rc:SetStatusBarTexture(SOLID)
+    NoSnap(cell.rc)
     -- 秒數：不畫扇形的 Cooldown，只留倒數字
     local ok, cd = pcall(CreateFrame, "Cooldown", nil, cell.clip, "CooldownFrameTemplate")
     if ok and cd then
@@ -471,6 +476,7 @@ local function MakeCustomCell(row)
     cell.bar = CreateFrame("StatusBar", nil, cell)
     cell.bar:SetAllPoints(cell)
     cell.bar:SetStatusBarTexture(SOLID)
+    NoSnap(cell.bar)
     cell.edges = R.Edges(cell.bar)
     cell:Hide()
     return cell

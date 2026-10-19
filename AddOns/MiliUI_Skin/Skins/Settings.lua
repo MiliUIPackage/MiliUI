@@ -290,7 +290,7 @@ local function Apply()
                         { "TOPLEFT", "TOPLEFT", 0, -LIST_HEADER_HEIGHT },
                         { "TOPRIGHT", "TOPRIGHT", 0, -LIST_HEADER_HEIGHT },
                     },
-                    height = 1,
+                    height = 1, hairline = true,
                 })
                 E.Paint(rule, T.fillHover)
 

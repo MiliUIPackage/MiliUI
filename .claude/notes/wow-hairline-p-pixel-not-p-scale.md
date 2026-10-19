@@ -5,6 +5,8 @@ metadata:
   type: reference
 ---
 
+> 這篇只講成因 ①（P.Scale vs P.Pixel）。畫 1px 邊框的完整規則（另外三個成因、`P.NoSnap`、檢查清單）在 [[wow-1px-border-rules]]。
+
 **症狀**：1px 邊框、髮絲線、小節標題底線在高解析度（1440p 以上、或 UI 縮放偏大）畫成 2px；
 在 Retina／縮放 > 1 的機器上 1px 反而變 0 或露縫。2026-10-14 全套組一次修掉
 （`219331e92` MCDM、`2c5abec7d` 共用層、`454abf9bd` 其餘十一支）。

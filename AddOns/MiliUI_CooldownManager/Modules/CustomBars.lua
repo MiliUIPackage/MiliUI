@@ -41,6 +41,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.CustomBars = {}
 local CB = ns.CustomBars
 
@@ -512,9 +515,10 @@ end
 local function MakeRow(parent)
     local row = CreateFrame("Frame", nil, parent)
     row.bar = CreateFrame("Frame", nil, row)           -- 條身的範圍（圖示以外）
-    row.iconFrame = row:CreateTexture(nil, "BACKGROUND")
+    -- 圖示框（1px 黑邊＝外露的底）與圖示不貼齊
+    row.iconFrame = NoSnap(row:CreateTexture(nil, "BACKGROUND"))
     row.iconFrame:SetColorTexture(0, 0, 0, 1)
-    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon = NoSnap(row:CreateTexture(nil, "ARTWORK"))
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     row.textFrame = CreateFrame("Frame", nil, row)
     row.textFrame:SetAllPoints(row.bar)
@@ -644,6 +648,7 @@ local function LayoutCooldown(row, plan, look)
     local bar = row.cdBar
     bar:SetFrameLevel(lv + 2)
     bar:SetStatusBarTexture(look.texture)
+    NoSnap(bar)                                         -- 填充跟 1px 邊相接：不貼齊
     bar:SetReverseFill(st.reverse)
     local t = bar:GetStatusBarTexture()
     if t then t:SetVertexColor(look.r, look.g, look.b, look.alpha) end

@@ -78,11 +78,31 @@ function Bar.ApplySettings(tip)
 
     bar:GetStatusBarTexture():SetTexture(Media.BarTexture(sb.texture))
 
+    state.barPx = nil            -- 設定可能改了位置／高度：強制重排
+    Bar.Layout(state)
+
+    local text = state.barText
+    text:SetFont(Media.Font("default"), tonumber(sb.fontSize) or 10, "THINOUTLINE")
+    text:SetShown(sb.textFormat ~= "none")
+
+    -- 設定改動要立刻反映顏色與數值，不等 0.15s 輪詢
+    if state.barUnit then Bar.Refresh(tip) end
+end
+
+-- 位置與 1px 黑框。黑框粗細跟 skin 邊框同一個基準（Skin.Pixel：tip 縮放後的有效縮放），
+-- 而且要在顯示時換算、跟上次不同才重排：Ensure 第一次跑的時候縮放不一定是最終值，
+-- 之後又只在改設定時重跑（同 Skin.LayoutBorder 的坑）。Activate／ActivateFake 每次都叫一次
+function Bar.Layout(state)
+    local bar, skin = state.bar, state.skin
+    if not bar or not ns.db then return end
+    local bw = Skin.Pixel(skin, 1)
+    if state.barPx == bw then return end
+    state.barPx = bw
+    local sb = ns.db.statusbar
     local h = P.Scale(math.max(1, sb.height or 4))
     -- 血條是離框體 4px 的獨立條（使用者定案）。黑框畫在條的外緣，所以條本身
     -- 要往內縮 1px（bw），讓**黑框的外緣**貼齊框體外緣——條貼齊的話黑框會凸出去
     local gap = P.Scale(4)
-    local bw = P.Pixel(1)
     bar:ClearAllPoints()
     if sb.position == "top" then
         bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", bw, gap)
@@ -112,13 +132,6 @@ function Bar.ApplySettings(tip)
         e[4]:SetPoint("BOTTOMLEFT", bar, "BOTTOMRIGHT", 0, 0)
         e[4]:SetWidth(bw)
     end
-
-    local text = state.barText
-    text:SetFont(Media.Font("default"), tonumber(sb.fontSize) or 10, "THINOUTLINE")
-    text:SetShown(sb.textFormat ~= "none")
-
-    -- 設定改動要立刻反映顏色與數值，不等 0.15s 輪詢
-    if state.barUnit then Bar.Refresh(tip) end
 end
 
 function Bar.ApplySettingsAll()
@@ -239,6 +252,7 @@ function Bar.Activate(tip, unit)
     -- 一條）。每次啟用我們的條就再壓一次。
     Skin.NeutralizeTemplateBar(tip)
     local state = Skin.Get(tip)
+    Bar.Layout(state)
     state.barUnit = unit
     Bar.Refresh(tip)   -- 顯示與否交給 Refresh（含戰鬥中隱藏的判斷）
 end
@@ -259,6 +273,7 @@ function Bar.ActivateFake(tip)
     local bar = Ensure(tip)
     if not bar then return end
     local state = Skin.Get(tip)
+    Bar.Layout(state)
     state.barUnit = nil
     local sb = ns.db.statusbar
     bar:SetValue(65)

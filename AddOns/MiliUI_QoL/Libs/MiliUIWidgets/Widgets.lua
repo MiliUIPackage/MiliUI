@@ -122,6 +122,7 @@ function W.Stylize(frame, color, borderColor)
         edgeFile = WHITE,
         edgeSize = P.Pixel(1),
     })
+    if P.NoSnapBackdrop then P.NoSnapBackdrop(frame) end   -- 拖到小數座標時 1px 邊不被捨入成 0（宿主自帶的 P 可能沒有這支）
     frame:SetBackdropColor(unpack(color))
     frame:SetBackdropBorderColor(unpack(borderColor))
 end
@@ -495,6 +496,7 @@ function W.CreateTabCard(parent, opts)
     local function Tex(layer)
         local t = parent:CreateTexture(nil, layer, nil, 1)
         t:SetTexture(WHITE)
+        if P.NoSnap then P.NoSnap(t) end      -- 卡片四邊是 1px，底跟邊相接：一起不貼齊
         t:Hide()
         return t
     end
@@ -597,6 +599,7 @@ function W.CreateTabCard(parent, opts)
         -- 底邊打通：用卡片底蓋掉鈕的下邊框（左右邊框留著）。ARTWORK 層在 backdrop 的邊之上、字之下
         local bridge = b:CreateTexture(nil, "ARTWORK")
         bridge:SetTexture(WHITE)
+        if P.NoSnap then P.NoSnap(bridge) end
         bridge:SetVertexColor(unpack(CARD_FILL))
         bridge:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", P.Pixel(1), 0)
         bridge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -P.Pixel(1), 0)
@@ -1658,12 +1661,14 @@ function W.CreateSectionTitle(parent, text, width)
     fs:SetText(text)
     local shadow = holder:CreateTexture(nil, "ARTWORK", nil, -1)
     shadow:SetTexture(WHITE)
+    if P.NoSnap then P.NoSnap(shadow) end
     shadow:SetVertexColor(0, 0, 0, 1)
-    shadow:SetPoint("BOTTOMLEFT", 1, -1)
-    shadow:SetPoint("BOTTOMRIGHT", 1, -1)
+    shadow:SetPoint("BOTTOMLEFT", P.Pixel(1), -P.Pixel(1))   -- 錯開 1 個實體像素，剛好貼在線底下
+    shadow:SetPoint("BOTTOMRIGHT", P.Pixel(1), -P.Pixel(1))
     shadow:SetHeight(P.Pixel(1))
     local line = holder:CreateTexture(nil, "ARTWORK")
     line:SetTexture(WHITE)
+    if P.NoSnap then P.NoSnap(line) end
     line:SetVertexColor(W.Accent(0.777))
     line:SetPoint("BOTTOMLEFT", 0, 0)
     line:SetPoint("BOTTOMRIGHT", 0, 0)

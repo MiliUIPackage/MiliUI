@@ -78,6 +78,13 @@ end
 -- ⚠ 錨在 ObjectiveTrackerFrame 上、不是錨在 header 上：header 收合／展開時會跑
 --   動畫，線掛在它身上會跟著一起飛。
 ------------------------------------------------------------
+-- 底線左側內縮 2 實體像素，以 header 自己的有效縮放換算（編輯模式可以單獨縮放追蹤器，
+-- P.Pixel 照 UIParent 算會偏）。AlignStageArt 量中線要用同一個值
+local function HeaderLineInset(header)
+    local scale = header:GetEffectiveScale() or 1
+    return 2 * P.GetPixelPerfectScale() / (scale > 0 and scale or 1)
+end
+
 local function ApplyHeaderLine(header)
     local a = Cfg()
     local otf = T.OTF()
@@ -93,12 +100,12 @@ local function ApplyHeaderLine(header)
         return
     end
     if not tex then
-        tex = otf:CreateTexture(nil, "OVERLAY")
+        tex = P.NoSnap(otf:CreateTexture(nil, "OVERLAY"))   -- 自己建的貼圖，關像素貼齊
         tex:SetTexture("Interface\\Buttons\\WHITE8X8")
         headerLine[header] = tex
     end
     tex:ClearAllPoints()
-    tex:SetPoint("TOPLEFT",  header, "BOTTOMLEFT",  P.Pixel(2), 0)
+    tex:SetPoint("TOPLEFT",  header, "BOTTOMLEFT",  HeaderLineInset(header), 0)
     tex:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
     local scale = header:GetEffectiveScale() or 1
     tex:SetHeight(P.GetPixelPerfectScale() / (scale > 0 and scale or 1))
@@ -784,7 +791,7 @@ local function AlignStageArt()
     -- rect 還沒解出來（剛顯示的那一幀）就等下一輪
     if not (headerLeft and headerWidth and blockLeft and bgWidth and bgBaseX) then return end
     -- 底線是從 header 左緣 +2 畫到右緣（見 ApplyHeaderLine）
-    local lineCenter = headerLeft + (P.Pixel(2) + headerWidth) / 2
+    local lineCenter = headerLeft + (HeaderLineInset(header) + headerWidth) / 2
     local dx = (lineCenter - bgWidth / 2 - blockLeft) - bgBaseX
     local dy = -STAGE_GAP_Y
     T.NudgeRegion(bg, dx, dy)
@@ -940,6 +947,8 @@ ns.RegisterCallback("Init", "skin", function()
     for _, e in ipairs({
         "QUEST_LOG_UPDATE", "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_TURNED_IN",
         "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED", "PLAYER_ENTERING_WORLD",
+        -- 區段底線的粗細照縮放換算，縮放／解析度改了要重套
+        "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED",
     }) do
         evt:RegisterEvent(e)
     end

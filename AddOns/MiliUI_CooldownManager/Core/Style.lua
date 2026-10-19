@@ -89,6 +89,7 @@ function S.ApplyPanel(frame, opaque)
     if not frame then return end
     EnsureBackdrop(frame)
     frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = ns.P.Pixel(1) })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(frame) end    -- 停在小數座標時 1px 邊不被捨入成 0／2px
     frame:SetBackdropColor(S.BG_R, S.BG_G, S.BG_B, opaque and S.BG_A_SOLID or S.BG_A)
     frame:SetBackdropBorderColor(S.Accent(S.BORDER_A))
     return frame
@@ -99,6 +100,7 @@ function S.ApplyTooltipPanel(frame)
     if not frame then return end
     EnsureBackdrop(frame)
     frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = ns.P.Pixel(1) })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(frame) end
     frame:SetBackdropColor(S.TIP_BG, S.TIP_BG, S.TIP_BG, S.TIP_A)
     frame:SetBackdropBorderColor(S.Accent(S.BORDER_A))
     return frame

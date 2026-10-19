@@ -10,11 +10,25 @@ local NONE_ICON   = "Interface\\RaidFrame\\ReadyCheck-NotReady"  -- red prohibit
 local SEL_R, SEL_G, SEL_B = 1, 0.82, 0                            -- yellow selected border
 
 -- MiliUI house "borderless" look: 1px pixel border + dark translucent fill.
-local MILIUI_BACKDROP = {
-    bgFile   = "Interface\\Buttons\\WHITE8X8",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
-    edgeSize = 1,
-}
+-- 1px 是實體像素（P.Pixel；寫死 1 在 1440p 以上是 2px），而且要在排版時才換算：
+-- 條在 ADDON_LOADED 建，那時 UI 縮放還沒定。跟上次一樣就不重設；九張貼圖關像素貼齊。
+-- 規則全文：.claude/notes/wow-1px-border-rules.md
+local barEdgePx
+local function ApplyBarBackdrop()
+    local bar = ns.bar
+    if not bar then return end
+    local px = ns.P.Pixel(1)
+    if barEdgePx == px then return end
+    barEdgePx = px
+    bar:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = px,
+    })
+    ns.P.NoSnapBackdrop(bar)
+    bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
+    bar:SetBackdropBorderColor(0, 0, 0, 1)
+end
 
 -- Secure pre-click snippet wrapped onto every selector's OnClick. On LEFT click
 -- it hands this selector's pre-stored "potionref" (empty = no potion) to the
@@ -158,7 +172,8 @@ local function CreateSelector(parent, isNone)
         btn:SetAttribute("potionref", "")  -- empty = clear the use button
     end
 
-    btn.border = btn:CreateTexture(nil, "BACKGROUND", nil, 1)
+    -- 選取框／底／圖示／滑過層彼此相接：一起關像素貼齊（P.NoSnap），不然捨入方向不同會差一格
+    btn.border = ns.P.NoSnap(btn:CreateTexture(nil, "BACKGROUND", nil, 1))
     btn.border:SetPoint("TOPLEFT", -2, 2)
     btn.border:SetPoint("BOTTOMRIGHT", 2, -2)
     btn.border:SetColorTexture(SEL_R, SEL_G, SEL_B, 1)
@@ -167,13 +182,13 @@ local function CreateSelector(parent, isNone)
     -- Opaque dark fill for the "no potion" cell. Drawn ABOVE the selected border
     -- (and inset 1px like a potion icon) so a selected X shows only a yellow
     -- frame over a black slot, not a solid yellow block.
-    btn.slotBg = btn:CreateTexture(nil, "BACKGROUND", nil, 2)
+    btn.slotBg = ns.P.NoSnap(btn:CreateTexture(nil, "BACKGROUND", nil, 2))
     btn.slotBg:SetPoint("TOPLEFT", 1, -1)
     btn.slotBg:SetPoint("BOTTOMRIGHT", -1, 1)
     btn.slotBg:SetColorTexture(0.05, 0.05, 0.07, 1)
     btn.slotBg:Hide()
 
-    btn.icon = btn:CreateTexture(nil, "ARTWORK")
+    btn.icon = ns.P.NoSnap(btn:CreateTexture(nil, "ARTWORK"))
     btn.icon:SetPoint("TOPLEFT", 1, -1)
     btn.icon:SetPoint("BOTTOMRIGHT", -1, 1)
 
@@ -197,7 +212,7 @@ local function CreateSelector(parent, isNone)
     btn.badge:SetPoint("TOPLEFT", -3, 3)
     btn.badge:Hide()
 
-    btn.highlight = btn:CreateTexture(nil, "HIGHLIGHT")
+    btn.highlight = ns.P.NoSnap(btn:CreateTexture(nil, "HIGHLIGHT"))
     btn.highlight:SetPoint("TOPLEFT", 1, -1)
     btn.highlight:SetPoint("BOTTOMRIGHT", -1, 1)
     btn.highlight:SetColorTexture(1, 1, 1, 0.15)
@@ -267,9 +282,7 @@ function ns.CreateBar()
     bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.bar.x or 0, db.bar.y or 220)
     bar:SetClampedToScreen(true)
     bar:SetMovable(true)
-    bar:SetBackdrop(MILIUI_BACKDROP)
-    bar:SetBackdropColor(0.06, 0.06, 0.10, 0.92)
-    bar:SetBackdropBorderColor(0, 0, 0, 1)
+    ApplyBarBackdrop()
     if ns.Snap then
         ns.Snap.Register(SNAP_KEY, bar, {
             db = SnapDB, attach = true, label = L.BAR_NAME,
@@ -458,6 +471,8 @@ function ns.Bar_Refresh()
         return
     end
 
+    ApplyBarBackdrop()   -- 1px 邊在排版時重算（沒變就不動）
+
     local db = ns.GetDB()
     local available = ns.available or {}
     ns.buttons = ns.buttons or {}
@@ -589,3 +604,11 @@ function ns.Bar_ResetPosition()
     db.bar = { x = nil, y = nil, v = ns.BAR_POS_VERSION }  -- nil → PositionBar re-places at default
     PositionBar()
 end
+
+-- UI 縮放／解析度改了：1px 邊重算。條有 secure 子按鈕，戰鬥中保守不動，下一次 Bar_Refresh 會補
+local scaleWatcher = CreateFrame("Frame")
+scaleWatcher:RegisterEvent("UI_SCALE_CHANGED")
+scaleWatcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
+scaleWatcher:SetScript("OnEvent", function()
+    if not InCombatLockdown() then ApplyBarBackdrop() end
+end)

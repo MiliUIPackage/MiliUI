@@ -315,11 +315,12 @@ function Rows.UpdateSticky(W, pane, sources, ctx)
     -- 釘在「標題列那一端」還是「另一端」。名字用不到上下 —— 反轉之後
     -- 標題列那端就是畫面下方，但語意（自己排在可視範圍之前）完全一樣。
     local pinHeaderSide = (top < scroll)
-    local pinnedH = barH + 1
+    local sepH = D.Hair(1)               -- 分隔線＝1 實體像素；捲動區讓出同一個值
+    local pinnedH = barH + sepH
     local O = Win.Orient(W)
     local area = pane.area
 
-    bar.row:ClearAllPoints(); sep:ClearAllPoints(); sep:SetHeight(1)
+    bar.row:ClearAllPoints(); sep:ClearAllPoints(); sep:SetHeight(sepH)
     pane.viewport:ClearAllPoints()
     pane.stickyGuard = true
     if pinHeaderSide then

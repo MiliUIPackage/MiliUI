@@ -665,7 +665,7 @@ local function PaintStatRow(row, category)
                 key = STAT_ROW_KEY .. ".leader",
                 slot = "leader",
                 noBorder = true,
-                height = 1,
+                height = 1, hairline = true,
                 points = {
                     { "LEFT", "RIGHT", 10, 0, rel = label },
                     { "RIGHT", "LEFT", -10, 0, rel = value },

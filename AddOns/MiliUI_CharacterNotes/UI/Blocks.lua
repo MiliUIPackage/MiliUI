@@ -85,7 +85,7 @@ function Blocks.CreateEditor(scroll, onChanged)
         if ed.onChanged then ed.onChanged() end
     end
 
-    local dragLine = ed.container:CreateTexture(nil, "OVERLAY")
+    local dragLine = P.NoSnap(ed.container:CreateTexture(nil, "OVERLAY"))   -- 2px 線不貼齊（P.NoSnap）
     dragLine:SetColorTexture(W.Accent(1))
     dragLine:SetHeight(P.Pixel(2))
     dragLine:Hide()

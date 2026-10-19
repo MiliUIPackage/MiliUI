@@ -93,7 +93,7 @@ function Rows.CreateHeader(parent, width)
     name:SetPoint("RIGHT", header, "RIGHT", cols._leftEdge, 0)
     name:SetText(L["Reagent"])
 
-    local line = header:CreateTexture(nil, "ARTWORK")
+    local line = P.NoSnap(header:CreateTexture(nil, "ARTWORK"))   -- 髮絲線不貼齊（P.NoSnap）
     line:SetColorTexture(W.Accent(0.5))
     line:SetHeight(P.Pixel(1))
     line:SetPoint("BOTTOMLEFT", 0, 0)

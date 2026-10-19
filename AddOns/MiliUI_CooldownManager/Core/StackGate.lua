@@ -96,6 +96,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.StackGate = {}
 local SG = ns.StackGate
 
@@ -677,7 +680,7 @@ function SG.DrawTicks(host, anchor, bodyW, ticks, vertical, reverse)
     for i, k in ipairs(ks) do
         local line = pool[i]
         if not line then
-            line = host:CreateTexture(nil, host.tickLayer or "OVERLAY", nil, host.tickSub)
+            line = NoSnap(host:CreateTexture(nil, host.tickLayer or "OVERLAY", nil, host.tickSub))   -- 1px 刻度不貼齊
             line:SetTexture(SOLID)
             pool[i] = line
         end
@@ -720,8 +723,9 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
     local root = ui.under
     if not root then
         root = CreateFrame("Frame", nil, item)
-        root.bg = root:CreateTexture(nil, "BACKGROUND")
-        root.base = root:CreateTexture(nil, "ARTWORK")
+        -- 底與填色跟條的 1px 邊相接：不貼齊
+        root.bg = NoSnap(root:CreateTexture(nil, "BACKGROUND"))
+        root.base = NoSnap(root:CreateTexture(nil, "ARTWORK"))
         ui.under = root
     end
     root:ClearAllPoints()
@@ -781,7 +785,7 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         local seg = ui.colors[k]
         if not seg then
             seg = NewGate(root)
-            seg.tex = seg.clip:CreateTexture(nil, "ARTWORK")
+            seg.tex = NoSnap(seg.clip:CreateTexture(nil, "ARTWORK"))
             ui.colors[k] = seg
         end
         seg.gate:ClearAllPoints()

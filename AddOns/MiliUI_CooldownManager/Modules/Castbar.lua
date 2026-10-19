@@ -214,11 +214,13 @@ local function SetFillTexture(bar, token)
         end
         -- 去飽和成灰階漸層，顏色交給 ApplyColor 的 SetVertexColor
         if tex then tex:SetDesaturated(true) end
+        NoSnap(bar)
         return
     end
     bar:SetStatusBarTexture(path or SOLID)
     local tex = bar:GetStatusBarTexture()
     if tex then tex:SetDesaturated(false) end
+    NoSnap(bar)              -- 填充跟 1px 黑邊相接：不貼齊（換材質後再關一次；專注目標施法條也走這支）
 end
 CB.SetFillTexture = SetFillTexture
 
@@ -251,11 +253,11 @@ local function Build()
     f:SetAllPoints(container)
 
     f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.icon = f.iconFrame:CreateTexture(nil, "ARTWORK")
+    f.icon = NoSnap(f.iconFrame:CreateTexture(nil, "ARTWORK"))     -- 圖示、底跟 1px 黑邊相接：不貼齊
     f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     f.barHolder = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.bgTex = f.barHolder:CreateTexture(nil, "BACKGROUND")
+    f.bgTex = NoSnap(f.barHolder:CreateTexture(nil, "BACKGROUND"))
     f.bgTex:SetTexture(SOLID)
     f.bar = CreateFrame("StatusBar", nil, f.barHolder)
     f.bar:SetStatusBarTexture(SOLID)
@@ -349,6 +351,7 @@ function CB.Layout()
     f.iconFrame:SetPoint(left and "TOPLEFT" or "TOPRIGHT", f, left and "TOPLEFT" or "TOPRIGHT", 0, 0)
     local edge = ns.P.Pixel(1)
     f.iconFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.iconFrame) end
     f.iconFrame:SetBackdropColor(0, 0, 0, 1)
     f.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
     f.icon:ClearAllPoints()
@@ -363,6 +366,7 @@ function CB.Layout()
     -- 1px 黑邊畫在外框上；條與底色內縮同一個厚度（見 project-miliui-pixel-snapping）
     local inset = ns.Media.BorderInset(1)
     f.barHolder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.barHolder) end
     f.barHolder:SetBackdropBorderColor(0, 0, 0, 1)
     f.bgTex:ClearAllPoints()
     f.bgTex:SetPoint("TOPLEFT", f.barHolder, "TOPLEFT", inset, -inset)

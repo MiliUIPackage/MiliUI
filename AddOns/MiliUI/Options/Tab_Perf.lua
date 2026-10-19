@@ -1288,7 +1288,7 @@ local function Init()
     local memCell = CreateHeaderCell(header, "記憶體 MB", "mem", "RIGHT", 70, OnHeaderClick)
     memCell:SetPoint("RIGHT", header, "RIGHT", COL.MEM_R, 0)
 
-    local headLine = header:CreateTexture(nil, "ARTWORK")
+    local headLine = P.NoSnap(header:CreateTexture(nil, "ARTWORK"))   -- 1px 線關像素貼齊
     headLine:SetColorTexture(W.Accent(0.3))
     headLine:SetPoint("BOTTOMLEFT", 0, -3)
     headLine:SetPoint("BOTTOMRIGHT", 0, -3)
@@ -1421,7 +1421,7 @@ local function Init()
     leak.head = MemHeadLabel("每小時", COL2.GROWTH_R)
     MemHeadLabel("佔插件", COL2.SHARE_R)
 
-    local memHeadLine = memHeader:CreateTexture(nil, "ARTWORK")
+    local memHeadLine = P.NoSnap(memHeader:CreateTexture(nil, "ARTWORK"))   -- 1px 線關像素貼齊
     memHeadLine:SetColorTexture(W.Accent(0.3))
     memHeadLine:SetPoint("BOTTOMLEFT", 0, -3)
     memHeadLine:SetPoint("BOTTOMRIGHT", 0, -3)

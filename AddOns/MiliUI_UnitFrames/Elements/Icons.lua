@@ -175,7 +175,7 @@ local function SetupGroup(uf, idb)
     if not h then
         uf.iconTextures = uf.iconTextures or {}
         h = CreateFrame("Frame", nil, uf.elements.icons, "BackdropTemplate")
-        h.bg = h:CreateTexture(nil, "BACKGROUND")
+        h.bg = Media.NoSnap(h:CreateTexture(nil, "BACKGROUND"))   -- 跟邊框相接：關像素貼齊
         h.bg:SetTexture(Media.WHITE8X8)
         h.text = h:CreateFontString(nil, "OVERLAY")
         h.text:SetAllPoints(h)

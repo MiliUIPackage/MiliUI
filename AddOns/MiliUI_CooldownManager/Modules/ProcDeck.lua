@@ -55,6 +55,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.ProcDeck = {}
 local PD = ns.ProcDeck
 
@@ -713,10 +716,11 @@ local function Fx(rec)
     if not fx then
         fx = CreateFrame("Frame", nil, ov)
         fx:SetAllPoints(ov)
-        fx.bg = fx:CreateTexture(nil, "BACKGROUND")
+        -- 細條（實體像素高）、填色、1px 刻度都不貼齊
+        fx.bg = NoSnap(fx:CreateTexture(nil, "BACKGROUND"))
         fx.bg:SetTexture(WHITE)
         fx.bg:SetVertexColor(0, 0, 0, 0.8)
-        fx.bar = fx:CreateTexture(nil, "ARTWORK")
+        fx.bar = NoSnap(fx:CreateTexture(nil, "ARTWORK"))
         fx.bar:SetTexture(WHITE)
         fx.ticks = {}
         fx.text = fx:CreateFontString(nil, "OVERLAY")
@@ -761,7 +765,7 @@ local function PaintFx(fx, def, s, st)
         for i, f in ipairs(PD.TickFractions(st, def)) do
             local t = fx.ticks[i]
             if not t then
-                t = fx:CreateTexture(nil, "OVERLAY")
+                t = NoSnap(fx:CreateTexture(nil, "OVERLAY"))
                 t:SetTexture(WHITE)
                 t:SetVertexColor(1, 1, 1, 1)
                 fx.ticks[i] = t

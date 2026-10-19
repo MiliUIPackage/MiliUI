@@ -577,7 +577,7 @@ local function DividerApply(row)
         E.Missing(DIVIDER_KEY .. ".name")
     end
     local rule = E.Overlay(row, {
-        key = DIVIDER_KEY .. ".rule", noBorder = true, height = 1,
+        key = DIVIDER_KEY .. ".rule", noBorder = true, height = 1, hairline = true,
         points = {
             { "BOTTOMLEFT", "BOTTOMLEFT", 0, DIVIDER_RULE_Y },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", 0, DIVIDER_RULE_Y },

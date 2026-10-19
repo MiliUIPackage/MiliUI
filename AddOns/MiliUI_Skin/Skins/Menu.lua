@@ -72,13 +72,14 @@ local function SkinMenu(frame)
     local okR, regions = pcall(function() return { frame:GetRegions() } end)
     if okR then
         local fill = T.tipFill
+        local b = T.BorderSize()   -- 縮在邊（1 實體像素）裡面
         for _, r in ipairs(regions) do
             if type(r) == "table" and r.IsObjectType and r:IsObjectType("Texture") then
                 r:SetColorTexture(fill[1], fill[2], fill[3], fill[4] or 1)
                 r:SetAlpha(1)
                 r:ClearAllPoints()                                   -- skin-lint: own-frame（照 Elles：compositor 的暫用貼圖，關選單就收回）
-                r:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -1)         -- skin-lint: own-frame
-                r:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1) -- skin-lint: own-frame
+                r:SetPoint("TOPLEFT", frame, "TOPLEFT", b, -b)         -- skin-lint: own-frame
+                r:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -b, b) -- skin-lint: own-frame
             end
         end
     end

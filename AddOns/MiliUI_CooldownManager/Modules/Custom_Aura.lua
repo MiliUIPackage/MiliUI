@@ -740,6 +740,7 @@ local function InitAuraBarButton(btn, c, st, rec)
     if vert then bar:SetOrientation("VERTICAL") end
     bar:SetReverseFill(st.rev and true or false)          -- 新建的條：只換填充起點，引擎寫的值不碰
     bar:SetStatusBarTexture(st.btex)
+    NoSnap(bar)                                           -- 填充跟 1px 邊相接：不貼齊
     local fill = bar:GetStatusBarTexture()
     if fill then
         local gr = st.bgrad

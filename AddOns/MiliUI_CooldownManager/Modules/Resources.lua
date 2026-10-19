@@ -1083,6 +1083,7 @@ local function EnsureAbsorb(row)
     clip:SetClipsChildren(true)
     local bar = CreateFrame("StatusBar", nil, clip)
     bar:SetStatusBarTexture(SOLID)
+    NoSnap(bar)
     row.absorbClip, row.absorbBar = clip, bar
 end
 
@@ -1365,6 +1366,7 @@ local function LayoutFold(row, on, numSeg, W, H, cfg, tex, reversed)
         if not o then
             o = CreateFrame("StatusBar", nil, row)
             o:SetStatusBarTexture(SOLID)
+            NoSnap(o)                -- 填充跟自己的 1px 邊相接：不貼齊
             o.edges = Edges(o)
             row.overs[i] = o
         end

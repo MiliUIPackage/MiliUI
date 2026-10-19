@@ -282,6 +282,7 @@ end
 ------------------------------------------------------------
 local STATE_EVENTS = {
     "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA",
+    "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED",   -- 1px 邊重算（常駐 HUD）
 }
 local UNIT_EVENTS = {
     "UNIT_STATS", "UNIT_ATTACK_POWER", "UNIT_RANGED_ATTACK_POWER", "UNIT_SPELL_HASTE",
@@ -322,6 +323,8 @@ local function OnEvent(_, event)
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
         ReadInstance()
         UpdateVisibility()
+    elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
+        X.RelayoutPixels()
     end
     Queue()
 end
@@ -403,6 +406,7 @@ local function Build()
     selection = sel
 
     frame:SetScript("OnShow", function()
+        X.RelayoutPixels()   -- 1px 邊照框自己的有效縮放、顯示時換算（.claude/notes/wow-1px-border-rules.md）
         RegisterStatEvents()
         Render()
     end)
@@ -474,6 +478,7 @@ function Hud.Apply()
     end
     ApplyFont()
     frame:SetScale(h.scale or 1)
+    X.RelayoutPixels()   -- 縮放改了：1px 邊重算（基準是框自己的有效縮放）
     ApplyPos()
     UpdateChrome()
     UpdateVisibility()

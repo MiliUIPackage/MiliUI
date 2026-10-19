@@ -20,14 +20,14 @@ local function Build(uf, edb)
     -- 背景兩種擺法（同血條）：沒設 bgLevel → 貼在 f 自己的 BACKGROUND 層（保證在 bar 之下）；
     -- 有設 bgLevel → 獨立框。不能一律獨立框又同層，繪製順序不保證
     if not f.bgOnSelf then
-        f.bgOnSelf = f:CreateTexture(nil, "BACKGROUND")
+        f.bgOnSelf = Media.NoSnap(f:CreateTexture(nil, "BACKGROUND"))   -- 跟邊框相接：關像素貼齊
     end
     f.bgOnSelf:ClearAllPoints()
     f.bgOnSelf:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
     f.bgOnSelf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
     if not f.bgFrame then
         f.bgFrame = CreateFrame("Frame", nil, f)
-        f.bgSeparate = f.bgFrame:CreateTexture(nil, "BACKGROUND")
+        f.bgSeparate = Media.NoSnap(f.bgFrame:CreateTexture(nil, "BACKGROUND"))
         f.bgSeparate:SetAllPoints(f.bgFrame)
     end
     f.bgFrame:ClearAllPoints()
@@ -52,6 +52,7 @@ local function Build(uf, edb)
     f.bar:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
     f.bar:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
     f.bar:SetStatusBarTexture(texture)
+    Media.NoSnap(f.bar)
     f.bar:SetFrameLevel(edb.level or 0)
     -- 填充方向（跟血條各自一個選項；能量條沒有貼著前緣的疊加層，翻條本身就好）
     f.bar:SetReverseFill(ns.FillReversed(edb))

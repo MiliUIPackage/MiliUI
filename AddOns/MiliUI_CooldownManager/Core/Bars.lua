@@ -2001,6 +2001,9 @@ function B.Init()
     E.Register("PLAYER_TALENT_UPDATE", "bars_resync", function() B.Resync("talents") end)
     E.Register("TRAIT_CONFIG_UPDATED", "bars_resync", function() B.Resync("talents") end)
     E.Register("EDIT_MODE_LAYOUTS_UPDATED", "bars_resync", function() B.Resync("editlayout") end)
+    -- UI 縮放／視窗大小改了：1px 邊、格距、半像素補正（全部 P.Pixel）要重算；簽章裡沒有縮放，不整套重來不會重畫
+    E.Register("UI_SCALE_CHANGED", "bars_resync", function() B.Resync("scale") end)
+    E.Register("DISPLAY_SIZE_CHANGED", "bars_resync", function() B.Resync("scale") end)
     ns.RegisterCallback("SpecChanged", "bars_resync", function() B.Resync("spec") end)
 
     ns.RegisterCallback("CatalogChanged", "bars", function()
