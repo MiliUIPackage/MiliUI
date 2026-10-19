@@ -415,6 +415,7 @@ function LayoutBorder(b, region, size, token, r, g, bl, a)
         e:ClearAllPoints()
         e:SetAllPoints(region)
         e:SetBackdrop({ edgeFile = edgeFile, edgeSize = ns.P.Pixel(size * 4) })
+        if ns.NoSnapBackdrop then ns.NoSnapBackdrop(e) end
         e:SetBackdropBorderColor(r, g, bl, a)
         e:Show()
         return

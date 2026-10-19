@@ -494,7 +494,7 @@ function P.Divider(key, tex)
         slot = "divider",
         noBorder = true,
         sublevel = -5,
-        height = 1,
+        height = 1, hairline = true,
         points = {
             { "LEFT", "LEFT", 0, 0, rel = tex },
             { "RIGHT", "RIGHT", 0, 0, rel = tex },

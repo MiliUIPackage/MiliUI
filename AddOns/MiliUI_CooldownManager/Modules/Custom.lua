@@ -123,6 +123,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.Custom = {}
 local CU = ns.Custom
 
@@ -356,7 +359,8 @@ local function NewBarFrame(rec)
     bar:SetStatusBarTexture(WHITE)
     bar:SetMinMaxValues(0, 1)                           -- 起始值：之後由 SetTimerDuration 的引擎接手
     bar:SetValue(0)
-    bar.BarBG = bar:CreateTexture(nil, "BACKGROUND")
+    NoSnap(bar)                                          -- 填充與底跟 1px 邊相接：不貼齊（圖示由 Decorate.Apply 關）
+    bar.BarBG = NoSnap(bar:CreateTexture(nil, "BACKGROUND"))
     bar.Name = bar:CreateFontString(nil, "OVERLAY")
     ns.Media.SetFont(bar.Name, 12, "OUTLINE")
     bar.Duration = bar:CreateFontString(nil, "OVERLAY")   -- 留空：秒數是下面那顆 Cooldown 的倒數數字

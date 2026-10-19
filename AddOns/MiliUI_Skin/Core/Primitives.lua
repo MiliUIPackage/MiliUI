@@ -134,7 +134,7 @@ function Skin.TitleBar(frame, key, height)
     -- 帶子縮在面板的邊**裡面**（2026-09-24）：它的 sublevel（−6）排在面板四條邊（−7）
     -- 之上，貼齊外緣就會蓋掉上緣整條、左右兩邊最上面 h 那一截。黑邊時看不出來
     -- （帶子是近黑的 `fillInset`），職業色邊的就位確認一眼就看到「上面沒包住」。
-    local b = 1   -- 面板的邊寬（像素，同 `T.BorderSize()`）
+    local b = T.BorderSize()   -- 面板的邊寬（1 實體像素；過 P.Scale 不變，見 Engine 的像素量說明）
     local band = E.RegionBackdrop(frame, {
         key = key .. ".titleBar",
         slot = "titleBar",
@@ -158,7 +158,7 @@ function Skin.TitleBar(frame, key, height)
             { "TOPLEFT", "TOPLEFT", b, -(b + h) },
             { "TOPRIGHT", "TOPRIGHT", -b, -(b + h) },
         },
-        height = 1,
+        height = 1, hairline = true,
     })
     E.Paint(rule, T.fillHover)
     return band
@@ -1064,7 +1064,7 @@ end
 --   1. 暴雪那張**圓角**品質邊框中和（alpha 0）—— 圓角跟這包的直角語彙對不上。
 --      ⚠ 一定要 alpha 不能換材質：`SetItemButtonBorder_Base` 每次更新都
 --        `SetAtlas`／`SetTexture` 回去。
---   2. 自己畫一圈**直角方框**，邊寬走 `T.itemBorderSize`（預設 1px，走 P.Scale）。
+--   2. 自己畫一圈**直角方框**，邊寬走 `T.itemBorderSize`（預設 1px，走 P.Pixel）。
 --      顏色是**轉交**暴雪邊框當下的顏色（`Engine.PassBorderColor`，
 --      當傳遞者不當讀取者）；沒有品質就是 1px 黑邊。
 --   3. 圖示裁邊（`T.iconCrop`）。
@@ -1441,13 +1441,13 @@ function Skin.StatusBar(bar, key, opts)
     local ov = E.RegionBackdrop(bar, { key = key, points = fillPoints, noBorder = true })
     E.Paint(ov, T.fillInset)
 
-    -- 邊：矩形再往外推 1px ⇒ 那一圈落在條的矩形**外面**，填充碰不到它。
+    -- 邊：矩形再往外推 1px（＝邊寬，P.Pixel）⇒ 那一圈落在條的矩形**外面**，填充碰不到它。
     -- ⚠ slot 要跟底分開（底用預設的 "main"），不然冪等會把第二次呼叫
     --   當成同一個背景直接回傳上一個。
     local border = E.RegionBackdrop(bar, {
         key = key .. ".border",
         slot = "border",
-        points = E.ExpandPoints(fillPoints, 1),
+        points = E.ExpandPoints(fillPoints, T.BorderSize()),
         -- 邊在 BORDER 層：確保它畫在自己的底（BACKGROUND）之上，
         -- 同時仍然在填充貼圖與文字之下。
         edgeLayer = "BORDER",
@@ -1621,7 +1621,7 @@ function Skin.SectionTitle(frame, key, opts)
     local ov = E.Overlay(frame, {
         key = key .. ".rule",
         noBorder = true,
-        height = 1,
+        height = 1, hairline = true,
         points = {
             { "BOTTOMLEFT", "BOTTOMLEFT", pad, opts.y or 0 },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", -pad, opts.y or 0 },
@@ -1670,7 +1670,7 @@ function Skin.FlankedTitle(frame, key, opts)
         key = key .. ".ruleLeft",
         slot = "ruleLeft",
         noBorder = true,
-        height = 1,
+        height = 1, hairline = true,
         points = {
             { "LEFT", "LEFT", opts.padLeft or 10, y },
             { "RIGHT", "LEFT", -gap, 0, rel = title },
@@ -1680,7 +1680,7 @@ function Skin.FlankedTitle(frame, key, opts)
         key = key .. ".ruleRight",
         slot = "ruleRight",
         noBorder = true,
-        height = 1,
+        height = 1, hairline = true,
         points = {
             { "LEFT", "RIGHT", gap, 0, rel = title },
             { "RIGHT", "RIGHT", -(opts.padRight or 10), y },

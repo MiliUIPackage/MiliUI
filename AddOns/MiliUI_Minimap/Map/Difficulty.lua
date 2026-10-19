@@ -168,7 +168,7 @@ local function Build()
     chip = CreateFrame("Frame", nil, ns.overlay)
     chip:EnableMouse(false)
     chip:SetFrameLevel(ns.overlay:GetFrameLevel() + 3)
-    chip.bg = chip:CreateTexture(nil, "BACKGROUND")
+    chip.bg = S.NoSnap(chip:CreateTexture(nil, "BACKGROUND"))   -- 貼著外框內側
     chip.bg:SetAllPoints(chip)
     chipText = chip:CreateFontString(nil, "OVERLAY")
     -- 一建出來就給字型（理由見 Map/Skin.lua 的 MakeText）
@@ -217,7 +217,9 @@ local function Paint()
 
     chip:ClearAllPoints()
     -- 外框 1px 內側、緊貼下資訊帶的上緣
-    chip:SetPoint("BOTTOMLEFT", ns.holder, "BOTTOMLEFT", P.Pixel(1), P.Pixel(1) + barH)
+    -- 內縮跟外框同一個值：holder 有自己的縮放，換算基準用框自己的（S.Pixel）
+    local px = S.Pixel(chip, 1)
+    chip:SetPoint("BOTTOMLEFT", ns.holder, "BOTTOMLEFT", px, px + barH)
     chip:SetHeight(barH)
 
     -- 底色跟上下兩條完全一樣（整體底色 alpha +0.1，理由見 Skin.Apply）

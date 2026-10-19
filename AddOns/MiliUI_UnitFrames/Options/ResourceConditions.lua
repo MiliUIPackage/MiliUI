@@ -207,7 +207,7 @@ end
 ------------------------------------------------------------
 -- 一條髮絲線：規則之間靠結構分開，不是靠顏色（顏色是最弱的一層訊號）
 local function Hairline(parent, x, y, width)
-    local t = parent:CreateTexture(nil, "ARTWORK")
+    local t = ns.Media.NoSnap(parent:CreateTexture(nil, "ARTWORK"))   -- 1px 線：關像素貼齊
     t:SetTexture(ns.Media.WHITE8X8)
     t:SetVertexColor(1, 1, 1, 0.12)
     t:SetPoint("TOPLEFT", parent, "TOPLEFT", 6, y)

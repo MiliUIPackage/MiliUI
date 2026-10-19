@@ -119,9 +119,17 @@ end
 -- 0.133 不透明底 ＋ 1px 職業色硬邊 ＋ 白字 ＋ 直角。它是「彈出來給人讀內容」的
 -- 表面，底色承載的是「讓字讀得出來」，所以不能透。
 function HP.ApplyTipSkin(f)
-    f:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
+    local px = P.Pixel(1)
+    f._tipPx = px
+    f:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = px })
     f:SetBackdropColor(HP.TIP_BG, HP.TIP_BG, HP.TIP_BG, 1)
     f:SetBackdropBorderColor(W.Accent(1))
+    P.NoSnapBackdrop(f)
+end
+
+-- 面板建一次就重用：顯示前重新換算 1px，縮放改過才重套（見 wow-1px-border-rules ③）
+function HP.RefreshTipSkin(f)
+    if f._tipPx ~= P.Pixel(1) then HP.ApplyTipSkin(f) end
 end
 
 -- 面板上的扁平小按鈕：狀態只換明暗（HUD 皮的規則），沒有職業色——
@@ -271,14 +279,12 @@ function Rows:Get(index)
 
     -- 標題底下的髮絲線：標題與內容之間要一條**結構性**的分隔，
     -- 光靠顏色不同還是會被讀成「另一個選項」
-    row.rule = row:CreateTexture(nil, "ARTWORK")
-    row.rule:SetHeight(1)
+    row.rule = P.NoSnap(row:CreateTexture(nil, "ARTWORK"))   -- 粗細在 Fill 換算
     row.rule:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", PAD_X, 0)
     row.rule:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -PAD_X, 0)
     row.rule:SetColorTexture(1, 1, 1, 0.10)
 
-    row.sep = row:CreateTexture(nil, "ARTWORK")
-    row.sep:SetHeight(1)
+    row.sep = P.NoSnap(row:CreateTexture(nil, "ARTWORK"))
     row.sep:SetPoint("LEFT", row, "LEFT", PAD_X, 0)
     row.sep:SetPoint("RIGHT", row, "RIGHT", -PAD_X, 0)
     row.sep:SetColorTexture(1, 1, 1, 0.12)
@@ -340,6 +346,7 @@ function Rows:Fill(row, item, gutter)
 
     if kind == "sep" then
         row.h = SEP_H
+        row.sep:SetHeight(P.Pixel(1))
         row.sep:Show()
 
     elseif kind == "title" then
@@ -348,6 +355,7 @@ function Rows:Fill(row, item, gutter)
         row.text:SetFont(ns.FontPath(), HP.FontSize() + SZ_TITLE, "")
         row.text:SetText(item.text)
         SetColor(row.text, TEXT_DIM)
+        row.rule:SetHeight(P.Pixel(1))
         row.rule:Show()
         need = textX + row.text:GetStringWidth() + PAD_X
         if item.action then
@@ -618,6 +626,7 @@ function Panel:Open(tile)
     -- 記錄）。放進 populate 的話，開著期間每次 listener 重畫都會再刷一次，
     -- 而刷新本身又會發通知——繞回來就是一圈。
     if self.spec.beforeOpen then self.spec.beforeOpen(self.frame) end
+    HP.RefreshTipSkin(self.frame)
     self:Populate()
     self.frame:Show()
     self:Place()

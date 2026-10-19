@@ -116,9 +116,9 @@
 | `iconCrop` | `0.08` | 圖示裁邊 |
 | `scrollThumb` | `0.35, 0.35, 0.35, 1` | |
 | `scrollTrack` | `0.08, 0.08, 0.08, 1` | 同 `fillInset` |
-| `itemBorderSize` | `1` | 物品格方框的邊寬（像素，會過 `P.Scale`）。**要 2px 只改這個數字** |
+| `itemBorderSize` | `1` | 物品格方框的邊寬（實體像素，會過 `P.Pixel`）。**要 2px 只改這個數字** |
 | `barTexture` | `Media\miliui_satin.png` | 進度條的填充材質（套組自製的 MiliUI Satin，技能 `miliui-satin-texture`） |
-| `BorderSize()` | `P.Scale(1)` | 邊寬永遠走像素對齊，不要寫死 1 |
+| `BorderSize()` | `P.Pixel(1)` | 邊寬＝剛好 1 實體像素，不要寫死 1、也不是 `P.Scale(1)`（1440p 以上會變 2px）。髮絲線帶 `hairline = true`；規則見 `.claude/notes/wow-1px-border-rules.md` |
 | `Accent()` | 玩家職業色 | 選中、hover、主按鈕（第九輪起；原本只給「選中／輸入焦點」） |
 | `AccentFill(a)` | 職業色 × 0.45 | 選中態的底色（壓暗，不然一排分頁像霓虹燈） |
 | `AccentCheck(a)` | 職業色（**不壓暗**） | 勾選框／單選鈕「已勾」的填色 |
@@ -552,7 +552,7 @@ tooltip 自己的 region、顯示與隱藏自動跟著它。萬一哪天變了�
 的入口 1／2 同型）。
 
 overlay 一律是「純 Frame ＋ 1 張底色貼圖 ＋ 4 條邊貼圖」，全部用錨點定位
-（邊寬 `P.Scale(1)`），**建立之後執行期零 Lua**。
+（邊寬 `P.Pixel(1)`、貼圖關像素貼齊），**建立之後執行期零 Lua**（例外：UI 縮放變了由 Engine 的事件框重算粗細）。
 唯一的擴充是關閉鈕的一張**靜態**圖記（`opts.glyph`），同樣建立時定好、之後不動。
 
 **2. overlay 不准 parent 到會走訪 children 的框。**

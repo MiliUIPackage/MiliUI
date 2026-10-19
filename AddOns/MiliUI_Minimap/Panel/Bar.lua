@@ -407,7 +407,7 @@ local function BuildSlot(index)
 
     -- hover 的視覺回饋走**底色明暗**，不換色（miliui-color-states 的核心規則）。
     -- alpha 0 = 平常完全看不見，只有滑過去才浮出一塊比條再亮一階的方塊。
-    btn.hl = btn:CreateTexture(nil, "BACKGROUND")
+    btn.hl = S.NoSnap(btn:CreateTexture(nil, "BACKGROUND"))   -- 貼著外框內側
     btn.hl:SetAllPoints(btn)
     btn.hl:SetColorTexture(1, 1, 1, 0.08)
     btn.hl:Hide()
@@ -609,7 +609,7 @@ local function Build()
         -- 分隔線一格一條（畫在該格的左緣），最左邊那條在排版時關掉。
         -- 只有 1px、alpha 很低 —— 它的工作是「告訴你這是幾個可以分別點的東西」，
         -- 不是切開版面。畫得跟外框一樣重就變成三個框並排了。
-        seps[i] = bar:CreateTexture(nil, "ARTWORK")
+        seps[i] = S.NoSnap(bar:CreateTexture(nil, "ARTWORK"))
         seps[i]:SetPoint("TOP", bar, "TOP", 0, -3)
         seps[i]:SetPoint("BOTTOM", bar, "BOTTOM", 0, 3)
         seps[i]:SetColorTexture(1, 1, 1, 0.12)
@@ -625,13 +625,15 @@ end
 local function LayoutSlots(db, barW, barH)
     -- 第一遍：先知道有幾格是彈性的、固定的總共吃掉多少寬
     local keys = { db.infoSlot1, db.infoSlot2, db.infoSlot3 }
+    -- 外框寬＝bar 縮放後的 1 實體像素；格子的內縮、分隔線都用同一個值
+    local px = S.Pixel(bar, 1)
     local fixedTotal, flexCount = 0, 0
     for i = 1, NUM_SLOTS do
         local src = SOURCES[keys[i]]
         if src then
-            -- 扣掉上下各 1px 的外框，格子的可用高就是 barH - 2；
+            -- 扣掉上下各 1px 的外框，格子的可用高就是 barH - 2px；
             -- 寬用同一個數字才是真正的正方形。
-            if src.icon then fixedTotal = fixedTotal + (barH - 2) else flexCount = flexCount + 1 end
+            if src.icon then fixedTotal = fixedTotal + (barH - 2 * px) else flexCount = flexCount + 1 end
         end
     end
 
@@ -644,10 +646,10 @@ local function LayoutSlots(db, barW, barH)
         return false
     end
 
-    local flexW = flexCount > 0 and math.floor((barW - 2 - fixedTotal) / flexCount) or 0
+    local flexW = flexCount > 0 and math.floor((barW - 2 * px - fixedTotal) / flexCount) or 0
 
     -- 第二遍：依序擺過去。x 是累加的，所以「無」自然不佔位置。
-    local x = 1
+    local x = px
     local first = true
     for i = 1, NUM_SLOTS do
         local btn, src = slots[i], SOURCES[keys[i]]
@@ -657,16 +659,16 @@ local function LayoutSlots(db, barW, barH)
             btn:Hide()
             seps[i]:Hide()
         else
-            local w = src.icon and (barH - 2) or flexW
+            local w = src.icon and (barH - 2 * px) or flexW
             btn.laidOut = true
             btn:ClearAllPoints()
-            btn:SetPoint("TOPLEFT", bar, "TOPLEFT", x, -1)
-            btn:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, 1)
+            btn:SetPoint("TOPLEFT", bar, "TOPLEFT", x, -px)
+            btn:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x, px)
             btn:SetWidth(w)
             -- 最左邊那格前面不畫線（那裡是外框）
             seps[i]:ClearAllPoints()
             seps[i]:SetPoint("LEFT", bar, "LEFT", x, 0)
-            seps[i]:SetWidth(P.Pixel(1))
+            seps[i]:SetWidth(px)
             seps[i]:SetShown(not first)
             x = x + w
             first = false
@@ -687,7 +689,6 @@ function Bar.Apply()
     end
 
     Build()
-    S.RefreshPanel(bar)
 
     local h = P.Scale(db.infoBarHeight)
     bar:SetHeight(h)
@@ -705,6 +706,7 @@ function Bar.Apply()
         bar:SetWidth(barW)
     end
     bar:SetScale(db.scale)
+    S.RefreshPanel(bar)   -- 縮放之後才換算邊寬（S.Pixel 照 bar 自己的有效縮放）
 
     for _, btn in ipairs(slots) do
         S.SetFont(btn.text, db.infoBarFontSize)

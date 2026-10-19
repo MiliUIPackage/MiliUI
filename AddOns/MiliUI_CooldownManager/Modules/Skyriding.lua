@@ -51,6 +51,9 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 local L = ns.L
 
 ns.Skyriding = {}
@@ -704,6 +707,7 @@ end
 local function NewBar(parent, level)
     local b = CreateFrame("StatusBar", nil, parent)
     b:SetStatusBarTexture(SOLID)
+    NoSnap(b)                -- 填充跟 1px 邊相接：不貼齊
     b:SetFrameLevel(parent:GetFrameLevel() + level)
     b:SetMinMaxValues(0, 1)
     b:SetValue(0)
@@ -726,7 +730,7 @@ end
 -- 長條型的列：底色、邊框層（錨在列框上，不錨在餵值的 StatusBar 上）
 local function NewBarRow()
     local f = NewRow()
-    f.bg = f:CreateTexture(nil, "BACKGROUND")
+    f.bg = NoSnap(f:CreateTexture(nil, "BACKGROUND"))
     f.bg:SetAllPoints(f)
     f.bg:SetTexture(SOLID)
     f.top = CreateFrame("Frame", nil, f)
@@ -746,7 +750,7 @@ end
 
 local function MakeCell(row)
     local c = CreateFrame("Frame", nil, row)
-    c.bg = c:CreateTexture(nil, "BACKGROUND")
+    c.bg = NoSnap(c:CreateTexture(nil, "BACKGROUND"))
     c.bg:SetAllPoints(c)
     c.bg:SetTexture(SOLID)
     -- 重新振作在底下（只有活力列用得到）、目前值疊上面：前 cur 格是前景色，接著 sw 格是重新振作色
@@ -876,7 +880,7 @@ local function Build()
     local speed = NewBarRow()
     speed.bar = NewBar(speed, 1)
     speed.bar:SetAllPoints(speed)
-    speed.tick = speed.top:CreateTexture(nil, "OVERLAY", nil, 6)
+    speed.tick = NoSnap(speed.top:CreateTexture(nil, "OVERLAY", nil, 6))      -- 1px 刻度不貼齊
     speed.tick:SetTexture(SOLID)
     speed.tick:SetVertexColor(1, 1, 1, 0.9)
     speed.tick:Hide()

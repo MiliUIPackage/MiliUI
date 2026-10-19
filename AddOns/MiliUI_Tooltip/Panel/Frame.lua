@@ -317,7 +317,8 @@ function Panel.Texture(panel, sublevel)
     panel.texturesUsed = panel.texturesUsed + 1
     local tex = panel.textures[panel.texturesUsed]
     if not tex then
-        tex = panel:CreateTexture(nil, "ARTWORK")
+        -- 池裡的貼圖畫 1px 分隔線／直線、圖示：一律不貼齊（Media.NoSnap）
+        tex = Media.NoSnap(panel:CreateTexture(nil, "ARTWORK"))
         panel.textures[panel.texturesUsed] = tex
     end
     -- 池裡的貼圖可能上次是圖示：材質與裁切每次都重設
@@ -352,8 +353,9 @@ end
 ------------------------------------------------------------
 -- 建立：每個接管的 tooltip 一個 panel，放在 state.panel
 ------------------------------------------------------------
+-- 這裡建的底、頁尾帶、圖示與圖示框、徽章都跟 1px 邊相接（內縮 px）：一律不貼齊（Media.NoSnap）
 local function MakeTexture(parent, layer, sublevel)
-    local tex = parent:CreateTexture(nil, layer, nil, sublevel or 0)
+    local tex = Media.NoSnap(parent:CreateTexture(nil, layer, nil, sublevel or 0))
     tex:SetTexture(WHITE)
     return tex
 end
@@ -383,8 +385,8 @@ local function Create(tip, state)
     panel.bg:SetAllPoints()
     panel.footer = MakeTexture(panel, "BORDER")
     panel.edges = {}
-    -- 邊框不貼齊：鏡射（Mirror）那條路不做整數像素修正，貼齊開著會偶爾整條捨入成 0px（Media.NoSnap）
-    for i = 1, 4 do panel.edges[i] = Media.NoSnap(MakeTexture(panel, "OVERLAY", 7)) end
+    -- 邊框不貼齊：鏡射（Mirror）那條路不做整數像素修正，貼齊開著會偶爾整條捨入成 0px（MakeTexture 已關）
+    for i = 1, 4 do panel.edges[i] = MakeTexture(panel, "OVERLAY", 7) end
 
     panel.icon = MakeTexture(panel, "ARTWORK", 2)
     panel.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)

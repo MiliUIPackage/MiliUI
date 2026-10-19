@@ -555,10 +555,11 @@ local function DrawTag(panel, ctx, view)
     local tag = panel.tag
     if not tag then
         tag = CreateFrame("Frame", nil, panel)
-        tag.border = tag:CreateTexture(nil, "BACKGROUND")
+        -- 外框＝底色外露的那 1px（fill 內縮 m.px）：兩張都不貼齊
+        tag.border = ns.Media.NoSnap(tag:CreateTexture(nil, "BACKGROUND"))
         tag.border:SetTexture(ns.Media.WHITE8X8)
         tag.border:SetAllPoints()
-        tag.fill = tag:CreateTexture(nil, "BORDER")
+        tag.fill = ns.Media.NoSnap(tag:CreateTexture(nil, "BORDER"))
         tag.fill:SetTexture(ns.Media.WHITE8X8)
         tag.fill:SetVertexColor(LOOK.TAG_BG, LOOK.TAG_BG, LOOK.TAG_BG, 1)
         tag.text = tag:CreateFontString(nil, "OVERLAY")
@@ -600,12 +601,13 @@ local function EnsureBox(panel)
     box = CreateFrame("Frame", nil, panel)
     box.texts, box.textsUsed = {}, 0
     box.textures, box.texturesUsed = {}, 0
-    box.bg = box:CreateTexture(nil, "BACKGROUND")
+    -- 底與 1px 邊不貼齊（同主面板，Media.NoSnap）
+    box.bg = ns.Media.NoSnap(box:CreateTexture(nil, "BACKGROUND"))
     box.bg:SetTexture(ns.Media.WHITE8X8)
     box.bg:SetAllPoints()
     box.edges = {}
     for i = 1, 4 do
-        local e = box:CreateTexture(nil, "OVERLAY", nil, 7)
+        local e = ns.Media.NoSnap(box:CreateTexture(nil, "OVERLAY", nil, 7))
         e:SetTexture(ns.Media.WHITE8X8)
         box.edges[i] = e
     end

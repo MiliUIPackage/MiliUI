@@ -391,8 +391,8 @@ local SIDE_TAB_BOX_POINTS = {
     { "TOPLEFT", "TOPLEFT", BOX_L, -BOX_V },
     { "BOTTOMRIGHT", "BOTTOMRIGHT", BOX_R, BOX_V },
 }
--- 方框左緣落在視窗邊框上（往左一個邊寬，兩條邊疊成一條）
-local SIDE_TAB_X = -1 - BOX_L
+-- 方框左緣落在視窗邊框上（往左一個邊寬，兩條邊疊成一條）。邊寬在套用時才換算（T.BorderSize）
+local SIDE_TAB_X = -BOX_L
 
 local function SkinSideTab(tab, key)
     if not E.Usable(tab, key) then return end
@@ -403,7 +403,7 @@ local function SkinSideTab(tab, key)
 
     local sel = Optional(tab, "SelectedTexture")
     if sel then
-        local accent = T.tabAccentSize or 2
+        local accent = ns.P.Pixel(T.tabAccentSize or 2)   -- 實體像素，同 Engine 畫的強調線
         E.Reanchor({ { sel, {
             { "TOPLEFT", "TOPRIGHT", BOX_R - accent, -BOX_V, rel = tab },
             { "BOTTOMRIGHT", "BOTTOMRIGHT", BOX_R, BOX_V, rel = tab },
@@ -625,7 +625,7 @@ local function SkinQuestLog(qm)
     end
     local first = Optional(qm, "QuestsTab")
     if first then
-        E.ShiftRoot(first, "TOPLEFT", qm, "TOPRIGHT", SIDE_TAB_X, -28, key .. ".QuestsTab")
+        E.ShiftRoot(first, "TOPLEFT", qm, "TOPRIGHT", SIDE_TAB_X - T.BorderSize(), -28, key .. ".QuestsTab")
     end
 end
 

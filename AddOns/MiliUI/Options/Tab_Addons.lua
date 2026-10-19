@@ -273,9 +273,11 @@ local function CreateDetail()
     P.Size(shotHolder, SHOT_W, SHOT_H)
     W.Stylize(shotHolder, { 0.06, 0.06, 0.06, 1 })
 
-    local phGrad = shotHolder:CreateTexture(nil, "BACKGROUND", nil, 1)
-    phGrad:SetPoint("TOPLEFT", 1, -1)
-    phGrad:SetPoint("BOTTOMRIGHT", -1, 1)
+    -- 佔位層與擷圖都貼著 1px 邊框：內縮用同一個 P.Pixel(1)、關像素貼齊（.claude/notes/wow-1px-border-rules.md）
+    local bpx = P.Pixel(1)
+    local phGrad = P.NoSnap(shotHolder:CreateTexture(nil, "BACKGROUND", nil, 1))
+    phGrad:SetPoint("TOPLEFT", bpx, -bpx)
+    phGrad:SetPoint("BOTTOMRIGHT", -bpx, bpx)
     phGrad:SetColorTexture(1, 1, 1, 1)
     local ar, ag, ab = W.Accent()
     phGrad:SetGradient("VERTICAL", CreateColor(ar, ag, ab, 0), CreateColor(ar, ag, ab, 0.10))
@@ -290,9 +292,9 @@ local function CreateDetail()
     phText:SetPoint("TOP", phIcon, "BOTTOM", 0, -8)
     phText:SetText("|cff666666尚未提供預覽圖|r")
 
-    local shot = shotHolder:CreateTexture(nil, "OVERLAY")
-    shot:SetPoint("TOPLEFT", 1, -1)
-    shot:SetPoint("BOTTOMRIGHT", -1, 1)
+    local shot = P.NoSnap(shotHolder:CreateTexture(nil, "OVERLAY"))
+    shot:SetPoint("TOPLEFT", bpx, -bpx)
+    shot:SetPoint("BOTTOMRIGHT", -bpx, bpx)
 
     -- 詳情大字（具名字型要帶 NAMESPACE 前綴）
     local detailFont = CreateFont(ns.WidgetsEnv.NAMESPACE .. "_FontDetail")
@@ -483,7 +485,7 @@ local function BuildRow(row)
     -- 分組標題列的元素
     row.groupFS = W.CreateGroupLabel(row, "")
     row.groupFS:SetPoint("LEFT", 8, -2)
-    row.groupLine = row:CreateTexture(nil, "ARTWORK")
+    row.groupLine = P.NoSnap(row:CreateTexture(nil, "ARTWORK"))   -- 1px 線關像素貼齊
     row.groupLine:SetColorTexture(W.Accent(0.35))
     row.groupLine:SetPoint("LEFT", row.groupFS, "RIGHT", 8, -1)
     row.groupLine:SetPoint("RIGHT", row, "RIGHT", -8, 0)

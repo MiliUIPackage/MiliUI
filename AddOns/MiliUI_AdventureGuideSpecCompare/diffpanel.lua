@@ -96,16 +96,19 @@ end
 local function BuildItemButton(btn)
     btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-    btn.iconBorder = btn:CreateTexture(nil, "BORDER")   -- 1px 黑框
+    -- 黑框寬走實體像素、黑框與圖示關像素貼齊（.claude/notes/wow-1px-border-rules.md）
+    local P = ns.P
+    btn.iconBorder = P.NoSnap(btn:CreateTexture(nil, "BORDER"))   -- 1px 黑框
     btn.iconBorder:SetColorTexture(0, 0, 0, 1)
 
-    btn.icon = btn:CreateTexture(nil, "ARTWORK")
+    btn.icon = P.NoSnap(btn:CreateTexture(nil, "ARTWORK"))
     btn.icon:SetSize(ICON_SIZE, ICON_SIZE)
     btn.icon:SetPoint("LEFT", 2, 0)
     btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    btn.iconBorder:SetPoint("TOPLEFT", btn.icon, "TOPLEFT", -1, 1)
-    btn.iconBorder:SetPoint("BOTTOMRIGHT", btn.icon, "BOTTOMRIGHT", 1, -1)
+    local px = P.Pixel(1)
+    btn.iconBorder:SetPoint("TOPLEFT", btn.icon, "TOPLEFT", -px, px)
+    btn.iconBorder:SetPoint("BOTTOMRIGHT", btn.icon, "BOTTOMRIGHT", px, -px)
 
     if MILI then
         btn.name = btn:CreateFontString(nil, "OVERLAY")
@@ -166,20 +169,22 @@ local function BuildSpecHeader(f)
     f.bg:SetAllPoints()
     f.bg:SetColorTexture(1, 1, 1, 0.08)
 
-    f.iconBorder = f:CreateTexture(nil, "BORDER")   -- 1px 黑框
+    local P = ns.P
+    f.iconBorder = P.NoSnap(f:CreateTexture(nil, "BORDER"))   -- 1px 黑框（同 BuildItemButton）
     f.iconBorder:SetColorTexture(0, 0, 0, 1)
 
-    f.icon = f:CreateTexture(nil, "ARTWORK")
+    f.icon = P.NoSnap(f:CreateTexture(nil, "ARTWORK"))
     f.icon:SetSize(SPEC_HEADER_H - 6, SPEC_HEADER_H - 6)
     f.icon:SetPoint("LEFT", 3, 0)
     f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    f.iconBorder:SetPoint("TOPLEFT", f.icon, "TOPLEFT", -1, 1)
-    f.iconBorder:SetPoint("BOTTOMRIGHT", f.icon, "BOTTOMRIGHT", 1, -1)
+    local px = P.Pixel(1)
+    f.iconBorder:SetPoint("TOPLEFT", f.icon, "TOPLEFT", -px, px)
+    f.iconBorder:SetPoint("BOTTOMRIGHT", f.icon, "BOTTOMRIGHT", px, -px)
 
     if MILI then
         -- 基準天賦那一欄的「選中」訊號：左緣 2px 職業色直條（狀態只換明暗，色相由職業決定）
-        f.accentBar = f:CreateTexture(nil, "ARTWORK")
+        f.accentBar = P.NoSnap(f:CreateTexture(nil, "ARTWORK"))
         f.accentBar:SetColorTexture(ns.W.Accent(1))
         f.accentBar:SetPoint("TOPLEFT")
         f.accentBar:SetPoint("BOTTOMLEFT")
@@ -205,7 +210,7 @@ local function BuildSubHeader(f)
         f.label = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     end
     f.label:SetPoint("LEFT", 4, 0)
-    f.line = f:CreateTexture(nil, "ARTWORK")
+    f.line = ns.P.NoSnap(f:CreateTexture(nil, "ARTWORK"))
     f.line:SetHeight(MILI and ns.P.Pixel(1) or 1)
     f.line:SetPoint("LEFT", f.label, "RIGHT", 6, 0)
     f.line:SetPoint("RIGHT", -4, 0)
@@ -351,7 +356,7 @@ local function BuildChromeMili()
     W.Stylize(panel, MC.fill, MC.border)
 
     -- 標題列：比面板暗一階，畫在 1px 邊框內側
-    local bar = panel:CreateTexture(nil, "BACKGROUND", nil, 1)
+    local bar = P.NoSnap(panel:CreateTexture(nil, "BACKGROUND", nil, 1))   -- 跟邊框相接：關像素貼齊
     bar:SetColorTexture(unpack(MC.titleFill))
     bar:SetPoint("TOPLEFT", P.Pixel(1), -P.Pixel(1))
     bar:SetPoint("TOPRIGHT", -P.Pixel(1), -P.Pixel(1))

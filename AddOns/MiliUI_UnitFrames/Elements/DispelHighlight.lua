@@ -127,7 +127,7 @@ local function InitSlotButton(button, container, inset, r, g, b, a)
     pcall(button.SetFrameLevel, button, LEVEL)
 
     local function Edge()
-        local tex = button:CreateTexture(nil, "OVERLAY")
+        local tex = Media.NoSnap(button:CreateTexture(nil, "OVERLAY"))   -- 1px 邊：關像素貼齊
         tex:SetColorTexture(r, g, b, a)
         return tex
     end
@@ -362,6 +362,7 @@ function DH.Test(unitKey, seconds)
         f:SetFrameLevel(LEVEL)
         PlaceOnBody(f, uf)
         f:SetBackdrop({ edgeFile = Media.WHITE8X8, edgeSize = Inset() })
+        Media.NoSnapBackdrop(f)
         f.label:SetFont(Media.Font(ns.db.global.font), 12, "OUTLINE")
         frames[#frames + 1] = f
     end)

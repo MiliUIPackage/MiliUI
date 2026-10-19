@@ -107,7 +107,9 @@ local function BuildOverlay(key, c)
     ov:SetIgnoreParentAlpha(true)      -- 容器可能被顯示條件淡掉；覆蓋層永遠看得到
     ov:EnableMouse(false)
     ov:SetBackdrop({ edgeFile = Style.WHITE, edgeSize = ns.P.Pixel(1) })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(ov) end
     ov:SetBackdropBorderColor(Style.Accent(1))
+    -- ⚠ 容器一建好（登入時）就建了這層，那時縮放不一定是最終值：EM.LayoutOverlay（顯示前）會重新換算
     ov:Hide()
 
     local name = ov:CreateFontString(nil, "OVERLAY")
@@ -148,6 +150,14 @@ function EM.LayoutOverlay(key)
     ov:ClearAllPoints()
     ov:SetPoint(ap, c, ap, 0, 0)
     ov:SetSize(w, h)
+    -- 1px 邊：顯示前換算、跟上次不同才重套（登入後才定的縮放、改過 UI 縮放）；貼圖不貼齊
+    local px = ns.P.Pixel(1)
+    if ov.edgePx ~= px then
+        ov.edgePx = px
+        ov:SetBackdrop({ edgeFile = ns.Style.WHITE, edgeSize = px })
+        if ns.NoSnapBackdrop then ns.NoSnapBackdrop(ov) end
+        ov:SetBackdropBorderColor(ns.Style.Accent(1))
+    end
 end
 
 -- 「!」記號的提示：拖曳會被限制時才有字（目前只有「錨在別條上」這一種）
@@ -237,6 +247,7 @@ local function BuildSelection(key, c, ov)
         -- 模板建不出來（靜默失敗）就自己畫一個藍框頂著，拖曳照常
         sel = CreateFrame("Frame", nil, c, "BackdropTemplate")
         sel:SetBackdrop({ bgFile = ns.Style.WHITE, edgeFile = ns.Style.WHITE, edgeSize = ns.P.Pixel(1) })
+        if ns.NoSnapBackdrop then ns.NoSnapBackdrop(sel) end
         sel:SetBackdropColor(0.25, 0.6, 1, 0.15)
         sel:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
         sel:SetIgnoreParentAlpha(true)

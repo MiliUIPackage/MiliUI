@@ -419,6 +419,35 @@ end
 ----------------------------------------------------------------------
 local GAP = 2
 
+-- 1px 黑框：實體像素（P.Pixel；寫死 1 在 1440p 以上是 2px），圖示／條身的內縮用同一個值。
+-- 條在登入（Init）就建，那時 UI 縮放還不一定是最終值 ⇒ 每次開始顯示與 UpdateBarSize 重算、
+-- 跟上次一樣就不動；框、圖示、條身都關像素貼齊。規則全文：.claude/notes/wow-1px-border-rules.md
+local WHITE8X8 = "Interface\\Buttons\\WHITE8X8"
+local borderPx
+
+local function SetPixelBackdrop(f, px, a)
+    f:SetBackdrop({ bgFile = WHITE8X8, edgeFile = WHITE8X8, edgeSize = px })
+    ns.P.NoSnapBackdrop(f)
+    f:SetBackdropColor(0, 0, 0, a)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
+end
+
+local function LayoutBorders()
+    if not barFrame then return end
+    local px = ns.P.Pixel(1)
+    if borderPx == px then return end
+    borderPx = px
+    local iconBorder, barBorder = barFrame.iconBorder, barFrame.barBorder
+    SetPixelBackdrop(iconBorder, px, 1)
+    SetPixelBackdrop(barBorder, px, 0.5)
+    barIcon:ClearAllPoints()
+    barIcon:SetPoint("TOPLEFT",     iconBorder, "TOPLEFT",      px, -px)
+    barIcon:SetPoint("BOTTOMRIGHT", iconBorder, "BOTTOMRIGHT", -px,  px)
+    barStatusBar:ClearAllPoints()
+    barStatusBar:SetPoint("TOPLEFT",     barBorder, "TOPLEFT",      px, -px)
+    barStatusBar:SetPoint("BOTTOMRIGHT", barBorder, "BOTTOMRIGHT", -px,  px)
+end
+
 local function ComputeFrameSize(w, h)
     return w + h + GAP, h
 end
@@ -436,6 +465,7 @@ local function UpdateBarSize()
     local w, h = db.width, db.height
     local fw, fh = ComputeFrameSize(w, h)
     barFrame:SetSize(fw, fh)
+    LayoutBorders()
     if barFrame.iconBorder then barFrame.iconBorder:SetSize(h, h) end
     if barSpark then barSpark:SetSize(10, h * 2.2) end
     if nameText then nameText:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE") end
@@ -467,11 +497,6 @@ local function CreateBarFrame()
     local db = DB()
     local w, h = db.width, db.height
     local fw, fh = ComputeFrameSize(w, h)
-    local BACKDROP = {
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        edgeSize = 1,
-    }
 
     barFrame = CreateFrame("Frame", "MiliUIFocus_CastBar", UIParent)
     barFrame:SetSize(fw, fh)
@@ -487,12 +512,8 @@ local function CreateBarFrame()
     local iconBorder = CreateFrame("Frame", nil, barFrame, "BackdropTemplate")
     iconBorder:SetSize(h, h)
     iconBorder:SetPoint("TOPLEFT", barFrame, "TOPLEFT", 0, 0)
-    iconBorder:SetBackdrop(BACKDROP)
-    iconBorder:SetBackdropColor(0, 0, 0, 1)
-    iconBorder:SetBackdropBorderColor(0, 0, 0, 1)
-    barIcon = iconBorder:CreateTexture(nil, "ARTWORK")
-    barIcon:SetPoint("TOPLEFT",     iconBorder, "TOPLEFT",      1, -1)
-    barIcon:SetPoint("BOTTOMRIGHT", iconBorder, "BOTTOMRIGHT", -1,  1)
+    -- backdrop 與圖示內縮在 LayoutBorders 設（UpdateBarSize 會叫）
+    barIcon = ns.P.NoSnap(iconBorder:CreateTexture(nil, "ARTWORK"))
     barIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     barFrame.iconBorder = iconBorder
 
@@ -500,15 +521,12 @@ local function CreateBarFrame()
     local barBorder = CreateFrame("Frame", nil, barFrame, "BackdropTemplate")
     barBorder:SetPoint("TOPLEFT",     iconBorder, "TOPRIGHT",    GAP, 0)
     barBorder:SetPoint("BOTTOMRIGHT", barFrame,   "BOTTOMRIGHT", 0,   0)
-    barBorder:SetBackdrop(BACKDROP)
-    barBorder:SetBackdropColor(0, 0, 0, 0.5)
-    barBorder:SetBackdropBorderColor(0, 0, 0, 1)
+    -- backdrop 與條身內縮在 LayoutBorders 設
     barFrame.barBorder = barBorder
 
     barStatusBar = CreateFrame("StatusBar", nil, barBorder)
-    barStatusBar:SetPoint("TOPLEFT",     barBorder, "TOPLEFT",      1, -1)
-    barStatusBar:SetPoint("BOTTOMRIGHT", barBorder, "BOTTOMRIGHT", -1,  1)
     barStatusBar:SetStatusBarTexture(ns.Media.BarTexture())
+    ns.P.NoSnap(barStatusBar)   -- 填充貼圖跟 1px 框相接，一起不貼齊
     barStatusBar:SetMinMaxValues(0, 1)
     barStatusBar:SetValue(1)
 
@@ -691,6 +709,7 @@ local function StartDisplay(castTbl, chanTbl)
     end
 
     CreateBarFrame()
+    LayoutBorders()                         -- 1px 框在顯示時重算（沒變就不動）
     displayToken         = displayToken + 1   -- 新施法：讓打斷停留計時器失效
     castChannel          = isChannel
     castNotInterruptible = notInt

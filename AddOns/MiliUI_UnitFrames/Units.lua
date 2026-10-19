@@ -167,6 +167,9 @@ loader:SetScript("OnEvent", function()
         xpcall(ns.SpawnUnitFrame, ns.ReportError, unit)
     end
 
+    -- 記下 spawn 當下的像素換算基準：之後有效縮放變了，RepositionAll 會整組重套（見下面）
+    ns.builtPixel = ns.P.Pixel(1)
+
     -- LSM 可能比我們晚載入，這裡補登記一次（自己的材質不靠它，這只是分享出去）
     if ns.Media.RegisterSharedMedia then ns.Media.RegisterSharedMedia() end
 
@@ -203,6 +206,29 @@ end)
 -- 解析度／UI 縮放變動：像素對齊的錨點是拿 UIParent 尺寸算出來的，
 -- 尺寸一變就得整組重算，否則所有框會集體偏掉
 ------------------------------------------------------------
+-- 1px 邊框／內縮的實體像素（Media.BorderInset 等）是 Build 時換算、烤進錨點與 backdrop 的：
+-- 有效縮放真的變了（登入後才定、改 UI 縮放、別人 SetScale 了 UIParent）就整組重套一次設定。
+-- 只比 P.Pixel(1)，資訊列內縮那種只改尺寸不改縮放的不會觸發。
+-- ⚠ 光環按鈕的外框烤在 initializeFrame 裡、只能重建容器（舊的刪不掉），這裡不動它
+-- ns.builtPixel 在登入 spawn 完記下（見上面的 loader）
+local function RebuildIfPixelChanged()
+    local px = ns.P.Pixel(1)
+    if ns.builtPixel == nil or px == ns.builtPixel then
+        ns.builtPixel = px
+        return
+    end
+    ns.builtPixel = px
+    local done = {}
+    for _, uf in pairs(ns.frames) do
+        local key = uf.unitKey
+        if key and not done[key] then
+            done[key] = true
+            ns.ApplySettings(key)
+        end
+    end
+    if ns.TotemsApplySettings then ns.TotemsApplySettings() end
+end
+
 local function RepositionAll()
     if InCombatLockdown() then ns.needReposition = true; return end
     for _, uf in pairs(ns.frames) do
@@ -212,6 +238,7 @@ local function RepositionAll()
     if ns.Preview and ns.Preview.EachTwin then
         ns.Preview.EachTwin(ns.ApplyFramePosition)
     end
+    RebuildIfPixelChanged()
 end
 ns.Events.Register("UI_SCALE_CHANGED", "reposition_scale", RepositionAll)
 ns.Events.Register("DISPLAY_SIZE_CHANGED", "reposition_display", RepositionAll)

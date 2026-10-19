@@ -34,6 +34,9 @@ local _, ns = ...
 
 local L = ns.L
 
+-- 關掉貼圖的像素貼齊（Core/Media.lua 的 ns.NoSnap；離線測試沒載 Media 時是空操作）
+local function NoSnap(t) if ns.NoSnap then ns.NoSnap(t) end return t end
+
 ns.FocusCastbar = {}
 local FC = ns.FocusCastbar
 
@@ -102,11 +105,11 @@ local function Build()
     f:SetAllPoints(container)
 
     f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.icon = f.iconFrame:CreateTexture(nil, "ARTWORK")
+    f.icon = NoSnap(f.iconFrame:CreateTexture(nil, "ARTWORK"))     -- 圖示、底跟 1px 黑邊相接：不貼齊
     f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     f.barHolder = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.bgTex = f.barHolder:CreateTexture(nil, "BACKGROUND")
+    f.bgTex = NoSnap(f.barHolder:CreateTexture(nil, "BACKGROUND"))
     f.bgTex:SetTexture(SOLID)
     f.bar = CreateFrame("StatusBar", nil, f.barHolder)
     f.bar:SetStatusBarTexture(SOLID)
@@ -120,7 +123,7 @@ local function Build()
 
     -- 條尾的斷法圖示（圖示的對邊）：邊框＋圖示＋冷卻轉圈（不畫數字、不畫邊緣線、不畫閃光）
     f.kickFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.kickIcon = f.kickFrame:CreateTexture(nil, "ARTWORK")
+    f.kickIcon = NoSnap(f.kickFrame:CreateTexture(nil, "ARTWORK"))
     f.kickIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     local okCD, kcd = pcall(CreateFrame, "Cooldown", nil, f.kickFrame, "CooldownFrameTemplate")
     if okCD and kcd then
@@ -180,6 +183,7 @@ function FC.Layout()
     f.iconFrame:SetPoint(left and "TOPLEFT" or "TOPRIGHT", f, left and "TOPLEFT" or "TOPRIGHT", 0, 0)
     local edge = ns.P.Pixel(1)
     f.iconFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.iconFrame) end
     f.iconFrame:SetBackdropColor(0, 0, 0, 1)
     f.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
     f.icon:ClearAllPoints()
@@ -195,6 +199,7 @@ function FC.Layout()
     f.kickFrame:SetSize(kickW > 0 and kickW or 1, H)
     f.kickFrame:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
     f.kickFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.kickFrame) end
     f.kickFrame:SetBackdropColor(0, 0, 0, 1)
     f.kickFrame:SetBackdropBorderColor(0, 0, 0, 1)
     f.kickIcon:ClearAllPoints()
@@ -215,6 +220,7 @@ function FC.Layout()
     f.barHolder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f.kickFrame, left and "TOPLEFT" or "TOPRIGHT", left and -kickGap or kickGap, 0)
     local inset = ns.Media.BorderInset(1)
     f.barHolder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.barHolder) end
     f.barHolder:SetBackdropBorderColor(0, 0, 0, 1)
     f.bgTex:ClearAllPoints()
     f.bgTex:SetPoint("TOPLEFT", f.barHolder, "TOPLEFT", inset, -inset)

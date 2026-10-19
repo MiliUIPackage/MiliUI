@@ -153,14 +153,15 @@ end
 -- 純色條：黑底 + 1px 黑邊 + 內縮 1px 的填充
 local function NewBar(parent, fillColor)
     local f = CreateFrame("Frame", nil, parent)
-    f.bg = f:CreateTexture(nil, "BACKGROUND")
+    -- 底／邊／填充都關像素貼齊：小數座標時 1px 邊會被捨入成 0 或 2、填充跟邊錯一格
+    f.bg = P.NoSnap(f:CreateTexture(nil, "BACKGROUND"))
     f.bg:SetAllPoints()
     f.bg:SetTexture(WHITE)
     f.bg:SetVertexColor(0, 0, 0, BAR_BG_ALPHA)
 
     f.edges = {}
     for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
-        local e = f:CreateTexture(nil, "BORDER")
+        local e = P.NoSnap(f:CreateTexture(nil, "BORDER"))
         e:SetTexture(WHITE)
         e:SetVertexColor(0, 0, 0, 1)
         f.edges[side] = e
@@ -168,6 +169,7 @@ local function NewBar(parent, fillColor)
 
     f.fill = CreateFrame("StatusBar", nil, f)
     f.fill:SetStatusBarTexture(WHITE)
+    P.NoSnap(f.fill)
     f.fill:SetStatusBarColor(fillColor[1], fillColor[2], fillColor[3], 1)
     f.fill:SetMinMaxValues(0, 1)
     f.fill:SetValue(0)
