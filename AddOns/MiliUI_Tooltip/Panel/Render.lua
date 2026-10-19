@@ -53,7 +53,6 @@ local function Metrics(panel)
         headerGap = sc(LOOK.HEADER_GAP),
         headerBottom = sc(LOOK.HEADER_BOTTOM),
         ruleSpace = sc(LOOK.RULE_SPACE),
-        dividerSpace = sc(LOOK.DIVIDER_SPACE),
         diamond = sc(LOOK.DIAMOND),
         captionLineGap = sc(LOOK.CAPTION_LINE_GAP),
         iconGap = sc(LOOK.ICON_GAP),
@@ -189,26 +188,28 @@ local function Line(panel, ctx, x, y, w, color, alpha)
     return tex
 end
 
--- 整寬 1px 線；before 是線上方的空白（省略＝RULE_SPACE）
+-- 整寬 1px 線；before 是線上方的空白（省略＝RULE_SPACE）。
+-- 下方多補一個 rowGap：上方已經有前一行尾端的 rowGap，這樣線離上下文字一樣遠
 local function Rule(panel, ctx, y, before)
     local m = ctx.m
     y = y + (before or m.ruleSpace)
     if not Separators() then return y end
     Line(panel, ctx, m.pad, y, panel.width - 2 * m.pad)
-    return y + m.px + m.ruleSpace
+    return y + m.px + m.ruleSpace + m.rowGap
 end
 Panel.Rule = Rule
 
 -- 左右兩段 1px 線 ＋ 中央 ◆（玩家職業色）
+-- 間距跟 Rule 一樣（線的位置相同），◆ 置中在線上
 local function Divider(panel, ctx, y, before)
     local m = ctx.m
-    y = y + (before or m.dividerSpace)
+    y = y + (before or m.ruleSpace)
     if not Separators() then return y end
     local d = m.diamond
     -- ◆ 是正方形轉 45°，外接寬約 d·√2；兩側線各留一點空
     local gap = Panel.Snap(panel, d * 0.75 + m.px * 3)
     local side = Panel.Snap(panel, (panel.width - 2 * m.pad) / 2 - gap)
-    local mid = y + Panel.Snap(panel, d * 0.75)
+    local mid = y
     Line(panel, ctx, m.pad, mid, side)
     Line(panel, ctx, panel.width - m.pad - side, mid, side)
     local diamond = Panel.Texture(panel, 2)
@@ -217,7 +218,7 @@ local function Divider(panel, ctx, y, before)
     diamond:SetRotation(math.rad(45))
     local c = ctx.accent
     diamond:SetVertexColor(c[1], c[2], c[3], LOOK.DIAMOND_ALPHA)
-    return mid + Panel.Snap(panel, d * 0.75) + m.dividerSpace
+    return mid + m.px + m.ruleSpace + m.rowGap
 end
 Panel.Divider = Divider
 
@@ -238,7 +239,7 @@ local function Caption(panel, ctx, y, text, before)
             Line(panel, ctx, panel.width - m.pad - side, mid, side)
         end
     end
-    return y + h + m.ruleSpace
+    return y + h + m.ruleSpace + m.rowGap
 end
 Panel.Caption = Caption
 
@@ -671,7 +672,11 @@ function Panel.RenderView(panel, tip, view, state)
         if #sections > 0 or hasFooter then
             -- 文字與「圖示（或徽章）的底」都要離第一段至少 HEADER_BOTTOM：只有一行名字時文字比圖示矮，
             -- 只加在文字後面的話圖示底就貼著第一段（實機：單行名字的法術，圖示底黏著四格頂）
-            y = math.max(y + m.headerBottom, headerMin > 0 and (headerMin + m.headerBottom) or 0)
+            -- 第一段前面是線（Rule／Divider／Caption）：線自己會留 RULE_SPACE，這裡只補段落尾端那個 rowGap，
+            -- 線離標題跟離下一段一樣遠
+            local sep = sections[1] and sections[1].separator
+            local gap = (sep and (sep.rule or sep.divider or sep.caption)) and m.rowGap or m.headerBottom
+            y = math.max(y + gap, headerMin > 0 and (headerMin + gap) or 0)
             if sections[1] and sections[1].strip then y = y + m.rowGap end
         else
             y = math.max(y, headerMin)
