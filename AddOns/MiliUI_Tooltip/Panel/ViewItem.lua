@@ -346,12 +346,13 @@ function Panel.ViewItem(model)
     local view = {
         icon = model.icon, iconSize = LOOK.ICON_ITEM,
         badge = (badgeOn and ilvl and ilvl.value) and tostring(ilvl.value) or nil,
+        badgeColor = LOOK.ITEM_LEVEL,
         header = { { text = model.name, style = "title", color = model.nameColor or LOOK.TEXT } },
         sections = {},
         tag = model.tag,
     }
     local line1 = Badges({ model.armorType }, { model.slot }, { model.quality },
-        (not view.badge and ilvl) and { ilvl.text } or nil)
+        (not view.badge and ilvl) and { ilvl.text, LOOK.ITEM_LEVEL } or nil)
     if #line1 > 0 then view.header[#view.header + 1] = { badges = line1, style = "small" } end
     local unique = model.unique[1]
     local line2 = Badges({ model.binding }, { unique },
@@ -362,7 +363,7 @@ function Panel.ViewItem(model)
     -- 標題補充行（難度、虛無鍛造、已塑形為…）：原字串、原色
     for _, r in ipairs(model.headerRows or {}) do more[#more + 1] = { left = r.left, color = r.color } end
     for i = 2, #model.unique do more[#more + 1] = { left = model.unique[i] } end
-    if model.upgrade then more[#more + 1] = { left = model.upgrade } end
+    if model.upgrade then more[#more + 1] = { left = model.upgrade, color = LOOK.ITEM_LEVEL } end
     if model.craftQuality then more[#more + 1] = { left = model.craftQuality } end
     if #more > 0 then view.header[#view.header + 1] = { rows = more, style = "small", color = LOOK.SECONDARY } end
 

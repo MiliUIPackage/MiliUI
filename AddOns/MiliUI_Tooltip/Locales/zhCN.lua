@@ -276,10 +276,10 @@ L["Restore this profile (style, health bar, units, items, spells, anchor) to its
 L["Only this profile is reset; the other profiles are left alone. The /mtip reset command does the same thing as this button."] = "只会重置当前这份配置，其他配置不动。命令 /mtip reset 等同这颗按钮。"
 
 -- 重繪面板（物品与法术分页）
-L["Panel"] = "面板"
-L["Redraw item tooltips as a panel"] = "以面板重绘物品提示"
-L["Redraw spell tooltips as a panel"] = "以面板重绘法术提示"
-L["When off, the native layout is kept and only the border and colors are applied."] = "关闭时维持原生排版，只套边框与颜色。"
+L["New layout"] = "新版排版"
+L["Use the new layout for item tooltips"] = "物品提示使用新版排版"
+L["Use the new layout for spell tooltips"] = "法术提示使用新版排版"
+L["When off, tooltips keep Blizzard's original layout and only get the border and colors."] = "关闭时改回暴雪原本的排版，只套边框与颜色。"
 L["Separator lines and diamonds"] = "分隔线与 ◆"
 L["Spell cost / cast / cooldown / range strip"] = "法术四格（消耗／施法／冷却／距离）"
 L["Numbers in descriptions"] = "描述数字颜色"

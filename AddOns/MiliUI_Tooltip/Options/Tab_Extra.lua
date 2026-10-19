@@ -143,10 +143,10 @@ end)
 local extraTab, extraRefreshers
 
 local EXTRA_CONTROLS = {
-    { type = "header", label = L["Panel"] },
-    { type = "toggle", root = "item", key = "panel", label = L["Redraw item tooltips as a panel"] },
-    { type = "toggle", root = "spell", key = "panel", label = L["Redraw spell tooltips as a panel"] },
-    { type = "text", label = L["When off, the native layout is kept and only the border and colors are applied."] },
+    { type = "header", label = L["New layout"] },
+    { type = "toggle", root = "item", key = "panel", label = L["Use the new layout for item tooltips"] },
+    { type = "toggle", root = "spell", key = "panel", label = L["Use the new layout for spell tooltips"] },
+    { type = "text", label = L["When off, tooltips keep Blizzard's original layout and only get the border and colors."] },
     { type = "toggle", root = "panel", key = "separators", label = L["Separator lines and diamonds"] },
     { type = "toggle", root = "panel", key = "strip", label = L["Spell cost / cast / cooldown / range strip"] },
     { type = "dropdown", root = "panel", key = "numberColor", label = L["Numbers in descriptions"], items = {

@@ -6,7 +6,7 @@
 --
 -- view = {
 --     icon = 貼圖, iconSize = 設計單位,       標題各行從圖示右邊開始
---     badge = "字",                           圖示正下方的等級徽章
+--     badge = "字", badgeColor = { r, g, b }, 圖示上方的等級徽章（字色省略＝白）
 --     header = {                              依序，在圖示旁
 --         { text = "名字", style = "title", color = { r, g, b } },
 --         { badges = { { "被動", color }, { "等級 2/3" } }, style = "small" },   中間用 · 隔開
@@ -430,7 +430,8 @@ local function DrawIcon(panel, ctx, view)
         local style = ctx.styles.small
         local text = panel.badgeText
         Panel.ApplyFont(text, style)
-        text:SetTextColor(1, 1, 1)
+        local bc = view.badgeColor or LOOK.TEXT
+        text:SetTextColor(bc[1], bc[2], bc[3])
         text:SetText(view.badge)
         local w = math.max(size + 2 * m.px, Panel.Measure(view.badge, style) + m.badgePad)
         badgeH = Panel.Snap(panel, math.max(m.badgeH, style.size + m.sc(6)))
