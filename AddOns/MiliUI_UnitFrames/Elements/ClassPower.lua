@@ -70,9 +70,15 @@ local RESOURCES = {
     Runes           = { name = PowerName("RUNES", "Runes"),     mode = "pip", power = PT.Runes, fill = "rune" },
     -- 光環／技能次數型（Ayije_CDM 的 custom power，資料來源都是明文 API）
     -- 中文名一律取自 Ayije_CDM/Locales/zhTW.lua（使用者已對過官方譯名，別自己翻）
-    MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10,  passive = 187880 },
-    TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,   passive = 260285 },
-    SoulFragments   = { name = L["Soul Fragments"], mode = "pip", cast = 228477, max = 6,   passive = 203981 },
+    -- ⚠ passive 一律填**法術書查得到**的被動／天賦／技能 ID（IsSpellKnown 查的是法術書），
+    --   不能填 buff 光環的 ID：光環不在法術書，閘永遠 false，整列退到「當下有層數才列」那條保險，
+    --   而 12.1 戰鬥中層數／施放次數是秘密值（Desecret 成 0）、脫戰沒層數也是 0 → 列會時有時無。
+    MaelstromWeapon = { name = L["Maelstrom Weapon"], mode = "pip", aura = 344179, max = 10,  passive = 187880 },  -- 187880 氣漩武器被動（法術書）；344179 是層數 buff
+    TipOfTheSpear   = { name = L["Tip of the Spear"], mode = "pip", aura = 260286, max = 3,   passive = 260285 },  -- 260285 長矛之尖天賦（法術書）；260286 是層數 buff
+    -- 靈魂碎片（復仇 581）：值是碎魂斬 228477 的施放次數，閘也看 228477（復仇的基礎技能、法術書查得到）。
+    -- 2026-10-19 之前填 203981——那是碎片存在時才掛在身上的 buff 光環、不在法術書裡——列就跟著
+    -- 有沒有碎片忽隱忽現（MiliUI_CooldownManager 同日同一條修法）。
+    SoulFragments   = { name = L["Soul Fragments"], mode = "pip", cast = 228477, max = 6,   passive = 228477 },
 }
 
 -- 專精 → 資源清單（照抄 Ayije_CDM/Modules/Resources.lua 的 SPEC_POWER_MAP）
@@ -701,8 +707,11 @@ local function Available(key)
     if not def then return false, "沒有定義" end
     if def.aura or def.cast then
         if SpellKnown(def.passive) then return true, "被動已學" end
-        local cur = GetValue(key)
-        if (cur or 0) > 0 then return true, "被動查不到但目前有層數" end
+        -- 保險：GetValue 回的已是明文（層數／施放次數在裡面過了 Desecret，秘密值＝0），
+        -- 這裡可以直接比大小。⚠ 所以這條保險在 12.1 只保得住「脫戰且當下有層數」，
+        -- 戰鬥中秘密值一律當 0 —— passive 填錯（例如填成 buff 光環）它救不回來，見 RESOURCES 的註解。
+        local cur = ns.Desecret(GetValue(key), 0) or 0
+        if cur > 0 then return true, "被動查不到但目前有層數" end
         return false, "被動未學（天賦沒點）"
     end
     local _, max = GetValue(key)
