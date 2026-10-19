@@ -120,10 +120,14 @@ P.ITEMS = {
 -- 喝了身上不會有可追蹤增益的那幾組（治療／法力是立即回復）：藥水格不疊增益按鈕（Core/Catalog.lua 的 ItemUseBuffIDs）。
 -- 其餘組照 AURAS 同 key 的增益 ID＋物品的使用法術（C_Item.GetItemSpell）
 P.ITEM_NO_BUFF = { healthPotion = true, healthstone = true, manaPotion = true }
+-- 喝了有增益、但不是「戰鬥藥水」的那幾組（隱形）：戰鬥藥水視窗（Modules/PotionWindow.lua）不收它們。
+-- 其餘有增益的組就是戰鬥藥水，喝下去由 PotionWindow 自己計時、替暴雪的戰鬥藥水增益格代畫
+P.ITEM_NOT_COMBAT = { invisibility = true }
 
 ------------------------------------------------------------
 -- 團隊增益：一組＝一格光環格（增益），ids 全部進 includeSpellIDs，引擎畫真實的增益與剩餘時間。
 -- lead：依陣營換主 ID（名字與占位圖示用主的），沒寫就是 ids[1]
+-- secs：戰鬥藥水那幾組的增益秒數（Modules/PotionWindow.lua 的代畫計時；沒寫＝30）
 ------------------------------------------------------------
 P.AURAS = {
     { key = "bloodlust",

@@ -47,6 +47,8 @@ local function TipAuraIDs(rec)
             AddAll((C.SlotUseBuffIDs(rec.slot)))
         elseif rec.kind == "item" and rec.itemID and C.ItemUseBuffIDs then
             AddAll((C.ItemUseBuffIDs({ rec.itemID })))
+        elseif rec.kind == "potion" then
+            Add(rec.potionSpellID)                  -- 戰鬥藥水代畫：喝的那瓶（Modules/Custom.lua 的 UpdatePotion 記的）
         end
         return out
     end
@@ -127,6 +129,9 @@ local function ShowTip(ov)
             shown = pcall(GameTooltip.SetInventoryItem, GameTooltip, "player", rec.slot)
         elseif rec.kind == "item" and rec.itemID then
             shown = pcall(GameTooltip.SetItemByID, GameTooltip, rec.itemID)
+        elseif rec.kind == "potion" then
+            -- 戰鬥藥水代畫：光環讀不到（戰鬥中受限）時畫喝的那瓶的法術說明（rec.spellID 刻意是 nil）
+            if rec.potionSpellID then shown = pcall(GameTooltip.SetSpellByID, GameTooltip, rec.potionSpellID) end
         elseif rec.timerKey then
             -- 內建冷卻（Modules/Timers.lua）：畫天賦本身的說明（rec.spellID 刻意是 nil）
             local def = ns.Timers and ns.Timers.Def and ns.Timers.Def(rec.timerKey)

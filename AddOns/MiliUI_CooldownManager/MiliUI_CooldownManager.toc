@@ -69,6 +69,7 @@ Core\Sound.lua
 Core\Keybinds.lua
 Core\Assist.lua
 Modules\Timers.lua
+Modules\PotionWindow.lua
 Modules\Custom.lua
 Modules\Custom_Aura.lua
 Core\Bars.lua

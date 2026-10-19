@@ -10,6 +10,7 @@
 --   飾品欄（kind = "slot"）的冷卻格上另疊一顆增益按鈕（rec.buffOverlay），見「飾品欄的增益疊層」那一節；
 --   觸發發光開著時再疊一顆只畫發光的按鈕（rec.procOverlay），見「飾品欄的觸發發光疊層」那一節
 --   ns.Custom.Proxy(cooldownID, slot, barKey)  暴雪沒給框的裝備欄冷卻格由我們代畫（飾品欄形狀），見「代畫」那一節
+--   ns.Custom.PotionProxy(cooldownID, barKey)  暴雪的戰鬥藥水增益格沒生效時由我們代畫（kind = "potion"），見「戰鬥藥水代畫」那一節
 --   飾品欄增益（存檔 kind = "slotbuff"）在這裡就是光環格：rec.kind = "aura"、rec.slotBuff = { slot, buff }，
 --   認的法術照現在裝的飾品解（Catalog.SlotBuffIDs，經 CU.AuraIDsOf），見「飾品欄增益」那一節
 --
@@ -1125,6 +1126,44 @@ local function UpdateTimer(rec)
 end
 CU.UpdateTimer = UpdateTimer          -- 測試用
 
+-- 戰鬥藥水代畫（見「戰鬥藥水代畫」那一節）：視窗的起點／秒數是 Modules/PotionWindow.lua 自己的明文數字，跟上次 arm 的不一樣才重 arm。
+-- 它是**增益不是冷卻**：不武裝探針、不去飽和、不寫 rec.cdOnCD（冷卻狀態效果、就緒時一直亮因此不套）
+local function UpdatePotion(rec)
+    local f = rec.frame
+    local PW = ns.PotionWindow
+    local spellID, s, d
+    if PW and PW.State then spellID, s, d = PW.State() end
+    rec.potionSpellID = spellID                   -- 滑鼠提示讀（rec.spellID 刻意留 nil，理由同內建冷卻）
+    local icon = IconTex(f)
+    -- 圖示跟暴雪那一格一樣用類別圖示（Catalog 的 SPELL_CATEGORY[4]）：暴雪自己畫跟我們代畫看起來一致
+    local info = ns.Catalog.Info(rec.cooldownID)
+    local tex = IconOverride(rec) or (info and info.icon) or QUESTION
+    if rec.tex ~= tex then icon:SetTexture(tex); rec.tex = tex end
+    if f.Bar then
+        -- 名字：喝的那瓶的增益名（暴雪那格生效時寫的也是光環名）；逐法術的名字覆寫由 Decorate 蓋過去
+        local name = spellID and Plain(Try(C_Spell and C_Spell.GetSpellName, spellID)) or nil
+        SetBarName(rec, f, name or (info and info.name) or "")
+    end
+    local fs = CountFS(f)
+    if fs then fs:SetText("") end
+    -- 增益圖示的轉圈畫「已經過去的那段」（暴雪增益圖示的 XML 是 reverse="true"，Core/Decorate_Rings.lua 檔頭）
+    if f.Cooldown and f.Cooldown.SetReverse then f.Cooldown:SetReverse(true) end
+    if s then
+        if rec.armedStart ~= s or rec.armedDur ~= d then
+            rec.armedStart, rec.armedDur = s, d
+            rec.duo = rec.duo or (C_DurationUtil and C_DurationUtil.CreateDuration and Try(C_DurationUtil.CreateDuration))
+            -- 圖示框：轉圈；長條框：條身（剩餘時間往下縮，跟暴雪增益長條同方向）＋秒數（同一顆物件）
+            if rec.duo and pcall(rec.duo.SetTimeFromStart, rec.duo, s, d) and (f.Cooldown or f.Bar) then
+                FeedCooldown(f, rec.duo)
+            end
+        end
+    else
+        if rec.armedStart then ClearCooldown(f) end
+        rec.armedStart, rec.armedDur = nil, nil
+    end
+    icon:SetDesaturation(0)
+end
+
 -- 長條框的秒數（.Bar.Timer 的倒數數字）：照「長條」節的秒數字型／字級排在條的右邊，跟 Text.ApplyBar
 -- 對 .Bar.Duration 做的一樣（錨點 RIGHT -4、像素字型）；顯示與否照「顯示秒數」與逐法術「隱藏倒數」。
 -- 這一招的文字覆寫（字型、字級、顏色、位置）走 Text.SpellText 的 "barTime"；呼叫端用 rec.decorated 當 timerSig，
@@ -1154,7 +1193,8 @@ function CU.Update(rec, placing)
     rec.dirty, rec.colorDirty = nil, nil          -- 整套更新包含 RefreshColor
     if rec.kind == "spell" then UpdateSpell(rec)
     elseif rec.kind == "item" or rec.kind == "slot" then UpdateItem(rec, placing)
-    elseif rec.kind == "timer" then UpdateTimer(rec) end
+    elseif rec.kind == "timer" then UpdateTimer(rec)
+    elseif rec.kind == "potion" then UpdatePotion(rec) end
     CU.ApplyState(rec)
     if ns.Glow and ns.Glow.ApplyReadyState then ns.Glow.ApplyReadyState(rec) end
 end
@@ -1274,6 +1314,18 @@ function CU.TimerChanged(key)
     local any = false
     for _, rec in pairs(records) do
         if rec.timerKey ~= nil and rec.timerKey == key then
+            rec.dirty = true
+            any = true
+        end
+    end
+    if any then ArmFlush() end
+end
+
+-- 戰鬥藥水視窗開、關、換瓶、校正（Modules/PotionWindow.lua 叫）：只標代畫格
+function CU.PotionChanged()
+    local any = false
+    for _, rec in pairs(records) do
+        if rec.kind == "potion" then
             rec.dirty = true
             any = true
         end
@@ -1779,6 +1831,32 @@ end
 function CU.Proxies() return proxies end
 
 ------------------------------------------------------------
+-- 戰鬥藥水代畫：暴雪的戰鬥藥水增益格沒生效、而剛喝了戰鬥藥水（Core/Bars.lua 的 Relayout 叫，判準 B.PotionProxyHere）
+--
+-- 暴雪那一格不知道你喝了哪一瓶（Modules/PotionWindow.lua 檔頭），喝下去常常整格不出現。視窗開著的期間改用我們的框畫在原位置：
+--   * rec 是自訂框的形狀（New，kind = "potion"：圖示框／長條框照條的 kind 換），cooldownID 是**暴雪的數字 id**
+--     ⇒ 逐法術覆寫（長條顏色、名字覆寫、文字、自訂圖示）照那一格走；rec.proxy = true。身分 key "potion:<cooldownID>"，
+--     池化在 records；不進 byId、不進 proxies（裝備欄代畫那張）、不進生效清單、不存檔。去留每輪由 Bars 決定（沒被放 ⇒ EndBar 收）。
+--   * 畫法照內建冷卻的明文路徑（UpdatePotion）：PotionWindow.State() 的起點／秒數 → C_DurationUtil 物件 →
+--     長條框條身 SetTimerDuration(RemainingTime)＋.Bar.Timer 秒數；圖示框 Cooldown 吃同一顆（reverse，跟暴雪增益圖示一樣）。
+--   * 它是增益不是冷卻：rec.spellID 留 nil（SpellIndex、按鍵文字、可點擊、觸發發光、施放後提醒都不進來）、不武裝就緒探針、
+--     不去飽和、不寫 cdOnCD、不疊增益／觸發疊層；長條本來就 noGlow。冷卻／數量事件不聽（WantedEvents 只算 spell／item／slot）。
+--   * 這一版不做：圖示上的「生效發光」（overrides[id].activeGlow，掛在暴雪 item 上）、出現／消失音效（暴雪 item 的警示）——README 有記。
+------------------------------------------------------------
+function CU.PotionProxy(cooldownID, barKey)
+    local key = "potion:" .. tostring(cooldownID)
+    local rec = records[key]
+    if not rec then
+        rec = New({ kind = "potion" })
+        rec.proxy = true
+        records[key] = rec
+    end
+    if rec.cooldownID ~= cooldownID then rec.decorated = nil end
+    rec.cooldownID, rec.bar = cooldownID, barKey
+    return rec
+end
+
+------------------------------------------------------------
 -- 放進格子
 --   圓環條（rect 帶 ring／tex）：光環格畫成一圈（見「光環格畫成圓環」）；自訂法術／物品不會來（Core/Bars.lua 擋掉）
 --   回傳 true ＝ 這一格對法術索引的貢獻可能變了（換了框、換了條、從收起來放回來；位置變了也算，寧多勿漏）：
@@ -1974,10 +2052,12 @@ end
 ------------------------------------------------------------
 function CU.Counts()
     local n = { aura = 0, spell = 0, item = 0, slot = 0, placed = 0, containers = 0, barFrames = 0, overlays = 0,
-                procOverlays = 0, proxy = 0 }
+                procOverlays = 0, proxy = 0, potion = 0 }
     for _, rec in pairs(records) do
         -- 代畫格另算（不是玩家加的飾品欄）：放在條上的才算一顆
-        if rec.proxy then
+        if rec.kind == "potion" then
+            if rec.placedBar then n.potion = n.potion + 1 end
+        elseif rec.proxy then
             if rec.placedBar then n.proxy = n.proxy + 1 end
         elseif rec.cooldownID then n[rec.kind] = (n[rec.kind] or 0) + 1 end
         if rec.placedBar then n.placed = n.placed + 1 end

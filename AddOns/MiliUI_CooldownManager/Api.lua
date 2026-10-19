@@ -482,6 +482,8 @@ local function Debug(silent)
         end
         if total > 0 then p(("  光環格容器 IsProtected：%d／%d（細節 /mcdm aura）"):format(prot, total)) end
     end
+    -- 戰鬥藥水視窗（Modules/PotionWindow.lua）：視窗、代畫中幾格、最近收／拒的判定
+    if ns.PotionWindow and ns.PotionWindow.DebugLine then p(ns.PotionWindow.DebugLine()) end
     -- 自訂項目每筆的範圍（戰隊／職業／角色／專精；窄蓋寬之後生效的那幾筆）＋寬層裡這個角色看不到的筆數
     if ns.DB and ns.DB.EffectiveCustom then
         local SCOPE_TEXT = { shared = "戰隊", class = "職業", char = "角色", spec = "專精" }

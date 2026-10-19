@@ -1701,6 +1701,21 @@ function C.ProxySlotOf(id)
     return slot
 end
 
+-- 暴雪的「戰鬥藥水」增益格：暴雪那一格沒生效、而我們偵測到剛喝了戰鬥藥水（Modules/PotionWindow.lua）時由我們代畫
+-- （Core/Bars.lua 的 B.PotionProxyHere、Modules/Custom.lua 的 Custom.PotionProxy）。成立 ⇒ true：
+--   * 暴雪的數字 cooldownID、資料的物品冷卻類別是戰鬥藥水（spellCategoryID 4，SPELL_CATEGORY[4]）；
+--   * 來源條是增益類（buffs／buffbars；搬進自訂群組的照樣算：看來源不看所在條）。
+--     核心／輔助那一格戰鬥藥水是冷卻格，暴雪有 SPELL_UPDATE_COOLDOWN 會跟著更新，不需要代畫。
+-- 只讀目錄（C.Info 已過 Plain），不問暴雪的框
+function C.PotionProxyOf(id)
+    if type(id) ~= "number" then return false end
+    local info = C.Info(id)
+    if not (info and info.spellCategoryID == 4) then return false end
+    local src = info.bar
+    local aura = (ns.Viewers and ns.Viewers.AURA_KIND) or AURA_SOURCE
+    return src ~= nil and aura[src] and true or false
+end
+
 -- 暴雪的「裝備欄追蹤」增益項目（EquipSlotTracked：飾品用掉／觸發之後身上的那個增益）→ slot, buff ｜ nil
 -- 判準照暴雪 CooldownViewerItemDataMixin 的 EquipSlotTracked 分支：資料帶 equipSlot，而且帶 buffSlot（明文正整數）
 -- 或資料本身的類別就是 EquipSlotTracked（玩家拖到別條，覆寫的是有效類別、資料類別不變）；資料類別是 EquipSlotEssential 的

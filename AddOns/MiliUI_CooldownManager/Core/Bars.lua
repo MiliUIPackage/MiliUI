@@ -40,6 +40,11 @@
 -- 代畫（Modules/Custom.lua 的 Custom.Proxy）：清單上有、暴雪沒給框的**裝備欄冷卻格**（Catalog.ProxySlotOf：
 -- 暴雪的 id、資料帶裝備欄位、來源是核心／輔助）改放我們的飾品欄框（一格 crec entry，跟自訂項目同一條路）。
 -- 暴雪恢復給框的那一輪照舊放暴雪的 item，代畫格沒被放 ⇒ Custom.EndBar 收起來。代畫中的不算 missing（B.IsProxied）。
+-- 戰鬥藥水（B.PotionProxyHere；Modules/PotionWindow.lua、Custom.PotionProxy）：暴雪的戰鬥藥水增益格不知道你喝了哪一瓶，
+-- 喝下去常常不生效。剛喝了戰鬥藥水（PotionWindow 的視窗開著）而暴雪那一格沒生效（AuraPresent 為 false）或沒給框 ⇒ 改放我們自己
+-- 計時的代畫框，暴雪的 item 不認領（結尾停放掃描收走）；暴雪自己生效了照舊放 item。不顯示的格、圓環條不代畫。
+-- 增益來源本來就不記 missing，代畫中也就不會被算成 missing；B.IsProxied 只管裝備欄（回的是欄位，設定頁拿它當飾品欄位用），
+-- 戰鬥藥水不進那張表——代畫中幾格由 PotionWindow.DebugLine 數 Custom 的 rec（/mcdm debug）。
 --
 -- 沒有物品時隱藏／被動飾品不顯示（判準 Catalog.HideReason，排法 Layout.HiddenSlot）：自訂物品、飾品欄、代畫格被收掉時
 -- **在決定 entries 這一層讓位**（不放進 entries ⇒ Custom.EndBar 收起來、後面的往前補；Occupancy 同一個判準 ⇒ 不算顆數、
@@ -817,6 +822,17 @@ local function RingRefuses(id, item, crec)
 end
 B.RingRefuses = RingRefuses           -- 測試用
 
+-- 戰鬥藥水代畫（見檔頭）：這一格這一輪要不要放我們的代畫框——戰鬥藥水視窗開著、暴雪的戰鬥藥水增益格（Catalog.PotionProxyOf）、
+-- 不是「不顯示」的格、不是圓環條（代畫框是圖示／長條框，畫不成一圈；跟 RingRefuses 擋自訂框同一個理由）。
+-- 呼叫端自己確認暴雪那一格沒生效（AuraPresent 為 false）或沒給框。Relayout 與 Occupancy 共用
+function B.PotionProxyHere(key, id, ring)
+    if ring or type(id) ~= "number" then return false end
+    local PW, C = ns.PotionWindow, ns.Catalog
+    if not (PW and PW.Active and PW.Active()) then return false end
+    if not (ns.Custom and ns.Custom.PotionProxy and C.PotionProxyOf and C.PotionProxyOf(id)) then return false end
+    return not C.HiddenOnly(key, id)
+end
+
 function B.Occupancy(index)
     local modeOf, forcedOf = {}, {}
     local function BarMode(barKey)
@@ -848,12 +864,17 @@ function B.Occupancy(index)
         if type(id) ~= "number" then return not Skipped(barKey, id) end
         local item = index[id]
         -- 暴雪沒給框：代畫的裝備欄冷卻格照樣佔一格（Relayout 會放它；被收掉讓位的不佔），其餘不佔
-        if not item then return ns.Catalog.ProxySlotOf(id) ~= nil and not Skipped(barKey, id) end
+        if not item then
+            -- 戰鬥藥水代畫：暴雪沒給框也照樣放（Relayout 同一支判準）
+            if B.PotionProxyHere(barKey, id, RingBar(barKey)) then return true end
+            return ns.Catalog.ProxySlotOf(id) ~= nil and not Skipped(barKey, id)
+        end
         local rec = ns.Viewers.frames[item]
         if not (rec and ns.Viewers.AURA_KIND[rec.barKey]) then return true end
         -- 不顯示（只給其他插件讀取）：不放上條 ⇒ 不佔（跟 Relayout 同一支判準）
         if ns.Catalog.HiddenOnly(barKey, id) then return false end
         if AuraPresent(item) then return true end
+        if B.PotionProxyHere(barKey, id, RingBar(barKey)) then return true end    -- 戰鬥藥水代畫中：放代畫框
         -- 這一格生效的「增益不在時」不是收合 ⇒ 格子照留、照樣佔一格（跟 Relayout 同一支判準 Layout.AuraSlot）
         local barMode, forced = BarMode(barKey)
         local mode = ns.Layout.SpellEmptyMode(ns.SpellSetting(barKey, id, "emptyMode"), barMode, forced)
@@ -1248,6 +1269,9 @@ local function Relayout(key, level, index, gen, s)
             elseif hm == "blank" then
                 entries[#entries + 1] = { id = id, blank = true }
             end
+        elseif not item and B.PotionProxyHere(key, id, ring) then
+            -- 暴雪的戰鬥藥水增益格沒給框、而剛喝了戰鬥藥水：放我們自己計時的代畫框（見檔頭）
+            entries[#entries + 1] = { id = id, crec = ns.Custom.PotionProxy(id, key) }
         elseif item and not claimedBy[item] then
             local rec = ns.Viewers.frames[item]
             local aura = rec and ns.Viewers.AURA_KIND[rec.barKey]
@@ -1260,22 +1284,29 @@ local function Relayout(key, level, index, gen, s)
             elseif aura then
                 -- 不在時照這一格生效的「增益不在時」（逐法術 ＞ 條層；收合／留空位／暗圖示）
                 local present = AuraPresent(item)
-                local em, own
-                if not present then
-                    em, own = ns.Layout.SpellEmptyMode(ns.SpellSetting(key, id, "emptyMode"), barMode, forced)
-                    em = B.EquipFollowMode(key, id, em, own)       -- 飾品增益格被逼出來的暗圖示只留空位
+                if not present and B.PotionProxyHere(key, id, ring) then
+                    -- 戰鬥藥水：暴雪那一格沒生效（它不知道你喝了哪一瓶）、我們偵測到剛喝了 ⇒ 放代畫框，item 不認領（見檔頭）
+                    mode = "potion"
+                else
+                    local em, own
+                    if not present then
+                        em, own = ns.Layout.SpellEmptyMode(ns.SpellSetting(key, id, "emptyMode"), barMode, forced)
+                        em = B.EquipFollowMode(key, id, em, own)       -- 飾品增益格被逼出來的暗圖示只留空位
+                    end
+                    mode = ns.Layout.AuraSlot(present, em)
                 end
-                mode = ns.Layout.AuraSlot(present, em)
             end
             if mode == "item" then
                 entries[#entries + 1] = { id = id, item = item, rec = rec }
+            elseif mode == "potion" then
+                entries[#entries + 1] = { id = id, crec = ns.Custom.PotionProxy(id, key) }
             elseif mode == "placeholder" then
                 entries[#entries + 1] = { id = id, item = item, rec = rec, placeholder = true }
             elseif mode == "blank" then
                 entries[#entries + 1] = { id = id, blank = true }
             end
-            -- 收合的增益：不認領 ⇒ 最後的停放掃描會把它收走（留空位的也不認領：item 要停放）
-            if mode and mode ~= "blank" then claimedBy[item] = key end
+            -- 收合的增益：不認領 ⇒ 最後的停放掃描會把它收走（留空位、戰鬥藥水代畫的也不認領：item 要停放）
+            if mode and mode ~= "blank" and mode ~= "potion" then claimedBy[item] = key end
         end
     end
 

@@ -3005,6 +3005,133 @@ do
         ns.Decorate.ApplyItemAlpha = nil
     end
 
+    ------------------------------------------------------------
+    -- 18b. 戰鬥藥水代畫（2026-10-20，Modules/PotionWindow.lua）：PotionProxyOf 的範圍；視窗開著、暴雪那一格沒生效 ⇒
+    --      放 Custom.PotionProxy、item 不認領；暴雪自己生效了 ⇒ 放 item；沒給框也代畫；不顯示／圓環條不代畫；
+    --      Occupancy 同判準；視窗關了 ⇒ 代畫框收起來；UpdatePotion 畫起點／秒數、不寫 cdOnCD、不去飽和
+    ------------------------------------------------------------
+    do
+        DB.SetOverride(31, "hidden", nil)
+        local POT = 198946
+        local savedSet2, savedInfoP = SETS[2], CV.GetCooldownViewerCooldownInfo
+        SETS[2] = { 31, POT }
+        local infoP = CV.GetCooldownViewerCooldownInfo
+        CV.GetCooldownViewerCooldownInfo = function(id)
+            if id == POT then return { cooldownID = id, spellCategoryID = 4, category = 2, isKnown = true, flags = 0 } end
+            if id == 198947 then return { cooldownID = id, spellCategoryID = 4, category = 0, isKnown = true, flags = 0 } end
+            return infoP(id)
+        end
+        local savedSet0 = SETS[0]
+        SETS[0] = { 11, 12, 198947 }
+        C.Refresh("test")
+        check("PotionProxyOf：增益圖示列的戰鬥藥水格", C.PotionProxyOf(POT))
+        check("PotionProxyOf：核心的戰鬥藥水格（冷卻格）不算", not C.PotionProxyOf(198947))
+        check("PotionProxyOf：一般增益格不算", not C.PotionProxyOf(31))
+        check("PotionProxyOf：自訂項目／nil 不算", not C.PotionProxyOf("c:1") and not C.PotionProxyOf(nil))
+        eq("戰鬥藥水格的圖示是類別圖示", C.Info(POT).icon, "Interface\\Icons\\INV_Potion_114")
+
+        local savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedPW = ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.PotionWindow
+        ns.Diag = { Note = function() end }
+        ns.Style = { ApplyPanel = function() end }
+        ns.Viewers = { AURA_KIND = { buffs = true, buffbars = true }, frames = {}, EnsureScale = function() end,
+                       Get = function() return nil end }
+        ns.Decorate.ApplyItemAlpha = function() end
+        load("Core/Layout.lua")
+        load("Core/Bars.lua")
+        local B = ns.Bars
+        local win = nil                                  -- { id, s, d }：假的戰鬥藥水視窗
+        ns.PotionWindow = {
+            Active = function() return win ~= nil end,
+            State = function() if win then return win.id, win.s, win.d end end,
+        }
+        local itemP, recP, item31
+        local index = {}
+        local function Fresh(active)
+            itemP, item31 = Obj("Frame"), Obj("Frame")
+            recP = { barKey = "buffs", cooldownID = POT }
+            ns.Viewers.frames[itemP] = recP
+            ns.Viewers.frames[item31] = { barKey = "buffs", cooldownID = 31 }
+            function itemP:IsActive() return active end
+            index[POT], index[31] = itemP, item31
+        end
+        local function Potion() return CU.Records()["potion:" .. POT] end
+
+        -- 視窗沒開：照舊（暴雪那格沒生效 ⇒ 收合，不認領）
+        Fresh(false)
+        B.Relayout("buffs", 2, index, 500)
+        eq("沒視窗：不代畫", Potion(), nil)
+        eq("沒視窗：暴雪那格不認領（收合）", recP.claimKey, nil)
+        eq("Occupancy 沒視窗：不佔", B.Occupancy(index)("buffs", POT), false)
+
+        -- 視窗開著、暴雪那格沒生效 ⇒ 代畫
+        win = { id = 1295132, s = 100, d = 30 }
+        Fresh(false)
+        B.Relayout("buffs", 2, index, 501)
+        local pr = Potion()
+        check("代畫 rec：kind potion、暴雪的數字 id、proxy", pr and pr.kind == "potion" and pr.cooldownID == POT and pr.proxy and pr.custom)
+        eq("代畫 rec：放在增益圖示列", pr and pr.placedBar, "buffs")
+        eq("代畫 rec：spellID 留 nil", pr and pr.spellID, nil)
+        eq("代畫 rec：不進 byId／裝備欄代畫表", (CU.Get(POT) == nil and CU.Proxies()[POT] == nil), true)
+        eq("代畫中：暴雪那格不認領（停放掃描收走）", recP.claimKey, nil)
+        eq("代畫中：2 格", B.Count("buffs"), 2)
+        eq("代畫中：不算 missing", B.IsMissing("buffs", POT), false)
+        eq("代畫中：不進裝備欄代畫表", B.IsProxied("buffs", POT), nil)
+        eq("Occupancy 代畫中：佔一格", B.Occupancy(index)("buffs", POT), true)
+        eq("Counts：戰鬥藥水 1 格、不算裝備欄代畫", CU.Counts().potion == 1 and CU.Counts().proxy == 0, true)
+        check("UpdatePotion：記下喝的那瓶（提示用）", pr.potionSpellID == 1295132)
+        check("UpdatePotion：arm 了起點／秒數", pr.armedStart == 100 and pr.armedDur == 30)
+        eq("UpdatePotion：不寫 cdOnCD（增益不是冷卻）", pr.cdOnCD, nil)
+        eq("UpdatePotion：圖示是類別圖示", pr.tex, "Interface\\Icons\\INV_Potion_114")
+        check("UpdatePotion：不去飽和", pr.frame.Icon.last_SetDesaturation and pr.frame.Icon.last_SetDesaturation[1] == 0)
+        check("UpdatePotion：轉圈畫已經過去的那段（跟暴雪增益圖示一樣）",
+            pr.frame.Cooldown.last_SetReverse and pr.frame.Cooldown.last_SetReverse[1] == true)
+        CU.Sync()
+        eq("Sync 不誤殺代畫格", pr.placedBar, "buffs")
+
+        -- 換瓶：PotionChanged 標髒、排一次 Flush（這裡的 ns.Defer 是同步的）⇒ 重 arm
+        win = { id = 1238443, s = 120, d = 30 }
+        CU.PotionChanged()
+        check("換瓶：重 arm、髒標記清掉", pr.armedStart == 120 and pr.potionSpellID == 1238443 and not pr.dirty)
+
+        -- 暴雪自己生效了 ⇒ 放暴雪的 item，代畫框收起來
+        Fresh(true)
+        B.Relayout("buffs", 2, index, 502)
+        eq("暴雪生效：放 item", recP.claimKey, "buffs")
+        eq("暴雪生效：代畫框收起來", pr.placedBar, nil)
+
+        -- 暴雪沒給框：一樣代畫
+        Fresh(false)
+        index[POT] = nil
+        B.Relayout("buffs", 2, index, 503)
+        eq("沒給框：代畫", pr.placedBar, "buffs")
+        eq("Occupancy 沒給框：佔", B.Occupancy(index)("buffs", POT), true)
+
+        -- 不顯示的格：不代畫
+        DB.SetOverride(POT, "hidden", true)
+        Fresh(false)
+        B.Relayout("buffs", 2, index, 504)
+        eq("不顯示：不代畫", pr.placedBar, nil)
+        eq("不顯示：Occupancy 不佔", B.Occupancy(index)("buffs", POT), false)
+        DB.SetOverride(POT, "hidden", nil)
+
+        -- 圓環條：不代畫
+        check("PotionProxyHere：圓環條不代畫", not B.PotionProxyHere("buffs", POT, true))
+        check("PotionProxyHere：一般條代畫", B.PotionProxyHere("buffs", POT, false))
+
+        -- 視窗關了：收起來
+        win = nil
+        Fresh(false)
+        B.Relayout("buffs", 2, index, 505)
+        eq("視窗關了：代畫框收起來", pr.placedBar, nil)
+        check("視窗關了：PotionProxyHere 不成立", not B.PotionProxyHere("buffs", POT, false))
+
+        ns.Bars, ns.Layout, ns.Style, ns.Viewers, ns.Diag, ns.PotionWindow = savedB, savedLayout, savedStyle, savedViewers, savedDiag, savedPW
+        ns.Decorate.ApplyItemAlpha = nil
+        SETS[2], SETS[0] = savedSet2, savedSet0
+        CV.GetCooldownViewerCooldownInfo = savedInfoP
+        C.Refresh("test")
+    end
+
     for i = #list, 1, -1 do list[i] = nil end
     CU.Sync()
     env.CreateFrame, env.UIParent, env.InCombatLockdown, ns.Events = savedCF, savedUI, savedICL, savedEv
