@@ -60,7 +60,7 @@ local function RenderNpc()
     tip:ClearLines()
     local config = ns.db.unit.npc
     local raw = FakeNpcRaw()
-    local data = UnitInfo.GetUnitData(nil, config.elements, raw)
+    local data = UnitInfo.GetUnitData(nil, config.elements, raw, UnitInfo.ModifierShowAll(config))
     for _, row in ipairs(data) do
         tip:AddLine(UnitInfo.JoinRow(row, " "), 1, 1, 1)
     end

@@ -31,6 +31,8 @@ local function BuildControls(kind)
         { type = "toggle", key = "showModel", label = L["Show 3D model"] },
         { type = "toggle", key = "grayForDead", label = L["Gray out when dead"] },
         { type = "toggle", sub = "elements", sub2 = "factionBig", key = "enable", label = L["Big faction watermark"] },
+        { type = "toggle", key = "modifierShowAll", label = L["Modifier key reveals everything"] },
+        { type = "text", label = L["With this on, holding Alt / Ctrl over a unit shows every line, including the ones under \"Hidden\" below."] },
     }
     if kind == "npc" then
         controls[#controls + 1] = { type = "toggle", sub = "elements", sub2 = "npcTitle", key = "enable", label = L["NPC title"] }
@@ -457,7 +459,7 @@ local function Init(kind)
     hint:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -(formH + 32))
     hint:SetWidth(width - 20)
     hint:SetJustifyH("LEFT")
-    hint:SetText(L["One strip per tooltip line. Drag a block to reorder it, move it to another line, or drop it below to start a new line; drop it on \"Hidden\" (or just click it) to toggle it off. Hold Alt or Ctrl over a unit to temporarily show everything."])
+    hint:SetText(L["One strip per tooltip line. Drag a block to reorder it, move it to another line, or drop it below to start a new line; drop it on \"Hidden\" (or just click it) to toggle it off."])
     local boardTop = formH + 32 + hint:GetStringHeight() + 10
 
     local board

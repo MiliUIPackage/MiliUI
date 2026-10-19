@@ -69,6 +69,7 @@ local function BuildDefaults()
                 showTargetBy = true,
                 showModel = false,
                 grayForDead = false,
+                modifierShowAll = true,    -- 按住 Alt／Ctrl 連關掉的元素也顯示（物品／法術那兩個開關的同款）
                 elements = {
                     raidIcon    = { enable = true, filter = "none" },
                     roleIcon    = { enable = true, filter = "none" },
@@ -118,6 +119,7 @@ local function BuildDefaults()
                 showTargetBy = true,
                 showModel = false,
                 grayForDead = true,
+                modifierShowAll = true,
                 elements = {
                     factionBig   = { enable = false, filter = "none" },
                     raidIcon     = { enable = true,  filter = "none" },

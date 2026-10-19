@@ -29,7 +29,7 @@ local function Setup()
         tracked[#tracked + 1] = { tip = tip, opts = opts }
         State[tip] = {}
     end
-    ns.Media = { WHITE8X8 = "white", Font = function() return "default.ttf" end }
+    ns.Media = { WHITE8X8 = "white", NoSnap = function(t) return t end, Font = function() return "default.ttf" end }
     H.Load(env, ns, "Libs/MiliUIWidgets/Secret.lua")
     H.Load(env, ns, "Panel/Frame.lua")
     H.Load(env, ns, "Api.lua")

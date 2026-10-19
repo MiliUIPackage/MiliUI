@@ -23,7 +23,7 @@ local function Setup()
     local State = {}
     local ns = {
         L = setmetatable({}, { __index = function(_, k) return k end }),
-        Media = { WHITE8X8 = "white", Font = function() return "default.ttf" end },
+        Media = { WHITE8X8 = "white", NoSnap = function(t) return t end, Font = function() return "default.ttf" end },
         playerClass = "MAGE",
         db = {
             general = { scale = 1, background = { r = 0.133, g = 0.133, b = 0.133, a = 1 },
