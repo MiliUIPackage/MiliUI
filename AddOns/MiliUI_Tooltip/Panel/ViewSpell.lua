@@ -111,7 +111,8 @@ local function StatRows(part)
 end
 
 local function AddBody(sections, part, numberHex)
-    local after = #sections > 0 and { space = LOOK.RULE_SPACE } or nil
+    -- 四格之後的空：上＝HEADER_BOTTOM＋ROW_GAP（Render 標題區接四格），下＝四格尾的 ROW_GAP＋這個 ⇒ 上下同距
+    local after = #sections > 0 and { space = LOOK.HEADER_BOTTOM } or nil
     local function push(section)
         section.separator = section.separator or after
         sections[#sections + 1] = section

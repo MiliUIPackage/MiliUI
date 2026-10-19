@@ -367,6 +367,27 @@ do
     eq("尾圖示：垂直置中在這一列", icon and icon.points[1][5], fs.points[1][5] - (12 + 2) / 2)
     eq("尾圖示：錨 LEFT", icon and icon.points[1][1], "LEFT")
 
+    -- 比字高的尾圖示（附魔的品質圖示 24 高）：多出來的高度上下各分一半，夾在兩條線之間上下同距
+    -- （2026-10-19：以前全加在下面，上離 ◆ 線近、下離細線遠）
+    local tall = body .. " |A:Professions-ChatIcon-Quality-Tier3:24:24::1|a"
+    P.RenderView(panel, tip, { header = { { text = "N", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = "a" } } },
+            { separator = { rule = true }, kind = "rows", rows = { { left = tall } } },
+            { separator = { rule = true }, kind = "rows", rows = { { left = "b" } } } } }, state)
+    local lines, tallIcon = {}, nil
+    for i = 1, panel.texturesUsed do
+        local t = panel.textures[i]
+        if t.shown and t.h == 1 and t.w == panel.width - 20 then lines[#lines + 1] = -t.points[1][5] end
+        if t.shown and t.atlas then tallIcon = t end
+    end
+    table.sort(lines)
+    eq("高尾圖示：兩條線", #lines, 2)
+    local cy = tallIcon and -tallIcon.points[1][5]
+    eq("高尾圖示：線到圖示頂＝圖示底到線",
+        cy and ((cy - 12) - (lines[1] + 1)), cy and (lines[2] - (cy + 12)))
+    local tf = FindText(panel, body)
+    eq("高尾圖示：字跟著往下讓、仍置中在圖示上", tf and (-tf.points[1][5] + 7), cy)
+
     -- 頭圖示（|T，含裁切）：文字往右讓
     local lead = "|T12345:16:16:0:0:32:32:2:30:2:30|t Hearthstone"
     P.RenderView(panel, tip, { header = { { text = "N", style = "title" } },
@@ -535,6 +556,24 @@ do
     eq("N2：沒設定（nil）視同開", (P.BaseBorderColor()), 0.25)
     ns.playerClass = "UNKNOWN"
     eq("N2：職業色查不到 ⇒ 退 general.borderColor", (P.BaseBorderColor()), 0.18)
+end
+
+------------------------------------------------------------
+-- 頁尾帶：帶內上下同距（以前上 FOOTER_PAD 6、下 padBottom＋行距）
+------------------------------------------------------------
+do
+    local _, ns, tip, state, panel = Setup()
+    local P = ns.Panel
+    P.RenderView(panel, tip, { header = { { text = "N", style = "title" } },
+        sections = { { kind = "rows", rows = { { left = "a" } } } },
+        footer = { rows = { { left = "f1" }, { left = "f2" } } } }, state)
+    local band = panel.footer
+    local top = -band.points[1][5]
+    local f1, f2 = FindText(panel, "f1"), FindText(panel, "f2")
+    local above = -f1.points[1][5] - top
+    local below = panel.height - (-f2.points[1][5] + 14)
+    eq("頁尾帶：上 FOOTER_PAD", above, 6)
+    eq("頁尾帶：上下同距", below, above)
 end
 
 H.finish("Render_test")

@@ -195,9 +195,11 @@ local function Footer(model)
     end
     footer.draw = function(panel, y, ctx)
         local m, st = ctx.m, ctx.styles
-        for _, r in ipairs(model.restrictions) do
+        local last = (not dur and not coins) and #model.restrictions or nil
+        for i, r in ipairs(model.restrictions) do
+            -- 回傳的 y 不帶行距（頁尾帶內上下同距，Render 的 footerPad）
             y = Panel.DrawRow(panel, ctx, { left = "", right = r.text }, y, st.small,
-                r.unmet and LOOK.UNUSABLE or LOOK.SECONDARY)
+                r.unmet and LOOK.UNUSABLE or LOOK.SECONDARY, 0, (i == last) and 0 or ctx.m.rowGap)
         end
         if not dur and not coins then return y end
         local rowH = math.max(st.small.size, coins and st.body.size or 0) + 2

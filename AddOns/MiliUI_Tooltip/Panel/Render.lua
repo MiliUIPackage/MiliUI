@@ -96,18 +96,46 @@ end
 
 local TextAtRaw
 
+-- 頭／尾圖示比一行字高時，多出來的那截要**上下各分一半**：圖示是垂直置中在那一行上的，
+-- 只把高度往下加的話上緊下鬆（2026-10-19：附魔行尾的品質圖示，上離 ◆ 線近、下離細線遠）。
+-- 回傳 (top, bottom)：字要往下讓的量、最後一行底下要多留的量。換行時頭圖示只管第一行、尾圖示只管最後一行
+local function IconPads(lead, body, trail, style, width)
+    if not lead and not trail then return 0, 0 end
+    local lineH = style.size + 2
+    local gap = Panel.ICON_TEXT_GAP
+    local function over(icon)
+        if not icon then return 0 end
+        local _, h = Panel.IconSize(icon, style)
+        return math.max(0, (h - lineH) / 2)
+    end
+    local textW = width
+    if lead and body ~= "" then textW = textW - Panel.IconSize(lead, style) - gap end
+    if trail then textW = textW - Panel.IconSize(trail, style) - ((body ~= "") and gap or 0) end
+    local leadO, trailO = over(lead), over(trail)
+    if body ~= "" and Panel.MeasureRaw(body, style) > textW then return leadO, trailO end
+    local o = math.max(leadO, trailO)
+    return o, o
+end
+
+-- 一段字的頂端要往下讓多少（DrawRow 左右兩欄對齊用）
+function Panel.TextTopPad(text, style, width)
+    local lead, body, trail = Panel.SplitIcons(text)
+    return (IconPads(lead, body, trail, style, width))
+end
+
 -- 一段字放在 (x, y)、寬 width；回傳佔掉的高。頭／尾那一顆行內圖示拆出來另外畫（Panel.SplitIcons）
 local function TextAt(panel, ctx, text, x, y, width, style, color, justify)
     local lead, body, trail = Panel.SplitIcons(text)
     if not lead and not trail then
         return TextAtRaw(panel, ctx, text, x, y, width, style, color, justify)
     end
+    local top, bottom = IconPads(lead, body, trail, style, width)
+    local y0 = y
+    y = y + top
     local gap = Panel.ICON_TEXT_GAP
     local lineH = style.size + 2
-    local iconH = 0
     if lead then
-        local w, h = DrawInlineIcon(panel, lead, x, y + lineH / 2, style)
-        iconH = h
+        local w = DrawInlineIcon(panel, lead, x, y + lineH / 2, style)
         if body ~= "" then x, width = x + w + gap, width - w - gap end
     end
     local textW, tw, th = width, 0, 0
@@ -131,10 +159,9 @@ local function TextAt(panel, ctx, text, x, y, width, style, color, justify)
         -- 文字換行了：貼在最後一行
         local wrapped = body ~= "" and Panel.MeasureRaw(body, style) > textW
         local cy = wrapped and (y + th - lineH / 2) or (y + lineH / 2)
-        local _, h = DrawInlineIcon(panel, trail, ix, cy, style)
-        iconH = math.max(iconH, h)
+        DrawInlineIcon(panel, trail, ix, cy, style)
     end
-    return math.max(th, iconH, style.size + 2)
+    return (y - y0) + math.max(th, lineH) + bottom
 end
 
 function TextAtRaw(panel, ctx, text, x, y, width, style, color, justify)
@@ -170,9 +197,13 @@ local function DrawRow(panel, ctx, row, y, style, color, indent, gap)
     if right and right ~= "" then
         local rightW = math.min(Panel.Measure(right, style) + 2,
             math.max(inner * 0.5, inner - Panel.Measure(left, style) - m.columnGap))
-        local lh = TextAt(panel, ctx, left, m.pad + indent, y, inner - rightW - m.columnGap, style, leftColor)
-        local rh = TextAt(panel, ctx, right, panel.width - m.pad - rightW, y, rightW, style,
-            row.rightColor or leftColor, "RIGHT")
+        local leftW = inner - rightW - m.columnGap
+        -- 兩欄第一行對齊：圖示撐高的那一欄往下讓多少，另一欄也跟著讓
+        local lt, rt = Panel.TextTopPad(left, style, leftW), Panel.TextTopPad(right, style, rightW)
+        local top = math.max(lt, rt)
+        local lh = TextAt(panel, ctx, left, m.pad + indent, y + top - lt, leftW, style, leftColor) + top - lt
+        local rh = TextAt(panel, ctx, right, panel.width - m.pad - rightW, y + top - rt, rightW, style,
+            row.rightColor or leftColor, "RIGHT") + top - rt
         return y + math.max(lh, rh) + gap
     end
     return y + TextAt(panel, ctx, left, m.pad + indent, y, inner, style, leftColor) + gap
@@ -697,8 +728,8 @@ function Panel.RenderView(panel, tip, view, state)
             y = footer.draw(panel, y, ctx)
         else
             local style = StyleOf(ctx, footer.style)
-            for _, row in ipairs(footer.rows) do
-                y = DrawRow(panel, ctx, row, y, style, footer.color, 0, m.rowGap)
+            for i, row in ipairs(footer.rows) do
+                y = DrawRow(panel, ctx, row, y, style, footer.color, 0, (i < #footer.rows) and m.rowGap or 0)
             end
         end
         local band = panel.footer
@@ -709,7 +740,8 @@ function Panel.RenderView(panel, tip, view, state)
         band:Show()
     end
 
-    panel.height = Panel.Snap(panel, y + m.padBottom)
+    -- 頁尾帶內上下同距（上 FOOTER_PAD，下也 FOOTER_PAD；draw 回傳的 y 不帶行距）
+    panel.height = Panel.Snap(panel, y + (hasFooter and m.footerPad or m.padBottom))
     panel:SetHeight(panel.height)
     if useBox then
         DrawBox(panel, ctx, extraRows)
