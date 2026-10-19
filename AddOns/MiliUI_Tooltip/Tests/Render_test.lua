@@ -138,9 +138,11 @@ do
         if t.shown and t.h == 1 and t.w == panel.width - 20 then line = t end
     end
     check("Rule：畫了一條整寬 1px 線", line ~= nil)
-    eq("Rule：線在上一段下方 6", -line.points[1][5], aBottom + 6)
+    eq("Rule：線在上一段下方 8", -line.points[1][5], aBottom + 8)
+    eq("Rule：下一段在線下方 1px + 8 + 行距", -b.points[1][5], aBottom + 8 + 1 + 8 + 2)
+    -- 線離上下文字一樣遠（上方含 A 的行距 2）
+    eq("Rule：上下對稱", -b.points[1][5] - (-line.points[1][5] + 1), -line.points[1][5] - (aBottom - 2))
     local ruleBelow = -b.points[1][5] + line.points[1][5]
-    eq("Rule：下一段在線頂下方 ◆半高 + 8（跟 Divider 同）", ruleBelow, 4 + 8)
     eq("Rule：白 alpha 0.22", line.color[4], 0.22)
 
     ns.db.panel.separators = false
@@ -149,7 +151,7 @@ do
     for i = 1, panel.texturesUsed do if panel.textures[i].shown then shown = shown + 1 end end
     eq("分隔線關：沒有線", shown, 0)
     b = FindText(panel, "B")
-    eq("分隔線關：留白還在", -b.points[1][5], aBottom + 6)
+    eq("分隔線關：留白還在", -b.points[1][5], aBottom + 8)
     ns.db.panel.separators = true
 
     P.RenderView(panel, tip, {
@@ -171,6 +173,8 @@ do
         divLine and (-FindText(panel, "B").points[1][5] + divLine.points[1][5]), ruleBelow)
     check("Divider：◆ 轉 45°", diamond and math.abs(diamond.rotation - math.rad(45)) < 1e-9)
     eq("Divider：◆ 邊長 5", diamond and diamond.w, 5)
+    -- 跟 Rule 同距：B 的位置一樣（2026-10-19：夾在 Rule 與 Divider 之間的段落上下不一致）
+    eq("Divider：下一段位置與 Rule 相同", -FindText(panel, "B").points[1][5], aBottom + 8 + 1 + 8 + 2)
     check("Divider：◆ 職業色", diamond and math.abs(diamond.color[1] - 0.25) < 1e-9 and diamond.color[4] == 0.9)
 
     P.RenderView(panel, tip, {

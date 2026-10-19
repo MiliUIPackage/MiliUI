@@ -41,8 +41,10 @@ Panel.LOOK = {
     HEADER_BOTTOM = 6,        -- 標題區與第一段之間
 
     LINE_ALPHA = 0.22,        -- Rule／Divider／Caption 兩側線：白、這個 alpha
-    RULE_SPACE = 6,           -- Rule 上下各
-    DIVIDER_SPACE = 8,        -- Divider 上下各
+    -- 線（Rule／Divider／Caption）離上下文字一樣遠：上方＝前一行尾端的 ROW_GAP ＋ RULE_SPACE，
+    -- 下方＝RULE_SPACE ＋ ROW_GAP 補成對稱。Divider 跟 Rule 同距，◆ 置中在線上
+    -- （以前 Divider 另有 8 ＋ ◆ 半高，夾在 Rule 與 Divider 之間的段落上 6 下 14，2026-10-19 回報上下不一致）
+    RULE_SPACE = 8,
     DIAMOND = 5,              -- 中央 ◆ 的邊長（旋轉 45°）
     DIAMOND_ALPHA = 0.9,      -- ◆ 用玩家職業色
     CAPTION_GRAY = 0.65,
