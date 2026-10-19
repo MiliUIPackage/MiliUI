@@ -5,8 +5,13 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 9d6fe167-ab59-4a00-9ef9-3461636954e3
-  modified: 2026-10-10T12:04:53.320Z
+  modified: 2026-10-19T05:35:43.411Z
 ---
+
+⚠ **2026-10-19 更正**（[[project-miliui-cdm-comparison-2026-10-19]]）：下一段「Halo 把暴雪增益藏掉、重做成 AuraContainer 節點、暴雪 item 功能全失」寫過頭了。
+halo-108 對四條暴雪檢視器的 item 是**就地認領**（ClearAllPoints＋SetPoint 到自己的格位、不 reparent、不藏），增益收合是讀 item `IsShown`（秘密就當不在）後重排；
+AuraContainer 只用在它**暴雪清單外的額外光環**（FilteredAuras）與資源格。「三項只能拿兩項」仍成立：Halo 拿「混排＋收合」是暴雪 item 版，
+它自己的光環格不能跟暴雪 item 混排收合；丟掉的暴雪功能是點擊與一般時間的 Edit Mode 拖曳，不是「全失」。
 
 **三家光環格佈局的取捨**（讀原始碼，未實機）：「混排／收合／保留暴雪 item 上疊的功能」只能拿兩項。
 MCDM＝混排＋保留（強制固定格位）；EllesmereUI＝收合＋保留（自訂光環另成一塊接條尾，UIParent 持有框跟著條）；

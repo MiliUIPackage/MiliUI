@@ -166,6 +166,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（取代 Ayije_CDM，1.5.x 上線、核心功能上過實機）—— 拍板與授權、引擎契約（倒數不自畫、認領重錨、暴雪框零欄位兩例外）、撞牆通則（增益旗標只有 SetUseAuraDisplayTime 且到期只 Clear、charges 旗標≠有充能、裝備欄 GCD 當真冷卻、掛勾參數與 GetAlpha 是秘密值、收合框不當錨點、互斥停用要全帳號）、各功能一句話索引；驗證從 README《待實機驗證》與 `/mcdm debug` 開始 |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije）—— 報告在 ~/.claude/plans；效能 plan `miliui-cdm-perf.md`（E0～E3）、功能 plan `miliui-cdm-eui-features-2.md`（F1～F8）|
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | MCDM 借 Halo 的四件事：光環格引擎補位（groupSpacing 必須 0；「單點錨置中」跟 aura-containers 篇對立、待驗）／內建形狀／施放後音效／錨到單位框（2026-10-12 擴成錨定視窗、六單位五家）；SpellPopover Build upvalue 正好 60、Resources.lua 貼 200 local |
+| [project-miliui-cdm-comparison-2026-10-19.md](project-miliui-cdm-comparison-2026-10-19.md) | 2026-10-19 三方對照（MCDM 1.6.10 × EUI Standalone 9.6 × Halo 108）—— 推翻三個舊判斷（EUI 逐法術層是繼承、Halo 就地認領暴雪 item、9.6 是打包不是成長）、九項小功能建議、對外說法修訂；報告在 ~/.claude/plans |
 | [project-miliui-cdm-rings.md](project-miliui-cdm-rings.md) | MCDM 圓環顯示 —— 改造暴雪 item 自己的 Cooldown（環形 swipe）不自建；圓環只收增益、正確用法是圓環群組；Masque 卸皮會還原暴雪方框、貼回整格不能讀 GetNumPoints；部分實機、README 清單未逐項勾 |
 | [project-miliui-cdm-skyriding.md](project-miliui-cdm-skyriding.md) | MCDM 天空騎術面板（Falcon 已從套組刪除、本機還載著就停用＋提醒）—— 接力對象 2026-10-11 改預設核心技能；發佈前欄位搬家用 `cfg.rev`（rev 不放預設值）；已上實機、README 清單未逐項勾 |
 | [project-miliui-qol.md](project-miliui-qol.md) | 米利的便利功能 MiliUI_QoL —— 本體純暴雪便利功能拆出；分頁由 QoL 向本體註冊（MiliUI.RegisterOptionsTab）、設定只有一份 ns.BuildBody；戰利品通知＝攔截→過濾→轉交 AlertFrame:OnEvent；2026-10-15 四批搬完；本體插件強化只剩第三方 |
@@ -238,7 +239,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 163 篇）
+## 全部筆記（自動產生，共 164 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -359,6 +360,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-bosstimeline.md](project-miliui-bosstimeline.md) | MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式／計時條、即時預覽）、標出每一條是哪個插件加的、「首領」頁＝冒險指南分組的技能設定＋自己的提示（錨技能第 N 次／每一次／階段、音效、語音、自製首領警告）、貼上匯入（!MBT1!／DFT 的 DSR1!／NSRT／MRT {time:}）；首領→難度→設定檔的存檔結構（DB v2）；地瓜／DBM／DFT 怎麼碰時間軸的調查結論、三個實機 bug 的根因與待實機驗證清單 |
 | [project-miliui-bounty-map-column.md](project-miliui-bounty-map-column.md) | 分身列表的懸賞圖/儲物箱欄（MiliUI_InfoBar）——旗標任務 86371 不換季，BOUNTY_ITEM_ID 每季要換（抄 Plumber）；儲物箱進度讀 UI widget 殘值只能往上加；SV 是帳號層級且只在登出落地 |
 | [project-miliui-button-variants.md](project-miliui-button-variants.md) | 全套組按鈕上色規則——primary（主動作）／normal（其餘）兩種長相、職業色公式、九條判準、實作入口（W.CreateButton／PaintButton／SetButtonVariant、Skin.Button）與舊配色待辦；所有自製插件與 MiliUI_Skin 換皮都要遵守 |
+| [project-miliui-cdm-comparison-2026-10-19.md](project-miliui-cdm-comparison-2026-10-19.md) | 2026-10-19 三方冷卻管理器對照（MCDM 1.6.10 × EUI Cooldown Manager Standalone 9.6 × Halo 監控台 halo-108）——推翻上兩輪三個判斷（EUI 逐法術層其實是繼承、Halo 對暴雪 item 是就地認領、EUI 9.6 的 16.7 萬行是打包不是成長）、九項小功能建議、三件真正落後（沒實機數字／排版不跳過沒變的／沒設定搜尋）、對外說法修訂 |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije 3.92）——報告與 plan 位置、推薦清單的下場（F1～F8 當天全做完、「不做」清單後來翻了兩項）、效能結論與 E0～E3、對外怎麼講（兩邊都還沒實機數字） |
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | 2026-10-10 對照 Halo 監控台（YUI 的 YHUD 獨立版）後給 MCDM 加的四件事（光環格引擎補位／內建圖示形狀／施放後音效＋天賦條件／錨到單位框，H4 在 2026-10-12 擴成錨定視窗＋六單位五家）、三家光環格佈局只能拿兩項、驗收時改掉的地方；SpellPopover Build 的 upvalue 今天就是 60、Resources.lua 主 chunk 貼 200 local；H1 的「容器縮成內容大小＋單點錨＝置中」跟 wow-121-aura-containers 的「置中做不到」對立、待實機 |
 | [project-miliui-cdm-rings.md](project-miliui-cdm-rings.md) | MCDM 圓環顯示（2026-10-08 進 master）——改造暴雪 item 自己的 Cooldown（環形 swipe）不自建；圓環只收增益（暴雪增益圖示＋自訂光環格）、正確用法是圓環群組；Masque 卸皮會還原暴雪方框、貼回整格不能讀 GetNumPoints；部分實機、README 清單未逐項勾 |
