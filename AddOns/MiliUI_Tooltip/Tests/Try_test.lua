@@ -38,7 +38,7 @@ local function Setup()
             Each = function(fn) for tip, st in pairs(State) do fn(tip, st) end end,
         },
     }
-    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Core/Colors.lua", "Panel/Patterns.lua", "Panel/Frame.lua",
+    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Panel/Patterns.lua", "Panel/Frame.lua",
         "Panel/Render.lua", "Panel/Native.lua", "Panel/ReadFallback.lua", "Panel/Try.lua" }) do
         H.Load(env, ns, f)
     end

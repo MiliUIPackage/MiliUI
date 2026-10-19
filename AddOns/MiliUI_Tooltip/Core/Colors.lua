@@ -34,10 +34,10 @@ end
 -- 文字可讀性：深底上的字色太暗時，**保留色相**往白混到夠亮（tint，見 miliui-color-states 技能）。
 -- 只給文字用——邊框是細線，維持原色的飽和度。
 -- 2026-10-19 玩家回報：寵物／守護者的生物類型用選取色（UnitSelectionColor）是純藍 (0,0,1)，
--- 在提示的深底上幾乎看不見。外部來的色（選取色、職業色、立場色、品質色、玩家自訂色）都可能這樣，一律過這支。
+-- 在提示的深底上幾乎看不見。**目前只套在選取色的文字 hex**（colorfunc.selection）：
+-- 使用者定案其他字色（職業色的死騎／薩滿、品質色的精良藍…）維持原色，那些沒有讀不到的問題。
 -- 亮度用 Rec.601 luma（gamma 空間，混白時是線性的 ⇒ 一步算出混多少）。
--- READABLE_MIN 0.45：純藍提到約 (0.38, 0.38, 1)；職業色只有死騎（0.33）、薩滿（0.36）微亮一點；
--- 面板的 LOOK.DIM（0.45 灰）剛好在線上、不受影響——要調高這個值先看 DIM
+-- READABLE_MIN 0.45：純藍提到約 (0.38, 0.38, 1)
 ------------------------------------------------------------
 local READABLE_MIN = 0.45
 Colors.READABLE_MIN = READABLE_MIN
@@ -136,10 +136,11 @@ colorfunc.itemQuality = function(raw)
     return color.r, color.g, color.b, Colors.Hex(color.r, color.g, color.b)
 end
 
+-- rgb 原樣給（邊框用，維持飽和）；文字 hex 過 Colors.Readable——寵物／玩家控制的單位是純藍 (0,0,1)，深底上讀不到
 colorfunc.selection = function(raw)
     local r, g, b = S.SafeCall(UnitSelectionColor, raw and raw.unit)
     if r == nil then return 1, 1, 1, "ffffff" end
-    return r, g, b, Colors.Hex(r, g, b)
+    return r, g, b, Colors.ReadableHex(Colors.Hex(r, g, b))
 end
 
 colorfunc.faction = function(raw)

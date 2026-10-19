@@ -544,8 +544,7 @@ function UnitInfo.FormatData(value, config, raw, numericValue)
     if not hex or color == "" or color == "default" or color == "none" then
         return (wildcard):format(value)
     end
-    -- 太暗的字色（例：寵物的選取色是純藍）保留色相提亮，見 Colors.Readable
-    return ("|cff" .. Colors.ReadableHex(hex) .. wildcard .. "|r"):format(value)
+    return ("|cff" .. hex .. wildcard .. "|r"):format(value)
 end
 
 ------------------------------------------------------------

@@ -35,7 +35,7 @@ local function Setup(locale)
             item = { panel = true }, spell = { panel = true }, panel = { separators = true, strip = true, numberColor = "class" } },
         Skin = { State = {}, Poll = function() end, Unpoll = function() end, Each = function() end },
     }
-    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Core/Colors.lua", "Panel/Patterns.lua", "Panel/Frame.lua", "Panel/Render.lua",
+    for _, f in ipairs({ "Libs/MiliUIWidgets/Secret.lua", "Panel/Patterns.lua", "Panel/Frame.lua", "Panel/Render.lua",
         "Panel/Native.lua", "Panel/ReadFallback.lua", "Panel/Try.lua", "Panel/ReadSpell.lua", "Panel/ViewSpell.lua" }) do
         H.Load(env, ns, f)
     end
