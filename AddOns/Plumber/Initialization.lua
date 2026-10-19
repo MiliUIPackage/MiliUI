@@ -1,5 +1,5 @@
-local VERSION_TEXT = "1.9.6 c";
-local VERSION_DATE = 1791600000;
+local VERSION_TEXT = "1.9.6 d";
+local VERSION_DATE = 1792100000;
 
 
 local addonName, addon = ...
@@ -299,11 +299,12 @@ local DefaultValues = {
 
 
 	--Unified Map Pin System
-	WorldMapPin_TWW = true,             --Master Switch for TWW Map Pins
-		WorldMapPin_Size = 1,           --1: Default
-		WorldMapPin_TWW_Delve = true,   --Show Bountiful Delves on continent map
-		WorldMapPin_TWW_Quest = true,   --Show Special Assignment on continent map
-		WorldMapPin_PlayerPing = true,
+	--WorldMapPin_TWW = true,           --Master Switch for TWW Map Pins
+	--	WorldMapPin_Size = 1,           --1: Default
+	--	WorldMapPin_TWW_Delve = true,   --Show Bountiful Delves on continent map
+	--	WorldMapPin_TWW_Quest = true,   --Show Special Assignment on continent map
+
+	WorldMapPin_PlayerPing = false,
 
 
 	--Modify default interface behavior:
@@ -550,8 +551,8 @@ do
 	end
 	addon.IsToCVersionEqualOrNewerThan = IsToCVersionEqualOrNewerThan;
 
-	-- TOC "X-Game" is always a string, WOW_PROJECT_* may be nil
-	local game = C_AddOns.GetAddOnMetadata(addonName, "X-Game");
+	-- TOC "X-GameType" is always a string, WOW_PROJECT_* may be nil
+	local game = C_AddOns.GetAddOnMetadata(addonName, "X-GameType");
 
 	-- TODO: "Camelot" / WOW_PROJECT_CAMELOT will be renamed to "Forever"
 	addon.IS_FOREVER = game == "Camelot" or WOW_PROJECT_ID == WOW_PROJECT_CAMELOT;

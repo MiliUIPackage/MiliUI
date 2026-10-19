@@ -1,5 +1,5 @@
-## Interface: 120105, 120100, 50504, 20506, 11509, 16001
-## Version: 1.9.6 c
+## Interface: 120107, 120105, 50504, 20506, 11509, 16001
+## Version: 1.9.6 d
 
 ## Title: Plumber
 ## Title-zhTW: |r|cffFFFFFF[工具]|r 實用工具包
@@ -16,8 +16,9 @@
 ## IconTexture: Interface\AddOns\Plumber\Art\Logo\PlumberLogo64
 ## Category-zhTW: 其他
 
-## X-Game: [Game]
-## X-Family: [Family]
+## X-GameType: Camelot [AllowLoadGameType camelot]
+## X-GameType: Standard [AllowLoadGameType standard]
+## X-GameType: Mists [AllowLoadGameType mists]
 
 
 Initialization.lua
@@ -54,7 +55,7 @@ Modules\QuickSlot.xml [AllowLoadGameType standard, camelot]
 Modules\QuestAreaTrigger.lua [AllowLoadGameType standard]
 Modules\Dreamseed.lua [AllowLoadGameType standard]
 #Modules\EventMap.lua [AllowLoadGameType standard]
-#Modules\MapPin.xml [AllowLoadGameType standard]
+Modules\MapPin.xml [AllowLoadGameType standard, camelot]
 Modules\RareAnnouncement.lua [AllowLoadGameType standard]
 Modules\PlayerChoiceUI.lua [AllowLoadGameType standard]
 Modules\Lockpicking.lua [AllowLoadGameType standard]
