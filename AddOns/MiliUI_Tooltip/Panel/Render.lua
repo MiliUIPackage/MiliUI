@@ -6,7 +6,9 @@
 --
 -- view = {
 --     icon = 貼圖, iconSize = 設計單位,       標題各行從圖示右邊開始
+--     portrait = 單位 token, portraitKey = 字串  單位頭像（SetPortraitTexture）；key 一樣就不重抓，icon 當讀不到時的退路
 --     badge = "字", badgeColor = { r, g, b }, 圖示上方的等級徽章（字色省略＝白）
+--     badgeBelow = true,                      徽章改放圖示下方（單位：跟暴雪目標框一樣，等級在頭像底下）
 --     header = {                              依序，在圖示旁
 --         { text = "名字", style = "title", color = { r, g, b } },
 --         { badges = { { "被動", color }, { "等級 2/3" } }, style = "small" },   中間用 · 隔開
@@ -24,6 +26,7 @@
 --     footer = { rows = { ... }, style, color }   底部實心帶
 --             | { draw = function(panel, y, ctx) return y end, measure = function(panel, ctx) return w end },
 --     minWidth = 設計單位,
+--     decorate = function(panel, ctx) end,   全部畫完（寬高已定）之後再補的裝飾（單位的陣營浮水印）
 -- }
 --
 -- 色一律是明文 { r, g, b }；邊框色例外（Skin 給的，可能是秘密分量，只交給 SetVertexColor）。
@@ -365,7 +368,7 @@ local DRAW = {
 -- 寬度：view 裡最寬的東西＋左右內距，夾在上下限之間
 ------------------------------------------------------------
 local function IconIndent(ctx, view)
-    if not view.icon then return 0 end
+    if not view.icon and not view.portrait then return 0 end
     return ctx.m.sc(view.iconSize or LOOK.ICON_ITEM) + ctx.m.iconGap
 end
 
@@ -418,9 +421,23 @@ Panel.FitWidth = FitWidth
 ------------------------------------------------------------
 -- 回傳標題區至少要多高（徽章＋圖示）。徽章在**上**、圖示在下（2026-10-19 使用者要求對調：
 -- 等級數字跟名字同一列高度，一眼先看到等級）；徽章置中在圖示欄上
+local function SetIcon(icon, panel, view)
+    if view.portrait then
+        if panel.portraitKey ~= nil and panel.portraitKey == view.portraitKey then return end
+        -- 第三參數 disableMasking：要方形的頭像（預設是圓形遮罩）。我們自己的貼圖、明文 token
+        if SetPortraitTexture and pcall(SetPortraitTexture, icon, view.portrait, true) then
+            panel.portraitKey = view.portraitKey
+            return
+        end
+    end
+    panel.portraitKey = nil
+    icon:SetTexture(view.icon)
+end
+
 local function DrawIcon(panel, ctx, view)
     local m = ctx.m
-    if not view.icon then return 0 end
+    panel.badgeTint = view.badge and view.badge ~= "" and view.badgeTint or nil
+    if not view.icon and not view.portrait then return 0 end
     local size = m.sc(view.iconSize or LOOK.ICON_ITEM)
     local icon, border = panel.icon, panel.iconBorder
     local top = m.padTop
@@ -430,7 +447,12 @@ local function DrawIcon(panel, ctx, view)
         local style = ctx.styles.small
         local text = panel.badgeText
         Panel.ApplyFont(text, style)
+        local tint = view.badgeTint
         local bc = view.badgeColor or LOOK.TEXT
+        if tint then
+            local t = LOOK.PLATE_TEXT
+            bc = { tint[1] * (1 - t) + t, tint[2] * (1 - t) + t, tint[3] * (1 - t) + t }
+        end
         text:SetTextColor(bc[1], bc[2], bc[3])
         text:SetText(view.badge)
         local w = math.max(size + 2 * m.px, Panel.Measure(view.badge, style) + m.badgePad)
@@ -440,13 +462,19 @@ local function DrawIcon(panel, ctx, view)
         fill:ClearAllPoints()
         fill:SetPoint("TOPLEFT", badge, "TOPLEFT", m.px, -m.px)
         fill:SetPoint("BOTTOMRIGHT", badge, "BOTTOMRIGHT", -m.px, m.px)
-        fill:SetVertexColor(LOOK.BADGE_BG, LOOK.BADGE_BG, LOOK.BADGE_BG, 1)
-        top = top + badgeH + m.badgeGap
+        if tint then
+            local k = LOOK.PLATE_FILL
+            fill:SetVertexColor(tint[1] * k, tint[2] * k, tint[3] * k, 1)
+        else
+            fill:SetVertexColor(LOOK.BADGE_BG, LOOK.BADGE_BG, LOOK.BADGE_BG, 1)
+        end
+        if not view.badgeBelow then top = top + badgeH + m.badgeGap end
     end
     icon:ClearAllPoints()
     icon:SetPoint("TOPLEFT", panel, "TOPLEFT", m.pad, -top)
     icon:SetSize(size, size)
-    icon:SetTexture(view.icon)
+    SetIcon(icon, panel, view)
+    icon:SetDesaturated(view.desaturate and true or false)
     icon:Show()
     border:ClearAllPoints()
     border:SetPoint("TOPLEFT", icon, "TOPLEFT", -m.px, m.px)
@@ -455,8 +483,13 @@ local function DrawIcon(panel, ctx, view)
     if hasBadge then
         local badge = panel.badge
         badge:ClearAllPoints()
-        badge:SetPoint("BOTTOM", icon, "TOP", 0, m.badgeGap + m.px)
+        if view.badgeBelow then
+            badge:SetPoint("TOP", icon, "BOTTOM", 0, -(m.badgeGap + m.px))
+        else
+            badge:SetPoint("BOTTOM", icon, "TOP", 0, m.badgeGap + m.px)
+        end
         badge:Show(); panel.badgeFill:Show(); panel.badgeText:Show()
+        if view.badgeBelow then return top + size + m.px + m.badgeGap + badgeH end
     end
     return top + size
 end
@@ -635,6 +668,8 @@ function Panel.RenderView(panel, tip, view, state)
     panel.syncedLevel = nil
     Panel.SyncLevel(panel, tip)
     Panel.Clear(panel)
+    -- 單位目標列的秘密名字那顆 FontString 會回到池裡被別的行借走：每次重畫都放掉，畫到的時候 ViewUnit 再記
+    if state then state.panelTargetFS = nil end
 
     local ctx = { m = Metrics(panel), styles = Panel.Styles(), accent = Accent(), tip = tip, state = state }
     local m = ctx.m
@@ -684,7 +719,7 @@ function Panel.RenderView(panel, tip, view, state)
     local header = view.header or {}
     for i, item in ipairs(header) do
         local style = StyleOf(ctx, item.style)
-        local gap = (i < #header) and m.headerGap or 0
+        local gap = (i < #header) and (item.gap and m.sc(item.gap) or m.headerGap) or 0
         if item.text then
             -- 第一行要讓開關閉鈕
             local w = inner - ((i == 1) and closeW or 0)
@@ -700,7 +735,7 @@ function Panel.RenderView(panel, tip, view, state)
     end
     local footer = view.footer
     local hasFooter = footer and (footer.draw or (footer.rows and #footer.rows > 0))
-    if #header > 0 or view.icon then
+    if #header > 0 or view.icon or view.portrait then
         if #sections > 0 or hasFooter then
             -- 文字與「圖示（或徽章）的底」都要離第一段至少 HEADER_BOTTOM：只有一行名字時文字比圖示矮，
             -- 只加在文字後面的話圖示底就貼著第一段（實機：單行名字的法術，圖示底黏著四格頂）
@@ -744,6 +779,7 @@ function Panel.RenderView(panel, tip, view, state)
     -- 頁尾帶內上下同距（上 FOOTER_PAD，下也 FOOTER_PAD；draw 回傳的 y 不帶行距）
     panel.height = Panel.Snap(panel, y + (hasFooter and m.footerPad or m.padBottom))
     panel:SetHeight(panel.height)
+    if view.decorate then view.decorate(panel, ctx) end
     if useBox then
         DrawBox(panel, ctx, extraRows)
     else

@@ -19,6 +19,12 @@ local tabs = {}   -- [kind] = { tab, refreshers, board }
 ------------------------------------------------------------
 local function BuildControls(kind)
     local controls = {
+        { type = "header", label = L["New layout"] },
+        { type = "toggle", key = "panel", label = (kind == "player") and L["Use the new layout for player tooltips"]
+            or L["Use the new layout for NPC tooltips"] },
+        { type = "text", label = L["Portrait with a level plate, then the target and details below a divider. When the game keeps a unit's details secret (in combat inside instances, for example), that tooltip uses the classic layout instead."] },
+        { type = "toggle", root = "panel", key = "unitWatermark", label = L["Faction crest and elite dragon watermark"] },
+
         { type = "header", label = L["Coloring"] },
         { type = "dropdown", key = "coloredBorder", label = L["Border tint"], items = Specs.BORDER_COLOR_ITEMS },
         { type = "dropdown", sub = "background", key = "colorfunc", label = L["Background tint"], items = Specs.BG_COLOR_ITEMS },
@@ -433,13 +439,18 @@ local function Init(kind)
     if tabs[kind] then return end
     local title = (kind == "player") and L["Player"] or "NPC"
     local tab, scroll = ns.Options.MakeFormTab(title)
+    -- root = "panel"：面板外觀（ns.db.panel，玩家與 NPC 共用）；其他都是這一類單位自己的設定
+    local function Root(spec)
+        if spec.root == "panel" then return ns.db.panel end
+        return ns.db.unit[kind]
+    end
     local ctx = {
         get = function(spec)
-            local t = Resolve(ns.db.unit[kind], spec)
+            local t = Resolve(Root(spec), spec)
             return t and t[spec.key]
         end,
         set = function(spec, v)
-            local t = Resolve(ns.db.unit[kind], spec)
+            local t = Resolve(Root(spec), spec)
             if t then t[spec.key] = v end
         end,
         apply = ns.ApplyAll,

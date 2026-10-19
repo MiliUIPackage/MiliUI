@@ -70,6 +70,7 @@ local function BuildDefaults()
                 showModel = false,
                 grayForDead = false,
                 modifierShowAll = true,    -- 按住 Alt／Ctrl 連關掉的元素也顯示（物品／法術那兩個開關的同款）
+                panel = true,              -- 以面板重繪（Panel/ReadUnit.lua）；關掉＝舊樣式（就地改寫暴雪的行）
                 elements = {
                     raidIcon    = { enable = true, filter = "none" },
                     roleIcon    = { enable = true, filter = "none" },
@@ -120,6 +121,7 @@ local function BuildDefaults()
                 showModel = false,
                 grayForDead = true,
                 modifierShowAll = true,
+                panel = true,
                 elements = {
                     factionBig   = { enable = false, filter = "none" },
                     raidIcon     = { enable = true,  filter = "none" },
@@ -174,6 +176,7 @@ local function BuildDefaults()
             numberCustom = Color(1, 0.82, 0, 1),
             extrasBox = true,        -- 別的插件（與我們自己的 ID 行）加的行另開一框接在下面
             hideDuplicatePrice = true, -- 頁尾有售價時，別的插件加的同金額行不顯示（Panel/ReadItem.lua）
+            unitWatermark = true,    -- 單位面板右上角的浮水印：玩家陣營徽記、精英／稀有／首領的龍（Panel/ViewUnit.lua）
         },
     }
 end

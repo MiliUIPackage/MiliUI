@@ -23,6 +23,14 @@
 --      skin OnHide → OnSkinHide：也延一幀（清單刷新時游標那一列先藏、下一幀才 OnEnter 重設同一件；當場拆會閃）。
 --
 -- 任何一步出錯都由 Core/Hooks.lua 的 xpcall 接住；錯誤之後 Restore 也會被叫到（見 Hooks）。
+--
+-- 單位（kind = "unit"，2026-10-20）走同一條：開關、單位 token 的解析在 Panel/ReadUnit.lua 的 Panel.TryUnit，
+-- 這裡多三件事——
+--   * 指紋多一段「動態簽章」（目標、死亡、暫離…這些不在提示行裡、靠 Unit API 讀的），輪詢比到它變了就排對帳；
+--     **只有動態那段變了**（行的指紋一樣）＝立刻重畫，不等 SETTLE（換目標不該慢 0.3 秒）
+--   * 面板顯示時把血條／3D 模型改貼到面板（skin 跟著原生 alpha 0 看不見）；退回時貼回 skin
+--   * 不在 post-call 裡退回（例如對帳讀到秘密值）時，原生行是暴雪的原樣（面板路徑不改寫行）⇒
+--     Panel.UnitFallback 重跑一次舊樣式（Core/Hooks.lua）
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -35,6 +43,7 @@ local T = Enum and Enum.TooltipDataType or {}
 local KIND = {}
 if T.Item then KIND[T.Item] = "item" end
 if T.Spell then KIND[T.Spell] = "spell" end
+if T.Unit then KIND[T.Unit] = "unit" end
 Panel.KIND = KIND
 
 -- P2／P3 在這裡登記各型別的 reader／view；沒登記的走最簡版
@@ -48,28 +57,46 @@ Panel.SETTLE = SETTLE
 -- 設定一改就 +1（進指紋：改了外觀要重畫）
 Panel.settingsVersion = 0
 
-local function Enabled(kind)
+local function Enabled(kind, state)
+    -- 玩家／NPC 各自的開關、明文 token 由 Panel.TryUnit 先判斷過（它設 state.panelUnit）；沒走它進來的單位一律不接
+    if kind == "unit" then return state.panelUnit ~= nil end
     local db = ns.db
     return db and db[kind] and db[kind].panel == true
 end
 
 -- 內嵌物品框（世界任務獎勵）或底部說明字顯示時，暴雪自己在用 padding ⇒ 不接
 local BLIZZ_PADDING_USERS = { "ItemTooltip", "BottomFontString" }
+local function ShownRegion(region)
+    if type(region) ~= "table" or not region.IsShown then return false end
+    local ok, shown = pcall(region.IsShown, region)
+    return not ok or S.IsSecret(shown) or shown and true or false
+end
 local function Eligible(tip)
     for _, key in ipairs(BLIZZ_PADDING_USERS) do
-        local region = tip[key]
-        if region and region.IsShown then
-            local ok, shown = pcall(region.IsShown, region)
-            if not ok or S.IsSecret(shown) or shown then return false end
+        if ShownRegion(tip[key]) then return false end
+    end
+    -- 暴雪插進提示裡的框（GameTooltip_InsertFrame：UIWidget 組、進度條）：面板畫不出來，原生又在 alpha 0 ⇒ 不接。
+    -- 只讀（暴雪自己的欄位，ClearLines 時清成 nil）
+    local okF, frames = pcall(function() return tip.insertedFrames end)
+    if okF and type(frames) == "table" and not S.IsSecret(frames) then
+        for i = 1, #frames do
+            if ShownRegion(frames[i]) then return false end
         end
     end
     return true
 end
+Panel.Eligible = Eligible
 
 -- 指紋：所有行（文字＋顏色）＋設定版本＋行數。reader 只收明文，這裡串接是安全的
 local function ColorKey(c)
     if not c then return "-" end
     return ("%.3f,%.3f,%.3f"):format(c[1], c[2], c[3])
+end
+
+-- 單位的動態簽章（ReadUnit.lua 定義；其他型別沒有）
+local function Dynamic(kind, state)
+    if kind ~= "unit" or not Panel.UnitDynamic then return "" end
+    return Panel.UnitDynamic(state) or ""
 end
 
 function Panel.Fingerprint(model, extra)
@@ -87,11 +114,22 @@ end
 -- 「同一件」：型別＋明文 id；沒有 id 就用 hyperlink；兩個都拿不到（秘密）⇒ nil＝每次都當不同件
 function Panel.Key(kind, data)
     if type(data) ~= "table" then return nil end
+    if kind == "unit" then
+        local guid = S.PlainText(data.guid)
+        return guid and ("unit:" .. guid) or nil
+    end
     local id = S.PlainNumber(data.id)
     if id then return kind .. ":" .. id end
     local link = S.PlainText(data.hyperlink)
     if link and link ~= "" then return kind .. ":" .. link end
     return nil
+end
+
+-- 回傳 完整指紋、行的指紋、動態簽章
+local function Fingerprints(tip, state, kind, rows, n)
+    local lineFP = Panel.Fingerprint({ rows = rows, numLines = n }, kind .. "|" .. (Panel.CompareHeaderText(tip) or ""))
+    local dyn = Dynamic(kind, state)
+    return lineFP .. "\030" .. dyn, lineFP, dyn
 end
 
 local function Shown(tip)
@@ -106,8 +144,12 @@ end
 ------------------------------------------------------------
 -- 退回
 ------------------------------------------------------------
+local restoringAll = false      -- Panel.RestoreAll 進行中（設定改了）：單位退回時不封鎖重接
+
 function Panel.Restore(tip, state)
     if not state then return end
+    local wasUnit = state.panelKind == "unit" and (state.native or (state.panel and state.panel:IsShown()))
+    local unitKey = wasUnit and state.panelKey
     state.releasePending = nil
     state.hidePending = nil
     state.reconcileToken = (state.reconcileToken or 0) + 1    -- 排著的 Reconcile 作廢
@@ -118,6 +160,8 @@ function Panel.Restore(tip, state)
     state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）
     state.nativeSettledW, state.nativeSettledH = nil, nil
     state.panelData, state.panelKind, state.panelLines = nil, nil, nil
+    state.panelLineFingerprint, state.panelDyn, state.panelUnit, state.panelGuid = nil, nil, nil, nil
+    state.panelBorder, state.panelTargetFS = nil, nil
     if state.panelPolling then
         state.panelPolling = nil
         Skin.Unpoll(state)
@@ -137,6 +181,19 @@ function Panel.Restore(tip, state)
             end)
         end
     end
+    if wasUnit then
+        Panel.HostAccents(tip, state, nil)      -- 血條／模型貼回 skin
+        -- 不在 post-call 裡（對帳／輪詢／設定改了）、提示還顯示著同一個單位 ⇒ 原生行是暴雪的原樣，重跑舊樣式
+        if not state.inUnitPostCall and state.isUnitTip and Shown(tip) and Panel.UnitFallback then
+            Panel.UnitFallback(tip, state, unitKey, not restoringAll)
+        end
+    end
+end
+
+-- 血條與 3D 模型改貼到哪（nil＝貼回 skin）。兩個模組在離線測試裡不存在
+function Panel.HostAccents(tip, state, host)
+    if ns.Bar and ns.Bar.SetHost then ns.Bar.SetHost(tip, host) end
+    if ns.Model and ns.Model.SetHost then ns.Model.SetHost(tip, host) end
 end
 
 -- 內容被清掉（OnTooltipCleared）：先不拆，下一幀還沒被認領才拆
@@ -176,8 +233,11 @@ function Panel.OnSkinHide(tip, state)
     end)
 end
 
+-- 設定改了：全部退回。顯示中的單位面板退回後讓暴雪重跑內容（UnitFallback 不封鎖）⇒ 開著就照新設定重畫、關了就走舊樣式
 function Panel.RestoreAll()
-    Skin.Each(function(tip, state) Panel.Restore(tip, state) end)
+    restoringAll = true
+    Skin.Each(function(tip, state) pcall(Panel.Restore, tip, state) end)
+    restoringAll = false
 end
 
 -- skin 的 OnShow（tooltip 從隱藏變顯示）：重申 alpha 0
@@ -188,9 +248,9 @@ end
 ------------------------------------------------------------
 -- 畫：rows 已經讀好（指紋用的那份）；失敗回 false（呼叫端 Restore）
 ------------------------------------------------------------
-local function Render(tip, state, kind, data, rows, n, fingerprint)
+local function Render(tip, state, kind, data, rows, n, fingerprint, lineFP, dyn)
     local reader = Panel.readers[kind] or Panel.ReadFallback
-    local model = reader(tip, data, kind, rows, n)
+    local model = reader(tip, data, kind, rows, n, state)
     if not model then return false end
     local panel = Panel.Get(tip, state)
     local view = (Panel.views[kind] or Panel.ViewFallback)(model, state)
@@ -200,10 +260,13 @@ local function Render(tip, state, kind, data, rows, n, fingerprint)
     state.panelMaxTotalHeight = math.max(state.panelMaxTotalHeight or 0, panel.totalHeight or panel.height or 0)
     if not Panel.Align(panel, tip) or not Native.Hide(tip, state) then return false end
     if Native.Fit(tip, state) == false then return false end
+    Panel.Unfade(panel)
     panel:Show()
+    Panel.HostAccents(tip, state, kind == "unit" and panel or nil)
     if ns.logEnabled then ns.Log("重畫 key=%s 行數 %d 面板 %sx%s 總高 %s", tostring(state.panelKey), n,
         tostring(panel.width), tostring(panel.height), tostring(panel.totalHeight)) end
     state.panelFingerprint = fingerprint
+    state.panelLineFingerprint, state.panelDyn = lineFP, dyn
     state.panelSettings = Panel.settingsVersion
     state.panelLines = n
     return true
@@ -233,8 +296,15 @@ function Reconcile(tip, state)
         Panel.Restore(tip, state)
         return
     end
+    -- 顯示途中暴雪才插進框（進度條、UIWidget）：讓回原生
+    if not Eligible(tip) then
+        Panel.Restore(tip, state)
+        return
+    end
     Native.Repress(tip, state)
     if state.panel then Panel.SyncLevel(state.panel, tip) end
+    -- 單位已經不在（滑鼠離開、提示淡出中）：維持最後的畫面，不重讀
+    if state.panelKind == "unit" and Panel.UnitGone and Panel.UnitGone(state) then return end
 
     local rows, n = Panel.CollectLines(tip, state.panelData)
     if not rows then
@@ -245,7 +315,7 @@ function Reconcile(tip, state)
         if Native.Fit(tip, state) == false then Panel.Restore(tip, state) return end
         ScheduleReconcile(tip, state)        -- 每幀重讀，直到穩定或回到現在畫的版本
     end
-    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, state.panelKind .. "|" .. (Panel.CompareHeaderText(tip) or ""))
+    local fingerprint, lineFP, dyn = Fingerprints(tip, state, state.panelKind, rows, n)
     local full = state.panelFullLines or 0
     if ns.logEnabled then
         ns.Log("對帳 key=%s 行數 %d（完整 %d）指紋%s", tostring(state.panelKey), n, full,
@@ -262,6 +332,8 @@ function Reconcile(tip, state)
 
     if state.panelSettings ~= Panel.settingsVersion then
         -- 設定改了：不是內容在抖，直接照新設定重畫
+    elseif lineFP == state.panelLineFingerprint then
+        -- 行沒變、只有動態簽章變了（單位換目標、死了、暫離）：不是重建在抖，立刻重畫
     elseif n < full then
         -- 部分版不准蓋掉完整版：連續 SETTLE 秒都比較少才接受
         state.partialSince = state.partialSince or Now()
@@ -279,11 +351,18 @@ function Reconcile(tip, state)
     -- 長大（立刻）、或變少／變內容已經穩定夠久：採用
     state.partialSince, state.pendingFingerprint, state.pendingSince = nil, nil, nil
     state.panelFullLines = n
-    if not Render(tip, state, state.panelKind, state.panelData, rows, n, fingerprint) then
+    if not Render(tip, state, state.panelKind, state.panelData, rows, n, fingerprint, lineFP, dyn) then
         Panel.Restore(tip, state)
     end
 end
 Panel.Reconcile = Reconcile
+
+-- 外部資料到貨（觀察裝等、成就點數）：當作動態簽章變了，下一幀重畫
+function Panel.Poke(tip, state)
+    if not state or not state.native or not state.panelData then return end
+    state.panelFingerprint = nil
+    ScheduleReconcile(tip, state)
+end
 
 ------------------------------------------------------------
 -- 輪詢
@@ -304,6 +383,11 @@ local function Tick(tip, state)
     n = okN and S.PlainNumber(n)
     if n and n ~= state.panelLines and state.panelData then
         ScheduleReconcile(tip, state)
+    elseif state.panelKind == "unit" and state.panelData then
+        -- 單位：目標、死亡、暫離這些不在行裡，比動態簽章（單位不在了回 nil，不動）
+        local dyn = Panel.UnitDynamic and Panel.UnitDynamic(state)
+        if dyn and dyn ~= state.panelDyn then ScheduleReconcile(tip, state) end
+        if Panel.UnitTick then Panel.UnitTick(state) end
     end
     if Native.Fit(tip, state) == false then Panel.Restore(tip, state) end
 end
@@ -317,17 +401,18 @@ end
 ------------------------------------------------------------
 -- 主流程（post-call 進來）
 ------------------------------------------------------------
--- dataType 是 Enum.TooltipDataType 的值，或直接給 "item"／"spell"
+-- dataType 是 Enum.TooltipDataType 的值，或直接給 "item"／"spell"／"unit"
+-- 回傳 true＝面板顯示中（這份內容由面板接手）
 function Panel.Try(tip, state, dataType, data)
-    if not state or not ns.db then return end
+    if not state or not ns.db then return false end
     local kind = KIND[dataType] or dataType
-    if (kind ~= "item" and kind ~= "spell") or not Enabled(kind) then
+    if (kind ~= "item" and kind ~= "spell" and kind ~= "unit") or not Enabled(kind, state) then
         Panel.Restore(tip, state)
-        return
+        return false
     end
     if S.IsForbiddenObject(tip) or not Eligible(tip) then
         Panel.Restore(tip, state)
-        return
+        return false
     end
 
     local key = Panel.Key(kind, data)
@@ -339,21 +424,25 @@ function Panel.Try(tip, state, dataType, data)
         state.releasePending = nil          -- 認領：上一份被清掉／藏起來時排定的拆除取消
         state.hidePending = nil
         state.panelData, state.panelKind = data, kind
-        Panel.PaintEdges(panel, state)      -- 邊框色在 ClearTransient 時被重設過，補回來
+        -- 邊框色在 ClearTransient 時被重設過，補回來（單位的邊色是 reader 算的，不重跑 reader，用記下的）
+        local bc = kind == "unit" and state.panelBorder
+        if bc and Skin.SetBorderColor then Skin.SetBorderColor(tip, bc[1], bc[2], bc[3], bc[4]) end
+        Panel.PaintEdges(panel, state)
+        Panel.Unfade(panel)
         -- Fit 的 partial：這一刻內容不完整，自然尺寸用上次對帳量到的（Native.lua）
         if not Native.Hide(tip, state) or Native.Fit(tip, state, true) == false then
             Panel.Restore(tip, state)
-            return
+            return false
         end
         ScheduleReconcile(tip, state)
-        return
+        return true
     end
 
     -- 新物件：立刻畫
     local rows, n = Panel.CollectLines(tip, data)
     if not rows then
         Panel.Restore(tip, state)
-        return
+        return false
     end
     state.releasePending = nil
     state.hidePending = nil
@@ -364,16 +453,42 @@ function Panel.Try(tip, state, dataType, data)
     state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）
     state.nativeSettledW, state.nativeSettledH = nil, nil
     state.pendingFingerprint, state.pendingSince, state.partialSince = nil, nil, nil
-    local fingerprint = Panel.Fingerprint({ rows = rows, numLines = n }, kind .. "|" .. (Panel.CompareHeaderText(tip) or ""))
-    if not Render(tip, state, kind, data, rows, n, fingerprint) then
+    local fingerprint, lineFP, dyn = Fingerprints(tip, state, kind, rows, n)
+    if not Render(tip, state, kind, data, rows, n, fingerprint, lineFP, dyn) then
         Panel.Restore(tip, state)
-        return
+        return false
     end
     state.panelKey = key
     state.panelFullLines = n
     state.partialSince = nil
     ScheduleReconcile(tip, state)
     StartPoll(tip, state)
+    return true
+end
+
+-- 不經過提示資料、直接拿現成的 model 畫（設定視窗的 NPC 預覽：沒有能 SetUnit 的 NPC，餵假資料）。
+-- 沒有 panelData ⇒ 輪詢不對帳、只維持 alpha／尺寸；下一次 post-call（換預覽模式）照常接手或退回
+function Panel.ShowModel(tip, state, kind, model)
+    if not state or S.IsForbiddenObject(tip) or not Eligible(tip) then return false end
+    local panel = Panel.Get(tip, state)
+    state.releasePending, state.hidePending = nil, nil
+    state.panelMaxWidth, state.panelMaxTotalHeight = nil, nil
+    state.nativeMaxW, state.nativeMaxH, state.nativeSettledW, state.nativeSettledH = nil, nil, nil, nil
+    local view = (Panel.views[kind] or Panel.ViewFallback)(model, state)
+    if not view or not Panel.RenderView(panel, tip, view, state)
+        or not Panel.Align(panel, tip) or not Native.Hide(tip, state) or Native.Fit(tip, state) == false then
+        Panel.Restore(tip, state)
+        return false
+    end
+    state.panelMaxWidth = panel.width
+    state.panelMaxTotalHeight = panel.totalHeight or panel.height
+    Panel.Unfade(panel)
+    panel:Show()
+    Panel.HostAccents(tip, state, kind == "unit" and panel or nil)
+    state.panelKey, state.panelKind, state.panelData = "static:" .. kind, kind, nil
+    state.panelFingerprint, state.panelLineFingerprint, state.panelDyn = nil, nil, nil
+    StartPoll(tip, state)
+    return true
 end
 
 -- Hooks 的 xpcall 失敗時叫：畫到一半出錯也不能留著 alpha 0 的原生

@@ -94,6 +94,7 @@ function Region:SetDrawLayer(layer, sub) self.layer, self.sublevel = layer, sub 
 function Region:SetRotation(r) self.rotation = r end
 function Region:SetAtlas(a) self.atlas = a; self.texture = nil end
 function Region:SetBlendMode() end
+function Region:SetDesaturated(v) self.desaturated = v end
 -- 文字
 function Region:SetFont(path, size, flags)
     self.font, self.size, self.flags = path, size, flags

@@ -396,6 +396,11 @@ function ns.RefreshUnitTip(guid)
     local state = Skin.Get(tip)
     if not state or not state.unit then return end
     if not tip:IsShown() then return end
+    -- 重繪面板接手中：不改寫行，下一幀照新資料重畫面板
+    if state.native and state.panelKind == "unit" then
+        if UnitInfo.GuidEquals(state.panelGuid, guid) then ns.Panel.Poke(tip, state) end
+        return
+    end
     local mouseoverGuid = S.SafeCall(UnitGUID, "mouseover")
     if mouseoverGuid ~= nil and UnitInfo.GuidEquals(mouseoverGuid, guid) then
         UnitLines.Apply(tip, state, "mouseover", true)

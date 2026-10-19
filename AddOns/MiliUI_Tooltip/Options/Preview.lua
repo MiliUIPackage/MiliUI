@@ -70,6 +70,16 @@ local function RenderNpc()
     ns.Bar.ActivateFake(tip)
 end
 
+-- NPC 的新版排版：假資料直接交給面板（沒有 post-call 可走）。要在 tip 顯示、定位之後叫（面板貼原生的角）
+local function NpcPanel()
+    local config = ns.db.unit.npc
+    if not config.panel or not ns.Panel.ShowModel then return end
+    local state = ns.Skin.Get(tip)
+    if not state then return end
+    local model = ns.Panel.UnitPreviewModel(FakeNpcRaw(), config, "Interface\\Icons\\Achievement_Character_Human_Male")
+    ns.Panel.ShowModel(tip, state, "unit", model)
+end
+
 local function RenderPlayer()
     tip:ClearLines()
     -- 真管線：SetUnit → ProcessInfo → Unit post-call（UnitLines / 邊框 / 背景全套）
@@ -134,6 +144,7 @@ function Preview.Refresh()
     end
     tip:Show()
     Position()
+    if mode == "npc" then NpcPanel() end
 end
 
 local function SetMode(newMode, chip)

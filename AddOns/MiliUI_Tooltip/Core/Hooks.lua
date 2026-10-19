@@ -31,6 +31,11 @@
 --  14. hooksecurefunc(frame, "SetPoint")（Panel/Frame.lua 的 Panel.Follow，經 MiliUITip_API.Adopt 的 followPanel）：
 --      **對象是別的插件自己建的框，不是暴雪物件**（外觀預覽）。它貼到有面板顯示中的 tooltip 時，掛勾裡把對象換成面板、
 --      點與位移原樣、相鄰邊留縫；讀到的參數先過 S.IsSecret，重入旗標擋自己的 SetPoint，暴雪物件一個都不碰
+--  15. hooksecurefunc(tip, "FadeOut")（Panel/Native.lua 的 HookShow，跟 #12 同時、只掛在用過面板的 tooltip 上）：
+--      世界單位滑開時暴雪 C 端淡出原生（原生在 alpha 0，淡不到面板）⇒ 後掛勾讓**自己的面板**跟著淡，暴雪物件一個都不碰
+--  16. 單位的重繪面板（Panel/ReadUnit.lua）：面板接手時**不改寫暴雪的行**（#4 那條只在舊樣式跑），只讀 TooltipData
+--      ＋明文 token 的 Unit API；對原生的寫入跟物品一樣只有 #10／#12／#13／#15。退回舊樣式時用 #5 的 tip:Show()
+--      讓暴雪重跑一次這份內容（Panel.UnitFallback），之後的 post-call 走舊樣式
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，
@@ -66,7 +71,7 @@ end
 ------------------------------------------------------------
 -- post-call 處理器
 ------------------------------------------------------------
-local function OnUnit(tip)
+local function OnUnit(tip, data)
     local state = Gate(tip)
     if not state then return end
     if not tip.GetUnit then return end
@@ -77,6 +82,22 @@ local function OnUnit(tip)
             ns.Describe(state.unit), tostring(InCombatLockdown()))
     end
     if not ok or not unit then return end
+    -- 重繪面板（玩家／NPC 兩個開關都關 ⇒ UnitWanted 一次查表就回 false，下面的舊樣式照舊，零成本）
+    if ns.Panel.UnitWanted() then
+        state.inUnitPostCall = true      -- 這裡面的退回不必重跑舊樣式（下面馬上就跑）
+        local okTry, shown = xpcall(ns.Panel.TryUnit, ns.ReportError, tip, state, unit, data)
+        if not okTry then ns.Panel.Fail(tip, state) end      -- 還在 inUnitPostCall 裡退：不重跑內容
+        state.inUnitPostCall = nil
+        if okTry and shown then
+            -- 面板接手：不改寫暴雪的行、不加目標行；只記單位（目標輪詢／觀察資料刷新認這幾個欄位）
+            state.unit = unit
+            state.unitGuid = S.SafeCall(UnitGUID, unit)
+            state.isUnitTip = true
+            xpcall(ns.Model.OnUnit, ns.ReportError, tip, state, unit)
+            if tip == GameTooltip then ns.Bar.Activate(tip, unit) end
+            return
+        end
+    end
     -- xpcall + ReportError：這裡吞錯會讓「行寫了、著色沒跑」這種半套結果
     -- 靜默發生（實測抓過一次），至少要進 /mtip debug 的錯誤紀錄
     local applied = xpcall(ns.UnitLines.Apply, ns.ReportError, tip, state, unit, false)
@@ -86,6 +107,19 @@ local function OnUnit(tip)
     if tip == GameTooltip then
         ns.Bar.Activate(tip, unit)
     end
+end
+
+-- 單位面板在 post-call 之外退回（對帳讀到秘密值、設定改了）：原生的行是暴雪原樣（面板接手時不改寫）⇒
+-- 讓暴雪重跑一次這份內容（tip:Show()，接觸面 #5），同一個單位 1 秒內不接面板 ⇒ 那次 post-call 走舊樣式。
+-- 只有 Try.lua 的 Restore 在「提示還顯示著同一個單位」時叫（Release／OnHide 那兩條 isUnitTip 已經被清掉）
+-- block = false（設定改了）：不封鎖 ⇒ 重跑時照新設定接面板或走舊樣式
+local function UnitFallback(tip, state, key, block)
+    if block then
+        state.unitBlockKey, state.unitBlockUntil = key, GetTime() + 1
+    end
+    if S.IsForbiddenObject(tip) then return end
+    if ns.logEnabled then ns.Log("單位面板退回 ⇒ 舊樣式重跑 key=%s", tostring(key)) end
+    tip:Show()
 end
 
 -- 記錄模式（/mtip record）＋重繪面板，物品與法術共用。在既有的 Apply 之後：
@@ -239,6 +273,8 @@ end
 ns.TrackTip = TrackTip   -- 預覽 tooltip（Options/Preview.lua）也走同一條接管管線
 
 local function Install()
+    ns.Panel.UnitFallback = UnitFallback
+
     -- skin 接管
     for _, name in ipairs(TRACKED) do
         TrackTip(_G[name])

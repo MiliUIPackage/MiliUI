@@ -395,8 +395,10 @@ do
     t6.ns.db.spell.panel = false
     t6.P.Try(t6.tip, t6.state, 1, t6.data)
     eq("法術開關關：物品開著也不畫法術", t6.renders(), r0)
-    t6.P.Try(t6.tip, t6.state, 2, t6.data)
+    t6.P.Try(t6.tip, t6.state, 99, t6.data)
     eq("不認得的型別：不畫", t6.renders(), r0)
+    t6.P.Try(t6.tip, t6.state, 2, t6.data)
+    eq("單位型別沒經過 TryUnit（沒有明文 token）：不畫", t6.renders(), r0)
 
     -- 設定一改（ApplyAll 會 +1）：同樣內容也重畫
     t6.P.Try(t6.tip, t6.state, ITEM, t6.data)

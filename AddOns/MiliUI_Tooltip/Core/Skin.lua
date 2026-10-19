@@ -186,8 +186,9 @@ function Skin.RaiseAccents(tip)
     if not state or S.IsForbiddenObject(tip) then return end
     local ok, level = pcall(tip.GetFrameLevel, tip)
     if not ok or type(level) ~= "number" or S.IsSecret(level) then return end
-    if state.bar then state.bar:SetFrameLevel(level + 1) end
-    if state.model then state.model:SetFrameLevel(level + 1) end
+    -- 貼在重繪面板上時（面板 = tip + 5，Panel.SyncLevel）再往上一層
+    if state.bar then state.bar:SetFrameLevel(level + (state.barHost and 6 or 1)) end
+    if state.model then state.model:SetFrameLevel(level + (state.modelHost and 6 or 1)) end
 end
 
 ------------------------------------------------------------

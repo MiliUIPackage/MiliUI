@@ -1,6 +1,6 @@
 ---
 name: project-miliui-tooltip
-description: MiliUI_Tooltip — 取代 TinyTooltip 的自製滑鼠提示重寫版：taint 接觸面清單、架構決策、接管名單（含 FriendsTooltip 與 MiliUITip_API.Adopt）、v1 刻意捨棄的功能、戰鬥中秘密值與 Leatrix 殘留兩次破案的規則
+description: MiliUI_Tooltip — 取代 TinyTooltip 的自製滑鼠提示重寫版（物品／法術／單位走重繪面板）：taint 接觸面清單、架構決策、接管名單（含 FriendsTooltip 與 MiliUITip_API.Adopt）、v1 刻意捨棄的功能、戰鬥中秘密值與 Leatrix 殘留兩次破案的規則
 metadata: 
   node_type: memory
   type: project
@@ -140,5 +140,26 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - **夾邊打開後暴露的時序問題（同晚，log 破案）**：提示頂到螢幕上緣時面板每 0.2 秒往下掉一幀，逐幀取樣 600 幀全穩。log：同一件重設的 post-call 當下 `Fit` 量到自然高 306.7（別家的行還沒加）→ padding 125.3 撐到 432；同一幀稍後行加進來（396.8）⇒ 原生總高 522 直到下一幀對帳改回 35.1。沒夾邊時多的往上長、面板貼下緣不動；**夾在上緣時上緣被釘住，多的變成下緣掉 90**。取樣看不到：對帳走 `C_Timer.After(0)`，在 OnUpdate 取樣之前就修回（取樣器 2026-10-19 已拔）。
   規則：**post-call 當下的內容已知不完整，padding 用上次對帳量到的自然尺寸算**（`Native.Fit(tip, state, partial)`：partial 取 `nativeSettledW/H` 與當下的大者；對帳／輪詢才記 settled）。效果：padding 每循環一個數字都不變、連 SetPadding 都省；真的變少頂多矮一幀。
   診斷工具教訓：**每幀取樣抓不到「計時器在取樣前修回」的一幀抖動**，要在寫入點記 log（`/mtip log` 現在記 SetPadding／補回／夾邊／alpha／重貼／對帳／重畫）。
+
+## 單位也改走重繪面板（2026-10-20，worktree prettytooltip-new-layout；`Panel/ReadUnit.lua`、`ViewUnit.lua`）
+
+使用者拿 PrettyTooltip 的六張單位截圖要「比照物品做法也做成新版面」，附帶三條要求：**關掉不吃效能、注意 taint、注意效能**，以及「間距要等距、要有質感」。
+推翻了 10-18 plan 裡「單位一行都不要動」那條——做法是**面板接手時根本不改寫暴雪的行**（舊樣式那條只在退回時跑），反而比舊樣式少碰暴雪物件。
+
+- 入口 `Panel.TryUnit`（Hooks 的 OnUnit 先問 `Panel.UnitWanted()`＝兩個開關一次查表，都關就零成本）：GetUnit 的 token 可能秘密／過期 ⇒ 用 data.guid 驗證、`UnitTokenFromGUID` 反查明文 token；
+  `C_Secrets.ShouldUnitIdentityBeSecret` 為真（或秘密布林）就不接。成功時 OnUnit 只設 state.unit／isUnitTip、跑模型與血條，**不跑 UnitLines／Target**。
+- 跟物品共用 Try.lua：key＝`unit:<guid>`；指紋多一段**動態簽章**（目標 GUID、死亡、離開、PvP、觀察快取、修飾鍵），輪詢比到變了就排對帳，**行指紋一樣只差動態＝立刻重畫**（換目標不等 SETTLE）。
+- 面板路徑的 Restore 若不在 post-call 裡（對帳讀到秘密、設定改了）⇒ 原生是暴雪原樣的行 ⇒ `Panel.UnitFallback` 用 `tip:Show()` 讓暴雪重跑內容；對帳退回的同一 key 封鎖 1 秒（不然來回），`RestoreAll`（設定改了）不封鎖。
+  `inUnitPostCall` 旗標擋「post-call 裡的退回又 Show」——**xpcall 失敗的 Fail 也要在旗標還在時叫**。
+- 目標輪詢（Target.lua）與 RefreshUnitTip 看到 `state.native` 就讓開（不然 AddLine＋Show 會讓暴雪重跑內容）；觀察資料到貨改 `Panel.Poke`。
+- 血條（Bar.SetHost：reparent 到面板，有附屬框貼附屬框下）、3D 模型（Model.SetHost：改錨點，模型不吃父層 alpha）跟著面板；RaiseAccents 貼面板時抬到 tip+6。
+- 新接觸面 #15 `hooksecurefunc(tip,"FadeOut")`：世界單位滑開的 C 端淡出只淡原生（已在 alpha 0）⇒ 面板自己的 AnimationGroup 淡；#16＝單位面板不改寫行。
+- `Eligible` 加 `tip.insertedFrames`（GameTooltip_InsertFrame 的 UIWidget／進度條）有顯示中的就不接，對帳時再查一次（物品也受惠）。
+- 秘密的目標名字（單位明文、它的目標受限）是唯一畫秘密值的地方：自訂段落不量不讀、`SetText(秘密)`、輪詢重交；那顆池 FontString 每次 RenderView 放掉（`state.panelTargetFS`）。
+- 版面數值（照 PrettyTooltip、色照提示皮）：頭像 40、等級底板在頭像**下方**（徽章其他型別在上方，`view.badgeBelow`）、底板難度色（邊×0.8／底×0.14／字往白收 0.55）；名字 title+3；標題區各行 `UNIT_HEADER_GAP = 3` 等距；最小寬 250；
+  浮水印（`panel.unitWatermark`）＝PrettyTooltip 的陣營徽記 PNG（MIT，`Media/LICENSE-PrettyTooltip.txt`，關於頁致謝已改寫）＋暴雪目標框龍 atlas，裁在面板內。
+- 標籤一律用暴雪全域：`STATUS_TEXT_TARGET`「目標」（`TARGET` 是「選取目標」）、`AFK`「離開」、`MAP_LEGEND_RARE(ELITE)`「稀有（精英）」。
+- `Tests/Unit_test.lua` 連間距一起驗（標題等距、◆ 上下等距、四邊內距）；scratchpad 有過一支把假框幾何畫成 PNG 的 mock 腳本，看版面很有用（Lua 5.3 的 `%02x` 不收小數，測試裡 `Colors.Hex` 要墊取整版）。
+- 未實機：README 待驗 30～36（尤其哪些戰鬥情境身分受限、專精行認法、FadeOut 秒數 0.3 是猜的）。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]

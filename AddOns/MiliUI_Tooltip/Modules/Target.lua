@@ -194,6 +194,8 @@ Skin.Poll("target", POLL, function()
     -- Show 就把舊單位的資料翻回來蓋掉畫面、又把 isUnitTip 設回 true，
     -- 形成自我延續的舊資料迴圈（實測：戰鬥中滑敵方一直顯示上一個友方）。
     if S.SafeValue(state.unit) ~= "mouseover" then return end
+    -- 重繪面板接手中：目標列是面板自己畫的（Panel/ReadUnit.lua 的動態簽章），這裡加行＋Show 會讓暴雪重跑內容
+    if state.native then return end
     if not tip:IsShown() or S.IsForbiddenObject(tip) then return end
     -- 單位框的 tooltip 不輪詢（owner 有 unit 屬性；照 TinyTooltip 的判斷）
     local owner = tip:GetOwner()

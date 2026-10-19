@@ -1,14 +1,14 @@
 # 米利的滑鼠提示 MiliUI_Tooltip
 
-12.1 起的自製滑鼠提示。單位、光環、巨集提示走「就地改寫」（在暴雪 tooltip 底下墊自己的 skin 框、
-post-call 加行改色）；物品與法術提示另外走「重繪面板」。
+12.1 起的自製滑鼠提示。光環、巨集提示走「就地改寫」（在暴雪 tooltip 底下墊自己的 skin 框、
+post-call 加行改色）；物品、法術、玩家與 NPC 提示另外走「重繪面板」（單位讀不到明文時退回就地改寫）。
 
 taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程式碼必須先過那張表**。
 
 ## 重繪面板（`Panel/`）
 
-物品、法術提示：原生 tooltip 留在底下當替身，旁邊畫一個自己的 panel 自由排版。
-設定在「物品與法術」分頁最上面的「新版排版」（物品、法術各一個開關，預設開）。
+物品、法術、單位提示：原生 tooltip 留在底下當替身，旁邊畫一個自己的 panel 自由排版。
+設定在「物品與法術」分頁最上面的「新版排版」（物品、法術各一個開關，預設開）；玩家、NPC 各在自己分頁最上面（預設開）。
 
 ### 做法
 
@@ -87,10 +87,13 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
 - tooltip 的 `GetPoint`／`GetLeft`／`GetTop`／`GetWidth`／`GetPadding` 任何一個回秘密值
 - 讀不出名字、render 出錯（`Core/Hooks.lua` 的 xpcall 接住後 `Panel.Fail` 退回）
 - 內嵌物品框（世界任務獎勵）或底部說明字顯示中——那時暴雪自己在用 padding
+- 暴雪插進提示裡的框（`GameTooltip_InsertFrame`：UIWidget 組、進度條，`tip.insertedFrames`）顯示中——面板畫不出來；
+  顯示途中才插進來的，下一次對帳讓回原生
+- 單位：身分受限（`C_Secrets.ShouldUnitIdentityBeSecret`，副本戰鬥、陌生的跨服玩家…）、讀不出明文 token／GUID／名字
 
 **開關關掉時對 tooltip 零寫入**，畫面跟沒有這個功能時完全一樣。
 
-### 接觸面（`Core/Hooks.lua` 檔頭 #10～#13）
+### 接觸面（`Core/Hooks.lua` 檔頭 #10～#13、#15、#16）
 
 - #10 `tip:SetAlpha(0)`／還原、`tip:SetPadding(right, bottom, left, top)`／還原。只在 panel 成功顯示時寫；
   padding 只在「tooltip 還顯示著、而且還是我們設的那個值」時寫回（暴雪的 `OnShow`／`OnHide` 會自己 `ClearPadding`）；
@@ -101,6 +104,9 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
 - #13 `tip:SetClampRectInsets`／還原：接管期間原生照暴雪的夾邊，只替它設範圍（四邊呼吸、上緣多留比價標籤）；`GetClampRectInsets` 記原值。
 - #12 `hooksecurefunc(tip, "Show")`／`(tip, "SetShown")`：暴雪的 Show 會把 alpha 改回 1、而且在 post-call 之後才叫，
   後掛勾同一幀壓回 0。只掛在真的用過面板的 tooltip 上，面板沒在用時掛勾什麼都不做。
+- #15 `hooksecurefunc(tip, "FadeOut")`：世界單位滑開時暴雪 C 端淡出原生（原生在 alpha 0），後掛勾讓**自己的面板**跟著淡（`LOOK.FADE`）。
+  跟 #12 同一處、只掛在用過面板的 tooltip 上。
+- #16 單位面板接手時**不改寫暴雪的行**（舊樣式的 #4 只在退回時跑），只讀 TooltipData 與明文 token 的 Unit API。
 - 暴雪物件上零欄位寫入，per-tip 狀態在 `Skin.State[tip]`（`state.panel`、`state.native`…）。
 
 ### 法術（`Panel/ReadSpell.lua`、`ViewSpell.lua`）
@@ -131,6 +137,26 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
 
 認不得的行一律進「其他」區（不許少行）。最簡 reader（`ReadFallback.lua`）留著當「型別不認得」的退路。
 
+### 玩家與 NPC（`Panel/ReadUnit.lua`、`ViewUnit.lua`，2026-10-20）
+
+版面照 PrettyTooltip 的單位面板（MIT；陣營徽記圖 `Media/faction-*.png` 也取自它，授權在 `Media/LICENSE-PrettyTooltip.txt`），色與線照我們的提示皮：
+
+- 左欄：頭像（`SetPortraitTexture`，方形）＋下方的等級底板（難度色：邊＝色×0.8、底＝色×0.14、字往白收 0.55；首領「??」）。
+  死亡（「死亡時變灰」開著）／無法拾取的怪：頭像去色、名字灰。
+- 標題區各行**一律等距**（`LOOK.UNIT_HEADER_GAP`）：名字（title＋3，職業色／立場色；頭銜灰、跨服「-伺服器」灰、好友／職責小圖示）、
+  `<公會>` 階級（名字色往白收一半）或 NPC 的 `<頭銜>`、種族＋暴雪的「專精 職業」行／生物類型、狀態徽章（精英／稀有／首領、陣營、PvP、離開、忙碌、離線、死亡、可剝皮…，各自的色、點是灰的）。
+- ◆ 細節（左標籤、右值）：目標（`STATUS_TEXT_TARGET`「目標」；是你＝紅「>> 你 <<」）、主人、誰在打他、坐騎、裝等、傳奇鑰石評分、成就點數、區域、移動速度。
+  顯示與否照「顯示元素」看板的開關與顯示條件、「按住修飾鍵顯示全部」照舊。
+- 細線之後：認不出用途的暴雪行（NPC 的第二個頭銜、威脅…）；◆ 之後：任務（標題金、目標縮排）；別人後加的行 → 附屬框（跟物品同一套）。
+- 浮水印（「陣營徽記與精英龍紋浮水印」，預設開）：玩家的陣營徽記（聯盟藍、部落紅，alpha 0.12）、精英／稀有／首領的龍（暴雪目標框的 atlas），裁在面板內。
+- 血條（設定照「樣式」分頁）改貼面板（有附屬框時貼整組最下面）、3D 模型改貼面板右上；面板退回時貼回 skin。
+- **動態簽章**：目標、死亡、離開、PvP、觀察快取、修飾鍵不在提示行裡 ⇒ 輪詢 0.1 秒比一次，**只有它變了就下一幀立刻重畫**（不等 0.3 秒）。
+  目標名字是秘密值時（單位明文、它的目標受限）原封不動交給 `SetText`、輪詢時重交，不量不讀。
+- 退回舊樣式：post-call 裡（開關關、秘密值、身分受限）直接走 `UnitLines.Apply`；**顯示途中**才退回（對帳讀到秘密值、設定改了）時
+  原生行是暴雪原樣 ⇒ `tip:Show()` 讓暴雪重跑這份內容（`Panel.UnitFallback`），對帳退回的同一個單位 1 秒內不再接面板（不然來回）；設定改了不封鎖。
+- **兩個開關都關＝零成本**：`OnUnit` 只多一次 `ns.db.unit.player.panel or npc.panel` 的查表；FadeOut 掛勾只在用過面板的 tooltip 上。
+- 設定視窗的 NPC 預覽沒有能 `SetUnit` 的 NPC：`Panel.UnitPreviewModel` 從假資料組 model、`Panel.ShowModel` 直接畫。
+
 ## 記錄模式（`/mtip record`）
 
 reader 要照真實的行結構寫，這個指令把遊戲裡實際的提示資料記下來：
@@ -147,6 +173,8 @@ reader 要照真實的行結構寫，這個指令把遊戲裡實際的提示資�
 ```bash
 for f in AddOns/MiliUI_Tooltip/Tests/*_test.lua; do lua "$f"; done
 ```
+
+`Tests/Unit_test.lua` 另外驗單位面板的**間距**：標題區各行等距、◆ 線上下等距、四邊內距、頭像與文字的距離、等級底板的位置。
 
 `Tests/helpers.lua` 是共用的假框、假環境與秘密值哨兵（比較、算術、串接一碰就 error ⇒ 測試沒炸就證明只傳不讀）。
 三語的 GlobalStrings 實值抄自 `Interface/tmp/GlobalStrings/gs_{enUS,zhTW,zhCN}.csv`：reader 測試共用的那份在
@@ -198,6 +226,14 @@ for f in AddOns/MiliUI_Tooltip/Tests/*_test.lua; do lua "$f"; done
 27. 比價面板之間、主面板與附屬框之間、外觀預覽與面板之間都留一條縫，不再黏在一起；比價面板仍然上緣對齊。
 28. 法術面板、附屬框、外觀預覽、好友提示的邊是職業色；物品是品質色、單位是原本的職業／立場色；關掉「邊框預設用職業色」回到選的顏色。
 29. 三屬性（速度、汲取、迴避、不滅）跟次屬性同一個綠、◆ 同色；其他專精的主屬性仍是灰字。
+
+30. 玩家／NPC 面板：頭像方形、等級底板在頭像正下方且是難度色；標題區四行等距、◆ 線上下等距；世界單位滑開時面板跟著淡出。
+31. 換目標（滑著不動、對方換目標）時目標列約 0.1 秒內換掉；目標是自己時是紅字「>> 你 <<」。
+32. 戰鬥中滑怪：身分受限（`C_Secrets.ShouldUnitIdentityBeSecret` 為真）時是舊樣式、其他時候是面板，脫戰回到面板。開放世界戰鬥／副本戰鬥／M+ 各是哪一種要實機記下來（`/mtip log` 的 OnUnit 行）。
+33. 玩家的專精行（暴雪的「毀滅 術士」）有被認出來、種族＋專精同一行、公會行沒有重複出現在「其他」。
+34. 觀察裝等／成就點數到貨後面板補上數字（`Panel.Poke`）、不閃。
+35. 有 UIWidget 或進度條的提示（例如部分任務 NPC）退回原生，那一塊看得到。
+36. 血條貼在面板下方（有附屬框時貼在附屬框下方）、3D 模型在面板右上角；換到物品時血條回到原位。
 
 實作時多出來的疑點（不佔編號）：
 

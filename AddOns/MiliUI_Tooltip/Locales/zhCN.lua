@@ -63,7 +63,7 @@ L["|cffffd200Items & spells|r  Quality-colored border, icon, expansion, and item
 L["|cffffd200Position|r  Follow the cursor or pin to a screen corner; optionally hide in combat or use a fixed spot over unit frames."] = "|cffffd200位置|r  跟随鼠标或固定在屏幕角落；可选择战斗中隐藏，或滑过头像框时改用固定位置。"
 L["|cffffd200Profiles|r  Per-character profiles, shareable as export / import strings."] = "|cffffd200配置文件|r  每个角色可以有自己的配置文件，也能用字符串导出／导入分享给别人。"
 L["MiliUI Tooltip is deeply inspired by |cffffffffTinyTooltip|r: its look and feature set are where this addon started. Many thanks to its author |cffffffff55510696|r. This is a from-scratch rewrite for 12.1, not a modified copy of TinyTooltip."] = "米利的鼠标提示深受 |cffffffffTinyTooltip|r 启发，外观与功能都是从它出发的。由衷感谢原作者 |cffffffff55510696|r。本插件是为 12.1 从零重写的版本，并非 TinyTooltip 的修改版。"
-L["Since 2.0.0, the layout of the item and spell panels is based on |cffffffffPrettyTooltip|r by |cffffffffFallenShard|r. Many thanks."] = "2.0.0 起的物品与法术面板版面参考自 |cffffffffFallenShard|r 的 |cffffffffPrettyTooltip|r，特此致谢。"
+L["Since 2.0.0, the layout of the item, spell and unit panels is based on |cffffffffPrettyTooltip|r by |cffffffffFallenShard|r (MIT license), and the faction crests on unit panels come from it. Many thanks."] = "2.0.0 起的物品、法术与单位面板版面参考自 |cffffffffFallenShard|r 的 |cffffffffPrettyTooltip|r（MIT 授权），单位面板的阵营徽记也取自该插件，特此致谢。"
 
 -- 样式标签页
 L["Scale and background"] = "缩放与背景"
@@ -279,6 +279,11 @@ L["Only this profile is reset; the other profiles are left alone. The /mtip rese
 L["New layout"] = "新版排版"
 L["Use the new layout for item tooltips"] = "物品提示使用新版排版"
 L["Use the new layout for spell tooltips"] = "法术提示使用新版排版"
+L["Use the new layout for player tooltips"] = "玩家提示使用新版排版"
+L["Use the new layout for NPC tooltips"] = "NPC 提示使用新版排版"
+L["Portrait with a level plate, then the target and details below a divider. When the game keeps a unit's details secret (in combat inside instances, for example), that tooltip uses the classic layout instead."] = "头像下方是等级，分隔线下方是目标与细节。游戏把单位数据设为秘密时（例如副本内战斗中），该次提示改用旧版排版。"
+L["Faction crest and elite dragon watermark"] = "阵营徽记与精英龙纹水印"
+L[", "] = "、"
 L["When off, tooltips keep Blizzard's original layout and only get the border and colors."] = "关闭时改回暴雪原本的排版，只套边框与颜色。"
 L["Separator lines and diamonds"] = "分隔线与 ◆"
 L["Spell cost / cast / cooldown / range strip"] = "法术四格（消耗／施法／冷却／距离）"

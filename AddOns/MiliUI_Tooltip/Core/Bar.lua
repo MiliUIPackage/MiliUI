@@ -69,7 +69,15 @@ function Bar.ApplySettings(tip)
     local state = Skin.Get(tip)
     if not state or not state.bar or not ns.db then return end
     local sb = ns.db.statusbar
-    local bar, skin = state.bar, state.skin
+    -- 重繪面板顯示單位時貼面板（原生與 skin 都在 alpha 0），見 Bar.SetHost
+    local bar, skin = state.bar, state.barHost or state.skin
+    if bar:GetParent() ~= skin then bar:SetParent(skin) end
+    local anchor = skin
+    if state.barHost and sb.position ~= "top" then
+        -- 面板底下有附屬框（別人加的行）時貼在整組的最下面，不壓在附屬框上
+        local box = state.barHost.extrasBox
+        if box and box:IsShown() then anchor = box end
+    end
 
     if not sb.enable then
         state.barUnit = nil
@@ -85,11 +93,11 @@ function Bar.ApplySettings(tip)
     local bw = P.Pixel(1)
     bar:ClearAllPoints()
     if sb.position == "top" then
-        bar:SetPoint("BOTTOMLEFT", skin, "TOPLEFT", bw, gap)
-        bar:SetPoint("BOTTOMRIGHT", skin, "TOPRIGHT", -bw, gap)
+        bar:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", bw, gap)
+        bar:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", -bw, gap)
     else
-        bar:SetPoint("TOPLEFT", skin, "BOTTOMLEFT", bw, -gap)
-        bar:SetPoint("TOPRIGHT", skin, "BOTTOMRIGHT", -bw, -gap)
+        bar:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", bw, -gap)
+        bar:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", -bw, -gap)
     end
     bar:SetHeight(h)
 
@@ -119,6 +127,19 @@ function Bar.ApplySettings(tip)
 
     -- 設定改動要立刻反映顏色與數值，不等 0.15s 輪詢
     if state.barUnit then Bar.Refresh(tip) end
+end
+
+-- 重繪面板顯示單位時把條改貼到面板（host＝面板；nil＝貼回 skin）。條是我們自己的框，SetParent 不碰暴雪物件。
+-- 每次面板重畫都叫（附屬框可能這次有、下次沒有 ⇒ 錨點要跟著換），跟上次一樣的 host 也重排一次，很便宜
+function Bar.SetHost(tip, host)
+    local state = Skin.Get(tip)
+    if not state then return end
+    if state.barHost == nil and host == nil then return end
+    state.barHost = host
+    if state.bar then
+        Bar.ApplySettings(tip)
+        Skin.RaiseAccents(tip)
+    end
 end
 
 function Bar.ApplySettingsAll()

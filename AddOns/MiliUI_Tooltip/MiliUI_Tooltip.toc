@@ -53,6 +53,8 @@ Panel\ReadSpell.lua
 Panel\ViewSpell.lua
 Panel\ReadItem.lua
 Panel\ViewItem.lua
+Panel\ReadUnit.lua
+Panel\ViewUnit.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua

@@ -82,6 +82,15 @@ Panel.LOOK = {
     REAGENT_ICON = 14,
     BAR_W = 54, BAR_H = 6,             -- 頁尾耐久條
     FRAME_GAP = 6,                     -- 框與框之間的縫：附屬框與主面板、比價面板之間、貼在面板旁的別家框（N1）
+
+    -- 單位（玩家／NPC，2026-10-20）
+    ICON_UNIT = 40,                    -- 頭像
+    UNIT_MIN_W = 250,
+    UNIT_HEADER_GAP = 3,               -- 標題區各行（名字、公會、種族職業、狀態）一律等距
+    NAME_GROW = 3,                     -- 單位名字 = title + 3（比物品名大一號：單位提示的主角就是名字）
+    DETAIL = { 0.82, 0.82, 0.82 },     -- 單位的種族職業、細節列標籤
+    PLATE_BORDER = 0.8, PLATE_FILL = 0.14, PLATE_TEXT = 0.55,   -- 等級底板：邊＝色×0.8、底＝色×0.14、字＝往白收 0.55
+    FADE = 0.3,                        -- 原生 FadeOut（世界單位滑開）時面板自己淡出的秒數（原生被壓在 alpha 0，淡不到面板）
 }
 local LOOK = Panel.LOOK
 
@@ -164,6 +173,7 @@ function Panel.Styles()
         small = Derive(body, small),
         caption = Derive(body, small),
         big = Derive(body, body.size + LOOK.BIG_GROW),
+        name = Derive(title, title.size + LOOK.NAME_GROW),          -- 單位名字
         stat = Derive(body, body.size + LOOK.STAT_GROW),   -- 每秒傷害／護甲的大數字
     }
 end
@@ -295,6 +305,10 @@ function Panel.Text(panel, style)
     end
     Panel.ApplyFont(fs, style)       -- 建立當下就給字型，SetText 才不會硬錯
     fs:ClearAllPoints()
+    if fs.mtNoWrap then              -- 上次被借去畫不換行的字（單位目標的秘密名字）：換回預設
+        fs:SetWordWrap(true)
+        fs.mtNoWrap = nil
+    end
     fs:Show()
     return fs
 end
@@ -311,6 +325,10 @@ function Panel.Texture(panel, sublevel)
     tex:SetTexCoord(0, 1, 0, 1)
     tex:SetDrawLayer("ARTWORK", sublevel or 0)
     tex:SetRotation(0)
+    if tex.mtBlend then              -- 上次被借去畫浮水印（ADD）：換回預設
+        tex:SetBlendMode("BLEND")
+        tex.mtBlend = nil
+    end
     tex:SetVertexColor(1, 1, 1, 1)
     tex:ClearAllPoints()
     tex:Show()
@@ -385,6 +403,32 @@ function Panel.Get(tip, state)
     return state.panel or Create(tip, state)
 end
 
+------------------------------------------------------------
+-- 淡出：世界單位的提示在滑鼠離開時是暴雪 C 端的 FadeOut（調原生 alpha），原生被我們壓在 0、面板是獨立的框 ⇒
+-- 面板不會跟著淡。Native 的 FadeOut 後掛勾叫這裡，面板自己淡；新內容／重新顯示時 Unfade 拉回 1。
+-- 動畫是自己的框上的 AnimationGroup，第一次淡出才建（沒用到的面板零成本）
+------------------------------------------------------------
+function Panel.FadeOut(panel)
+    local group = panel.fadeGroup
+    if not group then
+        group = panel:CreateAnimationGroup()
+        local alpha = group:CreateAnimation("Alpha")
+        alpha:SetFromAlpha(1)
+        alpha:SetToAlpha(0)
+        alpha:SetDuration(LOOK.FADE)
+        group:SetToFinalAlpha(true)
+        panel.fadeGroup = group
+    end
+    if not group:IsPlaying() then group:Play() end
+end
+
+function Panel.Unfade(panel)
+    local group = panel and panel.fadeGroup
+    if not group then return end
+    if group:IsPlaying() then group:Stop() end
+    panel:SetAlpha(1)
+end
+
 -- 層級 = tooltip + 5。ItemRefTooltip 是 toplevel＋可拖曳：點它、拖它時暴雪會把它的 level 抬高，
 -- alpha 0 的原生框就壓到 panel 上、把 × 的點擊吃掉 ⇒ render 時設一次不夠，輪詢每次都對一次
 function Panel.SyncLevel(panel, tip)
@@ -438,7 +482,14 @@ function Panel.PaintEdges(panel, state)
     local r, gg, b, a = Panel.BorderColor(state)
     for i = 1, 4 do panel.edges[i]:SetVertexColor(r, gg, b, a or 1) end
     panel.iconBorder:SetVertexColor(r, gg, b, a or 1)
-    panel.badge:SetVertexColor(r, gg, b, a or 1)
+    local tint = panel.badgeTint
+    if tint then
+        -- 單位的等級底板：難度色（跟暴雪目標框的等級一樣一眼看出打不打得過），不跟邊框色
+        local k = LOOK.PLATE_BORDER
+        panel.badge:SetVertexColor(tint[1] * k, tint[2] * k, tint[3] * k, 0.9)
+    else
+        panel.badge:SetVertexColor(r, gg, b, a or 1)
+    end
     if panel.tag then panel.tag.border:SetVertexColor(r, gg, b, a or 1) end
 end
 

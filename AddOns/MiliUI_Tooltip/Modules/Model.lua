@@ -15,21 +15,38 @@ local Skin = ns.Skin
 ns.Model = {}
 local Model = ns.Model
 
+local function Place(state)
+    local model = state.model
+    model:ClearAllPoints()
+    model:SetPoint("BOTTOMRIGHT", state.modelHost or state.skin, "TOPRIGHT", 8, -16)
+end
+
 local function Ensure(state)
     if state.model then return state.model end
     local model = CreateFrame("PlayerModel", nil, state.skin)
+    state.model = model
     model:SetSize(100, 100)
     model:SetFacing(-0.25)
-    model:SetPoint("BOTTOMRIGHT", state.skin, "TOPRIGHT", 8, -16)
+    Place(state)
     model:Hide()
     model:SetScript("OnUpdate", function(self, elapsed)
         if IsControlKeyDown() or IsAltKeyDown() then
             self:SetFacing(self:GetFacing() + math.pi * elapsed)
         end
     end)
-    state.model = model
     Skin.RaiseAccents(GameTooltip)
     return model
+end
+
+-- 重繪面板顯示單位時改貼面板的右上角（host＝面板；nil＝貼回 skin）。模型不吃父層 alpha，父層留在 skin 就好
+function Model.SetHost(tip, host)
+    local state = Skin.Get(tip)
+    if not state or state.modelHost == host then return end
+    state.modelHost = host
+    if state.model then
+        Place(state)
+        Skin.RaiseAccents(tip)
+    end
 end
 
 function Model.OnUnit(tip, state, unit)
