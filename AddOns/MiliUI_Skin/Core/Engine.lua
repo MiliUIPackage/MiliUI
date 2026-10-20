@@ -1288,14 +1288,37 @@ end
 --     `P.Scale(1)` 是「1 個框架單位貼整數像素」，1440p 以上就是 2px 以上，跟套組設定視窗的 1px 邊對不上。
 --   * 我們建的底、邊、強調線一律關像素貼齊（`P.NoSnap`）：框停在小數座標時引擎會把
 --     每張貼圖各自捨入，1px 邊整條變 0 或 2。只對自己建的貼圖做。
---   * 換算結果烤在錨點裡 ⇒ 登記在 `pixelRecs`，UI 縮放／解析度變了重排（見檔尾的
+--   * 換算結果烤在錨點裡 ⇒ 登記在 `pixelRecs`，UI 縮放／解析度變了重排（見下面的
 --     `Engine.RelayoutPixels`）。
+--   * ⚠ **「縮放變了」不一定有事件。** 2026-10-21 實例（5K Mac、`uiScaleMultiplier` 自動）：
+--     死亡彈窗的按鈕只剩幾條邊、而且每顆缺的不一樣（＝粗細不到 1 個實體像素，落在小數
+--     座標的那幾條蓋不到像素中心）。彈窗配方在 `PLAYER_LOGIN` 就建好 overlay，那一刻換算的
+--     「1px」到顯示時已經不是 1px，`UI_SCALE_CHANGED`／`DISPLAY_SIZE_CHANGED` 也沒把它救回來
+--     （跟 `.claude/notes/wow-login-screen-size-not-final.md` 的單位提示同一個坑；
+--     確切是哪一步改了縮放沒抓到）。
+--     所以另外記住「上次是照哪個換算基準排的」（`layoutSig`），進世界／UIParent 尺寸
+--     變了就比一次，不一樣才重排。
 --   * 配方的錨點偏移要以實體像素計時（貼著邊的內縮），直接傳 `P.Pixel(n)` 進來：
 --     `P.Scale` 對整數像素是恆等的（`P.Scale(x + P.Pixel(1)) == P.Scale(x) + P.Pixel(1)`）。
 --     那種偏移不會跟著重排，改縮放之後要 /reload 才完全對齊。
 ------------------------------------------------------------
 local NoSnap = P.NoSnap
 local pixelRecs = setmetatable({}, { __mode = "k" })   -- [overlay 或 region rec] = true
+
+-- 換算基準的指紋：1 個實體像素是多少 UIParent 單位。讀不到回 nil。
+-- 只看 UIParent ——「某個框自己 SetScale 改了」不在這一層的範圍（建立時已照它換算）。
+local function PixelSig()
+    local ok, scale = pcall(UIParent.GetEffectiveScale, UIParent)
+    scale = ok and S.PlainNumber(scale) or nil
+    if not scale or scale <= 0 then return nil end
+    return PixelUtil.GetPixelToUIUnitFactor() / scale
+end
+local layoutSig   -- 目前登記的粗細是照哪個指紋排的（第一筆登記時記下，重排時更新）
+
+local function TrackPixels(rec)
+    pixelRecs[rec] = true
+    if not layoutSig then layoutSig = PixelSig() end
+end
 
 -- n 個實體像素，照「皮所在的框」自己的有效縮放換算（overlay 是它自己、region 是建在哪個框上）。
 -- 照 UIParent 換算的話，框或祖先 SetScale ≠ 1（RaiderIO 0.9、裝備管理 0.85、keepScale 的提示…）
@@ -1368,18 +1391,39 @@ local function RelayoutPixels()
         pixelWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
         return
     end
+    layoutSig = PixelSig() or layoutSig
     for rec in pairs(pixelRecs) do pcall(RelayoutOne, rec) end
 end
 Engine.RelayoutPixels = RelayoutPixels
+
+-- 沒有縮放事件的那幾條路：指紋跟上次排的時候不一樣才重排（見本節檔頭最後一點）
+local function CheckPixels()
+    local sig = PixelSig()
+    if not sig or not layoutSig then return end
+    if math.abs(sig - layoutSig) > sig * 1e-4 then RelayoutPixels() end
+end
+
 pixelWatcher:RegisterEvent("UI_SCALE_CHANGED")
 pixelWatcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
+pixelWatcher:RegisterEvent("PLAYER_ENTERING_WORLD")
 pixelWatcher:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_REGEN_ENABLED" then
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
         RelayoutPixels()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        C_Timer.After(0, CheckPixels)
     else
         C_Timer.After(0, RelayoutPixels)
     end
+end)
+
+-- UIParent 的有效縮放不管被誰改（多重縮放自動、別的插件 SetScale），它的尺寸
+-- （UIParent 單位）都會跟著變。用**我們自己的**框貼滿 UIParent 去收 OnSizeChanged，
+-- 不在 UIParent 身上掛任何腳本。
+local sizeProbe = CreateFrame("Frame", nil, UIParent)
+sizeProbe:SetAllPoints(UIParent)
+sizeProbe:SetScript("OnSizeChanged", function()
+    C_Timer.After(0, CheckPixels)
 end)
 
 ------------------------------------------------------------
@@ -1540,7 +1584,7 @@ function Engine.Overlay(target, opts)
         BuildGlyph(ov, opts.glyph)
     end
 
-    if ov.edges or ov.accentBar or ov.pxLine then pixelRecs[ov] = true end
+    if ov.edges or ov.accentBar or ov.pxLine then TrackPixels(ov) end
 
     st = st or {}
     st.overlays = st.overlays or {}
@@ -1669,7 +1713,7 @@ function Engine.RegionBackdrop(target, opts)
         end
     end
 
-    if rec.edges or rec.pxLine then pixelRecs[rec] = true end
+    if rec.edges or rec.pxLine then TrackPixels(rec) end
 
     st = st or {}
     st.overlays = st.overlays or {}
@@ -3279,6 +3323,13 @@ function Engine.BuildReport()
         L["Regions neutralized:"], Engine.log.neutralized,
         L["Overlays:"], Engine.log.overlays,
         L["Region backdrops:"], Engine.log.regions)
+
+    -- 登記的邊寬現在是幾個實體像素（排的時候的基準 ÷ 現在的基準）。
+    -- 不是 1.00 ＝ 縮放變了還沒重排，邊會缺（見「像素量」那一節）。
+    local sig = PixelSig()
+    if sig and layoutSig then
+        out[#out + 1] = ("  px: 1px = %.2f"):format(layoutSig / sig)
+    end
 
     if #ns.errors == 0 then
         out[#out + 1] = "  " .. L["No errors recorded"]

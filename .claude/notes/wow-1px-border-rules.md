@@ -5,12 +5,12 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: d1b11506-e7a8-4bc9-a9f0-9c1d4bb99205
-  modified: 2026-10-19T21:47:22.654Z
+  modified: 2026-10-21T00:00:00.000Z
 ---
 
 **所有 MiliUI 插件（與私人插件 FeiMiao_RaidCommander）畫 1px 邊框、分隔線、髮絲線都照這份。**
 2026-10-14～10-20 一連修了五次（`454abf9bd`／`219331e92`／`2c5abec7d` 2px、`63183b878` MCDM 缺邊與偏一格、
-`5ac4e2d6f` 滑鼠提示左邊偶爾不見、`dbb760c42` 登入後上邊左邊不見），成因只有四種，而且常常疊在一起。
+`5ac4e2d6f` 滑鼠提示左邊偶爾不見、`dbb760c42` 登入後上邊左邊不見；10-21 又一次：確認彈窗按鈕缺邊），成因只有四種，而且常常疊在一起。
 
 ## 四個成因
 
@@ -18,7 +18,7 @@ metadata:
 |---|---|---|---|
 | ① | 粗細寫 `1`、`P.Scale(1)` | 1440p／4K、UI 縮放大 ⇒ 2px（跟隔壁邊框疊成粗線）；縮放小 ⇒ 0 | 以實體像素計的量走 **`P.Pixel(n)`**（[[wow-hairline-p-pixel-not-p-scale]]）。內縮、跟邊框相接的偏移也用同一個值 |
 | ② | 框（或祖先）`SetScale` ≠ 1，粗細仍照 UIParent 換算 | 實際粗細 = scale 個像素，不是整數 ⇒ 時有時無 | 換算基準用**框自己的** `GetEffectiveScale()`：`n * PixelUtil.GetPixelToUIUnitFactor() / frame:GetEffectiveScale()`（Tooltip `SkinPixel`、Panel.Pixel 是範本） |
-| ③ | 在 `ADDON_LOADED`／`PLAYER_LOGIN`／檔案載入時算一次 `P.Pixel` 存起來 | 登入／reload 後就不到 1px，改了 UI 縮放也不更新 | **在顯示／排版時換算、跟上次不同才重排**（Tooltip skin `OnShow` → `LayoutBorder`、ContextMenu `Layout`）；常駐 HUD 掛 `UI_SCALE_CHANGED`／`DISPLAY_SIZE_CHANGED` 重排（[[wow-login-screen-size-not-final]]） |
+| ③ | 在 `ADDON_LOADED`／`PLAYER_LOGIN`／檔案載入時算一次 `P.Pixel` 存起來 | 登入／reload 後就不到 1px，改了 UI 縮放也不更新 | **在顯示／排版時換算、跟上次不同才重排**（Tooltip skin `OnShow` → `LayoutBorder`、ContextMenu `Layout`）；常駐 HUD 掛 `UI_SCALE_CHANGED`／`DISPLAY_SIZE_CHANGED` 重排（[[wow-login-screen-size-not-final]]）。⚠ **只掛這兩個事件不夠**：縮放可能在 `PLAYER_LOGIN` 之後變、卻沒有事件（2026-10-21 死亡彈窗）。不能在顯示時換算的（零 hook 的確認彈窗）照 MiliUI_Skin `Engine.lua` 的 `layoutSig`：記住排的時候的換算基準，`PLAYER_ENTERING_WORLD` 與「自己的框貼滿 UIParent 收 `OnSizeChanged`」時比一次，不同才重排 |
 | ④ | 自己建的貼圖保留引擎預設的**像素貼齊** | 框停在小數座標（跟隨游標、拖曳、置中、寬高非整數像素）時 1px 邊整條捨入成 0px；相鄰貼圖捨入方向不同 ⇒ 2px／露縫／圖示跟邊框差一格 | 邊框四條、細線、**跟邊框相接的底與填充**、圖示貼圖、StatusBar 填充一律 **`P.NoSnap(tex)`**；BackdropTemplate 在 `SetBackdrop` 之後 **`P.NoSnapBackdrop(frame)`** |
 
 ①～③ 讓粗細不是剛好整數像素，④ 讓不是整數像素的粗細被捨入成 0 或 2——**④ 只關貼齊不修 ①～③ 的話，邊會變成半透明的糊線**，四條都要做。
@@ -30,6 +30,10 @@ metadata:
   回報的都是沒開 Cell 的玩家。**不要依賴別人的掛勾**，自己關。
 - 1080p、UI 縮放 ≈ 0.71 時 1 UI 單位 ≈ 1 像素，① 算出來一樣。要拿 1440p／5K 或 UI 縮放 0.64 這種值驗。
 - `/mcdm px` 這類稽核量的是框的幾何，看不到引擎最後怎麼捨入（④）。
+- **指紋**：同一排框「每個缺的邊不一樣」、在的那幾條是銳利的整條 1px（不是糊線）⇒ 粗細已經關了貼齊、
+  但不到 1 個實體像素（①～③），落在小數座標的邊蓋不到像素中心就整條消失；釘在整數像素上的框
+  （置中的外框）反而四邊都在，所以「外框好好的、裡面的按鈕缺邊」不代表外框算對了。
+  MiliUI_Skin 的 `/mskin debug` 有一行 `px: 1px = …`，不是 1.00 就是這個。
 
 ## 工具（共用層 `Libs/MiliUIWidgets/PixelPerfect.lua`，2026-10-20 起）
 
