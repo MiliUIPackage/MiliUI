@@ -1008,7 +1008,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 - **原本那條是 bug**：分／時兩段把無條件進位寫在 components 上（`{ div = 60, rounding = up }`、沒給 step）。暴雪 API 文件
   （`NumericRuleFormatterSharedDocumentation`）的 rounding 是「step 的取法」，沒有 step 就不取 ⇒ 商數交給 `%d` 截掉：91～119 秒印 1m。
   改成**在規則層進位**（`step = 60, rounding = Up`）再 `div = 60`：文件沒講 div 的商是整數還是帶小數，先進位成 60 的倍數，兩種解讀除出來一樣。
-  同一個寫法也在 `MiliUI_UnitFrames/Elements/Auras.lua` 與 Cell 的 `AuraContainerCore.lua`（光環倒數），這裡沒動。
+  同一個寫法也在 `MiliUI_UnitFrames/Elements/Auras.lua` 與 Cell 的 `AuraContainerCore.lua`（光環倒數），同一天一起改了。
 - **設定** `cooldownText.timeFormat`：`"minutes"`（預設，原本的寫法：91 秒起 2m、5401 秒起印時、都無條件進位；90 秒以下印秒數）｜
   `"mmss"`（60 秒起 1:59、3600 秒起印時）。THEMED（跟「文字」節），冷卻倒數與增益持續時間共用一個，**沒有逐法術覆寫**。
   舊存檔沒有這欄 ＝ 合併預設補 minutes，行為只差上面那個 bug。不認得的值一律當 minutes（`Text.TimeFormatOf`）。

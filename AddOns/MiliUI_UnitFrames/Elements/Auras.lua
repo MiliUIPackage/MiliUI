@@ -190,7 +190,11 @@ end
 --   <1 秒    小數（"0.4"）—— 少了這段，秒段的 min=1 會讓最後一整秒都卡在 "1"
 --   <91 秒   純數字（"27"）
 --   ≥91 秒   "Nm"（分數向上取整，2m32s → "3m"，跟暴雪自己的框架一致）
---   ≥5401 秒 "Nh"
+--   >5400 秒 "Nh"（分數會超過 90 就改印時；照字面放 5401 的話 (5400, 5401) 那一秒印 "91m"）
+-- ⚠ 向上取整要做在規則層（step = 60／3600、rounding = Up）再用 components 的 div 取商。
+--   以前寫在 components 上（{ div = 60, rounding = up }、沒給 step）：API 文件說 rounding 是「step 的取法」，
+--   沒有 step 就不取 ⇒ 商數交給 %d 截掉，1:59 印成 "1m"（2026-10-21 冷卻管理器的玩家回報，同一個寫法）。
+--   文件也沒講 div 的商是整數還是帶小數，先進位成 60 的倍數，兩種解讀除出來都一樣
 -- 不用 SecondsFormatter：它的三種縮寫在中文全都輸出「秒」，設計上沒有無單位出口
 -- 小數段的 step 0.1 ＋ "%.1f" 抄自 Platynator 的施法時間與 Ayije_CDM 的冷卻文字；
 -- 沿用 Down 取整（跟秒段一致），所以最後一格是 "0.0"，不會先跳一下 "1.0"
@@ -207,10 +211,10 @@ do
             f:AddBreakpoint({ threshold = 0, step = 0.1, rounding = down, format = "%.1f" })
         end
         f:AddBreakpoint({ threshold = tenths and 1 or 0, step = 1, rounding = down, min = 1, format = "%d" })
-        f:AddBreakpoint({ threshold = 91, step = 1, rounding = down, min = 1, format = "%dm",
-                          components = { { div = 60, rounding = up } } })
-        f:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format = "%dh",
-                          components = { { div = 3600, rounding = up } } })
+        f:AddBreakpoint({ threshold = 91, step = 60, rounding = up, format = "%dm",
+                          components = { { div = 60 } } })
+        f:AddBreakpoint({ threshold = 5400.0001, step = 3600, rounding = up, format = "%dh",
+                          components = { { div = 3600 } } })
         return f
     end
 
