@@ -14,8 +14,8 @@ metadata:
 
 理由：防止把多個 API 組合起來在戰鬥中比對兩個 secret unit 是不是同一個。
 
-**受限時哪些還是明文（2026-10-21：live API 文件逐支查 ＋ 探針 `_MiliProbe_SecretUnit` 在兇殺路（M，限制只有 `Map`、脫戰）實測）**：
-- **什麼時候受限**：進副本就是（`Map` 限制、還沒開怪）；開放世界脫戰不受限。戰鬥中、M+ 尚未量。
+**受限時哪些還是明文（2026-10-21：live API 文件逐支查 ＋ 探針 `_MiliProbe_SecretUnit` 在兇殺路（M）與 M+ 納羅拉克之穴（脫戰、戰鬥、首領戰，224 筆）實測）**：
+- **什麼時候受限**：進副本就是（`Map` 限制、還沒開怪）；開放世界脫戰不受限。M+ 裡的限制組合：`ChallengeMode,Chat,Map`＋戰鬥加 `Combat`、首領戰加 `Encounter`——受限的欄位在這些組合下都一樣。
 - 轉秘密（實測）：`UnitName`、`UnitGUID`、`UnitCreatureType`（兩個回傳都是）、`UnitIsPVP`、目標的名字、`UnitIsUnit(x.."target","player")`。
   文件另標 `UnitCreatureFamily`、`UnitFullName`、`UnitNameUnmodified`、`UnitPVPName`、`UnitTokenFromGUID`；`UnitName` 標的是 `SecretWhenUnitNameIdentityRestricted`（PvP 對戰中的玩家例外）。
 - **明文（實測）**：`UnitLevel`、`UnitEffectiveLevel`、`UnitClassification`、`UnitReaction`、`UnitSelectionType`、`UnitIsTapDenied`、`UnitIsDeadOrGhost`、
@@ -23,9 +23,11 @@ metadata:
   文件也沒標：`UnitSelectionColor`、`UnitIsQuestBoss`、`UnitFactionGroup`、`UnitCanAttack`。
 - **`C_TooltipInfo.GetUnit` 的行**：文字、顏色（leftColor 是秘密 table）是秘密；**`type`／`lineIndex` 是明文**。但 NPC 的等級行（「等級90（精英）」）、
   類型行（「小動物」）、PvP 行**都是 type 0（None）**——12.x 新增的 `UnitLevel`(47)／`UnitType`(48) 型別在單位提示上沒用到 ⇒ 靠型別認不出頭銜／等級行。
-  12.x 暴雪自己把等級與生物類型拆成兩行（「等級??（首領）」＋「變異怪」），不是插件改的。
+  12.x 暴雪自己把等級與生物類型拆成兩行（「等級??（首領）」＋「變異怪」），不是插件改的；人形生物不出類型行。順序固定：名字後第一個 None 行是等級行。
+  M+ 小怪的形狀是 `2 0 0 0 0 50 7`：名字、四個 None、**`UnitCriteriaProgress`(50)＝敵軍部隊進度**、`UnitThreat`(7)；首領戰 `2 0` 或 `2 0 0 0 7`；
+  任務怪 `2 0 0 17 18 8`（QuestTitle／QuestPlayer／QuestObjective）；寵物 `2 16 0`（UnitOwner）。
 - **原生 GameTooltip 的幾何**（GetPoint／GetWidth／GetHeight／GetLeft／GetPadding）顯示受限單位時是**明文**，anchoring 也不秘密；錨在它上面的自己的框量得到。
-  （post-call 當下 `IsRectValid()` 是 false，下一幀才結算。）戰鬥中還沒量——[[project-appearancetooltip-secret-rect]] 的探究案例暗示戰鬥後可能變秘密。
+  （post-call 當下 `IsRectValid()` 常是 false，下一幀才結算。）**M+ 戰鬥中、首領戰也一直是明文**（162 筆戰鬥中零秘密）；之後滑物品也是明文，沒有黏著。
 - `SetPortraitTexture(tex, "mouseover")` 對受限單位不報錯（畫面待確認）。
 
 其他相關變更：

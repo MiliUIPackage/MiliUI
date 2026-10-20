@@ -171,11 +171,12 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 `UnitInfo.GetUnitInfo` 整張空、`UnitLines` 一行都改不到；「等級??（首領）」「變異怪」分兩行是 12.x 暴雪自己的格式。
 探針實測（[[wow-121-unit-api-secrets]] 有全表）推翻了原本「原生幾何一定秘密 ⇒ 替身架構不能用」的擔心：**原生幾何明文**，替身照常撐、照常對齊。
 - 入口：`UnitToken` 回第三值 restricted（data.guid 是秘密）；秘密 token ⇒ `"mouseover"`。`TryUnit` 設 `state.panelRestricted`；GUID 明文但 C_Secrets 說受限也走這條。
-- 讀：`Panel.UnitFactsRestricted`（只叫明文 API，名字／類型原封不動帶著；不走 GetUnitInfo）；行用 `Panel.CollectRestrictedLines`（只認 type：任務、主人、仇恨、進度；None 行全丟；
-  別人後加的行用 `Panel.CollectAppended(..., lenient)`，讀到秘密只跳那一行）。Key 是 nil ⇒ 每次 post-call 都重畫（分不出是不是同一隻）。
-- 畫：header 的 `secret` 項＋`Panel.SecretLine`（專用字 `Panel.SecretText(panel, style, slot)`，slot：name／info／target／other<i>／quest<i>；不進池、單行、不量寬）；
+- 讀：`Panel.UnitFactsRestricted`（只叫明文 API，名字原封不動帶著；不走 GetUnitInfo；類型不從 API 畫）；行用 `Panel.CollectRestrictedLines`（認 type）→ `ReadRestrictedUnitRows`：
+  **名字後第一個 None 行＝等級行丟掉（底板＋分類徽章畫了），其餘 None 行照順序進標題區（secretHeader）**——M+ 小怪多兩行、類型行只有部分生物有；任務一段、主人／仇恨／進度(50＝敵軍部隊)一段。
+  有頭銜的 NPC 頭銜會被當等級行吃掉（副本裡極少）。別人後加的行用 `Panel.CollectAppended(..., lenient)`，讀到秘密只跳那一行。Key 是 nil ⇒ 每次 post-call 都重畫（分不出是不是同一隻）。
+- 畫：header 的 `secret` 項＋`Panel.SecretLine`（專用字 `Panel.SecretText(panel, style, slot)`，slot：name／info<i>／target／other<i>／quest<i>；不進池、單行、不量寬）；
   寬度 `view.secretHint` ⇒ `Native.ContentWidth`（原生自然寬扣自己撐的 padding、扣左右內距 20）÷ 標題字級 × 該行字級——原生最寬的行不一定是名字，只會留多。
 - 退回封鎖用 `Panel.UNIT_BLOCK_RESTRICTED` 一把。原生寬讀到秘密（戰鬥中？）⇒ Fit 失敗、post-call 裡就退，不閃。
-- **未定**：M+／戰鬥中的探針資料還沒回來；M+「敵軍部隊」若是暴雪的 None 行會被丟掉，要看資料決定要不要改成「None 行照順序原封不動畫在其他」。合進 master 前先看這份。
+- M+ 探針（戰鬥、首領戰）：原生幾何一直明文 ⇒ 不會退回；第一版「None 行全丟」會丟掉 M+ 小怪的兩行 ⇒ 改成上面的照順序傳遞。待實機：頭像有沒有畫出來、整體樣子。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
