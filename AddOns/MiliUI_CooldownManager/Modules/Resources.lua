@@ -171,6 +171,19 @@ local function ResolveColor(cfg, key, field)
 end
 R.ResolveColor = ResolveColor
 
+-- 「累積中的那一格」（毀滅術碎片零頭、精華回充）：玩家調過 colors[key].partialColor 就用它（含 a）；
+-- 沒調 ⇒ 主色 cc 暗一階（R.PARTIAL_SHADE，跟符文在轉的格子同一個係數），寫進呼叫端的 out、a 留空。
+-- 預設故意不放進 Core/DB.lua：放了就是一個固定的紫，玩家改主色時這一格不會跟著變
+R.PARTIAL_SHADE = 0.55
+function R.PartialColor(cfg, key, cc, out)
+    local own = type(cfg) == "table" and type(cfg.colors) == "table" and cfg.colors[key]
+    local c = type(own) == "table" and RC.ValidColor(own.partialColor)
+    if c then return c end
+    local k = R.PARTIAL_SHADE
+    out.r, out.g, out.b, out.a = cc.r * k, cc.g * k, cc.b * k, nil
+    return out
+end
+
 ------------------------------------------------------------
 -- 天賦判斷
 --

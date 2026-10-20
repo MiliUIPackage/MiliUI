@@ -730,8 +730,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "Replier en 5 segments"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "Les cumuls 6 à 10 remplissent à nouveau les mêmes 5 segments par-dessus, dans la couleur de débordement. Les couleurs de condition ne s'appliquent qu'à la première couche."
 L["Overflow color"] = "Couleur de débordement"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "Destruction affiche les fragments d'éclat : le segment en cours de remplissage est un ton plus sombre et le nombre sur la barre a une décimale."
-L["The next segment fills up as Essence recharges, a shade darker."] = "Le segment suivant se remplit un ton plus sombre pendant que l'Essence se recharge."
+L["Filling segment"] = "Segment en remplissage"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "Destruction affiche les fragments d'éclat : le segment en cours de remplissage utilise la couleur ci-dessus (par défaut un ton plus sombre que la couleur principale) et le nombre sur la barre a une décimale."
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "Le segment suivant se remplit pendant que l'Essence se recharge, dans la couleur ci-dessus (par défaut un ton plus sombre que la couleur principale)."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Temps de recharge globaux restants compte combien de temps de recharge globaux tiennent encore avant la fin de l'amélioration, et affiche \"Dernier\" pendant le dernier. Il suit votre hâte ; si la hâte change en combat, le compte se met à jour après le combat."
 
 -- 征戰聖擊列

@@ -39,11 +39,11 @@ end
 --   關  舊行為：排隊中進度 0、不印秒數，填充只算自己那段冷卻
 -- 「花掉那一刻」沒有 API，自己記（runeSpentAt：看到某顆從轉好變成沒轉好的那次更新）。
 ------------------------------------------------------------
-local RUNE_RECHARGE_SHADE = 0.55     -- 在轉的格子：同色系暗一階（狀態只換明暗不換色）
+local RUNE_RECHARGE_SHADE = R.PARTIAL_SHADE  -- 在轉的格子：同色系暗一階（狀態只換明暗不換色）
 local runeReady, runeRemain, runeProgress, runeQueued, runeOrder = {}, {}, {}, {}, {}
 local runeSpentAt = {}               -- [符文編號] = 看到它沒轉好的第一個時間點；轉好時清掉
 local runeRechargeColor = { r = 0, g = 0, b = 0 }
-local shadeColor = { r = 0, g = 0, b = 0 }  -- 碎片累積中／精華回充中的那一格（同一個係數）
+local shadeColor = { r = 0, g = 0, b = 0 }  -- 碎片累積中／精華回充中的那一格：沒自訂時 R.PartialColor 寫在這
 
 -- 精華回充的狀態：上一次的明文顆數、這一輪回充從什麼時候開始、上次讀到的明文回充速度
 local essence = { last = nil, since = nil, rate = nil }
@@ -224,10 +224,7 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
         end
     end
     local shade
-    if partialIdx then
-        shade = shadeColor
-        shade.r, shade.g, shade.b = cc.r * RUNE_RECHARGE_SHADE, cc.g * RUNE_RECHARGE_SHADE, cc.b * RUNE_RECHARGE_SHADE
-    end
+    if partialIdx then shade = R.PartialColor(cfg, key, cc, shadeColor) end
     local charged = ChargedPoints(key)
     local chargedCC, chargedEmptyCC
     if charged then
@@ -258,7 +255,8 @@ local function UpdatePipRow(row, cfg, def, key, numSeg, cc, conds)
             local oc = ov and RC.ValidColor(ov.color)
             if oc then c = oc end
         end
-        SetSegColor(seg, c, alpha)
+        -- 累積中那一格的顏色可以自帶透明度（partialColor.a），疊在整條的填充透明度上
+        SetSegColor(seg, c, (c == shade and shade.a or 1) * alpha)
         if isCharged then
             -- 充能但還沒填到：底色畫成暗的充能色（打滿之前就看得出哪幾格是充能格）
             seg.bg:SetVertexColor(chargedEmptyCC.r, chargedEmptyCC.g, chargedEmptyCC.b, BgAlpha(cfg))

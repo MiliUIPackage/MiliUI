@@ -1533,6 +1533,16 @@ do
     check("碎片：分格的填充", frac(0, 10, 37) == 1 and frac(20, 30, 37) == 1 and math.abs(frac(30, 40, 37) - 0.7) < 1e-9
         and frac(40, 50, 37) == 0)
 
+    -- 累積中那一格的顏色（2026-10-20：colors[key].partialColor 可自訂，含透明度）
+    local main, out = { r = 0.6, g = 0.4, b = 1 }, {}
+    local pc = R.PartialColor({ colors = {} }, "SoulShards", main, out)
+    check("累積色：沒調 ⇒ 主色暗一階、寫進 out、沒有 a", pc == out and math.abs(pc.r - 0.6 * R.PARTIAL_SHADE) < 1e-9
+        and math.abs(pc.b - R.PARTIAL_SHADE) < 1e-9 and pc.a == nil)
+    local own = { r = 1, g = 0.8, b = 0, a = 0.5 }
+    eq("累積色：調過 ⇒ 回玩家那張表", R.PartialColor({ colors = { Essence = { partialColor = own } } }, "Essence", main, out), own)
+    eq("累積色：壞掉的表 ⇒ 退回暗一階", R.PartialColor({ colors = { Essence = { partialColor = { r = "x" } } } }, "Essence", main, out), out)
+    eq("累積色：cfg 是 nil 也不炸", R.PartialColor(nil, "Essence", main, out), out)
+
     -- 2. 精華回充
     eq("精華：特殊填充", R.RESOURCES.Essence.fill, "essence")
     eq("精華：UnitPartialPower 500 ⇒ 0.5", R.EssenceFrac(500, nil, nil), 0.5)

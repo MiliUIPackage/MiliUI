@@ -265,6 +265,51 @@ local function HealthThresholdRow()
     end }
 end
 
+-- 「累積中的格子」的色票（碎片零頭、精華回充）：沒調過時顯示的是引擎算的「主色暗一階」，
+-- 第一次改才把那個值抄成 colors[key].partialColor 再寫（同 Specs 的 ColorProxy）。
+-- 右鍵重設 ⇒ DB 沒有預設 ⇒ 寫回 nil ⇒ 又跟著主色走
+local PARTIAL_KEYS = { SoulShards = true, Essence = true }
+local partialProxies, partialScratch = {}, {}
+
+local function OwnPartial(key)
+    local c = Cfg()
+    local own = c and type(c.colors) == "table" and c.colors[key]
+    return type(own) == "table" and type(own.partialColor) == "table" and own.partialColor or nil
+end
+
+local function ShownPartial(key)
+    local cfg, R = Cfg(), ns.Resources
+    return R.PartialColor(cfg, key, R.ResolveColor(cfg, key, "color"), partialScratch)
+end
+
+local function PartialProxy(key)
+    local hit = partialProxies[key]
+    if hit then return hit end
+    local proxy = setmetatable({}, {
+        __index = function(_, k) return ShownPartial(key)[k] end,
+        __newindex = function(_, k, v)
+            local c = Cfg()
+            if not c then return end
+            local own = OwnPartial(key)
+            if not own then
+                local src = ShownPartial(key)
+                own = { r = src.r, g = src.g, b = src.b, a = src.a or 1 }
+                if type(c.colors) ~= "table" then c.colors = {} end
+                if type(c.colors[key]) ~= "table" then c.colors[key] = {} end
+                c.colors[key].partialColor = own
+            end
+            own[k] = v
+        end,
+    })
+    partialProxies[key] = proxy
+    return proxy
+end
+
+local function PartialColorRow(key)
+    return BS("color", "colors." .. key .. ".partialColor", L["Filling segment"], { hasAlpha = true,
+        get = function() return PartialProxy(key) end })
+end
+
 local function AppendColors(add, key, info)
     local R = ns.Resources
     add({ type = "header", label = L["Colors"] })
@@ -296,9 +341,11 @@ local function AppendColors(add, key, info)
         add(Note(L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."]))
         add(BS("color", "colors.MaelstromWeapon.overflowColor", L["Overflow color"], { hasAlpha = false }))
     elseif key == "SoulShards" then
-        add(Note(L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."]))
+        add(PartialColorRow(key))
+        add(Note(L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."]))
     elseif key == "Essence" then
-        add(Note(L["The next segment fills up as Essence recharges, a shade darker."]))
+        add(PartialColorRow(key))
+        add(Note(L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."]))
     elseif key == "CrusadingStrikes" then
         add(BS("color", "colors.CrusadingStrikes.backColor", L["Background color"], { hasAlpha = true }))
         add(BS("dropdown", "crusadingFill", L["Bar fills with"], { items = CRUSADING_FILL_ITEMS }))
@@ -699,6 +746,9 @@ win = ns.SettingsWindow.New({
         ns.Defer(function()
             local page = Options.GetPage(KEY)
             if page and page:IsVisible() and page.RefreshForm then page:RefreshForm() end
+            -- 「累積中的格子」沒自訂時顯示的是主色暗一階：主色改了，那個色票要跟著重讀
+            local cur = win:IsOpen() and win:Current()
+            if PARTIAL_KEYS[cur] and not OwnPartial(cur) then win:Refresh() end
         end)
     end,
     -- 血量門檻、虛空化身門檻的彈窗跟著這個視窗走（它改的是這一種資源）

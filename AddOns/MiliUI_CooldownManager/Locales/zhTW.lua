@@ -737,8 +737,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "摺成 5 格"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "第 6～10 層在同樣的 5 格上再疊一層，用溢出色。條件規則的顏色只套在第一層。"
 L["Overflow color"] = "溢出色"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "毀滅專精會顯示裂片的零頭：正在累積的那一格暗一階，長條上的數字帶一位小數。"
-L["The next segment fills up as Essence recharges, a shade darker."] = "下一格會隨著精華回充慢慢填滿，顏色暗一階。"
+L["Filling segment"] = "累積中的格子"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "毀滅專精會顯示裂片的零頭：正在累積的那一格用上面這個顏色（沒調過就是主色暗一階），長條上的數字帶一位小數。"
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "下一格會隨著精華回充慢慢填滿，用上面這個顏色（沒調過就是主色暗一階）。"
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "剩幾個共用冷卻：在增益結束前還能放幾個共用冷卻，最後一個時顯示「最後」。會跟著加速變；戰鬥中加速改變的話，脫離戰鬥後才更新。"
 
 -- 征戰聖擊列

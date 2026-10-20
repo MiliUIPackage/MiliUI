@@ -1062,7 +1062,8 @@ local function ExtKey(key) return "ext:" .. tostring(key) end
 
 _G.MiliUI_CooldownManager = {
     -- 資源 key（"ComboPoints"、"HolyPower"、"Mana"…，見 README）的顏色：
-    --   { color = {r,g,b,a}, chargedColor = {…}|nil, chargedEmptyColor = {…}|nil }
+    --   { color = {r,g,b,a}, chargedColor = {…}|nil, chargedEmptyColor = {…}|nil,
+    --     partialColor = {…}|nil（靈魂裂片／精華累積中那一格；nil ＝ 主色 × 0.55）}
     -- 回的是設定檔裡那張表本身（不配新表）；沒有這個資源回 nil。
     GetResourceColors = function(key)
         local cfg = ResourcesCfg()

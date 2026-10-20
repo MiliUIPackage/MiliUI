@@ -730,8 +730,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "Plegar en 5 segmentos"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "Las acumulaciones 6 a 10 vuelven a llenar los mismos 5 segmentos encima, con el color de desbordamiento. Los colores de condición solo se aplican a la primera capa."
 L["Overflow color"] = "Color de desbordamiento"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "Destrucción muestra los fragmentos de esquirla: el segmento que se está llenando es un tono más oscuro y el número de la barra lleva un decimal."
-L["The next segment fills up as Essence recharges, a shade darker."] = "El siguiente segmento se llena un tono más oscuro mientras la Esencia se recarga."
+L["Filling segment"] = "Segmento en carga"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "Destrucción muestra los fragmentos de esquirla: el segmento que se está llenando usa el color de arriba (si no lo cambias, un tono más oscuro que el color principal) y el número de la barra lleva un decimal."
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "El siguiente segmento se llena mientras la Esencia se recarga, con el color de arriba (si no lo cambias, un tono más oscuro que el color principal)."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Tiempos de reutilización globales restantes cuenta cuántos tiempos de reutilización globales caben antes de que termine el beneficio y muestra \"Último\" durante el final. Sigue tu celeridad; si la celeridad cambia en combate, la cuenta se actualiza al salir de combate."
 
 -- 征戰聖擊列

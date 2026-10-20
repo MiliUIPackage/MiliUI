@@ -730,8 +730,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "Piega in 5 segmenti"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "I cumuli da 6 a 10 riempiono di nuovo gli stessi 5 segmenti sopra, con il colore di trabocco. I colori delle condizioni valgono solo per il primo strato."
 L["Overflow color"] = "Colore di trabocco"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "Distruzione mostra i frammenti di scheggia: il segmento che si sta riempiendo è di una tonalità più scura e il numero sulla barra ha un decimale."
-L["The next segment fills up as Essence recharges, a shade darker."] = "Il segmento successivo si riempie di una tonalità più scura mentre l'Essenza si ricarica."
+L["Filling segment"] = "Segmento in riempimento"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "Distruzione mostra i frammenti di scheggia: il segmento che si sta riempiendo usa il colore sopra (se non lo cambi, una tonalità più scura del colore principale) e il numero sulla barra ha un decimale."
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "Il segmento successivo si riempie mentre l'Essenza si ricarica, nel colore sopra (se non lo cambi, una tonalità più scura del colore principale)."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Recuperi globali rimanenti conta quanti recuperi globali entrano ancora prima della fine dell'effetto e mostra \"Ultimo\" durante l'ultimo. Segue la tua celerità; se cambia in combattimento, il conteggio si aggiorna dopo il combattimento."
 
 -- 征戰聖擊列

@@ -730,8 +730,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "5칸으로 접기"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "6~10 중첩은 같은 5칸 위에 넘침 색상으로 한 번 더 채웁니다. 조건 색상은 첫 번째 층에만 적용됩니다."
 L["Overflow color"] = "넘침 색상"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "파괴 전문화는 영혼의 조각 일부를 표시합니다. 채워지는 칸은 한 단계 어둡고, 바 위의 숫자는 소수점 한 자리까지 나옵니다."
-L["The next segment fills up as Essence recharges, a shade darker."] = "정수가 재충전되는 동안 다음 칸이 한 단계 어두운 색으로 차오릅니다."
+L["Filling segment"] = "채워지는 칸"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "파괴 전문화는 영혼의 조각 일부를 표시합니다. 채워지는 칸은 위의 색을 쓰고(바꾸지 않으면 기본 색보다 한 단계 어둡게), 바 위의 숫자는 소수점 한 자리까지 나옵니다."
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "정수가 재충전되는 동안 다음 칸이 위의 색으로 차오릅니다(바꾸지 않으면 기본 색보다 한 단계 어둡게)."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "남은 전역 재사용 대기시간: 강화 효과가 끝나기 전에 전역 재사용 대기시간이 몇 번 더 들어가는지 세고, 마지막 한 번에는 \"마지막\"을 표시합니다. 가속에 따라 바뀌며, 전투 중 가속이 바뀌면 전투가 끝난 뒤에 반영됩니다."
 
 -- 征戰聖擊列

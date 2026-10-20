@@ -730,8 +730,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "Auf 5 Segmente falten"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "Stapel 6 bis 10 füllen dieselben 5 Segmente in der Überlauffarbe ein zweites Mal. Bedingungsfarben gelten nur für die erste Schicht."
 L["Overflow color"] = "Überlauffarbe"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "Zerstörung zeigt Splitterbruchstücke: Das Segment, das sich gerade füllt, ist eine Stufe dunkler, und die Zahl auf der Leiste hat eine Nachkommastelle."
-L["The next segment fills up as Essence recharges, a shade darker."] = "Das nächste Segment füllt sich eine Stufe dunkler, während sich Essenz auflädt."
+L["Filling segment"] = "Füllendes Segment"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "Zerstörung zeigt Splitterbruchstücke: Das Segment, das sich gerade füllt, nutzt die Farbe oben (ohne Änderung eine Stufe dunkler als die Hauptfarbe), und die Zahl auf der Leiste hat eine Nachkommastelle."
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "Das nächste Segment füllt sich, während sich Essenz auflädt, in der Farbe oben (ohne Änderung eine Stufe dunkler als die Hauptfarbe)."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Verbleibende globale Abklingzeiten zählt, wie viele globale Abklingzeiten noch vor dem Ende des Buffs passen, und zeigt während der letzten \"Letzte\". Es folgt deinem Tempo; ändert sich das Tempo im Kampf, wird es nach dem Kampf nachgezogen."
 
 -- 征戰聖擊列

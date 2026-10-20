@@ -730,8 +730,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "Dobrar em 5 segmentos"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "Os acúmulos 6 a 10 preenchem os mesmos 5 segmentos de novo por cima, na cor de transbordo. As cores de condição só valem para a primeira camada."
 L["Overflow color"] = "Cor de transbordo"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "Destruição mostra os fragmentos de estilhaço: o segmento que está enchendo fica um tom mais escuro e o número na barra tem uma casa decimal."
-L["The next segment fills up as Essence recharges, a shade darker."] = "O próximo segmento enche um tom mais escuro enquanto a Essência recarrega."
+L["Filling segment"] = "Segmento enchendo"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "Destruição mostra os fragmentos de estilhaço: o segmento que está enchendo usa a cor acima (se você não mudar, um tom mais escuro que a cor principal) e o número na barra tem uma casa decimal."
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "O próximo segmento enche enquanto a Essência recarrega, na cor acima (se você não mudar, um tom mais escuro que a cor principal)."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Recargas globais restantes conta quantas recargas globais ainda cabem antes de a aura acabar e mostra \"Último\" durante a final. Acompanha sua aceleração; se ela mudar em combate, a contagem é atualizada depois do combate."
 
 -- 征戰聖擊列

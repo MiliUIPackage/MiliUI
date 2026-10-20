@@ -730,8 +730,9 @@ L["Shows only your own Ignore Pain shield, as a percent of how big it can get; t
 L["Fold into 5 segments"] = "Свернуть в 5 делений"
 L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."] = "Заряды с 6 по 10 заполняют те же 5 делений ещё раз поверх, цветом переполнения. Цвета условий применяются только к первому слою."
 L["Overflow color"] = "Цвет переполнения"
-L["Destruction shows shard fragments: the segment that is filling up is a shade darker, and the number on the bar has one decimal."] = "У Разрушения видны доли осколков: заполняющееся деление на тон темнее, а число на полосе — с одним знаком после запятой."
-L["The next segment fills up as Essence recharges, a shade darker."] = "Следующее деление заполняется на тон темнее, пока восстанавливается сущность."
+L["Filling segment"] = "Заполняющееся деление"
+L["Destruction shows shard fragments: the segment that is filling up uses the color above (a shade darker than the main color unless you change it), and the number on the bar has one decimal."] = "У Разрушения видны доли осколков: заполняющееся деление окрашено в цвет выше (если не менять — на тон темнее основного цвета), а число на полосе — с одним знаком после запятой."
+L["The next segment fills up as Essence recharges, in the color above (a shade darker than the main color unless you change it)."] = "Следующее деление заполняется, пока восстанавливается сущность, цветом выше (если не менять — на тон темнее основного цвета)."
 L["Global cooldowns left counts how many more global cooldowns fit before the buff ends, and shows \"Last\" during the final one. It follows your haste; when haste changes in combat the count catches up after combat."] = "Осталось глобальных перезарядок: сколько ещё глобальных перезарядок поместится до конца эффекта; во время последней показывается \"Последний\". Зависит от скорости; если скорость меняется в бою, счёт обновится после боя."
 
 -- 征戰聖擊列
