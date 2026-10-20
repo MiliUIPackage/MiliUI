@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-10-20T18:46:11.838Z
+  modified: 2026-10-20T19:07:04.014Z
 ---
 
 12.1.0 PTR 7（2026-07-23, build 68914）起，**unit identity 為 secret 時**這些 API 全部回傳 secret：
@@ -14,13 +14,19 @@ metadata:
 
 理由：防止把多個 API 組合起來在戰鬥中比對兩個 secret unit 是不是同一個。
 
-**live API 文件逐支查的結果（2026-10-21，`UnitDocumentation.lua` 的函式層旗標；尚未實機，探針 `_MiliProbe_SecretUnit`）**：
-受限時**轉秘密**的另有 `UnitGUID`、`UnitCreatureType`、`UnitCreatureFamily`、`UnitFullName`、`UnitNameUnmodified`、`UnitPVPName`、`UnitTokenFromGUID`，
-`UnitName` 標的是另一條 `SecretWhenUnitNameIdentityRestricted`（同規則，PvP 對戰中的玩家例外）；
-**沒有任何秘密旗標**（受限也該是明文）：`UnitLevel`、`UnitEffectiveLevel`、`UnitClassification`、`UnitReaction`、`UnitSelectionType`、`UnitSelectionColor`、
-`UnitIsTapDenied`、`UnitIsDead(OrGhost)`、`UnitPlayerControlled`、`UnitIsPlayer`、`UnitIsBossMob`、`UnitIsQuestBoss`、`UnitFactionGroup`、`UnitExists`、`UnitCanAttack`。
-MiliUI_Tooltip 舊樣式在團本首領上畫得出「等級??（首領）」與立場紅名，跟這份吻合。
-同版 `Enum.TooltipDataLineType` 多了 `UnitLevel`(47)／`UnitType`(48)／`UnitDead`(49)／`UnitCriteriaProgress`(50)：行的 `type` 若受限時仍是明文，就能不讀文字認出等級行、類型行。
+**受限時哪些還是明文（2026-10-21：live API 文件逐支查 ＋ 探針 `_MiliProbe_SecretUnit` 在兇殺路（M，限制只有 `Map`、脫戰）實測）**：
+- **什麼時候受限**：進副本就是（`Map` 限制、還沒開怪）；開放世界脫戰不受限。戰鬥中、M+ 尚未量。
+- 轉秘密（實測）：`UnitName`、`UnitGUID`、`UnitCreatureType`（兩個回傳都是）、`UnitIsPVP`、目標的名字、`UnitIsUnit(x.."target","player")`。
+  文件另標 `UnitCreatureFamily`、`UnitFullName`、`UnitNameUnmodified`、`UnitPVPName`、`UnitTokenFromGUID`；`UnitName` 標的是 `SecretWhenUnitNameIdentityRestricted`（PvP 對戰中的玩家例外）。
+- **明文（實測）**：`UnitLevel`、`UnitEffectiveLevel`、`UnitClassification`、`UnitReaction`、`UnitSelectionType`、`UnitIsTapDenied`、`UnitIsDeadOrGhost`、
+  `UnitPlayerControlled`、`UnitIsPlayer`、`UnitIsBossMob`、`UnitExists`（含 `mouseovertarget`）、`C_Secrets.ShouldUnitIdentityBeSecret`、`ShouldUnitComparisonBeSecret(u,"player")`＝false。
+  文件也沒標：`UnitSelectionColor`、`UnitIsQuestBoss`、`UnitFactionGroup`、`UnitCanAttack`。
+- **`C_TooltipInfo.GetUnit` 的行**：文字、顏色（leftColor 是秘密 table）是秘密；**`type`／`lineIndex` 是明文**。但 NPC 的等級行（「等級90（精英）」）、
+  類型行（「小動物」）、PvP 行**都是 type 0（None）**——12.x 新增的 `UnitLevel`(47)／`UnitType`(48) 型別在單位提示上沒用到 ⇒ 靠型別認不出頭銜／等級行。
+  12.x 暴雪自己把等級與生物類型拆成兩行（「等級??（首領）」＋「變異怪」），不是插件改的。
+- **原生 GameTooltip 的幾何**（GetPoint／GetWidth／GetHeight／GetLeft／GetPadding）顯示受限單位時是**明文**，anchoring 也不秘密；錨在它上面的自己的框量得到。
+  （post-call 當下 `IsRectValid()` 是 false，下一幀才結算。）戰鬥中還沒量——[[project-appearancetooltip-secret-rect]] 的探究案例暗示戰鬥後可能變秘密。
+- `SetPortraitTexture(tex, "mouseover")` 對受限單位不報錯（畫面待確認）。
 
 其他相關變更：
 - **`UnitIsUnit` 回 secret boolean**（2026-08-20 實測：`UnitIsUnit("boss1", "party4")`）：只要有一邊是
@@ -88,10 +94,12 @@ curl -sL https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/Ad
 
 **unit token 本身也可能是秘密字串**（2026-08-22 實測，MiliUI_Tooltip 滑世界單位 1208 連發）：
 `GameTooltip:GetUnit()` 的第二回傳在 **SetWorldCursor**（12.x 世界游標的單位提示）路徑上
-是秘密字串。它**傳遞給任何 Unit API、字串串接（`unit.."target"`）都合法**，但跟明文字面值
-比較（`unit ~= "mouseover"`——同型別字串比較）會直接炸。規則：unit token 要跟字面值比對前
-先 `SafeValue` 洗，洗不出明文就走否定分支；判斷「是不是某單位」改用 `UnitIsUnit(unit, "player")`
-（API 吃秘密 token，回傳再 SafeBool）。
+是秘密字串。字串串接（`unit.."target"`）合法，跟明文字面值比較（`unit ~= "mouseover"`——同型別字串比較）會直接炸。
+⚠ **2026-10-21 探針推翻「傳給任何 Unit API 都合法」**：副本裡（身分受限）把秘密 token 餵 `UnitLevel`／`UnitClassification`／`UnitReaction`／
+`C_Secrets.ShouldUnitIdentityBeSecret` 全部報 `bad argument #1 ... (Usage: ... Secret ...)`（文件標 `SecretArguments = "AllowedWhenUntainted"` 的都這樣）；
+只有標 `AllowedWhenTainted` 的 `UnitName` 吃得下。所以 `pcall` 包著的呼叫會**靜默拿不到值**（舊樣式在副本裡完全改寫不到行，畫面是暴雪原樣＋皮）。
+規則：拿到秘密 token 先換明文——世界游標的提示就是 mouseover，`UnitExists("mouseover")` 為真就用 `"mouseover"`（受限時 GUID、`UnitIsUnit` 都比不了，
+沒有別的辦法確認同一隻）；跟字面值比對前先 `SafeValue` 洗，洗不出明文就走否定分支。
 
 **事件參數的 unit 也是秘密字串來源**（2026-09-08 實測，Cell 團隊框架 `READY_CHECK` 12 連發）：
 不只 API 回傳值，**事件派送給處理函式的 arg1 一樣可能是秘密的**。已證實的是

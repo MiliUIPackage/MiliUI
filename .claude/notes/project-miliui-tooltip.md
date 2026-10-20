@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-20T16:53:30.998Z
+  modified: 2026-10-20T19:07:37.969Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -164,5 +164,18 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - 標籤一律用暴雪全域：`STATUS_TEXT_TARGET`「目標」（`TARGET` 是「選取目標」）、`AFK`「離開」、`MAP_LEGEND_RARE(ELITE)`「稀有（精英）」。
 - `Tests/Unit_test.lua` 連間距一起驗（標題等距、◆ 上下等距、四邊內距）；scratchpad 有過一支把假框幾何畫成 PNG 的 mock 腳本，看版面很有用（Lua 5.3 的 `%02x` 不收小數，測試裡 `Colors.Hex` 要墊取整版）。
 - 未實機：README 待驗 30～36（尤其哪些戰鬥情境身分受限、專精行認法、FadeOut 秒數 0.3 是猜的）。
+
+## 身分受限的單位也走面板（2026-10-21，worktree secret-value-retraction-copy；探針 `_MiliProbe_SecretUnit`）
+
+使用者看到副本首領的提示是「暴雪原樣＋皮」而問起。**更正當時的判斷**：那不是舊樣式改寫的——秘密 token 餵 `UnitLevel` 這些會被擋（Usage 錯誤），
+`UnitInfo.GetUnitInfo` 整張空、`UnitLines` 一行都改不到；「等級??（首領）」「變異怪」分兩行是 12.x 暴雪自己的格式。
+探針實測（[[wow-121-unit-api-secrets]] 有全表）推翻了原本「原生幾何一定秘密 ⇒ 替身架構不能用」的擔心：**原生幾何明文**，替身照常撐、照常對齊。
+- 入口：`UnitToken` 回第三值 restricted（data.guid 是秘密）；秘密 token ⇒ `"mouseover"`。`TryUnit` 設 `state.panelRestricted`；GUID 明文但 C_Secrets 說受限也走這條。
+- 讀：`Panel.UnitFactsRestricted`（只叫明文 API，名字／類型原封不動帶著；不走 GetUnitInfo）；行用 `Panel.CollectRestrictedLines`（只認 type：任務、主人、仇恨、進度；None 行全丟；
+  別人後加的行用 `Panel.CollectAppended(..., lenient)`，讀到秘密只跳那一行）。Key 是 nil ⇒ 每次 post-call 都重畫（分不出是不是同一隻）。
+- 畫：header 的 `secret` 項＋`Panel.SecretLine`（專用字 `Panel.SecretText(panel, style, slot)`，slot：name／info／target／other<i>／quest<i>；不進池、單行、不量寬）；
+  寬度 `view.secretHint` ⇒ `Native.ContentWidth`（原生自然寬扣自己撐的 padding、扣左右內距 20）÷ 標題字級 × 該行字級——原生最寬的行不一定是名字，只會留多。
+- 退回封鎖用 `Panel.UNIT_BLOCK_RESTRICTED` 一把。原生寬讀到秘密（戰鬥中？）⇒ Fit 失敗、post-call 裡就退，不閃。
+- **未定**：M+／戰鬥中的探針資料還沒回來；M+「敵軍部隊」若是暴雪的 None 行會被丟掉，要看資料決定要不要改成「None 行照順序原封不動畫在其他」。合進 master 前先看這份。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
