@@ -474,7 +474,7 @@ moveFrame:SetBackdrop({
 moveFrame:SetBackdropColor(0.25, 0.65, 1, 0.4) -- 淡蓝色底（跟焦点施法条定位框完全一致）
 moveFrame.text = moveFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 moveFrame.text:SetPoint("CENTER")
-moveFrame.text:SetText("boss1 护盾条")
+moveFrame.text:SetText("boss1 護盾條")
 moveFrame.text:SetTextColor(1, 1, 1, 0.9)
 moveFrame.text:SetJustifyH("CENTER")
 ApplySavedPosition(moveFrame)
@@ -498,7 +498,7 @@ moveFrame:SetScript("OnMouseUp", function(self)
     local g = DiGuaTimelineAudioHelper
     if g then g.targetAbsorbX, g.targetAbsorbY = x, y end
     if bar then ApplySavedPosition(bar) end
-    print(string.format("|cff00ff00[DiGua]|r boss1 护盾条新位置已保存 (X: %d, Y: %d)", x, y))
+    print(string.format("|cff00ff00[DiGua]|r boss1 護盾條新位置已保存 (X: %d, Y: %d)", x, y))
 end)
 
 --- 定位框该不该显示？ —— 只看两件事，范式同 FocusInterrupt.lua 的 RefreshFocusCastBarState：
@@ -510,9 +510,9 @@ local function ShouldShowAnchor(isConsoleShown)
     if isConsoleShown == nil then
         isConsoleShown = (DiGuaTimelineMainFrame and DiGuaTimelineMainFrame:IsShown()) and true or false
     end
-    if isConsoleShown ~= true then return false, "控制台没打开" end
-    if not IsEnabled() then return false, "总开关关着" end
-    return true, "控制台开着 + 总开关勾着"
+    if isConsoleShown ~= true then return false, "控制台沒打開" end
+    if not IsEnabled() then return false, "總開關關著" end
+    return true, "控制台開著 + 總開關勾著"
 end
 
 --- 把定位框的显隐对齐到“现在到底该不该显示”。只在状态真的变化时才动它（不折腾控件）。

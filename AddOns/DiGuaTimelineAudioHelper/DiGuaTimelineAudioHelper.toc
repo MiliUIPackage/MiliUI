@@ -1,13 +1,13 @@
-## Interface: 120100, 120105
 ## Title: [神秘地瓜] 副本语音助手
 ## Title-zhTW: |cffFF7F00[語音]|r 神秘地瓜 - 副本語音助手
 ## IconTexture: Interface\Icons\Ability_Warrior_BattleShout
 ## Notes-zhTW: 根據戰鬥時間軸播放自訂語音提醒，支援團隊首領與傳奇鑰石地城。
 ## Notes: 副本怪物技能语音播报插件，帮助新手快速熟悉副本机制。
+## Interface: 120105
 ## Author: 神秘地瓜
 ## Category: Raid
 ## Category-zhTW: 副本
-## Version: 2.0.3
+## Version: 2.0.8
 ## SavedVariables: DiGuaTimelineAudioHelper
 
 Utils.lua
@@ -41,3 +41,5 @@ NamePlateEnterCombat.lua
 PlayerDebuffDisplay.lua
 SkipCinematic.lua
 ForeignDebuffRing.lua
+TargetAbsorbBar.lua
+# InterruptCheck.lua

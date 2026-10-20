@@ -142,7 +142,7 @@ addonTable.EventSoundData = {
     -- 基拉卡与厄克哈特·风脉
     [885] = { {"ZhunBeiChenMo.ogg", 1} }, -- 阻断暴雨 (381516)
     [887] = { {"ZhunBeiChuiFeng.ogg", 1} }, -- 变迁之风 (381517)
-    [888] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 风暴猛击 (381512)
+    -- [888] = { {"TanKeJianCi.ogg", 1, {TANK = true, HEALER = true}} }, -- 风暴猛击 (381512)
     [889] = { {"ZhunBeiDianMing.ogg", 1} }, -- 烈焰喷吐 (381602), {"TieBianFangShuiSanMiaoSanErYi.ogg", 0}
     [890] = { {"DuoKaiTouQian.ogg", 1} }, -- 怒吼火息 (381525)
     [894] = { {"ZhunBeiDianMing.ogg", 1} }, -- 烈焰喷吐 (381605), {"TieBianFangShuiSanMiaoSanErYi.ogg", 0}
@@ -360,7 +360,7 @@ addonTable.RaidEventSoundData = {
     [860] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 窒息黑暗 (1302951)
     [861] = { {"ZhunBeiChiQiu.ogg", 1} }, -- 熄灭 (1304424)
     [862] = { {"ZhuYiJiaoXia.ogg", 1} }, -- 扭曲的附肢 (1303681)
-    [864] = { {"ShuaXiNaiDun.ogg", 1, {HEALER = true}} }, -- 深渊攫取 (1303406)
+    -- [864] = { {"ShuaXiNaiDun.ogg", 1, {HEALER = true}} }, -- 深渊攫取 (1303406)
     [903] = { {"ZhunBeiDianMing.ogg", 2} }, -- 虚无之门 (1308873)
     [951] = { {"JieDuanZhuanHuan.ogg", 1} }, -- 神圣光辉 (1303169)
     [1002] = { {"TanKeChengShang.ogg", 1} }, -- 湮消 (1318467)
