@@ -624,6 +624,9 @@ local function SkinRaidFrame()
         E.Missing("RaidFrame")
         return
     end
+    -- XML 沒有 parent，要到 `ClaimRaidFrame(好友視窗／團隊面板)` 才認養
+    -- （RaidFrame.lua:290）⇒ 邊寬照 UIParent 底下換算（Engine 的「像素量」那一節）
+    E.DisplayParent(f, UIParent)
 
     -- 「你不在團隊裡」那塊說明文字的捲軸（ScrollingFontTemplate 自己建的）
     local notIn = _G.RaidFrameNotInRaid

@@ -75,7 +75,8 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-cooldownviewer-charge-cache-stale.md](wow-cooldownviewer-charge-cache-stale.md) | 暴雪冷卻管理器的充能只在 RefreshData 重讀、GCD 輕量路徑用舊快取、不聽 SPELL_UPDATE_CHARGES ⇒ 最後一層用掉「有時候」不去飽和；自己照不含 GCD 的 duration 物件算、0 充能看明文旗標不讀 currentCharges；`charges` 旗標只是「可以有充能」 |
 | [wow-cooldownviewer-target-aura-locks-icon.md](wow-cooldownviewer-target-aura-locks-icon.md) | 冷卻格在目標身上有該減益時 GetSpellID／GetSpellTexture 都回減益的：圖示不換、覆蓋法術不看、觸發發光晚 3～5 秒；關掉增益時間的格自己貼圖＋自己聽 OVERLAY 事件；增益身分用 overrideTooltipSpellID |
 | [wow-uiparent-inset-dock.md](wow-uiparent-inset-dock.md) | 動 UIParent 錨點做停靠列：整個介面讓位；**要在 secure snippet 裡動（插件端 SetPoint 會把整條快捷列重排染髒）**、上緣是 UpdateUIParentPosition 在管、重貼前先比對現況、中央錨的東西移半條、烘進 UIParent 尺寸的框要掛 OnSizeChanged |
-| [wow-1px-border-rules.md](wow-1px-border-rules.md) | **畫 1px 邊框／細線的全套組規則**：整條不見或 2px 重疊的四個成因（P.Scale、框自己的縮放、載入時算一次、像素貼齊）、`P.NoSnap`／`P.NoSnapBackdrop`、Cell／ElvUI 把 bug 遮掉、交件前檢查清單 |
+| [wow-1px-border-rules.md](wow-1px-border-rules.md) | **畫 1px 邊框／細線的全套組規則**：整條不見或 2px 重疊的五個成因（P.Scale、框自己的縮放、載入時算一次、框登入時沒 parent、像素貼齊）、`P.NoSnap`／`P.NoSnapBackdrop`、Cell／ElvUI 把 bug 遮掉、交件前檢查清單 |
+| [wow-xml-frame-no-parent.md](wow-xml-frame-no-parent.md) | 暴雪 XML 頂層框沒寫 parent ＝ 載入時縮放是 1、顯示時才 `SetParent(UIParent)`（`StaticPopup1…4`、`QuestModelScene`、`RaidFrame`…）；登入時換皮的 1px／SafeParent 會錯；掃法與名單 |
 | [wow-hairline-p-pixel-not-p-scale.md](wow-hairline-p-pixel-not-p-scale.md) | 1px 邊框／細線在 1440p 以上畫成 2px 的成因：`P.Scale(n)` 是「n 個 UI 單位貼整數像素」，實體像素量要走 `P.Pixel(n)`；內縮要跟邊框同一支；全套組 2026-10-14 已套、怎麼找漏網的 |
 | [wow-login-screen-size-not-final.md](wow-login-screen-size-not-final.md) | 登入時 UIParent 尺寸還不是最終值：傷害統計／小地圖／M+ 三支同坑，別照螢幕尺寸夾座標寫回存檔；只留型別檢查＋SetClampedToScreen＋叫回預設；存檔座標＝夾邊公式是指紋；M+ 的 MigratePanelTop 仍殘留 |
 | [wow-overlay-castbar-hosts.md](wow-overlay-castbar-hosts.md) | 替身施法條 `OverlayPlayerCastingBarFrame` 的五個宿主：只有覆蓋快捷列是代班玩家施法條；專精／天賦／專業視窗裡的是視窗自己的進度條，不能藏；後置勾只排程、`GetParent()` 判宿主再解 |
@@ -245,7 +246,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 170 篇）
+## 全部筆記（自動產生，共 171 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -275,7 +276,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 
 | 檔案 | description |
 |---|---|
-| [wow-1px-border-rules.md](wow-1px-border-rules.md) | 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的四個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；交件前檢查清單 |
+| [wow-1px-border-rules.md](wow-1px-border-rules.md) | 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的五個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、框登入時沒 parent 要照認養後換算、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；指紋與交件前檢查清單 |
 | [wow-3d-model-ignores-strata.md](wow-3d-model-ignores-strata.md) | 3D 模型（PlayerModel／ModelScene）不吃 frame strata 與 frame level，LOW 的頭像會疊在 HIGH 的官方視窗模型上；SetModelDrawLayer 無效，只有 alpha 歸零有用 |
 | [wow-actionbar-taint-blame.md](wow-actionbar-taint-blame.md) | MultiBar 按鈕 SetAttribute 被封鎖、牽拖到不碰快捷列的插件——共用表汙染的指紋與 taintLog 診斷法 |
 | [wow-actionbar-text-overlay-level-500.md](wow-actionbar-text-overlay-level-500.md) | 自訂 HUD 被快捷鍵文字蓋住的真正原因——ActionButton 的文字層在 MEDIUM level 500，按鈕本體只有 3 |
@@ -340,6 +341,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-unitclassbase-npc-returns-rogue.md](wow-unitclassbase-npc-returns-rogue.md) | UnitClassBase 對非玩家回一個合法但無意義的職業 token（術士惡魔僕從回 ROGUE），會讓職業色查表命中錯的顏色 |
 | [wow-unitframe-event-dispatch-cost.md](wow-unitframe-event-dispatch-cost.md) | 團隊框架真正的效能成本在事件派送與 per-frame 輪詢，不在畫面更新——RegisterUnitEvent 的 C 層過濾、共用 ticker 取代 N 個 OnUpdate、光環 filter 字串共用解析 |
 | [wow-vehicle-token-timing.md](wow-vehicle-token-timing.md) | 進載具時 \"vehicle\" token 在還沒有資料之前就解得出來，UNIT_PET 才是真正該重讀的事件；不是每台載具都會換框（看 UnitHasVehicleUI）；載具期間 player 與 vehicle 兩個 token 都會派送，事件閘不能嚴格比「框現在畫誰」 |
+| [wow-xml-frame-no-parent.md](wow-xml-frame-no-parent.md) | 暴雪 XML 頂層框沒寫 parent（遊戲／登入畫面共用的框越來越多）＝ 載入時沒有 parent、有效縮放是 1，顯示時才 SetParent(UIParent)；登入時就對它換皮、量縮放、找 SafeParent 都會錯。2026-10-21 的掃描方法與名單 |
 | [wow-zhtw-font-slots.md](wow-zhtw-font-slots.md) | zhTW 客戶端四個字型檔各自對應什麼用途；bKAI00M 是傷害數字不是任務內文 |
 
 ### 專案現況

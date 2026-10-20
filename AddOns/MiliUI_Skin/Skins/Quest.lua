@@ -190,6 +190,10 @@ local function SkinModelScene()
         return
     end
 
+    -- XML 沒有 parent：顯示時才 `SetParent(任務／對話視窗)`、收起來又 `SetParent(nil)`
+    -- （QuestFrame.lua:483/539）⇒ 邊寬照 UIParent 底下換算（Engine 的「像素量」那一節）
+    E.DisplayParent(scene, UIParent)
+
     E.NeutralizeKeys(scene, { "Border", "TopBarBg", "ModelNameDivider", "ModelNameBackground" },
         "QuestModelScene")
     Skin.Panel(scene, "QuestModelScene")
