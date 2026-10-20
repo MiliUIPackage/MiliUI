@@ -17,7 +17,7 @@ UNIT_AURA 全量更新），資料提供者在 SPELLS_CHANGED／換裝／PvP 天
 先 SwitchToBestLayoutForSpec 再 SaveLayouts）、面板關掉時 `CheckSaveCurrentLayout`（有 pending 就存——**只是打開面板看一眼也會把洗過的存下去**）。
 登出不存。
 
-**被系統換專精**（隨機地城勾跟隨職責、追隨者地城換成補師）那段時間集合是另一個專精的（[[project-miliui-cooldownmanager]] 那條「API
+**被系統換專精**（排追隨者地城、職責跟目前專精不同 ⇒ 進本被換專精：補師、輸出都有回報）那段時間集合是另一個專精的（[[project-miliui-cooldownmanager]] 那條「API
 給的還是原專精的清單」），這一對就把新專精排好的順序幾乎全刪（只剩兩專精共用的 id，例如戰鬥藥水、飾品欄），集合恢復後再照預設
 接回來 ⇒ 整套變回預設順序。分類覆寫（`data[3][tag][id][2]`）不受影響，只有順序。2026-10-20 惡魔獵人回報：復仇 → 噬滅 → 復仇，
 復仇的核心／增益都變回預設順序；`/mcdm debug` 的簽章（整份版面字串）在噬滅時還是舊的、回復仇才換＝存檔是在換回來那次 SaveLayouts 寫的。
