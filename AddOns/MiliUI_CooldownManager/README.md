@@ -2542,6 +2542,11 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   **兩條都要解**：本體 `PlayerCastingBarFrame` 和替身 `OverlayPlayerCastingBarFrame` —— 覆蓋快捷列（載具、變身、寵物控制）
   出現時暴雪停用本體、改顯示替身（畫在覆蓋快捷列上方），替身 OnLoad 就自己註冊了全套施法事件。只解本體的話，
   祖阿曼箱子世界任務的神靈變身之類一出來，暴雪施法條就又出現。帳按框分開記（`blizzSaved[frame]`）。
+  ⚠ **替身只在宿主是 `OverrideActionBar` 時解**：專精頁（切換專精）、天賦頁（套用天賦）、專業視窗（製作）也拿它把施法條畫在
+  視窗裡，那時我們的條被視窗蓋住，解掉就什麼都看不到（2026-10-08～10-21 就是這樣）。`hooksecurefunc` 掛它的
+  `StartReplacingPlayerBarAt`／`EndReplacingPlayerBar`，後置勾只 `ns.Defer(CB.ApplyBlizzard)`，對帳時用 `GetParent()` 判宿主
+  （`OnOverrideBar`）：是就解、不是就照帳裝回。單位框架也在藏施法條時，替身在覆蓋快捷列上的這段不裝回（帳留著，宿主換走才裝）；
+  單位框架那邊（`Core/HideBlizzard.lua` 的 `ReconcileOverlayCastBar`）同一條規則，替身那份不是單向的。
 - **材質**：下拉多一項「暴雪施法條」（`texture = "blizzard"`，排在「純色」後面；只有施法條有，資源條與自訂格子的選單不加）：
   填充用遊戲內建施法條的圖集 `UI-CastingBar-Filling-Standard`（`SetStatusBarTexture` 收圖集名；`C_Texture.GetAtlasInfo` 查不到就退回純色、
   `SetStatusBarTexture` 失敗退回貼圖 `SetAtlas`）、**去飽和**，顏色照原本的上色流程（施法／引導／不可打斷／斷法就緒／蓄力都是對填充貼圖

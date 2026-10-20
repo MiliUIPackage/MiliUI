@@ -78,6 +78,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-1px-border-rules.md](wow-1px-border-rules.md) | **畫 1px 邊框／細線的全套組規則**：整條不見或 2px 重疊的四個成因（P.Scale、框自己的縮放、載入時算一次、像素貼齊）、`P.NoSnap`／`P.NoSnapBackdrop`、Cell／ElvUI 把 bug 遮掉、交件前檢查清單 |
 | [wow-hairline-p-pixel-not-p-scale.md](wow-hairline-p-pixel-not-p-scale.md) | 1px 邊框／細線在 1440p 以上畫成 2px 的成因：`P.Scale(n)` 是「n 個 UI 單位貼整數像素」，實體像素量要走 `P.Pixel(n)`；內縮要跟邊框同一支；全套組 2026-10-14 已套、怎麼找漏網的 |
 | [wow-login-screen-size-not-final.md](wow-login-screen-size-not-final.md) | 登入時 UIParent 尺寸還不是最終值：傷害統計／小地圖／M+ 三支同坑，別照螢幕尺寸夾座標寫回存檔；只留型別檢查＋SetClampedToScreen＋叫回預設；存檔座標＝夾邊公式是指紋；M+ 的 MigratePanelTop 仍殘留 |
+| [wow-overlay-castbar-hosts.md](wow-overlay-castbar-hosts.md) | 替身施法條 `OverlayPlayerCastingBarFrame` 的五個宿主：只有覆蓋快捷列是代班玩家施法條；專精／天賦／專業視窗裡的是視窗自己的進度條，不能藏；後置勾只排程、`GetParent()` 判宿主再解 |
 | [wow-icon-row-anchor-facing-edge.md](wow-icon-row-anchor-facing-edge.md) | 圖示排的錨點要選面向框架的那一邊，否則顆數一變間距就跑掉 |
 | [wow-setpoint-nil-relativeto.md](wow-setpoint-nil-relativeto.md) | `SetPoint` 的 relativeTo 傳 nil 會靜默退成父層；`GetStatusBarTexture()` 在設材質前回 nil |
 | [wow-setscale-offset-units.md](wow-setscale-offset-units.md) | `SetScale` 之後位移量也被縮放：框放大順便跑位／拖曳加速的成因 |
@@ -143,7 +144,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 註解不點名第三方插件，判準是 repo 裡有沒有複製到那個檔案；PixelPerfect.lua 與四張貼圖、關於頁致謝是僅有的例外 |
 | [project-miliui-options-label-width.md](project-miliui-options-label-width.md) | 設定表單左欄標籤寬度：過長自動換行、列高跟著長；欄寬各宿主 Env.LABEL_W（頭像與 MCDM 中韓 128／歐語 148）；撐寬一律 opt-in、選擇彈窗 OnShow 再量 |
 | [project-miliui-pixel-snapping.md](project-miliui-pixel-snapping.md) | 單位框像素對齊：邊框／內縮走 `P.Pixel`、尺寸走 `P.Scale`，混用就露縫或 2px；從 UIParent 左下角起算所以資訊列內縮要 OnSizeChanged 重定位；分段列整列先換整數像素再切格 |
-| [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪框的 taint 規則（Core/HideBlizzard.lua）：reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件；藏施法條要連 `OverlayPlayerCastingBarFrame` 一起、oUF 系會把事件裝回 |
+| [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪框的 taint 規則（Core/HideBlizzard.lua）：reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件；藏施法條要連 `OverlayPlayerCastingBarFrame` 一起（只在宿主是覆蓋快捷列時）、oUF 系會把事件裝回 |
 | [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動 bump Cell 的 `## Version` —— 那是釋出訊號，由使用者決定 |
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell 只支援正式服 —— 新程式不加經典版保護、plan 不寫「保留經典版路徑」 |
 | [feedback-ayije-cdm-sync-tag.md](feedback-ayije-cdm-sync-tag.md) | Ayije_CDM 出版本只走工作資料夾的 `package.command`（整合包 → 工作 repo，整合包只 commit toc ＋ tag，跟 UnitFrames 同一套）；別在整合包另做同步腳本 |
@@ -244,7 +245,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 169 篇）
+## 全部筆記（自動產生，共 170 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -320,6 +321,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 MacroFrame:SelectMacro/SaveMacro 或改巨集格欄數，會讓快捷列上的巨集施法被擋、一路髒到 /reload |
 | [wow-mplus-enemy-forces-fields.md](wow-mplus-enemy-forces-fields.md) | M+ 敵軍進度的 criteria 欄位語意是反直覺的——quantity 已經是百分比、quantityString 才是絕對數量（還帶假的 % 號） |
 | [wow-new-file-needs-client-restart.md](wow-new-file-needs-client-restart.md) | TOC 新增的 .lua 檔、新放的媒體檔，/reload 不會載入，要整個重開遊戲；改既有 TOC 的標題／分類等欄位 /reload 就會重讀；交件時要提醒使用者 |
+| [wow-overlay-castbar-hosts.md](wow-overlay-castbar-hosts.md) | 暴雪的替身施法條 OverlayPlayerCastingBarFrame 有五個宿主——只有覆蓋快捷列是「代班玩家施法條」，專精／天賦／專業視窗裡的是視窗自己的進度條；藏暴雪施法條時只能在宿主是 OverrideActionBar 時解它 |
 | [wow-playermodel-setunit-restreams.md](wow-playermodel-setunit-restreams.md) | PlayerModel:SetUnit 對「已經載好的同一個單位」再呼叫一次也會重新串流、空一兩幀；UNIT_MODEL_CHANGED 不是可靠的「模型換了」訊號 |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | How to fix \"attempted to index a table that cannot be indexed with secret keys\" in WoW addons |
 | [wow-securegroupheader-refresh-snippet.md](wow-securegroupheader-refresh-snippet.md) | 給 SecureGroupHeader 的格子掛額外的次要按鈕（寵物、目標）時，unit 只能在 refreshUnitChange snippet 裡派；Lua 端唯一的開關是「動 header 的任一個屬性」（值沒變別重設，那是整排重排） |

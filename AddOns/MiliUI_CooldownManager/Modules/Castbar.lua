@@ -25,6 +25,7 @@
 -- 做法同一套 —— 不 Hide、不 SetParent、不寫它的欄位。解之前先用 IsEventRegistered 記下
 -- 它註冊了哪些，關掉選項時照原樣裝回去（所以不需要 /reload）；
 -- 例外：單位框架也在隱藏它時不裝回（見 UnitFramesHidesBlizzard）。
+-- 替身 OverlayPlayerCastingBarFrame 只在它掛在覆蓋快捷列上時解，專精／天賦／專業視窗裡的那條留著（見 OnOverrideBar）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -1129,10 +1130,24 @@ local BLIZZ_EVENTS = {
 -- 框 → 解之前它註冊著的事件：{ { event, unit1, unit2 }, … }；沒有這個框的 key ＝ 沒動過
 local blizzSaved = {}
 
--- 要解事件的暴雪施法條。除了本體之外還有一條替身：覆蓋快捷列（載具、變身、寵物控制）出現時，
--- 暴雪會停用本體、改顯示 OverlayPlayerCastingBarFrame（畫在覆蓋快捷列上方）。它 OnLoad 就自己
--- 以 "player" 註冊了全套施法事件，只解本體的話變身後施法條又跑出來
-local BLIZZ_BARS = { "PlayerCastingBarFrame", "OverlayPlayerCastingBarFrame" }
+-- 除了本體 PlayerCastingBarFrame 之外還有一條替身 OverlayPlayerCastingBarFrame：暴雪拿它在別的框上
+-- 「代班」玩家施法條（StartReplacingPlayerBarAt），OnLoad 就自己以 "player" 註冊了全套施法事件。
+-- 宿主有兩種，要分開看：
+--   * 覆蓋快捷列（載具、變身、寵物控制）：OverrideActionBar 停用本體、讓替身畫在自己上方 —— 代的就是
+--     玩家施法條，我們的條已經在畫 ⇒ 跟本體一起解（只解本體的話，祖阿曼箱子世界任務的神靈變身一出來
+--     暴雪條又跑出來）
+--   * 專精頁（切換專精）、天賦頁（套用天賦）、專業視窗（製作）：視窗自己的內容觸發的施法，進度條畫在
+--     視窗裡；視窗蓋住畫面中央，我們的條在它底下看不到 ⇒ 不能解（2026-10-08 兩種一起解掉，
+--     2026-10-21 玩家回報轉專精的施法條不見了）
+-- 宿主換手時暴雪呼叫 Start／EndReplacingPlayerBar：後置勾只排程（跑在 OverrideActionBar 的 OnShow／
+-- OnHide 裡），下一幀照替身現在的父框（GetParent，只讀）對帳。慢一幀的代價：上載具那一幀剛好在唱的
+-- 施法，替身會把這一條畫完（它的 OnUpdate 自己會收）
+local function OnOverrideBar(bf)
+    local host = _G.OverrideActionBar
+    if not host then return false end
+    local ok, parent = pcall(bf.GetParent, bf)
+    return ok and parent == host
+end
 
 -- 單位框架（MiliUI_UnitFrames）也把暴雪施法條的事件解掉了嗎？它的隱藏是單向的（沒有還原），
 -- 這時我們取消勾選若照原樣裝回，等於把它藏起來的條又叫回來 ⇒ 不裝回，只把帳清掉。
@@ -1178,7 +1193,8 @@ local function RestoreBar(bf)
         local saved = blizzSaved[frame]
         if not saved then return end
         blizzSaved[frame] = nil
-        if UnitFramesHidesBlizzard() then return end
+        -- 替身的去留只看宿主，單位框架那邊也照同一條規則裝回 ⇒ 只有本體要問它
+        if frame == _G.PlayerCastingBarFrame and UnitFramesHidesBlizzard() then return end
         for _, e in ipairs(saved) do
             if type(e[2]) == "string" then
                 if type(e[3]) == "string" then
@@ -1193,16 +1209,32 @@ local function RestoreBar(bf)
     end, "cdm_castbar")
 end
 
+local function Reconcile(bf, hide)
+    if not bf then return end
+    if hide then
+        UnregisterBar(bf)
+    elseif blizzSaved[bf] then
+        RestoreBar(bf)
+    end
+end
+
 function CB.ApplyBlizzard()
     local cfg = Cfg() or {}
     local want = cfg.enabled ~= false and cfg.hideBlizzard == true
-    for _, name in ipairs(BLIZZ_BARS) do
-        local bf = _G[name]
-        if bf and want then
-            UnregisterBar(bf)
-        elseif bf and not want and blizzSaved[bf] then
-            RestoreBar(bf)
-        end
+    Reconcile(_G.PlayerCastingBarFrame, want)
+    -- 替身掛在覆蓋快捷列上時，單位框架也在藏施法條的話一樣不能裝回：帳留著，宿主換走才裝
+    -- （它那邊同一條規則，只有宿主換走時才裝回自己記的那份）
+    local ov = _G.OverlayPlayerCastingBarFrame
+    Reconcile(ov, ov ~= nil and OnOverrideBar(ov) and (want or UnitFramesHidesBlizzard()))
+end
+
+-- 替身換宿主就重新對帳（見 OnOverrideBar 上面那段）。⚠ 後置勾只排程
+local function HookOverlay()
+    local ov = _G.OverlayPlayerCastingBarFrame
+    if not ov then return end
+    local later = ns.Guard(function() ns.Defer(CB.ApplyBlizzard) end)
+    for _, method in ipairs({ "StartReplacingPlayerBarAt", "EndReplacingPlayerBar" }) do
+        if type(ov[method]) == "function" then hooksecurefunc(ov, method, later) end
     end
 end
 
@@ -1228,6 +1260,7 @@ function CB.Init()
     CB.RebuildTicks()
     CB.Layout()
     RegisterEvents()
+    HookOverlay()
     CB.ApplyBlizzard()
     -- 每次讀完畫面（延一幀：別的插件的 PLAYER_LOGIN／PLAYER_ENTERING_WORLD 都跑完了）再對一次帳：
     -- 被別人裝回的事件再解掉（UnregisterBar 的「解過了但被裝回」）
