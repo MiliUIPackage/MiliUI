@@ -25,7 +25,7 @@
 ## SavedVariables: AppearanceTooltipDB
 ## SavedVariablesPerCharacter: AppearanceTooltipDBPC
 
-## Title-zhTW: |cffFFFF66[塑形]|r 外觀預覽
+## Title-zhTW: |cff33FFF5[塑形]|r 外觀預覽
 ## Notes-zhTW: AppearanceTooltip |n|n滑鼠指向裝備圖示時，會顯示你的角色穿上時的外觀預覽。|n|n|cffffd200使用方法: |r滾動滑鼠滾輪旋轉預覽，從Esc>選項>插件>塑形預覽，可以設定縮放、自動旋轉和其他相關設定。
 ## Category-zhTW: 介面
 ## IconTexture: Interface\Icons\inv_raidpriestmythic_q_01chest
