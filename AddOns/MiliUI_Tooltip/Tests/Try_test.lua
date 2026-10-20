@@ -861,4 +861,98 @@ do
     check("K2：換一件之後不再撐到上一件的 600", tip.w < 600, tip.w)
 end
 
+------------------------------------------------------------
+-- 18. 比價框換邊不繞成圈（2026-10-21 實機：「Cannot anchor to a region dependent on it」）。
+-- 暴雪兩顆比價框：放右邊時 ShoppingTooltip1 TOPLEFT→2 TOPRIGHT、放左邊時反過來 2 TOPRIGHT→1 TOPLEFT。
+-- 每顆面板在自己的時機照原生重算 ⇒ 換邊那一刻第二顆照新的點要貼第一顆的面板、第一顆還照舊的點貼著第二顆
+------------------------------------------------------------
+do
+    local t19 = Setup()
+    local env, P = t19.env, t19.P
+    local main = t19.tip                         -- 主提示不接管：比價框的 TOP 照舊貼原生（實機的情況）
+    local function Shop(name, id)
+        local tip = H.Tip(env, name, { { left = name } })
+        local st = {}
+        t19.ns.Skin.State[tip] = st
+        return tip, st, { id = id, lines = { { type = 22, lineIndex = 1, leftText = name } } }
+    end
+    local shop1, st1, data1 = Shop("ShoppingTooltip1", 31)
+    local shop2, st2, data2 = Shop("ShoppingTooltip2", 32)
+    local function Right()
+        shop1:ClearAllPoints(); shop2:ClearAllPoints()
+        shop1:SetPoint("TOP", main, "TOP", 0, 0)
+        shop2:SetPoint("TOP", main, "TOP", 0, 0)
+        shop2:SetPoint("LEFT", main, "RIGHT", 0, 0)
+        shop1:SetPoint("TOPLEFT", shop2, "TOPRIGHT", 0, 0)
+    end
+    local function Left()
+        shop1:ClearAllPoints(); shop2:ClearAllPoints()
+        shop1:SetPoint("TOP", main, "TOP", 0, 0)
+        shop2:SetPoint("TOP", main, "TOP", 0, 0)
+        shop1:SetPoint("RIGHT", main, "LEFT", 0, 0)
+        shop2:SetPoint("TOPRIGHT", shop1, "TOPLEFT", 0, 0)
+    end
+    local function Has(panel, rel)
+        for _, p in ipairs(panel.points) do if rawequal(p[2], rel) then return true end end
+        return false
+    end
+
+    Right()
+    P.Try(shop1, st1, ITEM, data1)
+    P.Try(shop2, st2, ITEM, data2)
+    env.FlushTimers()
+    local y, x = st1.panel, st2.panel
+    check("前提：放右邊時第一顆面板鏡射在第二顆上", Has(y, x))
+
+    -- 換到左邊，第二顆先重算（輪詢的 Fit）
+    Left()
+    local ok, err = pcall(t19.polls[st2])
+    check("換邊：第二顆先重算不報錯", ok, err)
+    check("換邊：第二顆鏡射在第一顆的面板上", Has(x, y))
+    check("換邊：第一顆先照自己的原生重算過（不再貼第二顆）", not Has(y, x))
+    eq("換邊：第二顆的鏡射照常（不是暫時的）", x.alignSig:find("untangled", 1, true), nil)
+    eq("換邊：相鄰邊照樣留縫", x.points[2][4], -6)
+
+    -- 換回右邊，第一顆先重算
+    Right()
+    ok, err = pcall(t19.polls[st1])
+    check("換回右邊：第一顆先重算不報錯", ok, err)
+    check("換回右邊：第一顆鏡射在第二顆上", Has(y, x))
+    check("換回右邊：第二顆不再貼第一顆", not Has(x, y))
+
+    -- J3 沿用上次的貼法（原生暫時沒有點）而那份是舊的：對方照新的點正貼著自己 ⇒ 那一點改貼對方的原生
+    Left()
+    t19.polls[st2]()
+    check("前提：放左邊、第二顆鏡射在第一顆上", Has(x, y))
+    -- 第一顆重畫（RenderView 先 Detach 保留記憶）的那一刻原生沒有點；記憶裡是「貼第二顆的面板」（右邊時的）
+    y.anchorArgs = { { "TOPLEFT", x, "TOPRIGHT", 6, 0 } }
+    y.alignSig = "mirror:stale"
+    P.Detach(y, true)
+    shop1:ClearAllPoints()
+    ok, err = pcall(P.Align, y, shop1)
+    check("J3 舊記憶：不報錯", ok, err)
+    check("J3 舊記憶：改貼第二顆的原生", Has(y, shop2) and not Has(y, x))
+    check("J3 舊記憶：sig 標成暫時的", y.alignSig:find("untangled", 1, true) ~= nil, y.alignSig)
+    -- 原生有點了 ⇒ 照常重算（放左邊：第一顆貼主提示的原生）
+    shop1:SetPoint("TOP", main, "TOP", 0, 0)
+    shop1:SetPoint("RIGHT", main, "LEFT", 0, 0)
+    P.Align(y, shop1)
+    check("J3 舊記憶：有點之後回到正式貼法", Has(y, shop1) and not Has(y, shop2))
+
+    -- 主提示也接管、放左邊：第二顆同時貼主面板（TOP）與第一顆（TOPRIGHT），mirrorOf 只記得其中一個。
+    -- 主面板退回 ⇒ 兩顆都要當場改貼，不能留一點錨在清掉錨點的主面板上
+    P.Try(main, t19.state, ITEM, t19.data)
+    env.FlushTimers()
+    local m = t19.state.panel
+    Left()
+    t19.polls[st1]()
+    t19.polls[st2]()
+    check("前提：第二顆貼主面板", Has(x, m))
+    check("前提：第二顆也貼第一顆", Has(x, y))
+    P.Restore(main, t19.state)
+    check("主面板退回：第一顆不再貼主面板", not Has(y, m))
+    check("主面板退回：第二顆也不再貼主面板（mirrorOf 不是它也要改）", not Has(x, m))
+    check("主面板退回：第二顆的 TOP 改貼主提示的原生", Has(x, main))
+end
+
 H.finish("Try_test")

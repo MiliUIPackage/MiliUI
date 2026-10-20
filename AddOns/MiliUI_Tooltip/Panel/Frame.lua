@@ -375,6 +375,8 @@ local function MakeTexture(parent, layer, sublevel)
     return tex
 end
 
+local owners = {}          -- [panel] = 它替身的那顆 tooltip（拆圈時要照對方的原生重算、或改貼對方的原生）
+
 local function Create(tip, state)
     local parent = UIParent
     if state.isPreview then
@@ -413,6 +415,7 @@ local function Create(tip, state)
     panel.badgeText:SetPoint("CENTER", panel.badge, "CENTER", 0, 0)
 
     state.panel = panel
+    owners[panel] = tip
     return panel
 end
 
@@ -651,9 +654,63 @@ function Panel.ReturnFollowers(gone)
     end
 end
 
+------------------------------------------------------------
+-- 拆圈（2026-10-21 實機：「Cannot anchor to a region dependent on it」）：每顆面板照自己原生**當下**的點貼、
+-- 在自己的時機重算（post-call／對帳／輪詢的 Fit）⇒ 面板之間的錨點圖裡同時有新邊與還沒重算的舊邊。
+-- 比價框換邊時暴雪把 ShoppingTooltip1→2 改成 2→1：第二顆先重算、照新的點要貼第一顆的面板，第一顆的面板卻還照
+-- 舊的點貼著第二顆 ⇒ 繞成圈、SetPoint 直接報錯。原生的錨點任何時刻都無環，圈一定來自還沒重算的那一邊：
+--   1. 對方面板（沿它現在的錨點）錨在我身上 ⇒ 先讓它照自己的原生重算（舊邊就沒了），再貼它
+--   2. 還是繞回來＝我手上的才是舊的（J3 沿用上次的貼法；或對方讀到秘密值沒重算）⇒ 這一點改貼對方的原生
+--      （原生從來不錨在面板上，貼它一定無環；位置差不到一個縫），sig 標成暫時的，下一次對齊照常重算
+-- 只走我們的面板、只讀 Apply 記下的 anchorArgs（跟實際的點同步：只有 Apply／Detach 動面板的點），不讀引擎的錨點
+------------------------------------------------------------
+local applying = {}        -- 正在套錨點的面板：替對方重算時不回頭重入
+
+local function DependsOn(region, target, depth)
+    if region == target then return true end
+    if not owners[region] or not region.anchored or not region.anchorArgs then return false end   -- 原生是葉子
+    if depth >= MAX_CHAIN then return true end      -- 鏈長得不正常：當成會繞，改貼原生最保險
+    for _, a in ipairs(region.anchorArgs) do
+        if DependsOn(a[2], target, depth + 1) then return true end
+    end
+    return false
+end
+
+-- 面板（直接或沿鏈）錨在 target 上。Restore 用它找要當場重貼的面板：mirrorOf 只記最後一個鏡射對象，
+-- 放左邊的第二顆比價框同時貼主面板（TOP）與第一顆（TOPRIGHT），主面板退回時靠 mirrorOf 找不到它
+function Panel.AnchoredOn(panel, target)
+    return panel ~= target and DependsOn(panel, target, 0)
+end
+
+-- 兩段：先把錨在我身上的對方全部重算，再逐點檢查。分開做是因為重算 B 可能讓已經檢查過的 A 經由 B 繞回來；
+-- 第二段不再動別的面板，檢查的結果就是 SetPoint 當下的狀態
+local function Untangle(panel, sig, args)
+    for _, a in ipairs(args) do
+        local rel = a[2]
+        if owners[rel] and not applying[rel] and DependsOn(rel, panel, 0) then Panel.Align(rel, owners[rel]) end
+    end
+    local out
+    for i, a in ipairs(args) do
+        local rel = a[2]
+        if owners[rel] and DependsOn(rel, panel, 0) then
+            if not out then
+                out = {}
+                for j, b in ipairs(args) do out[j] = b end
+            end
+            out[i] = { a[1], owners[rel], a[3], a[4], a[5] }
+        end
+    end
+    if not out then return sig, args end
+    if ns.logEnabled and ns.Log then ns.Log("面板 拆圈：對方面板錨在我身上，改貼它的原生（%s）", tostring(sig)) end
+    return tostring(sig) .. "|untangled", out
+end
+
 -- 套一組錨點；跟上次一樣（而且還貼著）就什麼都不做。記下來的 anchorArgs 給「原生暫時沒有點」時照貼回去
 local function Apply(panel, sig, args)
     if panel.alignSig == sig and panel.anchored then return true end
+    applying[panel] = true
+    sig, args = Untangle(panel, sig, args)
+    applying[panel] = nil
     panel:ClearAllPoints()
     for _, a in ipairs(args) do panel:SetPoint(a[1], a[2], a[3], a[4], a[5]) end
     if ns.logEnabled and ns.Log then

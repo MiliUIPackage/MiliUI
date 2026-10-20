@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-18T15:46:55.984Z
+  modified: 2026-10-20T16:53:30.998Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -91,6 +91,8 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   **對齊遲滯**：同一角、同一顆 tip，原生位置移動 ≤ 半像素就沿用上次的取整位移（`gridDX/DY`），四捨五入邊界上來回跳不再 1px 抖。
   **原生自然寬高也只長不縮**（`state.nativeMaxW/H`，換一件歸零）：暴雪 `AnchorShoppingTooltips` 的 slideAmount 用兩顆比價框原生的寬算，寬一變主提示就被推，鏈尾那顆比價面板抖最兇。
   **比價標籤照抄原生 `CompareHeader.Label` 的字**（zhTW「已裝備」／第二顆「同時裝備」），讀不到退 `EQUIPPED`、沒 header 就不畫；以前寫死 `CURRENTLY_EQUIPPED`「目前裝備」是錯的。標籤字進指紋。
+  **面板之間的錨點會繞成圈（2026-10-21 修，`Frame.lua` 的 `Untangle`）**：每顆面板在自己的時機照原生當下的點重算 ⇒ 面板圖裡新邊舊邊並存。比價框換邊時暴雪把 `ShoppingTooltip1 TOPLEFT→2` 改成 `2 TOPRIGHT→1`，第二顆先重算要貼第一顆的面板、第一顆還照舊的點貼著第二顆 ⇒ `SetPoint` 報「Cannot anchor to a region dependent on it」。
+  規則：`Apply` 前先讓錨在自己身上的對方照它的原生重算，還繞回來（自己手上的才是舊的：J3 沿用的記憶）就那一點改貼對方的**原生**（原生從不錨在面板上，必無環），sig 加 `|untangled` 讓下一次照常重算。依賴只走面板的 `anchorArgs` 記錄、不讀引擎錨點。`Restore` 找要當場重貼的面板也改用 `Panel.AnchoredOn`——`mirrorOf` 只記最後一個鏡射對象，放左邊的第二顆同時貼主面板與第一顆。離線測試的假 `SetPoint` 已會拒絕繞圈。
   位置遲滯（J2(b)）**沒做**：跟隨游標每幀合法移動，位置遲滯會讓面板落後游標；等實機用 `/mtip log` 證明是滑動造成的再說（`/mtip panel watch` 取樣器 2026-10-19 已拔：這類抖動發生在取樣之後、繪製之前，取樣看不到）。
 - **夾邊與鏡射（2026-10-19，L1／L2）**：鏡射在別的面板上的面板**自己不夾**（`SetMirror` 關 clamp、改回貼自己原生時開回），由鏈的根替依附者預留（`Panel.UpdateClampInsets`：上緣／下緣取整條鏈 clampOwnTop／clampOwnBottom 的最大值，鏈可以串兩層）。
   實機成因：主面板沒標籤 inset 0、比價面板有標籤多留一份，原生錨在螢幕外時兩邊被夾到不同高度，身體錯開一個標籤高。
