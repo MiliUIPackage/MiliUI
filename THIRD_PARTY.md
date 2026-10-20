@@ -19,7 +19,7 @@
 | Cell | r310_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
 | Chattynator | 227 | 2026-10-15 6425e9f11 | https://github.com/plusmouse/Chattynator |
 | DiGuaTimelineAudioHelper | 2.0.3 | 2026-10-20 c2eb44373 | 待補 |
-| EasyExperienceBar | 2026.03.09.A | 2026-10-15 6b4cf7dc9（收錄） | 待補 |
+| EasyExperienceBar | 2026.03.09.A | 2026-10-20 fa3d02a94（收錄） | 待補 |
 | HandyNotes | v1.6.31 | 2026-08-14 4982afee5 | https://www.curseforge.com/projects/14154 |
 | HandyNotes_Dornogal | v1 | 2026-10-15 58f869f49（收錄） | 待補 |
 | HandyNotes_Dragonflight | 131 | 2024-09-02 414317cac | https://github.com/zarillion/handynotes-plugins |
