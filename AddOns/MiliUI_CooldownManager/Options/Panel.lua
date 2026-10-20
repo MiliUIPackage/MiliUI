@@ -382,8 +382,7 @@ Options.RegisterPage("about", L["About"], function(parent, title)
         L["Author: Mili (MiliUI package)"],
         "",
         "|cffffd200" .. L["Credits"] .. "|r",
-        L["This addon owes much of its design to Ayije_CDM. Many thanks to its author, Ayije."],
-        L["The look of the Skyriding panel is modeled on Yuyuli's Skyriding Falcon."],
+        L["This addon's design owes much to Ayije's Ayije_CDM, and the look of the Skyriding panel is modeled on Yuyuli's Skyriding Falcon. Sincere thanks to both authors."],
     }, "\n"))
     return page
 end)
