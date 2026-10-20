@@ -28,7 +28,7 @@ local BOARD_W = ns.Options.FORM_W - 20
 -- 固定列高
 --
 -- custom 的列高在建表當下就定死（見 Libs/MiliUIWidgets/Controls.lua），所以不能等
--- Rebuild 算完再回報。兩條 strip 各**以一行計**：五顆方塊在 620 寬下不會換行
+-- Rebuild 算完再回報。兩條 strip 各**以一行計**：六顆方塊在 620 寬下不會換行
 -- （最長的英文標籤量過也不到 120px，中文更短）。
 -- FlowChips 的換行邏輯留著當保險，但真的換行時只會往下溢出一點，不重排整個表單。
 ------------------------------------------------------------
@@ -55,6 +55,8 @@ local BTN_DEFS = {
                  note = L["Open the window menu — the same one you get by right-clicking the title bar."] },
     lock     = { label = L["Lock window"],
                  note = L["Lock or unlock the window. The right-click menu has it too."] },
+    collapse = { label = L["Collapse"],
+                 note = L["Fold the window down to its title bar, or open it back up. The window keeps its place, so anything snapped below it stays put. The right-click menu has it too."] },
 }
 
 local function ButtonLabel(id)

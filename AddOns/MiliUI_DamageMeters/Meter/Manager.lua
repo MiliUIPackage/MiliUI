@@ -31,6 +31,27 @@ function Windows.Get(idx) return _pool[idx] end
 function Windows.Count() return _active end
 
 ------------------------------------------------------------
+-- 戰鬥中被擋下來的定位框動作，脫戰補做
+--
+-- 定位框被磁吸上來的 secure 框牽連成保護框時，戰鬥中的顯示／藏、尺寸、錨點都做不了，
+-- 各入口只記一個 W._anchorPending（見 Window.lua 的 Win.SyncAnchor）。這裡在脫戰時
+-- 整組重套一次：尺寸 → 位置（含重新錨回磁吸主體）→ 顯示狀態跟內容框對齊。
+-- 走**整個池**而不是 ForEach：視窗數在戰鬥中被調少的話，多出來那幾個也在等著藏。
+------------------------------------------------------------
+function Windows.FlushAnchors()
+    if InCombatLockdown() then return end
+    for i = 1, ns.DB.MAX_WINDOWS do
+        local W = _pool[i]
+        if W and W._anchorPending then
+            W._anchorPending = nil
+            Win.ApplyAnchorSize(W)
+            ns.Move.ApplyPosition(W)
+            Win.SyncAnchor(W)
+        end
+    end
+end
+
+------------------------------------------------------------
 -- 建立／數量調整
 ------------------------------------------------------------
 local function EnsureWindow(idx)
@@ -69,6 +90,7 @@ function Windows.Rebuild()
             ns.Home.Hide(W)
             ns.Tooltip.HideFor(W)
             W.frame:Hide()
+            Win.SyncAnchor(W)   -- 定位框跟著藏（戰鬥中被保護的話脫戰再補）
         end
     end
 
@@ -551,6 +573,15 @@ function Windows.ShowContextMenu(W, btn, redraw)
             end,
         },
         {
+            -- 收合成只剩標題列（位置與大小不動，貼在下面的框不跟著移，見 Meter/Collapse.lua）
+            text = L["Collapse to the title bar"],
+            isActive = wdb.collapsed, keepOpen = true,
+            onClick = function()
+                ns.Collapse.Toggle(W)
+                Windows.ShowContextMenu(W, btn, true)
+            end,
+        },
+        {
             text = L["Smart display"],
             isActive = wdb.smartDisplay, keepOpen = true,
             onClick = function()
@@ -620,6 +651,9 @@ ns.RegisterCallback("Init", "windows", function()
     visFrame:SetScript("OnEvent", function()
         Windows.CheckPixel()   -- 縮放定了沒、改了沒（見 Windows.CheckPixel）
         Windows.UpdateVisibility()
+        -- 戰鬥中被擋下來的定位框動作（PLAYER_REGEN_ENABLED 是主要的那一下；
+        -- 其他事件順路檢查，沒有待辦就是走一遍池子的十次 nil 判斷）
+        Windows.FlushAnchors()
         -- ⚠ 再算一次。**離開探究的那一瞬間 IsPartyWalkIn() 還是 true**
         -- （見 Meter/Data.lua 的 D.IsInDelve），只在事件當下判斷會讓視窗
         -- 多藏一段時間。1 秒是抄 Plumber 那 0.5 秒再放寬一點。

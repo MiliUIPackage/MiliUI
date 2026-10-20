@@ -494,6 +494,9 @@ end
 ------------------------------------------------------------
 function Rows.Render(W, session, session2)
     if not W.frame then return end
+    -- 收合中不畫：W.Refresh 已經早退，這裡擋的是繞過它的路（延後一幀的繪製、捲動重畫）。
+    -- 不擋的話 SetSplit 會把右欄的捲動區與分隔線重新顯示出來
+    if W._collapsedView then return end
     -- 捲動時要重畫，不必再問一次 API
     W._lastSession, W._lastSession2 = session, session2
 

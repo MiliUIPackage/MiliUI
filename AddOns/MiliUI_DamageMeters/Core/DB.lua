@@ -30,12 +30,12 @@ end
 -- 的順序（小的在左）。設定頁「一般 → 標題列按鈕」那個方塊看板就是這張表的視圖，
 -- 拖放之後整條序列重新編成 10、20、30…。
 --
--- ⚠ 這五個 id 是**存檔內容**（style.hdrButtons 的鍵），改名等於把玩家調好的
+-- ⚠ 這六個 id 是**存檔內容**（style.hdrButtons 的鍵），改名等於把玩家調好的
 --   顯示與排序整組洗掉。
 -- ⚠ 列舉一律走 DB.HDR_BUTTON_IDS，不要 pairs：看板與標題列都要有穩定的順序，
 --   而 pairs 每次的順序都可能不一樣。
 ------------------------------------------------------------
-DB.HDR_BUTTON_IDS = { "publish", "segments", "reset", "settings", "lock" }
+DB.HDR_BUTTON_IDS = { "publish", "segments", "reset", "settings", "lock", "collapse" }
 
 local HDR_BUTTON_DEFAULTS = {
     -- 發佈排最左邊、分段第二（使用者指定）
@@ -50,6 +50,9 @@ local HDR_BUTTON_DEFAULTS = {
     -- 鎖頭同理：右鍵選單裡有「鎖定視窗」（就排在重置資料下面）。
     -- 鎖定是設定好之後幾乎不會再動的東西，不值得常駐一顆按鈕。
     lock     = { enabled = false, order = 50 },
+    -- 收合（2026-10-20 新增）：預設顯示、排最右邊。舊存檔不必遷移 ——
+    -- 缺這一筆時 DB.HdrButton 當場補成這個預設值，order 60 比既有的都大，自然落在最右。
+    collapse = { enabled = true,  order = 60 },
 }
 
 ------------------------------------------------------------
@@ -164,6 +167,12 @@ function DB.NewWindow(idx)
         -- 戰鬥中點一下切回目前：智慧顯示只在戰鬥邊界動手、開打時正在看歷史分段
         -- 還刻意不碰，這是那條豁免的手動出口（規則寫在 Window.lua 的 Win.ClickToCurrent）。
         clickToCurrent = true,
+        -- 收合成只剩標題列：定位框的位置與大小不動，只有內容框變矮（見 Meter/Collapse.lua）
+        collapsed = false,
+        -- 點擊穿透（見 Meter/ClickThrough.lua）：off | combat | always
+        clickThrough = "off",
+        clickThroughHeader = false,          -- 標題列與它上面的按鈕也穿透
+        clickThroughModifier = "ALT",        -- 按住時暫時恢復可點：ALT | SHIFT | CTRL | NONE
         -- 顯示條件
         visibility = "always",   -- always | combat | instance | group
         hideInDungeon = false,

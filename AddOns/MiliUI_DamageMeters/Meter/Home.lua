@@ -225,7 +225,8 @@ end
 function H.Hide(W)
     if W.homeFrame then W.homeFrame:Hide() end
     if W.viewport then Win.SetListShown(W, true) end
-    if W.frame then W.frame.bg:Show() end
+    -- 收合中背景是藏著的（內容框只剩標題列），換統計類型也會走到這裡，不能放回來
+    if W.frame and not W._collapsedView then W.frame.bg:Show() end
     W.Refresh()
 end
 

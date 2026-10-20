@@ -186,18 +186,26 @@ function Move.ApplyOrientation(W)
     end
 end
 
+-- 位置與大小一律落在定位框（W.anchor）上，內容框只是 SetAllPoints 跟著走
+-- （見 Window.lua 的「定位框與內容框」）。
 function Move.ApplyPosition(W)
-    local wdb, frame = W.wdb, W.frame
+    local wdb, frame = W.wdb, W.anchor
     if not frame then return end
     -- 拖曳／縮放進行中時，錨點屬於那個動作。這裡再 SetPoint 一次會跟它的
     -- 逐幀 SetPoint 打架（畫面上是視窗抽動）。等動作結束，EndDrag/EndResize
     -- 自己會把最終位置寫回去。
     if W._drag or W._resize then return end
+    -- 被磁吸在上面的 secure 框牽連成保護框時，戰鬥中動不了錨點：脫戰再補
+    -- （Manager 的 Windows.FlushAnchors）
+    if not ns.Window.CanMoveAnchor(W) then
+        W._anchorPending = true
+        return
+    end
 
     if type(wdb.x) ~= "number" or type(wdb.y) ~= "number" then
         PlaceInitial(W)
     end
-    -- ⚠ 這裡**不夾邊、不改 wdb**。留在畫面內是 frame:SetClampedToScreen(true) 的事，
+    -- ⚠ 這裡**不夾邊、不改 wdb**。留在畫面內是定位框 SetClampedToScreen(true) 的事，
     --   引擎夾的是畫出來的位置，存檔不動。以前這裡照 UIParent 尺寸把 x/y 夾回來
     --   並寫回 wdb —— 但 PLAYER_LOGIN 當下 UIParent 的縮放可能還不是最終值
     --   （玩家另外 SetScale UIParent 的話，那時拿到的是 uiScale CVar 算出來的縮小版），
@@ -212,7 +220,7 @@ function Move.ApplyPosition(W)
 end
 
 local function SavePosition(W)
-    local frame = W.frame
+    local frame = W.anchor
     local l, t = frame:GetLeft(), frame:GetTop()
     local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
     if not (l and t and pl and pt) then return end
@@ -242,10 +250,11 @@ end
 local function OtherFrames(W)
     local out = {}
     ns.Windows.ForEach(function(other)
-        if other ~= W and other.frame and other.frame:IsShown() and not other.wdb.snapDisabled
+        -- 讀定位框：收合的視窗內容框只剩標題列，但它佔的位置（＝別人貼著的那個矩形）沒變
+        if other ~= W and other.anchor and other.anchor:IsShown() and not other.wdb.snapDisabled
            and not (ns.Snap and W.snapKey and other.snapKey
                     and ns.Snap.HangsUnder(W.snapKey, other.snapKey)) then
-            out[#out + 1] = other.frame
+            out[#out + 1] = other.anchor
         end
     end)
     return out
@@ -290,7 +299,7 @@ local function ApplySnap(W, left, top, width, height)
     -- 跨插件（資訊列、小地圖、聊天列、追蹤器…）：Libs/MiliUISnap.lua，固定 2 螢幕像素。
     -- 自家視窗優先（上面那段、門檻可設），已經吸到的軸不再動。lib 收螢幕座標。
     if ns.Snap and W.snapKey then
-        local s = W.frame:GetEffectiveScale()
+        local s = W.anchor:GetEffectiveScale()
         local dx, dy = ns.Snap.AlignRect(W.snapKey,
             left * s, (left + width) * s, top * s, (top - height) * s)
         if bestXd > thresh and dx ~= 0 then left = left + dx / s end
@@ -314,8 +323,11 @@ end
 ------------------------------------------------------------
 -- 手動拖曳
 ------------------------------------------------------------
+-- 戰鬥中定位框被牽連成保護框時不開始（每幀的 SetPoint 都會被擋）。
+-- 回傳有沒有真的開始。
 local function BeginDrag(W)
-    local frame = W.frame
+    if not ns.Window.CanMoveAnchor(W) then return false end
+    local frame = W.anchor
     local scale = UIScale()
     local cx, cy = GetCursorPosition()
     W._drag = {
@@ -323,6 +335,7 @@ local function BeginDrag(W)
         left = frame:GetLeft(), top = frame:GetTop(),
     }
     W.dragFrame:Show()
+    return true
 end
 
 -- 回傳「這次有沒有真的拖動過」。標題那塊同時是「切換統計類型」的按鈕，
@@ -348,6 +361,8 @@ local function DragTick(W)
     if not d then return end
     -- 有些情況收不到 OnMouseUp（滑鼠移出視窗、被別的 frame 吃掉），自己確認一次
     if not IsMouseButtonDown("LeftButton") then EndDrag(W); return end
+    -- 保險：PLAYER_REGEN_DISABLED 漏收的話，鎖定一生效就自己放手（下面的 SetPoint 會被擋）
+    if not ns.Window.CanMoveAnchor(W) then EndDrag(W); return end
 
     local scale = UIScale()
     local cx, cy = GetCursorPosition()
@@ -362,7 +377,7 @@ local function DragTick(W)
     local left = d.left + dx
     local top  = d.top  + dy
 
-    local frame = W.frame
+    local frame = W.anchor
     left, top = ApplySnap(W, left, top, frame:GetWidth(), frame:GetHeight())
 
     local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
@@ -375,8 +390,7 @@ end
 ------------------------------------------------------------
 function Move.BeginHeaderDrag(W)
     if W.wdb.locked and not Move.IsEditing() then return false end
-    BeginDrag(W)
-    return true
+    return BeginDrag(W)
 end
 
 -- 回傳有沒有真的拖動過（沒有＝玩家只是點了一下）
@@ -388,7 +402,8 @@ end
 -- 縮放
 ------------------------------------------------------------
 local function BeginResize(W)
-    local frame = W.frame
+    if not ns.Window.CanMoveAnchor(W) then return false end
+    local frame = W.anchor
     local scale = UIScale()
     local cx, cy = GetCursorPosition()
     W._resize = {
@@ -397,14 +412,15 @@ local function BeginResize(W)
         y = W.wdb.y,   -- 反轉時要靠它把底邊釘住（見 ResizeTick）
     }
     W.dragFrame:Show()
+    return true
 end
 
 local function EndResize(W)
     if not W._resize then return end
     W._resize = nil
     W.dragFrame:Hide()
-    W.wdb.width  = math.floor(W.frame:GetWidth() + 0.5)
-    W.wdb.height = math.floor(W.frame:GetHeight() + 0.5)
+    W.wdb.width  = math.floor(W.anchor:GetWidth() + 0.5)
+    W.wdb.height = math.floor(W.anchor:GetHeight() + 0.5)
     W._barCacheKey = nil
     W._stickyCacheKey = nil
     W.Refresh()
@@ -415,6 +431,7 @@ local function ResizeTick(W)
     local r = W._resize
     if not r then return end
     if not IsMouseButtonDown("LeftButton") then EndResize(W); return end
+    if not ns.Window.CanMoveAnchor(W) then EndResize(W); return end
 
     local scale = UIScale()
     local cx, cy = GetCursorPosition()
@@ -430,10 +447,10 @@ local function ResizeTick(W)
     if W.wdb.reverse and type(r.y) == "number"
        and not (ns.Snap and W.snapKey and ns.Snap.IsAttached(W.snapKey)) then
         W.wdb.y = (r.y - r.h) + newH
-        W.frame:ClearAllPoints()
-        W.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", W.wdb.x, W.wdb.y)
+        W.anchor:ClearAllPoints()
+        W.anchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", W.wdb.x, W.wdb.y)
     end
-    W.frame:SetSize(newW, newH)
+    W.anchor:SetSize(newW, newH)
     -- 標題的可用寬度變了，跟著重新截斷（Rows.Render 不做這件事）
     ns.Window.FitTitle(W)
 end
@@ -462,6 +479,10 @@ local function UpdateEditState()
             -- 否則會看到一個空的框（脫戰時根本沒有下一個 tick 會補）。
             local was = W.frame:IsShown()
             W.frame:Show()
+            ns.Window.SyncAnchor(W)
+            -- 同一條規矩的另外兩件：編輯模式中一律展開、一律可點
+            ns.Collapse.Apply(W)
+            ns.ClickThrough.Apply(W)
             if not was then
                 W._barCacheKey = nil
                 W.Refresh()
@@ -511,9 +532,11 @@ function Move.Setup(W)
     -- 後者錨在前者身上，拉前者一起動（snapTo 存在 wdb）。group ＝ 自家視窗彼此不經
     -- lib 的「對齊」（上面自己那套拖曳中即時吸、門檻可設；放手時的貼附還是走 lib）。
     -- 「這個視窗不磁吸」時也不當別人的目標。
+    -- ⚠ 註冊的是**定位框**：別的框（爆發藥水列、其他視窗）吸上來時錨的是它，
+    --   被牽連成保護框的也只會是它（見 Window.lua 的「定位框與內容框」）
     W.snapKey = ns.DB.SnapKey(W.idx)
     if ns.Snap then
-        ns.Snap.Register(W.snapKey, frame, {
+        ns.Snap.Register(W.snapKey, W.anchor, {
             group   = "damageMeters",
             attach  = true,
             db      = function() return W.wdb end,
@@ -583,6 +606,7 @@ function Move.Setup(W)
 
     if _editing then
         frame:Show()
+        ns.Window.SyncAnchor(W)
         if W.editSelection then W.editSelection:ShowHighlighted() end
     end
 end
@@ -592,6 +616,25 @@ end
 ------------------------------------------------------------
 function Move.ApplyLock(W)
     if W.resizeGrip then
-        W.resizeGrip:SetShown(not W.wdb.locked or _editing)
+        -- 收合中只剩標題列，把手沒地方放（而且定位框的大小收合期間本來就不動）
+        W.resizeGrip:SetShown((not W.wdb.locked or _editing) and not W._collapsedView)
     end
 end
+
+------------------------------------------------------------
+-- 拖曳／縮放中進戰：強制放手並存位置
+--
+-- PLAYER_REGEN_DISABLED 在戰鬥鎖定生效**之前**發火（warcraft.wiki.gg 明載），這是動保護框的
+-- 最後窗口（見 wow-combat-drag-release）。只收被牽連成保護框的那幾個 —— 沒被牽連的定位框
+-- 戰鬥中照樣拖得動，沒理由打斷玩家。DragTick／ResizeTick 另外有一道保險。
+------------------------------------------------------------
+local combatFrame = CreateFrame("Frame")
+combatFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+combatFrame:SetScript("OnEvent", function()
+    if not ns.Windows then return end
+    ns.Windows.ForEach(function(W)
+        if not (W.anchor and W.anchor:IsProtected()) then return end
+        if W._drag then EndDrag(W) end
+        if W._resize then EndResize(W) end
+    end)
+end)

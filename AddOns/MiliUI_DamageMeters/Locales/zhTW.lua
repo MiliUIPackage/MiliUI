@@ -345,3 +345,24 @@ L["Delete this split view? Windows showing it switch to its left column."] = "�
 L["Split views are shared by every window and saved with the profile. Each column picks its own meter type and segment; a column set to \"Follow the window\" uses the window's segment above."] = "合併檢視是所有視窗共用的，跟著設定檔一起存。每一欄各自選統計類型與分段；選「跟著視窗」的欄用上面那個視窗分段。"
 L["Smart display: both columns are pinned, nothing to switch."] = "智慧顯示：兩欄都固定了分段，沒有東西可切。"
 L["(unavailable)"] = "（這個版本沒有）"
+
+-- 收合（Meter/Collapse.lua、標題列按鈕、右鍵選單）
+L["Collapse"] = "收合"
+L["Expand"] = "展開"
+L["Collapse to the title bar"] = "收合成標題列"
+L["Shown expanded while Edit Mode or the settings panel is open."] = "編輯模式或設定視窗開著時一律展開顯示。"
+L["Fold the window down to its title bar, or open it back up. The window keeps its place, so anything snapped below it stays put. The right-click menu has it too."] =
+    "把視窗收成只剩標題列，或再展開回來。視窗佔的位置不變，所以貼在它下面的框不會跟著移動。右鍵選單裡也有。"
+
+-- 點擊穿透（Meter/ClickThrough.lua、Options/Tab_Each.lua）
+L["Mouse"] = "滑鼠"
+L["Click-through"] = "點擊穿透"
+L["Off"] = "關閉"
+L["Clicks on the bars and the empty part of the window go through to whatever is behind it, such as the enemy you are fighting. The home page and the breakdown page stay clickable once you open them."] =
+    "點在長條與視窗空白處的滑鼠點擊會穿過去，落到後面的東西上（例如正在打的怪）。首頁與展開頁打開之後照樣能點。"
+L["Title bar too"] = "標題列也穿透"
+L["The title bar and its buttons let clicks through as well. Leave it off to keep dragging the window and using its buttons."] =
+    "標題列與上面的按鈕也讓點擊穿過去。不勾的話照樣能拖曳視窗、使用標題列的按鈕。"
+L["Hold to click"] = "按住時可點"
+L["While you hold this key the window takes clicks again. The window also stays clickable while Edit Mode or this settings panel is open."] =
+    "按住這個鍵時視窗暫時恢復可點。編輯模式或這個設定視窗開著時，視窗也一律可點。"

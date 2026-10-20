@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MiliUI_DamageMeters 標題列圖示（八款）。
+"""MiliUI_DamageMeters 標題列圖示（十款）。
 
 技術限制：
   * 顯示尺寸 12~32px，預設 20px → 只能是「單一粗筆畫的幾何符號」，細節砍掉。
@@ -314,6 +314,44 @@ def publish(path, off):
     save(img, path)
 
 
+# ------------------------------------------------------------------ 收合 / 展開
+# 上緣一條橫線（＝標題列）＋ 底下一個 V 形箭頭：箭頭朝線＝「收進標題列」，
+# 背離線＝「從標題列放下來」。單一個 V 在 20px 下只讀得出「上／下」，讀不出
+# 「收進哪裡」—— 那條線就是收合的對象，少了它跟捲動箭頭分不出來。
+#
+# 兩款是**同一個圖形**（同鎖頭、同大聲公的規矩）：線與 V 的外框完全不動，
+# 只把 V 翻面。切換時按鈕才不會看起來換了一顆。
+# 反轉顯示（標題列在下方）時插件用 SetTexCoord 上下鏡射，線跟著跑到下面，
+# 語意不變 —— 所以這裡只畫「標題列在上」這一種。
+#
+# SCALE 0.96：橫向展開（同清單）。墨量只有一條線＋兩道短筆畫，比清單輕，
+# 所以 V 開得比較寬（0.80）把墨量補回帶子裡，而不是加粗筆畫 —— 筆畫粗細是
+# 整套共用的 W，單獨加粗這一款一排看過去就是它最胖。
+# 線與 V 之間要留得出 20px 下看得見的縫（約 2px），不然 V 的兩隻腳會黏在線上
+# 糊成一個三角形。
+def collapse(path, collapsed):
+    img = canvas()
+    d = ImageDraw.Draw(img)
+    x0, y0, box_s = box(0.96)
+
+    bar_y = y0 + W / 2 + box_s * 0.04
+    stroke(d, x0 + W / 2, bar_y, x0 + box_s - W / 2, bar_y)
+
+    half = box_s * 0.40
+    top = y0 + box_s * 0.44                 # V 的外框上緣（離線那一端）
+    bot = y0 + box_s - W / 2 - box_s * 0.04
+    if collapsed:
+        # 已收合 → 按下去是展開：V 朝下，背離標題列
+        stroke(d, CX - half, top, CX, bot)
+        stroke(d, CX + half, top, CX, bot)
+    else:
+        # 展開中 → 按下去是收合：V 朝上，指向標題列
+        stroke(d, CX - half, bot, CX, top)
+        stroke(d, CX + half, bot, CX, top)
+
+    save(img, path)
+
+
 if __name__ == "__main__":
     meters("icon-meters.png")
     segments("icon-segments.png")
@@ -323,3 +361,5 @@ if __name__ == "__main__":
     padlock("icon-unlocked.png", False)
     publish("icon-publish.png", False)
     publish("icon-publish-off.png", True)
+    collapse("icon-collapse.png", False)
+    collapse("icon-expand.png", True)

@@ -46,6 +46,9 @@ Meter\Tooltip.lua
 Meter\Home.lua
 Meter\Builtin.lua
 Meter\Move.lua
+# 收合／點擊穿透：Window、Move、Manager 都是執行期才呼叫它們，排在 Manager 之前即可
+Meter\Collapse.lua
+Meter\ClickThrough.lua
 Meter\Manager.lua
 Meter\Debug.lua
 Meter\Publish.lua

@@ -345,3 +345,24 @@ L["Delete this split view? Windows showing it switch to its left column."] = "�
 L["Split views are shared by every window and saved with the profile. Each column picks its own meter type and segment; a column set to \"Follow the window\" uses the window's segment above."] = "合并视图由所有窗口共用，随配置文件一起保存。每一栏各自选择统计类型与分段；选「跟随窗口」的栏使用上面的窗口分段。"
 L["Smart display: both columns are pinned, nothing to switch."] = "智能显示：两栏都固定了分段，没有可切换的内容。"
 L["(unavailable)"] = "（此版本没有）"
+
+-- 折叠（Meter/Collapse.lua、标题栏按钮、右键菜单）
+L["Collapse"] = "折叠"
+L["Expand"] = "展开"
+L["Collapse to the title bar"] = "折叠为标题栏"
+L["Shown expanded while Edit Mode or the settings panel is open."] = "编辑模式或设置窗口打开时一律展开显示。"
+L["Fold the window down to its title bar, or open it back up. The window keeps its place, so anything snapped below it stays put. The right-click menu has it too."] =
+    "把窗口折叠到只剩标题栏，或再展开回来。窗口占的位置不变，所以贴在它下面的框体不会跟着移动。右键菜单里也有。"
+
+-- 点击穿透（Meter/ClickThrough.lua、Options/Tab_Each.lua）
+L["Mouse"] = "鼠标"
+L["Click-through"] = "点击穿透"
+L["Off"] = "关闭"
+L["Clicks on the bars and the empty part of the window go through to whatever is behind it, such as the enemy you are fighting. The home page and the breakdown page stay clickable once you open them."] =
+    "点在长条和窗口空白处的鼠标点击会穿透过去，落到后面的东西上（比如正在打的怪）。主页和展开页打开之后照样可以点。"
+L["Title bar too"] = "标题栏也穿透"
+L["The title bar and its buttons let clicks through as well. Leave it off to keep dragging the window and using its buttons."] =
+    "标题栏和上面的按钮也让点击穿透过去。不勾的话照样可以拖动窗口、使用标题栏的按钮。"
+L["Hold to click"] = "按住时可点"
+L["While you hold this key the window takes clicks again. The window also stays clickable while Edit Mode or this settings panel is open."] =
+    "按住这个键时窗口暂时恢复可点。编辑模式或这个设置窗口打开时，窗口也一律可点。"

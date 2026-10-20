@@ -88,6 +88,21 @@ Specs.VISIBILITY = {
     { text = L["In a group"],   value = "group" },
 }
 
+-- 點擊穿透（每視窗 wdb.clickThrough，見 Meter/ClickThrough.lua）
+Specs.CLICK_THROUGH = {
+    { text = L["Off"],       value = "off" },
+    { text = L["In combat"], value = "combat" },
+    { text = L["Always"],    value = "always" },
+}
+
+-- 暫時恢復可點的按鍵。鍵名不翻譯：鍵盤上印的就是這幾個字，暴雪自己的按鍵設定也這樣寫
+Specs.CLICK_THROUGH_MODIFIERS = {
+    { text = "Alt",       value = "ALT" },
+    { text = "Shift",     value = "SHIFT" },
+    { text = "Ctrl",      value = "CTRL" },
+    { text = L["None"],   value = "NONE" },
+}
+
 Specs.SESSION_TYPES = {
     { text = L["Current"], value = D.S.Current },
     { text = L["Overall"], value = D.S.Overall },

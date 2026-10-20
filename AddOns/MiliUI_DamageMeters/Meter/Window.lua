@@ -43,7 +43,7 @@ local PULSE_TIME     = 0.9
 ------------------------------------------------------------
 -- 標題列按鈕的貼圖
 --
--- 自己畫的一套八款 128px PNG（純白＋alpha，由下面的 SetVertexColor 染職業色）。
+-- 自己畫的一套十款 128px PNG（純白＋alpha，由下面的 SetVertexColor 染職業色）。
 -- **不用暴雪的 Interface\Buttons：**那幾張是 16~32px 的舊素材，放到 22px 會糊，
 -- 而且來自三個不同年代，湊在一起像雜牌軍。也不用 atlas —— atlas 被拿掉時
 -- 是靜默失敗（見 miliui-inspect-icons 技能踩過的坑）。
@@ -61,6 +61,9 @@ local BTN_TEX = {
     unlocked   = MEDIA .. "icon-unlocked.png",
     publish    = MEDIA .. "icon-publish.png",
     publishOff = MEDIA .. "icon-publish-off.png",
+    -- 收合鈕在兩款之間切：展開中顯示「收合」、收合中顯示「展開」（見 Meter/Collapse.lua）
+    collapse   = MEDIA .. "icon-collapse.png",
+    expand     = MEDIA .. "icon-expand.png",
 }
 Win.BTN_TEX = BTN_TEX
 
@@ -336,10 +339,11 @@ end
 ------------------------------------------------------------
 -- 標題列按鈕
 ------------------------------------------------------------
--- id  這顆按鈕在設定裡的身分（segments / publish / reset / settings / lock），
+-- id  這顆按鈕在設定裡的身分（segments / publish / reset / settings / lock / collapse），
 --     顯示與順序都查它。**是存檔內容**，不要改名。
--- key 貼圖 key。跟 id 多半一樣，但會切換的兩顆不是：鎖頭在 locked/unlocked 之間切、
---     發佈在 publish/publishOff 之間切。
+-- key 貼圖 key。跟 id 多半一樣，但會切換的三顆不是：鎖頭在 locked/unlocked 之間切、
+--     發佈在 publish/publishOff 之間切、收合在 collapse/expand 之間切。
+-- tooltip 字串，或回傳字串的函式（狀態會變的按鈕：收合鈕要講「收合」還是「展開」）
 local function MakeHeaderButton(W, id, key, tooltip, onClick)
     local s = ns.DB.Style()
     local btn = CreateFrame("Button", nil, W.header)
@@ -360,7 +364,7 @@ local function MakeHeaderButton(W, id, key, tooltip, onClick)
         self.icon:SetAlpha(ICON_HOVER_ALPHA)
         if ns.W.Menu.IsOpenFor(self) then return end   -- 選單開著時不要再疊工具提示
         AnchorButtonTooltip(self)
-        GameTooltip:SetText(tooltip, 1, 1, 1)
+        GameTooltip:SetText(type(tooltip) == "function" and tooltip(self) or tooltip, 1, 1, 1)
         -- 動態補一行：狀態會變的按鈕（發佈）用它講「為什麼現在按不下去」。
         -- 掛成函式而不是字串，提示才是打開的那一刻才求值的。
         local note = self.tooltipNote and self.tooltipNote(self)
@@ -540,7 +544,9 @@ function Win.FitTitle(W)
     local iconSz = s.hdrIconSize or 20
     -- 藏起來的圖示不佔空間（不要對著一個不存在的空隙截字）
     local n = W._hdrIconsShown and (W._hdrButtonCount or 0) or 0
-    local headerW = W.frame:GetWidth() or (W.wdb.width or 300)
+    -- 讀定位框：它有明確的尺寸，內容框的寬是錨點推出來的，定位框還沒擺位置之前
+    -- （Win.Create 裡 ApplyStyle／UpdateTitle 比 ApplyPosition 早）推不出來。收合不改寬度。
+    local headerW = (W.anchor or W.frame):GetWidth() or (W.wdb.width or 300)
 
     -- 右側：圖示佔的寬度要跟 LayoutHeaderButtons 同一套算法（右緣留 BTN_GAP+1、
     -- 每顆 size + BTN_GAP），不然計時器會壓到圖示或留一段空。
@@ -778,47 +784,101 @@ function Win.ClickToCurrent(W)
 end
 
 ------------------------------------------------------------
+-- 定位框（W.anchor）與內容框（W.frame）
+--
+-- 一個視窗是兩個框：
+--   W.anchor  純定位框。拿走全域名稱 MiliUI_DamageMeters_Window<N>（外部插件／WA 照名字
+--             錨過來拿到的是它）。沒有貼圖、不開滑鼠。位置與大小**只**落在它身上：
+--             存檔座標、拖曳、縮放、MiliUISnap 的註冊與錨定都是它。
+--   W.frame   內容框（…Window<N>Content）。parent 也是 UIParent，SetAllPoints 在定位框上；
+--             標題列、長條、背景、邊框、首頁、展開頁通通在這裡。
+--
+-- ⚠ 為什麼要拆：帶 secure 按鈕的框（爆發藥水列）磁吸**錨在**視窗身上時，視窗被隱式保護，
+--   而且沿錨點鏈往回傳（3 錨 2、2 錨 1 ⇒ 三個全中，見 wow-combat-drag-release）。被牽連的
+--   框戰鬥中 SetShown／SetHeight／EnableMouse 全部 ADDON_ACTION_BLOCKED —— 「只在戰鬥中顯示」
+--   就是這樣壞的。保護的方向是「錨在別人身上的」傳給「被錨的目標」，所以：
+--   別人只會錨在定位框上 ⇒ 被牽連的只會是定位框；內容框是**錨在**定位框上的那一方，
+--   不受牽連，戰鬥中顯示／收合／點擊穿透都動內容框。
+--
+-- 定位框的 IsShown 是 MiliUISnap 判斷「能不能當磁吸目標」的依據，所以脫戰時要跟內容框
+-- 同步；戰鬥中被保護就跳過，記 _anchorPending，脫戰時 Windows.FlushAnchors 補。
+-- 內容框藏起來不影響定位框、定位框藏著內容框照樣跟著它的幾何走（兩者都掛 UIParent）。
+------------------------------------------------------------
+function Win.CanMoveAnchor(W)
+    local a = W.anchor
+    return not (a and InCombatLockdown() and a:IsProtected())
+end
+
+function Win.SyncAnchor(W)
+    local a = W.anchor
+    if not a or not W.frame then return end
+    if not Win.CanMoveAnchor(W) then
+        W._anchorPending = true
+        return
+    end
+    local want = W.frame:IsShown()
+    if a:IsShown() ~= want then a:SetShown(want) end
+end
+
+-- 尺寸照存檔套到定位框。被保護時同樣延後（脫戰時 FlushAnchors 連位置一起重套）。
+-- 縮放進行中不碰：尺寸屬於那個動作（見 Move.lua 的 ResizeTick）。
+function Win.ApplyAnchorSize(W)
+    if W._resize or not W.anchor then return end
+    if not Win.CanMoveAnchor(W) then
+        W._anchorPending = true
+        return
+    end
+    W.anchor:SetSize(W.wdb.width or 300, W.wdb.height or 200)
+end
+
+------------------------------------------------------------
 -- 顯示條件
 ------------------------------------------------------------
+local function WantShown(W)
+    -- 編輯模式與設定視窗開著時一律顯示，否則玩家看不到自己在調什麼
+    if ns.Move.IsEditing() or ns._optionsOpen then return true end
+
+    local wdb = W.wdb
+    local _, iType = IsInInstance()
+
+    if wdb.hideInDungeon and iType == "party" then return false end
+    if wdb.hideInRaid and iType == "raid" then return false end
+    if wdb.hideInPvP and (iType == "pvp" or iType == "arena") then return false end
+    -- 探究不看 instanceType（它是 scenario，跟其他場景混在一起），走專用偵測
+    if wdb.hideInDelve and D.IsInDelve() then return false end
+    if wdb.hideOutOfInstance and (iType == "none" or iType == nil) then return false end
+
+    local vis = wdb.visibility or "always"
+    if vis == "combat" then
+        return (ns.Combat.IsInCombat() or InCombatLockdown()) and true or false
+    elseif vis == "instance" then
+        return iType == "party" or iType == "raid"
+    elseif vis == "group" then
+        return (GetNumGroupMembers() or 0) > 0
+    end
+    return true
+end
+
 function Win.UpdateVisibility(W)
     if not W.frame then return end
 
     -- 藏著的期間 W.Refresh 是直接早退的，所以「重新顯示」這條邊緣要自己補畫一次，
     -- 否則會停在藏起來那一刻的畫面直到下一個 tick（脫戰時根本沒有下一個 tick）。
     local was = W.frame:IsShown()
-    local function Set(shown)
-        W.frame:SetShown(shown)
-        if shown and not was then
-            W._barCacheKey = nil
-            W.Refresh()
-        end
-    end
+    local shown = WantShown(W)
+    -- 內容框：不會被牽連成保護框，戰鬥中也能藏／顯示（見上方「定位框與內容框」）
+    W.frame:SetShown(shown)
+    Win.SyncAnchor(W)
 
-    -- 編輯模式與設定視窗開著時一律顯示，否則玩家看不到自己在調什麼
-    if ns.Move.IsEditing() or ns._optionsOpen then
-        Set(true)
-        return
-    end
+    -- 收合與點擊穿透都有「編輯模式或設定視窗開著時一律展開／可點」這條規矩，
+    -- 而那兩種狀態的進出都會走到這裡（設定視窗 OnShow/OnHide、編輯模式關閉），
+    -- 戰鬥進出也是（Manager 的 visFrame）—— 收在這裡一起重算，值沒變兩支都是零成本。
+    ns.Collapse.Apply(W)
+    ns.ClickThrough.Apply(W)
 
-    local wdb = W.wdb
-    local _, iType = IsInInstance()
-
-    if wdb.hideInDungeon and iType == "party" then Set(false); return end
-    if wdb.hideInRaid and iType == "raid" then Set(false); return end
-    if wdb.hideInPvP and (iType == "pvp" or iType == "arena") then Set(false); return end
-    -- 探究不看 instanceType（它是 scenario，跟其他場景混在一起），走專用偵測
-    if wdb.hideInDelve and D.IsInDelve() then Set(false); return end
-    if wdb.hideOutOfInstance and (iType == "none" or iType == nil) then Set(false); return end
-
-    local vis = wdb.visibility or "always"
-    if vis == "combat" then
-        Set(ns.Combat.IsInCombat() or InCombatLockdown())
-    elseif vis == "instance" then
-        Set(iType == "party" or iType == "raid")
-    elseif vis == "group" then
-        Set((GetNumGroupMembers() or 0) > 0)
-    else
-        Set(true)
+    if shown and not was then
+        W._barCacheKey = nil
+        W.Refresh()
     end
 end
 
@@ -871,6 +931,8 @@ function Win.ForEachPane(W, fn)
 end
 
 function Win.ScrollPane(W, pane, delta)
+    -- 收合時清單整個藏著：滾輪落在標題列上不該把藏起來的列畫出來
+    if W._collapsedView then return end
     local cfg = ns.DB.Style()
     local step = D.Px(cfg.barHeight or 18) + D.Px(cfg.barSpacing or 2)
     -- 邏輯捲動：0 永遠是第一名那端，所以滾輪的方向在正反兩種排列下一致
@@ -955,6 +1017,8 @@ function Win.EnsureSplitPane(W)
     for _, bar in ipairs(P.rowPool) do Win.StyleBar(bar, s, texPath) end
     Win.StyleBar(P.stickyBar, s, texPath)
     Win.AnchorPanes(W)
+    -- 新建的 41 列是 MakeBar 預設的「可點」：點擊穿透開著的話要照當下狀態補設一次
+    ns.ClickThrough.Apply(W, true)
     return P
 end
 
@@ -1005,6 +1069,8 @@ end
 -- 首頁蓋上來時把清單區整個藏起來、關掉時放回來。
 -- 釘住的列不在這裡放回：要不要釘得看資料，交給接著的那次繪製決定。
 function Win.SetListShown(W, shown)
+    -- 收合中一律藏：關首頁（Home.Hide）也會叫到這裡，例如右鍵選單換統計類型的時候
+    if W._collapsedView then shown = false end
     local split = (shown and W._splitOn) and true or false
     W.viewport:SetShown(shown)
     if W.split then W.split.viewport:SetShown(split) end
@@ -1081,14 +1147,24 @@ function Win.Create(idx)
     local hdrH = D.Px(s.hdrHeight or 22)
 
     ------------------------------------------------------------
-    -- 主容器
+    -- 定位框 ＋ 內容框（為什麼拆成兩個見 Win.SyncAnchor 上方的說明）
     ------------------------------------------------------------
-    local frame = CreateFrame("Frame", "MiliUI_DamageMeters_Window" .. idx, UIParent)
-    frame:SetSize(wdb.width or 300, wdb.height or 200)
-    frame:SetMovable(true)
-    frame:SetResizable(true)
-    frame:SetClampedToScreen(true)
-    frame:SetUserPlaced(false)
+    -- 定位框拿走原本的全域名稱：外部照名字錨過來的一律落在它身上。
+    -- 不開滑鼠、不開滾輪、沒有貼圖 —— 收合後騰出來的那一塊只剩它，點得到後面的怪。
+    -- SetMovable 只是為了 SetUserPlaced(false) 合法（拖曳是自己算位移，不走 StartMoving）。
+    local anchor = CreateFrame("Frame", "MiliUI_DamageMeters_Window" .. idx, UIParent)
+    anchor:SetSize(wdb.width or 300, wdb.height or 200)
+    anchor:SetMovable(true)
+    anchor:SetClampedToScreen(true)
+    anchor:SetUserPlaced(false)
+    anchor:EnableMouse(false)
+    W.anchor = anchor
+
+    -- 內容框：不當定位框的子框（parent 是 UIParent），只錨在它身上。收合時改錨成
+    -- 只剩標題列那一截（見 Meter/Collapse.lua）。夾邊交給定位框，這裡不另外 clamp ——
+    -- 兩個都 clamp 的話收合後的矩形會被各自夾到不同的地方。
+    local frame = CreateFrame("Frame", "MiliUI_DamageMeters_Window" .. idx .. "Content", UIParent)
+    frame:SetAllPoints(anchor)
     W.frame = frame
 
     frame.bg = M.NoSnap(frame:CreateTexture(nil, "BACKGROUND"))   -- 跟視窗邊框相接
@@ -1215,7 +1291,7 @@ function Win.Create(idx)
     -- 標題列按鈕
     --
     -- 建立順序不決定畫面上的排列 —— 那是 style.hdrButtons[id].order 的事
-    -- （見 Win.LayoutHeaderButtons）。這裡只負責把五顆都建出來。
+    -- （見 Win.LayoutHeaderButtons）。這裡只負責把六顆都建出來。
     ------------------------------------------------------------
     local L = ns.L
     W.lockBtn = MakeHeaderButton(W, "lock", wdb.locked and "locked" or "unlocked",
@@ -1242,6 +1318,12 @@ function Win.Create(idx)
     pubBtn.tooltipNote = function()
         return ns.Publish and ns.Publish.BlockedReason()
     end
+    -- 收合：貼圖跟著 wdb.collapsed 切（Collapse.UpdateIcon），提示也是當下才求值
+    local colBtn = MakeHeaderButton(W, "collapse", wdb.collapsed and "expand" or "collapse",
+        function() return W.wdb.collapsed and L["Expand"] or L["Collapse"] end,
+        function() ns.Collapse.Toggle(W) end)
+    colBtn.tooltipNote = function() return ns.Collapse.Note(W) end
+    W.collapseBtn = colBtn
     ------------------------------------------------------------
     -- 左側區塊的行為：左鍵切類型、右鍵開選單，而且**還是拖得動視窗**
     --
@@ -1273,6 +1355,8 @@ function Win.Create(idx)
         end
         if ns.Move.EndHeaderDrag(W) then return end
         if Win.ClickToCurrent(W) then return end
+        -- 收合中點標題：首頁要整個清單區才擺得下，先展開再打開（玩家要的就是看類型）
+        if W._collapsedView then ns.Collapse.Set(W, false) end
         ns.Home.Toggle(W)
     end)
 
@@ -1343,6 +1427,8 @@ function Win.Create(idx)
         -- ⚠ 由隱藏轉顯示時 Win.UpdateVisibility 會作廢版面快取並補畫一次，
         --   所以不會看到「藏起來那一刻」的舊資料。
         if not W.frame:IsShown() then return end
+        -- 收合時同理：只剩標題列，長條全藏著。展開那一刻 Collapse 會作廢版面快取並補畫一次。
+        if W._collapsedView then return end
         -- 合併檢視：左欄問左邊那種、右欄另外問一次
         local left, right = D.SplitTypes(W.curDMType)
         -- API 呼叫的耗時要量：偶爾會有尖峰（歷史分段、大團隊），
@@ -1522,9 +1608,11 @@ function Win.ApplyStyle(W)
         Win.StyleBar(pane.stickyBar, s, texPath)
     end)
 
-    -- 同理：縮放進行中不要把尺寸拉回設定值（玩家改別的設定剛好在拉的時候）
-    if not W._resize then
-        frame:SetSize(wdb.width or 300, wdb.height or 200)
-    end
+    -- 同理：縮放進行中不要把尺寸拉回設定值（玩家改別的設定剛好在拉的時候）。
+    -- 尺寸落在定位框上（ApplyAnchorSize 自己看 W._resize 與戰鬥保護）
+    Win.ApplyAnchorSize(W)
+    -- 上面 ApplyOrientation 把背景、分隔線重貼／重新顯示過了，收合中要再收一次；
+    -- 反轉一翻面，收合時內容框貼定位框哪一緣也跟著換
+    ns.Collapse.Apply(W, true)
     Win.FitTitle(W)
 end

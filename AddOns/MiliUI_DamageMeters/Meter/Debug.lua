@@ -93,11 +93,20 @@ function ns.DebugText()
                 :format(W.idx, Num(d.x), Num(d.y), Num(d.width), Num(d.height),
                         tostring(d.autoPlaced), SnapToText(d.snapTo), tostring(d.locked),
                         tostring(d.snapDisabled), tostring(d.reverse), tostring(d.visibility)))
-            local f = W.frame
-            add(("   frame %s: %s userPlaced=%s drag=%s resize=%s")
-                :format(Name(f), Rect(f), tostring(f:IsUserPlaced()),
+            -- 位置與大小在定位框上；內容框收合時只剩標題列，兩個都印才對得出是哪一層歪了。
+            -- protected＝被磁吸上來的 secure 框牽連（戰鬥中定位框的動作會延到脫戰）
+            local a = W.anchor
+            add(("   anchor %s: %s userPlaced=%s protected=%s pending=%s drag=%s resize=%s")
+                :format(Name(a), Rect(a), tostring(a:IsUserPlaced()),
+                        tostring(a:IsProtected() and true or false), tostring(W._anchorPending == true),
                         tostring(W._drag ~= nil), tostring(W._resize ~= nil)))
-            Points(L, "   ", f)
+            Points(L, "   ", a)
+            local f = W.frame
+            add(("   content %s: %s collapsed=%s/%s clickThrough=%s/%s mouse=%s/%s")
+                :format(Name(f), Rect(f),
+                        tostring(d.collapsed), tostring(W._collapsedView),
+                        tostring(d.clickThrough), tostring(d.clickThroughHeader),
+                        tostring(W._mouseOn), tostring(W._hdrMouseOn)))
         end)
     else
         add("  (windows not built)")

@@ -27,7 +27,8 @@ local function Apply()
     local W = ns.Windows.Get(selected)
     if W and W.frame then
         W.wdb.autoPlaced = nil   -- 玩家在設定頁動過了，別再自動接手內建視窗的位置
-        W.frame:SetSize(W.wdb.width or 300, W.wdb.height or 200)
+        -- 位置與大小落在定位框上（見 Meter/Window.lua 的「定位框與內容框」）
+        ns.Window.ApplyAnchorSize(W)
         ns.Move.ApplyPosition(W)
         ns.Window.UpdateLockIcon(W)
         ns.Move.ApplyLock(W)
@@ -236,6 +237,15 @@ local CONTROLS = {
     { type = "toggle",   key = "hideInDelve", label = L["Hide in Delves"] },
     { type = "toggle",   key = "hideOutOfInstance", label = L["Hide outside instances"] },
     { type = "text",     label = L["The window is always shown while Edit Mode or this settings panel is open, so you can see what you are adjusting."] },
+
+    -- 點擊穿透（Meter/ClickThrough.lua）。收合不在這裡：標題列按鈕與右鍵選單就夠了
+    { type = "header",   label = L["Mouse"] },
+    { type = "dropdown", key = "clickThrough", label = L["Click-through"], items = Specs.CLICK_THROUGH },
+    { type = "text",     label = L["Clicks on the bars and the empty part of the window go through to whatever is behind it, such as the enemy you are fighting. The home page and the breakdown page stay clickable once you open them."] },
+    { type = "toggle",   key = "clickThroughHeader", label = L["Title bar too"] },
+    { type = "text",     label = L["The title bar and its buttons let clicks through as well. Leave it off to keep dragging the window and using its buttons."] },
+    { type = "dropdown", key = "clickThroughModifier", label = L["Hold to click"], items = Specs.CLICK_THROUGH_MODIFIERS },
+    { type = "text",     label = L["While you hold this key the window takes clicks again. The window also stays clickable while Edit Mode or this settings panel is open."] },
 
     -- 擺最底部：列表高度固定（理由見 BuildSplitList 上方），說明放列表前面，
     -- 組合少的時候空出來的那一截才會落在捲動區尾巴、不會夾在列表與說明之間
