@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 8dc93370-a3cc-49db-b9cc-7732dd22f64b
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-10-21T00:00:00.000Z
 ---
 
 PLAYER_LOGIN 時 `UIParent:GetWidth()`／`GetScreenWidth()` 拿到的可能是 **uiScale CVar 算出來的尺寸**，
@@ -38,5 +38,11 @@ UIParent 比最終值小（2026-10-12 實例：CVar 0.76、實際 0.53，登入�
   因為縮放還沒定。MiliUI_Tooltip 單位提示的 1px 邊框在載入時算一次就不再重算，登入／reload 後邊框實際不到 1px，
   加上關掉像素貼齊，上邊、左邊整條不見（2026-10-20）。修法：**在顯示的時候換算、跟上次不同才重排**
   （skin OnShow 呼叫 `Skin.LayoutBorder`），不要只靠設定變更時重算。
+- ⚠ **`PLAYER_LOGIN` 也不保險，而且之後不一定有 `UI_SCALE_CHANGED`**（2026-10-21）：MiliUI_Skin 的確認彈窗配方在
+  `PLAYER_LOGIN` 建 overlay、邊寬照當下的有效縮放換算，引擎本來就掛了 `UI_SCALE_CHANGED`／`DISPLAY_SIZE_CHANGED` 重排，
+  死亡彈窗的按鈕還是缺邊（每顆缺的不一樣）。使用者環境：5K Mac、`uiScaleMultiplier` -1（自動）、
+  `gxWindowedResolution` 4916x2764；確切是哪一步改了縮放沒抓到。修法（彈窗是零 hook 特許，不能 OnShow 重算）：
+  記住排的時候的換算基準 `PixelUtil.GetPixelToUIUnitFactor() / UIParent:GetEffectiveScale()`，
+  `PLAYER_ENTERING_WORLD` 與「自己的框 SetAllPoints(UIParent) 收 `OnSizeChanged`」時比一次，不同才重排。
 
 相關：[[project-miliui-damagemeters]]、[[wow-setscale-offset-units]]、[[project-miliui-minimap]]、[[project-miliui-mythicplus]]
