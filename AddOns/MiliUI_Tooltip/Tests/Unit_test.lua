@@ -232,6 +232,17 @@ do
     local m2 = P.ReadUnitRows(rows, { isPlayer = true, guildLine = "米利公會", classLine = "術士" }, false)
     eq("右鍵提示設定關：留著", #m2.extras, 2)
 
+    -- 不帶角括號的「公會-伺服器」行也是公會行（標題區已經畫了）
+    local m3 = P.ReadUnitRows({
+        { left = "Lokospoks", lineIndex = 1, type = LT.UnitName },
+        { left = "<米利公會> 會長", lineIndex = 2 },
+        { left = "毀滅 術士", lineIndex = 3 },
+        { left = "|cffffffff米利公會-聖光之願|r", lineIndex = 4 },
+        { left = "米利公會的朋友", lineIndex = 5 },
+    }, { isPlayer = true, guildLine = "米利公會", classLine = "術士" }, true)
+    eq("公會-伺服器行丟掉、名字開頭相同的別行留著", #m3.others, 1)
+    eq("留下的是別行", m3.others[1].left, "米利公會的朋友")
+
     local npc = P.ReadUnitRows({
         { left = "狡猾的莫加尼", lineIndex = 1 },
         { left = "<迪菲亞兄弟會>", lineIndex = 2 },

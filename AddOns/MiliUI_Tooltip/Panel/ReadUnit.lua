@@ -53,6 +53,12 @@ local function IsLevelLine(text)
     return w.level ~= nil and text:sub(1, #w.level) == w.level
 end
 
+-- 公會行兩種寫法：「<公會> 階級」，以及不帶角括號的「公會-伺服器」（另起一行，標題區已經畫了公會 ⇒ 都丟）
+local function IsGuildLine(text, guild)
+    if text:sub(1, 1) == "<" then return text:find(guild, 1, true) ~= nil end
+    return text == guild or text:sub(1, #guild + 1) == guild .. "-"
+end
+
 local function IsBreak(row)
     if row.type ~= nil and (row.type == LT.Blank or row.type == LT.Separator) then return true end
     return Strip(row.left) == "" and not row.right
@@ -115,7 +121,7 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
             -- 陣營、PvP、死亡：API 畫
         elseif w.skin[text] then
             model.skin[#model.skin + 1] = row.left
-        elseif guildLine and text:sub(1, 1) == "<" and text:find(guildLine, 1, true) then
+        elseif guildLine and IsGuildLine(text, guildLine) then
             -- 公會行：API 畫
         elseif not facts.isPlayer and not levelSeen then
             beforeLevel[#beforeLevel + 1] = row
