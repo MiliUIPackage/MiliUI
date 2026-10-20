@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-09-15T15:30:17.963Z
+  modified: 2026-10-20T18:46:11.838Z
 ---
 
 12.1.0 PTR 7（2026-07-23, build 68914）起，**unit identity 為 secret 時**這些 API 全部回傳 secret：
@@ -13,6 +13,14 @@ metadata:
 `UnitClass`、`UnitClassBase`、`UnitRace`、`UnitSex`、`UnitSexBase`、`UnitPhaseReason`、`UnitGroupRolesAssigned`、`UnitGroupRolesAssignedEnum`、`UnitGetAvailableRoles`、`UnitIsRaidOfficer`、`UnitInRaid`、`UnitIsPVP`、`UnitIsGroupLeader`、`UnitIsGroupAssistant`、`UnitLeadsAnyGroup`、`UnitIsOwnerOrControllerOfUnit`、`GetInspectSpecialization`（已改為 `C_SpecializationInfo.GetInspectSpecialization`）。
 
 理由：防止把多個 API 組合起來在戰鬥中比對兩個 secret unit 是不是同一個。
+
+**live API 文件逐支查的結果（2026-10-21，`UnitDocumentation.lua` 的函式層旗標；尚未實機，探針 `_MiliProbe_SecretUnit`）**：
+受限時**轉秘密**的另有 `UnitGUID`、`UnitCreatureType`、`UnitCreatureFamily`、`UnitFullName`、`UnitNameUnmodified`、`UnitPVPName`、`UnitTokenFromGUID`，
+`UnitName` 標的是另一條 `SecretWhenUnitNameIdentityRestricted`（同規則，PvP 對戰中的玩家例外）；
+**沒有任何秘密旗標**（受限也該是明文）：`UnitLevel`、`UnitEffectiveLevel`、`UnitClassification`、`UnitReaction`、`UnitSelectionType`、`UnitSelectionColor`、
+`UnitIsTapDenied`、`UnitIsDead(OrGhost)`、`UnitPlayerControlled`、`UnitIsPlayer`、`UnitIsBossMob`、`UnitIsQuestBoss`、`UnitFactionGroup`、`UnitExists`、`UnitCanAttack`。
+MiliUI_Tooltip 舊樣式在團本首領上畫得出「等級??（首領）」與立場紅名，跟這份吻合。
+同版 `Enum.TooltipDataLineType` 多了 `UnitLevel`(47)／`UnitType`(48)／`UnitDead`(49)／`UnitCriteriaProgress`(50)：行的 `type` 若受限時仍是明文，就能不讀文字認出等級行、類型行。
 
 其他相關變更：
 - **`UnitIsUnit` 回 secret boolean**（2026-08-20 實測：`UnitIsUnit("boss1", "party4")`）：只要有一邊是

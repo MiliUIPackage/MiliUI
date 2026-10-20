@@ -244,6 +244,9 @@ local function BeginSegment()
     _regenTimestamp = 0
     _needsFinalRefresh = false
     if ns.Windows and ns.Windows.InvalidateAll then ns.Windows.InvalidateAll() end
+    -- 預覽收掉：戰鬥中一定畫真資料。隊友先開怪那種不會有 PLAYER_REGEN_DISABLED，
+    -- 要在這裡推（排在 SmartApply 前面，它切分段時的刷新才畫得到真資料）
+    if ns.Preview then ns.Preview.Sync() end
     if not _sharedTicker then C.StartTicker() end
     if ns.Windows and ns.Windows.SmartApply then ns.Windows.SmartApply(true, true) end
     if ns.Publish then ns.Publish.Refresh() end

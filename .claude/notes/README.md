@@ -378,7 +378,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | MiliUI_ChatBar 的磁吸／自適應寬度／右鍵選單：位置從 SetUserPlaced 收回自己存、吸附基準是內容底、下面放不下就翻到上面；設定頁「整組重套」害磁吸亂跳的成因；戰鬥中 taint 的兩條教訓連到通則 |
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（取代 Ayije_CDM；2026-09-30 一夜做完 A～H、已上線 1.5.x、大半功能上過實機）——拍板與授權、引擎契約、撞牆通則（增益旗標只有 SetUseAuraDisplayTime、到期只 Clear 不寫旗標、charges 旗標≠有充能、裝備欄 GCD 當真冷卻、掛勾參數是秘密值、收合框不當錨點、互斥停用要全帳號…）、各功能一句話索引、實機驗證從哪開始 |
 | [project-miliui-crusadingstrikes.md](project-miliui-crusadingstrikes.md) | MiliUI_CrusadingStrikes「德莫的征戰聖擊助手」——鏡射暴雪冷卻管理器「追蹤的量條」做普攻計時，掛在 Platynator 名條血條下方或 Ayije 聖能條旁；MiliUI_CooldownManager 載入時讓位（它自己有鏡射列）；12.1 下唯一走得通的那條路與六條死路、餵過秘密值的條不准再讀、兩支插件搶同一個框的 alpha 沒有對的寫法 |
-| [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策、標題列按鈕看板與發佈、遷移鏈（DB v5）、踩過的點、除錯分頁 |
+| [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策、標題列按鈕看板與發佈、遷移鏈（DB v5）、踩過的點、除錯分頁、預覽模式 |
 | [project-miliui-debug-mode.md](project-miliui-debug-mode.md) | MiliUI 本體的除錯模式（/miliui debug on\|off、插件總覽頁按鈕）—— 只留本體／!BugGrabber／BugSack，記錄存 MiliUI_DB.debugMode，All／Some 兩種範圍分開還原；另含好友名單職業色 |
 | [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 爆發藥水助手／嗜血音樂／快捷聊天列改用 MiliUIWidgets 自製設定視窗（2026-08-23）——三支小插件的標準結構、AceLocale 宿主的差異、踩過的點 |
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | MiliUI_Focus「米利的專注目標助手」——從套組拆出的獨立插件（Shift 點擊設專注目標＋自動標記、標記列、隊友同步、宣告、專注目標施法條）；一次性 SV 遷移的印記設計；宣告走巨集書具名巨集（M+ 可送、點鈕才喊、戰鬥中內容不更新）；施法條在秘密值下的四條繞法、重要法術發光、斷法巨集；原 project-focuser-castbar 已併入 |

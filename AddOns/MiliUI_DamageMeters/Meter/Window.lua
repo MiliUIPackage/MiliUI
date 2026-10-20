@@ -617,10 +617,12 @@ end
 function Win.UpdateTitle(W)
     W._fullTitle = D.TYPE_NAMES[W.curDMType] or ns.L["Damage Done"]
     -- 兩欄都釘住分段：視窗的分段在畫面上沒有作用，標著「目前」反而是錯的資訊，
-    -- 點下去換分段也什麼都不會變 —— 整塊收起來
-    local hidden = D.BothPinned(W)
+    -- 點下去換分段也什麼都不會變 —— 整塊收起來。
+    -- 預覽中一律寫「預覽」（連兩欄都釘住的也是）：畫面上的人與數字是範例，要一眼看得出不是真的戰鬥
+    local preview = ns.Preview.IsActive()
+    local hidden = D.BothPinned(W) and not preview
     W._statusHidden = hidden
-    W._fullStatus = hidden and "" or Win.SegmentLabel(W)
+    W._fullStatus = hidden and "" or (preview and ns.L["Preview"]) or Win.SegmentLabel(W)
     if W.segText then
         W.segText:SetShown(not hidden)
         W.segArrow:SetShown(not hidden)
@@ -673,8 +675,12 @@ function Win.UpdateTimerText(W)
         sessType, sessID = W.curSession, W.curSessionID
     end
 
+    -- 預覽：範例戰鬥的時長，不分目前／總計都顯示（玩家要看的是計時器長怎樣）
+    local preview = ns.Preview.IsActive()
     local dur
-    if sessID then
+    if preview then
+        dur = ns.Preview.DURATION
+    elseif sessID then
         -- 歷史分段的時長是**定值**，而 D.GetSessionDuration 要抓整份分段清單再線性
         -- 搜尋 —— 每 tick 做一次是白做的。切分段時清成 nil 重解一次。
         -- ⚠ 只快取真的解出來的數字：剛切過去時分段可能還沒進清單，
@@ -693,7 +699,7 @@ function Win.UpdateTimerText(W)
         dur = D.GetSessionDuration(D.S.Overall, nil)
     end
 
-    local isOverall = (not sessID and sessType == D.S.Overall)
+    local isOverall = (not sessID and sessType == D.S.Overall) and not preview
     -- 合併檢視兩欄都要算：左欄沒人打斷、右欄有人驅散，這一場照樣是有資料的
     local rows = (W.visibleCount or 0)
     if W._splitOn and W.split then rows = rows + (W.split.visibleCount or 0) end
@@ -1431,6 +1437,11 @@ function Win.Create(idx)
         if W._collapsedView then return end
         -- 合併檢視：左欄問左邊那種、右欄另外問一次
         local left, right = D.SplitTypes(W.curDMType)
+        -- 預覽（設定視窗／編輯模式開著）：資料換成範例，繪製照舊（見 Meter/Preview.lua）
+        if ns.Preview.Check() then
+            ns.Rows.Render(W, ns.Preview.Session(left or W.curDMType), right and ns.Preview.Session(right))
+            return
+        end
         -- API 呼叫的耗時要量：偶爾會有尖峰（歷史分段、大團隊），
         -- 尖峰那一幀就把繪製推到下一幀，不要讓兩個尖峰疊在同一幀
         local t0 = debugprofilestop()

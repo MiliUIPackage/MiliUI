@@ -366,3 +366,8 @@ L["The title bar and its buttons let clicks through as well. Leave it off to kee
 L["Hold to click"] = "按住時可點"
 L["While you hold this key the window takes clicks again. The window also stays clickable while Edit Mode or this settings panel is open."] =
     "按住這個鍵時視窗暫時恢復可點。編輯模式或這個設定視窗開著時，視窗也一律可點。"
+
+-- 預覽（Meter/Preview.lua、Options/Panel.lua）
+L["Preview"] = "預覽"
+L["While on, the meters show sample data so you can see how your style changes look. Turn it off to see your real data. Edit Mode shows the preview too, and combat turns it off."] =
+    "開著時，統計視窗改顯示範例資料，方便看調整後的樣式；關掉就顯示真實資料。編輯模式開著時也會預覽，進入戰鬥會自動關閉。"
