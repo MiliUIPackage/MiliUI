@@ -100,8 +100,6 @@
 -- | AddonList.Dropdown 的 Background | SetAlpha(0)；Arrow | SetVertexColor |
 -- | AddonList.SearchBox 的 Left/Right/Middle | SetAlpha(0)；searchIcon／clearButton.Icon／Instructions | SetVertexColor／SetTextColor |
 -- | AddonList.ForceLoad 的 Normal/Pushed/Disabled | SetAlpha(0)。**Checked 不碰**（見上） |
--- | AddonList.ForceLoad 的無名 FontString | SetTextColor |
--- | AddonList.Performance.Header | SetTextColor |
 -- | AddonList.Performance.Divider | SetVertexColor |
 -- | Cancel/Okay/EnableAll/DisableAll 的 Left/Right/Center | SetAlpha(0) |
 -- | 同四顆 | SetNormalFontObject(GameFontHighlight)；Highlight 貼圖 | SetColorTexture |
@@ -115,7 +113,6 @@
 -- | 插件列的 `Enabled` 勾選框 | 同 ForceLoad |
 -- | 插件列的 `LoadAddonButton` 的 Left/Right/Middle | SetAlpha(0) |
 -- | 分類列的 HighlightTexture | SetAlpha(0)（同上） |
--- | 分類列的 `Title` | SetTextColor |
 -- | 分類列的 `CollapseExpand` 的 Normal/Pushed | SetVertexColor |
 --
 -- ### 彈出的重載對話框
@@ -123,7 +120,6 @@
 -- | 物件 | 動作 |
 -- |---|---|
 -- | AddonDialogBackground 的九片 ＋ Bg | SetAlpha(0) |
--- | AddonDialogText | SetTextColor |
 -- | AddonDialogButton1/2 的 Left/Right/Middle | SetAlpha(0) |
 --
 -- 以上各框：`CreateFrame` 掛自己的 overlay（錨在目標上、不吃滑鼠、零腳本）。
@@ -152,6 +148,9 @@
 --   `SetRotation` 表示收合／展開，那是資訊；我們只染色（`SetRotation` 不碰
 --   vertex color ⇒ 染一次就撐得住）。
 -- * **`Performance` 的 Current/Average/Peak** —— 已經是 `GameFontWhite`。
+-- * **暴雪的金字**（2026-10-20 使用者要求還原）—— 分類列 `Title`、「載入過期插件」的說明字、
+--   `Performance.Header`、`AddonDialogText` 都是 `GameFontNormal*`（金）。改成白字之後
+--   整個清單一片白，分類標題跟插件名分不出層次；金字在深底上本來就讀得清楚 ⇒ 留暴雪的。
 -- * **`AddonDialog` 本身**（全螢幕的 modal 擋板）—— 它沒有任何美術，只是一塊
 --   吃滑鼠與鍵盤的透明板。
 ------------------------------------------------------------
@@ -227,13 +226,7 @@ end
 
 local function ApplyCategoryRow(row)
     Skin.Row(row, "AddonListCategory", { fill = T.fillInset, ownHover = true, points = ROW_POINTS })
-
-    -- 分類名字是 GameFontNormal（暗金），`AddonList_InitCategory` 只 SetText、
-    -- 不重設顏色 ⇒ 設一次就撐得住。
-    local title
-    if pcall(function() title = row.Title end) and title then
-        E.TextColor(title, T.text, "AddonListCategory.Title")
-    end
+    -- 分類名字（GameFontNormal 金）不碰：見檔頭「刻意不碰的東西」。
 end
 
 -- 收合／展開的小箭頭。三張都是 atlas `bag-arrow`（中性灰的箭頭，不是烤了顏色的
@@ -267,7 +260,6 @@ local function ApplyDialog()
     local ov = E.Overlay(bg, { key = "AddonDialogBackground" })
     E.Paint(ov, T.fill, T.border)
 
-    E.TextColor(_G.AddonDialogText, T.text, "AddonDialogText")
 
     for i = 1, 2 do
         local name = "AddonDialogButton" .. i
@@ -420,8 +412,7 @@ local function Apply()
     end
 
     -- 「載入過期插件」。`MinimalCheckboxTemplate` 的四張狀態圖全部走 getter
-    -- ⇒ `Skin.CheckBox` 直接適用。旁邊那條說明字是**無名無 parentKey** 的
-    -- layer FontString（AddonList.xml:137）⇒ 只能走 `Engine.RecolorRegions`。
+    -- ⇒ `Skin.CheckBox` 直接適用。旁邊那條說明字（金）不碰。
     -- ⚠ `keepCheck`：這一顆**不是**三態的（它只是一般的勾選框），但它跟列上那
     --   一整排是同一個模板、同一個視窗、同一張 `checkmark-minimal`。
     --   只有它染成職業色的話，玩家在同一個畫面上會看到兩種不同顏色的勾 ——
@@ -429,19 +420,14 @@ local function Apply()
     local force
     if pcall(function() force = f.ForceLoad end) and force then
         Skin.CheckBox(force, "AddonList.ForceLoad", { keepCheck = true })
-        E.RecolorRegions(force, T.text, "AddonList.ForceLoad")
     else
         E.Missing("AddonList.ForceLoad")
     end
 
-    -- 效能那一區：標題改白，底下那條分隔線染成髮絲線的顏色
+    -- 效能那一區：標題留暴雪的金字，底下那條分隔線染成髮絲線的顏色
     -- （深底上的分隔線要比底**亮**才看得見，同 `Skin.SectionTitle` 的理由）。
     local perf
     if pcall(function() perf = f.Performance end) and perf then
-        local header
-        if pcall(function() header = perf.Header end) and header then
-            E.TextColor(header, T.text, "AddonList.Performance.Header")
-        end
         local divider
         if pcall(function() divider = perf.Divider end) and divider then
             E.VertexColor(divider, T.fillHover, "AddonList.Performance.Divider")
