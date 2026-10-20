@@ -380,6 +380,9 @@ Options.RegisterPage("about", L["About"], function(parent, title)
         L["|cffffd200/mcdm|r or |cffffd200/miliuicdm|r opens or closes this window."],
         "",
         L["Author: Mili (MiliUI package)"],
+        "",
+        L["Deeply inspired by Ayije_CDM. Thanks to its author, Ayije."],
+        L["The Skyriding panel is based on Skyriding Falcon by Yuyuli."],
     }, "\n"))
     return page
 end)
