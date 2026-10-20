@@ -1327,5 +1327,130 @@ do
     C.slotBuffStale = false
 end
 
+------------------------------------------------------------
+-- 順序保護：暴雪換專精時自己把存檔順序洗成預設，記住的不跟
+------------------------------------------------------------
+do
+    -- 純邏輯
+    local st = {}
+    local out, kept = C.GuardOrder(st, 7, { 1, 2, 3 }, false, true)
+    eqList("Guard：第一次 ⇒ 照收", out, { 1, 2, 3 })
+    eq("Guard：第一次 ⇒ 沒沿用", kept, false)
+    eq("Guard：記下 seen", st.seen, "1,2,3")
+    out, kept = C.GuardOrder(st, 7, { 1, 2, 3, 4 }, false, false)
+    eqList("Guard：只接新的在後面 ⇒ 照收", out, { 1, 2, 3, 4 })
+    eq("Guard：只接新的 ⇒ 沒沿用", kept, false)
+    local missing, reordered
+    out, kept, missing, reordered = C.GuardOrder(st, 7, { 3, 1, 2, 4 }, false, false)
+    eqList("Guard：面板外先後變了 ⇒ 沿用記住的", out, { 1, 2, 3, 4 })
+    eq("Guard：先後變了 ⇒ 沿用中", kept, true)
+    eq("Guard：先後變了 ⇒ 少 0 個", missing, 0)
+    eq("Guard：先後變了 ⇒ reordered", reordered, true)
+    out, kept = C.GuardOrder(st, 7, { 3, 1, 2, 4 }, false, false)
+    eqList("Guard：同一份再看一次 ⇒ 繼續沿用", out, { 1, 2, 3, 4 })
+    eq("Guard：同一份再看一次 ⇒ kept", kept, true)
+    out, kept = C.GuardOrder(st, 7, { 1, 2, 3, 4, 5 }, false, false)
+    eqList("Guard：暴雪那份跟記住的對上了（只多接一個）⇒ 改回照收", out, { 1, 2, 3, 4, 5 })
+    eq("Guard：對上了 ⇒ 清掉 keep", st.keep, nil)
+    out, kept = C.GuardOrder(st, 7, { 5, 9 }, false, false)
+    eqList("Guard：少了 id（被另一個專精的集合洗過）⇒ 沿用", out, { 1, 2, 3, 4, 5 })
+    out, kept = C.GuardOrder(st, 7, { 5, 9, 1, 2, 3, 4 }, false, true)
+    eqList("Guard：第一次看、只差先後，但正在沿用 ⇒ 不收", out, { 1, 2, 3, 4, 5 })
+    out, kept = C.GuardOrder(st, 7, { 4, 3, 2, 1, 5 }, true, false)
+    eqList("Guard：面板拖過 ⇒ 照收", out, { 4, 3, 2, 1, 5 })
+    eq("Guard：面板拖過 ⇒ 沒沿用", kept, false)
+    out, kept = C.GuardOrder(st, 7, { 5, 4, 3, 2, 1 }, false, true)
+    eqList("Guard：第一次看、只差先後、沒在沿用 ⇒ 照收（別台電腦排過）", out, { 5, 4, 3, 2, 1 })
+    out, kept = C.GuardOrder(st, 7, { 1, 2, 5 }, false, true)
+    eqList("Guard：第一次看但少了 id ⇒ 不收", out, { 5, 4, 3, 2, 1 })
+    out, kept = C.GuardOrder(st, 8, { 2, 1 }, false, false)
+    eqList("Guard：換了版面 ⇒ 照收、重新記", out, { 2, 1 })
+    eq("Guard：換了版面 ⇒ 清掉 keep", st.keep, nil)
+    eq("Guard：換了版面 ⇒ 記 layoutID", st.layout, 8)
+
+    -- 整條路：復仇 → 被系統換成噬滅 → 換回復仇（2026-10-20 回報）
+    -- 玩家排的：102 在 101 前面、302 在 301 前面（暴雪預設是 101,102,103／301,302）
+    fixtures.vGood = { [1] = 5, [2] = { [21] = 7 }, [3] = { [21] = { [7] = {
+        [1] = { 102, 101, 103, 201, 202, 302, 301, 401, 501, 601, 701 } } } } }
+    -- 換回來那一刻暴雪拿另一個專精的集合對：只剩共用的 501、601，接上那個專精的 id
+    fixtures.vWashed1 = { [1] = 5, [2] = { [21] = 7 }, [3] = { [21] = { [7] = {
+        [1] = { 501, 601, 9001, 9002 } } } } }
+    -- 集合恢復之後再對一次：另一個專精的刪掉、本專精的照預設順序接回來
+    fixtures.vWashed2 = { [1] = 5, [2] = { [21] = 7 }, [3] = { [21] = { [7] = {
+        [1] = { 501, 601, 101, 102, 103, 201, 202, 301, 302, 401, 701 } } } } }
+    -- 玩家在面板裡重排
+    fixtures.vPanel = { [1] = 5, [2] = { [21] = 7 }, [3] = { [21] = { [7] = {
+        [1] = { 101, 102, 103, 201, 202, 301, 302, 401, 501, 601, 701 } } } } }
+
+    local savedSV, savedUnitName, savedRealm = env.MiliUI_CooldownManager_DB, env.UnitName, env.GetRealmName
+    env.MiliUI_CooldownManager_DB = { layoutGuard = {} }
+    env.UnitName = function() return "米利" end
+    env.GetRealmName = function() return "語風" end
+    local savedProfile = ns.profile
+    ns.profile = nil
+    env.GetSpecialization = function() return 1 end
+    ns.specIndex = 1
+
+    layoutString = "1|B64vGood"
+    C.Refresh("guard")
+    eq("整條：記住玩家排的", C.source, "layout")
+    eqList("整條：核心照玩家排的", C.lists.essential, { 102, 101 })
+    eqList("整條：增益照玩家排的", C.lists.buffs, { 302, 301 })
+    local rec = env.MiliUI_CooldownManager_DB.layoutGuard["米利 - 語風"]
+    check("整條：記在角色＋specTag 底下", type(rec) == "table" and type(rec[21]) == "table")
+
+    layoutString = "1|B64vWashed1"
+    C.Refresh("guard-washed1")
+    eq("整條：洗到一半 ⇒ 沿用", C.source, "layout:kept")
+    eqList("整條：洗到一半 ⇒ 核心不變", C.lists.essential, { 102, 101 })
+    eq("整條：debug 記錄少了幾個", C.guard and C.guard.missing, 9)
+
+    layoutString = "1|B64vWashed2"
+    C.Refresh("guard-washed2")
+    eq("整條：洗成預設 ⇒ 沿用", C.source, "layout:kept")
+    eqList("整條：洗成預設 ⇒ 核心不變", C.lists.essential, { 102, 101 })
+    eqList("整條：洗成預設 ⇒ 增益不變", C.lists.buffs, { 302, 301 })
+    eq("整條：面板會看到不一樣的 ⇒ GuardDiverged", C.GuardDiverged(), true)
+
+    -- 重載：這次登入第一次看，暴雪那份跟上次看到的一樣 ⇒ 繼續沿用
+    LoadInto(PATH)
+    C = ns.Catalog
+    local printed = {}
+    local savedPrint, savedL = ns.Print, ns.L
+    ns.Print = function(msg) printed[#printed + 1] = msg end
+    ns.L = setmetatable({}, { __index = function(_, k) return k end })
+    C.Init()
+    eq("重載：繼續沿用", C.source, "layout:kept")
+    eqList("重載：核心照記住的", C.lists.essential, { 102, 101 })
+
+    -- 打開面板：提示一次（面板裡看到的是洗過的）；同一次登入不再提示
+    callbacks["CooldownViewerSettings.OnShow"]()
+    eq("面板：提示一次", #printed, 1)
+    callbacks["CooldownViewerSettings.OnHide"]()
+    eq("面板：沒拖、字串沒變 ⇒ 繼續沿用", C.source, "layout:kept")
+    callbacks["CooldownViewerSettings.OnShow"]()
+    eq("面板：同一次登入不再提示", #printed, 1)
+
+    -- 面板裡拖過 ⇒ 關掉時照收面板的順序
+    check("面板：BeginOrderChange 掛上", type(callbacks["CooldownViewerSettings.BeginOrderChange"]) == "function")
+    callbacks["CooldownViewerSettings.BeginOrderChange"]()
+    layoutString = "1|B64vPanel"
+    callbacks["CooldownViewerSettings.OnHide"]()
+    eq("面板拖過：改用暴雪的", C.source, "layout")
+    eqList("面板拖過：核心照面板", C.lists.essential, { 101, 102 })
+    eqList("面板拖過：增益照面板", C.lists.buffs, { 301, 302 })
+    eq("面板拖過：沒在沿用 ⇒ 不分歧", C.GuardDiverged(), false)
+
+    -- 旗標用過就清：之後面板外的先後變動又不信
+    layoutString = "1|B64vGood"
+    C.Refresh("guard-after-panel")
+    eq("面板關掉之後：面板外重排 ⇒ 沿用", C.source, "layout:kept")
+    eqList("面板關掉之後：核心照面板排的", C.lists.essential, { 101, 102 })
+
+    ns.Print, ns.L = savedPrint, savedL
+    ns.profile = savedProfile
+    env.MiliUI_CooldownManager_DB, env.UnitName, env.GetRealmName = savedSV, savedUnitName, savedRealm
+end
+
 print(("Catalog_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

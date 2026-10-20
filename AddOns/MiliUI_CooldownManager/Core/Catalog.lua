@@ -30,6 +30,7 @@
 --   specTag = classID × 10 + 專精序號。
 --   解不開、版本不認得、這個專精用的是預設版面（沒有存檔）→ 退回類別集合的原始順序，
 --   **無感**：不印訊息、不報錯，只在 /mcdm debug 看得到走了哪條（C.source）。
+--   存檔順序不一定是玩家排的：暴雪換專精時會自己把它洗成預設，見下面「順序保護」那節。
 --
 -- ⚠ 為什麼自己解碼，不問暴雪的 CooldownViewerSettings:GetDataProvider()：
 --   它的 GetOrderedCooldownIDsForCategory 會在第一次呼叫時**建快取並寫回自己的欄位**
@@ -167,7 +168,7 @@ function C.DecodeLayoutString(str)
     return data
 end
 
--- data（已解碼）＋ specTag → 有序 id 陣列（可能是 nil）、分類覆寫 { [id] = category }、原因
+-- data（已解碼）＋ specTag → 有序 id 陣列（可能是 nil）、分類覆寫 { [id] = category }、原因、layoutID
 function C.ExtractSpecLayout(data, specTag)
     if type(data) ~= "table" or not specTag then return nil, {}, "no-data" end
     local layoutID = Get(Get(data, 2), specTag)
@@ -202,7 +203,156 @@ function C.ExtractSpecLayout(data, specTag)
             end
         end
     end
-    return order, overrides, "layout"
+    return order, overrides, "layout", layoutID
+end
+
+------------------------------------------------------------
+-- 順序保護：暴雪自己會把這個專精存好的順序洗成預設
+--
+-- 暴雪的資料提供者（CooldownViewerSettingsDataProviderMixin:CheckBuildDisplayData）每次重建都拿
+-- 「目前的類別集合」去對作用中版面的存檔順序：集合裡沒有的 id 從順序刪掉、集合有而順序沒有的
+-- 照預設順序接在後面，**寫回版面**，下一次 SaveLayouts（換專精／天賦時、面板關掉時）就存檔。
+-- 系統強制換專精（隨機地城勾「跟隨職責」換成輸出專精）那段時間 GetCooldownViewerCategorySet
+-- 回的還是另一個專精的集合（上面收養那節、/mcdm debug 的「暴雪清單(API)」），這一對就把新專精
+-- 存好的順序幾乎全刪、再照預設順序接回來——玩家在暴雪面板排好的順序就沒了（2026-10-20 惡魔
+-- 獵人回報：復仇 → 噬滅 → 復仇，復仇的核心／增益整排變回預設順序）。暴雪自己的檢視器一樣中招；
+-- 那是暴雪的執行在寫暴雪的存檔，插件擋不了也寫不回去（SetLayoutData 只准 untainted 呼叫）。
+--
+-- 能做的是**記住玩家排的順序**，暴雪自己洗掉的不跟：
+--   * 面板外，暴雪對存檔順序只會「接新的在後面」與「刪掉不存在的」，不會動既有 id 之間的先後
+--     ⇒ 面板外看到既有 id 先後變了、或少了 id ＝ 上面那一對，沿用記住的。
+--   * 玩家在面板拖過（EventRegistry "CooldownViewerSettings.BeginOrderChange"）之後看到的變動 ⇒ 照收。
+--   * layoutID 換了（面板裡換版面、匯入、刪掉重建）⇒ 照收、重新記。
+--   * 這次登入第一次看到這個專精、id 一個沒少只差先後、而且沒在沿用 ⇒ 照收（同一隻角色在別台電腦排過：
+--     版面存在伺服器、我們的記錄在本機）。少了 id 的不收：在副本裡重載、出本才換回來的那種，第一眼看到的
+--     就是洗到一半的（只剩共用的幾個＋另一個專精的 id）。
+-- 沿用中，暴雪面板裡看到的仍是被洗掉的那份：打開面板時提示一次（C.OnSettingsShow）。
+-- 記錄在 SV 的 layoutGuard[角色][specTag] ＝ { layout ＝ layoutID, seen ＝ 上次看到的順序（逗號串）,
+-- keep ＝ 沿用中的順序（沒在沿用 ＝ nil）}。暴雪的版面是角色層（CooldownManagerLayout 的類型是 Character）。
+-- SV 沒載入（離線測試）＝ 不保護，照舊用存檔順序。
+------------------------------------------------------------
+local function SplitIDs(s)
+    local out = {}
+    for v in tostring(s or ""):gmatch("[^,]+") do
+        local n = tonumber(v)
+        if n then out[#out + 1] = n end
+    end
+    return out
+end
+
+-- prev 有幾個 id 在 cur 裡找不到、prev 共有的那些在 cur 裡的先後有沒有變
+function C.OrderDiff(prev, cur)
+    local pos = {}
+    for i, id in ipairs(cur) do pos[id] = i end
+    local missing, last, reordered = 0, 0, false
+    for _, id in ipairs(prev) do
+        local p = pos[id]
+        if p == nil then
+            missing = missing + 1
+        else
+            if p < last then reordered = true end
+            last = p
+        end
+    end
+    return missing, reordered
+end
+
+-- 純邏輯（離線測試直接打）。state 原地改；order ＝ 暴雪存檔的順序；trusted ＝ 面板拖過；
+-- first ＝ 這次登入第一次看這個專精。回傳要用的順序，沿用記住的時候第二個值是 true。
+function C.GuardOrder(state, layoutID, order, trusted, first)
+    local sig = table.concat(order, ",")
+    if state.layout ~= layoutID or type(state.seen) ~= "string" then
+        state.layout, state.seen, state.keep = layoutID, sig, nil
+        return order, false
+    end
+    local keep = type(state.keep) == "table" and state.keep or nil
+    if sig == state.seen then
+        if keep then return keep, true end
+        return order, false
+    end
+    local prev = keep or SplitIDs(state.seen)
+    state.seen = sig
+    local missing, reordered = C.OrderDiff(prev, order)
+    if trusted or (missing == 0 and (not reordered or (first and not keep))) then
+        state.keep = nil
+        return order, false
+    end
+    state.keep = prev
+    return prev, true, missing, reordered
+end
+
+local guardLooked = {}         -- [specTag] = true：這次登入看過了
+local panelEdited = false      -- 暴雪面板裡拖過；面板關掉、重讀過之後清掉
+C.guard = nil                  -- 最近一次：{ tag, kept, missing, reordered }（/mcdm debug）
+
+local function GuardState(tag, create)
+    local sv = _G.MiliUI_CooldownManager_DB
+    local all = type(sv) == "table" and sv.layoutGuard
+    local DB = ns.DB
+    if type(all) ~= "table" or tag == nil or not (DB and DB.CharKey) then return nil end
+    local who = DB.CharKey()
+    local mine = all[who]
+    if type(mine) ~= "table" then
+        if not create then return nil end
+        mine = {}
+        all[who] = mine
+    end
+    local st = mine[tag]
+    if type(st) ~= "table" then
+        if not create then return nil end
+        st = {}
+        mine[tag] = st
+    end
+    return st
+end
+
+local function Guard(tag, layoutID, order)
+    local st = GuardState(tag, true)
+    if not st then return order, false end
+    local wasKept = type(st.keep) == "table"
+    local first = not guardLooked[tag]
+    guardLooked[tag] = true
+    local out, kept, missing, reordered = C.GuardOrder(st, layoutID, order, panelEdited, first)
+    if kept then
+        -- 同一份再看一次（missing ＝ nil）不蓋掉上次比對出來的細節
+        local g = C.guard
+        if missing ~= nil or not (g and g.tag == tag and g.kept) then
+            C.guard = { tag = tag, kept = true, missing = missing, reordered = reordered }
+        end
+    else
+        C.guard = { tag = tag, kept = false }
+    end
+    if ns.Diag and kept ~= wasKept then
+        if kept then
+            ns.Diag.Note("order", ("specTag %s 暴雪存檔的順序被洗過（不是在面板拖的：少了 %d 個、先後%s）→ 沿用記住的")
+                :format(tostring(tag), missing or 0, reordered and "變了" or "沒變"))
+        else
+            ns.Diag.Note("order", ("specTag %s 改回用暴雪存檔的順序（%s）")
+                :format(tostring(tag), panelEdited and "面板拖過" or "暴雪那份跟記住的對上了"))
+        end
+    end
+    return out, kept
+end
+
+-- 沿用中、而且暴雪面板會排出來的順序跟我們用的不一樣 ⇒ true（面板裡看到的會跟條上不同）。
+-- 暴雪那份＝存檔順序裡現在有的 id ＋ 存檔沒有的照類別集合順序接後面（跟 Build 對存檔順序做的一樣）
+function C.GuardDiverged()
+    local st = GuardState(C.specTag, false)
+    if not (st and type(st.keep) == "table" and type(st.seen) == "string") then return false end
+    local theirs, has = {}, {}
+    local function Add(id)
+        if C.info[id] and not has[id] then
+            has[id] = true
+            theirs[#theirs + 1] = id
+        end
+    end
+    for _, id in ipairs(SplitIDs(st.seen)) do Add(id) end
+    for _, id in ipairs(C.defaultOrder) do Add(id) end
+    local ours = {}
+    for _, id in ipairs(C.ordered) do
+        if has[id] then ours[#ours + 1] = id end      -- 收養補進來的不算（暴雪那份沒有）
+    end
+    return table.concat(theirs, ",") ~= table.concat(ours, ",")
 end
 
 ------------------------------------------------------------
@@ -210,12 +360,13 @@ end
 ------------------------------------------------------------
 C.info       = {}          -- [cooldownID] = info
 C.ordered    = {}          -- 完整的有效順序（跨類別）
+C.defaultOrder = {}        -- 類別集合串起來的原始順序（暴雪的預設；C.GuardDiverged 用）
 C.lists      = {}          -- [sourceBar] = { cooldownID… }（還沒套我們的覆寫）
 C.pool       = {}          -- [homeBar] = 還在候選池（沒被拖進任何檢視器）的 id
 C.layoutOverrides = {}     -- [cooldownID] = 暴雪面板的分類覆寫（解碼版面得來；C.Explain 用）
 C.sig        = nil         -- 內容簽章（版面字串＋專精＋每條的清單）
 C.layoutString = nil       -- 上次讀到的 GetLayoutData 原字串
-C.source     = "none"      -- 順序從哪來：layout | fallback:<原因>
+C.source     = "none"      -- 順序從哪來：layout | layout:kept（順序保護沿用記住的）| fallback:<原因>
 C.builds     = 0           -- 實際重建次數（debug／測試用）
 C.buildGen   = 0           -- C.info／C.placed 換了就 +1（Build 成功、Adopt 收養）：Replacements 的 memo 作廢點
 local dirty  = true
@@ -500,14 +651,16 @@ local function Build()
     local tag = C.SpecTag()
     C.specTag = tag
     local data, why = C.DecodeLayoutString(str)
-    local order, overrides, why2
+    local order, overrides, why2, layoutID
     if data then
-        order, overrides, why2 = C.ExtractSpecLayout(data, tag)
+        order, overrides, why2, layoutID = C.ExtractSpecLayout(data, tag)
     else
         overrides = {}
     end
     if order then
-        C.source = "layout"
+        local kept
+        order, kept = Guard(tag, layoutID, order)
+        C.source = kept and "layout:kept" or "layout"
     else
         C.source = "fallback:" .. tostring(why2 or why)
     end
@@ -562,6 +715,7 @@ local function Build()
     end
 
     C.info, C.ordered, C.lists, C.pool = info, ordered, lists, pool
+    C.defaultOrder = defaultOrder
     C.layoutOverrides = overrides
     -- 法術索引讀 C.info 的 spellID／overrideSpellID；覆寫不在下面的簽章裡，簽章沒變也可能換了 ⇒ 一律標髒
     if ns.SpellIndex then ns.SpellIndex.dirty = true end
@@ -2365,9 +2519,24 @@ end
 ------------------------------------------------------------
 function C.IsPaused() return paused end
 
+-- 順序保護沿用中、面板裡看到的會是暴雪洗過的那份：每個專精每次登入提示一次
+local guardHinted = {}
+
 function C.OnSettingsShow()
     paused = true
+    local tag = C.specTag
+    if tag ~= nil and not guardHinted[tag] and C.GuardDiverged() then
+        guardHinted[tag] = true
+        if ns.Print and ns.L then
+            ns.Print(ns.L["Blizzard reset this spec's Cooldown Manager order during a spec switch (a Blizzard bug). MiliUI keeps showing the order you arranged, but this panel shows the reset one. Drag any icon here and the panel's order is used again."])
+        end
+    end
     if ns.Fire then ns.Fire("CatalogPaused") end
+end
+
+-- 面板裡開始拖（暴雪 CooldownViewerSettingsItemMixin:BeginOrderChange 派的事件）：之後看到的順序變動是玩家排的
+function C.OnSettingsReorder()
+    panelEdited = true
 end
 
 function C.OnSettingsHide()
@@ -2376,6 +2545,7 @@ function C.OnSettingsHide()
     if str ~= C.layoutString then
         C.Refresh("settings")
     end
+    panelEdited = false
     if ns.Fire then ns.Fire("CatalogResumed") end
 end
 
@@ -2427,6 +2597,9 @@ function C.Init()
             function() ns.Defer(C.OnSettingsShow) end, owner)
         pcall(EventRegistry.RegisterCallback, EventRegistry, "CooldownViewerSettings.OnHide",
             function() ns.Defer(C.OnSettingsHide) end, owner)
+        -- 只設旗標（順序保護：面板裡拖過才信順序變動）；存檔在面板關掉時，OnSettingsHide 重讀後清掉
+        pcall(EventRegistry.RegisterCallback, EventRegistry, "CooldownViewerSettings.BeginOrderChange",
+            C.OnSettingsReorder, owner)
     end
 
     -- 登入當下面板就開著（極少見）也要對得上

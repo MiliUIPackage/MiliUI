@@ -71,6 +71,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-new-file-needs-client-restart.md](wow-new-file-needs-client-restart.md) | TOC 新增的 .lua、新放的媒體檔 `/reload` 不載入，要整個重開遊戲；交件時直接提醒 |
 | [wow-settings-canvas-onrefresh.md](wow-settings-canvas-onrefresh.md) | Settings canvas 面板的勾選框有時全空白 —— OnShow 不一定觸發，官方鉤子是 `frame.OnRefresh` |
 | [wow-cooldownviewer-buffbar-text-gate.md](wow-cooldownviewer-buffbar-text-gate.md) | 增益長條的名字只在文字框顯示中才寫；召喚物第一拍 nil 且暴雪不再寫 ⇒ SetText 後掛勾先問 `item:GetSpellID` 用法術名頂、秘密字串先擋再比 nil；絕不叫 RefreshName |
+| [wow-cooldownviewer-layout-order-wash.md](wow-cooldownviewer-layout-order-wash.md) | 暴雪冷卻管理器被系統換專精時拿過期的類別集合對存檔順序、刪了再照預設接回並存檔 ⇒ 玩家在暴雪面板排的順序被洗成預設（暴雪自己的檢視器也一樣）；插件寫不回去，只能自己記住（MCDM 順序保護） |
 | [wow-cooldownviewer-charge-cache-stale.md](wow-cooldownviewer-charge-cache-stale.md) | 暴雪冷卻管理器的充能只在 RefreshData 重讀、GCD 輕量路徑用舊快取、不聽 SPELL_UPDATE_CHARGES ⇒ 最後一層用掉「有時候」不去飽和；自己照不含 GCD 的 duration 物件算、0 充能看明文旗標不讀 currentCharges；`charges` 旗標只是「可以有充能」 |
 | [wow-cooldownviewer-target-aura-locks-icon.md](wow-cooldownviewer-target-aura-locks-icon.md) | 冷卻格在目標身上有該減益時 GetSpellID／GetSpellTexture 都回減益的：圖示不換、覆蓋法術不看、觸發發光晚 3～5 秒；關掉增益時間的格自己貼圖＋自己聽 OVERLAY 事件；增益身分用 overrideTooltipSpellID |
 | [wow-uiparent-inset-dock.md](wow-uiparent-inset-dock.md) | 動 UIParent 錨點做停靠列：整個介面讓位；**要在 secure snippet 裡動（插件端 SetPoint 會把整條快捷列重排染髒）**、上緣是 UpdateUIParentPosition 在管、重貼前先比對現況、中央錨的東西移半條、烘進 UIParent 尺寸的框要掛 OnSizeChanged |
@@ -243,7 +244,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 168 篇）
+## 全部筆記（自動產生，共 169 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -289,6 +290,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開的成因，與 PLAYER_REGEN_DISABLED 強制鬆開窗口；**隱式保護沿錨點鏈遞迴傳**——排版鏈尾巴一顆 secure 鈕，前面整排都成保護框 |
 | [wow-cooldownviewer-buffbar-text-gate.md](wow-cooldownviewer-buffbar-text-gate.md) | 暴雪增益長條只在文字框「正在顯示」的那一刻寫字——名字一律保持顯示讓暴雪寫、插件只管樣式與位置；絕不從污染路徑叫 RefreshName（召喚物的 totemData 是秘密表）；**召喚物第一拍名字是 nil 而且暴雪不會再補寫 ⇒ SetText 後掛勾用法術名字頂是必要的不是好看**（先問 item:GetSpellID 再退目錄；秘密字串先擋再比 nil） |
 | [wow-cooldownviewer-charge-cache-stale.md](wow-cooldownviewer-charge-cache-stale.md) | 暴雪冷卻管理器的充能資訊只在 RefreshData 重讀、GCD 輕量路徑用舊快取、檢視器不聽 SPELL_UPDATE_CHARGES ⇒ 最後一層用掉時「有時候」整段冷卻不去飽和；插件修法是去飽和自己照引擎的 duration 物件算、0 充能看 GetSpellCooldown 的明文旗標不讀 currentCharges；資料的 charges 旗標只是「可以有充能」 |
+| [wow-cooldownviewer-layout-order-wash.md](wow-cooldownviewer-layout-order-wash.md) | 暴雪冷卻管理器的資料提供者每次重建都拿當下的類別集合去對作用中版面的存檔順序（刪掉集合沒有的、照預設接回集合有的）並寫回、下次 SaveLayouts 存檔；被系統換專精時集合是另一個專精的 ⇒ 玩家在暴雪面板排的順序被洗成預設，暴雪自己的檢視器一樣；插件寫不回去，只能自己記住（MCDM 順序保護） |
 | [wow-cooldownviewer-target-aura-locks-icon.md](wow-cooldownviewer-target-aura-locks-icon.md) | 冷卻管理器的冷卻格在目標身上有對應減益時，GetSpellID／GetSpellTexture 都回減益的（圖示鎖成減益圖、不吃覆蓋法術、觸發發光事件被丟掉晚 3～5 秒）；暴雪內建行為。MCDM：關掉增益時間的格自己貼法術圖、自己聽 OVERLAY_GLOW 事件；增益的名字／圖示要照暴雪面板用 overrideTooltipSpellID |
 | [wow-damagemeter-c-api-design.md](wow-damagemeter-c-api-design.md) | 走 C_DamageMeter 的「輕量傷害統計」設計哲學——不解析戰鬥記錄、成本只跟可見列數走；API 面（source 有什麼、沒什麼）、事件名、分段判定、秘密值紀律；從 EUIStandaloneDamageMeters 拆解而來 |
 | [wow-delve-detection.md](wow-delve-detection.md) | 探究（Delve）的三種偵測——在不在裡面、探究等級、詞綴（豐碩／宿敵） |

@@ -1213,3 +1213,4 @@ L["This spell isn't in the Cooldown Manager, so there's no icon to draw on."] = 
 L["Position and anchoring only apply to the decks shown as resource bar rows."] = "位置与锚定只管资源条行那个面板。"
 L["The deck position is saved per character and carries over a /reload. It resets when a boss encounter or a Mythic+ key starts."] = "牌堆位置每个角色各存一份，/reload 之后接着算；首领战开始、史诗钥石开始时归零。"
 L["No deck is shown as a resource bar row; decks on a cooldown icon show on the icon itself."] = "没有排成资源条行的牌堆；叠在冷却格上的请看画面上的格子。"
+L["Blizzard reset this spec's Cooldown Manager order during a spec switch (a Blizzard bug). MiliUI keeps showing the order you arranged, but this panel shows the reset one. Drag any icon here and the panel's order is used again."] = "暴雪在切换专精时把这个专精的冷却管理器排列洗回默认了（暴雪的 bug）。米利的冷却管理器继续按你排的顺序显示，但这个面板里看到的是被洗掉的那份；在这里拖动任何一格，就改回以面板的排列为准。"

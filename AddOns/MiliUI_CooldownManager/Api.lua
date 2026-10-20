@@ -399,6 +399,17 @@ local function Debug(silent)
         p(("  目錄：順序來源 %s  建置 %d 次  簽章 %s%s  暫停 %s  specTag %s  收養 %d  整套重來 %d 次")
             :format(tostring(C.source), C.builds, sig:sub(1, 16), #sig > 16 and "…" or "",
                     tostring(C.IsPaused()), tostring(C.specTag), C.adopted or 0, B.resyncs or 0))
+        -- 順序保護（Catalog「順序保護」那節）：暴雪換專精時把存檔順序洗掉了，條上沿用記住的
+        local g = C.guard
+        if g and g.kept then
+            local why = g.missing ~= nil
+                and ("暴雪存檔那份少 %d 個、先後%s"):format(g.missing, g.reordered and "變了" or "沒變")
+                or "這次登入之前就在沿用"
+            p(("  順序保護：specTag %s 沿用記住的（%s）  暴雪面板看到的跟條上%s")
+                :format(tostring(g.tag), why, C.GuardDiverged() and "不同" or "一樣"))
+        elseif g then
+            p(("  順序保護：specTag %s 照暴雪存檔"):format(tostring(g.tag)))
+        end
         -- 增益兩條的每個 id 落在哪、沒落地是哪一關擋的（「暴雪面板加了、這邊不顯示」的回報看這段）
         if C.Explain then
             p("  增益診斷（✓ 落在哪條／✕ 擋在哪一關；暴雪面板開著時目錄暫停，關掉再看）：")

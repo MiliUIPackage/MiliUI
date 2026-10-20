@@ -1132,6 +1132,9 @@ function DB.Init()
     -- 觸發牌堆的進度（Modules/ProcDeck.lua）：[角色][牌堆 key] = { drawn, hit, deckNo, ticks, drift }。
     -- 是追蹤進度不是設定，不在 profile 裡
     sv.procdeck     = sv.procdeck or {}
+    -- 順序保護（Core/Catalog.lua）：[角色][specTag] = { layout, seen, keep }。記的是暴雪版面的順序，
+    -- 版面本身是角色層、跟設定檔無關，所以也不在 profile 裡
+    sv.layoutGuard  = sv.layoutGuard or {}
 
     local key = CharKey()
     sv.charClasses[key] = ns.playerClass

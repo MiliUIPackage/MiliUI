@@ -131,6 +131,7 @@ item 餵過 `SetAlphaFromBoolean` 後 alpha 沿父子鏈變秘密，**Masque 套
 ② 圖示套皮插件在每次 RefreshLayout 把新框交給皮膚庫、戰鬥中又不重套 ⇒ 混合體，由 `Core/Compat.lua` 讓它跳過。另加進場／天賦事件後 0／0.5／1.5／3 秒整套重來與縮放稽核（README《進場、換專精：暴雪正在顯示的才是真相》）。
 **這類「不報錯」的毛病靠 `Core/Diag.lua`**：引擎每次出手記一行進 SV（`diag.log`）。
 同一場景的暴雪 bug：**系統強制切專精後 `GetCooldownViewerCategorySet` 給的還是原專精的清單**（神聖拿到懲戒那套，存檔 `spells[65]` 出現 19397＝懲戒審判）。
+**同一場景還會把玩家在暴雪面板排的順序洗成預設（2026-10-20，DH 復仇→噬滅→復仇）**：暴雪資料提供者拿過期的集合對存檔順序、刪了再照預設接回並存檔，機制見 [[wow-cooldownviewer-layout-order-wash]]。MCDM 加「順序保護」（`Core/Catalog.lua`，SV `layoutGuard[角色][specTag]`）：面板外先後變了或少了 id 就沿用記住的，面板拖過（`BeginOrderChange`）／換 layoutID／這次登入第一眼只差先後才照收；沿用中開暴雪面板提示一次。
 cooldownID 就是 `CooldownSetSpell.ID`，`wago.tools/db2/CooldownSetSpell/csv`＋`CooldownSet/csv` 對得出屬於哪個專精（聖騎：懲戒 901、神聖 1164、防護 637）；`/mcdm debug` 印前三個 cooldownID＝法術可對表。能做的只有自訂 ID 補格子。
 
 **不要把任何東西錨在寬或高是 0 的框上（2026-09-30）**：自訂格子沒有列時容器設高 0、輔助技能貼在它身上 ⇒ 整條畫不出來（清單、認領、預覽全正常、診斷也沒東西）。
