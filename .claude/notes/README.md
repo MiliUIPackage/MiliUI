@@ -60,6 +60,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | **插件開聊天輸入框只能走超連結**（`|Hchannel:…|h` ＋ propagate 給 ChatFrameTemplate 框，2026-09-16 根治）；前半是密語回覆在秘密名字下的死路史，鏡射／`/r` 降級全是治標 |
 | [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 `MacroFrame:SelectMacro`／`SaveMacro` 或改巨集格欄數 ⇒ 安全按鈕跑巨集前的 `SaveMacro` 讀到髒的 `selectedIndex`，快捷列巨集被擋到 /reload；搜尋只能 `PickupMacro`＋自畫高亮 |
 | [wow-stacksplit-onhide-runbinding.md](wow-stacksplit-onhide-runbinding.md) | 插件直接 Hide `StackSplitFrame` ⇒ OnHide 在插件執行裡 `RunBinding` 按住的鍵；用 secure snippet 關、只在脫戰接手 |
+| [wow-staticpopup-addon-show-taint.md](wow-staticpopup-addon-show-taint.md) | 插件 `StaticPopup_Show` 的彈窗開著時，暴雪任何 `StaticPopup_Hide` 呼叫端都被染髒（MDM 進副本提示 → 公會控制 C_Discord FORBIDDEN）；憑空跳的提示別用 StaticPopup |
 | [wow-121-unitpopup-menu.md](wow-121-unitpopup-menu.md) | 右鍵單位選單地雷圖：`togglemenu` 誤判、tainted 重開的代價、ClickBindings 閘、`CopyToClipboard` 是保護函式 |
 | [wow-121-coolinator-reference.md](wow-121-coolinator-reference.md) | 12.1 正解範本 —— **原始碼已不在本機**，要看去 GitHub；本機範本改看 Cell／Plumber／BuffReminders |
 | [wow-cdm-equipslot-stale-cache.md](wow-cdm-equipslot-stale-cache.md) | 冷卻管理器飾品格缺框＝displayData 的 isKnown 快取過期且插件標不了髒；出路是代畫、增益從 linkedSpellIDs 解、觸發增益＝全部扣使用效果（`SlotUseBuffIDs` 沒使用效果會退回第 1 個） |
@@ -242,7 +243,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 167 篇）
+## 全部筆記（自動產生，共 168 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -325,6 +326,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-setscript-clobbers-hookscript.md](wow-setscript-clobbers-hookscript.md) | SetScript 會把先前 HookScript 掛上去的東西整個蓋掉；框架的腳本要在「會掛勾的初始化」之前設好 |
 | [wow-settings-canvas-onrefresh.md](wow-settings-canvas-onrefresh.md) | Settings canvas 面板的勾選框有時全空白／顯示預設值——OnShow 不可靠，要用 frame.OnRefresh |
 | [wow-stacksplit-onhide-runbinding.md](wow-stacksplit-onhide-runbinding.md) | 從插件 Lua 直接 Hide StackSplitFrame，它的 OnHide 會在插件執行裡 RunBinding 按住的鍵（可能是保護動作）；要用 secure snippet 關 |
+| [wow-staticpopup-addon-show-taint.md](wow-staticpopup-addon-show-taint.md) | 插件 StaticPopup_Show 的彈窗開著時，暴雪任何 StaticPopup_Hide 呼叫端都被染髒（MDM 進副本重置提示 → 公會控制 C_Discord FORBIDDEN） |
 | [wow-toplevel-flattens-child-strata.md](wow-toplevel-flattens-child-strata.md) | toplevel 框隱含 render layer flattening，子孫的 SetFrameStrata 在繪製上無效、跟著父框那層畫；ChatFrameTemplate 超連結收件框底下的彈出面板被 LOW 的東西蓋住就是這個 |
 | [wow-transmog-roll-chat-garbage.md](wow-transmog-roll-chat-garbage.md) | 團隊骰裝按「塑形」聊天印出 u、] 之類怪字元的成因——GlobalStrings 缺 _SELF 字串，客戶端把首領編號的原始位元組當訊息；含診斷時走過的四條錯路 |
 | [wow-uiparent-inset-dock.md](wow-uiparent-inset-dock.md) | 把 UIParent 往內縮一條就能讓整個介面替停靠的資訊列讓位——**動它的錨點要在 secure snippet 裡做**（插件端 SetPoint 會把整條快捷列重排染髒）；上緣是暴雪 UpdateUIParentPosition（瀏海／除錯列）在管，要疊在它的偏移上並掛勾它；重貼前先比對現況（一次 100ms 以上）；代價是錨在中央的東西移半條 |
