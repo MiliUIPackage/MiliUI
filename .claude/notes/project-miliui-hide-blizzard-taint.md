@@ -2,7 +2,10 @@
 name: project-miliui-hide-blizzard-taint
 description: 隱藏暴雪原生單位框與施法條的 taint 規則（MiliUI_UnitFrames/Core/HideBlizzard.lua）——碰過的框會讓暴雪自己的 RegisterEvent 變成禁止動作；reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件
 metadata:
+  node_type: memory
   type: project
+  originSessionId: a3d01fa0-12b1-4b21-84a2-cebcc1280686
+  modified: 2026-10-20T19:20:27.978Z
 ---
 
 **症狀**：「MiliUI_UnitFrames 嘗試進行 Blizzard UI 專屬動作，遭到封鎖」彈窗，關不掉也 pcall 不掉（那不是 Lua error，是引擎事件）。
@@ -17,6 +20,9 @@ metadata:
    Edit Mode 開著（每 0.25 秒重試）或在戰鬥中（寄放到 `PLAYER_REGEN_ENABLED`）一律延後。
 3. **Edit Mode 自己管的東西只解事件，不 reparent 也不 Hide**（`HandleFrame(frame, doNotReparent)`）：TotemFrame（另外 SetAlpha 0）、
    個別 BossNTargetFrame（容器排版出來的，reparent 會弄壞尺寸）、PlayerFrame 底下的 alt power bar（`AlternatePowerBar`／`MonkStaggerBar`——PlayerFrame 一 reparent 它們就變成不安全框的子物件，會丟「Auras cannot be accessed when secret while tainted」）。
+
+4. **施法條**：本體 `PlayerCastingBarFrame` 解事件（單向）；替身 `OverlayPlayerCastingBarFrame` **只在宿主是 OverrideActionBar 時解**，
+   宿主換走就照帳裝回——它同時是專精／天賦／專業視窗裡的施法條，無條件解掉那些視窗的進度條就全沒了（2026-10-21，[[wow-overlay-castbar-hosts]]）。
 
 **診斷工具**：共用層 `Libs/MiliUIWidgets/Errors.lua` 有 `ADDON_ACTION_FORBIDDEN`／`BLOCKED` 攔截器（`Core/Init.lua` 的 `ns.Errors.Install`），
 會把函式名＋當時在不在戰鬥印到聊天視窗並寫進 `ns.errors`（`/muf debug` 看得到）。`Core/Events.lua` 的 `Reg()` 會在註冊前留 `ns.trace` 麵包屑。
