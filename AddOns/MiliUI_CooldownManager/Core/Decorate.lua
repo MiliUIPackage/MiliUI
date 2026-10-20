@@ -151,6 +151,8 @@ function D.Resolve(barKey, fresh)
         durationLowColor   = S(barKey, "icon.durationLowColor"),       -- 增益持續時間的低秒顏色（cooldownText.buffLowColor 開著才用，門檻 buffLowBelow）
         durationSwipeColor = S(barKey, "icon.durationSwipeColor"),     -- 增益那一段的轉圈背景色
         cooldownText = S(barKey, "cooldownText") or {},
+        -- 倒數的時間格式（逐格退主題：條自己的倒數表可能只存了幾格）
+        timeFormat   = ns.Text and ns.Text.TimeFormat and ns.Text.TimeFormat(barKey) or "minutes",
         chargeText   = S(barKey, "chargeText") or {},
         stackText    = S(barKey, "stackText") or {},
         stackBarPoint = S(barKey, "stackText.barPoint") or "BOTTOMRIGHT",   -- 長條的層數錨點（Text.ApplyBar）
@@ -170,7 +172,7 @@ function D.Resolve(barKey, fresh)
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.hideReadyFlash), tostring(r.drawEdge), tostring(r.tooltips),
         tostring(r.pressFlash), r.pressAlpha,
         tostring(r.colorDuration), CSig(r.durationColor), CSig(r.durationLowColor), CSig(r.durationSwipeColor),
-        TSig(r.cooldownText), TSig(r.chargeText), TSig(r.stackText), r.stackBarPoint,
+        TSig(r.cooldownText), r.timeFormat, TSig(r.chargeText), TSig(r.stackText), r.stackBarPoint,
         type(r.bar) == "table" and TSig(r.bar) or "-",
         tostring(r.masque) .. tostring(r.masque and ns.Masque.Active()),
         D.RingSig(r.ring),
@@ -2043,8 +2045,8 @@ function D.Apply(item, rec, barKey, w, h, ring)
         -- 兩段各一顆 formatter（ApplyPhaseColor 換）：冷卻那一段照倒數的小數／低秒，增益那一段照「增益持續時間」的
         -- 小數門檻與低秒變色（I，跟換色開關無關：換色關著也照這一組）。formatter 依值共用（Text 的快取）
         local ct = spell.cooldownText or style.cooldownText or {}
-        rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
-        rec.style.durFmt = ns.Text.BuffFormatter(ct, spell.durationLowColor)
+        rec.style.cdFmt = ns.Text.CountdownFormatter(ct, style.timeFormat)
+        rec.style.durFmt = ns.Text.BuffFormatter(ct, spell.durationLowColor, style.timeFormat)
         -- 換色開著的格：增益那一段自己的轉圈背景色（逐法術可覆寫，SpellStyle 解好）
         if rec.style.durColor then
             rec.style.durSwipe = { C4(spell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
@@ -2059,8 +2061,8 @@ function D.Apply(item, rec, barKey, w, h, ring)
             rec.style.durSwipe = { C4(aSpell.durationSwipeColor, 1, 0.9, 0.5, 0.5) }
             -- 整段都是增益持續時間：小數與低秒照這顆增益自己的「增益持續時間」設定，低秒色用 A 的增益持續時間低秒顏色
             local ct = spell.cooldownText or style.cooldownText or {}
-            rec.style.cdFmt = ns.Text.CountdownFormatter(ct)
-            rec.style.durFmt = ns.Text.BuffFormatter(ct, aSpell.durationLowColor)
+            rec.style.cdFmt = ns.Text.CountdownFormatter(ct, style.timeFormat)
+            rec.style.durFmt = ns.Text.BuffFormatter(ct, aSpell.durationLowColor, style.timeFormat)
         end
     end
     -- 圓環：swipe 顏色＝填色（暴雪每次刷新 SetSwipeColor 蓋掉，AfterCooldown 照這裡重套）；增益那一段不換背景色；

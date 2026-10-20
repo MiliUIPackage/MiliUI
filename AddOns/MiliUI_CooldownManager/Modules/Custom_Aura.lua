@@ -133,6 +133,8 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         local d, l, lc = TX.BuffTiming(cdT, SS(barKey, id, "durationLowColor"))
         st.decimals, st.lowBelow = d, l
         st.lowColor = RGBA(lc, 0.95, 0.45, 0.70, 1)
+        -- 時間格式（分鐘／分:秒）照這一條的倒數，跟暴雪格同一支（Text.TimeFormat）
+        st.timeFormat = TX.TimeFormat and TX.TimeFormat(barKey) or "minutes"
     end
     local function C(c) return string.format("%.3f,%.3f,%.3f,%.3f", c[1], c[2], c[3], c[4]) end
     -- 圓環（見「光環格畫成圓環」）：圈數、貼圖、環寬、軌道色、填色、文字位置全部解成純數字、進簽章。
@@ -362,7 +364,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
     st.sig = table.concat({
         ovSig, msqSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, string.format("%.4f,%.4f,%.4f,%.4f", st.tc[1], st.tc[2], st.tc[3], st.tc[4]), st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
-        st.decimals, st.lowBelow, C(st.lowColor), tostring(st.hideStack), st.stSize, C(st.stColor),
+        st.decimals, st.lowBelow, C(st.lowColor), st.timeFormat, tostring(st.hideStack), st.stSize, C(st.stColor),
         st.stPoint, st.stX, st.stY, glowSig, labelSig, shapeSig,
     }, "|")
     if barSig then st.sig = st.sig .. "|" .. barSig end
@@ -382,7 +384,7 @@ local function Warm(st)
         local IP = Enum and Enum.StatusBarInterpolation
         st.interp = IP and IP.Immediate or nil
     else
-        st.formatter = ns.Text.PlainFormatter(st.decimals)
+        st.formatter = ns.Text.PlainFormatter(st.decimals, st.timeFormat)
         if st.lowBelow > 0 then st.colorCurve = ColorCurve(st.lowBelow, st.lowColor, st.cdColor) end
     end
     local P = Enum and Enum.DurationTextBindingProperty

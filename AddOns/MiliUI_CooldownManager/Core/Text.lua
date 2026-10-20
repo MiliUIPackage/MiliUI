@@ -140,7 +140,32 @@ local function UnitFormat(name, fallback)
 end
 T.UnitFormat = UnitFormat
 
-local function BuildFormatter(decimalsBelow, lowBelow, lowHex)
+-- 時間格式（cooldownText.timeFormat；玩家回報 2026-10-21：想要 1:59 那種）
+--   "minutes"  原本的寫法（預設）：91 秒起印分、5401 秒起印時，都無條件進位（1:59 → 2m）；90 秒以下印秒數
+--   "mmss"     分:秒：60 秒起印 1:59（分捨去、秒照整數段的取法）、3600 秒起印時（無條件進位）；59 秒以下印秒數
+-- 不認得的值（舊存檔沒有這欄、條自己那張表只存了幾格）一律當 "minutes"
+local TIME_FORMATS = { minutes = true, mmss = true }
+local function TimeFormatOf(v) return TIME_FORMATS[v] and v or "minutes" end
+T.TimeFormatOf = TimeFormatOf
+
+-- 這一條生效的時間格式。條自己的倒數表可能只存了幾格（ns.Setting 回整張表、不逐格退主題），
+-- 所以逐格問 ns.Setting：條沒存這一格就退主題
+function T.TimeFormat(barKey)
+    local S = ns.Setting
+    return TimeFormatOf(S and S(barKey, "cooldownText.timeFormat"))
+end
+
+-- 換寫法的點照「顯示出來的整數秒」算：顯示到 n 就換。規則格式器的門檻比的卻是原始剩餘秒數 x ⇒
+-- 整數段往上取（沒有小數段）時顯示 n ＝ x > n − 1，往下取時 ＝ x ≥ n。照字面放 n 的話，往上取時
+-- x 落在 (n − 1, n) 那一秒會先印出 n（例：分鐘格式在 2m 跟 90 之間閃一下 91）
+local EDGE_EPS = 0.0001
+local function Edge(n, up) return up and (n - 1 + EDGE_EPS) or n end
+
+-- ⚠ 分／時的無條件進位要做在規則層（step ＝ 60／3600、rounding ＝ Up），再用 components 的 div 取商。
+--   以前寫在 components 上（{ div = 60, rounding = up }、沒給 step）：暴雪 API 文件說 rounding 是「step 的取法」，
+--   沒有 step 就不取 ⇒ 商數交給 %d 截掉：1:59 印成 1m（2026-10-21 玩家回報）。文件也沒講 div 的商是整數還是帶小數，
+--   先在規則層進位成 60 的倍數，兩種解讀除出來都一樣
+local function BuildFormatter(decimalsBelow, lowBelow, lowHex, timeFormat)
     local SU = C_StringUtil
     if not (SU and SU.CreateNumericRuleFormatter) then return nil end
     local R = Enum and Enum.NumericRuleFormatRounding
@@ -149,10 +174,17 @@ local function BuildFormatter(decimalsBelow, lowBelow, lowHex)
 
     local d = tonumber(decimalsBelow) or 0
     local l = lowHex and (tonumber(lowBelow) or 0) or 0
-    -- 切點：0、小數門檻、變色門檻、91 秒（改印分）、5401 秒（改印時）；91／5401 是暴雪自己的升位點
-    local cuts, seen = {}, {}
-    for _, t in ipairs({ 0, d, l, 91, 5401 }) do
-        if t >= 0 and not seen[t] then seen[t] = true; cuts[#cuts + 1] = t end
+    -- 有小數段時整數段往下取（3.2→3，接著 2.9），沒有時照暴雪往上取（剩 0.4 秒還是 1）
+    local intUp = d <= 0
+    local mmss = TimeFormatOf(timeFormat) == "mmss"
+    -- 改印分（或分:秒）、改印時的點：分鐘格式照暴雪自己的升位點 91／5401。
+    -- 分鐘段是拿原始秒數進位（不經整數段的取法）⇒ 改印時的點看的是「分鐘數會不會超過 90」＝ x > 5400，跟有沒有小數段無關
+    local minAt = Edge(mmss and 60 or 91, intUp)
+    local hourAt = mmss and Edge(3600, intUp) or (5400 + EDGE_EPS)
+    -- 切點：0、小數門檻、變色門檻（這兩個只在秒數段裡才有意義）、改印分、改印時
+    local cuts, seen = { minAt, hourAt }, {}
+    for _, t in ipairs({ 0, d, l }) do
+        if t >= 0 and t < minAt and not seen[t] then seen[t] = true; cuts[#cuts + 1] = t end
     end
     table.sort(cuts)
 
@@ -162,19 +194,20 @@ local function BuildFormatter(decimalsBelow, lowBelow, lowHex)
     local hourFmt = UnitFormat("COOLDOWN_DURATION_HOURS", "%dh")
     for _, t in ipairs(cuts) do
         local rule
-        if t >= 5401 then
-            rule = { threshold = t, step = 1, rounding = down, min = 1, format = hourFmt,
-                     components = { { div = 3600, rounding = up } } }
-        elseif t >= 91 then
-            rule = { threshold = t, step = 1, rounding = down, min = 1, format = minFmt,
-                     components = { { div = 60, rounding = up } } }
+        if t >= hourAt then
+            rule = { threshold = t, step = 3600, rounding = up, format = hourFmt, components = { { div = 3600 } } }
+        elseif t >= minAt and mmss then
+            -- 先照整數段的取法取成整秒，再拆成分（捨去）與秒（餘數）
+            rule = { threshold = t, step = 1, rounding = intUp and up or down, format = "%d:%02d",
+                     components = { { div = 60, step = 1, rounding = down }, { mod = 60, step = 1, rounding = down } } }
+        elseif t >= minAt then
+            rule = { threshold = t, step = 60, rounding = up, format = minFmt, components = { { div = 60 } } }
         elseif t < d then
             rule = { threshold = t, step = 0.1, rounding = down, format = "%.1f" }
         else
-            -- 有小數段時整數段往下取（3.2→3，接著 2.9），沒有時照暴雪往上取（剩 0.4 秒還是 1）
-            rule = { threshold = t, step = 1, rounding = (d > 0) and down or up, format = "%d" }
+            rule = { threshold = t, step = 1, rounding = intUp and up or down, format = "%d" }
         end
-        if l > 0 and t < l and t < 91 then
+        if l > 0 and t < l and t < minAt then
             rule.format = "|cff" .. lowHex .. rule.format .. "|r"
         end
         local added = pcall(fmt.AddBreakpoint, fmt, rule)
@@ -183,16 +216,17 @@ local function BuildFormatter(decimalsBelow, lowBelow, lowHex)
     return fmt
 end
 
--- 依（小數門檻, 低秒門檻, 色碼）取一顆；不變色時門檻一律記成 0（同一顆不重建）
-local function Formatter(decimalsBelow, lowBelow, lowColor)
+-- 依（小數門檻, 低秒門檻, 色碼, 時間格式）取一顆；不變色時門檻一律記成 0（同一顆不重建）
+local function Formatter(decimalsBelow, lowBelow, lowColor, timeFormat)
     local d = tonumber(decimalsBelow) or 0
     local l = tonumber(lowBelow) or 0
     local lowHex = (type(lowColor) == "table" and l > 0) and Hex(lowColor) or nil
     if not lowHex then l = 0 end
-    local key = d .. "|" .. l .. "|" .. tostring(lowHex)
+    local tf = TimeFormatOf(timeFormat)
+    local key = d .. "|" .. l .. "|" .. tostring(lowHex) .. "|" .. tf
     local f = formatters[key]
     if f == nil then
-        f = BuildFormatter(d, l, lowHex) or false
+        f = BuildFormatter(d, l, lowHex, tf) or false
         formatters[key] = f
     end
     return f or nil
@@ -207,9 +241,10 @@ function T.CdLowBelow(c)
 end
 
 -- 冷卻倒數：倒數表（條層或合併後的）的 decimalsBelow／lowColorOn＋lowBelow／lowColor
-function T.CountdownFormatter(cdStyle)
+-- timeFormat：這一條生效的時間格式（T.TimeFormat 解好的；沒給 ＝ 表上的 timeFormat）
+function T.CountdownFormatter(cdStyle, timeFormat)
     if type(cdStyle) ~= "table" then return nil end
-    return Formatter(cdStyle.decimalsBelow, T.CdLowBelow(cdStyle), cdStyle.lowColor)
+    return Formatter(cdStyle.decimalsBelow, T.CdLowBelow(cdStyle), cdStyle.lowColor, timeFormat or cdStyle.timeFormat)
 end
 
 -- 增益持續時間的倒數（I）：c ＝ 倒數表（條層或 SpellText 合併後的），lowColor ＝ 增益持續時間低秒顏色（nil 退倒數的低秒色）
@@ -223,18 +258,22 @@ function T.BuffTiming(c, lowColor)
     return d, l, (type(lowColor) == "table" and lowColor) or c.lowColor
 end
 
-function T.BuffFormatter(c, lowColor)
+-- timeFormat 同 CountdownFormatter（增益持續時間跟冷卻倒數同一個時間格式）
+function T.BuffFormatter(c, lowColor, timeFormat)
     if type(c) ~= "table" then return nil end
-    return Formatter(T.BuffTiming(c, lowColor))
+    local d, l, lc = T.BuffTiming(c, lowColor)
+    return Formatter(d, l, lc, timeFormat or c.timeFormat)
 end
 
 -- 不帶色碼的版本（光環格的 SetDurationText 用：那條路不吃 format 裡的 |c，變色改走色彩曲線）
-function T.PlainFormatter(decimalsBelow)
+-- timeFormat 沒給 ＝ 分鐘格式（長條的秒數、層數列這些不看時間格式的地方）
+function T.PlainFormatter(decimalsBelow, timeFormat)
     local d = tonumber(decimalsBelow) or 0
-    local key = d .. "|plain"
+    local tf = TimeFormatOf(timeFormat)
+    local key = d .. "|plain|" .. tf
     local f = formatters[key]
     if f == nil then
-        f = BuildFormatter(d, 0, nil) or false
+        f = BuildFormatter(d, 0, nil, tf) or false
         formatters[key] = f
     end
     return f or nil
@@ -517,7 +556,8 @@ function T.ApplyIcon(item, style, spell, rec)
         local buff = rec and not rec.custom and rec.barKey and ns.Viewers and ns.Viewers.AURA_KIND
             and ns.Viewers.AURA_KIND[rec.barKey]
         local fmt
-        if buff then fmt = T.BuffFormatter(c, spell.durationLowColor) else fmt = T.CountdownFormatter(c) end
+        if buff then fmt = T.BuffFormatter(c, spell.durationLowColor, style.timeFormat)
+        else fmt = T.CountdownFormatter(c, style.timeFormat) end
         if fmt and cd.SetCountdownFormatter then
             local ok = pcall(cd.SetCountdownFormatter, cd, fmt)
             if not ok then fmt = nil end

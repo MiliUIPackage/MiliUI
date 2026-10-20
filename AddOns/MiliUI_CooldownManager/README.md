@@ -1001,6 +1001,27 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   標籤拿掉「技能冷卻」「增益持續時間」前綴，那段灰字說明拿掉。逐法術小窗同樣做子分頁（`buildSub`／`curSub`，Layout 照子分頁鈕那一列
   有沒有出現決定挑哪組）：那一格沒有增益持續時間（`BuffTimeRows` 不成立：自訂法術／物品）不出子分頁鈕、只有冷卻那組；長條兩組都沒有。
 
+### 倒數的時間格式（`Core/Text.lua`、`Core/Decorate.lua`、`Modules/Custom_Aura.lua`、`Options/Specs.lua`，2026-10-21）
+
+玩家回報「1:59 也顯示 1m，到 1:30 直接跳 90」，想要 1:59 那種寫法。
+
+- **原本那條是 bug**：分／時兩段把無條件進位寫在 components 上（`{ div = 60, rounding = up }`、沒給 step）。暴雪 API 文件
+  （`NumericRuleFormatterSharedDocumentation`）的 rounding 是「step 的取法」，沒有 step 就不取 ⇒ 商數交給 `%d` 截掉：91～119 秒印 1m。
+  改成**在規則層進位**（`step = 60, rounding = Up`）再 `div = 60`：文件沒講 div 的商是整數還是帶小數，先進位成 60 的倍數，兩種解讀除出來一樣。
+  同一個寫法也在 `MiliUI_UnitFrames/Elements/Auras.lua` 與 Cell 的 `AuraContainerCore.lua`（光環倒數），這裡沒動。
+- **設定** `cooldownText.timeFormat`：`"minutes"`（預設，原本的寫法：91 秒起 2m、5401 秒起印時、都無條件進位；90 秒以下印秒數）｜
+  `"mmss"`（60 秒起 1:59、3600 秒起印時）。THEMED（跟「文字」節），冷卻倒數與增益持續時間共用一個，**沒有逐法術覆寫**。
+  舊存檔沒有這欄 ＝ 合併預設補 minutes，行為只差上面那個 bug。不認得的值一律當 minutes（`Text.TimeFormatOf`）。
+- **讀法**：`Text.TimeFormat(barKey)` 逐格問 `ns.Setting(barKey, "cooldownText.timeFormat")`——條沒跟隨文字時 `ns.Setting(barKey, "cooldownText")`
+  回的是條自己那張表、可能只存了字級幾格，表上讀不到的不會退主題。`Decorate.Resolve` 解成 `style.timeFormat`（進簽章），
+  `CountdownFormatter(c, timeFormat)`／`BuffFormatter(c, lowColor, timeFormat)`／`PlainFormatter(d, timeFormat)` 第二（三）個參數帶進去，沒給才讀表上的。
+  formatter 快取 key 多一段時間格式。
+- **升位點**：照「顯示出來的整數秒」到 n 就換寫法，門檻比的卻是原始秒數 x ⇒ 整數段往上取（沒有小數段）時門檻放 n − 1 + ε、往下取時放 n
+  （`Edge`）。照字面放 91 的話往上取時 (90, 91) 那一秒先印 91。分鐘格式改印時的點看「分鐘數（原始秒數進位）會不會超過 90」＝ x > 5400，跟有沒有小數段無關。
+- **套到哪**：圖示類的冷卻倒數與增益持續時間（暴雪的冷卻格／增益圖示、技能格倒增益那一段、自訂格子、光環格家族的圖示形）。
+  長條的秒數（暴雪寫的字串、光環長條、自訂列、層數列）照舊分鐘格式——只修了 bug。設定頁預覽的假倒數最長三十幾秒，兩種格式看起來一樣。
+- **離線測試** `Tests/TimeFormat_test.lua`：照 API 文件寫一顆假的規則格式器「印」出字（div 的商兩種解讀各跑一次），逐秒對邊界。
+
 ### 冷卻倒數的低秒變色：開關與秒數分兩欄（`Core/Text.lua`、`Core/DB.lua`、`Options/Specs.lua`、`Options/SpellPopover.lua`，2026-10-06，DB v5）
 
 - **為什麼拆**：以前 `cooldownText.lowBelow` 兼作開關（0 ＝ 關），取消勾選「低秒變色」就寫 0，玩家調好的變色秒數被洗掉、
@@ -4439,6 +4460,12 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 623. 增益長條「增益不在時：收合」：代畫格跟著出現／消失、其他格往前補。
 624. 戰鬥藥水格放在增益圖示列、逐法術開「增益期間發光」：喝下去代畫圖示立刻亮、30 秒到熄；暴雪那格後段自己補上生效時沒有閃一下或疊兩層發光。
 625. 戰鬥藥水格設了出現／消失音效（或語音）：喝下去響一次出現、30 秒到響一次消失；暴雪那格後段補上生效、結束時都不會多響一次。
+
+**倒數的時間格式（2026-10-21）**
+
+626. 分鐘格式（預設）：兩分鐘冷卻按下去，2:00～1:31 一直是「2m」（以前 1:59 起是「1m」）、接著 90、89…；沒有閃一下 91。中文客戶端的「分」字照客戶端（暴雪的冷卻倒數字串）。
+627. 文字頁倒數那段選「分:秒」：同一招印 1:59、1:58…1:00、59；增益圖示、技能格倒增益那一段、光環格也一起換；低秒變色與小數照舊只在秒數段。條頁取消「跟隨全域」後只改字級，時間格式照主題的。
+628. 一小時以上的冷卻或增益（例：爐石類物品放進自訂格子）：分鐘格式 90 分以上印時、分:秒格式 60 分以上印時，不出現「91m」「60:00」。
 
 **效能基準**
 
