@@ -316,7 +316,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-luac-global-scan.md](wow-luac-global-scan.md) | luac -p 只驗語法抓不到未宣告的全域；用 luac -l 掃 _ENV 讀取才找得出「該是 local 卻寫成全域」 |
 | [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 MacroFrame:SelectMacro/SaveMacro 或改巨集格欄數，會讓快捷列上的巨集施法被擋、一路髒到 /reload |
 | [wow-mplus-enemy-forces-fields.md](wow-mplus-enemy-forces-fields.md) | M+ 敵軍進度的 criteria 欄位語意是反直覺的——quantity 已經是百分比、quantityString 才是絕對數量（還帶假的 % 號） |
-| [wow-new-file-needs-client-restart.md](wow-new-file-needs-client-restart.md) | TOC 新增的 .lua 檔、新放的媒體檔，/reload 不會載入，要整個重開遊戲；交件時要提醒使用者 |
+| [wow-new-file-needs-client-restart.md](wow-new-file-needs-client-restart.md) | TOC 新增的 .lua 檔、新放的媒體檔，/reload 不會載入，要整個重開遊戲；改既有 TOC 的標題／分類等欄位 /reload 就會重讀；交件時要提醒使用者 |
 | [wow-playermodel-setunit-restreams.md](wow-playermodel-setunit-restreams.md) | PlayerModel:SetUnit 對「已經載好的同一個單位」再呼叫一次也會重新串流、空一兩幀；UNIT_MODEL_CHANGED 不是可靠的「模型換了」訊號 |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | How to fix \"attempted to index a table that cannot be indexed with secret keys\" in WoW addons |
 | [wow-securegroupheader-refresh-snippet.md](wow-securegroupheader-refresh-snippet.md) | 給 SecureGroupHeader 的格子掛額外的次要按鈕（寵物、目標）時，unit 只能在 refreshUnitChange snippet 裡派；Lua 端唯一的開關是「動 header 的任一個屬性」（值沒變別重設，那是整排重排） |
