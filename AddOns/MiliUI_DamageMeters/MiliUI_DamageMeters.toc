@@ -45,6 +45,8 @@ Meter\Breakdown.lua
 Meter\Tooltip.lua
 Meter\Home.lua
 Meter\Builtin.lua
+# 預覽：Move（編輯模式進出）、Manager、Options 都會叫它，排在它們之前
+Meter\Preview.lua
 Meter\Move.lua
 # 收合／點擊穿透：Window、Move、Manager 都是執行期才呼叫它們，排在 Manager 之前即可
 Meter\Collapse.lua

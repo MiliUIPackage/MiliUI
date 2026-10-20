@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 7687a40a-9665-4a80-8ab5-d8ddb9ec65ee
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-10-20T19:20:22.175Z
 ---
 
 **MiliUI_UnitFrames**（2026-08-15 起，現 v1.4.8）：取代 Stuf 的自製單位框架，只支援 12.1+，秘密值
@@ -179,8 +179,9 @@ targettargettarget 都沒加**，要加就三個一起）。
 - **載具期間 `f.unit`（框畫誰）與 `f.castUnit`（條畫誰的施法）分開**，讀施法 API 一律用 castUnit，
   見 [[wow-vehicle-token-timing]]。
 - **藏暴雪施法條要連 `OverlayPlayerCastingBarFrame` 一起解事件**（`837298fce`）：載具／變身叫出覆蓋快捷列時
-  暴雪改顯示它，它自己註冊了施法事件。公開 API `HidesPlayerCastBar()` 給 MiliUI_CooldownManager 問
-  「單位框架是不是也在藏」，取消隱藏時才不裝回。
+  暴雪改顯示它，它自己註冊了施法事件。⚠ 它同時是專精／天賦／專業視窗裡的施法條 ⇒ **只在宿主是
+  OverrideActionBar 時解、換走就裝回**（這條不是單向的，2026-10-21，[[wow-overlay-castbar-hosts]]）。
+  公開 API `HidesPlayerCastBar()` 給 MiliUI_CooldownManager 問「單位框架是不是也在藏」，取消隱藏時才不裝回。
 
 ## 光環
 

@@ -257,7 +257,8 @@ end
 ------------------------------------------------------------
 function B.OpenFromBar(W, bar)
     local src = bar._src
-    if not src then return end
+    -- 預覽的範例列：沒有 GUID、也沒有法術資料，開了只是一片空白（Meter/Preview.lua）
+    if not src or src.isPreview then return end
 
     -- 查這一列自己的類型：合併檢視時視窗的 curDMType 是合併類型本身，API 不認得
     local dmType = bar._dmType or W.curDMType

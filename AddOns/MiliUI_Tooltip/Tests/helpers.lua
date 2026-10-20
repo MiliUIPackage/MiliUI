@@ -49,7 +49,21 @@ Region.__index = function(self, k)
     return nil
 end
 
+-- 跟引擎一樣拒絕繞成圈的錨點：對象（沿它自己的錨點鏈）錨回這顆 ⇒ 「Cannot anchor to a region dependent on it」
+local function AnchoredOn(region, target, seen)
+    if rawequal(region, target) then return true end
+    if type(region) ~= "table" or seen[region] then return false end
+    seen[region] = true
+    for _, p in ipairs(rawget(region, "points") or {}) do
+        if AnchoredOn(p[2], target, seen) then return true end
+    end
+    return false
+end
+
 function Region:SetPoint(p, rel, rp, x, y)
+    if type(rel) == "table" and AnchoredOn(rel, self, {}) then
+        error("Action[SetPoint] failed because[Cannot anchor to a region dependent on it]", 2)
+    end
     self.points[#self.points + 1] = { p, rel, rp, x, y }
 end
 function Region:ClearAllPoints() self.points = {} end

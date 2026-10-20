@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 8dc93370-a3cc-49db-b9cc-7732dd22f64b
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-10-20T19:22:26.789Z
 ---
 
 PLAYER_LOGIN 時 `UIParent:GetWidth()`／`GetScreenWidth()` 拿到的可能是 **uiScale CVar 算出來的尺寸**，
@@ -38,5 +38,9 @@ UIParent 比最終值小（2026-10-12 實例：CVar 0.76、實際 0.53，登入�
   因為縮放還沒定。MiliUI_Tooltip 單位提示的 1px 邊框在載入時算一次就不再重算，登入／reload 後邊框實際不到 1px，
   加上關掉像素貼齊，上邊、左邊整條不見（2026-10-20）。修法：**在顯示的時候換算、跟上次不同才重排**
   （skin OnShow 呼叫 `Skin.LayoutBorder`），不要只靠設定變更時重算。
+- ⚠ **別把所有「登入時算的 1px 不對」都歸到這一條**（2026-10-21 誤判過一次）：MiliUI_Skin 確認彈窗按鈕缺邊，
+  一開始以為是登入後 UI 縮放變了沒事件，加了 UIParent 換算基準的比對，存檔的自檢是 `1.00`（UIParent 根本沒變）、
+  按鈕照樣缺邊。真正原因是**框本身登入時沒有 parent**（`StaticPopupN` 的 XML 沒寫 parent，顯示時才被 SetParent），
+  見 [[wow-xml-frame-no-parent]]。先分清楚變的是 UIParent 還是「這個框的祖先鏈」。
 
 相關：[[project-miliui-damagemeters]]、[[wow-setscale-offset-units]]、[[project-miliui-minimap]]、[[project-miliui-mythicplus]]

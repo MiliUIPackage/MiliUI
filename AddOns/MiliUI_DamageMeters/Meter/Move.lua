@@ -493,6 +493,8 @@ local function UpdateEditState()
             ns.Window.UpdateVisibility(W)
         end
     end)
+    -- 編輯模式開著＝預覽（跟暴雪內建統計一樣），收掉就換回真資料
+    ns.Preview.Sync()
 end
 Move.UpdateEditState = UpdateEditState
 

@@ -1,11 +1,11 @@
 ---
 name: project-miliui-damagemeters
-description: 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策、標題列按鈕看板與發佈、遷移鏈（DB v5）、踩過的點、除錯分頁
+description: 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策、標題列按鈕看板與發佈、遷移鏈（DB v5）、踩過的點、除錯分頁、預覽模式
 metadata: 
   node_type: memory
   type: project
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-10-20T00:00:00.000Z
+  modified: 2026-10-21T00:00:00.000Z
 ---
 
 `AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，2026-10-14 TOC 1.2.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
@@ -474,6 +474,23 @@ v5「`iconStyle` 還是舊預設 `spec` 的改成 `mili`」（[[project-mdm-spec
 `W._mouseOn`／`W._hdrMouseOn` 備忘、值沒變不呼叫。combat 看 PLAYER_REGEN_* 自己記的旗標。`MODIFIER_STATE_CHANGED` 只在有人需要時註冊。
 首頁／展開頁維持可點。設定在「各視窗」分頁的「滑鼠」小節。
 
+## 預覽模式（2026-10-21，使用者要求「像內建那樣，玩家才知道調整的樣式」）
+
+`Meter/Preview.lua`。設定視窗或編輯模式開著時，`W.Refresh` 把範例 session 餵給 `Rows.Render`，**其餘繪製原封不動**
+（暴雪內建的做法一樣：`DamageMeterSessionWindowMixin:GetCombatSession` 編輯中回傳寫死的 `EDIT_MODE_SESSION`）。
+- **人物借暴雪的 GlobalStrings `DAMAGE_METER_EDIT_MODE_SOURCE_1～7`**（阿薩斯／珍娜／古爾丹／索爾／烏瑟／伊利丹／希瓦娜斯，各語系官方譯名，不必自己翻），
+  再加玩家自己（`isLocalPlayer`，排第三名附近）。專精圖示走 `D.SpecIconFor(classFile, i)`（暴雪專精順序），米利風格圖照樣看得到。
+  每種類型一張排行表：敵方承受傷害沒有職業（跟真資料一樣不畫圖示）、死亡「最近的在前」交給 FilterDeaths 翻。
+- **範圍只在 W.Refresh**：首頁、展開頁、滑過預覽、發佈照舊讀 API。範例 source 帶 `isPreview`、不給 `sourceGUID`，展開頁與滑過預覽看到就不開。
+- 狀態三條件：forced（跟收合／點擊穿透「一律展開／可點」同一個）＋ `_wanted`（**每次打開重置成開、不存檔**——存檔的話關過一次就永遠關著）＋ 不在戰鬥。
+  **預覽中碰上戰鬥 → `_wanted=false` 維持關閉**（打完要看剛剛那場）；戰鬥中／剛打完狀態機還沒收尾才打開設定的不算，脫戰的 `RefreshAll` 經過 Check 自己開起來。
+- 入口：Panel OnShow/OnHide、`Move.UpdateEditState`、`Combat.BeginSegment`（隊友先開怪沒有 REGEN）、自己掛的 `PLAYER_REGEN_DISABLED`；
+  **`W.Refresh` 每次 `Preview.Check()` 自癒**，跟記住的不一樣就當場 Sync —— 漏一個入口就會在戰鬥中畫假資料，這條是保險。
+- 畫面：標題狀態標籤寫「預覽」（兩欄都釘住的也顯示）、進入時 PulseStatus 亮一下；計時器顯示 `Preview.DURATION`（2:30）不分目前／總計；
+  死亡在總計也印時間（`RenderPane` 看 `session.isPreview`）。
+- 設定視窗分頁列右側「預覽: ON／OFF」（格線開關左邊、寬度照 ON/OFF 取大定死、開＝primary），**顯示 `IsActive()` 不是 `_wanted`**（戰鬥關掉時要跟著變 OFF）。
+  為了塞下它 `TAB_MIN_W` 72→64：除錯分頁出現時八顆分頁 + 兩顆 74 寬的開關要在 700 內排完。
+
 ## 實機狀態（2026-10-14 整理）
 
 09-05 起多輪實機，NGA 玩家在用。**已上過實機、有回報或後續修正**：`C_DamageMeter` 欄位名、
@@ -482,6 +499,7 @@ v5「`iconStyle` 還是舊預設 `spec` 的改成 `mili`」（[[project-mdm-spec
 
 **仍沒有證據的**（沒人回報不等於對）：
 - 收合／點擊穿透／定位框拆分（2026-10-20）整套還沒上實機；被牽連時的 FlushAnchors 有沒有跳位
+- 預覽模式（2026-10-21）整套還沒上實機：分頁列擠不擠、範例資料各類型的觀感、戰鬥進出的切換
 - 標題列十張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
 - 發佈：「說」／自訂頻道在野外的硬體事件要求實際送得出去沒
 - 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard

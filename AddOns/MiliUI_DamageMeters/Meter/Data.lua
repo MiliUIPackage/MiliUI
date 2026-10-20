@@ -419,14 +419,16 @@ local SPEC_TEX_DIR = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\Spec\\"
 -- 米利風格的職業圖（Media/Class/<職業>.png，13 張）：還不知道專精時的退路
 local CLASS_TEX_DIR = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\Class\\"
 
-local specByIcon, specByID
+local specByIcon, specByID, specByClass
 local function BuildSpecMap()
-    specByIcon, specByID = {}, {}
+    specByIcon, specByID, specByClass = {}, {}, {}
     if not (GetNumClasses and GetClassInfo and GetNumSpecializationsForClassID
             and GetSpecializationInfoForClassID) then return end
     for classID = 1, GetNumClasses() do
         local _, classFile = GetClassInfo(classID)
         local keys = classFile and SPEC_KEYS[classFile]
+        local list = {}
+        if classFile then specByClass[classFile] = list end
         for i = 1, GetNumSpecializationsForClassID(classID) or 0 do
             local specID, name, _, icon = GetSpecializationInfoForClassID(classID, i)
             if icon then
@@ -436,6 +438,7 @@ local function BuildSpecMap()
                 }
                 specByIcon[icon] = info
                 if specID then specByID[specID] = info end
+                list[i] = info
             end
         end
     end
@@ -454,6 +457,15 @@ function D.SpecInfoByID(specID)
     if specID == nil or issecret(specID) or type(specID) ~= "number" then return nil end
     if not specByIcon then BuildSpecMap() end
     return specByID[specID]
+end
+
+-- 某職業第 index 個專精（暴雪順序）的圖示 fileID。預覽的範例列用它（Meter/Preview.lua）：
+-- 給了 specIconID，範例列就走跟真資料同一條圖示解析，米利風格／暴雪專精圖都看得到
+function D.SpecIconFor(classFile, index)
+    if not specByIcon then BuildSpecMap() end
+    local list = classFile and specByClass[classFile]
+    local info = list and list[index]
+    return info and info.icon
 end
 
 -- 這個 source 是哪個專精。

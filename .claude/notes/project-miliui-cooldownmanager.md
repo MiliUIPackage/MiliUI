@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-16T16:14:05.908Z
+  modified: 2026-10-20T19:20:18.488Z
 ---
 
 ## 緣起與拍板
@@ -150,7 +150,8 @@ cooldownID 就是 `CooldownSetSpell.ID`，`wago.tools/db2/CooldownSetSpell/csv`�
 匯入時 `Import.PlanBindings` 把對方每隻角色的 `profileKeys`／`specProfiles` 一次搬過來（本插件已有綁定的角色不覆蓋）。匯入**只能在互斥彈窗那一刻做**（對方 SV 只在它載入時存在）；
 對方只存跟預設不同的鍵 ⇒ 沒出現的鍵不動；spellID→cooldownID 只換得了目前專精，其他存 `pendingImport[specID]`、`ResolvePending` 補（README《從 Ayije_CDM 匯入》）。
 
-**施法條**：隱藏暴雪施法條只解事件、可原樣裝回；載具／變身叫出覆蓋快捷列時暴雪改顯示 **`OverlayPlayerCastingBarFrame`**（自己註冊事件，關了本體照樣出現，2026-10-08）；
+**施法條**：隱藏暴雪施法條只解事件、可原樣裝回；載具／變身叫出覆蓋快捷列時暴雪改顯示 **`OverlayPlayerCastingBarFrame`**（自己註冊事件，關了本體照樣出現，2026-10-08）——
+但它也是專精／天賦／專業視窗裡的施法條，**只在宿主是 OverrideActionBar 時解**、換走就裝回（2026-10-21，[[wow-overlay-castbar-hosts]]）；
 NDui 等 oUF 系在玩家施法條關著時 PLAYER_LOGIN 走 Disable 把暴雪條事件**裝回**（2026-10-10）⇒ 讀完畫面延一幀再對帳、被裝回就再解一次。
 
 **Lua 本身**：`Options/SpellPopover.lua` 的 `Build` upvalue 曾貼 60 上限（超過整檔載入失敗、小窗打不開，`check_lua.py` 已抓；2026-10-18 切檔後 56；新 helper 照舊掛 `Pop.xxx`，[[project-miliui-cdm-halo-borrow]]）。

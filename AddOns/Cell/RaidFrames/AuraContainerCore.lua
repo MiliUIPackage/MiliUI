@@ -133,6 +133,14 @@ end
 -- Thresholds are Blizzard's own promote points 91 / 5401 (NOT 60 / 3600), so
 -- 61-90s still prints whole seconds exactly like the default frames do. The
 -- quotient rounds UP because Blizzard's formatter sets SetCanRoundUpLastUnit.
+-- The round-up lives on the RULE (step = 60 / 3600, rounding = Up), with a bare
+-- div in components. It used to sit on the component ({ div = 60, rounding = up },
+-- no step), and per the API docs a component's rounding only applies to its step
+-- -- no step, no rounding, so %d truncated the quotient and 1:59 printed "1m".
+-- Stepping first also makes the answer the same whether div yields a whole or a
+-- fractional quotient (the docs don't say which). The hour band starts just past
+-- 5400, where the rounded-up minutes would pass 90; at a literal 5401 the second
+-- in between printed "91m".
 --
 -- showDuration mirrors Cell's setting:
 --   true     -> always show ("45" -> "2m" -> "1h")
@@ -183,12 +191,13 @@ function ACC.GetDurationFormatter(showDuration)
             f:AddBreakpoint({ threshold = base, step = 1, rounding = down, min = 1, format = "%d" })
         end
         if not hideAbove or hideAbove > 91 then
-            f:AddBreakpoint({ threshold = 91, step = 1, rounding = down, min = 1, format = "%dm",
-                              components = { { div = 60, rounding = up } } })
+            f:AddBreakpoint({ threshold = 91, step = 60, rounding = up, format = "%dm",
+                              components = { { div = 60 } } })
         end
-        if not hideAbove or hideAbove > 5401 then
-            f:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format = "%dh",
-                              components = { { div = 3600, rounding = up } } })
+        local hourAt = 5400.0001
+        if not hideAbove or hideAbove > hourAt then
+            f:AddBreakpoint({ threshold = hourAt, step = 3600, rounding = up, format = "%dh",
+                              components = { { div = 3600 } } })
         end
         if hideAbove then
             f:AddBreakpoint({ threshold = hideAbove, step = 1, rounding = down, format = "" })

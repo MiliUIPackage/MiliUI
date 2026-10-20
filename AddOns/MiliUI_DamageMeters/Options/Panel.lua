@@ -14,7 +14,9 @@ local Options = ns.Options
 local PANEL_W, PANEL_H = 700, 500
 local FORM_W = 640
 
-local TAB_MIN_W = 72
+-- 64 不是 72：分頁列右邊還有「預覽」「格線」兩顆開關（74 ＋ 74），除錯分頁出現時
+-- 八顆分頁要在 700 − 154 的寬度內排完，72 會跟預覽鈕疊在一起
+local TAB_MIN_W = 64
 local TAB_H     = 22
 local TAB_GAP   = 3
 local TAB_PAD   = 20
@@ -121,6 +123,40 @@ local function CreateCloseButton(parent, level)
     return b
 end
 
+-- 「預覽: ON／OFF」：分頁列右側、格線開關的左邊。開著時統計視窗畫範例資料（Meter/Preview.lua）。
+-- 長相跟格線開關一樣：開＝primary、關＝normal（套組開關型按鈕的規則）。
+-- 顯示的是「畫面上現在是不是預覽」而不是玩家按過什麼：戰鬥把它關掉時按鈕要跟著變 OFF
+local PREVIEW_BTN_W = 74
+
+local function CreatePreviewToggle(gridBtn)
+    local b = W.CreateButton(panel, "", "normal", PREVIEW_BTN_W, TAB_H)
+    b:SetPoint("BOTTOMRIGHT", gridBtn, "BOTTOMLEFT", -TAB_GAP, 0)
+    -- 寬度照 ON／OFF 比較寬的那個一次定死（同格線開關）：切換時不伸縮，左邊的分頁才不會被擠到
+    local fs = b:GetFontString()
+    local w = PREVIEW_BTN_W
+    for _, v in ipairs({ "ON", "OFF" }) do
+        b:SetText(L["Preview"] .. ": " .. v)
+        w = math.max(w, math.ceil(fs:GetStringWidth()) + W.BTN_TEXT_PAD)
+    end
+    P.Size(b, w, TAB_H)
+    local function Paint()
+        local on = ns.Preview.IsActive()
+        b:SetText(L["Preview"] .. ": " .. (on and "ON" or "OFF"))
+        W.SetButtonVariant(b, on and "primary" or "normal")
+    end
+    b:SetScript("OnClick", function() ns.Preview.Set(not ns.Preview.IsActive()) end)
+    -- HookScript：CreateButton 的 OnEnter／OnLeave 管滑過的配色，不能蓋掉
+    b:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(L["Preview"], 1, 1, 1)
+        GameTooltip:AddLine(L["While on, the meters show sample data so you can see how your style changes look. Turn it off to see your real data. Edit Mode shows the preview too, and combat turns it off."], 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    b:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    ns.RegisterCallback("PreviewChanged", "optionsPanel", Paint)
+    Paint()
+end
+
 local function CreatePanel()
     if panel then return end
 
@@ -174,16 +210,19 @@ local function CreatePanel()
             ns.Windows.HideIdentify()   -- 「各視窗」分頁的編號標示不能留在畫面上
             ns.Windows.UpdateVisibility()
         end
+        ns.Preview.Sync()   -- 預覽跟著設定視窗收掉，換回真資料
     end)
     panel:SetScript("OnShow", function()
         ns._optionsOpen = true
         if ns.Windows then ns.Windows.UpdateVisibility() end
+        ns.Preview.Sync()   -- 每次打開都重新預覽（見 Meter/Preview.lua）
         SetCombatLocked(InCombatLockdown())
     end)
 
     -- 右上角「格線: ON／OFF」（共用層，滑過調間距）：開著設定視窗拖框時對齊用。
     -- ⚠ 要排在上面兩行 SetScript 之後：共用層走 HookScript
-    W.CreateGridToggle(panel, { db = function() return ns.DB.Account().optionsWindow end })
+    local grid = W.CreateGridToggle(panel, { db = function() return ns.DB.Account().optionsWindow end })
+    CreatePreviewToggle(grid.button)
 
     -- 遮罩自己是 FULLSCREEN_DIALOG，裡面再放一顆關閉鈕，否則戰鬥中視窗只剩 ESC 能關
     local mask = W.CreateCombatMask(panel)

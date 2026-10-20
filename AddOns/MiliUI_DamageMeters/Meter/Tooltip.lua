@@ -327,7 +327,8 @@ end
 function TT.OnBarEnter(bar)
     local s = ns.DB.Style()
     if not s.showHoverTooltip then return end
-    if not bar._src then return end
+    -- 預覽的範例列沒有法術資料可以給（Meter/Preview.lua）
+    if not bar._src or bar._src.isPreview then return end
     -- 展開頁開著時不要再疊一層預覽
     if bar.W and bar.W.sourceOpen then return end
 

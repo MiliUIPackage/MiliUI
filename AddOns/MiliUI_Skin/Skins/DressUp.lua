@@ -327,6 +327,9 @@ local function Apply()
     -- 那個框自己沒有任何美術，只有這一顆鈕值得換皮。
     local tm = _G.TransmogAndMountDressupFrame
     if tm then
+        -- XML 沒有 parent，`SetUpTransmogAndMountDressupFrame` 才 SetParent（DressUpFrames.lua:457）
+        -- ⇒ 邊寬照 UIParent 底下換算（Engine 的「像素量」那一節）
+        E.DisplayParent(tm, UIParent)
         local cb
         if pcall(function() cb = tm.ShowMountCheckButton end) and cb then
             Skin.CheckBox(cb, "TransmogAndMountDressupFrame.ShowMountCheckButton")

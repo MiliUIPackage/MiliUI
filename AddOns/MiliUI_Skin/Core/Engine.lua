@@ -1284,12 +1284,24 @@ end
 ------------------------------------------------------------
 -- 像素量：邊寬、強調線、髮絲線（.claude/notes/wow-1px-border-rules.md）
 --
---   * 粗細是剛好 n 個實體像素（`RecPixel`，照皮所在框的有效縮放換算），不是 `P.Scale`：
+--   * 粗細是剛好 n 個實體像素（`RecPixel`，照皮所在框**顯示時**的有效縮放換算），不是 `P.Scale`：
 --     `P.Scale(1)` 是「1 個框架單位貼整數像素」，1440p 以上就是 2px 以上，跟套組設定視窗的 1px 邊對不上。
 --   * 我們建的底、邊、強調線一律關像素貼齊（`P.NoSnap`）：框停在小數座標時引擎會把
 --     每張貼圖各自捨入，1px 邊整條變 0 或 2。只對自己建的貼圖做。
---   * 換算結果烤在錨點裡 ⇒ 登記在 `pixelRecs`，UI 縮放／解析度變了重排（見檔尾的
---     `Engine.RelayoutPixels`）。
+--   * 換算結果烤在錨點裡 ⇒ 登記在 `pixelRecs`，換算基準變了要重排（`Engine.RelayoutPixels`／
+--     `CheckPixels`）。每一筆記住自己排的時候用的「1px ＝ 幾個框架單位」（`rec.pxUnit`）。
+--   * ⚠⚠ **XML 沒寫 parent、顯示時才被 SetParent 的框**（2026-10-21 死亡彈窗按鈕缺邊）：
+--     `StaticPopup1…4` 在 `GameDialog.xml` 是頂層框、沒有 parent ⇒ 登入時有效縮放是 1；
+--     要到 `StaticPopup_Show` 才 `SetParent(GetAppropriateTopLevelParent())`（StaticPopup.lua:407）。
+--     配方在 `PLAYER_LOGIN` 照 1 換算的「1px」，掛到 UIParent（實例 ≈0.64）底下只剩 0.64 個像素，
+--     落在小數座標的邊蓋不到像素中心就整條消失 —— 每顆按鈕缺的邊都不一樣。
+--     UIParent 本身沒變，所以 UI_SCALE_CHANGED 那一套救不到。
+--     解法：配方對這種框呼叫 `Engine.DisplayParent(框, 顯示時的 parent)`；它還沒被認養
+--     （根不在那個 parent 的樹裡）的時候，照「掛上去之後」的縮放換算（`RecScale`）。
+--     同型的框（都是登入時就換皮）：`StaticPopup1…4`、`QuestModelScene`（隱藏時還會
+--     `SetParent(nil)`）、`RaidFrame`（`ClaimRaidFrame`）、`TransmogAndMountDressupFrame`。
+--     掃法與完整名單見 `.claude/notes/wow-1px-border-rules.md`；沒登記的漏網之魚
+--     `/mskin debug` 的 `px:` 那一行會列出來（orphan）。
 --   * 配方的錨點偏移要以實體像素計時（貼著邊的內縮），直接傳 `P.Pixel(n)` 進來：
 --     `P.Scale` 對整數像素是恆等的（`P.Scale(x + P.Pixel(1)) == P.Scale(x) + P.Pixel(1)`）。
 --     那種偏移不會跟著重排，改縮放之後要 /reload 才完全對齊。
@@ -1297,17 +1309,84 @@ end
 local NoSnap = P.NoSnap
 local pixelRecs = setmetatable({}, { __mode = "k" })   -- [overlay 或 region rec] = true
 
--- n 個實體像素，照「皮所在的框」自己的有效縮放換算（overlay 是它自己、region 是建在哪個框上）。
+-- [框] = 它顯示時會被 SetParent 到的框（見本節檔頭）。只放我們自己的弱鍵表，不寫暴雪物件。
+local displayParents = setmetatable({}, { __mode = "k" })
+
+local function EffScale(obj)
+    local ok, s = pcall(obj.GetEffectiveScale, obj)
+    s = ok and S.PlainNumber(s) or nil
+    if s and s > 0 then return s end
+end
+
+local function TopOf(frame)
+    local node, guard = frame, 0
+    while guard < 40 do
+        guard = guard + 1
+        local ok, p = pcall(node.GetParent, node)
+        if not ok or not p then break end
+        node = p
+    end
+    return node
+end
+
+-- 皮底下第一個登記過 DisplayParent 的祖先（含自己）。結果記在 rec 上：
+-- 結構不會變（被認養的是那個祖先，不是我們），登記時把快取清掉。
+local function DisplayNode(rec, host)
+    local cached = rec.pxDisplayNode
+    if cached ~= nil then return cached or nil end
+    local node, guard = host, 0
+    while node and guard < 40 do
+        guard = guard + 1
+        if displayParents[node] then
+            rec.pxDisplayNode = node
+            return node
+        end
+        local ok, p = pcall(node.GetParent, node)
+        if not ok then break end
+        node = p
+    end
+    rec.pxDisplayNode = false
+    return nil
+end
+
+function Engine.DisplayParent(frame, parent)
+    if type(frame) ~= "table" or type(parent) ~= "table" then return end
+    displayParents[frame] = parent
+    for rec in pairs(pixelRecs) do rec.pxDisplayNode = nil end
+end
+
+-- 皮所在的框「顯示時」的有效縮放（overlay 是它自己、region 是建在哪個框上）。
 -- 照 UIParent 換算的話，框或祖先 SetScale ≠ 1（RaiderIO 0.9、裝備管理 0.85、keepScale 的提示…）
--- 時實際粗細是 scale 個像素、不是整數，關了貼齊就是一條糊線。讀不到就退回 P.Pixel。
+-- 時實際粗細是 scale 個像素、不是整數。登記過 DisplayParent、還沒被認養的，照認養後換算：
+--   掛上去之後 node 的有效縮放 ＝ parent 的有效縮放 × node 自己的 scale，底下每一層比例不變。
+local function RecScale(rec)
+    local host = rec.isRegion and rec.host or rec
+    local scale = EffScale(host)
+    if not scale or not next(displayParents) then return scale end
+    local node = DisplayNode(rec, host)
+    if not node then return scale end
+    local dp = displayParents[node]
+    if TopOf(node) == TopOf(dp) then return scale end     -- 已經在那棵樹裡：照實際的
+    local nodeScale, dpScale = EffScale(node), EffScale(dp)
+    local ok, own = pcall(node.GetScale, node)
+    own = ok and S.PlainNumber(own) or nil
+    if not (nodeScale and dpScale and own and own > 0) then return scale end
+    return scale / nodeScale * dpScale * own
+end
+
+-- 1 個實體像素是幾個框架單位（照 RecScale）。讀不到就退回 P.Pixel（照 UIParent）。
+local function RecUnit(rec)
+    local scale = RecScale(rec)
+    if not scale then return P.Pixel(1) end
+    return PixelUtil.GetPixelToUIUnitFactor() / scale
+end
+
 local function RecPixel(rec, n)
     n = math.floor((tonumber(n) or 0) + 0.5)
     if n <= 0 then return 0 end
-    local host = rec.isRegion and rec.host or rec
-    local ok, scale = pcall(host.GetEffectiveScale, host)
-    scale = ok and S.PlainNumber(scale) or nil
-    if not scale or scale <= 0 then return P.Pixel(n) end
-    return n * PixelUtil.GetPixelToUIUnitFactor() / scale
+    local unit = RecUnit(rec)
+    rec.pxUnit = unit                 -- 自己的 overlay／自己的表，不是暴雪物件
+    return n * unit
 end
 
 -- 邊寬：`borderScale` 的（拿邊畫間距的）是框架單位，其餘是實體像素
@@ -1360,7 +1439,7 @@ local function RelayoutOne(rec)
     if not rec.isRegion then PlaceAccent(rec) end
 end
 
--- UI 縮放／解析度變了：登記過的底、邊、強調線、髮絲線照新的縮放重算粗細。
+-- 換算基準變了：登記過的底、邊、強調線、髮絲線照新的縮放重算粗細。
 -- 延一幀（事件當下縮放可能還沒套上）；戰鬥中不動（邊有的建在隱式保護的框上），脫戰補做。
 local pixelWatcher = CreateFrame("Frame")
 local function RelayoutPixels()
@@ -1371,16 +1450,69 @@ local function RelayoutPixels()
     for rec in pairs(pixelRecs) do pcall(RelayoutOne, rec) end
 end
 Engine.RelayoutPixels = RelayoutPixels
+
+-- 逐筆比對：現在換算的 1px 跟排的時候不一樣才重排那一筆。
+-- 給沒有縮放事件的那幾條路（UIParent 被別人 SetScale、框被換 parent／換 scale）。
+local function Stale(rec)
+    local used = rec.pxUnit
+    if not used then return false end
+    local ok, unit = pcall(RecUnit, rec)
+    return ok and unit and math.abs(unit - used) > unit * 1e-3 or false
+end
+
+local function CheckPixels()
+    if InCombatLockdown() then
+        pixelWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    for rec in pairs(pixelRecs) do
+        if Stale(rec) then pcall(RelayoutOne, rec) end
+    end
+end
+
 pixelWatcher:RegisterEvent("UI_SCALE_CHANGED")
 pixelWatcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
+pixelWatcher:RegisterEvent("PLAYER_ENTERING_WORLD")
 pixelWatcher:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_REGEN_ENABLED" then
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
         RelayoutPixels()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        C_Timer.After(0, CheckPixels)
     else
         C_Timer.After(0, RelayoutPixels)
     end
 end)
+
+-- UIParent 的有效縮放不管被誰改（多重縮放自動、別的插件 SetScale），它的尺寸
+-- （UIParent 單位）都會跟著變。用**我們自己的**框貼滿 UIParent 去收 OnSizeChanged，
+-- 不在 UIParent 身上掛任何腳本。
+local sizeProbe = CreateFrame("Frame", nil, UIParent)
+sizeProbe:SetAllPoints(UIParent)
+sizeProbe:SetScript("OnSizeChanged", function()
+    C_Timer.After(0, CheckPixels)
+end)
+
+-- `/mskin debug` 的像素自檢（只讀）：
+--   stale  ＝ 現在換算的 1px 跟排的時候不一樣（還沒重排 ⇒ 邊會缺或變粗）
+--   orphan ＝ 皮所在的框現在不在 UIParent 底下、也沒登記 DisplayParent。它如果顯示時
+--            才被 SetParent 到 UIParent 底下（`StaticPopup` 那一型），邊寬就是錯的 ⇒ 去配方補登記；
+--            一直都不在 UIParent 底下顯示的框（沒人認養）則是正常的
+local function PixelAudit()
+    local total, stale, orphan = 0, {}, {}
+    for rec in pairs(pixelRecs) do
+        total = total + 1
+        local key = rec.pxKey or "?"
+        if Stale(rec) then stale[#stale + 1] = key end
+        local host = rec.isRegion and rec.host or rec
+        if not DisplayNode(rec, host) and TopOf(host) ~= UIParent then
+            orphan[#orphan + 1] = key
+        end
+    end
+    table.sort(stale)
+    table.sort(orphan)
+    return total, stale, orphan
+end
 
 ------------------------------------------------------------
 -- Engine.Overlay(target, opts) → overlay 或 nil
@@ -1451,6 +1583,7 @@ function Engine.Overlay(target, opts)
     --   overlay 一旦吃滑鼠就會把暴雪按鈕的 OnEnter/OnClick 整個攔掉
     --   （見 .claude/notes/wow-child-frame-steals-mouse-focus.md）。
     local ov = CreateFrame("Frame", nil, parent)
+    ov.pxKey = label              -- `/mskin debug` 的像素自檢用
 
     -- 錨定對象預設就是 target；`anchorTo` 只換「貼著誰」，層級與 side table 不變。
     local anchor = opts.anchorTo or target
@@ -1612,7 +1745,7 @@ function Engine.RegionBackdrop(target, opts)
     if not ok or not bg then return Fallback("CreateTexture") end
     ownRegions[bg] = true
     NoSnap(bg)
-    local rec = { bg = bg, isRegion = true, host = target }
+    local rec = { bg = bg, isRegion = true, host = target, pxKey = label }
 
     local placed = pcall(function()
         bg:SetTexture(WHITE)
@@ -3279,6 +3412,21 @@ function Engine.BuildReport()
         L["Regions neutralized:"], Engine.log.neutralized,
         L["Overlays:"], Engine.log.overlays,
         L["Region backdrops:"], Engine.log.regions)
+
+    -- 像素自檢（見「像素量」那一節的 PixelAudit）。名單各列前 12 筆。
+    local okPx, total, stale, orphan = pcall(PixelAudit)
+    if okPx then
+        out[#out + 1] = ("  px: %d recs, stale %d, orphan %d"):format(total, #stale, #orphan)
+        for _, pair in ipairs({ { "stale", stale }, { "orphan", orphan } }) do
+            local list = pair[2]
+            if #list > 0 then
+                local shown = {}
+                for i = 1, math.min(#list, 12) do shown[i] = list[i] end
+                out[#out + 1] = ("    %s: %s%s"):format(pair[1], table.concat(shown, ", "),
+                    #list > 12 and (" …(+%d)"):format(#list - 12) or "")
+            end
+        end
+    end
 
     if #ns.errors == 0 then
         out[#out + 1] = "  " .. L["No errors recorded"]

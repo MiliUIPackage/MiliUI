@@ -110,6 +110,64 @@ local function Spawned(unitKey)
     return ns.frames[unitKey] ~= nil
 end
 
+-- 替身施法條 OverlayPlayerCastingBarFrame：暴雪拿它在別的框上「代班」玩家施法條
+-- （StartReplacingPlayerBarAt），OnLoad 就自己以 "player" 註冊了全套施法事件。宿主有兩種：
+--   * 覆蓋快捷列（載具、變身、寵物控制）：OverrideActionBar 停用本體、讓替身畫在自己上方 ——
+--     代的就是玩家施法條 ⇒ 跟本體一起解
+--   * 專精頁（切換專精）、天賦頁（套用天賦）、專業視窗（製作）：視窗自己的內容觸發的施法，
+--     進度條畫在視窗裡，我們的施法條被視窗蓋住 ⇒ 不能解（2026-10-08 兩種一起解掉，
+--     2026-10-21 玩家回報轉專精的施法條不見了）
+-- 所以只在宿主是 OverrideActionBar 的那段解，換走就照原樣裝回 —— 這條**不是單向的**。
+-- 宿主換手走 Start／EndReplacingPlayerBar 的後置勾：⚠ 跑在 OverrideActionBar 的 OnShow／OnHide
+-- 裡，只排程；下一幀照替身現在的父框（GetParent，只讀）對帳
+local OVERLAY_EVENTS = {
+    "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_DELAYED", "UNIT_SPELLCAST_CHANNEL_START",
+    "UNIT_SPELLCAST_CHANNEL_UPDATE", "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_EMPOWER_START",
+    "UNIT_SPELLCAST_EMPOWER_UPDATE", "UNIT_SPELLCAST_EMPOWER_STOP", "UNIT_SPELLCAST_INTERRUPTIBLE",
+    "UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP",
+    "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_SENT", "PLAYER_ENTERING_WORLD",
+}
+local overlaySaved      -- 解之前它註冊著的事件：{ { event, unit1, unit2 }, … }；nil ＝ 現在沒解
+local overlayHooked = false
+
+local function ReconcileOverlayCastBar()
+    local bar = OverlayPlayerCastingBarFrame
+    if not bar then return end
+    local host = OverrideActionBar
+    local ok, parent = pcall(bar.GetParent, bar)
+    local hide = ns.playerCastBarHidden == true and host ~= nil and ok and parent == host
+    if hide and not overlaySaved then
+        local saved = {}
+        for _, e in ipairs(OVERLAY_EVENTS) do
+            local okReg, reg, u1, u2 = pcall(bar.IsEventRegistered, bar, e)
+            if okReg and reg == true then saved[#saved + 1] = { e, u1, u2 } end
+        end
+        Unreg(bar)
+        overlaySaved = saved
+    elseif not hide and overlaySaved then
+        for _, e in ipairs(overlaySaved) do
+            if type(e[3]) == "string" then
+                pcall(bar.RegisterUnitEvent, bar, e[1], e[2], e[3])
+            elseif type(e[2]) == "string" then
+                pcall(bar.RegisterUnitEvent, bar, e[1], e[2])
+            else
+                pcall(bar.RegisterEvent, bar, e[1])
+            end
+        end
+        overlaySaved = nil
+    end
+end
+
+local function HookOverlayCastBar()
+    local bar = OverlayPlayerCastingBarFrame
+    if overlayHooked or not bar then return end
+    overlayHooked = true
+    local later = function() C_Timer.After(0, ReconcileOverlayCastBar) end
+    for _, method in ipairs({ "StartReplacingPlayerBarAt", "EndReplacingPlayerBar" }) do
+        if type(bar[method]) == "function" then hooksecurefunc(bar, method, later) end
+    end
+end
+
 -- 戰鬥中 /reload 時 PLAYER_LOGIN 就在戰鬥鎖定裡 —— 以前這裡直接 return、之後再也沒人叫，
 -- 結果整場登入暴雪原生框全都還在、跟我們的框疊在一起，直到下一次脫戰 /reload。
 local loginRetry = CreateFrame("Frame")
@@ -151,12 +209,12 @@ function ns.HideBlizzardFrames()
     local playerUF = ns.frames.player
     if playerUF and playerUF.elements.castbar then
         Unreg(PlayerCastingBarFrame or CastingBarFrame)
-        -- 替身：覆蓋快捷列（載具、變身、寵物控制）出現時暴雪停用上面那條、改顯示這條，
-        -- 它 OnLoad 就自己以 "player" 註冊了全套施法事件
-        Unreg(OverlayPlayerCastingBarFrame)
         -- 只記帳，給公開 API HidesPlayerCastBar 回答（Api.lua）：別的插件要把暴雪施法條的
         -- 事件裝回去之前先問，不然會把我們藏起來的條又叫回來。單向，跟這支模組一樣
         ns.playerCastBarHidden = true
+        -- 替身只在掛在覆蓋快捷列上時解（見 ReconcileOverlayCastBar 上面那段）
+        HookOverlayCastBar()
+        ReconcileOverlayCastBar()
     end
     local petUF = ns.frames.pet
     if petUF and petUF.elements.castbar then

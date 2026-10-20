@@ -417,7 +417,8 @@ local function RenderPane(W, pane, session, dmType, ctx, side)
     -- 右欄沒資料時不能讓左欄的分段留在 ctx 裡給下一趟用
     local sessType, sessID = D.PaneSession(W, side)
     ctx.sessType, ctx.sessID = sessType, sessID
-    ctx.isOverall = (not sessID and sessType == D.S.Overall)
+    -- 預覽的範例戰鬥只有一場：停在「總計」也照樣印死亡時間（Meter/Preview.lua）
+    ctx.isOverall = (not sessID and sessType == D.S.Overall) and not (session and session.isPreview)
 
     -- 版面整批重排時，這一欄自己的版面備忘也一起作廢。主欄以前是由各個呼叫端
     -- 順手清的，右欄沒人會記得清 —— 收斂到這裡，兩欄一視同仁。

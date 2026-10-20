@@ -134,9 +134,15 @@ auraButton:SetDurationText(fontString, {
 local down, up = Enum.NumericRuleFormatRounding.Down, Enum.NumericRuleFormatRounding.Up
 local fmt = C_StringUtil.CreateNumericRuleFormatter()
 fmt:AddBreakpoint({ threshold = 0,    step = 1, rounding = down, min = 1, format = "%d" })
-fmt:AddBreakpoint({ threshold = 91,   step = 1, rounding = down, min = 1, format = "%dm", components = { { div = 60,   rounding = up } } })
-fmt:AddBreakpoint({ threshold = 5401, step = 1, rounding = down, min = 1, format = "%dh", components = { { div = 3600, rounding = up } } })
+fmt:AddBreakpoint({ threshold = 91,        step = 60,   rounding = up, format = "%dm", components = { { div = 60 } } })
+fmt:AddBreakpoint({ threshold = 5400.0001, step = 3600, rounding = up, format = "%dh", components = { { div = 3600 } } })
 ```
+**⚠ 分／時的向上取整要放在規則層（`step = 60, rounding = up`），不能放在 component 上沒給 step**（2026-10-21 玩家回報：1:59 印成 "1m"）。
+原本抄來的寫法是 `step = 1, rounding = down` ＋ `components = { { div = 60, rounding = up } }`：API 文件（`NumericRuleFormatterSharedDocumentation`）
+說 component 的 rounding 是「step 的取法」，沒有 step 就不取 ⇒ 1.98 交給 `%d` 截成 1，91～119 秒全印 "1m"。文件沒講 div 的商是整數還是帶小數，
+先在規則層進位成 60 的倍數，兩種解讀除出來都一樣。DandersFrames 那份「出貨驗證過」沒抓到這個（只有 91～119 秒錯、看起來像正常的捨去）。
+時的門檻放 5400 + ε 而不是 5401：分鐘段向上取整後 (5400, 5401) 那一秒會印 "91m"。2026-10-21 MCDM `Core/Text.lua`、
+MiliUI_UnitFrames `Elements/Auras.lua`、Cell `AuraContainerCore.lua` 三處一起改。
 **⚠ `min = 1` 會讓最後一整秒卡在 "1"**（剩 0.4 秒 → Down 成 0 → 被 min 拉回 1），而剩餘時間是秘密值，外面沒有任何辦法分辨 0.9 和 0.1。要顯示小數就在最前面補一段、秒段改從 1 起跳（2026-08-21 上線於 Cell `AuraContainerCore.lua` 與 MiliUI_UnitFrames `Elements/Auras.lua`）：
 ```lua
 fmt:AddBreakpoint({ threshold = 0, step = 0.1, rounding = down, format = "%.1f" })      -- 0.9 → 0.0
@@ -144,7 +150,9 @@ fmt:AddBreakpoint({ threshold = 1, step = 1,   rounding = down, min = 1, format 
 ```
 `step` 吃小數、`format` 吃 `%.1f`（Platynator 的施法時間、Ayije_CDM 的冷卻文字都這樣跑）。沿用 Down 取整的話最後一格會是 "0.0"；改 Up 不會有 0.0，但 0.95 秒時會先閃一下 "1.0"。**斷點加進去收不回來**，所以「失敗就退回整秒」必須重開一顆 formatter，不能沿用半成品那顆。
 
-門檻是暴雪 promote 點 **91/5401 不是 60/3600**（61–90s 仍印整秒，跟遊戲自己的框架一致）；分/時商數**向上取整**（2m32s→"3m"，暴雪 `SetCanRoundUpLastUnit(true)` 的行為）。TIMER 形（"5:32"）用 `components = { { div = 60 }, { mod = 60 } }`。
+門檻是暴雪 promote 點 **91/5401 不是 60/3600**（61–90s 仍印整秒，跟遊戲自己的框架一致）；分/時商數**向上取整**（2m32s→"3m"，暴雪 `SetCanRoundUpLastUnit(true)` 的行為，做法見上面的 ⚠）。
+TIMER 形（"5:32"）：規則層 `step = 1` 先取成整秒，再 `components = { { div = 60, step = 1, rounding = down }, { mod = 60, step = 1, rounding = down } }`，格式 `"%d:%02d"`（MCDM 的「分:秒」時間格式）。
+升位點的門檻比的是**原始**剩餘秒數：整數段往上取時顯示 n ＝ x > n − 1，要放 n − 1 + ε，不然 (n − 1, n) 那一秒先印 n。
 
 別走 `textFormat` 那條：`components` 是**結構陣列**（元素要 `property` + `formatter` 兩個必填欄位，見 `DurationTextBindingSharedDocumentation.lua` 的 `DurationTextBindingFormatComponent`），丟裸列舉值會報 `bad argument #4 ... Current Field: [textFormat,components]`；就算照結構填，元素仍會在驗證時被吃掉而變成 0 個，報 `expected 0 format components for 1 placeholders`。`textFormatter` 一行就解決。
 （`Enum.DurationTextBindingProperty` = `RemainingDuration=0 / RemainingPercent=1 / ElapsedDuration=2 / ElapsedPercent=3 / TotalDuration=4 / StartTime=5 / EndTime=6`。）
