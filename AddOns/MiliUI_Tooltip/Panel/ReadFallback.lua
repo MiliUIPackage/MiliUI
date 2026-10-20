@@ -106,6 +106,14 @@ function Panel.CollectLines(tip, data)
         rows[#rows + 1] = row
     end
 
+    local n = Panel.CollectAppended(tip, name, covered, rows)
+    if not n then return end
+    return rows, n
+end
+
+-- tooltip 上 lineIndex 不在 data 裡（covered 沒標）的行＝別人 AddLine 加的，接在 rows 後面。回傳 NumLines；讀不到回 nil。
+-- lenient：某一行讀到秘密就跳過那一行（身分受限的單位，Panel.CollectRestrictedLines）；預設整份放棄
+function Panel.CollectAppended(tip, name, covered, rows, lenient)
     local okN, n = pcall(tip.NumLines, tip)
     n = okN and S.PlainNumber(n)
     if not n then return end
@@ -113,24 +121,29 @@ function Panel.CollectLines(tip, data)
         if not covered[i] then
             local lf, rf = _G[name .. "TextLeft" .. i], _G[name .. "TextRight" .. i]
             local left, right, lc, rc
+            local skip = false
             if lf and Shown(lf) ~= false then
                 local ok, text = pcall(lf.GetText, lf)
                 if not ok then return end
                 left = PlainString(text)
-                if left == false then return end
-                lc = FontColor(lf)
-                if lc == false then return end
+                if left ~= false then lc = FontColor(lf) end
+                if left == false or lc == false then
+                    if not lenient then return end
+                    skip = true
+                end
             end
             -- 右欄的 FontString 沒用到時是藏起來的，但可能還留著上一份提示的字
-            if rf and Shown(rf) then
+            if not skip and rf and Shown(rf) then
                 local ok, text = pcall(rf.GetText, rf)
                 if not ok then return end
                 right = PlainString(text)
-                if right == false then return end
-                rc = FontColor(rf)
-                if rc == false then return end
+                if right ~= false then rc = FontColor(rf) end
+                if right == false or rc == false then
+                    if not lenient then return end
+                    skip = true
+                end
             end
-            if (left and left ~= "") or (right and right ~= "") then
+            if not skip and ((left and left ~= "") or (right and right ~= "")) then
                 rows[#rows + 1] = {
                     left = left or "", right = (right and right ~= "") and right or nil,
                     color = lc, rightColor = rc,
@@ -139,7 +152,7 @@ function Panel.CollectLines(tip, data)
             end
         end
     end
-    return rows, n
+    return n
 end
 
 ------------------------------------------------------------

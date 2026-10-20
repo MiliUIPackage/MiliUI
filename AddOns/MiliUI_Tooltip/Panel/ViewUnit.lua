@@ -12,6 +12,10 @@
 --   附屬框：別人後加的行（跟物品同一套，Panel.Option("extrasBox")）
 --   浮水印（panel.unitWatermark）：玩家陣營徽記、精英／稀有／首領的龍（暴雪目標框的圖），裁在面板內
 --
+-- 身分受限的單位（facts.restricted，見 ReadUnit.lua 檔頭）：名字與暴雪的其餘 None 行（類型、M+ 的那兩行…）是秘密字串
+-- ⇒ 標題區改成秘密行（Render 的 header secret 項：單行、不量寬，寬度照原生排好的寬留）；任務、主人、仇恨、
+-- M+ 進度這些秘密行一行一顆專用字。沒有「被誰當目標」（讀不到）。
+--
 -- 間距全部走 Render.lua 的同一套（PAD、ROW_GAP、RULE_SPACE…），標題區各行一律 UNIT_HEADER_GAP 等距。
 ------------------------------------------------------------
 local _, ns = ...
@@ -140,6 +144,24 @@ local function TargetSection(target)
             h = math.max(h, st.size + 2)
         end
         return y + h + m.rowGap
+    end
+    return section
+end
+
+-- 身分受限單位的秘密行（任務、主人、仇恨…）：一行一顆專用字（slot 帶前綴，同一面板上兩段不搶同一顆）、單行截斷。
+-- 量寬回 0：寬度由標題區決定，這幾行不撐寬
+local function SecretRowsSection(rows, prefix)
+    local section = { kind = "custom" }
+    section.measure = function() return 0 end
+    section.draw = function(panel, y, ctx)
+        local st, m = ctx.styles.body, ctx.m
+        for i, row in ipairs(rows) do
+            local indent = m.sc(row.indent or 0)
+            local h = Panel.SecretLine(panel, ctx, { value = row.value, slot = prefix .. i, color = row.color },
+                m.pad + indent, y, panel.width - 2 * m.pad - indent, st)
+            y = y + h + m.rowGap
+        end
+        return y
     end
     return section
 end
@@ -278,16 +300,26 @@ function Panel.ViewUnit(model)
     local color = f.color or LOOK.TEXT
     local gap = LOOK.UNIT_HEADER_GAP
 
-    local header = { { text = NameText(f), style = "name", color = color, gap = gap } }
-    if f.guild then
-        local text = "<" .. f.guild .. ">"
-        if f.guildRank then text = text .. " " .. Paint(f.guildRank, LOOK.SECONDARY) end
-        header[#header + 1] = { text = text, style = "body", color = Lighten(color, 0.5), gap = gap }
-    elseif model.npcTitle then
-        header[#header + 1] = { text = model.npcTitle, style = "body", color = Lighten(color, 0.5), gap = gap }
+    local header
+    if f.restricted then
+        -- 秘密字串：只交給 SetText
+        header = { { secret = true, value = f.name, slot = "name", style = "name", color = color, gap = gap } }
+        for i, line in ipairs(model.secretHeader or {}) do
+            header[#header + 1] = { secret = true, value = line.value, slot = "info" .. i, style = "body",
+                color = LOOK.DETAIL, gap = gap }
+        end
+    else
+        header = { { text = NameText(f), style = "name", color = color, gap = gap } }
+        if f.guild then
+            local text = "<" .. f.guild .. ">"
+            if f.guildRank then text = text .. " " .. Paint(f.guildRank, LOOK.SECONDARY) end
+            header[#header + 1] = { text = text, style = "body", color = Lighten(color, 0.5), gap = gap }
+        elseif model.npcTitle then
+            header[#header + 1] = { text = model.npcTitle, style = "body", color = Lighten(color, 0.5), gap = gap }
+        end
+        local info = InfoText(f, model)
+        if info then header[#header + 1] = { text = info, style = "body", color = LOOK.DETAIL, gap = gap } end
     end
-    local info = InfoText(f, model)
-    if info then header[#header + 1] = { text = info, style = "body", color = LOOK.DETAIL, gap = gap } end
     local badges = Badges(f, model)
     if #badges > 0 then header[#header + 1] = { badges = badges, style = "body", gap = gap } end
 
@@ -305,6 +337,24 @@ function Panel.ViewUnit(model)
     if #model.others > 0 then
         sections[#sections + 1] = { separator = first() and { divider = true } or { rule = true }, kind = "rows",
             rows = model.others, color = LOOK.DETAIL, wrap = true }
+    end
+    local secretOthers = model.secretOthers or {}
+    if #secretOthers > 0 then
+        local rows = {}
+        for i, r in ipairs(secretOthers) do rows[i] = { value = r.value, color = LOOK.DETAIL } end
+        local s = SecretRowsSection(rows, "other")
+        s.separator = first() and { divider = true } or { rule = true }
+        sections[#sections + 1] = s
+    end
+    local secretQuests = model.secretQuests or {}
+    if #secretQuests > 0 then
+        local rows = {}
+        for i, q in ipairs(secretQuests) do
+            rows[i] = q.title and { value = q.value, color = QUEST_TITLE } or { value = q.value, color = LOOK.DETAIL, indent = 8 }
+        end
+        local s = SecretRowsSection(rows, "quest")
+        s.separator = { divider = true }
+        sections[#sections + 1] = s
     end
     if #model.quests > 0 then
         local rows = {}
@@ -328,6 +378,7 @@ function Panel.ViewUnit(model)
         sections = sections,
         extras = { rows = model.extras },
         minWidth = LOOK.UNIT_MIN_W,
+        secretHint = f.restricted or nil,
         decorate = Watermark(f),
     }
 end

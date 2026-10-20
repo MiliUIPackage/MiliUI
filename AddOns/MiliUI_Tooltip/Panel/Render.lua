@@ -11,6 +11,8 @@
 --     badgeBelow = true,                      徽章改放圖示下方（單位：跟暴雪目標框一樣，等級在頭像底下）
 --     header = {                              依序，在圖示旁
 --         { text = "名字", style = "title", color = { r, g, b } },
+--         { secret = true, value = 秘密字串, slot = "name", style = "name", color = },   只交給 SetText、單行、不量寬
+--                                             （寬度：view.secretHint 開著時照原生排好的寬留位置，見 Native.ContentWidth）
 --         { badges = { { "被動", color }, { "等級 2/3" } }, style = "small" },   中間用 · 隔開
 --         { rows = { { left = , right = , color = , rightColor = } }, style = "body" },
 --     },
@@ -26,6 +28,7 @@
 --     footer = { rows = { ... }, style, color }   底部實心帶
 --             | { draw = function(panel, y, ctx) return y end, measure = function(panel, ctx) return w end },
 --     minWidth = 設計單位,
+--     secretHint = true,                     有秘密字串：照原生排好的寬替它們留位置（讀不到就只靠 minWidth，超寬截斷）
 --     decorate = function(panel, ctx) end,   全部畫完（寬高已定）之後再補的裝飾（單位的陣營浮水印）
 -- }
 --
@@ -179,6 +182,28 @@ function TextAtRaw(panel, ctx, text, x, y, width, style, color, justify)
     return math.max(style.size + 2, h)
 end
 Panel.TextAt = TextAt
+
+-- 秘密字串（身分受限單位的名字、生物類型、秘密行）：專用那一顆（Panel.SecretText，不進池）、單行、寬度給滿，
+-- 不量不讀——寫過秘密字串的字量寬高都回秘密。回傳佔掉的高（一行＝字級＋2，跟 TextAtRaw 的最小行高一致）
+local function SecretLine(panel, ctx, item, x, y, width, style, justify)
+    local fs = Panel.SecretText(panel, style, item.slot)
+    fs:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -y)
+    fs:SetWidth(width)
+    fs:SetJustifyH(justify or "LEFT")
+    local c = item.color or LOOK.TEXT
+    fs:SetTextColor(c[1], c[2], c[3])
+    fs:SetText(item.value or "")
+    return style.size + 2
+end
+Panel.SecretLine = SecretLine
+
+-- 秘密字串要留多寬：原生排好的文字寬換算成「每 1 點字級多寬」（RenderView 算好放 ctx.secretPerSize）× 這一行的字級。
+-- 原生的行跟面板的標題字同一個字型物件（GameTooltipHeaderText），字寬跟字級成正比、跟縮放無關（寬是各自框的單位）
+local function SecretWidth(ctx, style)
+    local k = ctx.secretPerSize
+    if not k then return 0 end
+    return math.min(ctx.m.maxW, k * style.size)
+end
 
 -- 一列：左欄（可換行）＋右欄（靠右、自動量寬）
 local function RowWidth(row, style, columnGap)
@@ -378,7 +403,9 @@ local function FitWidth(panel, ctx, view)
     local function consider(w) if w > need then need = w end end
     for _, item in ipairs(view.header or {}) do
         local style = StyleOf(ctx, item.style)
-        if item.text then
+        if item.secret then
+            consider(SecretWidth(ctx, style) + indent)
+        elseif item.text then
             consider(math.min(Panel.Measure(item.text, style), m.maxW) + indent)
         elseif item.badges and #item.badges > 0 then
             consider(Panel.Measure(BadgeText(item.badges), style) + indent)
@@ -675,6 +702,11 @@ function Panel.RenderView(panel, tip, view, state)
 
     local ctx = { m = Metrics(panel), styles = Panel.Styles(), accent = Accent(), tip = tip, state = state }
     local m = ctx.m
+    if view.secretHint and Panel.Native and Panel.Native.ContentWidth then
+        local cw = Panel.Native.ContentWidth(tip, state)
+        local ref = ctx.styles.title and ctx.styles.title.size
+        if cw and ref and ref > 0 then ctx.secretPerSize = cw / ref end
+    end
 
     -- 別人加的行：設定開著另開一框；關著接回 sections 尾端（細線分隔）。量寬兩種都算進去
     local extraRows = view.extras and view.extras.rows
@@ -722,7 +754,10 @@ function Panel.RenderView(panel, tip, view, state)
     for i, item in ipairs(header) do
         local style = StyleOf(ctx, item.style)
         local gap = (i < #header) and (item.gap and m.sc(item.gap) or m.headerGap) or 0
-        if item.text then
+        if item.secret then
+            local w = inner - ((i == 1) and closeW or 0)
+            y = y + SecretLine(panel, ctx, item, m.pad + indent, y, w, style) + gap
+        elseif item.text then
             -- 第一行要讓開關閉鈕
             local w = inner - ((i == 1) and closeW or 0)
             y = y + TextAt(panel, ctx, item.text, m.pad + indent, y, w, style, item.color) + gap

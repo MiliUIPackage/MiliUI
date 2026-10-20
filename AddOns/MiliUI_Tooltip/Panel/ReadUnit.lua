@@ -3,14 +3,25 @@
 --
 -- 跟物品／法術同一條「重繪面板」管線（Try.lua），差在三件事：
 --   1. 入口 Panel.TryUnit：先問開關（玩家／NPC 各一個；兩個都關＝Hooks 連這支都不叫，零成本）、
---      解析出**明文**的單位 token、問身分是不是秘密（C_Secrets.ShouldUnitIdentityBeSecret）。
---      任何一步不行 ⇒ 不接，舊樣式（Modules/UnitLines.lua 就地改寫）照常跑。
+--      解析出**明文**的單位 token、問身分是不是秘密（C_Secrets.ShouldUnitIdentityBeSecret）——受限就走下面的受限畫法。
+--      拿不到明文 token ⇒ 不接，舊樣式（Modules/UnitLines.lua 就地改寫）照常跑。
 --   2. 面板接手時**不改寫暴雪的行**（舊樣式那條才寫）：reader 讀到的是暴雪原樣的行，認法比較單純；
 --      別人後加的行（lineIndex 不在 data 裡）照物品的規矩進附屬框。
 --   3. 目標、死亡、暫離這些不在行裡 ⇒ Panel.UnitDynamic 給一段簽章，輪詢比它（Try.lua）。
 --
--- 秘密值：面板只畫明文。身分受限（副本戰鬥、跨服陌生人…）時 C_TooltipInfo 整組是秘密值、CollectLines 回 nil，
--- 走舊樣式；唯一的例外是**目標的名字**——單位本身明文、它的目標受限時，名字原封不動交給 SetText（ViewUnit 的目標列）。
+-- 秘密值：明文單位的面板只畫明文；它的**目標的名字**受限時原封不動交給 SetText（ViewUnit 的目標列）。
+--
+-- 身分受限的單位（2026-10-21 起也接；探針 _MiliProbe_SecretUnit 在副本與 M+（含戰鬥、首領戰）實測，進副本就受限）：
+--   * GUID、名字、生物類型、PvP 是秘密；等級、分類、立場、被搶怪、死亡、是否存在是明文
+--   * GetUnit 的 token 是秘密字串，餵 UnitLevel 這些會被擋（Usage 錯誤）⇒ 世界游標的提示改用明文 "mouseover"
+--   * 提示行的文字、顏色是秘密，type／lineIndex 是明文。NPC 的等級行、類型行、PvP 行都是 type 0（None）：
+--     認不出哪一行是哪一行，但順序固定——名字後的第一個 None 行是等級行（面板用等級底板＋分類徽章畫），
+--     其餘 None 行照順序原封不動交給 SetText 放在標題區（類型行只有部分生物有；M+ 的怪多兩行）。
+--     認得出型別的（任務、主人、仇恨、M+ 敵軍部隊的進度 type 50）一樣原封不動交給 SetText
+--   * 原生 GameTooltip 的幾何（GetPoint／寬高／padding）一直是明文（戰鬥、首領戰也是）⇒ 替身照常撐、照常對齊；
+--     秘密字串的寬照原生排好的寬留
+--   ⇒ 標題區：頭像、等級底板、名字（秘密、單行）、暴雪的其餘 None 行（秘密、單行）、分類／立場／死亡徽章。
+--     頭銜（極少見）會被當成等級行吃掉；「被誰當目標」比不了單位，不畫
 --
 -- 純邏輯 Panel.ReadUnitRows(rows, facts) 吃 CollectLines 的 rows ＋ 已經讀好的事實，可離線測。
 ------------------------------------------------------------
@@ -154,9 +165,18 @@ local function GuidOf(token)
     return S.PlainText((S.SafeCall(UnitGUID, token)))
 end
 
+-- 回傳 token, guid, restricted。restricted＝身分受限（data 的 GUID 是秘密）：guid 是 nil，只能靠明文 token——
+-- 明文的就用它（目標框、首領框）；秘密的（世界游標）用 mouseover 代替：世界游標的提示就是游標下那一隻，
+-- 而受限時 GUID、UnitIsUnit 都比不了，沒有別的辦法確認
 function Panel.UnitToken(unit, data)
-    local guid = type(data) == "table" and S.PlainText(data.guid) or nil
+    local rawGuid = type(data) == "table" and data.guid or nil
+    local guid = S.PlainText(rawGuid)
     local plain = S.PlainText(unit)
+    if S.IsSecret(rawGuid) then
+        if plain and plain ~= "" then return plain, nil, true end
+        if S.IsSecret(unit) and S.SafeBool(UnitExists, "mouseover") then return "mouseover", nil, true end
+        return nil
+    end
     if plain and plain ~= "" then
         if not guid or GuidOf(plain) == guid then return plain, guid end
     end
@@ -191,26 +211,31 @@ function Panel.UnitWanted()
 end
 
 function Panel.TryUnit(tip, state, unit, data)
-    local token, guid = Panel.UnitToken(unit, data)
-    if not token or not guid then return Restore(tip, state) end
+    local token, guid, restricted = Panel.UnitToken(unit, data)
+    if not token or not (guid or restricted) then return Restore(tip, state) end
     local isPlayer = S.SafeBool(UnitIsPlayer, token)
     local config = ns.db.unit[isPlayer and "player" or "npc"]
     if not (config and config.panel) then return Restore(tip, state) end
-    -- 剛從面板退回舊樣式的同一個單位：1 秒內不再接（不然「退回 → Show 重跑 → 又接 → 又退」來回）
-    if state.unitBlockKey == "unit:" .. guid and GetTime() < (state.unitBlockUntil or 0) then
+    -- GUID 讀得到、但 C_Secrets 說身分受限（秘密布林、問不到都算）：一樣走受限的畫法
+    if not restricted and IdentitySecret(token) then restricted, guid = true, nil end
+    -- 剛從面板退回舊樣式的同一個單位：1 秒內不再接（不然「退回 → Show 重跑 → 又接 → 又退」來回）。
+    -- 受限的單位沒有 GUID ⇒ 共用一把
+    local blockKey = restricted and Panel.UNIT_BLOCK_RESTRICTED or ("unit:" .. guid)
+    if state.unitBlockKey == blockKey and GetTime() < (state.unitBlockUntil or 0) then
         return Restore(tip, state)
     end
-    if IdentitySecret(token) then return Restore(tip, state) end
-    state.panelUnit, state.panelGuid = token, guid
+    state.panelUnit, state.panelGuid, state.panelRestricted = token, guid, restricted or nil
     return Panel.Try(tip, state, "unit", data)
 end
 
--- 單位不在了（滑開、淡出中、token 換人了）：面板維持最後的畫面，不重讀
+-- 單位不在了（滑開、淡出中、token 換人了）：面板維持最後的畫面，不重讀。
+-- 受限的單位 GUID 是秘密：只能確定還存在（換成另一隻時暴雪會重設提示、post-call 照新的一隻重畫）
 function Panel.UnitGone(state)
     local token = state.panelUnit
     if not token then return true end
     local exists = S.SafeCall(UnitExists, token)
-    if exists ~= nil and not S.IsSecret(exists) and not exists then return true end
+    if not S.IsSecret(exists) and exists ~= nil and not exists then return true end
+    if state.panelRestricted then return false end
     local guid = GuidOf(token)
     return guid == nil or guid ~= state.panelGuid
 end
@@ -457,6 +482,151 @@ function Panel.UnitFacts(token, config)
 end
 
 ------------------------------------------------------------
+-- 身分受限的單位：只叫受限時仍明文的 API（API 文件沒有秘密旗標、探針實測明文），名字原封不動帶著
+-- （f.name 是秘密字串，只交給 SetText；f.restricted 讓 ViewUnit 走秘密的畫法）。生物類型不從 API 畫：
+-- 暴雪自己的類型行（有的話）跟著 None 行原封不動畫出來，兩邊都畫會重複
+-- 不走 UnitInfo.GetUnitInfo：那支會拿名字、伺服器、職業去查表／比對，餵秘密值不保證安全。
+-- 元素開關的顯示條件（filterfunc）只讀 raw 的立場、伺服器、公會，這裡給一張只有明文欄位的 raw
+------------------------------------------------------------
+local function Plain(fn, ...)
+    local v = S.SafeCall(fn, ...)
+    if S.IsSecret(v) then return nil end
+    return v
+end
+
+function Panel.UnitFactsRestricted(token, config)
+    local level = S.PlainNumber(Plain(UnitLevel, token))
+    local effective = S.PlainNumber(Plain(UnitEffectiveLevel, token)) or level
+    local reaction = S.PlainNumber(Plain(UnitReaction, token, "player"))
+    local classif = S.PlainText(Plain(UnitClassification, token))
+    local raw = { unit = token, level = level, effectiveLevel = effective, reaction = reaction, classif = classif }
+    local UnitInfo = ns.UnitInfo
+    local showAll = UnitInfo.ModifierShowAll(config)
+    local el = config.elements or {}
+    local function on(key)
+        local c = el[key]
+        return c ~= nil and UnitInfo.CheckFilter(c, raw, showAll) and true or false
+    end
+    local isPlayer = S.SafeBool(UnitIsPlayer, token)
+    local f = { restricted = true, isPlayer = isPlayer, showAll = showAll, classifPlain = classif }
+    f.name = S.SafeCall(UnitName, token)
+    if f.name == nil then return nil end
+    if on("levelValue") and level then
+        f.level = level
+        f.levelColor = DifficultyColor(level == -1 and -1 or effective)
+    end
+    if not isPlayer then
+        if level == -1 or classif == "worldboss" then
+            if on("classifBoss") then f.classif = "boss" end
+        elseif classif == "rareelite" then
+            f.classif = on("classifRare") and (on("classifElite") and "rareelite" or "rare") or (on("classifElite") and "elite") or nil
+        elseif classif == "rare" then
+            if on("classifRare") then f.classif = "rare" end
+        elseif classif == "elite" then
+            if on("classifElite") then f.classif = "elite" end
+        end
+        if on("reactionName") and reaction then f.reactionName = S.PlainText(_G["FACTION_STANDING_LABEL" .. reaction]) end
+        f.tapped = S.SafeBool(UnitIsTapDenied, token)
+    end
+    f.dead = S.SafeBool(UnitIsDeadOrGhost, token)
+
+    -- 顏色：立場（UnitPlayerControlled／UnitCanAttack／UnitReaction 都是明文）；邊框照設定，職業色讀不到就是預設白
+    local r, g, b = ns.Colors.UnitColor(token)
+    f.color = ColorTable(ns.Colors.Readable(r, g, b)) or { 1, 1, 1 }
+    if f.tapped then f.color = { 0.6, 0.6, 0.6 } end
+    local token2 = config.coloredBorder
+    local cf = token2 and ns.Colors.colorfunc[token2]
+    if cf then
+        f.border = ColorTable(cf(raw))
+    elseif type(token2) == "string" and token2:match("^%x%x%x%x%x%x$") then
+        f.border = { ns.Colors.FromHex(token2) }
+    end
+    if config.grayForDead and f.dead then
+        f.gray = true
+        f.color = { 0.6, 0.6, 0.6 }
+        f.border = { 0.6, 0.6, 0.6 }
+        if f.levelColor then f.levelColor = { 0.6, 0.6, 0.6 } end
+    end
+    -- 目標：存在與否是明文、名字秘密（Target 已經會交給 SetText）；被誰當目標要比單位 ⇒ 受限時一定是秘密，不畫
+    if config.showTarget then f.target = Target(token) end
+    return f
+end
+
+------------------------------------------------------------
+-- 身分受限單位的行：文字與顏色是秘密，type／lineIndex 是明文（2026-10-21 探針）。
+-- 文字原封不動帶著（row.secretText，只交給 SetText；row.left 留空字串給指紋用）；空行、分隔線不收。
+-- 別人後加的行讀得到明文才收（讀到秘密只跳過那一行）
+------------------------------------------------------------
+local RESTRICTED_USE
+local function RestrictedUse()
+    if RESTRICTED_USE then return RESTRICTED_USE end
+    RESTRICTED_USE = {}
+    local function use(name, how) if LT[name] then RESTRICTED_USE[LT[name]] = how end end
+    use("None", "none")
+    use("QuestTitle", "questTitle")
+    use("QuestObjective", "quest")
+    use("QuestPlayer", "quest")
+    use("UnitOwner", "other")
+    use("UnitThreat", "other")
+    use("UnitCriteriaProgress", "other")
+    return RESTRICTED_USE
+end
+
+function Panel.CollectRestrictedLines(tip, data)
+    if type(data) ~= "table" then return end
+    local lines = data.lines
+    if type(lines) ~= "table" or S.IsSecret(lines) then return end
+    local okName, name = pcall(tip.GetName, tip)
+    name = okName and S.PlainText(name)
+    if not name then return end
+    local use = RestrictedUse()
+    local rows, covered = {}, {}
+    for _, line in ipairs(lines) do
+        if type(line) ~= "table" or S.IsSecret(line) then return end
+        local lineType, index = line.type, line.lineIndex
+        if S.IsSecret(lineType) or S.IsSecret(index) then return end
+        if type(index) == "number" then covered[index] = true end
+        local how = lineType ~= nil and use[lineType]
+        if how then
+            rows[#rows + 1] = { left = "", type = lineType, lineIndex = index, use = how, secretText = line.leftText }
+        end
+    end
+    local n = Panel.CollectAppended(tip, name, covered, rows, true)
+    if not n then return end
+    return rows, n
+end
+
+-- rows（CollectRestrictedLines）→ model：第一個 None 行（等級行）丟掉、其餘 None 行進標題區（secretHeader），
+-- 任務一段、其他（主人、仇恨、M+ 進度）一段，別人的行進附屬框
+function Panel.ReadRestrictedUnitRows(rows, facts, hideHint)
+    local w = Words()
+    local model = { facts = facts, quests = {}, others = {}, extras = {}, skin = {},
+        secretHeader = {}, secretQuests = {}, secretOthers = {} }
+    local levelSeen = false
+    for _, row in ipairs(rows) do
+        if row.appended then
+            local text = Strip(row.left)
+            if (text ~= "" or (row.right and row.right ~= "")) and not (hideHint and w.hint and text == w.hint) then
+                model.extras[#model.extras + 1] = row
+            end
+        elseif row.use == "none" then
+            if levelSeen then
+                model.secretHeader[#model.secretHeader + 1] = { value = row.secretText }
+            else
+                levelSeen = true          -- 等級行：面板的等級底板＋分類徽章已經畫了
+            end
+        elseif row.use == "questTitle" then
+            model.secretQuests[#model.secretQuests + 1] = { value = row.secretText, title = true }
+        elseif row.use == "quest" then
+            model.secretQuests[#model.secretQuests + 1] = { value = row.secretText }
+        elseif row.use == "other" then
+            model.secretOthers[#model.secretOthers + 1] = { value = row.secretText }
+        end
+    end
+    return model
+end
+
+------------------------------------------------------------
 -- 設定視窗的 NPC 預覽：沒有能 SetUnit 的 NPC ⇒ 從假 raw（Options/Preview.lua）組 model，元素開關照樣生效
 ------------------------------------------------------------
 function Panel.UnitPreviewModel(raw, config, icon)
@@ -492,9 +662,17 @@ Panel.readers.unit = function(tip, data, _, rows, n, state)
     local token = state.panelUnit
     local isPlayer = S.SafeBool(UnitIsPlayer, token)
     local config = ns.db.unit[isPlayer and "player" or "npc"]
-    local facts = Panel.UnitFacts(token, config)
-    if not facts then return end
-    local model = Panel.ReadUnitRows(rows, facts, ns.db.general and ns.db.general.hideUnitFrameHint)
+    local hideHint = ns.db.general and ns.db.general.hideUnitFrameHint
+    local facts, model
+    if state.panelRestricted then
+        facts = Panel.UnitFactsRestricted(token, config)
+        if not facts then return end
+        model = Panel.ReadRestrictedUnitRows(rows, facts, hideHint)
+    else
+        facts = Panel.UnitFacts(token, config)
+        if not facts then return end
+        model = Panel.ReadUnitRows(rows, facts, hideHint)
+    end
     model.kind, model.numLines, model.rows = "unit", n, rows
     model.unit, model.guid = token, state.panelGuid
     if not facts.npcTitleOn then model.npcTitle = nil end

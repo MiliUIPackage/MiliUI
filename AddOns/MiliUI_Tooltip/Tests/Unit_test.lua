@@ -23,7 +23,8 @@ local GS = {
     AFK = "離開", DND = "忙碌", YOU = "你", ZONE = "區域", MAP_LEGEND_RARE = "稀有", MAP_LEGEND_RAREELITE = "稀有精英",
 }
 
-local LT_EXTRA = { UnitThreat = 7, QuestObjective = 8, UnitOwner = 16, QuestTitle = 17, QuestPlayer = 18 }
+local LT_EXTRA = { UnitThreat = 7, QuestObjective = 8, UnitOwner = 16, QuestTitle = 17, QuestPlayer = 18,
+    UnitCriteriaProgress = 50 }
 
 local PLAYER_GUID, NPC_GUID, TARGET_GUID = "Player-1-0001", "Creature-0-1-2-3-4-5", "Creature-0-1-2-3-9-9"
 
@@ -35,17 +36,22 @@ local function Setup(opts)
     env.RAID_CLASS_COLORS.WARLOCK = { r = 0.53, g = 0.53, b = 0.93 }
     env.RAID_CLASS_COLORS.PALADIN = { r = 0.96, g = 0.55, b = 0.73 }
     -- 單位世界：mouseover＝玩家或 NPC；它的目標可以換
+    -- opts.restricted：身分受限（副本裡的 NPC，2026-10-21 探針實測）——GUID、名字、生物類型秘密；等級、分類、立場明文
     local world = {
         mouseover = opts.npc and NPC_GUID or PLAYER_GUID,
         target = TARGET_GUID, targetName = "旅店老闆奧里森",
-        identitySecret = false, dead = false, afk = false,
+        identitySecret = opts.restricted or false, dead = false, afk = false,
     }
     env.world = world
     env.UnitGUID = function(u)
-        if u == "mouseover" then return world.mouseover end
-        if u == "mouseovertarget" then return world.target end
+        if u == "mouseover" then return opts.restricted and world.mouseover and SECRET or world.mouseover end
+        if u == "mouseovertarget" then return opts.restricted and world.target and SECRET or world.target end
         if u == "player" then return "Player-1-SELF" end
     end
+    env.UnitLevel = function(u) if u == "mouseover" then return world.level or 91 end end
+    env.UnitEffectiveLevel = env.UnitLevel
+    env.UnitClassification = function(u) if u == "mouseover" then return world.classif or "elite" end end
+    env.UnitCreatureType = function(u) if u == "mouseover" then return opts.restricted and SECRET or "人型生物" end end
     env.UnitExists = function(u)
         if u == "mouseover" then return world.mouseover ~= nil end
         if u == "mouseovertarget" then return world.target ~= nil end
@@ -55,7 +61,10 @@ local function Setup(opts)
     env.UnitName = function(u)
         if u == "mouseovertarget" then return world.targetName end
         if u == "player" then return "米利" end
-        if u == "mouseover" then return opts.npc and "狡猾的莫加尼" or "Lokospoks" end
+        if u == "mouseover" then
+            if opts.restricted then return SECRET end
+            return opts.npc and "狡猾的莫加尼" or "Lokospoks"
+        end
     end
     env.UnitClass = function(u) if u == "player" then return "聖騎士", "PALADIN" end; return "術士", "WARLOCK" end
     env.UnitIsUnit = function(a, b) return a == b end
@@ -156,7 +165,21 @@ local function Setup(opts)
 
     local LT = env.Enum.TooltipDataLineType
     local lines, data
-    if opts.npc then
+    if opts.restricted then
+        -- 探針實測的形狀：文字、顏色秘密，type／lineIndex 明文；等級行、類型行都是 type 0
+        lines = {
+            { left = SECRET }, { left = SECRET }, { left = SECRET }, { left = SECRET }, { left = SECRET },
+            { left = "Press NUMPAD9 to submit an issue" },   -- 別人後加的（明文）
+            { left = SECRET },                               -- 別人後加、讀到秘密：只跳過這一行
+        }
+        data = { guid = SECRET, lines = {
+            { type = LT.UnitName, lineIndex = 1, leftText = SECRET, leftColor = SECRET },
+            { type = 0, lineIndex = 2, leftText = SECRET, leftColor = SECRET },
+            { type = 0, lineIndex = 3, leftText = SECRET, leftColor = SECRET },
+            { type = LT.QuestTitle, lineIndex = 4, leftText = SECRET, leftColor = SECRET },
+            { type = LT.QuestObjective, lineIndex = 5, leftText = SECRET, leftColor = SECRET },
+        } }
+    elseif opts.npc then
         lines = {
             { left = "狡猾的莫加尼" }, { left = "<迪菲亞兄弟會>" }, { left = "等級 10 人型生物（稀有）" },
             { left = "可剝皮" }, { left = "盜賊頭子" },
@@ -294,14 +317,19 @@ do
     check("秘密行：不接", not t.P.TryUnit(t.tip, t.state, "mouseover", t.data))
     eq("秘密行：沒碰 alpha", t.tip.alphaCalls, nil)
 
+    -- GUID 明文、C_Secrets 卻說受限：走受限的畫法（不讀行文字）
     local t2 = Setup()
     t2.world.identitySecret = true
-    check("身分受限：不接", not t2.P.TryUnit(t2.tip, t2.state, "mouseover", t2.data))
-    eq("身分受限：沒畫", t2.renders(), 0)
+    check("身分受限（GUID 明文）：走受限畫法", t2.P.TryUnit(t2.tip, t2.state, "mouseover", t2.data))
+    check("身分受限（GUID 明文）：標成受限", t2.state.panelRestricted)
+    eq("身分受限（GUID 明文）：不記 GUID", t2.state.panelGuid, nil)
 
+    -- GUID 秘密、token 秘密、游標下也沒有單位：找不到明文 token ⇒ 不接
     local t3 = Setup()
     t3.data.guid = SECRET
-    check("GUID 秘密：不接", not t3.P.TryUnit(t3.tip, t3.state, SECRET, t3.data))
+    t3.world.mouseover = nil
+    check("GUID 秘密、沒有 mouseover：不接", not t3.P.TryUnit(t3.tip, t3.state, SECRET, t3.data))
+    eq("GUID 秘密、沒有 mouseover：沒畫", t3.renders(), 0)
 
     local t4 = Setup({ secretName = true })
     check("名字秘密：不接", not t4.P.TryUnit(t4.tip, t4.state, "mouseover", t4.data))
@@ -535,6 +563,106 @@ do
         if t.env.issecretvalue(panel.texts[i]:GetStringHeight()) then measurable = false end
     end
     check("重畫後：池裡每一顆都量得出高度", measurable)
+end
+
+------------------------------------------------------------
+-- 6. 身分受限的 NPC（副本裡，2026-10-21 探針實測的形狀）：秘密名字／類型交給專用字、明文的等級分類照畫、
+--    None 行不畫、任務行原封不動、別人的明文行進附屬框；寬度照原生排好的寬留；對帳不退；退回時封鎖受限那一把
+------------------------------------------------------------
+do
+    local function Pooled(panel, fs)
+        for _, p in ipairs(panel.texts) do if p == fs then return true end end
+        return false
+    end
+    local t = Setup({ npc = true, restricted = true })
+    t.world.targetName = SECRET
+    check("受限：接（秘密 token 用 mouseover 代替）", t.P.TryUnit(t.tip, t.state, SECRET, t.data))
+    eq("受限：明文 token", t.state.panelUnit, "mouseover")
+    check("受限：標成受限", t.state.panelRestricted)
+    eq("受限：原生 alpha 0", t.tip.alpha, 0)
+    local panel = t.state.panel
+    check("受限：面板顯示", panel.shown)
+    local st = panel.secretTexts or {}
+    local name = st.name
+    check("受限：名字原封不動交給 SetText", name and rawequal(name.text, SECRET))
+    check("受限：名字那顆不跟池借", name and not Pooled(panel, name))
+    check("受限：名字是立場色", name and name.textColor and math.abs(name.textColor[1] - 0.8) < 0.3)
+    check("受限：第二個 None 行（類型）原封不動進標題區", st.info1 and rawequal(st.info1.text, SECRET))
+    check("受限：第一個 None 行（等級行）不畫", st.info2 == nil)
+    eq("受限：等級底板（明文）", panel.badgeText.text, "91")
+    check("受限：精英徽章（明文分類）", FindTextLike(panel, "精英"))
+    check("受限：任務標題", st.quest1 and rawequal(st.quest1.text, SECRET))
+    check("受限：任務目標", st.quest2 and rawequal(st.quest2.text, SECRET))
+    check("受限：沒有其他段", st.other1 == nil)
+    check("受限：別人的明文行在附屬框", panel.extrasBox and panel.extrasBox.shown)
+    check("受限：秘密目標名字", t.state.panelTargetFS and rawequal(t.state.panelTargetFS.text, SECRET))
+    local measurable = true
+    for i = 1, panel.textsUsed do
+        if t.env.issecretvalue(panel.texts[i]:GetStringHeight()) then measurable = false end
+    end
+    check("受限：池裡每一顆都量得出高度", measurable)
+
+    -- 同一隻又進 post-call（提示刷新）：重畫，寬度不因為原生被撐大而越長越寬（ContentWidth 扣掉自己撐的 padding）
+    local w1 = panel.width
+    t.env.FlushTimers()
+    check("受限：對帳後還顯示", panel.shown)
+    t.P.TryUnit(t.tip, t.state, SECRET, t.data)
+    t.env.FlushTimers()
+    eq("受限：重畫寬度不漂", panel.width, w1)
+
+    -- 原生排得比較寬（長名字）⇒ 面板替名字留寬
+    local t2 = Setup({ npc = true, restricted = true })
+    t2.tip.w = 600
+    t2.P.TryUnit(t2.tip, t2.state, SECRET, t2.data)
+    check("受限：原生寬 ⇒ 面板跟著寬", t2.state.panel.width > w1)
+    local nameFS = t2.state.panel.secretTexts.name
+    check("受限：名字那一欄寬度給滿", nameFS.w and nameFS.w > 300)
+
+    -- 原生的幾何是秘密（探針只量過脫戰；戰鬥中若變秘密）⇒ 替身撐不了，不接、alpha 寫回（舊樣式照跑）
+    local t3 = Setup({ npc = true, restricted = true })
+    t3.tip.GetWidth = function() return SECRET end
+    check("受限：原生寬是秘密 ⇒ 不接", not t3.P.TryUnit(t3.tip, t3.state, SECRET, t3.data))
+    eq("受限：原生寬是秘密 ⇒ alpha 寫回", t3.tip.alpha, 1)
+
+    -- 對帳時行的型別變秘密 ⇒ 退回、封鎖受限那一把 1 秒
+    local t4 = Setup({ npc = true, restricted = true })
+    t4.state.isUnitTip = true      -- （Hooks 設的；這裡直接看 Restore 的分支）
+    t4.P.TryUnit(t4.tip, t4.state, SECRET, t4.data)
+    t4.data.lines[2].type = SECRET
+    t4.state.panelFingerprint = nil
+    t4.P.Reconcile(t4.tip, t4.state)
+    check("受限：型別變秘密 ⇒ 面板收起", not t4.state.panel.shown)
+    eq("受限：退回封鎖受限那一把", t4.fallbacks[1] and t4.fallbacks[1].key, t4.P.UNIT_BLOCK_RESTRICTED)
+    t4.state.unitBlockKey, t4.state.unitBlockUntil = t4.P.UNIT_BLOCK_RESTRICTED, 1     -- （UnitFallback 設的）
+    t4.data.lines[2].type = 0
+    check("受限：封鎖中不接", not t4.P.TryUnit(t4.tip, t4.state, SECRET, t4.data))
+    t4.env.now = 2
+    check("受限：封鎖過了再接", t4.P.TryUnit(t4.tip, t4.state, SECRET, t4.data))
+
+    -- 換成明文的單位：受限的旗標清掉、走一般路徑
+    local t5 = Setup({ npc = true, restricted = true })
+    t5.P.TryUnit(t5.tip, t5.state, SECRET, t5.data)
+    t5.P.Restore(t5.tip, t5.state)
+    eq("受限：退回清掉旗標", t5.state.panelRestricted, nil)
+
+    -- M+ 小怪的實際形狀（2026-10-21 納羅拉克之穴，戰鬥中）：名字、四個 None、敵軍部隊進度（50）、仇恨（7）
+    local t6 = Setup({ npc = true, restricted = true })
+    local LT = t6.env.Enum.TooltipDataLineType
+    local mplus = { { type = LT.UnitName, lineIndex = 1, leftText = SECRET, leftColor = SECRET } }
+    for i = 2, 5 do mplus[i] = { type = 0, lineIndex = i, leftText = SECRET, leftColor = SECRET } end
+    mplus[6] = { type = LT.UnitCriteriaProgress, lineIndex = 6, leftText = SECRET, leftColor = SECRET }
+    mplus[7] = { type = LT.UnitThreat, lineIndex = 7, leftText = SECRET, leftColor = SECRET }
+    t6.data.lines = mplus
+    local tipLines = {}
+    for i = 1, 7 do tipLines[i] = { left = SECRET } end
+    t6.tip:SetLines(tipLines)
+    check("M+：接", t6.P.TryUnit(t6.tip, t6.state, SECRET, t6.data))
+    local s6 = t6.state.panel.secretTexts or {}
+    check("M+：等級行之後的三個 None 行都在標題區", s6.info1 and s6.info2 and s6.info3 and not s6.info4)
+    check("M+：敵軍部隊進度留著", s6.other1 and rawequal(s6.other1.text, SECRET) and s6.other1.shown)
+    check("M+：仇恨留著", s6.other2 and rawequal(s6.other2.text, SECRET))
+    -- 名字那一欄至少要有原生排好的寬：秘密行不量寬，寬度全靠它
+    check("M+：標題的秘密行寬度給滿", s6.info1 and s6.name and s6.info1.w == s6.name.w)
 end
 
 H.finish("Unit_test")

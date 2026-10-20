@@ -31,6 +31,9 @@
 --   * 面板顯示時把血條／3D 模型改貼到面板（skin 跟著原生 alpha 0 看不見）；退回時貼回 skin
 --   * 不在 post-call 裡退回（例如對帳讀到秘密值）時，原生行是暴雪的原樣（面板路徑不改寫行）⇒
 --     Panel.UnitFallback 重跑一次舊樣式（Core/Hooks.lua）
+--   * 身分受限的單位（state.panelRestricted，2026-10-21）：行的文字是秘密 ⇒ 改用只認型別的收法
+--     （Panel.CollectRestrictedLines）；GUID 是秘密 ⇒ Key 是 nil，每次 post-call 都當新的一隻重畫
+--     （滑鼠從一隻怪移到另一隻，token 都是 mouseover，分不出是不是同一隻）
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -137,6 +140,17 @@ local function Shown(tip)
     return ok and not S.IsSecret(shown) and shown and true or false
 end
 
+-- 讀行：身分受限的單位只認型別（ReadUnit.lua），其他照 CollectLines（任何秘密就整份放棄）
+local function Collect(tip, state, kind, data)
+    if kind == "unit" and state.panelRestricted and Panel.CollectRestrictedLines then
+        return Panel.CollectRestrictedLines(tip, data)
+    end
+    return Panel.CollectLines(tip, data)
+end
+
+-- 身分受限的單位沒有 GUID 可當退回封鎖的 key：同一類共用一把（Core/Hooks.lua 的 UnitFallback、ReadUnit 的 TryUnit）
+Panel.UNIT_BLOCK_RESTRICTED = "unit:restricted"
+
 local function Now()
     return GetTime and GetTime() or 0
 end
@@ -149,7 +163,7 @@ local restoringAll = false      -- Panel.RestoreAll 進行中（設定改了）�
 function Panel.Restore(tip, state)
     if not state then return end
     local wasUnit = state.panelKind == "unit" and (state.native or (state.panel and state.panel:IsShown()))
-    local unitKey = wasUnit and state.panelKey
+    local unitKey = wasUnit and (state.panelKey or (state.panelRestricted and Panel.UNIT_BLOCK_RESTRICTED))
     state.releasePending = nil
     state.hidePending = nil
     state.reconcileToken = (state.reconcileToken or 0) + 1    -- 排著的 Reconcile 作廢
@@ -161,6 +175,7 @@ function Panel.Restore(tip, state)
     state.nativeSettledW, state.nativeSettledH = nil, nil
     state.panelData, state.panelKind, state.panelLines = nil, nil, nil
     state.panelLineFingerprint, state.panelDyn, state.panelUnit, state.panelGuid = nil, nil, nil, nil
+    state.panelRestricted = nil
     state.panelBorder, state.panelTargetFS = nil, nil
     if state.panelPolling then
         state.panelPolling = nil
@@ -306,7 +321,7 @@ function Reconcile(tip, state)
     -- 單位已經不在（滑鼠離開、提示淡出中）：維持最後的畫面，不重讀
     if state.panelKind == "unit" and Panel.UnitGone and Panel.UnitGone(state) then return end
 
-    local rows, n = Panel.CollectLines(tip, state.panelData)
+    local rows, n = Collect(tip, state, state.panelKind, state.panelData)
     if not rows then
         Panel.Restore(tip, state)
         return
@@ -439,7 +454,7 @@ function Panel.Try(tip, state, dataType, data)
     end
 
     -- 新物件：立刻畫
-    local rows, n = Panel.CollectLines(tip, data)
+    local rows, n = Collect(tip, state, kind, data)
     if not rows then
         Panel.Restore(tip, state)
         return false

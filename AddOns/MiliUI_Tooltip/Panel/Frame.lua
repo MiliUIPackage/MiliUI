@@ -313,13 +313,17 @@ end
 -- 之後 GetStringHeight／GetStringWidth 永遠回秘密值（清 aspect 的 SetToDefaults 是保護函式，插件叫不動）。
 -- 池裡的字借出去畫秘密名字再還回來，下一個借到它的段落量高拿到秘密 ⇒ 當成 0 只留一行 ⇒ 換行的部分跟下一段疊在一起
 -- （2026-10-20 實機：團本裡滑過單位之後，骰裝寶箱的說明黃字被「內含下列任一物品」蓋住）
-function Panel.SecretText(panel, style)
-    local fs = panel.secretText
+-- slot：同一面板上各自一顆（目標列 "target"；身分受限單位的名字、生物類型、秘密行各有自己的）。只增不刪，Clear 只藏。
+-- 一律單行不換行：量不出高度，版面照字級算一行高；超寬由引擎截斷
+function Panel.SecretText(panel, style, slot)
+    panel.secretTexts = panel.secretTexts or {}
+    slot = slot or "target"
+    local fs = panel.secretTexts[slot]
     if not fs then
         fs = panel:CreateFontString(nil, "OVERLAY")
         fs:SetJustifyV("TOP")
         fs:SetWordWrap(false)
-        panel.secretText = fs
+        panel.secretTexts[slot] = fs
     end
     Panel.ApplyFont(fs, style)
     fs:ClearAllPoints()
@@ -354,7 +358,7 @@ function Panel.Clear(panel)
     for i = 1, #panel.texts do panel.texts[i]:Hide() end
     for i = 1, #panel.textures do panel.textures[i]:Hide() end
     panel.textsUsed, panel.texturesUsed = 0, 0
-    if panel.secretText then panel.secretText:Hide() end
+    for _, fs in pairs(panel.secretTexts or {}) do fs:Hide() end
     panel.icon:Hide()
     panel.iconBorder:Hide()
     panel.badge:Hide()

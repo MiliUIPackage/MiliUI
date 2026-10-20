@@ -51,6 +51,20 @@ local function ReadPadding(tip)
     return r, b, l, t
 end
 
+-- 原生排好的文字寬（自然寬扣掉我們撐的 padding、扣掉左右內距）。身分受限單位的名字是秘密字串、我們量不出寬，
+-- 但暴雪在引擎端替原生排好了版、原生的寬是明文（2026-10-21 探針：副本裡 GetWidth／GetPoint／GetPadding 全是明文）
+-- ⇒ 面板照它替秘密字串留位置。原生最寬的那一行不一定是名字，所以只會留多、不會留少。讀不到回 nil
+local NATIVE_TEXT_INSET = 20          -- 原生的行左右各留 10（GameTooltip 的第一行從 10,-10 起排）
+function Native.ContentWidth(tip, state)
+    local okW, w = pcall(tip.GetWidth, tip)
+    if not okW or not Plain(w) then return nil end
+    local pr = ReadPadding(tip)
+    if not pr then return nil end
+    local saved = state and state.native
+    local natural = w - (saved and (pr - saved.right) or 0)
+    return math.max(0, natural - NATIVE_TEXT_INSET)
+end
+
 ------------------------------------------------------------
 -- 暴雪的 Show()／SetShown(true) 會把 tooltip 的 alpha 改回 1，而且在我們的 post-call **之後**才叫
 --（ProcessInfo 結尾的 self:Show()、比價框的 TooltipComparisonManager:AnchorShoppingTooltips → SetShown）。
