@@ -80,8 +80,8 @@ local function LayoutExpanded(W, leaving)
 end
 
 ------------------------------------------------------------
--- 按鈕圖示：展開中顯示「收合」、收合中顯示「展開」。反轉時上下鏡射 ——
--- 圖上那條橫線就是標題列，翻面之後它要跟著跑到下面，箭頭的方向才對。
+-- 按鈕圖示：展開中顯示「收合」（−）、收合中顯示「展開」（+）。−／+ 上下對稱，
+-- 反轉顯示時不必鏡射。
 -- 看的是**存檔的** collapsed，不是畫面上的：設定視窗開著時強制展開，
 -- 這時按下去改的是存檔，提示第二行會說明（Collapse.Note）。
 ------------------------------------------------------------
@@ -90,11 +90,6 @@ function Collapse.UpdateIcon(W)
     if not btn then return end
     btn.key = W.wdb.collapsed and "expand" or "collapse"
     btn.icon:SetTexture(ns.Window.BTN_TEX[btn.key])
-    if W.wdb.reverse then
-        btn.icon:SetTexCoord(0, 1, 1, 0)
-    else
-        btn.icon:SetTexCoord(0, 1, 0, 1)
-    end
 end
 
 -- force：狀態沒變也重排一次（Win.ApplyStyle 重貼過錨點之後叫）

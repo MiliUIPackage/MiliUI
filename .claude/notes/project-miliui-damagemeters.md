@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-10-20T00:00:00.000Z
 ---
 
 `AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，2026-10-14 TOC 1.2.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
@@ -449,6 +449,31 @@ v5「`iconStyle` 還是舊預設 `spec` 的改成 `mili`」（[[project-mdm-spec
 **通則**：「這個高頻事件只為某個職業／某個情境服務」時，閘要下在**註冊面**而不是
 處理器裡的早退。早退省的是 Lua 執行，註冊省的是整個派送。
 
+## 定位框／內容框、收合、點擊穿透（2026-10-20，玩家要求「視窗擋到怪點不到」）
+
+**一個視窗是兩個框**（`Meter/Window.lua` 的「定位框與內容框」那段）：
+- `W.anchor`＝純定位框，拿走全域名 `MiliUI_DamageMeters_Window<N>`。沒貼圖、不開滑鼠。位置、大小、MiliUISnap 註冊與錨定**只**落在它身上。
+- `W.frame`＝內容框（`…Window<N>Content`），parent UIParent、`SetAllPoints(anchor)`，所有可見與可點的東西都在這裡。
+
+**為什麼要拆（探針實測過）**：帶 secure 按鈕的框（爆發藥水列）磁吸錨在視窗上，視窗就被隱式保護，而且沿錨點鏈往回傳 ——
+藥水列貼視窗 3 ⇒ 視窗 3、2、1 全部 `IsProtected()=true`。被牽連後戰鬥中本體 `SetShown`／`SetHeight`／`EnableMouse` 全被擋
+（「只在戰鬥中顯示」因此壞掉，ADDON_ACTION_BLOCKED 點名 `Window1:SetShown()`），**直接子框全部不受影響**。
+保護是「錨在別人身上的」傳給「被錨的目標」⇒ 內容框是錨過去的那一方，不會被牽連。
+- 戰鬥中定位框被保護時：尺寸／位置／顯示同步一律跳過、記 `W._anchorPending`，`Windows.FlushAnchors()` 脫戰補。判斷在 `Win.CanMoveAnchor`。
+- 定位框的 IsShown 要跟內容框同步（脫戰時）：MiliUISnap 拿它判斷「能不能當磁吸目標」。
+- 拖曳／縮放在定位框被保護時不開始；拖到一半進戰由 PLAYER_REGEN_DISABLED 強制放手。
+- ⚠ 之後加任何「戰鬥中要動的東西」都放內容框；動定位框的一律過 `CanMoveAnchor`。
+
+**收合（`Meter/Collapse.lua`）**：`wdb.collapsed`。定位框不動，內容框改錨成只剩標題列那一截（反轉時貼下緣）；
+騰出的區域只剩不吃滑鼠的定位框 ⇒ 點得到後面的怪。貼在下面的框**刻意不跟著移**。收合時 `W.Refresh`／`Rows.Render`／`ScrollPane` 早退，
+展開時作廢 `_barCacheKey` 補畫。編輯模式／設定視窗開著一律展開。標題列按鈕 id `collapse`（預設顯示、order 60 最右邊）＋右鍵選單一項。
+圖示是 −／+（使用者從六款提案拍板，第一版「橫線＋V」被嫌不直覺）。
+
+**點擊穿透（`Meter/ClickThrough.lua`）**：`wdb.clickThrough` = off／combat／always、`clickThroughHeader`、`clickThroughModifier`（預設 ALT，按住暫時可點）。
+只用 `EnableMouse`／`EnableMouseWheel`（不准 SetPassThroughButtons／SetPropagate*，[[wow-hasrestrictions-mouse-apis]]）；
+`W._mouseOn`／`W._hdrMouseOn` 備忘、值沒變不呼叫。combat 看 PLAYER_REGEN_* 自己記的旗標。`MODIFIER_STATE_CHANGED` 只在有人需要時註冊。
+首頁／展開頁維持可點。設定在「各視窗」分頁的「滑鼠」小節。
+
 ## 實機狀態（2026-10-14 整理）
 
 09-05 起多輪實機，NGA 玩家在用。**已上過實機、有回報或後續修正**：`C_DamageMeter` 欄位名、
@@ -456,7 +481,8 @@ v5「`iconStyle` 還是舊預設 `spec` 的改成 `mili`」（[[project-mdm-spec
 磁吸（09-15 預設擺放回報）、位置存檔（10-12 右下角根因）、頭像卡片與裝等（10-13～14 三個修正）。
 
 **仍沒有證據的**（沒人回報不等於對）：
-- 標題列八張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
+- 收合／點擊穿透／定位框拆分（2026-10-20）整套還沒上實機；被牽連時的 FlushAnchors 有沒有跳位
+- 標題列十張圖示在遊戲內 22px 的實際觀感（只在 Pillow 端看過模擬）
 - 發佈：「說」／自訂頻道在野外的硬體事件要求實際送得出去沒
 - 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard
 - 細線樣式在 18px 列高 ＋ 12pt 描邊字下的實際觀感

@@ -36,6 +36,11 @@ FeiMiao_RaidCommander 在 gitignore 外另一份），全域 `MiliUI_Snap` 先�
 - 追蹤器註冊的是暴雪的 `ObjectiveTrackerFrame` 本身；受保護時 `Nudge` 自己略過（`InCombatLockdown() and IsProtected()`）。
   聊天列：先吸聊天視窗（[[project-miliui-chatbar-snap]]），沒吸到才走 lib；Shift 一樣不吸；跟 `GroupWithChat` 無關。資訊列停靠中照樣當目標。
 
+⚠ **貼附會把保護往回傳（2026-10-20 探針實測）**：跟隨者錨在主體上 ⇒ 跟隨者是保護框（藥水列、標記列帶 secure 按鈕）時，
+**主體被隱式保護，而且沿整條貼附鏈往回傳**（藥水列貼統計視窗 3、3 貼 2、2 貼 1 ⇒ 三個視窗全中）。主體戰鬥中就不能 Show／Hide／改大小／EnableMouse。
+任何可能當貼附主體的框，戰鬥中要動的東西都不要放在被註冊的那個框上 —— 傷害統計的解法是拆定位框／內容框（[[project-miliui-damagemeters]]）。
+當天快照：infoBar、chatBar、focusMarkBar、burstPotionBar 本身就是被牽連的保護框。
+
 ## v4：滑鼠淡出群組
 
 「滑鼠不在上面就淡出、可調 %」做在 **lib 裡**而不是各插件各寫——使用者要的是**吸在一起的條共用一份設定、一起淡出一起亮**，只有 lib 知道磁吸關係。
