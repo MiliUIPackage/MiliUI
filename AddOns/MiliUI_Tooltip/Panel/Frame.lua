@@ -305,10 +305,24 @@ function Panel.Text(panel, style)
     end
     Panel.ApplyFont(fs, style)       -- 建立當下就給字型，SetText 才不會硬錯
     fs:ClearAllPoints()
-    if fs.mtNoWrap then              -- 上次被借去畫不換行的字（單位目標的秘密名字）：換回預設
-        fs:SetWordWrap(true)
-        fs.mtNoWrap = nil
+    fs:Show()
+    return fs
+end
+
+-- 秘密字串專用的那一顆，**不進池**：FontString 只要 SetText 過一次秘密字串就帶上 Text aspect，
+-- 之後 GetStringHeight／GetStringWidth 永遠回秘密值（清 aspect 的 SetToDefaults 是保護函式，插件叫不動）。
+-- 池裡的字借出去畫秘密名字再還回來，下一個借到它的段落量高拿到秘密 ⇒ 當成 0 只留一行 ⇒ 換行的部分跟下一段疊在一起
+-- （2026-10-20 實機：團本裡滑過單位之後，骰裝寶箱的說明黃字被「內含下列任一物品」蓋住）
+function Panel.SecretText(panel, style)
+    local fs = panel.secretText
+    if not fs then
+        fs = panel:CreateFontString(nil, "OVERLAY")
+        fs:SetJustifyV("TOP")
+        fs:SetWordWrap(false)
+        panel.secretText = fs
     end
+    Panel.ApplyFont(fs, style)
+    fs:ClearAllPoints()
     fs:Show()
     return fs
 end
@@ -340,6 +354,7 @@ function Panel.Clear(panel)
     for i = 1, #panel.texts do panel.texts[i]:Hide() end
     for i = 1, #panel.textures do panel.textures[i]:Hide() end
     panel.textsUsed, panel.texturesUsed = 0, 0
+    if panel.secretText then panel.secretText:Hide() end
     panel.icon:Hide()
     panel.iconBorder:Hide()
     panel.badge:Hide()

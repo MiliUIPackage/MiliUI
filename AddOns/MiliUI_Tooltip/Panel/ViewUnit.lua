@@ -126,13 +126,12 @@ local function TargetSection(target)
         if value then
             h = math.max(h, Panel.TextAt(panel, ctx, value, x, y, rw, st, color, "RIGHT"))
         else
-            -- 秘密名字：一行、靠右、寬度給滿剩下的空間；輪詢（Panel.UnitTick）每次重新交給 SetText
-            local fs = Panel.Text(panel, st)
+            -- 秘密名字：一行、靠右、寬度給滿剩下的空間；輪詢（Panel.UnitTick）每次重新交給 SetText。
+            -- 用專用的那一顆、不跟池借（Panel.SecretText：寫過秘密字串的字之後量不出高度）
+            local fs = Panel.SecretText(panel, st)
             fs:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -y)
             fs:SetWidth(rw)
             fs:SetJustifyH("RIGHT")
-            fs:SetWordWrap(false)
-            fs.mtNoWrap = true
             fs:SetTextColor(color and color[1] or 1, color and color[2] or 1, color and color[3] or 1)
             local state = ctx.state
             local name = state and state.panelUnit and ns.Secret.SafeCall(UnitName, state.panelUnit .. "target")

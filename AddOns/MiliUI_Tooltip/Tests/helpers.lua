@@ -111,18 +111,27 @@ function Region:SetJustifyV() end
 function Region:SetWordWrap() end
 function Region:SetTextColor(r, g, b) self.textColor = { r, g, b } end
 function Region:GetTextColor() local c = self.textColor or { 1, 1, 1 }; return c[1], c[2], c[3], 1 end
+-- 寫過一次秘密字串就帶上 Text aspect：之後量寬高一律回秘密（實機如此，SetToDefaults 插件叫不動）
 function Region:SetText(t)
     if not self.size then error("FontString:SetText(): Font not set") end
+    if H.IsSecret(t) then self.textSecret = true end
     self.text = t
 end
-function Region:GetText() return self.text end
+function Region:GetText() return self.textSecret and H.SECRET or self.text end
 -- 假字寬：每個位元組 size × 0.5（夠用來驗幾何）
 function H.TextWidth(text, size)
     return #(text or "") * (size or 12) * 0.5
 end
-function Region:GetUnboundedStringWidth() return H.TextWidth(self.text, self.size) end
-function Region:GetStringWidth() return H.TextWidth(self.text, self.size) end
+function Region:GetUnboundedStringWidth()
+    if self.textSecret then return H.SECRET end
+    return H.TextWidth(self.text, self.size)
+end
+function Region:GetStringWidth()
+    if self.textSecret then return H.SECRET end
+    return H.TextWidth(self.text, self.size)
+end
 function Region:GetStringHeight()
+    if self.textSecret then return H.SECRET end
     local tw = H.TextWidth(self.text, self.size)
     local lines = 1
     if self.w and self.w > 0 and tw > self.w then lines = math.ceil(tw / self.w) end

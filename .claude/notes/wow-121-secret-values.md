@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-10-06T19:19:11.925Z
+  modified: 2026-10-20T14:13:42.577Z
 ---
 
 Warcraft Wiki: https://warcraft.wiki.gg/wiki/Secret_Values
@@ -25,6 +25,14 @@ Table 相關（12.1）：
 顯示 secret 而不讀取它的官方管道：`C_CurveUtil.CreateCurve()` / `CreateColorCurve()`、`C_DurationUtil.CreateDuration()` + `StatusBar:SetTimerDuration()`、直接把 secret 丟給 `StatusBar:SetValue()` 這類接受 secret 的 widget API。
 
 Secret aspects：把 secret 丟給 widget API 會在該物件上留下 aspect（例如 `FontString:SetText(secret)` → `Text` aspect → 之後 `GetText()` 也回 secret）。只能用 `FrameScriptObject:SetToDefaults()` 清除，用 `HasSecretAspect()` / `HasSecretValues()` / `IsAnchoringSecret()` 檢測。
+⚠ `SetToDefaults` 標著 `IsProtectedFunction`，插件叫不動 ⇒ **對插件來說 aspect 是永久的**。
+
+**寫過秘密字串的 FontString，之後 `GetStringWidth`／`GetStringHeight` 也一直回秘密**——就算後來 SetText 的是明文。
+API 文件只在這幾支標 `SecretWhenAnchoringSecret`、沒標 Text aspect，**文件在這點不可信**；根據是 Cell 上游的實測註解
+（`Cell/Indicators/Built-in.lua` power text 那段：「a FontString that ever held secret text returns a secret GetStringWidth thereafter」）
+＋ 2026-10-20 MiliUI_Tooltip 的症狀完全吻合（[[project-miliui-tooltip]]）。後果：**池化的 FontString 絕不能借去畫秘密字串**，
+還回池裡後下一個借到的人量寬高拿到秘密，`PlainNumber(...) or 0` 這種寫法會靜默變 0（換行段落只留一行高、跟下一段疊在一起）。
+秘密字串一律用專用、不回收的那一顆。
 
 **踩過的坑：`StatusBar:SetValue(secret)` 會污染整個 frame 的幾何資料。** 它「接受 secret 但沒有對應的 aspect」，所以不是只標記某個面向，而是把**整個物件**標成 has-secret-values → 之後 `GetWidth()` / `GetHeight()` / 錨點資料全部回 secret，而且會往下傳染給錨在它身上的子區域，只有 `SetToDefaults()` 能清。
 

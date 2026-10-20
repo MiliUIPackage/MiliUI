@@ -510,6 +510,10 @@ do
     local fs = t.state.panelTargetFS
     check("秘密目標：記下那顆字", fs)
     check("秘密目標：原封不動交給 SetText", fs and rawequal(fs.text, SECRET))
+    -- 寫過秘密字串的字之後量不出高度：那一顆不能是池裡的（不然還回去被別的段落借到，量高回秘密 ⇒ 只留一行、跟下一段疊在一起）
+    local pooled = false
+    for _, p in ipairs(panel.texts) do if p == fs then pooled = true end end
+    check("秘密目標：不跟池借", fs and not pooled)
     t.world.targetName = "換人"
     t.P.UnitTick(t.state)
     eq("秘密目標：輪詢重新交給 SetText", fs and fs.text, "換人")
@@ -525,6 +529,12 @@ do
     check("死亡：頭像去色", panel.icon.desaturated)
     check("死亡徽章", FindTextLike(panel, "死亡"))
     check("換成明文目標後：秘密那顆放掉", t.state.panelTargetFS == nil)
+    check("換成明文目標後：秘密那顆藏起來", fs and not fs.shown)
+    local measurable = true
+    for i = 1, panel.textsUsed do
+        if t.env.issecretvalue(panel.texts[i]:GetStringHeight()) then measurable = false end
+    end
+    check("重畫後：池裡每一顆都量得出高度", measurable)
 end
 
 H.finish("Unit_test")
