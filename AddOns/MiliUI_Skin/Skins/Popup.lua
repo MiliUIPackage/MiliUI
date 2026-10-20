@@ -75,6 +75,9 @@
 -- **寫入暴雪欄位：無。**
 -- **讀暴雪物件**：只讀 parentKey／parentArray 找區域（`BG`、`ButtonContainer.Buttons`…）、
 --   `GetObjectType`、以及 `Engine.Overlay` 內部有三道守衛的 `GetFrameLevel`。
+--   **2026-10-21**：`Engine.DisplayParent` 換算 1px 時會讀 `GetParent`／`GetScale`／
+--   `GetEffectiveScale`（都包 pcall，跑在我們自己的登入／進世界／UIParent 尺寸變化堆疊裡，
+--   不在彈窗的顯示或點擊流程裡）。
 --   **沒有**讀文字／尺寸／錨點，**沒有**讀 `which`／`data`／`dialogInfo`。
 --
 -- | 物件（`StaticPopupN` = 1…4） | 動作 | 為什麼不會進到按鈕的點擊執行鏈 |
@@ -327,6 +330,12 @@ end
 ------------------------------------------------------------
 local function SkinDialog(dialog, key)
     if not E.Usable(dialog, key) then return end
+
+    -- ⚠ **先登記顯示時的 parent，再建任何 overlay。** `StaticPopupN` 在 XML 沒有 parent，
+    --   登入時（我們換皮的那一刻）有效縮放是 1；`StaticPopup_Show` 才
+    --   `SetParent(GetAppropriateTopLevelParent())`（StaticPopup.lua:407）。不登記的話 1px 是照 1
+    --   換算的，掛到 UIParent 底下就不到一個像素，按鈕的邊有的在有的不在（2026-10-21）。
+    E.DisplayParent(dialog, UIParent)
 
     ------------------------------------------------------------
     -- 外框

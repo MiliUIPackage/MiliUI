@@ -75,7 +75,8 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-cooldownviewer-charge-cache-stale.md](wow-cooldownviewer-charge-cache-stale.md) | 暴雪冷卻管理器的充能只在 RefreshData 重讀、GCD 輕量路徑用舊快取、不聽 SPELL_UPDATE_CHARGES ⇒ 最後一層用掉「有時候」不去飽和；自己照不含 GCD 的 duration 物件算、0 充能看明文旗標不讀 currentCharges；`charges` 旗標只是「可以有充能」 |
 | [wow-cooldownviewer-target-aura-locks-icon.md](wow-cooldownviewer-target-aura-locks-icon.md) | 冷卻格在目標身上有該減益時 GetSpellID／GetSpellTexture 都回減益的：圖示不換、覆蓋法術不看、觸發發光晚 3～5 秒；關掉增益時間的格自己貼圖＋自己聽 OVERLAY 事件；增益身分用 overrideTooltipSpellID |
 | [wow-uiparent-inset-dock.md](wow-uiparent-inset-dock.md) | 動 UIParent 錨點做停靠列：整個介面讓位；**要在 secure snippet 裡動（插件端 SetPoint 會把整條快捷列重排染髒）**、上緣是 UpdateUIParentPosition 在管、重貼前先比對現況、中央錨的東西移半條、烘進 UIParent 尺寸的框要掛 OnSizeChanged |
-| [wow-1px-border-rules.md](wow-1px-border-rules.md) | **畫 1px 邊框／細線的全套組規則**：整條不見或 2px 重疊的四個成因（P.Scale、框自己的縮放、載入時算一次、像素貼齊）、`P.NoSnap`／`P.NoSnapBackdrop`、Cell／ElvUI 把 bug 遮掉、交件前檢查清單 |
+| [wow-1px-border-rules.md](wow-1px-border-rules.md) | **畫 1px 邊框／細線的全套組規則**：整條不見或 2px 重疊的五個成因（P.Scale、框自己的縮放、載入時算一次、框登入時沒 parent、像素貼齊）、`P.NoSnap`／`P.NoSnapBackdrop`、Cell／ElvUI 把 bug 遮掉、交件前檢查清單 |
+| [wow-xml-frame-no-parent.md](wow-xml-frame-no-parent.md) | 暴雪 XML 頂層框沒寫 parent ＝ 載入時縮放是 1、顯示時才 `SetParent(UIParent)`（`StaticPopup1…4`、`QuestModelScene`、`RaidFrame`…）；登入時換皮的 1px／SafeParent 會錯；掃法與名單 |
 | [wow-hairline-p-pixel-not-p-scale.md](wow-hairline-p-pixel-not-p-scale.md) | 1px 邊框／細線在 1440p 以上畫成 2px 的成因：`P.Scale(n)` 是「n 個 UI 單位貼整數像素」，實體像素量要走 `P.Pixel(n)`；內縮要跟邊框同一支；全套組 2026-10-14 已套、怎麼找漏網的 |
 | [wow-login-screen-size-not-final.md](wow-login-screen-size-not-final.md) | 登入時 UIParent 尺寸還不是最終值：傷害統計／小地圖／M+ 三支同坑，別照螢幕尺寸夾座標寫回存檔；只留型別檢查＋SetClampedToScreen＋叫回預設；存檔座標＝夾邊公式是指紋；M+ 的 MigratePanelTop 仍殘留 |
 | [wow-icon-row-anchor-facing-edge.md](wow-icon-row-anchor-facing-edge.md) | 圖示排的錨點要選面向框架的那一邊，否則顆數一變間距就跑掉 |
@@ -244,7 +245,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 169 篇）
+## 全部筆記（自動產生，共 171 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -274,7 +275,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 
 | 檔案 | description |
 |---|---|
-| [wow-1px-border-rules.md](wow-1px-border-rules.md) | 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的四個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；交件前檢查清單 |
+| [wow-1px-border-rules.md](wow-1px-border-rules.md) | 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的五個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、框登入時沒 parent 要照認養後換算、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；指紋與交件前檢查清單 |
 | [wow-3d-model-ignores-strata.md](wow-3d-model-ignores-strata.md) | 3D 模型（PlayerModel／ModelScene）不吃 frame strata 與 frame level，LOW 的頭像會疊在 HIGH 的官方視窗模型上；SetModelDrawLayer 無效，只有 alpha 歸零有用 |
 | [wow-actionbar-taint-blame.md](wow-actionbar-taint-blame.md) | MultiBar 按鈕 SetAttribute 被封鎖、牽拖到不碰快捷列的插件——共用表汙染的指紋與 taintLog 診斷法 |
 | [wow-actionbar-text-overlay-level-500.md](wow-actionbar-text-overlay-level-500.md) | 自訂 HUD 被快捷鍵文字蓋住的真正原因——ActionButton 的文字層在 MEDIUM level 500，按鈕本體只有 3 |
@@ -320,6 +321,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 MacroFrame:SelectMacro/SaveMacro 或改巨集格欄數，會讓快捷列上的巨集施法被擋、一路髒到 /reload |
 | [wow-mplus-enemy-forces-fields.md](wow-mplus-enemy-forces-fields.md) | M+ 敵軍進度的 criteria 欄位語意是反直覺的——quantity 已經是百分比、quantityString 才是絕對數量（還帶假的 % 號） |
 | [wow-new-file-needs-client-restart.md](wow-new-file-needs-client-restart.md) | TOC 新增的 .lua 檔、新放的媒體檔，/reload 不會載入，要整個重開遊戲；改既有 TOC 的標題／分類等欄位 /reload 就會重讀；交件時要提醒使用者 |
+| [wow-overlay-castbar-hosts.md](wow-overlay-castbar-hosts.md) | 暴雪的替身施法條 OverlayPlayerCastingBarFrame 有五個宿主——只有覆蓋快捷列是「代班玩家施法條」，專精／天賦／專業視窗裡的是視窗自己的進度條；藏暴雪施法條時只能在宿主是 OverrideActionBar 時解它 |
 | [wow-playermodel-setunit-restreams.md](wow-playermodel-setunit-restreams.md) | PlayerModel:SetUnit 對「已經載好的同一個單位」再呼叫一次也會重新串流、空一兩幀；UNIT_MODEL_CHANGED 不是可靠的「模型換了」訊號 |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | How to fix \"attempted to index a table that cannot be indexed with secret keys\" in WoW addons |
 | [wow-securegroupheader-refresh-snippet.md](wow-securegroupheader-refresh-snippet.md) | 給 SecureGroupHeader 的格子掛額外的次要按鈕（寵物、目標）時，unit 只能在 refreshUnitChange snippet 裡派；Lua 端唯一的開關是「動 header 的任一個屬性」（值沒變別重設，那是整排重排） |
@@ -338,6 +340,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-unitclassbase-npc-returns-rogue.md](wow-unitclassbase-npc-returns-rogue.md) | UnitClassBase 對非玩家回一個合法但無意義的職業 token（術士惡魔僕從回 ROGUE），會讓職業色查表命中錯的顏色 |
 | [wow-unitframe-event-dispatch-cost.md](wow-unitframe-event-dispatch-cost.md) | 團隊框架真正的效能成本在事件派送與 per-frame 輪詢，不在畫面更新——RegisterUnitEvent 的 C 層過濾、共用 ticker 取代 N 個 OnUpdate、光環 filter 字串共用解析 |
 | [wow-vehicle-token-timing.md](wow-vehicle-token-timing.md) | 進載具時 \"vehicle\" token 在還沒有資料之前就解得出來，UNIT_PET 才是真正該重讀的事件；不是每台載具都會換框（看 UnitHasVehicleUI）；載具期間 player 與 vehicle 兩個 token 都會派送，事件閘不能嚴格比「框現在畫誰」 |
+| [wow-xml-frame-no-parent.md](wow-xml-frame-no-parent.md) | 暴雪 XML 頂層框沒寫 parent（遊戲／登入畫面共用的框越來越多）＝ 載入時沒有 parent、有效縮放是 1，顯示時才 SetParent(UIParent)；登入時就對它換皮、量縮放、找 SafeParent 都會錯。2026-10-21 的掃描方法與名單 |
 | [wow-zhtw-font-slots.md](wow-zhtw-font-slots.md) | zhTW 客戶端四個字型檔各自對應什麼用途；bKAI00M 是傷害數字不是任務內文 |
 
 ### 專案現況
@@ -378,7 +381,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | MiliUI_ChatBar 的磁吸／自適應寬度／右鍵選單：位置從 SetUserPlaced 收回自己存、吸附基準是內容底、下面放不下就翻到上面；設定頁「整組重套」害磁吸亂跳的成因；戰鬥中 taint 的兩條教訓連到通則 |
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（取代 Ayije_CDM；2026-09-30 一夜做完 A～H、已上線 1.5.x、大半功能上過實機）——拍板與授權、引擎契約、撞牆通則（增益旗標只有 SetUseAuraDisplayTime、到期只 Clear 不寫旗標、charges 旗標≠有充能、裝備欄 GCD 當真冷卻、掛勾參數是秘密值、收合框不當錨點、互斥停用要全帳號…）、各功能一句話索引、實機驗證從哪開始 |
 | [project-miliui-crusadingstrikes.md](project-miliui-crusadingstrikes.md) | MiliUI_CrusadingStrikes「德莫的征戰聖擊助手」——鏡射暴雪冷卻管理器「追蹤的量條」做普攻計時，掛在 Platynator 名條血條下方或 Ayije 聖能條旁；MiliUI_CooldownManager 載入時讓位（它自己有鏡射列）；12.1 下唯一走得通的那條路與六條死路、餵過秘密值的條不准再讀、兩支插件搶同一個框的 alpha 沒有對的寫法 |
-| [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策、標題列按鈕看板與發佈、遷移鏈（DB v5）、踩過的點、除錯分頁 |
+| [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 自製傷害統計 MiliUI_DamageMeters —— 走 C_DamageMeter 渲染器路線，架構決策、標題列按鈕看板與發佈、遷移鏈（DB v5）、踩過的點、除錯分頁、預覽模式 |
 | [project-miliui-debug-mode.md](project-miliui-debug-mode.md) | MiliUI 本體的除錯模式（/miliui debug on\|off、插件總覽頁按鈕）—— 只留本體／!BugGrabber／BugSack，記錄存 MiliUI_DB.debugMode，All／Some 兩種範圍分開還原；另含好友名單職業色 |
 | [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 爆發藥水助手／嗜血音樂／快捷聊天列改用 MiliUIWidgets 自製設定視窗（2026-08-23）——三支小插件的標準結構、AceLocale 宿主的差異、踩過的點 |
 | [project-miliui-focus-addon.md](project-miliui-focus-addon.md) | MiliUI_Focus「米利的專注目標助手」——從套組拆出的獨立插件（Shift 點擊設專注目標＋自動標記、標記列、隊友同步、宣告、專注目標施法條）；一次性 SV 遷移的印記設計；宣告走巨集書具名巨集（M+ 可送、點鈕才喊、戰鬥中內容不更新）；施法條在秘密值下的四條繞法、重要法術發光、斷法巨集；原 project-focuser-castbar 已併入 |
