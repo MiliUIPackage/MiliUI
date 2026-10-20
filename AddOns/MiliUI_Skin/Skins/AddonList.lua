@@ -315,13 +315,22 @@ local function InstallHooks()
         apply  = ApplyCategoryRow,
     }
 
-    -- 收合鈕：這一支是真的 mixin 方法（AddonList.lua:901），每次分類列初始化與
+    -- 收合鈕：這一支是真的 mixin 方法（AddonList.lua:917），每次分類列初始化與
     -- 每次收合／展開都會跑。`SetRotation` 不碰 vertex color ⇒ 只要 apply。
+    -- ⚠ **分類列本身也從這裡套**：`AddonList_InitCategory`（local，:220）的倒數第二步
+    --   就是 `entry.CollapseExpand:UpdateState()`，所以這支等於分類列的初始化勾。
+    --   只靠 `AddonList_Update` 之後的補掃會漏掉**捲動時才 Acquire 的分類列**——
+    --   捲到下面，新長出來的分類標題停在暴雪的金字，跟上面套過的白字混在一起（實機擷圖）。
+    --   鈕與列是同一個模板裡的父子，池化重用也綁在一起 ⇒ 第一次見到鈕時套一次列就夠。
     E.HookRows{
         key    = "AddonListCategory.CollapseExpand",
         mixin  = _G.AddonCategoryCollapseExpandMixin,
         method = "UpdateState",
-        apply  = ApplyCollapseButton,
+        apply  = function(btn)
+            ApplyCollapseButton(btn)
+            local ok, row = pcall(function() return btn:GetParent() end)
+            if ok and row then categorySweep(row) end
+        end,
     }
 
     -- 每次清單重建之後補掃一次已經 Acquire 的列（分類列唯一的來源，
