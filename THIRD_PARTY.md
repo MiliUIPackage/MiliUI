@@ -16,10 +16,11 @@
 | Baganator | 829 | 2026-09-23 73ae195e6 | https://github.com/plusmouse/Baganator（套組用的是 fork 的 miliui 分支，見 notes/project-baganator-miliui-skin.md） |
 | BuffReminders | v6.8.7 | 2026-10-15 09fa1b9d1 | https://www.curseforge.com/projects/1441094 |
 | BugSack | v12.0.4 | 2026-03-17 66dbf6bca | https://github.com/funkydude/BugSack |
-| Cell | r311_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
+| Cell | r312_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
 | Chattynator | 227 | 2026-10-15 6425e9f11 | https://github.com/plusmouse/Chattynator |
 | DiGuaTimelineAudioHelper | 2.0.8 | 2026-10-20 10b98bea5 | 待補 |
 | EasyExperienceBar | 2026.03.09.A | 2026-10-20 fa3d02a94（收錄） | 待補 |
+| FeiMiao_RaidCommander | 1.0.1 | — | 待補 |
 | HandyNotes | v1.6.31 | 2026-08-14 4982afee5 | https://www.curseforge.com/projects/14154 |
 | HandyNotes_Dornogal | v1 | 2026-10-15 58f869f49（收錄） | 待補 |
 | HandyNotes_Dragonflight | 131 | 2024-09-02 414317cac | https://github.com/zarillion/handynotes-plugins |
@@ -45,6 +46,13 @@
 | Plumber | 1.9.6 d | 2026-10-20 870cbaf3f | https://github.com/Peterodox/Plumber |
 | Postal | v4.2.0 | 2016-11-13 d26ef58e7 | 待補 |
 | PremadeGroupsFilter | 7.5.2 | 2026-08-14 fb9edc38a | https://github.com/0xbs/premade-groups-filter |
+| RaiderIO | 12.1.0 (v202610210718) | — | https://raider.io |
+| RaiderIO_DB_CN_F | 12.1.0 (v202610210718) | — | https://raider.io |
+| RaiderIO_DB_CN_M | 12.1.0 (v202610210718) | — | https://raider.io |
+| RaiderIO_DB_CN_R | 12.1.0 (v202610210718) | — | https://raider.io |
+| RaiderIO_DB_TW_F | 12.1.0 (v202610210718) | — | https://raider.io |
+| RaiderIO_DB_TW_M | 12.1.0 (v202610210718) | — | https://raider.io |
+| RaiderIO_DB_TW_R | 12.1.0 (v202610210718) | — | https://raider.io |
 | SharedMedia | 3.1.0-191 | 2026-10-15 58f869f49（收錄） | 待補 |
 | Shooter | 1.0.8 | 2026-10-15 58f869f49（收錄） | 待補 |
 | Syndicator | 282 | 2026-09-23 188dbdf29 | https://github.com/plusmouse/Syndicator |
@@ -54,4 +62,4 @@
 | tullaRange_Config | — | 2026-08-23 33972d566 | 隨 tullaRange 一起 |
 | YUI_AuctionHelper | yah-121 | 2026-10-15 5fcc297d2 | 待補 |
 
-共 46 個資料夾。
+共 54 個資料夾。
