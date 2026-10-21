@@ -163,6 +163,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-button-variants.md](project-miliui-button-variants.md) | **按鈕上色規則（全套組遵守）**：primary／normal 兩種長相、職業色公式、十條判準（開關型：開＝primary）；`W.CreateButton(…,"primary")`＋`PaintButton`＋`SetButtonVariant`；舊配色 green／accent 遷移待辦 |
 | [feedback-button-no-ellipsis.md](feedback-button-no-ellipsis.md) | **按鈕文字不加刪節號（全套組）**：結尾不寫「…」／「...」；讀取中狀態、輸入框提示不在此限，右鍵選單要動先問 |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | agent 資料的擺放慣例：.claude/ 的 skills／notes／scripts 結構、哪些被 gitignore／export-ignore 擋在發布包外 |
+| [project-third-party-manifest-clean-tree.md](project-third-party-manifest-clean-tree.md) | THIRD_PARTY.md 要在只有版控檔案的 worktree 重產；主 checkout 有私人插件與未收錄資料夾，會被列進公開清單 |
 
 ### 自製功能
 | 檔案 | 內容 |
@@ -246,7 +247,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 171 篇）
+## 全部筆記（自動產生，共 172 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -416,6 +417,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-platynator-preset.md](project-platynator-preset.md) | 如何更新 MiliUI 內建的 Platynator 預設值 (Luxthos_Platynator.lua) 與版本機制 |
 | [project-raidtarget-secure.md](project-raidtarget-secure.md) | Midnight(12.0) 起 SetRaidTarget 是戰鬥保護函式，插件標記要走 SECURE_ACTIONS.raidtarget 安全按鈕或 macro 型安全按鈕跑 /tm；實作在 MiliUI_Focus 標記列與本體探究標記鈕 |
 | [project-speccompare-equipment-filter.md](project-speccompare-equipment-filter.md) | AdventureGuideSpecCompare 的 IsEquipment 篩選：玩具/純造型會混進裝備清單，要排除 |
+| [project-third-party-manifest-clean-tree.md](project-third-party-manifest-clean-tree.md) | THIRD_PARTY.md 要在只有版控檔案的 worktree 重產，不能在主 checkout 跑——主 checkout 有私人插件與沒收錄的資料夾，會被列進公開清單 |
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect-Remake 的 12.1 secret 修補——UnitGUID 比較/當 key 會炸，退路是比對 unit token |
 | [project-tinyinspect-track-colors.md](project-tinyinspect-track-colors.md) | MiliUI 給 TinyInspect 裝等數字上軌道色；含「掛勾讀到過期狀態」通則與 Journal 戰利品的軌道取得方式 |
 | [project-tinytooltip-perf.md](project-tinytooltip-perf.md) | TinyTooltip-Remake 滑過裝備掉 FPS 的根因與 MiliUI 就地效能修補 |
