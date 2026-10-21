@@ -20,7 +20,10 @@
 --   * 死亡名單「保證完整」—— 名單只是滑過死亡數的提示，數不上的列成「未具名」（見下面「死亡名單」）；
 --   * 首領名字去翻 Encounter Journal —— 那要開／藏暴雪面板，會污染；criteria 的
 --     description 本來就是名字；
---   * 分段紀錄；自動放鑰石（MiliUI_MythicPlus 的鑰石分頁已經在做）。
+--   * 分段紀錄。
+--
+-- 另外順手管一件跟面板無關的事：打開鑰石視窗時自動放入鑰石（mythicPlus.autoSlot，
+-- 預設關，見下面「自動放入鑰石」）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -745,6 +748,45 @@ local function Check()
 end
 
 ------------------------------------------------------------
+-- 自動放入鑰石：鑰石視窗（Blizzard_ChallengesUI，用到才載入）一打開就把背包裡的鑰石放進去
+--
+-- MiliUI_MythicPlus 的鑰石分頁也有同一個開關。兩邊都開也只會放一次：
+-- 先到的放完 HasSlottedKeystone 就是真，後到的直接收手。
+--
+-- ⚠ 掛的是暴雪視窗的 OnShow，但動作延一幀才做：OnShow 是暴雪 ShowKeystoneFrame
+--   同步叫進來的，在 hook 裡當場做事等於讓自己的程式跑在暴雪的堆疊裡。
+--   暴雪自己的 OnShow 會先 Reset 插槽，延一幀放進去的不會被它洗掉。
+------------------------------------------------------------
+local function KeystoneFrame() return _G.ChallengesKeystoneFrame end
+
+local function AutoSlot()
+    local c = Cfg()
+    if not (c and c.autoSlot) then return end
+    local kf = KeystoneFrame()
+    if not (kf and kf:IsShown()) then return end
+    if C_ChallengeMode.HasSlottedKeystone() or CursorHasItem() then return end
+    for bag = 0, NUM_BAG_SLOTS or 4 do
+        for slot = 1, C_Container.GetContainerNumSlots(bag) do
+            local info = C_Container.GetContainerItemInfo(bag, slot)
+            local link = info and info.hyperlink
+            if link and link:find("keystone:", 1, true) then
+                C_Container.PickupContainerItem(bag, slot)
+                if CursorHasItem() then C_ChallengeMode.SlotKeystone() end
+                return
+            end
+        end
+    end
+end
+
+local keystoneHooked = false
+local function HookKeystoneFrame()
+    local kf = KeystoneFrame()
+    if keystoneHooked or not kf then return end
+    keystoneHooked = true
+    kf:HookScript("OnShow", function() C_Timer.After(0, AutoSlot) end)
+end
+
+------------------------------------------------------------
 -- 滑鼠提示：目標怪的敵軍數（官方 API，不需要 MDT）
 ------------------------------------------------------------
 local function TooltipCount(tt)
@@ -792,6 +834,11 @@ ns.RegisterCallback("Init", "mythicPlus", function()
             RenderTimer()
         elseif event == "SCENARIO_CRITERIA_UPDATE" or event == "SCENARIO_POI_UPDATE" then
             UpdateObjectives()
+        elseif event == "ADDON_LOADED" then
+            if arg1 == "Blizzard_ChallengesUI" then
+                evt:UnregisterEvent("ADDON_LOADED")
+                HookKeystoneFrame()
+            end
         else
             Check()
         end
@@ -799,6 +846,13 @@ ns.RegisterCallback("Init", "mythicPlus", function()
 
     if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, TooltipCount)
+    end
+
+    -- 選項關著也照掛：hook 裡才看開關，玩家中途打開不用 /reload
+    if C_AddOns.IsAddOnLoaded("Blizzard_ChallengesUI") then
+        HookKeystoneFrame()
+    else
+        evt:RegisterEvent("ADDON_LOADED")
     end
 
     Check()

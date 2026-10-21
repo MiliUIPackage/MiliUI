@@ -127,6 +127,9 @@ local function BuildDefaults()
             -- 條的填充色（原本寫死；白色太淡看不清，玩家要求可改）
             timerColor   = { r = 0.592, g = 0.592, b = 0.592 },   -- 979797
             forcesColor  = { r = 0.733, g = 0.620, b = 0.133 },   -- BB9E22
+            -- 打開鑰石視窗時自動把背包裡的鑰石放進去。2026-10-21 新增、預設關，
+            -- nil-merge 補成 false 即可，不用遷移
+            autoSlot     = false,
         },
 
         automation = {
