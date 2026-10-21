@@ -344,5 +344,20 @@ check("15 秒後解凍", not MSW.Frozen(m, 55.1))
 MSW.OnCast(m, 114049, 60)
 check("昇華增益 ID 也算", MSW.Frozen(m, 61))
 
+------------------------------------------------------------
+-- 列的面板只有有牌堆的專精不閒置（Modules/ProcDeckRows.lua 的 Idle：其他專精當它不存在——
+-- 不是錨定候選、編輯模式沒有覆蓋層）。載入檔案只定義函式，不碰遊戲全域
+------------------------------------------------------------
+assert(loadfile(here .. "/../Modules/ProcDeckRows.lua"))("MiliUI_CooldownManager", ns)
+local Idle = ns.ProcDeckRows.Idle
+ns.playerClass, ns.specID = "SHAMAN", 263
+check("增強薩不閒置", not Idle())
+ns.specID = 262
+check("元素薩閒置", Idle())
+ns.playerClass, ns.specID = "PALADIN", 70
+check("懲戒騎閒置", Idle())
+ns.specID = nil
+check("專精還不知道時閒置", Idle())
+
 print(("ProcDeck_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

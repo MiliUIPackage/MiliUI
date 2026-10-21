@@ -10,7 +10,7 @@
 --   * 自己的只有 profile.procdeck：enabled、pos、anchor、fadeWithEssential、loadConditions、strata
 -- 預設錨在資源條下方（anchor TOP → resources BOTTOM）、往下長。資源條預設在核心技能上方 ⇒ 照排開的通則
 -- （Core/Layout.lua 的 StackTarget）實際排到核心技能下方那一疊、自訂格子與輔助技能之前（Core/Bars.lua 的 STACK_RANK 1.1）。
--- 沒有任何一列時面板收合（不佔位）。
+-- 沒有任何一列時面板收合（不佔位）；這個專精沒有牌堆（不是增強薩）時閒置（當它不存在，見 Idle）。
 --
 -- 一列：左圖示（可關）＋條身（StatusBar，最大值＝這疊幾張、值＝翻了幾張：**自己數的明文**，直接餵）＋白色刻度
 -- （這疊實際中的位置）＋左文字（牌堆名，C_Spell.GetSpellName）＋右文字（PD.RowText：機率／位置·剩餘數／剩餘數）。
@@ -356,6 +356,15 @@ local function MinSize()
     return ns.Resources.Width(style, KEY), ns.ProcDeck.HEIGHT_DEFAULT
 end
 
+-- 閒置（Core/Bars.lua 的 Dormant）：這個職業／專精沒有任何牌堆（目前只有增強薩有，PD.DEFS）⇒ 面板當它不存在——
+-- 不是錨定候選、編輯模式沒有覆蓋層、點擊層不蓋（2026-10-22 玩家回報「資源條設定裡有個觸發牌堆、什麼都不顯示」）。
+-- 增強薩沒勾任何牌堆時仍是一般的收合（還是錨定候選，玩家可能先把別的東西錨上來）
+local function Idle()
+    local pd = PD()
+    return not (pd and ns.specID and pd.DefsFor(ns.playerClass, ns.specID)[1] ~= nil)
+end
+PDR.Idle = Idle
+
 function PDR.Init()
     if container then return end
     container = ns.Bars.RegisterPanel(KEY, {
@@ -363,6 +372,7 @@ function PDR.Init()
         collapsible = true,                   -- 沒有列 ＝ 收合（不佔位）
         minSize     = MinSize,
         relayout    = function() PDR.Update(true) end,
+        idle        = Idle,
     })
     root = CreateFrame("Frame", nil, container)
     root:SetAllPoints(container)
@@ -371,7 +381,16 @@ function PDR.Init()
         if style and (tonumber(style.width) or 0) <= 0 then Mark(true) end
     end)
     ns.RegisterCallback("ProfileChanged", KEY, function() Mark(true) end)
-    ns.RegisterCallback("SpecChanged", KEY, function() Mark(true) end)
+    -- 閒置的結果變了由模組自己請結構級重套（Bars 的約定）：換進／換出增強薩時面板出現或收起來
+    local wasIdle = Idle()
+    ns.RegisterCallback("SpecChanged", KEY, function()
+        local idle = Idle()
+        if idle ~= wasIdle then
+            wasIdle = idle
+            ns.Bars.ApplyPanelStructure(KEY)
+        end
+        Mark(true)
+    end)
     -- 錨定改了（設定頁、編輯模式拖了脫離錨定）：往上長還是往下長可能跟著變
     ns.RegisterCallback("AnchorChanged", KEY, function(key) if key == KEY then Mark(true) end end)
     ns.RegisterCallback("BarMoved", KEY, function(key) if key == KEY then Mark(true) end end)

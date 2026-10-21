@@ -167,6 +167,8 @@ ns.RegisterCallback("ProfileChanged", "clicklayer", Later)
 ns.RegisterCallback("BarMoved", "clicklayer", Later)
 -- 資源列拆出／收回（Modules/Resources.lua 的 SyncDetached）：面板出現或閒置
 ns.RegisterCallback("DetachedChanged", "clicklayer", Later)
+-- 換專精：觸發牌堆的列只有增強薩不閒置（Modules/ProcDeckRows.lua 的 Idle）
+ns.RegisterCallback("SpecChanged", "clicklayer", Later)
 
 -- 進戰鬥那一刻（鎖定還沒生效）當場收掉；脫戰再照狀態對一次
 local combat = CreateFrame("Frame")

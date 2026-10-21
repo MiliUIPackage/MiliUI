@@ -2038,6 +2038,13 @@ function Specs.AnchorGraphSig()
     -- 天空騎術接力／獨立擺放一切換，它在不在錨定候選裡就跟著變
     local relayTo = ns.Bars and ns.Bars.SkyRelayTo and ns.Bars.SkyRelayTo()
     if relayTo then parts[#parts + 1] = "sky:relay:" .. relayTo end
+    -- 閒置的面板不是錨定候選（觸發牌堆的列換專精就會進出閒置）
+    local dormant = ns.Bars and ns.Bars.Dormant
+    if dormant then
+        for _, k in ipairs(ns.DB.PANEL_ORDER) do
+            if dormant(k) then parts[#parts + 1] = k .. "z" end
+        end
+    end
     for _, k in ipairs(keys) do
         local t = ns.DB.ConfigTable(k)
         local a = t and t.anchor
