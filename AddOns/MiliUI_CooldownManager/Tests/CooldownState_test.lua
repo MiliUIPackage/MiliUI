@@ -806,15 +806,24 @@ do
     infos[503] = { spellID = 5003, charges = true }
     infos[504] = { spellID = 5004 }
     infos[505] = { spellID = 5005, charges = true }
+    infos[506] = { spellID = 5006, charges = true }
+    infos[507] = { spellID = 5007, charges = true }
+    infos[508] = { spellID = 5008, charges = true }
+    cooldowns[5006] = { isActive = true, isOnGCD = false }      -- 0 充能：技能本身在真的冷卻
+    cooldowns[5007] = { isActive = false, isOnGCD = false }     -- 還有充能（回充中由 GetSpellCharges.isActive 給）
     local rHidden = { cooldownID = 501, claimKey = "essential", style = ON }
     local rShown  = { cooldownID = 502, claimKey = "utility", style = ON }
     local rAura   = { cooldownID = 503, claimKey = "utility", style = ON, auraFlag = true }
     local rPlain  = { cooldownID = 504, claimKey = "utility", style = ON }
     local rSecret = { cooldownID = 505, claimKey = "utility", style = ON }
+    local rZero   = { cooldownID = 506, claimKey = "utility", style = ON }
+    local rStale  = { cooldownID = 507, claimKey = "utility", style = ON }
+    local rDimmed = { cooldownID = 508, claimKey = "utility", style = ON, chargeDim = true }
     local list = {
         essential = { { Cell(true, 0, rHidden), rHidden } },
         utility = { { Cell(true, 1, rShown), rShown }, { Cell(false, 1, rAura), rAura }, { Cell(false, 1, rPlain), rPlain },
-                    { Cell(true, Secret(1), rSecret), rSecret } },
+                    { Cell(true, Secret(1), rSecret), rSecret }, { Cell(false, 1, rZero), rZero },
+                    { Cell(false, 1, rStale), rStale }, { Cell(true, Secret(0), rDimmed), rDimmed } },
     }
     ns.Viewers = { ORDER = { "essential", "utility", "buffs", "buffbars" }, AURA_KIND = save.Viewers.AURA_KIND,
         frames = save.Viewers.frames,
@@ -845,6 +854,10 @@ do
     check("charge 探針：該藏沒藏標 ⚠", (VerdictOf(502) or ""):find("⚠", 1, true) ~= nil, VerdictOf(502))
     check("charge 探針：倒增益時間不藏", (VerdictOf(503) or ""):find("增益", 1, true) ~= nil, VerdictOf(503))
     check("charge 探針：alpha 秘密不當成 0", (VerdictOf(505) or ""):find("⚠", 1, true) ~= nil, VerdictOf(505))
+    check("charge 探針：0 充能照常倒數", (VerdictOf(506) or ""):find("0 充能", 1, true) ~= nil, VerdictOf(506))
+    check("charge 探針：還有充能但暴雪沒走充能來源標 ⚠", (VerdictOf(507) or ""):find("暴雪這次沒用充能來源", 1, true) ~= nil,
+        VerdictOf(507))
+    check("charge 探針：alpha 秘密但寫過 0 ＝ 已藏", (VerdictOf(508) or ""):find("^已藏") ~= nil, VerdictOf(508))
     check("charge 探針：非充能格擠最後一行", lines and lines[#lines]:find("法術5004(5004)", 1, true) ~= nil,
         lines and lines[#lines])
     check("charge 探針：非充能格不逐格印", VerdictOf(504) == nil)

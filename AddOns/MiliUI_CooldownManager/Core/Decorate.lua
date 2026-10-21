@@ -1115,14 +1115,26 @@ local function SpellNameOf(id)
     return (ok and type(name) == "string" and not ns.IsSecret(name)) and name or "?"
 end
 
-local function ChargeVerdict(item, rec, fsAlpha)
+-- charges／path／full：HideTarget 的「現在真的是充能法術」與 ChargeState 的「還有充能／滿了」（不是充能法術給 nil）。
+-- ⚠ 倒數字的文字是秘密值時（戰鬥中），GetAlpha 讀回來也是秘密值（實機 2026-10-22）⇒ 讀不到就看我們自己寫過的
+--   rec.chargeDim，不然每一格都會被判成「該藏沒藏」
+local function ChargeVerdict(item, rec, fsAlpha, charges, path, full)
     local c = rec.style and rec.style.charge
     if not rec.style then return "還沒裝飾" end
     if rec.ring then return "圓環條不做回充的長相" end
     if not (c and c.hideTimer) then return "這格的設定沒開（看「設定」那一列從哪來）" end
     if rec.auraFlag == true and not rec.auraHidden then return "正在倒增益持續時間：設計上不藏" end
-    if not Recharge(item, rec) then return "這次不是回充（0 充能、滿了、或暴雪沒用充能來源畫）：設計上不藏" end
-    if not ns.IsSecret(fsAlpha) and fsAlpha == 0 then return "已藏" end
+    if not Recharge(item, rec) then
+        if not charges then return "現在只有一次充能：照一般冷卻倒數，設計上不藏" end
+        if path == false then return "0 充能：技能真的在冷卻，倒數照常，設計上不藏" end
+        if full == true then return "充能是滿的、沒在回充" end
+        return "⚠ 引擎說還有充能在回充，但暴雪這次沒用充能來源畫（暴雪的充能快取過期？）：開關套不上"
+    end
+    if ns.IsSecret(fsAlpha) then
+        if rec.chargeDim == true then return "已藏（我們寫過 alpha 0；倒數字的 alpha 戰鬥中讀回來是秘密值）" end
+        return "⚠ 應該藏、但我們沒寫 alpha 0（chargeDim 不是 true）"
+    end
+    if fsAlpha == 0 then return "已藏" end
     return "⚠ 應該藏、但倒數字還看得到"
 end
 
@@ -1168,23 +1180,22 @@ function D.ChargeDebugLines()
                     tostring(DB.SpellFallbackSource(barKey, "chargeHideTimer")),
                     rec.style and tostring(c and c.hideTimer or false) or "（沒有 rec.style）", tostring(rec.ring and true or false))
                 local cd = item.Cooldown
-                local path, full = "—", "—"
-                if charges then
-                    local p, f = ChargeState(id)
-                    path, full = tostring(p), tostring(f)
-                end
+                local path, full
+                if charges then path, full = ChargeState(id) end
                 out[#out + 1] = ("    暴雪：充能來源=%s 光環來源=%s 冷卻來源=%s 光環時間=%s｜我們：增益旗標=%s 蓋增益=%s 餵回充=%s 判回充=%s 還有充能=%s 滿=%s"):format(
                     tostring(SetFromCharges(item)), DS(rawget(item, "wasSetFromAura")), DS(rawget(item, "wasSetFromCooldown")),
                     DS(DRead(cd, "GetUseAuraDisplayTime")),
-                    tostring(rec.auraFlag), tostring(rec.auraHidden), tostring(rec.fedCharge), tostring(Recharge(item, rec)), path, full)
+                    tostring(rec.auraFlag), tostring(rec.auraHidden), tostring(rec.fedCharge), tostring(Recharge(item, rec)),
+                    charges and tostring(path) or "—", charges and tostring(full) or "—")
                 local fs = cd and cd.GetCountdownFontString and DRead(cd, "GetCountdownFontString")
                 local fsAlpha = type(fs) == "table" and DRead(fs, "GetAlpha") or nil
-                out[#out + 1] = ("    倒數字：alpha=%s 看得到=%s 文字=%s 藏數字=%s 冷卻框 alpha=%s 看得到=%s｜記錄 chargeDim=%s chargeLook=%s"):format(
+                -- 「顯示中」是 IsVisible（不看 alpha）：alpha 0 的倒數字照樣是 true
+                out[#out + 1] = ("    倒數字：alpha=%s 顯示中=%s 文字=%s 藏數字=%s 冷卻框 alpha=%s 顯示中=%s 圖示去飽和=%s｜記錄 chargeDim=%s chargeLook=%s"):format(
                     DS(fsAlpha), type(fs) == "table" and DS(DRead(fs, "IsVisible")) or "沒有倒數字",
                     type(fs) == "table" and DS(DRead(fs, "GetText")) or "—", DS(DRead(cd, "GetHideCountdownNumbers")),
-                    DS(DRead(cd, "GetAlpha")), DS(DRead(cd, "IsVisible")),
+                    DS(DRead(cd, "GetAlpha")), DS(DRead(cd, "IsVisible")), DS(DRead(item.Icon, "IsDesaturated")),
                     tostring(rec.chargeDim), tostring(rec.chargeLook))
-                out[#out + 1] = "    判讀：" .. ChargeVerdict(item, rec, fsAlpha)
+                out[#out + 1] = "    判讀：" .. ChargeVerdict(item, rec, fsAlpha, charges, path, full)
             end, key)
         end
     end
