@@ -781,5 +781,78 @@ do
     eq("圓環：倒數還原", cd.fs.alpha, 1)
 end
 
+------------------------------------------------------------
+-- /mcdm charge 的逐格輸出（D.ChargeDebugLines）：判讀照 ApplyChargeLook 的順序、非充能格擠最後一行、秘密值不炸
+------------------------------------------------------------
+do
+    local save = { Viewers = ns.Viewers, Setting = ns.Setting, SpellOverride = ns.SpellOverride,
+                   SpellSetting = ns.SpellSetting, DB = ns.DB, charges = env.C_Spell.GetSpellCharges,
+                   name = env.C_Spell.GetSpellName, combat = env.InCombatLockdown }
+    local function Cell(fromCharges, alpha, rec)
+        local fs = { alpha = alpha }
+        function fs:GetAlpha() return self.alpha end
+        function fs:IsVisible() return true end
+        function fs:GetText() return "36" end
+        local cd = { fs = fs }
+        function cd:GetCountdownFontString() return self.fs end
+        function cd:GetUseAuraDisplayTime() return rec.auraFlag == true end
+        local it = { wasSetFromCharges = fromCharges, Cooldown = cd }
+        function it:HasVisualDataSource_Charges() return self.wasSetFromCharges end
+        return it
+    end
+    local ON = { charge = { hideTimer = true } }
+    infos[501] = { spellID = 5001, charges = true }
+    infos[502] = { spellID = 5002, charges = true }
+    infos[503] = { spellID = 5003, charges = true }
+    infos[504] = { spellID = 5004 }
+    infos[505] = { spellID = 5005, charges = true }
+    local rHidden = { cooldownID = 501, claimKey = "essential", style = ON }
+    local rShown  = { cooldownID = 502, claimKey = "utility", style = ON }
+    local rAura   = { cooldownID = 503, claimKey = "utility", style = ON, auraFlag = true }
+    local rPlain  = { cooldownID = 504, claimKey = "utility", style = ON }
+    local rSecret = { cooldownID = 505, claimKey = "utility", style = ON }
+    local list = {
+        essential = { { Cell(true, 0, rHidden), rHidden } },
+        utility = { { Cell(true, 1, rShown), rShown }, { Cell(false, 1, rAura), rAura }, { Cell(false, 1, rPlain), rPlain },
+                    { Cell(true, Secret(1), rSecret), rSecret } },
+    }
+    ns.Viewers = { ORDER = { "essential", "utility", "buffs", "buffbars" }, AURA_KIND = save.Viewers.AURA_KIND,
+        frames = save.Viewers.frames,
+        EnumerateItems = function(fn, key) for _, e in ipairs(list[key] or {}) do fn(e[1], e[2]) end end }
+    ns.Setting = function() return true end
+    ns.SpellOverride = function() return nil end
+    ns.SpellSetting = function() return true end
+    ns.DB = { BarTable = function(key) return key == "utility" and { follow = { icon = false } } or {} end,
+              OwnGet = function() return nil end, SpellFallbackSource = function() return "theme" end }
+    env.C_Spell.GetSpellCharges = function(id)
+        if id == 5004 then return nil end
+        return { maxCharges = 2, currentCharges = Secret(1), isActive = true }
+    end
+    env.C_Spell.GetSpellName = function(id) return "法術" .. tostring(id) end
+    env.InCombatLockdown = function() return true end
+
+    local ok, lines = pcall(D.ChargeDebugLines)
+    check("charge 探針：不炸", ok, lines)
+    local text = ok and table.concat(lines, "\n") or ""
+    check("charge 探針：條沒跟隨主題印出來", text:find("條 utility：圖示節跟隨主題=false", 1, true) ~= nil)
+    check("charge 探針：沒有 follow 表 ＝ 跟隨", text:find("條 essential：圖示節跟隨主題=true", 1, true) ~= nil)
+    check("charge 探針：充能數秘密印「秘密」", text:find("目前=秘密", 1, true) ~= nil)
+    local function VerdictOf(id)
+        local at = text:find("cooldownID=" .. id, 1, true)
+        return at and text:match("判讀：([^\n]*)", at) or nil
+    end
+    eq("charge 探針：藏了", VerdictOf(501), "已藏")
+    check("charge 探針：該藏沒藏標 ⚠", (VerdictOf(502) or ""):find("⚠", 1, true) ~= nil, VerdictOf(502))
+    check("charge 探針：倒增益時間不藏", (VerdictOf(503) or ""):find("增益", 1, true) ~= nil, VerdictOf(503))
+    check("charge 探針：alpha 秘密不當成 0", (VerdictOf(505) or ""):find("⚠", 1, true) ~= nil, VerdictOf(505))
+    check("charge 探針：非充能格擠最後一行", lines and lines[#lines]:find("法術5004(5004)", 1, true) ~= nil,
+        lines and lines[#lines])
+    check("charge 探針：非充能格不逐格印", VerdictOf(504) == nil)
+
+    ns.Viewers, ns.Setting, ns.SpellOverride, ns.SpellSetting, ns.DB = save.Viewers, save.Setting, save.SpellOverride,
+        save.SpellSetting, save.DB
+    env.C_Spell.GetSpellCharges, env.C_Spell.GetSpellName, env.InCombatLockdown = save.charges, save.name, save.combat
+end
+
 print(("CooldownState_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

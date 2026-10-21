@@ -619,6 +619,8 @@ ns.Debug = Debug
 function ns.DebugText()
     -- /mcdm glow 開的：換成發光診斷的全文（GlowLines 定義在下面，執行時才查）
     if ns.debugView == "glow" and ns.GlowLines then return table.concat(ns.GlowLines(ns.debugGlowAll), "\n") end
+    -- /mcdm charge 開的：換成充能格的回充長相（ChargeLines 同樣定義在下面）
+    if ns.debugView == "charge" and ns.ChargeLines then return table.concat(ns.ChargeLines(), "\n") end
     local lines = Debug(true)
     if ns.Diag and ns.Diag.Count and ns.Diag.Count() > 0 then
         lines[#lines + 1] = ""
@@ -982,6 +984,23 @@ local function GlowLines(all)
 end
 ns.GlowLines = GlowLines
 
+-- /mcdm charge：核心／輔助每個充能格的回充長相（設定從哪來、暴雪這次畫的是不是回充、倒數字的 alpha），逐格產生在
+-- Core/Decorate.lua 的 D.ChargeDebugLines（要讀那邊的 local 判斷）。玩家回報「隱藏回充倒數沒效」時請他在倒數還在的
+-- 當下打。同 /mcdm glow：全文放除錯分頁、每產生一次存進 diag.charge
+local function ChargeLines()
+    local dump
+    local D = ns.Decorate
+    if D and D.ChargeDebugLines and ns.Viewers and ns.Viewers.ready then
+        local ok, lines = xpcall(D.ChargeDebugLines, ns.ReportError)
+        dump = ok and lines or { "[米利冷卻 charge] 產生失敗（錯誤記在 /mcdm debug 的最近錯誤）" }
+    else
+        dump = { "[米利冷卻 charge] 引擎沒有載入" }
+    end
+    if ns.Diag and ns.Diag.SaveCharge then ns.Diag.SaveCharge(dump) end
+    return dump
+end
+ns.ChargeLines = ChargeLines
+
 SLASH_MILIUICDM1 = "/mcdm"
 SLASH_MILIUICDM2 = "/miliuicdm"
 SlashCmdList.MILIUICDM = function(msg)
@@ -1002,6 +1021,14 @@ SlashCmdList.MILIUICDM = function(msg)
             ns.Options.ShowDebugTab()
         else
             for _, line in ipairs(GlowLines(ns.debugGlowAll)) do print(line) end
+        end
+    elseif msg == "charge" then
+        ns.debugView = "charge"
+        if ns.ready and ns.Options and ns.Options.ShowDebugTab then
+            print(ns.PREFIX_COLOR .. "[米利冷卻 charge]|r 已開設定視窗的「除錯」分頁：按「全選」、Ctrl+C 複製貼給作者")
+            ns.Options.ShowDebugTab()
+        else
+            for _, line in ipairs(ChargeLines()) do print(line) end
         end
     elseif msg == "px" then
         -- 像素稽核：容器／item／邊框的邊落在哪個實體像素上（「邊框少一條、多一塊」先要這份）

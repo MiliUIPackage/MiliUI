@@ -1083,6 +1083,115 @@ local function ApplyChargeLook(item, rec, cd)
 end
 D.ApplyChargeLook = ApplyChargeLook                              -- 測試用
 
+------------------------------------------------------------
+-- /mcdm charge：核心／輔助每個充能格的回充長相現況（Api.lua 的 ChargeLines 叫；字串開發用、不進語系檔）
+--
+-- 玩家回報「隱藏回充倒數對某條沒效」時請他在**倒數還看得到的當下**打。逐格印四列：
+--   法術與充能數（引擎）→ 設定從哪來（主題／條／逐法術）→ 暴雪這次用哪個來源畫、我們判的回充 → 倒數字的現況。
+-- 最後的「判讀」照 ApplyChargeLook 的順序寫第一個擋下來的原因；「⚠」才是真的該藏沒藏。
+-- 不是充能技能的格擠在最後一行（這個開關本來就管不到它們，倒數照常）。只讀，不寫任何東西。
+------------------------------------------------------------
+local CHARGE_DEBUG_BARS = { essential = true, utility = true }
+
+-- 秘密值／nil 一律印字串，不比較
+local function DS(v)
+    if ns.IsSecret(v) then return "秘密" end
+    if type(v) == "string" then return (v:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+    return tostring(v)
+end
+
+local function DRead(obj, method)
+    local fn = obj and obj[method]
+    if type(fn) ~= "function" then return nil end
+    local ok, v = pcall(fn, obj)
+    if not ok then return "✕" end
+    return v
+end
+
+local function SpellNameOf(id)
+    local fn = C_Spell and C_Spell.GetSpellName
+    local ok, name = false, nil
+    if fn and id then ok, name = pcall(fn, id) end
+    return (ok and type(name) == "string" and not ns.IsSecret(name)) and name or "?"
+end
+
+local function ChargeVerdict(item, rec, fsAlpha)
+    local c = rec.style and rec.style.charge
+    if not rec.style then return "還沒裝飾" end
+    if rec.ring then return "圓環條不做回充的長相" end
+    if not (c and c.hideTimer) then return "這格的設定沒開（看「設定」那一列從哪來）" end
+    if rec.auraFlag == true and not rec.auraHidden then return "正在倒增益持續時間：設計上不藏" end
+    if not Recharge(item, rec) then return "這次不是回充（0 充能、滿了、或暴雪沒用充能來源畫）：設計上不藏" end
+    if not ns.IsSecret(fsAlpha) and fsAlpha == 0 then return "已藏" end
+    return "⚠ 應該藏、但倒數字還看得到"
+end
+
+function D.ChargeDebugLines()
+    local DB = ns.DB
+    local out = {}
+    out[1] = ("[米利冷卻 charge] v%s specID=%s 戰鬥中=%s"):format(tostring(ns.VERSION), tostring(ns.specID),
+        tostring(InCombatLockdown() and true or false))
+    out[2] = "  主題 icon.chargeHideTimer=" .. DS(ns.Setting("theme", "icon.chargeHideTimer"))
+    for _, key in ipairs(ns.Viewers.ORDER) do
+        if CHARGE_DEBUG_BARS[key] then
+            -- 跟 ns.Setting 同一個判準：follow.icon 明寫 false 才算沒跟隨（沒有 follow 表 ＝ 跟隨）
+            local bar = DB.BarTable(key)
+            local follow = not (type(bar) == "table" and type(bar.follow) == "table" and bar.follow.icon == false)
+            out[#out + 1] = ("  條 %s：圖示節跟隨主題=%s 條自己存的=%s 生效=%s"):format(key, tostring(follow),
+                DS(DB.OwnGet(key, "icon.chargeHideTimer")), DS(ns.Setting(key, "icon.chargeHideTimer")))
+        end
+    end
+    local others = {}
+    for _, key in ipairs(ns.Viewers.ORDER) do
+        if CHARGE_DEBUG_BARS[key] then
+            ns.Viewers.EnumerateItems(function(item, rec)
+                local info = ns.Catalog.Info(rec.cooldownID)
+                local id, charges = HideTarget(rec)
+                if not (id and (charges or (info and info.charges))) then
+                    local label = (info and type(info.equipSlot) == "number") and ("裝備欄 " .. info.equipSlot)
+                        or (SpellNameOf(id) .. "(" .. tostring(id or rec.cooldownID) .. ")")
+                    others[#others + 1] = label
+                    return
+                end
+                local barKey = rec.decoratedBar or rec.claimKey or key
+                local ci = C_Spell and C_Spell.GetSpellCharges and TryDur(C_Spell.GetSpellCharges, id)
+                ci = type(ci) == "table" and ci or {}
+                out[#out + 1] = ("  %s #%s %s(%s) cooldownID=%s 認領=%s%s 充能=%s 上限=%s 目前=%s 回充中=%s"):format(
+                    key, tostring(rawget(item, "layoutIndex")), SpellNameOf(id), tostring(id), tostring(rec.cooldownID),
+                    tostring(rec.claimKey or "—"), rec.parked and "（停放）" or "",
+                    charges and "是" or "旗標（現在只有一次）",
+                    DS(ci.maxCharges), DS(ci.currentCharges), DS(ci.isActive))
+                local c = rec.style and rec.style.charge
+                out[#out + 1] = ("    設定：條=%s 逐法術覆寫=%s 生效=%s 來源=%s → 這格的 hideTimer=%s 圓環=%s"):format(
+                    tostring(barKey), DS(ns.SpellOverride(rec.cooldownID, "chargeHideTimer")),
+                    DS(ns.SpellSetting(barKey, rec.cooldownID, "chargeHideTimer")),
+                    tostring(DB.SpellFallbackSource(barKey, "chargeHideTimer")),
+                    rec.style and tostring(c and c.hideTimer or false) or "（沒有 rec.style）", tostring(rec.ring and true or false))
+                local cd = item.Cooldown
+                local path, full = "—", "—"
+                if charges then
+                    local p, f = ChargeState(id)
+                    path, full = tostring(p), tostring(f)
+                end
+                out[#out + 1] = ("    暴雪：充能來源=%s 光環來源=%s 冷卻來源=%s 光環時間=%s｜我們：增益旗標=%s 蓋增益=%s 餵回充=%s 判回充=%s 還有充能=%s 滿=%s"):format(
+                    tostring(SetFromCharges(item)), DS(rawget(item, "wasSetFromAura")), DS(rawget(item, "wasSetFromCooldown")),
+                    DS(DRead(cd, "GetUseAuraDisplayTime")),
+                    tostring(rec.auraFlag), tostring(rec.auraHidden), tostring(rec.fedCharge), tostring(Recharge(item, rec)), path, full)
+                local fs = cd and cd.GetCountdownFontString and DRead(cd, "GetCountdownFontString")
+                local fsAlpha = type(fs) == "table" and DRead(fs, "GetAlpha") or nil
+                out[#out + 1] = ("    倒數字：alpha=%s 看得到=%s 文字=%s 藏數字=%s 冷卻框 alpha=%s 看得到=%s｜記錄 chargeDim=%s chargeLook=%s"):format(
+                    DS(fsAlpha), type(fs) == "table" and DS(DRead(fs, "IsVisible")) or "沒有倒數字",
+                    type(fs) == "table" and DS(DRead(fs, "GetText")) or "—", DS(DRead(cd, "GetHideCountdownNumbers")),
+                    DS(DRead(cd, "GetAlpha")), DS(DRead(cd, "IsVisible")),
+                    tostring(rec.chargeDim), tostring(rec.chargeLook))
+                out[#out + 1] = "    判讀：" .. ChargeVerdict(item, rec, fsAlpha)
+            end, key)
+        end
+    end
+    out[#out + 1] = "  不是充能技能（這個開關管不到，倒數照常）：" .. (#others > 0 and table.concat(others, "、") or "無")
+    return out
+end
+
 -- SetCooldown 後掛勾的尾巴（正常路徑與蓋掉的那條共用）：轉圈色、邊緣、倒數換色、GCD 轉圈、冷卻狀態
 --
 -- 去重（效能修整 E2 #9）：只有**倒數色＋formatter**（ns.Text.ApplyPhaseColor）照「上次套的是哪一包樣式
