@@ -779,6 +779,37 @@ do
     D.ApplyChargeLook(Item(true), rec, cd)
     eq("圓環：不寫轉圈／邊緣", cd.writes, 0)
     eq("圓環：倒數還原", cd.fs.alpha, 1)
+
+    -- 藏的時候每次都寫：別人（Text 的 SetTextColor／換 formatter）把 alpha 蓋回 1 之後，下一次照樣寫回 0
+    cd, rec = NewCD(), { style = { charge = ALL } }
+    D.ApplyChargeLook(Item(true), rec, cd)
+    cd.fs.alpha = 1
+    D.ApplyChargeLook(Item(true), rec, cd)
+    eq("被蓋回 1：下一次寫回 0", cd.fs.alpha, 0)
+    -- 沒藏、也沒藏過：不寫（別人設的 alpha 不動）
+    cd, rec = NewCD(), { style = { charge = ALL } }
+    cd.fs.alpha = 0.5
+    D.ApplyChargeLook(Item(false), rec, cd)
+    eq("沒藏過：不寫", cd.fs.alpha, 0.5)
+
+    -- SetCooldown 後掛勾的順序：增益→回充那一刻換色（ApplyPhaseColor）也會跑，回充的長相要排在它後面
+    -- （實機 2026-10-22 神性戰馬：換色排在後面 ⇒ alpha 被蓋回 1、chargeDim 卻記著 true）
+    local saveText, saveGuard = ns.Text, ns.Guard
+    ns.Guard = ns.Guard or function(fn) return fn end
+    ns.Text = { ApplyPhaseColor = function(it) it.Cooldown.fs.alpha = 1 end }     -- 模擬 SetTextColor 蓋掉 alpha
+    cd = NewCD()
+    function cd:SetCooldown() end
+    function cd:SetSwipeColor() end
+    local it = Item(true)
+    it.Cooldown = cd
+    rec = { style = { charge = ALL, cdColor = { 1, 1, 1, 1 } }, acAura = true }   -- 上一次是增益那一段
+    ns.Viewers.frames[it] = rec
+    D.HookItem(it, rec)
+    D.OnSetCooldown(cd)
+    eq("掛勾：換色之後才藏倒數", cd.fs.alpha, 0)
+    eq("掛勾：換色有跑（換段）", rec.acAura, false)
+    ns.Viewers.frames[it] = nil
+    ns.Text, ns.Guard = saveText, saveGuard
 end
 
 ------------------------------------------------------------

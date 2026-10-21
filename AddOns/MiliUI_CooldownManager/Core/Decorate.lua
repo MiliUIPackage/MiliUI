@@ -1032,6 +1032,12 @@ end
 --   * 隱藏倒數：倒數 FontString 的 alpha（0／1），**不用** SetHideCountdownNumbers——那支歸「隱藏倒數文字」管
 --     （Text.ApplyIcon、Reattach 寫），兩邊各管各的。alpha 暴雪不碰 ⇒ 要自己還原（rec.chargeDim 記著）。
 --   * 時機：SetCooldown 後掛勾的尾巴（AfterCooldown）；設定變了的完整套用當場照現況重套一次（不等暴雪下一次刷新）。
+--   * 倒數字的 alpha **一定要最後寫、而且藏的時候每次都寫**：Text 對同一顆 FontString 的 SetTextColor／
+--     SetCountdownFormatter（AfterCooldown 的增益／冷卻換色、D.Apply 的 Text.ApplyIcon）會把它蓋回 1。
+--     實機 2026-10-22 神性戰馬（有增益又有充能，/mcdm charge）：回充中 chargeDim 記著 true、alpha 卻是 1 ⇒
+--     去重之後再也不寫，整段回充倒數都在。蓋回來的是哪一支是推定的（時間點對得上：增益倒完換回回充那一刻
+--     換色會跑一次、而且排在後面；沒增益的充能技能不換段，碰不到——跟「核心有效、輔助沒效」的回報一致）。戰鬥中倒數字的
+--     alpha 讀回來是秘密值，不能讀了再比 ⇒ 藏的時候每次 SetCooldown 都寫一次（一個 C 呼叫），還原只寫一次。
 --   * 圓環條（rec.ring）不做：swipe 是圓環的填色、邊緣一律不畫；只把隱藏倒數的 alpha 還原。
 --   * 自訂法術的回充是另一顆 .ChargeCooldown（Modules/Custom.lua 的 ApplyChargeLook，同一包 rec.style.charge）
 ------------------------------------------------------------
@@ -1075,7 +1081,7 @@ local function ApplyChargeLook(item, rec, cd)
         end
     end
     local dim = (c and recharge and c.hideTimer) and true or nil
-    if dim ~= rec.chargeDim then
+    if dim or rec.chargeDim then                          -- 藏：每次都寫（見檔頭）；還原：只在剛從藏切回來時
         local fs = cd.GetCountdownFontString and cd:GetCountdownFontString()
         if fs then fs:SetAlpha(dim and 0 or 1) end
         rec.chargeDim = dim
@@ -1223,13 +1229,14 @@ local function AfterCooldown(item, rec, cd)
     local sw = (aura and st.durSwipe) or st.swipe
     if sw then cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4]) end
     if type(st.drawEdge) == "boolean" then cd:SetDrawEdge(st.drawEdge) end
-    ApplyChargeLook(item, rec, cd)                       -- 回充的長相（在邊緣之後：「不畫邊緣」要蓋過它）
     -- 增益持續時間那一段的倒數換色（旗標是剛剛 SetUseAuraDisplayTime 後掛勾記的；蓋掉的格是 false ＝ 原色）
     if st.cdColor and ns.Text and ns.Text.ApplyPhaseColor and (rec.acStyle ~= st or rec.acAura ~= aura) then
         D.afterCooldownWrites = D.afterCooldownWrites + 1
         ns.Text.ApplyPhaseColor(item, rec)
         rec.acStyle, rec.acAura = st, aura
     end
+    -- 回充的長相：在邊緣之後（「不畫邊緣」要蓋過它）、也在換色之後（換色會把倒數字的 alpha 蓋回 1，見那一節檔頭）
+    ApplyChargeLook(item, rec, cd)
     D.ApplyGCDAlpha(item, rec)
     -- 冷卻狀態：暴雪每次刷新冷卻都會經過這裡（停放中的不碰：停放的 alpha 0 是 Bars 的）
     if (st.cdState or st.dimNoAura) and rec.claimKey and not rec.parked then D.ApplyItemAlpha(item, rec) end
@@ -2286,9 +2293,10 @@ function D.Apply(item, rec, barKey, w, h, ring)
             local sw = rec.style.swipe
             cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
             cd:SetDrawEdge(false)
-            if not rec.custom then ApplyChargeLook(item, rec, cd) end   -- 圓環不做回充的長相：只把隱藏倒數的 alpha 還原
         end
         ns.Text.ApplyIcon(item, style, spell, rec)
+        -- 圓環不做回充的長相：只把隱藏倒數的 alpha 還原（在 ApplyIcon 之後：它的 SetTextColor 會蓋 alpha）
+        if cd and not rec.custom then ApplyChargeLook(item, rec, cd) end
         ns.Text.ApplyRing(item, style, spell, rec)            -- 倒數／層數錨到這一圈頂端的環帶、倒數開關
         ns.Text.ItemLabel(item, rec, nil)                     -- 自訂文字不畫（錨點是方形格的邊）
     else
@@ -2335,8 +2343,6 @@ function D.Apply(item, rec, barKey, w, h, ring)
             local sw = ((rec.auraTime or rec.style.allAura) and rec.style.durSwipe) or { sr, sg, sb, sa }
             cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
             if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
-            -- 回充的長相：自訂框走自己的 .ChargeCooldown（Custom 的更新裡套）；暴雪 item 照現況重套（設定剛改）
-            if not rec.custom then ApplyChargeLook(item, rec, cd) end
         end
         -- 關掉「冷卻中去飽和」：當場還原一次，之後靠 SetDesaturated 後掛勾擋
         if spell.desaturate == false and icon and icon.SetDesaturated then
@@ -2345,6 +2351,9 @@ function D.Apply(item, rec, barKey, w, h, ring)
             desatGuard = false
         end
         ns.Text.ApplyIcon(item, style, spell, rec)
+        -- 回充的長相：自訂框走自己的 .ChargeCooldown（Custom 的更新裡套）；暴雪 item 照現況重套（設定剛改）。
+        -- 在 ApplyIcon 之後：它寫倒數原色的 SetTextColor 會把隱藏倒數的 alpha 蓋回 1
+        if cd and not rec.custom then ApplyChargeLook(item, rec, cd) end
         -- 自訂文字（M）：暴雪的增益圖示才畫（自訂框、冷卻格不畫；以增益取代時頂著技能格的增益照樣是增益）
         ns.Text.ItemLabel(item, rec, (not rec.custom and ns.Viewers.AURA_KIND[rec.barKey]) and spell.label or nil)
     end
