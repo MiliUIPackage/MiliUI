@@ -571,28 +571,67 @@ local function MirrorMatches(id)
 end
 
 local mirrorItem, mirrorID
-local mirrorScanAt = 0
--- 手上那個 item 還是征戰聖擊嗎：cooldownID 換了就是池子發給別人了。
+local mirrorScanAt = 0         -- 上一次「掃不到」的時間（只有連續掃不到才節流）
+
+-- 探針（/mcdm cs，R.MirrorDebugLines）：轉換記錄與計數。只在轉換時記（找到／換人／收回／閒置／恢復／值的明暗），
+-- 每幀的路上只多一次 IsSecret。2026-10-22 玩家回報「打木樁正常、實戰進戰鬥就不動」，靜態對不出成因，靠這份收實機證據
+local MD = { log = {}, scans = 0, empty = 0, switches = 0, released = 0, idle = 0, resume = 0, valSecret = nil }
+R.mirrorDiag = MD
+local MD_LOG_MAX = 40
+-- flip：閒置／恢復這種會跟著每一刀來回翻的，連續的併成一筆（記最後一次的時間與次數），不把別的轉換擠出記錄
+local function MirrorNote(text, flip)
+    local log = MD.log
+    local now, c = GetTime(), InCombatLockdown() and true or false
+    local last = log[#log]
+    if flip and last and last.flip then
+        last.k = last.k + 1
+        last.t, last.c, last.s = now, c, text
+        return
+    end
+    log[#log + 1] = { t = now, c = c, s = text, flip = flip, k = 1 }
+    while #log > MD_LOG_MAX do table.remove(log, 1) end
+end
+R.MirrorNote = MirrorNote
+
+-- 池子收回時暴雪把 layoutIndex 清成 nil（Blizzard_CooldownViewer 的 itemResetCallback），重新取出的一定有：
+-- 收回後沒再發出去的框，身分欄位停在上一輩子（ResetCooldownData 直接清欄位、不走 ClearCooldownID，後掛勾接不到）
+local function Released(item)
+    local idx = rawget(item, "layoutIndex")
+    if ns.IsSecret(idx) then return false end
+    return idx == nil
+end
+
+-- 手上那個 item 還是征戰聖擊嗎：被收回了、或 cooldownID 換了（池子發給別人）就不是。
 -- ⚠ 戰鬥中身分讀不到（Viewers 記成 nil）時當作沒換 —— 框重發只在換天賦／專精，不在戰鬥中
 local function MirrorStillCurrent()
     local rec = mirrorItem and ns.Viewers.frames[mirrorItem]
     if not rec then return false end
+    if Released(mirrorItem) then
+        MD.released = MD.released + 1
+        MirrorNote("手上的 item 被池子收回")
+        return false
+    end
     if rec.cooldownID == mirrorID then return true end
-    return rec.cooldownID == nil and InCombatLockdown()
+    if rec.cooldownID == nil and InCombatLockdown() then return true end
+    MD.switches = MD.switches + 1
+    MirrorNote(("手上的 item 換人 %s → %s"):format(tostring(mirrorID), tostring(rec.cooldownID)))
+    return false
 end
 
--- 找來源 item：手上的還算數就用；否則最多每 0.5 秒掃一次增益長條的池子（亮著的優先）
+-- 找來源 item：手上的還算數就用；否則掃增益長條的池子（亮著的優先）。
+-- 節流只管「連續掃不到」（征戰聖擊不在追蹤量條裡時不每幀掃）：找到過的 item 被換掉（暴雪 RefreshLayout 把整條池子
+-- 放掉重取：換目標的 UNIT_AURA 全量更新、檢視器重新顯示…）時當場重掃，不空等 0.5 秒
 function R.MirrorSource()
     if mirrorItem and MirrorStillCurrent() then return mirrorItem end
     mirrorItem, mirrorID = nil, nil
     local now = GetTime()
     if now - mirrorScanAt < 0.5 then return nil end
-    mirrorScanAt = now
     if not (ns.Viewers and ns.Viewers.EnumerateItems) then return nil end
+    MD.scans = MD.scans + 1
     local found, fid, lit
     ns.Viewers.EnumerateItems(function(item, rec)
         if lit then return end
-        if MirrorMatches(rec.cooldownID) then
+        if MirrorMatches(rec.cooldownID) and not Released(item) then
             if item:IsVisible() then
                 found, fid, lit = item, rec.cooldownID, true
             elseif not found then
@@ -601,6 +640,14 @@ function R.MirrorSource()
         end
     end, "buffbars")
     mirrorItem, mirrorID = found, fid
+    if found then
+        mirrorScanAt = 0
+        MirrorNote(("找到 item id=%s（%s）"):format(tostring(fid), lit and "亮著" or "沒亮"))
+    else
+        mirrorScanAt = now
+        MD.empty = MD.empty + 1
+        if MD.empty == 1 or MD.empty % 20 == 0 then MirrorNote(("掃不到征戰聖擊的 item（第 %d 次）"):format(MD.empty)) end
+    end
     return found
 end
 
@@ -631,6 +678,11 @@ function R.MirrorRow(row)
         row.bar:SetMinMaxValues(mn, mx)
         local v = src:GetValue()
         row.bar:SetValue(v)
+        local sec = ns.IsSecret(v) and true or false
+        if sec ~= MD.valSecret then
+            MD.valSecret = sec
+            MirrorNote(sec and "來源值是秘密值" or "來源值是明文")
+        end
     else
         row.bar:SetMinMaxValues(0, 1)
         row.bar:SetValue(row.mirrorElapsed and 1 or 0)
@@ -672,6 +724,8 @@ function R.MirrorProbe()
     if not mirrorProbe then return end
     if not SourceVisible() then return end
     StopMirrorProbe()
+    MD.resume = MD.resume + 1
+    MirrorNote("來源亮了：恢復每幀轉手", true)
     for i = 1, mirrorCount do
         local row = mirrorRows[i]
         if row then row.mirrorIdle = nil end
@@ -694,6 +748,8 @@ MirrorTick = function()
         if mirrorDriver then mirrorDriver:SetScript("OnUpdate", nil) end
         if not mirrorProbe and C_Timer and C_Timer.NewTicker then
             mirrorProbe = C_Timer.NewTicker(0.25, R.MirrorProbe)
+            MD.idle = MD.idle + 1
+            MirrorNote(mirrorItem and "來源沒亮：閒置、改 0.25 秒探針" or "沒有來源：閒置、改 0.25 秒探針", true)
         end
         return
     end
@@ -777,6 +833,93 @@ end
 function R.MirrorStatus()
     local item = mirrorItem
     return item ~= nil, item ~= nil and item:IsVisible() or false
+end
+
+-- /mcdm cs：征戰聖擊鏡射列的現況＋轉換記錄（Api.lua 的 CSLines 叫；字串開發用、不進語系檔）。
+-- 拆得開三段：我們找不找得到來源（身分、收回、換人）／暴雪那條自己有沒有在跑（OnUpdate 登記、作用中、Pip）／
+-- 值是不是秘密值。只讀不寫：暴雪框的欄位一律 rawget，讀到秘密值就印「秘密」
+function R.MirrorDebugLines()
+    local out = {}
+    local function add(s) out[#out + 1] = s end
+    local function Show(v)
+        if ns.IsSecret(v) then return "秘密" end
+        return tostring(v)
+    end
+    local function Call(obj, method)
+        local fn = obj and obj[method]
+        if type(fn) ~= "function" then return "–" end
+        local ok, v = pcall(fn, obj)
+        if not ok then return "err" end
+        return Show(v)
+    end
+    local now = GetTime()
+    local inInst, instType = false, nil
+    if IsInInstance then inInst, instType = IsInInstance() end
+    local auraSecret = "–"
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret then
+        local ok, v = pcall(C_Secrets.ShouldAurasBeSecret)
+        auraSecret = ok and Show(v) or "err"
+    end
+    add("[米利冷卻 cs] 征戰聖擊鏡射列")
+    add(("  戰鬥中 %s  副本 %s（%s）  光環受限 %s"):format(tostring(InCombatLockdown() and true or false),
+        tostring(inInst and true or false), tostring(instType), auraSecret))
+    local avail, why = false, "–"
+    if R.Available then avail, why = R.Available("CrusadingStrikes") end
+    local driver = mirrorProbe and "探針 0.25 秒" or (mirrorDriver and mirrorDriver.GetScript and mirrorDriver:GetScript("OnUpdate") and "每幀" or "沒有")
+    local rowsN = 0
+    for i = 1, mirrorCount do
+        if mirrorRows and mirrorRows[i] and mirrorRows[i].mode == "mirror" then rowsN = rowsN + 1 end
+    end
+    add(("  天賦閘 %s（%s）  鏡射列 %d 列  驅動 %s  每幀轉手 %d 次"):format(tostring(avail), tostring(why),
+        rowsN, driver, R.mirrorTicks or 0))
+    add(("  在暴雪追蹤量條裡 %s  增益長條上那條拿掉 %s  來源值 %s"):format(R.CrusadingTracked(), tostring(mirrorHides),
+        MD.valSecret == nil and "還沒轉手過" or (MD.valSecret and "秘密值" or "明文")))
+    add(("  計數：掃描 %d（掃不到 %d）  換人 %d  被收回 %d  閒置 %d  恢復 %d"):format(MD.scans, MD.empty, MD.switches,
+        MD.released, MD.idle, MD.resume))
+
+    local viewer = ns.Viewers and ns.Viewers.Get and ns.Viewers.Get("buffbars")
+    if viewer then
+        local map = rawget(viewer, "itemFramesNeedingOnUpdateMap")
+        add(("  暴雪增益長條：可見 %s  OnUpdate %s  隱藏未作用 %s"):format(Call(viewer, "IsVisible"),
+            (viewer.GetScript and viewer:GetScript("OnUpdate")) and "有" or "沒有", Show(rawget(viewer, "hideWhenInactive"))))
+        local function ItemLine(prefix, item)
+            local rec = ns.Viewers.frames[item]
+            local id = rec and rec.cooldownID
+            local bar = rawget(item, "Bar")
+            local pip = type(bar) == "table" and rawget(bar, "Pip") or nil
+            local okU, onUpd = pcall(function() return type(map) == "table" and map[item] ~= nil end)
+            if not okU then onUpd = "err" end
+            local aura = rawget(item, "auraDataCached")
+            add(("%s#%s id=%s%s  顯示 %s 可見 %s  作用中 %s  光環 %s  暴雪逐幀 %s  Pip %s"):format(prefix,
+                Show(rawget(item, "layoutIndex")), tostring(id), MirrorMatches(id) and "（征戰聖擊）" or "",
+                Call(item, "IsShown"), Call(item, "IsVisible"), Show(rawget(item, "isActive")),
+                ns.IsSecret(aura) and "秘密" or (aura ~= nil and "有" or "沒有"), tostring(onUpd), Call(pip, "IsShown")))
+        end
+        if mirrorItem then
+            ItemLine(("  手上的來源（記住 id=%s）："):format(tostring(mirrorID)), mirrorItem)
+        else
+            add("  手上的來源：沒有")
+        end
+        add("  增益長條池子：")
+        local n = 0
+        if ns.Viewers.EnumerateItems then
+            ns.Viewers.EnumerateItems(function(item)
+                n = n + 1
+                ItemLine("    ", item)
+            end, "buffbars")
+        end
+        if n == 0 then add("    （沒有作用中的 item）") end
+    else
+        add("  暴雪增益長條：找不到檢視器")
+    end
+    add(("  最近轉換（新→舊，最多 %d 筆）："):format(MD_LOG_MAX))
+    if #MD.log == 0 then add("    （沒有）") end
+    for i = #MD.log, 1, -1 do
+        local e = MD.log[i]
+        add(("    %6.1f 秒前  %s  %s%s"):format(now - e.t, e.c and "戰鬥" or "脫戰", e.s,
+            (e.k or 1) > 1 and ("（連續 ×%d）"):format(e.k) or ""))
+    end
+    return out
 end
 
 ------------------------------------------------------------

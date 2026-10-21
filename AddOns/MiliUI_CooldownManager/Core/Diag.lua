@@ -14,6 +14,7 @@
 --       echo = { … },  echoAt = "…",                                       上一次 /mcdm echo 的輸出
 --       deck = { … },  deckAt = "…",                                       上一次 /mcdm deck 的輸出
 --       charge = { … }, chargeAt = "…",                                    上一次 /mcdm charge 的輸出
+--       cs = { … },    csAt = "…",                                         上一次 /mcdm cs 的輸出
 --   }
 --
 --   ns.Diag.Note(kind, text)   記一行。跟上一行一模一樣就只累計次數，不洗版
@@ -24,6 +25,7 @@
 --   ns.Diag.SaveEcho(lines)    存 /mcdm echo 的輸出（事件視窗的探針，Modules/EchoWindow.lua）
 --   ns.Diag.SaveDeck(lines)    存 /mcdm deck 的輸出（觸發牌堆的探針，Modules/ProcDeck.lua）
 --   ns.Diag.SaveCharge(lines)  存 /mcdm charge 的輸出（核心／輔助充能格的回充長相，Core/Decorate.lua）
+--   ns.Diag.SaveCS(lines)      存 /mcdm cs 的輸出（征戰聖擊鏡射列的現況與轉換記錄，Modules/Resources_Rows.lua）
 --   ns.Diag.Attach(sv)         DB 就緒後接上存檔（之前記的先放在記憶體裡）
 --
 -- 這支只記不修，修的動作在各模組；字串不進語系檔（開發用）。
@@ -107,6 +109,13 @@ function D.SaveCharge(lines)
     if type(sv) ~= "table" or type(sv.diag) ~= "table" then return end
     sv.diag.charge = lines
     sv.diag.chargeAt = Stamp()
+end
+
+function D.SaveCS(lines)
+    local sv = _G.MiliUI_CooldownManager_DB
+    if type(sv) ~= "table" or type(sv.diag) ~= "table" then return end
+    sv.diag.cs = lines
+    sv.diag.csAt = Stamp()
 end
 
 function D.Attach(sv)

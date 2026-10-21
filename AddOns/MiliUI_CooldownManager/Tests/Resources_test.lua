@@ -1797,8 +1797,8 @@ end
 do
     local fakeBar = { GetMinMaxValues = function() return 0, 2.6 end, GetValue = function() return 1.3 end }
     local visible = true
-    local item = { Bar = fakeBar, IsVisible = function() return visible end }
-    local other = { Bar = fakeBar, IsVisible = function() return true end }
+    local item = { Bar = fakeBar, IsVisible = function() return visible end, layoutIndex = 2 }
+    local other = { Bar = fakeBar, IsVisible = function() return true end, layoutIndex = 1 }
     local recs = { [item] = { cooldownID = 148597 }, [other] = { cooldownID = 555 } }
     local saveV, saveCV, saveGT = ns.Viewers, env.C_CooldownViewer, env.GetTime
     ns.Viewers = { frames = recs, EnumerateItems = function(fn, key)
@@ -1841,6 +1841,46 @@ do
     env.C_Timer = saveTimer
     recs[item].cooldownID = 777       -- 池子把框發給別人
     eq("換人了就放掉", R.MirrorSource(), nil)
+    -- 暴雪 RefreshLayout 把池子放掉重取（實戰換目標）：征戰聖擊換到另一個框 ⇒ 當場重掃，不空等 0.5 秒
+    recs[item].cooldownID = 148597
+    t = t + 10
+    eq("重新找到", R.MirrorSource(), item)
+    recs[item].cooldownID, recs[other].cooldownID = 555, 148597
+    eq("框對調：當場找到新的那個（上一次找到過，不受節流）", R.MirrorSource(), other)
+    -- 被池子收回（layoutIndex 清成 nil）、身分欄位停在上一輩子 ⇒ 不再當來源
+    other.layoutIndex = nil
+    eq("收回了就不算（池子裡也沒有別的征戰聖擊）", R.MirrorSource(), nil)
+    check("收回記一筆", R.mirrorDiag.released >= 1)
+    -- 連續掃不到才節流（時間凍住：同一個時間點再問一次）
+    local tickTime = env.GetTime
+    env.GetTime = function() return t end
+    t = t + 10
+    R.MirrorSource()
+    local scans = R.mirrorDiag.scans
+    R.MirrorSource()
+    eq("剛掃不到：0.5 秒內不重掃", R.mirrorDiag.scans, scans)
+    t = t + 0.6
+    R.MirrorSource()
+    eq("過了 0.5 秒再掃", R.mirrorDiag.scans, scans + 1)
+    env.GetTime = tickTime
+    other.layoutIndex = 1
+    -- 戰鬥中身分讀不到（nil）、框沒被收回 ⇒ 當作沒換
+    t = t + 10
+    eq("脫戰找到", R.MirrorSource(), other)
+    local saveLock = env.InCombatLockdown
+    env.InCombatLockdown = function() return true end
+    recs[other].cooldownID = nil
+    eq("戰鬥中身分讀不到：沿用", R.MirrorSource(), other)
+    env.InCombatLockdown = saveLock
+    recs[other].cooldownID = 555
+    -- 探針輸出：產生得出來、帶轉換記錄
+    local saveVB = ns.Viewers
+    ns.Viewers = { frames = recs, Get = function() return nil end, EnumerateItems = saveVB.EnumerateItems }
+    local lines = R.MirrorDebugLines()
+    check("/mcdm cs 產生得出來", type(lines) == "table" and #lines > 5 and lines[1]:find("征戰聖擊", 1, true) ~= nil)
+    local joined = table.concat(lines, "\n")
+    check("/mcdm cs 有換人與收回的記錄", joined:find("換人", 1, true) ~= nil and joined:find("收回", 1, true) ~= nil)
+    ns.Viewers = saveVB
     -- 在不在暴雪的追蹤量條（目錄的 buffbars 清單）
     local saveC = ns.Catalog
     ns.Catalog = { sig = nil, lists = {} }

@@ -621,6 +621,8 @@ function ns.DebugText()
     if ns.debugView == "glow" and ns.GlowLines then return table.concat(ns.GlowLines(ns.debugGlowAll), "\n") end
     -- /mcdm charge 開的：換成充能格的回充長相（ChargeLines 同樣定義在下面）
     if ns.debugView == "charge" and ns.ChargeLines then return table.concat(ns.ChargeLines(), "\n") end
+    -- /mcdm cs 開的：征戰聖擊鏡射列的現況與轉換記錄（CSLines 同樣定義在下面）
+    if ns.debugView == "cs" and ns.CSLines then return table.concat(ns.CSLines(), "\n") end
     local lines = Debug(true)
     if ns.Diag and ns.Diag.Count and ns.Diag.Count() > 0 then
         lines[#lines + 1] = ""
@@ -1001,6 +1003,23 @@ local function ChargeLines()
 end
 ns.ChargeLines = ChargeLines
 
+-- /mcdm cs：征戰聖擊鏡射列（懲戒資源條那一列）的現況與最近轉換，逐項產生在 Modules/Resources_Rows.lua 的
+-- R.MirrorDebugLines（要讀那邊的 local）。2026-10-22 玩家回報「打木樁正常、實戰進戰鬥就不動」：請他在條不動的當下打。
+-- 同 /mcdm charge：全文放除錯分頁、每產生一次存進 diag.cs
+local function CSLines()
+    local dump
+    local R = ns.Resources
+    if R and R.MirrorDebugLines then
+        local ok, lines = xpcall(R.MirrorDebugLines, ns.ReportError)
+        dump = ok and lines or { "[米利冷卻 cs] 產生失敗（錯誤記在 /mcdm debug 的最近錯誤）" }
+    else
+        dump = { "[米利冷卻 cs] 資源條沒有載入" }
+    end
+    if ns.Diag and ns.Diag.SaveCS then ns.Diag.SaveCS(dump) end
+    return dump
+end
+ns.CSLines = CSLines
+
 SLASH_MILIUICDM1 = "/mcdm"
 SLASH_MILIUICDM2 = "/miliuicdm"
 SlashCmdList.MILIUICDM = function(msg)
@@ -1029,6 +1048,14 @@ SlashCmdList.MILIUICDM = function(msg)
             ns.Options.ShowDebugTab()
         else
             for _, line in ipairs(ChargeLines()) do print(line) end
+        end
+    elseif msg == "cs" then
+        ns.debugView = "cs"
+        if ns.ready and ns.Options and ns.Options.ShowDebugTab then
+            print(ns.PREFIX_COLOR .. "[米利冷卻 cs]|r 已開設定視窗的「除錯」分頁：按「全選」、Ctrl+C 複製貼給作者")
+            ns.Options.ShowDebugTab()
+        else
+            for _, line in ipairs(CSLines()) do print(line) end
         end
     elseif msg == "px" then
         -- 像素稽核：容器／item／邊框的邊落在哪個實體像素上（「邊框少一條、多一塊」先要這份）
