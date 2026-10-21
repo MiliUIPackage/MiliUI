@@ -21,6 +21,8 @@ local function BuildControls()
         { type = "text",   label = L["While a keystone is running the list folds away and this panel takes its place under the title bar: timer with +2/+3 splits, key level and affixes, deaths, bosses with kill times, and the enemy forces bar. It needs \"During a Mythic+ run\" on the Folding tab to be on."] },
         { type = "toggle", key = "enabled",      label = L["Show the panel"] },
         { type = "toggle", key = "tooltipCount", label = L["Enemy forces in unit tooltips"] },
+        { type = "toggle", key = "autoSlot",     label = L["Insert keystone"] },
+        { type = "text",   label = L["Put your keystone in the slot as soon as the keystone window opens."] },
         { type = "dropdown", key = "align", label = L["Text alignment"], items = {
             { text = L["Right"], value = "RIGHT" },
             { text = L["Left"],  value = "LEFT" },
