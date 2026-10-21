@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: d478c9c5-c99f-40df-ab6d-045c854c4b4a
-  modified: 2026-10-21T03:31:28.232Z
+  modified: 2026-10-21T14:17:27.286Z
 ---
 
 2026-10-09 開的插件（現 v1.0.1；奇樂另有單獨下載頁 addons.miliui.com/wow/miliui-bosstimeline，留言區是 JS 畫的，要用瀏覽器面板讀），`AddOns/MiliUI_BossTimeline`，
@@ -224,7 +224,11 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（別
   `DB.MarkSaved` 把 `time()` 寫進**全域那張**（不是 ns.db：`/mbt reset` 換了新表再重載）；`/mbt check` 版本號下一行印
   「沒讀到存檔」／「已讀回，上次寫入 時間（N 前）」／「已讀回（舊版寫的，沒時間）」。
 - 判讀：/reload 後印「沒讀到」＝檔案沒寫進去或讀不回來（權限、防毒、OneDrive、檔案壞掉）→ 請玩家看 `WTF\Account\<帳號>\SavedVariables\MiliUI_BossTimeline.lua`；
-  印「已讀回、幾秒前」但設定看起來是預設 ⇒ 插件自己改掉的，回頭查程式。結果還沒回來。
+  印「已讀回、幾秒前」但設定看起來是預設 ⇒ 插件自己改掉的，回頭查程式。
+- **結果（2026-10-21 21:17）**：NINJACC 更新 1.0.1 後 `/mbt check` 印「已讀回，上次寫入 21:16:59（37 秒前）」，
+  SavedVariables 有 `MiliUI_BossTimeline.lua`＋`.bak`（各 3KB），回報「正常了」。原本的成因沒抓到
+  （他說重開遊戲也會重置，所以不只是「新插件要重開」）；程式端沒改任何存檔邏輯就好了 ⇒ 當成當時的環境問題結案。
+  下次再有人報同樣症狀，先叫他 /reload 兩次再跑 `/mbt check`（第一次 reload 是舊版在存、沒有時間）。
 
 ## 待實機驗證
 
