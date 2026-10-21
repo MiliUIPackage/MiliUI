@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-10-21T00:00:00.000Z
 ---
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`，2026-10-12 TOC 1.0.9），骨架照
@@ -159,8 +159,9 @@ NAMESPACE = `MiliUIQuest`，`ns.DB_VERSION = 2`。自動接任務的時序問題
 **敵軍百分比**：`quantity` 已經是百分比、`quantityString` 才是絕對數量，見 [[wow-mplus-enemy-forces-fields]]。
 
 **每季要看**：`PLUS_FRACTIONS = {1.0, 0.8, 0.6}`、挑戰者的危機 `PERIL_AFFIX_ID = 152`／`PERIL_BONUS_SEC = 90` 的扣法。
-**刻意不做**：拉怪預估（戰鬥記錄 12.x 已死）、EJ 首領名（開面板會污染，criteria description 就是名字）、分段紀錄、
-自動放鑰石（在 [[project-miliui-mythicplus]]）。死亡名單 2026-10-07 借 AdvancedMythicTracker 做了（`deathList`：
+**刻意不做**：拉怪預估（戰鬥記錄 12.x 已死）、EJ 首領名（開面板會污染，criteria description 就是名字）、分段紀錄。
+**自動放鑰石**（2026-10-21 使用者要求加，`mythicPlus.autoSlot` 預設關，放在「傳奇鑰石計時」那一節）：掛 `ChallengesKeystoneFrame` OnShow、`C_Timer.After(0)` 延一幀才放（不在暴雪 Show 堆疊裡做事）；
+[[project-miliui-mythicplus]] 也有同一個開關（預設開），兩邊都開靠 `HasSlottedKeystone` 只放一次。未實機驗證。死亡名單 2026-10-07 借 AdvancedMythicTracker 做了（`deathList`：
 UNIT_DIED 的 GUID 對開場隊伍快照，滑過死亡數顯示；死亡數以 `GetDeathCount` 為準，名單可能比較少）。
 
 已實機驗證：版面、秘密值路徑、敵軍百分比（2026-09-15）、面板在標題列關掉時的錨點（09-16）。死亡名單未驗。
