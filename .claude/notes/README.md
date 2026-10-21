@@ -247,7 +247,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 172 篇）
+## 全部筆記（自動產生，共 173 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -433,6 +433,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell fork 只支援正式服（TOC 只有 1200xx），不要為經典版加保護或保留經典版路徑 |
 | [feedback-emphasis-note-yellow.md](feedback-emphasis-note-yellow.md) | 使用者說「黃字說明」＝共用層 W.fontEmphasis（1, 0.82, 0）；整列寬、放在底部灰字說明正上方 |
 | [feedback-fix-root-cause-not-symptom.md](feedback-fix-root-cause-not-symptom.md) | 修 bug 要從根本解決，不要在錯誤路徑上加閘、加重試、加補寫去治標；範例是 Ayije_CDM 增益長條名字 |
+| [feedback-let-user-pick.md](feedback-let-user-pick.md) | 「給我拍板」「給我選」＝列選項讓使用者挑，不要自己決定就動手 |
 | [feedback-merge-worktree-branch.md](feedback-merge-worktree-branch.md) | worktree 分支 commit 完就主動 merge 進 master（遊戲只載入本體，不合沒辦法驗）；用 merge 不要 cherry-pick；merge 完照 CLAUDE.md 直接 push（2026-10 起） |
 | [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動幫使用者 bump Cell 的 TOC 版本號，那是他自己在釋出時才做的決定 |
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面守則——勾選框（及任何控件）的說明一律放在下一行的灰色小字（Controls 的 type=\"text\"），不要接在勾選框右邊（toggle 的 hint） |

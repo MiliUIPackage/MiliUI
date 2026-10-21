@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-21T06:54:36.346Z
+  modified: 2026-10-21T15:42:09.671Z
 ---
 
 ## 緣起與拍板
@@ -44,7 +44,7 @@ EllesmereUI、YHUD／Halo、Falcon 同樣只看做法。註解不點名（[[proj
   天空騎術（[[project-miliui-cdm-skyriding]]）、Halo 四件（[[project-miliui-cdm-halo-borrow]]）、自訂列、資源列獨立擺放、飾品欄觸發發光、`SetCountdownFormatter` 吃不吃 `|c` 色碼。
 - **驗證從哪開始**：README《待實機驗證》（五百多條照功能分組、編號連續，有證據的已劃掉；⚠ 2026-10-14 有兩組 498～501 重複編號）。
   除錯指令 `/mcdm debug`（引擎現況＋每顆 item，存 `diag.dump`；設定視窗多一個「除錯」分頁可全選複製）、`/mcdm aura`（光環格保護狀態）、
-  `/mcdm glow`（發光逐格現況＋最近轉換，**別先 /reload**）、`/mcdm echo`（沸點）、`/mcdm perf`、`/mcdm release`（還給暴雪）。
+  `/mcdm glow`（發光逐格現況＋最近轉換，**別先 /reload**）、`/mcdm charge`（核心／輔助充能格的回充長相：設定從哪來、暴雪畫的是不是回充、倒數字 alpha、判讀，存 `diag.charge`；2026-10-21 為「隱藏回充倒數對輔助沒效」回報加）、`/mcdm echo`（沸點）、`/mcdm perf`、`/mcdm release`（還給暴雪）。
   壞掉時請玩家「按技能 → 冷卻中打 `/mcdm debug` → 全選貼回來」或 /reload 後讀 `WTF/.../SavedVariables/MiliUI_CooldownManager.lua` 的 `diag.*`。第一戰開 `/console taintLog 2`。
 - `Ayije_CDM`／`Ayije_CDM_Options` 資料夾還在套組（互斥彈窗與匯入要讀它的 SV）；Falcon、MiliUI_SoundPack 已併入並刪除。
 
