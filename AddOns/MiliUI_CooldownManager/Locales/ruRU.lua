@@ -221,7 +221,7 @@ L["%s: the countdown of a buff, on buff icons and in the part where a spell show
 L["Shows one decimal place under this many seconds; 0 never shows decimals."] = "Ниже стольких секунд показывать десятые; 0 — никогда."
 L["Minutes (%s)"] = "Минуты (%s)"
 L["Minutes:seconds (%s)"] = "Минуты:секунды (%s)"
-L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: from one minute shows minutes and seconds. Applies to cooldowns and buff durations."] = "Минуты: больше 90 секунд — целые минуты с округлением вверх. Минуты:секунды: от одной минуты — минуты и секунды. Действует на восстановление и длительность эффекта."
+L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: two minutes or less shows minutes and seconds, longer shows whole minutes. Applies to cooldowns and buff durations."] = "Минуты: больше 90 секунд — целые минуты с округлением вверх. Минуты:секунды: до двух минут — минуты и секунды, дольше — целые минуты. Действует на восстановление и длительность эффекта."
 L["Recolor buff duration"] = "Перекрашивать длительность эффекта"
 L["Buff duration color"] = "Цвет длительности эффекта"
 L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."] = "После заклинания, дающего вам эффект усиления, отсчет сначала показывает оставшееся время эффекта и только потом восстановление. Этот цвет применяется к первой части."

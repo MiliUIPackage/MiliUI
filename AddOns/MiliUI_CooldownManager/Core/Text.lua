@@ -142,7 +142,8 @@ T.UnitFormat = UnitFormat
 
 -- 時間格式（cooldownText.timeFormat；玩家回報 2026-10-21：想要 1:59 那種）
 --   "minutes"  原本的寫法（預設）：91 秒起印分、5401 秒起印時，都無條件進位（1:59 → 2m）；90 秒以下印秒數
---   "mmss"     分:秒：60 秒起印 1:59（分捨去、秒照整數段的取法）、3600 秒起印時（無條件進位）；59 秒以下印秒數
+--   "mmss"     分:秒：2:00 以內印分:秒（1:59；分捨去、秒照整數段的取法），59 秒以下印秒數；
+--              超過 2:00 照 "minutes" 那一套（3m、2h）。玩家回報 2026-10-21：這樣才跟暴雪自己的倒數一樣
 -- 不認得的值（舊存檔沒有這欄、條自己那張表只存了幾格）一律當 "minutes"
 local TIME_FORMATS = { minutes = true, mmss = true }
 local function TimeFormatOf(v) return TIME_FORMATS[v] and v or "minutes" end
@@ -177,12 +178,15 @@ local function BuildFormatter(decimalsBelow, lowBelow, lowHex, timeFormat)
     -- 有小數段時整數段往下取（3.2→3，接著 2.9），沒有時照暴雪往上取（剩 0.4 秒還是 1）
     local intUp = d <= 0
     local mmss = TimeFormatOf(timeFormat) == "mmss"
-    -- 改印分（或分:秒）、改印時的點：分鐘格式照暴雪自己的升位點 91／5401。
+    -- 改印分（或分:秒）、改印整分鐘、改印時的點：分鐘格式照暴雪自己的升位點 91／5401。
+    -- 分:秒格式 60 秒起印分:秒、顯示到 2:01 就改印整分鐘（2:00 還是分:秒），之後跟分鐘格式同一套
     -- 分鐘段是拿原始秒數進位（不經整數段的取法）⇒ 改印時的點看的是「分鐘數會不會超過 90」＝ x > 5400，跟有沒有小數段無關
     local minAt = Edge(mmss and 60 or 91, intUp)
-    local hourAt = mmss and Edge(3600, intUp) or (5400 + EDGE_EPS)
-    -- 切點：0、小數門檻、變色門檻（這兩個只在秒數段裡才有意義）、改印分、改印時
+    local wholeAt = mmss and Edge(121, intUp) or minAt
+    local hourAt = 5400 + EDGE_EPS
+    -- 切點：0、小數門檻、變色門檻（這兩個只在秒數段裡才有意義）、改印分、改印整分鐘、改印時
     local cuts, seen = { minAt, hourAt }, {}
+    if wholeAt > minAt then cuts[#cuts + 1] = wholeAt end
     for _, t in ipairs({ 0, d, l }) do
         if t >= 0 and t < minAt and not seen[t] then seen[t] = true; cuts[#cuts + 1] = t end
     end
@@ -196,12 +200,13 @@ local function BuildFormatter(decimalsBelow, lowBelow, lowHex, timeFormat)
         local rule
         if t >= hourAt then
             rule = { threshold = t, step = 3600, rounding = up, format = hourFmt, components = { { div = 3600 } } }
-        elseif t >= minAt and mmss then
+        elseif t >= wholeAt then
+            rule = { threshold = t, step = 60, rounding = up, format = minFmt, components = { { div = 60 } } }
+        elseif t >= minAt then
+            -- 只有分:秒格式走得到（分鐘格式 wholeAt ＝ minAt）。
             -- 先照整數段的取法取成整秒，再拆成分（捨去）與秒（餘數）
             rule = { threshold = t, step = 1, rounding = intUp and up or down, format = "%d:%02d",
                      components = { { div = 60, step = 1, rounding = down }, { mod = 60, step = 1, rounding = down } } }
-        elseif t >= minAt then
-            rule = { threshold = t, step = 60, rounding = up, format = minFmt, components = { { div = 60 } } }
         elseif t < d then
             rule = { threshold = t, step = 0.1, rounding = down, format = "%.1f" }
         else

@@ -290,7 +290,7 @@ local function TimeFormatItems()
     local m = ns.Text.UnitFormat("COOLDOWN_DURATION_MIN", "%dm")
     return {
         { text = L["Minutes (%s)"]:format(m:format(2) .. " → 90"), value = "minutes" },
-        { text = L["Minutes:seconds (%s)"]:format("1:59 → 59"),   value = "mmss" },
+        { text = L["Minutes:seconds (%s)"]:format(m:format(3) .. " → 2:00"), value = "mmss" },
     }
 end
 
@@ -975,7 +975,7 @@ function Specs.Themed(mode, key)
         -- 時間格式（玩家回報 2026-10-21：想要 1:59 那種）：冷卻與增益持續時間共用一個 ⇒ 放在子分頁上面
         NB(TS("text", "dropdown", "cooldownText.timeFormat", L["Time format"], { items = TimeFormatItems,
             get = function(info) return ns.Text.TimeFormatOf(ReadThemed(info, "cooldownText.timeFormat")) end })),
-        NB(Note(L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: from one minute shows minutes and seconds. Applies to cooldowns and buff durations."], "text")),
+        NB(Note(L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: two minutes or less shows minutes and seconds, longer shows whole minutes. Applies to cooldowns and buff durations."], "text")),
         -- 從小數門檻開始分兩個子分頁「冷卻｜增益持續時間」（K）：同一組四列（小數門檻、低秒變色、變色顏色、變色秒數），
         -- 標籤不帶前綴（子分頁已經講了是哪一種）。子分頁鈕那一列不歸任何 section，但夾在文字那一段裡 ⇒
         -- 文字跟隨時跟卡片一起被文字的遮罩蓋住（BuildForm）

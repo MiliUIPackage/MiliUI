@@ -228,7 +228,7 @@ L["%s: the countdown of a buff, on buff icons and in the part where a spell show
 L["Shows one decimal place under this many seconds; 0 never shows decimals."] = "剩幾秒以下顯示一位小數；0 ＝ 不顯示小數。"
 L["Minutes (%s)"] = "分鐘（%s）"
 L["Minutes:seconds (%s)"] = "分:秒（%s）"
-L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: from one minute shows minutes and seconds. Applies to cooldowns and buff durations."] = "分鐘：超過 90 秒只顯示分鐘（無條件進位）。分:秒：一分鐘以上顯示分和秒。冷卻與增益持續時間都適用。"
+L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: two minutes or less shows minutes and seconds, longer shows whole minutes. Applies to cooldowns and buff durations."] = "分鐘：超過 90 秒只顯示分鐘（無條件進位）。分:秒：兩分鐘以內顯示分和秒，超過兩分鐘只顯示分鐘。冷卻與增益持續時間都適用。"
 L["Recolor buff duration"] = "增益持續時間換色"
 L["Buff duration color"] = "增益持續時間顏色"
 L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."] = "用掉會給你增益的技能後，倒數會先倒數增益剩下的時間，增益結束才倒數冷卻。這個顏色用在前半段。"

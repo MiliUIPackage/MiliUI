@@ -221,7 +221,7 @@ L["%s: the countdown of a buff, on buff icons and in the part where a spell show
 L["Shows one decimal place under this many seconds; 0 never shows decimals."] = "남은 시간이 이 초보다 적으면 소수점 한 자리를 표시합니다. 0이면 표시하지 않습니다."
 L["Minutes (%s)"] = "분 (%s)"
 L["Minutes:seconds (%s)"] = "분:초 (%s)"
-L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: from one minute shows minutes and seconds. Applies to cooldowns and buff durations."] = "분: 90초를 넘으면 분 단위로 올림해 표시합니다. 분:초: 1분 이상이면 분과 초를 표시합니다. 재사용 대기시간과 강화 효과 지속 시간에 모두 적용됩니다."
+L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: two minutes or less shows minutes and seconds, longer shows whole minutes. Applies to cooldowns and buff durations."] = "분: 90초를 넘으면 분 단위로 올림해 표시합니다. 분:초: 2분 이하면 분과 초를, 2분을 넘으면 분 단위로 표시합니다. 재사용 대기시간과 강화 효과 지속 시간에 모두 적용됩니다."
 L["Recolor buff duration"] = "강화 효과 지속 시간 색 변경"
 L["Buff duration color"] = "강화 효과 지속 시간 색"
 L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."] = "강화 효과를 주는 주문을 쓰면 카운트다운이 먼저 강화 효과의 남은 시간을 보여 주고, 효과가 끝난 뒤에야 재사용 대기시간을 보여 줍니다. 이 색은 앞부분에 쓰입니다."

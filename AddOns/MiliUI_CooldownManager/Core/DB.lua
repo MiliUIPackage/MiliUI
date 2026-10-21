@@ -669,7 +669,7 @@ function DB.BuildDefaults()
                                  -- 冷卻倒數的低秒變色開關（Core/Text.lua 的 CdLowBelow）：跟變色秒數 lowBelow 分開存，
                                  -- 取消勾選不動秒數。v5 之前 lowBelow 兼作開關（0 ＝ 關），MIGRATIONS[5] 搬成 false＋5
                                  lowColorOn = true,
-                                 -- 時間格式（Core/Text.lua 的 TimeFormat）："minutes" 2m → 90（原本的寫法）｜"mmss" 1:59。
+                                 -- 時間格式（Core/Text.lua 的 TimeFormat）："minutes" 2m → 90（原本的寫法）｜"mmss" 3m → 2:00（兩分鐘以內印分:秒）。
                                  -- 冷卻倒數與增益持續時間共用；舊存檔沒有這欄 ＝ 合併預設補成 minutes，行為不變、不遷移
                                  timeFormat = "minutes",
                                  -- 增益持續時間的倒數（暴雪增益圖示、技能格倒增益那一段、光環格家族）自己的小數門檻、

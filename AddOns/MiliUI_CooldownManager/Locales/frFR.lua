@@ -221,7 +221,7 @@ L["%s: the countdown of a buff, on buff icons and in the part where a spell show
 L["Shows one decimal place under this many seconds; 0 never shows decimals."] = "Affiche une décimale sous ce nombre de secondes ; 0 n'en affiche jamais."
 L["Minutes (%s)"] = "Minutes (%s)"
 L["Minutes:seconds (%s)"] = "Minutes:secondes (%s)"
-L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: from one minute shows minutes and seconds. Applies to cooldowns and buff durations."] = "Minutes : au-delà de 90 secondes, affiche des minutes entières, arrondies au supérieur. Minutes:secondes : à partir d'une minute, affiche minutes et secondes. S'applique à la recharge et à la durée de l'amélioration."
+L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: two minutes or less shows minutes and seconds, longer shows whole minutes. Applies to cooldowns and buff durations."] = "Minutes : au-delà de 90 secondes, affiche des minutes entières, arrondies au supérieur. Minutes:secondes : jusqu'à deux minutes, affiche minutes et secondes ; au-delà, des minutes entières. S'applique à la recharge et à la durée de l'amélioration."
 L["Recolor buff duration"] = "Recolorer la durée de l'amélioration"
 L["Buff duration color"] = "Couleur de la durée de l'amélioration"
 L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."] = "Après un sort qui vous donne une amélioration, le compte à rebours affiche d'abord sa durée restante, puis la recharge une fois qu'elle a pris fin. Cette couleur s'applique à la première partie."
