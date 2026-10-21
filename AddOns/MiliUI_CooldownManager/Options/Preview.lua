@@ -17,8 +17,10 @@
 --   左鍵點格         → 逐法術面板（Options/SpellPopover.lua）
 --   中鍵點格         → 移除（從這條拿掉、不再顯示）。移除的不留在預覽上，要加回來按「＋」
 --                      （暴雪清單上的法術記在 spells[spec].hidden、挑選器第一區列得到；自己加的項目整筆刪掉）
---   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單）；拖到左欄的自訂群組上
---                      ＝拉進那一群（groupOf），拖回原本的檢視器上＝清掉 groupOf
+--   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單，跟舊的用 Catalog.MergeOrder 合併：
+--                      這次沒列到的不丟）；拖到左欄的自訂群組上＝拉進那一群（groupOf），拖回原本的檢視器上＝清掉 groupOf
+-- 天賦沒點的暴雪法術（Catalog.Unlearned）：畫面上沒有，預覽照樣列在它的位置、圖示畫灰（同暴雪設定面板、
+--   同沒學會的自訂法術），照樣能拖、能移除；換到有它的天賦就出現在排好的地方
 --   最右邊「＋」     → 挑選器（Options/Picker.lua）
 -- 光環格（自訂項目 kind = "aura"）跟其他格一樣：可以拖到條上任意位置（同一張 order 表）、拖到左欄群組，
 -- 中鍵＝整筆移除，左鍵照樣開逐法術面板。
@@ -915,6 +917,8 @@ function Proto:Fill(c, e, i, r, now)
     end
     PaintScopeMark(c.scopeMark, c.scope)
     PaintTag(c, key, info)
+    -- 天賦沒點的暴雪法術：畫灰（下面跟沒學會的自訂法術同一處），不拿來演示效果
+    c.unlearned = ns.Catalog.Unlearned(id)
     -- 核心／輔助技能（暴雪那兩條）不畫假冷卻：轉圈、倒數、去飽和一律不上，看起來就是就緒的樣子（使用者 2026-10-03）
     c.onCD = (not c.aura) and (i % 2 == 1) and not e.hidden and not NoFakeCD(key)
     -- 圓環：每一圈都跑假循環（圓環條的長相就是那一圈在走），效果預覽不演示
@@ -922,7 +926,7 @@ function Proto:Fill(c, e, i, r, now)
     if ringCell then c.onCD = not e.hidden end
     -- 效果預覽：只有第一個技能格演示（Refresh 開頭把 fxTaken 歸零）
     local fx = self:ActiveFx()
-    if fx and (c.aura or e.hidden or self.fxTaken or ringCell) then fx = nil end
+    if fx and (c.aura or e.hidden or self.fxTaken or ringCell or c.unlearned) then fx = nil end
     if fx then self.fxTaken = true end
     -- 按鍵演示的那一格（FxTick 照時間開關閃光）；其餘格的閃光一律收掉（格子是池化的）
     c.fxPress = (fx and fx.kind == "press" and c.kind ~= "bars") and true or false
@@ -937,8 +941,8 @@ function Proto:Fill(c, e, i, r, now)
     c.decorated = nil
     if c.kind == "bars" then
         c.Icon.Icon:SetTexture(tex)
-        -- 沒學會的自訂法術：問號＋灰（圖示格那邊由轉圈的假冷卻表達，長條沒有）
-        c.Icon.Icon:SetDesaturated((c.custom and not c.known) and true or false)
+        -- 沒學會的自訂法術：問號＋灰（圖示格那邊由轉圈的假冷卻表達，長條沒有）；天賦沒點的暴雪法術同樣灰
+        c.Icon.Icon:SetDesaturated(((c.custom and not c.known) or c.unlearned) and true or false)
         c.cycleOffset = (i * 3) % CYCLE
     else
         c.Icon:SetTexture(tex)
@@ -959,8 +963,8 @@ function Proto:Fill(c, e, i, r, now)
     if c.kind == "bars" and ns.StackGate and ns.StackGate.ApplyPreview then
         ns.StackGate.ApplyPreview(c, key, id, r.w, r.h)
     end
-    -- 沒學會的自訂法術：圖示格以前靠假冷卻的去飽和表達，假冷卻拿掉之後自己灰（同長條）
-    if c.kind ~= "bars" and c.custom and not c.known and c.Icon and c.Icon.SetDesaturated then
+    -- 沒學會的自訂法術：圖示格以前靠假冷卻的去飽和表達，假冷卻拿掉之後自己灰（同長條）；天賦沒點的暴雪法術同樣灰
+    if c.kind ~= "bars" and ((c.custom and not c.known) or c.unlearned) and c.Icon and c.Icon.SetDesaturated then
         c.Icon:SetDesaturated(true)
     end
     self:FxGlow(c, (fx and (fx.kind == "proc" or fx.kind == "ready" or fx.kind == "full" or fx.kind == "active")
@@ -1060,6 +1064,9 @@ local function ShowTip(c)
     end
     if c.custom and not c.known and not sb then
         GameTooltip:AddLine(L["Not learned"], 1, 0.3, 0.3)
+    end
+    if c.unlearned then
+        GameTooltip:AddLine(L["Not learned with your current talents, so it isn't shown on screen. It keeps this spot and shows up here once you pick the talent."], 1, 0.3, 0.3, true)
     end
     if c.talentBlocked then
         GameTooltip:AddLine(L["Talent condition not met, so it isn't shown on screen."], 1, 0.3, 0.3, true)
@@ -1484,7 +1491,8 @@ function Proto:EndDrag(commit)
     end
     local pos = press.pos
     if not pos then self:Refresh() return end
-    -- 新順序：可見的照畫面順序、拖的那顆移到插入位置；隱藏的接在後面
+    -- 新順序：可見的（含天賦沒點的灰格）照畫面順序、拖的那顆移到插入位置；隱藏的接在後面；
+    -- 預覽上沒列到的（別的範圍的自訂項目、拉去別條的…）錨在舊順序的鄰居後面，不丟
     local ids, from = {}, nil
     for i, s in ipairs(self.slots) do
         ids[i] = s.id
@@ -1499,6 +1507,6 @@ function Proto:EndDrag(commit)
     for _, id in ipairs(hidden or {}) do ids[#ids + 1] = id end
     local sp = ns.DB.SpecSpells(true)
     if not sp then self:Refresh() return end
-    sp.order[self.key] = ids
+    sp.order[self.key] = ns.Catalog.MergeOrder(sp.order[self.key], ids)
     Changed("membership", self.key)
 end
