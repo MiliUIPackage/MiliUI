@@ -746,3 +746,8 @@ L["ATTACH_SIDE_TIPS"] = "С какой стороны рамок распола�
 L["Max Health Reduction"] = "Снижение макс. здоровья"
 L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "Эффекты, снижающие максимальный запас здоровья, напр. у противников в подземельях."
 L["The bar shortens by that share; the lost part takes this color."] = "Полоса укорачивается на эту долю, потерянная часть окрашивается этим цветом."
+
+-- fix from MiliUI: aura countdown time format
+L["Duration Text Format"] = "Формат текста длительности"
+L["Minutes (%s)"] = "Минуты (%s)"
+L["Minutes:Seconds (%s)"] = "Минуты:секунды (%s)"

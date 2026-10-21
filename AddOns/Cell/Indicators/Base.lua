@@ -243,6 +243,20 @@ local function ApplyCountdownFont(frame, font2)
     end
 end
 
+-- fix from MiliUI: the CooldownFrame countdown (Midnight) uses the same formatter as the aura
+-- containers, so both paths read the same ("1:59" / "3m" per the time format setting) instead of
+-- Blizzard's abbreviation. Called on every SetCooldown; the formatter is cached per setting, so
+-- a time format change lands on the next SetCooldown. No API / no formatter -> Blizzard's own
+-- text (SetCountdownAbbrevThreshold) stays.
+local function ApplyCountdownFormat(frame)
+    local cd = frame.cooldown
+    if not (cd and cd.SetCountdownFormatter and Cell.AuraContainerCore) then return end
+    local fmt = Cell.AuraContainerCore.GetDurationFormatter(true)
+    if fmt and frame._countdownFmt ~= fmt and pcall(cd.SetCountdownFormatter, cd, fmt) then
+        frame._countdownFmt = fmt
+    end
+end
+
 local function Shared_SetFont(frame, font1, font2)
     I.SetFont(frame.stack, frame, unpack(font1))
     I.SetFont(frame.duration, frame, unpack(font2))
@@ -738,6 +752,7 @@ local function BorderIcon_SetCooldownFromAura(frame, unit, auraInstanceID, textu
             ApplyCountdownFont(frame, frame._durationFont)
             frame._countdownFontApplied = true
         end
+        ApplyCountdownFormat(frame)
         -- Keep border visible as base color (caller sets color); black swipe fills over it
         frame.cooldown:Show()
         if style == "vertical" then
@@ -867,6 +882,7 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
             ApplyCountdownFont(frame, frame._durationFont)
             frame._countdownFontApplied = true
         end
+        if Cell.isMidnight then ApplyCountdownFormat(frame) end
 
         if style == "vertical" then
             VerticalMask_Arm(frame.vMask, start, duration)

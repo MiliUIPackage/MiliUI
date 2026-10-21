@@ -141,12 +141,12 @@ end
 T.UnitFormat = UnitFormat
 
 -- 時間格式（cooldownText.timeFormat；玩家回報 2026-10-21：想要 1:59 那種）
---   "minutes"  原本的寫法（預設）：91 秒起印分、5401 秒起印時，都無條件進位（1:59 → 2m）；90 秒以下印秒數
---   "mmss"     分:秒：2:00 以內印分:秒（1:59；分捨去、秒照整數段的取法），59 秒以下印秒數；
+--   "mmss"     分:秒（預設，DB v13 起）：2:00 以內印分:秒（1:59；分捨去、秒照整數段的取法），59 秒以下印秒數；
 --              超過 2:00 照 "minutes" 那一套（3m、2h）。玩家回報 2026-10-21：這樣才跟暴雪自己的倒數一樣
--- 不認得的值（舊存檔沒有這欄、條自己那張表只存了幾格）一律當 "minutes"
+--   "minutes"  原本的寫法：91 秒起印分、5401 秒起印時，都無條件進位（1:59 → 2m）；90 秒以下印秒數
+-- 不認得的值（壞值、條自己那張表只存了幾格）一律當預設 "mmss"
 local TIME_FORMATS = { minutes = true, mmss = true }
-local function TimeFormatOf(v) return TIME_FORMATS[v] and v or "minutes" end
+local function TimeFormatOf(v) return TIME_FORMATS[v] and v or "mmss" end
 T.TimeFormatOf = TimeFormatOf
 
 -- 這一條生效的時間格式。條自己的倒數表可能只存了幾格（ns.Setting 回整張表、不逐格退主題），
@@ -271,10 +271,10 @@ function T.BuffFormatter(c, lowColor, timeFormat)
 end
 
 -- 不帶色碼的版本（光環格的 SetDurationText 用：那條路不吃 format 裡的 |c，變色改走色彩曲線）
--- timeFormat 沒給 ＝ 分鐘格式（長條的秒數、層數列這些不看時間格式的地方）
+-- timeFormat 沒給 ＝ 分鐘格式（長條的秒數、層數列這些不看時間格式的地方；不走 TimeFormatOf 的預設）
 function T.PlainFormatter(decimalsBelow, timeFormat)
     local d = tonumber(decimalsBelow) or 0
-    local tf = TimeFormatOf(timeFormat)
+    local tf = timeFormat == nil and "minutes" or TimeFormatOf(timeFormat)
     local key = d .. "|plain|" .. tf
     local f = formatters[key]
     if f == nil then

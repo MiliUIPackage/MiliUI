@@ -235,6 +235,9 @@ function DB.BuildDefaults()
             borderColor = black(1),
             numberFormat = "auto",       -- auto | wan | km | raw（見 Tags.NumberMode）
             percentDecimals = 0,
+            -- 光環倒數的時間格式（Elements/Auras.lua）："mmss" 兩分鐘以內印 1:59、以上 3m｜"minutes" 2m → 90。
+            -- 新鍵由 MergeDefaults 補，不必遷移
+            auraTimeFormat = "mmss",
             previewBossDisplayID = 131474,   -- 預覽敵對單位的示範模型（薩拉塔斯 12.x 形態；117121 = TWW 形態）
             -- 超出距離的表現方式：
             --   dim   疊一層暗色（預設）。alpha 保持 1 ⇒ 背景不會透出來，顏色可預測，

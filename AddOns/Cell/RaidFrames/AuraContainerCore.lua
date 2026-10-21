@@ -142,8 +142,19 @@ end
 -- 5400, where the rounded-up minutes would pass 90; at a literal 5401 the second
 -- in between printed "91m".
 --
+-- fix from MiliUI: time format (Appearance > Aura Icon Options, CellDB.appearance.auraIconOptions
+-- .durationTimeFormat; read through ACC.DurationTimeFormat):
+--   "mmss"    (default) under two minutes reads like Blizzard's own countdown: seconds up to 59,
+--             then "1:00".."2:00" (whole seconds rounded the same way as the seconds band, then
+--             split into minutes / remainder), and from "2:01" on the whole-minute band below
+--             ("3m"). The seconds band truncates, so the cuts sit at their literal values:
+--             60 opens m:ss, 121 opens whole minutes ([120, 121) still reads "2:00").
+--   "minutes" the original bands above, unchanged ("90" -> "2m").
+-- Hours are the same in both. The formatter is bound to each AuraButton once (initializeFrame), so
+-- a change has to rebuild the containers (AuraDisplay.RefreshDurationFormat); it is in the park key.
+--
 -- showDuration mirrors Cell's setting:
---   true     -> always show ("45" -> "2m" -> "1h")
+--   true     -> always show ("45" -> "2m" -> "1h"; m:ss: "45" -> "1:59" -> "3m" -> "1h")
 --   false/nil-> no text at all (caller must not bind the fontstring)
 --   number N -> only under N seconds, done secret-safe as a BLANK band at N.
 --               The engine samples the secret remaining time against the
@@ -153,10 +164,23 @@ end
 
 local formatterCache = {}
 
-function ACC.GetDurationFormatter(showDuration)
+-- "minutes" | "mmss"; anything else (no saved value yet, a bad import) reads as the default "mmss"
+function ACC.DurationTimeFormat()
+    local v = Cell.vars and Cell.vars.iconDurationTimeFormat
+    if v == nil then
+        local o = CellDB and CellDB["appearance"] and CellDB["appearance"]["auraIconOptions"]
+        v = o and o["durationTimeFormat"]
+    end
+    return v == "minutes" and "minutes" or "mmss"
+end
+
+-- timeFormat: optional, defaults to the current setting (ACC.DurationTimeFormat)
+function ACC.GetDurationFormatter(showDuration, timeFormat)
     if showDuration == false or showDuration == nil then return false end
 
-    local key = tostring(showDuration)
+    local tf = (timeFormat == "minutes" or timeFormat == "mmss") and timeFormat or ACC.DurationTimeFormat()
+    local mmss = tf == "mmss"
+    local key = tostring(showDuration) .. "|" .. tf
     local cached = formatterCache[key]
     if cached ~= nil then return cached end
 
@@ -190,8 +214,15 @@ function ACC.GetDurationFormatter(showDuration)
         if not hideAbove or hideAbove > base then
             f:AddBreakpoint({ threshold = base, step = 1, rounding = down, min = 1, format = "%d" })
         end
-        if not hideAbove or hideAbove > 91 then
-            f:AddBreakpoint({ threshold = 91, step = 60, rounding = up, format = "%dm",
+        -- m:ss band: whole seconds (truncated, like the seconds band), split into minutes / remainder
+        if mmss and (not hideAbove or hideAbove > 60) then
+            f:AddBreakpoint({ threshold = 60, step = 1, rounding = down, format = "%d:%02d",
+                              components = { { div = 60, step = 1, rounding = down },
+                                             { mod = 60, step = 1, rounding = down } } })
+        end
+        local wholeAt = mmss and 121 or 91
+        if not hideAbove or hideAbove > wholeAt then
+            f:AddBreakpoint({ threshold = wholeAt, step = 60, rounding = up, format = "%dm",
                               components = { { div = 60 } } })
         end
         local hourAt = 5400.0001

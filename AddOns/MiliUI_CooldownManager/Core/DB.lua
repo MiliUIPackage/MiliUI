@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 12
+ns.DB_VERSION = 13
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -669,9 +669,9 @@ function DB.BuildDefaults()
                                  -- 冷卻倒數的低秒變色開關（Core/Text.lua 的 CdLowBelow）：跟變色秒數 lowBelow 分開存，
                                  -- 取消勾選不動秒數。v5 之前 lowBelow 兼作開關（0 ＝ 關），MIGRATIONS[5] 搬成 false＋5
                                  lowColorOn = true,
-                                 -- 時間格式（Core/Text.lua 的 TimeFormat）："minutes" 2m → 90（原本的寫法）｜"mmss" 3m → 2:00（兩分鐘以內印分:秒）。
-                                 -- 冷卻倒數與增益持續時間共用；舊存檔沒有這欄 ＝ 合併預設補成 minutes，行為不變、不遷移
-                                 timeFormat = "minutes",
+                                 -- 時間格式（Core/Text.lua 的 TimeFormat）："mmss" 3m → 2:00（兩分鐘以內印分:秒，預設）｜"minutes" 2m → 90（原本的寫法）。
+                                 -- 冷卻倒數與增益持續時間共用。10-21 第一版預設 minutes、已被合併預設寫進存檔 ⇒ MIGRATIONS[13] 翻成 mmss
+                                 timeFormat = "mmss",
                                  -- 增益持續時間的倒數（暴雪增益圖示、技能格倒增益那一段、光環格家族）自己的小數門檻、
                                  -- 低秒變色開關與變色秒數（Core/Text.lua 的 BuffTiming）：冷卻倒數不受影響、也不借冷卻的。
                                  -- 顏色用 icon.durationLowColor（資料路徑留在 icon，設定列在「文字」節）。小數門檻預設 0、
@@ -1073,6 +1073,20 @@ local MIGRATIONS = {
     [12] = function(profile)
         local fc = profile.focuscast
         if type(fc) == "table" and fc.enabled == true then fc.enabled = false end
+    end,
+    -- v13（2026-10-21）：倒數的時間格式預設改成分:秒（兩分鐘以內 1:59、以上照分鐘；使用者指定，套組的頭像／Cell／爆發水一起改）。
+    -- 選項當天才加、預設 minutes 已被合併預設寫進存檔 ⇒ 值閘翻成 mmss（只活了不到一天，刻意選分鐘的人重選一次）。
+    -- 主題與條自己的倒數表都翻；沒有逐法術覆寫
+    [13] = function(profile)
+        local function Fix(ct)
+            if type(ct) == "table" and ct.timeFormat == "minutes" then ct.timeFormat = "mmss" end
+        end
+        if type(profile.theme) == "table" then Fix(profile.theme.cooldownText) end
+        if type(profile.bars) == "table" then
+            for _, bar in pairs(profile.bars) do
+                if type(bar) == "table" and type(bar.text) == "table" then Fix(bar.text.cooldownText) end
+            end
+        end
     end,
 }
 DB.MIGRATIONS = MIGRATIONS

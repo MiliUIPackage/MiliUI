@@ -664,9 +664,10 @@ local function LayoutCooldown(row, plan, look)
             fs:SetTextColor(1, 1, 1, 1)
             PlaceText(fs, row.bar, st.timePoint, look)
         end
-        -- 小數門檻＋低秒變色（格式字串包色碼）：Core/Text.lua 同一支
+        -- 小數門檻＋低秒變色（格式字串包色碼）：Core/Text.lua 同一支。時間格式照長條的慣例固定分鐘
+        -- （跟光環類自訂列的 PlainFormatter 一致；CountdownFormatter 沒給格式會退預設的分:秒）
         local fmt = ns.Text and ns.Text.CountdownFormatter and ns.Text.CountdownFormatter({
-            decimalsBelow = st.decimals, lowColorOn = st.lowOn, lowBelow = st.lowBelow, lowColor = st.lowColor })
+            decimalsBelow = st.decimals, lowColorOn = st.lowOn, lowBelow = st.lowBelow, lowColor = st.lowColor }, "minutes")
         if fmt and cd.SetCountdownFormatter then pcall(cd.SetCountdownFormatter, cd, fmt) end
         if cd.SetCountdownMillisecondsThreshold then pcall(cd.SetCountdownMillisecondsThreshold, cd, 0) end
         cd:Show()

@@ -1385,5 +1385,30 @@ do
     eq("陰影：純新增欄位，不升 DB_VERSION", ns.DB_VERSION, LAST_MIGRATION)
 end
 
+-- v13（2026-10-21）：倒數的時間格式預設改成分:秒；當天第一版寫進存檔的 minutes 翻成 mmss（主題與條自己的倒數表）
+do
+    eq("時間格式：新設定檔預設分:秒", DB.BuildDefaults().profile.theme.cooldownText.timeFormat, "mmss")
+    local p = DB.BuildDefaults().profile
+    p.theme.cooldownText.timeFormat = "minutes"
+    p.bars.essential.text = { cooldownText = { size = 20, timeFormat = "minutes" } }
+    p.bars.utility.text = { cooldownText = { size = 18 } }
+    DB.MIGRATIONS[13](p)
+    eq("v13：主題 minutes ⇒ mmss", p.theme.cooldownText.timeFormat, "mmss")
+    eq("v13：條自己存的 minutes ⇒ mmss", p.bars.essential.text.cooldownText.timeFormat, "mmss")
+    eq("v13：條自己沒存這格 ⇒ 不補（照舊退主題）", p.bars.utility.text.cooldownText.timeFormat, nil)
+    DB.MIGRATIONS[13]({})
+    DB.MIGRATIONS[13]({ theme = { cooldownText = "壞" }, bars = { x = 1, y = { text = 2 } } })
+    check("v13：缺表／壞表不報錯", true)
+    -- 整條路：v12 的存檔登入 ⇒ 每份設定檔都翻
+    sv.profiles.Default.theme.cooldownText.timeFormat = "minutes"
+    sv.profiles.Other13 = { theme = { cooldownText = { timeFormat = "minutes" } } }
+    sv.schemaVersion, sv.schemaVersionSeen = 12, nil
+    ns.profile, ns.profileName = nil, nil
+    DB.Init()
+    eq("v13 登入遷移：版本推到目前", sv.schemaVersion, ns.DB_VERSION)
+    eq("v13 登入遷移：目前設定檔翻成 mmss", sv.profiles.Default.theme.cooldownText.timeFormat, "mmss")
+    eq("v13 登入遷移：別份設定檔也翻", sv.profiles.Other13.theme.cooldownText.timeFormat, "mmss")
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

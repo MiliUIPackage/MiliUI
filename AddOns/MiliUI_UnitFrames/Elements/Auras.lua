@@ -186,11 +186,16 @@ local function Detect()
 end
 
 ------------------------------------------------------------
--- 倒數格式：NumericRule 四段式（出貨插件驗證過的寫法）
+-- 倒數格式：NumericRule 分段（出貨插件驗證過的寫法）
 --   <1 秒    小數（"0.4"）—— 少了這段，秒段的 min=1 會讓最後一整秒都卡在 "1"
 --   <91 秒   純數字（"27"）
 --   ≥91 秒   "Nm"（分數向上取整，2m32s → "3m"，跟暴雪自己的框架一致）
 --   >5400 秒 "Nh"（分數會超過 90 就改印時；照字面放 5401 的話 (5400, 5401) 那一秒印 "91m"）
+-- 時間格式（global.auraTimeFormat，玩家回報 2026-10-21：想跟暴雪自己的倒數一樣）：
+--   "minutes"  上面那四段
+--   "mmss"     （預設）60 秒起印分:秒（先照秒段往下取成整秒，再拆成分（捨去）與秒（餘數））、
+--              121 秒起改回整分鐘（"3m"，無條件進位）⇒ 2:00 還是分:秒；時那段照舊。
+--              秒段往下取 ⇒ 顯示到 n 就換的點照字面放 60／121（往上取才要退一秒）
 -- ⚠ 向上取整要做在規則層（step = 60／3600、rounding = Up）再用 components 的 div 取商。
 --   以前寫在 components 上（{ div = 60, rounding = up }、沒給 step）：API 文件說 rounding 是「step 的取法」，
 --   沒有 step 就不取 ⇒ 商數交給 %d 截掉，1:59 印成 "1m"（2026-10-21 冷卻管理器的玩家回報，同一個寫法）。
@@ -199,32 +204,60 @@ end
 -- 小數段的 step 0.1 ＋ "%.1f" 抄自 Platynator 的施法時間與 Ayije_CDM 的冷卻文字；
 -- 沿用 Down 取整（跟秒段一致），所以最後一格是 "0.0"，不會先跳一下 "1.0"
 ------------------------------------------------------------
-local DurationFormatter
+local TIME_FORMATS = { minutes = true, mmss = true }
+-- 不認得的值（壞掉的存檔、匯入字串）一律當預設的 "mmss"
+local function TimeFormatOf(v) return TIME_FORMATS[v] and v or "mmss" end
+
+local formatters = {}           -- [時間格式] = formatter（建不起來記 false）
 do
     local R = Enum and Enum.NumericRuleFormatRounding
     local down, up = R and R.Down or nil, R and R.Up or nil
 
     -- 整包重建：斷點加進去就收不回來，要退掉小數段只能換一顆新的 formatter
-    local function Build(tenths)
+    local function Build(tenths, mmss)
         local f = C_StringUtil.CreateNumericRuleFormatter()
         if tenths then
             f:AddBreakpoint({ threshold = 0, step = 0.1, rounding = down, format = "%.1f" })
         end
         f:AddBreakpoint({ threshold = tenths and 1 or 0, step = 1, rounding = down, min = 1, format = "%d" })
-        f:AddBreakpoint({ threshold = 91, step = 60, rounding = up, format = "%dm",
+        if mmss then
+            f:AddBreakpoint({ threshold = 60, step = 1, rounding = down, format = "%d:%02d",
+                              components = { { div = 60, step = 1, rounding = down },
+                                             { mod = 60, step = 1, rounding = down } } })
+        end
+        f:AddBreakpoint({ threshold = mmss and 121 or 91, step = 60, rounding = up, format = "%dm",
                           components = { { div = 60 } } })
         f:AddBreakpoint({ threshold = 5400.0001, step = 3600, rounding = up, format = "%dh",
                           components = { { div = 3600 } } })
         return f
     end
 
-    if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
-        local ok, formatter = pcall(Build, true)
-        -- 客戶端要是不吃 0.1 的 step，退回整秒；整顆 formatter 掉了會換成暴雪自己那套
-        -- 帶單位的格式，那個更難看
-        if not ok or not formatter then ok, formatter = pcall(Build, false) end
-        if ok and formatter then DurationFormatter = formatter end
+    -- 兩種格式在載入時一次建好：InitAuraButton 跑在暴雪的 initializeFrame 裡（污染的執行流程），
+    -- 那裡只查表、不建東西（同 BuildDurationAlphaCurve 的顧慮）
+    for tf in pairs(TIME_FORMATS) do
+        formatters[tf] = false
+        if C_StringUtil and C_StringUtil.CreateNumericRuleFormatter then
+            local mmss = tf == "mmss"
+            local ok, formatter = pcall(Build, true, mmss)
+            -- 客戶端要是不吃 0.1 的 step，退回整秒；整顆 formatter 掉了會換成暴雪自己那套
+            -- 帶單位的格式，那個更難看
+            if not ok or not formatter then ok, formatter = pcall(Build, false, mmss) end
+            if ok and formatter then formatters[tf] = formatter end
+        end
     end
+end
+
+local function DurationFormatter(timeFormat)
+    return formatters[TimeFormatOf(timeFormat)] or nil
+end
+
+-- 設定頁預覽的假秒數照同一套寫法印（明文整數，不經引擎；Options/Preview.lua）
+function ns.AuraPreviewDurationText(sec)
+    local tf = TimeFormatOf(ns.db and ns.db.global and ns.db.global.auraTimeFormat)
+    if sec > 5400 then return ("%dh"):format(math.ceil(sec / 3600)) end
+    if sec >= (tf == "mmss" and 121 or 91) then return ("%dm"):format(math.ceil(sec / 60)) end
+    if tf == "mmss" and sec >= 60 then return ("%d:%02d"):format(math.floor(sec / 60), sec % 60) end
+    return tostring(sec)
 end
 
 -- 「剩餘低於 threshold 秒才顯示數字」：alpha 階梯 ColorCurve
@@ -399,7 +432,7 @@ local function InitAuraButton(auraButton, style, sizeW, sizeH)
         duration:SetPoint("CENTER", iconFrame, "CENTER", 0, 0)
         auraButton.Duration = duration
         if auraButton.SetDurationText then
-            local formatter = DurationFormatter
+            local formatter = DurationFormatter(style.timeFormat)
             local options = formatter and { textFormatter = formatter } or {}
             if style.durationThreshold and Enum and Enum.DurationTextBindingProperty then
                 local curve = BuildDurationAlphaCurve(style.durationThreshold, 1, 1, 1)
@@ -518,6 +551,8 @@ local function BuildSignature(edb)
         -- 沒有 setter，只能換整顆容器。漏了這個鍵的症狀是「改了下拉沒反應，
         -- 動別的設定才一起生效」。
         tostring(edb.onlyMine), tostring(edb.filterMode), tostring(ns.db.global.font),
+        -- 倒數的時間格式（全域）：formatter 在 initializeFrame 裡綁定，同樣只能整顆重建
+        TimeFormatOf(ns.db.global.auraTimeFormat),
         -- 黑名單走 candidateFilters，同樣是宣告時就固定、沒有 setter（見 filterMode）
         BlacklistKey(edb),
         -- 右鍵取消也是在 initializeFrame 裡登記的
@@ -777,6 +812,7 @@ local function BuildStyle(elementName, edb)
             stackFontSize = edb.stackSize or 10,
             stackAnchor = edb.stackAnchor, stackX = edb.stackX, stackY = edb.stackY,
             durationThreshold = edb.durationThreshold,
+            timeFormat = TimeFormatOf(ns.db.global.auraTimeFormat),
         }
     end
     return {
@@ -789,6 +825,7 @@ local function BuildStyle(elementName, edb)
         stackFontSize = edb.stackSize or 10,
         stackAnchor = edb.stackAnchor, stackX = edb.stackX, stackY = edb.stackY,
         durationThreshold = edb.durationThreshold,
+        timeFormat = TimeFormatOf(ns.db.global.auraTimeFormat),
     }
 end
 

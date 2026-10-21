@@ -3917,6 +3917,14 @@ function F.Revise()
         end
     end
 
+    --! fix from MiliUI (2026-10-21): aura countdown time format, "minutes" | "mmss" (default: under
+    --! two minutes reads "1:59", above that "3m" -- RaidFrames/AuraContainerCore.lua). A new key, so
+    --! no marker: anything that is not a string yet takes the default.
+    local auraIconOptions = CellDB["appearance"] and CellDB["appearance"]["auraIconOptions"]
+    if type(auraIconOptions) == "table" and type(auraIconOptions["durationTimeFormat"]) ~= "string" then
+        auraIconOptions["durationTimeFormat"] = "mmss"
+    end
+
     CellDB["revise"] = Cell.version
     if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version

@@ -610,7 +610,7 @@ local gradientLossCB, thresholdLossCP1, thresholdLossCP2, thresholdLossCP3, thre
 local barAlpha, lossAlpha, bgAlpha, oorAlpha, predCB, absorbCB, invertColorCB, shieldCB, oversCB, reverseCB, oversReverseCB
 local predCustomCB, predColorPicker, absorbColorPicker, shieldColorPicker, oversColorPicker
 local maxHealthLossCB, maxHealthLossColorPicker  -- fix from MiliUI
-local iconOptionsBtn, iconOptionsFrame, iconAnimationDropdown, durationRoundUpCB, durationDecimalText1, durationDecimalText2, durationDecimalDropdown, durationColorCB, durationNormalCP, durationPercentCP, durationSecondCP, durationPercentDD, durationSecondEB, durationSecondText
+local iconOptionsBtn, iconOptionsFrame, iconAnimationDropdown, durationTimeFormatDropdown, durationRoundUpCB, durationDecimalText1, durationDecimalText2, durationDecimalDropdown, durationColorCB, durationNormalCP, durationPercentCP, durationSecondCP, durationPercentDD, durationSecondEB, durationSecondText
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
 local function CheckTextures()
@@ -666,7 +666,7 @@ local function CreateIconOptionsFrame()
         appearanceTab.mask:Hide()
     end
 
-    iconOptionsFrame = Cell.CreateFrame("CellOptionsFrame_IconOptions", appearanceTab, 230, 235)
+    iconOptionsFrame = Cell.CreateFrame("CellOptionsFrame_IconOptions", appearanceTab, 230, 282) -- fix from MiliUI: +47 for the time format row
     iconOptionsFrame:SetBackdropBorderColor(unpack(Cell.GetAccentColorTable()))
     iconOptionsFrame:SetPoint("TOP", iconOptionsBtn, "BOTTOM", 0, -5)
     iconOptionsFrame:SetPoint("RIGHT", -5, 0)
@@ -716,6 +716,31 @@ local function CreateIconOptionsFrame()
     iconAnimationText:SetPoint("BOTTOMLEFT", iconAnimationDropdown, "TOPLEFT", 0, 1)
     iconAnimationText:SetText(L["Play Icon Animation When"])
 
+    -- fix from MiliUI: duration time format (RaidFrames/AuraContainerCore.lua). The examples print
+    -- Cell's own literal "m", the same as the countdown itself.
+    durationTimeFormatDropdown = Cell.CreateDropdown(iconOptionsFrame, 180)
+    durationTimeFormatDropdown:SetPoint("TOPLEFT", iconAnimationDropdown, "BOTTOMLEFT", 0, -27)
+    local function SetTimeFormat(value)
+        CellDB["appearance"]["auraIconOptions"]["durationTimeFormat"] = value
+        Cell.Fire("UpdateAppearance", "icon")
+    end
+    durationTimeFormatDropdown:SetItems({
+        {
+            ["text"] = L["Minutes (%s)"]:format("2m → 90"),
+            ["value"] = "minutes",
+            ["onClick"] = function() SetTimeFormat("minutes") end,
+        },
+        {
+            ["text"] = L["Minutes:Seconds (%s)"]:format("3m → 2:00"),
+            ["value"] = "mmss",
+            ["onClick"] = function() SetTimeFormat("mmss") end,
+        },
+    })
+
+    local durationTimeFormatText = iconOptionsFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    durationTimeFormatText:SetPoint("BOTTOMLEFT", durationTimeFormatDropdown, "TOPLEFT", 0, 1)
+    durationTimeFormatText:SetText(L["Duration Text Format"])
+
     -- duration round up
     durationRoundUpCB = Cell.CreateCheckButton(iconOptionsFrame, L["Round Up Duration Text"], function(checked, self)
         CellDropdownList:Hide()
@@ -725,7 +750,7 @@ local function CreateIconOptionsFrame()
 
         Cell.Fire("UpdateAppearance", "icon")
     end)
-    durationRoundUpCB:SetPoint("TOPLEFT", iconAnimationDropdown, "BOTTOMLEFT", 0, -22)
+    durationRoundUpCB:SetPoint("TOPLEFT", durationTimeFormatDropdown, "BOTTOMLEFT", 0, -22)
 
     -- duration decimal
     durationDecimalText1 = iconOptionsFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
@@ -1766,6 +1791,7 @@ LoadButtonStyle = function()
 
     -- icon options
     iconAnimationDropdown:SetSelectedValue(CellDB["appearance"]["auraIconOptions"]["animation"])
+    durationTimeFormatDropdown:SetSelectedValue(CellDB["appearance"]["auraIconOptions"]["durationTimeFormat"] == "minutes" and "minutes" or "mmss")
     durationRoundUpCB:SetChecked(CellDB["appearance"]["auraIconOptions"]["durationRoundUp"])
     Cell.SetEnabled(not CellDB["appearance"]["auraIconOptions"]["durationRoundUp"], durationDecimalText1, durationDecimalText2, durationDecimalDropdown)
     durationDecimalDropdown:SetSelectedValue(CellDB["appearance"]["auraIconOptions"]["durationDecimal"])
@@ -1914,6 +1940,16 @@ local function UpdateAppearance(which)
 
         -- decimal
         Cell.vars.iconDurationDecimal = CellDB["appearance"]["auraIconOptions"]["durationDecimal"]
+
+        -- fix from MiliUI: time format. The aura containers bind their formatter once per button, so
+        -- only a real change (not the load-time pass, not the other icon options) rebuilds them;
+        -- the CooldownFrame countdowns pick it up on their next SetCooldown.
+        local timeFormat = CellDB["appearance"]["auraIconOptions"]["durationTimeFormat"] == "minutes" and "minutes" or "mmss"
+        local prevTimeFormat = Cell.vars.iconDurationTimeFormat
+        Cell.vars.iconDurationTimeFormat = timeFormat
+        if prevTimeFormat and prevTimeFormat ~= timeFormat and Cell.AuraDisplay and Cell.AuraDisplay.RefreshDurationFormat then
+            Cell.AuraDisplay.RefreshDurationFormat()
+        end
 
         -- color
         if CellDB["appearance"]["auraIconOptions"]["durationColorEnabled"] then

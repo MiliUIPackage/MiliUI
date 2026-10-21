@@ -48,6 +48,9 @@ local DEFAULTS = {
     lockBar        = false,
     rightClickUse  = false,   -- right-click an icon to drink that potion directly
     showCooldown   = true,    -- show the potion cooldown swirl on the icons
+    -- Countdown numbers on the swirl: "mmss" (2:00 and under as 1:59, longer as 3m)
+    -- or "minutes" (2m down to 91 s, then 90). See Bar.lua ns.CooldownTimeFormat.
+    cooldownTimeFormat = "mmss",
     showItemTooltip = true,   -- show the normal item tooltip on hover
     -- Mouseover fade (engine lives in Libs/MiliUISnap.lua). Off by default so
     -- an upgrade never makes an existing player's bar go half-transparent.

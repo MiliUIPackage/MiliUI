@@ -68,12 +68,29 @@ local function BuildFadeMasterRow(parent, x, y, width)
     end
 end
 
+------------------------------------------------------------
+-- 冷卻數字的時間格式（Bar.lua 的 ns.CooldownTimeFormat）：例子裡的「分」照客戶端語系
+-- （暴雪冷卻倒數的全域字串，引擎印的就是它）。清單在開分頁時才算（items 給函式）
+------------------------------------------------------------
+local function TimeFormatItems()
+    local m = ns.CooldownUnitFormat("COOLDOWN_DURATION_MIN", "%dm")
+    return {
+        { text = L["OPT_CD_FORMAT_MINUTES"]:format(m:format(2) .. " → 90"), value = "minutes" },
+        { text = L["OPT_CD_FORMAT_MMSS"]:format(m:format(3) .. " → 2:00"), value = "mmss" },
+    }
+end
+
+-- 數字本身要開遊戲的「顯示冷卻時間數字」才畫：選項名照客戶端的全域字串
+local CD_NUMBERS_OPTION = _G.COUNTDOWN_FOR_COOLDOWNS_TEXT or "Show Numbers for Cooldowns"
+
 local CONTROLS = {
     { type = "header", label = L["SECTION_GENERAL"] },
     { type = "toggle", key = "showBar",         label = L["OPT_SHOW_BAR"] },
     { type = "toggle", key = "lockBar",         label = L["OPT_LOCK_BAR"] },
     { type = "toggle", key = "rightClickUse",   label = L["OPT_RIGHTCLICK"] },
     { type = "toggle", key = "showCooldown",    label = L["OPT_SHOW_CD"] },
+    { type = "dropdown", key = "cooldownTimeFormat", label = L["OPT_CD_FORMAT"], items = TimeFormatItems },
+    { type = "text",   label = L["OPT_CD_FORMAT_DESC"]:format(CD_NUMBERS_OPTION) },
     { type = "toggle", key = "showItemTooltip", label = L["OPT_ITEM_TOOLTIP"] },
     { type = "toggle", key = "printOnSwitch",   label = L["OPT_PRINT"] },
     { type = "button", label = "", text = L["BTN_RESET_POS"], width = 180,
