@@ -431,9 +431,90 @@ function ns.Bar_UpdateSelection()
     end
 end
 
+-- Countdown time format (db.cooldownTimeFormat) for the Cooldown's built-in
+-- numbers, which only show while the game's "Show Numbers for Cooldowns" is on:
+--   "mmss"     (default) 2:00 and under prints m:ss (1:59), under a minute plain
+--              seconds; from 2:01 whole minutes rounded up (3m), past 90 min hours
+--   "minutes"  seconds up to 90, then whole minutes rounded up (2m), past 90 min hours
+-- Same rules as MiliUI_CooldownManager (Core/Text.lua BuildFormatter), no decimals:
+-- whole seconds round up like Blizzard's own countdown. The format switches on the
+-- DISPLAYED second, but the rule thresholds compare the raw remaining time, so with
+-- round-up a display of n starts at x > n - 1 (Edge); a literal n would flash the
+-- old format for that last second (e.g. "2:01" between "3m" and "2:00").
+local TIME_FORMATS = { minutes = true, mmss = true }
+function ns.CooldownTimeFormat()
+    local v = ns.GetDB().cooldownTimeFormat
+    return TIME_FORMATS[v] and v or "mmss"
+end
+
+-- Minute/hour suffix follows the client: Blizzard's own cooldown countdown strings
+-- (enUS "%dm"/"%dh", zhTW "%d分"/"%d小時"...). A rule feeds one number, so only a
+-- string with exactly one format specifier, and that one %d, is accepted.
+local function UnitFormat(name, fallback)
+    local s = _G[name]
+    if type(s) ~= "string" then return fallback end
+    s = s:gsub("%s+", " ")
+    local _, n = s:gsub("%%", "")
+    if n ~= 1 or not s:find("%%d") then return fallback end
+    return s
+end
+ns.CooldownUnitFormat = UnitFormat
+
+local function Edge(n) return n - 1 + 0.0001 end
+
+local function BuildCdFormatter(timeFormat)
+    local SU = C_StringUtil
+    local R = Enum and Enum.NumericRuleFormatRounding
+    if not (SU and SU.CreateNumericRuleFormatter and R) then return nil end
+    local up, down = R.Up, R.Down
+    local mmss = timeFormat == "mmss"
+    local minFmt = UnitFormat("COOLDOWN_DURATION_MIN", "%dm")
+    local hourFmt = UnitFormat("COOLDOWN_DURATION_HOURS", "%dh")
+    local rules = { { threshold = 0, step = 1, rounding = up, format = "%d" } }
+    if mmss then
+        -- whole seconds first (rounded up), then split into minutes (floor) and seconds
+        rules[#rules + 1] = { threshold = Edge(60), step = 1, rounding = up, format = "%d:%02d",
+            components = { { div = 60, step = 1, rounding = down }, { mod = 60, step = 1, rounding = down } } }
+    end
+    -- Round up on the RULE (step 60/3600), then a bare div: a component's rounding
+    -- only applies to its own step, so { div = 60, rounding = up } alone truncated 1:59 to 1m
+    rules[#rules + 1] = { threshold = Edge(mmss and 121 or 91), step = 60, rounding = up,
+        format = minFmt, components = { { div = 60 } } }
+    -- hours once the rounded-up minutes would pass 90 (a literal 5401 printed "91m" for a second)
+    rules[#rules + 1] = { threshold = 5400 + 0.0001, step = 3600, rounding = up,
+        format = hourFmt, components = { { div = 3600 } } }
+    local ok, fmt = pcall(SU.CreateNumericRuleFormatter)
+    if not ok or not fmt then return nil end
+    for _, rule in ipairs(rules) do
+        -- a half-built formatter cannot be undone: drop it and keep Blizzard's format
+        if not pcall(fmt.AddBreakpoint, fmt, rule) then return nil end
+    end
+    return fmt
+end
+
+local cdFormatters = {}    -- [timeFormat] = formatter, or false when it couldn't be built
+local function CdFormatter()
+    local tf = ns.CooldownTimeFormat()
+    local f = cdFormatters[tf]
+    if f == nil then
+        f = BuildCdFormatter(tf) or false
+        cdFormatters[tf] = f
+    end
+    return f or nil
+end
+
+local function ApplyCdFormat(cd, fmt)
+    if fmt and cd.SetCountdownFormatter and cd._timeFmt ~= fmt
+        and pcall(cd.SetCountdownFormatter, cd, fmt) then
+        cd._timeFmt = fmt
+    end
+end
+
 -- Cooldown swirls (like the built-in action bar). Reads each item's (category)
 -- cooldown by itemID and feeds its Cooldown frame. Touches only insecure
 -- cooldown widgets, so it is safe to call in combat (when you drink mid-fight).
+-- Also (re)applies the countdown time format; new pooled buttons get it here too
+-- (Bar_Refresh ends with this call).
 function ns.Bar_UpdateCooldowns()
     if not ns.bar then return end
     local show = ns.GetDB().showCooldown
@@ -448,8 +529,10 @@ function ns.Bar_UpdateCooldowns()
         end
         return
     end
+    local fmt = CdFormatter()
     for _, btn in ipairs(ns.buttons or {}) do
         if btn.cooldown then
+            ApplyCdFormat(btn.cooldown, fmt)
             if btn.itemID and btn:IsShown() then
                 local start, duration, enable = GetItemCD(btn.itemID)
                 CooldownFrame_Set(btn.cooldown, start or 0, duration or 0, enable or 0)

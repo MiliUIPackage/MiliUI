@@ -24,6 +24,10 @@ L["OPT_LOCK_BAR"]        = "鎖定切換列位置（禁止拖動）"
 L["OPT_RIGHTCLICK"]      = "右鍵圖示直接使用該爆發藥水"
 L["OPT_SHOW_CD"]         = "在圖示上顯示藥水冷卻時間"
 L["OPT_ITEM_TOOLTIP"]    = "滑鼠移過時顯示道具資訊"
+L["OPT_CD_FORMAT"]       = "冷卻時間格式"
+L["OPT_CD_FORMAT_MINUTES"] = "分鐘（%s）"
+L["OPT_CD_FORMAT_MMSS"]  = "分:秒（%s）"
+L["OPT_CD_FORMAT_DESC"]  = "分鐘：超過 90 秒只顯示分鐘（無條件進位）。分:秒：兩分鐘以內顯示分和秒，超過兩分鐘只顯示分鐘。冷卻數字要開啟遊戲的「%s」選項才會顯示。"
 L["OPT_SPLIT_CONTEXT"]   = "依環境分開記憶藥水選擇"
 
 -- 分環境記憶

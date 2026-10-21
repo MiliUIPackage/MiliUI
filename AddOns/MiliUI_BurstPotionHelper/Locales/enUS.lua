@@ -26,6 +26,10 @@ L["OPT_LOCK_BAR"]        = "Lock the bar position"
 L["OPT_RIGHTCLICK"]      = "Right-click an icon to use that potion immediately"
 L["OPT_SHOW_CD"]         = "Show potion cooldown on the icons"
 L["OPT_ITEM_TOOLTIP"]    = "Show item info in the tooltip"
+L["OPT_CD_FORMAT"]       = "Cooldown time format"
+L["OPT_CD_FORMAT_MINUTES"] = "Minutes (%s)"
+L["OPT_CD_FORMAT_MMSS"]  = "Minutes:seconds (%s)"
+L["OPT_CD_FORMAT_DESC"]  = "Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: two minutes or less shows minutes and seconds, longer shows whole minutes. The numbers only show while the game's \"%s\" option is on."
 L["OPT_SPLIT_CONTEXT"]   = "Remember the choice per environment"
 
 -- Per-environment memory contexts
