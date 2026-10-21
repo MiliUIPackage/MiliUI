@@ -145,6 +145,9 @@ local function BuildDefaults()
 
         -- 最近一場首領戰（手動輸入首領戰 ID 時帶入用）
         lastEncounter = nil,
+
+        -- 上次寫進檔案的時間（time()；PLAYER_LOGOUT 時記，DB.MarkSaved）。不是設定，只給 /mbt check 的存檔診斷看
+        savedAt = nil,
     }
 end
 DB.BuildDefaults = BuildDefaults
@@ -153,7 +156,15 @@ DB.BuildDefaults = BuildDefaults
 local MergeDefaults = ns.MiliUIDB.MergeDefaults
 
 function DB.Init()
-    if type(MiliUI_BossTimeline_DB) ~= "table" then
+    -- 存檔診斷（/mbt check）：這次登入有沒有從檔案讀回存檔、上次是什麼時候寫的。
+    -- 玩家回報「每次重載設定都重置」時分得出兩種情況：檔案沒讀到（寫不進去或讀不回來，多半是環境）
+    -- 還是讀到了卻被改掉（插件的問題）。要在下面補空表之前看
+    local fromDisk = type(MiliUI_BossTimeline_DB) == "table"
+    ns.saveCheck = {
+        fromDisk = fromDisk,
+        savedAt  = fromDisk and tonumber(MiliUI_BossTimeline_DB.savedAt) or nil,
+    }
+    if not fromDisk then
         MiliUI_BossTimeline_DB = {}
     end
     local db = MiliUI_BossTimeline_DB
@@ -224,6 +235,14 @@ function DB.MigrateV2(db)
     -- 保險：下個版本可刪（連同這一行）。條目是複本，之後改設定檔不會動到備份
     db.plansV1Backup = db.plansV1Backup or old
     db.plans = nil
+end
+
+-- 登出與 /reload 時（PLAYER_LOGOUT，存檔寫進檔案之前）記下時間，下次登入 /mbt check 印得出「上次寫入」。
+-- 寫全域那張而不是 ns.db：/mbt reset 換了一張新表再重載，要記在真正會寫進檔案的那張上
+function DB.MarkSaved()
+    if type(MiliUI_BossTimeline_DB) == "table" then
+        MiliUI_BossTimeline_DB.savedAt = time()
+    end
 end
 
 -- 目前方向的版面那一份

@@ -163,6 +163,9 @@ L["Custom timelines are written into Blizzard's timeline when the pull starts, s
 L["Commands: |cffffd200/mbt|r opens the options, |cffffd200/mbt check|r prints what is on the timeline, |cffffd200/mbt reset|r restores the defaults"] = "指令：|cffffd200/mbt|r 打开设置、|cffffd200/mbt check|r 列出时间轴上有什么、|cffffd200/mbt reset|r 还原默认值"
 L["Author: Mili (MiliUI package)"] = "作者：米利（米利UI套组）"
 L["Hiding Blizzard's timeline:"] = "隐藏暴雪时间轴:"
+L["Save file: nothing was read this session (first use, or the file wasn't written or couldn't be read)."] = "存档：这次登录没有读到存档（第一次使用，或存档没写进去／读不回来）"
+L["Save file: read from disk, last written %s (%s ago)."] = "存档：已从文件读回，上次写入 %s（%s前）"
+L["Save file: read from disk (written by an older version, no time recorded)."] = "存档：已从文件读回（旧版写的，没有记录写入时间）"
 
 -- MRT 时间轴与粘贴导入
 L["Paste reminders"] = "粘贴导入"

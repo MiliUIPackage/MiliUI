@@ -42,11 +42,17 @@ ns.Errors.Install(function(line)
 end)
 
 ------------------------------------------------------------
--- 啟動：初始化資料庫 → 通知各模組
+-- 啟動：初始化資料庫 → 通知各模組；登出時記下存檔時間（/mbt check 的存檔診斷）
 ------------------------------------------------------------
 local boot = CreateFrame("Frame")
 boot:RegisterEvent("PLAYER_LOGIN")
-boot:SetScript("OnEvent", function(self)
+-- 登出與 /reload 都會發，在存檔寫進檔案之前
+boot:RegisterEvent("PLAYER_LOGOUT")
+boot:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_LOGOUT" then
+        ns.DB.MarkSaved()
+        return
+    end
     self:UnregisterEvent("PLAYER_LOGIN")
     ns.DB.Init()
     ns.Fire("Init")

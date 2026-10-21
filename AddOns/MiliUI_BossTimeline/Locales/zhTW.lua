@@ -163,6 +163,9 @@ L["Custom timelines are written into Blizzard's timeline when the pull starts, s
 L["Commands: |cffffd200/mbt|r opens the options, |cffffd200/mbt check|r prints what is on the timeline, |cffffd200/mbt reset|r restores the defaults"] = "指令：|cffffd200/mbt|r 開啟設定、|cffffd200/mbt check|r 列出時間軸上有什麼、|cffffd200/mbt reset|r 還原預設值"
 L["Author: Mili (MiliUI package)"] = "作者：米利（米利UI套組）"
 L["Hiding Blizzard's timeline:"] = "隱藏暴雪時間軸:"
+L["Save file: nothing was read this session (first use, or the file wasn't written or couldn't be read)."] = "存檔：這次登入沒有讀到存檔（第一次使用，或存檔沒寫進去／讀不回來）"
+L["Save file: read from disk, last written %s (%s ago)."] = "存檔：已從檔案讀回，上次寫入 %s（%s前）"
+L["Save file: read from disk (written by an older version, no time recorded)."] = "存檔：已從檔案讀回（舊版寫的，沒有記錄寫入時間）"
 
 -- MRT 時間軸與貼上匯入
 L["Paste reminders"] = "貼上匯入"

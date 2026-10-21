@@ -33,6 +33,16 @@ MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
 ------------------------------------------------------------
 local function Report()
     ns.Print("v" .. ns.VERSION)
+    -- 存檔診斷（DB.Init 記的）：回報「重載後設定都重置」時先看這一行
+    local sc = ns.saveCheck
+    if sc and not sc.fromDisk then
+        print("  " .. L["Save file: nothing was read this session (first use, or the file wasn't written or couldn't be read)."])
+    elseif sc and sc.savedAt then
+        print("  " .. L["Save file: read from disk, last written %s (%s ago)."]:format(
+            date("%Y-%m-%d %H:%M:%S", sc.savedAt), SecondsToTime(math.max(1, time() - sc.savedAt))))
+    elseif sc then
+        print("  " .. L["Save file: read from disk (written by an older version, no time recorded)."])
+    end
     local counts = { blizzard = 0, mine = 0, other = 0, editmode = 0 }
     for id, rec in ns.Events.Iterate() do
         counts[rec.kind] = (counts[rec.kind] or 0) + 1

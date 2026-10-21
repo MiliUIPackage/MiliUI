@@ -1,11 +1,14 @@
 ---
 name: project-miliui-bosstimeline
-description: MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式／計時條、即時預覽）、標出每一條是哪個插件加的、「首領」頁＝冒險指南分組的技能設定＋自己的提示（錨技能第 N 次／每一次／階段、音效、語音、自製首領警告）、貼上匯入（!MBT1!／DFT 的 DSR1!／NSRT／MRT {time:}）；首領→難度→設定檔的存檔結構（DB v2）；地瓜／DBM／DFT 怎麼碰時間軸的調查結論、三個實機 bug 的根因與待實機驗證清單
+description: "MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式／計時條、即時預覽）、標出每一條是哪個插件加的、「首領」頁＝冒險指南分組的技能設定＋自己的提示（錨技能第 N 次／每一次／階段、音效、語音、自製首領警告）、貼上匯入（!MBT1!／DFT 的 DSR1!／NSRT／MRT {time:}）；首領→難度→設定檔的存檔結構（DB v2）；地瓜／DBM／DFT 怎麼碰時間軸的調查結論、三個實機 bug 的根因與待實機驗證清單"
 metadata:
+  node_type: memory
   type: project
+  originSessionId: d478c9c5-c99f-40df-ab6d-045c854c4b4a
+  modified: 2026-10-21T03:31:28.232Z
 ---
 
-2026-10-09 開的插件（現 v0.1.2），`AddOns/MiliUI_BossTimeline`，
+2026-10-09 開的插件（現 v1.0.1；奇樂另有單獨下載頁 addons.miliui.com/wow/miliui-bosstimeline，留言區是 JS 畫的，要用瀏覽器面板讀），`AddOns/MiliUI_BossTimeline`，
 Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（別名 `/bosstimeline`；
 `check`／`stop`／`reset`／`minimap`／`ej …`），共用層 NAMESPACE `MiliUIBT`，SV `MiliUI_BossTimeline_DB`，
 有小地圖按鈕（左鍵開設定、可拖、一般分頁可關、`/mbt minimap` 叫回）。
@@ -211,6 +214,17 @@ Title-zhTW `|cffFF7F00[副本]|r 米利的首領時間軸`，指令 `/mbt`（別
 - **開戰**：`Plans.Active(encID, difficultyID)` 合併所有生效且適用這個難度的設定檔；先濾 `EntryApplies` 再去重（同秒 0.05 內、同法術、同文字）。
 - **對象條件**（`Plans.EntryApplies`，不同類 AND、同類 OR）：`roles`、`class`、`positions={melee,ranged}`（近戰專精表同 DFT，坦克算近戰，讀不到專精照給）、
   `groups={1..8}`（`UnitInRaid("player")`＋`GetRaidRosterInfo` 第 3 個回傳，不在團隊＝第 1 隊）、`players={名字}`（兩邊去伺服器、ASCII 不分大小寫）。
+
+## 存檔診斷（v1.0.1）
+
+- 2026-10-21 奇樂留言（NINJACC，單獨下載 1.0.0 全新安裝、原本用 Better Timeline）：「每次重開或 RL 設定都會重製」。
+  查過程式：清設定的只有 `/mbt reset` 與外觀頁「還原預設值」（有確認框、不動位置）；DB.Init 只補 nil；沒有別的插件碰這份 SV；
+  自己這台的存檔讀得回來、全是明文（無 NaN／inf／秘密值／函式）；git archive 1.0.0 跟奇樂 zip 大小差不到 1KB ⇒ 程式端沒找到成因，傾向玩家環境（存檔寫不進去或讀不回來）。
+- 所以加了診斷：`DB.Init` 在補空表之前記 `ns.saveCheck = { fromDisk, savedAt }`；`PLAYER_LOGOUT`（登出與 /reload 都發、在寫檔之前）
+  `DB.MarkSaved` 把 `time()` 寫進**全域那張**（不是 ns.db：`/mbt reset` 換了新表再重載）；`/mbt check` 版本號下一行印
+  「沒讀到存檔」／「已讀回，上次寫入 時間（N 前）」／「已讀回（舊版寫的，沒時間）」。
+- 判讀：/reload 後印「沒讀到」＝檔案沒寫進去或讀不回來（權限、防毒、OneDrive、檔案壞掉）→ 請玩家看 `WTF\Account\<帳號>\SavedVariables\MiliUI_BossTimeline.lua`；
+  印「已讀回、幾秒前」但設定看起來是預設 ⇒ 插件自己改掉的，回頭查程式。結果還沒回來。
 
 ## 待實機驗證
 
