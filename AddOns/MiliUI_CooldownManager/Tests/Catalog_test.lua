@@ -346,7 +346,7 @@ ns.specID = 65
 do
     -- withHidden：隱藏的另外回一張（照 order 排），顯示的那張不變
     local vis, hid = C.Bar("essential", true)
-    eqList("withHidden：顯示的不變", vis, { 202, 201 })
+    eqList("withHidden：顯示的多了沒學會的 103（order 沒列到 ⇒ 照完整順序接在後）", vis, { 202, 103, 201 })
     eqList("withHidden：隱藏的另回一張", hid, { 701 })
     local _, none = C.Bar("utility", true)
     eqList("withHidden：沒有隱藏 ⇒ 空表", none, {})
@@ -794,7 +794,7 @@ do
     }
     eqList("天賦條件：正式清單沒有不成立的（暴雪的與自訂的）", C.Bar("essential"), { 102, "c:2" })
     local vis, hid = C.Bar("essential", true)
-    eqList("天賦條件：withHidden 的第一張照樣有", vis, { 101, 102, "c:1", "c:2" })
+    eqList("天賦條件：withHidden 的第一張照樣有（沒學會的 103 也列）", vis, { 101, 102, 103, "c:1", "c:2" })
     eqList("天賦條件：不進隱藏那張", hid, {})
     check("TalentBlocked：暴雪的", C.TalentBlocked(101) and not C.TalentBlocked(102))
     check("TalentBlocked：自訂的", C.TalentBlocked("c:1") and not C.TalentBlocked("c:2"))
@@ -857,7 +857,7 @@ do
         for _, id in ipairs(hid or {}) do if id == "w:1" then return false end end
         return true
     end)())
-    eqList("寬層的天賦條件不成立：設定頁清單照樣有", vis, { "c:1", 102, "k:5", 101, "w:3", "k:4" })
+    eqList("寬層的天賦條件不成立：設定頁清單照樣有（沒學會的 103 也列）", vis, { "c:1", 102, "k:5", 101, 103, "w:3", "k:4" })
     check("TalentBlocked：寬層的", C.TalentBlocked("w:3"))
     check("BarHasAuraSlot：戰隊層的光環格", C.BarHasAuraSlot("buffs"))
     eq("Info：被蓋掉的 ⇒ nil", C.Info("w:1"), nil)
@@ -1036,7 +1036,7 @@ do
     eqList("BarBase：核心照舊", C.BarBase("essential"), { 102, 701, 202 })
     do
         local vis, hid = C.Bar("essential", true)
-        eqList("withHidden 只回 base（設定頁自己畫溢出）", vis, { 102, 701, 202 })
+        eqList("withHidden 只回 base（設定頁自己畫溢出；沒學會的 103 也列、不算顆數）", vis, { 103, 102, 701, 202 })
         eqList("withHidden 第二張照舊", hid, {})
         local u = C.Bar("utility", true)
         eqList("withHidden：接收條不含溢來的", u, { 201, 101 })
@@ -1325,6 +1325,92 @@ do
     env.GetInventoryItemID, env.C_Item = savedInv, savedItem
     C.InvalidateSlotBuffs()
     C.slotBuffStale = false
+end
+
+------------------------------------------------------------
+-- 沒學會的（天賦沒點）：畫面上不收、設定頁照樣列在它的位置；拖曳寫回不丟（C.MergeOrder）；
+-- 收養換了條的跟著搬（2026-10-21 回報：治療武僧團隊本青龍、傳奇鑰石朱鶴，切天賦後新出的排到最後）
+------------------------------------------------------------
+do
+    -- MergeOrder 純邏輯
+    eqList("MergeOrder：沒有舊的", C.MergeOrder(nil, { 2, 1 }), { 2, 1 })
+    eqList("MergeOrder：這次沒列到的錨在舊鄰居後面、前面沒鄰居放最前", C.MergeOrder({ 9, 1, 8, 2 }, { 2, 1 }), { 9, 2, 1, 8 })
+    eqList("MergeOrder：自訂項目的字串 id 一樣留", C.MergeOrder({ "c:1", 5, "w:3" }, { 5 }), { "c:1", 5, "w:3" })
+    eqList("MergeOrder：壞資料跳過", C.MergeOrder({ false, 3, {} }, { 1 }), { 3, 1 })
+    eqList("MergeOrder：新的重複只收一次", C.MergeOrder(nil, { 1, 1, 2 }), { 1, 2 })
+
+    local savedProfile, savedSpec = ns.profile, ns.specID
+    layoutString = "1|B64main"
+    C.Refresh("unlearned")
+    ns.specID = 65
+    eqList("allLists：核心含沒學會的 103（照完整順序）", C.allLists.essential, { 103, 102, 701, 202 })
+    eqList("lists：核心照舊不含 103", C.lists.essential, { 102, 701, 202 })
+    check("Unlearned：沒學會的暴雪法術", C.Unlearned(103))
+    check("Unlearned：學了的不算", not C.Unlearned(102))
+    check("Unlearned：候選池的不算（不在任何一條）", not C.Unlearned(501))
+    check("Unlearned：自訂項目不算", not C.Unlearned("c:1"))
+    check("Unlearned：不認得的 id 不算", not C.Unlearned(424242))
+
+    local sp = { order = {}, groupOf = {}, hidden = {}, overrides = {} }
+    ns.profile = {
+        barOrder = { "essential", "utility", "g1" },
+        bars = {
+            essential = { source = "essential", kind = "icons", layout = {} },
+            utility   = { source = "utility", kind = "icons", layout = {} },
+            g1        = { source = "custom", kind = "icons", layout = {} },
+        },
+        spells = { [65] = sp },
+    }
+    eqList("正式清單：沒學會的不收", C.Bar("essential"), { 102, 701, 202 })
+    local vis, hid = C.Bar("essential", true)
+    eqList("設定頁：沒學會的照完整順序列在它的位置", vis, { 103, 102, 701, 202 })
+    eqList("設定頁：不進被移除那張", hid, {})
+
+    -- 天賦 A（103 沒點）：玩家在設定頁把 202 拖到最前面（預覽寫回的是設定頁那份，灰格 103 也在）
+    sp.order.essential = C.MergeOrder(sp.order.essential, { 202, 103, 102, 701 })
+    eqList("天賦 A：正式清單照 order、103 照舊不收", C.Bar("essential"), { 202, 102, 701 })
+    -- 換天賦 B（103 點了、102 沒點）：103 出現在排好的位置，不是最後
+    infos[103].isKnown, infos[102].isKnown = true, false
+    C.Refresh("unlearned-swap-b")
+    eqList("天賦 B：103 出現在排好的位置", C.Bar("essential"), { 202, 103, 701 })
+    vis = C.Bar("essential", true)
+    eqList("天賦 B：設定頁 102 變灰格、留在原位", vis, { 202, 103, 102, 701 })
+    check("天賦 B：102 是灰格", C.Unlearned(102) and not C.Unlearned(103))
+    -- 天賦 B 底下把灰格 102 拖到最前面（不用切回 A 也排得到）
+    sp.order.essential = C.MergeOrder(sp.order.essential, { 102, 202, 103, 701 })
+    infos[103].isKnown, infos[102].isKnown = false, true
+    C.Refresh("unlearned-swap-a")
+    eqList("切回天賦 A：102 在排好的最前面", C.Bar("essential"), { 102, 202, 701 })
+    -- 預覽沒列到的（例如被拉去群組的）寫回時不丟：拉去 g1 再拉回來，位置還在
+    sp.groupOf[102] = "g1"
+    eqList("拉去 g1：核心設定頁不列 102", (C.Bar("essential", true)), { 202, 103, 701 })
+    sp.order.essential = C.MergeOrder(sp.order.essential, { 202, 701, 103 })
+    sp.groupOf[102] = nil
+    eqList("拉回來：102 錨在舊鄰居（最前面）", C.Bar("essential"), { 102, 202, 701 })
+    -- 自訂群組的設定頁也列拉進來的沒學會的
+    sp.groupOf[103] = "g1"
+    eqList("自訂群組：正式清單不收沒學會的", C.Bar("g1"), {})
+    eqList("自訂群組：設定頁照樣列", (C.Bar("g1", true)), { 103 })
+    sp.groupOf[103] = nil
+
+    -- 收養：暴雪說沒學會、卻正在顯示 ⇒ 收養，不算灰格，設定頁不重複列
+    eq("收養沒學會的 103", C.Adopt({ essential = { 103 } }), 1)
+    check("收養過的不算灰格", not C.Unlearned(103))
+    local n = 0
+    for _, id in ipairs(C.allLists.essential) do if id == 103 then n = n + 1 end end
+    eq("收養：設定頁那份不重複", n, 1)
+    -- 收養換了條：輔助上沒學會的 201 被暴雪顯示在核心 ⇒ 設定頁那份從輔助搬到核心
+    infos[201].isKnown = false
+    C.Refresh("unlearned-adopt-move")
+    eqList("allLists：輔助含沒學會的 201", C.allLists.utility, { 201, 101 })
+    eq("收養 201 到核心", C.Adopt({ essential = { 201 } }), 1)
+    eqList("收養換條：輔助那份拿掉", C.allLists.utility, { 101 })
+    eqList("收養換條：核心那份接在後", C.allLists.essential, { 103, 102, 701, 202, 201 })
+    eqList("收養換條：輔助設定頁不再列 201", (C.Bar("utility", true)), { 101 })
+
+    infos[201].isKnown, infos[102].isKnown, infos[103].isKnown = true, true, false
+    ns.profile, ns.specID = savedProfile, savedSpec
+    C.Refresh("unlearned-done")
 end
 
 ------------------------------------------------------------

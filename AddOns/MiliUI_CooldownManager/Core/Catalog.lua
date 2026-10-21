@@ -3,6 +3,8 @@
 --
 --   ns.Catalog.Bar(barKey)     有序 cooldownID 陣列（已套本專精的 order／groupOf／hidden，再套格數上限＋溢出）
 --   ns.Catalog.BarBase(barKey) 同上但不套溢出（設定頁的 withHidden 路徑、溢出的輸入）
+--   ns.Catalog.Unlearned(id)   天賦沒點 ⇒ true（畫面上不收；設定頁照樣列在它的位置、畫灰；見「沒學會的」那節）
+--   ns.Catalog.MergeOrder(old, cur) 寫回順序用：這次沒列到的 id 錨在原本的鄰居後面，不丟
 --   ns.Catalog.Overflow()      這一輪的溢出結果（Core/Overflow.lua 的 Resolve；沒有任何一條成立 ⇒ nil）
 --   ns.Catalog.Info(id)        { spellID, overrideSpellID, icon, name, category, equipSlot,
 --                                hasAura, charges, isInvisible, isKnown, effectiveCategory, home }
@@ -362,6 +364,7 @@ C.info       = {}          -- [cooldownID] = info
 C.ordered    = {}          -- 完整的有效順序（跨類別）
 C.defaultOrder = {}        -- 類別集合串起來的原始順序（暴雪的預設；C.GuardDiverged 用）
 C.lists      = {}          -- [sourceBar] = { cooldownID… }（還沒套我們的覆寫）
+C.allLists   = {}          -- [sourceBar] = 同上，再加天賦沒點（isKnown=false）的，照完整順序（設定頁用，見「沒學會的」那節）
 C.pool       = {}          -- [homeBar] = 還在候選池（沒被拖進任何檢視器）的 id
 C.layoutOverrides = {}     -- [cooldownID] = 暴雪面板的分類覆寫（解碼版面得來；C.Explain 用）
 C.sig        = nil         -- 內容簽章（版面字串＋專精＋每條的清單）
@@ -690,8 +693,8 @@ local function Build()
     end
     local hideInvisible = _G.CDM_HIDE_INVISIBLE_ITEMS == true
 
-    local lists, pool = {}, {}
-    for _, bar in ipairs(C.SOURCE_BARS) do lists[bar] = {}; pool[bar] = {} end
+    local lists, pool, all = {}, {}, {}
+    for _, bar in ipairs(C.SOURCE_BARS) do lists[bar] = {}; pool[bar] = {}; all[bar] = {} end
     for _, id in ipairs(ordered) do
         local rec = info[id]
         local eff
@@ -705,16 +708,20 @@ local function Build()
         rec.effectiveCategory = eff
         local bar = catToBar[eff]
         rec.bar = bar
-        if bar and rec.isKnown and not (hideInvisible and rec.isInvisible) then
-            local l = lists[bar]
-            l[#l + 1] = id
+        if bar and not (hideInvisible and rec.isInvisible) then
+            local a = all[bar]
+            a[#a + 1] = id
+            if rec.isKnown then
+                local l = lists[bar]
+                l[#l + 1] = id
+            end
         elseif not bar and eff ~= HIDDEN and rec.home and pool[rec.home] then
             local l = pool[rec.home]
             l[#l + 1] = id
         end
     end
 
-    C.info, C.ordered, C.lists, C.pool = info, ordered, lists, pool
+    C.info, C.ordered, C.lists, C.pool, C.allLists = info, ordered, lists, pool, all
     C.defaultOrder = defaultOrder
     C.layoutOverrides = overrides
     -- 法術索引讀 C.info 的 spellID／overrideSpellID；覆寫不在下面的簽章裡，簽章沒變也可能換了 ⇒ 一律標髒
@@ -824,6 +831,25 @@ end
 local RETRY_DELAYS = { 0.5, 1.5, 3 }
 local retryStep, retryArmed = 0, false
 
+-- 設定頁那份清單（C.allLists，含沒學會的）跟著收養走：收養可能換了它的條（過期的類別），
+-- 已經在新條上的（暴雪說沒學會、其實學了）留在原位
+local function MoveInAll(id, from, to)
+    local all = C.allLists
+    if type(all) ~= "table" then return end
+    local src = from and all[from]
+    if src and from ~= to then
+        for i = #src, 1, -1 do
+            if src[i] == id then table.remove(src, i) end
+        end
+    end
+    local dst = all[to]
+    if not dst then return end
+    for i = 1, #dst do
+        if dst[i] == id then return end
+    end
+    dst[#dst + 1] = id
+end
+
 local function ArmRetry()
     if retryArmed or retryStep >= #RETRY_DELAYS then return end
     local timer = _G.C_Timer
@@ -852,10 +878,12 @@ function C.Adopt(live)
                 local id = ids[i]
                 if type(id) == "number" and not placed[id] then
                     local rec = C.info[id] or ReadInfo(id) or { cooldownID = id, isKnown = true }
+                    local wasBar = C.info[id] ~= nil and rec.bar or nil
                     if C.info[id] == nil then
                         C.info[id] = rec
                         C.ordered[#C.ordered + 1] = id
                     end
+                    MoveInAll(id, wasBar, bar)
                     rec.home = rec.home or bar
                     rec.bar = bar
                     rec.effectiveCategory = EnumCategory(BAR_CATEGORY_NAME[bar])
@@ -2168,9 +2196,59 @@ function C.ReplaceNow(b)
     return v == true
 end
 
+------------------------------------------------------------
+-- 沒學會的（天賦沒點）：位置要留著
+--
+-- 同一個專精兩套天賦（例：治療武僧團隊本點青龍、傳奇鑰石點朱鶴）各有幾個只有自己才有的技能。
+-- 暴雪的類別集合（allowUnlearned）兩套都給、isKnown 標出現在沒學的那幾個；暴雪自己的檢視器只替學會的
+-- 建框，它的設定面板把沒學會的畫灰、照樣佔著位置，換回那套天賦就出現在排好的地方。
+-- 我們這邊：
+--   * 畫面上（C.Bar 正式清單）照舊不收——暴雪也沒給框。
+--   * 設定頁（withHidden）連沒學會的一起列、照完整順序排在它的位置，預覽畫灰（C.Unlearned），
+--     玩家不用換天賦就能排它；拖曳寫回的順序因此也帶著它們。
+--   * 寫回順序一律走 C.MergeOrder：這次沒列到的（別的範圍的自訂項目、拉去別條的…）錨在原本的鄰居後面，
+--     不要整個丟掉——以前只寫看得到的那些，沒學會的被洗掉，換回天賦就排到最後（2026-10-21 NGA 回報）。
+------------------------------------------------------------
+-- 暴雪說沒學會、本來該在某條檢視器上的 ⇒ true（收養過的不算：暴雪正在顯示它）
+function C.Unlearned(id)
+    local rec = type(id) == "number" and C.info[id] or nil
+    if not rec or rec.bar == nil or rec.isKnown then return false end
+    return not (C.placed and C.placed[id])
+end
+
+-- 新順序 cur（這次看得到的完整清單）＋舊順序 old ⇒ 寫回用的順序：cur 照原樣，old 裡 cur 沒有的
+-- 接在它在 old 裡前一個 id 後面（前面沒有就放最前面）。id 是數字（cooldownID）或字串（自訂項目）
+function C.MergeOrder(old, cur)
+    local out, seen = {}, {}
+    for _, id in ipairs(type(cur) == "table" and cur or EMPTY) do
+        if not seen[id] then
+            out[#out + 1] = id
+            seen[id] = true
+        end
+    end
+    local prev
+    for _, id in ipairs(type(old) == "table" and old or EMPTY) do
+        local t = type(id)
+        if t == "number" or t == "string" then
+            if not seen[id] then
+                local at = 1
+                if prev ~= nil then
+                    for i = 1, #out do
+                        if out[i] == prev then at = i + 1; break end
+                    end
+                end
+                table.insert(out, at, id)
+                seen[id] = true
+            end
+            prev = id
+        end
+    end
+    return out
+end
+
 -- 條的有序清單（已套 order／groupOf／hidden；**還沒套溢出**）。回傳的是新表，呼叫端可以自由改。
--- withHidden = true 時多回一張「本來在這條、但被藏起來」的清單（設定頁的預覽排在尾端用），
--- 同樣照 order 排。
+-- withHidden = true（設定頁）：多回一張「本來在這條、但被藏起來」的清單（預覽排在尾端用），
+-- 同樣照 order 排；第一張連天賦沒點的也列（C.Unlearned，見上一節）。
 function C.BarBase(barKey, withHidden)
     EnsureBuilt()
     local out, hid = {}, withHidden and {} or nil
@@ -2182,6 +2260,10 @@ function C.BarBase(barKey, withHidden)
     local sp = SpellsTable()
     local groupOf = sp and type(sp.groupOf) == "table" and sp.groupOf or EMPTY
     local hidden  = sp and type(sp.hidden) == "table" and sp.hidden or EMPTY
+    -- 某條檢視器的清單：設定頁用含沒學會的那份
+    local function Source(src)
+        return (withHidden and C.allLists[src]) or C.lists[src] or EMPTY
+    end
 
     -- 資源條的征戰聖擊列顯示時，增益長條上那條同一件事的整個拿掉（不進 hid：不是玩家藏的）
     local autoHide = ns.Resources and ns.Resources.HidesTrackedBar
@@ -2212,13 +2294,13 @@ function C.BarBase(barKey, withHidden)
 
     local src = bar.source
     if BAR_CATEGORY_NAME[src] then
-        for _, id in ipairs(C.lists[src] or EMPTY) do
+        for _, id in ipairs(Source(src)) do
             if RoutedTo(id) == nil then Add(id) end
         end
         -- 別的檢視器被指名拉到「這一條」的（例如把核心技能拉回輔助）
         for _, other in ipairs(C.SOURCE_BARS) do
             if other ~= src then
-                for _, id in ipairs(C.lists[other] or EMPTY) do
+                for _, id in ipairs(Source(other)) do
                     if groupOf[id] == barKey then Add(id) end
                 end
             end
@@ -2228,8 +2310,8 @@ function C.BarBase(barKey, withHidden)
         for _, id in ipairs(C.ordered) do
             local rec = C.info[id]
             if rec and rec.bar and groupOf[id] == barKey then
-                local list = C.lists[rec.bar]
-                -- 只收真的在某條檢視器清單上的（isKnown 等條件已在那裡過濾）
+                local list = Source(rec.bar)
+                -- 只收真的在某條檢視器清單上的（isKnown 等條件已在那裡過濾；設定頁那份多收沒學會的）
                 for i = 1, #list do
                     if list[i] == id then Add(id); break end
                 end

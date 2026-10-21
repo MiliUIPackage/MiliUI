@@ -267,7 +267,8 @@ function Picker.MovableInto(key)
             local shown, gone = ns.Catalog.Bar(other, true)
             for _, id in ipairs(shown) do
                 local origin = ns.Catalog.SourceOf(id)
-                if not seen[id] and Fits(id, origin) then
+                -- 天賦沒點的（那條預覽上的灰格）不列：「已在暴雪冷卻管理器」這一區是現在用得到的
+                if not seen[id] and Fits(id, origin) and not ns.Catalog.Unlearned(id) then
                     seen[id] = true
                     out[#out + 1] = { id = id, from = other }
                 end
