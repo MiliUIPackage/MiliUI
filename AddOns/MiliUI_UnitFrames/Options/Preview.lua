@@ -194,7 +194,9 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
         -- ⚠ 這裡曾經是貼底邊、0.5 倍，跟實際長得不一樣，預覽就失去意義了。
         if edb.durationText then
             ns.Media.SetFont(b.dur, math.max(8, math.floor(h * 0.55)), "OUTLINE", ns.db.global.font)
-            b.dur:SetText(tostring(FAKE_DURATIONS[(i - 1) % #FAKE_DURATIONS + 1]))
+            -- 寫法照全域的光環倒數格式（118 → "1:58"／"2m"），跟真的那顆一致
+            local sec = FAKE_DURATIONS[(i - 1) % #FAKE_DURATIONS + 1]
+            b.dur:SetText(ns.AuraPreviewDurationText and ns.AuraPreviewDurationText(sec) or tostring(sec))
             b.dur:Show()
         else
             b.dur:Hide()

@@ -50,6 +50,12 @@ local CONTROLS = {
     { type = "dropdown", key = "percentDecimals", label = L["Percent decimals"], items = {
         { text = L["Integer (85%)"], value = 0 }, { text = L["One decimal (85.3%)"], value = 1 },
     } },
+    -- 光環倒數的時間格式（Elements/Auras.lua）：分／時的字面是固定的 m／h，例子照抄
+    { type = "dropdown", key = "auraTimeFormat", label = L["Aura countdown format"], items = {
+        { text = L["Minutes (%s)"]:format("2m → 90"), value = "minutes" },
+        { text = L["Minutes:seconds (%s)"]:format("3m → 2:00"), value = "mmss" },
+    } },
+    { type = "text",   label = L["Minutes: over 90 seconds shows whole minutes, rounded up. Minutes:seconds: two minutes or less shows minutes and seconds, longer shows whole minutes. Applies to every aura countdown on the unit frames."] },
     { type = "toggle", key = "smoothBars", label = L["Smooth health and power bars"] },
     { type = "text",   label = L["Uses the engine's built-in interpolation (native in 12.x, works with secret values), so bars slide instead of jumping."] },
 
