@@ -118,6 +118,7 @@ local function AddTargetedBy(tip, state, mouseover)
     if not isPlayer and not npc.showTargetBy then return end
 
     local prefix = IsInRaid() and "raid" or "party"
+    local label = S.SafeBool(UnitIsUnit, mouseover, "player") and L["Targeting you"] or L["Targeted by"]
     local count, first = 0, true
     for i = 1, num do
         if S.SafeBool(UnitIsUnit, mouseover, prefix .. i .. "target")
@@ -125,7 +126,7 @@ local function AddTargetedBy(tip, state, mouseover)
             count = count + 1
             if isPlayer or prefix == "party" then
                 if first then
-                    tip:AddLine(format("%s:", L["TargetBy"]))
+                    tip:AddLine(format("%s:", label))
                     first = false
                 end
                 local roleIcon = UnitInfo.GetRoleIcon(prefix .. i) or ""
@@ -138,7 +139,7 @@ local function AddTargetedBy(tip, state, mouseover)
         end
     end
     if count > 0 and not isPlayer and prefix ~= "party" then
-        tip:AddLine(format("%s: |cff33ffff%d|r", L["TargetBy"], count), nil, nil, nil, true)
+        tip:AddLine(format("%s: |cff33ffff%d|r", label, count), nil, nil, nil, true)
     end
 end
 

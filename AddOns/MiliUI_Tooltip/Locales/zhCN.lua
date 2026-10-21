@@ -25,7 +25,8 @@ L["collected"] = "已收藏"
 L["uncollected"] = "未收藏"
 L["ItemLevel"] = "装等"
 L["Achievement"] = "成就点数"
-L["TargetBy"] = "谁在打他"
+L["Targeted by"] = "谁在看他"
+L["Targeting you"] = "谁在看我"
 
 -- ID 行
 L["N/A"] = "无"

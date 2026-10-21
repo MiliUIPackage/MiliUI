@@ -7,7 +7,7 @@
 -- 開關關掉 ⇒ 對 tooltip 零寫入；秘密行／身分受限／token 讀不到 ⇒ 不接（舊樣式）；成功 ⇒ alpha 0、面板顯示；
 -- 間距：標題區各行等距、◆ 線上下等距、四邊內距、頭像與文字的距離、等級底板在頭像下方；
 -- 同一個單位重建不重畫；目標換人（只有動態簽章變）⇒ 下一幀立刻重畫；秘密的目標名字只交給 SetText；
--- 對帳讀到秘密值 ⇒ 退回並封鎖重接；設定改了 ⇒ 退回但不封鎖。
+-- 對帳讀到秘密值 ⇒ 退回並封鎖重接；設定改了 ⇒ 退回但不封鎖；被誰當目標的標籤（自己／別人）與名字表（小隊／團隊）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local H = dofile(here .. "/helpers.lua")
@@ -663,6 +663,61 @@ do
     check("M+：仇恨留著", s6.other2 and rawequal(s6.other2.text, SECRET))
     -- 名字那一欄至少要有原生排好的寬：秘密行不量寬，寬度全靠它
     check("M+：標題的秘密行寬度給滿", s6.info1 and s6.name and s6.info1.w == s6.name.w)
+end
+
+------------------------------------------------------------
+-- 被誰當目標：標籤是中性的「誰在看他」（隊友選你當目標不一定在打你），滑的是自己改說「我」；
+-- 小隊、或團隊裡滑玩家列名字，團隊裡滑 NPC 只數人數；自己不算
+------------------------------------------------------------
+do
+    -- prefix 隊伍的 targeting 這幾個人把 token 當目標；團隊裡 raid1 是自己（也把它當目標，要被排除）
+    local function TargetedByRow(opts, token, prefix, targeting)
+        local t = Setup(opts)
+        local env = t.env
+        env.GetNumGroupMembers = function() return 4 end
+        env.IsInRaid = function() return prefix == "raid" end
+        local set = {}
+        for _, m in ipairs(targeting) do set[m .. "target"] = true end
+        if prefix == "raid" then set["raid1target"] = true end
+        env.UnitIsUnit = function(a, b)
+            if a == token and set[b] then return true end
+            if prefix == "raid" and a == "raid1" and b == "player" then return true end
+            return a == b
+        end
+        local unitName = env.UnitName
+        env.UnitName = function(u)
+            local n = u:match("^" .. prefix .. "(%d)$")
+            if n then return "隊友" .. n end
+            return unitName(u)
+        end
+        local f = t.P.UnitFacts(token, t.ns.db.unit[opts.npc and "npc" or "player"])
+        local view = t.P.ViewUnit({ facts = f, others = {}, quests = {}, extras = {} })
+        for _, section in ipairs(view.sections) do
+            for _, row in ipairs(section.rows or {}) do
+                if row.left == "Targeted by" or row.left == "Targeting you" then return row, f.targetedBy end
+            end
+        end
+    end
+    local function Plain(s) return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+
+    local row = TargetedByRow({}, "mouseover", "party", { "party1", "party3" })
+    eq("小隊滑玩家：中性標籤", row and row.left, "Targeted by")
+    eq("小隊滑玩家：列名字", row and Plain(row.right), "隊友1, 隊友3")
+
+    row = TargetedByRow({}, "player", "party", { "party2" })
+    eq("小隊滑自己：標籤說「我」", row and row.left, "Targeting you")
+    eq("小隊滑自己：列名字", row and Plain(row.right), "隊友2")
+
+    local by
+    row, by = TargetedByRow({}, "mouseover", "raid", { "raid2", "raid4" })
+    eq("團隊滑玩家：自己不算", by and by.count, 2)
+    eq("團隊滑玩家：也列名字（跟小隊一樣）", row and Plain(row.right), "隊友2, 隊友4")
+
+    row, by = TargetedByRow({ npc = true }, "mouseover", "raid", { "raid2", "raid3", "raid4" })
+    eq("團隊滑 NPC：只數人數", row and Plain(row.right), "3")
+    eq("團隊滑 NPC：沒有名字表", by and by.names, nil)
+
+    check("沒人看：沒有這一列", not TargetedByRow({}, "mouseover", "party", {}))
 end
 
 H.finish("Unit_test")

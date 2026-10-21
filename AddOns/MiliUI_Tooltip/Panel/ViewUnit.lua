@@ -181,7 +181,7 @@ local function DetailRows(f, model)
         else
             value = Paint(tostring(by.count), { 0.2, 1, 1 })
         end
-        rows[#rows + 1] = Label(L["TargetBy"], value)
+        rows[#rows + 1] = Label(by.self and L["Targeting you"] or L["Targeted by"], value)
     end
     if f.mount then
         local value = f.mount
