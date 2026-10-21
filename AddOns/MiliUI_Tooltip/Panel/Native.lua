@@ -51,16 +51,22 @@ local function ReadPadding(tip)
     return r, b, l, t
 end
 
+local function Near(a, b) return math.abs(a - b) < 0.01 end
+
 -- 原生排好的文字寬（自然寬扣掉我們撐的 padding、扣掉左右內距）。身分受限單位的名字是秘密字串、我們量不出寬，
 -- 但暴雪在引擎端替原生排好了版、原生的寬是明文（2026-10-21 探針：副本裡 GetWidth／GetPoint／GetPadding 全是明文）
 -- ⇒ 面板照它替秘密字串留位置。原生最寬的那一行不一定是名字，所以只會留多、不會留少。讀不到回 nil
+-- ⚠ **post-call 裡不能叫**：暴雪是 ClearLines → 加行 → post-call → Show()，尺寸要到 Show 才照新內容重排，
+--   post-call 當下的寬是上一份內容排的（Try.lua 的 NewSecretWidth 說明）。只在對帳／輪詢（下一幀起）量。
+--   padding 剛被暴雪清掉（RestoreClearedPadding 會補的那個狀態）時尺寸也還沒重排、寬裡有我們撐的那截扣不掉 ⇒ 回 nil
 local NATIVE_TEXT_INSET = 20          -- 原生的行左右各留 10（GameTooltip 的第一行從 10,-10 起排）
 function Native.ContentWidth(tip, state)
     local okW, w = pcall(tip.GetWidth, tip)
     if not okW or not Plain(w) then return nil end
     local pr = ReadPadding(tip)
     if not pr then return nil end
-    local saved = state and state.native
+    local saved, set = state and state.native, state and state.paddingSet
+    if saved and set and Near(pr, saved.right) and not Near(set[1], saved.right) then return nil end
     local natural = w - (saved and (pr - saved.right) or 0)
     return math.max(0, natural - NATIVE_TEXT_INSET)
 end
@@ -140,8 +146,6 @@ end
 -- 不重算：那一幀 GetHeight 還是清掉之前的舊值，GetPadding 卻已經是 0，拿來推自然尺寸一定算錯
 -- （2026-10-18 實機：背包格每 0.2 秒重設提示，原生矮一截一幀，從下緣錨定的 panel 跟著跳）。
 -- 下一幀的 Fit（Reconcile／輪詢）再用新鮮的尺寸修正。回 true＝補了。
-local function Near(a, b) return math.abs(a - b) < 0.01 end
-
 function RestoreClearedPadding(tip, state)
     local saved, set = state.native, state.paddingSet
     if not saved or not set then return false end

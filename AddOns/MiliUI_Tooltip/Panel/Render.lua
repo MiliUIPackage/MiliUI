@@ -12,7 +12,7 @@
 --     header = {                              依序，在圖示旁
 --         { text = "名字", style = "title", color = { r, g, b } },
 --         { secret = true, value = 秘密字串, slot = "name", style = "name", color = },   只交給 SetText、單行、不量寬
---                                             （寬度：view.secretHint 開著時照原生排好的寬留位置，見 Native.ContentWidth）
+--                                             （寬度：view.secretHint 開著時照原生排好的寬留位置，見 Try.lua 的 NewSecretWidth）
 --         { badges = { { "被動", color }, { "等級 2/3" } }, style = "small" },   中間用 · 隔開
 --         { rows = { { left = , right = , color = , rightColor = } }, style = "body" },
 --     },
@@ -702,8 +702,9 @@ function Panel.RenderView(panel, tip, view, state)
 
     local ctx = { m = Metrics(panel), styles = Panel.Styles(), accent = Accent(), tip = tip, state = state }
     local m = ctx.m
-    if view.secretHint and Panel.Native and Panel.Native.ContentWidth then
-        local cw = Panel.Native.ContentWidth(tip, state)
+    -- 秘密字串的寬：Try 在對帳時量好的（state.secretContentW）。這裡不當場量原生——post-call 當下它還是上一份內容的尺寸
+    if view.secretHint and state then
+        local cw = state.secretContentW
         local ref = ctx.styles.title and ctx.styles.title.size
         if cw and ref and ref > 0 then ctx.secretPerSize = cw / ref end
     end

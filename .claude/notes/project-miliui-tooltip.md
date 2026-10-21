@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-20T19:07:37.969Z
+  modified: 2026-10-21T17:56:44.006Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -178,5 +178,13 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   寬度 `view.secretHint` ⇒ `Native.ContentWidth`（原生自然寬扣自己撐的 padding、扣左右內距 20）÷ 標題字級 × 該行字級——原生最寬的行不一定是名字，只會留多。
 - 退回封鎖用 `Panel.UNIT_BLOCK_RESTRICTED` 一把。原生寬讀到秘密（戰鬥中？）⇒ Fit 失敗、post-call 裡就退，不閃。
 - M+ 探針（戰鬥、首領戰）：原生幾何一直明文 ⇒ 不會退回；第一版「None 行全丟」會丟掉 M+ 小怪的兩行 ⇒ 改成上面的照順序傳遞。待實機：頭像有沒有畫出來、整體樣子。
+- **「面板有時候好長、有點隨機」（2026-10-22 修，worktree mtip-length-debug）**：首領同一隻有時 ~335、有時頂到 MAX_W 440。
+  成因：`ContentWidth` 在 **post-call 當下**讀原生的寬，但暴雪 `InternalProcessInfo` 是 `ClearLines → 加行 → post-call → Show()`，**尺寸到 Show 才照新內容重排**——
+  那一刻的寬是上一份內容排的：同一隻刷新時＝被我們撐到面板寬的那個（ClearLines 又已把 padding 清掉、扣不掉）⇒ 面板寬被當成名字寬，
+  名字字級 title+3 再放大 ×(t+3)/t、加頭像與內距，每刷新一次寬 50～90；剛顯示時＝上一個提示（物品）的寬。受限單位 Key 是 nil ⇒ 每次 post-call 都重畫，所以刷新幾次就頂到上限。
+  規則：**post-call 裡不能讀原生的尺寸當「這份內容」的量測**（Native.Fit 的 RestoreClearedPadding／partial 是同一件事的另外兩面）。
+  現在：`Try.lua` 的 `NewSecretWidth` 只在對帳／輪詢量，存 `state.secretContentW`；post-call 畫的時候用上次量的（同一隻刷新同一個數字、不閃），第一次沒有就只靠 minWidth（第一幀 250、下一幀補寬）；
+  每次 post-call 後第一次量可以變窄（換了一隻），之後同一輪只長不縮。`ContentWidth` 在「padding 剛被清、我們設過別的值」時回 nil。`/mtip panel` 印「受限單位」行、`/mtip log` 記秘密字寬的變化。
+  離線重現：`Tests/Unit_test.lua` 的 `Refresh`（padding 清 0、尺寸不動 → post-call → 才照新內容重排），舊程式 289→440。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]

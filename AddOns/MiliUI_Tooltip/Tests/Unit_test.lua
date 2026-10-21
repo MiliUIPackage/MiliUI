@@ -602,18 +602,63 @@ do
     end
     check("受限：池裡每一顆都量得出高度", measurable)
 
-    -- 同一隻又進 post-call（提示刷新）：重畫，寬度不因為原生被撐大而越長越寬（ContentWidth 扣掉自己撐的 padding）
-    local w1 = panel.width
+    -- 名字寬照原生排好的寬：post-call 當下原生還沒照新內容排（量不準），第一次只畫最小寬，對帳時量到才補
+    eq("受限：post-call 當下不拿原生的寬", panel.width, 250)
     t.env.FlushTimers()
     check("受限：對帳後還顯示", panel.shown)
+    local w1 = panel.width
+    check("受限：對帳量到原生的寬 ⇒ 替名字留寬", w1 > 250)
+
+    -- 同一隻又進 post-call（提示刷新）：重畫，寬度不因為原生被撐大而越長越寬（ContentWidth 扣掉自己撐的 padding）
     t.P.TryUnit(t.tip, t.state, SECRET, t.data)
     t.env.FlushTimers()
     eq("受限：重畫寬度不漂", panel.width, w1)
 
-    -- 原生排得比較寬（長名字）⇒ 面板替名字留寬
+    -- 暴雪真正的刷新順序（TooltipDataHandlerMixin:InternalProcessInfo）：ClearLines（padding 清回 0、尺寸不動）→ 加行 →
+    -- post-call → Show() 才照新內容＋當下的 padding 重排。post-call 當下 GetWidth 還是被我們撐到面板寬的那個；
+    -- 拿它當名字寬的話每刷新一次寬一截（2026-10-22 回報「有時候好長、有點隨機」）
+    local function Refresh(tc, natural)
+        local tip = tc.tip
+        tip.padding = { 0, 0, 0, 0 }
+        tc.P.TryUnit(tip, tc.state, SECRET, tc.data)
+        tip.w = natural + tip.padding[1]
+        tc.env.FlushTimers()
+    end
+    for _ = 1, 4 do Refresh(t, 200) end
+    eq("受限：刷新四次（padding 被清、尺寸還沒重排）寬度不漂", panel.width, w1)
+
+    -- 不收提示直接滑到另一隻（token 都是 mouseover）：post-call 先照上一隻的寬畫，對帳量到就照這一隻（可以變窄）
+    Refresh(t, 400)
+    local wLong = panel.width
+    check("受限：換一隻名字長的 ⇒ 變寬", wLong > w1)
+    Refresh(t, 200)
+    eq("受限：換回名字短的 ⇒ 對帳後變回原寬", panel.width, w1)
+    -- 同一輪裡原生變寬（行數沒變、內容變長）：輪詢量到就補；變窄不縮（別家的行輪流出現不來回）
+    t.tip.w = t.tip.w + 100
+    t.polls[t.state]()
+    t.env.FlushTimers()
+    check("受限：輪詢量到原生變寬 ⇒ 跟著寬", panel.width > w1)
+    local wGrown = panel.width
+    t.tip.w = t.tip.w - 100
+    t.polls[t.state]()
+    t.env.FlushTimers()
+    eq("受限：同一輪原生變窄 ⇒ 不縮", panel.width, wGrown)
+    Refresh(t, 200)
+    eq("受限：下一次 post-call ⇒ 照新量的", panel.width, w1)
+
+    -- 剛顯示時原生的尺寸是上一個提示（例如很寬的物品）排的：不能拿來當名字寬
+    local tw = Setup({ npc = true, restricted = true })
+    tw.tip.w = 440
+    tw.P.TryUnit(tw.tip, tw.state, SECRET, tw.data)
+    tw.tip.w = 200 + tw.tip.padding[1]
+    tw.env.FlushTimers()
+    eq("受限：上一個提示很寬 ⇒ 對帳後寬度照這一隻", tw.state.panel.width, w1)
+
+    -- 原生排得比較寬（長名字）⇒ 面板替名字留寬（post-call 當下量不準，對帳時量）
     local t2 = Setup({ npc = true, restricted = true })
     t2.tip.w = 600
     t2.P.TryUnit(t2.tip, t2.state, SECRET, t2.data)
+    t2.env.FlushTimers()
     check("受限：原生寬 ⇒ 面板跟著寬", t2.state.panel.width > w1)
     local nameFS = t2.state.panel.secretTexts.name
     check("受限：名字那一欄寬度給滿", nameFS.w and nameFS.w > 300)

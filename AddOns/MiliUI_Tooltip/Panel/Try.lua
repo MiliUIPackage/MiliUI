@@ -151,6 +151,24 @@ end
 -- 身分受限的單位沒有 GUID 可當退回封鎖的 key：同一類共用一把（Core/Hooks.lua 的 UnitFallback、ReadUnit 的 TryUnit）
 Panel.UNIT_BLOCK_RESTRICTED = "unit:restricted"
 
+-- 身分受限的單位：名字、類型這些是秘密字串量不出寬，面板照原生排好的寬替它們留位置（Native.ContentWidth）。
+-- **post-call 當下不量**：暴雪 InternalProcessInfo 是 ClearLines → 加行 → post-call → Show()，原生的尺寸到 Show 才照新內容重排。
+-- 那一刻 GetWidth 還是上一次排的——同一隻刷新時是被我們撐到面板寬的那個（ClearLines 又已把 padding 清掉、扣不掉），
+-- 面板寬被當成名字寬 ⇒ 每刷新一次寬 50～90、幾次就頂到 MAX_W；剛顯示時則是上一個提示（例如物品）的寬
+-- （2026-10-22 回報「有時候好長、有點隨機」：刷新次數與上一個提示是什麼都是隨機的）。
+-- ⇒ post-call 畫的時候用上次量到的 state.secretContentW（同一隻刷新＝同一個數字、不閃；換一隻頂多錯一幀；第一次沒有就只靠 minWidth），
+--   對帳／輪詢（下一幀起，原生已照新內容排好）量到不一樣才更新、重畫。每次 post-call 之後的第一次量可以變窄（換了一隻），
+--   之後同一輪只長不縮（別家的行晚一幀補上、輪流出現不會讓寬度來回）。
+-- 回傳 新的寬（nil＝不用動）、這次有沒有量到。不改 state：輪詢只拿來決定要不要排對帳，採用在對帳裡
+local function NewSecretWidth(tip, state)
+    if not state.panelRestricted then return nil, false end
+    local cw = Native.ContentWidth(tip, state)
+    if not cw then return nil, false end
+    local old = state.secretContentW
+    if old and (math.abs(cw - old) <= 0.5 or (state.secretWidthSettled and cw < old)) then return nil, true end
+    return cw, true
+end
+
 local function Now()
     return GetTime and GetTime() or 0
 end
@@ -176,6 +194,7 @@ function Panel.Restore(tip, state)
     state.panelData, state.panelKind, state.panelLines = nil, nil, nil
     state.panelLineFingerprint, state.panelDyn, state.panelUnit, state.panelGuid = nil, nil, nil, nil
     state.panelRestricted = nil
+    state.secretContentW, state.secretWidthSettled = nil, nil
     state.panelBorder, state.panelTargetFS = nil, nil
     if state.panelPolling then
         state.panelPolling = nil
@@ -278,8 +297,9 @@ local function Render(tip, state, kind, data, rows, n, fingerprint, lineFP, dyn)
     Panel.Unfade(panel)
     panel:Show()
     Panel.HostAccents(tip, state, kind == "unit" and panel or nil)
-    if ns.logEnabled then ns.Log("重畫 key=%s 行數 %d 面板 %sx%s 總高 %s", tostring(state.panelKey), n,
-        tostring(panel.width), tostring(panel.height), tostring(panel.totalHeight)) end
+    if ns.logEnabled then ns.Log("重畫 key=%s 行數 %d 面板 %sx%s 總高 %s%s", tostring(state.panelKey), n,
+        tostring(panel.width), tostring(panel.height), tostring(panel.totalHeight),
+        state.panelRestricted and (" 受限 秘密字寬 " .. tostring(state.secretContentW)) or "") end
     state.panelFingerprint = fingerprint
     state.panelLineFingerprint, state.panelDyn = lineFP, dyn
     state.panelSettings = Panel.settingsVersion
@@ -326,6 +346,9 @@ function Reconcile(tip, state)
         Panel.Restore(tip, state)
         return
     end
+    -- 身分受限：秘密字串的寬在這裡才量得準（NewSecretWidth）
+    local secretW, measured = NewSecretWidth(tip, state)
+    if measured then state.secretWidthSettled = true end
     local function wait()
         if Native.Fit(tip, state) == false then Panel.Restore(tip, state) return end
         ScheduleReconcile(tip, state)        -- 每幀重讀，直到穩定或回到現在畫的版本
@@ -337,7 +360,7 @@ function Reconcile(tip, state)
             fingerprint == state.panelFingerprint and "相同" or "不同")
     end
 
-    if fingerprint == state.panelFingerprint then
+    if fingerprint == state.panelFingerprint and not secretW then
         -- 回到現在畫的版本：任何等待中的變化作廢
         state.partialSince, state.pendingFingerprint, state.pendingSince = nil, nil, nil
         state.panelFullLines, state.panelLines = math.max(full, n), n
@@ -347,6 +370,8 @@ function Reconcile(tip, state)
 
     if state.panelSettings ~= Panel.settingsVersion then
         -- 設定改了：不是內容在抖，直接照新設定重畫
+    elseif secretW then
+        -- 秘密字串的寬量到新值（post-call 時用的是上一隻的、或還沒有）：立刻照真的寬重畫
     elseif lineFP == state.panelLineFingerprint then
         -- 行沒變、只有動態簽章變了（單位換目標、死了、暫離）：不是重建在抖，立刻重畫
     elseif n < full then
@@ -366,6 +391,11 @@ function Reconcile(tip, state)
     -- 長大（立刻）、或變少／變內容已經穩定夠久：採用
     state.partialSince, state.pendingFingerprint, state.pendingSince = nil, nil, nil
     state.panelFullLines = n
+    if secretW then
+        if ns.logEnabled then ns.Log("受限單位 秘密字寬 %s → %.1f", tostring(state.secretContentW), secretW) end
+        -- post-call 時照猜的寬畫過、記成了這輪的最大寬 ⇒ 放掉，才能變窄
+        state.secretContentW, state.panelMaxWidth = secretW, nil
+    end
     if not Render(tip, state, state.panelKind, state.panelData, rows, n, fingerprint, lineFP, dyn) then
         Panel.Restore(tip, state)
     end
@@ -402,6 +432,8 @@ local function Tick(tip, state)
         -- 單位：目標、死亡、暫離這些不在行裡，比動態簽章（單位不在了回 nil，不動）
         local dyn = Panel.UnitDynamic and Panel.UnitDynamic(state)
         if dyn and dyn ~= state.panelDyn then ScheduleReconcile(tip, state) end
+        -- 受限：原生排好的寬變了（行數沒變、內容變長），或上次對帳還量不到
+        if NewSecretWidth(tip, state) then ScheduleReconcile(tip, state) end
         if Panel.UnitTick then Panel.UnitTick(state) end
     end
     if Native.Fit(tip, state) == false then Panel.Restore(tip, state) end
@@ -468,6 +500,7 @@ function Panel.Try(tip, state, dataType, data)
     state.nativeMaxW, state.nativeMaxH = nil, nil          -- 原生的自然尺寸也只長不縮（Native.Fit）
     state.nativeSettledW, state.nativeSettledH = nil, nil
     state.pendingFingerprint, state.pendingSince, state.partialSince = nil, nil, nil
+    state.secretWidthSettled = nil       -- 秘密字串的寬：這次畫用上次量的，對帳第一次量到的可以變窄（NewSecretWidth）
     local fingerprint, lineFP, dyn = Fingerprints(tip, state, kind, rows, n)
     if not Render(tip, state, kind, data, rows, n, fingerprint, lineFP, dyn) then
         Panel.Restore(tip, state)
@@ -560,6 +593,10 @@ function Panel.DebugDump(out)
         local cl, cr, ct, cb = Call(tip, "GetClampRectInsets")
         out(("  panel：height=%s total=%s  貼在 %s  原生夾邊=%s 範圍=%s,%s,%s,%s"):format(
             D(panel.height), D(panel.totalHeight), Points(panel), D((Call(tip, "IsClampedToScreen"))), D(cl), D(cr), D(ct), D(cb)))
+        if state.panelRestricted then
+            out(("  受限單位：面板寬=%s  秘密字寬=%s（現在量=%s）"):format(
+                D(panel.width), D(state.secretContentW), D(Native.ContentWidth(tip, state))))
+        end
     end)
     if count == 0 then out("目前沒有顯示中的面板（滑過物品或法術時再下一次指令）") end
     -- 貼在面板旁的別家框（外觀預覽，Panel.Follow）：只印貼在面板的——貼在哪、它原本要貼哪
