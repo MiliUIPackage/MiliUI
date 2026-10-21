@@ -324,17 +324,19 @@ local function Target(token)
     return { name = name, color = UnitColorOf(tt) }
 end
 
--- 隊伍／團隊裡把這個單位當目標的人（不含自己）：小隊列名字、團隊只數人數（跟舊樣式一樣）
+-- 隊伍／團隊裡把這個單位當目標的人（不含自己）：小隊、或滑的是玩家就列名字；團隊裡滑 NPC 只數人數
+-- （跟舊樣式一樣）。self：滑的是自己，標籤改說「我」
 local function TargetedBy(token)
     local num = GetNumGroupMembers and GetNumGroupMembers() or 0
     if num < 1 then return nil end
     local prefix = IsInRaid() and "raid" or "party"
+    local listNames = prefix == "party" or S.SafeBool(UnitIsPlayer, token)
     local names, count = {}, 0
     for i = 1, num do
         local member = prefix .. i
         if S.SafeBool(UnitIsUnit, token, member .. "target") and not S.SafeBool(UnitIsUnit, member, "player") then
             count = count + 1
-            if prefix == "party" then
+            if listNames then
                 local name = S.PlainText((S.SafeCall(UnitName, member)))
                 local _, cls = S.SafeCall(UnitClass, member)
                 if name then names[#names + 1] = { name = name, color = ClassColor(cls) } end
@@ -342,7 +344,7 @@ local function TargetedBy(token)
         end
     end
     if count == 0 then return nil end
-    return { count = count, names = (prefix == "party") and names or nil }
+    return { count = count, names = listNames and names or nil, self = S.SafeBool(UnitIsUnit, token, "player") }
 end
 
 function Panel.UnitFacts(token, config)
