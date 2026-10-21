@@ -1001,7 +1001,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   標籤拿掉「技能冷卻」「增益持續時間」前綴，那段灰字說明拿掉。逐法術小窗同樣做子分頁（`buildSub`／`curSub`，Layout 照子分頁鈕那一列
   有沒有出現決定挑哪組）：那一格沒有增益持續時間（`BuffTimeRows` 不成立：自訂法術／物品）不出子分頁鈕、只有冷卻那組；長條兩組都沒有。
 
-### 倒數的時間格式（`Core/Text.lua`、`Core/Decorate.lua`、`Modules/Custom_Aura.lua`、`Options/Specs.lua`，2026-10-21）
+### 倒數的時間格式（`Core/Text.lua`、`Core/Decorate.lua`、`Modules/Custom_Aura.lua`、`Options/Specs.lua`，2026-10-21，DB v13）
 
 玩家回報「1:59 也顯示 1m，到 1:30 直接跳 90」，想要 1:59 那種寫法。
 
@@ -1009,12 +1009,15 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   （`NumericRuleFormatterSharedDocumentation`）的 rounding 是「step 的取法」，沒有 step 就不取 ⇒ 商數交給 `%d` 截掉：91～119 秒印 1m。
   改成**在規則層進位**（`step = 60, rounding = Up`）再 `div = 60`：文件沒講 div 的商是整數還是帶小數，先進位成 60 的倍數，兩種解讀除出來一樣。
   同一個寫法也在 `MiliUI_UnitFrames/Elements/Auras.lua` 與 Cell 的 `AuraContainerCore.lua`（光環倒數），同一天一起改了。
-- **設定** `cooldownText.timeFormat`：`"minutes"`（預設，原本的寫法：91 秒起 2m、5401 秒起印時、都無條件進位；90 秒以下印秒數）｜
-  `"mmss"`（2:00 以內印分:秒 1:59、59 秒以下印秒數；超過 2:00 照 `"minutes"` 那一套：3m、5401 秒起印時）。
+- **設定** `cooldownText.timeFormat`：`"mmss"`（**預設**，DB v13 起：2:00 以內印分:秒 1:59、59 秒以下印秒數；超過 2:00 照 `"minutes"` 那一套：3m、5401 秒起印時）｜
+  `"minutes"`（原本的寫法：91 秒起 2m、5401 秒起印時、都無條件進位；90 秒以下印秒數）。
   THEMED（跟「文字」節），冷卻倒數與增益持續時間共用一個，**沒有逐法術覆寫**。
   （當天第一版的 `"mmss"` 是 60 秒起一路印分:秒到 59:59、3600 秒起印時；玩家回報想要「兩分鐘以內才分:秒、以上照分鐘」，
   說這樣才跟暴雪自己的倒數一樣 ⇒ 同一個值改行為，沒有另開選項。）
-  舊存檔沒有這欄 ＝ 合併預設補 minutes，行為只差上面那個 bug。不認得的值一律當 minutes（`Text.TimeFormatOf`）。
+  **預設改成分:秒（使用者指定，同一天）**：第一版預設 minutes、合併預設已經寫進每個人的存檔 ⇒ `MIGRATIONS[13]` 值閘把主題與條自己倒數表裡的
+  `"minutes"` 翻成 `"mmss"`（選項只活了不到一天，刻意選分鐘的人重選一次）。不認得的值一律當預設 mmss（`Text.TimeFormatOf`）；
+  但 `PlainFormatter(d)` 沒給格式 ＝ 分鐘（長條、層數列不看時間格式），自訂列的冷卻類也明給 `"minutes"`（`Modules/CustomBars.lua`），
+  不吃預設。套組的頭像（MiliUI_UnitFrames）、Cell、爆發水（MiliUI_BurstPotionHelper）同一天各自加了同一套規則與選項，預設也是分:秒。
 - **讀法**：`Text.TimeFormat(barKey)` 逐格問 `ns.Setting(barKey, "cooldownText.timeFormat")`——條沒跟隨文字時 `ns.Setting(barKey, "cooldownText")`
   回的是條自己那張表、可能只存了字級幾格，表上讀不到的不會退主題。`Decorate.Resolve` 解成 `style.timeFormat`（進簽章），
   `CountdownFormatter(c, timeFormat)`／`BuffFormatter(c, lowColor, timeFormat)`／`PlainFormatter(d, timeFormat)` 第二（三）個參數帶進去，沒給才讀表上的。
@@ -4472,8 +4475,8 @@ ns.SpellSetting(barKey, cooldownID, key[, specID]) -- 例：ns.SpellSetting("ess
 
 **倒數的時間格式（2026-10-21）**
 
-626. 分鐘格式（預設）：兩分鐘冷卻按下去，2:00～1:31 一直是「2m」（以前 1:59 起是「1m」）、接著 90、89…；沒有閃一下 91。中文客戶端的「分」字照客戶端（暴雪的冷卻倒數字串）。
-627. 文字頁倒數那段選「分:秒」：兩分鐘冷卻按下去印 2:00、1:59…1:00、59；三分鐘冷卻先印 3m、剩 2:00 起改印 2:00（沒有閃一下 2:01）；增益圖示、技能格倒增益那一段、光環格也一起換；低秒變色與小數照舊只在秒數段。條頁取消「跟隨全域」後只改字級，時間格式照主題的。
+626. 分鐘格式：兩分鐘冷卻按下去，2:00～1:31 一直是「2m」（以前 1:59 起是「1m」）、接著 90、89…；沒有閃一下 91。中文客戶端的「分」字照客戶端（暴雪的冷卻倒數字串）。
+627. 分:秒格式（預設；舊存檔登入後也是分:秒）：兩分鐘冷卻按下去印 2:00、1:59…1:00、59；三分鐘冷卻先印 3m、剩 2:00 起改印 2:00（沒有閃一下 2:01）；增益圖示、技能格倒增益那一段、光環格也一起換；低秒變色與小數照舊只在秒數段。條頁取消「跟隨全域」後只改字級，時間格式照主題的。
 628. 一小時以上的冷卻或增益（例：爐石類物品放進自訂格子）：兩種格式都是 90 分以上印時，不出現「91m」。
 
 **效能基準**

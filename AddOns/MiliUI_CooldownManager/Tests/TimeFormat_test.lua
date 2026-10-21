@@ -133,9 +133,9 @@ local function Expect(label, fmt, cases)
 end
 
 ------------------------------------------------------------
--- 1. 分鐘格式（預設）
+-- 1. 分鐘格式
 ------------------------------------------------------------
-local fMin = T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false })
+local fMin = T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false }, "minutes")
 check("分鐘格式建得起來", fMin ~= nil)
 Expect("分鐘", fMin, {
     { 0.3, "1" }, { 5, "5" }, { 59.2, "60" }, { 60, "60" }, { 89.2, "90" }, { 90, "90" },
@@ -146,14 +146,14 @@ Expect("分鐘", fMin, {
 })
 
 -- 有小數段：整數段往下取 ⇒ 改印分的點照字面（91）；改印時看分鐘數（原始秒數進位）會不會超過 90，不印 91m
-local fMinDec = T.CountdownFormatter({ decimalsBelow = 3, lowColorOn = false })
+local fMinDec = T.CountdownFormatter({ decimalsBelow = 3, lowColorOn = false }, "minutes")
 Expect("分鐘＋小數", fMinDec, {
     { 2.55, "2.5" }, { 3.2, "3" }, { 59.9, "59" }, { 90.9, "90" }, { 91, "2m" }, { 119.9, "2m" },
     { 5400, "90m" }, { 5400.9, "2h" },
 })
 
 ------------------------------------------------------------
--- 2. 分:秒
+-- 2. 分:秒（預設，DB v13 起）
 ------------------------------------------------------------
 local fMs = T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false }, "mmss")
 check("分:秒建得起來", fMs ~= nil and fMs ~= fMin)
@@ -175,7 +175,8 @@ Expect("分:秒＋小數", fMsDec, {
 -- 表上的 timeFormat（沒另外給時讀它）
 eq("沒給第二個參數 ⇒ 讀表上的", T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false, timeFormat = "mmss" }), fMs)
 eq("第二個參數蓋過表上的", T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false, timeFormat = "mmss" }, "minutes"), fMin)
-eq("不認得的值 ⇒ 分鐘", T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false }, "hhmmss"), fMin)
+eq("不認得的值 ⇒ 預設分:秒", T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false }, "hhmmss"), fMs)
+eq("表上跟參數都沒有 ⇒ 預設分:秒", T.CountdownFormatter({ decimalsBelow = 0, lowColorOn = false }), fMs)
 
 ------------------------------------------------------------
 -- 3. 低秒變色只包秒數段
@@ -193,7 +194,9 @@ eq("增益：同值共用冷卻那一顆", fBuff, fMs)
 Expect("增益（分:秒）", fBuff, { { 119, "1:59" }, { 45, "45" }, { 150, "3m" } })
 local pMin, pMs = T.PlainFormatter(0), T.PlainFormatter(0, "mmss")
 check("不帶色碼：兩種格式各一顆", pMin and pMs and pMin ~= pMs)
-Expect("不帶色碼（預設分鐘）", pMin, { { 119, "2m" } })
+Expect("不帶色碼（沒給格式 ⇒ 分鐘：長條、層數列）", pMin, { { 119, "2m" } })
+eq("不帶色碼：明給分鐘跟沒給同一顆", T.PlainFormatter(0, "minutes"), pMin)
+eq("不帶色碼：壞值 ⇒ 預設分:秒", T.PlainFormatter(0, "hhmmss"), pMs)
 Expect("不帶色碼（分:秒）", pMs, { { 119, "1:59" }, { 150, "3m" } })
 local n0 = made
 T.PlainFormatter(0, "mmss")
@@ -216,8 +219,8 @@ eq("跟隨主題的條（自己存的不算）", T.TimeFormat("follow"), "mmss")
 eq("條自己只存了幾格 ⇒ 時間格式退主題", T.TimeFormat("partial"), "mmss")
 eq("條自己存了", T.TimeFormat("own"), "minutes")
 profile.theme.cooldownText.timeFormat = nil
-eq("舊存檔沒有這欄 ⇒ 分鐘", T.TimeFormat("theme"), "minutes")
-eq("TimeFormatOf：壞值 ⇒ 分鐘", T.TimeFormatOf(42), "minutes")
+eq("沒有這欄 ⇒ 預設分:秒", T.TimeFormat("theme"), "mmss")
+eq("TimeFormatOf：壞值 ⇒ 預設分:秒", T.TimeFormatOf(42), "mmss")
 
 print(("TimeFormat_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

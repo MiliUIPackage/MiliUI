@@ -251,7 +251,7 @@ do
     eq("v11：玩家選的材質不動", m2.focuscast.texture, "Smooth")
     DB.MIGRATIONS[11]({})
     check("v11：沒有這張表不報錯", true)
-    check("DB_VERSION 升到 12", ns.DB_VERSION == 12)
+    check("DB_VERSION 至少 12", ns.DB_VERSION >= 12)
     local v = { focuscast = { enabled = true } }
     DB.MIGRATIONS[12](v)
     eq("v12：10-15 那版寫進存檔的開翻成關", v.focuscast.enabled, false)

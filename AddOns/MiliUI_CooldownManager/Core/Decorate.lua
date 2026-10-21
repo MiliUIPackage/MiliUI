@@ -152,7 +152,7 @@ function D.Resolve(barKey, fresh)
         durationSwipeColor = S(barKey, "icon.durationSwipeColor"),     -- 增益那一段的轉圈背景色
         cooldownText = S(barKey, "cooldownText") or {},
         -- 倒數的時間格式（逐格退主題：條自己的倒數表可能只存了幾格）
-        timeFormat   = ns.Text and ns.Text.TimeFormat and ns.Text.TimeFormat(barKey) or "minutes",
+        timeFormat   = ns.Text and ns.Text.TimeFormat and ns.Text.TimeFormat(barKey) or "mmss",
         chargeText   = S(barKey, "chargeText") or {},
         stackText    = S(barKey, "stackText") or {},
         stackBarPoint = S(barKey, "stackText.barPoint") or "BOTTOMRIGHT",   -- 長條的層數錨點（Text.ApplyBar）

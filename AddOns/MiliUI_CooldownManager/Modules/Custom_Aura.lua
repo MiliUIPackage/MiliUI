@@ -134,7 +134,7 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         st.decimals, st.lowBelow = d, l
         st.lowColor = RGBA(lc, 0.95, 0.45, 0.70, 1)
         -- 時間格式（分鐘／分:秒）照這一條的倒數，跟暴雪格同一支（Text.TimeFormat）
-        st.timeFormat = TX.TimeFormat and TX.TimeFormat(barKey) or "minutes"
+        st.timeFormat = TX.TimeFormat and TX.TimeFormat(barKey) or "mmss"
     end
     local function C(c) return string.format("%.3f,%.3f,%.3f,%.3f", c[1], c[2], c[3], c[4]) end
     -- 圓環（見「光環格畫成圓環」）：圈數、貼圖、環寬、軌道色、填色、文字位置全部解成純數字、進簽章。
