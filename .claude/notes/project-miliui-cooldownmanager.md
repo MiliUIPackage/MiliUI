@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 206bc452-1df9-49cc-8420-f2f6fec3318a
-  modified: 2026-10-20T19:20:18.488Z
+  modified: 2026-10-21T06:54:36.346Z
 ---
 
 ## 緣起與拍板
@@ -138,6 +138,9 @@ cooldownID 就是 `CooldownSetSpell.ID`，`wago.tools/db2/CooldownSetSpell/csv`�
 收合＝邏輯狀態、框留 1 高、排開時跳過（`StackTarget` 的 `skip`）；要「不佔位」就讓別人改錨。資源列全部拆走時面板同樣留 1 高。
 
 **資源列順序分專精合併（2026-10-12）**：別的專精才有的 key 寫回時要**錨在它原本前一個 key 後面**（`R.MergeOrder`），一律接到最後會讓共有列（血量）在兩個專精間互相洗掉。
+**同一個坑第二次（2026-10-21，NGA 治療武僧青龍／朱鶴兩套天賦）**：預覽拖曳寫回 `spells[spec].order[key]` 只寫看得到的格 ⇒ 天賦沒點的被洗出 order、換回天賦排到最後。
+改成設定頁清單連沒學會的一起列（`Catalog.allLists`／`Catalog.Unlearned`，預覽去飽和，同暴雪面板）＋寫回走 `Catalog.MergeOrder`。
+**How to apply：** 任何「把目前看得到的完整清單寫回順序表」的地方都要跟舊的合併（MergeOrder），因為「看得到」會隨專精／天賦／範圍變；只寫看得到的＝把其他情境的位置洗掉。
 
 **資源列天賦閘的 ID 必須是法術書查得到的（2026-10-19）**：`def.passive` 填 buff 光環的 ID（靈魂碎片原本填 203981）`IsSpellKnown` 永遠 false，「目前有層數就顯示」那條保險在 12.1 只保得住脫戰且當下有層數（戰鬥中是秘密值、脫戰沒層數是 0），列就跟著有沒有碎片時有時無、設定頁清單也沒它。復仇靈魂碎片改看碎魂斬 228477（同 YHUD 的 requiresKnownSpellID；EUI 只看專精）。閘公開成 `R.Available(key)` 給離線測試。
 
