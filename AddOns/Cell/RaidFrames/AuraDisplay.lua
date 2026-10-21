@@ -2071,6 +2071,9 @@ local function ParkKey(handle, records, slotMode)
     -- so it belongs to the key as well: a container styled with the old colours must not be
     -- handed to a handle expecting the new ones.
     parts[#parts + 1] = "pal:" .. (TableSig(CellDB and CellDB["debuffTypeColor"]) or "")
+    -- fix from MiliUI: same for the duration time format -- StyleButton binds its formatter, and
+    -- the formatter follows the global setting rather than config
+    parts[#parts + 1] = "tf:" .. ACC.DurationTimeFormat()
     return table.concat(parts, "|")
 end
 
@@ -3354,17 +3357,27 @@ end
 -- a colour change cannot be pushed onto live buttons -- they have to be rebuilt. Debounced,
 -- because a colour picker fires continuously while the user drags it and a rebuild touches
 -- every container on every unit button.
-local paletteTimer
-function AD.RefreshDispelPalette()
-    if paletteTimer then return end
-    paletteTimer = true
+local rebuildAllTimer
+local function RebuildAllSoon(why)
+    if rebuildAllTimer then return end
+    rebuildAllTimer = true
     C_Timer.After(0.3, function()
-        paletteTimer = nil
+        rebuildAllTimer = nil
         if InCombatLockdown() then return end -- Rebuild would just defer each one anyway
         for h in pairs(AD._instances or {}) do
-            h:Rebuild("palette")
+            h:Rebuild(why)
         end
     end)
+end
+
+function AD.RefreshDispelPalette()
+    RebuildAllSoon("palette")
+end
+
+-- fix from MiliUI: the duration formatter is bound the same way (SetDurationText, once per
+-- AuraButton), so a time format change (Appearance > Aura Icon Options) rebuilds as well
+function AD.RefreshDurationFormat()
+    RebuildAllSoon("timeformat")
 end
 
 function AD.Create(parent, config)

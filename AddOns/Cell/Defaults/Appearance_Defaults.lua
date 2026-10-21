@@ -23,6 +23,7 @@ Cell.defaults.appearance = {
         ["animation"] = "duration",
         ["durationRoundUp"] = false,
         ["durationDecimal"] = 0,
+        ["durationTimeFormat"] = "mmss", -- fix from MiliUI: "minutes" | "mmss" (RaidFrames/AuraContainerCore.lua)
         ["durationColorEnabled"] = false,
         ["durationColors"] = {{0,1,0}, {1,1,0,0.5}, {1,0,0,3}},
     },

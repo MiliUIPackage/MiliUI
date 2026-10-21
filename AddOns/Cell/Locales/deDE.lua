@@ -745,3 +745,8 @@ L["ATTACH_SIDE_TIPS"] = "An welcher Seite der Rahmen die Leiste sitzt. Sie begin
 L["Max Health Reduction"] = "Verringerte Maximalgesundheit"
 L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "Schwächungen, die die maximale Gesundheit senken, z. B. bei manchem Dungeon-Trash."
 L["The bar shortens by that share; the lost part takes this color."] = "Der Balken wird um diesen Anteil kürzer; der verlorene Teil erhält diese Farbe."
+
+-- fix from MiliUI: aura countdown time format
+L["Duration Text Format"] = "Format des Dauertexts"
+L["Minutes (%s)"] = "Minuten (%s)"
+L["Minutes:Seconds (%s)"] = "Minuten:Sekunden (%s)"

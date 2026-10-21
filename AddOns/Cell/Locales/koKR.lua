@@ -745,3 +745,8 @@ L["ATTACH_SIDE_TIPS"] = "바가 유닛 프레임의 어느 쪽에 붙을지 정�
 L["Max Health Reduction"] = "최대 생명력 감소"
 L["Debuffs that lower maximum health, e.g. some dungeon trash."] = "일부 던전 일반 몹처럼 최대 생명력을 낮추는 약화 효과입니다."
 L["The bar shortens by that share; the lost part takes this color."] = "생명력 바가 그만큼 짧아지고, 잃은 부분은 이 색으로 표시됩니다."
+
+-- fix from MiliUI: aura countdown time format
+L["Duration Text Format"] = "지속 시간 텍스트 형식"
+L["Minutes (%s)"] = "분 (%s)"
+L["Minutes:Seconds (%s)"] = "분:초 (%s)"
