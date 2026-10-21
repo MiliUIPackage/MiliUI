@@ -16,7 +16,7 @@
 | Baganator | 829 | 2026-09-23 73ae195e6 | https://github.com/plusmouse/Baganator（套組用的是 fork 的 miliui 分支，見 notes/project-baganator-miliui-skin.md） |
 | BuffReminders | v6.8.7 | 2026-10-15 09fa1b9d1 | https://www.curseforge.com/projects/1441094 |
 | BugSack | v12.0.4 | 2026-03-17 66dbf6bca | https://github.com/funkydude/BugSack |
-| Cell | r310_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
+| Cell | r311_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
 | Chattynator | 227 | 2026-10-15 6425e9f11 | https://github.com/plusmouse/Chattynator |
 | DiGuaTimelineAudioHelper | 2.0.8 | 2026-10-20 10b98bea5 | 待補 |
 | EasyExperienceBar | 2026.03.09.A | 2026-10-20 fa3d02a94（收錄） | 待補 |
