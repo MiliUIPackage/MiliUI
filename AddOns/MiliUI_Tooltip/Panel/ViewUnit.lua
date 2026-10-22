@@ -206,7 +206,9 @@ local function DetailRows(f, model)
         rows[#rows + 1] = Label(L["Achievement"], type(v) == "number" and Paint(tostring(v), f.achievementColor or LOOK.TEXT)
             or Paint(L["unknown"], LOOK.DIM))
     end
-    if f.zone then rows[#rows + 1] = Label(_G.ZONE or "Zone", f.zone) end
+    -- 區域：元素開著畫名冊的地區；關著但暴雪給視野外的隊友加了地區行，一樣畫在這裡（不留成沒標籤的其他行）
+    local zone = f.zone or model.zone
+    if zone then rows[#rows + 1] = Label(_G.ZONE or "Zone", zone) end
     if f.speed then rows[#rows + 1] = Label(_G.STAT_MOVEMENT_SPEED or "Speed", ("%d%%"):format(f.speed)) end
     return rows
 end

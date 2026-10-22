@@ -133,6 +133,7 @@ local function Setup(opts)
                 raw.factionGroup, raw.factionName = "Alliance", "聯盟"
                 raw.statusAFK = world.afk and "離開" or nil
                 raw.itemLevel = 652
+                raw.zone = opts.zone            -- 名冊的地區（GetZone；只有隊友有）
             else
                 raw.creature = "人型生物"
             end
@@ -205,6 +206,11 @@ local function Setup(opts)
             { type = 0, lineIndex = 5, leftText = "聯盟" },
             { type = 0, lineIndex = 6, leftText = "PvP" },
         } }
+        -- 視野外的隊友：暴雪在最後加一行地名（None、白字、沒有標籤）
+        if opts.zoneLine then
+            lines[#lines + 1] = { left = opts.zoneLine }
+            data.lines[#data.lines + 1] = { type = 0, lineIndex = #data.lines + 1, leftText = opts.zoneLine }
+        end
     end
     local tip = H.Tip(env, "GameTooltip", lines)
     local state = {}
@@ -265,6 +271,25 @@ do
     }, { isPlayer = true, guildLine = "米利公會", classLine = "術士" }, true)
     eq("公會-伺服器行丟掉、名字開頭相同的別行留著", #m3.others, 1)
     eq("留下的是別行", m3.others[1].left, "米利公會的朋友")
+
+    -- 視野外隊友的地區行：跟名冊的地區一樣 ⇒ 認成 model.zone、不進其他；名冊讀不到 ⇒ 照舊留在其他
+    local zoneRows = {
+        { left = "米利龍", lineIndex = 1, type = LT.UnitName },
+        { left = "米利公會-聖光之願", lineIndex = 2 },
+        { left = "等級90半龍人（玩家）", lineIndex = 3 },
+        { left = "破滅 喚能師", lineIndex = 4 },
+        { left = "部落", lineIndex = 5 },
+        { left = "|cffffffff憤怒之印|r", lineIndex = 6 },
+    }
+    local mz = P.ReadUnitRows(zoneRows, { isPlayer = true, guildLine = "米利公會", classLine = "喚能師", zoneLine = "憤怒之印" }, true)
+    eq("地區行：認成 zone", mz.zone, "憤怒之印")
+    eq("地區行：不進其他", #mz.others, 0)
+    eq("地區行：職業行照認", mz.specLine, "破滅 喚能師")
+    local mz2 = P.ReadUnitRows(zoneRows, { isPlayer = true, guildLine = "米利公會", classLine = "喚能師" }, true)
+    eq("名冊沒地區：不認", mz2.zone, nil)
+    eq("名冊沒地區：留在其他", #mz2.others, 1)
+    local mz3 = P.ReadUnitRows(zoneRows, { isPlayer = false, zoneLine = "憤怒之印" }, true)
+    eq("NPC 不認地區行", mz3.zone, nil)
 
     local npc = P.ReadUnitRows({
         { left = "狡猾的莫加尼", lineIndex = 1 },
@@ -517,6 +542,41 @@ do
     check("封鎖中：不接", not t4.P.TryUnit(t4.tip, t4.state, "mouseover", t4.data))
     t4.env.now = 2
     check("封鎖過了：接", t4.P.TryUnit(t4.tip, t4.state, "mouseover", t4.data))
+end
+
+do
+    -- 視野外的隊友：暴雪最後那行地名 ⇒ 細節列「區域：地名」，不再沒標籤地丟在最底下的其他段
+    local function Count(panel, text)
+        local n = 0
+        for i = 1, panel.textsUsed do
+            local fs = panel.texts[i]
+            if fs.shown and fs.text == text then n = n + 1 end
+        end
+        return n
+    end
+    local t = Setup({ zone = "憤怒之印", zoneLine = "憤怒之印" })
+    check("隊友地區：接", t.P.TryUnit(t.tip, t.state, "mouseover", t.data))
+    local panel = t.state.panel
+    local label, value = FindText(panel, "區域"), FindText(panel, "憤怒之印")
+    check("隊友地區：區域標籤", label)
+    check("隊友地區：地名", value)
+    eq("隊友地區：地名只畫一次", Count(panel, "憤怒之印"), 1)
+    eq("隊友地區：跟標籤同一列", value and label and Y(value), label and Y(label))
+    local ilvl = FindText(panel, "ItemLevel")
+    check("隊友地區：排在裝等之後（細節段）", ilvl and label and Y(label) > Y(ilvl))
+
+    -- 元素開著（名冊地區本來就畫）＋暴雪的地區行：只畫一列
+    local t2 = Setup({ zone = "憤怒之印", zoneLine = "憤怒之印" })
+    t2.ns.db.unit.player.elements.zone = { enable = true }
+    t2.P.TryUnit(t2.tip, t2.state, "mouseover", t2.data)
+    eq("元素開著：區域只一列", Count(t2.state.panel, "區域"), 1)
+    eq("元素開著：地名只畫一次", Count(t2.state.panel, "憤怒之印"), 1)
+
+    -- 名冊讀不到地區（不在隊伍、token 對不上）：照舊留在其他段
+    local t3 = Setup({ zoneLine = "憤怒之印" })
+    t3.P.TryUnit(t3.tip, t3.state, "mouseover", t3.data)
+    check("名冊沒地區：沒有區域標籤", not FindText(t3.state.panel, "區域"))
+    eq("名冊沒地區：地名還在（其他段）", Count(t3.state.panel, "憤怒之印"), 1)
 end
 
 ------------------------------------------------------------

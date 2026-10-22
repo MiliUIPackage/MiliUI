@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-21T17:56:44.006Z
+  modified: 2026-10-22T16:13:36.090Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -162,6 +162,10 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - 版面數值（照 PrettyTooltip、色照提示皮）：頭像 40、等級底板在頭像**下方**（徽章其他型別在上方，`view.badgeBelow`）、底板難度色（邊×0.8／底×0.14／字往白收 0.55）；名字 title+3；標題區各行 `UNIT_HEADER_GAP = 3` 等距；最小寬 250；
   浮水印（`panel.unitWatermark`）＝PrettyTooltip 的陣營徽記 PNG（MIT，`Media/LICENSE-PrettyTooltip.txt`，關於頁致謝已改寫）＋暴雪目標框龍 atlas，裁在面板內。
 - 標籤一律用暴雪全域：`STATUS_TEXT_TARGET`「目標」（`TARGET` 是「選取目標」）、`AFK`「離開」、`MAP_LEGEND_RARE(ELITE)`「稀有（精英）」。
+- **視野外的隊友**（2026-10-23，使用者問截圖底部「憤怒之印」是什麼）：暴雪的單位提示資料（C 端，FrameXML 沒有 AddLine）在最後多一行**地名**（type 0 None、白字、沒標籤），
+  同時 `GetGuildInfo` 拿不到 ⇒ 標題區沒有公會、那行地名掉進「其他」被當成謎之文字。對方走近後兩樣都恢復，dump 不到。
+  現在 `f.zoneLine`（UnitInfo.GetZone＝名冊 `GetRaidRosterInfo` 第 7 值；target／focus 照名字在名冊找）比字 ⇒ `model.zone` ⇒ 細節列「區域」（`_G.ZONE` zhTW 是「區域」不是「地區」）。
+  **兩邊地名一致是推測、未實機**（README 待驗 37）；對不上時退回原狀（留在其他），不會更糟。
 - `Tests/Unit_test.lua` 連間距一起驗（標題等距、◆ 上下等距、四邊內距）；scratchpad 有過一支把假框幾何畫成 PNG 的 mock 腳本，看版面很有用（Lua 5.3 的 `%02x` 不收小數，測試裡 `Colors.Hex` 要墊取整版）。
 - 未實機：README 待驗 30～36（尤其哪些戰鬥情境身分受限、專精行認法、FadeOut 秒數 0.3 是猜的）。
 

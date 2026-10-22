@@ -82,6 +82,7 @@ end
 --   model.specLine：玩家含職業名的最短一行（暴雪的「毀滅 術士」）——資訊行用它取代單純的職業名
 --   model.owner：UnitOwner 型別（「某某的寵物」）
 --   model.skin：可剝皮／需要採礦…（狀態徽章）
+--   model.zone：暴雪給視野外的隊友加的地區行（跟名冊的地區比對；細節列畫成「區域」）
 --   model.quests：任務標題與目標（QuestTitle／QuestObjective／QuestPlayer）
 --   model.others：認不出用途的暴雪行（NPC 的第二行頭銜、威脅…）
 --   model.extras：別人後加的行（附屬框）
@@ -93,6 +94,7 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
     local beforeLevel = {}           -- NPC：名字之後、等級行之前的行（頭銜候選）
     local className = facts.isPlayer and (facts.classLine or facts.className) or nil
     local guildLine = facts.isPlayer and (facts.guildLine or facts.guild) or nil
+    local zoneLine = facts.isPlayer and (facts.zoneLine or facts.zone) or nil
     local specIndex, specLen
     local pending = {}               -- 還沒歸類的一般行（等找完職業行再放進 others）
 
@@ -134,6 +136,9 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
             model.skin[#model.skin + 1] = row.left
         elseif guildLine and IsGuildLine(text, guildLine) then
             -- 公會行：API 畫
+        elseif zoneLine and text == zoneLine then
+            -- 視野外隊友的地區行（暴雪只寫地名、沒有標籤）：細節列畫
+            model.zone = text
         elseif not facts.isPlayer and not levelSeen then
             beforeLevel[#beforeLevel + 1] = row
         else
@@ -383,6 +388,7 @@ function Panel.UnitFacts(token, config)
         -- 認行用的（不管元素開不開都要知道，暴雪的公會行／職業行才丟得掉）
         f.guildLine = S.PlainText(raw.guildName)
         f.classLine = S.PlainText(raw.className)
+        f.zoneLine = S.PlainText(raw.zone)
         if on("guildName") then f.guild = f.guildLine end
         if f.guild and on("guildRank") then f.guildRank = S.PlainText(raw.guildRank) end
         if on("raceName") then f.race = S.PlainText(raw.raceName) end

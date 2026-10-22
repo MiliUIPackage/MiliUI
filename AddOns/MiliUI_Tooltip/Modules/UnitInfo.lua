@@ -151,23 +151,29 @@ local function GetGender(gender)
     end
 end
 
+-- 隊友所在的地區（GetRaidRosterInfo 的第 7 個回傳）。raidN 直接用編號查；partyN 的名冊順序跟 N 對不上，
+-- target／focus 這些指著隊友的 token 也一樣 ⇒ 照名字（跨服的帶伺服器）在名冊裡找。
+-- 單位面板也拿它認暴雪給視野外隊友加的那一行地區（ReadUnit.lua 的 zoneLine）
 local function GetZone(unit, unitname, realm)
     if not IsInGroup() then return end
     unit = S.PlainText(unit)
     unitname = S.PlainText(unitname)
     if not unit or not unitname then return end
-    local t, i = string.match(unit, "(.-)(%d+)")
-    if i and t == "raid" then
-        return select(7, GetRaidRosterInfo(i))
-    elseif i and t == "party" then
-        local fullname = unitname .. "-" .. tostring(S.PlainText(realm) or "")
-        for j = 1, 5 do
-            local name, _, _, _, _, _, zone = GetRaidRosterInfo(j)
-            if name and not string.find(name, "-", 1, true) and name == unitname then
-                return zone
-            elseif name and string.find(name, "-", 1, true) and name == fullname then
-                return zone
-            end
+    local t, i = string.match(unit, "^(%a+)(%d+)$")
+    if t == "raid" then
+        return select(7, GetRaidRosterInfo(tonumber(i)))
+    end
+    if t ~= "party" and not (S.SafeBool(UnitInParty, unit) or S.PlainNumber((S.SafeCall(UnitInRaid, unit)))) then
+        return
+    end
+    local fullname = unitname .. "-" .. tostring(S.PlainText(realm) or "")
+    for j = 1, GetNumGroupMembers() do
+        local name, _, _, _, _, _, zone = GetRaidRosterInfo(j)
+        name = S.PlainText(name)
+        if name and not string.find(name, "-", 1, true) and name == unitname then
+            return zone
+        elseif name and string.find(name, "-", 1, true) and name == fullname then
+            return zone
         end
     end
 end
