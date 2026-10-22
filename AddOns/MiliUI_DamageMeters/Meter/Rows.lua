@@ -35,16 +35,20 @@ local function PaintBar(W, bar, src, ctx, rank)
     -- ⚠ 備忘必須連 specIconID 一起記，不能只記 classFilename——
     --   長條是照排名回收的，同職業不同專精的兩個人換位置時 classFilename 沒變，
     --   那一列就會留著前一個人的專精圖。
-    -- ⚠ 還要連 D.specGen：別人的 specIconID 常常是 nil，專精靠觀察快取補，
-    --   問到的那一刻職業與 specIconID 都沒變，不比世代就永遠停在職業圖示。
+    -- ⚠ 還要連解析出來的專精一起記：別人的 specIconID 常常是 nil，專精是查觀察快取
+    --   （照這一段綁的專精表）補的。觀察問到、切到換專精之前的分段、同職業兩個隊友換排名，
+    --   職業與 specIconID 都沒變，只比輸入就會停在舊圖。
+    --   戰鬥中 GUID 是秘密值、查不了快取：解不出來就當作沒變，沿用上一次畫的。
     local classFile = src.classFilename
     local specIcon  = src.specIconID
-    if classFile ~= bar._class or specIcon ~= bar._specIcon or bar._specGen ~= D.specGen then
+    local spec      = D.SourceSpec(src, ctx.specMap)
+    if spec == nil and D.IsSecret(src.sourceGUID) then spec = bar._spec end
+    if classFile ~= bar._class or specIcon ~= bar._specIcon or spec ~= bar._spec then
         bar._class    = classFile
         bar._specIcon = specIcon
-        bar._specGen  = D.specGen
+        bar._spec     = spec
         bar._colorClass = nil
-        local offset = D.ResolveIcon(src, bar.icon, ctx.barH, ctx.iconStyle, ctx.iconZoom)
+        local offset = D.ResolveIcon(src, bar.icon, ctx.barH, ctx.iconStyle, ctx.iconZoom, ctx.specMap)
         Win.AnchorBarFill(bar, offset)
         if s.barBgUseClassColor then Win.ApplyBarBg(bar) end
     end
@@ -163,12 +167,12 @@ local function RelayoutBar(pane, bar, i, ctx)
     bar._compactLabel = ctx.split
     Win.AnchorBarLabel(bar, ctx.split)
     -- 版面重建 = 圖示與顏色的備忘全部失效
-    bar._class = nil; bar._specIcon = nil; bar._colorClass = nil; bar._rank = nil
+    bar._class = nil; bar._specIcon = nil; bar._spec = nil; bar._colorClass = nil; bar._rank = nil
 end
 
 local function ClearBar(bar)
     if bar.row:IsShown() then bar.row:Hide() end
-    bar._src = nil; bar._guid = nil; bar._class = nil; bar._specIcon = nil
+    bar._src = nil; bar._guid = nil; bar._class = nil; bar._specIcon = nil; bar._spec = nil
     bar._colorClass = nil; bar._name = nil; bar._amtText = nil
     bar._slot = nil; bar._rank = nil; bar._dmType = nil
     bar._sessType = nil; bar._sessID = nil
@@ -367,7 +371,7 @@ function Rows.UpdateSticky(W, pane, sources, ctx)
         bar.label:SetWidth(math.max(20, (area:GetWidth() or 200) * 0.60))
         bar._compactLabel = ctx and ctx.split or false
         Win.AnchorBarLabel(bar, bar._compactLabel)
-        bar._class = nil; bar._specIcon = nil; bar._colorClass = nil; bar._rank = nil
+        bar._class = nil; bar._specIcon = nil; bar._spec = nil; bar._colorClass = nil; bar._rank = nil
     end
 
     bar.row:Show()
@@ -417,6 +421,8 @@ local function RenderPane(W, pane, session, dmType, ctx, side)
     -- 右欄沒資料時不能讓左欄的分段留在 ctx 裡給下一趟用
     local sessType, sessID = D.PaneSession(W, side)
     ctx.sessType, ctx.sessID = sessType, sessID
+    -- 這一欄的分段開打時的專精表：換專精之前的分段畫當時的專精
+    ctx.specMap = ns.ItemLevel.SpecMap(sessType, sessID)
     -- 預覽的範例戰鬥只有一場：停在「總計」也照樣印死亡時間（Meter/Preview.lua）
     ctx.isOverall = (not sessID and sessType == D.S.Overall) and not (session and session.isPreview)
 

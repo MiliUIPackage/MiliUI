@@ -95,11 +95,114 @@ function IL.Get(guid, isOwn)
     return Fresh(c, "lvl", "lt", LVL_TTL) and c.lvl or nil
 end
 
--- 回傳 specID 或 nil
+-- 回傳 specID 或 nil（過期就是 nil，掃描靠這個決定要不要重問）
 function IL.Spec(guid)
     guid = D.PlainGUID(guid)
     local c = guid and cache[guid]
     return Fresh(c, "spec", "st", SPEC_TTL) and c.spec or nil
+end
+
+------------------------------------------------------------
+-- 分段的專精快照
+--
+-- 上面的快取只記「這個人現在」的專精。一王冰 DK 打、之後換穢邪，切回一王那段
+-- 也會畫成穢邪 —— 技能明細是暴雪逐段存的、還是冰的技能，錯的只有我們補的圖示。
+-- 所以每一段一出現，就把當下的專精表綁給它：
+--   * live＝目前的專精表 [guid] = specID。被分段綁住之後就凍結，之後有人**換**專精
+--     先複製一份新的再改（copy-on-write）—— 沒人換專精時所有分段共用同一張。
+--   * 分段 ID 從 DAMAGE_METER_COMBAT_SESSION_UPDATED 的第二個參數拿（暴雪自己的視窗
+--     也這樣讀：每次兩發，總計那發是 0、目前那發帶 sessionID）。分段開打就會出現，
+--     戰鬥中又沒人能換專精，所以「第一次看到」就是「開打時」。
+--   * 綁的時候還不知道的人（觀察還沒問到、或換專精剛被清掉），之後第一次問到就補進
+--     每一張缺他的表：那一段之後最先問到的專精，就是他當時專精的最佳估計。
+--     已經有值的表不動 —— 那正是換專精之前的樣子。
+-- 只放記憶體：/reload 之後舊分段退回查 live（暴雪也不保證分段 ID 跨登入還是同一段）。
+------------------------------------------------------------
+local live, liveFrozen = {}, false
+local bound = {}                -- [sessionID] = 那一段開打時的專精表
+local currentSessionID          -- 「目前」那一段的 ID（D.S.Current 自己沒有 sessionID）
+
+-- 快取的專精變了。spec＝nil 是「知道他換了、還不知道換成什麼」
+local function SetLiveSpec(guid, spec)
+    local old = live[guid]
+    if old == spec then return end
+    if old == nil then
+        for _, map in pairs(bound) do
+            if map[guid] == nil then map[guid] = spec end
+        end
+        live[guid] = spec
+        return
+    end
+    if liveFrozen then
+        local copy = {}
+        for g, s in pairs(live) do copy[g] = s end
+        live, liveFrozen = copy, false
+    end
+    live[guid] = spec
+end
+
+local function BindSession(id)
+    currentSessionID = id
+    if bound[id] then return end
+    bound[id] = live
+    liveFrozen = true
+    -- 新的一段（一場戰鬥一次）順手丟掉暴雪已經不給的分段
+    local list = D.GetAvailableSessions()
+    if list and #list > 0 then
+        local keep = {}
+        for _, sess in ipairs(list) do
+            local sid = PlainNumber(sess.sessionID)
+            if sid then keep[sid] = true end
+        end
+        for sid in pairs(bound) do
+            if sid ~= id and not keep[sid] then bound[sid] = nil end
+        end
+    end
+end
+
+-- 這個畫面該查哪一張專精表：歷史分段查它綁的、「目前」查目前那一段綁的；
+-- 總計跨好幾段（本來就沒有單一答案）、還沒綁到的，查 live
+function IL.SpecMap(sessType, sessID)
+    sessID = PlainNumber(sessID)
+    if sessID then return bound[sessID] or live end
+    if sessType == D.S.Current and currentSessionID then
+        return bound[currentSessionID] or live
+    end
+    return live
+end
+
+-- 回傳 specID 或 nil。map 是 IL.SpecMap 的回傳，nil＝live
+function IL.SpecIn(map, guid)
+    guid = D.PlainGUID(guid)
+    return guid and (map or live)[guid] or nil
+end
+
+-- 除錯報告用：最近幾次專精變動（換專精事件、觀察問到不一樣的專精）
+local specLog = {}
+local function LogSpec(fmt, ...)
+    table.insert(specLog, date("%H:%M:%S ") .. fmt:format(...))
+    if #specLog > 12 then table.remove(specLog, 1) end
+end
+
+local function UnitLabel(unit)
+    local name = unit and UnitName(unit)
+    if name == nil or issecret(name) then return "?" end
+    return name
+end
+
+function IL.DebugLines()
+    local maps, n = {}, 0
+    for _, map in pairs(bound) do
+        if not maps[map] then maps[map] = true; n = n + 1 end
+    end
+    local sessions = 0
+    for _ in pairs(bound) do sessions = sessions + 1 end
+    local lines = {
+        ("current=%s bound=%d tables=%d frozen=%s"):format(tostring(currentSessionID),
+            sessions, n, tostring(liveFrozen)),
+    }
+    for _, line in ipairs(specLog) do lines[#lines + 1] = line end
+    return lines
 end
 
 local function CanAsk()
@@ -166,6 +269,11 @@ end
 ------------------------------------------------------------
 -- 事件
 ------------------------------------------------------------
+-- 脫戰時沒有 ticker，專精一變要自己叫視窗重畫（長條的圖示備忘比的是解析出來的專精）
+local function RefreshWindows()
+    if ns.Windows then ns.Windows.ForEach(function(W) if W.Refresh then W.Refresh() end end) end
+end
+
 local function OnInspectReady(guid)
     guid = D.PlainGUID(guid)
     if not guid then return end
@@ -182,8 +290,12 @@ local function OnInspectReady(guid)
             local ok, spec = pcall(GetInspectSpecialization, unit)
             spec = ok and PlainNumber(spec)
             if spec and spec > 0 then
-                specChanged = (c.spec ~= spec)
+                specChanged = (live[guid] ~= spec)
+                if specChanged then
+                    LogSpec("inspect %s %s -> %s", UnitLabel(unit), tostring(live[guid]), spec)
+                end
                 c.spec, c.st = spec, GetTime()
+                SetLiveSpec(guid, spec)
             end
         end
         if c.lvl or c.spec then cache[guid] = c end
@@ -191,12 +303,29 @@ local function OnInspectReady(guid)
     -- ⚠ 不呼叫 ClearInspectPlayer：INSPECT_READY 是廣播，排在我們後面的監聽者
     --   （TinyInspect、滑鼠提示）還要讀同一份觀察資料，先清掉它們就拿到空的。
     if guid == pendingGUID then pendingGUID, pendingUnit = nil, nil end
-    if specChanged then
-        -- 長條的圖示備忘連 specGen 一起比；不加這個，specIconID 一直是 nil 的那幾列不會重畫
-        D.specGen = D.specGen + 1
-        if ns.Windows then ns.Windows.ForEach(function(W) if W.Refresh then W.Refresh() end end) end
-    end
+    if specChanged then RefreshWindows() end
     if cache[guid] then Notify(guid) end
+end
+
+-- 隊友換專精：清掉他的專精、馬上重問（不等掃描的 2 秒）。已經綁進分段的舊專精不動。
+-- arg1 可能是秘密的 unit token，不拿它比對
+local function OnSpecChanged(unit)
+    if unit == nil or issecret(unit) then
+        LogSpec("event unit=secret")
+        return
+    end
+    if unit == "player" then return end
+    local guid = PlainGUIDOf(unit)
+    local c = guid and cache[guid]
+    -- 沒觀察過的人（陌生人的名條、目標）不管；還沒問到的隊友本來就在掃描的名單上
+    if not c then return end
+    LogSpec("event %s %s spec=%s", unit, UnitLabel(unit), tostring(live[guid]))
+    c.spec = nil
+    if live[guid] ~= nil then
+        SetLiveSpec(guid, nil)
+        RefreshWindows()
+    end
+    IL.Request(guid)
 end
 
 local f = CreateFrame("Frame")
@@ -206,17 +335,26 @@ f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_REGEN_ENABLED")
 f:RegisterEvent("PLAYER_REGEN_DISABLED")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-f:SetScript("OnEvent", function(_, event, arg1)
-    if event == "INSPECT_READY" then
+-- 暴雪傷害統計的事件：舊客戶端沒有，RegisterEvent 對不存在的事件會拋錯
+for _, ev in ipairs({ "DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_RESET" }) do
+    local ok, err = pcall(f.RegisterEvent, f, ev)
+    if not ok and ns.HAS_API then
+        ns.ReportError("RegisterEvent failed: " .. ev .. " (" .. tostring(err) .. ")")
+    end
+end
+f:SetScript("OnEvent", function(_, event, arg1, arg2)
+    if event == "DAMAGE_METER_COMBAT_SESSION_UPDATED" then
+        -- 戰鬥中連續打：已經綁過的分段只是一次查表
+        local id = PlainNumber(arg2)
+        if id and id > 0 then BindSession(id) end
+    elseif event == "DAMAGE_METER_RESET" then
+        bound, currentSessionID, liveFrozen = {}, nil, false
+    elseif event == "INSPECT_READY" then
         OnInspectReady(arg1)
     elseif event == "PLAYER_REGEN_DISABLED" then
         StopScan()
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
-        -- 隊友換專精：清掉他的專精，讓掃描重問。arg1 可能是秘密的 unit token，不拿它比對
-        if arg1 and not issecret(arg1) and arg1 ~= "player" then
-            local guid = PlainGUIDOf(arg1)
-            if guid and cache[guid] then cache[guid].spec = nil end
-        end
+        OnSpecChanged(arg1)
         StartScan()
     else
         StartScan()

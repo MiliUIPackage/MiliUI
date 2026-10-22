@@ -128,10 +128,14 @@ local function Populate(bar)
     -- 標題列＝卡片高度（兩行字）加一點與第一列的間距
     local hdrH = math.max(HDR_H, Card.Layout(_frame.card) + 4)
 
+    -- 分段照這一列自己的（合併檢視的欄可以釘住分段）。列還沒畫過才退回視窗的
+    local sessType, sessID = bar._sessType, bar._sessID
+    if sessType == nil then sessType, sessID = W.curSession, W.curSessionID end
+
     _frame.subtitle:SetText(D.TYPE_NAMES[dmType] or ns.L["Damage Done"])
     Card.Fill(_frame.card, {
         name = src.name, classFilename = src.classFilename, specIconID = src.specIconID,
-        guid = src.sourceGUID, isOwn = D.IsOwnRow(src),
+        guid = src.sourceGUID, isOwn = D.IsOwnRow(src), sessType = sessType, sessID = sessID,
     })
 
     ------------------------------------------------------------
@@ -163,9 +167,6 @@ local function Populate(bar)
             end
         end
     else
-        -- 分段也照這一列自己的（合併檢視的欄可以釘住分段）。列還沒畫過才退回視窗的
-        local sessType, sessID = bar._sessType, bar._sessID
-        if sessType == nil then sessType, sessID = W.curSession, W.curSessionID end
         local srcData = D.GetSource(sessType, sessID, dmType,
             src.sourceGUID, src.sourceCreatureID)
         local spells = srcData and srcData.combatSpells

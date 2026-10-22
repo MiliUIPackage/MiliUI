@@ -168,15 +168,18 @@ function ns.DebugText()
         if D.IsSecret(v) then return "secret" end
         return tostring(v)
     end
+    -- inspectSpec＝他現在的專精、segSpec＝這一列所在分段開打時的（換專精之前的分段兩個會不同）
+    local IL = ns.ItemLevel
     local function BarLine(prefix, bar)
         local src = bar and bar._src
         if not src or not bar.row:IsShown() then return end
-        local info = D.SourceSpec(src)
-        local cached = ns.ItemLevel.Spec(src.sourceGUID)
+        local specMap = IL.SpecMap(bar._sessType, bar._sessID)
+        local info = D.SourceSpec(src, specMap)
         local tex = bar.icon:IsShown() and bar.icon:GetTexture()
-        add(("%s %s class=%s specIcon=%s inspectSpec=%s own=%s -> mili=%s | icon shown=%s tex=%s bg=%s")
+        add(("%s %s class=%s specIcon=%s inspectSpec=%s segSpec=%s own=%s -> mili=%s | icon shown=%s tex=%s bg=%s")
             :format(prefix, Str(src.name), Str(src.classFilename), Str(src.specIconID),
-                    Str(cached), tostring(D.IsOwnRow(src)),
+                    Str(IL.SpecIn(nil, src.sourceGUID)), Str(IL.SpecIn(specMap, src.sourceGUID)),
+                    tostring(D.IsOwnRow(src)),
                     info and (info.tex and info.tex:match("([^\\]+)%.png$") or "no tex") or "NO",
                     tostring(bar.icon:IsShown()), Str(tex),
                     tostring(bar.icon._miliBg and bar.icon._miliBg:IsShown() or false)))
@@ -197,6 +200,10 @@ function ns.DebugText()
             end)
         end)
     end
+    -- 分段的專精快照＋最近的專精變動。「換了專精圖示沒跟著變」看這段：
+    -- 沒有 event 那行＝暴雪沒送換專精事件給我們；unit=secret＝送了但認不出是誰
+    add("  spec snapshots:")
+    for _, line in ipairs(IL.DebugLines()) do add("    " .. line) end
     add("  spec map:")
     for _, line in ipairs(D.SpecMapLines()) do add("    " .. line) end
 
