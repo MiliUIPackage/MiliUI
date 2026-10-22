@@ -104,8 +104,10 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
 - #13 `tip:SetClampRectInsets`／還原：接管期間原生照暴雪的夾邊，只替它設範圍（四邊呼吸、上緣多留比價標籤）；`GetClampRectInsets` 記原值。
 - #12 `hooksecurefunc(tip, "Show")`／`(tip, "SetShown")`：暴雪的 Show 會把 alpha 改回 1、而且在 post-call 之後才叫，
   後掛勾同一幀壓回 0。只掛在真的用過面板的 tooltip 上，面板沒在用時掛勾什麼都不做。
-- #15 `hooksecurefunc(tip, "FadeOut")`：世界單位滑開時暴雪 C 端淡出原生（原生在 alpha 0），後掛勾讓**自己的面板**跟著淡（`LOOK.FADE`）。
-  跟 #12 同一處、只掛在用過面板的 tooltip 上。
+- #15 `hooksecurefunc(tip, "FadeOut")`（`Core/Hooks.lua` 的 `OnFadeOut`，接管時就掛）：暴雪的 FadeOut＝原生全不透明停 1 秒、再淡 1 秒，
+  只有世界中的單位／物件、暴雪頭像框滑開時叫（介面上的物品／法術是 OnLeave 直接 `Hide`）。平常原生在 alpha 0，後掛勾讓**自己的面板**跟著淡（`LOOK.FADE`）；
+  「錨點」分頁的「滑開立即消失」開著時改成面板當場透明＋`tip:Hide()`——跟任何插件按鈕 OnLeave 的 `GameTooltip:Hide()` 同一種接觸（#8）。
+  沒用過面板的 tooltip 也要掛（舊樣式一樣要立即消失），所以不再跟 #12 綁在一起。
 - #16 單位面板接手時**不改寫暴雪的行**（舊樣式的 #4 只在退回時跑），只讀 TooltipData 與明文 token 的 Unit API。
 - 暴雪物件上零欄位寫入，per-tip 狀態在 `Skin.State[tip]`（`state.panel`、`state.native`…）。
 
@@ -154,7 +156,7 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
   目標名字是秘密值時（單位明文、它的目標受限）原封不動交給 `SetText`、輪詢時重交，不量不讀。
 - 退回舊樣式：post-call 裡（開關關、秘密值、身分受限）直接走 `UnitLines.Apply`；**顯示途中**才退回（對帳讀到秘密值、設定改了）時
   原生行是暴雪原樣 ⇒ `tip:Show()` 讓暴雪重跑這份內容（`Panel.UnitFallback`），對帳退回的同一個單位 1 秒內不再接面板（不然來回）；設定改了不封鎖。
-- **兩個開關都關＝零成本**：`OnUnit` 只多一次 `ns.db.unit.player.panel or npc.panel` 的查表；FadeOut 掛勾只在用過面板的 tooltip 上。
+- **兩個開關都關＝零成本**：`OnUnit` 只多一次 `ns.db.unit.player.panel or npc.panel` 的查表；FadeOut 掛勾只在滑開時跑一次查表。
 - 設定視窗的 NPC 預覽沒有能 `SetUnit` 的 NPC：`Panel.UnitPreviewModel` 從假資料組 model、`Panel.ShowModel` 直接畫。
 
 ## 記錄模式（`/mtip record`）
@@ -243,6 +245,8 @@ for f in AddOns/MiliUI_Tooltip/Tests/*_test.lua; do lua "$f"; done
     不再沒標籤地出現在最底下；選他當目標再滑目標框也一樣。認法是跟名冊（`GetRaidRosterInfo`）的地區比字——
     要是兩邊的地名對不上（例如一邊給大地區、一邊給子區域），地名會照舊留在最底下，回報時附上 `/dump C_TooltipInfo.GetUnit("party1").lines` 最後一筆
     與 `/dump GetRaidRosterInfo(2)` 的第 7 個值。
+38. 「錨點」分頁「滑開立即消失」（2026-10-23，玩家要求）：開著時滑開世界中的玩家／NPC／物件、暴雪頭像框，提示（面板與舊樣式都是）當場消失，
+    不再跟著游標停 1 秒；關著時維持原本的淡出。立即滑到另一個單位或按鈕時新提示正常出現、沒有殘影；採集點滑開也一樣。
 
 實作時多出來的疑點（不佔編號）：
 

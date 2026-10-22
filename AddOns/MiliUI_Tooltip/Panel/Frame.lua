@@ -429,11 +429,18 @@ end
 
 ------------------------------------------------------------
 -- 淡出：世界單位的提示在滑鼠離開時是暴雪 C 端的 FadeOut（調原生 alpha），原生被我們壓在 0、面板是獨立的框 ⇒
--- 面板不會跟著淡。Native 的 FadeOut 後掛勾叫這裡，面板自己淡；新內容／重新顯示時 Unfade 拉回 1。
+-- 面板不會跟著淡。FadeOut 後掛勾（Core/Hooks.lua 的 OnFadeOut）叫這裡，面板自己淡；新內容／重新顯示時 Unfade 拉回 1。
 -- 動畫是自己的框上的 AnimationGroup，第一次淡出才建（沒用到的面板零成本）
+-- instant：「滑開立即消失」——tip 當場 Hide，但面板要等下一幀才拆（Try.lua 的 OnSkinHide 延一幀）⇒ 這一幀先透明
 ------------------------------------------------------------
-function Panel.FadeOut(panel)
+function Panel.FadeOut(panel, instant)
     local group = panel.fadeGroup
+    panel.faded = true
+    if instant then
+        if group and group:IsPlaying() then group:Stop() end
+        panel:SetAlpha(0)
+        return
+    end
     if not group then
         group = panel:CreateAnimationGroup()
         local alpha = group:CreateAnimation("Alpha")
@@ -447,9 +454,10 @@ function Panel.FadeOut(panel)
 end
 
 function Panel.Unfade(panel)
-    local group = panel and panel.fadeGroup
-    if not group then return end
-    if group:IsPlaying() then group:Stop() end
+    if not panel or not panel.faded then return end
+    panel.faded = nil
+    local group = panel.fadeGroup
+    if group and group:IsPlaying() then group:Stop() end
     panel:SetAlpha(1)
 end
 

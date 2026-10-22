@@ -113,6 +113,8 @@ local ANCHOR_CONTROLS = {
     { type = "header", label = L["Behavior"] },
     { type = "toggle", root = "general", key = "hideUnitFrameHint", label = L["Hide the right-click hint line"] },
     { type = "toggle", root = "general", key = "chatHover", label = L["Show tooltips when hovering chat links"] },
+    { type = "toggle", root = "general", key = "instantHide", label = L["Hide instantly on mouse-out"] },
+    { type = "text",   label = L["By default, players, NPCs and objects in the world (and Blizzard unit frames) keep their tooltip for 1 second after the mouse leaves, then fade out over another second. Item and spell tooltips in the interface already disappear right away."] },
 }
 
 local function InitAnchor()

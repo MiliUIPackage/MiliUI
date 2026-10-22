@@ -8,7 +8,7 @@
 -- 接觸面 #10（Core/Hooks.lua 檔頭）：SetAlpha 與 SetPadding 兩支 C 端定位 setter；
 -- 只在 panel 成功顯示時寫，Restore 寫回原值。
 -- 接觸面 #12：hooksecurefunc(tip, "Show"／"SetShown") 後掛勾，見下面 HookShow。
--- 接觸面 #15：hooksecurefunc(tip, "FadeOut") 後掛勾（同一個 HookShow 裡），只讓自己的面板跟著淡出。
+-- （#15 的 FadeOut 後掛勾在 Core/Hooks.lua 的 TrackTip：「滑開立即消失」沒用過面板的 tooltip 也要掛）
 --
 -- 暴雪自己也會動 padding：GameTooltip 的 OnShow／OnHide 會 ClearPadding（GameTooltip_CalculatePadding），
 -- 所以第一次顯示時我們設的 padding 會被清掉一次 ⇒ Fit 不假設 padding 還是自己設的那個，
@@ -97,13 +97,6 @@ local function HookShow(tip, state)
         end
     end
     if tip.Show then hooksecurefunc(tip, "Show", repress) end
-    -- 接觸面 #15：世界單位滑開時暴雪叫 FadeOut（C 端調原生的 alpha）。原生在 alpha 0、面板是獨立的框 ⇒ 面板自己淡。
-    -- 一樣只掛在用過面板的 tooltip 上，掛勾裡只動自己的面板
-    if tip.FadeOut then
-        hooksecurefunc(tip, "FadeOut", function()
-            if state.native and state.panel and state.panel:IsShown() then Panel.FadeOut(state.panel) end
-        end)
-    end
     if tip.SetShown then
         hooksecurefunc(tip, "SetShown", function(self, shown)
             if S.IsSecret(shown) or shown then repress(self) end

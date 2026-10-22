@@ -44,6 +44,7 @@ local function BuildDefaults()
             bodyFont = "default", bodyFontSize = 0, bodyFontFlag = "default",
             hideUnitFrameHint = true,
             chatHover = true,
+            instantHide = false,       -- 滑開立即消失：不等暴雪 FadeOut 的停 1 秒＋淡 1 秒（世界中的單位／物件、頭像框；Core/Hooks.lua 的 OnFadeOut）
         },
         statusbar = {
             enable = true,

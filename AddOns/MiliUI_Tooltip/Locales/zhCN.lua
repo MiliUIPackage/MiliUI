@@ -202,6 +202,8 @@ L["Use fixed position in combat"] = "战斗中改用固定位置"
 L["Use fixed position over unit frames"] = "划过头像框时改用固定位置"
 L["Hide the right-click hint line"] = "隐藏「右键点击显示菜单」提示行"
 L["Show tooltips when hovering chat links"] = "划过聊天链接直接显示提示"
+L["Hide instantly on mouse-out"] = "移开立即消失"
+L["By default, players, NPCs and objects in the world (and Blizzard unit frames) keep their tooltip for 1 second after the mouse leaves, then fade out over another second. Item and spell tooltips in the interface already disappear right away."] = "暴雪默认在鼠标离开世界中的玩家、NPC、物体（以及暴雪头像框）后，提示还会停留 1 秒、再花 1 秒淡出；打开后直接消失。界面上的物品、法术提示本来就是立即消失。"
 
 -- 物品与 ID 标签页
 L["Border by item quality"] = "边框按物品品质染色"

@@ -31,8 +31,10 @@
 --  14. hooksecurefunc(frame, "SetPoint")（Panel/Frame.lua 的 Panel.Follow，經 MiliUITip_API.Adopt 的 followPanel）：
 --      **對象是別的插件自己建的框，不是暴雪物件**（外觀預覽）。它貼到有面板顯示中的 tooltip 時，掛勾裡把對象換成面板、
 --      點與位移原樣、相鄰邊留縫；讀到的參數先過 S.IsSecret，重入旗標擋自己的 SetPoint，暴雪物件一個都不碰
---  15. hooksecurefunc(tip, "FadeOut")（Panel/Native.lua 的 HookShow，跟 #12 同時、只掛在用過面板的 tooltip 上）：
---      世界單位滑開時暴雪 C 端淡出原生（原生在 alpha 0，淡不到面板）⇒ 後掛勾讓**自己的面板**跟著淡，暴雪物件一個都不碰
+--  15. hooksecurefunc(tip, "FadeOut")（下面的 OnFadeOut，TrackTip 時掛）：暴雪的 FadeOut＝原生全不透明停 1 秒、再花 1 秒淡掉，
+--      只有世界中的單位／物件、暴雪頭像框滑開時叫（介面上的物品／法術是 OnLeave 直接 Hide）。
+--      平常：原生在 alpha 0，淡不到面板 ⇒ 後掛勾讓**自己的面板**跟著淡，暴雪物件一個都不碰。
+--      「滑開立即消失」開著：後掛勾裡 tip:Hide()（#8）——跟任何插件按鈕 OnLeave 的 GameTooltip:Hide() 同一種接觸
 --  16. 單位的重繪面板（Panel/ReadUnit.lua）：面板接手時**不改寫暴雪的行**（#4 那條只在舊樣式跑），只讀 TooltipData
 --      ＋明文 token 的 Unit API；對原生的寫入跟物品一樣只有 #10／#12／#13／#15。退回舊樣式時用 #5 的 tip:Show()
 --      讓暴雪重跑一次這份內容（Panel.UnitFallback），之後的 post-call 走舊樣式
@@ -252,6 +254,24 @@ function ns.ApplyAll()
 end
 
 ------------------------------------------------------------
+-- 滑開淡出（接觸面 #15）。暴雪預設是停 1 秒再淡 1 秒；游標錨點的提示這 2 秒還跟著游標走
+------------------------------------------------------------
+local function OnFadeOut(tip)
+    local state = Gate(tip)
+    if not state then return end
+    local panel = state.panel
+    if ns.db.general.instantHide then
+        local ok, shown = pcall(tip.IsShown, tip)
+        if not ok or S.IsSecret(shown) or not shown then return end
+        -- 面板是獨立的框，tip 藏起來要下一幀才拆（OnSkinHide 延一幀）⇒ 先當場透明，不然晚一幀消失
+        if panel and panel:IsShown() then ns.Panel.FadeOut(panel, true) end
+        tip:Hide()
+    elseif state.native and panel and panel:IsShown() then
+        ns.Panel.FadeOut(panel)
+    end
+end
+
+------------------------------------------------------------
 -- 初始化
 ------------------------------------------------------------
 -- isPreview：設定視窗的預覽 tooltip（重繪面板要掛在設定視窗底下、跟著它的層級）
@@ -268,6 +288,7 @@ local function TrackTip(tip, isPreview, opts)
             ns.Panel.Release(self, Skin.Get(self))
         end)
     end
+    if state and tip.FadeOut and not isPreview then hooksecurefunc(tip, "FadeOut", OnFadeOut) end
 end
 
 ns.TrackTip = TrackTip   -- 預覽 tooltip（Options/Preview.lua）也走同一條接管管線

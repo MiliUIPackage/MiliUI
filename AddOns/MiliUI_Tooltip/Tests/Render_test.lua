@@ -594,4 +594,26 @@ do
     eq("非 hex 原樣", C.ReadableHex("class"), "class")
 end
 
+------------------------------------------------------------
+-- 滑開立即消失（2026-10-23）：當場透明、下一次 Unfade 拉回；沒淡過的面板 Unfade 不寫 alpha
+------------------------------------------------------------
+do
+    local _, ns, _, _, panel = Setup()
+    local P = ns.Panel
+    panel.alpha = 1
+    local writes = 0
+    local setAlpha = panel.SetAlpha
+    panel.SetAlpha = function(self, a) writes = writes + 1; setAlpha(self, a) end
+    P.Unfade(panel)
+    eq("沒淡過：Unfade 不寫 alpha", writes, 0)
+    P.FadeOut(panel, true)
+    eq("立即：當場 alpha 0（不建動畫）", panel.alpha, 0)
+    check("立即：沒有動畫群組", panel.fadeGroup == nil)
+    P.Unfade(panel)
+    eq("新內容：拉回 1", panel.alpha, 1)
+    writes = 0
+    P.Unfade(panel)
+    eq("拉回之後再 Unfade 不重寫", writes, 0)
+end
+
 H.finish("Render_test")
