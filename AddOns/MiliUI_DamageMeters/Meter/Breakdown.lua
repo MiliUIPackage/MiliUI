@@ -332,9 +332,10 @@ function B.Open(W, info)
     local fontMax = math.max(s.leftFontSize or 11, s.rightFontSize or 11)
     local cardH = Card.Layout(W.srcCard)
     W.srcTop:SetHeight(math.max(18, D.Px(s.barHeight or 18), fontMax + 6, cardH + 6))
+    local sessType, sessID = SrcSession(W)
     Card.Fill(W.srcCard, {
         name = name, classFilename = classFile, specIconID = info.specIcon,
-        guid = info.guid, isOwn = info.isOwn,
+        guid = info.guid, isOwn = info.isOwn, sessType = sessType, sessID = sessID,
     })
 
     -- 死亡回顧沒有「總量」可言（那一頁是血量曲線），留白。

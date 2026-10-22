@@ -85,14 +85,17 @@ local function Anchor(card, hasIcon)
     card.sub:SetPoint("RIGHT", card.right2, "LEFT", -RIGHT_GAP, 0)
 end
 
--- src = { name, classFilename, specIconID, guid, isOwn }
+-- src = { name, classFilename, specIconID, guid, isOwn, sessType, sessID }
+-- sessType／sessID＝這個人是在哪一段被點開的：專精要畫那一段開打時的，不是他現在的
 function Card.Fill(card, src)
     card._src = src
     card._guid = D.PlainGUID(src.guid)
     if not card._size then Card.Layout(card) end
     local s = ns.DB.Style()
+    -- 每次都重新解析：觀察回來重填時，分段可能才剛綁上專精表
+    local specMap = IL.SpecMap(src.sessType, src.sessID)
 
-    local shown = D.ResolveIcon(src, card.icon, card._size, s.iconStyle or "mili", s.iconZoom) > 0
+    local shown = D.ResolveIcon(src, card.icon, card._size, s.iconStyle or "mili", s.iconZoom, specMap) > 0
     Anchor(card, shown)
 
     local r, g, b = M.ClassColor(src.classFilename)
@@ -104,7 +107,7 @@ function Card.Fill(card, src)
     local classFile = D.SafeClass(src.classFilename)
     if not classFile then card.sub:SetText(""); return end
     local className = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[classFile]) or classFile
-    local info = D.SourceSpec(src)
+    local info = D.SourceSpec(src, specMap)
     local text = info and info.name and (info.name .. " " .. className) or className
     local lvl = IL.Get(src.guid, src.isOwn)
     if lvl then
