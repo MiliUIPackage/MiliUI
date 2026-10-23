@@ -231,12 +231,13 @@ local DRAGONS = {
     rareelite = { file = MEDIA .. "dragon-rareelite.png", color = BADGE.rare },
 }
 -- 512 方圖，單頭約佔高度九成。整顆頭要完整露出來才認得出是龍（實機：250 高＋往右溢出只剩後腦勺的角），
--- 所以高度跟著面板高縮（上限 DRAGON_SIZE）、靠右留內距、垂直置中；但縮到 DRAGON_MIN 就不再縮（60 高的面板
--- 龍只剩 50 單位、糊成一團），改成頂端對齊、上方切掉 DRAGON_CUT 的角尖、下方切脖子——臉永遠在面板裡。
--- 數值是 scratchpad 的 mock 腳本畫 60／70／100／140 四種面板高看過定的（2026-10-24）。
-local DRAGON_SIZE, DRAGON_MIN, DRAGON_RIGHT, DRAGON_MARGIN, DRAGON_CUT, DRAGON_ALPHA = 220, 100, 6, 6, 0.05, 0.30
+-- 所以高度跟著面板高縮、靠右留內距、貼頂（上限 DRAGON_SIZE：高面板時龍留在標題區，不壓到目標／威脅值那幾段；
+-- 置中＋220 實機會佔滿 300 寬的面板、任務行疊在龍臉上）；縮到 DRAGON_MIN 就不再縮（60 高的面板龍只剩 50 單位、
+-- 糊成一團），改成上方切掉 DRAGON_CUT 的角尖、下方切脖子——臉永遠在面板裡。
+-- 數值是 scratchpad 的 mock 腳本畫 60／70／100／140／230 五種面板高、使用者看過定的（2026-10-24）。
+local DRAGON_SIZE, DRAGON_MIN, DRAGON_RIGHT, DRAGON_MARGIN, DRAGON_CUT, DRAGON_ALPHA = 150, 100, 6, 6, 0.05, 0.30
 
--- art = { file, coords = { l, r, t, b }, width, height, right, top | fit（上下內距；整張塞進面板高、垂直置中）＋ fitMin（最小高）＋ fitCut（縮不下去時上方切掉的比例）, color, alpha }（設計單位）
+-- art = { file, coords = { l, r, t, b }, width, height, right, top | fit（上下內距；整張塞進面板高、貼頂）＋ fitMin（最小高）＋ fitCut（縮不下去時上方切掉的比例）, color, alpha }（設計單位）
 local function DrawWatermark(panel, ctx, art)
     local m = ctx.m
     local inset = m.px
@@ -244,11 +245,11 @@ local function DrawWatermark(panel, ctx, art)
     local w, h = m.sc(art.width), m.sc(art.height)
     local top
     if art.fit then
-        -- 整張塞進面板：高度壓到面板高減上下內距、等比縮寬、垂直置中；壓不到 fitMin 就頂端對齊切上下
+        -- 整張塞進面板：高度壓到面板高減上下內距、等比縮寬、貼頂；壓不到 fitMin 就上方切 fitCut、下方切掉
         local fitH = H - 2 * m.sc(art.fit)
         local fh = math.max(m.sc(art.fitMin or 0), math.min(h, fitH))
         w, h = w * fh / h, fh
-        top = fh <= fitH and (H - h) / 2 or -h * (art.fitCut or 0)
+        top = fh <= fitH and m.sc(art.fit) or -h * (art.fitCut or 0)
     else
         top = m.sc(art.top)
     end
