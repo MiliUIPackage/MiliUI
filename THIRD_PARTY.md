@@ -19,7 +19,7 @@
 | Cell | r312_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
 | Chattynator | 227 | 2026-10-15 6425e9f11 | https://github.com/plusmouse/Chattynator |
 | DiGuaTimelineAudioHelper | 2.0.8 | 2026-10-20 10b98bea5 | 待補 |
-| EasyExperienceBar | 2026.03.09.A | 2026-10-20 fa3d02a94（收錄） | 待補 |
+| EasyExperienceBar | 2026.03.09.A | 2026-10-24 d2b93af5a（收錄） | 待補 |
 | HandyNotes | v1.6.31 | 2026-08-14 4982afee5 | https://www.curseforge.com/projects/14154 |
 | HandyNotes_Dornogal | v1 | 2026-10-15 58f869f49（收錄） | 待補 |
 | HandyNotes_Dragonflight | 131 | 2024-09-02 414317cac | https://github.com/zarillion/handynotes-plugins |
@@ -50,8 +50,9 @@
 | Syndicator | 282 | 2026-09-23 188dbdf29 | https://github.com/plusmouse/Syndicator |
 | TeleportMenu | v12.8 | 2026-08-21 6df5723ef | https://www.curseforge.com/projects/1087836 |
 | TinyInspect-Remake | v1.5.3 | 2026-10-15 c251ed5f0 | 待補 |
+| TrueStatValues | 1.5.7 | 2026-10-24 d2b93af5a（收錄） | https://www.curseforge.com/projects/437378 |
 | tullaRange | 12.1.3 | 2026-08-23 33972d566 | https://github.com/Tuller/tullaRange |
 | tullaRange_Config | — | 2026-08-23 33972d566 | 隨 tullaRange 一起 |
 | YUI_AuctionHelper | yah-121 | 2026-10-15 5fcc297d2 | 待補 |
 
-共 46 個資料夾。
+共 47 個資料夾。

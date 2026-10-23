@@ -26,6 +26,7 @@
 | `AztarecHelper-zhTW.py`（＋`.json` 對照表） | AztarecHelper（目前不在套組裡） | 整包繁中化＋`AZT.Log` 接到存檔 |
 | `MRT-RaidCheck-secret-gate.py` | MRT `RaidCheck.lua` | `CheckPotionsOnPull` 的光環秘密值閘（呼叫之前） |
 | `ChatThrottleLib-SafeStrLen.py <檔…>` | 各插件內嵌的 ChatThrottleLib v31 | 流量統計對秘密字串用固定長度估，不 `tostring` |
+| `TrueStatValues-zhTW.py` | TrueStatValues | 整包繁中化：補 `Locales.lua`、TOC 載入行與 MiliUI 區塊、字串改走 L、zhTW 黑名單、物品句型 pattern |
 
 其餘筆記表上的修補（TinyInspect-Remake、Ayije_CDM、AppearanceTooltip、TeleportMenu、Platynator、
 HandyNotes 三支…）目前還沒有腳本，上游更新後照筆記手動重套、靠 `check_forks.py` 擋。

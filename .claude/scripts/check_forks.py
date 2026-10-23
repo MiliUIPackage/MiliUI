@@ -110,6 +110,12 @@ PATCHES = [
       "C_Calendar secret guard", regex=True),
     P("HandyNotes_Dragonflight", "core/util.lua", "fix from MiliUI", "NameResolver leftText secret guard 回填"),
 
+    # ── TrueStatValues：整包 zhTW 中文化（重套：python3 .claude/patches/TrueStatValues-zhTW.py）──
+    P("TrueStatValues", "Locales.lua", "fix from MiliUI", "語系表（上游沒有語系檔，整支是我們加的）"),
+    P("TrueStatValues", "TrueStatValues.toc", r"^Locales\.lua\s*$", "TOC 載入 Locales.lua", regex=True),
+    P("TrueStatValues", "Core.lua", "fix from MiliUI", "設定面板字串改走 L"),
+    P("TrueStatValues", "Tooltips.lua", "fix from MiliUI", "提示字串改走 L、zhTW 黑名單、物品句型 pattern"),
+
     # ── AztarecHelper：不在套組裡，檔案不存在會自動略過（補丁腳本留在 .claude/patches）──
     P("AztarecHelper", "Core.lua", "fix from MiliUI", "整包 zhTW 中文化"),
 ]

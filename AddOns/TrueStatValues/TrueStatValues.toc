@@ -1,0 +1,22 @@
+## Interface: 120100, 120105
+## Title: True Stat Values
+## Author: .bastas (discord), tirain (discord), hinalover (discord)
+## Version: 1.5.7
+## Notes: Show Secondary-Stat Diminishing Returns in Tooltips.
+## Notes-zhCN: 在属性栏显示数值详细递减信息。
+## DefaultState: Enabled
+## SavedVariables: TSV_DB 
+## IconTexture: Interface\Addons\TrueStatvalues\TrueStatvalues
+## X-Curse-Project-ID: 437378
+
+embeds.xml
+
+Locales.lua
+Core.lua
+TrueStatValues.lua
+Tooltips.lua
+Events.lua
+
+## Title-zhTW: |cff33FFCC[屬性]|r 真實屬性數值
+## Notes-zhTW: True Stat Values|n|n顯示次要屬性的遞減資訊：角色面板的屬性滑鼠提示列出扣除遞減後的真實數值、損失量，以及目前遞減區間的進度條；物品滑鼠提示的屬性數值後面標出實際增加量。|n|n|cffffd200使用方法: |r從Esc>選項>插件>真實屬性數值，進行設定。
+## Category-zhTW: 介面
