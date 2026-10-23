@@ -664,7 +664,6 @@ function eventFrame:ADDON_LOADED(arg1)
         -- misc -----------------------------------------------------------------------------------
         Cell.version = GetAddOnMetadata("Cell", "version")
         Cell.versionNum = tonumber(string.match(Cell.version, "%d+"))
-        if not CellDB["revise"] then CellDB["firstRun"] = true end
         F.Revise()
         F.CheckWhatsNew()
         F.RunSnippets()
@@ -906,9 +905,8 @@ function eventFrame:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
         end
     end
 
-    if CellDB["firstRun"] then
-        F.FirstRun()
-    end
+    -- fix from MiliUI: no first-run "create a Healers indicator?" popup -- the row is part of
+    -- the layout template now (Defaults/Layout_Defaults.lua). `/cell healers` still opens it.
 end
 
 -- REVIEW:
