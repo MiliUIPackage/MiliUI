@@ -818,6 +818,13 @@ function W.CreateTitleBar(panel, titleText, onMoved, opts)
     bar:EnableMouse(true)
     bar:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, opts.y or BAR_Y)
 
+    -- 夾邊範圍往上延伸到標題列頂端（上正＝範圍比框大）。
+    -- ⚠ 標題列與分頁列都在面板**外側**，SetClampedToScreen 只夾面板本體 ⇒ 面板拖到貼齊
+    -- 螢幕頂端時，這兩排整條被推出畫面：拖曳把手、右鍵回中央、分頁全都碰不到，
+    -- 位置又有存檔，關掉再開也救不回來（2026-10-23 玩家回報）。
+    -- 已經存在上緣的位置不用另外處理：開窗 SetPoint 時夾邊就會把它推回來
+    panel:SetClampRectInsets(0, 0, (opts.y or BAR_Y) + BAR_H, 0)
+
     local chip = CreateFrame("Frame", nil, bar, "BackdropTemplate")
     W.Stylize(chip, WIDGET_FILL)
     chip:SetPoint("LEFT", 0, 0)
