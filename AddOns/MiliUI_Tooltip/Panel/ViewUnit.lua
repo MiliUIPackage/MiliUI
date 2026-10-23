@@ -235,7 +235,8 @@ local DRAGONS = {
 -- 置中＋220 實機會佔滿 300 寬的面板、任務行疊在龍臉上）；縮到 DRAGON_MIN 就不再縮（60 高的面板龍只剩 50 單位、
 -- 糊成一團），改成上方切掉 DRAGON_CUT 的角尖、下方切脖子——臉永遠在面板裡。
 -- 數值是 scratchpad 的 mock 腳本畫 60／70／100／140／230 五種面板高、使用者看過定的（2026-10-24）。
-local DRAGON_SIZE, DRAGON_MIN, DRAGON_RIGHT, DRAGON_MARGIN, DRAGON_CUT, DRAGON_ALPHA = 150, 100, 6, 6, 0.05, 0.30
+-- RIGHT 是負的：圖的右側本來有一成空白，往右溢出 12 後腦勺才貼到邊（溢出的部分 DrawWatermark 會裁掉）。
+local DRAGON_SIZE, DRAGON_MIN, DRAGON_RIGHT, DRAGON_MARGIN, DRAGON_CUT, DRAGON_ALPHA = 150, 100, -12, 6, 0.05, 0.30
 
 -- art = { file, coords = { l, r, t, b }, width, height, right, top | fit（上下內距；整張塞進面板高、貼頂）＋ fitMin（最小高）＋ fitCut（縮不下去時上方切掉的比例）, color, alpha }（設計單位）
 local function DrawWatermark(panel, ctx, art)
