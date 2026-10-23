@@ -154,6 +154,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-fix-root-cause-not-symptom.md](feedback-fix-root-cause-not-symptom.md) | 修 bug 要治本：不在錯誤路徑上加閘／重試／補寫，先問「插件為什麼要替暴雪做這件事」 |
 | [feedback-zhtw-blizzard-terms.md](feedback-zhtw-blizzard-terms.md) | zhTW 用暴雪官方詞彙：focus 是「專注目標」不是「焦點」，後者只留給輸入焦點 |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「寫 plan → Opus 子代理在 worktree 實作 → 驗收 → commit＋merge」；push 另等指示，遠端叫 `MiliUIPackage` |
+| [feedback-watermark-mock-heights.md](feedback-watermark-mock-heights.md) | 浮水印／裝飾圖案先用 Pillow 草稿畫各種面板高度（含最矮的）看過再定常數；剪影＋程式上色、最小尺寸規則 |
 | [feedback-merge-worktree-branch.md](feedback-merge-worktree-branch.md) | worktree 分支 commit 完就 merge 進 master（遊戲只載入本體）；commit 與 merge 同一串指令、回報前查 `branch --no-merged master` 為空；不要 cherry-pick |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 的範圍／掛點／不碰清單照成熟同類實作（本機 tmp 的 EllesmereUI），樣式套我們的；契約照舊、lint 白名單只開就位確認；功能放 MiliUI/Enhance |
 | [feedback-probe-addon-place-directly.md](feedback-probe-addon-place-directly.md) | 暫時的探針插件直接放進本體 `Interface/AddOns`（worktree 寫不進去就暫存區寫好再 `cp -R`），`_` 開頭不進版控；輸出要有可全選複製的視窗 |
@@ -248,7 +249,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 174 篇）
+## 全部筆記（自動產生，共 175 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -443,6 +444,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-probe-addon-place-directly.md](feedback-probe-addon-place-directly.md) | 給使用者的暫時探針／測試插件要直接放進遊戲本體的 Interface/AddOns，不要叫使用者自己複製 |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 新視窗的做法照抄 EllesmereUI（範圍／掛點／不碰清單／時機），外觀套我們的樣式；契約照舊，lint 白名單只開給就位確認 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | 使用者偏好的 UI 視覺風格——純色直角、深底白字、緊湊間距；狀態靠明暗不靠換色；有標題的小節前面不放收尾隔線 |
+| [feedback-watermark-mock-heights.md](feedback-watermark-mock-heights.md) | 浮水印／裝飾圖案要先用 Pillow 草稿畫出各種面板高度（含最矮的那種）看過再進遊戲；剪影＋程式上色、最小尺寸規則 |
 | [feedback-zh-countdown-wording.md](feedback-zh-countdown-wording.md) | 中文介面字「倒數」不要縮成「倒」（先倒增益→先倒數增益、才倒冷卻→才倒數冷卻）；寫新字串時就照這樣 |
 | [feedback-zhtw-blizzard-terms.md](feedback-zhtw-blizzard-terms.md) | 自製插件的 zhTW 要用暴雪官方詞彙——focus 是「專注目標」不是「焦點」 |
 
