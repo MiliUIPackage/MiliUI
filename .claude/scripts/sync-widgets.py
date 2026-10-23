@@ -64,9 +64,11 @@ VENDOR_FILES = [
 ]
 
 
+# 有 Libs/MiliUIWidgets 就算消費端，不看前綴：私人插件（FeiMiao_RaidCommander，不進版控、
+# 只在本體 checkout）也帶這份，以前限 MiliUI 前綴害它一路漂移
 def consumers():
     for name in sorted(os.listdir(ADDONS)):
-        if name == "MiliUI" or not name.startswith("MiliUI"):
+        if name == "MiliUI":
             continue
         d = os.path.join(ADDONS, name, "Libs", "MiliUIWidgets")
         if os.path.isdir(d):
