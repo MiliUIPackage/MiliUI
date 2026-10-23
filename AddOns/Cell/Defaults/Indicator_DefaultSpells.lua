@@ -1029,10 +1029,54 @@ local spells =  {
 }
 
 -- The default Healers spell list. Revise reads it to top up an EXISTING Healers indicator --
--- F.FirstRun only ever fires once (CellDB["firstRun"]), so without that pass anyone who already
--- had the indicator would never see a spell added here.
+-- the template only reaches layouts created after a spell is added here, so without that pass
+-- anyone who already had the indicator would never see it.
 function I.GetDefaultHealerSpells()
     return spells
+end
+
+-- The "Healers" indicator (icons, top-right, own HoTs/shields). ONE builder for both places
+-- that create it: the layout template below (Cell.defaults.layout, slot builtIns + 1 -- so a
+-- fresh install and every layout made from "Default layout" carry it) and `/cell healers`
+-- (F.FirstRun, for players who deleted it and want it back). The template is the source of
+-- truth; the first-run prompt no longer fires on its own, which was what made new layouts
+-- come out without the row that "default" had.
+function I.NewHealersIndicator(indicatorName)
+    return {
+        --! nameKey, not a translated name: the string in `name` is the fallback, and
+        --! I.GetIndicatorName localizes the KEY at display time. That keeps the row in
+        --! the player's own language after a client language change, and keeps an
+        --! exported profile from carrying one language into another client.
+        ["name"] = "Healers",
+        ["nameKey"] = "Healers",
+        ["indicatorName"] = indicatorName,
+        ["type"] = "icons",
+        ["enabled"] = true,
+        ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
+        ["frameLevel"] = 5,
+        ["size"] = {17, 17},
+        ["num"] = 5,
+        ["numPerLine"] = 5,
+        ["orientation"] = "right-to-left",
+        ["spacing"] = {1, 1}, -- was {2, 2}; see the miliuiIconsSpacingOne migration in Revise.lua
+        ["font"] = {
+            -- stack: size 8, anchored TOP (+0, +5)
+            {"Cell ".._G.DEFAULT, 8, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
+            -- duration: size 11, anchored CENTER (+0, 0)
+            {"Cell ".._G.DEFAULT, 11, "Outline", false, "CENTER", 0, 0, {1, 1, 1}},
+        },
+        ["showStack"] = true,
+        ["showDuration"] = 60, -- only under 60s (true = always, false = never)
+        ["showAnimation"] = true,
+        -- 發光 section: off is timing "none", the type starts on a real one
+        ["glowOptions"] = {"Normal", {0.95, 0.95, 0.32, 1}},
+        ["glowTiming"] = "none",
+        ["auraType"] = "buff",
+        ["castBy"] = "me",
+        -- Copy, not the shared table: without this the layout entry aliases the module
+        -- local, so editing the indicator's spell list would edit the defaults too.
+        ["auras"] = F.Copy(spells),
+    }
 end
 
 function F.FirstRun()
@@ -1058,46 +1102,9 @@ function F.FirstRun()
             indicatorName = "indicator"..(tonumber(strmatch(currentLayoutTable["indicators"][last]["indicatorName"], "%d+"))+1)
         end
 
-        tinsert(currentLayoutTable["indicators"], {
-            --! nameKey, not a translated name: the string in `name` is the fallback, and
-            --! I.GetIndicatorName localizes the KEY at display time. That keeps the row in
-            --! the player's own language after a client language change, and keeps an
-            --! exported profile from carrying one language into another client.
-            ["name"] = "Healers",
-            ["nameKey"] = "Healers",
-            ["indicatorName"] = indicatorName,
-            ["type"] = "icons",
-            ["enabled"] = true,
-            ["position"] = {"TOPRIGHT", "button", "TOPRIGHT", 0, 3},
-            ["frameLevel"] = 5,
-            ["size"] = {17, 17},
-            ["num"] = 5,
-            ["numPerLine"] = 5,
-            ["orientation"] = "right-to-left",
-            ["spacing"] = {1, 1}, -- was {2, 2}; see the miliuiIconsSpacingOne migration in Revise.lua
-            ["font"] = {
-                -- stack: size 8, anchored TOP (+0, +5)
-                {"Cell ".._G.DEFAULT, 8, "Outline", false, "TOP", 0, 5, {1, 1, 1}},
-                -- duration: size 11, anchored CENTER (+0, 0)
-                {"Cell ".._G.DEFAULT, 11, "Outline", false, "CENTER", 0, 0, {1, 1, 1}},
-            },
-            ["showStack"] = true,
-            ["showDuration"] = 60, -- only under 60s (true = always, false = never)
-            ["showAnimation"] = true,
-            -- 發光 section: off is timing "none", the type starts on a real one
-            ["glowOptions"] = {"Normal", {0.95, 0.95, 0.32, 1}},
-            ["glowTiming"] = "none",
-            ["auraType"] = "buff",
-            ["castBy"] = "me",
-            -- Copy, not the shared table: without this the layout entry aliases the module
-            -- local, so editing the indicator's spell list would edit the defaults too.
-            ["auras"] = F.Copy(spells),
-        })
+        tinsert(currentLayoutTable["indicators"], I.NewHealersIndicator(indicatorName))
         Cell.Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
-        CellDB["firstRun"] = false
         F.ReloadIndicatorList()
-    end, function()
-        CellDB["firstRun"] = false
     end)
     popup:SetPoint("TOPLEFT")
     popup:Show()

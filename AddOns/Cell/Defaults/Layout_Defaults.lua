@@ -4,7 +4,9 @@ local addonName, Cell = ...
 -- ⚠ This is the built-in/custom SPLIT POINT, not just a count: everything at a HIGHER index in
 -- layout["indicators"] is treated as a user-created indicator (I.ResetCustomIndicatorTables,
 -- Copy, Import). Adding a built-in without bumping this makes the new entry get parsed as a
--- custom one, and it dies on the missing ["auras"] field. Keep it == #Cell.defaults.layout.indicators.
+-- custom one, and it dies on the missing ["auras"] field. Keep it == the number of built-in
+-- entries in Cell.defaults.layout.indicators (the template carries ONE custom entry after them,
+-- the Healers row -- see the tinsert at the bottom of this file).
 Cell.defaults.builtIns = 30
 
 -- Important Debuffs duration options: the value used when the layout has none saved.
@@ -617,6 +619,13 @@ Cell.defaults.layout = {
         }, -- 30
     },
 }
+
+-- fix from MiliUI: the Healers row ships IN the template (slot builtIns + 1, a custom indicator
+-- like any the player makes), instead of being offered by a first-run popup that only ever
+-- added it to the layout current at that moment. That popup left every layout created later
+-- from "Default layout" without the row "default" had -- the raid layout silently lost the
+-- healer's own HoTs/shields. Built by the same function `/cell healers` uses.
+tinsert(Cell.defaults.layout.indicators, Cell.iFuncs.NewHealersIndicator("indicator1"))
 
 Cell.defaults.layoutAutoSwitch = {
     ["solo"] = "default",

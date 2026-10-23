@@ -79,7 +79,7 @@ The two ring layers must **not** both carry the fallback colour: Blizzard's scho
 |---|---|
 | Important Debuffs | 18×18, stack font 9, all five categories on |
 | Debuff row | 15×15, stack font 8, exclude-important on |
-| Healers template (`F.FirstRun`) | 17×17, duration font 11, stack font 8 |
+| Healers template (`I.NewHealersIndicator`; since r312 part of `Cell.defaults.layout`, no first-run popup) | 17×17, duration font 11, stack font 8 |
 | Dispels | "only what I can dispel" **on** (reverses `5f360d321`) |
 
 Existing SavedVariables are migrated by two **revision-gated** blocks in `Revise.lua` (`dbRevision < 281` and `< 282`). Gating matters: the 12.1 block above them is ungated and must stay idempotent, whereas anything that rewrites sizes or font sizes would otherwise stomp the user's own adjustments on every login.
