@@ -365,7 +365,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-cell-unitbutton-local-ceiling.md](project-cell-unitbutton-local-ceiling.md) | Cell 的兩個 Lua 硬上限——主 chunk 200 個 local（UnitButton 餘裕 43、全檔都量）、函式 upvalue 60（Appearance.lua 最高 56，check_cell.py 實測全部 < 60）；check_cell.py 全檔擋；檔尾 return 會讓量法誤報 0 |
 | [project-cell-vehicle-secret.md](project-cell-vehicle-secret.md) | Cell 載具名稱位置在 Midnight 秘密值下報錯的就地修補（Cell 已不追上游，不需重套） |
 | [project-charframe-taint.md](project-charframe-taint.md) | 掛在暴雪角色面板(CharacterFrame)上的 taint 規則——戰鬥中按 C 打不開的成因與禁止清單；套組本體已不碰它，現在唯一的接觸面是 MiliUI_Skin 的角色面板配方 |
-| [project-feimiao-raidcommander.md](project-feimiao-raidcommander.md) | 肥喵的團隊指揮 FeiMiao_RaidCommander —— 私人用、不進版控的單體插件（標記列／光柱列／確認倒數／戰復計時器）；為什麼 gitignore、共用層不會自動同步、四個框一律當保護框、待實機驗證清單 |
+| [project-feimiao-raidcommander.md](project-feimiao-raidcommander.md) | 肥喵的團隊指揮 FeiMiao_RaidCommander —— 私人用、不進版控的單體插件（標記列／光柱列／確認倒數＋裝備檢查／戰復計時器）；為什麼 gitignore、worktree 裡怎麼改它、共用層不會自動同步、四個框一律當保護框、裝備名單不錨在整組上、待實機驗證清單 |
 | [project-itemupgrade-preview-icon.md](project-itemupgrade-preview-icon.md) | MiliUI 物品升級預覽 icon 已改成自動推導軌道 bonusID，不再需要每季更新對照表 |
 | [project-local-addon-forks.md](project-local-addon-forks.md) | 哪些第三方插件帶著不會回上游的本地修改（上游更新就會被洗掉），以及怎麼認出來 |
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | WoW 戰利品「擲骰/取得」記錄沒有 Blizzard 歷史 API，要自己用事件記錄 |
