@@ -75,9 +75,26 @@ end
 
 local function StripColorCodes(text)
     if (not text) then return text end
-    text = text:gsub("|c%x%x%x%x%x%x%x%x", "")
-    text = text:gsub("|r", "")
+    text = text:gsub("|cn[^:]*:", "")
+    text = text:gsub("|[cC]%x%x%x%x%x%x%x%x", "")
+    -- 名字底下的補充行實機會出現暴雪自己的壞色碼（「|cFF 0FF 0英雄難度|r」，位數被空白頂掉）
+    text = text:gsub("|[cC][%x ][%x ][%x ][%x ][%x ][%x ][%x ][%x ]", "")
+    text = text:gsub("|[rR]", "")
     return text
+end
+
+-- 名字底下的補充行（難度、製作規格、XX鍛造…）暴雪會用 \n 接成同一行，
+-- 例：「潮汐工藝\n卓越劇毒鍛造」。整串當前綴塞進觀察清單會變兩行，
+-- 那列只剩置中的第一行加刪節號，所以一律拆成段落逐段判斷。
+local function SplitSegments(text)
+    local segments = {}
+    if (not text) then return segments end
+    for piece in (text:gsub("\r", "") .. "\n"):gmatch("(.-)\n") do
+        if (piece ~= "") then
+            segments[#segments + 1] = piece
+        end
+    end
+    return segments
 end
 
 local function GetTooltipLines(link)
@@ -113,9 +130,10 @@ local function GetCraftedText(link, data)
             local t = line.type
             if (t == ITEM_LEVEL_TYPE) then break end
             if (afterName) then
-                local text = StripColorCodes(line.leftText)
-                if (text and text ~= "" and not text:find("<")) then
-                    return text
+                for _, text in ipairs(SplitSegments(StripColorCodes(line.leftText))) do
+                    if (not text:find("<")) then
+                        return text
+                    end
                 end
             end
             if (t == ITEM_NAME_TYPE) then afterName = true end
@@ -124,10 +142,11 @@ local function GetCraftedText(link, data)
 
     for i = 2, math.min(#data.lines, 8) do
         local line = data.lines[i]
-        local text = StripColorCodes(line and line.leftText)
-        if (text and text ~= "" and not text:find("<") and not text:find("由")) then
-            if (text:find("製作$") or text:find("crafted$") or text:find("Crafted$")) then
-                return text
+        for _, text in ipairs(SplitSegments(StripColorCodes(line and line.leftText))) do
+            if (not text:find("<") and not text:find("由")) then
+                if (text:find("製作$") or text:find("crafted$") or text:find("Crafted$")) then
+                    return text
+                end
             end
         end
     end
@@ -137,7 +156,7 @@ local FORGE_COLOR = "ffff8000"
 
 -- 特殊裝備關鍵字 (出現在物品名稱與物品等級之間的提示行)，一律套傳奇橘色。
 -- match 為字串時做子字串比對；為表格時需「全部」子字串都出現才算命中。
--- text 省略時顯示整行原文。
+-- 比對以段落為單位（見 SplitSegments）；text 省略時顯示命中那段的原文。
 local SPECIAL_KEYWORDS = {
     { match = "虛無鍛造",  text = "虛無鍛造" },  -- Null Forge (zh-TW)
     { match = "Null Forge", text = "Null Forge" },
@@ -152,8 +171,7 @@ local function GetForgeInfo(link, data)
         local t = line.type
         if (t == ITEM_LEVEL_TYPE) then break end
         if (afterName) then
-            local text = StripColorCodes(line.leftText)
-            if (text) then
+            for _, text in ipairs(SplitSegments(StripColorCodes(line.leftText))) do
                 for _, kw in ipairs(SPECIAL_KEYWORDS) do
                     local hit
                     if (type(kw.match) == "table") then

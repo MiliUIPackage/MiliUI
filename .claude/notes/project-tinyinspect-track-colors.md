@@ -1,11 +1,11 @@
 ---
 name: project-tinyinspect-track-colors
-description: MiliUI 給 TinyInspect 裝等數字上軌道色；含「掛勾讀到過期狀態」通則與 Journal 戰利品的軌道取得方式
+description: MiliUI 給 TinyInspect 裝等數字上軌道色、觀察清單加製作／鍛造前綴；含「掛勾讀到過期狀態」通則、Journal 戰利品的軌道取得方式、標題補充行一行多段（\n 接、壞色碼）
 metadata: 
   node_type: memory
   type: project
   originSessionId: 7db758c5-18a7-4f5e-afc5-fdeab31dc965
-  modified: 2026-08-14T15:37:15.890Z
+  modified: 2026-10-23T13:22:17.785Z
 ---
 
 `MiliUI/Enhance/TinyInspectRemake_TrackColors.lua` 把 TinyInspect-Remake 畫在物品 icon 上的裝等數字，從「按物品品質上色」改成「按升級軌道上色」（精兵綠／勇士藍／英雄紫／神話橘）。作用範圍包含角色面板、觀察視窗、背包，以及**冒險指南（Encounter Journal）的戰利品清單**。
@@ -44,5 +44,13 @@ metadata:
 - **任務／儀式物品** — 裝等空字串，TinyInspect 本來就不畫數字
 
 同一批雜訊在 [[project-speccompare-equipment-filter]] 也要處理，那邊列了偵測用的 API（`C_ToyBox.GetToyInfo`／`C_Item.IsCosmeticItem`）。
+
+## 名字底下的補充行是「一行多段」（2026-10-23）
+
+觀察清單的 `[製作規格]`／`[虛無鍛造]` 前綴是掃工具提示 ItemName 之後、ItemLevel 之前的 None 行拿的。暴雪會把那裡的好幾段（難度、製作規格、XX鍛造）用 `\n`（有時 `\r\n`）**接成同一個 leftText**——實機：`英雄難度\n卓越虛無鍛造：英雄`、`潮汐工藝\n卓越劇毒鍛造`，而且還會帶**壞色碼** `|cFF 0FF 0`（位數被空白頂掉，`%x` 樣板拆不掉；MiliUI_Tooltip 的 `Patterns.StripColors` 也記過）。
+
+症狀：整串塞進 `itemString` 變兩行，列高 16 只畫得下第一行 → 只剩 `[潮汐工藝...`，而且 FontString 預設置中，框寬被較長的第二行撐開，第一行就往右偏一大截。看起來像排版錯位，其實是資料。
+
+修法是 `SplitSegments` 先拆段落再逐段判斷（製作規格取第一段、特殊關鍵字逐段比對，「含孢」＋「傳奇」也必須在同一段才算）。**以後任何掃標題補充行的程式都要先拆段落**，不要把 leftText 當單一片語。
 
 **How to apply:** 有物品沒上色時開 `/miliuiilvldbg`，輸出會印出實際採用的 link、`OrigItemLink`（兩者不一致代表退路救回一筆）、`GetItemUpgradeInfo` 的完整回傳，找不到軌道時還會把**整份工具提示原文**印出來。先看那份原文再動手——這次就是它一次分辨出「API 壞掉」和「這顆本來就沒軌道」，比繼續猜快得多。上游 TinyInspect-Remake 更新後若改了 `OrigItemLink` 的寫入時機，這裡不會報錯、只會靜默退回品質色，見 [[project-local-addon-forks]]。

@@ -421,7 +421,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-speccompare-equipment-filter.md](project-speccompare-equipment-filter.md) | AdventureGuideSpecCompare 的 IsEquipment 篩選：玩具/純造型會混進裝備清單，要排除 |
 | [project-third-party-manifest-clean-tree.md](project-third-party-manifest-clean-tree.md) | THIRD_PARTY.md 要在只有版控檔案的 worktree 重產，不能在主 checkout 跑——主 checkout 有私人插件與沒收錄的資料夾，會被列進公開清單 |
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect-Remake 的 12.1 secret 修補——UnitGUID 比較/當 key 會炸，退路是比對 unit token |
-| [project-tinyinspect-track-colors.md](project-tinyinspect-track-colors.md) | MiliUI 給 TinyInspect 裝等數字上軌道色；含「掛勾讀到過期狀態」通則與 Journal 戰利品的軌道取得方式 |
+| [project-tinyinspect-track-colors.md](project-tinyinspect-track-colors.md) | MiliUI 給 TinyInspect 裝等數字上軌道色、觀察清單加製作／鍛造前綴；含「掛勾讀到過期狀態」通則、Journal 戰利品的軌道取得方式、標題補充行一行多段（\n 接、壞色碼） |
 | [project-tinytooltip-perf.md](project-tinytooltip-perf.md) | TinyTooltip-Remake 滑過裝備掉 FPS 的根因與 MiliUI 就地效能修補 |
 | [project-toc-interface-bump.md](project-toc-interface-bump.md) | 改版後一鍵更新所有插件 .toc 的 Interface 版本號 —— 工具在 wow-toc-interface-bump 技能裡，別再找 .agent/ |
 | [project-toc-title-tag-style.md](project-toc-title-tag-style.md) | Title-zhTW 兩字標籤與漸層上色規則、遊戲排序剝色碼的事實、Notes-zhTW 換行慣例；整理插件列表外觀時照這份做 |
