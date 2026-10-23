@@ -160,7 +160,7 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 - 秘密的目標名字（單位明文、它的目標受限）是唯一畫秘密值的地方：自訂段落不量不讀、`SetText(秘密)`、輪詢重交；每次 RenderView 放掉 `state.panelTargetFS`。
   **那一顆是 `Panel.SecretText` 專用、不進池**（2026-10-20 修）：原本跟池借，寫過秘密字串的字之後 GetStringHeight 永遠回秘密（[[wow-121-secret-values]]），還回池裡被物品面板借去畫換行段落 ⇒ `PlainNumber or 0` 只留一行高 ⇒ 下一段疊上去（實機：團本裡滑過單位後，骰裝寶箱的說明黃字被「內含下列任一物品」蓋住，直到 /reload）。Tests/helpers.lua 的假 FontString 已模擬這個黏著行為。
 - 版面數值（照 PrettyTooltip、色照提示皮）：頭像 40、等級底板在頭像**下方**（徽章其他型別在上方，`view.badgeBelow`）、底板難度色（邊×0.8／底×0.14／字往白收 0.55）；名字 title+3；標題區各行 `UNIT_HEADER_GAP = 3` 等距；最小寬 250；
-  浮水印（`panel.unitWatermark`）＝PrettyTooltip 的陣營徽記 PNG（MIT，`Media/LICENSE-PrettyTooltip.txt`，關於頁致謝已改寫）＋暴雪目標框龍 atlas，裁在面板內。
+  浮水印（`panel.unitWatermark`）＝PrettyTooltip 的陣營徽記 PNG（MIT，`Media/LICENSE-PrettyTooltip.txt`，關於頁致謝已改寫）＋自繪龍剪影（2026-10-24 換掉模糊的暴雪目標框 atlas：Gemini 出四格白底黑圖→亮度轉 alpha、同一裁切框切成 `Media/dragon-{elite,rare,boss,rareelite}.png` 512 方圖，程式用 BADGE 色上金／銀；稀有帶星、首領帶翼＋骷髅），裁在面板內。
 - 標籤一律用暴雪全域：`STATUS_TEXT_TARGET`「目標」（`TARGET` 是「選取目標」）、`AFK`「離開」、`MAP_LEGEND_RARE(ELITE)`「稀有（精英）」。
 - **視野外的隊友**（2026-10-23，使用者問截圖底部「憤怒之印」是什麼）：暴雪的單位提示資料（C 端，FrameXML 沒有 AddLine）在最後多一行**地名**（type 0 None、白字、沒標籤），
   同時 `GetGuildInfo` 拿不到 ⇒ 標題區沒有公會、那行地名掉進「其他」被當成謎之文字。對方走近後兩樣都恢復，dump 不到。

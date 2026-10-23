@@ -222,20 +222,16 @@ local FACTION_ART = {
     Horde = { file = MEDIA .. "faction-horde.png", color = { 0.90, 0.25, 0.20 } },
 }
 local FACTION_SIZE, FACTION_RIGHT, FACTION_TOP, FACTION_ALPHA = 200, -44, -24, 0.12
-local DRAGON = "UI-HUD-UnitFrame-Target-PortraitOn-Boss-"
+-- 龍＝自繪白色剪影（Gemini 出圖→亮度轉 alpha，四張共用同一個裁切框所以頭的位置與大小一致），
+-- 顏色由程式上：精英金／稀有銀＝徽章同色，首領帶翼＋骷髅、稀有精英帶翼＋星，形狀也分得開（不只靠色）。
 local DRAGONS = {
-    elite = { atlas = DRAGON .. "Gold", x = 0, y = 0 },
-    boss = { atlas = DRAGON .. "Gold-Winged", x = 11, y = 5 },
-    rare = { atlas = DRAGON .. "Rare-Silver", x = 0, y = 0 },
-    rareelite = { atlas = DRAGON .. "Rare-Silver-Winged", x = 8, y = 8 },
+    elite = { file = MEDIA .. "dragon-elite.png", color = BADGE.elite },
+    boss = { file = MEDIA .. "dragon-boss.png", color = BADGE.elite },
+    rare = { file = MEDIA .. "dragon-rare.png", color = BADGE.rare },
+    rareelite = { file = MEDIA .. "dragon-rareelite.png", color = BADGE.rare },
 }
-local DRAGON_HEIGHT, DRAGON_RIGHT, DRAGON_TOP, DRAGON_ALPHA = 229, -19, 17, 0.32
-
-local function AtlasInfo(name)
-    if not (C_Texture and C_Texture.GetAtlasInfo) then return end
-    local ok, info = pcall(C_Texture.GetAtlasInfo, name)
-    if ok and type(info) == "table" and info.width and info.height and info.height > 0 then return info end
-end
+-- 512 方圖，單頭約佔高度九成；SIZE 250 ⇒ 頭高約 229（跟原本暴雪 atlas 的高度一樣）
+local DRAGON_SIZE, DRAGON_RIGHT, DRAGON_TOP, DRAGON_ALPHA = 250, -40, 4, 0.18
 
 -- art = { file, coords = { l, r, t, b }, width, height, right, top, color, alpha }（設計單位）
 local function DrawWatermark(panel, ctx, art)
@@ -277,15 +273,10 @@ local function Watermark(f)
                 or (c == "elite" and "elite") or nil
         end
         local d = key and DRAGONS[key]
-        local info = d and AtlasInfo(d.atlas)
-        local elite = info and AtlasInfo(DRAGONS.elite.atlas)
-        if elite then
-            local scale = DRAGON_HEIGHT / elite.height
-            art = { file = info.file, coords = { info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord },
-                width = info.width * scale, height = info.height * scale,
-                right = DRAGON_RIGHT - d.x * scale, top = DRAGON_TOP + d.y * scale,
-                color = { 1, 1, 1 }, alpha = DRAGON_ALPHA }
-            if f.gray then art.color = { 0.6, 0.6, 0.6 } end
+        if d then
+            art = { file = d.file, coords = { 0, 1, 0, 1 }, width = DRAGON_SIZE, height = DRAGON_SIZE,
+                right = DRAGON_RIGHT, top = DRAGON_TOP, color = d.color, alpha = DRAGON_ALPHA }
+            if f.gray then art.color = BADGE.dead end
         end
     end
     if not art or not art.file then return nil end
