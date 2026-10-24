@@ -3,12 +3,12 @@
 --
 -- ⚠ 接觸面清單（要碰暴雪物件的新程式碼必須先過這張表）：
 --   1. TooltipDataProcessor.AddTooltipPostCall（官方入口）
---   2. hooksecurefunc：GameTooltip_SetDefaultAnchor、GameTooltip.SetAction／SetPetAction／SetShapeshift
---      （Anchor.lua；後者只在戰鬥隱藏時 Hide，不加行）、
+--   2. hooksecurefunc：GameTooltip_SetDefaultAnchor（Anchor.lua）、
 --      GameTooltip_AddInstructionLine、
 --      ItemRefTooltip.SetHyperlink（Quest.lua）、InspectUnit（UnitInfo.lua）
 --   3. HookScript("OnTooltipCleared")（清理暫態）、GameTooltipStatusBar 的 OnShow／OnHide
---      （我們的血條跟著引擎血條開關，Bar.OnEngineBar；掛勾裡只動自己的條）
+--      （我們的血條跟著引擎血條開關，Bar.OnEngineBar；掛勾裡只動自己的條）；
+--      HookScript(GameTooltip, "OnShow")（Anchor.lua：戰鬥中隱藏的網，該藏就 Panel.Restore＋Hide，#8）
 --   4. line FontString 的 SetText / SetTextColor（UnitLines.lua；暴雪每次
 --      ProcessInfo 會重設所有行，寫入活不到 secure 讀取）
 --   5. tip:AddLine / tip:Show（官方內容 API；Show 只在 ProcessInfo 之外呼叫）
