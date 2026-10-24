@@ -53,4 +53,8 @@ metadata:
 
 修法是 `SplitSegments` 先拆段落再逐段判斷（製作規格取第一段、特殊關鍵字逐段比對，「含孢」＋「傳奇」也必須在同一段才算）。**以後任何掃標題補充行的程式都要先拆段落**，不要把 leftText 當單一片語。
 
+## 升級等級超過軌道上限（2026-10-24）
+
+團本裝被「卓越劇毒鍛造：傳奇」推過頭時，`GetItemUpgradeInfo` 回 `trackString=英雄, currentLevel=8, maxLevel=6`，清單印「[英雄 8/6]」紫色，關鍵字判斷根本沒跑到（軌道分支先 return）。上一季的「含孢：傳奇」是靠 `SPECIAL_KEYWORDS` 命中，這次同一條路加 `{"劇毒鍛造","傳奇"} → 卓越劇毒`，並加 `IsOverTrackCap`：`currentLevel > maxLevel` 時先掃鍛造關鍵字（清單前綴與裝等數字都走橘色），沒命中才退回「[英雄 8/6]」。製作裝的「卓越劇毒鍛造」沒有「：傳奇」字樣，照舊走製作規格。下一季出新鍛造只要在 `SPECIAL_KEYWORDS` 加一條，條件照「鍛造名＋階級字」兩段都要在同一段落裡。
+
 **How to apply:** 有物品沒上色時開 `/miliuiilvldbg`，輸出會印出實際採用的 link、`OrigItemLink`（兩者不一致代表退路救回一筆）、`GetItemUpgradeInfo` 的完整回傳，找不到軌道時還會把**整份工具提示原文**印出來。先看那份原文再動手——這次就是它一次分辨出「API 壞掉」和「這顆本來就沒軌道」，比繼續猜快得多。上游 TinyInspect-Remake 更新後若改了 `OrigItemLink` 的寫入時機，這裡不會報錯、只會靜默退回品質色，見 [[project-local-addon-forks]]。

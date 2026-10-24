@@ -161,6 +161,9 @@ local SPECIAL_KEYWORDS = {
     { match = "虛無鍛造",  text = "虛無鍛造" },  -- Null Forge (zh-TW)
     { match = "Null Forge", text = "Null Forge" },
     { match = { "含孢", "傳奇" }, text = "含孢：傳奇" },  -- 只有「含孢：傳奇」套橘色，其餘含孢軌跡維持原色
+    -- 12.1 第二季：團本裝「卓越劇毒鍛造：傳奇」會把英雄軌道推到 8/6，照含孢的做法只認「：傳奇」那階；
+    -- 製作裝的「卓越劇毒鍛造」沒有階級字樣，維持製作規格顯示
+    { match = { "劇毒鍛造", "傳奇" }, text = "卓越劇毒" },
 }
 
 local function GetForgeInfo(link, data)
@@ -242,6 +245,12 @@ local function HasActiveTrack(info)
     return info and info.trackString and info.maxLevel and info.maxLevel > 0
 end
 
+-- 升級等級超過軌道上限（例：英雄 8/6）＝被鍛造推過頭的裝備。這種情況軌道資訊不是重點，
+-- 要先看提示行上的鍛造關鍵字（卓越劇毒／含孢：傳奇），關鍵字沒命中才退回「[英雄 8/6]」。
+local function IsOverTrackCap(info)
+    return HasActiveTrack(info) and info.currentLevel ~= nil and info.currentLevel > info.maxLevel
+end
+
 local function BuildTrackText(link)
     if (not link) then return end
     if (not TinyInspectRemakeDB or not TinyInspectRemakeDB.ShowUpgradeInfo) then return end
@@ -260,6 +269,12 @@ local function BuildTrackText(link)
             local crafted = IsCraftedItem(link)
             local craftQ = GetItemCraftedQualityAPI and GetItemCraftedQualityAPI(link)
             print("|cffffd200[MiliUI-DBG]|r IsCrafted=" .. tostring(crafted) .. " CraftedQuality=" .. tostring(craftQ))
+        end
+        if (IsOverTrackCap(info)) then
+            local forgeText, forgeColor = GetForgeInfo(link)
+            if (forgeText) then
+                return string.format("|c%s[%s]|r %s", forgeColor, forgeText, link)
+            end
         end
         if (HasActiveTrack(info)) then
             local color = TRACK_COLORS[info.trackString] or "ffffd200"
@@ -363,6 +378,14 @@ local function GetItemLevelColor(link)
                 DebugILvl("    UpgradeInfo: %s", table.concat(parts, ", "))
             else
                 DebugILvl("    UpgradeInfo: nil")
+            end
+        end
+        if (IsOverTrackCap(info)) then
+            local forgeText, forgeColor = GetForgeInfo(link)
+            if (forgeColor) then
+                DebugILvl("    -> 超過軌道上限 %d/%d，特殊關鍵字色 %s (%s)",
+                    info.currentLevel, info.maxLevel, forgeColor, tostring(forgeText))
+                return forgeColor
             end
         end
         if (info and info.trackString and TRACK_COLORS[info.trackString]) then
