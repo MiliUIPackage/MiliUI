@@ -322,9 +322,9 @@ Append({
     { type = "toggle", label = "烏拉特克戰鬥結束後自動釋放靈魂",
       get = function() return ns.UlatekAutoRelease and ns.UlatekAutoRelease.IsEnabled() end,
       set = function(v) if ns.UlatekAutoRelease then ns.UlatekAutoRelease.SetEnabled(v) end end },
-    { type = "text", label = "英雄／傳奇難度的烏拉特克戰鬥結束（滅團或擊殺）後 0.5 秒自動釋放靈魂。"
-        .. "戰鬥一結束馬上釋放會直接留在首領平台上，不用從墓地重新跑回來。"
-        .. "身上有靈魂石、復生這類自我復活可用時不會自動釋放。預設開啟。" },
+    { type = "text", label = "英雄／傳奇難度的烏拉特克戰鬥結束（滅團或擊殺）後，在遊戲放行的第一刻自動釋放靈魂。"
+        .. "戰鬥一結束馬上釋放會直接留在首領平台上，慢了就落到墓地要重新跑回來。"
+        .. "身上有靈魂石、復生這類自我復活可以用時不會自動釋放。預設開啟。" },
 })
 
 -- 探究「標記敦敦」按鈕（Modules/Delves_MarkButton.lua）。
