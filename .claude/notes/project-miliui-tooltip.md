@@ -24,7 +24,7 @@ metadata:
   只有提示插件 ⇒ 沒人叫 Adopt、那些框維持暴雪原樣；只有外觀插件 ⇒ API 不存在、MiliUI_Skin 退回自己畫一層（[[project-miliui-skin]]「特例二」）。
   2026-10-18 加第二參數 `opts.keepScale`：Adopt 預設會 `SetScale(general.scale)`，對「自己 SetParent 到 GameTooltip 底下」的框（AppearanceTooltip 的預覽）會變成平方倍 ⇒ 那種要帶 keepScale，旗標存 state、`ApplyBase` 重跑也跳過。同一天 `NeutralizeTemplateBar` 補了秘密名字閘（`GetName` 在秘密錨點鏈上回秘密字串，查 `_G` 會炸）。
 - 一次性視覺中和：`NineSlice:SetAlpha(0)`（skin OnShow 重申）、`GameTooltipStatusBar:SetAlpha(0)`（載入時壓一次不夠，單位提示流程會弄回來 → `Bar.Activate` 每次重申）。
-- 血條／模型層級要明寫 tip+1（skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）。血條是自己的：`UnitHealthPercent(unit, true, ScaleTo100)` → SetValue(秘密)。
+- 血條／模型層級要明寫 tip+1（skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）。血條是自己的：`UnitHealthPercent(unit, true, ScaleTo100)` → SetValue(秘密)。**顯示與否跟著引擎血條**（GameTooltip.StatusBar 的 IsShown；12.x 是 C 端對有血量的單位 SetWatch 才 Show，火盆／祭壇／補給品這種用生物做的互動物走 Unit 型別提示但不 SetWatch）——2026-10-24 玩家回報物件底下多一條滿血條，Bar.Refresh 加閘＋HookScript 引擎條的 OnShow／OnHide 即時同步。
 - **post-call 時序紅利**：行加在暴雪排版之前 ⇒ 不需要自我 Show()，比價重建風暴只剩重上色。Show() 只在 ProcessInfo 之外（目標行輪詢、非同步觀察刷新）呼叫。
 - 輪詢走 `Skin.Poll`（`ns.Metro.New(0.05, ns.ReportError)`，共用層）並掛在「有沒有 tooltip 顯示中」上——沒有提示的時候 ticker 根本不存在。
   可見度判斷用**自己的 skin frame 的 OnShow/OnHide**（父層一藏子層就跟著發，零接觸面）。`Core/Secret.lua` 已刪，`ns.Secret` 由共用層提供（[[project-miliui-widgets-vendor]]）。
@@ -199,6 +199,10 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 「在固定的那個點閃一下」是**面板**：第一版的過期判斷把 `GetOwner()==nil` 當成「owner 換了」⇒ 旗標被清、面板照畫，下一輪才被 Release 拆掉。
 規則：**owner 過期只認非 nil 且不同的 owner**；推理不出來的顯示問題先用 `/mtip log` 拍「下一幀誰還看得見」（原生／面板／skin 的 shown＋原生錨點），別再猜錨點行為。
 `/mtip logdump` 2026-10-24 起開視窗（Api.lua 的 ShowLogWindow，可全選複製），聊天視窗貼不下 400 條。
+**CVar `UberTooltips`（介面選項「進階提示資訊」）=0 時快捷列不走 SetDefaultAnchor**：暴雪 ActionButton:SetTooltip 與 LibActionButton（Bartender4／Dominos）都改走
+`SetOwner(self, "ANCHOR_RIGHT")`＋SetAction，SetDefaultAnchor 掛勾完全不跑（玩家「Bartender 沒隱藏」、作者自己的暴雪快捷列正常＝作者是 1、玩家是 0；ElvUI 安裝時硬設成 1）。
+⇒ 另掛 `GameTooltip.SetAction／SetPetAction／SetShapeshift` 後掛勾：該藏就先 `Panel.Restore` 再 `Hide`（接觸面 #2，只 Hide 不加行）。
+旗標的錨點型別改記「藏的時候是什麼」（ANCHOR_NONE 或 ANCHOR_RIGHT），不寫死 ANCHOR_NONE。
 **重繪面板是獨立的框（父層 UIParent）**，post-call 照畫、而且 J3「原生暫時沒有點 ⇒ 沿用上次的貼法」讓它停在上一次的位置 ⇒ 玩家戰鬥中看到的是面板。
 Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_SetDefaultAnchor` → `SetAction`（UberTooltips=1），跟 Bartender 無關。
 修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；

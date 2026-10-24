@@ -3,7 +3,8 @@
 --
 -- ⚠ 接觸面清單（要碰暴雪物件的新程式碼必須先過這張表）：
 --   1. TooltipDataProcessor.AddTooltipPostCall（官方入口）
---   2. hooksecurefunc：GameTooltip_SetDefaultAnchor（Anchor.lua）、
+--   2. hooksecurefunc：GameTooltip_SetDefaultAnchor、GameTooltip.SetAction／SetPetAction／SetShapeshift
+--      （Anchor.lua；後者只在戰鬥隱藏時 Hide，不加行）、
 --      GameTooltip_AddInstructionLine、
 --      ItemRefTooltip.SetHyperlink（Quest.lua）、InspectUnit（UnitInfo.lua）
 --   3. HookScript("OnTooltipCleared")（清理暫態）

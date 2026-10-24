@@ -103,20 +103,27 @@ local function LogVisibleNextFrame(tip, state)
     end)
 end
 
+local function PlainAnchorType(tip)
+    local ok, anchorType = pcall(tip.GetAnchorType, tip)
+    return ok and S.PlainText(anchorType) or nil
+end
+
 local function NoteCombatHidden(tip, owner)
     local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
     if not state then return end
     state.combatHidden = owner and true or nil
     state.combatHiddenOwner = owner
+    state.combatHiddenAnchor = owner and PlainAnchorType(tip) or nil
     if owner and ns.logEnabled then LogVisibleNextFrame(tip, state) end
 end
 
 function Anchor.IsCombatHidden(tip, state)
     if not state or not state.combatHidden then return false end
     local stale = not InCombatLockdown() and "脫戰"
-    if not stale and tip.GetAnchorType then
-        local ok, anchorType = pcall(tip.GetAnchorType, tip)
-        if ok and not S.IsSecret(anchorType) and anchorType ~= "ANCHOR_NONE" then stale = "錨點型別 " .. tostring(anchorType) end
+    if not stale and state.combatHiddenAnchor then
+        -- 錨點型別跟藏的時候不一樣＝別人 SetOwner 過（SetDefaultAnchor 路徑是 ANCHOR_NONE、UberTooltips=0 的快捷列是 ANCHOR_RIGHT）
+        local anchorType = PlainAnchorType(tip)
+        if anchorType and anchorType ~= state.combatHiddenAnchor then stale = "錨點型別 " .. anchorType end
     end
     if not stale and tip.GetOwner then
         local ok, owner = pcall(tip.GetOwner, tip)
@@ -126,7 +133,7 @@ function Anchor.IsCombatHidden(tip, state)
     end
     if stale then
         if ns.logEnabled then ns.Log("戰鬥隱藏 旗標過期（%s）⇒ 清掉", stale) end
-        state.combatHidden, state.combatHiddenOwner = nil, nil
+        state.combatHidden, state.combatHiddenOwner, state.combatHiddenAnchor = nil, nil, nil
         return false
     end
     return true
@@ -232,8 +239,8 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnch
     end
     if ShouldHideInCombat(hideAnchor) then
         local owner = SafeSetOwner(tip, parent, "ANCHOR_NONE")
+        NoteCombatHidden(tip, owner)       -- 在 Hide 之前記：錨點型別要記藏之前的
         tip:Hide()
-        NoteCombatHidden(tip, owner)
         if ns.logEnabled then
             ns.Log("戰鬥隱藏 藏 owner=%s 來源：%s",
                 ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
@@ -321,6 +328,37 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
     local _, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
     AnchorFrame(tip, parent, anchor, isUnitFrame, nil, combatAnchor)
 end)
+
+------------------------------------------------------------
+-- 快捷列不經 SetDefaultAnchor 的那條路（2026-10-24 玩家回報「Bartender 沒隱藏」、作者自己的暴雪快捷列正常）：
+-- CVar UberTooltips=0 時，暴雪的 ActionButton:SetTooltip 跟 LibActionButton（Bartender4、Dominos…）的 UpdateTooltip
+-- 都改走 GameTooltip:SetOwner(self, "ANCHOR_RIGHT") 再 SetAction，上面的掛勾根本不會跑。舊玩家常見是 0
+--（ElvUI 安裝時甚至硬設成 1）。⇒ 另掛 SetAction／SetPetAction／SetShapeshift 的後掛勾（接觸面 #2，只 Hide 不加行）：
+-- 該藏就先拆面板（post-call 已經畫了，同一幀拆不會閃）再 Hide；Hide 清掉 owner 之後 GameTooltip_OnUpdate 不跑、
+-- LAB 的事件刷新（GetOwner()==button 才重設）也認不到。SetDefaultAnchor 路徑已經藏過的（旗標在）直接跳過。
+------------------------------------------------------------
+local function HideActionTooltipInCombat(tip)
+    if not ns.db or tip ~= GameTooltip or S.IsForbiddenObject(tip) then return end
+    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
+    if not state or state.combatHidden then return end
+    if not ShouldHideInCombat(GeneralAnchor()) then return end
+    local ok, owner = pcall(tip.GetOwner, tip)
+    owner = (ok and not S.IsSecret(owner) and owner) or UIParent
+    if ns.logEnabled then
+        ns.Log("戰鬥隱藏 SetAction 後掛勾 ⇒ 藏 owner=%s 錨點型別=%s",
+            ns.Describe(owner.GetName and S.SafeCall(owner.GetName, owner)), tostring(PlainAnchorType(tip)))
+    end
+    if ns.Panel and ns.Panel.Restore then ns.Panel.Restore(tip, state) end
+    NoteCombatHidden(tip, owner)       -- 在 Hide 之前記：錨點型別要記藏之前的
+    tip:Hide()
+end
+if GameTooltip then
+    for _, name in ipairs({ "SetAction", "SetPetAction", "SetShapeshift" }) do
+        if type(GameTooltip[name]) == "function" then
+            hooksecurefunc(GameTooltip, name, HideActionTooltipInCombat)
+        end
+    end
+end
 
 ------------------------------------------------------------
 -- 戰鬥中按住修飾鍵 → 立刻把藏起來的 tooltip 叫回來（放開再藏）
